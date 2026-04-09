@@ -19,6 +19,7 @@
   --good:#0F6E56;--good-bg:#E1F5EE;
   --bad:#A32D2D;--bad-bg:#FCEBEB;
   --logo-color:#5C5557;--toggle-knob:#5C5557;
+  --col-header:#f0e8e4;
 }
 [data-theme="dark"]{
   --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;
@@ -30,6 +31,7 @@
   --good:#99F6E4;--good-bg:rgba(153,246,228,0.12);
   --bad:#FF9B9B;--bad-bg:rgba(255,155,155,0.12);
   --logo-color:#FAF8F3;--toggle-knob:#FFD4D9;
+  --col-header:#3f4052;
 }
 
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
@@ -37,121 +39,142 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* HEADER */
 header{
   background:var(--surface);border-bottom:1px solid var(--border);
-  padding:16px 24px;display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;display:flex;align-items:center;justify-content:space-between;
   box-shadow:var(--shadow);transition:background .3s,border-color .3s;
   position:sticky;top:0;z-index:20;
 }
 .logo{display:flex;align-items:center;gap:12px}
-.logo-text .logo-name{font-family:'DM Sans',sans-serif;font-weight:700;font-size:17px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text);line-height:1;transition:color .3s}
+.logo img{width:36px;height:36px;object-fit:contain}
+.logo-text .logo-name{font-family:'DM Sans',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text);line-height:1}
 .logo-text .logo-sub{font-size:9px;letter-spacing:0.26em;text-transform:uppercase;color:var(--muted);margin-top:2px}
-.logo-strip{height:2px;width:110px;margin-top:5px;background:linear-gradient(to right,#99F6E4,#EEF3C7,#C4B5FD,#FF9B9B,#FFD4D9);border-radius:2px}
-.portal-label{font-family:'Cormorant Garamond',serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-top:4px}
-
+.logo-strip{height:2px;width:100px;margin-top:4px;background:linear-gradient(to right,#99F6E4,#EEF3C7,#C4B5FD,#FF9B9B,#FFD4D9);border-radius:2px}
+.portal-label{font-family:'Cormorant Garamond',serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-top:3px}
 .toggle-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
 .toggle-lbl{font-size:11px;color:var(--muted);min-width:30px}
 .toggle-track{width:38px;height:20px;border-radius:10px;background:var(--border);position:relative;transition:background .3s;flex-shrink:0;border:1px solid var(--border)}
 .toggle-thumb{width:14px;height:14px;border-radius:50%;background:var(--toggle-knob);position:absolute;top:2px;left:2px;transition:transform .25s ease,background .3s}
 [data-theme="dark"] .toggle-thumb{transform:translateX(18px)}
 
-/* LAYOUT */
-.page{max-width:600px;margin:0 auto;padding:32px 20px 60px}
+/* PAGE */
+.page{max-width:1400px;margin:0 auto;padding:28px 20px 60px}
 
-/* CARD */
-.card{background:var(--surface);border-radius:16px;padding:28px;border:1px solid var(--border);box-shadow:var(--shadow);transition:background .3s,border-color .3s;margin-bottom:16px}
-.card-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;color:var(--text);margin-bottom:4px}
-.card-sub{font-size:11px;color:var(--muted);letter-spacing:0.05em;margin-bottom:20px}
+/* UPLOAD CARD */
+.upload-card{background:var(--surface);border-radius:16px;padding:24px;border:1px solid var(--border);box-shadow:var(--shadow);transition:background .3s,border-color .3s;margin-bottom:24px}
+.card-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;color:var(--text);margin-bottom:3px}
+.card-sub{font-size:11px;color:var(--muted);letter-spacing:0.05em;margin-bottom:18px}
+.upload-grid{display:grid;grid-template-columns:repeat(3,1fr) 1fr;gap:12px;align-items:end}
+@media(max-width:700px){.upload-grid{grid-template-columns:1fr 1fr}}
 
-/* FIELDS */
-.field{margin-bottom:14px}
-.field-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
 input[type=text],input[type=password],select{
-  width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:10px;
-  font-size:13px;color:var(--text);background:var(--surface2);
-  font-family:'DM Sans',sans-serif;transition:border-color .2s,background .3s,color .3s;
-  appearance:none;
+  width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;
+  font-size:12px;color:var(--text);background:var(--surface2);
+  font-family:'DM Sans',sans-serif;transition:border-color .2s,background .3s,color .3s;appearance:none;
 }
 input:focus,select:focus{outline:none;border-color:var(--accent)}
 
-/* BTN */
+.drop-zone{
+  border:1.5px dashed var(--border);border-radius:10px;padding:18px 12px;
+  text-align:center;cursor:pointer;background:var(--surface2);transition:border-color .2s;
+}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--accent)}
+.drop-zone p{color:var(--muted);font-size:11px;margin-top:4px}
+.drop-zone .drop-icon{font-size:20px;opacity:.4}
+.file-name{font-size:11px;color:var(--text);font-weight:500;margin-top:4px}
+
 .btn{
-  width:100%;padding:12px;background:var(--btn);color:var(--btn-fg);
-  border:none;border-radius:10px;font-size:12px;letter-spacing:0.12em;
+  width:100%;padding:11px;background:var(--btn);color:var(--btn-fg);
+  border:none;border-radius:10px;font-size:11px;letter-spacing:0.12em;
   text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;
-  font-weight:700;transition:background .2s,opacity .2s;
+  font-weight:700;transition:background .2s,opacity .2s;white-space:nowrap;
 }
 .btn:hover{background:var(--btn-hover)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-secondary{
-  background:transparent;color:var(--muted);border:1px solid var(--border);
-  padding:7px 14px;border-radius:8px;font-size:11px;letter-spacing:0.1em;
-  text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;
-  font-weight:500;transition:all .2s;
-}
-.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
 
-/* DROP ZONE */
-.drop-zone{
-  border:1.5px dashed var(--border);border-radius:12px;padding:28px;
-  text-align:center;cursor:pointer;background:var(--surface2);
-  transition:border-color .2s;
-}
-.drop-zone:hover,.drop-zone.dragover{border-color:var(--accent)}
-.drop-zone p{color:var(--muted);font-size:13px;margin-top:6px}
-.drop-zone .drop-icon{font-size:28px;opacity:.4}
-.file-name{margin-top:6px;font-size:12px;color:var(--text);font-weight:500}
-
-/* STATUS */
-.status{padding:11px 16px;border-radius:10px;font-size:13px;margin-top:12px;text-align:center;display:none}
+.status{padding:10px 14px;border-radius:10px;font-size:12px;margin-top:10px;text-align:center;display:none}
 .status.success{background:var(--good-bg);color:var(--good);display:block}
 .status.error{background:var(--bad-bg);color:var(--bad);display:block}
 .err{color:var(--bad);font-size:13px;text-align:center;margin-top:8px}
-.filter-sel{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--text);background:var(--surface2);font-family:'DM Sans',sans-serif;transition:border-color .2s,background .3s,color .3s;appearance:none;cursor:pointer}
-.filter-sel:focus{outline:none;border-color:var(--accent)}
 
-/* WEEKS LIST */
-.section-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
-.week-item{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:11px 14px;background:var(--surface2);border-radius:10px;
-  margin-bottom:8px;border:1px solid var(--border);transition:background .3s;
+/* 5-COLUMN GRID */
+.branches-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+@media(max-width:1100px){.branches-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.branches-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.branches-grid{grid-template-columns:1fr}}
+
+.branch-col{background:var(--surface);border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;transition:background .3s,border-color .3s}
+.branch-col-header{
+  padding:14px 16px;background:var(--col-header);border-bottom:1px solid var(--border);
+  transition:background .3s;
 }
-.week-item-left{display:flex;flex-direction:column;gap:2px}
-.week-label-text{font-size:13px;color:var(--text);font-weight:500}
-.week-branch-tag{font-size:10px;color:var(--muted);letter-spacing:0.06em}
-.week-item-right{display:flex;align-items:center;gap:8px}
+.branch-col-name{font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text)}
+.branch-col-sub{font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:0.05em}
+.branch-col-accent{height:2px;border-radius:2px;margin-top:8px}
+
+.branch-col-body{padding:10px 12px}
+
+/* YEAR SECTION */
+.year-section{margin-bottom:8px}
+.year-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 10px;border-radius:8px;cursor:pointer;
+  background:var(--surface2);border:1px solid var(--border2);
+  font-size:11px;font-weight:700;color:var(--text);letter-spacing:0.06em;
+  user-select:none;transition:background .2s;margin-bottom:4px;
+}
+.year-toggle:hover{background:var(--border2)}
+.year-arrow{font-size:10px;transition:transform .2s;color:var(--muted)}
+.year-arrow.open{transform:rotate(180deg)}
+
+/* MONTH SECTION */
+.month-section{margin-left:4px;margin-bottom:4px}
+.month-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 10px;border-radius:7px;cursor:pointer;
+  font-size:11px;color:var(--muted);letter-spacing:0.05em;
+  user-select:none;transition:background .15s;
+}
+.month-toggle:hover{background:var(--surface2);color:var(--text)}
+.month-arrow{font-size:9px;transition:transform .2s}
+.month-arrow.open{transform:rotate(180deg)}
+.month-count{font-size:10px;color:var(--muted2);margin-left:4px}
+
+/* WEEK ITEMS */
+.weeks-list{margin-left:8px;padding-bottom:4px}
+.week-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 8px;border-radius:7px;margin-bottom:3px;
+  border:1px solid var(--border2);background:var(--surface2);
+  transition:background .2s;
+}
+.week-item:hover{background:var(--border2)}
+.week-label-text{font-size:11px;color:var(--text);font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.week-date{font-size:10px;color:var(--muted2);margin-top:1px}
+.week-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:6px}
+.icon-btn{background:none;border:none;cursor:pointer;padding:3px 5px;color:var(--muted);font-size:13px;line-height:1;transition:color .2s;border-radius:5px}
+.icon-btn:hover.edit{color:var(--accent)}
+.icon-btn:hover.del{color:var(--bad)}
+.icon-btn:hover.save{color:var(--good)}
+
 .edit-input{
-  padding:5px 10px;border:1px solid var(--accent);border-radius:7px;
-  font-size:12px;background:var(--surface);color:var(--text);
-  font-family:'DM Sans',sans-serif;width:180px;
+  padding:4px 8px;border:1px solid var(--accent);border-radius:6px;
+  font-size:11px;background:var(--surface);color:var(--text);
+  font-family:'DM Sans',sans-serif;width:100%;margin-top:4px;
 }
 .edit-input:focus{outline:none}
-.icon-btn{
-  background:none;border:none;cursor:pointer;padding:4px;
-  color:var(--muted);font-size:16px;line-height:1;transition:color .2s;border-radius:6px;
-}
-.icon-btn:hover.edit{color:var(--accent)}
-.icon-btn:hover.save{color:var(--good)}
-.icon-btn:hover.del{color:var(--bad)}
 
-/* RESPONSIVE */
-@media(max-width:480px){
-  .page{padding:20px 14px 48px}
-  .card{padding:20px}
-  header{padding:14px 16px}
-}
+.empty-col{font-size:11px;color:var(--muted2);text-align:center;padding:16px 8px}
+
+/* LOGIN */
+.login-wrap{max-width:380px;margin:80px auto;background:var(--surface);border-radius:16px;padding:32px;border:1px solid var(--border);box-shadow:var(--shadow)}
 </style>
 </head>
 <body>
 
 <header>
   <div class="logo">
-    <svg width="40" height="40" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M22 36 C22 36 22 22 22 14 C22 10 19 7 16 9 C13 11 13 16 16 20 C18 23 22 25 22 36Z" stroke="var(--logo-color)" stroke-width="1.4" fill="none" stroke-linejoin="round"/>
-      <path d="M22 36 C22 36 22 22 22 14 C22 10 25 7 28 9 C31 11 31 16 28 20 C26 23 22 25 22 36Z" stroke="var(--logo-color)" stroke-width="1.4" fill="none" stroke-linejoin="round"/>
-      <path d="M22 14 C22 14 22 9 22 7" stroke="var(--logo-color)" stroke-width="1.3" stroke-linecap="round"/>
-      <path d="M16 20 C16 20 10 18 8 14 C6 10 8 7 11 8 C14 9 15 13 16 20Z" stroke="var(--logo-color)" stroke-width="1.3" fill="none" stroke-linejoin="round"/>
-      <path d="M28 20 C28 20 34 18 36 14 C38 10 36 7 33 8 C30 9 29 13 28 20Z" stroke="var(--logo-color)" stroke-width="1.3" fill="none" stroke-linejoin="round"/>
-    </svg>
+    <img src="image-asset-removebg-preview.png" style="width:36px;height:36px;object-fit:contain">
     <div class="logo-text">
       <div class="logo-name">Tara Rose</div>
       <div class="logo-sub">Salon</div>
@@ -159,84 +182,66 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div class="portal-label">Upload Portal</div>
     </div>
   </div>
-  <div class="toggle-wrap" onclick="toggleTheme()" role="button" aria-label="Toggle theme">
+  <div class="toggle-wrap" onclick="toggleTheme()" role="button">
     <span class="toggle-lbl" id="themeLbl">Dark</span>
     <div class="toggle-track"><div class="toggle-thumb"></div></div>
   </div>
 </header>
 
 <div class="page">
+
   <!-- LOGIN -->
-  <div id="loginSection" class="card">
+  <div id="loginSection" class="login-wrap">
     <div class="card-title">Admin Access</div>
-    <div class="card-sub">Enter your password to continue</div>
-    <div class="field">
+    <div class="card-sub" style="margin-bottom:16px">Enter your password to continue</div>
+    <div class="field" style="margin-bottom:12px">
       <label class="field-label">Password</label>
-      <input type="password" id="pwInput" placeholder="••••••••••" onkeydown="if(event.key==='Enter')login()">
+      <input type="password" id="pwInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
     </div>
     <button class="btn" onclick="login()">Enter Portal</button>
     <div class="err" id="loginErr"></div>
   </div>
 
-  <!-- UPLOAD SECTION -->
-  <div id="uploadSection" style="display:none">
+  <!-- PORTAL -->
+  <div id="portalSection" style="display:none">
 
-    <div class="card">
+    <!-- UPLOAD FORM -->
+    <div class="upload-card">
       <div class="card-title">Upload Weekly Data</div>
-      <div class="card-sub">Select branch, label the week, then upload your TSV file</div>
-
-      <div class="field">
-        <label class="field-label">Branch</label>
-        <select id="branchSelect">
-          <option value="KCA">KCA — Khalifa City</option>
-          <option value="SAA">SAA — Saadiyat</option>
-          <option value="MC">Motor City</option>
-          <option value="AQ">AQ Ladies</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label class="field-label">Week Label</label>
-        <input type="text" id="weekLabel" placeholder="e.g. March 2026 Week 4 (23–29)">
-      </div>
-
-      <div class="field">
-        <label class="field-label">TSV File (WEEKEND sheet)</label>
-        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-          <div class="drop-icon">↑</div>
-          <p>Click to browse or drag &amp; drop</p>
-          <div class="file-name" id="fileName"></div>
-        </div>
-        <input type="file" id="fileInput" accept=".tsv,.txt" style="display:none">
-      </div>
-
-      <button class="btn" id="uploadBtn" onclick="uploadData()" disabled>Upload to Dashboard</button>
-      <div class="status" id="statusMsg"></div>
-    </div>
-
-    <!-- UPLOADED WEEKS -->
-    <div class="card">
-      <div class="section-label">Uploaded Weeks</div>
-      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-        <div style="flex:1;min-width:120px">
+      <div class="card-sub">Select branch and week, then upload your TSV file</div>
+      <div class="upload-grid">
+        <div class="field">
           <label class="field-label">Branch</label>
-          <select class="filter-sel" id="filterBranch" onchange="loadWeeks()">
-            <option value="all">All branches</option>
+          <select id="branchSelect">
             <option value="KCA">Khalifa City (KCA)</option>
             <option value="SAA">Saadiyat (SAA)</option>
             <option value="MC">Motor City (MC)</option>
             <option value="AQ">AQ Ladies</option>
+            <option value="FRT">Fratelli Barber</option>
           </select>
         </div>
-        <div style="flex:1;min-width:120px">
-          <label class="field-label">Month</label>
-          <select class="filter-sel" id="filterMonth" onchange="loadWeeks()">
-            <option value="all">All months</option>
-          </select>
+        <div class="field">
+          <label class="field-label">Week Label</label>
+          <input type="text" id="weekLabel" placeholder="e.g. March 2026 Week 4 (23–29)">
+        </div>
+        <div class="field">
+          <label class="field-label">TSV File (WEEKEND sheet)</label>
+          <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <div class="drop-icon">↑</div>
+            <p>Click to browse or drag &amp; drop</p>
+            <div class="file-name" id="fileName"></div>
+          </div>
+          <input type="file" id="fileInput" accept=".tsv,.txt" style="display:none">
+        </div>
+        <div class="field" style="align-self:end">
+          <button class="btn" id="uploadBtn" onclick="uploadData()" disabled>Upload</button>
         </div>
       </div>
-      <div id="weeksItems"><p style="font-size:13px;color:var(--muted)">No data uploaded yet.</p></div>
+      <div class="status" id="statusMsg"></div>
     </div>
+
+    <!-- 5 BRANCH COLUMNS -->
+    <div class="branches-grid" id="branchesGrid"></div>
 
   </div>
 </div>
@@ -247,208 +252,255 @@ const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
 const SUPA_KEY = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
+const BRANCHES = {
+  KCA:{ name:'Khalifa City', sub:'KCA', color:'#FFD4D9' },
+  SAA:{ name:'Saadiyat',     sub:'SAA', color:'#C4B5FD' },
+  MC: { name:'Motor City',   sub:'MC',  color:'#99F6E4' },
+  AQ: { name:'AQ Ladies',    sub:'Al Quoz', color:'#FF9B9B' },
+  FRT:{ name:'Fratelli',     sub:'Barber Shop', color:'#EEF3C7' },
+};
+
 let selectedFile = null;
-let editingId = null;
+let allData = [];
+// track open/closed state per branch/year/month
+const openState = {};
 
 // THEME
 function toggleTheme() {
-  const html = document.documentElement;
-  const dark = html.getAttribute('data-theme') === 'dark';
-  html.setAttribute('data-theme', dark ? 'light' : 'dark');
-  document.getElementById('themeLbl').textContent = dark ? 'Light' : 'Dark';
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme', dark?'light':'dark');
+  document.getElementById('themeLbl').textContent = dark?'Light':'Dark';
 }
 
 // LOGIN
 function login() {
-  const pw = document.getElementById('pwInput').value;
-  if (pw === PASS) {
-    document.getElementById('loginSection').style.display = 'none';
-    document.getElementById('uploadSection').style.display = 'block';
-    loadWeeks();
+  if (document.getElementById('pwInput').value === PASS) {
+    document.getElementById('loginSection').style.display='none';
+    document.getElementById('portalSection').style.display='block';
+    loadData();
   } else {
-    document.getElementById('loginErr').textContent = 'Incorrect password.';
+    document.getElementById('loginErr').textContent='Incorrect password.';
   }
 }
 
-// FILE INPUT
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('fileInput').addEventListener('change', e => {
-    selectedFile = e.target.files[0];
-    document.getElementById('fileName').textContent = selectedFile ? selectedFile.name : '';
-    document.getElementById('uploadBtn').disabled = !selectedFile;
+// FILE
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('fileInput').addEventListener('change',e=>{
+    selectedFile=e.target.files[0];
+    document.getElementById('fileName').textContent=selectedFile?selectedFile.name:'';
+    document.getElementById('uploadBtn').disabled=!selectedFile;
   });
-
-  const dz = document.getElementById('dropZone');
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault(); dz.classList.remove('dragover');
-    selectedFile = e.dataTransfer.files[0];
-    document.getElementById('fileName').textContent = selectedFile ? selectedFile.name : '';
-    document.getElementById('uploadBtn').disabled = !selectedFile;
+  const dz=document.getElementById('dropZone');
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover')});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+  dz.addEventListener('drop',e=>{
+    e.preventDefault();dz.classList.remove('dragover');
+    selectedFile=e.dataTransfer.files[0];
+    document.getElementById('fileName').textContent=selectedFile?selectedFile.name:'';
+    document.getElementById('uploadBtn').disabled=!selectedFile;
   });
 });
 
-// PARSE TSV
-function parseAED(s) { return parseFloat((s||'').replace(/AED|,|\s/g,'').replace(/[^\d.\-]/g,''))||0; }
-function parseHairRow(c) {
-  return {
-    name:c[0],salon:parseInt(c[3])||0,newC:parseInt(c[4])||0,
-    rebooked:parseInt(c[5])||0,rebookPct:parseFloat((c[6]||'').replace('%',''))||0,
-    total:parseInt(c[7])||0,hairSales:parseAED(c[8]),hairSalesNet:parseAED(c[9]),
-    avgBill:parseFloat(c[10])||0,col:parseInt(c[11])||0,colPct:parseFloat((c[12]||'').replace('%',''))||0,
-    retail:parseAED(c[22]),treatments:parseAED(c[29]),totalNet:parseAED(c[31])
-  };
+// HELPERS
+function extractYear(label, uploaded_at) {
+  const m = label && label.match(/20\d\d/);
+  if (m) return m[0];
+  return uploaded_at ? new Date(uploaded_at).getFullYear().toString() : '2026';
 }
-function parseBeautyRow(c) {
-  return {
-    name:c[0],total:parseInt(c[7])||0,beautySales:parseAED(c[8]),
-    beautyNet:parseAED(c[9]),avgBill:parseFloat(c[10])||0,
-    rebookPct:parseFloat((c[6]||'').replace('%',''))||0
-  };
+function extractMonth(label, uploaded_at) {
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for (const mo of months) { if (label&&label.includes(mo)) return mo; }
+  if (uploaded_at) return new Date(uploaded_at).toLocaleDateString('en-GB',{month:'short'});
+  return '—';
 }
-function parseTSV(text) {
-  const lines = text.split('\n').map(l=>l.split('\t'));
-  const hairStaff=[],beautyStaff=[];
-  let summary={},inBeauty=false,hairHeaderFound=false,beautyHeaderFound=false;
-  for (let i=0;i<lines.length;i++) {
-    const cols=lines[i].map(c=>(c||'').trim());
-    const first=cols[0];
-    if (!first && cols.every(c=>!c)) continue;
-    if (cols.includes('HAIR SALES TAKE') && !inBeauty){hairHeaderFound=true;continue;}
-    if (cols.includes('BEAUTY SALES TAKE')){inBeauty=true;beautyHeaderFound=true;continue;}
-    if (first==='TOTAL CLIENTS'){summary.totalClients=parseInt(cols[1])||0;continue;}
-    if (first==='HAIR RETAIL SALES'){summary.hairRetail=parseAED(cols[1]);summary.hairRetailPct=parseFloat(cols[2])||0;continue;}
-    if (first==='TREATMENT SALES'){summary.treatmentSales=parseAED(cols[1]);summary.treatmentPct=parseFloat(cols[2])||0;continue;}
-    if (first==='COL TAKE AED'){summary.colTake=parseAED(cols[1]);summary.colPct=parseFloat(cols[2])||0;continue;}
-    if (first==='BEAUTY SALES'){summary.beautySales=parseAED(cols[1]);summary.beautyPct=parseFloat(cols[2])||0;continue;}
-    if (first==='NET SALON TAKE'){summary.netTake=parseAED(cols[1]);summary.avgBill=parseFloat(cols[2])||0;continue;}
-    if (!inBeauty && hairHeaderFound && first && first!=='STAFF' && first!=='TOTALS'){const s=parseHairRow(cols);if(s&&s.total>0)hairStaff.push(s);}
-    if (inBeauty && beautyHeaderFound && first && first!=='STAFF' && first!=='TOTALS'){const s=parseBeautyRow(cols);if(s&&s.total>0)beautyStaff.push(s);}
-    if (!inBeauty && first==='TOTALS'){summary.totals=parseHairRow(cols);}
-  }
-  return {hairStaff,beautyStaff,summary};
+const MONTH_ORDER=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// LOAD
+async function loadData() {
+  const {data,error}=await sb.from('weekly_data').select('id,branch,week_label,uploaded_at').order('uploaded_at',{ascending:false});
+  allData = (error||!data) ? [] : data;
+  renderColumns();
 }
 
-// UPLOAD
-async function uploadData() {
-  const branch = document.getElementById('branchSelect').value;
-  const weekLabel = document.getElementById('weekLabel').value.trim();
-  const btn = document.getElementById('uploadBtn');
-  const statusEl = document.getElementById('statusMsg');
-  if (!weekLabel){alert('Please enter a week label.');return;}
-  if (!selectedFile){alert('Please select a TSV file.');return;}
-  btn.disabled=true;btn.textContent='Uploading...';statusEl.className='status';
-  const text = await selectedFile.text();
-  const data = parseTSV(text);
-  const {error} = await sb.from('weekly_data').insert({branch,week_label:weekLabel,data});
-  if (error){
-    statusEl.className='status error';statusEl.textContent='Upload failed: '+error.message;
-  } else {
-    statusEl.className='status success';statusEl.textContent='Uploaded successfully!';
-    document.getElementById('weekLabel').value='';
-    selectedFile=null;document.getElementById('fileName').textContent='';
-    loadWeeks();
-  }
-  btn.disabled=false;btn.textContent='Upload to Dashboard';
+// RENDER 5 COLUMNS
+function renderColumns() {
+  const grid = document.getElementById('branchesGrid');
+  grid.innerHTML = Object.entries(BRANCHES).map(([code,info])=>{
+    const rows = allData.filter(d=>d.branch===code);
+    // group by year → month
+    const byYear = {};
+    rows.forEach(d=>{
+      const yr = extractYear(d.week_label,d.uploaded_at);
+      const mo = extractMonth(d.week_label,d.uploaded_at);
+      if (!byYear[yr]) byYear[yr]={};
+      if (!byYear[yr][mo]) byYear[yr][mo]=[];
+      byYear[yr][mo].push(d);
+    });
+    const years = Object.keys(byYear).sort((a,b)=>b-a);
+
+    const colId = 'col_'+code;
+    return `
+      <div class="branch-col" id="${colId}">
+        <div class="branch-col-header">
+          <div class="branch-col-name">${info.name}</div>
+          <div class="branch-col-sub">${info.sub}</div>
+          <div class="branch-col-accent" style="background:${info.color}"></div>
+        </div>
+        <div class="branch-col-body">
+          ${rows.length===0
+            ? `<div class="empty-col">No uploads yet</div>`
+            : years.map(yr=>{
+                const yrKey=code+'_'+yr;
+                if(openState[yrKey]===undefined) openState[yrKey]=true;
+                const yrOpen=openState[yrKey];
+                const moKeys=Object.keys(byYear[yr]).sort((a,b)=>MONTH_ORDER.indexOf(b)-MONTH_ORDER.indexOf(a));
+                return `
+                  <div class="year-section">
+                    <div class="year-toggle" onclick="toggleSection('${yrKey}')">
+                      <span>${yr}</span>
+                      <span class="year-arrow ${yrOpen?'open':''}">▼</span>
+                    </div>
+                    <div id="ys_${yrKey}" style="display:${yrOpen?'block':'none'}">
+                      ${moKeys.map(mo=>{
+                        const moKey=yrKey+'_'+mo;
+                        if(openState[moKey]===undefined) openState[moKey]=true;
+                        const moOpen=openState[moKey];
+                        const moRows=byYear[yr][mo];
+                        return `
+                          <div class="month-section">
+                            <div class="month-toggle" onclick="toggleSection('${moKey}')">
+                              <span>${mo}<span class="month-count">(${moRows.length})</span></span>
+                              <span class="month-arrow ${moOpen?'open':''}">▼</span>
+                            </div>
+                            <div id="ms_${moKey}" style="display:${moOpen?'block':'none'}">
+                              <div class="weeks-list">
+                                ${moRows.map(w=>weekItemHTML(w,code,info.color)).join('')}
+                              </div>
+                            </div>
+                          </div>`;
+                      }).join('')}
+                    </div>
+                  </div>`;
+              }).join('')
+          }
+        </div>
+      </div>`;
+  }).join('');
 }
 
-// EXTRACT MONTH
-function extractMonthFromLabel(label, uploaded_at) {
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  for (const m of months) {
-    if (label && label.includes(m)) {
-      const yr = uploaded_at ? new Date(uploaded_at).getFullYear() : new Date().getFullYear();
-      return m + ' ' + yr;
-    }
-  }
-  if (uploaded_at) {
-    const d = new Date(uploaded_at);
-    return d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
-  }
-  return null;
-}
-
-// LOAD WEEKS
-async function loadWeeks() {
-  const {data,error} = await sb.from('weekly_data').select('id,branch,week_label,uploaded_at').order('uploaded_at',{ascending:false});
-  const el = document.getElementById('weeksItems');
-  if (error||!data||!data.length){
-    el.innerHTML='<p style="font-size:13px;color:var(--muted)">No data uploaded yet.</p>';return;
-  }
-
-  // build month dropdown
-  const monthSel = document.getElementById('filterMonth');
-  if (monthSel) {
-    const months = [...new Set(data.map(w=>extractMonthFromLabel(w.week_label,w.uploaded_at)).filter(Boolean))];
-    const curMonth = monthSel.value;
-    monthSel.innerHTML = '<option value="all">All months</option>' + months.map(m=>`<option value="${m}">${m}</option>`).join('');
-    if ([...monthSel.options].some(o=>o.value===curMonth)) monthSel.value=curMonth;
-  }
-
-  // apply filters
-  const branchFilter = document.getElementById('filterBranch')?.value || 'all';
-  const monthFilter  = document.getElementById('filterMonth')?.value  || 'all';
-  let filtered = data;
-  if (branchFilter !== 'all') filtered = filtered.filter(w=>w.branch===branchFilter);
-  if (monthFilter  !== 'all') filtered = filtered.filter(w=>extractMonthFromLabel(w.week_label,w.uploaded_at)===monthFilter);
-
-  if (!filtered.length) {
-    el.innerHTML='<p style="font-size:13px;color:var(--muted)">No uploads for this filter.</p>';return;
-  }
-
-  el.innerHTML = filtered.map(w=>`
+function weekItemHTML(w, code, color) {
+  const date = new Date(w.uploaded_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  return `
     <div class="week-item" id="item_${w.id}">
-      <div class="week-item-left" id="view_${w.id}">
-        <span class="week-label-text">${w.week_label}</span>
-        <span class="week-branch-tag">${w.branch} &nbsp;·&nbsp; ${new Date(w.uploaded_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>
+      <div style="flex:1;min-width:0">
+        <div class="week-label-text" id="lbl_${w.id}">${w.week_label}</div>
+        <div class="week-date">${date}</div>
+        <input class="edit-input" id="einp_${w.id}" value="${w.week_label}" style="display:none"
+          onkeydown="if(event.key==='Enter')saveLabel('${w.id}');if(event.key==='Escape')cancelEdit('${w.id}')">
       </div>
-      <div class="week-item-left" id="edit_${w.id}" style="display:none;flex:1;margin-right:8px">
-        <input class="edit-input" id="editInput_${w.id}" value="${w.week_label}" onkeydown="if(event.key==='Enter')saveLabel('${w.id}')">
+      <div class="week-actions">
+        <button class="icon-btn edit" id="ebtn_${w.id}" onclick="startEdit('${w.id}')" title="Edit">✏️</button>
+        <button class="icon-btn save" id="sbtn_${w.id}" onclick="saveLabel('${w.id}')" style="display:none" title="Save">✅</button>
+        <button class="icon-btn" id="cbtn_${w.id}" onclick="cancelEdit('${w.id}')" style="display:none;color:var(--muted)" title="Cancel">✕</button>
+        <button class="icon-btn del" onclick="deleteWeek('${w.id}')" title="Delete">✕</button>
       </div>
-      <div class="week-item-right">
-        <button class="icon-btn edit" id="editBtn_${w.id}" onclick="startEdit('${w.id}','${w.week_label.replace(/'/g,"\\'")}')">✏️</button>
-        <button class="icon-btn save" id="saveBtn_${w.id}" onclick="saveLabel('${w.id}')" style="display:none">✅</button>
-        <button class="icon-btn" id="cancelBtn_${w.id}" onclick="cancelEdit('${w.id}')" style="display:none;color:var(--muted)">✕</button>
-        <button class="icon-btn del" onclick="deleteWeek('${w.id}')">✕</button>
-      </div>
-    </div>
-  `).join('');
+    </div>`;
 }
 
-// EDIT LABEL
-function startEdit(id, currentLabel) {
-  document.getElementById('view_'+id).style.display='none';
-  document.getElementById('edit_'+id).style.display='flex';
-  document.getElementById('editBtn_'+id).style.display='none';
-  document.getElementById('saveBtn_'+id).style.display='inline';
-  document.getElementById('cancelBtn_'+id).style.display='inline';
-  const inp = document.getElementById('editInput_'+id);
-  inp.value = currentLabel;
-  inp.focus();
+function toggleSection(key) {
+  openState[key] = !openState[key];
+  // find year or month container
+  const ysEl = document.getElementById('ys_'+key);
+  const msEl = document.getElementById('ms_'+key);
+  const el = ysEl || msEl;
+  if (!el) return;
+  el.style.display = openState[key]?'block':'none';
+  // update arrow
+  const toggle = el.previousElementSibling;
+  if (toggle) {
+    const arrow = toggle.querySelector('.year-arrow,.month-arrow');
+    if (arrow) arrow.classList.toggle('open', openState[key]);
+  }
 }
 
+// EDIT
+function startEdit(id) {
+  document.getElementById('lbl_'+id).style.display='none';
+  document.getElementById('einp_'+id).style.display='block';
+  document.getElementById('ebtn_'+id).style.display='none';
+  document.getElementById('sbtn_'+id).style.display='inline';
+  document.getElementById('cbtn_'+id).style.display='inline';
+  document.getElementById('einp_'+id).focus();
+}
 function cancelEdit(id) {
-  document.getElementById('view_'+id).style.display='flex';
-  document.getElementById('edit_'+id).style.display='none';
-  document.getElementById('editBtn_'+id).style.display='inline';
-  document.getElementById('saveBtn_'+id).style.display='none';
-  document.getElementById('cancelBtn_'+id).style.display='none';
+  document.getElementById('lbl_'+id).style.display='block';
+  document.getElementById('einp_'+id).style.display='none';
+  document.getElementById('ebtn_'+id).style.display='inline';
+  document.getElementById('sbtn_'+id).style.display='none';
+  document.getElementById('cbtn_'+id).style.display='none';
 }
-
 async function saveLabel(id) {
-  const newLabel = document.getElementById('editInput_'+id).value.trim();
-  if (!newLabel) return;
-  const {error} = await sb.from('weekly_data').update({week_label:newLabel}).eq('id',id);
-  if (!error) loadWeeks();
-  else alert('Error saving: '+error.message);
+  const val = document.getElementById('einp_'+id).value.trim();
+  if (!val) return;
+  const {error} = await sb.from('weekly_data').update({week_label:val}).eq('id',id);
+  if (!error) { await loadData(); }
+  else alert('Error: '+error.message);
 }
 
 // DELETE
 async function deleteWeek(id) {
-  if (!confirm('Delete this week\'s data? This cannot be undone.')) return;
+  if (!confirm('Delete this entry? This cannot be undone.')) return;
   await sb.from('weekly_data').delete().eq('id',id);
-  loadWeeks();
+  await loadData();
+}
+
+// UPLOAD
+function parseAED(s){return parseFloat((s||'').replace(/AED|,|\s/g,'').replace(/[^\d.\-]/g,''))||0;}
+function parseHairRow(c){return{name:c[0],salon:parseInt(c[3])||0,newC:parseInt(c[4])||0,rebooked:parseInt(c[5])||0,rebookPct:parseFloat((c[6]||'').replace('%',''))||0,total:parseInt(c[7])||0,hairSales:parseAED(c[8]),hairSalesNet:parseAED(c[9]),avgBill:parseFloat(c[10])||0,col:parseInt(c[11])||0,colPct:parseFloat((c[12]||'').replace('%',''))||0,retail:parseAED(c[22]),treatments:parseAED(c[29]),totalNet:parseAED(c[31])};}
+function parseBeautyRow(c){return{name:c[0],total:parseInt(c[7])||0,beautySales:parseAED(c[8]),beautyNet:parseAED(c[9]),avgBill:parseFloat(c[10])||0,rebookPct:parseFloat((c[6]||'').replace('%',''))||0};}
+function parseTSV(text){
+  const lines=text.split('\n').map(l=>l.split('\t'));
+  const hairStaff=[],beautyStaff=[];
+  let summary={},inBeauty=false,hairHeaderFound=false,beautyHeaderFound=false;
+  for(let i=0;i<lines.length;i++){
+    const cols=lines[i].map(c=>(c||'').trim());
+    const first=cols[0];
+    if(!first&&cols.every(c=>!c))continue;
+    if(cols.includes('HAIR SALES TAKE')&&!inBeauty){hairHeaderFound=true;continue;}
+    if(cols.includes('BEAUTY SALES TAKE')){inBeauty=true;beautyHeaderFound=true;continue;}
+    if(first==='TOTAL CLIENTS'){summary.totalClients=parseInt(cols[1])||0;continue;}
+    if(first==='HAIR RETAIL SALES'){summary.hairRetail=parseAED(cols[1]);summary.hairRetailPct=parseFloat(cols[2])||0;continue;}
+    if(first==='TREATMENT SALES'){summary.treatmentSales=parseAED(cols[1]);summary.treatmentPct=parseFloat(cols[2])||0;continue;}
+    if(first==='COL TAKE AED'){summary.colTake=parseAED(cols[1]);summary.colPct=parseFloat(cols[2])||0;continue;}
+    if(first==='BEAUTY SALES'){summary.beautySales=parseAED(cols[1]);summary.beautyPct=parseFloat(cols[2])||0;continue;}
+    if(first==='NET SALON TAKE'){summary.netTake=parseAED(cols[1]);summary.avgBill=parseFloat(cols[2])||0;continue;}
+    if(!inBeauty&&hairHeaderFound&&first&&first!=='STAFF'&&first!=='TOTALS'){const s=parseHairRow(cols);if(s&&s.total>0)hairStaff.push(s);}
+    if(inBeauty&&beautyHeaderFound&&first&&first!=='STAFF'&&first!=='TOTALS'){const s=parseBeautyRow(cols);if(s&&s.total>0)beautyStaff.push(s);}
+    if(!inBeauty&&first==='TOTALS'){summary.totals=parseHairRow(cols);}
+  }
+  return{hairStaff,beautyStaff,summary};
+}
+
+async function uploadData() {
+  const branch=document.getElementById('branchSelect').value;
+  const weekLabel=document.getElementById('weekLabel').value.trim();
+  const btn=document.getElementById('uploadBtn');
+  const statusEl=document.getElementById('statusMsg');
+  if(!weekLabel){alert('Please enter a week label.');return;}
+  if(!selectedFile){alert('Please select a TSV file.');return;}
+  btn.disabled=true;btn.textContent='Uploading...';statusEl.className='status';
+  const text=await selectedFile.text();
+  const data=parseTSV(text);
+  const{error}=await sb.from('weekly_data').insert({branch,week_label:weekLabel,data});
+  if(error){statusEl.className='status error';statusEl.textContent='Upload failed: '+error.message;}
+  else{
+    statusEl.className='status success';statusEl.textContent='Uploaded successfully!';
+    document.getElementById('weekLabel').value='';
+    selectedFile=null;document.getElementById('fileName').textContent='';
+    document.getElementById('uploadBtn').disabled=true;
+    await loadData();
+  }
+  btn.disabled=false;btn.textContent='Upload';
 }
 </script>
 </body>
