@@ -445,7 +445,7 @@ function aggByBranch(){
       const mo=getMonth(d.week_label,d.uploaded_at);
       if(!sel.year.includes('all')&&!sel.year.includes(yr))return false;
       if(!sel.month.includes('all')&&!sel.month.includes(mo))return false;
-      if(!sel.week.includes('all')&&!sel.week.includes(d.id))return false;
+      if(!sel.week.includes('all')&&!sel.week.includes(d.week_label))return false;
       return true;
     });
     result[code]=aggData(rows.map(d=>d.data));
