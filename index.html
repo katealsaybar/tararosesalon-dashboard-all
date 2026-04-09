@@ -321,17 +321,25 @@ function buildDrop(key,options){
 }
 
 function toggleOpt(key,val){
-  if(val==='all'){sel[key]=['all'];}
-  else{
+  if(val==='all'){
+    sel[key]=['all'];
+  } else {
     sel[key]=sel[key].filter(x=>x!=='all');
     if(sel[key].includes(val)) sel[key]=sel[key].filter(x=>x!==val);
     else sel[key].push(val);
     if(!sel[key].length) sel[key]=['all'];
   }
-  // cascade: changing branch/year/month resets week
-  if(key==='branch'||key==='year'||key==='month'){sel.week=['all'];}
   if(key==='branch'||key==='year'){sel.month=['all'];}
+  if(key==='branch'||key==='year'||key==='month'){sel.week=['all'];}
+  // rebuild drops and re-highlight selected state
+  const branches=Object.entries(BRANCH_INFO).map(([k,v])=>({val:k,label:v.name}));
+  buildDrop('branch',branches);
   rebuildDependentDrops();
+  // keep dropdown open after selection
+  const drop=document.getElementById('drop-'+key);
+  const btn=document.getElementById('btn-'+key);
+  drop.classList.add('open');
+  btn.classList.add('open');
   renderDashboard();
 }
 
