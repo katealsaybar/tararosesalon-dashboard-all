@@ -443,20 +443,29 @@ function renderColumns() {
 
 function weekItemHTML(w, code, color) {
   const date = new Date(w.uploaded_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-  // Escape single quotes in week_label for use inside onclick attributes
-  const escapedLabel = (w.week_label || '').replace(/'/g, "\\'");
+  const escapedLabel = (w.week_label || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
   return `
     <div class="week-item" id="item_${w.id}">
       <div style="flex:1;min-width:0">
         <div class="week-label-text" id="lbl_${w.id}">${w.week_label}</div>
         <div class="week-date">${date}</div>
-        <input class="edit-input" id="einp_${w.id}" value="${escapedLabel}" style="display:none"
-          onkeydown="if(event.key==='Enter')saveLabel('${w.id}');if(event.key==='Escape')cancelEdit('${w.id}')">
+        <div id="editarea_${w.id}" style="display:none">
+          <input class="edit-input" id="einp_${w.id}" value="${escapedLabel}"
+            onkeydown="if(event.key==='Escape')cancelEdit('${w.id}')">
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button id="sbtn_${w.id}" onclick="saveLabel('${w.id}')"
+              style="flex:1;padding:5px 0;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:0.06em;text-transform:uppercase;transition:opacity .2s">
+              Save Changes
+            </button>
+            <button onclick="cancelEdit('${w.id}')"
+              style="padding:5px 10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:7px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;">
+              Cancel
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="week-actions">
-        <button class="icon-btn edit" id="ebtn_${w.id}" onclick="startEdit('${w.id}')" title="Edit">✏️</button>
-        <button class="icon-btn save" id="sbtn_${w.id}" onclick="saveLabel('${w.id}')" style="display:none" title="Save">✅</button>
-        <button class="icon-btn" id="cbtn_${w.id}" onclick="cancelEdit('${w.id}')" style="display:none;color:var(--muted)" title="Cancel">✕</button>
+      <div class="week-actions" id="wactions_${w.id}">
+        <button class="icon-btn edit" onclick="startEdit('${w.id}')" title="Edit">✏️</button>
         <button class="icon-btn del" onclick="deleteWeek('${w.id}')" title="Delete">✕</button>
       </div>
     </div>`;
@@ -480,42 +489,49 @@ function toggleSection(key) {
 // ── EDIT (FIX: read input value directly from DOM at save time) ──
 function startEdit(id) {
   document.getElementById('lbl_' + id).style.display = 'none';
-  document.getElementById('einp_' + id).style.display = 'block';
-  document.getElementById('ebtn_' + id).style.display = 'none';
-  document.getElementById('sbtn_' + id).style.display = 'inline';
-  document.getElementById('cbtn_' + id).style.display = 'inline';
-  document.getElementById('einp_' + id).focus();
-  document.getElementById('einp_' + id).select();
+  document.getElementById('editarea_' + id).style.display = 'block';
+  document.getElementById('wactions_' + id).style.display = 'none';
+  const inp = document.getElementById('einp_' + id);
+  inp.focus();
+  inp.select();
 }
 
 function cancelEdit(id) {
   document.getElementById('lbl_' + id).style.display = 'block';
-  document.getElementById('einp_' + id).style.display = 'none';
-  document.getElementById('ebtn_' + id).style.display = 'inline';
-  document.getElementById('sbtn_' + id).style.display = 'none';
-  document.getElementById('cbtn_' + id).style.display = 'none';
+  document.getElementById('editarea_' + id).style.display = 'none';
+  document.getElementById('wactions_' + id).style.display = 'flex';
+  const sbtn = document.getElementById('sbtn_' + id);
+  if (sbtn) { sbtn.textContent = 'Save Changes'; sbtn.disabled = false; }
 }
 
 async function saveLabel(id) {
-  // Read live value from the input at the moment of save
   const inp = document.getElementById('einp_' + id);
   const val = inp.value.trim();
   if (!val) { alert('Label cannot be empty.'); return; }
 
-  // Optimistically update the visible label immediately
-  document.getElementById('lbl_' + id).textContent = val;
-  cancelEdit(id);
+  const oldVal = document.getElementById('lbl_' + id).textContent.trim();
+  if (val === oldVal) { cancelEdit(id); return; }
+
+  // Confirmation prompt
+  const confirmed = confirm(`Are you sure you want to make these changes?\n\nFrom: "${oldVal}"\nTo: "${val}"`);
+  if (!confirmed) return;
+
+  // Show saving state
+  const sbtn = document.getElementById('sbtn_' + id);
+  sbtn.textContent = '⏳';
+  sbtn.disabled = true;
 
   const { error } = await sb.from('weekly_data').update({ week_label: val }).eq('id', id);
   if (error) {
+    sbtn.textContent = '✅';
+    sbtn.disabled = false;
     alert('Save failed: ' + error.message);
-    // reload to restore correct state on error
-    await loadData();
   } else {
-    // Silently refresh data in background to keep allData in sync
-    const { data } = await sb.from('weekly_data').select('id,branch,week_label,uploaded_at').order('uploaded_at',{ascending:false});
-    if (data) allData = data;
-    // No full re-render needed — label already updated above
+    document.getElementById('lbl_' + id).textContent = val;
+    cancelEdit(id);
+    // Update allData in memory
+    const row = allData.find(d => d.id == id);
+    if (row) row.week_label = val;
   }
 }
 
