@@ -85,11 +85,12 @@ main{max-width:1400px;margin:0 auto;padding:22px 28px 48px}
 .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 
 /* DONUT */
-.donut-wrap{position:relative;width:170px;height:170px;margin:0 auto 16px}
+.donut-inner{display:flex;align-items:center;gap:24px}
+.donut-wrap{position:relative;width:140px;height:140px;flex-shrink:0}
 .donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
-.donut-center-val{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;color:var(--text);line-height:1}
-.donut-center-lbl{font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px}
-.legend{display:flex;flex-direction:column;gap:6px}
+.donut-center-val{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--text);line-height:1}
+.donut-center-lbl{font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px}
+.legend{display:flex;flex-direction:column;gap:8px;flex:1}
 .legend-item{display:flex;align-items:center;justify-content:space-between;font-size:12px}
 .legend-l{display:flex;align-items:center;gap:7px}
 .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -133,8 +134,9 @@ tr:last-child td{border-bottom:none}
 /* BRANCH COMPARISON */
 .branch-compare-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 
-/* TOP 3 */
-.top3-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px}
+/* TOP 3 grid — 3 on top, 2 centered below */
+.top3-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.top3-grid-row2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;max-width:66%;margin-left:auto;margin-right:auto}
 .top3-col{background:var(--surface);border-radius:13px;border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden}
 .top3-col-hdr{padding:12px 14px;border-bottom:1px solid var(--border)}
 .top3-col-name{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text)}
@@ -353,9 +355,17 @@ function rebuildDependentDrops(){
   const f1=getFilteredData(false,true);
   const months=[...new Set(f1.map(d=>getMonth(d.week_label,d.uploaded_at)))].filter(m=>m!=='—').sort((a,b)=>MONTH_ORDER.indexOf(a)-MONTH_ORDER.indexOf(b));
   buildDrop('month',months.map(m=>({val:m,label:m})));
-  // weeks
-  const f2=getFilteredData(false,false,true);
-  const weeks=f2.map(d=>({val:d.id,label:d.week_label}));
+  // weeks — deduplicated by label across all branches, filtered by year+month
+  const f2=allData.filter(d=>{
+    const yr=getYear(d.week_label,d.uploaded_at);
+    const mo=getMonth(d.week_label,d.uploaded_at);
+    if(!sel.year.includes('all')&&!sel.year.includes(yr))return false;
+    if(!sel.month.includes('all')&&!sel.month.includes(mo))return false;
+    return true;
+  });
+  // dedupe by week_label
+  const seenLabels=new Set();
+  const weeks=f2.filter(d=>{if(seenLabels.has(d.week_label))return false;seenLabels.add(d.week_label);return true;}).map(d=>({val:d.week_label,label:d.week_label}));
   buildDrop('week',weeks);
 }
 
@@ -367,7 +377,8 @@ function getFilteredData(ignoreBranch=false,ignoreMonth=false,ignoreWeek=false){
     if(!sel.year.includes('all')&&!sel.year.includes(yr))return false;
     const mo=getMonth(d.week_label,d.uploaded_at);
     if(!ignoreMonth&&!sel.month.includes('all')&&!sel.month.includes(mo))return false;
-    if(!ignoreWeek&&!sel.week.includes('all')&&!sel.week.includes(d.id))return false;
+    // match by week_label instead of id
+    if(!ignoreWeek&&!sel.week.includes('all')&&!sel.week.includes(d.week_label))return false;
     return true;
   });
 }
@@ -384,7 +395,7 @@ async function loadData(){
   renderDashboard();
   if(data.length){
     const latest=new Date(data[data.length-1].uploaded_at);
-    document.getElementById('lastUpdated').textContent='Updated '+latest.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    document.getElementById('lastUpdated').innerHTML='Updated '+latest.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+'<br><span style="font-size:10px;letter-spacing:0.04em;opacity:0.7">Gulf Standard Time +04:00</span>';
   }
 }
 
@@ -492,19 +503,22 @@ function renderDashboard(){
     <!-- TOP 3 PER BRANCH -->
     <div class="section-label">Top Performers per Branch</div>
     <div class="top3-grid" id="top3Grid"></div>
+    <div class="top3-grid-row2" id="top3Grid2"></div>
 
     <!-- CHARTS ROW -->
     <div class="charts-row">
       <div class="card">
         <div class="card-title">Revenue Mix</div>
         <div class="card-sub">Hair · Beauty · Retail breakdown</div>
-        <div class="donut-wrap"><canvas id="donutChart"></canvas>
-          <div class="donut-center">
-            <div class="donut-center-val">${Math.round(s.netTake/1000)}k</div>
-            <div class="donut-center-lbl">Net AED</div>
+        <div class="donut-inner">
+          <div class="donut-wrap"><canvas id="donutChart"></canvas>
+            <div class="donut-center">
+              <div class="donut-center-val">${Math.round(s.netTake/1000)}k</div>
+              <div class="donut-center-lbl">Net AED</div>
+            </div>
           </div>
+          <div class="legend" id="donutLegend"></div>
         </div>
-        <div class="legend" id="donutLegend"></div>
       </div>
       <div class="card">
         <div class="card-title">Rebooking by Stylist</div>
@@ -516,8 +530,12 @@ function renderDashboard(){
 
     <!-- COMBO -->
     <div class="card">
-      <div class="card-title">Performance by Stylist</div>
+      <div class="card-title">Performance by Stylist / Beautician</div>
       <div class="card-sub">Bar = selected period · Dashed = team average</div>
+      <div class="tabs" style="margin-bottom:10px">
+        <button class="tab active" id="comboTabHair" onclick="switchComboTab('hair')">Hair Stylists</button>
+        <button class="tab" id="comboTabBeauty" onclick="switchComboTab('beauty')">Beauty Team</button>
+      </div>
       <div class="f-pills" id="comboFilters">
         <button class="f-pill active" data-m="hairSalesNet">Revenue</button>
         <button class="f-pill" data-m="total">Clients</button>
@@ -598,24 +616,79 @@ function renderDashboard(){
     </div>`).join('');
 
   // ── REBOOK BARS ──
-  document.getElementById('rebookBars').innerHTML=[...d.hairStaff].sort((a,b)=>b.rebookPct-a.rebookPct).map(st=>`
+  const sortedRebook=[...d.hairStaff].sort((a,b)=>b.rebookPct-a.rebookPct);
+  const avgRebook=sortedRebook.length?sortedRebook.reduce((acc,st)=>acc+st.rebookPct,0)/sortedRebook.length:0;
+  document.getElementById('rebookBars').innerHTML=`
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding:6px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border2)">
+      <span style="font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase">Team Average</span>
+      <span style="font-size:13px;font-weight:700;color:var(--accent);margin-left:auto">${fmtPct(avgRebook)}</span>
+    </div>
+    ${sortedRebook.map((st,i)=>`
     <div class="bar-row">
+      <span style="font-size:10px;color:var(--muted2);min-width:16px;text-align:right;flex-shrink:0">${i+1}</span>
       <div class="bar-stylist"><div class="stylist-av" style="background:${st.color}">${initials(st.name)}</div><span class="bar-name">${st.name.split(' ')[0]}</span></div>
       <span class="bar-clients">${st.total}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.min(st.rebookPct,100)}%;background:${st.color}"></div></div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${Math.min(st.rebookPct,100)}%;background:${st.color}"></div>
+        <div style="position:absolute;top:0;left:${Math.min(avgRebook,100)}%;width:2px;height:100%;background:var(--accent);opacity:0.6"></div>
+      </div>
       <span class="bar-pct">${fmtPct(st.rebookPct)}</span>
-    </div>`).join('');
+    </div>`).join('')}
+  `;
+  // make bar-track relative for avg line
+  document.querySelectorAll('.bar-track').forEach(t=>t.style.position='relative');
 
   // ── COMBO ──
   let comboMetric='hairSalesNet';
+  let comboTeam='hair';
   buildCombo(d.hairStaff,comboMetric,dark,ttStyle,gc,tc);
-  document.getElementById('comboFilters').addEventListener('click',e=>{
-    const btn=e.target.closest('.f-pill');if(!btn)return;
-    comboMetric=btn.dataset.m;
-    document.querySelectorAll('#comboFilters .f-pill').forEach(p=>p.classList.toggle('active',p===btn));
+
+  window._comboHairStaff=d.hairStaff;
+  window._comboBeautyStaff=d.beautyStaff;
+  window._comboDark=dark;
+  window._comboTT=ttStyle;
+  window._comboGC=gc;
+  window._comboTC=tc;
+
+  window.switchComboTab=function(team){
+    comboTeam=team;
+    document.getElementById('comboTabHair').classList.toggle('active',team==='hair');
+    document.getElementById('comboTabBeauty').classList.toggle('active',team==='beauty');
+    // update metric pills for beauty (no hairSalesNet)
+    const filters=document.getElementById('comboFilters');
+    if(team==='beauty'){
+      filters.innerHTML=`
+        <button class="f-pill active" data-m="beautySales">Revenue</button>
+        <button class="f-pill" data-m="total">Clients</button>
+        <button class="f-pill" data-m="avgBill">Avg Bill</button>
+        <button class="f-pill" data-m="rebookPct">Rebook %</button>`;
+      comboMetric='beautySales';
+    } else {
+      filters.innerHTML=`
+        <button class="f-pill active" data-m="hairSalesNet">Revenue</button>
+        <button class="f-pill" data-m="total">Clients</button>
+        <button class="f-pill" data-m="avgBill">Avg Bill</button>
+        <button class="f-pill" data-m="rebookPct">Rebook %</button>`;
+      comboMetric='hairSalesNet';
+    }
     if(charts.combo)charts.combo.destroy();
-    buildCombo(d.hairStaff,comboMetric,dark,ttStyle,gc,tc);
-  });
+    const staff=team==='hair'?window._comboHairStaff:window._comboBeautyStaff;
+    buildCombo(staff,comboMetric,window._comboDark,window._comboTT,window._comboGC,window._comboTC);
+    // re-attach filter listener
+    attachComboFilter();
+  };
+
+  attachComboFilter();
+  function attachComboFilter(){
+    document.getElementById('comboFilters').addEventListener('click',e=>{
+      const btn=e.target.closest('.f-pill');if(!btn)return;
+      comboMetric=btn.dataset.m;
+      document.querySelectorAll('#comboFilters .f-pill').forEach(p=>p.classList.toggle('active',p===btn));
+      if(charts.combo)charts.combo.destroy();
+      const staff=comboTeam==='hair'?window._comboHairStaff:window._comboBeautyStaff;
+      buildCombo(staff,comboMetric,dark,ttStyle,gc,tc);
+    });
+  }
 }
 
 function buildCmpChart(byBranch,metric,dark,ttStyle,gc,tc){
@@ -665,32 +738,34 @@ function getTop3(staff,metricKey,isBeauty){
 
 function renderTop3(byBranch){
   const activeBranches=sel.branch.includes('all')?Object.keys(BRANCH_INFO):sel.branch;
-  const grid=document.getElementById('top3Grid');
+  const row1=activeBranches.slice(0,3);
+  const row2=activeBranches.slice(3);
 
-  grid.innerHTML=activeBranches.map(code=>{
+  function colHTML(code){
     const info=BRANCH_INFO[code]||{name:code,color:'#ccc'};
     const d=byBranch[code];
     const hairStaff=d?d.hairStaff:[];
     const beautyStaff=d?d.beautyStaff:[];
-    const colId='t3_'+code;
     return `
       <div class="top3-col">
         <div class="top3-col-hdr">
           <div class="top3-col-name">${info.name}</div>
           <div class="top3-accent" style="background:${info.color}"></div>
         </div>
-        <div class="top3-col-body" id="${colId}">
+        <div class="top3-col-body" id="t3_${code}">
           ${renderTop3Col(hairStaff,beautyStaff,'overall',code)}
         </div>
       </div>`;
-  }).join('');
+  }
 
-  // metric tabs per column
+  document.getElementById('top3Grid').innerHTML=row1.map(colHTML).join('');
+  document.getElementById('top3Grid2').innerHTML=row2.map(colHTML).join('');
+  document.getElementById('top3Grid2').style.display=row2.length?'grid':'none';
+
   activeBranches.forEach(code=>{
     const d=byBranch[code];
     const hairStaff=d?d.hairStaff:[];
     const beautyStaff=d?d.beautyStaff:[];
-    // inject metric tab buttons
     const body=document.getElementById('t3_'+code);
     const tabsDiv=document.createElement('div');
     tabsDiv.className='top3-metric-tabs';
