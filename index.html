@@ -334,11 +334,15 @@ function toggleOpt(key,val){
   rebuildDependentDrops();
   // re-highlight just the current dropdown without rebuilding it
   const drop=document.getElementById('drop-'+key);
+  // re-highlight current dropdown
+  const isAllNow = sel[key].includes('all');
   drop.querySelectorAll('.ms-opt').forEach(el=>{
-    const v=el.dataset.val;
-    const isAllOpt=el.classList.contains('all-opt');
-    if(isAllOpt){el.classList.toggle('selected',sel[key].includes('all'));}
-    else{el.classList.toggle('selected',!sel[key].includes('all')&&sel[key].includes(v));}
+    const v = el.dataset.val;
+    if(el.classList.contains('all-opt')){
+      el.classList.toggle('selected', isAllNow);
+    } else {
+      el.classList.toggle('selected', !isAllNow && sel[key].includes(v));
+    }
   });
   // keep dropdown open
   drop.classList.add('open');
