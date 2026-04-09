@@ -105,6 +105,8 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .status.success{background:var(--good-bg);color:var(--good);display:block}
 .status.error{background:var(--bad-bg);color:var(--bad);display:block}
 .err{color:var(--bad);font-size:13px;text-align:center;margin-top:8px}
+.filter-sel{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--text);background:var(--surface2);font-family:'DM Sans',sans-serif;transition:border-color .2s,background .3s,color .3s;appearance:none;cursor:pointer}
+.filter-sel:focus{outline:none;border-color:var(--accent)}
 
 /* WEEKS LIST */
 .section-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
@@ -215,6 +217,24 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <!-- UPLOADED WEEKS -->
     <div class="card">
       <div class="section-label">Uploaded Weeks</div>
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:120px">
+          <label class="field-label">Branch</label>
+          <select class="filter-sel" id="filterBranch" onchange="loadWeeks()">
+            <option value="all">All branches</option>
+            <option value="KCA">Khalifa City (KCA)</option>
+            <option value="SAA">Saadiyat (SAA)</option>
+            <option value="MC">Motor City (MC)</option>
+            <option value="AQ">AQ Ladies</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:120px">
+          <label class="field-label">Month</label>
+          <select class="filter-sel" id="filterMonth" onchange="loadWeeks()">
+            <option value="all">All months</option>
+          </select>
+        </div>
+      </div>
       <div id="weeksItems"><p style="font-size:13px;color:var(--muted)">No data uploaded yet.</p></div>
     </div>
 
@@ -333,6 +353,22 @@ async function uploadData() {
   btn.disabled=false;btn.textContent='Upload to Dashboard';
 }
 
+// EXTRACT MONTH
+function extractMonthFromLabel(label, uploaded_at) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for (const m of months) {
+    if (label && label.includes(m)) {
+      const yr = uploaded_at ? new Date(uploaded_at).getFullYear() : new Date().getFullYear();
+      return m + ' ' + yr;
+    }
+  }
+  if (uploaded_at) {
+    const d = new Date(uploaded_at);
+    return d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
+  }
+  return null;
+}
+
 // LOAD WEEKS
 async function loadWeeks() {
   const {data,error} = await sb.from('weekly_data').select('id,branch,week_label,uploaded_at').order('uploaded_at',{ascending:false});
@@ -340,7 +376,28 @@ async function loadWeeks() {
   if (error||!data||!data.length){
     el.innerHTML='<p style="font-size:13px;color:var(--muted)">No data uploaded yet.</p>';return;
   }
-  el.innerHTML = data.map(w=>`
+
+  // build month dropdown
+  const monthSel = document.getElementById('filterMonth');
+  if (monthSel) {
+    const months = [...new Set(data.map(w=>extractMonthFromLabel(w.week_label,w.uploaded_at)).filter(Boolean))];
+    const curMonth = monthSel.value;
+    monthSel.innerHTML = '<option value="all">All months</option>' + months.map(m=>`<option value="${m}">${m}</option>`).join('');
+    if ([...monthSel.options].some(o=>o.value===curMonth)) monthSel.value=curMonth;
+  }
+
+  // apply filters
+  const branchFilter = document.getElementById('filterBranch')?.value || 'all';
+  const monthFilter  = document.getElementById('filterMonth')?.value  || 'all';
+  let filtered = data;
+  if (branchFilter !== 'all') filtered = filtered.filter(w=>w.branch===branchFilter);
+  if (monthFilter  !== 'all') filtered = filtered.filter(w=>extractMonthFromLabel(w.week_label,w.uploaded_at)===monthFilter);
+
+  if (!filtered.length) {
+    el.innerHTML='<p style="font-size:13px;color:var(--muted)">No uploads for this filter.</p>';return;
+  }
+
+  el.innerHTML = filtered.map(w=>`
     <div class="week-item" id="item_${w.id}">
       <div class="week-item-left" id="view_${w.id}">
         <span class="week-label-text">${w.week_label}</span>
