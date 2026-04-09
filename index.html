@@ -54,11 +54,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .ms-btn.open svg{transform:rotate(180deg)}
 .ms-drop{position:absolute;top:calc(100% + 5px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);min-width:100%;max-height:260px;overflow-y:auto;display:none}
 .ms-drop.open{display:block}
-.ms-opt{display:flex;align-items:center;gap:9px;padding:8px 13px;font-size:12px;color:var(--text);cursor:pointer;transition:background .15s;user-select:none}
-.ms-opt:hover{background:var(--surface2)}
-.ms-opt input[type=checkbox]{width:13px;height:13px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
-.ms-opt.all-opt{font-weight:600;border-bottom:1px solid var(--border)}
-.ms-opt.all-opt.selected{color:var(--accent)}
+.ms-opt{display:flex;align-items:center;gap:9px;padding:8px 13px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;border-left:3px solid transparent}
+.ms-opt:hover{background:var(--surface2);color:var(--text)}
+.ms-opt.selected{color:var(--accent);background:var(--surface2);border-left-color:var(--accent);font-weight:600}
+.ms-opt.all-opt{font-weight:600;border-bottom:1px solid var(--border);border-left:3px solid transparent}
+.ms-opt.all-opt.selected{color:var(--accent);background:var(--surface2);border-left-color:var(--accent)}
 
 /* MAIN */
 main{max-width:1400px;margin:0 auto;padding:22px 28px 48px}
@@ -310,16 +310,11 @@ function buildDrop(key,options){
   const drop=document.getElementById('drop-'+key);
   const isAll=sel[key].includes('all');
   drop.innerHTML=`
-    <div class="ms-opt all-opt ${isAll?'selected':''}" onclick="toggleOpt('${key}','all')">
-      <input type="checkbox" ${isAll?'checked':''} onchange="toggleOpt('${key}','all')"> All
-    </div>
+    <div class="ms-opt all-opt ${isAll?'selected':''}" onclick="toggleOpt('${key}','all')">All</div>
     ${options.map(o=>{
-      const checked=!isAll&&sel[key].includes(o.val);
+      const active=!isAll&&sel[key].includes(o.val);
       const dot=BRANCH_INFO[o.val]?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${BRANCH_INFO[o.val].color};flex-shrink:0"></span>`:'';
-      return `<div class="ms-opt ${checked?'selected':''}" onclick="toggleOpt('${key}','${o.val}')">
-        <input type="checkbox" ${checked?'checked':''} onchange="toggleOpt('${key}','${o.val}')">
-        ${dot}${o.label}
-      </div>`;
+      return `<div class="ms-opt ${active?'selected':''}" onclick="toggleOpt('${key}','${o.val}')">${dot}${o.label}</div>`;
     }).join('')}
   `;
   updateLabel(key,options);
