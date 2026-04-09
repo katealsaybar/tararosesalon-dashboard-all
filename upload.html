@@ -498,23 +498,69 @@ async function confirmSave() {
   sbtn.textContent = '⏳ Saving...';
   sbtn.disabled = true;
 
-  const { error } = await sb.from('weekly_data').update({ week_label: val }).eq('id', id);
+  console.log('Attempting update — id:', id, 'val:', val);
 
-  if (error) {
+  // Step 1: attempt the update
+  const { error: updateError } = await sb
+    .from('weekly_data')
+    .update({ week_label: val })
+    .eq('id', id);
+
+  if (updateError) {
+    console.error('UPDATE ERROR:', updateError);
     sbtn.textContent = '💾 Save Changes';
     sbtn.disabled = false;
-    alert('Save failed: ' + error.message);
-  } else {
-    // Update label in place — no full re-render needed
-    document.getElementById('lbl_' + id).textContent = val;
-    // Update data-label so cancel works correctly after save
-    const item = document.getElementById('item_' + id);
-    if (item) item.dataset.label = val.replace(/"/g, '&quot;');
-    // Update allData in memory
-    const row = allData.find(d => String(d.id) === String(id));
-    if (row) row.week_label = val;
-    cancelEdit(id);
+    alert('❌ Save failed!\n\nError: ' + updateError.message + '\nCode: ' + updateError.code + '\n\nThis is likely a Supabase RLS (Row Level Security) policy blocking the update. Screenshot this and send to your dev.');
+    return;
   }
+
+  // Step 2: verify it actually saved by reading it back
+  const { data: verify, error: readError } = await sb
+    .from('weekly_data')
+    .select('id, week_label')
+    .eq('id', id)
+    .single();
+
+  console.log('Verify read back:', verify, readError);
+
+  if (readError) {
+    sbtn.textContent = '💾 Save Changes';
+    sbtn.disabled = false;
+    alert('⚠️ Could not verify save: ' + readError.message);
+    return;
+  }
+
+  if (verify.week_label !== val) {
+    sbtn.textContent = '💾 Save Changes';
+    sbtn.disabled = false;
+    alert('⚠️ Save did NOT stick!\n\nExpected: "' + val + '"\nActual in DB: "' + verify.week_label + '"\n\nThis is a Supabase RLS issue — the update ran without error but the DB rejected the change silently. You need to enable UPDATE policy in Supabase for the weekly_data table.');
+    return;
+  }
+
+  // ✅ Confirmed saved!
+  document.getElementById('lbl_' + id).textContent = val;
+  const item = document.getElementById('item_' + id);
+  if (item) item.dataset.label = val.replace(/"/g, '&quot;');
+  const row = allData.find(d => String(d.id) === String(id));
+  if (row) row.week_label = val;
+  cancelEdit(id);
+
+  // Show a little success toast
+  showToast('✅ Saved successfully!');
+}
+
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--good-bg);color:var(--good);border:1px solid var(--good);padding:10px 20px;border-radius:20px;font-size:12px;font-weight:600;font-family:DM Sans,sans-serif;z-index:999;transition:opacity .4s;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._hide);
+  t._hide = setTimeout(() => t.style.opacity = '0', 2500);
 }
 
 // ── DELETE ──
