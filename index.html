@@ -161,7 +161,12 @@ tr:last-child td{border-bottom:none}
 
 .empty{text-align:center;padding:4rem;color:var(--muted);font-size:14px}
 .loading{text-align:center;padding:4rem;color:var(--muted);letter-spacing:0.1em;font-size:12px;text-transform:uppercase}
-footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);font-size:11px;color:var(--muted2);transition:border-color .3s}
+footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);font-size:11px;color:var(--muted2);transition:border-color .3s;line-height:1.8}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--text)}
+th.sort-asc::after{content:' ▲';font-size:9px;opacity:0.7}
+th.sort-desc::after{content:' ▼';font-size:9px;opacity:0.7}
+th:not(.sort-asc):not(.sort-desc).sortable::after{content:' ⇅';font-size:9px;opacity:0.3}
 
 /* RESPONSIVE */
 @media(max-width:1100px){.top3-grid{grid-template-columns:repeat(3,1fr)}.metrics-r1,.metrics-r2{grid-template-columns:repeat(2,1fr)}}
@@ -235,7 +240,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 <main id="mainContent">
   <div class="loading" style="margin-top:2rem">Loading data...</div>
 </main>
-<footer>Tara Rose Salon &nbsp;·&nbsp; Internal Dashboard &nbsp;·&nbsp; Confidential</footer>
+<footer>Tara Rose Salon &nbsp;·&nbsp; Internal Dashboard &nbsp;·&nbsp; Confidential<br><span style="opacity:0.5">Dashboard designed by Kate Alsaybar</span></footer>
 
 <script>
 const SUPA_URL='https://gvijxenafoowajqktqvd.supabase.co';
@@ -306,15 +311,16 @@ function buildDrop(key,options){
   const isAll=sel[key].includes('all');
   drop.innerHTML=`
     <div class="ms-opt all-opt ${isAll?'selected':''}" onclick="toggleOpt('${key}','all')">
-      <input type="checkbox" ${isAll?'checked':''} onclick="event.stopPropagation()"> All
+      <input type="checkbox" ${isAll?'checked':''} onchange="toggleOpt('${key}','all')"> All
     </div>
-    ${options.map(o=>`
-    <div class="ms-opt ${(!isAll&&sel[key].includes(o.val))?'selected':''}" onclick="toggleOpt('${key}','${o.val}')">
-      <input type="checkbox" ${(!isAll&&sel[key].includes(o.val))?'checked':''} onclick="event.stopPropagation()">
-      ${o.val==='KCA'||o.val==='SAA'||o.val==='MC'||o.val==='AQ'||o.val==='FRT'
-        ?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${BRANCH_INFO[o.val]?.color||'#ccc'};flex-shrink:0"></span>`:''}
-      ${o.label}
-    </div>`).join('')}
+    ${options.map(o=>{
+      const checked=!isAll&&sel[key].includes(o.val);
+      const dot=BRANCH_INFO[o.val]?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${BRANCH_INFO[o.val].color};flex-shrink:0"></span>`:'';
+      return `<div class="ms-opt ${checked?'selected':''}" onclick="toggleOpt('${key}','${o.val}')">
+        <input type="checkbox" ${checked?'checked':''} onchange="toggleOpt('${key}','${o.val}')">
+        ${dot}${o.label}
+      </div>`;
+    }).join('')}
   `;
   updateLabel(key,options);
 }
@@ -551,38 +557,91 @@ function renderDashboard(){
         <button class="tab active" onclick="switchTab(this,'hair')">Hair Stylists</button>
         <button class="tab" onclick="switchTab(this,'beauty')">Beauty Team</button>
       </div>
-      <div id="tab-hair" style="overflow-x:auto">
-        <table>
-          <thead><tr><th>Stylist</th><th>Clients</th><th>New</th><th>Rebook %</th><th>Hair Sales</th><th>Avg Bill</th><th>Retail</th><th>Treatments</th></tr></thead>
-          <tbody>
-            ${d.hairStaff.sort((a,b)=>b.hairSalesNet-a.hairSalesNet).map(st=>`
-            <tr>
-              <td><span style="display:flex;align-items:center;gap:7px"><span style="width:22px;height:22px;border-radius:50%;background:${st.color};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0">${initials(st.name)}</span>${st.name}</span></td>
-              <td>${st.total}</td><td>${st.newC}</td>
-              <td><span class="badge ${sc(st.rebookPct,TARGETS.rebookPct)}">${fmtPct(st.rebookPct)}</span></td>
-              <td>${fmtAED(st.hairSalesNet)}</td>
-              <td><span class="badge ${sc(st.avgBill,TARGETS.hairAvgBill)}">${fmtAED(st.avgBill)}</span></td>
-              <td>${fmtAED(st.retail)}</td><td>${fmtAED(st.treatments)}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-      <div id="tab-beauty" style="display:none;overflow-x:auto">
-        <table>
-          <thead><tr><th>Therapist</th><th>Clients</th><th>Beauty Sales</th><th>Avg Bill</th><th>Rebook %</th></tr></thead>
-          <tbody>
-            ${d.beautyStaff.sort((a,b)=>b.beautySales-a.beautySales).map(st=>`
-            <tr>
-              <td><span style="display:flex;align-items:center;gap:7px"><span style="width:22px;height:22px;border-radius:50%;background:${st.color};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0">${initials(st.name)}</span>${st.name}</span></td>
-              <td>${st.total}</td><td>${fmtAED(st.beautySales)}</td>
-              <td><span class="badge ${sc(st.avgBill,TARGETS.beautyAvgBill)}">${fmtAED(st.avgBill)}</span></td>
-              <td><span class="badge ${sc(st.rebookPct,30)}">${fmtPct(st.rebookPct)}</span></td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
+      <div id="tab-hair" style="overflow-x:auto"></div>
+      <div id="tab-beauty" style="display:none;overflow-x:auto"></div>
     </div>
   `;
+
+  // sort state
+  let hairSort={col:'hairSalesNet',dir:'desc'};
+  let beautySort={col:'beautySales',dir:'desc'};
+
+  function renderHairTable(){
+    const sorted=[...d.hairStaff].sort((a,b)=>{
+      const v=hairSort.dir==='asc'?(a[hairSort.col]||0)-(b[hairSort.col]||0):(b[hairSort.col]||0)-(a[hairSort.col]||0);
+      return v;
+    });
+    const cols=[
+      {key:'name',label:'Stylist'},
+      {key:'total',label:'Clients'},
+      {key:'newC',label:'New'},
+      {key:'rebookPct',label:'Rebook %'},
+      {key:'hairSalesNet',label:'Hair Sales'},
+      {key:'avgBill',label:'Avg Bill'},
+      {key:'retail',label:'Retail'},
+      {key:'treatments',label:'Treatments'},
+    ];
+    document.getElementById('tab-hair').innerHTML=`<table>
+      <thead><tr>
+        <th style="width:30px">#</th>
+        ${cols.map(c=>`<th class="sortable${hairSort.col===c.key?' sort-'+hairSort.dir:''}" onclick="sortHair('${c.key}')">${c.label}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${sorted.map((st,i)=>`<tr>
+          <td style="color:var(--muted2);font-size:11px">${i+1}</td>
+          <td><span style="display:flex;align-items:center;gap:7px"><span style="width:22px;height:22px;border-radius:50%;background:${st.color};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0">${initials(st.name)}</span>${st.name}</span></td>
+          <td>${st.total}</td><td>${st.newC}</td>
+          <td><span class="badge ${sc(st.rebookPct,TARGETS.rebookPct)}">${fmtPct(st.rebookPct)}</span></td>
+          <td>${fmtAED(st.hairSalesNet)}</td>
+          <td><span class="badge ${sc(st.avgBill,TARGETS.hairAvgBill)}">${fmtAED(st.avgBill)}</span></td>
+          <td>${fmtAED(st.retail)}</td><td>${fmtAED(st.treatments)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  function renderBeautyTable(){
+    const sorted=[...d.beautyStaff].sort((a,b)=>{
+      const v=beautySort.dir==='asc'?(a[beautySort.col]||0)-(b[beautySort.col]||0):(b[beautySort.col]||0)-(a[beautySort.col]||0);
+      return v;
+    });
+    const cols=[
+      {key:'name',label:'Therapist'},
+      {key:'total',label:'Clients'},
+      {key:'beautySales',label:'Beauty Sales'},
+      {key:'avgBill',label:'Avg Bill'},
+      {key:'rebookPct',label:'Rebook %'},
+    ];
+    document.getElementById('tab-beauty').innerHTML=`<table>
+      <thead><tr>
+        <th style="width:30px">#</th>
+        ${cols.map(c=>`<th class="sortable${beautySort.col===c.key?' sort-'+beautySort.dir:''}" onclick="sortBeauty('${c.key}')">${c.label}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${sorted.map((st,i)=>`<tr>
+          <td style="color:var(--muted2);font-size:11px">${i+1}</td>
+          <td><span style="display:flex;align-items:center;gap:7px"><span style="width:22px;height:22px;border-radius:50%;background:${st.color};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0">${initials(st.name)}</span>${st.name}</span></td>
+          <td>${st.total}</td><td>${fmtAED(st.beautySales)}</td>
+          <td><span class="badge ${sc(st.avgBill,TARGETS.beautyAvgBill)}">${fmtAED(st.avgBill)}</span></td>
+          <td><span class="badge ${sc(st.rebookPct,30)}">${fmtPct(st.rebookPct)}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  window.sortHair=function(col){
+    hairSort.dir=hairSort.col===col?(hairSort.dir==='asc'?'desc':'asc'):'desc';
+    hairSort.col=col;
+    renderHairTable();
+  };
+  window.sortBeauty=function(col){
+    beautySort.dir=beautySort.col===col?(beautySort.dir==='asc'?'desc':'asc'):'desc';
+    beautySort.col=col;
+    renderBeautyTable();
+  };
+
+  renderHairTable();
+  renderBeautyTable();
 
   // ── BRANCH COMPARISON CHART ──
   const byBranch=aggByBranch();
