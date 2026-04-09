@@ -310,11 +310,11 @@ function buildDrop(key,options){
   const drop=document.getElementById('drop-'+key);
   const isAll=sel[key].includes('all');
   drop.innerHTML=`
-    <div class="ms-opt all-opt ${isAll?'selected':''}" onclick="toggleOpt('${key}','all')">All</div>
+    <div class="ms-opt all-opt ${isAll?'selected':''}" data-val="all" onclick="toggleOpt('${key}','all')">All</div>
     ${options.map(o=>{
       const active=!isAll&&sel[key].includes(o.val);
-      const dot=BRANCH_INFO[o.val]?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${BRANCH_INFO[o.val].color};flex-shrink:0"></span>`:'';
-      return `<div class="ms-opt ${active?'selected':''}" onclick="toggleOpt('${key}','${o.val}')">${dot}${o.label}</div>`;
+      const dot=BRANCH_INFO[o.val]?`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${BRANCH_INFO[o.val].color};flex-shrink:0;margin-right:2px"></span>`:'';
+      return `<div class="ms-opt ${active?'selected':''}" data-val="${o.val}" onclick="toggleOpt('${key}','${o.val}')">${dot}${o.label}</div>`;
     }).join('')}
   `;
   updateLabel(key,options);
@@ -331,15 +331,21 @@ function toggleOpt(key,val){
   }
   if(key==='branch'||key==='year'){sel.month=['all'];}
   if(key==='branch'||key==='year'||key==='month'){sel.week=['all'];}
-  // rebuild drops and re-highlight selected state
-  const branches=Object.entries(BRANCH_INFO).map(([k,v])=>({val:k,label:v.name}));
-  buildDrop('branch',branches);
   rebuildDependentDrops();
-  // keep dropdown open after selection
+  // re-highlight just the current dropdown without rebuilding it
   const drop=document.getElementById('drop-'+key);
-  const btn=document.getElementById('btn-'+key);
+  drop.querySelectorAll('.ms-opt').forEach(el=>{
+    const v=el.dataset.val;
+    const isAllOpt=el.classList.contains('all-opt');
+    if(isAllOpt){el.classList.toggle('selected',sel[key].includes('all'));}
+    else{el.classList.toggle('selected',!sel[key].includes('all')&&sel[key].includes(v));}
+  });
+  // keep dropdown open
   drop.classList.add('open');
-  btn.classList.add('open');
+  document.getElementById('btn-'+key).classList.add('open');
+  // update button label
+  const allOptions=[...drop.querySelectorAll('.ms-opt:not(.all-opt)')].map(el=>({val:el.dataset.val,label:el.textContent.trim()}));
+  updateLabel(key,allOptions);
   renderDashboard();
 }
 
