@@ -20,6 +20,31 @@
   --good:#0F6E56;--good-bg:#E1F5EE;--warn:#BA7517;--warn-bg:#FAEEDA;--bad:#A32D2D;--bad-bg:#FCEBEB;
   --logo-color:#5C5557;--toggle-knob:#5C5557;
 }
+
+.nav-btn{
+  width:100%;
+  padding:10px 12px;
+  background:transparent;
+  border:1px solid transparent;
+  color:var(--muted);
+  border-radius:10px;
+  cursor:pointer;
+  font-size:13px;
+  text-align:left;
+  transition:all .2s ease;
+}
+
+.nav-btn:hover{
+  background:var(--surface2);
+  color:var(--text);
+}
+
+.nav-btn.active{
+  background:var(--accent);
+  color:var(--accent-fg);
+  font-weight:600;
+}
+  
 [data-theme="dark"]{
   --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;--border:rgba(250,248,243,0.09);--border2:rgba(250,248,243,0.05);
   --text:#FAF8F3;--muted:rgba(250,248,243,0.55);--muted2:rgba(250,248,243,0.38);--accent:#FFD4D9;--accent-fg:#2D2E37;
@@ -233,16 +258,31 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 <div style="display:flex;min-height:100vh">
 
   <!-- SIDEBAR -->
-  <aside style="width:220px;background:var(--surface);border-right:1px solid var(--border);padding:16px">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Navigation</div>
+  <aside style="
+  width:240px;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  padding:20px 14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+">
+    <div style="font-size:11px;color:var(--muted);letter-spacing:.1em;">
+  DASHBOARDS
+</div>
 
-    <button onclick="showView('dashboard')" class="nav-btn">Dashboard</button>
-    <button onclick="showView('khalifa')" class="nav-btn">Khalifa Reviews</button>
-    <button onclick="showView('saadiyat')" class="nav-btn">Saadiyat Reviews</button>
+<button onclick="showView('dashboard')" class="nav-btn active">Dashboard</button>
+
+<div style="margin-top:12px;font-size:11px;color:var(--muted);letter-spacing:.1em;">
+  REVIEWS
+</div>
+
+<button onclick="showView('khalifa')" class="nav-btn">Khalifa</button>
+<button onclick="showView('saadiyat')" class="nav-btn">Saadiyat</button>
   </aside>
 
   <!-- MAIN VIEW -->
-  <div style="flex:1">
+  <div style="flex:1;padding:20px 24px;">
 
     <!-- DASHBOARD -->
     <div id="view-dashboard">
