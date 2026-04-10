@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tara Rose Salon — Saadiyat Branch Reviews</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --rose: #c9856a;
+    --rose-light: #f5ebe6;
+    --rose-deep: #a0614a;
+    --gold: #c4a882;
+    --dark: #1a1410;
+    --mid: #4a3f38;
+    --light: #fdf8f5;
+    --cream: #f7efe8;
+    --border: #e8d8cc;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--light);
+    color: var(--dark);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--dark);
+    padding: 60px 40px 50px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(201,133,106,0.25) 0%, transparent 70%);
+  }
+
+  .header-inner { position: relative; z-index: 1; }
+
+  .branch-tag {
+    display: inline-block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--rose);
+    border: 1px solid rgba(201,133,106,0.4);
+    padding: 6px 18px;
+    border-radius: 100px;
+    margin-bottom: 20px;
+  }
+
+  header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: 300;
+    color: #fff;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+
+  header h1 em { font-style: italic; color: var(--rose); }
+
+  header p {
+    color: rgba(255,255,255,0.45);
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    margin-top: 16px;
+  }
+
+  .stats-bar {
+    background: var(--cream);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 48px;
+    flex-wrap: wrap;
+  }
+
+  .stat { text-align: center; }
+
+  .stat-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--rose-deep);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-top: 4px;
+  }
+
+  .stat-divider { width: 1px; height: 40px; background: var(--border); }
+
+  .breakdown { display: flex; gap: 6px; align-items: center; }
+
+  .breakdown-pill {
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .pill-green { background: #e8f5e9; color: #2e7d32; }
+  .pill-yellow { background: #fff8e1; color: #f57f17; }
+  .pill-red { background: #fce4ec; color: #c62828; }
+
+  .filter-bar {
+    padding: 24px 40px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    background: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+
+  .filter-btn {
+    padding: 8px 20px;
+    border-radius: 100px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--mid);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 400;
+  }
+
+  .filter-btn:hover, .filter-btn.active { background: var(--dark); border-color: var(--dark); color: #fff; }
+  .filter-btn.active-pos { background: #2e7d32; border-color: #2e7d32; color: #fff; }
+  .filter-btn.active-neg { background: #c62828; border-color: #c62828; color: #fff; }
+
+  .main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    margin-top: 48px;
+  }
+
+  .section-header:first-child { margin-top: 0; }
+
+  .section-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .icon-pos { background: #e8f5e9; }
+  .icon-neg { background: #fce4ec; }
+
+  .section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--dark);
+  }
+
+  .section-count {
+    margin-left: auto;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--mid);
+    background: var(--cream);
+    padding: 4px 14px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+  }
+
+  .reviews-grid { display: flex; flex-direction: column; gap: 16px; }
+
+  .review-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 28px;
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+
+  .review-card:hover {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+  }
+
+  .review-card.negative { border-left: 3px solid #e57373; }
+  .review-card.positive { border-left: 3px solid #81c784; }
+
+  .review-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .reviewer-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--rose), var(--gold));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .reviewer-info { flex: 1; }
+
+  .reviewer-name {
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--dark);
+    margin-bottom: 2px;
+  }
+
+  .review-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .review-date { font-size: 12px; color: #999; }
+
+  .stars { display: flex; gap: 2px; }
+  .star { font-size: 13px; }
+  .star.filled { color: #f4b942; }
+  .star.empty { color: #ddd; }
+
+  .source-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #4285f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .review-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #555;
+  }
+
+  .stylist-tags {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .stylist-tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    background: var(--rose-light);
+    color: var(--rose-deep);
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+
+  .section-sep {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+    margin: 8px 0 32px;
+  }
+
+  footer {
+    background: var(--dark);
+    text-align: center;
+    padding: 32px;
+    color: rgba(255,255,255,0.3);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  footer span { color: var(--rose); }
+
+  @media (max-width: 600px) {
+    .stats-bar { gap: 24px; padding: 20px; }
+    .stat-divider { display: none; }
+    header { padding: 40px 20px 36px; }
+    .filter-bar { padding: 16px 20px; }
+    .main { padding: 32px 16px; }
+    .review-card { padding: 18px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="branch-tag">Saadiyat Branch</div>
+    <h1>Tara Rose <em>Salon</em></h1>
+    <p>Client Reviews &amp; Testimonials — Google</p>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-value">4.8 / 5</div>
+    <div class="stat-label">Google Rating</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat">
+    <div class="stat-value">667</div>
+    <div class="stat-label">Total Reviews</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat">
+    <div class="stat-label" style="margin-bottom:8px;">Reputation Breakdown</div>
+    <div class="breakdown">
+      <span class="breakdown-pill pill-green">95% Positive</span>
+      <span class="breakdown-pill pill-yellow">1% Neutral</span>
+      <span class="breakdown-pill pill-red">4% Negative</span>
+    </div>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="filterReviews('all', this)">All Reviews</button>
+  <button class="filter-btn" onclick="filterReviews('positive', this)">⭐ 5-Star</button>
+  <button class="filter-btn" onclick="filterReviews('negative', this)">👎 Low Ratings</button>
+</div>
+
+<div class="main">
+
+  <!-- 5 STAR SECTION -->
+  <div class="section-header" data-section="positive">
+    <div class="section-icon icon-pos">⭐</div>
+    <div class="section-title">5-Star Reviews</div>
+    <div class="section-count">34 reviews</div>
+  </div>
+  <div class="section-sep"></div>
+  <div class="reviews-grid" id="positive-reviews">
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">S</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Square Limited</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">13 days ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">I did Manicure with Mimi and I'm very happy with her service 😍 she did perfect manicure. -KAYA</div>
+      <div class="stylist-tags"><span class="stylist-tag">Mimi</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">E</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Eli Corcoles</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">a month ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Amazing pedicure and manicure from Sania and Rovina. Amazing work, so I will come back! 💖🫂</div>
+      <div class="stylist-tags"><span class="stylist-tag">Sania</span><span class="stylist-tag">Rovina</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">A</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Amna Mohammed</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">a month ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">I'm someone who values the overall experience as much as the service itself. I first visited the Khalifa City branch of Tara Rose for a haircut and later joined their Silver Package, a monthly membership for hair treatments. The stylists are highly qualified. I used to go to May in Khalifa City and now see Eds at the Saadiyat branch for my weekly treatment and blowout. Eds is an absolute gem — she is incredibly skilled, kind, and truly passionate about what she does. She takes the time to understand your hair and always makes sure you leave feeling your best. The entire team at Saadiyat is warm and welcoming, and the salon itself is beautiful. Highly recommend!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Eds</span><span class="stylist-tag">May</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">S</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Sandra Abbrederis</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">a month ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">(Translated by Google) I have very straight hair, and cutting layers is quite difficult. Tammy is a great technician at it. The way my hair falls is fantastic, and my bangs are perfect. (Original) Ich habe ganz gerade Haare und Stufen zu schneiden ist ziemlich schwer…. Tammy ist eine gute Technikerin darin. Der Haarfall ist super und der Pony ist perfekt.</div>
+      <div class="stylist-tags"><span class="stylist-tag">Tammy</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">T</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Tanya Zialcita</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">2 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Tara Rose has been my go-to for years. I've had the pleasure to have Tammy do an Ash Beige balayage for my hair which I fully trusted her to do based on her recommendation. She knows what's up. Her expertise, knowledge and style really made all the difference. Especially having her walk me through the entire experience, from understanding what I wanted, the process itself to finally seeing the results was so reassuring. All the staff are so friendly and welcoming too. Highly recommend!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Tammy</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">R</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Rosalie Tonkin</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">2 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Arni agreed to do my nail art and she did it exactly like I wanted it. I'm quite fussy so I was super pleased</div>
+      <div class="stylist-tags"><span class="stylist-tag">Arni</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">Z</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Zahra Khan</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">2 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">I genuinely feel like a new woman! I had the wonderful and bubbly Holly cutting and styling my hair today. After chatting to me about my hair goals and current routine, she added wispy bangs and beautiful layers. Holly also added a hair mask treatment which has truly saved my hair from the daily sun, salt, and chlorine exposure 😊 I loved the little snacks and beverages and the team was so professional and warm. I will definitely be returning and asking for Holly next time!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Holly</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">S</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">shai</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">2 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">I had such a great haircut experience with Holly. Hands down the BEST hairdresser I have ever met!!! She transformed my hair into exactly what I imagined it to look like. I absolutely loved her work, she's very talented. The salon and all the staff were very friendly and welcoming. I loved the vibes and I'm definitely going there again.</div>
+      <div class="stylist-tags"><span class="stylist-tag">Holly</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">S</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Suchita Patel</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">2 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">I had a great experience with April! She did a fantastic job in advising me on various colour and cut options, and guiding me on what would suit me best. I'd definitely recommend her!</div>
+      <div class="stylist-tags"><span class="stylist-tag">April</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">C</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Colleen Jewel Uy</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">3 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Very friendly staff, especially, Ms. Reda and Arnie. Such a good experience and environment. 😊😊</div>
+      <div class="stylist-tags"><span class="stylist-tag">Reda</span><span class="stylist-tag">Arnie</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">C</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Charlotte Allseybrook</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">3 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Perfect brow lamination and lash lift with Mona as always. Would highly recommend.</div>
+      <div class="stylist-tags"><span class="stylist-tag">Mona</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">K</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Kristine Saldava</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">3 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Sania is the best facial specialist in the world!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Sania</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">M</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Marina Shevchenko</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">3 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Huge thank you to Molly for the most beautiful hair coloring! She's incredibly talented, attentive to detail, and really knows what she's doing. The result was even better than I expected — truly a 10/10 experience. Highly recommend Molly and this salon!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Molly</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">C</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Cyr Lorzano</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">4 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">I did my hair Color with Eds and I supper loved it! Her hair consultation is spot on and delivered. Love the outcome and her product recommendations. Salon is nice, all staff are very accommodating, plus the salon has an amazing view by the beach too!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Eds</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="4">
+      <div class="review-top">
+        <div class="reviewer-avatar">M</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Meera Alkaabi</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star empty">★</span></div>
+            <span class="review-date">4 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Tamy is genuinely one of those rare stylists you remember long after you leave the salon. She's gorgeous, yes! but what stands out even more is her kindness and the kind of positive energy that immediately makes you feel comfortable and seen. Beyond how skilled and experienced she is, she has a real eye for what suits your face and what will make you shine. I've sat in a lot of salon chairs, but there's something genuinely different about the way she works — it's not just about the hair, it's about the whole experience. Truly one of a kind.</div>
+      <div class="stylist-tags"><span class="stylist-tag">Tamy</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">P</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Penny</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">4 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Amazing service!!! Molly did a great job!!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Molly</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">C</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Choir Khalidiya</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">4 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Such a good service specially with Ms. Reda and Arnie.</div>
+      <div class="stylist-tags"><span class="stylist-tag">Reda</span><span class="stylist-tag">Arnie</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">R</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">R. A.</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">4 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text"><em style="color:#aaa;">(No written review)</em></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">Н</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Нонна Харатян</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">4 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Reda is very good at what she's doing. I will recommended her</div>
+      <div class="stylist-tags"><span class="stylist-tag">Reda</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">P</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Parisima Khalvand</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">4 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">The technicians are nice, Reda was great</div>
+      <div class="stylist-tags"><span class="stylist-tag">Reda</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">M</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Marta Granda Paris</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">4 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">You know that feeling of knowing without a doubt that you have finally found what you were looking for? That is how I felt today during my appointment with Edz. After months of looking for a professional, knowledgeable, friendly and gentle stylist in Abu Dhabi, I can say I found her. And boy, oh boy, am I delighted and relieved. I am going to recommend her to everyone I know. Thank you Edz!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Edz</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">M</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Melina Helanen</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">4 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Had an amazing experience at the salon! Edz did a gorgeous balayage for me seamless, beautiful color. She took the time to understand my hair and how to handle it, and the result shows. She's professional, talented, and I highly recommend her!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Edz</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">I</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Iasmina Florea</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">5 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">I had an amazing experience with Tammy. She did my highlights just the way I wanted, looks so natural and well blended. Highly highly recommend!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Tammy</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">A</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Ayooosha Alomdaa</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">5 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text"><em style="color:#aaa;">(No written review — responded to by salon)</em></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">J</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">juliette cahn</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">5 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">I had such a great first experience at Tara Rose today! From the diagnostic to the realization I couldn't be happier. Pictures speak for themselves. Tammy took such good care of my hair and really got what I was looking for. Would recommend a 100% for the quality of the service (coffee and head massage were 😍😍) and the ladies that are all super nice and welcoming.</div>
+      <div class="stylist-tags"><span class="stylist-tag">Tammy</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">S</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Sharon McKoy</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">5 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Wonderful pedicure and relaxing foot massage. Reda always gives excellent service when I visit Tara Rose for my beauty treatments. Thanks to Tara and the team</div>
+      <div class="stylist-tags"><span class="stylist-tag">Reda</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">A</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Anna</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">5 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">I had an amazing experience at Tara Rose! The service was excellent from start to finish. A special thank you to Reda and Arni — both were extremely professional, attentive, and skilled. They made sure I was comfortable throughout the service and delivered results exactly as I wanted. I truly appreciate their warm attitude, attention to detail, and the time they took to ensure everything was perfect. I will definitely be coming back!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Reda</span><span class="stylist-tag">Arni</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">S</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Somesha Ferdinand</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">5 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Sania is an excellent professional!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Sania</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">A</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Alice Collins</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">5 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Beth was incredible! She gave such good advice and really listened to what I wanted. Love my hair, thank you!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Beth</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">P</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Pippa Knowles</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">6 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Beth did a beautiful job refreshing my blonde and most importantly, looking after the health & integrity of my hair which can be challenging living in AD. I would definitely recommend a visit for anyone struggling to find a good salon ❤️</div>
+      <div class="stylist-tags"><span class="stylist-tag">Beth</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">M</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Maria Noelle Botello</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">6 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Bethany is amazing!! So knowledgeable and friendly. I loved my hair cut :)</div>
+      <div class="stylist-tags"><span class="stylist-tag">Bethany</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">D</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Divya Desai</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">6 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">As a curly girl whose hair has a mind of its own, I'm usually hesitant to experiment — especially with color. But this time, I decided to take the plunge, and I'm so glad I did! My experience at Tara Rose with the wonderful Emma, the stylist director, was exceptional. She took the time to understand my curls, guide me through color choices, and deliver exactly what I had envisioned. She truly embraced my natural texture while enhancing it beautifully. I left feeling confident and absolutely in love with my hair. If you have curly hair and are looking for someone who truly "gets it," Emma is your girl!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Emma</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">R</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Rebecca Sorby</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">6 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Had a wonderful experience today with Beth at Tara Rose! I came in ready for a change and Beth was so great at thoroughly talking with me about what I want and what would look best - it made me feel so comfortable and confident. I absolutely love how my hair looks and am so pleased with the result! If you are ready to step up your hair game, come to Tara Rose and ask for Beth!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Beth</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">G</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Giuliana Pardelli</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">6 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Great service. Thank you Zara, Arni and Judy!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Zara</span><span class="stylist-tag">Arni</span><span class="stylist-tag">Judy</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">B</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Bethany Woods</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">6 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">The most beautiful nails done by Rovina! Highly recommend, so happy! Lovely lady and amazing at her job!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Rovina</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">J</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Jahn Lithgo</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">6 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Emma was absolutely amazing cutting my short hair. I always think it's harder to cut shorter styles but she nailed it and gave me some great tips for shaping and styling it at home too.</div>
+      <div class="stylist-tags"><span class="stylist-tag">Emma</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">A</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Alaa Gamal</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">6 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">I absolutely love my new hair! ❤️ The color came out even better than I imagined — it's vibrant, shiny, and perfectly suits me. Triny is amazing! She really took her time to understand what I wanted and made sure everything was done with so much care and professionalism. I've never felt more confident with my hair. Highly recommend Triny!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Triny</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">A</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Assia Meghfour</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">6 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">April is an absolute superstar ⭐, there are no words to describe her talent, expertise, and professionalism. She's truly extraordinary. I once came in with only 30 minutes to dye and style my hair, and she was completely up for the mission impossible! Chris is equally amazing, as is the rest of the staff. I can't recommend this place enough! 🫶🏼</div>
+      <div class="stylist-tags"><span class="stylist-tag">April</span><span class="stylist-tag">Chris</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">M</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Mel Lawson</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">6 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text"><em style="color:#aaa;">(No written review)</em></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">M</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">merve tuerkoglu</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">6 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Arni was exceptional, great work and personality. Chatting with her was very pleasant!!! I loved the nails and her presence.</div>
+      <div class="stylist-tags"><span class="stylist-tag">Arni</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">F</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Francy Gutierrez</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">6 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Toni is amazing! I had such a wonderful experience with her! She is so kind and patient. She took the time to understand what I wanted. I loved the final result of my hair. I highly recommend her to anyone looking for a stylist who combines skills with genuine care! I recently moved to Abu Dhabi and I'm so excited to have found this gem on Saadiyat!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Toni</span></div>
+    </div>
+
+    <div class="review-card positive" data-rating="5">
+      <div class="review-top">
+        <div class="reviewer-avatar">E</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Elisa De Pasquale</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span></div>
+            <span class="review-date">7 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Highly recommend Beth for anyone with blond hair. Lovely person and excellent hair colour!</div>
+      <div class="stylist-tags"><span class="stylist-tag">Beth</span></div>
+    </div>
+
+  </div><!-- end positive reviews -->
+
+  <!-- LOW RATING SECTION -->
+  <div class="section-header" data-section="negative">
+    <div class="section-icon icon-neg">👎</div>
+    <div class="section-title">Low-Rating Reviews</div>
+    <div class="section-count">5 reviews</div>
+  </div>
+  <div class="section-sep"></div>
+  <div class="reviews-grid" id="negative-reviews">
+
+    <div class="review-card negative" data-rating="2">
+      <div class="review-top">
+        <div class="reviewer-avatar" style="background: linear-gradient(135deg,#e57373,#ef9a9a);">M</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Malgorzata Dzieza</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled" style="color:#e57373;">★</span><span class="star filled" style="color:#e57373;">★</span><span class="star empty">★</span><span class="star empty">★</span><span class="star empty">★</span></div>
+            <span class="review-date">12 days ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">The worst saloon ever. 3 times I am being reschedule and each time they are lying about the reasons. I have never in my life seen in my such a bad customer service. All the good hairdressers have left the saloon because it's poorly managed.</div>
+    </div>
+
+    <div class="review-card negative" data-rating="2">
+      <div class="review-top">
+        <div class="reviewer-avatar" style="background: linear-gradient(135deg,#e57373,#ef9a9a);">A</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">A M</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled" style="color:#e57373;">★</span><span class="star filled" style="color:#e57373;">★</span><span class="star empty">★</span><span class="star empty">★</span><span class="star empty">★</span></div>
+            <span class="review-date">4 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">1- they ruined my friend's hair 2- all they care about is money 3- the manager Emma speaks in a condescending tone and all she does is defend her stylists. She literally admitted "your hair is now ruined" I wish my friend told me sooner I would have complained sooner right. We live in a country that knows how to control such businesses so I will file a complaint and I hope other customers do the same thing. Avoid this place, they take your money and ruin your hair.</div>
+    </div>
+
+    <div class="review-card negative" data-rating="1">
+      <div class="review-top">
+        <div class="reviewer-avatar" style="background: linear-gradient(135deg,#b71c1c,#e57373);">B</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">brandi lester</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled" style="color:#b71c1c;">★</span><span class="star empty">★</span><span class="star empty">★</span><span class="star empty">★</span><span class="star empty">★</span></div>
+            <span class="review-date">4 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">I'm devastated. Zara gave me this most horrific haircut that I've ever had in my life. I came in requesting a shape-up for my pixie. She had trimmed my hair once when it was longer, so I assumed she could execute my request. We agreed that I would leave length in the top, and TRIM down the sides. Midway through the haircut, I knew things were going in the wrong direction. However, I trusted her to fix it. Instead, I ended up with a buzzcut with some length on top, nowhere near the style I asked for. I paid 450 AED for this and I was completely heartbroken. I will not be returning.</div>
+      <div class="stylist-tags"><span class="stylist-tag">Zara</span></div>
+    </div>
+
+    <div class="review-card negative" data-rating="1">
+      <div class="review-top">
+        <div class="reviewer-avatar" style="background: linear-gradient(135deg,#b71c1c,#e57373);">A</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Aa Nn</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled" style="color:#b71c1c;">★</span><span class="star empty">★</span><span class="star empty">★</span><span class="star empty">★</span><span class="star empty">★</span></div>
+            <span class="review-date">5 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text"><em style="color:#aaa;">(No written review — responded to by salon)</em></div>
+    </div>
+
+    <div class="review-card negative" data-rating="2">
+      <div class="review-top">
+        <div class="reviewer-avatar" style="background: linear-gradient(135deg,#e57373,#ef9a9a);">L</div>
+        <div class="reviewer-info">
+          <div class="reviewer-name">Lynsey Usher</div>
+          <div class="review-meta">
+            <div class="stars"><span class="star filled" style="color:#e57373;">★</span><span class="star filled" style="color:#e57373;">★</span><span class="star empty">★</span><span class="star empty">★</span><span class="star empty">★</span></div>
+            <span class="review-date">6 months ago</span>
+            <div class="source-badge">G</div>
+          </div>
+        </div>
+      </div>
+      <div class="review-text">Been a Tara Rose customer before. But now 3 times I called and told manager will call me back and nobody does. Very poor service.</div>
+    </div>
+
+  </div><!-- end negative reviews -->
+
+</div><!-- end main -->
+
+<footer>
+  <p>Tara Rose Salon &amp; Fratelli Barbershop &nbsp;·&nbsp; <span>Saadiyat Branch</span> &nbsp;·&nbsp; Abu Dhabi, UAE</p>
+  <p style="margin-top:8px;">Data sourced from Google Reviews via Phorest · April 2026</p>
+</footer>
+
+<script>
+  function filterReviews(type, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active','active-pos','active-neg'));
+    btn.classList.add('active');
+
+    const posSection = document.querySelector('[data-section="positive"]');
+    const negSection = document.querySelector('[data-section="negative"]');
+    const seps = document.querySelectorAll('.section-sep');
+
+    if (type === 'all') {
+      document.querySelectorAll('.review-card').forEach(c => c.style.display = '');
+      posSection.style.display = '';
+      negSection.style.display = '';
+      seps.forEach(s => s.style.display = '');
+    } else if (type === 'positive') {
+      document.querySelectorAll('.review-card.positive').forEach(c => c.style.display = '');
+      document.querySelectorAll('.review-card.negative').forEach(c => c.style.display = 'none');
+      posSection.style.display = '';
+      negSection.style.display = 'none';
+      btn.classList.remove('active');
+      btn.classList.add('active-pos');
+    } else if (type === 'negative') {
+      document.querySelectorAll('.review-card.negative').forEach(c => c.style.display = '');
+      document.querySelectorAll('.review-card.positive').forEach(c => c.style.display = 'none');
+      posSection.style.display = 'none';
+      negSection.style.display = '';
+      btn.classList.remove('active');
+      btn.classList.add('active-neg');
+    }
+  }
+</script>
+</body>
+</html>
