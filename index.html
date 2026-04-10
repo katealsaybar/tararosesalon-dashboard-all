@@ -315,6 +315,14 @@ function showView(view){
   document.getElementById('view-saadiyat').style.display='none';
 
   document.getElementById('view-'+view).style.display='block';
+
+  if(view === 'dashboard'){
+    document.getElementById('controls').style.display = 'flex';
+  } else {
+    document.getElementById('controls').style.display = 'none';
+  }
+
+  window.scrollTo(0,0);
 }
   
 const SUPA_URL='https://gvijxenafoowajqktqvd.supabase.co';
