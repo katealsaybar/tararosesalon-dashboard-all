@@ -458,7 +458,7 @@ function renderDashboard(){
       <div>
         <div class="section-label">${branchLabel} &nbsp;·&nbsp; Key Metrics</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div class="metric m-rose"><div class="metric-label">Net Revenue</div><div class="metric-value" style="font-size:22px">${fmtAED(s.netTake)}</div><div class="metric-target">Target: AED 660,000 / mo</div></div>
+          <div class="metric m-rose"><div class="metric-label">Net Revenue</div><div class="metric-value" style="font-size:22px">${fmtAED(s.netTake)}</div><div class="metric-target">Target: AED 2,000,000 / mo</div></div>
           <div class="metric m-coral"><div class="metric-label">Total Clients</div><div class="metric-value" style="font-size:22px">${s.totalClients}</div><div class="metric-target">Target: 943 / mo</div></div>
           <div class="metric m-lav"><div class="metric-label">Avg Bill</div><div class="metric-value ${sc(s.avgBill,TARGETS.hairAvgBill)}" style="font-size:22px">${fmtAED(s.avgBill)}</div><div class="metric-target">Target: AED ${TARGETS.hairAvgBill}</div></div>
           <div class="metric m-turq"><div class="metric-label">Rebooking %</div><div class="metric-value ${sc(s.rebookPct,TARGETS.rebookPct)}" style="font-size:22px">${fmtPct(s.rebookPct)}</div><div class="metric-target">Target: ${TARGETS.rebookPct}%</div></div>
