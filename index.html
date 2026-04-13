@@ -38,8 +38,8 @@
 /* 🔥 KPI GRID */
 .grid-sub{
   display:grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap:12px;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap:16px;
 }
 
 /* 🔥 CHART */
@@ -51,10 +51,6 @@
 @media(min-width:1400px){
   .grid-main{
     grid-template-columns: 1.3fr 0.7fr;
-  }
-
-  .grid-sub{
-    grid-template-columns: repeat(3, 1fr);
   }
 
   .chart{
@@ -818,7 +814,30 @@ function renderDashboard(){
           <div class="metric m-coral"><div class="metric-label">Total Clients</div><div class="metric-value" style="font-size:22px">${s.totalClients}</div><div class="metric-target">Target: 943 / mo</div></div>
           <div class="metric m-lav"><div class="metric-label">Avg Bill</div><div class="metric-value ${sc(s.avgBill,TARGETS.hairAvgBill)}" style="font-size:22px">${fmtAED(s.avgBill)}</div><div class="metric-target">Target: AED ${TARGETS.hairAvgBill}</div></div>
           <div class="metric m-turq"><div class="metric-label">Rebooking %</div><div class="metric-value ${sc(s.rebookPct,TARGETS.rebookPct)}" style="font-size:22px">${fmtPct(s.rebookPct)}</div><div class="metric-target">Target: ${TARGETS.rebookPct}%</div></div>
-                 </div>
+          <div class="metric m-lime">
+  <div class="metric-label">Treatment %</div>
+  <div class="metric-value" style="font-size:22px">${fmtPct(s.treatmentPct)}</div>
+  <div class="metric-target">Target: ${TARGETS.treatmentPct}%</div>
+</div>
+
+<div class="metric m-pink">
+  <div class="metric-label">Retail %</div>
+  <div class="metric-value" style="font-size:22px">${fmtPct(s.hairRetailPct)}</div>
+  <div class="metric-target">Target: ${TARGETS.retailPct}%</div>
+</div>
+
+<div class="metric m-sage">
+  <div class="metric-label">Beauty Sales</div>
+  <div class="metric-value" style="font-size:22px">${fmtAED(s.beautySales)}</div>
+  <div class="metric-target">${fmtPct(s.beautyPct)} of total</div>
+</div>
+
+<div class="metric m-peach">
+  <div class="metric-label">Colour Take</div>
+  <div class="metric-value" style="font-size:22px">${fmtAED(s.colTake)}</div>
+  <div class="metric-target">${fmtPct(s.colPct||0)} of hair</div>
+</div>
+                 ]\</div>
       </div>
       <div style="display:flex;flex-direction:column">
         <div class="section-label">Branch Comparison</div>
