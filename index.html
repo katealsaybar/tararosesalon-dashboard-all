@@ -355,7 +355,6 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 <button onclick="showView('khalifa', this)" class="nav-btn">Khalifa</button>
 <button onclick="showView('saadiyat', this)" class="nav-btn">Saadiyat</button>
    <button onclick="showView('calendar', this)" class="nav-btn">Content Calendar</button>
-   <button onclick="showView('giveaway', this)" class="nav-btn">Giveaway Entries</button>
   </aside>
 
   <!-- MAIN VIEW -->
@@ -423,12 +422,6 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
     <!-- CALENDAR -->
      <div id="view-calendar" style="display:none">
-       <div id="view-giveaway" style="display:none">
-  <iframe 
-    src="./Giveaway%20Entries%20042026.html"
-    style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;">
-  </iframe>
-</div>
   <iframe 
     src="https://trs-contentcalendar.netlify.app/" 
     style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;">
@@ -465,8 +458,6 @@ function showView(view, el){
   document.getElementById('view-dashboard').style.display='none';
   document.getElementById('view-khalifa').style.display='none';
   document.getElementById('view-saadiyat').style.display='none';
-  document.getElementById('view-calendar').style.display='none';
-  document.getElementById('view-giveaway').style.display='none';
 
   document.getElementById('view-'+view).style.display='block';
 
@@ -475,12 +466,6 @@ function showView(view, el){
   } else {
     document.getElementById('controls').style.display = 'none';
   }
-
-  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-  el.classList.add('active');
-
-  window.scrollTo(0,0);
-}
 
   // 🔥 ACTIVE STATE FIX
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
