@@ -354,6 +354,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
 <button onclick="showView('khalifa', this)" class="nav-btn">Khalifa</button>
 <button onclick="showView('saadiyat', this)" class="nav-btn">Saadiyat</button>
+   <button onclick="showView('calendar', this)" class="nav-btn">Content Calendar</button>
   </aside>
 
   <!-- MAIN VIEW -->
@@ -417,9 +418,15 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
     <!-- SAADIYAT -->
     <div id="view-saadiyat" style="display:none">
   <iframe src="./saadiyat.html" style="width:100%;height:70vh;border:none;border-radius:12px;"></iframe>
+</div>
 
-      <div style="margin-top: 30px; text-align: center;">
-  <h2 style="margin-bottom: 10px;">Content Calendar</h2>
+    <!-- CALENDAR -->
+     <div id="view-calendar" style="display:none">
+  <iframe 
+    src="https://trs-contentcalendar.netlify.app/" 
+    style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;">
+  </iframe>
+
 
   <a href="https://trs-contentcalendar.netlify.app/" target="_blank">
    <button style="
