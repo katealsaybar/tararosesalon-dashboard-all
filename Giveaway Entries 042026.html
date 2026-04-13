@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Giveaway Responses — April</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --rose: #e8736a;
+      --blush: #f4c6c2;
+      --cream: #fdf8f5;
+      --warm: #f9ede8;
+      --text: #2b1f1d;
+      --muted: #8a6f6b;
+      --gold: #c9973a;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: var(--cream);
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle at 15% 15%, #f9e4e0 0%, transparent 50%),
+                        radial-gradient(circle at 85% 85%, #fce8d5 0%, transparent 50%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 60px 24px 80px;
+    }
+
+    header { text-align: center; margin-bottom: 48px; animation: fadeDown 0.6s ease both; }
+
+    .tag {
+      display: inline-block;
+      background: var(--blush);
+      color: var(--rose);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+
+    header h1 { font-family: 'Playfair Display', serif; font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 700; line-height: 1.2; margin-bottom: 10px; }
+    header h1 em { color: var(--rose); font-style: italic; }
+    header p { color: var(--muted); font-size: 14px; font-weight: 300; }
+
+    .legend { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; animation: fadeUp 0.6s 0.15s ease both; }
+    .legend-item { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--muted); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .dot-gold  { background: var(--gold); }
+    .dot-rose  { background: var(--rose); }
+    .dot-blush { background: #c4a4a1; }
+    .dot-muted { background: #d0bab7; }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 16px;
+      box-shadow: 0 4px 30px rgba(180,100,90,0.10);
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    table { width: 100%; border-collapse: collapse; background: #fff; font-size: 13px; }
+    thead tr { background: linear-gradient(135deg, #e8736a, #d45a50); }
+    thead th { color: #fff; font-weight: 500; font-size: 10.5px; letter-spacing: 1.8px; text-transform: uppercase; padding: 14px 16px; text-align: left; white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid #f5ecea; transition: background 0.15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:nth-child(even) { background: #fdfaf9; }
+    tbody tr:hover { background: #fdf4f3; }
+    td { padding: 14px 16px; vertical-align: top; line-height: 1.55; }
+
+    .rank-cell { text-align: center; width: 48px; }
+    .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; font-family: 'Playfair Display', serif; font-weight: 700; font-size: 14px; }
+    .r1 { background: linear-gradient(135deg, #f6d365, #c9973a); color: #fff; box-shadow: 0 2px 8px rgba(201,151,58,0.4); }
+    .r2 { background: linear-gradient(135deg, #e8736a, #c4433a); color: #fff; box-shadow: 0 2px 8px rgba(232,115,106,0.35); }
+    .r3 { background: linear-gradient(135deg, #f4c6c2, #e8736a); color: #fff; }
+    .rn { background: var(--warm); color: var(--muted); font-size: 12px; }
+
+    .name-cell { min-width: 130px; }
+    .name { font-weight: 500; font-size: 13.5px; margin-bottom: 2px; }
+
+    .nominee-cell { min-width: 110px; }
+    .nominee-pill { display: inline-block; background: var(--warm); color: var(--rose); font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; }
+
+    .location-cell { min-width: 80px; }
+    .location-tag { display: inline-block; background: #eef6f0; color: #3a7a52; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; margin: 2px 2px 2px 0; }
+
+    .day-cell { min-width: 140px; font-size: 12.5px; color: var(--muted); }
+
+    .quote-cell { min-width: 200px; max-width: 260px; }
+    .quote { font-style: italic; color: #7a4f4b; font-size: 12.5px; line-height: 1.65; position: relative; padding-left: 14px; }
+    .quote::before { content: '"'; position: absolute; left: 0; top: -4px; font-family: 'Playfair Display', serif; font-size: 24px; color: var(--blush); line-height: 1; }
+    .quote.empty { font-style: normal; color: #c0a09d; font-size: 12px; }
+
+    .priority-cell { width: 110px; }
+    .badge { display: inline-block; font-size: 10px; font-weight: 500; letter-spacing: 1.3px; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+    .badge-top  { background: #fff3e0; color: var(--gold);  border: 1px solid #f6d365; }
+    .badge-high { background: #fdecea; color: var(--rose);  border: 1px solid var(--blush); }
+    .badge-mid  { background: var(--warm); color: #a06860; border: 1px solid #f4c6c2; }
+    .badge-low  { background: #f5f0ef; color: #b0908c;     border: 1px solid #e2d5d3; }
+
+    footer { text-align: center; margin-top: 40px; color: var(--muted); font-size: 13px; animation: fadeUp 0.6s 0.5s ease both; }
+    footer span { color: var(--rose); }
+
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="tag">🎁 Giveaway Entries — April</div>
+    <h1>Women Who <em>Truly</em> Deserve It</h1>
+    <p>27 responses · Ranked by sincerity & need</p>
+  </header>
+
+  <div class="legend">
+    <div class="legend-item"><div class="dot dot-gold"></div> Top Pick</div>
+    <div class="legend-item"><div class="dot dot-rose"></div> High Priority</div>
+    <div class="legend-item"><div class="dot dot-blush"></div> Mid Priority</div>
+    <div class="legend-item"><div class="dot dot-muted"></div> Less Detail</div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Name</th>
+          <th>Nominating</th>
+          <th>Location</th>
+          <th>Preferred Day/Time</th>
+          <th>Their Words</th>
+          <th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge r1">1</div></td>
+          <td class="name-cell"><div class="name">Dana Basem</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">KCA</span></td>
+          <td class="day-cell">Tue–Thu / 3pm–8pm</td>
+          <td class="quote-cell"><div class="quote">I am a doctor who's currently working in the military hospital, taking care of the injured troops of the UAE during this hard time.</div></td>
+          <td class="priority-cell"><span class="badge badge-top">Top Pick</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge r2">2</div></td>
+          <td class="name-cell"><div class="name">Rachael</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Sian Haggis</span></td>
+          <td class="location-cell"><span class="location-tag">MC</span></td>
+          <td class="day-cell">—</td>
+          <td class="quote-cell"><div class="quote">She's a super woman who works full time and is a full time mum (husband lives in Saudi) doing everything alone. Just had a huge operation and is always so positive and warm.</div></td>
+          <td class="priority-cell"><span class="badge badge-top">Top Pick</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge r3">3</div></td>
+          <td class="name-cell"><div class="name">Mea Gold</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Stacey</span></td>
+          <td class="location-cell"><span class="location-tag">MC</span></td>
+          <td class="day-cell">—</td>
+          <td class="quote-cell"><div class="quote">She's been hustling so hard on her kids furniture business during these difficult times — and she is celebrating 25 weeks sobriety! This would be amazing for her.</div></td>
+          <td class="priority-cell"><span class="badge badge-top">Top Pick</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">4</div></td>
+          <td class="name-cell"><div class="name">Courtney Long</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Sharon Long (mum)</span></td>
+          <td class="location-cell"><span class="location-tag">SAA</span></td>
+          <td class="day-cell">Sun mornings / weekday mornings</td>
+          <td class="quote-cell"><div class="quote">She lost her mum last August and now her dad potentially needs his legs amputated. This is a lot for her at the moment.</div></td>
+          <td class="priority-cell"><span class="badge badge-top">Top Pick</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">5</div></td>
+          <td class="name-cell"><div class="name">Mollie Helena</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Suzanne Priestley (mum)</span></td>
+          <td class="location-cell"><span class="location-tag">MC</span></td>
+          <td class="day-cell">—</td>
+          <td class="quote-cell"><div class="quote">We lost my dad 2 years ago and she has just started putting herself back in the dating world and I want her to feel amazing doing so.</div></td>
+          <td class="priority-cell"><span class="badge badge-top">Top Pick</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">6</div></td>
+          <td class="name-cell"><div class="name">Sakshi</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">MC</span><span class="location-tag">AQ</span></td>
+          <td class="day-cell">11th / 12th April</td>
+          <td class="quote-cell"><div class="quote">This would mean my renewed and confident self after feeling at loss past few weeks. This would mean regeneration… a hug that says "it is alright, this too shall pass."</div></td>
+          <td class="priority-cell"><span class="badge badge-high">High Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">7</div></td>
+          <td class="name-cell"><div class="name">Visia Lagula</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">SAA</span></td>
+          <td class="day-cell">—</td>
+          <td class="quote-cell"><div class="quote">For a woman balancing work and motherhood every day, this would be a moment of self care and calm that I truly need right now.</div></td>
+          <td class="priority-cell"><span class="badge badge-high">High Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">8</div></td>
+          <td class="name-cell"><div class="name">Suhaifah Younus</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">SAA</span></td>
+          <td class="day-cell">10th / 11th April</td>
+          <td class="quote-cell"><div class="quote">I've been pouring into everyone else lately — this would be a rare moment to pour into myself.</div></td>
+          <td class="priority-cell"><span class="badge badge-high">High Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">9</div></td>
+          <td class="name-cell"><div class="name">Renee Malick</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">AQ</span></td>
+          <td class="day-cell">16th April / 3:30pm</td>
+          <td class="quote-cell"><div class="quote">Given a rough week with a salary cut, I'm hoping for a small reset. A little pampering right now would mean more than usual.</div></td>
+          <td class="priority-cell"><span class="badge badge-high">High Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">10</div></td>
+          <td class="name-cell"><div class="name">Francesca M</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Renee</span></td>
+          <td class="location-cell"><span class="location-tag">AQ</span></td>
+          <td class="day-cell">15th April</td>
+          <td class="quote-cell"><div class="quote">My bestie Renee had to take a pay cut but still manages to have a smile and positive attitude — would love for her to feel as special as she is.</div></td>
+          <td class="priority-cell"><span class="badge badge-high">High Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">11</div></td>
+          <td class="name-cell"><div class="name">Bethany Tuit</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">KCA</span></td>
+          <td class="day-cell">—</td>
+          <td class="quote-cell"><div class="quote">I never seem to be able to slow down and take a moment for myself. Would make my whole month if I got this — it's the exact pick me up I need.</div></td>
+          <td class="priority-cell"><span class="badge badge-high">High Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">12</div></td>
+          <td class="name-cell"><div class="name">Leann Horn</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">KCA</span><span class="location-tag">SAA</span></td>
+          <td class="day-cell">Saturday mornings</td>
+          <td class="quote-cell"><div class="quote">Teacher with a full teaching load online, 2 young kids with live lessons, husband also teaching and no nanny.</div></td>
+          <td class="priority-cell"><span class="badge badge-high">High Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">13</div></td>
+          <td class="name-cell"><div class="name">Maya Rh</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell">—</td>
+          <td class="day-cell">—</td>
+          <td class="quote-cell"><div class="quote">I gave birth a year ago and since then I didn't have time to take care of myself.</div></td>
+          <td class="priority-cell"><span class="badge badge-high">High Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">14</div></td>
+          <td class="name-cell"><div class="name">Nouf</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Farida Abdulaa (mum)</span></td>
+          <td class="location-cell"><span class="location-tag">KCA</span></td>
+          <td class="day-cell">11th April / 2pm–7pm</td>
+          <td class="quote-cell"><div class="quote">My mother always puts everyone before herself — a blowdry will give her that hour of the day just for herself, feeling herself again and letting her beauty shine.</div></td>
+          <td class="priority-cell"><span class="badge badge-high">High Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">15</div></td>
+          <td class="name-cell"><div class="name">Shirin Abu Ramadan</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">SAA</span></td>
+          <td class="day-cell">Sat / Sun mornings</td>
+          <td class="quote-cell"><div class="quote">This moment of self care would give me the right energy to go back to being a better mother. We all need a break sometimes.</div></td>
+          <td class="priority-cell"><span class="badge badge-high">High Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">16</div></td>
+          <td class="name-cell"><div class="name">Coco</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Stephanie Johnson</span></td>
+          <td class="location-cell"><span class="location-tag">MC</span></td>
+          <td class="day-cell">Any except Mon & Thu</td>
+          <td class="quote-cell"><div class="quote">My friend just had a newborn and has been let go from work — she deserves this.</div></td>
+          <td class="priority-cell"><span class="badge badge-mid">Mid Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">17</div></td>
+          <td class="name-cell"><div class="name">Sian Beaumont</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">KCA</span></td>
+          <td class="day-cell">Sun anytime / weekdays after 4:30pm</td>
+          <td class="quote-cell"><div class="quote">My hands and feet are desperate for some TLC.</div></td>
+          <td class="priority-cell"><span class="badge badge-mid">Mid Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">18</div></td>
+          <td class="name-cell"><div class="name">Reem</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Abegail Hagos</span></td>
+          <td class="location-cell"><span class="location-tag">SAA</span><span class="location-tag">KCA</span></td>
+          <td class="day-cell">Tue & Sat</td>
+          <td class="quote-cell"><div class="quote">She gives everything to her family and never prioritizes herself. She really deserves something nice after all her hard work and love she gives to everyone but herself.</div></td>
+          <td class="priority-cell"><span class="badge badge-mid">Mid Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">19</div></td>
+          <td class="name-cell"><div class="name">Kate Hennessy</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">SAA</span></td>
+          <td class="day-cell">Anytime before May</td>
+          <td class="quote-cell"><div class="quote">Mother of 2 crazy boys and just had a gorgeous girl 8 weeks ago.</div></td>
+          <td class="priority-cell"><span class="badge badge-mid">Mid Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">20</div></td>
+          <td class="name-cell"><div class="name">Safa Mohammad</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">SAA</span></td>
+          <td class="day-cell">12th April / 3–4pm</td>
+          <td class="quote-cell"><div class="quote">I will resign this month — starting fresh next month.</div></td>
+          <td class="priority-cell"><span class="badge badge-mid">Mid Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">21</div></td>
+          <td class="name-cell"><div class="name">KJ</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Raquel Bragdon</span></td>
+          <td class="location-cell"><span class="location-tag">SAA</span></td>
+          <td class="day-cell">TBC</td>
+          <td class="quote-cell"><div class="quote">Always turns up for everyone and is the queen of organising and giving.</div></td>
+          <td class="priority-cell"><span class="badge badge-mid">Mid Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">22</div></td>
+          <td class="name-cell"><div class="name">Mouza Almansoori</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">KCA</span></td>
+          <td class="day-cell">Sunday</td>
+          <td class="quote-cell"><div class="quote">I need this. I'm depressed. I need to do my hair.</div></td>
+          <td class="priority-cell"><span class="badge badge-mid">Mid Priority</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">23</div></td>
+          <td class="name-cell"><div class="name">Daisy Kate</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Beckie Ashton (mum)</span></td>
+          <td class="location-cell"><span class="location-tag">MC</span><span class="location-tag">AQ</span></td>
+          <td class="day-cell">14th April</td>
+          <td class="quote-cell"><div class="quote empty">No message provided.</div></td>
+          <td class="priority-cell"><span class="badge badge-low">Less Detail</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">24</div></td>
+          <td class="name-cell"><div class="name">Noura Tabikh</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">SAA</span><span class="location-tag">KCA</span></td>
+          <td class="day-cell">Weekdays / 12pm onwards</td>
+          <td class="quote-cell"><div class="quote">Homeschooling.</div></td>
+          <td class="priority-cell"><span class="badge badge-low">Less Detail</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">25</div></td>
+          <td class="name-cell"><div class="name">Habibah Chbib</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">KCA</span></td>
+          <td class="day-cell">Next week</td>
+          <td class="quote-cell"><div class="quote">Mom of 4 sad about the world.</div></td>
+          <td class="priority-cell"><span class="badge badge-low">Less Detail</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">26</div></td>
+          <td class="name-cell"><div class="name">Rachael Mitchell</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">MC</span></td>
+          <td class="day-cell">Sunday / free next week</td>
+          <td class="quote-cell"><div class="quote empty">No message provided.</div></td>
+          <td class="priority-cell"><span class="badge badge-low">Less Detail</span></td>
+        </tr>
+
+        <tr>
+          <td class="rank-cell"><div class="rank-badge rn">27</div></td>
+          <td class="name-cell"><div class="name">Sian Beaumont*</div></td>
+          <td class="nominee-cell"><span class="nominee-pill">Herself</span></td>
+          <td class="location-cell"><span class="location-tag">KCA</span></td>
+          <td class="day-cell">Sun anytime / weekdays after 4:30pm</td>
+          <td class="quote-cell"><div class="quote">My hands and feet are desperate for some TLC.</div></td>
+          <td class="priority-cell"><span class="badge badge-low">Less Detail</span></td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <footer>
+    <p>Compiled with ♥ · <span>27 responses · April Giveaway</span> · Locations: KCA · SAA · MC · AQ</p>
+  </footer>
+
+</div>
+</body>
+</html>
