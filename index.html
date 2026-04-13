@@ -315,7 +315,50 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   }
 }
 
+/* ===== DESKTOP LAYOUT FIX (DO NOT TOUCH ABOVE CODE) ===== */
+
+.main{
+  margin-left:240px !important;
+}
+
+.page{
+  max-width:1600px !important;
+  margin:0 auto !important;
+  padding:32px 40px !important;
+}
+
+.g2{
+  display:grid !important;
+  grid-template-columns: 1.2fr 0.8fr !important;
+  gap:20px !important;
+}
+
+.g4{
+  display:grid !important;
+  grid-template-columns: repeat(4, minmax(220px, 1fr)) !important;
+  gap:16px !important;
+}
+
+.chart{
+  height:280px !important;
+}
+
+@media(min-width:1400px){
+  .page{
+    max-width:1700px !important;
+  }
+
+  .g2{
+    grid-template-columns: 1.3fr 0.7fr !important;
+  }
+
+  .chart{
+    height:320px !important;
+  }
+}
+
 </style>
+  
 </head>
 <body>
 <header>
