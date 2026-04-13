@@ -65,17 +65,38 @@
   min-height:100vh;
 }
 
+/* sidebar base styles */
+aside.sidebar{
+  width:200px;
+  flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  padding:16px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
 /* 🔥 MOBILE FIX */
 @media(max-width:900px){
   .layout{
     flex-direction:column;
   }
 
-  aside{
+  aside.sidebar{
     width:100% !important;
     max-width:none !important;
     border-right:none !important;
     border-bottom:1px solid var(--border);
+    flex-direction:row;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:6px;
+    padding:10px 16px;
+  }
+
+  aside.sidebar > div{
+    display:none; /* hide section labels like DASHBOARDS / REVIEWS on mobile */
   }
 }
   
@@ -269,6 +290,29 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   .top3-grid{grid-template-columns:1fr}
   .top3-grid-row2{grid-template-columns:1fr}
   .ms-btn{min-width:100%;font-size:11px}
+
+  /* fix iframe height on small screens */
+  #view-khalifa iframe,
+  #view-saadiyat iframe{
+    height:calc(100vh - 180px);
+  }
+
+  /* controls: wrap to 2 columns on small phones */
+  .controls{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    padding:12px 16px;
+  }
+
+  .ctrl-group{
+    width:100%;
+  }
+
+  .ms-btn{
+    width:100%;
+    min-width:unset;
+  }
 }
 
 </style>
@@ -293,7 +337,29 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   </div>
 </header>
 
-<div class="controls" id="controls">
+<div class="layout">
+
+  <!-- SIDEBAR -->
+ <aside class="sidebar">
+  <div style="font-size:11px;color:var(--muted);letter-spacing:.1em;">
+   
+    DASHBOARDS
+  </div>
+
+<button onclick="showView('dashboard', this)" class="nav-btn active">Dashboard</button>
+
+<div style="margin-top:12px;font-size:11px;color:var(--muted);letter-spacing:.1em;">
+  REVIEWS
+</div>
+
+<button onclick="showView('khalifa', this)" class="nav-btn">Khalifa</button>
+<button onclick="showView('saadiyat', this)" class="nav-btn">Saadiyat</button>
+  </aside>
+
+  <!-- MAIN VIEW -->
+  <div class="main-content">
+
+  <div class="controls" id="controls">
   <div class="ctrl-group">
     <span class="ctrl-label">Branch</span>
     <div class="ms-wrap" id="wrap-branch">
@@ -335,29 +401,6 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
     </div>
   </div>
 </div>
-
-<div class="layout">
-
-  <!-- SIDEBAR -->
- <aside class="sidebar">
-  <div style="font-size:11px;color:var(--muted);letter-spacing:.1em;">
-   
-    DASHBOARDS
-  </div>
-
-<button onclick="showView('dashboard', this)" class="nav-btn active">Dashboard</button>
-
-<div style="margin-top:12px;font-size:11px;color:var(--muted);letter-spacing:.1em;">
-  REVIEWS
-</div>
-
-<button onclick="showView('khalifa', this)" class="nav-btn">Khalifa</button>
-<button onclick="showView('saadiyat', this)" class="nav-btn">Saadiyat</button>
-  </aside>
-
-  <!-- MAIN VIEW -->
-  <div class="main-content">
-
 
     <!-- DASHBOARD -->
     <div id="view-dashboard">
