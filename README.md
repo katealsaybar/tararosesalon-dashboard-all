@@ -1,2 +1,2 @@
-# tararosesalon-dashboard-v2
+# tararosesalon-dashboard-all
 Dashboard for Tara Rose Salon Branches
