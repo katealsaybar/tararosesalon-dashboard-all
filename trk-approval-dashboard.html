@@ -536,6 +536,31 @@ function submitContent(){
   const tags=document.getElementById('f-tags').value.trim();
   const dateVal=document.getElementById('f-date').value;
 
+  // 🔥 SAVE TO SUPABASE
+(async () => {
+  const data = {
+    pillar: fPillar,
+    content_type: fCtype,
+    caption: copy,
+    hashtags: tags,
+    scheduled_date: dateVal || null,
+    scheduled_time: null,
+    media_url: '',
+    status: 'pending'
+  };
+
+  const { error } = await supabaseClient
+    .from('content_posts')
+    .insert([data]);
+
+  if (error) {
+    console.error(error);
+    showToast('❌ Failed to save to database');
+  } else {
+    console.log('Saved to Supabase');
+  }
+})();
+
   if(editingId!==null){
     const item=items.find(i=>i.id===editingId);
     item.pillar=fPillar; item.ctype=fCtype;
@@ -808,5 +833,15 @@ function showToast(msg){
 renderCalendar();
 updateBadges();
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<script>
+const supabaseClient = supabase.createClient(
+  "https://gvfbvmylydsbjxbdtwhz.supabase.co",
+  "sb_publishable_YC9Z2zaUQU4hpRf4QolnQA_4IUdyfww"
+);
+</script>
+
 </body>
 </html>
