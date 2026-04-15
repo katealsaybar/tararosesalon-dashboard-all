@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TRK — Content Approval</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --dark:#464853;--dark2:#515363;--ink:#2D2E37;
+  --cream:#FAF8F3;
+  --turq:#99F6E4;--lime:#EEF3C7;--lav:#C4B5FD;--coral:#FF9B9B;--rose:#FFD4D9;
+  --display:'Cormorant Garamond',serif;--body:'DM Sans',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:var(--body);background:var(--dark);color:#fff;height:100%;overflow:hidden}
+.strip{height:3px;background:linear-gradient(90deg,var(--turq),var(--lime),var(--lav),var(--coral),var(--rose));flex-shrink:0}
+.root{display:flex;flex-direction:column;height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--ink);height:54px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06);z-index:50}
+.logo{font-weight:700;font-size:17px;letter-spacing:.13em;color:#fff}
+.tsep{width:1px;height:18px;background:rgba(255,255,255,.12);margin:0 14px}
+.ttitle{font-family:var(--display);font-size:15px;font-style:italic;font-weight:300;color:rgba(255,255,255,.5)}
+.tright{display:flex;align-items:center;gap:8px}
+.spill{display:flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);font-size:11px;font-weight:600;white-space:nowrap}
+.upload-btn{display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:7px;background:var(--cream);color:var(--ink);font-family:var(--body);font-size:12px;font-weight:700;border:none;cursor:pointer;transition:opacity .15s;margin-left:4px}
+.upload-btn:hover{opacity:.85}
+
+/* ── BODY ── */
+.body{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDENAV ── */
+.sidenav{width:190px;flex-shrink:0;background:var(--ink);display:flex;flex-direction:column;padding:18px 12px;overflow-y:auto;border-right:1px solid rgba(255,255,255,.05)}
+.ns{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.28);margin:16px 0 6px 4px}
+.ns:first-child{margin-top:0}
+.nb{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;color:rgba(255,255,255,.48);background:none;border:none;width:100%;text-align:left;transition:all .15s}
+.nb:hover{background:rgba(255,255,255,.07);color:#fff}
+.nb.on{background:rgba(255,255,255,.1);color:#fff}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.badge{margin-left:auto;font-size:10px;font-weight:700;background:rgba(255,255,255,.1);border-radius:10px;padding:1px 6px;color:#fff}
+.snfoot{margin-top:auto;border-top:1px solid rgba(255,255,255,.07);padding-top:14px}
+.avc{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--coral),var(--lav));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--ink);flex-shrink:0}
+
+/* status badges (used in calendar cards + modal) */
+.sbadge{font-size:8px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:20px;flex-shrink:0;white-space:nowrap}
+.s-pending {background:rgba(249,195,75,.14); color:#F9C34B}
+.s-approved{background:rgba(153,246,228,.14);color:var(--turq)}
+.s-revise  {background:rgba(255,155,155,.14);color:var(--coral)}
+.s-ready   {background:rgba(238,243,199,.16);color:#b8c94e}
+.s-posted  {background:rgba(196,181,253,.15);color:var(--lav)}
+
+/* ── CALENDAR ── */
+.cpanel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.chead{padding:13px 20px 12px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;background:var(--dark2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.cheadl{display:flex;align-items:center;gap:12px}
+.ctitle{font-family:var(--display);font-size:19px;font-style:italic;font-weight:300}
+.cnav{display:flex;align-items:center;gap:7px}
+.cnbtn{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.cnbtn:hover{background:rgba(255,255,255,.14);color:#fff}
+.cwlbl{font-size:12px;font-weight:600;color:rgba(255,255,255,.6);min-width:192px;text-align:center}
+.cleg{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.cli{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:600;color:rgba(255,255,255,.38)}
+.cld{width:7px;height:7px;border-radius:50%}
+
+/* calendar scroll area */
+.cbody{flex:1;overflow:auto;padding:12px 16px 18px}
+.cgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;min-width:720px;min-height:calc(100% - 4px)}
+
+/* day column */
+.ccol{display:flex;flex-direction:column}
+.ccolh{border-radius:7px 7px 0 0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-bottom:none;padding:9px 10px;flex-shrink:0}
+.ccolh.today{background:rgba(153,246,228,.07);border-color:rgba(153,246,228,.2)}
+.cdname{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+.cdnum{font-family:var(--display);font-size:24px;font-weight:300;line-height:1;color:#fff;margin-top:2px}
+.cdnum.today{color:var(--turq)}
+.cdmon{font-size:9px;font-weight:500;color:rgba(255,255,255,.28);margin-top:1px}
+.ccolb{flex:1;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);border-top:none;border-radius:0 0 7px 7px;padding:7px 6px;display:flex;flex-direction:column;gap:5px;min-height:340px;overflow-y:auto}
+.ccolb.today{background:rgba(153,246,228,.03);border-color:rgba(153,246,228,.2)}
+
+/* calendar mini-card */
+.ccard{border-radius:6px;overflow:hidden;cursor:pointer;border:1px solid rgba(255,255,255,.07);background:var(--dark2);transition:transform .12s,box-shadow .12s;flex-shrink:0}
+.ccard:hover{transform:translateY(-2px);box-shadow:0 5px 18px rgba(0,0,0,.4)}
+.cctop{height:3px}
+.ccbody{padding:7px 8px 8px}
+.ccpil{font-size:7px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
+.cctitle{font-size:10px;font-weight:600;color:rgba(255,255,255,.85);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ccfoot{display:flex;align-items:center;justify-content:space-between;margin-top:5px;gap:4px;flex-wrap:wrap}
+.cctype{font-size:8px;font-weight:600;color:rgba(255,255,255,.3)}
+.ccst{font-size:7px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:8px}
+.cctime{font-size:8px;color:rgba(255,255,255,.28);margin-top:2px;font-weight:500}
+.ccpls{display:flex;gap:2px;margin-top:3px;flex-wrap:wrap}
+.ccpl{font-size:7px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.35);padding:1px 4px;border-radius:2px}
+
+/* add button */
+.caladd{display:block;width:100%;margin-top:auto;padding:7px;border-radius:5px;border:1px dashed rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.22);font-size:10px;font-weight:600;font-family:var(--body);cursor:pointer;transition:all .15s;text-align:center;flex-shrink:0}
+.caladd:hover{border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.6);background:rgba(255,255,255,.05)}
+
+/* ── MODALS ── */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;align-items:center;justify-content:center;padding:16px}
+.ov.open{display:flex}
+
+/* upload / edit modal — narrow */
+.modal-upload{background:var(--dark2);border-radius:13px;border:1px solid rgba(255,255,255,.1);width:100%;max-width:520px;max-height:94vh;overflow-y:auto;padding:28px;position:relative;animation:fadeUp .2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* detail modal — wider, two-column layout */
+.modal-detail{background:var(--dark2);border-radius:14px;border:1px solid rgba(255,255,255,.1);width:100%;max-width:820px;max-height:94vh;overflow-y:auto;position:relative;animation:fadeUp .2s ease;display:flex;flex-direction:column}
+.dm-header{padding:24px 28px 0}
+.dm-cols{display:flex;gap:0;flex:1;overflow:hidden;min-height:0}
+.dm-left{flex:1;min-width:0;padding:20px 24px 24px;overflow-y:auto;border-right:1px solid rgba(255,255,255,.07)}
+.dm-right{width:310px;flex-shrink:0;padding:20px 24px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+
+.mclose{position:absolute;top:15px;right:18px;background:none;border:none;color:rgba(255,255,255,.32);font-size:18px;cursor:pointer;padding:3px 6px;line-height:1;z-index:5}
+.mclose:hover{color:#fff}
+.mtitle{font-family:var(--display);font-size:22px;font-style:italic;font-weight:300;margin-bottom:2px}
+.msub{font-size:11px;color:rgba(255,255,255,.32);margin-bottom:20px}
+.editnotice{background:rgba(196,181,253,.1);border:1px solid rgba(196,181,253,.22);border-radius:6px;padding:7px 12px;font-size:11px;color:var(--lav);margin-bottom:18px;display:none}
+.editnotice.show{display:block}
+
+/* form fields */
+.frow{margin-bottom:15px}
+.flbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.36);margin-bottom:7px;display:block}
+.finput,.ftarea{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:9px 12px;font-family:var(--body);font-size:13px;color:#fff;outline:none;transition:border-color .15s}
+.finput::placeholder,.ftarea::placeholder{color:rgba(255,255,255,.2)}
+.finput:focus,.ftarea:focus{border-color:rgba(255,255,255,.26)}
+.ftarea{resize:vertical;min-height:80px}
+.ppicker{display:flex;gap:7px;flex-wrap:wrap}
+.ppbtn{padding:6px 12px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .15s;color:var(--ink);opacity:.45}
+.ppbtn.on{opacity:1;border-color:rgba(45,46,55,.25)}
+.ppbtn:hover{opacity:.78}
+.ctpicker{display:flex;gap:7px}
+.ctbtn{flex:1;padding:9px 5px;border-radius:7px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.04);color:rgba(255,255,255,.42);font-family:var(--body);font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
+.ctbtn:hover{background:rgba(255,255,255,.09);color:#fff}
+.ctbtn.on{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.28)}
+.cticon{font-size:18px}
+.plpicker{display:flex;gap:6px;flex-wrap:wrap}
+.pltog{padding:5px 11px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.04);color:rgba(255,255,255,.4);cursor:pointer;transition:all .15s}
+.pltog:hover{color:#fff;background:rgba(255,255,255,.08)}
+.pltog.on{color:#fff;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.26)}
+.dz{border:2px dashed rgba(255,255,255,.13);border-radius:9px;padding:22px 16px;text-align:center;cursor:pointer;transition:all .18s;position:relative}
+.dz:hover,.dz.drag{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.04)}
+.dz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dzicon{font-size:24px;margin-bottom:6px}
+.dztxt{font-size:12px;color:rgba(255,255,255,.44)}
+.dzhint{font-size:10px;color:rgba(255,255,255,.22);margin-top:2px}
+.flist{margin-top:9px;display:flex;flex-direction:column;gap:5px}
+.fitem{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.05);border-radius:6px;padding:7px 10px}
+.fthumb{width:32px;height:32px;border-radius:4px;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,.09);display:flex;align-items:center;justify-content:center;font-size:14px}
+.fthumb img{width:100%;height:100%;object-fit:cover}
+.fname{font-size:11px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fsize{font-size:9px;color:rgba(255,255,255,.28)}
+.frem{background:none;border:none;color:rgba(255,255,255,.28);cursor:pointer;font-size:13px;padding:3px;flex-shrink:0}
+.frem:hover{color:var(--coral)}
+.savebtn{width:100%;padding:11px;background:var(--cream);color:var(--ink);font-family:var(--body);font-size:13px;font-weight:700;border:none;border-radius:7px;cursor:pointer;transition:opacity .15s;margin-top:6px}
+.savebtn:hover{opacity:.88}
+
+/* ── DETAIL MODAL inner styles ── */
+.dm-pill-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.dm-ptag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+
+/* media carousel inside detail */
+.dm-media{border-radius:8px;overflow:hidden;position:relative;background:rgba(0,0,0,.3);margin-bottom:14px}
+.dm-media img,.dm-media video{width:100%;display:block;max-height:340px;object-fit:contain;background:#000}
+.dm-nav{position:absolute;top:50%;transform:translateY(-50%);width:100%;display:flex;justify-content:space-between;padding:0 8px;pointer-events:none;z-index:4}
+.dm-navbtn{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:14px;border:none;cursor:pointer;pointer-events:all;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.dm-navbtn:hover{background:rgba(0,0,0,.8)}
+.dm-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:4}
+.dm-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.3);transition:background .15s}
+.dm-dot.on{background:#fff}
+.dm-no-media{min-height:120px;display:flex;align-items:center;justify-content:center;border-radius:8px;margin-bottom:14px;font-family:var(--display);font-size:16px;font-style:italic;font-weight:300;color:rgba(255,255,255,.35)}
+
+/* detail right panel sections */
+.dm-section-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:7px}
+.dm-copy{font-size:13px;line-height:1.7;color:rgba(255,255,255,.8);white-space:pre-wrap;word-break:break-word}
+.dm-tags{font-size:11px;color:rgba(255,255,255,.35);line-height:1.6;word-break:break-word}
+.dm-sched{font-size:12px;font-weight:600;color:rgba(255,255,255,.65)}
+.dm-pls{display:flex;gap:5px;flex-wrap:wrap}
+.dm-pl{font-size:10px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.5);padding:3px 8px;border-radius:3px;font-weight:500}
+
+/* action buttons */
+.dm-acts{display:flex;flex-direction:column;gap:6px;margin-top:auto}
+.abtn{width:100%;padding:8px 10px;border-radius:6px;font-family:var(--body);font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all .15s;text-align:center}
+.abtn-a{background:rgba(153,246,228,.12);color:var(--turq);border:1px solid rgba(153,246,228,.2)}
+.abtn-a:hover,.abtn-a.on{background:rgba(153,246,228,.28);border-color:var(--turq)}
+.abtn-rv{background:rgba(255,155,155,.1);color:var(--coral);border:1px solid rgba(255,155,155,.18)}
+.abtn-rv:hover,.abtn-rv.on{background:rgba(255,155,155,.28);border-color:var(--coral)}
+.abtn-rp{background:rgba(238,243,199,.1);color:#b8c94e;border:1px solid rgba(238,243,199,.18)}
+.abtn-rp:hover,.abtn-rp.on{background:rgba(238,243,199,.26);border-color:#b8c94e}
+.abtn-po{background:rgba(196,181,253,.1);color:var(--lav);border:1px solid rgba(196,181,253,.18)}
+.abtn-po:hover,.abtn-po.on{background:rgba(196,181,253,.26);border-color:var(--lav)}
+.ibtn{padding:8px 10px;border-radius:6px;font-size:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);cursor:pointer;transition:all .15s;font-family:var(--body);font-size:11px;font-weight:600;color:rgba(255,255,255,.6);text-align:center;width:100%}
+.ibtn:hover{background:rgba(255,255,255,.12);color:#fff}
+.dbtn{padding:8px 10px;border-radius:6px;font-size:11px;font-weight:600;font-family:var(--body);background:rgba(255,80,80,.07);border:1px solid rgba(255,80,80,.14);cursor:pointer;transition:all .15s;color:rgba(255,100,100,.7);text-align:center;width:100%}
+.dbtn:hover{background:rgba(255,80,80,.2);border-color:rgba(255,80,80,.4);color:#ff6b6b}
+
+/* comments */
+.cmts-wrap{display:flex;flex-direction:column;gap:6px}
+.cbbl{background:rgba(255,255,255,.04);border-left:2px solid rgba(255,255,255,.12);padding:7px 9px;border-radius:0 5px 5px 0}
+.cwho{font-size:8px;font-weight:700;color:rgba(255,255,255,.36);margin-bottom:2px}
+.cbody{font-size:12px;color:rgba(255,255,255,.68);line-height:1.5}
+.cinput{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px 10px;font-family:var(--body);font-size:12px;color:#fff;resize:none;outline:none;min-height:56px;margin-top:6px}
+.cinput::placeholder{color:rgba(255,255,255,.2)}
+.cinput:focus{border-color:rgba(255,255,255,.24)}
+.csend{margin-top:6px;padding:6px 14px;font-family:var(--body);font-size:11px;font-weight:700;background:rgba(255,255,255,.08);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.1);border-radius:5px;cursor:pointer;float:right}
+.csend:hover{background:rgba(255,255,255,.15);color:#fff}
+
+/* confirm delete */
+.cfbox{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:300;display:none;align-items:center;justify-content:center;padding:16px}
+.cfbox.open{display:flex}
+.cfinner{background:var(--dark2);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:26px 26px 22px;max-width:350px;width:100%;animation:fadeUp .18s ease}
+.cftitle{font-family:var(--display);font-size:19px;font-style:italic;font-weight:300;margin-bottom:5px}
+.cfsub{font-size:12px;color:rgba(255,255,255,.42);line-height:1.55;margin-bottom:20px}
+.cfacts{display:flex;gap:8px}
+.cfcancel{flex:1;padding:9px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.58);border:1px solid rgba(255,255,255,.1);border-radius:7px;font-family:var(--body);font-size:12px;font-weight:700;cursor:pointer}
+.cfcancel:hover{background:rgba(255,255,255,.13);color:#fff}
+.cfdel{flex:1;padding:9px;background:rgba(255,80,80,.15);color:#ff6b6b;border:1px solid rgba(255,80,80,.3);border-radius:7px;font-family:var(--body);font-size:12px;font-weight:700;cursor:pointer}
+.cfdel:hover{background:rgba(255,80,80,.28)}
+
+/* toast */
+.toast{position:fixed;bottom:20px;right:20px;max-width:280px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:500;border-left:3px solid var(--turq);opacity:0;transform:translateY(8px);transition:all .22s;z-index:400;pointer-events:none}
+.toast.show{opacity:1;transform:none}
+
+@media(max-width:700px){
+  .sidenav{display:none}
+  .dm-cols{flex-direction:column}
+  .dm-left{border-right:none;border-bottom:1px solid rgba(255,255,255,.07)}
+  .dm-right{width:100%}
+}
+</style>
+</head>
+<body>
+<div class="root">
+<div class="strip"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div style="display:flex;align-items:center">
+    <div class="logo">T R K</div>
+    <div class="tsep"></div>
+    <div class="ttitle">Content Approval Dashboard</div>
+  </div>
+  <div class="tright">
+    <div class="spill"><span style="color:var(--turq)">✓</span><span id="tp-approved">0</span> approved</div>
+    <div class="spill"><span style="color:var(--coral)">↩</span><span id="tp-revise">0</span> revise</div>
+    <div class="spill"><span style="color:#b8c94e">✦</span><span id="tp-ready">0</span> ready</div>
+    <div class="spill"><span style="color:var(--lav)">◉</span><span id="tp-posted">0</span> posted</div>
+    <button class="upload-btn" onclick="openUpload()">↑ Upload Content</button>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+
+  <!-- SIDENAV -->
+  <div class="sidenav">
+    <div class="ns">Filter</div>
+    <button class="nb on" id="sf-all"      onclick="setFilter('all',this)"><span style="font-size:11px;opacity:.5">⊞</span>All<span class="badge" id="nb-all">0</span></button>
+    <button class="nb"    id="sf-pending"  onclick="setFilter('pending',this)"><span class="dot" style="background:#F9C34B"></span>Pending<span class="badge" id="nb-pending">0</span></button>
+    <button class="nb"    id="sf-approved" onclick="setFilter('approved',this)"><span class="dot" style="background:var(--turq)"></span>Approved<span class="badge" id="nb-approved">0</span></button>
+    <button class="nb"    id="sf-revise"   onclick="setFilter('revise',this)"><span class="dot" style="background:var(--coral)"></span>Revise<span class="badge" id="nb-revise">0</span></button>
+    <button class="nb"    id="sf-ready"    onclick="setFilter('ready',this)"><span class="dot" style="background:#b8c94e"></span>Ready to Post<span class="badge" id="nb-ready">0</span></button>
+    <button class="nb"    id="sf-posted"   onclick="setFilter('posted',this)"><span class="dot" style="background:var(--lav)"></span>Posted<span class="badge" id="nb-posted">0</span></button>
+
+    <div class="ns">Pillars</div>
+    <button class="nb on" id="pf-all"         onclick="setPillar('all',this)"><span class="dot" style="background:linear-gradient(135deg,var(--turq),var(--rose))"></span>All</button>
+    <button class="nb"    id="pf-wellness"    onclick="setPillar('wellness',this)"><span class="dot" style="background:var(--turq)"></span>Wellness<span class="badge" id="np-wellness">0</span></button>
+    <button class="nb"    id="pf-empowerment" onclick="setPillar('empowerment',this)"><span class="dot" style="background:var(--lime)"></span>Empowerment<span class="badge" id="np-empowerment">0</span></button>
+    <button class="nb"    id="pf-business"    onclick="setPillar('business',this)"><span class="dot" style="background:var(--lav)"></span>Business<span class="badge" id="np-business">0</span></button>
+    <button class="nb"    id="pf-culture"     onclick="setPillar('culture',this)"><span class="dot" style="background:var(--coral)"></span>Culture<span class="badge" id="np-culture">0</span></button>
+    <button class="nb"    id="pf-personal"    onclick="setPillar('personal',this)"><span class="dot" style="background:var(--rose)"></span>Personal<span class="badge" id="np-personal">0</span></button>
+
+    <div class="snfoot">
+      <div style="display:flex;align-items:center;gap:9px">
+        <div class="avc">TRK</div>
+        <div><div style="font-size:11px;font-weight:700">Tara Rose Kidd</div><div style="font-size:9px;color:rgba(255,255,255,.34)">April 2026</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALENDAR PANEL -->
+  <div class="cpanel">
+    <div class="chead">
+      <div class="cheadl">
+        <div class="ctitle">Weekly Calendar</div>
+        <div class="cnav">
+          <button class="cnbtn" onclick="changeWeek(-1)">‹</button>
+          <div class="cwlbl" id="cwlbl">—</div>
+          <button class="cnbtn" onclick="changeWeek(1)">›</button>
+        </div>
+      </div>
+      <div class="cleg">
+        <div class="cli"><div class="cld" style="background:var(--turq)"></div>Wellness</div>
+        <div class="cli"><div class="cld" style="background:var(--lime)"></div>Empowerment</div>
+        <div class="cli"><div class="cld" style="background:var(--lav)"></div>Business</div>
+        <div class="cli"><div class="cld" style="background:var(--coral)"></div>Culture</div>
+        <div class="cli"><div class="cld" style="background:var(--rose)"></div>Personal</div>
+      </div>
+    </div>
+    <div class="cbody">
+      <div class="cgrid" id="cgrid"></div>
+    </div>
+  </div>
+
+</div><!-- end body -->
+</div><!-- end root -->
+
+<!-- ══ UPLOAD / EDIT MODAL ══ -->
+<div class="ov" id="ov-upload" onclick="ovBgClose(event,'ov-upload')">
+  <div class="modal-upload">
+    <button class="mclose" onclick="closeOv('ov-upload')">✕</button>
+    <div class="mtitle" id="m-title">Upload Content</div>
+    <div class="msub"   id="m-sub">Add a piece to the calendar</div>
+    <div class="editnotice" id="editnotice">✏️ Editing saved content — update anything below and save.</div>
+
+    <div class="frow">
+      <label class="flbl">Content Pillar *</label>
+      <div class="ppicker" id="ppicker">
+        <button class="ppbtn" style="background:var(--turq)"  data-v="wellness"    onclick="selPillar(this)">Wellness</button>
+        <button class="ppbtn" style="background:var(--lime)"  data-v="empowerment" onclick="selPillar(this)">Empowerment</button>
+        <button class="ppbtn" style="background:var(--lav)"   data-v="business"    onclick="selPillar(this)">Business</button>
+        <button class="ppbtn" style="background:var(--coral)" data-v="culture"     onclick="selPillar(this)">Culture</button>
+        <button class="ppbtn" style="background:var(--rose)"  data-v="personal"    onclick="selPillar(this)">Personal</button>
+      </div>
+    </div>
+
+    <div class="frow">
+      <label class="flbl">Content Type *</label>
+      <div class="ctpicker">
+        <button class="ctbtn" data-v="Carousel" onclick="selCtype(this)"><span class="cticon">🎠</span>Carousel</button>
+        <button class="ctbtn" data-v="Static"   onclick="selCtype(this)"><span class="cticon">🖼</span>Static</button>
+        <button class="ctbtn" data-v="Reel"     onclick="selCtype(this)"><span class="cticon">🎬</span>Reel</button>
+      </div>
+    </div>
+
+    <div class="frow">
+      <label class="flbl">Platform(s)</label>
+      <div class="plpicker">
+        <button class="pltog" data-v="Instagram"  onclick="togPl(this)">Instagram</button>
+        <button class="pltog" data-v="LinkedIn"   onclick="togPl(this)">LinkedIn</button>
+        <button class="pltog" data-v="TikTok"     onclick="togPl(this)">TikTok</button>
+        <button class="pltog" data-v="Facebook"   onclick="togPl(this)">Facebook</button>
+        <button class="pltog" data-v="Newsletter" onclick="togPl(this)">Newsletter</button>
+        <button class="pltog" data-v="YouTube"    onclick="togPl(this)">YouTube</button>
+      </div>
+    </div>
+
+    <div class="frow">
+      <label class="flbl">Caption / Script / Copy *</label>
+      <textarea class="ftarea" id="f-copy" placeholder="Paste the full caption, script, or copy here…" rows="5"></textarea>
+    </div>
+    <div class="frow">
+      <label class="flbl">Hashtags</label>
+      <input class="finput" id="f-tags" placeholder="#TaraRoseKidd #ConsciousLeadership …" type="text"/>
+    </div>
+    <div class="frow">
+      <label class="flbl">Scheduled Date &amp; Time</label>
+      <input class="finput" id="f-date" type="datetime-local"/>
+    </div>
+    <div class="frow">
+      <label class="flbl">Files <span style="color:rgba(255,255,255,.26);font-weight:400;text-transform:none;letter-spacing:0">(images, video, PDF — multiple OK)</span></label>
+      <div class="dz" id="dz">
+        <div class="dzicon">📁</div>
+        <div class="dztxt">Drop files here, or click to browse</div>
+        <div class="dzhint">JPG · PNG · MP4 · MOV · PDF</div>
+        <input type="file" id="f-files" multiple accept="image/*,video/*,.pdf" onchange="handleFiles(this.files)"/>
+      </div>
+      <div class="flist" id="flist"></div>
+    </div>
+    <button class="savebtn" id="savebtn" onclick="submitContent()">Add to Calendar →</button>
+  </div>
+</div>
+
+<!-- ══ DETAIL MODAL ══ -->
+<div class="ov" id="ov-detail" onclick="ovBgClose(event,'ov-detail')">
+  <div class="modal-detail">
+    <button class="mclose" onclick="closeOv('ov-detail')">✕</button>
+
+    <!-- header row: pillar tag + status badge -->
+    <div class="dm-header">
+      <div id="dm-header-content"></div>
+    </div>
+
+    <!-- two-column body -->
+    <div class="dm-cols">
+      <!-- LEFT: media carousel -->
+      <div class="dm-left" id="dm-left"></div>
+      <!-- RIGHT: info + actions -->
+      <div class="dm-right" id="dm-right"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE -->
+<div class="cfbox" id="cfbox">
+  <div class="cfinner">
+    <div class="cftitle">Delete this content?</div>
+    <div class="cfsub" id="cfsub"></div>
+    <div class="cfacts">
+      <button class="cfcancel" onclick="closeConfirm()">Cancel</button>
+      <button class="cfdel"    onclick="confirmDelete()">Yes, delete it</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONSTANTS ───
+const PILLARS={
+  wellness:    {label:'Wellness',    color:'#99F6E4'},
+  empowerment: {label:'Empowerment', color:'#EEF3C7'},
+  business:    {label:'Business',    color:'#C4B5FD'},
+  culture:     {label:'Culture',     color:'#FF9B9B'},
+  personal:    {label:'Personal',    color:'#FFD4D9'},
+};
+const STATUSES={
+  pending: {label:'Pending',       cls:'s-pending',  icon:'⏳'},
+  approved:{label:'Approved',      cls:'s-approved', icon:'✓'},
+  revise:  {label:'Revise',        cls:'s-revise',   icon:'↩'},
+  ready:   {label:'Ready to Post', cls:'s-ready',    icon:'✦'},
+  posted:  {label:'Posted',        cls:'s-posted',   icon:'◉'},
+};
+const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+// ─── STATE ───
+let items=[], nextId=1;
+let statusFilter='all', pillarFilter='all';
+const CS={};
+let calOffset=0;
+let fPillar=null, fCtype=null, fPlatforms=[], fFiles=[];
+let editingId=null;
+let dmImgIdx=0; // current image index in detail modal
+
+// ─── DATE UTILS ───
+function weekStart(off){
+  const d=new Date(); d.setHours(0,0,0,0);
+  const dow=d.getDay(), diff=dow===0?-6:1-dow;
+  d.setDate(d.getDate()+diff+off*7); return d;
+}
+function weekDays(off){
+  const m=weekStart(off);
+  return Array.from({length:7},(_,i)=>{const d=new Date(m);d.setDate(m.getDate()+i);return d;});
+}
+function fmtWeek(days){
+  const s=days[0],e=days[6];
+  if(s.getMonth()===e.getMonth())
+    return s.getDate()+' – '+e.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  return s.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' – '+e.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+}
+function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
+function fmtLong(s){const d=new Date(s);return d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+' at '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
+function fmtTime(s){return new Date(s).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
+function dateToStr(d){const p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`}
+
+// ─── FORM ───
+function selPillar(btn){document.querySelectorAll('#ppicker .ppbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');fPillar=btn.dataset.v}
+function selCtype(btn){document.querySelectorAll('.ctpicker .ctbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');fCtype=btn.dataset.v}
+function togPl(btn){btn.classList.toggle('on');const v=btn.dataset.v;fPlatforms=fPlatforms.includes(v)?fPlatforms.filter(x=>x!==v):[...fPlatforms,v]}
+
+// ─── FILES ───
+function handleFiles(fl){
+  Array.from(fl).forEach(f=>{
+    const url=URL.createObjectURL(f);
+    if(f.type.startsWith('image/')){
+      const r=new FileReader();
+      r.onload=e=>{fFiles.push({name:f.name,size:f.size,url,thumb:e.target.result,mtype:f.type});renderFlist()};
+      r.readAsDataURL(f);
+    } else {
+      fFiles.push({name:f.name,size:f.size,url,thumb:null,mtype:f.type});renderFlist();
+    }
+  });
+}
+function renderFlist(){
+  document.getElementById('flist').innerHTML=fFiles.map((f,i)=>{
+    const isImg=f.mtype.startsWith('image/'),isVid=f.mtype.startsWith('video/');
+    const icon=isVid?'🎬':f.mtype==='application/pdf'?'📄':'📁';
+    const th=isImg&&f.thumb?`<img src="${f.thumb}" alt=""/>`:icon;
+    const sz=f.size<1048576?(f.size/1024).toFixed(0)+'KB':(f.size/1048576).toFixed(1)+'MB';
+    return `<div class="fitem"><div class="fthumb">${th}</div><div style="flex:1;overflow:hidden"><div class="fname">${f.name}</div><div class="fsize">${sz}</div></div><button class="frem" onclick="removeFile(${i})">✕</button></div>`;
+  }).join('');
+}
+function removeFile(i){if(fFiles[i]?.url)URL.revokeObjectURL(fFiles[i].url);fFiles.splice(i,1);renderFlist()}
+
+// ─── OPEN UPLOAD ───
+function openUpload(){
+  editingId=null;
+  document.getElementById('m-title').textContent='Upload Content';
+  document.getElementById('m-sub').textContent='Add a piece to the calendar';
+  document.getElementById('editnotice').classList.remove('show');
+  document.getElementById('savebtn').textContent='Add to Calendar →';
+  resetForm();
+  document.getElementById('ov-upload').classList.add('open');
+}
+
+// ─── OPEN EDIT ───
+function openEdit(id){
+  const item=items.find(i=>i.id===id); if(!item) return;
+  editingId=id;
+  document.getElementById('m-title').textContent='Edit Content';
+  document.getElementById('m-sub').textContent='Update and save.';
+  document.getElementById('editnotice').classList.add('show');
+  document.getElementById('savebtn').textContent='Save Changes →';
+  resetForm();
+  // re-fill
+  document.querySelectorAll('#ppicker .ppbtn').forEach(b=>{if(b.dataset.v===item.pillar){b.classList.add('on');fPillar=item.pillar}});
+  document.querySelectorAll('.ctpicker .ctbtn').forEach(b=>{if(b.dataset.v===item.ctype){b.classList.add('on');fCtype=item.ctype}});
+  fPlatforms=[...item.platforms];
+  document.querySelectorAll('.plpicker .pltog').forEach(b=>{if(item.platforms.includes(b.dataset.v))b.classList.add('on')});
+  document.getElementById('f-copy').value=item.copy||'';
+  document.getElementById('f-tags').value=item.tags||'';
+  document.getElementById('f-date').value=item.rawDate?dateToStr(new Date(item.rawDate)):'';
+  fFiles=[...item.files];
+  renderFlist();
+  document.getElementById('ov-upload').classList.add('open');
+}
+
+function resetForm(){
+  fPillar=null;fCtype=null;fPlatforms=[];fFiles=[];
+  document.querySelectorAll('#ppicker .ppbtn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.ctpicker .ctbtn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.plpicker .pltog').forEach(b=>b.classList.remove('on'));
+  document.getElementById('f-copy').value='';
+  document.getElementById('f-tags').value='';
+  document.getElementById('f-date').value='';
+  document.getElementById('flist').innerHTML='';
+  document.getElementById('f-files').value='';
+}
+
+// ─── SUBMIT ───
+function submitContent(){
+  if(!fPillar){showToast('Please select a content pillar.');return}
+  if(!fCtype){showToast('Please select a content type.');return}
+  const copy=document.getElementById('f-copy').value.trim();
+  if(!copy){showToast('Please add a caption or copy.');return}
+  const tags=document.getElementById('f-tags').value.trim();
+  const dateVal=document.getElementById('f-date').value;
+
+  if(editingId!==null){
+    const item=items.find(i=>i.id===editingId);
+    item.pillar=fPillar; item.ctype=fCtype;
+    item.platforms=fPlatforms.length?[...fPlatforms]:['Instagram'];
+    item.copy=copy; item.tags=tags;
+    item.rawDate=dateVal?new Date(dateVal).toISOString():null;
+    item.schedLabel=dateVal?fmtLong(dateVal):'TBD';
+    item.files=[...fFiles];
+    closeOv('ov-upload');
+    renderCalendar(); updateBadges();
+    showToast('✏️ Changes saved.');
+  } else {
+    const id=nextId++;
+    items.push({id,pillar:fPillar,ctype:fCtype,platforms:fPlatforms.length?[...fPlatforms]:['Instagram'],copy,tags,rawDate:dateVal?new Date(dateVal).toISOString():null,schedLabel:dateVal?fmtLong(dateVal):'TBD',files:[...fFiles]});
+    CS[id]={status:'pending',comments:[],commentDraft:'',imgIdx:0};
+    closeOv('ov-upload');
+    renderCalendar(); updateBadges();
+    showToast('✓ Content added to the calendar.');
+  }
+}
+
+// ─── FILTERS ───
+function setFilter(s,btn){statusFilter=s;document.querySelectorAll('.sidenav .nb[id^="sf-"]').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderCalendar()}
+function setPillar(p,btn){pillarFilter=p;document.querySelectorAll('.sidenav .nb[id^="pf-"]').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderCalendar()}
+
+// ─── STATUS ───
+function setStatus(id,status){
+  CS[id].status=status;
+  const s=STATUSES[status];
+  showToast(`${s.icon} ${s.label}`);
+  updateBadges(); renderCalendar();
+  // refresh detail modal if open
+  if(document.getElementById('ov-detail').classList.contains('open')) openDetail(id);
+}
+
+// ─── CALENDAR ───
+function changeWeek(dir){calOffset+=dir;renderCalendar()}
+
+function isMedia(f){return f.mtype.startsWith('image/')||f.mtype.startsWith('video/')}
+
+function renderCalendar(){
+  const days=weekDays(calOffset);
+  document.getElementById('cwlbl').textContent=fmtWeek(days);
+  const today=new Date(); today.setHours(0,0,0,0);
+
+  document.getElementById('cgrid').innerHTML=days.map((day,di)=>{
+    const isToday=sameDay(day,today);
+    const ymd=`${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`;
+
+    // filter items for this day
+    const dayItems=items.filter(item=>{
+      if(!item.rawDate) return false;
+      if(statusFilter!=='all'&&CS[item.id].status!==statusFilter) return false;
+      if(pillarFilter!=='all'&&item.pillar!==pillarFilter) return false;
+      return sameDay(new Date(item.rawDate),day);
+    }).sort((a,b)=>new Date(a.rawDate)-new Date(b.rawDate));
+
+    const cardsHtml=dayItems.map(item=>{
+      const p=PILLARS[item.pillar], cs=CS[item.id];
+      const st=STATUSES[cs.status]||STATUSES.pending;
+      const preview=(item.copy||'').slice(0,55)+((item.copy||'').length>55?'…':'');
+      const time=item.rawDate?fmtTime(item.rawDate):'';
+      const hasImg=item.files.some(isMedia);
+      return `<div class="ccard" onclick="openDetail(${item.id})">
+        <div class="cctop" style="background:${p.color}"></div>
+        <div class="ccbody">
+          <div class="ccpil" style="color:${p.color}">${p.label}</div>
+          <div class="cctitle">${hasImg?'📎 ':''}${preview||'No caption'}</div>
+          <div class="ccfoot">
+            <span class="cctype">${item.ctype}</span>
+            <span class="ccst ${st.cls}">${st.icon} ${st.label}</span>
+          </div>
+          ${time?`<div class="cctime">⏰ ${time}</div>`:''}
+          <div class="ccpls">${item.platforms.slice(0,3).map(pl=>`<span class="ccpl">${pl}</span>`).join('')}${item.platforms.length>3?`<span class="ccpl">+${item.platforms.length-3}</span>`:''}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="ccol">
+      <div class="ccolh${isToday?' today':''}">
+        <div class="cdname">${DAYS[di]}</div>
+        <div class="cdnum${isToday?' today':''}">${day.getDate()}</div>
+        <div class="cdmon">${day.toLocaleDateString('en-GB',{month:'short'})}</div>
+      </div>
+      <div class="ccolb${isToday?' today':''}">
+        ${cardsHtml}
+        <button class="caladd" onclick="addForDay('${ymd}')">+ Add</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addForDay(ymd){
+  openUpload();
+  setTimeout(()=>{ document.getElementById('f-date').value=ymd+'T09:00'; }, 60);
+}
+
+// ─── DETAIL MODAL ───
+function openDetail(id){
+  const item=items.find(i=>i.id===id), cs=CS[id], p=PILLARS[item.pillar];
+  const st=STATUSES[cs.status]||STATUSES.pending;
+  const media=item.files.filter(isMedia);
+
+  // use stored imgIdx per item
+  let idx=cs.imgIdx||0;
+  if(idx>=media.length) idx=0;
+
+  // header
+  document.getElementById('dm-header-content').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:0">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="dm-ptag" style="background:${p.color}">${p.label} · ${item.ctype}</div>
+        <div class="dm-pls">${item.platforms.map(pl=>`<span class="dm-pl">${pl}</span>`).join('')}</div>
+      </div>
+      <div class="sbadge ${st.cls}">${st.icon} ${st.label}</div>
+    </div>`;
+
+  // LEFT — media carousel
+  let leftHtml='';
+  if(media.length){
+    const cur=media[idx], isVid=cur.mtype.startsWith('video/');
+    const mediaEl=isVid
+      ?`<video src="${cur.url}" controls playsinline style="width:100%;max-height:340px;object-fit:contain;background:#000;display:block"></video>`
+      :`<img src="${cur.url}" style="width:100%;max-height:340px;object-fit:contain;display:block" alt=""/>`;
+    const nav=media.length>1?`<div class="dm-nav"><button class="dm-navbtn" onclick="dmPrev(${id})">‹</button><button class="dm-navbtn" onclick="dmNext(${id})">›</button></div>`:'';
+    const dots=media.length>1?`<div class="dm-dots">${media.map((_,i)=>`<div class="dm-dot${i===idx?' on':''}"></div>`).join('')}</div>`:'';
+    leftHtml+=`<div class="dm-media">${mediaEl}${nav}${dots}</div>`;
+    if(item.files.length>media.length){
+      const extras=item.files.filter(f=>!isMedia(f));
+      leftHtml+=`<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">`;
+      extras.forEach(f=>{
+        const icon=f.mtype==='application/pdf'?'📄':'📁';
+        leftHtml+=`<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border-radius:6px;padding:7px 10px;font-size:12px;color:rgba(255,255,255,.6)">${icon} ${f.name}</div>`;
+      });
+      leftHtml+=`</div>`;
+    }
+  } else {
+    leftHtml=`<div class="dm-no-media" style="background:${p.color}20">No files uploaded</div>`;
+    if(item.files.length){
+      leftHtml+=`<div style="display:flex;flex-direction:column;gap:6px">`;
+      item.files.forEach(f=>{
+        const icon=f.mtype==='application/pdf'?'📄':'📁';
+        leftHtml+=`<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border-radius:6px;padding:7px 10px;font-size:12px;color:rgba(255,255,255,.6)">${icon} ${f.name}</div>`;
+      });
+      leftHtml+=`</div>`;
+    }
+  }
+  document.getElementById('dm-left').innerHTML=leftHtml;
+
+  // RIGHT — info + actions + comments
+  const cmtsHtml=cs.comments.map(c=>`<div class="cbbl"><div class="cwho">${c.who}</div><div class="cbody">${c.text}</div></div>`).join('');
+
+  document.getElementById('dm-right').innerHTML=`
+    <div>
+      <div class="dm-section-lbl">📅 Schedule</div>
+      <div class="dm-sched">${item.schedLabel}</div>
+    </div>
+
+    ${item.copy?`<div>
+      <div class="dm-section-lbl">Caption / Script</div>
+      <div class="dm-copy">${escHtml(item.copy)}</div>
+    </div>`:''}
+
+    ${item.tags?`<div>
+      <div class="dm-section-lbl">Hashtags</div>
+      <div class="dm-tags">${escHtml(item.tags)}</div>
+    </div>`:''}
+
+    <div class="dm-acts">
+      <div class="dm-section-lbl">Status</div>
+      <button class="abtn abtn-a${cs.status==='approved'?' on':''}"  onclick="setStatus(${id},'approved')">✓ Approved</button>
+      <button class="abtn abtn-rv${cs.status==='revise'?' on':''}"   onclick="setStatus(${id},'revise')">↩ Revise</button>
+      <button class="abtn abtn-rp${cs.status==='ready'?' on':''}"    onclick="setStatus(${id},'ready')">✦ Ready to Post</button>
+      <button class="abtn abtn-po${cs.status==='posted'?' on':''}"   onclick="setStatus(${id},'posted')">◉ Posted</button>
+    </div>
+
+    <div>
+      <div class="dm-section-lbl">Comments</div>
+      <div class="cmts-wrap" id="dm-cmts-${id}">${cmtsHtml}</div>
+      <textarea class="cinput" id="dm-ci-${id}" placeholder="Leave a revision note or comment…" rows="3">${cs.commentDraft||''}</textarea>
+      <button class="csend" onclick="dmSendCmt(${id})">Send</button>
+      <div style="clear:both"></div>
+    </div>
+
+    <div style="display:flex;gap:6px;padding-top:4px;border-top:1px solid rgba(255,255,255,.07)">
+      <button class="ibtn" style="flex:1" onclick="closeOv('ov-detail');openEdit(${id})">✏️ Edit</button>
+      <button class="dbtn" style="flex:1" onclick="closeOv('ov-detail');askDelete(${id})">🗑 Delete</button>
+    </div>`;
+
+  document.getElementById('ov-detail').classList.add('open');
+}
+
+function escHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+function dmPrev(id){
+  const item=items.find(i=>i.id===id), media=item.files.filter(isMedia);
+  if(!media.length) return;
+  CS[id].imgIdx=(CS[id].imgIdx-1+media.length)%media.length;
+  openDetail(id);
+}
+function dmNext(id){
+  const item=items.find(i=>i.id===id), media=item.files.filter(isMedia);
+  if(!media.length) return;
+  CS[id].imgIdx=(CS[id].imgIdx+1)%media.length;
+  openDetail(id);
+}
+function dmSendCmt(id){
+  const el=document.getElementById('dm-ci-'+id);
+  const v=(el?el.value:'').trim(); if(!v) return;
+  CS[id].comments.push({who:'You',text:v});
+  CS[id].commentDraft='';
+  showToast('💬 Comment added.');
+  openDetail(id); // refresh modal
+}
+
+// ─── BADGES ───
+function updateBadges(){
+  const sc={pending:0,approved:0,revise:0,ready:0,posted:0};
+  const pc={wellness:0,empowerment:0,business:0,culture:0,personal:0};
+  items.forEach(item=>{sc[CS[item.id].status]++;pc[item.pillar]++});
+  document.getElementById('nb-all').textContent=items.length;
+  ['pending','approved','revise','ready','posted'].forEach(s=>{const el=document.getElementById('nb-'+s);if(el)el.textContent=sc[s]});
+  Object.keys(pc).forEach(p=>{const el=document.getElementById('np-'+p);if(el)el.textContent=pc[p]});
+  document.getElementById('tp-approved').textContent=sc.approved;
+  document.getElementById('tp-revise').textContent=sc.revise;
+  document.getElementById('tp-ready').textContent=sc.ready;
+  document.getElementById('tp-posted').textContent=sc.posted;
+}
+
+// ─── DELETE ───
+let pendingDel=null;
+function askDelete(id){
+  pendingDel=id;
+  const item=items.find(i=>i.id===id);
+  document.getElementById('cfsub').textContent=`"${(item.copy||'this content').slice(0,80)}…" will be permanently removed. This can't be undone.`;
+  document.getElementById('cfbox').classList.add('open');
+}
+function closeConfirm(){pendingDel=null;document.getElementById('cfbox').classList.remove('open')}
+function confirmDelete(){
+  if(pendingDel===null) return;
+  const id=pendingDel;
+  const item=items.find(i=>i.id===id);
+  if(item?.files) item.files.forEach(f=>{if(f.url)URL.revokeObjectURL(f.url)});
+  items=items.filter(i=>i.id!==id); delete CS[id];
+  closeConfirm(); closeOv('ov-detail');
+  renderCalendar(); updateBadges();
+  showToast('🗑 Content deleted.');
+}
+
+// ─── MODAL HELPERS ───
+function ovBgClose(e,id){if(e.target===document.getElementById(id))closeOv(id)}
+function closeOv(id){document.getElementById(id).classList.remove('open')}
+
+// ─── DRAG & DROP ───
+const dzel=document.getElementById('dz');
+dzel.addEventListener('dragover',e=>{e.preventDefault();dzel.classList.add('drag')});
+dzel.addEventListener('dragleave',()=>dzel.classList.remove('drag'));
+dzel.addEventListener('drop',e=>{e.preventDefault();dzel.classList.remove('drag');handleFiles(e.dataTransfer.files)});
+
+// ─── TOAST ───
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// ─── INIT ───
+renderCalendar();
+updateBadges();
+</script>
+</body>
+</html>
