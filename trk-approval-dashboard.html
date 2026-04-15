@@ -84,7 +84,7 @@ html,body{font-family:var(--body);background:var(--dark);color:#fff;height:100%;
 .cctop{height:3px}
 .ccbody{padding:7px 8px 8px}
 .ccpil{font-size:7px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
-.cctitle{font-size:10px;font-weight:600;color:rgba(255,255,255,.85);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cctitle{font-size:10px;font-weight:600;color:rgba(255,255,255,.85);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .ccfoot{display:flex;align-items:center;justify-content:space-between;margin-top:5px;gap:4px;flex-wrap:wrap}
 .cctype{font-size:8px;font-weight:600;color:rgba(255,255,255,.3)}
 .ccst{font-size:7px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:8px}
@@ -404,6 +404,15 @@ html,body{font-family:var(--body);background:var(--dark);color:#fff;height:100%;
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- SUPABASE — must load before main script -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script>
+const supabaseClient = supabase.createClient(
+  "https://gvfbvmylydsbjxbdtwhz.supabase.co",
+  "sb_publishable_YC9Z2zaUQU4hpRf4QolnQA_4IUdyfww"
+);
+</script>
 
 <script>
 // ─── CONSTANTS ───
@@ -833,15 +842,3 @@ function showToast(msg){
 renderCalendar();
 updateBadges();
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
-<script>
-const supabaseClient = supabase.createClient(
-  "https://gvfbvmylydsbjxbdtwhz.supabase.co",
-  "sb_publishable_YC9Z2zaUQU4hpRf4QolnQA_4IUdyfww"
-);
-</script>
-
-</body>
-</html>
