@@ -15,21 +15,61 @@
 
 <style>
 
-/* 🔥 CONTROLS STICKY */
-.controls{
-  position:sticky;
-  top:0;
-  z-index:999;
-  background:var(--bg);
-  backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--border);
-  padding-bottom:10px;
+/* 🔥 SUPPORT SECTIONS (collapsible rows) */
+.support-section{
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--surface);
+  overflow:hidden;
+  transition:box-shadow .2s;
+}
+.support-section:hover{
+  box-shadow:var(--shadow);
+}
+.support-section-hdr{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 16px;
+  cursor:pointer;
+  user-select:none;
+  gap:12px;
+  border-bottom:1px solid transparent;
+  transition:border-color .2s, background .2s;
+}
+.support-section-hdr:hover{
+  background:var(--surface2);
+}
+.support-section-hdr.open{
+  border-bottom-color:var(--border);
+}
+.support-toggle-arrow{
+  font-size:11px;
+  color:var(--muted);
+  transition:transform .25s ease;
+  flex-shrink:0;
+}
+.support-toggle-arrow.open{
+  transform:rotate(180deg);
+}
+.support-section-body{
+  padding:0 12px;
 }
 
-/* 🔥 MAIN GRID */
+/* 🔥 CONTROLS */
+.controls{
+  position:relative;
+  top:auto;
+  z-index:auto;
+  background:var(--bg);
+  border-bottom:1px solid var(--border);
+  padding-top:8px;
+  padding-bottom:8px;
+}
+
 .grid-main{
   display:grid;
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns: 0.55fr 1.45fr;
   gap:16px;
   margin-bottom:12px;
   margin-top:4px;
@@ -50,7 +90,7 @@
 /* 🔥 LARGE SCREENS */
 @media(min-width:1400px){
   .grid-main{
-    grid-template-columns: 1.3fr 0.7fr;
+    grid-template-columns: 0.55fr 1.45fr;
   }
 
   .chart{
@@ -118,17 +158,21 @@
   flex:1;
   padding:20px 24px;
   overflow-x:hidden;
+  overflow-y:auto;
+  height:100%;
 }
 /* mobile spacing */
 @media(max-width:900px){
   .main-content{
     padding:16px;
+    height:auto;
+    overflow-y:visible;
   }
 }
   
 .grid-main{
   display:grid;
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns: 0.55fr 1.45fr;
   gap:16px;
   margin-bottom:12px;
   margin-top:4px;
@@ -149,12 +193,8 @@
 /* existing mo na CSS below */
 .layout{
   display:flex;
-  min-height:100vh;
-}
-
-.layout{
-  display:flex;
-  min-height:100vh;
+  height:calc(100vh - 54px); /* match header min-height */
+  overflow:hidden;
 }
 
 /* sidebar base styles */
@@ -167,12 +207,24 @@ aside.sidebar{
   display:flex;
   flex-direction:column;
   gap:4px;
+  overflow-y:auto;
+  height:100%;
+}
+
+/* main content scrollable */
+.main-content{
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  height:100%;
 }
 
 /* 🔥 MOBILE FIX */
 @media(max-width:900px){
   .layout{
     flex-direction:column;
+    height:auto;
+    overflow:visible;
   }
 
   aside.sidebar{
@@ -185,10 +237,17 @@ aside.sidebar{
     align-items:center;
     gap:6px;
     padding:10px 16px;
+    height:auto;
+    overflow-y:visible;
   }
 
   aside.sidebar > div{
-    display:none; /* hide section labels like DASHBOARDS / REVIEWS on mobile */
+    display:none;
+  }
+
+  .main-content{
+    height:auto;
+    overflow:visible;
   }
 }
   
@@ -235,23 +294,27 @@ aside.sidebar{
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
 
 /* HEADER */
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);transition:background .3s,border-color .3s}
-.logo{display:flex;align-items:center;gap:12px}
-.logo img{width:36px;height:36px;object-fit:contain}
-.logo-text .logo-name{font-family:'DM Sans',sans-serif;font-weight:700;font-size:17px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text);line-height:1}
-.logo-text .logo-sub{font-size:9px;letter-spacing:0.26em;text-transform:uppercase;color:var(--muted);margin-top:2px}
-.logo-strip{height:2px;width:110px;margin-top:5px;background:linear-gradient(to right,#99F6E4,#EEF3C7,#C4B5FD,#FF9B9B,#FFD4D9);border-radius:2px}
-.dash-label{font-family:'Cormorant Garamond',serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-top:4px}
-.header-right{display:flex;align-items:center;gap:12px;flex-shrink:0}
-.last-updated{font-size:11px;color:var(--muted);white-space:nowrap}
-.toggle-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
-.toggle-lbl{font-size:11px;color:var(--muted);min-width:28px}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);transition:background .3s,border-color .3s;flex-shrink:0;min-height:54px;overflow:hidden}
+.logo{display:flex;align-items:center;gap:10px;min-width:0;flex-shrink:1;overflow:hidden}
+.logo img{width:32px;height:32px;object-fit:contain;flex-shrink:0}
+.logo-text{min-width:0;overflow:hidden}
+.logo-text .logo-name{font-family:'DM Sans',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text);line-height:1;white-space:nowrap}
+.logo-text .logo-sub{font-size:9px;letter-spacing:0.26em;text-transform:uppercase;color:var(--muted);margin-top:2px;white-space:nowrap}
+.logo-strip{height:2px;width:90px;margin-top:4px;background:linear-gradient(to right,#99F6E4,#EEF3C7,#C4B5FD,#FF9B9B,#FFD4D9);border-radius:2px}
+.dash-label{font-family:'Cormorant Garamond',serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-top:3px;white-space:nowrap}
+.header-right{display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:auto;padding-left:12px}
+.last-updated{font-size:10px;color:var(--muted);white-space:nowrap}
+.toggle-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;flex-shrink:0}
+.toggle-lbl{font-size:11px;color:var(--muted);min-width:28px;white-space:nowrap}
 .toggle-track{width:38px;height:20px;border-radius:10px;background:var(--border);position:relative;transition:background .3s;flex-shrink:0;border:1px solid var(--border)}
 .toggle-thumb{width:14px;height:14px;border-radius:50%;background:var(--toggle-knob);position:absolute;top:2px;left:2px;transition:transform .25s ease,background .3s}
 [data-theme="dark"] .toggle-thumb{transform:translateX(18px)}
+/* hide decorative bits at small widths so header never wraps */
+@media(max-width:700px){.dash-label,.logo-strip{display:none}}
+@media(max-width:500px){.last-updated,.logo-text .logo-sub{display:none}}
 
 /* CONTROLS */
-.controls{display:flex;flex-wrap:wrap;gap:10px;padding:18px 28px 0;align-items:flex-end}
+.controls{display:flex;flex-wrap:wrap;gap:10px;padding:10px 28px 0;align-items:flex-end}
 .ctrl-group{display:flex;flex-direction:column;gap:4px}
 .ctrl-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
 .ms-wrap{position:relative}
@@ -268,11 +331,12 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .ms-opt.all-opt.selected{color:var(--accent);background:var(--surface2);border-left-color:var(--accent)}
 
 /* MAIN */
-main{max-width:1400px;margin:0 auto;padding:22px 28px 48px}
-.section-label{font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+main{max-width:1400px;margin:0 auto;padding:10px 28px 48px}
+.section-label{font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);margin-top:16px;margin-bottom:8px}
 
 /* METRICS */
 .metric{background:var(--surface);border-radius:13px;padding:18px 16px;border:1px solid var(--border);box-shadow:var(--shadow);position:relative;overflow:hidden;transition:background .3s,border-color .3s}
+[data-theme="light"] .metric{border-color:#d8c8c2;}
 .metric::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0}
 .m-rose::before{background:#FFD4D9}.m-coral::before{background:#FF9B9B}.m-lav::before{background:#C4B5FD}.m-turq::before{background:#99F6E4}
 .m-lime::before{background:#EEF3C7}.m-pink::before{background:#FFB6C1}.m-sage::before{background:#B5EAD7}.m-peach::before{background:#FFDAC1}
@@ -284,23 +348,24 @@ main{max-width:1400px;margin:0 auto;padding:22px 28px 48px}
 
 /* CARDS */
 .card{background:var(--surface);border-radius:13px;padding:22px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:12px;transition:background .3s,border-color .3s}
+[data-theme="light"] .card{border-color:#d8c8c2;}
 .card-title{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:16px;color:var(--text);margin-bottom:3px}
 .card-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
 
 /* DONUT */
-.donut-inner{display:flex;align-items:center;gap:20px}
-.donut-wrap{position:relative;width:110px;height:110px;flex-shrink:0}
+.donut-inner{display:flex;flex-direction:column;align-items:center;gap:24px}
+.donut-wrap{position:relative;width:300px;height:300px;flex-shrink:0}
 .donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
-.donut-center-val{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--text);line-height:1}
+.donut-center-val{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--text);line-height:1}
 .donut-center-lbl{font-size:8px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px}
-.legend{display:flex;flex-direction:column;gap:6px;flex:1}
-.legend-item{display:flex;align-items:center;justify-content:space-between;font-size:11px}
-.legend-l{display:flex;align-items:center;gap:6px}
+.legend{display:flex;flex-direction:column;gap:8px;width:100%}
+.legend-item{display:flex;align-items:center;justify-content:space-between;font-size:11px;gap:8px}
+.legend-l{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .legend-name{color:var(--muted)}
-.legend-r{display:flex;gap:6px}
-.legend-n{color:var(--text);font-weight:500}
-.legend-p{color:var(--muted2)}
+.legend-r{display:flex;gap:8px;align-items:center}
+.legend-n{color:var(--text);font-weight:500;min-width:100px;text-align:right}
+.legend-p{color:var(--muted2);min-width:28px;text-align:right}
 
 /* REBOOK BARS */
 .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
@@ -392,7 +457,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   /* controls: wrap to 2 columns on small phones */
   .controls{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns: 0.8fr 1.2fr;
     gap:8px;
     padding:12px 16px;
   }
@@ -410,18 +475,18 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 /* ===== DESKTOP LAYOUT FIX (DO NOT TOUCH ABOVE CODE) ===== */
 
 .main{
-  margin-left:240px !important;
+  /* margin-left removed — layout uses flex, not absolute positioning */
 }
 
 .page{
-  max-width:1600px !important;
+  max-width:1200px !important;
   margin:0 auto !important;
   padding:32px 40px !important;
 }
 
 .g2{
   display:grid !important;
-  grid-template-columns: 1.2fr 0.8fr !important;
+  grid-template-columns: 0.55fr 1.45fr !important;
   gap:20px !important;
 }
 
@@ -437,11 +502,11 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
 @media(min-width:1400px){
   .page{
-    max-width:1700px !important;
+    max-width:1000px !important;
   }
 
   .g2{
-    grid-template-columns: 1.3fr 0.7fr !important;
+    grid-template-columns: 0.55fr 1.45fr !important;
   }
 
   .chart{
@@ -450,7 +515,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
   /* ADD THIS */
   .grid-main{
-    grid-template-columns: 1.3fr 0.7fr;
+    grid-template-columns: 0.55fr 1.45fr;
   }
 
   .grid-sub{
@@ -995,161 +1060,365 @@ function renderDashboard(){
     : sel.branch.map(b=>BRANCH_INFO[b]?.name||b).join(', ');
 
   main.innerHTML=`
-    <!-- ROW 1: MAIN METRICS (GREEN / MUST-WATCH) -->
+    <!-- ROW 1: 4 COMPACT KPI CARDS -->
 <div>
-  <div class="section-label" style="display:flex;align-items:center;gap:7px">
+  <div class="section-label" style="display:flex;align-items:center;gap:7px;margin-top:16px;margin-bottom:8px">
     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#99F6E4;flex-shrink:0"></span>
     ${branchLabel} · Main Metrics
   </div>
-  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:8px">
-    <div class="metric" style="border-color:rgba(153,246,228,0.35);background:var(--surface)">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
+
+    <!-- Total Clients -->
+    <div class="metric" style="border-color:rgba(153,246,228,0.35);background:var(--surface);padding:14px 14px">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
-     <div class="metric-label">Net Revenue</div>
+      <div class="metric-label" style="font-size:9px">Total Clients</div>
+      <div style="font-size:9px;color:var(--muted);margin:3px 0 6px"><em>All clients served</em></div>
+      <div class="metric-value" style="font-size:20px">${s.totalClients}</div>
+      <div class="metric-target" style="font-size:10px">Target: ${getClientTarget(sel.branch)}</div>
+    </div>
 
-<div style="font-size:11px;color:var(--muted);margin:4px 0 8px 0">
-  <em>(Total sales: services + retail)</em>
-</div>
-
-<div class="metric-value ${sc(s.netTake,TARGETS.netRevenue)}" style="font-size:22px; text-align:left;">
-  ${fmtAED(s.netTake)}
-</div>
-
-<div class="metric-target" style="text-align:left;">
-  Target: AED 2,000,000 / mo
-</div>
-
-<div style="font-size:11px;color:var(--muted);margin-top:4px">
-  ${getWeeklyTarget(sel.branch)}
-</div>
-
-</div> <!-- closes Net Revenue card -->
-    <div class="metric" style="border-color:rgba(153,246,228,0.35);background:var(--surface)">
+    <!-- Total Avg Bill -->
+    <div class="metric" style="border-color:rgba(153,246,228,0.35);background:var(--surface);padding:14px 14px">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
-      <div class="metric-label">Total Clients</div>
-
-<div style="font-size:11px;color:var(--muted);margin:4px 0 8px 0">
-  <em>(All clients served, varies per branch)</em>
-</div>
-
-<div class="metric-value" style="font-size:22px; text-align:left;">
-  ${s.totalClients}
-</div>
-
-<div class="metric-target" style="text-align:left;">
-  Target: ${getClientTarget(sel.branch)}
-</div>
+      <div class="metric-label" style="font-size:9px">Total Avg Bill</div>
+      <div style="font-size:9px;color:var(--muted);margin:3px 0 6px"><em>Revenue ÷ Clients</em></div>
+      <div class="metric-value" style="font-size:20px">${fmtAED(s.avgBill)}</div>
+      <div class="metric-target" style="font-size:10px">Benchmark: ~AED 650</div>
     </div>
-    <div class="metric" style="border-color:rgba(153,246,228,0.35);background:var(--surface)">
-  <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
-  
-  <div class="metric-label">Total Avg Bill</div>
 
-  <div style="font-size:11px;color:var(--muted);margin:4px 0 8px 0">
-    <em>(Total revenue ÷ Total clients)</em>
-  </div>
-
-  <div class="metric-value" style="font-size:22px; text-align:left;">
-    ${fmtAED(s.avgBill)}
-  </div>
-
-  <div class="metric-target" style="text-align:left; opacity:0.7;">
-    • Benchmark: ~AED 650 (Hair-driven)
-  </div>
-</div>
-
-    <div class="metric" style="border-color:rgba(153,246,228,0.35);background:var(--surface)">
+    <!-- Rebooking % -->
+    <div class="metric" style="border-color:rgba(153,246,228,0.35);background:var(--surface);padding:14px 14px">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
-      <div class="metric-label">Rebooking %</div>
-
-<div style="font-size:11px;color:var(--muted);margin:4px 0 8px 0">
-  <em>(Rebooked clients ÷ Total clients)</em>
-</div>
-
-<div class="metric-value ${sc(s.rebookPct,TARGETS.rebookPct)}" style="font-size:22px; text-align:left;">
-  ${fmtPct(s.rebookPct)}
-</div>
-
-<div class="metric-target" style="text-align:left;">
-  Target: ${TARGETS.rebookPct}%
-</div>
-
-</div> <!-- ✅ closes Rebooking card -->
-
-<div class="metric" style="border-color:rgba(153,246,228,0.35);background:var(--surface)">
-  <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
-  
-  <div class="metric-label">NCR %</div>
-
-  <div style="font-size:11px;color:var(--muted);margin:4px 0 8px 0">
-    <em>(New Client Requests ÷ Total Clients)</em>
-  </div>
-
-  <div class="metric-value ${sc(s.ncrPct||0,20)}" style="font-size:22px; text-align:left;">
-    ${fmtPct(s.ncrPct||0)}
-  </div>
-
-  <div class="metric-target" style="text-align:left;">
-    Target: ≥ 20%
-  </div>
-
-</div> <!-- ✅ closes NCR card -->
-
+      <div class="metric-label" style="font-size:9px">Rebooking %</div>
+      <div style="font-size:9px;color:var(--muted);margin:3px 0 6px"><em>Rebooked ÷ Total clients</em></div>
+      <div class="metric-value ${sc(s.rebookPct,TARGETS.rebookPct)}" style="font-size:20px">${fmtPct(s.rebookPct)}</div>
+      <div class="metric-target" style="font-size:10px">Target: ${TARGETS.rebookPct}%</div>
     </div>
+
+    <!-- NCR % -->
+    <div class="metric" style="border-color:rgba(153,246,228,0.35);background:var(--surface);padding:14px 14px">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
+      <div class="metric-label" style="font-size:9px">NCR %</div>
+      <div style="font-size:9px;color:var(--muted);margin:3px 0 6px"><em>New Client Requests ÷ Total</em></div>
+      <div class="metric-value ${sc(s.ncrPct||0,20)}" style="font-size:20px">${fmtPct(s.ncrPct||0)}</div>
+      <div class="metric-target" style="font-size:10px">Target: ≥ 20%</div>
+    </div>
+
   </div>
 </div>
 
-<!-- ROW 1B: SECONDARY METRICS -->
-<div style="margin-bottom:4px">
-  <div class="section-label" style="margin-top:4px">Supporting Metrics</div>
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
-    <div class="metric m-lime">
-      <div class="metric-label">Treatment %</div>
-      <div class="metric-value" style="font-size:22px">${fmtPct(s.treatmentPct)}</div>
-      <div class="metric-target">Target: ${TARGETS.treatmentPct}%</div>
+<!-- ROW 2: NET REVENUE DIAL + BRANCH BAR + DONUT (3 cols) -->
+<div style="display:grid;grid-template-columns:0.85fr 1.1fr 0.85fr;gap:12px;margin-bottom:12px;align-items:stretch">
+
+  <!-- COL 1: Net Revenue Dial -->
+  <div class="card" style="margin-bottom:0;border-top:3px solid #99F6E4;display:flex;flex-direction:column;align-items:center;padding:16px 14px">
+    <div style="width:100%;margin-bottom:4px">
+      <div class="metric-label" style="font-size:9px">Net Revenue</div>
+      <div style="font-size:9px;color:var(--muted);margin:2px 0 6px"><em>Total sales: services + retail</em></div>
     </div>
-    <div class="metric m-pink">
-      <div class="metric-label">Retail %</div>
-      <div class="metric-value" style="font-size:22px">${fmtPct(s.hairRetailPct)}</div>
-      <div class="metric-target">Target: ${TARGETS.retailPct}%</div>
-    </div>
-    <div class="metric m-sage">
-      <div class="metric-label">Beauty Sales</div>
-      <div class="metric-value" style="font-size:22px">${fmtAED(s.beautySales)}</div>
-      <div class="metric-target">${fmtPct(s.beautyPct)} of total</div>
-    </div>
-    <div class="metric m-peach">
-      <div class="metric-label">Colour Take</div>
-      <div class="metric-value" style="font-size:22px">${fmtAED(s.colTake)}</div>
-      <div class="metric-target">${fmtPct(s.colPct||0)} of hair</div>
-    </div>
-  </div>
-</div>
-      <!-- 🔥 SECOND ROW: CHARTS -->
-<div class="grid-main">
-  <div style="display:flex;flex-direction:column">
-        <div class="section-label">Branch Comparison</div>
-        <div class="card" style="margin-bottom:0;flex:1">
-          <div class="card-title">Performance Across Branches</div>
-          <div class="card-sub">Side-by-side · select metric below</div>
-          <div class="f-pills" id="cmpFilters">
-            <button class="f-pill active" data-m="netTake">Revenue</button>
-            <button class="f-pill" data-m="totalClients">Clients</button>
-            <button class="f-pill" data-m="avgBill">Avg Bill</button>
-            <button class="f-pill" data-m="rebookPct">Rebook %</button>
-            <button class="f-pill" data-m="treatmentPct">Treatment %</button>
-          </div>
-          <div style="position:relative;height:200px"><canvas id="cmpChart"></canvas></div>
-        </div>
+    <!-- Dial canvas -->
+    <div style="position:relative;width:220px;height:118px;flex-shrink:0;margin:4px auto 0">
+      <canvas id="dialCanvas" width="220" height="118"></canvas>
+      <div style="position:absolute;bottom:6px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;white-space:nowrap">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--text);line-height:1">${fmtAED(s.netTake)}</div>
+        <div style="font-size:8px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px">actual</div>
       </div>
     </div>
+    <!-- Progress bar -->
+    <div style="width:100%;height:4px;border-radius:2px;background:var(--border);margin-top:10px;overflow:hidden">
+      <div id="dialPctFill" style="height:100%;border-radius:2px;background:#99F6E4;width:0%;transition:width 0.5s ease"></div>
+    </div>
+    <div id="dialPctTxt" style="font-size:10px;color:var(--muted);margin-top:4px;width:100%">— of goal</div>
+    <div style="width:100%;margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
+      <div class="metric-target" style="font-size:10px">Monthly target: AED 2,000,000</div>
+      <div id="dialGoalTag" style="font-size:10px;color:var(--accent);margin-top:4px;font-weight:600"></div>
+    </div>
+    <!-- Branch Weekly Goals mini table -->
+    <div style="width:100%;margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
+      <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Weekly Goals by Branch</div>
+      ${[
+        {code:'SAA',name:'Saadiyat',color:'#C4B5FD',goal:'450–550k'},
+        {code:'KCA',name:'Khalifa City',color:'#FFD4D9',goal:'320–420k'},
+        {code:'AQ',name:'Al Quoz',color:'#FF9B9B',goal:'500–650k'},
+        {code:'MC',name:'Motor City',color:'#99F6E4',goal:'350–450k'},
+        {code:'FRT',name:'Fratelli',color:'#EEF3C7',goal:'200–260k'},
+      ].map(b=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border2)">
+          <div style="display:flex;align-items:center;gap:5px">
+            <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${b.color};flex-shrink:0"></span>
+            <span style="font-size:10px;color:var(--muted)">${b.name}</span>
+          </div>
+          <span style="font-size:10px;font-weight:600;color:var(--text)">AED ${b.goal}</span>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- COL 2: Branch Comparison Bar -->
+  <div class="card" style="margin-bottom:0;border-top:3px solid #C4B5FD;padding:16px 14px;display:flex;flex-direction:column">
+    <div class="card-title">Performance Across Branches</div>
+    <div class="card-sub" style="font-size:10px">Side-by-side · select metric below</div>
+    <div class="f-pills" id="cmpFilters" style="margin-bottom:10px">
+      <button class="f-pill active" data-m="netTake">Net Revenue</button>
+      <button class="f-pill" data-m="avgBill">Avg Bill</button>
+      <button class="f-pill" data-m="totalClients">Total Clients</button>
+      <button class="f-pill" data-m="ncrPct">NCR %</button>
+      <button class="f-pill" data-m="rebookPct">Rebooking %</button>
+    </div>
+    <div style="position:relative;flex:1;min-height:170px"><canvas id="cmpChart"></canvas></div>
+  </div>
+
+  <!-- COL 3: Revenue Mix Donut -->
+  <div class="card" style="margin-bottom:0;border-top:3px solid #FFD4D9;display:flex;flex-direction:column;align-items:center;padding:16px 14px">
+    <div style="width:100%;margin-bottom:4px">
+      <div class="metric-label" style="font-size:9px">Revenue Mix</div>
+      <div style="font-size:9px;color:var(--muted);margin:2px 0 6px"><em>Hair · Beauty · Retail</em></div>
+    </div>
+    <div style="position:relative;width:150px;height:150px;flex-shrink:0">
+      <canvas id="donutChart"></canvas>
+      <div class="donut-center">
+        <div class="donut-center-val" style="font-size:16px">${Math.round(s.netTake/1000)}k</div>
+        <div class="donut-center-lbl">Net AED</div>
+      </div>
+    </div>
+    <div class="legend" id="donutLegend" style="width:100%;margin-top:10px"></div>
+  </div>
+
+</div>
+
+<!-- SUPPORTING METRICS LABEL -->
+<div class="section-label" style="display:flex;align-items:center;gap:7px;margin-top:16px;margin-bottom:8px">
+  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#EEF3C7;flex-shrink:0"></span>
+  ${branchLabel} · Supporting Metrics
+</div>
+
+<!-- ROW 2: REVENUE RUN (collapsible) -->
+<div class="support-section" style="margin-bottom:8px">
+  <div class="support-section-hdr" onclick="toggleSection('revenueRun')">
+    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#EEF3C7;flex-shrink:0"></span>
+      <span class="section-label" style="margin:0;letter-spacing:0.16em;flex-shrink:0;white-space:nowrap">Revenue Run</span>
+      <span style="font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">Service Sales · Treatment % · Retail % · Hair Avg Bill · Beauty Avg Bill</span>
+    </div>
+    <span class="support-toggle-arrow" id="arrow-revenueRun">▼</span>
+  </div>
+  <div class="support-section-body" id="body-revenueRun" style="display:none">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:12px 0 4px">
+
+      <!-- Service Sales -->
+      <div class="metric m-lime">
+        <div class="metric-label">Service Sales</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Total service revenue: hair + beauty)</em></div>
+        <div class="metric-value ${sc(s.netTake - s.hairRetail, 0)}" style="font-size:20px">${fmtAED(s.netTake - (s.hairRetail||0))}</div>
+        <div class="metric-target">Branch-based target</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Core income driver</div>
+      </div>
+
+      <!-- Treatment % -->
+      <div class="metric m-lime">
+        <div class="metric-label">Treatment %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Treatment sales ÷ Total revenue)</em></div>
+        <div class="metric-value ${sc(s.treatmentPct, TARGETS.treatmentPct)}" style="font-size:20px">${fmtPct(s.treatmentPct)}</div>
+        <div class="metric-target">Target: ≥ ${TARGETS.treatmentPct}%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Upsell indicator</div>
+      </div>
+
+      <!-- Retail % -->
+      <div class="metric m-lime">
+        <div class="metric-label">Retail %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Retail sales ÷ Total revenue)</em></div>
+        <div class="metric-value ${sc(s.hairRetailPct, TARGETS.retailPct)}" style="font-size:20px">${fmtPct(s.hairRetailPct)}</div>
+        <div class="metric-target">Target: ≥ ${TARGETS.retailPct}%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Product sales performance</div>
+      </div>
+
+      <!-- Hair Avg Bill -->
+      <div class="metric m-lime">
+        <div class="metric-label">Hair Avg Bill</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Hair services ÷ Hair clients)</em></div>
+        <div class="metric-value ${sc(s.avgBill, TARGETS.hairAvgBill)}" style="font-size:20px">${fmtAED(s.avgBill)}</div>
+        <div class="metric-target">Target: AED ${TARGETS.hairAvgBill}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Check service pricing</div>
+      </div>
+
+      <!-- Beauty Avg Bill -->
+      <div class="metric m-lime">
+        <div class="metric-label">Beauty Avg Bill</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Beauty services ÷ Beauty clients)</em></div>
+        <div class="metric-value ${sc(s.beautySales / Math.max(1, d.beautyStaff.reduce((a,st)=>a+st.total,0)), TARGETS.beautyAvgBill)}" style="font-size:20px">${fmtAED(s.beautySales / Math.max(1, d.beautyStaff.reduce((a,st)=>a+st.total,0)))}</div>
+        <div class="metric-target">Target: AED ${TARGETS.beautyAvgBill||200}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Check beauty performance</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ROW 3: CLIENT RUN (collapsible) -->
+<div class="support-section" style="margin-bottom:8px">
+  <div class="support-section-hdr" onclick="toggleSection('clientRun')">
+    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#C4B5FD;flex-shrink:0"></span>
+      <span class="section-label" style="margin:0;letter-spacing:0.16em;flex-shrink:0;white-space:nowrap">Client Run</span>
+      <span style="font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">New Clients · NCR · Request Clients % · Salon Clients % · New Clients %</span>
+    </div>
+    <span class="support-toggle-arrow" id="arrow-clientRun">▼</span>
+  </div>
+  <div class="support-section-body" id="body-clientRun" style="display:none">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:12px 0 4px">
+
+      <!-- New Clients -->
+      <div class="metric m-lav">
+        <div class="metric-label">New Clients</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(First-time clients)</em></div>
+        <div class="metric-value" style="font-size:20px">${Math.round(d.hairStaff.reduce((a,st)=>a+(st.newC||0),0))}</div>
+        <div class="metric-target">Track growth</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Acquisition volume</div>
+      </div>
+
+      <!-- NCR -->
+      <div class="metric m-lav">
+        <div class="metric-label">NCR (New Client Requests)</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(New clients requesting specific staff)</em></div>
+        <div class="metric-value" style="font-size:20px">${Math.round(s.ncrPct * s.totalClients / 100)}</div>
+        <div class="metric-target">Increase weekly</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Demand indicator</div>
+      </div>
+
+      <!-- Request Clients % -->
+      <div class="metric m-lav">
+        <div class="metric-label">Request Clients %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Request clients ÷ Total clients)</em></div>
+        <div class="metric-value ${sc(s.ncrPct, 40)}" style="font-size:20px">${fmtPct(s.ncrPct)}</div>
+        <div class="metric-target">Target: ≥ 40%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Loyalty indicator</div>
+      </div>
+
+      <!-- Salon Clients % -->
+      <div class="metric m-lav">
+        <div class="metric-label">Salon Clients %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Walk-in / no preference clients)</em></div>
+        <div class="metric-value" style="font-size:20px">${fmtPct(100 - (s.ncrPct||0))}</div>
+        <div class="metric-target">Balanced</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Mixed dependency</div>
+      </div>
+
+      <!-- New Clients % -->
+      <div class="metric m-lav">
+        <div class="metric-label">New Clients %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(New clients ÷ Total clients)</em></div>
+        <div class="metric-value ${sc(d.hairStaff.reduce((a,st)=>a+(st.newC||0),0)/Math.max(1,s.totalClients)*100, 20)}" style="font-size:20px">${fmtPct(d.hairStaff.reduce((a,st)=>a+(st.newC||0),0)/Math.max(1,s.totalClients)*100)}</div>
+        <div class="metric-target">Target: ≥ 20%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Growth health</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ROW 4: RETENTION (collapsible) -->
+<div class="support-section" style="margin-bottom:8px">
+  <div class="support-section-hdr" onclick="toggleSection('retentionRun')">
+    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#FFD4D9;flex-shrink:0"></span>
+      <span class="section-label" style="margin:0;letter-spacing:0.16em;flex-shrink:0;white-space:nowrap">Retention</span>
+      <span style="font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">Hair Rebooking % · Beauty Rebooking % · Retention % · Conversion %</span>
+    </div>
+    <span class="support-toggle-arrow" id="arrow-retentionRun">▼</span>
+  </div>
+  <div class="support-section-body" id="body-retentionRun" style="display:none">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:12px 0 4px">
+
+      <!-- Hair Rebooking % -->
+      <div class="metric m-rose">
+        <div class="metric-label">Hair Rebooking %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Hair rebooks ÷ Hair clients)</em></div>
+        <div class="metric-value ${sc(s.rebookPct, 50)}" style="font-size:20px">${fmtPct(s.rebookPct)}</div>
+        <div class="metric-target">Target: ≥ 50%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Service retention</div>
+      </div>
+
+      <!-- Beauty Rebooking % -->
+      <div class="metric m-rose">
+        <div class="metric-label">Beauty Rebooking %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Beauty rebooks ÷ Beauty clients)</em></div>
+        <div class="metric-value ${sc(d.beautyStaff.reduce((a,st)=>a+(st.rebookPct||0),0)/Math.max(1,d.beautyStaff.length), 40)}" style="font-size:20px">${fmtPct(d.beautyStaff.reduce((a,st)=>a+(st.rebookPct||0),0)/Math.max(1,d.beautyStaff.length))}</div>
+        <div class="metric-target">Target: ≥ 40%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Beauty retention</div>
+      </div>
+
+      <!-- Retention % -->
+      <div class="metric m-rose">
+        <div class="metric-label">Retention %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Returning clients over time)</em></div>
+        <div class="metric-value ${sc(s.rebookPct, 60)}" style="font-size:20px">${fmtPct(s.rebookPct)}</div>
+        <div class="metric-target">Target: ≥ 60–70%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Long-term loyalty</div>
+      </div>
+
+      <!-- Conversion % -->
+      <div class="metric m-rose">
+        <div class="metric-label">Conversion %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(New → returning clients)</em></div>
+        <div class="metric-value ${sc(s.rebookPct, 50)}" style="font-size:20px">${fmtPct(s.rebookPct)}</div>
+        <div class="metric-target">Target: ≥ 50%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Client stickiness</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ROW 5: OPERATIONS (collapsible) -->
+<div class="support-section" style="margin-bottom:8px">
+  <div class="support-section-hdr" onclick="toggleSection('opsRun')">
+    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#99F6E4;flex-shrink:0"></span>
+      <span class="section-label" style="margin:0;letter-spacing:0.16em;flex-shrink:0;white-space:nowrap">Operations</span>
+      <span style="font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">Utilisation % · Hair Utilisation % · Beauty Utilisation %</span>
+    </div>
+    <span class="support-toggle-arrow" id="arrow-opsRun">▼</span>
+  </div>
+  <div class="support-section-body" id="body-opsRun" style="display:none">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:12px 0 4px">
+
+      <!-- Utilisation % -->
+      <div class="metric m-turq">
+        <div class="metric-label">Utilisation %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Booked ÷ Available hrs)</em></div>
+        <div class="metric-value" style="font-size:20px">—</div>
+        <div class="metric-target">Target: ≥ 75–85%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Staff efficiency</div>
+      </div>
+
+      <!-- Hair Utilisation % -->
+      <div class="metric m-turq">
+        <div class="metric-label">Hair Utilisation %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Hair booked ÷ available)</em></div>
+        <div class="metric-value" style="font-size:20px">—</div>
+        <div class="metric-target">Target: ≥ 80%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Hair productivity</div>
+      </div>
+
+      <!-- Beauty Utilisation % -->
+      <div class="metric m-turq">
+        <div class="metric-label">Beauty Utilisation %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Beauty booked ÷ available)</em></div>
+        <div class="metric-value" style="font-size:20px">—</div>
+        <div class="metric-target">Target: ≥ 70%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Beauty productivity</div>
+      </div>
+
+    </div>
+  </div>
+</div>
 
     <!-- ROW 2: TOP 3 PER BRANCH -->
-    <div class="section-label">Top Performers per Branch</div>
+    <div class="section-label" style="margin-top:16px;margin-bottom:8px">Top Performers per Branch</div>
     <div class="top3-grid" id="top3Grid"></div>
     <div class="top3-grid-row2" id="top3Grid2"></div>
 
-    <!-- ROW 3: AQ + FRATELLI + DONUT (3 cols) -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+    <!-- ROW 3: AQ + FRATELLI (2 cols) -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
       <!-- AQ Ladies top 3 -->
       <div class="top3-col" id="aqCard">
         <div class="top3-col-hdr">
@@ -1165,20 +1434,6 @@ function renderDashboard(){
           <div class="top3-accent" style="background:#EEF3C7"></div>
         </div>
         <div class="top3-col-body" id="t3_FRT_inline"></div>
-      </div>
-      <!-- Revenue Mix donut (compressed) -->
-      <div class="card" style="margin-bottom:0">
-        <div class="card-title">Revenue Mix</div>
-        <div class="card-sub">Hair · Beauty · Retail</div>
-        <div class="donut-inner">
-          <div class="donut-wrap"><canvas id="donutChart"></canvas>
-            <div class="donut-center">
-              <div class="donut-center-val">${Math.round(s.netTake/1000)}k</div>
-              <div class="donut-center-lbl">Net AED</div>
-            </div>
-          </div>
-          <div class="legend" id="donutLegend"></div>
-        </div>
       </div>
     </div>
 
@@ -1253,12 +1508,59 @@ function renderDashboard(){
 
   // ── TOP 3 (rows 1-3 = KCA, SAA, MC) ──
   renderTop3(byBranch);
+  restoreSections();
 
   // ── AQ + FRT inline in row 3 ──
   const aqD=byBranch['AQ'];
   const frtD=byBranch['FRT'];
   renderTop3InlineCard('AQ',aqD,byBranch);
   renderTop3InlineCard('FRT',frtD,byBranch);
+
+  // ── DIAL CHART (Net Revenue gauge) ──
+  (function(){
+    const WEEKLY_GOALS_MAP={SAA:[450000,550000],KCA:[320000,420000],AQ:[500000,650000],MC:[350000,450000],FRT:[200000,260000]};
+    const activeBranches=sel.branch.includes('all')?Object.keys(WEEKLY_GOALS_MAP):sel.branch;
+    const hasWeek=!sel.week.includes('all');
+    let weekCount=1;
+    if(!hasWeek){
+      const weekSet=new Set(filtered.map(d=>d.week_label));
+      const branchCount=activeBranches.length||1;
+      weekCount=Math.max(1,Math.round(weekSet.size/branchCount));
+    }
+    let wMin=0,wMax=0;
+    activeBranches.forEach(b=>{if(WEEKLY_GOALS_MAP[b]){wMin+=WEEKLY_GOALS_MAP[b][0];wMax+=WEEKLY_GOALS_MAP[b][1];}});
+    wMin=wMin||1820000; wMax=wMax||2330000;
+    const gMin=wMin*weekCount, gMax=wMax*weekCount;
+    const goalMid=(gMin+gMax)/2;
+    const pct=Math.min(s.netTake/goalMid,1.05);
+    const periodLabel=hasWeek?'week':weekCount===4?'month (~4 wks)':weekCount+' week'+(weekCount>1?'s':'');
+    const canvas=document.getElementById('dialCanvas');
+    if(canvas){
+      const ctx=canvas.getContext('2d');
+      const W=canvas.width,H=canvas.height;
+      ctx.clearRect(0,0,W,H);
+      const cx=W/2,cy=H-8,r=88;
+      const SA=Math.PI,EA=2*Math.PI;
+      ctx.beginPath();ctx.arc(cx,cy,r,SA,EA);
+      ctx.strokeStyle=dark?'rgba(250,248,243,0.1)':'rgba(92,85,87,0.12)';
+      ctx.lineWidth=13;ctx.lineCap='round';ctx.stroke();
+      const fillEnd=SA+(EA-SA)*Math.min(pct,1);
+      const grad=ctx.createLinearGradient(cx-r,cy,cx+r,cy);
+      grad.addColorStop(0,'#C4B5FD');grad.addColorStop(0.5,'#99F6E4');grad.addColorStop(1,'#EEF3C7');
+      ctx.beginPath();ctx.arc(cx,cy,r,SA,fillEnd);
+      ctx.strokeStyle=grad;ctx.lineWidth=13;ctx.lineCap='round';ctx.stroke();
+      const kx=cx+r*Math.cos(fillEnd),ky=cy+r*Math.sin(fillEnd);
+      ctx.beginPath();ctx.arc(kx,ky,5,0,2*Math.PI);
+      ctx.fillStyle=dark?'#FAF8F3':'#5C5557';ctx.fill();
+    }
+    const pctNum=Math.round(pct*100);
+    const fillEl=document.getElementById('dialPctFill');
+    const txtEl=document.getElementById('dialPctTxt');
+    const tagEl=document.getElementById('dialGoalTag');
+    if(fillEl){fillEl.style.width=Math.min(pct*100,100)+'%';fillEl.style.background=pct>=1?'#99F6E4':pct>=0.8?'#EEF3C7':'#FF9B9B';}
+    if(txtEl) txtEl.textContent=pctNum+'% of '+periodLabel+' goal';
+    if(tagEl) tagEl.textContent='Weekly target: AED '+(wMin/1000).toFixed(0)+'k–'+(wMax/1000).toFixed(0)+'k / week';
+  })();
 
   // ── DONUT ──
   const hairTx=Math.max(0,s.netTake-s.beautySales-s.hairRetail);
@@ -1267,13 +1569,13 @@ function renderDashboard(){
   const donutTotal=donutData.reduce((a,b)=>a+b,0)||1;
   charts.donut=new Chart(document.getElementById('donutChart'),{
     type:'doughnut',
-    data:{labels:donutLabels,datasets:[{data:donutData,backgroundColor:donutColors,borderColor:donutBorder,borderWidth:3,hoverOffset:5}]},
-    options:{cutout:'66%',animation:{animateRotate:true,duration:600,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{...ttStyle,callbacks:{label:c=>' '+c.label+': '+fmtAED(c.raw)+' ('+Math.round(c.raw/donutTotal*100)+'%)'}}}}
+    data:{labels:donutLabels,datasets:[{data:donutData,backgroundColor:donutColors,borderColor:donutBorder,borderWidth:2,hoverOffset:4}]},
+    options:{cutout:'68%',responsive:true,maintainAspectRatio:false,animation:{animateRotate:true,duration:600,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{...ttStyle,callbacks:{label:c=>' '+c.label+': '+fmtAED(c.raw)+' ('+Math.round(c.raw/donutTotal*100)+'%)'}}}}
   });
   document.getElementById('donutLegend').innerHTML=donutLabels.map((lbl,i)=>`
-    <div class="legend-item">
-      <div class="legend-l"><div class="legend-dot" style="background:${donutColors[i]}"></div><span class="legend-name">${lbl}</span></div>
-      <div class="legend-r"><span class="legend-n">${fmtAED(donutData[i])}</span><span class="legend-p">${Math.round(donutData[i]/donutTotal*100)}%</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;font-size:10px;gap:6px;margin-bottom:5px">
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:${donutColors[i]};flex-shrink:0"></div><span style="color:var(--muted)">${lbl}</span></div>
+      <div style="display:flex;gap:6px;align-items:center"><span style="color:var(--text);font-weight:500">${fmtAED(donutData[i])}</span><span style="color:var(--muted2);min-width:28px;text-align:right">${Math.round(donutData[i]/donutTotal*100)}%</span></div>
     </div>`).join('');
 
   // ── REBOOKING — split into 2 columns ──
@@ -1359,14 +1661,23 @@ window.switchTop3Inline=function(code,btn,metricKey){
 
 function buildCmpChart(byBranch,metric,dark,ttStyle,gc,tc){
   const activeBranches=sel.branch.includes('all')?Object.keys(BRANCH_INFO):sel.branch;
-  const labels=activeBranches.map(b=>BRANCH_INFO[b]?.name||b);
-  const vals=activeBranches.map(b=>{const d=byBranch[b];if(!d)return 0;return +(d.summary[metric]||0).toFixed(1);});
-  const colors=activeBranches.map(b=>BRANCH_INFO[b]?.color||'#ccc');
-  const metricLabels={netTake:'Revenue (AED)',totalClients:'Clients',avgBill:'Avg Bill (AED)',rebookPct:'Rebook %',treatmentPct:'Treatment %'};
+  // Build branch entries with values, then sort highest → lowest
+  const entries=activeBranches.map(b=>{
+    const d=byBranch[b];
+    return {branch:b,val:+(d?d.summary[metric]||0:0).toFixed(1),color:BRANCH_INFO[b]?.color||'#ccc',name:BRANCH_INFO[b]?.name||b};
+  }).sort((a,b)=>b.val-a.val);
+  const labels=entries.map(e=>e.name);
+  const vals=entries.map(e=>e.val);
+  const colors=entries.map(e=>e.color);
+  const avg=vals.reduce((a,b)=>a+b,0)/(vals.length||1);
+  const metricLabels={netTake:'Revenue (AED)',totalClients:'Total Clients',avgBill:'Avg Bill (AED)',rebookPct:'Rebooking %',ncrPct:'NCR %'};
+  const lc=dark?'#C4B5FD':'#5C5557';
   charts.cmp=new Chart(document.getElementById('cmpChart'),{
-    type:'bar',
-    data:{labels,datasets:[{label:metricLabels[metric]||metric,data:vals,backgroundColor:colors.map(c=>c+'cc'),borderColor:colors,borderWidth:1.5,borderRadius:8}]},
-    options:{animation:{duration:500,easing:'easeInOutQuart'},responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:ttStyle},scales:{x:{ticks:{color:tc,font:{family:'DM Sans',size:11}},grid:{color:gc}},y:{ticks:{color:tc,font:{family:'DM Sans',size:11}},grid:{color:gc}}}}
+    data:{labels,datasets:[
+      {type:'bar',label:metricLabels[metric]||metric,data:vals,backgroundColor:colors.map(c=>c+'cc'),borderColor:colors,borderWidth:1.5,borderRadius:8,barThickness:28,yAxisID:'y'},
+      {type:'line',label:'Average',data:vals.map(()=>+avg.toFixed(1)),borderColor:lc,backgroundColor:'transparent',borderWidth:2,borderDash:[6,4],pointRadius:5,pointBackgroundColor:lc,pointBorderColor:lc,tension:0,yAxisID:'y'}
+    ]},
+    options:{animation:{duration:500,easing:'easeInOutQuart'},responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{color:tc,font:{family:'DM Sans',size:11},boxWidth:12,filter:(item)=>item.datasetIndex===1}},tooltip:ttStyle},scales:{x:{ticks:{color:tc,font:{family:'DM Sans',size:11}},grid:{color:gc}},y:{ticks:{color:tc,font:{family:'DM Sans',size:11}},grid:{color:gc}}}}
   });
 }
 
@@ -1479,6 +1790,28 @@ function switchTab(el,tab){
   el.classList.add('active');
   document.getElementById('tab-hair').style.display=tab==='hair'?'':'none';
   document.getElementById('tab-beauty').style.display=tab==='beauty'?'':'none';
+}
+
+// 🔥 COLLAPSIBLE SUPPORT SECTIONS — state persists across re-renders
+const sectionState = { revenueRun: false, clientRun: false, retentionRun: false, opsRun: false };
+
+function toggleSection(id){
+  sectionState[id] = !sectionState[id];
+  applySection(id);
+}
+
+function applySection(id){
+  const body  = document.getElementById('body-' + id);
+  const arrow = document.getElementById('arrow-' + id);
+  const hdr   = arrow ? arrow.closest('.support-section-hdr') : null;
+  const open  = sectionState[id];
+  if(body)  body.style.display = open ? 'block' : 'none';
+  if(arrow) arrow.classList.toggle('open', open);
+  if(hdr)   hdr.classList.toggle('open', open);
+}
+
+function restoreSections(){
+  Object.keys(sectionState).forEach(id => applySection(id));
 }
 
 loadData();
