@@ -1,5 +1,5 @@
 /* ============================================================
-   TARA ROSE SALON — Dashboard Scripts
+   TARA ROSE LADIES SALON — Dashboard Scripts
    dashboard.js
    ============================================================ */
 
@@ -160,8 +160,8 @@ function toggleOpt(key, val) {
     else sel[key].push(val);
     if (!sel[key].length) sel[key] = ['all'];
   }
-  if (key === 'branch' || key === 'year')  { sel.month = ['all']; }
-  if (key === 'branch' || key === 'year' || key === 'month') { sel.week = ['all']; }
+  if (key === 'year')  { sel.month = ['all']; }
+  if (key === 'year' || key === 'month') { sel.week = ['all']; }
   rebuildDependentDrops();
 
   const drop    = document.getElementById('drop-' + key);
@@ -194,7 +194,7 @@ function rebuildDependentDrops() {
   const years = [...new Set(allData.map(d => getYear(d.week_label, d.uploaded_at)))].sort((a,b) => b - a);
   buildDrop('year', years.map(y => ({ val: y, label: y })));
 
-  const f1 = getFilteredData(false, true);
+  const f1 = getFilteredData(true, true);
   const months = [...new Set(f1.map(d => getMonth(d.week_label, d.uploaded_at)))]
     .filter(m => m !== '—').sort((a,b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
   buildDrop('month', months.map(m => ({ val: m, label: m })));
