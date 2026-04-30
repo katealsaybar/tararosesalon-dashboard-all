@@ -536,7 +536,7 @@ async function parseXLSXWeekly(file) {
     }
     if (!inBeauty&&first==='TOTALS'){summary.totals={hairSales:parseAED(cols[8]),hairSalesNet:parseAED(cols[9]),retail:parseAED(cols[22]),treatments:parseAED(cols[29])};}
   }
-  // If hairRetail is still 0, sum RETAIL TOTAL from each day sheet
+  // Fallback: if hairRetail is 0, sum RETAIL TOTAL from each day sheet
   if (!summary.hairRetail) {
     const DAY_SHEETS_W = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'];
     let retailSum = 0;
@@ -1071,6 +1071,11 @@ function renderColumns() {
           <div class="branch-col-name">${info.name}</div>
           <div class="branch-col-sub">${info.sub}</div>
           <div class="branch-col-accent" style="background:${info.color}"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+            <input type="checkbox" id="wSelAll_${code}" onchange="toggleWeekSelectAll('${code}',this.checked)" title="Select all" style="width:13px;height:13px;accent-color:var(--accent);cursor:pointer">
+            <label for="wSelAll_${code}" style="font-size:10px;color:var(--muted);cursor:pointer;letter-spacing:0.08em;text-transform:uppercase">Select All</label>
+            <button class="bulk-delete-btn" id="wBulkDel_${code}" style="display:none;margin-left:auto" onclick="bulkDeleteWeekly('${code}')">🗑 Delete Selected</button>
+          </div>
         </div>
         <div class="branch-col-body">
           ${rows.length===0?'<div class="empty-col">No uploads yet</div>':
@@ -1110,13 +1115,45 @@ function weekItemHTML(w) {
   return `
     <div class="week-item" id="item_${w.id}">
       <div class="week-row">
-        <div><div class="week-label-text">${w.week_label}</div><div class="week-date">${date}</div></div>
+        <input type="checkbox" class="week-cb wcb_${w.branch}" data-id="${w.id}" onchange="onWeekCheck('${w.branch}')" style="width:13px;height:13px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;margin-right:6px">
+        <div style="flex:1"><div class="week-label-text">${w.week_label}</div><div class="week-date">${date}</div></div>
         <div class="week-actions">
           <button class="icon-btn dl" title="Download" onclick="downloadWeekly('${w.id}','${w.branch}','${w.week_label}')">↓</button>
           <button class="icon-btn del" title="Delete" onclick="deleteWeek('${w.id}')">✕</button>
         </div>
       </div>
     </div>`;
+}
+function toggleWeekSelectAll(branchCode, checked) {
+  document.querySelectorAll(`.wcb_${branchCode}`).forEach(cb => cb.checked = checked);
+  onWeekCheck(branchCode);
+}
+function onWeekCheck(branchCode) {
+  const checked = [...document.querySelectorAll(`.wcb_${branchCode}`)].filter(cb => cb.checked);
+  const btn = document.getElementById(`wBulkDel_${branchCode}`);
+  const selAll = document.getElementById(`wSelAll_${branchCode}`);
+  const all = document.querySelectorAll(`.wcb_${branchCode}`).length;
+  if (btn) { btn.style.display = checked.length > 0 ? 'inline-block' : 'none'; btn.textContent = `🗑 Delete ${checked.length}`; }
+  if (selAll) selAll.indeterminate = checked.length > 0 && checked.length < all;
+}
+async function bulkDeleteWeekly(branchCode) {
+  const checked = [...document.querySelectorAll(`.wcb_${branchCode}:checked`)];
+  if (!checked.length) return;
+  const ids = checked.map(cb => cb.dataset.id);
+  openModal({
+    title: `Delete ${ids.length} Weekly Entries?`,
+    sub: `This will permanently delete ${ids.length} weekly upload(s) for ${BRANCHES[branchCode].name}. Cannot be undone.`,
+    confirmText: `🗑 Delete ${ids.length}`,
+    danger: true,
+    onConfirm: async () => {
+      closeModal();
+      for (let i=0; i<ids.length; i+=50) {
+        await sb.from('weekly_data').delete().in('id', ids.slice(i,i+50));
+      }
+      showToast(`🗑 ${ids.length} weekly entries deleted`);
+      await loadData();
+    }
+  });
 }
 function collapseAll(){
   Object.keys(openState).forEach(k=>{
