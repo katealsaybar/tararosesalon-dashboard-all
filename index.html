@@ -337,7 +337,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 /* DATE RANGE PICKER */
 .date-pill-btn{min-width:220px}
 .date-pill-btn.active{border-color:var(--accent);background:var(--surface2)}
-.date-picker-pop{display:none;position:absolute;top:calc(100% + 8px);left:0;z-index:300;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.28);padding:16px;width:300px}
+.date-picker-pop{display:none;position:fixed;z-index:300;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.28);padding:16px;width:300px}
 .date-picker-pop.open{display:block}
 /* Step indicator */
 .cal-steps{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border2)}
@@ -1007,7 +1007,8 @@ function toggleDatePicker(){
   const btn=document.getElementById('btn-daterange');
   const isOpen=pop.classList.contains('open');
   document.querySelectorAll('.ms-drop').forEach(d=>d.classList.remove('open'));
-  document.querySelectorAll('.ms-btn').forEach(b=>b.classList.remove('open'));
+  const branchBtn=document.getElementById('btn-branch');
+  if(branchBtn)branchBtn.classList.remove('open');
   if(isOpen){pop.style.display='none';pop.classList.remove('open');btn.classList.remove('active');return;}
   const now=new Date();
   if(dateFrom){calState.year=dateFrom.getFullYear();calState.month=dateFrom.getMonth();}
@@ -1015,6 +1016,10 @@ function toggleDatePicker(){
   pickerFromDate=dateFrom?new Date(dateFrom):null;
   pickerToDate=dateTo?new Date(dateTo):null;
   pickingStep=pickerFromDate?(pickerToDate?'from':'to'):'from';
+  // Position using fixed coords
+  const rect=btn.getBoundingClientRect();
+  pop.style.top=(rect.bottom+8)+'px';
+  pop.style.left=rect.left+'px';
   pop.style.display='block';pop.classList.add('open');btn.classList.add('active');
   buildYearOptions();renderCalendar();updateStepUI();
 }
