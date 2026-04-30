@@ -448,8 +448,12 @@ function aggData(datasets) {
     (d.beautyStaff || []).forEach(st => {
       if (!beautyMap[st.name]) beautyMap[st.name] = { ...st };
       else {
-        beautyMap[st.name].total += st.total;
+        beautyMap[st.name].total       += st.total;
         beautyMap[st.name].beautySales += st.beautySales;
+        beautyMap[st.name].rebooked    += (st.rebooked || 0);
+        beautyMap[st.name].newC        += (st.newC || 0);
+        beautyMap[st.name].req         += (st.req || 0);
+        beautyMap[st.name].salon       += (st.salon || 0);
       }
     });
   });
@@ -467,20 +471,48 @@ function aggData(datasets) {
   const totalNewC = Object.values(hairMap).reduce((acc, st) => acc + (st.newC || 0), 0);
   s.ncrPct = s.totalClients ? (totalNewC / s.totalClients * 100) : 0;
 
-  const hairStaff = Object.values(hairMap).map((st, i) => ({
-    ...st,
-    retail: Number(st.retail) || 0,
-    avgBill: st.total ? st.hairSalesNet / st.total : 0,
-    rebookPct: st.total ? (st.rebooked / st.total * 100) : 0,
-    ncrPct: st.total ? (st.newC / st.total * 100) : 0,
-    color: SCOLS[i % SCOLS.length]
-  }));
-  const beautyStaff = Object.values(beautyMap).map((st,i) => ({
-    ...st, avgBill: st.total ? st.beautySales/st.total : 0,
-    rebookPct: st.rebookPct||0,
-    ncrPct: st.total ? (st.newC/st.total*100) : 0,
-    color: SCOLS[(i+3) % SCOLS.length]
-  }));
+  const hairStaff = Object.values(hairMap).map((st, i) => {
+    const hReturning    = (st.req||0) + (st.salon||0);
+    const hRebookPct    = st.total    ? (st.rebooked / st.total * 100) : 0;
+    const hRetentionPct = st.total    ? (hReturning  / st.total * 100) : 0;
+    const hConvPct      = hReturning  ? (st.rebooked / hReturning * 100) : 0;
+    return {
+      ...st,
+      retail:        Number(st.retail) || 0,
+      avgBill:       st.total ? st.hairSalesNet / st.total : 0,
+      rebookPct:     hRebookPct,
+      retentionPct:  hRetentionPct,
+      conversionPct: hConvPct,
+      ncrPct:        st.total ? (st.newC / st.total * 100) : 0,
+      color: SCOLS[i % SCOLS.length]
+    };
+  });
+  const beautyStaff = Object.values(beautyMap).map((st,i) => {
+    const bReturning    = (st.req||0) + (st.salon||0);
+    const bRebookPct    = st.total   ? ((st.rebooked||0) / st.total * 100) : 0;
+    const bRetentionPct = st.total   ? (bReturning / st.total * 100) : 0;
+    const bConvPct      = bReturning ? ((st.rebooked||0) / bReturning * 100) : 0;
+    return {
+      ...st,
+      avgBill:       st.total ? st.beautySales/st.total : 0,
+      rebookPct:     bRebookPct,
+      retentionPct:  bRetentionPct,
+      conversionPct: bConvPct,
+      ncrPct:        st.total ? ((st.newC||0)/st.total*100) : 0,
+      color: SCOLS[(i+3) % SCOLS.length]
+    };
+  });
+
+  // Summary-level: Retention = (req+salon) / total hair clients
+  const totalReturningH = Object.values(hairMap).reduce((a,st) => a+(st.req||0)+(st.salon||0), 0);
+  s.retentionPct  = totalHairClients ? (totalReturningH / totalHairClients * 100) : 0;
+  // Summary-level: Conversion = rebooked / returning (of returning, how many rebooked)
+  s.conversionPct = totalReturningH  ? (totalRebooked   / totalReturningH * 100)  : 0;
+  // Summary-level: Beauty Rebooking = total beauty rebooked / total beauty clients
+  const totalBeautyClients  = Object.values(beautyMap).reduce((a,st) => a+(st.total||0), 0);
+  const totalBeautyRebooked = Object.values(beautyMap).reduce((a,st) => a+(st.rebooked||0), 0);
+  s.beautyRebookPct = totalBeautyClients ? (totalBeautyRebooked / totalBeautyClients * 100) : 0;
+
   return { summary: s, hairStaff, beautyStaff };
 }
 
@@ -825,25 +857,25 @@ function renderDashboard() {
       <div class="metric m-rose">
         <div class="metric-label">Hair Rebooking %</div>
         <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Hair rebooks ÷ Hair clients)</em></div>
-        <div class="metric-value ${sc(s.rebookPct, 50)}" style="font-size:20px">${fmtPct(s.rebookPct)}</div>
+        <div class="metric-value ${sc(s.conversionPct||0, 50)}" style="font-size:20px">${fmtPct(s.conversionPct||0)}</div>
         <div class="metric-target">Target: ≥ 50%</div>
       </div>
       <div class="metric m-rose">
         <div class="metric-label">Beauty Rebooking %</div>
         <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Beauty rebooks ÷ Beauty clients)</em></div>
-        <div class="metric-value ${sc(d.beautyStaff.reduce((a,st)=>a+(st.rebookPct||0),0)/Math.max(1,d.beautyStaff.length), 40)}" style="font-size:20px">${fmtPct(d.beautyStaff.reduce((a,st)=>a+(st.rebookPct||0),0)/Math.max(1,d.beautyStaff.length))}</div>
+        <div class="metric-value ${sc(s.beautyRebookPct||0, 40)}" style="font-size:20px">${fmtPct(s.beautyRebookPct||0)}</div>
         <div class="metric-target">Target: ≥ 40%</div>
       </div>
       <div class="metric m-rose">
         <div class="metric-label">Retention %</div>
         <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Returning clients over time)</em></div>
-        <div class="metric-value ${sc(s.rebookPct, 60)}" style="font-size:20px">${fmtPct(s.rebookPct)}</div>
+        <div class="metric-value ${sc(s.retentionPct||0, 60)}" style="font-size:20px">${fmtPct(s.retentionPct||0)}</div>
         <div class="metric-target">Target: ≥ 60–70%</div>
       </div>
       <div class="metric m-rose">
         <div class="metric-label">Conversion %</div>
         <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(New → returning clients)</em></div>
-        <div class="metric-value ${sc(s.rebookPct, 50)}" style="font-size:20px">${fmtPct(s.rebookPct)}</div>
+        <div class="metric-value ${sc(s.conversionPct||0, 50)}" style="font-size:20px">${fmtPct(s.conversionPct||0)}</div>
         <div class="metric-target">Target: ≥ 50%</div>
       </div>
     </div>
@@ -1451,8 +1483,8 @@ function renderTeam() {
       const ncrCount       = Math.round((st.ncrPct||0)/100*(st.total||0));
       const salonPct       = 100 - (st.ncrPct||0);
       const newClientPct   = st.total ? ((st.newC||0)/st.total*100) : 0;
-      const retentionPct   = st.rebookPct||0;
-      const conversionPct  = st.rebookPct||0;
+      const retentionPct   = st.retentionPct||0;
+      const conversionPct  = st.conversionPct||0;
       return `<tr>
         <td style="color:var(--muted2);font-size:11px">${i+1}</td>
         <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${br.color};flex-shrink:0"></span><span style="font-size:11px;color:var(--muted);white-space:nowrap">${br.name}</span></span></td>
@@ -1500,7 +1532,7 @@ function renderTeam() {
       </thead>`;
     const rows = sorted.map((st,i) => {
       const br = getStBranch(st.name, true);
-      const conversionPct = st.rebookPct||0;
+      const conversionPct = st.conversionPct||0;
       return `<tr>
         <td style="color:var(--muted2);font-size:11px">${i+1}</td>
         <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${br.color};flex-shrink:0"></span><span style="font-size:11px;color:var(--muted);white-space:nowrap">${br.name}</span></span></td>
@@ -1547,8 +1579,9 @@ function renderTeam() {
       st.ncrCount      = Math.round((st.ncrPct||0)/100*(st.total||0));
       st.salonPct      = 100-(st.ncrPct||0);
       st.newClientPct  = st.total?((st.newC||0)/st.total*100):0;
-      st.retentionPct  = st.rebookPct||0;
-      st.conversionPct = st.rebookPct||0;
+      const _ret = (st.req||0) + (st.salon||0);
+      st.retentionPct  = st.total ? (_ret / st.total * 100) : 0;
+      st.conversionPct = _ret    ? ((st.rebooked||0) / _ret * 100) : 0;
       st.branchName    = getStBranch(st.name,false).name;
     });
     renderTeamHairTable();
@@ -1557,7 +1590,7 @@ function renderTeam() {
   window.sortTeamBeauty = function(col) {
     beautySortT.dir = beautySortT.col === col ? (beautySortT.dir==='asc'?'desc':'asc') : 'desc';
     beautySortT.col = col;
-    d.beautyStaff.forEach(st => { st.conversionPct = st.rebookPct||0; });
+    d.beautyStaff.forEach(st => { /* retentionPct + conversionPct already computed in aggData */ });
     renderTeamBeautyTable();
   };
 
