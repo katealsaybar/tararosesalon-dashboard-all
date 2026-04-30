@@ -512,20 +512,22 @@ async function parseXLSXWeekly(file) {
   const ws = wb.Sheets[sheetName];
   const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:null });
   const parseAED = v => parseFloat(String(v||'').replace(/AED|,|\s/g,'').replace(/[^\d.\-]/g,''))||0;
+  const normalizeLabel = v => String(v || '').trim().toUpperCase().replace(/\s+/g, ' ');
   const hairStaff=[], beautyStaff=[];
   let summary={}, inBeauty=false, hairHdr=false, beautyHdr=false;
   for (let i=0;i<rows.length;i++) {
     const cols=rows[i].map(c=>c!==null&&c!==undefined?String(c).trim():'');
     const first=cols[0];
+    const firstLabel = normalizeLabel(first);
     if (!first&&cols.every(c=>!c)) continue;
     if (cols.includes('HAIR SALES TAKE')&&!inBeauty){hairHdr=true;continue;}
     if (cols.includes('BEAUTY SALES TAKE')){inBeauty=true;beautyHdr=true;continue;}
-    if (first==='TOTAL CLIENTS'){summary.totalClients=parseInt(cols[1])||0;continue;}
-    if (first==='HAIR RETAIL SALES'){summary.hairRetail=parseAED(cols[1]);continue;}
-    if (first==='TREATMENT SALES'){summary.treatmentSales=parseAED(cols[1]);continue;}
-    if (first==='COL TAKE AED'){summary.colTake=parseAED(cols[1]);continue;}
-    if (first==='BEAUTY SALES'){summary.beautySales=parseAED(cols[1]);continue;}
-    if (first==='NET SALON TAKE'){summary.netTake=parseAED(cols[1]);summary.avgBill=parseFloat(cols[2])||0;continue;}
+    if (firstLabel==='TOTAL CLIENTS'){summary.totalClients=parseInt(cols[1])||0;continue;}
+    if (firstLabel==='HAIR RETAIL SALES' || firstLabel==='RETAIL SALES' || firstLabel==='RETAIL %'){summary.hairRetail=parseAED(cols[1]);continue;}
+    if (firstLabel==='TREATMENT SALES'){summary.treatmentSales=parseAED(cols[1]);continue;}
+    if (firstLabel==='COL TAKE AED'){summary.colTake=parseAED(cols[1]);continue;}
+    if (firstLabel==='BEAUTY SALES'){summary.beautySales=parseAED(cols[1]);continue;}
+    if (firstLabel==='NET SALON TAKE'){summary.netTake=parseAED(cols[1]);summary.avgBill=parseFloat(cols[2])||0;continue;}
     if (!inBeauty&&hairHdr&&first&&first!=='STAFF'&&first!=='TOTALS'){
       const s={name:first,total:parseInt(cols[7])||0,hairSales:parseAED(cols[8]),hairSalesNet:parseAED(cols[9]),retail:parseAED(cols[22]),treatments:parseAED(cols[29]),totalNet:parseAED(cols[31])};
       if(s.total>0) hairStaff.push(s);
@@ -545,7 +547,7 @@ async function parseXLSXWeekly(file) {
       const dayRows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header:1, defval:null });
       for (const row of dayRows) {
         const r = row.map(c=>c!==null&&c!==undefined?String(c).trim():'');
-        if (r[0]==='RETAIL TOTAL') { retailSum += parseAED(r[3]); break; }
+        if (normalizeLabel(r[0])==='RETAIL TOTAL') { retailSum += parseAED(r[3]); break; }
       }
     }
     if (retailSum > 0) summary.hairRetail = retailSum;
