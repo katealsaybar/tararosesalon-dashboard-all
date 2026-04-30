@@ -536,6 +536,20 @@ async function parseXLSXWeekly(file) {
     }
     if (!inBeauty&&first==='TOTALS'){summary.totals={hairSales:parseAED(cols[8]),hairSalesNet:parseAED(cols[9]),retail:parseAED(cols[22]),treatments:parseAED(cols[29])};}
   }
+  // If hairRetail is still 0, sum RETAIL TOTAL from each day sheet
+  if (!summary.hairRetail) {
+    const DAY_SHEETS_W = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'];
+    let retailSum = 0;
+    for (const sn of wb.SheetNames) {
+      if (!DAY_SHEETS_W.includes(sn.toUpperCase())) continue;
+      const dayRows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header:1, defval:null });
+      for (const row of dayRows) {
+        const r = row.map(c=>c!==null&&c!==undefined?String(c).trim():'');
+        if (r[0]==='RETAIL TOTAL') { retailSum += parseAED(r[3]); break; }
+      }
+    }
+    if (retailSum > 0) summary.hairRetail = retailSum;
+  }
   return { hairStaff, beautyStaff, summary };
 }
 
