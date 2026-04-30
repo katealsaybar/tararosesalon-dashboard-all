@@ -201,6 +201,7 @@ function parseWeekendSheet(wb) {
     retail:       hairStaff.reduce((s, st) => s + (st.retail       || 0), 0),
     treatments:   hairStaff.reduce((s, st) => s + (st.treatments   || 0), 0),
     total:        hairStaff.reduce((s, st) => s + (st.total        || 0), 0),
+    rebooked:     hairStaff.reduce((s, st) => s + (st.rebooked     || 0), 0),
   };
 
   return { hairStaff, beautyStaff, summary };
