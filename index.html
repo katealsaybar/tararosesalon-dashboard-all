@@ -745,12 +745,12 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
     <div class="ctrl-group">
       <div class="ctrl-label">Date Range</div>
       <div class="ms-wrap" id="dateRangeWrap">
-        <button class="ms-btn date-pill-btn" id="btn-daterange" onclick="toggleDatePicker()">
+        <button class="ms-btn date-pill-btn" id="btn-daterange" onclick="event.stopPropagation();toggleDatePicker()">
           <span id="lbl-daterange">Select Date/s From and To</span>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" id="daterange-chevron"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <!-- DATE PICKER POPOVER -->
-        <div class="date-picker-pop" id="datePickerPop" style="display:none">
+        <div class="date-picker-pop" id="datePickerPop" style="display:none" onclick="event.stopPropagation()">
           <!-- STEP INDICATOR -->
           <div class="cal-steps">
             <div class="cal-step" id="calStepFrom">
@@ -1053,9 +1053,18 @@ function renderCalendar(){
     else if(isTo)cls+=' cal-day-range-end';
     else if(inRange)cls+=' cal-day-in-range';
     if(isToday)cls+=' cal-day-today';
-    html+=`<div class="${cls}" onclick="pickDay(${year},${month},${d})">${d}</div>`;
+    html+=`<div class="${cls}" data-y="${year}" data-m="${month}" data-d="${d}">${d}</div>`;
   }
-  document.getElementById('calGrid').innerHTML=html;
+  const grid=document.getElementById('calGrid');
+  grid.innerHTML=html;
+  // Event delegation — attach once to grid
+  grid.onclick=function(e){
+    const el=e.target.closest('.cal-day');
+    if(!el||el.classList.contains('cal-day-empty'))return;
+    e.stopPropagation();
+    const y=parseInt(el.dataset.y),m=parseInt(el.dataset.m),dd=parseInt(el.dataset.d);
+    pickDay(y,m,dd);
+  };
 }
 function pickDay(year,month,day){
   const date=new Date(year,month,day);date.setHours(0,0,0,0);
@@ -1148,20 +1157,17 @@ function toggleDrop(key){
   if(!isOpen){drop.classList.add('open');btn.classList.add('open');}
 }
 document.addEventListener('click',e=>{
-  // Close branch dropdown if clicked outside
+  // Close branch dropdown
   if(!e.target.closest('.ms-wrap')){
     document.querySelectorAll('.ms-drop').forEach(d=>d.classList.remove('open'));
-    // Only remove open class from branch button, not date picker button
     const branchBtn=document.getElementById('btn-branch');
     if(branchBtn)branchBtn.classList.remove('open');
   }
-  // Close date picker if clicked outside both the pill and the popover
-  if(!e.target.closest('#dateRangeWrap')&&!e.target.closest('#datePickerPop')){
-    const pop=document.getElementById('datePickerPop');
-    const btn=document.getElementById('btn-daterange');
-    if(pop&&pop.classList.contains('open')){pop.style.display='none';pop.classList.remove('open');}
-    if(btn)btn.classList.remove('active');
-  }
+  // Close date picker — only fires if click wasn't stopped by pill or popover
+  const pop=document.getElementById('datePickerPop');
+  const btn=document.getElementById('btn-daterange');
+  if(pop&&pop.classList.contains('open')){pop.style.display='none';pop.classList.remove('open');}
+  if(btn)btn.classList.remove('active');
 });
 
 function buildDrop(key,options){
