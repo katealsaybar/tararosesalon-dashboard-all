@@ -269,6 +269,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
         <div class="bulk-week-list" id="bulkWeekList"></div>
       </div>
 
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+        <button class="btn-outline" onclick="collapseAll()" style="padding:5px 12px;font-size:10px">↕ Collapse All</button>
+      </div>
       <div class="branches-grid" id="branchesGrid"></div>
     </div>
 
@@ -697,12 +700,11 @@ async function uploadAllDaily() {
 async function loadData() {
   const {data,error} = await sb.from('weekly_data').select('id,branch,week_label,uploaded_at').order('uploaded_at',{ascending:false});
   allData = (error||!data) ? [] : data;
-  // Build existing weekly cache
   existingWeekly = {};
   BRANCH_KEYS.forEach(k => existingWeekly[k] = new Set());
   allData.forEach(d => existingWeekly[d.branch]?.add(d.week_label));
   renderBulkRename();
-  renderColumns();
+  renderColumns(); // openState is preserved — only undefined keys default to false
 }
 
 async function loadDailyOverview() {
@@ -786,38 +788,50 @@ async function loadDailyOverview() {
           <!-- YEAR → MONTH → WEEK TREE -->
           <div style="max-height:380px;overflow-y:auto">
             ${years.map(yr=>{
-              const yrTotal=Object.values(byYear[yr]).flatMap(m=>Object.values(m).flat()).reduce((s,r)=>s+(r.total||0),0);
+              const yrRows=Object.values(byYear[yr]).flatMap(m=>Object.values(m).flat());
+              const yrTotal=yrRows.reduce((s,r)=>s+(r.total||0),0);
+              const yrIds=yrRows.map(r=>r.id);
               const yrKey=`dy_${k}_${yr}`;
               return `
                 <div style="margin-bottom:6px">
-                  <div onclick="toggleDailySection('${yrKey}')" style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--surface);border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text);border:1px solid var(--border2)">
-                    <span>${yr}</span>
-                    <span style="color:var(--good);font-size:10px">AED ${Math.round(yrTotal).toLocaleString()}</span>
+                  <div style="display:flex;align-items:center;gap:4px">
+                    <div onclick="toggleDailySection('${yrKey}')" style="flex:1;display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--surface);border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text);border:1px solid var(--border2)">
+                      <span>${yr}</span>
+                      <span style="color:var(--good);font-size:10px">AED ${Math.round(yrTotal).toLocaleString()}</span>
+                    </div>
+                    <button class="btn-danger" style="padding:3px 7px;font-size:10px;flex-shrink:0" title="Delete entire year" onclick="deleteGroup(${JSON.stringify(yrIds)},'${yr} (${yrRows.length} days)')">🗑</button>
                   </div>
                   <div id="${yrKey}" style="display:none;margin-left:8px;margin-top:4px">
                     ${Object.keys(byYear[yr]).sort((a,b)=>b-a).map(mo=>{
                       const moRows=Object.values(byYear[yr][mo]).flat();
                       const moTotal=moRows.reduce((s,r)=>s+(r.total||0),0);
+                      const moIds=moRows.map(r=>r.id);
                       const moKey=`dy_${k}_${yr}_${mo}`;
                       return `
                         <div style="margin-bottom:4px">
-                          <div onclick="toggleDailySection('${moKey}')" style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:var(--surface2);border-radius:6px;cursor:pointer;font-size:11px;color:var(--muted);border:1px solid var(--border2)">
-                            <span style="font-weight:600">${MONTHS_FULL[parseInt(mo)]}</span>
-                            <span style="color:var(--good);font-size:10px">AED ${Math.round(moTotal).toLocaleString()} · ${moRows.length}d</span>
+                          <div style="display:flex;align-items:center;gap:4px">
+                            <div onclick="toggleDailySection('${moKey}')" style="flex:1;display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:var(--surface2);border-radius:6px;cursor:pointer;font-size:11px;color:var(--muted);border:1px solid var(--border2)">
+                              <span style="font-weight:600">${MONTHS_FULL[parseInt(mo)]}</span>
+                              <span style="color:var(--good);font-size:10px">AED ${Math.round(moTotal).toLocaleString()} · ${moRows.length}d</span>
+                            </div>
+                            <button class="btn-danger" style="padding:3px 7px;font-size:10px;flex-shrink:0" title="Delete entire month" onclick="deleteGroup(${JSON.stringify(moIds)},'${MONTHS_FULL[parseInt(mo)]} ${yr} (${moRows.length} days)')">🗑</button>
                           </div>
                           <div id="${moKey}" style="display:none;margin-left:8px;margin-top:2px">
                             ${Object.keys(byYear[yr][mo]).sort((a,b)=>b.localeCompare(a)).map(wk=>{
                               const wkRows=byYear[yr][mo][wk];
                               const wkTotal=wkRows.reduce((s,r)=>s+(r.total||0),0);
+                              const wkIds=wkRows.map(r=>r.id);
                               const sun=getSundayOf(wk);
                               const wkKey=`dy_${k}_${yr}_${mo}_${wk}`;
-                              // Sort days Mon→Sun
                               const sorted=[...wkRows].sort((a,b)=>DAY_ORDER.indexOf(a.day_of_week)-DAY_ORDER.indexOf(b.day_of_week));
                               return `
                                 <div style="margin-bottom:3px">
-                                  <div onclick="toggleDailySection('${wkKey}')" style="display:flex;justify-content:space-between;align-items:center;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:10px;color:var(--muted2);border-bottom:1px solid var(--border2)">
-                                    <span>Week: ${fmtShort(wk)} – ${fmtShort(sun)}</span>
-                                    <span style="color:var(--good)">AED ${Math.round(wkTotal).toLocaleString()} · ${wkRows.length}d</span>
+                                  <div style="display:flex;align-items:center;gap:4px">
+                                    <div onclick="toggleDailySection('${wkKey}')" style="flex:1;display:flex;justify-content:space-between;align-items:center;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:10px;color:var(--muted2);border-bottom:1px solid var(--border2)">
+                                      <span>Week: ${fmtShort(wk)} – ${fmtShort(sun)}</span>
+                                      <span style="color:var(--good)">AED ${Math.round(wkTotal).toLocaleString()} · ${wkRows.length}d</span>
+                                    </div>
+                                    <button class="btn-danger" style="padding:3px 7px;font-size:10px;flex-shrink:0" title="Delete entire week" onclick="deleteGroup(${JSON.stringify(wkIds)},'week ${fmtShort(wk)}–${fmtShort(sun)} (${wkRows.length} days)')">🗑</button>
                                   </div>
                                   <div id="${wkKey}" style="display:none">
                                     ${sorted.map(r=>`
@@ -893,6 +907,23 @@ async function bulkDeleteBranch(branchCode) {
 }
 
 // ── DELETE / DOWNLOAD ──
+async function deleteGroup(ids, label) {
+  openModal({
+    title: `Delete ${label}?`,
+    sub: `This will permanently delete all ${ids.length} records. Cannot be undone.`,
+    confirmText: `🗑 Delete All`,
+    danger: true,
+    onConfirm: async () => {
+      closeModal();
+      for (let i=0; i<ids.length; i+=50) {
+        await sb.from('daily_data').delete().in('id', ids.slice(i,i+50));
+      }
+      showToast(`🗑 ${ids.length} records deleted`);
+      await loadDailyOverview();
+    }
+  });
+}
+
 async function deleteDailyRecord(id, date) {
   openModal({
     title: 'Delete Daily Record?',
@@ -1073,6 +1104,17 @@ function weekItemHTML(w) {
       </div>
     </div>`;
 }
+function collapseAll(){
+  Object.keys(openState).forEach(k=>{
+    openState[k]=false;
+    const el=document.getElementById('ys_'+k)||document.getElementById('ms_'+k);
+    if(el)el.style.display='none';
+    const prev=el&&el.previousElementSibling;
+    const arrow=prev&&prev.querySelector('.year-arrow,.month-arrow');
+    if(arrow)arrow.classList.remove('open');
+  });
+}
+
 function toggleSection(key){
   openState[key]=!openState[key];
   const el=document.getElementById('ys_'+key)||document.getElementById('ms_'+key);
