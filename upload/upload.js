@@ -861,7 +861,20 @@ function toggleSection(key){
 
 // ── HELPERS ──
 function extractYear(label,uploaded_at){const m=label&&label.match(/20\d\d/);if(m)return m[0];return uploaded_at?new Date(uploaded_at).getFullYear().toString():'2026';}
-function extractMonth(label,uploaded_at){for(const mo of MONTH_ORDER){if(label&&label.includes(mo))return mo;}if(uploaded_at)return new Date(uploaded_at).toLocaleDateString('en-GB',{month:'short'});return '—';}
+function extractMonth(label,uploaded_at){
+  if(label){
+    const m=label.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/gi);
+    if(m&&m.length){
+      // Get the LAST month mention (end date of week range)
+      return m[m.length-1].charAt(0).toUpperCase()+m[m.length-1].slice(1).toLowerCase();
+    }
+    // Try to parse dates from label like "Jan 1 – Jan 4" or "Mar 30 – Apr 5"
+    const dateMatch=label.match(/(\d{1,2})\s*[–-]\s*(\w+\s+\d{1,2})/);
+    if(dateMatch){}
+  }
+  if(uploaded_at)return new Date(uploaded_at).toLocaleDateString('en-GB',{month:'short'});
+  return '—';
+}
 
 // ── MODAL ──
 let _modalCb=null;
