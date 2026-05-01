@@ -863,14 +863,12 @@ function toggleSection(key){
 function extractYear(label,uploaded_at){const m=label&&label.match(/20\d\d/);if(m)return m[0];return '2026';}
 function extractMonth(label,uploaded_at){
   if(label){
-    const upper=label.toUpperCase();
-    for(const mo of MONTH_ORDER){
-      if(upper.includes(mo.toUpperCase())){
-        console.log('MATCH:', label, '→', mo);
-        return mo;
-      }
+    const m=label.toUpperCase().match(/\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\b/g);
+    if(m&&m.length){
+      const last=m[m.length-1];
+      const idx={'JAN':0,'FEB':1,'MAR':2,'APR':3,'MAY':4,'JUN':5,'JUL':6,'AUG':7,'SEP':8,'OCT':9,'NOV':10,'DEC':11}[last];
+      return MONTH_ORDER[idx];
     }
-    console.log('NO MATCH:', label);
   }
   if(uploaded_at)return new Date(uploaded_at).toLocaleDateString('en-GB',{month:'short'});
   return '—';
