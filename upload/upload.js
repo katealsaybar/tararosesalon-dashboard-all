@@ -875,11 +875,7 @@ function extractMonth(label,uploaded_at){
   if(uploaded_at)return new Date(uploaded_at).toLocaleDateString('en-GB',{month:'short'});
   return '—';
 }
-  }
-  if(uploaded_at)return new Date(uploaded_at).toLocaleDateString('en-GB',{month:'short'});
-  return '—';
-}
-
+ 
 // ── MODAL ──
 let _modalCb=null;
 function openModal({title,sub,showChange,from,to,branches,confirmText,danger,onConfirm}){
