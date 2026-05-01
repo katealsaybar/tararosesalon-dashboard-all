@@ -862,18 +862,13 @@ function toggleSection(key){
 // ── HELPERS ──
 function extractYear(label,uploaded_at){const m=label&&label.match(/20\d\d/);if(m)return m[0];return '2026';}
 function extractMonth(label,uploaded_at){
-  if(label){
-    const m=label.toUpperCase().match(/\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\b/g);
-    if(m&&m.length){
-      const last=m[m.length-1];
-      const idx={'JAN':0,'FEB':1,'MAR':2,'APR':3,'MAY':4,'JUN':5,'JUL':6,'AUG':7,'SEP':8,'OCT':9,'NOV':10,'DEC':11}[last];
-      return MONTH_ORDER[idx];
-    }
-  }
-  if(uploaded_at)return new Date(uploaded_at).toLocaleDateString('en-GB',{month:'short'});
-  return '—';
-}
- 
+  if(!label)return uploaded_at?new Date(uploaded_at).toLocaleDateString('en-GB',{month:'short'}):'—';
+  const u=label.toUpperCase().replace(/\s+/g,' ');
+  const months={JAN:'Jan',FEB:'Feb',MAR:'Mar',APR:'Apr',MAY:'May',JUN:'Jun',JUL:'Jul',AUG:'Aug',SEP:'Sep',OCT:'Oct',NOV:'Nov',DEC:'Dec'};
+  const found=u.match(/(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)/g);
+  if(found)return months[found[found.length-1]];
+  return uploaded_at?new Date(uploaded_at).toLocaleDateString('en-GB',{month:'short'}):'—';
+} 
 // ── MODAL ──
 let _modalCb=null;
 function openModal({title,sub,showChange,from,to,branches,confirmText,danger,onConfirm}){
