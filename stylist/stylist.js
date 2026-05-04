@@ -37,6 +37,9 @@ let viewMode = 'weekly';
 function setChartView(mode, el){
   viewMode = mode;
 
+  const lbl = document.getElementById('chartTitleLabel');
+  if(lbl) lbl.textContent = (document.querySelector('.detail-name')?.textContent || '') + ' · ' + mode.charAt(0).toUpperCase()+mode.slice(1) + ' Trend';
+
   document.querySelectorAll('.chart-toggle-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
 
@@ -456,11 +459,11 @@ function renderDetail(s){
     <div class="chart-wrap">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
     <div class="chart-title">
-  ${isBeauty?'Beauty Sales':'Net Revenue'} + Clients · ${viewMode.charAt(0).toUpperCase()+viewMode.slice(1)} Trend
+  <span id="chartTitleLabel">${isBeauty?'Beauty Sales':'Net Revenue'} + Clients · Weekly Trend</span>
 </div>
 
     <div class="tabs" style="margin-bottom:0;">
-      <button class="tab-btn chart-toggle-btn active" onclick="setChartView('daily', this)">Daily</button>
+      <button class="tab-btn chart-toggle-btn" onclick="setChartView('daily', this)">Daily</button>
       <button class="tab-btn chart-toggle-btn" onclick="setChartView('weekly', this)">Weekly</button>
       <button class="tab-btn chart-toggle-btn" onclick="setChartView('monthly', this)">Monthly</button>
       <button class="tab-btn chart-toggle-btn" onclick="setChartView('yearly', this)">Yearly</button>
@@ -470,6 +473,8 @@ function renderDetail(s){
   <canvas id="trendChart"></canvas>
 </div>
   `;
+
+  viewMode = 'weekly';
 
   // Draw charts after DOM is ready
   setTimeout(()=>{ drawChart(st, isBeauty); drawRadar(st, isBeauty); }, 50);
@@ -579,7 +584,8 @@ function drawChart(st, isBeauty){
   let grouped = {};
 
   for(const w of st.weeks){
-    const d = new Date(w.uploaded_at);
+    const weekDates = getWeekDatesFromLabel(w.week_label);
+    const d = weekDates ? weekDates.start : new Date(w.uploaded_at);
     let key;
     if(viewMode === 'daily'){
       key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
