@@ -328,7 +328,9 @@ async function parseXLSXWeekly(file) {
       }
     }
     if (dayRetail > 0) { daysWithRetail++; dailyRetailSum += dayRetail; }
-    perDayRetail[dayName] = dayRetail;
+    const dateRaw = rows[0]?.[0];
+    const actualDate = dateRaw ? new Date(dateRaw) : null;
+    perDayRetail[dayName] = { retail: dayRetail, date: actualDate };
   }
 
   // Retail audit: prefer daily sum if available, flag mismatches
