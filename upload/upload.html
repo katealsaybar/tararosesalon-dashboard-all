@@ -284,7 +284,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
         <button class="btn-outline" onclick="collapseAll()" style="padding:5px 12px;font-size:10px">↕ Collapse All</button>
       </div>
-      <div id="historyContainer"></div>
+      <div class="branches-grid" id="branchesGrid"></div>
     </div>
 
     <!-- ══ DAILY TAB ══ -->
@@ -1045,119 +1045,79 @@ function requestBulkSave(safeId){
   });
 }
 
-// ── UNIFIED HISTORY TREE ──
-// Groups ALL branches together: Year → Month → Week label → branch items
+// ── COLUMNS ──
 function renderColumns() {
-  const container = document.getElementById('historyContainer');
-  if (!allData.length) {
-    container.innerHTML = '<div style="font-size:12px;color:var(--muted2);padding:12px 0;text-align:center">No uploads yet.</div>';
-    return;
-  }
-
-  // Build: byYear[yr][mo][week_label] = [ ...records ]
-  const byYear = {};
-  allData.forEach(d => {
-    const yr  = extractYear(d.week_label, d.uploaded_at);
-    const mo  = extractMonth(d.week_label, d.uploaded_at);
-    const lbl = d.week_label || '(unlabelled)';
-    if (!byYear[yr])           byYear[yr]      = {};
-    if (!byYear[yr][mo])       byYear[yr][mo]  = {};
-    if (!byYear[yr][mo][lbl])  byYear[yr][mo][lbl] = [];
-    byYear[yr][mo][lbl].push(d);
-  });
-
-  const years = Object.keys(byYear).sort((a,b) => b - a);
-
-  // Sort week labels within a month: try to sort by earliest uploaded_at
-  function sortWeekLabels(labelMap) {
-    return Object.keys(labelMap).sort((a, b) => {
-      const aTime = Math.min(...labelMap[a].map(r => new Date(r.uploaded_at).getTime()));
-      const bTime = Math.min(...labelMap[b].map(r => new Date(r.uploaded_at).getTime()));
-      return bTime - aTime; // newest first
+  const grid=document.getElementById('branchesGrid');
+  grid.innerHTML=Object.entries(BRANCHES).map(([code,info])=>{
+    const rows=allData.filter(d=>d.branch===code);
+    const byYear={};
+    rows.forEach(d=>{
+      const yr=extractYear(d.week_label,d.uploaded_at);
+      const mo=extractMonth(d.week_label,d.uploaded_at);
+      if(!byYear[yr])byYear[yr]={};
+      if(!byYear[yr][mo])byYear[yr][mo]=[];
+      byYear[yr][mo].push(d);
     });
-  }
-
-  container.innerHTML = years.map(yr => {
-    const yrKey  = 'h_' + yr;
-    const yrOpen = openState[yrKey] !== undefined ? openState[yrKey] : false;
-    if (openState[yrKey] === undefined) openState[yrKey] = false;
-
-    const moKeys = Object.keys(byYear[yr]).sort((a,b) => MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a));
-    const yrCount = moKeys.reduce((s,mo) => s + Object.keys(byYear[yr][mo]).length, 0);
-
+    const years=Object.keys(byYear).sort((a,b)=>b-a);
     return `
-    <div class="branch-col" style="margin-bottom:12px">
-      <div class="branch-col-header" style="cursor:pointer" onclick="toggleSection('${yrKey}')">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div class="branch-col-name">${yr}</div>
-            <div class="branch-col-sub">${yrCount} week${yrCount!==1?'s':''} across all branches</div>
+      <div class="branch-col">
+        <div class="branch-col-header">
+          <div class="branch-col-name">${info.name}</div>
+          <div class="branch-col-sub">${info.sub}</div>
+          <div class="branch-col-accent" style="background:${info.color}"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+            <input type="checkbox" id="wSelAll_${code}" onchange="toggleWeekSelectAll('${code}',this.checked)" title="Select all" style="width:13px;height:13px;accent-color:var(--accent);cursor:pointer">
+            <label for="wSelAll_${code}" style="font-size:10px;color:var(--muted);cursor:pointer;letter-spacing:0.08em;text-transform:uppercase">Select All</label>
+            <button class="bulk-delete-btn" id="wBulkDel_${code}" style="display:none;margin-left:auto" onclick="bulkDeleteWeekly('${code}')">🗑 Delete Selected</button>
           </div>
-          <span class="year-arrow ${yrOpen?'open':''}">▼</span>
         </div>
-        <div class="branch-col-accent" style="background:linear-gradient(to right,#FFD4D9,#C4B5FD,#99F6E4,#FF9B9B,#EEF3C7)"></div>
-      </div>
-      <div id="ys_${yrKey}" style="display:${yrOpen?'block':'none'}">
         <div class="branch-col-body">
-          ${moKeys.map(mo => {
-            const moKey  = yrKey + '_' + mo;
-            const moOpen = openState[moKey] !== undefined ? openState[moKey] : false;
-            if (openState[moKey] === undefined) openState[moKey] = false;
-            const labelMap  = byYear[yr][mo];
-            const weekLabels = sortWeekLabels(labelMap);
-            const moCount   = weekLabels.length;
-
-            return `
-            <div class="month-section">
-              <div class="month-toggle" onclick="toggleSection('${moKey}')">
-                <span>${mo} <span class="month-count">(${moCount} week${moCount!==1?'s':''})</span></span>
-                <span class="month-arrow ${moOpen?'open':''}">▼</span>
-              </div>
-              <div id="ms_${moKey}" style="display:${moOpen?'block':'none'}">
-                <div class="weeks-list">
-                  ${weekLabels.map(lbl => {
-                    const records = labelMap[lbl];
-                    // Sort records by branch order
-                    const sorted  = [...records].sort((a,b) => BRANCH_KEYS.indexOf(a.branch) - BRANCH_KEYS.indexOf(b.branch));
-                    const branchDots = sorted.map(r =>
-                      `<span title="${BRANCHES[r.branch]?.name||r.branch}" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${BRANCHES[r.branch]?.color||'var(--muted)'};flex-shrink:0"></span>`
-                    ).join('');
-                    const branchNames = sorted.map(r => BRANCHES[r.branch]?.name||r.branch).join(', ');
-                    // Use most recent uploaded_at from the group
-                    const latestDate  = new Date(Math.max(...sorted.map(r => new Date(r.uploaded_at)))).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-
-                    return `
-                    <div class="week-item">
-                      <div class="week-row" style="flex-wrap:nowrap;gap:6px">
-                        <div style="flex:1;min-width:0">
-                          <div class="week-label-text">${lbl}</div>
-                          <div class="week-date" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:3px">
-                            <span style="display:flex;gap:3px;align-items:center">${branchDots}</span>
-                            <span style="color:var(--muted2);font-size:10px">${branchNames}</span>
-                          </div>
-                          <div class="week-date" style="margin-top:1px">Uploaded ${latestDate}</div>
-                        </div>
-                        <div class="week-actions" style="flex-direction:column;align-items:flex-end;gap:3px">
-                          ${sorted.map(r => `
-                            <div style="display:flex;align-items:center;gap:3px">
-                              <span style="font-size:9px;color:var(--muted2);letter-spacing:0.06em">${BRANCHES[r.branch]?.sub||r.branch}</span>
-                              <button class="icon-btn dl" title="Download ${BRANCHES[r.branch]?.name}" onclick="downloadWeekly('${r.id}','${r.branch}','${r.week_label.replace(/'/g,"\\'")}')">↓</button>
-                              <button class="icon-btn del" title="Delete ${BRANCHES[r.branch]?.name}" onclick="deleteWeek('${r.id}')">✕</button>
-                            </div>`).join('')}
-                        </div>
+          ${rows.length===0?'<div class="empty-col">No uploads yet</div>':
+            years.map(yr=>{
+              const yrKey=code+'_'+yr;
+              if(openState[yrKey]===undefined)openState[yrKey]=false;
+              const yrOpen=openState[yrKey];
+              const moKeys=Object.keys(byYear[yr]).sort((a,b)=>MONTH_ORDER.indexOf(b)-MONTH_ORDER.indexOf(a));
+              return `<div class="year-section">
+                <div class="year-toggle" onclick="toggleSection('${yrKey}')"><span>${yr}</span><span class="year-arrow ${yrOpen?'open':''}">▼</span></div>
+                <div id="ys_${yrKey}" style="display:${yrOpen?'block':'none'}">
+                  ${moKeys.map(mo=>{
+                    const moKey=yrKey+'_'+mo;
+                    if(openState[moKey]===undefined)openState[moKey]=false;
+                    const moOpen=openState[moKey];
+                    const moRows=byYear[yr][mo];
+                    return `<div class="month-section">
+                      <div class="month-toggle" onclick="toggleSection('${moKey}')">
+                        <span>${mo}<span class="month-count">(${moRows.length})</span></span>
+                        <span class="month-arrow ${moOpen?'open':''}">▼</span>
+                      </div>
+                      <div id="ms_${moKey}" style="display:${moOpen?'block':'none'}">
+                        <div class="weeks-list">${moRows.map(w=>weekItemHTML(w)).join('')}</div>
                       </div>
                     </div>`;
                   }).join('')}
                 </div>
-              </div>
-            </div>`;
-          }).join('')}
+              </div>`;
+            }).join('')}
         </div>
-      </div>
-    </div>`;
+      </div>`;
   }).join('');
 }
 
+function weekItemHTML(w) {
+  const date=new Date(w.uploaded_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  return `
+    <div class="week-item" id="item_${w.id}">
+      <div class="week-row">
+        <input type="checkbox" class="week-cb wcb_${w.branch}" data-id="${w.id}" onchange="onWeekCheck('${w.branch}')" style="width:13px;height:13px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;margin-right:6px">
+        <div style="flex:1"><div class="week-label-text">${w.week_label}</div><div class="week-date">${date}</div></div>
+        <div class="week-actions">
+          <button class="icon-btn dl" title="Download" onclick="downloadWeekly('${w.id}','${w.branch}','${w.week_label}')">↓</button>
+          <button class="icon-btn del" title="Delete" onclick="deleteWeek('${w.id}')">✕</button>
+        </div>
+      </div>
+    </div>`;
+}
 function toggleWeekSelectAll(branchCode, checked) {
   document.querySelectorAll(`.wcb_${branchCode}`).forEach(cb => cb.checked = checked);
   onWeekCheck(branchCode);
@@ -1192,14 +1152,11 @@ async function bulkDeleteWeekly(branchCode) {
 function collapseAll(){
   Object.keys(openState).forEach(k=>{
     openState[k]=false;
-    // year containers use ys_ prefix, month containers use ms_ prefix
     const el=document.getElementById('ys_'+k)||document.getElementById('ms_'+k);
-    if(el){
-      el.style.display='none';
-      const prev=el.previousElementSibling;
-      const arrow=prev&&prev.querySelector('.year-arrow,.month-arrow');
-      if(arrow)arrow.classList.remove('open');
-    }
+    if(el)el.style.display='none';
+    const prev=el&&el.previousElementSibling;
+    const arrow=prev&&prev.querySelector('.year-arrow,.month-arrow');
+    if(arrow)arrow.classList.remove('open');
   });
 }
 
@@ -1213,20 +1170,8 @@ function toggleSection(key){
 }
 
 // ── HELPERS ──
-function extractYear(label, uploaded_at) {
-  if (label) { const m = label.match(/20\d\d/); if (m) return m[0]; }
-  return uploaded_at ? new Date(uploaded_at).getUTCFullYear().toString() : '2026';
-}
-function extractMonth(label, uploaded_at) {
-  if (label) {
-    const up = label.toUpperCase();
-    for (const mo of MONTH_ORDER) {
-      if (up.includes(mo.toUpperCase())) return mo;
-    }
-  }
-  if (uploaded_at) return new Date(uploaded_at).toLocaleDateString('en-GB', {month:'short'});
-  return '—';
-}
+function extractYear(label,uploaded_at){const m=label&&label.match(/20\d\d/);if(m)return m[0];return uploaded_at?new Date(uploaded_at).getFullYear().toString():'2026';}
+function extractMonth(label,uploaded_at){for(const mo of MONTH_ORDER){if(label&&label.includes(mo))return mo;}if(uploaded_at)return new Date(uploaded_at).toLocaleDateString('en-GB',{month:'short'});return '—';}
 
 // ── MODAL ──
 let _modalCb=null;
