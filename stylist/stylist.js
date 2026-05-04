@@ -459,17 +459,18 @@ function renderDetail(s){
     <div class="chart-wrap">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
     <div class="chart-title">
-  <span id="chartTitleLabel">${isBeauty?'Beauty Sales':'Net Revenue'} + Clients · Weekly Trend</span>
+  ${isBeauty?'Beauty Sales':'Net Revenue'} + Clients · ${viewMode.charAt(0).toUpperCase()+viewMode.slice(1)} Trend
 </div>
 
     <div class="tabs" style="margin-bottom:0;">
-      <button class="tab-btn chart-toggle-btn" onclick="setChartView('daily', this)">Daily</button>
+      <button class="tab-btn chart-toggle-btn active" onclick="setChartView('daily', this)">Daily</button>
       <button class="tab-btn chart-toggle-btn" onclick="setChartView('weekly', this)">Weekly</button>
       <button class="tab-btn chart-toggle-btn" onclick="setChartView('monthly', this)">Monthly</button>
       <button class="tab-btn chart-toggle-btn" onclick="setChartView('yearly', this)">Yearly</button>
     </div>
   </div>
 
+  <span id="chartTitleLabel">${isBeauty?'Beauty Sales':'Net Revenue'} + Clients · Weekly Trend</span>
   <canvas id="trendChart"></canvas>
 </div>
   `;
