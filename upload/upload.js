@@ -21,7 +21,7 @@ let allData = [];
 const openState = {};
 const fileSlots = {};
 const fileSlotsDaily = {};
-BRANCH_KEYS.forEach(k => { fileSlots[k] = null; fileSlotsDaily[k] = null; });
+BRANCH_KEYS.forEach(k => { fileSlots[k] = []; fileSlotsDaily[k] = null; });
 
 // existing records cache per branch
 let existingWeekly = {}; // branch -> Set of week_labels
@@ -88,8 +88,8 @@ function slotHTML(code, mode) {
         <div class="slot-hint">Click or drag & drop<br>.xlsx file here</div>
       </div>
       <button class="slot-clear" id="${pre}slotClear_${code}" style="display:none" onclick="event.stopPropagation();${mode==='daily'?'dClearSlot':'clearSlot'}('${code}')">✕</button>
-      <input type="file" id="${pre}slotInput_${code}" accept=".xlsx" style="display:none"
-        onchange="${mode==='daily'?'dSlotFileChosen':'slotFileChosen'}('${code}',this.files[0])">
+      <input type="file" id="${pre}slotInput_${code}" accept=".xlsx" style="display:none" multiple
+        onchange="${mode==='daily'?'dSlotFilesChosen':'slotFilesChosen'}('${code}',this.files)">
     </div>`;
 }
 function setupDnD(code, mode) {
@@ -124,14 +124,22 @@ function detectBranch(filename) {
   return null;
 }
 
-function slotFileChosen(slotCode, file) {
-  if (!file) return;
-  const detected = detectBranch(file.name);
-  const target = detected || slotCode;
-  if (detected && detected !== slotCode) { setSlotFile(detected, file, true, 'weekly'); showToast(`Auto-assigned → ${BRANCHES[detected].name}`); }
-  else setSlotFile(slotCode, file, !!detected, 'weekly');
+function slotFilesChosen(slotCode, files) {
+  if (!files || !files.length) return;
+  for (const file of Array.from(files)) {
+    const detected = detectBranch(file.name);
+    const target = detected || slotCode;
+    if (detected && detected !== slotCode) {
+      addSlotFile(detected, file, true, 'weekly');
+      showToast(`Auto-assigned → ${BRANCHES[detected].name}`);
+    } else {
+      addSlotFile(target, file, !!detected, 'weekly');
+    }
+  }
   checkWeeklyBtn();
 }
+// Keep old name as alias so drag-drop still works
+function slotFileChosen(slotCode, file) { slotFilesChosen(slotCode, [file]); }
 function dSlotFileChosen(slotCode, file) {
   if (!file) return;
   const detected = detectBranch(file.name);
@@ -141,35 +149,47 @@ function dSlotFileChosen(slotCode, file) {
   checkDailyBtn();
 }
 
-function setSlotFile(code, file, auto, mode) {
+function addSlotFile(code, file, auto, mode) {
   const pre = mode==='daily' ? 'd' : '';
-  if (mode==='daily') fileSlotsDaily[code] = file;
-  else fileSlots[code] = file;
+  if (mode==='daily') {
+    fileSlotsDaily[code] = file;
+  } else {
+    if (!Array.isArray(fileSlots[code])) fileSlots[code] = [];
+    // Avoid duplicates by name
+    if (!fileSlots[code].find(f => f.name === file.name)) fileSlots[code].push(file);
+  }
   const slot = document.getElementById(`${pre}slot_${code}`);
   const drop = document.getElementById(`${pre}slotDrop_${code}`);
   const clr  = document.getElementById(`${pre}slotClear_${code}`);
   slot.classList.add('has-file');
   clr.style.display = 'block';
 
-  // Check existing data warning
   let existWarn = '';
-  if (mode==='weekly' && existingWeekly[code] && existingWeekly[code].size > 0) {
-    existWarn = `<div class="slot-existing">⚠️ ${existingWeekly[code].size} week(s) already uploaded</div>`;
-  }
   if (mode==='daily' && existingDaily[code] && existingDaily[code].size > 0) {
     existWarn = `<div class="slot-existing">⚠️ ${existingDaily[code].size} day(s) already in system</div>`;
     slot.classList.add('has-existing');
   }
 
-  drop.innerHTML = `
-    <span class="slot-icon" style="opacity:1">✅</span>
-    <div class="slot-filename">${file.name}</div>
-    <div class="slot-auto-tag ${auto?'detected':''}">${auto?'⚡ auto-detected':'manually assigned'}</div>
-    ${existWarn}`;
+  if (mode==='weekly') {
+    const count = fileSlots[code].length;
+    drop.innerHTML = `
+      <span class="slot-icon" style="opacity:1">✅</span>
+      <div class="slot-filename">${count} file${count>1?'s':''} queued</div>
+      <div style="font-size:9px;color:var(--muted2);margin-top:3px;line-height:1.4">${fileSlots[code].map(f=>'• '+f.name).join('<br>')}</div>
+      <div class="slot-auto-tag ${auto?'detected':''}"></div>`;
+  } else {
+    drop.innerHTML = `
+      <span class="slot-icon" style="opacity:1">✅</span>
+      <div class="slot-filename">${file.name}</div>
+      <div class="slot-auto-tag ${auto?'detected':''}"></div>
+      ${existWarn}`;
+  }
 }
+// Keep old name as alias for daily drag-drop
+function setSlotFile(code, file, auto, mode) { addSlotFile(code, file, auto, mode); }
 
 function clearSlot(code) {
-  fileSlots[code] = null;
+  fileSlots[code] = [];
   resetSlot(code, 'weekly');
   checkWeeklyBtn();
 }
@@ -191,7 +211,7 @@ function resetSlot(code, mode) {
 }
 
 function checkWeeklyBtn() {
-  const hasFile = BRANCH_KEYS.some(k => fileSlots[k]);
+  const hasFile = BRANCH_KEYS.some(k => Array.isArray(fileSlots[k]) ? fileSlots[k].length > 0 : !!fileSlots[k]);
   const hasLabel = document.getElementById('weekLabel').value.trim().length > 0;
   document.getElementById('uploadWeeklyBtn').disabled = !(hasFile && hasLabel);
 }
@@ -263,7 +283,7 @@ async function parseXLSXDaily(file, branchCode) {
 async function uploadAllWeekly() {
   const weekLabel = document.getElementById('weekLabel').value.trim();
   if (!weekLabel) { alert('Please enter a week label.'); return; }
-  const toUpload = BRANCH_KEYS.filter(k => fileSlots[k]);
+  const toUpload = BRANCH_KEYS.filter(k => Array.isArray(fileSlots[k]) ? fileSlots[k].length > 0 : !!fileSlots[k]);
   if (!toUpload.length) { alert('Please add at least one XLSX file.'); return; }
   document.getElementById('uploadWeeklyBtn').disabled = true;
   document.getElementById('uploadWeeklyBtn').textContent = 'Uploading...';
@@ -281,7 +301,10 @@ async function uploadAllWeekly() {
     document.getElementById('ps_'+code).className='prog-status loading';
     document.getElementById('pb_'+code).style.width='30%';
     try {
-      const data = await parseXLSXWeekly(fileSlots[code]);
+      const files = Array.isArray(fileSlots[code]) ? fileSlots[code] : [fileSlots[code]];
+      // Upload each file in this slot as a separate weekly entry
+      for (const singleFile of files) {
+      const data = await parseXLSXWeekly(singleFile);
       document.getElementById('pb_'+code).style.width='60%';
 
       // ── RETAIL AUDIT BADGE ─────────────────────────────────
@@ -315,7 +338,8 @@ async function uploadAllWeekly() {
 const {error} = await sb.from('weekly_data').insert({branch:code,week_label:weekLabel,data});
       if (error) throw error;
       document.getElementById('pb_'+code).style.width='100%';
-      document.getElementById('ps_'+code).textContent='✅ Done';
+      } // end files loop
+      document.getElementById('ps_'+code).textContent=`✅ Done (${files.length} file${files.length>1?'s':''})`;
       document.getElementById('ps_'+code).className='prog-status ok';
     } catch(e) {
       document.getElementById('pb_'+code).style.width='100%';
@@ -328,7 +352,7 @@ const {error} = await sb.from('weekly_data').insert({branch:code,week_label:week
   if (allOk) {
     showToast('✅ All weekly files uploaded!');
     document.getElementById('weekLabel').value='';
-    BRANCH_KEYS.forEach(k=>{if(fileSlots[k])clearSlot(k);});
+    BRANCH_KEYS.forEach(k=>{if(Array.isArray(fileSlots[k])?fileSlots[k].length:fileSlots[k])clearSlot(k);});
     // Hide faster if no audit warnings, slower if there are warnings to read
     const hasWarnings = document.querySelectorAll('[id^="audit_"]').length > 0;
     const hideDelay = hasWarnings ? 12000 : 2000;
@@ -782,7 +806,7 @@ function renderColumns() {
                         <span class="month-arrow ${moOpen?'open':''}">▼</span>
                       </div>
                       <div id="ms_${moKey}" style="display:${moOpen?'block':'none'}">
-                        <div class="weeks-list">${moRows.map(w=>weekItemHTML(w)).join('')}</div>
+                        <div class="weeks-list">${renderWeekGroupsHTML(code, moRows, moKey)}</div>
                       </div>
                     </div>`;
                   }).join('')}
@@ -791,6 +815,62 @@ function renderColumns() {
             }).join('')}
         </div>
       </div>`;
+  }).join('');
+}
+
+function extractWeekRange(label) {
+  // Try to extract start date from label like "Apr 2026 Week 4 (20–26)" or "Apr 2026 Week 3 (13-19)"
+  if (!label) return null;
+  const rangeMatch = label.match(/\((\d{1,2})[–\-—](\d{1,2})\)/);
+  const monthMatch = label.match(/(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)/i);
+  const yearMatch = label.match(/20\d\d/);
+  if (rangeMatch && monthMatch && yearMatch) {
+    const MONTH_MAP = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    const mo = MONTH_MAP[monthMatch[1].toLowerCase()];
+    const yr = parseInt(yearMatch[0]);
+    const startDay = parseInt(rangeMatch[1]);
+    return new Date(Date.UTC(yr, mo, startDay));
+  }
+  return null;
+}
+
+function renderWeekGroupsHTML(branchCode, moRows, moKey) {
+  // Group by week range derived from label
+  const weekMap = {};
+  moRows.forEach(w => {
+    const d = extractWeekRange(w.week_label);
+    // Use the label itself as the week group key if we can't parse a date
+    const wkKey = d ? d.toISOString().split('T')[0] : ('label:' + w.week_label);
+    if (!weekMap[wkKey]) weekMap[wkKey] = { label: w.week_label, date: d, rows: [] };
+    weekMap[wkKey].rows.push(w);
+  });
+
+  const wkKeys = Object.keys(weekMap).sort((a, b) => {
+    const dA = weekMap[a].date, dB = weekMap[b].date;
+    if (dA && dB) return dB - dA;
+    return b.localeCompare(a);
+  });
+
+  // If only 1 week group OR all are unparseable, just render flat
+  if (wkKeys.length <= 1) return moRows.map(w => weekItemHTML(w)).join('');
+
+  return wkKeys.map(wkKey => {
+    const grp = weekMap[wkKey];
+    const subKey = moKey + '_wk_' + wkKey.replace(/[^a-zA-Z0-9]/g,'_');
+    if (openState[subKey] === undefined) openState[subKey] = false;
+    const isOpen = openState[subKey];
+    return `<div style="margin-bottom:3px">
+      <div onclick="toggleSection('${subKey}')" style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:10px;color:var(--muted2);border-bottom:1px solid var(--border2)">
+        <span style="font-weight:600">${grp.label}</span>
+        <span style="display:flex;align-items:center;gap:6px">
+          <span style="color:var(--muted2)">${grp.rows.length} file${grp.rows.length>1?'s':''}</span>
+          <span class="month-arrow ${isOpen?'open':''}">▼</span>
+        </span>
+      </div>
+      <div id="ys_${subKey}" style="display:${isOpen?'block':'none'};margin-left:4px">
+        ${grp.rows.map(w => weekItemHTML(w)).join('')}
+      </div>
+    </div>`;
   }).join('');
 }
 
@@ -860,7 +940,7 @@ function toggleSection(key){
 }
 
 // ── HELPERS ──
-function extractYear(label,uploaded_at){const m=label&&label.match(/20\d\d/);if(m)return m[0];return '2026';}
+function extractYear(label,uploaded_at){const m=label&&label.match(/20\d\d/);if(m)return m[0];return uploaded_at?new Date(uploaded_at).getFullYear().toString():'2026';}
 function extractMonth(label,uploaded_at){
   if(!label)return uploaded_at?new Date(uploaded_at).toLocaleDateString('en-GB',{month:'short'}):'—';
   const u=label.toUpperCase().replace(/\s+/g,' ');
@@ -885,7 +965,9 @@ function openModal({title,sub,showChange,from,to,branches,confirmText,danger,onC
   document.getElementById('confirmModal').classList.add('open');
 }
 function closeModal(){document.getElementById('confirmModal').classList.remove('open');_modalCb=null;}
-document.getElementById('confirmModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+window.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('confirmModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+});
 
 // ── TOAST ──
 function showToast(msg){
