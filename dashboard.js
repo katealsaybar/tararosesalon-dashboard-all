@@ -99,29 +99,6 @@ function getClientTarget(branches) {
     : `${min.toLocaleString()}–${max.toLocaleString()} / week`;
 }
 
-
-// ── VIEW SWITCHER ───────────────────────────────────────────
-
-function showView(view, el) {
-  ['dashboard','team','reviews','calendar','giveaway','trk'].forEach(v => {
-    const node = document.getElementById('view-' + v);
-    if (node) node.style.display = 'none';
-  });
-  const target = document.getElementById('view-' + view);
-  if (!target) { showView('dashboard', document.querySelector('[onclick*="dashboard"]')); return; }
-  target.style.display = 'block';
-
-  const controls = document.getElementById('controls');
-  if (controls) controls.style.display = (view === 'dashboard' || view === 'team') ? 'flex' : 'none';
-
-  if (view === 'team' && allData.length) renderTeam();
-
-  document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active'));
-  if (el) el.classList.add('active');
-  window.scrollTo(0, 0);
-}
-
-
 // ── DROPDOWN HELPERS ────────────────────────────────────────
 
 function toggleDrop(key) {
@@ -181,9 +158,10 @@ function toggleOpt(key, val) {
   document.getElementById('btn-' + key).classList.add('open');
   const allOptions = [...drop.querySelectorAll('.ms-opt:not(.all-opt)')].map(el => ({ val: el.dataset.val, label: el.textContent.trim() }));
   updateLabel(key, allOptions);
-  renderDashboard();
-  const teamView = document.getElementById('view-team');
-  if (teamView && teamView.style.display !== 'none') renderTeam();
+  renderDashboard().then(() => {
+    const teamView = document.getElementById('view-team');
+    if (teamView && teamView.style.display !== 'none') renderTeam();
+  });
 }
 
 function rebuildDependentDrops() {
@@ -365,9 +343,10 @@ function applyDateRange() {
   const btn = document.getElementById('btn-daterange');
   if (pop) { pop.style.display = 'none'; pop.classList.remove('open'); }
   if (btn) btn.classList.remove('active');
-  renderDashboard();
-  const teamView = document.getElementById('view-team');
-  if (teamView && teamView.style.display !== 'none') renderTeam();
+  renderDashboard().then(() => {
+    const teamView = document.getElementById('view-team');
+    if (teamView && teamView.style.display !== 'none') renderTeam();
+  });
 }
 
 function clearDateRange() {
@@ -377,6 +356,10 @@ function clearDateRange() {
   document.getElementById('lbl-daterange').textContent = 'Select Date/s From and To';
   renderCalendar();
   updateStepUI();
+  renderDashboard().then(() => {
+    const teamView = document.getElementById('view-team');
+    if (teamView && teamView.style.display !== 'none') renderTeam();
+  });
 }
 
 function getWeekDatesFromLabel(label) {
@@ -409,6 +392,37 @@ function getFilteredData(ignoreBranch = false) {
   });
 }
 
+function aggDailyData(dailyRows) {
+  if (!dailyRows || !dailyRows.length) return null;
+  const s = {
+    totalClients:0, hairRetail:0, treatmentSales:0, beautySales:0,
+    netTake:0, colTake:0, rebookPct:0, ncrPct:0, _fromDaily:true,
+  };
+  let totalRebooked=0, totalHairClients=0, totalNewC=0, totalReq=0;
+  dailyRows.forEach(r => {
+    const clients = (r.hair_clients_request||0) + (r.hair_clients_salon||0) + (r.hair_new||0);
+    s.totalClients   += clients;
+    s.hairRetail     += r.retail_total      || 0;
+    s.treatmentSales += r.treatments_total  || 0;
+    s.beautySales    += r.beauty_sales      || 0;
+    s.netTake        += r.total             || 0;
+    totalRebooked    += r.hair_rebooked     || 0;
+    totalNewC        += r.hair_new          || 0;
+    totalReq         += r.hair_ncr          || 0;
+    totalHairClients += clients;
+  });
+  s.avgBill       = s.totalClients ? s.netTake / s.totalClients : 0;
+  s.hairRetailPct = s.netTake ? (s.hairRetail / s.netTake * 100) : 0;
+  s.treatmentPct  = s.netTake ? (s.treatmentSales / s.netTake * 100) : 0;
+  s.rebookPct     = totalHairClients ? (totalRebooked / totalHairClients * 100) : 0;
+  s.ncrPct        = s.totalClients ? (totalReq / s.totalClients * 100) : 0;
+  s.beautyPct     = s.netTake ? (s.beautySales / s.netTake * 100) : 0;
+  s.retentionPct  = s.rebookPct;
+  s.conversionPct = s.rebookPct;
+  s._retailWarnings = [];
+  s.totals = { hairSales: s.netTake - s.beautySales - s.hairRetail, retail: s.hairRetail, treatments: s.treatmentSales, total: s.totalClients, rebooked: totalRebooked };
+  return { summary: s, hairStaff: [], beautyStaff: [] };
+}
 
 // ── DATA AGGREGATION ────────────────────────────────────────
 
@@ -608,17 +622,34 @@ function restoreSections() {
 
 // ── DASHBOARD RENDER ─────────────────────────────────────────
 
-function renderDashboard() {
-  const filtered = getFilteredData();
+// AFTER — hoist filtered:
+async function renderDashboard() {
   const main = document.getElementById('mainContent');
-  if (!filtered.length) {
-    destroyCharts();
-    main.innerHTML = '<div class="empty">No data for this selection.</div>';
-    return;
+  let d;
+  let filtered = [];   // ← hoist here
+
+  if (dateFrom && dateTo) {
+    main.innerHTML = '<div class="loading">Loading daily data...</div>';
+    let dailyRows = await loadDailyRange(dateFrom, dateTo);
+    if (!sel.branch.includes('all')) {
+      dailyRows = dailyRows.filter(r => sel.branch.includes(r.branch));
+    }
+    if (!dailyRows.length) {
+      destroyCharts();
+      main.innerHTML = '<div class="empty">No daily data found for this date range.</div>';
+      return;
+    }
+    d = aggDailyData(dailyRows);
+  } else {
+    filtered = getFilteredData();   // ← assign to hoisted var
+    if (!filtered.length) {
+      destroyCharts();
+      main.innerHTML = '<div class="empty">No data for this selection.</div>';
+      return;
+    }
+    d = aggData(filtered.map(f => f.data));
   }
 
-  const datasets = filtered.map(d => d.data);
-  const d = aggData(datasets);
   if (!d) return;
   const s = d.summary;
 
@@ -676,7 +707,7 @@ function renderDashboard() {
 </div>
 
 <!-- ROW 2: DIAL + BRANCH BAR + DONUT -->
-<div style="display:grid;grid-template-columns:0.85fr 1.1fr 0.85fr;gap:12px;margin-bottom:12px;align-items:stretch;height:460px">
+<div style="display:grid;grid-template-columns:0.85fr 1.1fr 0.85fr;gap:12px;margin-bottom:12px;align-items:stretch;min-height:460px">
 
   <!-- Net Revenue Dial -->
   <div class="card" style="margin-bottom:0;border-top:3px solid #99F6E4;display:flex;flex-direction:column;align-items:center;padding:16px 14px;overflow:hidden">
@@ -953,7 +984,7 @@ function renderDashboard() {
     const hasDateRange = !!(dateFrom && dateTo);
     let weekCount = 1;
     if (!hasDateRange) {
-      const weekSet = new Set(filtered.map(d => d.week_label));
+    const weekSet = new Set((filtered||[]).map(d => d.week_label));
       const branchCount = activeBranches.length || 1;
       weekCount = Math.max(1, Math.round(weekSet.size / branchCount));
     } else {
@@ -971,7 +1002,7 @@ function renderDashboard() {
     const canvas = document.getElementById('dialCanvas');
     if (canvas) {
       const ctx = canvas.getContext('2d');
-      canvas.width = canvas.offsetWidth || 220;
+      canvas.width = (canvas.offsetWidth > 10 ? canvas.offsetWidth : canvas.parentElement?.offsetWidth) || 220;
       canvas.height = 118;
       const W = canvas.width, H = canvas.height;
       ctx.clearRect(0, 0, W, H);
@@ -1623,6 +1654,19 @@ function renderTeam() {
   renderTeamBeautyTable();
 }
 
+let allDailyData = [];
+
+async function loadDailyRange(from, to) {
+  const fromStr = from.toISOString().split('T')[0];
+  const toStr   = to.toISOString().split('T')[0];
+  const { data, error } = await sb
+    .from('daily_data')
+    .select('*')
+    .gte('date', fromStr)
+    .lte('date', toStr)
+    .order('date', { ascending: true });
+  return (error || !data) ? [] : data;
+}
 
 // ── DATA LOAD + INIT ─────────────────────────────────────────
 
@@ -1646,14 +1690,4 @@ async function loadData() {
 
 // ── STARTUP ──────────────────────────────────────────────────
 
-(function init() {
-  // Load view from URL param or default to dashboard
-  const params      = new URLSearchParams(window.location.search);
-  const viewFromURL = params.get('view');
-  const activeView  = viewFromURL || 'dashboard';
-  const btn         = document.querySelector(`[onclick*="${activeView}"]`);
-  showView(activeView, btn || null);
-
-  loadData();
-  setInterval(loadData, 60000);
-})();
+// Init is triggered by doLogin() and checkSession() in index.html
