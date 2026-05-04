@@ -554,9 +554,12 @@ function aggByBranch() {
     const rows = allData.filter(d => {
       if (d.branch !== code) return false;
       if (dateFrom || dateTo) {
-        const up = new Date(d.uploaded_at); up.setHours(0,0,0,0);
-        if (dateFrom && up < dateFrom) return false;
-        if (dateTo   && up > dateTo)   return false;
+        const weekDates = getWeekDatesFromLabel(d.week_label);
+        const checkDate = weekDates
+          ? weekDates.start
+          : (() => { const u = new Date(d.uploaded_at); u.setHours(0,0,0,0); return u; })();
+        if (dateFrom && checkDate < dateFrom) return false;
+        if (dateTo   && checkDate > dateTo)   return false;
       }
       return true;
     });
@@ -1000,27 +1003,31 @@ async function renderDashboard() {
     const periodLabel = hasDateRange ? `${weekCount} week${weekCount>1?'s':''}` : weekCount === 4 ? 'month (~4 wks)' : weekCount + ' week' + (weekCount>1?'s':'');
 
     const canvas = document.getElementById('dialCanvas');
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      canvas.width = (canvas.offsetWidth > 10 ? canvas.offsetWidth : canvas.parentElement?.offsetWidth) || 220;
-      canvas.height = 118;
-      const W = canvas.width, H = canvas.height;
-      ctx.clearRect(0, 0, W, H);
-      const cx = W/2, cy = H-8;
-      const r = Math.min(W/2-10, H-16);
-      const SA = Math.PI, EA = 2*Math.PI;
-      ctx.beginPath(); ctx.arc(cx, cy, r, SA, EA);
-      ctx.strokeStyle = dark ? 'rgba(250,248,243,0.1)' : 'rgba(92,85,87,0.12)';
-      ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.stroke();
-      const fillEnd = SA + (EA-SA) * Math.min(pct, 1);
-      const grad = ctx.createLinearGradient(cx-r, cy, cx+r, cy);
-      grad.addColorStop(0, '#C4B5FD'); grad.addColorStop(0.5, '#99F6E4'); grad.addColorStop(1, '#EEF3C7');
-      ctx.beginPath(); ctx.arc(cx, cy, r, SA, fillEnd);
-      ctx.strokeStyle = grad; ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.stroke();
-      const kx = cx + r*Math.cos(fillEnd), ky = cy + r*Math.sin(fillEnd);
-      ctx.beginPath(); ctx.arc(kx, ky, 7, 0, 2*Math.PI); ctx.fillStyle = '#FAF8F3'; ctx.fill();
-      ctx.beginPath(); ctx.arc(kx, ky, 4, 0, 2*Math.PI); ctx.fillStyle = '#99F6E4';  ctx.fill();
-    }
+if (canvas) {
+  const drawDial = () => {
+    const w = canvas.parentElement?.offsetWidth || canvas.offsetWidth || 220;
+    canvas.width = w;
+    canvas.height = 118;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    const cx = W/2, cy = H-8;
+    const r = Math.min(W/2-10, H-16);
+    const SA = Math.PI, EA = 2*Math.PI;
+    ctx.beginPath(); ctx.arc(cx, cy, r, SA, EA);
+    ctx.strokeStyle = dark ? 'rgba(250,248,243,0.1)' : 'rgba(92,85,87,0.12)';
+    ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.stroke();
+    const fillEnd = SA + (EA-SA) * Math.min(pct, 1);
+    const grad = ctx.createLinearGradient(cx-r, cy, cx+r, cy);
+    grad.addColorStop(0, '#C4B5FD'); grad.addColorStop(0.5, '#99F6E4'); grad.addColorStop(1, '#EEF3C7');
+    ctx.beginPath(); ctx.arc(cx, cy, r, SA, fillEnd);
+    ctx.strokeStyle = grad; ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.stroke();
+    const kx = cx + r*Math.cos(fillEnd), ky = cy + r*Math.sin(fillEnd);
+    ctx.beginPath(); ctx.arc(kx, ky, 7, 0, 2*Math.PI); ctx.fillStyle = '#FAF8F3'; ctx.fill();
+    ctx.beginPath(); ctx.arc(kx, ky, 4, 0, 2*Math.PI); ctx.fillStyle = '#99F6E4';  ctx.fill();
+  };
+  requestAnimationFrame(drawDial);
+}
     const pctNum = Math.round(pct * 100);
     const fillEl = document.getElementById('dialPctFill');
     const txtEl  = document.getElementById('dialPctTxt');
@@ -1082,9 +1089,12 @@ function aggByBranchT() {
     const rows = allData.filter(d => {
       if (d.branch !== code) return false;
       if (dateFrom || dateTo) {
-        const up = new Date(d.uploaded_at); up.setHours(0,0,0,0);
-        if (dateFrom && up < dateFrom) return false;
-        if (dateTo   && up > dateTo)   return false;
+        const weekDates = getWeekDatesFromLabel(d.week_label);
+        const checkDate = weekDates
+          ? weekDates.start
+          : (() => { const u = new Date(d.uploaded_at); u.setHours(0,0,0,0); return u; })();
+        if (dateFrom && checkDate < dateFrom) return false;
+        if (dateTo   && checkDate > dateTo)   return false;
       }
       return true;
     });
