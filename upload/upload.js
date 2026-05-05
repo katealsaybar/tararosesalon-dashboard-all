@@ -919,15 +919,29 @@ async function bulkDeleteWeekly(branchCode) {
     }
   });
 }
+
 function collapseAll(){
-  Object.keys(openState).forEach(k=>{
-    openState[k]=false;
-    const el=document.getElementById('ys_'+k)||document.getElementById('ms_'+k);
-    if(el)el.style.display='none';
-    const prev=el&&el.previousElementSibling;
-    const arrow=prev&&prev.querySelector('.year-arrow,.month-arrow');
-    if(arrow)arrow.classList.remove('open');
+  // Set all known open states to false
+  Object.keys(openState).forEach(k => openState[k] = false);
+  // Directly hide ALL ys_ and ms_ elements in the DOM regardless of openState
+  document.querySelectorAll('[id^="ys_"],[id^="ms_"]').forEach(el => {
+    el.style.display = 'none';
   });
+  // Remove all open classes from arrows
+  document.querySelectorAll('.year-arrow,.month-arrow').forEach(a => a.classList.remove('open'));
+}
+
+function toggleBulkRename() {
+  const body  = document.getElementById('bulkRenameBody');
+  const btn   = document.getElementById('bulkRenameArrow');
+  const isOpen = body.style.maxHeight !== '0px' && body.style.maxHeight !== '';
+  if (isOpen) {
+    body.style.maxHeight = '0';
+    btn.textContent = 'Expand All ▼';
+  } else {
+    body.style.maxHeight = body.scrollHeight + 'px';
+    btn.textContent = 'Collapse All ▲';
+  }
 }
 
 function toggleSection(key){
