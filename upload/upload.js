@@ -1,5 +1,5 @@
 console.log('JS LOADED');
-const PASS     = '123';
+const PASS     = 'AbuDhabi2026@';
 const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
 const SUPA_KEY = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
