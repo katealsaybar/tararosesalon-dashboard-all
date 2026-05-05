@@ -145,6 +145,12 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .bulk-bar-text{color:var(--bad);font-weight:600;flex:1}
 .bulk-delete-btn{background:var(--bad);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
 
+/* BULK RENAME COLLAPSE */
+.bulk-rename-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.bulk-rename-toggle{font-size:12px;color:var(--muted);transition:transform .25s ease;display:inline-block;line-height:1}
+.bulk-rename-toggle.open{transform:rotate(180deg)}
+.bulk-rename-body{overflow:hidden;transition:max-height .3s ease}
+
 /* LOGIN */
 .login-wrap{max-width:380px;margin:80px auto;background:var(--surface);border-radius:16px;padding:32px;border:1px solid var(--border);box-shadow:var(--shadow)}
 .err{color:var(--bad);font-size:13px;text-align:center;margin-top:8px}
