@@ -1700,11 +1700,12 @@ async function loadData() {
       .then(r => r.json())
       .then(commits => {
         const commitDate = new Date(commits[0].commit.author.date);
-        const gst = new Date(commitDate.getTime() + (4 * 60 * 60000));
-        const dateStr = gst.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
-        const timeStr = gst.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit', hour12:true});
-        const el = document.getElementById('lastUpdated');
-        el.innerHTML += '<br><span style="font-size:9px;letter-spacing:0.06em;opacity:0.5">Last edit: ' + dateStr + ', ' + timeStr + ' GST</span>';
+        const localDate = new Date(commitDate);
+const dateStr = localDate.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+const timeStr = localDate.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit', hour12:true});
+const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const el = document.getElementById('lastUpdated');
+el.innerHTML += '<br><span style="font-size:9px;letter-spacing:0.06em;opacity:0.5">Last edit: ' + dateStr + ', ' + timeStr + ' (' + tz + ')</span>';
       })
       .catch(() => {});
   }
