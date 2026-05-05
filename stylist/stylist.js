@@ -12,6 +12,37 @@ const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aWp4ZW5hZm9vd2FqcWt0cXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTA1OTksImV4cCI6MjA5MTI4NjU5OX0.GL3YXupXOBGfN4FCyelbQWraUw12VJNJu-wUB3zR7Zw';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
+const STYLIST_IG = {
+  "Emma":       "https://www.instagram.com/emmalou.williamson/",
+  "Jeida":      "https://www.instagram.com/jeida11/",
+  "Danika":     "https://www.instagram.com/hairby_danika/",
+  "Holly":      "https://www.instagram.com/holly_the_hairdresser/",
+  "Molly":      "https://www.instagram.com/mollyrobinsonhair/",
+  "Tammy":      "https://www.instagram.com/tammy_peter_hair/",
+  "April":      "https://www.instagram.com/april_apple_13/",
+  "Bethany":    "https://www.instagram.com/bethanysmith.hair/",
+  "Eds":        "https://www.instagram.com/edzasuncion/",
+  "Ashleigh":   "https://www.instagram.com/ashleighfairgrievehair",
+  "Alan":       "https://www.instagram.com/alan_joseph_hair_",
+  "Robyn":      "https://www.instagram.com/robynharthair",
+  "Elise":      "https://www.instagram.com/ehfhair",
+  "Lucy":       "https://www.instagram.com/lucy.glow.hair",
+  "Kylie":      "https://www.instagram.com/thathairgirlkylie",
+  "Tegan":      "https://www.instagram.com/teganskinnerhair",
+  "Kate":       "https://www.instagram.com/katesirik",
+  "Katie":      "https://www.instagram.com/katiesanchez_",
+  "Lizanie":    "https://www.instagram.com/lizaniejacobsz_hair",
+  "Nikki":      "https://www.instagram.com/hairbynikki.na",
+  "Olena":      "https://www.instagram.com/ostertag.olena",
+  "Hazel May":  "https://www.instagram.com/hairby_mhay",
+  "Irlyn":      "https://www.instagram.com/hairby_lyn11",
+  "Ruth":       "https://www.instagram.com/rainbowsby_ruth",
+  "Zandri":     "https://www.instagram.com/hairby.zandri",
+  "Samantha":   "https://www.instagram.com/samanthaahmadhair",
+  "Ibrahim":    "https://www.instagram.com/almofdi.hairstylist",
+  "Shelley":    "https://www.instagram.com/shelley_the_global_hairstylist"
+};
+
 const BRANCH_INFO = {
   KCA:{ name:'Khalifa City',  color:'#FFD4D9' },
   SAA:{ name:'Saadiyat',      color:'#C4B5FD' },
@@ -345,7 +376,7 @@ function renderSection(list, gridId, title, count, titleId){
       <div class="stylist-card-top">
         <div class="stylist-avatar" style="background:${s.color}">${initials(s.name)}</div>
         <div>
-          <div class="stylist-card-name">${s.name}</div>
+          <div class="stylist-card-name">${s.name}${(()=>{const k=s.name.charAt(0)+s.name.slice(1).toLowerCase();const k2=s.name.split(' ').map(w=>w.charAt(0)+w.slice(1).toLowerCase()).join(' ');const url=STYLIST_IG[k2]||STYLIST_IG[k]||STYLIST_IG[s.name];return url?`<a href="${url}" target="_blank" onclick="event.stopPropagation()" class="ig-badge" title="View on Instagram">IG</a>`:''})()}</div>
           <div class="stylist-card-type">
   ${s.isBeauty ? '💅 Beautician' : '✂️ Hair Stylist'} · ${st.weeksActive}w · ${[...new Set(st.weeks.map(w=>BRANCH_INFO[w.branch]?.name||w.branch))].join(', ')} 
         </div>
