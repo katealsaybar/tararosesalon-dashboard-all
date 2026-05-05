@@ -1,4 +1,5 @@
-const PASS     = 'AbuDhabi2026@';
+console.log('JS LOADED');
+const PASS     = '123';
 const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
 const SUPA_KEY = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -41,37 +42,88 @@ function togglePwVis() {
 }
 
 // ── TAB ──
-function switchTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (tab==='weekly'&&i===0)||(tab==='daily'&&i===1)));
-  document.getElementById('tab-weekly').classList.toggle('active', tab==='weekly');
-  document.getElementById('tab-daily').classList.toggle('active', tab==='daily');
-  if (tab==='daily') loadDailyOverview();
+function switchTab(e, tab) {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  e.target.classList.add('active');
+
+  document.querySelectorAll('.tab-content').forEach(el => {
+    el.classList.remove('active');
+  });
+
+  document.getElementById('tab-' + tab).classList.add('active');
+
+  if (tab === 'daily') loadDailyOverview();
 }
 
 // ── AUTH ──
 window.addEventListener('DOMContentLoaded', () => {
+
+  initTheme();
+  initAuth();
+
+  document.getElementById('prodFile')?.addEventListener('change', function(){
+    document.getElementById('prodFileName').textContent = this.files[0]?.name || '';
+  });
+
+  document.getElementById('utilFile')?.addEventListener('change', function(){
+  document.getElementById('utilFileName').textContent = this.files[0]?.name || '';
+});
+  
   if (sessionStorage.getItem('tr_auth') === '1') showPortal();
   buildFileSlots();
   buildFileSlotsDaily();
 });
 
 function login() {
-  if (document.getElementById('pwInput').value === PASS) {
-    sessionStorage.setItem('tr_auth','1'); showPortal();
-  } else { document.getElementById('loginErr').textContent = 'Incorrect password.'; }
+  const inputEl = document.getElementById('pwInput');
+  const errEl   = document.getElementById('loginErr');
+
+  if (!inputEl) {
+    alert('pwInput not found — HTML issue yan');
+    return;
+  }
+
+  const input = inputEl.value.trim();
+
+  console.log('INPUT:', `"${input}"`);
+  console.log('EXPECTED:', `"${PASS}"`);
+
+  if (input === PASS.trim()) {
+    sessionStorage.setItem('tr_auth','1');
+    showPortal();
+  } else {
+    if (errEl) errEl.textContent = 'Incorrect password.';
+  }
 }
+
 function showPortal() {
-  document.getElementById('loginSection').style.display = 'none';
-  document.getElementById('portalSection').style.display = 'block';
-  document.getElementById('logoutBtn').style.display = 'inline-block';
+  const loginSection  = document.getElementById('loginSection');
+  const portalSection = document.getElementById('portalSection');
+  const logoutBtn     = document.getElementById('logoutBtn');
+
+  if (loginSection) loginSection.style.display = 'none';
+  if (portalSection) portalSection.style.display = 'block';
+  if (logoutBtn) logoutBtn.style.display = 'inline-block';
+
   loadData();
 }
+
 function logout() {
   sessionStorage.removeItem('tr_auth');
-  document.getElementById('portalSection').style.display = 'none';
-  document.getElementById('loginSection').style.display = 'block';
-  document.getElementById('logoutBtn').style.display = 'none';
-  document.getElementById('pwInput').value = '';
+
+  const loginSection  = document.getElementById('loginSection');
+  const portalSection = document.getElementById('portalSection');
+  const logoutBtn     = document.getElementById('logoutBtn');
+
+  if (portalSection) portalSection.style.display = 'none';
+  if (loginSection) loginSection.style.display = 'block';
+  if (logoutBtn) logoutBtn.style.display = 'none';
+
+  const pw = document.getElementById('pwInput');
+  if (pw) pw.value = '';
 }
 
 // ── FILE SLOTS ──
@@ -413,7 +465,7 @@ async function uploadAllDaily() {
 }
 
 // ── LOAD DATA ──
-async function loadData() {
+async function loadData(){
   const {data,error} = await sb.from('weekly_data').select('id,branch,week_label,uploaded_at').order('uploaded_at',{ascending:false});
   allData = (error||!data) ? [] : data;
   existingWeekly = {};
@@ -989,4 +1041,85 @@ function showToast(msg){
   t.textContent=msg;t.style.opacity='1';
   clearTimeout(t._h);
   t._h=setTimeout(()=>t.style.opacity='0',2500);
+}
+
+function parseCSV(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  const headers = lines[0].split(',');
+
+  return lines.slice(1).map(line => {
+    const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+    const obj = {};
+    headers.forEach((h, i) => obj[h.trim()] = values[i]?.trim());
+    return obj;
+  });
+}
+
+async function uploadOpsData() {
+  const utilFile = document.getElementById('utilFile').files[0];
+  const prodFile = document.getElementById('prodFile').files[0];
+
+  if (!utilFile && !prodFile) {
+    alert('Upload at least one file.');
+    return;
+  }
+
+  // UTILISATION
+  if (utilFile) {
+    const text = await utilFile.text();
+    const rows = parseCSV(text);
+
+    const clean = rows.map(r => ({
+      staff_name: r.staff_name,
+      role: r.role,
+      available_hours: Number(r.available_hours) || 0,
+      utilisation_hours: Number(r.utilisation_hours),
+      utilisation_percent: Number(r.utilisation_percent),
+      branch: r.branch,
+      date_from: r.date_from,
+      date_to: r.date_to
+    }));
+
+    const { error: utilErr } = await sb.from('staff_utilisation').insert(clean);
+if (utilErr) {
+  console.error(utilErr);
+  alert('Utilisation upload failed');
+  return;
+}
+  }
+
+  // PRODUCT
+  if (prodFile) {
+    const text = await prodFile.text();
+    const rows = parseCSV(text);
+
+    const clean = rows.map(r => ({
+      date: r.date || null,
+      staff_name: r.staff_name,
+      product: r.product,
+      category: r.category,
+      brand: r.brand,
+      qty: Number(r.qty)
+    }));
+
+    const { error: prodErr } = await sb.from('product_usage').insert(clean);
+if (prodErr) {
+  console.error(prodErr);
+  alert('Product upload failed');
+  return;
+}
+  }
+
+  alert('Uploaded successfully.');
+}
+
+function computeUtilisation(data) {
+  const totalAvail = data.reduce((s,r)=>s+Number(r.available_hours||0),0);
+  const totalUsed  = data.reduce((s,r)=>s+Number(r.utilisation_hours||0),0);
+  return totalAvail ? (totalUsed / totalAvail) * 100 : 0;
+}
+
+function computeByRole(data, role) {
+  const filtered = data.filter(r => r.role === role);
+  return computeUtilisation(filtered);
 }
