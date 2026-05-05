@@ -504,22 +504,26 @@ function renderDetail(s){
 </div>
 
     <div class="tabs" style="margin-bottom:0;">
-      <button class="tab-btn chart-toggle-btn active" onclick="setChartView('daily', this)">Daily</button>
+      <button class="tab-btn chart-toggle-btn" onclick="setChartView('daily', this)">Daily</button>
       <button class="tab-btn chart-toggle-btn" onclick="setChartView('weekly', this)">Weekly</button>
       <button class="tab-btn chart-toggle-btn" onclick="setChartView('monthly', this)">Monthly</button>
       <button class="tab-btn chart-toggle-btn" onclick="setChartView('yearly', this)">Yearly</button>
     </div>
   </div>
 
-  <span id="chartTitleLabel">${isBeauty?'Beauty Sales':'Net Revenue'} + Clients · Weekly Trend</span>
+  <span id="chartTitleLabel">${isBeauty?'Beauty Sales':'Net Revenue'} + Clients · ${viewMode.charAt(0).toUpperCase()+viewMode.slice(1)} Trend</span>
   <canvas id="trendChart"></canvas>
 </div>
   `;
 
-  viewMode = 'weekly';
-
   // Draw charts after DOM is ready
-  setTimeout(()=>{ drawChart(st, isBeauty); drawRadar(st, isBeauty); }, 50);
+  setTimeout(()=>{
+    drawChart(st, isBeauty);
+    drawRadar(st, isBeauty);
+    document.querySelectorAll('.chart-toggle-btn').forEach(b=>{
+      b.classList.toggle('active', b.textContent.toLowerCase() === viewMode);
+    });
+  }, 50);
 }
 
 function renderWeekTable(st, isBeauty){
@@ -644,7 +648,20 @@ function drawChart(st, isBeauty){
     grouped[key].clients += w.total;
   }
 
-  const labels = Object.keys(grouped).sort();
+  let labels = Object.keys(grouped).sort();
+
+  if(viewMode === 'daily' && dateFrom && dateTo){
+    const filled = [];
+    const cur = new Date(dateFrom);
+    while(cur <= dateTo){
+      const key = cur.getFullYear() + '-' + String(cur.getMonth()+1).padStart(2,'0') + '-' + String(cur.getDate()).padStart(2,'0');
+      filled.push(key);
+      if(!grouped[key]) grouped[key] = { rev:0, clients:0 };
+      cur.setDate(cur.getDate() + 1);
+    }
+    labels = filled;
+  }
+
   const revData = labels.map(k=>grouped[k].rev);
   const clData  = labels.map(k=>grouped[k].clients);
 
