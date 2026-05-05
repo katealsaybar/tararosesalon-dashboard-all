@@ -79,7 +79,10 @@ function setChartView(mode, el){
   viewMode = mode;
 
   const lbl = document.getElementById('chartTitleLabel');
-  if(lbl) lbl.textContent = (document.querySelector('.detail-name')?.textContent || '') + ' · ' + mode.charAt(0).toUpperCase()+mode.slice(1) + ' Trend';
+  const rawName = (selectedStylist || '');
+const cleanName = rawName.replace(/\s?IG$/, '');
+
+if(lbl) lbl.textContent = cleanName + ' · ' + mode.charAt(0).toUpperCase()+mode.slice(1) + ' Trend';
 
   document.querySelectorAll('.chart-toggle-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
@@ -186,7 +189,7 @@ function buildStylistMap(){
       ...(d.beautyStaff||[]).map(s=>({...s, isBeauty:true})),
     ];
     for(const st of allStaff){
-      const name = (st.name||'').trim().toUpperCase();
+      const name = (st.name || '').trim();
       if(!name || isSkip(name)) continue;
       // Decide type: explicitly beauty OR in beauty names list
       const isBeauty = st.isBeauty || BEAUTY_NAMES.has(name);
@@ -305,7 +308,7 @@ function renderGrid(){
   branchFilter = document.getElementById('branchFilter')?.value || 'all';
 
   let stylists = Object.values(stylistMap).filter(s=>{
-    if(search && !s.name.includes(search)) return false;
+    if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
     const stats = getStats(s);
     if(!stats) return false;
     s._stats = stats;
@@ -376,7 +379,19 @@ function renderSection(list, gridId, title, count, titleId){
       <div class="stylist-card-top">
         <div class="stylist-avatar" style="background:${s.color}">${initials(s.name)}</div>
         <div>
-          <div class="stylist-card-name">${s.name}${(()=>{const k=s.name.charAt(0)+s.name.slice(1).toLowerCase();const k2=s.name.split(' ').map(w=>w.charAt(0)+w.slice(1).toLowerCase()).join(' ');const url=STYLIST_IG[k2]||STYLIST_IG[k]||STYLIST_IG[s.name];return url?`<a href="${url}" target="_blank" onclick="event.stopPropagation()" class="ig-badge" title="View on Instagram">IG</a>`:''})()}</div>
+          <div class="stylist-card-name">${s.name} ${(()=>{
+  const cleanName = s.name
+    .toLowerCase()
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
+  const url = STYLIST_IG[cleanName];
+
+  return url
+    ? `<a href="${url}" target="_blank" onclick="event.stopPropagation()" class="ig-badge" title="View on Instagram">IG</a>`
+    : '';
+})()}</div>
           <div class="stylist-card-type">
   ${s.isBeauty ? '💅 Beautician' : '✂️ Hair Stylist'} · ${st.weeksActive}w · ${[...new Set(st.weeks.map(w=>BRANCH_INFO[w.branch]?.name||w.branch))].join(', ')} 
         </div>
@@ -427,7 +442,15 @@ function renderDetail(s){
     <div class="detail-header">
       <div class="detail-avatar" style="background:${s.color}">${initials(s.name)}</div>
       <div>
-        <div class="detail-name">${s.name}${(()=>{const k2=s.name.split(' ').map(w=>w.charAt(0)+w.slice(1).toLowerCase()).join(' ');const k=s.name.charAt(0)+s.name.slice(1).toLowerCase();const url=STYLIST_IG[k2]||STYLIST_IG[k]||STYLIST_IG[s.name];return url?`<a href="${url}" target="_blank" class="ig-badge" title="View on Instagram">IG</a>`:''})()}</div>
+        <div class="detail-name">${s.name} ${(()=>{
+  const cleanName = s.name
+    .toLowerCase()
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+  const url = STYLIST_IG[cleanName];
+  return url ? `<a href="${url}" target="_blank" class="ig-badge" title="View on Instagram">IG</a>` : '';
+})()}</div>
         <div class="detail-sub">${isBeauty?'Beautician':'Hair Stylist'} · Active ${st.weeksActive} week${st.weeksActive!==1?'s':''} · ${[...new Set(st.weeks.map(w=>BRANCH_INFO[w.branch]?.name||w.branch))].join(', ')}</div>
       </div>
       <button class="detail-close" onclick="closeDetail()">✕ Close</button>
@@ -514,7 +537,7 @@ function renderDetail(s){
     </div>
   </div>
 
-  <span id="chartTitleLabel">${isBeauty?'Beauty Sales':'Net Revenue'} + Clients · ${viewMode.charAt(0).toUpperCase()+viewMode.slice(1)} Trend</span>
+  <span id="chartTitleLabel">${s.name} · ${viewMode.charAt(0).toUpperCase()+viewMode.slice(1)} Trend</span>
   <canvas id="trendChart"></canvas>
 </div>
   `;
