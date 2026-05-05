@@ -266,9 +266,16 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       </div>
 
       <div class="bulk-rename-card">
-        <div class="card-title">Rename Week Labels</div>
-        <div class="card-sub">Editing one label renames it across ALL branches at once</div>
-        <div class="bulk-week-list" id="bulkWeekList"></div>
+        <div class="bulk-rename-header" onclick="toggleBulkRename()">
+          <div>
+            <div class="card-title">Rename Week Labels</div>
+            <div class="card-sub" style="margin-bottom:0">Editing one label renames it across ALL branches at once</div>
+          </div>
+          <button class="btn-outline" id="bulkRenameArrow" style="padding:5px 12px;font-size:10px;flex-shrink:0">Expand All ▼</button>
+        </div>
+        <div class="bulk-rename-body" id="bulkRenameBody" style="max-height:0;overflow:hidden">
+          <div class="bulk-week-list" id="bulkWeekList" style="margin-top:12px"></div>
+        </div>
       </div>
 
       <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
