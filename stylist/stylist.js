@@ -545,6 +545,7 @@ function renderWeekTable(st, isBeauty){
   const fmtCell = (col, val, isTotal=false) => {
     if(col==='week_label'||col==='branch') return val || '—';
     if(col==='rebookPct'||col==='colPct') return fmtPct(val);
+    if(col==='total'||col==='rebooked'||col==='col') return Math.round(val||0).toLocaleString();
     return fmtAED(val);
   };
   const cellClass = (col, val) => {
