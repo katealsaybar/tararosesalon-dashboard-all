@@ -1695,6 +1695,18 @@ async function loadData() {
     const latest = new Date(data[data.length-1].uploaded_at);
     document.getElementById('lastUpdated').innerHTML = 'Updated ' + latest.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
       + '<br><span style="font-size:10px;letter-spacing:0.04em;opacity:0.7">Gulf Standard Time +04:00</span>';
+
+    fetch('https://api.github.com/repos/katealsaybar/tararosesalon-dashboard-all/commits?per_page=1')
+      .then(r => r.json())
+      .then(commits => {
+        const commitDate = new Date(commits[0].commit.author.date);
+        const gst = new Date(commitDate.getTime() + (4 * 60 * 60000));
+        const dateStr = gst.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+        const timeStr = gst.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit', hour12:true});
+        const el = document.getElementById('lastUpdated');
+        el.innerHTML += '<br><span style="font-size:9px;letter-spacing:0.06em;opacity:0.5">Last edit: ' + dateStr + ', ' + timeStr + ' GST</span>';
+      })
+      .catch(() => {});
   }
 }
 
