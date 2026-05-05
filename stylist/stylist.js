@@ -427,7 +427,7 @@ function renderDetail(s){
     <div class="detail-header">
       <div class="detail-avatar" style="background:${s.color}">${initials(s.name)}</div>
       <div>
-        <div class="detail-name">${s.name}</div>
+        <div class="detail-name">${s.name}${(()=>{const k2=s.name.split(' ').map(w=>w.charAt(0)+w.slice(1).toLowerCase()).join(' ');const k=s.name.charAt(0)+s.name.slice(1).toLowerCase();const url=STYLIST_IG[k2]||STYLIST_IG[k]||STYLIST_IG[s.name];return url?`<a href="${url}" target="_blank" class="ig-badge" title="View on Instagram">IG</a>`:''})()}</div>
         <div class="detail-sub">${isBeauty?'Beautician':'Hair Stylist'} · Active ${st.weeksActive} week${st.weeksActive!==1?'s':''} · ${[...new Set(st.weeks.map(w=>BRANCH_INFO[w.branch]?.name||w.branch))].join(', ')}</div>
       </div>
       <button class="detail-close" onclick="closeDetail()">✕ Close</button>
@@ -485,7 +485,10 @@ function renderDetail(s){
     </div>
 
     <!-- WEEKLY BREAKDOWN TABLE -->
-    <div class="chart-title" style="margin-bottom:8px;margin-top:4px">WEEK-BY-WEEK BREAKDOWN</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;margin-top:4px;cursor:pointer;" onclick="toggleWeeklyTable(this)">
+      <div class="chart-title" style="margin-bottom:0">WEEK-BY-WEEK BREAKDOWN</div>
+      <span class="weekly-toggle-icon" style="font-size:11px;color:var(--muted);user-select:none;">▾ Hide</span>
+    </div>
     <div class="weekly-table-wrap">
       ${renderWeekTable(st, isBeauty)}
     </div>
@@ -571,6 +574,14 @@ function renderWeekTable(st, isBeauty){
     <thead><tr>${heads.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
     <tbody>${bodyRows}${totalRow}</tbody>
   </table>`;
+}
+
+function toggleWeeklyTable(headerEl){
+  const tableWrap = headerEl.nextElementSibling;
+  const icon = headerEl.querySelector('.weekly-toggle-icon');
+  const isHidden = tableWrap.style.display === 'none';
+  tableWrap.style.display = isHidden ? '' : 'none';
+  icon.textContent = isHidden ? '▾ Hide' : '▸ Show Week-by-Week Breakdown';
 }
 
 function drawRadar(st, isBeauty){
