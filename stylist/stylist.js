@@ -9,7 +9,7 @@ function formatViewedTimestamp() {
 window.addEventListener('DOMContentLoaded', formatViewedTimestamp);
 
 const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aWp4ZW5hZm9vd2FqcWt0cXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTA1OTksImV4cCI6MjA5MTI4NjU5OX0.GL3YXupXOBGfN4FCyelbQWraUw12VJNJu-wUB3zR7Zw';
+const SUPA_KEY = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 const STYLIST_IG = {
@@ -60,6 +60,20 @@ const fmtAED = n  => 'AED ' + Math.round(n||0).toLocaleString();
 const fmtPct = n  => (+(n||0)).toFixed(1) + '%';
 const initials = n => n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 
+function parseWeekLabelToDate(label) {
+  if (!label) return null;
+  const MMAP = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  const rangeMatch = label.match(/\((\d{1,2})[–\-—](\d{1,2})\)/);
+  const monthMatch = label.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i);
+  const yearMatch  = label.match(/20\d\d/);
+  if (rangeMatch && monthMatch && yearMatch) {
+    const mo  = MMAP[monthMatch[1].toLowerCase()];
+    const yr  = parseInt(yearMatch[0]);
+    const day = parseInt(rangeMatch[1]);
+    return new Date(yr, mo, day);
+  }
+  return null;
+}
 
 let dateFrom = null;
 let dateTo = null;
@@ -104,7 +118,18 @@ function toggleTheme(){
 
 
 // ── FILTER HELPERS ─────────────────────────────────────────
-function setTypeFilter(type, el){
+async function loadData(){
+  const { data, error } = await sb
+    .from('weekly_data')
+    .select('*')
+    .order('uploaded_at', { ascending: true });
+
+  if(error){
+    document.getElementById('loadingEl').innerHTML='<div style="color:var(--bad)">Error loading data: '+error.message+'</div>';
+    return;
+  }
+
+  function setTypeFilter(type, el){
   typeFilter = type;
   document.querySelectorAll('#filterAll,#filterHair,#filterBeauty').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
@@ -117,58 +142,68 @@ function setSort(key, el){
   renderGrid();
 }
 
-// ── LOAD DATA ──────────────────────────────────────────────
-async function loadData(){
-  const { data, error } = await sb
-  .from('weekly_data')
-  .select('*')
-  .order('uploaded_at', { ascending: true });
-  if(error){ document.getElementById('loadingEl').innerHTML='<div style="color:var(--bad)">Error loading data: '+error.message+'</div>'; return; }
-  allRows = data || [];
+  // Flatten weekly JSON blobs into per-stylist rows
+  allRows = [];
+  for (const weekEntry of (data || [])) {
+    const { branch, week_label, uploaded_at } = weekEntry;
+    const weekData  = weekEntry.data || {};
+    const parsed    = parseWeekLabelToDate(week_label);
+    const dateStr   = parsed
+      ? parsed.getFullYear()+'-'+String(parsed.getMonth()+1).padStart(2,'0')+'-'+String(parsed.getDate()).padStart(2,'0')
+      : (uploaded_at ? uploaded_at.slice(0,10) : '—');
 
-  const dates = allRows.map(r => new Date(r.uploaded_at)).filter(d => !isNaN(d));
+    const pushRow = (st, isBeauty) => allRows.push({
+      branch, week_label, uploaded_at, date: dateStr,
+      name:           (st.name || '').trim(),
+      is_beauty:      isBeauty,
+      total:          st.total        || 0,
+      req:            st.req          || 0,
+      salon:          st.salon        || 0,
+      new_c:          st.newC         || 0,
+      rebooked:       st.rebooked     || 0,
+      rebook_pct:     st.rebookPct    || 0,
+      hair_sales_net: isBeauty ? 0 : (st.hairSalesNet || 0),
+      hair_sales:     isBeauty ? 0 : (st.hairSales    || 0),
+      beauty_sales:   isBeauty ? (st.beautySales || 0) : 0,
+      avg_bill:       st.avgBill      || 0,
+      col:            st.col          || 0,
+      col_pct:        st.colPct       || 0,
+      retail:         st.retail       || 0,
+      treatments:     st.treatments   || 0,
+      ncr_pct:        st.ncrPct       || 0,
+    });
 
-  if(allRows.length){
-    // Use week_label to get true date range, not uploaded_at
-    let minDate = null, maxDate = null;
-    for(const row of allRows){
-      const wd = getWeekDatesFromLabel(row.week_label);
-      const d = wd ? wd.start : null;
-      if(!d) continue;
-      if(!minDate || d < minDate) minDate = d;
-      if(!maxDate || d > maxDate) maxDate = d;
-    }
-    if(!minDate){
-      // fallback to uploaded_at but strip timezone properly
-      const raw = allRows.map(r => new Date(r.uploaded_at)).filter(d => !isNaN(d));
-      const minRaw = new Date(Math.min(...raw));
-      const maxRaw = new Date(Math.max(...raw));
-      minDate = new Date(minRaw.getFullYear(), minRaw.getMonth(), minRaw.getDate());
-      maxDate = new Date(maxRaw.getFullYear(), maxRaw.getMonth(), maxRaw.getDate());
-    }
-  
-    calFrom = new Date(minDate);
-    calTo   = new Date(maxDate);
-    calYear = calFrom.getFullYear(); calMonth = calFrom.getMonth();
-  
-    dateFrom = new Date(minDate); dateFrom.setHours(0,0,0,0);
-    dateTo   = new Date(maxDate); dateTo.setHours(23,59,59,999);
-  
-    const fmt = dt => dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-    document.getElementById('dateFromInput').value = minDate.getFullYear()+'-'+String(minDate.getMonth()+1).padStart(2,'0')+'-'+String(minDate.getDate()).padStart(2,'0');
-    document.getElementById('dateToInput').value   = maxDate.getFullYear()+'-'+String(maxDate.getMonth()+1).padStart(2,'0')+'-'+String(maxDate.getDate()).padStart(2,'0');
-    document.getElementById('datePickerLabel').textContent = fmt(calFrom) + ' → ' + fmt(calTo);
-    document.getElementById('calFromDisplay').textContent = fmt(calFrom);
-    document.getElementById('calToDisplay').textContent   = fmt(calTo);
+    (weekData.hairStaff   || []).forEach(st => pushRow(st, false));
+    (weekData.beautyStaff || []).forEach(st => pushRow(st, true));
   }
 
+  // Set MTD default
+  const now2     = new Date();
+  const minDate  = new Date(now2.getFullYear(), now2.getMonth(), 1);
+  const maxDate  = new Date(now2.getFullYear(), now2.getMonth(), now2.getDate());
+
+  calFrom  = new Date(minDate);
+  calTo    = new Date(maxDate);
+  calYear  = calFrom.getFullYear();
+  calMonth = calFrom.getMonth();
+
+  dateFrom = new Date(minDate); dateFrom.setHours(0,0,0,0);
+  dateTo   = new Date(maxDate); dateTo.setHours(23,59,59,999);
+
+  const fmt = dt => dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('dateFromInput').value   = minDate.getFullYear()+'-'+String(minDate.getMonth()+1).padStart(2,'0')+'-'+String(minDate.getDate()).padStart(2,'0');
+  document.getElementById('dateToInput').value     = maxDate.getFullYear()+'-'+String(maxDate.getMonth()+1).padStart(2,'0')+'-'+String(maxDate.getDate()).padStart(2,'0');
+  document.getElementById('datePickerLabel').textContent = fmt(calFrom) + ' → ' + fmt(calTo);
+  document.getElementById('calFromDisplay').textContent  = fmt(calFrom);
+  document.getElementById('calToDisplay').textContent    = fmt(calTo);
+
   buildStylistMap();
-  document.getElementById('loadingEl').style.display='none';
-  document.getElementById('mainContent').style.display='block';
+  document.getElementById('loadingEl').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
   renderGrid();
-  console.log('SAMPLE week_label:', allRows[0]?.week_label);
-  console.log('SAMPLE uploaded_at:', allRows[0]?.uploaded_at);
 }
+
+
 
 function isSkip(name){
   const n = name.toUpperCase().trim();
@@ -179,44 +214,34 @@ function isSkip(name){
 
 function buildStylistMap(){
   stylistMap = {};
-  console.log('BUILDING MAP from rows:', allRows.length);
-  console.log('SAMPLE ROW:', JSON.stringify(allRows[0], null, 2));
   for(const row of allRows){
-    const { branch, week_label, data: d, uploaded_at } = row;
-    if(!d) continue;
-    const allStaff = [
-      ...(d.hairStaff||[]).map(s=>({...s, isBeauty:false})),
-      ...(d.beautyStaff||[]).map(s=>({...s, isBeauty:true})),
-    ];
-    for(const st of allStaff){
-      const name = (st.name || '').trim();
-      if(!name || isSkip(name)) continue;
-      // Decide type: explicitly beauty OR in beauty names list
-      const isBeauty = st.isBeauty || BEAUTY_NAMES.has(name);
-      if(!stylistMap[name]){
-        stylistMap[name] = { name, isBeauty, weeks:[], color: AVATAR_COLORS[Object.keys(stylistMap).length % AVATAR_COLORS.length] };
-      }
-      stylistMap[name].weeks.push({
-        week_label: week_label||'—',
-        branch: branch||'—',
-        uploaded_at,
-        total:        st.total||0,
-        req:          st.req||0,
-        salon:        st.salon||0,
-        newC:         st.newC||0,
-        rebooked:     st.rebooked||0,
-        rebookPct:    st.rebookPct||0,
-        hairSalesNet: st.hairSalesNet||0,
-        hairSales:    st.hairSales||0,
-        beautySales:  st.beautySales||0,
-        avgBill:      st.avgBill||0,
-        col:          st.col||0,
-        colPct:       st.colPct||0,
-        retail:       st.retail||0,
-        treatments:   st.treatments||0,
-        ncrPct:       st.ncrPct||0,
-      });
+    const name = (row.name || '').trim();
+    if(!name || isSkip(name)) continue;
+    const isBeauty = row.is_beauty || BEAUTY_NAMES.has(name.toUpperCase());
+    if(!stylistMap[name]){
+      stylistMap[name] = { name, isBeauty, weeks:[], color: AVATAR_COLORS[Object.keys(stylistMap).length % AVATAR_COLORS.length] };
     }
+    stylistMap[name].weeks.push({
+      week_label:   row.week_label || row.date || '—',
+      date_key:     row.date       || '—',
+      branch:       row.branch||'—',
+      uploaded_at:  row.uploaded_at,
+      total:        row.total||0,
+      req:          row.req||0,
+      salon:        row.salon||0,
+      newC:         row.new_c||0,
+      rebooked:     row.rebooked||0,
+      rebookPct:    row.rebook_pct||0,
+      hairSalesNet: row.hair_sales_net||0,
+      hairSales:    row.hair_sales||0,
+      beautySales:  row.beauty_sales||0,
+      avgBill:      row.avg_bill||0,
+      col:          row.col||0,
+      colPct:       row.col_pct||0,
+      retail:       row.retail||0,
+      treatments:   row.treatments||0,
+      ncrPct:       row.ncr_pct||0,
+    });
   }
 }
 
@@ -247,27 +272,15 @@ function getStats(stylist){
 // 🔥 DATE FILTER 
 if (dateFrom || dateTo) {
   weeks = weeks.filter(w => {
-    // Parse date from week_label e.g. "W14 2026 (APR 1 – APR 7)"
-    const weekDates = getWeekDatesFromLabel(w.week_label);
-    let checkDate;
-    if (weekDates) {
-      checkDate = weekDates.start;
-    } else {
-      // fallback to uploaded_at as local date
-      const u = new Date(w.uploaded_at);
-      checkDate = new Date(u.getFullYear(), u.getMonth(), u.getDate());
-    }
+    const dateStr = w.date_key || w.week_label || '';
+    const [y,m,d] = dateStr.split('-').map(Number);
+    const checkDate = (y && m && d) ? new Date(y, m-1, d) : new Date(w.uploaded_at);
     if (dateFrom && checkDate < dateFrom) return false;
     if (dateTo   && checkDate > dateTo)   return false;
     return true;
   });
 }
 
-console.log('DATE FILTER:', {
-  from: dateFrom,
-  to: dateTo,
-  remainingWeeks: weeks.length
-});
 
 // Branch filter
 if (branchFilter !== 'all') {
@@ -321,9 +334,6 @@ function renderGrid(){
     console.warn('No results after filtering. Check date range.');
   }
 
-  console.log('ALL ROWS:', allRows.length);
-  console.log('DATE FROM:', dateFrom);
-  console.log('DATE TO:', dateTo);
 
   const hair   = stylists.filter(s=>!s.isBeauty);
   const beauty = stylists.filter(s=>s.isBeauty);
@@ -672,7 +682,11 @@ function drawChart(st, isBeauty){
 
   for(const w of st.weeks){
     const weekDates = getWeekDatesFromLabel(w.week_label);
-    const d = weekDates ? weekDates.start : new Date(w.uploaded_at);
+    const d = weekDates
+      ? weekDates.start
+      : (w.date_key && w.date_key.match(/^\d{4}-\d{2}-\d{2}$/)
+          ? new Date(w.date_key + 'T00:00:00')
+          : new Date(w.uploaded_at));
     let key;
     if(viewMode === 'daily'){
       key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');

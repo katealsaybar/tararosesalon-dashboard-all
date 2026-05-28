@@ -269,6 +269,104 @@ function checkDailyBtn() {
   document.getElementById('uploadDailyBtn').disabled = !BRANCH_KEYS.some(k => fileSlotsDaily[k]);
 }
 
+// ── DAILY STYLIST EXTRACTOR ──
+function extractDailyStylists(rows, date, dayOfWeek, branchCode) {
+  const BEAUTY_NAMES = new Set(['MIMI','GRACE','SHILA','KIM','KIMBERLY','REDA','CHONA']);
+  const SKIP = new Set(['STAFF','TOTALS','TYPE','TYPE ','BUSINESS','TARA','ASISSTANTS','ASSISTANTS',
+    'HAIR RETAIL SALES','TREATMENT SALES','COL TAKE AED','CBD TAKE AED','BEAUTY SALES',
+    'BEAUTY RETAIL SALES','NET SALON TAKE','TOTAL CLIENTS','TOTAL','']);
+
+  const stylistRows = [];
+
+  // Find the name row — row where stylist names are column headers
+  let nameRowIdx = -1;
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+    const row = rows[i];
+    const nonNull = row.filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+    if (nonNull.length >= 3 && typeof nonNull[0] === 'string' && nonNull[0].length > 1) {
+      const first = String(nonNull[0]).trim().toUpperCase();
+      if (!['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY',
+            'DATE','WEEK','BRANCH'].includes(first) && !SKIP.has(first)) {
+        nameRowIdx = i;
+        break;
+      }
+    }
+  }
+  if (nameRowIdx === -1) return [];
+
+  // Build stylist → col index map
+  const stylistCols = {};
+  rows[nameRowIdx].forEach((cell, idx) => {
+    const name = cell ? String(cell).trim() : '';
+    const upper = name.toUpperCase();
+    if (name && !SKIP.has(upper)) stylistCols[name] = idx;
+  });
+
+  // Find metric rows by label in col 0
+  const labelRows = {};
+  const TARGETS = ['REQUEST','REQ','SALON','NEW','REBOOKED','TOTAL','COLOUR','COL',
+                   'HAIR SALES','HAIR SALES TAKE','BEAUTY SALES','BEAUTY SALES TAKE',
+                   'RETAIL','TOTAL RETAIL','TREATMENT','TREATMENTS','AV.BILL','AVG BILL',
+                   'REBOOKING %','COL%','NCR%'];
+  for (let i = nameRowIdx + 1; i < rows.length; i++) {
+    const lbl = rows[i][0] ? String(rows[i][0]).trim().toUpperCase() : '';
+    if (TARGETS.includes(lbl) && labelRows[lbl] === undefined) labelRows[lbl] = i;
+  }
+
+  const get = (label, col) => {
+    const idx = labelRows[label];
+    if (idx === undefined || !rows[idx]) return 0;
+    return parseFloat(String(rows[idx][col] || '').replace(/[^0-9.\-]/g,'')) || 0;
+  };
+
+  for (const [name, col] of Object.entries(stylistCols)) {
+    const upper = name.toUpperCase();
+    const isBeauty = BEAUTY_NAMES.has(upper);
+
+    const total     = get('TOTAL', col) || get('TOTAL', col+1) || 0;
+    const hairSales = get('HAIR SALES TAKE', col) || get('HAIR SALES', col) || 0;
+    const beautySales = get('BEAUTY SALES TAKE', col) || get('BEAUTY SALES', col) || 0;
+
+    if (total === 0 && hairSales === 0 && beautySales === 0) continue;
+
+    const req      = get('REQUEST', col) || get('REQ', col) || 0;
+    const salon    = get('SALON', col) || 0;
+    const rebooked = get('REBOOKED', col) || 0;
+    const newC     = get('NEW', col) || 0;
+    const col_     = get('COLOUR', col) || get('COL', col) || 0;
+    const retail   = get('TOTAL RETAIL', col) || get('RETAIL', col) || 0;
+    const treatments = get('TREATMENTS', col) || get('TREATMENT', col) || 0;
+    const avgBill  = get('AV.BILL', col) || get('AVG BILL', col) || 0;
+    const rebookPct = total > 0 ? (rebooked / total) * 100 : 0;
+    const ncrPct    = (req + salon) > 0 ? (req / (req + salon)) * 100 : 0;
+    const colPct    = total > 0 ? (col_ / total) * 100 : 0;
+
+    stylistRows.push({
+      branch: branchCode,
+      date,
+      day_of_week: dayOfWeek,
+      name: name.trim(),
+      is_beauty: isBeauty,
+      total: Math.round(total),
+      req: Math.round(req),
+      salon: Math.round(salon),
+      new_c: Math.round(newC),
+      rebooked: Math.round(rebooked),
+      rebook_pct: +rebookPct.toFixed(2),
+      hair_sales_net: +hairSales.toFixed(2),
+      hair_sales: +hairSales.toFixed(2),
+      beauty_sales: +beautySales.toFixed(2),
+      avg_bill: +avgBill.toFixed(2),
+      col: Math.round(col_),
+      col_pct: +colPct.toFixed(2),
+      retail: +retail.toFixed(2),
+      treatments: +treatments.toFixed(2),
+      ncr_pct: +ncrPct.toFixed(2),
+    });
+  }
+  return stylistRows;
+}
+
 // ── XLSX PARSER: DAILY ──
 async function parseXLSXDaily(file, branchCode) {
   const ab = await file.arrayBuffer();
@@ -441,6 +539,24 @@ async function uploadAllDaily() {
       const dates = dailyRows.map(r=>r.date);
       await sb.from('daily_data').delete().eq('branch',code).in('date',dates);
       const {error} = await sb.from('daily_data').insert(dailyRows);
+
+      // Also extract + save per-stylist rows to daily_stylist_data
+      const wb2 = XLSX.read(await fileSlotsDaily[code].arrayBuffer(), { type:'array', cellDates:false });
+      let allStylistRows = [];
+      for (const sheetName of wb2.SheetNames) {
+        const upper = sheetName.toUpperCase();
+        if (!DAY_SHEETS.includes(upper)) continue;
+        const ws2 = wb2.Sheets[sheetName];
+        const sheetRows = XLSX.utils.sheet_to_json(ws2, { header:1, defval:null });
+        const matchingDay = dailyRows.find(r => r.day_of_week === upper);
+        if (!matchingDay) continue;
+        const stylistRows = extractDailyStylists(sheetRows, matchingDay.date, upper, code);
+        allStylistRows = allStylistRows.concat(stylistRows);
+      }
+      if (allStylistRows.length) {
+        await sb.from('daily_stylist_data').delete().eq('branch',code).in('date',dates);
+        await sb.from('daily_stylist_data').insert(allStylistRows);
+      }
       if (error) throw error;
       document.getElementById('dpb_'+code).style.width='100%';
       document.getElementById('dps_'+code).textContent=`✅ ${dailyRows.length} days`;
