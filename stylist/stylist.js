@@ -440,7 +440,8 @@ function renderDetail(s){
   const avgBillClass= st.avgBill >= 650 ? 'good' : st.avgBill >= 500 ? '' : 'bad';
   const retailClass    = st.retailPct >= 12 ? 'good' : st.retailPct >= 8 ? 'warn' : 'bad';
   const treatmentClass = st.treatmentPct >= 20 ? 'good' : st.treatmentPct >= 10 ? 'warn' : 'bad';
-
+  const colClass = st.colPct >= 60 ? 'good' : st.colPct >= 40 ? '' : 'bad';
+  
   panel.innerHTML = `
     <div class="detail-header">
       <div class="detail-avatar" style="background:${s.color}">${initials(s.name)}</div>
