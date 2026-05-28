@@ -45,6 +45,9 @@ let dateTo   = null; // JS Date object
 // collapsible section open/close state (persists across re-renders)
 const sectionState = { revenueRun: false, clientRun: false, retentionRun: false, opsRun: false };
 
+// daily rows cache — set during daily-mode render, used by aggByBranch
+let currentDailyRows = [];
+
 
 // ── THEME ───────────────────────────────────────────────────
 
@@ -551,19 +554,26 @@ function aggData(datasets) {
 function aggByBranch() {
   const result = {};
   Object.keys(BRANCH_INFO).forEach(code => {
-    const rows = allData.filter(d => {
-      if (d.branch !== code) return false;
-      if (dateFrom || dateTo) {
-        const weekDates = getWeekDatesFromLabel(d.week_label);
-        const checkDate = weekDates
-          ? weekDates.start
-          : (() => { const u = new Date(d.uploaded_at); u.setHours(0,0,0,0); return u; })();
-        if (dateFrom && checkDate < dateFrom) return false;
-        if (dateTo   && checkDate > dateTo)   return false;
-      }
-      return true;
-    });
-    result[code] = aggData(rows.map(d => d.data));
+    if (dateFrom && dateTo && currentDailyRows.length) {
+      // Daily mode: split the cached daily rows by branch
+      const branchRows = currentDailyRows.filter(r => r.branch === code);
+      result[code] = branchRows.length ? aggDailyData(branchRows) : null;
+    } else {
+      // Weekly mode: filter allData by branch + date range
+      const rows = allData.filter(d => {
+        if (d.branch !== code) return false;
+        if (dateFrom || dateTo) {
+          const weekDates = getWeekDatesFromLabel(d.week_label);
+          const checkDate = weekDates
+            ? weekDates.start
+            : (() => { const u = new Date(d.uploaded_at); u.setHours(0,0,0,0); return u; })();
+          if (dateFrom && checkDate < dateFrom) return false;
+          if (dateTo   && checkDate > dateTo)   return false;
+        }
+        return true;
+      });
+      result[code] = aggData(rows.map(d => d.data));
+    }
   });
   return result;
 }
@@ -634,6 +644,7 @@ async function renderDashboard() {
   if (dateFrom && dateTo) {
     main.innerHTML = '<div class="loading">Loading daily data...</div>';
     let dailyRows = await loadDailyRange(dateFrom, dateTo);
+    currentDailyRows = dailyRows; // store all rows before branch filter so aggByBranch can split per branch
     if (!sel.branch.includes('all')) {
       dailyRows = dailyRows.filter(r => sel.branch.includes(r.branch));
     }
@@ -644,6 +655,7 @@ async function renderDashboard() {
     }
     d = aggDailyData(dailyRows);
   } else {
+    currentDailyRows = [];
     filtered = getFilteredData();   // ← assign to hoisted var
     if (!filtered.length) {
       destroyCharts();
