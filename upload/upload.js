@@ -61,9 +61,6 @@ function switchTab(e, tab) {
 // ── AUTH ──
 window.addEventListener('DOMContentLoaded', () => {
 
-  initTheme();
-  initAuth();
-
   document.getElementById('prodFile')?.addEventListener('change', function(){
     document.getElementById('prodFileName').textContent = this.files[0]?.name || '';
   });
@@ -192,6 +189,7 @@ function slotFilesChosen(slotCode, files) {
 }
 // Keep old name as alias so drag-drop still works
 function slotFileChosen(slotCode, file) { slotFilesChosen(slotCode, [file]); }
+function dSlotFilesChosen(slotCode, files) { dSlotFileChosen(slotCode, files[0]); }
 function dSlotFileChosen(slotCode, file) {
   if (!file) return;
   const detected = detectBranch(file.name);
