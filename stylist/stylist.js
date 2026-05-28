@@ -298,6 +298,8 @@ if (branchFilter !== 'all') {
     retail:        sum('retail'),
     treatments:    sum('treatments'),
     ncrPct:        avg('ncrPct'),
+    retailPct:     netRevTotal > 0 ? (sum('retail') / netRevTotal) * 100 : 0,
+    treatmentPct:  sum('hairSalesNet') > 0 ? (sum('treatments') / sum('hairSalesNet')) * 100 : 0,
     weeks,
   };
 }
@@ -436,7 +438,8 @@ function renderDetail(s){
   const rebookClass = st.rebookPct >= 45 ? 'good' : st.rebookPct >= 30 ? '' : 'bad';
   const ncrClass    = st.ncrPct >= 20 ? 'good' : st.ncrPct >= 10 ? '' : 'bad';
   const avgBillClass= st.avgBill >= 650 ? 'good' : st.avgBill >= 500 ? '' : 'bad';
-  const colClass    = !isBeauty && st.colPct >= 60 ? 'good' : !isBeauty && st.colPct >= 40 ? '' : '';
+  const retailClass    = st.retailPct >= 12 ? 'good' : st.retailPct >= 8 ? 'warn' : 'bad';
+  const treatmentClass = st.treatmentPct >= 20 ? 'good' : st.treatmentPct >= 10 ? 'warn' : 'bad';
 
   panel.innerHTML = `
     <div class="detail-header">
@@ -488,15 +491,15 @@ function renderDetail(s){
         <div class="metric-box-value">${fmtPct(st.colPct)}</div>
         <div class="metric-box-sub">Colour clients</div>
       </div>
-      <div class="metric-box">
-        <div class="metric-box-label">Retail Sales</div>
-        <div class="metric-box-value">${fmtAED(st.retail)}</div>
-        <div class="metric-box-sub">total</div>
+      <div class="metric-box ${retailClass}">
+        <div class="metric-box-label">Retail %</div>
+        <div class="metric-box-value">${fmtPct(st.retailPct)}</div>
+        <div class="metric-box-sub">${fmtAED(st.retail)} · Target: 12%</div>
       </div>
-      <div class="metric-box">
-        <div class="metric-box-label">Treatments</div>
-        <div class="metric-box-value">${fmtAED(st.treatments)}</div>
-        <div class="metric-box-sub">total</div>
+      <div class="metric-box ${treatmentClass}">
+        <div class="metric-box-label">Treatment %</div>
+        <div class="metric-box-value">${fmtPct(st.treatmentPct)}</div>
+        <div class="metric-box-sub">${fmtAED(st.treatments)} · Target: 20%</div>
       </div>
       ` : `
       <div class="metric-box">
