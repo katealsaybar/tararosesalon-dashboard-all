@@ -130,12 +130,16 @@ function buildDrop(key, options) {
   const drop  = document.getElementById('drop-' + key);
   const isAll = sel[key].includes('all');
   drop.innerHTML = `
-    <div class="ms-opt all-opt ${isAll ? 'selected' : ''}" data-val="all" onclick="toggleOpt('${key}','all')">All Branches</div>
+    <div class="ms-opt all-opt ${isAll ? 'selected' : ''}" data-val="all" onclick="toggleOpt('${key}','all')">
+      <span class="ms-chk ${isAll ? 'on' : ''}"></span>All Branches
+    </div>
     ${options.map(o => {
       const active = !isAll && sel[key].includes(o.val);
       const dot = BRANCH_INFO[o.val]
-        ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${BRANCH_INFO[o.val].color};flex-shrink:0;margin-right:2px"></span>` : '';
-      return `<div class="ms-opt ${active ? 'selected' : ''}" data-val="${o.val}" onclick="toggleOpt('${key}','${o.val}')">${dot}${o.label}</div>`;
+        ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${BRANCH_INFO[o.val].color};flex-shrink:0;"></span>` : '';
+      return `<div class="ms-opt ${active ? 'selected' : ''}" data-val="${o.val}" onclick="toggleOpt('${key}','${o.val}')">
+        <span class="ms-chk ${active ? 'on' : ''}"></span>${dot}${o.label}
+      </div>`;
     }).join('')}`;
   updateLabel(key, options);
 }
@@ -154,8 +158,10 @@ function toggleOpt(key, val) {
   const isAllNow = sel[key].includes('all');
   drop.querySelectorAll('.ms-opt').forEach(el => {
     const v = el.dataset.val;
-    if (el.classList.contains('all-opt')) el.classList.toggle('selected', isAllNow);
-    else el.classList.toggle('selected', !isAllNow && sel[key].includes(v));
+    const isSelected = el.classList.contains('all-opt') ? isAllNow : (!isAllNow && sel[key].includes(v));
+    el.classList.toggle('selected', isSelected);
+    const chk = el.querySelector('.ms-chk');
+    if (chk) chk.classList.toggle('on', isSelected);
   });
   drop.classList.add('open');
   document.getElementById('btn-' + key).classList.add('open');
