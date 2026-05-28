@@ -145,9 +145,12 @@ function buildDrop(key, options) {
 }
 
 function toggleOpt(key, val) {
-  if (val === 'all') { sel[key] = ['all']; }
-  else {
-    sel[key] = sel[key].filter(x => x !== 'all');
+  if (val === 'all') {
+    sel[key] = ['all'];
+  } else if (sel[key].includes('all')) {
+    sel[key] = Object.keys(BRANCH_INFO).filter(b => b !== val);
+    if (!sel[key].length) sel[key] = ['all'];
+  } else {
     if (sel[key].includes(val)) sel[key] = sel[key].filter(x => x !== val);
     else sel[key].push(val);
     if (!sel[key].length) sel[key] = ['all'];
