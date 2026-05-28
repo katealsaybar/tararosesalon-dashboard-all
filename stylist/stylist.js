@@ -422,6 +422,7 @@ function selectStylist(name){
 function closeDetail(){
   selectedStylist = null;
   document.getElementById('detailPanel').style.display='none';
+  document.getElementById('detailPanel').innerHTML = '';
   if(activeChart){ activeChart.destroy(); activeChart=null; }
   renderGrid();
 }

@@ -168,3 +168,4 @@ canvas{max-height:220px}
 #datePickerDropdown{
   z-index: 9999;
 }
+.detail-panel:empty { display: none !important; }
