@@ -272,9 +272,15 @@ function getStats(stylist){
 // 🔥 DATE FILTER 
 if (dateFrom || dateTo) {
   weeks = weeks.filter(w => {
-    const dateStr = w.date_key || w.week_label || '';
-    const [y,m,d] = dateStr.split('-').map(Number);
-    const checkDate = (y && m && d) ? new Date(y, m-1, d) : new Date(w.uploaded_at);
+    const weekDates = getWeekDatesFromLabel(w.week_label);
+    let checkDate;
+    if (weekDates) {
+      checkDate = weekDates.start;
+    } else {
+      const dateStr = w.date_key || '';
+      const [y,m,d] = dateStr.split('-').map(Number);
+      checkDate = (y && m && d) ? new Date(y, m-1, d) : new Date(w.uploaded_at);
+    }
     if (dateFrom && checkDate < dateFrom) return false;
     if (dateTo   && checkDate > dateTo)   return false;
     return true;
