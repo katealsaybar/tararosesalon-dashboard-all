@@ -628,14 +628,15 @@ function drawRadar(st, isBeauty){
 
   // Use weeks active as a proxy for consistency (capped at 100)
   const consistencyScore = Math.min(100, (st.weeksActive / 10) * 100);
+  const retailScore      = Math.min(100, (st.retailPct / 12) * 100);
 
   window._activeRadar = new Chart(canvas, {
     type: 'radar',
     data: {
-      labels: ['Rebook %', 'Avg Bill', 'NCR %', isBeauty ? 'Beauty' : 'Colour %', 'Clients', 'Consistency'],
+      labels: ['Rebook %', 'Avg Bill', 'NCR %', isBeauty ? 'Beauty' : 'Colour %', 'Clients', isBeauty ? 'Consistency' : 'Retail %'],
       datasets: [{
         label: st.name || 'Stylist',
-        data: [rebookScore, avgBillScore, ncrScore, colScore, 100, consistencyScore],
+        data: [rebookScore, avgBillScore, ncrScore, colScore, 100, isBeauty ? consistencyScore : retailScore],
         backgroundColor: 'rgba(196,181,253,0.2)',
         borderColor: '#C4B5FD',
         borderWidth: 2,
