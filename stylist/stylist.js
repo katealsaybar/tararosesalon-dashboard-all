@@ -249,6 +249,25 @@ function buildStylistMap(){
 function getWeekDatesFromLabel(label) {
   if (!label) return null;
   const monthMap = { JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11 };
+
+  // Format: "Apr 2026 Week 4 (20–26)" — single month, day-range only in parens
+  const single = label.match(/\((\d{1,2})[–\-—](\d{1,2})\)/);
+  const singleMon = label.match(/(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)/i);
+  const singleYear = label.match(/20\d\d/);
+  if (single && singleMon && singleYear) {
+    const mo  = monthMap[singleMon[1].toUpperCase()];
+    const yr  = parseInt(singleYear[0]);
+    const startDay = parseInt(single[1]);
+    const endDay   = parseInt(single[2]);
+    const start = new Date(yr, mo, startDay); start.setHours(0,0,0,0);
+    // handle month wrap (e.g. 29–2 spans into next month)
+    let endMo = mo, endYr = yr;
+    if (endDay < startDay) { endMo++; if (endMo > 11) { endMo = 0; endYr++; } }
+    const end = new Date(endYr, endMo, endDay); end.setHours(0,0,0,0);
+    return { start, end };
+  }
+
+  // Format: "(APR 20 – MAY 2)" — cross-month range
   const m = label.match(/\(([A-Z]{3})\s+(\d+)\s*[–\-]\s*([A-Z]{3})\s+(\d+)\)/i);
   if (!m) return null;
   const startMon = m[1].toUpperCase(), startDay = parseInt(m[2]);
