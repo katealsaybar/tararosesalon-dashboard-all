@@ -120,9 +120,9 @@ function toggleTheme(){
 // ── FILTER HELPERS ─────────────────────────────────────────
 async function loadData(){
   const { data, error } = await sb
-    .from('weekly_data')
+    .from('daily_stylist_data')
     .select('*')
-    .order('uploaded_at', { ascending: true });
+    .order('date', { ascending: true });
 
   if(error){
     document.getElementById('loadingEl').innerHTML='<div style="color:var(--bad)">Error loading data: '+error.message+'</div>';
@@ -142,40 +142,30 @@ function setSort(key, el){
   renderGrid();
 }
 
-  // Flatten weekly JSON blobs into per-stylist rows
-  allRows = [];
-  for (const weekEntry of (data || [])) {
-    const { branch, week_label, uploaded_at } = weekEntry;
-    const weekData  = weekEntry.data || {};
-    const parsed    = parseWeekLabelToDate(week_label);
-    const dateStr   = parsed
-      ? parsed.getFullYear()+'-'+String(parsed.getMonth()+1).padStart(2,'0')+'-'+String(parsed.getDate()).padStart(2,'0')
-      : (uploaded_at ? uploaded_at.slice(0,10) : '—');
-
-    const pushRow = (st, isBeauty) => allRows.push({
-      branch, week_label, uploaded_at, date: dateStr,
-      name:           (st.name || '').trim(),
-      is_beauty:      isBeauty,
-      total:          st.total        || 0,
-      req:            st.req          || 0,
-      salon:          st.salon        || 0,
-      new_c:          st.newC         || 0,
-      rebooked:       st.rebooked     || 0,
-      rebook_pct:     st.rebookPct    || 0,
-      hair_sales_net: isBeauty ? 0 : (st.hairSalesNet || 0),
-      hair_sales:     isBeauty ? 0 : (st.hairSales    || 0),
-      beauty_sales:   isBeauty ? (st.beautySales || 0) : 0,
-      avg_bill:       st.avgBill      || 0,
-      col:            st.col          || 0,
-      col_pct:        st.colPct       || 0,
-      retail:         st.retail       || 0,
-      treatments:     st.treatments   || 0,
-      ncr_pct:        st.ncrPct       || 0,
-    });
-
-    (weekData.hairStaff   || []).forEach(st => pushRow(st, false));
-    (weekData.beautyStaff || []).forEach(st => pushRow(st, true));
-  }
+  // daily_stylist_data rows are already flat — map directly to allRows
+  allRows = (data || []).map(row => ({
+    branch:         row.branch,
+    week_label:     row.date || '—',
+    uploaded_at:    row.date,
+    date:           row.date || '—',
+    name:           (row.name || '').trim(),
+    is_beauty:      row.is_beauty || false,
+    total:          row.total          || 0,
+    req:            row.req            || 0,
+    salon:          row.salon          || 0,
+    new_c:          row.new_c          || 0,
+    rebooked:       row.rebooked       || 0,
+    rebook_pct:     row.rebook_pct     || 0,
+    hair_sales_net: row.hair_sales_net || 0,
+    hair_sales:     row.hair_sales     || 0,
+    beauty_sales:   row.beauty_sales   || 0,
+    avg_bill:       row.avg_bill       || 0,
+    col:            row.col            || 0,
+    col_pct:        row.col_pct        || 0,
+    retail:         row.retail         || 0,
+    treatments:     row.treatments     || 0,
+    ncr_pct:        row.ncr_pct        || 0,
+  }));
 
   // Set MTD default
   const now2     = new Date();
