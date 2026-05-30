@@ -12,6 +12,7 @@
   --btn:#5C5557;--btn-fg:#F9E8DF;
   --col-header:#fdf8f6;
 }
+
 [data-theme="dark"]{
   --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;
   --border:rgba(250,248,243,0.09);--border2:rgba(250,248,243,0.05);
