@@ -1,5 +1,5 @@
 console.log('JS LOADED');
-const PASS     = 'AbuDhabi2026@';
+const PASS     = '123';
 const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
 const SUPA_KEY = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -60,6 +60,9 @@ function switchTab(e, tab) {
 
 // ── AUTH ──
 window.addEventListener('DOMContentLoaded', () => {
+
+  initTheme();
+  initAuth();
 
   document.getElementById('prodFile')?.addEventListener('change', function(){
     document.getElementById('prodFileName').textContent = this.files[0]?.name || '';
@@ -134,10 +137,10 @@ function slotHTML(code, mode) {
       <div class="slot-branch-sub">${info.sub}</div>
       <div class="slot-drop-area" id="${pre}slotDrop_${code}">
         <span class="slot-icon">📊</span>
-        <div class="slot-hint">Click or drag & drop<br>.xlsx file here</div>
+        <div class="slot-hint">Click or drag & drop<br>.xlsx or .csv file here</div>
       </div>
       <button class="slot-clear" id="${pre}slotClear_${code}" style="display:none" onclick="event.stopPropagation();${mode==='daily'?'dClearSlot':'clearSlot'}('${code}')">✕</button>
-      <input type="file" id="${pre}slotInput_${code}" accept=".xlsx" style="display:none" multiple
+      <input type="file" id="${pre}slotInput_${code}" accept=".xlsx,.csv" style="display:none" multiple
         onchange="${mode==='daily'?'dSlotFilesChosen':'slotFilesChosen'}('${code}',this.files)">
     </div>`;
 }
@@ -189,7 +192,6 @@ function slotFilesChosen(slotCode, files) {
 }
 // Keep old name as alias so drag-drop still works
 function slotFileChosen(slotCode, file) { slotFilesChosen(slotCode, [file]); }
-function dSlotFilesChosen(slotCode, files) { dSlotFileChosen(slotCode, files[0]); }
 function dSlotFileChosen(slotCode, file) {
   if (!file) return;
   const detected = detectBranch(file.name);
@@ -255,7 +257,7 @@ function resetSlot(code, mode) {
   const clr  = document.getElementById(`${pre}slotClear_${code}`);
   slot.classList.remove('has-file','has-existing','dragover');
   clr.style.display = 'none';
-  drop.innerHTML = `<span class="slot-icon">📊</span><div class="slot-hint">Click or drag & drop<br>.xlsx file here</div>`;
+  drop.innerHTML = `<span class="slot-icon">📊</span><div class="slot-hint">Click or drag & drop<br>.xlsx or .csv file here</div>`;
   const inp = document.getElementById(`${pre}slotInput_${code}`);
   if (inp) inp.value = '';
 }
@@ -269,106 +271,12 @@ function checkDailyBtn() {
   document.getElementById('uploadDailyBtn').disabled = !BRANCH_KEYS.some(k => fileSlotsDaily[k]);
 }
 
-// ── DAILY STYLIST EXTRACTOR ──
-function extractDailyStylists(rows, date, dayOfWeek, branchCode) {
-  const BEAUTY_NAMES = new Set(['MIMI','GRACE','SHILA','KIM','KIMBERLY','REDA','CHONA']);
-  const SKIP = new Set(['STAFF','TOTALS','TYPE','TYPE ','BUSINESS','TARA','ASISSTANTS','ASSISTANTS',
-    'HAIR RETAIL SALES','TREATMENT SALES','COL TAKE AED','CBD TAKE AED','BEAUTY SALES',
-    'BEAUTY RETAIL SALES','NET SALON TAKE','TOTAL CLIENTS','TOTAL','']);
-
-  const stylistRows = [];
-
-  // Find the name row — row where stylist names are column headers
-  let nameRowIdx = -1;
-  for (let i = 0; i < Math.min(rows.length, 20); i++) {
-    const row = rows[i];
-    const nonNull = row.filter(v => v !== null && v !== undefined && String(v).trim() !== '');
-    if (nonNull.length >= 3 && typeof nonNull[0] === 'string' && nonNull[0].length > 1) {
-      const first = String(nonNull[0]).trim().toUpperCase();
-      if (!['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY',
-            'DATE','WEEK','BRANCH'].includes(first) && !SKIP.has(first)) {
-        nameRowIdx = i;
-        break;
-      }
-    }
-  }
-  if (nameRowIdx === -1) return [];
-
-  // Build stylist → col index map
-  const stylistCols = {};
-  rows[nameRowIdx].forEach((cell, idx) => {
-    const name = cell ? String(cell).trim() : '';
-    const upper = name.toUpperCase();
-    if (name && !SKIP.has(upper)) stylistCols[name] = idx;
-  });
-
-  // Find metric rows by label in col 0
-  const labelRows = {};
-  const TARGETS = ['REQUEST','REQ','SALON','NEW','REBOOKED','TOTAL','COLOUR','COL',
-                   'HAIR SALES','HAIR SALES TAKE','BEAUTY SALES','BEAUTY SALES TAKE',
-                   'RETAIL','TOTAL RETAIL','TREATMENT','TREATMENTS','AV.BILL','AVG BILL',
-                   'REBOOKING %','COL%','NCR%'];
-  for (let i = nameRowIdx + 1; i < rows.length; i++) {
-    const lbl = rows[i][0] ? String(rows[i][0]).trim().toUpperCase() : '';
-    if (TARGETS.includes(lbl) && labelRows[lbl] === undefined) labelRows[lbl] = i;
-  }
-
-  const get = (label, col) => {
-    const idx = labelRows[label];
-    if (idx === undefined || !rows[idx]) return 0;
-    return parseFloat(String(rows[idx][col] || '').replace(/[^0-9.\-]/g,'')) || 0;
-  };
-
-  for (const [name, col] of Object.entries(stylistCols)) {
-    const upper = name.toUpperCase();
-    const isBeauty = BEAUTY_NAMES.has(upper);
-
-    const total     = get('TOTAL', col) || get('TOTAL', col+1) || 0;
-    const hairSales = get('HAIR SALES TAKE', col) || get('HAIR SALES', col) || 0;
-    const beautySales = get('BEAUTY SALES TAKE', col) || get('BEAUTY SALES', col) || 0;
-
-    if (total === 0 && hairSales === 0 && beautySales === 0) continue;
-
-    const req      = get('REQUEST', col) || get('REQ', col) || 0;
-    const salon    = get('SALON', col) || 0;
-    const rebooked = get('REBOOKED', col) || 0;
-    const newC     = get('NEW', col) || 0;
-    const col_     = get('COLOUR', col) || get('COL', col) || 0;
-    const retail   = get('TOTAL RETAIL', col) || get('RETAIL', col) || 0;
-    const treatments = get('TREATMENTS', col) || get('TREATMENT', col) || 0;
-    const avgBill  = get('AV.BILL', col) || get('AVG BILL', col) || 0;
-    const rebookPct = total > 0 ? (rebooked / total) * 100 : 0;
-    const ncrPct    = (req + salon) > 0 ? (req / (req + salon)) * 100 : 0;
-    const colPct    = total > 0 ? (col_ / total) * 100 : 0;
-
-    stylistRows.push({
-      branch: branchCode,
-      date,
-      day_of_week: dayOfWeek,
-      name: name.trim(),
-      is_beauty: isBeauty,
-      total: Math.round(total),
-      req: Math.round(req),
-      salon: Math.round(salon),
-      new_c: Math.round(newC),
-      rebooked: Math.round(rebooked),
-      rebook_pct: +rebookPct.toFixed(2),
-      hair_sales_net: +hairSales.toFixed(2),
-      hair_sales: +hairSales.toFixed(2),
-      beauty_sales: +beautySales.toFixed(2),
-      avg_bill: +avgBill.toFixed(2),
-      col: Math.round(col_),
-      col_pct: +colPct.toFixed(2),
-      retail: +retail.toFixed(2),
-      treatments: +treatments.toFixed(2),
-      ncr_pct: +ncrPct.toFixed(2),
-    });
-  }
-  return stylistRows;
-}
-
 // ── XLSX PARSER: DAILY ──
 async function parseXLSXDaily(file, branchCode) {
+
+  if (file.name.toLowerCase().endsWith('.csv')) {
+    return parseCSVDaily(file, branchCode);
+  }
   const ab = await file.arrayBuffer();
   // Read WITHOUT cellDates — get raw serial numbers, handle dates ourselves
   const wb = XLSX.read(ab, { type:'array', cellDates:false });
@@ -425,6 +333,25 @@ async function parseXLSXDaily(file, branchCode) {
     });
   }
   return results;
+}
+
+async function parseCSVDaily(file, branchCode) {
+
+  const text = await file.text();
+
+  const rows = text
+    .split('\n')
+    .map(r => r.split(','));
+
+  if (!rows.length) {
+    throw new Error('CSV empty');
+  }
+
+  return rows.map((row, index) => ({
+    branch: branchCode,
+    raw_data: row,
+    row_number: index + 1
+  }));
 }
 
 // ── UPLOAD WEEKLY ──
@@ -539,24 +466,6 @@ async function uploadAllDaily() {
       const dates = dailyRows.map(r=>r.date);
       await sb.from('daily_data').delete().eq('branch',code).in('date',dates);
       const {error} = await sb.from('daily_data').insert(dailyRows);
-
-      // Also extract + save per-stylist rows to daily_stylist_data
-      const wb2 = XLSX.read(await fileSlotsDaily[code].arrayBuffer(), { type:'array', cellDates:false });
-      let allStylistRows = [];
-      for (const sheetName of wb2.SheetNames) {
-        const upper = sheetName.toUpperCase();
-        if (!DAY_SHEETS.includes(upper)) continue;
-        const ws2 = wb2.Sheets[sheetName];
-        const sheetRows = XLSX.utils.sheet_to_json(ws2, { header:1, defval:null });
-        const matchingDay = dailyRows.find(r => r.day_of_week === upper);
-        if (!matchingDay) continue;
-        const stylistRows = extractDailyStylists(sheetRows, matchingDay.date, upper, code);
-        allStylistRows = allStylistRows.concat(stylistRows);
-      }
-      if (allStylistRows.length) {
-        await sb.from('daily_stylist_data').delete().eq('branch',code).in('date',dates);
-        await sb.from('daily_stylist_data').insert(allStylistRows);
-      }
       if (error) throw error;
       document.getElementById('dpb_'+code).style.width='100%';
       document.getElementById('dps_'+code).textContent=`✅ ${dailyRows.length} days`;
@@ -1219,7 +1128,8 @@ if (utilErr) {
     const { error: prodErr } = await sb.from('product_usage').insert(clean);
 if (prodErr) {
   console.error(prodErr);
-  alert('Product upload failed');
+  console.error(error);
+alert('Product upload failed: ' + (error?.message || error));
   return;
 }
   }
