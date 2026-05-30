@@ -426,7 +426,7 @@ function aggDailyData(dailyRows) {
   s.avgBill       = s.totalClients ? s.netTake / s.totalClients : 0;
   s.hairRetailPct = s.netTake ? (s.hairRetail / s.netTake * 100) : 0;
   s.treatmentPct  = s.netTake ? (s.treatmentSales / s.netTake * 100) : 0;
-  s.rebookPct     = totalHairClients ? (totalRebooked / totalHairClients * 100) : 0;
+  s.rebookPct     = s.totalClients ? (totalRebooked / s.totalClients * 100) : 0;
   s.ncrPct        = s.totalClients ? (totalReq / s.totalClients * 100) : 0;
   s.beautyPct     = s.netTake ? (s.beautySales / s.netTake * 100) : 0;
   s.retentionPct  = s.rebookPct;
@@ -509,7 +509,7 @@ function aggData(datasets) {
   s.hairRetailPct = s.netTake ? (s.hairRetail / s.netTake * 100) : 0;
   s._retailWarnings = retailWarnings;
 
-  s.rebookPct = totalHairClients ? (totalRebooked / totalHairClients * 100) : 0;
+  s.rebookPct = s.totalClients ? (totalRebooked / s.totalClients * 100) : 0;
   s.beautyPct = s.netTake ? (s.beautySales / s.netTake * 100) : 0;
 
   const totalNewC = Object.values(hairMap).reduce((acc, st) => acc + (st.newC || 0), 0);
