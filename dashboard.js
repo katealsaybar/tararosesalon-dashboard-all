@@ -28,7 +28,7 @@ const TOP3_METRICS = [
   { key: 'avgBill',     label: 'Avg Bill'      },
   { key: 'total',       label: 'Total Clients' },
   { key: 'rebookPct',   label: 'Rebooking %'   },
-  { key: 'ncrPct',      label: 'NCR %'         },
+  { key: 'ncrPct',      label: 'Hair NCR %'    },
 ];
 
 const rankColors  = ['gold','silver','bronze'];
@@ -39,11 +39,15 @@ const rankSymbols = ['🥇','🥈','🥉'];
 let allData = [];
 let charts  = {};
 const sel   = { branch: ['all'] };
+let pendingSel = { branch: ['all'] }; // buffered branch selection — applied only on Save
 let dateFrom = null; // JS Date object
 let dateTo   = null; // JS Date object
 
 // collapsible section open/close state (persists across re-renders)
 const sectionState = { revenueRun: false, clientRun: false, retentionRun: false, opsRun: false };
+
+// daily rows cache — set during daily-mode render, used by aggByBranch
+let currentDailyRows = [];
 
 
 // ── THEME ───────────────────────────────────────────────────
@@ -66,9 +70,88 @@ const sc = (v, t) => {
   if (ratio >= 0.8) return '';
   return 'bad';
 };
-const fmtAED = n  => 'AED ' + Math.round(n || 0).toLocaleString();
-const fmtPct = n  => (+(n || 0)).toFixed(1) + '%';
+const fmtAED = n  => 'AED ' + (n || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtPct = n  => (+(n || 0)).toFixed(2) + '%';
 const initials = name => name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+function smoothSlide(el, open) {
+  el.style.overflow = 'hidden';
+  el.style.transition = 'height 0.3s ease, opacity 0.25s ease';
+  if (open) {
+    el.style.display = 'block';
+    el.style.height = '0px';
+    el.style.opacity = '0';
+    const h = el.scrollHeight;
+    requestAnimationFrame(() => {
+      el.style.height = h + 'px';
+      el.style.opacity = '1';
+      const doneOpen = e => {
+        if (e.propertyName !== 'height') return;
+        el.style.height = '';
+        el.style.overflow = '';
+        el.removeEventListener('transitionend', doneOpen);
+      };
+      el.addEventListener('transitionend', doneOpen);
+    });
+  } else {
+    el.style.height = el.scrollHeight + 'px';
+    el.style.opacity = '1';
+    requestAnimationFrame(() => {
+      el.style.height = '0px';
+      el.style.opacity = '0';
+      const doneClose = e => {
+        if (e.propertyName !== 'height') return;
+        el.style.display = 'none';
+        el.style.height = '';
+        el.style.overflow = '';
+        el.removeEventListener('transitionend', doneClose);
+      };
+      el.addEventListener('transitionend', doneClose);
+    });
+  }
+}
+
+window.ncrView = window.ncrView || 'hair';
+
+function toggleNcrView(mode) {
+  window.ncrView = mode;
+  const labels = { hair: 'Hair NCR %', beauty: 'Beauty NCR %', both: 'Hair & Beauty NCR %' };
+  const descs  = {
+    hair:   'New Client Requests ÷ Total Clients (excl. rebooked)',
+    beauty: 'Beauty NCRs ÷ Beauty Clients (excl. rebooked)',
+    both:   'Hair + Beauty NCRs ÷ Total Clients (excl. rebooked)',
+  };
+  const labelEl = document.getElementById('ncrCardLabel');
+  const descEl  = document.getElementById('ncrCardDesc');
+  const valEl   = document.getElementById('ncrCardValue');
+  if (labelEl) labelEl.textContent = labels[mode];
+  if (descEl)  descEl.innerHTML = `<em>${descs[mode]}</em>`;
+  // update displayed value from data attributes on the card
+  const card = valEl && valEl.closest('.metric');
+  if (card) {
+    const hair   = parseFloat(card.dataset.hairNcr   || 0);
+    const beauty = card.dataset.beautyNcr === 'null' ? null : parseFloat(card.dataset.beautyNcr || 0);
+    const both   = parseFloat(card.dataset.bothNcr   || 0);
+    if (valEl) valEl.textContent =
+      mode === 'beauty' ? (beauty != null ? beauty.toFixed(1) + '%' : '—') :
+      mode === 'both'   ? both.toFixed(1) + '%' :
+      hair.toFixed(1) + '%';
+  }
+  // update button active states
+  ['hair','beauty','both'].forEach(m => {
+    const btn = document.getElementById('ncrBtn-' + m);
+    if (btn) btn.style.fontWeight = m === mode ? '700' : '400';
+  });
+}
+
+function toggleClientBreakdown() {
+  const panel = document.getElementById('clientBreakdownPanel');
+  const btn   = document.getElementById('breakdownPillBtn');
+  if (!panel) return;
+  const open = panel.style.display === 'none' || panel.style.display === '';
+  smoothSlide(panel, open);
+  if (btn) btn.innerHTML = open ? 'Breakdown ▴' : 'Breakdown ▾';
+}
 
 function getYear(label, uploaded_at) {
   const m = label && label.match(/20\d\d/);
@@ -125,39 +208,56 @@ document.addEventListener('click', e => {
 
 function buildDrop(key, options) {
   const drop  = document.getElementById('drop-' + key);
-  const isAll = sel[key].includes('all');
+  const isAll = pendingSel[key].includes('all');
   drop.innerHTML = `
-    <div class="ms-opt all-opt ${isAll ? 'selected' : ''}" data-val="all" onclick="toggleOpt('${key}','all')">All Branches</div>
+    <div class="ms-apply-row">
+      <button class="f-pill active" onclick="saveBranchSelection()">Apply</button>
+    </div>
+    <div class="ms-opt all-opt ${isAll ? 'selected' : ''}" data-val="all" onclick="toggleOpt('${key}','all')">
+      <span class="ms-chk ${isAll ? 'on' : ''}"></span>All Branches
+    </div>
     ${options.map(o => {
-      const active = !isAll && sel[key].includes(o.val);
+      const active = !isAll && pendingSel[key].includes(o.val);
       const dot = BRANCH_INFO[o.val]
-        ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${BRANCH_INFO[o.val].color};flex-shrink:0;margin-right:2px"></span>` : '';
-      return `<div class="ms-opt ${active ? 'selected' : ''}" data-val="${o.val}" onclick="toggleOpt('${key}','${o.val}')">${dot}${o.label}</div>`;
+        ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${BRANCH_INFO[o.val].color};flex-shrink:0;"></span>` : '';
+      return `<div class="ms-opt ${active ? 'selected' : ''}" data-val="${o.val}" onclick="toggleOpt('${key}','${o.val}')">
+        <span class="ms-chk ${active ? 'on' : ''}"></span>${dot}${o.label}
+      </div>`;
     }).join('')}`;
   updateLabel(key, options);
 }
 
 function toggleOpt(key, val) {
-  if (val === 'all') { sel[key] = ['all']; }
-  else {
-    sel[key] = sel[key].filter(x => x !== 'all');
-    if (sel[key].includes(val)) sel[key] = sel[key].filter(x => x !== val);
-    else sel[key].push(val);
-    if (!sel[key].length) sel[key] = ['all'];
+  // Write to pendingSel only — dashboard re-renders on Save
+  if (val === 'all') {
+    pendingSel[key] = ['all'];
+  } else if (pendingSel[key].includes('all')) {
+    pendingSel[key] = Object.keys(BRANCH_INFO).filter(b => b !== val);
+    if (!pendingSel[key].length) pendingSel[key] = ['all'];
+  } else {
+    if (pendingSel[key].includes(val)) pendingSel[key] = pendingSel[key].filter(x => x !== val);
+    else pendingSel[key].push(val);
+    if (!pendingSel[key].length) pendingSel[key] = ['all'];
   }
-  rebuildDependentDrops();
 
-  const drop    = document.getElementById('drop-' + key);
-  const isAllNow = sel[key].includes('all');
+  const drop     = document.getElementById('drop-' + key);
+  const isAllNow = pendingSel[key].includes('all');
   drop.querySelectorAll('.ms-opt').forEach(el => {
     const v = el.dataset.val;
-    if (el.classList.contains('all-opt')) el.classList.toggle('selected', isAllNow);
-    else el.classList.toggle('selected', !isAllNow && sel[key].includes(v));
+    const isSelected = el.classList.contains('all-opt') ? isAllNow : (!isAllNow && pendingSel[key].includes(v));
+    el.classList.toggle('selected', isSelected);
+    const chk = el.querySelector('.ms-chk');
+    if (chk) chk.classList.toggle('on', isSelected);
   });
   drop.classList.add('open');
   document.getElementById('btn-' + key).classList.add('open');
-  const allOptions = [...drop.querySelectorAll('.ms-opt:not(.all-opt)')].map(el => ({ val: el.dataset.val, label: el.textContent.trim() }));
-  updateLabel(key, allOptions);
+}
+
+function saveBranchSelection() {
+  sel.branch = [...pendingSel.branch];
+  rebuildDependentDrops();
+  document.querySelectorAll('.ms-drop').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.ms-btn').forEach(b  => b.classList.remove('open'));
   renderDashboard().then(() => {
     const teamView = document.getElementById('view-team');
     if (teamView && teamView.style.display !== 'none') renderTeam();
@@ -165,7 +265,8 @@ function toggleOpt(key, val) {
 }
 
 function rebuildDependentDrops() {
-  // Branch dropdown only now — date range handles time filtering
+  // Sync pendingSel to match committed sel before rebuilding
+  pendingSel.branch = [...sel.branch];
   buildDrop('branch', Object.entries(BRANCH_INFO).map(([k,v]) => ({ val: k, label: v.name })));
 }
 
@@ -341,7 +442,7 @@ function applyDateRange() {
   }
   const pop = document.getElementById('datePickerPop');
   const btn = document.getElementById('btn-daterange');
-  if (pop) { pop.style.display = 'none'; pop.classList.remove('open'); }
+  if (pop) { pop.classList.remove('open'); }
   if (btn) btn.classList.remove('active');
   renderDashboard().then(() => {
     const teamView = document.getElementById('view-team');
@@ -398,7 +499,8 @@ function aggDailyData(dailyRows) {
     totalClients:0, hairRetail:0, treatmentSales:0, beautySales:0,
     netTake:0, colTake:0, rebookPct:0, ncrPct:0, _fromDaily:true,
   };
-  let totalRebooked=0, totalHairClients=0, totalNewC=0, totalReq=0;
+  let dHairRebooked=0, dBeautyRebooked=0, totalHairClients=0, totalNewC=0, totalReq=0;
+  let dHairNCR=0, dHairREQ=0, dHairSALON=0, dHairNEW=0;
   dailyRows.forEach(r => {
     const clients = (r.hair_clients_request||0) + (r.hair_clients_salon||0) + (r.hair_new||0);
     s.totalClients   += clients;
@@ -406,21 +508,118 @@ function aggDailyData(dailyRows) {
     s.treatmentSales += r.treatments_total  || 0;
     s.beautySales    += r.beauty_sales      || 0;
     s.netTake        += r.total             || 0;
-    totalRebooked    += r.hair_rebooked     || 0;
+    dHairRebooked   += r.hair_rebooked      || 0;
+    dBeautyRebooked += r.beauty_rebooked    || 0;
     totalNewC        += r.hair_new          || 0;
     totalReq         += r.hair_ncr          || 0;
     totalHairClients += clients;
+    dHairNCR   += r.hair_ncr             || 0;
+    dHairREQ   += r.hair_clients_request || 0;
+    dHairSALON += r.hair_clients_salon   || 0;
+    dHairNEW   += r.hair_new             || 0;
   });
+  const totalRebooked = dHairRebooked + dBeautyRebooked;
   s.avgBill       = s.totalClients ? s.netTake / s.totalClients : 0;
   s.hairRetailPct = s.netTake ? (s.hairRetail / s.netTake * 100) : 0;
   s.treatmentPct  = s.netTake ? (s.treatmentSales / s.netTake * 100) : 0;
-  s.rebookPct     = totalHairClients ? (totalRebooked / totalHairClients * 100) : 0;
-  s.ncrPct        = s.totalClients ? (totalReq / s.totalClients * 100) : 0;
+  s.rebookPct     = s.totalClients ? (totalRebooked / s.totalClients * 100) : 0;
+  s.totalRebooked = totalRebooked;
+  s.hairBreakdown   = { ncr: dHairNCR, req: dHairREQ, salon: dHairSALON, new: dHairNEW, rebooked: dHairRebooked };
+  s.beautyBreakdown = { ncr: null, req: null, salon: null, new: null, rebooked: dBeautyRebooked };
+  s.ncrPct        = totalHairClients ? (totalReq / totalHairClients * 100) : 0;
+  s.hairNcrPct    = s.ncrPct;
+  s.beautyNcrPct  = null; // daily data has no beauty NCR column
+  s.combinedNcrPct= null;
   s.beautyPct     = s.netTake ? (s.beautySales / s.netTake * 100) : 0;
   s.retentionPct  = s.rebookPct;
   s.conversionPct = s.rebookPct;
   s._retailWarnings = [];
   s.totals = { hairSales: s.netTake - s.beautySales - s.hairRetail, retail: s.hairRetail, treatments: s.treatmentSales, total: s.totalClients, rebooked: totalRebooked };
+  return { summary: s, hairStaff: [], beautyStaff: [] };
+}
+
+// ── WEEK RANGE HELPERS ───────────────────────────────────────
+
+function isFullWeekRange(from, to) {
+  if (!from || !to) return false;
+  const diffDays = Math.round((to - from) / (1000 * 60 * 60 * 24)) + 1;
+  if (diffDays % 7 !== 0) return false;
+  const fromDay = from.getDay(); // 0=Sun, 1=Mon
+  const toDay   = to.getDay();   // 0=Sun, 6=Sat
+  return fromDay === 1 && toDay === 0;
+}
+
+async function loadWeeklyTotalsRange(from, to) {
+  const pad = n => String(n).padStart(2, '0');
+  const fromStr = `${from.getFullYear()}-${pad(from.getMonth()+1)}-${pad(from.getDate())}`;
+  const toStr   = `${to.getFullYear()}-${pad(to.getMonth()+1)}-${pad(to.getDate())}`;
+  const { data, error } = await sb
+    .from('weekly_totals')
+    .select('*')
+    .gte('week_start', fromStr)
+    .lte('week_end',   toStr)
+    .order('week_start', { ascending: true });
+  return (error || !data) ? [] : data;
+}
+
+function aggWeeklyTotals(rows) {
+  if (!rows || !rows.length) return null;
+  const s = {
+    totalClients: 0, hairRetail: 0, treatmentSales: 0,
+    colTake: 0, beautySales: 0, netTake: 0,
+    _fromWeeklyTotals: true,
+  };
+  let totalRebooked = 0, hairClients = 0, beautyClients = 0, beautyRebooked = 0, totalNcr = 0;
+  let wHairRebooked = 0;
+  rows.forEach(r => {
+    s.totalClients   += (r.hair_clients    || 0) + (r.beauty_clients  || 0);
+    s.hairRetail     += r.hair_retail      || 0;
+    s.treatmentSales += r.treatments       || 0;
+    s.colTake        += r.col_take         || 0;
+    s.beautySales    += r.beauty_sales     || 0;
+    s.netTake        += r.net_take         || 0;
+    totalRebooked    += (r.hair_rebooked   || 0) + (r.beauty_rebooked || 0);
+    hairClients      += r.hair_clients     || 0;
+    beautyClients    += r.beauty_clients   || 0;
+    beautyRebooked   += r.beauty_rebooked  || 0;
+    totalNcr         += r.hair_ncr         || 0;
+    wHairRebooked    += r.hair_rebooked    || 0;
+  });
+  s.avgBill          = s.totalClients ? s.netTake / s.totalClients : 0;
+  s.hairRetailPct    = s.netTake ? (s.hairRetail / s.netTake * 100) : 0;
+  s.treatmentPct     = s.netTake ? (s.treatmentSales / s.netTake * 100) : 0;
+  s.rebookPct        = s.totalClients ? (totalRebooked / s.totalClients * 100) : 0;
+  s.totalRebooked    = totalRebooked;
+  // Per-category breakdown — new columns populated on re-upload; null = not yet uploaded
+  const _wColSum = (key) => rows.some(r => r[key] != null) ? rows.reduce((a,r) => a + (r[key] || 0), 0) : null;
+  s.hairBreakdown = {
+    ncr:     rows.reduce((a,r) => a + (r.hair_ncr_weekend ?? r.hair_ncr ?? 0), 0),
+    req:     _wColSum('hair_req'),
+    salon:   _wColSum('hair_salon'),
+    new:     _wColSum('hair_new'),
+    rebooked: wHairRebooked,
+  };
+  s.beautyBreakdown = {
+    ncr:     _wColSum('beauty_ncr'),
+    req:     _wColSum('beauty_req'),
+    salon:   _wColSum('beauty_salon'),
+    new:     _wColSum('beauty_new'),
+    rebooked: beautyRebooked,
+  };
+  s.beautyRebookPct  = beautyClients  ? (beautyRebooked / beautyClients * 100)  : 0;
+  s.beautyPct        = s.netTake ? (s.beautySales / s.netTake * 100) : 0;
+  s.ncrPct           = hairClients ? (totalNcr / hairClients * 100) : 0;
+  s.hairNcrPct       = s.ncrPct;
+  const wBeautyNcr   = _wColSum('beauty_ncr');
+  s.beautyNcrPct     = (wBeautyNcr != null && beautyClients) ? (wBeautyNcr / beautyClients * 100) : null;
+  s.combinedNcrPct   = s.totalClients ? ((totalNcr + (wBeautyNcr||0)) / s.totalClients * 100) : 0;
+  s.retentionPct     = 0;
+  s.conversionPct    = 0;
+  s._retailWarnings  = [];
+  s.totals = {
+    total:    hairClients,
+    rebooked: rows.reduce((a, r) => a + (r.hair_rebooked || 0), 0),
+  };
   return { summary: s, hairStaff: [], beautyStaff: [] };
 }
 
@@ -497,11 +696,35 @@ function aggData(datasets) {
   s.hairRetailPct = s.netTake ? (s.hairRetail / s.netTake * 100) : 0;
   s._retailWarnings = retailWarnings;
 
-  s.rebookPct = totalHairClients ? (totalRebooked / totalHairClients * 100) : 0;
+  s.rebookPct     = s.totalClients ? (totalRebooked / s.totalClients * 100) : 0;
+  s.totalRebooked = totalRebooked;
   s.beautyPct = s.netTake ? (s.beautySales / s.netTake * 100) : 0;
 
-  const totalNewC = Object.values(hairMap).reduce((acc, st) => acc + (st.newC || 0), 0);
-  s.ncrPct = s.totalClients ? (totalNewC / s.totalClients * 100) : 0;
+  // NCR = New Client Requests (hair_ncr / newClientReq) — NOT new clients (newC)
+  const hairNcrSum     = Object.values(hairMap).reduce((a,st) => a+(st.newClientReq||0), 0);
+  const hairClientSum  = Object.values(hairMap).reduce((a,st) => a+(st.total||0), 0);
+  const beautyNcrSum   = Object.values(beautyMap).reduce((a,st) => a+(st.newClientReq||0), 0);
+  const beautyClientSum= Object.values(beautyMap).reduce((a,st) => a+(st.total||0), 0);
+  s.ncrPct        = hairClientSum  ? (hairNcrSum  / hairClientSum  * 100) : 0;
+  s.hairNcrPct    = s.ncrPct;
+  s.beautyNcrPct  = beautyClientSum ? (beautyNcrSum / beautyClientSum * 100) : null;
+  s.combinedNcrPct= s.totalClients  ? ((hairNcrSum + beautyNcrSum) / s.totalClients * 100) : 0;
+
+  // Per-category breakdowns for the Total Clients card dropdown
+  s.hairBreakdown = {
+    ncr:     Object.values(hairMap).reduce((a,st) => a+(st.newClientReq||0), 0),
+    req:     Object.values(hairMap).reduce((a,st) => a+(st.req||0), 0),
+    salon:   Object.values(hairMap).reduce((a,st) => a+(st.salon||0), 0),
+    new:     Object.values(hairMap).reduce((a,st) => a+(st.newC||0), 0),
+    rebooked:Object.values(hairMap).reduce((a,st) => a+(st.rebooked||0), 0),
+  };
+  s.beautyBreakdown = {
+    ncr:     Object.values(beautyMap).reduce((a,st) => a+(st.newClientReq||0), 0),
+    req:     Object.values(beautyMap).reduce((a,st) => a+(st.req||0), 0),
+    salon:   Object.values(beautyMap).reduce((a,st) => a+(st.salon||0), 0),
+    new:     Object.values(beautyMap).reduce((a,st) => a+(st.newC||0), 0),
+    rebooked:Object.values(beautyMap).reduce((a,st) => a+(st.rebooked||0), 0),
+  };
 
   const hairStaff = Object.values(hairMap).map((st, i) => {
     const hReturning    = (st.req||0) + (st.salon||0);
@@ -515,7 +738,7 @@ function aggData(datasets) {
       rebookPct:     hRebookPct,
       retentionPct:  hRetentionPct,
       conversionPct: hConvPct,
-      ncrPct:        st.total ? (st.newC / st.total * 100) : 0,
+      ncrPct:        st.total ? ((st.newClientReq||0) / st.total * 100) : 0,
       color: SCOLS[i % SCOLS.length]
     };
   });
@@ -530,7 +753,7 @@ function aggData(datasets) {
       rebookPct:     bRebookPct,
       retentionPct:  bRetentionPct,
       conversionPct: bConvPct,
-      ncrPct:        st.total ? ((st.newC||0)/st.total*100) : 0,
+      ncrPct:        st.total ? ((st.newClientReq||0)/st.total*100) : 0,
       color: SCOLS[(i+3) % SCOLS.length]
     };
   });
@@ -551,19 +774,30 @@ function aggData(datasets) {
 function aggByBranch() {
   const result = {};
   Object.keys(BRANCH_INFO).forEach(code => {
-    const rows = allData.filter(d => {
-      if (d.branch !== code) return false;
-      if (dateFrom || dateTo) {
-        const weekDates = getWeekDatesFromLabel(d.week_label);
-        const checkDate = weekDates
-          ? weekDates.start
-          : (() => { const u = new Date(d.uploaded_at); u.setHours(0,0,0,0); return u; })();
-        if (dateFrom && checkDate < dateFrom) return false;
-        if (dateTo   && checkDate > dateTo)   return false;
-      }
-      return true;
-    });
-    result[code] = aggData(rows.map(d => d.data));
+    if (dateFrom && dateTo && isFullWeekRange(dateFrom, dateTo)) {
+      // Full week(s): use weekly_totals cached from render (filter by branch)
+      const branchRows = (window._cachedWeeklyTotals || []).filter(r => r.branch === code);
+      result[code] = branchRows.length ? aggWeeklyTotals(branchRows) : null;
+    } else if (dateFrom && dateTo && currentDailyRows.length) {
+      // Partial week: split the cached daily rows by branch
+      const branchRows = currentDailyRows.filter(r => r.branch === code);
+      result[code] = branchRows.length ? aggDailyData(branchRows) : null;
+    } else {
+      // Weekly mode: filter allData by branch + date range
+      const rows = allData.filter(d => {
+        if (d.branch !== code) return false;
+        if (dateFrom || dateTo) {
+          const weekDates = getWeekDatesFromLabel(d.week_label);
+          const checkDate = weekDates
+            ? weekDates.start
+            : (() => { const u = new Date(d.uploaded_at); u.setHours(0,0,0,0); return u; })();
+          if (dateFrom && checkDate < dateFrom) return false;
+          if (dateTo   && checkDate > dateTo)   return false;
+        }
+        return true;
+      });
+      result[code] = aggData(rows.map(d => d.data));
+    }
   });
   return result;
 }
@@ -580,20 +814,20 @@ function buildCmpChart(byBranch, metric, dark, ttStyle, gc, tc) {
   const activeBranches = sel.branch.includes('all') ? Object.keys(BRANCH_INFO) : sel.branch;
   const entries = activeBranches.map(b => {
     const d = byBranch[b];
-    return { branch: b, val: +(d ? d.summary[metric]||0 : 0).toFixed(1), color: BRANCH_INFO[b]?.color||'#ccc', name: BRANCH_INFO[b]?.name||b };
+    return { branch: b, val: +(d ? d.summary[metric]||0 : 0).toFixed(2), color: BRANCH_INFO[b]?.color||'#ccc', name: BRANCH_INFO[b]?.name||b };
   }).sort((a,b) => b.val - a.val);
 
   const labels = entries.map(e => e.name);
   const vals   = entries.map(e => e.val);
   const colors = entries.map(e => e.color);
   const avg    = vals.reduce((a,b) => a+b, 0) / (vals.length||1);
-  const metricLabels = { netTake:'Revenue (AED)', totalClients:'Total Clients', avgBill:'Avg Bill (AED)', rebookPct:'Rebooking %', ncrPct:'NCR %' };
+  const metricLabels = { netTake:'Revenue (AED)', totalClients:'Total Clients', avgBill:'Avg Bill (AED)', rebookPct:'Rebooking %', ncrPct:'Hair NCR %' };
   const lc = dark ? '#C4B5FD' : '#5C5557';
 
   charts.cmp = new Chart(document.getElementById('cmpChart'), {
     data: { labels, datasets: [
       { type:'bar', label: metricLabels[metric]||metric, data: vals, backgroundColor: colors.map(c=>c+'cc'), borderColor: colors, borderWidth: 1.5, borderRadius: 8, barThickness: 28, yAxisID:'y' },
-      { type:'line', label:'Total Avg Bill', data: vals.map(()=>+avg.toFixed(1)), borderColor: lc, backgroundColor:'transparent', borderWidth:2, borderDash:[6,4], pointRadius:5, pointBackgroundColor:lc, pointBorderColor:lc, tension:0, yAxisID:'y' }
+      { type:'line', label:'Total Avg Bill', data: vals.map(()=>+avg.toFixed(2)), borderColor: lc, backgroundColor:'transparent', borderWidth:2, borderDash:[6,4], pointRadius:5, pointBackgroundColor:lc, pointBorderColor:lc, tension:0, yAxisID:'y' }
     ]},
     options: { animation:{duration:500,easing:'easeInOutQuart'}, responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
       plugins:{legend:{display:true,labels:{color:tc,font:{family:'DM Sans',size:11},boxWidth:12,filter:(item)=>item.datasetIndex===1}},tooltip:ttStyle},
@@ -607,14 +841,22 @@ function buildCmpChart(byBranch, metric, dark, ttStyle, gc, tc) {
 
 function toggleSection(id) {
   sectionState[id] = !sectionState[id];
-  applySection(id);
+  const body  = document.getElementById('body-'  + id);
+  const arrow = document.getElementById('arrow-' + id);
+  const hdr   = arrow ? arrow.closest('.support-section-hdr') : null;
+  if (body) smoothSlide(body, sectionState[id]);
+  if (arrow) arrow.classList.toggle('open', sectionState[id]);
+  if (hdr)   hdr.classList.toggle('open', sectionState[id]);
 }
 function applySection(id) {
   const body  = document.getElementById('body-'  + id);
   const arrow = document.getElementById('arrow-' + id);
   const hdr   = arrow ? arrow.closest('.support-section-hdr') : null;
   const open  = sectionState[id];
-  if (body)  body.style.display = open ? 'block' : 'none';
+  if (body) {
+    // instant (no animation) on initial render; animate only on user toggle
+    body.style.display = open ? 'block' : 'none';
+  }
   if (arrow) arrow.classList.toggle('open', open);
   if (hdr)   hdr.classList.toggle('open', open);
 }
@@ -631,19 +873,38 @@ async function renderDashboard() {
   let d;
   let filtered = [];   // ← hoist here
 
-  if (dateFrom && dateTo) {
-    main.innerHTML = '<div class="loading">Loading daily data...</div>';
-    let dailyRows = await loadDailyRange(dateFrom, dateTo);
-    if (!sel.branch.includes('all')) {
-      dailyRows = dailyRows.filter(r => sel.branch.includes(r.branch));
+    if (dateFrom && dateTo) {
+    if (isFullWeekRange(dateFrom, dateTo)) {
+      main.innerHTML = '<div class="loading">Loading weekly data...</div>';
+      let weekRows = await loadWeeklyTotalsRange(dateFrom, dateTo);
+      window._cachedWeeklyTotals = weekRows;
+      currentDailyRows = [];
+      if (!sel.branch.includes('all')) {
+        weekRows = weekRows.filter(r => sel.branch.includes(r.branch));
+      }
+      if (!weekRows.length) {
+        destroyCharts();
+        main.innerHTML = '<div class="empty">No weekly data found for this date range. Upload the XLSX first.</div>';
+        return;
+      }
+      d = aggWeeklyTotals(weekRows);
+    } else {
+      main.innerHTML = '<div class="loading">Loading daily data...</div>';
+      let dailyRows = await loadDailyRange(dateFrom, dateTo);
+      currentDailyRows = dailyRows;
+      if (!sel.branch.includes('all')) {
+        dailyRows = dailyRows.filter(r => sel.branch.includes(r.branch));
+      }
+      if (!dailyRows.length) {
+        destroyCharts();
+        main.innerHTML = '<div class="empty">No daily data found for this date range.</div>';
+        return;
+      }
+      d = aggDailyData(dailyRows);
     }
-    if (!dailyRows.length) {
-      destroyCharts();
-      main.innerHTML = '<div class="empty">No daily data found for this date range.</div>';
-      return;
-    }
-    d = aggDailyData(dailyRows);
   } else {
+    currentDailyRows = [];
+    window._cachedWeeklyTotals = [];
     filtered = getFilteredData();   // ← assign to hoisted var
     if (!filtered.length) {
       destroyCharts();
@@ -678,9 +939,12 @@ async function renderDashboard() {
     <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
       <div class="metric-label" style="font-size:9px">Total Clients</div>
-      <div style="font-size:9px;color:var(--muted);margin:3px 0 6px"><em>All clients served</em></div>
-      <div class="metric-value" style="font-size:20px">${s.totalClients}</div>
-      <div class="metric-target" style="font-size:10px">Target: ${getClientTarget(sel.branch)}</div>
+      <div style="font-size:9px;color:var(--muted);margin:3px 0 4px"><em>Excludes rebooked clients</em></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <div class="metric-value" style="font-size:20px">${s.totalClients}</div>
+        <button id="breakdownPillBtn" onclick="toggleClientBreakdown()" style="background:${dark?'rgba(153,246,228,0.15)':'rgba(15,110,86,0.08)'};border:1px solid ${dark?'rgba(153,246,228,0.4)':'rgba(15,110,86,0.3)'};color:${dark?'#99F6E4':'#0F6E56'};border-radius:20px;padding:4px 11px;font-size:10px;font-family:inherit;cursor:pointer;white-space:nowrap;letter-spacing:.04em">Breakdown ▾</button>
+      </div>
+      <div class="metric-target" style="font-size:10px;margin-top:8px">Target: ${getClientTarget(sel.branch)}</div>
     </div>
 
     <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px">
@@ -694,19 +958,98 @@ async function renderDashboard() {
     <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
       <div class="metric-label" style="font-size:9px">Rebooking %</div>
-      <div style="font-size:9px;color:var(--muted);margin:3px 0 6px"><em>Rebooked ÷ Total clients</em></div>
+      <div style="font-size:9px;color:var(--muted);margin:3px 0 6px"><em>Hair &amp; Beauty rebooked ÷ Total clients (excl. rebooked)</em></div>
       <div class="metric-value ${sc(s.rebookPct, TARGETS.rebookPct)}" style="font-size:20px">${fmtPct(s.rebookPct)}</div>
       <div class="metric-target" style="font-size:10px">Target: ${TARGETS.rebookPct}%</div>
     </div>
 
-    <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px">
+    <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px" data-hair-ncr="${(s.ncrPct||0).toFixed(4)}" data-beauty-ncr="${s.beautyNcrPct != null ? s.beautyNcrPct.toFixed(4) : 'null'}" data-both-ncr="${(s.combinedNcrPct||0).toFixed(4)}">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
-      <div class="metric-label" style="font-size:9px">NCR %</div>
-      <div style="font-size:9px;color:var(--muted);margin:3px 0 6px"><em>New Client Requests ÷ Total</em></div>
-      <div class="metric-value ${sc(s.ncrPct||0, 20)}" style="font-size:20px">${fmtPct(s.ncrPct||0)}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:2px">
+        <div class="metric-label" id="ncrCardLabel" style="font-size:9px">Hair NCR %</div>
+        <div style="display:flex;gap:2px">
+          ${['hair','beauty','both'].map(m => {
+            const active = (window.ncrView||'hair') === m;
+            const lbl = m === 'both' ? 'H+B' : m.charAt(0).toUpperCase() + m.slice(1);
+            return `<button id="ncrBtn-${m}" onclick="toggleNcrView('${m}')" style="font-size:8px;padding:2px 6px;border-radius:10px;border:1px solid ${dark?'rgba(153,246,228,0.4)':'rgba(15,110,86,0.3)'};background:${active?(dark?'rgba(153,246,228,0.3)':'rgba(15,110,86,0.15)'):'transparent'};color:${dark?'#99F6E4':'#0F6E56'};cursor:pointer;font-family:inherit;font-weight:${active?'700':'400'}">${lbl}</button>`;
+          }).join('')}
+        </div>
+      </div>
+      <div style="font-size:9px;color:var(--muted);margin:2px 0 6px" id="ncrCardDesc"><em>${
+        (window.ncrView||'hair') === 'beauty' ? 'Beauty NCRs ÷ Beauty Clients (excl. rebooked)' :
+        (window.ncrView||'hair') === 'both'   ? 'Hair + Beauty NCRs ÷ Total Clients (excl. rebooked)' :
+        'New Client Requests ÷ Total Clients (excl. rebooked)'
+      }</em></div>
+      <div class="metric-value ${sc(
+        (window.ncrView||'hair') === 'beauty' ? (s.beautyNcrPct||0) :
+        (window.ncrView||'hair') === 'both'   ? (s.combinedNcrPct||0) :
+        (s.ncrPct||0), 20)}" id="ncrCardValue" style="font-size:20px">${
+        (window.ncrView||'hair') === 'beauty' ? (s.beautyNcrPct != null ? fmtPct(s.beautyNcrPct) : '—') :
+        (window.ncrView||'hair') === 'both'   ? fmtPct(s.combinedNcrPct||0) :
+        fmtPct(s.ncrPct||0)
+      }</div>
       <div class="metric-target" style="font-size:10px">Target: ≥ 20%</div>
     </div>
   </div>
+
+  <!-- CLIENT BREAKDOWN PANEL (toggled by Breakdown pill) -->
+  <div id="clientBreakdownPanel" style="display:none">
+    <div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--surface)">
+      <div style="font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:${dark?'#99F6E4':'#0F6E56'};margin-bottom:12px;font-weight:600">Client Breakdown</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+        <!-- HAIR -->
+        <div>
+          <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Hair</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+            ${(()=>{
+              const cats = [
+                ['NCR',      s.hairBreakdown?.ncr,      dark?'rgba(153,246,228,0.14)':'#E8F8F4', dark?'#99F6E4':'#0F6E56'],
+                ['REQ',      s.hairBreakdown?.req,      dark?'rgba(196,181,253,0.14)':'#EDE9FD', dark?'#C4B5FD':'#5340c0'],
+                ['SALON',    s.hairBreakdown?.salon,    dark?'rgba(255,212,217,0.14)':'#FDF0F2', dark?'#FFD4D9':'#b03050'],
+                ['NEW',      s.hairBreakdown?.new,      dark?'rgba(238,243,199,0.14)':'#F5F8E8', dark?'#EEF3C7':'#637000'],
+                ['REBOOKED', s.hairBreakdown?.rebooked, dark?'rgba(255,155,155,0.14)':'#FCEAEA', dark?'#FF9B9B':'#A32D2D'],
+              ];
+              return cats.map(([lbl,val,bg,accent]) => `
+                <div style="text-align:center;background:${bg};border:1px solid ${accent}${dark?'44':'33'};border-radius:8px;padding:8px 4px">
+                  <div style="font-size:7px;letter-spacing:.08em;color:${accent};margin-bottom:3px;font-weight:600">${lbl}</div>
+                  <div style="font-size:16px;font-weight:700;color:var(--text);line-height:1">${val ?? '—'}</div>
+                </div>`).join('');
+            })()}
+          </div>
+        </div>
+
+        <!-- BEAUTY -->
+        <div>
+          <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Beauty</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+            ${(()=>{
+              const cats = [
+                ['NCR',      s.beautyBreakdown?.ncr,      dark?'rgba(153,246,228,0.14)':'#E8F8F4', dark?'#99F6E4':'#0F6E56'],
+                ['REQ',      s.beautyBreakdown?.req,      dark?'rgba(196,181,253,0.14)':'#EDE9FD', dark?'#C4B5FD':'#5340c0'],
+                ['SALON',    s.beautyBreakdown?.salon,    dark?'rgba(255,212,217,0.14)':'#FDF0F2', dark?'#FFD4D9':'#b03050'],
+                ['NEW',      s.beautyBreakdown?.new,      dark?'rgba(238,243,199,0.14)':'#F5F8E8', dark?'#EEF3C7':'#637000'],
+                ['REBOOKED', s.beautyBreakdown?.rebooked, dark?'rgba(255,155,155,0.14)':'#FCEAEA', dark?'#FF9B9B':'#A32D2D'],
+              ];
+              return cats.map(([lbl,val,bg,accent]) => `
+                <div style="text-align:center;background:${bg};border:1px solid ${accent}${dark?'44':'33'};border-radius:8px;padding:8px 4px">
+                  <div style="font-size:7px;letter-spacing:.08em;color:${accent};margin-bottom:3px;font-weight:600">${lbl}</div>
+                  <div style="font-size:16px;font-weight:700;color:var(--text);line-height:1">${val ?? '—'}</div>
+                </div>`).join('');
+            })()}
+          </div>
+        </div>
+
+      </div>
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border2);font-size:9px;color:var(--muted)">
+        Total rebooked: <strong style="color:${dark?'#FF9B9B':'#A32D2D'}">${s.totalRebooked||0}</strong>
+        &nbsp;·&nbsp; Hair: <strong style="color:${dark?'#FF9B9B':'#A32D2D'}">${s.hairBreakdown?.rebooked ?? '—'}</strong>
+        &nbsp;·&nbsp; Beauty: <strong style="color:${dark?'#FF9B9B':'#A32D2D'}">${s.beautyBreakdown?.rebooked ?? '—'}</strong>
+        &nbsp;·&nbsp; Rebooking rate (excl. rebooked): <strong style="color:var(--text)">${fmtPct(s.rebookPct)}</strong>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ROW 2: DIAL + BRANCH BAR + DONUT -->
@@ -761,13 +1104,13 @@ async function renderDashboard() {
       <button class="f-pill"        data-m="avgBill"      style="white-space:nowrap">Avg Bill</button>
       <button class="f-pill"        data-m="totalClients" style="white-space:nowrap">Total Clients</button>
       <button class="f-pill"        data-m="rebookPct"    style="white-space:nowrap">Rebooking %</button>
-      <button class="f-pill"        data-m="ncrPct"       style="white-space:nowrap">NCR %</button>
+      <button class="f-pill"        data-m="ncrPct"       style="white-space:nowrap">Hair NCR %</button>
     </div>
     <div style="position:relative;flex:1;min-height:0"><canvas id="cmpChart"></canvas></div>
   </div>
 
   <!-- Revenue Mix Donut -->
-  <div class="card" style="margin-bottom:0;border-top:3px solid #FFD4D9;display:flex;flex-direction:column;align-items:center;padding:16px 14px;overflow:hidden">
+  <div class="card" style="margin-bottom:0;border-top:3px solid #FFD4D9;display:flex;flex-direction:column;align-items:center;padding:16px 14px;overflow:visible">
     <div style="width:100%;margin-bottom:8px;flex-shrink:0">
       <div class="metric-label" style="font-size:9px">Revenue Mix</div>
       <div style="font-size:9px;color:var(--muted);margin:2px 0 0"><em>Hair · Beauty · Retail</em></div>
@@ -799,12 +1142,12 @@ async function renderDashboard() {
     </div>
     <span class="support-toggle-arrow" id="arrow-revenueRun">▼</span>
   </div>
-  <div class="support-section-body" id="body-revenueRun" style="display:none">
+  <div class="support-section-body" id="body-revenueRun">
     ${(s._retailWarnings && s._retailWarnings.length) ? `
       <div style="margin:8px 0;padding:10px 12px;background:rgba(251,191,36,.08);border-left:3px solid #fbbf24;border-radius:6px;font-size:11px;color:var(--text)">
         <strong style="color:#fbbf24">⚠️ Retail data mismatch detected</strong> across ${s._retailWarnings.length} week(s).
         Daily-sheet sum (used) differs from weekly summary row.
-        ${s._retailWarnings.slice(0,3).map(m => `Daily AED ${Math.round(m.daily).toLocaleString()} vs Summary AED ${Math.round(m.summary).toLocaleString()} (${m.pctDiff}% drift)`).join(' · ')}
+        ${s._retailWarnings.slice(0,3).map(m => `Daily AED ${(m.daily||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} vs Summary AED ${(m.summary||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} (${m.pctDiff}% drift)`).join(' · ')}
       </div>
     ` : ''}
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;padding:12px 0 4px">
@@ -858,7 +1201,7 @@ async function renderDashboard() {
     </div>
     <span class="support-toggle-arrow" id="arrow-clientRun">▼</span>
   </div>
-  <div class="support-section-body" id="body-clientRun" style="display:none">
+  <div class="support-section-body" id="body-clientRun">
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:12px 0 4px">
       <div class="metric m-lav">
         <div class="metric-label">New Clients</div>
@@ -904,7 +1247,7 @@ async function renderDashboard() {
     </div>
     <span class="support-toggle-arrow" id="arrow-retentionRun">▼</span>
   </div>
-  <div class="support-section-body" id="body-retentionRun" style="display:none">
+  <div class="support-section-body" id="body-retentionRun">
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:12px 0 4px">
       <div class="metric m-rose">
         <div class="metric-label">Hair Rebooking %</div>
@@ -944,7 +1287,7 @@ async function renderDashboard() {
     </div>
     <span class="support-toggle-arrow" id="arrow-opsRun">▼</span>
   </div>
-  <div class="support-section-body" id="body-opsRun" style="display:none">
+  <div class="support-section-body" id="body-opsRun">
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:12px 0 4px">
       <div class="metric m-turq">
         <div class="metric-label">Utilisation %</div>
@@ -1047,7 +1390,7 @@ if (canvas) {
     type: 'doughnut',
     data: { labels: donutLabels, datasets: [{ data: donutData, backgroundColor: donutColors, borderColor: donutBorder, borderWidth: 2, hoverOffset: 4 }] },
     options: { cutout:'62%', responsive:true, maintainAspectRatio:false, animation:{animateRotate:true,duration:600,easing:'easeInOutQuart'},
-      plugins: { legend:{display:false}, tooltip:{...ttStyle, callbacks:{label:c=>` ${c.label}: ${fmtAED(c.raw)} (${Math.round(c.raw/donutTotal*100)}%)`}} }
+      plugins: { legend:{display:false}, tooltip:{...ttStyle, callbacks:{label:c=>` ${c.label}: ${fmtAED(c.raw)} (${(c.raw/donutTotal*100).toFixed(2)}%)`}} }
     }
   });
   document.getElementById('donutLegend').innerHTML = donutLabels.map((lbl,i) => `
@@ -1264,7 +1607,7 @@ function renderTeam() {
         let valRaw = glbMetric==='overall' ? overallScore(st,st.isBeauty) : ((st.isBeauty&&glbMetric==='hairSalesNet')?st.beautySales||0:st[glbMetric]||0);
         let valFmt = glbMetric==='rebookPct'||glbMetric==='ncrPct' ? fmtPct(valRaw)
           : glbMetric==='total'   ? Math.round(valRaw).toLocaleString()
-          : glbMetric==='overall' ? valRaw.toFixed(1)
+          : glbMetric==='overall' ? valRaw.toFixed(2)
           : fmtAED(valRaw);
         const barPct  = maxVal ? Math.min(valRaw/maxVal*100, 100) : 0;
         const medal   = i < 3 ? ['🥇','🥈','🥉'][i] : '';
@@ -1667,8 +2010,9 @@ function renderTeam() {
 let allDailyData = [];
 
 async function loadDailyRange(from, to) {
-  const fromStr = from.toISOString().split('T')[0];
-  const toStr   = to.toISOString().split('T')[0];
+  const pad = n => String(n).padStart(2, '0');
+  const fromStr = `${from.getFullYear()}-${pad(from.getMonth()+1)}-${pad(from.getDate())}`;
+  const toStr   = `${to.getFullYear()}-${pad(to.getMonth()+1)}-${pad(to.getDate())}`;
   const { data, error } = await sb
     .from('daily_data')
     .select('*')

@@ -91,6 +91,7 @@ function parseWeekendSheet(wb) {
           salon:        get('SALON'),
           newC:         get('NEW'),
           rebooked:     get('REBOOKED'),
+          rebookBase:   get('TOTAL'),
           rebookPct:    parseNum(row[colMap['REBOOKING %']]) * 100,
           beautySales:  sales,
           beautyNet:    get('BEAUTY SALES TAKE VAT EXCLUSIVE'),
@@ -130,6 +131,7 @@ function parseWeekendSheet(wb) {
           salon:        get('SALON'),
           newC:         get('NEW'),
           rebooked:     get('REBOOKED'),
+          rebookBase:   get('TOTAL'),
           rebookPct:    parseNum(row[colMap['REBOOKING %']]) * 100,
           hairSales:    sales,
           hairSalesNet: get('HAIR SALES TAKE VAT EXCLUSIVE'),
@@ -200,7 +202,7 @@ function parseWeekendSheet(wb) {
     hairSalesNet: hairStaff.reduce((s, st) => s + (st.hairSalesNet || 0), 0),
     retail:       hairStaff.reduce((s, st) => s + (st.retail       || 0), 0),
     treatments:   hairStaff.reduce((s, st) => s + (st.treatments   || 0), 0),
-    total:        hairStaff.reduce((s, st) => s + (st.total        || 0), 0),
+    total:        hairStaff.reduce((s, st) => s + (st.rebookBase   || st.total || 0), 0),
     rebooked:     hairStaff.reduce((s, st) => s + (st.rebooked     || 0), 0),
   };
 

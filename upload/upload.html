@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="parser.js?v=3"></script>
-<script src="upload.js"></script>
+<script src="upload.js?v=2"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -246,8 +246,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <div id="portalSection" style="display:none;">
     <div class="tab-bar">
   <button class="tab-btn" onclick="switchTab(event, 'ops')">⚙️ Operations</button>
-  <button class="tab-btn active" onclick="switchTab(event, 'weekly')">📅 Weekly Upload</button>
-  <button class="tab-btn" onclick="switchTab(event, 'daily')">📆 Daily Upload (MTD)</button>
+  <button class="tab-btn active" onclick="switchTab(event, 'daily')">📆 Daily Upload (MTD)</button>
 </div>
 
     <div class="tab-content" id="tab-ops">
@@ -292,56 +291,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
   </div> 
   
-<!-- ══ WEEKLY TAB ══ -->
-<div class="tab-content active" id="tab-weekly">
-  <div class="upload-card">
-    <div class="card-title">Upload Weekly Data</div>
-    <div class="card-sub">Upload one XLSX file per branch — reads the WEEKEND/weekly summary sheet automatically</div>
-    <div class="xlsx-badge">✦ XLSX Files Only</div>
-
-    <div class="week-label-row">
-      <div class="field">
-        <label class="field-label">Week Label (applies to all files below)</label>
-        <input type="text" id="weekLabel" placeholder="e.g. Apr 2026 Week 4 (20–26)" oninput="checkWeeklyBtn()">
-      </div>
-      <button class="btn" id="uploadWeeklyBtn" onclick="uploadAllWeekly()" disabled style="width:auto;padding:11px 28px">
-        Upload All
-      </button>
-    </div>
-
-    <div class="file-slots" id="fileSlots"></div>
-    <div class="upload-progress" id="uploadProgress" style="display:none"></div>
-  </div>
-
-  <div class="bulk-rename-card">
-    <div class="bulk-rename-header" onclick="toggleBulkRename()">
-      <div>
-        <div class="card-title">Rename Week Labels</div>
-        <div class="card-sub" style="margin-bottom:0">
-          Editing one label renames it across ALL branches at once
-        </div>
-      </div>
-      <button class="btn-outline" id="bulkRenameArrow" style="padding:5px 12px;font-size:10px;flex-shrink:0">
-        Expand All ▼
-      </button>
-    </div>
-
-    <div class="bulk-rename-body" id="bulkRenameBody" style="max-height:0;overflow:hidden">
-      <div class="bulk-week-list" id="bulkWeekList" style="margin-top:12px"></div>
-    </div>
-  </div>
-
-  <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
-    <button class="btn-outline" onclick="collapseAll()" style="padding:5px 12px;font-size:10px">
-      ↕ Collapse All
-    </button>
-  </div>
-
-  <div class="branches-grid" id="branchesGrid"></div>
-</div>
 
 <!-- ══ DAILY TAB ══ -->
-<div class="tab-content" id="tab-daily">
+<div class="tab-content active" id="tab-daily">
 
   <!-- DAILY UPLOAD -->
   <div class="upload-card">

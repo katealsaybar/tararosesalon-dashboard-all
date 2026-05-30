@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -54,6 +54,26 @@
 }
 .support-section-body{
   padding:0 12px;
+  overflow:hidden;
+  max-height:0;
+  transition:max-height .35s ease, padding .35s ease;
+}
+.support-section-body.open{
+  max-height:2000px;
+}
+.breakdown-panel-wrap{
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  margin-top:0;
+  margin-bottom:0;
+  transition:max-height .3s ease, opacity .25s ease, margin .3s ease;
+}
+.breakdown-panel-wrap.open{
+  max-height:500px;
+  opacity:1;
+  margin-top:4px;
+  margin-bottom:4px;
 }
 
 /* 🔥 CONTROLS */
@@ -327,8 +347,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .ms-btn:hover,.ms-btn.open{border-color:var(--accent)}
 .ms-btn svg{flex-shrink:0;opacity:.5;transition:transform .2s}
 .ms-btn.open svg{transform:rotate(180deg)}
-.ms-drop{position:absolute;top:calc(100% + 5px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);min-width:100%;max-height:260px;overflow-y:auto;display:none}
-.ms-drop.open{display:block}
+.ms-drop{position:absolute;top:calc(100% + 5px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);min-width:100%;max-height:260px;overflow-y:auto;opacity:0;pointer-events:none;transform:translateY(-6px);transition:opacity .2s ease,transform .2s ease}
+.ms-drop.open{opacity:1;pointer-events:auto;transform:translateY(0)}
 .ms-opt{display:flex;align-items:center;gap:9px;padding:8px 13px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;border-left:3px solid transparent}
 .ms-opt:hover{background:var(--surface2);color:var(--text)}
 .ms-opt.selected{color:var(--accent);background:var(--surface2);border-left-color:var(--accent);font-weight:600}
@@ -338,8 +358,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 /* DATE RANGE PICKER */
 .date-pill-btn{min-width:220px}
 .date-pill-btn.active{border-color:var(--accent);background:var(--surface2)}
-.date-picker-pop{display:none;position:fixed;z-index:300;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.28);padding:16px;width:300px}
-.date-picker-pop.open{display:block}
+.date-picker-pop{position:fixed;z-index:300;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.28);padding:16px;width:300px;opacity:0;pointer-events:none;transform:translateY(-6px);transition:opacity .2s ease,transform .2s ease}
+.date-picker-pop.open{opacity:1;pointer-events:auto;transform:translateY(0)}
 /* Step indicator */
 .cal-steps{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border2)}
 .cal-step{flex:1;background:var(--surface2);border-radius:10px;padding:7px 10px;border:1.5px solid var(--border)}
@@ -772,7 +792,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" id="daterange-chevron"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <!-- DATE PICKER POPOVER -->
-        <div class="date-picker-pop" id="datePickerPop" style="display:none" onclick="event.stopPropagation()">
+        <div class="date-picker-pop" id="datePickerPop" onclick="event.stopPropagation()">
           <!-- STEP INDICATOR -->
           <div class="cal-steps">
             <div class="cal-step" id="calStepFrom">

@@ -1,5 +1,5 @@
 console.log('JS LOADED');
-const PASS     = '123';
+const PASS     = 'AbuDhabi2026@';
 const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
 const SUPA_KEY = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -22,7 +22,7 @@ let allData = [];
 const openState = {};
 const fileSlots = {};
 const fileSlotsDaily = {};
-BRANCH_KEYS.forEach(k => { fileSlots[k] = []; fileSlotsDaily[k] = null; });
+BRANCH_KEYS.forEach(k => { fileSlots[k] = []; fileSlotsDaily[k] = []; });
 
 // existing records cache per branch
 let existingWeekly = {}; // branch -> Set of week_labels
@@ -61,9 +61,6 @@ function switchTab(e, tab) {
 // ── AUTH ──
 window.addEventListener('DOMContentLoaded', () => {
 
-  initTheme();
-  initAuth();
-
   document.getElementById('prodFile')?.addEventListener('change', function(){
     document.getElementById('prodFileName').textContent = this.files[0]?.name || '';
   });
@@ -73,7 +70,6 @@ window.addEventListener('DOMContentLoaded', () => {
 });
   
   if (sessionStorage.getItem('tr_auth') === '1') showPortal();
-  buildFileSlots();
   buildFileSlotsDaily();
 });
 
@@ -108,7 +104,7 @@ function showPortal() {
   if (portalSection) portalSection.style.display = 'block';
   if (logoutBtn) logoutBtn.style.display = 'inline-block';
 
-  loadData();
+   loadDailyOverview();
 }
 
 function logout() {
@@ -137,10 +133,10 @@ function slotHTML(code, mode) {
       <div class="slot-branch-sub">${info.sub}</div>
       <div class="slot-drop-area" id="${pre}slotDrop_${code}">
         <span class="slot-icon">📊</span>
-        <div class="slot-hint">Click or drag & drop<br>.xlsx or .csv file here</div>
+        <div class="slot-hint">Click or drag & drop<br>.xlsx file here</div>
       </div>
       <button class="slot-clear" id="${pre}slotClear_${code}" style="display:none" onclick="event.stopPropagation();${mode==='daily'?'dClearSlot':'clearSlot'}('${code}')">✕</button>
-      <input type="file" id="${pre}slotInput_${code}" accept=".xlsx,.csv" style="display:none" multiple
+      <input type="file" id="${pre}slotInput_${code}" accept=".xlsx" style="display:none" multiple
         onchange="${mode==='daily'?'dSlotFilesChosen':'slotFilesChosen'}('${code}',this.files)">
     </div>`;
 }
@@ -152,8 +148,8 @@ function setupDnD(code, mode) {
   el.addEventListener('dragleave', () => el.classList.remove('dragover'));
   el.addEventListener('drop', e => {
     e.preventDefault(); el.classList.remove('dragover');
-    const f = e.dataTransfer.files[0];
-    if (f) mode==='daily' ? dSlotFileChosen(code,f) : slotFileChosen(code,f);
+    const files = e.dataTransfer.files;
+    if (files.length) mode==='daily' ? dSlotFilesChosen(code,files) : slotFilesChosen(code,files);
   });
 }
 function buildFileSlots() {
@@ -192,53 +188,65 @@ function slotFilesChosen(slotCode, files) {
 }
 // Keep old name as alias so drag-drop still works
 function slotFileChosen(slotCode, file) { slotFilesChosen(slotCode, [file]); }
-function dSlotFileChosen(slotCode, file) {
-  if (!file) return;
-  const detected = detectBranch(file.name);
-  const target = detected || slotCode;
-  if (detected && detected !== slotCode) { setSlotFile(detected, file, true, 'daily'); showToast(`Auto-assigned → ${BRANCHES[detected].name}`); }
-  else setSlotFile(slotCode, file, !!detected, 'daily');
+function dSlotFilesChosen(slotCode, files) {
+  if (!files || !files.length) return;
+  for (const file of Array.from(files)) {
+    const detected = detectBranch(file.name);
+    const target = detected || slotCode;
+    if (detected && detected !== slotCode) {
+      dAddSlotFile(detected, file, true);
+      showToast(`Auto-assigned → ${BRANCHES[detected].name}`);
+    } else {
+      dAddSlotFile(target, file, !!detected);
+    }
+  }
   checkDailyBtn();
 }
+function dSlotFileChosen(slotCode, file) { dSlotFilesChosen(slotCode, [file]); }
 
 function addSlotFile(code, file, auto, mode) {
-  const pre = mode==='daily' ? 'd' : '';
-  if (mode==='daily') {
-    fileSlotsDaily[code] = file;
-  } else {
-    if (!Array.isArray(fileSlots[code])) fileSlots[code] = [];
-    // Avoid duplicates by name
-    if (!fileSlots[code].find(f => f.name === file.name)) fileSlots[code].push(file);
-  }
-  const slot = document.getElementById(`${pre}slot_${code}`);
-  const drop = document.getElementById(`${pre}slotDrop_${code}`);
-  const clr  = document.getElementById(`${pre}slotClear_${code}`);
+  if (!Array.isArray(fileSlots[code])) fileSlots[code] = [];
+  if (!fileSlots[code].find(f => f.name === file.name)) fileSlots[code].push(file);
+  const slot = document.getElementById(`slot_${code}`);
+  const drop = document.getElementById(`slotDrop_${code}`);
+  const clr  = document.getElementById(`slotClear_${code}`);
   slot.classList.add('has-file');
   clr.style.display = 'block';
+  const count = fileSlots[code].length;
+  drop.innerHTML = `
+    <span class="slot-icon" style="opacity:1">✅</span>
+    <div class="slot-filename">${count} file${count>1?'s':''} queued</div>
+    <div style="font-size:9px;color:var(--muted2);margin-top:3px;line-height:1.4">${fileSlots[code].map(f=>'• '+f.name).join('<br>')}</div>
+    <div class="slot-auto-tag ${auto?'detected':''}"></div>`;
+}
 
+function dAddSlotFile(code, file, auto) {
+  if (!Array.isArray(fileSlotsDaily[code])) fileSlotsDaily[code] = [];
+  if (!fileSlotsDaily[code].find(f => f.name === file.name)) fileSlotsDaily[code].push(file);
+  const slot = document.getElementById(`dslot_${code}`);
+  const drop = document.getElementById(`dslotDrop_${code}`);
+  const clr  = document.getElementById(`dslotClear_${code}`);
+  slot.classList.add('has-file');
+  clr.style.display = 'block';
   let existWarn = '';
-  if (mode==='daily' && existingDaily[code] && existingDaily[code].size > 0) {
+  if (existingDaily[code] && existingDaily[code].size > 0) {
     existWarn = `<div class="slot-existing">⚠️ ${existingDaily[code].size} day(s) already in system</div>`;
     slot.classList.add('has-existing');
   }
-
-  if (mode==='weekly') {
-    const count = fileSlots[code].length;
-    drop.innerHTML = `
-      <span class="slot-icon" style="opacity:1">✅</span>
-      <div class="slot-filename">${count} file${count>1?'s':''} queued</div>
-      <div style="font-size:9px;color:var(--muted2);margin-top:3px;line-height:1.4">${fileSlots[code].map(f=>'• '+f.name).join('<br>')}</div>
-      <div class="slot-auto-tag ${auto?'detected':''}"></div>`;
-  } else {
-    drop.innerHTML = `
-      <span class="slot-icon" style="opacity:1">✅</span>
-      <div class="slot-filename">${file.name}</div>
-      <div class="slot-auto-tag ${auto?'detected':''}"></div>
-      ${existWarn}`;
-  }
+  const count = fileSlotsDaily[code].length;
+  drop.innerHTML = `
+    <span class="slot-icon" style="opacity:1">✅</span>
+    <div class="slot-filename">${count} file${count>1?'s':''} queued</div>
+    <div style="font-size:9px;color:var(--muted2);margin-top:3px;line-height:1.4">${fileSlotsDaily[code].map(f=>'• '+f.name).join('<br>')}</div>
+    <div class="slot-auto-tag ${auto?'detected':''}"></div>
+    ${existWarn}`;
 }
-// Keep old name as alias for daily drag-drop
-function setSlotFile(code, file, auto, mode) { addSlotFile(code, file, auto, mode); }
+
+// Keep old name as alias for drag-drop
+function setSlotFile(code, file, auto, mode) {
+  if (mode === 'daily') dAddSlotFile(code, file, auto);
+  else addSlotFile(code, file, auto, mode);
+}
 
 function clearSlot(code) {
   fileSlots[code] = [];
@@ -246,7 +254,7 @@ function clearSlot(code) {
   checkWeeklyBtn();
 }
 function dClearSlot(code) {
-  fileSlotsDaily[code] = null;
+  fileSlotsDaily[code] = [];
   resetSlot(code, 'daily');
   checkDailyBtn();
 }
@@ -257,7 +265,7 @@ function resetSlot(code, mode) {
   const clr  = document.getElementById(`${pre}slotClear_${code}`);
   slot.classList.remove('has-file','has-existing','dragover');
   clr.style.display = 'none';
-  drop.innerHTML = `<span class="slot-icon">📊</span><div class="slot-hint">Click or drag & drop<br>.xlsx or .csv file here</div>`;
+  drop.innerHTML = `<span class="slot-icon">📊</span><div class="slot-hint">Click or drag & drop<br>.xlsx file here</div>`;
   const inp = document.getElementById(`${pre}slotInput_${code}`);
   if (inp) inp.value = '';
 }
@@ -268,15 +276,109 @@ function checkWeeklyBtn() {
   document.getElementById('uploadWeeklyBtn').disabled = !(hasFile && hasLabel);
 }
 function checkDailyBtn() {
-  document.getElementById('uploadDailyBtn').disabled = !BRANCH_KEYS.some(k => fileSlotsDaily[k]);
+  document.getElementById('uploadDailyBtn').disabled = !BRANCH_KEYS.some(k => Array.isArray(fileSlotsDaily[k]) ? fileSlotsDaily[k].length > 0 : !!fileSlotsDaily[k]);
+}
+
+// ── DAILY STYLIST EXTRACTOR ──
+function extractDailyStylists(rows, date, dayOfWeek, branchCode) {
+  const BEAUTY_NAMES = new Set(['MIMI','GRACE','SHILA','KIM','KIMBERLY','REDA','CHONA']);
+  const SKIP = new Set(['STAFF','TOTALS','TYPE','TYPE ','BUSINESS','TARA','ASISSTANTS','ASSISTANTS',
+    'HAIR RETAIL SALES','TREATMENT SALES','COL TAKE AED','CBD TAKE AED','BEAUTY SALES',
+    'BEAUTY RETAIL SALES','NET SALON TAKE','TOTAL CLIENTS','TOTAL','']);
+
+  const stylistRows = [];
+
+  // Find the name row — row where stylist names are column headers
+  let nameRowIdx = -1;
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+    const row = rows[i];
+    const nonNull = row.filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+    if (nonNull.length >= 3 && typeof nonNull[0] === 'string' && nonNull[0].length > 1) {
+      const first = String(nonNull[0]).trim().toUpperCase();
+      if (!['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY',
+            'DATE','WEEK','BRANCH'].includes(first) && !SKIP.has(first)) {
+        nameRowIdx = i;
+        break;
+      }
+    }
+  }
+  if (nameRowIdx === -1) return [];
+
+  // Build stylist → col index map
+  const stylistCols = {};
+  rows[nameRowIdx].forEach((cell, idx) => {
+    const name = cell ? String(cell).trim() : '';
+    const upper = name.toUpperCase();
+    if (name && !SKIP.has(upper)) stylistCols[name] = idx;
+  });
+
+  // Find metric rows by label in col 0
+  const labelRows = {};
+  const TARGETS = ['REQUEST','REQ','SALON','NEW','REBOOKED','TOTAL','COLOUR','COL',
+                   'HAIR SALES','HAIR SALES TAKE','BEAUTY SALES','BEAUTY SALES TAKE',
+                   'RETAIL','TOTAL RETAIL','TREATMENT','TREATMENTS','AV.BILL','AVG BILL',
+                   'REBOOKING %','COL%','NCR%'];
+  for (let i = nameRowIdx + 1; i < rows.length; i++) {
+    const lbl = rows[i][0] ? String(rows[i][0]).trim().toUpperCase() : '';
+    if (TARGETS.includes(lbl) && labelRows[lbl] === undefined) labelRows[lbl] = i;
+  }
+
+  const get = (label, col) => {
+    const idx = labelRows[label];
+    if (idx === undefined || !rows[idx]) return 0;
+    return parseFloat(String(rows[idx][col] || '').replace(/[^0-9.\-]/g,'')) || 0;
+  };
+
+  for (const [name, col] of Object.entries(stylistCols)) {
+    const upper = name.toUpperCase();
+    const isBeauty = BEAUTY_NAMES.has(upper);
+
+    const total     = get('TOTAL', col) || get('TOTAL', col+1) || 0;
+    const hairSales = get('HAIR SALES TAKE', col) || get('HAIR SALES', col) || 0;
+    const beautySales = get('BEAUTY SALES TAKE', col) || get('BEAUTY SALES', col) || 0;
+
+    if (total === 0 && hairSales === 0 && beautySales === 0) continue;
+
+    const req      = get('REQUEST', col) || get('REQ', col) || 0;
+    const salon    = get('SALON', col) || 0;
+    const rebooked = get('REBOOKED', col) || 0;
+    const newC     = get('NEW', col) || 0;
+    const col_     = get('COLOUR', col) || get('COL', col) || 0;
+    const retail   = get('TOTAL RETAIL', col) || get('RETAIL', col) || 0;
+    const treatments = get('TREATMENTS', col) || get('TREATMENT', col) || 0;
+    const avgBill  = get('AV.BILL', col) || get('AVG BILL', col) || 0;
+    const rebookPct = total > 0 ? (rebooked / total) * 100 : 0;
+    const ncrPct    = (req + salon) > 0 ? (req / (req + salon)) * 100 : 0;
+    const colPct    = total > 0 ? (col_ / total) * 100 : 0;
+
+    stylistRows.push({
+      branch: branchCode,
+      date,
+      day_of_week: dayOfWeek,
+      name: name.trim(),
+      is_beauty: isBeauty,
+      total: Math.round(total),
+      req: Math.round(req),
+      salon: Math.round(salon),
+      new_c: Math.round(newC),
+      rebooked: Math.round(rebooked),
+      rebook_pct: +rebookPct.toFixed(2),
+      hair_sales_net: +hairSales.toFixed(2),
+      hair_sales: +hairSales.toFixed(2),
+      beauty_sales: +beautySales.toFixed(2),
+      avg_bill: +avgBill.toFixed(2),
+      col: Math.round(col_),
+      col_pct: +colPct.toFixed(2),
+      retail: +retail.toFixed(2),
+      treatments: +treatments.toFixed(2),
+      ncr_pct: +ncrPct.toFixed(2),
+    });
+  }
+  return stylistRows;
 }
 
 // ── XLSX PARSER: DAILY ──
 async function parseXLSXDaily(file, branchCode) {
-
-  if (file.name.toLowerCase().endsWith('.csv')) {
-    return parseCSVDaily(file, branchCode);
-  }
   const ab = await file.arrayBuffer();
   // Read WITHOUT cellDates — get raw serial numbers, handle dates ourselves
   const wb = XLSX.read(ab, { type:'array', cellDates:false });
@@ -335,25 +437,6 @@ async function parseXLSXDaily(file, branchCode) {
   return results;
 }
 
-async function parseCSVDaily(file, branchCode) {
-
-  const text = await file.text();
-
-  const rows = text
-    .split('\n')
-    .map(r => r.split(','));
-
-  if (!rows.length) {
-    throw new Error('CSV empty');
-  }
-
-  return rows.map((row, index) => ({
-    branch: branchCode,
-    raw_data: row,
-    row_number: index + 1
-  }));
-}
-
 // ── UPLOAD WEEKLY ──
 async function uploadAllWeekly() {
   const weekLabel = document.getElementById('weekLabel').value.trim();
@@ -392,9 +475,9 @@ async function uploadAllWeekly() {
           badge = `<div style="margin-top:4px;padding:6px 8px;background:rgba(239,68,68,.15);border-left:3px solid #ef4444;border-radius:4px;font-size:11px;color:#fca5a5">⚠️ <strong>${BRANCHES[code].name}:</strong> No retail detected (source: ${rd.source}). Check spreadsheet labels.</div>`;
         } else if (rd.mismatch) {
           const m = rd.mismatch;
-          badge = `<div style="margin-top:4px;padding:6px 8px;background:rgba(251,191,36,.12);border-left:3px solid #fbbf24;border-radius:4px;font-size:11px;color:#fcd34d">⚠️ <strong>${BRANCHES[code].name}:</strong> Retail mismatch — daily AED ${m.daily.toLocaleString()} vs summary AED ${m.summary.toLocaleString()} (${m.pctDiff}% drift). Using daily total.</div>`;
+          badge = `<div style="margin-top:4px;padding:6px 8px;background:rgba(251,191,36,.12);border-left:3px solid #fbbf24;border-radius:4px;font-size:11px;color:#fcd34d">⚠️ <strong>${BRANCHES[code].name}:</strong> Retail mismatch — daily AED ${(m.daily||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} vs summary AED ${(m.summary||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} (${m.pctDiff}% drift). Using daily total.</div>`;
         } else {
-          badge = `<div style="margin-top:4px;padding:4px 8px;font-size:10px;color:var(--muted)">Retail: AED ${retailVal.toLocaleString()} (source: ${rd.source}, ${rd.daysWithRetail}/${rd.daysScanned} days)</div>`;
+          badge = `<div style="margin-top:4px;padding:4px 8px;font-size:10px;color:var(--muted)">Retail: AED ${(retailVal||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} (source: ${rd.source}, ${rd.daysWithRetail}/${rd.daysScanned} days)</div>`;
         }
         const psEl = document.getElementById('ps_'+code);
         if (psEl && psEl.parentElement) {
@@ -438,9 +521,74 @@ const {error} = await sb.from('weekly_data').insert({branch:code,week_label:week
   await loadData();
 }
 
+// ── WEEKEND TOTALS EXTRACTOR ──
+function extractWeekendTotals(wb, branchCode, dailyRows) {
+  function serialToDate(serial) {
+    if (!serial || typeof serial !== 'number') return null;
+    const ms = (serial - 25569) * 86400 * 1000;
+    const d = new Date(ms);
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+  }
+  function getSheetDate(sheetName) {
+    const ws = wb.Sheets[sheetName];
+    if (!ws) return null;
+    const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:null });
+    const cell0 = rows[0] && rows[0][0];
+    if (typeof cell0 === 'number') return serialToDate(cell0);
+    if (typeof cell0 === 'string' && cell0.includes('/')) {
+      const p = cell0.split('/');
+      if (p.length === 3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+    }
+    return null;
+  }
+  const weekStart = getSheetDate('MONDAY');
+  const weekEnd   = getSheetDate('SUNDAY');
+  if (!weekStart || !weekEnd) return null;
+  const { hairStaff, beautyStaff, summary } = parseWeekendSheet(wb);
+  if (!hairStaff.length && !beautyStaff.length) return null;
+  const hairClients    = hairStaff.reduce((s, st) => s + (st.rebookBase || st.total || 0), 0);
+  const hairRebooked   = hairStaff.reduce((s, st) => s + (st.rebooked || 0), 0);
+  const beautyClients  = beautyStaff.reduce((s, st) => s + (st.rebookBase || st.total || 0), 0);
+  const beautyRebooked = beautyStaff.reduce((s, st) => s + (st.rebooked || 0), 0);
+  const hairNcr        = (dailyRows || []).reduce((s, r) => s + (r.hair_ncr || 0), 0);
+  // Per-category breakdown (from WEEKEND sheet parser)
+  const hairNcrW   = hairStaff.reduce((s, st) => s + (st.newClientReq || 0), 0);
+  const hairReq    = hairStaff.reduce((s, st) => s + (st.req || 0), 0);
+  const hairSalon  = hairStaff.reduce((s, st) => s + (st.salon || 0), 0);
+  const hairNew    = hairStaff.reduce((s, st) => s + (st.newC || 0), 0);
+  const beautyNcr  = beautyStaff.reduce((s, st) => s + (st.newClientReq || 0), 0);
+  const beautyReq  = beautyStaff.reduce((s, st) => s + (st.req || 0), 0);
+  const beautySalon= beautyStaff.reduce((s, st) => s + (st.salon || 0), 0);
+  const beautyNew  = beautyStaff.reduce((s, st) => s + (st.newC || 0), 0);
+  return {
+    branch:           branchCode,
+    week_start:       weekStart,
+    week_end:         weekEnd,
+    hair_clients:     hairClients,
+    hair_rebooked:    hairRebooked,
+    beauty_clients:   beautyClients,
+    beauty_rebooked:  beautyRebooked,
+    total_clients:    hairClients + beautyClients,
+    hair_ncr_weekend: hairNcrW,
+    hair_req:         hairReq,
+    hair_salon:       hairSalon,
+    hair_new:         hairNew,
+    beauty_ncr:       beautyNcr,
+    beauty_req:       beautyReq,
+    beauty_salon:     beautySalon,
+    beauty_new:       beautyNew,
+    net_take:        summary.netTake        || 0,
+    hair_retail:     summary.hairRetail     || 0,
+    treatments:      summary.treatmentSales || 0,
+    col_take:        summary.colTake        || 0,
+    beauty_sales:    summary.beautySales    || 0,
+    hair_ncr:        hairNcr,
+  };
+}
+
 // ── UPLOAD DAILY ──
 async function uploadAllDaily() {
-  const toUpload = BRANCH_KEYS.filter(k => fileSlotsDaily[k]);
+  const toUpload = BRANCH_KEYS.filter(k => Array.isArray(fileSlotsDaily[k]) ? fileSlotsDaily[k].length > 0 : !!fileSlotsDaily[k]);
   if (!toUpload.length) { alert('Please add at least one XLSX file.'); return; }
   const btn = document.getElementById('uploadDailyBtn');
   btn.disabled=true; btn.textContent='Uploading...';
@@ -458,17 +606,46 @@ async function uploadAllDaily() {
     document.getElementById('dps_'+code).className='prog-status loading';
     document.getElementById('dpb_'+code).style.width='20%';
     try {
-      const dailyRows = await parseXLSXDaily(fileSlotsDaily[code], code);
-      if (!dailyRows.length) throw new Error('No daily sheets found');
-      document.getElementById('dpb_'+code).style.width='50%';
-      document.getElementById('dps_'+code).textContent=`Uploading ${dailyRows.length} days…`;
-      // Delete existing for same branch + dates (overwrite)
-      const dates = dailyRows.map(r=>r.date);
-      await sb.from('daily_data').delete().eq('branch',code).in('date',dates);
-      const {error} = await sb.from('daily_data').insert(dailyRows);
-      if (error) throw error;
+      const files = Array.isArray(fileSlotsDaily[code]) ? fileSlotsDaily[code] : [fileSlotsDaily[code]];
+      let totalDays = 0;
+      for (const singleFile of files) {
+        const dailyRows = await parseXLSXDaily(singleFile, code);
+        if (!dailyRows.length) continue;
+        document.getElementById('dpb_'+code).style.width='50%';
+        document.getElementById('dps_'+code).textContent=`Uploading ${dailyRows.length} days…`;
+        // Delete existing for same branch + dates (overwrite)
+        const dates = dailyRows.map(r=>r.date);
+        await sb.from('daily_data').delete().eq('branch',code).in('date',dates);
+        const {error} = await sb.from('daily_data').insert(dailyRows);
+
+        // Also extract + save per-stylist rows to daily_stylist_data
+        const wb2 = XLSX.read(await singleFile.arrayBuffer(), { type:'array', cellDates:false });
+        let allStylistRows = [];
+        for (const sheetName of wb2.SheetNames) {
+          const upper = sheetName.toUpperCase();
+          if (!DAY_SHEETS.includes(upper)) continue;
+          const ws2 = wb2.Sheets[sheetName];
+          const sheetRows = XLSX.utils.sheet_to_json(ws2, { header:1, defval:null });
+          const matchingDay = dailyRows.find(r => r.day_of_week === upper);
+          if (!matchingDay) continue;
+          const stylistRows = extractDailyStylists(sheetRows, matchingDay.date, upper, code);
+          allStylistRows = allStylistRows.concat(stylistRows);
+        }
+        if (allStylistRows.length) {
+          await sb.from('daily_stylist_data').delete().eq('branch',code).in('date',dates);
+          await sb.from('daily_stylist_data').insert(allStylistRows);
+        }
+        const weekTotals = extractWeekendTotals(wb2, code, dailyRows);
+        if (weekTotals) {
+          await sb.from('weekly_totals').delete().eq('branch', code).eq('week_start', weekTotals.week_start);
+          await sb.from('weekly_totals').insert(weekTotals);
+        }
+        if (error) throw error;
+        totalDays += dailyRows.length;
+      }
+      if (totalDays === 0) throw new Error('No daily sheets found');
       document.getElementById('dpb_'+code).style.width='100%';
-      document.getElementById('dps_'+code).textContent=`✅ ${dailyRows.length} days`;
+      document.getElementById('dps_'+code).textContent=`✅ ${totalDays} days (${files.length} file${files.length>1?'s':''})`;
       document.getElementById('dps_'+code).className='prog-status ok';
     } catch(e) {
       document.getElementById('dpb_'+code).style.width='100%';
@@ -480,7 +657,7 @@ async function uploadAllDaily() {
   }
   if (allOk) {
     showToast('✅ All daily data uploaded!');
-    BRANCH_KEYS.forEach(k=>{if(fileSlotsDaily[k])dClearSlot(k);});
+    BRANCH_KEYS.forEach(k=>{ if(Array.isArray(fileSlotsDaily[k]) ? fileSlotsDaily[k].length : fileSlotsDaily[k]) dClearSlot(k); });
     setTimeout(()=>{prog.style.display='none';prog.innerHTML='';},2000);
   }
   btn.disabled=false; btn.textContent='Upload All Daily Data';
@@ -568,7 +745,7 @@ async function loadDailyOverview() {
           <div class="daily-accent" style="background:${BRANCHES[k].color}"></div>
           <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:8px;align-items:center">
             <span style="color:var(--muted)">${rows.length} days total</span>
-            <span style="color:var(--good);font-weight:700">AED ${Math.round(grandTotal).toLocaleString()}</span>
+            <span style="color:var(--good);font-weight:700">AED ${(grandTotal||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
           </div>
           <!-- BULK DELETE BAR -->
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
@@ -588,7 +765,7 @@ async function loadDailyOverview() {
                   <div style="display:flex;align-items:center;gap:4px">
                     <div onclick="toggleDailySection('${yrKey}')" style="flex:1;display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--surface);border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text);border:1px solid var(--border2)">
                       <span>${yr}</span>
-                      <span style="color:var(--good);font-size:10px">AED ${Math.round(yrTotal).toLocaleString()}</span>
+                      <span style="color:var(--good);font-size:10px">AED ${(yrTotal||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
                     </div>
                     <button class="btn-danger" style="padding:3px 7px;font-size:10px;flex-shrink:0" title="Delete entire year" onclick="deleteGroup(${JSON.stringify(yrIds)},'${yr} (${yrRows.length} days)')">🗑</button>
                   </div>
@@ -603,7 +780,7 @@ async function loadDailyOverview() {
                           <div style="display:flex;align-items:center;gap:4px">
                             <div onclick="toggleDailySection('${moKey}')" style="flex:1;display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:var(--surface2);border-radius:6px;cursor:pointer;font-size:11px;color:var(--muted);border:1px solid var(--border2)">
                               <span style="font-weight:600">${MONTHS_FULL[parseInt(mo)]}</span>
-                              <span style="color:var(--good);font-size:10px">AED ${Math.round(moTotal).toLocaleString()} · ${moRows.length}d</span>
+                              <span style="color:var(--good);font-size:10px">AED ${(moTotal||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} · ${moRows.length}d</span>
                             </div>
                             <button class="btn-danger" style="padding:3px 7px;font-size:10px;flex-shrink:0" title="Delete entire month" onclick="deleteGroup(${JSON.stringify(moIds)},'${MONTHS_FULL[parseInt(mo)]} ${yr} (${moRows.length} days)')">🗑</button>
                           </div>
@@ -620,7 +797,7 @@ async function loadDailyOverview() {
                                   <div style="display:flex;align-items:center;gap:4px">
                                     <div onclick="toggleDailySection('${wkKey}')" style="flex:1;display:flex;justify-content:space-between;align-items:center;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:10px;color:var(--muted2);border-bottom:1px solid var(--border2)">
                                       <span>Week: ${fmtShort(wk)} – ${fmtShort(sun)}</span>
-                                      <span style="color:var(--good)">AED ${Math.round(wkTotal).toLocaleString()} · ${wkRows.length}d</span>
+                                      <span style="color:var(--good)">AED ${(wkTotal||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} · ${wkRows.length}d</span>
                                     </div>
                                     <button class="btn-danger" style="padding:3px 7px;font-size:10px;flex-shrink:0" title="Delete entire week" onclick="deleteGroup(${JSON.stringify(wkIds)},'week ${fmtShort(wk)}–${fmtShort(sun)} (${wkRows.length} days)')">🗑</button>
                                   </div>
@@ -632,7 +809,7 @@ async function loadDailyOverview() {
                                           <div class="daily-record-date">${r.date}</div>
                                           <div class="daily-record-day">${r.day_of_week}</div>
                                         </div>
-                                        <div class="daily-record-total" style="font-size:10px">AED ${Math.round(r.total||0).toLocaleString()}</div>
+                                        <div class="daily-record-total" style="font-size:10px">AED ${(r.total||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
                                         <div class="daily-record-actions">
                                           <button class="btn-dl" onclick="downloadDailyRecord('${r.id}','${r.branch}','${r.date}')" title="Download">↓</button>
                                           <button class="btn-danger" onclick="deleteDailyRecord('${r.id}','${r.date}')" title="Delete">✕</button>
@@ -1128,8 +1305,7 @@ if (utilErr) {
     const { error: prodErr } = await sb.from('product_usage').insert(clean);
 if (prodErr) {
   console.error(prodErr);
-  console.error(error);
-alert('Product upload failed: ' + (error?.message || error));
+  alert('Product upload failed');
   return;
 }
   }
