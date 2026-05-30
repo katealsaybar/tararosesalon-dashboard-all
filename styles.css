@@ -159,23 +159,6 @@ aside.sidebar {
 .ms-opt.selected { color: var(--accent); background: var(--surface2); border-left-color: var(--accent); font-weight: 600; }
 .ms-opt.all-opt { font-weight: 600; border-bottom: 1px solid var(--border); border-left: 3px solid transparent; }
 .ms-opt.all-opt.selected { color: var(--accent); background: var(--surface2); border-left-color: var(--accent); }
-/* ── BRANCH CHECKBOX ── */
-.ms-chk {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0;
-  border: 1.5px solid var(--border); background: transparent;
-  transition: all .15s;
-}
-.ms-chk.on {
-  background: var(--accent); border-color: var(--accent);
-}
-.ms-chk.on::after {
-  content: ''; display: block;
-  width: 4px; height: 7px;
-  border-right: 2px solid var(--accent-fg);
-  border-bottom: 2px solid var(--accent-fg);
-  transform: rotate(45deg) translate(-1px, -1px);
-}
 
 /* ── DATE RANGE PICKER ── */
 .date-pill-btn { min-width: 220px; }
