@@ -45,9 +45,6 @@ let dateTo   = null; // JS Date object
 // collapsible section open/close state (persists across re-renders)
 const sectionState = { revenueRun: false, clientRun: false, retentionRun: false, opsRun: false };
 
-// daily rows cache — set during daily-mode render, used by aggByBranch
-let currentDailyRows = [];
-
 
 // ── THEME ───────────────────────────────────────────────────
 
@@ -130,27 +127,20 @@ function buildDrop(key, options) {
   const drop  = document.getElementById('drop-' + key);
   const isAll = sel[key].includes('all');
   drop.innerHTML = `
-    <div class="ms-opt all-opt ${isAll ? 'selected' : ''}" data-val="all" onclick="toggleOpt('${key}','all')">
-      <span class="ms-chk ${isAll ? 'on' : ''}"></span>All Branches
-    </div>
+    <div class="ms-opt all-opt ${isAll ? 'selected' : ''}" data-val="all" onclick="toggleOpt('${key}','all')">All Branches</div>
     ${options.map(o => {
       const active = !isAll && sel[key].includes(o.val);
       const dot = BRANCH_INFO[o.val]
-        ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${BRANCH_INFO[o.val].color};flex-shrink:0;"></span>` : '';
-      return `<div class="ms-opt ${active ? 'selected' : ''}" data-val="${o.val}" onclick="toggleOpt('${key}','${o.val}')">
-        <span class="ms-chk ${active ? 'on' : ''}"></span>${dot}${o.label}
-      </div>`;
+        ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${BRANCH_INFO[o.val].color};flex-shrink:0;margin-right:2px"></span>` : '';
+      return `<div class="ms-opt ${active ? 'selected' : ''}" data-val="${o.val}" onclick="toggleOpt('${key}','${o.val}')">${dot}${o.label}</div>`;
     }).join('')}`;
   updateLabel(key, options);
 }
 
 function toggleOpt(key, val) {
-  if (val === 'all') {
-    sel[key] = ['all'];
-  } else if (sel[key].includes('all')) {
-    sel[key] = Object.keys(BRANCH_INFO).filter(b => b !== val);
-    if (!sel[key].length) sel[key] = ['all'];
-  } else {
+  if (val === 'all') { sel[key] = ['all']; }
+  else {
+    sel[key] = sel[key].filter(x => x !== 'all');
     if (sel[key].includes(val)) sel[key] = sel[key].filter(x => x !== val);
     else sel[key].push(val);
     if (!sel[key].length) sel[key] = ['all'];
@@ -161,10 +151,8 @@ function toggleOpt(key, val) {
   const isAllNow = sel[key].includes('all');
   drop.querySelectorAll('.ms-opt').forEach(el => {
     const v = el.dataset.val;
-    const isSelected = el.classList.contains('all-opt') ? isAllNow : (!isAllNow && sel[key].includes(v));
-    el.classList.toggle('selected', isSelected);
-    const chk = el.querySelector('.ms-chk');
-    if (chk) chk.classList.toggle('on', isSelected);
+    if (el.classList.contains('all-opt')) el.classList.toggle('selected', isAllNow);
+    else el.classList.toggle('selected', !isAllNow && sel[key].includes(v));
   });
   drop.classList.add('open');
   document.getElementById('btn-' + key).classList.add('open');
@@ -426,7 +414,7 @@ function aggDailyData(dailyRows) {
   s.avgBill       = s.totalClients ? s.netTake / s.totalClients : 0;
   s.hairRetailPct = s.netTake ? (s.hairRetail / s.netTake * 100) : 0;
   s.treatmentPct  = s.netTake ? (s.treatmentSales / s.netTake * 100) : 0;
-  s.rebookPct     = s.totalClients ? (totalRebooked / s.totalClients * 100) : 0;
+  s.rebookPct     = totalHairClients ? (totalRebooked / totalHairClients * 100) : 0;
   s.ncrPct        = s.totalClients ? (totalReq / s.totalClients * 100) : 0;
   s.beautyPct     = s.netTake ? (s.beautySales / s.netTake * 100) : 0;
   s.retentionPct  = s.rebookPct;
@@ -509,7 +497,7 @@ function aggData(datasets) {
   s.hairRetailPct = s.netTake ? (s.hairRetail / s.netTake * 100) : 0;
   s._retailWarnings = retailWarnings;
 
-  s.rebookPct = s.totalClients ? (totalRebooked / s.totalClients * 100) : 0;
+  s.rebookPct = totalHairClients ? (totalRebooked / totalHairClients * 100) : 0;
   s.beautyPct = s.netTake ? (s.beautySales / s.netTake * 100) : 0;
 
   const totalNewC = Object.values(hairMap).reduce((acc, st) => acc + (st.newC || 0), 0);
@@ -563,26 +551,19 @@ function aggData(datasets) {
 function aggByBranch() {
   const result = {};
   Object.keys(BRANCH_INFO).forEach(code => {
-    if (dateFrom && dateTo && currentDailyRows.length) {
-      // Daily mode: split the cached daily rows by branch
-      const branchRows = currentDailyRows.filter(r => r.branch === code);
-      result[code] = branchRows.length ? aggDailyData(branchRows) : null;
-    } else {
-      // Weekly mode: filter allData by branch + date range
-      const rows = allData.filter(d => {
-        if (d.branch !== code) return false;
-        if (dateFrom || dateTo) {
-          const weekDates = getWeekDatesFromLabel(d.week_label);
-          const checkDate = weekDates
-            ? weekDates.start
-            : (() => { const u = new Date(d.uploaded_at); u.setHours(0,0,0,0); return u; })();
-          if (dateFrom && checkDate < dateFrom) return false;
-          if (dateTo   && checkDate > dateTo)   return false;
-        }
-        return true;
-      });
-      result[code] = aggData(rows.map(d => d.data));
-    }
+    const rows = allData.filter(d => {
+      if (d.branch !== code) return false;
+      if (dateFrom || dateTo) {
+        const weekDates = getWeekDatesFromLabel(d.week_label);
+        const checkDate = weekDates
+          ? weekDates.start
+          : (() => { const u = new Date(d.uploaded_at); u.setHours(0,0,0,0); return u; })();
+        if (dateFrom && checkDate < dateFrom) return false;
+        if (dateTo   && checkDate > dateTo)   return false;
+      }
+      return true;
+    });
+    result[code] = aggData(rows.map(d => d.data));
   });
   return result;
 }
@@ -653,7 +634,6 @@ async function renderDashboard() {
   if (dateFrom && dateTo) {
     main.innerHTML = '<div class="loading">Loading daily data...</div>';
     let dailyRows = await loadDailyRange(dateFrom, dateTo);
-    currentDailyRows = dailyRows; // store all rows before branch filter so aggByBranch can split per branch
     if (!sel.branch.includes('all')) {
       dailyRows = dailyRows.filter(r => sel.branch.includes(r.branch));
     }
@@ -664,7 +644,6 @@ async function renderDashboard() {
     }
     d = aggDailyData(dailyRows);
   } else {
-    currentDailyRows = [];
     filtered = getFilteredData();   // ← assign to hoisted var
     if (!filtered.length) {
       destroyCharts();
