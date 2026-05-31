@@ -5,7 +5,7 @@
 
 /* ── RESET ── */
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
+.
 /* ── THEME VARIABLES ── */
 [data-theme="light"] {
   --bg: #F9E8DF; --surface: #fff; --surface2: #fdf8f6;
