@@ -31,7 +31,7 @@ const STYLIST_SURNAMES = {
   "Katie":     "Sanchez",
   "Kylie":     "Bazely",
   "Lizanie":   "Jacobsz",
-  "Lucy":      "Gonzalez Rodriguez",
+  "Lucy":      "Rodriguez",
   "Molly":     "Robinson",
   "Nikki":     "Asuncion",
   "Olena":     "Ostertag",
@@ -87,6 +87,7 @@ const STYLIST_PHOTOS = {
   "Ibrahim":   "MC/ibrahim al mofdi.jpg",
 
   "Lucy":      "AQ/lucy gonzales rodriguez.jpg",
+  "Toni":      "KCA/toni brits.png",
 };
 
 const STYLIST_IG = {
@@ -130,7 +131,8 @@ const BRANCH_INFO = {
 const BEAUTY_NAMES = new Set(['MIMI','GRACE','SHILA','KIM','KIMBERLY','REDA','CHONA']);
 const SKIP_NAMES   = new Set(['STAFF','TOTALS','TYPE','TYPE ','BUSINESS','TARA','ASISSTANTS','ASSISTANTS',
   'HAIR RETAIL SALES','TREATMENT SALES','COL TAKE AED','CBD TAKE AED','BEAUTY SALES','BEAUTY RETAIL SALES',
-  'NET SALON TAKE','TOTAL CLIENTS']);
+  'NET SALON TAKE','TOTAL CLIENTS',
+  'SHELLY']); // duplicate Phorest account — real record is SHELLEY DOUGLAS
 
 const AVATAR_COLORS = ['#C4B5FD','#99F6E4','#FFD4D9','#FF9B9B','#EEF3C7','#B5EAD7','#FFDAC1','#D4E4FF'];
 const fmtAED = n  => 'AED ' + (n||0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -195,6 +197,19 @@ function toggleTheme(){
 
 
 // ── FILTER HELPERS ─────────────────────────────────────────
+function setTypeFilter(type, el){
+  typeFilter = type;
+  document.querySelectorAll('#filterAll,#filterHair,#filterBeauty').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderGrid();
+}
+function setSort(key, el){
+  sortKey = key;
+  document.querySelectorAll('#sortSales,#sortClients,#sortRebook,#sortAvgBill').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderGrid();
+}
+
 async function loadData(){
   // Fetch all weekly_data rows (same source as main dashboard)
   const PAGE = 1000;
@@ -215,19 +230,6 @@ async function loadData(){
     if(data.length < PAGE) break;
     from += PAGE;
   }
-
-  function setTypeFilter(type, el){
-  typeFilter = type;
-  document.querySelectorAll('#filterAll,#filterHair,#filterBeauty').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
-  renderGrid();
-}
-function setSort(key, el){
-  sortKey = key;
-  document.querySelectorAll('#sortSales,#sortClients,#sortRebook,#sortAvgBill').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
-  renderGrid();
-}
 
   // Flatten weekly_data JSON into one row per stylist per week
   allRows = [];
@@ -325,17 +327,24 @@ function isSkip(name){
 // Merge duplicate/misspelled Phorest names into one canonical name
 const NAME_ALIASES = {
   "Shelly":  "Shelley",
+  "Lucia":   "Lucy",
 };
 
 function normaliseName(raw) {
-  return NAME_ALIASES[raw] || raw;
+  if (NAME_ALIASES[raw]) return NAME_ALIASES[raw];
+  const lower = raw.toLowerCase();
+  for (const [alias, canonical] of Object.entries(NAME_ALIASES)) {
+    if (alias.toLowerCase() === lower) return canonical;
+  }
+  return raw;
 }
 
 function buildStylistMap(){
   stylistMap = {};
   for(const row of allRows){
-    const name = normaliseName((row.name || '').trim());
-    if(!name || isSkip(name)) continue;
+    const rawName = (row.name || '').trim();
+    if(!rawName || isSkip(rawName)) continue;
+    const name = normaliseName(rawName);
     const isBeauty = row.is_beauty || BEAUTY_NAMES.has(name.toUpperCase());
     if(!stylistMap[name]){
       stylistMap[name] = { name, isBeauty, weeks:[], color: AVATAR_COLORS[Object.keys(stylistMap).length % AVATAR_COLORS.length] };
@@ -407,17 +416,30 @@ function getStats(stylist){
 
   if(window.DEBUG) console.log('FILTERED WEEKS:', weeks.length);
 
-// 🔥 DATE FILTER 
+// 🔥 DATE FILTER
 if (dateFrom || dateTo) {
   weeks = weeks.filter(w => {
     const weekDates = getWeekDatesFromLabel(w.week_label);
     let checkDate;
     if (weekDates) {
-      checkDate = weekDates.start;
+      // Include if the week overlaps the selected range at all (start ≤ dateTo AND end ≥ dateFrom)
+      if (dateFrom && weekDates.end < dateFrom) return false;
+      if (dateTo   && weekDates.start > dateTo) return false;
+      return true;
     } else {
-      const dateStr = w.date_key || '';
-      const [y,m,d] = dateStr.split('-').map(Number);
-      checkDate = (y && m && d) ? new Date(y, m-1, d) : new Date(w.uploaded_at);
+      // Fallback: try uploaded_at date only — but don't use it as the week date
+      // since upload can happen days/weeks after the actual week period.
+      // Instead, parse the year/month from the week_label text directly.
+      const labelYear  = (w.week_label || '').match(/20\d\d/);
+      const MMAP = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+      const labelMonth = (w.week_label || '').match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i);
+      if (labelYear && labelMonth) {
+        // Place the record at the 1st of that month — good enough for monthly filtering
+        checkDate = new Date(parseInt(labelYear[0]), MMAP[labelMonth[1].toLowerCase()], 1);
+      } else {
+        // No date info at all — include the record rather than exclude it
+        return true;
+      }
     }
     if (dateFrom && checkDate < dateFrom) return false;
     if (dateTo   && checkDate > dateTo)   return false;
@@ -545,15 +567,25 @@ function renderSection(list, gridId, title, count, titleId){
         <div>
           <div class="stylist-card-name">${s.name}${surname ? ' ' + surname : ''}</div>
           <div class="stylist-card-type">
-  ${s.isBeauty ? '💅 Beautician' : '✂️ Hair Stylist'} · ${st.weeksActive}w · ${[...new Set(st.weeks.map(w=>BRANCH_INFO[w.branch]?.name||w.branch))].join(', ')}
+  <span class="job-pill ${s.isBeauty?'beauty':'hair'}">${s.isBeauty?'💅 Beautician':'✂️ Hair Stylist'}</span>${[...new Set(st.weeks.map(w=>w.branch))].map(b=>{const slug={KCA:'kca',SAA:'saa',MC:'mc',AQ:'aq',FRT:'frt'}[b]||'kca';const label=BRANCH_INFO[b]?.name||b;return`<span class="branch-pill ${slug}">${label}</span>`;}).join('')}<span class="weeks-label">${st.weeksActive}w</span>
         </div>
         ${igUrl ? `<a href="${igUrl}" target="_blank" onclick="event.stopPropagation()" class="ig-link" title="View on Instagram"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg><span>View on Instagram</span></a>` : ''}
         </div>
       </div>
       <div class="stylist-card-stat"><span>${revLabel}</span><span class="stylist-card-val">${fmtAED(rev)}</span></div>
-      <div class="stylist-card-stat"><span>Clients</span><span class="stylist-card-val">${st.total}</span></div>
-      <div class="stylist-card-stat"><span>Rebook</span><span class="stylist-card-val">${fmtPct(st.rebookPct)}</span></div>
       <div class="stylist-card-stat"><span>Avg Bill</span><span class="stylist-card-val">${fmtAED(st.avgBill)}</span></div>
+      <div class="stylist-card-stat stylist-card-clients">
+        <span>Clients</span>
+        <span class="stylist-card-val client-breakdown">
+          <span class="cb-tag">Salon <strong>${st.salon}</strong></span>
+          <span class="cb-tag">Req <strong>${st.req}</strong></span>
+          <span class="cb-tag">New <strong>${st.newC}</strong></span>
+        </span>
+      </div>
+      <div class="stylist-card-stat"><span>Rebooked</span><span class="stylist-card-val">${st.rebooked}</span></div>
+      <div class="stylist-card-stat"><span>Rebook %</span><span class="stylist-card-val">${fmtPct(st.rebookPct)}</span></div>
+      <div class="stylist-card-stat"><span>Retail Sales</span><span class="stylist-card-val">${fmtAED(st.retail)}</span></div>
+      <div class="stylist-card-stat"><span>Retail %</span><span class="stylist-card-val">${fmtPct(st.retailPct)}</span></div>
       <div class="stylist-weeks-pills">${pillsHTML}</div>
     </div>`;
   }).join('');
@@ -716,7 +748,11 @@ function renderDetail(s){
 }
 
 function renderWeekTable(st, isBeauty){
-  const weeks = [...st.weeks].sort((a,b)=>a.week_label.localeCompare(b.week_label));
+  const weeks = [...st.weeks].sort((a,b)=>{
+    const da = parseWeekLabelToDate(a.week_label) || new Date(a.date_key||0);
+    const db = parseWeekLabelToDate(b.week_label) || new Date(b.date_key||0);
+    return da - db;
+  });
   const cols = isBeauty
     ? ['week_label','branch','total','rebooked','rebookPct','beautySales','avgBill']
     : ['week_label','branch','total','rebooked','rebookPct','hairSalesNet','avgBill','col','colPct','retail','treatments'];

@@ -94,7 +94,33 @@ select{cursor:pointer;min-width:140px}
 .stylist-card-name{font-weight:700;font-size:13px;letter-spacing:0.04em;text-transform:uppercase}
 .stylist-card-type{font-size:10px;color:var(--muted);margin-top:1px}
 .stylist-card-stat{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--muted);margin-bottom:3px}
+.stylist-card-clients{align-items:center}
 .stylist-card-val{font-size:13px;font-weight:700;color:var(--text)}
+.client-breakdown{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.cb-tag{font-size:10px;font-weight:400;color:var(--muted);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:1px 6px;white-space:nowrap}
+.cb-tag strong{font-weight:700;color:var(--text)}
+/* ── BRANCH & JOB PILLS ── */
+.stylist-card-type{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:3px}
+.job-pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap;letter-spacing:0.02em}
+.job-pill.hair{background:#FDE8F0;color:#8B2252;border:1px solid #f5b8d4}
+.job-pill.beauty{background:#EDE9FF;color:#4C2D91;border:1px solid #c4b5fd}
+[data-theme="dark"] .job-pill.hair{background:rgba(255,180,210,0.15);color:#FFB4D5;border-color:rgba(255,180,210,0.35)}
+[data-theme="dark"] .job-pill.beauty{background:rgba(196,181,253,0.15);color:#C4B5FD;border-color:rgba(196,181,253,0.35)}
+.branch-pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap;letter-spacing:0.02em}
+/* Khalifa City */
+.branch-pill.kca{background:#FFF0E0;color:#7A4010;border:1px solid #fcd4a0}
+[data-theme="dark"] .branch-pill.kca{background:rgba(252,212,160,0.15);color:#FCD4A0;border-color:rgba(252,212,160,0.35)}
+/* Saadiyat */
+.branch-pill.saa{background:#F0EAFF;color:#4A2580;border:1px solid #c4b5fd}
+[data-theme="dark"] .branch-pill.saa{background:rgba(196,181,253,0.15);color:#C4B5FD;border-color:rgba(196,181,253,0.35)}
+/* Motor City */
+.branch-pill.mc{background:#E0FAF6;color:#0A5A48;border:1px solid #99f6e4}
+[data-theme="dark"] .branch-pill.mc{background:rgba(153,246,228,0.15);color:#99F6E4;border-color:rgba(153,246,228,0.35)}
+/* Al Quoz */
+.branch-pill.aq{background:#FFF7D6;color:#6B4A00;border:1px solid #fce99a}
+[data-theme="dark"] .branch-pill.aq{background:rgba(252,233,154,0.15);color:#FCE99A;border-color:rgba(252,233,154,0.35)}
+/* Active weeks count text */
+.weeks-label{font-size:10px;color:var(--muted);white-space:nowrap}
 .stylist-weeks-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .week-pill{font-size:9px;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--muted);border:1px solid var(--border2)}
 .week-pill.active{background:var(--good-bg);color:var(--good);border-color:var(--good)}
