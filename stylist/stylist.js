@@ -9,8 +9,85 @@ function formatViewedTimestamp() {
 window.addEventListener('DOMContentLoaded', formatViewedTimestamp);
 
 const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
-const SUPA_KEY = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aWp4ZW5hZm9vd2FqcWt0cXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTA1OTksImV4cCI6MjA5MTI4NjU5OX0.GL3YXupXOBGfN4FCyelbQWraUw12VJNJu-wUB3zR7Zw';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// Map first name → surname (from Phorest TSV 31 May 2026)
+const STYLIST_SURNAMES = {
+  "Alan":      "Russell",
+  "April":     "Miraflor",
+  "Ashleigh":  "Fairgrieve",
+  "Bethany":   "Smith",
+  "Danika":    "Ogrady",
+  "Eds":       "Asuncion",
+  "Elise":     "Ford",
+  "Emma":      "Williamson",
+  "Hazel May": "Marco",
+  "Holly":     "Branchett",
+  "Ibrahim":   "Al Mofdi",
+  "Irlyn":     "Padilla",
+  "Jeida":     "Rachmanova",
+  "Kate":      "Siryk",
+  "Katie":     "Sanchez",
+  "Kylie":     "Bazely",
+  "Lizanie":   "Jacobsz",
+  "Lucy":      "Gonzalez Rodriguez",
+  "Molly":     "Robinson",
+  "Nikki":     "Asuncion",
+  "Olena":     "Ostertag",
+  "Robyn":     "Hart",
+  "Ruth":      "Bocock",
+  "Shelley":   "Douglas",
+  "Tammy":     "Peter",
+  "Tegan":     "Skinner",
+  "Zandri":    "Wilson",
+  "Sophie":    "Harrison",
+  "Toni":      "Brits",
+  "Samantha":  "Ahmad",   // archived/resigned
+};
+
+// Map first name → photo path (relative to stylist/photos/)
+// Photos are organised into branch subfolders: KCA / SAA / MC / AQ
+const STYLIST_PHOTOS = {
+
+  // ── KHALIFA CITY (KCA) ──────────────────────────────
+  "Kate":      "KCA/kate syrik.jpg",
+  "Katie":     "KCA/katie sanchez.png",
+  "Kylie":     "KCA/kylie bazely.png",
+  "Lizanie":   "KCA/lizanie jacobz.png",
+  "Irlyn":     "KCA/irlyn padilla.png",
+  "Hazel May": "KCA/hazel-mae marco.png",
+  "Nikki":     "KCA/nikki asuncion.png",
+  "Samantha":  "KCA/samantha amad.png",
+
+  // ── SAADIYAT / MAMSHA (SAA) ─────────────────────────
+  "April":     "SAA/april miraflor.jpg",
+  "Bethany":   "SAA/bethany smith.png",
+  "Danika":    "SAA/danika ogrady.jfif",
+  "Eds":       "SAA/eds asuncion.png",
+  "Emma":      "SAA/emma williamson.jpg",
+  "Holly":     "SAA/holly branchett.jpg",
+  "Jeida":     "SAA/jeida rachmanova.jpg",
+  "Molly":     "SAA/molly robinson.png",
+  "Tammy":     "SAA/tamryn peter.png",
+
+  // ── MOTOR CITY (MC) ─────────────────────────────────
+  "Alan":      "MC/alan joeph russell.png",
+  "Ashleigh":  "MC/ashleigh fairgreave.jpg",
+  "Elise":     "MC/elise ford.png",
+  "Olena":     "MC/olena ostertag.jfif",
+  "Robyn":     "MC/robyn hart.png",
+  "Ruth":      "MC/ruth bocock.jpg",
+  "Zandri":    "MC/zandri wilson.jpg",
+
+  // ── AL QUOZ (AQ) ────────────────────────────────────
+  "Shelley":   "AQ/shelley douglas.png",
+  "Tegan":     "AQ/tegan skinner.jfif",
+
+  "Ibrahim":   "MC/ibrahim al mofdi.jpg",
+
+  "Lucy":      "AQ/lucy gonzales rodriguez.jpg",
+};
 
 const STYLIST_IG = {
   "Emma":       "https://www.instagram.com/emmalou.williamson/",
@@ -56,8 +133,8 @@ const SKIP_NAMES   = new Set(['STAFF','TOTALS','TYPE','TYPE ','BUSINESS','TARA',
   'NET SALON TAKE','TOTAL CLIENTS']);
 
 const AVATAR_COLORS = ['#C4B5FD','#99F6E4','#FFD4D9','#FF9B9B','#EEF3C7','#B5EAD7','#FFDAC1','#D4E4FF'];
-const fmtAED = n  => 'AED ' + Math.round(n||0).toLocaleString();
-const fmtPct = n  => (+(n||0)).toFixed(1) + '%';
+const fmtAED = n  => 'AED ' + (n||0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtPct = n  => (+(n||0)).toFixed(2) + '%';
 const initials = n => n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 
 function parseWeekLabelToDate(label) {
@@ -119,14 +196,24 @@ function toggleTheme(){
 
 // ── FILTER HELPERS ─────────────────────────────────────────
 async function loadData(){
-  const { data, error } = await sb
-    .from('daily_stylist_data')
-    .select('*')
-    .order('date', { ascending: true });
-
-  if(error){
-    document.getElementById('loadingEl').innerHTML='<div style="color:var(--bad)">Error loading data: '+error.message+'</div>';
-    return;
+  // Fetch all weekly_data rows (same source as main dashboard)
+  const PAGE = 1000;
+  let from = 0;
+  let fetched = [];
+  while(true){
+    const { data, error } = await sb
+      .from('weekly_data')
+      .select('*')
+      .order('uploaded_at', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if(error){
+      document.getElementById('loadingEl').innerHTML='<div style="color:var(--bad)">Error loading data: '+error.message+'</div>';
+      return;
+    }
+    if(!data || data.length === 0) break;
+    fetched.push(...data);
+    if(data.length < PAGE) break;
+    from += PAGE;
   }
 
   function setTypeFilter(type, el){
@@ -142,50 +229,83 @@ function setSort(key, el){
   renderGrid();
 }
 
-  // daily_stylist_data rows are already flat — map directly to allRows
-  allRows = (data || []).map(row => ({
-    branch:         row.branch,
-    week_label:     row.date || '—',
-    uploaded_at:    row.date,
-    date:           row.date || '—',
-    name:           (row.name || '').trim(),
-    is_beauty:      row.is_beauty || false,
-    total:          row.total          || 0,
-    req:            row.req            || 0,
-    salon:          row.salon          || 0,
-    new_c:          row.new_c          || 0,
-    rebooked:       row.rebooked       || 0,
-    rebook_pct:     row.rebook_pct     || 0,
-    hair_sales_net: row.hair_sales_net || 0,
-    hair_sales:     row.hair_sales     || 0,
-    beauty_sales:   row.beauty_sales   || 0,
-    avg_bill:       row.avg_bill       || 0,
-    col:            row.col            || 0,
-    col_pct:        row.col_pct        || 0,
-    retail:         row.retail         || 0,
-    treatments:     row.treatments     || 0,
-    ncr_pct:        row.ncr_pct        || 0,
-  }));
+  // Flatten weekly_data JSON into one row per stylist per week
+  allRows = [];
+  for(const row of fetched){
+    const { branch, week_label, uploaded_at } = row;
+    const d = row.data || {};
+    const hairStaff   = d.hairStaff   || [];
+    const beautyStaff = d.beautyStaff || [];
 
-  // Set MTD default
-  const now2     = new Date();
-  const minDate  = new Date(now2.getFullYear(), now2.getMonth(), 1);
-  const maxDate  = new Date(now2.getFullYear(), now2.getMonth(), now2.getDate());
+    for(const s of hairStaff){
+      allRows.push({
+        branch,
+        week_label:     week_label || '—',
+        uploaded_at,
+        date:           uploaded_at ? uploaded_at.split('T')[0] : '—',
+        name:           (s.name || '').trim(),
+        is_beauty:      false,
+        total:          s.total        || 0,
+        req:            s.req          || 0,
+        salon:          s.salon        || 0,
+        new_c:          s.newC         || 0,
+        rebooked:       s.rebooked     || 0,
+        rebook_pct:     s.rebookPct    || 0,
+        hair_sales_net: s.hairSalesNet || 0,
+        hair_sales:     s.hairSales    || 0,
+        beauty_sales:   0,
+        avg_bill:       s.avgBill      || 0,
+        col:            s.col          || 0,
+        col_pct:        s.colPct       || 0,
+        retail:         s.retail       || 0,
+        treatments:     s.treatments   || 0,
+        ncr_pct:        s.ncrPct       || 0,
+      });
+    }
 
-  calFrom  = new Date(minDate);
-  calTo    = new Date(maxDate);
-  calYear  = calFrom.getFullYear();
-  calMonth = calFrom.getMonth();
+    for(const s of beautyStaff){
+      allRows.push({
+        branch,
+        week_label:     week_label || '—',
+        uploaded_at,
+        date:           uploaded_at ? uploaded_at.split('T')[0] : '—',
+        name:           (s.name || '').trim(),
+        is_beauty:      true,
+        total:          s.total        || 0,
+        req:            s.req          || 0,
+        salon:          s.salon        || 0,
+        new_c:          s.newC         || 0,
+        rebooked:       s.rebooked     || 0,
+        rebook_pct:     s.rebookPct    || 0,
+        hair_sales_net: 0,
+        hair_sales:     0,
+        beauty_sales:   s.beautySales  || s.beautyNet || 0,
+        avg_bill:       s.avgBill      || 0,
+        col:            0,
+        col_pct:        0,
+        retail:         0,
+        treatments:     0,
+        ncr_pct:        s.ncrPct       || 0,
+      });
+    }
+  }
 
-  dateFrom = new Date(minDate); dateFrom.setHours(0,0,0,0);
-  dateTo   = new Date(maxDate); dateTo.setHours(23,59,59,999);
+  // Default to all data — let user apply date filter (matches main dashboard behaviour)
+  const now2 = new Date();
+  calYear  = now2.getFullYear();
+  calMonth = now2.getMonth();
+  calFrom  = null;
+  calTo    = null;
+  dateFrom = null;
+  dateTo   = null;
 
   const fmt = dt => dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  document.getElementById('dateFromInput').value   = minDate.getFullYear()+'-'+String(minDate.getMonth()+1).padStart(2,'0')+'-'+String(minDate.getDate()).padStart(2,'0');
-  document.getElementById('dateToInput').value     = maxDate.getFullYear()+'-'+String(maxDate.getMonth()+1).padStart(2,'0')+'-'+String(maxDate.getDate()).padStart(2,'0');
-  document.getElementById('datePickerLabel').textContent = fmt(calFrom) + ' → ' + fmt(calTo);
-  document.getElementById('calFromDisplay').textContent  = fmt(calFrom);
-  document.getElementById('calToDisplay').textContent    = fmt(calTo);
+  const _set = (id, prop, val) => { const el = document.getElementById(id); if(el) el[prop] = val; };
+  _set('dateFromInput',   'value',       '');
+  _set('dateToInput',     'value',       '');
+  _set('datePickerLabel', 'textContent', 'All dates');
+  _set('calFromDisplay',  'textContent', 'Select start');
+  _set('calToDisplay',    'textContent', 'Select end');
 
   buildStylistMap();
   document.getElementById('loadingEl').style.display = 'none';
@@ -202,10 +322,19 @@ function isSkip(name){
   return false;
 }
 
+// Merge duplicate/misspelled Phorest names into one canonical name
+const NAME_ALIASES = {
+  "Shelly":  "Shelley",
+};
+
+function normaliseName(raw) {
+  return NAME_ALIASES[raw] || raw;
+}
+
 function buildStylistMap(){
   stylistMap = {};
   for(const row of allRows){
-    const name = (row.name || '').trim();
+    const name = normaliseName((row.name || '').trim());
     if(!name || isSkip(name)) continue;
     const isBeauty = row.is_beauty || BEAUTY_NAMES.has(name.toUpperCase());
     if(!stylistMap[name]){
@@ -402,26 +531,23 @@ function renderSection(list, gridId, title, count, titleId){
     const activeWks = new Set(st.weeks.map(w=>w.week_label));
     const pillsHTML = allWeeks.map(w=>`<span class="week-pill ${activeWks.has(w)?'active':''}">${w}</span>`).join('');
 
+    const cleanName = s.name.toLowerCase().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+    const igUrl     = STYLIST_IG[cleanName];
+    const surname   = STYLIST_SURNAMES[cleanName] || '';
+    const photoFile = STYLIST_PHOTOS[cleanName];
+    const avatarHTML = photoFile
+      ? `<img class="stylist-avatar stylist-avatar-photo" src="photos/${photoFile}" alt="${s.name}" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src=this.src.replace(/\\.\\w+$/,'.jfif')}else{this.style.display='none';this.nextElementSibling.style.display='flex'}"><div class="stylist-avatar" style="background:${s.color};display:none">${initials(s.name)}</div>`
+      : `<div class="stylist-avatar" style="background:${s.color}">${initials(s.name)}</div>`;
+
     return `<div class="stylist-card ${selectedStylist===s.name?'selected':''}" onclick="selectStylist('${s.name}')">
       <div class="stylist-card-top">
-        <div class="stylist-avatar" style="background:${s.color}">${initials(s.name)}</div>
+        ${avatarHTML}
         <div>
-          <div class="stylist-card-name">${s.name} ${(()=>{
-  const cleanName = s.name
-    .toLowerCase()
-    .split(' ')
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
-
-  const url = STYLIST_IG[cleanName];
-
-  return url
-    ? `<a href="${url}" target="_blank" onclick="event.stopPropagation()" class="ig-badge" title="View on Instagram">IG</a>`
-    : '';
-})()}</div>
+          <div class="stylist-card-name">${s.name}${surname ? ' ' + surname : ''}</div>
           <div class="stylist-card-type">
-  ${s.isBeauty ? '💅 Beautician' : '✂️ Hair Stylist'} · ${st.weeksActive}w · ${[...new Set(st.weeks.map(w=>BRANCH_INFO[w.branch]?.name||w.branch))].join(', ')} 
+  ${s.isBeauty ? '💅 Beautician' : '✂️ Hair Stylist'} · ${st.weeksActive}w · ${[...new Set(st.weeks.map(w=>BRANCH_INFO[w.branch]?.name||w.branch))].join(', ')}
         </div>
+        ${igUrl ? `<a href="${igUrl}" target="_blank" onclick="event.stopPropagation()" class="ig-link" title="View on Instagram"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg><span>View on Instagram</span></a>` : ''}
         </div>
       </div>
       <div class="stylist-card-stat"><span>${revLabel}</span><span class="stylist-card-val">${fmtAED(rev)}</span></div>
@@ -470,18 +596,25 @@ function renderDetail(s){
   
   panel.innerHTML = `
     <div class="detail-header">
-      <div class="detail-avatar" style="background:${s.color}">${initials(s.name)}</div>
+      ${(()=>{
+        const cn = s.name.toLowerCase().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+        const pf = STYLIST_PHOTOS[cn];
+        return pf
+          ? `<img class="detail-avatar detail-avatar-photo" src="photos/${pf}" alt="${s.name}" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src=this.src.replace(/\\.\\w+$/,'.jfif')}else{this.style.display='none';this.nextElementSibling.style.display='flex'}"><div class="detail-avatar" style="background:${s.color};display:none">${initials(s.name)}</div>`
+          : `<div class="detail-avatar" style="background:${s.color}">${initials(s.name)}</div>`;
+      })()}
       <div>
-        <div class="detail-name">${s.name} ${(()=>{
-  const cleanName = s.name
-    .toLowerCase()
-    .split(' ')
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
-  const url = STYLIST_IG[cleanName];
-  return url ? `<a href="${url}" target="_blank" class="ig-badge" title="View on Instagram">IG</a>` : '';
+        <div class="detail-name">${(()=>{
+  const cn  = s.name.toLowerCase().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+  const sn  = STYLIST_SURNAMES[cn] || '';
+  return `${s.name}${sn?' '+sn:''}`;
 })()}</div>
         <div class="detail-sub">${isBeauty?'Beautician':'Hair Stylist'} · Active ${st.weeksActive} week${st.weeksActive!==1?'s':''} · ${[...new Set(st.weeks.map(w=>BRANCH_INFO[w.branch]?.name||w.branch))].join(', ')}</div>
+        ${(()=>{
+  const cn  = s.name.toLowerCase().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+  const url = STYLIST_IG[cn];
+  return url ? `<a href="${url}" target="_blank" class="ig-link" title="View on Instagram"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg><span>View on Instagram</span></a>` : '';
+})()}
       </div>
       <button class="detail-close" onclick="closeDetail()">✕ Close</button>
     </div>
@@ -494,8 +627,8 @@ function renderDetail(s){
       </div>
       <div class="metric-box">
         <div class="metric-box-label">Total Clients</div>
-        <div class="metric-box-value">${st.total}</div>
-        <div class="metric-box-sub">${Math.round(st.total/Math.max(1,st.weeksActive))}/week avg</div>
+        <div class="metric-box-value">${(st.total||0).toLocaleString()}</div>
+        <div class="metric-box-sub">${Math.round(st.total/Math.max(1,st.weeksActive)).toLocaleString()}/week avg</div>
       </div>
       <div class="metric-box ${avgBillClass}">
         <div class="metric-box-label">Avg Bill</div>
@@ -763,129 +896,190 @@ function drawChart(st, isBeauty){
 
 
 // ── DATE PICKER CALENDAR ───────────────────────────────────
-let calYear, calMonth, calSelectingFrom = true, calFrom = null, calTo = null;
+const calState = { year: new Date().getFullYear(), month: new Date().getMonth() };
+let pickerFromDate = null;
+let pickerToDate   = null;
+let pickingStep    = 'from'; // 'from' | 'to'
 
-function initCal(){
-  // Default to the month of calFrom if already set (from data), else current month
-  const ref = calFrom || new Date();
-  calYear = ref.getFullYear();
-  calMonth = ref.getMonth();
-  renderCal();
+function toggleDatePicker() {
+  const pop = document.getElementById('datePickerPop');
+  const btn = document.getElementById('btn-daterange');
+  const isOpen = pop.classList.contains('open');
+  document.querySelectorAll('.ms-drop').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.ms-btn').forEach(b => b.classList.remove('open'));
+  if (isOpen) { pop.style.display = 'none'; pop.classList.remove('open'); btn.classList.remove('active'); return; }
+
+  const now = new Date();
+  if (dateFrom) { calState.year = dateFrom.getFullYear(); calState.month = dateFrom.getMonth(); }
+  else { calState.year = now.getFullYear(); calState.month = now.getMonth(); }
+  pickerFromDate = dateFrom ? new Date(dateFrom) : null;
+  pickerToDate   = dateTo   ? new Date(dateTo)   : null;
+  pickingStep    = pickerFromDate ? (pickerToDate ? 'from' : 'to') : 'from';
+
+  pop.style.display = 'block';
+  pop.classList.add('open');
+  btn.classList.add('active');
+  buildYearOptions();
+  renderCalendar();
+  updateStepUI();
 }
 
-function calNav(dir){
-  calMonth += dir;
-  if(calMonth > 11){ calMonth = 0; calYear++; }
-  if(calMonth < 0){ calMonth = 11; calYear--; }
-  renderCal();
-}
-
-function renderCal(){
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('calMonthLabel').textContent = months[calMonth] + ' ' + calYear;
-  const grid = document.getElementById('calGrid');
-  const days = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
-  let html = days.map(d=>`<div style="font-size:9px;text-align:center;color:var(--muted);padding:4px;letter-spacing:.05em">${d}</div>`).join('');
-  for(let i=0;i<firstDay;i++) html += '<div></div>';
-  for(let d=1;d<=daysInMonth;d++){
-    const thisDate = new Date(calYear, calMonth, d);
-    const iso = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-    let bg = 'transparent', color = 'var(--text)', fw = '400';
-    const calFromIso = calFrom ? calFrom.getFullYear()+'-'+String(calFrom.getMonth()+1).padStart(2,'0')+'-'+String(calFrom.getDate()).padStart(2,'0') : null;
-    const calToIso = calTo ? calTo.getFullYear()+'-'+String(calTo.getMonth()+1).padStart(2,'0')+'-'+String(calTo.getDate()).padStart(2,'0') : null;
-    const isFrom = calFromIso === iso;
-    const isTo = calToIso === iso;
-    const inRange = calFrom && calTo && thisDate > calFrom && thisDate < calTo;
-    if(isFrom || isTo){ bg = 'var(--accent)'; color = 'var(--accent-fg)'; fw = '700'; }
-    else if(inRange){ bg = 'var(--surface2)'; }
-    html += `<div onclick="calPickDay('${iso}')" style="
-      text-align:center;padding:5px 2px;font-size:11px;cursor:pointer;border-radius:6px;
-      background:${bg};color:${color};font-weight:${fw};transition:background .15s
-    " onmouseover="this.style.opacity='.75'" onmouseout="this.style.opacity='1'">${d}</div>`;
+function buildYearOptions() {
+  const sel = document.getElementById('calYearSel');
+  if (!sel) return;
+  const cur = calState.year;
+  sel.innerHTML = '';
+  for (let y = cur - 3; y <= cur + 2; y++) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    if (y === cur) o.selected = true;
+    sel.appendChild(o);
   }
-  grid.innerHTML = html;
 }
 
-function calPickDay(iso){
-  const [y,m,day] = iso.split('-').map(Number);
-const d = new Date(y, m-1, day);
-  if(!calFrom || (calFrom && calTo)){
-    calFrom = d; calTo = null; calSelectingFrom = false;
+function calMonthChange() {
+  const sel = document.getElementById('calMonthSel');
+  if (sel) calState.month = parseInt(sel.value);
+  renderCalendar();
+}
+
+function calYearChange() {
+  const sel = document.getElementById('calYearSel');
+  if (sel) calState.year = parseInt(sel.value);
+  buildYearOptions();
+  renderCalendar();
+}
+
+function shiftCal(dir) {
+  calState.month += dir;
+  if (calState.month > 11) { calState.month = 0; calState.year++; }
+  if (calState.month < 0)  { calState.month = 11; calState.year--; }
+  const ms = document.getElementById('calMonthSel');
+  const ys = document.getElementById('calYearSel');
+  if (ms) ms.value = calState.month;
+  buildYearOptions();
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const { year, month } = calState;
+  const ms = document.getElementById('calMonthSel');
+  if (ms) ms.value = month;
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+  let html = DAYS.map(d => `<div class="cal-day-hdr">${d}</div>`).join('');
+  for (let i = 0; i < firstDay; i++) html += `<div class="cal-day cal-day-empty"></div>`;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d); date.setHours(0,0,0,0);
+    const isToday = date.getTime() === today.getTime();
+    const isFrom  = pickerFromDate && date.getTime() === pickerFromDate.getTime();
+    const isTo    = pickerToDate   && date.getTime() === pickerToDate.getTime();
+    const inRange = pickerFromDate && pickerToDate && date > pickerFromDate && date < pickerToDate;
+
+    let cls = 'cal-day';
+    if (isFrom && isTo)  cls += ' cal-day-selected';
+    else if (isFrom)     cls += ' cal-day-range-start';
+    else if (isTo)       cls += ' cal-day-range-end';
+    else if (inRange)    cls += ' cal-day-in-range';
+    if (isToday)         cls += ' cal-day-today';
+
+    html += `<div class="${cls}" onclick="pickDay(${year},${month},${d})">${d}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML = html;
+}
+
+function pickDay(year, month, day) {
+  const date = new Date(year, month, day); date.setHours(0,0,0,0);
+
+  if (pickingStep === 'from') {
+    pickerFromDate = date;
+    pickerToDate   = null;
+    pickingStep    = 'to';
   } else {
-    if(d < calFrom){ calTo = calFrom; calFrom = d; }
-    else { calTo = d; }
-    calSelectingFrom = true;
+    if (date < pickerFromDate) {
+      pickerToDate   = pickerFromDate;
+      pickerFromDate = date;
+    } else {
+      pickerToDate = date;
+    }
+    pickingStep = 'from';
   }
-  const fmt = dt => dt ? dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '';
-  document.getElementById('calFromDisplay').textContent = fmt(calFrom) || 'Select start';
-  document.getElementById('calToDisplay').textContent = fmt(calTo) || 'Select end';
-  renderCal();
+  renderCalendar();
+  updateStepUI();
 }
 
-function clearDateRange(){
-  calFrom = null; calTo = null;
-  document.getElementById('calFromDisplay').textContent = 'Select start';
-  document.getElementById('calToDisplay').textContent = 'Select end';
-  document.getElementById('datePickerLabel').textContent = 'Select Date/s From and To';
-  document.getElementById('dateFromInput').value = '';
-  document.getElementById('dateToInput').value = '';
+function updateStepUI() {
+  const fmt = d => d ? d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : null;
+  const fromEl   = document.getElementById('calStepFrom');
+  const toEl     = document.getElementById('calStepTo');
+  const fromVal  = document.getElementById('calStepFromVal');
+  const toVal    = document.getElementById('calStepToVal');
+  const selEl    = document.getElementById('date-picker-selection');
+
+  if (fromEl) fromEl.classList.toggle('active-step', pickingStep === 'from');
+  if (toEl)   toEl.classList.toggle('active-step',   pickingStep === 'to');
+
+  if (fromVal) {
+    fromVal.textContent = pickerFromDate ? fmt(pickerFromDate) : 'Select start';
+    fromVal.className   = 'cal-step-val' + (pickerFromDate ? ' set' : '');
+  }
+  if (toVal) {
+    toVal.textContent = pickerToDate ? fmt(pickerToDate) : 'Select end';
+    toVal.className   = 'cal-step-val' + (pickerToDate ? ' set' : '');
+  }
+  if (selEl) {
+    if (!pickerFromDate) { selEl.textContent = 'Click a date to set FROM'; selEl.className = 'date-picker-selection'; }
+    else if (!pickerToDate) { selEl.textContent = 'Now click a date to set TO'; selEl.className = 'date-picker-selection'; }
+    else { selEl.textContent = `${fmt(pickerFromDate)} → ${fmt(pickerToDate)}`; selEl.className = 'date-picker-selection has-range'; }
+  }
+}
+
+function applyDateRange() {
+  if (!pickerFromDate) return;
+  dateFrom = new Date(pickerFromDate); dateFrom.setHours(0,0,0,0);
+  dateTo   = new Date(pickerToDate || pickerFromDate); dateTo.setHours(23,59,59,999);
+  const lbl = document.getElementById('lbl-daterange');
+  const fmt = d => d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'2-digit' });
+  lbl.textContent = dateTo && dateTo.getTime() !== dateFrom.getTime()
+    ? `${fmt(dateFrom)} – ${fmt(dateTo)}`
+    : fmt(dateFrom);
+  const pop = document.getElementById('datePickerPop');
+  const btn = document.getElementById('btn-daterange');
+  pop.style.display = 'none'; pop.classList.remove('open'); btn.classList.remove('active');
+  renderGrid();
+}
+
+function clearDateRange() {
   dateFrom = null; dateTo = null;
-  renderCal();
+  pickerFromDate = null; pickerToDate = null;
+  pickingStep = 'from';
+  const lbl = document.getElementById('lbl-daterange');
+  if (lbl) lbl.textContent = 'Select Date/s From and To';
+  renderCalendar();
+  updateStepUI();
   renderGrid();
-}
-
-function applyDatePicker(){
-  if(!calFrom){ return; }
-  const effectiveTo = calTo || calFrom;
-  const fmt = dt => dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  document.getElementById('datePickerLabel').textContent = fmt(calFrom) + ' → ' + fmt(effectiveTo);
-  document.getElementById('dateFromInput').value = calFrom.toISOString().split('T')[0];
-  document.getElementById('dateToInput').value = effectiveTo.toISOString().split('T')[0];
-  dateFrom = new Date(calFrom); dateFrom.setHours(0,0,0,0);
-  dateTo = new Date(effectiveTo); dateTo.setHours(23,59,59,999);
-  document.getElementById('datePickerDropdown').style.display = 'none';
-  renderGrid();
-}
-
-// Close picker on outside click
-let _pickerJustOpened = false;
-
-function toggleDatePicker(){
-  const dd = document.getElementById('datePickerDropdown');
-  const isOpen = dd.style.display !== 'none';
-  dd.style.display = isOpen ? 'none' : 'block';
-  if(!isOpen){ renderCal(); _pickerJustOpened = true; }
 }
 
 document.addEventListener('click', e => {
   const wrap = document.getElementById('dateRangeWrap');
-  if(wrap && !wrap.contains(e.target)){
-    const dd = document.getElementById('datePickerDropdown');
-    if(dd) dd.style.display = 'none';
+  if (wrap && !wrap.contains(e.target)) {
+    const pop = document.getElementById('datePickerPop');
+    const btn = document.getElementById('btn-daterange');
+    if (pop) { pop.style.display = 'none'; pop.classList.remove('open'); }
+    if (btn) btn.classList.remove('active');
   }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('searchInput').addEventListener('input', renderGrid);
-    document.getElementById('dateFromInput').addEventListener('change', applyDateRange);
-    document.getElementById('dateToInput').addEventListener('change', applyDateRange);
-    document.body.classList.add('hide-week-pills'); // keeps pills hidden by default
-    initCal();
-    loadData();
-  });
-
-
-function applyDateRange(){
-  const fromVal = document.getElementById('dateFromInput').value;
-  const toVal   = document.getElementById('dateToInput').value;
-
-  dateFrom = fromVal ? new Date(fromVal + 'T00:00:00') : null;
-  dateTo   = toVal   ? new Date(toVal + 'T23:59:59') : null;
-
-  if (dateFrom) dateFrom.setHours(0,0,0,0);
-  if (dateTo)   dateTo.setHours(23,59,59,999);
-
-  renderGrid();
-}
+  document.getElementById('searchInput').addEventListener('input', renderGrid);
+  document.body.classList.add('hide-week-pills');
+  buildYearOptions();
+  renderCalendar();
+  updateStepUI();
+  loadData();
+});

@@ -97,9 +97,18 @@ const sc = (v, t) => {
   if (!t) return '';
   const ratio = v / t;
   if (ratio >= 1)   return 'good';
-  if (ratio >= 0.8) return '';
+  if (ratio >= 0.8) return 'warn';
   if (ratio < 0.2)  return 'critical';
   return 'bad';
+};
+const statusBanner = (status, isDark) => {
+  if (status === 'critical') return `<div style="margin-top:6px;padding:3px 7px;background:rgba(255,68,68,0.15);border:1px solid rgba(255,68,68,0.4);border-radius:6px;font-size:9px;color:#FF4444;letter-spacing:0.06em;text-transform:uppercase;font-weight:700">⚠ Critical — Needs Attention</div>`;
+  const bg  = isDark ? 'rgba(238,243,199,0.1)'  : 'rgba(186,117,23,0.08)';
+  const br  = isDark ? 'rgba(238,243,199,0.35)' : 'rgba(186,117,23,0.4)';
+  const col = isDark ? '#EEF3C7' : '#8A5F0A';
+  if (status === 'bad')  return `<div style="margin-top:6px;padding:3px 7px;background:${bg};border:1px solid ${br};border-radius:6px;font-size:9px;color:${col};letter-spacing:0.06em;text-transform:uppercase;font-weight:700">⚠ Below Target — Needs Action</div>`;
+  if (status === 'warn') return `<div style="margin-top:6px;padding:3px 7px;background:${bg};border:1px solid ${br};border-radius:6px;font-size:9px;color:${col};letter-spacing:0.06em;text-transform:uppercase;font-weight:700">↑ Near Target — Keep Pushing</div>`;
+  return '';
 };
 const fmtAED = n  => 'AED ' + (n || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
 const fmtPct = n  => (+(n || 0)).toFixed(2) + '%';
@@ -1288,12 +1297,7 @@ async function renderDashboard() {
         (window.avgBillView||'both') === 'beauty' ? 'Beauty Revenue ÷ Total Clients (excl. rebooked)' :
         'Total Revenue ÷ Total Clients (excl. rebooked)'
       }</em></div>
-      <div class="metric-value" id="avgBillCardValue" style="font-size:20px">${
-        (window.avgBillView||'both') === 'hair'   ? fmtAED(s.hairAvgBill||0) :
-        (window.avgBillView||'both') === 'beauty' ? (s.beautyAvgBill != null ? fmtAED(s.beautyAvgBill) : '—') :
-        fmtAED(s.avgBill)
-      }${trendArrow(s.avgBill, prevS?.avgBill, true, prevPeriodLabel)}</div>
-      <div class="metric-target" style="font-size:10px">Benchmark: ~AED 650</div>
+      ${(() => { const _av = (window.avgBillView||'both') === 'hair' ? (s.hairAvgBill||0) : (window.avgBillView||'both') === 'beauty' ? (s.beautyAvgBill||0) : (s.avgBill||0); const _as = sc(_av, 650); return `<div class="metric-value ${_as}" id="avgBillCardValue" style="font-size:20px">${(window.avgBillView||'both') === 'hair' ? fmtAED(s.hairAvgBill||0) : (window.avgBillView||'both') === 'beauty' ? (s.beautyAvgBill != null ? fmtAED(s.beautyAvgBill) : '—') : fmtAED(s.avgBill)}${trendArrow(s.avgBill, prevS?.avgBill, true, prevPeriodLabel)}</div><div class="metric-target" style="font-size:10px">Benchmark: ~AED 650</div>${statusBanner(_as, dark)}`; })()}
     </div>
 
     <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px" data-hair-rebook="${(s.hairRebookPct||0).toFixed(4)}" data-beauty-rebook="${s.beautyRebookPct != null ? s.beautyRebookPct.toFixed(4) : 'null'}" data-both-rebook="${(s.rebookPct||0).toFixed(4)}">
@@ -1325,6 +1329,7 @@ async function renderDashboard() {
         fmtPct(s.rebookPct)
       }${trendArrow(s.rebookPct, prevS?.rebookPct, true, prevPeriodLabel)}</div>
       <div class="metric-target" style="font-size:10px">Target: ${TARGETS.rebookPct}%</div>
+      ${statusBanner(sc((window.rebookView||'both') === 'hair' ? (s.hairRebookPct||0) : (window.rebookView||'both') === 'beauty' ? (s.beautyRebookPct||0) : (s.rebookPct||0), TARGETS.rebookPct), dark)}
     </div>
 
     <div class="metric ncr-glow" style="border-color:rgba(153,246,228,0.75);padding:14px" data-hair-ncr="${(s.ncrPct||0).toFixed(4)}" data-beauty-ncr="${s.beautyNcrPct != null ? s.beautyNcrPct.toFixed(4) : 'null'}" data-both-ncr="${(s.combinedNcrPct||0).toFixed(4)}">
@@ -1356,9 +1361,7 @@ async function renderDashboard() {
         fmtPct(s.ncrPct||0)
       }${trendArrow(s.ncrPct, prevS?.ncrPct, true, prevPeriodLabel)}</div>
       <div class="metric-target" style="font-size:10px">Target: ≥ 20%</div>
-      ${sc((window.ncrView||'hair') === 'beauty' ? (s.beautyNcrPct||0) : (window.ncrView||'hair') === 'both' ? (s.combinedNcrPct||0) : (s.ncrPct||0), 20) === 'critical'
-        ? `<div style="margin-top:6px;padding:3px 7px;background:rgba(255,68,68,0.15);border:1px solid rgba(255,68,68,0.4);border-radius:6px;font-size:9px;color:#FF4444;letter-spacing:0.06em;text-transform:uppercase;font-weight:700">⚠ Critical — Needs Attention</div>`
-        : ''}
+      ${statusBanner(sc((window.ncrView||'hair') === 'beauty' ? (s.beautyNcrPct||0) : (window.ncrView||'hair') === 'both' ? (s.combinedNcrPct||0) : (s.ncrPct||0), 20), dark)}
     </div>
   </div>
 
@@ -1809,21 +1812,24 @@ async function renderDashboard() {
       if (v >= 1000)    return 'AED ' + (v/1000).toFixed(2) + 'k';
       return 'AED ' + v.toFixed(2);
     };
-    const pill = (label, val, col) => `
-      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 12px;border-right:1px solid rgba(255,255,255,0.1)">
+    const divider = `border-right:1px solid ${dark?'rgba(255,255,255,0.1)':'rgba(92,85,87,0.15)'}`;
+    const hairCol   = dark ? '#C4B5FD' : '#5B4A8A';
+    const beautyCol = dark ? '#99F6E4' : '#0A5244';
+    const bothCol   = dark ? 'rgba(250,248,243,0.45)' : 'rgba(92,85,87,0.6)';
+    const pill = (label, val, col, extra='') => `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 12px;${extra}">
         <span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:${col};white-space:nowrap;font-weight:600">${label}</span>
         <span style="font-size:11px;font-weight:800;color:var(--text);white-space:nowrap">${fmtShort(val)}</span>
       </div>`;
     w.style.display = 'flex';
     w.style.padding = '0';
     w.style.overflow = 'hidden';
+    w.style.background = dark ? 'rgba(153,246,228,0.08)' : 'rgba(92,85,87,0.06)';
+    w.style.borderColor = dark ? 'rgba(153,246,228,0.25)' : 'rgba(92,85,87,0.2)';
     w.innerHTML =
-      pill('Hair', hairNet, '#C4B5FD') +
-      pill('Beauty', beautyNet, '#99F6E4') +
-      `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 12px">
-        <span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.45);white-space:nowrap;font-weight:600">Hair &amp; Beauty</span>
-        <span style="font-size:11px;font-weight:800;color:var(--text);white-space:nowrap">${fmtShort(total)}</span>
-      </div>`;
+      pill('Hair', hairNet, hairCol, divider) +
+      pill('Beauty', beautyNet, beautyCol, divider) +
+      pill('Hair &amp; Beauty', total, bothCol);
   })();
 
   // ── Dial (gauge) chart ──

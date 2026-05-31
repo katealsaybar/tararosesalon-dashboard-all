@@ -78,50 +78,49 @@
         </select>
       </div>
     
-      <div class="ctrl-group" id="dateRangeWrap">
+      <div class="ctrl-group">
         <div class="ctrl-label">Date Range</div>
-        <div style="position:relative; z-index:1000;">
-          <button id="datePickerBtn" onclick="event.stopPropagation(); toggleDatePicker()" style="
-            padding:7px 14px;border:1px solid var(--border);border-radius:18px;
-            font-size:12px;color:var(--text);background:var(--surface);
-            font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;
-            display:flex;align-items:center;gap:8px;min-width:220px;justify-content:space-between;
-          ">
-            <span id="datePickerLabel">Select Date/s From and To</span>
-            <span style="font-size:10px;opacity:.5">▾</span>
+        <div class="ms-wrap" id="dateRangeWrap">
+          <button class="ms-btn date-pill-btn" id="btn-daterange" onclick="event.stopPropagation();toggleDatePicker()">
+            <span id="lbl-daterange">Select Date/s From and To</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" id="daterange-chevron"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <div id="datePickerDropdown" onclick="event.stopPropagation()" style="display:none;position:absolute;z-index:9999;
-            background:var(--surface);border:1px solid var(--border);border-radius:14px;
-            box-shadow:0 8px 32px rgba(0,0,0,0.15);padding:16px;min-width:300px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-              <button onclick="calNav(-1)" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px 8px">‹</button>
-              <span id="calMonthLabel" style="font-size:13px;font-weight:600;color:var(--text)"></span>
-              <button onclick="calNav(1)" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px 8px">›</button>
-            </div>
-            <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:12px"></div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:var(--muted)">
-              <div style="flex:1;text-align:center">
-                <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">FROM</div>
-                <div id="calFromDisplay" style="padding:6px;border:1px solid var(--border);border-radius:8px;color:var(--text);min-height:28px">Select start</div>
+          <div class="date-picker-pop" id="datePickerPop" onclick="event.stopPropagation()">
+            <div class="cal-steps">
+              <div class="cal-step" id="calStepFrom">
+                <span class="cal-step-label">FROM</span>
+                <span class="cal-step-val" id="calStepFromVal">Select start</span>
               </div>
-              <span style="font-size:16px;opacity:.4">→</span>
-              <div style="flex:1;text-align:center">
-                <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">TO</div>
-                <div id="calToDisplay" style="padding:6px;border:1px solid var(--border);border-radius:8px;color:var(--text);min-height:28px">Select end</div>
+              <div class="cal-step-arrow">→</div>
+              <div class="cal-step" id="calStepTo">
+                <span class="cal-step-label">TO</span>
+                <span class="cal-step-val" id="calStepToVal">Select end</span>
               </div>
-              <button onclick="clearDateRange()" style="padding:4px 10px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--muted);font-size:11px;cursor:pointer">Clear</button>
+              <button class="date-picker-clear" onclick="clearDateRange()">Clear</button>
             </div>
-            <button onclick="applyDatePicker()" style="
-              width:100%;padding:8px;background:var(--accent);color:var(--accent-fg);
-              border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif
-            ">APPLY</button>
+            <div class="cal-nav">
+              <button class="cal-nav-btn" onclick="shiftCal(-1)">‹</button>
+              <div class="cal-nav-center">
+                <select class="cal-sel" id="calMonthSel" onchange="calMonthChange()">
+                  <option value="0">January</option><option value="1">February</option>
+                  <option value="2">March</option><option value="3">April</option>
+                  <option value="4">May</option><option value="5">June</option>
+                  <option value="6">July</option><option value="7">August</option>
+                  <option value="8">September</option><option value="9">October</option>
+                  <option value="10">November</option><option value="11">December</option>
+                </select>
+                <select class="cal-sel" id="calYearSel" onchange="calYearChange()"></select>
+              </div>
+              <button class="cal-nav-btn" onclick="shiftCal(1)">›</button>
+            </div>
+            <div class="cal-grid" id="calGrid"></div>
+            <div class="date-picker-footer">
+              <span class="date-picker-selection" id="date-picker-selection">Click a date to set FROM</span>
+              <button class="date-picker-apply" onclick="applyDateRange()">Apply</button>
+            </div>
           </div>
         </div>
       </div>
-      
-      <!-- hidden inputs still used internally -->
-      <input type="date" id="dateFromInput" style="display:none">
-      <input type="date" id="dateToInput" style="display:none">
     
     </div><!-- end controls -->
   <div class="main-content">
