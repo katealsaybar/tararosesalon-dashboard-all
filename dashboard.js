@@ -81,7 +81,7 @@ const isDark = () => document.documentElement.getAttribute('data-theme') === 'da
 // ── FORMATTERS / HELPERS ────────────────────────────────────
 
 // Returns a coloured ↑↓ arrow string comparing curr vs prev value
-const trendArrow = (curr, prev, higherIsBetter = true) => {
+const trendArrow = (curr, prev, higherIsBetter = true, periodLabel = '') => {
   if (prev == null || prev === 0 || curr == null) return '';
   const delta = curr - prev;
   const pct   = Math.abs(delta / prev * 100);
@@ -89,7 +89,8 @@ const trendArrow = (curr, prev, higherIsBetter = true) => {
   const up   = delta > 0;
   const good = higherIsBetter ? up : !up;
   const col  = good ? 'var(--good)' : 'var(--bad)';
-  return `<span style="color:${col};font-size:14px;font-weight:700;margin-left:6px">${up?'↑':'↓'}${pct.toFixed(0)}%</span>`;
+  const tag  = periodLabel ? `<span style="font-size:9px;color:var(--muted);font-weight:400;margin-left:2px">vs ${periodLabel}</span>` : '';
+  return `<span style="color:${col};font-size:13px;font-weight:700;margin-left:6px">${up?'↑':'↓'}${pct.toFixed(1)}%${tag}</span>`;
 };
 
 const sc = (v, t) => {
@@ -163,9 +164,9 @@ function toggleNcrView(mode) {
     const beauty = card.dataset.beautyNcr === 'null' ? null : parseFloat(card.dataset.beautyNcr || 0);
     const both   = parseFloat(card.dataset.bothNcr   || 0);
     if (valEl) valEl.textContent =
-      mode === 'beauty' ? (beauty != null ? beauty.toFixed(1) + '%' : '—') :
-      mode === 'both'   ? both.toFixed(1) + '%' :
-      hair.toFixed(1) + '%';
+      mode === 'beauty' ? (beauty != null ? beauty.toFixed(2) + '%' : '—') :
+      mode === 'both'   ? both.toFixed(2) + '%' :
+      hair.toFixed(2) + '%';
   }
   // update button active states
   const isDark = document.body.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
@@ -238,7 +239,7 @@ function toggleRebookView(mode) {
     const beauty = card.dataset.beautyRebook === 'null' ? null : parseFloat(card.dataset.beautyRebook || 0);
     const both   = parseFloat(card.dataset.bothRebook   || 0);
     const val = mode === 'hair' ? hair : mode === 'beauty' ? beauty : both;
-    if (valEl) valEl.textContent = val != null ? val.toFixed(1) + '%' : '—';
+    if (valEl) valEl.textContent = val != null ? val.toFixed(2) + '%' : '—';
   }
   const isDark = document.body.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
   const DEPT_COLORS = { hair: '#99F6E4', beauty: '#FFD4D9', both: '#C4B5FD' };
@@ -1188,6 +1189,25 @@ async function renderDashboard() {
     }
   } catch(e) { prevS = null; }
 
+  // Compute how far back the previous period is so trend arrows say "vs prev wk" etc.
+  let prevPeriodLabel = 'prev period';
+  try {
+    const _branchRows2 = allData.filter(dd =>
+      (!window.showFratelli ? dd.branch !== 'FRT' : true) &&
+      (sel.branch.includes('all') || sel.branch.includes(dd.branch))
+    );
+    const _byUpload2 = {};
+    _branchRows2.forEach(dd => {
+      const k = new Date(dd.uploaded_at).toISOString().slice(0,10);
+      if (!_byUpload2[k]) _byUpload2[k] = true;
+    });
+    const _keys2 = Object.keys(_byUpload2).sort();
+    if (_keys2.length >= 2) {
+      const diffDays = Math.round((new Date(_keys2[_keys2.length-1]) - new Date(_keys2[_keys2.length-2])) / 86400000);
+      prevPeriodLabel = diffDays <= 8 ? 'prev wk' : diffDays <= 15 ? 'prev 2 wks' : diffDays <= 22 ? 'prev 3 wks' : diffDays <= 35 ? 'prev month' : `prev ${Math.round(diffDays/7)} wks`;
+    }
+  } catch(e) { /* keep default */ }
+
   destroyCharts();
 
   const dark = isDark();
@@ -1197,6 +1217,23 @@ async function renderDashboard() {
   const gc = dark ? 'rgba(250,248,243,0.06)' : 'rgba(92,85,87,0.07)';
   const tc = dark ? 'rgba(250,248,243,0.45)' : '#9a8a87';
   const branchLabel = sel.branch.includes('all') ? 'All Branches' : sel.branch.map(b => BRANCH_INFO[b]?.name||b).join(', ');
+
+  // Period label for section headers
+  const _hasDateRangeSect = !!(dateFrom && dateTo);
+  let _weekCountSect = 1;
+  try {
+    if (!_hasDateRangeSect) {
+      const _wSet = new Set((allData||[]).filter(dd =>
+        (!window.showFratelli ? dd.branch !== 'FRT' : true) &&
+        (sel.branch.includes('all') || sel.branch.includes(dd.branch))
+      ).map(r => r.week_label));
+      const _bCount = (sel.branch.includes('all') ? ['SAA','KCA','AQ','MC','FRT'] : sel.branch).length || 1;
+      _weekCountSect = Math.max(1, Math.round(_wSet.size / _bCount));
+    } else {
+      _weekCountSect = Math.max(1, Math.round((dateTo - dateFrom) / 86400000 / 7));
+    }
+  } catch(e) {}
+  const sectionPeriodLabel = _weekCountSect === 1 ? '1 wk' : _weekCountSect === 4 ? '~4 wks' : `${_weekCountSect} wks`;
 
   // Revenue Run tab pre-computed values
   const rvHairSvc    = s.netTake - (s.beautySales||0) - (s.hairRetail||0);
@@ -1213,7 +1250,7 @@ async function renderDashboard() {
 
   main.innerHTML = `
 <!-- ROW 1: 4 COMPACT KPI CARDS -->
-<div style="position:sticky;top:52px;z-index:40;background:var(--bg);padding-bottom:4px">
+<div>
   <div class="section-label" style="display:flex;align-items:center;gap:7px;margin-top:16px;margin-bottom:8px">
     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#99F6E4;flex-shrink:0"></span>
     ${branchLabel} · Main Metrics
@@ -1255,7 +1292,7 @@ async function renderDashboard() {
         (window.avgBillView||'both') === 'hair'   ? fmtAED(s.hairAvgBill||0) :
         (window.avgBillView||'both') === 'beauty' ? (s.beautyAvgBill != null ? fmtAED(s.beautyAvgBill) : '—') :
         fmtAED(s.avgBill)
-      }${trendArrow(s.avgBill, prevS?.avgBill)}</div>
+      }${trendArrow(s.avgBill, prevS?.avgBill, true, prevPeriodLabel)}</div>
       <div class="metric-target" style="font-size:10px">Benchmark: ~AED 650</div>
     </div>
 
@@ -1286,11 +1323,11 @@ async function renderDashboard() {
         (window.rebookView||'both') === 'hair'   ? fmtPct(s.hairRebookPct||0) :
         (window.rebookView||'both') === 'beauty' ? (s.beautyRebookPct != null ? fmtPct(s.beautyRebookPct) : '—') :
         fmtPct(s.rebookPct)
-      }${trendArrow(s.rebookPct, prevS?.rebookPct)}</div>
+      }${trendArrow(s.rebookPct, prevS?.rebookPct, true, prevPeriodLabel)}</div>
       <div class="metric-target" style="font-size:10px">Target: ${TARGETS.rebookPct}%</div>
     </div>
 
-    <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px" data-hair-ncr="${(s.ncrPct||0).toFixed(4)}" data-beauty-ncr="${s.beautyNcrPct != null ? s.beautyNcrPct.toFixed(4) : 'null'}" data-both-ncr="${(s.combinedNcrPct||0).toFixed(4)}">
+    <div class="metric ncr-glow" style="border-color:rgba(153,246,228,0.75);padding:14px" data-hair-ncr="${(s.ncrPct||0).toFixed(4)}" data-beauty-ncr="${s.beautyNcrPct != null ? s.beautyNcrPct.toFixed(4) : 'null'}" data-both-ncr="${(s.combinedNcrPct||0).toFixed(4)}">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
       <div style="margin-bottom:3px">
         <div class="metric-label" id="ncrCardLabel" style="font-size:9px;margin-bottom:4px">Hair NCR %</div>
@@ -1317,7 +1354,7 @@ async function renderDashboard() {
         (window.ncrView||'hair') === 'beauty' ? (s.beautyNcrPct != null ? fmtPct(s.beautyNcrPct) : '—') :
         (window.ncrView||'hair') === 'both'   ? fmtPct(s.combinedNcrPct||0) :
         fmtPct(s.ncrPct||0)
-      }${trendArrow(s.ncrPct, prevS?.ncrPct)}</div>
+      }${trendArrow(s.ncrPct, prevS?.ncrPct, true, prevPeriodLabel)}</div>
       <div class="metric-target" style="font-size:10px">Target: ≥ 20%</div>
       ${sc((window.ncrView||'hair') === 'beauty' ? (s.beautyNcrPct||0) : (window.ncrView||'hair') === 'both' ? (s.combinedNcrPct||0) : (s.ncrPct||0), 20) === 'critical'
         ? `<div style="margin-top:6px;padding:3px 7px;background:rgba(255,68,68,0.15);border:1px solid rgba(255,68,68,0.4);border-radius:6px;font-size:9px;color:#FF4444;letter-spacing:0.06em;text-transform:uppercase;font-weight:700">⚠ Critical — Needs Attention</div>`
@@ -1326,9 +1363,12 @@ async function renderDashboard() {
   </div>
 
   <!-- CLIENT BREAKDOWN PANEL (toggled by Breakdown pill) -->
-  <div id="clientBreakdownPanel" style="display:block">
+  <div id="clientBreakdownPanel" style="display:block;position:sticky;top:52px;z-index:39;background:var(--bg);padding-bottom:4px">
     <div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--surface)">
-      <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${dark?'#99F6E4':'#0F6E56'};margin-bottom:10px;font-weight:600">Client Breakdown</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${dark?'#99F6E4':'#0F6E56'};font-weight:600">Client Breakdown</div>
+        <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${dark?'#99F6E4':'#0F6E56'};font-weight:600">Running Net Revenue</div>
+      </div>
       ${(()=>{
         const bdSum = (s.hairBreakdown?.ncr||0)+(s.hairBreakdown?.req||0)+(s.hairBreakdown?.salon||0)+(s.hairBreakdown?.new||0)
                     + (s.beautyBreakdown?.ncr||0)+(s.beautyBreakdown?.req||0)+(s.beautyBreakdown?.salon||0)+(s.beautyBreakdown?.new||0);
@@ -1364,7 +1404,7 @@ async function renderDashboard() {
                 ${stages.map(st => {
                   const val = d.data[st.key] || 0;
                   const pct = Math.max(4, Math.round((val / maxVal) * 100));
-                  const convPct = st.key !== 'req' && d.data.req ? ` · ${Math.round(val/d.data.req*100)}% of REQ` : '';
+                  const convPct = st.key !== 'req' && d.data.req ? ` · ${(val/d.data.req*100).toFixed(2)}% of REQ` : '';
                   return `
                   <div style="display:grid;grid-template-columns:90px 1fr 50px;gap:6px;align-items:center;margin-bottom:5px">
                     <div style="font-size:10px;color:var(--muted);text-align:right;letter-spacing:.04em">${st.label}</div>
@@ -1397,9 +1437,9 @@ async function renderDashboard() {
               ];
               return depts.map(d => {
                 const total = (d.bd.new||0) + (d.bd.rebooked||0) + (d.bd.ncr||0);
-                const newPct = total ? Math.round((d.bd.new||0)/total*100)      : 0;
-                const rebPct = total ? Math.round((d.bd.rebooked||0)/total*100) : 0;
-                const ncrPct = total ? Math.round((d.bd.ncr||0)/total*100)      : 0;
+                const newPct = total ? ((d.bd.new||0)/total*100).toFixed(2)      : '0.00';
+                const rebPct = total ? ((d.bd.rebooked||0)/total*100).toFixed(2) : '0.00';
+                const ncrPct = total ? ((d.bd.ncr||0)/total*100).toFixed(2)      : '0.00';
                 return `
                 <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 6px;background:${dark?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.02)'};border-radius:10px;border:1px solid var(--border2)">
                   <div style="font-size:11px;font-weight:700;color:${d.col};letter-spacing:.04em">${d.label}</div>
@@ -1417,16 +1457,15 @@ async function renderDashboard() {
 
         <!-- RUNNING NET REVENUE -->
         <div>
-          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Running Net Revenue</div>
           ${(()=>{
             const hairNet    = (s.netTake||0) - (s.beautySales||0);
             const beautyNet  = s.beautySales || 0;
             const totalNet   = s.netTake || 0;
-            const hairPct    = totalNet ? Math.round(hairNet / totalNet * 100) : 0;
-            const beautyPct  = totalNet ? Math.round(beautyNet / totalNet * 100) : 0;
+            const hairPct    = totalNet ? (hairNet / totalNet * 100).toFixed(2) : '0.00';
+            const beautyPct  = totalNet ? (beautyNet / totalNet * 100).toFixed(2) : '0.00';
             const hairCol    = '#C4B5FD';
             const beautyCol  = '#99F6E4';
-            const fmtAed     = v => 'AED ' + Math.round(v).toLocaleString();
+            const fmtAed     = v => fmtAED(v);
             const bar = (pct, col) => `
               <div style="background:${dark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.05)'};border-radius:4px;height:8px;margin-top:4px;overflow:hidden">
                 <div style="width:${pct}%;height:100%;background:${col};border-radius:4px;transition:width 0.5s ease"></div>
@@ -1532,7 +1571,7 @@ async function renderDashboard() {
     <div style="position:relative;width:200px;height:200px;flex-shrink:0;margin:auto 0">
       <canvas id="donutChart"></canvas>
       <div class="donut-center">
-        <div class="donut-center-val" style="font-size:20px">${Math.round(s.netTake/1000)}k</div>
+        <div class="donut-center-val" style="font-size:20px">${(s.netTake/1000000).toFixed(2)}M</div>
         <div class="donut-center-lbl">Net AED</div>
       </div>
     </div>
@@ -1659,7 +1698,8 @@ async function renderDashboard() {
       <span class="section-label" style="margin:0;letter-spacing:0.16em;flex-shrink:0;white-space:nowrap">Retention</span>
       <span style="font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">Hair Rebooking % · Beauty Rebooking % · Retention % · Conversion %</span>
     </div>
-    <span class="support-toggle-arrow" id="arrow-retentionRun">▼</span>
+    <span class="sect-period-badge">${sectionPeriodLabel}</span>
+    <span class="support-toggle-arrow" id="arrow-retentionRun">›</span>
   </div>
   <div class="support-section-body" id="body-retentionRun">
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:12px 0 4px">
@@ -1699,7 +1739,8 @@ async function renderDashboard() {
       <span class="section-label" style="margin:0;letter-spacing:0.16em;flex-shrink:0;white-space:nowrap">Operations</span>
       <span style="font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">Utilisation % · Hair Utilisation % · Beauty Utilisation %</span>
     </div>
-    <span class="support-toggle-arrow" id="arrow-opsRun">▼</span>
+    <span class="sect-period-badge">${sectionPeriodLabel}</span>
+    <span class="support-toggle-arrow" id="arrow-opsRun">›</span>
   </div>
   <div class="support-section-body" id="body-opsRun">
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:12px 0 4px">
@@ -1763,15 +1804,26 @@ async function renderDashboard() {
     const hairNet   = (s.netTake||0) - (s.beautySales||0);
     const beautyNet = s.beautySales || 0;
     const total     = s.netTake || 0;
-    const fmt = v => 'AED ' + (Math.round(v)/1000).toFixed(0) + 'k';
+    const fmtShort = v => {
+      if (v >= 1000000) return 'AED ' + (v/1000000).toFixed(2) + 'M';
+      if (v >= 1000)    return 'AED ' + (v/1000).toFixed(2) + 'k';
+      return 'AED ' + v.toFixed(2);
+    };
+    const pill = (label, val, col) => `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 12px;border-right:1px solid rgba(255,255,255,0.1)">
+        <span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:${col};white-space:nowrap;font-weight:600">${label}</span>
+        <span style="font-size:11px;font-weight:800;color:var(--text);white-space:nowrap">${fmtShort(val)}</span>
+      </div>`;
     w.style.display = 'flex';
-    w.innerHTML = `
-      <span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(153,246,228,0.7);white-space:nowrap">Net Rev</span>
-      <span style="font-size:10px;font-weight:700;color:#C4B5FD;white-space:nowrap" title="Hair net revenue">${fmt(hairNet)} H</span>
-      <span style="color:rgba(255,255,255,0.2);font-size:10px">·</span>
-      <span style="font-size:10px;font-weight:700;color:#99F6E4;white-space:nowrap" title="Beauty net revenue">${fmt(beautyNet)} B</span>
-      <span style="color:rgba(255,255,255,0.2);font-size:10px">·</span>
-      <span style="font-size:10px;font-weight:600;color:var(--muted);white-space:nowrap" title="Total">${fmt(total)}</span>`;
+    w.style.padding = '0';
+    w.style.overflow = 'hidden';
+    w.innerHTML =
+      pill('Hair', hairNet, '#C4B5FD') +
+      pill('Beauty', beautyNet, '#99F6E4') +
+      `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 12px">
+        <span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.45);white-space:nowrap;font-weight:600">Hair &amp; Beauty</span>
+        <span style="font-size:11px;font-weight:800;color:var(--text);white-space:nowrap">${fmtShort(total)}</span>
+      </div>`;
   })();
 
   // ── Dial (gauge) chart ──
@@ -1899,7 +1951,7 @@ async function renderDashboard() {
   charts.donut = new Chart(document.getElementById('donutChart'), {
     type: 'doughnut',
     data: { labels: donutLabels, datasets: [{ data: donutData, backgroundColor: donutColors, borderColor: donutBorder, borderWidth: 2, hoverOffset: 4 }] },
-    options: { cutout:'62%', responsive:true, maintainAspectRatio:false, animation:{animateRotate:true,duration:600,easing:'easeInOutQuart'},
+    options: { cutout:'62%', responsive:true, maintainAspectRatio:false, animation:{animateRotate:true,duration:600,easing:'easeInOutQuart'}, clip:false,
       plugins: { legend:{display:false}, tooltip:{...ttStyle, padding:10, boxPadding:4, callbacks:{label:c=>` ${c.label}: ${fmtAED(c.raw)} (${(c.raw/donutTotal*100).toFixed(2)}%)`}} }
     }
   });
