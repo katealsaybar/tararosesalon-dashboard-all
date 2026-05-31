@@ -1693,44 +1693,19 @@ async function renderDashboard() {
 </div>
 
 
-<!-- RETENTION (collapsible) -->
-<div class="support-section" style="margin-bottom:8px">
-  <div class="support-section-hdr" onclick="toggleSection('retentionRun')">
-    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#FFD4D9;flex-shrink:0"></span>
-      <span class="section-label" style="margin:0;letter-spacing:0.16em;flex-shrink:0;white-space:nowrap">Retention</span>
-      <span style="font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">Hair Rebooking % · Beauty Rebooking % · Retention % · Conversion %</span>
-    </div>
-    <span class="sect-period-badge">${sectionPeriodLabel}</span>
-    <span class="support-toggle-arrow" id="arrow-retentionRun">›</span>
+<!-- RETENTION + CONVERSION — flat row before Operations -->
+<div style="display:flex;gap:12px;margin-bottom:8px">
+  <div class="metric m-rose" style="flex:1">
+    <div class="metric-label">Retention %</div>
+    <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Returning clients over time)</em></div>
+    <div class="metric-value ${sc(s.retentionPct||0, 60)}" style="font-size:20px">${fmtPct(s.retentionPct||0)}</div>
+    <div class="metric-target">Target: ≥ 60–70%</div>
   </div>
-  <div class="support-section-body" id="body-retentionRun">
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:12px 0 4px">
-      <div class="metric m-rose">
-        <div class="metric-label">Hair Rebooking %</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Hair rebooks ÷ Hair clients)</em></div>
-        <div class="metric-value ${sc(s.rebookPct||0, 50)}" style="font-size:20px">${fmtPct(s.rebookPct||0)}</div>
-        <div class="metric-target">Target: ≥ 50%</div>
-      </div>
-      <div class="metric m-rose">
-        <div class="metric-label">Beauty Rebooking %</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Beauty rebooks ÷ Beauty clients)</em></div>
-        <div class="metric-value ${sc(s.beautyRebookPct||0, 40)}" style="font-size:20px">${fmtPct(s.beautyRebookPct||0)}</div>
-        <div class="metric-target">Target: ≥ 40%</div>
-      </div>
-      <div class="metric m-rose">
-        <div class="metric-label">Retention %</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Returning clients over time)</em></div>
-        <div class="metric-value ${sc(s.retentionPct||0, 60)}" style="font-size:20px">${fmtPct(s.retentionPct||0)}</div>
-        <div class="metric-target">Target: ≥ 60–70%</div>
-      </div>
-      <div class="metric m-rose">
-        <div class="metric-label">Conversion %</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(New → returning clients)</em></div>
-        <div class="metric-value ${sc(s.conversionPct||0, 50)}" style="font-size:20px">${fmtPct(s.conversionPct||0)}</div>
-        <div class="metric-target">Target: ≥ 50%</div>
-      </div>
-    </div>
+  <div class="metric m-rose" style="flex:1">
+    <div class="metric-label">Conversion %</div>
+    <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(New → returning clients)</em></div>
+    <div class="metric-value" style="font-size:16px;color:var(--muted);font-style:italic">Jul 2026</div>
+    <div class="metric-target" style="color:var(--muted)">Cohort data maturing</div>
   </div>
 </div>
 

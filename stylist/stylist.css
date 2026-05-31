@@ -92,7 +92,8 @@ select{cursor:pointer;min-width:140px}
 .stylist-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;color:#fff}
 .stylist-avatar-photo{object-fit:cover;display:block}
 .stylist-card-name{font-weight:700;font-size:13px;letter-spacing:0.04em;text-transform:uppercase}
-.stylist-card-type{font-size:10px;color:var(--muted);margin-top:1px}
+.stylist-card-nickname{font-size:10px;color:var(--muted);font-style:italic;letter-spacing:0.02em;margin-top:1px}
+.stylist-card-type{font-size:10px;color:var(--muted);margin-top:2px}
 .stylist-card-stat{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--muted);margin-bottom:3px}
 .stylist-card-clients{align-items:center}
 .stylist-card-val{font-size:13px;font-weight:700;color:var(--text)}
@@ -119,6 +120,9 @@ select{cursor:pointer;min-width:140px}
 /* Al Quoz */
 .branch-pill.aq{background:#FFF7D6;color:#6B4A00;border:1px solid #fce99a}
 [data-theme="dark"] .branch-pill.aq{background:rgba(252,233,154,0.15);color:#FCE99A;border-color:rgba(252,233,154,0.35)}
+/* Fratelli */
+.branch-pill.frt{background:#F3F7DC;color:#4A5A0A;border:1px solid #cdd98a}
+[data-theme="dark"] .branch-pill.frt{background:rgba(238,243,199,0.15);color:#EEF3C7;border-color:rgba(238,243,199,0.35)}
 /* Active weeks count text */
 .weeks-label{font-size:10px;color:var(--muted);white-space:nowrap}
 .stylist-weeks-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
@@ -261,7 +265,3 @@ canvas{max-height:220px}
 .date-picker-selection.has-range { color: var(--good); font-weight: 600; }
 .date-picker-apply { padding: 7px 18px; background: var(--accent); color: var(--accent-fg); border: none; border-radius: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .2s; }
 .date-picker-apply:hover { opacity: .85; }
-.date-picker-clear { background: none; border: 1px solid var(--border); border-radius: 10px; padding: 4px 10px; font-size: 11px; color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .2s; }
-.date-picker-clear:hover { border-color: var(--bad); color: var(--bad); }
-
-.detail-panel:empty { display: none !important; }

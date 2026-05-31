@@ -22,7 +22,7 @@ const STYLIST_SURNAMES = {
   "Eds":       "Asuncion",
   "Elise":     "Ford",
   "Emma":      "Williamson",
-  "Hazel May": "Marco",
+  "Hazel Mae": "Marco",
   "Holly":     "Branchett",
   "Ibrahim":   "Al Mofdi",
   "Irlyn":     "Padilla",
@@ -44,6 +44,44 @@ const STYLIST_SURNAMES = {
   "Sophie":    "Harrison",
   "Toni":      "Brits",
   "Samantha":  "Ahmad",   // archived/resigned
+  // Beauticians from Phorest TSV 31 May 2026
+  "Mimi":      "Vertudes",
+  "Grace":     "Sarmiento",
+  "Shila":     "Mandal",
+  "Kim":       "Casas",
+  "Kimberly":  "Casas",
+  "Reda":      "Ramirez",
+  "Chona":     "Manlapaz",
+  "Arnalyn":   "Salisi",
+  "Judy":      "Barias",
+  "Mona":      "Soba",
+  "Rovina":    "Jordan",
+  "Sania":     "Ayaz",
+  "Stella":    "Mendes",
+  "Galina":    "Spierling",
+  "Mary Joy":  "Galos",
+  "MJ":        "Galos",
+  "Roja":      "Pudtado",
+  "Shine":     "Castillo",
+  // Additional stylists from Phorest TSV 31 May 2026
+  "Tamryn":        "Peter",
+  "Helen":         "Lita",
+  "Maria Theresa": "Lascanu",
+  "May":           "Fernandez",
+  "Mevil":         "Miraflor",
+  "Myra":          "Sarmiento",
+  "Daisy":         "Cropper",
+  "Clarissa":      "Destacamento",
+  "Princess":      "Miranda",
+  "Princess Areanne": "Miranda",
+  "Areanne":       "Miranda",
+  "Xyrhy":         "Unisa",
+  "Goncalo":       "de Almeida",
+  "Tara":          "Kidd",
+  "Dorah":         "Namayanja",
+  "Marjorie":      "Sevilla",
+  "Oliver":        "Green",
+  "Stuart":        "Hastings",
 };
 
 // Map first name → photo path (relative to stylist/photos/)
@@ -56,7 +94,7 @@ const STYLIST_PHOTOS = {
   "Kylie":     "KCA/kylie bazely.png",
   "Lizanie":   "KCA/lizanie jacobz.png",
   "Irlyn":     "KCA/irlyn padilla.png",
-  "Hazel May": "KCA/hazel-mae marco.png",
+  "Hazel Mae": "KCA/hazel-mae marco.png",
   "Nikki":     "KCA/nikki asuncion.png",
   "Samantha":  "KCA/samantha amad.png",
 
@@ -70,6 +108,7 @@ const STYLIST_PHOTOS = {
   "Jeida":     "SAA/jeida rachmanova.jpg",
   "Molly":     "SAA/molly robinson.png",
   "Tammy":     "SAA/tamryn peter.png",
+  "Tamryn":    "SAA/tamryn peter.png",
 
   // ── MOTOR CITY (MC) ─────────────────────────────────
   "Alan":      "MC/alan joeph russell.png",
@@ -88,6 +127,7 @@ const STYLIST_PHOTOS = {
 
   "Lucy":      "AQ/lucy gonzales rodriguez.jpg",
   "Toni":      "KCA/toni brits.png",
+  "Sophie":    "KCA/sophie harrison.jpg",
 };
 
 const STYLIST_IG = {
@@ -112,13 +152,14 @@ const STYLIST_IG = {
   "Lizanie":    "https://www.instagram.com/lizaniejacobsz_hair",
   "Nikki":      "https://www.instagram.com/hairbynikki.na",
   "Olena":      "https://www.instagram.com/ostertag.olena",
-  "Hazel May":  "https://www.instagram.com/hairby_mhay",
+  "Hazel Mae":  "https://www.instagram.com/hairby_mhay",
   "Irlyn":      "https://www.instagram.com/hairby_lyn11",
   "Ruth":       "https://www.instagram.com/rainbowsby_ruth",
   "Zandri":     "https://www.instagram.com/hairby.zandri",
   "Samantha":   "https://www.instagram.com/samanthaahmadhair",
   "Ibrahim":    "https://www.instagram.com/almofdi.hairstylist",
-  "Shelley":    "https://www.instagram.com/shelley_the_global_hairstylist"
+  "Shelley":    "https://www.instagram.com/shelley_the_global_hairstylist",
+  "Sophie":     "https://www.instagram.com/sophiepatriciahair/"
 };
 
 const BRANCH_INFO = {
@@ -163,6 +204,19 @@ let stylistMap = {};      // name -> { weeks:[], hair/beautyStaff data consolida
 let typeFilter = 'all';
 let sortKey    = 'hairSalesNet';
 let branchFilter = 'all';
+window.showFratelli = true;
+
+function toggleFratelli() {
+  window.showFratelli = !window.showFratelli;
+  const btn = document.getElementById('fratelliToggleBtn');
+  const dot = document.getElementById('fratelliToggleDot');
+  if (btn) {
+    btn.style.opacity        = window.showFratelli ? '1' : '0.4';
+    btn.style.textDecoration = window.showFratelli ? 'none' : 'line-through';
+  }
+  if (dot) dot.style.opacity = window.showFratelli ? '1' : '0.3';
+  renderGrid();
+}
 let selectedStylist = null;
 let activeChart = null;
 let viewMode = 'weekly';
@@ -328,7 +382,15 @@ function isSkip(name){
 const NAME_ALIASES = {
   "Shelly":  "Shelley",
   "Lucia":   "Lucy",
+  "Arni":    "Arnalyn",
+  "MJ":      "Mary Joy",
+  "Mae":     "Hazel Mae",
 };
+
+// Reverse of NAME_ALIASES: canonical → ledger nickname
+const REVERSE_ALIASES = Object.fromEntries(
+  Object.entries(NAME_ALIASES).map(([alias, canonical]) => [canonical, alias])
+);
 
 function normaliseName(raw) {
   if (NAME_ALIASES[raw]) return NAME_ALIASES[raw];
@@ -452,6 +514,9 @@ if (dateFrom || dateTo) {
 if (branchFilter !== 'all') {
   weeks = weeks.filter(w => w.branch === branchFilter);
 }
+if (!window.showFratelli) {
+  weeks = weeks.filter(w => w.branch !== 'FRT');
+}
 
   if(!weeks.length) return null;
   const sum = (key) => weeks.reduce((a,w)=>a+(w[key]||0),0);
@@ -540,7 +605,8 @@ function renderGrid(){
 }
 
 function renderSection(list, gridId, title, count, titleId){
-  document.getElementById(titleId).textContent = `${title} · ${count} ${count===1?'person':'people'}`;
+  const totalClients = list.reduce((sum, s) => sum + (s._stats ? s._stats.total : 0), 0);
+  document.getElementById(titleId).textContent = `${title} · ${count} ${count===1?'person':'people'} · ${totalClients.toLocaleString()} clients`;
   const grid = document.getElementById(gridId);
 
   grid.innerHTML = list.map(s=>{
@@ -565,11 +631,12 @@ function renderSection(list, gridId, title, count, titleId){
       <div class="stylist-card-top">
         ${avatarHTML}
         <div>
-          <div class="stylist-card-name">${s.name}${surname ? ' ' + surname : ''}</div>
-          <div class="stylist-card-type">
-  <span class="job-pill ${s.isBeauty?'beauty':'hair'}">${s.isBeauty?'💅 Beautician':'✂️ Hair Stylist'}</span>${[...new Set(st.weeks.map(w=>w.branch))].map(b=>{const slug={KCA:'kca',SAA:'saa',MC:'mc',AQ:'aq',FRT:'frt'}[b]||'kca';const label=BRANCH_INFO[b]?.name||b;return`<span class="branch-pill ${slug}">${label}</span>`;}).join('')}<span class="weeks-label">${st.weeksActive}w</span>
-        </div>
-        ${igUrl ? `<a href="${igUrl}" target="_blank" onclick="event.stopPropagation()" class="ig-link" title="View on Instagram"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg><span>View on Instagram</span></a>` : ''}
+          <div class="stylist-card-name">${cleanName}${surname ? ' ' + surname : ''}</div>
+          ${REVERSE_ALIASES[cleanName] ? `<div class="stylist-card-nickname">${REVERSE_ALIASES[cleanName]}</div>` : ''}
+          <div class="stylist-card-type"><span class="job-pill ${s.isBeauty?'beauty':'hair'}">${s.isBeauty?'💅 Beautician':'✂️ Hair Stylist'}</span></div>
+          <div class="stylist-card-type">${[...new Set(st.weeks.map(w=>w.branch))].map(b=>{const slug={KCA:'kca',SAA:'saa',MC:'mc',AQ:'aq',FRT:'frt'}[b]||'kca';const label=BRANCH_INFO[b]?.name||b;return`<span class="branch-pill ${slug}">${label}</span>`;}).join('')}</div>
+          <div class="stylist-card-type"><span class="weeks-label">(${st.weeksActive}w)</span></div>
+          ${igUrl ? `<a href="${igUrl}" target="_blank" onclick="event.stopPropagation()" class="ig-link" title="View on Instagram"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg><span>View on Instagram</span></a>` : ''}
         </div>
       </div>
       <div class="stylist-card-stat"><span>${revLabel}</span><span class="stylist-card-val">${fmtAED(rev)}</span></div>
@@ -641,7 +708,11 @@ function renderDetail(s){
   const sn  = STYLIST_SURNAMES[cn] || '';
   return `${s.name}${sn?' '+sn:''}`;
 })()}</div>
-        <div class="detail-sub">${isBeauty?'Beautician':'Hair Stylist'} · Active ${st.weeksActive} week${st.weeksActive!==1?'s':''} · ${[...new Set(st.weeks.map(w=>BRANCH_INFO[w.branch]?.name||w.branch))].join(', ')}</div>
+        <div class="detail-sub" style="display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:3px">
+          <span class="job-pill ${isBeauty?'beauty':'hair'}">${isBeauty?'💅 Beautician':'✂️ Hair Stylist'}</span>
+          <span style="color:var(--muted);font-size:10px">· Active ${st.weeksActive}w ·</span>
+          ${[...new Set(st.weeks.map(w=>w.branch))].map(b=>{const slug={KCA:'kca',SAA:'saa',MC:'mc',AQ:'aq',FRT:'frt'}[b]||'kca';const label=BRANCH_INFO[b]?.name||b;return`<span class="branch-pill ${slug}">${label}</span>`;}).join('')}
+        </div>
         ${(()=>{
   const cn  = s.name.toLowerCase().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
   const url = STYLIST_IG[cn];
@@ -1048,74 +1119,3 @@ function pickDay(year, month, day) {
   renderCalendar();
   updateStepUI();
 }
-
-function updateStepUI() {
-  const fmt = d => d ? d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : null;
-  const fromEl   = document.getElementById('calStepFrom');
-  const toEl     = document.getElementById('calStepTo');
-  const fromVal  = document.getElementById('calStepFromVal');
-  const toVal    = document.getElementById('calStepToVal');
-  const selEl    = document.getElementById('date-picker-selection');
-
-  if (fromEl) fromEl.classList.toggle('active-step', pickingStep === 'from');
-  if (toEl)   toEl.classList.toggle('active-step',   pickingStep === 'to');
-
-  if (fromVal) {
-    fromVal.textContent = pickerFromDate ? fmt(pickerFromDate) : 'Select start';
-    fromVal.className   = 'cal-step-val' + (pickerFromDate ? ' set' : '');
-  }
-  if (toVal) {
-    toVal.textContent = pickerToDate ? fmt(pickerToDate) : 'Select end';
-    toVal.className   = 'cal-step-val' + (pickerToDate ? ' set' : '');
-  }
-  if (selEl) {
-    if (!pickerFromDate) { selEl.textContent = 'Click a date to set FROM'; selEl.className = 'date-picker-selection'; }
-    else if (!pickerToDate) { selEl.textContent = 'Now click a date to set TO'; selEl.className = 'date-picker-selection'; }
-    else { selEl.textContent = `${fmt(pickerFromDate)} → ${fmt(pickerToDate)}`; selEl.className = 'date-picker-selection has-range'; }
-  }
-}
-
-function applyDateRange() {
-  if (!pickerFromDate) return;
-  dateFrom = new Date(pickerFromDate); dateFrom.setHours(0,0,0,0);
-  dateTo   = new Date(pickerToDate || pickerFromDate); dateTo.setHours(23,59,59,999);
-  const lbl = document.getElementById('lbl-daterange');
-  const fmt = d => d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'2-digit' });
-  lbl.textContent = dateTo && dateTo.getTime() !== dateFrom.getTime()
-    ? `${fmt(dateFrom)} – ${fmt(dateTo)}`
-    : fmt(dateFrom);
-  const pop = document.getElementById('datePickerPop');
-  const btn = document.getElementById('btn-daterange');
-  pop.style.display = 'none'; pop.classList.remove('open'); btn.classList.remove('active');
-  renderGrid();
-}
-
-function clearDateRange() {
-  dateFrom = null; dateTo = null;
-  pickerFromDate = null; pickerToDate = null;
-  pickingStep = 'from';
-  const lbl = document.getElementById('lbl-daterange');
-  if (lbl) lbl.textContent = 'Select Date/s From and To';
-  renderCalendar();
-  updateStepUI();
-  renderGrid();
-}
-
-document.addEventListener('click', e => {
-  const wrap = document.getElementById('dateRangeWrap');
-  if (wrap && !wrap.contains(e.target)) {
-    const pop = document.getElementById('datePickerPop');
-    const btn = document.getElementById('btn-daterange');
-    if (pop) { pop.style.display = 'none'; pop.classList.remove('open'); }
-    if (btn) btn.classList.remove('active');
-  }
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('searchInput').addEventListener('input', renderGrid);
-  document.body.classList.add('hide-week-pills');
-  buildYearOptions();
-  renderCalendar();
-  updateStepUI();
-  loadData();
-});
