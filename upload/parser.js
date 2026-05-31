@@ -71,8 +71,14 @@ function parseWeekendSheet(wb) {
     const staff = [];
     for (let i = fromIdx + 1; i < rows.length; i++) {
       const row   = rows[i];
-      const first = normLabel(row[0]);
-      if (!first || SKIP_NAMES.has(first)) continue;
+      let first = normLabel(row[0]);
+      // Blank-name rows with clients → treat as ASSISTANTS
+      if (!first) {
+        const blankTotal = parseInt(row[colMap['TOTAL']]) || 0;
+        if (blankTotal > 0) first = 'ASSISTANTS';
+        else continue;
+      }
+      if (SKIP_NAMES.has(first)) continue;
       // Stop when we hit the other section or end markers
       if (!isBeauty && beautyHdrRowIdx !== -1 && i >= beautyHdrRowIdx) break;
       if (first === 'TOTAL CLIENTS' || first === 'NET SALON TAKE') break;

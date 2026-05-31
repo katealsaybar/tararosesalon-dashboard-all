@@ -282,6 +282,7 @@ aside.sidebar{
   --shadow:0 2px 12px rgba(92,85,87,0.08);
   --good:#0F6E56;--good-bg:#E1F5EE;--warn:#BA7517;--warn-bg:#FAEEDA;--bad:#A32D2D;--bad-bg:#FCEBEB;
   --logo-color:#5C5557;--toggle-knob:#5C5557;
+  --fratelli-bg:rgba(99,112,0,0.10);--fratelli-border:rgba(99,112,0,0.4);--fratelli-text:#4a5500;--fratelli-dot:#637000;
 }
 
 .nav-btn{
@@ -408,6 +409,10 @@ main{max-width:1400px;margin:0 auto;padding:10px 28px 48px}
 .metric-label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
 .metric-value{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:28px;line-height:1;color:var(--text);transition:color .3s}
 .metric-value.good{color:var(--good)}.metric-value.warn{color:var(--warn)}.metric-value.bad{color:var(--bad)}
+.metric-value.critical{color:#FF4444;text-shadow:0 0 12px rgba(255,68,68,0.5)}
+@keyframes pulse-critical{0%,100%{box-shadow:0 0 0 0 rgba(255,68,68,0.0),inset 0 0 0 1px rgba(255,68,68,0.5)}50%{box-shadow:0 0 0 4px rgba(255,68,68,0.15),inset 0 0 0 1px rgba(255,68,68,0.9)}}
+.metric:has(.metric-value.critical){animation:pulse-critical 2s ease-in-out infinite;border-color:rgba(255,68,68,0.5) !important}
+.metric:has(.metric-value.critical)::before{background:#FF4444 !important}
 .metric-target{font-size:11px;color:var(--muted2);margin-top:8px;letter-spacing:0.04em;display:flex;align-items:center;gap:4px}
 .metric-target::before{content:'';display:inline-block;width:3px;height:3px;border-radius:50%;background:var(--muted2);flex-shrink:0}
 
@@ -714,6 +719,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   </div>
   <div class="header-right">
     <div class="last-updated" id="lastUpdated"></div>
+    <div id="headerRevWidget" style="display:none;align-items:center;gap:8px;padding:4px 10px;background:rgba(153,246,228,0.08);border:1px solid rgba(153,246,228,0.2);border-radius:8px;font-family:inherit"></div>
     <div class="toggle-wrap" onclick="toggleTheme()">
       <span class="toggle-lbl" id="themeLbl">Dark</span>
       <div class="toggle-track"><div class="toggle-thumb"></div></div>
@@ -740,16 +746,11 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
     <div class="nav-sub" onclick="showView('reviews', this)">Salon Reviews</div>
   </div>
 
-  <!-- Level 1 + 2: Giveaways -->
-  <div class="nav-group">
-    <div class="nav-title">STRATEGIES</div>
-    <div class="nav-sub" onclick="showView('giveaway', this)">Giveaways April 2026</div>
-  </div>
-
-  <!-- Level 2 only: Content + Admin -->
+  <!-- Content + Giveaways: admin-only, separated from KPI Metrics -->
   <div class="nav-group nav-admin-only" style="display:none">
     <div class="nav-title">CONTENT</div>
     <div class="nav-sub" onclick="showView('calendar', this)">Content Calendar</div>
+    <div class="nav-sub" onclick="showView('giveaway', this)">Giveaways April 2026</div>
     <div class="nav-sub" onclick="showView('trk', this)">Personal Brand</div>
   </div>
 
@@ -832,6 +833,14 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
           </div>
         </div>
       </div>
+    </div>
+    <!-- FRATELLI TOGGLE -->
+    <div class="ctrl-group" style="align-self:center;margin-left:4px">
+      <div class="ctrl-label">Show</div>
+      <button id="fratelliToggleBtn" onclick="toggleFratelli()" style="display:flex;align-items:center;gap:6px;background:var(--fratelli-bg,rgba(238,243,199,0.15));border:1px solid var(--fratelli-border,rgba(238,243,199,0.45));color:var(--fratelli-text,#EEF3C7);border-radius:20px;padding:5px 12px;font-size:10px;font-family:inherit;cursor:pointer;letter-spacing:.04em;white-space:nowrap;transition:all .2s">
+        <span id="fratelliToggleDot" style="width:7px;height:7px;border-radius:50%;background:var(--fratelli-dot,#EEF3C7);flex-shrink:0"></span>
+        Fratelli
+      </button>
     </div>
   </div>
 

@@ -44,11 +44,28 @@ let dateFrom = null; // JS Date object
 let dateTo   = null; // JS Date object
 
 // collapsible section open/close state (persists across re-renders)
-const sectionState = { revenueRun: false, clientRun: false, retentionRun: false, opsRun: false };
+const sectionState = { revenueRun: false, retentionRun: false, opsRun: false };
+let revenueTab = 'hb'; // 'hair' | 'beauty' | 'hb'
 
 // daily rows cache — set during daily-mode render, used by aggByBranch
 let currentDailyRows = [];
 
+
+// ── FRATELLI TOGGLE ─────────────────────────────────────────
+
+window.showFratelli = true;
+
+function toggleFratelli() {
+  window.showFratelli = !window.showFratelli;
+  const btn = document.getElementById('fratelliToggleBtn');
+  const dot = document.getElementById('fratelliToggleDot');
+  if (btn) {
+    btn.style.opacity       = window.showFratelli ? '1' : '0.4';
+    btn.style.textDecoration= window.showFratelli ? 'none' : 'line-through';
+  }
+  if (dot) dot.style.background = window.showFratelli ? '#EEF3C7' : 'var(--muted)';
+  renderDashboard();
+}
 
 // ── THEME ───────────────────────────────────────────────────
 
@@ -63,11 +80,24 @@ const isDark = () => document.documentElement.getAttribute('data-theme') === 'da
 
 // ── FORMATTERS / HELPERS ────────────────────────────────────
 
+// Returns a coloured ↑↓ arrow string comparing curr vs prev value
+const trendArrow = (curr, prev, higherIsBetter = true) => {
+  if (prev == null || prev === 0 || curr == null) return '';
+  const delta = curr - prev;
+  const pct   = Math.abs(delta / prev * 100);
+  if (pct < 1) return '';
+  const up   = delta > 0;
+  const good = higherIsBetter ? up : !up;
+  const col  = good ? 'var(--good)' : 'var(--bad)';
+  return `<span style="color:${col};font-size:14px;font-weight:700;margin-left:6px">${up?'↑':'↓'}${pct.toFixed(0)}%</span>`;
+};
+
 const sc = (v, t) => {
   if (!t) return '';
   const ratio = v / t;
   if (ratio >= 1)   return 'good';
   if (ratio >= 0.8) return '';
+  if (ratio < 0.2)  return 'critical';
   return 'bad';
 };
 const fmtAED = n  => 'AED ' + (n || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -138,12 +168,94 @@ function toggleNcrView(mode) {
       hair.toFixed(1) + '%';
   }
   // update button active states
+  const isDark = document.body.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
+  const DEPT_COLORS = { hair: '#99F6E4', beauty: '#FFD4D9', both: '#C4B5FD' };
+  const DEPT_TEXT_LIGHT = { hair: '#0A5244', beauty: '#8B3A42', both: '#5B4A8A' };
   ['hair','beauty','both'].forEach(m => {
     const btn = document.getElementById('ncrBtn-' + m);
-    if (btn) btn.style.fontWeight = m === mode ? '700' : '400';
+    if (!btn) return;
+    const active = m === mode;
+    const col = DEPT_COLORS[m];
+    btn.style.fontWeight  = active ? '700' : '400';
+    btn.style.background  = active ? (isDark ? col + '40' : col + '55') : 'transparent';
+    btn.style.borderColor = active ? col : (isDark ? 'rgba(250,248,243,0.15)' : 'rgba(92,85,87,0.2)');
+    btn.style.color       = active ? (isDark ? col : DEPT_TEXT_LIGHT[m]) : (isDark ? 'rgba(250,248,243,0.45)' : '#9a8a87');
   });
 }
 
+function toggleAvgBillView(mode) {
+  window.avgBillView = mode;
+  const labels = { hair: 'Hair Avg Bill', beauty: 'Beauty Avg Bill', both: 'Total Avg Bill' };
+  const descs  = {
+    hair:   'Hair Revenue ÷ Total Clients (excl. rebooked)',
+    beauty: 'Beauty Revenue ÷ Total Clients (excl. rebooked)',
+    both:   'Total Revenue ÷ Total Clients (excl. rebooked)',
+  };
+  const labelEl = document.getElementById('avgBillCardLabel');
+  const descEl  = document.getElementById('avgBillCardDesc');
+  const valEl   = document.getElementById('avgBillCardValue');
+  if (labelEl) labelEl.textContent = labels[mode];
+  if (descEl)  descEl.innerHTML = `<em>${descs[mode]}</em>`;
+  const card = valEl && valEl.closest('.metric');
+  if (card) {
+    const hair   = parseFloat(card.dataset.hairAvgBill   || 0);
+    const beauty = card.dataset.beautyAvgBill === 'null' ? null : parseFloat(card.dataset.beautyAvgBill || 0);
+    const both   = parseFloat(card.dataset.bothAvgBill   || 0);
+    const val = mode === 'hair' ? hair : mode === 'beauty' ? beauty : both;
+    if (valEl) valEl.textContent = val != null ? 'AED ' + val.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '—';
+  }
+  const isDark = document.body.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
+  const DEPT_COLORS = { hair: '#99F6E4', beauty: '#FFD4D9', both: '#C4B5FD' };
+  const DEPT_TEXT_LIGHT = { hair: '#0A5244', beauty: '#8B3A42', both: '#5B4A8A' };
+  ['hair','beauty','both'].forEach(m => {
+    const btn = document.getElementById('avgBillBtn-' + m);
+    if (!btn) return;
+    const active = m === mode;
+    const col = DEPT_COLORS[m];
+    btn.style.fontWeight  = active ? '700' : '400';
+    btn.style.background  = active ? (isDark ? col + '40' : col + '55') : 'transparent';
+    btn.style.borderColor = active ? col : (isDark ? 'rgba(250,248,243,0.15)' : 'rgba(92,85,87,0.2)');
+    btn.style.color       = active ? (isDark ? col : DEPT_TEXT_LIGHT[m]) : (isDark ? 'rgba(250,248,243,0.45)' : '#9a8a87');
+  });
+}
+
+function toggleRebookView(mode) {
+  window.rebookView = mode;
+  const labels = { hair: 'Hair Rebooking %', beauty: 'Beauty Rebooking %', both: 'Rebooking %' };
+  const descs  = {
+    hair:   'Hair rebooked ÷ Total Clients (excl. rebooked)',
+    beauty: 'Beauty rebooked ÷ Total Clients (excl. rebooked)',
+    both:   'Hair & Beauty rebooked ÷ Total clients (excl. rebooked)',
+  };
+  const labelEl = document.getElementById('rebookCardLabel');
+  const descEl  = document.getElementById('rebookCardDesc');
+  const valEl   = document.getElementById('rebookCardValue');
+  if (labelEl) labelEl.textContent = labels[mode];
+  if (descEl)  descEl.innerHTML = `<em>${descs[mode]}</em>`;
+  const card = valEl && valEl.closest('.metric');
+  if (card) {
+    const hair   = parseFloat(card.dataset.hairRebook   || 0);
+    const beauty = card.dataset.beautyRebook === 'null' ? null : parseFloat(card.dataset.beautyRebook || 0);
+    const both   = parseFloat(card.dataset.bothRebook   || 0);
+    const val = mode === 'hair' ? hair : mode === 'beauty' ? beauty : both;
+    if (valEl) valEl.textContent = val != null ? val.toFixed(1) + '%' : '—';
+  }
+  const isDark = document.body.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
+  const DEPT_COLORS = { hair: '#99F6E4', beauty: '#FFD4D9', both: '#C4B5FD' };
+  const DEPT_TEXT_LIGHT = { hair: '#0A5244', beauty: '#8B3A42', both: '#5B4A8A' };
+  ['hair','beauty','both'].forEach(m => {
+    const btn = document.getElementById('rebookBtn-' + m);
+    if (!btn) return;
+    const active = m === mode;
+    const col = DEPT_COLORS[m];
+    btn.style.fontWeight  = active ? '700' : '400';
+    btn.style.background  = active ? (isDark ? col + '40' : col + '55') : 'transparent';
+    btn.style.borderColor = active ? col : (isDark ? 'rgba(250,248,243,0.15)' : 'rgba(92,85,87,0.2)');
+    btn.style.color       = active ? (isDark ? col : DEPT_TEXT_LIGHT[m]) : (isDark ? 'rgba(250,248,243,0.45)' : '#9a8a87');
+  });
+}
+
+let _cbDonutCharts = {};
 function toggleClientBreakdown() {
   const panel = document.getElementById('clientBreakdownPanel');
   const btn   = document.getElementById('breakdownPillBtn');
@@ -151,6 +263,44 @@ function toggleClientBreakdown() {
   const open = panel.style.display === 'none' || panel.style.display === '';
   smoothSlide(panel, open);
   if (btn) btn.innerHTML = open ? 'Breakdown ▴' : 'Breakdown ▾';
+  if (open) setTimeout(() => _initCbDonuts(), 80);
+}
+
+function _initCbDonuts() {
+  const dark = document.body.classList.contains('dark');
+  const s = window._lastDashState;
+  if (!s) return;
+  // TRS brand palette: teal=New, lavender=Rebooked, rose=NCR — same light & dark
+  const CB_COLORS = ['#99F6E4', '#C4B5FD', '#FFD4D9'];
+  const configs = [
+    { id: 'cbHairDonut',   bd: s.hairBreakdown   || {}, colors: CB_COLORS },
+    { id: 'cbBeautyDonut', bd: s.beautyBreakdown || {}, colors: CB_COLORS },
+  ];
+  configs.forEach(({ id, bd, colors }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (_cbDonutCharts[id]) { _cbDonutCharts[id].destroy(); }
+    const data = [bd.new||0, bd.rebooked||0, bd.ncr||0];
+    _cbDonutCharts[id] = new Chart(el, {
+      type: 'doughnut',
+      data: {
+        labels: ['New', 'Rebooked', 'NCR'],
+        datasets: [{ data, backgroundColor: colors, borderColor: dark?'#1e2330':'#ffffff', borderWidth: 2, hoverOffset: 3 }],
+      },
+      options: {
+        cutout: '60%', responsive: false, maintainAspectRatio: false,
+        animation: { duration: 500, easing: 'easeInOutQuart' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: c => ` ${c.label}: ${c.raw.toLocaleString()} (${data.reduce((a,b)=>a+b,0)?Math.round(c.raw/data.reduce((a,b)=>a+b,0)*100):0}%)`,
+            },
+          },
+        },
+      },
+    });
+  });
 }
 
 function getYear(label, uploaded_at) {
@@ -433,7 +583,7 @@ function applyDateRange() {
   dateTo   = pickerToDate || pickerFromDate;
   const lbl = document.getElementById('lbl-daterange');
   if (!dateFrom) {
-    lbl.textContent = 'Select Date/s From and To';
+    updateDateRangePlaceholder();
   } else {
     const fmt = d => d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'2-digit' });
     lbl.textContent = dateTo && dateTo.getTime() !== dateFrom.getTime()
@@ -454,7 +604,7 @@ function clearDateRange() {
   dateFrom = null; dateTo = null;
   pickerFromDate = null; pickerToDate = null;
   pickingStep = 'from';
-  document.getElementById('lbl-daterange').textContent = 'Select Date/s From and To';
+  updateDateRangePlaceholder();
   renderCalendar();
   updateStepUI();
   renderDashboard().then(() => {
@@ -480,8 +630,34 @@ function getWeekDatesFromLabel(label) {
   return { start, end };
 }
 
+function getDataSpan() {
+  let minDate = null, maxDate = null;
+  allData.forEach(d => {
+    const dates = getWeekDatesFromLabel(d.week_label);
+    const toD = s => { const u = new Date(s); u.setHours(0,0,0,0); return u; };
+    const start = dates ? dates.start : (d.uploaded_at ? toD(d.uploaded_at) : null);
+    const end   = dates ? dates.end   : start;
+    // also check uploaded_at directly so recent rows without matching labels aren't missed
+    const uploaded = d.uploaded_at ? toD(d.uploaded_at) : null;
+    if (start    && (!minDate || start    < minDate)) minDate = start;
+    if (end      && (!maxDate || end      > maxDate)) maxDate = end;
+    if (uploaded && (!maxDate || uploaded > maxDate)) maxDate = uploaded;
+  });
+  return { minDate, maxDate };
+}
+
+function updateDateRangePlaceholder() {
+  const lbl = document.getElementById('lbl-daterange');
+  if (!lbl || dateFrom) return; // don't overwrite an active selection
+  const { minDate, maxDate } = getDataSpan();
+  if (!minDate || !maxDate) { lbl.textContent = 'Select Date/s From and To'; return; }
+  const fmt = d => d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+  lbl.textContent = `${fmt(minDate)} – ${fmt(maxDate)}`;
+}
+
 function getFilteredData(ignoreBranch = false) {
   return allData.filter(d => {
+    if (!window.showFratelli && d.branch === 'FRT') return false;
     if (!ignoreBranch && !sel.branch.includes('all') && !sel.branch.includes(d.branch)) return false;
     if (dateFrom || dateTo) {
       const weekDates = getWeekDatesFromLabel(d.week_label);
@@ -530,6 +706,9 @@ function aggDailyData(dailyRows) {
   s.hairNcrPct    = s.ncrPct;
   s.beautyNcrPct  = null; // daily data has no beauty NCR column
   s.combinedNcrPct= null;
+  s.hairAvgBill   = totalHairClients ? ((s.netTake - s.beautySales - s.hairRetail) / totalHairClients) : 0;
+  s.beautyAvgBill = null; // daily data has no beauty client count
+  s.hairRebookPct = totalHairClients ? (dHairRebooked / totalHairClients * 100) : 0;
   s.beautyPct     = s.netTake ? (s.beautySales / s.netTake * 100) : 0;
   s.retentionPct  = s.rebookPct;
   s.conversionPct = s.rebookPct;
@@ -607,6 +786,9 @@ function aggWeeklyTotals(rows) {
     rebooked: beautyRebooked,
   };
   s.beautyRebookPct  = beautyClients  ? (beautyRebooked / beautyClients * 100)  : 0;
+  s.hairAvgBill      = hairClients ? ((s.netTake - s.beautySales - s.hairRetail) / hairClients) : 0;
+  s.beautyAvgBill    = beautyClients ? (s.beautySales / beautyClients) : 0;
+  s.hairRebookPct    = hairClients ? (wHairRebooked / hairClients * 100) : 0;
   s.beautyPct        = s.netTake ? (s.beautySales / s.netTake * 100) : 0;
   s.ncrPct           = hairClients ? (totalNcr / hairClients * 100) : 0;
   s.hairNcrPct       = s.ncrPct;
@@ -618,7 +800,7 @@ function aggWeeklyTotals(rows) {
   s._retailWarnings  = [];
   s.totals = {
     total:    hairClients,
-    rebooked: rows.reduce((a, r) => a + (r.hair_rebooked || 0), 0),
+    rebooked: rows.reduce((a, r) => a + (r.hair_rebooked || 0) + (r.beauty_rebooked || 0), 0),
   };
   return { summary: s, hairStaff: [], beautyStaff: [] };
 }
@@ -658,7 +840,8 @@ function aggData(datasets) {
     s.colTake       += sm.colTake       || 0;
     s.beautySales   += sm.beautySales   || 0;
     s.netTake       += sm.netTake       || 0;
-    if (sm.totals) { totalRebooked += sm.totals.rebooked||0; totalHairClients += sm.totals.total||0; }
+    totalRebooked += sm.totalRebooked != null ? sm.totalRebooked : (sm.totals?.rebooked || 0);
+    if (sm.totals) totalHairClients += sm.totals.total||0;
 
     (d.hairStaff || []).forEach(st => {
       const retailVal = Number(
@@ -668,12 +851,15 @@ function aggData(datasets) {
         hairMap[st.name] = { ...st, retail: retailVal };
       } else {
         const a = hairMap[st.name];
-        a.total += st.total;
-        a.newC += st.newC;
-        a.rebooked += st.rebooked;
+        a.total        += st.total;
+        a.newC         += st.newC;
+        a.rebooked     += st.rebooked;
         a.hairSalesNet += st.hairSalesNet;
-        a.retail += retailVal;
-        a.treatments += st.treatments;
+        a.retail       += retailVal;
+        a.treatments   += st.treatments;
+        a.req          += (st.req          || 0);
+        a.salon        += (st.salon        || 0);
+        a.newClientReq += (st.newClientReq || 0);
       }
     });
     (d.beautyStaff || []).forEach(st => {
@@ -701,14 +887,16 @@ function aggData(datasets) {
   s.beautyPct = s.netTake ? (s.beautySales / s.netTake * 100) : 0;
 
   // NCR = New Client Requests (hair_ncr / newClientReq) — NOT new clients (newC)
+  // Denominator excludes rebooked: req + salon + new + ncr (matches card description)
   const hairNcrSum     = Object.values(hairMap).reduce((a,st) => a+(st.newClientReq||0), 0);
-  const hairClientSum  = Object.values(hairMap).reduce((a,st) => a+(st.total||0), 0);
+  const hairClientSum  = Object.values(hairMap).reduce((a,st) => a+(st.req||0)+(st.salon||0)+(st.newC||0)+(st.newClientReq||0), 0);
   const beautyNcrSum   = Object.values(beautyMap).reduce((a,st) => a+(st.newClientReq||0), 0);
-  const beautyClientSum= Object.values(beautyMap).reduce((a,st) => a+(st.total||0), 0);
+  const beautyClientSum= Object.values(beautyMap).reduce((a,st) => a+(st.req||0)+(st.salon||0)+(st.newC||0)+(st.newClientReq||0), 0);
   s.ncrPct        = hairClientSum  ? (hairNcrSum  / hairClientSum  * 100) : 0;
   s.hairNcrPct    = s.ncrPct;
   s.beautyNcrPct  = beautyClientSum ? (beautyNcrSum / beautyClientSum * 100) : null;
-  s.combinedNcrPct= s.totalClients  ? ((hairNcrSum + beautyNcrSum) / s.totalClients * 100) : 0;
+  const combinedNcrBase = hairClientSum + beautyClientSum;
+  s.combinedNcrPct= combinedNcrBase ? ((hairNcrSum + beautyNcrSum) / combinedNcrBase * 100) : 0;
 
   // Per-category breakdowns for the Total Clients card dropdown
   s.hairBreakdown = {
@@ -725,6 +913,8 @@ function aggData(datasets) {
     new:     Object.values(beautyMap).reduce((a,st) => a+(st.newC||0), 0),
     rebooked:Object.values(beautyMap).reduce((a,st) => a+(st.rebooked||0), 0),
   };
+  s.totalRebooked = (s.hairBreakdown.rebooked || 0) + (s.beautyBreakdown.rebooked || 0);
+  s.rebookPct     = s.totalClients ? (s.totalRebooked / s.totalClients * 100) : 0;
 
   const hairStaff = Object.values(hairMap).map((st, i) => {
     const hReturning    = (st.req||0) + (st.salon||0);
@@ -767,6 +957,12 @@ function aggData(datasets) {
   const totalBeautyClients  = Object.values(beautyMap).reduce((a,st) => a+(st.total||0), 0);
   const totalBeautyRebooked = Object.values(beautyMap).reduce((a,st) => a+(st.rebooked||0), 0);
   s.beautyRebookPct = totalBeautyClients ? (totalBeautyRebooked / totalBeautyClients * 100) : 0;
+  const totalHairClientsAgg = Object.values(hairMap).reduce((a,st) => a+(st.total||0), 0);
+  const hairSalesNetAgg     = Object.values(hairMap).reduce((a,st) => a+(st.hairSalesNet||0), 0);
+  const totalHairRebookedAgg= Object.values(hairMap).reduce((a,st) => a+(st.rebooked||0), 0);
+  s.hairAvgBill   = totalHairClientsAgg ? hairSalesNetAgg / totalHairClientsAgg : 0;
+  s.beautyAvgBill = totalBeautyClients  ? s.beautySales / totalBeautyClients : 0;
+  s.hairRebookPct = totalHairClientsAgg ? (totalHairRebookedAgg / totalHairClientsAgg * 100) : 0;
 
   return { summary: s, hairStaff, beautyStaff };
 }
@@ -810,24 +1006,44 @@ function destroyCharts() {
   charts = {};
 }
 
-function buildCmpChart(byBranch, metric, dark, ttStyle, gc, tc) {
-  const activeBranches = sel.branch.includes('all') ? Object.keys(BRANCH_INFO) : sel.branch;
+function buildCmpChart(byBranch, metric, dark, ttStyle, gc, tc, catFilter) {
+  catFilter = catFilter || 'hb';
+  // Resolve the actual summary key based on category filter where metrics split by Hair/Beauty/Hair & Beauty
+  const resolveKey = (m, cat) => {
+    if (m === 'avgBill')       return cat === 'hair' ? 'hairAvgBill'   : cat === 'beauty' ? 'beautyAvgBill'   : 'avgBill';
+    if (m === 'rebookPct')     return cat === 'hair' ? 'hairRebookPct' : cat === 'beauty' ? 'beautyRebookPct' : 'rebookPct';
+    if (m === 'ncrPct')        return cat === 'hair' ? 'hairNcrPct'    : cat === 'beauty' ? 'beautyNcrPct'    : 'ncrPct';
+    return m; // netTake, totalClients, totalRebooked — no split
+  };
+  const resolvedMetric = resolveKey(metric, catFilter);
+
+  const activeBranches = (sel.branch.includes('all') ? Object.keys(BRANCH_INFO) : sel.branch)
+    .filter(b => window.showFratelli || b !== 'FRT');
   const entries = activeBranches.map(b => {
     const d = byBranch[b];
-    return { branch: b, val: +(d ? d.summary[metric]||0 : 0).toFixed(2), color: BRANCH_INFO[b]?.color||'#ccc', name: BRANCH_INFO[b]?.name||b };
+    return { branch: b, val: +(d ? d.summary[resolvedMetric]||0 : 0).toFixed(2), color: BRANCH_INFO[b]?.color||'#ccc', name: BRANCH_INFO[b]?.name||b };
   }).sort((a,b) => b.val - a.val);
 
   const labels = entries.map(e => e.name);
   const vals   = entries.map(e => e.val);
   const colors = entries.map(e => e.color);
-  const avg    = vals.reduce((a,b) => a+b, 0) / (vals.length||1);
-  const metricLabels = { netTake:'Revenue (AED)', totalClients:'Total Clients', avgBill:'Avg Bill (AED)', rebookPct:'Rebooking %', ncrPct:'Hair NCR %' };
+  const nonZeroVals = vals.filter(v => v > 0);
+  const avg    = nonZeroVals.length ? nonZeroVals.reduce((a,b) => a+b, 0) / nonZeroVals.length : 0;
+  const catLabel = catFilter === 'hair' ? 'Hair' : catFilter === 'beauty' ? 'Beauty' : 'Hair & Beauty';
+  const metricLabels = {
+    netTake:       'Revenue (AED)',
+    totalClients:  'Total Clients',
+    totalRebooked: 'Rebooked Clients',
+    avgBill:       `${catLabel} Avg Bill (AED)`,
+    rebookPct:     `${catLabel} Rebooking %`,
+    ncrPct:        `${catLabel} NCR %`,
+  };
   const lc = dark ? '#C4B5FD' : '#5C5557';
 
   charts.cmp = new Chart(document.getElementById('cmpChart'), {
     data: { labels, datasets: [
       { type:'bar', label: metricLabels[metric]||metric, data: vals, backgroundColor: colors.map(c=>c+'cc'), borderColor: colors, borderWidth: 1.5, borderRadius: 8, barThickness: 28, yAxisID:'y' },
-      { type:'line', label:'Total Avg Bill', data: vals.map(()=>+avg.toFixed(2)), borderColor: lc, backgroundColor:'transparent', borderWidth:2, borderDash:[6,4], pointRadius:5, pointBackgroundColor:lc, pointBorderColor:lc, tension:0, yAxisID:'y' }
+      { type:'line', label:'── Average ' + (metricLabels[metric]||metric), data: vals.map(()=>+avg.toFixed(2)), borderColor: lc, backgroundColor:'transparent', borderWidth:2, borderDash:[6,4], pointRadius:5, pointBackgroundColor:lc, pointBorderColor:lc, tension:0, yAxisID:'y' }
     ]},
     options: { animation:{duration:500,easing:'easeInOutQuart'}, responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
       plugins:{legend:{display:true,labels:{color:tc,font:{family:'DM Sans',size:11},boxWidth:12,filter:(item)=>item.datasetIndex===1}},tooltip:ttStyle},
@@ -838,6 +1054,25 @@ function buildCmpChart(byBranch, metric, dark, ttStyle, gc, tc) {
 
 
 // ── COLLAPSIBLE SECTIONS ─────────────────────────────────────
+
+function setRevenueTab(tab) {
+  revenueTab = tab;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const RV_COLORS = { hair: '#99F6E4', beauty: '#FFD4D9', hb: '#C4B5FD' };
+  const RV_TEXT_LIGHT = { hair: '#0A5244', beauty: '#8B3A42', hb: '#5B4A8A' };
+  ['hair','beauty','hb'].forEach(t => {
+    const panel = document.getElementById('rpanel-' + t);
+    const btn   = document.getElementById('rtab-' + t);
+    if (panel) panel.style.display = (t === tab) ? 'grid' : 'none';
+    if (btn) {
+      const active = t === tab;
+      const col = RV_COLORS[t];
+      btn.style.background  = active ? (isDark ? col + '40' : col + '55') : 'var(--surface2)';
+      btn.style.color       = active ? (isDark ? col : RV_TEXT_LIGHT[t]) : 'var(--muted)';
+      btn.style.borderColor = active ? col : 'var(--border)';
+    }
+  });
+}
 
 function toggleSection(id) {
   sectionState[id] = !sectionState[id];
@@ -862,6 +1097,7 @@ function applySection(id) {
 }
 function restoreSections() {
   Object.keys(sectionState).forEach(id => applySection(id));
+  setRevenueTab(revenueTab);
 }
 
 
@@ -873,12 +1109,15 @@ async function renderDashboard() {
   let d;
   let filtered = [];   // ← hoist here
 
+  try {
+
     if (dateFrom && dateTo) {
     if (isFullWeekRange(dateFrom, dateTo)) {
       main.innerHTML = '<div class="loading">Loading weekly data...</div>';
       let weekRows = await loadWeeklyTotalsRange(dateFrom, dateTo);
       window._cachedWeeklyTotals = weekRows;
       currentDailyRows = [];
+      if (!window.showFratelli) weekRows = weekRows.filter(r => r.branch !== 'FRT');
       if (!sel.branch.includes('all')) {
         weekRows = weekRows.filter(r => sel.branch.includes(r.branch));
       }
@@ -914,8 +1153,40 @@ async function renderDashboard() {
     d = aggData(filtered.map(f => f.data));
   }
 
+  } catch(err) {
+    destroyCharts();
+    main.innerHTML = `<div class="empty" style="border:1px solid rgba(255,68,68,0.3);color:var(--bad)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:6px">⚠ Failed to load data</div>
+      <div style="font-size:12px;opacity:0.8">Check your connection and try refreshing the page.</div>
+      ${err && err.message ? `<div style="font-size:10px;opacity:0.5;margin-top:6px;font-family:monospace">${err.message}</div>` : ''}
+    </div>`;
+    return;
+  }
+
   if (!d) return;
   const s = d.summary;
+  window._lastDashState = s;
+
+  // Compute previous-period summary for trend arrows
+  let prevS = null;
+  try {
+    const branchRows = allData.filter(dd =>
+      (!window.showFratelli ? dd.branch !== 'FRT' : true) &&
+      (sel.branch.includes('all') || sel.branch.includes(dd.branch))
+    );
+    const byUpload = {};
+    branchRows.forEach(dd => {
+      const key = new Date(dd.uploaded_at).toISOString().slice(0, 10);
+      if (!byUpload[key]) byUpload[key] = [];
+      byUpload[key].push(dd);
+    });
+    const uploadKeys = Object.keys(byUpload).sort();
+    if (uploadKeys.length >= 2) {
+      const prevRows = byUpload[uploadKeys[uploadKeys.length - 2]];
+      const prevD    = aggData(prevRows.map(r => r.data));
+      if (prevD) prevS = prevD.summary;
+    }
+  } catch(e) { prevS = null; }
 
   destroyCharts();
 
@@ -927,9 +1198,22 @@ async function renderDashboard() {
   const tc = dark ? 'rgba(250,248,243,0.45)' : '#9a8a87';
   const branchLabel = sel.branch.includes('all') ? 'All Branches' : sel.branch.map(b => BRANCH_INFO[b]?.name||b).join(', ');
 
+  // Revenue Run tab pre-computed values
+  const rvHairSvc    = s.netTake - (s.beautySales||0) - (s.hairRetail||0);
+  const rvHairTxPct  = rvHairSvc ? ((s.treatmentSales||0) / rvHairSvc * 100) : 0;
+  const rvHairRetPct = rvHairSvc ? ((s.hairRetail||0) / rvHairSvc * 100) : 0;
+  const rvBSvc       = s.beautySales||0;
+  // Beauty tab: no per-dept treatment or retail split in uploaded data — null renders as "—"
+  const rvBTxPct     = null;
+  const rvBRetPct    = null;
+  // H+B tab: denominator is total service revenue (net take minus retail)
+  const rvHBSvc      = s.netTake - (s.hairRetail||0);
+  const rvHBTxPct    = rvHBSvc ? ((s.treatmentSales||0) / rvHBSvc * 100) : 0;
+  const rvHBRetPct   = rvHBSvc ? ((s.hairRetail||0) / rvHBSvc * 100) : 0;
+
   main.innerHTML = `
 <!-- ROW 1: 4 COMPACT KPI CARDS -->
-<div>
+<div style="position:sticky;top:52px;z-index:40;background:var(--bg);padding-bottom:4px">
   <div class="section-label" style="display:flex;align-items:center;gap:7px;margin-top:16px;margin-bottom:8px">
     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#99F6E4;flex-shrink:0"></span>
     ${branchLabel} · Main Metrics
@@ -941,37 +1225,83 @@ async function renderDashboard() {
       <div class="metric-label" style="font-size:9px">Total Clients</div>
       <div style="font-size:9px;color:var(--muted);margin:3px 0 4px"><em>Excludes rebooked clients</em></div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-        <div class="metric-value" style="font-size:20px">${s.totalClients}</div>
-        <button id="breakdownPillBtn" onclick="toggleClientBreakdown()" style="background:${dark?'rgba(153,246,228,0.15)':'rgba(15,110,86,0.08)'};border:1px solid ${dark?'rgba(153,246,228,0.4)':'rgba(15,110,86,0.3)'};color:${dark?'#99F6E4':'#0F6E56'};border-radius:20px;padding:4px 11px;font-size:10px;font-family:inherit;cursor:pointer;white-space:nowrap;letter-spacing:.04em">Breakdown ▾</button>
+        <div class="metric-value" style="font-size:20px">${(s.totalClients||0).toLocaleString()}</div>
+        <button id="breakdownPillBtn" onclick="toggleClientBreakdown()" style="background:${dark?'rgba(153,246,228,0.15)':'rgba(15,110,86,0.08)'};border:1px solid ${dark?'rgba(153,246,228,0.4)':'rgba(15,110,86,0.3)'};color:${dark?'#99F6E4':'#0F6E56'};border-radius:20px;padding:4px 11px;font-size:10px;font-family:inherit;cursor:pointer;white-space:nowrap;letter-spacing:.04em">Breakdown ▴</button>
       </div>
       <div class="metric-target" style="font-size:10px;margin-top:8px">Target: ${getClientTarget(sel.branch)}</div>
     </div>
 
-    <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px">
+    <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px" data-hair-avg-bill="${(s.hairAvgBill||0).toFixed(4)}" data-beauty-avg-bill="${s.beautyAvgBill != null ? s.beautyAvgBill.toFixed(4) : 'null'}" data-both-avg-bill="${(s.avgBill||0).toFixed(4)}">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
-      <div class="metric-label" style="font-size:9px">Total Avg Bill</div>
-      <div style="font-size:9px;color:var(--muted);margin:3px 0 6px"><em>Revenue ÷ Clients</em></div>
-      <div class="metric-value" style="font-size:20px">${fmtAED(s.avgBill)}</div>
+      <div style="margin-bottom:3px">
+        <div class="metric-label" id="avgBillCardLabel" style="font-size:9px;margin-bottom:4px">${(window.avgBillView||'both') === 'hair' ? 'Hair Avg Bill' : (window.avgBillView||'both') === 'beauty' ? 'Beauty Avg Bill' : 'Total Avg Bill'}</div>
+        <div style="display:flex;gap:2px">
+          ${['hair','beauty','both'].map(m => {
+            const active = (window.avgBillView||'both') === m;
+            const lbl = m === 'both' ? 'Hair & Beauty' : m.charAt(0).toUpperCase() + m.slice(1);
+            const DCOL = {hair:'#99F6E4',beauty:'#FFD4D9',both:'#C4B5FD'};
+            const DLTXT = {hair:'#0A5244',beauty:'#8B3A42',both:'#5B4A8A'};
+            const col = DCOL[m];
+            return `<button id="avgBillBtn-${m}" onclick="toggleAvgBillView('${m}')" style="font-size:8px;padding:2px 6px;border-radius:10px;border:1px solid ${active?col:(dark?'rgba(250,248,243,0.15)':'rgba(92,85,87,0.2)')};background:${active?(dark?col+'40':col+'55'):'transparent'};color:${active?(dark?col:DLTXT[m]):(dark?'rgba(250,248,243,0.45)':'#9a8a87')};cursor:pointer;font-family:inherit;font-weight:${active?'700':'400'}">${lbl}</button>`;
+          }).join('')}
+        </div>
+      </div>
+      <div style="font-size:9px;color:var(--muted);margin:2px 0 6px" id="avgBillCardDesc"><em>${
+        (window.avgBillView||'both') === 'hair'   ? 'Hair Revenue ÷ Total Clients (excl. rebooked)' :
+        (window.avgBillView||'both') === 'beauty' ? 'Beauty Revenue ÷ Total Clients (excl. rebooked)' :
+        'Total Revenue ÷ Total Clients (excl. rebooked)'
+      }</em></div>
+      <div class="metric-value" id="avgBillCardValue" style="font-size:20px">${
+        (window.avgBillView||'both') === 'hair'   ? fmtAED(s.hairAvgBill||0) :
+        (window.avgBillView||'both') === 'beauty' ? (s.beautyAvgBill != null ? fmtAED(s.beautyAvgBill) : '—') :
+        fmtAED(s.avgBill)
+      }${trendArrow(s.avgBill, prevS?.avgBill)}</div>
       <div class="metric-target" style="font-size:10px">Benchmark: ~AED 650</div>
     </div>
 
-    <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px">
+    <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px" data-hair-rebook="${(s.hairRebookPct||0).toFixed(4)}" data-beauty-rebook="${s.beautyRebookPct != null ? s.beautyRebookPct.toFixed(4) : 'null'}" data-both-rebook="${(s.rebookPct||0).toFixed(4)}">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
-      <div class="metric-label" style="font-size:9px">Rebooking %</div>
-      <div style="font-size:9px;color:var(--muted);margin:3px 0 6px"><em>Hair &amp; Beauty rebooked ÷ Total clients (excl. rebooked)</em></div>
-      <div class="metric-value ${sc(s.rebookPct, TARGETS.rebookPct)}" style="font-size:20px">${fmtPct(s.rebookPct)}</div>
+      <div style="margin-bottom:3px">
+        <div class="metric-label" id="rebookCardLabel" style="font-size:9px;margin-bottom:4px">${(window.rebookView||'both') === 'hair' ? 'Hair Rebooking %' : (window.rebookView||'both') === 'beauty' ? 'Beauty Rebooking %' : 'Rebooking %'}</div>
+        <div style="display:flex;gap:2px">
+          ${['hair','beauty','both'].map(m => {
+            const active = (window.rebookView||'both') === m;
+            const lbl = m === 'both' ? 'Hair & Beauty' : m.charAt(0).toUpperCase() + m.slice(1);
+            const DCOL = {hair:'#99F6E4',beauty:'#FFD4D9',both:'#C4B5FD'};
+            const DLTXT = {hair:'#0A5244',beauty:'#8B3A42',both:'#5B4A8A'};
+            const col = DCOL[m];
+            return `<button id="rebookBtn-${m}" onclick="toggleRebookView('${m}')" style="font-size:8px;padding:2px 6px;border-radius:10px;border:1px solid ${active?col:(dark?'rgba(250,248,243,0.15)':'rgba(92,85,87,0.2)')};background:${active?(dark?col+'40':col+'55'):'transparent'};color:${active?(dark?col:DLTXT[m]):(dark?'rgba(250,248,243,0.45)':'#9a8a87')};cursor:pointer;font-family:inherit;font-weight:${active?'700':'400'}">${lbl}</button>`;
+          }).join('')}
+        </div>
+      </div>
+      <div style="font-size:9px;color:var(--muted);margin:2px 0 6px" id="rebookCardDesc"><em>${
+        (window.rebookView||'both') === 'hair'   ? 'Hair rebooked ÷ Total Clients (excl. rebooked)' :
+        (window.rebookView||'both') === 'beauty' ? 'Beauty rebooked ÷ Total Clients (excl. rebooked)' :
+        'Hair &amp; Beauty rebooked ÷ Total clients (excl. rebooked)'
+      }</em></div>
+      <div class="metric-value ${sc(
+        (window.rebookView||'both') === 'hair'   ? (s.hairRebookPct||0) :
+        (window.rebookView||'both') === 'beauty' ? (s.beautyRebookPct||0) :
+        (s.rebookPct||0), TARGETS.rebookPct)}" id="rebookCardValue" style="font-size:20px">${
+        (window.rebookView||'both') === 'hair'   ? fmtPct(s.hairRebookPct||0) :
+        (window.rebookView||'both') === 'beauty' ? (s.beautyRebookPct != null ? fmtPct(s.beautyRebookPct) : '—') :
+        fmtPct(s.rebookPct)
+      }${trendArrow(s.rebookPct, prevS?.rebookPct)}</div>
       <div class="metric-target" style="font-size:10px">Target: ${TARGETS.rebookPct}%</div>
     </div>
 
     <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px" data-hair-ncr="${(s.ncrPct||0).toFixed(4)}" data-beauty-ncr="${s.beautyNcrPct != null ? s.beautyNcrPct.toFixed(4) : 'null'}" data-both-ncr="${(s.combinedNcrPct||0).toFixed(4)}">
       <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:2px">
-        <div class="metric-label" id="ncrCardLabel" style="font-size:9px">Hair NCR %</div>
+      <div style="margin-bottom:3px">
+        <div class="metric-label" id="ncrCardLabel" style="font-size:9px;margin-bottom:4px">Hair NCR %</div>
         <div style="display:flex;gap:2px">
           ${['hair','beauty','both'].map(m => {
             const active = (window.ncrView||'hair') === m;
-            const lbl = m === 'both' ? 'H+B' : m.charAt(0).toUpperCase() + m.slice(1);
-            return `<button id="ncrBtn-${m}" onclick="toggleNcrView('${m}')" style="font-size:8px;padding:2px 6px;border-radius:10px;border:1px solid ${dark?'rgba(153,246,228,0.4)':'rgba(15,110,86,0.3)'};background:${active?(dark?'rgba(153,246,228,0.3)':'rgba(15,110,86,0.15)'):'transparent'};color:${dark?'#99F6E4':'#0F6E56'};cursor:pointer;font-family:inherit;font-weight:${active?'700':'400'}">${lbl}</button>`;
+            const lbl = m === 'both' ? 'Hair & Beauty' : m.charAt(0).toUpperCase() + m.slice(1);
+            const DCOL = {hair:'#99F6E4',beauty:'#FFD4D9',both:'#C4B5FD'};
+            const DLTXT = {hair:'#0A5244',beauty:'#8B3A42',both:'#5B4A8A'};
+            const col = DCOL[m];
+            return `<button id="ncrBtn-${m}" onclick="toggleNcrView('${m}')" style="font-size:8px;padding:2px 6px;border-radius:10px;border:1px solid ${active?col:(dark?'rgba(250,248,243,0.15)':'rgba(92,85,87,0.2)')};background:${active?(dark?col+'40':col+'55'):'transparent'};color:${active?(dark?col:DLTXT[m]):(dark?'rgba(250,248,243,0.45)':'#9a8a87')};cursor:pointer;font-family:inherit;font-weight:${active?'700':'400'}">${lbl}</button>`;
           }).join('')}
         </div>
       </div>
@@ -987,61 +1317,147 @@ async function renderDashboard() {
         (window.ncrView||'hair') === 'beauty' ? (s.beautyNcrPct != null ? fmtPct(s.beautyNcrPct) : '—') :
         (window.ncrView||'hair') === 'both'   ? fmtPct(s.combinedNcrPct||0) :
         fmtPct(s.ncrPct||0)
-      }</div>
+      }${trendArrow(s.ncrPct, prevS?.ncrPct)}</div>
       <div class="metric-target" style="font-size:10px">Target: ≥ 20%</div>
+      ${sc((window.ncrView||'hair') === 'beauty' ? (s.beautyNcrPct||0) : (window.ncrView||'hair') === 'both' ? (s.combinedNcrPct||0) : (s.ncrPct||0), 20) === 'critical'
+        ? `<div style="margin-top:6px;padding:3px 7px;background:rgba(255,68,68,0.15);border:1px solid rgba(255,68,68,0.4);border-radius:6px;font-size:9px;color:#FF4444;letter-spacing:0.06em;text-transform:uppercase;font-weight:700">⚠ Critical — Needs Attention</div>`
+        : ''}
     </div>
   </div>
 
   <!-- CLIENT BREAKDOWN PANEL (toggled by Breakdown pill) -->
-  <div id="clientBreakdownPanel" style="display:none">
+  <div id="clientBreakdownPanel" style="display:block">
     <div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--surface)">
-      <div style="font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:${dark?'#99F6E4':'#0F6E56'};margin-bottom:12px;font-weight:600">Client Breakdown</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${dark?'#99F6E4':'#0F6E56'};margin-bottom:10px;font-weight:600">Client Breakdown</div>
+      ${(()=>{
+        const bdSum = (s.hairBreakdown?.ncr||0)+(s.hairBreakdown?.req||0)+(s.hairBreakdown?.salon||0)+(s.hairBreakdown?.new||0)
+                    + (s.beautyBreakdown?.ncr||0)+(s.beautyBreakdown?.req||0)+(s.beautyBreakdown?.salon||0)+(s.beautyBreakdown?.new||0);
+        const gap = s.totalClients - bdSum;
+        if (gap > 5) return `<div style="margin-bottom:10px;padding:7px 10px;background:${dark?'rgba(255,200,0,0.08)':'#FFFBEA'};border:1px solid ${dark?'rgba(255,200,0,0.3)':'#F0C040'};border-radius:8px;font-size:9px;color:${dark?'#FFD060':'#8A6800'}">
+          ⚠ Breakdown shows <strong>${bdSum.toLocaleString()}</strong> of <strong>${s.totalClients.toLocaleString()}</strong> total clients (<strong>${gap.toLocaleString()}</strong> unclassified). Re-upload older weeks with full per-category columns to see the complete breakdown.
+        </div>`;
+        return '';
+      })()}
 
-        <!-- HAIR -->
+      <!-- LAYOUT: funnel left, donuts middle, net revenue right -->
+      <div style="display:grid;grid-template-columns:1.5fr 1fr 0.85fr;gap:20px;align-items:start">
+
+        <!-- FUNNEL: client journey for Hair & Beauty -->
         <div>
-          <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Hair</div>
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Client Journey Funnel</div>
+          ${(()=>{
+            const dept = [
+              { label:'Hair',   color: '#C4B5FD', data: s.hairBreakdown   || {} },
+              { label:'Beauty', color: '#99F6E4', data: s.beautyBreakdown || {} },
+            ];
+            const stages = [
+              { key:'req',      label:'Requests'  },
+              { key:'salon',    label:'Salon Visits' },
+              { key:'new',      label:'New Clients' },
+              { key:'rebooked', label:'Rebooked'  },
+            ];
+            return dept.map(d => {
+              const maxVal = d.data.req || 1;
+              return `
+              <div style="margin-bottom:14px">
+                <div style="font-size:11px;font-weight:700;color:${d.color};margin-bottom:8px;letter-spacing:.06em">${d.label}</div>
+                ${stages.map(st => {
+                  const val = d.data[st.key] || 0;
+                  const pct = Math.max(4, Math.round((val / maxVal) * 100));
+                  const convPct = st.key !== 'req' && d.data.req ? ` · ${Math.round(val/d.data.req*100)}% of REQ` : '';
+                  return `
+                  <div style="display:grid;grid-template-columns:90px 1fr 50px;gap:6px;align-items:center;margin-bottom:5px">
+                    <div style="font-size:10px;color:var(--muted);text-align:right;letter-spacing:.04em">${st.label}</div>
+                    <div style="background:${dark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.05)'};border-radius:4px;height:22px;overflow:hidden">
+                      <div style="width:${pct}%;height:100%;background:${d.color};opacity:0.85;border-radius:4px;display:flex;align-items:center;padding-left:8px;box-sizing:border-box;transition:width 0.5s ease">
+                        <span style="font-size:9px;font-weight:700;color:#1a1a1a;white-space:nowrap;overflow:hidden">${val.toLocaleString()}${convPct}</span>
+                      </div>
+                    </div>
+                    <div style="font-size:11px;font-weight:700;color:var(--text);text-align:right">${val.toLocaleString()}</div>
+                  </div>`;
+                }).join('')}
+              </div>`;
+            }).join('');
+          })()}
+        </div>
+
+        <!-- DONUTS: client mix per department -->
+        <div>
+          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Client Mix</div>
+          <!-- Side-by-side donuts to fill the full width -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             ${(()=>{
-              const cats = [
-                ['NCR',      s.hairBreakdown?.ncr,      dark?'rgba(153,246,228,0.14)':'#E8F8F4', dark?'#99F6E4':'#0F6E56'],
-                ['REQ',      s.hairBreakdown?.req,      dark?'rgba(196,181,253,0.14)':'#EDE9FD', dark?'#C4B5FD':'#5340c0'],
-                ['SALON',    s.hairBreakdown?.salon,    dark?'rgba(255,212,217,0.14)':'#FDF0F2', dark?'#FFD4D9':'#b03050'],
-                ['NEW',      s.hairBreakdown?.new,      dark?'rgba(238,243,199,0.14)':'#F5F8E8', dark?'#EEF3C7':'#637000'],
-                ['REBOOKED', s.hairBreakdown?.rebooked, dark?'rgba(255,155,155,0.14)':'#FCEAEA', dark?'#FF9B9B':'#A32D2D'],
+              // TRS brand palette — same light & dark
+              const DOT_NEW  = '#99F6E4';
+              const DOT_REB  = '#C4B5FD';
+              const DOT_NCR  = '#FFD4D9';
+              const depts = [
+                { label:'Hair',   bd: s.hairBreakdown   || {}, id:'cbHairDonut',   col: '#C4B5FD' },
+                { label:'Beauty', bd: s.beautyBreakdown || {}, id:'cbBeautyDonut', col: '#99F6E4' },
               ];
-              return cats.map(([lbl,val,bg,accent]) => `
-                <div style="text-align:center;background:${bg};border:1px solid ${accent}${dark?'44':'33'};border-radius:8px;padding:8px 4px">
-                  <div style="font-size:7px;letter-spacing:.08em;color:${accent};margin-bottom:3px;font-weight:600">${lbl}</div>
-                  <div style="font-size:16px;font-weight:700;color:var(--text);line-height:1">${val ?? '—'}</div>
-                </div>`).join('');
+              return depts.map(d => {
+                const total = (d.bd.new||0) + (d.bd.rebooked||0) + (d.bd.ncr||0);
+                const newPct = total ? Math.round((d.bd.new||0)/total*100)      : 0;
+                const rebPct = total ? Math.round((d.bd.rebooked||0)/total*100) : 0;
+                const ncrPct = total ? Math.round((d.bd.ncr||0)/total*100)      : 0;
+                return `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 6px;background:${dark?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.02)'};border-radius:10px;border:1px solid var(--border2)">
+                  <div style="font-size:11px;font-weight:700;color:${d.col};letter-spacing:.04em">${d.label}</div>
+                  <canvas id="${d.id}" width="110" height="110"></canvas>
+                  <div style="font-size:11px;line-height:2;width:100%;padding:0 4px;box-sizing:border-box">
+                    <div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${DOT_NEW};margin-right:5px;vertical-align:middle"></span>New <strong>${newPct}%</strong> <span style="color:var(--muted)">(${(d.bd.new||0).toLocaleString()})</span></div>
+                    <div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${DOT_REB};margin-right:5px;vertical-align:middle"></span>Rebooked <strong>${rebPct}%</strong> <span style="color:var(--muted)">(${(d.bd.rebooked||0).toLocaleString()})</span></div>
+                    <div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${DOT_NCR};margin-right:5px;vertical-align:middle"></span>NCR <strong>${ncrPct}%</strong> <span style="color:var(--muted)">(${(d.bd.ncr||0).toLocaleString()})</span></div>
+                  </div>
+                </div>`;
+              }).join('');
             })()}
           </div>
         </div>
 
-        <!-- BEAUTY -->
+        <!-- RUNNING NET REVENUE -->
         <div>
-          <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Beauty</div>
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
-            ${(()=>{
-              const cats = [
-                ['NCR',      s.beautyBreakdown?.ncr,      dark?'rgba(153,246,228,0.14)':'#E8F8F4', dark?'#99F6E4':'#0F6E56'],
-                ['REQ',      s.beautyBreakdown?.req,      dark?'rgba(196,181,253,0.14)':'#EDE9FD', dark?'#C4B5FD':'#5340c0'],
-                ['SALON',    s.beautyBreakdown?.salon,    dark?'rgba(255,212,217,0.14)':'#FDF0F2', dark?'#FFD4D9':'#b03050'],
-                ['NEW',      s.beautyBreakdown?.new,      dark?'rgba(238,243,199,0.14)':'#F5F8E8', dark?'#EEF3C7':'#637000'],
-                ['REBOOKED', s.beautyBreakdown?.rebooked, dark?'rgba(255,155,155,0.14)':'#FCEAEA', dark?'#FF9B9B':'#A32D2D'],
-              ];
-              return cats.map(([lbl,val,bg,accent]) => `
-                <div style="text-align:center;background:${bg};border:1px solid ${accent}${dark?'44':'33'};border-radius:8px;padding:8px 4px">
-                  <div style="font-size:7px;letter-spacing:.08em;color:${accent};margin-bottom:3px;font-weight:600">${lbl}</div>
-                  <div style="font-size:16px;font-weight:700;color:var(--text);line-height:1">${val ?? '—'}</div>
-                </div>`).join('');
-            })()}
-          </div>
+          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Running Net Revenue</div>
+          ${(()=>{
+            const hairNet    = (s.netTake||0) - (s.beautySales||0);
+            const beautyNet  = s.beautySales || 0;
+            const totalNet   = s.netTake || 0;
+            const hairPct    = totalNet ? Math.round(hairNet / totalNet * 100) : 0;
+            const beautyPct  = totalNet ? Math.round(beautyNet / totalNet * 100) : 0;
+            const hairCol    = '#C4B5FD';
+            const beautyCol  = '#99F6E4';
+            const fmtAed     = v => 'AED ' + Math.round(v).toLocaleString();
+            const bar = (pct, col) => `
+              <div style="background:${dark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.05)'};border-radius:4px;height:8px;margin-top:4px;overflow:hidden">
+                <div style="width:${pct}%;height:100%;background:${col};border-radius:4px;transition:width 0.5s ease"></div>
+              </div>`;
+            return `
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="padding:10px 12px;background:${dark?'rgba(196,181,253,0.07)':'rgba(196,181,253,0.12)'};border:1px solid ${dark?'rgba(196,181,253,0.25)':'rgba(196,181,253,0.4)'};border-radius:10px">
+                <div style="font-size:10px;font-weight:700;color:${hairCol};letter-spacing:.05em;margin-bottom:6px">Hair</div>
+                <div style="font-size:15px;font-weight:800;color:var(--text);letter-spacing:.02em">${fmtAed(hairNet)}</div>
+                ${bar(hairPct, hairCol)}
+                <div style="font-size:9px;color:var(--muted);margin-top:5px">${hairPct}% of total</div>
+              </div>
+              <div style="padding:10px 12px;background:${dark?'rgba(153,246,228,0.07)':'rgba(153,246,228,0.12)'};border:1px solid ${dark?'rgba(153,246,228,0.25)':'rgba(153,246,228,0.4)'};border-radius:10px">
+                <div style="font-size:10px;font-weight:700;color:${beautyCol};letter-spacing:.05em;margin-bottom:6px">Beauty</div>
+                <div style="font-size:15px;font-weight:800;color:var(--text);letter-spacing:.02em">${fmtAed(beautyNet)}</div>
+                ${bar(beautyPct, beautyCol)}
+                <div style="font-size:9px;color:var(--muted);margin-top:5px">${beautyPct}% of total</div>
+              </div>
+              <div style="padding:10px 12px;background:${dark?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)'};border:1px solid var(--border2);border-radius:10px">
+                <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.05em;margin-bottom:6px">Total</div>
+                <div style="font-size:15px;font-weight:800;color:var(--text);letter-spacing:.02em">${fmtAed(totalNet)}</div>
+              </div>
+              <div style="font-size:9px;color:var(--muted);text-align:center;margin-top:2px">Data: Jan 1 – May 24, 2026</div>
+            </div>`;
+          })()}
         </div>
 
       </div>
-      <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border2);font-size:9px;color:var(--muted)">
+
+      <!-- FOOTER SUMMARY -->
+      <div style="margin-top:12px;padding-top:8px;border-top:1px solid var(--border2);font-size:11px;color:var(--muted)">
         Total rebooked: <strong style="color:${dark?'#FF9B9B':'#A32D2D'}">${s.totalRebooked||0}</strong>
         &nbsp;·&nbsp; Hair: <strong style="color:${dark?'#FF9B9B':'#A32D2D'}">${s.hairBreakdown?.rebooked ?? '—'}</strong>
         &nbsp;·&nbsp; Beauty: <strong style="color:${dark?'#FF9B9B':'#A32D2D'}">${s.beautyBreakdown?.rebooked ?? '—'}</strong>
@@ -1060,11 +1476,16 @@ async function renderDashboard() {
     <div style="width:100%;margin-bottom:4px">
       <div class="metric-label" style="font-size:9px">Net Revenue</div>
       <div style="font-size:9px;color:var(--muted);margin:2px 0 6px"><em>Total sales: services + retail</em></div>
+      <div id="revFilterPills" style="display:flex;gap:4px;margin-bottom:4px">
+        <button data-rv="both"   style="flex:1;font-size:8px;padding:3px 0;border-radius:10px;border:1px solid var(--border);background:#99F6E4;color:#1a1a1a;cursor:pointer;font-weight:600;transition:all 0.2s">Hair &amp; Beauty</button>
+        <button data-rv="hair"   style="flex:1;font-size:8px;padding:3px 0;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all 0.2s">Hair</button>
+        <button data-rv="beauty" style="flex:1;font-size:8px;padding:3px 0;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all 0.2s">Beauty</button>
+      </div>
     </div>
     <div style="position:relative;width:100%;height:118px;flex-shrink:0;margin:4px auto 0">
       <canvas id="dialCanvas" style="width:100%;height:118px;display:block"></canvas>
       <div style="position:absolute;bottom:6px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;white-space:nowrap">
-        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--text);line-height:1">${fmtAED(s.netTake)}</div>
+        <div id="dialValueLabel" style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--text);line-height:1">${fmtAED(s.netTake)}</div>
         <div style="font-size:8px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px">actual</div>
       </div>
     </div>
@@ -1078,20 +1499,7 @@ async function renderDashboard() {
     </div>
     <div style="width:100%;margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
       <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Weekly Goals by Branch</div>
-      ${[
-        {code:'SAA',name:'Saadiyat',    color:'#C4B5FD',goal:'450–550k'},
-        {code:'KCA',name:'Khalifa City',color:'#FFD4D9',goal:'320–420k'},
-        {code:'AQ', name:'Al Quoz',     color:'#FF9B9B',goal:'500–650k'},
-        {code:'MC', name:'Motor City',  color:'#99F6E4',goal:'350–450k'},
-        {code:'FRT',name:'Fratelli',    color:'#EEF3C7',goal:'200–260k'},
-      ].map(b => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border2)">
-          <div style="display:flex;align-items:center;gap:5px">
-            <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${b.color};flex-shrink:0"></span>
-            <span style="font-size:10px;color:var(--muted)">${b.name}</span>
-          </div>
-          <span style="font-size:10px;font-weight:600;color:var(--text)">AED ${b.goal}</span>
-        </div>`).join('')}
+      <div id="weeklyGoalsList"></div>
     </div>
   </div>
 
@@ -1099,12 +1507,18 @@ async function renderDashboard() {
   <div class="card" style="margin-bottom:0;border-top:3px solid #C4B5FD;padding:16px 14px;display:flex;flex-direction:column;overflow:hidden">
     <div class="metric-label" style="font-size:9px">Performance Across Branches</div>
     <div style="font-size:9px;color:var(--muted);margin:2px 0 6px"><em>Side-by-side · select metric below</em></div>
+    <div id="cmpCatPills" style="display:flex;justify-content:center;gap:4px;margin-bottom:6px">
+      <button data-cat="hb"     style="font-size:8px;padding:3px 10px;border-radius:10px;border:1px solid var(--border);background:#99F6E4;color:#1a1a1a;cursor:pointer;font-weight:600;transition:all 0.2s">Hair & Beauty</button>
+      <button data-cat="hair"   style="font-size:8px;padding:3px 10px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-weight:600;transition:all 0.2s">Hair</button>
+      <button data-cat="beauty" style="font-size:8px;padding:3px 10px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-weight:600;transition:all 0.2s">Beauty</button>
+    </div>
     <div class="f-pills" id="cmpFilters" style="margin-bottom:10px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px">
-      <button class="f-pill active" data-m="netTake"      style="white-space:nowrap">Net Revenue</button>
-      <button class="f-pill"        data-m="avgBill"      style="white-space:nowrap">Avg Bill</button>
-      <button class="f-pill"        data-m="totalClients" style="white-space:nowrap">Total Clients</button>
-      <button class="f-pill"        data-m="rebookPct"    style="white-space:nowrap">Rebooking %</button>
-      <button class="f-pill"        data-m="ncrPct"       style="white-space:nowrap">Hair NCR %</button>
+      <button class="f-pill active" data-m="netTake"        style="white-space:nowrap">Net Revenue</button>
+      <button class="f-pill"        data-m="avgBill"         style="white-space:nowrap">Avg Bill</button>
+      <button class="f-pill"        data-m="totalClients"    style="white-space:nowrap">Total Clients</button>
+      <button class="f-pill"        data-m="totalRebooked"   style="white-space:nowrap">Rebooked Clients</button>
+      <button class="f-pill"        data-m="rebookPct"       style="white-space:nowrap">Rebooking %</button>
+      <button class="f-pill"        data-m="ncrPct"          style="white-space:nowrap">NCR %</button>
     </div>
     <div style="position:relative;flex:1;min-height:0"><canvas id="cmpChart"></canvas></div>
   </div>
@@ -1132,17 +1546,13 @@ async function renderDashboard() {
   ${branchLabel} · Supporting Metrics
 </div>
 
-<!-- REVENUE RUN (collapsible) -->
+<!-- REVENUE RUN (always visible) -->
 <div class="support-section" style="margin-bottom:8px">
-  <div class="support-section-hdr" onclick="toggleSection('revenueRun')">
-    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#EEF3C7;flex-shrink:0"></span>
-      <span class="section-label" style="margin:0;letter-spacing:0.16em;flex-shrink:0;white-space:nowrap">Revenue Run</span>
-      <span style="font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">Service Sales · Treatment % · Retail Sales · Retail % · Hair Avg Bill · Beauty Avg Bill</span>
-    </div>
-    <span class="support-toggle-arrow" id="arrow-revenueRun">▼</span>
+  <div style="display:flex;align-items:center;gap:8px;padding:10px 14px 6px">
+    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#EEF3C7;flex-shrink:0"></span>
+    <span class="section-label" style="margin:0;letter-spacing:0.16em">Revenue Run</span>
   </div>
-  <div class="support-section-body" id="body-revenueRun">
+  <div style="padding:0 14px 14px">
     ${(s._retailWarnings && s._retailWarnings.length) ? `
       <div style="margin:8px 0;padding:10px 12px;background:rgba(251,191,36,.08);border-left:3px solid #fbbf24;border-radius:6px;font-size:11px;color:var(--text)">
         <strong style="color:#fbbf24">⚠️ Retail data mismatch detected</strong> across ${s._retailWarnings.length} week(s).
@@ -1150,17 +1560,24 @@ async function renderDashboard() {
         ${s._retailWarnings.slice(0,3).map(m => `Daily AED ${(m.daily||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} vs Summary AED ${(m.summary||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} (${m.pctDiff}% drift)`).join(' · ')}
       </div>
     ` : ''}
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;padding:12px 0 4px">
+    <!-- Revenue Run tab buttons -->
+    <div style="display:flex;justify-content:center;gap:6px;padding:10px 0 2px">
+      <button onclick="setRevenueTab('hair')" id="rtab-hair" style="font-size:10px;letter-spacing:0.1em;padding:4px 14px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-weight:600;background:var(--surface2);color:var(--muted);transition:all .15s">HAIR</button>
+      <button onclick="setRevenueTab('beauty')" id="rtab-beauty" style="font-size:10px;letter-spacing:0.1em;padding:4px 14px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-weight:600;background:var(--surface2);color:var(--muted);transition:all .15s">BEAUTY</button>
+      <button onclick="setRevenueTab('hb')" id="rtab-hb" style="font-size:10px;letter-spacing:0.1em;padding:4px 14px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-weight:600;background:var(--surface2);color:var(--muted);transition:all .15s">Hair & Beauty</button>
+    </div>
+    <!-- HAIR panel -->
+    <div id="rpanel-hair" style="display:none;grid-template-columns:repeat(4,1fr);gap:10px;padding:10px 0 4px">
       <div class="metric m-lime">
         <div class="metric-label">Service Sales</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Total service revenue: hair + beauty)</em></div>
-        <div class="metric-value" style="font-size:20px">${fmtAED(s.netTake - (s.hairRetail||0))}</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Hair service revenue)</em></div>
+        <div class="metric-value" style="font-size:20px">${fmtAED(rvHairSvc)}</div>
         <div class="metric-target">Branch-based target</div>
       </div>
       <div class="metric m-lime">
         <div class="metric-label">Treatment %</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Treatment sales ÷ Total revenue)</em></div>
-        <div class="metric-value ${sc(s.treatmentPct, TARGETS.treatmentPct)}" style="font-size:20px">${fmtPct(s.treatmentPct)}</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Treatment sales ÷ Hair service sales)</em></div>
+        <div class="metric-value ${sc(rvHairTxPct, TARGETS.treatmentPct)}" style="font-size:20px">${fmtPct(rvHairTxPct)}</div>
         <div class="metric-target">Target: ≥ ${TARGETS.treatmentPct}%</div>
       </div>
       <div class="metric m-lime">
@@ -1171,71 +1588,68 @@ async function renderDashboard() {
       </div>
       <div class="metric m-lime">
         <div class="metric-label">Retail %</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Retail sales ÷ Total revenue)</em></div>
-        <div class="metric-value ${sc(s.hairRetailPct, TARGETS.retailPct)}" style="font-size:20px">${fmtPct(s.hairRetailPct)}</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Retail sales ÷ Hair service sales)</em></div>
+        <div class="metric-value ${sc(rvHairRetPct, TARGETS.retailPct)}" style="font-size:20px">${fmtPct(rvHairRetPct)}</div>
         <div class="metric-target">Target: ≥ ${TARGETS.retailPct}%</div>
       </div>
+    </div>
+    <!-- BEAUTY panel -->
+    <div id="rpanel-beauty" style="display:none;grid-template-columns:repeat(4,1fr);gap:10px;padding:10px 0 4px">
       <div class="metric m-lime">
-        <div class="metric-label">Hair Avg Bill</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Hair services ÷ Hair clients)</em></div>
-        <div class="metric-value ${sc(s.avgBill, TARGETS.hairAvgBill)}" style="font-size:20px">${fmtAED(s.avgBill)}</div>
-        <div class="metric-target">Target: AED ${TARGETS.hairAvgBill}</div>
+        <div class="metric-label">Service Sales</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Beauty service revenue)</em></div>
+        <div class="metric-value" style="font-size:20px">${fmtAED(rvBSvc)}</div>
+        <div class="metric-target">Branch-based target</div>
       </div>
       <div class="metric m-lime">
-        <div class="metric-label">Beauty Avg Bill</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Beauty services ÷ Beauty clients)</em></div>
-        <div class="metric-value ${sc(s.beautySales / Math.max(1, d.beautyStaff.reduce((a,st)=>a+st.total,0)), TARGETS.beautyAvgBill)}" style="font-size:20px">${fmtAED(s.beautySales / Math.max(1, d.beautyStaff.reduce((a,st)=>a+st.total,0)))}</div>
-        <div class="metric-target">Target: AED ${TARGETS.beautyAvgBill||200}</div>
+        <div class="metric-label">Treatment %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Beauty treatment split not in data)</em></div>
+        <div class="metric-value" style="font-size:20px;color:var(--muted)">—</div>
+        <div class="metric-target">Target: ≥ ${TARGETS.treatmentPct}%</div>
+      </div>
+      <div class="metric m-lime">
+        <div class="metric-label">Retail Sales</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Total salon retail — not split by dept)</em></div>
+        <div class="metric-value" style="font-size:20px">${fmtAED(s.hairRetail||0)}</div>
+        <div class="metric-target">Branch-based target</div>
+      </div>
+      <div class="metric m-lime">
+        <div class="metric-label">Retail %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Beauty retail split not in data)</em></div>
+        <div class="metric-value" style="font-size:20px;color:var(--muted)">—</div>
+        <div class="metric-target">Target: ≥ ${TARGETS.retailPct}%</div>
+      </div>
+    </div>
+    <!-- Hair & Beauty panel -->
+    <div id="rpanel-hb" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:10px 0 4px">
+      <div class="metric m-lime">
+        <div class="metric-label">Service Sales</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Total service revenue: hair + beauty)</em></div>
+        <div class="metric-value" style="font-size:20px">${fmtAED(rvHBSvc)}</div>
+        <div class="metric-target">Branch-based target</div>
+      </div>
+      <div class="metric m-lime">
+        <div class="metric-label">Treatment %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Treatment sales ÷ Total service sales)</em></div>
+        <div class="metric-value ${sc(rvHBTxPct, TARGETS.treatmentPct)}" style="font-size:20px">${fmtPct(rvHBTxPct)}</div>
+        <div class="metric-target">Target: ≥ ${TARGETS.treatmentPct}%</div>
+      </div>
+      <div class="metric m-lime">
+        <div class="metric-label">Retail Sales</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Total retail / product sales)</em></div>
+        <div class="metric-value" style="font-size:20px">${fmtAED(s.hairRetail||0)}</div>
+        <div class="metric-target">Branch-based target</div>
+      </div>
+      <div class="metric m-lime">
+        <div class="metric-label">Retail %</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Retail sales ÷ Total service sales)</em></div>
+        <div class="metric-value ${sc(rvHBRetPct, TARGETS.retailPct)}" style="font-size:20px">${fmtPct(rvHBRetPct)}</div>
+        <div class="metric-target">Target: ≥ ${TARGETS.retailPct}%</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- CLIENT RUN (collapsible) -->
-<div class="support-section" style="margin-bottom:8px">
-  <div class="support-section-hdr" onclick="toggleSection('clientRun')">
-    <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#C4B5FD;flex-shrink:0"></span>
-      <span class="section-label" style="margin:0;letter-spacing:0.16em;flex-shrink:0;white-space:nowrap">Client Run</span>
-      <span style="font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">New Clients · NCR · Request Clients % · Salon Clients % · New Clients %</span>
-    </div>
-    <span class="support-toggle-arrow" id="arrow-clientRun">▼</span>
-  </div>
-  <div class="support-section-body" id="body-clientRun">
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:12px 0 4px">
-      <div class="metric m-lav">
-        <div class="metric-label">New Clients</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(First-time clients)</em></div>
-        <div class="metric-value" style="font-size:20px">${Math.round(d.hairStaff.reduce((a,st)=>a+(st.newC||0),0))}</div>
-        <div class="metric-target">Track growth</div>
-      </div>
-      <div class="metric m-lav">
-        <div class="metric-label">NCR (New Client Requests)</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(New clients requesting specific staff)</em></div>
-        <div class="metric-value" style="font-size:20px">${Math.round(s.ncrPct * s.totalClients / 100)}</div>
-        <div class="metric-target">Increase weekly</div>
-      </div>
-      <div class="metric m-lav">
-        <div class="metric-label">Request Clients %</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Request clients ÷ Total clients)</em></div>
-        <div class="metric-value ${sc(s.ncrPct, 40)}" style="font-size:20px">${fmtPct(s.ncrPct)}</div>
-        <div class="metric-target">Target: ≥ 40%</div>
-      </div>
-      <div class="metric m-lav">
-        <div class="metric-label">Salon Clients %</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Walk-in / no preference clients)</em></div>
-        <div class="metric-value" style="font-size:20px">${fmtPct(100 - (s.ncrPct||0))}</div>
-        <div class="metric-target">Balanced</div>
-      </div>
-      <div class="metric m-lav">
-        <div class="metric-label">New Clients %</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(New clients ÷ Total clients)</em></div>
-        <div class="metric-value ${sc(d.hairStaff.reduce((a,st)=>a+(st.newC||0),0)/Math.max(1,s.totalClients)*100, 20)}" style="font-size:20px">${fmtPct(d.hairStaff.reduce((a,st)=>a+(st.newC||0),0)/Math.max(1,s.totalClients)*100)}</div>
-        <div class="metric-target">Target: ≥ 20%</div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- RETENTION (collapsible) -->
 <div class="support-section" style="margin-bottom:8px">
@@ -1312,20 +1726,64 @@ async function renderDashboard() {
   // ── Branch Comparison chart ──
   const byBranch = aggByBranch();
   let cmpMetric  = 'netTake';
-  buildCmpChart(byBranch, cmpMetric, dark, ttStyle, gc, tc);
+  let cmpCat     = 'hb';
+
+  const rebuildCmp = () => {
+    if (charts.cmp) charts.cmp.destroy();
+    buildCmpChart(byBranch, cmpMetric, dark, ttStyle, gc, tc, cmpCat);
+  };
+
+  rebuildCmp();
+
   document.getElementById('cmpFilters').addEventListener('click', e => {
     const btn = e.target.closest('.f-pill'); if (!btn) return;
     cmpMetric = btn.dataset.m;
     document.querySelectorAll('#cmpFilters .f-pill').forEach(p => p.classList.toggle('active', p === btn));
-    if (charts.cmp) charts.cmp.destroy();
-    buildCmpChart(byBranch, cmpMetric, dark, ttStyle, gc, tc);
+    rebuildCmp();
+  });
+
+  document.getElementById('cmpCatPills').addEventListener('click', e => {
+    const btn = e.target.closest('[data-cat]'); if (!btn) return;
+    cmpCat = btn.dataset.cat;
+    const active = { hb: '#99F6E4', hair: '#99F6E4', beauty: '#99F6E4' };
+    document.querySelectorAll('#cmpCatPills [data-cat]').forEach(p => {
+      const isActive = p === btn;
+      p.style.background = isActive ? '#99F6E4' : 'var(--surface2)';
+      p.style.color       = isActive ? '#1a1a1a' : 'var(--muted)';
+    });
+    rebuildCmp();
   });
 
   restoreSections();
 
+  // ── Header Net Revenue widget ──
+  (function() {
+    const w = document.getElementById('headerRevWidget');
+    if (!w) return;
+    const hairNet   = (s.netTake||0) - (s.beautySales||0);
+    const beautyNet = s.beautySales || 0;
+    const total     = s.netTake || 0;
+    const fmt = v => 'AED ' + (Math.round(v)/1000).toFixed(0) + 'k';
+    w.style.display = 'flex';
+    w.innerHTML = `
+      <span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(153,246,228,0.7);white-space:nowrap">Net Rev</span>
+      <span style="font-size:10px;font-weight:700;color:#C4B5FD;white-space:nowrap" title="Hair net revenue">${fmt(hairNet)} H</span>
+      <span style="color:rgba(255,255,255,0.2);font-size:10px">·</span>
+      <span style="font-size:10px;font-weight:700;color:#99F6E4;white-space:nowrap" title="Beauty net revenue">${fmt(beautyNet)} B</span>
+      <span style="color:rgba(255,255,255,0.2);font-size:10px">·</span>
+      <span style="font-size:10px;font-weight:600;color:var(--muted);white-space:nowrap" title="Total">${fmt(total)}</span>`;
+  })();
+
   // ── Dial (gauge) chart ──
   (function () {
     const WEEKLY_GOALS_MAP = { SAA:[450000,550000], KCA:[320000,420000], AQ:[500000,650000], MC:[350000,450000], FRT:[200000,260000] };
+    const BRANCH_LIST = [
+      {code:'SAA',name:'Saadiyat',    color:'#C4B5FD', both:[450,550], hair:[315,385], beauty:[135,165]},
+      {code:'KCA',name:'Khalifa City',color:'#FFD4D9', both:[320,420], hair:[225,295], beauty:[ 95,125]},
+      {code:'AQ', name:'Al Quoz',     color:'#FF9B9B', both:[500,650], hair:[350,455], beauty:[150,195]},
+      {code:'MC', name:'Motor City',  color:'#99F6E4', both:[350,450], hair:[245,315], beauty:[105,135]},
+      {code:'FRT',name:'Fratelli',    color:'#EEF3C7', both:[200,260], hair:[140,182], beauty:[ 60, 78]},
+    ];
     const activeBranches = sel.branch.includes('all') ? Object.keys(WEEKLY_GOALS_MAP) : sel.branch;
     const hasDateRange = !!(dateFrom && dateTo);
     let weekCount = 1;
@@ -1345,39 +1803,91 @@ async function renderDashboard() {
     const pct = Math.min(s.netTake / goalMid, 1.05);
     const periodLabel = hasDateRange ? `${weekCount} week${weekCount>1?'s':''}` : weekCount === 4 ? 'month (~4 wks)' : weekCount + ' week' + (weekCount>1?'s':'');
 
-    const canvas = document.getElementById('dialCanvas');
-if (canvas) {
-  const drawDial = () => {
-    const w = canvas.parentElement?.offsetWidth || canvas.offsetWidth || 220;
-    canvas.width = w;
-    canvas.height = 118;
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width, H = canvas.height;
-    ctx.clearRect(0, 0, W, H);
-    const cx = W/2, cy = H-8;
-    const r = Math.min(W/2-10, H-16);
-    const SA = Math.PI, EA = 2*Math.PI;
-    ctx.beginPath(); ctx.arc(cx, cy, r, SA, EA);
-    ctx.strokeStyle = dark ? 'rgba(250,248,243,0.1)' : 'rgba(92,85,87,0.12)';
-    ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.stroke();
-    const fillEnd = SA + (EA-SA) * Math.min(pct, 1);
-    const grad = ctx.createLinearGradient(cx-r, cy, cx+r, cy);
-    grad.addColorStop(0, '#C4B5FD'); grad.addColorStop(0.5, '#99F6E4'); grad.addColorStop(1, '#EEF3C7');
-    ctx.beginPath(); ctx.arc(cx, cy, r, SA, fillEnd);
-    ctx.strokeStyle = grad; ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.stroke();
-    const kx = cx + r*Math.cos(fillEnd), ky = cy + r*Math.sin(fillEnd);
-    ctx.beginPath(); ctx.arc(kx, ky, 7, 0, 2*Math.PI); ctx.fillStyle = '#FAF8F3'; ctx.fill();
-    ctx.beginPath(); ctx.arc(kx, ky, 4, 0, 2*Math.PI); ctx.fillStyle = '#99F6E4';  ctx.fill();
-  };
-  requestAnimationFrame(drawDial);
-}
-    const pctNum = Math.round(pct * 100);
-    const fillEl = document.getElementById('dialPctFill');
-    const txtEl  = document.getElementById('dialPctTxt');
-    const tagEl  = document.getElementById('dialGoalTag');
-    if (fillEl) { fillEl.style.width = Math.min(pct*100, 100) + '%'; fillEl.style.background = pct>=1 ? '#99F6E4' : pct>=0.8 ? '#EEF3C7' : '#FF9B9B'; }
-    if (txtEl)  txtEl.textContent  = pctNum + '% of ' + periodLabel + ' goal';
-    if (tagEl)  tagEl.textContent  = 'Weekly target: AED ' + (wMin/1000).toFixed(0) + 'k–' + (wMax/1000).toFixed(0) + 'k / week';
+    const hairTxVal = Math.max(0, s.netTake - s.beautySales - s.hairRetail);
+    const revenueByView = { both: s.netTake, hair: hairTxVal + (s.hairRetail||0), beauty: s.beautySales };
+    const goalMidByView = { both: goalMid, hair: goalMid * 0.7, beauty: goalMid * 0.3 };
+
+    let dialView = window._dialView || 'both';
+
+    function drawDial(view) {
+      window._dialView = view;
+      const revenue = revenueByView[view] || 0;
+      const gMid    = goalMidByView[view] || 1;
+      const p       = Math.min(revenue / gMid, 1.05);
+      const canvas  = document.getElementById('dialCanvas');
+      if (canvas) {
+        const w = canvas.parentElement?.offsetWidth || canvas.offsetWidth || 220;
+        canvas.width = w; canvas.height = 118;
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+        const cx = W/2, cy = H-8;
+        const r = Math.min(W/2-10, H-16);
+        const SA = Math.PI, EA = 2*Math.PI;
+        ctx.beginPath(); ctx.arc(cx, cy, r, SA, EA);
+        ctx.strokeStyle = dark ? 'rgba(250,248,243,0.1)' : 'rgba(92,85,87,0.12)';
+        ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.stroke();
+        const fillEnd = SA + (EA-SA) * Math.min(p, 1);
+        const grad = ctx.createLinearGradient(cx-r, cy, cx+r, cy);
+        grad.addColorStop(0, '#C4B5FD'); grad.addColorStop(0.5, '#99F6E4'); grad.addColorStop(1, '#EEF3C7');
+        ctx.beginPath(); ctx.arc(cx, cy, r, SA, fillEnd);
+        ctx.strokeStyle = grad; ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.stroke();
+        const kx = cx + r*Math.cos(fillEnd), ky = cy + r*Math.sin(fillEnd);
+        ctx.beginPath(); ctx.arc(kx, ky, 7, 0, 2*Math.PI); ctx.fillStyle = '#FAF8F3'; ctx.fill();
+        ctx.beginPath(); ctx.arc(kx, ky, 4, 0, 2*Math.PI); ctx.fillStyle = '#99F6E4';  ctx.fill();
+      }
+      const pctNum = Math.round(p * 100);
+      const fillEl = document.getElementById('dialPctFill');
+      const txtEl  = document.getElementById('dialPctTxt');
+      const tagEl  = document.getElementById('dialGoalTag');
+      const valEl  = document.getElementById('dialValueLabel');
+      if (fillEl) { fillEl.style.width = Math.min(p*100,100)+'%'; fillEl.style.background = p>=1?'#99F6E4':p>=0.8?'#EEF3C7':'#FF9B9B'; }
+      if (txtEl)  txtEl.textContent = pctNum + '% of ' + periodLabel + ' goal';
+      if (tagEl)  tagEl.textContent = 'Weekly target: AED ' + (wMin/1000).toFixed(0) + 'k–' + (wMax/1000).toFixed(0) + 'k / week';
+      if (valEl)  valEl.textContent = fmtAED(revenue);
+
+      const listEl = document.getElementById('weeklyGoalsList');
+      if (listEl) {
+        const viewKey = view === 'both' ? 'both' : view === 'hair' ? 'hair' : 'beauty';
+        listEl.innerHTML = BRANCH_LIST.filter(b => b.code !== 'FRT' || window.showFratelli).map(b => {
+          const [lo, hi] = b[viewKey];
+          return `<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border2)">
+            <div style="display:flex;align-items:center;gap:5px">
+              <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${b.color};flex-shrink:0"></span>
+              <span style="font-size:10px;color:var(--muted)">${b.name}</span>
+            </div>
+            <span style="font-size:10px;font-weight:600;color:var(--text)">AED ${lo}–${hi}k</span>
+          </div>`;
+        }).join('');
+      }
+    }
+
+    requestAnimationFrame(() => drawDial(dialView));
+
+    // Filter pills
+    const pills = document.querySelectorAll('#revFilterPills button');
+    pills.forEach(btn => {
+      const active = btn.dataset.rv === dialView;
+      btn.style.background  = active ? '#99F6E4' : 'var(--card)';
+      btn.style.color       = active ? '#1a1a1a' : 'var(--muted)';
+      btn.style.fontWeight  = active ? '600' : '400';
+      btn.addEventListener('click', () => {
+        dialView = btn.dataset.rv;
+        pills.forEach(p => { p.style.background='var(--card)'; p.style.color='var(--muted)'; p.style.fontWeight='400'; });
+        btn.style.background='#99F6E4'; btn.style.color='#1a1a1a'; btn.style.fontWeight='600';
+        drawDial(dialView);
+      });
+    });
+
+    // Redraw on resize
+    if (window.ResizeObserver) {
+      const canvas = document.getElementById('dialCanvas');
+      if (canvas) {
+        if (window._dialResizeObs) window._dialResizeObs.disconnect();
+        window._dialResizeObs = new ResizeObserver(() => requestAnimationFrame(() => drawDial(window._dialView || 'both')));
+        window._dialResizeObs.observe(canvas.parentElement);
+      }
+    }
   })();
 
   // ── Donut chart ──
@@ -1390,7 +1900,7 @@ if (canvas) {
     type: 'doughnut',
     data: { labels: donutLabels, datasets: [{ data: donutData, backgroundColor: donutColors, borderColor: donutBorder, borderWidth: 2, hoverOffset: 4 }] },
     options: { cutout:'62%', responsive:true, maintainAspectRatio:false, animation:{animateRotate:true,duration:600,easing:'easeInOutQuart'},
-      plugins: { legend:{display:false}, tooltip:{...ttStyle, callbacks:{label:c=>` ${c.label}: ${fmtAED(c.raw)} (${(c.raw/donutTotal*100).toFixed(2)}%)`}} }
+      plugins: { legend:{display:false}, tooltip:{...ttStyle, padding:10, boxPadding:4, callbacks:{label:c=>` ${c.label}: ${fmtAED(c.raw)} (${(c.raw/donutTotal*100).toFixed(2)}%)`}} }
     }
   });
   document.getElementById('donutLegend').innerHTML = donutLabels.map((lbl,i) => `
@@ -1404,6 +1914,9 @@ if (canvas) {
         <span style="color:var(--muted2);min-width:28px;text-align:right">${Math.round(donutData[i]/donutTotal*100)}%</span>
       </div>
     </div>`).join('');
+
+  // Init client breakdown donuts (panel is open by default)
+  _initCbDonuts();
 }
 
 
@@ -2034,10 +2547,17 @@ async function loadData() {
   const branches = Object.entries(BRANCH_INFO).map(([k,v]) => ({ val:k, label:v.name }));
   buildDrop('branch', branches);
   rebuildDependentDrops();
+  updateDateRangePlaceholder();
   renderDashboard();
   if (data.length) {
     const latest = new Date(data[data.length-1].uploaded_at);
-    document.getElementById('lastUpdated').innerHTML = 'Updated ' + latest.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+    const now = new Date();
+    const diffDays = Math.floor((now - latest) / (1000 * 60 * 60 * 24));
+    const staleColor = diffDays === 0 ? '#99F6E4' : diffDays <= 2 ? '#FFD4D9' : '#FF6B6B';
+    const staleLabel = diffDays === 0 ? 'Live' : diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
+    document.getElementById('lastUpdated').innerHTML =
+      'Data: ' + latest.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+      + ' &nbsp;<span style="color:' + staleColor + ';font-weight:600">(' + staleLabel + ')</span>'
       + '<br><span style="font-size:10px;letter-spacing:0.04em;opacity:0.7">Gulf Standard Time +04:00</span>';
 
     fetch('https://api.github.com/repos/katealsaybar/tararosesalon-dashboard-all/commits?per_page=1')
