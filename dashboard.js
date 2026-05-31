@@ -50,6 +50,12 @@ let revenueTab = 'hb'; // 'hair' | 'beauty' | 'hb'
 // daily rows cache — set during daily-mode render, used by aggByBranch
 let currentDailyRows = [];
 
+// Services + Clients state
+const svcSel = { branch: ['all'] };
+const cliSel = { branch: ['all'] };
+let svcViewMode = 'branch';
+let svcDropsReady = false;
+
 
 // ── FRATELLI TOGGLE ─────────────────────────────────────────
 
@@ -610,11 +616,23 @@ function applyDateRange() {
   });
 }
 
+function setMTDRange() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  // Use yesterday as the end — avoids "no data" on the 1st of a new month
+  const to = new Date(today); to.setDate(to.getDate() - 1);
+  const from = new Date(to.getFullYear(), to.getMonth(), 1);
+  dateFrom = from;
+  dateTo   = to;
+  pickerFromDate = new Date(from);
+  pickerToDate   = new Date(to);
+  const fmt = d => d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'2-digit' });
+  const lbl = document.getElementById('lbl-daterange');
+  if (lbl) lbl.textContent = `${fmt(from)} – ${fmt(to)}`;
+}
+
 function clearDateRange() {
-  dateFrom = null; dateTo = null;
-  pickerFromDate = null; pickerToDate = null;
   pickingStep = 'from';
-  updateDateRangePlaceholder();
+  setMTDRange();
   renderCalendar();
   updateStepUI();
   renderDashboard().then(() => {
@@ -1270,11 +1288,9 @@ async function renderDashboard() {
       <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
       <div class="metric-label" style="font-size:9px">Total Clients</div>
       <div style="font-size:9px;color:var(--muted);margin:3px 0 4px"><em>Excludes rebooked clients</em></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-        <div class="metric-value" style="font-size:20px">${(s.totalClients||0).toLocaleString()}</div>
-        <button id="breakdownPillBtn" onclick="toggleClientBreakdown()" style="background:${dark?'rgba(153,246,228,0.15)':'rgba(15,110,86,0.08)'};border:1px solid ${dark?'rgba(153,246,228,0.4)':'rgba(15,110,86,0.3)'};color:${dark?'#99F6E4':'#0F6E56'};border-radius:20px;padding:4px 11px;font-size:10px;font-family:inherit;cursor:pointer;white-space:nowrap;letter-spacing:.04em">Breakdown ▴</button>
-      </div>
+      <div class="metric-value" style="font-size:20px">${(s.totalClients||0).toLocaleString()}</div>
       <div class="metric-target" style="font-size:10px;margin-top:8px">Target: ${getClientTarget(sel.branch)}</div>
+      <button id="breakdownPillBtn" onclick="toggleClientBreakdown()" style="margin-top:6px;background:${dark?'rgba(153,246,228,0.15)':'rgba(15,110,86,0.08)'};border:1px solid ${dark?'rgba(153,246,228,0.4)':'rgba(15,110,86,0.3)'};color:${dark?'#99F6E4':'#0F6E56'};border-radius:20px;padding:4px 11px;font-size:10px;font-family:inherit;cursor:pointer;white-space:nowrap;letter-spacing:.04em">Breakdown ▴</button>
     </div>
 
     <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px" data-hair-avg-bill="${(s.hairAvgBill||0).toFixed(4)}" data-beauty-avg-bill="${s.beautyAvgBill != null ? s.beautyAvgBill.toFixed(4) : 'null'}" data-both-avg-bill="${(s.avgBill||0).toFixed(4)}">
@@ -1368,9 +1384,25 @@ async function renderDashboard() {
   <!-- CLIENT BREAKDOWN PANEL (toggled by Breakdown pill) -->
   <div id="clientBreakdownPanel" style="display:block;position:sticky;top:52px;z-index:39;background:var(--bg);padding-bottom:4px">
     <div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--surface)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${dark?'#99F6E4':'#0F6E56'};font-weight:600">Client Breakdown</div>
-        <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${dark?'#99F6E4':'#0F6E56'};font-weight:600">Running Net Revenue</div>
+        ${(()=>{
+          const hairNet   = (s.netTake||0) - (s.beautySales||0);
+          const beautyNet = s.beautySales || 0;
+          const totalNet  = s.netTake || 0;
+          const hairCol   = '#C4B5FD';
+          const beautyCol = '#99F6E4';
+          const pill = (label, val, col) => `
+            <div style="display:flex;flex-direction:column;align-items:center;padding:5px 12px;background:${dark?col+'18':col+'22'};border:1px solid ${dark?col+'44':col+'66'};border-radius:8px;min-width:90px">
+              <div style="font-size:8px;font-weight:700;color:${col};letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px">${label}</div>
+              <div style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.01em">${fmtAED(val)}</div>
+            </div>`;
+          return `<div style="display:flex;gap:8px;align-items:center">
+            ${pill('Hair', hairNet, hairCol)}
+            ${pill('Beauty', beautyNet, beautyCol)}
+            ${pill('Total', totalNet, dark?'rgba(250,248,243,0.6)':'#5C5557')}
+          </div>`;
+        })()}
       </div>
       ${(()=>{
         const bdSum = (s.hairBreakdown?.ncr||0)+(s.hairBreakdown?.req||0)+(s.hairBreakdown?.salon||0)+(s.hairBreakdown?.new||0)
@@ -1382,8 +1414,8 @@ async function renderDashboard() {
         return '';
       })()}
 
-      <!-- LAYOUT: funnel left, donuts middle, net revenue right -->
-      <div style="display:grid;grid-template-columns:1.5fr 1fr 0.85fr;gap:20px;align-items:start">
+      <!-- LAYOUT: funnel left, donuts right -->
+      <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;align-items:start">
 
         <!-- FUNNEL: client journey for Hair & Beauty -->
         <div>
@@ -1458,43 +1490,6 @@ async function renderDashboard() {
           </div>
         </div>
 
-        <!-- RUNNING NET REVENUE -->
-        <div>
-          ${(()=>{
-            const hairNet    = (s.netTake||0) - (s.beautySales||0);
-            const beautyNet  = s.beautySales || 0;
-            const totalNet   = s.netTake || 0;
-            const hairPct    = totalNet ? (hairNet / totalNet * 100).toFixed(2) : '0.00';
-            const beautyPct  = totalNet ? (beautyNet / totalNet * 100).toFixed(2) : '0.00';
-            const hairCol    = '#C4B5FD';
-            const beautyCol  = '#99F6E4';
-            const fmtAed     = v => fmtAED(v);
-            const bar = (pct, col) => `
-              <div style="background:${dark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.05)'};border-radius:4px;height:8px;margin-top:4px;overflow:hidden">
-                <div style="width:${pct}%;height:100%;background:${col};border-radius:4px;transition:width 0.5s ease"></div>
-              </div>`;
-            return `
-            <div style="display:flex;flex-direction:column;gap:14px">
-              <div style="padding:10px 12px;background:${dark?'rgba(196,181,253,0.07)':'rgba(196,181,253,0.12)'};border:1px solid ${dark?'rgba(196,181,253,0.25)':'rgba(196,181,253,0.4)'};border-radius:10px">
-                <div style="font-size:10px;font-weight:700;color:${hairCol};letter-spacing:.05em;margin-bottom:6px">Hair</div>
-                <div style="font-size:15px;font-weight:800;color:var(--text);letter-spacing:.02em">${fmtAed(hairNet)}</div>
-                ${bar(hairPct, hairCol)}
-                <div style="font-size:9px;color:var(--muted);margin-top:5px">${hairPct}% of total</div>
-              </div>
-              <div style="padding:10px 12px;background:${dark?'rgba(153,246,228,0.07)':'rgba(153,246,228,0.12)'};border:1px solid ${dark?'rgba(153,246,228,0.25)':'rgba(153,246,228,0.4)'};border-radius:10px">
-                <div style="font-size:10px;font-weight:700;color:${beautyCol};letter-spacing:.05em;margin-bottom:6px">Beauty</div>
-                <div style="font-size:15px;font-weight:800;color:var(--text);letter-spacing:.02em">${fmtAed(beautyNet)}</div>
-                ${bar(beautyPct, beautyCol)}
-                <div style="font-size:9px;color:var(--muted);margin-top:5px">${beautyPct}% of total</div>
-              </div>
-              <div style="padding:10px 12px;background:${dark?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)'};border:1px solid var(--border2);border-radius:10px">
-                <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.05em;margin-bottom:6px">Total</div>
-                <div style="font-size:15px;font-weight:800;color:var(--text);letter-spacing:.02em">${fmtAed(totalNet)}</div>
-              </div>
-              <div style="font-size:9px;color:var(--muted);text-align:center;margin-top:2px">Data: Jan 1 – May 24, 2026</div>
-            </div>`;
-          })()}
-        </div>
 
       </div>
 
@@ -2580,10 +2575,13 @@ async function loadData() {
   const branches = Object.entries(BRANCH_INFO).map(([k,v]) => ({ val:k, label:v.name }));
   buildDrop('branch', branches);
   rebuildDependentDrops();
-  updateDateRangePlaceholder();
+  setMTDRange();
   renderDashboard();
-  if (data.length) {
-    const latest = new Date(data[data.length-1].uploaded_at);
+  // Use latest daily_data upload for the freshness badge
+  const { data: dailyMeta } = await sb.from('daily_data').select('uploaded_at').order('uploaded_at', { ascending: false }).limit(1);
+  const badgeSource = (dailyMeta && dailyMeta.length) ? dailyMeta : data;
+  if (badgeSource.length) {
+    const latest = new Date(badgeSource[badgeSource.length-1].uploaded_at);
     const now = new Date();
     const diffDays = Math.floor((now - latest) / (1000 * 60 * 60 * 24));
     const staleColor = diffDays === 0 ? '#99F6E4' : diffDays <= 2 ? '#FFD4D9' : '#FF6B6B';
@@ -2611,3 +2609,313 @@ el.innerHTML += '<br><span style="font-size:9px;letter-spacing:0.06em;opacity:0.
 // ── STARTUP ──────────────────────────────────────────────────
 
 // Init is triggered by doLogin() and checkSession() in index.html
+
+
+// ══════════════════════════════════════════════════════════════
+//  SERVICES + CLIENTS
+// ══════════════════════════════════════════════════════════════
+
+function _svcBranches() {
+  return Object.entries(BRANCH_INFO).filter(([k]) => k !== 'FRT');
+}
+
+function _buildBranchDrop(dropId, selObj, onChangeFn) {
+  const drop = document.getElementById('drop-' + dropId);
+  if (!drop) return;
+  const branches = _svcBranches();
+  const render = () => {
+    drop.innerHTML =
+      `<div class="ms-opt all-opt ${selObj.branch[0]==='all'?'selected':''}" onclick="_toggleSvcBranch('${dropId}')">All Branches</div>` +
+      branches.map(([k,v]) =>
+        `<div class="ms-opt ${selObj.branch.includes(k)?'selected':''}" onclick="_toggleSvcBranch('${dropId}','${k}')">${v.name}</div>`
+      ).join('');
+  };
+  drop._render = render;
+  drop._selObj = selObj;
+  drop._onChange = onChangeFn;
+  render();
+}
+
+function _toggleSvcBranch(dropId, code) {
+  const drop = document.getElementById('drop-' + dropId);
+  if (!drop) return;
+  const selObj = drop._selObj;
+  if (!code || code === 'all') {
+    selObj.branch = ['all'];
+  } else {
+    selObj.branch = selObj.branch.filter(b => b !== 'all');
+    if (selObj.branch.includes(code)) {
+      selObj.branch = selObj.branch.filter(b => b !== code);
+      if (!selObj.branch.length) selObj.branch = ['all'];
+    } else {
+      selObj.branch.push(code);
+    }
+  }
+  const lbl = document.getElementById('lbl-' + dropId);
+  if (lbl) {
+    if (selObj.branch[0] === 'all') lbl.textContent = 'All Branches';
+    else if (selObj.branch.length === 1) lbl.textContent = BRANCH_INFO[selObj.branch[0]]?.name || selObj.branch[0];
+    else lbl.textContent = selObj.branch.length + ' Branches';
+  }
+  drop._render();
+  if (drop._onChange) drop._onChange();
+}
+
+async function _loadSvcYears() {
+  try {
+    const { data } = await sb.rpc('get_service_years');
+    if (!data || !data.length) return;
+    const years = data.map(r => r.year).sort((a,b) => b-a);
+    ['svc-year','cli-year'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      const cur = sel.value;
+      sel.innerHTML = years.map(y => `<option value="${y}"${y==cur?' selected':''}>${y}</option>`).join('');
+    });
+  } catch(e) { /* table may not exist yet */ }
+}
+
+// ── SERVICES VIEW ────────────────────────────────────────────
+
+function initSvcView() {
+  if (!svcDropsReady) {
+    _buildBranchDrop('svc-branch', svcSel, onSvcFiltersChange);
+    _buildBranchDrop('cli-branch', cliSel, onCliFiltersChange);
+    svcDropsReady = true;
+    _loadSvcYears();
+  }
+  loadAndRenderServices();
+}
+
+function initCliView() {
+  if (!svcDropsReady) {
+    _buildBranchDrop('svc-branch', svcSel, onSvcFiltersChange);
+    _buildBranchDrop('cli-branch', cliSel, onCliFiltersChange);
+    svcDropsReady = true;
+    _loadSvcYears();
+  }
+  loadAndRenderClients();
+}
+
+function setSvcViewMode(mode) {
+  svcViewMode = mode;
+  document.getElementById('svc-toggle-branch')?.classList.toggle('active', mode === 'branch');
+  document.getElementById('svc-toggle-combined')?.classList.toggle('active', mode === 'combined');
+  loadAndRenderServices();
+}
+
+function onSvcFiltersChange() { loadAndRenderServices(); }
+function onCliFiltersChange() { loadAndRenderClients(); }
+
+async function loadAndRenderServices() {
+  const content = document.getElementById('svc-content');
+  if (!content) return;
+  content.innerHTML = '<div class="loading">Loading...</div>';
+
+  const year  = parseInt(document.getElementById('svc-year')?.value || '2026');
+  const pFrom = document.getElementById('svc-date-from')?.value || `${year}-01-01`;
+  const pTo   = document.getElementById('svc-date-to')?.value   || `${year}-12-31`;
+  const branches = svcSel.branch[0] === 'all' ? ['KCA','SAA','MC','AQ'] : [...svcSel.branch];
+
+  try {
+    if (svcViewMode === 'combined') {
+      const { data, error } = await sb.rpc('get_top_services', {
+        p_year: year, p_branches: branches, p_from: pFrom, p_to: pTo, p_limit: 10
+      });
+      if (error) throw error;
+      _renderSvcCombined(data || [], branches, year, pFrom, pTo);
+    } else {
+      const targetBranches = svcSel.branch[0] === 'all' ? ['KCA','SAA','MC','AQ'] : [...svcSel.branch];
+      const results = await Promise.all(targetBranches.map(async b => {
+        const { data } = await sb.rpc('get_top_services', {
+          p_year: year, p_branches: [b], p_from: pFrom, p_to: pTo, p_limit: 10
+        });
+        return { branch: b, rows: data || [] };
+      }));
+      _renderSvcPerBranch(results, year, pFrom, pTo);
+    }
+  } catch(e) {
+    console.error(e);
+    content.innerHTML = '<div class="empty">No service data found. Upload a Service Performance file first.</div>';
+  }
+}
+
+function _fmtAed(n) {
+  return (parseFloat(n) || 0).toLocaleString('en-AE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function _rankCls(i) { return i===0?'gold':i===1?'silver':i===2?'bronze':''; }
+
+function _renderSvcCombined(rows, branches, year, pFrom, pTo) {
+  const content = document.getElementById('svc-content');
+  if (!rows.length) { content.innerHTML = '<div class="empty">No data for selected filters.</div>'; return; }
+  const totalRev = rows.reduce((s,r) => s + parseFloat(r.total_revenue||0), 0);
+  const branchLabel = branches.length === 4 ? 'All Branches' : branches.map(b => BRANCH_INFO[b]?.name||b).join(' · ');
+
+  content.innerHTML = `
+    <div class="section-label" style="margin-top:16px">${branchLabel} — Combined Top 10 Services · ${year}</div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div class="card-title">Top Services by Revenue</div>
+          <div class="card-sub">${pFrom} to ${pTo}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Top 10 Combined Revenue</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr>
+          <th style="width:30px">#</th>
+          <th class="sortable">Service</th>
+          <th>Category</th>
+          <th style="text-align:right">Revenue (AED)</th>
+          <th style="text-align:right">Visits</th>
+          <th style="text-align:right">% of Top 10</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map((r,i) => {
+            const rev = parseFloat(r.total_revenue||0);
+            const pct = totalRev > 0 ? (rev/totalRev*100) : 0;
+            return `<tr>
+              <td><span class="top3-rank ${_rankCls(i)}">${i+1}</span></td>
+              <td style="font-weight:500;font-size:12px">${r.service_name||'—'}</td>
+              <td><span class="badge" style="background:var(--surface2);color:var(--muted);font-size:10px">${r.category||'—'}</span></td>
+              <td style="text-align:right;font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:600">${_fmtAed(rev)}</td>
+              <td style="text-align:right;color:var(--muted)">${(r.visit_count||0).toLocaleString()}</td>
+              <td style="text-align:right">
+                <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+                  <div class="bar-track" style="width:56px"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:var(--accent)"></div></div>
+                  <span style="min-width:36px;color:var(--muted);font-size:11px">${pct.toFixed(1)}%</span>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function _renderSvcPerBranch(results, year, pFrom, pTo) {
+  const content = document.getElementById('svc-content');
+  content.innerHTML = `
+    <div class="section-label" style="margin-top:16px">Top 10 Services Per Branch · ${year} · ${pFrom} – ${pTo}</div>
+    <div class="${results.length > 2 ? 'svc-scroll-wrap' : ''}"><div class="svc-grid-${results.length <= 2 ? '2' : '4'}">
+      ${results.map(({ branch, rows }) => {
+        const info = BRANCH_INFO[branch] || { name: branch, color: '#FFD4D9' };
+        const totalRev = rows.reduce((s,r) => s + parseFloat(r.total_revenue||0), 0);
+        return `
+          <div class="card" style="margin-bottom:0">
+            <div style="height:3px;border-radius:3px;background:${info.color};margin-bottom:14px"></div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+              <div>
+                <div class="card-title" style="font-size:14px">${info.name}</div>
+                <div class="card-sub" style="margin-bottom:0;font-size:10px">${rows.length} services shown</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Top 10 Rev</div>
+                <div style="font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
+              </div>
+            </div>
+            ${!rows.length ? '<div class="top3-empty">No data for period</div>' : `
+            <table>
+              <thead><tr>
+                <th style="width:20px">#</th>
+                <th>Service</th>
+                <th style="text-align:right">AED</th>
+                <th style="text-align:right">Visits</th>
+              </tr></thead>
+              <tbody>
+                ${rows.map((r,i) => {
+                  const rev = parseFloat(r.total_revenue||0);
+                  const pct = totalRev > 0 ? (rev/totalRev*100) : 0;
+                  return `<tr>
+                    <td><span class="top3-rank ${_rankCls(i)}" style="font-size:12px">${i+1}</span></td>
+                    <td style="font-size:11px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.service_name||''}">${r.service_name||'—'}</td>
+                    <td style="text-align:right;font-family:'Cormorant Garamond',serif;font-size:13px;font-weight:600">${_fmtAed(rev)}</td>
+                    <td style="text-align:right;color:var(--muted);font-size:11px">${r.visit_count||0}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>`}
+          </div>`;
+      }).join('')}
+    </div></div>`;
+}
+
+// ── CLIENTS VIEW ─────────────────────────────────────────────
+
+async function loadAndRenderClients() {
+  const content = document.getElementById('cli-content');
+  if (!content) return;
+  content.innerHTML = '<div class="loading">Loading...</div>';
+
+  const year  = parseInt(document.getElementById('cli-year')?.value || '2026');
+  const pFrom = document.getElementById('cli-date-from')?.value || `${year}-01-01`;
+  const pTo   = document.getElementById('cli-date-to')?.value   || `${year}-12-31`;
+  const branches = cliSel.branch[0] === 'all' ? ['KCA','SAA','MC','AQ'] : [...cliSel.branch];
+
+  try {
+    const { data, error } = await sb.rpc('get_top_clients', {
+      p_year: year, p_branches: branches, p_from: pFrom, p_to: pTo, p_limit: 25
+    });
+    if (error) throw error;
+    _renderClients(data || [], branches, year, pFrom, pTo);
+  } catch(e) {
+    console.error(e);
+    content.innerHTML = '<div class="empty">No client data found. Upload a Service Performance file first.</div>';
+  }
+}
+
+function _renderClients(rows, branches, year, pFrom, pTo) {
+  const content = document.getElementById('cli-content');
+  if (!rows.length) { content.innerHTML = '<div class="empty">No data for selected filters.</div>'; return; }
+
+  const totalRev = rows.reduce((s,r) => s + parseFloat(r.total_revenue||0), 0);
+  const branchLabel = branches.length === 4 ? 'All Branches' : branches.map(b => BRANCH_INFO[b]?.name||b).join(' · ');
+  const avColors = ['#FFD4D9','#C4B5FD','#99F6E4','#FF9B9B','#EEF3C7','#FFB6C1','#B5EAD7','#FFDAC1'];
+
+  content.innerHTML = `
+    <div class="section-label" style="margin-top:16px">${branchLabel} — Top ${rows.length} Clients · ${year}</div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div class="card-title">Top Clients by Revenue</div>
+          <div class="card-sub">${pFrom} to ${pTo}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Combined Revenue (Top ${rows.length})</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr>
+          <th style="width:30px">#</th>
+          <th>Client</th>
+          <th style="text-align:right">Revenue (AED)</th>
+          <th style="text-align:right">Visits</th>
+          <th>Favourite Service</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map((r,i) => {
+            const rev = parseFloat(r.total_revenue||0);
+            const initials = (r.client_name||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+            const avColor = avColors[i % avColors.length];
+            return `<tr>
+              <td><span class="top3-rank ${_rankCls(i)}">${i+1}</span></td>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:26px;height:26px;border-radius:50%;background:${avColor};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0">${initials}</div>
+                  <span style="font-weight:500;font-size:12px">${r.client_name||'—'}</span>
+                </div>
+              </td>
+              <td style="text-align:right;font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:600">${_fmtAed(rev)}</td>
+              <td style="text-align:right;color:var(--muted)">${(r.visit_count||0).toLocaleString()}</td>
+              <td style="color:var(--muted);font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.top_service||''}">${r.top_service||'—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}

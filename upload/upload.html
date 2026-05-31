@@ -247,6 +247,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <div class="tab-bar">
   <button class="tab-btn" onclick="switchTab(event, 'ops')">⚙️ Operations</button>
   <button class="tab-btn active" onclick="switchTab(event, 'daily')">📆 Daily Upload (MTD)</button>
+  <button class="tab-btn" onclick="switchTab(event, 'service')">📊 Service Data (Yearly)</button>
 </div>
 
     <div class="tab-content" id="tab-ops">
@@ -289,8 +290,46 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
 </div>
 
-  </div> 
-  
+  </div>
+
+<!-- ══ SERVICE DATA TAB ══ -->
+<div class="tab-content" id="tab-service">
+  <div class="upload-card">
+    <div class="card-title">Service Performance Upload</div>
+    <div class="card-sub">Upload yearly service data (all 4 branches in one Excel file). Re-uploading the same year overwrites all previous data for that year.</div>
+    <div class="xlsx-badge">✦ Excel File — Sheets: KCA · SAA · MC · AQ</div>
+
+    <div style="margin-bottom:16px">
+      <div class="field" style="max-width:160px">
+        <label class="field-label">Year</label>
+        <input type="number" id="svc-year-inp" value="2026" min="2024" max="2035" style="width:100%">
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:16px">
+      <label class="field-label">Service Performance File (.xlsx)</label>
+      <div class="file-slot" style="max-width:520px;cursor:pointer"
+           onclick="document.getElementById('svcFileInput').click()"
+           ondragover="event.preventDefault();this.classList.add('dragover')"
+           ondragleave="this.classList.remove('dragover')"
+           ondrop="event.preventDefault();this.classList.remove('dragover');if(event.dataTransfer.files[0])svcFileChosen(event.dataTransfer.files[0])">
+        <div class="slot-drop-area">
+          <span class="slot-icon">📊</span>
+          <div class="slot-hint">Click or drag & drop .xlsx here</div>
+          <div class="slot-filename" id="svc-filename" style="margin-top:6px;color:var(--muted2)">No file selected</div>
+        </div>
+        <input type="file" id="svcFileInput" accept=".xlsx" style="display:none"
+               onchange="if(this.files[0])svcFileChosen(this.files[0])">
+      </div>
+    </div>
+
+    <button class="btn" id="uploadSvcBtn" onclick="uploadServiceData()" disabled style="max-width:280px">
+      Upload Service Data
+    </button>
+
+    <div id="svc-progress" style="display:none;margin-top:14px;padding:12px;background:var(--surface2);border-radius:10px;font-size:12px;line-height:1.7"></div>
+  </div>
+</div>
 
 <!-- ══ DAILY TAB ══ -->
 <div class="tab-content active" id="tab-daily">

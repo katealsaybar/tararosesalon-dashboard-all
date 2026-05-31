@@ -609,7 +609,7 @@ function renderSection(list, gridId, title, count, titleId){
   document.getElementById(titleId).textContent = `${title} · ${count} ${count===1?'person':'people'} · ${totalClients.toLocaleString()} clients`;
   const grid = document.getElementById(gridId);
 
-  grid.innerHTML = list.map(s=>{
+  grid.innerHTML = list.map((s,idx)=>{
     const st   = s._stats;
     const rev  = s.isBeauty ? st.beautySales : st.hairSalesNet;
     const revLabel = s.isBeauty ? 'Beauty Sales' : 'Net Hair Rev';
@@ -627,33 +627,72 @@ function renderSection(list, gridId, title, count, titleId){
       ? `<img class="stylist-avatar stylist-avatar-photo" src="photos/${photoFile}" alt="${s.name}" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src=this.src.replace(/\\.\\w+$/,'.jfif')}else{this.style.display='none';this.nextElementSibling.style.display='flex'}"><div class="stylist-avatar" style="background:${s.color};display:none">${initials(s.name)}</div>`
       : `<div class="stylist-avatar" style="background:${s.color}">${initials(s.name)}</div>`;
 
-    return `<div class="stylist-card ${selectedStylist===s.name?'selected':''}" onclick="selectStylist('${s.name}')">
-      <div class="stylist-card-top">
-        ${avatarHTML}
-        <div>
-          <div class="stylist-card-name">${cleanName}${surname ? ' ' + surname : ''}</div>
-          ${REVERSE_ALIASES[cleanName] ? `<div class="stylist-card-nickname">${REVERSE_ALIASES[cleanName]}</div>` : ''}
-          <div class="stylist-card-type"><span class="job-pill ${s.isBeauty?'beauty':'hair'}">${s.isBeauty?'💅 Beautician':'✂️ Hair Stylist'}</span></div>
-          <div class="stylist-card-type">${[...new Set(st.weeks.map(w=>w.branch))].map(b=>{const slug={KCA:'kca',SAA:'saa',MC:'mc',AQ:'aq',FRT:'frt'}[b]||'kca';const label=BRANCH_INFO[b]?.name||b;return`<span class="branch-pill ${slug}">${label}</span>`;}).join('')}</div>
-          <div class="stylist-card-type"><span class="weeks-label">(${st.weeksActive}w)</span></div>
-          ${igUrl ? `<a href="${igUrl}" target="_blank" onclick="event.stopPropagation()" class="ig-link" title="View on Instagram"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg><span>View on Instagram</span></a>` : ''}
+    // Branch accent colour for card top bar + avatar ring
+    const branches = [...new Set(st.weeks.map(w=>w.branch))];
+    const branchAccents = {KCA:'#fcd4a0',SAA:'#c4b5fd',MC:'#99f6e4',AQ:'#fce99a',FRT:'#cdd98a'};
+    const cardAccent = branchAccents[branches[0]] || 'var(--border)';
+
+    // Rebook badge class
+    const rebookClass = st.rebookPct >= 40 ? 'good' : st.rebookPct >= 20 ? 'warn' : 'bad';
+
+    const rank = idx + 1;
+    const rankLabel = rank <= 3 ? ['🥇','🥈','🥉'][rank-1] : `#${rank}`;
+
+    return `<div class="stylist-card ${selectedStylist===s.name?'selected':''}" style="--card-accent:${cardAccent}" onclick="selectStylist('${s.name}')">
+      <div class="card-inner">
+        <div class="stylist-card-top">
+          <div class="stylist-avatar-wrap">
+            ${avatarHTML}
+          </div>
+          <div style="min-width:0;flex:1">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="card-rank">${rankLabel}</span>
+              <div class="stylist-card-name">${cleanName}${surname ? ' ' + surname : ''}</div>
+            </div>
+            ${REVERSE_ALIASES[cleanName] ? `<div class="stylist-card-nickname">${REVERSE_ALIASES[cleanName]}</div>` : ''}
+            <div class="stylist-card-type" style="margin-top:4px">
+              <span class="job-pill ${s.isBeauty?'beauty':'hair'}">${s.isBeauty?'💅 Beautician':'✂️ Hair Stylist'}</span>
+            </div>
+            <div class="stylist-card-type" style="margin-top:3px">
+              ${branches.map(b=>{const slug={KCA:'kca',SAA:'saa',MC:'mc',AQ:'aq',FRT:'frt'}[b]||'kca';const label=BRANCH_INFO[b]?.name||b;return`<span class="branch-pill ${slug}">${label}</span>`;}).join('')}
+              <span class="weeks-label">${st.weeksActive}w</span>
+            </div>
+            ${igUrl ? `<a href="${igUrl}" target="_blank" onclick="event.stopPropagation()" class="ig-link" title="View on Instagram"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg><span>View on Instagram</span></a>` : ''}
+          </div>
+        </div>
+
+        <div class="card-revenue">
+          <div class="card-revenue-label">${revLabel}</div>
+          <div class="card-revenue-val">${fmtAED(rev)}</div>
+          <div class="card-revenue-sub">Avg bill ${fmtAED(st.avgBill)}</div>
+        </div>
+
+        <div class="card-stats">
+          <div class="card-stat">
+            <span class="card-stat-label">Total Clients</span>
+            <span class="card-stat-val">${st.salon + st.req + st.newC}</span>
+            <div class="client-breakdown">
+              <span class="cb-tag">Salon <strong>${st.salon}</strong></span>
+              <span class="cb-tag">Req <strong>${st.req}</strong></span>
+              <span class="cb-tag">New <strong>${st.newC}</strong></span>
+            </div>
+          </div>
+          <div class="card-stat">
+            <span class="card-stat-label">Rebook %</span>
+            <span class="rebook-badge ${rebookClass}">${fmtPct(st.rebookPct)}</span>
+            <span class="card-stat-label" style="margin-top:3px">${st.rebooked} rebooked</span>
+          </div>
+          <div class="card-stat">
+            <span class="card-stat-label">Retail Sales</span>
+            <span class="card-stat-val">${fmtAED(st.retail)}</span>
+          </div>
+          <div class="card-stat">
+            <span class="card-stat-label">Retail %</span>
+            <span class="card-stat-val">${fmtPct(st.retailPct)}</span>
+          </div>
         </div>
       </div>
-      <div class="stylist-card-stat"><span>${revLabel}</span><span class="stylist-card-val">${fmtAED(rev)}</span></div>
-      <div class="stylist-card-stat"><span>Avg Bill</span><span class="stylist-card-val">${fmtAED(st.avgBill)}</span></div>
-      <div class="stylist-card-stat stylist-card-clients">
-        <span>Clients</span>
-        <span class="stylist-card-val client-breakdown">
-          <span class="cb-tag">Salon <strong>${st.salon}</strong></span>
-          <span class="cb-tag">Req <strong>${st.req}</strong></span>
-          <span class="cb-tag">New <strong>${st.newC}</strong></span>
-        </span>
-      </div>
-      <div class="stylist-card-stat"><span>Rebooked</span><span class="stylist-card-val">${st.rebooked}</span></div>
-      <div class="stylist-card-stat"><span>Rebook %</span><span class="stylist-card-val">${fmtPct(st.rebookPct)}</span></div>
-      <div class="stylist-card-stat"><span>Retail Sales</span><span class="stylist-card-val">${fmtAED(st.retail)}</span></div>
-      <div class="stylist-card-stat"><span>Retail %</span><span class="stylist-card-val">${fmtPct(st.retailPct)}</span></div>
-      <div class="stylist-weeks-pills">${pillsHTML}</div>
+      <div class="stylist-weeks-pills" style="padding:0 16px 12px">${pillsHTML}</div>
     </div>`;
   }).join('');
 }
@@ -710,8 +749,8 @@ function renderDetail(s){
 })()}</div>
         <div class="detail-sub" style="display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:3px">
           <span class="job-pill ${isBeauty?'beauty':'hair'}">${isBeauty?'💅 Beautician':'✂️ Hair Stylist'}</span>
-          <span style="color:var(--muted);font-size:10px">· Active ${st.weeksActive}w ·</span>
           ${[...new Set(st.weeks.map(w=>w.branch))].map(b=>{const slug={KCA:'kca',SAA:'saa',MC:'mc',AQ:'aq',FRT:'frt'}[b]||'kca';const label=BRANCH_INFO[b]?.name||b;return`<span class="branch-pill ${slug}">${label}</span>`;}).join('')}
+          <span style="color:var(--muted);font-size:10px">· Active ${st.weeksActive}w ·</span>
         </div>
         ${(()=>{
   const cn  = s.name.toLowerCase().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
@@ -1119,3 +1158,74 @@ function pickDay(year, month, day) {
   renderCalendar();
   updateStepUI();
 }
+
+function updateStepUI() {
+  const fmt = d => d ? d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : null;
+  const fromEl   = document.getElementById('calStepFrom');
+  const toEl     = document.getElementById('calStepTo');
+  const fromVal  = document.getElementById('calStepFromVal');
+  const toVal    = document.getElementById('calStepToVal');
+  const selEl    = document.getElementById('date-picker-selection');
+
+  if (fromEl) fromEl.classList.toggle('active-step', pickingStep === 'from');
+  if (toEl)   toEl.classList.toggle('active-step',   pickingStep === 'to');
+
+  if (fromVal) {
+    fromVal.textContent = pickerFromDate ? fmt(pickerFromDate) : 'Select start';
+    fromVal.className   = 'cal-step-val' + (pickerFromDate ? ' set' : '');
+  }
+  if (toVal) {
+    toVal.textContent = pickerToDate ? fmt(pickerToDate) : 'Select end';
+    toVal.className   = 'cal-step-val' + (pickerToDate ? ' set' : '');
+  }
+  if (selEl) {
+    if (!pickerFromDate) { selEl.textContent = 'Click a date to set FROM'; selEl.className = 'date-picker-selection'; }
+    else if (!pickerToDate) { selEl.textContent = 'Now click a date to set TO'; selEl.className = 'date-picker-selection'; }
+    else { selEl.textContent = `${fmt(pickerFromDate)} → ${fmt(pickerToDate)}`; selEl.className = 'date-picker-selection has-range'; }
+  }
+}
+
+function applyDateRange() {
+  if (!pickerFromDate) return;
+  dateFrom = new Date(pickerFromDate); dateFrom.setHours(0,0,0,0);
+  dateTo   = new Date(pickerToDate || pickerFromDate); dateTo.setHours(23,59,59,999);
+  const lbl = document.getElementById('lbl-daterange');
+  const fmt = d => d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'2-digit' });
+  lbl.textContent = dateTo && dateTo.getTime() !== dateFrom.getTime()
+    ? `${fmt(dateFrom)} – ${fmt(dateTo)}`
+    : fmt(dateFrom);
+  const pop = document.getElementById('datePickerPop');
+  const btn = document.getElementById('btn-daterange');
+  pop.style.display = 'none'; pop.classList.remove('open'); btn.classList.remove('active');
+  renderGrid();
+}
+
+function clearDateRange() {
+  dateFrom = null; dateTo = null;
+  pickerFromDate = null; pickerToDate = null;
+  pickingStep = 'from';
+  const lbl = document.getElementById('lbl-daterange');
+  if (lbl) lbl.textContent = 'Select Date/s From and To';
+  renderCalendar();
+  updateStepUI();
+  renderGrid();
+}
+
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('dateRangeWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const pop = document.getElementById('datePickerPop');
+    const btn = document.getElementById('btn-daterange');
+    if (pop) { pop.style.display = 'none'; pop.classList.remove('open'); }
+    if (btn) btn.classList.remove('active');
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('searchInput').addEventListener('input', renderGrid);
+  document.body.classList.add('hide-week-pills');
+  buildYearOptions();
+  renderCalendar();
+  updateStepUI();
+  loadData();
+});

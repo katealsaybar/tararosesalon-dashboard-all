@@ -533,6 +533,16 @@ th:not(.sort-asc):not(.sort-desc).sortable::after{content:' ⇅';font-size:9px;o
 .top3-val{font-size:10px;color:var(--muted);margin-top:1px}
 .top3-empty{font-size:11px;color:var(--muted2);text-align:center;padding:16px 0}
 
+.svc-date-inp,.svc-yr-sel{padding:7px 12px;border:1px solid var(--border);border-radius:18px;font-size:12px;color:var(--text);background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .2s}
+.svc-date-inp:focus,.svc-yr-sel:focus{border-color:var(--accent)}
+.svc-controls{display:flex;flex-wrap:wrap;gap:10px;padding:10px 28px 14px;align-items:flex-end;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;flex-shrink:0}
+.svc-grid-2{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:16px}
+.svc-scroll-wrap{overflow-x:auto;overflow-y:visible;padding-bottom:12px}
+.svc-scroll-wrap::-webkit-scrollbar{height:6px}
+.svc-scroll-wrap::-webkit-scrollbar-track{background:transparent}
+.svc-scroll-wrap::-webkit-scrollbar-thumb{background:var(--border,#333);border-radius:3px}
+.svc-grid-4{display:grid;grid-template-columns:repeat(4,minmax(280px,1fr));gap:16px;min-width:max-content;width:100%}
+@media(max-width:700px){.svc-grid-2{grid-template-columns:1fr}}
 .empty{text-align:center;padding:4rem;color:var(--muted);font-size:14px}
 .loading{text-align:center;padding:4rem;color:var(--muted);letter-spacing:0.1em;font-size:12px;text-transform:uppercase}
 footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);font-size:11px;color:var(--muted2);transition:border-color .3s;line-height:1.8}
@@ -774,6 +784,13 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
     <a href="stylist/stylist.html" target="_blank" class="nav-sub" style="text-decoration:none">Stylist View ↗</a>
   </div>
 
+  <!-- Services + Clients -->
+  <div class="nav-group">
+    <div class="nav-title">PERFORMANCE</div>
+    <div class="nav-sub" onclick="showView('services', this)">Service Rankings</div>
+    <div class="nav-sub" onclick="showView('clients', this)">Top Clients</div>
+  </div>
+
   <!-- Level 1 + 2: Reviews -->
   <div class="nav-group">
     <div class="nav-title">REVIEWS</div>
@@ -877,7 +894,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
       </button>
     </div>
     <!-- NET REVENUE WIDGET -->
-    <div id="headerRevWidget" style="display:none;align-items:center;gap:6px;margin-left:auto;padding:5px 12px;background:rgba(153,246,228,0.08);border:1px solid rgba(153,246,228,0.25);border-radius:10px;font-family:inherit"></div>
+    <div id="headerRevWidget" style="display:none;align-items:center;gap:6px;padding:5px 12px;background:rgba(153,246,228,0.08);border:1px solid rgba(153,246,228,0.25);border-radius:10px;font-family:inherit"></div>
   </div>
 
   <!-- SCROLLABLE CONTENT AREA -->
@@ -895,6 +912,83 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
     <main id="teamContent" style="max-width:1400px;margin:0 auto;padding:10px 28px 48px">
       <div class="loading">Loading data...</div>
     </main>
+  </div>
+
+  <!-- SERVICES -->
+  <div id="view-services" style="display:none;display:none;flex-direction:column;height:100%">
+    <div class="svc-controls" id="svc-controls">
+      <div class="ctrl-group">
+        <div class="ctrl-label">Year</div>
+        <select id="svc-year" class="svc-yr-sel" onchange="onSvcFiltersChange()">
+          <option value="2026">2026</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Branch</div>
+        <div class="ms-wrap">
+          <button id="btn-svc-branch" class="ms-btn" onclick="toggleDrop('svc-branch')">
+            <span id="lbl-svc-branch">All Branches</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;opacity:.5"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div id="drop-svc-branch" class="ms-drop"></div>
+        </div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">From</div>
+        <input type="date" id="svc-date-from" class="svc-date-inp" value="2026-01-01" onchange="onSvcFiltersChange()">
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">To</div>
+        <input type="date" id="svc-date-to" class="svc-date-inp" value="2026-05-31" onchange="onSvcFiltersChange()">
+      </div>
+      <div class="ctrl-group" style="margin-left:auto">
+        <div class="ctrl-label">View</div>
+        <div style="display:flex;gap:4px">
+          <button id="svc-toggle-branch" class="f-pill active" onclick="setSvcViewMode('branch')">Per Branch</button>
+          <button id="svc-toggle-combined" class="f-pill" onclick="setSvcViewMode('combined')">Combined</button>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;overflow-x:hidden">
+      <main style="max-width:1400px;margin:0 auto;padding:10px 28px 48px">
+        <div id="svc-content"><div class="loading">Loading service data...</div></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- CLIENTS -->
+  <div id="view-clients" style="display:none;flex-direction:column;height:100%">
+    <div class="svc-controls" id="cli-controls">
+      <div class="ctrl-group">
+        <div class="ctrl-label">Year</div>
+        <select id="cli-year" class="svc-yr-sel" onchange="onCliFiltersChange()">
+          <option value="2026">2026</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Branch</div>
+        <div class="ms-wrap">
+          <button id="btn-cli-branch" class="ms-btn" onclick="toggleDrop('cli-branch')">
+            <span id="lbl-cli-branch">All Branches</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;opacity:.5"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div id="drop-cli-branch" class="ms-drop"></div>
+        </div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">From</div>
+        <input type="date" id="cli-date-from" class="svc-date-inp" value="2026-01-01" onchange="onCliFiltersChange()">
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">To</div>
+        <input type="date" id="cli-date-to" class="svc-date-inp" value="2026-05-31" onchange="onCliFiltersChange()">
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;overflow-x:hidden">
+      <main style="max-width:1400px;margin:0 auto;padding:10px 28px 48px">
+        <div id="cli-content"><div class="loading">Loading client data...</div></div>
+      </main>
+    </div>
   </div>
 
   <!-- REVIEWS -->
@@ -1043,19 +1137,21 @@ function toggleLoginEye(){
 
 // ── VIEW SWITCHER
 function showView(view, el){
-  ['dashboard','team','reviews','calendar','giveaway','trk','khalifa','saadiyat'].forEach(v=>{
+  ['dashboard','team','reviews','calendar','giveaway','trk','khalifa','saadiyat','services','clients'].forEach(v=>{
     const node=document.getElementById('view-'+v);
     if(node) node.style.display='none';
   });
 
   const target=document.getElementById('view-'+view);
   if(!target){ showView('dashboard', document.querySelector('[onclick*="dashboard"]')); return; }
-  target.style.display='block';
+  target.style.display = (view === 'services' || view === 'clients') ? 'flex' : 'block';
 
   const controls = document.getElementById('controls');
   if (controls) controls.style.display = (view === 'dashboard' || view === 'team') ? 'flex' : 'none';
 
   if (view === 'team' && allData.length) renderTeam();
+  if (view === 'services') initSvcView();
+  if (view === 'clients') initCliView();
 
   // active button state
   document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active'));

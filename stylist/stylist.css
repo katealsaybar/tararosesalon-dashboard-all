@@ -84,22 +84,81 @@ select{cursor:pointer;min-width:140px}
 
 /* ── STYLIST GRID ── */
 .section-title{font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
-.stylist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:28px}
-.stylist-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow);position:relative;overflow:hidden}
-.stylist-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(92,85,87,0.13);border-color:var(--accent)}
-.stylist-card.selected{border-color:var(--accent);background:var(--surface2)}
-.stylist-card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.stylist-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;color:#fff}
+.stylist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-bottom:28px}
+
+/* Card shell */
+.stylist-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:0;cursor:pointer;transition:all .22s;box-shadow:var(--shadow);
+  position:relative;overflow:hidden;display:flex;flex-direction:column;
+}
+.stylist-card:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(92,85,87,0.14);border-color:var(--accent)}
+.stylist-card.selected{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent),var(--shadow)}
+
+/* Coloured top accent bar — set via inline --card-accent on the element */
+.stylist-card::before{
+  content:'';display:block;height:4px;width:100%;
+  background:var(--card-accent,var(--border));
+  border-radius:16px 16px 0 0;
+  flex-shrink:0;
+}
+
+/* Inner padding wrapper */
+.card-inner{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+
+/* Top row: avatar + name block */
+.stylist-card-top{display:flex;align-items:center;gap:11px}
+.stylist-avatar-wrap{position:relative;flex-shrink:0}
+.stylist-avatar{
+  width:46px;height:46px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:14px;color:#fff;
+  border:2px solid var(--card-accent,var(--border));
+}
 .stylist-avatar-photo{object-fit:cover;display:block}
-.stylist-card-name{font-weight:700;font-size:13px;letter-spacing:0.04em;text-transform:uppercase}
-.stylist-card-nickname{font-size:10px;color:var(--muted);font-style:italic;letter-spacing:0.02em;margin-top:1px}
-.stylist-card-type{font-size:10px;color:var(--muted);margin-top:2px}
-.stylist-card-stat{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--muted);margin-bottom:3px}
-.stylist-card-clients{align-items:center}
-.stylist-card-val{font-size:13px;font-weight:700;color:var(--text)}
-.client-breakdown{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
-.cb-tag{font-size:10px;font-weight:400;color:var(--muted);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:1px 6px;white-space:nowrap}
+.stylist-card-name{font-weight:700;font-size:13px;letter-spacing:0.04em;text-transform:uppercase;line-height:1.2}
+.stylist-card-nickname{font-size:10px;color:var(--muted);font-style:italic;margin-top:1px}
+.stylist-card-type{font-size:10px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+
+/* Revenue hero */
+.card-revenue{
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:10px;padding:10px 12px;
+  display:flex;flex-direction:column;gap:1px;
+}
+.card-revenue-label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.card-revenue-val{font-size:22px;font-weight:700;color:var(--text);line-height:1.1;font-family:'DM Sans',sans-serif}
+.card-revenue-sub{font-size:12px;color:var(--muted);margin-top:2px;font-weight:500}
+
+/* 2-col stats grid */
+.card-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.card-stat{display:flex;flex-direction:column;gap:1px}
+.card-stat-label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+.card-stat-val{font-size:13px;font-weight:700;color:var(--text)}
+
+/* Rebook badge */
+.rebook-badge{
+  display:inline-block;padding:1px 7px;border-radius:20px;
+  font-size:11px;font-weight:700;
+}
+.rebook-badge.good{background:var(--good-bg);color:var(--good)}
+.rebook-badge.warn{background:var(--warn-bg);color:var(--warn)}
+.rebook-badge.bad{background:var(--bad-bg);color:var(--bad)}
+
+/* Client tags */
+.client-breakdown{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+.cb-tag{font-size:9.5px;font-weight:400;color:var(--muted);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:1px 6px;white-space:nowrap}
 .cb-tag strong{font-weight:700;color:var(--text)}
+
+/* Rank badge */
+.card-rank{
+  font-size:11px;font-weight:700;color:var(--muted);
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:8px;padding:1px 6px;white-space:nowrap;flex-shrink:0;
+}
+
+/* Divider */
+.card-divider{height:1px;background:var(--border2);margin:0 -16px}
 /* ── BRANCH & JOB PILLS ── */
 .stylist-card-type{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:3px}
 .job-pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap;letter-spacing:0.02em}
@@ -265,3 +324,7 @@ canvas{max-height:220px}
 .date-picker-selection.has-range { color: var(--good); font-weight: 600; }
 .date-picker-apply { padding: 7px 18px; background: var(--accent); color: var(--accent-fg); border: none; border-radius: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .2s; }
 .date-picker-apply:hover { opacity: .85; }
+.date-picker-clear { background: none; border: 1px solid var(--border); border-radius: 10px; padding: 4px 10px; font-size: 11px; color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .2s; }
+.date-picker-clear:hover { border-color: var(--bad); color: var(--bad); }
+
+.detail-panel:empty { display: none !important; }
