@@ -430,7 +430,7 @@ async function parseXLSXDaily(file, branchCode) {
       hair_clients_request:g(11,1), hair_clients_salon:g(12,1),
       hair_new:g(13,1), hair_ncr:g(14,1), hair_rebooked:g(15,1),
       beauty_request:g(11,3), beauty_salon:g(12,3),
-      beauty_new:g(13,3), beauty_rebooked:g(15,3),
+      beauty_new:g(13,3), beauty_ncr:g(14,3), beauty_rebooked:g(15,3),
       new_clients:g(12,6), col_units:g(2,7), ker_units:g(3,7), ext_units:0,
     });
   }
@@ -1322,4 +1322,104 @@ function computeUtilisation(data) {
 function computeByRole(data, role) {
   const filtered = data.filter(r => r.role === role);
   return computeUtilisation(filtered);
+}
+
+// ── SERVICE DATA UPLOAD ──────────────────────────────────────
+
+let svcDataFile = null;
+
+function svcFileChosen(file) {
+  svcDataFile = file;
+  const nameEl = document.getElementById('svc-filename');
+  if (nameEl) { nameEl.textContent = file.name; nameEl.style.color = 'var(--good)'; }
+  const match = file.name.match(/20\d\d/);
+  if (match) {
+    const inp = document.getElementById('svc-year-inp');
+    if (inp) inp.value = match[0];
+  }
+  const btn = document.getElementById('uploadSvcBtn');
+  if (btn) btn.disabled = false;
+}
+
+function svcSerialToDate(serial) {
+  if (!serial || typeof serial !== 'number') return null;
+  const ms = (serial - 25569) * 86400 * 1000;
+  const d = new Date(ms);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+}
+
+async function uploadServiceData() {
+  if (!svcDataFile) return;
+  const year = parseInt(document.getElementById('svc-year-inp').value);
+  if (!year || isNaN(year)) { showToast('❌ Enter a valid year'); return; }
+
+  const btn = document.getElementById('uploadSvcBtn');
+  const prog = document.getElementById('svc-progress');
+  btn.disabled = true; btn.textContent = 'Uploading...';
+  prog.style.display = 'block';
+  prog.innerHTML = 'Parsing file...';
+
+  try {
+    const ab = await svcDataFile.arrayBuffer();
+    const wb = XLSX.read(ab, { type: 'array', cellDates: false });
+    const BRANCH_SHEETS = ['KCA', 'SAA', 'MC', 'AQ'];
+    let allRows = [];
+
+    for (const branchCode of BRANCH_SHEETS) {
+      const ws = wb.Sheets[branchCode];
+      if (!ws) continue;
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 5) continue;
+        const purchaseDate = typeof row[0] === 'number' ? svcSerialToDate(row[0]) : null;
+        if (!purchaseDate) continue;
+        const amount = parseFloat(row[5]) || 0;
+        const serviceName = row[3] ? String(row[3]).trim() : null;
+        if (!serviceName && amount === 0) continue;
+        allRows.push({
+          year,
+          branch: branchCode,
+          purchase_date: purchaseDate,
+          client_name: row[2] ? String(row[2]).trim() : null,
+          service_name: serviceName,
+          category: row[4] ? String(row[4]).trim() : null,
+          amount
+        });
+      }
+    }
+
+    if (!allRows.length) throw new Error('No valid data rows found in file');
+
+    prog.innerHTML = `Parsed <strong>${allRows.length.toLocaleString()} rows</strong>. Clearing existing ${year} data...`;
+
+    const branchesFound = [...new Set(allRows.map(r => r.branch))];
+    for (const b of branchesFound) {
+      const { error: delErr } = await sb.from('service_data').delete().eq('year', year).eq('branch', b);
+      if (delErr) throw delErr;
+    }
+
+    const BATCH = 500;
+    let inserted = 0;
+    for (let i = 0; i < allRows.length; i += BATCH) {
+      const { error } = await sb.from('service_data').insert(allRows.slice(i, i + BATCH));
+      if (error) throw error;
+      inserted += Math.min(BATCH, allRows.length - i);
+      prog.innerHTML = `Uploading... <strong>${inserted.toLocaleString()} / ${allRows.length.toLocaleString()}</strong> rows`;
+    }
+
+    prog.innerHTML = `<span style="color:var(--good)">✅ ${allRows.length.toLocaleString()} rows uploaded for ${year} (${branchesFound.join(', ')})</span>`;
+    showToast(`✅ ${allRows.length.toLocaleString()} rows uploaded`);
+    svcDataFile = null;
+    const nameEl = document.getElementById('svc-filename');
+    if (nameEl) { nameEl.textContent = 'No file selected'; nameEl.style.color = ''; }
+    const inp = document.getElementById('svcFileInput');
+    if (inp) inp.value = '';
+  } catch(e) {
+    console.error(e);
+    prog.innerHTML = `<span style="color:var(--bad)">❌ Upload failed: ${e.message}</span>`;
+    showToast('❌ Upload failed');
+  }
+
+  btn.disabled = false; btn.textContent = 'Upload Service Data';
 }
