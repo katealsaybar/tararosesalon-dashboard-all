@@ -45,6 +45,9 @@ let dateTo   = null; // JS Date object
 
 // collapsible section open/close state (persists across re-renders)
 const sectionState = { revenueRun: false, retentionRun: false, opsRun: false };
+
+// funnel visibility toggles
+const funnelFilter = { hair: true, beauty: true, req: true, salon: true, new: true, rebooked: true };
 let revenueTab = 'hb'; // 'hair' | 'beauty' | 'hb'
 
 // daily rows cache — set during daily-mode render, used by aggByBranch
@@ -70,6 +73,11 @@ function toggleFratelli() {
     btn.style.textDecoration= window.showFratelli ? 'none' : 'line-through';
   }
   if (dot) dot.style.background = window.showFratelli ? '#EEF3C7' : 'var(--muted)';
+  renderDashboard();
+}
+
+function toggleFunnelFilter(key) {
+  funnelFilter[key] = !funnelFilter[key];
   renderDashboard();
 }
 
@@ -705,22 +713,29 @@ function aggDailyData(dailyRows) {
   };
   let dHairRebooked=0, dBeautyRebooked=0, totalHairClients=0, totalNewC=0, totalReq=0;
   let dHairNCR=0, dHairREQ=0, dHairSALON=0, dHairNEW=0;
+  let dBeautyREQ=0, dBeautySALON=0, dBeautyNEW=0, dBeautyNCR=0, totalBeautyClients=0;
   dailyRows.forEach(r => {
-    const clients = (r.hair_clients_request||0) + (r.hair_clients_salon||0) + (r.hair_new||0);
-    s.totalClients   += clients;
+    const hairClients   = (r.hair_clients_request||0) + (r.hair_clients_salon||0) + (r.hair_new||0);
+    const beautyClients = (r.beauty_request||0) + (r.beauty_salon||0) + (r.beauty_new||0);
+    s.totalClients   += hairClients + beautyClients;
     s.hairRetail     += r.retail_total      || 0;
     s.treatmentSales += r.treatments_total  || 0;
     s.beautySales    += r.beauty_sales      || 0;
     s.netTake        += r.total             || 0;
-    dHairRebooked   += r.hair_rebooked      || 0;
-    dBeautyRebooked += r.beauty_rebooked    || 0;
-    totalNewC        += r.hair_new          || 0;
-    totalReq         += r.hair_ncr          || 0;
-    totalHairClients += clients;
-    dHairNCR   += r.hair_ncr             || 0;
-    dHairREQ   += r.hair_clients_request || 0;
-    dHairSALON += r.hair_clients_salon   || 0;
-    dHairNEW   += r.hair_new             || 0;
+    dHairRebooked        += r.hair_rebooked    || 0;
+    dBeautyRebooked      += r.beauty_rebooked  || 0;
+    totalNewC            += r.hair_new         || 0;
+    totalReq             += r.hair_ncr         || 0;
+    totalHairClients     += hairClients;
+    totalBeautyClients   += beautyClients;
+    dHairNCR    += r.hair_ncr             || 0;
+    dHairREQ    += r.hair_clients_request || 0;
+    dHairSALON  += r.hair_clients_salon   || 0;
+    dHairNEW    += r.hair_new             || 0;
+    dBeautyREQ  += r.beauty_request       || 0;
+    dBeautySALON+= r.beauty_salon         || 0;
+    dBeautyNEW  += r.beauty_new           || 0;
+    dBeautyNCR  += r.beauty_ncr           || 0;
   });
   const totalRebooked = dHairRebooked + dBeautyRebooked;
   s.avgBill       = s.totalClients ? s.netTake / s.totalClients : 0;
@@ -728,16 +743,17 @@ function aggDailyData(dailyRows) {
   s.treatmentPct  = s.netTake ? (s.treatmentSales / s.netTake * 100) : 0;
   s.rebookPct     = s.totalClients ? (totalRebooked / s.totalClients * 100) : 0;
   s.totalRebooked = totalRebooked;
-  s.hairBreakdown   = { ncr: dHairNCR, req: dHairREQ, salon: dHairSALON, new: dHairNEW, rebooked: dHairRebooked };
-  s.beautyBreakdown = { ncr: null, req: null, salon: null, new: null, rebooked: dBeautyRebooked };
-  s.ncrPct        = totalHairClients ? (totalReq / totalHairClients * 100) : 0;
-  s.hairNcrPct    = s.ncrPct;
-  s.beautyNcrPct  = null; // daily data has no beauty NCR column
-  s.combinedNcrPct= null;
-  s.hairAvgBill   = totalHairClients ? ((s.netTake - s.beautySales - s.hairRetail) / totalHairClients) : 0;
-  s.beautyAvgBill = null; // daily data has no beauty client count
-  s.hairRebookPct = totalHairClients ? (dHairRebooked / totalHairClients * 100) : 0;
-  s.beautyPct     = s.netTake ? (s.beautySales / s.netTake * 100) : 0;
+  s.hairBreakdown   = { ncr: dHairNCR,    req: dHairREQ,    salon: dHairSALON,   new: dHairNEW,   rebooked: dHairRebooked };
+  s.beautyBreakdown = { ncr: dBeautyNCR,  req: dBeautyREQ,  salon: dBeautySALON, new: dBeautyNEW, rebooked: dBeautyRebooked };
+  s.ncrPct         = totalHairClients   ? (dHairNCR   / totalHairClients   * 100) : 0;
+  s.hairNcrPct     = s.ncrPct;
+  s.beautyNcrPct   = totalBeautyClients ? (dBeautyNCR / totalBeautyClients * 100) : null;
+  s.combinedNcrPct = s.totalClients     ? ((dHairNCR + dBeautyNCR) / s.totalClients * 100) : 0;
+  s.hairAvgBill    = totalHairClients   ? ((s.netTake - s.beautySales - s.hairRetail) / totalHairClients) : 0;
+  s.beautyAvgBill  = totalBeautyClients ? (s.beautySales / totalBeautyClients) : null;
+  s.hairRebookPct  = totalHairClients   ? (dHairRebooked   / totalHairClients   * 100) : 0;
+  s.beautyRebookPct= totalBeautyClients ? (dBeautyRebooked / totalBeautyClients * 100) : null;
+  s.beautyPct      = s.netTake ? (s.beautySales / s.netTake * 100) : 0;
   s.retentionPct  = s.rebookPct;
   s.conversionPct = s.rebookPct;
   s._retailWarnings = [];
@@ -1419,20 +1435,47 @@ async function renderDashboard() {
 
         <!-- FUNNEL: client journey for Hair & Beauty -->
         <div>
-          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Client Journey Funnel</div>
+          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Client Journey Funnel</div>
+
+          <!-- FUNNEL FILTER CHECKBOXES -->
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;padding:8px 10px;background:${dark?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.03)'};border-radius:8px;border:1px solid var(--border2)">
+            <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);align-self:center;margin-right:4px;flex-shrink:0">Show:</div>
+            ${[
+              { key:'hair',     label:'Hair',         color:'#C4B5FD' },
+              { key:'beauty',   label:'Beauty',       color:'#99F6E4' },
+              { key:'req',      label:'Requests',     color:'var(--muted)' },
+              { key:'salon',    label:'Salon Visits', color:'var(--muted)' },
+              { key:'new',      label:'New Clients',  color:'var(--muted)' },
+              { key:'rebooked', label:'Rebooked',     color:'var(--muted)' },
+            ].map(f => {
+              const on = funnelFilter[f.key];
+              return `<button onclick="toggleFunnelFilter('${f.key}')" style="display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;border:1px solid ${on ? f.color : 'var(--border2)'};background:${on ? (dark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.04)') : 'transparent'};color:${on ? f.color : 'var(--muted)'};font-size:10px;font-family:inherit;cursor:pointer;transition:all .15s;letter-spacing:.03em;white-space:nowrap">
+                <span style="width:7px;height:7px;border-radius:2px;border:1.5px solid ${on ? f.color : 'var(--muted)'};background:${on ? f.color : 'transparent'};flex-shrink:0;display:inline-flex;align-items:center;justify-content:center">
+                  ${on ? `<svg width="5" height="5" viewBox="0 0 5 5"><path d="M1 2.5L2.2 3.8L4 1.5" stroke="#1a1a1a" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>` : ''}
+                </span>
+                ${f.label}
+              </button>`;
+            }).join('')}
+          </div>
+
           ${(()=>{
-            const dept = [
-              { label:'Hair',   color: '#C4B5FD', data: s.hairBreakdown   || {} },
-              { label:'Beauty', color: '#99F6E4', data: s.beautyBreakdown || {} },
+            const allDept = [
+              { key:'hair',   label:'Hair',   color: '#C4B5FD', data: s.hairBreakdown   || {} },
+              { key:'beauty', label:'Beauty', color: '#99F6E4', data: s.beautyBreakdown || {} },
             ];
-            const stages = [
-              { key:'req',      label:'Requests'  },
+            const allStages = [
+              { key:'req',      label:'Requests'     },
               { key:'salon',    label:'Salon Visits' },
-              { key:'new',      label:'New Clients' },
-              { key:'rebooked', label:'Rebooked'  },
+              { key:'new',      label:'New Clients'  },
+              { key:'rebooked', label:'Rebooked'     },
             ];
+            const dept   = allDept.filter(d => funnelFilter[d.key]);
+            const stages = allStages.filter(st => funnelFilter[st.key]);
+            if (!dept.length || !stages.length) {
+              return `<div style="font-size:11px;color:var(--muted);padding:10px 0">Tick at least one department and one stage to see the funnel.</div>`;
+            }
             return dept.map(d => {
-              const maxVal = d.data.req || 1;
+              const maxVal = d.data[stages[0].key] || d.data.req || 1;
               return `
               <div style="margin-bottom:14px">
                 <div style="font-size:11px;font-weight:700;color:${d.color};margin-bottom:8px;letter-spacing:.06em">${d.label}</div>
@@ -1599,16 +1642,28 @@ async function renderDashboard() {
     ` : ''}
     <!-- Revenue Run tab buttons -->
     <div style="display:flex;justify-content:center;gap:6px;padding:10px 0 2px">
-      <button onclick="setRevenueTab('hair')" id="rtab-hair" style="font-size:10px;letter-spacing:0.1em;padding:4px 14px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-weight:600;background:var(--surface2);color:var(--muted);transition:all .15s">HAIR</button>
-      <button onclick="setRevenueTab('beauty')" id="rtab-beauty" style="font-size:10px;letter-spacing:0.1em;padding:4px 14px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-weight:600;background:var(--surface2);color:var(--muted);transition:all .15s">BEAUTY</button>
+      <button onclick="setRevenueTab('hair')" id="rtab-hair" style="font-size:10px;letter-spacing:0.1em;padding:4px 14px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-weight:600;background:var(--surface2);color:var(--muted);transition:all .15s">Hair</button>
+      <button onclick="setRevenueTab('beauty')" id="rtab-beauty" style="font-size:10px;letter-spacing:0.1em;padding:4px 14px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-weight:600;background:var(--surface2);color:var(--muted);transition:all .15s">Beauty</button>
       <button onclick="setRevenueTab('hb')" id="rtab-hb" style="font-size:10px;letter-spacing:0.1em;padding:4px 14px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-weight:600;background:var(--surface2);color:var(--muted);transition:all .15s">Hair & Beauty</button>
     </div>
     <!-- HAIR panel -->
-    <div id="rpanel-hair" style="display:none;grid-template-columns:repeat(4,1fr);gap:10px;padding:10px 0 4px">
+    <div id="rpanel-hair" style="display:none;grid-template-columns:repeat(5,1fr);gap:10px;padding:10px 0 4px">
       <div class="metric m-lime">
-        <div class="metric-label">Service Sales</div>
+        <div class="metric-label">Total Service Sales</div>
         <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Hair service revenue)</em></div>
         <div class="metric-value" style="font-size:20px">${fmtAED(rvHairSvc)}</div>
+        <div class="metric-target">Branch-based target</div>
+      </div>
+      <div class="metric m-lime">
+        <div class="metric-label">Treatment Sales</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Treatment component of hair services)</em></div>
+        <div class="metric-value" style="font-size:20px">${fmtAED(s.treatmentSales||0)}</div>
+        <div class="metric-target">—</div>
+      </div>
+      <div class="metric m-lime">
+        <div class="metric-label">Total Retail / Product Sales</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Total retail / product sales)</em></div>
+        <div class="metric-value" style="font-size:20px">${fmtAED(s.hairRetail||0)}</div>
         <div class="metric-target">Branch-based target</div>
       </div>
       <div class="metric m-lime">
@@ -1618,12 +1673,6 @@ async function renderDashboard() {
         <div class="metric-target">Target: ≥ ${TARGETS.treatmentPct}%</div>
       </div>
       <div class="metric m-lime">
-        <div class="metric-label">Retail Sales</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Total retail / product sales)</em></div>
-        <div class="metric-value" style="font-size:20px">${fmtAED(s.hairRetail||0)}</div>
-        <div class="metric-target">Branch-based target</div>
-      </div>
-      <div class="metric m-lime">
         <div class="metric-label">Retail %</div>
         <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Retail sales ÷ Hair service sales)</em></div>
         <div class="metric-value ${sc(rvHairRetPct, TARGETS.retailPct)}" style="font-size:20px">${fmtPct(rvHairRetPct)}</div>
@@ -1631,11 +1680,23 @@ async function renderDashboard() {
       </div>
     </div>
     <!-- BEAUTY panel -->
-    <div id="rpanel-beauty" style="display:none;grid-template-columns:repeat(4,1fr);gap:10px;padding:10px 0 4px">
+    <div id="rpanel-beauty" style="display:none;grid-template-columns:repeat(5,1fr);gap:10px;padding:10px 0 4px">
       <div class="metric m-lime">
-        <div class="metric-label">Service Sales</div>
+        <div class="metric-label">Total Service Sales</div>
         <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Beauty service revenue)</em></div>
         <div class="metric-value" style="font-size:20px">${fmtAED(rvBSvc)}</div>
+        <div class="metric-target">Branch-based target</div>
+      </div>
+      <div class="metric m-lime">
+        <div class="metric-label">Treatment Sales</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Beauty treatment split not in data)</em></div>
+        <div class="metric-value" style="font-size:20px;color:var(--muted)">—</div>
+        <div class="metric-target">—</div>
+      </div>
+      <div class="metric m-lime">
+        <div class="metric-label">Total Retail / Product Sales</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Total salon retail — not split by dept)</em></div>
+        <div class="metric-value" style="font-size:20px">${fmtAED(s.hairRetail||0)}</div>
         <div class="metric-target">Branch-based target</div>
       </div>
       <div class="metric m-lime">
@@ -1645,12 +1706,6 @@ async function renderDashboard() {
         <div class="metric-target">Target: ≥ ${TARGETS.treatmentPct}%</div>
       </div>
       <div class="metric m-lime">
-        <div class="metric-label">Retail Sales</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Total salon retail — not split by dept)</em></div>
-        <div class="metric-value" style="font-size:20px">${fmtAED(s.hairRetail||0)}</div>
-        <div class="metric-target">Branch-based target</div>
-      </div>
-      <div class="metric m-lime">
         <div class="metric-label">Retail %</div>
         <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Beauty retail split not in data)</em></div>
         <div class="metric-value" style="font-size:20px;color:var(--muted)">—</div>
@@ -1658,11 +1713,23 @@ async function renderDashboard() {
       </div>
     </div>
     <!-- Hair & Beauty panel -->
-    <div id="rpanel-hb" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:10px 0 4px">
+    <div id="rpanel-hb" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:10px 0 4px">
       <div class="metric m-lime">
-        <div class="metric-label">Service Sales</div>
+        <div class="metric-label">Total Service Sales</div>
         <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Total service revenue: hair + beauty)</em></div>
         <div class="metric-value" style="font-size:20px">${fmtAED(rvHBSvc)}</div>
+        <div class="metric-target">Branch-based target</div>
+      </div>
+      <div class="metric m-lime">
+        <div class="metric-label">Treatment Sales</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Treatment component of total service sales)</em></div>
+        <div class="metric-value" style="font-size:20px">${fmtAED(s.treatmentSales||0)}</div>
+        <div class="metric-target">—</div>
+      </div>
+      <div class="metric m-lime">
+        <div class="metric-label">Total Retail / Product Sales</div>
+        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Total retail / product sales)</em></div>
+        <div class="metric-value" style="font-size:20px">${fmtAED(s.hairRetail||0)}</div>
         <div class="metric-target">Branch-based target</div>
       </div>
       <div class="metric m-lime">
@@ -1670,12 +1737,6 @@ async function renderDashboard() {
         <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Treatment sales ÷ Total service sales)</em></div>
         <div class="metric-value ${sc(rvHBTxPct, TARGETS.treatmentPct)}" style="font-size:20px">${fmtPct(rvHBTxPct)}</div>
         <div class="metric-target">Target: ≥ ${TARGETS.treatmentPct}%</div>
-      </div>
-      <div class="metric m-lime">
-        <div class="metric-label">Retail Sales</div>
-        <div style="font-size:10px;color:var(--muted);margin:3px 0 7px"><em>(Total retail / product sales)</em></div>
-        <div class="metric-value" style="font-size:20px">${fmtAED(s.hairRetail||0)}</div>
-        <div class="metric-target">Branch-based target</div>
       </div>
       <div class="metric m-lime">
         <div class="metric-label">Retail %</div>
