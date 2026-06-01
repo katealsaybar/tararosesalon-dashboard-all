@@ -1,7 +1,7 @@
 console.log('JS LOADED');
 const PASS     = 'AbuDhabi2026@';
 const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
-const SUPA_KEY = 'eyJ...your-anon-key-here...';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aWp4ZW5hZm9vd2FqcWt0cXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTA1OTksImV4cCI6MjA5MTI4NjU5OX0.GL3YXupXOBGfN4FCyelbQWraUw12VJNJu-wUB3zR7Zw';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 const BRANCHES = {
