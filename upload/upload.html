@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="parser.js?v=4"></script>
 <script src="upload.js?v=2"></script>
-<script src="phorest-staff.js?v=1"></script>
+<script src="phorest-staff.js?v=4"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -164,6 +164,14 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .branch-pill{padding:9px 18px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em;cursor:pointer;transition:all .15s}
 .branch-pill:hover{border-color:var(--accent)}
 .branch-pill.active{background:var(--btn);border-color:var(--btn);color:var(--btn-fg)}
+.sp-branch-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:1100px){.sp-branch-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.sp-branch-grid{grid-template-columns:1fr}}
+.sp-branch-box{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.sp-branch-box-title{font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase}
+.sp-branch-box textarea{width:100%;min-height:180px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:ui-monospace,Consolas,monospace;font-size:11px;resize:vertical}
+.sp-branch-box-actions{display:flex;gap:6px}
+.sp-branch-box-msg{font-size:11px;line-height:1.5}
 .sp-day-strip{display:flex;gap:1px;overflow-x:auto;padding-bottom:4px}
 .sp-day-cell{width:6px;height:14px;flex-shrink:0;border-radius:1px;background:var(--border2)}
 .sp-day-cell.done{background:var(--good)}
@@ -267,9 +275,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <div id="portalSection" style="display:none;">
     <div class="tab-bar">
   <button class="tab-btn" onclick="switchTab(event, 'ops')">⚙️ Operations</button>
-  <button class="tab-btn active" onclick="switchTab(event, 'daily')">📆 Daily Upload (MTD)</button>
+  <button class="tab-btn" onclick="switchTab(event, 'daily')">📆 Daily Upload (MTD)</button>
   <button class="tab-btn" onclick="switchTab(event, 'service')">📊 Service Data (Yearly)</button>
-  <button class="tab-btn" onclick="switchTab(event, 'staffperf')">🧑‍💼 Staff Performance (Phorest)</button>
+  <button class="tab-btn active" onclick="switchTab(event, 'staffperf')">🧑‍💼 Staff Performance (Phorest)</button>
 </div>
 
     <div class="tab-content" id="tab-ops">
@@ -354,7 +362,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 </div>
 
 <!-- ══ DAILY TAB ══ -->
-<div class="tab-content active" id="tab-daily">
+<div class="tab-content" id="tab-daily">
 
   <!-- DAILY UPLOAD -->
   <div class="upload-card">
@@ -399,28 +407,22 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 </div>
 
 <!-- ══ STAFF PERFORMANCE (PHOREST) TAB ══ -->
-<div class="tab-content" id="tab-staffperf">
+<div class="tab-content active" id="tab-staffperf">
 
-  <!-- PASTE & SAVE -->
+  <!-- PASTE & SAVE — one box per branch, so all 4 can be pasted side by side -->
   <div class="upload-card">
-    <div class="card-title">Paste Staff Performance Overview</div>
-    <div class="card-sub">
-      Phorest report viewer → Ctrl+A, Ctrl+C → paste below. One branch, one day per report — but you can paste several days back-to-back into the same box (e.g. a full week: copy Monday's report, paste, copy Tuesday's, paste right after it, etc.) and Parse &amp; Save once — each report is auto-detected and saved separately.
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <div class="card-title">Paste Staff Performance Overview</div>
+        <div class="card-sub">
+          Phorest report viewer → Ctrl+A, Ctrl+C → paste into the matching branch's box below. Each box saves independently — paste several days back-to-back in one box for a batch save, or fill all 4 and hit Save All.
+        </div>
+      </div>
+      <button class="btn" style="width:auto;padding:11px 22px;flex-shrink:0" onclick="handleStaffPerfSaveAll()">Save All</button>
     </div>
+    <div id="spSaveAllMsg" class="err" style="text-align:left;margin-bottom:10px"></div>
 
-    <div class="field" style="margin-bottom:12px">
-      <label class="field-label" style="margin-bottom:8px;display:block">Branch</label>
-      <div class="branch-pills" id="spBranchPills"></div>
-    </div>
-
-    <textarea id="spRaw" placeholder="Paste one Staff Performance Overview report, or several back-to-back for a batch save..."
-      style="width:100%;min-height:220px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:12px;resize:vertical"></textarea>
-
-    <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
-      <button class="btn" style="width:auto;padding:11px 22px" onclick="handleStaffPerfParse()">Parse &amp; Save</button>
-      <button class="btn-outline" onclick="document.getElementById('spRaw').value=''">Clear</button>
-    </div>
-    <div id="spMsg" class="err" style="text-align:left;margin-top:10px"></div>
+    <div class="sp-branch-grid" id="spBranchBoxes"></div>
   </div>
 
   <!-- BACKFILL PROGRESS -->

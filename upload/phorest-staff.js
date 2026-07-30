@@ -15,9 +15,6 @@ const SP_BRANCHES = [
 ];
 const SP_BACKFILL_START = '2026-01-01';
 
-let spSelectedBranch = '';
-let spInitDone = false;
-
 // ── PARSER ───────────────────────────────────────────────────
 // Same token-walk approach proven against 4 real Phorest branch samples:
 // name words → 3 int counts → rating ("NA") → 10 money fields, repeating.
@@ -177,33 +174,43 @@ function spBuildRows(rec){
   return rows;
 }
 
-// ── UI: PASTE & SAVE ─────────────────────────────────────────
+// ── UI: PASTE & SAVE — one box per branch ─────────────────────
 
-function spRenderBranchPills(){
-  const host = document.getElementById('spBranchPills');
+function spRenderBranchBoxes(){
+  const host = document.getElementById('spBranchBoxes');
   if (!host) return;
-  host.innerHTML = SP_BRANCHES.map(b =>
-    `<button type="button" class="branch-pill${spSelectedBranch===b.code?' active':''}" onclick="spSelectBranch('${b.code}')">${b.label}</button>`
-  ).join('');
+  host.innerHTML = SP_BRANCHES.map(b => `
+    <div class="sp-branch-box">
+      <div class="sp-branch-box-title">${b.label}</div>
+      <textarea id="spBox_${b.code}" placeholder="Paste ${b.label}'s report here (or several days back-to-back)..."></textarea>
+      <div class="sp-branch-box-actions">
+        <button class="btn" style="width:auto;padding:8px 14px" onclick="handleStaffPerfParseOne('${b.code}')">Parse &amp; Save</button>
+        <button class="btn-outline" onclick="document.getElementById('spBox_${b.code}').value=''; document.getElementById('spBoxMsg_${b.code}').textContent=''">Clear</button>
+      </div>
+      <div id="spBoxMsg_${b.code}" class="sp-branch-box-msg"></div>
+    </div>
+  `).join('');
 }
 
-function spSelectBranch(code){
-  spSelectedBranch = code;
-  spRenderBranchPills();
-}
-
-function spShowMsg(text, ok){
-  const el = document.getElementById('spMsg');
+function spShowBoxMsg(code, text, ok){
+  const el = document.getElementById(`spBoxMsg_${code}`);
   if (!el) return;
   el.textContent = text;
   el.style.color = ok ? 'var(--good)' : 'var(--bad)';
 }
 
-async function handleStaffPerfParse(){
-  const raw = document.getElementById('spRaw').value;
+// Parses + saves whatever is in one branch's box. Returns a summary object;
+// throws nothing — errors are captured in the returned result so Save All
+// can process all 4 boxes without one failure stopping the others.
+async function spParseAndSaveBox(code){
+  const textarea = document.getElementById(`spBox_${code}`);
+  const raw = textarea ? textarea.value : '';
+  const branchLabel = SP_BRANCHES.find(b => b.code === code)?.label || code;
+
+  if (!raw.trim()) return { code, skipped: true };
+
   try{
-    if (!spSelectedBranch) throw new Error('Select a branch first.');
-    const results = parseStaffPerformanceBatch(raw, spSelectedBranch);
+    const results = parseStaffPerformanceBatch(raw, code);
     const oks   = results.filter(r => r.ok);
     const fails = results.filter(r => !r.ok);
 
@@ -221,21 +228,51 @@ async function handleStaffPerfParse(){
 
     // One delete per distinct date (overwrite semantics), then a single bulk insert.
     for (const d of dates){
-      await sb.from(SP_TABLE).delete().eq('branch', spSelectedBranch).eq('date', d);
+      await sb.from(SP_TABLE).delete().eq('branch', code).eq('date', d);
     }
     const { error } = await sb.from(SP_TABLE).insert(allRows);
     if (error) throw error;
 
-    const branchLabel = SP_BRANCHES.find(b => b.code === spSelectedBranch)?.label || spSelectedBranch;
     const daysList = oks.map(o => o.rec.date).join(', ');
-    let msg = `Saved ${oks.length} day${oks.length===1?'':'s'} (${allRows.length} rows) for ${branchLabel}: ${daysList}.`;
+    let msg = `Saved ${oks.length} day${oks.length===1?'':'s'} (${allRows.length} rows): ${daysList}.`;
     if (fails.length) msg += ` — ${fails.length} report(s) failed: ` + fails.map(f => `#${f.blockIndex+1} (${f.error})`).join('; ');
-    spShowMsg(msg, fails.length === 0);
-    if (!fails.length) document.getElementById('spRaw').value = '';
-    await refreshStaffPerfProgress();
+
+    spShowBoxMsg(code, msg, fails.length === 0);
+    if (!fails.length && textarea) textarea.value = '';
+    return { code, ok: fails.length === 0, days: oks.length, rows: allRows.length, message: msg };
   } catch(e){
-    spShowMsg(e.message || String(e), false);
+    const msg = e.message || String(e);
+    spShowBoxMsg(code, msg, false);
+    return { code, ok: false, message: msg };
   }
+}
+
+async function handleStaffPerfParseOne(code){
+  await spParseAndSaveBox(code);
+  await refreshStaffPerfProgress();
+}
+
+async function handleStaffPerfSaveAll(){
+  const summaryEl = document.getElementById('spSaveAllMsg');
+  summaryEl.textContent = 'Saving…';
+  summaryEl.style.color = 'var(--muted)';
+
+  const results = await Promise.all(SP_BRANCHES.map(b => spParseAndSaveBox(b.code)));
+  const attempted = results.filter(r => !r.skipped);
+
+  if (!attempted.length){
+    summaryEl.textContent = 'All 4 boxes are empty — nothing to save.';
+    summaryEl.style.color = 'var(--bad)';
+  } else {
+    const failed = attempted.filter(r => !r.ok);
+    const parts = attempted.map(r => {
+      const label = SP_BRANCHES.find(b => b.code === r.code)?.label || r.code;
+      return r.ok ? `${label}: ${r.days} day(s)` : `${label}: FAILED`;
+    });
+    summaryEl.textContent = parts.join(' · ');
+    summaryEl.style.color = failed.length ? 'var(--bad)' : 'var(--good)';
+  }
+  await refreshStaffPerfProgress();
 }
 
 // ── BACKFILL PROGRESS (queried live from Supabase) ──────────
@@ -286,6 +323,14 @@ async function refreshStaffPerfProgress(){
 
 // ── BROWSE / FILTER ──────────────────────────────────────────
 
+function spSetDefaultFilterDates(force){
+  const fromEl = document.getElementById('spfFrom');
+  const toEl   = document.getElementById('spfTo');
+  if (!fromEl || !toEl) return;
+  if (force || !fromEl.value) fromEl.value = SP_BACKFILL_START;
+  if (force || !toEl.value)   toEl.value   = spIsoDate(new Date());
+}
+
 function spPopulateFilterBranch(){
   const sel = document.getElementById('spfBranch');
   if (!sel || sel.dataset.populated) return;
@@ -300,8 +345,7 @@ function spPopulateFilterBranch(){
 function resetStaffPerfFilter(){
   document.getElementById('spfBranch').value = '';
   document.getElementById('spfStylist').value = '';
-  document.getElementById('spfFrom').value = '';
-  document.getElementById('spfTo').value = '';
+  spSetDefaultFilterDates(true);
   document.getElementById('spTableHost').innerHTML =
     '<div style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>';
   document.getElementById('spResultCount').textContent = '';
@@ -356,11 +400,20 @@ async function runStaffPerfFilter(){
 
 // ── INIT ──────────────────────────────────────────────────────
 
+let spBoxesRendered = false;
+let spFilterAutoRun = false;
+
 function initStaffPerfTab(){
-  spRenderBranchPills();
+  if (!spBoxesRendered){
+    spRenderBranchBoxes();
+    spBoxesRendered = true;
+  }
   spPopulateFilterBranch();
+  spSetDefaultFilterDates(false);
   refreshStaffPerfProgress();
-  if (!spInitDone){
-    spInitDone = true;
+
+  if (!spFilterAutoRun){
+    spFilterAutoRun = true;
+    runStaffPerfFilter();
   }
 }

@@ -105,7 +105,7 @@ function showPortal() {
   if (portalSection) portalSection.style.display = 'block';
   if (logoutBtn) logoutBtn.style.display = 'inline-block';
 
-   loadDailyOverview();
+   initStaffPerfTab();
 }
 
 function logout() {
