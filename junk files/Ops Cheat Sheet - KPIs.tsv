@@ -1,0 +1,76 @@
+Team / Role	KPI	Source	Goal (Daily / Weekly)	Status	Why		Branch	KPI	Source	Goal (Weekly)	Status	Why		Saloon Coordinators	KPI	Source	Goal (Daily / Weekly)	Status	Why
+Overall	Client Count	Tara	2,800–3,200/week	Mixed	Total demand across branches		Saadiyat	Client Count	Tara	700–800/week	Mixed	Underutilized capacity		Saadiyat	Rebooking %	Tara	≥45%	Not Hit	Drives retention
+Overall	Revenue	Tara	1.9M–2.2M AED/month	Not Hit	Total business performance		Saadiyat	Revenue	Tara	450–550K/week	Not Hit	Should match capacity		Saadiyat	Show Rate	Tara	≥90–92%	Unknown	Ensures bookings convert
+Overall	Avg Bill (Hair)	Tara	≥650 AED	Hit	Value per hair client		Saadiyat	Avg Bill (Hair)	Tara	≥650 AED	Hit	Value per hair client		Saadiyat	Booking Accuracy	Tara	≥95%	To be tracked	Prevents mismatch
+Overall	Avg Bill (Beauty)	Tara	≥200 AED	Unknown	Value per beauty client		Saadiyat	Avg Bill (Beauty)	Tara	≥200 AED	Unknown	Value per beauty client		Saadiyat	Avg Delay	New	≤15 mins/day	Not Hit	High load tolerance
+Overall	Rebooking %	Tara	≥45%	Not Hit	Retention driver		Saadiyat	Rebooking %	Tara	≥45%	Not Hit	Retention gap		Saadiyat	Late Client Rate	New	≤12%	Not Hit	Main delay driver
+Overall	Retail %	Tara	≥12%	Not Hit	Revenue uplift		Saadiyat	Retail %	Tara	≥12%	Not Hit	Upsell gap		Saadiyat	Overbooking	New	≤4/day	Not Hit	Reduce chaos
+Overall	Treatment %	Tara	≥20%	Not Hit	Service attach rate		Saadiyat	Treatment %	Tara	≥20%	Not Hit	Service attach gap							
+Overall	Avg Delay	New	≤10–12 mins/day	Not Hit	Operational efficiency		Saadiyat	Delay	New	≤15 mins/day	Not Hit	High load tolerance		Khalifa (AD)	Rebooking %	Tara	≥45%	Not Hit	Retention issue
+Overall	Late Clients	New	≤10–12%	Not Hit	Delay driver		Saadiyat	Late Clients	New	≤12%	Not Hit	Control delays better		Khalifa (AD)	Show Rate	Tara	≥90–92%	Unknown	Consistency
+Overall	Overbooking	New	≤2–3/day	Not Hit	Flow control		Saadiyat	Overbooking	New	≤4/day	Not Hit	Reduce chaos		Khalifa (AD)	Booking Accuracy	Tara	≥95%	To be tracked	Smooth operations
+														Khalifa (AD)	Avg Delay	New	≤12 mins/day	Not Hit	Needs tighter ops
+Reception	Lead → Booking %	Tara	≥60%	Unknown	Conversion efficiency		Khalifa (AD)	Client Count	Tara	500–650/week	Mixed	Should grow demand		Khalifa (AD)	Late Client Rate	New	≤10%	Not Hit	Scheduling issue
+Reception	Booking → Show %	New	≥90%	Unknown	Ensures clients actually come		Khalifa (AD)	Revenue	Tara	320–420K/week	Not Hit	Below potential		Khalifa (AD)	Overbooking	New	≤2-3/day	Not Hit	Stabilize flow
+Reception	Response Time	New	≤5 mins	Not Hit	Speed wins clients		Khalifa (AD)	Avg Bill (Hair)	Tara	≥650 AED	Hit	Value per hair client							
+Reception	Unread Messages	Tara	≤2	Not Hit	Avoid missed opportunities		Khalifa (AD)	Avg Bill (Beauty)	Tara	≥200 AED	Unknown	Value per beauty client		Al Quoz	Rebooking %	Tara	≥45%	Mixed	Close to target
+Reception	Booking Accuracy	Tara	≥95%	Unknown	Prevents service issues		Khalifa (AD)	Rebooking %	Tara	≥45%	Not Hit	Retention issue		Al Quoz	Show Rate	Tara	≥88–90%	Unknown	Reliable bookings
+							Khalifa (AD)	Retail %	Tara	≥12%	Not Hit	Upsell gap		Al Quoz	Booking Accuracy	Tara	≥95%	To be tracked	Service quality
+Marketing	Leads Generated	Tara	≥175/week (~25/day)	Mixed	Drives client volume		Khalifa (AD)	Treatment %	Tara	≥20%	Not Hit	Attach gap		Al Quoz	Avg Delay	New	≤10 mins/day	Mixed	Controlled ops
+Marketing	Cost per Lead (CPL)	Tara	≤30 AED	Mixed	Efficiency of spend		Khalifa (AD)	Delay	New	≤10 mins/day	Not Hit	Needs tighter ops		Al Quoz	Late Client Rate	New	≤8–10%	Mixed	Higher expectations
+Marketing	Lead → Booking %	New	≥60%	Unknown	Measures lead quality		Khalifa (AD)	Late Clients	New	≤10%	Not Hit	Scheduling issue		Al Quoz	Overbooking	New	≤1-2/day	Mixed	Protect experience
+Marketing	Content Output	Tara	≥10–15 posts/week	Mixed	Consistency & visibility		Khalifa (AD)	Overbooking	New	≤2/day	Not Hit	Stabilize flow							
+Marketing	Campaign ROI	Tara	Positive	Mixed	Ensures profitability									Motor City	Rebooking %	Tara	≥45%	Not Hit	Retention gap
+							Al Quoz	Client Count	Tara	700–900/week	Mixed	Already strong demand		Motor City	Show Rate	Tara	≥88–90%	Unknown	Consistency
+Junior Stylist	Avg Bill (Hair)	Tara	500–600 AED daily	Hit	Value per hair client		Al Quoz	Revenue	Tara	500–650K/week	Mixed	Premium branch		Motor City	Booking Accuracy	Tara	≥95%	To be tracked	Avoid delays
+Junior Stylist	Avg Bill (Beauty)	Tara	≥200 AED	Unknown	Value per beauty client		Al Quoz	Avg Bill (Hair)	Tara	≥650 AED	Hit	High value clients		Motor City	Avg Delay	New	≤10 mins/day	Not Hit	Space constraint
+Junior Stylist	Retail %	Tara	≥12%	Not Hit	Upsell performance		Al Quoz	Avg Bill (Beauty)	Tara	≥200 AED	Unknown	Value per beauty client		Motor City	Late Client Rate	New	≤8–10%	Not Hit	Flow sensitivity
+Junior Stylist	Treatment %	Tara	≥20%	Not Hit	Service attach rate		Al Quoz	Rebooking %	Tara	≥45%	Mixed	Close to target		Motor City	Overbooking	New	≤2/day	Not Hit	Limited capacity
+Junior Stylist	Rebooking %	Tara	≥45%	Not Hit	Client retention		Al Quoz	Retail %	Tara	≥12%	Mixed	Near target							
+Junior Stylist	Service Time Control	New	By Branch (10–15 mins)	Not Hit	Keeps schedule realistic		Al Quoz	Treatment %	Tara	≥20%	Not Hit	Upsell gap		Fratelli	Rebooking %	Tara	≥45%	Mixed	Different behavior
+							Al Quoz	Delay	New	≤10 mins/day	Mixed	Controlled ops		Fratelli	Show Rate	Tara	≥85–90%	Unknown	Walk-in mix
+Stylist	Avg Bill (Hair)	Tara	600–650 AED daily	Hit	Value per hair client		Al Quoz	Late Clients	New	≤8–10%	Mixed	Higher expectations		Fratelli	Booking Accuracy	Tara	≥95%	To be tracked	Speed + accuracy
+Stylist	Avg Bill (Beauty)	Tara	≥200 AED	Unknown	Value per beauty client		Al Quoz	Overbooking	New	≤2/day	Mixed	Protect experience		Fratelli	Avg Delay	New	≤5–8 mins/day	Mixed	Fast service cycle
+Stylist	Retail %	Tara	≥12%	Not Hit	Upsell performance									Fratelli	Late Client Rate	New	≤8–10%	Mixed	Still impacts flow
+Stylist	Treatment %	Tara	≥20%	Not Hit	Service attach rate		Motor City	Client Count	Tara	500–650/week	Mixed	High demand, limited space		Fratelli	Overbooking	New	≤2/day	Mixed	Keep operations smooth
+Stylist	Rebooking %	Tara	≥45%	Not Hit	Client retention		Motor City	Revenue	Tara	350–450KK/week	Not Hit	Capacity-driven							
+Stylist	Service Time Control	New	By Branch (10–15 mins)	Not Hit	Keeps schedule realistic		Motor City	Avg Bill (Hair)	Tara	≥650 AED	Hit	Value per hair client							
+							Motor City	Avg Bill (Beauty)	Tara	≥200 AED	Unknown	Value per beauty client							
+Senior Stylist	Avg Bill (Hair)	Tara	≥650 AED daily	Hit	Value per hair client		Motor City	Rebooking %	Tara	≥45%	Not Hit	Retention gap							
+Senior Stylist	Avg Bill (Beauty)	Tara	≥200 AED	Unknown	Value per beauty client		Motor City	Retail %	Tara	≥12%	Not Hit	Upsell gap							
+Senior Stylist	Retail %	Tara	≥12%	Not Hit	Upsell performance		Motor City	Treatment %	Tara	≥20%	Not Hit	Attach gap							
+Senior Stylist	Treatment %	Tara	≥20%	Not Hit	Service attach rate		Motor City	Delay	New	≤10 mins/day	Not Hit	Space constraint							
+Senior Stylist	Rebooking %	Tara	≥45%	Not Hit	Client retention		Motor City	Late Clients	New	≤8–10%	Not Hit	Flow sensitivity							
+Senior Stylist	Service Time Control	New	By Branch (10–15 mins)	Not Hit	Keeps schedule realistic		Motor City	Overbooking	New	≤2/day	Not Hit	Limited capacity							
+																			
+Style Director	Avg Bill (Hair)	Tara	≥700–800 AED daily	Hit	Value per hair client		Fratelli	Client Count	Tara	500–600/week	Mixed	Walk-in driven							
+Style Director	Avg Bill (Beauty)	Tara	≥200 AED	Unknown	Value per beauty client		Fratelli	Revenue	Tara	200–260K/week	Mixed	Different model							
+Style Director	Retail %	Tara	≥12%	Not Hit	Upsell performance		Fratelli	Avg Bill (Hair)	Tara (Adjusted)	Lower baseline	Mixed	Service type differs							
+Style Director	Treatment %	Tara	≥20%	Not Hit	Service attach rate		Fratelli	Avg Bill (Beauty)	New	N/A	N/A	Not applicable							
+Style Director	Rebooking %	Tara	≥45%	Not Hit	Client retention		Fratelli	Rebooking %	New	≥30%	Mixed	Different behavior							
+Style Director	Service Time Control	New	By Branch (10–15 mins)	Not Hit	Keeps schedule realistic		Fratelli	Retail %	New	≥8–10%	Mixed	Lower retail focus							
+							Fratelli	Treatment %	New	N/A	N/A	Not applicable							
+Quality KPIs							Fratelli	Delay	New	≤5–8 mins	Mixed	Fast operations							
+- Client Satisfaction %							Fratelli	Late Clients	New	≤8–10%	Mixed	Still relevant							
+- Reviews (Google / Fresha / etc.)							Fratelli	Overbooking	New	≤2/day	Mixed	Keep flow clean							
+- Complaints / redo cases																			
+																			
+Team / Role	KPI	Source	Goal (Daily / Weekly)	Status	Why														
+Salon Coordinator	Attendance Rate	New	>=98-100%	Unknown	Critical for daily operations flow														
+Salon Coordinator	Late Rate	New	<=2%	Unknown	Controls team punctuality														
+Salon Coordinator	Absences	New	0-1/month	Unknown	Prevents operational breakdown														
+																			
+Reception	Attendance Rate	New	>=98-100%	Unknown	Frontline presence required														
+Reception	Late Rate	New	<=2%	Unknown	Affects client experience immediately														
+Reception	Absences	New	0-1/month	Unknown	Direct impact on bookings														
+																			
+Senior Stylist / Stylist	Attendance Rate	New	>=97-100%	Unknown	Direct revenue driver														
+Senior Stylist / Stylist	Late Rate	New	<=3%	Unknown	Delays affect multiple clients														
+Senior Stylist / Stylist	Absences	New	<=1/month	Unknown	Revenue and retention impact														
+Junior Stylist	Attendance Rate	New	>=95-100%	Unknown	Still building clientele														
+Junior Stylist	Late Rate	New	<=4%	Unknown	Client-facing but lower load														
+Junior Stylist	Absences	New	<=1/month	Unknown	Affects training and support														
+																			
+Assistant Stylist	Attendance Rate	New	>=95-100%	Unknown	Supports service flow														
+Assistant Stylist	Late Rate	New	<=5%	Unknown	Impacts efficiency not direct revenue														
+Assistant Stylist	Absences	New	<=1-2/month	Unknown	Affects team support capacity														

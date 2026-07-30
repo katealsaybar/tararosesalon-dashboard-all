@@ -56,6 +56,7 @@ function switchTab(e, tab) {
   document.getElementById('tab-' + tab).classList.add('active');
 
   if (tab === 'daily') loadDailyOverview();
+  if (tab === 'staffperf') initStaffPerfTab();
 }
 
 // ── AUTH ──

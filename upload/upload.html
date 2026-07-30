@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="parser.js?v=4"></script>
 <script src="upload.js?v=2"></script>
+<script src="phorest-staff.js?v=1"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -158,6 +159,26 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .bulk-bar-text{color:var(--bad);font-weight:600;flex:1}
 .bulk-delete-btn{background:var(--bad);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
 
+/* STAFF PERFORMANCE (PHOREST) */
+.branch-pills{display:flex;gap:8px;flex-wrap:wrap}
+.branch-pill{padding:9px 18px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em;cursor:pointer;transition:all .15s}
+.branch-pill:hover{border-color:var(--accent)}
+.branch-pill.active{background:var(--btn);border-color:var(--btn);color:var(--btn-fg)}
+.sp-day-strip{display:flex;gap:1px;overflow-x:auto;padding-bottom:4px}
+.sp-day-cell{width:6px;height:14px;flex-shrink:0;border-radius:1px;background:var(--border2)}
+.sp-day-cell.done{background:var(--good)}
+.sp-table-wrap{overflow-x:auto;max-height:60vh;overflow-y:auto;margin-top:10px;border:1px solid var(--border2);border-radius:10px}
+.sp-table{width:100%;border-collapse:collapse;font-size:11px}
+.sp-table th,.sp-table td{padding:6px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border2)}
+.sp-table th{position:sticky;top:0;background:var(--col-header);color:var(--muted);font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:0.04em}
+.sp-table td:first-child,.sp-table td:nth-child(2),.sp-table td:nth-child(3),
+.sp-table th:first-child,.sp-table th:nth-child(2),.sp-table th:nth-child(3){text-align:left}
+.sp-table tr.is-total td{font-weight:700;background:var(--surface2)}
+.sp-filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:4px}
+.sp-filter-field{display:flex;flex-direction:column;gap:4px}
+.sp-filter-field label{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
+.sp-filter-field input,.sp-filter-field select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif}
+
 /* LOGIN */
 .login-wrap{max-width:380px;margin:80px auto;background:var(--surface);border-radius:16px;padding:32px;border:1px solid var(--border);box-shadow:var(--shadow)}
 .err{color:var(--bad);font-size:13px;text-align:center;margin-top:8px}
@@ -248,6 +269,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <button class="tab-btn" onclick="switchTab(event, 'ops')">⚙️ Operations</button>
   <button class="tab-btn active" onclick="switchTab(event, 'daily')">📆 Daily Upload (MTD)</button>
   <button class="tab-btn" onclick="switchTab(event, 'service')">📊 Service Data (Yearly)</button>
+  <button class="tab-btn" onclick="switchTab(event, 'staffperf')">🧑‍💼 Staff Performance (Phorest)</button>
 </div>
 
     <div class="tab-content" id="tab-ops">
@@ -371,6 +393,74 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div style="font-size:12px;color:var(--muted2);padding:8px 0">
         Loading...
       </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ STAFF PERFORMANCE (PHOREST) TAB ══ -->
+<div class="tab-content" id="tab-staffperf">
+
+  <!-- PASTE & SAVE -->
+  <div class="upload-card">
+    <div class="card-title">Paste Staff Performance Overview</div>
+    <div class="card-sub">
+      Phorest report viewer → Ctrl+A, Ctrl+C → paste below. One branch, one day per report — but you can paste several days back-to-back into the same box (e.g. a full week: copy Monday's report, paste, copy Tuesday's, paste right after it, etc.) and Parse &amp; Save once — each report is auto-detected and saved separately.
+    </div>
+
+    <div class="field" style="margin-bottom:12px">
+      <label class="field-label" style="margin-bottom:8px;display:block">Branch</label>
+      <div class="branch-pills" id="spBranchPills"></div>
+    </div>
+
+    <textarea id="spRaw" placeholder="Paste one Staff Performance Overview report, or several back-to-back for a batch save..."
+      style="width:100%;min-height:220px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:12px;resize:vertical"></textarea>
+
+    <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+      <button class="btn" style="width:auto;padding:11px 22px" onclick="handleStaffPerfParse()">Parse &amp; Save</button>
+      <button class="btn-outline" onclick="document.getElementById('spRaw').value=''">Clear</button>
+    </div>
+    <div id="spMsg" class="err" style="text-align:left;margin-top:10px"></div>
+  </div>
+
+  <!-- BACKFILL PROGRESS -->
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="card-title" style="margin-bottom:0">Backfill Progress</div>
+      <button class="btn-outline" onclick="refreshStaffPerfProgress()" style="padding:8px 16px">↻ Refresh</button>
+    </div>
+    <div class="card-sub">One pull per branch per day, Jan 1 2026 → today</div>
+    <div id="spProgressGrid"><div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div></div>
+  </div>
+
+  <!-- BROWSE / FILTER -->
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:0">Browse Data</div>
+      <span id="spResultCount" class="card-sub" style="margin-bottom:0"></span>
+    </div>
+    <div class="sp-filter-row">
+      <div class="sp-filter-field">
+        <label>Branch</label>
+        <select id="spfBranch"><option value="">All branches</option></select>
+      </div>
+      <div class="sp-filter-field">
+        <label>Stylist</label>
+        <input type="text" id="spfStylist" placeholder="Search name…">
+      </div>
+      <div class="sp-filter-field">
+        <label>From</label>
+        <input type="date" id="spfFrom">
+      </div>
+      <div class="sp-filter-field">
+        <label>To</label>
+        <input type="date" id="spfTo">
+      </div>
+      <button class="btn" style="width:auto;padding:9px 18px" onclick="runStaffPerfFilter()">Apply</button>
+      <button class="btn-outline" onclick="resetStaffPerfFilter()">Reset</button>
+    </div>
+    <div class="sp-table-wrap">
+      <div id="spTableHost" style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>
     </div>
   </div>
 

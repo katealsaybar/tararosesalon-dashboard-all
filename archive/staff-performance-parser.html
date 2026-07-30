@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Staff Performance — Paste Parser</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#2D2E37;--surface:#383944;--surface2:#3f4052;--border:rgba(250,248,243,0.09);--text:#FAF8F3;--muted:rgba(250,248,243,0.55);--accent:#FFD4D9;--accent-fg:#2D2E37;--good:#99F6E4;--bad:#FF9B9B;--warn:#EEF3C7}
+body{font-family:'Segoe UI',DM Sans,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px}
+.wrap{max-width:1400px;margin:0 auto}
+h1{font-size:18px;font-weight:700;letter-spacing:.04em;margin-bottom:4px}
+.sub{font-size:12px;color:var(--muted);margin-bottom:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:20px}
+textarea{width:100%;min-height:160px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:12px;resize:vertical}
+.row{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+button{background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+button:hover{opacity:.85}
+button.outline{background:transparent;border:1px solid var(--border);color:var(--muted)}
+button.danger{background:var(--bad);color:#2D2E37}
+.msg{font-size:12px;padding:8px 12px;border-radius:8px;margin-top:10px;display:none}
+.msg.err{display:block;background:rgba(255,155,155,.12);color:var(--bad)}
+.msg.ok{display:block;background:rgba(153,246,228,.12);color:var(--good)}
+.meta{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6}
+.meta b{color:var(--text)}
+table{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+th{color:var(--muted);font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:.04em;position:sticky;top:0;background:var(--surface)}
+td:first-child,th:first-child{text-align:left}
+td.name{text-align:left;font-weight:600}
+tr.total-row td{font-weight:700;background:var(--surface2);border-top:1px solid var(--border)}
+tr.group-start td{border-top:2px solid var(--border)}
+.tablewrap{overflow-x:auto;max-height:70vh;overflow-y:auto}
+.empty{font-size:12px;color:var(--muted);text-align:center;padding:24px}
+.pill{display:inline-block;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:2px 10px;font-size:10px;color:var(--muted);margin-right:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Staff Performance — Paste Parser</h1>
+  <div class="sub">Phorest report viewer → Ctrl+A, Ctrl+C → paste below → Parse &amp; Add. Phorest has no daily breakdown within a date-range report, so one paste = one branch/day — run the report per single day, per branch.</div>
+
+  <div class="card">
+    <div class="row" style="margin-top:0">
+      <label for="branchSelect" style="font-size:12px;color:var(--muted)">Branch</label>
+      <select id="branchSelect" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px">
+        <option value="">— select branch —</option>
+        <option>Saadiyat/Mamsha</option>
+        <option>Khalifa City A</option>
+        <option>Motor City</option>
+        <option>Al Quoz</option>
+      </select>
+    </div>
+    <textarea id="raw" placeholder="Paste the full copied Staff Performance Overview report text here..." style="margin-top:10px"></textarea>
+    <div class="row">
+      <button onclick="handleParse()">Parse &amp; Add</button>
+      <button class="outline" onclick="document.getElementById('raw').value=''">Clear paste box</button>
+      <span id="lastMeta" class="meta"></span>
+    </div>
+    <div id="msg" class="msg"></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="margin-top:0;justify-content:space-between">
+      <div style="font-size:13px;font-weight:700">Backfill Progress — one pull per branch per day, Jan 1 2026 → today</div>
+    </div>
+    <div id="progressGrid" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="margin-top:0;justify-content:space-between">
+      <div>
+        <span class="pill" id="branchCount">0 branch/day reports</span>
+        <span class="pill" id="rowCount">0 staff rows</span>
+      </div>
+      <div class="row" style="margin-top:0">
+        <button class="outline" onclick="toggleTable()" id="toggleTableBtn">Show full table</button>
+        <button class="outline" onclick="copyTSV()">Copy all as TSV</button>
+        <button class="danger" onclick="clearAll()">Clear all data</button>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <div id="tableHost"><div class="empty">No data parsed yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'trs_staff_perf_paste_data_v1';
+let records = []; // { branch, dateFrom, dateTo, days, employees:[...], totals:{...} }
+
+function normLine(s){ return s.toLowerCase().replace(/\s+/g,' ').trim(); }
+const isInt   = t => /^\d+$/.test(t);
+const isMoney = t => /^-?[\d,]+\.\d{2}$/.test(t);
+const toNum   = t => parseFloat(t.replace(/,/g,''));
+
+const HEADER_LINES = new Set([
+  'employee client staff visits services courses (perf) products total',
+  '# new rqs ex vat total ex vat total ex vat total ex vat total ex vat total',
+  'avg. spend per client',
+  'rat'
+]);
+
+function parseStaffPerformance(rawText, branch){
+  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!lines.length) throw new Error('Paste box is empty.');
+  if (!branch) throw new Error('Select a branch first.');
+
+  // Phorest's salon/company name line format is different per branch
+  // (dash-wrapped, legal-entity suffix, plain prefix, etc.) — too inconsistent
+  // to parse a branch name out of reliably, so branch is a manual selection.
+  // This line is only located here so it can be stripped out of the data block below.
+  const salonLine = lines.find(l => /salon/i.test(l));
+  const dateLine  = lines.find(l => /\d{2}\/\d{2}\/\d{2}\s*-\s*\d{2}\/\d{2}\/\d{2}/.test(l));
+
+  let dateFrom = '', dateTo = '', days = null;
+  if (dateLine){
+    const m = dateLine.match(/(\d{2}\/\d{2}\/\d{2})\s*-\s*(\d{2}\/\d{2}\/\d{2})/);
+    dateFrom = m[1]; dateTo = m[2];
+    const dm = dateLine.match(/days:\s*(\d+)/i);
+    if (dm) days = parseInt(dm[1], 10);
+  } else {
+    throw new Error('Could not find the date range line (expected "DD/MM/YY - DD/MM/YY").');
+  }
+
+  const bodyLines = lines.filter(l => {
+    const n = normLine(l);
+    if (l === salonLine) return false;
+    if (l === dateLine) return false;
+    if (n === 'staff performance overview') return false;
+    if (n.startsWith('visits are calculated')) return false;
+    if (HEADER_LINES.has(n)) return false;
+    if (/^page\s*\d+$/i.test(n)) return false;
+    return true;
+  });
+
+  const tokens = bodyLines.join(' ').split(/\s+/).filter(Boolean);
+
+  const employees = [];
+  let totals = null;
+  let i = 0;
+  while (i < tokens.length){
+    const nameParts = [];
+    while (i < tokens.length && !isInt(tokens[i]) && !isMoney(tokens[i])){
+      nameParts.push(tokens[i]);
+      i++;
+    }
+    if (!nameParts.length){ i++; continue; }
+    const name = nameParts.join(' ');
+
+    if (name.toLowerCase() === 'total'){
+      const need = 8;
+      if (i + need > tokens.length) break;
+      const v = tokens.slice(i, i + need).map(toNum);
+      totals = {
+        servicesExVat:v[0], servicesTotal:v[1],
+        coursesExVat:v[2],  coursesTotal:v[3],
+        productsExVat:v[4], productsTotal:v[5],
+        totalExVat:v[6],    totalTotal:v[7]
+      };
+      i += need;
+      break;
+    }
+
+    const need = 14;
+    if (i + need > tokens.length) break;
+    const f = tokens.slice(i, i + need);
+    employees.push({
+      name,
+      visits:        parseInt(f[0],10),
+      newClients:    parseInt(f[1],10),
+      rqs:           parseInt(f[2],10),
+      rating:        f[3],
+      servicesExVat: toNum(f[4]),  servicesTotal: toNum(f[5]),
+      coursesExVat:  toNum(f[6]),  coursesTotal:  toNum(f[7]),
+      productsExVat: toNum(f[8]),  productsTotal: toNum(f[9]),
+      totalExVat:    toNum(f[10]), totalTotal:    toNum(f[11]),
+      avgSpendExVat: toNum(f[12]), avgSpendTotal: toNum(f[13])
+    });
+    i += need;
+  }
+
+  if (!employees.length) throw new Error('No employee rows recognised — the report format may have changed.');
+
+  return { branch, dateFrom, dateTo, days, employees, totals };
+}
+
+function showMsg(text, ok){
+  const el = document.getElementById('msg');
+  el.textContent = text;
+  el.className = 'msg ' + (ok ? 'ok' : 'err');
+}
+
+function handleParse(){
+  const raw = document.getElementById('raw').value;
+  const branch = document.getElementById('branchSelect').value;
+  try{
+    const rec = parseStaffPerformance(raw, branch);
+    const dupIdx = records.findIndex(r => r.branch === rec.branch && r.dateFrom === rec.dateFrom && r.dateTo === rec.dateTo);
+    if (dupIdx !== -1) records[dupIdx] = rec; else records.push(rec);
+    save();
+    render();
+    showMsg(`Parsed ${rec.employees.length} staff rows for ${rec.branch} (${rec.dateFrom}${rec.dateFrom!==rec.dateTo?' – '+rec.dateTo:''}).`, true);
+    document.getElementById('raw').value = '';
+  } catch(e){
+    showMsg(e.message, false);
+  }
+}
+
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
+function load(){
+  try{ records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e){ records = []; }
+}
+function clearAll(){
+  if (!confirm('Clear all parsed reports? This cannot be undone.')) return;
+  records = [];
+  save();
+  render();
+}
+
+const COLS = [
+  ['Branch','branch'],['Date','date'],['Employee','name'],
+  ['#','visits'],['New','newClients'],['RQs','rqs'],['Rat','rating'],
+  ['Svc ExVAT','servicesExVat'],['Svc Total','servicesTotal'],
+  ['Crs ExVAT','coursesExVat'],['Crs Total','coursesTotal'],
+  ['Prod ExVAT','productsExVat'],['Prod Total','productsTotal'],
+  ['Tot ExVAT','totalExVat'],['Tot Total','totalTotal'],
+  ['Avg ExVAT','avgSpendExVat'],['Avg Total','avgSpendTotal']
+];
+
+function fmt(v){ return typeof v === 'number' ? v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : v; }
+
+let showFullTable = false;
+function toggleTable(){
+  showFullTable = !showFullTable;
+  document.getElementById('toggleTableBtn').textContent = showFullTable ? 'Hide full table' : 'Show full table';
+  render();
+}
+
+function render(){
+  renderProgressGrid();
+  const host = document.getElementById('tableHost');
+  const totalRows = records.reduce((s,r)=>s+r.employees.length,0);
+  document.getElementById('branchCount').textContent = `${records.length} branch/day report${records.length===1?'':'s'}`;
+  document.getElementById('rowCount').textContent = `${totalRows} staff rows`;
+
+  if (!records.length){ host.innerHTML = '<div class="empty">No data parsed yet.</div>'; return; }
+
+  // At backfill scale (~844 branch/day reports) re-rendering a full HTML table on
+  // every paste gets slow — keep it collapsed by default, use Copy TSV to get data out.
+  if (!showFullTable){
+    const recent = records.slice(-5);
+    host.innerHTML = '<div class="empty" style="text-align:left">' +
+      `${records.length} report${records.length===1?'':'s'} stored, ${totalRows} staff rows total. Full table hidden for speed — click "Show full table" to render it, or just Copy as TSV.<br><br>` +
+      '<b>Last 5 added:</b><br>' +
+      recent.map(r => `${r.branch} — ${r.dateFrom}`).reverse().join('<br>') +
+      '</div>';
+    return;
+  }
+
+  let html = '<table><thead><tr>' + COLS.map(c=>`<th>${c[0]}</th>`).join('') + '</tr></thead><tbody>';
+  for (const rec of records){
+    const dateLabel = rec.dateFrom === rec.dateTo ? rec.dateFrom : `${rec.dateFrom} – ${rec.dateTo}`;
+    rec.employees.forEach((e, idx) => {
+      const row = {branch:rec.branch, date:dateLabel, ...e};
+      html += `<tr class="${idx===0?'group-start':''}">` + COLS.map(c => {
+        const val = row[c[1]];
+        return `<td class="${c[1]==='name'?'name':''}">${typeof val==='number'?fmt(val):(val ?? '')}</td>`;
+      }).join('') + '</tr>';
+    });
+    if (rec.totals){
+      const t = rec.totals;
+      const totalRow = {branch:rec.branch, date:dateLabel, name:'TOTAL', visits:'',newClients:'',rqs:'',rating:'',
+        servicesExVat:t.servicesExVat, servicesTotal:t.servicesTotal,
+        coursesExVat:t.coursesExVat, coursesTotal:t.coursesTotal,
+        productsExVat:t.productsExVat, productsTotal:t.productsTotal,
+        totalExVat:t.totalExVat, totalTotal:t.totalTotal, avgSpendExVat:'', avgSpendTotal:''};
+      html += '<tr class="total-row">' + COLS.map(c=>{
+        const val = totalRow[c[1]];
+        return `<td>${typeof val==='number'?fmt(val):(val ?? '')}</td>`;
+      }).join('') + '</tr>';
+    }
+  }
+  html += '</tbody></table>';
+  host.innerHTML = html;
+}
+
+const PROGRESS_BRANCHES = ['Saadiyat/Mamsha','Khalifa City A','Motor City','Al Quoz'];
+const BACKFILL_START = { year: 2026, month: 0, day: 1 }; // Jan 1 2026
+
+function pad2(n){ return String(n).padStart(2,'0'); }
+function ddmmyy(d){ return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${String(d.getFullYear()).slice(-2)}`; }
+
+function getBackfillDays(){
+  const days = [];
+  const start = new Date(BACKFILL_START.year, BACKFILL_START.month, BACKFILL_START.day);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  for (let d = new Date(start); d <= today; d.setDate(d.getDate()+1)){
+    days.push(new Date(d));
+  }
+  return days;
+}
+
+function renderProgressGrid(){
+  const host = document.getElementById('progressGrid');
+  const days = getBackfillDays();
+  // Single-day pulls only (dateFrom === dateTo) count toward daily backfill progress.
+  const covered = new Set(); // "branch|DD/MM/YY"
+  records.forEach(rec => {
+    if (rec.dateFrom === rec.dateTo) covered.add(`${rec.branch}|${rec.dateFrom}`);
+  });
+
+  let html = '';
+  for (const branch of PROGRESS_BRANCHES){
+    const doneDays = days.filter(d => covered.has(`${branch}|${ddmmyy(d)}`));
+    const firstMissing = days.find(d => !covered.has(`${branch}|${ddmmyy(d)}`));
+    html += `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+        <span class="name">${branch}</span>
+        <span style="color:var(--muted)">${doneDays.length}/${days.length} days${firstMissing ? ' — next missing: <b style="color:var(--warn)">'+ddmmyy(firstMissing)+'</b>' : ' — <b style="color:var(--good)">fully captured</b>'}</span>
+      </div>
+      <div style="display:flex;gap:1px;overflow-x:auto;padding-bottom:4px">` +
+      days.map(d => {
+        const done = covered.has(`${branch}|${ddmmyy(d)}`);
+        return `<div title="${ddmmyy(d)}" style="width:6px;height:14px;flex-shrink:0;border-radius:1px;background:${done?'var(--good)':'var(--surface2)'}"></div>`;
+      }).join('') +
+      '</div></div>';
+  }
+  host.innerHTML = html;
+}
+
+function copyTSV(){
+  if (!records.length){ showMsg('Nothing to copy yet.', false); return; }
+  const lines = [COLS.map(c=>c[0]).join('\t')];
+  for (const rec of records){
+    const dateLabel = rec.dateFrom === rec.dateTo ? rec.dateFrom : `${rec.dateFrom} – ${rec.dateTo}`;
+    rec.employees.forEach(e => {
+      const row = {branch:rec.branch, date:dateLabel, ...e};
+      lines.push(COLS.map(c => row[c[1]] ?? '').join('\t'));
+    });
+    if (rec.totals){
+      const t = rec.totals;
+      const row = {branch:rec.branch, date:dateLabel, name:'TOTAL', visits:'',newClients:'',rqs:'',rating:'',
+        servicesExVat:t.servicesExVat, servicesTotal:t.servicesTotal,
+        coursesExVat:t.coursesExVat, coursesTotal:t.coursesTotal,
+        productsExVat:t.productsExVat, productsTotal:t.productsTotal,
+        totalExVat:t.totalExVat, totalTotal:t.totalTotal, avgSpendExVat:'', avgSpendTotal:''};
+      lines.push(COLS.map(c => row[c[1]] ?? '').join('\t'));
+    }
+  }
+  navigator.clipboard.writeText(lines.join('\n')).then(
+    () => showMsg('Copied to clipboard — paste into your sheet with Ctrl+V.', true),
+    () => showMsg('Copy failed — clipboard permission blocked?', false)
+  );
+}
+
+load();
+render();
+</script>
+</body>
+</html>

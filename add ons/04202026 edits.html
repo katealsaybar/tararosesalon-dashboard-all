@@ -1124,12 +1124,18 @@ function renderDashboard(){
     <div style="width:100%;margin-bottom:4px">
       <div class="metric-label" style="font-size:9px">Net Revenue</div>
       <div style="font-size:9px;color:var(--muted);margin:2px 0 6px"><em>Total sales: services + retail</em></div>
+      <!-- Revenue filter pills -->
+      <div id="revFilterPills" style="display:flex;gap:4px;margin-bottom:4px">
+        <button data-rv="both"  style="flex:1;font-size:8px;padding:3px 0;border-radius:10px;border:1px solid var(--border);background:#99F6E4;color:#1a1a1a;cursor:pointer;font-weight:600;transition:all 0.2s">Hair &amp; Beauty</button>
+        <button data-rv="hair"  style="flex:1;font-size:8px;padding:3px 0;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all 0.2s">Hair</button>
+        <button data-rv="beauty" style="flex:1;font-size:8px;padding:3px 0;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all 0.2s">Beauty</button>
+      </div>
     </div>
     <!-- Dial canvas -->
     <div style="position:relative;width:100%;height:118px;flex-shrink:0;margin:4px auto 0">
       <canvas id="dialCanvas" style="width:100%;height:118px;display:block"></canvas>
       <div style="position:absolute;bottom:6px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;white-space:nowrap">
-        <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--text);line-height:1">${fmtAED(s.netTake)}</div>
+        <div id="dialValueLabel" style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--text);line-height:1">${fmtAED(s.netTake)}</div>
         <div style="font-size:8px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px">actual</div>
       </div>
     </div>
@@ -1451,41 +1457,83 @@ function renderDashboard(){
     let wMin=0,wMax=0;
     activeBranches.forEach(b=>{if(WEEKLY_GOALS_MAP[b]){wMin+=WEEKLY_GOALS_MAP[b][0];wMax+=WEEKLY_GOALS_MAP[b][1];}});
     wMin=wMin||1820000; wMax=wMax||2330000;
-    const gMin=wMin*weekCount, gMax=wMax*weekCount;
-    const goalMid=(gMin+gMax)/2;
-    const pct=Math.min(s.netTake/goalMid,1.05);
     const periodLabel=hasWeek?'week':weekCount===4?'month (~4 wks)':weekCount+' week'+(weekCount>1?'s':'');
-    const canvas=document.getElementById('dialCanvas');
-    if(canvas){
-      const ctx=canvas.getContext('2d');
-      canvas.width=canvas.offsetWidth||220;
-      canvas.height=118;
-      const W=canvas.width,H=canvas.height;
-      ctx.clearRect(0,0,W,H);
-      const cx=W/2,cy=H-8;
-      const r=Math.min(W/2-10, H-16);
-      const SA=Math.PI,EA=2*Math.PI;
-      ctx.beginPath();ctx.arc(cx,cy,r,SA,EA);
-      ctx.strokeStyle=dark?'rgba(250,248,243,0.1)':'rgba(92,85,87,0.12)';
-      ctx.lineWidth=13;ctx.lineCap='round';ctx.stroke();
-      const fillEnd=SA+(EA-SA)*Math.min(pct,1);
-      const grad=ctx.createLinearGradient(cx-r,cy,cx+r,cy);
-      grad.addColorStop(0,'#C4B5FD');grad.addColorStop(0.5,'#99F6E4');grad.addColorStop(1,'#EEF3C7');
-      ctx.beginPath();ctx.arc(cx,cy,r,SA,fillEnd);
-      ctx.strokeStyle=grad;ctx.lineWidth=13;ctx.lineCap='round';ctx.stroke();
-      const kx=cx+r*Math.cos(fillEnd),ky=cy+r*Math.sin(fillEnd);
-      ctx.beginPath();ctx.arc(kx,ky,7,0,2*Math.PI);
-      ctx.fillStyle='#FAF8F3';ctx.fill();
-      ctx.beginPath();ctx.arc(kx,ky,4,0,2*Math.PI);
-      ctx.fillStyle='#99F6E4';ctx.fill();
+
+    const hairTxVal = Math.max(0, s.netTake - s.beautySales - s.hairRetail);
+    const revenueByView = { both: s.netTake, hair: hairTxVal + (s.hairRetail||0), beauty: s.beautySales };
+    const goalMidByView = { both: (wMin+wMax)/2*weekCount, hair: (wMin+wMax)/2*weekCount*0.7, beauty: (wMin+wMax)/2*weekCount*0.3 };
+
+    let dialView = window._dialView || 'both';
+
+    function drawDial(view) {
+      window._dialView = view;
+      const revenue = revenueByView[view] || 0;
+      const goalMid = goalMidByView[view] || 1;
+      const pct = Math.min(revenue / goalMid, 1.05);
+      const canvas = document.getElementById('dialCanvas');
+      if (canvas) {
+        const container = canvas.parentElement;
+        const cw = container.offsetWidth || 220;
+        canvas.width = cw;
+        canvas.height = 118;
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+        const cx = W/2, cy = H - 8;
+        const r = Math.min(W/2 - 10, H - 16);
+        const SA = Math.PI, EA = 2*Math.PI;
+        ctx.beginPath(); ctx.arc(cx, cy, r, SA, EA);
+        ctx.strokeStyle = dark ? 'rgba(250,248,243,0.1)' : 'rgba(92,85,87,0.12)';
+        ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.stroke();
+        const fillEnd = SA + (EA - SA) * Math.min(pct, 1);
+        const grad = ctx.createLinearGradient(cx - r, cy, cx + r, cy);
+        grad.addColorStop(0, '#C4B5FD'); grad.addColorStop(0.5, '#99F6E4'); grad.addColorStop(1, '#EEF3C7');
+        ctx.beginPath(); ctx.arc(cx, cy, r, SA, fillEnd);
+        ctx.strokeStyle = grad; ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.stroke();
+        const kx = cx + r * Math.cos(fillEnd), ky = cy + r * Math.sin(fillEnd);
+        ctx.beginPath(); ctx.arc(kx, ky, 7, 0, 2*Math.PI);
+        ctx.fillStyle = '#FAF8F3'; ctx.fill();
+        ctx.beginPath(); ctx.arc(kx, ky, 4, 0, 2*Math.PI);
+        ctx.fillStyle = '#99F6E4'; ctx.fill();
+      }
+      const pct100 = Math.round(Math.min(revenue / goalMid, 1.05) * 100);
+      const fillEl = document.getElementById('dialPctFill');
+      const txtEl  = document.getElementById('dialPctTxt');
+      const tagEl  = document.getElementById('dialGoalTag');
+      const valEl  = document.getElementById('dialValueLabel');
+      const p = revenue / goalMid;
+      if (fillEl) { fillEl.style.width = Math.min(p*100,100)+'%'; fillEl.style.background = p>=1?'#99F6E4':p>=0.8?'#EEF3C7':'#FF9B9B'; }
+      if (txtEl)  txtEl.textContent  = pct100 + '% of ' + periodLabel + ' goal';
+      if (tagEl)  tagEl.textContent  = 'Weekly target: AED ' + (wMin/1000).toFixed(0) + 'k–' + (wMax/1000).toFixed(0) + 'k / week';
+      if (valEl)  valEl.textContent  = fmtAED(revenue);
     }
-    const pctNum=Math.round(pct*100);
-    const fillEl=document.getElementById('dialPctFill');
-    const txtEl=document.getElementById('dialPctTxt');
-    const tagEl=document.getElementById('dialGoalTag');
-    if(fillEl){fillEl.style.width=Math.min(pct*100,100)+'%';fillEl.style.background=pct>=1?'#99F6E4':pct>=0.8?'#EEF3C7':'#FF9B9B';}
-    if(txtEl) txtEl.textContent=pctNum+'% of '+periodLabel+' goal';
-    if(tagEl) tagEl.textContent='Weekly target: AED '+(wMin/1000).toFixed(0)+'k–'+(wMax/1000).toFixed(0)+'k / week';
+
+    drawDial(dialView);
+
+    // Filter pill interaction
+    const pills = document.querySelectorAll('#revFilterPills button');
+    pills.forEach(btn => {
+      const isActive = btn.dataset.rv === dialView;
+      btn.style.background = isActive ? '#99F6E4' : 'var(--card)';
+      btn.style.color = isActive ? '#1a1a1a' : 'var(--muted)';
+      btn.style.fontWeight = isActive ? '600' : '400';
+      btn.addEventListener('click', () => {
+        dialView = btn.dataset.rv;
+        pills.forEach(p => { p.style.background='var(--card)'; p.style.color='var(--muted)'; p.style.fontWeight='400'; });
+        btn.style.background = '#99F6E4'; btn.style.color = '#1a1a1a'; btn.style.fontWeight = '600';
+        drawDial(dialView);
+      });
+    });
+
+    // Smooth redraw on container resize
+    if (window.ResizeObserver) {
+      const canvas = document.getElementById('dialCanvas');
+      if (canvas) {
+        if (window._dialResizeObs) window._dialResizeObs.disconnect();
+        window._dialResizeObs = new ResizeObserver(() => drawDial(window._dialView || 'both'));
+        window._dialResizeObs.observe(canvas.parentElement);
+      }
+    }
   })();
 
   // ── DONUT ──
