@@ -348,6 +348,7 @@ function resetStaffPerfFilter(){
   document.getElementById('spfStylist').value = '';
   spSetDefaultFilterDates(true);
   spLastData = [];
+  spCapWarning = false;
   document.getElementById('spTableHost').innerHTML =
     '<div style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>';
   document.getElementById('spResultCount').textContent = '';
@@ -371,6 +372,52 @@ let spLastData  = [];
 let spSortCol   = 'date';
 let spSortDir   = 'desc';
 let spHiddenCols = new Set(JSON.parse(localStorage.getItem('spHiddenCols') || '[]'));
+let spCapWarning = false;
+let spSummaryMode = localStorage.getItem('spSummaryMode') === '1';
+
+// Fields that get summed when Summary mode combines an employee's daily rows
+// into one row for the selected date range (mirrors the Target Sheet's weekly totals).
+const SP_SUM_FIELDS = [
+  'visits','new_clients','rqs',
+  'services_ex_vat','services_total','courses_ex_vat','courses_total',
+  'products_ex_vat','products_total','total_ex_vat','total_total'
+];
+
+function spAggregateByEmployee(rows){
+  const groups = new Map();
+  for (const row of rows){
+    const key = row.branch + '|' + row.employee_name;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  }
+  const out = [];
+  for (const rs of groups.values()){
+    const agg = { branch: rs[0].branch, employee_name: rs[0].employee_name, rating: 'NA' };
+    for (const f of SP_SUM_FIELDS) agg[f] = 0;
+    for (const r of rs) for (const f of SP_SUM_FIELDS) agg[f] += (typeof r[f] === 'number' ? r[f] : 0);
+    agg.avg_spend_ex_vat = agg.visits ? agg.total_ex_vat / agg.visits : 0;
+    agg.avg_spend_total  = agg.visits ? agg.total_total  / agg.visits : 0;
+    const dates = rs.map(r => r.date).filter(Boolean).sort();
+    agg.date = !dates.length ? '' : dates[0] === dates[dates.length-1] ? dates[0] : `${dates[0]} → ${dates[dates.length-1]}`;
+    out.push(agg);
+  }
+  return out;
+}
+
+function spToggleSummaryMode(){
+  spSummaryMode = !spSummaryMode;
+  localStorage.setItem('spSummaryMode', spSummaryMode ? '1' : '0');
+  spSyncSummaryToggleUI();
+  spRenderTable();
+}
+
+function spSyncSummaryToggleUI(){
+  const track = document.getElementById('spSummaryTrack');
+  const lbl = document.getElementById('spSummaryLbl');
+  if (!track) return;
+  track.classList.toggle('on', spSummaryMode);
+  lbl.textContent = spSummaryMode ? 'Summary' : 'Daily';
+}
 
 function spCompare(av, bv, dir){
   const aEmpty = av === null || av === undefined || av === '' || av === 'NA';
@@ -430,7 +477,16 @@ document.addEventListener('click', (e) => {
 
 function spRenderTable(){
   const host = document.getElementById('spTableHost');
-  if (!spLastData.length){ host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">No matching rows.</div>'; return; }
+  if (!spLastData.length){
+    host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">No matching rows.</div>';
+    document.getElementById('spResultCount').textContent = '';
+    return;
+  }
+
+  const displayRows = spSummaryMode ? spAggregateByEmployee(spLastData) : spLastData;
+  document.getElementById('spResultCount').textContent = spCapWarning
+    ? `Showing first ${SP_ROW_LIMIT} rows — narrow your filters for more precision`
+    : `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${spSummaryMode ? ' (summarized per employee)' : ''}`;
 
   const visibleCols = SP_COLS.filter(c => !spHiddenCols.has(c[1]));
 
@@ -438,7 +494,7 @@ function spRenderTable(){
   // mirrors the branch-block layout with a blank row between branches used in the Target Sheet.
   const branchOrder = SP_BRANCHES.map(b => b.code);
   const groups = new Map();
-  for (const row of spLastData){
+  for (const row of displayRows){
     if (!groups.has(row.branch)) groups.set(row.branch, []);
     groups.get(row.branch).push(row);
   }
@@ -483,9 +539,7 @@ async function runStaffPerfFilter(){
   const { data, error } = await q;
   if (error){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${error.message}</div>`; return; }
 
-  document.getElementById('spResultCount').textContent =
-    data.length === SP_ROW_LIMIT ? `Showing first ${SP_ROW_LIMIT} rows — narrow your filters for more precision` : `${data.length} rows`;
-
+  spCapWarning = data.length === SP_ROW_LIMIT;
   spLastData = data.filter(row => !row.is_total);
   spRenderTable();
 }
@@ -495,6 +549,25 @@ async function runStaffPerfFilter(){
 let spBoxesRendered = false;
 let spFilterAutoRun = false;
 
+// Paste-and-save is the old workflow now that bulk PDF upload exists — collapsed by default.
+let spPasteCollapsed = localStorage.getItem('spPasteCollapsed') === null
+  ? true
+  : localStorage.getItem('spPasteCollapsed') === '1';
+
+function spSyncPasteToggleUI(){
+  const body = document.getElementById('spPasteBody');
+  const btn  = document.getElementById('spPasteToggleBtn');
+  if (!body || !btn) return;
+  body.style.display = spPasteCollapsed ? 'none' : 'block';
+  btn.textContent = spPasteCollapsed ? 'Show ▾' : 'Hide ▴';
+}
+
+function spTogglePasteCollapse(){
+  spPasteCollapsed = !spPasteCollapsed;
+  localStorage.setItem('spPasteCollapsed', spPasteCollapsed ? '1' : '0');
+  spSyncPasteToggleUI();
+}
+
 function initStaffPerfTab(){
   if (!spBoxesRendered){
     spRenderBranchBoxes();
@@ -502,6 +575,8 @@ function initStaffPerfTab(){
   }
   spPopulateFilterBranch();
   spSetDefaultFilterDates(false);
+  spSyncSummaryToggleUI();
+  spSyncPasteToggleUI();
   refreshStaffPerfProgress();
   if (typeof initStaffPerfPdfDrop === 'function') initStaffPerfPdfDrop();
 
