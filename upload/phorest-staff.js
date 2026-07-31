@@ -433,19 +433,34 @@ function spRenderTable(){
   if (!spLastData.length){ host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">No matching rows.</div>'; return; }
 
   const visibleCols = SP_COLS.filter(c => !spHiddenCols.has(c[1]));
-  const sorted = spLastData.slice().sort((a,b) => spCompare(a[spSortCol], b[spSortCol], spSortDir));
+
+  // Group by branch (canonical SP_BRANCHES order), sorted within each group —
+  // mirrors the branch-block layout with a blank row between branches used in the Target Sheet.
+  const branchOrder = SP_BRANCHES.map(b => b.code);
+  const groups = new Map();
+  for (const row of spLastData){
+    if (!groups.has(row.branch)) groups.set(row.branch, []);
+    groups.get(row.branch).push(row);
+  }
+  const orderedKeys = [...groups.keys()].sort((a,b) => {
+    const ia = branchOrder.indexOf(a), ib = branchOrder.indexOf(b);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
 
   let html = '<table class="sp-table"><thead><tr>' + visibleCols.map(c => {
     const active = c[1] === spSortCol;
     const arrow = active ? (spSortDir === 'asc' ? ' ▲' : ' ▼') : '';
     return `<th class="sp-th-sort${active?' active':''}" onclick="spSortBy('${c[1]}')">${c[0]}${arrow}</th>`;
   }).join('') + '</tr></thead><tbody>';
-  for (const row of sorted){
-    html += `<tr class="${row.is_total?'is-total':''}">` + visibleCols.map(c => {
-      const val = row[c[1]];
-      return `<td>${spFmt(val)}</td>`;
-    }).join('') + '</tr>';
-  }
+  orderedKeys.forEach((key, gi) => {
+    const rows = groups.get(key).slice().sort((a,b) => spCompare(a[spSortCol], b[spSortCol], spSortDir));
+    for (const row of rows){
+      html += '<tr>' + visibleCols.map(c => `<td>${spFmt(row[c[1]])}</td>`).join('') + '</tr>';
+    }
+    if (gi < orderedKeys.length - 1){
+      html += `<tr class="sp-group-spacer"><td colspan="${visibleCols.length}"></td></tr>`;
+    }
+  });
   html += '</tbody></table>';
   host.innerHTML = html;
 }
