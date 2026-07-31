@@ -415,11 +415,11 @@ function spAggregateByEmployee(rows){
 // always pinned as the first table row so it's visible no matter how many
 // stylists show up below it.
 function spGrandTotal(rows){
+  // Pure sums only — no averaged figure belongs on a TOTAL row, so
+  // avg_spend_ex_vat/avg_spend_total are left unset and render blank.
   const t = { branch: '', date: '', employee_name: 'TOTAL', rating: '' };
   for (const f of SP_SUM_FIELDS) t[f] = 0;
   for (const r of rows) for (const f of SP_SUM_FIELDS) t[f] += (typeof r[f] === 'number' ? r[f] : 0);
-  t.avg_spend_ex_vat = t.visits ? t.total_ex_vat / t.visits : 0;
-  t.avg_spend_total  = t.visits ? t.total_total  / t.visits : 0;
   return t;
 }
 
