@@ -347,6 +347,7 @@ function resetStaffPerfFilter(){
   document.getElementById('spfBranch').value = '';
   document.getElementById('spfStylist').value = '';
   spSetDefaultFilterDates(true);
+  spLastData = [];
   document.getElementById('spTableHost').innerHTML =
     '<div style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>';
   document.getElementById('spResultCount').textContent = '';
@@ -364,6 +365,90 @@ const SP_COLS = [
 const SP_ROW_LIMIT = 2000;
 
 function spFmt(v){ return typeof v === 'number' ? v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : (v ?? ''); }
+
+// ── SORT + COLUMN VISIBILITY STATE (persisted like a spreadsheet view) ──
+let spLastData  = [];
+let spSortCol   = 'date';
+let spSortDir   = 'desc';
+let spHiddenCols = new Set(JSON.parse(localStorage.getItem('spHiddenCols') || '[]'));
+
+function spCompare(av, bv, dir){
+  const aEmpty = av === null || av === undefined || av === '' || av === 'NA';
+  const bEmpty = bv === null || bv === undefined || bv === '' || bv === 'NA';
+  if (aEmpty && bEmpty) return 0;
+  if (aEmpty) return 1;   // blanks/NA always sort to the bottom, like Sheets
+  if (bEmpty) return -1;
+  const cmp = (typeof av === 'number' && typeof bv === 'number')
+    ? av - bv
+    : String(av).localeCompare(String(bv), undefined, {numeric:true, sensitivity:'base'});
+  return dir === 'asc' ? cmp : -cmp;
+}
+
+function spSortBy(key){
+  if (spSortCol === key) spSortDir = spSortDir === 'asc' ? 'desc' : 'asc';
+  else { spSortCol = key; spSortDir = 'asc'; }
+  spRenderTable();
+}
+
+function spToggleCol(key, checked){
+  if (checked) spHiddenCols.delete(key); else spHiddenCols.add(key);
+  localStorage.setItem('spHiddenCols', JSON.stringify([...spHiddenCols]));
+  spRenderTable();
+}
+
+function spShowAllCols(){
+  spHiddenCols.clear();
+  localStorage.setItem('spHiddenCols', JSON.stringify([]));
+  spBuildColPicker();
+  spRenderTable();
+}
+
+function spBuildColPicker(){
+  const panel = document.getElementById('spColPicker');
+  if (!panel) return;
+  panel.innerHTML = SP_COLS.map(c =>
+    `<label><input type="checkbox" ${spHiddenCols.has(c[1])?'':'checked'} onchange="spToggleCol('${c[1]}', this.checked)">${c[0]}</label>`
+  ).join('') + '<div class="sp-col-picker-actions"><button class="btn-outline" style="flex:1;padding:6px" onclick="spShowAllCols()">Show all</button></div>';
+}
+
+function spToggleColPicker(e){
+  e.stopPropagation();
+  const panel = document.getElementById('spColPicker');
+  if (!panel) return;
+  const opening = panel.style.display !== 'block';
+  if (opening){ spBuildColPicker(); panel.style.display = 'block'; }
+  else panel.style.display = 'none';
+}
+
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('spColPicker');
+  const btn   = document.getElementById('spColPickerBtn');
+  if (panel && panel.style.display === 'block' && !panel.contains(e.target) && e.target !== btn) {
+    panel.style.display = 'none';
+  }
+});
+
+function spRenderTable(){
+  const host = document.getElementById('spTableHost');
+  if (!spLastData.length){ host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">No matching rows.</div>'; return; }
+
+  const visibleCols = SP_COLS.filter(c => !spHiddenCols.has(c[1]));
+  const sorted = spLastData.slice().sort((a,b) => spCompare(a[spSortCol], b[spSortCol], spSortDir));
+
+  let html = '<table class="sp-table"><thead><tr>' + visibleCols.map(c => {
+    const active = c[1] === spSortCol;
+    const arrow = active ? (spSortDir === 'asc' ? ' ▲' : ' ▼') : '';
+    return `<th class="sp-th-sort${active?' active':''}" onclick="spSortBy('${c[1]}')">${c[0]}${arrow}</th>`;
+  }).join('') + '</tr></thead><tbody>';
+  for (const row of sorted){
+    html += `<tr class="${row.is_total?'is-total':''}">` + visibleCols.map(c => {
+      const val = row[c[1]];
+      return `<td>${spFmt(val)}</td>`;
+    }).join('') + '</tr>';
+  }
+  html += '</tbody></table>';
+  host.innerHTML = html;
+}
 
 async function runStaffPerfFilter(){
   const branch  = document.getElementById('spfBranch').value;
@@ -386,17 +471,8 @@ async function runStaffPerfFilter(){
   document.getElementById('spResultCount').textContent =
     data.length === SP_ROW_LIMIT ? `Showing first ${SP_ROW_LIMIT} rows — narrow your filters for more precision` : `${data.length} rows`;
 
-  if (!data.length){ host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">No matching rows.</div>'; return; }
-
-  let html = '<table class="sp-table"><thead><tr>' + SP_COLS.map(c=>`<th>${c[0]}</th>`).join('') + '</tr></thead><tbody>';
-  for (const row of data){
-    html += `<tr class="${row.is_total?'is-total':''}">` + SP_COLS.map(c => {
-      const val = row[c[1]];
-      return `<td>${spFmt(val)}</td>`;
-    }).join('') + '</tr>';
-  }
-  html += '</tbody></table>';
-  host.innerHTML = html;
+  spLastData = data.filter(row => !row.is_total);
+  spRenderTable();
 }
 
 // ── INIT ──────────────────────────────────────────────────────
@@ -412,6 +488,7 @@ function initStaffPerfTab(){
   spPopulateFilterBranch();
   spSetDefaultFilterDates(false);
   refreshStaffPerfProgress();
+  if (typeof initStaffPerfPdfDrop === 'function') initStaffPerfPdfDrop();
 
   if (!spFilterAutoRun){
     spFilterAutoRun = true;

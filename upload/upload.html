@@ -6,9 +6,12 @@
 <title>Tara Rose Ladies Salon — Upload Portal</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
 <script src="upload.js?v=2"></script>
 <script src="phorest-staff.js?v=4"></script>
+<script src="phorest-pdf.js?v=1"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -175,6 +178,13 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-day-strip{display:flex;gap:1px;overflow-x:auto;padding-bottom:4px}
 .sp-day-cell{width:6px;height:14px;flex-shrink:0;border-radius:1px;background:var(--border2)}
 .sp-day-cell.done{background:var(--good)}
+.sp-pdf-drop{border:1.5px dashed var(--border);border-radius:12px;padding:20px;text-align:center;background:var(--surface2);transition:border-color .2s,background .2s}
+.sp-pdf-drop.dragover{border-color:var(--accent);background:var(--bg)}
+.sp-pdf-row{display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:5px 0;border-bottom:1px solid var(--border2)}
+.sp-pdf-row:last-child{border-bottom:none}
+.sp-pdf-row .fn{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-pdf-row .status.ok{color:var(--good)}
+.sp-pdf-row .status.bad{color:var(--bad)}
 .sp-table-wrap{overflow-x:auto;max-height:60vh;overflow-y:auto;margin-top:10px;border:1px solid var(--border2);border-radius:10px}
 .sp-table{width:100%;border-collapse:collapse;font-size:11px}
 .sp-table th,.sp-table td{padding:6px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border2)}
@@ -186,6 +196,14 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-filter-field{display:flex;flex-direction:column;gap:4px}
 .sp-filter-field label{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
 .sp-filter-field input,.sp-filter-field select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif}
+.sp-col-picker{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:10px;z-index:30;min-width:180px;max-height:320px;overflow-y:auto}
+.sp-col-picker label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);padding:5px 4px;cursor:pointer;border-radius:6px;white-space:nowrap}
+.sp-col-picker label:hover{background:var(--surface2)}
+.sp-col-picker input{accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+.sp-col-picker-actions{display:flex;gap:6px;margin-top:6px;padding-top:8px;border-top:1px solid var(--border2)}
+.sp-th-sort{cursor:pointer;user-select:none}
+.sp-th-sort:hover{color:var(--text)}
+.sp-th-sort.active{color:var(--accent)}
 
 /* LOGIN */
 .login-wrap{max-width:380px;margin:80px auto;background:var(--surface);border-radius:16px;padding:32px;border:1px solid var(--border);box-shadow:var(--shadow)}
@@ -426,6 +444,27 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <button class="btn" style="width:auto;padding:11px 22px;margin-top:14px" onclick="handleStaffPerfSaveAll()">Save All</button>
   </div>
 
+  <!-- BULK PDF UPLOAD (BACKFILL) -->
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <div class="card-title">Bulk Upload PDFs</div>
+        <div class="card-sub">
+          Drop the Phorest "Staff Performance Overview" PDFs you bulk-downloaded — branch and date are read from each filename (e.g. al-quoz-staff-performance-2026-02-13.pdf), so files from any branch/day can be dropped together in one go.
+        </div>
+      </div>
+      <button class="btn" id="spPdfParseBtn" style="width:auto;padding:11px 22px;flex-shrink:0" onclick="handleStaffPerfPdfBatch()">Parse &amp; Save All</button>
+    </div>
+    <div id="spPdfDrop" class="sp-pdf-drop">
+      <input type="file" id="spPdfInput" accept="application/pdf" multiple style="display:none" onchange="spQueuePdfFiles(this.files)">
+      <div onclick="document.getElementById('spPdfInput').click()" style="cursor:pointer">
+        <div style="font-size:13px;color:var(--muted)">Click to choose PDFs, or drag &amp; drop them here</div>
+        <div id="spPdfQueueCount" style="font-size:11px;color:var(--muted2);margin-top:4px">No files queued</div>
+      </div>
+    </div>
+    <div id="spPdfResults" style="margin-top:10px"></div>
+  </div>
+
   <!-- BACKFILL PROGRESS -->
   <div class="upload-card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -440,7 +479,13 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <div class="upload-card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div class="card-title" style="margin-bottom:0">Browse Data</div>
-      <span id="spResultCount" class="card-sub" style="margin-bottom:0"></span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="spResultCount" class="card-sub" style="margin-bottom:0"></span>
+        <div style="position:relative">
+          <button class="btn-outline" id="spColPickerBtn" onclick="spToggleColPicker(event)" style="padding:8px 14px">Columns ▾</button>
+          <div id="spColPicker" class="sp-col-picker"></div>
+        </div>
+      </div>
     </div>
     <div class="sp-filter-row">
       <div class="sp-filter-field">
