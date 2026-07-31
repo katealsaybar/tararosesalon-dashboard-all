@@ -314,7 +314,8 @@ async function refreshStaffPerfProgress(){
       <div class="sp-day-strip">` +
       days.map(d => {
         const done = covered.has(`${b.code}|${spIsoDate(d)}`);
-        return `<div class="sp-day-cell${done?' done':''}" title="${d.toLocaleDateString('en-GB')}"></div>`;
+        const label = d.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'short', year:'numeric' });
+        return `<div class="sp-day-cell${done?' done':''}" title="${label}"></div>`;
       }).join('') +
       '</div></div>';
   }
