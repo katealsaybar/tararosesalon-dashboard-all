@@ -122,7 +122,10 @@ function spParseOneBlock(lines, branchCode){
     i += need;
   }
 
-  if (!employees.length) throw new Error('No employee rows recognised — the report format may have changed.');
+  // A closed/zero-activity day's report has only the Total line (all zeros) and no
+  // employee rows at all — that's a valid empty day, not a malformed report. Only
+  // reject when neither employees nor a Total line were found.
+  if (!employees.length && !totals) throw new Error('No employee rows recognised — the report format may have changed.');
 
   return { branch: branchCode, date: dateFrom, employees, totals };
 }
