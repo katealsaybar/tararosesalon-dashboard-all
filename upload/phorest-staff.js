@@ -366,7 +366,7 @@ const SP_COLS = [
   ['Tot ExVAT','total_ex_vat'],['Tot Total','total_total'],
   ['Avg ExVAT','avg_spend_ex_vat'],['Avg Total','avg_spend_total']
 ];
-const SP_ROW_LIMIT = 2000;
+const SP_ROW_LIMIT = 25000;
 
 function spFmt(v){ return typeof v === 'number' ? v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : (v ?? ''); }
 
@@ -544,6 +544,14 @@ function spRenderTable(){
   host.innerHTML = html;
 }
 
+// Supabase/PostgREST silently caps each response at its own server-side
+// max-rows setting (commonly 1000) regardless of the .limit() we ask for —
+// "All branches" needs ~4x the raw rows per day that a single branch does,
+// so it was quietly getting truncated to a sliver of the selected date
+// range while a single-branch query stayed under the cap and looked fine.
+// Page through with .range() so every filter combination gets the full set.
+const SP_PAGE_SIZE = 1000;
+
 async function runStaffPerfFilter(){
   const branch  = document.getElementById('spfBranch').value;
   const stylist = document.getElementById('spfStylist').value.trim();
@@ -553,17 +561,27 @@ async function runStaffPerfFilter(){
   const host = document.getElementById('spTableHost');
   host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">Loading…</div>';
 
-  let q = sb.from(SP_TABLE).select('*').order('date',{ascending:false}).order('branch').order('employee_name').limit(SP_ROW_LIMIT);
-  if (branch)  q = q.eq('branch', branch);
-  if (from)    q = q.gte('date', from);
-  if (to)      q = q.lte('date', to);
-  if (stylist) q = q.ilike('employee_name', `%${stylist}%`);
+  const buildQuery = () => {
+    let q = sb.from(SP_TABLE).select('*').order('date',{ascending:false}).order('branch').order('employee_name');
+    if (branch)  q = q.eq('branch', branch);
+    if (from)    q = q.gte('date', from);
+    if (to)      q = q.lte('date', to);
+    if (stylist) q = q.ilike('employee_name', `%${stylist}%`);
+    return q;
+  };
 
-  const { data, error } = await q;
-  if (error){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${error.message}</div>`; return; }
+  let all = [];
+  let offset = 0;
+  while (true){
+    const { data, error } = await buildQuery().range(offset, offset + SP_PAGE_SIZE - 1);
+    if (error){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${error.message}</div>`; return; }
+    all = all.concat(data);
+    if (data.length < SP_PAGE_SIZE || all.length >= SP_ROW_LIMIT) break;
+    offset += SP_PAGE_SIZE;
+  }
 
-  spCapWarning = data.length === SP_ROW_LIMIT;
-  spLastData = data.filter(row => !row.is_total);
+  spCapWarning = all.length >= SP_ROW_LIMIT;
+  spLastData = all.slice(0, SP_ROW_LIMIT).filter(row => !row.is_total);
   spRenderTable();
 }
 
