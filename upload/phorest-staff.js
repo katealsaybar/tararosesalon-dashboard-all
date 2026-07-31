@@ -387,15 +387,19 @@ const SP_SUM_FIELDS = [
 ];
 
 function spAggregateByEmployee(rows){
+  // Branch column hidden → nothing on screen distinguishes branches, so fold
+  // an employee's rows together across branches too instead of leaving
+  // confusing duplicate-looking rows for the same name.
+  const groupByBranch = !spHiddenCols.has('branch');
   const groups = new Map();
   for (const row of rows){
-    const key = row.branch + '|' + row.employee_name;
+    const key = groupByBranch ? (row.branch + '|' + row.employee_name) : row.employee_name;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(row);
   }
   const out = [];
   for (const rs of groups.values()){
-    const agg = { branch: rs[0].branch, employee_name: rs[0].employee_name, rating: 'NA' };
+    const agg = { branch: groupByBranch ? rs[0].branch : 'ALL', employee_name: rs[0].employee_name, rating: 'NA' };
     for (const f of SP_SUM_FIELDS) agg[f] = 0;
     for (const r of rs) for (const f of SP_SUM_FIELDS) agg[f] += (typeof r[f] === 'number' ? r[f] : 0);
     agg.avg_spend_ex_vat = agg.visits ? agg.total_ex_vat / agg.visits : 0;
@@ -405,6 +409,18 @@ function spAggregateByEmployee(rows){
     out.push(agg);
   }
   return out;
+}
+
+// Grand total across every row currently on screen (post filter/aggregate),
+// always pinned as the first table row so it's visible no matter how many
+// stylists show up below it.
+function spGrandTotal(rows){
+  const t = { branch: '', date: '', employee_name: 'TOTAL', rating: '' };
+  for (const f of SP_SUM_FIELDS) t[f] = 0;
+  for (const r of rows) for (const f of SP_SUM_FIELDS) t[f] += (typeof r[f] === 'number' ? r[f] : 0);
+  t.avg_spend_ex_vat = t.visits ? t.total_ex_vat / t.visits : 0;
+  t.avg_spend_total  = t.visits ? t.total_total  / t.visits : 0;
+  return t;
 }
 
 function spToggleSummaryMode(){
@@ -511,6 +527,10 @@ function spRenderTable(){
     const arrow = active ? (spSortDir === 'asc' ? ' ▲' : ' ▼') : '';
     return `<th class="sp-th-sort${active?' active':''}" onclick="spSortBy('${c[1]}')">${c[0]}${arrow}</th>`;
   }).join('') + '</tr></thead><tbody>';
+
+  const grandTotal = spGrandTotal(displayRows);
+  html += '<tr class="is-total">' + visibleCols.map(c => `<td>${spFmt(grandTotal[c[1]])}</td>`).join('') + '</tr>';
+
   orderedKeys.forEach((key, gi) => {
     const rows = groups.get(key).slice().sort((a,b) => spCompare(a[spSortCol], b[spSortCol], spSortDir));
     for (const row of rows){
