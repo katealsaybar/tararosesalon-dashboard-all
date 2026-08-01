@@ -12,7 +12,7 @@ const SP_BRANCHES = [
   { code: 'KCA', label: 'Khalifa City A' },
   { code: 'MC',  label: 'Motor City' },
   { code: 'AQ',  label: 'Al Quoz' },
-  { code: 'FRT', label: 'Fratelli', start: '2026-05-22' },
+  { code: 'FRT', label: 'Fratelli', end: '2026-05-22' },
 ];
 const SP_BACKFILL_START = '2026-01-01';
 
@@ -284,12 +284,13 @@ async function handleStaffPerfSaveAll(){
 function spPad2(n){ return String(n).padStart(2,'0'); }
 function spIsoDate(d){ return `${d.getFullYear()}-${spPad2(d.getMonth()+1)}-${spPad2(d.getDate())}`; }
 
-function spGetBackfillDays(startDate){
+function spGetBackfillDays(startDate, endDate){
   const days = [];
   const start = new Date((startDate || SP_BACKFILL_START) + 'T00:00:00');
   const today = new Date();
   today.setHours(0,0,0,0);
-  for (let d = new Date(start); d <= today; d.setDate(d.getDate()+1)){
+  const end = endDate ? new Date(endDate + 'T00:00:00') : today;
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)){
     days.push(new Date(d));
   }
   return days;
@@ -307,7 +308,7 @@ async function refreshStaffPerfProgress(){
 
   let html = '';
   for (const b of SP_BRANCHES){
-    const days = spGetBackfillDays(b.start);
+    const days = spGetBackfillDays(b.start, b.end);
     const doneDays = days.filter(d => covered.has(`${b.code}|${spIsoDate(d)}`));
     const firstMissing = days.find(d => !covered.has(`${b.code}|${spIsoDate(d)}`));
     html += `<div style="margin-bottom:10px">
