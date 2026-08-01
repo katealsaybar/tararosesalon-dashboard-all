@@ -12,6 +12,7 @@ const SP_BRANCHES = [
   { code: 'KCA', label: 'Khalifa City A' },
   { code: 'MC',  label: 'Motor City' },
   { code: 'AQ',  label: 'Al Quoz' },
+  { code: 'FRT', label: 'Fratelli' },
 ];
 const SP_BACKFILL_START = '2026-01-01';
 
