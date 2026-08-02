@@ -455,12 +455,18 @@ function updateLabel(key, options) {
   } else { lbl.textContent = sel[key].length + ' selected'; }
 }
 
-// ── DATE RANGE PICKER ────────────────────────────────────────
+// ── DATE RANGE PICKER (plain date inputs, matches upload.html's Sheets Sync filter) ──
 
-const calState = { year: new Date().getFullYear(), month: new Date().getMonth() };
-let pickerFromDate = null;
-let pickerToDate   = null;
-let pickingStep    = 'from'; // 'from' | 'to'
+function dateToIso(d) {
+  return d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : '';
+}
+function isoToDate(s) {
+  if (!s) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
 
 function toggleDatePicker() {
   const pop = document.getElementById('datePickerPop');
@@ -470,141 +476,18 @@ function toggleDatePicker() {
   document.querySelectorAll('.ms-btn').forEach(b => b.classList.remove('open'));
   if (isOpen) { pop.style.display = 'none'; pop.classList.remove('open'); btn.classList.remove('active'); return; }
 
-  // Init to current selections or today
-  const now = new Date();
-  if (dateFrom) { calState.year = dateFrom.getFullYear(); calState.month = dateFrom.getMonth(); }
-  else { calState.year = now.getFullYear(); calState.month = now.getMonth(); }
-  pickerFromDate = dateFrom ? new Date(dateFrom) : null;
-  pickerToDate   = dateTo   ? new Date(dateTo)   : null;
-  pickingStep    = pickerFromDate ? (pickerToDate ? 'from' : 'to') : 'from';
+  document.getElementById('dateRangeFrom').value = dateToIso(dateFrom);
+  document.getElementById('dateRangeTo').value   = dateToIso(dateTo);
 
   pop.style.display = 'block';
   pop.classList.add('open');
   btn.classList.add('active');
-  buildYearOptions();
-  renderCalendar();
-  updateStepUI();
-}
-
-function buildYearOptions() {
-  const sel = document.getElementById('calYearSel');
-  if (!sel) return;
-  const cur = calState.year;
-  sel.innerHTML = '';
-  for (let y = cur - 3; y <= cur + 2; y++) {
-    const o = document.createElement('option');
-    o.value = y; o.textContent = y;
-    if (y === cur) o.selected = true;
-    sel.appendChild(o);
-  }
-}
-
-function calMonthChange() {
-  const sel = document.getElementById('calMonthSel');
-  if (sel) calState.month = parseInt(sel.value);
-  renderCalendar();
-}
-function calYearChange() {
-  const sel = document.getElementById('calYearSel');
-  if (sel) calState.year = parseInt(sel.value);
-  buildYearOptions();
-  renderCalendar();
-}
-
-function shiftCal(dir) {
-  calState.month += dir;
-  if (calState.month > 11) { calState.month = 0; calState.year++; }
-  if (calState.month < 0)  { calState.month = 11; calState.year--; }
-  // Sync selects
-  const ms = document.getElementById('calMonthSel');
-  const ys = document.getElementById('calYearSel');
-  if (ms) ms.value = calState.month;
-  buildYearOptions();
-  renderCalendar();
-}
-
-function renderCalendar() {
-  const { year, month } = calState;
-  const ms = document.getElementById('calMonthSel');
-  const ys = document.getElementById('calYearSel');
-  if (ms) ms.value = month;
-
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = new Date(); today.setHours(0,0,0,0);
-  const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-
-  let html = DAYS.map(d => `<div class="cal-day-hdr">${d}</div>`).join('');
-  for (let i = 0; i < firstDay; i++) html += `<div class="cal-day cal-day-empty"></div>`;
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month, d); date.setHours(0,0,0,0);
-    const isToday = date.getTime() === today.getTime();
-    const isFrom  = pickerFromDate && date.getTime() === pickerFromDate.getTime();
-    const isTo    = pickerToDate   && date.getTime() === pickerToDate.getTime();
-    const inRange = pickerFromDate && pickerToDate && date > pickerFromDate && date < pickerToDate;
-
-    let cls = 'cal-day';
-    if (isFrom && isTo)  cls += ' cal-day-selected';
-    else if (isFrom)     cls += ' cal-day-range-start';
-    else if (isTo)       cls += ' cal-day-range-end';
-    else if (inRange)    cls += ' cal-day-in-range';
-    if (isToday)         cls += ' cal-day-today';
-
-    html += `<div class="${cls}" onclick="pickDay(${year},${month},${d})">${d}</div>`;
-  }
-  document.getElementById('calGrid').innerHTML = html;
-}
-
-function pickDay(year, month, day) {
-  const date = new Date(year, month, day); date.setHours(0,0,0,0);
-
-  if (pickingStep === 'from') {
-    pickerFromDate = date;
-    pickerToDate   = null;
-    pickingStep    = 'to';
-  } else {
-    if (date < pickerFromDate) {
-      pickerToDate   = pickerFromDate;
-      pickerFromDate = date;
-    } else {
-      pickerToDate = date;
-    }
-    pickingStep = 'from';
-  }
-  renderCalendar();
-  updateStepUI();
-}
-
-function updateStepUI() {
-  const fmt = d => d ? d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : null;
-  const fromEl   = document.getElementById('calStepFrom');
-  const toEl     = document.getElementById('calStepTo');
-  const fromVal  = document.getElementById('calStepFromVal');
-  const toVal    = document.getElementById('calStepToVal');
-  const selEl    = document.getElementById('date-picker-selection');
-
-  if (fromEl) fromEl.classList.toggle('active-step', pickingStep === 'from');
-  if (toEl)   toEl.classList.toggle('active-step',   pickingStep === 'to');
-
-  if (fromVal) {
-    fromVal.textContent = pickerFromDate ? fmt(pickerFromDate) : 'Select start';
-    fromVal.className   = 'cal-step-val' + (pickerFromDate ? ' set' : '');
-  }
-  if (toVal) {
-    toVal.textContent = pickerToDate ? fmt(pickerToDate) : 'Select end';
-    toVal.className   = 'cal-step-val' + (pickerToDate ? ' set' : '');
-  }
-  if (selEl) {
-    if (!pickerFromDate) { selEl.textContent = 'Click a date to set FROM'; selEl.className = 'date-picker-selection'; }
-    else if (!pickerToDate) { selEl.textContent = 'Now click a date to set TO'; selEl.className = 'date-picker-selection'; }
-    else { selEl.textContent = `${fmt(pickerFromDate)} → ${fmt(pickerToDate)}`; selEl.className = 'date-picker-selection has-range'; }
-  }
 }
 
 function applyDateRange() {
-  dateFrom = pickerFromDate;
-  dateTo   = pickerToDate || pickerFromDate;
+  dateFrom = isoToDate(document.getElementById('dateRangeFrom').value);
+  dateTo   = isoToDate(document.getElementById('dateRangeTo').value) || dateFrom;
+
   const lbl = document.getElementById('lbl-daterange');
   if (!dateFrom) {
     updateDateRangePlaceholder();
@@ -624,25 +507,26 @@ function applyDateRange() {
   });
 }
 
-function setMTDRange() {
+// Matches ssSetDefaultFilterDates() in upload/sheet-sync.js (Jan 1 of the current
+// year → today) — same default, same reasoning: branch_staff_daily/phorest_staff_daily
+// sync daily, so "today" is a safe upper bound even if that day's sync hasn't landed yet.
+async function setDefaultRange() {
   const today = new Date(); today.setHours(0,0,0,0);
-  // Use yesterday as the end — avoids "no data" on the 1st of a new month
-  const to = new Date(today); to.setDate(to.getDate() - 1);
-  const from = new Date(to.getFullYear(), to.getMonth(), 1);
+  const from = new Date(today.getFullYear(), 0, 1);
+  const to = today;
   dateFrom = from;
   dateTo   = to;
-  pickerFromDate = new Date(from);
-  pickerToDate   = new Date(to);
+  const fromInput = document.getElementById('dateRangeFrom');
+  const toInput   = document.getElementById('dateRangeTo');
+  if (fromInput) fromInput.value = dateToIso(from);
+  if (toInput)   toInput.value   = dateToIso(to);
   const fmt = d => d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'2-digit' });
   const lbl = document.getElementById('lbl-daterange');
   if (lbl) lbl.textContent = `${fmt(from)} – ${fmt(to)}`;
 }
 
-function clearDateRange() {
-  pickingStep = 'from';
-  setMTDRange();
-  renderCalendar();
-  updateStepUI();
+async function clearDateRange() {
+  await setDefaultRange();
   renderDashboard().then(() => {
     const teamView = document.getElementById('view-team');
     if (teamView && teamView.style.display !== 'none') renderTeam();
@@ -706,17 +590,35 @@ function getFilteredData(ignoreBranch = false) {
 }
 
 function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
-  if (!dailyRows || !dailyRows.length) return null;
+  const hasLedgerData = branchStaffRows && branchStaffRows.length;
+  if (!hasLedgerData && (!dailyRows || !dailyRows.length)) return null;
+
+  let hairMap = {}, beautyMap = {};
+  if (hasLedgerData) {
+    ({ hairMap, beautyMap } = buildLedgerPhorestStaffMaps(branchStaffRows, phorestStaffRows || []));
+  }
+
+  // branch_staff_daily/phorest_staff_daily sync daily and are the source of truth once
+  // present; daily_data is the older manual-XLSX-upload table (Kate confirmed it lags —
+  // last touched 31 May while the auto-synced tables run through today) and is now only
+  // a fallback for date ranges that predate the auto sync.
+  const s = hasLedgerData ? computeGroupSummaryFromMaps(hairMap, beautyMap) : computeGroupSummaryFromDailyData(dailyRows);
+
+  const { hairStaff, beautyStaff } = buildStaffArraysFromMaps(hairMap, beautyMap);
+  return { summary: s, hairStaff, beautyStaff };
+}
+
+// Fallback for date ranges with no branch_staff_daily/phorest_staff_daily coverage —
+// the original daily_data-based summary math, unchanged.
+function computeGroupSummaryFromDailyData(dailyRows) {
   const s = {
     totalClients:0, hairRetail:0, treatmentSales:0, beautySales:0,
     netTake:0, colTake:0, rebookPct:0, ncrPct:0, _fromDaily:true,
   };
-  let dHairRebooked=0, dBeautyRebooked=0, totalHairClients=0, totalNewC=0, totalReq=0;
+  let dHairRebooked=0, dBeautyRebooked=0, totalHairClients=0;
   let dHairNCR=0, dHairREQ=0, dHairSALON=0, dHairNEW=0;
   let dBeautyREQ=0, dBeautySALON=0, dBeautyNEW=0, dBeautyNCR=0, totalBeautyClients=0;
   dailyRows.forEach(r => {
-    // Total Clients = Request + Salon + New + NCR (per CALCULATIONS OF KPIS.docx) — matches
-    // the weekly path's hairClientSum/beautyClientSum definition below, which already includes ncr.
     const hairClients   = (r.hair_clients_request||0) + (r.hair_clients_salon||0) + (r.hair_new||0) + (r.hair_ncr||0);
     const beautyClients = (r.beauty_request||0) + (r.beauty_salon||0) + (r.beauty_new||0) + (r.beauty_ncr||0);
     s.totalClients   += hairClients + beautyClients;
@@ -726,8 +628,6 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
     s.netTake        += r.total             || 0;
     dHairRebooked        += r.hair_rebooked    || 0;
     dBeautyRebooked      += r.beauty_rebooked  || 0;
-    totalNewC            += r.hair_new         || 0;
-    totalReq             += r.hair_ncr         || 0;
     totalHairClients     += hairClients;
     totalBeautyClients   += beautyClients;
     dHairNCR    += r.hair_ncr             || 0;
@@ -760,26 +660,121 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
   s.conversionPct = s.rebookPct;
   s._retailWarnings = [];
   s.totals = { hairSales: s.netTake - s.beautySales - s.hairRetail, retail: s.hairRetail, treatments: s.treatmentSales, total: s.totalClients, rebooked: totalRebooked };
+  return s;
+}
 
-  let hairStaff = [], beautyStaff = [];
-  if (branchStaffRows && branchStaffRows.length) {
-    const { hairMap, beautyMap } = buildLedgerPhorestStaffMaps(branchStaffRows, phorestStaffRows || []);
-    ({ hairStaff, beautyStaff } = buildStaffArraysFromMaps(hairMap, beautyMap));
-  }
-  return { summary: s, hairStaff, beautyStaff };
+// Group-level rollup of Kate's full Revenue Targets / Benchmarks field list, built on
+// the same branch_staff_daily (dept + client counts + ledger treatment_aed) + Phorest
+// (services/courses/retail) join used for the Staff Performance tables — see
+// buildLedgerPhorestStaffMaps for the name-reconciliation and revenue-mapping rationale.
+function computeGroupSummaryFromMaps(hairMap, beautyMap) {
+  const sum = (map, field) => Object.values(map).reduce((a, st) => a + (Number(st[field]) || 0), 0);
+
+  const hairTotalClients = sum(hairMap, 'total');
+  const hairNewClients   = sum(hairMap, 'newC');
+  const hairNCR          = sum(hairMap, 'newClientReq');
+  const hairRebooked     = sum(hairMap, 'rebooked');
+  const hairReq          = sum(hairMap, 'req');
+  const hairSalon        = sum(hairMap, 'salon');
+  const hairServicesIncl = sum(hairMap, 'hairSalesNet'); // services + courses, ex-retail
+  const hairTreatments   = sum(hairMap, 'treatments');   // ledger treatment_aed
+  const hairRetailOnly   = sum(hairMap, 'retail');
+
+  const beautyTotalClients = sum(beautyMap, 'total');
+  const beautyNewClients   = sum(beautyMap, 'newC');
+  const beautyNCR          = sum(beautyMap, 'newClientReq');
+  const beautyRebooked     = sum(beautyMap, 'rebooked');
+  const beautyReq          = sum(beautyMap, 'req');
+  const beautySalon        = sum(beautyMap, 'salon');
+  const beautyServices     = sum(beautyMap, 'beautySales');
+  const beautyRetailOnly   = sum(beautyMap, 'retail');
+
+  const totalClients  = hairTotalClients + beautyTotalClients;
+  const newClients    = hairNewClients + beautyNewClients;
+  const ncrTotal       = hairNCR + beautyNCR;
+  const totalRebooked = hairRebooked + beautyRebooked;
+  const salonClient   = hairSalon + beautySalon;
+  const requestClient = hairReq + beautyReq;
+  const servicesTotal = hairServicesIncl + beautyServices;
+  const retailTotal   = hairRetailOnly + beautyRetailOnly;
+  const netTake       = servicesTotal + retailTotal;
+
+  const s = { _fromDaily: false };
+  // Existing card fields — same names the rest of the dashboard already reads, now fed
+  // from the fresh ledger+Phorest join instead of the stale daily_data table.
+  s.totalClients   = totalClients;
+  s.hairRetail      = retailTotal; // combined retail — matches the existing "Total Retail" card's semantic
+  s.treatmentSales = hairTreatments;
+  s.beautySales    = beautyServices;
+  s.netTake        = netTake;
+  s.colTake        = 0;
+  s.avgBill        = totalClients ? netTake / totalClients : 0;
+  s.hairRetailPct  = netTake ? (retailTotal / netTake * 100) : 0;
+  // Treatment % is a hair-only concept — ratio to hair services, not diluted by beauty/retail.
+  s.treatmentPct   = hairServicesIncl ? (hairTreatments / hairServicesIncl * 100) : 0;
+  s.rebookPct      = totalClients ? (totalRebooked / totalClients * 100) : 0;
+  s.totalRebooked  = totalRebooked;
+  s.hairBreakdown   = { ncr: hairNCR,   req: hairReq,   salon: hairSalon,   new: hairNewClients,   rebooked: hairRebooked };
+  s.beautyBreakdown = { ncr: beautyNCR, req: beautyReq, salon: beautySalon, new: beautyNewClients, rebooked: beautyRebooked };
+  s.ncrPct         = hairTotalClients ? (hairNCR / hairTotalClients * 100) : 0;
+  s.hairNcrPct     = s.ncrPct;
+  s.beautyNcrPct   = beautyTotalClients ? (beautyNCR / beautyTotalClients * 100) : null;
+  s.combinedNcrPct = totalClients ? (ncrTotal / totalClients * 100) : 0;
+  s.hairAvgBill    = hairTotalClients ? (hairServicesIncl / hairTotalClients) : 0;
+  s.beautyAvgBill  = beautyTotalClients ? (beautyServices / beautyTotalClients) : null;
+  s.hairRebookPct  = hairTotalClients ? (hairRebooked / hairTotalClients * 100) : 0;
+  s.beautyRebookPct= beautyTotalClients ? (beautyRebooked / beautyTotalClients * 100) : null;
+  s.beautyPct      = netTake ? (beautyServices / netTake * 100) : 0;
+  s.retentionPct   = s.rebookPct;
+  s.conversionPct  = s.rebookPct;
+  s._retailWarnings = [];
+  s.totals = { hairSales: hairServicesIncl, retail: retailTotal, treatments: hairTreatments, total: totalClients, rebooked: totalRebooked };
+
+  // New fields for Kate's full Revenue Targets spec (2026-08-02).
+  s.servicesTotal        = servicesTotal;
+  s.retailTotal          = retailTotal;
+  s.hairServicesIncl     = hairServicesIncl;
+  s.hairServicesExcl     = hairServicesIncl - hairTreatments;
+  s.beautyServicesTotal  = beautyServices;
+  s.hairRetailOnly       = hairRetailOnly;
+  s.beautyRetailOnly     = beautyRetailOnly;
+  s.hairTotalClients     = hairTotalClients;
+  s.hairNewClients       = hairNewClients;
+  s.hairNCR              = hairNCR;
+  s.beautyTotalClients   = beautyTotalClients;
+  s.beautyNewClients     = beautyNewClients;
+  s.beautyNCR            = beautyNCR;
+  s.hairRebookedCount    = hairRebooked;
+  s.beautyRebookedCount  = beautyRebooked;
+  s.newClientsTotal      = newClients;
+  s.ncrTotal             = ncrTotal;
+  s.salonClientTotal     = salonClient;
+  s.requestClientTotal   = requestClient;
+
+  return s;
 }
 
 // ── STAFF PERFORMANCE FROM LEDGER + PHOREST (custom/daily date ranges) ──
 // branch_staff_daily gives the Hair/Beauty dept + client-count split per staff/day
-// (straight from the ledger sheets). phorest_staff_daily gives revenue per employee/day
-// but no dept split. Reconcile employee names between the two (ledger uses first-name-
+// (straight from the ledger sheets), PLUS treatment_aed — a manually-tallied ledger
+// column (Hair only) that can't be derived from Phorest's own totals, since Phorest's
+// Staff Performance Overview report has no per-service-type breakdown to split "which
+// services were treatments" out of its Services total. phorest_staff_daily supplies
+// the rest of the revenue (services/courses/retail) per employee/day, with no dept
+// split of its own. Reconcile employee names between the two (ledger uses first-name-
 // only, Phorest uses full legal name, sometimes with a trailing "(A)" marker) and use
 // the ledger's dept for each (staff, day) to attribute that day's Phorest revenue to
-// Hair or Beauty. Revenue mapping confirmed with Kate 2026-08-02: services_total feeds
-// the service-sales portion of the grand total, courses_total → treatments, products_total
-// → retail; total_total (Phorest's own grand-total column) is used directly as hairSalesNet/
-// beautySales rather than re-summing the three, since Phorest already computes it.
+// Hair or Beauty.
+//
+// Per CALCULATIONS OF KPIS.docx + Kate 2026-08-02: hairSalesNet ("Hair services, incl.
+// treatments and courses") = Phorest services_total + courses_total; treatments (a
+// subset of that figure, shown separately) = the ledger's treatment_aed; retail
+// (products_total) is tracked as its own category, never folded into hairSalesNet.
 const PHOREST_RECONCILE_ALIASES = { 'LUCY': 'LUCIA', 'MJ': 'MARY JOY' };
+
+// Non-person rows found in branch_staff_daily (2026-08-02 audit, ~2.8k of ~15k rows) —
+// ledger summary/label rows the sync script misreads as if they were staff rows.
+const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTANTS', 'ASISSTANTS', 'RETAIL', 'RETAIL SALES', ']']);
 
 function cleanPhorestName(name) {
   return String(name || '').trim().toUpperCase().replace(/\s*\(A\)\s*$/, '').trim();
@@ -798,7 +793,7 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
     const bdKey = r.branch + '|' + r.date;
     (phorestByBranchDate[bdKey] = phorestByBranchDate[bdKey] || []).push({
       key: cleanPhorestName(r.employee_name),
-      total_total:    Number(r.total_total)    || 0,
+      services_total: Number(r.services_total) || 0,
       courses_total:  Number(r.courses_total)  || 0,
       products_total: Number(r.products_total) || 0,
     });
@@ -811,18 +806,23 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
     const matches = list.filter(p => p.key === key || p.key.indexOf(key + ' ') === 0);
     if (!matches.length) return null;
     return matches.reduce((acc, m) => ({
-      total_total:    acc.total_total    + m.total_total,
+      services_total: acc.services_total + m.services_total,
       courses_total:  acc.courses_total  + m.courses_total,
       products_total: acc.products_total + m.products_total,
-    }), { total_total: 0, courses_total: 0, products_total: 0 });
+    }), { services_total: 0, courses_total: 0, products_total: 0 });
   }
 
   const hairMap = {}, beautyMap = {};
   (branchRows || []).forEach(r => {
     const name = (typeof canonicalStaffName === 'function') ? canonicalStaffName(r.staff_name) : r.staff_name;
     if (!name) return;
+    // These are ledger summary/label rows the sync misreads as staff rows (not real
+    // employees) — one, "RETAIL", carries a runaway NCR count (into the thousands,
+    // growing day over day) that badly skews the group totals if left in. Flagged to
+    // Kate as a sync-script bug to fix at the source; excluded here defensively.
+    if (LEDGER_NON_PERSON_NAMES.has(String(r.staff_name||'').trim().toUpperCase())) return;
     const isBeauty = String(r.dept || '').trim().toLowerCase() === 'beauty';
-    const rev = matchRevenue(r.branch, r.date, r.staff_name) || { total_total: 0, courses_total: 0, products_total: 0 };
+    const rev = matchRevenue(r.branch, r.date, r.staff_name) || { services_total: 0, courses_total: 0, products_total: 0 };
     const map = isBeauty ? beautyMap : hairMap;
     if (!map[name]) {
       map[name] = {
@@ -837,12 +837,17 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
     st.req          += r.req        || 0;
     st.salon        += r.salon      || 0;
     st.newClientReq += r.ncr        || 0;
+    // Services + Courses = "incl. treatments and courses" per the KPI doctrine; Treatment
+    // AED is NOT derivable from Phorest's own totals (it's a manually-tallied ledger column,
+    // Hair only — Phorest's report has no per-service-type breakdown to split it out from
+    // Services). Retail (products_total) stays outside the services figure entirely.
     if (isBeauty) {
-      st.beautySales += rev.total_total;
+      st.beautySales += rev.services_total + rev.courses_total;
+      st.retail      += rev.products_total;
     } else {
-      st.hairSalesNet += rev.total_total;
+      st.hairSalesNet += rev.services_total + rev.courses_total;
       st.retail       += rev.products_total;
-      st.treatments   += rev.courses_total;
+      st.treatments   += Number(r.treatment_aed) || 0;
     }
   });
 
@@ -857,14 +862,21 @@ function buildStaffArraysFromMaps(hairMap, beautyMap) {
     const hRebookPct    = st.total    ? (st.rebooked / st.total * 100) : 0;
     const hRetentionPct = st.total    ? (hReturning  / st.total * 100) : 0;
     const hConvPct      = hReturning  ? (st.rebooked / hReturning * 100) : 0;
+    const retail        = Number(st.retail) || 0;
+    const netSalonTake  = (st.hairSalesNet||0) + retail;
     return {
       ...st,
-      retail:        Number(st.retail) || 0,
-      avgBill:       st.total ? st.hairSalesNet / st.total : 0,
-      rebookPct:     hRebookPct,
-      retentionPct:  hRetentionPct,
-      conversionPct: hConvPct,
-      ncrPct:        st.total ? ((st.newClientReq||0) / st.total * 100) : 0,
+      retail,
+      avgBill:          st.total ? st.hairSalesNet / st.total : 0,
+      rebookPct:        hRebookPct,
+      retentionPct:     hRetentionPct,
+      conversionPct:    hConvPct,
+      ncrPct:           st.total ? ((st.newClientReq||0) / st.total * 100) : 0,
+      // Treatment % is hair-only: ratio to hair services, not diluted by retail.
+      treatmentPct:     st.hairSalesNet ? ((st.treatments||0) / st.hairSalesNet * 100) : 0,
+      retailPct:        netSalonTake ? (retail / netSalonTake * 100) : 0,
+      hairServicesExcl: (st.hairSalesNet||0) - (st.treatments||0),
+      netSalonTake,
       color: SCOLS[i % SCOLS.length]
     };
   });
@@ -873,41 +885,61 @@ function buildStaffArraysFromMaps(hairMap, beautyMap) {
     const bRebookPct    = st.total   ? ((st.rebooked||0) / st.total * 100) : 0;
     const bRetentionPct = st.total   ? (bReturning / st.total * 100) : 0;
     const bConvPct      = bReturning ? ((st.rebooked||0) / bReturning * 100) : 0;
+    const retail        = Number(st.retail) || 0;
+    const netTake       = (st.beautySales||0) + retail;
     return {
       ...st,
+      retail,
       avgBill:       st.total ? st.beautySales/st.total : 0,
       rebookPct:     bRebookPct,
       retentionPct:  bRetentionPct,
       conversionPct: bConvPct,
       ncrPct:        st.total ? ((st.newClientReq||0)/st.total*100) : 0,
+      retailPct:     netTake ? (retail / netTake * 100) : 0,
+      netSalonTake:  netTake,
       color: SCOLS[(i+3) % SCOLS.length]
     };
   });
   return { hairStaff, beautyStaff };
 }
 
+// Supabase/PostgREST caps a single response at 1000 rows by default — both
+// branch_staff_daily and phorest_staff_daily blow past that over a multi-month range
+// (15k+ and 7k+ rows respectively), and the two truncated slices land in unrelated
+// date windows (no shared ORDER BY), so a plain .select('*') silently produces near-zero
+// revenue matches. Page through with .range() until a short page confirms we're done.
+async function loadAllRows(table, fromStr, toStr) {
+  const PAGE = 1000;
+  let allRows = [];
+  let offset = 0;
+  for (;;) {
+    const { data, error } = await sb
+      .from(table)
+      .select('*')
+      .gte('date', fromStr)
+      .lte('date', toStr)
+      .order('date', { ascending: true })
+      .range(offset, offset + PAGE - 1);
+    if (error || !data) break;
+    allRows = allRows.concat(data);
+    if (data.length < PAGE) break;
+    offset += PAGE;
+  }
+  return allRows;
+}
+
 async function loadBranchStaffDailyRange(from, to) {
   const pad = n => String(n).padStart(2, '0');
   const fromStr = `${from.getFullYear()}-${pad(from.getMonth()+1)}-${pad(from.getDate())}`;
   const toStr   = `${to.getFullYear()}-${pad(to.getMonth()+1)}-${pad(to.getDate())}`;
-  const { data, error } = await sb
-    .from('branch_staff_daily')
-    .select('*')
-    .gte('date', fromStr)
-    .lte('date', toStr);
-  return (error || !data) ? [] : data;
+  return loadAllRows('branch_staff_daily', fromStr, toStr);
 }
 
 async function loadPhorestStaffDailyRange(from, to) {
   const pad = n => String(n).padStart(2, '0');
   const fromStr = `${from.getFullYear()}-${pad(from.getMonth()+1)}-${pad(from.getDate())}`;
   const toStr   = `${to.getFullYear()}-${pad(to.getMonth()+1)}-${pad(to.getDate())}`;
-  const { data, error } = await sb
-    .from('phorest_staff_daily')
-    .select('*')
-    .gte('date', fromStr)
-    .lte('date', toStr);
-  return (error || !data) ? [] : data;
+  return loadAllRows('phorest_staff_daily', fromStr, toStr);
 }
 
 // ── WEEK RANGE HELPERS ───────────────────────────────────────
@@ -1307,9 +1339,9 @@ async function renderDashboard() {
         branchStaffRows  = branchStaffRows.filter(r => sel.branch.includes(r.branch));
         phorestStaffRows = phorestStaffRows.filter(r => sel.branch.includes(r.branch));
       }
-      if (!dailyRows.length) {
+      if (!dailyRows.length && !branchStaffRows.length) {
         destroyCharts();
-        main.innerHTML = '<div class="empty">No daily data found for this date range.</div>';
+        main.innerHTML = '<div class="empty">No data found for this date range.</div>';
         return;
       }
       d = aggDailyData(dailyRows, branchStaffRows, phorestStaffRows);
@@ -1747,6 +1779,49 @@ async function renderDashboard() {
     </div>
     <div class="legend" id="donutLegend" style="width:100%;margin-top:12px;flex-shrink:0"></div>
   </div>
+</div>
+
+<!-- REVENUE TARGETS (Kate's full field spec, 2026-08-02) -->
+<div class="section-label" style="display:flex;align-items:center;gap:7px;margin-top:16px;margin-bottom:8px">
+  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#FFD4D9;flex-shrink:0"></span>
+  ${branchLabel} · Revenue Targets
+</div>
+<div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:16px 14px">
+  <div class="metric m-lime"><div class="metric-label">Services Total</div><div class="metric-value" style="font-size:18px">${fmtAED(s.servicesTotal)}</div></div>
+  <div class="metric m-lime"><div class="metric-label">Retail Total</div><div class="metric-value" style="font-size:18px">${fmtAED(s.retailTotal)}</div></div>
+  <div class="metric m-lime"><div class="metric-label">Hair Services (incl. treatments/courses)</div><div class="metric-value" style="font-size:18px">${fmtAED(s.hairServicesIncl)}</div></div>
+  <div class="metric m-lime"><div class="metric-label">Hair Services (excl. treatments)</div><div class="metric-value" style="font-size:18px">${fmtAED(s.hairServicesExcl)}</div></div>
+  <div class="metric m-lime"><div class="metric-label">Treatments Revenue</div><div class="metric-value" style="font-size:18px">${fmtAED(s.treatmentSales)}</div></div>
+  <div class="metric m-lime"><div class="metric-label">Beauty Services</div><div class="metric-value" style="font-size:18px">${fmtAED(s.beautyServicesTotal)}</div></div>
+  <div class="metric m-lime"><div class="metric-label">Hair Retail</div><div class="metric-value" style="font-size:18px">${fmtAED(s.hairRetailOnly)}</div></div>
+  <div class="metric m-lime"><div class="metric-label">Beauty Retail</div><div class="metric-value" style="font-size:18px">${fmtAED(s.beautyRetailOnly)}</div></div>
+  <div class="metric m-rose"><div class="metric-label">Hair Total Clients</div><div class="metric-value" style="font-size:18px">${(s.hairTotalClients||0).toLocaleString()}</div></div>
+  <div class="metric m-rose"><div class="metric-label">Hair New Clients</div><div class="metric-value" style="font-size:18px">${(s.hairNewClients||0).toLocaleString()}</div></div>
+  <div class="metric m-rose"><div class="metric-label">Hair NCR</div><div class="metric-value" style="font-size:18px">${(s.hairNCR||0).toLocaleString()}</div></div>
+  <div class="metric m-rose"><div class="metric-label">Beauty Total Clients</div><div class="metric-value" style="font-size:18px">${(s.beautyTotalClients||0).toLocaleString()}</div></div>
+  <div class="metric m-rose"><div class="metric-label">Beauty New Clients</div><div class="metric-value" style="font-size:18px">${(s.beautyNewClients||0).toLocaleString()}</div></div>
+  <div class="metric m-rose"><div class="metric-label">Beauty NCR</div><div class="metric-value" style="font-size:18px">${(s.beautyNCR||0).toLocaleString()}</div></div>
+  <div class="metric m-rose"><div class="metric-label">Hair Rebooked Clients</div><div class="metric-value" style="font-size:18px">${(s.hairRebookedCount||0).toLocaleString()}</div></div>
+  <div class="metric m-rose"><div class="metric-label">Beauty Rebooked Clients</div><div class="metric-value" style="font-size:18px">${(s.beautyRebookedCount||0).toLocaleString()}</div></div>
+  <div class="metric m-rose"><div class="metric-label">Rebooked Clients (Hair + Beauty)</div><div class="metric-value" style="font-size:18px">${(s.totalRebooked||0).toLocaleString()}</div></div>
+  <div class="metric m-rose"><div class="metric-label">Total Clients</div><div class="metric-value" style="font-size:18px">${(s.totalClients||0).toLocaleString()}</div></div>
+  <div class="metric m-rose"><div class="metric-label">New Clients</div><div class="metric-value" style="font-size:18px">${(s.newClientsTotal||0).toLocaleString()}</div></div>
+  <div class="metric m-rose"><div class="metric-label">NCR</div><div class="metric-value" style="font-size:18px">${(s.ncrTotal||0).toLocaleString()}</div></div>
+  <div class="metric m-turq"><div class="metric-label">Salon Client</div><div class="metric-value" style="font-size:18px">${(s.salonClientTotal||0).toLocaleString()}</div></div>
+  <div class="metric m-turq"><div class="metric-label">Request Client</div><div class="metric-value" style="font-size:18px">${(s.requestClientTotal||0).toLocaleString()}</div></div>
+</div>
+
+<!-- BENCHMARKS (Kate's full field spec, 2026-08-02) -->
+<div class="section-label" style="display:flex;align-items:center;gap:7px;margin-top:16px;margin-bottom:8px">
+  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#99F6E4;flex-shrink:0"></span>
+  ${branchLabel} · Benchmarks
+</div>
+<div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:16px 14px">
+  <div class="metric"><div class="metric-label">Rebooking %</div><div class="metric-value ${sc(s.rebookPct, TARGETS.rebookPct)}" style="font-size:18px">${fmtPct(s.rebookPct)}</div><div class="metric-target">Target: ${TARGETS.rebookPct}%</div></div>
+  <div class="metric"><div class="metric-label">Treatment %</div><div class="metric-value ${sc(s.treatmentPct, TARGETS.treatmentPct)}" style="font-size:18px">${fmtPct(s.treatmentPct)}</div><div class="metric-target">Target: ≥ ${TARGETS.treatmentPct}%</div></div>
+  <div class="metric"><div class="metric-label">Retail %</div><div class="metric-value ${sc(s.hairRetailPct, TARGETS.retailPct)}" style="font-size:18px">${fmtPct(s.hairRetailPct)}</div><div class="metric-target">Target: ≥ ${TARGETS.retailPct}%</div></div>
+  <div class="metric"><div class="metric-label">Hair Avg Bill (AED)</div><div class="metric-value ${sc(s.hairAvgBill, TARGETS.hairAvgBill)}" style="font-size:18px">${fmtAED(s.hairAvgBill)}</div><div class="metric-target">Target: AED ${TARGETS.hairAvgBill}</div></div>
+  <div class="metric"><div class="metric-label">Beauty Avg Bill (AED)</div><div class="metric-value ${s.beautyAvgBill!=null?sc(s.beautyAvgBill, TARGETS.beautyAvgBill):''}" style="font-size:18px">${s.beautyAvgBill!=null?fmtAED(s.beautyAvgBill):'—'}</div><div class="metric-target">Target: AED ${TARGETS.beautyAvgBill}</div></div>
 </div>
 
 <!-- SUPPORTING METRICS LABEL -->
@@ -2577,153 +2652,125 @@ function renderTeam() {
   function renderTeamHairTable() {
     const sorted = [...d.hairStaff].sort((a,b) => hairSortT.dir==='asc' ? (a[hairSortT.col]||0)-(b[hairSortT.col]||0) : (b[hairSortT.col]||0)-(a[hairSortT.col]||0));
 
+    // Column order matches Kate's Staff Performance (Hair) spec, 2026-08-02.
     const headerHTML = `
       <colgroup><col style="width:30px"><col style="width:90px"><col style="width:130px"><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
       <thead>
         <tr style="background:var(--surface2)">
           <th colspan="3" style="padding:6px 10px 4px;border-bottom:1px solid var(--border)"></th>
+          <th colspan="4" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#FFD4D9;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #FFD4D944">BENCHMARKS</th>
           <th colspan="4" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#EEF3C7;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #EEF3C744">REVENUE</th>
-          <th colspan="5" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#C4B5FD;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #C4B5FD44">CLIENTS</th>
-          <th colspan="3" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#FFD4D9;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #FFD4D944">RETENTION</th>
-          <th colspan="1" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#99F6E4;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #99F6E444">OPS</th>
+          <th colspan="4" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#C4B5FD;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #C4B5FD44">CLIENTS</th>
+          <th colspan="2" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#99F6E4;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #99F6E444">BREAKDOWN</th>
         </tr>
         <tr>
           <th style="width:30px">#</th>
           <th>Branch</th>
           <th class="sortable${hairSortT.col==='name'?' sort-'+hairSortT.dir:''}" onclick="sortTeamHair('name')">Stylist</th>
-          <th class="sortable${hairSortT.col==='serviceSales'?' sort-'+hairSortT.dir:''}" onclick="sortTeamHair('serviceSales')" style="border-left:2px solid #EEF3C744">Service Sales</th>
+          <th class="sortable${hairSortT.col==='rebookPct'?' sort-'+hairSortT.dir:''}"      onclick="sortTeamHair('rebookPct')" style="border-left:2px solid #FFD4D944">Rebooking %</th>
           <th class="sortable${hairSortT.col==='treatmentPct'?' sort-'+hairSortT.dir:''}"   onclick="sortTeamHair('treatmentPct')">Treatment %</th>
           <th class="sortable${hairSortT.col==='retailPct'?' sort-'+hairSortT.dir:''}"      onclick="sortTeamHair('retailPct')">Retail %</th>
-          <th class="sortable${hairSortT.col==='avgBill'?' sort-'+hairSortT.dir:''}"        onclick="sortTeamHair('avgBill')">Hair Avg Bill</th>
-          <th class="sortable${hairSortT.col==='newC'?' sort-'+hairSortT.dir:''}"           onclick="sortTeamHair('newC')" style="border-left:2px solid #C4B5FD44">New Clients</th>
-          <th class="sortable${hairSortT.col==='ncrCount'?' sort-'+hairSortT.dir:''}"       onclick="sortTeamHair('ncrCount')">NCR</th>
-          <th class="sortable${hairSortT.col==='ncrPct'?' sort-'+hairSortT.dir:''}"         onclick="sortTeamHair('ncrPct')">Request %</th>
-          <th class="sortable${hairSortT.col==='salonPct'?' sort-'+hairSortT.dir:''}"       onclick="sortTeamHair('salonPct')">Salon %</th>
-          <th class="sortable${hairSortT.col==='newClientPct'?' sort-'+hairSortT.dir:''}"   onclick="sortTeamHair('newClientPct')">New %</th>
-          <th class="sortable${hairSortT.col==='rebookPct'?' sort-'+hairSortT.dir:''}"      onclick="sortTeamHair('rebookPct')" style="border-left:2px solid #FFD4D944">Hair Rebook %</th>
-          <th class="sortable${hairSortT.col==='retentionPct'?' sort-'+hairSortT.dir:''}"   onclick="sortTeamHair('retentionPct')">Retention %</th>
-          <th class="sortable${hairSortT.col==='conversionPct'?' sort-'+hairSortT.dir:''}"  onclick="sortTeamHair('conversionPct')">Conversion %</th>
-          <th style="border-left:2px solid #99F6E444">Utilisation %</th>
+          <th class="sortable${hairSortT.col==='avgBill'?' sort-'+hairSortT.dir:''}"        onclick="sortTeamHair('avgBill')">Avg Bill (AED)</th>
+          <th class="sortable${hairSortT.col==='hairServicesExcl'?' sort-'+hairSortT.dir:''}" onclick="sortTeamHair('hairServicesExcl')" style="border-left:2px solid #EEF3C744">Hair Services (excl. treatments)</th>
+          <th class="sortable${hairSortT.col==='treatments'?' sort-'+hairSortT.dir:''}"     onclick="sortTeamHair('treatments')">Treatments Revenue</th>
+          <th class="sortable${hairSortT.col==='retail'?' sort-'+hairSortT.dir:''}"         onclick="sortTeamHair('retail')">Retail Revenue</th>
+          <th class="sortable${hairSortT.col==='netSalonTake'?' sort-'+hairSortT.dir:''}"   onclick="sortTeamHair('netSalonTake')">Net Salon Take</th>
+          <th class="sortable${hairSortT.col==='rebooked'?' sort-'+hairSortT.dir:''}"       onclick="sortTeamHair('rebooked')" style="border-left:2px solid #C4B5FD44">Rebooked Clients</th>
+          <th class="sortable${hairSortT.col==='total'?' sort-'+hairSortT.dir:''}"          onclick="sortTeamHair('total')">Total Clients</th>
+          <th class="sortable${hairSortT.col==='newC'?' sort-'+hairSortT.dir:''}"           onclick="sortTeamHair('newC')">New Clients</th>
+          <th class="sortable${hairSortT.col==='newClientReq'?' sort-'+hairSortT.dir:''}"   onclick="sortTeamHair('newClientReq')">NCR</th>
+          <th class="sortable${hairSortT.col==='salon'?' sort-'+hairSortT.dir:''}"          onclick="sortTeamHair('salon')" style="border-left:2px solid #99F6E444">Salon Client</th>
+          <th class="sortable${hairSortT.col==='req'?' sort-'+hairSortT.dir:''}"            onclick="sortTeamHair('req')">Request Client</th>
         </tr>
       </thead>`;
 
     const rows = sorted.map((st,i) => {
-      const br             = getStBranch(st.name, false);
-      const totalRev       = st.hairSalesNet||0;
-      const serviceSales   = totalRev - (st.retail||0);
-      const treatmentPct   = totalRev ? ((st.treatments||0)/totalRev*100) : 0;
-      const retailPct      = totalRev ? ((st.retail||0)/totalRev*100) : 0;
-      const ncrCount       = Math.round((st.ncrPct||0)/100*(st.total||0));
-      const salonPct       = 100 - (st.ncrPct||0);
-      const newClientPct   = st.total ? ((st.newC||0)/st.total*100) : 0;
-      const retentionPct   = st.retentionPct||0;
-      const conversionPct  = st.conversionPct||0;
+      const br = getStBranch(st.name, false);
       return `<tr>
         <td style="color:var(--muted2);font-size:11px">${i+1}</td>
         <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${br.color};flex-shrink:0"></span><span style="font-size:11px;color:var(--muted);white-space:nowrap">${br.name}</span></span></td>
         <td><span style="display:flex;align-items:center;gap:7px"><span style="width:22px;height:22px;border-radius:50%;background:${st.color};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0">${initials(st.name)}</span><span style="font-size:12px;font-weight:600;color:var(--text)">${st.name}</span></span></td>
-        <td style="border-left:2px solid #EEF3C722">${fmtAED(serviceSales)}</td>
-        <td><span class="badge ${sc(treatmentPct,TARGETS.treatmentPct)}">${fmtPct(treatmentPct)}</span></td>
-        <td><span class="badge ${sc(retailPct,TARGETS.retailPct)}">${fmtPct(retailPct)}</span></td>
+        <td style="border-left:2px solid #FFD4D922"><span class="badge ${sc(st.rebookPct,TARGETS.rebookPct)}">${fmtPct(st.rebookPct)}</span></td>
+        <td><span class="badge ${sc(st.treatmentPct,TARGETS.treatmentPct)}">${fmtPct(st.treatmentPct)}</span></td>
+        <td><span class="badge ${sc(st.retailPct,TARGETS.retailPct)}">${fmtPct(st.retailPct)}</span></td>
         <td><span class="badge ${sc(st.avgBill,TARGETS.hairAvgBill)}">${fmtAED(st.avgBill)}</span></td>
-        <td style="border-left:2px solid #C4B5FD22">${st.newC||0}</td>
-        <td>${ncrCount}</td>
-        <td><span class="badge ${sc(st.ncrPct||0,40)}">${fmtPct(st.ncrPct||0)}</span></td>
-        <td>${fmtPct(salonPct)}</td>
-        <td><span class="badge ${sc(newClientPct,20)}">${fmtPct(newClientPct)}</span></td>
-        <td style="border-left:2px solid #FFD4D922"><span class="badge ${sc(st.rebookPct,50)}">${fmtPct(st.rebookPct)}</span></td>
-        <td><span class="badge ${sc(retentionPct,60)}">${fmtPct(retentionPct)}</span></td>
-        <td><span class="badge ${sc(conversionPct,50)}">${fmtPct(conversionPct)}</span></td>
-        <td style="border-left:2px solid #99F6E422;color:var(--muted2)">—</td>
+        <td style="border-left:2px solid #EEF3C722">${fmtAED(st.hairServicesExcl)}</td>
+        <td>${fmtAED(st.treatments)}</td>
+        <td>${fmtAED(st.retail)}</td>
+        <td>${fmtAED(st.netSalonTake)}</td>
+        <td style="border-left:2px solid #C4B5FD22">${st.rebooked||0}</td>
+        <td>${st.total||0}</td>
+        <td>${st.newC||0}</td>
+        <td>${st.newClientReq||0}</td>
+        <td style="border-left:2px solid #99F6E422">${st.salon||0}</td>
+        <td>${st.req||0}</td>
       </tr>`;
     }).join('');
-    document.getElementById('tTabHair').innerHTML = `<table style="min-width:1100px">${headerHTML}<tbody>${rows}</tbody></table>`;
+    document.getElementById('tTabHair').innerHTML = `<table style="min-width:1250px">${headerHTML}<tbody>${rows}</tbody></table>`;
   }
 
   function renderTeamBeautyTable() {
     const sorted = [...d.beautyStaff].sort((a,b) => beautySortT.dir==='asc' ? (a[beautySortT.col]||0)-(b[beautySortT.col]||0) : (b[beautySortT.col]||0)-(a[beautySortT.col]||0));
+    // Column order matches Kate's Staff Performance (Beauty) spec, 2026-08-02.
     const headerHTML = `
-      <colgroup><col style="width:30px"><col style="width:90px"><col style="width:130px"><col><col><col><col><col><col><col></colgroup>
+      <colgroup><col style="width:30px"><col style="width:90px"><col style="width:130px"><col><col><col><col><col><col><col><col><col><col><col></colgroup>
       <thead>
         <tr style="background:var(--surface2)">
           <th colspan="3" style="padding:6px 10px 4px;border-bottom:1px solid var(--border)"></th>
-          <th colspan="2" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#EEF3C7;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #EEF3C744">REVENUE</th>
-          <th colspan="3" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#C4B5FD;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #C4B5FD44">CLIENTS</th>
-          <th colspan="2" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#FFD4D9;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #FFD4D944">RETENTION</th>
+          <th colspan="3" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#FFD4D9;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #FFD4D944">BENCHMARKS</th>
+          <th colspan="3" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#EEF3C7;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #EEF3C744">REVENUE</th>
+          <th colspan="4" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#C4B5FD;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #C4B5FD44">CLIENTS</th>
+          <th colspan="2" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#99F6E4;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #99F6E444">BREAKDOWN</th>
         </tr>
         <tr>
           <th style="width:30px">#</th><th>Branch</th>
           <th class="sortable${beautySortT.col==='name'?' sort-'+beautySortT.dir:''}" onclick="sortTeamBeauty('name')">Therapist</th>
-          <th class="sortable${beautySortT.col==='beautySales'?' sort-'+beautySortT.dir:''}" onclick="sortTeamBeauty('beautySales')" style="border-left:2px solid #EEF3C744">Beauty Sales</th>
-          <th class="sortable${beautySortT.col==='avgBill'?' sort-'+beautySortT.dir:''}"     onclick="sortTeamBeauty('avgBill')">Beauty Avg Bill</th>
-          <th class="sortable${beautySortT.col==='total'?' sort-'+beautySortT.dir:''}"       onclick="sortTeamBeauty('total')" style="border-left:2px solid #C4B5FD44">Total Clients</th>
+          <th class="sortable${beautySortT.col==='rebookPct'?' sort-'+beautySortT.dir:''}" onclick="sortTeamBeauty('rebookPct')" style="border-left:2px solid #FFD4D944">Rebooking %</th>
+          <th class="sortable${beautySortT.col==='retailPct'?' sort-'+beautySortT.dir:''}"  onclick="sortTeamBeauty('retailPct')">Retail %</th>
+          <th class="sortable${beautySortT.col==='avgBill'?' sort-'+beautySortT.dir:''}"    onclick="sortTeamBeauty('avgBill')">Avg Bill (AED)</th>
+          <th class="sortable${beautySortT.col==='beautySales'?' sort-'+beautySortT.dir:''}" onclick="sortTeamBeauty('beautySales')" style="border-left:2px solid #EEF3C744">Services Revenue</th>
+          <th class="sortable${beautySortT.col==='retail'?' sort-'+beautySortT.dir:''}"      onclick="sortTeamBeauty('retail')">Retail Revenue</th>
+          <th class="sortable${beautySortT.col==='netSalonTake'?' sort-'+beautySortT.dir:''}" onclick="sortTeamBeauty('netSalonTake')">Total Net Take</th>
+          <th class="sortable${beautySortT.col==='rebooked'?' sort-'+beautySortT.dir:''}"    onclick="sortTeamBeauty('rebooked')" style="border-left:2px solid #C4B5FD44">Rebooked Clients</th>
+          <th class="sortable${beautySortT.col==='total'?' sort-'+beautySortT.dir:''}"       onclick="sortTeamBeauty('total')">Total Clients</th>
           <th class="sortable${beautySortT.col==='newC'?' sort-'+beautySortT.dir:''}"        onclick="sortTeamBeauty('newC')">New Clients</th>
-          <th class="sortable${beautySortT.col==='ncrPct'?' sort-'+beautySortT.dir:''}"      onclick="sortTeamBeauty('ncrPct')">NCR %</th>
-          <th class="sortable${beautySortT.col==='rebookPct'?' sort-'+beautySortT.dir:''}"   onclick="sortTeamBeauty('rebookPct')" style="border-left:2px solid #FFD4D944">Beauty Rebook %</th>
-          <th class="sortable${beautySortT.col==='conversionPct'?' sort-'+beautySortT.dir:''}" onclick="sortTeamBeauty('conversionPct')">Conversion %</th>
+          <th class="sortable${beautySortT.col==='newClientReq'?' sort-'+beautySortT.dir:''}" onclick="sortTeamBeauty('newClientReq')">NCR</th>
+          <th class="sortable${beautySortT.col==='salon'?' sort-'+beautySortT.dir:''}"       onclick="sortTeamBeauty('salon')" style="border-left:2px solid #99F6E444">Salon Client</th>
+          <th class="sortable${beautySortT.col==='req'?' sort-'+beautySortT.dir:''}"         onclick="sortTeamBeauty('req')">Request Client</th>
         </tr>
       </thead>`;
     const rows = sorted.map((st,i) => {
       const br = getStBranch(st.name, true);
-      const conversionPct = st.conversionPct||0;
       return `<tr>
         <td style="color:var(--muted2);font-size:11px">${i+1}</td>
         <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${br.color};flex-shrink:0"></span><span style="font-size:11px;color:var(--muted);white-space:nowrap">${br.name}</span></span></td>
         <td><span style="display:flex;align-items:center;gap:7px"><span style="width:22px;height:22px;border-radius:50%;background:${st.color};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0">${initials(st.name)}</span><span style="font-size:12px;font-weight:600;color:var(--text)">${st.name}</span></span></td>
-        <td style="border-left:2px solid #EEF3C722">${fmtAED(st.beautySales)}</td>
+        <td style="border-left:2px solid #FFD4D922"><span class="badge ${sc(st.rebookPct,TARGETS.rebookPct)}">${fmtPct(st.rebookPct)}</span></td>
+        <td><span class="badge ${sc(st.retailPct,TARGETS.retailPct)}">${fmtPct(st.retailPct)}</span></td>
         <td><span class="badge ${sc(st.avgBill,TARGETS.beautyAvgBill)}">${fmtAED(st.avgBill)}</span></td>
-        <td style="border-left:2px solid #C4B5FD22">${st.total||0}</td>
+        <td style="border-left:2px solid #EEF3C722">${fmtAED(st.beautySales)}</td>
+        <td>${fmtAED(st.retail)}</td>
+        <td>${fmtAED(st.netSalonTake)}</td>
+        <td style="border-left:2px solid #C4B5FD22">${st.rebooked||0}</td>
+        <td>${st.total||0}</td>
         <td>${st.newC||0}</td>
-        <td><span class="badge ${sc(st.ncrPct||0,20)}">${fmtPct(st.ncrPct||0)}</span></td>
-        <td style="border-left:2px solid #FFD4D922"><span class="badge ${sc(st.rebookPct,40)}">${fmtPct(st.rebookPct)}</span></td>
-        <td><span class="badge ${sc(conversionPct,40)}">${fmtPct(conversionPct)}</span></td>
+        <td>${st.newClientReq||0}</td>
+        <td style="border-left:2px solid #99F6E422">${st.salon||0}</td>
+        <td>${st.req||0}</td>
       </tr>`;
     }).join('');
-    document.getElementById('tTabBeauty').innerHTML = `<table style="min-width:800px">${headerHTML}<tbody>${rows}</tbody></table>`;
+    document.getElementById('tTabBeauty').innerHTML = `<table style="min-width:1150px">${headerHTML}<tbody>${rows}</tbody></table>`;
   }
 
   window.sortTeamHair = function(col) {
     hairSortT.dir = hairSortT.col === col ? (hairSortT.dir==='asc'?'desc':'asc') : 'desc';
     hairSortT.col = col;
-    d.hairStaff.forEach(st => {
-
-      console.log('RETAIL DEBUG:', {
-        name: st.name,
-        retail: st.retail,
-        hair: st.hairSalesNet,
-        beauty: st.beautySales
-      });
-
-      const totalRev = (st.hairSalesNet || 0) + (st.beautySales || 0);
-
-      const retailVal = Number(st.retail) || 0;
-      
-      st.retailPct = totalRev && retailVal
-        ? (retailVal / totalRev * 100)
-        : 0;
-      
-      // optional debug
-      if (!st.retail || st.retail === 0) {
-        console.warn('⚠️ Retail missing for:', st.name);
-      }
-      
-      st.serviceSales  = totalRev - (st.retail || 0);
-      st.treatmentPct  = totalRev ? ((st.treatments || 0) / totalRev * 100) : 0;
-      st.ncrCount      = Math.round((st.ncrPct||0)/100*(st.total||0));
-      st.salonPct      = 100-(st.ncrPct||0);
-      st.newClientPct  = st.total?((st.newC||0)/st.total*100):0;
-      const _ret = (st.req||0) + (st.salon||0);
-      st.retentionPct  = st.total ? (_ret / st.total * 100) : 0;
-      st.conversionPct = _ret    ? ((st.rebooked||0) / _ret * 100) : 0;
-      st.branchName    = getStBranch(st.name,false).name;
-    });
     renderTeamHairTable();
   };
 
   window.sortTeamBeauty = function(col) {
     beautySortT.dir = beautySortT.col === col ? (beautySortT.dir==='asc'?'desc':'asc') : 'desc';
     beautySortT.col = col;
-    d.beautyStaff.forEach(st => { /* retentionPct + conversionPct already computed in aggData */ });
     renderTeamBeautyTable();
   };
 
@@ -2765,7 +2812,7 @@ async function loadData() {
   const branches = Object.entries(BRANCH_INFO).map(([k,v]) => ({ val:k, label:v.name }));
   buildDrop('branch', branches);
   rebuildDependentDrops();
-  setMTDRange();
+  await setDefaultRange();
   renderDashboard();
   // Use latest daily_data upload for the freshness badge
   const { data: dailyMeta } = await sb.from('daily_data').select('uploaded_at').order('uploaded_at', { ascending: false }).limit(1);

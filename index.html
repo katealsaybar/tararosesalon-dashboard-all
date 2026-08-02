@@ -390,6 +390,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .cal-step-val{display:block;font-size:12px;font-weight:600;color:var(--text)}
 .cal-step-val.set{color:var(--good)}
 .cal-step-arrow{color:var(--muted);font-size:14px;flex-shrink:0}
+.cal-step input[type=date]{display:block;width:100%;background:none;border:none;padding:0;font-size:12px;font-weight:600;color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer}
+.cal-step input[type=date]:focus{outline:none}
+[data-theme="dark"] .cal-step input[type=date]{color-scheme:dark}
+[data-theme="light"] .cal-step input[type=date]{color-scheme:light}
 .date-picker-clear{background:none;border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:10px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;white-space:nowrap;flex-shrink:0}
 .date-picker-clear:hover{border-color:var(--bad);color:var(--bad)}
 /* Calendar nav */
@@ -843,43 +847,22 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
           <span id="lbl-daterange">Select Date/s From and To</span>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" id="daterange-chevron"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <!-- DATE PICKER POPOVER -->
+        <!-- DATE PICKER POPOVER (plain date inputs, matches upload.html's Sheets Sync filter) -->
         <div class="date-picker-pop" id="datePickerPop" onclick="event.stopPropagation()">
-          <!-- STEP INDICATOR -->
           <div class="cal-steps">
-            <div class="cal-step" id="calStepFrom">
+            <div class="cal-step">
               <span class="cal-step-label">FROM</span>
-              <span class="cal-step-val" id="calStepFromVal">Select start</span>
+              <input type="date" id="dateRangeFrom">
             </div>
             <div class="cal-step-arrow">→</div>
-            <div class="cal-step" id="calStepTo">
+            <div class="cal-step">
               <span class="cal-step-label">TO</span>
-              <span class="cal-step-val" id="calStepToVal">Select end</span>
+              <input type="date" id="dateRangeTo">
             </div>
             <button class="date-picker-clear" onclick="clearDateRange()">Clear</button>
           </div>
-          <!-- CALENDAR NAV -->
-          <div class="cal-nav">
-            <button class="cal-nav-btn" onclick="shiftCal(-1)">‹</button>
-            <div class="cal-nav-center">
-              <select class="cal-sel" id="calMonthSel" onchange="calMonthChange()">
-                <option value="0">January</option><option value="1">February</option>
-                <option value="2">March</option><option value="3">April</option>
-                <option value="4">May</option><option value="5">June</option>
-                <option value="6">July</option><option value="7">August</option>
-                <option value="8">September</option><option value="9">October</option>
-                <option value="10">November</option><option value="11">December</option>
-              </select>
-              <select class="cal-sel" id="calYearSel" onchange="calYearChange()">
-              </select>
-            </div>
-            <button class="cal-nav-btn" onclick="shiftCal(1)">›</button>
-          </div>
-          <!-- CALENDAR GRID -->
-          <div class="cal-grid" id="calGrid"></div>
-          <!-- FOOTER -->
           <div class="date-picker-footer">
-            <span class="date-picker-selection" id="date-picker-selection">Click a date to set FROM</span>
+            <span class="date-picker-selection" id="date-picker-selection"></span>
             <button class="date-picker-apply" onclick="applyDateRange()">Apply</button>
           </div>
         </div>
@@ -1057,8 +1040,8 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 </div><!-- end #dashboardWrap -->
 
 
-<script src="upload/name-aliases.js"></script>
-<script src="dashboard.js"></script>
+<script src="upload/name-aliases.js?v=20260802b"></script>
+<script src="dashboard.js?v=20260802b"></script>
 <script>
 
 // ── PASSWORD GATE ────────────────────────────────────────────
