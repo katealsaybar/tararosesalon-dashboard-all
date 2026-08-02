@@ -368,6 +368,57 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <div id="utilPdfResults" style="margin-top:10px"></div>
   </div>
 
+  <!-- BACKFILL PROGRESS -->
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="card-title" style="margin-bottom:0">Backfill Progress</div>
+      <button class="btn-outline" onclick="refreshUtilProgress()" style="padding:8px 16px">↻ Refresh</button>
+    </div>
+    <div class="card-sub">One pull per branch per day, Jan 1 2026 → today</div>
+    <div id="utilProgressGrid"><div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div></div>
+  </div>
+
+  <!-- BROWSE / FILTER -->
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:0">Browse Data</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="utilResultCount" class="card-sub" style="margin-bottom:0"></span>
+        <div class="mini-toggle-wrap" onclick="utilToggleSummaryMode()" role="button" title="Summary sums each staff member's available/utilised hours across the selected date range and recomputes utilisation %, instead of one row per report">
+          <span class="mini-toggle-lbl" id="utilSummaryLbl">Daily</span>
+          <div class="mini-toggle-track" id="utilSummaryTrack"><div class="mini-toggle-thumb"></div></div>
+        </div>
+        <div style="position:relative">
+          <button class="btn-outline" id="utilColPickerBtn" onclick="utilToggleColPicker(event)" style="padding:8px 14px">Columns ▾</button>
+          <div id="utilColPicker" class="sp-col-picker"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sp-filter-row">
+      <div class="sp-filter-field">
+        <label>Branch</label>
+        <select id="utilfBranch"><option value="">All branches</option></select>
+      </div>
+      <div class="sp-filter-field">
+        <label>Staff</label>
+        <input type="text" id="utilfStaff" placeholder="Search name…">
+      </div>
+      <div class="sp-filter-field">
+        <label>From</label>
+        <input type="date" id="utilfFrom">
+      </div>
+      <div class="sp-filter-field">
+        <label>To</label>
+        <input type="date" id="utilfTo">
+      </div>
+      <button class="btn" style="width:auto;padding:9px 18px" onclick="runUtilFilter()">Apply</button>
+      <button class="btn-outline" onclick="resetUtilFilter()">Reset</button>
+    </div>
+    <div class="sp-table-wrap">
+      <div id="utilTableHost" style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>
+    </div>
+  </div>
+
   </div>
 
 <!-- ══ PRODUCT USAGE TAB ══ -->
