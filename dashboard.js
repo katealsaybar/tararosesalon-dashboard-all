@@ -372,12 +372,6 @@ document.addEventListener('click', e => {
     document.querySelectorAll('.ms-drop').forEach(d => d.classList.remove('open'));
     document.querySelectorAll('.ms-btn').forEach(b  => b.classList.remove('open'));
   }
-  if (!e.target.closest('#dateRangeWrap')) {
-    const pop = document.getElementById('datePickerPop');
-    const btn = document.getElementById('btn-daterange');
-    if (pop) pop.classList.remove('open');
-    if (btn) btn.classList.remove('active');
-  }
 });
 
 function buildDrop(key, options) {
@@ -468,39 +462,10 @@ function isoToDate(s) {
   return dt;
 }
 
-function toggleDatePicker() {
-  const pop = document.getElementById('datePickerPop');
-  const btn = document.getElementById('btn-daterange');
-  const isOpen = pop.classList.contains('open');
-  document.querySelectorAll('.ms-drop').forEach(d => d.classList.remove('open'));
-  document.querySelectorAll('.ms-btn').forEach(b => b.classList.remove('open'));
-  if (isOpen) { pop.style.display = 'none'; pop.classList.remove('open'); btn.classList.remove('active'); return; }
-
-  document.getElementById('dateRangeFrom').value = dateToIso(dateFrom);
-  document.getElementById('dateRangeTo').value   = dateToIso(dateTo);
-
-  pop.style.display = 'block';
-  pop.classList.add('open');
-  btn.classList.add('active');
-}
-
 function applyDateRange() {
   dateFrom = isoToDate(document.getElementById('dateRangeFrom').value);
   dateTo   = isoToDate(document.getElementById('dateRangeTo').value) || dateFrom;
 
-  const lbl = document.getElementById('lbl-daterange');
-  if (!dateFrom) {
-    updateDateRangePlaceholder();
-  } else {
-    const fmt = d => d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'2-digit' });
-    lbl.textContent = dateTo && dateTo.getTime() !== dateFrom.getTime()
-      ? `${fmt(dateFrom)} – ${fmt(dateTo)}`
-      : fmt(dateFrom);
-  }
-  const pop = document.getElementById('datePickerPop');
-  const btn = document.getElementById('btn-daterange');
-  if (pop) { pop.classList.remove('open'); }
-  if (btn) btn.classList.remove('active');
   renderDashboard().then(() => {
     const teamView = document.getElementById('view-team');
     if (teamView && teamView.style.display !== 'none') renderTeam();
@@ -520,9 +485,6 @@ async function setDefaultRange() {
   const toInput   = document.getElementById('dateRangeTo');
   if (fromInput) fromInput.value = dateToIso(from);
   if (toInput)   toInput.value   = dateToIso(to);
-  const fmt = d => d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'2-digit' });
-  const lbl = document.getElementById('lbl-daterange');
-  if (lbl) lbl.textContent = `${fmt(from)} – ${fmt(to)}`;
 }
 
 async function clearDateRange() {
@@ -548,31 +510,6 @@ function getWeekDatesFromLabel(label) {
   const start = new Date(startYear, startMonth, startDay); start.setHours(0,0,0,0);
   const end   = new Date(endYear,   endMonth,   endDay);   end.setHours(0,0,0,0);
   return { start, end };
-}
-
-function getDataSpan() {
-  let minDate = null, maxDate = null;
-  allData.forEach(d => {
-    const dates = getWeekDatesFromLabel(d.week_label);
-    const toD = s => { const u = new Date(s); u.setHours(0,0,0,0); return u; };
-    const start = dates ? dates.start : (d.uploaded_at ? toD(d.uploaded_at) : null);
-    const end   = dates ? dates.end   : start;
-    // also check uploaded_at directly so recent rows without matching labels aren't missed
-    const uploaded = d.uploaded_at ? toD(d.uploaded_at) : null;
-    if (start    && (!minDate || start    < minDate)) minDate = start;
-    if (end      && (!maxDate || end      > maxDate)) maxDate = end;
-    if (uploaded && (!maxDate || uploaded > maxDate)) maxDate = uploaded;
-  });
-  return { minDate, maxDate };
-}
-
-function updateDateRangePlaceholder() {
-  const lbl = document.getElementById('lbl-daterange');
-  if (!lbl || dateFrom) return; // don't overwrite an active selection
-  const { minDate, maxDate } = getDataSpan();
-  if (!minDate || !maxDate) { lbl.textContent = 'Select Date/s From and To'; return; }
-  const fmt = d => d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
-  lbl.textContent = `${fmt(minDate)} – ${fmt(maxDate)}`;
 }
 
 function getFilteredData(ignoreBranch = false) {

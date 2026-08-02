@@ -377,48 +377,14 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .ms-opt.all-opt{font-weight:600;border-bottom:1px solid var(--border);border-left:3px solid transparent}
 .ms-opt.all-opt.selected{color:var(--accent);background:var(--surface2);border-left-color:var(--accent)}
 
-/* DATE RANGE PICKER */
-.date-pill-btn{min-width:220px}
-.date-pill-btn.active{border-color:var(--accent);background:var(--surface2)}
-.date-picker-pop{position:fixed;z-index:300;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.28);padding:16px;width:300px;opacity:0;pointer-events:none;transform:translateY(-6px);transition:opacity .2s ease,transform .2s ease}
-.date-picker-pop.open{opacity:1;pointer-events:auto;transform:translateY(0)}
-/* Step indicator */
-.cal-steps{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border2)}
-.cal-step{flex:1;background:var(--surface2);border-radius:10px;padding:7px 10px;border:1.5px solid var(--border)}
-.cal-step.active-step{border-color:var(--accent)}
-.cal-step-label{display:block;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
-.cal-step-val{display:block;font-size:12px;font-weight:600;color:var(--text)}
-.cal-step-val.set{color:var(--good)}
-.cal-step-arrow{color:var(--muted);font-size:14px;flex-shrink:0}
-.cal-step input[type=date]{display:block;width:100%;background:none;border:none;padding:0;font-size:12px;font-weight:600;color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer}
-.cal-step input[type=date]:focus{outline:none}
-[data-theme="dark"] .cal-step input[type=date]{color-scheme:dark}
-[data-theme="light"] .cal-step input[type=date]{color-scheme:light}
-.date-picker-clear{background:none;border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:10px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;white-space:nowrap;flex-shrink:0}
+/* DATE RANGE (plain inline inputs, matches upload.html's sp-filter-field) */
+.date-inp{padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.date-inp:focus{outline:none;border-color:var(--accent)}
+[data-theme="dark"] .date-inp{color-scheme:dark}
+[data-theme="light"] .date-inp{color-scheme:light}
+.date-picker-clear{background:none;border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;white-space:nowrap}
 .date-picker-clear:hover{border-color:var(--bad);color:var(--bad)}
-/* Calendar nav */
-.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.cal-nav-center{display:flex;gap:6px;align-items:center}
-.cal-nav-btn{background:none;border:1px solid var(--border);border-radius:8px;width:28px;height:28px;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:inherit}
-.cal-nav-btn:hover{border-color:var(--accent);color:var(--text)}
-.cal-sel{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 6px;font-size:12px;font-weight:600;color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer;appearance:none;-webkit-appearance:none}
-.cal-sel:focus{outline:none;border-color:var(--accent)}
-/* Calendar grid */
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:12px}
-.cal-day-hdr{font-size:9px;text-align:center;color:var(--muted2);padding:3px 0;letter-spacing:0.05em}
-.cal-day{font-size:11px;text-align:center;padding:6px 2px;border-radius:6px;cursor:pointer;color:var(--muted);transition:all .15s;user-select:none}
-.cal-day:hover:not(.cal-day-empty){background:var(--surface2);color:var(--text)}
-.cal-day.cal-day-empty{cursor:default;opacity:.25;pointer-events:none}
-.cal-day.cal-day-today{color:var(--accent);font-weight:700}
-.cal-day.cal-day-selected{background:var(--accent);color:var(--accent-fg);font-weight:700}
-.cal-day.cal-day-in-range{background:rgba(255,212,217,0.18);color:var(--text);border-radius:0}
-.cal-day.cal-day-range-start{background:var(--accent);color:var(--accent-fg);font-weight:700;border-radius:6px 0 0 6px}
-.cal-day.cal-day-range-end{background:var(--accent);color:var(--accent-fg);font-weight:700;border-radius:0 6px 6px 0}
-/* Footer */
-.date-picker-footer{display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border)}
-.date-picker-selection{font-size:11px;color:var(--muted)}
-.date-picker-selection.has-range{color:var(--good);font-weight:600}
-.date-picker-apply{padding:7px 16px;background:var(--btn);color:var(--btn-fg);border:none;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s}
+.date-picker-apply{padding:7px 16px;background:var(--btn);color:var(--btn-fg);border:none;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s}
 .date-picker-apply:hover{background:var(--btn-hover)}
 
 /* MAIN */
@@ -839,34 +805,18 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
         <div id="drop-branch" class="ms-drop"></div>
       </div>
     </div>
-    <!-- DATE RANGE PILL -->
+    <!-- DATE RANGE (plain inline inputs, matches upload.html's Browse Data filter row) -->
     <div class="ctrl-group">
-      <div class="ctrl-label">Date Range</div>
-      <div class="ms-wrap" id="dateRangeWrap">
-        <button class="ms-btn date-pill-btn" id="btn-daterange" onclick="event.stopPropagation();toggleDatePicker()">
-          <span id="lbl-daterange">Select Date/s From and To</span>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" id="daterange-chevron"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <!-- DATE PICKER POPOVER (plain date inputs, matches upload.html's Sheets Sync filter) -->
-        <div class="date-picker-pop" id="datePickerPop" onclick="event.stopPropagation()">
-          <div class="cal-steps">
-            <div class="cal-step">
-              <span class="cal-step-label">FROM</span>
-              <input type="date" id="dateRangeFrom">
-            </div>
-            <div class="cal-step-arrow">→</div>
-            <div class="cal-step">
-              <span class="cal-step-label">TO</span>
-              <input type="date" id="dateRangeTo">
-            </div>
-            <button class="date-picker-clear" onclick="clearDateRange()">Clear</button>
-          </div>
-          <div class="date-picker-footer">
-            <span class="date-picker-selection" id="date-picker-selection"></span>
-            <button class="date-picker-apply" onclick="applyDateRange()">Apply</button>
-          </div>
-        </div>
-      </div>
+      <div class="ctrl-label">From</div>
+      <input type="date" id="dateRangeFrom" class="date-inp">
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-label">To</div>
+      <input type="date" id="dateRangeTo" class="date-inp">
+    </div>
+    <div class="ctrl-group" style="flex-direction:row;gap:8px">
+      <button class="date-picker-apply" onclick="applyDateRange()">Apply</button>
+      <button class="date-picker-clear" onclick="clearDateRange()">Clear</button>
     </div>
     <!-- FRATELLI TOGGLE -->
     <div class="ctrl-group" style="align-self:center;margin-left:4px">
