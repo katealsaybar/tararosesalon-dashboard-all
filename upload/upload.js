@@ -58,7 +58,7 @@ function switchTab(e, tab) {
   if (tab === 'daily') loadDailyOverview();
   if (tab === 'staffperf') initStaffPerfTab();
   if (tab === 'sheetsync') initSheetSyncTab();
-  if (tab === 'ops' && typeof initUtilPdfDrop === 'function') initUtilPdfDrop();
+  if (tab === 'ops' && typeof initUtilTab === 'function') initUtilTab();
 }
 
 // ── AUTH ──

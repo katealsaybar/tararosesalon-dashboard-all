@@ -324,43 +324,60 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 </div>
 
     <div class="tab-content" id="tab-ops">
+
+  <!-- PASTE & SAVE — one box per branch, mirrors the Staff Performance Overview paste flow -->
   <div class="upload-card">
-    <div class="card-title">Operations Upload</div>
-    <div class="card-sub">Upload utilisation & product data</div>
+    <div class="card-title">Paste Staff Utilisation</div>
+    <div class="card-sub">
+      Phorest "Staff Utilisation" report viewer → Ctrl+A, Ctrl+C → paste into the matching branch's box below. Each box saves independently — paste several days back-to-back in one box for a batch save, or fill several and hit Save All.
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button class="btn" style="width:auto;padding:11px 22px" onclick="handleUtilSaveAll()">Save All</button>
+    </div>
+    <div id="utilSaveAllMsg" class="err" style="text-align:left;margin-bottom:10px"></div>
+
+    <div class="sp-branch-grid" id="utilBranchBoxes"></div>
+    <button class="btn" style="width:auto;padding:11px 22px;margin-top:14px" onclick="handleUtilSaveAll()">Save All</button>
+  </div>
+
+  <!-- BULK PDF UPLOAD (BACKFILL) -->
+  <div class="upload-card">
+    <div class="card-title">Bulk Upload Utilisation PDFs</div>
+    <div class="card-sub">Drop the Phorest "Staff Utilisation" PDFs you bulk-downloaded — branch is read from each filename (e.g. al-quoz-staff-utilisation-2026-01-01.pdf).</div>
+    <div id="utilPdfDrop" class="sp-pdf-drop">
+      <input type="file" id="utilPdfInput" accept="application/pdf" multiple style="display:none" onchange="utilQueuePdfFiles(this.files)">
+      <div onclick="document.getElementById('utilPdfInput').click()" style="cursor:pointer">
+        <div style="font-size:13px;color:var(--muted)">Click to choose PDFs, or drag &amp; drop them here</div>
+        <div id="utilPdfQueueCount" style="font-size:11px;color:var(--muted2);margin-top:4px">No files queued</div>
+      </div>
+    </div>
+    <button class="btn" id="utilPdfParseBtn" style="margin-top:10px" onclick="handleUtilPdfBatch()">Parse &amp; Save Utilisation PDFs</button>
+    <div id="utilPdfResults" style="margin-top:10px"></div>
+  </div>
+
+  <div class="upload-card">
+    <div class="card-title">Product Usage Upload</div>
+    <div class="card-sub">Upload product usage data</div>
 
     <div class="field">
-      <label class="field-label">Staff Utilisation PDFs</label>
-      <div class="card-sub" style="margin:2px 0 8px">Drop the Phorest "Staff Utilisation" PDFs — branch is read from each filename (e.g. al-quoz-staff-utilisation-2026-01-01.pdf).</div>
-      <div id="utilPdfDrop" class="sp-pdf-drop">
-        <input type="file" id="utilPdfInput" accept="application/pdf" multiple style="display:none" onchange="utilQueuePdfFiles(this.files)">
-        <div onclick="document.getElementById('utilPdfInput').click()" style="cursor:pointer">
-          <div style="font-size:13px;color:var(--muted)">Click to choose PDFs, or drag &amp; drop them here</div>
-          <div id="utilPdfQueueCount" style="font-size:11px;color:var(--muted2);margin-top:4px">No files queued</div>
+      <label class="field-label">Product Usage CSV</label>
+
+      <div class="file-slot" onclick="document.getElementById('prodFile').click()">
+        <div class="slot-drop-area">
+          <span class="slot-icon">📊</span>
+          <div class="slot-hint">Click or drag & drop<br>.csv file here</div>
+          <div class="slot-filename" id="prodFileName"></div>
         </div>
+
+        <input type="file" id="prodFile" accept=".csv" style="display:none">
       </div>
-      <button class="btn" id="utilPdfParseBtn" style="margin-top:10px" onclick="handleUtilPdfBatch()">Parse &amp; Save Utilisation PDFs</button>
-      <div id="utilPdfResults" style="margin-top:10px"></div>
     </div>
 
-    <div class="field" style="margin-top:10px;">
-  <label class="field-label">Product Usage CSV</label>
-
-  <div class="file-slot" onclick="document.getElementById('prodFile').click()">
-    <div class="slot-drop-area">
-      <span class="slot-icon">📊</span>
-      <div class="slot-hint">Click or drag & drop<br>.csv file here</div>
-      <div class="slot-filename" id="prodFileName"></div>
-    </div>
-
-    <input type="file" id="prodFile" accept=".csv" style="display:none">
+    <button class="btn btn-small" onclick="uploadOpsData()">
+      Upload Product Usage
+    </button>
   </div>
-</div>
-
-  <button class="btn btn-small" onclick="uploadOpsData()">
-    Upload Product Usage
-  </button>
-
-</div>
 
   </div>
 
