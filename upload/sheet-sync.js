@@ -84,7 +84,14 @@ function resetSheetSyncFilter(){
   document.getElementById('ssResultCount').textContent = '';
 }
 
-function ssFmt(v){ return typeof v === 'number' ? v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : (v ?? ''); }
+// Client-count columns show whole numbers — Treatment AED is the only
+// money column and keeps 2 decimals.
+const SS_COUNT_FIELDS = new Set(['ncr','req','salon','new_client','rebooked','total']);
+function ssFmt(v, key){
+  if (typeof v !== 'number') return v ?? '';
+  const d = key && SS_COUNT_FIELDS.has(key) ? 0 : 2;
+  return v.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+}
 
 // ── SORT + COLUMN VISIBILITY + SUMMARY MODE (mirrors the Staff Performance tab) ──
 let ssLastData   = [];
@@ -202,11 +209,11 @@ function ssColFilterActive(key){ return Object.prototype.hasOwnProperty.call(ssC
 function ssColFilterRows(rows, exceptKey){
   const keys = Object.keys(ssColFilters).filter(k => k !== exceptKey);
   if (!keys.length) return rows;
-  return rows.filter(row => keys.every(k => ssColFilters[k].has(ssFmt(row[k]))));
+  return rows.filter(row => keys.every(k => ssColFilters[k].has(ssFmt(row[k], k))));
 }
 
 function ssColValueDomain(key){
-  const vals = new Set(ssColFilterRows(ssLastData, key).map(r => ssFmt(r[key])));
+  const vals = new Set(ssColFilterRows(ssLastData, key).map(r => ssFmt(r[key], key)));
   return [...vals].sort((a,b) => a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'}));
 }
 
@@ -332,12 +339,12 @@ function ssRenderTable(){
   }).join('') + '</tr></thead><tbody>';
 
   const grandTotal = ssGrandTotal(displayRows);
-  html += '<tr class="is-total">' + visibleCols.map(c => `<td>${ssFmt(grandTotal[c[1]])}</td>`).join('') + '</tr>';
+  html += '<tr class="is-total">' + visibleCols.map(c => `<td>${ssFmt(grandTotal[c[1]], c[1])}</td>`).join('') + '</tr>';
 
   orderedKeys.forEach((key, gi) => {
     const rows = groups.get(key).slice().sort((a,b) => spCompare(a[ssSortCol], b[ssSortCol], ssSortDir));
     for (const row of rows){
-      html += '<tr>' + visibleCols.map(c => `<td>${ssFmt(row[c[1]])}</td>`).join('') + '</tr>';
+      html += '<tr>' + visibleCols.map(c => `<td>${ssFmt(row[c[1]], c[1])}</td>`).join('') + '</tr>';
     }
     if (gi < orderedKeys.length - 1){
       html += `<tr class="sp-group-spacer"><td colspan="${visibleCols.length}"></td></tr>`;

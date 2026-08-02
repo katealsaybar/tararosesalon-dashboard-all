@@ -372,7 +372,14 @@ const SP_COLS = [
 ];
 const SP_ROW_LIMIT = 25000;
 
-function spFmt(v){ return typeof v === 'number' ? v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : (v ?? ''); }
+// Client-count columns show whole numbers — every other numeric column is
+// money (AED) and keeps 2 decimals.
+const SP_COUNT_FIELDS = new Set(['visits','new_clients','rqs']);
+function spFmt(v, key){
+  if (typeof v !== 'number') return v ?? '';
+  const d = key && SP_COUNT_FIELDS.has(key) ? 0 : 2;
+  return v.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+}
 
 // ── SORT + COLUMN VISIBILITY STATE (persisted like a spreadsheet view) ──
 let spLastData  = [];
@@ -513,11 +520,11 @@ function spColFilterActive(key){ return Object.prototype.hasOwnProperty.call(spC
 function spColFilterRows(rows, exceptKey){
   const keys = Object.keys(spColFilters).filter(k => k !== exceptKey);
   if (!keys.length) return rows;
-  return rows.filter(row => keys.every(k => spColFilters[k].has(spFmt(row[k]))));
+  return rows.filter(row => keys.every(k => spColFilters[k].has(spFmt(row[k], k))));
 }
 
 function spColValueDomain(key){
-  const vals = new Set(spColFilterRows(spLastData, key).map(r => spFmt(r[key])));
+  const vals = new Set(spColFilterRows(spLastData, key).map(r => spFmt(r[key], key)));
   return [...vals].sort((a,b) => a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'}));
 }
 
@@ -644,12 +651,12 @@ function spRenderTable(){
   }).join('') + '</tr></thead><tbody>';
 
   const grandTotal = spGrandTotal(displayRows);
-  html += '<tr class="is-total">' + visibleCols.map(c => `<td>${spFmt(grandTotal[c[1]])}</td>`).join('') + '</tr>';
+  html += '<tr class="is-total">' + visibleCols.map(c => `<td>${spFmt(grandTotal[c[1]], c[1])}</td>`).join('') + '</tr>';
 
   orderedKeys.forEach((key, gi) => {
     const rows = groups.get(key).slice().sort((a,b) => spCompare(a[spSortCol], b[spSortCol], spSortDir));
     for (const row of rows){
-      html += '<tr>' + visibleCols.map(c => `<td>${spFmt(row[c[1]])}</td>`).join('') + '</tr>';
+      html += '<tr>' + visibleCols.map(c => `<td>${spFmt(row[c[1]], c[1])}</td>`).join('') + '</tr>';
     }
     if (gi < orderedKeys.length - 1){
       html += `<tr class="sp-group-spacer"><td colspan="${visibleCols.length}"></td></tr>`;
