@@ -319,7 +319,6 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <button class="tab-btn active" onclick="switchTab(event, 'staffperf')">🧑‍💼 Staff Performance Overview (Phorest)</button>
   <button class="tab-btn" onclick="switchTab(event, 'sheetsync')">🔄 Ledgers Sheets Sync</button>
   <button class="tab-btn" onclick="switchTab(event, 'ops')">⚙️ Operations</button>
-  <button class="tab-btn" onclick="switchTab(event, 'daily')">📆 Daily Upload (MTD)</button>
   <button class="tab-btn" onclick="switchTab(event, 'service')">📊 Service Data (Yearly)</button>
 </div>
 
@@ -402,51 +401,6 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
     <div id="svc-progress" style="display:none;margin-top:14px;padding:12px;background:var(--surface2);border-radius:10px;font-size:12px;line-height:1.7"></div>
   </div>
-</div>
-
-<!-- ══ DAILY TAB ══ -->
-<div class="tab-content" id="tab-daily">
-
-  <!-- DAILY UPLOAD -->
-  <div class="upload-card">
-    <div class="card-title">Upload Daily Data (MTD)</div>
-    <div class="card-sub">
-      Upload one XLSX per branch — reads Monday–Sunday sheets, stores each day separately for MTD tracking
-    </div>
-    <div class="xlsx-badge">✦ XLSX Files Only — All 7 Daily Sheets</div>
-
-    <div class="file-slots" id="fileSlotsDaily"></div>
-
-    <div style="margin-top:12px">
-      <button class="btn" id="uploadDailyBtn" onclick="uploadAllDaily()" disabled>
-        Upload All Daily Data
-      </button>
-    </div>
-
-    <div class="upload-progress" id="uploadProgressDaily" style="display:none"></div>
-  </div>
-
-  <!-- DAILY RECORDS -->
-  <div class="upload-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div>
-        <div class="card-title">Uploaded Daily Records</div>
-        <div class="card-sub" style="margin-bottom:0">
-          Days stored per branch — delete or download individual records
-        </div>
-      </div>
-      <button class="btn-outline" onclick="loadDailyOverview()" style="padding:8px 16px">
-        ↻ Refresh
-      </button>
-    </div>
-
-    <div id="dailyOverview">
-      <div style="font-size:12px;color:var(--muted2);padding:8px 0">
-        Loading...
-      </div>
-    </div>
-  </div>
-
 </div>
 
 <!-- ══ STAFF PERFORMANCE (PHOREST) TAB ══ -->
