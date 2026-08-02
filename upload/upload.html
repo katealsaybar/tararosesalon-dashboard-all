@@ -12,7 +12,7 @@
 <script src="upload.js?v=2"></script>
 <script src="phorest-staff.js?v=6"></script>
 <script src="phorest-pdf.js?v=1"></script>
-<script src="sheet-sync.js?v=1"></script>
+<script src="sheet-sync.js?v=2"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -551,7 +551,17 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <div class="upload-card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div class="card-title" style="margin-bottom:0">Browse Synced Data</div>
-      <span id="ssResultCount" class="card-sub" style="margin-bottom:0"></span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="ssResultCount" class="card-sub" style="margin-bottom:0"></span>
+        <div class="mini-toggle-wrap" onclick="ssToggleSummaryMode()" role="button" title="Summary sums each staff member's numbers across the selected date range, instead of one row per day">
+          <span class="mini-toggle-lbl" id="ssSummaryLbl">Daily</span>
+          <div class="mini-toggle-track" id="ssSummaryTrack"><div class="mini-toggle-thumb"></div></div>
+        </div>
+        <div style="position:relative">
+          <button class="btn-outline" id="ssColPickerBtn" onclick="ssToggleColPicker(event)" style="padding:8px 14px">Columns ▾</button>
+          <div id="ssColPicker" class="sp-col-picker"></div>
+        </div>
+      </div>
     </div>
     <div class="sp-filter-row">
       <div class="sp-filter-field">
