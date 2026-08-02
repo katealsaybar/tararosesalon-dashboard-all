@@ -58,6 +58,7 @@ function switchTab(e, tab) {
   if (tab === 'daily') loadDailyOverview();
   if (tab === 'staffperf') initStaffPerfTab();
   if (tab === 'sheetsync') initSheetSyncTab();
+  if (tab === 'ops' && typeof initUtilPdfDrop === 'function') initUtilPdfDrop();
 }
 
 // ── AUTH ──
@@ -67,10 +68,6 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('prodFileName').textContent = this.files[0]?.name || '';
   });
 
-  document.getElementById('utilFile')?.addEventListener('change', function(){
-  document.getElementById('utilFileName').textContent = this.files[0]?.name || '';
-});
-  
   if (sessionStorage.getItem('tr_auth') === '1') showPortal();
   buildFileSlotsDaily();
 });
@@ -1258,58 +1255,30 @@ function parseCSV(text) {
 }
 
 async function uploadOpsData() {
-  const utilFile = document.getElementById('utilFile').files[0];
   const prodFile = document.getElementById('prodFile').files[0];
 
-  if (!utilFile && !prodFile) {
-    alert('Upload at least one file.');
+  if (!prodFile) {
+    alert('Upload a Product Usage CSV file.');
     return;
   }
 
-  // UTILISATION
-  if (utilFile) {
-    const text = await utilFile.text();
-    const rows = parseCSV(text);
+  const text = await prodFile.text();
+  const rows = parseCSV(text);
 
-    const clean = rows.map(r => ({
-      staff_name: r.staff_name,
-      role: r.role,
-      available_hours: Number(r.available_hours) || 0,
-      utilisation_hours: Number(r.utilisation_hours),
-      utilisation_percent: Number(r.utilisation_percent),
-      branch: r.branch,
-      date_from: r.date_from,
-      date_to: r.date_to
-    }));
+  const clean = rows.map(r => ({
+    date: r.date || null,
+    staff_name: r.staff_name,
+    product: r.product,
+    category: r.category,
+    brand: r.brand,
+    qty: Number(r.qty)
+  }));
 
-    const { error: utilErr } = await sb.from('staff_utilisation').insert(clean);
-if (utilErr) {
-  console.error(utilErr);
-  alert('Utilisation upload failed');
-  return;
-}
-  }
-
-  // PRODUCT
-  if (prodFile) {
-    const text = await prodFile.text();
-    const rows = parseCSV(text);
-
-    const clean = rows.map(r => ({
-      date: r.date || null,
-      staff_name: r.staff_name,
-      product: r.product,
-      category: r.category,
-      brand: r.brand,
-      qty: Number(r.qty)
-    }));
-
-    const { error: prodErr } = await sb.from('product_usage').insert(clean);
-if (prodErr) {
-  console.error(prodErr);
-  alert('Product upload failed');
-  return;
-}
+  const { error: prodErr } = await sb.from('product_usage').insert(clean);
+  if (prodErr) {
+    console.error(prodErr);
+    alert('Product upload failed');
+    return;
   }
 
   alert('Uploaded successfully.');
