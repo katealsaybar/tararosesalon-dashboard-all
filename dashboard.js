@@ -705,7 +705,7 @@ function getFilteredData(ignoreBranch = false) {
   });
 }
 
-function aggDailyData(dailyRows) {
+function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
   if (!dailyRows || !dailyRows.length) return null;
   const s = {
     totalClients:0, hairRetail:0, treatmentSales:0, beautySales:0,
@@ -760,7 +760,154 @@ function aggDailyData(dailyRows) {
   s.conversionPct = s.rebookPct;
   s._retailWarnings = [];
   s.totals = { hairSales: s.netTake - s.beautySales - s.hairRetail, retail: s.hairRetail, treatments: s.treatmentSales, total: s.totalClients, rebooked: totalRebooked };
-  return { summary: s, hairStaff: [], beautyStaff: [] };
+
+  let hairStaff = [], beautyStaff = [];
+  if (branchStaffRows && branchStaffRows.length) {
+    const { hairMap, beautyMap } = buildLedgerPhorestStaffMaps(branchStaffRows, phorestStaffRows || []);
+    ({ hairStaff, beautyStaff } = buildStaffArraysFromMaps(hairMap, beautyMap));
+  }
+  return { summary: s, hairStaff, beautyStaff };
+}
+
+// ── STAFF PERFORMANCE FROM LEDGER + PHOREST (custom/daily date ranges) ──
+// branch_staff_daily gives the Hair/Beauty dept + client-count split per staff/day
+// (straight from the ledger sheets). phorest_staff_daily gives revenue per employee/day
+// but no dept split. Reconcile employee names between the two (ledger uses first-name-
+// only, Phorest uses full legal name, sometimes with a trailing "(A)" marker) and use
+// the ledger's dept for each (staff, day) to attribute that day's Phorest revenue to
+// Hair or Beauty. Revenue mapping confirmed with Kate 2026-08-02: services_total feeds
+// the service-sales portion of the grand total, courses_total → treatments, products_total
+// → retail; total_total (Phorest's own grand-total column) is used directly as hairSalesNet/
+// beautySales rather than re-summing the three, since Phorest already computes it.
+const PHOREST_RECONCILE_ALIASES = { 'LUCY': 'LUCIA', 'MJ': 'MARY JOY' };
+
+function cleanPhorestName(name) {
+  return String(name || '').trim().toUpperCase().replace(/\s*\(A\)\s*$/, '').trim();
+}
+
+function ledgerNameKey(name) {
+  const canon = (typeof canonicalStaffName === 'function') ? canonicalStaffName(name) : name;
+  const up = String(canon || '').trim().toUpperCase();
+  return PHOREST_RECONCILE_ALIASES[up] || up;
+}
+
+function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
+  const phorestByBranchDate = {};
+  (phorestRows || []).forEach(r => {
+    if (r.is_total) return;
+    const bdKey = r.branch + '|' + r.date;
+    (phorestByBranchDate[bdKey] = phorestByBranchDate[bdKey] || []).push({
+      key: cleanPhorestName(r.employee_name),
+      total_total:    Number(r.total_total)    || 0,
+      courses_total:  Number(r.courses_total)  || 0,
+      products_total: Number(r.products_total) || 0,
+    });
+  });
+
+  function matchRevenue(branch, date, staffName) {
+    const list = phorestByBranchDate[branch + '|' + date];
+    if (!list) return null;
+    const key = ledgerNameKey(staffName);
+    const matches = list.filter(p => p.key === key || p.key.indexOf(key + ' ') === 0);
+    if (!matches.length) return null;
+    return matches.reduce((acc, m) => ({
+      total_total:    acc.total_total    + m.total_total,
+      courses_total:  acc.courses_total  + m.courses_total,
+      products_total: acc.products_total + m.products_total,
+    }), { total_total: 0, courses_total: 0, products_total: 0 });
+  }
+
+  const hairMap = {}, beautyMap = {};
+  (branchRows || []).forEach(r => {
+    const name = (typeof canonicalStaffName === 'function') ? canonicalStaffName(r.staff_name) : r.staff_name;
+    if (!name) return;
+    const isBeauty = String(r.dept || '').trim().toLowerCase() === 'beauty';
+    const rev = matchRevenue(r.branch, r.date, r.staff_name) || { total_total: 0, courses_total: 0, products_total: 0 };
+    const map = isBeauty ? beautyMap : hairMap;
+    if (!map[name]) {
+      map[name] = {
+        name, total: 0, newC: 0, rebooked: 0, req: 0, salon: 0, newClientReq: 0,
+        hairSalesNet: 0, retail: 0, treatments: 0, beautySales: 0,
+      };
+    }
+    const st = map[name];
+    st.total        += r.total      || 0;
+    st.newC         += r.new_client || 0;
+    st.rebooked     += r.rebooked   || 0;
+    st.req          += r.req        || 0;
+    st.salon        += r.salon      || 0;
+    st.newClientReq += r.ncr        || 0;
+    if (isBeauty) {
+      st.beautySales += rev.total_total;
+    } else {
+      st.hairSalesNet += rev.total_total;
+      st.retail       += rev.products_total;
+      st.treatments   += rev.courses_total;
+    }
+  });
+
+  return { hairMap, beautyMap };
+}
+
+// Shared by aggData (weekly_data staff blobs) and aggDailyData (ledger+Phorest join) —
+// same derived per-staff metrics regardless of where hairMap/beautyMap came from.
+function buildStaffArraysFromMaps(hairMap, beautyMap) {
+  const hairStaff = Object.values(hairMap).map((st, i) => {
+    const hReturning    = (st.req||0) + (st.salon||0);
+    const hRebookPct    = st.total    ? (st.rebooked / st.total * 100) : 0;
+    const hRetentionPct = st.total    ? (hReturning  / st.total * 100) : 0;
+    const hConvPct      = hReturning  ? (st.rebooked / hReturning * 100) : 0;
+    return {
+      ...st,
+      retail:        Number(st.retail) || 0,
+      avgBill:       st.total ? st.hairSalesNet / st.total : 0,
+      rebookPct:     hRebookPct,
+      retentionPct:  hRetentionPct,
+      conversionPct: hConvPct,
+      ncrPct:        st.total ? ((st.newClientReq||0) / st.total * 100) : 0,
+      color: SCOLS[i % SCOLS.length]
+    };
+  });
+  const beautyStaff = Object.values(beautyMap).map((st,i) => {
+    const bReturning    = (st.req||0) + (st.salon||0);
+    const bRebookPct    = st.total   ? ((st.rebooked||0) / st.total * 100) : 0;
+    const bRetentionPct = st.total   ? (bReturning / st.total * 100) : 0;
+    const bConvPct      = bReturning ? ((st.rebooked||0) / bReturning * 100) : 0;
+    return {
+      ...st,
+      avgBill:       st.total ? st.beautySales/st.total : 0,
+      rebookPct:     bRebookPct,
+      retentionPct:  bRetentionPct,
+      conversionPct: bConvPct,
+      ncrPct:        st.total ? ((st.newClientReq||0)/st.total*100) : 0,
+      color: SCOLS[(i+3) % SCOLS.length]
+    };
+  });
+  return { hairStaff, beautyStaff };
+}
+
+async function loadBranchStaffDailyRange(from, to) {
+  const pad = n => String(n).padStart(2, '0');
+  const fromStr = `${from.getFullYear()}-${pad(from.getMonth()+1)}-${pad(from.getDate())}`;
+  const toStr   = `${to.getFullYear()}-${pad(to.getMonth()+1)}-${pad(to.getDate())}`;
+  const { data, error } = await sb
+    .from('branch_staff_daily')
+    .select('*')
+    .gte('date', fromStr)
+    .lte('date', toStr);
+  return (error || !data) ? [] : data;
+}
+
+async function loadPhorestStaffDailyRange(from, to) {
+  const pad = n => String(n).padStart(2, '0');
+  const fromStr = `${from.getFullYear()}-${pad(from.getMonth()+1)}-${pad(from.getDate())}`;
+  const toStr   = `${to.getFullYear()}-${pad(to.getMonth()+1)}-${pad(to.getDate())}`;
+  const { data, error } = await sb
+    .from('phorest_staff_daily')
+    .select('*')
+    .gte('date', fromStr)
+    .lte('date', toStr);
+  return (error || !data) ? [] : data;
 }
 
 // ── WEEK RANGE HELPERS ───────────────────────────────────────
@@ -962,37 +1109,7 @@ function aggData(datasets) {
   s.totalRebooked = (s.hairBreakdown.rebooked || 0) + (s.beautyBreakdown.rebooked || 0);
   s.rebookPct     = s.totalClients ? (s.totalRebooked / s.totalClients * 100) : 0;
 
-  const hairStaff = Object.values(hairMap).map((st, i) => {
-    const hReturning    = (st.req||0) + (st.salon||0);
-    const hRebookPct    = st.total    ? (st.rebooked / st.total * 100) : 0;
-    const hRetentionPct = st.total    ? (hReturning  / st.total * 100) : 0;
-    const hConvPct      = hReturning  ? (st.rebooked / hReturning * 100) : 0;
-    return {
-      ...st,
-      retail:        Number(st.retail) || 0,
-      avgBill:       st.total ? st.hairSalesNet / st.total : 0,
-      rebookPct:     hRebookPct,
-      retentionPct:  hRetentionPct,
-      conversionPct: hConvPct,
-      ncrPct:        st.total ? ((st.newClientReq||0) / st.total * 100) : 0,
-      color: SCOLS[i % SCOLS.length]
-    };
-  });
-  const beautyStaff = Object.values(beautyMap).map((st,i) => {
-    const bReturning    = (st.req||0) + (st.salon||0);
-    const bRebookPct    = st.total   ? ((st.rebooked||0) / st.total * 100) : 0;
-    const bRetentionPct = st.total   ? (bReturning / st.total * 100) : 0;
-    const bConvPct      = bReturning ? ((st.rebooked||0) / bReturning * 100) : 0;
-    return {
-      ...st,
-      avgBill:       st.total ? st.beautySales/st.total : 0,
-      rebookPct:     bRebookPct,
-      retentionPct:  bRetentionPct,
-      conversionPct: bConvPct,
-      ncrPct:        st.total ? ((st.newClientReq||0)/st.total*100) : 0,
-      color: SCOLS[(i+3) % SCOLS.length]
-    };
-  });
+  const { hairStaff, beautyStaff } = buildStaffArraysFromMaps(hairMap, beautyMap);
 
   // Summary-level: Retention = (req+salon) / total hair clients
   const totalReturningH = Object.values(hairMap).reduce((a,st) => a+(st.req||0)+(st.salon||0), 0);
@@ -1175,17 +1292,27 @@ async function renderDashboard() {
       d = aggWeeklyTotals(weekRows);
     } else {
       main.innerHTML = '<div class="loading">Loading daily data...</div>';
-      let dailyRows = await loadDailyRange(dateFrom, dateTo);
+      let [dailyRows, branchStaffRows, phorestStaffRows] = await Promise.all([
+        loadDailyRange(dateFrom, dateTo),
+        loadBranchStaffDailyRange(dateFrom, dateTo),
+        loadPhorestStaffDailyRange(dateFrom, dateTo),
+      ]);
       currentDailyRows = dailyRows;
+      if (!window.showFratelli) {
+        branchStaffRows  = branchStaffRows.filter(r => r.branch !== 'FRT');
+        phorestStaffRows = phorestStaffRows.filter(r => r.branch !== 'FRT');
+      }
       if (!sel.branch.includes('all')) {
-        dailyRows = dailyRows.filter(r => sel.branch.includes(r.branch));
+        dailyRows        = dailyRows.filter(r => sel.branch.includes(r.branch));
+        branchStaffRows  = branchStaffRows.filter(r => sel.branch.includes(r.branch));
+        phorestStaffRows = phorestStaffRows.filter(r => sel.branch.includes(r.branch));
       }
       if (!dailyRows.length) {
         destroyCharts();
         main.innerHTML = '<div class="empty">No daily data found for this date range.</div>';
         return;
       }
-      d = aggDailyData(dailyRows);
+      d = aggDailyData(dailyRows, branchStaffRows, phorestStaffRows);
     }
   } else {
     currentDailyRows = [];
