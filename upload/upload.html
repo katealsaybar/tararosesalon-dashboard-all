@@ -12,6 +12,7 @@
 <script src="upload.js?v=2"></script>
 <script src="phorest-staff.js?v=6"></script>
 <script src="phorest-pdf.js?v=1"></script>
+<script src="sheet-sync.js?v=1"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -303,6 +304,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <button class="tab-btn" onclick="switchTab(event, 'daily')">📆 Daily Upload (MTD)</button>
   <button class="tab-btn" onclick="switchTab(event, 'service')">📊 Service Data (Yearly)</button>
   <button class="tab-btn active" onclick="switchTab(event, 'staffperf')">🧑‍💼 Staff Performance (Phorest)</button>
+  <button class="tab-btn" onclick="switchTab(event, 'sheetsync')">🔄 Sheets Sync</button>
 </div>
 
     <div class="tab-content" id="tab-ops">
@@ -526,6 +528,53 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     </div>
     <div class="sp-table-wrap">
       <div id="spTableHost" style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ SHEETS SYNC TAB ══ -->
+<div class="tab-content" id="tab-sheetsync">
+
+  <div class="upload-card">
+    <div class="card-title">Google Sheets Sync</div>
+    <div class="card-sub">
+      Auto-pushed from each branch's Google Sheet (<code>_temp_placeholder</code> tab) via Apps Script — nothing to upload here, this just shows what's arrived so far.
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button class="btn-outline" onclick="refreshSheetSyncStatus()" style="padding:8px 16px">↻ Refresh</button>
+    </div>
+    <div id="ssLastSynced" class="sp-branch-grid"><div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div></div>
+  </div>
+
+  <!-- BROWSE / FILTER -->
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:0">Browse Synced Data</div>
+      <span id="ssResultCount" class="card-sub" style="margin-bottom:0"></span>
+    </div>
+    <div class="sp-filter-row">
+      <div class="sp-filter-field">
+        <label>Branch</label>
+        <select id="ssfBranch"><option value="">All branches</option></select>
+      </div>
+      <div class="sp-filter-field">
+        <label>Staff</label>
+        <input type="text" id="ssfStaff" placeholder="Search name…">
+      </div>
+      <div class="sp-filter-field">
+        <label>From</label>
+        <input type="date" id="ssfFrom">
+      </div>
+      <div class="sp-filter-field">
+        <label>To</label>
+        <input type="date" id="ssfTo">
+      </div>
+      <button class="btn" style="width:auto;padding:9px 18px" onclick="runSheetSyncFilter()">Apply</button>
+      <button class="btn-outline" onclick="resetSheetSyncFilter()">Reset</button>
+    </div>
+    <div class="sp-table-wrap">
+      <div id="ssTableHost" style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply.</div>
     </div>
   </div>
 

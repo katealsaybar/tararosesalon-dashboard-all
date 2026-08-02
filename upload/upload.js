@@ -57,6 +57,7 @@ function switchTab(e, tab) {
 
   if (tab === 'daily') loadDailyOverview();
   if (tab === 'staffperf') initStaffPerfTab();
+  if (tab === 'sheetsync') initSheetSyncTab();
 }
 
 // ── AUTH ──
