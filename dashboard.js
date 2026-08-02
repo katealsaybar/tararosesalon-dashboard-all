@@ -715,8 +715,10 @@ function aggDailyData(dailyRows) {
   let dHairNCR=0, dHairREQ=0, dHairSALON=0, dHairNEW=0;
   let dBeautyREQ=0, dBeautySALON=0, dBeautyNEW=0, dBeautyNCR=0, totalBeautyClients=0;
   dailyRows.forEach(r => {
-    const hairClients   = (r.hair_clients_request||0) + (r.hair_clients_salon||0) + (r.hair_new||0);
-    const beautyClients = (r.beauty_request||0) + (r.beauty_salon||0) + (r.beauty_new||0);
+    // Total Clients = Request + Salon + New + NCR (per CALCULATIONS OF KPIS.docx) — matches
+    // the weekly path's hairClientSum/beautyClientSum definition below, which already includes ncr.
+    const hairClients   = (r.hair_clients_request||0) + (r.hair_clients_salon||0) + (r.hair_new||0) + (r.hair_ncr||0);
+    const beautyClients = (r.beauty_request||0) + (r.beauty_salon||0) + (r.beauty_new||0) + (r.beauty_ncr||0);
     s.totalClients   += hairClients + beautyClients;
     s.hairRetail     += r.retail_total      || 0;
     s.treatmentSales += r.treatments_total  || 0;
