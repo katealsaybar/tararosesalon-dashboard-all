@@ -328,10 +328,30 @@ function initUtilPdfDrop(){
 
 let utilBoxesRendered = false;
 
+// Paste-and-save is the old workflow now that bulk PDF upload exists — collapsed by default.
+let utilPasteCollapsed = localStorage.getItem('utilPasteCollapsed') === null
+  ? true
+  : localStorage.getItem('utilPasteCollapsed') === '1';
+
+function utilSyncPasteToggleUI(){
+  const body = document.getElementById('utilPasteBody');
+  const btn  = document.getElementById('utilPasteToggleBtn');
+  if (!body || !btn) return;
+  body.style.display = utilPasteCollapsed ? 'none' : 'block';
+  btn.textContent = utilPasteCollapsed ? 'Show ▾' : 'Hide ▴';
+}
+
+function utilTogglePasteCollapse(){
+  utilPasteCollapsed = !utilPasteCollapsed;
+  localStorage.setItem('utilPasteCollapsed', utilPasteCollapsed ? '1' : '0');
+  utilSyncPasteToggleUI();
+}
+
 function initUtilTab(){
   if (!utilBoxesRendered){
     utilRenderBranchBoxes();
     utilBoxesRendered = true;
   }
+  utilSyncPasteToggleUI();
   if (typeof initUtilPdfDrop === 'function') initUtilPdfDrop();
 }
