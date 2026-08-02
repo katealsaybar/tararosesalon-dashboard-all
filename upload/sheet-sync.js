@@ -67,8 +67,8 @@ function ssSetDefaultFilterDates(force){
   const toEl   = document.getElementById('ssfTo');
   if (!fromEl || !toEl) return;
   const todayIso  = new Date().toISOString().split('T')[0];
-  const monthAgo  = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
-  if (force || !fromEl.value) fromEl.value = monthAgo;
+  const yearStart = '2026-01-01';
+  if (force || !fromEl.value) fromEl.value = yearStart;
   if (force || !toEl.value)   toEl.value   = todayIso;
 }
 
