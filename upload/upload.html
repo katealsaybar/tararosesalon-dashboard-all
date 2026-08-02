@@ -10,9 +10,10 @@
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
 <script src="upload.js?v=2"></script>
-<script src="phorest-staff.js?v=6"></script>
+<script src="name-aliases.js?v=1"></script>
+<script src="phorest-staff.js?v=7"></script>
 <script src="phorest-pdf.js?v=1"></script>
-<script src="sheet-sync.js?v=2"></script>
+<script src="sheet-sync.js?v=3"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -209,9 +210,24 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-col-picker label:hover{background:var(--surface2)}
 .sp-col-picker input{accent-color:var(--accent);cursor:pointer;flex-shrink:0}
 .sp-col-picker-actions{display:flex;gap:6px;margin-top:6px;padding-top:8px;border-top:1px solid var(--border2)}
-.sp-th-sort{cursor:pointer;user-select:none}
-.sp-th-sort:hover{color:var(--text)}
-.sp-th-sort.active{color:var(--accent)}
+.sp-th-sort{user-select:none}
+.sp-th-inner{display:inline-flex;align-items:center;gap:5px}
+.sp-th-label{cursor:pointer}
+.sp-th-sort:hover .sp-th-label{color:var(--text)}
+.sp-th-sort.active .sp-th-label{color:var(--accent)}
+.sp-th-filter-ic{cursor:pointer;opacity:.4;font-size:9px}
+.sp-th-filter-ic:hover{opacity:.8}
+.sp-th-filter-ic.active{opacity:1;color:var(--accent)}
+.sp-colval-panel{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:10px;z-index:40;width:220px;display:flex;flex-direction:column;gap:8px}
+.sp-colval-search{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;box-sizing:border-box}
+.sp-colval-actions{display:flex;gap:6px}
+.sp-colval-actions button{flex:1;padding:5px;font-size:10px}
+.sp-colval-list{max-height:220px;overflow-y:auto;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);padding:4px 0}
+.sp-colval-list label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);padding:4px;cursor:pointer;border-radius:6px;white-space:nowrap;text-align:left}
+.sp-colval-list label:hover{background:var(--surface2)}
+.sp-colval-list input{accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+.sp-colval-empty{font-size:11px;color:var(--muted2);padding:8px 4px}
+.sp-colval-footer{display:flex}
 
 /* LOGIN */
 .login-wrap{max-width:380px;margin:80px auto;background:var(--surface);border-radius:16px;padding:32px;border:1px solid var(--border);box-shadow:var(--shadow)}

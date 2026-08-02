@@ -354,6 +354,8 @@ function resetStaffPerfFilter(){
   spSetDefaultFilterDates(true);
   spLastData = [];
   spCapWarning = false;
+  spColFilters = {};
+  spCloseColFilter();
   document.getElementById('spTableHost').innerHTML =
     '<div style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>';
   document.getElementById('spResultCount').textContent = '';
@@ -496,6 +498,112 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// ── PER-COLUMN VALUE FILTER (Excel/Sheets-style "pick which values show") ──
+let spColFilters = {};       // colKey -> Set of allowed values; missing key = no filter
+let spColFilterKey = null;   // column currently open in the popover
+let spColFilterPanel = null; // the floating DOM node, created on demand
+let spColFilterPending = null; // Set being edited while the popover is open
+let spColFilterSearchTxt = '';
+
+function spColFilterActive(key){ return Object.prototype.hasOwnProperty.call(spColFilters, key); }
+
+// Rows matching every active filter except `exceptKey` — lets a column's own
+// dropdown show values still reachable given the *other* filters, the way
+// Excel narrows its filter lists as you filter more columns.
+function spColFilterRows(rows, exceptKey){
+  const keys = Object.keys(spColFilters).filter(k => k !== exceptKey);
+  if (!keys.length) return rows;
+  return rows.filter(row => keys.every(k => spColFilters[k].has(spFmt(row[k]))));
+}
+
+function spColValueDomain(key){
+  const vals = new Set(spColFilterRows(spLastData, key).map(r => spFmt(r[key])));
+  return [...vals].sort((a,b) => a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'}));
+}
+
+function spEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function spOpenColFilter(e, key){
+  e.stopPropagation();
+  if (spColFilterKey === key){ spCloseColFilter(); return; }
+  spCloseColFilter();
+  spColFilterKey = key;
+  const domain = spColValueDomain(key);
+  spColFilterPending = new Set(spColFilterActive(key) ? spColFilters[key] : domain);
+  spColFilterSearchTxt = '';
+
+  const panel = document.createElement('div');
+  panel.className = 'sp-colval-panel';
+  panel.id = 'spColValPanel';
+  panel.innerHTML =
+    '<input type="text" class="sp-colval-search" placeholder="Search…" oninput="spColFilterSearch(this.value)">' +
+    '<div class="sp-colval-actions">' +
+      '<button class="btn-outline" onclick="spColFilterSelectAll(true)">Select all</button>' +
+      '<button class="btn-outline" onclick="spColFilterSelectAll(false)">Clear</button>' +
+    '</div>' +
+    '<div class="sp-colval-list" id="spColValList"></div>' +
+    '<div class="sp-colval-footer"><button class="btn" style="flex:1;padding:6px" onclick="spColFilterApply()">Apply</button></div>';
+  document.body.appendChild(panel);
+  spColFilterPanel = panel;
+  spRenderColFilterList();
+
+  const rect = e.currentTarget.getBoundingClientRect();
+  panel.style.top  = (rect.bottom + 4) + 'px';
+  panel.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 236)) + 'px';
+  panel.querySelector('.sp-colval-search').focus();
+}
+
+function spCloseColFilter(){
+  if (spColFilterPanel){ spColFilterPanel.remove(); spColFilterPanel = null; }
+  spColFilterKey = null;
+  spColFilterPending = null;
+}
+
+function spRenderColFilterList(){
+  const key = spColFilterKey;
+  if (!key) return;
+  const domain = spColValueDomain(key);
+  const q = spColFilterSearchTxt.toLowerCase();
+  const shown = q ? domain.filter(v => v.toLowerCase().includes(q)) : domain;
+  const list = document.getElementById('spColValList');
+  list.innerHTML = shown.length ? shown.map((v,i) =>
+    `<label><input type="checkbox" data-idx="${i}" ${spColFilterPending.has(v)?'checked':''}>${v === '' ? '<em>(Blank)</em>' : spEsc(v)}</label>`
+  ).join('') : '<div class="sp-colval-empty">No values</div>';
+  list.onchange = (e) => {
+    if (!e.target.matches('input[type=checkbox]')) return;
+    const v = shown[Number(e.target.dataset.idx)];
+    if (e.target.checked) spColFilterPending.add(v); else spColFilterPending.delete(v);
+  };
+}
+
+function spColFilterSearch(v){
+  spColFilterSearchTxt = v;
+  spRenderColFilterList();
+}
+
+function spColFilterSelectAll(checked){
+  const q = spColFilterSearchTxt.toLowerCase();
+  const domain = spColValueDomain(spColFilterKey);
+  const shown = q ? domain.filter(v => v.toLowerCase().includes(q)) : domain;
+  shown.forEach(v => checked ? spColFilterPending.add(v) : spColFilterPending.delete(v));
+  spRenderColFilterList();
+}
+
+function spColFilterApply(){
+  const key = spColFilterKey;
+  const domain = spColValueDomain(key);
+  if (spColFilterPending.size >= domain.length) delete spColFilters[key];
+  else spColFilters[key] = new Set(spColFilterPending);
+  spCloseColFilter();
+  spRenderTable();
+}
+
+document.addEventListener('click', (e) => {
+  if (spColFilterPanel && !spColFilterPanel.contains(e.target) && !e.target.closest('.sp-th-filter-ic')) {
+    spCloseColFilter();
+  }
+});
+
 function spRenderTable(){
   const host = document.getElementById('spTableHost');
   if (!spLastData.length){
@@ -504,7 +612,8 @@ function spRenderTable(){
     return;
   }
 
-  const displayRows = spSummaryMode ? spAggregateByEmployee(spLastData) : spLastData;
+  const filteredData = spColFilterRows(spLastData);
+  const displayRows = spSummaryMode ? spAggregateByEmployee(filteredData) : filteredData;
   document.getElementById('spResultCount').textContent = spCapWarning
     ? `Showing first ${SP_ROW_LIMIT} rows — narrow your filters for more precision`
     : `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${spSummaryMode ? ' (summarized per employee)' : ''}`;
@@ -527,7 +636,11 @@ function spRenderTable(){
   let html = '<table class="sp-table"><thead><tr>' + visibleCols.map(c => {
     const active = c[1] === spSortCol;
     const arrow = active ? (spSortDir === 'asc' ? ' ▲' : ' ▼') : '';
-    return `<th class="sp-th-sort${active?' active':''}" onclick="spSortBy('${c[1]}')">${c[0]}${arrow}</th>`;
+    const filtered = spColFilterActive(c[1]);
+    return `<th class="sp-th-sort${active?' active':''}"><span class="sp-th-inner">` +
+      `<span class="sp-th-label" onclick="spSortBy('${c[1]}')">${c[0]}${arrow}</span>` +
+      `<span class="sp-th-filter-ic${filtered?' active':''}" onclick="spOpenColFilter(event,'${c[1]}')" title="Filter values">▾</span>` +
+      `</span></th>`;
   }).join('') + '</tr></thead><tbody>';
 
   const grandTotal = spGrandTotal(displayRows);
@@ -583,7 +696,9 @@ async function runStaffPerfFilter(){
   }
 
   spCapWarning = all.length >= SP_ROW_LIMIT;
-  spLastData = all.slice(0, SP_ROW_LIMIT).filter(row => !row.is_total);
+  spLastData = all.slice(0, SP_ROW_LIMIT).filter(row => !row.is_total)
+    .map(row => ({...row, employee_name: canonicalStaffName(row.employee_name)}));
+  spColFilters = {};
   spRenderTable();
 }
 

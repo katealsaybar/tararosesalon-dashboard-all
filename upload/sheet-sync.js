@@ -77,6 +77,8 @@ function resetSheetSyncFilter(){
   document.getElementById('ssfStaff').value = '';
   ssSetDefaultFilterDates(true);
   ssLastData = [];
+  ssColFilters = {};
+  ssCloseColFilter();
   document.getElementById('ssTableHost').innerHTML =
     '<div style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply.</div>';
   document.getElementById('ssResultCount').textContent = '';
@@ -185,6 +187,112 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// ── PER-COLUMN VALUE FILTER (Excel/Sheets-style "pick which values show") ──
+let ssColFilters = {};       // colKey -> Set of allowed values; missing key = no filter
+let ssColFilterKey = null;   // column currently open in the popover
+let ssColFilterPanel = null; // the floating DOM node, created on demand
+let ssColFilterPending = null; // Set being edited while the popover is open
+let ssColFilterSearchTxt = '';
+
+function ssColFilterActive(key){ return Object.prototype.hasOwnProperty.call(ssColFilters, key); }
+
+// Rows matching every active filter except `exceptKey` — lets a column's own
+// dropdown show values still reachable given the *other* filters, the way
+// Excel narrows its filter lists as you filter more columns.
+function ssColFilterRows(rows, exceptKey){
+  const keys = Object.keys(ssColFilters).filter(k => k !== exceptKey);
+  if (!keys.length) return rows;
+  return rows.filter(row => keys.every(k => ssColFilters[k].has(ssFmt(row[k]))));
+}
+
+function ssColValueDomain(key){
+  const vals = new Set(ssColFilterRows(ssLastData, key).map(r => ssFmt(r[key])));
+  return [...vals].sort((a,b) => a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'}));
+}
+
+function ssEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function ssOpenColFilter(e, key){
+  e.stopPropagation();
+  if (ssColFilterKey === key){ ssCloseColFilter(); return; }
+  ssCloseColFilter();
+  ssColFilterKey = key;
+  const domain = ssColValueDomain(key);
+  ssColFilterPending = new Set(ssColFilterActive(key) ? ssColFilters[key] : domain);
+  ssColFilterSearchTxt = '';
+
+  const panel = document.createElement('div');
+  panel.className = 'sp-colval-panel';
+  panel.id = 'ssColValPanel';
+  panel.innerHTML =
+    '<input type="text" class="sp-colval-search" placeholder="Search…" oninput="ssColFilterSearch(this.value)">' +
+    '<div class="sp-colval-actions">' +
+      '<button class="btn-outline" onclick="ssColFilterSelectAll(true)">Select all</button>' +
+      '<button class="btn-outline" onclick="ssColFilterSelectAll(false)">Clear</button>' +
+    '</div>' +
+    '<div class="sp-colval-list" id="ssColValList"></div>' +
+    '<div class="sp-colval-footer"><button class="btn" style="flex:1;padding:6px" onclick="ssColFilterApply()">Apply</button></div>';
+  document.body.appendChild(panel);
+  ssColFilterPanel = panel;
+  ssRenderColFilterList();
+
+  const rect = e.currentTarget.getBoundingClientRect();
+  panel.style.top  = (rect.bottom + 4) + 'px';
+  panel.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 236)) + 'px';
+  panel.querySelector('.sp-colval-search').focus();
+}
+
+function ssCloseColFilter(){
+  if (ssColFilterPanel){ ssColFilterPanel.remove(); ssColFilterPanel = null; }
+  ssColFilterKey = null;
+  ssColFilterPending = null;
+}
+
+function ssRenderColFilterList(){
+  const key = ssColFilterKey;
+  if (!key) return;
+  const domain = ssColValueDomain(key);
+  const q = ssColFilterSearchTxt.toLowerCase();
+  const shown = q ? domain.filter(v => v.toLowerCase().includes(q)) : domain;
+  const list = document.getElementById('ssColValList');
+  list.innerHTML = shown.length ? shown.map((v,i) =>
+    `<label><input type="checkbox" data-idx="${i}" ${ssColFilterPending.has(v)?'checked':''}>${v === '' ? '<em>(Blank)</em>' : ssEsc(v)}</label>`
+  ).join('') : '<div class="sp-colval-empty">No values</div>';
+  list.onchange = (e) => {
+    if (!e.target.matches('input[type=checkbox]')) return;
+    const v = shown[Number(e.target.dataset.idx)];
+    if (e.target.checked) ssColFilterPending.add(v); else ssColFilterPending.delete(v);
+  };
+}
+
+function ssColFilterSearch(v){
+  ssColFilterSearchTxt = v;
+  ssRenderColFilterList();
+}
+
+function ssColFilterSelectAll(checked){
+  const q = ssColFilterSearchTxt.toLowerCase();
+  const domain = ssColValueDomain(ssColFilterKey);
+  const shown = q ? domain.filter(v => v.toLowerCase().includes(q)) : domain;
+  shown.forEach(v => checked ? ssColFilterPending.add(v) : ssColFilterPending.delete(v));
+  ssRenderColFilterList();
+}
+
+function ssColFilterApply(){
+  const key = ssColFilterKey;
+  const domain = ssColValueDomain(key);
+  if (ssColFilterPending.size >= domain.length) delete ssColFilters[key];
+  else ssColFilters[key] = new Set(ssColFilterPending);
+  ssCloseColFilter();
+  ssRenderTable();
+}
+
+document.addEventListener('click', (e) => {
+  if (ssColFilterPanel && !ssColFilterPanel.contains(e.target) && !e.target.closest('.sp-th-filter-ic')) {
+    ssCloseColFilter();
+  }
+});
+
 function ssRenderTable(){
   const host = document.getElementById('ssTableHost');
   if (!ssLastData.length){
@@ -193,7 +301,8 @@ function ssRenderTable(){
     return;
   }
 
-  const displayRows = ssSummaryMode ? ssAggregateByEmployee(ssLastData) : ssLastData;
+  const filteredData = ssColFilterRows(ssLastData);
+  const displayRows = ssSummaryMode ? ssAggregateByEmployee(filteredData) : filteredData;
   document.getElementById('ssResultCount').textContent = ssCapWarning
     ? `Showing first ${SS_ROW_LIMIT} rows — narrow your filters for more precision`
     : `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${ssSummaryMode ? ' (summarized per staff member)' : ''}`;
@@ -215,7 +324,11 @@ function ssRenderTable(){
   let html = '<table class="sp-table"><thead><tr>' + visibleCols.map(c => {
     const active = c[1] === ssSortCol;
     const arrow = active ? (ssSortDir === 'asc' ? ' ▲' : ' ▼') : '';
-    return `<th class="sp-th-sort${active?' active':''}" onclick="ssSortBy('${c[1]}')">${c[0]}${arrow}</th>`;
+    const filtered = ssColFilterActive(c[1]);
+    return `<th class="sp-th-sort${active?' active':''}"><span class="sp-th-inner">` +
+      `<span class="sp-th-label" onclick="ssSortBy('${c[1]}')">${c[0]}${arrow}</span>` +
+      `<span class="sp-th-filter-ic${filtered?' active':''}" onclick="ssOpenColFilter(event,'${c[1]}')" title="Filter values">▾</span>` +
+      `</span></th>`;
   }).join('') + '</tr></thead><tbody>';
 
   const grandTotal = ssGrandTotal(displayRows);
@@ -263,7 +376,9 @@ async function runSheetSyncFilter(){
   }
 
   ssCapWarning = all.length >= SS_ROW_LIMIT;
-  ssLastData = all.slice(0, SS_ROW_LIMIT);
+  ssLastData = all.slice(0, SS_ROW_LIMIT)
+    .map(row => ({...row, staff_name: canonicalStaffName(row.staff_name)}));
+  ssColFilters = {};
   ssRenderTable();
 }
 
