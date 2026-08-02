@@ -13,7 +13,8 @@ const SS_TABLE = 'branch_staff_daily';
 const SS_COLS = [
   ['Branch','branch'],['Date','date'],['Dept','dept'],['Staff','staff_name'],
   ['NCR','ncr'],['REQ','req'],['Salon','salon'],['New','new_client'],
-  ['Rebooked','rebooked'],['Total','total'],['Treatment AED','treatment_aed']
+  ['Rebooked','rebooked'],['Total','total'],['Treatment AED','treatment_aed'],
+  ['Retail Unit (QTY)','retail_unit_qty'],['Treatments Unit (QTY)','treatments_unit_qty']
 ];
 const SS_PAGE_SIZE = 1000;
 const SS_ROW_LIMIT = 25000;
@@ -86,7 +87,7 @@ function resetSheetSyncFilter(){
 
 // Client-count columns show whole numbers — Treatment AED is the only
 // money column and keeps 2 decimals.
-const SS_COUNT_FIELDS = new Set(['ncr','req','salon','new_client','rebooked','total']);
+const SS_COUNT_FIELDS = new Set(['ncr','req','salon','new_client','rebooked','total','retail_unit_qty','treatments_unit_qty']);
 function ssFmt(v, key){
   if (typeof v !== 'number') return v ?? '';
   const d = key && SS_COUNT_FIELDS.has(key) ? 0 : 2;
@@ -102,7 +103,7 @@ let ssSummaryMode = localStorage.getItem('ssSummaryMode') === '1';
 
 // Fields that get summed when Summary mode combines a staff member's daily
 // rows into one row for the selected date range.
-const SS_SUM_FIELDS = ['ncr','req','salon','new_client','rebooked','total','treatment_aed'];
+const SS_SUM_FIELDS = ['ncr','req','salon','new_client','rebooked','total','treatment_aed','retail_unit_qty','treatments_unit_qty'];
 
 function ssAggregateByEmployee(rows){
   // Branch column hidden → fold a staff member's rows together across
