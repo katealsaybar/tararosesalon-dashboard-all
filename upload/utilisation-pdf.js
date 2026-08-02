@@ -348,10 +348,22 @@ async function refreshUtilProgress(){
   if (!host) return;
   host.innerHTML = '<div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div>';
 
-  const { data, error } = await sb.from(UTIL_TABLE).select('branch,date_from,date_to');
-  if (error){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${error.message}</div>`; return; }
+  // PostgREST silently caps an unpaginated select at its own server-side max-rows
+  // setting (commonly 1000) — with 5 branches' worth of daily rows that's blown
+  // past ages ago, so page through with .range() or later branches read as 0%
+  // covered even though their data is really there (mirrors SP_PAGE_SIZE's note
+  // in phorest-staff.js).
+  let all = [];
+  let offset = 0;
+  while (true){
+    const { data, error } = await sb.from(UTIL_TABLE).select('branch,date_from,date_to').range(offset, offset + UTIL_PAGE_SIZE - 1);
+    if (error){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${error.message}</div>`; return; }
+    all = all.concat(data);
+    if (data.length < UTIL_PAGE_SIZE) break;
+    offset += UTIL_PAGE_SIZE;
+  }
 
-  const covered = utilCoveredDaySet(data || []);
+  const covered = utilCoveredDaySet(all);
 
   let html = '';
   for (const code of BRANCH_KEYS){
