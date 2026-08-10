@@ -301,10 +301,21 @@ async function refreshStaffPerfProgress(){
   if (!host) return;
   host.innerHTML = '<div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div>';
 
-  const { data, error } = await sb.from(SP_TABLE).select('branch,date').eq('is_total', true);
-  if (error){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${error.message}</div>`; return; }
+  // PostgREST silently caps an unpaginated select at its server-side max-rows
+  // setting (1000 here) — the is_total rows crossed that in Aug 2026 (one per
+  // branch per day), so days beyond the cap read as missing even though their
+  // data is really there. Page through with .range() like runStaffPerfFilter.
+  let all = [];
+  let offset = 0;
+  while (true){
+    const { data, error } = await sb.from(SP_TABLE).select('branch,date').eq('is_total', true).range(offset, offset + SP_PAGE_SIZE - 1);
+    if (error){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${error.message}</div>`; return; }
+    all = all.concat(data || []);
+    if (!data || data.length < SP_PAGE_SIZE) break;
+    offset += SP_PAGE_SIZE;
+  }
 
-  const covered = new Set((data || []).map(r => `${r.branch}|${r.date}`));
+  const covered = new Set(all.map(r => `${r.branch}|${r.date}`));
 
   let html = '';
   for (const b of SP_BRANCHES){

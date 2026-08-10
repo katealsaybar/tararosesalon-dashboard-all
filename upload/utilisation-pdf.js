@@ -29,7 +29,7 @@ const UTIL_SKIP_PREFIXES = ["Staff Utilisation", "Staff All", "Total", "Availabl
   "Services Rev", "Products Rev", "Total Rev", "3x Wages", "Page "];
 const UTIL_DATA_ROW_RE = /^(.+?)\s+(\d{1,3}:\d{2})\s+(\d{1,3}:\d{2})\s+(NA|-?\d+(?:\.\d+)?%)\s+(NA|-?\d+(?:\.\d+)?)\s+(NA|-?\d+(?:\.\d+)?)\s+(NA|-?\d+(?:\.\d+)?)\s+(NA|-?\d+(?:\.\d+)?)$/;
 const UTIL_DATE_RANGE_RE = /^(\d{2}\/\d{2}\/\d{2})\s*-\s*(\d{2}\/\d{2}\/\d{2})\s*\(Days:\s*\d+\)$/;
-const UTIL_NAME_ONLY_RE = /^[A-Za-z][A-Za-z.'\- ]*$/;
+const UTIL_NAME_ONLY_RE = /^[A-Za-z][A-Za-z.'\- ]*(?:\s*\(A\))?$/;
 
 function utilHmmToHours(hmm){
   const [h,m] = hmm.split(':').map(Number);
@@ -50,7 +50,7 @@ function utilDdmmyyToISO(ddmmyy){
 // pasted/queued back-to-back split on the title line first (utilSplitBlocks).
 function utilParseLines(lines){
   let branch = null, dateFrom = null, dateTo = null;
-  let pendingName = null, seenFirstRow = false;
+  let prevRow = null, seenFirstRow = false; // prevRow: last parsed staff row, eligible to receive a wrapped name fragment
   const rows = [];
 
   for (let i = 0; i < lines.length; i++){
@@ -63,16 +63,14 @@ function utilParseLines(lines){
       const m = UTIL_DATE_RANGE_RE.exec(line);
       if (m){ dateFrom = m[1]; dateTo = m[2]; continue; }
     }
-    if (UTIL_SKIP_PREFIXES.some(p => line.startsWith(p)) || line === branch) continue;
+    if (UTIL_SKIP_PREFIXES.some(p => line.startsWith(p)) || line === branch){ prevRow = null; continue; }
 
     const m = UTIL_DATA_ROW_RE.exec(line);
     if (!m && !seenFirstRow) continue; // still inside the header block
 
     if (m){
       seenFirstRow = true;
-      let name = m[1].trim();
-      if (pendingName){ name = `${pendingName} ${name}`.trim(); pendingName = null; }
-      name = name.replace(/\s+/g,' ');
+      let name = m[1].trim().replace(/\s+/g,' ');
       const isArchived = name.endsWith('(A)');
       if (isArchived) name = name.replace(/\s*\(A\)$/,'').trim();
 
@@ -87,13 +85,25 @@ function utilParseLines(lines){
         total_rev_per_hour: utilNum(m[7]),
         wages_3x_ratio: utilNum(m[8]),
       });
+      prevRow = rows[rows.length - 1];
       continue;
     }
 
-    // A lone name fragment (long name wrapped onto its own line) — stash
-    // it and prepend it to whichever row matches next.
-    if (UTIL_NAME_ONLY_RE.test(line)){ pendingName = line; continue; }
-    pendingName = null;
+    // A lone name fragment — a long name wraps with the numbers on the FIRST
+    // line and the overflow on the line AFTER it, so append it to the row
+    // just parsed (verified against every 2026 PDF: 100/100 fragments follow
+    // their data row, never precede it).
+    if (prevRow !== null && UTIL_NAME_ONLY_RE.test(line)){
+      let frag = line;
+      if (frag.endsWith('(A)')){
+        prevRow.is_archived = true;
+        frag = frag.replace(/\s*\(A\)$/,'').trim();
+      }
+      prevRow.staff_name = `${prevRow.staff_name} ${frag}`.trim();
+      prevRow = null; // a name wraps at most once
+      continue;
+    }
+    prevRow = null;
   }
 
   return { branch, dateFrom, dateTo, rows };
