@@ -182,6 +182,7 @@ async function utilParseAndSaveBox(code){
         const parsed = utilParseLines(blockLines);
         if (!parsed.dateFrom || !parsed.dateTo) throw new Error('Could not find the report date range (expected "DD/MM/YY - DD/MM/YY").');
         if (!parsed.rows.length) throw new Error('No staff rows recognised in this block.');
+        spGuardBranchMismatch(parsed.branch, code); // wrong-box guard (from phorest-staff.js)
         return { ok: true, parsed };
       } catch(e){
         return { ok: false, error: e.message || String(e) };
@@ -301,9 +302,10 @@ async function handleUtilPdfBatch(){
       if (!branchCode) throw new Error("Could not match filename to a branch — expected it to include the branch name (e.g. 'al-quoz-').");
 
       const lines = await utilExtractPdfLines(file);
-      const { dateFrom, dateTo, rows } = utilParseLines(lines);
+      const { branch, dateFrom, dateTo, rows } = utilParseLines(lines);
       if (!dateFrom || !dateTo) throw new Error('Could not find the report date range in this PDF.');
       if (!rows.length) throw new Error('No staff rows found in this PDF.');
+      spGuardBranchMismatch(branch, branchCode); // misnamed-file guard (from phorest-staff.js)
 
       const isoFrom = utilDdmmyyToISO(dateFrom);
       const isoTo = utilDdmmyyToISO(dateTo);

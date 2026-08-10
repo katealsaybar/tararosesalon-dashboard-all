@@ -49,14 +49,43 @@ function spSplitBlocks(lines){
   });
 }
 
+// Distinctive substrings of Phorest's salon header line per branch. Used only as
+// a mismatch GUARD, not to auto-detect the branch: the header format is too
+// inconsistent to parse positively (so branch stays a manual selection / filename
+// match), but a DIFFERENT branch's marker showing up in the header is reliable
+// evidence of a mixed-up paste box or misnamed PDF — that's what let three days
+// of Saadiyat and Motor City reports swap places silently on 10 Aug 2026.
+const SP_BRANCH_MARKERS = { SAA: 'branch 2', KCA: 'llc-spc', MC: 'motor city', AQ: 'al quoz', FRT: 'fratelli' };
+
+function spDetectMarkerBranch(text){
+  const t = (text || '').toLowerCase();
+  for (const code of Object.keys(SP_BRANCH_MARKERS)){
+    if (t.includes(SP_BRANCH_MARKERS[code])) return code;
+  }
+  return null;
+}
+
+function spBranchLabel(code){
+  const b = SP_BRANCHES.find(x => x.code === code);
+  return b ? b.label : code;
+}
+
+function spGuardBranchMismatch(headerText, branchCode){
+  const markerBranch = spDetectMarkerBranch(headerText);
+  if (markerBranch && branchCode && markerBranch !== branchCode){
+    throw new Error(`This report's header says ${spBranchLabel(markerBranch)} but it is about to be saved as ${spBranchLabel(branchCode)} — wrong box or misnamed file. Skipped, nothing saved.`);
+  }
+}
+
 function spParseOneBlock(lines, branchCode){
   if (!lines.length) throw new Error('Empty report block.');
 
   // Phorest's salon/company header line format differs per branch (dash-wrapped,
   // legal-entity suffix, plain prefix, etc.) — too inconsistent to parse a branch
   // name out of reliably, so branch is a manual selection. Located here only to
-  // strip it out of the data block below.
+  // strip it out of the data block below, plus a wrong-branch marker check.
   const salonLine = lines.find(l => /salon/i.test(l));
+  spGuardBranchMismatch(salonLine, branchCode);
   const dateLine  = lines.find(l => /\d{2}\/\d{2}\/\d{2}\s*-\s*\d{2}\/\d{2}\/\d{2}/.test(l));
   if (!dateLine) throw new Error('Could not find the date line (expected "DD/MM/YY - DD/MM/YY").');
 
