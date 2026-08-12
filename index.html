@@ -329,7 +329,10 @@ aside.sidebar{
 
 [data-theme="light"]{
   --bg:#FAF7F0;--surface:#fff;--surface2:#F4F1E9;--border:#E8E2D6;--border2:#F0ECE3;
-  --text:#1A1A1A;--muted:#6B6560;--muted2:#948C84;--accent:#1A1A1A;--accent-fg:#FBF7F0;
+  /* --muted2 was #948C84 — 3.4:1 on a white card, under the 4.5:1 minimum for
+     small text, which is why labels and sub-lines read as blurry rather than
+     just light. Both greys darkened a notch, same warm hue (Kate, 2026-08-12). */
+  --text:#1A1A1A;--muted:#565049;--muted2:#77706A;--accent:#1A1A1A;--accent-fg:#FBF7F0;
   --shadow-card:0 1px 2px rgba(26,26,26,0.05),0 10px 28px -8px rgba(26,26,26,0.10);
   --shadow-card-hover:0 2px 4px rgba(26,26,26,0.07),0 18px 40px -10px rgba(26,26,26,0.16);
   --shadow:var(--shadow-card);
@@ -367,7 +370,7 @@ aside.sidebar{
   
 [data-theme="dark"]{
   --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;--border:rgba(250,248,243,0.09);--border2:rgba(250,248,243,0.05);
-  --text:#FAF8F3;--muted:rgba(250,248,243,0.55);--muted2:rgba(250,248,243,0.38);--accent:#FFD4D9;--accent-fg:#2D2E37;
+  --text:#FAF8F3;--muted:rgba(250,248,243,0.68);--muted2:rgba(250,248,243,0.5);--accent:#FFD4D9;--accent-fg:#2D2E37;
   --shadow-card:0 1px 2px rgba(0,0,0,0.3),0 10px 28px -8px rgba(0,0,0,0.35);
   --shadow-card-hover:0 2px 4px rgba(0,0,0,0.35),0 20px 44px -10px rgba(0,0,0,0.45);
   --shadow:var(--shadow-card);
@@ -388,9 +391,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);transition:background .3s,border-color .3s;flex-shrink:0;min-height:82px;overflow:visible}
 .logo{display:flex;align-items:center;gap:12px;min-width:0;flex-shrink:1;overflow:hidden}
 /* logo source PNG has heavy empty margin above/below the wordmark — crop it out
-   so the mark reads at full size instead of shrinking inside its own whitespace */
-.logo-crop{width:184px;height:58px;overflow:hidden;flex-shrink:0}
-.logo-crop img{width:100%;height:100%;object-fit:cover;object-position:center}
+   so the mark reads at full size instead of shrinking inside its own whitespace.
+   object-fit:cover only cropped top and bottom: the square still had to fit 184px
+   WIDE, so the lockup landed at 37px of the 58px box and "SALON" rendered ~4.6px
+   tall — finer than its own hairline strokes, which is why the L dropped out and it
+   read as "SA ON" (Kate, 2026-08-12). Crop straight to the lockup's bounding box
+   instead — both PNGs ink x 337-2658, y 1149-1812 of 3000x3000 — so it fills the
+   full 58px header height. One crop serves both themes; if either PNG is ever
+   re-exported, re-check that bbox before trusting these offsets. */
+.logo-crop{width:192px;height:58px;overflow:hidden;flex-shrink:0;position:relative}
+.logo-crop img{position:absolute;left:-25px;top:-90px;width:241px;height:241px;max-width:none}
 .logo-text{min-width:0;overflow:hidden}
 .logo-text .logo-name{font-family:'Inter',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text);line-height:1;white-space:nowrap}
 .logo-text .logo-sub{font-size:10px;letter-spacing:0.26em;text-transform:uppercase;color:var(--muted);margin-top:2px;white-space:nowrap}
@@ -451,7 +461,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 /* MAIN */
 main{max-width:1400px;margin:0 auto;padding:18px 28px 56px}
 /* eyebrow — tiny uppercase label + hairline rule, sits above major sections */
-.section-label{font-size:11.5px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:var(--text);opacity:0.55;margin-top:16px;margin-bottom:8px}
+.section-label{font-size:11.5px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:var(--text);opacity:0.72;margin-top:16px;margin-bottom:8px}
 .section-label::before{content:'';display:inline-block;width:1.1rem;height:1px;background:currentColor;vertical-align:middle;margin-right:0.55rem;opacity:0.8}
 
 /* EDITORIAL HERO — one big confident headline moment above the KPI view */
@@ -498,14 +508,14 @@ main{max-width:1400px;margin:0 auto;padding:18px 28px 56px}
 .hero-receipt .r-title{text-align:center;font-weight:700;letter-spacing:0.14em;font-size:11px;margin-bottom:2px}
 .hero-receipt .r-logo-crop{width:184px;height:46px;margin:0 auto 8px;overflow:hidden}
 .hero-receipt .r-logo-crop img{width:100%;height:100%;object-fit:cover;object-position:center;filter:grayscale(1)}
-.hero-receipt .r-sub{text-align:center;font-size:9.5px;color:#8a8a8a;margin-bottom:10px}
+.hero-receipt .r-sub{text-align:center;font-size:10px;color:#6f6f6f;margin-bottom:10px}
 .hero-receipt .r-rule{border-top:1px dashed #b8b0a4;margin:8px 0}
 .hero-receipt .r-row{display:flex;justify-content:space-between;gap:6px}
-.hero-receipt .r-label{color:#5a5a5a;font-size:10.5px;letter-spacing:0.03em}
+.hero-receipt .r-label{color:#4a4a4a;font-size:11px;letter-spacing:0.03em}
 .hero-receipt .r-val{font-weight:700;white-space:nowrap}
-.hero-receipt .r-delta{font-size:9.5px;margin-top:1px}
+.hero-receipt .r-delta{font-size:10px;margin-top:1px}
 .hero-receipt svg{margin-bottom:10px}
-.hero-receipt .r-foot{text-align:center;font-size:9px;color:#8a8a8a;margin-top:6px}
+.hero-receipt .r-foot{text-align:center;font-size:10px;color:#6f6f6f;margin-top:6px}
 
 /* METRICS */
 .metric{
@@ -564,7 +574,7 @@ main{max-width:1400px;margin:0 auto;padding:18px 28px 56px}
 .donut-wrap{position:relative;width:300px;height:300px;flex-shrink:0}
 .donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
 .donut-center-val{font-family:'Playfair Display',serif;font-size:22px;font-weight:600;color:var(--text);line-height:1}
-.donut-center-lbl{font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px}
+.donut-center-lbl{font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px}
 .legend{display:flex;flex-direction:column;gap:8px;width:100%}
 .legend-item{display:flex;align-items:center;justify-content:space-between;font-size:12px;gap:8px}
 .legend-l{display:flex;align-items:center;gap:6px;flex-shrink:0}
@@ -1120,7 +1130,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
 
 <script src="upload/name-aliases.js?v=20260802b"></script>
-<script src="dashboard.js?v=20260802c"></script>
+<script src="dashboard.js?v=20260812a"></script>
 <script>
 
 // ── PASSWORD GATE ────────────────────────────────────────────

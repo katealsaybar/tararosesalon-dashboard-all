@@ -2800,6 +2800,27 @@ async function loadData() {
   renderFreshnessBadge(ledgerInfo, phorestInfo);
 }
 
+// Pulls every branch+date pair from `since` onwards, in 1000-row pages, so the
+// freshness badge sees the whole window instead of PostgREST's first 1000 rows.
+async function loadDatesSince(table, sinceStr) {
+  const PAGE = 1000;
+  const { count, error: countErr } = await sb
+    .from(table)
+    .select('*', { count: 'exact', head: true })
+    .gte('date', sinceStr);
+  if (countErr || !count) return [];
+  const pages = await Promise.all(
+    Array.from({ length: Math.ceil(count / PAGE) }, (_, i) =>
+      sb.from(table)
+        .select('branch,date')
+        .gte('date', sinceStr)
+        .order('id', { ascending: true })
+        .range(i * PAGE, i * PAGE + PAGE - 1)
+    )
+  );
+  return pages.flatMap(p => p.data || []);
+}
+
 // Finds the most recent date (within the last 21 days) where every branch in
 // ACTIVE_BRANCHES has at least one synced row — a genuinely "complete" data day,
 // not just whichever row happened to sync most recently. Falls back to the
@@ -2813,8 +2834,13 @@ async function getLatestCompleteDate(table) {
   const since = new Date();
   since.setDate(since.getDate() - 21);
   const sinceStr = since.toISOString().slice(0, 10);
-  const { data, error } = await sb.from(table).select('branch,date').gte('date', sinceStr);
-  if (error || !data || !data.length) return { date: null, complete: false, missing: [] };
+  // PostgREST caps one response at 1000 rows, and 21 days across four branches is
+  // ~3-4k in branch_staff_daily. The un-paged select therefore only ever saw the
+  // OLDEST slice of the window, so the header froze on "Ledger: 24 Jul" for weeks
+  // while every branch had in fact synced through to 11 Aug (Kate, 2026-08-12).
+  // Page through like loadAllRows does, ordered by id so pages can't overlap or skip.
+  const data = await loadDatesSince(table, sinceStr);
+  if (!data.length) return { date: null, complete: false, missing: [] };
   const byDate = new Map();
   data.forEach(r => {
     if (!byDate.has(r.date)) byDate.set(r.date, new Set());
@@ -2847,7 +2873,7 @@ function renderFreshnessBadge(ledgerInfo, phorestInfo) {
   el.innerHTML =
     freshnessLine('Ledger', ledgerInfo)
     + '<br>' + freshnessLine('Phorest', phorestInfo)
-    + '<br><span style="font-size:10px;letter-spacing:0.04em;opacity:0.7">Gulf Standard Time +04:00</span>';
+    + '<br><span style="font-size:10px;letter-spacing:0.04em;opacity:0.85">Gulf Standard Time +04:00</span>';
 }
 
 // ── STARTUP ──────────────────────────────────────────────────
