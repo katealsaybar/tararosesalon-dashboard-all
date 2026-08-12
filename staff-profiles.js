@@ -47,12 +47,10 @@ const STAFF_PROFILES = {
   'BETHANY':  { photo: 'bethany.jpg',  ig: 'bethanysmith.hair' },
   'SHELLEY':  { photo: 'shelley.jpg',  ig: 'shelley_the_global_hairstylist' },
   'APRIL':    { photo: 'april.jpg',    ig: 'april_apple_13' },
-  // Her card says EDZ; the ledger logs her as EDS. Keyed under both so the
-  // avatar resolves either way. If they really are one person, the tidier fix is
-  // an 'EDS': 'EDZ' entry in STAFF_NAME_ALIASES — but that renames her across
-  // every staff table in the dashboard, so it needs Kate's say-so first.
-  'EDZ':      { photo: 'edz.jpg',      ig: 'edzasuncion' },
-  'EDS':      { photo: 'edz.jpg',      ig: 'edzasuncion' },
+  // EDS is the correct spelling; only her Canva card says EDZ (Kate confirmed,
+  // 2026-08-12). Keyed under EDS alone — 'EDZ': 'EDS' now lives in
+  // STAFF_NAME_ALIASES, so either spelling canonicalises here before lookup.
+  'EDS':      { photo: 'eds.jpg',      ig: 'edzasuncion' },
 
   // ── Motor City ──
   'ASHLEIGH': { photo: 'ashleigh.jpg', ig: 'ashleighfairgrievehair' },

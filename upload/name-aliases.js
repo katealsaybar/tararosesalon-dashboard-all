@@ -6,6 +6,9 @@
 // the column value filter all see one name instead of two.
 const STAFF_NAME_ALIASES = {
   'LIZANNIE': 'LIZANIE',
+  // Her stylist card in the Canva deck spells her EDZ; EDS is the correct
+  // spelling and the one the ledger uses (Kate confirmed, 2026-08-12).
+  'EDZ': 'EDS',
 };
 
 function canonicalStaffName(name){
