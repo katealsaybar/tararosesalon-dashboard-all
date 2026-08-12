@@ -485,7 +485,7 @@ main{max-width:1400px;margin:0 auto;padding:18px 28px 56px}
 .hero-receipt{
   width:220px;flex-shrink:0;margin-top:22px;
   background:#FFFEFA;color:#2A2A2A;
-  font-family:'Inter',sans-serif;font-size:12px;line-height:1.7;
+  font-family:'Inter',sans-serif;font-size:13.5px;line-height:1.7;
   padding:22px 16px 28px;
   box-shadow:0 14px 30px -10px rgba(26,26,26,0.22),0 3px 8px -2px rgba(26,26,26,0.1);
   position:relative;
@@ -505,17 +505,26 @@ main{max-width:1400px;margin:0 auto;padding:18px 28px 56px}
 }
 .hero-receipt::before{top:-8px}
 .hero-receipt::after{bottom:-8px;transform:scaleY(-1)}
-.hero-receipt .r-title{text-align:center;font-weight:700;letter-spacing:0.14em;font-size:11px;margin-bottom:2px}
+/* The receipt is the smallest type on the page and the only block sized in its
+   own scale, so when the rest of the dashboard came back down it ended up too
+   fine to read at arm's length — sharp under zoom, mush at normal distance
+   (Kate, 2026-08-12). Raised only inside .hero-receipt; the rest stays small. */
+.hero-receipt .r-title{text-align:center;font-weight:700;letter-spacing:0.14em;font-size:12px;margin-bottom:2px}
 .hero-receipt .r-logo-crop{width:184px;height:46px;margin:0 auto 8px;overflow:hidden}
 .hero-receipt .r-logo-crop img{width:100%;height:100%;object-fit:cover;object-position:center;filter:grayscale(1)}
-.hero-receipt .r-sub{text-align:center;font-size:9.5px;color:#6f6f6f;margin-bottom:10px}
+.hero-receipt .r-sub{text-align:center;font-size:11px;color:#6f6f6f;margin-bottom:10px}
 .hero-receipt .r-rule{border-top:1px dashed #b8b0a4;margin:8px 0}
 .hero-receipt .r-row{display:flex;justify-content:space-between;gap:6px}
-.hero-receipt .r-label{color:#4a4a4a;font-size:10.5px;letter-spacing:0.03em}
+.hero-receipt .r-label{color:#4a4a4a;font-size:11.5px;letter-spacing:0.03em}
 .hero-receipt .r-val{font-weight:700;white-space:nowrap}
-.hero-receipt .r-delta{font-size:9.5px;margin-top:1px}
+.hero-receipt .r-delta{font-size:11px;margin-top:1px}
+/* trendArrow() writes its sizes inline (13px figure, 9px "vs prev month") and is
+   shared with the metric cards, so the receipt's scale can only reach it here.
+   The 9px tag was the finest text on the whole page. */
+.hero-receipt .r-delta > span{font-size:13.5px !important}
+.hero-receipt .r-delta > span > span{font-size:10.5px !important}
 .hero-receipt svg{margin-bottom:10px}
-.hero-receipt .r-foot{text-align:center;font-size:9px;color:#6f6f6f;margin-top:6px}
+.hero-receipt .r-foot{text-align:center;font-size:10.5px;color:#6f6f6f;margin-top:6px}
 
 /* METRICS */
 .metric{
