@@ -18,9 +18,9 @@
 // without continues the previous.
 //
 //   works  how many work photos exist for her under assets/staff/work/<name>-N.jpg,
-//          cropped from the strip on her card. Katie's and Areanne's cards use a
-//          different layout with no six-tile strip, so they are 0 and simply show
-//          no strip rather than a gap.
+//          cropped from the strip on her card. Counts vary because the deck has
+//          three layouts: most cards run six portraits, Areanne's four wider ones,
+//          Katie's two landscapes.
 //
 // Two card-design bugs are reproduced faithfully rather than silently corrected,
 // because the fix belongs in Canva:
@@ -93,7 +93,7 @@ const STYLIST_CARDS = {
   "inMyChair": "relax, have fun, and know I'm listening to exactly what you want.",
   "review": "Kylie has been my hairdresser for years, and I honestly wouldn't trust anyone else with my hair. She's not only incredibly talented and creative, but also makes every appointment feel fun and relaxed. She really listens to what I want and always manages to get it just right whether I am a blonde or brunette. Couldn't recommend her enough!",
   "reviewBy": "Ash",
-  "works": 5
+  "works": 6
  },
  "OLENA": {
   "role": "Senior Stylist",
@@ -114,7 +114,7 @@ const STYLIST_CARDS = {
   "inMyChair": "expect a proper consultation, honest diagnostics, and a plan built just for you.",
   "review": "I've lived in Abu Dhabi for years and always heard of Tara Rose, but I stayed away because I assumed it was another pretentious salon that would overcharge me for mediocre work. I'm so upset it took me this long! I needed my roots done and toner for brassy highlights. Olena was THE loveliest. We talked through my hair before starting, she even gave me a quotation upfront which I've never had before, and we made a plan for my next visits. The salon is relaxed, the coffee is good, and the whole experience was amazing. It lived up to its reputation and I'm now a customer.",
   "reviewBy": "Veronica",
-  "works": 5
+  "works": 6
  },
  "KATIE": {
   "role": "Senior Stylist",
@@ -135,7 +135,7 @@ const STYLIST_CARDS = {
   "inMyChair": "have a deep chat, a proper laugh, or switch off in the quiet. All welcome.",
   "review": "Katie has done my hair twice now with blonde balayage and a touch up and does an absolutely amazing job :) shes super friendly and chatty and does her absolute best to do your hair the way you want it, I'm definitely going to keep coming back because the service and quality of care here is better than anywhere else I've tried.",
   "reviewBy": "Fiore",
-  "works": 0
+  "works": 2
  },
  "NIKKI": {
   "role": "Senior Stylist",
@@ -337,7 +337,7 @@ const STYLIST_CARDS = {
   "inMyChair": "relax into a friendly, personal appointment built entirely around you.",
   "review": "Molly was my hairdresser and she completely understood what I wanted from the moment we started speaking. She gave me lots of advise and made my vision come to life. My hair colour was natural before and Molly gave me a beautiful balyage, cut, blow dry and curled it at the end. Curls never last in my hair but this one lasted all day.",
   "reviewBy": "Niamh",
-  "works": 3
+  "works": 6
  },
  "TAMMY": {
   "role": "Stylist",
@@ -383,7 +383,7 @@ const STYLIST_CARDS = {
   "inMyChair": "expect a warm, personalised experience from the moment you sit down.",
   "review": "Had a wonderful experience today with Beth at Tara Rose! I came in ready for a change and Beth was so great at thoroughly talking with me about what I want and what would look best - it made me feel so comfortable and confident. I absolutely love how my hair looks and am so pleased with the results! If you are ready to step up your hair game - Beth is your girl!",
   "reviewBy": "Rebecca",
-  "works": 3
+  "works": 6
  },
  "SHELLEY": {
   "role": "Stylist",
@@ -429,7 +429,7 @@ const STYLIST_CARDS = {
   "inMyChair": "Expect technical precision and a calm, friendly few hours.",
   "review": "I just wanted to say a huge thank you to April. Shes such an amazing hairstylist and so professional. She was so patient and listened to all my concerns. I was so happy that even when I wanted her to check my hair she called me in and was so helpful. She gives the best headmassges. Can't wait to book in with her again. Thanks April, youre a gem.",
   "reviewBy": "Saiqa",
-  "works": 5
+  "works": 6
  },
  "EDS": {
   "role": "Junior Stylist",
@@ -523,7 +523,7 @@ const STYLIST_CARDS = {
   "inMyChair": "go beautifully classic or have some fun with colour.",
   "review": "I visited Lucy for a hydration treatment, color, and cut. The change was spectacular! I went in with lifeless hair and left with a gorgeous mane. Now I'll take care of it exactly as she recommended.",
   "reviewBy": "Hannah",
-  "works": 5
+  "works": 6
  },
  "ROBYN": {
   "role": "Senior Stylist",
@@ -566,7 +566,7 @@ const STYLIST_CARDS = {
   "inMyChair": "have a good chat or enjoy the quiet, whichever you prefer.",
   "review": "I had my hair coloured and styled by Elise and I was absolutely thrilled with the results. She was so friendly and welcoming, really listened to what I wanted, and took the time to help me understand what different options would look like for me. Elise was attentive throughout the appointment, offering great advice while making me feel comfortable and relaxed. I left with beautiful vibrant hair and a big smile on my face. I highly recommend Elise, a true gem in Dubai! :)",
   "reviewBy": "Hannah",
-  "works": 4
+  "works": 6
  },
  "RUTH": {
   "role": "Style Director",
@@ -588,7 +588,7 @@ const STYLIST_CARDS = {
   "inMyChair": "Do whatever you want! It's your time.",
   "review": "Ruth is the best in DXB for highlights! Since I started seeing her, my hair has been stronger, healthier, and looks totally natural. There's nothing I dislike more than a visible line where highlights start, but even after 2 months of growth that dreaded line is hard to spot. The way Ruth does highlights means I can go 2 months between appointments, so less damage to my hair (and my bank balance). If you want a sincere, relatable hairdresser, Ruth is the one!",
   "reviewBy": "Eloise",
-  "works": 5
+  "works": 6
  },
  "IBRAHIM": {
   "role": "Senior Stylist",
@@ -610,7 +610,7 @@ const STYLIST_CARDS = {
   "inMyChair": "Ask as many questions as you like. I'll guide you through the how, the why, and the best approach for your hair, every step of the way.",
   "review": "Ibrahim is a magician! I went to him for correction of a bad color job at a different salon. He patiently explained how he can fix it, made it sound super easy (this was my second attempt at correction), and only suggested the minimal required processes. I was absolutely delighted with the results, and was even more pleasantly surprised by the cost. He really only did what was necessary without trying to rack up the cost. My hair now looks healthy and natural, which is what I always wanted. Thank you Ibrahim! Looking forward to more!",
   "reviewBy": "Swaathikka",
-  "works": 5
+  "works": 6
  },
  "AREANNE": {
   "role": "Junior Stylist",
@@ -632,6 +632,6 @@ const STYLIST_CARDS = {
   "inMyChair": "Switch off, relax and leave feeling confident and cared for.",
   "review": "I visited Tara Rose Al Quoz for the first time and had the most pleasant experience. Areanne was so kind and attentive and really took the time to find out my hair concerns and gave a great recommendation for my hair type. I had the Keratin blow dry and I am really happy with the results. Areanne even invited me back for a hair wash and blow dry to wash out the treatment. Such a wonderful experience thanks to Areanne. Will be back again!",
   "reviewBy": "Elizabeth",
-  "works": 0
+  "works": 4
  }
 };
