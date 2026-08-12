@@ -421,48 +421,99 @@ const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Juni
 
 // One expanded card, following the A3 layout's own order: quote, bio, the three
 // columns, the three prose blocks, then the client review.
-function stylistCardDetail(c, colour) {
+// One stylist card, rebuilt to match the A3 artwork rather than reformatted as a
+// list — Kate, 2026-08-12: "i needed the cards to look almost a like with what we
+// have on canva". Colours are the card's own and are deliberately hardcoded, not
+// themed: the card is a dark artefact in both dashboard themes, exactly as printed.
+const CARD_INK   = '#2D2E37';   // card background
+const CARD_CREAM = '#EEF3C7';   // pale green used for headings, rules and the review panel
+const CARD_TEXT  = '#FAF8F3';
+
+function stylistCardDetail(c, colour, name, photo) {
+  const dot = `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;
+                 background:${CARD_CREAM};flex-shrink:0;margin-top:6px"></span>`;
   const bullets = list => (list || []).map(b =>
-    `<li style="margin:0 0 3px;padding-left:2px">${escapeHtml(b)}</li>`).join('');
-  const col = (title, inner) => `
-    <div style="flex:1;min-width:150px;border:1px solid ${colour};border-radius:10px;padding:10px 12px">
-      <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:13px;
-                  color:${colour};margin-bottom:6px">${title}</div>
-      ${inner}
+    `<div style="display:flex;gap:7px;align-items:flex-start;margin-bottom:3px">
+       ${dot}<span>${escapeHtml(b)}</span></div>`).join('');
+  const panel = (title, inner) => `
+    <div style="flex:1;min-width:158px;border:1.5px solid ${CARD_CREAM};border-radius:12px;padding:11px 13px">
+      <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;font-size:14px;
+                  letter-spacing:.02em;color:${CARD_CREAM};text-align:center;margin-bottom:8px">${title}</div>
+      <div style="font-size:12.5px;line-height:1.45;color:${CARD_TEXT}">${inner}</div>
     </div>`;
   const block = (title, text) => text ? `
-    <div style="margin-top:11px">
-      <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:13.5px;
-                  color:var(--text)">${title}</div>
-      <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${escapeHtml(text)}</div>
+    <div style="margin-bottom:13px">
+      <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;font-size:15px;
+                  color:${CARD_CREAM};margin-bottom:3px">${title}</div>
+      <div style="font-size:12.5px;line-height:1.5;color:${CARD_TEXT}">${escapeHtml(text)}</div>
     </div>` : '';
-  const ul = inner => `<ul style="margin:0;padding-left:15px;font-size:12.5px;color:var(--text)">${inner}</ul>`;
-  const review = c.review ? `
-    <div style="margin-top:14px;padding:11px 13px;border-radius:10px;background:var(--surface2);
-                border:1px solid var(--border)">
-      <div style="color:${colour};font-size:12px;letter-spacing:0.14em">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-      <div style="font-size:12.5px;color:var(--text);margin-top:5px;line-height:1.55">${escapeHtml(c.review)}</div>
-      ${c.reviewBy ? `<div style="font-size:12px;font-weight:700;color:var(--muted);margin-top:6px">
-                        &ndash; ${escapeHtml(c.reviewBy)}</div>` : ''}
-    </div>` : '';
+  const igRow = c.ig || '' ;
   return `
-    <div data-detail style="display:none;padding:0 14px 14px;border-top:1px solid var(--border2)">
-      ${c.quote ? `<div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:600;
-                               font-size:15px;color:var(--text);margin:12px 0 8px;line-height:1.45">
-                     &ldquo;${escapeHtml(c.quote)}&rdquo;</div>` : ''}
-      ${c.bio ? `<div style="font-size:12.5px;color:var(--muted);line-height:1.6">${escapeHtml(c.bio)}</div>` : ''}
-      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:12px">
-        ${col('Specialises in', ul(bullets(c.specialises)))}
-        ${col('Best for', `<div style="font-size:12.5px;color:var(--text)">${escapeHtml(c.bestFor || '')}</div>`)}
-        ${col('The vibe', ul(bullets(c.vibe)))}
+    <div data-detail style="display:none">
+      <div style="background:${CARD_INK};color:${CARD_TEXT};padding:22px 24px 26px;
+                  font-family:'Inter',sans-serif">
+
+        <!-- masthead: head icon left, wordmark and name right, as on the card -->
+        <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
+          ${photo ? `<img src="assets/staff/${encodeURIComponent(photo)}" alt="" loading="lazy"
+                          onerror="this.style.display='none'"
+                          style="height:186px;width:auto;flex-shrink:0">` : ''}
+          <div style="flex:1;min-width:240px;text-align:center">
+            <div style="font-size:15px;letter-spacing:0.24em;font-weight:600">TARA ROSE</div>
+            <div style="font-size:9px;letter-spacing:0.3em;color:${CARD_CREAM};margin-top:2px">SALON</div>
+            <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;
+                        font-size:44px;line-height:1.05;margin-top:10px">${escapeHtml(name)}</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.3em;color:${CARD_CREAM};
+                        margin-top:4px">${escapeHtml((c.role || '').toUpperCase())}</div>
+            ${c.quote ? `<div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:600;
+                          font-size:16px;line-height:1.4;margin:12px auto 0;max-width:430px">
+                          &ldquo;${escapeHtml(c.quote)}&rdquo;</div>` : ''}
+            ${c.bio ? `<div style="font-size:12.5px;line-height:1.6;margin:12px auto 0;max-width:520px;
+                        text-align:left">${escapeHtml(c.bio)}</div>` : ''}
+          </div>
+        </div>
+
+        <!-- the three bordered panels -->
+        <div style="display:flex;gap:11px;flex-wrap:wrap;margin-top:20px">
+          ${panel('SPECIALISES IN', bullets(c.specialises))}
+          ${panel('BEST FOR', escapeHtml(c.bestFor || ''))}
+          ${panel('THE VIBE', bullets(c.vibe))}
+        </div>
+
+        <!-- two columns: the prose blocks, and the handle above the review panel -->
+        <div style="display:flex;gap:22px;flex-wrap:wrap;margin-top:20px">
+          <div style="flex:1;min-width:250px">
+            ${block('You&rsquo;ll love me if&hellip;', c.loveMeIf)}
+            ${block('What matters most to me&hellip;', c.mattersMost)}
+            ${block('In my chair you can&hellip;', c.inMyChair)}
+          </div>
+          <div style="flex:1.15;min-width:260px">
+            ${igRow ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+                <a href="https://instagram.com/${encodeURIComponent(igRow)}" target="_blank" rel="noopener noreferrer"
+                   style="color:${CARD_TEXT};font-size:15px;text-decoration:underline">@${escapeHtml(igRow)}</a>
+                <span style="flex:1;height:1px;background:${CARD_CREAM};opacity:.65"></span>
+              </div>` : ''}
+            ${c.review ? `<div style="background:${CARD_CREAM};color:#2A2A2A;border-radius:12px;padding:14px 16px">
+                <div style="text-align:center;font-size:15px;letter-spacing:.12em">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                <div style="font-size:12.5px;line-height:1.6;margin-top:8px;text-align:justify">${escapeHtml(c.review)}</div>
+                ${c.reviewBy ? `<div style="text-align:right;font-weight:700;font-size:12.5px;margin-top:8px">
+                                  &ndash; ${escapeHtml(c.reviewBy)}</div>` : ''}
+              </div>` : ''}
+          </div>
+        </div>
+
+        <!-- footer line, as printed -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;
+                    flex-wrap:wrap;margin-top:20px">
+          <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;font-size:15px">
+            Ready for the Tara Rose<br>Confidence Promise?
+          </div>
+          <div style="border:1.5px solid ${CARD_TEXT};border-radius:22px;padding:9px 26px;
+                      font-size:13px;letter-spacing:.08em">BOOK NOW</div>
+        </div>
       </div>
-      ${block('You&rsquo;ll love me if&hellip;', c.loveMeIf)}
-      ${block('What matters most to me&hellip;', c.mattersMost)}
-      ${block('In my chair you can&hellip;', c.inMyChair)}
-      ${review}
     </div>`;
 }
-
 function toggleStylistCard(headerEl) {
   const wrap = headerEl.parentElement;
   const detail = wrap.querySelector('[data-detail]');
@@ -471,6 +522,10 @@ function toggleStylistCard(headerEl) {
   const open = detail.style.display !== 'none';
   detail.style.display = open ? 'none' : 'block';
   if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
+  // An open card needs the whole row: the three panels and the two-column lower
+  // half don't fit in one ~330px grid cell, which is what makes it read as the
+  // printed card rather than a squeezed list.
+  wrap.style.gridColumn = open ? '' : '1 / -1';
 }
 
 function renderStylistCards() {
@@ -521,7 +576,7 @@ function renderStylistCards() {
       const card = (typeof STYLIST_CARDS !== 'undefined') ? STYLIST_CARDS[s.name] : null;
       // Collapsed by default: 27 full cards at once is a wall of text, and the
       // grid is what makes the team scannable. The detail is one click away.
-      const detail = card ? stylistCardDetail(card, colour) : '';
+      const detail = card ? stylistCardDetail(card, colour, s.name, s.photo) : '';
       const chevron = card
         ? `<span style="margin-left:auto;flex-shrink:0;color:var(--muted);font-size:12px;
                         transition:transform .2s" data-chev>&#9660;</span>`
