@@ -419,6 +419,60 @@ const VIEW_SECTION_LABELS = {
 // and a card with no face would look broken rather than pending.
 const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist'];
 
+// One expanded card, following the A3 layout's own order: quote, bio, the three
+// columns, the three prose blocks, then the client review.
+function stylistCardDetail(c, colour) {
+  const bullets = list => (list || []).map(b =>
+    `<li style="margin:0 0 3px;padding-left:2px">${escapeHtml(b)}</li>`).join('');
+  const col = (title, inner) => `
+    <div style="flex:1;min-width:150px;border:1px solid ${colour};border-radius:10px;padding:10px 12px">
+      <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:13px;
+                  color:${colour};margin-bottom:6px">${title}</div>
+      ${inner}
+    </div>`;
+  const block = (title, text) => text ? `
+    <div style="margin-top:11px">
+      <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:13.5px;
+                  color:var(--text)">${title}</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${escapeHtml(text)}</div>
+    </div>` : '';
+  const ul = inner => `<ul style="margin:0;padding-left:15px;font-size:12.5px;color:var(--text)">${inner}</ul>`;
+  const review = c.review ? `
+    <div style="margin-top:14px;padding:11px 13px;border-radius:10px;background:var(--surface2);
+                border:1px solid var(--border)">
+      <div style="color:${colour};font-size:12px;letter-spacing:0.14em">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <div style="font-size:12.5px;color:var(--text);margin-top:5px;line-height:1.55">${escapeHtml(c.review)}</div>
+      ${c.reviewBy ? `<div style="font-size:12px;font-weight:700;color:var(--muted);margin-top:6px">
+                        &ndash; ${escapeHtml(c.reviewBy)}</div>` : ''}
+    </div>` : '';
+  return `
+    <div data-detail style="display:none;padding:0 14px 14px;border-top:1px solid var(--border2)">
+      ${c.quote ? `<div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:600;
+                               font-size:15px;color:var(--text);margin:12px 0 8px;line-height:1.45">
+                     &ldquo;${escapeHtml(c.quote)}&rdquo;</div>` : ''}
+      ${c.bio ? `<div style="font-size:12.5px;color:var(--muted);line-height:1.6">${escapeHtml(c.bio)}</div>` : ''}
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:12px">
+        ${col('Specialises in', ul(bullets(c.specialises)))}
+        ${col('Best for', `<div style="font-size:12.5px;color:var(--text)">${escapeHtml(c.bestFor || '')}</div>`)}
+        ${col('The vibe', ul(bullets(c.vibe)))}
+      </div>
+      ${block('You&rsquo;ll love me if&hellip;', c.loveMeIf)}
+      ${block('What matters most to me&hellip;', c.mattersMost)}
+      ${block('In my chair you can&hellip;', c.inMyChair)}
+      ${review}
+    </div>`;
+}
+
+function toggleStylistCard(headerEl) {
+  const wrap = headerEl.parentElement;
+  const detail = wrap.querySelector('[data-detail]');
+  const chev = headerEl.querySelector('[data-chev]');
+  if (!detail) return;
+  const open = detail.style.display !== 'none';
+  detail.style.display = open ? 'none' : 'block';
+  if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
+}
+
 function renderStylistCards() {
   const host = document.getElementById('stylistCardsContent');
   if (!host) return;
@@ -464,17 +518,30 @@ function renderStylistCards() {
         ? `<img src="assets/staff/${encodeURIComponent(s.photo)}" alt="" loading="lazy"
                onerror="this.style.display='none'" style="height:104px;width:auto;flex-shrink:0">`
         : '';
+      const card = (typeof STYLIST_CARDS !== 'undefined') ? STYLIST_CARDS[s.name] : null;
+      // Collapsed by default: 27 full cards at once is a wall of text, and the
+      // grid is what makes the team scannable. The detail is one click away.
+      const detail = card ? stylistCardDetail(card, colour) : '';
+      const chevron = card
+        ? `<span style="margin-left:auto;flex-shrink:0;color:var(--muted);font-size:12px;
+                        transition:transform .2s" data-chev>&#9660;</span>`
+        : '';
       return `
-        <div style="display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:12px;
-                    background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow)">
-          ${photo}
-          <div style="min-width:0">
-            <div style="font-family:'Playfair Display',serif;font-weight:600;font-size:18px;
-                        color:var(--text);line-height:1.25">${nameHtml}</div>
-            <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
-                        color:${colour};margin-top:3px">${escapeHtml(s.role || '')}</div>
-            <div style="margin-top:5px">${handle}</div>
+        <div style="border-radius:12px;background:var(--surface);border:1px solid var(--border);
+                    box-shadow:var(--shadow);overflow:hidden">
+          <div ${card ? 'onclick="toggleStylistCard(this)" style="cursor:pointer;' : 'style="'}
+                    display:flex;align-items:center;gap:13px;padding:12px 14px">
+            ${photo}
+            <div style="min-width:0">
+              <div style="font-family:'Playfair Display',serif;font-weight:600;font-size:18px;
+                          color:var(--text);line-height:1.25">${nameHtml}</div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+                          color:${colour};margin-top:3px">${escapeHtml(s.role || '')}</div>
+              <div style="margin-top:5px">${handle}</div>
+            </div>
+            ${chevron}
           </div>
+          ${detail}
         </div>`;
     }).join('');
     return `
@@ -484,7 +551,8 @@ function renderStylistCards() {
                      background:${colour};flex-shrink:0"></span>
         ${escapeHtml(BRANCH_INFO[b]?.name || b)} · ${list.length} stylist${list.length === 1 ? '' : 's'}
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">${cards}</div>`;
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;
+                  align-items:start">${cards}</div>`;
   }).join('');
 
   host.innerHTML = `
