@@ -421,113 +421,131 @@ const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Juni
 
 // One expanded card, following the A3 layout's own order: quote, bio, the three
 // columns, the three prose blocks, then the client review.
-// One stylist card, rebuilt to match the A3 artwork rather than reformatted as a
-// list — Kate, 2026-08-12: "i needed the cards to look almost a like with what we
-// have on canva". Colours are the card's own and are deliberately hardcoded, not
-// themed: the card is a dark artefact in both dashboard themes, exactly as printed.
-const CARD_INK   = '#2D2E37';   // card background
-const CARD_CREAM = '#EEF3C7';   // pale green used for headings, rules and the review panel
+// ── ONE STYLIST CARD, TO THE ARTWORK'S OWN MEASUREMENTS ──────
+// Kate, 2026-08-12: model it on what Canva actually uses. So every size below is
+// measured off _source/FINAL STYLIST CARD.pdf rather than guessed, and expressed
+// as a percentage of the card's width — which is how the A3 original scales.
+//
+// The page is 842.25 x 1190.25pt. Type, as a share of that width:
+//   name 85pt = 10.09%   TARA ROSE 26.4pt = 3.13%   SALON 11.3pt = 1.34%
+//   role 13.8pt = 1.64%  quote 18pt = 2.14%         bio/prose 15pt = 1.78%
+//   panel + block titles and the handle 23pt = 2.73%   bullets 16pt = 1.90%
+//   footer and BOOK NOW 18pt = 2.14%
+// Geometry, same basis:
+//   content margins 5.28% / 94.62%     right-hand column starts at 43.7%
+//   three panels 29.24% wide, 0.83% apart, 169.1pt tall (14.2% of height)
+//   six photo frames 14.4% wide, 0.64% apart, aspect 121.3:223.9
+//   lower half: prose column from 5.03%, review column from 49.2%
+//
+// Sizes use cqw (1cqw = 1% of the container's width) so the whole card scales as
+// one piece, exactly as the print original does. The layout still flows rather
+// than being absolutely positioned: bios run from 200 to 400 characters across the
+// 27 cards, and a fixed-height replica would clip the long ones.
+const CARD_INK   = '#2D2E37';
+const CARD_CREAM = '#EEF3C7';
 const CARD_TEXT  = '#FAF8F3';
 
 function stylistCardDetail(c, colour, name, photo) {
-  const dot = `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;
-                 background:${CARD_CREAM};flex-shrink:0;margin-top:6px"></span>`;
+  const slug = String(name || '').toLowerCase();
+  const dot = `<span style="display:inline-block;width:0.85cqw;height:0.85cqw;border-radius:50%;
+                 background:${CARD_CREAM};flex-shrink:0;margin-top:0.75cqw"></span>`;
   const bullets = list => (list || []).map(b =>
-    `<div style="display:flex;gap:7px;align-items:flex-start;margin-bottom:3px">
+    `<div style="display:flex;gap:0.9cqw;align-items:flex-start;margin-bottom:0.5cqw">
        ${dot}<span>${escapeHtml(b)}</span></div>`).join('');
   const panel = (title, inner) => `
-    <div style="flex:1;min-width:158px;border:1.5px solid ${CARD_CREAM};border-radius:12px;padding:11px 13px">
-      <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;font-size:14px;
-                  letter-spacing:.02em;color:${CARD_CREAM};text-align:center;margin-bottom:8px">${title}</div>
-      <div style="font-size:12.5px;line-height:1.45;color:${CARD_TEXT}">${inner}</div>
+    <div style="width:29.24%;border:0.18cqw solid ${CARD_CREAM};border-radius:1.6cqw;
+                padding:1.3cqw 1.5cqw;box-sizing:border-box">
+      <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;
+                  font-size:2.73cqw;color:${CARD_CREAM};text-align:center;margin-bottom:1cqw">${title}</div>
+      <div style="font-size:1.9cqw;line-height:1.35;color:${CARD_TEXT}">${inner}</div>
     </div>`;
   const block = (title, text) => text ? `
-    <div style="margin-bottom:13px">
-      <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;font-size:15px;
-                  color:${CARD_CREAM};margin-bottom:3px">${title}</div>
-      <div style="font-size:12.5px;line-height:1.5;color:${CARD_TEXT}">${escapeHtml(text)}</div>
+    <div style="margin-bottom:2.2cqw">
+      <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;
+                  font-size:2.73cqw;color:${CARD_TEXT};margin-bottom:0.5cqw">${title}</div>
+      <div style="font-size:1.78cqw;line-height:1.45;color:${CARD_TEXT}">${escapeHtml(text)}</div>
     </div>` : '';
-  const igRow = c.ig || '';
-  const slug = String(name || '').toLowerCase();
+  // Frames are 14.4% of the width with a 0.64% gap, aspect 121.3:223.9 — so the
+  // strip fills the same band as on the card instead of scrolling sideways.
   const works = (c.works > 0) ? `
-    <div style="display:flex;gap:8px;margin-top:16px;overflow-x:auto;padding-bottom:2px">
+    <div style="display:flex;gap:0.64%;margin-top:2.2cqw">
       ${Array.from({ length: c.works }, (_, i) => `
         <img src="assets/staff/work/${encodeURIComponent(slug)}-${i + 1}.jpg" alt="" loading="lazy"
              onerror="this.style.display='none'"
-             style="height:186px;width:auto;border-radius:9px;border:1.5px solid ${CARD_CREAM};
-                    flex-shrink:0;object-fit:cover">`).join('')}
+             style="flex:1 1 0;min-width:0;aspect-ratio:121.3/223.9;object-fit:cover;
+                    border-radius:1.1cqw;border:0.18cqw solid ${CARD_CREAM}">`).join('')}
     </div>` : '';
   return `
     <div data-detail style="display:none">
-      <div style="background:${CARD_INK};color:${CARD_TEXT};padding:22px 24px 26px;
-                  font-family:'Inter',sans-serif">
+      <div style="container-type:inline-size;background:${CARD_INK};color:${CARD_TEXT};
+                  font-family:'Inter',sans-serif;padding:2.4% 5.38% 3.4%">
 
-        <!-- masthead: head icon left, wordmark and name right, as on the card -->
-        <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
+        <!-- top block: cut-out head shot left, wordmark and name right -->
+        <div style="display:flex;gap:1.4%;align-items:flex-start">
           ${photo ? `<img src="assets/staff/${encodeURIComponent(photo)}" alt="" loading="lazy"
                           onerror="this.style.display='none'"
-                          style="height:186px;width:auto;flex-shrink:0">` : ''}
-          <div style="flex:1;min-width:240px;text-align:center">
-            <div style="font-size:15px;letter-spacing:0.24em;font-weight:600">TARA ROSE</div>
-            <div style="font-size:9px;letter-spacing:0.3em;color:${CARD_CREAM};margin-top:2px">SALON</div>
-            <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;
-                        font-size:44px;line-height:1.05;margin-top:10px">${escapeHtml(name)}</div>
-            <div style="font-size:11px;font-weight:700;letter-spacing:0.3em;color:${CARD_CREAM};
-                        margin-top:4px">${escapeHtml((c.role || '').toUpperCase())}</div>
-            ${c.quote ? `<div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:600;
-                          font-size:16px;line-height:1.4;margin:12px auto 0;max-width:430px">
-                          &ldquo;${escapeHtml(c.quote)}&rdquo;</div>` : ''}
-            ${c.bio ? `<div style="font-size:12.5px;line-height:1.6;margin:12px auto 0;max-width:520px;
-                        text-align:left">${escapeHtml(c.bio)}</div>` : ''}
+                          style="width:33%;height:auto;flex-shrink:0;align-self:flex-start">` : ''}
+          <div style="flex:1;min-width:0">
+            <div style="text-align:center">
+              <div style="font-size:3.13cqw;letter-spacing:0.22em;font-weight:400">TARA ROSE</div>
+              <div style="font-size:1.34cqw;letter-spacing:0.34em;margin-top:0.5cqw">SALON</div>
+              <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;
+                          font-size:10.09cqw;line-height:1;margin-top:1.4cqw">${escapeHtml(name)}</div>
+              <div style="font-size:1.64cqw;font-weight:700;letter-spacing:0.42em;color:${CARD_CREAM};
+                          margin-top:1cqw">${escapeHtml((c.role || '').toUpperCase())}</div>
+              ${c.quote ? `<div style="font-family:'Playfair Display',serif;font-style:italic;
+                            font-weight:400;font-size:2.14cqw;line-height:1.35;margin-top:1.5cqw">
+                            &ldquo;${escapeHtml(c.quote)}&rdquo;</div>` : ''}
+            </div>
+            ${c.bio ? `<div style="font-size:1.78cqw;line-height:1.4;margin-top:1.6cqw;text-align:justify">
+                        ${escapeHtml(c.bio)}</div>` : ''}
           </div>
         </div>
 
-        <!-- the three bordered panels -->
-        <div style="display:flex;gap:11px;flex-wrap:wrap;margin-top:20px">
+        <!-- three panels: 29.24% each, 0.83% apart, as measured -->
+        <div style="display:flex;gap:0.83%;margin-top:3.3cqw;align-items:stretch">
           ${panel('SPECIALISES IN', bullets(c.specialises))}
           ${panel('BEST FOR', escapeHtml(c.bestFor || ''))}
           ${panel('THE VIBE', bullets(c.vibe))}
         </div>
 
-        <!-- her work, cropped from the strip on the card. Katie's and Areanne's
-             cards use a different layout with no strip, so they show nothing here
-             rather than an empty gap. -->
         ${works}
 
-        <!-- two columns: the prose blocks, and the handle above the review panel -->
-        <div style="display:flex;gap:22px;flex-wrap:wrap;margin-top:20px">
-          <div style="flex:1;min-width:250px">
+        <!-- lower half: prose left, handle above the review panel right -->
+        <div style="display:flex;gap:4.2%;margin-top:3cqw">
+          <div style="flex:1;min-width:0">
             ${block('You&rsquo;ll love me if&hellip;', c.loveMeIf)}
             ${block('What matters most to me&hellip;', c.mattersMost)}
             ${block('In my chair you can&hellip;', c.inMyChair)}
           </div>
-          <div style="flex:1.15;min-width:260px">
-            ${igRow ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
-                <a href="https://instagram.com/${encodeURIComponent(igRow)}" target="_blank" rel="noopener noreferrer"
-                   style="color:${CARD_TEXT};font-size:15px;text-decoration:underline">@${escapeHtml(igRow)}</a>
-                <span style="flex:1;height:1px;background:${CARD_CREAM};opacity:.65"></span>
+          <div style="width:48%;flex-shrink:0">
+            ${c.ig ? `<div style="display:flex;align-items:center;gap:1.2cqw;margin-bottom:1.2cqw">
+                <a href="https://instagram.com/${encodeURIComponent(c.ig)}" target="_blank" rel="noopener noreferrer"
+                   style="color:${CARD_TEXT};font-size:2.73cqw;text-decoration:underline">@${escapeHtml(c.ig)}</a>
+                <span style="flex:1;height:0.12cqw;background:${CARD_CREAM};opacity:.7"></span>
               </div>` : ''}
-            ${c.review ? `<div style="background:${CARD_CREAM};color:#2A2A2A;border-radius:12px;padding:14px 16px">
-                <div style="text-align:center;font-size:15px;letter-spacing:.12em">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-                <div style="font-size:12.5px;line-height:1.6;margin-top:8px;text-align:justify">${escapeHtml(c.review)}</div>
-                ${c.reviewBy ? `<div style="text-align:right;font-weight:700;font-size:12.5px;margin-top:8px">
+            ${c.review ? `<div style="background:${CARD_CREAM};color:#2A2A2A;border-radius:1.6cqw;padding:1.8cqw 2cqw">
+                <div style="text-align:center;font-size:2.4cqw;letter-spacing:.1em">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                <div style="font-size:1.78cqw;line-height:1.45;margin-top:1.2cqw;text-align:justify">${escapeHtml(c.review)}</div>
+                ${c.reviewBy ? `<div style="text-align:right;font-weight:700;font-size:1.78cqw;margin-top:1.2cqw">
                                   &ndash; ${escapeHtml(c.reviewBy)}</div>` : ''}
               </div>` : ''}
           </div>
         </div>
 
-        <!-- footer line, as printed -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;
-                    flex-wrap:wrap;margin-top:20px">
-          <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;font-size:15px">
-            Ready for the Tara Rose<br>Confidence Promise?
+        <!-- footer, as printed -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:2%;margin-top:3cqw">
+          <div style="font-family:'Playfair Display',serif;font-style:italic;font-size:2.14cqw;line-height:1.35">
+            <span style="font-weight:400">Ready for the Tara Rose</span><br>
+            <span style="font-weight:700">Confidence Promise?</span>
           </div>
-          <div style="border:1.5px solid ${CARD_TEXT};border-radius:22px;padding:9px 26px;
-                      font-size:13px;letter-spacing:.08em">BOOK NOW</div>
+          <div style="border:0.18cqw solid ${CARD_TEXT};border-radius:3cqw;padding:1.1cqw 3cqw;
+                      font-size:2.14cqw;letter-spacing:.06em;white-space:nowrap">BOOK NOW</div>
         </div>
       </div>
     </div>`;
 }
+
 function toggleStylistCard(headerEl) {
   const wrap = headerEl.parentElement;
   const detail = wrap.querySelector('[data-detail]');
