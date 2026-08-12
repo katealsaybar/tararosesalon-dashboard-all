@@ -9,6 +9,12 @@ const STAFF_NAME_ALIASES = {
   // Her stylist card in the Canva deck spells her EDZ; EDS is the correct
   // spelling and the one the ledger uses (Kate confirmed, 2026-08-12).
   'EDZ': 'EDS',
+  // One stylist, logged both ways: 368 rows as LUCIA (Motor City, Saadiyat) and 16
+  // as LUCY (Al Quoz). Phorest knows her only as Lucia Gonzalez Rodriguez, while
+  // her stylist card says Lucy — so LUCY is canonical for display and LUCIA folds
+  // into it. Kate confirmed same person, 2026-08-12. Branch attribution is
+  // per-row, so merging the name moves no revenue between branches.
+  'LUCIA': 'LUCY',
 };
 
 function canonicalStaffName(name){

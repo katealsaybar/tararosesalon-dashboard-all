@@ -447,7 +447,16 @@ function stylistCardDetail(c, colour, name, photo) {
                   color:${CARD_CREAM};margin-bottom:3px">${title}</div>
       <div style="font-size:12.5px;line-height:1.5;color:${CARD_TEXT}">${escapeHtml(text)}</div>
     </div>` : '';
-  const igRow = c.ig || '' ;
+  const igRow = c.ig || '';
+  const slug = String(name || '').toLowerCase();
+  const works = (c.works > 0) ? `
+    <div style="display:flex;gap:8px;margin-top:16px;overflow-x:auto;padding-bottom:2px">
+      ${Array.from({ length: c.works }, (_, i) => `
+        <img src="assets/staff/work/${encodeURIComponent(slug)}-${i + 1}.jpg" alt="" loading="lazy"
+             onerror="this.style.display='none'"
+             style="height:186px;width:auto;border-radius:9px;border:1.5px solid ${CARD_CREAM};
+                    flex-shrink:0;object-fit:cover">`).join('')}
+    </div>` : '';
   return `
     <div data-detail style="display:none">
       <div style="background:${CARD_INK};color:${CARD_TEXT};padding:22px 24px 26px;
@@ -479,6 +488,11 @@ function stylistCardDetail(c, colour, name, photo) {
           ${panel('BEST FOR', escapeHtml(c.bestFor || ''))}
           ${panel('THE VIBE', bullets(c.vibe))}
         </div>
+
+        <!-- her work, cropped from the strip on the card. Katie's and Areanne's
+             cards use a different layout with no strip, so they show nothing here
+             rather than an empty gap. -->
+        ${works}
 
         <!-- two columns: the prose blocks, and the handle above the review panel -->
         <div style="display:flex;gap:22px;flex-wrap:wrap;margin-top:20px">
