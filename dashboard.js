@@ -1324,14 +1324,36 @@ function buildWinsHTML(s, prevS, prevPeriodLabel, hairStaff, beautyStaff, branch
   // it unreadable on the light card. Keep the eyebrow in --muted (always readable) and
   // use `color` only as a dot + left border accent, same convention as everywhere else
   // brand colors show up on this dashboard.
-  const winCard = (eyebrow, color, title, sub) => `
+  // `profile` is an optional STAFF_PROFILES entry (staff-profiles.js): {photo, ig}.
+  // Both keys are optional and independent, so a stylist with no photo, no handle,
+  // or no profile at all renders exactly as this card always did. A photo that
+  // 404s hides itself via onerror rather than showing a broken-image icon.
+  const winCard = (eyebrow, color, title, sub, profile) => {
+    const p = profile || {};
+    const titleHtml = p.ig
+      ? `<a href="https://instagram.com/${encodeURIComponent(p.ig)}" target="_blank" rel="noopener noreferrer"
+            title="@${escapeHtml(p.ig)} on Instagram"
+            style="color:inherit;text-decoration:none;border-bottom:1px solid ${color}">${escapeHtml(title)}</a>`
+      : escapeHtml(title);
+    const avatarHtml = p.photo
+      ? `<img src="assets/staff/${encodeURIComponent(p.photo)}" alt="" loading="lazy"
+             onerror="this.style.display='none'"
+             style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid ${color}">`
+      : '';
+    return `
     <div style="flex:1;min-width:200px;padding:14px 16px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid ${color}">
       <div style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">
         <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></span>${eyebrow}
       </div>
-      <div style="font-family:'Playfair Display',serif;font-weight:600;font-size:16px;color:var(--text);line-height:1.3;margin-top:6px">${escapeHtml(title)}</div>
-      <div style="font-size:11.5px;color:var(--muted);margin-top:4px">${sub}</div>
+      <div style="display:flex;align-items:center;gap:11px;margin-top:6px">
+        ${avatarHtml}
+        <div style="min-width:0">
+          <div style="font-family:'Playfair Display',serif;font-weight:600;font-size:16px;color:var(--text);line-height:1.3">${titleHtml}</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:4px">${sub}</div>
+        </div>
+      </div>
     </div>`;
+  };
 
   // ── Top performer: highest-revenue individual stylist, hair or beauty ──
   const staffPool = [
@@ -1341,7 +1363,8 @@ function buildWinsHTML(s, prevS, prevPeriodLabel, hairStaff, beautyStaff, branch
   const top = staffPool[0];
   const performerCard = top
     ? winCard('Top Performer', top.color, `${top.name} — ${top.dept}`,
-        `${fmtAED(top.revenue)} · ${top.total.toLocaleString()} clients · ${fmtPct(top.rebookPct)} rebooked`)
+        `${fmtAED(top.revenue)} · ${top.total.toLocaleString()} clients · ${fmtPct(top.rebookPct)} rebooked`,
+        (typeof staffProfile === 'function') ? staffProfile(top.name) : null)
     : winCard('Top Performer', 'var(--muted)', 'No staff data for this period', 'Staff-level figures aren’t available for this date range.');
 
   // ── Biggest KPI move vs previous period (percentage-point deltas, same units) ──
