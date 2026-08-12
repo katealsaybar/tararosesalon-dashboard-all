@@ -219,6 +219,7 @@ async function utilParseAndSaveBox(code){
 
 async function handleUtilParseOne(code){
   await utilParseAndSaveBox(code);
+  await refreshUtilProgress();
 }
 
 async function handleUtilSaveAll(){
@@ -238,6 +239,7 @@ async function handleUtilSaveAll(){
     summaryEl.textContent = parts.join(' · ');
     summaryEl.style.color = failed.length ? 'var(--bad)' : 'var(--good)';
   }
+  await refreshUtilProgress();
 }
 
 // ── BULK PDF UPLOAD (BACKFILL) ────────────────────────────────
@@ -322,6 +324,7 @@ async function handleUtilPdfBatch(){
 
   btn.disabled = false;
   if (anyOk && typeof showToast === 'function') showToast('✅ Utilisation PDFs saved!');
+  await refreshUtilProgress();
 }
 
 function initUtilPdfDrop(){
