@@ -36,10 +36,19 @@ const BRANCH_DETECT = {
   AQ:  ['al quoz', 'quoz', 'aq'],
   FRT: ['fratelli', 'frt', 'barber'],
 };
+
+// Known misspellings/duplicate spellings → canonical staff name.
+// Add more pairs here anytime someone's name shows up split across two spellings
+// in the daily tabs — key is the WRONG spelling (case-insensitive), value is correct.
+const NAME_FIXES = {
+  'LIZANNIE': 'Lizanie',
+  'SHELLY': 'Shelley',
+  'HAZEL MAY': 'Hazel Mae',
+};
 // ─────────────────────────────────────────────────────────────────────────
 
 const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aWp4ZW5hZm9vd2FqcWt0cXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTA1OTksImV4cCI6MjA5MTI4NjU5OX0.GL3YXupXOBGfN4FCyelbQWraUw12VJNJu-wUB3zR7Zw';
+const SUPA_KEY = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
 
 function detectBranch_(fileName) {
   const lower = fileName.toLowerCase();
@@ -118,15 +127,17 @@ function buildStylistDailyLog_(ss) {
       const rebooked      = row[5]; // F
       const total         = row[7]; // H
       const treatment     = dept === 'Hair' ? row[33] : ''; // AH, Hair only
+      const retailQty     = dept === 'Hair' ? row[23] : row[30]; // Hair: X, Beauty: AE
+      const treatmentQty  = dept === 'Hair' ? row[30] : '';      // AE, Hair only
 
-      rows.push([dateLabel, dept, staff, newClientReq, req, salon, newClients, rebooked, total, treatment]);
+      rows.push([dateLabel, dept, normalizeStaffName_(staff), newClientReq, req, salon, newClients, rebooked, total, treatment, retailQty, treatmentQty]);
     }
   });
 
   const logSheet = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
   logSheet.clearContents();
-  logSheet.getRange(1, 1, 1, 10).setValues([['Date', 'Dept', 'STAFF', 'NEW CLIENT REQ', 'REQ', 'SALON', 'NEW', 'REBOOKED', 'TOTAL', 'TREATMENT AED']]);
-  if (rows.length) logSheet.getRange(2, 1, rows.length, 10).setValues(rows);
+  logSheet.getRange(1, 1, 1, 12).setValues([['Date', 'Dept', 'STAFF', 'NEW CLIENT REQ', 'REQ', 'SALON', 'NEW', 'REBOOKED', 'TOTAL', 'TREATMENT AED', 'RETAIL UNIT (QTY)', 'TREATMENTS UNIT (QTY)']]);
+  if (rows.length) logSheet.getRange(2, 1, rows.length, 12).setValues(rows);
 
   return rows.length;
 }
@@ -142,7 +153,7 @@ function pushOneBranch_(ss, branchCode) {
   const rows = [];
   for (let i = 1; i < values.length; i++) {
     const r = values[i];
-    const [dateCell, dept, staff, ncr, req, salon, newC, rebooked, total, treatmentCell] = r;
+    const [dateCell, dept, staff, ncr, req, salon, newC, rebooked, total, treatmentCell, retailQtyCell, treatmentQtyCell] = r;
     if (!staff || String(staff).trim() === '') continue;
 
     const date = formatDate_(dateCell);
@@ -152,7 +163,10 @@ function pushOneBranch_(ss, branchCode) {
       branch: branchCode,
       date: date,
       dept: String(dept || '').trim(),
-      staff_name: String(staff).trim(),
+      // _temp_placeholder is already normalized by buildStylistDailyLog_, but
+      // normalize again here too — this function can run standalone against a
+      // sheet someone edited by hand after the last rebuild.
+      staff_name: normalizeStaffName_(staff),
       ncr: toNumber_(ncr),
       req: toNumber_(req),
       salon: toNumber_(salon),
@@ -160,6 +174,8 @@ function pushOneBranch_(ss, branchCode) {
       rebooked: toNumber_(rebooked),
       total: toNumber_(total),
       treatment_aed: toAed_(treatmentCell),
+      retail_unit_qty: toNumber_(retailQtyCell),
+      treatments_unit_qty: toNumber_(treatmentQtyCell),
     });
   }
 
@@ -260,4 +276,10 @@ function toNumber_(v) {
 function toAed_(v) {
   const n = parseFloat(String(v || '').replace(/[^0-9.\-]/g, ''));
   return isNaN(n) ? 0 : Math.round(n * 100) / 100;
+}
+
+// Collapses known misspelled/duplicate spellings to one canonical name (see NAME_FIXES above).
+function normalizeStaffName_(name) {
+  const trimmed = String(name || '').trim();
+  return NAME_FIXES[trimmed.toUpperCase()] || trimmed;
 }

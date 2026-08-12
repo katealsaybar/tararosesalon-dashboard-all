@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -10,7 +10,7 @@
 <title>Tara Rose Ladies Salon — Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 
 <style>
@@ -18,13 +18,15 @@
 /* 🔥 SUPPORT SECTIONS (collapsible rows) */
 .support-section{
   border:1px solid var(--border);
-  border-radius:12px;
+  border-radius:var(--radius-card);
   background:var(--surface);
+  box-shadow:var(--shadow-card);
   overflow:hidden;
-  transition:box-shadow .2s;
+  transition:box-shadow 220ms var(--card-ease),transform 220ms var(--card-ease);
 }
 .support-section:hover{
-  box-shadow:var(--shadow);
+  box-shadow:var(--shadow-card-hover);
+  transform:translateY(-2px);
 }
 .support-section-hdr{
   display:flex;
@@ -44,7 +46,7 @@
   border-bottom-color:var(--border);
 }
 .support-toggle-arrow{
-  font-size:15px;
+  font-size:16px;
   color:var(--muted);
   transition:transform .25s ease;
   flex-shrink:0;
@@ -54,7 +56,7 @@
   transform:rotate(90deg);
 }
 .sect-period-badge{
-  font-size:10px;
+  font-size:11px;
   color:var(--muted);
   background:var(--surface2);
   border:1px solid var(--border);
@@ -80,7 +82,11 @@
   transition:max-height .35s ease, padding .35s ease;
 }
 .support-section-body.open{
-  max-height:2000px;
+  /* Real ceiling, not an animation target — actual open/close motion is driven by
+     smoothSlide() setting an exact pixel height in JS. This just has to clear the
+     tallest realistic section (Revenue Targets: 4 clusters, ~21 tiles) so content
+     isn't clipped once the JS-driven inline height is removed at rest. */
+  max-height:8000px;
 }
 .breakdown-panel-wrap{
   overflow:hidden;
@@ -164,7 +170,7 @@
   color: #fff;
   height: 100vh;
   padding: 20px 14px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .nav-group {
@@ -172,29 +178,34 @@
 }
 
 .nav-title {
-  font-size: 11px;
-  letter-spacing: 1px;
-  color: #666;
+  font-size:11.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
   margin-bottom: 8px;
 }
 
 .nav-sub {
-  font-size: 13px;
+  font-size:14px;
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  color: #ccc;
-  transition: 0.2s;
+  color: var(--muted);
+  border-left: 3px solid transparent;
+  transition: background .2s, color .2s, border-color .2s;
 }
 
 .nav-sub:hover {
-  background: #1a1a1a;
-  color: #fff;
+  background: var(--surface2);
+  color: var(--text);
 }
 
 .nav-sub.active {
-  background: #222;
-  color: #fff;
+  background: var(--accent-lavender);
+  color: #1A1A1A;
+  border-left-color: transparent;
+  border-radius: 999px;
+  font-weight: 600;
 }
 
 /* 🔥 CLEAN VERSION */
@@ -218,15 +229,15 @@
 .grid-main{
   display:grid;
   grid-template-columns: 0.55fr 1.45fr;
-  gap:16px;
-  margin-bottom:12px;
+  gap:20px;
+  margin-bottom:14px;
   margin-top:4px;
 }
 
 .grid-sub{
   display:grid;
   grid-template-columns: repeat(2, 1fr);
-  gap:12px;
+  gap:16px;
 }
   
 @media(max-width:900px){
@@ -238,12 +249,22 @@
 /* existing mo na CSS below */
 .layout{
   display:flex;
-  height:calc(100vh - 54px); /* match header min-height */
+  height:calc(100vh - 85px); /* match header (82px) + scroll-progress bar (3px) */
   overflow:hidden;
 }
 
-/* sidebar base styles */
+/* thin bar under the header that fills left-to-right as the active view scrolls down */
+.scroll-progress{height:3px;background:var(--border);flex-shrink:0;overflow:hidden}
+.scroll-progress-fill{height:100%;width:0%;background:linear-gradient(to right,var(--accent-mint),var(--accent-butter),var(--accent-lavender),var(--accent-coral));transition:width .08s linear}
+
+/* sidebar base styles — constant ink-dark "spine", same in both themes.
+   Re-scoping --surface/--text/--muted/--accent here means every existing
+   nav-title/nav-sub/nav-btn rule below (which already reads those vars)
+   inherits the ink treatment automatically, no markup or JS changes needed. */
 aside.sidebar{
+  --surface:#20212A;--surface2:#2A2B36;--border:rgba(250,248,243,0.08);
+  --text:#FAF8F3;--muted:rgba(250,248,243,0.55);--muted2:rgba(250,248,243,0.35);
+  --accent:var(--accent-mint);--accent-fg:#1A1A1A;
   width:200px;
   flex-shrink:0;
   background:var(--surface);
@@ -297,13 +318,27 @@ aside.sidebar{
 }
   
 *{box-sizing:border-box;margin:0;padding:0}
+
+/* Brand accent quartet — confirmed across both light and dark brand-guideline
+   themes. Theme-agnostic on purpose: do not redeclare inside [data-theme]. */
+:root{
+  --accent-mint:#99F6E4;--accent-butter:#EEF3C7;--accent-lavender:#C4B5FD;--accent-coral:#FF9B9B;
+  --radius-card:10px;
+  --card-ease:cubic-bezier(.2,.7,.2,1);
+}
+
 [data-theme="light"]{
-  --bg:#F9E8DF;--surface:#fff;--surface2:#fdf8f6;--border:#e8d5cc;--border2:#f0e8e4;
-  --text:#5C5557;--muted:#9a8a87;--muted2:#a09898;--accent:#5C5557;--accent-fg:#F9E8DF;
-  --shadow:0 2px 12px rgba(92,85,87,0.08);
+  --bg:#FAF7F0;--surface:#fff;--surface2:#F4F1E9;--border:#E8E2D6;--border2:#F0ECE3;
+  --text:#1A1A1A;--muted:#6B6560;--muted2:#948C84;--accent:#1A1A1A;--accent-fg:#FBF7F0;
+  --shadow-card:0 1px 2px rgba(26,26,26,0.05),0 10px 28px -8px rgba(26,26,26,0.10);
+  --shadow-card-hover:0 2px 4px rgba(26,26,26,0.07),0 18px 40px -10px rgba(26,26,26,0.16);
+  --shadow:var(--shadow-card);
   --good:#0F6E56;--good-bg:#E1F5EE;--warn:#BA7517;--warn-bg:#FAEEDA;--bad:#A32D2D;--bad-bg:#FCEBEB;
-  --logo-color:#5C5557;--toggle-knob:#5C5557;
+  --logo-color:#1A1A1A;--toggle-knob:#1A1A1A;
   --fratelli-bg:rgba(99,112,0,0.10);--fratelli-border:rgba(99,112,0,0.4);--fratelli-text:#4a5500;--fratelli-dot:#637000;
+  /* Hair/Beauty label colors — darker + more saturated than the dark-theme
+     pastels so "HAIR"/"BEAUTY" tags stay readable on a white card. */
+  --hair:#7C5CD4;--beauty:#0F8A72;
 }
 
 .nav-btn{
@@ -314,7 +349,7 @@ aside.sidebar{
   color:var(--muted);
   border-radius:10px;
   cursor:pointer;
-  font-size:13px;
+  font-size:14px;
   text-align:left;
   transition:all .2s ease;
 }
@@ -333,25 +368,46 @@ aside.sidebar{
 [data-theme="dark"]{
   --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;--border:rgba(250,248,243,0.09);--border2:rgba(250,248,243,0.05);
   --text:#FAF8F3;--muted:rgba(250,248,243,0.55);--muted2:rgba(250,248,243,0.38);--accent:#FFD4D9;--accent-fg:#2D2E37;
-  --shadow:0 2px 16px rgba(0,0,0,0.28);
+  --shadow-card:0 1px 2px rgba(0,0,0,0.3),0 10px 28px -8px rgba(0,0,0,0.35);
+  --shadow-card-hover:0 2px 4px rgba(0,0,0,0.35),0 20px 44px -10px rgba(0,0,0,0.45);
+  --shadow:var(--shadow-card);
   --good:#99F6E4;--good-bg:rgba(153,246,228,0.12);--warn:#EEF3C7;--warn-bg:rgba(238,243,199,0.12);--bad:#FF9B9B;--bad-bg:rgba(255,155,155,0.12);
   --logo-color:#FAF8F3;--toggle-knob:#FFD4D9;
+  --hair:#C4B5FD;--beauty:#99F6E4;
 }
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
 
 /* HEADER */
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);transition:background .3s,border-color .3s;flex-shrink:0;min-height:54px;overflow:hidden}
-.logo{display:flex;align-items:center;gap:10px;min-width:0;flex-shrink:1;overflow:hidden}
-.logo img{width:32px;height:32px;object-fit:contain;flex-shrink:0}
+/* overflow:visible (not hidden) — the Branch dropdown (.ms-drop, position:absolute)
+   now lives in the header and needs room to open below it; same clipping bug .controls
+   had before (Kate, 2026-08-03), and the same fix: overflow-x:hidden + overflow-y:visible
+   isn't good enough — per spec a visible/non-visible overflow pairing computes the
+   visible axis to 'auto', which still clips. Plain `visible` on both axes is what
+   .controls always used; the media queries below already trim header content at
+   narrow widths, which is what overflow:hidden was guarding against anyway. */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);transition:background .3s,border-color .3s;flex-shrink:0;min-height:82px;overflow:visible}
+.logo{display:flex;align-items:center;gap:12px;min-width:0;flex-shrink:1;overflow:hidden}
+/* logo source PNG has heavy empty margin above/below the wordmark — crop it out
+   so the mark reads at full size instead of shrinking inside its own whitespace */
+.logo-crop{width:184px;height:58px;overflow:hidden;flex-shrink:0}
+.logo-crop img{width:100%;height:100%;object-fit:cover;object-position:center}
 .logo-text{min-width:0;overflow:hidden}
-.logo-text .logo-name{font-family:'DM Sans',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text);line-height:1;white-space:nowrap}
-.logo-text .logo-sub{font-size:9px;letter-spacing:0.26em;text-transform:uppercase;color:var(--muted);margin-top:2px;white-space:nowrap}
-.logo-strip{height:2px;width:90px;margin-top:4px;background:linear-gradient(to right,#99F6E4,#EEF3C7,#C4B5FD,#FF9B9B,#FFD4D9);border-radius:2px}
-.dash-label{font-family:'Cormorant Garamond',serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-top:3px;white-space:nowrap}
+.logo-text .logo-name{font-family:'Inter',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text);line-height:1;white-space:nowrap}
+.logo-text .logo-sub{font-size:10px;letter-spacing:0.26em;text-transform:uppercase;color:var(--muted);margin-top:2px;white-space:nowrap}
+.logo-strip{height:2px;width:90px;margin-top:4px;background:linear-gradient(to right,var(--accent-mint),var(--accent-butter),var(--accent-lavender),var(--accent-coral));border-radius:2px}
+/* matches .login-dash-lbl on the password gate — same pill treatment, scaled for the header */
+.dash-label{
+  font-family:'Playfair Display',serif;font-weight:500;
+  font-size:13px;letter-spacing:0.03em;text-transform:none;
+  color:#7C5CD4;margin-top:0;
+  display:inline-block;padding:3px 12px;border-radius:20px;
+  background:rgba(124,92,212,0.12);
+  white-space:nowrap;transition:opacity .15s ease;
+}
 .header-right{display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:auto;padding-left:12px}
-.last-updated{font-size:10px;color:var(--muted);white-space:nowrap}
+.last-updated{font-size:11px;color:var(--muted);white-space:nowrap}
 .toggle-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;flex-shrink:0}
-.toggle-lbl{font-size:11px;color:var(--muted);min-width:28px;white-space:nowrap}
+.toggle-lbl{font-size:12px;color:var(--muted);min-width:28px;white-space:nowrap}
 .toggle-track{width:38px;height:20px;border-radius:10px;background:var(--border);position:relative;transition:background .3s;flex-shrink:0;border:1px solid var(--border)}
 .toggle-thumb{width:14px;height:14px;border-radius:50%;background:var(--toggle-knob);position:absolute;top:2px;left:2px;transition:transform .25s ease,background .3s}
 [data-theme="dark"] .toggle-thumb{transform:translateX(18px)}
@@ -361,80 +417,156 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 @media(max-width:500px){.last-updated,.logo-text .logo-sub{display:none}}
 
 /* CONTROLS */
-.controls{display:flex;flex-wrap:wrap;gap:10px;padding:8px 28px;align-items:flex-end;position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);margin-top:0;}
+.controls{display:flex;flex-wrap:wrap;gap:10px;padding:8px 28px;align-items:flex-end;position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);margin-top:0;max-height:200px;overflow:visible;opacity:1;transition:max-height .25s ease,padding .25s ease,opacity .2s ease,border-color .25s ease;}
+/* Collapsible for ADHD-friendly decluttering — hides the filter bar without losing its state.
+   overflow:hidden only applies here (not on the base .controls rule above) — the base rule
+   needs overflow:visible so the branch dropdown (.ms-drop, position:absolute) isn't clipped
+   by its ancestor when open (Kate, 2026-08-03: dropdown was rendering blocked/cut off). */
+.controls.collapsed{max-height:0;padding-top:0;padding-bottom:0;opacity:0;border-bottom-color:transparent;overflow:hidden;}
 .ctrl-group{display:flex;flex-direction:column;gap:4px}
-.ctrl-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
+.ctrl-label{font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
 .ms-wrap{position:relative}
-.ms-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 12px;border:1px solid var(--border);border-radius:18px;font-size:12px;color:var(--text);background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;min-width:140px;transition:all .2s}
+.ms-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 12px;border:1px solid var(--border);border-radius:18px;font-size:13px;color:var(--text);background:var(--surface);font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;min-width:140px;transition:all .2s}
 .ms-btn:hover,.ms-btn.open{border-color:var(--accent)}
 .ms-btn svg{flex-shrink:0;opacity:.5;transition:transform .2s}
 .ms-btn.open svg{transform:rotate(180deg)}
 .ms-drop{position:absolute;top:calc(100% + 5px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);min-width:100%;max-height:260px;overflow-y:auto;opacity:0;pointer-events:none;transform:translateY(-6px);transition:opacity .2s ease,transform .2s ease}
 .ms-drop.open{opacity:1;pointer-events:auto;transform:translateY(0)}
-.ms-opt{display:flex;align-items:center;gap:9px;padding:8px 13px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;border-left:3px solid transparent}
+.ms-opt{display:flex;align-items:center;gap:9px;padding:8px 13px;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;border-left:3px solid transparent}
 .ms-opt:hover{background:var(--surface2);color:var(--text)}
 .ms-opt.selected{color:var(--accent);background:var(--surface2);border-left-color:var(--accent);font-weight:600}
 .ms-opt.all-opt{font-weight:600;border-bottom:1px solid var(--border);border-left:3px solid transparent}
 .ms-opt.all-opt.selected{color:var(--accent);background:var(--surface2);border-left-color:var(--accent)}
 
 /* DATE RANGE (plain inline inputs, matches upload.html's sp-filter-field) */
-.date-inp{padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
+.date-inp{padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-family:'Inter',sans-serif;cursor:pointer}
 .date-inp:focus{outline:none;border-color:var(--accent)}
 [data-theme="dark"] .date-inp{color-scheme:dark}
 [data-theme="light"] .date-inp{color-scheme:light}
-.date-picker-clear{background:none;border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;white-space:nowrap}
+.date-picker-clear{background:none;border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;white-space:nowrap}
 .date-picker-clear:hover{border-color:var(--bad);color:var(--bad)}
-.date-picker-apply{padding:7px 16px;background:var(--btn);color:var(--btn-fg);border:none;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s}
+.date-picker-apply{padding:7px 16px;background:var(--btn);color:var(--btn-fg);border:none;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;transition:background .2s}
 .date-picker-apply:hover{background:var(--btn-hover)}
 
 /* MAIN */
-main{max-width:1400px;margin:0 auto;padding:10px 28px 48px}
-.section-label{font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);margin-top:16px;margin-bottom:8px}
+main{max-width:1400px;margin:0 auto;padding:18px 28px 56px}
+/* eyebrow — tiny uppercase label + hairline rule, sits above major sections */
+.section-label{font-size:11.5px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:var(--text);opacity:0.55;margin-top:16px;margin-bottom:8px}
+.section-label::before{content:'';display:inline-block;width:1.1rem;height:1px;background:currentColor;vertical-align:middle;margin-right:0.55rem;opacity:0.8}
+
+/* EDITORIAL HERO — one big confident headline moment above the KPI view */
+.dash-hero{max-width:1400px;margin:0 auto;padding:22px 28px 4px}
+.dash-hero-kicker{height:2px;width:64px;margin-bottom:12px;background:linear-gradient(to right,var(--accent-mint),var(--accent-butter),var(--accent-lavender),var(--accent-coral));border-radius:2px}
+.dash-hero .section-label{
+  margin-top:0;font-family:'Inter',sans-serif;font-style:normal;font-weight:600;
+  font-size:14px;letter-spacing:0.18em;text-transform:uppercase;opacity:0.8;
+}
+.dash-hero .section-label::before{content:none}
+.dash-hero-title{
+  font-family:'Playfair Display',serif;font-weight:500;font-size:46px;
+  line-height:1.08;letter-spacing:-0.01em;color:var(--text);margin-top:6px;
+}
+.dash-hero-title em{font-style:italic;font-weight:600;color:#FF9B9B;text-shadow:0 2px 6px rgba(255,155,155,0.35)}
+@media(max-width:900px){.dash-hero{padding:18px 18px 2px}.dash-hero-title{font-size:35px}}
+.dash-hero-status{font-size:15px;color:var(--muted);margin-top:10px;line-height:1.5;max-width:1100px}
+
+/* Receipt strip — sits to the right of the hero block. Torn zigzag edges via
+   two diagonal-gradient pseudo-elements (a common CSS paper-tear technique). */
+.hero-receipt{
+  width:220px;flex-shrink:0;margin-top:22px;
+  background:#FFFEFA;color:#2A2A2A;
+  font-family:'Inter',sans-serif;font-size:12px;line-height:1.7;
+  padding:22px 16px 28px;
+  box-shadow:0 14px 30px -10px rgba(26,26,26,0.22),0 3px 8px -2px rgba(26,26,26,0.1);
+  position:relative;
+  transition:transform .25s ease,box-shadow .25s ease;
+}
+.hero-receipt:hover{
+  transform:translateY(-8px);
+  box-shadow:0 22px 42px -12px rgba(26,26,26,0.3),0 6px 14px -3px rgba(26,26,26,0.14);
+}
+.hero-receipt::before,.hero-receipt::after{
+  content:'';position:absolute;left:0;right:0;height:9px;
+  background:
+    linear-gradient(-45deg,transparent 6px,#FFFEFA 6px) 0 0/12px 12px repeat-x,
+    linear-gradient(45deg,transparent 6px,#FFFEFA 6px) 0 0/12px 12px repeat-x,
+    #C9BFAE;
+  filter:drop-shadow(0 1px 1.5px rgba(26,26,26,0.25));
+}
+.hero-receipt::before{top:-8px}
+.hero-receipt::after{bottom:-8px;transform:scaleY(-1)}
+.hero-receipt .r-title{text-align:center;font-weight:700;letter-spacing:0.14em;font-size:11px;margin-bottom:2px}
+.hero-receipt .r-logo-crop{width:184px;height:46px;margin:0 auto 8px;overflow:hidden}
+.hero-receipt .r-logo-crop img{width:100%;height:100%;object-fit:cover;object-position:center;filter:grayscale(1)}
+.hero-receipt .r-sub{text-align:center;font-size:9.5px;color:#8a8a8a;margin-bottom:10px}
+.hero-receipt .r-rule{border-top:1px dashed #b8b0a4;margin:8px 0}
+.hero-receipt .r-row{display:flex;justify-content:space-between;gap:6px}
+.hero-receipt .r-label{color:#5a5a5a;font-size:10.5px;letter-spacing:0.03em}
+.hero-receipt .r-val{font-weight:700;white-space:nowrap}
+.hero-receipt .r-delta{font-size:9.5px;margin-top:1px}
+.hero-receipt svg{margin-bottom:10px}
+.hero-receipt .r-foot{text-align:center;font-size:9px;color:#8a8a8a;margin-top:6px}
 
 /* METRICS */
-.metric{background:var(--surface);border-radius:13px;padding:18px 16px;border:1px solid var(--border);box-shadow:var(--shadow);position:relative;overflow:hidden;transition:background .3s,border-color .3s}
-[data-theme="light"] .metric{border-color:#d8c8c2;}
-.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0}
-.m-rose::before{background:#FFD4D9}.m-coral::before{background:#FF9B9B}.m-lav::before{background:#C4B5FD}.m-turq::before{background:#99F6E4}
-.m-lime::before{background:#EEF3C7}.m-pink::before{background:#FFB6C1}.m-sage::before{background:#B5EAD7}.m-peach::before{background:#FFDAC1}
-.metric-label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-.metric-value{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:28px;line-height:1;color:var(--text);transition:color .3s}
+.metric{
+  background:var(--surface);border-radius:var(--radius-card);padding:16px 15px;
+  border:1px solid var(--border);box-shadow:var(--shadow-card);
+  position:relative;overflow:hidden;border-bottom:3px solid transparent;
+  transition:background .3s,border-color .3s,box-shadow 220ms var(--card-ease),transform 220ms var(--card-ease);
+}
+.metric:hover{box-shadow:var(--shadow-card-hover);transform:translateY(-2px)}
+/* transparent-by-default top strip — only painted by the RAG pulse-glow rules below */
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius-card) var(--radius-card) 0 0}
+/* rotating KPI accent — mint, butter, lavender, coral — for cards with no explicit m-* modifier */
+.metric:nth-child(4n+1){border-bottom-color:var(--accent-mint)}
+.metric:nth-child(4n+2){border-bottom-color:var(--accent-butter)}
+.metric:nth-child(4n+3){border-bottom-color:var(--accent-lavender)}
+.metric:nth-child(4n){border-bottom-color:var(--accent-coral)}
+/* explicit semantic accent classes (assigned in dashboard.js) win over positional rotation */
+.m-turq{border-bottom-color:var(--accent-mint) !important}
+.m-lime{border-bottom-color:var(--accent-butter) !important}
+.m-rose,.m-lav{border-bottom-color:var(--accent-lavender) !important}
+.m-coral,.m-pink{border-bottom-color:var(--accent-coral) !important}
+.m-sage{border-bottom-color:var(--accent-mint) !important}
+.m-peach{border-bottom-color:var(--accent-butter) !important}
+.metric-label{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.metric-value{font-family:'Playfair Display',serif;font-weight:600;font-size:38px;line-height:1;color:var(--text);transition:color .3s;font-variant-numeric:tabular-nums;font-feature-settings:'tnum'}
+.tabular{font-variant-numeric:tabular-nums;font-feature-settings:'tnum'}
 .metric-value.good{color:var(--good)}.metric-value.warn{color:var(--warn)}.metric-value.bad{color:var(--bad)}
 .metric-value.critical{color:#FF4444;text-shadow:0 0 12px rgba(255,68,68,0.5)}
-@keyframes pulse-critical{0%,100%{box-shadow:0 0 8px 2px rgba(255,68,68,0.3),0 0 20px 4px rgba(255,68,68,0.15),inset 0 0 0 1px rgba(255,68,68,0.6)}50%{box-shadow:0 0 22px 8px rgba(255,68,68,0.55),0 0 40px 12px rgba(255,68,68,0.25),inset 0 0 0 1px rgba(255,68,68,1)}}
-.metric:has(.metric-value.critical){animation:pulse-critical 1.8s ease-in-out infinite;border-color:rgba(255,68,68,0.8) !important}
+/* Static status highlight — no pulsing/glowing. Just a calm border + accent dot color. */
+.metric:has(.metric-value.critical){border-color:rgba(255,68,68,0.8) !important}
 .metric:has(.metric-value.critical)::before{background:#FF4444 !important}
-@keyframes pulse-good{0%,100%{box-shadow:0 0 6px 1px rgba(153,246,228,0.15),0 0 14px 3px rgba(153,246,228,0.08)}50%{box-shadow:0 0 16px 5px rgba(153,246,228,0.45),0 0 28px 8px rgba(153,246,228,0.2)}}
-.metric:has(.metric-value.good){animation:pulse-good 2.4s ease-in-out infinite;border-color:rgba(153,246,228,0.7) !important}
+.metric:has(.metric-value.good){border-color:rgba(153,246,228,0.7) !important}
 .metric:has(.metric-value.good)::before{background:#99F6E4 !important}
-@keyframes pulse-warn{0%,100%{box-shadow:0 0 6px 1px rgba(238,243,199,0.15),0 0 14px 3px rgba(238,243,199,0.08)}50%{box-shadow:0 0 16px 5px rgba(238,243,199,0.45),0 0 28px 8px rgba(238,243,199,0.2)}}
-.metric:has(.metric-value.warn),.metric:has(.metric-value.bad){animation:pulse-warn 2.4s ease-in-out infinite;border-color:rgba(238,243,199,0.7) !important}
+.metric:has(.metric-value.warn),.metric:has(.metric-value.bad){border-color:rgba(238,243,199,0.7) !important}
 .metric:has(.metric-value.warn)::before,.metric:has(.metric-value.bad)::before{background:#EEF3C7 !important}
-@keyframes pulse-good-light{0%,100%{box-shadow:0 0 8px 2px rgba(15,110,86,0.2),0 0 16px 4px rgba(15,110,86,0.1)}50%{box-shadow:0 0 20px 7px rgba(15,110,86,0.5),0 0 32px 10px rgba(15,110,86,0.25)}}
-[data-theme="light"] .metric:has(.metric-value.good){animation:pulse-good-light 2.4s ease-in-out infinite !important;border-color:rgba(15,110,86,0.75) !important}
+[data-theme="light"] .metric:has(.metric-value.good){border-color:rgba(15,110,86,0.5) !important}
 [data-theme="light"] .metric:has(.metric-value.good)::before{background:#0F6E56 !important}
-@keyframes pulse-warn-light{0%,100%{box-shadow:0 0 8px 2px rgba(186,117,23,0.25),0 0 18px 4px rgba(186,117,23,0.12)}50%{box-shadow:0 0 20px 7px rgba(186,117,23,0.55),0 0 36px 10px rgba(186,117,23,0.28)}}
-[data-theme="light"] .metric:has(.metric-value.warn),[data-theme="light"] .metric:has(.metric-value.bad){animation:pulse-warn-light 2.4s ease-in-out infinite !important;border-color:rgba(186,117,23,0.78) !important}
+[data-theme="light"] .metric:has(.metric-value.warn),[data-theme="light"] .metric:has(.metric-value.bad){border-color:rgba(186,117,23,0.5) !important}
 [data-theme="light"] .metric:has(.metric-value.warn)::before,[data-theme="light"] .metric:has(.metric-value.bad)::before{background:#BA7517 !important}
-@keyframes pulse-critical-light{0%,100%{box-shadow:0 0 8px 2px rgba(163,45,45,0.3),0 0 20px 4px rgba(163,45,45,0.15),inset 0 0 0 1px rgba(163,45,45,0.55)}50%{box-shadow:0 0 24px 9px rgba(163,45,45,0.65),0 0 42px 14px rgba(163,45,45,0.32),inset 0 0 0 1px rgba(163,45,45,0.95)}}
-[data-theme="light"] .metric:has(.metric-value.critical){animation:pulse-critical-light 1.8s ease-in-out infinite !important;border-color:rgba(163,45,45,0.85) !important}
-.metric-target{font-size:11px;color:var(--muted2);margin-top:8px;letter-spacing:0.04em;display:flex;align-items:center;gap:4px}
+[data-theme="light"] .metric:has(.metric-value.critical){border-color:rgba(163,45,45,0.6) !important}
+.metric-target{font-size:12px;color:var(--muted2);margin-top:8px;letter-spacing:0.04em;display:flex;align-items:center;gap:4px}
 .metric-target::before{content:'';display:inline-block;width:3px;height:3px;border-radius:50%;background:var(--muted2);flex-shrink:0}
 
 /* CARDS */
-.card{background:var(--surface);border-radius:13px;padding:22px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:12px;transition:background .3s,border-color .3s}
-[data-theme="light"] .card{border-color:#d8c8c2;}
-.card-title{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:16px;color:var(--text);margin-bottom:3px}
-.card-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
+.card{
+  background:var(--surface);border-radius:var(--radius-card);padding:20px;
+  border:1px solid var(--border);box-shadow:var(--shadow-card);margin-bottom:12px;
+  transition:background .3s,border-color .3s,box-shadow 220ms var(--card-ease),transform 220ms var(--card-ease);
+}
+.card:hover{box-shadow:var(--shadow-card-hover);transform:translateY(-2px)}
+.card-title{font-family:'Playfair Display',serif;font-weight:500;font-size:21px;color:var(--text);margin-bottom:4px}
+.card-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
 
 /* DONUT */
 .donut-inner{display:flex;flex-direction:column;align-items:center;gap:24px}
 .donut-wrap{position:relative;width:300px;height:300px;flex-shrink:0}
 .donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
-.donut-center-val{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--text);line-height:1}
-.donut-center-lbl{font-size:8px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px}
+.donut-center-val{font-family:'Playfair Display',serif;font-size:22px;font-weight:600;color:var(--text);line-height:1}
+.donut-center-lbl{font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px}
 .legend{display:flex;flex-direction:column;gap:8px;width:100%}
-.legend-item{display:flex;align-items:center;justify-content:space-between;font-size:11px;gap:8px}
+.legend-item{display:flex;align-items:center;justify-content:space-between;font-size:12px;gap:8px}
 .legend-l{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .legend-name{color:var(--muted)}
@@ -445,35 +577,35 @@ main{max-width:1400px;margin:0 auto;padding:10px 28px 48px}
 /* REBOOK BARS */
 .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .bar-stylist{display:flex;align-items:center;gap:6px;min-width:95px}
-.stylist-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0}
-.bar-name{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65px}
-.bar-clients{font-size:11px;color:var(--muted);min-width:20px;text-align:center}
+.stylist-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#2D2E37;flex-shrink:0}
+.bar-name{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65px}
+.bar-clients{font-size:12px;color:var(--muted);min-width:20px;text-align:center}
 .bar-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:visible;position:relative}
 .bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
-.bar-pct{font-size:11px;font-weight:500;color:var(--text);min-width:34px;text-align:right}
-.target-line{font-size:10px;color:var(--muted2);margin-top:6px}
+.bar-pct{font-size:12px;font-weight:500;color:var(--text);min-width:34px;text-align:right}
+.target-line{font-size:11px;color:var(--muted2);margin-top:6px}
 
 /* TABS */
 .tabs{display:flex;margin-bottom:16px;border-bottom:1px solid var(--border)}
-.tab{padding:7px 16px;font-size:11px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);margin-bottom:-1px;letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Sans',sans-serif;background:none;border-top:none;border-left:none;border-right:none;transition:color .2s}
+.tab{padding:7px 16px;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);margin-bottom:-1px;letter-spacing:0.1em;text-transform:uppercase;font-family:'Inter',sans-serif;background:none;border-top:none;border-left:none;border-right:none;transition:color .2s}
 .tab.active{color:var(--text);border-bottom-color:var(--accent)}
 
 /* TABLE */
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;padding:7px 9px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Sans',sans-serif}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:7px 9px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;font-family:'Inter',sans-serif}
 td{padding:8px 9px;border-bottom:1px solid var(--border2);color:var(--text)}
 tr:last-child td{border-bottom:none}
-.badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:500}
+.badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:500}
 .badge.good{background:var(--good-bg);color:var(--good)}.badge.warn{background:var(--warn-bg);color:var(--warn)}.badge.bad{background:var(--bad-bg);color:var(--bad)}
 th.sortable{cursor:pointer;user-select:none}
 th.sortable:hover{color:var(--text)}
-th.sort-asc::after{content:' ▲';font-size:9px;opacity:0.7}
-th.sort-desc::after{content:' ▼';font-size:9px;opacity:0.7}
-th:not(.sort-asc):not(.sort-desc).sortable::after{content:' ⇅';font-size:9px;opacity:0.3}
+th.sort-asc::after{content:' ▲';font-size:10px;opacity:0.7}
+th.sort-desc::after{content:' ▼';font-size:10px;opacity:0.7}
+th:not(.sort-asc):not(.sort-desc).sortable::after{content:' ⇅';font-size:10px;opacity:0.3}
 
 /* F-PILLS */
 .f-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-.f-pill{padding:4px 12px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:all .2s}
+.f-pill{padding:4px 12px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s}
 .f-pill:hover{border-color:var(--accent);color:var(--accent)}
 .f-pill.active{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:700}
 .canvas-wrap{position:relative;height:230px}
@@ -481,29 +613,30 @@ th:not(.sort-asc):not(.sort-desc).sortable::after{content:' ⇅';font-size:9px;o
 /* TOP 3 */
 .top3-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
 .top3-grid-row2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;max-width:66%;margin-left:auto;margin-right:auto}
-.top3-col{background:var(--surface);border-radius:13px;border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden}
+.top3-col{background:var(--surface);border-radius:var(--radius-card);border:1px solid var(--border);box-shadow:var(--shadow-card);overflow:hidden;transition:box-shadow 220ms var(--card-ease),transform 220ms var(--card-ease)}
+.top3-col:hover{box-shadow:var(--shadow-card-hover);transform:translateY(-2px)}
 .top3-col-hdr{padding:12px 14px;border-bottom:1px solid var(--border)}
-.top3-col-name{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text)}
+.top3-col-name{font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text)}
 .top3-accent{height:2px;border-radius:2px;margin-top:6px}
 .top3-col-body{padding:10px 12px}
 .top3-metric-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
-.top3-tab{padding:3px 9px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.top3-tab{padding:3px 9px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
 .top3-tab:hover{border-color:var(--accent);color:var(--accent)}
 .top3-tab.active{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:700}
 .top3-subtabs{display:flex;margin-bottom:10px;border-bottom:1px solid var(--border)}
-.top3-subtab{padding:5px 10px;font-size:10px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);margin-bottom:-1px;text-transform:uppercase;font-family:'DM Sans',sans-serif;background:none;border-top:none;border-left:none;border-right:none;letter-spacing:0.06em;transition:color .2s}
+.top3-subtab{padding:5px 10px;font-size:11px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);margin-bottom:-1px;text-transform:uppercase;font-family:'Inter',sans-serif;background:none;border-top:none;border-left:none;border-right:none;letter-spacing:0.06em;transition:color .2s}
 .top3-subtab.active{color:var(--text);border-bottom-color:var(--accent)}
 .top3-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border2)}
 .top3-item:last-child{border-bottom:none}
-.top3-rank{font-size:16px;font-family:'Cormorant Garamond',serif;font-weight:600;color:var(--muted2);min-width:16px;text-align:center}
+.top3-rank{font-size:17px;font-family:'Playfair Display',serif;font-weight:600;color:var(--muted2);min-width:16px;text-align:center}
 .top3-rank.gold{color:#F5C842}.top3-rank.silver{color:#B0B8C1}.top3-rank.bronze{color:#CD7F32}
-.top3-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0}
+.top3-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#2D2E37;flex-shrink:0}
 .top3-info{flex:1;min-width:0}
-.top3-name{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.top3-val{font-size:10px;color:var(--muted);margin-top:1px}
-.top3-empty{font-size:11px;color:var(--muted2);text-align:center;padding:16px 0}
+.top3-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top3-val{font-size:11px;color:var(--muted);margin-top:1px}
+.top3-empty{font-size:12px;color:var(--muted2);text-align:center;padding:16px 0}
 
-.svc-date-inp,.svc-yr-sel{padding:7px 12px;border:1px solid var(--border);border-radius:18px;font-size:12px;color:var(--text);background:var(--surface);font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .2s}
+.svc-date-inp,.svc-yr-sel{padding:7px 12px;border:1px solid var(--border);border-radius:18px;font-size:13px;color:var(--text);background:var(--surface);font-family:'Inter',sans-serif;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .2s}
 .svc-date-inp:focus,.svc-yr-sel:focus{border-color:var(--accent)}
 .svc-controls{display:flex;flex-wrap:wrap;gap:10px;padding:10px 28px 14px;align-items:flex-end;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;flex-shrink:0}
 .svc-grid-2{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:16px}
@@ -513,9 +646,9 @@ th:not(.sort-asc):not(.sort-desc).sortable::after{content:' ⇅';font-size:9px;o
 .svc-scroll-wrap::-webkit-scrollbar-thumb{background:var(--border,#333);border-radius:3px}
 .svc-grid-4{display:grid;grid-template-columns:repeat(4,minmax(280px,1fr));gap:16px;min-width:max-content;width:100%}
 @media(max-width:700px){.svc-grid-2{grid-template-columns:1fr}}
-.empty{text-align:center;padding:4rem;color:var(--muted);font-size:14px}
-.loading{text-align:center;padding:4rem;color:var(--muted);letter-spacing:0.1em;font-size:12px;text-transform:uppercase}
-footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);font-size:11px;color:var(--muted2);transition:border-color .3s;line-height:1.8}
+.empty{text-align:center;padding:4rem;color:var(--muted);font-size:15px}
+.loading{text-align:center;padding:4rem;color:var(--muted);letter-spacing:0.1em;font-size:13px;text-transform:uppercase}
+footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);font-size:12px;color:var(--muted2);transition:border-color .3s;line-height:1.8}
 
 @media(max-width:1100px){.top3-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){
@@ -523,6 +656,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   .controls{padding:8px 18px;background:var(--bg);}
   main{padding:18px 18px 40px}
   .last-updated{display:none}
+  #headerDateRange{display:none}
 
   .top3-grid{grid-template-columns:1fr}
   .top3-grid-row2{grid-template-columns:1fr}
@@ -531,7 +665,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 @media(max-width:560px){
   .top3-grid{grid-template-columns:1fr}
   .top3-grid-row2{grid-template-columns:1fr}
-  .ms-btn{min-width:100%;font-size:11px}
+  .ms-btn{min-width:100%;font-size:12px}
 
   /* fix iframe height on small screens */
   #view-khalifa iframe,
@@ -577,52 +711,64 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   gap:16px !important;
 }
 
-.chart{
-  height:280px !important;
-}
-
 /* ── LOGIN GATE ── */
 #loginGate{
   position:fixed;inset:0;z-index:9999;
   background:var(--bg);
   display:flex;align-items:center;justify-content:center;
-  font-family:'DM Sans',sans-serif;
+  font-family:'Inter',sans-serif;
 }
 .login-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:36px 32px 28px;
+  background:#FFFEFA;
+  border:none;
+  padding:40px 32px 34px;
   width:100%;max-width:380px;
-  box-shadow:0 8px 40px rgba(0,0,0,0.18);
+  box-shadow:0 20px 50px -14px rgba(26,26,26,0.26),0 4px 12px -3px rgba(26,26,26,0.12);
   display:flex;flex-direction:column;gap:16px;
+  position:relative;
 }
+/* Torn receipt edges — same technique as .hero-receipt */
+.login-card::before,.login-card::after{
+  content:'';position:absolute;left:0;right:0;height:9px;
+  background:
+    linear-gradient(-45deg,transparent 6px,#FFFEFA 6px) 0 0/12px 12px repeat-x,
+    linear-gradient(45deg,transparent 6px,#FFFEFA 6px) 0 0/12px 12px repeat-x,
+    #C9BFAE;
+  filter:drop-shadow(0 1px 1.5px rgba(26,26,26,0.25));
+}
+.login-card::before{top:-8px}
+.login-card::after{bottom:-8px;transform:scaleY(-1)}
 .login-logo{
-  display:flex;align-items:center;gap:14px;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
 }
-.login-logo img{
-  width:44px;height:44px;object-fit:contain;flex-shrink:0;
+.login-logo-crop{
+  width:260px;height:82px;overflow:hidden;flex-shrink:0;
+}
+.login-logo-crop img{
+  width:100%;height:100%;object-fit:cover;object-position:center;
 }
 .login-brand{
-  font-family:'DM Sans',sans-serif;font-weight:700;font-size:18px;
+  font-family:'Inter',sans-serif;font-weight:700;font-size:20px;
   letter-spacing:0.18em;text-transform:uppercase;color:var(--text);line-height:1;
 }
 .login-brand-sub{
-  font-size:10px;letter-spacing:0.26em;text-transform:uppercase;color:var(--muted);margin-top:3px;
+  font-size:11px;letter-spacing:0.26em;text-transform:uppercase;color:var(--muted);margin-top:3px;
 }
 .login-strip{
   height:2px;width:80px;margin-top:5px;
-  background:linear-gradient(to right,#99F6E4,#EEF3C7,#C4B5FD,#FF9B9B,#FFD4D9);
+  background:linear-gradient(to right,var(--accent-mint),var(--accent-butter),var(--accent-lavender),var(--accent-coral));
   border-radius:2px;
 }
 .login-dash-lbl{
-  font-family:'Cormorant Garamond',serif;
-  font-size:10px;letter-spacing:0.2em;text-transform:uppercase;
-  color:var(--muted);margin-top:3px;
+  font-family:'Playfair Display',serif;font-weight:500;
+  font-size:18px;letter-spacing:0.03em;text-transform:none;
+  color:#7C5CD4;margin-top:0;
+  display:inline-block;padding:4px 16px;border-radius:20px;
+  background:rgba(124,92,212,0.12);
 }
-.login-divider{height:1px;background:var(--border);}
+.login-divider{height:0;border-top:1px dashed #b8b0a4;}
 .login-label{
-  font-size:11px;letter-spacing:0.1em;text-transform:uppercase;
+  font-size:12px;letter-spacing:0.1em;text-transform:uppercase;
   color:var(--muted);
 }
 .login-input-wrap{
@@ -632,7 +778,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   width:100%;padding:10px 40px 10px 14px;
   border:1px solid var(--border);border-radius:10px;
   background:var(--surface2);color:var(--text);
-  font-family:'DM Sans',sans-serif;font-size:13px;
+  font-family:'Inter',sans-serif;font-size:14px;
   outline:none;transition:border-color .2s;
 }
 .login-input:focus{border-color:var(--accent);}
@@ -644,20 +790,20 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 }
 .login-eye:hover{color:var(--text);}
 .login-error{
-  font-size:12px;color:var(--bad);min-height:16px;
+  font-size:13px;color:var(--bad);min-height:16px;
   display:none;
 }
 .login-error.visible{display:block;}
 .login-btn{
   padding:11px 0;border-radius:10px;
-  background:var(--accent);color:var(--accent-fg);
-  border:none;cursor:pointer;font-family:'DM Sans',sans-serif;
-  font-weight:700;font-size:13px;letter-spacing:0.08em;
+  background:#FF9B9B;color:#2A2A2A;
+  border:none;cursor:pointer;font-family:'Inter',sans-serif;
+  font-weight:700;font-size:14px;letter-spacing:0.08em;
   transition:opacity .2s;
 }
 .login-btn:hover{opacity:0.88;}
 .login-footer{
-  font-size:10px;color:var(--muted2);text-align:center;
+  font-size:11px;color:var(--muted2);text-align:center;
   letter-spacing:0.1em;
 }
 
@@ -671,13 +817,8 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 <div id="loginGate">
   <div class="login-card">
     <div class="login-logo">
-      <img src="assets/image-asset-removebg-preview.png" alt="Tara Rose Ladies">
-      <div>
-        <div class="login-brand">Tara Rose Ladies</div>
-        <div class="login-brand-sub">Salon</div>
-        <div class="login-strip"></div>
-        <div class="login-dash-lbl">Internal Dashboard</div>
-      </div>
+      <div class="login-logo-crop"><img id="loginLogoImg" src="assets/5.png" alt="Tara Rose Ladies"></div>
+      <div class="login-dash-lbl">Internal Dashboard</div>
     </div>
     <div class="login-divider"></div>
     <div class="login-label">Enter your access password</div>
@@ -689,22 +830,27 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
     </div>
     <div id="loginError" class="login-error"></div>
     <button class="login-btn" onclick="doLogin()">Access Dashboard</button>
-    <div class="login-footer">Tara Rose Ladies Salon &nbsp;·&nbsp; Confidential</div>
-    <div id="loginLastUpdated" style="text-align:center;font-size:9px;color:var(--muted2);letter-spacing:0.08em;margin-top:-8px;opacity:0.7;">Checking data freshness...</div>
+    <div id="loginLastUpdated" style="text-align:center;font-size:10px;color:var(--muted2);letter-spacing:0.08em;margin-top:-8px;opacity:0.7;">Checking data freshness...</div>
   </div>
 </div>
 
 <script>
-// Pre-fetch latest upload timestamp for login page display (GST)
+// Pre-fetch latest upload timestamp for login page display (GST). Checks both
+// weekly_data and daily_data — daily uploads usually run more current, so
+// whichever table has the newer uploaded_at wins (same freshness logic the
+// main dashboard uses for its header badge).
 (function(){
   const SUPA_URL2 = 'https://gvijxenafoowajqktqvd.supabase.co';
-  const SUPA_KEY2 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aWp4ZW5hZm9vd2FqcWt0cXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTA1OTksImV4cCI6MjA5MTI4NjU5OX0.GL3YXupXOBGfN4FCyelbQWraUw12VJNJu-wUB3zR7Zw';
-  fetch(`${SUPA_URL2}/rest/v1/weekly_data?select=uploaded_at&order=uploaded_at.desc&limit=1`,{
-    headers:{'apikey':SUPA_KEY2,'Authorization':'Bearer '+SUPA_KEY2}
-  }).then(r=>r.json()).then(rows=>{
+  const SUPA_KEY2 = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
+  const headers = {'apikey':SUPA_KEY2,'Authorization':'Bearer '+SUPA_KEY2};
+  Promise.all([
+    fetch(`${SUPA_URL2}/rest/v1/weekly_data?select=uploaded_at&order=uploaded_at.desc&limit=1`,{headers}).then(r=>r.json()).catch(()=>[]),
+    fetch(`${SUPA_URL2}/rest/v1/daily_data?select=uploaded_at&order=uploaded_at.desc&limit=1`,{headers}).then(r=>r.json()).catch(()=>[]),
+  ]).then(([weeklyRows, dailyRows]) => {
     const el=document.getElementById('loginLastUpdated');
-    if(!el||!rows||!rows.length)return;
-    const latest=new Date(rows[0].uploaded_at);
+    const candidates=[weeklyRows?.[0]?.uploaded_at, dailyRows?.[0]?.uploaded_at].filter(Boolean).map(d=>new Date(d));
+    if(!el||!candidates.length)return;
+    const latest=new Date(Math.max(...candidates));
     const gstOffset=4*60;
     const gstDate=new Date(latest.getTime()+(gstOffset-latest.getTimezoneOffset())*60000);
     const dateFmt=gstDate.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
@@ -724,22 +870,37 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
 <header>
   <div class="logo">
-    <img src="assets/image-asset-removebg-preview.png" style="width:36px;height:36px;object-fit:contain">
-    <div class="logo-text">
-      <div class="logo-name">Tara Rose Ladies</div>
-      <div class="logo-sub">Salon</div>
-      <div class="logo-strip"></div>
-      <div class="dash-label">Dashboard Overview</div>
-    </div>
+    <div class="logo-crop"><img id="headerLogoImg" src="assets/5.png"></div>
+    <div class="dash-label" id="headerSectionLabel">Dashboard Overview</div>
   </div>
   <div class="header-right">
     <div class="last-updated" id="lastUpdated"></div>
+    <!-- Branch + date range, one toolbar — toggleFiltersBar() shows/hides this whole
+         group together; showView() shows it only for KPI Metrics/Team Performance,
+         same views #controls used to gate before Branch moved up here. Kate, 2026-08-04. -->
+    <div id="headerFilters" style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <div class="ms-wrap">
+        <button id="btn-branch" class="ms-btn" onclick="toggleDrop('branch')" style="padding:6px 10px;font-size:12px;min-width:110px">
+          <span id="lbl-branch">All Branches</span>
+        </button>
+        <div id="drop-branch" class="ms-drop"></div>
+      </div>
+      <div id="headerDateRange" style="display:flex;align-items:center;gap:6px">
+        <input type="date" id="dateRangeFrom" class="date-inp" style="padding:6px 8px;font-size:12px">
+        <span style="color:var(--muted);font-size:11px">–</span>
+        <input type="date" id="dateRangeTo" class="date-inp" style="padding:6px 8px;font-size:12px">
+        <button class="date-picker-apply" onclick="applyDateRange()" style="padding:6px 12px;font-size:10px">Apply</button>
+        <button class="date-picker-clear" onclick="clearDateRange()" style="padding:6px 10px;font-size:10px">Clear</button>
+      </div>
+    </div>
+    <button id="filtersToggleBtn" onclick="toggleFiltersBar()" style="border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:20px;padding:5px 12px;font-size:11px;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0">▾ Hide Filters</button>
     <div class="toggle-wrap" onclick="toggleTheme()">
       <span class="toggle-lbl" id="themeLbl">Dark</span>
       <div class="toggle-track"><div class="toggle-thumb"></div></div>
     </div>
   </div>
 </header>
+<div class="scroll-progress"><div class="scroll-progress-fill" id="scrollProgressFill"></div></div>
 
 <div class="layout">
 
@@ -767,14 +928,6 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
     <div class="nav-sub" onclick="showView('reviews', this)">Salon Reviews</div>
   </div>
 
-  <!-- Content + Giveaways: admin-only, separated from KPI Metrics -->
-  <div class="nav-group nav-admin-only" style="display:none">
-    <div class="nav-title">CONTENT</div>
-    <div class="nav-sub" onclick="showView('calendar', this)">Content Calendar</div>
-    <div class="nav-sub" onclick="showView('giveaway', this)">Giveaways April 2026</div>
-    <div class="nav-sub" onclick="showView('trk', this)">Personal Brand</div>
-  </div>
-
   <div class="nav-group nav-admin-only" style="display:none">
     <div class="nav-title">ADMIN</div>
     <div class="nav-sub" onclick="window.open('upload/upload.html','_blank')">Upload Data</div>
@@ -782,7 +935,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
   <!-- Logout button -->
   <div class="nav-group" style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
-    <div class="nav-sub" onclick="doLogout()" style="display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;letter-spacing:0.04em">
+    <div class="nav-sub" onclick="doLogout()" style="display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px;letter-spacing:0.04em">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Log Out
     </div>
@@ -793,48 +946,24 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   <!-- MAIN VIEW -->
 <div class="main-content" style="display:flex;flex-direction:column;">
 
-  <!-- GLOBAL FILTER BAR: sticky, shown only for KPI Metrics + Team Performance -->
-  <div class="controls" id="controls" style="display:none;flex-shrink:0;">
-    <!-- BRANCH -->
-    <div class="ctrl-group">
-      <div class="ctrl-label">Branch</div>
-      <div class="ms-wrap">
-        <button id="btn-branch" class="ms-btn" onclick="toggleDrop('branch')">
-          <span id="lbl-branch">All Branches</span>
-        </button>
-        <div id="drop-branch" class="ms-drop"></div>
-      </div>
-    </div>
-    <!-- DATE RANGE (plain inline inputs, matches upload.html's Browse Data filter row) -->
-    <div class="ctrl-group">
-      <div class="ctrl-label">From</div>
-      <input type="date" id="dateRangeFrom" class="date-inp">
-    </div>
-    <div class="ctrl-group">
-      <div class="ctrl-label">To</div>
-      <input type="date" id="dateRangeTo" class="date-inp">
-    </div>
-    <div class="ctrl-group" style="flex-direction:row;gap:8px">
-      <button class="date-picker-apply" onclick="applyDateRange()">Apply</button>
-      <button class="date-picker-clear" onclick="clearDateRange()">Clear</button>
-    </div>
-    <!-- FRATELLI TOGGLE -->
-    <div class="ctrl-group" style="align-self:center;margin-left:4px">
-      <div class="ctrl-label">Show</div>
-      <button id="fratelliToggleBtn" onclick="toggleFratelli()" style="display:flex;align-items:center;gap:6px;background:var(--fratelli-bg,rgba(238,243,199,0.15));border:1px solid var(--fratelli-border,rgba(238,243,199,0.45));color:var(--fratelli-text,#EEF3C7);border-radius:20px;padding:5px 12px;font-size:10px;font-family:inherit;cursor:pointer;letter-spacing:.04em;white-space:nowrap;transition:all .2s">
-        <span id="fratelliToggleDot" style="width:7px;height:7px;border-radius:50%;background:var(--fratelli-dot,#EEF3C7);flex-shrink:0"></span>
-        Fratelli
-      </button>
-    </div>
-    <!-- NET REVENUE WIDGET -->
-    <div id="headerRevWidget" style="display:none;align-items:center;gap:6px;padding:5px 12px;background:rgba(153,246,228,0.08);border:1px solid rgba(153,246,228,0.25);border-radius:10px;font-family:inherit"></div>
-  </div>
+  <!-- Branch + date range live in the header now (#headerFilters), shown only for
+       KPI Metrics/Team Performance via showView() — Kate, 2026-08-04. -->
 
   <!-- SCROLLABLE CONTENT AREA -->
-  <div style="flex:1;overflow-y:auto;overflow-x:hidden;">
+  <div id="mainScrollArea" style="flex:1;overflow-y:auto;overflow-x:hidden;">
 
   <!-- DASHBOARD -->
   <div id="view-dashboard">
+    <div class="dash-hero" style="display:flex;align-items:flex-start;gap:36px">
+      <div style="flex:1;min-width:0">
+        <div class="section-label" data-scrollspy="Organisation Pulse">Organisation Pulse</div>
+        <h1 class="dash-hero-title">Here's how <em id="heroPeriodPhrase">the week</em> <span id="heroPeriodVerb">is shaping up</span><span id="heroBranchScope"></span>.</h1>
+        <div id="heroBranchList" style="font-family:'Inter',sans-serif;font-size:11.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-top:16px"></div>
+        <div id="heroStatusStatement" class="dash-hero-status"></div>
+        <div id="heroPerfOverview" style="margin-top:22px"></div>
+      </div>
+      <div id="heroReceipt" class="hero-receipt"></div>
+    </div>
     <main id="mainContent">
       <div class="loading">Loading data...</div>
     </main>
@@ -991,7 +1120,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
 
 <script src="upload/name-aliases.js?v=20260802b"></script>
-<script src="dashboard.js?v=20260802b"></script>
+<script src="dashboard.js?v=20260802c"></script>
 <script>
 
 // ── PASSWORD GATE ────────────────────────────────────────────
@@ -1051,8 +1180,24 @@ function toggleLoginEye(){
   }
 }
 
+// TEMP: password gate disabled while we're mid-repair on the dashboard (Kate, 2026-08-03).
+// Flip back to false to restore the login screen.
+const GATE_DISABLED = true;
+
 // Check if already logged in (persists across hard refresh)
 (async function checkSession(){
+  if (GATE_DISABLED) {
+    applyRole('admin');
+    document.getElementById('loginGate').style.display = 'none';
+    document.getElementById('dashboardWrap').style.display = 'block';
+    await loadData();
+    setInterval(loadData, 60000);
+    const params = new URLSearchParams(window.location.search);
+    const activeView = params.get('view') || 'dashboard';
+    const btn = document.querySelector(`[onclick*="${activeView}"]`);
+    showView(activeView, btn || null);
+    return;
+  }
   const role = localStorage.getItem('trsRole');
   if(role && Object.values(PASSWORDS).includes(role)){
     applyRole(role);
@@ -1080,8 +1225,8 @@ function showView(view, el){
   if(!target){ showView('dashboard', document.querySelector('[onclick*="dashboard"]')); return; }
   target.style.display = (view === 'services' || view === 'clients') ? 'flex' : 'block';
 
-  const controls = document.getElementById('controls');
-  if (controls) controls.style.display = (view === 'dashboard' || view === 'team') ? 'flex' : 'none';
+  const headerFilters = document.getElementById('headerFilters');
+  if (headerFilters) headerFilters.style.display = (view === 'dashboard' || view === 'team') ? 'flex' : 'none';
 
   if (view === 'team' && allData.length) renderTeam();
   if (view === 'services') initSvcView();
@@ -1091,8 +1236,13 @@ function showView(view, el){
   document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active'));
   if (el) el.classList.add('active');
 
-  // scroll to top
+  // scroll to top + reset the header pill to this view's section (scrollspy
+  // takes over from there for 'dashboard', which has its own sub-sections)
   window.scrollTo(0, 0);
+  const scrollArea = document.getElementById('mainScrollArea');
+  if (scrollArea) scrollArea.scrollTop = 0;
+  setHeaderSectionLabel(VIEW_SECTION_LABELS[view] || 'Dashboard Overview');
+  updateScrollProgress();
 }
 
 </script>

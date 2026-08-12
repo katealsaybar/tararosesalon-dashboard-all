@@ -1,0 +1,4 @@
+# The 30 stylist photos are tracked individually under stylist/photos/ — the zip
+# is just a transport archive. Keeping it out saves 4.2MB of permanent history
+# and it has no effect on the live site.
+stylist/photos.zip

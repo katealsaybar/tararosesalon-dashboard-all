@@ -1,7 +1,7 @@
 // fix-blank-rows.js — re-parses 3 weekly Excel files and patches weekly_data in Supabase
 // Run: node fix-blank-rows.js (from dashboard root)
 
-const XLSX    = require('D:/WORK/Claude/claude-cowork-build/node_modules/xlsx');
+const XLSX    = require('xlsx');
 const https   = require('https');
 
 const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
@@ -160,6 +160,13 @@ async function main() {
     // Parse Excel with fixed parser
     const wb = XLSX.readFile(t.file);
     const { hairStaff, beautyStaff, summary } = parseWeekendSheet(wb);
+
+    // parseWeekendSheet returns empty arrays when the WEEKEND sheet or its header
+    // rows aren't found — never let that silently PATCH good data down to nothing.
+    if (!hairStaff.length && !beautyStaff.length) {
+      console.log(`  ❌ Parsed 0 staff rows from ${t.file} — skipping patch to avoid wiping existing data. Check the file has a WEEKEND sheet with the expected headers.`);
+      continue;
+    }
 
     const beforeHair = (record.data.hairStaff || []).reduce((a,s) => a+(s.total||0), 0);
     const afterHair  = hairStaff.reduce((a,s) => a+(s.total||0), 0);
