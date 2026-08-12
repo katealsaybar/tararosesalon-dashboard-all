@@ -2,3 +2,9 @@
 # is just a transport archive. Keeping it out saves 4.2MB of permanent history
 # and it has no effect on the live site.
 stylist/photos.zip
+
+# Source artwork for the stylist head icons and cards. The 27 processed PNGs are
+# tracked under assets/staff/; these are the originals they came from — 153MB of
+# Canva exports that would sit in git history forever with no effect on the live
+# site. Kept alongside the repo for reference, deliberately not committed.
+_source/

@@ -406,9 +406,94 @@ function updateHeroPeriod() {
 // so it stays correct no matter which of renderDashboard()'s early-return
 // paths (loading/empty/error) last touched #mainContent.
 const VIEW_SECTION_LABELS = {
-  dashboard: 'Organisation Pulse', team: 'Team Performance',
+  dashboard: 'Organisation Pulse', team: 'Team Performance', stylists: 'Stylist Cards',
   services: 'Service Rankings', clients: 'Top Clients', reviews: 'Salon Reviews',
 };
+
+// ── STYLIST CARDS VIEW ───────────────────────────────────────
+// The hair team straight from STAFF_PROFILES, grouped by branch and ordered by
+// seniority. Reads no Supabase data and takes no date filter, so it renders
+// instantly and can't go stale — it's a reference page, not a report.
+// Kate, 2026-08-12: its own nav pill under Team Performance.
+// The beauty team is deliberately absent: they have no cards or head icons yet,
+// and a card with no face would look broken rather than pending.
+const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist'];
+
+function renderStylistCards() {
+  const host = document.getElementById('stylistCardsContent');
+  if (!host) return;
+  if (typeof STAFF_PROFILES === 'undefined') {
+    host.innerHTML = `<div class="loading">Stylist profiles didn’t load.</div>`;
+    return;
+  }
+  // Dedupe by photo: alias keys (e.g. a stylist listed under two spellings) point
+  // at the same person and must not produce two cards.
+  const seen = new Set();
+  const people = Object.entries(STAFF_PROFILES).filter(([, p]) => {
+    const k = p.photo || p.ig;
+    if (!k || seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+
+  const byBranch = new Map();
+  people.forEach(([name, p]) => {
+    const b = p.branch || 'other';
+    if (!byBranch.has(b)) byBranch.set(b, []);
+    byBranch.get(b).push({ name, ...p });
+  });
+
+  const order = [...ACTIVE_BRANCHES, 'other'].filter(b => byBranch.has(b));
+  const sections = order.map(b => {
+    const list = byBranch.get(b).sort((x, y) => {
+      const d = STYLIST_ROLE_ORDER.indexOf(x.role) - STYLIST_ROLE_ORDER.indexOf(y.role);
+      return d !== 0 ? d : x.name.localeCompare(y.name);
+    });
+    const colour = BRANCH_INFO[b]?.colorLight || BRANCH_INFO[b]?.color || 'var(--muted)';
+    const cards = list.map(s => {
+      const nameHtml = s.ig
+        ? `<a href="https://instagram.com/${encodeURIComponent(s.ig)}" target="_blank" rel="noopener noreferrer"
+              style="color:inherit;text-decoration:none;border-bottom:1px solid ${colour}">${escapeHtml(s.name)}</a>`
+        : escapeHtml(s.name);
+      const handle = s.ig
+        ? `<a href="https://instagram.com/${encodeURIComponent(s.ig)}" target="_blank" rel="noopener noreferrer"
+              style="font-size:11.5px;color:var(--muted);text-decoration:none">@${escapeHtml(s.ig)}</a>`
+        : '';
+      // No border-radius or background on the image: the rounded accent block is
+      // part of the PNG, and clipping it would remove the head overhang.
+      const photo = s.photo
+        ? `<img src="assets/staff/${encodeURIComponent(s.photo)}" alt="" loading="lazy"
+               onerror="this.style.display='none'" style="height:104px;width:auto;flex-shrink:0">`
+        : '';
+      return `
+        <div style="display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:12px;
+                    background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow)">
+          ${photo}
+          <div style="min-width:0">
+            <div style="font-family:'Playfair Display',serif;font-weight:600;font-size:18px;
+                        color:var(--text);line-height:1.25">${nameHtml}</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+                        color:${colour};margin-top:3px">${escapeHtml(s.role || '')}</div>
+            <div style="margin-top:5px">${handle}</div>
+          </div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="section-label" data-scrollspy="Stylist Cards"
+           style="display:flex;align-items:center;gap:7px;margin-top:22px;margin-bottom:10px">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
+                     background:${colour};flex-shrink:0"></span>
+        ${escapeHtml(BRANCH_INFO[b]?.name || b)} · ${list.length} stylist${list.length === 1 ? '' : 's'}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">${cards}</div>`;
+  }).join('');
+
+  host.innerHTML = `
+    <div class="section-label" style="margin-top:8px">Stylist Cards</div>
+    <div style="font-size:13.5px;color:var(--muted);margin:-2px 0 4px;max-width:760px">
+      The hair team across all four branches. Names link to Instagram.
+    </div>
+    ${sections}`;
+}
 
 function setHeaderSectionLabel(text) {
   const el = document.getElementById('headerSectionLabel');
@@ -1335,10 +1420,14 @@ function buildWinsHTML(s, prevS, prevPeriodLabel, hairStaff, beautyStaff, branch
             title="@${escapeHtml(p.ig)} on Instagram"
             style="color:inherit;text-decoration:none;border-bottom:1px solid ${color}">${escapeHtml(title)}</a>`
       : escapeHtml(title);
+    // The stylist-card look — head breaking out above a rounded colour block — is
+    // baked into the PNG itself: the block is the card's own accent panel, and the
+    // area above it is transparent. So no border-radius, background or border here;
+    // adding any would clip the very overhang that makes it read as the card.
     const avatarHtml = p.photo
       ? `<img src="assets/staff/${encodeURIComponent(p.photo)}" alt="" loading="lazy"
              onerror="this.style.display='none'"
-             style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid ${color}">`
+             style="height:62px;width:auto;flex-shrink:0">`
       : '';
     return `
     <div style="flex:1;min-width:200px;padding:14px 16px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid ${color}">
@@ -1355,17 +1444,27 @@ function buildWinsHTML(s, prevS, prevPeriodLabel, hairStaff, beautyStaff, branch
     </div>`;
   };
 
-  // ── Top performer: highest-revenue individual stylist, hair or beauty ──
-  const staffPool = [
-    ...(hairStaff||[]).filter(st => st.name !== 'ASSISTANTS').map(st => ({ name: st.name, dept: 'Hair', color: hairColor, revenue: st.hairSalesNet||0, total: st.total||0, rebookPct: st.rebookPct||0 })),
-    ...(beautyStaff||[]).filter(st => st.name !== 'ASSISTANTS').map(st => ({ name: st.name, dept: 'Beauty', color: beautyColor, revenue: st.beautySales||0, total: st.total||0, rebookPct: st.rebookPct||0 })),
-  ].filter(p => p.revenue > 0).sort((a,b) => b.revenue - a.revenue);
-  const top = staffPool[0];
-  const performerCard = top
-    ? winCard('Top Performer', top.color, `${top.name} — ${top.dept}`,
-        `${fmtAED(top.revenue)} · ${top.total.toLocaleString()} clients · ${fmtPct(top.rebookPct)} rebooked`,
-        (typeof staffProfile === 'function') ? staffProfile(top.name) : null)
-    : winCard('Top Performer', 'var(--muted)', 'No staff data for this period', 'Staff-level figures aren’t available for this date range.');
+  // ── Top performer, one per department ──
+  // Hair and beauty used to share a single card, which meant beauty could never
+  // win it: hair turns over roughly ten times beauty's revenue, so the "top
+  // performer" was structurally always a hair stylist. Kate, 2026-08-12: beauty
+  // gets its own card, judged against its own team.
+  const poolFor = (staff, dept, color, revKey) =>
+    (staff||[])
+      .filter(st => st.name !== 'ASSISTANTS')
+      .map(st => ({ name: st.name, dept, color, revenue: st[revKey]||0, total: st.total||0, rebookPct: st.rebookPct||0 }))
+      .filter(p => p.revenue > 0)
+      .sort((a,b) => b.revenue - a.revenue);
+  const topOf = (pool, label) => {
+    const t = pool[0];
+    return t
+      ? winCard(label, t.color, `${t.name} — ${t.dept}`,
+          `${fmtAED(t.revenue)} · ${t.total.toLocaleString()} clients · ${fmtPct(t.rebookPct)} rebooked`,
+          (typeof staffProfile === 'function') ? staffProfile(t.name) : null)
+      : winCard(label, 'var(--muted)', 'No staff data for this period', 'Staff-level figures aren’t available for this date range.');
+  };
+  const performerCard = topOf(poolFor(hairStaff,   'Hair',   hairColor,   'hairSalesNet'), 'Top Performer · Hair');
+  const beautyCard    = topOf(poolFor(beautyStaff, 'Beauty', beautyColor, 'beautySales'),  'Top Performer · Beauty');
 
   // ── Biggest KPI move vs previous period (percentage-point deltas, same units) ──
   const moves = [
@@ -1395,7 +1494,7 @@ function buildWinsHTML(s, prevS, prevPeriodLabel, hairStaff, beautyStaff, branch
       `${fmtPct(hairAhead ? (s.hairRebookPct||0) : (s.beautyRebookPct||0))} rebooking, ahead of ${hairAhead ? 'Beauty' : 'Hair'} this period`);
   }
 
-  return `<div style="display:flex;gap:14px;flex-wrap:wrap">${performerCard}${improvementCard}${branchCard}</div>`;
+  return `<div style="display:flex;gap:14px;flex-wrap:wrap">${performerCard}${beautyCard}${improvementCard}${branchCard}</div>`;
 }
 
 function buildCmpChart(byBranch, metric, dark, ttStyle, gc, tc, catFilter, canvasId) {
