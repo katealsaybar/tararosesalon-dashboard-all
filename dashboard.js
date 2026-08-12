@@ -470,7 +470,7 @@ function stylistCardDetail(c, colour, name, photo) {
   const works = (c.works > 0) ? `
     <div style="display:flex;gap:0.64%;margin-top:2.2cqw">
       ${Array.from({ length: c.works }, (_, i) => `
-        <img src="assets/staff/work/${encodeURIComponent(slug)}-${i + 1}.jpg" alt="" loading="lazy"
+        <img src="assets/staff/work/${encodeURIComponent(slug)}-${i + 1}.webp" alt="" loading="lazy"
              onerror="this.style.display='none'"
              style="flex:1 1 0;min-width:0;aspect-ratio:121.3/223.9;object-fit:cover;
                     border-radius:1.1cqw;border:0.18cqw solid ${CARD_CREAM}">`).join('')}

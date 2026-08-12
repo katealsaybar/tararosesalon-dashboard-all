@@ -17,7 +17,7 @@
 // from a wrapped one. A text line with a dot at its y starts a bullet; one
 // without continues the previous.
 //
-//   works  how many work photos exist for her under assets/staff/work/<name>-N.jpg,
+//   works  how many work photos exist for her under assets/staff/work/<name>-N.webp,
 //          cropped from the strip on her card. Counts vary because the deck has
 //          three layouts: most cards run six portraits, Areanne's four wider ones,
 //          Katie's two landscapes.
