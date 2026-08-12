@@ -358,7 +358,22 @@ function computeHeroPeriodPhrase(from, to) {
 
   const isYearToDate = from.getFullYear() === today.getFullYear() && from.getMonth() === 0 && from.getDate() === 1 &&
     to.getFullYear() === today.getFullYear() && to.getMonth() === today.getMonth() && to.getDate() === today.getDate();
-  return isYearToDate ? 'the year so far' : 'the past few months';
+  if (isYearToDate) return 'the year so far';
+
+  // A range that never leaves one calendar month must never be read out as months.
+  // 1-12 Aug fell straight past every case above (not a full month, not last
+  // month-to-date, not YTD) and landed on "the past few months" (Kate, 2026-08-12).
+  if (from.getFullYear() === to.getFullYear() && from.getMonth() === to.getMonth()) {
+    const monthName = HERO_MONTH_NAMES[from.getMonth()];
+    const isThisMonth = from.getFullYear() === today.getFullYear() && from.getMonth() === today.getMonth();
+    if (isThisMonth && from.getDate() === 1) return 'this month so far';
+    return `these days in ${monthName}`;
+  }
+
+  // Same trap one step wider: a five-week range straddling two months isn't
+  // "months" either. Describe it by how long it actually is.
+  if (diffDays < 45) return 'the past few weeks';
+  return 'the past few months';
 }
 
 function updateHeroPeriod() {
