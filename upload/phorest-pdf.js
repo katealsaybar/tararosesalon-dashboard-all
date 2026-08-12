@@ -108,11 +108,14 @@ async function handleStaffPerfPdfBatch(){
   for (let idx = 0; idx < files.length; idx++){
     const file = files[idx];
     try{
+      spGuardReportKind('performance', { filename: file.name });
       const branch = spBranchFromFilename(file.name);
       const filenameDate = spDateFromFilename(file.name);
       if (!branch) throw new Error("Could not match filename to a branch — expected it to start with the branch name (e.g. 'al-quoz-').");
 
-      const lines = spStripPdfHeaderLines(await spExtractPdfLines(file));
+      const rawLines = await spExtractPdfLines(file);
+      spGuardReportKind('performance', { text: rawLines.join(' ') });
+      const lines = spStripPdfHeaderLines(rawLines);
       const rec = spParseOneBlock(lines, branch.code);
       const isoDate = spToISODate(rec.date);
       if (filenameDate && filenameDate !== isoDate){

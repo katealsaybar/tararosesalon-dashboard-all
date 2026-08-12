@@ -176,6 +176,7 @@ async function utilParseAndSaveBox(code){
   if (!raw.trim()) return { code, skipped: true };
 
   try{
+    spGuardReportKind('utilisation', { text: raw });
     const allLines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     const results = utilSplitBlocks(allLines).map(blockLines => {
       try{
@@ -300,10 +301,12 @@ async function handleUtilPdfBatch(){
   for (let idx = 0; idx < files.length; idx++){
     const file = files[idx];
     try{
+      spGuardReportKind('utilisation', { filename: file.name }); // wrong-report guard (from phorest-staff.js)
       const branchCode = detectBranch(file.name);
       if (!branchCode) throw new Error("Could not match filename to a branch — expected it to include the branch name (e.g. 'al-quoz-').");
 
       const lines = await utilExtractPdfLines(file);
+      spGuardReportKind('utilisation', { text: lines.join(' ') });
       const { branch, dateFrom, dateTo, rows } = utilParseLines(lines);
       if (!dateFrom || !dateTo) throw new Error('Could not find the report date range in this PDF.');
       if (!rows.length) throw new Error('No staff rows found in this PDF.');
