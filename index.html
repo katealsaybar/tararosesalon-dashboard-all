@@ -854,26 +854,30 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 </div>
 
 <script>
-// Pre-fetch latest upload timestamp for login page display (GST). Checks both
-// weekly_data and daily_data — daily uploads usually run more current, so
-// whichever table has the newer uploaded_at wins (same freshness logic the
-// main dashboard uses for its header badge).
+// Pre-fetch latest upload timestamp for login page display (GST). Reads the two
+// tables the dashboard actually runs on — branch_staff_daily (ledger) and
+// phorest_staff_daily — whichever synced most recently wins, same pair the header
+// freshness badge uses. It used to read weekly_data/daily_data, both retired at
+// the end of May 2026, so the login screen was frozen on "1 Jun 2026" ever since
+// (Kate, 2026-08-13).
 (function(){
   const SUPA_URL2 = 'https://gvijxenafoowajqktqvd.supabase.co';
   const SUPA_KEY2 = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
   const headers = {'apikey':SUPA_KEY2,'Authorization':'Bearer '+SUPA_KEY2};
   Promise.all([
-    fetch(`${SUPA_URL2}/rest/v1/weekly_data?select=uploaded_at&order=uploaded_at.desc&limit=1`,{headers}).then(r=>r.json()).catch(()=>[]),
-    fetch(`${SUPA_URL2}/rest/v1/daily_data?select=uploaded_at&order=uploaded_at.desc&limit=1`,{headers}).then(r=>r.json()).catch(()=>[]),
-  ]).then(([weeklyRows, dailyRows]) => {
+    fetch(`${SUPA_URL2}/rest/v1/branch_staff_daily?select=created_at&order=created_at.desc.nullslast&limit=1`,{headers}).then(r=>r.json()).catch(()=>[]),
+    fetch(`${SUPA_URL2}/rest/v1/phorest_staff_daily?select=created_at&order=created_at.desc.nullslast&limit=1`,{headers}).then(r=>r.json()).catch(()=>[]),
+  ]).then(([ledgerRows, phorestRows]) => {
     const el=document.getElementById('loginLastUpdated');
-    const candidates=[weeklyRows?.[0]?.uploaded_at, dailyRows?.[0]?.uploaded_at].filter(Boolean).map(d=>new Date(d));
+    const candidates=[ledgerRows?.[0]?.created_at, phorestRows?.[0]?.created_at].filter(Boolean).map(d=>new Date(d));
     if(!el||!candidates.length)return;
     const latest=new Date(Math.max(...candidates));
-    const gstOffset=4*60;
-    const gstDate=new Date(latest.getTime()+(gstOffset-latest.getTimezoneOffset())*60000);
-    const dateFmt=gstDate.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-    const timeFmt=gstDate.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:true});
+    // Ask for Asia/Dubai directly. The old version shifted the timestamp by hand
+    // and then formatted it in the browser's own zone, which double-counted the
+    // offset and printed a GST upload 8 hours late (Kate, 2026-08-13).
+    const gstOpts={timeZone:'Asia/Dubai'};
+    const dateFmt=latest.toLocaleDateString('en-GB',{...gstOpts,day:'numeric',month:'short',year:'numeric'});
+    const timeFmt=latest.toLocaleTimeString('en-GB',{...gstOpts,hour:'2-digit',minute:'2-digit',hour12:true});
     el.textContent=`Data as of ${dateFmt} · ${timeFmt} GST`;
   }).catch(()=>{
     const el=document.getElementById('loginLastUpdated');
