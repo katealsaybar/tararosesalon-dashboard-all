@@ -419,131 +419,107 @@ const VIEW_SECTION_LABELS = {
 // and a card with no face would look broken rather than pending.
 const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist'];
 
-// One expanded card, following the A3 layout's own order: quote, bio, the three
-// columns, the three prose blocks, then the client review.
-// ── ONE STYLIST CARD, TO THE ARTWORK'S OWN MEASUREMENTS ──────
-// Kate, 2026-08-12: model it on what Canva actually uses. So every size below is
-// measured off _source/FINAL STYLIST CARD.pdf rather than guessed, and expressed
-// as a percentage of the card's width — which is how the A3 original scales.
+// ── ONE STYLIST CARD, AS THE DESIGNED PDF ────────────────────
+// Kate, 2026-08-13: the hand-built HTML replica of the A3 card was ugly, and an
+// exported image loses the one thing the PDF gives you for free — the words stay
+// selectable, so you can highlight and lift copy straight off the card.
 //
-// The page is 842.25 x 1190.25pt. Type, as a share of that width:
-//   name 85pt = 10.09%   TARA ROSE 26.4pt = 3.13%   SALON 11.3pt = 1.34%
-//   role 13.8pt = 1.64%  quote 18pt = 2.14%         bio/prose 15pt = 1.78%
-//   panel + block titles and the handle 23pt = 2.73%   bullets 16pt = 1.90%
-//   footer and BOOK NOW 18pt = 2.14%
-// Geometry, same basis:
-//   content margins 5.28% / 94.62%     right-hand column starts at 43.7%
-//   three panels 29.24% wide, 0.83% apart, 169.1pt tall (14.2% of height)
-//   six photo frames 14.4% wide, 0.64% apart, aspect 121.3:223.9
-//   lower half: prose column from 5.03%, review column from 49.2%
+// So this shows the real PDF. Not _source/FINAL STYLIST CARD.pdf, which is one
+// 110MB file for all 34 pages; scripts/split-stylist-cards.py cuts that into
+// assets/stylist-cards/<name>.pdf, one page each, ~1.3MB.
 //
-// Sizes use cqw (1cqw = 1% of the container's width) so the whole card scales as
-// one piece, exactly as the print original does. The layout still flows rather
-// than being absolutely positioned: bios run from 200 to 400 characters across the
-// 27 cards, and a fixed-height replica would clip the long ones.
-const CARD_INK   = '#2D2E37';
-const CARD_CREAM = '#EEF3C7';
-const CARD_TEXT  = '#FAF8F3';
-
-function stylistCardDetail(c, colour, name, photo) {
-  const slug = String(name || '').toLowerCase();
-  const dot = `<span style="display:inline-block;width:0.85cqw;height:0.85cqw;border-radius:50%;
-                 background:${CARD_CREAM};flex-shrink:0;margin-top:0.75cqw"></span>`;
-  const bullets = list => (list || []).map(b =>
-    `<div style="display:flex;gap:0.9cqw;align-items:flex-start;margin-bottom:0.5cqw">
-       ${dot}<span>${escapeHtml(b)}</span></div>`).join('');
-  const panel = (title, inner) => `
-    <div style="width:29.24%;border:0.18cqw solid ${CARD_CREAM};border-radius:1.6cqw;
-                padding:1.3cqw 1.5cqw;box-sizing:border-box">
-      <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;
-                  font-size:2.73cqw;color:${CARD_CREAM};text-align:center;margin-bottom:1cqw">${title}</div>
-      <div style="font-size:1.9cqw;line-height:1.35;color:${CARD_TEXT}">${inner}</div>
-    </div>`;
-  const block = (title, text) => text ? `
-    <div style="margin-bottom:2.2cqw">
-      <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;
-                  font-size:2.73cqw;color:${CARD_TEXT};margin-bottom:0.5cqw">${title}</div>
-      <div style="font-size:1.78cqw;line-height:1.45;color:${CARD_TEXT}">${escapeHtml(text)}</div>
-    </div>` : '';
-  // Frames are 14.4% of the width with a 0.64% gap, aspect 121.3:223.9 — so the
-  // strip fills the same band as on the card instead of scrolling sideways.
-  const works = (c.works > 0) ? `
-    <div style="display:flex;gap:0.64%;margin-top:2.2cqw">
-      ${Array.from({ length: c.works }, (_, i) => `
-        <img src="assets/staff/work/${encodeURIComponent(slug)}-${i + 1}.webp" alt="" loading="lazy"
-             onerror="this.style.display='none'"
-             style="flex:1 1 0;min-width:0;aspect-ratio:121.3/223.9;object-fit:cover;
-                    border-radius:1.1cqw;border:0.18cqw solid ${CARD_CREAM}">`).join('')}
-    </div>` : '';
+// It is drawn by pdf.js rather than handed to the browser's own PDF viewer in an
+// iframe. That viewer was the first attempt and it left grey dead space: it scales
+// the page to about 89% of the frame and pads the rest, and its layout sits in a
+// separate process where it can be neither measured nor styled. Drawing the page
+// ourselves means it fills the box exactly, with no viewer chrome, no scroll to
+// trap, the same result in every browser, and — because pdf.js lays real text over
+// the canvas — Ctrl+F now finds words on the card too.
+//
+// Capped at 860px: any wider and one stylist is three screens tall. The box states
+// the A3 aspect (842.25 x 1190.25pt) so the row reserves its height before the
+// file arrives.
+function stylistCardEmbed(name) {
+  const src = `assets/stylist-cards/${encodeURIComponent(String(name || '').toLowerCase())}.pdf`;
   return `
-    <div data-detail style="display:none">
-      <div style="container-type:inline-size;background:${CARD_INK};color:${CARD_TEXT};
-                  font-family:'Inter',sans-serif;padding:2.4% 5.38% 3.4%">
-
-        <!-- top block: cut-out head shot left, wordmark and name right -->
-        <div style="display:flex;gap:1.4%;align-items:flex-start">
-          ${photo ? `<img src="assets/staff/${encodeURIComponent(photo)}" alt="" loading="lazy"
-                          onerror="this.style.display='none'"
-                          style="width:33%;height:auto;flex-shrink:0;align-self:flex-start">` : ''}
-          <div style="flex:1;min-width:0">
-            <div style="text-align:center">
-              <div style="font-size:3.13cqw;letter-spacing:0.22em;font-weight:400">TARA ROSE</div>
-              <div style="font-size:1.34cqw;letter-spacing:0.34em;margin-top:0.5cqw">SALON</div>
-              <div style="font-family:'Playfair Display',serif;font-style:italic;font-weight:700;
-                          font-size:10.09cqw;line-height:1;margin-top:1.4cqw">${escapeHtml(name)}</div>
-              <div style="font-size:1.64cqw;font-weight:700;letter-spacing:0.42em;color:${CARD_CREAM};
-                          margin-top:1cqw">${escapeHtml((c.role || '').toUpperCase())}</div>
-              ${c.quote ? `<div style="font-family:'Playfair Display',serif;font-style:italic;
-                            font-weight:400;font-size:2.14cqw;line-height:1.35;margin-top:1.5cqw">
-                            &ldquo;${escapeHtml(c.quote)}&rdquo;</div>` : ''}
-            </div>
-            ${c.bio ? `<div style="font-size:1.78cqw;line-height:1.4;margin-top:1.6cqw;text-align:justify">
-                        ${escapeHtml(c.bio)}</div>` : ''}
-          </div>
-        </div>
-
-        <!-- three panels: 29.24% each, 0.83% apart, as measured -->
-        <div style="display:flex;gap:0.83%;margin-top:3.3cqw;align-items:stretch">
-          ${panel('SPECIALISES IN', bullets(c.specialises))}
-          ${panel('BEST FOR', escapeHtml(c.bestFor || ''))}
-          ${panel('THE VIBE', bullets(c.vibe))}
-        </div>
-
-        ${works}
-
-        <!-- lower half: prose left, handle above the review panel right -->
-        <div style="display:flex;gap:4.2%;margin-top:3cqw">
-          <div style="flex:1;min-width:0">
-            ${block('You&rsquo;ll love me if&hellip;', c.loveMeIf)}
-            ${block('What matters most to me&hellip;', c.mattersMost)}
-            ${block('In my chair you can&hellip;', c.inMyChair)}
-          </div>
-          <div style="width:48%;flex-shrink:0">
-            ${c.ig ? `<div style="display:flex;align-items:center;gap:1.2cqw;margin-bottom:1.2cqw">
-                <a href="https://instagram.com/${encodeURIComponent(c.ig)}" target="_blank" rel="noopener noreferrer"
-                   style="color:${CARD_TEXT};font-size:2.73cqw;text-decoration:underline">@${escapeHtml(c.ig)}</a>
-                <span style="flex:1;height:0.12cqw;background:${CARD_CREAM};opacity:.7"></span>
-              </div>` : ''}
-            ${c.review ? `<div style="background:${CARD_CREAM};color:#2A2A2A;border-radius:1.6cqw;padding:1.8cqw 2cqw">
-                <div style="text-align:center;font-size:2.4cqw;letter-spacing:.1em">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-                <div style="font-size:1.78cqw;line-height:1.45;margin-top:1.2cqw;text-align:justify">${escapeHtml(c.review)}</div>
-                ${c.reviewBy ? `<div style="text-align:right;font-weight:700;font-size:1.78cqw;margin-top:1.2cqw">
-                                  &ndash; ${escapeHtml(c.reviewBy)}</div>` : ''}
-              </div>` : ''}
-          </div>
-        </div>
-
-        <!-- footer, as printed -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:2%;margin-top:3cqw">
-          <div style="font-family:'Playfair Display',serif;font-style:italic;font-size:2.14cqw;line-height:1.35">
-            <span style="font-weight:400">Ready for the Tara Rose</span><br>
-            <span style="font-weight:700">Confidence Promise?</span>
-          </div>
-          <div style="border:0.18cqw solid ${CARD_TEXT};border-radius:3cqw;padding:1.1cqw 3cqw;
-                      font-size:2.14cqw;letter-spacing:.06em;white-space:nowrap">BOOK NOW</div>
-        </div>
+    <div data-detail style="display:none;padding:14px;background:var(--bg)">
+      <div style="max-width:860px;margin:0 auto">
+        <div class="stylistCardBox" data-card="${src}"
+             style="position:relative;width:100%;aspect-ratio:842.25/1190.25;border-radius:8px;
+                    overflow:hidden;box-shadow:var(--shadow);background:#2D2E37"></div>
+        <a href="${src}" target="_blank" rel="noopener noreferrer"
+           style="display:inline-block;margin-top:9px;font-size:12.5px;color:var(--muted)">
+          Open ${escapeHtml(name)}&rsquo;s card on its own &#8599;</a>
       </div>
     </div>`;
+}
+
+// pdf.js is ~1.7MB with its worker, so it is fetched on the first card anyone
+// opens and never on page load. Vendored in vendor/pdfjs (v4.10.38, Apache-2.0)
+// rather than pulled from a CDN, so the dashboard has no outside dependency.
+let pdfjsLibPromise = null;
+function loadPdfjs() {
+  if (!pdfjsLibPromise) {
+    pdfjsLibPromise = import('./vendor/pdfjs/pdf.min.mjs').then(lib => {
+      lib.GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.mjs';
+      return lib;
+    });
+  }
+  return pdfjsLibPromise;
+}
+
+async function drawStylistCard(box) {
+  const url = box.dataset.card;
+  if (!url) return;                       // already drawn, or drawing
+  delete box.dataset.card;
+  try {
+    const lib = await loadPdfjs();
+    const page = await (await lib.getDocument(url).promise).getPage(1);
+    const width = box.clientWidth || 860;
+    const scale = width / page.getViewport({ scale: 1 }).width;
+    const viewport = page.getViewport({ scale });
+
+    // Draw at the device's pixel density, capped at 2: a 3x phone would allocate
+    // ~38MB of canvas for a card that looks no better than 2x.
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(viewport.width * dpr);
+    canvas.height = Math.round(viewport.height * dpr);
+    canvas.style.cssText = 'display:block;width:100%;height:auto';
+    box.appendChild(canvas);
+    const drawing = page.render({
+      canvasContext: canvas.getContext('2d'),
+      viewport,
+      transform: dpr === 1 ? null : [dpr, 0, 0, dpr, 0, 0]
+    }).promise;
+
+    // The invisible copy of the words, sitting exactly over the drawing. Built
+    // without waiting on the drawing, which is the slower half and can be starved
+    // outright in a background tab — the words should not hang on the picture.
+    // Sized at the width we rendered at, then CSS-scaled if the column changes
+    // width, which keeps the spans lined up without redrawing the page.
+    const layer = document.createElement('div');
+    layer.className = 'textLayer';
+    layer.style.width = `${viewport.width}px`;
+    layer.style.height = `${viewport.height}px`;
+    layer.style.setProperty('--scale-factor', scale);
+    box.appendChild(layer);
+    await new lib.TextLayer({
+      textContentSource: await page.getTextContent(),
+      container: layer,
+      viewport
+    }).render();
+
+    const fit = () => layer.style.transform = `scale(${(box.clientWidth || width) / viewport.width})`;
+    fit();
+    if (window.ResizeObserver) new ResizeObserver(fit).observe(box);
+    await drawing;
+  } catch (err) {
+    // Nothing to salvage in place, so point at the file itself.
+    console.error('Stylist card failed to draw', url, err);
+    box.innerHTML = `<div style="padding:22px;color:#FAF8F3;font-size:13.5px;line-height:1.5">
+      This card couldn&rsquo;t be drawn here. Use the link below to open the PDF.</div>`;
+  }
 }
 
 function toggleStylistCard(headerEl) {
@@ -554,10 +530,12 @@ function toggleStylistCard(headerEl) {
   const open = detail.style.display !== 'none';
   detail.style.display = open ? 'none' : 'block';
   if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
-  // An open card needs the whole row: the three panels and the two-column lower
-  // half don't fit in one ~330px grid cell, which is what makes it read as the
-  // printed card rather than a squeezed list.
+  // An open card needs the whole row: the artwork is A3 portrait and would be
+  // unreadable squeezed into one ~330px grid cell.
   wrap.style.gridColumn = open ? '' : '1 / -1';
+  // Draw on first open only: 27 cards is 36MB, and a card nobody opens should cost
+  // nothing. What is drawn stays drawn, so closing and reopening doesn't refetch.
+  if (!open) drawStylistCard(detail.querySelector('.stylistCardBox'));
 }
 
 function renderStylistCards() {
@@ -605,10 +583,12 @@ function renderStylistCards() {
         ? `<img src="assets/staff/${encodeURIComponent(s.photo)}" alt="" loading="lazy"
                onerror="this.style.display='none'" style="height:104px;width:auto;flex-shrink:0">`
         : '';
+      // STYLIST_CARDS is the roster of who has artwork: its 27 keys match the 27
+      // files in assets/stylist-cards/ exactly, so it answers "is there a card?"
       const card = (typeof STYLIST_CARDS !== 'undefined') ? STYLIST_CARDS[s.name] : null;
-      // Collapsed by default: 27 full cards at once is a wall of text, and the
-      // grid is what makes the team scannable. The detail is one click away.
-      const detail = card ? stylistCardDetail(card, colour, s.name, s.photo) : '';
+      // Collapsed by default: 27 A3 cards at once is 36MB and a wall of scroll.
+      // The grid is what makes the team scannable.
+      const detail = card ? stylistCardEmbed(s.name) : '';
       const chevron = card
         ? `<span style="margin-left:auto;flex-shrink:0;color:var(--muted);font-size:12px;
                         transition:transform .2s" data-chev>&#9660;</span>`

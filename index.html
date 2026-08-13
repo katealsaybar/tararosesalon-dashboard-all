@@ -826,6 +826,22 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   letter-spacing:0.1em;
 }
 
+/* The selectable copy of a stylist card's words, laid invisibly over the drawing
+   of the page (see drawStylistCard in dashboard.js). The text is transparent, so
+   what you see is the artwork and what you select is real text. pdf.js positions
+   every span itself and sizes them against --scale-factor, which the renderer sets
+   on this container — so these rules must not set font or line-height beyond the
+   reset below, or the spans stop lining up with the words underneath. */
+.stylistCardBox .textLayer{
+  position:absolute;top:0;left:0;transform-origin:0 0;
+  line-height:1;text-size-adjust:none;forced-color-adjust:none;
+}
+.stylistCardBox .textLayer span,
+.stylistCardBox .textLayer br{
+  position:absolute;white-space:pre;color:transparent;cursor:text;transform-origin:0 0;
+}
+.stylistCardBox .textLayer ::selection{background:rgba(150,120,255,0.45);}
+
 </style>
 </head>
 <body>
@@ -1152,7 +1168,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 <script src="upload/name-aliases.js?v=20260812b"></script>
 <script src="staff-profiles.js?v=20260812e"></script>
 <script src="stylist-cards.js?v=20260812d"></script>
-<script src="dashboard.js?v=20260812j"></script>
+<script src="dashboard.js?v=20260813c"></script>
 <script>
 
 // ── PASSWORD GATE ────────────────────────────────────────────

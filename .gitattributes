@@ -1,0 +1,3 @@
+# Vendored third-party builds are stored byte-for-byte as shipped: no line-ending
+# translation, and no diffs in review (they are minified, so a diff is noise).
+vendor/** -text -diff
