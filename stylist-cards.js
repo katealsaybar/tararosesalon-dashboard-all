@@ -22,6 +22,12 @@
 //          three layouts: most cards run six portraits, Areanne's four wider ones,
 //          Katie's two landscapes.
 //
+// KATIE's card was redrawn on its own on 14 Aug 2026 ("Precision cutting" added to
+// SPECIALISES IN) and came in as one A3 PDF, not a new deck — so the deck in _source
+// is now OLDER than her card. That is handled by _source/card-updates/ and the
+// --updates-only pass in scripts/split-stylist-cards.py; read its comment before
+// re-exporting, or the next full run reverts her.
+//
 // Two card-design bugs are reproduced faithfully rather than silently corrected,
 // because the fix belongs in Canva:
 //   - RUTH's bullets sit beside "Transformation" with "Advanced Colour
@@ -122,7 +128,8 @@ const STYLIST_CARDS = {
   "bio": "I've lived in Abu Dhabi for over eighteen years. I'm family-oriented with three children, I love a proper chat, and I love a job start to finish. You can trust me with your hair, and I'll always be honest about it.",
   "specialises": [
    "Balayage",
-   "Lived-In Colour"
+   "Lived-In Colour",
+   "Precision cutting"
   ],
   "bestFor": "Effortless Low-maintenance colour",
   "vibe": [

@@ -586,8 +586,14 @@ const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Juni
 // before you could even confirm it was the stylist you meant, so the preview sits
 // at the .sc-detail-in width (~330px) and "Full view" is what promotes it to the
 // whole row. Both live in CSS off .sc-item.full — nothing here measures anything.
+// Bump when any card is re-exported. Kate, 2026-08-14: the JS files have carried
+// ?v= stamps for a while and the cards did not, so Katie's redrawn card would have
+// arrived looking exactly like a card that was never updated — the browser holds
+// these hard, and no number of refreshes tells you which one you are looking at.
+const STYLIST_CARD_V = '20260814b';
+
 function stylistCardEmbed(name) {
-  const src = `assets/stylist-cards/${encodeURIComponent(String(name || '').toLowerCase())}.pdf`;
+  const src = `assets/stylist-cards/${encodeURIComponent(String(name || '').toLowerCase())}.pdf?v=${STYLIST_CARD_V}`;
   return `
     <div class="sc-detail" data-detail>
       <div class="sc-detail-in">
