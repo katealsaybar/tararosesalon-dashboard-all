@@ -199,6 +199,21 @@
   font-weight: 600;
 }
 
+/* Branch jumps under Stylist Cards. Smaller and indented behind a hairline, because
+   these move you WITHIN a view rather than switching view — the .nav-sub above them
+   stays the active one, which is why they are not .nav-sub themselves. Written by
+   renderStylistBranchNav() from the same grouping the page renders from, so the rail
+   can never offer a section the page doesn't have. */
+.nav-kids{display:flex;flex-direction:column;gap:1px;margin:2px 0 6px 12px;
+  padding-left:6px;border-left:1px solid var(--border)}
+.nav-kid{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 9px;
+  border-radius:7px;cursor:pointer;color:var(--muted);
+  transition:background .2s,color .2s}
+.nav-kid:hover{background:var(--surface2);color:var(--text)}
+.nav-kid .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.nav-kid .n{margin-left:auto;font-size:10.5px;color:var(--muted2);
+  font-variant-numeric:tabular-nums}
+
 /* 🔥 CLEAN VERSION */
 
 .main-content{
@@ -1323,6 +1338,10 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
     <div class="nav-sub" onclick="showView('dashboard', this)">KPI Metrics</div>
     <div class="nav-sub" onclick="showView('team', this)">Team Performance</div>
     <div class="nav-sub" onclick="showView('stylists', this)">Stylist Cards</div>
+    <!-- The four branches, written by renderStylistBranchNav() in dashboard.js.
+         Empty in the source on purpose: hard-coding them here would be a second
+         list to keep in step with STAFF_PROFILES. -->
+    <div class="nav-kids" id="stylistBranchNav"></div>
     <a href="stylist/stylist.html" target="_blank" class="nav-sub" style="text-decoration:none">Stylist View ↗</a>
   </div>
 

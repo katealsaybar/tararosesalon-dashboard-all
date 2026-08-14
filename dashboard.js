@@ -785,13 +785,13 @@ function updateStylistBar() {
   btn.textContent = `Hide ${n} open card${n === 1 ? '' : 's'}`;
 }
 
-function renderStylistCards() {
-  const host = document.getElementById('stylistCardsContent');
-  if (!host) return;
-  if (typeof STAFF_PROFILES === 'undefined') {
-    host.innerHTML = `<div class="loading">Stylist profiles didn’t load.</div>`;
-    return;
-  }
+// The hair team, de-duplicated, grouped by branch, each group ordered by seniority.
+// Pulled out of renderStylistCards() so the sidebar's branch jumps are built from the
+// same grouping the page is: one list, one order, one set of counts. Two readings of
+// STAFF_PROFILES would eventually disagree, and a rail that offers a section the page
+// doesn't have is worse than no rail.
+function stylistBranchGroups() {
+  if (typeof STAFF_PROFILES === 'undefined') return [];
   // Dedupe by photo: alias keys (e.g. a stylist listed under two spellings) point
   // at the same person and must not produce two cards.
   const seen = new Set();
@@ -808,13 +808,64 @@ function renderStylistCards() {
     byBranch.get(b).push({ name, ...p });
   });
 
-  const order = [...ACTIVE_BRANCHES, 'other'].filter(b => byBranch.has(b));
-  const sections = order.map(b => {
-    const list = byBranch.get(b).sort((x, y) => {
+  return [...ACTIVE_BRANCHES, 'other'].filter(b => byBranch.has(b)).map(b => ({
+    branch: b,
+    colour: BRANCH_INFO[b]?.colorLight || BRANCH_INFO[b]?.color || 'var(--muted)',
+    label: BRANCH_INFO[b]?.name || b,
+    list: byBranch.get(b).sort((x, y) => {
       const d = STYLIST_ROLE_ORDER.indexOf(x.role) - STYLIST_ROLE_ORDER.indexOf(y.role);
       return d !== 0 ? d : x.name.localeCompare(y.name);
-    });
-    const colour = BRANCH_INFO[b]?.colorLight || BRANCH_INFO[b]?.color || 'var(--muted)';
+    }),
+  }));
+}
+
+// ── SIDEBAR: THE BRANCH JUMPS UNDER STYLIST CARDS ────────────
+// Kate, 2026-08-14: 27 cards across four branch sections is a long scroll, so the
+// sidebar carries the branches as sub-items. They move you within the view rather
+// than switching view, so they are .nav-kid, not .nav-sub — "Stylist Cards" stays
+// the active nav item while you jump about inside it.
+function renderStylistBranchNav() {
+  const nav = document.getElementById('stylistBranchNav');
+  if (!nav) return;
+  nav.innerHTML = stylistBranchGroups().map(g => `
+    <div class="nav-kid" onclick="jumpToStylistBranch('${g.branch}')"
+         title="${escapeHtml(g.label)} — ${g.list.length} stylist${g.list.length === 1 ? '' : 's'}">
+      <span class="dot" style="background:${g.colour}"></span>
+      <span>${escapeHtml(g.label)}</span>
+      <span class="n">${g.list.length}</span>
+    </div>`).join('');
+}
+addEventListener('DOMContentLoaded', renderStylistBranchNav);
+
+// Lands the branch heading just below the fixed masthead AND the sticky density bar,
+// which between them own the top ~100px — scrollIntoView() alone would park it
+// underneath both. Only switches view when it has to: showView() re-renders, which
+// would close every card you had open just to move down the page.
+function jumpToStylistBranch(branch) {
+  const view = document.getElementById('view-stylists');
+  if (!view) return;
+  if (view.style.display === 'none') {
+    showView('stylists', document.querySelector('.nav-sub[onclick*="stylists"]'));
+  }
+  const target = document.getElementById('scBranch-' + branch);
+  if (!target) return;
+  const masthead = parseFloat(getComputedStyle(document.documentElement)
+    .getPropertyValue('--topbar-cond-h')) || 104;
+  const bar = document.querySelector('.sc-bar');
+  const top = target.getBoundingClientRect().top + window.scrollY
+    - masthead - (bar ? bar.offsetHeight : 0) - 10;
+  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+}
+
+function renderStylistCards() {
+  const host = document.getElementById('stylistCardsContent');
+  if (!host) return;
+  if (typeof STAFF_PROFILES === 'undefined') {
+    host.innerHTML = `<div class="loading">Stylist profiles didn’t load.</div>`;
+    return;
+  }
+  renderStylistBranchNav();
+  const sections = stylistBranchGroups().map(({ branch: b, colour, label, list }) => {
     const cards = list.map(s => {
       const nameHtml = s.ig
         ? `<a href="https://instagram.com/${encodeURIComponent(s.ig)}" target="_blank" rel="noopener noreferrer"
@@ -858,12 +909,15 @@ function renderStylistCards() {
           ${detail}
         </div>`;
     }).join('');
+    // The id is what the sidebar's branch jumps aim at. Scoped with a prefix rather
+    // than the bare branch key, which is short enough to collide with anything.
     return `
-      <div class="section-label" data-scrollspy="Stylist Cards"
-           style="display:flex;align-items:center;gap:7px;margin-top:22px;margin-bottom:10px">
+      <div class="section-label" id="scBranch-${b}" data-scrollspy="Stylist Cards"
+           style="display:flex;align-items:center;gap:7px;margin-top:22px;margin-bottom:10px;
+                  scroll-margin-top:170px">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
                      background:${colour};flex-shrink:0"></span>
-        ${escapeHtml(BRANCH_INFO[b]?.name || b)} · ${list.length} stylist${list.length === 1 ? '' : 's'}
+        ${escapeHtml(label)} · ${list.length} stylist${list.length === 1 ? '' : 's'}
       </div>
       <div class="sc-grid mode-${stylistViewMode}">${cards}</div>`;
   }).join('');
