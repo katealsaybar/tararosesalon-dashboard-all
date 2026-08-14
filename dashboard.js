@@ -818,6 +818,10 @@ function renderStylistCards() {
         ? `<a href="https://instagram.com/${encodeURIComponent(s.ig)}" target="_blank" rel="noopener noreferrer"
               style="font-size:11.5px;color:var(--muted);text-decoration:none">@${escapeHtml(s.ig)}</a>`
         : '';
+      // Outside the Instagram link on purpose: the link is the first name, and a
+      // surname that opened Instagram would be a surprise. Sized in em off .sc-name,
+      // so it shrinks with the name in list and pills without a rule of its own.
+      const surname = s.last ? ` <span class="sc-last">${escapeHtml(s.last)}</span>` : '';
       // No border-radius or background on the image: the rounded accent block is
       // part of the PNG, and clipping it would remove the head overhang. Sizing
       // lives in .sc-photo, which each density mode overrides.
@@ -835,11 +839,11 @@ function renderStylistCards() {
       // Pills mode hides the role line, so the title carries it there.
       return `
         <div class="sc-item"${card ? ' data-has-card="1"' : ''}
-             title="${escapeHtml(s.name)} · ${escapeHtml(s.role || '')}">
+             title="${escapeHtml([s.name, s.last].filter(Boolean).join(' '))} · ${escapeHtml(s.role || '')}">
           <div class="sc-head"${card ? ' onclick="toggleStylistCard(this)" aria-expanded="false"' : ''}>
             ${photo}
             <div class="sc-meta">
-              <div class="sc-name">${nameHtml}</div>
+              <div class="sc-name">${nameHtml}${surname}</div>
               <div class="sc-role" style="color:${colour}">${escapeHtml(s.role || '')}</div>
               <div class="sc-handle">${handle}</div>
             </div>

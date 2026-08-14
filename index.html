@@ -1200,6 +1200,12 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .sc-meta{min-width:0}
 .sc-name{font-family:'Playfair Display',serif;font-weight:600;font-size:18px;
   color:var(--text);line-height:1.25}
+/* The surname speaks in a different voice from the first name — same Playfair, but
+   italic, lighter, smaller and muted — so "KATE Siryk" reads as one name rather than
+   a label with a word after it. Sized in em off .sc-name, so it follows the name down
+   through list and pills on one rule. */
+.sc-last{font-size:0.76em;font-weight:400;font-style:italic;letter-spacing:0.01em;
+  color:var(--muted);margin-left:3px}
 .sc-role{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-top:3px}
 .sc-handle{margin-top:5px;font-size:11.5px}
 .sc-chev{margin-left:auto;flex-shrink:0;color:var(--muted);font-size:12px;transition:transform .2s}
@@ -1586,9 +1592,9 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
 
 <script src="upload/name-aliases.js?v=20260812b"></script>
-<script src="staff-profiles.js?v=20260812e"></script>
+<script src="staff-profiles.js?v=20260814b"></script>
 <script src="stylist-cards.js?v=20260812d"></script>
-<script src="dashboard.js?v=20260814a"></script>
+<script src="dashboard.js?v=20260814b"></script>
 <script src="pulse-narrative.js?v=20260814a"></script>
 <script>
 
