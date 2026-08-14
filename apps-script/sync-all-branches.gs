@@ -28,6 +28,9 @@ const LEDGERS_DAILY_FOLDER_ID = '1Aw15FcBgtjiIafPzwDwZpxoedaWluG-j';
 const SHEET_NAME = '_temp_placeholder';
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const STOP_LABELS = ['HAIR RETAIL SALES', 'TREATMENT SALES', 'COL TAKE AED', 'CBD TAKE AED', 'BEAUTY SALES', 'BEAUTY RETAIL SALES', 'RETAIL SALES', 'NET SALON TAKE'];
+// Label cells that are the whole word, not the start of a longer phrase. Kept
+// separate so STOP_LABELS keeps meaning "a row that begins with this".
+const BARE_LABELS = ['RETAIL', 'TREATMENT', 'TREATMENTS', 'SERVICES', 'SUBTOTAL', 'GRAND TOTAL'];
 
 const BRANCH_DETECT = {
   KCA: ['khalifa', 'kca'],
@@ -116,7 +119,18 @@ function buildStylistDailyLog_(ss) {
       if (!staff) continue;
       const staffUpper = String(staff).trim().toUpperCase();
       if (staffUpper === 'NET SALON TAKE') break; // true end of the day's data — after both departments
-      if (staffUpper.indexOf('TOTAL') === 0 || STOP_LABELS.some(l => staffUpper.indexOf(l) === 0)) continue; // per-department summary row — skip it, Beauty's header may still be ahead
+
+      // A staff cell with no letter in it is not a person. Saadiyat's Beauty tabs
+      // carry a stray ']' that passed every test below and sent 165 rows to
+      // Supabase, each with a retail figure sitting in column B.
+      if (!/[A-Za-z]/.test(staffUpper)) continue;
+
+      // STOP_LABELS was matched with indexOf === 0 only, so a cell reading exactly
+      // 'RETAIL' slipped past 'RETAIL SALES' — the list holds the longer forms.
+      // Equality is checked as well now, and the bare label names are listed.
+      if (staffUpper.indexOf('TOTAL') === 0
+       || STOP_LABELS.some(l => staffUpper === l || staffUpper.indexOf(l) === 0)
+       || BARE_LABELS.indexOf(staffUpper) !== -1) continue; // per-department summary row — skip it, Beauty's header may still be ahead
       if (!dept) continue; // safety: haven't hit a header row yet
 
       const row = data[r];
@@ -126,6 +140,13 @@ function buildStylistDailyLog_(ss) {
       const newClients    = row[4]; // E
       const rebooked      = row[5]; // F
       const total         = row[7]; // H
+
+      // Backstop for labels nobody has thought of yet. A row that served no one
+      // cannot report a new client request, so a figure in column B with no
+      // client counts anywhere is money on a label row, not a stylist's day.
+      var servedSomeone = [req, salon, newClients, rebooked, total]
+        .some(function (v) { return Number(v) > 0; });
+      if (!servedSomeone && Number(newClientReq) > 0) continue;
       const treatment     = dept === 'Hair' ? row[33] : ''; // AH, Hair only
       const retailQty     = dept === 'Hair' ? row[23] : row[30]; // Hair: X, Beauty: AE
       const treatmentQty  = dept === 'Hair' ? row[30] : '';      // AE, Hair only
