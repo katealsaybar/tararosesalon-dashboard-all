@@ -1,10 +1,13 @@
-# The 30 stylist photos are tracked individually under stylist/photos/ — the zip
-# is just a transport archive. Keeping it out saves 4.2MB of permanent history
-# and it has no effect on the live site.
-stylist/photos.zip
-
-# Source artwork for the stylist head icons and cards. The 27 processed PNGs are
-# tracked under assets/staff/; these are the originals they came from — 153MB of
-# Canva exports that would sit in git history forever with no effect on the live
-# site. Kept alongside the repo for reference, deliberately not committed.
-_source/
+# Nothing is excluded from this repository. The two entries that used to live
+# here — stylist/photos.zip and _source/ — kept ~166MB of Canva exports and
+# transport archives out of history on the grounds that the live site never
+# serves them.
+#
+# That was the wrong trade for this repo: the source artwork is the thing the
+# tracked assets were generated FROM, and split-stylist-cards.py cannot be
+# re-run from a clone that doesn't have it. So both are committed now, through
+# Git LFS. See the LFS block in .gitattributes for how, and why the 105MB deck
+# had no other route onto GitHub.
+#
+# If you add something genuinely disposable later, it belongs here. Large source
+# binaries do not — add them to the LFS patterns in .gitattributes instead.
