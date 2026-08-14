@@ -1149,6 +1149,96 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 }
 .stylistCardBox .textLayer ::selection{background:rgba(150,120,255,0.45);}
 
+/* ── STYLIST CARDS: STICKY BAR · THREE DENSITIES · COMPACT-FIRST DETAIL ──
+   Kate, 2026-08-14. Three faults in the grid-of-photo-cards-only version: no way
+   to see the whole team at once, no way out once six cards were open, and an
+   opened card filled the screen before you could tell it was the right stylist.
+
+   The three densities are ONE DOM in three CSS layouts (.mode-list / .mode-pills
+   / .mode-cards on each branch grid), so switching keeps whatever is already open
+   and, more to the point, whatever is already drawn — re-rendering the view would
+   throw away the pdf.js canvases and refetch every PDF.
+
+   Open/full state lives in classes on .sc-item, never in inline styles, so the
+   bar can count what is open and close it all in one pass. */
+.sc-bar{position:sticky;top:var(--topbar-cond-h,104px);z-index:40;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  /* Bleeds into #stylistCardsContent's own 28px gutters, so nothing scrolls
+     through the gap either side of the bar. */
+  margin:0 -28px 2px;padding:9px 28px;
+  background:var(--bg);border-bottom:1px solid var(--border)}
+.sc-bar-t{font-size:11.5px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;
+  color:var(--text);opacity:0.72}
+.sc-bar-sp{margin-left:auto}
+.sc-seg{display:flex;gap:2px;padding:2px;border:1px solid var(--border);
+  border-radius:999px;background:var(--surface)}
+.sc-seg button{appearance:none;border:0;background:transparent;color:var(--muted);
+  font-family:'Inter',sans-serif;font-size:11.5px;font-weight:600;letter-spacing:0.04em;
+  padding:5px 13px;border-radius:999px;cursor:pointer;transition:background .18s,color .18s}
+@media(hover:hover){.sc-seg button:hover{color:var(--text)}}
+.sc-seg button.on{background:var(--accent);color:var(--accent-fg);font-weight:700}
+.sc-btn{appearance:none;padding:5px 12px;border-radius:999px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-family:'Inter',sans-serif;
+  font-size:11.5px;font-weight:600;cursor:pointer;transition:border-color .2s,color .2s}
+@media(hover:hover){.sc-btn:hover{border-color:var(--accent);color:var(--accent)}}
+/* On a phone the label costs the controls their single line, and the masthead
+   already says which view you are in. */
+@media(max-width:640px){.sc-bar-t{display:none}}
+
+/* min(330px,100%), not 330px: on a 375px phone the column is wider than the space
+   it has and the page picked up a sideways scroll of a pixel or two. */
+.sc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr));
+  gap:12px;align-items:start}
+.sc-grid.mode-list{grid-template-columns:1fr;gap:8px}
+.sc-grid.mode-pills{display:flex;flex-wrap:wrap;gap:8px}
+
+.sc-item{border-radius:12px;background:var(--surface);border:1px solid var(--border);
+  box-shadow:var(--shadow);overflow:hidden}
+.sc-head{display:flex;align-items:center;gap:13px;padding:12px 14px}
+.sc-item[data-has-card] .sc-head{cursor:pointer}
+.sc-photo{height:104px;width:auto;flex-shrink:0}
+.sc-meta{min-width:0}
+.sc-name{font-family:'Playfair Display',serif;font-weight:600;font-size:18px;
+  color:var(--text);line-height:1.25}
+.sc-role{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-top:3px}
+.sc-handle{margin-top:5px;font-size:11.5px}
+.sc-chev{margin-left:auto;flex-shrink:0;color:var(--muted);font-size:12px;transition:transform .2s}
+.sc-item.open .sc-chev{transform:rotate(180deg)}
+
+/* LIST: one line each, the whole team in one scan. */
+.mode-list .sc-head{padding:9px 13px;gap:11px}
+.mode-list .sc-photo{height:52px}
+.mode-list .sc-meta{display:flex;align-items:baseline;flex-wrap:wrap;gap:10px}
+.mode-list .sc-name{font-size:15px}
+.mode-list .sc-role,.mode-list .sc-handle{margin-top:0}
+
+/* PILLS: names only, densest of the three. Role rides in the title attribute. */
+.mode-pills .sc-item{border-radius:999px}
+.mode-pills .sc-head{padding:5px 14px 5px 6px;gap:9px}
+.mode-pills .sc-photo{height:32px}
+.mode-pills .sc-name{font-size:14px}
+.mode-pills .sc-role,.mode-pills .sc-handle{display:none}
+.mode-pills .sc-chev{margin-left:4px;font-size:9px}
+/* An open pill grows into a small card in place rather than claiming the row. */
+.mode-pills .sc-item.open{width:min(100%,380px);border-radius:12px}
+.mode-pills .sc-item.open .sc-head{padding:12px 14px}
+.mode-pills .sc-item.open .sc-photo{height:72px}
+.mode-pills .sc-item.open .sc-role{display:block}
+
+/* THE DETAIL — small first. The preview is enough to know you have the right
+   card; "Full view" is what gives the artwork the whole row. */
+.sc-detail{display:none;padding:12px 14px 14px;background:var(--bg);
+  border-top:1px solid var(--border)}
+.sc-item.open .sc-detail{display:block}
+.sc-detail-in{max-width:330px}
+.sc-item.full{grid-column:1 / -1}
+.mode-pills .sc-item.full{width:100%}
+.sc-item.full .sc-detail-in{max-width:860px;margin:0 auto}
+.sc-acts{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin-top:9px;font-size:12.5px}
+.sc-acts a{color:var(--muted);text-decoration:none}
+@media(hover:hover){.sc-acts a:hover{color:var(--text)}}
+
+
 </style>
 </head>
 <body>
@@ -1721,6 +1811,10 @@ function sizeTopbar(){
   document.documentElement.style.setProperty('--topbar-h', full + 'px');
   TOPBAR.classList.add('stuck');
   const condensed = TOPBAR.getBoundingClientRect().height;
+  // Sticky sub-headers (the Stylist Cards bar) park against the CONDENSED bar, not
+  // the full one: by the time a sub-header reaches its offset the page has scrolled
+  // past CONDENSE_AT, so the bar has already shrunk.
+  document.documentElement.style.setProperty('--topbar-cond-h', condensed + 'px');
   CONDENSE_AT = Math.max(8, Math.round(full - condensed));
   TOPBAR.classList.toggle('stuck', scrollY > CONDENSE_AT);
   TOPBAR.getBoundingClientRect();                          // flush before re-arming

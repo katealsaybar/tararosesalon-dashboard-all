@@ -581,17 +581,23 @@ const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Juni
 // Capped at 860px: any wider and one stylist is three screens tall. The box states
 // the A3 aspect (842.25 x 1190.25pt) so the row reserves its height before the
 // file arrives.
+//
+// Kate, 2026-08-14: it opens SMALL. A card at 860px was three screens of scroll
+// before you could even confirm it was the stylist you meant, so the preview sits
+// at the .sc-detail-in width (~330px) and "Full view" is what promotes it to the
+// whole row. Both live in CSS off .sc-item.full — nothing here measures anything.
 function stylistCardEmbed(name) {
   const src = `assets/stylist-cards/${encodeURIComponent(String(name || '').toLowerCase())}.pdf`;
   return `
-    <div data-detail style="display:none;padding:14px;background:var(--bg)">
-      <div style="max-width:860px;margin:0 auto">
+    <div class="sc-detail" data-detail>
+      <div class="sc-detail-in">
         <div class="stylistCardBox" data-card="${src}"
              style="position:relative;width:100%;aspect-ratio:842.25/1190.25;border-radius:8px;
                     overflow:hidden;box-shadow:var(--shadow);background:#2D2E37"></div>
-        <a href="${src}" target="_blank" rel="noopener noreferrer"
-           style="display:inline-block;margin-top:9px;font-size:12.5px;color:var(--muted)">
-          Open ${escapeHtml(name)}&rsquo;s card on its own &#8599;</a>
+        <div class="sc-acts">
+          <button class="sc-btn" onclick="toggleStylistCardSize(this)">Full view</button>
+          <a href="${src}" target="_blank" rel="noopener noreferrer">Open in a new tab &#8599;</a>
+        </div>
       </div>
     </div>`;
 }
@@ -617,7 +623,12 @@ async function drawStylistCard(box) {
   try {
     const lib = await loadPdfjs();
     const page = await (await lib.getDocument(url).promise).getPage(1);
-    const width = box.clientWidth || 860;
+    // Drawn at the widest the card can ever be SHOWN at, not at the box's current
+    // width: the preview opens small and "Full view" widens it to 860px, and a page
+    // rasterised at 330px then stretched to 860px is a smear. The canvas is CSS-
+    // scaled down for the preview, which costs nothing and stays crisp both ways.
+    // Bounded by the viewport so a phone doesn't allocate a desktop-sized canvas.
+    const width = Math.min(860, Math.max(300, (window.innerWidth || 860) - 80));
     const scale = width / page.getViewport({ scale: 1 }).width;
     const viewport = page.getViewport({ scale });
 
@@ -652,7 +663,13 @@ async function drawStylistCard(box) {
       viewport
     }).render();
 
+    // Kept on the element so the things that change this box's width — "Full view",
+    // switching density, a window resize — can re-fit the words over the drawing by
+    // hand. A ResizeObserver was doing this alone and is still here, but it is not
+    // to be trusted on its own: in the embedded preview browser it never fires at
+    // all, and then the selectable text sits offset from the artwork underneath.
     const fit = () => layer.style.transform = `scale(${(box.clientWidth || width) / viewport.width})`;
+    box._fitTextLayer = fit;
     fit();
     if (window.ResizeObserver) new ResizeObserver(fit).observe(box);
     await drawing;
@@ -665,19 +682,101 @@ async function drawStylistCard(box) {
 }
 
 function toggleStylistCard(headerEl) {
-  const wrap = headerEl.parentElement;
-  const detail = wrap.querySelector('[data-detail]');
-  const chev = headerEl.querySelector('[data-chev]');
-  if (!detail) return;
-  const open = detail.style.display !== 'none';
-  detail.style.display = open ? 'none' : 'block';
-  if (chev) chev.style.transform = open ? '' : 'rotate(180deg)';
-  // An open card needs the whole row: the artwork is A3 portrait and would be
-  // unreadable squeezed into one ~330px grid cell.
-  wrap.style.gridColumn = open ? '' : '1 / -1';
-  // Draw on first open only: 27 cards is 36MB, and a card nobody opens should cost
-  // nothing. What is drawn stays drawn, so closing and reopening doesn't refetch.
-  if (!open) drawStylistCard(detail.querySelector('.stylistCardBox'));
+  const item = headerEl.closest('.sc-item');
+  if (!item || !item.dataset.hasCard) return;
+  const opening = !item.classList.contains('open');
+  item.classList.toggle('open', opening);
+  headerEl.setAttribute('aria-expanded', String(opening));
+  // Closing forgets "Full view": reopening should give you the small preview again,
+  // which is the whole point of opening small.
+  if (!opening) {
+    item.classList.remove('full');
+    const btn = item.querySelector('.sc-acts .sc-btn');
+    if (btn) btn.textContent = 'Full view';
+  }
+  // Drawn on first open only: 27 cards is 36MB, and a card nobody opens should cost
+  // nothing. What is drawn stays drawn, so closing and reopening doesn't refetch —
+  // but it may have been closed at one width and reopened at another, so the words
+  // are re-fitted over the drawing either way.
+  if (opening) {
+    drawStylistCard(item.querySelector('.stylistCardBox'));
+    refitStylistTextLayers(item);
+  }
+  updateStylistBar();
+}
+
+// "Full view" — the open card takes the whole row and the artwork goes to 860px.
+// Only the CSS class changes: drawStylistCard() already rasterised the page at that
+// width, so this is a scale of an existing canvas, not a redraw.
+function toggleStylistCardSize(btn) {
+  const item = btn.closest('.sc-item');
+  if (!item) return;
+  const full = item.classList.toggle('full');
+  btn.textContent = full ? 'Smaller' : 'Full view';
+  refitStylistTextLayers(item);
+}
+
+// Re-aligns the invisible selectable words over every card drawn inside `root`.
+// Called wherever a card box changes width without being redrawn.
+function refitStylistTextLayers(root) {
+  (root || document).querySelectorAll('.stylistCardBox').forEach(box => {
+    if (typeof box._fitTextLayer === 'function') box._fitTextLayer();
+  });
+}
+addEventListener('resize', () => refitStylistTextLayers());
+
+// ── THE STICKY BAR: DENSITY + A WAY OUT ──────────────────────
+// Kate, 2026-08-14: switch density from the top right, and close everything you
+// have opened without hunting back up the page for each chevron. It is sticky so
+// both stay reachable however far down the team you are.
+const STYLIST_VIEW_MODES = ['list', 'pills', 'cards'];
+let stylistViewMode = 'cards';
+try {
+  const saved = localStorage.getItem('trsStylistView');
+  if (STYLIST_VIEW_MODES.includes(saved)) stylistViewMode = saved;
+} catch (e) { /* private mode: the default is fine */ }
+
+// Re-classes the existing grids rather than re-rendering: a re-render would drop
+// every pdf.js canvas already drawn and refetch those PDFs on the next open.
+function setStylistView(mode) {
+  if (!STYLIST_VIEW_MODES.includes(mode)) return;
+  stylistViewMode = mode;
+  try { localStorage.setItem('trsStylistView', mode); } catch (e) { /* not fatal */ }
+  const host = document.getElementById('stylistCardsContent');
+  if (!host) return;
+  host.querySelectorAll('.sc-grid').forEach(g => {
+    STYLIST_VIEW_MODES.forEach(m => g.classList.toggle('mode-' + m, m === mode));
+  });
+  host.querySelectorAll('.sc-seg button').forEach(b => {
+    const on = b.dataset.mode === mode;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+  // The three densities give an open card three different widths.
+  refitStylistTextLayers(host);
+}
+
+function collapseAllStylistCards() {
+  const host = document.getElementById('stylistCardsContent');
+  if (!host) return;
+  host.querySelectorAll('.sc-item.open').forEach(item => {
+    item.classList.remove('open', 'full');
+    const head = item.querySelector('.sc-head');
+    if (head) head.setAttribute('aria-expanded', 'false');
+    const btn = item.querySelector('.sc-acts .sc-btn');
+    if (btn) btn.textContent = 'Full view';
+  });
+  updateStylistBar();
+}
+
+// The button only exists while there is something to close, and says how much.
+function updateStylistBar() {
+  const host = document.getElementById('stylistCardsContent');
+  const btn = document.getElementById('stylistCloseAll');
+  if (!host || !btn) return;
+  const n = host.querySelectorAll('.sc-item.open').length;
+  btn.hidden = n === 0;
+  btn.textContent = `Hide ${n} open card${n === 1 ? '' : 's'}`;
 }
 
 function renderStylistCards() {
@@ -720,10 +819,11 @@ function renderStylistCards() {
               style="font-size:11.5px;color:var(--muted);text-decoration:none">@${escapeHtml(s.ig)}</a>`
         : '';
       // No border-radius or background on the image: the rounded accent block is
-      // part of the PNG, and clipping it would remove the head overhang.
+      // part of the PNG, and clipping it would remove the head overhang. Sizing
+      // lives in .sc-photo, which each density mode overrides.
       const photo = s.photo
-        ? `<img src="assets/staff/${encodeURIComponent(s.photo)}" alt="" loading="lazy"
-               onerror="this.style.display='none'" style="height:104px;width:auto;flex-shrink:0">`
+        ? `<img class="sc-photo" src="assets/staff/${encodeURIComponent(s.photo)}" alt="" loading="lazy"
+               onerror="this.style.display='none'">`
         : '';
       // STYLIST_CARDS is the roster of who has artwork: its 27 keys match the 27
       // files in assets/stylist-cards/ exactly, so it answers "is there a card?"
@@ -731,22 +831,17 @@ function renderStylistCards() {
       // Collapsed by default: 27 A3 cards at once is 36MB and a wall of scroll.
       // The grid is what makes the team scannable.
       const detail = card ? stylistCardEmbed(s.name) : '';
-      const chevron = card
-        ? `<span style="margin-left:auto;flex-shrink:0;color:var(--muted);font-size:12px;
-                        transition:transform .2s" data-chev>&#9660;</span>`
-        : '';
+      const chevron = card ? `<span class="sc-chev">&#9660;</span>` : '';
+      // Pills mode hides the role line, so the title carries it there.
       return `
-        <div style="border-radius:12px;background:var(--surface);border:1px solid var(--border);
-                    box-shadow:var(--shadow);overflow:hidden">
-          <div ${card ? 'onclick="toggleStylistCard(this)" style="cursor:pointer;' : 'style="'}
-                    display:flex;align-items:center;gap:13px;padding:12px 14px">
+        <div class="sc-item"${card ? ' data-has-card="1"' : ''}
+             title="${escapeHtml(s.name)} · ${escapeHtml(s.role || '')}">
+          <div class="sc-head"${card ? ' onclick="toggleStylistCard(this)" aria-expanded="false"' : ''}>
             ${photo}
-            <div style="min-width:0">
-              <div style="font-family:'Playfair Display',serif;font-weight:600;font-size:18px;
-                          color:var(--text);line-height:1.25">${nameHtml}</div>
-              <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
-                          color:${colour};margin-top:3px">${escapeHtml(s.role || '')}</div>
-              <div style="margin-top:5px">${handle}</div>
+            <div class="sc-meta">
+              <div class="sc-name">${nameHtml}</div>
+              <div class="sc-role" style="color:${colour}">${escapeHtml(s.role || '')}</div>
+              <div class="sc-handle">${handle}</div>
             </div>
             ${chevron}
           </div>
@@ -760,13 +855,25 @@ function renderStylistCards() {
                      background:${colour};flex-shrink:0"></span>
         ${escapeHtml(BRANCH_INFO[b]?.name || b)} · ${list.length} stylist${list.length === 1 ? '' : 's'}
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;
-                  align-items:start">${cards}</div>`;
+      <div class="sc-grid mode-${stylistViewMode}">${cards}</div>`;
   }).join('');
 
+  // The bar is the first thing in the view and sticks under the masthead, so the
+  // density switch and the way out of a pile of open cards are always to hand.
+  const seg = [['list', 'List'], ['pills', 'Pills'], ['cards', 'Cards']].map(([m, label]) =>
+    `<button type="button" data-mode="${m}" class="${m === stylistViewMode ? 'on' : ''}"
+             aria-pressed="${m === stylistViewMode}"
+             onclick="setStylistView('${m}')">${label}</button>`).join('');
+
   host.innerHTML = `
-    <div class="section-label" style="margin-top:8px">Stylist Cards</div>
-    <div style="font-size:13.5px;color:var(--muted);margin:-2px 0 4px;max-width:760px">
+    <div class="sc-bar">
+      <span class="sc-bar-t">Stylist Cards</span>
+      <span class="sc-bar-sp"></span>
+      <button type="button" class="sc-btn" id="stylistCloseAll"
+              onclick="collapseAllStylistCards()" hidden>Hide open cards</button>
+      <div class="sc-seg" role="group" aria-label="Card density">${seg}</div>
+    </div>
+    <div style="font-size:13.5px;color:var(--muted);margin:8px 0 4px;max-width:760px">
       The hair team across all four branches. Names link to Instagram.
     </div>
     ${sections}`;
