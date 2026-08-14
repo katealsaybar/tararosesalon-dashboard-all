@@ -53,6 +53,13 @@ where staff_name ~ '[A-Za-z]'
     and coalesce(ncr,0) > 0
   );
 
+-- Without this the view runs with its owner's rights and reads the table whatever
+-- that table's RLS says. branch_staff_daily's policy is anon_all USING (true), so
+-- nothing was ever exposed that anon could not already read — but if that policy
+-- is tightened later, a definer-rights view would keep returning the rows it is
+-- meant to withhold, and the leak would be through the view nobody re-checks.
+alter view public.branch_staff_daily_clean set (security_invoker = on);
+
 comment on view branch_staff_daily_clean is
   'branch_staff_daily with the sheet label rows removed. Use this for every metric. See migration branch_staff_daily_clean_view, 13 Aug 2026.';
 

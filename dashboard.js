@@ -1130,11 +1130,21 @@ async function loadAllRows(table, fromStr, toStr) {
   return pages.flatMap(p => p.data || []);
 }
 
+// Reads the view, not the table. LEDGER_NON_PERSON_NAMES below already skips the
+// sheet's label rows, but it is applied in exactly one place —
+// buildLedgerPhorestStaffMaps — while s.ncrPct is computed in four. The three
+// paths that do not go through those maps were summing 'RETAIL' and ']' rows,
+// whose retail AED sits in the ncr column, straight into new client requests.
+//
+// Filtering at the source covers every path at once, and the view's rule is
+// behavioural as well as by-name, so the next label nobody has thought of is
+// caught without editing a list here. See migration
+// create_branch_staff_daily_clean_view.sql.
 async function loadBranchStaffDailyRange(from, to) {
   const pad = n => String(n).padStart(2, '0');
   const fromStr = `${from.getFullYear()}-${pad(from.getMonth()+1)}-${pad(from.getDate())}`;
   const toStr   = `${to.getFullYear()}-${pad(to.getMonth()+1)}-${pad(to.getDate())}`;
-  return loadAllRows('branch_staff_daily', fromStr, toStr);
+  return loadAllRows('branch_staff_daily_clean', fromStr, toStr);
 }
 
 async function loadPhorestStaffDailyRange(from, to) {
@@ -1998,10 +2008,20 @@ async function renderDashboard() {
     const glanceLabelStyle = "font-family:'Playfair Display',serif;font-weight:700;font-size:18px;color:#FF9B9B";
     heroStatusEl.innerHTML = `
       <div style="display:flex;align-items:stretch;max-width:900px;margin:0 auto">
-        <div style="flex:1;text-align:left;padding-right:24px"><span style="${glanceLabelStyle}">Hair</span> — ${glance.hair}</div>
+        <div class="glance-hair" style="flex:1;text-align:left;padding-right:24px"><span style="${glanceLabelStyle}">Hair</span> — ${glance.hair}</div>
         <div style="width:1px;flex-shrink:0;background:rgba(180,140,100,0.55)"></div>
-        <div style="flex:1;text-align:left;padding-left:24px"><span style="${glanceLabelStyle}">Beauty</span> — ${glance.beauty}</div>
+        <div class="glance-beauty" style="flex:1;text-align:left;padding-left:24px"><span style="${glanceLabelStyle}">Beauty</span> — ${glance.beauty}</div>
       </div>`;
+
+    // Narrative upgrade (pulse-narrative.js). The templated prose above has
+    // already rendered and stays put unless the model copy arrives AND every
+    // figure in it checks out against the numbers we sent. Deliberately not
+    // awaited — the rest of the dashboard must not wait on a network call, and
+    // a missing or slow narrative should cost the page nothing.
+    if (typeof fetchPulseNarrative === 'function') {
+      fetchPulseNarrative(s, `${dateFrom} .. ${dateTo}`, branchLabel)
+        .then(copy => { if (copy) applyPulseNarrative(copy); });
+    }
   }
 
   // Receipt strip — 7 headline metrics, styled as a printed receipt per Kate's

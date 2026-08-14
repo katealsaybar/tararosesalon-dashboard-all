@@ -293,21 +293,13 @@ aside.sidebar{
     overflow:visible;
   }
 
+  /* The spine used to be reshaped into a full-width row here, and then every one
+     of its children was hidden with `aside.sidebar > div{display:none}`. What
+     that actually rendered was a 21px band of #20212A straight across the top of
+     the page with nothing inside it and nothing reachable in it. The panel goes
+     with its contents: same navigation on a narrow screen, which is none, minus
+     the black bar. */
   aside.sidebar{
-    width:100% !important;
-    max-width:none !important;
-    border-right:none !important;
-    border-bottom:1px solid var(--border);
-    flex-direction:row;
-    flex-wrap:wrap;
-    align-items:center;
-    gap:6px;
-    padding:10px 16px;
-    height:auto;
-    overflow-y:visible;
-  }
-
-  aside.sidebar > div{
     display:none;
   }
 
@@ -423,6 +415,16 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 [data-theme="dark"] .toggle-thumb{transform:translateX(18px)}
 
 /* hide decorative bits at small widths so header never wraps */
+/* The header runs out of room below 900 and .logo is allowed to shrink, which
+   slices the wordmark mid-letter. Same crop scaled to 0.7 so it stays whole and
+   legible; the img offsets have to scale with it or the mark drifts inside the
+   window. This sits AFTER .logo-crop rather than up in the mobile block, because
+   the base rule is declared further down the file and would otherwise win on
+   source order at equal specificity. */
+@media(max-width:900px){
+  .logo-crop{width:134px;height:41px}
+  .logo-crop img{left:-17px;top:-63px;width:169px;height:169px}
+}
 @media(max-width:700px){.dash-label,.logo-strip{display:none}}
 @media(max-width:500px){.last-updated,.logo-text .logo-sub{display:none}}
 
@@ -1169,6 +1171,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 <script src="staff-profiles.js?v=20260812e"></script>
 <script src="stylist-cards.js?v=20260812d"></script>
 <script src="dashboard.js?v=20260813c"></script>
+<script src="pulse-narrative.js?v=20260812a"></script>
 <script>
 
 // ── PASSWORD GATE ────────────────────────────────────────────
