@@ -881,24 +881,13 @@ function stylistBranchGroups() {
   }));
 }
 
-// ── SIDEBAR: THE BRANCH JUMPS UNDER STYLIST CARDS ────────────
+// ── THE BRANCH JUMPS ─────────────────────────────────────────
 // Kate, 2026-08-14: 27 cards across four branch sections is a long scroll, so the
-// sidebar carries the branches as sub-items. They move you within the view rather
-// than switching view, so they are .nav-kid, not .nav-sub — "Stylist Cards" stays
-// the active nav item while you jump about inside it.
-function renderStylistBranchNav() {
-  const nav = document.getElementById('stylistBranchNav');
-  if (!nav) return;
-  nav.innerHTML = stylistBranchGroups().map(g => `
-    <div class="nav-kid" onclick="jumpToStylistBranch('${g.branch}')"
-         title="${escapeHtml(g.label)} — ${g.list.length} stylist${g.list.length === 1 ? '' : 's'}">
-      <span class="dot" style="background:${g.colour}"></span>
-      <span>${escapeHtml(g.label)}</span>
-      <span class="n">${g.list.length}</span>
-    </div>`).join('');
-}
-addEventListener('DOMContentLoaded', renderStylistBranchNav);
-
+// sidebar carried the branches as sub-items under Stylist Cards. They live on the
+// page itself now, in its "On this page" rail — same four jumps, one level closer to
+// what they move, and they do not scroll away with the sidebar. renderStylistBranchNav()
+// and the .nav-kid markup went with them; this is the jump itself, which the rail calls.
+//
 // Lands the branch heading just below the fixed masthead AND the sticky density bar,
 // which between them own the top ~100px — scrollIntoView() alone would park it
 // underneath both. Only switches view when it has to: showView() re-renders, which
@@ -926,7 +915,6 @@ function renderStylistCards() {
     host.innerHTML = `<div class="loading">Stylist profiles didn’t load.</div>`;
     return;
   }
-  renderStylistBranchNav();
   // The same "On this page" rail the Ledgers pages carry — Kate, 2026-08-14. The
   // sidebar's branch list is one nav level up and scrolls away with the sidebar;
   // this one sits in the page's own gutter and lights the branch you are reading.
@@ -1334,6 +1322,24 @@ const PHOREST_RECONCILE_ALIASES = { 'LUCY': 'LUCIA', 'MJ': 'MARY JOY' };
 // ledger summary/label rows the sync script misreads as if they were staff rows.
 const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTANTS', 'ASISSTANTS', 'RETAIL', 'RETAIL SALES', ']']);
 
+// Assistants are one pooled ASSISTANTS row per branch in the ledger, and this
+// dashboard has never listed them as staff — they are above, with the other rows
+// that are not a person. CHONA is an assistant too (Phorest has her role as
+// Assistant), but the branch files write her by name, so she was the one assistant
+// sitting in the stylist tables: no target to measure her against, a handful of
+// clients, and a row that reads as a stylist who did nothing all month.
+//
+// Kate, 14 Aug 2026 — "lagay mo na lang under assistants para uniform sa lahat".
+// Folded in here rather than on the pages, because this is the one place the staff
+// maps are built: every Ledgers page, Branch Performance and the win cards agree
+// without four separate edits. Her figures leave the staff tables and the branch
+// summaries with her, exactly as the pooled ASSISTANTS rows already do.
+//
+// Note for whoever comes next: Dorah and Marjorie (Al Quoz) are Assistants in
+// Phorest as well and still show as stylists. Kate named Chona only, so they are
+// left alone — add them here if she wants the same for them.
+const LEDGER_ASSISTANT_NAMES = new Set(['CHONA']);
+
 function cleanPhorestName(name) {
   return String(name || '').trim().toUpperCase().replace(/\s*\(A\)\s*$/, '').trim();
 }
@@ -1378,7 +1384,8 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
     // employees) — one, "RETAIL", carries a runaway NCR count (into the thousands,
     // growing day over day) that badly skews the group totals if left in. Flagged to
     // Kate as a sync-script bug to fix at the source; excluded here defensively.
-    if (LEDGER_NON_PERSON_NAMES.has(String(r.staff_name||'').trim().toUpperCase())) return;
+    const rawUp = String(r.staff_name||'').trim().toUpperCase();
+    if (LEDGER_NON_PERSON_NAMES.has(rawUp) || LEDGER_ASSISTANT_NAMES.has(rawUp)) return;
     const isBeauty = String(r.dept || '').trim().toLowerCase() === 'beauty';
     const rev = matchRevenue(r.branch, r.date, r.staff_name) || { services_total: 0, courses_total: 0, products_total: 0 };
     const map = isBeauty ? beautyMap : hairMap;

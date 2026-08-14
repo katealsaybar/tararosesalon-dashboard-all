@@ -193,15 +193,31 @@ async function renderTeam() {
     <div class="tp-tray ${tpCompare.length ? 'up' : ''}" id="tpTray">
       <div class="tp-tray-in">
         <div class="tp-tray-hd">Comparing ${tpCompare.length} of ${TP_MAX_COMPARE}
+          <span class="tp-tray-n">${tpCompare.length === 1
+            ? 'against the bench and the target — tap + on somebody else to put them side by side'
+            : 'the leader in each row is marked'}</span>
           <button class="tp-btn" onclick="tpClearCompare()">Clear</button></div>
-        <div class="tp-tray-cols">
-          ${tpCompare.map(k => tpTrayCol(roster.find(st => tpKey(st) === k))).join('')}
-        </div>
+        ${tpTrayMatrix(tpCompare.map(k => roster.find(st => tpKey(st) === k)).filter(Boolean), roster)}
       </div>
     </div>
     ${tpCompare.length ? '<div class="tp-tray-space"></div>' : ''}
   `;
+
+  tpSizeTraySpace();
 }
+
+// The spacer that keeps the last of the floor out from under the tray is the tray's
+// measured height, not a number in the stylesheet. The matrix is ten rows for hair
+// and eight for beauty, and one person is shorter than three — the old fixed 230px
+// was set against the four-bar tray and left two stylists underneath this one.
+// Re-measured on resize as well, because the tray is capped at 52vh.
+function tpSizeTraySpace() {
+  const tray = document.getElementById('tpTray');
+  const space = document.querySelector('.tp-tray-space');
+  if (!tray || !space) return;
+  space.style.height = (tray.offsetHeight + 16) + 'px';
+}
+addEventListener('resize', tpSizeTraySpace);
 
 function tpPodiumCard(st, i) {
   const prof = (typeof staffProfile === 'function') ? staffProfile(st.name) : null;
@@ -250,18 +266,102 @@ function tpFloorRow(st, rank) {
   </div>`;
 }
 
-function tpTrayCol(st) {
-  if (!st) return '';
-  return `<div class="tp-tray-col">
-    <div class="tp-tray-who">
-      ${tpAvatar(st.name, 'sm')}
-      <div class="tp-tray-meta">
-        <div class="tp-tray-nm">${escapeHtml(st.name)}</div>
-        <div class="tp-tray-s tabular">${escapeHtml(st.branchName)} · ${tpAed(st.net)}</div>
-      </div>
-      <button class="tp-x" onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')" aria-label="Remove">×</button>
-    </div>
-    <div class="tp-tray-mtrs">${tpMeters(st)}</div>
+/* ── THE TRAY ─────────────────────────────────────────────────
+   Kate, 14 Aug 2026: the tray used to be one column per person, each carrying
+   tpMeters() — the same four bars already printed on her card. Opening it told you
+   nothing you had not just read, and with one person picked it was the card twice.
+
+   It is a matrix now. Metrics down the side, one column per person, then the bench
+   and the target. That makes it answer the question the + button implies — who is
+   ahead, on what, and by how much — and it stays worth opening on a single pick,
+   because there is always a bench column to read her against.
+
+   Rows carry their own target and formatter. `pick` reads a roster row; `bench`
+   reads the whole bench, and the ratio rows deliberately do NOT average the
+   percentages: mean-of-percentages weights a stylist with 8 clients the same as one
+   with 150. They divide the bench's totals instead, which is the same arithmetic
+   the group summary uses. `hairOnly` drops treatment for the beauty bench, exactly
+   as tpMeters() did. */
+const TP_CMP_ROWS = [
+  { label: 'Net salon take', fmt: tpAed, pick: st => st.net,
+    bench: b => b.n ? b.net / b.n : 0 },
+  { label: 'Clients', fmt: tpNum, pick: st => st.total || 0,
+    bench: b => b.n ? b.clients / b.n : 0 },
+  { label: 'New clients', fmt: tpNum, pick: st => (st.newC != null ? st.newC : st.newClients) || 0,
+    bench: b => b.n ? b.newC / b.n : 0 },
+  { label: 'Rebooked', fmt: tpNum, pick: st => st.rebooked || 0,
+    bench: b => b.n ? b.rebooked / b.n : 0 },
+  { label: 'Rebooking %', fmt: tpPct, target: () => TARGETS.rebookPct, pick: st => st.rebookPct,
+    bench: b => b.clients ? b.rebooked / b.clients * 100 : 0 },
+  { label: 'Treatment AED', fmt: tpAed, hairOnly: true, pick: st => st.treatments || 0,
+    bench: b => b.n ? b.treatments / b.n : 0 },
+  { label: 'Treatment %', fmt: tpPct, hairOnly: true, target: () => TARGETS.treatmentPct,
+    pick: st => st.treatmentPct, bench: b => b.services ? b.treatments / b.services * 100 : 0 },
+  { label: 'Retail AED', fmt: tpAed, pick: st => st.retail || 0,
+    bench: b => b.n ? b.retail / b.n : 0 },
+  { label: 'Retail %', fmt: tpPct, target: () => TARGETS.retailPct, pick: st => st.retailPct,
+    bench: b => b.net ? b.retail / b.net * 100 : 0 },
+  { label: 'Avg bill', fmt: tpNum,
+    target: dept => dept === 'beauty' ? TARGETS.beautyAvgBill : TARGETS.hairAvgBill,
+    pick: st => st.avgBill, bench: b => b.clients ? b.services / b.clients : 0 },
+];
+
+// The bench's own totals, over whoever is on screen — the current department and
+// branch selection, the same roster the podium and floor are drawn from.
+function tpBench(roster) {
+  const b = { n: roster.length, net:0, clients:0, newC:0, rebooked:0, treatments:0, retail:0, services:0 };
+  roster.forEach(st => {
+    b.net       += st.net || 0;
+    b.clients   += st.total || 0;
+    b.newC      += (st.newC != null ? st.newC : st.newClients) || 0;
+    b.rebooked  += st.rebooked || 0;
+    b.treatments+= st.treatments || 0;
+    b.retail    += st.retail || 0;
+    // Services, not net take: avg bill and treatment % are both ratios to services.
+    b.services  += (st.isBeauty ? st.beautySales : st.hairSalesNet) || 0;
+  });
+  return b;
+}
+
+function tpTrayMatrix(picked, roster) {
+  if (!picked.length) return '';
+  const bench = tpBench(roster);
+  const rows = TP_CMP_ROWS.filter(r => !(r.hairOnly && tpDept === 'beauty'));
+
+  const head = `<tr>
+    <th class="tp-cmp-k">Metric</th>
+    ${picked.map(st => `<th class="tp-cmp-who">
+      <div class="tp-cmp-hd">
+        ${tpAvatar(st.name, 'sm')}
+        <div class="tp-cmp-meta">
+          <div class="tp-cmp-nm">${escapeHtml(st.name)}</div>
+          <div class="tp-cmp-br"><span class="tp-bdot" style="background:${st.branchColor}"></span>${escapeHtml(st.branchName)}</div>
+        </div>
+        <button class="tp-x" onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')"
+          aria-label="Remove ${escapeHtml(st.name)} from comparison">×</button>
+      </div></th>`).join('')}
+    <th class="tp-cmp-agg r">Bench avg</th>
+    <th class="tp-cmp-agg r">Target</th>
+  </tr>`;
+
+  const body = rows.map(r => {
+    const target = r.target ? r.target(tpDept) : null;
+    const vals   = picked.map(st => Number(r.pick(st)) || 0);
+    // The leader is marked only when there is something to lead: one person
+    // compared against herself is not a winner. Ties are not marked either.
+    const top    = vals.length > 1 ? Math.max(...vals) : null;
+    const tied   = top != null && vals.filter(v => v === top).length > 1;
+    return `<tr>
+      <td class="tp-cmp-k">${r.label}</td>
+      ${vals.map(v => `<td class="r tabular ${target ? tpBand(v, target) : ''}${
+        (top != null && !tied && v === top) ? ' tp-cmp-best' : ''}">${r.fmt(v)}</td>`).join('')}
+      <td class="r tabular tp-cmp-agg">${r.fmt(r.bench(bench))}</td>
+      <td class="r tabular tp-cmp-agg">${target ? r.fmt(target) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="tp-cmp-wrap">
+    <table class="tp-cmp tabular"><thead>${head}</thead><tbody>${body}</tbody></table>
   </div>`;
 }
 

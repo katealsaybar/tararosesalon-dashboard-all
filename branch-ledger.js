@@ -287,8 +287,42 @@ function lgTable(cols, rows, opts) {
   // banding on her sheet is there to prevent.
   const groupRow = o.groups ? `<tr class="lg-band">${o.groups.map(g =>
     `<th colspan="${g.span}" class="${g.label ? '' : 'lg-band-x'}">${g.label || ''}</th>`).join('')}</tr>` : '';
-  return `<div class="lg-wrap"><table class="lg tabular${o.compact ? ' lg-compact' : ''}">
-    <thead>${groupRow}<tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  // .lg-sx is the fixed frame the fade sits on; .lg-wrap inside it is what actually
+  // scrolls. A pseudo-element on the scroller itself would scroll away with the
+  // content, which is exactly when you need it.
+  return `<div class="lg-sx"><div class="lg-wrap"><table class="lg tabular${o.compact ? ' lg-compact' : ''}">
+    <thead>${groupRow}<tr>${head}</tr></thead><tbody>${body}</tbody></table></div></div>`;
+}
+
+// Say out loud that a table scrolls sideways.
+//
+// Kate, 14 Aug 2026: a seventeen-column table in a 1,200px box clips its Variance
+// column, and a figure cut off mid-word reads as a broken page rather than as one
+// you can scroll. Three marks, set from the scroll position:
+//
+//   sx    scrollable at all — shows the scrollbar rather than leaving it to the
+//         browser's fade-away overlay, which is invisible until you already know
+//   sx-l  scrolled off the first column, so the frozen column casts a shadow and
+//         reads as pinned instead of as an odd gap in the numbers
+//   sx-r  there is more to the right — the edge fades, and it stops fading at the end
+//
+// A ResizeObserver rather than a resize listener: a table inside a collapsed
+// section measures zero, so it has to be re-marked when the section opens.
+function lgWatchScroll(root) {
+  (root || document).querySelectorAll('.lg-sx > .lg-wrap').forEach(w => {
+    const mark = () => {
+      const max = w.scrollWidth - w.clientWidth;
+      w.classList.toggle('sx',   max > 1);
+      w.classList.toggle('sx-l', w.scrollLeft > 1);
+      w.classList.toggle('sx-r', max > 1 && w.scrollLeft < max - 1);
+    };
+    if (!w._lgSx) {
+      w._lgSx = true;
+      w.addEventListener('scroll', mark, { passive: true });
+      if (typeof ResizeObserver === 'function') new ResizeObserver(mark).observe(w);
+    }
+    mark();
+  });
 }
 
 // The collapsible shell, reusing Organisation Pulse's own section chrome so these
@@ -609,6 +643,190 @@ function lgSheetSection(series, code, ctx) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   GROWTH: THIS WINDOW AGAINST THE ONE BEFORE IT
+   Kate, 14 Aug 2026. Branch Performance could say how big a branch is and how far
+   through its target it is. It could not say whether it is growing, which is the
+   first thing anybody asks of a branch.
+
+   THE WHOLE DIFFICULTY IS THE COMPARISON WINDOW, and it is not "last month".
+
+   1. The window is capped at the last day that actually has data. The filter's
+      default runs to today, the ledger syncs a day or two behind, and those empty
+      days would be counted as trading days worth nothing.
+   2. The previous window is then exactly as many days, ending the day before this
+      one starts. 44 days against 44 days, never 44 against a calendar month.
+
+   Get either wrong and every branch reads as collapsing mid-month, which is the
+   same failure the ledger pages avoid by refusing the filter altogether. This page
+   keeps the filter — that is its job — so it has to do the arithmetic instead.
+
+   One fetch pair per window, cached against the window, because the branch chips
+   change which cards are drawn and not what was fetched.
+   ══════════════════════════════════════════════════════════════ */
+const BP_SPARK_BUCKETS = 8;
+
+async function bpGrowth() {
+  if (!dateFrom || !dateTo) return null;          // no window, no like-for-like
+  const key = `${lgYmd(dateFrom)}|${lgYmd(dateTo)}`;
+  if (window._bpGrowth && window._bpGrowth.key === key) return window._bpGrowth;
+
+  const curB = await loadBranchStaffDailyRange(dateFrom, dateTo);
+  if (!curB.length) return null;
+
+  // The last day with a ledger row inside the window. Read off the rows in hand
+  // rather than the freshness badge: this has to be the last day of THIS window,
+  // which on a historic range is not the last day the branches synced.
+  const lastStr = curB.reduce((m, r) => {
+    const d = String(r.date || '').slice(0, 10);
+    return d > m ? d : m;
+  }, '');
+  const effTo = new Date(lastStr + 'T00:00:00');
+  if (isNaN(effTo)) return null;
+  const days = Math.round((effTo - dateFrom) / 86400000) + 1;
+  if (days < 2) return null;                      // a single day has nothing to trend
+
+  const prevTo   = new Date(dateFrom); prevTo.setDate(prevTo.getDate() - 1);
+  const prevFrom = new Date(prevTo);   prevFrom.setDate(prevFrom.getDate() - (days - 1));
+
+  const [curP, prevB, prevP] = await Promise.all([
+    loadPhorestStaffDailyRange(dateFrom, effTo),
+    loadBranchStaffDailyRange(prevFrom, prevTo),
+    loadPhorestStaffDailyRange(prevFrom, prevTo),
+  ]);
+
+  const cut = (rows, from, to, code) => {
+    const f = lgYmd(from), t = lgYmd(to);
+    return rows.filter(r => {
+      const d = String(r.date || '').slice(0, 10);
+      if (d < f || d > t) return false;
+      return !code || r.branch === code;
+    });
+  };
+  const agg = (b, p, from, to, code) => {
+    const bb = cut(b, from, to, code);
+    if (!bb.length) return null;
+    const r = aggDailyData([], bb, cut(p, from, to, code));
+    return r ? r.summary : null;
+  };
+
+  // The sparkline's buckets: equal slices of the window, so the line is the shape
+  // of this period rather than of the calendar. Eight is enough to see a direction
+  // and few enough that a fortnight still has something in each one.
+  const buckets = [];
+  const per = days / BP_SPARK_BUCKETS;
+  for (let i = 0; i < BP_SPARK_BUCKETS; i++) {
+    const f = new Date(dateFrom); f.setDate(f.getDate() + Math.floor(i * per));
+    const t = new Date(dateFrom); t.setDate(t.getDate() + Math.ceil((i + 1) * per) - 1);
+    if (t > effTo) t.setTime(effTo.getTime());
+    buckets.push({ from: f, to: t });
+  }
+
+  const forCode = code => ({
+    cur:  agg(curB,  curP,  dateFrom, effTo,   code),
+    prev: agg(prevB, prevP, prevFrom, prevTo,  code),
+    spark: buckets.map(x => {
+      const s = agg(curB, curP, x.from, x.to, code);
+      return s ? (s.netTake || 0) : 0;
+    }),
+  });
+
+  const out = {
+    key, days,
+    windows: {
+      cur:  { from: dateFrom, to: effTo },
+      prev: { from: prevFrom, to: prevTo },
+      // The filter asked for more than the data covers. Said out loud on the page:
+      // it is the difference between "we dipped" and "it has not synced yet".
+      trimmed: lgYmd(effTo) !== lgYmd(dateTo) ? lgYmd(dateTo) : null,
+    },
+    group: forCode(null),
+  };
+  ACTIVE_BRANCHES.forEach(code => { out[code] = forCode(code); });
+  window._bpGrowth = out;
+  return out;
+}
+
+// Growth as the page states it: a percentage when there is a base to divide by, and
+// "no base" when the previous window is empty. A branch that took nothing last
+// period and something this period has not grown by infinity.
+function bpDelta(cur, prev) {
+  const c = Number(cur) || 0, p = Number(prev) || 0;
+  if (!p) return { pct: null, dir: c > 0 ? 'up' : 'flat', cur: c, prev: p };
+  const pct = (c - p) / p * 100;
+  return { pct, dir: Math.abs(pct) < 0.5 ? 'flat' : (pct > 0 ? 'up' : 'down'), cur: c, prev: p };
+}
+
+// The signed figure, in the page's own three colours. `pts` for the ratios, where a
+// percentage-point move is the honest unit — "rebooking up 12%" of 20% is 22.4%, and
+// nobody reads it that way.
+function bpChip(label, value, fmt, d, pts) {
+  const arrow = d.dir === 'up' ? '▲' : d.dir === 'down' ? '▼' : '–';
+  const cls   = d.dir === 'up' ? 'lg-up' : d.dir === 'down' ? 'lg-down' : 'lg-flat';
+  const move  = pts
+    ? (d.pct == null ? '—' : `${d.cur - d.prev > 0 ? '+' : ''}${Math.round(d.cur - d.prev)} pts`)
+    : (d.pct == null ? 'no base' : `${d.pct > 0 ? '+' : ''}${d.pct.toFixed(1)}%`);
+  return `<div class="bp-chip">
+    <span class="bp-chip-k">${label}</span>
+    <span class="bp-chip-v tabular">${fmt(value)}</span>
+    <span class="bp-chip-d ${cls} tabular">${arrow} ${move}</span>
+  </div>`;
+}
+
+// Sparkline. Flat line when every bucket is equal — a zero-height polyline would
+// vanish and read as missing rather than as steady.
+function bpSpark(values) {
+  const v = (values || []).map(x => Number(x) || 0);
+  if (v.length < 2) return '';
+  const max = Math.max(...v), min = Math.min(...v);
+  const span = max - min || 1;
+  const pts = v.map((x, i) => {
+    const px = i / (v.length - 1) * 200;
+    const py = 30 - ((x - min) / span) * 26;
+    return `${px.toFixed(1)},${py.toFixed(1)}`;
+  }).join(' ');
+  return `<svg class="bp-spark" viewBox="0 0 200 34" preserveAspectRatio="none" aria-hidden="true">
+    <polyline points="${pts}"/>
+  </svg>`;
+}
+
+// One card per branch, plus the group. Ordered by take, so the card order is also
+// the ranking and the eye does not have to hunt for the biggest branch.
+function bpGrowthCards(g, codes) {
+  const cards = codes.slice()
+    .filter(code => g[code] && g[code].cur)
+    .sort((a, b) => (g[b].cur.netTake || 0) - (g[a].cur.netTake || 0))
+    .map((code, i) => {
+      const info = BRANCH_INFO[code] || { name: code };
+      const c = g[code].cur, p = g[code].prev;
+      const take = bpDelta(c.netTake, p && p.netTake);
+      const rank = ['1st by take', '2nd by take', '3rd by take', '4th by take'][i] || '';
+      const hairOnly = !((c.beautyTotalClients || 0) || (c.beautyServicesTotal || 0));
+      return `<div class="card bp-gc" style="--b:${info.color};--bl:${info.colorLight || info.color}">
+        <div class="bp-gc-hd">
+          <span class="bp-gc-dot"></span>
+          <span class="bp-gc-nm">${escapeHtml(info.name)}</span>
+          <span class="bp-gc-rk">${rank}</span>
+        </div>
+        <div class="bp-gc-v tabular">${lgAed(c.netTake)}</div>
+        <div class="bp-gc-sub">net take · ${lgNum(c.totalClients)} clients${hairOnly ? ' · hair only' : ''}</div>
+        <div class="bp-gc-g">
+          <span class="bp-gc-pct tabular ${take.dir}">${take.pct == null ? '—'
+            : `${take.pct > 0 ? '+' : ''}${take.pct.toFixed(1)}%`}</span>
+          <span class="bp-gc-vs">${p ? `${lgAed(p.netTake)} last period` : 'nothing last period'}</span>
+        </div>
+        ${bpSpark(g[code].spark)}
+        <div class="bp-chips">
+          ${bpChip('Clients', c.totalClients, lgNum, bpDelta(c.totalClients, p && p.totalClients))}
+          ${bpChip('Hair avg bill', c.hairAvgBill, lgAed, bpDelta(c.hairAvgBill, p && p.hairAvgBill))}
+          ${bpChip('Rebooking', lgPct(c.rebookPct), x => x,
+            bpDelta(c.rebookPct, p && p.rebookPct), true)}
+        </div>
+      </div>`;
+    }).join('');
+  return `<div class="bp-growth">${cards}</div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
    1 · BRANCH PERFORMANCE
    The old "The detail" stack, regrouped the way the ledger groups it. The tiles
    became rows because a target, a variance and a % done do not fit in a tile —
@@ -736,13 +954,37 @@ async function renderBranchPerformance() {
   // Branch Performance is the picture: who is where, against what, and which way
   // the month is moving. The figures stay, one section down, for when a number
   // has to be read rather than compared.
+  // Growth first: "is this branch moving" comes before "how big is it". Null when
+  // the filter has no window, or when the window is one day — see bpGrowth().
+  const g = await bpGrowth();
+  const growthHtml = g
+    ? `<div class="bp-winbar">
+         <span><b>${escapeHtml(shortD(g.windows.cur.from))} – ${escapeHtml(shortD(g.windows.cur.to))}</b>
+           against <b>${escapeHtml(shortD(g.windows.prev.from))} – ${escapeHtml(shortD(g.windows.prev.to))}</b>
+           · ${g.days} days each · like-for-like</span>
+         ${g.windows.trimmed ? `<span class="bp-trim">Your filter runs to ${escapeHtml(shortD(dateTo))};
+           the ledger has synced to ${escapeHtml(shortD(g.windows.cur.to))}, so the window stops there
+           rather than counting unsynced days as days that took nothing.</span>` : ''}
+       </div>
+       ${bpGrowthCards(g, codes)}`
+    : lgEmpty('Growth needs a date window to compare against the one before it. Pick a period above.');
+
   host.innerHTML =
     lgHeader('Branch Performance',
-      `The shape of the period: where the money came from, how far through the target each branch is, and which benchmarks are carrying it.`,
+      `The shape of the period: which branch is growing, where the money came from, how far through the target each one is, and which benchmarks are carrying it.`,
       ctx) +
-    lgRail([['bpMix','Revenue mix'], ['bpPace','Against target'],
-            ['bpBench','Benchmarks'], ['bpClients','Clients'], ['bpStaff','Staff']]) +
+    lgShell([['bpGrowth','Growth']]
+      .concat(g ? [['bpRead','The read']] : [])
+      .concat([['bpMix','Revenue mix'], ['bpPace','Against target'],
+               ['bpBench','Benchmarks'], ['bpClients','Clients'], ['bpStaff','Staff']]),
     warnHtml +
+    lgSection('bpGrowth', 'var(--good)', 'Growth',
+      g ? escapeHtml(`${g.days} days vs the ${g.days} before`) : 'needs a window', growthHtml) +
+    // The read. Filled by bnRender() after this HTML is in the DOM — it paints the
+    // rules copy synchronously and then upgrades it if the Edge Function answers.
+    (g ? lgSection('bpRead', 'var(--beauty)', 'The read',
+      'what each branch is good and bad at, and one action',
+      '<div id="bpReadHost"><div class="loading">Reading the figures…</div></div>') : '') +
     lgSection('bpMix', '#FFD4D9', 'Revenue mix', escapeHtml(lgBranchLabel()),
       `<div class="bp-chart"><canvas id="bpMixChart"></canvas></div>
        <div class="foot">Stacked, so the height is the branch's net take and the bands are where it came from. Hover a band for the figure.</div>` +
@@ -765,12 +1007,18 @@ async function renderBranchPerformance() {
     `<div class="fine">
       <p><b>Where these come from</b>. Client counts, the department split and the treatment figure come from the branch ledger (<code>branch_staff_daily</code>); revenue comes from Phorest (<code>phorest_staff_daily</code>), matched to the ledger's staff and day. Rows tagged <span class="lg-tag">LEDGER</span> are hand-tallied and have no Phorest equivalent.</p>
       <p><b>Where the targets come from</b>. <code>ledger-targets.js</code>, read out of ${escapeHtml(LEDGER_TARGETS ? LEDGER_TARGETS.source : 'the target sheet')} and updated by hand each month. Revenue targets are taken from that sheet's MTD pacing panel rather than its group roll-up: the two disagree, and only the panel's figures sum to their own branches. If a number here does not match Emma's sheet, that file is stale.</p>
-    </div>`;
+      <p><b>How growth is measured</b>. This window against the one immediately before it, at the same number of days, ending the day before this one starts — never against a calendar month, which would read a fortnight as a collapse. The window is capped at the last day the ledger has actually synced, so unsynced days are not counted as days that took nothing. Percentages are money and counts; rebooking moves in <b>points</b>, because a rise from 20% to 32% is 12 points and not 60%.</p>
+    </div>`);
 
-  ['bpMix','bpPace','bpBench','bpClients','bpStaff'].forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
+  ['bpGrowth','bpRead','bpMix','bpPace','bpBench','bpClients','bpStaff']
+    .forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
   restoreSections();
   bpDrawCharts(codes, ctx);
+  // Not awaited: the rules copy paints on the first tick and the model's copy, if it
+  // arrives at all, replaces it in place. Nothing below this needs either.
+  if (g && typeof bnRender === 'function') bnRender('bpReadHost', g, codes);
   if (typeof sizeTopbar === 'function') sizeTopbar();
+  lgWatchScroll();
   if (typeof spy === 'function') spy();
 }
 
@@ -1046,10 +1294,24 @@ function lgStaffTables(codes, ctx) {
   return blocks || lgEmpty('No staff figures for this window.');
 }
 
+// First name and surname, set the way the stylist cards set them — the first name
+// in caps carrying the weight, the surname after it in a lighter face. Kate, 14 Aug
+// 2026: the ledger writes first names only, and half of them in caps and half in
+// title case ("KATE" beside "Lizanie"), so this normalises the case as well.
+//
+// The surname comes from staff-profiles.js, which covers the beauty bench and the
+// leavers as well as the card roster. No surname on record = first name alone.
+function lgPersonName(name) {
+  if (!name) return '—';
+  const first = escapeHtml(String(name).trim().toUpperCase());
+  const last  = (typeof staffSurname === 'function') ? staffSurname(name) : null;
+  return last ? `${first} <span class="lg-last">${escapeHtml(last)}</span>` : first;
+}
+
 // A stylist's name, with her services target against it when one exists. The
 // target is monthly, so it is only shown when the window makes it meaningful.
 function lgStaffName(code, dept, st, ctx) {
-  const name = escapeHtml(st.name || '—');
+  const name = lgPersonName(st.name);
   if (!ctx.applies || typeof ledgerStaffTarget !== 'function') return name;
   const t = ledgerStaffTarget(code, dept, st.name);
   if (!t || !t.services) return name;
@@ -1193,6 +1455,7 @@ async function renderLedgerTargets() {
   ['ltPivot','ltPace'].forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
   restoreSections();
   if (typeof sizeTopbar === 'function') sizeTopbar();
+  lgWatchScroll();
   if (typeof spy === 'function') spy();
 }
 
@@ -1242,6 +1505,7 @@ async function renderLedgerActuals() {
     .forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
   restoreSections();
   if (typeof sizeTopbar === 'function') sizeTopbar();
+  lgWatchScroll();
   if (typeof spy === 'function') spy();
 }
 
@@ -1357,7 +1621,7 @@ async function renderLedgerStylist() {
           const split = maps.map(m => (m[key] == null ? '—' : lgAed(m[key])));
 
           rows.push([
-            escapeHtml(st.name || '—'), dept === 'HAIR' ? 'Hair' : 'Beauty',
+            lgPersonName(st.name), dept === 'HAIR' ? 'Hair' : 'Beauty',
             svcT ? lgAed(svcT) : noTgt].concat(split).concat([lgAed(svcA),
             svcT ? lgDelta(svcA - svcT, lgAed) : '—',
             lgNum(st.total), lgNum(st.newClients != null ? st.newClients : st.newClientReq),
@@ -1400,6 +1664,7 @@ async function renderLedgerStylist() {
     </div>`);
 
   if (typeof sizeTopbar === 'function') sizeTopbar();
+  lgWatchScroll();
   if (typeof spy === 'function') spy();
 }
 

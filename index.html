@@ -575,6 +575,32 @@ body.nav-open .topbar{left:var(--nav-shift)}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s;font-size:14px;line-height:1.6;-webkit-text-size-adjust:100%}
 html{scroll-behavior:smooth}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* ── SNAP BETWEEN THE COVER AND THE DOCUMENT ──────────────────
+   Kate, 2026-08-14. The Pulse is a cover you open, and scrolling back up used to
+   leave you parked between the two — headline sliced off at the masthead, the
+   target strip half gone. There are only two places worth resting on this page,
+   so those two are snap points.
+
+   PROXIMITY, never mandatory: the document below runs to several thousand pixels
+   of tables, and mandatory would fight you the whole way down it. Proximity only
+   takes over when you are already close to one of the two edges, which is exactly
+   the in-between state that looked broken.
+
+   Only on the KPI view. Every other page is a plain document with nothing to
+   snap to, and .kpi-view is already toggled by showView().
+
+   CSS scroll-snap was the obvious tool and it is the wrong one here. `mandatory`
+   fights you all the way down 3,000px of tables; `proximity` leaves it to the
+   browser's own heuristics, which on a wheel scroll mostly decline to fire — so
+   it read as doing nothing at all. settleCover() below does it in JS instead:
+   it waits for the scroll to actually stop, and only acts if you came to rest in
+   the dead band between the two. Predictable, and always the same distance.
+
+   The offsets live here so the JS can read them rather than hard-code a number
+   the masthead might outgrow. */
+body.kpi-view .hero,
+body.kpi-view .shell{scroll-margin-top:calc(var(--topbar-cond-h,104px) + 8px)}
 .tabular{font-variant-numeric:tabular-nums;font-feature-settings:'tnum'}
 .good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
 
@@ -719,14 +745,22 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .r-val{font-weight:700;white-space:nowrap}
 .r-foot{text-align:center;font-size:10px;color:#6f6f6f;margin-top:8px;letter-spacing:.08em}
 @media(min-width:900px){
-  /* The cover holds the first screen on its own. --topbar-h is measured rather
-     than guessed, so the hero ends where the fold does and nothing below can
-     show through before it is asked for. The way in sits at the foot of the
-     column, which is also what absorbs the room the receipt left empty. */
+  /* The cover holds the first screen on its own, and it has to still hold it
+     once you have scrolled — which is where this was wrong. It measured against
+     --topbar-h, the FULL masthead, and then took another 56px off. But the
+     moment you scroll a pixel the masthead condenses to --topbar-cond-h, so the
+     space the cover has to fill grows by the difference while the cover itself
+     stays the smaller size. On a 900px screen that left ~230px of the document
+     showing under the cover, and no amount of snapping could hide it.
+
+     The cover's resting place is the top of the page — scroll 0, masthead at
+     full height — so that is what it is measured against. The extra 56px is
+     gone: it was the whole reason a strip of the document showed under the
+     cover. Kate, 2026-08-14. */
   .hero{display:grid;grid-template-columns:1fr 240px;gap:44px;align-items:stretch;
     padding:34px 0 var(--s4);
-    min-height:calc(100vh - var(--topbar-h,172px) - 56px);
-    min-height:calc(100svh - var(--topbar-h,172px) - 56px)}
+    min-height:calc(100vh - var(--topbar-h,172px));
+    min-height:calc(100svh - var(--topbar-h,172px))}
   .hero>div:first-child{display:flex;flex-direction:column}
   .hero-cta{margin-top:auto;align-self:flex-start;padding-top:var(--s3)}
   .receipt{margin-top:6px;max-width:240px;align-self:start}
@@ -1416,10 +1450,32 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   background:var(--warn-bg);border-left:3px solid var(--warn);color:var(--text)}
 .lg-warn strong{color:var(--warn)}
 
-/* Tables scroll inside their own box. The Daily Target Sheet is 17 columns wide
-   and must never make the page itself scroll sideways. */
+/* Tables scroll inside their own box. The Daily Target Sheet is 17 columns wide,
+   Daily is 31, and neither may make the page itself scroll sideways.
+
+   .lg-sx is the still frame; .lg-wrap inside it is the scroller. lgWatchScroll()
+   marks the scroller .sx / .sx-l / .sx-r, and everything below is those three
+   marks: a clipped figure has to announce itself as scrollable, or it reads as a
+   page that lost its last column. */
+.lg-sx{position:relative}
 .lg-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;
   border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface)}
+/* A scrollbar you can see. The overlay one fades out after a second, which is no
+   use as the only sign that half the month is off to the right. */
+.lg-wrap.sx{scrollbar-width:thin;scrollbar-color:var(--muted2) transparent;padding-bottom:2px}
+.lg-wrap.sx::-webkit-scrollbar{height:10px}
+.lg-wrap.sx::-webkit-scrollbar-track{background:var(--surface2);
+  border-radius:0 0 var(--radius-card) var(--radius-card)}
+.lg-wrap.sx::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:999px;
+  border:3px solid var(--surface2)}
+@media(hover:hover){.lg-wrap.sx::-webkit-scrollbar-thumb:hover{background:var(--text)}}
+/* More to come on the right: the edge fades under the next column so the cut is
+   obviously a fold and not the end of the table. Goes when you reach the end. */
+.lg-sx::after{content:'';position:absolute;top:1px;bottom:1px;right:1px;width:38px;
+  border-radius:0 var(--radius-card) var(--radius-card) 0;pointer-events:none;opacity:0;
+  transition:opacity 180ms var(--card-ease);
+  background:linear-gradient(to right,transparent,var(--surface) 72%)}
+.lg-sx:has(.lg-wrap.sx-r)::after{opacity:1}
 table.lg{width:100%;border-collapse:collapse;font-size:12.5px}
 table.lg.lg-compact{font-size:11.5px}
 table.lg th{position:sticky;top:0;z-index:1;background:var(--surface2);
@@ -1434,6 +1490,15 @@ table.lg td:first-child,table.lg th:first-child{position:sticky;left:0;backgroun
   font-weight:500}
 table.lg th:first-child{background:var(--surface2)}
 @media(hover:hover){table.lg tbody tr:hover td:first-child{background:var(--surface2)}}
+/* Once you have scrolled off it, the frozen column says so: a hard edge and a
+   shadow the figures pass under. Only then — unscrolled, a shadow in the middle of
+   a table is just a smudge. */
+.lg-wrap.sx-l table.lg td:first-child,
+.lg-wrap.sx-l table.lg th:first-child{
+  box-shadow:9px 0 12px -9px rgba(0,0,0,.45);border-right:1px solid var(--border)}
+[data-theme="dark"] .lg-wrap.sx-l table.lg td:first-child,
+[data-theme="dark"] .lg-wrap.sx-l table.lg th:first-child{
+  box-shadow:9px 0 12px -9px rgba(0,0,0,.85)}
 /* A group heading inside the table body — Revenue / Clients / Benchmarks, or
    one branch's department. */
 tr.lg-grp td{background:var(--bg);font-size:9.5px;font-weight:700;letter-spacing:.14em;
@@ -1486,6 +1551,85 @@ tr.lg-tot td:first-child{background:var(--surface2)}
   .lg-side .side-nav a.on{border-left-color:var(--text)}
 }
 
+/* ── GROWTH CARDS ─────────────────────────────────────────────
+   One per branch, ordered by take. The branch's colour arrives as two inline
+   custom properties — the pastel for dark, the darkened one for light — because a
+   pastel dot is unreadable on white and the darkened one disappears on charcoal.
+   CSS picks; the JS does not need to know the theme. */
+.bp-winbar{display:flex;flex-direction:column;gap:6px;padding:10px 13px;margin-bottom:14px;
+  border-radius:8px;background:var(--surface2);font-size:11.5px;color:var(--muted);line-height:1.5}
+.bp-winbar b{color:var(--text);font-weight:600}
+.bp-trim{color:var(--warn)}
+.bp-growth{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr))}
+.bp-gc{--dot:var(--bl);padding:15px 16px 14px;position:relative;overflow:hidden}
+[data-theme="dark"] .bp-gc{--dot:var(--b)}
+.bp-gc::before{content:'';position:absolute;inset:0 auto 0 0;width:3px;background:var(--dot)}
+.bp-gc-hd{display:flex;align-items:center;gap:7px;margin-bottom:11px}
+.bp-gc-dot{width:8px;height:8px;border-radius:50%;background:var(--dot);flex-shrink:0}
+.bp-gc-nm{font-size:12.5px;font-weight:600}
+.bp-gc-rk{margin-left:auto;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted2);white-space:nowrap}
+.bp-gc-v{font-family:'Playfair Display',serif;font-size:24px;letter-spacing:-.01em;line-height:1.1}
+.bp-gc-sub{font-size:11px;color:var(--muted2);margin-top:2px}
+.bp-gc-g{display:flex;align-items:baseline;gap:8px;margin:11px 0 0;flex-wrap:wrap}
+.bp-gc-pct{font-size:21px;font-weight:600;letter-spacing:-.02em}
+.bp-gc-pct.up{color:var(--good)}
+.bp-gc-pct.down{color:var(--bad)}
+.bp-gc-pct.flat{color:var(--muted2)}
+.bp-gc-vs{font-size:10.5px;color:var(--muted2)}
+/* Stroked in the branch's colour, and it must never be the only carrier of the
+   direction — the percentage above it says which way, in words and in colour. */
+.bp-spark{display:block;width:100%;height:34px;margin:9px 0 11px;overflow:visible}
+.bp-spark polyline{fill:none;stroke:var(--dot);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.bp-chips{display:grid;gap:7px;border-top:1px solid var(--border2);padding-top:11px}
+.bp-chip{display:flex;align-items:baseline;gap:8px;font-size:11.5px}
+.bp-chip-k{color:var(--muted2);flex:1;min-width:0}
+.bp-chip-v{font-weight:600}
+.bp-chip-d{font-size:10.5px;font-weight:600;white-space:nowrap}
+
+/* ── THE READ: WORKING · WATCH · DO THIS ──────────────────────
+   Three columns per branch, side by side on a wide screen and stacked below 860px —
+   the point is reading them against each other, and a column of 12px prose narrower
+   than about 260px stops being prose. Same two-custom-property colour trick as the
+   growth cards. */
+.bn-grp{padding:13px 15px;margin-bottom:14px;border-radius:8px;background:var(--surface2);
+  border-left:3px solid var(--good)}
+.bn-grp-k{font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2)}
+.bn-grp-h{font-family:'Playfair Display',serif;font-style:italic;font-size:16px;margin:5px 0 5px}
+.bn-grp-b{font-size:12.5px;color:var(--muted);line-height:1.6;max-width:88ch}
+.bn-wrap{display:grid;gap:14px}
+.bn-p{--dot:var(--bl);padding:0;overflow:hidden}
+[data-theme="dark"] .bn-p{--dot:var(--b)}
+.bn-hd{display:flex;align-items:center;gap:9px;padding:12px 15px;border-bottom:1px solid var(--border);
+  background:var(--surface2)}
+.bn-dot{width:8px;height:8px;border-radius:50%;background:var(--dot);flex-shrink:0}
+.bn-nm{font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:15.5px}
+.bn-body{display:grid;grid-template-columns:1fr}
+@media(min-width:860px){.bn-body{grid-template-columns:1fr 1fr 1fr}}
+.bn-col{padding:14px 15px 15px;border-top:1px solid var(--border2)}
+@media(min-width:860px){
+  .bn-col{border-top:0;border-left:1px solid var(--border2)}
+  .bn-col:first-child{border-left:0}
+}
+.bn-k{display:flex;align-items:center;gap:7px;font-size:9px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;margin-bottom:8px}
+.bn-k .bar{width:15px;height:2px;border-radius:2px;background:currentColor}
+.bn-col.good .bn-k{color:var(--good)}
+.bn-col.watch .bn-k{color:var(--warn)}
+.bn-col.act .bn-k{color:var(--hair)}
+.bn-h{font-size:12.5px;font-weight:600;margin-bottom:5px}
+.bn-col p{font-size:12.5px;color:var(--muted);line-height:1.6}
+.bn-act{background:var(--surface2);border-radius:8px;padding:11px 12px;font-size:12.5px;line-height:1.55;
+  color:var(--text)}
+.bn-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:10.5px;color:var(--muted2)}
+.bn-check{margin-top:9px;font-size:11.5px}
+/* Who wrote it. A rules-written read and a model-written one must never be
+   indistinguishable — that is the difference between a figure you can trace and one
+   you have to trust. */
+.bn-by{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 15px;
+  border-top:1px solid var(--border2);background:var(--surface2);font-size:10.5px;color:var(--muted2)}
+.bn-who{font-weight:600;color:var(--muted)}
+
 /* ── BRANCH PERFORMANCE CHARTS ────────────────────────────────
    Chart.js needs a parent with a real height: maintainAspectRatio is off so the
    canvas fills its box, and a box with no height collapses the chart to nothing.
@@ -1519,6 +1663,9 @@ table.lg thead tr.lg-band + tr th{top:26px}
 .lg-tag{font-size:8px;font-weight:700;letter-spacing:.06em;color:var(--muted);
   border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle;margin-left:4px}
 .lg-inline{font-size:9.5px;color:var(--muted2);letter-spacing:.02em;margin-left:5px;white-space:nowrap}
+/* Surname after the first name in the Stylist column, the same treatment as
+   .sc-last on the cards: lighter, italic, sized in em so it follows the cell. */
+.lg-last{font-size:0.88em;font-weight:400;font-style:italic;letter-spacing:.01em;color:var(--muted)}
 
 /* % done: a bar behind the number, so the laggards are findable without reading
    every row. Fill is capped at 100% while the number keeps counting past it. */
@@ -1665,13 +1812,48 @@ table.lg thead tr.lg-band + tr th{top:26px}
 .tp-tray-hd{display:flex;align-items:center;gap:10px;margin-bottom:10px;
   font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2)}
 .tp-tray-hd .tp-btn{margin-left:auto}
-.tp-tray-cols{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr))}
-.tp-tray-col{border:1px solid var(--border);border-radius:8px;padding:11px 12px}
-.tp-tray-who{display:flex;align-items:center;gap:9px;margin-bottom:10px}
-.tp-tray-meta{min-width:0}
-.tp-tray-nm{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tp-tray-s{font-size:11px;color:var(--muted2)}
-.tp-tray-mtrs{display:grid;gap:10px}
+/* The one sentence that says what the tray is for. Not uppercase like the heading
+   beside it — it is a line to read, not a label. */
+.tp-tray-n{font-weight:400;font-size:11px;letter-spacing:0;text-transform:none;color:var(--muted2)}
+@media(max-width:900px){.tp-tray-n{display:none}}
+
+/* THE COMPARISON MATRIX. Metrics down the side, the people across, then the bench
+   and the target. It replaced one column of bars per person, which repeated the
+   card you had just tapped — see the note in team-performance.js. */
+.tp-cmp-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.tp-cmp{width:100%;border-collapse:collapse;font-size:12px}
+table.tp-cmp th,table.tp-cmp td{padding:6px 12px;white-space:nowrap;
+  border-bottom:1px solid var(--border2)}
+table.tp-cmp tbody tr:last-child td{border-bottom:0}
+table.tp-cmp td.r,table.tp-cmp th.r{text-align:right}
+@media(hover:hover){table.tp-cmp tbody tr:hover td{background:var(--surface2)}}
+/* The metric name holds its column while the people scroll under it — the same
+   frozen first column the ledger tables use. */
+.tp-cmp-k{position:sticky;left:0;background:var(--surface);text-align:left;
+  font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+table.tp-cmp thead .tp-cmp-k{vertical-align:bottom;padding-bottom:9px}
+@media(hover:hover){table.tp-cmp tbody tr:hover .tp-cmp-k{background:var(--surface2)}}
+.tp-cmp-who{text-align:right;padding-bottom:9px !important}
+.tp-cmp-hd{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.tp-cmp-meta{min-width:0;text-align:left}
+.tp-cmp-nm{font-weight:600;font-size:12.5px;letter-spacing:0;text-transform:none;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp-cmp-br{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:400;
+  letter-spacing:0;text-transform:none;color:var(--muted2)}
+/* Bench and Target are the yardsticks, not competitors: quieter than the people,
+   and never marked as a leader. */
+.tp-cmp-agg{color:var(--muted);font-size:11.5px}
+table.tp-cmp thead .tp-cmp-agg{vertical-align:bottom;padding-bottom:9px;
+  font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}
+/* Ahead on this row. A dot rather than a colour, because the colour on these cells
+   already means "against target" and two meanings in one cell is neither. */
+.tp-cmp-best{font-weight:700}
+.tp-cmp-best::after{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:var(--good);margin-left:6px;vertical-align:middle}
+/* Scored against target, same three bands as the bars. */
+table.tp-cmp td.good{color:var(--good)}
+table.tp-cmp td.warn{color:var(--warn)}
+table.tp-cmp td.bad{color:var(--bad)}
 .tp-x{appearance:none;border:0;background:transparent;color:var(--muted2);cursor:pointer;
   font-size:17px;line-height:1;margin-left:auto;padding:0 2px}
 @media(hover:hover){.tp-x:hover{color:var(--text)}}
@@ -1783,11 +1965,15 @@ table.lg thead tr.lg-band + tr th{top:26px}
     <div class="nav-sub lvl2" onclick="showView('branchperf', this)">Branch Performance</div>
     <div class="nav-sub" onclick="showView('team', this)">Team Performance</div>
     <div class="nav-sub" onclick="showView('stylists', this)">Stylist Cards</div>
-    <!-- The four branches, written by renderStylistBranchNav() in dashboard.js.
-         Empty in the source on purpose: hard-coding them here would be a second
-         list to keep in step with STAFF_PROFILES. -->
-    <div class="nav-kids" id="stylistBranchNav"></div>
-    <a href="stylist/stylist.html" target="_blank" class="nav-sub" style="text-decoration:none">Stylist View ↗</a>
+    <!-- The four branch jumps used to sit here. Kate, 2026-08-14: Stylist Cards
+         carries its own "On this page" rail now, so the sidebar copy was the same
+         four links one level further from the page — and it scrolled away with the
+         sidebar, which a jump list should not. jumpToStylistBranch() stayed; the
+         rail calls it.
+
+         "Stylist View ↗" sat here too — a new tab onto stylist/stylist.html. Kate,
+         2026-08-14: taken out of the nav. The page itself is untouched and still
+         opens by URL; only the link is gone. -->
   </div>
 
   <!-- Kate, 2026-08-14: the ledgers are their own section, not a sub-branch of
@@ -2066,13 +2252,15 @@ table.lg thead tr.lg-band + tr th{top:26px}
 <script src="upload/name-aliases.js?v=20260812b"></script>
 <!-- After name-aliases.js: ledgerStaffTarget() canonicalises names through it. -->
 <script src="ledger-targets.js?v=20260814a"></script>
-<script src="staff-profiles.js?v=20260814b"></script>
+<script src="staff-profiles.js?v=20260814c"></script>
 <script src="stylist-cards.js?v=20260814b"></script>
-<script src="dashboard.js?v=20260814h"></script>
+<script src="dashboard.js?v=20260814j"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20260814e"></script>
-<script src="team-performance.js?v=20260814b"></script>
+<script src="branch-ledger.js?v=20260814h"></script>
+<script src="team-performance.js?v=20260814d"></script>
 <script src="pulse-narrative.js?v=20260814a"></script>
+<!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
+<script src="branch-narrative.js?v=20260814c"></script>
 <script>
 
 // ── PASSWORD GATE ────────────────────────────────────────────
@@ -2432,6 +2620,73 @@ function spy(){
   NAV.forEach((a,i) => a.classList.toggle('on', i === live));
 }
 addEventListener('scroll', spy, {passive:true});
+
+/* ── SETTLE ONTO THE COVER OR THE DOCUMENT ────────────────────
+   Kate, 2026-08-14. The Pulse has two places worth resting: the cover, and the
+   top of the document. Scrolling back up used to leave you parked between them,
+   headline sliced off under the masthead.
+
+   Runs only after the scroll has genuinely stopped (150ms of quiet), and only if
+   you stopped INSIDE the dead band between the two anchors — never while you are
+   reading further down, and never if you are already within 24px of one of them.
+   So it cannot fight a deliberate scroll: the only state it moves you out of is
+   the one that has nothing worth looking at.
+
+   The distances come from the elements themselves, offset by scroll-margin-top,
+   so the masthead can change height without this needing a new number. */
+let settleTimer = null, settling = false;
+
+function coverAnchors() {
+  if (!document.body.classList.contains('kpi-view')) return null;
+  if (!document.body.classList.contains('revealed')) return null;   // cover only: nowhere else to go
+  const shell = document.getElementById('shell');
+  if (!shell) return null;
+  const off = parseFloat(getComputedStyle(shell).scrollMarginTop) || 0;
+  // The cover's rest is 0, not "the hero's top minus an offset". Near the top the
+  // masthead is still at FULL height — it only condenses past CONDENSE_AT — so an
+  // offset anchor parks you a few dozen pixels down with the headline sliced off
+  // under a bar that has not shrunk yet. The top of the page is the cover.
+  return {
+    cover: 0,
+    doc:   Math.max(0, Math.round(shell.getBoundingClientRect().top + scrollY - off)),
+  };
+}
+
+// Where should a rest at `y` settle to — or null for "leave it alone"? Split out
+// from the scrolling so the decision can be checked without a live scroll.
+function coverSettleTarget(y) {
+  // Below 900px the hero is not sized to the fold — it is just the top of a
+  // scrolling page, so there is no cover to settle onto and forcing one would
+  // only take the scroll away from you.
+  if (!matchMedia('(min-width:900px)').matches) return null;
+  const a = coverAnchors();
+  if (!a || a.doc - a.cover < 120) return null;   // band too small to be worth it
+  const EDGE = 24;                                // already close enough
+  if (y <= a.cover + EDGE || y >= a.doc - EDGE) return null;
+  // Nearer edge wins, so the gesture you were making is the one that completes.
+  return (y - a.cover) < (a.doc - y) ? a.cover : a.doc;
+}
+
+function settleCover() {
+  if (settling) return;
+  if (matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  const target = coverSettleTarget(scrollY);
+  if (target == null) return;
+  settling = true;
+  scrollTo({ top: target, behavior: 'smooth' });
+  // Long enough for the smooth scroll to finish; the flag is only here to stop
+  // this handler re-entering on the scroll events its own animation produces.
+  setTimeout(() => { settling = false; }, 700);
+}
+
+addEventListener('scroll', () => {
+  if (settling) return;
+  clearTimeout(settleTimer);
+  settleTimer = setTimeout(settleCover, 150);
+}, {passive:true});
+// A wheel or touch that starts during the settle means the user disagrees. Stop.
+['wheel','touchstart','keydown'].forEach(ev =>
+  addEventListener(ev, () => { clearTimeout(settleTimer); settling = false; }, {passive:true}));
 addEventListener('resize', spy);
 
 // Phone gets the story first. Stacked, the filter line is a block of controls
