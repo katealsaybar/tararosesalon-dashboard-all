@@ -9,57 +9,83 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=2"></script>
+<script src="upload.js?v=3"></script>
 <script src="name-aliases.js?v=3"></script>
 <script src="phorest-staff.js?v=9"></script>
 <script src="phorest-pdf.js?v=2"></script>
 <script src="utilisation-pdf.js?v=4"></script>
 <script src="sheet-sync.js?v=4"></script>
 
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- Same two faces as the main dashboard: Inter for everything, Playfair for the
+     serif titles. The portal used to load DM Sans + Cormorant Garamond, which is
+     the main reason it never felt like the same product (Kate, 2026-08-13). -->
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-[data-theme="light"]{--bg:#F9E8DF;--surface:#fff;--surface2:#fdf8f6;--border:#e8d5cc;--border2:#f0e8e4;--text:#5C5557;--muted:#9a8a87;--muted2:#a09898;--accent:#5C5557;--accent-fg:#F9E8DF;--shadow:0 2px 12px rgba(92,85,87,0.08);--btn:#5C5557;--btn-hover:#4a4344;--btn-fg:#F9E8DF;--good:#0F6E56;--good-bg:#E1F5EE;--bad:#A32D2D;--bad-bg:#FCEBEB;--warn:#BA7517;--warn-bg:#FAEEDA;--toggle-knob:#5C5557;--col-header:#f0e8e4;}
-[data-theme="dark"]{--bg:#2D2E37;--surface:#383944;--surface2:#3f4052;--border:rgba(250,248,243,0.09);--border2:rgba(250,248,243,0.05);--text:#FAF8F3;--muted:rgba(250,248,243,0.55);--muted2:rgba(250,248,243,0.38);--accent:#FFD4D9;--accent-fg:#2D2E37;--shadow:0 2px 16px rgba(0,0,0,0.28);--btn:#FFD4D9;--btn-hover:#ffc0c8;--btn-fg:#2D2E37;--good:#99F6E4;--good-bg:rgba(153,246,228,0.12);--bad:#FF9B9B;--bad-bg:rgba(255,155,155,0.12);--warn:#EEF3C7;--warn-bg:rgba(238,243,199,0.12);--toggle-knob:#FFD4D9;--col-header:#3f4052;}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);position:sticky;top:0;z-index:20}
-.logo-text .logo-name{font-family:'DM Sans',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text);line-height:1}
-.logo-text .logo-sub{font-size:9px;letter-spacing:0.26em;text-transform:uppercase;color:var(--muted);margin-top:2px}
-.logo-strip{height:2px;width:100px;margin-top:4px;background:linear-gradient(to right,#99F6E4,#EEF3C7,#C4B5FD,#FF9B9B,#FFD4D9);border-radius:2px}
-.portal-label{font-family:'Cormorant Garamond',serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-top:3px}
-.header-right{display:flex;align-items:center;gap:14px}
+/* Palette lifted wholesale from index.html so the portal and the dashboard are
+   literally the same colours. The old light theme was a peach (#F9E8DF bg,
+   #5C5557 ink) that exists nowhere else in the estate. --btn/--btn-fg and
+   --col-header are portal-only tokens and stay, now pointed at the dashboard's
+   ink and warm greys (Kate, 2026-08-13). */
+:root{--accent-mint:#99F6E4;--accent-butter:#EEF3C7;--accent-lavender:#C4B5FD;--accent-coral:#FF9B9B;}
+[data-theme="light"]{--bg:#FAF7F0;--surface:#fff;--surface2:#F4F1E9;--border:#E8E2D6;--border2:#F0ECE3;--text:#1A1A1A;--muted:#565049;--muted2:#77706A;--accent:#1A1A1A;--accent-fg:#FBF7F0;--shadow:0 1px 2px rgba(26,26,26,0.05),0 10px 28px -8px rgba(26,26,26,0.10);--btn:#1A1A1A;--btn-hover:#000;--btn-fg:#FBF7F0;--good:#0F6E56;--good-bg:#E1F5EE;--bad:#A32D2D;--bad-bg:#FCEBEB;--warn:#BA7517;--warn-bg:#FAEEDA;--toggle-knob:#1A1A1A;--col-header:#F4F1E9;}
+[data-theme="dark"]{--bg:#2D2E37;--surface:#383944;--surface2:#3f4052;--border:rgba(250,248,243,0.09);--border2:rgba(250,248,243,0.05);--text:#FAF8F3;--muted:rgba(250,248,243,0.68);--muted2:rgba(250,248,243,0.5);--accent:#FFD4D9;--accent-fg:#2D2E37;--shadow:0 1px 2px rgba(0,0,0,0.3),0 10px 28px -8px rgba(0,0,0,0.35);--btn:#FFD4D9;--btn-hover:#ffc0c8;--btn-fg:#2D2E37;--good:#99F6E4;--good-bg:rgba(153,246,228,0.12);--bad:#FF9B9B;--bad-bg:rgba(255,155,155,0.12);--warn:#EEF3C7;--warn-bg:rgba(238,243,199,0.12);--toggle-knob:#FFD4D9;--col-header:#3f4052;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
+/* HEADER — same construction as index.html: the cropped wordmark image plus one
+   pill label naming the section. It used to be typed-out text in a different
+   font with a rainbow strip under it, which read as a different product
+   (Kate, 2026-08-13). */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);position:sticky;top:0;z-index:20;min-height:82px}
+.logo{display:flex;align-items:center;gap:12px;min-width:0;flex-shrink:1;overflow:hidden}
+.logo-crop{width:192px;height:58px;overflow:hidden;flex-shrink:0;position:relative}
+.logo-crop img{position:absolute;left:-25px;top:-90px;width:241px;height:241px;max-width:none}
+.portal-label{font-family:'Playfair Display',serif;font-weight:500;font-size:13px;letter-spacing:0.03em;text-transform:none;color:#7C5CD4;display:inline-block;padding:3px 12px;border-radius:20px;background:rgba(124,92,212,0.12);white-space:nowrap}
+.header-right{display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:auto;padding-left:12px}
+@media(max-width:700px){.portal-label{display:none}}
 .toggle-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
 .toggle-lbl{font-size:11px;color:var(--muted);min-width:30px}
 .toggle-track{width:38px;height:20px;border-radius:10px;background:var(--border);position:relative;transition:background .3s;flex-shrink:0;border:1px solid var(--border)}
 .toggle-thumb{width:14px;height:14px;border-radius:50%;background:var(--toggle-knob);position:absolute;top:2px;left:2px;transition:transform .25s ease}
 [data-theme="dark"] .toggle-thumb{transform:translateX(18px)}
-.logout-btn{padding:6px 14px;border:1px solid var(--border);border-radius:18px;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);background:transparent;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;transition:border-color .2s,color .2s}
+.logout-btn{padding:6px 14px;border:1px solid var(--border);border-radius:18px;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);background:transparent;cursor:pointer;font-family:'Inter',sans-serif;font-weight:500;transition:border-color .2s,color .2s}
 .logout-btn:hover{border-color:var(--bad);color:var(--bad)}
 .page{max-width:1400px;margin:0 auto;padding:28px 20px 60px}
 
-/* TABS */
-.tab-bar{display:flex;gap:4px;margin-bottom:20px;background:var(--surface);border-radius:12px;padding:5px;border:1px solid var(--border);width:fit-content}
-.tab-btn{padding:8px 20px;border-radius:8px;border:none;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;transition:all .2s}
-.tab-btn.active{background:var(--btn);color:var(--btn-fg)}
+/* TABS — the dashboard's .tabs idiom: a single underlined rail, uppercase, the
+   active one marked by a 2px accent rule rather than a filled pill. Five filled
+   pills in a bordered box was the loudest thing on the page and, with the emoji
+   and the long parenthetical labels, it wrapped to two rows on a laptop.
+   Overflows sideways now instead of wrapping (Kate, 2026-08-13). */
+.tab-bar{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{padding:9px 18px;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:color .2s,border-color .2s;white-space:nowrap;flex-shrink:0}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--text);border-bottom-color:var(--accent)}
+/* the (Phorest) / (Yearly) qualifiers — kept, but demoted out of the uppercase rail */
+.tab-qual{text-transform:none;letter-spacing:0.02em;font-weight:400;color:var(--muted2);margin-left:5px}
+.tab-btn.active .tab-qual{color:var(--muted)}
 .tab-content{display:none}
 .tab-content.active{display:block}
 
-/* CARDS */
-.upload-card{background:var(--surface);border-radius:16px;padding:24px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:24px}
-.card-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;color:var(--text);margin-bottom:3px}
-.card-sub{font-size:11px;color:var(--muted);letter-spacing:0.05em;margin-bottom:18px}
+/* CARDS — same geometry and type scale as .card in index.html: 10px radius,
+   20px padding, Playfair 21px title, 12px sub with no letter-spacing. The portal
+   was on 16px/24px/18px/11px-tracked, which is what made the two pages feel like
+   different products even where the colours already matched (Kate, 2026-08-13). */
+.upload-card{background:var(--surface);border-radius:10px;padding:20px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:16px}
+.card-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:500;color:var(--text);margin-bottom:4px}
+.card-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
 .field{display:flex;flex-direction:column;gap:5px}
 .field-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
-input[type=text],input[type=password],select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--text);background:var(--surface2);font-family:'DM Sans',sans-serif;transition:border-color .2s;appearance:none}
+input[type=text],input[type=password],select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--text);background:var(--surface2);font-family:'Inter',sans-serif;transition:border-color .2s;appearance:none}
 input:focus,select:focus{outline:none;border-color:var(--accent)}
-.btn{width:100%;padding:11px;background:var(--btn);color:var(--btn-fg);border:none;border-radius:10px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:700;transition:background .2s,opacity .2s;white-space:nowrap}
+.btn{width:100%;padding:11px;background:var(--btn);color:var(--btn-fg);border:none;border-radius:10px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;font-weight:700;transition:background .2s,opacity .2s;white-space:nowrap}
 .btn:hover{background:var(--btn-hover)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:7px 14px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:7px 14px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
 .btn-outline:hover{border-color:var(--accent);color:var(--text)}
-.btn-danger{background:transparent;border:1px solid var(--bad);color:var(--bad);border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.btn-danger{background:transparent;border:1px solid var(--bad);color:var(--bad);border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
 .btn-danger:hover{background:var(--bad-bg)}
-.btn-dl{background:transparent;border:1px solid var(--good);color:var(--good);border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.btn-dl{background:transparent;border:1px solid var(--good);color:var(--good);border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
 .btn-dl:hover{background:var(--good-bg)}
 .xlsx-badge{display:inline-flex;align-items:center;gap:5px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px}
 
@@ -139,14 +165,14 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .bulk-week-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border2)}
 .bulk-week-label{font-size:12px;font-weight:600;color:var(--text);flex:1}
 .bulk-week-count{font-size:11px;color:var(--muted2);flex-shrink:0}
-.bulk-edit-btn{padding:5px 12px;background:transparent;border:1px solid var(--border);border-radius:18px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;white-space:nowrap}
+.bulk-edit-btn{padding:5px 12px;background:transparent;border:1px solid var(--border);border-radius:18px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;white-space:nowrap}
 .bulk-edit-btn:hover{border-color:var(--accent);color:var(--accent)}
 .bulk-inline-edit{display:none;align-items:center;gap:8px;margin-top:8px}
-.bulk-inline-edit input{flex:1;padding:7px 10px;border:1px solid var(--accent);border-radius:8px;font-size:12px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif}
+.bulk-inline-edit input{flex:1;padding:7px 10px;border:1px solid var(--accent);border-radius:8px;font-size:12px;background:var(--surface);color:var(--text);font-family:'Inter',sans-serif}
 .bulk-inline-edit input:focus{outline:none}
-.bulk-save-btn{padding:7px 14px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:opacity .2s}
+.bulk-save-btn{padding:7px 14px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:opacity .2s}
 .bulk-save-btn:hover{opacity:.8}
-.bulk-cancel-btn{padding:7px 10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.bulk-cancel-btn{padding:7px 10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;font-size:11px;cursor:pointer;font-family:'Inter',sans-serif}
 
 /* DAILY OVERVIEW */
 .daily-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
@@ -163,11 +189,11 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .bulk-bar{display:none;align-items:center;gap:8px;padding:8px 10px;background:var(--bad-bg);border:1px solid var(--bad);border-radius:8px;margin-bottom:8px;font-size:11px}
 .bulk-bar.show{display:flex}
 .bulk-bar-text{color:var(--bad);font-weight:600;flex:1}
-.bulk-delete-btn{background:var(--bad);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.bulk-delete-btn{background:var(--bad);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
 
 /* STAFF PERFORMANCE (PHOREST) */
 .branch-pills{display:flex;gap:8px;flex-wrap:wrap}
-.branch-pill{padding:9px 18px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em;cursor:pointer;transition:all .15s}
+.branch-pill{padding:9px 18px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em;cursor:pointer;transition:all .15s}
 .branch-pill:hover{border-color:var(--accent)}
 .branch-pill.active{background:var(--btn);border-color:var(--btn);color:var(--btn-fg)}
 .sp-branch-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
@@ -205,7 +231,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:4px}
 .sp-filter-field{display:flex;flex-direction:column;gap:4px}
 .sp-filter-field label{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
-.sp-filter-field input,.sp-filter-field select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif}
+.sp-filter-field input,.sp-filter-field select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:12px;font-family:'Inter',sans-serif}
 .sp-col-picker{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:10px;z-index:30;min-width:180px;max-height:320px;overflow-y:auto}
 .sp-col-picker label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);padding:5px 4px;cursor:pointer;border-radius:6px;white-space:nowrap}
 .sp-col-picker label:hover{background:var(--surface2)}
@@ -220,7 +246,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-th-filter-ic:hover{opacity:.8}
 .sp-th-filter-ic.active{opacity:1;color:var(--accent)}
 .sp-colval-panel{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:10px;z-index:40;width:220px;display:flex;flex-direction:column;gap:8px}
-.sp-colval-search{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;box-sizing:border-box}
+.sp-colval-search{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:12px;font-family:'Inter',sans-serif;box-sizing:border-box}
 .sp-colval-actions{display:flex;gap:6px}
 .sp-colval-actions button{flex:1;padding:5px;font-size:10px}
 .sp-colval-list{max-height:220px;overflow-y:auto;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);padding:4px 0}
@@ -230,34 +256,62 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-colval-empty{font-size:11px;color:var(--muted2);padding:8px 4px}
 .sp-colval-footer{display:flex}
 
-/* LOGIN */
-.login-wrap{max-width:380px;margin:80px auto;background:var(--surface);border-radius:16px;padding:32px;border:1px solid var(--border);box-shadow:var(--shadow)}
+/* LOGIN — the dashboard's torn-receipt gate, same paper, same torn edges, same
+   coral button. Stays a block (not flex) because logout() sets
+   loginSection.style.display='block' and would undo a flex layout.
+   The paper and ink are literal values, not tokens, for the same reason the
+   dashboard's gate is: the receipt is paper in both themes, so token colours
+   would put near-white text on near-white paper in dark (Kate, 2026-08-13). */
+.login-wrap{max-width:380px;margin:72px auto;background:#FFFEFA;border:none;border-radius:0;padding:40px 32px 34px;box-shadow:0 20px 50px -14px rgba(26,26,26,0.26),0 4px 12px -3px rgba(26,26,26,0.12);position:relative;text-align:center}
+.login-wrap::before,.login-wrap::after{
+  content:'';position:absolute;left:0;right:0;height:9px;
+  background:
+    linear-gradient(-45deg,transparent 6px,#FFFEFA 6px) 0 0/12px 12px repeat-x,
+    linear-gradient(45deg,transparent 6px,#FFFEFA 6px) 0 0/12px 12px repeat-x,
+    #C9BFAE;
+  filter:drop-shadow(0 1px 1.5px rgba(26,26,26,0.25));
+}
+.login-wrap::before{top:-8px}
+.login-wrap::after{bottom:-8px;transform:scaleY(-1)}
+.login-logo-crop{width:260px;height:82px;overflow:hidden;margin:0 auto}
+.login-logo-crop img{width:100%;height:100%;object-fit:cover;object-position:center}
+.login-dash-lbl{font-family:'Playfair Display',serif;font-weight:500;font-size:18px;letter-spacing:0.03em;color:#7C5CD4;display:inline-block;padding:4px 16px;border-radius:20px;background:rgba(124,92,212,0.12);margin-top:10px}
+.login-divider{height:0;border-top:1px dashed #b8b0a4;margin:20px 0 18px}
+.login-wrap .field{text-align:left;gap:7px}
+.login-wrap .field-label{font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#565049}
+.login-wrap input[type=password],.login-wrap input[type=text]{background:#F4F1E9;border:1px solid #E8E2D6;color:#1A1A1A;font-size:14px;padding:10px 40px 10px 14px;border-radius:10px}
+.login-wrap input:focus{border-color:#1A1A1A}
+.login-wrap .btn{background:#FF9B9B;color:#2A2A2A;border-radius:10px;padding:11px 0;font-size:14px;font-weight:700;letter-spacing:0.08em;text-transform:none;margin-top:16px;box-shadow:none}
+.login-wrap .btn:hover{background:#FF9B9B;opacity:0.88;transform:none;box-shadow:none}
 .err{color:var(--bad);font-size:13px;text-align:center;margin-top:8px}
+.login-wrap .err{color:#A32D2D}
 .pw-field-wrap{position:relative}
 .pw-field-wrap input{padding-right:40px}
 .pw-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:2px 4px}
 .pw-eye:hover{color:var(--text)}
+.login-wrap .pw-eye{color:#565049}
+.login-wrap .pw-eye:hover{color:#1A1A1A}
 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);opacity:0;transition:opacity .2s;pointer-events:none}
 .modal-overlay.open{opacity:1;pointer-events:all}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px 26px;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.35);transform:translateY(10px);transition:transform .2s}
 .modal-overlay.open .modal{transform:translateY(0)}
-.modal-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;color:var(--text);margin-bottom:6px}
+.modal-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:500;color:var(--text);margin-bottom:6px}
 .modal-sub{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6}
 .modal-change{background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:12px;line-height:1.7;border:1px solid var(--border2)}
 .modal-from{color:var(--muted);text-decoration:line-through}
 .modal-to{color:var(--good);font-weight:600}
 .modal-branches{font-size:11px;color:var(--muted2);margin-top:6px}
 .modal-btns{display:flex;gap:8px}
-.modal-confirm{flex:1;padding:10px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:0.08em;text-transform:uppercase;transition:opacity .2s}
+.modal-confirm{flex:1;padding:10px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:0.08em;text-transform:uppercase;transition:opacity .2s}
 .modal-confirm:hover{opacity:.8}
 .modal-confirm.danger{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
-.modal-cancel{padding:10px 16px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.modal-cancel{padding:10px 16px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif}
 .modal-cancel:hover{color:var(--text);border-color:var(--text)}
 
 /* TOAST */
-#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--good-bg);color:var(--good);border:1px solid var(--good);padding:10px 20px;border-radius:20px;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;z-index:999;transition:opacity .4s;pointer-events:none;opacity:0}
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--good-bg);color:var(--good);border:1px solid var(--good);padding:10px 20px;border-radius:20px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;z-index:999;transition:opacity .4s;pointer-events:none;opacity:0}
 </style>
 </head>
 <body>
@@ -282,12 +336,8 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
 <header>
   <div class="logo">
-    <div class="logo-text">
-      <div class="logo-name">Tara Rose Ladies</div>
-      <div class="logo-sub">Salon</div>
-      <div class="logo-strip"></div>
-      <div class="portal-label">Upload Portal</div>
-    </div>
+    <div class="logo-crop"><img src="../assets/5.png" alt="Tara Rose Salon"></div>
+    <div class="portal-label">Upload Portal</div>
   </div>
   <div class="header-right">
     <button class="logout-btn" id="logoutBtn" style="display:none" onclick="logout()">Log out</button>
@@ -301,10 +351,11 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 <div class="page">
   <!-- LOGIN -->
   <div id="loginSection" class="login-wrap">
-    <div class="card-title">Admin Access</div>
-    <div class="card-sub" style="margin-bottom:16px">Enter your password to continue</div>
+    <div class="login-logo-crop"><img src="../assets/5.png" alt="Tara Rose Salon"></div>
+    <div class="login-dash-lbl">Upload Portal</div>
+    <div class="login-divider"></div>
     <div class="field" style="margin-bottom:12px">
-      <label class="field-label">Password</label>
+      <label class="field-label">Enter your access password</label>
       <div class="pw-field-wrap">
         <input type="password" id="pwInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
         <button class="pw-eye" id="pwEye" type="button" onclick="togglePwVis()">👁️</button>
@@ -316,13 +367,16 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
   <!-- PORTAL -->
   <div id="portalSection" style="display:none;">
+    <!-- Labels trimmed to the noun and the qualifier moved into .tab-qual — the
+         tab still means exactly what it did, it just stops shouting. Same five
+         tabs, same order, same switchTab targets (Kate, 2026-08-13). -->
     <div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab(event, 'staffperf')">🧑‍💼 Staff Performance Overview (Phorest)</button>
-  <button class="tab-btn" onclick="switchTab(event, 'sheetsync')">🔄 Ledgers Sheets Sync</button>
-  <button class="tab-btn" onclick="switchTab(event, 'ops')">⚙️ Operations</button>
-  <button class="tab-btn" onclick="switchTab(event, 'products')">📦 Product Usage</button>
-  <button class="tab-btn" onclick="switchTab(event, 'service')">📊 Service Data (Yearly)</button>
-</div>
+      <button class="tab-btn active" onclick="switchTab(event, 'staffperf')">Staff Performance<span class="tab-qual">Phorest</span></button>
+      <button class="tab-btn" onclick="switchTab(event, 'sheetsync')">Ledgers Sync<span class="tab-qual">Sheets</span></button>
+      <button class="tab-btn" onclick="switchTab(event, 'ops')">Operations<span class="tab-qual">Utilisation</span></button>
+      <button class="tab-btn" onclick="switchTab(event, 'products')">Product Usage</button>
+      <button class="tab-btn" onclick="switchTab(event, 'service')">Service Data<span class="tab-qual">Yearly</span></button>
+    </div>
 
     <div class="tab-content" id="tab-ops">
 

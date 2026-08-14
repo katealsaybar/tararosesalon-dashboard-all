@@ -47,7 +47,10 @@ function switchTab(e, tab) {
     btn.classList.remove('active');
   });
 
-  e.target.classList.add('active');
+  // currentTarget, not target — the tab labels carry a <span class="tab-qual">
+  // for the "Phorest"/"Yearly" qualifier, and clicking that span used to hand
+  // the active class to the span instead of the button (Kate, 2026-08-13).
+  e.currentTarget.classList.add('active');
 
   document.querySelectorAll('.tab-content').forEach(el => {
     el.classList.remove('active');
@@ -151,12 +154,21 @@ function setupDnD(code, mode) {
     if (files.length) mode==='daily' ? dSlotFilesChosen(code,files) : slotFilesChosen(code,files);
   });
 }
+// Both slot grids belong to the old Weekly and Daily tabs, and neither container
+// is in upload.html any more — so buildFileSlotsDaily threw on every single page
+// load, from the unconditional call in the DOMContentLoaded handler above.
+// Guarded rather than deleted: these are still the only copy of the slot-building
+// logic if those tabs ever come back (Kate, 2026-08-13).
 function buildFileSlots() {
-  document.getElementById('fileSlots').innerHTML = BRANCH_KEYS.map(c => slotHTML(c,'weekly')).join('');
+  const host = document.getElementById('fileSlots');
+  if (!host) return;
+  host.innerHTML = BRANCH_KEYS.map(c => slotHTML(c,'weekly')).join('');
   BRANCH_KEYS.forEach(c => setupDnD(c,'weekly'));
 }
 function buildFileSlotsDaily() {
-  document.getElementById('fileSlotsDaily').innerHTML = BRANCH_KEYS.map(c => slotHTML(c,'daily')).join('');
+  const host = document.getElementById('fileSlotsDaily');
+  if (!host) return;
+  host.innerHTML = BRANCH_KEYS.map(c => slotHTML(c,'daily')).join('');
   BRANCH_KEYS.forEach(c => setupDnD(c,'daily'));
 }
 
