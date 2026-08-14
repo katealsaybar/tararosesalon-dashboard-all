@@ -86,6 +86,13 @@ const STYLIST_SURNAMES = {
 
 // Map first name → photo path (relative to stylist/photos/)
 // Photos are organised into branch subfolders: KCA / SAA / MC / AQ
+//
+// STYLISTS WHO HAVE LEFT STAY IN THIS MAP ON PURPOSE (Kate, 13 Aug 2026). It looks
+// like dead data and is not: this page lists whoever has sales in the range you're
+// looking at, so a leaver still appears across the months she worked, and this map
+// is what gives those rows her face instead of her initials. Deleting a name here
+// silently degrades every historical period she is in. The current team lives in
+// ../staff-profiles.js — that one is the list to prune when someone leaves.
 const STYLIST_PHOTOS = {
 
   // ── KHALIFA CITY (KCA) ──────────────────────────────
