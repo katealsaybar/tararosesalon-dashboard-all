@@ -164,15 +164,6 @@
   }
 }
 
-.sidebar {
-  width: 220px;
-  background: #111;
-  color: #fff;
-  height: 100vh;
-  padding: 20px 14px;
-  font-family: 'Inter', sans-serif;
-}
-
 .nav-group {
   margin-bottom: 20px;
 }
@@ -246,69 +237,174 @@
   }
 }
 
-/* existing mo na CSS below */
-.layout{
-  display:flex;
-  height:calc(100vh - 85px); /* match header (82px) + scroll-progress bar (3px) */
-  overflow:hidden;
-}
+/* ══════════════════════════════════════════════════════════════
+   ORGANISATION PULSE v3 SHELL
+   Ported from `add ons/organisation-pulse-v3-sample.html`, which is the
+   approved draft of this page. The app used to be a fixed 82px header + an
+   always-open spine + an inner scroll area; it is now a document that scrolls
+   in the window, under a masthead that condenses as you move, with the spine
+   moved out into the left gutter where there is free space to put it.
+   Every comment kept from the draft explains a decision that was arrived at
+   the hard way — do not re-litigate them without reading them first.
+   ══════════════════════════════════════════════════════════════ */
 
-/* thin bar under the header that fills left-to-right as the active view scrolls down */
-.scroll-progress{height:3px;background:var(--border);flex-shrink:0;overflow:hidden}
-.scroll-progress-fill{height:100%;width:0%;background:linear-gradient(to right,var(--accent-mint),var(--accent-butter),var(--accent-lavender),var(--accent-coral));transition:width .08s linear}
+.wrap{max-width:1180px;margin:0 auto;padding:0 18px 64px}
+@media(min-width:900px){.wrap{padding:0 40px 96px}}
+/* Closed, the KPI page is exactly one screen: the wrap's tail padding, and the
+   credits footer under it, would otherwise leave a strip of scroll below the
+   cover that shows nothing. Both come back the moment the document is opened. */
+body:not(.revealed) .wrap.cover-only{padding-bottom:0}
+body.kpi-view:not(.revealed) footer{display:none}
 
-/* sidebar base styles — constant ink-dark "spine", same in both themes.
-   Re-scoping --surface/--text/--muted/--accent here means every existing
-   nav-title/nav-sub/nav-btn rule below (which already reads those vars)
-   inherits the ink treatment automatically, no markup or JS changes needed. */
+/* ── FIXED TOP BAR ────────────────────────────────────────
+   The masthead and the two filters travel with the page: at this length you lose
+   track of which branch and which window you are reading. Full height at rest,
+   then it condenses once you move, the wordmark steps down, the sub-line and the
+   meta rule go, and what stays is identity plus the controls.
+   Fixed, not sticky, and the space it occupies is reserved by #topbarSpacer at
+   the FULL height. A sticky bar is in flow, so condensing it shortened the
+   document, lifted everything below, moved the scroll position and re-fired the
+   toggle: the header shook. Taking it out of flow means the collapse changes no
+   layout at all, and the spacer never resizes on scroll. */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--bg);
+  transition:box-shadow 220ms var(--card-ease),padding 200ms var(--card-ease)}
+.topbar-in{max-width:1180px;margin:0 auto;padding:0 18px}
+@media(min-width:900px){.topbar-in{padding:0 40px}}
+.topbar.measuring,.topbar.measuring *{transition:none!important}
+.topbar.stuck{padding-bottom:10px;
+  box-shadow:0 1px 0 var(--border),0 14px 26px -20px rgba(26,26,26,.35)}
+[data-theme="dark"] .topbar.stuck{box-shadow:0 1px 0 var(--border),0 16px 30px -20px rgba(0,0,0,.65)}
+.topbar.stuck .mast{padding-top:9px}
+.topbar.stuck .mast-logo{width:104px}
+/* The sub-line and the meta rule fold away rather than switching off: display
+   cannot be animated, and a 72px snap on the first pixel of scroll reads as a
+   glitch. max-height is generous on purpose so the rule can still wrap to three
+   lines on a phone without being clipped at rest. */
+.mast-sub,.mast-rule{overflow:hidden;max-height:140px;
+  transition:opacity 160ms var(--card-ease),max-height 240ms var(--card-ease),
+             margin 240ms var(--card-ease),padding 240ms var(--card-ease)}
+.topbar.stuck .mast-sub,.topbar.stuck .mast-rule{
+  opacity:0;max-height:0;margin-top:0;padding-top:0;padding-bottom:0;border-width:0}
+.topbar.stuck .tglr{min-height:34px;padding:6px 12px}
+.topbar.stuck .filters{padding-top:8px}
+.mast,.mast-logo,.tglr,.filters{
+  transition:width 200ms var(--card-ease),min-height 200ms var(--card-ease),padding 200ms var(--card-ease)}
+
+/* ── MASTHEAD ─────────────────────────────────────────────── */
+.mast{padding:18px 0 0}
+.mast-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+/* The wordmark PNGs are 3000x3000 with heavy empty margin; the lockup's own ink
+   box is x 337-2658, y 1149-1812, i.e. 2321x663 (3.50:1, the draft's 620x177).
+   Percentages on the img are read against the WRAPPER width and the img's own
+   box respectively, so this crop is exact at any size — which is what lets the
+   masthead step 148px → 104px on scroll without the mark drifting. */
+.mark{display:block;overflow:hidden;position:relative;aspect-ratio:620/177;flex-shrink:0}
+.mark img{position:absolute;left:0;top:0;width:129.254%;height:auto;max-width:none;
+  transform:translate(-11.2333%,-38.3%)}
+.mast-logo{width:148px;cursor:pointer}
+.mast-sub{font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-top:7px}
+.mast-acts{display:flex;gap:8px;flex-shrink:0}
+.tglr{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:20px;
+  padding:9px 14px;font:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
+  white-space:nowrap;min-height:44px}
+@media(hover:hover){.tglr:hover{color:var(--text);border-color:var(--text)}}
+.mast-rule{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:16px;
+  padding:9px 0;border-top:1px solid var(--text);border-bottom:1px solid var(--border);
+  font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+@media(max-width:520px){.mast-logo{width:122px}}
+/* How old the two feeds are. The date is stamped by the freshness check, the age
+   is worked out from it, so it stays true tomorrow instead of quietly lying.
+   Anything two days or older turns amber: that is the point of putting it here. */
+.mast-fresh{display:flex;flex-wrap:wrap;gap:0 14px;justify-content:flex-end}
+.mast-fresh b{font-weight:700;color:var(--text)}
+.mast-fresh .stale,.mast-fresh .stale b{color:var(--warn)}
+
+/* ── FILTERS: branch + period ─────────────────────────────
+   An index line, not a control panel. The options are plain text separated by
+   middots; the live one is ink and underlined, the rest step back. Pills were
+   the first attempt and they ate 117px of the page before the headline, which
+   is more room than a filter has earned. This costs one line.
+   Open and close on a real height transition rather than a display flip. The
+   fr grid row is the one way to animate to auto height without pinning a
+   max-height that guesses wrong when the rows wrap. Both states are written as
+   minmax(0,Xfr): a bare 0fr still carries an auto minimum, which the row's 10px
+   padding kept alive, and keeping one track form across both states is what lets
+   the transition interpolate instead of snap. */
+.filters-wrap{display:grid;grid-template-rows:minmax(0,1fr);overflow:hidden;
+  transition:grid-template-rows 300ms var(--card-ease),opacity 200ms var(--card-ease)}
+.filters-wrap.closed{grid-template-rows:minmax(0,0fr);opacity:0}
+.filters-wrap.closed .filters{visibility:hidden;transition:visibility 0s linear 300ms}
+.filters{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 32px;padding:10px 0 0;
+  overflow:hidden;min-height:0;visibility:visible}
+.f-row{display:flex;align-items:baseline;gap:12px;min-width:0}
+.f-lbl{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted2);flex-shrink:0}
+.chipset{display:flex;flex-wrap:wrap;align-items:baseline;min-width:0}
+.chip{border:0;background:none;padding:6px 0;font:inherit;font-size:12px;color:var(--muted2);
+  cursor:pointer;white-space:nowrap;border-bottom:1px solid transparent;line-height:1.3;
+  transition:color 160ms var(--card-ease),border-color 160ms var(--card-ease)}
+@media(hover:hover){.chip:hover{color:var(--text)}}
+.chip[aria-pressed="true"]{color:var(--text);font-weight:600;border-bottom-color:var(--text)}
+.chip:focus-visible{outline:2px solid var(--good);outline-offset:3px}
+.chip[disabled]{opacity:.35;cursor:default}
+.sep{color:var(--muted2);opacity:.4;font-size:12px;padding:0 8px;user-select:none}
+.f-dates{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-left:4px}
+.f-dates[hidden]{display:none}
+.f-dates input{font:inherit;font-size:11.5px;color:var(--text);background:none;
+  border:0;border-bottom:1px solid var(--border);padding:4px 0}
+.f-dates input:focus{outline:0;border-bottom-color:var(--text)}
+.f-dates span{font-size:11px;color:var(--muted2)}
+.f-note{flex-basis:100%;font-size:10px;color:var(--warn);line-height:1.5;max-width:70ch;margin-top:2px}
+.f-note[hidden]{display:none}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ── MAIN NAV: the left gutter ────────────────────────────
+   The page is 1180px in the middle of the window, so on a wide screen there are
+   a few hundred pixels of nothing down each side. The app nav moves out there:
+   free space, and it stops competing with the document for width. Fixed, so it
+   never pushes the content sideways when it opens.
+   Three bands, by how much gutter there is to spend:
+     1600+  gutter fits the panel, so it is open by default and needs no scrim
+     1100+  it still opens, but over the content, so it gets a scrim
+     under   no panel — the Sections button is the only way in, over a scrim */
+.navbtn{display:inline-block}
+/* The ink-dark spine, same in both themes. Re-scoping the tokens here means
+   nav-title and nav-sub inherit the dark treatment without a second rule set. */
 aside.sidebar{
-  --surface:#20212A;--surface2:#2A2B36;--border:rgba(250,248,243,0.08);
-  --text:#FAF8F3;--muted:rgba(250,248,243,0.55);--muted2:rgba(250,248,243,0.35);
+  --surface:#20212A;--surface2:#2A2B36;--border:rgba(250,248,243,.08);
+  --text:#FAF8F3;--muted:rgba(250,248,243,.55);--muted2:rgba(250,248,243,.35);
   --accent:var(--accent-mint);--accent-fg:#1A1A1A;
-  width:200px;
-  flex-shrink:0;
-  background:var(--surface);
-  border-right:1px solid var(--border);
-  padding:16px 12px;
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-  overflow-y:auto;
-  height:100%;
+  position:fixed;left:0;top:0;bottom:0;width:var(--nav-w);z-index:120;
+  background:var(--surface);border-right:1px solid var(--border);color:var(--text);
+  padding:16px 12px;display:flex;flex-direction:column;gap:4px;
+  overflow-y:auto;overscroll-behavior:contain;
+  transform:translateX(-100%);visibility:hidden;
+  transition:transform 260ms var(--card-ease),visibility 0s linear 260ms}
+.nav-open aside.sidebar{transform:none;visibility:visible;transition:transform 260ms var(--card-ease),visibility 0s}
+.nav-scrim{position:fixed;inset:0;z-index:110;background:rgba(26,26,26,.38);
+  opacity:0;pointer-events:none;transition:opacity 220ms var(--card-ease)}
+.nav-open .nav-scrim{opacity:1;pointer-events:auto}
+.nav-brand{padding:6px 10px 18px}
+.nav-brand .mark{width:132px}
+.nav-out{margin-top:auto;padding-top:12px;border-top:1px solid var(--border)}
+.nav-out .nav-sub{display:flex;align-items:center;gap:7px;font-size:13px;letter-spacing:.04em}
+@media(min-width:1100px){:root{--nav-w:200px}}
+@media(min-width:1600px){
+  /* The panel fits the gutter, so it covers nothing and the scrim would be a lie. */
+  .nav-open .nav-scrim{opacity:0;pointer-events:none}
 }
 
-/* main content scrollable */
-.main-content{
-  flex:1;
-  overflow-y:auto;
-  overflow-x:hidden;
-  height:100%;
-}
+/* Back up. Appears once the cover is behind you, so it never sits over the thing
+   it would take you to. */
+.totop{position:fixed;right:20px;bottom:20px;z-index:95;
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:20px;
+  padding:10px 16px;font:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  cursor:pointer;min-height:44px;white-space:nowrap;box-shadow:var(--shadow-card);
+  opacity:0;pointer-events:none;transform:translateY(10px);
+  transition:opacity 220ms var(--card-ease),transform 220ms var(--card-ease)}
+.totop.on{opacity:1;pointer-events:auto;transform:none}
+@media(hover:hover){.totop:hover{color:var(--text);border-color:var(--text)}}
 
-/* 🔥 MOBILE FIX */
-@media(max-width:900px){
-  .layout{
-    flex-direction:column;
-    height:auto;
-    overflow:visible;
-  }
-
-  /* The spine used to be reshaped into a full-width row here, and then every one
-     of its children was hidden with `aside.sidebar > div{display:none}`. What
-     that actually rendered was a 21px band of #20212A straight across the top of
-     the page with nothing inside it and nothing reachable in it. The panel goes
-     with its contents: same navigation on a narrow screen, which is none, minus
-     the black bar. */
-  aside.sidebar{
-    display:none;
-  }
-
-  .main-content{
-    height:auto;
-    overflow:visible;
-  }
-}
-  
 *{box-sizing:border-box;margin:0;padding:0}
 
 /* Brand accent quartet — confirmed across both light and dark brand-guideline
@@ -317,6 +413,7 @@ aside.sidebar{
   --accent-mint:#99F6E4;--accent-butter:#EEF3C7;--accent-lavender:#C4B5FD;--accent-coral:#FF9B9B;
   --radius-card:10px;
   --card-ease:cubic-bezier(.2,.7,.2,1);
+  --s1:8px;--s2:16px;--s3:24px;--s4:32px;--s6:48px;--nav-w:232px;
 }
 
 [data-theme="light"]{
@@ -370,63 +467,11 @@ aside.sidebar{
   --logo-color:#FAF8F3;--toggle-knob:#FFD4D9;
   --hair:#C4B5FD;--beauty:#99F6E4;
 }
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
-
-/* HEADER */
-/* overflow:visible (not hidden) — the Branch dropdown (.ms-drop, position:absolute)
-   now lives in the header and needs room to open below it; same clipping bug .controls
-   had before (Kate, 2026-08-03), and the same fix: overflow-x:hidden + overflow-y:visible
-   isn't good enough — per spec a visible/non-visible overflow pairing computes the
-   visible axis to 'auto', which still clips. Plain `visible` on both axes is what
-   .controls always used; the media queries below already trim header content at
-   narrow widths, which is what overflow:hidden was guarding against anyway. */
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);transition:background .3s,border-color .3s;flex-shrink:0;min-height:82px;overflow:visible}
-.logo{display:flex;align-items:center;gap:12px;min-width:0;flex-shrink:1;overflow:hidden}
-/* logo source PNG has heavy empty margin above/below the wordmark — crop it out
-   so the mark reads at full size instead of shrinking inside its own whitespace.
-   object-fit:cover only cropped top and bottom: the square still had to fit 184px
-   WIDE, so the lockup landed at 37px of the 58px box and "SALON" rendered ~4.6px
-   tall — finer than its own hairline strokes, which is why the L dropped out and it
-   read as "SA ON" (Kate, 2026-08-12). Crop straight to the lockup's bounding box
-   instead — both PNGs ink x 337-2658, y 1149-1812 of 3000x3000 — so it fills the
-   full 58px header height. One crop serves both themes; if either PNG is ever
-   re-exported, re-check that bbox before trusting these offsets. */
-.logo-crop{width:192px;height:58px;overflow:hidden;flex-shrink:0;position:relative}
-.logo-crop img{position:absolute;left:-25px;top:-90px;width:241px;height:241px;max-width:none}
-.logo-text{min-width:0;overflow:hidden}
-.logo-text .logo-name{font-family:'Inter',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text);line-height:1;white-space:nowrap}
-.logo-text .logo-sub{font-size:10px;letter-spacing:0.26em;text-transform:uppercase;color:var(--muted);margin-top:2px;white-space:nowrap}
-.logo-strip{height:2px;width:90px;margin-top:4px;background:linear-gradient(to right,var(--accent-mint),var(--accent-butter),var(--accent-lavender),var(--accent-coral));border-radius:2px}
-/* matches .login-dash-lbl on the password gate — same pill treatment, scaled for the header */
-.dash-label{
-  font-family:'Playfair Display',serif;font-weight:500;
-  font-size:13px;letter-spacing:0.03em;text-transform:none;
-  color:#7C5CD4;margin-top:0;
-  display:inline-block;padding:3px 12px;border-radius:20px;
-  background:rgba(124,92,212,0.12);
-  white-space:nowrap;transition:opacity .15s ease;
-}
-.header-right{display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:auto;padding-left:12px}
-.last-updated{font-size:11px;color:var(--muted);white-space:nowrap}
-.toggle-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;flex-shrink:0}
-.toggle-lbl{font-size:12px;color:var(--muted);min-width:28px;white-space:nowrap}
-.toggle-track{width:38px;height:20px;border-radius:10px;background:var(--border);position:relative;transition:background .3s;flex-shrink:0;border:1px solid var(--border)}
-.toggle-thumb{width:14px;height:14px;border-radius:50%;background:var(--toggle-knob);position:absolute;top:2px;left:2px;transition:transform .25s ease,background .3s}
-[data-theme="dark"] .toggle-thumb{transform:translateX(18px)}
-
-/* hide decorative bits at small widths so header never wraps */
-/* The header runs out of room below 900 and .logo is allowed to shrink, which
-   slices the wordmark mid-letter. Same crop scaled to 0.7 so it stays whole and
-   legible; the img offsets have to scale with it or the mark drifts inside the
-   window. This sits AFTER .logo-crop rather than up in the mobile block, because
-   the base rule is declared further down the file and would otherwise win on
-   source order at equal specificity. */
-@media(max-width:900px){
-  .logo-crop{width:134px;height:41px}
-  .logo-crop img{left:-17px;top:-63px;width:169px;height:169px}
-}
-@media(max-width:700px){.dash-label,.logo-strip{display:none}}
-@media(max-width:500px){.last-updated,.logo-text .logo-sub{display:none}}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s;font-size:14px;line-height:1.6;-webkit-text-size-adjust:100%}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+.tabular{font-variant-numeric:tabular-nums;font-feature-settings:'tnum'}
+.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
 
 /* CONTROLS */
 .controls{display:flex;flex-wrap:wrap;gap:10px;padding:8px 28px;align-items:flex-end;position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);margin-top:0;max-height:200px;overflow:visible;opacity:1;transition:max-height .25s ease,padding .25s ease,opacity .2s ease,border-color .25s ease;}
@@ -460,73 +505,327 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .date-picker-apply{padding:7px 16px;background:var(--btn);color:var(--btn-fg);border:none;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;transition:background .2s}
 .date-picker-apply:hover{background:var(--btn-hover)}
 
-/* MAIN */
-main{max-width:1400px;margin:0 auto;padding:18px 28px 56px}
+/* MAIN — the side padding lives on .wrap now, so a <main> inside it only owns
+   its own vertical rhythm. */
+main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 /* eyebrow — tiny uppercase label + hairline rule, sits above major sections */
 .section-label{font-size:11.5px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:var(--text);opacity:0.72;margin-top:16px;margin-bottom:8px}
 .section-label::before{content:'';display:inline-block;width:1.1rem;height:1px;background:currentColor;vertical-align:middle;margin-right:0.55rem;opacity:0.8}
 
-/* EDITORIAL HERO — one big confident headline moment above the KPI view */
-.dash-hero{max-width:1400px;margin:0 auto;padding:22px 28px 4px}
-.dash-hero-kicker{height:2px;width:64px;margin-bottom:12px;background:linear-gradient(to right,var(--accent-mint),var(--accent-butter),var(--accent-lavender),var(--accent-coral));border-radius:2px}
-.dash-hero .section-label{
-  margin-top:0;font-family:'Inter',sans-serif;font-style:normal;font-weight:600;
-  font-size:14px;letter-spacing:0.18em;text-transform:uppercase;opacity:0.8;
-}
-.dash-hero .section-label::before{content:none}
-.dash-hero-title{
-  font-family:'Playfair Display',serif;font-weight:500;font-size:46px;
-  line-height:1.08;letter-spacing:-0.01em;color:var(--text);margin-top:6px;
-}
-.dash-hero-title em{font-style:italic;font-weight:600;color:#FF9B9B;text-shadow:0 2px 6px rgba(255,155,155,0.35)}
-@media(max-width:900px){.dash-hero{padding:18px 18px 2px}.dash-hero-title{font-size:35px}}
-.dash-hero-status{font-size:15px;color:var(--muted);margin-top:10px;line-height:1.5;max-width:1100px}
+/* Team Performance still writes a one-line status statement with this class —
+   it was the only survivor of the old editorial hero block. */
+.dash-hero-status{font-size:15px;color:var(--muted);line-height:1.5;max-width:78ch}
 
-/* Receipt strip — sits to the right of the hero block. Torn zigzag edges via
-   two diagonal-gradient pseudo-elements (a common CSS paper-tear technique). */
-.hero-receipt{
-  width:220px;flex-shrink:0;margin-top:22px;
-  background:#FFFEFA;color:#2A2A2A;
-  font-family:'Inter',sans-serif;font-size:13.5px;line-height:1.7;
-  padding:22px 16px 28px;
-  box-shadow:0 14px 30px -10px rgba(26,26,26,0.22),0 3px 8px -2px rgba(26,26,26,0.1);
-  position:relative;
-  transition:transform .25s ease,box-shadow .25s ease;
+/* ── HERO: the cover ──────────────────────────────────────── */
+.hero{padding:26px 0 var(--s3)}
+.hero h1{font-family:'Playfair Display',serif;font-weight:500;font-size:clamp(30px,8.4vw,54px);
+  line-height:1.06;letter-spacing:-.015em}
+.hero h1 em{font-style:italic;font-weight:600;color:var(--bad)}
+/* The standing line. Own block, own rule, cannot get buried in a paragraph. */
+.deck{font-family:'Playfair Display',serif;font-style:italic;font-weight:400;
+  font-size:clamp(17px,4.6vw,21px);line-height:1.4;color:var(--text);opacity:.92;
+  margin-top:18px;padding-left:14px;border-left:2px solid var(--text);max-width:38ch}
+.standfirst{font-size:clamp(14px,3.8vw,16px);color:var(--muted);margin-top:16px;max-width:52ch;line-height:1.6}
+/* The way in. Sits in the room the 52ch measure leaves under the standfirst,
+   which the receipt's height turned into a visible hole. Reads as a line of the
+   page rather than a button, and the arrow leans on hover. */
+.hero-cta{display:inline-flex;align-items:baseline;gap:10px;margin-top:var(--s4);cursor:pointer;
+  font-family:'Playfair Display',serif;font-style:italic;font-weight:500;font-size:19px;
+  color:var(--text);text-decoration:none;background:none;
+  border:0;border-bottom:1px solid var(--text);padding:0 0 7px;
+  transition:gap 200ms var(--card-ease),opacity 200ms var(--card-ease)}
+.hero-cta span{font-family:'Inter',sans-serif;font-style:normal;font-size:15px;
+  transition:transform 200ms var(--card-ease)}
+@media(hover:hover){.hero-cta:hover{gap:15px}.hero-cta:hover span{transform:translateY(3px)}}
+.hero-cta:focus-visible{outline:2px solid var(--good);outline-offset:4px}
+
+/* ── TARGETS, on the receipt ──────────────────────────────
+   The headline counts N of eight, so the receipt itemises them, which is what
+   a receipt is for. Side by side with the standfirst in the hero they read as
+   two competing blocks of numbers; printed down the till roll they read as one
+   list. Colours are literal here, not tokens: the paper stays cream in dark
+   theme, so var(--good) would go mint on cream and disappear. */
+.r-sec{display:flex;justify-content:space-between;gap:8px;font-size:9.5px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;color:#6f6f6f;margin-bottom:6px}
+.r-t{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;line-height:1.75}
+.r-t .n{color:#4a4a4a;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r-t .v{font-weight:700;white-space:nowrap}
+.r-t.hit .v{color:#0F6E56}
+.r-t.low .v{color:#A32D2D}
+.r-gap{border-top:1px dotted #cfc7b9;margin:7px 0}
+.r-more{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#6f6f6f;
+  text-decoration:none;line-height:1.6;transition:color 180ms var(--card-ease)}
+.r-more span:last-child{color:#A32D2D;font-weight:700;white-space:nowrap}
+@media(hover:hover){.r-more:hover{color:#2A2A2A}.r-more:hover span:last-child{text-decoration:underline}}
+.r-more:focus-visible{outline:2px solid #0F6E56;outline-offset:3px}
+/* Torn zigzag edges via two diagonal-gradient pseudo-elements. */
+.receipt{width:100%;max-width:280px;margin-top:var(--s4);background:#FFFEFA;color:#2A2A2A;
+  font-size:13px;line-height:1.75;padding:20px 16px 24px;position:relative;
+  box-shadow:0 14px 30px -10px rgba(26,26,26,.22)}
+.receipt::before,.receipt::after{content:'';position:absolute;left:0;right:0;height:9px;
+  background:linear-gradient(-45deg,transparent 6px,#FFFEFA 6px) 0 0/12px 12px repeat-x,
+             linear-gradient(45deg,transparent 6px,#FFFEFA 6px) 0 0/12px 12px repeat-x,#C9BFAE;
+  filter:drop-shadow(0 1px 1.5px rgba(26,26,26,.25))}
+.receipt::before{top:-8px}.receipt::after{bottom:-8px;transform:scaleY(-1)}
+/* Receipt paper stays #FFFEFA in both themes, so the receipt always takes the
+   dark wordmark. Grayscale drops the mint rule to ink, which is what a printed
+   till receipt would actually do. */
+.receipt .mark{width:62%;max-width:148px;margin:0 auto 7px;filter:grayscale(1)}
+.r-sub{text-align:center;font-size:10.5px;color:#6f6f6f;margin-bottom:8px}
+.r-rule{border-top:1px dashed #b8b0a4;margin:8px 0}
+.r-row{display:flex;justify-content:space-between;gap:8px;font-size:12.5px}
+.r-label{color:#4a4a4a}
+.r-val{font-weight:700;white-space:nowrap}
+.r-foot{text-align:center;font-size:10px;color:#6f6f6f;margin-top:8px;letter-spacing:.08em}
+@media(min-width:900px){
+  /* The cover holds the first screen on its own. --topbar-h is measured rather
+     than guessed, so the hero ends where the fold does and nothing below can
+     show through before it is asked for. The way in sits at the foot of the
+     column, which is also what absorbs the room the receipt left empty. */
+  .hero{display:grid;grid-template-columns:1fr 240px;gap:44px;align-items:stretch;
+    padding:34px 0 var(--s4);
+    min-height:calc(100vh - var(--topbar-h,172px) - 56px);
+    min-height:calc(100svh - var(--topbar-h,172px) - 56px)}
+  .hero>div:first-child{display:flex;flex-direction:column}
+  .hero-cta{margin-top:auto;align-self:flex-start;padding-top:var(--s3)}
+  .receipt{margin-top:6px;max-width:240px;align-self:start}
 }
-.hero-receipt:hover{
-  transform:translateY(-8px);
-  box-shadow:0 22px 42px -12px rgba(26,26,26,0.3),0 6px 14px -3px rgba(26,26,26,0.14);
+
+/* ── SIDE RAIL: the running margin ────────────────────────
+   It starts below the hero, level with the first section: the hero is the cover,
+   this is the running margin. Under 1100px the column costs more width than it
+   earns, so the index goes and the document runs full width.
+
+   The document starts closed. The page opens as a cover: masthead, headline,
+   the receipt, and one way in. Nothing below shows until "See the full details"
+   is pressed, so the first screen is the plan and only the plan. */
+.shell{display:none}
+.revealed .shell{display:block}
+.side{display:none}
+@media(min-width:1100px){
+  .revealed .shell{display:grid;grid-template-columns:172px minmax(0,1fr);gap:46px;align-items:start}
+  /* Visible from the start, level with the first eyebrow. Fading it in until you
+     scrolled was worse: the 172px column stays reserved either way, so all the
+     fade bought was an empty gutter with the whole document indented beside it. */
+  .side{display:block;position:sticky;top:118px}
 }
-.hero-receipt::before,.hero-receipt::after{
-  content:'';position:absolute;left:0;right:0;height:9px;
-  background:
-    linear-gradient(-45deg,transparent 6px,#FFFEFA 6px) 0 0/12px 12px repeat-x,
-    linear-gradient(45deg,transparent 6px,#FFFEFA 6px) 0 0/12px 12px repeat-x,
-    #C9BFAE;
-  filter:drop-shadow(0 1px 1.5px rgba(26,26,26,0.25));
+.side-k{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted2);padding-bottom:9px;border-bottom:1px solid var(--text)}
+.side-nav a{display:block;padding:8px 0 8px 13px;font-size:12px;line-height:1.35;
+  color:var(--muted);text-decoration:none;border-left:2px solid var(--border2);
+  transition:color 160ms var(--card-ease),border-color 160ms var(--card-ease)}
+@media(hover:hover){.side-nav a:hover{color:var(--text)}}
+.side-nav a.on{color:var(--text);font-weight:600;border-left-color:var(--text)}
+.side-nav a:focus-visible{outline:2px solid var(--good);outline-offset:2px}
+
+/* ══ THE DOCUMENT ══════════════════════════════════════════
+   Everything below is scoped inside .doc or to classes this page owns alone.
+   The other eight views still run on the older .card/.metric/.g2 rules further
+   up this file, so anything the draft named the same thing is either scoped or
+   renamed (.g2 → .perf2, the draft's .tab → .tabular). Kate, 2026-08-14. */
+
+/* ── EYEBROW ──────────────────────────────────────────────── */
+.eyebrow{display:flex;align-items:center;gap:9px;margin:var(--s6) 0 var(--s2);
+  font-size:10.5px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--text);opacity:.75}
+.eyebrow .bar{width:24px;height:2px;border-radius:2px;background:currentColor;flex-shrink:0}
+.eyebrow .bar.good{background:var(--good);opacity:1}
+.eyebrow .bar.bad{background:var(--bad);opacity:1}
+.eyebrow .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.eyebrow-sm{margin-top:var(--s3)}
+/* Clears the condensed top bar, so a jump from the rail lands the heading below
+   it rather than underneath it. */
+.eyebrow[id]{scroll-margin-top:116px}
+.doc>.eyebrow:first-child{margin-top:0}
+
+/* ── CARD SHELL, inside the document ──────────────────────── */
+.doc .card{padding:18px 16px;margin-bottom:0}
+/* One lift, every card surface: the two funnel/branch cards, the headline three,
+   the hair and beauty columns, the win cards and the action block. They are the
+   same object at different sizes, so they answer the cursor the same way. */
+.doc .card,.three .metric,.win,.read-col,.action{
+  transition:box-shadow 220ms var(--card-ease),transform 220ms var(--card-ease)}
+@media(hover:hover){
+  .doc .card:hover,.three .metric:hover,.win:hover,.read-col:hover,.action:hover{
+    box-shadow:var(--shadow-card-hover);transform:translateY(-2px)}
 }
-.hero-receipt::before{top:-8px}
-.hero-receipt::after{bottom:-8px;transform:scaleY(-1)}
-/* The receipt is the smallest type on the page and the only block sized in its
-   own scale, so when the rest of the dashboard came back down it ended up too
-   fine to read at arm's length — sharp under zoom, mush at normal distance
-   (Kate, 2026-08-12). Raised only inside .hero-receipt; the rest stays small. */
-.hero-receipt .r-title{text-align:center;font-weight:700;letter-spacing:0.14em;font-size:12px;margin-bottom:2px}
-.hero-receipt .r-logo-crop{width:184px;height:46px;margin:0 auto 8px;overflow:hidden}
-.hero-receipt .r-logo-crop img{width:100%;height:100%;object-fit:cover;object-position:center;filter:grayscale(1)}
-.hero-receipt .r-sub{text-align:center;font-size:11px;color:#6f6f6f;margin-bottom:10px}
-.hero-receipt .r-rule{border-top:1px dashed #b8b0a4;margin:8px 0}
-.hero-receipt .r-row{display:flex;justify-content:space-between;gap:6px}
-.hero-receipt .r-label{color:#4a4a4a;font-size:11.5px;letter-spacing:0.03em}
-.hero-receipt .r-val{font-weight:700;white-space:nowrap}
-.hero-receipt .r-delta{font-size:11px;margin-top:1px}
-/* trendArrow() writes its sizes inline (13px figure, 9px "vs prev month") and is
-   shared with the metric cards, so the receipt's scale can only reach it here.
-   The 9px tag was the finest text on the whole page. */
-.hero-receipt .r-delta > span{font-size:13.5px !important}
-.hero-receipt .r-delta > span > span{font-size:10.5px !important}
-.hero-receipt svg{margin-bottom:10px}
-.hero-receipt .r-foot{text-align:center;font-size:10.5px;color:#6f6f6f;margin-top:6px}
+.doc .card-title{font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:17px;letter-spacing:.01em;margin-bottom:0}
+.doc .card-sub{font-size:11px;color:var(--muted);margin-top:3px;margin-bottom:14px}
+.foot{font-size:10.5px;color:var(--muted2);margin-top:12px;line-height:1.55}
+
+/* ── THE READ: hair vs beauty, in words ───────────────────── */
+.read{display:grid;gap:12px}
+@media(min-width:900px){.read{grid-template-columns:1fr 1fr}}
+.read-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);
+  box-shadow:var(--shadow-card);padding:18px 16px;border-top:3px solid var(--hair)}
+.read-col.b{border-top-color:var(--beauty)}
+.read-k{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--hair)}
+.read-col.b .read-k{color:var(--beauty)}
+/* Not justified. These paragraphs are half numbers, and AED 1,787,752 and 1.87%
+   are unbreakable tokens: justifying a 48ch measure around them opens rivers and
+   stretches word spacing line to line. text-wrap:pretty gets the tidy right edge
+   without any of that, and balance keeps the headings off a one-word last line. */
+.read-h{font-family:'Playfair Display',serif;font-weight:600;font-size:20px;line-height:1.25;margin-top:8px;
+  text-wrap:balance}
+.read-p{font-size:13.5px;color:var(--muted);margin-top:9px;line-height:1.65;text-wrap:pretty}
+.read-stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.stat{border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:11px;color:var(--muted);white-space:nowrap}
+.stat b{color:var(--text);font-weight:600}
+
+/* ── WINS ─────────────────────────────────────────────────── */
+/* Sized against the column, not the window. A viewport-based rule went 4-up at
+   1100px, but the rail then took 218px off the document, leaving 220px cards:
+   every name broke over two lines and the longest value ran out of its card.
+   minmax lets the track decide, so four wins land 2x2 at about 435px each. */
+.wins{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.win{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);
+  box-shadow:var(--shadow-card);padding:15px;display:flex;gap:12px;align-items:center}
+/* The soft-square block with the head breaking out over its top edge is baked
+   into the PNG: the block is the bottom 80% of the artwork, the area above it is
+   transparent. So no border-radius, no background, no border here. Any of the
+   three clips the overhang and the card falls back to a plain circle. */
+.av{height:62px;width:auto;flex-shrink:0;display:block}
+/* Beauty has no shoot yet, so the placeholder rebuilds the same block by hand:
+   same 53x50 footprint, same corner, bottom-aligned so it sits on the photos'
+   baseline. It has no head to protrude, which is the honest tell. */
+.av-ph{width:53px;height:62px;flex-shrink:0;position:relative;display:flex;
+  align-items:flex-end;justify-content:center;color:var(--muted2);
+  font-family:'Playfair Display',serif;font-size:18px;font-weight:600;letter-spacing:.02em}
+.av-ph::before{content:'';position:absolute;left:0;right:0;bottom:0;height:50px;border-radius:8px;
+  background:var(--surface2);border:1px dashed var(--border)}
+.av-ph::after{content:'+';position:absolute;right:-3px;bottom:-3px;width:16px;height:16px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border);font-family:'Inter',sans-serif;font-size:11px;
+  line-height:14px;text-align:center;color:var(--muted2)}
+.av-ph b{position:relative;font-weight:600;margin-bottom:13px}
+.win-k{font-size:9.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.win-name{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;line-height:1.2;margin-top:5px;
+  overflow-wrap:anywhere}
+.win-name a{color:inherit;text-decoration:none;border-bottom:1px solid var(--border)}
+.win-v{font-size:12.5px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+.win-v b{color:var(--text);font-weight:600}
+.tagb{display:inline-block;margin-top:8px;font-size:9px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;padding:2px 8px;border-radius:20px;background:var(--surface2);color:var(--muted)}
+
+/* ── HEADLINE THREE ───────────────────────────────────────── */
+.three{display:grid;gap:12px}
+@media(min-width:900px){.three{grid-template-columns:repeat(3,1fr)}}
+.three .metric{padding:18px 16px;border-bottom:3px solid transparent}
+.three .metric::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:none}
+.three .metric.st-good::before{background:var(--good)}
+.three .metric.st-warn::before{background:var(--warn)}
+.three .metric.st-bad::before{background:var(--bad)}
+.three .metric.st-good{border-bottom-color:var(--accent-mint)}
+.three .metric.st-warn{border-bottom-color:var(--accent-butter)}
+.three .metric.st-bad{border-bottom-color:var(--accent-coral)}
+.m-k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.m-def{font-size:10.5px;color:var(--muted2);margin-top:4px;line-height:1.45}
+.m-v{font-family:'Playfair Display',serif;font-weight:600;font-size:clamp(34px,9vw,40px);line-height:1;margin-top:10px}
+.m-t{font-size:11.5px;color:var(--muted2);margin-top:8px;letter-spacing:.03em}
+.m-split{margin-top:14px;padding-top:12px;border-top:1px solid var(--border2);display:grid;gap:9px}
+/* Four columns, not three. The share and the delta used to hang 5px off the end
+   of the value, so "AED 1,787,752 92%" read as one number. Now the figure and
+   its percentage each own a column, right-aligned, and the percentages line up
+   down the card instead of floating wherever the value happened to end. */
+.sp{display:grid;grid-template-columns:44px minmax(24px,1fr) auto 44px;align-items:center;gap:0 12px}
+.sp-k{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.sp-track{height:6px;border-radius:4px;background:var(--border2);position:relative;overflow:hidden;min-width:26px}
+.sp-fill{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.sp-v{font-size:11.5px;font-weight:600;white-space:nowrap;text-align:right}
+/* Share of total reads as supporting detail; a delta against target earns colour. */
+.sp-x{font-size:10.5px;font-weight:700;white-space:nowrap;text-align:right;color:var(--muted2)}
+.sp-x.good{color:var(--good)}.sp-x.bad{color:var(--bad)}.sp-x.warn{color:var(--warn)}
+.verdict{display:inline-block;margin-top:13px;font-size:10px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;padding:3px 10px;border-radius:20px}
+.verdict.st-good{background:var(--good-bg);color:var(--good)}
+.verdict.st-warn{background:var(--warn-bg);color:var(--warn)}
+.verdict.st-bad{background:var(--bad-bg);color:var(--bad)}
+
+/* ── PERFORMANCE OVERVIEW ─────────────────────────────────── */
+.perf2{display:grid;gap:12px}
+@media(min-width:1100px){.perf2{grid-template-columns:1fr 1fr}}
+/* mirrored funnel */
+.fn-head{display:grid;grid-template-columns:1fr 74px 1fr;gap:6px;align-items:center;margin-bottom:10px;
+  font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.fn-head .l{text-align:right;color:var(--hair)}
+.fn-head .r{color:var(--beauty)}
+.fn-head .c{text-align:center;color:var(--muted2);font-weight:500;letter-spacing:.08em}
+.fn-row{display:grid;grid-template-columns:1fr 74px 1fr;gap:6px;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--border2)}
+.fn-row:last-child{border-bottom:none}
+.fn-side{display:flex;align-items:center;gap:6px;min-width:0}
+.fn-side.l{justify-content:flex-end}
+.fn-bar{height:14px;border-radius:3px;min-width:2px;transition:width .5s var(--card-ease)}
+.fn-side.l .fn-bar{border-radius:3px 0 0 3px}
+.fn-side.r .fn-bar{border-radius:0 3px 3px 0}
+.fn-n{font-size:11.5px;font-weight:600;white-space:nowrap}
+.fn-c{text-align:center;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* standing column chart, branch performance */
+.cols-plot{display:flex;align-items:flex-end;gap:10px;height:200px;position:relative;
+  border-bottom:1px solid var(--border);padding-top:20px}
+.col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}
+.cbar{width:100%;max-width:58px;border-radius:6px 6px 0 0;transition:height .6s var(--card-ease);
+  box-shadow:inset 0 -1px 0 rgba(0,0,0,.05)}
+.cv{font-size:10.5px;font-weight:600;margin-bottom:5px;white-space:nowrap}
+.avgline{position:absolute;left:0;right:0;height:0;border-top:2px dashed var(--text);opacity:.55;pointer-events:none}
+.avgline b{position:absolute;right:0;top:-15px;font-size:8.5px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);white-space:nowrap;background:var(--surface);padding:0 4px}
+.cols-x{display:flex;gap:10px;margin-top:9px}
+.cols-x div{flex:1;text-align:center;min-width:0}
+.cx-k{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.cx-s{font-size:9.5px;color:var(--muted2);margin-top:2px;line-height:1.35}
+.col.dim,.cols-x div.dim{opacity:.28;transition:opacity 220ms var(--card-ease)}
+
+/* ── TARGET BARS ──────────────────────────────────────────── */
+.att-row{padding:15px 0;border-bottom:1px solid var(--border2)}
+.att-row:last-child{border-bottom:none}
+.att-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.att-id{display:flex;align-items:baseline;gap:9px;min-width:0}
+.att-rank{font-family:'Playfair Display',serif;font-weight:600;font-size:19px;line-height:1;color:var(--bad);flex-shrink:0}
+.att-rank.st-good{color:var(--good)}
+.att-name{font-size:11.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.att-name small{display:block;font-weight:400;letter-spacing:0;text-transform:none;font-size:10.5px;color:var(--muted2);margin-top:2px}
+.att-side{text-align:right;flex-shrink:0}
+.att-big{font-family:'Playfair Display',serif;font-weight:600;font-size:21px;line-height:1}
+.att-chip{display:inline-block;margin-top:4px;font-size:9px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;border-radius:20px;padding:2px 7px;border:1px solid}
+.chip-good{color:var(--good);border-color:var(--good)}
+.chip-warn{color:var(--warn);border-color:var(--warn)}
+.chip-bad,.chip-critical{color:var(--bad);border-color:var(--bad)}
+.att-bars{margin-top:12px;display:grid;gap:6px}
+.att-bars .bar-line{display:grid;grid-template-columns:44px 1fr 72px;gap:8px;align-items:center}
+.att-bars .bar-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.att-bars .bar-track{position:relative;height:14px;background:var(--border2);border-radius:4px;flex:none}
+/* display:block is load-bearing. This is a <span>, and width, height and
+   min-width do not apply to a non-replaced inline box, so the fill was being
+   laid out with no dimensions and every benchmark bar rendered as an empty
+   track. The funnel bars survived the same markup only because they are flex
+   items, which blockifies them. */
+.att-bars .bar-fill{display:block;height:100%;border-radius:4px;min-width:2px;transition:width .5s var(--card-ease)}
+.att-bars .bar-tick{position:absolute;top:-4px;bottom:-4px;width:0;border-left:2px solid var(--text);opacity:.7}
+.att-bars .bar-tick b{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:8px;font-weight:700;
+  letter-spacing:.06em;color:var(--muted);white-space:nowrap}
+.att-bars .bar-val{font-size:11px;font-weight:600;text-align:right;white-space:nowrap}
+.att-bars .bar-note{font-size:10.5px;color:var(--muted2);grid-column:2/4}
+@media(min-width:1100px){
+  #attBelow,#attGood{display:grid;grid-template-columns:1fr 1fr;column-gap:40px}
+  #attBelow .att-row:nth-last-child(-n+2),#attGood .att-row{border-bottom:none}
+}
+
+/* ── ONE ACTION ───────────────────────────────────────────── */
+.action{border:2px solid var(--text);border-radius:var(--radius-card);background:var(--surface);padding:20px 18px}
+.action .tag{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.action h2{font-family:'Playfair Display',serif;font-weight:600;font-size:clamp(21px,5.6vw,27px);
+  line-height:1.25;margin-top:10px;max-width:50ch}
+.action .why{font-size:13px;color:var(--muted);margin-top:10px;max-width:62ch;line-height:1.6}
+.action .meta{display:grid;gap:12px;margin-top:var(--s2);padding-top:var(--s2);border-top:1px solid var(--border)}
+@media(min-width:640px){.action{padding:26px 28px}.action .meta{grid-template-columns:repeat(3,auto);gap:var(--s6);justify-content:start}}
+.action .meta div{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.action .meta b{display:block;font-size:15px;color:var(--text);font-weight:600;letter-spacing:0;text-transform:none;margin-top:4px}
+
+.fine{margin-top:var(--s6);padding-top:var(--s2);border-top:1px solid var(--border);
+  font-size:10.5px;color:var(--muted2);line-height:1.7;max-width:78ch}
+.fine b{color:var(--muted);font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-size:9.5px}
+.fine p+p{margin-top:10px}
 
 /* METRICS */
 .metric{
@@ -659,7 +958,11 @@ th:not(.sort-asc):not(.sort-desc).sortable::after{content:' ⇅';font-size:10px;
 
 .svc-date-inp,.svc-yr-sel{padding:7px 12px;border:1px solid var(--border);border-radius:18px;font-size:13px;color:var(--text);background:var(--surface);font-family:'Inter',sans-serif;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .2s}
 .svc-date-inp:focus,.svc-yr-sel:focus{border-color:var(--accent)}
-.svc-controls{display:flex;flex-wrap:wrap;gap:10px;padding:10px 28px 14px;align-items:flex-end;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;flex-shrink:0}
+/* Was position:sticky;top:0 back when each view had its own inner scroll area.
+   The page scrolls in the window now and the masthead is fixed over the top of
+   it, so a sticky bar here would park itself underneath the masthead and be
+   invisible exactly when it mattered. Static, and it scrolls with its view. */
+.svc-controls{display:flex;flex-wrap:wrap;gap:10px;padding:10px 0 14px;align-items:flex-end;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0;margin-bottom:8px}
 .svc-grid-2{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:16px}
 .svc-scroll-wrap{overflow-x:auto;overflow-y:visible;padding-bottom:12px}
 .svc-scroll-wrap::-webkit-scrollbar{height:6px}
@@ -673,11 +976,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
 @media(max-width:1100px){.top3-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){
-  header{padding:12px 18px}
-  .controls{padding:8px 18px;background:var(--bg);}
-  main{padding:18px 18px 40px}
-  .last-updated{display:none}
-  #headerDateRange{display:none}
+  main{padding:18px 0 40px}
 
   .top3-grid{grid-template-columns:1fr}
   .top3-grid-row2{grid-template-columns:1fr}
@@ -909,44 +1208,12 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 ══════════════════════════════════════════════════ -->
 <div id="dashboardWrap" style="display:none">
 
-<header>
-  <div class="logo">
-    <div class="logo-crop"><img id="headerLogoImg" src="assets/5.png"></div>
-    <div class="dash-label" id="headerSectionLabel">Dashboard Overview</div>
-  </div>
-  <div class="header-right">
-    <div class="last-updated" id="lastUpdated"></div>
-    <!-- Branch + date range, one toolbar — toggleFiltersBar() shows/hides this whole
-         group together; showView() shows it only for KPI Metrics/Team Performance,
-         same views #controls used to gate before Branch moved up here. Kate, 2026-08-04. -->
-    <div id="headerFilters" style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-      <div class="ms-wrap">
-        <button id="btn-branch" class="ms-btn" onclick="toggleDrop('branch')" style="padding:6px 10px;font-size:12px;min-width:110px">
-          <span id="lbl-branch">All Branches</span>
-        </button>
-        <div id="drop-branch" class="ms-drop"></div>
-      </div>
-      <div id="headerDateRange" style="display:flex;align-items:center;gap:6px">
-        <input type="date" id="dateRangeFrom" class="date-inp" style="padding:6px 8px;font-size:12px">
-        <span style="color:var(--muted);font-size:11px">–</span>
-        <input type="date" id="dateRangeTo" class="date-inp" style="padding:6px 8px;font-size:12px">
-        <button class="date-picker-apply" onclick="applyDateRange()" style="padding:6px 12px;font-size:10px">Apply</button>
-        <button class="date-picker-clear" onclick="clearDateRange()" style="padding:6px 10px;font-size:10px">Clear</button>
-      </div>
-    </div>
-    <button id="filtersToggleBtn" onclick="toggleFiltersBar()" style="border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:20px;padding:5px 12px;font-size:11px;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0">▾ Hide Filters</button>
-    <div class="toggle-wrap" onclick="toggleTheme()">
-      <span class="toggle-lbl" id="themeLbl">Dark</span>
-      <div class="toggle-track"><div class="toggle-thumb"></div></div>
-    </div>
-  </div>
-</header>
-<div class="scroll-progress"><div class="scroll-progress-fill" id="scrollProgressFill"></div></div>
+<!-- ══ MAIN NAV: fixed in the left gutter, collapsible ══ -->
+<div class="nav-scrim" id="navScrim" onclick="toggleNav(false)"></div>
+<button class="totop" id="toTop" onclick="backToTop()">↑ Top</button>
+<aside class="sidebar" id="sidebar" aria-label="Dashboards">
 
-<div class="layout">
-
-  <!-- SIDEBAR -->
- <aside class="sidebar">
+  <div class="nav-brand"><div class="mark"><img src="assets/5.png" alt="Tara Rose Ladies Salon"></div></div>
 
   <!-- Level 1 + 2: Dashboards -->
   <div class="nav-group">
@@ -976,8 +1243,8 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   </div>
 
   <!-- Logout button -->
-  <div class="nav-group" style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
-    <div class="nav-sub" onclick="doLogout()" style="display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px;letter-spacing:0.04em">
+  <div class="nav-out">
+    <div class="nav-sub" onclick="doLogout()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Log Out
     </div>
@@ -985,30 +1252,101 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
 </aside>
 
-  <!-- MAIN VIEW -->
-<div class="main-content" style="display:flex;flex-direction:column;">
+<!-- ══ MASTHEAD + FILTERS: fixed, height reserved by #topbarSpacer ══ -->
+<header class="topbar" id="topbar">
+  <div class="topbar-in">
+  <div class="mast">
+    <div class="mast-top">
+      <div>
+        <!-- headerLogoImg keeps its id: applyLogoForTheme() swaps 6.png (ink) and
+             5.png (paper) on this element, same as it always has. -->
+        <div class="mark mast-logo" onclick="backToTop()"><img id="headerLogoImg" src="assets/6.png" alt="Tara Rose Ladies Salon"></div>
+        <div class="mast-sub" id="headerSectionLabel">Organisation Pulse</div>
+      </div>
+      <div class="mast-acts">
+        <button class="tglr navbtn" id="navBtn" onclick="toggleNav()" aria-expanded="false" aria-controls="sidebar">Sections</button>
+        <button class="tglr" id="filtersBtn" onclick="toggleFiltersBar()" aria-expanded="true" aria-controls="filters">Hide filters</button>
+        <button class="tglr" id="themeBtn" onclick="toggleTheme()"><span id="themeLbl">Dark</span></button>
+      </div>
+    </div>
+    <div class="mast-rule">
+      <span id="mastBranch">All Branches</span>
+      <span id="mastRange"></span>
+      <!-- Feed freshness, written by renderFreshnessBadge() in dashboard.js. -->
+      <span class="mast-fresh" id="mastFresh"></span>
+    </div>
+  </div>
 
-  <!-- Branch + date range live in the header now (#headerFilters), shown only for
-       KPI Metrics/Team Performance via showView() — Kate, 2026-08-04. -->
+  <!-- ══ FILTERS ══ -->
+  <div class="filters-wrap" id="filtersWrap">
+  <div class="filters" id="filters">
+    <div class="f-row">
+      <span class="f-lbl" id="branchLbl">Branch</span>
+      <!-- Multi-select, like the dropdown it replaces: a branch chip toggles that
+           branch, "All Branches" resets. Painted by paintFilterChips(). -->
+      <div class="chipset" role="group" aria-labelledby="branchLbl" id="branchChips"></div>
+    </div>
+    <div class="f-row">
+      <span class="f-lbl" id="periodLbl">Period</span>
+      <div class="chipset" role="group" aria-labelledby="periodLbl" id="periodChips"></div>
+      <!-- Same two inputs as before, same ids, so applyDateRange()/clearDateRange()
+           are untouched. They only show once you pick Custom. -->
+      <div class="f-dates" id="customDates" hidden>
+        <input type="date" id="dateRangeFrom" aria-label="From">
+        <span>to</span>
+        <input type="date" id="dateRangeTo" aria-label="To">
+        <button class="date-picker-apply" onclick="applyDateRange()" style="padding:5px 12px;font-size:10px">Apply</button>
+        <button class="date-picker-clear" onclick="clearDateRange()" style="padding:5px 10px;font-size:10px">Clear</button>
+      </div>
+    </div>
+    <p class="f-note" id="filterNote" hidden></p>
+  </div>
+  </div>
+  </div>
+</header>
 
-  <!-- SCROLLABLE CONTENT AREA -->
-  <div id="mainScrollArea" style="flex:1;overflow-y:auto;overflow-x:hidden;">
+<div class="wrap" id="wrap">
+
+  <div id="topbarSpacer"></div>
+
+  <!-- SCROLLABLE CONTENT AREA — the window scrolls now, not this box. The id
+       stays because updateScrollProgress() and showView() both look for it. -->
+  <div id="mainScrollArea">
 
   <!-- DASHBOARD -->
   <div id="view-dashboard">
-    <div class="dash-hero" style="display:flex;align-items:flex-start;gap:36px">
-      <div style="flex:1;min-width:0">
-        <div class="section-label" data-scrollspy="Organisation Pulse">Organisation Pulse</div>
-        <h1 class="dash-hero-title">Here's how <em id="heroPeriodPhrase">the week</em> <span id="heroPeriodVerb">is shaping up</span><span id="heroBranchScope"></span>.</h1>
-        <div id="heroBranchList" style="font-family:'Inter',sans-serif;font-size:11.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-top:16px"></div>
-        <div id="heroStatusStatement" class="dash-hero-status"></div>
-        <div id="heroPerfOverview" style="margin-top:22px"></div>
+
+    <!-- ══ HERO: the cover. Every line here is written by renderDashboard(). ══ -->
+    <div class="hero">
+      <div>
+        <h1 id="pulseHeadline">Reading the numbers…</h1>
+        <p class="deck" id="pulseDeck"></p>
+        <p class="standfirst" id="pulseStandfirst"></p>
+        <button type="button" class="hero-cta" id="revealBtn" onclick="reveal()"
+                aria-expanded="false" aria-controls="shell">See the full details <span aria-hidden="true">↓</span></button>
       </div>
-      <div id="heroReceipt" class="hero-receipt"></div>
+      <aside class="receipt" id="heroReceipt"></aside>
     </div>
-    <main id="mainContent">
-      <div class="loading">Loading data...</div>
-    </main>
+
+    <!-- ══ BODY: index rail + the document ══ -->
+    <div class="shell" id="shell">
+      <aside class="side">
+        <nav class="side-nav" aria-label="On this page">
+          <div class="side-k">On this page</div>
+          <a href="#s-three">Headline three</a>
+          <a href="#s-read">Hair vs Beauty</a>
+          <a href="#s-wins">Wins</a>
+          <a href="#s-perf">Performance</a>
+          <a href="#s-below">Below target</a>
+          <a href="#s-working">Working</a>
+          <a href="#s-action">Do this</a>
+          <a href="#s-detail">The detail</a>
+        </nav>
+      </aside>
+      <div class="doc" id="mainContent">
+        <div class="loading">Loading data...</div>
+      </div>
+    </div>
   </div>
 
   <!-- TEAM PERFORMANCE -->
@@ -1025,7 +1363,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   </div>
 
   <!-- SERVICES -->
-  <div id="view-services" style="display:none;display:none;flex-direction:column;height:100%">
+  <div id="view-services" style="display:none">
     <div class="svc-controls" id="svc-controls">
       <div class="ctrl-group">
         <div class="ctrl-label">Year</div>
@@ -1059,15 +1397,13 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
         </div>
       </div>
     </div>
-    <div style="flex:1;overflow-y:auto;overflow-x:hidden">
-      <main style="max-width:1400px;margin:0 auto;padding:10px 28px 48px">
-        <div id="svc-content"><div class="loading">Loading service data...</div></div>
-      </main>
-    </div>
+    <main style="padding:10px 0 48px">
+      <div id="svc-content"><div class="loading">Loading service data...</div></div>
+    </main>
   </div>
 
   <!-- CLIENTS -->
-  <div id="view-clients" style="display:none;flex-direction:column;height:100%">
+  <div id="view-clients" style="display:none">
     <div class="svc-controls" id="cli-controls">
       <div class="ctrl-group">
         <div class="ctrl-label">Year</div>
@@ -1094,11 +1430,9 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
         <input type="date" id="cli-date-to" class="svc-date-inp" value="2026-05-31" onchange="onCliFiltersChange()">
       </div>
     </div>
-    <div style="flex:1;overflow-y:auto;overflow-x:hidden">
-      <main style="max-width:1400px;margin:0 auto;padding:10px 28px 48px">
-        <div id="cli-content"><div class="loading">Loading client data...</div></div>
-      </main>
-    </div>
+    <main style="padding:10px 0 48px">
+      <div id="cli-content"><div class="loading">Loading client data...</div></div>
+    </main>
   </div>
 
   <!-- REVIEWS -->
@@ -1133,21 +1467,9 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
     </iframe>
   </div>
 
-  </div><!-- end scrollable content area -->
+  </div><!-- end #mainScrollArea -->
 
-</div>
-
-
-</div>
-
-  
-</div>
-    
-    </div>
-    
-  </div>
-
-</div>
+</div><!-- end .wrap -->
 
 
 <footer style="text-align:center;">
@@ -1170,8 +1492,8 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 <script src="upload/name-aliases.js?v=20260812b"></script>
 <script src="staff-profiles.js?v=20260812e"></script>
 <script src="stylist-cards.js?v=20260812d"></script>
-<script src="dashboard.js?v=20260813c"></script>
-<script src="pulse-narrative.js?v=20260812a"></script>
+<script src="dashboard.js?v=20260814a"></script>
+<script src="pulse-narrative.js?v=20260814a"></script>
 <script>
 
 // ── PASSWORD GATE ────────────────────────────────────────────
@@ -1274,10 +1596,25 @@ function showView(view, el){
 
   const target=document.getElementById('view-'+view);
   if(!target){ showView('dashboard', document.querySelector('[onclick*="dashboard"]')); return; }
-  target.style.display = (view === 'services' || view === 'clients') ? 'flex' : 'block';
+  // Every view is a plain block now. Services and Clients used to be flex columns
+  // with height:100% because they lived inside an inner scroll area that no longer
+  // exists — in a document-scrolled page that collapsed them to nothing.
+  target.style.display = 'block';
 
-  const headerFilters = document.getElementById('headerFilters');
-  if (headerFilters) headerFilters.style.display = (view === 'dashboard' || view === 'team') ? 'flex' : 'none';
+  // Only KPI Metrics and Team Performance read the branch + period filters, so
+  // the filter line only exists for those two. Same rule the old header toolbar
+  // used, applied to the chip row that replaced it.
+  const usesFilters = (view === 'dashboard' || view === 'team');
+  const filtersWrap = document.getElementById('filtersWrap');
+  const filtersBtn  = document.getElementById('filtersBtn');
+  if (filtersWrap) filtersWrap.style.display = usesFilters ? '' : 'none';
+  if (filtersBtn)  filtersBtn.style.display  = usesFilters ? '' : 'none';
+
+  // The cover is the KPI page's own device. Every other view is just a page, so
+  // the "back to top" button and the reveal state travel with the dashboard only.
+  document.body.classList.toggle('kpi-view', view === 'dashboard');
+  const wrap = document.getElementById('wrap');
+  if (wrap) wrap.classList.toggle('cover-only', view === 'dashboard');
 
   if (view === 'team' && allData.length) renderTeam();
   if (view === 'stylists') renderStylistCards();
@@ -1288,14 +1625,153 @@ function showView(view, el){
   document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active'));
   if (el) el.classList.add('active');
 
-  // scroll to top + reset the header pill to this view's section (scrollspy
-  // takes over from there for 'dashboard', which has its own sub-sections)
   window.scrollTo(0, 0);
-  const scrollArea = document.getElementById('mainScrollArea');
-  if (scrollArea) scrollArea.scrollTop = 0;
-  setHeaderSectionLabel(VIEW_SECTION_LABELS[view] || 'Dashboard Overview');
-  updateScrollProgress();
+  setHeaderSectionLabel(VIEW_SECTION_LABELS[view] || 'Organisation Pulse');
+  sizeTopbar();
+  spy();
 }
+
+/* ══════════════════════════════════════════════════════════════
+   SHELL BEHAVIOUR — ported verbatim from the v3 draft
+   (`add ons/organisation-pulse-v3-sample.html`). The comments are the
+   reasoning; they are here because each of these was a bug first.
+   ══════════════════════════════════════════════════════════════ */
+
+// ── MAIN NAV ────────────────────────────────────────────────
+// Open by default only where the gutter can actually hold the panel. Narrower
+// than that it would sit on top of the document, and a panel that covers what
+// you came to read should be something you asked for, not the default.
+const NAV_FITS = matchMedia('(min-width:1600px)');
+function toggleNav(force){
+  const open = force === undefined ? !document.body.classList.contains('nav-open') : force;
+  document.body.classList.toggle('nav-open', open);
+  const b = document.getElementById('navBtn');
+  if (b) {
+    b.textContent = open ? 'Hide sections' : 'Sections';
+    b.setAttribute('aria-expanded', String(open));
+  }
+}
+toggleNav(NAV_FITS.matches);
+NAV_FITS.addEventListener('change', e => toggleNav(e.matches));
+// Anything that covers the page has to be dismissible from the keyboard.
+addEventListener('keydown', e => { if(e.key === 'Escape') toggleNav(false); });
+// A jump from the nav has done its job the moment it lands, so on any width
+// where the panel sits over the content, close it behind you.
+document.querySelector('aside.sidebar').addEventListener('click', e => {
+  if (!e.target.closest('.nav-sub')) return;
+  if (!NAV_FITS.matches) toggleNav(false);
+});
+
+// ── OPENING THE DOCUMENT ────────────────────────────────────
+// The page arrives as a cover and the body is not in the layout at all, so
+// nothing peers up from below it. Pressing the way in puts it there, re-measures
+// the bar in case the reveal changed anything, and takes you to the first
+// section. Idempotent: pressing it again just scrolls.
+function reveal(){
+  const first = !document.body.classList.contains('revealed');
+  document.body.classList.add('revealed');
+  const btn = document.getElementById('revealBtn');
+  if (btn) btn.setAttribute('aria-expanded','true');
+  if(first) sizeTopbar();
+  const el = document.getElementById('s-three') || document.getElementById('mainContent');
+  const smooth = !matchMedia('(prefers-reduced-motion:reduce)').matches;
+  if (el) el.scrollIntoView({behavior: smooth ? 'smooth' : 'auto', block:'start'});
+  spy();
+}
+// A fresh load is always the cover, hash or no hash. Auto-opening on a hash
+// sounded right for deep links, but the hash sticks to the tab after any click
+// in the index, so every reload skipped straight past the cover and it looked
+// like the whole thing had never worked.
+if(location.hash){
+  try{ history.replaceState(null, '', location.pathname + location.search); }
+  catch(e){ /* the cover still shows */ }
+}
+
+// The wordmark is the other way back, same as any masthead.
+function backToTop(){
+  scrollTo({top:0, behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth'});
+}
+
+// ── THE TOP BAR ─────────────────────────────────────────────
+// Reserve the bar's FULL height once, and only re-measure on things that
+// legitimately change it: a resize, a view switch, or the user opening/closing
+// the filters. Never on scroll, which is what made it shake.
+//
+// CONDENSE_AT is the collapse distance, not an arbitrary few pixels. The spacer
+// holds the full height, so a bar that condensed immediately would leave a band
+// of bare background between itself and the hero. Waiting exactly as far as it
+// is about to shrink means the hero arrives at the condensed bar's bottom edge
+// on the same frame, and the seam never opens.
+let CONDENSE_AT = 24;
+function sizeTopbar(){
+  const TOPBAR = document.getElementById('topbar');
+  const SPACER = document.getElementById('topbarSpacer');
+  if (!TOPBAR || !SPACER) return;
+  TOPBAR.classList.add('measuring');                       // no mid-animation reads
+  TOPBAR.classList.remove('stuck');
+  const full = TOPBAR.getBoundingClientRect().height;
+  SPACER.style.height = full + 'px';
+  // The cover sizes itself against the real bar, not a guess.
+  document.documentElement.style.setProperty('--topbar-h', full + 'px');
+  TOPBAR.classList.add('stuck');
+  const condensed = TOPBAR.getBoundingClientRect().height;
+  CONDENSE_AT = Math.max(8, Math.round(full - condensed));
+  TOPBAR.classList.toggle('stuck', scrollY > CONDENSE_AT);
+  TOPBAR.getBoundingClientRect();                          // flush before re-arming
+  TOPBAR.classList.remove('measuring');
+}
+addEventListener('resize', sizeTopbar);
+
+// ── SIDEBAR SCROLLSPY ───────────────────────────────────────
+// Marks the last section whose heading has passed the reading line, so the rail
+// says where you are rather than what is merely on screen. Passive listener,
+// plain rect maths, no observer to keep in sync with the DOM. Re-read on every
+// call because renderDashboard() rewrites the document under it.
+function spy(){
+  const TOPBAR = document.getElementById('topbar');
+  const TOTOP  = document.getElementById('toTop');
+  if (TOPBAR) TOPBAR.classList.toggle('stuck', scrollY > CONDENSE_AT);
+
+  const onKpi = document.body.classList.contains('kpi-view');
+  if (TOTOP) TOTOP.classList.toggle('on', onKpi && scrollY > innerHeight * 0.9);
+
+  const NAV = [...document.querySelectorAll('.side-nav a')];
+  if (!NAV.length) return;
+  // Closed cover: the sections are out of the layout, so their rects are all
+  // zero and any reading below this would light up the wrong link.
+  if(!document.body.classList.contains('revealed')){
+    NAV.forEach(a => a.classList.remove('on'));
+    return;
+  }
+  const SECS = NAV.map(a => document.getElementById(a.getAttribute('href').slice(1)));
+  let live = 0;
+  SECS.forEach((s,i) => { if(s && s.getBoundingClientRect().top <= 132) live = i; });
+  // The last heading sits above the fine print, so at full scroll its top never
+  // reaches the reading line and "Do this" could never light up. At the bottom of
+  // the page the bottom section is the one you are on, so say so.
+  if(innerHeight + Math.ceil(scrollY) >= document.documentElement.scrollHeight - 2) live = NAV.length - 1;
+  NAV.forEach((a,i) => a.classList.toggle('on', i === live));
+}
+addEventListener('scroll', spy, {passive:true});
+addEventListener('resize', spy);
+
+// Phone gets the story first. Stacked, the filter line is a block of controls
+// sitting on top of the headline, so it starts closed and is one tap away.
+// Desktop keeps it open: there it costs one line. Set directly rather than
+// through toggleFiltersBar(), so the opening frame is already closed and the
+// spacer is measured once, instead of animating and resizing 320ms after load.
+if(matchMedia('(max-width:700px)').matches){
+  document.getElementById('filtersWrap').classList.add('closed');
+  const fb = document.getElementById('filtersBtn');
+  fb.textContent = 'Show filters';
+  fb.setAttribute('aria-expanded','false');
+}
+
+sizeTopbar();
+spy();
+// The wordmark is an image, so the bar can settle a pixel or two after it
+// decodes. One re-measure on load, then never again except on resize.
+addEventListener('load', sizeTopbar);
 
 </script>
 </body>
