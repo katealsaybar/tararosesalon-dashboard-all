@@ -176,11 +176,26 @@ function paintFilterChips() {
     })),
   ]);
 
+  // The three Ledgers pages hold the ledger's own window — last month against this
+  // month, month to date — because every column of that sheet is meaningless
+  // against an arbitrary date range. So the Period chips go dead there and say so,
+  // rather than being live controls that change nothing. The Branch chips still
+  // work: it is only the period those pages fix. Kate, 2026-08-14.
+  const onLedger = LEDGER_VIEWS.has(CURRENT_VIEW);
   const active = activePeriodKey();
-  pEl.innerHTML = chipRow(periodPresets().map(p => ({ v: p.k, label: p.k, on: p.k === active })));
+  pEl.innerHTML = chipRow(periodPresets().map(p => ({
+    v: p.k, label: p.k, on: !onLedger && p.k === active, disabled: onLedger })));
+
+  const note = document.getElementById('filterNote');
+  if (note) {
+    note.hidden = !onLedger;
+    if (onLedger) note.textContent =
+      'The Ledgers pages read the ledger month — last month’s actuals against this month’s target, month to date. '
+      + 'Use Split on the page for MTD, weekly or daily columns. Branch still filters.';
+  }
 
   const custom = document.getElementById('customDates');
-  if (custom) custom.hidden = active !== 'Custom';
+  if (custom) custom.hidden = onLedger || active !== 'Custom';
   const fromInp = document.getElementById('dateRangeFrom');
   const toInp   = document.getElementById('dateRangeTo');
   if (fromInp) fromInp.value = dateToIso(dateFrom);
@@ -565,6 +580,12 @@ const FILTERED_VIEWS = new Set([
   'services','clients',
 ]);
 
+// Of those, the ones that take the Branch filter but fix the period to the ledger
+// month. paintFilterChips() greys the Period chips out on these; branch-ledger.js
+// explains why they have to. Branch Performance is deliberately absent — it reads
+// both filters like any other page.
+const LEDGER_VIEWS = new Set(['ledgerTargets','ledgerActuals','ledgerStylist']);
+
 let CURRENT_VIEW = 'dashboard';
 
 // Re-render whatever is actually on screen after a filter change.
@@ -906,7 +927,15 @@ function renderStylistCards() {
     return;
   }
   renderStylistBranchNav();
-  const sections = stylistBranchGroups().map(({ branch: b, colour, label, list }) => {
+  // The same "On this page" rail the Ledgers pages carry — Kate, 2026-08-14. The
+  // sidebar's branch list is one nav level up and scrolls away with the sidebar;
+  // this one sits in the page's own gutter and lights the branch you are reading.
+  // It jumps through jumpToStylistBranch() rather than lgJump(), because this page
+  // has a sticky density bar to clear on top of the masthead.
+  const groups = stylistBranchGroups();
+  const rail = groups.map(g =>
+    [`scBranch-${g.branch}`, g.label, `event.preventDefault();jumpToStylistBranch('${g.branch}')`]);
+  const sections = groups.map(({ branch: b, colour, label, list }) => {
     const cards = list.map(s => {
       const nameHtml = s.ig
         ? `<a href="https://instagram.com/${encodeURIComponent(s.ig)}" target="_blank" rel="noopener noreferrer"
@@ -981,7 +1010,8 @@ function renderStylistCards() {
     <div style="font-size:13.5px;color:var(--muted);margin:8px 0 4px;max-width:760px">
       The hair team across all four branches. Names link to Instagram.
     </div>
-    ${sections}`;
+    ${typeof lgShell === 'function' ? lgShell(rail, sections) : sections}`;
+  if (typeof spy === 'function') spy();
 }
 
 function setHeaderSectionLabel(text) {
@@ -2487,6 +2517,44 @@ async function renderDashboard() {
       : 'No scored targets for this selection.';
   }
   if (deckEl) deckEl.textContent = `Here's how ${phr.phrase} ${phr.verb} ${phr.scope}.`;
+
+  // ── THE TARGET STRIP ───────────────────────────────────────
+  // Kate, 2026-08-14: the headline claims "1 of 6 targets hit" and the six were
+  // three screens down, behind a button. They are on the cover now — every scored
+  // benchmark, named, one bar each, worst first so the strip reads in the same
+  // order as the sentence above it.
+  //
+  // Same benchRows the headline and the Below-target list are built from, so the
+  // three cannot disagree. The fuller version — hair and beauty split out per
+  // benchmark — is still inside, under Below target and Working.
+  const stripEl = document.getElementById('heroTargets');
+  if (stripEl) {
+    // One bar cut into as many segments as there are scored targets, lit for the
+    // ones hit. The headline says "1 of 6"; this is that same 1 of 6 as a shape
+    // you can read without counting. Hits first, so the lit run is unbroken —
+    // a lit-gap-lit pattern reads as a sequence rather than a score.
+    const strip = [...hitRows, ...lowRows];
+    // One builder, two sizes: the cover carries the names under each segment, the
+    // rail is 240px wide and carries the segments alone. Same rows, same order,
+    // so the two can never show a different score.
+    const segHtml = withLabels => `
+      <div class="ht-k">${hitRows.length} of ${benchRows.length} targets reached</div>
+      <div class="ht-seg">
+        ${strip.map(r => {
+          const pct = Math.round(r.att * 100);
+          return `<span class="ht-cell${r.att >= 1 ? ' on' : ''}"
+            title="${escapeHtml(r.name.replace(/\s*%$/, ''))}: ${r.fmt(r.combined)} of ${r.fmt(r.target)} · ${pct}%">
+            <span class="ht-bar"></span>
+            ${withLabels ? `<span class="ht-lbl">${escapeHtml(r.name.replace(/\s*%$/, '').replace(/ Avg Bill$/, ' bill'))}</span>` : ''}
+          </span>`;
+        }).join('')}
+      </div>`;
+
+    stripEl.innerHTML = !strip.length ? '' : segHtml(true);
+
+    const sideEl = document.getElementById('sideTargets');
+    if (sideEl) sideEl.innerHTML = !strip.length ? '' : segHtml(false);
+  }
 
   if (standfirstEl) {
     const hairShare   = shareOf(hairNetSalonTake, s.netTake);

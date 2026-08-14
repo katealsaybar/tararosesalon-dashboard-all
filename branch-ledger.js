@@ -21,10 +21,20 @@
 
    THE ONE THING TO UNDERSTAND BEFORE EDITING: the ledger's targets are MONTHLY,
    and this dashboard's filters are an arbitrary date window. Comparing a
-   fortnight's takings to a month's target reads as catastrophic failure. So the
-   target columns appear only when the selected window is inside the month
-   LEDGER_TARGETS holds, and otherwise the pages say why they are absent rather
-   than printing a number that means nothing. See lgTargetContext().
+   fortnight's takings to a month's target reads as catastrophic failure.
+
+   The three Ledgers pages settle that by not reading the filter at all. They are
+   the sheet, so they hold the sheet's window — last month's actuals against this
+   month's target, month to date — and the Period chips are greyed out while you
+   are on them. The Split chips (MTD · Weekly · Daily) choose how finely the actual
+   is cut, and cut columns only: the target and the variance are the same figures
+   in all three. See lgLedgerContext() and lgSplit().
+
+   Branch Performance is the page that DOES follow the filter, and it still needs
+   the old guard: target columns appear only when the window sits inside the month
+   LEDGER_TARGETS holds, and otherwise it says why they are absent rather than
+   printing a number that means nothing. That is lgTargetContext(), and it is the
+   only caller left. Kate, 14 Aug 2026.
    ============================================================ */
 
 // ── FORMATTERS ───────────────────────────────────────────────
@@ -76,6 +86,105 @@ function lgRangeLabel() {
   return (dateFrom && dateTo) ? `${shortD(dateFrom)} – ${shortD(dateTo)}` : 'all data loaded';
 }
 
+// ── COLUMN GRAIN: MTD · WEEKLY · DAILY ───────────────────────
+// Kate, 14 Aug 2026. The three Ledgers pages all read one window — last month's
+// actuals against this month's target, month to date — because that is what her
+// sheet is and every column of it only means something against a fixed month.
+// The one question left is how finely the actual is cut, and that is this.
+//
+// COLUMNS ONLY, and that is the whole contract. Last Month, the target and
+// Variance are the same figures in all three modes; switching grain adds or
+// removes the split columns in the middle and changes nothing that could make a
+// branch read as behind. Pro-rating a monthly target down to a day is a different
+// feature and would need its own thinking — this is not it.
+//
+// Replaces the old "Show week columns" button, which sat on one table, hid the
+// columns rather than never rendering them, and could not offer days at all.
+let lgGrain = 'mtd';
+try {
+  const g = localStorage.getItem('lgGrain');
+  if (g === 'weekly' || g === 'daily') lgGrain = g;
+} catch (e) { /* private mode — the default is fine */ }
+
+const LG_GRAINS = [['mtd', 'MTD'], ['weekly', 'Weekly'], ['daily', 'Daily']];
+
+function lgSetGrain(g) {
+  if (g === lgGrain || !LG_GRAINS.some(x => x[0] === g)) return;
+  lgGrain = g;
+  try { localStorage.setItem('lgGrain', g); } catch (e) { /* ignore */ }
+  // Repaint whichever ledger page is on screen. Not refreshActiveView(): the data
+  // is already in window._lgSeries, so this is a re-render, not a re-fetch.
+  const vis = id => { const n = document.getElementById('view-' + id); return n && n.style.display !== 'none'; };
+  if (vis('ledgerTargets')) renderLedgerTargets();
+  if (vis('ledgerActuals')) renderLedgerActuals();
+  if (vis('ledgerStylist')) renderLedgerStylist();
+}
+
+// The chip row, in the masthead filters' own idiom so it reads as a filter and
+// not as a widget: same .chip class, same middot separators, same pressed state.
+// The delegated handler in dashboard.js only claims #branchChips and #periodChips,
+// so these carry their own onclick.
+function lgGrainRow() {
+  return `<div class="lg-grain">
+    <span class="lg-grain-k">Split</span>
+    <div class="chipset" role="group" aria-label="Column grain">
+      ${LG_GRAINS.map(([k, label], i) =>
+        (i ? '<span class="sep">·</span>' : '') +
+        `<button type="button" class="chip" aria-pressed="${k === lgGrain}"
+           onclick="lgSetGrain('${k}')">${label}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+// Which columns the current grain puts between the target and the MTD total.
+// `key` indexes the buckets lgSeries() builds, so the cells and the headers can
+// never drift apart — both come from here.
+function lgSplit(series) {
+  const w = series.windows;
+  if (lgGrain === 'weekly') {
+    return { key: 'weeks', windows: w.weeks,
+      head: (x, i) => `<span class="lg-wk-k">Week ${String(i).padStart(2, '0')}</span>${x.label}` };
+  }
+  if (lgGrain === 'daily') {
+    return { key: 'days', windows: w.days,
+      head: x => `<span class="lg-wk-k">${x.dow}</span>${x.label}` };
+  }
+  return { key: null, windows: [], head: () => '' };
+}
+
+// A grand total across a branch selection, built from the components the
+// benchmark ratios divide rather than from the ratios themselves — an average of
+// four branches' rebooking rates is not the group's rebooking rate. Comes out
+// identical to series.group when every branch is selected.
+function lgRollup(list) {
+  const t = {
+    servicesTotal:0, retailTotal:0, hairServicesIncl:0, hairRetailOnly:0, treatmentSales:0,
+    beautyServicesTotal:0, hairTotalClients:0, beautyTotalClients:0,
+    totalClients:0, newClientsTotal:0, ncrTotal:0, totalRebooked:0, beautyRebookedCount:0,
+  };
+  const keys = Object.keys(t);
+  (list || []).filter(Boolean).forEach(s => keys.forEach(k => { t[k] += Number(s[k]) || 0; }));
+  t.hairServicesExcl = t.hairServicesIncl - t.treatmentSales;
+  t.rebookPct     = t.totalClients       ? t.totalRebooked / t.totalClients * 100        : null;
+  t.hairAvgBill   = t.hairTotalClients   ? t.hairServicesIncl / t.hairTotalClients       : null;
+  t.beautyAvgBill = t.beautyTotalClients ? t.beautyServicesTotal / t.beautyTotalClients  : null;
+  return t;
+}
+
+// One row's worth of split cells. `pick` reads a summary; nulls are days the
+// branch was shut or has not reached yet, and print as a dash rather than 0.
+function lgSplitCells(series, bucket, pick, fmt) {
+  const sp = lgSplit(series);
+  if (!sp.key) return [];
+  const cells = bucket && bucket[sp.key] ? bucket[sp.key] : [];
+  return sp.windows.map((x, i) => {
+    const s = cells[i];
+    if (!s) return '—';
+    const v = pick(s);
+    return v == null ? '—' : fmt(v);
+  });
+}
+
 // Do the ledger's monthly targets apply to the window on screen?
 //
 // They apply only if the window sits inside the month the targets were written
@@ -112,6 +221,33 @@ function lgIsMonthEnd(d) {
   return d.getDate() === t.getDate();
 }
 
+// The same thing for the three Ledgers pages, which do NOT read the page filter.
+//
+// lgTargetContext() above exists to protect the filter-driven pages from reading a
+// fortnight against a month's target. The Ledgers pages have no such problem:
+// their window IS the ledger month by construction — last month's actuals, this
+// month's target, month to date — so the target always applies and there is
+// nothing to warn about. They used to call lgTargetContext() anyway, which is why
+// Actuals vs Targets printed "target, variance and % done are hidden" in a warning
+// stripe directly above a table showing all three. Same shape as the other
+// context so lgHeader() takes either.
+function lgLedgerContext(series) {
+  const w = series.windows;
+  const through = w.days.length ? w.days[w.days.length - 1].to : null;
+  return {
+    applies: true,
+    label: w.month.label,
+    // The window these pages actually cover, for lgHeader's standing line. Without
+    // it the line printed lgRangeLabel() — the filter's range — on three pages that
+    // do not read the filter, which is the same lie the warning stripe used to tell.
+    rangeLabel: `${shortD(w.prev.from)} – ${shortD(through || w.month.to)}`,
+    note: `${w.prev.label} actuals against the full ${w.month.label} target`
+      + (through ? `, month to date to ${shortD(through)}` : '')
+      + `. % done is raw progress through the target, not paced against days elapsed — the same way the ledger reads it. `
+      + `The Period chips do not apply on the Ledgers pages: all three read the ledger month, and Split above chooses how finely the actual is cut.`,
+  };
+}
+
 // The summary for the current selection. renderDashboard() computes and caches
 // it on window._lastDashState; these pages never re-aggregate, so the numbers
 // cannot disagree with the Pulse's.
@@ -123,23 +259,23 @@ async function lgSummary() {
 }
 
 // ── TABLE ────────────────────────────────────────────────────
-// cols: [{ label, align, w, wk }]  ·  rows: [[cell, cell, …]] or {group:'Label'}
+// cols: [{ label, align, w }]  ·  rows: [[cell, …]] or {group:'Label', id?} or {total:[…]}
 //
-// A column marked `wk` is one of the sheet's week columns. Those are folded away
-// by default and opened by the toggle `opts.weeks` renders: six extra columns are
-// the difference between a table you can read and one you have to scroll, and on
-// most days the question is "where are we against the month", not "what happened
-// in week two". The cells are always in the DOM, only hidden, so opening them
-// costs nothing and the column stays aligned with its header.
+// The sheet's week columns used to be built here, always in the DOM and hidden by
+// a toggle. They are lgSplit()'s job now — the Split chips decide whether the
+// middle of the table is nothing, five weeks or a column per day, and the columns
+// are rendered only when they are asked for.
 function lgTable(cols, rows, opts) {
   const o = opts || {};
-  const cls = i => [cols[i] && cols[i].align === 'r' ? 'r' : '', cols[i] && cols[i].wk ? 'lg-wk' : '']
-    .filter(Boolean).join(' ');
+  const cls = i => (cols[i] && cols[i].align === 'r') ? 'r' : '';
   const head = cols.map((c, i) =>
     `<th class="${cls(i)}" ${c.w ? `style="width:${c.w}"` : ''}>${c.label}</th>`).join('');
   const body = rows.map(r => {
     if (r && r.group) {
-      return `<tr class="lg-grp"><td colspan="${cols.length}">${r.group}</td></tr>`;
+      // `id` makes a group row a rail destination. Daily Stylist Target is one
+      // long table rather than a stack of sections, so its branch·department
+      // headings are the only thing there is to jump to.
+      return `<tr class="lg-grp"${r.id ? ` id="${r.id}"` : ''}><td colspan="${cols.length}">${r.group}</td></tr>`;
     }
     const cells = (r && r.total) ? r.total : r;
     const rowCls = (r && r.total) ? ' class="lg-tot"' : '';
@@ -151,13 +287,8 @@ function lgTable(cols, rows, opts) {
   // banding on her sheet is there to prevent.
   const groupRow = o.groups ? `<tr class="lg-band">${o.groups.map(g =>
     `<th colspan="${g.span}" class="${g.label ? '' : 'lg-band-x'}">${g.label || ''}</th>`).join('')}</tr>` : '';
-  const table = `<div class="lg-wrap"><table class="lg tabular${o.compact ? ' lg-compact' : ''}">
+  return `<div class="lg-wrap"><table class="lg tabular${o.compact ? ' lg-compact' : ''}">
     <thead>${groupRow}<tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
-  if (!o.weeks) return table;
-  return `<div class="lg-weeks">
-    <button type="button" class="lg-wk-btn" aria-expanded="false" onclick="lgToggleWeeks(this)">Show week columns</button>
-    ${table}
-  </div>`;
 }
 
 // The collapsible shell, reusing Organisation Pulse's own section chrome so these
@@ -180,9 +311,11 @@ function lgSection(id, dotColor, title, subtitle, bodyHtml) {
 // Every page opens with the same standing line: what you are looking at, over
 // what window, and whether targets are in play.
 function lgHeader(title, standfirst, ctx) {
+  // ctx.rangeLabel is the Ledgers pages saying "this is my window, not the filter's".
+  // Everything else falls back to the filter, which is what it is reading.
   return `
     <div class="lg-head">
-      <div class="lg-head-k">${escapeHtml(lgBranchLabel())} · ${escapeHtml(lgRangeLabel())}</div>
+      <div class="lg-head-k">${escapeHtml(lgBranchLabel())} · ${escapeHtml(ctx.rangeLabel || lgRangeLabel())}</div>
       <h1>${title}</h1>
       <p class="lg-stand">${standfirst}</p>
       <p class="lg-note ${ctx.applies ? '' : 'off'}">${ctx.applies ? '✦ ' : '⚠ '}${ctx.note}</p>
@@ -193,17 +326,46 @@ function lgEmpty(msg) {
   return `<div class="empty">${msg}</div>`;
 }
 
-// The "on this page" rail, the same device Organisation Pulse uses. These pages
-// are long — five branch sections on Actuals vs Targets — and a page you can
-// only navigate by scrolling is a page you stop reading halfway down.
-// Pass [[sectionId, label], …]; the ids are the same ones lgSection() renders.
+// The "on this page" rail — Organisation Pulse's own side rail, not a lookalike.
+// Same .side-nav markup and the same classes, so it inherits the Pulse's type,
+// spacing and lit-state, and spy() in index.html lights the section you are in.
+//
+// Kate, 14 Aug 2026: it used to be a row of chips, on the reasoning that these
+// pages have no side gutter. They have one now above 1400px — see .lg-shell — and
+// below that the same links lie back down into the chip row. One markup, because
+// two would drift.
+//
+// Pass [[id, label, jump?], …]. `id` is either a collapsible section's own id
+// (lgSection renders it as sec-<id>) or an id already in the document, which is how
+// the stylist table's branch rows are reached — lgAnchor() resolves both, and so
+// does spy(). `jump` overrides the click handler for a page that already knows how
+// to scroll itself: Stylist Cards has a sticky density bar to clear as well as the
+// masthead, and jumpToStylistBranch() is where that arithmetic lives.
+//
+// Not ledger-only despite the lg- prefix: Stylist Cards uses this too. If a third
+// page outside the ledger wants one, this pair is worth moving to dashboard.js.
 function lgRail(items) {
   if (!items || !items.length) return '';
-  return `<nav class="lg-rail" aria-label="On this page">
-    <span class="lg-rail-k">On this page</span>
-    ${items.map(([id, label]) =>
-      `<a href="#${id}" onclick="lgJump(event,'${id}')">${escapeHtml(label)}</a>`).join('')}
-  </nav>`;
+  return `<aside class="lg-side">
+    <nav class="side-nav" aria-label="On this page">
+      <div class="side-k">On this page</div>
+      ${items.map(([id, label, jump]) =>
+        `<a href="#${id}" onclick="${jump || `lgJump(event,'${id}')`}">${escapeHtml(label)}</a>`).join('')}
+    </nav>
+  </aside>`;
+}
+
+// Rail in the gutter, page beside it. The header, the note and the Split chips
+// stay full width above this — they describe the whole page, so indenting them
+// into the document column would leave the rail floating beside nothing.
+function lgShell(railItems, bodyHtml) {
+  return `<div class="lg-shell">${lgRail(railItems)}<div class="lg-doc">${bodyHtml}</div></div>`;
+}
+
+// What a rail entry points at: a collapsible section if there is one, otherwise an
+// id that is already in the document. spy() resolves the same two ways.
+function lgAnchor(id) {
+  return document.getElementById('sec-' + id) || document.getElementById(id);
 }
 
 // Scroll to a section, opening it first if it is collapsed — a rail link that
@@ -212,13 +374,13 @@ function lgRail(items) {
 // reading the DOM. The masthead is fixed, hence the offset.
 function lgJump(e, id) {
   if (e) e.preventDefault();
-  const sec = document.getElementById('sec-' + id);
-  if (!sec) return;
-  if (typeof sectionState !== 'undefined' && !sectionState[id]
-      && typeof toggleSection === 'function') toggleSection(id);
+  const el = lgAnchor(id);
+  if (!el) return;
+  if (document.getElementById('sec-' + id) && typeof sectionState !== 'undefined'
+      && !sectionState[id] && typeof toggleSection === 'function') toggleSection(id);
   const bar = parseInt(getComputedStyle(document.documentElement)
     .getPropertyValue('--topbar-cond-h'), 10) || 104;
-  window.scrollTo({ top: sec.getBoundingClientRect().top + window.scrollY - bar - 8, behavior: 'smooth' });
+  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - bar - 8, behavior: 'smooth' });
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -266,10 +428,23 @@ function lgMonthWindows() {
     cur = new Date(end);
     cur.setDate(cur.getDate() + 1);
   }
+  // Every day of the month, for the Daily grain. lgSeries() trims the tail to the
+  // last day that has data, so a table on the 14th carries 14 columns and not 31
+  // with 17 dashes on the end.
+  const days = [];
+  for (let d = new Date(first); d <= last; d.setDate(d.getDate() + 1)) {
+    days.push({
+      from: new Date(d), to: new Date(d),
+      label: `${lgDayNum(d)} ${MON_SHORT[d.getMonth()]}`,
+      dow: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()],
+    });
+  }
+
   return {
     prev:  { from: new Date(y, m - 2, 1), to: new Date(y, m - 1, 0), label: LEDGER_TARGETS.prevLabel || 'Last month' },
     month: { from: first, to: last, label: LEDGER_TARGETS.label },
     weeks,
+    days,
   };
 }
 
@@ -279,6 +454,8 @@ function lgMonthWindows() {
 // alternative is a dozen round trips for a table nobody has scrolled to yet.
 // Cached against the target month, so switching pages does not refetch, and a
 // new month's targets file invalidates it on its own.
+// Cached against the target month only, never against the grain: all three grains
+// are slices of the same one fetch, so switching Split is instant.
 async function lgSeries() {
   const w = lgMonthWindows();
   if (!w) return null;
@@ -299,22 +476,48 @@ async function lgSeries() {
   };
   // aggDailyData takes daily_data rows first; [] because branch_staff_daily is
   // present for every window here and is the source of truth once it is.
+  //
+  // The full record is kept, not just the summary: Daily Stylist Target needs the
+  // per-stylist arrays for the same windows, and aggregating them twice is how the
+  // two pages would end up disagreeing about one stylist's week.
   const agg = (from, to, code) => {
     const b = cut(branchRows, from, to, code);
     const p = cut(phorestRows, from, to, code);
     if (!b.length) return null;
-    const r = aggDailyData([], b, p);
-    return r ? r.summary : null;
+    return aggDailyData([], b, p) || null;
   };
 
-  const forCode = code => ({
-    prev:  agg(w.prev.from,  w.prev.to,  code),
-    mtd:   agg(w.month.from, w.month.to, code),
-    weeks: w.weeks.map(x => agg(x.from, x.to, code)),
-  });
+  const forCode = code => {
+    const prev  = agg(w.prev.from,  w.prev.to,  code);
+    const mtd   = agg(w.month.from, w.month.to, code);
+    const weeks = w.weeks.map(x => agg(x.from, x.to, code));
+    const days  = w.days.map(x  => agg(x.from, x.to, code));
+    return {
+      // Summaries — what every table on these pages reads.
+      prev:  prev && prev.summary,
+      mtd:   mtd  && mtd.summary,
+      weeks: weeks.map(r => r && r.summary),
+      days:  days.map(r  => r && r.summary),
+      // The same windows with their stylist arrays intact.
+      staff: { mtd, weeks, days },
+    };
+  };
 
   const series = { month: LEDGER_TARGETS.month, windows: w, group: forCode(null) };
   ACTIVE_BRANCHES.forEach(code => { series[code] = forCode(code); });
+
+  // Trim the day columns to the last day the group has figures for. Anything past
+  // that is the future, and a run of empty columns reads as missing data.
+  const lastDay = series.group.days.reduce((last, s, i) => (s ? i : last), -1);
+  if (lastDay > -1 && lastDay < w.days.length - 1) {
+    const keep = lastDay + 1;
+    w.days.length = keep;
+    [series.group].concat(ACTIVE_BRANCHES.map(c => series[c])).forEach(b => {
+      b.days.length = keep;
+      b.staff.days.length = keep;
+    });
+  }
+
   window._lgSeries = series;
   return series;
 }
@@ -359,8 +562,9 @@ function lgSheetSection(series, code, ctx) {
   const hairOnly = code ? !((bucket.mtd.beautyTotalClients || 0) || (bucket.mtd.beautyServicesTotal || 0)) : false;
   const bm = (typeof LEDGER_TARGETS !== 'undefined') ? LEDGER_TARGETS.benchmarks : TARGETS;
 
+  const sp = lgSplit(series);
   const cols = [{ label: 'Category / Metric' }, { label: w.prev.label, align: 'r' }, { label: 'This Month', align: 'r' }]
-    .concat(w.weeks.map((x, i) => ({ label: `<span class="lg-wk-k">Week ${String(i).padStart(2,'0')}</span>${x.label}`, align: 'r', wk: true })))
+    .concat(sp.windows.map((x, i) => ({ label: sp.head(x, i), align: 'r' })))
     .concat([{ label: 'MTD', align: 'r' }, { label: 'Variance', align: 'r' }]);
 
   const rows = [];
@@ -380,7 +584,7 @@ function lgSheetSection(series, code, ctx) {
       rows.push([r.label,
         bucket.prev ? lgDash(r.pick(bucket.prev) != null ? f(r.pick(bucket.prev)) : null) : '—',
         f(tgt)]
-        .concat(bucket.weeks.map(s => (s && r.pick(s) != null) ? f(r.pick(s)) : '—'))
+        .concat(lgSplitCells(series, bucket, r.pick, f))
         .concat([act != null ? f(act) : '—',
                  act == null ? '—' : (act >= tgt ? '<span class="lg-up">✓ on target</span>' : lgDelta(act - tgt, f))]));
       return;
@@ -397,21 +601,11 @@ function lgSheetSection(series, code, ctx) {
     rows.push([r.label + (r.ledger ? ' <span class="lg-tag">LEDGER</span>' : ''),
       bucket.prev ? fmt(r.pick(bucket.prev) || 0) : '—',
       target != null ? fmt(target) : '<span class="lg-na">no target</span>']
-      .concat(bucket.weeks.map(s => s ? fmt(r.pick(s) || 0) : '—'))
+      .concat(lgSplitCells(series, bucket, s => r.pick(s) || 0, fmt))
       .concat([fmt(mtd), p ? lgDelta(p.variance, fmt) : '—']));
   });
 
-  return lgTable(cols, rows, { compact: true, weeks: true });
-}
-
-// Show/hide the week columns. The class rides on the wrapper so one toggle moves
-// every cell in the table, header included, without re-rendering anything.
-function lgToggleWeeks(btn) {
-  const wrap = btn.closest('.lg-weeks')?.querySelector('.lg-wrap');
-  if (!wrap) return;
-  const open = wrap.classList.toggle('lg-show-wk');
-  btn.textContent = open ? 'Hide week columns' : 'Show week columns';
-  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  return lgTable(cols, rows, { compact: true });
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -543,11 +737,11 @@ async function renderBranchPerformance() {
   // the month is moving. The figures stay, one section down, for when a number
   // has to be read rather than compared.
   host.innerHTML =
-    lgRail([['bpMix','Revenue mix'], ['bpPace','Against target'],
-            ['bpBench','Benchmarks'], ['bpClients','Clients'], ['bpStaff','Staff']]) +
     lgHeader('Branch Performance',
       `The shape of the period: where the money came from, how far through the target each branch is, and which benchmarks are carrying it.`,
       ctx) +
+    lgRail([['bpMix','Revenue mix'], ['bpPace','Against target'],
+            ['bpBench','Benchmarks'], ['bpClients','Clients'], ['bpStaff','Staff']]) +
     warnHtml +
     lgSection('bpMix', '#FFD4D9', 'Revenue mix', escapeHtml(lgBranchLabel()),
       `<div class="bp-chart"><canvas id="bpMixChart"></canvas></div>
@@ -873,18 +1067,26 @@ function lgStaffName(code, dept, st, ctx) {
    block, "JULY 2026 ACTUALS vs AUGUST 2026 TARGETS", is its own page below.
 
    Pivot first, then the blocks, in her order.
+
+   Kate, 14 Aug 2026: this page read the page filter and therefore lost its target
+   columns on any window that was not wholly inside August — including the default
+   one. It reads the ledger month now, like the other two Ledgers pages, and the
+   Split chips cut the actual into weeks or days.
    ══════════════════════════════════════════════════════════════ */
 async function renderLedgerTargets() {
   const host = document.getElementById('ledgerTargetsContent');
   if (!host) return;
   host.innerHTML = '<div class="loading">Loading data...</div>';
 
-  const s = await lgSummary();
-  if (!s) { host.innerHTML = lgEmpty('No data for this selection.'); return; }
+  const series = await lgSeries();
+  if (!series) { host.innerHTML = lgEmpty('This page needs a targets file to know which month to read.'); return; }
 
-  const ctx      = lgTargetContext();
-  const byBranch = (typeof aggByBranch === 'function') ? aggByBranch() : {};
-  const codes    = lgBranches();
+  const ctx   = lgLedgerContext(series);
+  const codes = lgBranches();
+  const sp    = lgSplit(series);
+  // The branch filter still applies — only the period is fixed — so the grand
+  // total is rolled up from the branches on screen rather than read off the group.
+  const roll  = lgRollup(codes.map(c => series[c] && series[c].mtd));
 
   // The six pacing blocks, in the sheet's own order and with its own titles.
   // `pick` pulls the actual for one branch's summary; `key` is the target field.
@@ -897,31 +1099,52 @@ async function renderLedgerTargets() {
     { title:'Beauty services',      key:'beautyServices',   pick: d => d.beautyServicesTotal },
   ];
 
-  const paceCols = [
-    {label:'Branch'},{label:'Target',align:'r'},{label:'MTD actual',align:'r'},
-    {label:'Variance',align:'r'},{label:'% done',align:'r',w:'116px'},{label:'Remaining',align:'r'},
-  ];
+  // Target and the four pacing columns are fixed; the split columns sit between
+  // them, so the eye still lands on Target → MTD → Variance in every mode.
+  const paceCols = [{label:'Branch'}, {label:'Target',align:'r'}]
+    .concat(sp.windows.map((x, i) => ({ label: sp.head(x, i), align:'r' })))
+    .concat([{label:'MTD actual',align:'r'},{label:'Variance',align:'r'},
+             {label:'% done',align:'r',w:'116px'},{label:'Remaining',align:'r'}]);
 
-  const paceHtml = ctx.applies ? BLOCKS.map(b => {
+  const paceHtml = BLOCKS.map(b => {
     let tA = 0, aA = 0;
     const rows = codes.map(code => {
-      const bd = byBranch[code];
+      const bucket = series[code];
       const info = BRANCH_INFO[code] || { name: code };
-      const actual = bd ? (b.pick(bd.summary) || 0) : 0;
+      const actual = (bucket && bucket.mtd) ? (b.pick(bucket.mtd) || 0) : 0;
       const target = ledgerBranchTarget(b.key, [code]);
       tA += target; aA += actual;
       const p = ledgerPace(actual, target);
+      const split = lgSplitCells(series, bucket, s => b.pick(s) || 0, lgAed);
       // Motor City has no beauty team, so a beauty row for it is a real zero and
       // not a gap to chase. Say so instead of showing −AED 0 at 0%.
-      if (!target && !actual) return [escapeHtml(info.name), '—', '—', '<span class="lg-na">n/a</span>', '—', '—'];
-      return [escapeHtml(info.name), lgAed(p.target), lgAed(p.actual),
-              lgDelta(p.variance, lgAed), lgDoneBar(p.pctDone), lgAed(p.remaining)];
+      if (!target && !actual) {
+        return [escapeHtml(info.name), '—'].concat(split.map(() => '—'))
+          .concat(['—', '<span class="lg-na">n/a</span>', '—', '—']);
+      }
+      return [escapeHtml(info.name), lgAed(p.target)].concat(split)
+        .concat([lgAed(p.actual), lgDelta(p.variance, lgAed), lgDoneBar(p.pctDone), lgAed(p.remaining)]);
     });
     const g = ledgerPace(aA, tA);
-    rows.push({ total: ['Grand total', lgAed(g.target), lgAed(g.actual),
-                        lgDelta(g.variance, lgAed), lgDoneBar(g.pctDone), lgAed(g.remaining)] });
+    const gSplit = sp.key
+      ? sp.windows.map((x, i) => lgAed(codes.reduce((sum, code) => {
+          const s = series[code] && series[code][sp.key] && series[code][sp.key][i];
+          return sum + (s ? (b.pick(s) || 0) : 0);
+        }, 0)))
+      : [];
+    rows.push({ total: ['Grand total', lgAed(g.target)].concat(gSplit)
+      .concat([lgAed(g.actual), lgDelta(g.variance, lgAed), lgDoneBar(g.pctDone), lgAed(g.remaining)]) });
     return `<div class="lg-block"><div class="lg-block-k">${b.title}</div>${lgTable(paceCols, rows, {compact:true})}</div>`;
-  }).join('') : lgEmpty('Pacing needs a monthly target. ' + ctx.note);
+  }).join('');
+
+  // Her sheet lays these six out three abreast, in two rows. So does this, once
+  // there is room for it — the wrapper was missing, which is why they ran as one
+  // column of six down a page you had to scroll to compare anything. On Weekly and
+  // Daily the tables are far wider than a third of the page, so they go full width
+  // and stack instead of being squeezed into a column you cannot read.
+  const paceGridHtml = sp.key
+    ? paceHtml
+    : `<div class="lg-pace-grid">${paceHtml}</div>`;
 
   // The per-branch benchmark pivot from the top of her panel.
   const pivCols = [
@@ -929,45 +1152,43 @@ async function renderLedgerTargets() {
     {label:'Retail %',align:'r'},{label:'Hair avg bill',align:'r'},{label:'Beauty avg bill',align:'r'},
     {label:'Total clients',align:'r'},{label:'New',align:'r'},{label:'NCR',align:'r'},{label:'Rebooked',align:'r'},
   ];
-  const acc = { tc:0, nc:0, ncr:0, rb:0 };
   const pivRows = codes.map(code => {
-    const bd = byBranch[code];
+    const d = series[code] && series[code].mtd;
     const info = BRANCH_INFO[code] || { name: code };
-    if (!bd) return [escapeHtml(info.name), '—','—','—','—','—','—','—','—','—'];
-    const d = bd.summary;
+    if (!d) return [escapeHtml(info.name), '—','—','—','—','—','—','—','—','—'];
     const hairNet = (d.hairServicesIncl || 0) + (d.hairRetailOnly || 0);
     const txPct   = (d.hairServicesIncl || 0) ? (d.treatmentSales || 0) / d.hairServicesIncl * 100 : null;
     const retPct  = hairNet ? (d.hairRetailOnly || 0) / hairNet * 100 : null;
-    acc.tc += d.totalClients || 0; acc.nc += d.newClientsTotal || 0;
-    acc.ncr += d.ncrTotal || 0;    acc.rb += d.totalRebooked || 0;
     return [escapeHtml(info.name),
       lgPct(d.rebookPct != null ? d.rebookPct : d.hairRebookPct), lgPct(txPct), lgPct(retPct),
       lgDash(d.hairAvgBill ? lgAed(d.hairAvgBill) : null),
       lgDash(d.beautyAvgBill ? lgAed(d.beautyAvgBill) : null),
       lgNum(d.totalClients), lgNum(d.newClientsTotal), lgNum(d.ncrTotal), lgNum(d.totalRebooked)];
   });
-  const hairNetAll = (s.hairServicesIncl || 0) + (s.hairRetailOnly || 0);
+  const hairNetAll = roll.hairServicesIncl + roll.hairRetailOnly;
   pivRows.push({ total: ['Grand total',
-    lgPct(s.rebookPct != null ? s.rebookPct : s.hairRebookPct),
-    lgPct((s.hairServicesIncl || 0) ? (s.treatmentSales || 0) / s.hairServicesIncl * 100 : null),
-    lgPct(hairNetAll ? (s.hairRetailOnly || 0) / hairNetAll * 100 : null),
-    lgDash(s.hairAvgBill ? lgAed(s.hairAvgBill) : null),
-    lgDash(s.beautyAvgBill ? lgAed(s.beautyAvgBill) : null),
-    lgNum(acc.tc), lgNum(acc.nc), lgNum(acc.ncr), lgNum(acc.rb)] });
+    lgPct(roll.rebookPct),
+    lgPct(roll.hairServicesIncl ? roll.treatmentSales / roll.hairServicesIncl * 100 : null),
+    lgPct(hairNetAll ? roll.hairRetailOnly / hairNetAll * 100 : null),
+    lgDash(roll.hairAvgBill ? lgAed(roll.hairAvgBill) : null),
+    lgDash(roll.beautyAvgBill ? lgAed(roll.beautyAvgBill) : null),
+    lgNum(roll.totalClients), lgNum(roll.newClientsTotal), lgNum(roll.ncrTotal), lgNum(roll.totalRebooked)] });
 
   host.innerHTML =
-    lgRail([['ltPivot', 'Benchmarks by branch'], ['ltPace', 'Target vs actual']]) +
     lgHeader('Ledgers · Daily Target Sheet',
       `The block she opens the sheet to read: where every branch stands against the month, on live numbers.`,
       ctx) +
-    lgSection('ltPivot', '#99F6E4', 'Benchmarks by branch', escapeHtml(lgRangeLabel()),
+    lgGrainRow() +
+    lgShell([['ltPivot', 'Benchmarks by branch'], ['ltPace', 'Target vs actual']],
+    lgSection('ltPivot', '#99F6E4', 'Benchmarks by branch',
+      escapeHtml(series.windows.month.label + ' · month to date'),
       lgTable(pivCols, pivRows, {compact:true})) +
-    lgSection('ltPace', '#FFD4D9', 'Target vs actual',
-      ctx.applies ? escapeHtml(ctx.label) : 'unavailable for this window', paceHtml) +
+    lgSection('ltPace', '#FFD4D9', 'Target vs actual', escapeHtml(ctx.label), paceGridHtml) +
     `<div class="fine">
-      <p><b>The order is hers</b>. The pivot first, then the six pacing blocks — the same reading order as the right-hand block of her SUMMARY tab, which is headed "Daily target sheet". Her sheet runs the blocks three abreast; this runs two, because six columns of a pacing table do not fit three-across on anything narrower than a desktop.</p>
+      <p><b>The order is hers</b>. The pivot first, then the six pacing blocks — the same reading order as the right-hand block of her SUMMARY tab, which is headed "Daily target sheet". On MTD the blocks run three abreast like hers on a wide screen, two on a laptop and one on a phone: a six-column pacing table stops being readable below about 460px, so the row count gives way rather than the figures.</p>
+      <p><b>The pivot always reads month to date</b>, whatever Split is set to. A benchmark is a ratio of its own window — Rebooking %, Treatment %, an average bill — so cutting it by week would give four branches × ten metrics × five weeks, which is a worksheet and not a read. The pacing blocks below are where the weeks and days live.</p>
       <p><b>Where the figures come from</b>. Clients, treatment AED and the unit counts are the ledger's own (<code>branch_staff_daily</code>, synced from the daily branch files); revenue is Phorest. Only the target column is hand-maintained, in <code>ledger-targets.js</code>.</p>
-    </div>`;
+    </div>`);
 
   ['ltPivot','ltPace'].forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
   restoreSections();
@@ -990,9 +1211,9 @@ async function renderLedgerActuals() {
   if (!host) return;
   host.innerHTML = '<div class="loading">Loading data...</div>';
 
-  const ctx = lgTargetContext();
   const series = await lgSeries();
   if (!series) { host.innerHTML = lgEmpty('This page needs a targets file to know which month to read.'); return; }
+  const ctx = lgLedgerContext(series);
 
   // Sheet order, and the group first — the way her tab reads down the page.
   const SHEET_ORDER = ['SAA', 'KCA', 'AQ', 'MC'].filter(c => ACTIVE_BRANCHES.includes(c));
@@ -1000,10 +1221,11 @@ async function renderLedgerActuals() {
     SHEET_ORDER.map(c => ['la' + c, (BRANCH_INFO[c] || {}).name || c]));
 
   host.innerHTML =
-    lgRail(rail) +
     lgHeader('Ledgers · Actuals vs Targets',
       `${escapeHtml(series.windows.prev.label)} actuals against ${escapeHtml(series.windows.month.label)} targets, group first and then branch by branch.`,
       ctx) +
+    lgGrainRow() +
+    lgShell(rail,
     lgSection('laAll', 'var(--hair)', 'Group total — all salons',
       escapeHtml(series.windows.month.label), lgSheetSection(series, null, ctx)) +
     SHEET_ORDER.map(code => {
@@ -1012,9 +1234,9 @@ async function renderLedgerActuals() {
         escapeHtml(series.windows.month.label), lgSheetSection(series, code, ctx));
     }).join('') +
     `<div class="fine">
-      <p><b>This page ignores the date filter, on purpose</b>. Last Month · the weeks · MTD only mean anything against one fixed month, so these tables always read ${escapeHtml(series.windows.month.label)} however the period chips are set. Every other page follows your filter.</p>
+      <p><b>The Ledgers pages ignore the Period chips, on purpose</b>. Last Month · the split columns · MTD only mean anything against one fixed month, so all three always read ${escapeHtml(series.windows.prev.label)} against ${escapeHtml(series.windows.month.label)}. <b>Split</b> is the control that moves: MTD for the month in one column, Weekly for her Week 00–04, Daily for a column per day. Every page outside Ledgers follows your filter as before.</p>
       <p><b>Motor City runs hair only</b>, so its beauty rows are absent rather than printed as zeros — the same way her sheet carries it.</p>
-    </div>`;
+    </div>`);
 
   ['laAll'].concat(SHEET_ORDER.map(c => 'la' + c))
     .forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
@@ -1034,40 +1256,71 @@ async function renderLedgerStylist() {
   if (!host) return;
   host.innerHTML = '<div class="loading">Loading data...</div>';
 
-  const s = await lgSummary();
-  if (!s) { host.innerHTML = lgEmpty('No data for this selection.'); return; }
+  const series = await lgSeries();
+  if (!series) { host.innerHTML = lgEmpty('This page needs a targets file to know which month to read.'); return; }
 
-  const ctx      = lgTargetContext();
-  const byBranch = (typeof aggByBranch === 'function') ? aggByBranch() : {};
-  const codes    = lgBranches();
+  const ctx   = lgLedgerContext(series);
+  const codes = lgBranches();
+  const sp    = lgSplit(series);
+
+  // Services per stylist for one aggregated window, keyed the way the targets file
+  // is keyed — canonical name, so Lucia and Lucy are one person across the weeks.
+  const canon = n => String((typeof canonicalStaffName === 'function'
+    ? canonicalStaffName(n) : n) || '').trim().toUpperCase();
+  const svcOf = (st, dept) => dept === 'BEAUTY' ? (st.beautySales || 0) : (st.hairSalesNet || 0);
+  const svcMap = (rec, dept) => {
+    const m = {};
+    if (!rec) return m;
+    ((dept === 'BEAUTY' ? rec.beautyStaff : rec.hairStaff) || []).forEach(st => {
+      const k = canon(st.name);
+      m[k] = (m[k] || 0) + svcOf(st, dept);
+    });
+    return m;
+  };
 
   // Her column order exactly, under her own bands. Only the two Unit columns are
-  // missing, and the note at the foot of the page says why.
+  // missing, and the note at the foot of the page says why. The split columns sit
+  // inside the Services band: services is the figure her stylist conversations run
+  // on, and nineteen columns already fill the width without cutting treatment and
+  // retail by day as well.
+  const splitCols = sp.windows.map((x, i) => ({ label: sp.head(x, i), align:'r' }));
   const cols = [
     {label:'Stylist'},{label:'Dept'},
-    {label:'Target',align:'r'},{label:'MTD actual',align:'r'},{label:'Variance',align:'r'},
+    {label:'Target',align:'r'}]
+    .concat(splitCols)
+    .concat([{label:'MTD actual',align:'r'},{label:'Variance',align:'r'},
     {label:'Clients',align:'r'},{label:'New',align:'r'},{label:'NCR',align:'r'},
     {label:'Rebooked',align:'r'},{label:'Rebook %',align:'r'},{label:'Avg bill',align:'r'},
     {label:'Target',align:'r'},{label:'MTD actual',align:'r'},{label:'Unit',align:'r'},{label:'Treatment %',align:'r'},
-    {label:'Target',align:'r'},{label:'MTD actual',align:'r'},{label:'Unit',align:'r'},{label:'Retail %',align:'r'},
-  ];
+    {label:'Target',align:'r'},{label:'MTD actual',align:'r'},{label:'Unit',align:'r'},{label:'Retail %',align:'r'}]);
   const colGroups = [
     { label:'', span:2 },
-    { label:'Services',  span:3 },
+    { label:'Services',  span:3 + splitCols.length },
     { label:'Clients',   span:6 },
     { label:'Treatment', span:4 },
     { label:'Retail',    span:4 },
   ];
 
-  const rows = [];
+  // One rail entry per group row, collected as the table is built rather than
+  // guessed in advance: a branch with no beauty team has no beauty heading, and a
+  // rail offering a section the page does not have is worse than no rail.
+  const rows = [], rail = [];
   codes.forEach(code => {
-    const bd = byBranch[code];
+    const bd = series[code] && series[code].staff.mtd;
     if (!bd) return;
     const info = BRANCH_INFO[code] || { name: code };
 
     [['HAIR', bd.hairStaff || []], ['BEAUTY', bd.beautyStaff || []]].forEach(([dept, staff]) => {
       if (!staff.length) return;
-      rows.push({ group: `${escapeHtml(info.name)} · ${dept === 'HAIR' ? 'Hair' : 'Beauty'}` });
+      const anchor = `ls-${code}-${dept}`;
+      const heading = `${escapeHtml(info.name)} · ${dept === 'HAIR' ? 'Hair' : 'Beauty'}`;
+      rail.push([anchor, heading]);
+      rows.push({ group: heading, id: anchor });
+
+      // One services map per split window, built once per branch/department.
+      const maps = sp.key
+        ? (series[code].staff[sp.key] || []).map(rec => svcMap(rec, dept))
+        : [];
 
       const tot = { st:0, sa:0, tt:0, ta:0, rt:0, ra:0, c:0, n:0, ncr:0, rb:0, tu:0, ru:0 };
       staff.slice()
@@ -1080,9 +1333,9 @@ async function renderLedgerStylist() {
           const retA = st.retail || 0;
           // A target of nothing is shown as a dash, never as zero: a stylist who
           // is simply not in the sheet must not read as one who missed by 100%.
-          const svcT = ctx.applies && tg ? tg.services  : null;
-          const txT  = ctx.applies && tg ? tg.treatment : null;
-          const retT = ctx.applies && tg ? tg.retail    : null;
+          const svcT = tg ? tg.services  : null;
+          const txT  = tg ? tg.treatment : null;
+          const retT = tg ? tg.retail    : null;
           // No target here, but she has one at another branch — she is covering a
           // shift, or she has moved since the sheet was written. Say which branch
           // rather than leaving a dash that looks like a missing record.
@@ -1098,9 +1351,14 @@ async function renderLedgerStylist() {
           tot.ncr += st.newClientReq || 0; tot.rb += st.rebooked || 0;
           tot.tu += st.treatmentUnits || 0; tot.ru += st.retailUnits || 0;
 
+          // Her services, week by week or day by day. A blank is a window she did
+          // not work, which is not the same as a zero — those read as a dash.
+          const key = canon(st.name);
+          const split = maps.map(m => (m[key] == null ? '—' : lgAed(m[key])));
+
           rows.push([
             escapeHtml(st.name || '—'), dept === 'HAIR' ? 'Hair' : 'Beauty',
-            svcT ? lgAed(svcT) : noTgt, lgAed(svcA),
+            svcT ? lgAed(svcT) : noTgt].concat(split).concat([lgAed(svcA),
             svcT ? lgDelta(svcA - svcT, lgAed) : '—',
             lgNum(st.total), lgNum(st.newClients != null ? st.newClients : st.newClientReq),
             lgNum(st.newClientReq), lgNum(st.rebooked), lgPct(st.rebookPct), lgAed(st.avgBill),
@@ -1110,31 +1368,36 @@ async function renderLedgerStylist() {
             dept === 'BEAUTY' ? '—' : lgPct(st.treatmentPct),
             retT ? lgAed(retT) : '<span class="lg-na">—</span>', lgAed(retA),
             lgNum(st.retailUnits), lgPct(st.retailPct),
-          ]);
+          ]));
         });
 
+      const totSplit = maps.map(m => lgAed(Object.keys(m).reduce((a, k) => a + m[k], 0)));
       rows.push({ total: ['Totals', '',
-        tot.st ? lgAed(tot.st) : '—', lgAed(tot.sa), tot.st ? lgDelta(tot.sa - tot.st, lgAed) : '—',
+        tot.st ? lgAed(tot.st) : '—'].concat(totSplit).concat([lgAed(tot.sa),
+        tot.st ? lgDelta(tot.sa - tot.st, lgAed) : '—',
         lgNum(tot.c), lgNum(tot.n), lgNum(tot.ncr), lgNum(tot.rb),
         lgPct(tot.c ? tot.rb / tot.c * 100 : null), lgAed(tot.c ? tot.sa / tot.c : 0),
         tot.tt ? lgAed(tot.tt) : '—', dept === 'BEAUTY' ? '—' : lgAed(tot.ta),
         dept === 'BEAUTY' ? '—' : lgNum(tot.tu),
         dept === 'BEAUTY' ? '—' : lgPct(tot.sa ? tot.ta / tot.sa * 100 : null),
         tot.rt ? lgAed(tot.rt) : '—', lgAed(tot.ra), lgNum(tot.ru),
-        lgPct((tot.sa + tot.ra) ? tot.ra / (tot.sa + tot.ra) * 100 : null)] });
+        lgPct((tot.sa + tot.ra) ? tot.ra / (tot.sa + tot.ra) * 100 : null)]) });
     });
   });
 
   host.innerHTML =
-    lgHeader('Ledgers · Daily Target Sheet',
-      `Every stylist against her own target — services, treatment and retail.`,
+    lgHeader('Ledgers · Daily Stylist Target',
+      `Every stylist against her own target — services, treatment and retail, grouped branch then department the way her tab runs.`,
       ctx) +
+    lgGrainRow() +
+    lgShell(rail,
     (rows.length ? lgTable(cols, rows, {compact:true, groups:colGroups}) : lgEmpty('No staff figures for this window.')) +
     `<div class="fine">
+      <p><b>Split cuts the services column only</b>. Weekly and Daily add her services week by week or day by day inside the Services band; the target, the MTD total and the variance beside them do not move. Treatment and retail stay as month-to-date totals — a nineteen-column table with three metrics cut by day is a data dump, not a coaching sheet.</p>
       <p><b>The Unit columns are her own</b>. <code>treatments_unit_qty</code> and <code>retail_unit_qty</code> come off the daily branch ledger, next to the revenue they belong to — how many treatments and how many retail lines, not how much money. Ledger columns, so they carry whatever the branch wrote down; Phorest has no per-stylist equivalent to check them against.</p>
       <p><b>A dash in a target column</b> means that stylist has no target in ${escapeHtml(LEDGER_TARGETS ? LEDGER_TARGETS.source : 'the sheet')} — a new starter, or a leaver still carrying history. It does not mean zero.</p>
       <p><b>"Target at &lt;branch&gt;"</b> means she is taking clients here but her monthly target is written against another branch, so there is nothing to measure this row against. Either she covered a shift, or she has moved and the sheet has not caught up. Worth a look when it is somebody's main branch: as of the August sheet, Irlyn, Grace and Shila are down as Khalifa but working Saadiyat, and Ibrahim and Olena are working Motor City against Al Quoz and Khalifa targets.</p>
-    </div>`;
+    </div>`);
 
   if (typeof sizeTopbar === 'function') sizeTopbar();
   if (typeof spy === 'function') spy();

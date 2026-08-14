@@ -47,6 +47,23 @@ disprove it — 1 Aug 2026 is a Saturday, so a Sunday-start week 1 would run 2�
 not the 3–9 the sheet shows. `lgMonthWindows()` in `branch-ledger.js` derives
 them from the month rather than hard-coding, so September needs no edit.)
 
+### On the dashboard: Split (MTD · Weekly · Daily)
+
+The three Ledgers pages hold this window and ignore the masthead's Period chips —
+last month's actuals, this month's target, month to date — because columns B, D–I
+and J are meaningless against an arbitrary date range. The chips are greyed out
+while you are on those pages, and **Split** decides what sits between the target
+and the MTD total: nothing (MTD), the sheet's Week 00–04 (Weekly), or one column
+per day so far (Daily, a column the sheet has no room for). Split moves columns
+only — Last Month, the target and Variance are the same figures in all three, so
+it can never change whether a branch reads as behind. `lgSplit()`.
+
+Two places deliberately stay month-to-date whatever Split says: the benchmark
+pivot on Daily Target Sheet (a ratio cut by week is a worksheet, not a read) and
+the treatment and retail columns on Daily Stylist Target, where only services is
+cut. Branch Performance is the page that still follows the Period chips, and it
+keeps the old `lgTargetContext()` guard.
+
 ## SUMMARY
 
 ### Left block — the roll-up

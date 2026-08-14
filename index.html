@@ -634,6 +634,42 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 /* The way in. Sits in the room the 52ch measure leaves under the standfirst,
    which the receipt's height turned into a visible hole. Reads as a line of the
    page rather than a button, and the arrow leans on hover. */
+/* ── THE TARGET STRIP ─────────────────────────────────────────
+   Every scored benchmark on the cover, one line each. Deliberately quiet: the
+   headline and the standfirst are the read, this is the evidence under them, so
+   it runs at label size and only the bar carries colour. */
+.hero-targets{margin-top:var(--s3);max-width:none}
+.hero-targets:empty{display:none}
+.ht-k{font-size:9.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted2);margin-bottom:9px}
+/* One bar, cut into a segment per scored target, lit for the ones hit. It is a
+   score, not a quantity — so the segments are equal width and only lit/unlit,
+   never proportional. The exact figure for each is in the title attribute and,
+   in full, under Below target. */
+.ht-seg{display:flex;gap:4px;align-items:flex-start}
+.ht-cell{flex:1;min-width:0;display:block}
+.ht-bar{display:block;height:8px;border-radius:3px;background:var(--surface2);
+  border:1px solid var(--border)}
+.ht-cell.on .ht-bar{background:var(--good);border-color:var(--good)}
+.ht-lbl{display:block;margin-top:6px;font-size:9.5px;line-height:1.25;color:var(--muted2);
+  letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ht-cell.on .ht-lbl{color:var(--good);font-weight:600}
+@media(max-width:560px){
+  /* The labels stop fitting long before the bars do, so they go and the segments
+     stay — the count is the point, and the names are a tap away below. */
+  .ht-lbl{display:none}
+  .ht-bar{height:10px}
+}
+
+/* The rail's copy of it. Smaller, no labels, and it sits above "On this page"
+   with a rule under it so the two read as separate things rather than as one
+   list with a chart stuck on the front. */
+.side-targets{margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.side-targets:empty{display:none;margin:0;padding:0;border:0}
+.side-targets .ht-k{font-size:9px;letter-spacing:.16em;margin-bottom:7px}
+.side-targets .ht-seg{gap:3px}
+.side-targets .ht-bar{height:6px;border-radius:2px}
+
 .hero-cta{display:inline-flex;align-items:baseline;gap:10px;margin-top:var(--s4);cursor:pointer;
   font-family:'Playfair Display',serif;font-style:italic;font-weight:500;font-size:19px;
   color:var(--text);text-decoration:none;background:none;
@@ -1406,36 +1442,49 @@ tr.lg-grp td:first-child{background:var(--bg)}
 tr.lg-tot td{font-weight:700;background:var(--surface2);border-top:1px solid var(--text)}
 tr.lg-tot td:first-child{background:var(--surface2)}
 
-/* ── THE SHEET'S WEEK COLUMNS ─────────────────────────────────
-   Folded away by default. They are always in the DOM — display:none rather than
-   never rendered — so opening them cannot knock a column out of line with its
-   header, and the toggle costs no re-render. Six extra columns is the difference
-   between a table you read and one you scroll, and on most days the question is
-   where the month stands, not what happened in week two. */
-.lg-weeks{position:relative}
-.lg-wk{display:none}
-.lg-wrap.lg-show-wk .lg-wk{display:table-cell}
-.lg-wk-btn{appearance:none;margin:0 0 8px;padding:4px 12px;border-radius:999px;
-  border:1px solid var(--border);background:transparent;color:var(--muted);
-  font-family:'Inter',sans-serif;font-size:11px;font-weight:600;cursor:pointer;
-  transition:border-color .2s,color .2s}
-@media(hover:hover){.lg-wk-btn:hover{border-color:var(--accent);color:var(--text)}}
-/* The week number sits above its dates, so the header stays two short lines
-   instead of one long one that forces the column wider than its figures. */
+/* ── THE SPLIT COLUMNS: MTD · WEEKLY · DAILY ──────────────────
+   The chip row that decides how finely the actual is cut. Sits under the header on
+   all three Ledgers pages, in the masthead filters' own idiom — it is a filter, so
+   it should not look like a widget. Replaced the "Show week columns" button, which
+   kept the week cells in the DOM and hid them: fine for five weeks, useless for
+   thirty-one days. */
+.lg-grain{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:0 0 16px}
+.lg-grain-k{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted2)}
+/* The week number, or the weekday, sits above its dates — so the header stays two
+   short lines instead of one long one that forces the column wider than its
+   figures. Thirty-one of those is the difference between a table that scrolls and
+   one that cannot be read at all. */
 .lg-wk-k{display:block;font-size:8px;letter-spacing:.14em;color:var(--muted2);margin-bottom:1px}
 
 /* ── "ON THIS PAGE" RAIL ──────────────────────────────────────
-   Same device as the Pulse's side rail, laid out as a row rather than a column:
-   these pages have no side gutter of their own, and five branch names fit across
-   one line more comfortably than they stack down one. */
-.lg-rail{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;
-  padding:0 0 14px;margin-bottom:2px}
-.lg-rail-k{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--muted2);margin-right:4px}
-.lg-rail a{font-size:12px;color:var(--muted);text-decoration:none;
-  padding:4px 11px;border-radius:999px;border:1px solid var(--border);
-  transition:border-color .2s,color .2s;white-space:nowrap}
-@media(hover:hover){.lg-rail a:hover{color:var(--text);border-color:var(--accent)}}
+   The Pulse's own rail, reused rather than reimplemented: the markup carries
+   .side-nav / .side-k / a.on, so the type, the spacing and the lit state are the
+   ones already defined above, and spy() lights them without knowing which page it
+   is on.
+
+   Two shapes, one markup. In the gutter it is the Pulse's column. Below the
+   breakpoint it lies down into the row of chips these pages used to carry — and it
+   has to, because 172px + 46px is 218px off a table that is already the widest
+   thing on the dashboard. 1400px, not the Pulse's 1100px, for the same reason: a
+   laptop keeps the full width for the figures. */
+.lg-side .side-nav{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;padding:0 0 16px}
+.lg-side .side-k{padding:0 4px 0 0;border:0}
+.lg-side .side-nav a{padding:4px 11px;border:1px solid var(--border);border-radius:999px;
+  white-space:nowrap}
+@media(hover:hover){.lg-side .side-nav a:hover{border-color:var(--accent)}}
+.lg-side .side-nav a.on{border-color:var(--text)}
+@media(min-width:1400px){
+  .lg-shell{display:grid;grid-template-columns:172px minmax(0,1fr);gap:46px;align-items:start}
+  /* Level with the first section, and it stays there — the tables below run for
+     several screens, which is the whole reason the rail exists. */
+  .lg-side{position:sticky;top:118px}
+  .lg-side .side-nav{display:block;padding:0}
+  .lg-side .side-k{display:block;padding:0 0 9px;border-bottom:1px solid var(--text)}
+  .lg-side .side-nav a{display:block;padding:8px 0 8px 13px;
+    border:0;border-left:2px solid var(--border2);border-radius:0;white-space:normal}
+  .lg-side .side-nav a.on{border-left-color:var(--text)}
+}
 
 /* ── BRANCH PERFORMANCE CHARTS ────────────────────────────────
    Chart.js needs a parent with a real height: maintainAspectRatio is off so the
@@ -1492,11 +1541,16 @@ table.lg thead tr.lg-band + tr th{top:26px}
 .lg-branch-k .dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .lg-sub{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   color:var(--muted);margin:14px 0 7px}
-/* Two pacing blocks abreast where there is room — her sheet runs three, which is
-   too narrow for a six-column table on anything but a desktop. */
+/* Her sheet runs these three abreast in two rows, and so does this once the
+   window can hold it. Below 1500px it drops to two, and on a phone to one —
+   a six-column pacing table has a floor of about 460px before the figures start
+   colliding, and three of those need 1500px of page to sit side by side. */
 @media(min-width:1100px){
   .lg-pace-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   .lg-pace-grid .lg-block{margin-bottom:0}
+}
+@media(min-width:1500px){
+  .lg-pace-grid{grid-template-columns:repeat(3,1fr)}
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1845,6 +1899,10 @@ table.lg thead tr.lg-band + tr th{top:26px}
         <h1 id="pulseHeadline">Reading the numbers…</h1>
         <p class="deck" id="pulseDeck"></p>
         <p class="standfirst" id="pulseStandfirst"></p>
+        <!-- Every scored target, on the cover. The headline says "1 of 6 hit" and
+             this is the 6 — named, with a bar each — so the count is checkable
+             without opening anything. Written by renderDashboard(). -->
+        <div class="hero-targets" id="heroTargets"></div>
         <button type="button" class="hero-cta" id="revealBtn" onclick="reveal()"
                 aria-expanded="false" aria-controls="shell">See the full details <span aria-hidden="true">↓</span></button>
       </div>
@@ -1854,6 +1912,9 @@ table.lg thead tr.lg-band + tr th{top:26px}
     <!-- ══ BODY: index rail + the document ══ -->
     <div class="shell" id="shell">
       <aside class="side">
+        <!-- The same target score as the cover, small, so it stays with you once
+             the hero has scrolled away. Written by renderDashboard(). -->
+        <div class="side-targets" id="sideTargets"></div>
         <nav class="side-nav" aria-label="On this page">
           <div class="side-k">On this page</div>
           <a href="#s-three">Headline three</a>
@@ -2007,9 +2068,9 @@ table.lg thead tr.lg-band + tr th{top:26px}
 <script src="ledger-targets.js?v=20260814a"></script>
 <script src="staff-profiles.js?v=20260814b"></script>
 <script src="stylist-cards.js?v=20260814b"></script>
-<script src="dashboard.js?v=20260814d"></script>
+<script src="dashboard.js?v=20260814h"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20260814c"></script>
+<script src="branch-ledger.js?v=20260814e"></script>
 <script src="team-performance.js?v=20260814b"></script>
 <script src="pulse-narrative.js?v=20260814a"></script>
 <script>
@@ -2145,6 +2206,13 @@ function showView(view, el){
   if (view === 'ledgerActuals') renderLedgerActuals();
   if (view === 'ledgerStylist') renderLedgerStylist();
   CURRENT_VIEW = view;
+  // After CURRENT_VIEW, not before: the Period chips grey out on the Ledgers pages
+  // and paintFilterChips() reads CURRENT_VIEW to know. Without this the chips only
+  // caught up on the next filter change. Cheap — it paints chips, not data.
+  if (typeof paintFilterChips === 'function') paintFilterChips();
+  // Same reason: spy() reads CURRENT_VIEW to find the right rail, and the renderers
+  // above call it while CURRENT_VIEW is still the page you just left.
+  if (typeof spy === 'function') spy();
 
   // active button state
   document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active'));
@@ -2338,15 +2406,23 @@ function spy(){
   const onKpi = document.body.classList.contains('kpi-view');
   if (TOTOP) TOTOP.classList.toggle('on', onKpi && scrollY > innerHeight * 0.9);
 
-  const NAV = [...document.querySelectorAll('.side-nav a')];
+  // Only the rail on the page you are looking at. Every hidden view is display:none,
+  // so its links measure zero and a document-wide query would light the wrong page's
+  // rail. Kate, 2026-08-14: the Ledgers pages and Stylist Cards have rails now too.
+  const VIEW = document.getElementById('view-' + CURRENT_VIEW);
+  const NAV = VIEW ? [...VIEW.querySelectorAll('.side-nav a')] : [];
   if (!NAV.length) return;
-  // Closed cover: the sections are out of the layout, so their rects are all
-  // zero and any reading below this would light up the wrong link.
-  if(!document.body.classList.contains('revealed')){
+  // Closed cover: the Pulse's sections are out of the layout, so their rects are all
+  // zero and any reading below this would light up the wrong link. Its own condition,
+  // not every page's — .revealed is the Pulse's state and no other page has it.
+  if(CURRENT_VIEW === 'dashboard' && !document.body.classList.contains('revealed')){
     NAV.forEach(a => a.classList.remove('on'));
     return;
   }
-  const SECS = NAV.map(a => document.getElementById(a.getAttribute('href').slice(1)));
+  // A rail entry points at a section id or at an element already in the document;
+  // the ledger pages use the first form, so try the sec- prefix as well.
+  const SECS = NAV.map(a => { const k = a.getAttribute('href').slice(1);
+    return document.getElementById(k) || document.getElementById('sec-' + k); });
   let live = 0;
   SECS.forEach((s,i) => { if(s && s.getBoundingClientRect().top <= 132) live = i; });
   // The last heading sits above the fine print, so at full scroll its top never
