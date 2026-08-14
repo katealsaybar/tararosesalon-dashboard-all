@@ -1998,10 +1998,20 @@ async function renderDashboard() {
     const glanceLabelStyle = "font-family:'Playfair Display',serif;font-weight:700;font-size:18px;color:#FF9B9B";
     heroStatusEl.innerHTML = `
       <div style="display:flex;align-items:stretch;max-width:900px;margin:0 auto">
-        <div style="flex:1;text-align:left;padding-right:24px"><span style="${glanceLabelStyle}">Hair</span> — ${glance.hair}</div>
+        <div class="glance-hair" style="flex:1;text-align:left;padding-right:24px"><span style="${glanceLabelStyle}">Hair</span> — ${glance.hair}</div>
         <div style="width:1px;flex-shrink:0;background:rgba(180,140,100,0.55)"></div>
-        <div style="flex:1;text-align:left;padding-left:24px"><span style="${glanceLabelStyle}">Beauty</span> — ${glance.beauty}</div>
+        <div class="glance-beauty" style="flex:1;text-align:left;padding-left:24px"><span style="${glanceLabelStyle}">Beauty</span> — ${glance.beauty}</div>
       </div>`;
+
+    // Narrative upgrade (pulse-narrative.js). The templated prose above has
+    // already rendered and stays put unless the model copy arrives AND every
+    // figure in it checks out against the numbers we sent. Deliberately not
+    // awaited — the rest of the dashboard must not wait on a network call, and
+    // a missing or slow narrative should cost the page nothing.
+    if (typeof fetchPulseNarrative === 'function') {
+      fetchPulseNarrative(s, `${dateFrom} .. ${dateTo}`, branchLabel)
+        .then(copy => { if (copy) applyPulseNarrative(copy); });
+    }
   }
 
   // Receipt strip — 7 headline metrics, styled as a printed receipt per Kate's
