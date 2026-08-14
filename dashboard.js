@@ -69,9 +69,19 @@ let svcDropsReady = false;
 function toggleTheme() {
   const dark = document.documentElement.getAttribute('data-theme') === 'dark';
   document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
-  document.getElementById('themeLbl').textContent = dark ? 'Light' : 'Dark';
+  // The label names where the button TAKES you, not where you are — the page
+  // starts light with the button reading "Dark". It was inverted, so one press
+  // turned the page dark and left the button still saying "Dark".
+  const lbl = document.getElementById('themeLbl');
+  if (lbl) lbl.textContent = dark ? 'Dark' : 'Light';
   applyLogoForTheme();
-  if (Object.keys(charts).length) renderDashboard();
+  // The gate used to be `if (charts.length)`, which worked only because the KPI
+  // page owned two canvases. It draws its branch columns in the page's own type
+  // now, so it holds no charts at all and the gate silently stopped re-rendering
+  // the one view whose colours are chosen in JS. Re-render whenever the KPI view
+  // is the one on screen. Kate, 2026-08-14.
+  const kpi = document.getElementById('view-dashboard');
+  if ((kpi && kpi.style.display !== 'none') || Object.keys(charts).length) renderDashboard();
 }
 // 5.png = light/white wordmark (for dark backgrounds), 6.png = dark/black wordmark (for light backgrounds)
 function applyLogoForTheme() {
@@ -86,16 +96,148 @@ applyLogoForTheme();
 const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
 
 // ── FILTER BAR COLLAPSE (ADHD-friendly decluttering) ─────────
-// Branch + date range moved into the header as one toolbar (#headerFilters) — this
-// toggles both together, same as the old #controls bar did. Kate, 2026-08-04.
+// Branch + period are one line of text chips in the masthead now (#filtersWrap),
+// not a toolbar of dropdowns. This opens and closes them on a real height
+// transition — see the .filters-wrap rule in index.html for why it is a grid
+// row rather than a display flip — then re-measures the bar, because the space
+// the masthead reserves below itself just changed. Kate, 2026-08-14.
 function toggleFiltersBar() {
-  const bar = document.getElementById('headerFilters');
-  const btn = document.getElementById('filtersToggleBtn');
-  if (!bar || !btn) return;
-  const hidden = bar.style.display === 'none';
-  bar.style.display = hidden ? 'flex' : 'none';
-  btn.textContent = hidden ? '▾ Hide Filters' : '▸ Show Filters';
+  const wrap = document.getElementById('filtersWrap');
+  const btn  = document.getElementById('filtersBtn');
+  if (!wrap || !btn) return;
+  const open = !wrap.classList.toggle('closed');
+  btn.textContent = open ? 'Hide filters' : 'Show filters';
+  btn.setAttribute('aria-expanded', String(open));
+  setTimeout(() => { if (typeof sizeTopbar === 'function') sizeTopbar(); }, 320);
 }
+
+// ── BRANCH + PERIOD CHIPS ───────────────────────────────────
+// The same two choices the dropdown pair offered, written as an index line.
+// Branch stays MULTI-select — a chip toggles that branch, "All Branches"
+// resets — so nothing the old .ms-drop could express has been lost. Period is
+// a short list of presets plus Custom, and Custom reveals the two date inputs
+// that applyDateRange()/clearDateRange() have always read.
+
+const MON_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MON_LONG  = ['January','February','March','April','May','June','July','August',
+                   'September','October','November','December'];
+const shortD = d => d ? `${d.getDate()} ${MON_SHORT[d.getMonth()]}` : '—';
+const longD  = d => d ? `${d.getDate()} ${MON_LONG[d.getMonth()]}` : '—';
+
+// Recomputed on every paint rather than frozen at load, so a dashboard left open
+// overnight does not still think "this month so far" ends yesterday.
+function periodPresets() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const y = today.getFullYear(), m = today.getMonth();
+  return [
+    { k: 'Last month + this', from: new Date(y, m-1, 1), to: today },
+    { k: 'This month',        from: new Date(y, m,   1), to: today },
+    { k: 'Last month',        from: new Date(y, m-1, 1), to: new Date(y, m, 0) },
+    { k: 'Year so far',       from: new Date(y, 0,   1), to: today },
+    { k: 'Custom' },
+  ];
+}
+
+const sameDay = (a, b) => !!a && !!b && dateToIso(a) === dateToIso(b);
+
+function activePeriodKey() {
+  const hit = periodPresets().find(p => p.from && sameDay(p.from, dateFrom) && sameDay(p.to, dateTo));
+  return hit ? hit.k : 'Custom';
+}
+
+// Separators are their own spans so the active underline hugs the word and the
+// middot never becomes a click target.
+function chipRow(opts) {
+  return opts.map((o, i) =>
+    (i ? '<span class="sep">·</span>' : '') +
+    `<button type="button" class="chip" aria-pressed="${o.on}" data-v="${escapeHtml(o.v)}"${o.disabled ? ' disabled' : ''}>${escapeHtml(o.label)}</button>`
+  ).join('');
+}
+
+function paintFilterChips() {
+  const bEl = document.getElementById('branchChips');
+  const pEl = document.getElementById('periodChips');
+  if (!bEl || !pEl) return;
+
+  const isAll = sel.branch.includes('all');
+  // No "no data" greying here. branchesWithNoData() reads allData, which comes from
+  // weekly_data — a table that stopped filling at the end of May 2026 — so on any
+  // range after that it reported every branch as empty and the old dropdown
+  // disabled all four. The picker had been dead for months. The dashboard already
+  // says "No data for this selection" when a branch really is empty, which is a
+  // better answer than a chip you cannot press. Kate, 2026-08-14.
+  bEl.innerHTML = chipRow([
+    { v: 'all', label: 'All Branches', on: isAll },
+    ...ACTIVE_BRANCHES.map(code => ({
+      v: code, label: BRANCH_INFO[code].name,
+      on: !isAll && sel.branch.includes(code),
+    })),
+  ]);
+
+  const active = activePeriodKey();
+  pEl.innerHTML = chipRow(periodPresets().map(p => ({ v: p.k, label: p.k, on: p.k === active })));
+
+  const custom = document.getElementById('customDates');
+  if (custom) custom.hidden = active !== 'Custom';
+  const fromInp = document.getElementById('dateRangeFrom');
+  const toInp   = document.getElementById('dateRangeTo');
+  if (fromInp) fromInp.value = dateToIso(dateFrom);
+  if (toInp)   toInp.value   = dateToIso(dateTo);
+
+  // The masthead's meta rule says what you are reading, so it has to be repainted
+  // with the chips and not only on a successful data load — otherwise a branch
+  // with no rows leaves the rule describing the previous selection.
+  const branchLabel = isAll ? 'All Branches'
+    : sel.branch.map(b => BRANCH_INFO[b]?.name || b).join(' · ');
+  const mb = document.getElementById('mastBranch');
+  const mr = document.getElementById('mastRange');
+  if (mb) mb.textContent = branchLabel;
+  if (mr) mr.textContent = (dateFrom && dateTo)
+    ? `${longD(dateFrom)} – ${longD(dateTo)} ${dateTo.getFullYear()}`
+    : '';
+}
+
+// Delegated, because paintFilterChips() replaces the buttons on every render.
+document.addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip || chip.disabled) return;
+
+  if (chip.closest('#branchChips')) {
+    const v = chip.dataset.v;
+    if (v === 'all') sel.branch = ['all'];
+    else if (sel.branch.includes('all')) sel.branch = [v];
+    else {
+      sel.branch = sel.branch.includes(v) ? sel.branch.filter(x => x !== v) : [...sel.branch, v];
+      if (!sel.branch.length) sel.branch = ['all'];
+    }
+    pendingSel.branch = [...sel.branch];
+    paintFilterChips();
+    renderDashboard().then(() => {
+      const teamView = document.getElementById('view-team');
+      if (teamView && teamView.style.display !== 'none') renderTeam();
+    });
+    return;
+  }
+
+  if (chip.closest('#periodChips')) {
+    const p = periodPresets().find(x => x.k === chip.dataset.v);
+    if (!p) return;
+    if (!p.from) {                       // Custom — reveal the inputs, change nothing yet
+      const custom = document.getElementById('customDates');
+      if (custom) custom.hidden = false;
+      document.querySelectorAll('#periodChips .chip').forEach(c =>
+        c.setAttribute('aria-pressed', String(c === chip)));
+      if (typeof sizeTopbar === 'function') sizeTopbar();
+      return;
+    }
+    dateFrom = p.from; dateTo = p.to;
+    paintFilterChips();
+    renderDashboard().then(() => {
+      const teamView = document.getElementById('view-team');
+      if (teamView && teamView.style.display !== 'none') renderTeam();
+    });
+  }
+});
 
 
 // ── FORMATTERS / HELPERS ────────────────────────────────────
@@ -224,6 +366,10 @@ document.addEventListener('click', e => {
 
 function buildDrop(key, options) {
   const drop   = document.getElementById('drop-' + key);
+  // The KPI/Team branch picker is a chip row in the masthead now and has no
+  // .ms-drop to build — only Service Rankings and Top Clients still use one.
+  // Kate, 2026-08-14: this threw on every load until it was guarded.
+  if (!drop) return;
   const isAll  = pendingSel[key].includes('all');
   const noData = key === 'branch' ? branchesWithNoData() : new Set();
   drop.innerHTML = `
@@ -286,6 +432,7 @@ function rebuildDependentDrops() {
   // Sync pendingSel to match committed sel before rebuilding
   pendingSel.branch = [...sel.branch];
   buildDrop('branch', ACTIVE_BRANCHES.map(k => ({ val: k, label: BRANCH_INFO[k].name })));
+  paintFilterChips();
 }
 
 function updateLabel(key, options) {
@@ -376,25 +523,20 @@ function computeHeroPeriodPhrase(from, to) {
   return 'the past few months';
 }
 
-function updateHeroPeriod() {
-  const em = document.getElementById('heroPeriodPhrase');
-  if (em) em.textContent = computeHeroPeriodPhrase(dateFrom, dateTo);
-
-  const verbEl = document.getElementById('heroPeriodVerb');
-  if (verbEl) {
-    const today = new Date(); today.setHours(0,0,0,0);
-    const hasEnded = dateTo && dateTo < today;
-    verbEl.textContent = hasEnded ? 'shaped up' : 'is shaping up';
-  }
-
-  const scopeEl = document.getElementById('heroBranchScope');
-  const listEl  = document.getElementById('heroBranchList');
-  const isAll   = sel.branch.includes('all');
-  if (scopeEl) scopeEl.textContent = isAll ? ' across all branches' : ' across these branches';
-  if (listEl) {
-    const codes = isAll ? ACTIVE_BRANCHES : sel.branch;
-    listEl.textContent = codes.map(c => (BRANCH_INFO[c]?.name || c).toUpperCase()).join('  •  ');
-  }
+// The hero used to be four separate spans the page wrote into individually. It is
+// one sentence now — the deck — so this returns the pieces and renderDashboard()
+// assembles them. Kept as one place so the wording rules stay together.
+function heroPeriodPhrasing() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const isAll = sel.branch.includes('all');
+  const codes = isAll ? ACTIVE_BRANCHES : sel.branch;
+  return {
+    phrase: computeHeroPeriodPhrase(dateFrom, dateTo),
+    verb:   (dateTo && dateTo < today) ? 'shaped up' : 'is shaping up',
+    scope:  isAll ? 'across all branches'
+          : codes.length === 1 ? `at ${BRANCH_INFO[codes[0]]?.name || codes[0]}`
+          : `across ${codes.map(c => BRANCH_INFO[c]?.name || c).join(', ')}`,
+  };
 }
 
 // ── HEADER SECTION LABEL + SCROLL PROGRESS ──────────────────────────────
@@ -635,30 +777,15 @@ function setHeaderSectionLabel(text) {
   if (el && text) el.textContent = text;
 }
 
-function updateScrollProgress() {
-  const scrollArea = document.getElementById('mainScrollArea');
-  const fill = document.getElementById('scrollProgressFill');
-  if (!scrollArea || !fill) return;
-  const max = scrollArea.scrollHeight - scrollArea.clientHeight;
-  fill.style.width = (max > 0 ? Math.min(100, (scrollArea.scrollTop / max) * 100) : 0) + '%';
-
-  const dashView = document.getElementById('view-dashboard');
-  if (!dashView || dashView.style.display === 'none') return;
-  const spots = dashView.querySelectorAll('[data-scrollspy]');
-  if (!spots.length) return;
-  const areaTop = scrollArea.getBoundingClientRect().top;
-  let active = spots[0];
-  spots.forEach(spot => { if (spot.getBoundingClientRect().top - areaTop <= 24) active = spot; });
-  setHeaderSectionLabel(active.dataset.scrollspy);
-}
-
-(function initHeaderScrollspy() {
-  const scrollArea = document.getElementById('mainScrollArea');
-  const mainContent = document.getElementById('mainContent');
-  if (!scrollArea) return;
-  scrollArea.addEventListener('scroll', updateScrollProgress, { passive: true });
-  if (mainContent) new MutationObserver(updateScrollProgress).observe(mainContent, { childList: true, subtree: true });
-})();
+// The header pill used to name whichever section had scrolled past the top of an
+// inner scroll area, and a thin bar under it filled with scroll depth. Both were
+// answers to a layout that no longer exists: the page scrolls in the window now,
+// and the sticky index rail down the left margin says where you are, in words,
+// against the sections it can also take you to. The masthead sub-line names the
+// VIEW instead, set once by showView(). Kate, 2026-08-14.
+// Kept as a no-op rather than deleted: it is still called from the view switcher
+// paths that predate this change, and a missing function there is a thrown error.
+function updateScrollProgress() { /* superseded by the side rail's spy() */ }
 
 // Plain-English "so what" layer above the hero KPIs — reuses the same sc()/TARGETS
 // bands as the per-card statusBanner()s, just rolled up into one sentence that reacts
@@ -1827,7 +1954,7 @@ function restoreSections() {
 
 // AFTER — hoist filtered:
 async function renderDashboard() {
-  updateHeroPeriod();
+  paintFilterChips();
   const main = document.getElementById('mainContent');
   let d;
   let filtered = [];   // ← hoist here
@@ -2002,172 +2129,515 @@ async function renderDashboard() {
   const rvHBTxPct    = rvHBSvc ? ((s.treatmentSales||0) / rvHBSvc * 100) : 0;
   const rvHBRetPct   = rvHBSvc ? ((s.hairRetail||0) / rvHBSvc * 100) : 0;
 
-  const heroStatusEl = document.getElementById('heroStatusStatement');
-  if (heroStatusEl) {
-    const glance = computeAtAGlanceExplanation(s, rvHairSvc, rvHairTxPct);
-    const glanceLabelStyle = "font-family:'Playfair Display',serif;font-weight:700;font-size:18px;color:#FF9B9B";
-    heroStatusEl.innerHTML = `
-      <div style="display:flex;align-items:stretch;max-width:900px;margin:0 auto">
-        <div class="glance-hair" style="flex:1;text-align:left;padding-right:24px"><span style="${glanceLabelStyle}">Hair</span> — ${glance.hair}</div>
-        <div style="width:1px;flex-shrink:0;background:rgba(180,140,100,0.55)"></div>
-        <div class="glance-beauty" style="flex:1;text-align:left;padding-left:24px"><span style="${glanceLabelStyle}">Beauty</span> — ${glance.beauty}</div>
-      </div>`;
+  /* ══ THE PULSE DOCUMENT ═══════════════════════════════════════════
+     Everything from here down writes the Organisation Pulse the way the approved
+     v3 draft lays it out (`add ons/organisation-pulse-v3-sample.html`), on live
+     figures instead of the draft's one fixed pull. The draft's own comments have
+     been kept wherever they explain a decision — each of them was a bug first.
+     Kate, 2026-08-14. */
 
-    // Narrative upgrade (pulse-narrative.js). The templated prose above has
-    // already rendered and stays put unless the model copy arrives AND every
-    // figure in it checks out against the numbers we sent. Deliberately not
-    // awaited — the rest of the dashboard must not wait on a network call, and
-    // a missing or slow narrative should cost the page nothing.
-    if (typeof fetchPulseNarrative === 'function') {
-      fetchPulseNarrative(s, `${dateFrom} .. ${dateTo}`, branchLabel)
-        .then(copy => { if (copy) applyPulseNarrative(copy); });
+  const aed0 = n => 'AED ' + Math.round(n || 0).toLocaleString('en-GB');
+  const num0 = n => Math.round(n || 0).toLocaleString('en-GB');
+  const pct2 = n => (+(n || 0)).toFixed(2) + '%';
+  const shareOf = (a, b) => b ? Math.round((a || 0) / b * 100) : 0;
+  // Targets are round numbers. Printing the actual at two decimals is the point —
+  // 1.62% and 1.94% are different facts — but "a 20.00% target" is just noise.
+  const tidyTarget = txt => String(txt).replace(/\.00(?=%|$)/, '');
+  // sc() has a fourth band, 'critical', that only the old KPI cards ever painted.
+  // Nothing in this document distinguishes it from 'bad', so fold it here rather
+  // than carry a colour class that resolves to nothing.
+  const band = (v, t) => { const x = sc(v, t); return x === 'critical' ? 'bad' : (x || 'bad'); };
+
+  // Department-scoped ratios: each divided by its OWN department's take, not the
+  // combined total. s.treatmentPct / s.hairRetailPct carry different meanings
+  // depending on which aggregation path produced this render, so they are
+  // recomputed here, where the definition is unambiguous.
+  const hairNetSalonTake     = (s.hairServicesIncl || 0) + (s.hairRetailOnly || 0);
+  const beautyNetTakeDept    = (s.beautyServicesTotal || 0) + (s.beautyRetailOnly || 0);
+  const hairTreatmentPctDept = (s.hairServicesIncl || 0) ? ((s.treatmentSales || 0)   / s.hairServicesIncl  * 100) : 0;
+  const hairRetailPctDept    = hairNetSalonTake  ? ((s.hairRetailOnly   || 0) / hairNetSalonTake  * 100) : 0;
+  const beautyRetailPctDept  = beautyNetTakeDept ? ((s.beautyRetailOnly || 0) / beautyNetTakeDept * 100) : 0;
+
+  // byBranch feeds the standing column chart AND the branch read in the
+  // standfirst, so it is computed once, before anything renders.
+  let byBranch = {};
+  try { byBranch = aggByBranch(); } catch(e) { /* the column chart tolerates an empty object */ }
+
+  // ── BENCHMARKS ───────────────────────────────────────────────────
+  // The draft scored eight rows; this scores seven. Total Clients is deliberately
+  // NOT one of them: getClientTarget() is stated PER WEEK, so multiplying it out
+  // across an arbitrary filter window produces an attainment figure that says
+  // more about the length of the window than about the salon. It keeps its place
+  // in the headline three, with its target printed as a note rather than raced
+  // against a bar. Kate, 2026-08-14.
+  const NCR_TARGET = 20;   // the same figure the old NCR card scored against
+  const benchRows = [
+    { name:'NCR %',           sub:`target ${NCR_TARGET}%`,
+      hair:s.hairNcrPct, beauty:s.beautyNcrPct, combined:s.combinedNcrPct, target:NCR_TARGET, fmt:pct2 },
+    { name:'Rebooking %',     sub:`target ${TARGETS.rebookPct}%`,
+      hair:s.hairRebookPct, beauty:s.beautyRebookPct, combined:s.rebookPct, target:TARGETS.rebookPct, fmt:pct2 },
+    { name:'Retail %',        sub:`target ≥ ${TARGETS.retailPct}%`,
+      hair:hairRetailPctDept, beauty:beautyRetailPctDept, combined:rvHBRetPct, target:TARGETS.retailPct, fmt:pct2 },
+    { name:'Treatment %',     sub:`target ≥ ${TARGETS.treatmentPct}%`,
+      hair:hairTreatmentPctDept, beauty:null, combined:rvHBTxPct, target:TARGETS.treatmentPct, fmt:pct2,
+      beautyNote:'not tracked' },
+    { name:'Beauty Avg Bill', sub:`target AED ${TARGETS.beautyAvgBill}`,
+      hair:null, beauty:s.beautyAvgBill, combined:s.beautyAvgBill, target:TARGETS.beautyAvgBill, fmt:aed0,
+      hairNote:'counted under Hair Avg Bill' },
+    { name:'Utilisation %',   sub:`hair ≥ ${TARGETS.hairUtilPct} · beauty ≥ ${TARGETS.beautyUtilPct}`,
+      hair:s.hairUtilPct, beauty:s.beautyUtilPct, combined:s.utilPct,
+      target:TARGETS.hairUtilPct, beautyTarget:TARGETS.beautyUtilPct, fmt:pct2 },
+    { name:'Hair Avg Bill',   sub:`target AED ${TARGETS.hairAvgBill}`,
+      hair:s.hairAvgBill, beauty:null, combined:s.hairAvgBill, target:TARGETS.hairAvgBill, fmt:aed0,
+      beautyNote:'counted under Beauty Avg Bill' },
+  ]
+  // No data, no card. Utilisation is null whenever the period has no matching
+  // roster hours, and a null scored against 80% would print as a catastrophic
+  // miss rather than as the absence it actually is.
+  .filter(r => Number.isFinite(r.combined))
+  .map(r => ({ ...r, att: r.target ? r.combined / r.target : 0 }));
+
+  const hitRows = benchRows.filter(r => r.att >= 1).sort((a, b) => b.att - a.att);
+  const lowRows = benchRows.filter(r => r.att <  1).sort((a, b) => a.att - b.att);
+  const worst   = lowRows[0] || null;
+
+  const attRow = (r, rank) => {
+    const vals = [r.hair, r.beauty, r.combined, r.target, r.beautyTarget].filter(Number.isFinite);
+    const max  = (Math.max(...vals) * 1.15) || 1;
+    const st   = band(r.combined, r.target);
+    const line = (lbl, val, color, tgt, tickLbl) => !Number.isFinite(val) ? '' : `
+      <div class="bar-line">
+        <span class="bar-lbl">${lbl}</span>
+        <span class="bar-track">
+          <span class="bar-fill" style="width:${Math.min(100, Math.max(1.5, val / max * 100)).toFixed(1)}%;background:${color}"></span>
+          ${Number.isFinite(tgt) ? `<span class="bar-tick" style="left:${Math.min(98, tgt / max * 100).toFixed(1)}%"><b>${tickLbl}</b></span>` : ''}
+        </span>
+        <span class="bar-val tabular">${r.fmt(val)}</span>
+      </div>`;
+    const note = txt => `<div class="bar-line"><span class="bar-lbl"></span><span class="bar-note">${txt}</span></div>`;
+    const both = Number.isFinite(r.beautyTarget);
+    return `
+      <div class="att-row">
+        <div class="att-top">
+          <div class="att-id">
+            <span class="att-rank ${st === 'good' ? 'st-good' : ''}">${rank}</span>
+            <span class="att-name">${r.name}<small>${r.sub}</small></span>
+          </div>
+          <div class="att-side">
+            <div class="att-big tabular ${st}">${r.fmt(r.combined)}</div>
+            <div class="att-chip chip-${st}">${Math.round(r.att * 100)}% of target</div>
+          </div>
+        </div>
+        <div class="att-bars">
+          ${Number.isFinite(r.hair)   ? line('Hair',   r.hair,   'var(--hair)',   r.target, both ? 'H' : 'Target')
+                                      : note('Hair · '   + (r.hairNote   || 'no data for this period'))}
+          ${Number.isFinite(r.beauty) ? line('Beauty', r.beauty, 'var(--beauty)', both ? r.beautyTarget : r.target, both ? 'B' : 'Target')
+                                      : note('Beauty · ' + (r.beautyNote || 'no data for this period'))}
+        </div>
+      </div>`;
+  };
+
+  // ── HERO: the cover ──────────────────────────────────────────────
+  const phr = heroPeriodPhrasing();
+  const rangeLabel = (dateFrom && dateTo) ? `${shortD(dateFrom)} – ${shortD(dateTo)}` : 'this period';
+
+  const headlineEl   = document.getElementById('pulseHeadline');
+  const deckEl       = document.getElementById('pulseDeck');
+  const standfirstEl = document.getElementById('pulseStandfirst');
+
+  if (headlineEl) {
+    // The draft's headline is a count plus the one name that matters. Both are
+    // read off the same scored rows the Below-target list is built from, so the
+    // sentence can never disagree with the card underneath it.
+    headlineEl.innerHTML = benchRows.length
+      ? (worst
+          ? `${hitRows.length} of ${benchRows.length} targets hit. <em>${escapeHtml(worst.name.replace(/\s*%$/, ''))}</em> is the one that matters.`
+          : `All ${benchRows.length} targets hit. <em>Hold it</em> — that is the whole job now.`)
+      : 'No scored targets for this selection.';
+  }
+  if (deckEl) deckEl.textContent = `Here's how ${phr.phrase} ${phr.verb} ${phr.scope}.`;
+
+  if (standfirstEl) {
+    const hairShare   = shareOf(hairNetSalonTake, s.netTake);
+    const beautyShare = shareOf(beautyNetTakeDept, s.netTake);
+    const beautyClientShare = shareOf(s.beautyTotalClients, s.totalClients);
+    const parts = [];
+    // "the group" is only true at All Branches; with one branch picked it reads as
+    // a claim about the whole company off one branch's numbers.
+    const whole = sel.branch.includes('all') ? 'the group' : branchLabel;
+    parts.push(hairShare >= 60
+      ? `Hair is carrying ${whole}: ${aed0(hairNetSalonTake)} of the ${aed0(s.netTake)}, ${hairShare}% of everything that came in.`
+      : `Hair brought in ${aed0(hairNetSalonTake)} of the ${aed0(s.netTake)}, ${hairShare}% of the take.`);
+    if (s.beautyTotalClients) {
+      parts.push(`Beauty is ${beautyClientShare}% of the clients and ${beautyShare}% of the money.`);
     }
+    if (worst) {
+      parts.push(`${worst.name.replace(/\s*%$/, '')} at ${worst.fmt(worst.combined)} against a ${tidyTarget(worst.fmt(worst.target))} target is the number that isn't in the same conversation as the rest.`);
+    }
+    standfirstEl.textContent = parts.join(' ');
   }
 
-  // Receipt strip — 7 headline metrics, styled as a printed receipt per Kate's
-  // mockup reference, 2026-08-03. Deltas are vs the previous period (prevS),
-  // same convention as trendArrow() elsewhere on this page. Each metric with a
-  // defined TARGET gets a small progress-to-target meter bar (no line charts —
-  // Kate asked for the sparklines to go, 2026-08-03 follow-up).
+  // ── THE RECEIPT ──────────────────────────────────────────────────
+  // Itemises the targets the headline counts. Only the ones that HIT are listed:
+  // the ones below already appear in full, with their bars and their targets, in
+  // the Below target card, so printing them twice made the receipt 500px tall and
+  // left a dead 150px beside it in the hero. The summary row carries the worst of
+  // them and links to the full list.
   const receiptEl = document.getElementById('heroReceipt');
   if (receiptEl) {
-    const servicesRevenue = rvHBSvc;
-    const prevServicesRevenue = prevS ? (prevS.netTake - (prevS.hairRetail||0)) : null;
-    const retailRevenue = s.hairRetail||0;
-    const prevRetailRevenue = prevS ? (prevS.hairRetail||0) : null;
-    // Red/green on the value itself only applies where a real single target
-    // exists (sc()/TARGETS) — Services Revenue and Retail Revenue have no
-    // single target defined elsewhere in the app, so those stay neutral.
-    const statusColor = { good:'#0F6E56', warn:'#BA7517', bad:'#A32D2D', critical:'#A32D2D', '':'#2A2A2A' };
-    const meter = (value, target) => {
-      if (!target) return '';
-      const status = sc(value||0, target);
-      const barColor = status==='good' ? '#0F6E56' : status==='warn' ? '#BA7517' : '#A32D2D';
-      const pct = Math.max(4, Math.min(100, ((value||0)/target)*100));
-      return `<div style="height:4px;background:#E7E0D2;border-radius:2px;margin-top:7px;overflow:hidden"><div style="height:100%;width:${pct.toFixed(0)}%;background:${barColor};border-radius:2px"></div></div>`;
-    };
-    const receiptRow = (label, valueHtml, deltaHtml, meterHtml, valueColor) => `
-      <div class="r-row"><span class="r-label">${label}</span></div>
-      <div class="r-row"><span class="r-val" style="color:${valueColor || '#2A2A2A'}">${valueHtml}</span></div>
-      <div class="r-delta">${deltaHtml || '&nbsp;'}</div>
-      ${meterHtml || ''}
-      <div class="r-rule"></div>`;
-    receiptEl.innerHTML = `
-      <div class="r-logo-crop"><img class="r-logo" src="assets/6.png" alt="Tara Rose"></div>
-      <div class="r-sub">ORGANISATION PULSE</div>
+    const rTRow = r =>
+      `<div class="r-t ${r.att >= 1 ? 'hit' : 'low'}"><span class="n">${r.name}</span>` +
+      `<span class="v tabular">${Math.round(r.att * 100)}%</span></div>`;
+    const targetsBlock = benchRows.length ? `
       <div class="r-rule"></div>
-      ${receiptRow('SERVICES REVENUE', fmtAED(servicesRevenue), trendArrow(servicesRevenue, prevServicesRevenue, true, prevPeriodLabel))}
-      ${receiptRow('RETAIL REVENUE', fmtAED(retailRevenue), trendArrow(retailRevenue, prevRetailRevenue, true, prevPeriodLabel))}
-      ${receiptRow('HAIR AVG BILL', fmtAED(s.hairAvgBill), trendArrow(s.hairAvgBill, prevS?.hairAvgBill, true, prevPeriodLabel), meter(s.hairAvgBill, TARGETS.hairAvgBill), statusColor[sc(s.hairAvgBill, TARGETS.hairAvgBill)])}
-      ${receiptRow('BEAUTY AVG BILL', s.beautyAvgBill!=null?fmtAED(s.beautyAvgBill):'—', s.beautyAvgBill!=null?trendArrow(s.beautyAvgBill, prevS?.beautyAvgBill, true, prevPeriodLabel):'&nbsp;', s.beautyAvgBill!=null?meter(s.beautyAvgBill, TARGETS.beautyAvgBill):'', s.beautyAvgBill!=null?statusColor[sc(s.beautyAvgBill, TARGETS.beautyAvgBill)]:null)}
-      ${receiptRow('REBOOKING % (GROUP AVG)', fmtPct(s.rebookPct), trendArrow(s.rebookPct, prevS?.rebookPct, true, prevPeriodLabel), meter(s.rebookPct, TARGETS.rebookPct), statusColor[sc(s.rebookPct, TARGETS.rebookPct)])}
-      ${receiptRow('TREATMENT % (GROUP AVG)', fmtPct(s.treatmentPct), trendArrow(s.treatmentPct, prevS?.treatmentPct, true, prevPeriodLabel), meter(s.treatmentPct, TARGETS.treatmentPct), statusColor[sc(s.treatmentPct, TARGETS.treatmentPct)])}
-      ${receiptRow('RETAIL % (GROUP AVG)', fmtPct(s.hairRetailPct), trendArrow(s.hairRetailPct, prevS?.hairRetailPct, true, prevPeriodLabel), meter(s.hairRetailPct, TARGETS.retailPct), statusColor[sc(s.hairRetailPct, TARGETS.retailPct)])}
-      <div class="r-foot">${escapeHtml(branchLabel).toUpperCase()}<br>${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase()}</div>
-    `;
+      <div class="r-sec"><span>Targets</span><span>${hitRows.length} of ${benchRows.length} hit</span></div>
+      ${hitRows.length ? hitRows.map(rTRow).join('') : '<div class="r-t low"><span class="n">None hit yet</span><span class="v">—</span></div>'}
+      ${lowRows.length ? `
+        <div class="r-gap"></div>
+        <a class="r-more" href="#s-below" onclick="reveal()">
+          <span>${lowRows.length} below target</span>
+          <span>worst ${escapeHtml(lowRows[0].name.replace(/\s*%$/, ''))} ${Math.round(lowRows[0].att * 100)}% ↓</span>
+        </a>` : ''}` : '';
+
+    receiptEl.innerHTML = `
+      <div class="mark"><img src="assets/6.png" alt="Tara Rose Ladies Salon"></div>
+      <div class="r-sub">${escapeHtml(branchLabel)} · ${rangeLabel}</div>
+      <div class="r-rule"></div>
+      <div class="r-row"><span class="r-label">Hair net take</span><span class="r-val tabular">${num0(hairNetSalonTake)}</span></div>
+      <div class="r-row"><span class="r-label">Beauty net take</span><span class="r-val tabular">${num0(beautyNetTakeDept)}</span></div>
+      <div class="r-rule"></div>
+      <div class="r-row"><span class="r-label">Net take</span><span class="r-val tabular">${num0(s.netTake)}</span></div>
+      <div class="r-row"><span class="r-label">Clients</span><span class="r-val tabular">${num0(s.totalClients)}</span></div>
+      <div class="r-row"><span class="r-label">Avg bill</span><span class="r-val tabular">${num0(s.avgBill)}</span></div>
+      ${targetsBlock}
+      <div class="r-rule"></div>
+      <div class="r-foot">All money in AED · takings before staff cost</div>`;
   }
 
+  // ── HEADLINE THREE ───────────────────────────────────────────────
+  // Net take and Clients have no single target in this app — getWeeklyTarget()
+  // and getClientTarget() are both stated per week and per branch — so they are
+  // scored against the previous period instead of against a number that would
+  // have to be invented. Avg bill has a real target on both sides, so it gets
+  // the blended one and is scored properly.
+  const noCompare = { status:'warn', txt:'No comparable previous period', verdict:'No comparison' };
+  const trendOf = (curr, prev) => {
+    if (prev == null || !prev || !curr) return noCompare;
+    const d = (curr - prev) / prev * 100;
+    // prevS is built from the retired weekly_data table by taking the second-newest
+    // upload snapshot, which is not the same window as the filter and is often a
+    // fraction of it — that is where "up 1319% on prev month" came from. A swing
+    // that large is a mismatch, not a result, so it is reported as one rather than
+    // printed on the biggest number on the page. Kate, 2026-08-14.
+    if (!Number.isFinite(d) || Math.abs(d) > 100) return noCompare;
+    if (d >=  2) return { status:'good', txt:`Up ${d.toFixed(1)}% on ${prevPeriodLabel}`, verdict:'Growing' };
+    if (d <= -2) return { status:'bad',  txt:`Down ${Math.abs(d).toFixed(1)}% on ${prevPeriodLabel}`, verdict:'Falling' };
+    return { status:'warn', txt:`Level with ${prevPeriodLabel}`, verdict:'Holding' };
+  };
+  const blendedAvgTarget = s.totalClients
+    ? ((TARGETS.hairAvgBill * (s.hairTotalClients || 0)) + (TARGETS.beautyAvgBill * (s.beautyTotalClients || 0))) / s.totalClients
+    : TARGETS.hairAvgBill;
+  const avgBillStatus = band(s.avgBill, blendedAvgTarget);
+  const hairAvgOk   = (s.hairAvgBill || 0) >= TARGETS.hairAvgBill;
+  const beautyAvgOk = s.beautyAvgBill != null && s.beautyAvgBill >= TARGETS.beautyAvgBill;
+  const avgBillVerdict = avgBillStatus === 'good' ? 'On target'
+    : (hairAvgOk && s.beautyAvgBill != null && !beautyAvgOk) ? 'Beauty is dragging it'
+    : avgBillStatus === 'warn' ? 'Nearly' : 'Below target';
+
+  const netTrend    = trendOf(s.netTake,      prevS ? prevS.netTake      : null);
+  const clientTrend = trendOf(s.totalClients, prevS ? prevS.totalClients : null);
+
+  const splitBar = sp => `
+    <div class="sp">
+      <span class="sp-k">${sp.k}</span>
+      <span class="sp-track"><i class="sp-fill" style="width:${Math.min(100, Math.max(3, sp.of ? sp.val / sp.of * 100 : 0)).toFixed(1)}%;background:${sp.color}"></i></span>
+      <span class="sp-v tabular">${sp.txt}</span>
+      <span class="sp-x tabular ${sp.cls || ''}">${sp.extra}</span>
+    </div>`;
+
+  const THREE = [
+    { k:'Net take', def:'Services + treatments + retail, hair and beauty, before staff cost.',
+      v: aed0(s.netTake), status: netTrend.status, t: netTrend.txt, verdict: netTrend.verdict,
+      splits: [
+        { k:'Hair',   val:hairNetSalonTake,  of:s.netTake, txt:aed0(hairNetSalonTake),  extra:`${shareOf(hairNetSalonTake, s.netTake)}%`,  color:'var(--hair)' },
+        { k:'Beauty', val:beautyNetTakeDept, of:s.netTake, txt:aed0(beautyNetTakeDept), extra:`${shareOf(beautyNetTakeDept, s.netTake)}%`, color:'var(--beauty)' },
+      ] },
+    { k:'Clients', def:'Every client who paid a bill in the period, hair and beauty.',
+      v: num0(s.totalClients), status: clientTrend.status,
+      t: `Target ${getClientTarget(sel.branch)}`, verdict: clientTrend.verdict,
+      splits: [
+        { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} clients`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
+        { k:'Beauty', val:s.beautyTotalClients, of:s.totalClients, txt:`${num0(s.beautyTotalClients)} clients`, extra:`${shareOf(s.beautyTotalClients, s.totalClients)}%`, color:'var(--beauty)' },
+      ] },
+    { k:'Avg bill', def:'Net take divided by clients: what one visit is worth.',
+      v: aed0(s.avgBill), status: avgBillStatus,
+      t: `Hair target ${TARGETS.hairAvgBill} · Beauty target ${TARGETS.beautyAvgBill}`, verdict: avgBillVerdict,
+      splits: [
+        { k:'Hair', val:s.hairAvgBill, of:Math.max(s.hairAvgBill || 0, s.beautyAvgBill || 0, TARGETS.hairAvgBill),
+          txt:aed0(s.hairAvgBill),
+          extra:`${(s.hairAvgBill || 0) >= TARGETS.hairAvgBill ? '+' : '−'}${Math.abs(Math.round(((s.hairAvgBill || 0) / TARGETS.hairAvgBill - 1) * 100))}%`,
+          cls: hairAvgOk ? 'good' : 'bad', color:'var(--hair)' },
+        s.beautyAvgBill == null
+          ? { k:'Beauty', val:0, of:1, txt:'—', extra:'no data', color:'var(--beauty)' }
+          : { k:'Beauty', val:s.beautyAvgBill, of:Math.max(s.hairAvgBill || 0, s.beautyAvgBill || 0, TARGETS.hairAvgBill),
+              txt:aed0(s.beautyAvgBill),
+              extra:`${beautyAvgOk ? '+' : '−'}${Math.abs(Math.round((s.beautyAvgBill / TARGETS.beautyAvgBill - 1) * 100))}%`,
+              cls: beautyAvgOk ? 'good' : 'bad', color:'var(--beauty)' },
+      ] },
+  ];
+
+  // ── THE READ: hair vs beauty, in words ───────────────────────────
+  // The prose is the templated glance copy, which pulse-narrative.js overwrites
+  // in place once the model's version comes back AND every figure in it checks
+  // out. The headings are derived here so they can never contradict the figures
+  // in the stat chips beside them.
+  const glance = computeAtAGlanceExplanation(s, rvHairSvc, rvHairTxPct);
+  const hairShareOfTake = shareOf(hairNetSalonTake, s.netTake);
+  const hairHeading = hairShareOfTake >= 60
+    ? (hairAvgOk ? 'Doing the lifting, and doing it above target.' : 'Doing the lifting, but not at the bill it should be.')
+    : 'Carrying its share of the take.';
+  const beautyHeading = s.beautyTotalClients
+    ? `${shareOf(s.beautyTotalClients, s.totalClients)}% of the clients, ${shareOf(beautyNetTakeDept, s.netTake)}% of the money.`
+    : 'No beauty clients recorded in this window.';
+  const statChip = (v, label) => `<span class="stat"><b>${v}</b> ${label}</span>`;
+
+  // ── WINS ─────────────────────────────────────────────────────────
+  const winnersFor = (staff, revKey) => {
+    const pool = (staff || []).filter(st => st.name && st.name !== 'ASSISTANTS' && (st.total || 0) > 0);
+    if (!pool.length) return [];
+    // A one-visit stylist can post a huge average bill and take the card off a
+    // single client, so avg bill has a floor. If nobody clears it the whole pool
+    // is used rather than dropping the card, and the visit count prints either
+    // way, which is what makes the thin ones obvious.
+    const best = (key, minVisits) => {
+      const eligible = minVisits ? pool.filter(p => (p.total || 0) >= minVisits) : [];
+      return (eligible.length ? eligible : pool).reduce((a, b) => ((b[key] || 0) > (a[key] || 0) ? b : a));
+    };
+    const tBill = best(revKey), tAvg = best('avgBill', 10), tReq = best('req'), tNew = best('newC');
+    return [
+      { k:'Top biller',       p:tBill, n:tBill[revKey] || 0,  v:`<b>${aed0(tBill[revKey] || 0)}</b> · ${num0(tBill.total)} visits` },
+      { k:'Highest avg bill', p:tAvg,  n:tAvg.avgBill  || 0,  v:`<b>${aed0(tAvg.avgBill || 0)}</b> avg · ${num0(tAvg.total)} visits` },
+      { k:'Most requested',   p:tReq,  n:tReq.req      || 0,  v:`<b>${num0(tReq.req || 0)} requests</b> of ${num0(tReq.total)} visits` },
+      { k:'Most new clients', p:tNew,  n:tNew.newC     || 0,  v:`<b>${num0(tNew.newC || 0)} new</b> of ${num0(tNew.total)} visits` },
+    ].filter(w => w.n > 0);   // no data, no card
+  };
+
+  const winCard = w => {
+    const prof = (typeof staffProfile === 'function') ? staffProfile(w.p.name) : null;
+    const nm = escapeHtml(w.p.name);
+    // The soft-square block with the head breaking out over its top edge is baked
+    // into the PNG, so no border-radius, background or border here — any of the
+    // three clips the overhang and the card falls back to a plain circle.
+    const av = (prof && prof.photo)
+      ? `<img class="av" src="assets/staff/${encodeURIComponent(prof.photo)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="av-ph" title="Portrait to come"><b>${escapeHtml(initials(w.p.name))}</b></div>`;
+    const name = (prof && prof.ig)
+      ? `<a href="https://instagram.com/${encodeURIComponent(prof.ig)}" target="_blank" rel="noopener noreferrer" title="@${escapeHtml(prof.ig)} on Instagram">${nm}</a>`
+      : nm;
+    // The branch comes from the profile or not at all. Falling back to the current
+    // filter label printed "All Branches" under every beauty therapist, which reads
+    // as a claim that they work at all four. No profile, no tag.
+    const tag = (prof && prof.branch)
+      ? (BRANCH_INFO[prof.branch] ? BRANCH_INFO[prof.branch].name : prof.branch) : null;
+    return `
+      <div class="win">
+        ${av}
+        <div style="min-width:0">
+          <div class="win-k">${w.k}</div>
+          <div class="win-name">${name}</div>
+          <div class="win-v tabular">${w.v}</div>
+          ${tag ? `<span class="tagb">${escapeHtml(tag)}</span>` : ''}
+        </div>
+      </div>`;
+  };
+  const winsHair   = winnersFor(d.hairStaff,   'hairSalesNet').map(winCard).join('');
+  const winsBeauty = winnersFor(d.beautyStaff, 'beautySales').map(winCard).join('');
+
+  // ── CLIENT FUNNEL ────────────────────────────────────────────────
+  // These are independent booking-type breakdowns, not strict sequential stages,
+  // so each side is scaled against its OWN total: hair turns over roughly ten
+  // times beauty's volume and a shared scale would flatten beauty to a hairline.
+  const fnHair = s.hairTotalClients || 0, fnBeauty = s.beautyTotalClients || 0;
+  const FUNNEL = [
+    { k:'Total',    hair:fnHair,                                   beauty:fnBeauty },
+    { k:'Salon',    hair:(s.hairBreakdown && s.hairBreakdown.salon) || 0,     beauty:(s.beautyBreakdown && s.beautyBreakdown.salon) || 0 },
+    { k:'Request',  hair:(s.hairBreakdown && s.hairBreakdown.req) || 0,       beauty:(s.beautyBreakdown && s.beautyBreakdown.req) || 0 },
+    { k:'Rebooked', hair:s.hairRebookedCount || 0,                 beauty:(s.beautyBreakdown && s.beautyBreakdown.rebooked) || 0 },
+    { k:'New',      hair:s.hairNewClients || 0,                    beauty:s.beautyNewClients || 0 },
+    { k:'NCR',      hair:s.hairNCR || 0,                           beauty:s.beautyNCR || 0 },
+  ];
+  const funnelHtml = FUNNEL.map(r => `
+    <div class="fn-row">
+      <div class="fn-side l">
+        <span class="fn-n tabular">${num0(r.hair)}</span>
+        <span class="fn-bar" style="width:${fnHair ? Math.max(1.5, r.hair / fnHair * 100).toFixed(1) : 0}%;background:var(--hair);opacity:${r.k === 'Total' ? .45 : 1}"></span>
+      </div>
+      <div class="fn-c">${r.k}</div>
+      <div class="fn-side r">
+        <span class="fn-bar" style="width:${fnBeauty ? Math.max(1.5, r.beauty / fnBeauty * 100).toFixed(1) : 0}%;background:var(--beauty);opacity:${r.k === 'Total' ? .45 : 1}"></span>
+        <span class="fn-n tabular">${num0(r.beauty)}</span>
+      </div>
+    </div>`).join('');
+
+  // ── BRANCH PERFORMANCE, standing columns ─────────────────────────
+  // Replaces the Chart.js bar chart that used to live here: the same four
+  // figures, drawn in the page's own type, with no canvas to destroy and rebuild
+  // on every theme flip. The chosen branch keeps its colour and the rest step
+  // back, so the branch chips genuinely drive this card.
+  const brCols = ACTIVE_BRANCHES.map(code => {
+    const bs = byBranch[code] && byBranch[code].summary;
+    if (!bs || !(bs.netTake > 0)) return null;
+    return { code, name: BRANCH_INFO[code].name, rev: bs.netTake, visits: bs.totalClients || 0,
+             color: dark ? BRANCH_INFO[code].color : BRANCH_INFO[code].colorLight };
+  }).filter(Boolean).sort((a, b) => b.rev - a.rev);
+  const brTotal = brCols.reduce((a, b) => a + b.rev, 0);
+  const brAvg   = brCols.length ? brTotal / brCols.length : 0;
+  const brMax   = brCols.length ? Math.max(...brCols.map(b => b.rev)) * 1.16 : 1;
+  const brDim   = b => !sel.branch.includes('all') && !sel.branch.includes(b.code);
+  const colsPlot = brCols.length ? `
+    <div class="avgline" style="bottom:${(brAvg / brMax * 100).toFixed(1)}%"><b>Group avg ${aed0(brAvg)}</b></div>
+    ${brCols.map(b => `
+      <div class="col${brDim(b) ? ' dim' : ''}">
+        <span class="cv tabular">${num0(b.rev / 1000)}k</span>
+        <span class="cbar" style="height:${(b.rev / brMax * 100).toFixed(1)}%;background:${b.color}"></span>
+      </div>`).join('')}` : '';
+  const colsX = brCols.map(b => `
+    <div class="${brDim(b) ? 'dim' : ''}">
+      <div class="cx-k">${escapeHtml(b.code)}</div>
+      <div class="cx-s">${num0(b.visits)} visits<br>${b.visits ? aed0(b.rev / b.visits) : '—'} avg</div>
+    </div>`).join('');
+  // This card deliberately keeps ALL four branches even when one is picked — the
+  // point of it is where that branch sits against the others. So the footnote is
+  // chosen by the SELECTION, not by how many columns are drawn: pick one branch
+  // and it reads that branch against the group, instead of repeating the group
+  // read you were already looking at.
+  const onlyPicked = (!sel.branch.includes('all') && sel.branch.length === 1)
+    ? brCols.find(b => b.code === sel.branch[0]) : null;
+  const branchFoot = !brCols.length
+    ? 'No per-branch figures for this selection.'
+    : onlyPicked
+      ? `${onlyPicked.name}: ${aed0(onlyPicked.rev)} across ${num0(onlyPicked.visits)} visits, ${onlyPicked.visits ? aed0(onlyPicked.rev / onlyPicked.visits) : '—'} a visit. That is ${shareOf(onlyPicked.rev, brTotal)}% of the ${brCols.length}-branch total and ${onlyPicked.rev >= brAvg ? 'above' : 'below'} the group average of ${aed0(brAvg)}.`
+      : `Total ${aed0(brTotal)} across ${brCols.length} branches. ${brCols[0].name} is the biggest at ${shareOf(brCols[0].rev, brTotal)}% of it; ${brCols.filter(b => b.rev < brAvg).length} sit below the group average of ${aed0(brAvg)}.`;
+
+  // ── DO THIS ──────────────────────────────────────────────────────
+  // The single worst-attaining benchmark, named, with the deadline set to the
+  // next Monday. One action, one owner, one deadline — no buffet.
+  const nextMonday = (() => {
+    const dte = new Date(); dte.setHours(0, 0, 0, 0);
+    dte.setDate(dte.getDate() + ((8 - dte.getDay()) % 7 || 7));
+    return `${MON_LONG[dte.getMonth()].slice(0, 3)} ${dte.getDate()}`;
+  })();
+  const actionHtml = worst ? `
+    <div class="action">
+      <div class="tag">✦ Fix first</div>
+      <h2>${escapeHtml(worst.name.replace(/\s*%$/, ''))} at ${worst.fmt(worst.combined)}. ${lowRows.length > 1 ? 'Every other gap is small next to this one.' : 'It is the only gap left.'}</h2>
+      <p class="why">${Math.round(worst.att * 100)}% of a ${tidyTarget(worst.fmt(worst.target))} target${Number.isFinite(worst.hair) && Number.isFinite(worst.beauty) ? ` — hair ${worst.fmt(worst.hair)}, beauty ${worst.fmt(worst.beauty)}` : ''}.</p>
+      <div class="meta">
+        <div>Action<b>Audit how ${escapeHtml(worst.name.replace(/\s*%$/, ''))} is captured and coached at reception</b></div>
+        <div>Owner<b>Kate</b></div>
+        <div>Deadline<b>Monday ${nextMonday}</b></div>
+      </div>
+    </div>` : `
+    <div class="action">
+      <div class="tag">✦ Hold the line</div>
+      <h2>Every scored target is being hit. The job is keeping it there.</h2>
+      <div class="meta">
+        <div>Action<b>Write down what changed, before it is forgotten</b></div>
+        <div>Owner<b>Kate</b></div>
+        <div>Deadline<b>Monday ${nextMonday}</b></div>
+      </div>
+    </div>`;
+
   main.innerHTML = `
-<!-- ROW 1: 4 COMPACT KPI CARDS -->
-<div>
-  <div class="section-label" data-scrollspy="Main Metrics" style="display:flex;align-items:center;gap:7px;margin-top:16px;margin-bottom:8px">
-    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#99F6E4;flex-shrink:0"></span>
-    ${branchLabel} · Main Metrics
-  </div>
-  <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:10px;margin-bottom:12px">
-
-    <div class="metric" style="border-color:rgba(153,246,228,0.45);padding:20px;background:${dark?'rgba(153,246,228,0.05)':'rgba(153,246,228,0.07)'}">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
-      <div class="metric-label" style="font-size:10px">Total Clients</div>
-      <div style="font-size:10px;color:var(--muted);margin:4px 0 8px"><em>Excludes rebooked clients</em></div>
-      <div class="metric-value" style="font-size:40px">${(s.totalClients||0).toLocaleString()}</div>
-      <div class="metric-target" style="font-size:11px;margin-top:10px">Target: ${getClientTarget(sel.branch)}</div>
-    </div>
-
-    <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
-      <div class="metric-label" style="font-size:9px">Avg Bill (AED)</div>
-      <div style="font-size:9px;color:var(--muted);margin:3px 0 6px"><em>Revenue ÷ Total Clients (excl. rebooked)</em></div>
-      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <span style="font-size:9px;font-weight:700;color:var(--hair);letter-spacing:.06em">HAIR</span>
-          <span class="tabular ${sc(s.hairAvgBill||0,650)}" style="font-size:14px;font-weight:600">${fmtAED(s.hairAvgBill||0)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <span style="font-size:9px;font-weight:700;color:var(--beauty);letter-spacing:.06em">BEAUTY</span>
-          <span class="tabular ${s.beautyAvgBill!=null?sc(s.beautyAvgBill,650):''}" style="font-size:14px;font-weight:600">${s.beautyAvgBill!=null?fmtAED(s.beautyAvgBill):'—'}</span>
-        </div>
-      </div>
-      <div style="border-top:1px solid var(--border2);padding-top:6px">
-        <div class="metric-value ${sc(s.avgBill||0,650)}" style="font-size:24px">${fmtAED(s.avgBill||0)}${trendArrow(s.avgBill, prevS?.avgBill, true, prevPeriodLabel)}</div>
-        <div class="metric-target" style="font-size:10px">Combined · Benchmark: ~AED 650</div>
-      </div>
-      ${statusBanner(sc(s.avgBill||0,650), dark)}
-    </div>
-
-    <div class="metric" style="border-color:rgba(153,246,228,0.35);padding:14px">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
-      <div class="metric-label" style="font-size:9px">Rebooking %</div>
-      <div style="font-size:9px;color:var(--muted);margin:3px 0 6px"><em>Rebooked ÷ Total Clients (excl. rebooked)</em></div>
-      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <span style="font-size:9px;font-weight:700;color:var(--hair);letter-spacing:.06em">HAIR</span>
-          <span class="tabular ${sc(s.hairRebookPct||0,TARGETS.rebookPct)}" style="font-size:14px;font-weight:600">${fmtPct(s.hairRebookPct||0)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <span style="font-size:9px;font-weight:700;color:var(--beauty);letter-spacing:.06em">BEAUTY</span>
-          <span class="tabular ${s.beautyRebookPct!=null?sc(s.beautyRebookPct,TARGETS.rebookPct):''}" style="font-size:14px;font-weight:600">${s.beautyRebookPct!=null?fmtPct(s.beautyRebookPct):'—'}</span>
-        </div>
-      </div>
-      <div style="border-top:1px solid var(--border2);padding-top:6px">
-        <div class="metric-value ${sc(s.rebookPct||0,TARGETS.rebookPct)}" style="font-size:24px">${fmtPct(s.rebookPct||0)}${trendArrow(s.rebookPct, prevS?.rebookPct, true, prevPeriodLabel)}</div>
-        <div class="metric-target" style="font-size:10px">Combined · Target: ${TARGETS.rebookPct}%</div>
-      </div>
-      ${statusBanner(sc(s.rebookPct||0,TARGETS.rebookPct), dark)}
-    </div>
-
-    <div class="metric ${sc(s.combinedNcrPct||0,20)==='good'?'ncr-glow':''}" style="border-color:rgba(153,246,228,0.75);padding:14px">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:#99F6E4"></div>
-      <div class="metric-label" style="font-size:9px">NCR %</div>
-      <div style="font-size:9px;color:var(--muted);margin:3px 0 6px"><em>New Client Requests ÷ Clients (excl. rebooked)</em></div>
-      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <span style="font-size:9px;font-weight:700;color:var(--hair);letter-spacing:.06em">HAIR</span>
-          <span class="tabular ${sc(s.ncrPct||0,20)}" style="font-size:14px;font-weight:600">${fmtPct(s.ncrPct||0)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <span style="font-size:9px;font-weight:700;color:var(--beauty);letter-spacing:.06em">BEAUTY</span>
-          <span class="tabular ${s.beautyNcrPct!=null?sc(s.beautyNcrPct,20):''}" style="font-size:14px;font-weight:600">${s.beautyNcrPct!=null?fmtPct(s.beautyNcrPct):'—'}</span>
-        </div>
-      </div>
-      <div style="border-top:1px solid var(--border2);padding-top:6px">
-        <div class="metric-value ${sc(s.combinedNcrPct||0,20)}" style="font-size:24px">${fmtPct(s.combinedNcrPct||0)}${trendArrow(s.ncrPct, prevS?.ncrPct, true, prevPeriodLabel)}</div>
-        <div class="metric-target" style="font-size:10px">Combined · Target: ≥ 20%</div>
-      </div>
-      ${statusBanner(sc(s.combinedNcrPct||0,20), dark)}
-    </div>
-  </div>
-
+<!-- ══ HEADLINE THREE ══ -->
+<div class="eyebrow" id="s-three"><span class="bar"></span>The headline three</div>
+<div class="three">
+  ${THREE.map(m => `
+    <div class="metric st-${m.status}">
+      <div class="m-k">${m.k}</div>
+      <div class="m-def">${m.def}</div>
+      <div class="m-v tabular ${m.status === 'good' ? 'good' : m.status === 'warn' ? 'warn' : 'bad'}">${m.v}</div>
+      <div class="m-t">${m.t}</div>
+      <div class="m-split">${m.splits.map(splitBar).join('')}</div>
+      <span class="verdict st-${m.status}">${m.verdict}</span>
+    </div>`).join('')}
 </div>
 
-<!-- Target Achievement gauge — standalone, below the KPI row -->
-<div style="margin-bottom:16px">
-  <div class="card" style="margin-bottom:0;max-width:340px">
-    <div class="card-title">Target Achievement</div>
-    <div class="card-sub">Core KPIs currently at or above target</div>
-    <div id="orgTargetGauge" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:230px;gap:8px">
-      <div style="position:relative;width:200px;height:110px;overflow:hidden">
-        <canvas id="orgTargetGaugeCanvas" width="200" height="200" style="position:absolute;top:0;left:0"></canvas>
-      </div>
-      <div id="orgTargetGaugeLabel" style="text-align:center"></div>
+<!-- ══ THE READ ══ -->
+<div class="eyebrow" id="s-read"><span class="bar"></span>What's going on · Hair vs Beauty</div>
+<div class="read">
+  <div class="read-col">
+    <div class="read-k">Hair</div>
+    <div class="read-h">${hairHeading}</div>
+    <div class="read-p">${glance.hair}</div>
+    <div class="read-stats">
+      ${statChip(hairShareOfTake + '%', 'of net take')}
+      ${statChip(num0(s.hairTotalClients), 'clients')}
+      ${statChip(aed0(s.hairAvgBill), 'avg bill')}
+      ${statChip(shareOf((s.hairBreakdown && s.hairBreakdown.req) || 0, s.hairTotalClients) + '%', 'requested')}
+    </div>
+  </div>
+  <div class="read-col b">
+    <div class="read-k">Beauty</div>
+    <div class="read-h">${beautyHeading}</div>
+    <div class="read-p">${glance.beauty}</div>
+    <div class="read-stats">
+      ${statChip(shareOf(beautyNetTakeDept, s.netTake) + '%', 'of net take')}
+      ${statChip(num0(s.beautyTotalClients), 'clients')}
+      ${statChip(s.beautyAvgBill != null ? aed0(s.beautyAvgBill) : '—', 'avg bill')}
+      ${statChip(shareOf((s.beautyBreakdown && s.beautyBreakdown.req) || 0, s.beautyTotalClients) + '%', 'requested')}
     </div>
   </div>
 </div>
 
-<!-- Data source note -->
-<div style="font-size:10.5px;color:var(--muted);margin:2px 0 18px;line-height:1.5;max-width:900px">
-  Sourced from Phorest extractions, except figures tagged <span style="font-size:8px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle">LEDGER</span> — those come from the treatment ledger (Google Sheets).
+<!-- ══ WINS ══ -->
+<div class="eyebrow" id="s-wins"><span class="dot" style="background:var(--hair)"></span>Wins · Hair · ${rangeLabel}</div>
+<div class="wins">${winsHair || '<div class="foot">No staff-level hair figures for this date range.</div>'}</div>
+
+<div class="eyebrow eyebrow-sm"><span class="dot" style="background:var(--beauty)"></span>Wins · Beauty · ${rangeLabel}</div>
+<div class="wins">${winsBeauty || '<div class="foot">No staff-level beauty figures for this date range.</div>'}</div>
+<p class="foot" style="margin-top:10px">Beauty portraits aren't shot yet, so initials stand in until they are. Same card, same slot: drop the file into <code>assets/staff/</code> and add the name to <code>staff-profiles.js</code>, and it appears.</p>
+
+<!-- ══ PERFORMANCE OVERVIEW ══ -->
+<div class="eyebrow" id="s-perf"><span class="dot" style="background:var(--accent-lavender)"></span>${escapeHtml(branchLabel)} · Performance Overview</div>
+<div class="perf2">
+  <div class="card">
+    <div class="card-title">Client Funnel · Hair vs Beauty</div>
+    <div class="card-sub">Every client type, mirrored down the middle</div>
+    <div class="fn-head"><span class="l">Hair</span><span class="c">Type</span><span class="r">Beauty</span></div>
+    ${funnelHtml}
+    <div class="foot">Bars scaled against each side's own total: ${num0(fnHair)} hair, ${num0(fnBeauty)} beauty. Request means the client asked for that stylist by name.</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Branch Performance</div>
+    <div class="card-sub">Net revenue by branch · dashed line = group average</div>
+    <div class="cols-plot">${colsPlot}</div>
+    <div class="cols-x">${colsX}</div>
+    <div class="foot">${branchFoot}</div>
+  </div>
 </div>
+
+<!-- ══ TARGET BARS ══ -->
+<div class="eyebrow" id="s-below"><span class="bar bad"></span>Below target · worst first</div>
+<div class="card">
+  <div class="card-title">Benchmarks</div>
+  <div class="card-sub">Bar = actual · vertical tick = target · <span style="color:var(--hair)">■</span> hair · <span style="color:var(--beauty)">■</span> beauty</div>
+  <div id="attBelow">${lowRows.length ? lowRows.map((r, i) => attRow(r, i + 1)).join('') : '<div class="foot">Nothing below target this period.</div>'}</div>
+</div>
+
+<div class="eyebrow" id="s-working"><span class="bar good"></span>Working</div>
+<div class="card">
+  <div class="card-title">On target</div>
+  <div class="card-sub">Listed, deliberately without commentary. If it is working it does not need explaining.</div>
+  <div id="attGood">${hitRows.length ? hitRows.map(r => attRow(r, '✓')).join('') : '<div class="foot">Nothing is at target yet this period.</div>'}</div>
+</div>
+
+<!-- ══ ONE ACTION ══ -->
+<div class="eyebrow" id="s-action"><span class="bar"></span>Do this</div>
+${actionHtml}
+
+<!-- ══ THE DETAIL — the collapsible support sections ══ -->
+<div class="eyebrow" id="s-detail"><span class="bar"></span>The detail · every figure behind the read</div>
 
 ${(s._retailWarnings && s._retailWarnings.length) ? `
   <div style="margin:0 0 14px;padding:10px 12px;background:rgba(251,191,36,.08);border-left:3px solid #fbbf24;border-radius:6px;font-size:11px;color:var(--text)">
@@ -2176,7 +2646,6 @@ ${(s._retailWarnings && s._retailWarnings.length) ? `
     ${s._retailWarnings.slice(0,3).map(m => `Daily AED ${(m.daily||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} vs Summary AED ${(m.summary||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} (${m.pctDiff}% drift)`).join(' · ')}
   </div>
 ` : ''}
-
 ${(() => {
   const ledgerTag = `<span style="font-size:8px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle;margin-left:4px">LEDGER</span>`;
   const tile = (label, value, opts = {}) => `
@@ -2375,6 +2844,13 @@ ${(() => {
   return revenueTargets + benchmarks + staffRatios + `
     <div class="g2-staff" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">${staffHair}${staffBeauty}</div>`;
 })()}
+
+<div class="fine">
+  <p><b>What net take means</b>. Everything the salon billed in the period: hair and beauty services, treatments and courses, plus retail, added together, before staff cost. Hair net take and beauty net take are each that department's own services plus its own retail, so the two add up to the total.</p>
+  <p><b>Sources</b>. Client counts, the department split and the treatment figure come from the branch ledger (<code>branch_staff_daily</code>); revenue comes from Phorest (<code>phorest_staff_daily</code>), matched to the ledger's staff and day. Figures tagged <span style="font-size:8px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle">LEDGER</span> in The detail are hand-tallied and have no Phorest equivalent. Utilisation is matched separately and drops out entirely when the period has no roster hours to match, rather than scoring as zero.</p>
+  <p><b>What is scored and what is not</b>. Seven benchmarks carry a single unambiguous target and are raced against it, worst first. Total Clients is not one of them: its target is stated per week and per branch, so multiplying it across whatever window the filter happens to hold would measure the window, not the salon. It sits in the headline three with its target printed as a note. Net take and Clients are read against the previous period for the same reason.</p>
+  <p><b>Layout rules</b>. One token set, 10px radius, 8pt spacing spine, Playfair for figures and Inter for labels. Colour carries status only; the accent quartet carries identity. Three headline cards, never twenty-one. Anything below target sorts by the size of its gap. No data, no card.</p>
+</div>
   `;
 
   // Default every new section to open on first render; leave alone once the user
@@ -2382,80 +2858,13 @@ ${(() => {
   ['revTargets','benchmarks','staffRatios','staffHair','staffBeauty'].forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
   restoreSections();
 
-  // ── Performance Overview: lives in the hero block (the blank space beside
-  // the receipt's lower half), not in the scrollable content — Kate wanted it
-  // "katabi ng lower half ng resibo" (2026-08-03 follow-up).
-  // byBranch is computed once here (rather than inside the chart try-block below)
-  // so both the Branch Performance chart AND the Top Branch wins card can use it.
-  let byBranch = {};
-  try { byBranch = aggByBranch(); } catch(e) { /* wins/chart below both tolerate an empty object */ }
-
-  const heroPerfEl = document.getElementById('heroPerfOverview');
-  if (heroPerfEl) {
-    heroPerfEl.innerHTML = `
-      <div class="section-label" style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
-        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#C4B5FD;flex-shrink:0"></span>
-        ${branchLabel} · Performance Overview
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div class="card" style="margin-bottom:0">
-          <div class="card-title">Client Funnel — Hair vs Beauty</div>
-          <div class="card-sub">Every client type, mirrored down the middle</div>
-          <div id="orgClientFunnel"></div>
-        </div>
-        <div class="card" style="margin-bottom:0">
-          <div class="card-title">Branch Performance</div>
-          <div class="card-sub">Net revenue by branch &nbsp;·&nbsp; dashed line = group average</div>
-          <div class="canvas-wrap"><canvas id="orgBranchBarChart"></canvas></div>
-        </div>
-      </div>
-      <div class="section-label" style="display:flex;align-items:center;gap:7px;margin-top:16px;margin-bottom:8px">
-        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#FF9B9B;flex-shrink:0"></span>
-        This Week's Wins
-      </div>
-      ${buildWinsHTML(s, prevS, prevPeriodLabel, d.hairStaff, d.beautyStaff, branchLabel, byBranch, dark)}`;
-  }
-
-  try {
-    buildCmpChart(byBranch, 'netTake', dark, ttStyle, gc, tc, 'hb', 'orgBranchBarChart');
-  } catch(e) { /* chart is a nice-to-have — don't break the page if branch agg fails */ }
-
-  try {
-    const gaugeMetrics = [
-      { value: s.hairAvgBill,   target: TARGETS.hairAvgBill },
-      { value: s.beautyAvgBill, target: TARGETS.beautyAvgBill, skip: s.beautyAvgBill == null },
-      { value: s.rebookPct,     target: TARGETS.rebookPct },
-      { value: rvHBTxPct,       target: TARGETS.treatmentPct },
-      { value: rvHBRetPct,      target: TARGETS.retailPct },
-    ].filter(m => !m.skip);
-    const achieved     = gaugeMetrics.filter(m => sc(m.value||0, m.target) === 'good').length;
-    const totalTracked = gaugeMetrics.length || 1;
-    const ratio        = achieved / totalTracked;
-    const gaugeColor = dark
-      ? (ratio >= 1 ? '#99F6E4' : ratio >= 0.5 ? '#EEF3C7' : '#FF9B9B')
-      : (ratio >= 1 ? '#0F6E56' : ratio >= 0.5 ? '#BA7517' : '#A32D2D');
-    const trackColor = dark ? 'rgba(250,248,243,0.08)' : 'rgba(26,26,26,0.06)';
-    const gEl = document.getElementById('orgTargetGaugeCanvas');
-    if (gEl) {
-      charts.gauge = new Chart(gEl, {
-        type: 'doughnut',
-        data: { datasets: [{ data: [achieved, totalTracked - achieved], backgroundColor: [gaugeColor, trackColor], borderWidth: 0 }] },
-        options: { rotation: -90, circumference: 180, cutout: '74%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 600, easing: 'easeOutQuart' } }
-      });
-    }
-    const gaugeLabelEl = document.getElementById('orgTargetGaugeLabel');
-    if (gaugeLabelEl) {
-      gaugeLabelEl.innerHTML = `
-        <div style="font-family:'Playfair Display',serif;font-size:32px;font-weight:600;color:var(--text);line-height:1">${achieved}/${gaugeMetrics.length}</div>
-        <div style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:4px">KPIs On Target</div>`;
-    }
-  } catch(e) { /* gauge is a nice-to-have — don't break the page */ }
-
-  try {
-    const funnelEl = document.getElementById('orgClientFunnel');
-    if (funnelEl) funnelEl.innerHTML = buildClientFunnelHTML(s, dark);
-  } catch(e) { /* funnel is a nice-to-have — don't break the page */ }
-
+  // The funnel and the branch columns are drawn in the template above, in the
+  // page's own type, so there is no canvas left on this view to build or destroy.
+  // The document just changed height under a fixed masthead and a sticky index
+  // rail, so both have to be told: sizeTopbar() re-reserves the space the bar
+  // occupies, spy() re-reads the sections it now has to track.
+  if (typeof sizeTopbar === 'function') sizeTopbar();
+  if (typeof spy === 'function') spy();
 }
 
 
@@ -3147,25 +3556,28 @@ async function getLatestCompleteDate(table) {
   return { date: newest, complete: false, missing };
 }
 
+// How old each feed is, on the masthead's meta rule. Only the date is stated; the
+// age is derived from it, so "1 day ago" does not become a lie overnight. Two days
+// or older goes amber — that is the whole point of putting it up there.
 function freshnessLine(label, info) {
-  if (!info || !info.date) return `${label}: no syncs yet`;
+  if (!info || !info.date) return `<span class="stale">${label} <b>no syncs yet</b></span>`;
   const synced = new Date(info.date + 'T00:00:00');
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const diffDays = Math.round((today - synced) / 86400000);
-  const color = diffDays <= 0 ? '#99F6E4' : diffDays <= 2 ? '#FFD4D9' : '#FF6B6B';
-  const staleLabel = diffDays <= 0 ? 'Live' : diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
-  const dateStr = synced.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
-  const flag = info.complete ? '' : ` <span style="opacity:0.75" title="Missing: ${info.missing.map(b=>BRANCH_INFO[b]?.name||b).join(', ')}">(partial branches)</span>`;
-  return `${label}: ${dateStr} &nbsp;<span style="color:${color};font-weight:600">(${staleLabel})</span>${flag}`;
+  const age = diffDays <= 0 ? 'today' : diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
+  const dateStr = `${synced.getDate()} ${MON_SHORT[synced.getMonth()]}`;
+  const flag = info.complete ? ''
+    : ` <span title="Missing: ${escapeHtml(info.missing.map(b=>BRANCH_INFO[b]?.name||b).join(', '))}">(partial)</span>`;
+  return `<span class="${diffDays >= 2 || !info.complete ? 'stale' : ''}">${label} <b>${dateStr}</b>, ${age}${flag}</span>`;
 }
 
 function renderFreshnessBadge(ledgerInfo, phorestInfo) {
-  const el = document.getElementById('lastUpdated');
+  const el = document.getElementById('mastFresh');
   if (!el) return;
-  el.innerHTML =
-    freshnessLine('Ledger', ledgerInfo)
-    + '<br>' + freshnessLine('Phorest', phorestInfo)
-    + '<br><span style="font-size:10px;letter-spacing:0.04em;opacity:0.85">Gulf Standard Time +04:00</span>';
+  el.innerHTML = freshnessLine('Ledger', ledgerInfo)
+    + freshnessLine('Phorest', phorestInfo)
+    + '<span>GST +04:00</span>';
+  if (typeof sizeTopbar === 'function') sizeTopbar();
 }
 
 // ── STARTUP ──────────────────────────────────────────────────
