@@ -2156,7 +2156,18 @@ async function renderDashboard() {
   const beautyNetTakeDept    = (s.beautyServicesTotal || 0) + (s.beautyRetailOnly || 0);
   const hairTreatmentPctDept = (s.hairServicesIncl || 0) ? ((s.treatmentSales || 0)   / s.hairServicesIncl  * 100) : 0;
   const hairRetailPctDept    = hairNetSalonTake  ? ((s.hairRetailOnly   || 0) / hairNetSalonTake  * 100) : 0;
-  const beautyRetailPctDept  = beautyNetTakeDept ? ((s.beautyRetailOnly || 0) / beautyNetTakeDept * 100) : 0;
+  const beautyRetailPctDept  = beautyNetTakeDept ? ((s.beautyRetailOnly || 0) / beautyNetTakeDept * 100) : null;
+
+  // Motor City has no beauty department, and neither did Fratelli. Their only
+  // "beauty" rows in the ledger are the AA/BB/CC placeholder labels, which
+  // LEDGER_NON_PERSON_NAMES already strips — so the department comes through with
+  // zero clients and zero money. Printing that as "Beauty AED 0.00 against a AED
+  // 200 goal" reads as a department failing badly rather than one that does not
+  // exist, so every beauty figure is suppressed instead. Derived from the data,
+  // not from a list of branch codes: the day Motor City opens a beauty room the
+  // page follows it without an edit. Kate, 2026-08-14.
+  const hasBeauty = (s.beautyTotalClients || 0) > 0;
+  const noBeautyNote = 'no beauty team in this selection';
 
   // byBranch feeds the standing column chart AND the branch read in the
   // standfirst, so it is computed once, before anything renders.
@@ -2193,7 +2204,15 @@ async function renderDashboard() {
   ]
   // No data, no card. Utilisation is null whenever the period has no matching
   // roster hours, and a null scored against 80% would print as a catastrophic
-  // miss rather than as the absence it actually is.
+  // miss rather than as the absence it actually is. The same rule takes Beauty Avg
+  // Bill off the list entirely at a branch with no beauty team.
+  .map(r => hasBeauty ? r : ({
+    ...r, beauty: null, beautyTarget: undefined,
+    // Hair Avg Bill's note points at a Beauty Avg Bill row that is not on the
+    // page in this case, so it is replaced rather than left dangling.
+    beautyNote: r.name === 'Treatment %' ? r.beautyNote : noBeautyNote,
+    combined: r.name === 'Beauty Avg Bill' ? null : r.combined,
+  }))
   .filter(r => Number.isFinite(r.combined))
   .map(r => ({ ...r, att: r.target ? r.combined / r.target : 0 }));
 
@@ -2265,9 +2284,14 @@ async function renderDashboard() {
     // "the group" is only true at All Branches; with one branch picked it reads as
     // a claim about the whole company off one branch's numbers.
     const whole = sel.branch.includes('all') ? 'the group' : branchLabel;
-    parts.push(hairShare >= 60
-      ? `Hair is carrying ${whole}: ${aed0(hairNetSalonTake)} of the ${aed0(s.netTake)}, ${hairShare}% of everything that came in.`
-      : `Hair brought in ${aed0(hairNetSalonTake)} of the ${aed0(s.netTake)}, ${hairShare}% of the take.`);
+    parts.push(!hasBeauty
+      // "Hair is carrying X: AED 297,130 of the AED 297,130, 100%" is the same
+      // number twice and a share of itself. Nothing is being carried — it is the
+      // only department there is.
+      ? `${branchLabel} is hair only: ${aed0(s.netTake)} across ${num0(s.totalClients)} clients.`
+      : hairShare >= 60
+        ? `Hair is carrying ${whole}: ${aed0(hairNetSalonTake)} of the ${aed0(s.netTake)}, ${hairShare}% of everything that came in.`
+        : `Hair brought in ${aed0(hairNetSalonTake)} of the ${aed0(s.netTake)}, ${hairShare}% of the take.`);
     if (s.beautyTotalClients) {
       parts.push(`Beauty is ${beautyClientShare}% of the clients and ${beautyShare}% of the money.`);
     }
@@ -2303,9 +2327,10 @@ async function renderDashboard() {
       <div class="mark"><img src="assets/6.png" alt="Tara Rose Ladies Salon"></div>
       <div class="r-sub">${escapeHtml(branchLabel)} · ${rangeLabel}</div>
       <div class="r-rule"></div>
+      ${hasBeauty ? `
       <div class="r-row"><span class="r-label">Hair net take</span><span class="r-val tabular">${num0(hairNetSalonTake)}</span></div>
       <div class="r-row"><span class="r-label">Beauty net take</span><span class="r-val tabular">${num0(beautyNetTakeDept)}</span></div>
-      <div class="r-rule"></div>
+      <div class="r-rule"></div>` : ''}
       <div class="r-row"><span class="r-label">Net take</span><span class="r-val tabular">${num0(s.netTake)}</span></div>
       <div class="r-row"><span class="r-label">Clients</span><span class="r-val tabular">${num0(s.totalClients)}</span></div>
       <div class="r-row"><span class="r-label">Avg bill</span><span class="r-val tabular">${num0(s.avgBill)}</span></div>
@@ -2355,24 +2380,29 @@ async function renderDashboard() {
       <span class="sp-x tabular ${sp.cls || ''}">${sp.extra}</span>
     </div>`;
 
+  // With no beauty team the splits are "Hair 100% / Beauty 0%" on every card,
+  // which is three rows of nothing. The card keeps its figure and its verdict and
+  // drops the split block entirely.
+  const splitsOf = arr => hasBeauty ? arr : [];
+
   const THREE = [
     { k:'Net take', def:'Services + treatments + retail, hair and beauty, before staff cost.',
       v: aed0(s.netTake), status: netTrend.status, t: netTrend.txt, verdict: netTrend.verdict,
-      splits: [
+      splits: splitsOf([
         { k:'Hair',   val:hairNetSalonTake,  of:s.netTake, txt:aed0(hairNetSalonTake),  extra:`${shareOf(hairNetSalonTake, s.netTake)}%`,  color:'var(--hair)' },
         { k:'Beauty', val:beautyNetTakeDept, of:s.netTake, txt:aed0(beautyNetTakeDept), extra:`${shareOf(beautyNetTakeDept, s.netTake)}%`, color:'var(--beauty)' },
-      ] },
+      ]) },
     { k:'Clients', def:'Every client who paid a bill in the period, hair and beauty.',
       v: num0(s.totalClients), status: clientTrend.status,
       t: `Target ${getClientTarget(sel.branch)}`, verdict: clientTrend.verdict,
-      splits: [
+      splits: splitsOf([
         { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} clients`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
         { k:'Beauty', val:s.beautyTotalClients, of:s.totalClients, txt:`${num0(s.beautyTotalClients)} clients`, extra:`${shareOf(s.beautyTotalClients, s.totalClients)}%`, color:'var(--beauty)' },
-      ] },
+      ]) },
     { k:'Avg bill', def:'Net take divided by clients: what one visit is worth.',
       v: aed0(s.avgBill), status: avgBillStatus,
       t: `Hair target ${TARGETS.hairAvgBill} · Beauty target ${TARGETS.beautyAvgBill}`, verdict: avgBillVerdict,
-      splits: [
+      splits: splitsOf([
         { k:'Hair', val:s.hairAvgBill, of:Math.max(s.hairAvgBill || 0, s.beautyAvgBill || 0, TARGETS.hairAvgBill),
           txt:aed0(s.hairAvgBill),
           extra:`${(s.hairAvgBill || 0) >= TARGETS.hairAvgBill ? '+' : '−'}${Math.abs(Math.round(((s.hairAvgBill || 0) / TARGETS.hairAvgBill - 1) * 100))}%`,
@@ -2383,7 +2413,7 @@ async function renderDashboard() {
               txt:aed0(s.beautyAvgBill),
               extra:`${beautyAvgOk ? '+' : '−'}${Math.abs(Math.round((s.beautyAvgBill / TARGETS.beautyAvgBill - 1) * 100))}%`,
               cls: beautyAvgOk ? 'good' : 'bad', color:'var(--beauty)' },
-      ] },
+      ]) },
   ];
 
   // ── THE READ: hair vs beauty, in words ───────────────────────────
@@ -2396,9 +2426,14 @@ async function renderDashboard() {
   const hairHeading = hairShareOfTake >= 60
     ? (hairAvgOk ? 'Doing the lifting, and doing it above target.' : 'Doing the lifting, but not at the bill it should be.')
     : 'Carrying its share of the take.';
-  const beautyHeading = s.beautyTotalClients
+  const beautyHeading = hasBeauty
     ? `${shareOf(s.beautyTotalClients, s.totalClients)}% of the clients, ${shareOf(beautyNetTakeDept, s.netTake)}% of the money.`
-    : 'No beauty clients recorded in this window.';
+    : 'No beauty team here.';
+  // The templated glance copy reads every beauty figure as a miss against target,
+  // so at a hair-only branch it says beauty is "lagging at 0.00%" — which is a
+  // sentence about a department that does not exist. Say that instead.
+  const beautyBody = hasBeauty ? glance.beauty
+    : `${escapeHtml(branchLabel)} runs hair only, so there are no beauty figures to read. Pick a branch with a beauty room, or All Branches, to see them.`;
   const statChip = (v, label) => `<span class="stat"><b>${v}</b> ${label}</span>`;
 
   // ── WINS ─────────────────────────────────────────────────────────
@@ -2558,7 +2593,7 @@ async function renderDashboard() {
       <div class="m-def">${m.def}</div>
       <div class="m-v tabular ${m.status === 'good' ? 'good' : m.status === 'warn' ? 'warn' : 'bad'}">${m.v}</div>
       <div class="m-t">${m.t}</div>
-      <div class="m-split">${m.splits.map(splitBar).join('')}</div>
+      ${m.splits.length ? `<div class="m-split">${m.splits.map(splitBar).join('')}</div>` : ''}
       <span class="verdict st-${m.status}">${m.verdict}</span>
     </div>`).join('')}
 </div>
@@ -2580,13 +2615,14 @@ async function renderDashboard() {
   <div class="read-col b">
     <div class="read-k">Beauty</div>
     <div class="read-h">${beautyHeading}</div>
-    <div class="read-p">${glance.beauty}</div>
+    <div class="read-p">${beautyBody}</div>
+    ${hasBeauty ? `
     <div class="read-stats">
       ${statChip(shareOf(beautyNetTakeDept, s.netTake) + '%', 'of net take')}
       ${statChip(num0(s.beautyTotalClients), 'clients')}
       ${statChip(s.beautyAvgBill != null ? aed0(s.beautyAvgBill) : '—', 'avg bill')}
       ${statChip(shareOf((s.beautyBreakdown && s.beautyBreakdown.req) || 0, s.beautyTotalClients) + '%', 'requested')}
-    </div>
+    </div>` : ''}
   </div>
 </div>
 
@@ -2594,19 +2630,20 @@ async function renderDashboard() {
 <div class="eyebrow" id="s-wins"><span class="dot" style="background:var(--hair)"></span>Wins · Hair · ${rangeLabel}</div>
 <div class="wins">${winsHair || '<div class="foot">No staff-level hair figures for this date range.</div>'}</div>
 
+${hasBeauty ? `
 <div class="eyebrow eyebrow-sm"><span class="dot" style="background:var(--beauty)"></span>Wins · Beauty · ${rangeLabel}</div>
 <div class="wins">${winsBeauty || '<div class="foot">No staff-level beauty figures for this date range.</div>'}</div>
-<p class="foot" style="margin-top:10px">Beauty portraits aren't shot yet, so initials stand in until they are. Same card, same slot: drop the file into <code>assets/staff/</code> and add the name to <code>staff-profiles.js</code>, and it appears.</p>
+<p class="foot" style="margin-top:10px">Beauty portraits aren't shot yet, so initials stand in until they are. Same card, same slot: drop the file into <code>assets/staff/</code> and add the name to <code>staff-profiles.js</code>, and it appears.</p>` : ''}
 
 <!-- ══ PERFORMANCE OVERVIEW ══ -->
 <div class="eyebrow" id="s-perf"><span class="dot" style="background:var(--accent-lavender)"></span>${escapeHtml(branchLabel)} · Performance Overview</div>
 <div class="perf2">
-  <div class="card">
-    <div class="card-title">Client Funnel · Hair vs Beauty</div>
-    <div class="card-sub">Every client type, mirrored down the middle</div>
+  <div class="card${hasBeauty ? '' : ' hair-only'}">
+    <div class="card-title">Client Funnel${hasBeauty ? ' · Hair vs Beauty' : ' · Hair'}</div>
+    <div class="card-sub">${hasBeauty ? 'Every client type, mirrored down the middle' : 'Every client type. This branch runs hair only, so there is nothing to mirror.'}</div>
     <div class="fn-head"><span class="l">Hair</span><span class="c">Type</span><span class="r">Beauty</span></div>
     ${funnelHtml}
-    <div class="foot">Bars scaled against each side's own total: ${num0(fnHair)} hair, ${num0(fnBeauty)} beauty. Request means the client asked for that stylist by name.</div>
+    <div class="foot">Bars scaled against ${hasBeauty ? `each side's own total: ${num0(fnHair)} hair, ${num0(fnBeauty)} beauty` : `the ${num0(fnHair)} hair total`}. Request means the client asked for that stylist by name.</div>
   </div>
   <div class="card">
     <div class="card-title">Branch Performance</div>

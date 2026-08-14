@@ -758,6 +758,12 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .fn-side.r .fn-bar{border-radius:0 3px 3px 0}
 .fn-n{font-size:11.5px;font-weight:600;white-space:nowrap}
 .fn-c{text-align:center;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+/* Motor City runs hair only. A mirrored funnel with a dead right half reads as a
+   broken chart rather than as an absent department, so the mirror folds away and
+   the card becomes a plain one-sided funnel. */
+.hair-only .fn-head,.hair-only .fn-row{grid-template-columns:1fr 74px}
+.hair-only .fn-head .r,.hair-only .fn-side.r{display:none}
+.hair-only .fn-c{text-align:left;padding-left:6px}
 
 /* standing column chart, branch performance */
 .cols-plot{display:flex;align-items:flex-end;gap:10px;height:200px;position:relative;
