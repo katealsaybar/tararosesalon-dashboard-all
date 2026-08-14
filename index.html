@@ -399,14 +399,104 @@ aside.sidebar{
 .nav-scrim{position:fixed;inset:0;z-index:110;background:rgba(26,26,26,.38);
   opacity:0;pointer-events:none;transition:opacity 220ms var(--card-ease)}
 .nav-open .nav-scrim{opacity:1;pointer-events:auto}
-.nav-brand{padding:6px 10px 18px}
-.nav-brand .mark{width:132px}
+/* ── THE SIDEBAR LOCKUP ────────────────────────────────────
+   Centred, and it reads TARA ROSE SALONS — the group, not one salon.
+   The PNG cannot say SALONS, so the word is set as text and the image is
+   cropped to the rule + TARA ROSE above it. Measured off assets/5.png
+   (3000x3000): the mint rule is y 1149-1168, TARA ROSE is y 1291-1544, and
+   the baked-in SALON is y 1703-1811. Cropping at 1544 drops that third band.
+   The x extent is unchanged (337-2658), so BOTH translate values in `.mark img`
+   are still exact — only the window's aspect ratio gets shorter, 2321x396.
+   Do not "simplify" this to a plain img: the wordmark PNGs carry ~38% empty
+   margin, so an uncropped one renders as a stamp adrift in the panel. */
+.nav-brand{padding:6px 10px 18px;display:flex;flex-direction:column;align-items:center;gap:7px}
+.nav-brand .mark{width:132px;aspect-ratio:2321/396}
+.nav-word{font-size:9.5px;letter-spacing:.36em;text-transform:uppercase;
+  color:var(--text);opacity:.82;text-indent:.36em}
 .nav-out{margin-top:auto;padding-top:12px;border-top:1px solid var(--border)}
 .nav-out .nav-sub{display:flex;align-items:center;gap:7px;font-size:13px;letter-spacing:.04em}
 @media(min-width:1100px){:root{--nav-w:200px}}
 @media(min-width:1600px){
   /* The panel fits the gutter, so it covers nothing and the scrim would be a lie. */
   .nav-open .nav-scrim{opacity:0;pointer-events:none}
+}
+
+/* ── NESTING ───────────────────────────────────────────────
+   Four levels: Organisation Pulse › Branch Performance › Emma's ledgers › its
+   three tabs. Indent alone stops reading as hierarchy by the third step, so
+   each nested level also carries a guide line down its left edge.
+   Long labels wrap rather than truncate — "Ledgers: Emma Coach's View" does not
+   fit a 200px panel on one line, and an ellipsis would hide whose view it is. */
+.nav-sub{line-height:1.35}
+.nav-sub.lvl2,.nav-sub.lvl3,.nav-sub.lvl4{
+  border-left:1px solid var(--border);border-radius:0 8px 8px 0}
+.nav-sub.lvl2{margin-left:10px;padding-left:11px}
+.nav-sub.lvl3{margin-left:18px;padding-left:11px;font-size:13px}
+.nav-sub.lvl4{margin-left:26px;padding-left:11px;font-size:12.5px;letter-spacing:.01em}
+/* The active pill is a filled lozenge, so its own left border would show as a
+   nick in the fill. */
+.nav-sub.lvl2.active,.nav-sub.lvl3.active,.nav-sub.lvl4.active{
+  border-left-color:transparent;border-radius:999px}
+
+/* ── RESIZE: drag the panel's right edge ───────────────────
+   A 5px strip, invisible until you go near it. Width is written to --nav-w as an
+   inline style on :root, which is why it beats the media queries above — that is
+   deliberate: once you have picked a width, the responsive default stops
+   overruling you. Double-click clears it and hands control back.
+   The strip runs the full height and the arrow tab sits on top of it; dragging
+   from the arrow is a no-op, so the two never fight. */
+.nav-resize{position:absolute;top:0;right:0;bottom:0;width:5px;z-index:2;
+  cursor:col-resize;background:transparent;transition:background 160ms var(--card-ease)}
+@media(hover:hover){.nav-resize:hover{background:var(--accent-mint);opacity:.55}}
+.nav-resize.dragging{background:var(--accent-mint);opacity:.8}
+/* Text selection anywhere on the page ruins a drag. */
+body.nav-sizing{user-select:none;cursor:col-resize}
+body.nav-sizing aside.sidebar,body.nav-sizing .wrap,body.nav-sizing .topbar{transition:none!important}
+
+/* ── THE ARROW: the other way in ───────────────────────────
+   The Sections button lives up in the masthead, which is a long way from the
+   panel it opens and invisible once you have scrolled past a wide table. This is
+   a half-pill on the window's left edge that travels with the panel: it points
+   in when closed, out when open, and is the same target for both. */
+.nav-edge{position:fixed;top:50%;left:0;z-index:121;transform:translateY(-50%);
+  width:23px;height:78px;padding:0;display:grid;place-items:center;cursor:pointer;
+  border:1px solid var(--border);border-left:0;border-radius:0 13px 13px 0;
+  background:var(--surface);color:var(--muted);box-shadow:var(--shadow-card);
+  transition:left 260ms var(--card-ease),color 160ms var(--card-ease),
+             border-color 160ms var(--card-ease),background 160ms var(--card-ease)}
+.nav-edge svg{transition:transform 260ms var(--card-ease)}
+.nav-open .nav-edge{left:var(--nav-w);background:#20212A;color:rgba(250,248,243,.55);
+  border-color:rgba(250,248,243,.12)}
+.nav-open .nav-edge svg{transform:rotate(180deg)}
+@media(hover:hover){
+  .nav-edge:hover{color:var(--text);border-color:var(--text)}
+  .nav-open .nav-edge:hover{color:#FAF8F3;border-color:rgba(250,248,243,.45)}
+}
+.nav-edge:focus-visible{outline:2px solid var(--good);outline-offset:2px}
+
+/* ── MAKING ROOM: the page steps right ─────────────────────
+   Kate, 2026-08-14: the masthead buttons and the document were being buried by
+   the panel. The page now moves over — but only by as much as it actually has to.
+   --page-ink is where the document's text starts: half the leftover window plus
+   .wrap's own 40px. If the panel fits inside that, it is sitting in dead gutter,
+   covering nothing, and the page must NOT move (that is the whole point of the
+   1600px band). Only the overlap is taken, plus 24px so the panel does not kiss
+   the text. Written as one max() so it stays true while the edge is dragged and
+   at every window width, with no resize listener to keep in sync.
+   Body padding moves everything in flow and lets .wrap re-centre in what's left;
+   the fixed masthead is out of flow, so it needs the same offset on `left`. */
+:root{
+  --page-ink:calc(max(0px,(100vw - 1180px) / 2) + 40px);
+  --nav-shift:max(0px,calc(var(--nav-w) + 24px - var(--page-ink)));
+}
+body{transition:padding-left 260ms var(--card-ease)}
+body.nav-open{padding-left:var(--nav-shift)}
+body.nav-open .topbar{left:var(--nav-shift)}
+/* Stacked, the panel is most of the screen and shoving the page sideways just
+   makes both unreadable. On a phone it stays an overlay, as it always was. */
+@media(max-width:899px){
+  body.nav-open{padding-left:0}
+  body.nav-open .topbar{left:0}
 }
 
 /* Back up. Appears once the cover is behind you, so it never sits over the thing
@@ -1259,6 +1349,289 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .sc-acts a{color:var(--muted);text-decoration:none}
 @media(hover:hover){.sc-acts a:hover{color:var(--text)}}
 
+/* ══════════════════════════════════════════════════════════════
+   BRANCH PERFORMANCE + LEDGERS  (branch-ledger.js)
+   A ledger is a table, and this is the first thing in here that admits it. The
+   Pulse's metric tiles cannot hold a target, a variance, a % done and a
+   remainder side by side — that is a row, so these pages are rows.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Page opener. Same editorial furniture as the Pulse's hero, one size down:
+   these are reference pages, not covers. */
+.lg-head{padding:6px 0 20px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.lg-head-k{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);margin-bottom:9px}
+.lg-head h1{font-family:'Playfair Display',serif;font-weight:500;font-size:clamp(24px,4.4vw,34px);
+  line-height:1.1;letter-spacing:-.01em}
+.lg-stand{font-size:14px;color:var(--muted);margin-top:9px;max-width:64ch;line-height:1.55}
+/* Whether the targets apply. Never a quiet footnote: if the window makes a
+   monthly target meaningless, that is the most important sentence on the page. */
+.lg-note{font-size:11.5px;line-height:1.5;margin-top:12px;max-width:78ch;
+  padding:8px 11px;border-radius:8px;border-left:3px solid var(--good);
+  background:var(--good-bg);color:var(--text)}
+.lg-note.off{border-left-color:var(--warn);background:var(--warn-bg)}
+/* A date range in the masthead supersedes the Year dropdown, so it steps out of
+   the way rather than sitting there contradicting the header. Kept in the DOM —
+   _loadSvcYears() still populates it, and it comes back when the range clears. */
+.svc-controls.yr-idle .yr-group{display:none}
+
+/* Data-quality alert — the two retail sources disagreeing. Sits next to the
+   figure it doubts, which is why it moved here off the Pulse. */
+.lg-warn{margin:0 0 16px;padding:10px 12px;border-radius:8px;font-size:11.5px;line-height:1.5;
+  background:var(--warn-bg);border-left:3px solid var(--warn);color:var(--text)}
+.lg-warn strong{color:var(--warn)}
+
+/* Tables scroll inside their own box. The Daily Target Sheet is 17 columns wide
+   and must never make the page itself scroll sideways. */
+.lg-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;
+  border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface)}
+table.lg{width:100%;border-collapse:collapse;font-size:12.5px}
+table.lg.lg-compact{font-size:11.5px}
+table.lg th{position:sticky;top:0;z-index:1;background:var(--surface2);
+  font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  text-align:left;padding:9px 11px;white-space:nowrap;border-bottom:1px solid var(--border)}
+table.lg td{padding:8px 11px;border-bottom:1px solid var(--border2);color:var(--text);white-space:nowrap}
+table.lg th.r,table.lg td.r{text-align:right}
+table.lg tbody tr:last-child td{border-bottom:0}
+@media(hover:hover){table.lg tbody tr:hover td{background:var(--surface2)}}
+/* First column is the label — it stays put while the figures scroll under it. */
+table.lg td:first-child,table.lg th:first-child{position:sticky;left:0;background:var(--surface);
+  font-weight:500}
+table.lg th:first-child{background:var(--surface2)}
+@media(hover:hover){table.lg tbody tr:hover td:first-child{background:var(--surface2)}}
+/* A group heading inside the table body — Revenue / Clients / Benchmarks, or
+   one branch's department. */
+tr.lg-grp td{background:var(--bg);font-size:9.5px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--text);opacity:.75;padding:13px 11px 7px}
+tr.lg-grp td:first-child{background:var(--bg)}
+tr.lg-tot td{font-weight:700;background:var(--surface2);border-top:1px solid var(--text)}
+tr.lg-tot td:first-child{background:var(--surface2)}
+
+/* ── THE SHEET'S WEEK COLUMNS ─────────────────────────────────
+   Folded away by default. They are always in the DOM — display:none rather than
+   never rendered — so opening them cannot knock a column out of line with its
+   header, and the toggle costs no re-render. Six extra columns is the difference
+   between a table you read and one you scroll, and on most days the question is
+   where the month stands, not what happened in week two. */
+.lg-weeks{position:relative}
+.lg-wk{display:none}
+.lg-wrap.lg-show-wk .lg-wk{display:table-cell}
+.lg-wk-btn{appearance:none;margin:0 0 8px;padding:4px 12px;border-radius:999px;
+  border:1px solid var(--border);background:transparent;color:var(--muted);
+  font-family:'Inter',sans-serif;font-size:11px;font-weight:600;cursor:pointer;
+  transition:border-color .2s,color .2s}
+@media(hover:hover){.lg-wk-btn:hover{border-color:var(--accent);color:var(--text)}}
+/* The week number sits above its dates, so the header stays two short lines
+   instead of one long one that forces the column wider than its figures. */
+.lg-wk-k{display:block;font-size:8px;letter-spacing:.14em;color:var(--muted2);margin-bottom:1px}
+
+/* ── "ON THIS PAGE" RAIL ──────────────────────────────────────
+   Same device as the Pulse's side rail, laid out as a row rather than a column:
+   these pages have no side gutter of their own, and five branch names fit across
+   one line more comfortably than they stack down one. */
+.lg-rail{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;
+  padding:0 0 14px;margin-bottom:2px}
+.lg-rail-k{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted2);margin-right:4px}
+.lg-rail a{font-size:12px;color:var(--muted);text-decoration:none;
+  padding:4px 11px;border-radius:999px;border:1px solid var(--border);
+  transition:border-color .2s,color .2s;white-space:nowrap}
+@media(hover:hover){.lg-rail a:hover{color:var(--text);border-color:var(--accent)}}
+
+/* ── BRANCH PERFORMANCE CHARTS ────────────────────────────────
+   Chart.js needs a parent with a real height: maintainAspectRatio is off so the
+   canvas fills its box, and a box with no height collapses the chart to nothing.
+   Fixed height rather than an aspect ratio, because a 16:9 chart on a phone is
+   90px tall and unreadable. */
+.bp-chart{position:relative;height:280px;margin:2px 0 10px}
+.bp-chart-tall{height:330px}
+@media(max-width:600px){
+  .bp-chart{height:240px}
+  .bp-chart-tall{height:300px}
+}
+
+/* The banded header from her Daily Stylist Target tab. Sits above the column
+   names, so it has to clear them while both stay sticky. */
+/* The height is pinned rather than left to the font, because the row below it
+   parks against that exact number — a couple of pixels out and a body row shows
+   through the gap between the two sticky headers as you scroll. */
+table.lg thead tr.lg-band th{top:0;height:26px;font-size:8.5px;letter-spacing:.16em;color:var(--text);
+  opacity:.75;padding:7px 11px 4px;text-align:center;
+  border-bottom:1px solid var(--border);border-left:1px solid var(--border)}
+table.lg thead tr.lg-band th.lg-band-x{border-left:0}
+table.lg thead tr.lg-band + tr th{top:26px}
+
+/* Variance. Colour only ever carries status here. */
+.lg-up{color:var(--good);font-weight:600}
+.lg-down{color:var(--bad);font-weight:600}
+.lg-flat{color:var(--muted2)}
+/* Absent, and deliberately so — a missing target, or a department a branch does
+   not run. Visibly different from a zero, which is the whole point. */
+.lg-na{color:var(--muted2);font-size:10px;font-style:italic;letter-spacing:.02em}
+.lg-tag{font-size:8px;font-weight:700;letter-spacing:.06em;color:var(--muted);
+  border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle;margin-left:4px}
+.lg-inline{font-size:9.5px;color:var(--muted2);letter-spacing:.02em;margin-left:5px;white-space:nowrap}
+
+/* % done: a bar behind the number, so the laggards are findable without reading
+   every row. Fill is capped at 100% while the number keeps counting past it. */
+.lg-done{display:inline-flex;align-items:center;gap:7px;justify-content:flex-end;min-width:104px}
+.lg-done-track{position:relative;width:52px;height:5px;border-radius:3px;background:var(--border);
+  overflow:hidden;flex-shrink:0}
+.lg-done-fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+.lg-done-fill.good{background:var(--good)}
+.lg-done-fill.warn{background:var(--warn)}
+.lg-done-fill.bad{background:var(--bad)}
+.lg-done-n{font-size:11px;font-weight:600;min-width:32px;text-align:right}
+
+/* The pacing blocks, and the per-branch blocks on Ledgers · Branches. */
+.lg-block{margin-bottom:18px}
+.lg-block-k{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text);opacity:.78;margin-bottom:8px}
+.lg-branch{margin-bottom:22px}
+.lg-branch-k{display:flex;align-items:center;gap:8px;font-family:'Playfair Display',serif;
+  font-style:italic;font-weight:600;font-size:15px;color:var(--text);margin-bottom:10px}
+.lg-branch-k .dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.lg-sub{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin:14px 0 7px}
+/* Two pacing blocks abreast where there is room — her sheet runs three, which is
+   too narrow for a six-column table on anything but a desktop. */
+@media(min-width:1100px){
+  .lg-pace-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .lg-pace-grid .lg-block{margin-bottom:0}
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TEAM PERFORMANCE — PODIUM · FLOOR · COMPARE TRAY  (team-performance.js)
+   Kate, 2026-08-14. Three rules carry the whole page:
+
+   1. The portraits are the same artwork as the win cards, so .tp-av repeats
+      .av's constraint exactly — no border-radius, no background, no border, or
+      the head that breaks out over the top of the block is clipped off and the
+      card falls back to a plain circle.
+   2. The benchmark bar is scored against TARGET, so its colour comes from a
+      class the JS sets, never from how far the fill runs.
+   3. The tray is position:fixed but rendered inside #view-team, which is how it
+      leaves with the page — a fixed child of a display:none parent is hidden,
+      so nothing has to remember to put it away.
+   ══════════════════════════════════════════════════════════════ */
+.tp-bar{position:sticky;top:var(--topbar-cond-h,104px);z-index:40;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  /* Bleeds into #teamContent's own 28px gutters, same as the Stylist Cards bar,
+     so nothing scrolls through the gap either side of it. */
+  margin:0 -28px 4px;padding:9px 28px;
+  background:var(--bg);border-bottom:1px solid var(--border)}
+.tp-bar-n{font-size:11px;color:var(--muted2);letter-spacing:.04em}
+.tp-bar-sp{margin-left:auto}
+.tp-seg{display:flex;gap:2px;padding:2px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}
+.tp-seg button{appearance:none;border:0;background:transparent;color:var(--muted);
+  font-family:'Inter',sans-serif;font-size:11.5px;font-weight:600;letter-spacing:.04em;
+  padding:5px 14px;border-radius:999px;cursor:pointer;transition:background .18s,color .18s}
+.tp-seg button.on{background:var(--accent);color:var(--accent-fg);font-weight:700}
+@media(hover:hover){.tp-seg button:hover:not(.on){color:var(--text)}}
+.tp-btn{appearance:none;padding:4px 12px;border-radius:999px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:11px;
+  font-weight:600;cursor:pointer;transition:border-color .2s,color .2s}
+@media(hover:hover){.tp-btn:hover{border-color:var(--accent);color:var(--text)}}
+.tp-sec-n{font-weight:500;letter-spacing:.04em;text-transform:none;font-size:11.5px;
+  color:var(--muted2);margin-left:6px}
+
+/* Same artwork, same constraint as .av — see rule 1 above. */
+.tp-av{width:auto;flex-shrink:0;display:block;height:44px}
+.tp-av.lg{height:88px}
+.tp-av-ph{flex-shrink:0;position:relative;display:flex;align-items:flex-end;justify-content:center;
+  color:var(--muted2);font-family:'Playfair Display',serif;font-weight:600;letter-spacing:.02em;
+  width:38px;height:44px;font-size:14px}
+.tp-av-ph.lg{width:75px;height:88px;font-size:24px}
+.tp-av-ph::before{content:'';position:absolute;left:0;right:0;bottom:0;height:80%;
+  border-radius:8px;background:var(--surface2);border:1px dashed var(--border)}
+.tp-av-ph b{position:relative;font-weight:600;margin-bottom:9%}
+
+.tp-branch{display:flex;align-items:center;gap:5px;margin-top:4px;font-size:11px;color:var(--muted)}
+.tp-bdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
+.tp-role{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted2);margin-top:3px}
+.tp-k{font-size:9.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+
+/* THE PODIUM. The medal tint is a wash behind the portrait only — tinting the
+   whole card reads as a status colour, which the benchmark bars already own. */
+.tp-podium{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))}
+.tp-pod{position:relative;padding:0;overflow:hidden}
+.tp-pod-rk{position:absolute;top:8px;right:13px;font-family:'Playfair Display',serif;
+  font-size:32px;font-weight:700;line-height:1;color:var(--tp-medal);opacity:.55}
+.tp-pod-top{display:flex;gap:13px;align-items:flex-end;padding:16px 16px 12px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tp-medal) 18%,transparent),transparent)}
+.tp-pod-who{min-width:0;padding-bottom:2px}
+.tp-pod-nm{font-family:'Playfair Display',serif;font-size:19px;font-weight:600;
+  line-height:1.2;overflow-wrap:anywhere}
+.tp-pod-nm a{color:inherit;text-decoration:none;border-bottom:1px solid var(--border)}
+.tp-pod-fig{padding:0 16px 14px}
+.tp-pod-v{font-size:21px;font-weight:600;margin-top:3px}
+.tp-pod-s{font-size:11.5px;color:var(--muted2);margin-top:2px}
+.tp-pod-mtrs{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:13px 16px 15px;
+  border-top:1px solid var(--border)}
+
+/* THE FLOOR. One row each, so the rest of the bench fits in a screen or two. */
+.tp-floor{display:grid;gap:9px;grid-template-columns:repeat(auto-fill,minmax(min(258px,100%),1fr))}
+.tp-row{display:flex;align-items:center;gap:10px;padding:10px 12px}
+.tp-rk{font-size:11px;color:var(--muted2);width:16px;text-align:right;flex-shrink:0}
+.tp-row-who{min-width:0;flex:1}
+.tp-row-nm{font-weight:600;font-size:13.5px;line-height:1.25;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp-row-s{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+.tp-add{appearance:none;width:28px;height:28px;min-width:28px;border-radius:50%;flex-shrink:0;
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;
+  font-size:15px;line-height:1;transition:border-color .18s,color .18s,background .18s}
+.tp-pod .tp-add{position:absolute;right:12px;bottom:12px}
+.tp-add.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+@media(hover:hover){.tp-add:hover:not(.on){border-color:var(--accent);color:var(--text)}}
+
+/* THE BENCHMARK BAR. The tick marks 100% of target, so anyone above target
+   overshoots it visibly instead of just filling the track. */
+.tp-mtr{min-width:0}
+.tp-mtr-l{display:flex;justify-content:space-between;gap:6px;white-space:nowrap;
+  font-size:9px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--muted2)}
+.tp-mtr-v{font-size:13.5px;font-weight:600;margin:1px 0 4px}
+.tp-mtr-t{height:4px;border-radius:3px;background:var(--surface2);position:relative}
+.tp-mtr-f{position:absolute;left:0;top:0;bottom:0;border-radius:3px;transition:width .45s var(--card-ease)}
+.tp-mtr-tick{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--muted2);opacity:.55}
+.tp-mtr.good .tp-mtr-f{background:var(--good)} .tp-mtr.good .tp-mtr-v{color:var(--good)}
+.tp-mtr.warn .tp-mtr-f{background:var(--warn)} .tp-mtr.warn .tp-mtr-v{color:var(--warn)}
+.tp-mtr.bad  .tp-mtr-f{background:var(--bad)}  .tp-mtr.bad  .tp-mtr-v{color:var(--bad)}
+
+/* THE TRAY. See rule 3 above for why it is fixed and still leaves with the page. */
+.tp-tray{position:fixed;left:0;right:0;bottom:0;z-index:96;background:var(--surface);
+  border-top:1px solid var(--border);box-shadow:0 -12px 34px -18px rgba(0,0,0,.5);
+  transform:translateY(101%);transition:transform .3s var(--card-ease);
+  max-height:52vh;overflow-y:auto}
+.tp-tray.up{transform:none}
+/* Wide screens park the rail in the gutter rather than over the page, so the
+   tray starts after it instead of running underneath. */
+@media(min-width:1600px){.nav-open .tp-tray{left:var(--nav-w)}}
+.tp-tray-in{max-width:1400px;margin:0 auto;padding:12px 28px 16px}
+.tp-tray-hd{display:flex;align-items:center;gap:10px;margin-bottom:10px;
+  font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2)}
+.tp-tray-hd .tp-btn{margin-left:auto}
+.tp-tray-cols{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr))}
+.tp-tray-col{border:1px solid var(--border);border-radius:8px;padding:11px 12px}
+.tp-tray-who{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.tp-tray-meta{min-width:0}
+.tp-tray-nm{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp-tray-s{font-size:11px;color:var(--muted2)}
+.tp-tray-mtrs{display:grid;gap:10px}
+.tp-x{appearance:none;border:0;background:transparent;color:var(--muted2);cursor:pointer;
+  font-size:17px;line-height:1;margin-left:auto;padding:0 2px}
+@media(hover:hover){.tp-x:hover{color:var(--text)}}
+/* Keeps the last row of the floor out from under the tray. On a phone the three
+   compare columns stack instead of sitting abreast, so the tray runs to its 52vh
+   ceiling and the spacer has to be read in the same unit to clear it. */
+.tp-tray-space{height:230px}
+@media(max-width:700px){.tp-tray-space{height:56vh}}
+
+/* #teamContent keeps its 28px gutters at every width, so the bar's bleed does
+   not change here — only the tray, which is its own fixed container. */
+@media(max-width:600px){
+  .tp-tray-in{padding:12px 14px 16px}
+}
 
 </style>
 </head>
@@ -1328,14 +1701,32 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 <!-- ══ MAIN NAV: fixed in the left gutter, collapsible ══ -->
 <div class="nav-scrim" id="navScrim" onclick="toggleNav(false)"></div>
 <button class="totop" id="toTop" onclick="backToTop()">↑ Top</button>
+<!-- The arrow. Travels with the panel's edge, points whichever way it will go. -->
+<button class="nav-edge" id="navEdge" onclick="toggleNav()"
+        aria-expanded="false" aria-controls="sidebar" aria-label="Show sections">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <polyline points="9 18 15 12 9 6"/>
+  </svg>
+</button>
 <aside class="sidebar" id="sidebar" aria-label="Dashboards">
 
-  <div class="nav-brand"><div class="mark"><img src="assets/5.png" alt="Tara Rose Ladies Salon"></div></div>
+  <!-- Drag this to resize the panel; double-click to go back to the default. -->
+  <div class="nav-resize" id="navResize" title="Drag to resize · double-click to reset"></div>
 
-  <!-- Level 1 + 2: Dashboards -->
+  <div class="nav-brand">
+    <div class="mark"><img src="assets/5.png" alt="Tara Rose Salons"></div>
+    <div class="nav-word">Salons</div>
+  </div>
+
+  <!-- Level 1 + 2: Dashboards
+       Organisation Pulse › Branch Performance › Emma's ledgers › its three tabs.
+       The ledger parent is a real destination as well as a heading: it lands on
+       Summary, which is the tab she opens first anyway. -->
   <div class="nav-group">
     <div class="nav-title">DASHBOARDS</div>
-    <div class="nav-sub" onclick="showView('dashboard', this)">KPI Metrics</div>
+    <div class="nav-sub" onclick="showView('dashboard', this)">Organisation Pulse</div>
+    <div class="nav-sub lvl2" onclick="showView('branchperf', this)">Branch Performance</div>
     <div class="nav-sub" onclick="showView('team', this)">Team Performance</div>
     <div class="nav-sub" onclick="showView('stylists', this)">Stylist Cards</div>
     <!-- The four branches, written by renderStylistBranchNav() in dashboard.js.
@@ -1343,6 +1734,17 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
          list to keep in step with STAFF_PROFILES. -->
     <div class="nav-kids" id="stylistBranchNav"></div>
     <a href="stylist/stylist.html" target="_blank" class="nav-sub" style="text-decoration:none">Stylist View ↗</a>
+  </div>
+
+  <!-- Kate, 2026-08-14: the ledgers are their own section, not a sub-branch of
+       Branch Performance. They are Emma's three tabs, in the order she reads
+       them — the pacing panel first, because "where are we against the month" is
+       the question she opens the sheet to answer. -->
+  <div class="nav-group">
+    <div class="nav-title">LEDGERS: EMMA COACH'S VIEW</div>
+    <div class="nav-sub" onclick="showView('ledgerTargets', this)">Daily Target Sheet</div>
+    <div class="nav-sub" onclick="showView('ledgerActuals', this)">Actuals vs Targets</div>
+    <div class="nav-sub" onclick="showView('ledgerStylist', this)">Daily Stylist Target</div>
   </div>
 
   <!-- Services + Clients -->
@@ -1470,6 +1872,27 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
     </div>
   </div>
 
+  <!-- BRANCH PERFORMANCE — the detail stack that used to close the Pulse.
+       Rendered by renderBranchPerformance() in branch-ledger.js. -->
+  <div id="view-branchperf" style="display:none">
+    <main id="branchPerfContent" style="padding:10px 0 48px"></main>
+  </div>
+
+  <!-- LEDGERS: EMMA COACH'S VIEW — her sheet, as three pages.
+       The ids say what each one holds rather than which tab it came from: her
+       SUMMARY tab is two separate things (the pacing panel, headed "Daily target
+       sheet", and the July-actuals-vs-August-targets roll-up), and calling
+       either of them "summary" is what made the old nav unreadable. -->
+  <div id="view-ledgerTargets" style="display:none">
+    <main id="ledgerTargetsContent" style="padding:10px 0 48px"></main>
+  </div>
+  <div id="view-ledgerActuals" style="display:none">
+    <main id="ledgerActualsContent" style="padding:10px 0 48px"></main>
+  </div>
+  <div id="view-ledgerStylist" style="display:none">
+    <main id="ledgerStylistContent" style="padding:10px 0 48px"></main>
+  </div>
+
   <!-- TEAM PERFORMANCE -->
   <div id="view-team" style="display:none">
     <main id="teamContent" style="max-width:1400px;margin:0 auto;padding:10px 28px 48px">
@@ -1485,30 +1908,16 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
   <!-- SERVICES -->
   <div id="view-services" style="display:none">
+    <!-- Branch and dates come from the masthead now, like every other page. What
+         is left is what is genuinely this page's own: which year to load when no
+         date range is set, and how to break the ranking up. The Year group hides
+         itself (.yr-idle) whenever a date range is driving the page. -->
     <div class="svc-controls" id="svc-controls">
-      <div class="ctrl-group">
+      <div class="ctrl-group yr-group">
         <div class="ctrl-label">Year</div>
         <select id="svc-year" class="svc-yr-sel" onchange="onSvcFiltersChange()">
           <option value="2026">2026</option>
         </select>
-      </div>
-      <div class="ctrl-group">
-        <div class="ctrl-label">Branch</div>
-        <div class="ms-wrap">
-          <button id="btn-svc-branch" class="ms-btn" onclick="toggleDrop('svc-branch')">
-            <span id="lbl-svc-branch">All Branches</span>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;opacity:.5"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <div id="drop-svc-branch" class="ms-drop"></div>
-        </div>
-      </div>
-      <div class="ctrl-group">
-        <div class="ctrl-label">From</div>
-        <input type="date" id="svc-date-from" class="svc-date-inp" value="2026-01-01" onchange="onSvcFiltersChange()">
-      </div>
-      <div class="ctrl-group">
-        <div class="ctrl-label">To</div>
-        <input type="date" id="svc-date-to" class="svc-date-inp" value="2026-05-31" onchange="onSvcFiltersChange()">
       </div>
       <div class="ctrl-group" style="margin-left:auto">
         <div class="ctrl-label">View</div>
@@ -1525,30 +1934,13 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
   <!-- CLIENTS -->
   <div id="view-clients" style="display:none">
+    <!-- Same as Service Rankings: branch and dates live in the masthead. -->
     <div class="svc-controls" id="cli-controls">
-      <div class="ctrl-group">
+      <div class="ctrl-group yr-group">
         <div class="ctrl-label">Year</div>
         <select id="cli-year" class="svc-yr-sel" onchange="onCliFiltersChange()">
           <option value="2026">2026</option>
         </select>
-      </div>
-      <div class="ctrl-group">
-        <div class="ctrl-label">Branch</div>
-        <div class="ms-wrap">
-          <button id="btn-cli-branch" class="ms-btn" onclick="toggleDrop('cli-branch')">
-            <span id="lbl-cli-branch">All Branches</span>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="flex-shrink:0;opacity:.5"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <div id="drop-cli-branch" class="ms-drop"></div>
-        </div>
-      </div>
-      <div class="ctrl-group">
-        <div class="ctrl-label">From</div>
-        <input type="date" id="cli-date-from" class="svc-date-inp" value="2026-01-01" onchange="onCliFiltersChange()">
-      </div>
-      <div class="ctrl-group">
-        <div class="ctrl-label">To</div>
-        <input type="date" id="cli-date-to" class="svc-date-inp" value="2026-05-31" onchange="onCliFiltersChange()">
       </div>
     </div>
     <main style="padding:10px 0 48px">
@@ -1611,9 +2003,14 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 
 
 <script src="upload/name-aliases.js?v=20260812b"></script>
+<!-- After name-aliases.js: ledgerStaffTarget() canonicalises names through it. -->
+<script src="ledger-targets.js?v=20260814a"></script>
 <script src="staff-profiles.js?v=20260814b"></script>
 <script src="stylist-cards.js?v=20260814b"></script>
-<script src="dashboard.js?v=20260814b"></script>
+<script src="dashboard.js?v=20260814d"></script>
+<!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
+<script src="branch-ledger.js?v=20260814c"></script>
+<script src="team-performance.js?v=20260814b"></script>
 <script src="pulse-narrative.js?v=20260814a"></script>
 <script>
 
@@ -1710,7 +2107,7 @@ const GATE_DISABLED = true;
 
 // ── VIEW SWITCHER
 function showView(view, el){
-  ['dashboard','team','stylists','reviews','calendar','giveaway','trk','khalifa','saadiyat','services','clients'].forEach(v=>{
+  ALL_VIEWS.forEach(v=>{
     const node=document.getElementById('view-'+v);
     if(node) node.style.display='none';
   });
@@ -1722,10 +2119,12 @@ function showView(view, el){
   // exists — in a document-scrolled page that collapsed them to nothing.
   target.style.display = 'block';
 
-  // Only KPI Metrics and Team Performance read the branch + period filters, so
-  // the filter line only exists for those two. Same rule the old header toolbar
-  // used, applied to the chip row that replaced it.
-  const usesFilters = (view === 'dashboard' || view === 'team');
+  // Kate, 2026-08-14: one branch picker and one date picker, for every page that
+  // shows a number. It used to be these two only, and Services and Clients each
+  // carried their own private branch + date controls — three filter systems on
+  // one dashboard, which is how you end up reading August on one page and
+  // January on the next without noticing. FILTERED_VIEWS is now the list.
+  const usesFilters = FILTERED_VIEWS.has(view);
   const filtersWrap = document.getElementById('filtersWrap');
   const filtersBtn  = document.getElementById('filtersBtn');
   if (filtersWrap) filtersWrap.style.display = usesFilters ? '' : 'none';
@@ -1741,6 +2140,11 @@ function showView(view, el){
   if (view === 'stylists') renderStylistCards();
   if (view === 'services') initSvcView();
   if (view === 'clients') initCliView();
+  if (view === 'branchperf')    renderBranchPerformance();
+  if (view === 'ledgerTargets') renderLedgerTargets();
+  if (view === 'ledgerActuals') renderLedgerActuals();
+  if (view === 'ledgerStylist') renderLedgerStylist();
+  CURRENT_VIEW = view;
 
   // active button state
   document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active'));
@@ -1758,6 +2162,13 @@ function showView(view, el){
    reasoning; they are here because each of these was a bug first.
    ══════════════════════════════════════════════════════════════ */
 
+// The collapse distance. Declared up here, ahead of the nav, because toggleNav()
+// re-measures the bar and toggleNav() runs on load — with this left down beside
+// sizeTopbar() where it used to live, that first call read it inside its temporal
+// dead zone and the whole script died on "Cannot access 'CONDENSE_AT' before
+// initialization". sizeTopbar() computes the real value; this is only the seed.
+let CONDENSE_AT = 24;
+
 // ── MAIN NAV ────────────────────────────────────────────────
 // Open by default only where the gutter can actually hold the panel. Narrower
 // than that it would sit on top of the document, and a panel that covers what
@@ -1771,13 +2182,80 @@ function toggleNav(force){
     b.textContent = open ? 'Hide sections' : 'Sections';
     b.setAttribute('aria-expanded', String(open));
   }
+  // The arrow is the same control in the other corner, so it has to say the same
+  // thing to a screen reader. The glyph itself flips in CSS.
+  const edge = document.getElementById('navEdge');
+  if (edge) {
+    edge.setAttribute('aria-expanded', String(open));
+    edge.setAttribute('aria-label', open ? 'Hide sections' : 'Show sections');
+  }
+  // Opening the panel shifts the page, which changes where the masthead ends and
+  // therefore how tall it measures. Re-reserve its space or the hero rides up
+  // under it. Guarded because toggleNav runs once before sizeTopbar is defined.
+  if (typeof sizeTopbar === 'function') sizeTopbar();
 }
+
+// ── PANEL WIDTH ─────────────────────────────────────────────
+// Kate, 2026-08-14: the panel is drag-resizable. Written as an inline --nav-w on
+// :root, which deliberately outranks the width media queries — once you have set
+// a width, the responsive default stops overruling your choice. Everything that
+// depends on the width (the content shift, the arrow's position) is already
+// expressed in CSS against --nav-w, so there is nothing else to keep in step.
+const NAV_MIN = 172, NAV_MAX = 460;
+function setNavWidth(px, persist){
+  const w = Math.min(NAV_MAX, Math.max(NAV_MIN, Math.round(px)));
+  document.documentElement.style.setProperty('--nav-w', w + 'px');
+  if (persist) { try { localStorage.setItem('trsNavW', String(w)); } catch(e) {} }
+  return w;
+}
+function resetNavWidth(){
+  document.documentElement.style.removeProperty('--nav-w');
+  try { localStorage.removeItem('trsNavW'); } catch(e) {}
+  sizeTopbar();
+}
+(function restoreNavWidth(){
+  let saved = null;
+  try { saved = localStorage.getItem('trsNavW'); } catch(e) {}
+  if (saved) setNavWidth(parseInt(saved, 10), false);
+})();
+
+(function wireNavResize(){
+  const handle = document.getElementById('navResize');
+  if (!handle) return;
+  // Pointer events, not mouse: setPointerCapture keeps the drag alive when the
+  // cursor outruns the 5px strip, which it always does. A mousemove listener on
+  // the handle alone drops the drag the moment you move quickly.
+  handle.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    handle.classList.add('dragging');
+    document.body.classList.add('nav-sizing');
+    const move = ev => setNavWidth(ev.clientX, false);
+    const up = ev => {
+      handle.releasePointerCapture(e.pointerId);
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+      handle.classList.remove('dragging');
+      document.body.classList.remove('nav-sizing');
+      // Persist and re-measure once, at the end — not on every mousemove.
+      setNavWidth(ev.clientX, true);
+      sizeTopbar();
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  });
+  handle.addEventListener('dblclick', resetNavWidth);
+})();
+
 toggleNav(NAV_FITS.matches);
 NAV_FITS.addEventListener('change', e => toggleNav(e.matches));
 // Anything that covers the page has to be dismissible from the keyboard.
 addEventListener('keydown', e => { if(e.key === 'Escape') toggleNav(false); });
 // A jump from the nav has done its job the moment it lands, so on any width
-// where the panel sits over the content, close it behind you.
+// where the panel sits over the content, close it behind you. The resize strip
+// is not a jump, so a drag that ends inside the panel must not close it.
 document.querySelector('aside.sidebar').addEventListener('click', e => {
   if (!e.target.closest('.nav-sub')) return;
   if (!NAV_FITS.matches) toggleNav(false);
@@ -1822,8 +2300,8 @@ function backToTop(){
 // holds the full height, so a bar that condensed immediately would leave a band
 // of bare background between itself and the hero. Waiting exactly as far as it
 // is about to shrink means the hero arrives at the condensed bar's bottom edge
-// on the same frame, and the seam never opens.
-let CONDENSE_AT = 24;
+// on the same frame, and the seam never opens. Declared above the nav block —
+// see the note there for why it cannot live here.
 function sizeTopbar(){
   const TOPBAR = document.getElementById('topbar');
   const SPACER = document.getElementById('topbarSpacer');

@@ -31,15 +31,6 @@ const ACTIVE_BRANCHES = Object.keys(BRANCH_INFO).filter(b => b !== 'FRT');
 const SCOLS = ['#FFD4D9','#FF9B9B','#C4B5FD','#99F6E4','#EEF3C7','#FFB6C1','#B5EAD7','#FFDAC1'];
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-const TOP3_METRICS = [
-  { key: 'overall',     label: 'Overall'       },
-  { key: 'hairSalesNet',label: 'Net Revenue'   },
-  { key: 'avgBill',     label: 'Avg Bill'      },
-  { key: 'total',       label: 'Total Clients' },
-  { key: 'rebookPct',   label: 'Rebooking %'   },
-  { key: 'ncrPct',      label: 'Hair NCR %'    },
-];
-
 const rankColors  = ['gold','silver','bronze'];
 const rankSymbols = ['🥇','🥈','🥉'];
 
@@ -59,6 +50,12 @@ const sectionState = {};
 let currentDailyRows = [];
 
 // Services + Clients state
+// DEAD as of 2026-08-14 — Service Rankings and Top Clients read the masthead's
+// shared sel.branch now, so these two private branch selections have no callers,
+// and neither do _svcBranches / _buildBranchDrop / _toggleSvcBranch / toggleDrop
+// further down. Left in place rather than deleted mid-flight; the point of this
+// note is that re-wiring them would put the dashboard back to three disagreeing
+// notions of "the current branch". Delete the lot, don't revive it.
 const svcSel = { branch: ['all'] };
 const cliSel = { branch: ['all'] };
 let svcViewMode = 'branch';
@@ -82,6 +79,11 @@ function toggleTheme() {
   // is the one on screen. Kate, 2026-08-14.
   const kpi = document.getElementById('view-dashboard');
   if ((kpi && kpi.style.display !== 'none') || Object.keys(charts).length) renderDashboard();
+  // Branch Performance keeps its Chart.js instances in its own registry, and
+  // their axis/tooltip colours are chosen in JS at draw time — so they have to be
+  // redrawn too, or a theme switch leaves four charts in the old palette. Redraw
+  // only, no data reload: nothing about the figures changed.
+  if (typeof bpRedrawForTheme === 'function') bpRedrawForTheme();
 }
 // 5.png = light/white wordmark (for dark backgrounds), 6.png = dark/black wordmark (for light backgrounds)
 function applyLogoForTheme() {
@@ -212,10 +214,7 @@ document.addEventListener('click', e => {
     }
     pendingSel.branch = [...sel.branch];
     paintFilterChips();
-    renderDashboard().then(() => {
-      const teamView = document.getElementById('view-team');
-      if (teamView && teamView.style.display !== 'none') renderTeam();
-    });
+    refreshActiveView();
     return;
   }
 
@@ -232,10 +231,7 @@ document.addEventListener('click', e => {
     }
     dateFrom = p.from; dateTo = p.to;
     paintFilterChips();
-    renderDashboard().then(() => {
-      const teamView = document.getElementById('view-team');
-      if (teamView && teamView.style.display !== 'none') renderTeam();
-    });
+    refreshActiveView();
   }
 });
 
@@ -422,10 +418,7 @@ function saveBranchSelection() {
   rebuildDependentDrops();
   document.querySelectorAll('.ms-drop').forEach(d => d.classList.remove('open'));
   document.querySelectorAll('.ms-btn').forEach(b  => b.classList.remove('open'));
-  renderDashboard().then(() => {
-    const teamView = document.getElementById('view-team');
-    if (teamView && teamView.style.display !== 'none') renderTeam();
-  });
+  refreshActiveView();
 }
 
 function rebuildDependentDrops() {
@@ -550,7 +543,55 @@ function heroPeriodPhrasing() {
 const VIEW_SECTION_LABELS = {
   dashboard: 'Organisation Pulse', team: 'Team Performance', stylists: 'Stylist Cards',
   services: 'Service Rankings', clients: 'Top Clients', reviews: 'Salon Reviews',
+  branchperf: 'Branch Performance',
+  ledgerTargets: 'Ledgers · Daily Target Sheet',
+  ledgerActuals: 'Ledgers · Actuals vs Targets',
+  ledgerStylist: 'Ledgers · Daily Stylist Target',
 };
+
+// ── THE VIEW REGISTRY ────────────────────────────────────────
+// One list, so adding a page means editing one line instead of three. showView()
+// used to hide an inline array that had drifted out of date — it still carried
+// 'khalifa' and 'saadiyat', which have not existed for months.
+const ALL_VIEWS = [
+  'dashboard','branchperf','ledgerTargets','ledgerActuals','ledgerStylist',
+  'team','stylists','services','clients','reviews','calendar','giveaway','trk',
+];
+
+// Which pages read the shared branch + period filters. Everything that shows a
+// number: the reference pages (stylist cards) and the embedded iframes do not.
+const FILTERED_VIEWS = new Set([
+  'dashboard','team','branchperf','ledgerTargets','ledgerActuals','ledgerStylist',
+  'services','clients',
+]);
+
+let CURRENT_VIEW = 'dashboard';
+
+// Re-render whatever is actually on screen after a filter change.
+//
+// This replaces five copies of "render the dashboard, then render team if team
+// happens to be visible". That pattern was already a near-miss — it only ever
+// checked the one other view that existed — and with four ledger pages added it
+// would have gone quietly wrong: change the branch on Emma's Summary and you'd
+// still be looking at the old branch's numbers.
+//
+// renderDashboard() runs regardless of which page you are on, because it is what
+// repaints the filter chips and the masthead's branch/range line.
+function refreshActiveView() {
+  return renderDashboard().then(() => {
+    const visible = v => {
+      const n = document.getElementById('view-' + v);
+      return n && n.style.display !== 'none';
+    };
+    if (visible('team'))          renderTeam();
+    if (visible('branchperf'))    renderBranchPerformance();
+    if (visible('ledgerTargets')) renderLedgerTargets();
+    if (visible('ledgerActuals')) renderLedgerActuals();
+    if (visible('ledgerStylist')) renderLedgerStylist();
+    if (visible('services'))       onSvcFiltersChange();
+    if (visible('clients'))        onCliFiltersChange();
+  });
+}
 
 // ── STYLIST CARDS VIEW ───────────────────────────────────────
 // The hair team straight from STAFF_PROFILES, grouped by branch and ordered by
@@ -1012,10 +1053,7 @@ function applyDateRange() {
   dateTo   = isoToDate(document.getElementById('dateRangeTo').value) || dateFrom;
 
   rebuildDependentDrops();
-  renderDashboard().then(() => {
-    const teamView = document.getElementById('view-team');
-    if (teamView && teamView.style.display !== 'none') renderTeam();
-  });
+  refreshActiveView();
 }
 
 // Default range: 1st of last month → today — covers the prior full month plus
@@ -1041,10 +1079,7 @@ async function setDefaultRange() {
 async function clearDateRange() {
   await setDefaultRange();
   rebuildDependentDrops();
-  renderDashboard().then(() => {
-    const teamView = document.getElementById('view-team');
-    if (teamView && teamView.style.display !== 'none') renderTeam();
-  });
+  refreshActiveView();
 }
 
 function getWeekDatesFromLabel(label) {
@@ -1321,6 +1356,10 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
       map[name] = {
         name, total: 0, newC: 0, rebooked: 0, req: 0, salon: 0, newClientReq: 0,
         hairSalesNet: 0, retail: 0, treatments: 0, beautySales: 0,
+        // Item counts, not money — how many treatments and how many retail lines
+        // she actually sold. Ledger columns, like treatment_aed: Phorest has no
+        // per-stylist equivalent. Kate, 2026-08-14.
+        treatmentUnits: 0, retailUnits: 0,
       };
     }
     const st = map[name];
@@ -1330,6 +1369,8 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
     st.req          += r.req        || 0;
     st.salon        += r.salon      || 0;
     st.newClientReq += r.ncr        || 0;
+    st.treatmentUnits += Number(r.treatments_unit_qty) || 0;
+    st.retailUnits    += Number(r.retail_unit_qty)     || 0;
     // Services + Courses = "incl. treatments and courses" per the KPI doctrine; Treatment
     // AED is NOT derivable from Phorest's own totals (it's a manually-tallied ledger column,
     // Hair only — Phorest's report has no per-service-type breakdown to split it out from
@@ -2844,226 +2885,30 @@ ${hasBeauty ? `
 <div class="eyebrow" id="s-action"><span class="bar"></span>Do this</div>
 ${actionHtml}
 
-<!-- ══ THE DETAIL — the collapsible support sections ══ -->
-<div class="eyebrow" id="s-detail"><span class="bar"></span>The detail · every figure behind the read</div>
-
-${(s._retailWarnings && s._retailWarnings.length) ? `
-  <div style="margin:0 0 14px;padding:10px 12px;background:rgba(251,191,36,.08);border-left:3px solid #fbbf24;border-radius:6px;font-size:11px;color:var(--text)">
-    <strong style="color:#fbbf24">⚠️ Retail data mismatch detected</strong> across ${s._retailWarnings.length} week(s).
-    Daily-sheet sum (used) differs from weekly summary row.
-    ${s._retailWarnings.slice(0,3).map(m => `Daily AED ${(m.daily||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} vs Summary AED ${(m.summary||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} (${m.pctDiff}% drift)`).join(' · ')}
-  </div>
-` : ''}
-${(() => {
-  const ledgerTag = `<span style="font-size:8px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle;margin-left:4px">LEDGER</span>`;
-  const tile = (label, value, opts = {}) => `
-    <div class="metric ${opts.cls||''}">
-      <div class="metric-label">${label}${opts.ledger ? ledgerTag : ''}</div>
-      <div class="metric-value" style="font-size:21px">${value}</div>
-      ${opts.target ? `<div class="metric-target">${opts.target}</div>` : ''}
-    </div>`;
-  const cluster = (label, color, tilesHtml) => `
-    <div style="margin-bottom:16px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;color:${color};text-transform:uppercase;margin-bottom:8px">${label}</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">${tilesHtml}</div>
-    </div>`;
-  const section = (id, dotColor, title, bodyHtml) => `
-    <div class="support-section" style="margin-bottom:14px" data-scrollspy="${title}">
-      <div class="support-section-hdr" onclick="toggleSection('${id}')">
-        <div style="display:flex;align-items:center;gap:8px;min-width:0">
-          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0"></span>
-          <span style="font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:16px;letter-spacing:0.02em;color:var(--text)">${title}</span>
-          <span style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${branchLabel}</span>
-        </div>
-        <span id="arrow-${id}" class="support-toggle-arrow">▸</span>
-      </div>
-      <div id="body-${id}" class="support-section-body" style="padding:14px 6px 6px">${bodyHtml}</div>
-    </div>`;
-
-  // Department-scoped figures not already available on `s` — kept locally so their
-  // exact definition (÷ that department's own net take, not the combined total) is
-  // unambiguous, since s.treatmentPct/s.hairRetail carry different meanings depending
-  // on which aggregation path (weekly vs. daily/date-range) produced this render.
-  const hairNetSalonTake     = (s.hairServicesIncl||0) + (s.hairRetailOnly||0);
-  const beautyNetTakeDept    = (s.beautyServicesTotal||0) + (s.beautyRetailOnly||0);
-  const hairTreatmentPctDept = (s.hairServicesIncl||0) ? ((s.treatmentSales||0)   / (s.hairServicesIncl||0) * 100) : 0;
-  const hairRetailPctDept    = hairNetSalonTake         ? ((s.hairRetailOnly||0)  / hairNetSalonTake         * 100) : 0;
-  const beautyRetailPctDept  = beautyNetTakeDept        ? ((s.beautyRetailOnly||0)/ beautyNetTakeDept        * 100) : 0;
-
-  const revenueTargets = section('revTargets', '#FFD4D9', 'Revenue Targets', `
-    ${cluster('Revenue', '#8A6800', [
-      tile('Services Total',                            fmtAED(s.servicesTotal)),
-      tile('Retail Total',                               fmtAED(s.retailTotal)),
-      tile('Hair Services (incl. treatments/courses)',  fmtAED(s.hairServicesIncl)),
-      tile('Hair Services (excl. treatments)',           fmtAED(s.hairServicesExcl)),
-      tile('Treatments Revenue',                         fmtAED(s.treatmentSales), {ledger:true}),
-      tile('Beauty Services',                            fmtAED(s.beautyServicesTotal)),
-      tile('Hair Retail',                                fmtAED(s.hairRetailOnly)),
-      tile('Beauty Retail',                              fmtAED(s.beautyRetailOnly)),
-    ].join(''))}
-    ${cluster('Hair Clients', 'var(--hair)', [
-      tile('Hair Total Clients',    (s.hairTotalClients||0).toLocaleString()),
-      tile('Hair New Clients',      (s.hairNewClients||0).toLocaleString()),
-      tile('Hair NCR',              (s.hairNCR||0).toLocaleString()),
-      tile('Hair Rebooked Clients', (s.hairRebookedCount||0).toLocaleString()),
-    ].join(''))}
-    ${cluster('Beauty Clients', 'var(--beauty)', [
-      tile('Beauty Total Clients',    (s.beautyTotalClients||0).toLocaleString()),
-      tile('Beauty New Clients',      (s.beautyNewClients||0).toLocaleString()),
-      tile('Beauty NCR',              (s.beautyNCR||0).toLocaleString()),
-      tile('Beauty Rebooked Clients', (s.beautyRebookedCount||0).toLocaleString()),
-    ].join(''))}
-    ${cluster('Combined', 'var(--muted)', [
-      tile('Rebooked Clients (Hair + Beauty)', (s.totalRebooked||0).toLocaleString()),
-      tile('Total Clients',                    (s.totalClients||0).toLocaleString()),
-      tile('New Clients',                      (s.newClientsTotal||0).toLocaleString()),
-      tile('NCR',                               (s.ncrTotal||0).toLocaleString()),
-      tile('Salon Client',                      (s.salonClientTotal||0).toLocaleString()),
-      tile('Request Client',                    (s.requestClientTotal||0).toLocaleString()),
-    ].join(''))}
-  `);
-
-  const benchmarks = section('benchmarks', '#99F6E4', 'Benchmarks', `
-    ${cluster('Combined Ratios', 'var(--muted)', [
-      `<div class="metric">
-        <div class="metric-label">Rebooking %</div>
-        <div style="display:flex;flex-direction:column;gap:4px;margin:6px 0">
-          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:9px;font-weight:700;color:var(--hair);letter-spacing:.06em">HAIR</span><span class="tabular ${sc(s.hairRebookPct||0,TARGETS.rebookPct)}" style="font-size:14px;font-weight:600">${fmtPct(s.hairRebookPct||0)}</span></div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:9px;font-weight:700;color:var(--beauty);letter-spacing:.06em">BEAUTY</span><span class="tabular ${s.beautyRebookPct!=null?sc(s.beautyRebookPct,TARGETS.rebookPct):''}" style="font-size:14px;font-weight:600">${s.beautyRebookPct!=null?fmtPct(s.beautyRebookPct):'—'}</span></div>
-        </div>
-        <div class="metric-value ${sc(s.rebookPct, TARGETS.rebookPct)}" style="font-size:20px;border-top:1px solid var(--border2);padding-top:6px">${fmtPct(s.rebookPct)}</div>
-        <div class="metric-target">Combined · Target: ${TARGETS.rebookPct}%</div>
-      </div>`,
-      `<div class="metric">
-        <div class="metric-label">Treatment %</div>
-        <div style="display:flex;flex-direction:column;gap:4px;margin:6px 0">
-          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:9px;font-weight:700;color:var(--hair);letter-spacing:.06em">HAIR</span><span class="tabular ${sc(hairTreatmentPctDept,TARGETS.treatmentPct)}" style="font-size:14px;font-weight:600">${fmtPct(hairTreatmentPctDept)}</span></div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:9px;font-weight:700;color:var(--beauty);letter-spacing:.06em">BEAUTY</span><span style="font-size:12px;font-weight:600;color:var(--muted)">— not tracked</span></div>
-        </div>
-        <div class="metric-value ${sc(rvHBTxPct, TARGETS.treatmentPct)}" style="font-size:20px;border-top:1px solid var(--border2);padding-top:6px">${fmtPct(rvHBTxPct)}</div>
-        <div class="metric-target">Combined · Target: ≥ ${TARGETS.treatmentPct}%</div>
-      </div>`,
-      `<div class="metric">
-        <div class="metric-label">Retail %</div>
-        <div style="display:flex;flex-direction:column;gap:4px;margin:6px 0">
-          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:9px;font-weight:700;color:var(--hair);letter-spacing:.06em">HAIR</span><span class="tabular ${sc(hairRetailPctDept,TARGETS.retailPct)}" style="font-size:14px;font-weight:600">${fmtPct(hairRetailPctDept)}</span></div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:9px;font-weight:700;color:var(--beauty);letter-spacing:.06em">BEAUTY</span><span class="tabular ${sc(beautyRetailPctDept,TARGETS.retailPct)}" style="font-size:14px;font-weight:600">${fmtPct(beautyRetailPctDept)}</span></div>
-        </div>
-        <div class="metric-value ${sc(rvHBRetPct, TARGETS.retailPct)}" style="font-size:20px;border-top:1px solid var(--border2);padding-top:6px">${fmtPct(rvHBRetPct)}</div>
-        <div class="metric-target">Combined · Target: ≥ ${TARGETS.retailPct}%</div>
-      </div>`,
-    ].join(''))}
-    ${cluster('Avg Bill', 'var(--muted)', [
-      tile('Hair Avg Bill (AED)',   fmtAED(s.hairAvgBill),                                {target:`Target: AED ${TARGETS.hairAvgBill}`}),
-      tile('Beauty Avg Bill (AED)', s.beautyAvgBill!=null?fmtAED(s.beautyAvgBill):'—',    {target:`Target: AED ${TARGETS.beautyAvgBill}`}),
-    ].join(''))}
-    ${cluster('Utilisation', 'var(--muted)', [
-      tile('Utilisation (Hours) — Hair',          s.hairUtilHours!=null?s.hairUtilHours.toLocaleString(undefined,{maximumFractionDigits:1}):'—', {cls:'m-turq', target: s.hairUtilHours!=null?'Target: ≥ 80%':'Not wired yet — no matching utilisation data for this period'}),
-      tile('Utilisation % — Hair',                s.hairUtilPct!=null?fmtPct(s.hairUtilPct):'—', {cls:'m-turq', target:'Target: ≥ 80%'}),
-      tile('Utilisation (Hours) — Beauty',        s.beautyUtilHours!=null?s.beautyUtilHours.toLocaleString(undefined,{maximumFractionDigits:1}):'—', {cls:'m-turq', target: s.beautyUtilHours!=null?'Target: ≥ 70%':'Not wired yet — no matching utilisation data for this period'}),
-      tile('Utilisation % — Beauty',              s.beautyUtilPct!=null?fmtPct(s.beautyUtilPct):'—', {cls:'m-turq', target:'Target: ≥ 70%'}),
-      tile('Utilisation (Hours) — Hair & Beauty', s.utilHours!=null?s.utilHours.toLocaleString(undefined,{maximumFractionDigits:1}):'—', {cls:'m-turq', target: s.utilHours!=null?'Target: ≥ 75–85%':'Not wired yet — no matching utilisation data for this period'}),
-      tile('Utilisation % — Hair & Beauty',       s.utilPct!=null?fmtPct(s.utilPct):'—', {cls:'m-turq', target:'Target: ≥ 75–85%'}),
-    ].join(''))}
-  `);
-
-  // Mirrored Hair | Beauty bars (bar = actual, tick = target) — replaces the old
-  // duplicated "Performance Ratios" + "Utilisation" tile clusters that used to live
-  // separately inside staffHair/staffBeauty below. One space-saving panel instead of
-  // two, same mirroring technique as the Client Funnel. Kate, 2026-08-03.
-  const mirrorRow = (label, hairVal, beautyVal, hairTarget, beautyTarget, fmtFn) => {
-    const nums = [hairVal, beautyVal, hairTarget, beautyTarget].filter(v => v != null && !isNaN(v));
-    const rowMax = nums.length ? Math.max(...nums) * 1.15 : 1;
-    const barPct  = v => (v == null || !rowMax) ? 0 : Math.min(100, Math.max(v > 0 ? 3 : 0, v / rowMax * 100));
-    const tickPct = v => (v == null || !rowMax) ? null : Math.min(97, Math.max(1, v / rowMax * 100));
-    const hairTick = tickPct(hairTarget), beautyTick = tickPct(beautyTarget);
-    const hairBar = hairVal == null ? `<span style="font-size:11px;color:var(--muted2)">—</span>` : `
-      <div style="flex:1;position:relative;height:22px;background:var(--border2);border-radius:6px 2px 2px 6px">
-        <div style="position:absolute;top:0;right:0;height:100%;width:${barPct(hairVal)}%;background:var(--hair);border-radius:6px 2px 2px 6px"></div>
-        ${hairTick!=null?`<div style="position:absolute;top:-3px;bottom:-3px;right:${hairTick}%;width:2px;background:var(--text)"></div>`:''}
-      </div>`;
-    const beautyBar = beautyVal == null ? `<span style="font-size:11px;color:var(--muted2)">${beautyTarget==null?'not tracked':'—'}</span>` : `
-      <div style="flex:1;position:relative;height:22px;background:var(--border2);border-radius:2px 6px 6px 2px">
-        <div style="position:absolute;top:0;left:0;height:100%;width:${barPct(beautyVal)}%;background:var(--beauty);border-radius:2px 6px 6px 2px"></div>
-        ${beautyTick!=null?`<div style="position:absolute;top:-3px;bottom:-3px;left:${beautyTick}%;width:2px;background:var(--text)"></div>`:''}
-      </div>`;
-    return `
-      <div style="display:flex;align-items:center;margin-bottom:14px">
-        <div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0">
-          <span class="tabular" style="font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap">${hairVal==null?'':fmtFn(hairVal)}</span>
-          ${hairBar}
-        </div>
-        <div style="width:120px;flex-shrink:0;text-align:center;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">${label}</div>
-        <div style="flex:1;display:flex;align-items:center;gap:8px;min-width:0">
-          ${beautyBar}
-          <span class="tabular" style="font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap">${beautyVal==null?'':fmtFn(beautyVal)}</span>
-        </div>
-      </div>`;
-  };
-
-  const staffRatios = section('staffRatios', 'var(--hair)', 'Performance Ratios — Hair & Beauty', `
-    <div style="display:flex;justify-content:space-between;margin-bottom:14px;max-width:700px">
-      <span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--hair)">◂ Hair</span>
-      <span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--beauty)">Beauty ▸</span>
-    </div>
-    <div style="max-width:700px">
-      ${mirrorRow('Rebooking %',    s.hairRebookPct||0,   s.beautyRebookPct, TARGETS.rebookPct,    TARGETS.rebookPct,    fmtPct)}
-      ${mirrorRow('Treatment %',    hairTreatmentPctDept, null,              TARGETS.treatmentPct, null,                 fmtPct)}
-      ${mirrorRow('Retail %',       hairRetailPctDept,    beautyRetailPctDept, TARGETS.retailPct,  TARGETS.retailPct,    fmtPct)}
-      ${mirrorRow('Avg Bill',       s.hairAvgBill||0,     s.beautyAvgBill,   TARGETS.hairAvgBill,  TARGETS.beautyAvgBill, fmtAED)}
-      ${mirrorRow('Utilisation %',  s.hairUtilPct,        s.beautyUtilPct,   TARGETS.hairUtilPct,  TARGETS.beautyUtilPct, fmtPct)}
-    </div>
-    <div style="font-size:10px;color:var(--muted2);margin-top:2px">Bar = actual · tick = target</div>
-  `);
-
-  const staffHair = section('staffHair', 'var(--hair)', 'Staff Performance — Hair', `
-    ${cluster('Revenue', 'var(--hair)', [
-      tile('Hair Services (excl. treatments)', fmtAED(s.hairServicesExcl)),
-      tile('Treatments Revenue',               fmtAED(s.treatmentSales), {ledger:true}),
-      tile('Retail Revenue',                   fmtAED(s.hairRetailOnly)),
-      tile('Net Salon Take',                   fmtAED(hairNetSalonTake)),
-    ].join(''))}
-    ${cluster('Clients', 'var(--hair)', [
-      tile('Rebooked Clients', (s.hairRebookedCount||0).toLocaleString()),
-      tile('Total Clients',    (s.hairTotalClients||0).toLocaleString()),
-      tile('New Clients',      (s.hairNewClients||0).toLocaleString()),
-      tile('NCR',              (s.hairNCR||0).toLocaleString()),
-      tile('Salon Client',     (s.hairBreakdown?.salon||0).toLocaleString()),
-      tile('Request Client',   (s.hairBreakdown?.req||0).toLocaleString()),
-    ].join(''))}
-  `);
-
-  const staffBeauty = section('staffBeauty', 'var(--beauty)', 'Staff Performance — Beauty', `
-    ${cluster('Revenue', 'var(--beauty)', [
-      tile('Services Revenue', fmtAED(s.beautyServicesTotal)),
-      tile('Retail Revenue',   fmtAED(s.beautyRetailOnly)),
-      tile('Total Net Take',   fmtAED(beautyNetTakeDept)),
-    ].join(''))}
-    ${cluster('Clients', 'var(--beauty)', [
-      tile('Rebooked Clients', (s.beautyBreakdown?.rebooked||0).toLocaleString()),
-      tile('Total Clients',    (s.beautyTotalClients||0).toLocaleString()),
-      tile('New Clients',      (s.beautyNewClients||0).toLocaleString()),
-      tile('NCR',              (s.beautyNCR||0).toLocaleString()),
-      tile('Salon Client',     (s.beautyBreakdown?.salon||0).toLocaleString()),
-      tile('Request Client',   (s.beautyBreakdown?.req||0).toLocaleString()),
-    ].join(''))}
-  `);
-
-  return revenueTargets + benchmarks + staffRatios + `
-    <div class="g2-staff" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">${staffHair}${staffBeauty}</div>`;
-})()}
+<!-- ══ WHERE THE FIGURES LIVE NOW ══
+     Kate, 2026-08-14: the detail stack moved to its own page. This read ends on
+     the one action, which is the point of it; the ~120 tiles that used to sit
+     under here are Branch Performance, restructured into the ledger's grouping
+     so they carry a target and a variance instead of a bare number. -->
+<div class="eyebrow" id="s-detail"><span class="bar"></span>The detail</div>
+<div class="card">
+  <div class="card-title">Every figure behind this read</div>
+  <div class="card-sub">Revenue, clients and benchmarks, each against its ledger target — plus the full staff tables.</div>
+  <a class="r-more" href="#" onclick="showView('branchperf', document.querySelector('[onclick*=&quot;branchperf&quot;]'));return false">Open Branch Performance <span aria-hidden="true">→</span></a>
+</div>
 
 <div class="fine">
   <p><b>What net take means</b>. Everything the salon billed in the period: hair and beauty services, treatments and courses, plus retail, added together, before staff cost. Hair net take and beauty net take are each that department's own services plus its own retail, so the two add up to the total.</p>
-  <p><b>Sources</b>. Client counts, the department split and the treatment figure come from the branch ledger (<code>branch_staff_daily</code>); revenue comes from Phorest (<code>phorest_staff_daily</code>), matched to the ledger's staff and day. Figures tagged <span style="font-size:8px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle">LEDGER</span> in The detail are hand-tallied and have no Phorest equivalent. Utilisation is matched separately and drops out entirely when the period has no roster hours to match, rather than scoring as zero.</p>
+  <p><b>Sources</b>. Client counts, the department split and the treatment figure come from the branch ledger (<code>branch_staff_daily</code>); revenue comes from Phorest (<code>phorest_staff_daily</code>), matched to the ledger's staff and day. Figures tagged <span style="font-size:8px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle">LEDGER</span> on Branch Performance are hand-tallied and have no Phorest equivalent. Utilisation is matched separately and drops out entirely when the period has no roster hours to match, rather than scoring as zero.</p>
   <p><b>What is scored and what is not</b>. Seven benchmarks carry a single unambiguous target and are raced against it, worst first. Total Clients is not one of them: its target is stated per week and per branch, so multiplying it across whatever window the filter happens to hold would measure the window, not the salon. It sits in the headline three with its target printed as a note. Net take and Clients are read against the previous period for the same reason.</p>
   <p><b>Layout rules</b>. One token set, 10px radius, 8pt spacing spine, Playfair for figures and Inter for labels. Colour carries status only; the accent quartet carries identity. Three headline cards, never twenty-one. Anything below target sorts by the size of its gap. No data, no card.</p>
 </div>
   `;
 
-  // Default every new section to open on first render; leave alone once the user
-  // has toggled one (sectionState persists across re-renders — see toggleSection()).
-  ['revTargets','benchmarks','staffRatios','staffHair','staffBeauty'].forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
+  // Nothing on this page collapses any more — the five support sections that did
+  // are Branch Performance's now, and it opens them itself. restoreSections() is
+  // deliberately still called: the shared sectionState is what keeps a section
+  // you collapsed over there collapsed when you come back to it.
   restoreSections();
 
   // The funnel and the branch columns are drawn in the template above, in the
@@ -3076,594 +2921,11 @@ ${(() => {
 }
 
 
-// ── TEAM PERFORMANCE ─────────────────────────────────────────
-
-let teamCharts = {};
-
-function overallScore(st, isBeauty) {
-  return isBeauty
-    ? (st.beautySales||0)/10000 + (st.avgBill||0)/200  + (st.rebookPct||0)
-    : (st.hairSalesNet||0)/10000 + (st.avgBill||0)/650 + (st.rebookPct||0);
-}
-function getTop3(staff, metricKey, isBeauty, limit) {
-  limit = limit || 3;
-  return [...staff].sort((a,b) => {
-    if (metricKey === 'overall') return overallScore(b,isBeauty) - overallScore(a,isBeauty);
-    let ka = metricKey;
-    if (isBeauty && metricKey === 'hairSalesNet') ka = 'beautySales';
-    return (b[ka]||0) - (a[ka]||0);
-  }).slice(0, limit);
-}
-
-function aggByBranchT() {
-  const result = {};
-  ACTIVE_BRANCHES.forEach(code => {
-    const rows = allData.filter(d => {
-      if (d.branch !== code) return false;
-      if (dateFrom || dateTo) {
-        const weekDates = getWeekDatesFromLabel(d.week_label);
-        const checkDate = weekDates
-          ? weekDates.start
-          : (() => { const u = new Date(d.uploaded_at); u.setHours(0,0,0,0); return u; })();
-        if (dateFrom && checkDate < dateFrom) return false;
-        if (dateTo   && checkDate > dateTo)   return false;
-      }
-      return true;
-    });
-    result[code] = aggData(rows.map(d => d.data));
-  });
-  return result;
-}
-
-function renderTeam() {
-  const filtered = getFilteredData();
-  const teamContent = document.getElementById('teamContent');
-  if (!filtered.length) {
-    Object.values(teamCharts).forEach(c => { try { c.destroy(); } catch(e) {} });
-    teamCharts = {};
-    teamContent.innerHTML = '<div class="empty">No data for this selection.</div>';
-    return;
-  }
-  const datasets = filtered.map(d => d.data);
-  const d = aggData(datasets);
-  if (!d) return; 
-
-  Object.values(teamCharts).forEach(c => { try { c.destroy(); } catch(e) {} });
-  teamCharts = {};
-
-  const dark = isDark();
-  const ttStyle = { backgroundColor:dark?'#2D2E37':'#fff', titleColor:dark?'#FAF8F3':'#5C5557', bodyColor:dark?'rgba(250,248,243,.7)':'#9a8a87', borderColor:dark?'rgba(250,248,243,.1)':'#e8d5cc', borderWidth:1 };
-  const gc = dark ? 'rgba(250,248,243,0.06)' : 'rgba(92,85,87,0.07)';
-  const tc = dark ? 'rgba(250,248,243,0.45)' : '#9a8a87';
-  const byBranchT = aggByBranchT();
-  const branchLabel = sel.branch.includes('all') ? 'All Branches' : sel.branch.map(b => BRANCH_INFO[b]?.name||b).join(', ');
-
-  const activeBranchesT = sel.branch.includes('all') ? ACTIVE_BRANCHES : sel.branch;
-  const allHairWithBranch   = [];
-  const allBeautyWithBranch = [];
-  activeBranchesT.forEach(code => {
-    const bd = byBranchT[code]; if (!bd) return;
-    bd.hairStaff.forEach(st   => allHairWithBranch.push({   ...st, branchCode:code, branchName:BRANCH_INFO[code].name, branchColor:BRANCH_INFO[code].color }));
-    bd.beautyStaff.forEach(st => allBeautyWithBranch.push({ ...st, branchCode:code, branchName:BRANCH_INFO[code].name, branchColor:BRANCH_INFO[code].color, isBeauty:true }));
-  });
-
-  // build cross-branch all-time stylist map for comparator
-  const cmpBranchMap = {};
-  ACTIVE_BRANCHES.forEach(code => {
-    const allRows = allData.filter(d => d.branch === code);
-    const bdAll   = aggData(allRows.map(d => d.data));
-    if (!bdAll) return;
-    const all = [
-      ...bdAll.hairStaff.map(s   => ({ ...s, isBeauty:false, branchCode:code, branchName:BRANCH_INFO[code].name, branchColor:BRANCH_INFO[code].color })),
-      ...bdAll.beautyStaff.map(s => ({ ...s, isBeauty:true,  branchCode:code, branchName:BRANCH_INFO[code].name, branchColor:BRANCH_INFO[code].color })),
-    ];
-    if (all.length) cmpBranchMap[code] = all;
-  });
-
-  const teamRvHBSvc    = d.summary.netTake - (d.summary.hairRetail||0);
-  const teamRvHBTxPct  = teamRvHBSvc ? ((d.summary.treatmentSales||0) / teamRvHBSvc * 100) : 0;
-  const teamRvHBRetPct = teamRvHBSvc ? ((d.summary.hairRetail||0) / teamRvHBSvc * 100) : 0;
-  const teamStatusText = computeStatusStatement(d.summary, branchLabel, computeHeroPeriodPhrase(dateFrom, dateTo), teamRvHBTxPct, teamRvHBRetPct);
-
-  teamContent.innerHTML = `
-
-<div class="dash-hero-status" style="margin:2px 0 18px;font-size:14px">${escapeHtml(teamStatusText)}</div>
-
-<!-- SECTION 1 — GLOBAL LEADERBOARD -->
-<div class="section-label" style="display:flex;align-items:center;gap:7px;margin-top:16px;margin-bottom:8px">
-  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#FFD4D9;flex-shrink:0"></span>
-  ${branchLabel} · Top Stylists Overall (Cross-Branch)
-</div>
-
-<div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">
-  <div style="display:flex;gap:0;border-bottom:1px solid var(--border)">
-    <button id="glbTabHair"   onclick="switchGlobalLeaderboard('hair')"   style="padding:10px 20px;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;background:var(--accent);color:var(--accent-fg);border:none;font-family:'DM Sans',sans-serif;font-weight:700;transition:.2s;white-space:nowrap">Hair Stylists</button>
-    <button id="glbTabBeauty" onclick="switchGlobalLeaderboard('beauty')" style="padding:10px 20px;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;background:transparent;color:var(--muted);border:none;font-family:'DM Sans',sans-serif;font-weight:500;transition:.2s;white-space:nowrap">Beauty Team</button>
-    <div style="flex:1;display:flex;align-items:center;gap:6px;padding:0 16px;flex-wrap:nowrap;overflow-x:auto" id="glbMetricPills">
-      ${TOP3_METRICS.map((m,i) => `<button class="f-pill${i===0?' active':''}" data-m="${m.key}" onclick="switchGlobalMetric(this,'${m.key}')" style="white-space:nowrap;flex-shrink:0">${m.label}</button>`).join('')}
-    </div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 380px;min-height:320px">
-    <div id="globalLeaderboardBody" style="border-right:1px solid var(--border);overflow-y:auto;max-height:420px"></div>
-    <div id="glbRadarPanel" style="padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:8px;overflow-y:auto;max-height:420px">
-      <div style="width:100%;flex-shrink:0;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:4px">
-        <div style="font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);font-weight:700">Stylist / Beautician Performance</div>
-        <div style="font-size:8px;color:var(--muted2);margin-top:2px;letter-spacing:0.06em">Radial Chart · Click a row to load</div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;color:var(--muted2);font-size:11px;line-height:1.6">
-        <div style="font-size:28px;margin-bottom:6px">◎</div>
-        Click any stylist row<br>to view their<br>performance radar
-        <div style="margin-top:10px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted2);opacity:0.7">← Click any row</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- SECTION 2 — CUSTOM COMPARATOR -->
-<div class="section-label" style="display:flex;align-items:center;gap:7px;margin-top:20px;margin-bottom:8px">
-  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#99F6E4;flex-shrink:0"></span>
-  Custom Stylist / Beautician Comparison
-  <span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:4px">Compare up to 3 stylists across branches</span>
-</div>
-
-<div class="card" style="margin-bottom:12px">
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px" id="cmpSlots">
-    ${[1,2,3].map(n => `
-    <div style="border:1px dashed var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--surface2)" id="cmpSlot${n}">
-      <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Stylist ${n}</div>
-      <select id="cmpBranch${n}" onchange="onCmpBranchChange(${n})" style="width:100%;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif">
-        <option value="">— Branch —</option>
-        ${ACTIVE_BRANCHES.map(k => `<option value="${k}">${BRANCH_INFO[k].name}</option>`).join('')}
-      </select>
-      <select id="cmpName${n}" onchange="onCmpNameChange()" style="width:100%;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif" disabled>
-        <option value="">— Select stylist —</option>
-      </select>
-      <div id="cmpSlotTag${n}" style="font-size:11px;color:var(--muted2);min-height:14px"></div>
-    </div>`).join('')}
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px" id="cmpRadarSlots">
-    ${[1,2,3].map(n => `
-    <div id="cmpRadarWrap${n}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:220px;border:1px dashed var(--border);border-radius:10px;background:var(--surface2)">
-      <div style="text-align:center;color:var(--muted2);font-size:11px;line-height:1.8;padding:16px">
-        <div style="font-size:24px;margin-bottom:6px;opacity:0.4">◎</div>
-        Select a stylist above<br>to view radar
-      </div>
-    </div>`).join('')}
-  </div>
-</div>
-
-<!-- SECTION 3 — STYLIST TABLE -->
-<div class="section-label" style="display:flex;align-items:center;gap:7px;margin-top:20px;margin-bottom:8px">
-  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#EEF3C7;flex-shrink:0"></span>
-  ${branchLabel} · Stylist / Beautician: Supporting Metrics
-</div>
-<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 14px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--muted)">
-  <span style="font-size:16px;flex-shrink:0;opacity:0.7">→</span>
-  <span>Scroll right to see all columns &mdash; <strong style="color:var(--text)">Revenue · Clients · Retention · Operations</strong> metrics are displayed across the full table width.</span>
-</div>
-<div class="card">
-  <div class="tabs">
-    <button class="tab active" onclick="switchTeamTab(this,'hair')">Hair Stylists</button>
-    <button class="tab"        onclick="switchTeamTab(this,'beauty')">Beauty Team</button>
-  </div>
-  <div id="tTabHair"   style="overflow-x:auto"></div>
-  <div id="tTabBeauty" style="display:none;overflow-x:auto"></div>
-</div>
-  `;
-
-  // ── GLOBAL LEADERBOARD logic ──
-  let glbTeam = 'hair', glbMetric = 'overall', glbSelectedRow = null;
-
-  function renderGlobalLeaderboard() {
-    const staff  = glbTeam === 'hair' ? allHairWithBranch : allBeautyWithBranch;
-    const sorted = [...staff].sort((a,b) => {
-      if (glbMetric === 'overall') return overallScore(b,b.isBeauty) - overallScore(a,a.isBeauty);
-      let ka = glbMetric;
-      if (a.isBeauty && ka === 'hairSalesNet') ka = 'beautySales';
-      return (b[ka]||0) - (a[ka]||0);
-    });
-    const body = document.getElementById('globalLeaderboardBody');
-    if (!sorted.length) { body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">No data available.</div>'; return; }
-    const maxVal = Math.max(...sorted.map(st => {
-      if (glbMetric === 'overall') return overallScore(st, st.isBeauty);
-      const k = (st.isBeauty && glbMetric === 'hairSalesNet') ? 'beautySales' : glbMetric;
-      return st[k]||0;
-    }), 0.001);
-
-    body.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead style="position:sticky;top:0;z-index:2;background:var(--surface)"><tr>
-        <th style="padding:7px 10px;text-align:left;color:var(--muted);font-size:10px;letter-spacing:0.1em;font-weight:500;border-bottom:1px solid var(--border);width:36px">#</th>
-        <th style="padding:7px 10px;text-align:left;color:var(--muted);font-size:10px;letter-spacing:0.1em;font-weight:500;border-bottom:1px solid var(--border)">Branch</th>
-        <th style="padding:7px 10px;text-align:left;color:var(--muted);font-size:10px;letter-spacing:0.1em;font-weight:500;border-bottom:1px solid var(--border)">Stylist</th>
-        <th style="padding:7px 10px;text-align:right;color:var(--muted);font-size:10px;letter-spacing:0.1em;font-weight:500;border-bottom:1px solid var(--border)">Value</th>
-        <th style="padding:7px 10px 7px 6px;border-bottom:1px solid var(--border);width:100px"></th>
-        <th style="padding:7px 10px;border-bottom:1px solid var(--border);width:28px"></th>
-      </tr></thead>
-      <tbody>${sorted.map((st,i) => {
-        let valRaw = glbMetric==='overall' ? overallScore(st,st.isBeauty) : ((st.isBeauty&&glbMetric==='hairSalesNet')?st.beautySales||0:st[glbMetric]||0);
-        let valFmt = glbMetric==='rebookPct'||glbMetric==='ncrPct' ? fmtPct(valRaw)
-          : glbMetric==='total'   ? Math.round(valRaw).toLocaleString()
-          : glbMetric==='overall' ? valRaw.toFixed(2)
-          : fmtAED(valRaw);
-        const barPct  = maxVal ? Math.min(valRaw/maxVal*100, 100) : 0;
-        const medal   = i < 3 ? ['🥇','🥈','🥉'][i] : '';
-        const stData  = JSON.stringify({ name:st.name, color:st.color, branchName:st.branchName, branchColor:st.branchColor, hairSalesNet:st.hairSalesNet||0, beautySales:st.beautySales||0, avgBill:st.avgBill||0, total:st.total||0, rebookPct:st.rebookPct||0, ncrPct:st.ncrPct||0, isBeauty:!!st.isBeauty });
-        return `<tr class="glb-row" data-idx="${i}" style="cursor:pointer;transition:background .12s,border-left .12s;border-left:3px solid transparent"
-          onmouseover="this.style.background='var(--surface2)'" onmouseout="if(glbSelectedRow!==this){this.style.background='';}"
-          onclick="selectGlbRow(this)" data-st='${stData}'>
-          <td style="padding:7px 10px;color:var(--muted2);font-size:11px">${medal||i+1}</td>
-          <td style="padding:7px 10px">
-            <span style="display:inline-flex;align-items:center;gap:5px">
-              <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${st.branchColor};flex-shrink:0"></span>
-              <span style="font-size:11px;color:var(--muted)">${st.branchName}</span>
-            </span>
-          </td>
-          <td style="padding:7px 10px">
-            <span style="display:inline-flex;align-items:center;gap:7px">
-              <span style="width:22px;height:22px;border-radius:50%;background:${st.color};display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0">${initials(st.name)}</span>
-              <span style="font-size:12px;font-weight:600;color:var(--text)">${escapeHtml(st.name)}</span>
-            </span>
-          </td>
-          <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:600;color:var(--text);white-space:nowrap">${valFmt}</td>
-          <td style="padding:5px 10px 5px 6px">
-            <div style="height:5px;border-radius:3px;background:var(--border);overflow:hidden">
-              <div style="height:100%;width:${barPct}%;background:${st.color};border-radius:3px"></div>
-            </div>
-          </td>
-          <td style="padding:7px 8px;text-align:center;font-size:13px;color:var(--muted2)" title="View radar">◎</td>
-        </tr>`;
-      }).join('')}</tbody></table>
-      ${sorted.length>10?`<div style="padding:8px 12px;border-top:1px solid var(--border);font-size:10px;color:var(--muted2);text-align:center;letter-spacing:0.06em">Showing ${sorted.length} stylists · scroll to see all ↑↓</div>`:''}`;
-
-    glbSelectedRow = null;
-    document.getElementById('glbRadarPanel').innerHTML = `
-      <div style="width:100%;flex-shrink:0;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:4px">
-        <div style="font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);font-weight:700">Stylist / Beautician Performance</div>
-        <div style="font-size:8px;color:var(--muted2);margin-top:2px;letter-spacing:0.06em">Radial Chart · Click a row to load</div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;color:var(--muted2);font-size:11px;line-height:1.8">
-        <div style="font-size:28px;margin-bottom:6px;opacity:0.5">◎</div>
-        Click any stylist row<br>to view their<br>performance radar
-        <div style="margin-top:10px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted2);opacity:0.7">← Click any row</div>
-      </div>`;
-    if (teamCharts.radar) { try { teamCharts.radar.destroy(); } catch(e) {} teamCharts.radar = null; }
-  }
-
-  window.selectGlbRow = function(row) {
-    if (glbSelectedRow) { glbSelectedRow.style.background=''; glbSelectedRow.style.borderLeft='3px solid transparent'; }
-    glbSelectedRow = row;
-    row.style.background = 'var(--surface2)';
-    const st = JSON.parse(row.dataset.st);
-    row.style.borderLeft = `3px solid ${st.color}`;
-    showRadarInPanel(st);
-  };
-  window.openStylistRadar = function(el) { try { const st=JSON.parse(el.dataset.st); showRadarInPanel(st); } catch(e) {} };
-  window.closeRadarModal   = function() {};
-
-  function showRadarInPanel(st) {
-    const panel   = document.getElementById('glbRadarPanel');
-    const accent  = st.color || '#C4B5FD';
-    const revenue = st.isBeauty ? (st.beautySales||0) : (st.hairSalesNet||0);
-    const refPool = st.isBeauty ? allBeautyWithBranch : allHairWithBranch;
-    const maxRev     = Math.max(...refPool.map(s => s.isBeauty?(s.beautySales||0):(s.hairSalesNet||0)), 1);
-    const maxClients = Math.max(...refPool.map(s => s.total||0), 1);
-    const maxBill    = Math.max(...refPool.map(s => s.avgBill||0), 1);
-    const maxNcr     = Math.max(...refPool.map(s => s.ncrPct||0), 0.1);
-    const scores = {
-      Revenue:    Math.round(revenue/(maxRev)*100),
-      'Avg Bill': Math.round((st.avgBill||0)/maxBill*100),
-      Clients:    Math.round((st.total||0)/maxClients*100),
-      'Rebook %': Math.min(Math.round((st.rebookPct||0)/100*100), 100),
-      'NCR %':    Math.min(Math.round((st.ncrPct||0)/maxNcr*100), 100),
-    };
-    const labels = Object.keys(scores);
-    const vals   = Object.values(scores);
-    const goals  = [
-      { label:'Net Revenue',   val:fmtAED(revenue),                goal: st.isBeauty?null:'AED 650/client', score:scores.Revenue       },
-      { label:'Avg Bill',      val:fmtAED(st.avgBill),             goal: st.isBeauty?'AED 200':'AED 650',   score:scores['Avg Bill']   },
-      { label:'Total Clients', val:(st.total||0).toLocaleString(), goal:'—',                                score:scores.Clients       },
-      { label:'Rebooking %',   val:fmtPct(st.rebookPct),          goal: st.isBeauty?'≥ 40%':'≥ 50%',       score:scores['Rebook %']   },
-      { label:'NCR %',         val:fmtPct(st.ncrPct||0),          goal:'≥ 20%',                            score:scores['NCR %']      },
-    ];
-    panel.innerHTML = `
-      <div style="width:100%;flex-shrink:0;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:8px">
-        <div style="font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);font-weight:700">Stylist / Beautician Performance</div>
-      </div>
-      <div style="width:100%;display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-shrink:0">
-        <div style="width:28px;height:28px;border-radius:50%;background:${accent};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#2D2E37;flex-shrink:0">${initials(st.name)}</div>
-        <div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--text);line-height:1">${escapeHtml(st.name)}</div>
-          <div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:1px">${st.branchName||''}${st.isBeauty?' · Beauty':' · Hair'}</div>
-        </div>
-      </div>
-      <div style="width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px;flex-shrink:0">
-        ${goals.slice(0,3).map(g=>`
-        <div style="background:var(--surface2);border-radius:6px;padding:5px 6px;border:1px solid var(--border);text-align:center">
-          <div style="font-size:8px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px">${g.label}</div>
-          <div style="font-size:11px;font-weight:700;color:var(--text)">${g.val}</div>
-          ${g.goal?`<div style="font-size:8px;color:var(--muted2);margin-top:1px">Goal: ${g.goal}</div>`:''}
-          <div style="font-size:8px;color:${accent};margin-top:1px">${g.score}/100</div>
-        </div>`).join('')}
-      </div>
-      <div style="width:100%;display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-bottom:8px;flex-shrink:0">
-        ${goals.slice(3).map(g=>`
-        <div style="background:var(--surface2);border-radius:6px;padding:5px 6px;border:1px solid var(--border);text-align:center">
-          <div style="font-size:8px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px">${g.label}</div>
-          <div style="font-size:11px;font-weight:700;color:var(--text)">${g.val}</div>
-          ${g.goal?`<div style="font-size:8px;color:var(--muted2);margin-top:1px">Goal: ${g.goal}</div>`:''}
-          <div style="font-size:8px;color:${accent};margin-top:1px">${g.score}/100</div>
-        </div>`).join('')}
-      </div>
-      <div style="position:relative;width:100%;height:200px;flex-shrink:0"><canvas id="glbRadarCanvas"></canvas></div>`;
-
-    if (teamCharts.radar) { try { teamCharts.radar.destroy(); } catch(e) {} teamCharts.radar = null; }
-    const ctx = document.getElementById('glbRadarCanvas').getContext('2d');
-    teamCharts.radar = new Chart(ctx, {
-      type: 'radar',
-      data: { labels, datasets:[{ label:st.name, data:vals, backgroundColor:accent+'33', borderColor:accent, borderWidth:2, pointBackgroundColor:accent, pointRadius:4 }] },
-      options: { responsive:true, maintainAspectRatio:false, animation:{duration:400},
-        scales:{ r:{ min:0, max:100, ticks:{display:false}, grid:{color:dark?'rgba(250,248,243,0.1)':'rgba(92,85,87,0.1)'}, angleLines:{color:dark?'rgba(250,248,243,0.1)':'rgba(92,85,87,0.1)'}, pointLabels:{color:tc,font:{family:'DM Sans',size:10}} }},
-        plugins:{ legend:{display:false}, tooltip:{...ttStyle,callbacks:{label:c=>` ${c.raw}/100`}} }
-      }
-    });
-  }
-
-  window.switchGlobalLeaderboard = function(team) {
-    glbTeam = team;
-    const activeStyle  = 'padding:10px 20px;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;background:var(--accent);color:var(--accent-fg);border:none;font-family:\'DM Sans\',sans-serif;font-weight:700;transition:.2s;white-space:nowrap';
-    const inactiveStyle= 'padding:10px 20px;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;background:transparent;color:var(--muted);border:none;font-family:\'DM Sans\',sans-serif;font-weight:500;transition:.2s;white-space:nowrap';
-    document.getElementById('glbTabHair').style.cssText   = team==='hair'  ? activeStyle : inactiveStyle;
-    document.getElementById('glbTabBeauty').style.cssText = team==='beauty'? activeStyle : inactiveStyle;
-    renderGlobalLeaderboard();
-  };
-  window.switchGlobalMetric = function(btn, metric) {
-    glbMetric = metric;
-    document.querySelectorAll('#glbMetricPills .f-pill').forEach(p => p.classList.toggle('active', p === btn));
-    renderGlobalLeaderboard();
-  };
-  renderGlobalLeaderboard();
-
-  // ── COMPARATOR ──
-  const cmpRadarCharts = {};
-
-  window.onCmpBranchChange = function(n) {
-    const branchSel = document.getElementById('cmpBranch' + n);
-    const nameSel   = document.getElementById('cmpName'   + n);
-    const tag       = document.getElementById('cmpSlotTag'+ n);
-    const code = branchSel.value;
-    nameSel.innerHTML = '<option value="">— Select stylist —</option>';
-    nameSel.disabled  = !code;
-    tag.textContent   = '';
-    if (!code) return;
-    (cmpBranchMap[code]||[]).forEach(st => {
-      const opt = document.createElement('option');
-      opt.value = st.name;
-      opt.textContent = st.name + (st.isBeauty?' (Beauty)':'');
-      opt.dataset.st  = JSON.stringify(st);
-      nameSel.appendChild(opt);
-    });
-    onCmpNameChange();
-  };
-
-  window.onCmpNameChange = function() {
-    for (let n = 1; n <= 3; n++) {
-      const tag     = document.getElementById('cmpSlotTag' + n);
-      const nameSel = document.getElementById('cmpName'    + n);
-      const selOpt  = nameSel.options[nameSel.selectedIndex];
-      if (selOpt && selOpt.dataset.st) {
-        try {
-          const st      = JSON.parse(selOpt.dataset.st);
-          const revenue = st.isBeauty ? (st.beautySales||0) : (st.hairSalesNet||0);
-          tag.innerHTML = `<span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${st.color||'#ccc'}"></span><span style="font-size:10px;color:var(--muted)">${st.isBeauty?'Beauty':'Hair'} · ${fmtAED(revenue)}</span></span>`;
-          buildSlotRadar(n, st);
-        } catch(e) { tag.textContent=''; clearSlotRadar(n); }
-      } else { tag.textContent=''; clearSlotRadar(n); }
-    }
-  };
-
-  function clearSlotRadar(n) {
-    if (cmpRadarCharts[n]) { try { cmpRadarCharts[n].destroy(); } catch(e) {} cmpRadarCharts[n]=null; }
-    const wrap = document.getElementById('cmpRadarWrap' + n);
-    if (wrap) wrap.innerHTML = `<div style="text-align:center;color:var(--muted2);font-size:11px;line-height:1.8;padding:16px"><div style="font-size:24px;margin-bottom:6px;opacity:0.4">◎</div>Select a stylist above<br>to view radar</div>`;
-  }
-
-  function buildSlotRadar(n, st) {
-    const accent  = st.color || '#C4B5FD';
-    const refPool = st.isBeauty ? allBeautyWithBranch : allHairWithBranch;
-    const maxRev     = Math.max(...refPool.map(s=>s.isBeauty?(s.beautySales||0):(s.hairSalesNet||0)),1);
-    const maxClients = Math.max(...refPool.map(s=>s.total||0),1);
-    const maxBill    = Math.max(...refPool.map(s=>s.avgBill||0),1);
-    const maxNcr     = Math.max(...refPool.map(s=>s.ncrPct||0),0.1);
-    const revenue = st.isBeauty ? (st.beautySales||0) : (st.hairSalesNet||0);
-    const scores  = {
-      Revenue:    Math.round(revenue/maxRev*100),
-      'Avg Bill': Math.round((st.avgBill||0)/maxBill*100),
-      Clients:    Math.round((st.total||0)/maxClients*100),
-      'Rebook %': Math.min(Math.round((st.rebookPct||0)/100*100),100),
-      'NCR %':    Math.min(Math.round((st.ncrPct||0)/maxNcr*100),100),
-    };
-    const labels = Object.keys(scores), vals = Object.values(scores);
-    const wrap = document.getElementById('cmpRadarWrap' + n);
-    wrap.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;padding:12px 14px 0;width:100%">
-        <div style="width:26px;height:26px;border-radius:50%;background:${accent};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0">${initials(st.name)}</div>
-        <div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600;color:var(--text);line-height:1">${escapeHtml(st.name)}</div>
-          <div style="font-size:9px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:1px">${st.isBeauty?'Beauty':'Hair'}</div>
-        </div>
-      </div>
-      <div style="position:relative;width:100%;height:200px;padding:0 8px;box-sizing:border-box"><canvas id="cmpRadarCanvas${n}"></canvas></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:0 12px 12px;width:100%;box-sizing:border-box">
-        ${[{label:'Revenue',val:fmtAED(revenue)},{label:'Avg Bill',val:fmtAED(st.avgBill)},{label:'Clients',val:(st.total||0).toLocaleString()},{label:'Rebook %',val:fmtPct(st.rebookPct)},{label:'NCR %',val:fmtPct(st.ncrPct||0)}]
-          .map(x=>`<div style="background:var(--surface);border-radius:6px;padding:5px 7px;border:1px solid var(--border)"><div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:1px">${x.label}</div><div style="font-size:11px;font-weight:700;color:var(--text)">${x.val}</div></div>`).join('')}
-      </div>`;
-    if (cmpRadarCharts[n]) { try { cmpRadarCharts[n].destroy(); } catch(e) {} }
-    const ctx = document.getElementById('cmpRadarCanvas' + n).getContext('2d');
-    cmpRadarCharts[n] = new Chart(ctx, {
-      type: 'radar',
-      data: { labels, datasets:[{label:st.name,data:vals,backgroundColor:accent+'33',borderColor:accent,borderWidth:2,pointBackgroundColor:accent,pointRadius:3}] },
-      options: { responsive:true, maintainAspectRatio:false, animation:{duration:400},
-        scales:{r:{min:0,max:100,ticks:{display:false},grid:{color:dark?'rgba(250,248,243,0.1)':'rgba(92,85,87,0.1)'},angleLines:{color:dark?'rgba(250,248,243,0.1)':'rgba(92,85,87,0.1)'},pointLabels:{color:tc,font:{family:'DM Sans',size:9}}}},
-        plugins:{legend:{display:false},tooltip:{...ttStyle,callbacks:{label:c=>` ${c.raw}/100`}}}
-      }
-    });
-  }
-
-  // ── TABLES ──
-  let hairSortT   = { col:'hairSalesNet', dir:'desc' };
-  let beautySortT = { col:'beautySales',  dir:'desc' };
-
-  function getStBranch(stName, isBeauty) {
-    const pool  = isBeauty ? allBeautyWithBranch : allHairWithBranch;
-    const found = pool.find(s => s.name === stName);
-    return found ? { name:found.branchName, color:found.branchColor } : { name:'—', color:'#ccc' };
-  }
-
-  function renderTeamHairTable() {
-    const sorted = [...d.hairStaff].sort((a,b) => hairSortT.dir==='asc' ? (a[hairSortT.col]||0)-(b[hairSortT.col]||0) : (b[hairSortT.col]||0)-(a[hairSortT.col]||0));
-
-    // Column order matches Kate's Staff Performance (Hair) spec, 2026-08-02.
-    const headerHTML = `
-      <colgroup><col style="width:30px"><col style="width:90px"><col style="width:130px"><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
-      <thead>
-        <tr style="background:var(--surface2)">
-          <th colspan="3" style="padding:6px 10px 4px;border-bottom:1px solid var(--border)"></th>
-          <th colspan="4" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#FFD4D9;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #FFD4D944">BENCHMARKS</th>
-          <th colspan="4" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#EEF3C7;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #EEF3C744">REVENUE</th>
-          <th colspan="4" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#C4B5FD;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #C4B5FD44">CLIENTS</th>
-          <th colspan="2" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#99F6E4;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #99F6E444">BREAKDOWN</th>
-          <th colspan="2" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid var(--border)">OPERATIONS</th>
-        </tr>
-        <tr>
-          <th style="width:30px">#</th>
-          <th>Branch</th>
-          <th class="sortable${hairSortT.col==='name'?' sort-'+hairSortT.dir:''}" onclick="sortTeamHair('name')">Stylist</th>
-          <th class="sortable${hairSortT.col==='rebookPct'?' sort-'+hairSortT.dir:''}"      onclick="sortTeamHair('rebookPct')" style="border-left:2px solid #FFD4D944">Rebooking %</th>
-          <th class="sortable${hairSortT.col==='treatmentPct'?' sort-'+hairSortT.dir:''}"   onclick="sortTeamHair('treatmentPct')">Treatment %</th>
-          <th class="sortable${hairSortT.col==='retailPct'?' sort-'+hairSortT.dir:''}"      onclick="sortTeamHair('retailPct')">Retail %</th>
-          <th class="sortable${hairSortT.col==='avgBill'?' sort-'+hairSortT.dir:''}"        onclick="sortTeamHair('avgBill')">Avg Bill (AED)</th>
-          <th class="sortable${hairSortT.col==='hairServicesExcl'?' sort-'+hairSortT.dir:''}" onclick="sortTeamHair('hairServicesExcl')" style="border-left:2px solid #EEF3C744">Hair Services (excl. treatments)</th>
-          <th class="sortable${hairSortT.col==='treatments'?' sort-'+hairSortT.dir:''}"     onclick="sortTeamHair('treatments')">Treatments Revenue <span style="font-size:8px;font-weight:700;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:0px 4px">LEDGER</span></th>
-          <th class="sortable${hairSortT.col==='retail'?' sort-'+hairSortT.dir:''}"         onclick="sortTeamHair('retail')">Retail Revenue</th>
-          <th class="sortable${hairSortT.col==='netSalonTake'?' sort-'+hairSortT.dir:''}"   onclick="sortTeamHair('netSalonTake')">Net Salon Take</th>
-          <th class="sortable${hairSortT.col==='rebooked'?' sort-'+hairSortT.dir:''}"       onclick="sortTeamHair('rebooked')" style="border-left:2px solid #C4B5FD44">Rebooked Clients</th>
-          <th class="sortable${hairSortT.col==='total'?' sort-'+hairSortT.dir:''}"          onclick="sortTeamHair('total')">Total Clients</th>
-          <th class="sortable${hairSortT.col==='newC'?' sort-'+hairSortT.dir:''}"           onclick="sortTeamHair('newC')">New Clients</th>
-          <th class="sortable${hairSortT.col==='newClientReq'?' sort-'+hairSortT.dir:''}"   onclick="sortTeamHair('newClientReq')">NCR</th>
-          <th class="sortable${hairSortT.col==='salon'?' sort-'+hairSortT.dir:''}"          onclick="sortTeamHair('salon')" style="border-left:2px solid #99F6E444">Salon Client</th>
-          <th class="sortable${hairSortT.col==='req'?' sort-'+hairSortT.dir:''}"            onclick="sortTeamHair('req')">Request Client</th>
-          <th style="border-left:2px solid var(--border)">Utilisation (Hours)</th>
-          <th>Utilisation %</th>
-        </tr>
-      </thead>`;
-
-    const rows = sorted.map((st,i) => {
-      const br = getStBranch(st.name, false);
-      return `<tr>
-        <td style="color:var(--muted2);font-size:11px">${i+1}</td>
-        <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${br.color};flex-shrink:0"></span><span style="font-size:11px;color:var(--muted);white-space:nowrap">${br.name}</span></span></td>
-        <td><span style="display:flex;align-items:center;gap:7px"><span style="width:22px;height:22px;border-radius:50%;background:${st.color};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0">${initials(st.name)}</span><span style="font-size:12px;font-weight:600;color:var(--text)">${escapeHtml(st.name)}</span></span></td>
-        <td style="border-left:2px solid #FFD4D922"><span class="badge ${sc(st.rebookPct,TARGETS.rebookPct)}">${fmtPct(st.rebookPct)}</span></td>
-        <td><span class="badge ${sc(st.treatmentPct,TARGETS.treatmentPct)}">${fmtPct(st.treatmentPct)}</span></td>
-        <td><span class="badge ${sc(st.retailPct,TARGETS.retailPct)}">${fmtPct(st.retailPct)}</span></td>
-        <td><span class="badge ${sc(st.avgBill,TARGETS.hairAvgBill)}">${fmtAED(st.avgBill)}</span></td>
-        <td style="border-left:2px solid #EEF3C722">${fmtAED(st.hairServicesExcl)}</td>
-        <td>${fmtAED(st.treatments)}</td>
-        <td>${fmtAED(st.retail)}</td>
-        <td>${fmtAED(st.netSalonTake)}</td>
-        <td style="border-left:2px solid #C4B5FD22">${st.rebooked||0}</td>
-        <td>${st.total||0}</td>
-        <td>${st.newC||0}</td>
-        <td><span class="badge ${sc(st.ncrPct||0,20)}">${fmtPct(st.ncrPct||0)}</span></td>
-        <td style="border-left:2px solid #99F6E422">${st.salon||0}</td>
-        <td>${st.req||0}</td>
-        <td style="border-left:2px solid var(--border2);color:var(--muted)">—</td>
-        <td style="color:var(--muted)">—</td>
-      </tr>`;
-    }).join('');
-    document.getElementById('tTabHair').innerHTML = `<table style="min-width:1350px">${headerHTML}<tbody>${rows}</tbody></table>`;
-  }
-
-  function renderTeamBeautyTable() {
-    const sorted = [...d.beautyStaff].sort((a,b) => beautySortT.dir==='asc' ? (a[beautySortT.col]||0)-(b[beautySortT.col]||0) : (b[beautySortT.col]||0)-(a[beautySortT.col]||0));
-    // Column order matches Kate's Staff Performance (Beauty) spec, 2026-08-02.
-    const headerHTML = `
-      <colgroup><col style="width:30px"><col style="width:90px"><col style="width:130px"><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
-      <thead>
-        <tr style="background:var(--surface2)">
-          <th colspan="3" style="padding:6px 10px 4px;border-bottom:1px solid var(--border)"></th>
-          <th colspan="3" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#FFD4D9;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #FFD4D944">BENCHMARKS</th>
-          <th colspan="3" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#EEF3C7;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #EEF3C744">REVENUE</th>
-          <th colspan="4" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#C4B5FD;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #C4B5FD44">CLIENTS</th>
-          <th colspan="2" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#99F6E4;font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid #99F6E444">BREAKDOWN</th>
-          <th colspan="2" style="padding:6px 10px 4px;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);font-weight:700;border-bottom:1px solid var(--border);border-left:2px solid var(--border)">OPERATIONS</th>
-        </tr>
-        <tr>
-          <th style="width:30px">#</th><th>Branch</th>
-          <th class="sortable${beautySortT.col==='name'?' sort-'+beautySortT.dir:''}" onclick="sortTeamBeauty('name')">Therapist</th>
-          <th class="sortable${beautySortT.col==='rebookPct'?' sort-'+beautySortT.dir:''}" onclick="sortTeamBeauty('rebookPct')" style="border-left:2px solid #FFD4D944">Rebooking %</th>
-          <th class="sortable${beautySortT.col==='retailPct'?' sort-'+beautySortT.dir:''}"  onclick="sortTeamBeauty('retailPct')">Retail %</th>
-          <th class="sortable${beautySortT.col==='avgBill'?' sort-'+beautySortT.dir:''}"    onclick="sortTeamBeauty('avgBill')">Avg Bill (AED)</th>
-          <th class="sortable${beautySortT.col==='beautySales'?' sort-'+beautySortT.dir:''}" onclick="sortTeamBeauty('beautySales')" style="border-left:2px solid #EEF3C744">Services Revenue</th>
-          <th class="sortable${beautySortT.col==='retail'?' sort-'+beautySortT.dir:''}"      onclick="sortTeamBeauty('retail')">Retail Revenue</th>
-          <th class="sortable${beautySortT.col==='netSalonTake'?' sort-'+beautySortT.dir:''}" onclick="sortTeamBeauty('netSalonTake')">Total Net Take</th>
-          <th class="sortable${beautySortT.col==='rebooked'?' sort-'+beautySortT.dir:''}"    onclick="sortTeamBeauty('rebooked')" style="border-left:2px solid #C4B5FD44">Rebooked Clients</th>
-          <th class="sortable${beautySortT.col==='total'?' sort-'+beautySortT.dir:''}"       onclick="sortTeamBeauty('total')">Total Clients</th>
-          <th class="sortable${beautySortT.col==='newC'?' sort-'+beautySortT.dir:''}"        onclick="sortTeamBeauty('newC')">New Clients</th>
-          <th class="sortable${beautySortT.col==='newClientReq'?' sort-'+beautySortT.dir:''}" onclick="sortTeamBeauty('newClientReq')">NCR</th>
-          <th class="sortable${beautySortT.col==='salon'?' sort-'+beautySortT.dir:''}"       onclick="sortTeamBeauty('salon')" style="border-left:2px solid #99F6E444">Salon Client</th>
-          <th class="sortable${beautySortT.col==='req'?' sort-'+beautySortT.dir:''}"         onclick="sortTeamBeauty('req')">Request Client</th>
-          <th style="border-left:2px solid var(--border)">Utilisation (Hours)</th>
-          <th>Utilisation %</th>
-        </tr>
-      </thead>`;
-    const rows = sorted.map((st,i) => {
-      const br = getStBranch(st.name, true);
-      return `<tr>
-        <td style="color:var(--muted2);font-size:11px">${i+1}</td>
-        <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${br.color};flex-shrink:0"></span><span style="font-size:11px;color:var(--muted);white-space:nowrap">${br.name}</span></span></td>
-        <td><span style="display:flex;align-items:center;gap:7px"><span style="width:22px;height:22px;border-radius:50%;background:${st.color};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0">${initials(st.name)}</span><span style="font-size:12px;font-weight:600;color:var(--text)">${escapeHtml(st.name)}</span></span></td>
-        <td style="border-left:2px solid #FFD4D922"><span class="badge ${sc(st.rebookPct,TARGETS.rebookPct)}">${fmtPct(st.rebookPct)}</span></td>
-        <td><span class="badge ${sc(st.retailPct,TARGETS.retailPct)}">${fmtPct(st.retailPct)}</span></td>
-        <td><span class="badge ${sc(st.avgBill,TARGETS.beautyAvgBill)}">${fmtAED(st.avgBill)}</span></td>
-        <td style="border-left:2px solid #EEF3C722">${fmtAED(st.beautySales)}</td>
-        <td>${fmtAED(st.retail)}</td>
-        <td>${fmtAED(st.netSalonTake)}</td>
-        <td style="border-left:2px solid #C4B5FD22">${st.rebooked||0}</td>
-        <td>${st.total||0}</td>
-        <td>${st.newC||0}</td>
-        <td><span class="badge ${sc(st.ncrPct||0,20)}">${fmtPct(st.ncrPct||0)}</span></td>
-        <td style="border-left:2px solid #99F6E422">${st.salon||0}</td>
-        <td>${st.req||0}</td>
-        <td style="border-left:2px solid var(--border2);color:var(--muted)">—</td>
-        <td style="color:var(--muted)">—</td>
-      </tr>`;
-    }).join('');
-    document.getElementById('tTabBeauty').innerHTML = `<table style="min-width:1250px">${headerHTML}<tbody>${rows}</tbody></table>`;
-  }
-
-  window.sortTeamHair = function(col) {
-    hairSortT.dir = hairSortT.col === col ? (hairSortT.dir==='asc'?'desc':'asc') : 'desc';
-    hairSortT.col = col;
-    renderTeamHairTable();
-  };
-
-  window.sortTeamBeauty = function(col) {
-    beautySortT.dir = beautySortT.col === col ? (beautySortT.dir==='asc'?'desc':'asc') : 'desc';
-    beautySortT.col = col;
-    renderTeamBeautyTable();
-  };
-
-  window.switchTeamTab = function(el, tab) {
-    document.querySelectorAll('#teamContent .tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('tTabHair').style.display   = tab==='hair'   ? '' : 'none';
-    document.getElementById('tTabBeauty').style.display = tab==='beauty' ? '' : 'none';
-  };
-
-  renderTeamHairTable();
-  renderTeamBeautyTable();
-}
+// ── TEAM PERFORMANCE ─────────────────────────────
+// Lives in team-performance.js now — podium, floor, compare tray. It is a page of
+// its own with its own state, the same way Branch Performance and the Ledgers
+// moved out into branch-ledger.js. renderTeam() is still the entry point, so
+// every caller in this file and showView() are unchanged.
 
 let allDailyData = [];
 
@@ -3859,23 +3121,48 @@ async function _loadSvcYears() {
 
 // ── SERVICES VIEW ────────────────────────────────────────────
 
-function initSvcView() {
-  if (!svcDropsReady) {
-    _buildBranchDrop('svc-branch', svcSel, onSvcFiltersChange);
-    _buildBranchDrop('cli-branch', cliSel, onCliFiltersChange);
-    svcDropsReady = true;
-    _loadSvcYears();
+// ── THE SHARED WINDOW ────────────────────────────────────────
+// Kate, 2026-08-14: Service Rankings and Top Clients used to carry their own
+// branch dropdown and their own From/To inputs, so the dashboard had three
+// independent notions of "the current period" and nothing kept them in step —
+// you could read August on the Pulse and January here without a single hint that
+// the window had changed under you. Both pages now read the masthead's filters,
+// the same as every other page, and their private controls are gone from the DOM.
+//
+// The Year dropdown stays, because it is not a duplicate: the service RPCs take
+// p_year as well as a range, and with no date range set it is the only thing
+// saying which year to load. When a range IS set, the year is derived from it and
+// the dropdown steps aside.
+const _iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+function _svcWindow() {
+  const branches = (!sel.branch || sel.branch.includes('all')) ? ACTIVE_BRANCHES.slice() : sel.branch.slice();
+  if (dateFrom && dateTo) {
+    return { year: dateFrom.getFullYear(), from: _iso(dateFrom), to: _iso(dateTo), branches, ranged: true };
   }
+  const el = document.getElementById('svc-year');
+  const year = parseInt((el && el.value) || String(new Date().getFullYear()), 10);
+  return { year, from: `${year}-01-01`, to: `${year}-12-31`, branches, ranged: false };
+}
+
+// The Year row only earns its place when no date range is driving the page.
+function _syncSvcYearRow() {
+  const ranged = !!(dateFrom && dateTo);
+  ['svc-controls','cli-controls'].forEach(id => {
+    const row = document.getElementById(id);
+    if (row) row.classList.toggle('yr-idle', ranged);
+  });
+}
+
+function initSvcView() {
+  if (!svcDropsReady) { svcDropsReady = true; _loadSvcYears(); }
+  _syncSvcYearRow();
   loadAndRenderServices();
 }
 
 function initCliView() {
-  if (!svcDropsReady) {
-    _buildBranchDrop('svc-branch', svcSel, onSvcFiltersChange);
-    _buildBranchDrop('cli-branch', cliSel, onCliFiltersChange);
-    svcDropsReady = true;
-    _loadSvcYears();
-  }
+  if (!svcDropsReady) { svcDropsReady = true; _loadSvcYears(); }
+  _syncSvcYearRow();
   loadAndRenderClients();
 }
 
@@ -3886,18 +3173,32 @@ function setSvcViewMode(mode) {
   loadAndRenderServices();
 }
 
-function onSvcFiltersChange() { loadAndRenderServices(); }
-function onCliFiltersChange() { loadAndRenderClients(); }
+function onSvcFiltersChange() { _syncSvcYearRow(); loadAndRenderServices(); }
+function onCliFiltersChange() { _syncSvcYearRow(); loadAndRenderClients(); }
+
+// These two pages used to default to their own Jan–May window, which happened to
+// be where the service uploads are. They follow the masthead now, so landing on a
+// month with no Service Performance upload is the common case rather than the odd
+// one — and "No data for selected filters" reads as a broken page. Say which
+// window came up empty, and that this feed is uploaded separately from the ledger.
+function _svcEmpty(what) {
+  const w = _svcWindow();
+  return `<div class="empty">
+    <div style="font-weight:600;margin-bottom:6px">No ${what} for ${w.from} – ${w.to}</div>
+    <div style="font-size:12px;opacity:.75;max-width:52ch;margin:0 auto;line-height:1.55">
+      This page reads the Service Performance upload, which is a separate feed from the
+      daily ledger and does not always run to the current month. Widen the period in the
+      header, or upload a newer Service Performance file.
+    </div>
+  </div>`;
+}
 
 async function loadAndRenderServices() {
   const content = document.getElementById('svc-content');
   if (!content) return;
   content.innerHTML = '<div class="loading">Loading...</div>';
 
-  const year  = parseInt(document.getElementById('svc-year')?.value || '2026');
-  const pFrom = document.getElementById('svc-date-from')?.value || `${year}-01-01`;
-  const pTo   = document.getElementById('svc-date-to')?.value   || `${year}-12-31`;
-  const branches = svcSel.branch[0] === 'all' ? ['KCA','SAA','MC','AQ'] : [...svcSel.branch];
+  const { year, from: pFrom, to: pTo, branches } = _svcWindow();
 
   try {
     if (svcViewMode === 'combined') {
@@ -3907,7 +3208,7 @@ async function loadAndRenderServices() {
       if (error) throw error;
       _renderSvcCombined(data || [], branches, year, pFrom, pTo);
     } else {
-      const targetBranches = svcSel.branch[0] === 'all' ? ['KCA','SAA','MC','AQ'] : [...svcSel.branch];
+      const targetBranches = branches;
       const results = await Promise.all(targetBranches.map(async b => {
         const { data } = await sb.rpc('get_top_services', {
           p_year: year, p_branches: [b], p_from: pFrom, p_to: pTo, p_limit: 10
@@ -3918,7 +3219,7 @@ async function loadAndRenderServices() {
     }
   } catch(e) {
     console.error(e);
-    content.innerHTML = '<div class="empty">No service data found. Upload a Service Performance file first.</div>';
+    content.innerHTML = _svcEmpty('service data');
   }
 }
 
@@ -3930,7 +3231,7 @@ function _rankCls(i) { return i===0?'gold':i===1?'silver':i===2?'bronze':''; }
 
 function _renderSvcCombined(rows, branches, year, pFrom, pTo) {
   const content = document.getElementById('svc-content');
-  if (!rows.length) { content.innerHTML = '<div class="empty">No data for selected filters.</div>'; return; }
+  if (!rows.length) { content.innerHTML = _svcEmpty('data'); return; }
   const totalRev = rows.reduce((s,r) => s + parseFloat(r.total_revenue||0), 0);
   const branchLabel = branches.length === 4 ? 'All Branches' : branches.map(b => BRANCH_INFO[b]?.name||b).join(' · ');
 
@@ -4033,10 +3334,7 @@ async function loadAndRenderClients() {
   if (!content) return;
   content.innerHTML = '<div class="loading">Loading...</div>';
 
-  const year  = parseInt(document.getElementById('cli-year')?.value || '2026');
-  const pFrom = document.getElementById('cli-date-from')?.value || `${year}-01-01`;
-  const pTo   = document.getElementById('cli-date-to')?.value   || `${year}-12-31`;
-  const branches = cliSel.branch[0] === 'all' ? ['KCA','SAA','MC','AQ'] : [...cliSel.branch];
+  const { year, from: pFrom, to: pTo, branches } = _svcWindow();
 
   try {
     const { data, error } = await sb.rpc('get_top_clients', {
@@ -4046,13 +3344,13 @@ async function loadAndRenderClients() {
     _renderClients(data || [], branches, year, pFrom, pTo);
   } catch(e) {
     console.error(e);
-    content.innerHTML = '<div class="empty">No client data found. Upload a Service Performance file first.</div>';
+    content.innerHTML = _svcEmpty('client data');
   }
 }
 
 function _renderClients(rows, branches, year, pFrom, pTo) {
   const content = document.getElementById('cli-content');
-  if (!rows.length) { content.innerHTML = '<div class="empty">No data for selected filters.</div>'; return; }
+  if (!rows.length) { content.innerHTML = _svcEmpty('data'); return; }
 
   const totalRev = rows.reduce((s,r) => s + parseFloat(r.total_revenue||0), 0);
   const branchLabel = branches.length === 4 ? 'All Branches' : branches.map(b => BRANCH_INFO[b]?.name||b).join(' · ');
