@@ -15,11 +15,10 @@
 //           from STAFF_SURNAMES at the foot of this file, so the dashboard holds one
 //           list of surnames and not two that drift apart. Kate, 2026-08-14: the
 //           cards show it after the first name, set differently, so "KATE" reads as
-//           a name and not a label. CHALANI has none: she is not in the Phorest TSV
-//           that map comes from, so hers is genuinely unknown rather than forgotten,
-//           and inventing one off her Instagram handle would put a made-up surname on
-//           a real colleague. She renders on her first name alone, which the
-//           optional-field rule below already allows for.
+//           a name and not a label. A stylist Phorest has no surname for renders on
+//           her first name alone, which the optional-field rule below already allows
+//           for — inventing one off an Instagram handle would put a made-up surname
+//           on a real colleague.
 //   photo   filename in assets/staff/. A transparent PNG of the stylist over her
 //           card's accent block, head breaking out above it. See the README there.
 //   role    Style Director | Senior Stylist | Stylist | Junior Stylist
@@ -86,9 +85,15 @@ const STAFF_PROFILES = {
 // standalone Stylist page, which does not load this file. If a surname changes,
 // both need it.
 //
-// Missing on purpose rather than forgotten: CHALANI, ARNI, IVY and "Lhang Ann" are
-// not in that TSV. They render on the first name alone — a made-up surname on a real
-// colleague is worse than none.
+// Kate, 14 Aug 2026 — CHALANI and IVY are filled in now, read off the Staff
+// Performance Overview upload rather than the TSV: "Chalani Kaushallya" (first seen
+// 30 Jul 2026, i.e. after the TSV was taken) and "Ivy Sierra". Phorest is the payroll
+// system, so its spelling is the authority.
+//
+// Still missing on purpose rather than forgotten: "Lhang Ann" carries a literal "."
+// where her surname belongs in Phorest, so hers is genuinely blank at source. She
+// renders on the first name alone — a made-up surname on a real colleague is worse
+// than none.
 const STAFF_SURNAMES = {
   'ALAN':      'Russell',
   'APRIL':     'Miraflor',
@@ -96,6 +101,7 @@ const STAFF_SURNAMES = {
   'ARNALYN':   'Salisi',
   'ASHLEIGH':  'Fairgrieve',
   'BETHANY':   'Smith',
+  'CHALANI':   'Kaushallya',
   'CLARISSA':  'Destacamento',
   'CHONA':     'Manlapaz',
   'DAISY':     'Cropper',
@@ -112,6 +118,7 @@ const STAFF_SURNAMES = {
   'HOLLY':     'Branchett',
   'IBRAHIM':   'Al Mofdi',
   'IRLYN':     'Padilla',
+  'IVY':       'Sierra',
   'JEIDA':     'Rachmanova',
   'JUDY':      'Barias',
   'KATE':      'Siryk',

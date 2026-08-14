@@ -12,12 +12,16 @@ const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aWp4ZW5hZm9vd2FqcWt0cXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTA1OTksImV4cCI6MjA5MTI4NjU5OX0.GL3YXupXOBGfN4FCyelbQWraUw12VJNJu-wUB3zR7Zw';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-// Map first name → surname (from Phorest TSV 31 May 2026)
+// Map first name → surname (from Phorest TSV 31 May 2026, plus later joiners read off
+// the Staff Performance Overview upload — Chalani and Ivy were not yet in the TSV).
+// staff-profiles.js carries the UPPER CASE copy of this for the main dashboard; a
+// surname change needs both.
 const STYLIST_SURNAMES = {
   "Alan":      "Russell",
   "April":     "Miraflor",
   "Ashleigh":  "Fairgrieve",
   "Bethany":   "Smith",
+  "Chalani":   "Kaushallya",
   "Danika":    "Ogrady",
   "Eds":       "Asuncion",
   "Elise":     "Ford",
@@ -26,6 +30,7 @@ const STYLIST_SURNAMES = {
   "Holly":     "Branchett",
   "Ibrahim":   "Al Mofdi",
   "Irlyn":     "Padilla",
+  "Ivy":       "Sierra",
   "Jeida":     "Rachmanova",
   "Kate":      "Siryk",
   "Katie":     "Sanchez",

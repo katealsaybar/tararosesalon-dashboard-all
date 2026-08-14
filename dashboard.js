@@ -1139,16 +1139,16 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
   const hasLedgerData = branchStaffRows && branchStaffRows.length;
   if (!hasLedgerData && (!dailyRows || !dailyRows.length)) return null;
 
-  let hairMap = {}, beautyMap = {};
+  let hairMap = {}, beautyMap = {}, branchTotals = null;
   if (hasLedgerData) {
-    ({ hairMap, beautyMap } = buildLedgerPhorestStaffMaps(branchStaffRows, phorestStaffRows || []));
+    ({ hairMap, beautyMap, branchTotals } = buildLedgerPhorestStaffMaps(branchStaffRows, phorestStaffRows || []));
   }
 
   // branch_staff_daily/phorest_staff_daily sync daily and are the source of truth once
   // present; daily_data is the older manual-XLSX-upload table (Kate confirmed it lags —
   // last touched 31 May while the auto-synced tables run through today) and is now only
   // a fallback for date ranges that predate the auto sync.
-  const s = hasLedgerData ? computeGroupSummaryFromMaps(hairMap, beautyMap) : computeGroupSummaryFromDailyData(dailyRows);
+  const s = hasLedgerData ? computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) : computeGroupSummaryFromDailyData(dailyRows);
 
   const { hairStaff, beautyStaff } = buildStaffArraysFromMaps(hairMap, beautyMap);
   return { summary: s, hairStaff, beautyStaff };
@@ -1213,7 +1213,10 @@ function computeGroupSummaryFromDailyData(dailyRows) {
 // the same branch_staff_daily (dept + client counts + ledger treatment_aed) + Phorest
 // (services/courses/retail) join used for the Staff Performance tables — see
 // buildLedgerPhorestStaffMaps for the name-reconciliation and revenue-mapping rationale.
-function computeGroupSummaryFromMaps(hairMap, beautyMap) {
+//
+// `branchTotals` is Phorest's own per-branch TOTAL line for the same window, and the
+// RETAIL note below is why it has to be here.
+function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) {
   const sum = (map, field) => Object.values(map).reduce((a, st) => a + (Number(st[field]) || 0), 0);
 
   const hairTotalClients = sum(hairMap, 'total');
@@ -1224,7 +1227,7 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap) {
   const hairSalon        = sum(hairMap, 'salon');
   const hairServicesIncl = sum(hairMap, 'hairSalesNet'); // services + courses, ex-retail
   const hairTreatments   = sum(hairMap, 'treatments');   // ledger treatment_aed
-  const hairRetailOnly   = sum(hairMap, 'retail');
+  const hairRetailStaff  = sum(hairMap, 'retail');       // attributed to a named stylist
 
   const beautyTotalClients = sum(beautyMap, 'total');
   const beautyNewClients   = sum(beautyMap, 'newC');
@@ -1242,7 +1245,38 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap) {
   const salonClient   = hairSalon + beautySalon;
   const requestClient = hairReq + beautyReq;
   const servicesTotal = hairServicesIncl + beautyServices;
-  const retailTotal   = hairRetailOnly + beautyRetailOnly;
+
+  // ── RETAIL READS PHOREST'S BRANCH TOTAL, NOT THE SUM OF THE STAFF ROWS ──────
+  // Kate, 14 Aug 2026. A large share of retail is rung with no stylist against it —
+  // Phorest books it to a house account that lands in this report as "BUSINESS TRS",
+  // and LEDGER_NON_PERSON_NAMES above (rightly) keeps that out of the staff maps
+  // because it is not a person. The consequence was that every retail figure on these
+  // pages was only the part a named stylist happened to be credited with:
+  //
+  //   July 2026, attributed vs Phorest's own branch total (ex VAT)
+  //     Motor City    3,480 of 12,663   — 72% of the branch's retail missing
+  //     Al Quoz      10,862 of 16,206   — 33%
+  //     Saadiyat     23,699 of 31,953   — 26%
+  //     Khalifa City 21,157 of 24,988   — 15%
+  //
+  // Emma was coaching a 20,000 retail target against a figure that could not reach it.
+  // So the branch-level rows read Phorest's TOTAL line and the unattributed remainder
+  // is carried on Hair Retail, where the product actually sits — retail is a hair-side
+  // line in the sheet, and beauty keeps only what a therapist was credited with.
+  //
+  // The per-stylist tables are deliberately NOT topped up: no stylist earned that
+  // retail, so inventing a credit would break every stylist-vs-target row. A stylist
+  // table's retail column will therefore total less than the branch's Retail Total.
+  // That gap IS the unattributed retail, and it is kept on s.retailUnattributed.
+  const attributedRetail = hairRetailStaff + beautyRetailOnly;
+  const phorestRetail    = (branchTotals && branchTotals.days) ? branchTotals.products : null;
+  // Only ever revises retail UP. A branch total below the attributed sum would mean a
+  // missing or half-uploaded TOTAL line, and silently shrinking real stylist retail to
+  // match a broken upload is the worse failure.
+  const retailTotal        = (phorestRetail != null && phorestRetail > attributedRetail) ? phorestRetail : attributedRetail;
+  const retailUnattributed = retailTotal - attributedRetail;
+  const hairRetailOnly     = hairRetailStaff + retailUnattributed;
+
   const netTake       = servicesTotal + retailTotal;
 
   const s = { _fromDaily: false };
@@ -1279,6 +1313,11 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap) {
   // New fields for Kate's full Revenue Targets spec (2026-08-02).
   s.servicesTotal        = servicesTotal;
   s.retailTotal          = retailTotal;
+  // Retail nobody was credited with — the gap between the branch's Retail Total and
+  // what the stylist tables add up to. Kept so a page can explain that gap rather than
+  // leave it looking like two figures disagreeing.
+  s.retailAttributed     = attributedRetail;
+  s.retailUnattributed   = retailUnattributed;
   s.hairServicesIncl     = hairServicesIncl;
   s.hairServicesExcl     = hairServicesIncl - hairTreatments;
   s.beautyServicesTotal  = beautyServices;
@@ -1313,9 +1352,21 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap) {
 // Hair or Beauty.
 //
 // Per CALCULATIONS OF KPIS.docx + Kate 2026-08-02: hairSalesNet ("Hair services, incl.
-// treatments and courses") = Phorest services_total + courses_total; treatments (a
-// subset of that figure, shown separately) = the ledger's treatment_aed; retail
-// (products_total) is tracked as its own category, never folded into hairSalesNet.
+// treatments and courses") = Phorest services + courses; treatments (a subset of that
+// figure, shown separately) = the ledger's treatment_aed; retail is tracked as its own
+// category, never folded into hairSalesNet.
+//
+// ── EVERY MONEY FIGURE HERE IS EX VAT ────────────────────────────────────────
+// Kate, 14 Aug 2026: "lahat ex VAT". This join used to read Phorest's VAT-INCLUSIVE
+// columns (services_total / courses_total / products_total) while the Monday Target
+// Sheet it is measured against is written VAT-exclusive — its own column is literally
+// "HAIR SALES TAKE VAT EXCLUSIVE". So every revenue row compared an actual inflated by
+// 5% against an ex-VAT target, and Treatment % read low because the ledger's
+// treatment_aed numerator was already ex VAT while the services denominator was not.
+// Read the *_ex_vat columns and the two sides finally speak the same language.
+//
+// Phorest gives both columns per row, so this is a column swap, not arithmetic — no
+// dividing by 1.05 anywhere. Do not "fix" a figure here by grossing it back up.
 const PHOREST_RECONCILE_ALIASES = { 'LUCY': 'LUCIA', 'MJ': 'MARY JOY' };
 
 // Non-person rows found in branch_staff_daily (2026-08-02 audit, ~2.8k of ~15k rows) —
@@ -1352,14 +1403,24 @@ function ledgerNameKey(name) {
 
 function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
   const phorestByBranchDate = {};
+  // Phorest's own per-branch TOTAL line, summed over the window. Kept rather than
+  // skipped, because it is the only figure that counts retail rung with no stylist
+  // against it — see the RETAIL note in computeGroupSummaryFromMaps.
+  const branchTotals = { services: 0, courses: 0, products: 0, days: 0 };
   (phorestRows || []).forEach(r => {
-    if (r.is_total) return;
+    if (r.is_total) {
+      branchTotals.services += Number(r.services_ex_vat) || 0;
+      branchTotals.courses  += Number(r.courses_ex_vat)  || 0;
+      branchTotals.products += Number(r.products_ex_vat) || 0;
+      branchTotals.days++;
+      return;
+    }
     const bdKey = r.branch + '|' + r.date;
     (phorestByBranchDate[bdKey] = phorestByBranchDate[bdKey] || []).push({
       key: cleanPhorestName(r.employee_name),
-      services_total: Number(r.services_total) || 0,
-      courses_total:  Number(r.courses_total)  || 0,
-      products_total: Number(r.products_total) || 0,
+      services: Number(r.services_ex_vat) || 0,
+      courses:  Number(r.courses_ex_vat)  || 0,
+      products: Number(r.products_ex_vat) || 0,
     });
   });
 
@@ -1370,10 +1431,10 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
     const matches = list.filter(p => p.key === key || p.key.indexOf(key + ' ') === 0);
     if (!matches.length) return null;
     return matches.reduce((acc, m) => ({
-      services_total: acc.services_total + m.services_total,
-      courses_total:  acc.courses_total  + m.courses_total,
-      products_total: acc.products_total + m.products_total,
-    }), { services_total: 0, courses_total: 0, products_total: 0 });
+      services: acc.services + m.services,
+      courses:  acc.courses  + m.courses,
+      products: acc.products + m.products,
+    }), { services: 0, courses: 0, products: 0 });
   }
 
   const hairMap = {}, beautyMap = {};
@@ -1387,7 +1448,7 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
     const rawUp = String(r.staff_name||'').trim().toUpperCase();
     if (LEDGER_NON_PERSON_NAMES.has(rawUp) || LEDGER_ASSISTANT_NAMES.has(rawUp)) return;
     const isBeauty = String(r.dept || '').trim().toLowerCase() === 'beauty';
-    const rev = matchRevenue(r.branch, r.date, r.staff_name) || { services_total: 0, courses_total: 0, products_total: 0 };
+    const rev = matchRevenue(r.branch, r.date, r.staff_name) || { services: 0, courses: 0, products: 0 };
     const map = isBeauty ? beautyMap : hairMap;
     if (!map[name]) {
       map[name] = {
@@ -1411,18 +1472,18 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
     // Services + Courses = "incl. treatments and courses" per the KPI doctrine; Treatment
     // AED is NOT derivable from Phorest's own totals (it's a manually-tallied ledger column,
     // Hair only — Phorest's report has no per-service-type breakdown to split it out from
-    // Services). Retail (products_total) stays outside the services figure entirely.
+    // Services). Retail stays outside the services figure entirely.
     if (isBeauty) {
-      st.beautySales += rev.services_total + rev.courses_total;
-      st.retail      += rev.products_total;
+      st.beautySales += rev.services + rev.courses;
+      st.retail      += rev.products;
     } else {
-      st.hairSalesNet += rev.services_total + rev.courses_total;
-      st.retail       += rev.products_total;
+      st.hairSalesNet += rev.services + rev.courses;
+      st.retail       += rev.products;
       st.treatments   += Number(r.treatment_aed) || 0;
     }
   });
 
-  return { hairMap, beautyMap };
+  return { hairMap, beautyMap, branchTotals };
 }
 
 // Shared by aggData (weekly_data staff blobs) and aggDailyData (ledger+Phorest join) —
