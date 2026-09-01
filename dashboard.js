@@ -3343,22 +3343,27 @@ function _svcAggNote(rows) {
   return `Top Services report upload${pf && pt ? ` · covers ${pf} – ${pt}` : ''} — this feed is a whole-period export and does not follow the date range`;
 }
 
+function _svcLimit() {
+  return parseInt(document.getElementById('svc-rows')?.value, 10) || 10;
+}
+
 async function loadAndRenderServices() {
   const content = document.getElementById('svc-content');
   if (!content) return;
   content.innerHTML = '<div class="loading">Loading...</div>';
 
   const { year, from: pFrom, to: pTo, branches } = _svcWindow();
+  const limit = _svcLimit();
 
   try {
     if (svcViewMode === 'combined') {
       const { data, error } = await sb.rpc('get_top_services', {
-        p_year: year, p_branches: branches, p_from: pFrom, p_to: pTo, p_limit: 10
+        p_year: year, p_branches: branches, p_from: pFrom, p_to: pTo, p_limit: limit
       });
       if (error) throw error;
       let rows = data || [], note = null;
       if (!rows.length) {
-        const { data: agg } = await sb.rpc('get_top_services_agg', { p_year: year, p_branches: branches, p_limit: 10 });
+        const { data: agg } = await sb.rpc('get_top_services_agg', { p_year: year, p_branches: branches, p_limit: limit });
         if (agg && agg.length) { rows = agg; note = _svcAggNote(agg); }
       }
       _renderSvcCombined(rows, branches, year, pFrom, pTo, note);
@@ -3367,14 +3372,14 @@ async function loadAndRenderServices() {
       let note = null;
       const results = await Promise.all(targetBranches.map(async b => {
         const { data } = await sb.rpc('get_top_services', {
-          p_year: year, p_branches: [b], p_from: pFrom, p_to: pTo, p_limit: 10
+          p_year: year, p_branches: [b], p_from: pFrom, p_to: pTo, p_limit: limit
         });
         if (data && data.length) return { branch: b, rows: data };
-        const { data: agg } = await sb.rpc('get_top_services_agg', { p_year: year, p_branches: [b], p_limit: 10 });
+        const { data: agg } = await sb.rpc('get_top_services_agg', { p_year: year, p_branches: [b], p_limit: limit });
         if (agg && agg.length) { note = note || _svcAggNote(agg); return { branch: b, rows: agg }; }
         return { branch: b, rows: [] };
       }));
-      _renderSvcPerBranch(results, year, pFrom, pTo, note);
+      _renderSvcPerBranch(results, year, pFrom, pTo, note, limit);
     }
   } catch(e) {
     console.error(e);
@@ -3395,7 +3400,7 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
   const branchLabel = branches.length === 4 ? 'All Branches' : branches.map(b => BRANCH_INFO[b]?.name||b).join(' · ');
 
   content.innerHTML = `
-    <div class="section-label" style="margin-top:16px">${branchLabel} — Combined Top 10 Services · ${year}</div>
+    <div class="section-label" style="margin-top:16px">${branchLabel} — Combined Top ${rows.length} Services · ${year}</div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
         <div>
@@ -3403,8 +3408,8 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
           <div class="card-sub">${note ? escapeHtml(note) : `${pFrom} to ${pTo}`}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Top 10 Combined Revenue</div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Top ${rows.length} Combined Revenue</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
         </div>
       </div>
       <table>
@@ -3414,7 +3419,7 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
           <th>Category</th>
           <th style="text-align:right">Revenue (AED)</th>
           <th style="text-align:right">Visits</th>
-          <th style="text-align:right">% of Top 10</th>
+          <th style="text-align:right">% of Top ${rows.length}</th>
         </tr></thead>
         <tbody>
           ${rows.map((r,i) => {
@@ -3424,7 +3429,7 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
               <td><span class="top3-rank ${_rankCls(i)}">${i+1}</span></td>
               <td style="font-weight:500;font-size:12px">${escapeHtml(r.service_name)||'—'}</td>
               <td><span class="badge" style="background:var(--surface2);color:var(--muted);font-size:10px">${escapeHtml(r.category)||'—'}</span></td>
-              <td style="text-align:right;font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:600">${_fmtAed(rev)}</td>
+              <td style="text-align:right;font-family:'Playfair Display',serif;font-size:15px;font-weight:600">${_fmtAed(rev)}</td>
               <td style="text-align:right;color:var(--muted)">${(r.visit_count||0).toLocaleString()}</td>
               <td style="text-align:right">
                 <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
@@ -3439,10 +3444,10 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
     </div>`;
 }
 
-function _renderSvcPerBranch(results, year, pFrom, pTo, note) {
+function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
   const content = document.getElementById('svc-content');
   content.innerHTML = `
-    <div class="section-label" style="margin-top:16px">Top 10 Services Per Branch · ${year} · ${note ? escapeHtml(note) : `${pFrom} – ${pTo}`}</div>
+    <div class="section-label" style="margin-top:16px">Top ${limit} Services Per Branch · ${year} · ${note ? escapeHtml(note) : `${pFrom} – ${pTo}`}</div>
     <div class="${results.length > 2 ? 'svc-scroll-wrap' : ''}"><div class="svc-grid-${results.length <= 2 ? '2' : '4'}">
       ${results.map(({ branch, rows }) => {
         const info = BRANCH_INFO[branch] || { name: branch, color: '#FFD4D9' };
@@ -3456,8 +3461,8 @@ function _renderSvcPerBranch(results, year, pFrom, pTo, note) {
                 <div class="card-sub" style="margin-bottom:0;font-size:10px">${rows.length} services shown</div>
               </div>
               <div style="text-align:right">
-                <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Top 10 Rev</div>
-                <div style="font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
+                <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Top ${rows.length} Rev</div>
+                <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
               </div>
             </div>
             ${!rows.length ? '<div class="top3-empty">No data for period</div>' : `
@@ -3475,7 +3480,7 @@ function _renderSvcPerBranch(results, year, pFrom, pTo, note) {
                   return `<tr>
                     <td><span class="top3-rank ${_rankCls(i)}" style="font-size:12px">${i+1}</span></td>
                     <td style="font-size:11px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.service_name)}">${escapeHtml(r.service_name)||'—'}</td>
-                    <td style="text-align:right;font-family:'Cormorant Garamond',serif;font-size:13px;font-weight:600">${_fmtAed(rev)}</td>
+                    <td style="text-align:right;font-family:'Playfair Display',serif;font-size:13px;font-weight:600">${_fmtAed(rev)}</td>
                     <td style="text-align:right;color:var(--muted);font-size:11px">${r.visit_count||0}</td>
                   </tr>`;
                 }).join('')}
@@ -3525,7 +3530,7 @@ function _renderClients(rows, branches, year, pFrom, pTo) {
         </div>
         <div style="text-align:right">
           <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Combined Revenue (Top ${rows.length})</div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
         </div>
       </div>
       <table>
@@ -3549,7 +3554,7 @@ function _renderClients(rows, branches, year, pFrom, pTo) {
                   <span style="font-weight:500;font-size:12px">${escapeHtml(r.client_name)||'—'}</span>
                 </div>
               </td>
-              <td style="text-align:right;font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:600">${_fmtAed(rev)}</td>
+              <td style="text-align:right;font-family:'Playfair Display',serif;font-size:15px;font-weight:600">${_fmtAed(rev)}</td>
               <td style="text-align:right;color:var(--muted)">${(r.visit_count||0).toLocaleString()}</td>
               <td style="color:var(--muted);font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.top_service)}">${escapeHtml(r.top_service)||'—'}</td>
             </tr>`;
