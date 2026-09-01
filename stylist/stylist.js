@@ -77,6 +77,7 @@ const STYLIST_SURNAMES = {
   "Myra":          "Sarmiento",
   "Daisy":         "Cropper",
   "Clarissa":      "Destacamento",
+  "Pearl":         "Lozano",   // assistant — Kate, 1 Sep 2026
   "Princess":      "Miranda",
   "Princess Areanne": "Miranda",
   "Areanne":       "Miranda",
@@ -106,9 +107,21 @@ const STYLIST_PHOTOS = {
   "Kylie":     "KCA/kylie bazely.png",
   "Lizanie":   "KCA/lizanie jacobz.png",
   "Irlyn":     "KCA/irlyn padilla.png",
-  "Hazel Mae": "KCA/hazel-mae marco.png",
+  // Hazel Mae Marco's photo comes off her own 2nd-batch card now (Sep 2026). The
+  // old "hazel-mae marco.png" mapping predates the card and had her sharing May's
+  // Instagram handle; the ledger carries MAY and HAZEL MAE as two people.
+  "Hazel Mae": "KCA/hazel mae marco.png",
   "Nikki":     "KCA/nikki asuncion.png",
   "Samantha":  "KCA/samantha amad.png",
+  // 2nd batch cards, Sep 2026 — blow-dry, beauty and nails, cropped from
+  // "FINAL CARDS 2ND BATCH". Branch per branch_staff_daily. Arni's card came
+  // with the photo box empty, so she has an IG below but no photo yet.
+  "Mevil":     "KCA/mevil miraflor.png",
+  "Grace":     "KCA/grace sarmiento.png",
+  "Mimi":      "KCA/mimi vertudes.png",
+  "Shila":     "KCA/shila mandal.png",
+  "Kim":       "KCA/kim casas.png",
+  "Kimberly":  "KCA/kim casas.png",
 
   // ── SAADIYAT / MAMSHA (SAA) ─────────────────────────
   "April":     "SAA/april miraflor.jpg",
@@ -121,6 +134,13 @@ const STYLIST_PHOTOS = {
   "Molly":     "SAA/molly robinson.png",
   "Tammy":     "SAA/tamryn peter.png",
   "Tamryn":    "SAA/tamryn peter.png",
+  // 2nd batch cards, Sep 2026 — see the KCA note.
+  "Myra":      "SAA/myra sarmiento.png",
+  "Helen":     "SAA/helen lita.png",
+  "Mona":      "SAA/mona soba.png",
+  "Reda":      "SAA/reda ramirez.png",
+  "Sania":     "SAA/sania ayaz.png",
+  "Judy":      "SAA/judy barias.png",
 
   // ── MOTOR CITY (MC) ─────────────────────────────────
   "Alan":      "MC/alan joeph russell.png",
@@ -130,6 +150,9 @@ const STYLIST_PHOTOS = {
   "Robyn":     "MC/robyn hart.png",
   "Ruth":      "MC/ruth bocock.jpg",
   "Zandri":    "MC/zandri wilson.jpg",
+  // 2nd batch cards, Sep 2026 — see the KCA note.
+  "Clarissa":  "MC/clarissa destacamento.png",
+  "Xyrhy":     "MC/xyrhy unisa.png",
 
   // ── AL QUOZ (AQ) ────────────────────────────────────
   "Shelley":   "AQ/shelley douglas.png",
@@ -164,14 +187,32 @@ const STYLIST_IG = {
   "Lizanie":    "https://www.instagram.com/lizaniejacobsz_hair",
   "Nikki":      "https://www.instagram.com/hairbynikki.na",
   "Olena":      "https://www.instagram.com/ostertag.olena",
-  "Hazel Mae":  "https://www.instagram.com/hairby_mhay",
+  // hairby_mhay is MAY's handle, not Hazel Mae's — the two were conflated before
+  // the 2nd-batch cards separated them (Sep 2026).
+  "May":        "https://www.instagram.com/hairby_mhay",
+  "Hazel Mae":  "https://www.instagram.com/hairby_hazelmae",
   "Irlyn":      "https://www.instagram.com/hairby_lyn11",
   "Ruth":       "https://www.instagram.com/rainbowsby_ruth",
   "Zandri":     "https://www.instagram.com/hairby.zandri",
   "Samantha":   "https://www.instagram.com/samanthaahmadhair",
   "Ibrahim":    "https://www.instagram.com/almofdi.hairstylist",
   "Shelley":    "https://www.instagram.com/shelley_the_global_hairstylist",
-  "Sophie":     "https://www.instagram.com/sophiepatriciahair/"
+  "Sophie":     "https://www.instagram.com/sophiepatriciahair/",
+  // 2nd batch cards, Sep 2026. Helen and Mevil have no handle on their cards —
+  // genuinely none (Kate, 1 Sep 2026), not missing data.
+  "Clarissa":   "https://www.instagram.com/hairbyclarissa",
+  "Xyrhy":      "https://www.instagram.com/hairgoalsbyxy",
+  "Myra":       "https://www.instagram.com/hairstyle_by_myra",
+  "Grace":      "https://www.instagram.com/beautybygracels",
+  "Mimi":       "https://www.instagram.com/beauty_bymimi15",
+  "Shila":      "https://www.instagram.com/mandalshila",
+  "Kim":        "https://www.instagram.com/kimberly_nails27",
+  "Kimberly":   "https://www.instagram.com/kimberly_nails27",
+  "Mona":       "https://www.instagram.com/hairnbeautyby_mona",
+  "Reda":       "https://www.instagram.com/beautybyreda",
+  "Sania":      "https://www.instagram.com/sania.tararose",
+  "Judy":       "https://www.instagram.com/nailsbyjudy.1",
+  "Arni":       "https://www.instagram.com/nailsby_rni13"
 };
 
 const BRANCH_INFO = {
@@ -181,7 +222,8 @@ const BRANCH_INFO = {
   AQ: { name:'AQ Ladies',     color:'#FF9B9B' },
   FRT:{ name:'Fratelli',      color:'#EEF3C7' },
 };
-const BEAUTY_NAMES = new Set(['MIMI','GRACE','SHILA','KIM','KIMBERLY','REDA','CHONA']);
+const BEAUTY_NAMES = new Set(['MIMI','GRACE','SHILA','KIM','KIMBERLY','REDA','CHONA',
+  'MONA','SANIA','JUDY','ARNI']); // SAA beauty bench + the nail desk — 2nd batch cards, Sep 2026
 const SKIP_NAMES   = new Set(['STAFF','TOTALS','TYPE','TYPE ','BUSINESS','TARA','ASISSTANTS','ASSISTANTS',
   'HAIR RETAIL SALES','TREATMENT SALES','COL TAKE AED','CBD TAKE AED','BEAUTY SALES','BEAUTY RETAIL SALES',
   'NET SALON TAKE','TOTAL CLIENTS',

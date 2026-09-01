@@ -47,6 +47,20 @@ const STAFF_PROFILES = {
   'LIZANIE':   { photo: 'lizanie.png',   role: 'Stylist',        branch: 'KCA',  ig: 'lizaniejacobsz_hair' },
   'IRLYN':     { photo: 'irlyn.png',     role: 'Junior Stylist', branch: 'KCA',  ig: 'hairby_lyn11' },
   'MAY':       { photo: 'may.png',       role: 'Junior Stylist', branch: 'KCA',  ig: 'hairby_mhay' },
+  // 2nd batch cards, Sep 2026 ("FINAL CARDS 2ND BATCH"): the blow-dry bench, the
+  // beauty team and the nail desk. Branch comes from branch_staff_daily (home =
+  // the branch with the recent rows), role and handle read off each card. HAZEL
+  // MAE is NOT May — the ledger carries both at KCA as separate rows (May
+  // Fernandez / Hazel Mae Marco); her card is the blow-dry one.
+  'HAZEL MAE': { photo: 'hazel-mae.png', role: 'Blow-Dry Specialist',     branch: 'KCA', ig: 'hairby_hazelmae' },
+  'MEVIL':     { photo: 'mevil.png',     role: 'Blow-Dry Specialist',     branch: 'KCA', ig: '' },
+  'GRACE':     { photo: 'grace.png',     role: 'Senior Beauty Therapist', branch: 'KCA', ig: 'beautybygracels' },
+  'MIMI':      { photo: 'mimi.png',      role: 'Senior Beauty Therapist', branch: 'KCA', ig: 'beauty_bymimi15' },
+  'SHILA':     { photo: 'shila.png',     role: 'Senior Beauty Therapist', branch: 'KCA', ig: 'mandalshila' },
+  'KIM':       { photo: 'kim.png',       role: 'Nail Art Expert',         branch: 'KCA', ig: 'kimberly_nails27' },
+  // Arni's card shipped with the photo box empty — no cutout to make yet. Her
+  // review says Mamsha but her only ledger rows are KCA, so KCA until Kate says.
+  'ARNI':      {                         role: 'Nail Technician',         branch: 'KCA', ig: 'nailsby_rni13' },
 
   // -- Mamsha Al Saadiyat --
   'EMMA':      { photo: 'emma.png',      role: 'Style Director', branch: 'SAA',  ig: 'emmalou.williamson' },
@@ -58,6 +72,14 @@ const STAFF_PROFILES = {
   'SHELLEY':   { photo: 'shelley.png',   role: 'Stylist',        branch: 'SAA',  ig: 'shelley_the_global_hairstylist' },
   'TAMMY':     { photo: 'tammy.png',     role: 'Stylist',        branch: 'SAA',  ig: 'tammy_peter_hair' },
   'EDS':       { photo: 'eds.png',       role: 'Junior Stylist', branch: 'SAA',  ig: 'edzasuncion' },
+  // 2nd batch cards, Sep 2026 — see the KCA note above. Helen's card carries no
+  // Instagram handle (Kate: "yung iba wala talaga"), so hers stays blank.
+  'MYRA':      { photo: 'myra.png',      role: 'Junior Stylist',          branch: 'SAA', ig: 'hairstyle_by_myra' },
+  'HELEN':     { photo: 'helen.png',     role: 'Blow-Dry Specialist',     branch: 'SAA', ig: '' },
+  'MONA':      { photo: 'mona.png',      role: 'Senior Beauty Therapist', branch: 'SAA', ig: 'hairnbeautyby_mona' },
+  'REDA':      { photo: 'reda.png',      role: 'Senior Beauty Therapist', branch: 'SAA', ig: 'beautybyreda' },
+  'SANIA':     { photo: 'sania.png',     role: 'Senior Beauty Therapist', branch: 'SAA', ig: 'sania.tararose' },
+  'JUDY':      { photo: 'judy.png',      role: 'Nail Technician',         branch: 'SAA', ig: 'nailsbyjudy.1' },
 
   // -- Motor City --
   'ALAN':      { photo: 'alan.png',      role: 'Style Director', branch: 'MC',   ig: 'alan_joseph_hair' },
@@ -65,6 +87,9 @@ const STAFF_PROFILES = {
   'LUCY':      { photo: 'lucy.png',      role: 'Style Director', branch: 'MC',   ig: 'lucy.glow.hair' },
   'ELISE':     { photo: 'elise.png',     role: 'Senior Stylist', branch: 'MC',   ig: 'ehfhair' },
   'ROBYN':     { photo: 'robyn.png',     role: 'Senior Stylist', branch: 'MC',   ig: 'robynharthair' },
+  // 2nd batch cards, Sep 2026 — see the KCA note above.
+  'CLARISSA':  { photo: 'clarissa.png',  role: 'Blow-Dry Specialist', branch: 'MC', ig: 'hairbyclarissa' },
+  'XYRHY':     { photo: 'xyrhy.png',     role: 'Blow-Dry Specialist', branch: 'MC', ig: 'hairgoalsbyxy' },
 
   // -- Al Quoz --
   'RUTH':      { photo: 'ruth.png',      role: 'Style Director', branch: 'AQ',   ig: 'rainbowsby_ruth' },
@@ -142,6 +167,7 @@ const STAFF_SURNAMES = {
   'NIKKI':     'Asuncion',
   'OLENA':     'Ostertag',
   'OLIVER':    'Green',
+  'PEARL':     'Lozano',   // assistant — Kate, 1 Sep 2026
   'PRINCESS':  'Miranda',
   'PRINCESS AREANNE': 'Miranda',
   'REDA':      'Ramirez',

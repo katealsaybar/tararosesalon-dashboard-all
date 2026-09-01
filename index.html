@@ -302,6 +302,15 @@ body.kpi-view:not(.revealed) footer{display:none}
   opacity:0;max-height:0;margin-top:0;padding-top:0;padding-bottom:0;border-width:0}
 .topbar.stuck .tglr{min-height:34px;padding:6px 12px}
 .topbar.stuck .filters{padding-top:8px}
+/* Kate, 1 Sep 2026: on the Ledgers pages the masthead is the logo and nothing
+   else — no buttons, no meta rule, no filter rows. Those pages carry their own
+   Month and Split controls, the Period chips were already dead there, and the
+   branch sections are one jump away on the page's own rail. showView() sets the
+   class and re-measures the spacer straight after, so no band of bare background
+   opens where the filters used to sit. */
+body.ledger-chrome .mast-acts,
+body.ledger-chrome .mast-rule,
+body.ledger-chrome .filters-wrap{display:none}
 .mast,.mast-logo,.tglr,.filters{
   transition:width 200ms var(--card-ease),min-height 200ms var(--card-ease),padding 200ms var(--card-ease)}
 
@@ -1478,6 +1487,10 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .lg-sx:has(.lg-wrap.sx-r)::after{opacity:1}
 table.lg{width:100%;border-collapse:collapse;font-size:12.5px}
 table.lg.lg-compact{font-size:11.5px}
+/* Above the frozen first column's tbody cells: stickLgHead() translates the thead
+   down the table on scroll, and those td's are positioned (sticky) too — later in
+   the DOM, they'd paint over an unranked thead as it passes. */
+table.lg thead{position:relative;z-index:3}
 table.lg th{position:sticky;top:0;z-index:1;background:var(--surface2);
   font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
   text-align:left;padding:9px 11px;white-space:nowrap;border-bottom:1px solid var(--border)}
@@ -1664,8 +1677,11 @@ tr.lg-tot td:first-child{background:var(--surface2)}
 /* The height is pinned rather than left to the font, because the row below it
    parks against that exact number — a couple of pixels out and a body row shows
    through the gap between the two sticky headers as you scroll. */
-table.lg thead tr.lg-band th{top:0;height:26px;font-size:8.5px;letter-spacing:.16em;color:var(--text);
-  opacity:.75;padding:7px 11px 4px;text-align:center;
+/* Subdued via color-mix, not opacity: stickLgHead() floats this thead over the
+   body rows, and a 75%-opaque cell let them show through the band. */
+table.lg thead tr.lg-band th{top:0;height:26px;font-size:8.5px;letter-spacing:.16em;
+  color:color-mix(in srgb, var(--text) 75%, var(--surface2));
+  padding:7px 11px 4px;text-align:center;
   border-bottom:1px solid var(--border);border-left:1px solid var(--border)}
 table.lg thead tr.lg-band th.lg-band-x{border-left:0}
 table.lg thead tr.lg-band + tr th{top:26px}
@@ -2402,6 +2418,14 @@ function showView(view, el){
   const wrap = document.getElementById('wrap');
   if (wrap) wrap.classList.toggle('cover-only', view === 'dashboard');
 
+  // Kate, 1 Sep 2026: the Ledgers pages keep the logo and drop the rest of the
+  // masthead — they toggle themselves with Month and Split on the page, so the
+  // topbar's buttons, meta rule and filter rows are dead weight there. The CSS
+  // rides on this class; sizeTopbar() at the foot of this function re-measures
+  // the spacer for the shorter bar.
+  document.body.classList.toggle('ledger-chrome',
+    typeof LEDGER_VIEWS !== 'undefined' && LEDGER_VIEWS.has(view));
+
   if (view === 'team' && allData.length) renderTeam();
   if (view === 'stylists') renderStylistCards();
   if (view === 'services') initSvcView();
@@ -2598,6 +2622,29 @@ function sizeTopbar(){
 }
 addEventListener('resize', sizeTopbar);
 
+// ── LEDGER TABLE HEADERS THAT FOLLOW THE SCROLL ─────────────
+// Kate, 1 Sep 2026: the STYLIST / DEPT / WEEK header row has to stay put while a
+// long ledger table scrolls. `th{position:sticky;top:0}` can't do it here: .lg-wrap
+// is overflow-x:auto for the horizontal scroll, which makes it the sticky's scroll
+// container in BOTH axes, and it never scrolls vertically. So the thead is moved by
+// hand instead — translated down by however far the table has run under the fixed
+// masthead, stopping at the table's foot. All rects are read before any transform
+// is written, so a page of tables costs one layout pass per scroll event.
+function stickLgHead(){
+  if (typeof LEDGER_VIEWS === 'undefined' || typeof CURRENT_VIEW === 'undefined'
+      || !LEDGER_VIEWS.has(CURRENT_VIEW)) return;
+  const bar = document.getElementById('topbar');
+  const barB = bar ? bar.getBoundingClientRect().bottom : 0;
+  const view = document.getElementById('view-' + CURRENT_VIEW);
+  if (!view) return;
+  const jobs = [...view.querySelectorAll('.lg-wrap > table.lg > thead')].map(h => {
+    const r = h.parentElement.parentElement.getBoundingClientRect();
+    const y = Math.max(0, Math.min(barB - r.top, r.height - h.offsetHeight));
+    return [h, y];
+  });
+  jobs.forEach(([h, y]) => { h.style.transform = y > 0.5 ? `translateY(${y}px)` : ''; });
+}
+
 // ── SIDEBAR SCROLLSPY ───────────────────────────────────────
 // Marks the last section whose heading has passed the reading line, so the rail
 // says where you are rather than what is merely on screen. Passive listener,
@@ -2607,6 +2654,7 @@ function spy(){
   const TOPBAR = document.getElementById('topbar');
   const TOTOP  = document.getElementById('toTop');
   if (TOPBAR) TOPBAR.classList.toggle('stuck', scrollY > CONDENSE_AT);
+  stickLgHead();
 
   const onKpi = document.body.classList.contains('kpi-view');
   if (TOTOP) TOTOP.classList.toggle('on', onKpi && scrollY > innerHeight * 0.9);

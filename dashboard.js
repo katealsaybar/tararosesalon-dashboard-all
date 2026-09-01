@@ -621,7 +621,11 @@ function refreshActiveView() {
 // Kate, 2026-08-12: its own nav pill under Team Performance.
 // The beauty team is deliberately absent: they have no cards or head icons yet,
 // and a card with no face would look broken rather than pending.
-const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist'];
+// Hair floor first, then the blow-dry bench, then beauty and nails — the order the
+// 2nd-batch cards joined in (Sep 2026). A role missing from this list sorts first
+// (indexOf -1), so new roles must be added here or they float above Style Director.
+const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist',
+  'Blow-Dry Specialist', 'Senior Beauty Therapist', 'Beauty Therapist', 'Nail Art Expert', 'Nail Technician'];
 
 // ── ONE STYLIST CARD, AS THE DESIGNED PDF ────────────────────
 // Kate, 2026-08-13: the hand-built HTML replica of the A3 card was ugly, and an
@@ -3329,6 +3333,16 @@ function _svcEmpty(what) {
   </div>`;
 }
 
+// Two feeds serve this page. The transaction upload (service_data) slices by the
+// masthead's date range; when it has nothing for the window — the common case
+// once the year moves past the last transaction upload — fall back to the
+// Top Services report upload (top_services), which is a whole-period aggregate
+// and can't be sliced by date, so the caption says what it actually covers.
+function _svcAggNote(rows) {
+  const pf = rows[0]?.period_from, pt = rows[0]?.period_to;
+  return `Top Services report upload${pf && pt ? ` · covers ${pf} – ${pt}` : ''} — this feed is a whole-period export and does not follow the date range`;
+}
+
 async function loadAndRenderServices() {
   const content = document.getElementById('svc-content');
   if (!content) return;
@@ -3342,16 +3356,25 @@ async function loadAndRenderServices() {
         p_year: year, p_branches: branches, p_from: pFrom, p_to: pTo, p_limit: 10
       });
       if (error) throw error;
-      _renderSvcCombined(data || [], branches, year, pFrom, pTo);
+      let rows = data || [], note = null;
+      if (!rows.length) {
+        const { data: agg } = await sb.rpc('get_top_services_agg', { p_year: year, p_branches: branches, p_limit: 10 });
+        if (agg && agg.length) { rows = agg; note = _svcAggNote(agg); }
+      }
+      _renderSvcCombined(rows, branches, year, pFrom, pTo, note);
     } else {
       const targetBranches = branches;
+      let note = null;
       const results = await Promise.all(targetBranches.map(async b => {
         const { data } = await sb.rpc('get_top_services', {
           p_year: year, p_branches: [b], p_from: pFrom, p_to: pTo, p_limit: 10
         });
-        return { branch: b, rows: data || [] };
+        if (data && data.length) return { branch: b, rows: data };
+        const { data: agg } = await sb.rpc('get_top_services_agg', { p_year: year, p_branches: [b], p_limit: 10 });
+        if (agg && agg.length) { note = note || _svcAggNote(agg); return { branch: b, rows: agg }; }
+        return { branch: b, rows: [] };
       }));
-      _renderSvcPerBranch(results, year, pFrom, pTo);
+      _renderSvcPerBranch(results, year, pFrom, pTo, note);
     }
   } catch(e) {
     console.error(e);
@@ -3365,7 +3388,7 @@ function _fmtAed(n) {
 
 function _rankCls(i) { return i===0?'gold':i===1?'silver':i===2?'bronze':''; }
 
-function _renderSvcCombined(rows, branches, year, pFrom, pTo) {
+function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
   const content = document.getElementById('svc-content');
   if (!rows.length) { content.innerHTML = _svcEmpty('data'); return; }
   const totalRev = rows.reduce((s,r) => s + parseFloat(r.total_revenue||0), 0);
@@ -3377,7 +3400,7 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo) {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
         <div>
           <div class="card-title">Top Services by Revenue</div>
-          <div class="card-sub">${pFrom} to ${pTo}</div>
+          <div class="card-sub">${note ? escapeHtml(note) : `${pFrom} to ${pTo}`}</div>
         </div>
         <div style="text-align:right">
           <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Top 10 Combined Revenue</div>
@@ -3416,10 +3439,10 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo) {
     </div>`;
 }
 
-function _renderSvcPerBranch(results, year, pFrom, pTo) {
+function _renderSvcPerBranch(results, year, pFrom, pTo, note) {
   const content = document.getElementById('svc-content');
   content.innerHTML = `
-    <div class="section-label" style="margin-top:16px">Top 10 Services Per Branch · ${year} · ${pFrom} – ${pTo}</div>
+    <div class="section-label" style="margin-top:16px">Top 10 Services Per Branch · ${year} · ${note ? escapeHtml(note) : `${pFrom} – ${pTo}`}</div>
     <div class="${results.length > 2 ? 'svc-scroll-wrap' : ''}"><div class="svc-grid-${results.length <= 2 ? '2' : '4'}">
       ${results.map(({ branch, rows }) => {
         const info = BRANCH_INFO[branch] || { name: branch, color: '#FFD4D9' };
