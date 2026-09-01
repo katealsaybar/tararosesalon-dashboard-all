@@ -6,7 +6,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .logo-text .logo-name{font-family:'DM Sans',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text);line-height:1}
 .logo-text .logo-sub{font-size:9px;letter-spacing:0.26em;text-transform:uppercase;color:var(--muted);margin-top:2px}
 .logo-strip{height:2px;width:100px;margin-top:4px;background:linear-gradient(to right,#99F6E4,#EEF3C7,#C4B5FD,#FF9B9B,#FFD4D9);border-radius:2px}
-.portal-label{font-family:'Cormorant Garamond',serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.portal-label{font-family:'Playfair Display',serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-top:3px}
 .header-right{display:flex;align-items:center;gap:14px}
 .toggle-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
 .toggle-lbl{font-size:11px;color:var(--muted);min-width:30px}
@@ -26,7 +26,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 
 /* CARDS */
 .upload-card{background:var(--surface);border-radius:16px;padding:24px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:24px}
-.card-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;color:var(--text);margin-bottom:3px}
+.card-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:500;color:var(--text);margin-bottom:3px}
 .card-sub{font-size:11px;color:var(--muted);letter-spacing:0.05em;margin-bottom:18px}
 .field{display:flex;flex-direction:column;gap:5px}
 .field-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
@@ -232,7 +232,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .modal-overlay.open{opacity:1;pointer-events:all}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px 26px;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.35);transform:translateY(10px);transition:transform .2s}
 .modal-overlay.open .modal{transform:translateY(0)}
-.modal-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;color:var(--text);margin-bottom:6px}
+.modal-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:500;color:var(--text);margin-bottom:6px}
 .modal-sub{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6}
 .modal-change{background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:12px;line-height:1.7;border:1px solid var(--border2)}
 .modal-from{color:var(--muted);text-decoration:line-through}
