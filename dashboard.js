@@ -18,7 +18,7 @@ const BRANCH_INFO = {
   KCA: { name: 'Khalifa City', color: '#FFD4D9', colorLight: '#C2506D' },
   SAA: { name: 'Saadiyat',     color: '#C4B5FD', colorLight: '#7C5CD4' },
   MC:  { name: 'Motor City',   color: '#99F6E4', colorLight: '#0F8A72' },
-  AQ:  { name: 'AQ Ladies',    color: '#FF9B9B', colorLight: '#A32D2D' },
+  AQ:  { name: 'Al Quoz',      color: '#FF9B9B', colorLight: '#A32D2D' },
   FRT: { name: 'Fratelli',     color: '#EEF3C7', colorLight: '#BA7517' },
 };
 
@@ -1390,10 +1390,18 @@ const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTAN
 // without four separate edits. Her figures leave the staff tables and the branch
 // summaries with her, exactly as the pooled ASSISTANTS rows already do.
 //
-// Note for whoever comes next: Dorah and Marjorie (Al Quoz) are Assistants in
-// Phorest as well and still show as stylists. Kate named Chona only, so they are
-// left alone — add them here if she wants the same for them.
-const LEDGER_ASSISTANT_NAMES = new Set(['CHONA']);
+// Kate, 1 Sep 2026 — Dorah, Pearl and the CHONA/ ESTHER row are assistants too:
+// "they should be named assistants per branch talaga, no name". Same treatment as
+// Chona. The branch files write the Khalifa City row as "CHONA/ ESTHER", so names
+// are checked per slash-separated part, not on the raw string only. Marjorie
+// (Al Quoz) is an Assistant in Phorest as well but Kate has not named her — left
+// alone until she does.
+const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL']);
+
+function isLedgerAssistantName(rawUp) {
+  const parts = String(rawUp || '').split('/').map(s => s.trim()).filter(Boolean);
+  return parts.length > 0 && parts.every(p => LEDGER_ASSISTANT_NAMES.has(p));
+}
 
 function cleanPhorestName(name) {
   return String(name || '').trim().toUpperCase().replace(/\s*\(A\)\s*$/, '').trim();
@@ -1450,7 +1458,7 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
     // growing day over day) that badly skews the group totals if left in. Flagged to
     // Kate as a sync-script bug to fix at the source; excluded here defensively.
     const rawUp = String(r.staff_name||'').trim().toUpperCase();
-    if (LEDGER_NON_PERSON_NAMES.has(rawUp) || LEDGER_ASSISTANT_NAMES.has(rawUp)) return;
+    if (LEDGER_NON_PERSON_NAMES.has(rawUp) || isLedgerAssistantName(rawUp)) return;
     const isBeauty = String(r.dept || '').trim().toLowerCase() === 'beauty';
     const rev = matchRevenue(r.branch, r.date, r.staff_name) || { services: 0, courses: 0, products: 0 };
     const map = isBeauty ? beautyMap : hairMap;

@@ -226,7 +226,7 @@ const BRANCH_INFO = {
   KCA:{ name:'Khalifa City',  color:'#FFD4D9' },
   SAA:{ name:'Saadiyat',      color:'#C4B5FD' },
   MC: { name:'Motor City',    color:'#99F6E4' },
-  AQ: { name:'AQ Ladies',     color:'#FF9B9B' },
+  AQ: { name:'Al Quoz',       color:'#FF9B9B' },
   FRT:{ name:'Fratelli',      color:'#EEF3C7' },
 };
 const BEAUTY_NAMES = new Set(['MIMI','GRACE','SHILA','KIM','KIMBERLY','REDA','CHONA',

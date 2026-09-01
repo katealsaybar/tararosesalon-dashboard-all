@@ -30,7 +30,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "assets", "staff")
 
 PANEL = (72, 143, 542, 600)   # x0,y0,x1,y1 in the 1414x2000 card
-RADIUS = 36                   # the panel's corner rounding
+RADIUS = 64                   # the panel's corner rounding — fitted 62 from the
+                              # card arcs (1 Sep 2026); 36 undershot it and left
+                              # the card's dark navy as black wedges in every
+                              # corner of the shipped avatars
 T_FLOOD = 14.0                # flood tolerance: the bg is flat, so keep it tight
 T_SOFT = 46.0                 # feather ceiling, keeps the hairline antialiased
 
