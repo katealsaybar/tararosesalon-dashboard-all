@@ -754,24 +754,17 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .r-val{font-weight:700;white-space:nowrap}
 .r-foot{text-align:center;font-size:10px;color:#6f6f6f;margin-top:8px;letter-spacing:.08em}
 @media(min-width:900px){
-  /* The cover holds the first screen on its own, and it has to still hold it
-     once you have scrolled — which is where this was wrong. It measured against
-     --topbar-h, the FULL masthead, and then took another 56px off. But the
-     moment you scroll a pixel the masthead condenses to --topbar-cond-h, so the
-     space the cover has to fill grows by the difference while the cover itself
-     stays the smaller size. On a 900px screen that left ~230px of the document
-     showing under the cover, and no amount of snapping could hide it.
-
-     The cover's resting place is the top of the page — scroll 0, masthead at
-     full height — so that is what it is measured against. The extra 56px is
-     gone: it was the whole reason a strip of the document showed under the
-     cover. Kate, 2026-08-14. */
+  /* The cover used to be sized to the fold — min-height 100svh minus the
+     masthead — with the CTA pinned to its bottom edge by margin-top:auto.
+     On a month with a short standfirst that pin put "See the full details"
+     half a screen below the last target bar, floating in nothing. The cover
+     is content-height now and the CTA sits where the content ends; the body
+     below it is display:none until revealed, so nothing peers up regardless.
+     Kate, 2026-09-01. */
   .hero{display:grid;grid-template-columns:1fr 240px;gap:44px;align-items:stretch;
-    padding:34px 0 var(--s4);
-    min-height:calc(100vh - var(--topbar-h,172px));
-    min-height:calc(100svh - var(--topbar-h,172px))}
+    padding:34px 0 var(--s4)}
   .hero>div:first-child{display:flex;flex-direction:column}
-  .hero-cta{margin-top:auto;align-self:flex-start;padding-top:var(--s3)}
+  .hero-cta{align-self:flex-start}
   .receipt{margin-top:6px;max-width:240px;align-self:start}
 }
 
@@ -2779,9 +2772,11 @@ function coverAnchors() {
 // Where should a rest at `y` settle to — or null for "leave it alone"? Split out
 // from the scrolling so the decision can be checked without a live scroll.
 function coverSettleTarget(y) {
-  // Below 900px the hero is not sized to the fold — it is just the top of a
-  // scrolling page, so there is no cover to settle onto and forcing one would
-  // only take the scroll away from you.
+  // Below 900px the page is a single-column scroll with no two-place layout,
+  // so there is no cover to settle onto and forcing one would only take the
+  // scroll away from you. (The hero is content-height everywhere now — Kate,
+  // 2026-09-01 — but above 900px cover-top and document-top are still the two
+  // resting places, so the settle keeps earning its place there.)
   if (!matchMedia('(min-width:900px)').matches) return null;
   const a = coverAnchors();
   if (!a || a.doc - a.cover < 120) return null;   // band too small to be worth it

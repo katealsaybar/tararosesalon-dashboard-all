@@ -2267,6 +2267,22 @@ function restoreSections() {
 // ── DASHBOARD RENDER ─────────────────────────────────────────
 
 // AFTER — hoist filtered:
+// ── RANGE FETCH CACHE ────────────────────────────────────────
+// Kate, 2026-09-01: a branch chip only re-slices rows client-side, but every
+// click still went back to Supabase for the whole range — ~2s of network for
+// rows the page already had, so the chips felt broken. The fetch PROMISE is
+// cached per date range: repeat clicks on the same range reuse the finished
+// (or still in-flight) fetch and repaint instantly; a new range fetches once.
+// loadData() clears it on its 60s poll, so nothing here is ever staler than
+// the poll already was. A failed fetch deletes its entry so it can retry.
+const RANGE_CACHE = new Map();
+function cachedRange(key, loader) {
+  if (!RANGE_CACHE.has(key)) {
+    RANGE_CACHE.set(key, loader().catch(err => { RANGE_CACHE.delete(key); throw err; }));
+  }
+  return RANGE_CACHE.get(key);
+}
+
 async function renderDashboard() {
   paintFilterChips();
   const main = document.getElementById('mainContent');
@@ -2277,8 +2293,11 @@ async function renderDashboard() {
 
     if (dateFrom && dateTo) {
     if (isFullWeekRange(dateFrom, dateTo)) {
-      main.innerHTML = '<div class="loading">Loading weekly data...</div>';
-      let weekRows = await loadWeeklyTotalsRange(dateFrom, dateTo);
+      const cacheKey = `weekly|${dateToIso(dateFrom)}|${dateToIso(dateTo)}`;
+      // Only say "Loading" when we really are going to the network — on a cache
+      // hit the old numbers stay up until the new ones replace them, no flash.
+      if (!RANGE_CACHE.has(cacheKey)) main.innerHTML = '<div class="loading">Loading weekly data...</div>';
+      let weekRows = await cachedRange(cacheKey, () => loadWeeklyTotalsRange(dateFrom, dateTo));
       window._cachedWeeklyTotals = weekRows;
       currentDailyRows = [];
       window._cachedDailyTrend = null; // trend chart uses window._cachedWeeklyTotals for this path
@@ -2293,12 +2312,13 @@ async function renderDashboard() {
       }
       d = aggWeeklyTotals(weekRows);
     } else {
-      main.innerHTML = '<div class="loading">Loading daily data...</div>';
-      let [dailyRows, branchStaffRows, phorestStaffRows] = await Promise.all([
+      const cacheKey = `daily|${dateToIso(dateFrom)}|${dateToIso(dateTo)}`;
+      if (!RANGE_CACHE.has(cacheKey)) main.innerHTML = '<div class="loading">Loading daily data...</div>';
+      let [dailyRows, branchStaffRows, phorestStaffRows] = await cachedRange(cacheKey, () => Promise.all([
         loadDailyRange(dateFrom, dateTo),
         loadBranchStaffDailyRange(dateFrom, dateTo),
         loadPhorestStaffDailyRange(dateFrom, dateTo),
-      ]);
+      ]));
       currentDailyRows = dailyRows;
       window._cachedDailyJoin = { dailyRows, branchStaffRows, phorestStaffRows }; // pre-branch-filter, so aggByBranch() can slice per code
 
@@ -3085,6 +3105,10 @@ async function loadDailyRange(from, to) {
 // ── DATA LOAD + INIT ─────────────────────────────────────────
 
 async function loadData() {
+  // The poll is the freshness contract: it drops the range cache so the
+  // renderDashboard() below refetches, and every chip click until the next
+  // poll reuses that fetch instead of paying Supabase again.
+  RANGE_CACHE.clear();
   const { data, error } = await sb.from('weekly_data').select('*').order('uploaded_at', { ascending:true });
   if (error || !data) {
     document.getElementById('mainContent').innerHTML = '<div class="empty">No data available yet.</div>';
