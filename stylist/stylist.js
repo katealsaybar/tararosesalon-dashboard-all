@@ -66,6 +66,7 @@ const STYLIST_SURNAMES = {
   "Galina":    "Spierling",
   "Mary Joy":  "Galos",
   "MJ":        "Galos",
+  "Mj":        "Galos",   // cleanName() title-cases the ledger's MJ, so the lookup key is "Mj"
   "Roja":      "Pudtado",
   "Shine":     "Castillo",
   // Additional stylists from Phorest TSV 31 May 2026
@@ -157,6 +158,10 @@ const STYLIST_PHOTOS = {
   // ── AL QUOZ (AQ) ────────────────────────────────────
   "Shelley":   "AQ/shelley douglas.png",
   "Tegan":     "AQ/tegan skinner.jfif",
+  // 2nd batch cards, Sep 2026 — see the KCA note. "Mj" because this map is keyed
+  // by cleanName(), which title-cases the ledger's MJ.
+  "Shine":     "AQ/shine castillo.png",
+  "Mj":        "AQ/mj galos.png",
 
   "Ibrahim":   "MC/ibrahim al mofdi.jpg",
 
@@ -212,7 +217,9 @@ const STYLIST_IG = {
   "Reda":       "https://www.instagram.com/beautybyreda",
   "Sania":      "https://www.instagram.com/sania.tararose",
   "Judy":       "https://www.instagram.com/nailsbyjudy.1",
-  "Arni":       "https://www.instagram.com/nailsby_rni13"
+  "Arni":       "https://www.instagram.com/nailsby_rni13",
+  "Shine":      "https://www.instagram.com/beauty_by_shineshine",
+  "Mj":         "https://www.instagram.com/mj_torresgalos"
 };
 
 const BRANCH_INFO = {
@@ -223,7 +230,8 @@ const BRANCH_INFO = {
   FRT:{ name:'Fratelli',      color:'#EEF3C7' },
 };
 const BEAUTY_NAMES = new Set(['MIMI','GRACE','SHILA','KIM','KIMBERLY','REDA','CHONA',
-  'MONA','SANIA','JUDY','ARNI']); // SAA beauty bench + the nail desk — 2nd batch cards, Sep 2026
+  'MONA','SANIA','JUDY','ARNI',
+  'SHINE','MJ']); // beauty bench + the nail desks — 2nd batch cards, Sep 2026 (Shine & MJ are AQ)
 const SKIP_NAMES   = new Set(['STAFF','TOTALS','TYPE','TYPE ','BUSINESS','TARA','ASISSTANTS','ASSISTANTS',
   'HAIR RETAIL SALES','TREATMENT SALES','COL TAKE AED','CBD TAKE AED','BEAUTY SALES','BEAUTY RETAIL SALES',
   'NET SALON TAKE','TOTAL CLIENTS',
