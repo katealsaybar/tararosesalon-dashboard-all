@@ -1308,21 +1308,71 @@ function computeByRole(data, role) {
 }
 
 // ── SERVICE DATA UPLOAD ──────────────────────────────────────
+// Two Phorest exports land here, auto-detected per sheet, any mix of files:
+//   1. Transaction format (the original): one workbook, sheets KCA/SAA/MC/AQ,
+//      fixed columns [date serial, ?, client, service, category, amount].
+//      → service_data (per-row dates + client names; also feeds Top Clients).
+//   2. "Top Services" summary report: one sheet per branch, header row
+//      # / Category / Description / Qty / Price / Time (hrs) / Revenue / Profit,
+//      no dates, no clients — Phorest exports it as .xls 97, .xlsx or PDF.
+//      → top_services (aggregates; Service Rankings falls back to this feed).
+//   The summary must NEVER be written into service_data: the yearly wipe there
+//   would delete the transaction rows (and with them the Top Clients data).
+// Accepts .xlsx, .xls (97 workbook — SheetJS reads BIFF natively), .csv and
+// .pdf, multiple files at once, branch detected from sheet name or filename.
 
-let svcDataFile = null;
+let svcQueue = [];
 
-function svcFileChosen(file) {
-  svcDataFile = file;
-  const nameEl = document.getElementById('svc-filename');
-  if (nameEl) { nameEl.textContent = file.name; nameEl.style.color = 'var(--good)'; }
-  const match = file.name.match(/20\d\d/);
+function svcFilesChosen(fileList) {
+  if (!fileList || !fileList.length) return;
+  for (const f of Array.from(fileList)) {
+    if (!/\.(xlsx|xls|csv|pdf)$/i.test(f.name)) { showToast(`Skipped ${f.name} — not xlsx/xls/csv/pdf`); continue; }
+    if (!svcQueue.some(q => q.name === f.name && q.size === f.size)) svcQueue.push(f);
+  }
+  const match = svcQueue.map(f => f.name.match(/20\d\d/)).find(Boolean);
   if (match) {
     const inp = document.getElementById('svc-year-inp');
     if (inp) inp.value = match[0];
   }
-  const btn = document.getElementById('uploadSvcBtn');
-  if (btn) btn.disabled = false;
+  // Default the report period to Jan 1 → today so a YTD export needs no typing.
+  const yr = parseInt(document.getElementById('svc-year-inp')?.value) || new Date().getFullYear();
+  const pf = document.getElementById('svc-period-from');
+  const pt = document.getElementById('svc-period-to');
+  if (pf && !pf.value) pf.value = `${yr}-01-01`;
+  if (pt && !pt.value) {
+    const t = new Date();
+    pt.value = yr === t.getFullYear()
+      ? `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`
+      : `${yr}-12-31`;
+  }
+  svcRenderQueue();
+  const finp = document.getElementById('svcFileInput');
+  if (finp) finp.value = '';
 }
+
+function svcRemoveFile(i) { svcQueue.splice(i, 1); svcRenderQueue(); }
+
+function svcRenderQueue() {
+  const nameEl = document.getElementById('svc-filename');
+  if (nameEl) {
+    if (!svcQueue.length) { nameEl.textContent = 'No file selected'; nameEl.style.color = ''; }
+    else {
+      nameEl.style.color = 'var(--good)';
+      nameEl.innerHTML = svcQueue.map((f, i) => {
+        const b = detectBranch(f.name);
+        return `<div style="display:flex;align-items:center;gap:8px;justify-content:center">
+          <span>${escSvc(f.name)}</span>
+          ${b ? `<span class="badge" style="font-size:9px">${b}</span>` : ''}
+          <span style="cursor:pointer;color:var(--bad)" onclick="event.stopPropagation();svcRemoveFile(${i})">✕</span>
+        </div>`;
+      }).join('');
+    }
+  }
+  const btn = document.getElementById('uploadSvcBtn');
+  if (btn) btn.disabled = !svcQueue.length;
+}
+
+function escSvc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function svcSerialToDate(serial) {
   if (!serial || typeof serial !== 'number') return null;
@@ -1331,76 +1381,223 @@ function svcSerialToDate(serial) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
 }
 
+// Phorest writes numbers as text ('67,200.5', 'AED 250') as often as numbers.
+function svcNum(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return v;
+  const n = parseFloat(String(v).replace(/,/g, '').replace(/aed/i, '').trim());
+  return isNaN(n) ? null : n;
+}
+
+const SVC_BRANCH_SHEETS = ['KCA', 'SAA', 'MC', 'AQ'];
+
+// Finds the Top Services header row within the first rows of a sheet and maps
+// its columns by header text, so column order/extra columns don't break parsing.
+function svcFindTopHeader(rows) {
+  for (let i = 0; i < Math.min(rows.length, 15); i++) {
+    const cells = (rows[i] || []).map(c => String(c ?? '').toLowerCase().trim());
+    const idx = name => cells.findIndex(c => c.includes(name));
+    const cat = idx('categor'), desc = idx('description'), qty = idx('qty'), rev = idx('revenue');
+    if (cat >= 0 && desc >= 0 && (qty >= 0 || rev >= 0)) {
+      return { row: i, cat, desc, qty, rev, rank: idx('#'), price: idx('price'), time: idx('time'), profit: idx('profit') };
+    }
+  }
+  return null;
+}
+
+// One sheet → rows for whichever table its shape belongs to.
+function svcParseSheet(ws, sheetName, fileName, out) {
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  if (!rows.length) return;
+
+  const top = svcFindTopHeader(rows);
+  if (top) {
+    const sheetCode = String(sheetName).trim().toUpperCase();
+    const branch = SVC_BRANCH_SHEETS.includes(sheetCode) ? sheetCode : detectBranch(fileName);
+    if (!branch) { out.unknownBranch.push(`${fileName} → sheet "${sheetName}"`); return; }
+    for (let i = top.row + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row) continue;
+      const name = top.desc >= 0 && row[top.desc] ? String(row[top.desc]).trim() : null;
+      const revenue = top.rev >= 0 ? svcNum(row[top.rev]) : null;
+      if (!name || revenue === null) continue;
+      out.topRows.push({
+        branch,
+        rank: top.rank >= 0 ? (svcNum(row[top.rank]) ?? null) : null,
+        category: top.cat >= 0 && row[top.cat] ? String(row[top.cat]).trim() : null,
+        service_name: name,
+        qty: (top.qty >= 0 ? svcNum(row[top.qty]) : null) ?? 0,
+        price: top.price >= 0 ? svcNum(row[top.price]) : null,
+        time_hrs: top.time >= 0 ? svcNum(row[top.time]) : null,
+        revenue,
+        profit: top.profit >= 0 ? svcNum(row[top.profit]) : null,
+        source_file: fileName
+      });
+    }
+    return;
+  }
+
+  // Transaction format: only recognised on the original per-branch sheet names,
+  // fixed columns, date serial in col A — unchanged from the original uploader.
+  const sheetCode = String(sheetName).trim().toUpperCase();
+  if (!SVC_BRANCH_SHEETS.includes(sheetCode)) return;
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length < 5) continue;
+    const purchaseDate = typeof row[0] === 'number' ? svcSerialToDate(row[0]) : null;
+    if (!purchaseDate) continue;
+    const amount = parseFloat(row[5]) || 0;
+    const serviceName = row[3] ? String(row[3]).trim() : null;
+    if (!serviceName && amount === 0) continue;
+    out.txRows.push({
+      branch: sheetCode,
+      purchase_date: purchaseDate,
+      client_name: row[2] ? String(row[2]).trim() : null,
+      service_name: serviceName,
+      category: row[4] ? String(row[4]).trim() : null,
+      amount
+    });
+  }
+}
+
+// Top Services PDF export, best effort: cluster text items into visual rows by
+// y (same approach as utilisation-pdf.js), cells sorted by x. A data row is
+// [rank, category, ...description, qty, price, time, revenue, profit].
+async function svcParsePdf(file, out) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const Y_TOL = 3;
+  const branch = detectBranch(file.name);
+  let branchFromBody = null;
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const items = content.items.filter(it => it.str.trim() !== '')
+      .sort((a, b) => b.transform[5] - a.transform[5]);
+    const rowsY = [];
+    items.forEach(it => {
+      const y = it.transform[5];
+      let r = rowsY.find(c => Math.abs(c.y - y) <= Y_TOL);
+      if (!r) { r = { y, cells: [] }; rowsY.push(r); }
+      r.cells.push(it);
+    });
+    for (const r of rowsY) {
+      const cells = r.cells.sort((a, b) => a.transform[4] - b.transform[4]).map(it => it.str.trim());
+      if (p === 1 && !branch && !branchFromBody) branchFromBody = detectBranch(cells.join(' '));
+      if (cells.length < 7 || !/^\d+$/.test(cells[0])) continue;
+      const nums = [];
+      let cut = cells.length;
+      for (let i = cells.length - 1; i >= 1; i--) {
+        const n = svcNum(cells[i]);
+        if (n === null || nums.length >= 5) break;
+        nums.unshift(n); cut = i;
+      }
+      if (nums.length < 4 || cut < 3) continue;
+      const [qty, price, time, revenue, profit] = nums.length === 5 ? nums : [nums[0], nums[1], null, nums[2], nums[3]];
+      out.topRows.push({
+        branch: branch || branchFromBody,
+        rank: parseInt(cells[0], 10),
+        category: cells[1],
+        service_name: cells.slice(2, cut).join(' '),
+        qty: qty ?? 0, price, time_hrs: time, revenue, profit,
+        source_file: file.name
+      });
+    }
+  }
+  const missing = out.topRows.filter(r => r.source_file === file.name && !r.branch);
+  if (missing.length) {
+    out.topRows = out.topRows.filter(r => !(r.source_file === file.name && !r.branch));
+    out.unknownBranch.push(file.name);
+  }
+}
+
 async function uploadServiceData() {
-  if (!svcDataFile) return;
+  if (!svcQueue.length) return;
   const year = parseInt(document.getElementById('svc-year-inp').value);
   if (!year || isNaN(year)) { showToast('❌ Enter a valid year'); return; }
+  const pFromEl = document.getElementById('svc-period-from');
+  const pToEl = document.getElementById('svc-period-to');
+  const periodFrom = pFromEl && pFromEl.value ? pFromEl.value : null;
+  const periodTo = pToEl && pToEl.value ? pToEl.value : null;
 
   const btn = document.getElementById('uploadSvcBtn');
   const prog = document.getElementById('svc-progress');
   btn.disabled = true; btn.textContent = 'Uploading...';
   prog.style.display = 'block';
-  prog.innerHTML = 'Parsing file...';
+  prog.innerHTML = 'Parsing files...';
 
   try {
-    const ab = await svcDataFile.arrayBuffer();
-    const wb = XLSX.read(ab, { type: 'array', cellDates: false });
-    const BRANCH_SHEETS = ['KCA', 'SAA', 'MC', 'AQ'];
-    let allRows = [];
-
-    for (const branchCode of BRANCH_SHEETS) {
-      const ws = wb.Sheets[branchCode];
-      if (!ws) continue;
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || row.length < 5) continue;
-        const purchaseDate = typeof row[0] === 'number' ? svcSerialToDate(row[0]) : null;
-        if (!purchaseDate) continue;
-        const amount = parseFloat(row[5]) || 0;
-        const serviceName = row[3] ? String(row[3]).trim() : null;
-        if (!serviceName && amount === 0) continue;
-        allRows.push({
-          year,
-          branch: branchCode,
-          purchase_date: purchaseDate,
-          client_name: row[2] ? String(row[2]).trim() : null,
-          service_name: serviceName,
-          category: row[4] ? String(row[4]).trim() : null,
-          amount
-        });
+    const out = { txRows: [], topRows: [], unknownBranch: [] };
+    for (const file of svcQueue) {
+      prog.innerHTML = `Parsing ${escSvc(file.name)}...`;
+      if (/\.pdf$/i.test(file.name)) {
+        await svcParsePdf(file, out);
+      } else {
+        const ab = await file.arrayBuffer();
+        const wb = XLSX.read(ab, { type: 'array', cellDates: false });
+        for (const sn of wb.SheetNames) svcParseSheet(wb.Sheets[sn], sn, file.name, out);
       }
     }
 
-    if (!allRows.length) throw new Error('No valid data rows found in file');
+    if (out.unknownBranch.length) {
+      throw new Error(`Could not tell which branch these belong to: ${out.unknownBranch.join(', ')}. ` +
+        `Put the branch code (KCA / SAA / MC / AQ) in the filename or sheet name.`);
+    }
+    if (!out.txRows.length && !out.topRows.length) {
+      throw new Error('No valid data rows found. Supported: the 4-sheet transaction export ' +
+        '(KCA/SAA/MC/AQ sheets with dates), or Phorest Top Services reports (# / Category / Description / Qty...) as xlsx, xls, csv or PDF.');
+    }
+    if (out.topRows.length && (!periodFrom || !periodTo)) {
+      throw new Error('Top Services reports carry no dates — set the "Report covers" From and To so the dashboard can label the period.');
+    }
+    if (periodFrom && periodTo && periodFrom > periodTo) throw new Error('"Report covers" From is after To.');
 
-    prog.innerHTML = `Parsed <strong>${allRows.length.toLocaleString()} rows</strong>. Clearing existing ${year} data...`;
+    const doneBits = [];
 
-    const branchesFound = [...new Set(allRows.map(r => r.branch))];
-    for (const b of branchesFound) {
-      const { error: delErr } = await sb.from('service_data').delete().eq('year', year).eq('branch', b);
-      if (delErr) throw delErr;
+    // Transaction rows → service_data (original behaviour: wipe year+branch, insert)
+    if (out.txRows.length) {
+      const txAll = out.txRows.map(r => ({ year, ...r }));
+      const branches = [...new Set(txAll.map(r => r.branch))];
+      prog.innerHTML = `Parsed <strong>${txAll.length.toLocaleString()}</strong> transaction rows. Clearing existing ${year} data (${branches.join(', ')})...`;
+      for (const b of branches) {
+        const { error: delErr } = await sb.from('service_data').delete().eq('year', year).eq('branch', b);
+        if (delErr) throw delErr;
+      }
+      const BATCH = 500;
+      for (let i = 0; i < txAll.length; i += BATCH) {
+        const { error } = await sb.from('service_data').insert(txAll.slice(i, i + BATCH));
+        if (error) throw error;
+        prog.innerHTML = `Uploading transactions... <strong>${Math.min(i + BATCH, txAll.length).toLocaleString()} / ${txAll.length.toLocaleString()}</strong>`;
+      }
+      doneBits.push(`${txAll.length.toLocaleString()} transaction rows (${branches.join(', ')})`);
     }
 
-    const BATCH = 500;
-    let inserted = 0;
-    for (let i = 0; i < allRows.length; i += BATCH) {
-      const { error } = await sb.from('service_data').insert(allRows.slice(i, i + BATCH));
-      if (error) throw error;
-      inserted += Math.min(BATCH, allRows.length - i);
-      prog.innerHTML = `Uploading... <strong>${inserted.toLocaleString()} / ${allRows.length.toLocaleString()}</strong> rows`;
+    // Top Services rows → top_services (replace per year+branch; service_data untouched)
+    if (out.topRows.length) {
+      const topAll = out.topRows.map(r => ({ year, period_from: periodFrom, period_to: periodTo, ...r }));
+      const branches = [...new Set(topAll.map(r => r.branch))];
+      prog.innerHTML = `Parsed <strong>${topAll.length.toLocaleString()}</strong> Top Services rows. Replacing ${year} rankings (${branches.join(', ')})...`;
+      for (const b of branches) {
+        const { error: delErr } = await sb.from('top_services').delete().eq('year', year).eq('branch', b);
+        if (delErr) throw delErr;
+      }
+      const BATCH = 500;
+      for (let i = 0; i < topAll.length; i += BATCH) {
+        const { error } = await sb.from('top_services').insert(topAll.slice(i, i + BATCH));
+        if (error) throw error;
+        prog.innerHTML = `Uploading Top Services... <strong>${Math.min(i + BATCH, topAll.length).toLocaleString()} / ${topAll.length.toLocaleString()}</strong>`;
+      }
+      const perBranch = branches.map(b => `${b} ${topAll.filter(r => r.branch === b).length.toLocaleString()}`).join(' · ');
+      doneBits.push(`Top Services ${year} (${perBranch})`);
     }
 
-    prog.innerHTML = `<span style="color:var(--good)">✅ ${allRows.length.toLocaleString()} rows uploaded for ${year} (${branchesFound.join(', ')})</span>`;
-    showToast(`✅ ${allRows.length.toLocaleString()} rows uploaded`);
-    svcDataFile = null;
-    const nameEl = document.getElementById('svc-filename');
-    if (nameEl) { nameEl.textContent = 'No file selected'; nameEl.style.color = ''; }
-    const inp = document.getElementById('svcFileInput');
-    if (inp) inp.value = '';
+    prog.innerHTML = `<span style="color:var(--good)">✅ Uploaded: ${doneBits.join(' + ')}</span>`;
+    showToast('✅ Service data uploaded');
+    svcQueue = [];
+    svcRenderQueue();
   } catch(e) {
     console.error(e);
-    prog.innerHTML = `<span style="color:var(--bad)">❌ Upload failed: ${e.message}</span>`;
+    prog.innerHTML = `<span style="color:var(--bad)">❌ Upload failed: ${escSvc(e.message)}</span>`;
     showToast('❌ Upload failed');
   }
 

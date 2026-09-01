@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=3"></script>
+<script src="upload.js?v=4"></script>
 <script src="name-aliases.js?v=3"></script>
 <script src="phorest-staff.js?v=9"></script>
 <script src="phorest-pdf.js?v=2"></script>
@@ -505,30 +505,39 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 <div class="tab-content" id="tab-service">
   <div class="upload-card">
     <div class="card-title">Service Performance Upload</div>
-    <div class="card-sub">Upload yearly service data (all 4 branches in one Excel file). Re-uploading the same year overwrites all previous data for that year.</div>
-    <div class="xlsx-badge">✦ Excel File — Sheets: KCA · SAA · MC · AQ</div>
+    <div class="card-sub">Two Phorest exports work here, auto-detected: the 4-sheet transaction file (KCA · SAA · MC · AQ, dated rows), or Top Services reports — one file per branch, as .xlsx, old .xls, .csv or PDF, all four at once. Re-uploading the same year replaces that year's data for the branches in the file.</div>
+    <div class="xlsx-badge">✦ xlsx · xls (97) · csv · pdf — branch from sheet name or filename</div>
 
-    <div style="margin-bottom:16px">
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px">
       <div class="field" style="max-width:160px">
         <label class="field-label">Year</label>
         <input type="number" id="svc-year-inp" value="2026" min="2024" max="2035" style="width:100%">
       </div>
+      <div class="field" style="max-width:180px">
+        <label class="field-label">Report covers — From</label>
+        <input type="date" id="svc-period-from" style="width:100%">
+      </div>
+      <div class="field" style="max-width:180px">
+        <label class="field-label">Report covers — To</label>
+        <input type="date" id="svc-period-to" style="width:100%">
+      </div>
     </div>
+    <div class="card-sub" style="margin-top:-8px;margin-bottom:16px;font-size:11px">Top Services reports carry no dates inside the file — set the period you exported them for in Phorest. Not needed for the transaction file.</div>
 
     <div class="field" style="margin-bottom:16px">
-      <label class="field-label">Service Performance File (.xlsx)</label>
+      <label class="field-label">Service Performance Files</label>
       <div class="file-slot" style="max-width:520px;cursor:pointer"
            onclick="document.getElementById('svcFileInput').click()"
            ondragover="event.preventDefault();this.classList.add('dragover')"
            ondragleave="this.classList.remove('dragover')"
-           ondrop="event.preventDefault();this.classList.remove('dragover');if(event.dataTransfer.files[0])svcFileChosen(event.dataTransfer.files[0])">
+           ondrop="event.preventDefault();this.classList.remove('dragover');if(event.dataTransfer.files.length)svcFilesChosen(event.dataTransfer.files)">
         <div class="slot-drop-area">
           <span class="slot-icon">📊</span>
-          <div class="slot-hint">Click or drag & drop .xlsx here</div>
+          <div class="slot-hint">Click or drag & drop files here (multiple OK)</div>
           <div class="slot-filename" id="svc-filename" style="margin-top:6px;color:var(--muted2)">No file selected</div>
         </div>
-        <input type="file" id="svcFileInput" accept=".xlsx" style="display:none"
-               onchange="if(this.files[0])svcFileChosen(this.files[0])">
+        <input type="file" id="svcFileInput" accept=".xlsx,.xls,.csv,.pdf" multiple style="display:none"
+               onchange="if(this.files.length)svcFilesChosen(this.files)">
       </div>
     </div>
 
