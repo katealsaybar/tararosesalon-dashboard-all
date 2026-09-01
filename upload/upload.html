@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=4"></script>
+<script src="upload.js?v=5"></script>
 <script src="name-aliases.js?v=3"></script>
 <script src="phorest-staff.js?v=9"></script>
 <script src="phorest-pdf.js?v=2"></script>
@@ -76,7 +76,15 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .card-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
 .field{display:flex;flex-direction:column;gap:5px}
 .field-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
-input[type=text],input[type=password],select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--text);background:var(--surface2);font-family:'Inter',sans-serif;transition:border-color .2s;appearance:none}
+input[type=text],input[type=password],input[type=date],input[type=number],select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--text);background:var(--surface2);font-family:'Inter',sans-serif;transition:border-color .2s;appearance:none}
+/* Native date inputs: keep them typable (segment typing works as-is) but dress
+   the widget — theme the popup calendar via color-scheme and tone the icon down
+   to match the muted text instead of the browser's default black glyph. */
+[data-theme="light"] input[type=date]{color-scheme:light}
+[data-theme="dark"] input[type=date]{color-scheme:dark}
+input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.55;transition:opacity .2s}
+input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:1}
+input[type=date]:focus,input[type=number]:focus,input[type=text]:focus,input[type=password]:focus{border-color:var(--accent);outline:none}
 input:focus,select:focus{outline:none;border-color:var(--accent)}
 .btn{width:100%;padding:11px;background:var(--btn);color:var(--btn-fg);border:none;border-radius:10px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;font-weight:700;transition:background .2s,opacity .2s;white-space:nowrap}
 .btn:hover{background:var(--btn-hover)}
@@ -97,6 +105,13 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 @media(max-width:900px){.file-slots{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:560px){.file-slots{grid-template-columns:1fr 1fr}}
 .file-slot{border:1.5px dashed var(--border);border-radius:12px;padding:12px 10px;background:var(--surface2);transition:border-color .2s,background .2s;position:relative;cursor:pointer}
+/* Service Data queue: one pill per queued file — name, detected-branch badge,
+   and a real remove button (not a bare ✕ that reads as an emoji). */
+.svc-file-row{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 6px 5px 12px;margin:3px 4px;font-size:11px;font-weight:600;color:var(--text)}
+.svc-branch-badge{background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:10px;padding:1px 8px;font-size:9px;font-weight:700;letter-spacing:0.08em}
+.svc-branch-badge.unknown{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+.svc-remove-btn{width:18px;height:18px;border-radius:50%;border:none;background:var(--surface2);color:var(--muted);font-size:11px;line-height:1;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;font-family:'Inter',sans-serif;transition:all .15s}
+.svc-remove-btn:hover{background:var(--bad-bg);color:var(--bad)}
 .file-slot:hover,.file-slot.dragover{border-color:var(--accent);background:var(--bg)}
 .file-slot.has-file{border-style:solid;border-color:var(--good);background:var(--good-bg)}
 .file-slot.has-existing{border-style:solid;border-color:var(--warn);background:var(--warn-bg)}

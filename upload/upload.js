@@ -1357,14 +1357,15 @@ function svcRenderQueue() {
   if (nameEl) {
     if (!svcQueue.length) { nameEl.textContent = 'No file selected'; nameEl.style.color = ''; }
     else {
-      nameEl.style.color = 'var(--good)';
+      nameEl.style.color = '';
       nameEl.innerHTML = svcQueue.map((f, i) => {
         const b = detectBranch(f.name);
-        return `<div style="display:flex;align-items:center;gap:8px;justify-content:center">
+        return `<span class="svc-file-row">
           <span>${escSvc(f.name)}</span>
-          ${b ? `<span class="badge" style="font-size:9px">${b}</span>` : ''}
-          <span style="cursor:pointer;color:var(--bad)" onclick="event.stopPropagation();svcRemoveFile(${i})">✕</span>
-        </div>`;
+          <span class="svc-branch-badge${b ? '' : ' unknown'}">${b || 'branch?'}</span>
+          <button type="button" class="svc-remove-btn" title="Remove this file" aria-label="Remove ${escSvc(f.name)}"
+                  onclick="event.stopPropagation();svcRemoveFile(${i})">✕</button>
+        </span>`;
       }).join('');
     }
   }
