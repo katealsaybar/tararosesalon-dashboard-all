@@ -95,6 +95,10 @@ const STAFF_PROFILES = {
   'RUTH':      { photo: 'ruth.png',      role: 'Style Director', branch: 'AQ',   ig: 'rainbowsby_ruth' },
   'IBRAHIM':   { photo: 'ibrahim.png',   role: 'Senior Stylist', branch: 'AQ',   ig: 'almofdi.hairstylist' },
   'AREANNE':   { photo: 'areanne.png',   role: 'Junior Stylist', branch: 'AQ',   ig: 'hairbyareanne' },
+  // 2nd batch cards, Sep 2026 — see the KCA note above. MJ is keyed the way the
+  // ledger writes her (MJ, not Mary Joy — 242 recent AQ rows against none).
+  'SHINE':     { photo: 'shine.png',     role: 'Beauty Therapist', branch: 'AQ', ig: 'beauty_by_shineshine' },
+  'MJ':        { photo: 'mj.png',        role: 'Nail Technician',  branch: 'AQ', ig: 'mj_torresgalos' },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────

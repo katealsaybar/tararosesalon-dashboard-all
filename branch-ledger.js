@@ -305,8 +305,11 @@ function lgTable(cols, rows, opts) {
   // runs above the columns (SERVICES · CLIENTS · TREATMENT · RETAIL). Without it
   // the row reads as seventeen unrelated numbers, which is exactly the thing the
   // banding on her sheet is there to prevent.
+  // The label sits in its own span so stickLgHead() can slide it along the band
+  // as you scroll sideways — a label centred over a span wider than the viewport
+  // is off-screen for most of the scroll, which read as the bands vanishing.
   const groupRow = o.groups ? `<tr class="lg-band">${o.groups.map(g =>
-    `<th colspan="${g.span}" class="${g.label ? '' : 'lg-band-x'}">${g.label || ''}</th>`).join('')}</tr>` : '';
+    `<th colspan="${g.span}" class="${g.label ? '' : 'lg-band-x'}">${g.label ? `<span class="lg-band-t">${g.label}</span>` : ''}</th>`).join('')}</tr>` : '';
   // .lg-sx is the fixed frame the fade sits on; .lg-wrap inside it is what actually
   // scrolls. A pseudo-element on the scroller itself would scroll away with the
   // content, which is exactly when you need it.
@@ -335,6 +338,10 @@ function lgWatchScroll(root) {
       w.classList.toggle('sx',   max > 1);
       w.classList.toggle('sx-l', w.scrollLeft > 1);
       w.classList.toggle('sx-r', max > 1 && w.scrollLeft < max - 1);
+      // The floated thead pins its first cells and slides its band labels by
+      // hand (see stickLgHead) — both depend on scrollLeft, so a sideways
+      // scroll has to re-run it, not just the vertical one.
+      if (typeof stickLgHead === 'function') stickLgHead();
     };
     if (!w._lgSx) {
       w._lgSx = true;

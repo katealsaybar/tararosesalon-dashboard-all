@@ -1501,7 +1501,10 @@ table.lg tbody tr:last-child td{border-bottom:0}
 /* First column is the label — it stays put while the figures scroll under it. */
 table.lg td:first-child,table.lg th:first-child{position:sticky;left:0;background:var(--surface);
   font-weight:500}
-table.lg th:first-child{background:var(--surface2)}
+/* Above its row-mates, because they scroll under it: all th's are positioned, so
+   without this the later cells (and their text) paint over the pinned one. Also
+   holds when the floated thead pins it via transform instead of sticky. */
+table.lg th:first-child{background:var(--surface2);z-index:2}
 @media(hover:hover){table.lg tbody tr:hover td:first-child{background:var(--surface2)}}
 /* Once you have scrolled off it, the frozen column says so: a hard edge and a
    shadow the figures pass under. Only then — unscrolled, a shadow in the middle of
@@ -1685,6 +1688,18 @@ table.lg thead tr.lg-band th{top:0;height:26px;font-size:8.5px;letter-spacing:.1
   border-bottom:1px solid var(--border);border-left:1px solid var(--border)}
 table.lg thead tr.lg-band th.lg-band-x{border-left:0}
 table.lg thead tr.lg-band + tr th{top:26px}
+/* The label rides its own span so stickLgHead() can slide it along the band while
+   you scroll sideways; inline-block so the translate takes. */
+.lg-band-t{display:inline-block}
+/* While floated, the first cells' pinning belongs to stickLgHead()'s translateX
+   alone. Whether position:sticky survives a transformed ancestor varies by
+   engine version — where it does, sticky + the translate pinned the cell twice
+   and parked it in the middle of the table. */
+table.lg thead.lg-float th:first-child{position:relative;left:auto}
+/* Floated by stickLgHead(), the thead is a bar over the middle of the table — the
+   shadow is what says "header", not "row that stopped scrolling". */
+table.lg thead.lg-float tr:last-child th{box-shadow:0 8px 10px -8px rgba(0,0,0,.32)}
+[data-theme="dark"] table.lg thead.lg-float tr:last-child th{box-shadow:0 8px 10px -8px rgba(0,0,0,.75)}
 
 /* Variance. Colour only ever carries status here. */
 .lg-up{color:var(--good);font-weight:600}
@@ -2640,6 +2655,14 @@ addEventListener('resize', sizeTopbar);
 // hand instead — translated down by however far the table has run under the fixed
 // masthead, stopping at the table's foot. All rects are read before any transform
 // is written, so a page of tables costs one layout pass per scroll event.
+// Kate, 1 Sep 2026, second pass: the translate breaks position:sticky for
+// everything inside the thead (a transformed ancestor becomes the containing
+// block), so while floated the frozen first cells are pinned by hand too —
+// otherwise STYLIST scrolls away with the weeks and the header stops being
+// recognisable. Band labels (Services · Clients · …) are also slid along their
+// own band: centred over a span wider than the viewport, the label is off-screen
+// for most of the sideways scroll, floated or not. Both are driven from here, and
+// lgWatchScroll() re-runs this on every sideways scroll.
 function stickLgHead(){
   if (typeof LEDGER_VIEWS === 'undefined' || typeof CURRENT_VIEW === 'undefined'
       || !LEDGER_VIEWS.has(CURRENT_VIEW)) return;
@@ -2648,11 +2671,37 @@ function stickLgHead(){
   const view = document.getElementById('view-' + CURRENT_VIEW);
   if (!view) return;
   const jobs = [...view.querySelectorAll('.lg-wrap > table.lg > thead')].map(h => {
-    const r = h.parentElement.parentElement.getBoundingClientRect();
+    const wrap = h.parentElement.parentElement;
+    const r = wrap.getBoundingClientRect();
     const y = Math.max(0, Math.min(barB - r.top, r.height - h.offsetHeight));
-    return [h, y];
+    return [h, y, wrap];
   });
-  jobs.forEach(([h, y]) => { h.style.transform = y > 0.5 ? `translateY(${y}px)` : ''; });
+  jobs.forEach(([h, y, wrap]) => {
+    const on = y > 0.5;
+    h.style.transform = on ? `translateY(${y}px)` : '';
+    h.classList.toggle('lg-float', on);
+    const sl = wrap.scrollLeft;
+    h.querySelectorAll('tr > th:first-child').forEach(th => {
+      th.style.transform = (on && sl > 0.5) ? `translateX(${sl}px)` : '';
+    });
+    const bands = h.querySelectorAll('.lg-band-t');
+    if (!bands.length) return;
+    // The stretch of table actually visible: from the right edge of the frozen
+    // first column to the wrap's right edge. Each label stays inside it — and
+    // inside its own band, so it never wanders over the next heading.
+    const pinTh = h.querySelector('tr:last-child th:first-child');
+    const pin = pinTh ? pinTh.offsetWidth : 0;
+    const vw = wrap.clientWidth, pad = 11;
+    bands.forEach(t => {
+      const th = t.parentElement;
+      const natural = th.offsetLeft + (th.offsetWidth - t.offsetWidth) / 2;
+      const lo = Math.max(th.offsetLeft + pad, sl + pin + pad);
+      const hi = Math.min(th.offsetLeft + th.offsetWidth - t.offsetWidth - pad,
+                          sl + vw - t.offsetWidth - pad);
+      const dx = (hi >= lo) ? Math.max(lo, Math.min(natural, hi)) - natural : 0;
+      t.style.transform = Math.abs(dx) > 0.5 ? `translateX(${dx}px)` : '';
+    });
+  });
 }
 
 // ── SIDEBAR SCROLLSPY ───────────────────────────────────────

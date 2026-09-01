@@ -22,16 +22,19 @@ not `EDZ`; `LIZANIE`, not `LIZANNIE`).
 
 ## Regenerating from the Canva deck
 
-The existing 27 were cut programmatically from "FINAL STYLIST CARD". The template
-geometry is fixed: the accent panel sits at **(72,143)–(542,600)** in a 1414x2000
-page. The method that works, and the two traps:
+Run `python scripts/cut-staff-avatars.py "<cards folder>" <slug> ...` — it holds
+the template geometry (accent panel at **(72,143)–(542,600)** in a 1414x2000
+page) and the method. The two traps, learned the hard way:
 
 - Take the panel colour from a thin strip inside the panel's left edge. Don't take
   it from the whole card — the "SPECIALISES IN" boxes below reuse the same accent
   for their borders and will drag the detected bounds down with them.
-- Only colour-key **above** the panel line. Below it, mask with a rounded rectangle
-  instead. Keying by colour inside the panel eats black clothing and dark hair,
-  which sit close to the card's own dark background.
+- Above the panel line, key by **flood fill from the image edge with a tight
+  tolerance**, never by a global colour key; below it, mask with a rounded
+  rectangle. A global key measures every pixel against the background and eats
+  dark hair, which sits within ~45 RGB units of the card's dark navy — that is
+  how seven of the 2nd-batch cutouts shipped with transparent hair (fixed 1 Sep
+  2026).
 
 ## File rules
 
