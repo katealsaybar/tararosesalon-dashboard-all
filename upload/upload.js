@@ -64,11 +64,154 @@ function switchTab(e, tab) {
   if (tab === 'ops' && typeof initUtilTab === 'function') initUtilTab();
 }
 
+// ── SEGMENTS ──
+// Each of the daily tabs used to be four full-height cards stacked in one
+// scroll: paste, bulk PDF, backfill progress, browse. You only ever want one of
+// them at a time, so they are now three segments — Upload · Progress · Browse —
+// and only the chosen one is in the document flow. The cards themselves are
+// untouched, they just live inside a .seg-pane now (Kate, 2026-09-03).
+function switchSeg(e, tab, seg){
+  const bar = e.currentTarget.closest('.seg-bar');
+  if (bar) bar.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+  document.querySelectorAll(`#tab-${tab} > .seg-pane`).forEach(p => {
+    p.classList.toggle('active', p.id === `seg-${tab}-${seg}`);
+  });
+}
+
+// Same switch, driven from somewhere other than the segment button itself
+// (the Today strip's paste shortcut).
+function switchSegTo(tab, seg){
+  const btn = document.querySelector(`#tab-${tab} .seg-btn[data-seg="${seg}"]`);
+  if (btn) btn.click();
+}
+
+// ── TODAY STRIP ──
+// Answers "is today's data in yet" without scrolling or reading a 611-day
+// count. Rows come from the coverage set the backfill progress already
+// fetched, so it costs no extra query. Also drives the tab's pip.
+function spRenderTodayStrip(hostId, pipId, pasteTab, rows){
+  const live    = rows.filter(r => !r.ended);
+  const missing = live.filter(r => !r.in);
+  const host = document.getElementById(hostId);
+  if (host){
+    const today = new Date().toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+    host.innerHTML = `
+      <div class="today-date">${today}<span>Today</span></div>
+      <div class="today-pills">` +
+        rows.map(r => r.ended
+          ? `<span class="today-pill ended" title="Past this branch's last day">– ${r.label}</span>`
+          : `<span class="today-pill ${r.in ? 'in' : 'out'}">${r.in ? '&#10003;' : '&#9675;'} ${r.label}</span>`
+        ).join('') +
+      `</div>
+      <span class="today-note">${missing.length ? missing.length + ' still to come' : 'all in'}</span>` +
+      (missing.length && pasteTab ? `<button class="btn" style="width:auto;padding:9px 18px" onclick="spJumpToPaste('${pasteTab}')">Paste now</button>` : '');
+  }
+  const pip = document.getElementById(pipId);
+  if (pip){
+    pip.classList.toggle('clear', missing.length === 0);
+    pip.classList.toggle('warn', missing.length > 0);
+    pip.title = missing.length
+      ? `${missing.length} branch${missing.length === 1 ? '' : 'es'} missing today`
+      : 'every branch in for today';
+  }
+}
+
+function spJumpToPaste(tab){
+  switchSegTo(tab, 'upload');
+  if (tab === 'staffperf'){
+    if (typeof spPasteCollapsed !== 'undefined' && spPasteCollapsed) spTogglePasteCollapse();
+    document.getElementById('spPasteBody')?.scrollIntoView({ behavior:'smooth', block:'center' });
+  } else if (tab === 'ops'){
+    if (typeof utilPasteCollapsed !== 'undefined' && utilPasteCollapsed) utilTogglePasteCollapse();
+    document.getElementById('utilPasteBody')?.scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+}
+
+// ── DATE PRESETS ──
+// The browse filters wanted two dates typed in before every look. The four
+// windows anyone actually asks for are now chips; the From/To pair only shows
+// up under Custom (Kate, 2026-09-03).
+const TR_DATE_PRESETS = {
+  today:     () => { const t = new Date(); return [t, t]; },
+  week:      () => { const t = new Date(), f = new Date(); f.setDate(f.getDate() - 6); return [f, t]; },
+  month:     () => { const t = new Date(); return [new Date(t.getFullYear(), t.getMonth(), 1), t]; },
+  lastmonth: () => { const t = new Date(); return [new Date(t.getFullYear(), t.getMonth() - 1, 1), new Date(t.getFullYear(), t.getMonth(), 0)]; },
+  year:      () => { const t = new Date(); return [new Date(t.getFullYear(), 0, 1), t]; },
+};
+
+// prefix is the shared half of the filter input ids: spf | utilf | ssf.
+function trDatePreset(e, prefix, key, runFn){
+  const bar = e.currentTarget.closest('.date-chips');
+  if (bar) bar.querySelectorAll('.date-chip').forEach(c => c.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+
+  const custom = document.getElementById(`${prefix}Custom`);
+  if (custom) custom.classList.toggle('show', key === 'custom');
+  if (key === 'custom') return;
+
+  const [from, to] = TR_DATE_PRESETS[key]();
+  const fromEl = document.getElementById(`${prefix}From`);
+  const toEl   = document.getElementById(`${prefix}To`);
+  if (fromEl) fromEl.value = trIsoDate(from);
+  if (toEl)   toEl.value   = trIsoDate(to);
+  if (typeof window[runFn] === 'function') window[runFn]();
+}
+
+function trIsoDate(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// Reset puts the dates back to 1 Jan → today, so the chip row has to follow it
+// back to "This year" and fold Custom away again.
+function trResetChips(tab, prefix){
+  const chips = document.querySelectorAll(`#tab-${tab} .date-chip`);
+  chips.forEach(c => c.classList.toggle('active', c.textContent.trim() === 'This year'));
+  document.getElementById(`${prefix}Custom`)?.classList.remove('show');
+}
+
+// ── SAVE BAR COUNT ──
+// The sticky Save All says how many boxes it is about to save, so a paste that
+// silently landed in the wrong box (or nowhere) shows up before saving.
+function trCountFilledBoxes(){
+  [
+    { prefix: 'spBox_',   out: 'spFilledCount' },
+    { prefix: 'utilBox_', out: 'utilFilledCount' },
+  ].forEach(({ prefix, out }) => {
+    const el = document.getElementById(out);
+    if (!el) return;
+    const boxes  = Array.from(document.querySelectorAll(`textarea[id^="${prefix}"]`));
+    const filled = boxes.filter(t => t.value.trim());
+    const empty  = boxes.filter(t => !t.value.trim())
+      .map(t => t.id.slice(prefix.length))
+      .map(code => BRANCHES[code]?.name || code);
+    el.textContent = !boxes.length ? ''
+      : !filled.length ? 'No boxes filled yet'
+      : `${filled.length} of ${boxes.length} boxes filled${empty.length ? ' · still empty: ' + empty.join(', ') : ''}`;
+  });
+}
+
+// ── SERVICES PERIOD ──
+function svcTogglePeriod(){
+  const row = document.getElementById('svcPeriodRow');
+  const btn = document.getElementById('svcPeriodToggleBtn');
+  if (!row || !btn) return;
+  const open = row.style.display !== 'none';
+  row.style.display = open ? 'none' : 'flex';
+  btn.textContent = open ? 'Set report period ▾' : 'Hide report period ▴';
+}
+
 // ── AUTH ──
 window.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('prodFile')?.addEventListener('change', function(){
     document.getElementById('prodFileName').textContent = this.files[0]?.name || '';
+  });
+
+  // Delegated — the paste boxes are rendered later, per branch, by both the
+  // Staff Daily and Utilisation tabs.
+  document.addEventListener('input', e => {
+    if (e.target.tagName === 'TEXTAREA' && /^(spBox_|utilBox_)/.test(e.target.id || '')) trCountFilledBoxes();
   });
 
   if (sessionStorage.getItem('tr_auth') === '1') showPortal();

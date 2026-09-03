@@ -153,7 +153,7 @@ function utilRenderBranchBoxes(){
       <textarea id="utilBox_${code}" placeholder="Paste ${BRANCHES[code].name}'s Staff Utilisation report here (or several days back-to-back)..."></textarea>
       <div class="sp-branch-box-actions">
         <button class="btn" style="width:auto;padding:8px 14px" onclick="handleUtilParseOne('${code}')">Parse &amp; Save</button>
-        <button class="btn-outline" onclick="document.getElementById('utilBox_${code}').value=''; document.getElementById('utilBoxMsg_${code}').textContent=''">Clear</button>
+        <button class="btn-outline" onclick="document.getElementById('utilBox_${code}').value=''; document.getElementById('utilBoxMsg_${code}').textContent=''; trCountFilledBoxes()">Clear</button>
       </div>
       <div id="utilBoxMsg_${code}" class="sp-branch-box-msg"></div>
     </div>
@@ -209,7 +209,7 @@ async function utilParseAndSaveBox(code){
     if (fails.length) msg += ` — ${fails.length} block(s) failed: ` + fails.map((f,i) => `#${i+1} (${f.error})`).join('; ');
 
     utilShowBoxMsg(code, msg, fails.length === 0);
-    if (!fails.length && textarea) textarea.value = '';
+    if (!fails.length && textarea){ textarea.value = ''; trCountFilledBoxes(); }
     return { code, ok: fails.length === 0, days: oks.length, rows: totalRows, message: msg };
   } catch(e){
     const msg = e.message || String(e);
@@ -383,12 +383,19 @@ async function refreshUtilProgress(){
 
   const covered = utilCoveredDaySet(all);
 
+  spProgBeginBatch();
   let html = '';
   for (const code of BRANCH_KEYS){
     const days = spGetBackfillDays(UTIL_BACKFILL_START, UTIL_BRANCH_END[code]);
     html += spRenderBackfillStrips(BRANCHES[code].name, days, covered, d => `${code}|${spIsoDate(d)}`);
   }
   host.innerHTML = html;
+  spProgEndBatch('utilProgressGrid');
+  spRenderTodayStrip('utilTodayStrip', 'tabPipOps', 'ops', BRANCH_KEYS.map(code => ({
+    label: BRANCHES[code].name,
+    in: covered.has(`${code}|${spIsoDate(new Date())}`),
+    ended: !!(UTIL_BRANCH_END[code] && spIsoDate(new Date()) > UTIL_BRANCH_END[code]),
+  })));
 }
 
 // ── BROWSE / FILTER ──────────────────────────────────────────
@@ -413,6 +420,7 @@ function utilPopulateFilterBranch(){
 }
 
 function resetUtilFilter(){
+  trResetChips('ops','utilf');
   document.getElementById('utilfBranch').value = '';
   document.getElementById('utilfStaff').value = '';
   utilSetDefaultFilterDates(true);
@@ -774,6 +782,7 @@ function initUtilTab(){
   utilPopulateFilterBranch();
   utilSetDefaultFilterDates(false);
   utilSyncSummaryToggleUI();
+  trCountFilledBoxes();
   refreshUtilProgress();
   if (typeof initUtilPdfDrop === 'function') initUtilPdfDrop();
 

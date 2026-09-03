@@ -9,12 +9,12 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=5"></script>
+<script src="upload.js?v=6"></script>
 <script src="name-aliases.js?v=3"></script>
-<script src="phorest-staff.js?v=10"></script>
+<script src="phorest-staff.js?v=11"></script>
 <script src="phorest-pdf.js?v=2"></script>
-<script src="utilisation-pdf.js?v=5"></script>
-<script src="sheet-sync.js?v=5"></script>
+<script src="utilisation-pdf.js?v=6"></script>
+<script src="sheet-sync.js?v=6"></script>
 
 <!-- Same two faces as the main dashboard: Inter for everything, Playfair for the
      serif titles. The portal used to load DM Sans + Cormorant Garamond, which is
@@ -64,6 +64,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 /* the (Phorest) / (Yearly) qualifiers — kept, but demoted out of the uppercase rail */
 .tab-qual{text-transform:none;letter-spacing:0.02em;font-weight:400;color:var(--muted2);margin-left:5px}
 .tab-btn.active .tab-qual{color:var(--muted)}
+/* amber until today's data is in for every branch, green once it is */
+.tab-pip{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--border2);margin-left:7px;vertical-align:1px;flex-shrink:0}
+.tab-pip.warn{background:var(--warn)}
+.tab-pip.clear{background:var(--good)}
 .tab-content{display:none}
 .tab-content.active{display:block}
 
@@ -219,9 +223,37 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-branch-box textarea{width:100%;min-height:180px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:ui-monospace,Consolas,monospace;font-size:11px;resize:vertical}
 .sp-branch-box-actions{display:flex;gap:6px}
 .sp-branch-box-msg{font-size:11px;line-height:1.5}
-.sp-day-strip{display:flex;gap:1px;overflow-x:auto;padding-bottom:4px}
-.sp-day-cell{width:6px;height:14px;flex-shrink:0;border-radius:1px;background:var(--border2)}
-.sp-day-cell.done{background:var(--good)}
+/* BACKFILL PROGRESS — 12 month blocks per year, not 365 day cells. A year of
+   6px cells is 2,190px wide, so every year row grew its own sideways scrollbar
+   and a whole year was never visible at once. Click a month to open its days;
+   the day cells below are the old strip, now 15px and wrapping, with the
+   missing days carrying their date number (Kate, 2026-09-03). */
+.sp-prog-branch{border-top:1px solid var(--border2);padding:13px 0}
+.sp-prog-branch:first-child{border-top:none;padding-top:4px}
+.sp-prog-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:9px}
+.sp-prog-name{font-size:12.5px;font-weight:600}
+.sp-prog-meta{font-size:11px;color:var(--muted)}
+.sp-prog-meta b{color:var(--warn)}
+.sp-prog-meta b.ok{color:var(--good)}
+.sp-yr{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.sp-yr-lbl{font-size:10.5px;color:var(--muted2);width:78px;flex-shrink:0}
+.sp-yr-lbl b{color:var(--muted);font-weight:600}
+.sp-mo-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;flex:1;min-width:0}
+.sp-mo{border:none;background:transparent;padding:0;cursor:pointer;text-align:center;font-family:'Inter',sans-serif}
+.sp-mo-bar{height:20px;border-radius:4px;background:var(--border2);position:relative;overflow:hidden}
+.sp-mo-fill{position:absolute;left:0;top:0;bottom:0;background:var(--good)}
+.sp-mo-fill.part{background:var(--warn)}
+.sp-mo-lbl{display:block;font-size:9px;letter-spacing:0.04em;color:var(--muted2);margin-top:3px}
+.sp-mo:hover .sp-mo-bar,.sp-mo.open .sp-mo-bar{outline:1.5px solid var(--accent);outline-offset:1px}
+.sp-mo[disabled]{cursor:default;opacity:.45}
+.sp-mo-days{display:none;margin:8px 0 4px 88px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px}
+.sp-mo-days.show{display:block}
+.sp-mo-days-title{font-size:10.5px;color:var(--muted);margin-bottom:7px}
+.sp-day-strip{display:flex;gap:2px;flex-wrap:wrap}
+.sp-day-cell{width:15px;height:15px;flex-shrink:0;border-radius:3px;background:var(--border2);font-size:8px;color:var(--muted2);display:flex;align-items:center;justify-content:center}
+.sp-day-cell.done{background:var(--good);color:transparent}
+.sp-prog-legend{display:flex;gap:14px;font-size:10.5px;color:var(--muted2);margin-top:12px;flex-wrap:wrap}
+.sp-prog-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px;font-style:normal}
 .sp-pdf-drop{border:1.5px dashed var(--border);border-radius:12px;padding:20px;text-align:center;background:var(--surface2);transition:border-color .2s,background .2s}
 .sp-pdf-drop.dragover{border-color:var(--accent);background:var(--bg)}
 .sp-pdf-row{display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:5px 0;border-bottom:1px solid var(--border2)}
@@ -247,6 +279,39 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-filter-field{display:flex;flex-direction:column;gap:4px}
 .sp-filter-field label{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
 .sp-filter-field input,.sp-filter-field select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:12px;font-family:'Inter',sans-serif}
+
+/* SEGMENTS — Upload · Progress · Browse inside one tab, so only the section
+   you are using is in the scroll (Kate, 2026-09-03). */
+.seg-bar{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:4px;gap:3px;margin-bottom:16px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg-bar::-webkit-scrollbar{display:none}
+.seg-btn{padding:7px 15px;border:none;background:transparent;border-radius:8px;font-family:'Inter',sans-serif;font-size:11.5px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap;flex-shrink:0}
+.seg-btn:hover{color:var(--text)}
+.seg-btn.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.seg-pane{display:none}
+.seg-pane.active{display:block}
+
+/* TODAY STRIP — is today's data in yet, without scrolling for it. */
+.today-strip{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 20px;box-shadow:var(--shadow);margin-bottom:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.today-date{font-family:'Playfair Display',serif;font-size:15px;font-weight:500;white-space:nowrap}
+.today-date span{display:block;font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted2);font-weight:500;margin-top:2px}
+.today-pills{display:flex;gap:8px;flex-wrap:wrap;flex:1;min-width:220px}
+.today-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:20px;font-size:11.5px;font-weight:500;border:1px solid transparent}
+.today-pill.in{background:var(--good-bg)}
+.today-pill.out{background:var(--warn-bg)}
+.today-pill.ended{border-color:var(--border);color:var(--muted2)}
+.today-note{font-size:11px;color:var(--muted);white-space:nowrap}
+
+/* DATE PRESET CHIPS — the four windows anyone asks for; From/To only on Custom. */
+.date-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.date-chip{padding:6px 13px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:11.5px;font-weight:500;cursor:pointer}
+.date-chip:hover{color:var(--text);border-color:var(--muted2)}
+.date-chip.active{background:var(--btn);color:var(--btn-fg);border-color:transparent}
+.date-custom{display:none;gap:10px}
+.date-custom.show{display:flex}
+
+/* STICKY SAVE BAR — one Save All per paste card, always reachable. */
+.save-bar{position:sticky;bottom:12px;margin-top:14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;box-shadow:var(--shadow);z-index:5}
+.save-bar-count{font-size:11.5px;color:var(--muted)}
 .sp-col-picker{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:10px;z-index:30;min-width:180px;max-height:320px;overflow-y:auto}
 .sp-col-picker label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);padding:5px 4px;cursor:pointer;border-radius:6px;white-space:nowrap}
 .sp-col-picker label:hover{background:var(--surface2)}
@@ -384,16 +449,30 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <div id="portalSection" style="display:none;">
     <!-- Labels trimmed to the noun and the qualifier moved into .tab-qual — the
          tab still means exactly what it did, it just stops shouting. Same five
-         tabs, same order, same switchTab targets (Kate, 2026-08-13). -->
+         tabs, same order, same switchTab targets (Kate, 2026-08-13).
+         Renamed again to the job rather than the department: "Operations" and
+         "Service Data" never said what you would do in there. The pips are fed
+         by each tab's own coverage set — amber while a branch is missing
+         today's data, green when they are all in (Kate, 2026-09-03). -->
     <div class="tab-bar">
-      <button class="tab-btn active" onclick="switchTab(event, 'staffperf')">Staff Performance<span class="tab-qual">Phorest</span></button>
-      <button class="tab-btn" onclick="switchTab(event, 'sheetsync')">Ledgers Sync<span class="tab-qual">Sheets</span></button>
-      <button class="tab-btn" onclick="switchTab(event, 'ops')">Operations<span class="tab-qual">Utilisation</span></button>
-      <button class="tab-btn" onclick="switchTab(event, 'products')">Product Usage</button>
-      <button class="tab-btn" onclick="switchTab(event, 'service')">Service Data<span class="tab-qual">Yearly</span></button>
+      <button class="tab-btn active" onclick="switchTab(event, 'staffperf')">Staff Daily<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipStaffperf"></span></button>
+      <button class="tab-btn" onclick="switchTab(event, 'sheetsync')">Ledgers<span class="tab-qual">Sheets</span><span class="tab-pip" id="tabPipSheetsync"></span></button>
+      <button class="tab-btn" onclick="switchTab(event, 'ops')">Utilisation<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipOps"></span></button>
+      <button class="tab-btn" onclick="switchTab(event, 'products')">Products</button>
+      <button class="tab-btn" onclick="switchTab(event, 'service')">Services<span class="tab-qual">Yearly</span></button>
     </div>
 
     <div class="tab-content" id="tab-ops">
+
+  <div id="utilTodayStrip" class="today-strip"></div>
+
+  <div class="seg-bar">
+    <button class="seg-btn active" data-seg="upload" onclick="switchSeg(event,'ops','upload')">Upload</button>
+    <button class="seg-btn" data-seg="progress" onclick="switchSeg(event,'ops','progress')">Progress</button>
+    <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'ops','browse')">Browse</button>
+  </div>
+
+  <div class="seg-pane active" id="seg-ops-upload">
 
   <!-- PASTE & SAVE — one box per branch, mirrors the Staff Performance Overview paste flow -->
   <div class="upload-card">
@@ -401,20 +480,23 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div>
         <div class="card-title">Paste Staff Utilisation</div>
         <div class="card-sub" style="margin-bottom:0">
-          Phorest "Staff Utilisation" report viewer → Ctrl+A, Ctrl+C → paste into the matching branch's box below. Each box saves independently — paste several days back-to-back in one box for a batch save, or fill several and hit Save All.
+          Phorest "Staff Utilisation" viewer → Ctrl+A, Ctrl+C → paste into the branch's box. Several days back-to-back in one box is fine.
         </div>
       </div>
       <button class="btn-outline" id="utilPasteToggleBtn" onclick="utilTogglePasteCollapse()" style="padding:8px 16px;flex-shrink:0">Show ▾</button>
     </div>
 
     <div id="utilPasteBody" style="display:none;margin-top:18px">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-        <button class="btn" style="width:auto;padding:11px 22px" onclick="handleUtilSaveAll()">Save All</button>
-      </div>
       <div id="utilSaveAllMsg" class="err" style="text-align:left;margin-bottom:10px"></div>
 
       <div class="sp-branch-grid" id="utilBranchBoxes"></div>
-      <button class="btn" style="width:auto;padding:11px 22px;margin-top:14px" onclick="handleUtilSaveAll()">Save All</button>
+
+      <!-- One sticky Save All instead of the pair that used to sit above and
+           below the boxes (Kate, 2026-09-03). -->
+      <div class="save-bar">
+        <span class="save-bar-count" id="utilFilledCount">No boxes filled yet</span>
+        <button class="btn" style="width:auto;padding:11px 22px" onclick="handleUtilSaveAll()">Save all filled boxes</button>
+      </div>
     </div>
   </div>
 
@@ -423,7 +505,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div>
         <div class="card-title">Bulk Upload Utilisation PDFs</div>
-        <div class="card-sub">Drop the Phorest "Staff Utilisation" PDFs you bulk-downloaded — branch is read from each filename (e.g. al-quoz-staff-utilisation-2026-01-01.pdf).</div>
+        <div class="card-sub">For backfilling. Branch and date are read from each filename.</div>
       </div>
       <button class="btn" id="utilPdfParseBtn" style="width:auto;padding:11px 22px;flex-shrink:0" onclick="handleUtilPdfBatch()">Parse &amp; Save All</button>
     </div>
@@ -431,23 +513,37 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <input type="file" id="utilPdfInput" accept="application/pdf" multiple style="display:none" onchange="utilQueuePdfFiles(this.files)">
       <div onclick="document.getElementById('utilPdfInput').click()" style="cursor:pointer">
         <div style="font-size:13px;color:var(--muted)">Click to choose PDFs, or drag &amp; drop them here</div>
+        <div style="font-size:10.5px;color:var(--muted2);margin-top:4px">al-quoz-staff-utilisation-2026-01-01.pdf</div>
         <div id="utilPdfQueueCount" style="font-size:11px;color:var(--muted2);margin-top:4px">No files queued</div>
       </div>
     </div>
     <div id="utilPdfResults" style="margin-top:10px"></div>
   </div>
 
+  </div><!-- /seg-ops-upload -->
+
   <!-- BACKFILL PROGRESS -->
+  <div class="seg-pane" id="seg-ops-progress">
   <div class="upload-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px;flex-wrap:wrap">
       <div class="card-title" style="margin-bottom:0">Backfill Progress</div>
-      <button class="btn-outline" onclick="refreshUtilProgress()" style="padding:8px 16px">↻ Refresh</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-outline" onclick="spCopyMissingDates('utilProgressGrid')" style="padding:8px 16px">Copy missing dates</button>
+        <button class="btn-outline" onclick="refreshUtilProgress()" style="padding:8px 16px">↻ Refresh</button>
+      </div>
     </div>
-    <div class="card-sub">One pull per branch per day, Jan 1 2025 → today, one strip per year</div>
+    <div class="card-sub">One pull per branch per day, Jan 2025 → today. Click a month to open its days.</div>
     <div id="utilProgressGrid"><div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div></div>
+    <div class="sp-prog-legend">
+      <span><i style="background:var(--good)"></i>complete</span>
+      <span><i style="background:var(--warn)"></i>partial</span>
+      <span><i style="background:var(--border2)"></i>nothing yet</span>
+    </div>
   </div>
+  </div><!-- /seg-ops-progress -->
 
   <!-- BROWSE / FILTER -->
+  <div class="seg-pane" id="seg-ops-browse">
   <div class="upload-card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div class="card-title" style="margin-bottom:0">Browse Data</div>
@@ -463,6 +559,14 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
         </div>
       </div>
     </div>
+    <div class="date-chips">
+      <button class="date-chip" onclick="trDatePreset(event,'utilf','today','runUtilFilter')">Today</button>
+      <button class="date-chip" onclick="trDatePreset(event,'utilf','week','runUtilFilter')">Last 7 days</button>
+      <button class="date-chip" onclick="trDatePreset(event,'utilf','month','runUtilFilter')">This month</button>
+      <button class="date-chip" onclick="trDatePreset(event,'utilf','lastmonth','runUtilFilter')">Last month</button>
+      <button class="date-chip active" onclick="trDatePreset(event,'utilf','year','runUtilFilter')">This year</button>
+      <button class="date-chip" onclick="trDatePreset(event,'utilf','custom','runUtilFilter')">Custom…</button>
+    </div>
     <div class="sp-filter-row">
       <div class="sp-filter-field">
         <label>Branch</label>
@@ -472,13 +576,15 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
         <label>Staff</label>
         <input type="text" id="utilfStaff" placeholder="Search name…">
       </div>
-      <div class="sp-filter-field">
-        <label>From</label>
-        <input type="date" id="utilfFrom">
-      </div>
-      <div class="sp-filter-field">
-        <label>To</label>
-        <input type="date" id="utilfTo">
+      <div class="date-custom" id="utilfCustom">
+        <div class="sp-filter-field">
+          <label>From</label>
+          <input type="date" id="utilfFrom">
+        </div>
+        <div class="sp-filter-field">
+          <label>To</label>
+          <input type="date" id="utilfTo">
+        </div>
       </div>
       <button class="btn" style="width:auto;padding:9px 18px" onclick="runUtilFilter()">Apply</button>
       <button class="btn-outline" onclick="resetUtilFilter()">Reset</button>
@@ -487,6 +593,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div id="utilTableHost" style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>
     </div>
   </div>
+  </div><!-- /seg-ops-browse -->
 
   </div>
 
@@ -520,14 +627,20 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 <div class="tab-content" id="tab-service">
   <div class="upload-card">
     <div class="card-title">Service Performance Upload</div>
-    <div class="card-sub">Two Phorest exports work here, auto-detected: the 4-sheet transaction file (KCA · SAA · MC · AQ, dated rows), or Top Services reports — one file per branch, as .xlsx, old .xls, .csv or PDF, all four at once. Re-uploading the same year replaces that year's data for the branches in the file.</div>
+    <div class="card-sub">Two Phorest exports, auto-detected: the 4-sheet transaction file, or Top Services reports (one per branch). Re-uploading a year replaces that year for the branches in the file.</div>
     <div class="xlsx-badge">✦ xlsx · xls (97) · csv · pdf — branch from sheet name or filename</div>
 
-    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px">
+    <!-- The period pair only matters for Top Services reports, which carry no
+         dates inside the file. Folded away by default so the common case (the
+         transaction file) is Year plus a drop (Kate, 2026-09-03). -->
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px">
       <div class="field" style="max-width:160px">
         <label class="field-label">Year</label>
         <input type="number" id="svc-year-inp" value="2026" min="2024" max="2035" style="width:100%">
       </div>
+      <button class="btn-outline" id="svcPeriodToggleBtn" onclick="svcTogglePeriod()" style="padding:9px 16px">Set report period ▾</button>
+    </div>
+    <div id="svcPeriodRow" style="display:none;gap:14px;flex-wrap:wrap;margin-bottom:8px">
       <div class="field" style="max-width:180px">
         <label class="field-label">Report covers — From</label>
         <input type="date" id="svc-period-from" style="width:100%">
@@ -537,7 +650,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
         <input type="date" id="svc-period-to" style="width:100%">
       </div>
     </div>
-    <div class="card-sub" style="margin-top:-8px;margin-bottom:16px;font-size:11px">Top Services reports carry no dates inside the file — set the period you exported them for in Phorest. Not needed for the transaction file.</div>
+    <div class="card-sub" style="margin-bottom:16px;font-size:11px">Only Top Services reports need a period. The transaction file carries its own dates.</div>
 
     <div class="field" style="margin-bottom:16px">
       <label class="field-label">Service Performance Files</label>
@@ -567,26 +680,39 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 <!-- ══ STAFF PERFORMANCE (PHOREST) TAB ══ -->
 <div class="tab-content active" id="tab-staffperf">
 
+  <div id="spTodayStrip" class="today-strip"></div>
+
+  <div class="seg-bar">
+    <button class="seg-btn active" data-seg="upload" onclick="switchSeg(event,'staffperf','upload')">Upload</button>
+    <button class="seg-btn" data-seg="progress" onclick="switchSeg(event,'staffperf','progress')">Progress</button>
+    <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'staffperf','browse')">Browse</button>
+  </div>
+
+  <div class="seg-pane active" id="seg-staffperf-upload">
+
   <!-- PASTE & SAVE — one box per branch, so all 4 can be pasted side by side -->
   <div class="upload-card">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div>
         <div class="card-title">Paste Staff Performance Overview</div>
         <div class="card-sub" style="margin-bottom:0">
-          Phorest report viewer → Ctrl+A, Ctrl+C → paste into the matching branch's box below. Each box saves independently — paste several days back-to-back in one box for a batch save, or fill all 4 and hit Save All.
+          Phorest report viewer → Ctrl+A, Ctrl+C → paste into the branch's box. Several days back-to-back in one box is fine.
         </div>
       </div>
       <button class="btn-outline" id="spPasteToggleBtn" onclick="spTogglePasteCollapse()" style="padding:8px 16px;flex-shrink:0">Show ▾</button>
     </div>
 
     <div id="spPasteBody" style="display:none;margin-top:18px">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-        <button class="btn" style="width:auto;padding:11px 22px" onclick="handleStaffPerfSaveAll()">Save All</button>
-      </div>
       <div id="spSaveAllMsg" class="err" style="text-align:left;margin-bottom:10px"></div>
 
       <div class="sp-branch-grid" id="spBranchBoxes"></div>
-      <button class="btn" style="width:auto;padding:11px 22px;margin-top:14px" onclick="handleStaffPerfSaveAll()">Save All</button>
+
+      <!-- One sticky Save All instead of the pair that used to sit above and
+           below the boxes (Kate, 2026-09-03). -->
+      <div class="save-bar">
+        <span class="save-bar-count" id="spFilledCount">No boxes filled yet</span>
+        <button class="btn" style="width:auto;padding:11px 22px" onclick="handleStaffPerfSaveAll()">Save all filled boxes</button>
+      </div>
     </div>
   </div>
 
@@ -596,7 +722,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div>
         <div class="card-title">Bulk Upload PDFs</div>
         <div class="card-sub">
-          Drop the Phorest "Staff Performance Overview" PDFs you bulk-downloaded — branch and date are read from each filename (e.g. al-quoz-staff-performance-2026-02-13.pdf), so files from any branch/day can be dropped together in one go.
+          For backfilling. Branch and date are read from each filename, so any mix of branches and days can go in together.
         </div>
       </div>
       <button class="btn" id="spPdfParseBtn" style="width:auto;padding:11px 22px;flex-shrink:0" onclick="handleStaffPerfPdfBatch()">Parse &amp; Save All</button>
@@ -605,23 +731,37 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <input type="file" id="spPdfInput" accept="application/pdf" multiple style="display:none" onchange="spQueuePdfFiles(this.files)">
       <div onclick="document.getElementById('spPdfInput').click()" style="cursor:pointer">
         <div style="font-size:13px;color:var(--muted)">Click to choose PDFs, or drag &amp; drop them here</div>
+        <div style="font-size:10.5px;color:var(--muted2);margin-top:4px">al-quoz-staff-performance-2026-02-13.pdf</div>
         <div id="spPdfQueueCount" style="font-size:11px;color:var(--muted2);margin-top:4px">No files queued</div>
       </div>
     </div>
     <div id="spPdfResults" style="margin-top:10px"></div>
   </div>
 
+  </div><!-- /seg-staffperf-upload -->
+
   <!-- BACKFILL PROGRESS -->
+  <div class="seg-pane" id="seg-staffperf-progress">
   <div class="upload-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px;flex-wrap:wrap">
       <div class="card-title" style="margin-bottom:0">Backfill Progress</div>
-      <button class="btn-outline" onclick="refreshStaffPerfProgress()" style="padding:8px 16px">↻ Refresh</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-outline" onclick="spCopyMissingDates('spProgressGrid')" style="padding:8px 16px">Copy missing dates</button>
+        <button class="btn-outline" onclick="refreshStaffPerfProgress()" style="padding:8px 16px">↻ Refresh</button>
+      </div>
     </div>
-    <div class="card-sub">One pull per branch per day, Jan 1 2025 → today, one strip per year</div>
+    <div class="card-sub">One pull per branch per day, Jan 2025 → today. Click a month to open its days.</div>
     <div id="spProgressGrid"><div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div></div>
+    <div class="sp-prog-legend">
+      <span><i style="background:var(--good)"></i>complete</span>
+      <span><i style="background:var(--warn)"></i>partial</span>
+      <span><i style="background:var(--border2)"></i>nothing yet</span>
+    </div>
   </div>
+  </div><!-- /seg-staffperf-progress -->
 
   <!-- BROWSE / FILTER -->
+  <div class="seg-pane" id="seg-staffperf-browse">
   <div class="upload-card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div class="card-title" style="margin-bottom:0">Browse Data</div>
@@ -637,6 +777,14 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
         </div>
       </div>
     </div>
+    <div class="date-chips">
+      <button class="date-chip" onclick="trDatePreset(event,'spf','today','runStaffPerfFilter')">Today</button>
+      <button class="date-chip" onclick="trDatePreset(event,'spf','week','runStaffPerfFilter')">Last 7 days</button>
+      <button class="date-chip" onclick="trDatePreset(event,'spf','month','runStaffPerfFilter')">This month</button>
+      <button class="date-chip" onclick="trDatePreset(event,'spf','lastmonth','runStaffPerfFilter')">Last month</button>
+      <button class="date-chip active" onclick="trDatePreset(event,'spf','year','runStaffPerfFilter')">This year</button>
+      <button class="date-chip" onclick="trDatePreset(event,'spf','custom','runStaffPerfFilter')">Custom…</button>
+    </div>
     <div class="sp-filter-row">
       <div class="sp-filter-field">
         <label>Branch</label>
@@ -646,13 +794,15 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
         <label>Stylist</label>
         <input type="text" id="spfStylist" placeholder="Search name…">
       </div>
-      <div class="sp-filter-field">
-        <label>From</label>
-        <input type="date" id="spfFrom">
-      </div>
-      <div class="sp-filter-field">
-        <label>To</label>
-        <input type="date" id="spfTo">
+      <div class="date-custom" id="spfCustom">
+        <div class="sp-filter-field">
+          <label>From</label>
+          <input type="date" id="spfFrom">
+        </div>
+        <div class="sp-filter-field">
+          <label>To</label>
+          <input type="date" id="spfTo">
+        </div>
       </div>
       <button class="btn" style="width:auto;padding:9px 18px" onclick="runStaffPerfFilter()">Apply</button>
       <button class="btn-outline" onclick="resetStaffPerfFilter()">Reset</button>
@@ -661,24 +811,33 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div id="spTableHost" style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>
     </div>
   </div>
+  </div><!-- /seg-staffperf-browse -->
 
 </div>
 
 <!-- ══ SHEETS SYNC TAB ══ -->
 <div class="tab-content" id="tab-sheetsync">
 
+  <div class="seg-bar">
+    <button class="seg-btn active" data-seg="upload" onclick="switchSeg(event,'sheetsync','upload')">Status</button>
+    <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'sheetsync','browse')">Browse</button>
+  </div>
+
+  <div class="seg-pane active" id="seg-sheetsync-upload">
   <div class="upload-card">
-    <div class="card-title">Google Sheets Sync</div>
-    <div class="card-sub">
-      Auto-pushed from each branch's Google Sheet (<code>_temp_placeholder</code> tab) via Apps Script — nothing to upload here, this just shows what's arrived so far.
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-      <button class="btn-outline" onclick="refreshSheetSyncStatus()" style="padding:8px 16px">↻ Refresh</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div>
+        <div class="card-title">Google Sheets Sync</div>
+        <div class="card-sub" style="margin-bottom:0">Auto-pushed from each branch's Sheet (<code>_temp_placeholder</code> tab). Nothing to upload here.</div>
+      </div>
+      <button class="btn-outline" onclick="refreshSheetSyncStatus()" style="padding:8px 16px;flex-shrink:0">↻ Refresh</button>
     </div>
     <div id="ssLastSynced" class="sp-branch-grid"><div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div></div>
   </div>
+  </div><!-- /seg-sheetsync-upload -->
 
   <!-- BROWSE / FILTER -->
+  <div class="seg-pane" id="seg-sheetsync-browse">
   <div class="upload-card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div class="card-title" style="margin-bottom:0">Browse Synced Data</div>
@@ -694,6 +853,14 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
         </div>
       </div>
     </div>
+    <div class="date-chips">
+      <button class="date-chip" onclick="trDatePreset(event,'ssf','today','runSheetSyncFilter')">Today</button>
+      <button class="date-chip" onclick="trDatePreset(event,'ssf','week','runSheetSyncFilter')">Last 7 days</button>
+      <button class="date-chip" onclick="trDatePreset(event,'ssf','month','runSheetSyncFilter')">This month</button>
+      <button class="date-chip" onclick="trDatePreset(event,'ssf','lastmonth','runSheetSyncFilter')">Last month</button>
+      <button class="date-chip active" onclick="trDatePreset(event,'ssf','year','runSheetSyncFilter')">This year</button>
+      <button class="date-chip" onclick="trDatePreset(event,'ssf','custom','runSheetSyncFilter')">Custom…</button>
+    </div>
     <div class="sp-filter-row">
       <div class="sp-filter-field">
         <label>Branch</label>
@@ -703,13 +870,15 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
         <label>Staff</label>
         <input type="text" id="ssfStaff" placeholder="Search name…">
       </div>
-      <div class="sp-filter-field">
-        <label>From</label>
-        <input type="date" id="ssfFrom">
-      </div>
-      <div class="sp-filter-field">
-        <label>To</label>
-        <input type="date" id="ssfTo">
+      <div class="date-custom" id="ssfCustom">
+        <div class="sp-filter-field">
+          <label>From</label>
+          <input type="date" id="ssfFrom">
+        </div>
+        <div class="sp-filter-field">
+          <label>To</label>
+          <input type="date" id="ssfTo">
+        </div>
       </div>
       <button class="btn" style="width:auto;padding:9px 18px" onclick="runSheetSyncFilter()">Apply</button>
       <button class="btn-outline" onclick="resetSheetSyncFilter()">Reset</button>
@@ -718,5 +887,6 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div id="ssTableHost" style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply.</div>
     </div>
   </div>
+  </div><!-- /seg-sheetsync-browse -->
 
 </div>

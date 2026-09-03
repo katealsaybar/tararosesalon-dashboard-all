@@ -30,6 +30,7 @@ async function refreshSheetSyncStatus(){
       <div style="font-size:12px;color:var(--muted)">Loading…</div>
     </div>`).join('');
 
+  const lastByBranch = {};
   await Promise.all(BRANCH_KEYS.map(async k => {
     const el = document.getElementById(`ssStat_${k}`);
     if (!el) return;
@@ -42,6 +43,7 @@ async function refreshSheetSyncStatus(){
       return;
     }
     const lastDate = latest && latest.length ? latest[0].date : null;
+    lastByBranch[k] = lastDate;
     el.innerHTML = `
       <div class="sp-branch-box-title">${BRANCHES[k].name}</div>
       <div style="font-size:12px;color:${lastDate ? 'var(--good)' : 'var(--muted2)'};margin-top:2px">
@@ -49,6 +51,26 @@ async function refreshSheetSyncStatus(){
       </div>
       <div style="font-size:11px;color:var(--muted)">${count || 0} row${count===1?'':'s'} total</div>`;
   }));
+
+  ssSetTabPip(lastByBranch);
+}
+
+// The Ledgers tab's pip. Unlike the Phorest tabs this feed arrives through
+// Apps Script on its own schedule, so "today" is the wrong bar — green means
+// every branch has landed something dated yesterday or later, i.e. the pipe is
+// alive; amber names the branch that has gone quiet (Kate, 2026-09-03).
+function ssSetTabPip(lastByBranch){
+  const pip = document.getElementById('tabPipSheetsync');
+  if (!pip) return;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 1);
+  const cutoffIso = spIsoDate(cutoff);
+  const stale = BRANCH_KEYS.filter(k => !lastByBranch[k] || lastByBranch[k] < cutoffIso);
+  pip.classList.toggle('clear', stale.length === 0);
+  pip.classList.toggle('warn', stale.length > 0);
+  pip.title = stale.length
+    ? `Nothing since ${cutoffIso} from: ${stale.map(k => BRANCHES[k].name).join(', ')}`
+    : 'every branch synced within the last day';
 }
 
 // ── BROWSE / FILTER ──────────────────────────────────────────
@@ -74,6 +96,7 @@ function ssSetDefaultFilterDates(force){
 }
 
 function resetSheetSyncFilter(){
+  trResetChips('sheetsync','ssf');
   document.getElementById('ssfBranch').value = '';
   document.getElementById('ssfStaff').value = '';
   ssSetDefaultFilterDates(true);

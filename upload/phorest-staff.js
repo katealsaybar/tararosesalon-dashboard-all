@@ -259,7 +259,7 @@ function spRenderBranchBoxes(){
       <textarea id="spBox_${b.code}" placeholder="Paste ${b.label}'s report here (or several days back-to-back)..."></textarea>
       <div class="sp-branch-box-actions">
         <button class="btn" style="width:auto;padding:8px 14px" onclick="handleStaffPerfParseOne('${b.code}')">Parse &amp; Save</button>
-        <button class="btn-outline" onclick="document.getElementById('spBox_${b.code}').value=''; document.getElementById('spBoxMsg_${b.code}').textContent=''">Clear</button>
+        <button class="btn-outline" onclick="document.getElementById('spBox_${b.code}').value=''; document.getElementById('spBoxMsg_${b.code}').textContent=''; trCountFilledBoxes()">Clear</button>
       </div>
       <div id="spBoxMsg_${b.code}" class="sp-branch-box-msg"></div>
     </div>
@@ -313,7 +313,7 @@ async function spParseAndSaveBox(code){
     if (fails.length) msg += ` — ${fails.length} report(s) failed: ` + fails.map(f => `#${f.blockIndex+1} (${f.error})`).join('; ');
 
     spShowBoxMsg(code, msg, fails.length === 0);
-    if (!fails.length && textarea) textarea.value = '';
+    if (!fails.length && textarea){ textarea.value = ''; trCountFilledBoxes(); }
     return { code, ok: fails.length === 0, days: oks.length, rows: allRows.length, message: msg };
   } catch(e){
     const msg = e.message || String(e);
@@ -388,44 +388,136 @@ async function refreshStaffPerfProgress(){
 
   const covered = new Set(all.map(r => `${r.branch}|${r.date}`));
 
+  spProgBeginBatch();
   let html = '';
   for (const b of SP_BRANCHES){
     const days = spGetBackfillDays(b.start, b.end);
     html += spRenderBackfillStrips(b.label, days, covered, d => `${b.code}|${spIsoDate(d)}`);
   }
   host.innerHTML = html;
+  spProgEndBatch('spProgressGrid');
+  spRenderTodayStrip('spTodayStrip', 'tabPipStaffperf', 'staffperf', SP_BRANCHES.map(b => ({
+    label: b.label,
+    in: covered.has(`${b.code}|${spIsoDate(new Date())}`),
+    ended: !!(b.end && spIsoDate(new Date()) > b.end),
+  })));
 }
 
-// One strip per calendar year, newest on top. A single Jan 2025 -> today strip
-// would be 600+ of the 6px cells and stop reading as days. The branch line keeps
-// the all-years count and the earliest gap (so backfilling still runs oldest
-// first); each year row carries its own count. Shared with the Utilisation tab,
-// which loads after this file (Kate, 2026-09-03).
+// One row per calendar year, newest on top, and each year is 12 month blocks
+// rather than 365 day cells: a year of the old 6px cells came to 2,190px, so
+// every year row grew its own sideways scrollbar and a whole year was never
+// visible at once. A block's fill is that month's share of captured days
+// (green = complete, amber = partial, empty = nothing yet) and clicking it
+// opens the actual days underneath, so the day-level truth is one click away
+// instead of being the default. The branch line keeps the all-years count and
+// the earliest gap, so backfilling still runs oldest first. Shared with the
+// Utilisation tab, which loads after this file (Kate, 2026-09-03).
+const SP_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// The day panel and "Copy missing dates" both need the covered set and the
+// branch's own key function after render, so each strip parks them here under
+// an id the markup carries. spProgBeginBatch/EndBatch scope one card's strips
+// together and drop the previous render's entries.
+const spProg = {};
+const spProgByHost = {};
+let spProgBatch = [];
+let spProgSeq = 0;
+
+function spProgBeginBatch(){ spProgBatch = []; }
+function spProgEndBatch(hostId){
+  (spProgByHost[hostId] || []).forEach(uid => { delete spProg[uid]; });
+  spProgByHost[hostId] = spProgBatch.slice();
+  spProgBatch = [];
+}
+
 function spRenderBackfillStrips(label, days, covered, keyOf){
+  const uid = 'pg' + (++spProgSeq);
+  spProg[uid] = { label, days, covered, keyOf };
+  spProgBatch.push(uid);
+
   const doneDays = days.filter(d => covered.has(keyOf(d)));
   const firstMissing = days.find(d => !covered.has(keyOf(d)));
   const byYear = new Map();
   days.forEach(d => { const y = d.getFullYear(); if (!byYear.has(y)) byYear.set(y, []); byYear.get(y).push(d); });
   const years = [...byYear.keys()].sort((a,b) => b-a);
-  return `<div style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
-        <span style="font-weight:600">${label}</span>
-        <span style="color:var(--muted)">${doneDays.length}/${days.length} days${firstMissing ? ' — next missing: <b style="color:var(--warn)">'+firstMissing.toLocaleDateString('en-GB')+'</b>' : ' — <b style="color:var(--good)">fully captured</b>'}</span>
+
+  return `<div class="sp-prog-branch">
+      <div class="sp-prog-head">
+        <span class="sp-prog-name">${label}</span>
+        <span class="sp-prog-meta">${doneDays.length}/${days.length} days${firstMissing ? ' · oldest gap <b>'+firstMissing.toLocaleDateString('en-GB')+'</b>' : ' · <b class="ok">fully captured</b>'}</span>
       </div>` +
     years.map(y => {
       const yDays = byYear.get(y);
       const yDone = yDays.filter(d => covered.has(keyOf(d))).length;
-      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
-        <span style="font-size:10px;color:var(--muted2);width:72px;flex-shrink:0"><b style="color:var(--muted)">${y}</b> ${yDone}/${yDays.length}</span>
-        <div class="sp-day-strip" style="flex:1;min-width:0">` +
-        yDays.map(d => {
-          const done = covered.has(keyOf(d));
-          const lbl = d.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'short', year:'numeric' });
-          return `<div class="sp-day-cell${done?' done':''}" title="${lbl}"></div>`;
+      // Counted per month rather than assumed 28-31, so a branch whose range
+      // starts or ends mid-month (FRT) shows that month's real denominator.
+      const months = Array.from({length:12}, () => ({ total:0, done:0 }));
+      yDays.forEach(d => {
+        const m = months[d.getMonth()];
+        m.total++;
+        if (covered.has(keyOf(d))) m.done++;
+      });
+      return `<div class="sp-yr">
+        <span class="sp-yr-lbl"><b>${y}</b> ${yDone}/${yDays.length}</span>
+        <div class="sp-mo-grid">` +
+        months.map((m, i) => {
+          if (!m.total){
+            return `<button class="sp-mo" disabled title="${SP_MONTHS[i]} ${y} — outside this branch's range"><div class="sp-mo-bar"></div><span class="sp-mo-lbl">${SP_MONTHS[i][0]}</span></button>`;
+          }
+          const pct = Math.round(m.done / m.total * 100);
+          return `<button class="sp-mo" onclick="spOpenProgMonth(this,'${uid}',${y},${i})" title="${SP_MONTHS[i]} ${y} — ${m.done}/${m.total} days${m.done === m.total ? '' : ' · click for the days'}">
+            <div class="sp-mo-bar">${m.done ? `<div class="sp-mo-fill${pct === 100 ? '' : ' part'}" style="width:${pct}%"></div>` : ''}</div>
+            <span class="sp-mo-lbl">${SP_MONTHS[i][0]}</span></button>`;
         }).join('') +
-        '</div></div>';
+        `</div></div><div class="sp-mo-days" id="${uid}-days-${y}"></div>`;
     }).join('') +
     '</div>';
+}
+
+// Opens one month's days under its year row. One panel open at a time per card,
+// and clicking the open month closes it again.
+function spOpenProgMonth(btn, uid, year, monthIdx){
+  const st = spProg[uid];
+  const box = document.getElementById(`${uid}-days-${year}`);
+  if (!st || !box) return;
+
+  const wasOpen = btn.classList.contains('open');
+  const card = btn.closest('.upload-card') || document;
+  card.querySelectorAll('.sp-mo.open').forEach(b => b.classList.remove('open'));
+  card.querySelectorAll('.sp-mo-days.show').forEach(d => { d.classList.remove('show'); d.innerHTML = ''; });
+  if (wasOpen) return;
+
+  btn.classList.add('open');
+  const mDays = st.days.filter(d => d.getFullYear() === year && d.getMonth() === monthIdx);
+  const done  = mDays.filter(d => st.covered.has(st.keyOf(d))).length;
+  box.innerHTML = `<div class="sp-mo-days-title"><b>${SP_MONTHS[monthIdx]} ${year}</b> · ${st.label} · ${done} of ${mDays.length} days captured</div>
+    <div class="sp-day-strip">` +
+    mDays.map(d => {
+      const ok  = st.covered.has(st.keyOf(d));
+      const lbl = d.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'short', year:'numeric' });
+      return `<div class="sp-day-cell${ok ? ' done' : ''}" title="${lbl}${ok ? '' : ' — missing'}">${ok ? '' : d.getDate()}</div>`;
+    }).join('') +
+    '</div>';
+  box.classList.add('show');
+}
+
+// Every gap in one card, oldest first, straight to the clipboard — so a
+// backfill session can work off a list instead of hunting amber blocks.
+function spCopyMissingDates(hostId){
+  const lines = [];
+  let total = 0;
+  (spProgByHost[hostId] || []).forEach(uid => {
+    const st = spProg[uid];
+    if (!st) return;
+    const miss = st.days.filter(d => !st.covered.has(st.keyOf(d)));
+    if (!miss.length) return;
+    total += miss.length;
+    lines.push(`${st.label} (${miss.length}): ${miss.map(spIsoDate).join(', ')}`);
+  });
+  if (!total){ showToast('No missing days — fully captured'); return; }
+  navigator.clipboard.writeText(lines.join('\n'))
+    .then(() => showToast(`Copied ${total} missing date${total === 1 ? '' : 's'}`))
+    .catch(() => showToast('Could not reach the clipboard'));
 }
 
 // ── BROWSE / FILTER ──────────────────────────────────────────
@@ -450,6 +542,7 @@ function spPopulateFilterBranch(){
 }
 
 function resetStaffPerfFilter(){
+  trResetChips('staffperf','spf');
   document.getElementById('spfBranch').value = '';
   document.getElementById('spfStylist').value = '';
   spSetDefaultFilterDates(true);
@@ -843,6 +936,7 @@ function initStaffPerfTab(){
   spSetDefaultFilterDates(false);
   spSyncSummaryToggleUI();
   spSyncPasteToggleUI();
+  trCountFilledBoxes();
   refreshStaffPerfProgress();
   if (typeof initStaffPerfPdfDrop === 'function') initStaffPerfPdfDrop();
 
