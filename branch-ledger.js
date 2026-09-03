@@ -560,8 +560,8 @@ function lgMonthRow() {
   for (let y = ty; y >= fy; y--) yearOpts += `<option value="${y}"${y === cy ? ' selected' : ''}>${y}</option>`;
   return `<div class="lg-grain lg-month">
     <span class="lg-grain-k">Month</span>
-    <select class="lg-month-sel" id="lg-month-m" aria-label="Ledger month" onchange="lgPickMonth()">${monthOpts}</select>
-    <select class="lg-month-sel" id="lg-month-y" aria-label="Ledger year" onchange="lgPickMonth()">${yearOpts}</select>
+    <select class="lg-month-sel" data-part="m" aria-label="Ledger month" onchange="lgPickMonth(this)">${monthOpts}</select>
+    <select class="lg-month-sel" data-part="y" aria-label="Ledger year" onchange="lgPickMonth(this)">${yearOpts}</select>
     ${lgTargetsApply() ? '' : '<span class="lg-month-warn">actuals only — no target sheet for this month</span>'}
   </div>`;
 }
@@ -570,8 +570,15 @@ function lgMonthRow() {
 // September lands on December 2025, picking this year while on December lands on
 // this month. The page re-renders through lgSetMonth, which redraws the row, so a
 // clamped pick shows what it actually did.
-function lgPickMonth() {
-  const mEl = document.getElementById('lg-month-m'), yEl = document.getElementById('lg-month-y');
+//
+// Reads the row the change came from, not an id: all three Ledgers pages carry
+// this row and stay in the DOM when hidden, so getElementById found whichever page
+// was rendered first and February on Actuals vs Targets read January off the
+// hidden Daily Target Sheet and did nothing (Kate, 3 Sep 2026).
+function lgPickMonth(el) {
+  const row = el && el.closest ? el.closest('.lg-month') : null;
+  const mEl = row && row.querySelector('.lg-month-sel[data-part="m"]');
+  const yEl = row && row.querySelector('.lg-month-sel[data-part="y"]');
   if (!mEl || !yEl) return;
   let y = Number(yEl.value), m = Number(mEl.value);
   const [fy, fm] = LG_FIRST_MONTH.split('-').map(Number);
