@@ -1168,6 +1168,10 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
     ['rebookPct','ncrPct','hairNcrPct','beautyNcrPct','combinedNcrPct','hairRebookPct','beautyRebookPct',
      'treatmentPct','retentionPct','conversionPct'].forEach(k => { s[k] = null; });
     s.treatmentSales = null; s.hairTreatments = null;
+    // The ledger's client-book columns too: rebooked, NCR, request/salon split, and
+    // the excl.-treatments figure that needs treatment AED to exist.
+    ['totalRebooked','hairRebookedCount','beautyRebookedCount','ncrTotal','hairNCR','beautyNCR',
+     'salonClientTotal','requestClientTotal','hairServicesExcl'].forEach(k => { s[k] = null; });
   }
 
   const { hairStaff, beautyStaff } = buildStaffArraysFromMaps(hairMap, beautyMap);
@@ -1206,14 +1210,15 @@ function buildPhorestOnlyStaffMaps(phorestRows) {
     const map = isBeauty ? beautyMap : hairMap;
     if (!map[name]) {
       map[name] = { name, total: 0, newC: 0, rebooked: 0, req: 0, salon: 0, newClientReq: 0,
-        hairSalesNet: 0, retail: 0, treatments: 0, beautySales: 0, treatmentUnits: 0, retailUnits: 0 };
+        hairSalesNet: 0, retail: 0, treatments: 0, beautySales: 0, courses: 0, treatmentUnits: 0, retailUnits: 0 };
     }
     const st = map[name];
     st.total += Number(r.visits) || 0;
     st.newC  += Number(r.new_clients) || 0;
     const svc = (Number(r.services_ex_vat) || 0) + (Number(r.courses_ex_vat) || 0);
     if (isBeauty) st.beautySales += svc; else st.hairSalesNet += svc;
-    st.retail += Number(r.products_ex_vat) || 0;
+    st.courses += Number(r.courses_ex_vat) || 0;
+    st.retail  += Number(r.products_ex_vat) || 0;
   });
   return { hairMap, beautyMap, branchTotals };
 }
@@ -1292,6 +1297,9 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) {
   const hairServicesIncl = sum(hairMap, 'hairSalesNet'); // services + courses, ex-retail
   const hairTreatments   = sum(hairMap, 'treatments');   // ledger treatment_aed
   const hairRetailStaff  = sum(hairMap, 'retail');       // attributed to a named stylist
+  const hairCourses      = sum(hairMap, 'courses');      // Phorest courses (performed), hair staff
+  const hairTreatmentUnits = sum(hairMap, 'treatmentUnits');
+  const hairRetailUnits    = sum(hairMap, 'retailUnits');
 
   const beautyTotalClients = sum(beautyMap, 'total');
   const beautyNewClients   = sum(beautyMap, 'newC');
@@ -1300,7 +1308,9 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) {
   const beautyReq          = sum(beautyMap, 'req');
   const beautySalon        = sum(beautyMap, 'salon');
   const beautyServices     = sum(beautyMap, 'beautySales');
-  const beautyRetailOnly   = sum(beautyMap, 'retail');
+  const beautyRetailStaff  = sum(beautyMap, 'retail');   // attributed to a named therapist
+  const beautyCourses      = sum(beautyMap, 'courses');
+  const beautyRetailUnits  = sum(beautyMap, 'retailUnits');
 
   const totalClients  = hairTotalClients + beautyTotalClients;
   const newClients    = hairNewClients + beautyNewClients;
@@ -1332,14 +1342,27 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) {
   // retail, so inventing a credit would break every stylist-vs-target row. A stylist
   // table's retail column will therefore total less than the branch's Retail Total.
   // That gap IS the unattributed retail, and it is kept on s.retailUnattributed.
-  const attributedRetail = hairRetailStaff + beautyRetailOnly;
+  const attributedRetail = hairRetailStaff + beautyRetailStaff;
   const phorestRetail    = (branchTotals && branchTotals.days) ? branchTotals.products : null;
   // Only ever revises retail UP. A branch total below the attributed sum would mean a
   // missing or half-uploaded TOTAL line, and silently shrinking real stylist retail to
   // match a broken upload is the worse failure.
   const retailTotal        = (phorestRetail != null && phorestRetail > attributedRetail) ? phorestRetail : attributedRetail;
   const retailUnattributed = retailTotal - attributedRetail;
-  const hairRetailOnly     = hairRetailStaff + retailUnattributed;
+
+  // ── UNATTRIBUTED RETAIL IS SPLIT BY RATIO, NOT DUMPED ON HAIR ─────────────
+  // Kate, 3 Sep 2026. Until today the whole house-account remainder landed on Hair
+  // Retail, so Beauty Retail was only ever what a therapist was personally credited
+  // with and read low at every branch. The remainder is now shared in the same
+  // proportion as the retail that WAS credited (hair's share of attributed retail).
+  // If nobody was credited with anything, fall back to each department's share of
+  // services; if there are no services either, it is all hair. The two department
+  // lines still add up to Phorest's Retail Total exactly, which is the point.
+  const hairShare = attributedRetail
+    ? (hairRetailStaff / attributedRetail)
+    : (servicesTotal ? (hairServicesIncl / servicesTotal) : 1);
+  const hairRetailOnly   = hairRetailStaff   + retailUnattributed * hairShare;
+  const beautyRetailOnly = beautyRetailStaff + retailUnattributed * (1 - hairShare);
 
   const netTake       = servicesTotal + retailTotal;
 
@@ -1383,7 +1406,18 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) {
   s.retailAttributed     = attributedRetail;
   s.retailUnattributed   = retailUnattributed;
   s.hairServicesIncl     = hairServicesIncl;
-  s.hairServicesExcl     = hairServicesIncl - hairTreatments;
+  // Kate's revenue vocabulary (3 Sep 2026), after the Khalifa "42k shortfall" that
+  // was really an excl-treatments actual read against an incl-treatments target:
+  //   hair revenue  = retail out; treatments and courses IN   (what the target sheet's number is)
+  //   hair services = retail, treatments AND courses out      (colour and cut, nothing else)
+  s.hairRevenue          = hairServicesIncl;
+  s.hairServicesExcl     = hairServicesIncl - hairTreatments - hairCourses;
+  s.hairCourses          = hairCourses;
+  s.beautyCourses        = beautyCourses;
+  s.hairTreatmentUnits   = hairTreatmentUnits;
+  s.hairRetailUnits      = hairRetailUnits;
+  s.beautyRetailUnits    = beautyRetailUnits;
+  s.retailHairShare      = hairShare;
   s.beautyServicesTotal  = beautyServices;
   s.hairRetailOnly       = hairRetailOnly;
   s.beautyRetailOnly     = beautyRetailOnly;
@@ -1533,6 +1567,11 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
       map[name] = {
         name, total: 0, newC: 0, rebooked: 0, req: 0, salon: 0, newClientReq: 0,
         hairSalesNet: 0, retail: 0, treatments: 0, beautySales: 0,
+        // Courses PERFORMED — Phorest's "Courses (perf)" column, so redeemed sessions,
+        // not courses sold. Kept apart from hairSalesNet (which still contains them)
+        // so "hair services" can be read with treatments AND courses taken out.
+        // Kate, 3 Sep 2026: performed is the figure she wants; there is no sold count.
+        courses: 0,
         // Item counts, not money — how many treatments and how many retail lines
         // she actually sold. Ledger columns, like treatment_aed: Phorest has no
         // per-stylist equivalent. Kate, 2026-08-14.
@@ -1554,9 +1593,11 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
     // Services). Retail stays outside the services figure entirely.
     if (isBeauty) {
       st.beautySales += rev.services + rev.courses;
+      st.courses     += rev.courses;
       st.retail      += rev.products;
     } else {
       st.hairSalesNet += rev.services + rev.courses;
+      st.courses      += rev.courses;
       st.retail       += rev.products;
       st.treatments   += Number(r.treatment_aed) || 0;
     }
@@ -1586,7 +1627,7 @@ function buildStaffArraysFromMaps(hairMap, beautyMap) {
       // Treatment % is hair-only: ratio to hair services, not diluted by retail.
       treatmentPct:     st.hairSalesNet ? ((st.treatments||0) / st.hairSalesNet * 100) : 0,
       retailPct:        netSalonTake ? (retail / netSalonTake * 100) : 0,
-      hairServicesExcl: (st.hairSalesNet||0) - (st.treatments||0),
+      hairServicesExcl: (st.hairSalesNet||0) - (st.treatments||0) - (st.courses||0),
       netSalonTake,
       color: SCOLS[i % SCOLS.length]
     };

@@ -43,6 +43,16 @@ const LEDGER_TARGETS = {
   // roll-up's revenue targets do not sum their own branches (group hair-excl
   // reads 376,500 against a branch sum of 1,356,000), so they are stale.
   //
+  // `hairRevenue` IS the sheet's "HAIR SERVICES (excluding Treatments)" block,
+  // renamed. Kate, 3 Sep 2026: the block's numbers are hair INCLUDING treatments
+  // and courses — 485,000 + 45,000 beauty = 530,000 services total at Khalifa,
+  // 500,000 + 70,000 = 570,000 at Saadiyat, 131,000 + 21,500 = 152,500 at Al Quoz,
+  // to the dirham. Only the sheet's label said "excluding". Reading an
+  // excl-treatments actual against it produced the phantom 42k Khalifa shortfall
+  // in the 3 Sep leadership call. Motor City (240,000 against 250,000 with no
+  // beauty) does not reconcile either way and is carried as the sheet has it.
+  // When the September sheet lands, key its hair block here whatever it is headed.
+  //
   // Client-count targets come from the branch sections, which DO reconcile:
   // 100 + 100 + 270 + 400 = 870 total, 225 new, 150 NCR, matching the group row.
   // Flagged for Kate: Saadiyat and Khalifa are set to 100 clients/month against
@@ -51,7 +61,7 @@ const LEDGER_TARGETS = {
     SAA: {
       servicesTotal:     570000,
       retailTotal:        40000,
-      hairServicesExcl:  500000,
+      hairRevenue:       500000,
       hairTreatment:      62400,
       hairRetail:         50000,
       beautyServices:     70000,
@@ -64,7 +74,7 @@ const LEDGER_TARGETS = {
     KCA: {
       servicesTotal:     530000,
       retailTotal:        30000,
-      hairServicesExcl:  485000,
+      hairRevenue:       485000,
       hairTreatment:      60600,
       hairRetail:         30000,
       beautyServices:     45000,
@@ -77,7 +87,7 @@ const LEDGER_TARGETS = {
     AQ: {
       servicesTotal:     152500,
       retailTotal:        13000,
-      hairServicesExcl:  131000,
+      hairRevenue:       131000,
       hairTreatment:      18120,
       hairRetail:         11500,
       beautyServices:     21500,
@@ -92,7 +102,7 @@ const LEDGER_TARGETS = {
     MC: {
       servicesTotal:     250000,
       retailTotal:        20000,
-      hairServicesExcl:  240000,
+      hairRevenue:       240000,
       hairTreatment:      30000,
       hairRetail:         20000,
       beautyServices:         0,

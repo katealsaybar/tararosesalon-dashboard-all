@@ -74,6 +74,13 @@ keeps the old `lgTargetContext()` guard.
 - **Revenue** — Services Total · Retail Total · Hair services (incl. treatments
   and courses) · Hair services (excl. treatments) · Treatments revenue ·
   Beauty services · Hair Retail · Beauty Retail
+
+  > **The dashboard no longer prints this block as the sheet has it.** Since
+  > 3 Sep 2026 the revenue block follows Kate's vocabulary (see *Revenue
+  > vocabulary* below). The sheet's "Hair services (excl. treatments)" number is
+  > in fact hair *including* treatments and courses — it plus Beauty services
+  > equals Services Total to the dirham at Saadiyat, Khalifa and Al Quoz — so
+  > the dashboard carries that target under the name **Hair revenue**.
 - **Clients** — Beauty Rebooked · Rebooked · Total Clients · New Clients · NCR
 - **Benchmarks** — Rebooking % · Treatment % · Retail % · Hair Avg Bill ·
   Beauty Avg Bill
@@ -149,13 +156,56 @@ Same column model as SUMMARY. Four blocks:
 3. **Benchmarks** — Rebooking % · Treatment % · Retail % · Hair Avg Bill ·
    Beauty Avg Bill
 4. **Staff performance** — per stylist, name then role, then Rebooking % ·
-   Treatment % · Retail % · Avg Bill · Hair services (excl. treatments) ·
-   Treatments revenue · Retail revenue · **Net Salon Take** · Rebooked ·
+   Treatment % · Retail % · Avg Bill · Hair services (excl. treatments and
+   courses) · Treatments revenue · Retail revenue · **Net Salon Take** · Rebooked ·
    Total Clients · New Clients · NCR
 
 Block 2 is the useful one: the branch tabs split every client metric by dept
 before totalling, where SUMMARY only carries the total. The dashboard already
 computes both sides of that split.
+
+## Revenue vocabulary (Kate, 3 Sep 2026)
+
+Set after the 3 Sep leadership call, where Khalifa's August was read as a 42k
+shortfall. The dashboard's "Hair services (excl. treatments)" block compared an
+actual with treatments stripped out against a sheet target that had them in:
+485,000 + 45,000 beauty = 530,000 services total at Khalifa, and the same
+identity holds at Saadiyat and Al Quoz. Like for like, Khalifa's hair
+department beat its target by about 14k.
+
+The eleven lines, in Kate's order, printed on Branch Performance, Actuals vs
+Targets and the Daily Target Sheet:
+
+| Line | Definition | Source | Target |
+|---|---|---|---|
+| Services Total | hair revenue + beauty services | Phorest | sheet |
+| Retail Total | Phorest's branch TOTAL products line | Phorest | sheet |
+| Hair revenue | retail out; treatments and courses **in** | Phorest services + courses, hair staff | sheet (was labelled "excl.") |
+| Hair services | retail, treatments **and courses** out | hair revenue − treatment AED − courses | none, a part |
+| Hair treatments revenue | hand-tallied treatment AED | ledger | sheet |
+| # hair treatments sold | unit count | ledger | none |
+| Hair courses revenue | courses **performed**, not sold | Phorest "Courses (perf)" | none, a part |
+| Hair retail revenue | products, hair staff + hair's share of unattributed | Phorest | sheet |
+| # hair retail sold | unit count | ledger | none |
+| Beauty services revenue | retail out (beauty courses stay in) | Phorest, beauty staff | sheet |
+| Beauty retail revenue | products, beauty staff + beauty's share of unattributed | Phorest | none |
+| # beauty retail sold | unit count | ledger (branches barely fill it) | none |
+
+**Two identities are printed under every revenue block**: hair revenue + beauty
+services = services total, and hair retail + beauty retail = retail total. A
+cross instead of a tick means the figures came from different places.
+
+**Unattributed retail is split, not dumped on hair.** Phorest books a share of
+retail to the house account with no stylist. It used to land wholly on Hair
+Retail; it is now shared in proportion to the retail that *was* credited to each
+department (falling back to each department's share of services, then to hair).
+The per-stylist tables are still not topped up, for the reason in
+`dashboard.js`'s RETAIL note.
+
+**Courses performed vs sold**: Phorest's Staff Performance Overview column is
+"Courses (perf)", so the courses line is sessions redeemed. There is no source
+for courses *sold*; Kate chose performed (3 Sep 2026) rather than add a ledger
+column.
 
 ## How this maps to what the dashboard already has
 
@@ -166,11 +216,14 @@ The metric vocabulary matches almost exactly — the ledger's names and
 |---|---|
 | Services Total | `s.servicesTotal` |
 | Retail Total | `s.retailTotal` |
-| Hair services (incl. treatments and courses) | `s.hairServicesIncl` |
-| Hair services (excl. treatments) | `s.hairServicesExcl` |
+| Hair revenue (incl. treatments and courses) | `s.hairServicesIncl` (alias `s.hairRevenue`) |
+| Hair services (excl. treatments and courses) | `s.hairServicesExcl` |
 | Treatments revenue | `s.treatmentSales` |
+| # hair treatments sold | `s.hairTreatmentUnits` (ledger `treatments_unit_qty`) |
+| Hair courses revenue (performed) | `s.hairCourses` (Phorest `courses_ex_vat`, hair staff) |
 | Beauty services | `s.beautyServicesTotal` |
 | Hair Retail / Beauty Retail | `s.hairRetailOnly` / `s.beautyRetailOnly` |
+| # hair / beauty retail sold | `s.hairRetailUnits` / `s.beautyRetailUnits` (ledger `retail_unit_qty`) |
 | Total / New / NCR (hair) | `s.hairTotalClients` / `s.hairNewClients` / `s.hairNCR` |
 | Total / New / NCR (beauty) | `s.beautyTotalClients` / `s.beautyNewClients` / `s.beautyNCR` |
 | Rebooked | `s.totalRebooked`, split `s.hairRebookedCount` / `s.beautyRebookedCount` |
