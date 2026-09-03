@@ -136,6 +136,9 @@ function periodPresets() {
     { k: 'This month',        from: new Date(y, m,   1), to: today },
     { k: 'Last month',        from: new Date(y, m-1, 1), to: new Date(y, m, 0) },
     { k: 'Year so far',       from: new Date(y, 0,   1), to: today },
+    // Kate, 3 Sep 2026: the Upload Portal backfill opened to 2025, so last year is a
+    // reachable window and earns its own chip rather than a hand-typed Custom range.
+    { k: 'Last year',         from: new Date(y-1, 0, 1), to: new Date(y-1, 11, 31) },
     { k: 'Custom' },
   ];
 }
@@ -209,8 +212,11 @@ function paintFilterChips() {
   const mb = document.getElementById('mastBranch');
   const mr = document.getElementById('mastRange');
   if (mb) mb.textContent = branchLabel;
+  // One year is printed once, at the end; a range that crosses New Year names both.
   if (mr) mr.textContent = (dateFrom && dateTo)
-    ? `${longD(dateFrom)} – ${longD(dateTo)} ${dateTo.getFullYear()}`
+    ? (dateFrom.getFullYear() === dateTo.getFullYear()
+        ? `${longD(dateFrom)} – ${longD(dateTo)} ${dateTo.getFullYear()}`
+        : `${longD(dateFrom)} ${dateFrom.getFullYear()} – ${longD(dateTo)} ${dateTo.getFullYear()}`)
     : '';
 }
 
@@ -331,7 +337,7 @@ function smoothSlide(el, open) {
 function getYear(label, uploaded_at) {
   const m = label && label.match(/20\d\d/);
   if (m) return m[0];
-  return uploaded_at ? new Date(uploaded_at).getFullYear().toString() : '2026';
+  return uploaded_at ? new Date(uploaded_at).getFullYear().toString() : String(new Date().getFullYear());
 }
 function getMonth(label, uploaded_at) {
   for (const mo of MONTH_ORDER) { if (label && label.includes(mo)) return mo; }
@@ -497,6 +503,20 @@ function computeHeroPeriodPhrase(from, to) {
   if (!from || !to) return 'the week';
   const today = new Date(); today.setHours(0,0,0,0);
   const diffDays = Math.round((to - from) / 86400000) + 1;
+
+  // A range that ends in an earlier year is history, not "this week" or "the past
+  // few months": name it. "2025" for the whole year, "March 2025" for one month
+  // (via heroIsSingleCalendarMonth below), "March to June 2025" for a run of
+  // months, "these days in March 2025" for part of one. Kate, 3 Sep 2026, when the
+  // backfill opened to 2025.
+  if (to.getFullYear() < today.getFullYear() && !heroIsSingleCalendarMonth(from, to)) {
+    const y = to.getFullYear(), fy = from.getFullYear();
+    const fullYear = fy === y && from.getMonth() === 0 && from.getDate() === 1 && to.getMonth() === 11 && to.getDate() === 31;
+    if (fullYear) return String(y);
+    const fromMon = HERO_MONTH_NAMES[from.getMonth()], toMon = HERO_MONTH_NAMES[to.getMonth()];
+    if (fy === y && from.getMonth() === to.getMonth()) return `these days in ${fromMon} ${y}`;
+    return fy === y ? `${fromMon} to ${toMon} ${y}` : `${fromMon} ${fy} to ${toMon} ${y}`;
+  }
 
   if (heroIsSingleWeek(from, to)) return 'this week';
   if (diffDays <= 7) return 'these days';
@@ -1029,7 +1049,9 @@ function computeStatusStatement(s, branchLabel, periodPhrase, treatmentPct, reta
   // phrase in the hero headline ("...is shaping up"), but need "in" once they're
   // used adverbially here ("KPIs in June this year") — relative phrases like
   // "this week"/"last month"/"the year so far" already work without it.
-  const adverbialPhrase = /^[A-Z][a-z]+ (this year|\d{4})$/.test(periodPhrase) ? `in ${periodPhrase}` : periodPhrase;
+  // The past-year phrases ("2025", "March to June 2025", "March 2025 to June 2026")
+  // are nouns in the same way and take the same "in".
+  const adverbialPhrase = /^(\d{4}|[A-Z][a-z]+ (this year|\d{4})|[A-Z][a-z]+( \d{4})? to [A-Z][a-z]+ \d{4})$/.test(periodPhrase) ? `in ${periodPhrase}` : periodPhrase;
   const checks = [
     { label: 'Avg Bill',    status: sc(s.avgBill||0, TARGETS.hairAvgBill) },
     { label: 'Rebooking %', status: sc(s.rebookPct||0, TARGETS.rebookPct) },
@@ -1145,8 +1167,51 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
   if (!hasLedgerData && !hasPhorest && (!dailyRows || !dailyRows.length)) return null;
 
   let hairMap = {}, beautyMap = {}, branchTotals = null;
+  let ledgerPart = null; // the ledger-covered days on their own, for the ratios only the ledger can give
   if (hasLedgerData) {
-    ({ hairMap, beautyMap, branchTotals } = buildLedgerPhorestStaffMaps(branchStaffRows, phorestStaffRows || []));
+    // Coverage is decided per branch-day, not per window. The ledger join only keeps
+    // Phorest revenue that lands on a (branch, date) the ledger also has, so any day
+    // the ledger never covered used to vanish from the money and the clients while
+    // the Phorest rows for it sat loaded and unread. That was invisible while the
+    // ledger ran a day or two behind Phorest at most. It stopped being invisible on
+    // 3 Sep 2026, when Saadiyat's 2025 ledger (23 Jun to 28 Dec, and not every day
+    // of it) synced in: the whole of 2025 read AED 2.4M against Phorest's 20M, because
+    // a single branch's half-year of ledger switched every other branch-day in the
+    // year over to a join it could not satisfy.
+    //
+    // So: a branch-day the ledger wrote clients on is read through the join, as
+    // before. Every other branch-day is read from Phorest alone, the way a range with
+    // no ledger at all already is, and the two halves are added. A ledger day with no
+    // clients on any row is a blank sheet, not a quiet day, and Phorest speaks for it.
+    const ledgerClientsByDay = {};
+    branchStaffRows.forEach(r => {
+      const k = r.branch + '|' + r.date;
+      ledgerClientsByDay[k] = (ledgerClientsByDay[k] || 0) + (Number(r.total) || 0);
+    });
+    const covered = new Set(Object.keys(ledgerClientsByDay).filter(k => ledgerClientsByDay[k] > 0));
+    const phIn = [], phOut = [];
+    (phorestStaffRows || []).forEach(r => (covered.has(r.branch + '|' + r.date) ? phIn : phOut).push(r));
+    const L = buildLedgerPhorestStaffMaps(branchStaffRows, phIn);
+    if (!phOut.length) {
+      ({ hairMap, beautyMap, branchTotals } = L);
+    } else {
+      const P = buildPhorestOnlyStaffMaps(phOut);
+      hairMap   = mergeStaffMaps(L.hairMap,   P.hairMap);
+      beautyMap = mergeStaffMaps(L.beautyMap, P.beautyMap);
+      branchTotals = {
+        services: L.branchTotals.services + P.branchTotals.services,
+        courses:  L.branchTotals.courses  + P.branchTotals.courses,
+        products: L.branchTotals.products + P.branchTotals.products,
+        days:     L.branchTotals.days     + P.branchTotals.days,
+      };
+      const phorestDays = new Set((phorestStaffRows || []).map(r => r.branch + '|' + r.date));
+      const ledgerDays  = [...phorestDays].filter(k => covered.has(k)).length;
+      ledgerPart = {
+        summary: computeGroupSummaryFromMaps(L.hairMap, L.beautyMap, L.branchTotals),
+        ledgerDays, phorestOnlyDays: phorestDays.size - ledgerDays,
+        share: phorestDays.size ? ledgerDays / phorestDays.size : 1,
+      };
+    }
   } else if (hasPhorest) {
     // 2025 (and any range the ledger sync never reached): Phorest is all there is.
     // The page used to stop at "No data found" while the cover above it was already
@@ -1160,7 +1225,27 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
   // a fallback for date ranges that predate the auto sync.
   const s = (hasLedgerData || hasPhorest) ? computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) : computeGroupSummaryFromDailyData(dailyRows);
 
-  if (!hasLedgerData && hasPhorest) {
+  let ledgerTooThin = false;
+  if (ledgerPart) {
+    // Money and clients above are the whole window. The percentages only the ledger
+    // can supply (rebooking, NCR, treatment share) are read off the ledger-covered
+    // days alone, so a Phorest-only day with zero rebookings on it cannot drag them
+    // down. If the ledger covers under half of the window's branch-days it describes
+    // too little of the window to stand for it (2025: Saadiyat's half-year against
+    // four branches' full year, 13%), and the window reads as Phorest-only below,
+    // partial treatment AED and rebooked counts included, or the hero prints a
+    // "2.5% treatment" that is one branch's ledger over the whole group's services.
+    // The coverage itself is kept on s._mixedCoverage either way.
+    s._mixedCoverage = { ledgerDays: ledgerPart.ledgerDays, phorestOnlyDays: ledgerPart.phorestOnlyDays, share: ledgerPart.share };
+    if (ledgerPart.share >= 0.5) {
+      ['rebookPct','ncrPct','hairNcrPct','beautyNcrPct','combinedNcrPct','hairRebookPct','beautyRebookPct',
+       'treatmentPct','retentionPct','conversionPct'].forEach(k => { s[k] = ledgerPart.summary[k]; });
+    } else {
+      ledgerTooThin = true;
+    }
+  }
+
+  if ((!hasLedgerData && hasPhorest) || ledgerTooThin) {
     // Everything the ledger alone supplies is unknown here, not zero. Null drops
     // the benchmark rows (they filter on Number.isFinite) instead of printing a
     // 0% rebooking that nobody earned.
@@ -1176,6 +1261,23 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
 
   const { hairStaff, beautyStaff } = buildStaffArraysFromMaps(hairMap, beautyMap);
   return { summary: s, hairStaff, beautyStaff };
+}
+
+// Adds a Phorest-only staff map onto a ledger-joined one, name by name, every numeric
+// field summed. ledgerClients keeps the client count that came through the ledger,
+// so a stylist's rebooking and NCR percentages can be read against the clients the
+// ledger actually wrote rebookings for (buildStaffArraysFromMaps), not against a
+// total swollen by Phorest-only days that carry no rebooking column at all.
+function mergeStaffMaps(ledgerMap, phorestMap) {
+  const out = {};
+  const add = (src, fromLedger) => Object.values(src || {}).forEach(st => {
+    const cur = out[st.name] || (out[st.name] = { name: st.name, ledgerClients: 0 });
+    Object.keys(st).forEach(k => { if (k !== 'name' && k !== 'ledgerClients' && typeof st[k] === 'number') cur[k] = (cur[k] || 0) + st[k]; });
+    if (fromLedger) cur.ledgerClients += Number(st.total) || 0;
+  });
+  add(ledgerMap, true);
+  add(phorestMap, false);
+  return out;
 }
 
 // Staff maps from Phorest rows alone, shaped exactly like buildLedgerPhorestStaffMaps
@@ -1609,10 +1711,15 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
 // Shared by aggData (weekly_data staff blobs) and aggDailyData (ledger+Phorest join) —
 // same derived per-staff metrics regardless of where hairMap/beautyMap came from.
 function buildStaffArraysFromMaps(hairMap, beautyMap) {
+  // Rebooking, retention and NCR come from the ledger, so on a window where part of
+  // a stylist's clients came through Phorest alone (see mergeStaffMaps) they are
+  // read against the ledger's own client count, not the combined total.
+  const ledgerBase = st => (st.ledgerClients != null) ? st.ledgerClients : st.total;
   const hairStaff = Object.values(hairMap).map((st, i) => {
     const hReturning    = (st.req||0) + (st.salon||0);
-    const hRebookPct    = st.total    ? (st.rebooked / st.total * 100) : 0;
-    const hRetentionPct = st.total    ? (hReturning  / st.total * 100) : 0;
+    const hBase         = ledgerBase(st);
+    const hRebookPct    = hBase       ? (st.rebooked / hBase * 100) : 0;
+    const hRetentionPct = hBase       ? (hReturning  / hBase * 100) : 0;
     const hConvPct      = hReturning  ? (st.rebooked / hReturning * 100) : 0;
     const retail        = Number(st.retail) || 0;
     const netSalonTake  = (st.hairSalesNet||0) + retail;
@@ -1623,7 +1730,7 @@ function buildStaffArraysFromMaps(hairMap, beautyMap) {
       rebookPct:        hRebookPct,
       retentionPct:     hRetentionPct,
       conversionPct:    hConvPct,
-      ncrPct:           st.total ? ((st.newClientReq||0) / st.total * 100) : 0,
+      ncrPct:           hBase ? ((st.newClientReq||0) / hBase * 100) : 0,
       // Treatment % is hair-only: ratio to hair services, not diluted by retail.
       treatmentPct:     st.hairSalesNet ? ((st.treatments||0) / st.hairSalesNet * 100) : 0,
       retailPct:        netSalonTake ? (retail / netSalonTake * 100) : 0,
@@ -1634,8 +1741,9 @@ function buildStaffArraysFromMaps(hairMap, beautyMap) {
   });
   const beautyStaff = Object.values(beautyMap).map((st,i) => {
     const bReturning    = (st.req||0) + (st.salon||0);
-    const bRebookPct    = st.total   ? ((st.rebooked||0) / st.total * 100) : 0;
-    const bRetentionPct = st.total   ? (bReturning / st.total * 100) : 0;
+    const bBase         = ledgerBase(st);
+    const bRebookPct    = bBase      ? ((st.rebooked||0) / bBase * 100) : 0;
+    const bRetentionPct = bBase      ? (bReturning / bBase * 100) : 0;
     const bConvPct      = bReturning ? ((st.rebooked||0) / bReturning * 100) : 0;
     const retail        = Number(st.retail) || 0;
     const netTake       = (st.beautySales||0) + retail;
@@ -1646,7 +1754,7 @@ function buildStaffArraysFromMaps(hairMap, beautyMap) {
       rebookPct:     bRebookPct,
       retentionPct:  bRetentionPct,
       conversionPct: bConvPct,
-      ncrPct:        st.total ? ((st.newClientReq||0)/st.total*100) : 0,
+      ncrPct:        bBase ? ((st.newClientReq||0)/bBase*100) : 0,
       retailPct:     netTake ? (retail / netTake * 100) : 0,
       netSalonTake:  netTake,
       color: SCOLS[(i+3) % SCOLS.length]
@@ -2492,7 +2600,7 @@ async function renderDashboard() {
   // backfill window, branch-filtered only, rather than an exact period match.
   try {
     const branchesForUtil = sel.branch.includes('all') ? ACTIVE_BRANCHES : sel.branch;
-    const utilFrom = dateFrom || new Date('2026-01-01T00:00:00');
+    const utilFrom = dateFrom || new Date('2025-01-01T00:00:00'); // the backfill start, opened to 2025 (Kate, 3 Sep 2026)
     const utilTo   = dateTo   || new Date();
     const utilRows = await loadUtilisationForFilter(utilFrom, utilTo, branchesForUtil);
     const utilAgg  = aggregateUtilisation(utilRows, buildStaffDeptMap());
@@ -3429,11 +3537,23 @@ const _iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-
 function _svcWindow() {
   const branches = (!sel.branch || sel.branch.includes('all')) ? ACTIVE_BRANCHES.slice() : sel.branch.slice();
   if (dateFrom && dateTo) {
-    return { year: dateFrom.getFullYear(), from: _iso(dateFrom), to: _iso(dateTo), branches, ranged: true };
+    // get_top_services / get_top_clients filter on p_year as well as the range, so a
+    // window that crosses New Year would silently lose everything after 31 Dec.
+    // Read the year the range starts in, stop at its end, and say so on the page.
+    const year = dateFrom.getFullYear();
+    const spansYears = dateTo.getFullYear() !== year;
+    const to = spansYears ? `${year}-12-31` : _iso(dateTo);
+    return { year, from: _iso(dateFrom), to, branches, ranged: true, spansYears };
   }
   const el = document.getElementById('svc-year');
   const year = parseInt((el && el.value) || String(new Date().getFullYear()), 10);
   return { year, from: `${year}-01-01`, to: `${year}-12-31`, branches, ranged: false };
+}
+
+// Printed above the rankings when the masthead range crosses New Year.
+function _svcSpansYearsNote(content, year) {
+  content.insertAdjacentHTML('afterbegin',
+    `<div style="padding:8px 0 12px;font-size:12px;color:var(--muted2)">Service and client rankings read one year at a time. Showing ${year} up to 31 December; pick a range inside one year to see the rest.</div>`);
 }
 
 // The Year row only earns its place when no date range is driving the page.
@@ -3503,7 +3623,7 @@ async function loadAndRenderServices() {
   if (!content) return;
   content.innerHTML = '<div class="loading">Loading...</div>';
 
-  const { year, from: pFrom, to: pTo, branches } = _svcWindow();
+  const { year, from: pFrom, to: pTo, branches, spansYears } = _svcWindow();
   const limit = _svcLimit();
 
   try {
@@ -3518,6 +3638,7 @@ async function loadAndRenderServices() {
         if (agg && agg.length) { rows = agg; note = _svcAggNote(agg); }
       }
       _renderSvcCombined(rows, branches, year, pFrom, pTo, note);
+      if (spansYears) _svcSpansYearsNote(content, year);
     } else {
       const targetBranches = branches;
       let note = null;
@@ -3531,6 +3652,7 @@ async function loadAndRenderServices() {
         return { branch: b, rows: [] };
       }));
       _renderSvcPerBranch(results, year, pFrom, pTo, note, limit);
+      if (spansYears) _svcSpansYearsNote(content, year);
     }
   } catch(e) {
     console.error(e);
@@ -3649,7 +3771,7 @@ async function loadAndRenderClients() {
   if (!content) return;
   content.innerHTML = '<div class="loading">Loading...</div>';
 
-  const { year, from: pFrom, to: pTo, branches } = _svcWindow();
+  const { year, from: pFrom, to: pTo, branches, spansYears } = _svcWindow();
 
   try {
     const { data, error } = await sb.rpc('get_top_clients', {
@@ -3657,6 +3779,7 @@ async function loadAndRenderClients() {
     });
     if (error) throw error;
     _renderClients(data || [], branches, year, pFrom, pTo);
+    if (spansYears) _svcSpansYearsNote(content, year);
   } catch(e) {
     console.error(e);
     content.innerHTML = _svcEmpty('client data');
