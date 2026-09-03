@@ -68,7 +68,7 @@ function ssSetDefaultFilterDates(force){
   const toEl   = document.getElementById('ssfTo');
   if (!fromEl || !toEl) return;
   const todayIso  = new Date().toISOString().split('T')[0];
-  const yearStart = '2026-01-01';
+  const yearStart = `${new Date().getFullYear()}-01-01`; // rolls with the year; 2025 rows are reachable by moving the From date (Kate, 2026-09-03)
   if (force || !fromEl.value) fromEl.value = yearStart;
   if (force || !toEl.value)   toEl.value   = todayIso;
 }

@@ -347,7 +347,7 @@ function initUtilPdfDrop(){
 // same date-strip math, just fed from date_from/date_to ranges instead of
 // a single date column.
 
-const UTIL_BACKFILL_START = '2026-01-01';
+const UTIL_BACKFILL_START = '2025-01-01'; // mirrors SP_BACKFILL_START, opened to 2025 (Kate, 2026-09-03)
 const UTIL_BRANCH_END = { FRT: '2026-05-22' }; // mirrors SP_BRANCHES' Fratelli end date
 
 function utilCoveredDaySet(rows){
@@ -386,20 +386,7 @@ async function refreshUtilProgress(){
   let html = '';
   for (const code of BRANCH_KEYS){
     const days = spGetBackfillDays(UTIL_BACKFILL_START, UTIL_BRANCH_END[code]);
-    const doneDays = days.filter(d => covered.has(`${code}|${spIsoDate(d)}`));
-    const firstMissing = days.find(d => !covered.has(`${code}|${spIsoDate(d)}`));
-    html += `<div style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
-        <span style="font-weight:600">${BRANCHES[code].name}</span>
-        <span style="color:var(--muted)">${doneDays.length}/${days.length} days${firstMissing ? ' — next missing: <b style="color:var(--warn)">'+firstMissing.toLocaleDateString('en-GB')+'</b>' : ' — <b style="color:var(--good)">fully captured</b>'}</span>
-      </div>
-      <div class="sp-day-strip">` +
-      days.map(d => {
-        const done = covered.has(`${code}|${spIsoDate(d)}`);
-        const label = d.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'short', year:'numeric' });
-        return `<div class="sp-day-cell${done?' done':''}" title="${label}"></div>`;
-      }).join('') +
-      '</div></div>';
+    html += spRenderBackfillStrips(BRANCHES[code].name, days, covered, d => `${code}|${spIsoDate(d)}`);
   }
   host.innerHTML = html;
 }
@@ -410,7 +397,7 @@ function utilSetDefaultFilterDates(force){
   const fromEl = document.getElementById('utilfFrom');
   const toEl   = document.getElementById('utilfTo');
   if (!fromEl || !toEl) return;
-  if (force || !fromEl.value) fromEl.value = UTIL_BACKFILL_START;
+  if (force || !fromEl.value) fromEl.value = spYearStartIso(); // current year, not the 2025 backfill start
   if (force || !toEl.value)   toEl.value   = spIsoDate(new Date());
 }
 

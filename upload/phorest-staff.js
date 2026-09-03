@@ -14,7 +14,11 @@ const SP_BRANCHES = [
   { code: 'AQ',  label: 'Al Quoz' },
   { code: 'FRT', label: 'Fratelli', end: '2026-05-22' },
 ];
-const SP_BACKFILL_START = '2026-01-01';
+// Opened to 2025 so last year's Phorest PDFs land in the same backfill grid.
+// The filters keep defaulting to 1 Jan of the CURRENT year (spYearStartIso) so
+// a plain Apply does not pull two years at once (Kate, 2026-09-03).
+const SP_BACKFILL_START = '2025-01-01';
+function spYearStartIso(){ return `${new Date().getFullYear()}-01-01`; }
 
 // ── PARSER ───────────────────────────────────────────────────
 // Same token-walk approach proven against 4 real Phorest branch samples:
@@ -387,22 +391,41 @@ async function refreshStaffPerfProgress(){
   let html = '';
   for (const b of SP_BRANCHES){
     const days = spGetBackfillDays(b.start, b.end);
-    const doneDays = days.filter(d => covered.has(`${b.code}|${spIsoDate(d)}`));
-    const firstMissing = days.find(d => !covered.has(`${b.code}|${spIsoDate(d)}`));
-    html += `<div style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
-        <span style="font-weight:600">${b.label}</span>
-        <span style="color:var(--muted)">${doneDays.length}/${days.length} days${firstMissing ? ' — next missing: <b style="color:var(--warn)">'+firstMissing.toLocaleDateString('en-GB')+'</b>' : ' — <b style="color:var(--good)">fully captured</b>'}</span>
-      </div>
-      <div class="sp-day-strip">` +
-      days.map(d => {
-        const done = covered.has(`${b.code}|${spIsoDate(d)}`);
-        const label = d.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'short', year:'numeric' });
-        return `<div class="sp-day-cell${done?' done':''}" title="${label}"></div>`;
-      }).join('') +
-      '</div></div>';
+    html += spRenderBackfillStrips(b.label, days, covered, d => `${b.code}|${spIsoDate(d)}`);
   }
   host.innerHTML = html;
+}
+
+// One strip per calendar year, newest on top. A single Jan 2025 -> today strip
+// would be 600+ of the 6px cells and stop reading as days. The branch line keeps
+// the all-years count and the earliest gap (so backfilling still runs oldest
+// first); each year row carries its own count. Shared with the Utilisation tab,
+// which loads after this file (Kate, 2026-09-03).
+function spRenderBackfillStrips(label, days, covered, keyOf){
+  const doneDays = days.filter(d => covered.has(keyOf(d)));
+  const firstMissing = days.find(d => !covered.has(keyOf(d)));
+  const byYear = new Map();
+  days.forEach(d => { const y = d.getFullYear(); if (!byYear.has(y)) byYear.set(y, []); byYear.get(y).push(d); });
+  const years = [...byYear.keys()].sort((a,b) => b-a);
+  return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+        <span style="font-weight:600">${label}</span>
+        <span style="color:var(--muted)">${doneDays.length}/${days.length} days${firstMissing ? ' — next missing: <b style="color:var(--warn)">'+firstMissing.toLocaleDateString('en-GB')+'</b>' : ' — <b style="color:var(--good)">fully captured</b>'}</span>
+      </div>` +
+    years.map(y => {
+      const yDays = byYear.get(y);
+      const yDone = yDays.filter(d => covered.has(keyOf(d))).length;
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+        <span style="font-size:10px;color:var(--muted2);width:72px;flex-shrink:0"><b style="color:var(--muted)">${y}</b> ${yDone}/${yDays.length}</span>
+        <div class="sp-day-strip" style="flex:1;min-width:0">` +
+        yDays.map(d => {
+          const done = covered.has(keyOf(d));
+          const lbl = d.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'short', year:'numeric' });
+          return `<div class="sp-day-cell${done?' done':''}" title="${lbl}"></div>`;
+        }).join('') +
+        '</div></div>';
+    }).join('') +
+    '</div>';
 }
 
 // ── BROWSE / FILTER ──────────────────────────────────────────
@@ -411,7 +434,7 @@ function spSetDefaultFilterDates(force){
   const fromEl = document.getElementById('spfFrom');
   const toEl   = document.getElementById('spfTo');
   if (!fromEl || !toEl) return;
-  if (force || !fromEl.value) fromEl.value = SP_BACKFILL_START;
+  if (force || !fromEl.value) fromEl.value = spYearStartIso();
   if (force || !toEl.value)   toEl.value   = spIsoDate(new Date());
 }
 
