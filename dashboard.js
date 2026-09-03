@@ -1371,7 +1371,11 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) {
 //
 // Phorest gives both columns per row, so this is a column swap, not arithmetic — no
 // dividing by 1.05 anywhere. Do not "fix" a figure here by grossing it back up.
-const PHOREST_RECONCILE_ALIASES = { 'LUCY': 'LUCIA', 'MJ': 'MARY JOY' };
+// Ledger name (left) to the first word of the Phorest legal name (right). The ledger
+// name stays the one on the page: Tammy shows as TAMMY and Kim as KIM, the alias only
+// finds their Phorest rows (Tamryn Peter, Kimberly Casas). Without it Tammy's
+// 3,542 ex VAT of August 2026 services at Saadiyat went to nobody. Kate, 3 Sep 2026.
+const PHOREST_RECONCILE_ALIASES = { 'LUCY': 'LUCIA', 'MJ': 'MARY JOY', 'TAMMY': 'TAMRYN', 'KIM': 'KIMBERLY' };
 
 // Non-person rows found in branch_staff_daily (2026-08-02 audit, ~2.8k of ~15k rows) —
 // ledger summary/label rows the sync script misreads as if they were staff rows.
@@ -1572,7 +1576,15 @@ async function loadAllRows(table, fromStr, toStr) {
         .select('*')
         .gte('date', fromStr)
         .lte('date', toStr)
+        // Two keys, not one. Ordered by date alone, rows sharing a date come back in
+        // whatever order Postgres feels like, and that order is not the same from
+        // one page request to the next. When a page boundary falls inside a date
+        // (Saadiyat, 15 Aug 2026: rows 1000/1001 of 2107), the pages overlap on
+        // some rows and miss others: 15 ledger rows loaded twice, 31 never loaded,
+        // and Lucia, Reda and Mona's day counted double (+4,821 ex VAT). id is
+        // unique, so the same row can only ever land on one page. Kate, 3 Sep 2026.
         .order('date', { ascending: true })
+        .order('id', { ascending: true })
         .range(i * PAGE, i * PAGE + PAGE - 1)
     )
   );
