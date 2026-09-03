@@ -378,6 +378,16 @@ body.ledger-chrome .filters-wrap{display:none}
   border:0;border-bottom:1px solid var(--border);padding:4px 0}
 .f-dates input:focus{outline:0;border-bottom-color:var(--text)}
 .f-dates span{font-size:11px;color:var(--muted2)}
+/* Windows Chrome draws a date input as mm/dd/yyyy, so 09/03 is the 3rd of
+   September to the browser and the 9th of March to everyone in this office. The
+   range is echoed underneath in words while it is typed, and turns red when the
+   two dates run backwards. Kate, 3 Sep 2026. */
+.f-echo{flex-basis:100%;font-size:10.5px;color:var(--muted);letter-spacing:.02em;
+  line-height:1.5;margin-top:1px}
+.f-echo.bad{color:var(--bad)}
+/* The Month and Year pickers borrow the Ledgers month select, one size down to
+   sit on the filter row rather than in a card header. */
+.f-dates .lg-month-sel{font-size:11.5px;padding:4px 24px 4px 8px}
 .f-note{flex-basis:100%;font-size:10px;color:var(--warn);line-height:1.5;max-width:70ch;margin-top:2px}
 .f-note[hidden]{display:none}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -2130,6 +2140,18 @@ table.tp-cmp td.bad{color:var(--bad)}
         <input type="date" id="dateRangeTo" aria-label="To">
         <button class="date-picker-apply" onclick="applyDateRange()" style="padding:5px 12px;font-size:10px">Apply</button>
         <button class="date-picker-clear" onclick="clearDateRange()" style="padding:5px 10px;font-size:10px">Clear</button>
+        <!-- The same two dates written out in words. See paintDateEcho(). -->
+        <span class="f-echo" id="dateEcho" aria-live="polite"></span>
+      </div>
+      <!-- The two windows people used to hand-type into Custom: one month, or one
+           year. Both are painted and read by paintPeriodPickers() and apply on
+           change, so there is no second Apply to forget. -->
+      <div class="f-dates" id="monthPick" hidden>
+        <select class="lg-month-sel" id="monthPickM" aria-label="Month" onchange="pickMonthRange()"></select>
+        <select class="lg-month-sel" id="monthPickY" aria-label="Year of month" onchange="pickMonthRange()"></select>
+      </div>
+      <div class="f-dates" id="yearPick" hidden>
+        <select class="lg-month-sel" id="yearPickY" aria-label="Year" onchange="pickYearRange()"></select>
       </div>
     </div>
     <p class="f-note" id="filterNote" hidden></p>

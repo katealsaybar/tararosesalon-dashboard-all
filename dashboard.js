@@ -126,8 +126,21 @@ const MON_LONG  = ['January','February','March','April','May','June','July','Aug
 const shortD = d => d ? `${d.getDate()} ${MON_SHORT[d.getMonth()]}` : '—';
 const longD  = d => d ? `${d.getDate()} ${MON_LONG[d.getMonth()]}` : '—';
 
+// The earliest window anyone can ask for. The Upload Portal backfill opened to
+// January 2025 (Kate, 3 Sep 2026); LG_FIRST_MONTH in branch-ledger.js is the
+// Ledgers pages' copy of the same floor.
+const PERIOD_FIRST_YEAR = 2025;
+
+// Which picker is open under the chip row: 'Month', 'Year', 'Custom' or null.
+// Held here and not read off the DOM, because paintFilterChips() replaces the
+// buttons on every render.
+let periodPick = null;
+
 // Recomputed on every paint rather than frozen at load, so a dashboard left open
 // overnight does not still think "this month so far" ends yesterday.
+// Three named windows only. Year so far and Last year were chips of their own
+// until the row reached six and stopped reading as an index line; both are the
+// Year picker now, and any single month is the Month picker (Kate, 3 Sep 2026).
 function periodPresets() {
   const today = new Date(); today.setHours(0,0,0,0);
   const y = today.getFullYear(), m = today.getMonth();
@@ -135,19 +148,44 @@ function periodPresets() {
     { k: 'Last month + this', from: new Date(y, m-1, 1), to: today },
     { k: 'This month',        from: new Date(y, m,   1), to: today },
     { k: 'Last month',        from: new Date(y, m-1, 1), to: new Date(y, m, 0) },
-    { k: 'Year so far',       from: new Date(y, 0,   1), to: today },
-    // Kate, 3 Sep 2026: the Upload Portal backfill opened to 2025, so last year is a
-    // reachable window and earns its own chip rather than a hand-typed Custom range.
-    { k: 'Last year',         from: new Date(y-1, 0, 1), to: new Date(y-1, 11, 31) },
-    { k: 'Custom' },
   ];
 }
 
-const sameDay = (a, b) => !!a && !!b && dateToIso(a) === dateToIso(b);
+// Both windows stop at today rather than running on into days that have not
+// happened: September 2026 asked for on the 3rd is 1 to 3 September, and the
+// masthead says so instead of promising a month of data that is not there.
+const clampToday = d => { const t = new Date(); t.setHours(0,0,0,0); return d > t ? t : d; };
+const monthRange = (y, m) => ({ from: new Date(y, m, 1), to: clampToday(new Date(y, m+1, 0)) });
+const yearRange  = y      => ({ from: new Date(y, 0, 1), to: clampToday(new Date(y, 11, 31)) });
 
+const sameDay = (a, b) => !!a && !!b && dateToIso(a) === dateToIso(b);
+const isRange = r => sameDay(r.from, dateFrom) && sameDay(r.to, dateTo);
+
+// Named windows are tested first, so 1 to 31 August on the 3rd of September
+// answers "Last month" and not "Month": the named chip is the truer label for a
+// window that has a name.
 function activePeriodKey() {
-  const hit = periodPresets().find(p => p.from && sameDay(p.from, dateFrom) && sameDay(p.to, dateTo));
-  return hit ? hit.k : 'Custom';
+  const hit = periodPresets().find(p => isRange(p));
+  if (hit) return hit.k;
+  if (dateFrom && dateTo) {
+    if (isRange(yearRange(dateFrom.getFullYear()))) return 'Year';
+    if (isRange(monthRange(dateFrom.getFullYear(), dateFrom.getMonth()))) return 'Month';
+  }
+  return 'Custom';
+}
+
+// The two picker chips carry their window in the label, so the row still states
+// what you are reading without anything being opened.
+function periodChips(shown) {
+  const ty = new Date().getFullYear();
+  const seed = dateFrom || new Date();
+  const sy = seed.getFullYear();
+  return [
+    ...periodPresets().map(p => ({ v: p.k, label: p.k })),
+    { v: 'Month', label: shown === 'Month' ? `${MON_LONG[seed.getMonth()]} ${sy} \u25be` : 'Month \u25be' },
+    { v: 'Year',  label: shown === 'Year'  ? `${sy}${sy === ty ? ' so far' : ''} \u25be` : 'Year \u25be' },
+    { v: 'Custom', label: 'Custom' },
+  ];
 }
 
 // Separators are their own spans so the active underline hugs the word and the
@@ -185,9 +223,14 @@ function paintFilterChips() {
   // rather than being live controls that change nothing. The Branch chips still
   // work: it is only the period those pages fix. Kate, 2026-08-14.
   const onLedger = LEDGER_VIEWS.has(CURRENT_VIEW);
+  if (onLedger) periodPick = null;
   const active = activePeriodKey();
-  pEl.innerHTML = chipRow(periodPresets().map(p => ({
-    v: p.k, label: p.k, on: !onLedger && p.k === active, disabled: onLedger })));
+  // While a picker is open its own chip stays the live one, even when the window
+  // it lands on also has a named chip: pick August on the 3rd of September and
+  // the Month picker keeps the underline rather than handing it to Last month.
+  const shown = onLedger ? null : (periodPick || active);
+  pEl.innerHTML = chipRow(periodChips(shown).map(c => ({
+    v: c.v, label: c.label, on: c.v === shown, disabled: onLedger })));
 
   const note = document.getElementById('filterNote');
   if (note) {
@@ -197,12 +240,11 @@ function paintFilterChips() {
       + 'Use Split on the page for MTD, weekly or daily columns. Branch still filters.';
   }
 
-  const custom = document.getElementById('customDates');
-  if (custom) custom.hidden = onLedger || active !== 'Custom';
   const fromInp = document.getElementById('dateRangeFrom');
   const toInp   = document.getElementById('dateRangeTo');
   if (fromInp) fromInp.value = dateToIso(dateFrom);
   if (toInp)   toInp.value   = dateToIso(dateTo);
+  paintPeriodPickers(onLedger, active);
 
   // The masthead's meta rule says what you are reading, so it has to be repainted
   // with the chips and not only on a successful data load — otherwise a branch
@@ -219,6 +261,101 @@ function paintFilterChips() {
         : `${longD(dateFrom)} ${dateFrom.getFullYear()} – ${longD(dateTo)} ${dateTo.getFullYear()}`)
     : '';
 }
+
+// -- THE THREE PICKERS UNDER THE CHIPS -----------------------
+// Custom is two date inputs, Month is month + year, Year is one year. Only the
+// one whose chip is live is on screen, and each is repainted from the window
+// itself, so what a picker shows and what the page is reading cannot drift apart.
+
+// "so far" belongs to the Year picker, where 2026 really does mean the part of it
+// that has happened. Inside the Month picker the same list is only naming a year,
+// so it stays bare.
+function yearOptions(sel, soFar) {
+  const ty = new Date().getFullYear();
+  let out = '';
+  for (let y = ty; y >= PERIOD_FIRST_YEAR; y--)
+    out += `<option value="${y}"${y === sel ? ' selected' : ''}>${y}${(soFar && y === ty) ? ' so far' : ''}</option>`;
+  return out;
+}
+
+function paintPeriodPickers(onLedger, active) {
+  const open = onLedger ? null : (periodPick || (active === 'Custom' ? 'Custom' : null));
+  const box = id => document.getElementById(id);
+  if (box('customDates')) box('customDates').hidden = open !== 'Custom';
+  if (box('monthPick'))   box('monthPick').hidden   = open !== 'Month';
+  if (box('yearPick'))    box('yearPick').hidden    = open !== 'Year';
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const ty = today.getFullYear();
+  const seed = dateFrom || new Date(ty, today.getMonth() - 1, 1);
+
+  const mSel = box('monthPickM'), mYr = box('monthPickY');
+  if (mSel && mYr) {
+    const sy = seed.getFullYear(), sm = seed.getMonth();
+    // Months that have not happened yet are disabled rather than dropped, so the
+    // list keeps its shape from year to year.
+    mSel.innerHTML = MON_LONG.map((n, i) =>
+      `<option value="${i}"${i === sm ? ' selected' : ''}${(sy === ty && i > today.getMonth()) ? ' disabled' : ''}>${n}</option>`
+    ).join('');
+    mYr.innerHTML = yearOptions(sy);
+  }
+  const yOnly = box('yearPickY');
+  if (yOnly) yOnly.innerHTML = yearOptions(seed.getFullYear(), true);
+
+  paintDateEcho();
+}
+
+// Picking a year while sitting on a month that year has not reached lands on the
+// nearest month it has, and the redraw shows where you actually ended up.
+function pickMonthRange() {
+  const mSel = document.getElementById('monthPickM');
+  const mYr  = document.getElementById('monthPickY');
+  if (!mSel || !mYr) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  let y = Number(mYr.value), m = Number(mSel.value);
+  if (y === today.getFullYear() && m > today.getMonth()) m = today.getMonth();
+  const r = monthRange(y, m);
+  periodPick = 'Month';
+  dateFrom = r.from; dateTo = r.to;
+  paintFilterChips();
+  refreshActiveView();
+}
+
+function pickYearRange() {
+  const sel = document.getElementById('yearPickY');
+  if (!sel) return;
+  const r = yearRange(Number(sel.value));
+  periodPick = 'Year';
+  dateFrom = r.from; dateTo = r.to;
+  paintFilterChips();
+  refreshActiveView();
+}
+
+// Windows Chrome draws a date input as mm/dd/yyyy, so 09/03 is the 3rd of
+// September to the browser and the 9th of March to everyone in this office. The
+// pair is echoed back in words as it is typed, before Apply is pressed, and says
+// so when the two are the wrong way round. Kate, 3 Sep 2026.
+function paintDateEcho() {
+  const el = document.getElementById('dateEcho');
+  if (!el) return;
+  const fEl = document.getElementById('dateRangeFrom');
+  const tEl = document.getElementById('dateRangeTo');
+  const f = isoToDate(fEl ? fEl.value : '');
+  const t = isoToDate(tEl ? tEl.value : '');
+  const full = d => `${longD(d)} ${d.getFullYear()}`;
+  if (!f || !t) { el.className = 'f-echo'; el.textContent = 'Pick both dates.'; return; }
+  if (f > t) {
+    el.className = 'f-echo bad';
+    el.textContent = `${full(f)} comes after ${full(t)}. The two are the wrong way round.`;
+    return;
+  }
+  el.className = 'f-echo';
+  el.textContent = `${full(f)} to ${full(t)}`;
+}
+
+document.addEventListener('input', e => {
+  if (e.target && (e.target.id === 'dateRangeFrom' || e.target.id === 'dateRangeTo')) paintDateEcho();
+});
 
 // Delegated, because paintFilterChips() replaces the buttons on every render.
 document.addEventListener('click', e => {
@@ -240,16 +377,23 @@ document.addEventListener('click', e => {
   }
 
   if (chip.closest('#periodChips')) {
-    const p = periodPresets().find(x => x.k === chip.dataset.v);
-    if (!p) return;
-    if (!p.from) {                       // Custom — reveal the inputs, change nothing yet
-      const custom = document.getElementById('customDates');
-      if (custom) custom.hidden = false;
-      document.querySelectorAll('#periodChips .chip').forEach(c =>
-        c.setAttribute('aria-pressed', String(c === chip)));
+    const v = chip.dataset.v;
+    if (v === 'Custom') {                // reveal the inputs, change nothing yet
+      periodPick = 'Custom';
+      paintFilterChips();
       if (typeof sizeTopbar === 'function') sizeTopbar();
       return;
     }
+    if (v === 'Month' || v === 'Year') { // reveal the picker, then apply what it shows
+      periodPick = v;
+      paintFilterChips();                // seeds the selects off the window on screen
+      if (v === 'Month') pickMonthRange(); else pickYearRange();
+      if (typeof sizeTopbar === 'function') sizeTopbar();
+      return;
+    }
+    const p = periodPresets().find(x => x.k === v);
+    if (!p) return;
+    periodPick = null;
     dateFrom = p.from; dateTo = p.to;
     paintFilterChips();
     refreshActiveView();
@@ -1095,6 +1239,7 @@ function computeAtAGlanceExplanation(s, hairRevenue, hairTreatmentPct) {
 function applyDateRange() {
   dateFrom = isoToDate(document.getElementById('dateRangeFrom').value);
   dateTo   = isoToDate(document.getElementById('dateRangeTo').value) || dateFrom;
+  periodPick = 'Custom';   // the inputs stay open, so a mistyped range can be fixed in place
 
   rebuildDependentDrops();
   refreshActiveView();
@@ -1121,6 +1266,7 @@ async function setDefaultRange() {
 }
 
 async function clearDateRange() {
+  periodPick = null;       // back to a named window, so no picker stays open
   await setDefaultRange();
   rebuildDependentDrops();
   refreshActiveView();
