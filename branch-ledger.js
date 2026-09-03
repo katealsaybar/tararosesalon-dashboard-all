@@ -295,7 +295,7 @@ function lgTable(cols, rows, opts) {
       // `id` makes a group row a rail destination. Daily Stylist Target is one
       // long table rather than a stack of sections, so its branch·department
       // headings are the only thing there is to jump to.
-      return `<tr class="lg-grp"${r.id ? ` id="${r.id}"` : ''}><td colspan="${cols.length}">${r.group}</td></tr>`;
+      return `<tr class="lg-grp"${r.id ? ` id="${r.id}"` : ''}><td colspan="${cols.length}"><span class="lg-grp-t">${r.group}</span></td></tr>`;
     }
     const cells = (r && r.total) ? r.total : r;
     const rowCls = (r && r.total) ? ' class="lg-tot"' : '';

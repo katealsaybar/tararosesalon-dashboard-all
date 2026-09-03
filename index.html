@@ -1513,6 +1513,10 @@ table.lg th:first-child{background:var(--surface2);z-index:2}
 tr.lg-grp td{background:var(--bg);font-size:9.5px;font-weight:700;letter-spacing:.14em;
   text-transform:uppercase;color:var(--text);opacity:.75;padding:13px 11px 7px}
 tr.lg-grp td:first-child{background:var(--bg)}
+/* The heading text rides a sticky span: the cell spans every column, so the cell
+   itself has nowhere to stick, and scrolled sideways its left-aligned label was
+   off-screen — the band read as an empty row. */
+.lg-grp-t{display:inline-block;position:sticky;left:11px}
 tr.lg-tot td{font-weight:700;background:var(--surface2);border-top:1px solid var(--text)}
 tr.lg-tot td:first-child{background:var(--surface2)}
 
@@ -1685,10 +1689,12 @@ table.lg thead tr.lg-band + tr th{top:26px}
    you scroll sideways; inline-block so the translate takes. */
 .lg-band-t{display:inline-block}
 /* While floated, the first cells' pinning belongs to stickLgHead()'s translateX
-   alone. Whether position:sticky survives a transformed ancestor varies by
+   alone. top:auto as well: the column-name row's th carries top:26px for its
+   sticky life, and as position:relative that same 26px became a real offset —
+   STYLIST sat a row below DEPT and the first body row showed through the gap. Whether position:sticky survives a transformed ancestor varies by
    engine version — where it does, sticky + the translate pinned the cell twice
    and parked it in the middle of the table. */
-table.lg thead.lg-float th:first-child{position:relative;left:auto}
+table.lg thead.lg-float th:first-child{position:relative;left:auto;top:auto}
 /* Floated by stickLgHead(), the thead is a bar over the middle of the table — the
    shadow is what says "header", not "row that stopped scrolling". */
 table.lg thead.lg-float tr:last-child th{box-shadow:0 8px 10px -8px rgba(0,0,0,.32)}
@@ -2305,7 +2311,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets.js?v=20260814a"></script>
 <script src="staff-profiles.js?v=20260814c"></script>
 <script src="stylist-cards.js?v=20260814b"></script>
-<script src="dashboard.js?v=20260901a"></script>
+<script src="dashboard.js?v=20260903a"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260814h"></script>
 <script src="team-performance.js?v=20260814d"></script>
