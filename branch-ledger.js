@@ -156,6 +156,18 @@ function lgSplit(series) {
 // benchmark ratios divide rather than from the ratios themselves — an average of
 // four branches' rebooking rates is not the group's rebooking rate. Comes out
 // identical to series.group when every branch is selected.
+// Services Total, Kate's definition (3 Sep 2026): hair services with treatments and
+// courses taken OUT, plus beauty services, no retail anywhere. It is not the
+// summary's servicesTotal (which keeps treatments and courses in, because net take
+// does) — so every Ledgers row and block that says "services total" reads this.
+// Null when the hair figure is unknown (a Phorest-only month has no treatment AED).
+function lgServicesTotal(d) {
+  if (!d || d.hairServicesExcl == null) return null;
+  return d.hairServicesExcl + (d.beautyServicesTotal || 0);
+}
+const LG_SERVICES_LABEL = 'Services Total (hair excl. treatments and courses + beauty, no retail)';
+const LG_RETAIL_LABEL   = 'Retail Total (Hair + Beauty)';
+
 function lgRollup(list) {
   const t = {
     servicesTotal:0, retailTotal:0, hairServicesIncl:0, hairRetailOnly:0, treatmentSales:0,
@@ -173,6 +185,7 @@ function lgRollup(list) {
   (list || []).filter(Boolean).forEach(s => keys.forEach(k => { t[k] += Number(s[k]) || 0; }));
   t.hairRevenue      = t.hairServicesIncl;
   t.hairServicesExcl = t.hairServicesIncl - t.treatmentSales - t.hairCourses;
+  t.servicesExclTotal = t.hairServicesExcl + t.beautyServicesTotal;
   t.rebookPct     = t.totalClients       ? t.totalRebooked / t.totalClients * 100        : null;
   t.hairAvgBill   = t.hairTotalClients   ? t.hairServicesIncl / t.hairTotalClients       : null;
   t.beautyAvgBill = t.beautyTotalClients ? t.beautyServicesTotal / t.beautyTotalClients  : null;
@@ -728,8 +741,8 @@ const LG_SHEET_ROWS = [
   // a 42k shortfall in the September leadership call. Hair services and courses are
   // its parts and carry no target of their own. The # rows are counts off the ledger.
   { group: 'Revenue' },
-  { label: 'Services Total',                                key: 'servicesTotal',  pick: d => d.servicesTotal },
-  { label: 'Retail Total',                                  key: 'retailTotal',    pick: d => d.retailTotal },
+  { label: LG_SERVICES_LABEL,                               key: 'servicesTotal',  pick: lgServicesTotal },
+  { label: LG_RETAIL_LABEL,                                 key: 'retailTotal',    pick: d => d.retailTotal },
   { label: 'Hair revenue (incl. treatments and courses)',   key: 'hairRevenue',    pick: d => d.hairServicesIncl },
   { label: 'Hair services (excl. treatments and courses)',  key: null,             pick: d => d.hairServicesExcl },
   { label: 'Hair treatments revenue',                       key: 'hairTreatment',  pick: d => d.treatmentSales, ledger: true },
@@ -840,7 +853,7 @@ function lgIdentityNote(s) {
       (share == null ? '.' : ` (${share}% hair, ${100 - share}% beauty here).`);
   }
   return `<div class="foot">` +
-    line('Hair revenue', s.hairServicesIncl || 0, 'beauty services', s.beautyServicesTotal || 0, 'services total', s.servicesTotal || 0) + '<br>' +
+    line('Hair services (excl. treatments and courses)', s.hairServicesExcl || 0, 'beauty services', s.beautyServicesTotal || 0, 'services total', lgServicesTotal(s) || 0) + '<br>' +
     line('Hair retail', s.hairRetailOnly || 0, 'beauty retail', s.beautyRetailOnly || 0, 'retail total', s.retailTotal || 0) +
     split + `</div>`;
 }
@@ -1066,8 +1079,8 @@ async function renderBranchPerformance() {
   // Kate's eleven lines in her order (3 Sep 2026) — see LG_SHEET_ROWS for why the
   // target sits on hair REVENUE. Fifth element marks a count, formatted as a number.
   const revenueRows = [
-    ['Services Total',                               'servicesTotal',  s.servicesTotal],
-    ['Retail Total',                                 'retailTotal',    s.retailTotal],
+    [LG_SERVICES_LABEL,                              'servicesTotal',  lgServicesTotal(s)],
+    [LG_RETAIL_LABEL,                                'retailTotal',    s.retailTotal],
     ['Hair revenue (incl. treatments and courses)',  'hairRevenue',    s.hairServicesIncl],
     ['Hair services (excl. treatments and courses)', null,             s.hairServicesExcl],
     ['Hair treatments revenue',                      'hairTreatment',  s.treatmentSales, true],
@@ -1328,8 +1341,8 @@ function bpDrawCharts(codes, ctx) {
   // one chart that colours by status.
   if (ctx.applies) {
     const METRICS = [
-      ['Salon total services', 'servicesTotal',    d => d.servicesTotal],
-      ['Salon total retail',   'retailTotal',      d => d.retailTotal],
+      ['Salon total services', 'servicesTotal',    lgServicesTotal],
+      ['Salon total retail (hair + beauty)', 'retailTotal', d => d.retailTotal],
       ['Hair revenue',         'hairRevenue',      d => d.hairServicesIncl],
       ['Hair treatment',       'hairTreatment',    d => d.treatmentSales],
       ['Hair retail',          'hairRetail',       d => d.hairRetailOnly],
@@ -1568,8 +1581,8 @@ async function renderLedgerTargets() {
   // The six pacing blocks, in the sheet's own order and with its own titles.
   // `pick` pulls the actual for one branch's summary; `key` is the target field.
   const BLOCKS = [
-    { title:'Salon total services', key:'servicesTotal',    pick: d => d.servicesTotal },
-    { title:'Salon total retail',   key:'retailTotal',      pick: d => d.retailTotal },
+    { title:'Salon total services (hair excl. treatments and courses + beauty)', key:'servicesTotal', pick: lgServicesTotal },
+    { title:'Salon total retail (hair + beauty)', key:'retailTotal', pick: d => d.retailTotal },
     { title:'Hair treatment',       key:'hairTreatment',    pick: d => d.treatmentSales },
     { title:'Hair revenue (incl. treatments and courses)', key:'hairRevenue', pick: d => d.hairServicesIncl },
     { title:'Hair retail',          key:'hairRetail',       pick: d => d.hairRetailOnly },
@@ -1651,22 +1664,29 @@ async function renderLedgerTargets() {
     const info = BRANCH_INFO[code] || { name: code };
     if (!d) return [escapeHtml(info.name), '—','—','—','—','—','—','—','—','—'];
     const hairNet = (d.hairServicesIncl || 0) + (d.hairRetailOnly || 0);
-    const txPct   = (d.hairServicesIncl || 0) ? (d.treatmentSales || 0) / d.hairServicesIncl * 100 : null;
+    // Ledger-only figures (treatment, NCR, rebooked) are null on a Phorest-only
+    // month, and print as a dash, not a 0 nobody earned (Kate, 3 Sep 2026).
+    const txPct   = (d.treatmentSales == null || !(d.hairServicesIncl || 0)) ? null : d.treatmentSales / d.hairServicesIncl * 100;
     const retPct  = hairNet ? (d.hairRetailOnly || 0) / hairNet * 100 : null;
+    const count   = v => (v == null ? '—' : lgNum(v));
     return [escapeHtml(info.name),
       lgPct(d.rebookPct != null ? d.rebookPct : d.hairRebookPct), lgPct(txPct), lgPct(retPct),
       lgDash(d.hairAvgBill ? lgAed(d.hairAvgBill) : null),
       lgDash(d.beautyAvgBill ? lgAed(d.beautyAvgBill) : null),
-      lgNum(d.totalClients), lgNum(d.newClientsTotal), lgNum(d.ncrTotal), lgNum(d.totalRebooked)];
+      count(d.totalClients), count(d.newClientsTotal), count(d.ncrTotal), count(d.totalRebooked)];
   });
   const hairNetAll = roll.hairServicesIncl + roll.hairRetailOnly;
+  // The rollup sums nulls as 0, so it has to be told: if no selected branch has a
+  // ledger this month, the ledger-only totals are unknown too.
+  const anyLedger = codes.some(c => series[c] && series[c].mtd && !series[c].mtd._phorestOnly);
+  const rollCount = v => (anyLedger ? lgNum(v) : '—');
   pivRows.push({ total: ['Grand total',
-    lgPct(roll.rebookPct),
-    lgPct(roll.hairServicesIncl ? roll.treatmentSales / roll.hairServicesIncl * 100 : null),
+    anyLedger ? lgPct(roll.rebookPct) : '—',
+    anyLedger ? lgPct(roll.hairServicesIncl ? roll.treatmentSales / roll.hairServicesIncl * 100 : null) : '—',
     lgPct(hairNetAll ? roll.hairRetailOnly / hairNetAll * 100 : null),
     lgDash(roll.hairAvgBill ? lgAed(roll.hairAvgBill) : null),
     lgDash(roll.beautyAvgBill ? lgAed(roll.beautyAvgBill) : null),
-    lgNum(roll.totalClients), lgNum(roll.newClientsTotal), lgNum(roll.ncrTotal), lgNum(roll.totalRebooked)] });
+    lgNum(roll.totalClients), lgNum(roll.newClientsTotal), rollCount(roll.ncrTotal), rollCount(roll.totalRebooked)] });
 
   const paceTitle = showTargets ? 'Target vs actual' : 'Actuals by branch';
   host.innerHTML =
