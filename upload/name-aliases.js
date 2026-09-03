@@ -15,6 +15,8 @@ const STAFF_NAME_ALIASES = {
   // into it. Kate confirmed same person, 2026-08-12. Branch attribution is
   // per-row, so merging the name moves no revenue between branches.
   'LUCIA': 'LUCY',
+  // Motor City wrote her XYHRY on 31 Aug 2026. XYRHY is the spelling (Kate, 3 Sep 2026).
+  'XYHRY': 'XYRHY',
 };
 
 function canonicalStaffName(name){
