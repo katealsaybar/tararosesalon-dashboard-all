@@ -77,6 +77,25 @@ function switchSeg(e, tab, seg){
   document.querySelectorAll(`#tab-${tab} > .seg-pane`).forEach(p => {
     p.classList.toggle('active', p.id === `seg-${tab}-${seg}`);
   });
+  if (seg === 'browse') trRunBrowseOnce(tab);
+}
+
+// Browse pulls a whole date range and renders every row of it, which on Staff
+// Daily is ~7,900 rows for the year. It used to run on tab open, into a card
+// nobody had asked for yet, which is what made opening the tab feel stuck.
+// Now it runs the first time you actually open Browse (Kate, 2026-09-03).
+const trBrowseRan = {};
+const TR_BROWSE_RUNNERS = {
+  staffperf: 'runStaffPerfFilter',
+  ops:       'runUtilFilter',
+  sheetsync: 'runSheetSyncFilter',
+};
+function trRunBrowseOnce(tab){
+  if (trBrowseRan[tab]) return;
+  const fn = TR_BROWSE_RUNNERS[tab];
+  if (!fn || typeof window[fn] !== 'function') return;
+  trBrowseRan[tab] = true;
+  window[fn]();
 }
 
 // Same switch, driven from somewhere other than the segment button itself
@@ -157,6 +176,15 @@ function trDatePreset(e, prefix, key, runFn){
   if (toEl)   toEl.value   = trIsoDate(to);
   if (typeof window[runFn] === 'function') window[runFn]();
 }
+
+// One Intl.NumberFormat per shape, built once. `v.toLocaleString(undefined,
+// {...})` builds a formatter on every call, and a year of Staff Daily is ~40,000
+// numeric cells, which is where the redraw on every sort was going
+// (Kate, 2026-09-03).
+const TR_NUM_FMT = {
+  0: new Intl.NumberFormat(undefined, { minimumFractionDigits:0, maximumFractionDigits:0 }),
+  2: new Intl.NumberFormat(undefined, { minimumFractionDigits:2, maximumFractionDigits:2 }),
+};
 
 function trIsoDate(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;

@@ -9,12 +9,12 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=6"></script>
+<script src="upload.js?v=7"></script>
 <script src="name-aliases.js?v=3"></script>
-<script src="phorest-staff.js?v=11"></script>
+<script src="phorest-staff.js?v=12"></script>
 <script src="phorest-pdf.js?v=2"></script>
-<script src="utilisation-pdf.js?v=6"></script>
-<script src="sheet-sync.js?v=6"></script>
+<script src="utilisation-pdf.js?v=7"></script>
+<script src="sheet-sync.js?v=7"></script>
 
 <!-- Same two faces as the main dashboard: Inter for everything, Playfair for the
      serif titles. The portal used to load DM Sans + Cormorant Garamond, which is
@@ -467,12 +467,12 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <div id="utilTodayStrip" class="today-strip"></div>
 
   <div class="seg-bar">
-    <button class="seg-btn active" data-seg="upload" onclick="switchSeg(event,'ops','upload')">Upload</button>
-    <button class="seg-btn" data-seg="progress" onclick="switchSeg(event,'ops','progress')">Progress</button>
+    <button class="seg-btn active" data-seg="progress" onclick="switchSeg(event,'ops','progress')">Progress</button>
     <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'ops','browse')">Browse</button>
+    <button class="seg-btn" data-seg="upload" onclick="switchSeg(event,'ops','upload')">Upload</button>
   </div>
 
-  <div class="seg-pane active" id="seg-ops-upload">
+  <div class="seg-pane" id="seg-ops-upload">
 
   <!-- PASTE & SAVE — one box per branch, mirrors the Staff Performance Overview paste flow -->
   <div class="upload-card">
@@ -523,7 +523,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   </div><!-- /seg-ops-upload -->
 
   <!-- BACKFILL PROGRESS -->
-  <div class="seg-pane" id="seg-ops-progress">
+  <div class="seg-pane active" id="seg-ops-progress">
   <div class="upload-card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px;flex-wrap:wrap">
       <div class="card-title" style="margin-bottom:0">Backfill Progress</div>
@@ -683,12 +683,12 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <div id="spTodayStrip" class="today-strip"></div>
 
   <div class="seg-bar">
-    <button class="seg-btn active" data-seg="upload" onclick="switchSeg(event,'staffperf','upload')">Upload</button>
-    <button class="seg-btn" data-seg="progress" onclick="switchSeg(event,'staffperf','progress')">Progress</button>
+    <button class="seg-btn active" data-seg="progress" onclick="switchSeg(event,'staffperf','progress')">Progress</button>
     <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'staffperf','browse')">Browse</button>
+    <button class="seg-btn" data-seg="upload" onclick="switchSeg(event,'staffperf','upload')">Upload</button>
   </div>
 
-  <div class="seg-pane active" id="seg-staffperf-upload">
+  <div class="seg-pane" id="seg-staffperf-upload">
 
   <!-- PASTE & SAVE — one box per branch, so all 4 can be pasted side by side -->
   <div class="upload-card">
@@ -741,7 +741,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   </div><!-- /seg-staffperf-upload -->
 
   <!-- BACKFILL PROGRESS -->
-  <div class="seg-pane" id="seg-staffperf-progress">
+  <div class="seg-pane active" id="seg-staffperf-progress">
   <div class="upload-card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px;flex-wrap:wrap">
       <div class="card-title" style="margin-bottom:0">Backfill Progress</div>

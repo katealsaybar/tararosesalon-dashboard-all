@@ -18,6 +18,13 @@ const SS_COLS = [
 ];
 const SS_PAGE_SIZE = 1000;
 const SS_ROW_LIMIT = 25000;
+const SS_RENDER_CAP = 2000;
+let ssShowAllRows = false;
+
+function ssRenderAllRows(){
+  ssShowAllRows = true;
+  ssRenderTable();
+}
 let ssCapWarning = false;
 
 // ── LAST SYNCED STATUS (per branch) ─────────────────────────
@@ -114,7 +121,7 @@ const SS_COUNT_FIELDS = new Set(['ncr','req','salon','new_client','rebooked','to
 function ssFmt(v, key){
   if (typeof v !== 'number') return v ?? '';
   const d = key && SS_COUNT_FIELDS.has(key) ? 0 : 2;
-  return v.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+  return TR_NUM_FMT[d].format(v);
 }
 
 // ── SORT + COLUMN VISIBILITY + SUMMARY MODE (mirrors the Staff Performance tab) ──
@@ -334,16 +341,28 @@ function ssRenderTable(){
 
   const filteredData = ssColFilterRows(ssLastData);
   const displayRows = ssSummaryMode ? ssAggregateByEmployee(filteredData) : filteredData;
-  document.getElementById('ssResultCount').textContent = ssCapWarning
-    ? `Showing first ${SS_ROW_LIMIT} rows — narrow your filters for more precision`
-    : `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${ssSummaryMode ? ' (summarized per staff member)' : ''}`;
+  // Same render cap as the Staff Daily table: this selection runs to ~17,500
+  // rows, and every sort rebuilt all of them. The TOTAL row still sums the
+  // whole filtered selection (Kate, 2026-09-03).
+  const capped = !ssSummaryMode && !ssShowAllRows && displayRows.length > SS_RENDER_CAP;
+  const renderRows = capped ? displayRows.slice(0, SS_RENDER_CAP) : displayRows;
+
+  const countEl = document.getElementById('ssResultCount');
+  if (ssCapWarning){
+    countEl.textContent = `Showing first ${SS_ROW_LIMIT} rows — narrow your filters for more precision`;
+  } else if (capped){
+    countEl.innerHTML = `${displayRows.length} rows · showing the newest ${SS_RENDER_CAP} ` +
+      `<button class="btn-outline" style="padding:3px 9px;font-size:10.5px;margin-left:4px" onclick="ssRenderAllRows()">Show all</button>`;
+  } else {
+    countEl.textContent = `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${ssSummaryMode ? ' (summarized per staff member)' : ''}`;
+  }
 
   const visibleCols = SS_COLS.filter(c => !ssHiddenCols.has(c[1]));
 
   // Group by branch (canonical BRANCH_KEYS order), sorted within each group,
   // mirroring the Staff Performance tab's branch-block layout.
   const groups = new Map();
-  for (const row of displayRows){
+  for (const row of renderRows){
     if (!groups.has(row.branch)) groups.set(row.branch, []);
     groups.get(row.branch).push(row);
   }
@@ -396,32 +415,42 @@ async function runSheetSyncFilter(){
     return q;
   };
 
-  let all = [];
-  let offset = 0;
-  while (true){
-    const { data, error } = await buildQuery().range(offset, offset + SS_PAGE_SIZE - 1);
-    if (error){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${error.message}</div>`; return; }
-    all = all.concat(data);
-    if (data.length < SS_PAGE_SIZE || all.length >= SS_ROW_LIMIT) break;
-    offset += SS_PAGE_SIZE;
+  const buildCountQuery = () => {
+    let q = sb.from(SS_TABLE).select('id', { count:'exact', head:true });
+    if (branch) q = q.eq('branch', branch);
+    if (from)   q = q.gte('date', from);
+    if (to)     q = q.lte('date', to);
+    if (staff)  q = q.ilike('staff_name', `%${staff}%`);
+    return q;
+  };
+
+  // Count first, then every page at once — see runStaffPerfFilter's note.
+  const { count, error: countErr } = await buildCountQuery();
+  if (countErr){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${countErr.message}</div>`; return; }
+
+  const wanted = Math.min(count || 0, SS_ROW_LIMIT);
+  const pages = [];
+  for (let offset = 0; offset < wanted; offset += SS_PAGE_SIZE){
+    pages.push(buildQuery().range(offset, Math.min(offset + SS_PAGE_SIZE, wanted) - 1));
   }
+  const results = await Promise.all(pages);
+  const failed = results.find(r => r.error);
+  if (failed){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
+  const all = results.flatMap(r => r.data || []);
 
   ssCapWarning = all.length >= SS_ROW_LIMIT;
   ssLastData = all.slice(0, SS_ROW_LIMIT)
     .map(row => ({...row, staff_name: canonicalStaffName(row.staff_name)}));
   ssColFilters = {};
+  ssShowAllRows = false;
   ssRenderTable();
 }
 
 // ── INIT ──────────────────────────────────────────────────────
-let ssFilterAutoRun = false;
 function initSheetSyncTab(){
   ssPopulateFilterBranch();
   ssSetDefaultFilterDates(false);
   ssSyncSummaryToggleUI();
   refreshSheetSyncStatus();
-  if (!ssFilterAutoRun){
-    ssFilterAutoRun = true;
-    runSheetSyncFilter();
-  }
+  // Browse runs when Browse is opened, not on tab load — see trRunBrowseOnce.
 }

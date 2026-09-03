@@ -376,15 +376,19 @@ async function refreshStaffPerfProgress(){
   // setting (1000 here) — the is_total rows crossed that in Aug 2026 (one per
   // branch per day), so days beyond the cap read as missing even though their
   // data is really there. Page through with .range() like runStaffPerfFilter.
-  let all = [];
-  let offset = 0;
-  while (true){
-    const { data, error } = await sb.from(SP_TABLE).select('branch,date').eq('is_total', true).range(offset, offset + SP_PAGE_SIZE - 1);
-    if (error){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${error.message}</div>`; return; }
-    all = all.concat(data || []);
-    if (!data || data.length < SP_PAGE_SIZE) break;
-    offset += SP_PAGE_SIZE;
+  // Counted first, then every page at once — in series this was four round
+  // trips before the strips could draw, on the segment that now opens by
+  // default (Kate, 2026-09-03).
+  const { count, error: countErr } = await sb.from(SP_TABLE).select('id',{count:'exact',head:true}).eq('is_total', true);
+  if (countErr){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${countErr.message}</div>`; return; }
+  const pages = [];
+  for (let offset = 0; offset < (count || 0); offset += SP_PAGE_SIZE){
+    pages.push(sb.from(SP_TABLE).select('branch,date').eq('is_total', true).range(offset, offset + SP_PAGE_SIZE - 1));
   }
+  const results = await Promise.all(pages);
+  const failed = results.find(r => r.error);
+  if (failed){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${failed.error.message}</div>`; return; }
+  const all = results.flatMap(r => r.data || []);
 
   const covered = new Set(all.map(r => `${r.branch}|${r.date}`));
 
@@ -565,6 +569,13 @@ const SP_COLS = [
   ['Avg ExVAT','avg_spend_ex_vat'],['Avg Total','avg_spend_total']
 ];
 const SP_ROW_LIMIT = 25000;
+const SP_RENDER_CAP = 2000;
+let spShowAllRows = false;
+
+function spRenderAllRows(){
+  spShowAllRows = true;
+  spRenderTable();
+}
 
 // Client-count columns show whole numbers — every other numeric column is
 // money (AED) and keeps 2 decimals.
@@ -572,7 +583,7 @@ const SP_COUNT_FIELDS = new Set(['visits','new_clients','rqs']);
 function spFmt(v, key){
   if (typeof v !== 'number') return v ?? '';
   const d = key && SP_COUNT_FIELDS.has(key) ? 0 : 2;
-  return v.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+  return TR_NUM_FMT[d].format(v);
 }
 
 // ── SORT + COLUMN VISIBILITY STATE (persisted like a spreadsheet view) ──
@@ -815,9 +826,25 @@ function spRenderTable(){
 
   const filteredData = spColFilterRows(spLastData);
   const displayRows = spSummaryMode ? spAggregateByEmployee(filteredData) : filteredData;
-  document.getElementById('spResultCount').textContent = spCapWarning
-    ? `Showing first ${SP_ROW_LIMIT} rows — narrow your filters for more precision`
-    : `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${spSummaryMode ? ' (summarized per employee)' : ''}`;
+
+  // A year of daily rows is ~6,800 rows × 20 columns, and every sort or column
+  // filter rebuilt all of it — that is what made the tab feel laggy rather than
+  // the query. Render the most recent SP_RENDER_CAP and offer the rest on
+  // request; the TOTAL row is still summed over every filtered row, so the
+  // arithmetic on screen is the arithmetic of the whole selection
+  // (Kate, 2026-09-03).
+  const capped = !spSummaryMode && !spShowAllRows && displayRows.length > SP_RENDER_CAP;
+  const renderRows = capped ? displayRows.slice(0, SP_RENDER_CAP) : displayRows;
+
+  const countEl = document.getElementById('spResultCount');
+  if (spCapWarning){
+    countEl.textContent = `Showing first ${SP_ROW_LIMIT} rows — narrow your filters for more precision`;
+  } else if (capped){
+    countEl.innerHTML = `${displayRows.length} rows · showing the newest ${SP_RENDER_CAP} ` +
+      `<button class="btn-outline" style="padding:3px 9px;font-size:10.5px;margin-left:4px" onclick="spRenderAllRows()">Show all</button>`;
+  } else {
+    countEl.textContent = `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${spSummaryMode ? ' (summarized per employee)' : ''}`;
+  }
 
   const visibleCols = SP_COLS.filter(c => !spHiddenCols.has(c[1]));
 
@@ -825,7 +852,7 @@ function spRenderTable(){
   // mirrors the branch-block layout with a blank row between branches used in the Target Sheet.
   const branchOrder = SP_BRANCHES.map(b => b.code);
   const groups = new Map();
-  for (const row of displayRows){
+  for (const row of renderRows){
     if (!groups.has(row.branch)) groups.set(row.branch, []);
     groups.get(row.branch).push(row);
   }
@@ -886,27 +913,42 @@ async function runStaffPerfFilter(){
     return q;
   };
 
-  let all = [];
-  let offset = 0;
-  while (true){
-    const { data, error } = await buildQuery().range(offset, offset + SP_PAGE_SIZE - 1);
-    if (error){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${error.message}</div>`; return; }
-    all = all.concat(data);
-    if (data.length < SP_PAGE_SIZE || all.length >= SP_ROW_LIMIT) break;
-    offset += SP_PAGE_SIZE;
+  const buildCountQuery = () => {
+    let q = sb.from(SP_TABLE).select('id', { count:'exact', head:true });
+    if (branch)  q = q.eq('branch', branch);
+    if (from)    q = q.gte('date', from);
+    if (to)      q = q.lte('date', to);
+    if (stylist) q = q.ilike('employee_name', `%${stylist}%`);
+    return q;
+  };
+
+  // Count first, then fetch every page at once. Walking the pages one awaited
+  // request at a time meant a year of Staff Daily (~7,900 rows) cost eight
+  // round trips in series before a single row appeared (Kate, 2026-09-03).
+  const { count, error: countErr } = await buildCountQuery();
+  if (countErr){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${countErr.message}</div>`; return; }
+
+  const wanted = Math.min(count || 0, SP_ROW_LIMIT);
+  const pages = [];
+  for (let offset = 0; offset < wanted; offset += SP_PAGE_SIZE){
+    pages.push(buildQuery().range(offset, Math.min(offset + SP_PAGE_SIZE, wanted) - 1));
   }
+  const results = await Promise.all(pages);
+  const failed = results.find(r => r.error);
+  if (failed){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
+  const all = results.flatMap(r => r.data || []);
 
   spCapWarning = all.length >= SP_ROW_LIMIT;
   spLastData = all.slice(0, SP_ROW_LIMIT).filter(row => !row.is_total)
     .map(row => ({...row, employee_name: canonicalStaffName(row.employee_name)}));
   spColFilters = {};
+  spShowAllRows = false;
   spRenderTable();
 }
 
 // ── INIT ──────────────────────────────────────────────────────
 
 let spBoxesRendered = false;
-let spFilterAutoRun = false;
 
 // Paste-and-save is the old workflow now that bulk PDF upload exists — collapsed by default.
 let spPasteCollapsed = localStorage.getItem('spPasteCollapsed') === null
@@ -940,8 +982,5 @@ function initStaffPerfTab(){
   refreshStaffPerfProgress();
   if (typeof initStaffPerfPdfDrop === 'function') initStaffPerfPdfDrop();
 
-  if (!spFilterAutoRun){
-    spFilterAutoRun = true;
-    runStaffPerfFilter();
-  }
+  // Browse runs when Browse is opened, not on tab load — see trRunBrowseOnce.
 }

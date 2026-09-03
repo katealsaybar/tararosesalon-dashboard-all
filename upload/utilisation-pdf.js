@@ -371,15 +371,19 @@ async function refreshUtilProgress(){
   // past ages ago, so page through with .range() or later branches read as 0%
   // covered even though their data is really there (mirrors SP_PAGE_SIZE's note
   // in phorest-staff.js).
-  let all = [];
-  let offset = 0;
-  while (true){
-    const { data, error } = await sb.from(UTIL_TABLE).select('branch,date_from,date_to').range(offset, offset + UTIL_PAGE_SIZE - 1);
-    if (error){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${error.message}</div>`; return; }
-    all = all.concat(data);
-    if (data.length < UTIL_PAGE_SIZE) break;
-    offset += UTIL_PAGE_SIZE;
+  // Counted first, then every page at once. This table carries a row per staff
+  // member per report, so in series it was the slowest thing in the portal
+  // (Kate, 2026-09-03).
+  const { count, error: countErr } = await sb.from(UTIL_TABLE).select('id',{count:'exact',head:true});
+  if (countErr){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${countErr.message}</div>`; return; }
+  const pages = [];
+  for (let offset = 0; offset < (count || 0); offset += UTIL_PAGE_SIZE){
+    pages.push(sb.from(UTIL_TABLE).select('branch,date_from,date_to').range(offset, offset + UTIL_PAGE_SIZE - 1));
   }
+  const results = await Promise.all(pages);
+  const failed = results.find(r => r.error);
+  if (failed){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${failed.error.message}</div>`; return; }
+  const all = results.flatMap(r => r.data || []);
 
   const covered = utilCoveredDaySet(all);
 
@@ -440,13 +444,20 @@ const UTIL_COLS = [
   ['Total Rev/Hr','total_rev_per_hour'],['3x Wages','wages_3x_ratio'],['Archived','is_archived']
 ];
 const UTIL_ROW_LIMIT = 25000;
+const UTIL_RENDER_CAP = 2000;
+let utilShowAllRows = false;
+
+function utilRenderAllRows(){
+  utilShowAllRows = true;
+  utilRenderTable();
+}
 const UTIL_PERCENT_FIELDS = new Set(['utilisation_percent']);
 
 function utilFmt(v, key){
   if (key === 'is_archived') return v ? 'Yes' : '';
   if (typeof v !== 'number') return v ?? '';
   const suffix = UTIL_PERCENT_FIELDS.has(key) ? '%' : '';
-  return v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + suffix;
+  return TR_NUM_FMT[2].format(v) + suffix;
 }
 
 // ── SORT + COLUMN VISIBILITY + SUMMARY MODE (mirrors the Staff Performance tab) ──
@@ -670,14 +681,26 @@ function utilRenderTable(){
 
   const filteredData = utilColFilterRows(utilLastData);
   const displayRows = utilSummaryMode ? utilAggregateByStaff(filteredData) : filteredData;
-  document.getElementById('utilResultCount').textContent = utilCapWarning
-    ? `Showing first ${UTIL_ROW_LIMIT} rows — narrow your filters for more precision`
-    : `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${utilSummaryMode ? ' (summarized per staff member)' : ''}`;
+  // Same render cap as the Staff Daily table: this selection runs to ~17,500
+  // rows, and every sort rebuilt all of them. The TOTAL row still sums the
+  // whole filtered selection (Kate, 2026-09-03).
+  const capped = !utilSummaryMode && !utilShowAllRows && displayRows.length > UTIL_RENDER_CAP;
+  const renderRows = capped ? displayRows.slice(0, UTIL_RENDER_CAP) : displayRows;
+
+  const countEl = document.getElementById('utilResultCount');
+  if (utilCapWarning){
+    countEl.textContent = `Showing first ${UTIL_ROW_LIMIT} rows — narrow your filters for more precision`;
+  } else if (capped){
+    countEl.innerHTML = `${displayRows.length} rows · showing the newest ${UTIL_RENDER_CAP} ` +
+      `<button class="btn-outline" style="padding:3px 9px;font-size:10.5px;margin-left:4px" onclick="utilRenderAllRows()">Show all</button>`;
+  } else {
+    countEl.textContent = `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${utilSummaryMode ? ' (summarized per staff member)' : ''}`;
+  }
 
   const visibleCols = UTIL_COLS.filter(c => !utilHiddenCols.has(c[1]));
 
   const groups = new Map();
-  for (const row of displayRows){
+  for (const row of renderRows){
     if (!groups.has(row.branch)) groups.set(row.branch, []);
     groups.get(row.branch).push(row);
   }
@@ -732,27 +755,40 @@ async function runUtilFilter(){
     return q;
   };
 
-  let all = [];
-  let offset = 0;
-  while (true){
-    const { data, error } = await buildQuery().range(offset, offset + UTIL_PAGE_SIZE - 1);
-    if (error){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${error.message}</div>`; return; }
-    all = all.concat(data);
-    if (data.length < UTIL_PAGE_SIZE || all.length >= UTIL_ROW_LIMIT) break;
-    offset += UTIL_PAGE_SIZE;
+  const buildCountQuery = () => {
+    let q = sb.from(UTIL_TABLE).select('id', { count:'exact', head:true });
+    if (branch) q = q.eq('branch', branch);
+    if (from)   q = q.gte('date_from', from);
+    if (to)     q = q.lte('date_to', to);
+    if (staff)  q = q.ilike('staff_name', `%${staff}%`);
+    return q;
+  };
+
+  // Count first, then every page at once — see runStaffPerfFilter's note.
+  const { count, error: countErr } = await buildCountQuery();
+  if (countErr){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${countErr.message}</div>`; return; }
+
+  const wanted = Math.min(count || 0, UTIL_ROW_LIMIT);
+  const pages = [];
+  for (let offset = 0; offset < wanted; offset += UTIL_PAGE_SIZE){
+    pages.push(buildQuery().range(offset, Math.min(offset + UTIL_PAGE_SIZE, wanted) - 1));
   }
+  const results = await Promise.all(pages);
+  const failed = results.find(r => r.error);
+  if (failed){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
+  const all = results.flatMap(r => r.data || []);
 
   utilCapWarning = all.length >= UTIL_ROW_LIMIT;
   utilLastData = all.slice(0, UTIL_ROW_LIMIT)
     .map(row => ({...row, staff_name: canonicalStaffName(row.staff_name)}));
   utilColFilters = {};
+  utilShowAllRows = false;
   utilRenderTable();
 }
 
 // ── INIT ───────────────────────────────────────────────────────
 
 let utilBoxesRendered = false;
-let utilFilterAutoRun = false;
 
 // Paste-and-save is the old workflow now that bulk PDF upload exists — collapsed by default.
 let utilPasteCollapsed = localStorage.getItem('utilPasteCollapsed') === null
@@ -786,8 +822,5 @@ function initUtilTab(){
   refreshUtilProgress();
   if (typeof initUtilPdfDrop === 'function') initUtilPdfDrop();
 
-  if (!utilFilterAutoRun){
-    utilFilterAutoRun = true;
-    runUtilFilter();
-  }
+  // Browse runs when Browse is opened, not on tab load — see trRunBrowseOnce.
 }
