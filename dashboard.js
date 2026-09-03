@@ -1141,21 +1141,81 @@ function branchesWithNoData() {
 
 function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
   const hasLedgerData = branchStaffRows && branchStaffRows.length;
-  if (!hasLedgerData && (!dailyRows || !dailyRows.length)) return null;
+  const hasPhorest    = phorestStaffRows && phorestStaffRows.length;
+  if (!hasLedgerData && !hasPhorest && (!dailyRows || !dailyRows.length)) return null;
 
   let hairMap = {}, beautyMap = {}, branchTotals = null;
   if (hasLedgerData) {
     ({ hairMap, beautyMap, branchTotals } = buildLedgerPhorestStaffMaps(branchStaffRows, phorestStaffRows || []));
+  } else if (hasPhorest) {
+    // 2025 (and any range the ledger sync never reached): Phorest is all there is.
+    // The page used to stop at "No data found" while the cover above it was already
+    // showing the year's take from these same rows (Kate, 3 Sep 2026).
+    ({ hairMap, beautyMap, branchTotals } = buildPhorestOnlyStaffMaps(phorestStaffRows));
   }
 
   // branch_staff_daily/phorest_staff_daily sync daily and are the source of truth once
   // present; daily_data is the older manual-XLSX-upload table (Kate confirmed it lags —
   // last touched 31 May while the auto-synced tables run through today) and is now only
   // a fallback for date ranges that predate the auto sync.
-  const s = hasLedgerData ? computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) : computeGroupSummaryFromDailyData(dailyRows);
+  const s = (hasLedgerData || hasPhorest) ? computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) : computeGroupSummaryFromDailyData(dailyRows);
+
+  if (!hasLedgerData && hasPhorest) {
+    // Everything the ledger alone supplies is unknown here, not zero. Null drops
+    // the benchmark rows (they filter on Number.isFinite) instead of printing a
+    // 0% rebooking that nobody earned.
+    s._phorestOnly = true;
+    ['rebookPct','ncrPct','hairNcrPct','beautyNcrPct','combinedNcrPct','hairRebookPct','beautyRebookPct',
+     'treatmentPct','retentionPct','conversionPct'].forEach(k => { s[k] = null; });
+    s.treatmentSales = null; s.hairTreatments = null;
+  }
 
   const { hairStaff, beautyStaff } = buildStaffArraysFromMaps(hairMap, beautyMap);
   return { summary: s, hairStaff, beautyStaff };
+}
+
+// Staff maps from Phorest rows alone, shaped exactly like buildLedgerPhorestStaffMaps
+// so every page downstream is unchanged. Names are folded to the ledger's first-name
+// convention (Holly Branchett → HOLLY; Princess Areanne Miranda → AREANNE through the
+// reconcile aliases) so stylist cards, targets and photos still find them. Clients
+// are Phorest visits, new clients Phorest's own count; request/salon/rebooked and
+// treatment AED have no Phorest source and stay 0. The house account and the
+// assistants are left out, as the ledger path leaves them out.
+function buildPhorestOnlyStaffMaps(phorestRows) {
+  const branchTotals = { services: 0, courses: 0, products: 0, days: 0 };
+  const deptMap = (typeof buildStaffDeptMap === 'function') ? buildStaffDeptMap() : {};
+  const reverse = Object.entries(PHOREST_RECONCILE_ALIASES); // [ledgerName, phorestFirstWords]
+  const ledgerNameFor = pk => {
+    for (const [ledger, ph] of reverse) if (pk === ph || pk.indexOf(ph + ' ') === 0) return ledger;
+    return pk.split(' ')[0];
+  };
+  const hairMap = {}, beautyMap = {};
+  (phorestRows || []).forEach(r => {
+    if (r.is_total) {
+      branchTotals.services += Number(r.services_ex_vat) || 0;
+      branchTotals.courses  += Number(r.courses_ex_vat)  || 0;
+      branchTotals.products += Number(r.products_ex_vat) || 0;
+      branchTotals.days++;
+      return;
+    }
+    const pk = cleanPhorestName(r.employee_name);
+    if (!pk || LEDGER_NON_PERSON_NAMES.has(pk) || pk.indexOf('BUSINESS') === 0) return;
+    const name = ledgerNameFor(pk);
+    if (isLedgerAssistantName(name)) return;
+    const isBeauty = deptMap[name] === 'beauty';
+    const map = isBeauty ? beautyMap : hairMap;
+    if (!map[name]) {
+      map[name] = { name, total: 0, newC: 0, rebooked: 0, req: 0, salon: 0, newClientReq: 0,
+        hairSalesNet: 0, retail: 0, treatments: 0, beautySales: 0, treatmentUnits: 0, retailUnits: 0 };
+    }
+    const st = map[name];
+    st.total += Number(r.visits) || 0;
+    st.newC  += Number(r.new_clients) || 0;
+    const svc = (Number(r.services_ex_vat) || 0) + (Number(r.courses_ex_vat) || 0);
+    if (isBeauty) st.beautySales += svc; else st.hairSalesNet += svc;
+    st.retail += Number(r.products_ex_vat) || 0;
+  });
+  return { hairMap, beautyMap, branchTotals };
 }
 
 // Fallback for date ranges with no branch_staff_daily/phorest_staff_daily coverage —
@@ -2182,6 +2242,7 @@ function buildDailyTrendCache(dailyRows, branchStaffRows, phorestStaffRows) {
   const dates = new Set();
   (branchStaffRows||[]).forEach(r => dates.add(r.date));
   (dailyRows||[]).forEach(r => dates.add(r.date));
+  (phorestStaffRows||[]).forEach(r => dates.add(r.date)); // Phorest-only ranges (2025) still get a trend line
   return Array.from(dates).sort().map(date => {
     const dayBranchRows  = (branchStaffRows||[]).filter(r => r.date === date);
     const dayPhorestRows = (phorestStaffRows||[]).filter(r => r.date === date);
@@ -2350,7 +2411,7 @@ async function renderDashboard() {
         branchStaffRows  = branchStaffRows.filter(r => sel.branch.includes(r.branch));
         phorestStaffRows = phorestStaffRows.filter(r => sel.branch.includes(r.branch));
       }
-      if (!dailyRows.length && !branchStaffRows.length) {
+      if (!dailyRows.length && !branchStaffRows.length && !phorestStaffRows.length) {
         destroyCharts();
         main.innerHTML = '<div class="empty">No data found for this date range.</div>';
         return;
@@ -2483,7 +2544,9 @@ async function renderDashboard() {
   // Beauty: no per-dept treatment or retail split in uploaded data — rendered as static "—"
   // H+B tab: denominator is total service revenue (net take minus retail)
   const rvHBSvc      = s.netTake - (s.hairRetail||0);
-  const rvHBTxPct    = rvHBSvc ? ((s.treatmentSales||0) / rvHBSvc * 100) : 0;
+  // Treatment AED is a ledger column; on a Phorest-only range (2025) it is unknown,
+  // not zero, and null keeps the row off the benchmark list rather than scoring 0%.
+  const rvHBTxPct    = s._phorestOnly ? null : (rvHBSvc ? ((s.treatmentSales||0) / rvHBSvc * 100) : 0);
   const rvHBRetPct   = rvHBSvc ? ((s.hairRetail||0) / rvHBSvc * 100) : 0;
 
   /* ══ THE PULSE DOCUMENT ═══════════════════════════════════════════
@@ -2511,7 +2574,7 @@ async function renderDashboard() {
   // recomputed here, where the definition is unambiguous.
   const hairNetSalonTake     = (s.hairServicesIncl || 0) + (s.hairRetailOnly || 0);
   const beautyNetTakeDept    = (s.beautyServicesTotal || 0) + (s.beautyRetailOnly || 0);
-  const hairTreatmentPctDept = (s.hairServicesIncl || 0) ? ((s.treatmentSales || 0)   / s.hairServicesIncl  * 100) : 0;
+  const hairTreatmentPctDept = s._phorestOnly ? null : ((s.hairServicesIncl || 0) ? ((s.treatmentSales || 0)   / s.hairServicesIncl  * 100) : 0);
   const hairRetailPctDept    = hairNetSalonTake  ? ((s.hairRetailOnly   || 0) / hairNetSalonTake  * 100) : 0;
   const beautyRetailPctDept  = beautyNetTakeDept ? ((s.beautyRetailOnly || 0) / beautyNetTakeDept * 100) : null;
 

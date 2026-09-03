@@ -1545,6 +1545,7 @@ tr.lg-tot td:first-child{background:var(--surface2)}
   background-position:calc(100% - 14px) calc(50% + 1px),calc(100% - 9px) calc(50% + 1px);
   background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 .lg-month-sel:hover{border-color:var(--muted2)}
+.lg-month .lg-month-sel+.lg-month-sel{margin-left:6px}
 .lg-month-warn{font-size:10px;color:var(--warn)}
 /* The week number, or the weekday, sits above its dates — so the header stays two
    short lines instead of one long one that forces the column wider than its
@@ -2311,9 +2312,9 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets.js?v=20260814a"></script>
 <script src="staff-profiles.js?v=20260814c"></script>
 <script src="stylist-cards.js?v=20260814b"></script>
-<script src="dashboard.js?v=20260903c"></script>
+<script src="dashboard.js?v=20260903d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20260814h"></script>
+<script src="branch-ledger.js?v=20260903a"></script>
 <script src="team-performance.js?v=20260814d"></script>
 <script src="pulse-narrative.js?v=20260814a"></script>
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->

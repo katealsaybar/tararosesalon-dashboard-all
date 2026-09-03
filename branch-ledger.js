@@ -485,7 +485,7 @@ const lgYmd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}
    LEDGER_TARGETS becomes a map by month and lgTargetsApply() asks it for the
    selected one. Nothing on the pages needs to know.
    ────────────────────────────────────────────────────────────── */
-const LG_FIRST_MONTH = '2026-01';   // where the Phorest backfill starts
+const LG_FIRST_MONTH = '2025-01';   // where the Phorest backfill starts (opened to 2025 on 3 Sep 2026)
 
 let lgMonth = (typeof LEDGER_TARGETS !== 'undefined' && LEDGER_TARGETS) ? LEDGER_TARGETS.month : null;
 try {
@@ -537,16 +537,45 @@ function lgSetMonth(m) {
 }
 
 // The month picker, sitting in the same bar as Split so the two controls that
-// actually move these pages are in one place. A select rather than chips: eight
-// months and counting is a dropdown, not a chip row.
+// actually move these pages are in one place. Two selects, month and year: one
+// list was fine at eight months, but the backfill reaches January 2025 now and
+// twenty-odd "Month Year" lines stopped reading as a picker (Kate, 3 Sep 2026).
+// Months outside the data window (before the first month, after this one) are
+// disabled rather than hidden, so the list keeps its shape from year to year.
 function lgMonthRow() {
-  const opts = lgMonthOptions().map(([v, label]) =>
-    `<option value="${v}"${v === lgMonth ? ' selected' : ''}>${label}</option>`).join('');
+  const [cy, cm] = (lgMonth || lgThisMonth()).split('-').map(Number);
+  const [fy, fm] = LG_FIRST_MONTH.split('-').map(Number);
+  const [ty, tm] = lgThisMonth().split('-').map(Number);
+  const monthOpts = HERO_MONTH_NAMES.map((name, i) => {
+    const m = i + 1;
+    const off = (cy === fy && m < fm) || (cy === ty && m > tm);
+    return `<option value="${m}"${m === cm ? ' selected' : ''}${off ? ' disabled' : ''}>${name}</option>`;
+  }).join('');
+  let yearOpts = '';
+  for (let y = ty; y >= fy; y--) yearOpts += `<option value="${y}"${y === cy ? ' selected' : ''}>${y}</option>`;
   return `<div class="lg-grain lg-month">
     <span class="lg-grain-k">Month</span>
-    <select class="lg-month-sel" aria-label="Ledger month" onchange="lgSetMonth(this.value)">${opts}</select>
+    <select class="lg-month-sel" id="lg-month-m" aria-label="Ledger month" onchange="lgPickMonth()">${monthOpts}</select>
+    <select class="lg-month-sel" id="lg-month-y" aria-label="Ledger year" onchange="lgPickMonth()">${yearOpts}</select>
     ${lgTargetsApply() ? '' : '<span class="lg-month-warn">actuals only — no target sheet for this month</span>'}
   </div>`;
+}
+
+// Reads both selects and clamps to the data window: picking 2025 while on
+// September lands on December 2025, picking this year while on December lands on
+// this month. The page re-renders through lgSetMonth, which redraws the row, so a
+// clamped pick shows what it actually did.
+function lgPickMonth() {
+  const mEl = document.getElementById('lg-month-m'), yEl = document.getElementById('lg-month-y');
+  if (!mEl || !yEl) return;
+  let y = Number(yEl.value), m = Number(mEl.value);
+  const [fy, fm] = LG_FIRST_MONTH.split('-').map(Number);
+  const [ty, tm] = lgThisMonth().split('-').map(Number);
+  if (y === fy && m < fm) m = fm;
+  if (y === ty && m > tm) m = tm;
+  const v = `${y}-${String(m).padStart(2, '0')}`;
+  if (v === lgMonth) { document.querySelectorAll('.lg-month').forEach(n => n.outerHTML = lgMonthRow()); return; }
+  lgSetMonth(v);
 }
 
 // Last month, every week column, and the month itself — the windows behind each
@@ -1587,7 +1616,7 @@ async function renderLedgerTargets() {
     `<div class="fine">
       <p><b>The order is hers</b>. The pivot first, then the six pacing blocks — the same reading order as the right-hand block of her SUMMARY tab, which is headed "Daily target sheet". On MTD the blocks run three abreast like hers on a wide screen, two on a laptop and one on a phone: a six-column pacing table stops being readable below about 460px, so the row count gives way rather than the figures.</p>
       <p><b>The pivot always reads month to date</b>, whatever Split is set to. A benchmark is a ratio of its own window — Rebooking %, Treatment %, an average bill — so cutting it by week would give four branches × ten metrics × five weeks, which is a worksheet and not a read. The pacing blocks below are where the weeks and days live.</p>
-      <p><b>Where the figures come from</b>. Clients, treatment AED and the unit counts are the ledger's own (<code>branch_staff_daily</code>, synced from the daily branch files); revenue is Phorest, VAT exclusive throughout, to match the target sheet's own basis. Only the target column is hand-maintained, in <code>ledger-targets.js</code> — which is why <b>Month</b> above can reach any month back to January but the target columns only appear on ${escapeHtml(LEDGER_TARGETS ? lgMonthLabel(LEDGER_TARGETS.month) : 'the sheet\'s month')}.</p>
+      <p><b>Where the figures come from</b>. Clients, treatment AED and the unit counts are the ledger's own (<code>branch_staff_daily</code>, synced from the daily branch files); revenue is Phorest, VAT exclusive throughout, to match the target sheet's own basis. Only the target column is hand-maintained, in <code>ledger-targets.js</code> — which is why <b>Month</b> above can reach any month back to January 2025 but the target columns only appear on ${escapeHtml(LEDGER_TARGETS ? lgMonthLabel(LEDGER_TARGETS.month) : 'the sheet\'s month')}.</p>
     </div>`);
 
   ['ltPivot','ltPace'].forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
