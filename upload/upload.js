@@ -29,10 +29,26 @@ let existingWeekly = {}; // branch -> Set of week_labels
 let existingDaily  = {}; // branch -> Set of dates
 
 // ── THEME ──
+// 5.png is the WHITE wordmark and 6.png the INK one, which is the dashboard's own
+// convention (applyLogoForTheme in dashboard.js). The portal's header hardcoded the
+// white one, and the header background is var(--surface) — so in light mode it was a
+// white wordmark on a white bar and the logo simply was not there (Kate, 4 Sep 2026).
+//
+// The login card is NOT handled here: .login-wrap is #FFFEFA in both themes, so its
+// logo is the ink one permanently rather than a swap. That one had been invisible in
+// dark mode too.
+function upApplyLogoForTheme() {
+  const img = document.getElementById('upHeaderLogo');
+  if (!img) return;
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  img.src = dark ? '../assets/5.png' : '../assets/6.png';
+}
+
 function toggleTheme() {
   const dark = document.documentElement.getAttribute('data-theme') === 'dark';
   document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
   document.getElementById('themeLbl').textContent = dark ? 'Light' : 'Dark';
+  upApplyLogoForTheme();
 }
 function togglePwVis() {
   const inp = document.getElementById('pwInput'), eye = document.getElementById('pwEye');
@@ -306,6 +322,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   watchStickyChrome();
+  upApplyLogoForTheme();
 
   if (sessionStorage.getItem('tr_auth') === '1') showPortal();
   buildFileSlotsDaily();

@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=18"></script>
+<script src="upload.js?v=19"></script>
 <script src="name-aliases.js?v=4"></script>
 <script src="phorest-staff.js?v=16"></script>
 <script src="phorest-pdf.js?v=2"></script>
@@ -681,7 +681,10 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
 <header>
   <div class="logo">
-    <div class="logo-crop"><img src="../assets/5.png" alt="Tara Rose Salon"></div>
+    <!-- upHeaderLogo keeps its id: upApplyLogoForTheme() swaps 5.png (white wordmark,
+           for the dark header) and 6.png (ink wordmark, for the light one). The src here is
+           the boot state only, and <html> boots dark. -->
+      <div class="logo-crop"><img id="upHeaderLogo" src="../assets/5.png" alt="Tara Rose Salon"></div>
     <div class="portal-label">Upload Portal</div>
   </div>
   <div class="header-right">
@@ -696,7 +699,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 <div class="page">
   <!-- LOGIN -->
   <div id="loginSection" class="login-wrap">
-    <div class="login-logo-crop"><img src="../assets/5.png" alt="Tara Rose Salon"></div>
+    <!-- 6.png, the ink wordmark, and NOT theme-swapped: .login-wrap is #FFFEFA in both
+           themes, so the white wordmark was invisible on it in dark mode as well as light. -->
+      <div class="login-logo-crop"><img src="../assets/6.png" alt="Tara Rose Salon"></div>
     <div class="login-dash-lbl">Upload Portal</div>
     <div class="login-divider"></div>
     <div class="field" style="margin-bottom:12px">
