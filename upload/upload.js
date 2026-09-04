@@ -62,6 +62,10 @@ function switchTab(e, tab) {
   if (tab === 'staffperf') initStaffPerfTab();
   if (tab === 'sheetsync') initSheetSyncTab();
   if (tab === 'ops' && typeof initUtilTab === 'function') initUtilTab();
+
+  // Each tab's band is its own height, and Ledgers has two segments where the
+  // others have three, so the chrome has to be re-read on every switch.
+  measureStickyChrome();
 }
 
 // ── SEGMENTS ──
@@ -77,6 +81,13 @@ function switchSeg(e, tab, seg){
   document.querySelectorAll(`#tab-${tab} > .seg-pane`).forEach(p => {
     p.classList.toggle('active', p.id === `seg-${tab}-${seg}`);
   });
+  // Browse is the one segment you read a long table in, so the day strip lets
+  // go of the top there and the segment row keeps the pin on its own. The class
+  // goes on the band; the CSS does the rest (Kate, 2026-09-04).
+  const pane = document.getElementById(`tab-${tab}`);
+  if (pane) pane.classList.toggle('browsing', seg === 'browse');
+  measureStickyChrome();
+
   if (seg === 'browse') trRunBrowseOnce(tab);
 }
 
@@ -95,7 +106,10 @@ function trRunBrowseOnce(tab){
   const fn = TR_BROWSE_RUNNERS[tab];
   if (!fn || typeof window[fn] !== 'function') return;
   trBrowseRan[tab] = true;
-  window[fn]();
+  // The table does not exist until the runner has rendered it, and the TOTAL
+  // row pins against the header row's measured height, so the chrome is read
+  // again once the rows are actually on screen (Kate, 2026-09-04).
+  Promise.resolve(window[fn]()).finally(measureStickyChrome);
 }
 
 // Same switch, driven from somewhere other than the segment button itself
@@ -147,6 +161,14 @@ function spRenderTodayStrip(hostId, pipId, pasteTab, rows, opts = {}){
       : shut ? `closed today, ${shut.why} — nothing due`
       : `every branch ${opts.pipClear || 'in for today'}`;
   }
+
+  // The segment row pins directly under this strip, so its offset depends on
+  // how tall the strip just became. The strip arrives from a Supabase read
+  // well after switchTab has run, and on the two tabs that are not the default
+  // it was landing 39px after the last measurement, which pinned the segment
+  // row inside the strip. Measured here, where the height actually changes,
+  // rather than left to the resize observer (Kate, 2026-09-04).
+  if (typeof measureStickyChrome === 'function') measureStickyChrome();
 }
 
 function spJumpToPaste(tab){
@@ -293,8 +315,48 @@ function measureStickyChrome() {
   const root = document.documentElement.style;
   const hdr  = document.querySelector('header');
   const bar  = document.querySelector('.tab-bar');
-  if (hdr) root.setProperty('--hdr-h', hdr.offsetHeight + 'px');
-  if (bar && bar.offsetHeight) root.setProperty('--tabbar-h', bar.offsetHeight + 'px');
+  const hdrH = hdr ? hdr.offsetHeight : 0;
+  const barH = bar ? bar.offsetHeight : 0;
+  if (hdrH) root.setProperty('--hdr-h', hdrH + 'px');
+  if (barH) root.setProperty('--tabbar-h', barH + 'px');
+
+  // --chrome-h is the bottom edge of everything pinned above the content, which
+  // is what the browse tables are sized against. It is read off the live
+  // computed position rather than assumed, so the 700px release and the Browse
+  // release both fall out of it without a second rule: whatever is not sticky
+  // right now does not count towards the chrome.
+  const pane = document.querySelector('.tab-content.active');
+  const band = pane && pane.querySelector('.tab-sticky');
+  const seg  = pane && pane.querySelector('.seg-wrap');
+  const bandOn = band && getComputedStyle(band).position === 'sticky';
+  const segOn  = seg  && getComputedStyle(seg).position  === 'sticky';
+  // The segment row pins under the strip, so it needs the strip's height, and
+  // that is 0 in Browse where the strip has let go.
+  root.setProperty('--strip-h', (bandOn ? band.offsetHeight : 0) + 'px');
+  let chrome = hdrH + barH;
+  if (bandOn) chrome += band.offsetHeight;
+  if (segOn)  chrome += seg.offsetHeight;
+  root.setProperty('--chrome-h', chrome + 'px');
+
+  // The TOTAL row pins directly under the column headers, so it needs their
+  // height. One measurement serves every table: same font, same padding.
+  const th = document.querySelector('.sp-table thead th');
+  if (th && th.offsetHeight) root.setProperty('--th-h', th.offsetHeight + 'px');
+
+  // How much page there is BELOW the table: the card's own bottom padding plus
+  // the page's. It matters because it is what lets the page scroll further than
+  // it needs to. The table is capped at viewport - chrome - tail, and at that
+  // height the page's furthest scroll lands the table's top exactly on the
+  // chrome's bottom edge rather than 68px under it, which is what was taking
+  // the pinned column headers behind the band. Measured, because the tail is
+  // one card's padding on one tab and a different card's on the next, and it
+  // does not depend on the cap, so one pass settles it (Kate, 2026-09-04).
+  const wrap = [...document.querySelectorAll('.sp-table-wrap')].find(w => w.offsetParent);
+  if (wrap) {
+    const r = wrap.getBoundingClientRect();
+    const tail = Math.round(document.documentElement.scrollHeight - (r.bottom + window.scrollY));
+    if (tail >= 0) root.setProperty('--table-tail', tail + 'px');
+  }
 }
 
 // The tab bar sits inside #portalSection, which is display:none until login, so
@@ -306,9 +368,13 @@ function watchStickyChrome() {
   window.addEventListener('resize', measureStickyChrome);
   if (!window.ResizeObserver) return;
   const ro = new ResizeObserver(measureStickyChrome);
-  ['header', '.tab-bar'].forEach(sel => {
-    const el = document.querySelector(sel);
-    if (el) ro.observe(el);
+  // The day strip is rendered from a Supabase read, so at the end of switchTab
+  // it is still an empty 50px box and measures short; the segment row then pins
+  // 39px up inside it. Observing the bands as well as the header means the
+  // strip filling out re-reads the chrome on its own, which also covers the
+  // strip wrapping its branch pills to a second row (Kate, 2026-09-04).
+  ['header', '.tab-bar', '.tab-sticky', '.seg-wrap'].forEach(sel => {
+    document.querySelectorAll(sel).forEach(el => ro.observe(el));
   });
 }
 

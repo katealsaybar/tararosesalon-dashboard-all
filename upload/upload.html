@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=11"></script>
+<script src="upload.js?v=15"></script>
 <script src="name-aliases.js?v=3"></script>
 <script src="phorest-staff.js?v=14"></script>
 <script src="phorest-pdf.js?v=2"></script>
@@ -35,7 +35,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
    pill label naming the section. It used to be typed-out text in a different
    font with a rainbow strip under it, which read as a different product
    (Kate, 2026-08-13). */
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);position:sticky;top:0;z-index:20;min-height:82px}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);position:sticky;top:0;z-index:22;min-height:82px}
 .logo{display:flex;align-items:center;gap:12px;min-width:0;flex-shrink:1;overflow:hidden}
 .logo-crop{width:192px;height:58px;overflow:hidden;flex-shrink:0;position:relative}
 .logo-crop img{position:absolute;left:-25px;top:-90px;width:241px;height:241px;max-width:none}
@@ -57,7 +57,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
    and the long parenthetical labels, it wrapped to two rows on a laptop.
    Overflows sideways now instead of wrapping (Kate, 2026-08-13). */
 .tab-bar{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;
-  position:sticky;top:var(--hdr-h,82px);z-index:19;background:var(--bg);padding-top:28px;margin-top:-28px}
+  position:sticky;top:var(--hdr-h,82px);z-index:21;background:var(--bg);padding-top:28px;margin-top:-28px}
 .tab-bar::-webkit-scrollbar{display:none}
 /* ── STICKY CHROME ─────────────────────────────────────────
    The header was already sticky on its own, which left the tab bar and each
@@ -71,16 +71,30 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
    to two rows on a narrow window and the tab bar grew when the type size
    did. Products and Services carry no strip and no segments, so on those two
    the band is just the header and the tabs. Kate, 2026-09-04. */
-.tab-sticky{position:sticky;top:calc(var(--hdr-h,82px) + var(--tabbar-h,72px));z-index:18;
-  background:var(--bg);padding-top:20px;margin-top:-20px;padding-bottom:16px}
-.tab-sticky .seg-bar{margin-bottom:0}
+.tab-sticky{position:sticky;top:calc(var(--hdr-h,82px) + var(--tabbar-h,72px));z-index:20;
+  background:var(--bg);padding-top:20px;margin-top:-20px}
+.seg-wrap{position:sticky;z-index:19;background:var(--bg);
+  top:calc(var(--hdr-h,82px) + var(--tabbar-h,72px) + var(--strip-h,0px));
+  padding-top:18px;margin-top:-18px;padding-bottom:16px}
+.seg-wrap .seg-bar{margin-bottom:0}
+/* In Browse the day strip lets go and the segment row keeps the pin on its
+   own. The strip is about pasting today, which is not what you are doing
+   while you read a year of history, and it was 150px of a 392px band: with
+   the table capped against a band that tall the rows got 430px of an 850px
+   window. Letting it go takes the chrome to about 205px and hands the rows
+   roughly 617px. The pin moves to .seg-wrap rather than to .seg-bar itself
+   because the bar is an inline-flex pill about 200px wide, so pinning the
+   bar would leave everything to the right of it uncovered; the wrapper is a
+   full-width block and carries the background. Kate, 2026-09-04. */
+.tab-content.browsing .tab-sticky{position:static}
+.tab-content.browsing .seg-wrap{top:calc(var(--hdr-h,82px) + var(--tabbar-h,72px))}
 /* Under 700px the pinned band came to 450px of an 812px phone screen, more
    than half the display handed to chrome. The strip and the segment row let
    go there and scroll with the page; the header and the tab bar stay pinned,
    which is 148px and still tells you which tab you are in. The negative
    margin against the padding nets to zero either way, so the spacing does
    not move when it releases. Kate, 2026-09-04. */
-@media(max-width:700px){.tab-sticky{position:static}}
+@media(max-width:700px){.tab-sticky,.seg-wrap{position:static}}
 .tab-btn{padding:9px 18px;border:none;border-bottom:3px solid transparent;margin-bottom:-1px;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:color .2s,border-color .2s,background .2s;white-space:nowrap;flex-shrink:0;border-radius:9px 9px 0 0}
 .tab-btn:hover{color:var(--text)}
 .tab-btn:hover:not(.active){background:var(--border2)}
@@ -296,7 +310,19 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-pdf-row .fn{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sp-pdf-row .status.ok{color:var(--good)}
 .sp-pdf-row .status.bad{color:var(--bad)}
-.sp-table-wrap{overflow-x:auto;max-height:60vh;overflow-y:auto;margin-top:10px;border:1px solid var(--border2);border-radius:10px}
+/* Capped against the chrome that is actually above it rather than a flat
+   60vh. 60vh was 510px on an 850px window under a 392px band, so the table
+   could not fit below the band at all and reading the last rows meant
+   scrolling the PAGE, which slid the table's own top under the band and
+   took the pinned column headers with it: 67px of header behind the band,
+   which is why the headers vanished and only TOTAL was left. The table can
+   keep its own scrollbar; it just has to fit in the room that's left. The
+   horizontal scroller has to stay, the table is 1697px wide over 17
+   columns, and a horizontal scroll container cannot have viewport-pinned
+   headers: CSS forces the other axis to auto, so the header pins to this
+   box. Which is fine once the box never leaves the screen. Kate, 2026-09-04. */
+.sp-table-wrap{overflow-x:auto;overflow-y:auto;margin-top:10px;border:1px solid var(--border2);border-radius:10px;
+  max-height:calc(100vh - var(--chrome-h,400px) - var(--table-tail,96px));min-height:260px}
 .sp-table{width:100%;border-collapse:collapse;font-size:13px}
 .sp-table th,.sp-table td{padding:6px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border2)}
 .sp-table th{position:sticky;top:0;background:var(--col-header);color:var(--muted);font-weight:700;text-transform:uppercase;font-size:12px;letter-spacing:0.04em}
@@ -309,7 +335,11 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .mini-toggle-thumb{width:14px;height:14px;border-radius:50%;background:var(--toggle-knob);position:absolute;top:2px;left:2px;transition:transform .25s ease}
 .mini-toggle-track.on{background:var(--accent)}
 .mini-toggle-track.on .mini-toggle-thumb{transform:translateX(18px)}
-.sp-table tr.is-total td{font-weight:700;background:var(--surface2);position:sticky;top:26px;z-index:5}
+/* 26px was the header row's height at the old type size; it is 27 to 28px
+   now, so TOTAL was sitting on the last pixel or two of the headers.
+   Measured into --th-h so it stops being a number that drifts every time
+   the type moves. Kate, 2026-09-04. */
+.sp-table tr.is-total td{font-weight:700;background:var(--surface2);position:sticky;top:var(--th-h,28px);z-index:5}
 .sp-filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:4px}
 .sp-filter-field{display:flex;flex-direction:column;gap:4px}
 .sp-filter-field label{font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
@@ -501,7 +531,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
   <div class="tab-sticky">
   <div id="utilTodayStrip" class="today-strip"></div>
+  </div>
 
+  <div class="seg-wrap">
   <div class="seg-bar">
     <button class="seg-btn active" data-seg="progress" onclick="switchSeg(event,'ops','progress')">Progress</button>
     <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'ops','browse')">Browse</button>
@@ -720,7 +752,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
   <div class="tab-sticky">
   <div id="spTodayStrip" class="today-strip"></div>
+  </div>
 
+  <div class="seg-wrap">
   <div class="seg-bar">
     <button class="seg-btn active" data-seg="progress" onclick="switchSeg(event,'staffperf','progress')">Progress</button>
     <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'staffperf','browse')">Browse</button>
@@ -861,7 +895,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
   <div class="tab-sticky">
   <div id="ssTodayStrip" class="today-strip"></div>
+  </div>
 
+  <div class="seg-wrap">
   <div class="seg-bar">
     <button class="seg-btn active" data-seg="progress" onclick="switchSeg(event,'sheetsync','progress')">Progress</button>
     <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'sheetsync','browse')">Browse</button>
