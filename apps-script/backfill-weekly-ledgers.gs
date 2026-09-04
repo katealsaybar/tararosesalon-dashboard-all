@@ -27,7 +27,9 @@
  *     Link is printed in the execution log of backfillStart().
  *  6. When every row says OK / SKIPPED, run backfillReport(): it lists any (branch, date) that TWO
  *     different files pushed (a stale copy, a mislabelled week). Check those by hand.
- *  7. Then run reconcile(): checks the year against Phorest, whose dates come from the till, and
+ *  7. Run resolveDuplicates(): where two files claimed one date, the file whose own name covers
+ *     that date wins and is pushed again. Dates only one file claimed are never touched.
+ *  8. Then run reconcile(): checks the year against Phorest, whose dates come from the till, and
  *     writes a "RECONCILE <year>" tab listing only the days worth looking at.
  *
  * TO RE-RUN FOR ANOTHER SCOPE (e.g. one branch, one month, another year)
@@ -100,6 +102,12 @@ const NAME_FIXES = {
   'ASISSTANTS': 'ASSISTANTS',
   // Both spellings sit in AQ's own 2025 tabs for one person; Phorest has XYRHY UNISA.
   'XYHRY': 'XYRHY',
+  // One person each, confirmed by Kate on 3 Sep 2026. The ledger's spelling is moved onto
+  // Phorest's, because the dashboard attaches Phorest revenue to the ledger by name and Phorest
+  // is the till's own record. ROZA and ROJA sit together on 212 days of 2025, MJ and MARY JOY
+  // GALOS on 194.
+  'ROZA': 'ROJA',
+  'MJ': 'MARY JOY',
 };
 
 // One log file for every year; each year gets its own tab, named after the year, and its own
@@ -350,6 +358,138 @@ function supaAll_(table, select) {
     page.forEach(function (r) { out.push(r); });
     if (page.length < 1000) return out;
   }
+}
+
+/**
+ * Step 3b. Settles the dates that more than one file pushed.
+ *
+ * Not a filter on the way in: a day tab is never dropped for disagreeing with its file name,
+ * because a file often carries a day its name does not mention and that day is usually real
+ * (SAA's "WEEK 1 (2ND - 5TH)" holds 1 January, and MC's "WK 1 (Dec 30-Jan 5)" holds the whole
+ * first week of the year). It is only a tie-breaker. When two files both claim one date, the
+ * one whose own name covers that date wins, and its rows are pushed again so they land last.
+ * A date only one file ever claimed is never touched.
+ *
+ * Run it after backfillStart has finished and after backfillReport. Anything it cannot decide
+ * is listed in the REPORT tab for a person to settle.
+ */
+function resolveDuplicates() {
+  const ss = getLog_(false);
+  const q = ss.getSheetByName(QUEUE_TAB);
+  const last = q.getLastRow();
+  if (last < 2) { Logger.log('Nothing queued for ' + YEAR + '.'); return; }
+  const data = q.getRange(2, 1, last - 1, QUEUE_HEADER.length).getValues();
+
+  const byDate = {};   // branch|date → [row index into data]
+  data.forEach(function (r, i) {
+    if (r[5] !== 'OK') return;
+    String(r[6] || '').split(' ').filter(String).forEach(function (d) {
+      const k = r[3] + '|' + d;
+      (byDate[k] = byDate[k] || []).push(i);
+    });
+  });
+
+  const winners = {}, undecided = [];
+  Object.keys(byDate).forEach(function (k) {
+    const idxs = byDate[k];
+    if (idxs.length < 2) return;
+    const date = k.split('|')[1];
+    const covers = idxs.filter(function (i) {
+      const wk = weekFromName_(data[i][1], data[i][2]);
+      return wk && date >= wk.from && date <= wk.to;
+    });
+    if (covers.length === 1) {
+      winners[covers[0]] = true;
+    } else {
+      undecided.push([k.split('|')[0], date, idxs.map(function (i) { return data[i][2] + ' / ' + data[i][1]; }).join('  |  '),
+                      covers.length ? 'both names cover it' : 'no name covers it']);
+    }
+  });
+
+  const done = [];
+  Object.keys(winners).forEach(function (i) {
+    const r = data[i];
+    const entry = { id: r[0], name: r[1], path: r[2], branch: r[3], mime: r[4] };
+    try {
+      const res = processFile_(entry);
+      done.push([r[3], r[1], res.status, res.dates.join(' '), res.rows]);
+      q.getRange(Number(i) + 2, 6, 1, 5).setValues([[res.status, res.dates.join(' '), res.rows,
+        (res.note ? res.note + ' | ' : '') + 'pushed again to settle a date two files claimed', new Date()]]);
+      SpreadsheetApp.flush();
+    } catch (e) {
+      done.push([r[3], r[1], 'FAILED', '', String(e && e.message || e)]);
+    }
+  });
+
+  const rep = ss.getSheetByName(REPORT_TAB) || ss.insertSheet(REPORT_TAB);
+  let row = rep.getLastRow() + 2;
+  rep.getRange(row, 1).setValue('Duplicate dates settled by file name, ' + new Date()).setFontWeight('bold');
+  row++;
+  rep.getRange(row, 1, 1, 5).setValues([['branch', 'file pushed again', 'status', 'dates', 'rows']]).setFontWeight('bold');
+  if (done.length) { rep.getRange(row + 1, 1, done.length, 5).setValues(done); row += done.length; }
+  row += 2;
+  rep.getRange(row, 1).setValue('Still needs a person').setFontWeight('bold');
+  row++;
+  rep.getRange(row, 1, 1, 4).setValues([['branch', 'date', 'claimed by', 'why']]).setFontWeight('bold');
+  if (undecided.length) rep.getRange(row + 1, 1, undecided.length, 4).setValues(undecided);
+
+  Logger.log('Settled ' + done.length + ' file(s) by name; ' + undecided.length +
+             ' date(s) still need a person. REPORT tab: ' + REPORT_TAB);
+}
+
+// The week a file's own name claims, as {from, to} in yyyy-MM-dd, or null when the name does not
+// say. Reads the last bracketed part of the name ("WK 2 (Apr 7 - 13)", "WEEK 5 ( JULY 28-AUG 3)",
+// "WEEK 2 (APR 7TH - 13TH)", "WK 1 (02 - 05)") and takes the month from the folder when the name
+// gives only numbers. Tested against all 226 of the 2025 file names: 149 of the 150 that carry
+// data were read, the one exception being a file literally named "WEEK 1()".
+function weekFromName_(name, path) {
+  const base = String(name).replace(/\.(xlsx|xls)$/i, '');
+  const brackets = base.match(/\(([^)]*)\)/g);
+  if (!brackets || !brackets.length) return null;
+  const inside = brackets[brackets.length - 1].replace(/[()]/g, '');
+  if (!inside.trim()) return null;
+
+  const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const monthIn = function (text) {
+    const up = String(text).toUpperCase();
+    let best = -1, num = null;
+    MONTHS.forEach(function (m, i) {
+      const at = up.indexOf(m);
+      if (at >= 0 && (best < 0 || at < best)) { best = at; num = i + 1; }
+    });
+    return num;
+  };
+
+  // walk the bracket left to right, keeping the month in force when the first day appears
+  const toks = inside.match(/[A-Za-z]+|\d+/g) || [];
+  let month = null, day = null;
+  for (let i = 0; i < toks.length && day === null; i++) {
+    const t = toks[i];
+    if (/^\d+$/.test(t)) {
+      const n = Number(t);
+      if (n >= 1 && n <= 31) day = n;
+    } else {
+      const m = MONTHS.indexOf(t.toUpperCase().slice(0, 3));
+      if (m >= 0) month = m + 1;
+    }
+  }
+  if (day === null) return null;
+
+  const folder = String(path).split('/').pop();
+  const folderMonth = monthIn(folder) || monthIn(path);
+  if (month === null) month = folderMonth;
+  if (month === null) return null;
+
+  // "WK 1 (Dec 30-Jan 5)" filed under January belongs to the December before it
+  let year = YEAR;
+  if (month === 12 && folderMonth === 1) year = YEAR - 1;
+
+  const from = new Date(year, month - 1, day);
+  if (isNaN(from)) return null;
+  const to = new Date(from.getTime());
+  to.setDate(to.getDate() + 6);
+  const tz = Session.getScriptTimeZone();
+  return { from: fmt_(from, tz), to: fmt_(to, tz) };
 }
 
 /** Emergency stop: removes the self-re-arming trigger. Pending rows stay pending. */
@@ -764,14 +904,18 @@ function num_(v) {
 }
 
 // The named-but-empty columns a template ships with. 2025 tabs run AA BB XX, 2024 tabs run
-// Aa Bb Cc Dd Ee Ff Gg Hh II, so match the shape rather than extend a list for ever: one letter
-// repeated up to four times with an optional trailing digit. Only ever consulted for a block
-// whose every figure is zero, so a real stylist on a quiet day is never dropped, and a two
-// letter name like MJ is not a repeat and never matches.
+// Aa Bb Cc Dd Ee Ff Gg Hh II, so match the shape rather than extend a list for ever: ONE letter
+// repeated up to four times with an optional trailing digit. The repeat is what makes it a
+// placeholder, so the letter is captured and then backreferenced; ([A-Z]){0,3} looked the same
+// and was not, because it matches any three letters and so swallowed IVY, MAY, MJ, EDS and KIM.
+// Only ever consulted for a block whose every figure is zero, which is why it had not been felt
+// yet: the rows in Supabase were pushed before the regex replaced the list. Re-running the
+// backfill with the old expression would have dropped 1,302 all-zero days belonging to those
+// five (Kate, 4 Sep 2026).
 function isPlaceholder_(name) {
   const n = str_(name).toUpperCase();
   if (PLACEHOLDERS.indexOf(n) !== -1) return true;
-  return /^([A-Z]){0,3}[0-9]?$/.test(n);
+  return /^([A-Z])\1{0,3}[0-9]?$/.test(n);
 }
 
 function normalizeStaffName_(name) {
