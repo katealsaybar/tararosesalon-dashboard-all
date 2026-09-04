@@ -136,6 +136,31 @@ function utilBuildDbRows(rows, branchCode, isoFrom, isoTo){
   }));
 }
 
+// A closed day's report: a real report, with a date range and a Total line, but
+// no staff rows and nothing but zeros in the totals. Phorest produces one for a
+// day the branch did not open, and it used to fail on "No staff rows
+// recognised" and leave the day amber for ever. Only ever consulted when the
+// parse found no rows, so an open day carrying a 00:00 staff member cannot be
+// mistaken for a closure (Kate, 2026-09-04).
+// Read as tokens rather than matched with a pattern: the numbers are the
+// point, and a token list says so without an escape in sight.
+function utilLooksClosed(lines, parsed){
+  if (parsed.rows.length) return false;
+  if (!parsed.dateFrom || !parsed.dateTo) return false;
+  const tokens = lines.join(' ').split(' ').filter(Boolean);
+  const zeroHours = tokens.filter(t => t === '00:00').length;   // available and utilised
+  const zeroPct   = tokens.some(t => t === '0.0%' || t === '0.0');
+  return zeroHours >= 2 && zeroPct;
+}
+
+// One row per branch-day, so re-reading the same PDF is harmless.
+async function utilRecordClosedDay(branchCode, isoDate, source){
+  const { error } = await sb.from('closed_days')
+    .upsert({ branch: branchCode, date: isoDate, why: 'no trading', detected_from: source },
+            { onConflict: 'branch,date' });
+  if (error) throw new Error(`Read as a closed day, but could not record it: ${error.message}`);
+}
+
 async function utilSaveRows(branchCode, isoFrom, isoTo, dbRows){
   await sb.from(UTIL_TABLE).delete().eq('branch', branchCode).eq('date_from', isoFrom).eq('date_to', isoTo);
   const { error } = await sb.from(UTIL_TABLE).insert(dbRows);
@@ -182,9 +207,10 @@ async function utilParseAndSaveBox(code){
       try{
         const parsed = utilParseLines(blockLines);
         if (!parsed.dateFrom || !parsed.dateTo) throw new Error('Could not find the report date range (expected "DD/MM/YY - DD/MM/YY").');
-        if (!parsed.rows.length) throw new Error('No staff rows recognised in this block.');
+        const closed = utilLooksClosed(blockLines, parsed);
+        if (!parsed.rows.length && !closed) throw new Error('No staff rows recognised in this block.');
         spGuardBranchMismatch(parsed.branch, code); // wrong-box guard (from phorest-staff.js)
-        return { ok: true, parsed };
+        return { ok: true, parsed, closed };
       } catch(e){
         return { ok: false, error: e.message || String(e) };
       }
@@ -196,16 +222,25 @@ async function utilParseAndSaveBox(code){
 
     let totalRows = 0;
     const dates = [];
-    for (const { parsed } of oks){
+    const closedDates = [];
+    for (const { parsed, closed } of oks){
       const isoFrom = utilDdmmyyToISO(parsed.dateFrom);
       const isoTo = utilDdmmyyToISO(parsed.dateTo);
+      if (closed){
+        await utilRecordClosedDay(code, isoFrom, 'staff utilisation');
+        closedDates.push(isoFrom);
+        continue;
+      }
       const dbRows = utilBuildDbRows(parsed.rows, code, isoFrom, isoTo);
       await utilSaveRows(code, isoFrom, isoTo, dbRows);
       totalRows += dbRows.length;
       dates.push(isoFrom);
     }
 
-    let msg = `Saved ${oks.length} day${oks.length===1?'':'s'} (${totalRows} rows): ${dates.join(', ')}.`;
+    let msg = dates.length
+      ? `Saved ${dates.length} day${dates.length===1?'':'s'} (${totalRows} rows): ${dates.join(', ')}.`
+      : '';
+    if (closedDates.length) msg += `${msg ? ' ' : ''}${closedDates.length} closed day${closedDates.length===1?'':'s'} recorded (no trading): ${closedDates.join(', ')}.`;
     if (fails.length) msg += ` — ${fails.length} block(s) failed: ` + fails.map((f,i) => `#${i+1} (${f.error})`).join('; ');
 
     utilShowBoxMsg(code, msg, fails.length === 0);
@@ -307,18 +342,25 @@ async function handleUtilPdfBatch(){
 
       const lines = await utilExtractPdfLines(file);
       spGuardReportKind('utilisation', { text: lines.join(' ') });
-      const { branch, dateFrom, dateTo, rows } = utilParseLines(lines);
+      const parsed = utilParseLines(lines);
+      const { branch, dateFrom, dateTo, rows } = parsed;
       if (!dateFrom || !dateTo) throw new Error('Could not find the report date range in this PDF.');
-      if (!rows.length) throw new Error('No staff rows found in this PDF.');
+      const closed = utilLooksClosed(lines, parsed);
+      if (!rows.length && !closed) throw new Error('No staff rows found in this PDF.');
       spGuardBranchMismatch(branch, branchCode); // misnamed-file guard (from phorest-staff.js)
 
       const isoFrom = utilDdmmyyToISO(dateFrom);
       const isoTo = utilDdmmyyToISO(dateTo);
-      const dbRows = utilBuildDbRows(rows, branchCode, isoFrom, isoTo);
-      await utilSaveRows(branchCode, isoFrom, isoTo, dbRows);
-
-      statuses[idx] = { name: file.name, ok: true, msg: `Saved — ${BRANCHES[branchCode].name}, ${isoFrom}, ${dbRows.length} row(s)` };
-      anyOk = true;
+      if (closed){
+        await utilRecordClosedDay(branchCode, isoFrom, 'staff utilisation');
+        statuses[idx] = { name: file.name, ok: true, msg: `Closed day — ${BRANCHES[branchCode].name}, ${isoFrom}, no trading` };
+        anyOk = true;
+      } else {
+        const dbRows = utilBuildDbRows(rows, branchCode, isoFrom, isoTo);
+        await utilSaveRows(branchCode, isoFrom, isoTo, dbRows);
+        statuses[idx] = { name: file.name, ok: true, msg: `Saved — ${BRANCHES[branchCode].name}, ${isoFrom}, ${dbRows.length} row(s)` };
+        anyOk = true;
+      }
     } catch(e){
       statuses[idx] = { name: file.name, ok: false, msg: e.message || String(e) };
     }
@@ -386,6 +428,8 @@ async function refreshUtilProgress(){
   const all = results.flatMap(r => r.data || []);
 
   const covered = utilCoveredDaySet(all);
+
+  await spLoadClosedDays();
 
   spProgBeginBatch();
   let html = '';

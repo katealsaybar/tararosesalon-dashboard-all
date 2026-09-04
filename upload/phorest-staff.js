@@ -395,6 +395,8 @@ async function refreshStaffPerfProgress(){
 
   const covered = new Set(all.map(r => `${r.branch}|${r.date}`));
 
+  await spLoadClosedDays();
+
   spProgBeginBatch();
   let html = '';
   for (const b of SP_BRANCHES){
@@ -433,6 +435,40 @@ function spClosedDay(d){
   return SP_CLOSED_DAYS.find(c => c.month === d.getMonth() && c.date === d.getDate()) || null;
 }
 
+// The one-off closures, which are per branch and on no calendar: a Tuesday in
+// June that Khalifa did not open. Phorest still produces a report for such a
+// day, but it has no staff rows at all and its Total line reads 00:00 / 00:00 /
+// 0.0%, so it could not be stored and the day stayed amber for ever. The
+// uploader now recognises that shape and records the day here instead
+// (migrations/create_closed_days.sql, Kate, 2026-09-04).
+//
+// Keyed exactly like the coverage sets the strips already carry, BRANCH|ISO, so
+// a strip can ask about a day with the keyOf it was handed.
+const SP_CLOSED_TABLE = 'closed_days';
+let spClosedByKey = new Map();
+let spClosedLoadFailed = false;
+
+async function spLoadClosedDays(){
+  const { data, error } = await sb.from(SP_CLOSED_TABLE).select('branch,date,why');
+  if (error){
+    // The table may not exist yet. Nothing breaks: every day just reads as open,
+    // which is exactly how the strips behaved before this existed.
+    if (!spClosedLoadFailed) console.warn('closed_days not readable, treating every day as open:', error.message);
+    spClosedLoadFailed = true;
+    return;
+  }
+  spClosedLoadFailed = false;
+  spClosedByKey = new Map((data || []).map(r => [`${r.branch}|${r.date}`, r.why || 'no trading']));
+}
+
+// Both rules in one answer: the group-wide calendar, then the recorded one-offs.
+function spClosedReason(d, keyOf){
+  const fixed = spClosedDay(d);
+  if (fixed) return fixed;
+  const why = keyOf ? spClosedByKey.get(keyOf(d)) : null;
+  return why ? { why } : null;
+}
+
 // The day panel and "Copy missing dates" both need the covered set and the
 // branch's own key function after render, so each strip parks them here under
 // an id the markup carries. spProgBeginBatch/EndBatch scope one card's strips
@@ -454,7 +490,7 @@ function spRenderBackfillStrips(label, days, covered, keyOf){
   spProg[uid] = { label, days, covered, keyOf };
   spProgBatch.push(uid);
 
-  const open = days.filter(d => !spClosedDay(d));
+  const open = days.filter(d => !spClosedReason(d, keyOf));
   const doneDays = open.filter(d => covered.has(keyOf(d)));
   const firstMissing = open.find(d => !covered.has(keyOf(d)));
   const byYear = new Map();
@@ -468,7 +504,7 @@ function spRenderBackfillStrips(label, days, covered, keyOf){
       </div>` +
     years.map(y => {
       const yDays = byYear.get(y);
-      const yOpen = yDays.filter(d => !spClosedDay(d));
+      const yOpen = yDays.filter(d => !spClosedReason(d, keyOf));
       const yDone = yOpen.filter(d => covered.has(keyOf(d))).length;
       // Counted per month rather than assumed 28-31, so a branch whose range
       // starts or ends mid-month (FRT) shows that month's real denominator, and
@@ -476,7 +512,7 @@ function spRenderBackfillStrips(label, days, covered, keyOf){
       const months = Array.from({length:12}, () => ({ total:0, done:0, closed:0 }));
       yDays.forEach(d => {
         const m = months[d.getMonth()];
-        if (spClosedDay(d)){ m.closed++; return; }
+        if (spClosedReason(d, keyOf)){ m.closed++; return; }
         m.total++;
         if (covered.has(keyOf(d))) m.done++;
       });
@@ -514,13 +550,13 @@ function spOpenProgMonth(btn, uid, year, monthIdx){
 
   btn.classList.add('open');
   const mDays  = st.days.filter(d => d.getFullYear() === year && d.getMonth() === monthIdx);
-  const mOpen  = mDays.filter(d => !spClosedDay(d));
+  const mOpen  = mDays.filter(d => !spClosedReason(d, st.keyOf));
   const done   = mOpen.filter(d => st.covered.has(st.keyOf(d))).length;
   const closed = mDays.length - mOpen.length;
   box.innerHTML = `<div class="sp-mo-days-title"><b>${SP_MONTHS[monthIdx]} ${year}</b> · ${st.label} · ${done} of ${mOpen.length} days captured${closed ? ` · ${closed} closed` : ''}</div>
     <div class="sp-day-strip">` +
     mDays.map(d => {
-      const shut = spClosedDay(d);
+      const shut = spClosedReason(d, st.keyOf);
       const ok   = st.covered.has(st.keyOf(d));
       const lbl  = d.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'short', year:'numeric' });
       if (shut) return `<div class="sp-day-cell closed" title="${lbl} — closed, ${shut.why}">${d.getDate()}</div>`;
@@ -538,7 +574,7 @@ function spCopyMissingDates(hostId){
   (spProgByHost[hostId] || []).forEach(uid => {
     const st = spProg[uid];
     if (!st) return;
-    const miss = st.days.filter(d => !spClosedDay(d) && !st.covered.has(st.keyOf(d)));
+    const miss = st.days.filter(d => !spClosedReason(d, st.keyOf) && !st.covered.has(st.keyOf(d)));
     if (!miss.length) return;
     total += miss.length;
     lines.push(`${st.label} (${miss.length}): ${miss.map(spIsoDate).join(', ')}`);

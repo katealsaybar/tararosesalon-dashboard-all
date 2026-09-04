@@ -69,6 +69,9 @@ async function refreshSheetSyncProgress(){
     if (r.date && (!lastByBranch[r.branch] || r.date > lastByBranch[r.branch])) lastByBranch[r.branch] = r.date;
   }
 
+  await spLoadClosedDays();
+
+
   spProgBeginBatch();
   let html = '';
   for (const code of BRANCH_KEYS){
