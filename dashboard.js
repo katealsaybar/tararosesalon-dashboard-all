@@ -783,22 +783,26 @@ function refreshActiveView() {
 // seniority. Reads no Supabase data and takes no date filter, so it renders
 // instantly and can't go stale — it's a reference page, not a report.
 // Kate, 2026-08-12: its own nav pill under Team Performance.
-// The beauty team is deliberately absent: they have no cards or head icons yet,
-// and a card with no face would look broken rather than pending.
+// The beauty team joined on 3 Sep 2026, when their own deck gave them cards; before
+// that they were left out here on purpose, because a card with no face looks broken
+// rather than pending.
 // Hair floor first, then the blow-dry bench, then beauty and nails — the order the
 // 2nd-batch cards joined in (Sep 2026). A role missing from this list sorts first
-// (indexOf -1), so new roles must be added here or they float above Style Director.
+// (indexOf -1), so new roles must be added here or they float above Style Director:
+// Kim's "Senior Nail Technician" did exactly that for as long as this list still
+// said "Nail Art Expert", which is what her card called her one batch earlier.
 const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist',
-  'Blow-Dry Specialist', 'Senior Beauty Therapist', 'Beauty Therapist', 'Nail Art Expert', 'Nail Technician'];
+  'Blow-Dry Specialist', 'Senior Beauty Therapist', 'Beauty Therapist',
+  'Senior Nail Technician', 'Nail Technician'];
 
 // ── ONE STYLIST CARD, AS THE DESIGNED PDF ────────────────────
 // Kate, 2026-08-13: the hand-built HTML replica of the A3 card was ugly, and an
 // exported image loses the one thing the PDF gives you for free — the words stay
 // selectable, so you can highlight and lift copy straight off the card.
 //
-// So this shows the real PDF. Not _source/FINAL STYLIST CARD.pdf, which is one
-// 110MB file for all 34 pages; scripts/split-stylist-cards.py cuts that into
-// assets/stylist-cards/<name>.pdf, one page each, ~1.3MB.
+// So this shows the real PDF. Not the decks in _source/, which are one file each
+// for a whole team (hair, 40 pages; beauty, 17) - scripts/split-stylist-cards.py
+// cuts those into assets/stylist-cards/<name>.pdf, one page each, ~600KB.
 //
 // It is drawn by pdf.js rather than handed to the browser's own PDF viewer in an
 // iframe. That viewer was the first attempt and it left grey dead space: it scales
@@ -820,7 +824,7 @@ const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Juni
 // ?v= stamps for a while and the cards did not, so Katie's redrawn card would have
 // arrived looking exactly like a card that was never updated — the browser holds
 // these hard, and no number of refreshes tells you which one you are looking at.
-const STYLIST_CARD_V = '20260814b';
+const STYLIST_CARD_V = '20260903a';
 
 function stylistCardEmbed(name) {
   const src = `assets/stylist-cards/${encodeURIComponent(String(name || '').toLowerCase())}.pdf?v=${STYLIST_CARD_V}`;
@@ -930,7 +934,7 @@ function toggleStylistCard(headerEl) {
     const btn = item.querySelector('.sc-acts .sc-btn');
     if (btn) btn.textContent = 'Full view';
   }
-  // Drawn on first open only: 27 cards is 36MB, and a card nobody opens should cost
+  // Drawn on first open only: 44 cards is 26MB, and a card nobody opens should cost
   // nothing. What is drawn stays drawn, so closing and reopening doesn't refetch —
   // but it may have been closed at one width and reopened at another, so the words
   // are re-fitted over the drawing either way.
@@ -1050,7 +1054,7 @@ function stylistBranchGroups() {
 }
 
 // ── THE BRANCH JUMPS ─────────────────────────────────────────
-// Kate, 2026-08-14: 27 cards across four branch sections is a long scroll, so the
+// Kate, 2026-08-14: 44 cards across four branch sections is a long scroll, so the
 // sidebar carried the branches as sub-items under Stylist Cards. They live on the
 // page itself now, in its "On this page" rail — same four jumps, one level closer to
 // what they move, and they do not scroll away with the sidebar. renderStylistBranchNav()
@@ -1112,10 +1116,10 @@ function renderStylistCards() {
         ? `<img class="sc-photo" src="assets/staff/${encodeURIComponent(s.photo)}" alt="" loading="lazy"
                onerror="this.style.display='none'">`
         : '';
-      // STYLIST_CARDS is the roster of who has artwork: its 27 keys match the 27
+      // STYLIST_CARDS is the roster of who has artwork: its 44 keys match the 44
       // files in assets/stylist-cards/ exactly, so it answers "is there a card?"
       const card = (typeof STYLIST_CARDS !== 'undefined') ? STYLIST_CARDS[s.name] : null;
-      // Collapsed by default: 27 A3 cards at once is 36MB and a wall of scroll.
+      // Collapsed by default: 44 A3 cards at once is 26MB and a wall of scroll.
       // The grid is what makes the team scannable.
       const detail = card ? stylistCardEmbed(s.name) : '';
       const chevron = card ? `<span class="sc-chev">&#9660;</span>` : '';
@@ -1164,7 +1168,7 @@ function renderStylistCards() {
       <div class="sc-seg" role="group" aria-label="Card density">${seg}</div>
     </div>
     <div style="font-size:13.5px;color:var(--muted);margin:8px 0 4px;max-width:760px">
-      The hair team across all four branches. Names link to Instagram.
+      The hair and beauty teams across all four branches. Names link to Instagram.
     </div>
     ${typeof lgShell === 'function' ? lgShell(rail, sections) : sections}`;
   if (typeof spy === 'function') spy();

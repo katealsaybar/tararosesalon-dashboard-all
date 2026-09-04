@@ -1,40 +1,38 @@
-// ── STYLIST CARD CONTENT ─────────────────────────
-// The words from each stylist's A3 card, for the Stylist Cards view. Kate asked
-// for the card layouts as HTML rather than exported images (2026-08-12), so this
-// is the text; the head icons live in assets/staff/ and the lookup that pairs
-// them is staff-profiles.js.
+// -- STYLIST CARD CONTENT -------------------------
+// The words from each A3 card, for the Stylist Cards view. Kate asked for the card
+// layouts as HTML rather than exported images (2026-08-12); that became showing the
+// real PDF instead, and what this file keeps is the WORDS - so a caption, a bio or a
+// WhatsApp reply can be lifted off a card without opening it.
 //
-// PARSED, NOT TYPED. Extracted from _source/FINAL STYLIST CARD.pdf, which keeps
-// selectable text. Three things made that harder than it sounds, all handled:
-//   - Some pages put the name and role on one line ("Lizanie STYLIST"), others
-//     split them across two.
-//   - Most pull-quotes are wrapped in quote marks; Emma's and Robyn's are not, so
-//     the quote is taken by position rather than punctuation.
-//   - Review attributions use a hyphen, an en-dash, or on six cards a raw 0xAD
-//     byte (a Latin-1 soft hyphen that is not valid UTF-8).
-// The bullet lists come from the PDF's own bullet-dot positions: plain text
-// flattens the three columns together, and layout text cannot tell a new bullet
-// from a wrapped one. A text line with a dot at its y starts a bullet; one
-// without continues the previous.
+// PARSED, NOT TYPED. Run scripts/parse-card-text.py and paste its output; read its
+// comment for how it reads a card. Do not edit an entry by hand: hand-written words
+// drift from the artwork, and the artwork is what the client sees.
+//
+// It is also the roster of who has a card at all - dashboard.js shows the embed only
+// for a name that appears here. Its 44 keys are exactly the 44 files in
+// assets/stylist-cards/, which are exactly the 44 people in staff-profiles.js.
+// The beauty team joined on 2026-09-03, with a deck of their own; until then they
+// were in staff-profiles with no card, which is why that file says every field is
+// optional.
 //
 //   works  how many work photos exist for her under assets/staff/work/<name>-N.webp,
-//          cropped from the strip on her card. Counts vary because the deck has
+//          cropped from the strip on her card. Counts vary because the hair deck has
 //          three layouts: most cards run six portraits, Areanne's four wider ones,
-//          Katie's two landscapes.
+//          Katie's two landscapes. The field is absent for the seventeen cards that
+//          arrived in the 2026-09 batch - nobody has cut their strips yet.
 //
-// KATIE's card was redrawn on its own on 14 Aug 2026 ("Precision cutting" added to
-// SPECIALISES IN) and came in as one A3 PDF, not a new deck — so the deck in _source
-// is now OLDER than her card. That is handled by _source/card-updates/ and the
-// --updates-only pass in scripts/split-stylist-cards.py; read its comment before
-// re-exporting, or the next full run reverts her.
+// RUTH's bullets are reproduced faithfully rather than silently corrected, because
+// the fix belongs in Canva: they sit beside "Transformation" with "Advanced Colour
+// Corrections" running on unbulleted, and almost certainly mean "Luxury Colour
+// Transformation" / "Advanced Colour Corrections".
 //
-// Two card-design bugs are reproduced faithfully rather than silently corrected,
-// because the fix belongs in Canva:
-//   - RUTH's bullets sit beside "Transformation" with "Advanced Colour
-//     Corrections" running on unbulleted. Almost certainly meant to read
-//     "Luxury Colour Transformation" / "Advanced Colour Corrections".
-//   - The contents page lists LUCY under Motor City's senior stylists, but her
-//     own card and her head-icon filename both say Style Director.
+// Four things the hand-parse had wrong, corrected when it became a script (2026-09-03):
+// EMMA's and ROBYN's bio repeated their quote, because their cards carry no quote
+// marks and the old parse found the quote by punctuation and had nothing left over;
+// LUCY's review lost its closing sentence; and six cards break a hyphenated word
+// across a line, where the hyphen was dropped ("detailoriented") instead of closed up.
+// The contents page's old habit of filing LUCY under Motor City's senior stylists is
+// fixed in the deck itself, so that note is gone.
 const STYLIST_CARDS = {
  "KATE": {
   "role": "Style Director",
@@ -147,7 +145,7 @@ const STYLIST_CARDS = {
  "NIKKI": {
   "role": "Senior Stylist",
   "quote": "Twelve years of colour, and a chair where you're genuinely taken care of.",
-  "bio": "I'm a hair artist with twelve years experience, specialising in blondes, balayage, vivid colour and extensions. I'm patient, detailoriented and always learning. Hair, to me, is about confidence and feeling your best, not just looking it.",
+  "bio": "I'm a hair artist with twelve years experience, specialising in blondes, balayage, vivid colour and extensions. I'm patient, detail-oriented and always learning. Hair, to me, is about confidence and feeling your best, not just looking it.",
   "specialises": [
    "Blondes",
    "Balayage",
@@ -215,7 +213,7 @@ const STYLIST_CARDS = {
  "MAY": {
   "role": "Junior Stylist",
   "quote": "Whether it's a fresh new look or damaged hair brought back to life, you're in safe, careful hands.",
-  "bio": "From the Philippines, with over fourteen years as a professional hairstylist here in the UAE and the last five at Tara Rose. I'm friendly, patient and detailoriented, and clients often say I listen carefully and make them feel completely at ease. I love creating a customised look that suits your face shape and style.",
+  "bio": "From the Philippines, with over fourteen years as a professional hairstylist here in the UAE and the last five at Tara Rose. I'm friendly, patient and detail-oriented, and clients often say I listen carefully and make them feel completely at ease. I love creating a customised look that suits your face shape and style.",
   "specialises": [
    "Straightening",
    "Deep-conditioning Treatments",
@@ -256,10 +254,55 @@ const STYLIST_CARDS = {
   "reviewBy": "Asma",
   "works": 6
  },
+ "HAZEL MAE": {
+  "role": "Blow-Dry Specialist",
+  "quote": "Healthy hair starts at the scalp. That's where I start too.",
+  "bio": "I'm Filipina, eight years doing hair here in the UAE. What I love most is the part most people skip: the scalp. Get that right and everything above it behaves. I do a lot of smoothing treatments and a lot of long hair, and I'll always tell you honestly what your hair needs, even when the honest answer is that it needs less, not more.",
+  "specialises": [
+   "Scalp Treatments & Hair Health",
+   "Keratin & Smoothing Treatments",
+   "Blow-dry: Long and Extra-Long Hair",
+   "Colour-Lock & Fine Hair Treatments"
+  ],
+  "bestFor": "Clients whose hair isn't behaving and want to know why, not just cover it up HAZEL MAE - JUNIOR STYLIST",
+  "vibe": [
+   "Friendly",
+   "Gentle",
+   "Honest"
+  ],
+  "loveMeIf": "You've been told your hair is \"just like that\" and you don't quite believe it.",
+  "mattersMost": "That your hair is in better condition next time you come in than it is today.",
+  "inMyChair": "Ask me anything about your hair. You'll get a straight answer.",
+  "review": "Hazel did the blow-dry so nicely, and I really appreciated that she didn't use high heat. She was very gentle with my hair. I always recommend getting a consultation before doing anything with your hair. The staff were all so lovely and friendly. I'll definitely visit again! Even with everything going on around, my visit felt safe and comfortable. :)",
+  "reviewBy": "Sara A."
+ },
+ "MEVIL": {
+  "role": "Blow-Dry Specialist",
+  "quote": "Smooth hair, and your mornings back.",
+  "bio": "Hi! I'm Mevil, from the Philippines, six years in this industry. Smoothing and straightening are what I'm known for: the long treatments, done properly, for hair that fights you every single morning. I'm a happy, hard-working person and I love making people feel good. On my days off you'll find me cooking something new or travelling.",
+  "specialises": [
+   "Keratin & Smoothing Treatments",
+   "Blow-dry: Long and Extra-Long Hair",
+   "Scalp & Hair Health Treatments",
+   "Colour-Lock & Fine Hair Treatments B E F O R E"
+  ],
+  "bestFor": "Clients with long hair who are tired of fighting it every morning D U R I N G HAZEL MAE - JUNIOR STYLIST",
+  "vibe": [
+   "Happy",
+   "Hard-working",
+   "Easy-going",
+   "A F T E R"
+  ],
+  "loveMeIf": "You've been told your hair is too thick or too frizzy to do anything with.",
+  "mattersMost": "That you stop thinking about your hair in between appointments.",
+  "inMyChair": "Settle in properly. The long treatments take time; bring something to watch.",
+  "review": "I like the service they are very professional Mevil did my hair treatment and it was amazing I loved the experience.",
+  "reviewBy": "Ihindxo H."
+ },
  "EMMA": {
   "role": "Style Director",
   "quote": "Healthy hair is beautiful hair. My goal is to create colour you'll love today and still love weeks later.",
-  "bio": "Healthy hair is beautiful hair. My goal is to create colour you'll love today and still love weeks later.",
+  "bio": "Originally from Manchester, UK. I'm known for my cheerful, bubbly personality and love helping clients understand their hair. Whether it's choosing the right colour, improving your hair's condition, or building a home care routine that works, I'm here to make sure you leave feeling confident and informed.",
   "specialises": [
    "All Hair Colour",
    "Precision Haircuts",
@@ -373,7 +416,7 @@ const STYLIST_CARDS = {
  "BETHANY": {
   "role": "Stylist",
   "quote": "Fourteen years of getting people to look in the mirror and finally exhale.",
-  "bio": "With fourteen years in the industry, I create beautiful, confidenceboosting results tailored to you, whether that's the perfect blonde, a full change or a precision cut. I take time to understand your lifestyle and goals, so the look actually works for you.",
+  "bio": "With fourteen years in the industry, I create beautiful, confidence-boosting results tailored to you, whether that's the perfect blonde, a full change or a precision cut. I take time to understand your lifestyle and goals, so the look actually works for you.",
   "specialises": [
    "Blondes",
    "Makeovers",
@@ -462,6 +505,50 @@ const STYLIST_CARDS = {
   "reviewBy": "Marta",
   "works": 6
  },
+ "HELEN": {
+  "role": "Blow-Dry Specialist",
+  "quote": "Every visit should leave you feeling welcomed, listened to and truly cared for.",
+  "bio": "From the Philippines, with over seven years working in salons here in the UAE. I love doing blowdries, especially bouncy, long-lasting styles, and making every appointment feel relaxing and enjoyable. Clients often describe me as friendly, attentive to what they ask for, and passionate about my work.",
+  "specialises": [
+   "Blow-dry & Waves: Long and Extra-Long Hair",
+   "Keratin & Frizz-Free Protein Treatments",
+   "Colour-Lock & Repair Treatments",
+   "Fine Hair & Scalp Treatments"
+  ],
+  "bestFor": "Clients who want beautiful, bouncy hair that lasts, and makes you feel confident.",
+  "vibe": [
+   "Relaxed",
+   "Welcomed",
+   "Pampered"
+  ],
+  "loveMeIf": "You want to feel heard, understood and genuinely cared for from the very start.",
+  "mattersMost": "Making every client feel comfortable and cared for, from start to finish.",
+  "inMyChair": "Be yourself and trust the process.",
+  "review": "Helen is amazing! She is always gentle, attentive, and genuinely caring. she is very knowledgeable about the services she provides and always makes sure to explain everything clearly, including giving a quotation beforehand. I always feel looked after and confident when she does my hair! Always recommend her to my friends!",
+  "reviewBy": "Lorraine"
+ },
+ "MYRA": {
+  "role": "Junior Stylist",
+  "quote": "Waves that hold, and you're out on time.",
+  "bio": "I'm from the Philippines and I've been doing hair here in the UAE for eight years. Blow-dries are my thing: waves, volume, whatever shape you're after. My clients tell me two things: that I'm fast, and that they love how their hair comes out. I do a lot of keratin too, so if your hair fights you every morning, ask me about it.",
+  "specialises": [
+   "Blow-dry & Waves: Long and Extra-Long Hair",
+   "Keratin & Frizz-Free Protein Treatments",
+   "Colour-Lock & Repair Treatments",
+   "Fine Hair & Scalp Treatments"
+  ],
+  "bestFor": "Clients who want a proper blow-dry without giving up their whole afternoon",
+  "vibe": [
+   "Calm",
+   "Easy-going",
+   "Quick"
+  ],
+  "loveMeIf": "You want your hair to look done, and you don't want to be here all day for it.",
+  "mattersMost": "That the wave is still there tomorrow, not just in the mirror before you leave.",
+  "inMyChair": "Switch off completely. I'll handle it.",
+  "review": "I am really impressed with Myra as she did my hair treatment and blowdry Such a beautiful soul and she deserves recognition! I also loved the atmosphere at the Saadiyat branch and everything was amazing from the services to the feel of the salon.",
+  "reviewBy": "Suhaifah Younos"
+ },
  "ASHLEIGH": {
   "role": "Style Director",
   "quote": "Everyone who sits in my chair leaves happy. That's the whole job.",
@@ -528,14 +615,14 @@ const STYLIST_CARDS = {
   "loveMeIf": "you want a sharp, elegant cut or a colour that's a little more playful.",
   "mattersMost": "a soft, natural, elegant finish that genuinely suits you.",
   "inMyChair": "go beautifully classic or have some fun with colour.",
-  "review": "I visited Lucy for a hydration treatment, color, and cut. The change was spectacular! I went in with lifeless hair and left with a gorgeous mane. Now I'll take care of it exactly as she recommended.",
+  "review": "I visited Lucy for a hydration treatment, color, and cut. The change was spectacular! I went in with lifeless hair and left with a gorgeous mane. Now I'll take care of it exactly as she recommended. Thank you so much, Lucy, I'm thrilled!",
   "reviewBy": "Hannah",
   "works": 6
  },
  "ROBYN": {
   "role": "Senior Stylist",
   "quote": "Luxury colour and extensions, tailored to you. Beautiful, healthy hair you'll love every day.",
-  "bio": "Luxury colour and extensions, tailored to you. Beautiful, healthy hair you'll love every day.",
+  "bio": "I've got nine years in the industry and I specialise in extensions, blondes and lived-in colour. My chair is a relaxed, welcoming space where you can switch off and leave with hair you love.",
   "specialises": [
    "Extensions",
    "Blondes",
@@ -557,7 +644,7 @@ const STYLIST_CARDS = {
  "ELISE": {
   "role": "Senior Stylist",
   "quote": "Calm, patient and genuinely listening, with thirteen years behind the chair.",
-  "bio": "I'm from Wales with thirteen years in the industry, specialising in all aspects of cutting and colouring. I love soft, lived-in, lowmaintenance colour. Clients describe me as calm, patient and gentle, and I really listen to get it right.",
+  "bio": "I'm from Wales with thirteen years in the industry, specialising in all aspects of cutting and colouring. I love soft, lived-in, low-maintenance colour. Clients describe me as calm, patient and gentle, and I really listen to get it right.",
   "specialises": [
    "Cutting",
    "Lived-In Colour"
@@ -574,6 +661,50 @@ const STYLIST_CARDS = {
   "review": "I had my hair coloured and styled by Elise and I was absolutely thrilled with the results. She was so friendly and welcoming, really listened to what I wanted, and took the time to help me understand what different options would look like for me. Elise was attentive throughout the appointment, offering great advice while making me feel comfortable and relaxed. I left with beautiful vibrant hair and a big smile on my face. I highly recommend Elise, a true gem in Dubai! :)",
   "reviewBy": "Hannah",
   "works": 6
+ },
+ "XYRHY": {
+  "role": "Blow-Dry Specialist",
+  "quote": "A blow-dry that holds, from someone who asked first.",
+  "bio": "I'm from the Philippines and I started in this industry with zero experience. Ten years in salons, most of them as an assistant, so I've watched a lot of hair get finished badly, and I learned exactly what makes it drop. I'll ask you how you want it to move before I pick up the brush.",
+  "specialises": [
+   "Blow-dry & Finishing: Long and Extra-Long Hair",
+   "Braids & Hair-Up",
+   "Fine Hair & Colour-Lock Treatments",
+   "Extension Removal & Refit"
+  ],
+  "bestFor": "Clients with long or fine hair who want it finished properly, not blasted dry",
+  "vibe": [
+   "Warm",
+   "Patient",
+   "Detail-obsessed"
+  ],
+  "loveMeIf": "You've been rushed through a blow-dry before and it was flat by dinner.",
+  "mattersMost": "That it still looks like the thing you asked for by the time you get home.",
+  "inMyChair": "Tell me you don't like it. I'd rather fix it now.",
+  "review": "A special thank you to Xyrhy who did an absolutely terrific job. She was attentive, gentle, professional, and truly took the time to understand what I wanted. The result exceeded my expectations; my hair looks beautiful, fresh, and feels amazing. It's clear she takes pride in her work.",
+  "reviewBy": "Febbie Karen"
+ },
+ "CLARISSA": {
+  "role": "Blow-Dry Specialist",
+  "quote": "Smooth when you want it, bouncy when you don't.",
+  "bio": "I'm from the Philippines and I've been a hairstylist here in the UAE for over twelve years. Two things I'm known for: a bouncy blow-dry that keeps its shape, and smoothing treatments for hair that fights you every single morning. I'll take the time to work out which one you actually need.",
+  "specialises": [
+   "Bouncy Blow-dry: Long and Extra-Long Hair",
+   "Keratin & Smoothing",
+   "Treatments Bond Repair & Olaplex",
+   "Extension Removal & Refit"
+  ],
+  "bestFor": "Clients whose hair never behaves the morning after",
+  "vibe": [
+   "Welcoming",
+   "Relaxing",
+   "Trustworthy"
+  ],
+  "loveMeIf": "Your hair has a mind of its own and you're tired of fighting it every morning.",
+  "mattersMost": "That it still looks good on day three, not just when you walk out.",
+  "inMyChair": "Relax and let me take over. Patience and detail: that's the whole job.",
+  "review": "Clarissa did a wonderful job with my blow-dry! I've purchased a blow dry package because of the excellent job she did.",
+  "reviewBy": "Anamika Sethuram"
  },
  "RUTH": {
   "role": "Style Director",
@@ -640,5 +771,255 @@ const STYLIST_CARDS = {
   "review": "I visited Tara Rose Al Quoz for the first time and had the most pleasant experience. Areanne was so kind and attentive and really took the time to find out my hair concerns and gave a great recommendation for my hair type. I had the Keratin blow dry and I am really happy with the results. Areanne even invited me back for a hair wash and blow dry to wash out the treatment. Such a wonderful experience thanks to Areanne. Will be back again!",
   "reviewBy": "Elizabeth",
   "works": 4
+ },
+ "GRACE": {
+  "role": "Senior Beauty Therapist",
+  "quote": "Gentle hands and you leave lighter than you came in.",
+  "bio": "I'm from the Philippines and I've spent ten years doing beauty here in the UAE. Waxing, lashes, brows, facials, nails: I like the range. Clients tell me I'm gentle. I'll take that as the whole job.",
+  "specialises": [
+   "Manicure & Pedicure: Gel, BIAB & Polish",
+   "Body Waxing",
+   "Lash Lifting & Brow Lamination",
+   "Facials & LED Therapy"
+  ],
+  "bestFor": "Clients who want everything sorted in one visit, and want it done gently",
+  "vibe": [
+   "Warm",
+   "Gentle",
+   "Unhurried"
+  ],
+  "loveMeIf": "You'd rather sit back and let someone else handle it. No stress, no rushing.",
+  "mattersMost": "Trust. Especially for the treatments people feel shy about.",
+  "inMyChair": "Put the day down. I'll go gently, and I won't rush you.",
+  "review": "Grace is truly exceptional. Her hands are incredibly soft and gentle, at some point I didn't even realize she was applying the strip. After trying other technicians elsewhere, I can confidently say I only want to book with her.",
+  "reviewBy": "Tahane"
+ },
+ "MIMI": {
+  "role": "Senior Beauty Therapist",
+  "quote": "Clean tools, proper products, and a set you're happy to look down at.",
+  "bio": "I'm from the Philippines, ten years a beautician here in the UAE. Nails are most of my day, brows and waxing the rest, and I set up the same way for every single one: clean tools, fresh file, proper products. Nobody should have to ask.",
+  "specialises": [
+   "Manicure & Pedicure: Gel Polish & BIAB",
+   "Brow Shaping: Threading, Waxing & Tinting",
+   "Body & Face Waxing",
+   "Callus Treatment & Safe Gel Removal"
+  ],
+  "bestFor": "Clients who notice how clean the setup is, and want their nails done properly",
+  "vibe": [
+   "Relaxing",
+   "Comfortable",
+   "Safe hands"
+  ],
+  "loveMeIf": "You check whether the tools came out of a fresh pack. So do I.",
+  "mattersMost": "Hygiene. Every tool, every client, no exceptions.",
+  "inMyChair": "sit back and stop thinking about it. Hands, feet, brows: I've got it.",
+  "review": "Mimi was great with the pedicure. Would highly recommend them anytime.",
+  "reviewBy": "Amanda Herholdt"
+ },
+ "SHILA": {
+  "role": "Senior Beauty Therapist",
+  "quote": "Leave the daily rush at the door.",
+  "bio": "I'm originally from Nepal and I've been a beauty therapist here in the UAE for seventeen years. Brows, hands and feet are what I do most: the appointments you come back for every few weeks. After a while I know your brows better than you do. My favourite part of the job is the moment a client sits down and finally relaxes.",
+  "specialises": [
+   "Brows: Threading, Tinting, Waxing & Lamination",
+   "Manicures & Pedicures Body Waxing",
+   "Deep Cleanse & Hydration",
+   "Facials",
+   "LVL Lash Lifting"
+  ],
+  "bestFor": "Clients who come back every few weeks and want the same hands every time",
+  "vibe": [
+   "Warm",
+   "Calm",
+   "Precise"
+  ],
+  "loveMeIf": "You'd rather not explain your brows from scratch every single time.",
+  "mattersMost": "That you leave looking like yourself, just tidier.",
+  "inMyChair": "Leave the daily rush behind. Gentle hands, and I take my time.",
+  "review": "STOP SEARCHING. THIS IS THE PLACE!!! I also had my manicure and pedicure done by Grace and Shila, and it was one of the best I've ever had. They were professional, detail-oriented, and made the whole experience so enjoyable. Definitely coming back!",
+  "reviewBy": "Ayat Hamid"
+ },
+ "KIM": {
+  "role": "Nail Art Expert",
+  "quote": "Perfectly finished nails, and always a little more care than you asked for.",
+  "bio": "Twelve years ago I started doing nails in a small town in the Philippines. I never stopped. I love finding the beauty in every set and making it prettier: clients call me a perfectionist, and I'll take it.",
+  "specialises": [
+   "Nail Extensions & Refills",
+   "BIAB: Natural & Coloured",
+   "Ombre & Chrome",
+   "Nail Art"
+  ],
+  "bestFor": "Clients who bring an idea and want it made even better",
+  "vibe": [
+   "Calm",
+   "Precise",
+   "Detailed"
+  ],
+  "loveMeIf": "You bring me an idea, I'll take it and give you something better.",
+  "mattersMost": "The moment you look down at your nails and smile.",
+  "inMyChair": "Put your phone down and actually rest.",
+  "review": "l\"I have been using Tara Rose for my nails, and Kim is simply the best. My nails are always exactly how I want them , neat, beautiful, and professionally done. She is friendly, kind, and always makes my visits enjoyable with lots of laughter. Such a talented young lady. Highly recommended.",
+  "reviewBy": "Karin Janeke"
+ },
+ "MONA": {
+  "role": "Senior Beauty Therapist",
+  "quote": "Healthy, beautiful skin in ninety minutes - and a treatment that makes your day.",
+  "bio": "From India, with over fifteen years in the beauty industry and based here in the UAE since 2010, now five years as a senior beauty therapist. Facials are my specialty; I love knowing the products properly and recommending the treatment that's genuinely right for each client's skin. Clients tell me they feel cared for, comfortable and beautiful when they leave.",
+  "specialises": [
+   "Facials",
+   "Threading & Brow Shaping",
+   "Waxing",
+   "Brow & Lash Lamination",
+   "Manicures & Pedicures",
+   "Eyelash Extensions"
+  ],
+  "bestFor": "Clients who want personalised care, professional expertise and beautiful results.",
+  "vibe": [
+   "Cared for",
+   "Comfortable",
+   "Beautiful"
+  ],
+  "loveMeIf": "You want honest, professional advice instead of being sold to. My goal is to help you choose what's genuinely right for you.",
+  "mattersMost": "Creating an experience where you feel heard, comfortable and completely looked after. Beautiful results start with understanding you first, then tailoring every detail to what you need.\"",
+  "inMyChair": "Feel heard, cared for and completely at ease - your time with me is all about you.\"",
+  "review": "I did waxing in this salon, amazing experience, my master Mona was really professional at her job, did everything very nice and gentle, thank you, I am very happy, hope to come back again soon",
+  "reviewBy": "O S P A N O V A"
+ },
+ "SANIA": {
+  "role": "Senior Beauty Therapist",
+  "quote": "Trust me with your treatment and I'll make sure you leave happy, confident and completely satisfied with the result.",
+  "bio": "From Pakistan, with fourteen years here in the UAE as an all-round beauty therapist. What I love most is seeing a client leave with a big smile and hearing that she loves the result; that's what keeps me improving. The best feeling is when clients trust my skills, appreciate the effort, and come back to me again and again. Their happiness is the biggest motivation behind my work.",
+  "specialises": [
+   "Facials",
+   "Threading & Brow Shaping",
+   "Waxing",
+   "Brow & Lash Lamination",
+   "Manicures & Pedicures",
+   "Eyelash Extensions"
+  ],
+  "bestFor": "Clients who are looking for a flawless touch of beauty.",
+  "vibe": [
+   "Relaxing",
+   "Caring",
+   "Satisfying"
+  ],
+  "loveMeIf": "You appreciate attention to detail and want to leave feeling beautiful, confident and satisfied.\"",
+  "mattersMost": "My clients' happiness: turning your beauty goals into a result you actually love.\"",
+  "inMyChair": "Expect a gentle touch, a perfect finish, and care that's personalised to you.\"",
+  "review": "Sania is absolutely amazing! I've been going to her for the last few months for eyebrows threading and she has always done such an incredible job. She always takes her time and I always leave with my eyebrows clean and shaped very well. I highly recommend her!",
+  "reviewBy": "Mona Kalmouni"
+ },
+ "REDA": {
+  "role": "Senior Beauty Therapist",
+  "quote": "Beautiful results, thoughtful service, and a little moment of self-care every time you sit in my chair.",
+  "bio": "From the Philippines, with fourteen years in the beauty industry and a real passion for nails, lashes and brows. I love helping clients feel confident and beautiful, while making sure they're comfortable and well looked after from start to finish. Clients often describe me as friendly, patient and detail-oriented, and say I take the time to understand exactly what they want.",
+  "specialises": [
+   "Nails",
+   "Lash Extensions",
+   "Lash Lifting",
+   "Brow Lamination",
+   "Facials"
+  ],
+  "bestFor": "Clients who love beautifully detailed results, a personalised experience, and a little time to relax.",
+  "vibe": [
+   "Calm",
+   "Relaxing",
+   "Caring"
+  ],
+  "loveMeIf": "You want to feel comfortable, have a little chat, and enjoy being pampered while I take care of you.",
+  "mattersMost": "Quality, cleanliness and your comfort; and making sure you're genuinely happy with your results.",
+  "inMyChair": "Switch off, relax and enjoy some well-deserved me-time.",
+  "review": "Wonderful pedicure and relaxing foot massage. Reda always gives excellent service when I visit Tara Rose for my beauty treatments. Thanks to Tara and the team.",
+  "reviewBy": "Sharon McKoy"
+ },
+ "JUDY": {
+  "role": "Nail Technician",
+  "quote": "Your nails, your style, my commitment: beautiful nails done with care, precision and love.",
+  "bio": "From the Philippines, with almost twenty years in the UAE and eleven of them here at Tara Rose Salon as a nail technician. I love creating nails that are clean, precise and exactly what my client pictured. Clients often say I'm detail-oriented and that I deliver the specific look they asked for.",
+  "specialises": [
+   "Acrylic Extensions",
+   "BIAB",
+   "Gel Polish",
+   "Manicures & Pedicures",
+   "Nail Arts"
+  ],
+  "bestFor": "Clients who aim to have beautiful, carefully done nails.",
+  "vibe": [
+   "Safe",
+   "Pampering",
+   "Understanding"
+  ],
+  "loveMeIf": "You want nails that are truly yours. I don't just do nails. I listen to what you want and take pride in turning your idea into something beautiful.",
+  "mattersMost": "Making every client feel cared for: listening, noticing every detail, and leaving you with nails you're proud of.",
+  "inMyChair": "Relax knowing your nails are in good hands.",
+  "review": "Judy's manicure was amazing. Her attention to detail removing my gel and reapplying new was excellent, I have found a superb regular manicurist at last!",
+  "reviewBy": "Sallie"
+ },
+ "ARNI": {
+  "role": "Nail Technician",
+  "quote": "Nails that look great and last, and an hour that feels easy from start to finish.",
+  "bio": "I'm Arni from the Philippines, with over six years of experience in the UAE and three years at Tara Rose as a Nail Technician. I love creating beautiful, well-cared-for nails while making every appointment feel comfortable and relaxing. My clients know me for being friendly, attentive and someone they can trust to really listen to what they want.",
+  "specialises": [
+   "Manicures",
+   "Pedicures",
+   "BIAB",
+   "Nail Arts",
+   "Nail Extensions"
+  ],
+  "bestFor": "Clients who love Aa manicure or pedicure done properly: clean, neat and long-lasting.",
+  "vibe": [
+   "Warm",
+   "Easy-going",
+   "Well looked after"
+  ],
+  "loveMeIf": "you want your nails done properly and enjoy a bit of a chat while we're at it.",
+  "mattersMost": "that your nails still look good weeks later, and that you felt looked after while you were here.",
+  "inMyChair": "relax and leave the details to me.",
+  "review": "Best place for BIAB (same brand I used to have in England and colours). Ask for Arni in Mamsha, she always makes my manicure look great and she's so sweet!",
+  "reviewBy": "Annie Builder"
+ },
+ "SHINE": {
+  "role": "Beauty Therapist",
+  "quote": "Brows that frame you, and feet you're happy to show.",
+  "bio": "Three years in the UAE and I've found what I'm best at: pedicures and brows. Two things people keep putting off, then wonder why they waited. I take my time with both.",
+  "specialises": [
+   "Pedicures & Foot Treatments",
+   "Brow Shaping: Threading, Waxing & Tinting",
+   "Brow Lamination & LVL Lash Lift",
+   "Manicures & Gel Polish"
+  ],
+  "bestFor": "Clients who want their brows, hands, and feet done properly, not rushed",
+  "vibe": [
+   "Friendly",
+   "Thorough",
+   "Easy-going"
+  ],
+  "loveMeIf": "You're fussy about your brows, because so am I.",
+  "mattersMost": "Getting the shape right. Brows are two millimetres from perfect or wrong.",
+  "inMyChair": "Put your feet up. Literally.",
+  "review": "I've had my eyebrows shaped by Shine lots of times. She is very professional and always does a perfect job. Thankyou",
+  "reviewBy": "Chad Rich"
+ },
+ "MJ": {
+  "role": "Nail Technician",
+  "quote": "Light on the hand, strong underneath.",
+  "bio": "I do nails that last. Extensions, overlays and BIAB that feel light on the hand and still hold up two weeks in. I've repaired a lot of broken nails, so I know what makes them break; and I build so they don't.",
+  "specialises": [
+   "Nail Extensions: Acrylic, Hard Gel & Tips",
+   "Overlays & BIAB",
+   "Manicure & Pedicure",
+   "Nail Repair & Safe Removal"
+  ],
+  "bestFor": "Clients whose nails need rebuilding, not just covering up",
+  "vibe": [
+   "Friendly",
+   "Upbeat",
+   "Good company"
+  ],
+  "loveMeIf": "You've had a bad set before and you're being careful about who you trust next.",
+  "mattersMost": "That your natural nails are in better shape when I take it off than when I put it on.",
+  "inMyChair": "Relax and chat away. I'll take it from here.",
+  "review": "Had my nails done by MJ at Tara Rose Salon the whole expired was amazing stunning salon and MJ was so lovely, kind and talented. I love my nails , thank you.",
+  "reviewBy": "Lorenza Hepburn"
  }
 };

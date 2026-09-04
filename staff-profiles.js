@@ -1,10 +1,12 @@
 // ── STYLIST PROFILES ──────────────────────────────
-// The hair team, used by the Top Performer cards on the KPI dashboard and by the
-// Stylist Cards view. Kate, 2026-08-12.
+// The hair and beauty teams, used by the Top Performer cards on the KPI dashboard
+// and by the Stylist Cards view. Kate, 2026-08-12.
 //
 // Source: the "FINAL STYLIST CARD" Canva deck plus the matching HEAD ICON exports
-// (27 stylists across four branches). Role and branch come from the icon filenames
-// and their folders; Instagram handles were read off the A3 cards.
+// (27 stylists across four branches, Aug 2026), then the 2nd batch of cards and the
+// "FINAL BEAUTICIAN CARD" deck (17 more, Sep 2026 - the blow-dry bench, the beauty
+// team and the nail desk). Role and branch come from the icon filenames and their
+// folders; Instagram handles were read off the A3 cards.
 //
 // Keyed by the CANONICAL staff name in UPPER CASE — the same name
 // canonicalStaffName() (upload/name-aliases.js) produces, so a stylist logged
@@ -21,15 +23,20 @@
 //           on a real colleague.
 //   photo   filename in assets/staff/. A transparent PNG of the stylist over her
 //           card's accent block, head breaking out above it. See the README there.
-//   role    Style Director | Senior Stylist | Stylist | Junior Stylist
+//   role    Style Director | Senior Stylist | Stylist | Junior Stylist |
+//           Blow-Dry Specialist | Senior Beauty Therapist | Beauty Therapist |
+//           Senior Nail Technician | Nail Technician. A role added here must also be
+//           added to STYLIST_ROLE_ORDER in dashboard.js, or everyone holding it sorts
+//           to the top of their branch instead of into the list.
 //   branch  BRANCH_INFO key — KCA | SAA | MC | AQ
 //   ig      Instagram handle WITHOUT the leading @
 //
 // EVERY FIELD IS OPTIONAL AND INDEPENDENT. No photo = no avatar; no handle = the
 // name stays plain text; anyone missing from this map renders exactly as the win
 // card always has, and a photo that 404s hides itself rather than showing a broken
-// image. That is why the beauty team is absent without breaking anything — they
-// have no cards in the deck yet.
+// image. That is what carried the beauty team while they had no cards, and it is
+// what carries Arni now: she has a card but no cutout, so she renders without a face
+// rather than with a broken one.
 //
 // Two source-file corrections are baked in rather than left to surprise someone:
 // the icon named "RUTH - JUNIOR STYLIST" is actually AREANNE (verified against both
@@ -57,7 +64,7 @@ const STAFF_PROFILES = {
   'GRACE':     { photo: 'grace.png',     role: 'Senior Beauty Therapist', branch: 'KCA', ig: 'beautybygracels' },
   'MIMI':      { photo: 'mimi.png',      role: 'Senior Beauty Therapist', branch: 'KCA', ig: 'beauty_bymimi15' },
   'SHILA':     { photo: 'shila.png',     role: 'Senior Beauty Therapist', branch: 'KCA', ig: 'mandalshila' },
-  'KIM':       { photo: 'kim.png',       role: 'Nail Art Expert',         branch: 'KCA', ig: 'kimberly_nails27' },
+  'KIM':       { photo: 'kim.png',       role: 'Senior Nail Technician',  branch: 'KCA', ig: 'kimberly_nails27' },
   // Arni's card shipped with the photo box empty — no cutout to make yet. Her
   // review says Mamsha but her only ledger rows are KCA, so KCA until Kate says.
   'ARNI':      {                         role: 'Nail Technician',         branch: 'KCA', ig: 'nailsby_rni13' },
@@ -74,7 +81,13 @@ const STAFF_PROFILES = {
   'EDS':       { photo: 'eds.png',       role: 'Junior Stylist', branch: 'SAA',  ig: 'edzasuncion' },
   // 2nd batch cards, Sep 2026 — see the KCA note above. Helen's card carries no
   // Instagram handle (Kate: "yung iba wala talaga"), so hers stays blank.
-  'MYRA':      { photo: 'myra.png',      role: 'Junior Stylist',          branch: 'SAA', ig: 'hairstyle_by_myra' },
+  //
+  // MYRA moved bench between the two card batches: her 31 Aug card said Junior
+  // Stylist, the 3 Sep one says Blow-Dry Specialist and the contents page files her
+  // under Saadiyat's blow-dry bench beside Helen. KIM moved the same way, Nail Art
+  // Expert to Senior Nail Technician. The card wins - it is the newer document and
+  // it is the one a client reads.
+  'MYRA':      { photo: 'myra.png',      role: 'Blow-Dry Specialist',     branch: 'SAA', ig: 'hairstyle_by_myra' },
   'HELEN':     { photo: 'helen.png',     role: 'Blow-Dry Specialist',     branch: 'SAA', ig: '' },
   'MONA':      { photo: 'mona.png',      role: 'Senior Beauty Therapist', branch: 'SAA', ig: 'hairnbeautyby_mona' },
   'REDA':      { photo: 'reda.png',      role: 'Senior Beauty Therapist', branch: 'SAA', ig: 'beautybyreda' },

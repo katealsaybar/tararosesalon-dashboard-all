@@ -8,3 +8,26 @@
 *.webp binary
 *.pdf binary
 *.xlsx binary
+
+# Vendored third-party builds are stored byte-for-byte as shipped: no line-ending
+# translation, and no diffs in review (they are minified, so a diff is noise).
+vendor/** -text -diff
+
+# -- GIT LFS ------------------------------------------------------------------
+# The Canva source artwork and the photo transport archive go through LFS rather
+# than straight into history: ~35MB of binaries in ordinary history is 35MB every
+# clone pays for forever, even though none of it is served by the live site. It
+# also keeps the door open for an untrimmed export, which GitHub rejects outright
+# above its 104,857,600-byte hard limit.
+#
+# The whole of _source/ is tracked, not just the decks, so anything dropped in
+# there later (a re-drawn card, a new head icon) is handled without editing this
+# file. Anyone cloning needs git-lfs installed; without it they get small pointer
+# files instead of the artwork, which is harmless for the site but confusing if
+# you don't know to expect it.
+#
+# THIS BLOCK WAS LOST ONCE (e8e4bee, 1 Sep 2026) when the line-endings rule
+# replaced the file wholesale, and nothing failed until the next big binary was
+# added. Add to it; don't rewrite the file over it.
+_source/** filter=lfs diff=lfs merge=lfs -text
+stylist/photos.zip filter=lfs diff=lfs merge=lfs -text
