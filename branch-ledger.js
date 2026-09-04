@@ -597,10 +597,32 @@ function lgMonthLabel(x) {
   return `${HERO_MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-// Does the hand-keyed target sheet cover the month on screen? Everything that
-// prints a target asks this first.
+// Does ANY target set cover the month on screen? Everything that prints a target
+// asks this first.
+//
+// Two sources since 4 Sep 2026, in that order: Supabase, holding every month
+// pasted into the Upload Portal's Targets tab, and then the hand-keyed
+// ledger-targets.js for the one month that was only ever keyed there. So the
+// target columns follow the Month picker now instead of being pinned to the file's
+// own month. The Supabase half depends on lgLoadDbTargets() having run for this
+// month, which every render awaits before it draws — see lgEnsureTargets().
 function lgTargetsApply() {
+  if (typeof lgTargetSource === 'function') return lgTargetSource(lgMonth).kind !== 'none';
   return typeof LEDGER_TARGETS !== 'undefined' && !!LEDGER_TARGETS && lgMonth === LEDGER_TARGETS.month;
+}
+
+// Awaited by every render before it reads a target. Cheap after the first call for
+// a month: lgLoadDbTargets() caches, including the "this month has nothing" answer.
+async function lgEnsureTargets() {
+  if (typeof lgLoadDbTargets !== 'function') return;
+  try { await lgLoadDbTargets(lgMonth); } catch (e) { /* pages fall back to the file */ }
+}
+
+// "Is this metric set at all", with the old behaviour when the Supabase layer is
+// not loaded: before 4 Sep 2026 every branch metric existed in the file, so
+// answering true is what keeps an un-flipped page identical.
+function lgBranchTargetSet(key, codes) {
+  return (typeof ledgerBranchTargetSet === 'function') ? ledgerBranchTargetSet(key, codes) : true;
 }
 
 // Every month with figures, newest first — the picker's options.
@@ -743,6 +765,10 @@ function lgMonthWindows() {
 async function lgSeries() {
   const w = lgMonthWindows();
   if (!w) return null;
+  // All four Ledgers pages await this, so the month's targets are pulled here
+  // rather than in each of them. It runs before anything reads a target, which is
+  // what lgTargetsApply() and every lookup below depend on (Kate, 4 Sep 2026).
+  await lgEnsureTargets();
   if (window._lgSeries && window._lgSeries.month === lgMonth) return window._lgSeries;
 
   const [branchRows, phorestRows] = await Promise.all([
@@ -926,7 +952,8 @@ function lgSheetSection(series, code, ctx) {
     // against the month the sheet was written for. The Target and Variance columns
     // stay in place either way, because the Benchmarks group below needs them and a
     // table cannot change its column count halfway down.
-    const target = (r.key && ctx.applies) ? ledgerBranchTarget(r.key, code ? [code] : null) : null;
+    const target = (r.key && ctx.applies && lgBranchTargetSet(r.key, code ? [code] : null))
+      ? ledgerBranchTarget(r.key, code ? [code] : null) : null;
     const p = (target != null && mtdRaw != null) ? ledgerPace(mtd, target) : null;
     const noTarget = ctx.applies
       ? '<span class="lg-na">no target</span>'
@@ -1228,7 +1255,8 @@ async function renderBranchPerformance() {
     const f   = isCount ? lgNum : lgAed;
     const out = cells => (isTotal ? { total: cells } : cells);
     if (!ctx.applies) return out([label + tag, f(actual)]);
-    if (!key)         return out([label + tag, f(actual), '<span class="lg-na">no target</span>', '—', '—', '—']);
+    if (!key || !lgBranchTargetSet(key, codes))
+                      return out([label + tag, f(actual), '<span class="lg-na">no target</span>', '—', '—', '—']);
     const t = ledgerBranchTarget(key, codes);
     const p = ledgerPace(actual, t);
     return out([label + tag, f(p.actual), f(p.target),
@@ -1262,7 +1290,8 @@ async function renderBranchPerformance() {
     if (r.group) return r;
     const [label, key, actual] = r;
     if (!ctx.applies) return [label, lgNum(actual)];
-    if (!key)         return [label, lgNum(actual), '<span class="lg-na">no target</span>', '—', '—', '—'];
+    if (!key || !lgBranchTargetSet(key, codes))
+                      return [label, lgNum(actual), '<span class="lg-na">no target</span>', '—', '—', '—'];
     const p = ledgerPace(actual, ledgerBranchTarget(key, codes));
     return [label, lgNum(p.actual), lgNum(p.target),
             lgDelta(p.variance, lgNum), lgDoneBar(p.pctDone), lgNum(p.remaining)];
@@ -1358,7 +1387,7 @@ async function renderBranchPerformance() {
     lgSection('bpStaff', 'var(--beauty)', 'Staff performance', escapeHtml(lgRangeLabel()), staffHtml) +
     `<div class="fine">
       <p><b>Where these come from</b>. Client counts, the department split and the treatment figure come from the branch ledger (<code>branch_staff_daily</code>); revenue comes from Phorest (<code>phorest_staff_daily</code>), matched to the ledger's staff and day. Rows tagged <span class="lg-tag">LEDGER</span> are hand-tallied and have no Phorest equivalent.</p>
-      <p><b>Where the targets come from</b>. <code>ledger-targets.js</code>, read out of ${escapeHtml(LEDGER_TARGETS ? LEDGER_TARGETS.source : 'the target sheet')} and updated by hand each month. Revenue targets are taken from that sheet's MTD pacing panel rather than its group roll-up: the two disagree, and only the panel's figures sum to their own branches. If a number here does not match Emma's sheet, that file is stale.</p>
+      <p><b>Where the targets come from</b>. ${typeof lgTargetSourceLabel === 'function' ? lgTargetSourceLabel(lgMonth) : '<code>ledger-targets.js</code>'}. A month pasted into the Targets tab is read from Supabase, and the branch figures there are summed from the stylist rows themselves rather than taken from the salon-level line a coordinator writes under her table — the two disagree, and the rows are what a stylist was actually given. The five client-count targets cannot be summed from money and are typed in beside them off Emma's Monday sheet; where one is blank the row keeps its dash rather than showing a target of zero. Months still coming off the hand-keyed file take their revenue targets from that sheet's MTD pacing panel rather than its group roll-up, because only the panel's figures sum to their own branches.</p>
       <p><b>How growth is measured</b>. This window against the one immediately before it, at the same number of days, ending the day before this one starts — never against a calendar month, which would read a fortnight as a collapse. The window is capped at the last day the ledger has actually synced, so unsynced days are not counted as days that took nothing. Percentages are money and counts; rebooking moves in <b>points</b>, because a rise from 20% to 32% is 12 points and not 60%.</p>
     </div>`);
 
@@ -1837,7 +1866,7 @@ async function renderLedgerTargets() {
     `<div class="fine">
       <p><b>The order is hers</b>. The pivot first, then the six pacing blocks — the same reading order as the right-hand block of her SUMMARY tab, which is headed "Daily target sheet". On MTD the blocks run three abreast like hers on a wide screen, two on a laptop and one on a phone: a six-column pacing table stops being readable below about 460px, so the row count gives way rather than the figures.</p>
       <p><b>The pivot always reads month to date</b>, whatever Split is set to. A benchmark is a ratio of its own window — Rebooking %, Treatment %, an average bill — so cutting it by week would give four branches × ten metrics × five weeks, which is a worksheet and not a read. The pacing blocks below are where the weeks and days live.</p>
-      <p><b>Where the figures come from</b>. Clients, treatment AED and the unit counts are the ledger's own (<code>branch_staff_daily</code>, synced from the daily branch files); revenue is Phorest, VAT exclusive throughout, to match the target sheet's own basis. Only the target column is hand-maintained, in <code>ledger-targets.js</code> — which is why <b>Month</b> above can reach any month back to January 2025 but the target columns only appear on ${escapeHtml(LEDGER_TARGETS ? lgMonthLabel(LEDGER_TARGETS.month) : 'the sheet\'s month')}.</p>
+      <p><b>Where the figures come from</b>. Clients, treatment AED and the unit counts are the ledger's own (<code>branch_staff_daily</code>, synced from the daily branch files); revenue is Phorest, VAT exclusive throughout, to match the target sheet's own basis. Targets come from ${typeof lgTargetSourceLabel === 'function' ? lgTargetSourceLabel(lgMonth) : '<code>ledger-targets.js</code>'} — <b>Month</b> above reaches back to January 2025, and the target columns appear on any month somebody has pasted into the Targets tab, plus ${escapeHtml(LEDGER_TARGETS ? lgMonthLabel(LEDGER_TARGETS.month) : 'the sheet\'s month')}, which was keyed into the file before that tab existed.</p>
     </div>`);
 
   ['ltPivot','ltPace'].forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
@@ -2664,7 +2693,7 @@ async function renderLedgerStylist() {
       <p><b>Split cuts the services column only</b>. Weekly and Daily add her services week by week or day by day inside the Services band; the target, the MTD total and the variance beside them do not move. Treatment and retail stay as month-to-date totals — a nineteen-column table with three metrics cut by day is a data dump, not a coaching sheet.</p>
       <p><b>The Unit columns are her own</b>. <code>treatments_unit_qty</code> and <code>retail_unit_qty</code> come off the daily branch ledger, next to the revenue they belong to — how many treatments and how many retail lines, not how much money. Ledger columns, so they carry whatever the branch wrote down; Phorest has no per-stylist equivalent to check them against.</p>
       <p><b>Retail here is only what a stylist was credited with</b>, VAT exclusive. A lot of retail is rung with nobody against it — Phorest books it to a house account — so these retail columns will add up to less than the branch's Retail Total on the other two pages, which reads Phorest's own branch total. The gap is the unattributed retail, and it is deliberately not shared out: no stylist earned it, and inventing a credit would make every row here unmeasurable.</p>
-      <p><b>A dash in a target column</b> means that stylist has no target in ${escapeHtml(LEDGER_TARGETS ? LEDGER_TARGETS.source : 'the sheet')} — a new starter, or a leaver still carrying history. It does not mean zero.</p>
+      <p><b>A dash in a target column</b> means that stylist has no target for this month — a new starter, a leaver still carrying history, or somebody the branch coordinator left off her table. It does not mean zero.</p>
       <p><b>"Target at &lt;branch&gt;"</b> means she is taking clients here but her monthly target is written against another branch, so there is nothing to measure this row against. Either she covered a shift, or she has moved and the sheet has not caught up. Worth a look when it is somebody's main branch: as of the August sheet, Irlyn, Grace and Shila are down as Khalifa but working Saadiyat, and Ibrahim and Olena are working Motor City against Al Quoz and Khalifa targets.</p>
     </div>`);
 

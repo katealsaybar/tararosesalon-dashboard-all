@@ -426,7 +426,11 @@ async function refreshStaffPerfProgress(){
   if (countErr){ host.innerHTML = `<div style="font-size:14px;color:var(--bad)">Failed to load progress: ${countErr.message}</div>`; return; }
   const pages = [];
   for (let offset = 0; offset < (count || 0); offset += SP_PAGE_SIZE){
-    pages.push(sb.from(SP_TABLE).select('branch,date').eq('is_total', true).range(offset, offset + SP_PAGE_SIZE - 1));
+    // Ordered, because paging without one is not stable: Postgres may hand the
+    // same row back on two pages and another on none, and a day that had arrived
+    // then reads as a gap (Kate, 4 Sep 2026).
+    pages.push(sb.from(SP_TABLE).select('branch,date').eq('is_total', true)
+      .order('id',{ascending:true}).range(offset, offset + SP_PAGE_SIZE - 1));
   }
   const results = await Promise.all(pages);
   const failed = results.find(r => r.error);
@@ -538,14 +542,45 @@ function spProgEndBatch(hostId){
   spRenderMissingList(hostId);
 }
 
-function spRenderBackfillStrips(label, days, covered, keyOf){
+/* A DAY THAT ARRIVED AND SAYS NOTHING IS NOT A CAPTURED DAY.
+   Kate, 4 Sep 2026, after the group's Rebooking % would not divide by the two
+   columns beside it: Khalifa's Sunday 30 August ledger is nineteen staff rows with
+   every single figure on them zero, while Phorest has the day taking AED 21,423
+   off 41 clients. The dashboard treats a ledger day with no clients as a blank
+   sheet and reads that day from Phorest instead, so the money is right and the
+   day's rebookings, NCR and treatment AED are simply gone.
+
+   This card could not have caught it. Coverage asked whether a row had arrived,
+   and nineteen of them had. So `blank` is a third state, passed in by any card
+   whose feed is filled in by hand:
+
+     missing   nothing arrived            the sync has not run
+     blank     arrived with nothing in it someone has not filled the sheet in
+     done      arrived with figures       nothing to do
+
+   The two are worth separating because the fix is a different person. Telling
+   Emma that 30 August is missing sends her to look for a sheet that is already
+   there.
+
+   A blank day is still inside `covered` — the row did arrive — so a branch's
+   arrived count is unchanged, but it is taken out of `done` because nothing was
+   captured. Whoever supplies `blank` decides what qualifies; sheet-sync.js asks
+   Phorest whether the branch actually traded, which is why a genuine closure with
+   an empty sheet stays quiet and needs no closure list to do it. */
+function spBlankDay(st, d){
+  return !!(st.blank && st.blank.has(st.keyOf(d)));
+}
+
+function spRenderBackfillStrips(label, days, covered, keyOf, blank){
   const uid = 'pg' + (++spProgSeq);
-  spProg[uid] = { label, days, covered, keyOf };
+  spProg[uid] = { label, days, covered, keyOf, blank };
   spProgBatch.push(uid);
+  const isBlank = d => !!(blank && blank.has(keyOf(d)));
 
   const open = days.filter(d => !spClosedReason(d, keyOf));
-  const doneDays = open.filter(d => covered.has(keyOf(d)));
-  const firstMissing = open.find(d => !covered.has(keyOf(d)));
+  const doneDays = open.filter(d => covered.has(keyOf(d)) && !isBlank(d));
+  const blankDays = open.filter(isBlank);
+  const firstMissing = open.find(d => !covered.has(keyOf(d)) || isBlank(d));
   const byYear = new Map();
   days.forEach(d => { const y = d.getFullYear(); if (!byYear.has(y)) byYear.set(y, []); byYear.get(y).push(d); });
   const years = [...byYear.keys()].sort((a,b) => b-a);
@@ -553,21 +588,24 @@ function spRenderBackfillStrips(label, days, covered, keyOf){
   return `<div class="sp-prog-branch">
       <div class="sp-prog-head">
         <span class="sp-prog-name">${label}</span>
-        <span class="sp-prog-meta">${doneDays.length}/${open.length} days${firstMissing ? ' · oldest gap <b>'+firstMissing.toLocaleDateString('en-GB')+'</b>' : ' · <b class="ok">fully captured</b>'}</span>
+        <span class="sp-prog-meta">${doneDays.length}/${open.length} days${
+          blankDays.length ? ` · <b>${blankDays.length} arrived blank</b>` : ''}${
+          firstMissing ? ' · oldest gap <b>'+firstMissing.toLocaleDateString('en-GB')+'</b>' : ' · <b class="ok">fully captured</b>'}</span>
       </div>` +
     years.map(y => {
       const yDays = byYear.get(y);
       const yOpen = yDays.filter(d => !spClosedReason(d, keyOf));
-      const yDone = yOpen.filter(d => covered.has(keyOf(d))).length;
+      const yDone = yOpen.filter(d => covered.has(keyOf(d)) && !isBlank(d)).length;
       // Counted per month rather than assumed 28-31, so a branch whose range
       // starts or ends mid-month (FRT) shows that month's real denominator, and
       // a closed day is counted as closed rather than as a day to chase.
-      const months = Array.from({length:12}, () => ({ total:0, done:0, closed:0 }));
+      const months = Array.from({length:12}, () => ({ total:0, done:0, closed:0, blank:0 }));
       yDays.forEach(d => {
         const m = months[d.getMonth()];
         if (spClosedReason(d, keyOf)){ m.closed++; return; }
         m.total++;
-        if (covered.has(keyOf(d))) m.done++;
+        if (isBlank(d)) m.blank++;
+        else if (covered.has(keyOf(d))) m.done++;
       });
       return `<div class="sp-yr">
         <span class="sp-yr-lbl"><b>${y}</b> ${yDone}/${yOpen.length}</span>
@@ -579,7 +617,8 @@ function spRenderBackfillStrips(label, days, covered, keyOf){
           }
           const pct = Math.round(m.done / m.total * 100);
           const closedNote = m.closed ? ` · ${m.closed} closed` : '';
-          return `<button class="sp-mo" onclick="spOpenProgMonth(this,'${uid}',${y},${i})" title="${SP_MONTHS[i]} ${y} — ${m.done}/${m.total} days${closedNote}${m.done === m.total ? '' : ' · click for the days'}">
+          const blankNote  = m.blank ? ` · ${m.blank} arrived blank` : '';
+          return `<button class="sp-mo" onclick="spOpenProgMonth(this,'${uid}',${y},${i})" title="${SP_MONTHS[i]} ${y} — ${m.done}/${m.total} days${blankNote}${closedNote}${m.done === m.total ? '' : ' · click for the days'}">
             <div class="sp-mo-bar">${m.done ? `<div class="sp-mo-fill${pct === 100 ? '' : ' part'}" style="width:${pct}%"></div>` : ''}</div>
             <span class="sp-mo-lbl">${SP_MONTHS[i][0]}</span></button>`;
         }).join('') +
@@ -604,15 +643,20 @@ function spOpenProgMonth(btn, uid, year, monthIdx){
   btn.classList.add('open');
   const mDays  = st.days.filter(d => d.getFullYear() === year && d.getMonth() === monthIdx);
   const mOpen  = mDays.filter(d => !spClosedReason(d, st.keyOf));
-  const done   = mOpen.filter(d => st.covered.has(st.keyOf(d))).length;
+  const done   = mOpen.filter(d => st.covered.has(st.keyOf(d)) && !spBlankDay(st, d)).length;
+  const blank  = mOpen.filter(d => spBlankDay(st, d)).length;
   const closed = mDays.length - mOpen.length;
-  box.innerHTML = `<div class="sp-mo-days-title"><b>${SP_MONTHS[monthIdx]} ${year}</b> · ${st.label} · ${done} of ${mOpen.length} days captured${closed ? ` · ${closed} closed` : ''}</div>
+  box.innerHTML = `<div class="sp-mo-days-title"><b>${SP_MONTHS[monthIdx]} ${year}</b> · ${st.label} · ${done} of ${mOpen.length} days captured${blank ? ` · ${blank} arrived blank` : ''}${closed ? ` · ${closed} closed` : ''}</div>
     <div class="sp-day-strip">` +
     mDays.map(d => {
       const shut = spClosedReason(d, st.keyOf);
-      const ok   = st.covered.has(st.keyOf(d));
+      const empty = spBlankDay(st, d);
+      const ok   = st.covered.has(st.keyOf(d)) && !empty;
       const lbl  = d.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'short', year:'numeric' });
       if (shut) return `<div class="sp-day-cell closed" title="${lbl} — closed, ${shut.why}">${d.getDate()}</div>`;
+      // The sheet is there and the till says the branch traded, so this is not a
+      // day to chase the sync for — it is a day to chase the numbers for.
+      if (empty) return `<div class="sp-day-cell blank" title="${lbl} — the sheet arrived with every figure zero, but Phorest has the branch trading that day. The clients, rebookings, NCR and treatment AED need filling in.">${d.getDate()}</div>`;
       return `<div class="sp-day-cell${ok ? ' done' : ''}" title="${lbl}${ok ? '' : ' — missing'}">${ok ? '' : d.getDate()}</div>`;
     }).join('') +
     '</div>';
@@ -624,13 +668,23 @@ function spOpenProgMonth(btn, uid, year, monthIdx){
 function spCopyMissingDates(hostId){
   const lines = [];
   let total = 0;
+  // The blank days go on the list under their own heading rather than mixed in
+  // with the gaps: they are handed to a different person and need a different
+  // thing done to them.
   (spProgByHost[hostId] || []).forEach(uid => {
     const st = spProg[uid];
     if (!st) return;
-    const miss = st.days.filter(d => !spClosedReason(d, st.keyOf) && !st.covered.has(st.keyOf(d)));
-    if (!miss.length) return;
-    total += miss.length;
-    lines.push(`${st.label} (${miss.length}): ${miss.map(spIsoDate).join(', ')}`);
+    const open = st.days.filter(d => !spClosedReason(d, st.keyOf));
+    const miss = open.filter(d => !st.covered.has(st.keyOf(d)));
+    const empty = open.filter(d => spBlankDay(st, d));
+    if (miss.length){
+      total += miss.length;
+      lines.push(`${st.label} — not arrived (${miss.length}): ${miss.map(spIsoDate).join(', ')}`);
+    }
+    if (empty.length){
+      total += empty.length;
+      lines.push(`${st.label} — arrived blank, needs filling in (${empty.length}): ${empty.map(spIsoDate).join(', ')}`);
+    }
   });
   if (!total){ showToast('No missing days — fully captured'); return; }
   navigator.clipboard.writeText(lines.join('\n'))
@@ -648,8 +702,10 @@ function spMissingByHost(hostId){
   (spProgByHost[hostId] || []).forEach(uid => {
     const st = spProg[uid];
     if (!st) return;
-    const miss = st.days.filter(d => !spClosedReason(d, st.keyOf) && !st.covered.has(st.keyOf(d)));
-    if (miss.length) out.push({ label: st.label, miss });
+    const open  = st.days.filter(d => !spClosedReason(d, st.keyOf));
+    const miss  = open.filter(d => !st.covered.has(st.keyOf(d)));
+    const blank = open.filter(d => spBlankDay(st, d));
+    if (miss.length || blank.length) out.push({ label: st.label, miss, blank });
   });
   return out;
 }
@@ -659,26 +715,35 @@ function spRenderMissingList(hostId){
   const btn = document.getElementById(`${hostId}MissingBtn`);
   if (!box) return;
   const groups = spMissingByHost(hostId);
-  const total  = groups.reduce((n, g) => n + g.miss.length, 0);
+  const total  = groups.reduce((n, g) => n + g.miss.length + g.blank.length, 0);
   const shown  = box.classList.contains('show');
   if (btn) btn.textContent = `${shown ? 'Hide' : 'Show'} missing dates${total ? ` (${total})` : ''}`;
   if (!shown){ box.innerHTML = ''; return; }
   if (!total){ box.innerHTML = '<div class="sp-miss-empty">Nothing missing — fully captured.</div>'; return; }
-  box.innerHTML = groups.map(g => {
+  const byMonthRows = days => {
     const byMonth = new Map();
-    g.miss.forEach(d => {
+    days.forEach(d => {
       const k = `${d.getFullYear()}-${d.getMonth()}`;
       if (!byMonth.has(k)) byMonth.set(k, []);
       byMonth.get(k).push(d);
     });
-    return `<div class="sp-miss-grp">
-        <div class="sp-miss-hd">${g.label}<span>${g.miss.length} missing</span></div>` +
-      [...byMonth.values()].map(ds => `<div class="sp-miss-row">
-          <span class="sp-miss-mo">${SP_MONTHS[ds[0].getMonth()]} ${ds[0].getFullYear()}</span>
-          <span class="sp-miss-days">${ds.map(d => String(d.getDate()).padStart(2, '0')).join(', ')}</span>
-        </div>`).join('') +
-      `</div>`;
-  }).join('');
+    return [...byMonth.values()].map(ds => `<div class="sp-miss-row">
+        <span class="sp-miss-mo">${SP_MONTHS[ds[0].getMonth()]} ${ds[0].getFullYear()}</span>
+        <span class="sp-miss-days">${ds.map(d => String(d.getDate()).padStart(2, '0')).join(', ')}</span>
+      </div>`).join('');
+  };
+  box.innerHTML = groups.map(g => `<div class="sp-miss-grp">
+        <div class="sp-miss-hd">${g.label}<span>${
+          [g.miss.length ? g.miss.length + ' missing' : '', g.blank.length ? g.blank.length + ' arrived blank' : '']
+            .filter(Boolean).join(' · ')}</span></div>` +
+      byMonthRows(g.miss) +
+      // Named on the page, not just counted, because "arrived blank" is the whole
+      // finding: the sheet is sitting there and nobody typed the numbers in.
+      (g.blank.length ? `<div class="sp-miss-blank">
+          <div class="sp-miss-blank-hd">Arrived blank — the sheet is there, the figures are not.
+            Phorest has the branch trading on these days, so the clients, rebookings, NCR and
+            treatment AED need filling in and re-syncing.</div>` + byMonthRows(g.blank) + `</div>` : '') +
+      `</div>`).join('');
 }
 
 function spToggleMissingList(hostId){

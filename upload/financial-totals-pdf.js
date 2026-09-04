@@ -410,7 +410,10 @@ async function refreshFinProgress(){
   if (countErr){ host.innerHTML = `<div style="font-size:14px;color:var(--bad)">Failed to load progress: ${countErr.message}</div>`; return; }
   const pages = [];
   for (let offset = 0; offset < (count || 0); offset += FT_PAGE_SIZE){
-    pages.push(sb.from(FT_TABLE).select('branch,date,checks_passed').range(offset, offset + FT_PAGE_SIZE - 1));
+    // Ordered — see the note on refreshStaffPerfProgress. An unordered page read
+    // can drop a row it already returned elsewhere and invent a gap.
+    pages.push(sb.from(FT_TABLE).select('branch,date,checks_passed')
+      .order('id',{ascending:true}).range(offset, offset + FT_PAGE_SIZE - 1));
   }
   const results = await Promise.all(pages);
   const failed = results.find(r => r.error);

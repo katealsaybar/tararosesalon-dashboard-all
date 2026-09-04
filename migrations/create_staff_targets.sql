@@ -64,6 +64,18 @@ CREATE TABLE IF NOT EXISTS branch_targets (
   stated_service_target numeric(12,2),
   stated_retail_target  numeric(12,2),
 
+  -- CLIENT-COUNT TARGETS. Not derivable from the coordinators' tables, which are
+  -- money only: these come off the MTD pacing panel of Emma's Monday Target Sheet
+  -- and are typed into the Targets tab by hand. Nullable, never DEFAULT 0 - a
+  -- month nobody has keyed must read as no target rather than as a target of zero
+  -- clients, which every branch would be shown as beating. Added 4 Sep 2026; a
+  -- table created before then takes them from add_client_targets_to_branch_targets.sql.
+  total_clients         integer,
+  new_clients           integer,
+  ncr                   integer,
+  rebooked              integer,
+  beauty_rebooked       integer,
+
   actual_pct            numeric(6,3) DEFAULT 80,  -- the sheet's "ACTUAL by 80%"
   retail_pct            numeric(6,3) DEFAULT 12,  -- "RETAIL by 12%", off the actual figure
   treatment_pct         numeric(6,3) DEFAULT 20,  -- "TREATMENT by 20%", off the actual figure

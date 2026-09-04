@@ -50,24 +50,68 @@ async function refreshSheetSyncProgress(){
   // and the pip, in place of the ten per-branch queries the status card used to
   // fire. Counted first, then every page at once — same shape as
   // refreshStaffPerfProgress; PostgREST caps an unpaginated select at 1000.
-  const { count, error: countErr } = await sb.from(SS_TABLE).select('id',{count:'exact',head:true});
-  if (countErr){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${countErr.message}</div>`; return; }
-  const pages = [];
-  for (let offset = 0; offset < (count || 0); offset += SS_PAGE_SIZE){
-    pages.push(sb.from(SS_TABLE).select('branch,date').range(offset, offset + SS_PAGE_SIZE - 1));
-  }
-  const results = await Promise.all(pages);
-  const failed = results.find(r => r.error);
-  if (failed){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${failed.error.message}</div>`; return; }
-  const all = results.flatMap(r => r.data || []);
+  //
+  // `total` rides along for the blank-day check below, and every page is ORDERED.
+  // Paging without an order by is not stable: Postgres may return a row on two
+  // pages and another on none, so a day that had arrived could read as a gap and
+  // send someone to re-run a report that was already in. Any read whose whole
+  // purpose is "which days are here" has to be deterministic (Kate, 4 Sep 2026).
+  // Count, then every page at once. A .limit() does NOT lift the cap — PostgREST
+  // stops at its own max-rows, 1000 here, and hands back a short answer with no
+  // error, so the only safe read of a whole table is a counted one.
+  const ssReadAll = async (table, cols, tweak) => {
+    const { count, error } = await (tweak ? tweak(sb.from(table).select('id',{count:'exact',head:true}))
+                                          : sb.from(table).select('id',{count:'exact',head:true}));
+    if (error) return { error };
+    const pages = [];
+    for (let offset = 0; offset < (count || 0); offset += SS_PAGE_SIZE){
+      let q = sb.from(table).select(cols);
+      if (tweak) q = tweak(q);
+      pages.push(q.order('id',{ascending:true}).range(offset, offset + SS_PAGE_SIZE - 1));
+    }
+    const results = await Promise.all(pages);
+    const failed = results.find(r => r.error);
+    if (failed) return { error: failed.error };
+    return { rows: results.flatMap(r => r.data || []) };
+  };
+
+  // Phorest's own branch TOTAL line, one row per branch-day, is what decides
+  // whether a sheet of zeros is a closed day or an unfilled one. `visits` is null
+  // on that line, so the takings are the signal.
+  const [led, pho] = await Promise.all([
+    ssReadAll(SS_TABLE, 'branch,date,total'),
+    ssReadAll('phorest_staff_daily', 'branch,date,total_ex_vat', q => q.eq('is_total', true)),
+  ]);
+  const failed = led.error || pho.error;
+  if (failed){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${failed.message}</div>`; return; }
+  const traded = new Set((pho.rows || [])
+    .filter(r => Math.abs(Number(r.total_ex_vat) || 0) >= 0.005)
+    .map(r => `${r.branch}|${r.date}`));
+  const all = led.rows;
 
   const covered = new Set();
+  const clientsByDay = {};
   const rowsByBranch = {}, lastByBranch = {};
   for (const r of all){
-    covered.add(`${r.branch}|${r.date}`);
+    const key = `${r.branch}|${r.date}`;
+    covered.add(key);
+    clientsByDay[key] = (clientsByDay[key] || 0) + (Number(r.total) || 0);
     rowsByBranch[r.branch] = (rowsByBranch[r.branch] || 0) + 1;
     if (r.date && (!lastByBranch[r.branch] || r.date > lastByBranch[r.branch])) lastByBranch[r.branch] = r.date;
   }
+
+  // ARRIVED, AND SAYS NOTHING. The sheet is there, it records no clients at all,
+  // and Phorest has the branch taking money that day — so it is not a quiet day
+  // and not a closure, it is a day nobody filled in. Clients is the right test
+  // rather than "every column zero": no clients is exactly the condition that
+  // makes the dashboard discard the day's ledger and read it from Phorest, which
+  // silently loses that day's rebookings, NCR and treatment AED.
+  //
+  // Asking Phorest, rather than carrying a closure list, is what keeps Al Quoz's
+  // nine shut Sundays and Mondays a month off this list without anyone having to
+  // maintain the fact that it shuts. It also means a closed day that DID take
+  // money still shows up, which is worth more than either.
+  const blankDays = new Set([...covered].filter(k => !clientsByDay[k] && traded.has(k)));
 
   await spLoadClosedDays();
 
@@ -76,7 +120,7 @@ async function refreshSheetSyncProgress(){
   let html = '';
   for (const code of BRANCH_KEYS){
     const days = spGetBackfillDays(SS_BRANCH_START[code] || SS_BACKFILL_START, SS_BRANCH_END[code]);
-    html += spRenderBackfillStrips(BRANCHES[code].name, days, covered, d => `${code}|${spIsoDate(d)}`);
+    html += spRenderBackfillStrips(BRANCHES[code].name, days, covered, d => `${code}|${spIsoDate(d)}`, blankDays);
   }
   host.innerHTML = html;
   spProgEndBatch('ssProgressGrid');

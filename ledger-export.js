@@ -736,7 +736,8 @@ function lgxSheetActuals(series, ctx, code, name, peers) {
     const pick = r.pick;
     const target = r.ratio
       ? lgxNum(bm[r.bm])
-      : ((r.key && ctx.applies) ? lgxNum(ledgerBranchTarget(r.key, code ? [code] : null)) : null);
+      : ((r.key && ctx.applies && lgBranchTargetSet(r.key, code ? [code] : null))
+          ? lgxNum(ledgerBranchTarget(r.key, code ? [code] : null)) : null);
     const cell = { prev: lgxNum(bucket.prev ? pick(bucket.prev) : null), target: target,
                    mtd: lgxNum(bucket.mtd ? pick(bucket.mtd) : null) };
     lgxSplitVals(series, bucket, pick).forEach((v, i) => { cell['s' + i] = v; });

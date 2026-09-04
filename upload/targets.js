@@ -377,6 +377,22 @@ let tgRows   = [];
 // `tgSalon` is what the coordinator wrote in her yellow box, and nothing else.
 // The branch total is tgSum('target') — see the header note.
 let tgSalon  = { stated_service: null, stated_retail: null, notes: '' };
+
+// The five client-count targets. NOT from the coordinator's table, which is money
+// only: these come off the MTD pacing panel of Emma's Monday Target Sheet and are
+// typed in. They are here because the dashboard's Ledgers pages ask for eleven
+// branch metrics and the paste can only produce six of them; without these five
+// the flip off ledger-targets.js leaves half the target columns blank (Kate,
+// 4 Sep 2026). null means nobody has keyed it, which must never render as a
+// target of zero clients.
+const TG_CLIENT_FIELDS = [
+  { key: 'total_clients',   label: 'Total clients' },
+  { key: 'new_clients',     label: 'New clients' },
+  { key: 'ncr',             label: 'NCR' },
+  { key: 'rebooked',        label: 'Rebooked' },
+  { key: 'beauty_rebooked', label: 'Beauty rebooked' },
+];
+let tgClients = {};
 let tgPct    = Object.assign({}, TG_DEFAULT_PCT);
 let tgTotals = null;          // the coordinator's own totals row, for the cross-check
 let tgWarnings = [];
@@ -520,6 +536,7 @@ function tgDeleteRow(id){
 function tgClearGrid(){
   tgRows = []; tgTotals = null; tgWarnings = [];
   tgSalon = { stated_service: null, stated_retail: null, notes: '' };
+  tgClients = {};
   const box = document.getElementById('tgPasteBox');
   if (box) box.value = '';
   tgMsg('', true);
@@ -562,6 +579,13 @@ function tgSalonEdit(field, value){
   if (field === 'notes') tgSalon.notes = String(value);
   else tgSalon[field] = tgNum(value);
   tgRenderGrid();
+}
+
+// A head count, so it is rounded and a blank stays null rather than becoming 0.
+function tgClientEdit(field, value){
+  const n = tgNum(value);
+  tgClients[field] = (n === null) ? null : Math.round(n);
+  tgRenderSummary();
 }
 
 function tgRenderGrid(){
@@ -686,6 +710,19 @@ function tgRenderSummary(){
 
   host.innerHTML = `
     ${totalsHtml}
+    <div class="tg-stated-hd">Client-count targets — from Emma's Monday sheet, not from the paste</div>
+    <div class="tg-salon">
+      ${TG_CLIENT_FIELDS.map(f => `<div class="field" style="max-width:150px">
+        <label class="field-label">${f.label}</label>
+        <input value="${tgClients[f.key] === null || tgClients[f.key] === undefined ? '' : tgClients[f.key]}"
+               placeholder="not set" onchange="tgClientEdit('${f.key}',this.value)"></div>`).join('')}
+    </div>
+    <div class="tg-line${tgClientsMissing().length ? '' : ' ok'}">${tgClientsMissing().length
+      ? `The Ledgers pages read these five straight from here. <b>${tgClientsMissing().join(', ')}</b>
+         ${tgClientsMissing().length === 1 ? 'is' : 'are'} blank, so ${tgClientsMissing().length === 1 ? 'that row' : 'those rows'}
+         will show no target for this month. Blank is fine and is not a zero.`
+      : 'All five client-count targets are set, so every Ledgers target column has a figure for this month.'}</div>
+
     <div class="tg-stated-hd">Her yellow box — reference only, saved beside the totals</div>
     <div class="tg-salon">
       <div class="field"><label class="field-label">She wrote: service</label>
@@ -713,6 +750,13 @@ function tgRenderSummary(){
 // One line comparing her yellow box against the table's own sum. Deliberately
 // worded as a difference and styled as a note, not a warning: the table wins, and
 // a branch whose stated figure is higher is simply not fully allocated yet.
+// Named, not counted: "NCR and Rebooked are blank" tells you what to go and find.
+function tgClientsMissing(){
+  return TG_CLIENT_FIELDS
+    .filter(f => tgClients[f.key] === null || tgClients[f.key] === undefined)
+    .map(f => f.label);
+}
+
 function tgStatedLine(word, stated, actual){
   const gap = stated - actual;
   if (Math.abs(gap) < 0.005){
@@ -769,6 +813,11 @@ async function tgSave(){
       staff_count:      rows.length,
       stated_service_target: tgSalon.stated_service,
       stated_retail_target:  tgSalon.stated_retail,
+      total_clients:   tgClients.total_clients   ?? null,
+      new_clients:     tgClients.new_clients     ?? null,
+      ncr:             tgClients.ncr             ?? null,
+      rebooked:        tgClients.rebooked        ?? null,
+      beauty_rebooked: tgClients.beauty_rebooked ?? null,
       actual_pct:     tgPct.actual,
       retail_pct:     tgPct.retail,
       treatment_pct:  tgPct.treatment,
@@ -825,8 +874,13 @@ async function tgLoadSaved(){
       stated_retail:  bt.stated_retail_target  === null ? null : Number(bt.stated_retail_target),
       notes: bt.notes || '',
     };
+    tgClients = {};
+    TG_CLIENT_FIELDS.forEach(f => {
+      tgClients[f.key] = (bt[f.key] === null || bt[f.key] === undefined) ? null : Number(bt[f.key]);
+    });
   } else {
     tgSalon = { stated_service: null, stated_retail: null, notes: '' };
+    tgClients = {};
   }
 
   tgRows = rows.map(r => tgNewRow({
@@ -895,6 +949,12 @@ function tgErrText(e){
   if (!e) return '';
   if (e.code === 'PGRST205' || /schema cache/i.test(e.message || '')){
     return 'The targets tables are not in Supabase yet. Run <code>migrations/create_staff_targets.sql</code> in the SQL Editor once, then press Refresh.';
+  }
+  // The five client-count columns were added after the tables were first created,
+  // so a table built from the original file is missing them and every save fails
+  // on the first one. Same class of problem, different file to run.
+  if (/column .* does not exist/i.test(e.message || '')){
+    return 'The client-count columns are not in Supabase yet. Run <code>migrations/add_client_targets_to_branch_targets.sql</code> in the SQL Editor once, then try again.';
   }
   return tgEsc(e.message || String(e));
 }

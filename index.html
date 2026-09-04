@@ -2488,7 +2488,9 @@ table.tp-cmp td.bad{color:var(--bad)}
 
 <script src="upload/name-aliases.js?v=20260904a"></script>
 <!-- After name-aliases.js: ledgerStaffTarget() canonicalises names through it. -->
-<script src="ledger-targets.js?v=20260903a"></script>
+<script src="ledger-targets.js?v=20260904a"></script>
+<!-- After ledger-targets.js: the Supabase target layer overrides its lookups per month. -->
+<script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260904a"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="dashboard.js?v=20260904d"></script>
@@ -2496,7 +2498,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="branch-ledger.js?v=20260904e"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
-<script src="ledger-export.js?v=20260904a"></script>
+<script src="ledger-export.js?v=20260904b"></script>
 <script src="team-performance.js?v=20260814d"></script>
 <script src="pulse-narrative.js?v=20260814a"></script>
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->

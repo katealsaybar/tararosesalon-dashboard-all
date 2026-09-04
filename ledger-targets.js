@@ -228,13 +228,20 @@ const LEDGER_TARGETS = {
 // has them in it. That is worth about 2.6k a month against 1.3m — a rounding error
 // beside the 254k it replaces, but it is not nothing, and if a courses target ever
 // lands in the sheet this is where it belongs.
+//
+// SOURCE, 4 Sep 2026: the branch table is whichever set covers the month on screen
+// — Supabase for any month pasted into the Targets tab, this file for August 2026.
+// See ledger-targets-db.js. The arithmetic below is untouched; only where `b` comes
+// from has moved.
 function ledgerBranchTarget(metric, branchCodes) {
+  const src = (typeof lgTargetSource === 'function') ? lgTargetSource() : null;
+  const table = (src && src.kind === 'db') ? src.data.branch : LEDGER_TARGETS.branch;
   const codes = (!branchCodes || branchCodes.includes('all'))
-    ? Object.keys(LEDGER_TARGETS.branch)
+    ? Object.keys(table)
     : branchCodes;
   const metrics = Array.isArray(metric) ? metric : [metric];
   return codes.reduce((sum, code) => {
-    const b = LEDGER_TARGETS.branch[code];
+    const b = table[code];
     return sum + metrics.reduce((n, m) => {
       const neg = m.charAt(0) === '-';
       const v = (b && b[neg ? m.slice(1) : m]) || 0;
@@ -243,10 +250,29 @@ function ledgerBranchTarget(metric, branchCodes) {
   }, 0);
 }
 
+// Is this branch metric set at all for the month on screen? The five client-count
+// targets are nullable in Supabase, and a month where nobody keyed them has to keep
+// its dash rather than print a target of zero clients that every branch beats. The
+// money metrics always exist once a month has rows, so this only ever answers false
+// for a head count or for a month with no targets at all.
+function ledgerBranchTargetSet(metric, branchCodes) {
+  const src = (typeof lgTargetSource === 'function') ? lgTargetSource() : null;
+  if (src && src.kind === 'none') return false;
+  const table = (src && src.kind === 'db') ? src.data.branch : LEDGER_TARGETS.branch;
+  const codes = (!branchCodes || branchCodes.includes('all')) ? Object.keys(table) : branchCodes;
+  const keys = (Array.isArray(metric) ? metric : [metric]).map(m => m.charAt(0) === '-' ? m.slice(1) : m);
+  return codes.some(code => {
+    const b = table[code];
+    return b && keys.some(k => b[k] !== null && b[k] !== undefined);
+  });
+}
+
 // One stylist's targets, or null when she has none. Branch + dept + name,
 // because nicknames repeat across both.
 function ledgerStaffTarget(branchCode, dept, name) {
-  const byBranch = LEDGER_TARGETS.staff[branchCode];
+  const src = (typeof lgTargetSource === 'function') ? lgTargetSource() : null;
+  const staffTable = (src && src.kind === 'db') ? src.data.staff : LEDGER_TARGETS.staff;
+  const byBranch = staffTable[branchCode];
   if (!byBranch) return null;
   const byDept = byBranch[String(dept || '').toUpperCase() === 'BEAUTY' ? 'BEAUTY' : 'HAIR'];
   if (!byDept) return null;
@@ -273,8 +299,10 @@ function ledgerStaffTargetElsewhere(branchCode, dept, name) {
     ? String(canonicalStaffName(name) || '').toUpperCase()
     : String(name || '').trim().toUpperCase();
   const d = String(dept || '').toUpperCase() === 'BEAUTY' ? 'BEAUTY' : 'HAIR';
-  const found = Object.keys(LEDGER_TARGETS.staff).find(code =>
-    code !== branchCode && LEDGER_TARGETS.staff[code][d] && LEDGER_TARGETS.staff[code][d][key]);
+  const src = (typeof lgTargetSource === 'function') ? lgTargetSource() : null;
+  const staffTable = (src && src.kind === 'db') ? src.data.staff : LEDGER_TARGETS.staff;
+  const found = Object.keys(staffTable).find(code =>
+    code !== branchCode && staffTable[code][d] && staffTable[code][d][key]);
   return found || null;
 }
 
