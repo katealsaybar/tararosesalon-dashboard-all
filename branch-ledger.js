@@ -1882,6 +1882,87 @@ async function renderLedgerActuals() {
 // 495,571.41 + 1,428.57 = 496,999.98 against 24,848.52 VAT is exactly 5% to the fils.
 const LG_VAT = 0.05;
 
+// ── THE PARSED REPORT ────────────────────────────────────────
+// financial_totals is Phorest's Financial Totals report itself, one row per branch
+// per day, written by the Upload Portal (migrations/create_financial_totals.sql —
+// another session owns that table and its parser; this file only reads it).
+//
+// WRITTEN BEFORE THE TABLE EXISTS, ON PURPOSE. Everything below fails soft: no
+// table, no rows, no permission, all come back null and the page renders exactly as
+// it does today with a line saying the upload has not landed. When the first month
+// is uploaded these sections light up on their own with no further change here.
+//
+// The two jsonb columns are merged rather than summed by name, because the line set
+// is not fixed — Al Quoz has no TABBY-LINK, Khalifa carries a DTRANSFER nobody else
+// has — so a payment type this file has never heard of still shows up.
+const LG_FT_MONEY = [
+  'services_count','services_net','services_vat','services_total',
+  'courses_count','courses_net','courses_vat','courses_total',
+  'products_count','products_net','products_vat','products_total',
+  'sales_net','sales_vat','sales_total',
+  'vouchers_sold_count','vouchers_sold_total',
+  'paid_into_account_count','paid_into_account_total',
+  'vouchers_used_count','vouchers_used_total',
+  'memberships_used_count','memberships_used_total',
+  'account_used_count','account_used_total','non_revenue_total',
+  'sundries_count','sundries_total',
+  'pay_cash','pay_card','pay_stripe','pay_tabby_link','total_banked',
+  'vat_service_net','vat_service_vat','vat_service_total',
+  'vat_product_net','vat_product_vat','vat_product_total',
+];
+
+let _lgFtCache = {};
+async function lgLoadFinancialTotals(fromStr, toStr) {
+  const key = fromStr + '|' + toStr;
+  if (key in _lgFtCache) return _lgFtCache[key];
+  let out = null;
+  try {
+    const { data, error } = await sb.from('financial_totals')
+      .select('*').gte('date', fromStr).lte('date', toStr);
+    if (error) throw error;
+    out = (data && data.length) ? data : null;
+  } catch (e) {
+    // A missing table reads as a schema-cache error, which is the normal state
+    // until the migration is run. Not worth a warning every render.
+    out = null;
+  }
+  _lgFtCache[key] = out;
+  return out;
+}
+
+// Sum a month of report rows into one figure per branch, plus a group row under
+// the key 'ALL'. `days` counts how many of the month's days actually have a row,
+// so the page can say "12 of 31 uploaded" rather than quietly showing a part-month
+// as if it were the whole thing.
+function lgFtAggregate(rows) {
+  if (!rows || !rows.length) return null;
+  const blank = () => {
+    const o = { days: 0, payment_types: {}, cashbook: {}, checksFailed: 0 };
+    LG_FT_MONEY.forEach(k => { o[k] = 0; });
+    return o;
+  };
+  const merge = (into, obj) => {
+    Object.entries(obj || {}).forEach(([k, v]) => {
+      const n = Number(v);
+      if (isFinite(n)) into[k] = (into[k] || 0) + n;
+    });
+  };
+  const add = (acc, r) => {
+    acc.days++;
+    LG_FT_MONEY.forEach(k => { acc[k] += Number(r[k]) || 0; });
+    merge(acc.payment_types, r.payment_types);
+    merge(acc.cashbook, r.cashbook);
+    if (r.checks_passed === false) acc.checksFailed++;
+  };
+  const out = { ALL: blank() };
+  rows.forEach(r => {
+    if (!out[r.branch]) out[r.branch] = blank();
+    add(out[r.branch], r);
+    add(out.ALL, r);
+  });
+  return out;
+}
+
 // ── WHICH DAYS A BRANCH IS SHUT ──────────────────────────────
 // Kate, 4 Sep 2026: "every sun mon sarado usually ang al quoz". Without this the
 // by-day table prints AED 0 in nine of Al Quoz's thirty-one cells and every one of
@@ -1965,6 +2046,11 @@ async function renderLedgerFinancials() {
 
   const w = series.windows;
   const SHEET_ORDER = ['SAA', 'KCA', 'AQ', 'MC'].filter(c => ACTIVE_BRANCHES.includes(c));
+
+  // The report itself, if it has been uploaded for this month. Null until then, and
+  // every section below that reads it is skipped rather than rendered empty.
+  const ft = lgFtAggregate(await lgLoadFinancialTotals(lgYmd(w.month.from), lgYmd(w.month.to)));
+  const monthDays = Math.round((w.month.to - w.month.from) / 86400000) + 1;
 
   // Ex VAT down the side, because that is the figure everything else on the
   // dashboard is in and the one a target is set against. VAT and the gross follow
@@ -2070,6 +2156,147 @@ async function renderLedgerFinancials() {
       `</div>`);
   }
 
+  // ── THE REPORT, WHEN IT HAS BEEN UPLOADED ──────────────────
+  // Phorest's own blocks, in the report's order and under its own headings, so a
+  // section can be read straight across against the PDF. Branch down the side in
+  // every one, the way the rest of this page reads.
+  const ftBranches = ft ? SHEET_ORDER.filter(c => ft[c]) : [];
+  const ftRows = (cols) => ftBranches
+    .map(c => [escapeHtml((BRANCH_INFO[c] || { name: c }).name)].concat(cols(ft[c])))
+    .concat([{ total: ['All salons'].concat(cols(ft.ALL)) }]);
+
+  let reportHtml = '';
+  if (ft) {
+    const money = v => lgAed(v);
+    const cnt   = v => (v ? lgNum(v) : '—');
+
+    // Sales, the block the rest of this page is built to be checked against.
+    const salesTbl = lgTable(
+      [{ label: 'Branch' }, { label: '# services', align: 'r' }, { label: 'Services', align: 'r' },
+       { label: '# courses', align: 'r' }, { label: 'Courses sold', align: 'r' },
+       { label: '# products', align: 'r' }, { label: 'Products', align: 'r' },
+       { label: 'Total (Ex VAT)', align: 'r' }, { label: 'VAT', align: 'r' },
+       { label: 'Total (Inc VAT)', align: 'r' }],
+      ftRows(f => [cnt(f.services_count), money(f.services_net), cnt(f.courses_count),
+        money(f.courses_net), cnt(f.products_count), money(f.products_net),
+        money(f.sales_net), money(f.sales_vat), money(f.sales_total)]),
+      { compact: true });
+
+    // Non-Revenue Sales. Vouchers and account movements, which are money moving and
+    // not revenue — the reason they are kept out of every total on this dashboard.
+    // Used lines are negative in the report and stay negative here.
+    const nonRevTbl = lgTable(
+      [{ label: 'Branch' }, { label: 'Vouchers sold', align: 'r' }, { label: 'Paid into account', align: 'r' },
+       { label: 'Vouchers used', align: 'r' }, { label: 'Memberships used', align: 'r' },
+       { label: 'Account used', align: 'r' }, { label: 'Total', align: 'r' }],
+      ftRows(f => [money(f.vouchers_sold_total), money(f.paid_into_account_total),
+        money(f.vouchers_used_total), money(f.memberships_used_total),
+        money(f.account_used_total), money(f.non_revenue_total)]),
+      { compact: true });
+
+    // Payment Types. The four we name get columns; anything else Phorest sends —
+    // a branch's own DTRANSFER line, a type added next year — is picked up from the
+    // jsonb and given a column of its own rather than being dropped.
+    const NAMED = new Set(['cash (net of sundries)', 'card (debit/credit/tabby)', 'stripe', 'tabby-link']);
+    const extras = [];
+    Object.keys(ft.ALL.payment_types || {}).forEach(k => {
+      const norm = String(k).trim().toLowerCase();
+      if (!NAMED.has(norm) && Math.abs(Number(ft.ALL.payment_types[k]) || 0) >= 1) extras.push(k);
+    });
+    extras.sort();
+    const payTbl = lgTable(
+      [{ label: 'Branch' }, { label: 'Cash', align: 'r' }, { label: 'Card', align: 'r' },
+       { label: 'Stripe', align: 'r' }, { label: 'Tabby link', align: 'r' }]
+        .concat(extras.map(k => ({ label: escapeHtml(k), align: 'r' })))
+        .concat([{ label: 'Total banked', align: 'r' }]),
+      ftRows(f => [money(f.pay_cash), money(f.pay_card), money(f.pay_stripe), money(f.pay_tabby_link)]
+        .concat(extras.map(k => money((f.payment_types || {})[k] || 0)))
+        .concat([money(f.total_banked)])),
+      { compact: true });
+
+    // VAT Breakdown. Row labels are branch-configured in Phorest and unstable, so
+    // the report is read positionally: first row service, second product. Service
+    // here includes courses where the Sales block keeps them apart, which is the
+    // report's own behaviour and not a parse error.
+    const vatTbl = lgTable(
+      [{ label: 'Branch' }, { label: 'Service net', align: 'r' }, { label: 'Service VAT', align: 'r' },
+       { label: 'Product net', align: 'r' }, { label: 'Product VAT', align: 'r' },
+       { label: 'Pay outs', align: 'r' }],
+      ftRows(f => [money(f.vat_service_net), money(f.vat_service_vat),
+        money(f.vat_product_net), money(f.vat_product_vat), money(f.sundries_total)]),
+      { compact: true });
+
+    const partial = ftBranches.filter(c => ft[c].days < monthDays);
+    const failed  = ftBranches.filter(c => ft[c].checksFailed > 0);
+
+    reportHtml =
+      lgSection('fnReport', 'var(--good)', 'Phorest report', escapeHtml(w.month.label),
+        `<div class="foot" style="margin:0 0 10px">Every figure here is read off the Financial Totals
+          report itself, not derived from anything. This is the outside number.</div>` +
+        (partial.length ? `<div class="lg-warn"><strong>⚠ Part month.</strong> ` +
+          partial.map(c => `${escapeHtml((BRANCH_INFO[c] || { name: c }).name)} has
+            ${ft[c].days} of ${monthDays} days uploaded`).join(' · ') +
+          `. These rows are the sum of the days that are in, so they are not the branch's month
+           and should not be read against a monthly target.</div>` : '') +
+        (failed.length ? `<div class="lg-warn"><strong>⚠ Failed its own cross-checks.</strong> ` +
+          failed.map(c => `${escapeHtml((BRANCH_INFO[c] || { name: c }).name)}, ${ft[c].checksFailed} day(s)`).join(' · ') +
+          `. The report's four internal sums did not agree on those days, which means the parse is
+           wrong rather than the day being odd. Worth re-uploading before trusting the row.</div>` : '') +
+        `<div class="lg-blk-t">Sales</div>${salesTbl}` +
+        `<div class="lg-blk-t">Non-revenue sales</div>${nonRevTbl}
+         <div class="foot">Vouchers sold, money paid into account, and vouchers, memberships and
+           account balances spent. Money moving rather than money earned, which is why no total
+           anywhere else on this dashboard includes it. Used lines are negative, as the report has
+           them.</div>` +
+        `<div class="lg-blk-t">Payment types and banking</div>${payTbl}` +
+        `<div class="lg-blk-t">VAT and pay outs</div>${vatTbl}
+         <div class="foot">Row labels for VAT differ by branch in Phorest, so they are read by
+           position rather than by name: first row service, second product. Service here has courses
+           inside it where the Sales block above keeps them apart — that is the report's own
+           behaviour, and the two are meant to differ.</div>`);
+  }
+
+  // ── REPORT AGAINST THIS DASHBOARD ──────────────────────────
+  // The whole reason the page exists, once there is a report to do it with. Every
+  // known cause is subtracted and what is left is named as unexplained, because a
+  // reconciliation that stops before the remainder is nil is not one.
+  let reconHtml = '';
+  if (ft) {
+    const reconRow = (label, f, s) => {
+      const mine = lgFinancials(s);
+      if (!f || !mine) return [label, '—', '—', '—', '—', '—'];
+      const coursesGap  = (f.courses_net || 0) - (mine.courses || 0);
+      const uncredited  = Number(s.servicesUnattributed) || 0;
+      const left        = (f.sales_net || 0) - mine.net - coursesGap - uncredited;
+      return [label, lgAed(f.sales_net), lgAed(mine.net), lgAed(coursesGap), lgAed(uncredited),
+        Math.abs(left) < 1 ? '<span class="lg-up">✓ nil</span>' : lgDelta(left, lgAed)];
+    };
+    // THE TOTAL ROW ROLLS UP ONLY THE BRANCHES THE REPORT COVERS, never series.group.
+    // Reading the report's two uploaded branches against a dashboard figure for all
+    // four is not a reconciliation, it is a subtraction of unrelated things, and it
+    // printed a −368,583 "unexplained" the first time this ran. Rebuilt from the same
+    // branches on both sides so the row can only ever compare like with like.
+    const groupSummary = lgRollup(ftBranches.map(c => series[c] && series[c].mtd));
+    const allLabel = ftBranches.length === SHEET_ORDER.length
+      ? 'All salons'
+      : `All salons <span class="lg-na">(${ftBranches.length} of ${SHEET_ORDER.length} uploaded)</span>`;
+    const reconRows = ftBranches
+      .map(c => reconRow(escapeHtml((BRANCH_INFO[c] || { name: c }).name), ft[c],
+        series[c] && series[c].mtd))
+      .concat([{ total: reconRow(allLabel, ft.ALL, groupSummary) }]);
+
+    reconHtml = lgSection('fnRecon', '#C4B5FD', 'Report against this dashboard',
+      escapeHtml(w.month.label),
+      lgTable([{ label: 'Branch' }, { label: 'Report', align: 'r' }, { label: 'Dashboard', align: 'r' },
+        { label: 'Courses sold − performed', align: 'r' }, { label: 'Uncredited service', align: 'r' },
+        { label: 'Unexplained', align: 'r' }], reconRows, { compact: true }) +
+      `<div class="foot"><b>Unexplained is the column to read.</b> Report less dashboard, with both
+        known causes taken off: courses, which Phorest counts sold where this counts performed, and
+        service revenue no stylist was credited with. A tick means the two agree once those are
+        accounted for. A figure there is a real difference and is worth chasing — start with the
+        by-day table below to find which day it sits on.</div>`);
+  }
+
   host.innerHTML =
     lgHeader('Ledgers · Financial Totals',
       `Phorest's Financial Totals Sales block, every branch at once, for ${escapeHtml(w.month.label)}. `
@@ -2081,10 +2308,13 @@ async function renderLedgerFinancials() {
           + `second table showing which ${lgGrain === 'daily' ? 'day' : 'week'} it went wrong on.` }) +
     lgMonthRow() +
     lgGrainRow() +
-    lgShell([['fnSales', 'Sales']]
+    lgShell((ft ? [['fnReport', 'Phorest report'], ['fnRecon', 'Report vs dashboard']] : [])
+      .concat([['fnSales', ft ? 'This dashboard' : 'Sales']])
       .concat(sp.key ? [['fnSplit', 'By ' + (lgGrain === 'daily' ? 'day' : 'week')]] : [])
       .concat([['fnCheck', 'Checking against Phorest']]),
-    lgSection('fnSales', 'var(--hair)', 'Sales', escapeHtml(w.month.label),
+    reportHtml +
+    reconHtml +
+    lgSection('fnSales', 'var(--hair)', ft ? 'This dashboard' : 'Sales', escapeHtml(w.month.label),
       lgTable(cols, rows) +
       `<div class="foot">Services has courses taken out of it, the way Phorest's report splits them —
         every other page on this dashboard carries courses inside the service figure.
@@ -2114,12 +2344,21 @@ async function renderLedgerFinancials() {
         ${asstRows.map(([n, v]) => `${escapeHtml(n)} ${lgAed(v)}`).join(' · ')}.
         Courses are the rest of the gap and cannot be quantified until the Financial Totals upload
         lands, which is the other session's work.</p>` : ''}
-        <p><b>The rest of the report</b> is not held anywhere yet. Non-Revenue Sales (vouchers sold and
-        topped up, paid into account, vouchers used, account used), Pay Outs, Payment Types
-        (cash · card · Stripe · Tabby) and Total Banked are branch-level money movements, and every
-        feed behind this dashboard is staff-level daily takings, so none of them can be derived from
-        what is loaded. They would need an upload of their own. Vouchers are the one worth having
-        soonest: an unredeemed voucher is money owed, and there is nowhere to see the balance.</p>
+        ${ft
+          ? `<p><b>The report itself is loaded</b> for ${escapeHtml(w.month.label)}, so the top of
+             this page is Phorest's own figures rather than anything derived, and the Report against
+             this dashboard table does the subtraction for you. Read the <b>Unexplained</b> column:
+             a tick means the two agree once courses and uncredited service are taken off.</p>`
+          : `<p><b>The rest of the report</b> is not uploaded for ${escapeHtml(w.month.label)} yet.
+             Non-Revenue Sales (vouchers sold and topped up, paid into account, vouchers used,
+             account used), Pay Outs, Payment Types (cash · card · Stripe · Tabby) and Total Banked
+             are branch-level money movements, and every feed behind this dashboard is staff-level
+             daily takings, so none of them can be derived from what is loaded. They come from the
+             Financial Totals upload. This page reads that table the moment it has rows for a month:
+             two more sections appear above, the report in full and the report against this
+             dashboard, and nothing here has to change for it. Vouchers are the line worth having
+             soonest — an unredeemed voucher is money owed, and there is nowhere to see the
+             balance.</p>`}
       </div>`) +
     `<div class="fine">
       <p><b>Where these come from</b>. The same summaries every other Ledgers page reads — Phorest's
@@ -2128,7 +2367,8 @@ async function renderLedgerFinancials() {
       <p><b>Motor City runs hair only</b>, so its figures are hair and retail throughout.</p>
     </div>`);
 
-  ['fnSales', 'fnSplit', 'fnCheck'].forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
+  ['fnReport', 'fnRecon', 'fnSales', 'fnSplit', 'fnCheck']
+    .forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
   restoreSections();
   if (typeof sizeTopbar === 'function') sizeTopbar();
   lgWatchScroll();

@@ -440,15 +440,14 @@ body.ledger-chrome .filters-wrap{display:none}
 .f-note[hidden]{display:none}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
-/* ── MAIN NAV: the left gutter ────────────────────────────
-   The page is 1180px in the middle of the window, so on a wide screen there are
-   a few hundred pixels of nothing down each side. The app nav moves out there:
-   free space, and it stops competing with the document for width. Fixed, so it
-   never pushes the content sideways when it opens.
-   Three bands, by how much gutter there is to spend:
-     1600+  gutter fits the panel, so it is open by default and needs no scrim
-     1100+  it still opens, but over the content, so it gets a scrim
-     under   no panel — the Sections button is the only way in, over a scrim */
+/* ── MAIN NAV: the left gutter ───────────────────────
+   The app nav lives out in the left margin, where it stops competing with the
+   document for width. It is fixed, so opening it does not reflow the panel
+   itself — the page is what moves: see MAKING ROOM below, which pushes the
+   document right by the panel's width so nothing is ever covered.
+   Two bands now, not three:
+     900+   the panel pushes the page across, so it needs no scrim
+     under   no room to push — it stays an overlay over a scrim, phone-style */
 .navbtn{display:inline-block}
 /* The ink-dark spine, same in both themes. Re-scoping the tokens here means
    nav-title and nav-sub inherit the dark treatment without a second rule set. */
@@ -483,8 +482,9 @@ aside.sidebar{
 .nav-out{margin-top:auto;padding-top:12px;border-top:1px solid var(--border)}
 .nav-out .nav-sub{display:flex;align-items:center;gap:7px;font-size:15px;letter-spacing:.04em}
 @media(min-width:1100px){:root{--nav-w:200px}}
-@media(min-width:1600px){
-  /* The panel fits the gutter, so it covers nothing and the scrim would be a lie. */
+@media(min-width:900px){
+  /* The page steps right instead of going under the panel, so nothing is covered
+     and a scrim would be a lie. Below 900 it is a true overlay and keeps one. */
   .nav-open .nav-scrim{opacity:0;pointer-events:none}
 }
 
@@ -518,7 +518,8 @@ aside.sidebar{
 .nav-resize.dragging{background:var(--accent-mint);opacity:.8}
 /* Text selection anywhere on the page ruins a drag. */
 body.nav-sizing{user-select:none;cursor:col-resize}
-body.nav-sizing aside.sidebar,body.nav-sizing .wrap,body.nav-sizing .topbar{transition:none!important}
+body.nav-sizing aside.sidebar,body.nav-sizing .wrap,body.nav-sizing .topbar,
+body.nav-sizing .nav-edge{transition:none!important}
 
 /* ── THE ARROW: the other way in ───────────────────────────
    The Sections button lives up in the masthead, which is a long way from the
@@ -541,21 +542,18 @@ body.nav-sizing aside.sidebar,body.nav-sizing .wrap,body.nav-sizing .topbar{tran
 }
 .nav-edge:focus-visible{outline:2px solid var(--good);outline-offset:2px}
 
-/* ── MAKING ROOM: the page steps right ─────────────────────
-   Kate, 2026-08-14: the masthead buttons and the document were being buried by
-   the panel. The page now moves over — but only by as much as it actually has to.
-   --page-ink is where the document's text starts: half the leftover window plus
-   .wrap's own 40px. If the panel fits inside that, it is sitting in dead gutter,
-   covering nothing, and the page must NOT move (that is the whole point of the
-   1600px band). Only the overlap is taken, plus 24px so the panel does not kiss
-   the text. Written as one max() so it stays true while the edge is dragged and
-   at every window width, with no resize listener to keep in sync.
+/* ── MAKING ROOM: the page steps right ──────────────────────
+   Kate, 2026-09-04: the panel never covers the document. Whatever width it
+   takes, the page gives back in padding — the same rule on every view, at every
+   window width. It used to move over only by the overlap it worked out against a
+   1180px page, which was wrong twice: the Ledgers pages run to 1560px, so the sum
+   said "the panel is in dead gutter, covering nothing" while it was in fact
+   sitting on the heading, and dragging the panel wider broke it again. There is
+   no sum now — the page steps right by exactly the panel's width.
    Body padding moves everything in flow and lets .wrap re-centre in what's left;
-   the fixed masthead is out of flow, so it needs the same offset on `left`. */
-:root{
-  --page-ink:calc(max(0px,(100vw - 1180px) / 2) + 40px);
-  --nav-shift:max(0px,calc(var(--nav-w) + 24px - var(--page-ink)));
-}
+   the fixed masthead and the Team tray are out of flow, so they take the same
+   offset on `left`. --nav-shift stays as the name the rest of the file uses. */
+:root{--nav-shift:var(--nav-w)}
 body{transition:padding-left 260ms var(--card-ease)}
 body.nav-open{padding-left:var(--nav-shift)}
 body.nav-open .topbar{left:var(--nav-shift)}
@@ -1532,6 +1530,14 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   background:var(--warn-bg);border-left:3px solid var(--warn);color:var(--text)}
 .lg-warn strong{color:var(--warn)}
 
+/* Sub-heading inside a section, for the pages that stack several tables in one.
+   Financial Totals prints the Phorest report's four blocks under their own names
+   so a block can be read straight across against the PDF. Quieter than a section
+   heading, because it is not one — it labels a table, not a page division. */
+.lg-blk-t{margin:22px 0 8px;font-size:11.5px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted)}
+.lg-blk-t:first-child{margin-top:0}
+
 /* Tables scroll inside their own box. The Daily Target Sheet is 17 columns wide,
    Daily is 31, and neither may make the page itself scroll sideways.
 
@@ -1955,9 +1961,9 @@ body.ledger-chrome .lg-month-sel{font-size:15px}
   transform:translateY(101%);transition:transform .3s var(--card-ease);
   max-height:52vh;overflow-y:auto}
 .tp-tray.up{transform:none}
-/* Wide screens park the rail in the gutter rather than over the page, so the
-   tray starts after it instead of running underneath. */
-@media(min-width:1600px){.nav-open .tp-tray{left:var(--nav-w)}}
+/* The tray is fixed, so the body padding that moves the page never reaches it.
+   Same offset, applied by hand, wherever the page pushes rather than overlays. */
+@media(min-width:900px){.nav-open .tp-tray{left:var(--nav-shift)}}
 .tp-tray-in{max-width:1400px;margin:0 auto;padding:12px 28px 16px}
 .tp-tray-hd{display:flex;align-items:center;gap:10px;margin-bottom:10px;
   font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2)}
@@ -2631,6 +2637,10 @@ let CONDENSE_AT = 24;
 // than that it would sit on top of the document, and a panel that covers what
 // you came to read should be something you asked for, not the default.
 const NAV_FITS = matchMedia('(min-width:1600px)');
+// Where the page steps right instead of hiding under the panel. Below this the
+// panel is a true overlay, so anything that covers the page has to get out of
+// the way by itself. Kate, 2026-09-04.
+const NAV_PUSHES = matchMedia('(min-width:900px)');
 function toggleNav(force){
   const open = force === undefined ? !document.body.classList.contains('nav-open') : force;
   document.body.classList.toggle('nav-open', open);
@@ -2657,16 +2667,36 @@ function toggleNav(force){
 // :root, which deliberately outranks the width media queries — once you have set
 // a width, the responsive default stops overruling your choice. Everything that
 // depends on the width (the content shift, the arrow's position) is already
-// expressed in CSS against --nav-w, so there is nothing else to keep in step.
+// expressed in CSS against --nav-w, so there is no second value to keep in step.
+// writeNavWidth() below is not a second value: it is how the write is made.
 const NAV_MIN = 172, NAV_MAX = 460;
+// Kate, 2026-09-04: the arrow tab used to stay behind at the old width when you
+// dragged the panel, so it sat inside the panel instead of on its edge. Chrome
+// does not re-run a property that is in a transition list when the custom
+// property it reads changes: .nav-edge transitions `left`, `left` reads
+// --nav-w, so it kept painting the width before last. Writing the new width
+// with .nav-edge's transition switched off makes it read the value now, and the
+// forced reflow commits that before the transition comes back. body.nav-sizing
+// is the switch — it already suppresses the panel's and the page's transitions
+// mid-drag, and the CSS rule for it now names .nav-edge too. Held here rather
+// than in the drag handler so the double-click reset and the restore-on-load are
+// covered as well: they change the width outside a drag.
+function writeNavWidth(write){
+  const b = document.body, mid = b.classList.contains('nav-sizing');
+  if (!mid) b.classList.add('nav-sizing');
+  write();
+  const edge = document.getElementById('navEdge');
+  if (edge) void edge.offsetWidth;
+  if (!mid) b.classList.remove('nav-sizing');
+}
 function setNavWidth(px, persist){
   const w = Math.min(NAV_MAX, Math.max(NAV_MIN, Math.round(px)));
-  document.documentElement.style.setProperty('--nav-w', w + 'px');
+  writeNavWidth(() => document.documentElement.style.setProperty('--nav-w', w + 'px'));
   if (persist) { try { localStorage.setItem('trsNavW', String(w)); } catch(e) {} }
   return w;
 }
 function resetNavWidth(){
-  document.documentElement.style.removeProperty('--nav-w');
+  writeNavWidth(() => document.documentElement.style.removeProperty('--nav-w'));
   try { localStorage.removeItem('trsNavW'); } catch(e) {}
   sizeTopbar();
 }
@@ -2711,11 +2741,13 @@ NAV_FITS.addEventListener('change', e => toggleNav(e.matches));
 // Anything that covers the page has to be dismissible from the keyboard.
 addEventListener('keydown', e => { if(e.key === 'Escape') toggleNav(false); });
 // A jump from the nav has done its job the moment it lands, so on any width
-// where the panel sits over the content, close it behind you. The resize strip
-// is not a jump, so a drag that ends inside the panel must not close it.
+// where the panel sits over the content, close it behind you. Where the page
+// pushes instead, the panel covers nothing and closing it would only make the
+// page jump about, so it stays. The resize strip is not a jump, so a drag that
+// ends inside the panel must not close it.
 document.querySelector('aside.sidebar').addEventListener('click', e => {
   if (!e.target.closest('.nav-sub')) return;
-  if (!NAV_FITS.matches) toggleNav(false);
+  if (!NAV_PUSHES.matches) toggleNav(false);
 });
 
 // ── OPENING THE DOCUMENT ────────────────────────────────────
