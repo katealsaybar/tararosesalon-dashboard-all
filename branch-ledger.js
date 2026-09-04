@@ -2169,6 +2169,21 @@ async function renderLedgerFinancials() {
   if (ft) {
     const money = v => lgAed(v);
     const cnt   = v => (v ? lgNum(v) : '—');
+    // A LINE A BRANCH'S REPORT DOES NOT CARRY IS NOT A ZERO. The parser session,
+    // 4 Sep 2026: Al Quoz's export has nine payment lines, not ten — there is no
+    // TABBY-LINK row at all — and Memberships Used appears in no branch export yet.
+    // Printed as AED 0 those read as "took nothing that way", which is a different
+    // claim from "Phorest does not print that line here". Only used on the optional
+    // blocks; Sales lines always exist and a zero there is a real zero.
+    const opt = v => (Math.abs(Number(v) || 0) < 0.005 ? '<span class="lg-na">—</span>' : lgAed(v));
+    // Union of the keys any branch actually sent, so a line one branch carries and
+    // the others do not still gets a column. Sorted for a stable column order.
+    const keysOf = which => {
+      const seen = new Set();
+      ftBranches.concat(['ALL']).forEach(c => Object.entries((ft[c] || {})[which] || {})
+        .forEach(([k, v]) => { if (Math.abs(Number(v) || 0) >= 0.005) seen.add(k); }));
+      return [...seen].sort();
+    };
 
     // Sales, the block the rest of this page is built to be checked against.
     const salesTbl = lgTable(
@@ -2189,30 +2204,37 @@ async function renderLedgerFinancials() {
       [{ label: 'Branch' }, { label: 'Vouchers sold', align: 'r' }, { label: 'Paid into account', align: 'r' },
        { label: 'Vouchers used', align: 'r' }, { label: 'Memberships used', align: 'r' },
        { label: 'Account used', align: 'r' }, { label: 'Total', align: 'r' }],
-      ftRows(f => [money(f.vouchers_sold_total), money(f.paid_into_account_total),
-        money(f.vouchers_used_total), money(f.memberships_used_total),
-        money(f.account_used_total), money(f.non_revenue_total)]),
+      ftRows(f => [opt(f.vouchers_sold_total), opt(f.paid_into_account_total),
+        opt(f.vouchers_used_total), opt(f.memberships_used_total),
+        opt(f.account_used_total), money(f.non_revenue_total)]),
       { compact: true });
 
     // Payment Types. The four we name get columns; anything else Phorest sends —
     // a branch's own DTRANSFER line, a type added next year — is picked up from the
     // jsonb and given a column of its own rather than being dropped.
     const NAMED = new Set(['cash (net of sundries)', 'card (debit/credit/tabby)', 'stripe', 'tabby-link']);
-    const extras = [];
-    Object.keys(ft.ALL.payment_types || {}).forEach(k => {
-      const norm = String(k).trim().toLowerCase();
-      if (!NAMED.has(norm) && Math.abs(Number(ft.ALL.payment_types[k]) || 0) >= 1) extras.push(k);
-    });
-    extras.sort();
+    const extras = keysOf('payment_types').filter(k => !NAMED.has(String(k).trim().toLowerCase()));
     const payTbl = lgTable(
       [{ label: 'Branch' }, { label: 'Cash', align: 'r' }, { label: 'Card', align: 'r' },
        { label: 'Stripe', align: 'r' }, { label: 'Tabby link', align: 'r' }]
         .concat(extras.map(k => ({ label: escapeHtml(k), align: 'r' })))
         .concat([{ label: 'Total banked', align: 'r' }]),
-      ftRows(f => [money(f.pay_cash), money(f.pay_card), money(f.pay_stripe), money(f.pay_tabby_link)]
-        .concat(extras.map(k => money((f.payment_types || {})[k] || 0)))
+      ftRows(f => [opt(f.pay_cash), opt(f.pay_card), opt(f.pay_stripe), opt(f.pay_tabby_link)]
+        .concat(extras.map(k => opt((f.payment_types || {})[k] || 0)))
         .concat([money(f.total_banked)])),
       { compact: true });
+
+    // CASHBOOK IS ITS OWN BLOCK AND NOT A DUPLICATE OF THE ONE ABOVE. The parser
+    // session, 4 Sep 2026: Khalifa's DTRANSFER of −1,200 sits in the CASHBOOK, not
+    // in payment_types, so a page that renders only payment types drops it entirely
+    // — which this page did until they said so. Built from the key union rather than
+    // from a fixed list for exactly that reason: whatever a branch's report prints
+    // here gets a column.
+    const cbKeys = keysOf('cashbook');
+    const cashTbl = cbKeys.length ? lgTable(
+      [{ label: 'Branch' }].concat(cbKeys.map(k => ({ label: escapeHtml(k), align: 'r' }))),
+      ftRows(f => cbKeys.map(k => opt((f.cashbook || {})[k] || 0))),
+      { compact: true }) : '';
 
     // VAT Breakdown. Row labels are branch-configured in Phorest and unstable, so
     // the report is read positionally: first row service, second product. Service
@@ -2248,7 +2270,15 @@ async function renderLedgerFinancials() {
            account balances spent. Money moving rather than money earned, which is why no total
            anywhere else on this dashboard includes it. Used lines are negative, as the report has
            them.</div>` +
-        `<div class="lg-blk-t">Payment types and banking</div>${payTbl}` +
+        `<div class="lg-blk-t">Payment types and banking</div>${payTbl}
+         <div class="foot">A dash is a line that branch's report does not print, which is not the
+           same as taking nothing that way — Al Quoz's export carries no TABBY-LINK row at all.
+           Every line Phorest sends is kept, so a payment type this page has never heard of gets a
+           column of its own rather than being dropped.</div>` +
+        (cashTbl ? `<div class="lg-blk-t">Cashbook</div>${cashTbl}
+         <div class="foot">The report's own cashbook lines, and not a restatement of the payment
+           types above: Khalifa City's DTRANSFER is booked here and nowhere else, so a page that
+           printed only payment types would lose it.</div>` : '') +
         `<div class="lg-blk-t">VAT and pay outs</div>${vatTbl}
          <div class="foot">Row labels for VAT differ by branch in Phorest, so they are read by
            position rather than by name: first row service, second product. Service here has courses
