@@ -58,6 +58,8 @@ function switchTab(e, tab) {
 
   document.getElementById('tab-' + tab).classList.add('active');
 
+  trRememberTab(tab);
+
   if (tab === 'daily') loadDailyOverview();
   if (tab === 'staffperf') initStaffPerfTab();
   if (tab === 'sheetsync') initSheetSyncTab();
@@ -67,6 +69,29 @@ function switchTab(e, tab) {
   // Each tab's band is its own height, and Ledgers has two segments where the
   // others have three, so the chrome has to be re-read on every switch.
   measureStickyChrome();
+}
+
+// ── TAB MEMORY ──
+// Which tab the portal opens on is a per-device preference rather than one
+// fixed default: whoever is on the ledgers machine wants Ledgers, whoever is
+// pasting Phorest wants Staff Daily, and neither should have to click past the
+// other every morning. Saved on every switch, read back at login. localStorage
+// and not sessionStorage — it is a property of the device, not the session —
+// and wrapped, because a locked-down browser throws on both (Kate, 2026-09-04).
+const TR_TAB_KEY = 'tr_upload_tab';
+function trRememberTab(tab){
+  try { localStorage.setItem(TR_TAB_KEY, tab); } catch (e) {}
+}
+function trOpenRememberedTab(){
+  let want = null;
+  try { want = localStorage.getItem(TR_TAB_KEY); } catch (e) {}
+  // Falls back to the first button in the bar, so the default follows the tab
+  // order rather than being typed in a second place.
+  const btn = (want && document.querySelector(`.tab-btn[data-tab="${want}"]`))
+           || document.querySelector('.tab-btn');
+  // Clicked rather than class-swapped: switchTab is what runs the tab's init,
+  // remeasures the chrome and keeps the pane and the button in step.
+  if (btn) btn.click();
 }
 
 // ── SEGMENTS ──
@@ -390,7 +415,7 @@ function showPortal() {
 
   measureStickyChrome();
 
-   initStaffPerfTab();
+  trOpenRememberedTab();
 
   // Nothing here redraws on a timer. The watch only compares a count and a
   // newest date per table and puts a notice up when a Backfill Progress card

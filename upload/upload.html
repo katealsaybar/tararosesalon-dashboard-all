@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=16"></script>
+<script src="upload.js?v=17"></script>
 <script src="name-aliases.js?v=3"></script>
 <script src="phorest-staff.js?v=15"></script>
 <script src="phorest-pdf.js?v=2"></script>
@@ -587,14 +587,19 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
          Renamed again to the job rather than the department: "Operations" and
          "Service Data" never said what you would do in there. The pips are fed
          by each tab's own coverage set — amber while a branch is missing
-         today's data, green when they are all in (Kate, 2026-09-03). -->
+         today's data, green when they are all in (Kate, 2026-09-03).
+         Reordered to the order the day is actually worked: Ledgers first
+         because it is the Sheets pull, then the three Phorest tabs, then the
+         two that are not daily. The active class here is only the pre-login
+         paint — which tab the portal opens on is a per-device preference,
+         restored by trOpenRememberedTab() (Kate, 2026-09-04). -->
     <div class="tab-bar">
-      <button class="tab-btn active" onclick="switchTab(event, 'staffperf')">Staff Daily<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipStaffperf"></span></button>
-      <button class="tab-btn" onclick="switchTab(event, 'sheetsync')">Ledgers<span class="tab-qual">Sheets</span><span class="tab-pip" id="tabPipSheetsync"></span></button>
-      <button class="tab-btn" onclick="switchTab(event, 'ops')">Utilisation<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipOps"></span></button>
-      <button class="tab-btn" onclick="switchTab(event, 'fin')">Financial<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipFin"></span></button>
-      <button class="tab-btn" onclick="switchTab(event, 'products')">Products</button>
-      <button class="tab-btn" onclick="switchTab(event, 'service')">Services<span class="tab-qual">Yearly</span></button>
+      <button class="tab-btn active" data-tab="sheetsync" onclick="switchTab(event, 'sheetsync')">Ledgers<span class="tab-qual">Sheets</span><span class="tab-pip" id="tabPipSheetsync"></span></button>
+      <button class="tab-btn" data-tab="staffperf" onclick="switchTab(event, 'staffperf')">Staff Daily<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipStaffperf"></span></button>
+      <button class="tab-btn" data-tab="ops" onclick="switchTab(event, 'ops')">Utilisation<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipOps"></span></button>
+      <button class="tab-btn" data-tab="fin" onclick="switchTab(event, 'fin')">Financial<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipFin"></span></button>
+      <button class="tab-btn" data-tab="products" onclick="switchTab(event, 'products')">Products</button>
+      <button class="tab-btn" data-tab="service" onclick="switchTab(event, 'service')">Services<span class="tab-qual">Yearly</span></button>
     </div>
 
     <div class="tab-content" id="tab-ops">
@@ -888,7 +893,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 </div>
 
 <!-- ══ STAFF PERFORMANCE (PHOREST) TAB ══ -->
-<div class="tab-content active" id="tab-staffperf">
+<div class="tab-content" id="tab-staffperf">
 
   <div class="tab-sticky">
   <div id="spTodayStrip" class="today-strip"></div>
@@ -1033,7 +1038,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 </div>
 
 <!-- ══ SHEETS SYNC TAB ══ -->
-<div class="tab-content" id="tab-sheetsync">
+<div class="tab-content active" id="tab-sheetsync">
 
   <div class="tab-sticky">
   <div id="ssTodayStrip" class="today-strip"></div>
