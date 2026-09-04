@@ -17,6 +17,10 @@ the fill hugs the silhouette and stops at the hairline; a global key measured
 every pixel against the background and ate dark hair, which sits within ~45 RGB
 units of the card's own dark navy — that is how Mona, Reda, Grace, Mimi, Shila,
 Hazel Mae and Helen all shipped with transparent chunks in their hair.
+
+Kate, 4 Sep 2026: the flood cured the global key but its own tolerance of 14 was
+still too wide, so the same dark heads kept shipping with smaller bites. See
+T_FLOOD below.
 """
 import os
 import re
@@ -34,7 +38,17 @@ RADIUS = 64                   # the panel's corner rounding — fitted 62 from t
                               # card arcs (1 Sep 2026); 36 undershot it and left
                               # the card's dark navy as black wedges in every
                               # corner of the shipped avatars
-T_FLOOD = 14.0                # flood tolerance: the bg is flat, so keep it tight
+T_FLOOD = 3.0                 # flood tolerance. Kate, 4 Sep 2026: was 14, which
+                              # still leaked. The card background is not merely
+                              # flat, it is EXACTLY one colour — every background
+                              # pixel measures 0.0 from it — so anything above 0
+                              # is either an antialiased edge or hair, and 14 was
+                              # wide enough to open a corridor down through the
+                              # near-black crown of the darkest heads. Shila,
+                              # Mona, Areanne, Eds, MJ, Sania, Judy, Shine and
+                              # Xyrhy all shipped with transparent bites out of
+                              # their hair. 3 hugs the silhouette; the feather
+                              # below still keeps the hairline antialiased.
 T_SOFT = 46.0                 # feather ceiling, keeps the hairline antialiased
 
 
