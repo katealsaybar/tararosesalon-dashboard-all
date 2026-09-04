@@ -390,6 +390,11 @@ function showPortal() {
   measureStickyChrome();
 
    initStaffPerfTab();
+
+  // Nothing here redraws on a timer. The watch only compares a count and a
+  // newest date per table and puts a notice up when a Backfill Progress card
+  // has fallen behind the table it was drawn from (Kate, 4 Sep 2026).
+  if (typeof startUploadWatch === 'function') startUploadWatch();
 }
 
 function logout() {
@@ -405,6 +410,8 @@ function logout() {
 
   const pw = document.getElementById('pwInput');
   if (pw) pw.value = '';
+
+  if (typeof stopUploadWatch === 'function') stopUploadWatch();
 }
 
 // ── FILE SLOTS ──

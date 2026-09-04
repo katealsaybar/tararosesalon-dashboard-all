@@ -773,6 +773,7 @@ const VIEW_SECTION_LABELS = {
   dashboard: 'Organisation Pulse', team: 'Team Performance', stylists: 'Stylist Cards',
   services: 'Service Rankings', clients: 'Top Clients', reviews: 'Salon Reviews',
   branchperf: 'Branch Performance',
+  ledgerFinancials: 'Ledgers · Financial Totals',
   ledgerTargets: 'Ledgers · Daily Target Sheet',
   ledgerActuals: 'Ledgers · Actuals vs Targets',
   ledgerStylist: 'Ledgers · Daily Stylist Target',
@@ -783,14 +784,14 @@ const VIEW_SECTION_LABELS = {
 // used to hide an inline array that had drifted out of date — it still carried
 // 'khalifa' and 'saadiyat', which have not existed for months.
 const ALL_VIEWS = [
-  'dashboard','branchperf','ledgerTargets','ledgerActuals','ledgerStylist',
+  'dashboard','branchperf','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
   'team','stylists','services','clients','reviews','calendar','giveaway','trk',
 ];
 
 // Which pages read the shared branch + period filters. Everything that shows a
 // number: the reference pages (stylist cards) and the embedded iframes do not.
 const FILTERED_VIEWS = new Set([
-  'dashboard','team','branchperf','ledgerTargets','ledgerActuals','ledgerStylist',
+  'dashboard','team','branchperf','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
   'services','clients',
 ]);
 
@@ -798,7 +799,7 @@ const FILTERED_VIEWS = new Set([
 // month. paintFilterChips() greys the Period chips out on these; branch-ledger.js
 // explains why they have to. Branch Performance is deliberately absent — it reads
 // both filters like any other page.
-const LEDGER_VIEWS = new Set(['ledgerTargets','ledgerActuals','ledgerStylist']);
+const LEDGER_VIEWS = new Set(['ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist']);
 
 let CURRENT_VIEW = 'dashboard';
 
@@ -820,6 +821,7 @@ function refreshActiveView() {
     };
     if (visible('team'))          renderTeam();
     if (visible('branchperf'))    renderBranchPerformance();
+    if (visible('ledgerFinancials')) renderLedgerFinancials();
     if (visible('ledgerTargets')) renderLedgerTargets();
     if (visible('ledgerActuals')) renderLedgerActuals();
     if (visible('ledgerStylist')) renderLedgerStylist();
@@ -3858,6 +3860,7 @@ function redrawCurrentView() {
   else if (v === 'services')           initSvcView();
   else if (v === 'clients')            initCliView();
   else if (v === 'branchperf')         renderBranchPerformance();
+  else if (v === 'ledgerFinancials')   renderLedgerFinancials();
   else if (v === 'ledgerTargets')      renderLedgerTargets();
   else if (v === 'ledgerActuals')      renderLedgerActuals();
   else if (v === 'ledgerStylist')      renderLedgerStylist();

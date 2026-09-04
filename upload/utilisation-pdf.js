@@ -439,6 +439,9 @@ async function refreshUtilProgress(){
     in: covered.has(`${code}|${spIsoDate(new Date())}`),
     ended: !!(UTIL_BRANCH_END[code] && spIsoDate(new Date()) > UTIL_BRANCH_END[code]),
   })));
+  // The card is drawn, so this is the line the watch measures against from
+  // here: your own upload never announces itself back to you.
+  if (typeof updStamp === 'function') updStamp('ops');
 }
 
 // ── BROWSE / FILTER ──────────────────────────────────────────

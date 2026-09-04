@@ -132,6 +132,9 @@ function ssRenderSyncStrip(lastByBranch){
     pipMissing: `with nothing since ${cutoffIso}`,
     pipClear: 'synced within the last day',
   });
+  // The card is drawn, so this is the line the watch measures against from
+  // here: your own upload never announces itself back to you.
+  if (typeof updStamp === 'function') updStamp('sheetsync');
 }
 
 // ── BROWSE / FILTER ──────────────────────────────────────────

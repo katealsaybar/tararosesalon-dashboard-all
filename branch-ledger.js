@@ -584,6 +584,9 @@ function lgSetMonth(m) {
   // the page reload its own series.
   window._lgSeries = null;
   const vis = id => { const n = document.getElementById('view-' + id); return n && n.style.display !== 'none'; };
+  // Financial Totals ignores Split — a monthly report cut by day reconciles
+  // against nothing — but the Month picker is the one control that does move it.
+  if (vis('ledgerFinancials')) renderLedgerFinancials();
   if (vis('ledgerTargets')) renderLedgerTargets();
   if (vis('ledgerActuals')) renderLedgerActuals();
   if (vis('ledgerStylist')) renderLedgerStylist();
@@ -1817,6 +1820,151 @@ async function renderLedgerActuals() {
 
   ['laAll'].concat(SHEET_ORDER.map(c => 'la' + c))
     .forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
+  restoreSections();
+  if (typeof sizeTopbar === 'function') sizeTopbar();
+  lgWatchScroll();
+  if (typeof spy === 'function') spy();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   3b · LEDGERS — FINANCIAL TOTALS
+   Kate, 4 Sep 2026, holding Phorest's Financial Totals PDF beside the Ledgers
+   page: the report leads with one figure per branch and the dashboard made you
+   add four rows up by hand to reach it. This page is that report's Sales block,
+   every branch at once, so a month can be checked against Phorest without opening
+   four PDFs.
+
+   PHOREST'S SHAPE, NOT THE LEDGER'S. Every other Ledgers page is Emma's coaching
+   vocabulary — hair excl. treatments, beauty services, retail. This one is
+   Phorest's: Services, Courses, Products, Total, and the same 5% VAT split the
+   report prints. The two describe the same money and cut it differently, and the
+   whole use of this page is that it cuts it the way the report you are checking
+   against does.
+
+   WHAT IT DELIBERATELY DOES NOT SHOW. The report's other blocks — Non-Revenue
+   Sales (vouchers sold, paid into account, account used), Pay Outs, Payment Types,
+   Total Banked — are branch-level money movements, and nothing in Supabase holds
+   them: every feed here is staff-level daily. They would need their own upload.
+   Rather than scaffold four empty tables, the page says so once at the foot.
+
+   MONTHLY ONLY. No Split chips: the report is a monthly document, and a Financial
+   Totals figure cut by day is not a thing anyone reconciles against.
+
+   WHAT IT IS FOR, in Kate's words (4 Sep 2026): "ang gagamitin kong benchmark for
+   cross checking any discrepancies from SPO and ledgers". So it is a reference
+   page and not a finance one. Phorest's own report is the outside figure; every
+   other page here is derived from the Staff Performance Overview upload and the
+   branch ledger, and when those two disagree with each other this is the third
+   thing to hold them against. That is why the second section is a list of what
+   will and will not tie out rather than more numbers: a gap of the size the
+   courses line can open is expected, and anything bigger points at a stage of the
+   upload pipeline rather than at arithmetic on this page.
+   ══════════════════════════════════════════════════════════════ */
+
+// UAE VAT, flat 5% on services, courses and products alike. Taken from the report
+// rather than assumed: its VAT Breakdown block prints "@ 5%" on both lines, and
+// 495,571.41 + 1,428.57 = 496,999.98 against 24,848.52 VAT is exactly 5% to the fils.
+const LG_VAT = 0.05;
+
+// The report's Sales block for one summary. Phorest's Services line has courses
+// OUT of it — they are the line below — where the dashboard's hair and beauty
+// service figures both have them in, so they come back off here.
+function lgFinancials(s) {
+  if (!s) return null;
+  const courses  = (s.hairCourses || 0) + (s.beautyCourses || 0);
+  const services = (s.hairServicesIncl || 0) + (s.beautyServicesTotal || 0) - courses;
+  const products = s.retailTotal || 0;
+  const net      = services + courses + products;
+  return { services, courses, products, net, vat: net * LG_VAT, gross: net * (1 + LG_VAT) };
+}
+
+async function renderLedgerFinancials() {
+  const host = document.getElementById('ledgerFinancialsContent');
+  if (!host) return;
+  host.innerHTML = '<div class="loading">Loading data...</div>';
+
+  const series = await lgSeries();
+  if (!series) { host.innerHTML = lgEmpty('This page needs a targets file to know which month to read.'); return; }
+
+  const w = series.windows;
+  const SHEET_ORDER = ['SAA', 'KCA', 'AQ', 'MC'].filter(c => ACTIVE_BRANCHES.includes(c));
+
+  // Ex VAT down the side, because that is the figure everything else on the
+  // dashboard is in and the one a target is set against. VAT and the gross follow
+  // so the row can be read straight off against the report's own three columns.
+  const cols = [{ label: 'Branch' },
+    { label: 'Services',      align: 'r' },
+    { label: 'Courses',       align: 'r' },
+    { label: 'Products',      align: 'r' },
+    { label: 'Total (Ex VAT)', align: 'r' },
+    { label: 'VAT @ 5%',      align: 'r' },
+    { label: 'Total (Inc VAT)', align: 'r' },
+    { label: 'vs ' + escapeHtml(w.prev.label), align: 'r' }];
+
+  const rowFor = (label, s, prev) => {
+    const f = lgFinancials(s);
+    if (!f) return [label, '—', '—', '—', '—', '—', '—', '—'];
+    const p = lgFinancials(prev);
+    return [label, lgAed(f.services), lgAed(f.courses), lgAed(f.products),
+      lgAed(f.net), lgAed(f.vat), lgAed(f.gross),
+      p ? lgDelta(f.net - p.net, lgAed) : '—'];
+  };
+
+  const rows = SHEET_ORDER
+    .map(code => {
+      const b = series[code];
+      const info = BRANCH_INFO[code] || { name: code };
+      return b && b.mtd ? rowFor(escapeHtml(info.name), b.mtd, b.prev) : null;
+    })
+    .filter(Boolean);
+  rows.push({ total: rowFor('All salons', series.group && series.group.mtd, series.group && series.group.prev) });
+
+  const g = lgFinancials(series.group && series.group.mtd);
+
+  host.innerHTML =
+    lgHeader('Ledgers · Financial Totals',
+      `Phorest's Financial Totals Sales block, every branch at once, for ${escapeHtml(w.month.label)}. `
+      + `The figure to check a branch's report against is <b>Total (Ex VAT)</b>.`,
+      { applies: true, label: w.month.label, rangeLabel: `${shortD(w.month.from)} – ${shortD(w.month.to)}`,
+        note: `${escapeHtml(w.month.label)}, month to date, against ${escapeHtml(w.prev.label)}. `
+          + `Monthly only: the report is a monthly document, so the Split chips do not apply here. `
+          + `Month above picks which month this reads.` }) +
+    lgMonthRow() +
+    lgShell([['fnSales', 'Sales'], ['fnCheck', 'Checking against Phorest']],
+    lgSection('fnSales', 'var(--hair)', 'Sales', escapeHtml(w.month.label),
+      lgTable(cols, rows) +
+      `<div class="foot">Services has courses taken out of it, the way Phorest's report splits them —
+        every other page on this dashboard carries courses inside the service figure.
+        VAT is 5% on all three lines, which is what the report's own VAT Breakdown block applies.</div>`) +
+    lgSection('fnCheck', '#C4B5FD', 'Checking against Phorest', 'what will and will not tie out',
+      `<div class="fine" style="margin:0">
+        <p><b>How to check one</b>. Open Phorest → Financial Totals for one branch and one month, and
+        put the Sales block's <code>Total</code>, <code>Net (Ex VAT)</code> beside this page's
+        Total (Ex VAT) for the same branch. Compare ex VAT, never the gross Total column: the rest of
+        the dashboard is ex VAT throughout, and read against the gross the two will look wrong together
+        for no reason other than the 5%.</p>
+        <p><b>Expect a gap on courses</b>, and only on courses. Phorest counts courses <i>sold</i>;
+        every figure here counts courses <i>performed</i>, because Phorest's staff export gives a
+        "Courses (perf)" column and nothing anywhere gives courses sold. That whole line is worth
+        ${g ? lgAed(g.courses) : 'a low four figures'} across the group this month, so the gap it can
+        open is smaller still: Saadiyat reads AED 517,888 here against the August report's
+        AED 518,674, which is AED 786 on half a million. A gap much larger than that is something
+        else, and is worth chasing.</p>
+        <p><b>The rest of the report</b> is not held anywhere yet. Non-Revenue Sales (vouchers sold and
+        topped up, paid into account, vouchers used, account used), Pay Outs, Payment Types
+        (cash · card · Stripe · Tabby) and Total Banked are branch-level money movements, and every
+        feed behind this dashboard is staff-level daily takings, so none of them can be derived from
+        what is loaded. They would need an upload of their own. Vouchers are the one worth having
+        soonest: an unredeemed voucher is money owed, and there is nowhere to see the balance.</p>
+      </div>`) +
+    `<div class="fine">
+      <p><b>Where these come from</b>. The same summaries every other Ledgers page reads — Phorest's
+      staff daily export for revenue, with retail taken from Phorest's branch TOTAL products line so the
+      house-account share is not lost. Recut into the report's four lines here and nowhere else.</p>
+      <p><b>Motor City runs hair only</b>, so its figures are hair and retail throughout.</p>
+    </div>`);
+
+  ['fnSales', 'fnCheck'].forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
   restoreSections();
   if (typeof sizeTopbar === 'function') sizeTopbar();
   lgWatchScroll();

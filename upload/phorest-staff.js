@@ -72,6 +72,12 @@ function spDetectMarkerBranch(text){
   return null;
 }
 
+// "Rovina Jordan (A)" becomes "Rovina Jordan". Only a trailing marker, so a name that
+// genuinely contains a bracket is left alone.
+function spStripArchived_(name){
+  return str_(name).replace(/\s*\(A\)$/, '').trim();
+}
+
 function spBranchLabel(code){
   const b = SP_BRANCHES.find(x => x.code === code);
   return b ? b.label : code;
@@ -162,7 +168,13 @@ function spParseOneBlock(lines, branchCode){
       i++;
     }
     if (!nameParts.length){ i++; continue; }
-    const name = nameParts.join(' ');
+    // Phorest marks an archived staff member by hanging "(A)" on the end of the name, and this
+    // report leaves it there while the Staff Utilisation parser strips it. Same person, two
+    // spellings across the two tables, and the dashboard joins them BY NAME: 3,383 rows and 38
+    // people were parked out of reach of their own utilisation hours. Stripped here too, so the
+    // two agree. The archived fact itself is not lost - staff_utilisation carries it in its own
+    // is_archived column (Kate, 4 Sep 2026).
+    const name = spStripArchived_(nameParts.join(' '));
 
     if (name.toLowerCase() === 'total'){
       const need = 8;
@@ -433,6 +445,9 @@ async function refreshStaffPerfProgress(){
     in: covered.has(`${b.code}|${spIsoDate(new Date())}`),
     ended: !!(b.end && spIsoDate(new Date()) > b.end),
   })));
+  // The card is drawn, so this is the line the watch measures against from
+  // here: your own upload never announces itself back to you.
+  if (typeof updStamp === 'function') updStamp('staffperf');
 }
 
 // One row per calendar year, newest on top, and each year is 12 month blocks

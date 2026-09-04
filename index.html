@@ -2132,6 +2132,7 @@ table.tp-cmp td.bad{color:var(--bad)}
        the question she opens the sheet to answer. -->
   <div class="nav-group">
     <div class="nav-title">LEDGERS: EMMA COACH'S VIEW</div>
+    <div class="nav-sub" onclick="showView('ledgerFinancials', this)">Financial Totals</div>
     <div class="nav-sub" onclick="showView('ledgerTargets', this)">Daily Target Sheet</div>
     <div class="nav-sub" onclick="showView('ledgerActuals', this)">Actuals vs Targets</div>
     <div class="nav-sub" onclick="showView('ledgerStylist', this)">Daily Stylist Target</div>
@@ -2308,6 +2309,9 @@ table.tp-cmp td.bad{color:var(--bad)}
        SUMMARY tab is two separate things (the pacing panel, headed "Daily target
        sheet", and the July-actuals-vs-August-targets roll-up), and calling
        either of them "summary" is what made the old nav unreadable. -->
+  <div id="view-ledgerFinancials" style="display:none">
+    <main id="ledgerFinancialsContent" style="padding:10px 0 48px"></main>
+  </div>
   <div id="view-ledgerTargets" style="display:none">
     <main id="ledgerTargetsContent" style="padding:10px 0 48px"></main>
   </div>
@@ -2586,6 +2590,7 @@ function showView(view, el){
   if (view === 'services') initSvcView();
   if (view === 'clients') initCliView();
   if (view === 'branchperf')    renderBranchPerformance();
+  if (view === 'ledgerFinancials') renderLedgerFinancials();
   if (view === 'ledgerTargets') renderLedgerTargets();
   if (view === 'ledgerActuals') renderLedgerActuals();
   if (view === 'ledgerStylist') renderLedgerStylist();
