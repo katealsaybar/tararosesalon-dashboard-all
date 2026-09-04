@@ -238,6 +238,84 @@ function activePeriodKey() {
   return 'Custom';
 }
 
+// ── THE PERIOD IN THE URL ────────────────────────────────────
+// Kate, 4 Sep 2026, last of the four: "add the period filter sa url din".
+//
+// The period is a date range, but what goes in the URL is the CONTROL's value,
+// not the range it resolved to — the same choice Month and Split made. So
+// period=this-month still means this month when the link is opened next week,
+// where from=2026-09-01&to=2026-09-04 would have frozen one afternoon into it.
+// Only Custom has no name, and that one carries its two dates because there is
+// nothing else it could carry.
+//
+//   last-month-and-this   the default, and so never written
+//   this-month · last-month
+//   month:2026-06 · year:2025
+//   2026-08-11..2026-08-17   Custom, from..to
+//
+// Not written on the Ledgers pages: the Period chips are dead there (they read
+// the ledger month instead, which is what month= carries), so a period= on one
+// of those URLs would name a control that page does not have.
+const PERIOD_URL_KEYS = {
+  'Last month + this': 'last-month-and-this',
+  'This month':        'this-month',
+  'Last month':        'last-month',
+};
+
+function periodParam() {
+  if (!dateFrom || !dateTo) return null;
+  const k = activePeriodKey();
+  // The boot's own window. A bare URL already means it, so writing it would put a
+  // parameter on every clean path for nothing — same rule as branch=all.
+  if (k === 'Last month + this') return null;
+  if (PERIOD_URL_KEYS[k]) return PERIOD_URL_KEYS[k];
+  if (k === 'Year')  return 'year:' + dateFrom.getFullYear();
+  if (k === 'Month') return `month:${dateFrom.getFullYear()}-${String(dateFrom.getMonth()+1).padStart(2,'0')}`;
+  return `${dateToIso(dateFrom)}..${dateToIso(dateTo)}`;
+}
+
+// Read once at first load, after setDefaultRange() has seeded the default this
+// replaces. Returns whether it took, and leaves periodPick null in every case:
+// the chip row derives which chip is lit from the window itself, so a link opens
+// with the right chip underlined rather than with a picker hanging open.
+// A window that turns out to have a name gets that name back on the next write —
+// month:2026-08 asked for in September is Last month, and the URL says so.
+function applyPeriodParam() {
+  let u = null;
+  try { u = new URLSearchParams(location.search).get('period'); } catch (e) { return false; }
+  if (!u) return false;
+  const set = (from, to) => { dateFrom = from; dateTo = to; periodPick = null; return true; };
+
+  const named = Object.keys(PERIOD_URL_KEYS).find(k => PERIOD_URL_KEYS[k] === u);
+  if (named) {
+    const p = periodPresets().find(x => x.k === named);
+    return p ? set(p.from, p.to) : false;
+  }
+
+  let m = /^month:(\d{4})-(\d{2})$/.exec(u);
+  if (m) {
+    const y = +m[1], mo = +m[2];
+    if (y < PERIOD_FIRST_YEAR || mo < 1 || mo > 12) return false;
+    const r = monthRange(y, mo - 1);
+    return r.to >= r.from ? set(r.from, r.to) : false;   // a month in the future has no window
+  }
+
+  m = /^year:(\d{4})$/.exec(u);
+  if (m) {
+    const y = +m[1];
+    if (y < PERIOD_FIRST_YEAR) return false;
+    const r = yearRange(y);
+    return r.to >= r.from ? set(r.from, r.to) : false;
+  }
+
+  m = /^(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})$/.exec(u);
+  if (m) {
+    const f = isoToDate(m[1]), t = isoToDate(m[2]);
+    if (f && t && t >= f) return set(f, t);
+  }
+  return false;
+}
+
 // The two picker chips carry their window in the label, so the row still states
 // what you are reading without anything being opened.
 function periodChips(shown) {
@@ -3629,7 +3707,13 @@ async function loadData() {
   // Only seed the default (Jan 1 → today) range on first load — loadData() runs
   // again every time someone takes an update, and re-applying the default there
   // would wipe out any custom range they had picked (Kate, 2026-08-03).
-  if (!dateFrom || !dateTo) await setDefaultRange();
+  if (!dateFrom || !dateTo) {
+    await setDefaultRange();
+    // Then let a period= in the address bar replace that default, before the first
+    // render reads the window. Inside this branch and not after it, so taking an
+    // update never re-seeds over a range picked since.
+    applyPeriodParam();
+  }
   renderDashboard();
   // Freshness badge — auto-detects the most recent date where EVERY branch has
   // actually synced, instead of trusting created_at of whatever row landed last.

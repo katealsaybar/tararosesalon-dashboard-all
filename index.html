@@ -2493,7 +2493,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260904a"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
-<script src="dashboard.js?v=20260904d"></script>
+<script src="dashboard.js?v=20260904e"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260904e"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
@@ -2980,8 +2980,17 @@ function trSyncUrl(sectionId){
       && typeof sel !== 'undefined' && sel.branch && !sel.branch.includes('all')) {
     parts.push('branch=' + sel.branch.join(','));
   }
+  // The Period chips, on every filtered page EXCEPT Ledgers — those read the
+  // ledger month instead, which month= below already carries, and their Period
+  // chips are greyed out. periodParam() returns null for the boot's own window.
+  if (typeof FILTERED_VIEWS !== 'undefined' && FILTERED_VIEWS.has(CURRENT_VIEW)
+      && typeof LEDGER_VIEWS !== 'undefined' && !LEDGER_VIEWS.has(CURRENT_VIEW)
+      && typeof periodParam === 'function') {
+    const per = periodParam();
+    if (per) parts.push('period=' + per);
+  }
   // Month goes in ahead of Split so the URL reads in the order the page does:
-  // which page, which branches, which month, how that month is cut.
+  // which page, which branches, which period, which month, how that month is cut.
   if (typeof LEDGER_VIEWS !== 'undefined' && LEDGER_VIEWS.has(CURRENT_VIEW)) {
     if (typeof lgMonth !== 'undefined' && lgMonth) parts.push('month=' + lgMonth);
     if (typeof lgGrain !== 'undefined') parts.push('split=' + lgGrain);
