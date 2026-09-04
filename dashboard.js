@@ -161,6 +161,56 @@ const yearRange  = y      => ({ from: new Date(y, 0, 1), to: clampToday(new Date
 const sameDay = (a, b) => !!a && !!b && dateToIso(a) === dateToIso(b);
 const isRange = r => sameDay(r.from, dateFrom) && sameDay(r.to, dateTo);
 
+// ── THE PREVIOUS WINDOW ──────────────────────────────────────────
+// What "previous period" means for the window on screen. Until 4 Sep 2026 the
+// trend arrows never looked at the period filter at all: they read the retired
+// weekly_data table's second-newest UPLOAD snapshot, whose last write was 28 May
+// 2026, so August was being scored against a stale May fragment and every card
+// fell through the >100% mismatch guard to "No comparable previous period".
+// The rule Kate asked for is the obvious one — compare like with like:
+//   today            → yesterday
+//   a calendar month → the same slice of the month before (1–4 Sep vs 1–4 Aug)
+//   a whole year     → the same slice a year back
+//   anything else    → the block of the same length ending the day before
+// Month and year windows shift by the CALENDAR, not by their length in days, so
+// 1–31 Mar compares against 1–28 Feb and not 29 Jan – 28 Feb.
+const daysBetween = (a, b) => Math.round((b - a) / 86400000) + 1;
+
+function previousWindow(from, to) {
+  if (!from || !to || to < from) return null;
+  const y = from.getFullYear(), m = from.getMonth();
+  const startsMonth = from.getDate() === 1;
+  const lastOfMonth = (yy, mm) => new Date(yy, mm + 1, 0).getDate();
+
+  // Whole year or year to date: 1 Jan through any day of a LATER month of the
+  // same year. January on its own is a month, not a year, and belongs to the
+  // month rule below — without the month test it was comparing 1–31 Jan 2026
+  // against the whole of 2025 instead of against December.
+  if (startsMonth && m === 0 && to.getFullYear() === y && to.getMonth() > 0) {
+    const pFrom = new Date(y - 1, 0, 1);
+    const pTo   = new Date(y - 1, to.getMonth(), Math.min(to.getDate(), lastOfMonth(y - 1, to.getMonth())));
+    return { from: pFrom, to: pTo, label: String(y - 1) };
+  }
+
+  // A single calendar month, whole or to date.
+  if (startsMonth && to.getFullYear() === y && to.getMonth() === m) {
+    const pm = m - 1, py = pm < 0 ? y - 1 : y, pmi = (pm + 12) % 12;
+    const pFrom = new Date(py, pmi, 1);
+    const pTo   = new Date(py, pmi, Math.min(to.getDate(), lastOfMonth(py, pmi)));
+    return { from: pFrom, to: pTo, label: `${MON_LONG[pmi]}${py === y ? '' : ' ' + py}` };
+  }
+
+  // Everything else: the same number of days, ending the day before this window.
+  const n = daysBetween(from, to);
+  const pTo   = new Date(from.getFullYear(), from.getMonth(), from.getDate() - 1);
+  const pFrom = new Date(pTo.getFullYear(), pTo.getMonth(), pTo.getDate() - (n - 1));
+  const label = n === 1 ? 'the day before'
+    : n === 7  ? 'the week before'
+    : n <= 31  ? `the ${n} days before`
+    : `the ${Math.round(n / 7)} weeks before`;
+  return { from: pFrom, to: pTo, label };
+}
+
 // Named windows are tested first, so 1 to 31 August on the 3rd of September
 // answers "Last month" and not "Month": the named chip is the truer label for a
 // window that has a name.
@@ -2671,6 +2721,9 @@ async function renderDashboard() {
   const main = document.getElementById('mainContent');
   let d;
   let filtered = [];   // ← hoist here
+  // Which loader served this window, so the previous window is fetched the same
+  // way and the two summaries are built by the same aggregator.
+  let usedWeeklyPath = false;
 
   try {
 
@@ -2694,6 +2747,7 @@ async function renderDashboard() {
         return;
       }
       d = aggWeeklyTotals(weekRows);
+      usedWeeklyPath = true;
     } else {
       const cacheKey = `daily|${dateToIso(dateFrom)}|${dateToIso(dateTo)}`;
       if (!RANGE_CACHE.has(cacheKey)) main.innerHTML = '<div class="loading">Loading daily data...</div>';
@@ -2768,45 +2822,63 @@ async function renderDashboard() {
     if (utilAgg.unmatched.size) console.warn('Utilisation: staff name(s) not found in any ledger hair/beauty roster —', [...utilAgg.unmatched]);
   } catch(e) { /* utilisation is a nice-to-have — don't break the page */ }
 
-  // Compute previous-period summary for trend arrows
+  // ── PREVIOUS PERIOD ──────────────────────────────────────────────
+  // Fetched over previousWindow() with the same loader and the same aggregator
+  // that built the window on screen, so the trend arrows compare like with like.
+  // The old version read weekly_data upload snapshots and ignored the period
+  // filter entirely — see the note on previousWindow() (Kate, 4 Sep 2026).
   let prevS = null;
-  try {
-    const branchRows = allData.filter(dd =>
-
-      (sel.branch.includes('all') || sel.branch.includes(dd.branch))
-    );
-    const byUpload = {};
-    branchRows.forEach(dd => {
-      const key = new Date(dd.uploaded_at).toISOString().slice(0, 10);
-      if (!byUpload[key]) byUpload[key] = [];
-      byUpload[key].push(dd);
-    });
-    const uploadKeys = Object.keys(byUpload).sort();
-    if (uploadKeys.length >= 2) {
-      const prevRows = byUpload[uploadKeys[uploadKeys.length - 2]];
-      const prevD    = aggData(prevRows.map(r => r.data));
-      if (prevD) prevS = prevD.summary;
-    }
-  } catch(e) { prevS = null; }
-
-  // Compute how far back the previous period is so trend arrows say "vs prev wk" etc.
   let prevPeriodLabel = 'prev period';
-  try {
-    const _branchRows2 = allData.filter(dd =>
-
-      (sel.branch.includes('all') || sel.branch.includes(dd.branch))
-    );
-    const _byUpload2 = {};
-    _branchRows2.forEach(dd => {
-      const k = new Date(dd.uploaded_at).toISOString().slice(0,10);
-      if (!_byUpload2[k]) _byUpload2[k] = true;
-    });
-    const _keys2 = Object.keys(_byUpload2).sort();
-    if (_keys2.length >= 2) {
-      const diffDays = Math.round((new Date(_keys2[_keys2.length-1]) - new Date(_keys2[_keys2.length-2])) / 86400000);
-      prevPeriodLabel = diffDays <= 8 ? 'prev wk' : diffDays <= 15 ? 'prev 2 wks' : diffDays <= 22 ? 'prev 3 wks' : diffDays <= 35 ? 'prev month' : `prev ${Math.round(diffDays/7)} wks`;
-    }
-  } catch(e) { /* keep default */ }
+  const prevWin = (dateFrom && dateTo) ? previousWindow(dateFrom, dateTo) : null;
+  if (prevWin) {
+    prevPeriodLabel = prevWin.label;
+    try {
+      if (usedWeeklyPath) {
+        const pKey = `weekly|${dateToIso(prevWin.from)}|${dateToIso(prevWin.to)}`;
+        let pRows = await cachedRange(pKey, () => loadWeeklyTotalsRange(prevWin.from, prevWin.to));
+        if (!sel.branch.includes('all')) pRows = pRows.filter(r => sel.branch.includes(r.branch));
+        const pD = aggWeeklyTotals(pRows);
+        if (pD) prevS = pD.summary;
+      } else {
+        const pKey = `daily|${dateToIso(prevWin.from)}|${dateToIso(prevWin.to)}`;
+        let [pDaily, pBranchStaff, pPhorestStaff] = await cachedRange(pKey, () => Promise.all([
+          loadDailyRange(prevWin.from, prevWin.to),
+          loadBranchStaffDailyRange(prevWin.from, prevWin.to),
+          loadPhorestStaffDailyRange(prevWin.from, prevWin.to),
+        ]));
+        if (!sel.branch.includes('all')) {
+          pDaily        = pDaily.filter(r => sel.branch.includes(r.branch));
+          pBranchStaff  = pBranchStaff.filter(r => sel.branch.includes(r.branch));
+          pPhorestStaff = pPhorestStaff.filter(r => sel.branch.includes(r.branch));
+        }
+        if (pDaily.length || pBranchStaff.length || pPhorestStaff.length) {
+          const pD = aggDailyData(pDaily, pBranchStaff, pPhorestStaff);
+          if (pD) prevS = pD.summary;
+        }
+      }
+    } catch(e) { prevS = null; }   // a missing previous window is "no comparison", not a broken page
+  } else {
+    // No date range at all (the weekly-view default before setDefaultRange runs).
+    // There is no window to step back from, so fall back to the old behaviour:
+    // the second-newest weekly_data upload snapshot, aggregated the same way as
+    // the figures on screen.
+    try {
+      const byUpload = {};
+      allData
+        .filter(dd => sel.branch.includes('all') || sel.branch.includes(dd.branch))
+        .forEach(dd => {
+          const key = new Date(dd.uploaded_at).toISOString().slice(0, 10);
+          (byUpload[key] = byUpload[key] || []).push(dd);
+        });
+      const keys = Object.keys(byUpload).sort();
+      if (keys.length >= 2) {
+        const prevD = aggData(byUpload[keys[keys.length - 2]].map(r => r.data));
+        if (prevD) prevS = prevD.summary;
+        const diffDays = Math.round((new Date(keys[keys.length-1]) - new Date(keys[keys.length-2])) / 86400000);
+        prevPeriodLabel = diffDays <= 8 ? 'the week before' : diffDays <= 35 ? 'the month before' : `the ${Math.round(diffDays/7)} weeks before`;
+      }
+    } catch(e) { prevS = null; }
+  }
 
   destroyCharts();
 
@@ -3106,12 +3178,14 @@ async function renderDashboard() {
   const trendOf = (curr, prev) => {
     if (prev == null || !prev || !curr) return noCompare;
     const d = (curr - prev) / prev * 100;
-    // prevS is built from the retired weekly_data table by taking the second-newest
-    // upload snapshot, which is not the same window as the filter and is often a
-    // fraction of it — that is where "up 1319% on prev month" came from. A swing
-    // that large is a mismatch, not a result, so it is reported as one rather than
-    // printed on the biggest number on the page. Kate, 2026-08-14.
-    if (!Number.isFinite(d) || Math.abs(d) > 100) return noCompare;
+    // The 14 Aug guard capped this at ±100% because prevS was the second-newest
+    // weekly_data UPLOAD snapshot, a window unrelated to the filter and often a
+    // fraction of its size — that is where "up 1319% on prev month" came from.
+    // prevS is now the matching window fetched the same way (see previousWindow),
+    // so a big swing is a result, not a mismatch, and only an arithmetic blow-up
+    // or a prior window that is plainly the wrong size is still suppressed.
+    // Kate, 2026-09-04.
+    if (!Number.isFinite(d) || Math.abs(d) > 500) return noCompare;
     if (d >=  2) return { status:'good', txt:`Up ${d.toFixed(1)}% on ${prevPeriodLabel}`, verdict:'Growing' };
     if (d <= -2) return { status:'bad',  txt:`Down ${Math.abs(d).toFixed(1)}% on ${prevPeriodLabel}`, verdict:'Falling' };
     return { status:'warn', txt:`Level with ${prevPeriodLabel}`, verdict:'Holding' };
