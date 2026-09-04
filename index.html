@@ -2616,6 +2616,11 @@ function showView(view, el){
   window.scrollTo(0, 0);
   setHeaderSectionLabel(VIEW_SECTION_LABELS[view] || 'Organisation Pulse');
   sizeTopbar();
+  // The view first, so the slug is right even on a page with no rail; spy() then
+  // adds the section it just lit. This is also where the address bar is handed
+  // over: everything before the first showView() is the boot still reading it.
+  TR_URL_READY = true;
+  trSyncUrl(null);
   spy();
 }
 
@@ -2889,6 +2894,41 @@ function stickLgHead(){
   });
 }
 
+// ── THE URL SLUG ────────────────────────────────────────────
+// The address bar used to say nothing true about where you were. The view lived
+// only in memory, so every page shared one URL, and the hash was whatever anchor
+// had last been clicked — which is how it came to read #s-below while Kate was
+// three pages away on Financial Totals. It is now written on every move: ?view=
+// for the page, #section for the part of it you are reading, both driven by the
+// same scrollspy that lights the rail, so the URL and the lit link can never
+// disagree.
+//
+// replaceState, not pushState: the section changes on every scroll past a
+// heading, and pushing those would bury the page you came from under a hundred
+// scroll positions. Back still means "before this dashboard".
+//
+// Guarded on the string, so the write only happens when the slug actually
+// changes rather than on every scroll tick. Kate, 2026-09-04.
+//
+// Held until the boot has opened its view. loadData() is awaited BEFORE the boot
+// reads ?view= out of the address bar, and the scroll listener is already live
+// across that await — so an early write of the default view's slug would erase
+// the very parameter the next line was about to read, and every deep link
+// landed on the Pulse. The flag is lifted by the first showView(), which is the
+// boot's own.
+let TR_URL_SLUG = '';
+let TR_URL_READY = false;
+function trSyncUrl(sectionId){
+  if (!TR_URL_READY) return;
+  // The Pulse is the default view, so it stays a bare path — same URL the load
+  // path builds when ?view= is absent.
+  const q = (CURRENT_VIEW && CURRENT_VIEW !== 'dashboard') ? '?view=' + CURRENT_VIEW : '';
+  const slug = location.pathname + q + (sectionId ? '#' + sectionId : '');
+  if (slug === TR_URL_SLUG) return;
+  TR_URL_SLUG = slug;
+  try { history.replaceState(null, '', slug); } catch (e) { /* the page is fine without it */ }
+}
+
 // ── SIDEBAR SCROLLSPY ───────────────────────────────────────
 // Marks the last section whose heading has passed the reading line, so the rail
 // says where you are rather than what is merely on screen. Passive listener,
@@ -2908,12 +2948,13 @@ function spy(){
   // rail. Kate, 2026-08-14: the Ledgers pages and Stylist Cards have rails now too.
   const VIEW = document.getElementById('view-' + CURRENT_VIEW);
   const NAV = VIEW ? [...VIEW.querySelectorAll('.side-nav a')] : [];
-  if (!NAV.length) return;
+  if (!NAV.length){ trSyncUrl(null); return; }
   // Closed cover: the Pulse's sections are out of the layout, so their rects are all
   // zero and any reading below this would light up the wrong link. Its own condition,
   // not every page's — .revealed is the Pulse's state and no other page has it.
   if(CURRENT_VIEW === 'dashboard' && !document.body.classList.contains('revealed')){
     NAV.forEach(a => a.classList.remove('on'));
+    trSyncUrl(null);
     return;
   }
   // A rail entry points at a section id or at an element already in the document;
@@ -2927,6 +2968,7 @@ function spy(){
   // the page the bottom section is the one you are on, so say so.
   if(innerHeight + Math.ceil(scrollY) >= document.documentElement.scrollHeight - 2) live = NAV.length - 1;
   NAV.forEach((a,i) => a.classList.toggle('on', i === live));
+  trSyncUrl(NAV[live] ? NAV[live].getAttribute('href').slice(1) : null);
 }
 addEventListener('scroll', spy, {passive:true});
 
