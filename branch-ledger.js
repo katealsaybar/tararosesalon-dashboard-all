@@ -115,6 +115,10 @@ function lgSetGrain(g) {
   // Repaint whichever ledger page is on screen. Not refreshActiveView(): the data
   // is already in window._lgSeries, so this is a re-render, not a re-fetch.
   const vis = id => { const n = document.getElementById('view-' + id); return n && n.style.display !== 'none'; };
+  // Financial Totals keeps its Sales block monthly whatever the grain says — that
+  // block is the report — and adds or drops the by-week/by-day drill-down table
+  // under it, so it repaints on a grain change like the other three.
+  if (vis('ledgerFinancials')) renderLedgerFinancials();
   if (vis('ledgerTargets')) renderLedgerTargets();
   if (vis('ledgerActuals')) renderLedgerActuals();
   if (vis('ledgerStylist')) renderLedgerStylist();
@@ -1847,9 +1851,6 @@ async function renderLedgerActuals() {
    them: every feed here is staff-level daily. They would need their own upload.
    Rather than scaffold four empty tables, the page says so once at the foot.
 
-   MONTHLY ONLY. No Split chips: the report is a monthly document, and a Financial
-   Totals figure cut by day is not a thing anyone reconciles against.
-
    WHAT IT IS FOR, in Kate's words (4 Sep 2026): "ang gagamitin kong benchmark for
    cross checking any discrepancies from SPO and ledgers". So it is a reference
    page and not a finance one. Phorest's own report is the outside figure; every
@@ -1859,6 +1860,18 @@ async function renderLedgerActuals() {
    will and will not tie out rather than more numbers: a gap of the size the
    courses line can open is expected, and anything bigger points at a stage of the
    upload pipeline rather than at arithmetic on this page.
+
+   MONTHLY BY DEFAULT, DAILY WHEN A BRANCH LOOKS WRONG. Written monthly-only first,
+   on the reasoning that Financial Totals is a monthly document — which is true of
+   the report and beside the point for the job. A month tells you WHICH BRANCH is
+   off; it cannot tell you which day, and every gap cause on record is date-shaped:
+   a stylist's rows typed under the wrong name for a fortnight, one day's ledger
+   block left blank, an assistant logged as a stylist on four dates. So the Split
+   chips are here after all, and when the grain is weekly or daily a second table
+   appears under the Sales block cutting each branch's Total (Ex VAT) that way. The
+   Sales block itself never changes shape: it is the report, and the report is
+   monthly. And nobody has to pull 31 Phorest PDFs to use this — the split narrows
+   it to the one day worth pulling.
    ══════════════════════════════════════════════════════════════ */
 
 // UAE VAT, flat 5% on services, courses and products alike. Taken from the report
@@ -1921,21 +1934,61 @@ async function renderLedgerFinancials() {
 
   const g = lgFinancials(series.group && series.group.mtd);
 
+  // ── THE DRILL-DOWN ─────────────────────────────────────────
+  // Only when the Split chips ask for it. One number per cell, Total (Ex VAT),
+  // because the question this table answers is "which day is the gap on" and six
+  // more columns per day would bury the answer it exists to give. The Sales block
+  // above keeps the report's full breakdown and its own monthly shape either way.
+  const sp = lgSplit(series);
+  const netOf = s => { const f = lgFinancials(s); return f ? f.net : null; };
+  let splitHtml = '';
+  if (sp.key) {
+    const splitCols = [{ label: 'Branch' }]
+      .concat(sp.windows.map((x, i) => ({ label: sp.head(x, i), align: 'r' })))
+      .concat([{ label: w.month.label + ' total', align: 'r' }]);
+    const splitRow = (label, bucket) => [label]
+      .concat(lgSplitCells(series, bucket, netOf, lgAed))
+      .concat([bucket && bucket.mtd ? lgAed(netOf(bucket.mtd)) : '—']);
+    const splitRows = SHEET_ORDER
+      .map(code => {
+        const b = series[code];
+        const info = BRANCH_INFO[code] || { name: code };
+        return b && b.mtd ? splitRow(escapeHtml(info.name), b) : null;
+      })
+      .filter(Boolean);
+    splitRows.push({ total: splitRow('All salons', series.group) });
+    splitHtml = lgSection('fnSplit', '#C4B5FD',
+      'Total (Ex VAT) by ' + (lgGrain === 'daily' ? 'day' : 'week'),
+      escapeHtml(w.month.label),
+      lgTable(splitCols, splitRows, { compact: true }) +
+      `<div class="foot">Ex VAT, the same figure as the Sales block's Total (Ex VAT) column, cut by
+        ${lgGrain === 'daily' ? 'day' : 'week'}. Two kinds of nothing, and they mean different things:
+        a <b>dash</b> is a ${lgGrain === 'daily' ? 'day' : 'week'} with no rows uploaded at all, and
+        <b>AED 0</b> is rows that are there and total nothing — Al Quoz reads AED 0 on 2 and 3 August.
+        On a trading day either one is the finding. Run Phorest's report for the one date this points
+        at rather than for the month.</div>`);
+  }
+
   host.innerHTML =
     lgHeader('Ledgers · Financial Totals',
       `Phorest's Financial Totals Sales block, every branch at once, for ${escapeHtml(w.month.label)}. `
       + `The figure to check a branch's report against is <b>Total (Ex VAT)</b>.`,
       { applies: true, label: w.month.label, rangeLabel: `${shortD(w.month.from)} – ${shortD(w.month.to)}`,
         note: `${escapeHtml(w.month.label)}, month to date, against ${escapeHtml(w.prev.label)}. `
-          + `Monthly only: the report is a monthly document, so the Split chips do not apply here. `
-          + `Month above picks which month this reads.` }) +
+          + `The Sales block is monthly because the report is, and Month above picks which month. `
+          + `<b>Split</b> is the drill-down: once a branch's total looks wrong, Weekly or Daily adds a `
+          + `second table showing which ${lgGrain === 'daily' ? 'day' : 'week'} it went wrong on.` }) +
     lgMonthRow() +
-    lgShell([['fnSales', 'Sales'], ['fnCheck', 'Checking against Phorest']],
+    lgGrainRow() +
+    lgShell([['fnSales', 'Sales']]
+      .concat(sp.key ? [['fnSplit', 'By ' + (lgGrain === 'daily' ? 'day' : 'week')]] : [])
+      .concat([['fnCheck', 'Checking against Phorest']]),
     lgSection('fnSales', 'var(--hair)', 'Sales', escapeHtml(w.month.label),
       lgTable(cols, rows) +
       `<div class="foot">Services has courses taken out of it, the way Phorest's report splits them —
         every other page on this dashboard carries courses inside the service figure.
         VAT is 5% on all three lines, which is what the report's own VAT Breakdown block applies.</div>`) +
+    splitHtml +
     lgSection('fnCheck', '#C4B5FD', 'Checking against Phorest', 'what will and will not tie out',
       `<div class="fine" style="margin:0">
         <p><b>How to check one</b>. Open Phorest → Financial Totals for one branch and one month, and
@@ -1964,7 +2017,7 @@ async function renderLedgerFinancials() {
       <p><b>Motor City runs hair only</b>, so its figures are hair and retail throughout.</p>
     </div>`);
 
-  ['fnSales', 'fnCheck'].forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
+  ['fnSales', 'fnSplit', 'fnCheck'].forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
   restoreSections();
   if (typeof sizeTopbar === 'function') sizeTopbar();
   lgWatchScroll();
