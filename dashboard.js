@@ -843,7 +843,7 @@ function refreshActiveView() {
 // said "Nail Art Expert", which is what her card called her one batch earlier.
 const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist',
   'Blow-Dry Specialist', 'Senior Beauty Therapist', 'Beauty Therapist',
-  'Senior Nail Technician', 'Nail Technician'];
+  'Senior Nail Technician', 'Nail Technician', 'Assistant'];
 
 // ── ONE STYLIST CARD, AS THE DESIGNED PDF ────────────────────
 // Kate, 2026-08-13: the hand-built HTML replica of the A3 card was ugly, and an
@@ -2706,8 +2706,9 @@ function restoreSections() {
 // rows the page already had, so the chips felt broken. The fetch PROMISE is
 // cached per date range: repeat clicks on the same range reuse the finished
 // (or still in-flight) fetch and repaint instantly; a new range fetches once.
-// loadData() clears it on its 60s poll, so nothing here is ever staler than
-// the poll already was. A failed fetch deletes its entry so it can retry.
+// loadData() clears it, so a range is refetched whenever someone takes an
+// update; between updates the cache is the point. A failed fetch deletes its
+// entry so it can retry.
 const RANGE_CACHE = new Map();
 function cachedRange(key, loader) {
   if (!RANGE_CACHE.has(key)) {
@@ -3564,9 +3565,9 @@ async function loadDailyRange(from, to) {
 // ── DATA LOAD + INIT ─────────────────────────────────────────
 
 async function loadData() {
-  // The poll is the freshness contract: it drops the range cache so the
-  // renderDashboard() below refetches, and every chip click until the next
-  // poll reuses that fetch instead of paying Supabase again.
+  // Dropping the range cache is what makes this a real reload: renderDashboard()
+  // below refetches, and every chip click until the next one reuses that fetch
+  // instead of paying Supabase again.
   RANGE_CACHE.clear();
   const { data, error } = await sb.from('weekly_data').select('*').order('uploaded_at', { ascending:true });
   if (error || !data) {
@@ -3577,9 +3578,9 @@ async function loadData() {
   const branches = ACTIVE_BRANCHES.map(k => ({ val:k, label:BRANCH_INFO[k].name }));
   buildDrop('branch', branches);
   rebuildDependentDrops();
-  // Only seed the default (Jan 1 → today) range on first load — loadData() also
-  // runs every 60s via setInterval, and re-applying the default there was wiping
-  // out any custom range the user had picked (Kate, 2026-08-03).
+  // Only seed the default (Jan 1 → today) range on first load — loadData() runs
+  // again every time someone takes an update, and re-applying the default there
+  // would wipe out any custom range they had picked (Kate, 2026-08-03).
   if (!dateFrom || !dateTo) await setDefaultRange();
   renderDashboard();
   // Freshness badge — auto-detects the most recent date where EVERY branch has
@@ -3592,6 +3593,14 @@ async function loadData() {
     getLatestCompleteDate('phorest_staff_daily'),
   ]);
   renderFreshnessBadge(ledgerInfo, phorestInfo);
+  // The signature the figures now on screen were drawn from. Everything the
+  // newer-data watch says afterwards is measured against this line, so it has to
+  // be stamped here — at the end of the load that drew them — and nowhere else.
+  const sig = await readWatchSig();
+  if (sig) watchBase = sig;
+  watchSeen = null;
+  watchDrawnAt = new Date();
+  hideUpdateNotice();
 }
 
 // Pulls every branch+date pair from `since` onwards, in 1000-row pages, so the
@@ -3671,6 +3680,187 @@ function renderFreshnessBadge(ledgerInfo, phorestInfo) {
     + freshnessLine('Phorest', phorestInfo)
     + '<span>GST +04:00</span>';
   if (typeof sizeTopbar === 'function') sizeTopbar();
+}
+
+// ── NEWER-DATA WATCH ─────────────────────────────────────────
+// Kate, 4 Sep 2026: "can we not make it blink and refresh on its own — if there
+// are data changes, then that's the time the viewer would be asked to refresh."
+//
+// The 60s poll used to BE loadData(): it refetched every feed and redrew every
+// card, so a page you were mid-read of rearranged under you once a minute and
+// the figures flickered while you were looking at them. The poll survives, but
+// it is a signature read now — one count and one newest stamp per feed, four
+// requests, nothing written to the page. When that signature moves away from the
+// one the visible figures were drawn from, the notice top right says which feed
+// moved and by how much, and the viewer takes the update when it suits them.
+//
+// The freshness badge on the masthead is deliberately NOT restamped by the poll:
+// it describes the read on screen, and quietly ageing it forward to a date whose
+// numbers are not up yet would make it lie.
+
+const WATCH_MS = 60000;
+
+// One entry per feed the visible figures are built from. `stamp` is the column
+// that moves when new days land; the count catches a re-upload of days already
+// there, which leaves the newest date exactly where it was.
+const WATCH_FEEDS = [
+  { key:'weekly',  table:'weekly_data',         stamp:'uploaded_at', label:'Weekly ledger uploads',
+    affects:'Organisation Pulse totals and Team Performance' },
+  { key:'ledger',  table:'branch_staff_daily',  stamp:'date',        label:'Branch ledger',
+    affects:'clients, hair/beauty split, treatments, every Ledgers page' },
+  { key:'phorest', table:'phorest_staff_daily', stamp:'date',        label:'Phorest revenue',
+    affects:'net take, average bill, retail' },
+  { key:'util',    table:'staff_utilisation',   stamp:'date_to',     label:'Staff utilisation',
+    affects:'the utilisation benchmark' },
+];
+
+let watchBase = null;      // the signature the figures on screen were drawn from
+let watchSeen = null;      // the change the viewer has already been shown and waved off
+let watchDrawnAt = null;   // when that read was drawn, so the notice can say so
+let watchTimer = null;
+
+// Count and newest stamp in one request per feed: PostgREST puts the exact count
+// in Content-Range even when the range asked for is a single row.
+async function readWatchSig() {
+  const reads = await Promise.all(WATCH_FEEDS.map(async f => {
+    const { data, count, error } = await sb
+      .from(f.table)
+      .select(f.stamp, { count:'exact' })
+      .order(f.stamp, { ascending:false })
+      .limit(1);
+    if (error) return null;
+    return [f.key, { count: count || 0, stamp: (data && data[0] && data[0][f.stamp]) || null }];
+  }));
+  // A half-read signature would cry wolf on the feed that failed, so one error
+  // throws the whole tick away and the next one tries again.
+  if (reads.some(r => r === null)) return null;
+  return Object.fromEntries(reads);
+}
+
+function watchSigKey(sig) {
+  if (!sig) return '';
+  return WATCH_FEEDS.map(f => `${f.key}:${sig[f.key].count}:${sig[f.key].stamp}`).join('|');
+}
+
+// "2026-09-03" and "2026-09-03T11:20:14Z" both read as "3 Sep".
+function watchStampLabel(stamp) {
+  if (!stamp) return null;
+  const d = new Date(String(stamp).slice(0, 10) + 'T00:00:00');
+  if (isNaN(d)) return null;
+  return `${d.getDate()} ${MON_SHORT[d.getMonth()]}`;
+}
+
+// What actually moved, in words, so the notice can say why it is worth taking
+// rather than just that something happened.
+function watchChanges(from, to) {
+  const out = [];
+  WATCH_FEEDS.forEach(f => {
+    const a = from[f.key], b = to[f.key];
+    if (!a || !b) return;
+    const bits = [];
+    if (b.stamp !== a.stamp) {
+      const now = watchStampLabel(b.stamp), was = watchStampLabel(a.stamp);
+      if (now && was)  bits.push(`now through <b>${now}</b>, was ${was}`);
+      else if (now)    bits.push(`first rows in, <b>${now}</b>`);
+    }
+    const d = b.count - a.count;
+    if (d > 0)      bits.push(`<b>${d.toLocaleString()}</b> new ${d === 1 ? 'row' : 'rows'}`);
+    else if (d < 0) bits.push(`<b>${(-d).toLocaleString()}</b> ${-d === 1 ? 'row' : 'rows'} removed`);
+    if (bits.length) out.push({ label:f.label, affects:f.affects, text:bits.join(' · ') });
+  });
+  return out;
+}
+
+function renderUpdateNotice(changes) {
+  const box  = document.getElementById('updNotice');
+  const full = document.getElementById('updFull');
+  if (!box || !full || !changes.length) return;
+  const drawn = watchDrawnAt
+    ? watchDrawnAt.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })
+    : null;
+  full.innerHTML = `
+    <div class="upd-eye">Newer data has landed</div>
+    <p class="upd-lead">Nothing on this page has moved. These figures are the ones
+      that were up when you opened it — take the update when you are ready.</p>
+    <ul class="upd-list">
+      ${changes.map(c => `<li><b>${escapeHtml(c.label)}</b> — ${c.text}
+        <span class="upd-aff">affects ${escapeHtml(c.affects)}</span></li>`).join('')}
+    </ul>
+    <p class="upd-foot">${drawn ? `This read was drawn at ${drawn}. ` : ''}Your branch
+      and date filters are kept when you take it.</p>
+    <div class="upd-acts">
+      <button class="upd-btn" id="updGo" onclick="refreshNow(this)">Refresh figures</button>
+      <button class="upd-btn ghost" onclick="dismissUpdateNotice()">Later</button>
+    </div>`;
+  box.classList.remove('mini');
+  box.hidden = false;
+}
+
+// Waved off, not resolved: the card folds to a pill so the page never quietly
+// pretends the figures on it are current.
+function dismissUpdateNotice() {
+  const box = document.getElementById('updNotice');
+  if (box) box.classList.add('mini');
+}
+
+function expandUpdateNotice() {
+  const box = document.getElementById('updNotice');
+  if (box) box.classList.remove('mini');
+}
+
+function hideUpdateNotice() {
+  const box = document.getElementById('updNotice');
+  if (!box) return;
+  box.hidden = true;
+  box.classList.remove('mini');
+}
+
+async function watchTick() {
+  const sig = await readWatchSig();
+  if (!sig) return;
+  if (!watchBase) { watchBase = sig; return; }
+  const key = watchSigKey(sig);
+  // Back to what is on screen (a bad upload reverted, say): the notice goes away
+  // on its own, because there is nothing left to take.
+  if (key === watchSigKey(watchBase)) { hideUpdateNotice(); watchSeen = null; return; }
+  if (key === watchSeen) return;   // already shown; the pill is still up
+  watchSeen = key;
+  renderUpdateNotice(watchChanges(watchBase, sig));
+}
+
+function startFreshnessWatch() {
+  if (watchTimer) clearInterval(watchTimer);
+  watchTimer = setInterval(watchTick, WATCH_MS);
+  // A laptop that has been shut since this morning should not sit for another
+  // minute before being told: check the moment the tab is looked at again.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) watchTick(); });
+}
+
+// The only thing that redraws figures, and only because someone asked it to.
+async function refreshNow(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Refreshing…'; }
+  // Every cache holding already-fetched rows, so this actually goes back to
+  // Supabase: loadData() clears RANGE_CACHE, the Ledgers pages keep their own
+  // month cache in window._lgSeries.
+  window._lgSeries = null;
+  await loadData();          // refetches, redraws the Pulse, restamps the badge
+  redrawCurrentView();       // and the page the viewer is actually on
+  hideUpdateNotice();
+}
+
+// showView() dispatches the same way. This deliberately is not showView(): that
+// scrolls to top and relabels the masthead, which is not what a refresh should
+// do to someone reading halfway down a table.
+function redrawCurrentView() {
+  const v = (typeof CURRENT_VIEW === 'string') ? CURRENT_VIEW : 'dashboard';
+  if (v === 'team' && allData.length)  renderTeam();
+  else if (v === 'stylists')           renderStylistCards();
+  else if (v === 'services')           initSvcView();
+  else if (v === 'clients')            initCliView();
+  else if (v === 'branchperf')         renderBranchPerformance();
+  else if (v === 'ledgerTargets')      renderLedgerTargets();
+  else if (v === 'ledgerActuals')      renderLedgerActuals();
+  else if (v === 'ledgerStylist')      renderLedgerStylist();
 }
 
 // ── STARTUP ──────────────────────────────────────────────────
