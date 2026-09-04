@@ -1892,14 +1892,52 @@ const LG_VAT = 0.05;
 // name — cause 3 in the reconciliation notes, and invisible in a monthly total
 // because the group figure is right either way.
 //
+// A CLOSING DAY HAS A START DATE, and leaving it out was wrong for seventeen
+// months. Written first as a bare list of weekdays, on "Al Quoz shuts Sunday and
+// Monday", which is true today and was not true before June 2026: Phorest has Al
+// Quoz trading every single Sunday and Monday from 1 January 2025 to Sunday 31 May
+// 2026 — 2,466 on the first of them, 4,605 on the last — and taking nothing on
+// every one from Monday 1 June 2026 onward. Undated, this table would have printed
+// "closed" over 140 real trading days and quietly deleted them from the drill-down
+// on every month before June. `from` is the first date the rule applies.
+//
 // Hand-maintained, like LEDGER_TARGETS, and for the same reason: a trading day is
 // a business fact and inferring it from "this branch usually takes nothing then"
-// would quietly swallow the exact case above. JS weekdays, 0 Sunday.
-const LG_CLOSED_DAYS = { AQ: [0, 1] };
+// would quietly swallow the 23 August case above. JS weekdays, 0 Sunday.
+const LG_CLOSED_DAYS = {
+  AQ: { days: [0, 1], from: '2026-06-01' },
+};
+
+// One-off closures come from the closed_days table instead, which the utilisation
+// uploader already writes whenever it meets a report with no staff rows and a
+// 00:00 / 0.0% total (migrations/create_closed_days.sql). Two different shapes of
+// fact and both are needed here: a standing weekly closure would be nine rows a
+// month in that table for ever, and a one-off — the 25 to 29 December shutdown,
+// Khalifa on 17 June 2025 — cannot be expressed as a weekday rule at all.
+// Loaded once per page life and cached; if the table is not readable the page
+// carries on with the weekday rules alone rather than failing, the same way the
+// uploader treats every day as open when it cannot read it.
+let _lgClosedSet = null;
+async function lgLoadClosedDays() {
+  if (_lgClosedSet) return _lgClosedSet;
+  _lgClosedSet = new Set();
+  try {
+    const { data, error } = await sb.from('closed_days').select('branch,date');
+    if (error) throw error;
+    (data || []).forEach(r => _lgClosedSet.add(r.branch + '|' + String(r.date).slice(0, 10)));
+  } catch (e) {
+    console.warn('closed_days not readable, using the weekday rules alone:', e.message);
+  }
+  return _lgClosedSet;
+}
 
 function lgIsClosedDay(code, d) {
-  const days = code && LG_CLOSED_DAYS[code];
-  return !!(days && d && days.indexOf(d.getDay()) > -1);
+  if (!code || !d) return false;
+  const ymd = lgYmd(d);
+  if (_lgClosedSet && _lgClosedSet.has(code + '|' + ymd)) return true;
+  const rule = LG_CLOSED_DAYS[code];
+  if (!rule || rule.days.indexOf(d.getDay()) === -1) return false;
+  return !rule.from || ymd >= rule.from;
 }
 
 // The report's Sales block for one summary. Phorest's Services line has courses
@@ -1919,7 +1957,7 @@ async function renderLedgerFinancials() {
   if (!host) return;
   host.innerHTML = '<div class="loading">Loading data...</div>';
 
-  const series = await lgSeries();
+  const [series] = await Promise.all([lgSeries(), lgLoadClosedDays()]);
   if (!series) { host.innerHTML = lgEmpty('This page needs a targets file to know which month to read.'); return; }
 
   const w = series.windows;
@@ -2007,11 +2045,13 @@ async function renderLedgerFinancials() {
       (lgGrain === 'daily'
         ? ` Four things a cell can say. A figure is the day's takings.
         <b>AED 0</b> is rows that are there and total nothing. A <b>dash</b> is no rows uploaded at
-        all. <span class="lg-na">closed</span> is a day the branch does not trade, which is Sunday and
-        Monday at Al Quoz and nowhere else — and a <span class="lg-down">red figure</span> is money on
-        one of those days, which should not happen and is the most useful thing on this table.
-        Closing days are hand-kept in <code>LG_CLOSED_DAYS</code>; if a branch changes its week, that
-        is the one line to edit.`
+        all. <span class="lg-na">closed</span> is a day the branch did not trade — and a
+        <span class="lg-down">red figure</span> is money on one of those days, which should not happen
+        and is the most useful thing on this table.
+        Closures come from two places: standing weekly ones are hand-kept in
+        <code>LG_CLOSED_DAYS</code> with the date they start (Al Quoz shuts Sunday and Monday, but
+        only from 1 June 2026 — it traded every one of them before that), and one-off closures are
+        read from the <code>closed_days</code> table the utilisation uploader writes.`
         : ` A dash is a week with no rows uploaded at all.`) +
       `</div>`);
   }
