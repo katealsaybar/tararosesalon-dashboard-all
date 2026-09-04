@@ -508,7 +508,7 @@ function lgJump(e, id) {
    THE SHEET'S COLUMN MODEL
    Kate, 2026-08-14. Her tabs do not run one column of actuals — they run
 
-     Category | Last Month | This Month | Week 00 … Week 04 | MTD | Variance
+     Category | Last Month | Target | Week 00 … Week 04 | MTD | Variance
 
    and the whole month is readable across a row. This section rebuilds that
    spine from the upload rather than from the spreadsheet: the ledger's own
@@ -830,7 +830,7 @@ function lgSheetSection(series, code, ctx) {
   const bm = (typeof LEDGER_TARGETS !== 'undefined') ? LEDGER_TARGETS.benchmarks : TARGETS;
 
   const sp = lgSplit(series);
-  const cols = [{ label: 'Category / Metric' }, { label: w.prev.label, align: 'r' }, { label: 'This Month', align: 'r' }]
+  const cols = [{ label: 'Category / Metric' }, { label: w.prev.label, align: 'r' }, { label: 'Target', align: 'r' }]
     .concat(sp.windows.map((x, i) => ({ label: sp.head(x, i), align: 'r' })))
     .concat([{ label: 'MTD', align: 'r' }, { label: 'Variance', align: 'r' }]);
 
@@ -1786,7 +1786,7 @@ async function renderLedgerTargets() {
    left-hand block of her SUMMARY tab, plus the four branch tabs that repeat it
    branch by branch. One column model throughout, hers:
 
-     Category | Last Month | This Month | Week 00 … Week 04 | MTD | Variance
+     Category | Last Month | Target | Week 00 … Week 04 | MTD | Variance
 
    The week columns are folded away until you ask for them.
    ══════════════════════════════════════════════════════════════ */
