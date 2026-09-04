@@ -1879,6 +1879,29 @@ async function renderLedgerActuals() {
 // 495,571.41 + 1,428.57 = 496,999.98 against 24,848.52 VAT is exactly 5% to the fils.
 const LG_VAT = 0.05;
 
+// ── WHICH DAYS A BRANCH IS SHUT ──────────────────────────────
+// Kate, 4 Sep 2026: "every sun mon sarado usually ang al quoz". Without this the
+// by-day table prints AED 0 in nine of Al Quoz's thirty-one cells and every one of
+// them reads as a missing upload — nine false findings a month on the one page
+// whose whole job is to make a real one stand out.
+//
+// A CLOSED DAY WITH MONEY ON IT IS THE FINDING, and it is worth more than the
+// zeros ever were. August has exactly one: Al Quoz took AED 4,586 on Sunday 23
+// August, and Motor City, which trades Sundays and took 4,029 and 6,275 on the two
+// either side, took nothing that day. One branch's takings landed on the other's
+// name — cause 3 in the reconciliation notes, and invisible in a monthly total
+// because the group figure is right either way.
+//
+// Hand-maintained, like LEDGER_TARGETS, and for the same reason: a trading day is
+// a business fact and inferring it from "this branch usually takes nothing then"
+// would quietly swallow the exact case above. JS weekdays, 0 Sunday.
+const LG_CLOSED_DAYS = { AQ: [0, 1] };
+
+function lgIsClosedDay(code, d) {
+  const days = code && LG_CLOSED_DAYS[code];
+  return !!(days && d && days.indexOf(d.getDay()) > -1);
+}
+
 // The report's Sales block for one summary. Phorest's Services line has courses
 // OUT of it — they are the line below — where the dashboard's hair and beauty
 // service figures both have them in, so they come back off here.
@@ -1946,27 +1969,51 @@ async function renderLedgerFinancials() {
     const splitCols = [{ label: 'Branch' }]
       .concat(sp.windows.map((x, i) => ({ label: sp.head(x, i), align: 'r' })))
       .concat([{ label: w.month.label + ' total', align: 'r' }]);
-    const splitRow = (label, bucket) => [label]
-      .concat(lgSplitCells(series, bucket, netOf, lgAed))
+    // Not lgSplitCells(): this table has to know which weekday each column is to
+    // tell a shut branch from a missing upload, and that function is deliberately
+    // given nothing but the summary.
+    const splitCells = (bucket, code) => {
+      const cells = (bucket && bucket[sp.key]) ? bucket[sp.key] : [];
+      return sp.windows.map((x, i) => {
+        const s = cells[i];
+        const v = s ? netOf(s) : null;
+        if (lgGrain === 'daily' && lgIsClosedDay(code, x.from)) {
+          // Money on a day the branch is shut is worth more than any zero here.
+          return (v == null || Math.round(v) === 0)
+            ? '<span class="lg-na">closed</span>'
+            : `<span class="lg-down">${lgAed(v)}</span>`;
+        }
+        return v == null ? '—' : lgAed(v);
+      });
+    };
+    const splitRow = (label, bucket, code) => [label]
+      .concat(splitCells(bucket, code))
       .concat([bucket && bucket.mtd ? lgAed(netOf(bucket.mtd)) : '—']);
     const splitRows = SHEET_ORDER
       .map(code => {
         const b = series[code];
         const info = BRANCH_INFO[code] || { name: code };
-        return b && b.mtd ? splitRow(escapeHtml(info.name), b) : null;
+        return b && b.mtd ? splitRow(escapeHtml(info.name), b, code) : null;
       })
       .filter(Boolean);
-    splitRows.push({ total: splitRow('All salons', series.group) });
+    splitRows.push({ total: splitRow('All salons', series.group, null) });
     splitHtml = lgSection('fnSplit', '#C4B5FD',
       'Total (Ex VAT) by ' + (lgGrain === 'daily' ? 'day' : 'week'),
       escapeHtml(w.month.label),
       lgTable(splitCols, splitRows, { compact: true }) +
       `<div class="foot">Ex VAT, the same figure as the Sales block's Total (Ex VAT) column, cut by
-        ${lgGrain === 'daily' ? 'day' : 'week'}. Two kinds of nothing, and they mean different things:
-        a <b>dash</b> is a ${lgGrain === 'daily' ? 'day' : 'week'} with no rows uploaded at all, and
-        <b>AED 0</b> is rows that are there and total nothing — Al Quoz reads AED 0 on 2 and 3 August.
-        On a trading day either one is the finding. Run Phorest's report for the one date this points
-        at rather than for the month.</div>`);
+        ${lgGrain === 'daily' ? 'day' : 'week'}. Run Phorest's report for the one date this points at
+        rather than for the month.` +
+      (lgGrain === 'daily'
+        ? ` Four things a cell can say. A figure is the day's takings.
+        <b>AED 0</b> is rows that are there and total nothing. A <b>dash</b> is no rows uploaded at
+        all. <span class="lg-na">closed</span> is a day the branch does not trade, which is Sunday and
+        Monday at Al Quoz and nowhere else — and a <span class="lg-down">red figure</span> is money on
+        one of those days, which should not happen and is the most useful thing on this table.
+        Closing days are hand-kept in <code>LG_CLOSED_DAYS</code>; if a branch changes its week, that
+        is the one line to edit.`
+        : ` A dash is a week with no rows uploaded at all.`) +
+      `</div>`);
   }
 
   host.innerHTML =
