@@ -255,6 +255,8 @@ window.addEventListener('DOMContentLoaded', () => {
     if (e.target.tagName === 'TEXTAREA' && /^(spBox_|utilBox_)/.test(e.target.id || '')) trCountFilledBoxes();
   });
 
+  watchStickyChrome();
+
   if (sessionStorage.getItem('tr_auth') === '1') showPortal();
   buildFileSlotsDaily();
 });
@@ -281,6 +283,35 @@ function login() {
   }
 }
 
+// ── STICKY CHROME ──
+// The tab bar pins below the header and each tab's strip-and-segments band pins
+// below the tab bar, so the second and third layers have to know how tall the
+// layers above them are. Measured rather than typed into the CSS: the header
+// wraps to two rows on a narrow window, and the tab bar's height moved the day
+// the type size did. Kate, 2026-09-04.
+function measureStickyChrome() {
+  const root = document.documentElement.style;
+  const hdr  = document.querySelector('header');
+  const bar  = document.querySelector('.tab-bar');
+  if (hdr) root.setProperty('--hdr-h', hdr.offsetHeight + 'px');
+  if (bar && bar.offsetHeight) root.setProperty('--tabbar-h', bar.offsetHeight + 'px');
+}
+
+// The tab bar sits inside #portalSection, which is display:none until login, so
+// it measures 0 before showPortal(). The observer fires on the 0 to n change and
+// on every reflow after it, which covers the login, the window resize and a
+// wrapping header without a scroll handler.
+function watchStickyChrome() {
+  measureStickyChrome();
+  window.addEventListener('resize', measureStickyChrome);
+  if (!window.ResizeObserver) return;
+  const ro = new ResizeObserver(measureStickyChrome);
+  ['header', '.tab-bar'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) ro.observe(el);
+  });
+}
+
 function showPortal() {
   const loginSection  = document.getElementById('loginSection');
   const portalSection = document.getElementById('portalSection');
@@ -289,6 +320,8 @@ function showPortal() {
   if (loginSection) loginSection.style.display = 'none';
   if (portalSection) portalSection.style.display = 'block';
   if (logoutBtn) logoutBtn.style.display = 'inline-block';
+
+  measureStickyChrome();
 
    initStaffPerfTab();
 }

@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=10"></script>
+<script src="upload.js?v=11"></script>
 <script src="name-aliases.js?v=3"></script>
 <script src="phorest-staff.js?v=14"></script>
 <script src="phorest-pdf.js?v=2"></script>
@@ -56,11 +56,36 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
    pills in a bordered box was the loudest thing on the page and, with the emoji
    and the long parenthetical labels, it wrapped to two rows on a laptop.
    Overflows sideways now instead of wrapping (Kate, 2026-08-13). */
-.tab-bar{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.tab-bar{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;
+  position:sticky;top:var(--hdr-h,82px);z-index:19;background:var(--bg);padding-top:28px;margin-top:-28px}
 .tab-bar::-webkit-scrollbar{display:none}
-.tab-btn{padding:9px 18px;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:color .2s,border-color .2s;white-space:nowrap;flex-shrink:0}
+/* ── STICKY CHROME ─────────────────────────────────────────
+   The header was already sticky on its own, which left the tab bar and each
+   tab's strip and segment row to scroll away: on Staff Daily's 17,000-row
+   browse you lose track of which tab you are in and which segment you are
+   reading long before you reach the bottom. Three layers stack under the
+   header instead, each pinned below the one above it, and each swallows the
+   gap above itself with a negative margin against its own padding so no
+   content scrolls through the space between them. The two offsets are CSS
+   variables measured in JS rather than typed here, because the header wraps
+   to two rows on a narrow window and the tab bar grew when the type size
+   did. Products and Services carry no strip and no segments, so on those two
+   the band is just the header and the tabs. Kate, 2026-09-04. */
+.tab-sticky{position:sticky;top:calc(var(--hdr-h,82px) + var(--tabbar-h,72px));z-index:18;
+  background:var(--bg);padding-top:20px;margin-top:-20px;padding-bottom:16px}
+.tab-sticky .seg-bar{margin-bottom:0}
+.tab-btn{padding:9px 18px;border:none;border-bottom:3px solid transparent;margin-bottom:-1px;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:color .2s,border-color .2s,background .2s;white-space:nowrap;flex-shrink:0;border-radius:9px 9px 0 0}
 .tab-btn:hover{color:var(--text)}
-.tab-btn.active{color:var(--text);border-bottom-color:var(--accent)}
+.tab-btn:hover:not(.active){background:var(--border2)}
+/* The 2px rule on its own was not enough to find in a dark window: five
+   uppercase labels in muted grey, one of them a shade lighter, reads as five
+   of the same thing, and Kate could not tell she was on Utilisation. The
+   active tab now carries the surface behind it and a 3px accent rule under
+   it, which is the smallest change that makes it findable without going back
+   to the five filled pills the note above threw out. The weight is left at
+   600 on purpose: taking the active label to 700 nudges every tab to its
+   right a few px on each switch. Kate, 2026-09-04. */
+.tab-btn.active{color:var(--text);border-bottom-color:var(--accent);background:var(--surface)}
 /* the (Phorest) / (Yearly) qualifiers — kept, but demoted out of the uppercase rail */
 .tab-qual{text-transform:none;letter-spacing:0.02em;font-weight:400;color:var(--muted2);margin-left:5px}
 .tab-btn.active .tab-qual{color:var(--muted)}
@@ -467,12 +492,14 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
     <div class="tab-content" id="tab-ops">
 
+  <div class="tab-sticky">
   <div id="utilTodayStrip" class="today-strip"></div>
 
   <div class="seg-bar">
     <button class="seg-btn active" data-seg="progress" onclick="switchSeg(event,'ops','progress')">Progress</button>
     <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'ops','browse')">Browse</button>
     <button class="seg-btn" data-seg="upload" onclick="switchSeg(event,'ops','upload')">Upload</button>
+  </div>
   </div>
 
   <div class="seg-pane" id="seg-ops-upload">
@@ -684,12 +711,14 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 <!-- ══ STAFF PERFORMANCE (PHOREST) TAB ══ -->
 <div class="tab-content active" id="tab-staffperf">
 
+  <div class="tab-sticky">
   <div id="spTodayStrip" class="today-strip"></div>
 
   <div class="seg-bar">
     <button class="seg-btn active" data-seg="progress" onclick="switchSeg(event,'staffperf','progress')">Progress</button>
     <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'staffperf','browse')">Browse</button>
     <button class="seg-btn" data-seg="upload" onclick="switchSeg(event,'staffperf','upload')">Upload</button>
+  </div>
   </div>
 
   <div class="seg-pane" id="seg-staffperf-upload">
@@ -823,11 +852,13 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 <!-- ══ SHEETS SYNC TAB ══ -->
 <div class="tab-content" id="tab-sheetsync">
 
+  <div class="tab-sticky">
   <div id="ssTodayStrip" class="today-strip"></div>
 
   <div class="seg-bar">
     <button class="seg-btn active" data-seg="progress" onclick="switchSeg(event,'sheetsync','progress')">Progress</button>
     <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'sheetsync','browse')">Browse</button>
+  </div>
   </div>
 
   <div class="seg-pane active" id="seg-sheetsync-progress">
