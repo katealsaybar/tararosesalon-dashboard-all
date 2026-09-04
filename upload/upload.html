@@ -14,6 +14,7 @@
 <script src="phorest-staff.js?v=15"></script>
 <script src="phorest-pdf.js?v=2"></script>
 <script src="utilisation-pdf.js?v=9"></script>
+<script src="financial-totals-pdf.js?v=1"></script>
 <script src="sheet-sync.js?v=10"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
 <script src="data-watch.js?v=1"></script>
@@ -591,6 +592,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <button class="tab-btn active" onclick="switchTab(event, 'staffperf')">Staff Daily<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipStaffperf"></span></button>
       <button class="tab-btn" onclick="switchTab(event, 'sheetsync')">Ledgers<span class="tab-qual">Sheets</span><span class="tab-pip" id="tabPipSheetsync"></span></button>
       <button class="tab-btn" onclick="switchTab(event, 'ops')">Utilisation<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipOps"></span></button>
+      <button class="tab-btn" onclick="switchTab(event, 'fin')">Financial<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipFin"></span></button>
       <button class="tab-btn" onclick="switchTab(event, 'products')">Products</button>
       <button class="tab-btn" onclick="switchTab(event, 'service')">Services<span class="tab-qual">Yearly</span></button>
     </div>
@@ -736,6 +738,74 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   </div><!-- /seg-ops-browse -->
 
   </div>
+
+<!-- ══ FINANCIAL TOTALS TAB ══ -->
+<div class="tab-content" id="tab-fin">
+
+  <div class="tab-sticky">
+  <div id="finTodayStrip" class="today-strip"></div>
+  </div>
+
+  <div class="seg-wrap">
+  <div class="seg-bar">
+    <button class="seg-btn active" data-seg="progress" onclick="switchSeg(event,'fin','progress')">Progress</button>
+    <button class="seg-btn" data-seg="upload" onclick="switchSeg(event,'fin','upload')">Upload</button>
+  </div>
+  </div>
+
+  <!-- BULK PDF UPLOAD -->
+  <div class="seg-pane" id="seg-fin-upload">
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <div class="card-title">Upload Financial Totals PDFs</div>
+        <div class="card-sub">Branch and date are read from each filename. One PDF per branch per day.</div>
+      </div>
+      <button class="btn" id="finPdfParseBtn" style="width:auto;padding:11px 22px;flex-shrink:0" onclick="handleFinPdfBatch()">Parse &amp; Save All</button>
+    </div>
+    <div id="finPdfDrop" class="sp-pdf-drop">
+      <input type="file" id="finPdfInput" accept="application/pdf" multiple style="display:none" onchange="ftQueuePdfFiles(this.files)">
+      <div onclick="document.getElementById('finPdfInput').click()" style="cursor:pointer">
+        <div style="font-size:15px;color:var(--muted)">Click to choose PDFs, or drag &amp; drop them here</div>
+        <div style="font-size:12.5px;color:var(--muted2);margin-top:4px">motor-city-financial-totals-2026-09-01.pdf</div>
+        <div id="finPdfQueueCount" style="font-size:13px;color:var(--muted2);margin-top:4px">No files queued</div>
+      </div>
+    </div>
+    <div id="finPdfResults" style="margin-top:10px"></div>
+    <div class="card-sub" style="margin-top:14px;margin-bottom:0">
+      Two files get refused rather than guessed at: a <strong>date range</strong> (this table stores one day per row,
+      so a whole month would otherwise be filed against its first day) and the <strong>wrong branch</strong>
+      (the salon header is checked against the filename). Every file is also checked against the report's own
+      four internal sums before anything is written.
+    </div>
+  </div>
+  </div><!-- /seg-fin-upload -->
+
+  <!-- BACKFILL PROGRESS -->
+  <div class="seg-pane active" id="seg-fin-progress">
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px;flex-wrap:wrap">
+      <div class="card-title" style="margin-bottom:0">Backfill Progress</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-outline" id="finProgressGridMissingBtn" onclick="spToggleMissingList('finProgressGrid')" style="padding:8px 16px">Show missing dates</button>
+        <button class="btn-outline" onclick="spCopyMissingDates('finProgressGrid')" style="padding:8px 16px">Copy missing dates</button>
+        <button class="btn-outline" onclick="refreshFinProgress()" style="padding:8px 16px">↻ Refresh</button>
+      </div>
+    </div>
+    <div class="card-sub">One pull per branch per day, Jan 2025 → today. Click a month to open its days.</div>
+    <div id="finChecksWarn" class="err" style="display:none;text-align:left;margin:10px 0"></div>
+    <div id="finProgressGridMissing" class="sp-miss"></div>
+    <div id="finProgressGrid"><div style="font-size:14px;color:var(--muted2);padding:8px 0">Loading…</div></div>
+    <div class="sp-prog-legend">
+      <span><i style="background:var(--good)"></i>complete</span>
+      <span><i style="background:var(--warn)"></i>partial</span>
+      <span><i style="background:var(--border2)"></i>nothing yet</span>
+      <span><i style="border:1px dashed var(--border)"></i>closed, not counted</span>
+    </div>
+  </div>
+  </div><!-- /seg-fin-progress -->
+
+</div>
 
 <!-- ══ PRODUCT USAGE TAB ══ -->
 <div class="tab-content" id="tab-products">

@@ -91,9 +91,10 @@ function spGuardBranchMismatch(headerText, branchCode){
 }
 
 // ── WRONG-REPORT GUARD ────────────────────────────────────────
-// Staff Performance Overview and Staff Utilisation export under filenames that
-// differ by one word ("al-quoz-staff-performance-2026-01-01.pdf" vs
-// "al-quoz-staff-utilisation-2026-01-01.pdf"), and BOTH carry a
+// Staff Performance Overview, Staff Utilisation and Financial Totals export
+// under filenames that differ by one word ("al-quoz-staff-performance-...pdf"
+// vs "al-quoz-staff-utilisation-...pdf" vs "al-quoz-financial-totals-...pdf"),
+// and ALL carry a
 // "DD/MM/YY - DD/MM/YY" date line, a salon header and a "Total" row. So a
 // utilisation report dropped into the Staff Performance uploader clears every
 // existing check and parses far enough to write nonsense rows rather than
@@ -106,6 +107,10 @@ const SP_REPORT_KINDS = {
   utilisation: {
     label: 'Staff Utilisation', section: 'Utilisation',
     file: /-staff-utilisation-/i, title: /staff\s+utilisation/i,
+  },
+  financial: {
+    label: 'Financial Totals', section: 'Financial Totals',
+    file: /-financial-totals-/i, title: /financial\s+totals/i,
   },
 };
 

@@ -55,6 +55,14 @@ const UPD_FEEDS = [
     affects: 'the coverage card and the tab pip',
     refresher: 'refreshUtilProgress',
   },
+  {
+    key: 'fin',
+    table: 'financial_totals',
+    stamp: 'date',
+    label: 'Financial Totals · Phorest',
+    affects: 'the coverage card and the tab pip',
+    refresher: 'refreshFinProgress',
+  },
 ];
 
 // Per feed: the signature its card was last drawn from. A feed with no entry has
