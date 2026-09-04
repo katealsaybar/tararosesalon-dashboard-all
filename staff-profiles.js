@@ -65,9 +65,25 @@ const STAFF_PROFILES = {
   'MIMI':      { photo: 'mimi.png',      role: 'Senior Beauty Therapist', branch: 'KCA', ig: 'beauty_bymimi15' },
   'SHILA':     { photo: 'shila.png',     role: 'Senior Beauty Therapist', branch: 'KCA', ig: 'mandalshila' },
   'KIM':       { photo: 'kim.png',       role: 'Senior Nail Technician',  branch: 'KCA', ig: 'kimberly_nails27' },
-  // Arni's card shipped with the photo box empty — no cutout to make yet. Her
-  // review says Mamsha but her only ledger rows are KCA, so KCA until Kate says.
-  'ARNI':      {                         role: 'Nail Technician',         branch: 'KCA', ig: 'nailsby_rni13' },
+  // Her card shipped with the photo box empty — no cutout to make yet.
+  //
+  // Keyed ARNALYN, and filed at Saadiyat. Both were wrong here until 4 Sep 2026 and
+  // for the same reason: this entry was written by looking up ARNI, which only ever
+  // matches her 21 Khalifa cover days. Under ARNALYN she has 212 Saadiyat rows since
+  // February, so her review saying Mamsha was right all along. The key matters
+  // because staffProfile() and the surname join both canonicalise first — as ARNI
+  // she matched neither STAFF_SURNAMES nor anything the ledger writes, which is why
+  // her card had no surname on it.
+  'ARNALYN':   {                         role: 'Nail Technician',         branch: 'SAA', ig: 'nailsby_rni13' },
+  // Assistants. Kate, 4 Sep 2026: they work the floor and belong on the dashboard as
+  // Assistant, which is why the role joined STYLIST_ROLE_ORDER at the same time. No
+  // photo for any of them yet, which the map allows - the name renders plain.
+  'CHONA':     { role: 'Assistant', branch: 'KCA' },
+  'ESTHER':    { role: 'Assistant', branch: 'KCA' },
+  'PEARL':     { role: 'Assistant', branch: 'KCA' },
+  // A cell two assistants shared for a week, named after both of them.
+  'CHONA/ ESTHER': { role: 'Assistant', branch: 'KCA' },
+  'ESTHER/PEARL':  { role: 'Assistant', branch: 'KCA' },
 
   // -- Mamsha Al Saadiyat --
   'EMMA':      { photo: 'emma.png',      role: 'Style Director', branch: 'SAA',  ig: 'emmalou.williamson' },
@@ -93,6 +109,26 @@ const STAFF_PROFILES = {
   'REDA':      { photo: 'reda.png',      role: 'Senior Beauty Therapist', branch: 'SAA', ig: 'beautybyreda' },
   'SANIA':     { photo: 'sania.png',     role: 'Senior Beauty Therapist', branch: 'SAA', ig: 'sania.tararose' },
   'JUDY':      { photo: 'judy.png',      role: 'Nail Technician',         branch: 'SAA', ig: 'nailsbyjudy.1' },
+  // Saadiyat's assistants shared a cell, so the block is named after the people IN it, not
+  // after anyone they assisted (Kate, 4 Sep 2026, correcting the opposite note). Every one
+  // of these is an Assistant because that is what those people were at the time: Myra is a
+  // Blow-Dry Specialist now and May a Junior Stylist, and both keep their own entries
+  // above; the shared cell is the older, assistant-era record. 174 rows in all.
+  'MYRA/APOL':          { role: 'Assistant', branch: 'SAA' },
+  'MYRA/MICHELLE':      { role: 'Assistant', branch: 'SAA' },
+  'MYRA/KATHY':         { role: 'Assistant', branch: 'SAA' },
+  'MYRA/MAY':           { role: 'Assistant', branch: 'SAA' },
+  'MYRA/MARIA':         { role: 'Assistant', branch: 'SAA' },
+  'MYRA/APOL/XAVRINA':  { role: 'Assistant', branch: 'SAA' },
+  'MARIA/APOL':         { role: 'Assistant', branch: 'SAA' },
+  'MAY/XAV':            { role: 'Assistant', branch: 'SAA' },
+  'APOL':      { role: 'Assistant', branch: 'SAA' },
+  'KATHY':     { role: 'Assistant', branch: 'SAA' },
+  'MARIA':     { role: 'Assistant', branch: 'SAA' },   // Maria Theresa
+  // A leaver, let go when the staff was reduced (Christine, 4 Sep 2026). Stays here on
+  // purpose: the tables list whoever had sales in the window you are looking at, and her
+  // 22 days run Jan to May 2025.
+  'XAVRINA':   { role: 'Assistant', branch: 'SAA' },
 
   // -- Motor City --
   'ALAN':      { photo: 'alan.png',      role: 'Style Director', branch: 'MC',   ig: 'alan_joseph_hair' },
@@ -103,6 +139,7 @@ const STAFF_PROFILES = {
   // 2nd batch cards, Sep 2026 — see the KCA note above.
   'CLARISSA':  { photo: 'clarissa.png',  role: 'Blow-Dry Specialist', branch: 'MC', ig: 'hairbyclarissa' },
   'XYRHY':     { photo: 'xyrhy.png',     role: 'Blow-Dry Specialist', branch: 'MC', ig: 'hairgoalsbyxy' },
+  'ERCELY':    { role: 'Assistant', branch: 'MC' },
 
   // -- Al Quoz --
   'RUTH':      { photo: 'ruth.png',      role: 'Style Director', branch: 'AQ',   ig: 'rainbowsby_ruth' },
@@ -112,6 +149,8 @@ const STAFF_PROFILES = {
   // ledger writes her (MJ, not Mary Joy — 242 recent AQ rows against none).
   'SHINE':     { photo: 'shine.png',     role: 'Beauty Therapist', branch: 'AQ', ig: 'beauty_by_shineshine' },
   'MJ':        { photo: 'mj.png',        role: 'Nail Technician',  branch: 'AQ', ig: 'mj_torresgalos' },
+  'IVY':       { role: 'Assistant', branch: 'AQ' },
+  'LUNINGNING':{ role: 'Assistant', branch: 'AQ' },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────

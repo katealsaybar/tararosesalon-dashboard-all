@@ -1800,7 +1800,11 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) {
 // Areanne is Princess Areanne Miranda in Phorest, one person (Kate, 3 Sep 2026); the
 // ledger's AREANNE had found none of her 88 Phorest days since January.
 // Khalifa City writes Arnalyn as ARNI on the days she covers there (15 Jul 2026).
-const PHOREST_RECONCILE_ALIASES = { 'LUCY': 'LUCIA', 'MJ': 'MARY JOY', 'TAMMY': 'TAMRYN', 'KIM': 'KIMBERLY', 'AREANNE': 'PRINCESS', 'ARNI': 'ARNALYN' };
+// That is handled in name-aliases.js now, as ARNI -> ARNALYN, so the entry that used
+// to sit here has gone: ledgerNameKey() canonicalises before it reads this map, so an
+// 'ARNI' key could never match again, and ledgerNameFor() would have sent her Phorest
+// rows back to a ledger name that no longer exists (Kate, 4 Sep 2026).
+const PHOREST_RECONCILE_ALIASES = { 'LUCY': 'LUCIA', 'MJ': 'MARY JOY', 'TAMMY': 'TAMRYN', 'KIM': 'KIMBERLY', 'AREANNE': 'PRINCESS' };
 
 // Non-person rows found in branch_staff_daily (2026-08-02 audit, ~2.8k of ~15k rows) —
 // ledger summary/label rows the sync script misreads as if they were staff rows.

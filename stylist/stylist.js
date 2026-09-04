@@ -230,7 +230,7 @@ const BRANCH_INFO = {
   FRT:{ name:'Fratelli',      color:'#EEF3C7' },
 };
 const BEAUTY_NAMES = new Set(['MIMI','GRACE','SHILA','KIM','KIMBERLY','REDA','CHONA',
-  'MONA','SANIA','JUDY','ARNI',
+  'MONA','SANIA','JUDY','ARNI','ARNALYN',
   'SHINE','MJ']); // beauty bench + the nail desks — 2nd batch cards, Sep 2026 (Shine & MJ are AQ)
 const SKIP_NAMES   = new Set(['STAFF','TOTALS','TYPE','TYPE ','BUSINESS','TARA','ASISSTANTS','ASSISTANTS',
   'HAIR RETAIL SALES','TREATMENT SALES','COL TAKE AED','CBD TAKE AED','BEAUTY SALES','BEAUTY RETAIL SALES',

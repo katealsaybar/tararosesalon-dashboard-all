@@ -65,6 +65,7 @@ function switchTab(e, tab) {
   if (tab === 'sheetsync') initSheetSyncTab();
   if (tab === 'ops' && typeof initUtilTab === 'function') initUtilTab();
   if (tab === 'fin' && typeof initFinTab === 'function') initFinTab();
+  if (tab === 'targets' && typeof initTargetsTab === 'function') initTargetsTab();
 
   // Each tab's band is its own height, and Ledgers has two segments where the
   // others have three, so the chrome has to be re-read on every switch.
@@ -126,6 +127,7 @@ const TR_BROWSE_RUNNERS = {
   staffperf: 'runStaffPerfFilter',
   ops:       'runUtilFilter',
   sheetsync: 'runSheetSyncFilter',
+  targets:   'runTargetsFilter',
 };
 function trRunBrowseOnce(tab){
   if (trBrowseRan[tab]) return;

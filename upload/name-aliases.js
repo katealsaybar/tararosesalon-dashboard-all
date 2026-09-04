@@ -17,6 +17,18 @@ const STAFF_NAME_ALIASES = {
   'LUCIA': 'LUCY',
   // Motor City wrote her XYHRY on 31 Aug 2026. XYRHY is the spelling (Kate, 3 Sep 2026).
   'XYHRY': 'XYRHY',
+  // Both found by the Targets tab's roster check on the September target sheets,
+  // which flagged them as names no branch's ledger has ever seen (Kate, 4 Sep 2026).
+  //
+  // Saadiyat's target sheet writes Bethany as BETH. Nothing else does: BETHANY has
+  // 212 ledger rows at Saadiyat since February and BETH has none anywhere.
+  'BETH': 'BETHANY',
+  // One person, and ARNALYN is the spelling: 219 ledger rows (212 Saadiyat, 7
+  // Khalifa) against 21 for ARNI, all of them Khalifa cover days between March and
+  // July. dashboard.js already said so in a comment beside its own reconcile map;
+  // this is the same fact, in the one place every page reads. Branch attribution is
+  // per row, so folding the name moves no revenue between branches.
+  'ARNI': 'ARNALYN',
 };
 
 function canonicalStaffName(name){

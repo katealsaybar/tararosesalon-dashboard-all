@@ -10,12 +10,13 @@
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
 <script src="upload.js?v=17"></script>
-<script src="name-aliases.js?v=3"></script>
+<script src="name-aliases.js?v=4"></script>
 <script src="phorest-staff.js?v=15"></script>
 <script src="phorest-pdf.js?v=2"></script>
 <script src="utilisation-pdf.js?v=9"></script>
 <script src="financial-totals-pdf.js?v=1"></script>
 <script src="sheet-sync.js?v=10"></script>
+<script src="targets.js?v=1"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
 <script src="data-watch.js?v=1"></script>
 
@@ -445,6 +446,63 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .login-wrap .btn{background:#FF9B9B;color:#2A2A2A;border-radius:10px;padding:11px 0;font-size:16px;font-weight:700;letter-spacing:0.08em;text-transform:none;margin-top:16px;box-shadow:none}
 .login-wrap .btn:hover{background:#FF9B9B;opacity:0.88;transform:none;box-shadow:none}
 .err{color:var(--bad);font-size:15px;text-align:center;margin-top:8px}
+
+/* TARGETS TAB — the grid is a form, not a report, so it borrows .sp-table for
+   its bones and then puts a bare input in every cell. Inputs are borderless
+   until focus: a 40-row table with 280 boxed inputs in it reads as noise, and
+   the point of the grid is that you scan it and touch two cells. */
+.tg-controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
+.tg-pcts{display:flex;gap:10px;flex-wrap:wrap;padding-left:14px;border-left:1px solid var(--border2)}
+.tg-pcts .field{max-width:104px}
+.tg-paste{width:100%;min-height:190px;background:var(--surface2);color:var(--text);border:1px solid var(--border);
+  border-radius:10px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:13px;resize:vertical;line-height:1.5}
+.tg-paste:focus{outline:none;border-color:var(--accent)}
+.tg-btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+
+.tg-wrap{max-height:calc(100vh - var(--chrome-h,400px) - 200px);min-height:220px}
+.tg-table td{padding:3px 6px}
+.tg-table td.tg-l{text-align:left}
+.tg-table input,.tg-table select{width:100%;padding:5px 7px;border:1px solid transparent;border-radius:6px;
+  background:transparent;color:var(--text);font-size:13px;font-family:'Inter',sans-serif}
+.tg-table input.tg-n{text-align:right;font-variant-numeric:tabular-nums}
+.tg-table input:hover,.tg-table select:hover{border-color:var(--border2);background:var(--surface2)}
+.tg-table input:focus,.tg-table select:focus{border-color:var(--accent);background:var(--surface2);outline:none}
+/* A derived cell somebody has typed into. It stops following the percentages,
+   which is invisible otherwise, so it carries a mark and a Recompute button. */
+.tg-table input.tg-latched{color:var(--warn);font-weight:600}
+.tg-table tr.tg-warn td{background:var(--warn-bg)}
+.tg-table tr.tg-bad td{background:var(--bad-bg)}
+.tg-table td.tg-note{white-space:normal;min-width:190px;max-width:300px}
+.tg-flag{display:inline-block;font-size:11.5px;line-height:1.5;padding:1px 7px;border-radius:10px;margin:1px 2px 1px 0}
+.tg-flag.warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn)}
+.tg-flag.bad{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
+.tg-table td.tg-acts{white-space:nowrap}
+.tg-mini{padding:3px 8px;font-size:11px;letter-spacing:.04em}
+
+/* THE BRANCH TOTAL. Four tiles, because this is the number the whole tab exists
+   to produce and it should not be a row in a footer somewhere. */
+.tg-summary{margin-top:16px}
+.tg-totals{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.tg-tot{flex:1;min-width:150px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:12px 14px}
+.tg-tot span{display:block;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}
+.tg-tot b{display:block;font-size:21px;font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums}
+.tg-tot i{display:block;font-size:12px;color:var(--muted2);font-style:normal;margin-top:2px}
+.tg-stated-hd{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin:16px 0 7px}
+.tg-salon{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.tg-salon .field{max-width:190px}
+.tg-line{font-size:13.5px;line-height:1.6;padding:7px 11px;border-radius:8px;margin-bottom:6px;
+  background:var(--surface2);color:var(--muted);border-left:3px solid var(--border2)}
+.tg-line.ok{border-left-color:var(--good);color:var(--text)}
+.tg-line.warn{border-left-color:var(--warn);color:var(--text)}
+.tg-line.note{border-left-color:var(--accent-lavender);color:var(--text)}
+.tg-warns{margin:8px 0 0 18px;font-size:13.5px;line-height:1.65;color:var(--muted)}
+.tg-warns li{margin-bottom:4px}
+
+.tg-prog td.tg-cell{text-align:center;font-variant-numeric:tabular-nums}
+.tg-prog td.tg-cell.in{color:var(--good);background:var(--good-bg)}
+.tg-prog td.tg-cell.out{color:var(--muted2)}
+.tg-prog td.tg-l{text-align:left}
+@media(max-width:700px){.tg-pcts{padding-left:0;border-left:none}}
 .login-wrap .err{color:#A32D2D}
 .pw-field-wrap{position:relative}
 .pw-field-wrap input{padding-right:40px}
@@ -598,6 +656,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <button class="tab-btn" data-tab="staffperf" onclick="switchTab(event, 'staffperf')">Staff Daily<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipStaffperf"></span></button>
       <button class="tab-btn" data-tab="ops" onclick="switchTab(event, 'ops')">Utilisation<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipOps"></span></button>
       <button class="tab-btn" data-tab="fin" onclick="switchTab(event, 'fin')">Financial<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipFin"></span></button>
+      <button class="tab-btn" data-tab="targets" onclick="switchTab(event, 'targets')">Targets<span class="tab-qual">Monthly</span><span class="tab-pip" id="tabPipTargets"></span></button>
       <button class="tab-btn" data-tab="products" onclick="switchTab(event, 'products')">Products</button>
       <button class="tab-btn" data-tab="service" onclick="switchTab(event, 'service')">Services<span class="tab-qual">Yearly</span></button>
     </div>
@@ -809,6 +868,116 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     </div>
   </div>
   </div><!-- /seg-fin-progress -->
+
+</div>
+
+<!-- ══ MONTHLY TARGETS TAB ══ -->
+<!-- The only feed here that is neither daily nor a Phorest export: four
+     coordinators' target tables, once a month, pasted rather than exported.
+     Enter · Progress · Browse instead of Upload · Progress · Browse, because
+     the grid is where the work happens and "upload" would promise a file
+     picker. See targets.js for the parser and why the table, not the
+     coordinator's yellow footer box, is the branch total (Kate, 2026-09-04). -->
+<div class="tab-content" id="tab-targets">
+
+  <div class="tab-sticky">
+  <div id="tgMonthStrip" class="today-strip"></div>
+  </div>
+
+  <div class="seg-wrap">
+  <div class="seg-bar">
+    <button class="seg-btn active" data-seg="upload" onclick="switchSeg(event,'targets','upload')">Enter</button>
+    <button class="seg-btn" data-seg="progress" onclick="switchSeg(event,'targets','progress')">Progress</button>
+    <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'targets','browse')">Browse</button>
+  </div>
+  </div>
+
+  <!-- ENTER: paste → grid → save -->
+  <div class="seg-pane active" id="seg-targets-upload">
+
+  <div class="upload-card">
+    <div class="card-title">Paste the Target Sheet</div>
+    <div class="card-sub">The coordinator's own table, straight out of Sheets or Excel — header row included.
+      Layouts differ per branch and that is fine: columns are found by their headings, not by position.</div>
+
+    <div class="tg-controls">
+      <div class="field" style="max-width:190px"><label class="field-label">Branch</label>
+        <select id="tgBranch" onchange="tgBranchChanged()"></select></div>
+      <div class="field" style="max-width:190px"><label class="field-label">Month</label>
+        <select id="tgMonth"></select></div>
+      <div class="tg-pcts">
+        <div class="field"><label class="field-label">Actual %</label>
+          <input type="number" id="tgPctActual" step="0.1" onchange="tgPctChanged()"></div>
+        <div class="field"><label class="field-label">Retail %</label>
+          <input type="number" id="tgPctRetail" step="0.1" onchange="tgPctChanged()"></div>
+        <div class="field"><label class="field-label">Treatment %</label>
+          <input type="number" id="tgPctTreatment" step="0.1" onchange="tgPctChanged()"></div>
+      </div>
+    </div>
+    <div class="card-sub" style="font-size:13px;margin-bottom:14px">
+      Retail and treatment chain off the actual figure, not off the salon target — 10,000 → 8,000 → 960 → 1,600,
+      which is how every sheet so far computes them. Change a percentage and every unedited row follows it.
+    </div>
+
+    <textarea id="tgPasteBox" class="tg-paste" placeholder="STYLIST&#9;DESIGNATION&#9;TARGET GIVEN BY SALON&#9;ACTUAL by 80%&#9;RETAIL by 12%&#9;TREATMENT by 20%&#10;RUTH&#9;Style Director&#9;75000&#9;60000&#9;7200&#9;12000&#10;..."></textarea>
+    <div class="tg-btn-row">
+      <button class="btn" style="width:auto;padding:11px 22px" onclick="tgParseClicked()">Parse into grid</button>
+      <button class="btn-outline" onclick="tgLoadSaved()" title="Pull the month that is already saved into the grid, to correct it">Load saved month</button>
+      <button class="btn-outline" onclick="tgAddRow()">Add row</button>
+      <button class="btn-outline" onclick="tgClearGrid()">Clear</button>
+    </div>
+    <div id="tgPasteMsg" class="sp-branch-box-msg" style="margin-top:10px"></div>
+  </div>
+
+  <div class="upload-card" id="tgGridCard">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+      <div class="card-title" style="margin-bottom:0">Check &amp; Save</div>
+      <button class="btn" id="tgSaveBtn" style="width:auto;padding:11px 22px" onclick="tgSave()" disabled>Save Targets</button>
+    </div>
+    <div class="card-sub">Every cell is editable. Amber is worth a look, red has to be fixed. Saving replaces
+      that branch's whole month, so a re-paste is a correction rather than a second copy.</div>
+    <div id="tgGrid"></div>
+    <div id="tgSummary" class="tg-summary"></div>
+  </div>
+
+  </div><!-- /seg-targets-upload -->
+
+  <!-- PROGRESS: which branch has a sheet in, for which month -->
+  <div class="seg-pane" id="seg-targets-progress">
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px;flex-wrap:wrap">
+      <div class="card-title" style="margin-bottom:0">Target Sheets In</div>
+      <button class="btn-outline" onclick="refreshTargetsProgress()" style="padding:8px 16px">↻ Refresh</button>
+    </div>
+    <div class="card-sub">Four cells a month, so this is one small read rather than a paged backfill —
+      each cell shows the number of people and the branch total behind them.</div>
+    <div id="tgProgressGrid"><div style="font-size:14px;color:var(--muted2);padding:8px 0">Loading…</div></div>
+    <div class="sp-prog-legend">
+      <span><i style="background:var(--good)"></i>sheet in</span>
+      <span><i style="background:var(--border2)"></i>nothing yet</span>
+    </div>
+  </div>
+  </div><!-- /seg-targets-progress -->
+
+  <!-- BROWSE -->
+  <div class="seg-pane" id="seg-targets-browse">
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:0">Browse Saved Targets</div>
+      <span id="tgResultCount" class="card-sub" style="margin-bottom:0"></span>
+    </div>
+    <div class="sp-filter-row">
+      <div class="sp-filter-field"><label>Branch</label><select id="tgfBranch"></select></div>
+      <div class="sp-filter-field"><label>Month</label><select id="tgfMonth"></select></div>
+      <div class="sp-filter-field"><label>Stylist</label><input type="text" id="tgfStaff" placeholder="Search name…"></div>
+      <button class="btn" style="width:auto;padding:9px 18px" onclick="runTargetsFilter()">Apply</button>
+      <button class="btn-outline" onclick="resetTargetsFilter()">Reset</button>
+    </div>
+    <div class="sp-table-wrap">
+      <div id="tgTableHost" style="padding:16px;font-size:14px;color:var(--muted2)">Pick a filter and click Apply.</div>
+    </div>
+  </div>
+  </div><!-- /seg-targets-browse -->
 
 </div>
 

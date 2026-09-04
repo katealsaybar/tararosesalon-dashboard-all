@@ -2486,14 +2486,14 @@ table.tp-cmp td.bad{color:var(--bad)}
 </div><!-- end #dashboardWrap -->
 
 
-<script src="upload/name-aliases.js?v=20260903b"></script>
+<script src="upload/name-aliases.js?v=20260904a"></script>
 <!-- After name-aliases.js: ledgerStaffTarget() canonicalises names through it. -->
 <script src="ledger-targets.js?v=20260903a"></script>
-<script src="staff-profiles.js?v=20260903a"></script>
+<script src="staff-profiles.js?v=20260904a"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
-<script src="dashboard.js?v=20260904b"></script>
+<script src="dashboard.js?v=20260904c"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20260904d"></script>
+<script src="branch-ledger.js?v=20260904e"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20260904a"></script>
@@ -2971,8 +2971,12 @@ function trSyncUrl(sectionId){
   // are looking at is part of where you are. Written in full including the
   // default — a link that leaves it out is a link that does not say what it
   // shows. Ledgers pages only; nothing else has a Split.
-  if (typeof LEDGER_VIEWS !== 'undefined' && LEDGER_VIEWS.has(CURRENT_VIEW)
-      && typeof lgGrain !== 'undefined') parts.push('split=' + lgGrain);
+  // Month goes in ahead of Split so the URL reads in the order the page does:
+  // which page, which month, how that month is cut.
+  if (typeof LEDGER_VIEWS !== 'undefined' && LEDGER_VIEWS.has(CURRENT_VIEW)) {
+    if (typeof lgMonth !== 'undefined' && lgMonth) parts.push('month=' + lgMonth);
+    if (typeof lgGrain !== 'undefined') parts.push('split=' + lgGrain);
+  }
   const q = parts.length ? '?' + parts.join('&') : '';
   const slug = location.pathname + q + (sectionId ? '#' + sectionId : '');
   if (slug === TR_URL_SLUG) return;

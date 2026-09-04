@@ -63,6 +63,18 @@ const UPD_FEEDS = [
     affects: 'the coverage card and the tab pip',
     refresher: 'refreshFinProgress',
   },
+  // Monthly rather than daily, so `stamp` is the month column and a "now through
+  // Sep" line means a new month's sheet has landed. The count is what actually
+  // moves most of the time: a branch's ~14 rows arriving, or a re-paste changing
+  // the head-count. Cheap either way — this table is four branches × a month.
+  {
+    key: 'targets',
+    table: 'staff_targets',
+    stamp: 'month',
+    label: 'Targets · Monthly',
+    affects: 'the sheets-in card, the month strip and the tab pip',
+    refresher: 'refreshTargetsProgress',
+  },
 ];
 
 // Per feed: the signature its card was last drawn from. A feed with no entry has
