@@ -219,6 +219,9 @@ function lgRollup(list) {
     // so the eleven-line revenue block rolls up for any branch selection.
     beautyRetailOnly:0, hairCourses:0, beautyCourses:0,
     hairTreatmentUnits:0, hairRetailUnits:0, beautyRetailUnits:0,
+    // Service revenue no stylist was credited with — see the note in dashboard.js.
+    // Rolls up so Financial Totals can report it for any branch selection.
+    servicesUnattributed:0,
   };
   const keys = Object.keys(t);
   (list || []).filter(Boolean).forEach(s => keys.forEach(k => { t[k] += Number(s[k]) || 0; }));
@@ -1995,6 +1998,17 @@ async function renderLedgerFinancials() {
 
   const g = lgFinancials(series.group && series.group.mtd);
 
+  // Assistant services per branch, for the reconciliation note. Only the branches
+  // that actually have any, because a list of four zeros explains nothing.
+  const asstRows = SHEET_ORDER
+    .map(code => {
+      const b = series[code];
+      const info = BRANCH_INFO[code] || { name: code };
+      const v = (b && b.mtd && Number(b.mtd.servicesUnattributed)) || 0;
+      return v >= 1 ? [info.name, v] : null;
+    })
+    .filter(Boolean);
+
   // ── THE DRILL-DOWN ─────────────────────────────────────────
   // Only when the Split chips ask for it. One number per cell, Total (Ex VAT),
   // because the question this table answers is "which day is the gap on" and six
@@ -2083,13 +2097,23 @@ async function renderLedgerFinancials() {
         Total (Ex VAT) for the same branch. Compare ex VAT, never the gross Total column: the rest of
         the dashboard is ex VAT throughout, and read against the gross the two will look wrong together
         for no reason other than the 5%.</p>
-        <p><b>Expect a gap on courses</b>, and only on courses. Phorest counts courses <i>sold</i>;
-        every figure here counts courses <i>performed</i>, because Phorest's staff export gives a
-        "Courses (perf)" column and nothing anywhere gives courses sold. That whole line is worth
-        ${g ? lgAed(g.courses) : 'a low four figures'} across the group this month, so the gap it can
-        open is smaller still: Saadiyat reads AED 517,888 here against the August report's
-        AED 518,674, which is AED 786 on half a million. A gap much larger than that is something
-        else, and is worth chasing.</p>
+        <p><b>Two reasons it reads under the report</b>, both deliberate, and between them they
+        account for the gap exactly. <i>Courses</i>: Phorest counts courses <b>sold</b>, every figure
+        here counts courses <b>performed</b>, because Phorest's staff export gives a "Courses (perf)"
+        column and nothing anywhere gives courses sold. <i>Service revenue nobody was credited
+        with</i>: these pages are built by summing staff rows, and a row is dropped whenever it
+        cannot be tied to a person the ledger knows — an assistant, whose work never attributes to a
+        stylist, or a Phorest name with no ledger row that day.</p>
+        <p>Saadiyat's August is the worked example. The report says AED 518,674, this page says
+        AED 517,888, and the AED 786 between them is AED 481 of courses plus AED 305 of uncredited
+        service — Maria Theresa on the 2nd and Lhang Ann on the 22nd, two assistants at AED 152.38
+        each. <b>Services and Products match the report to the fils.</b> A gap those two do not
+        explain is something else and is worth chasing.</p>
+        ${asstRows.length ? `<p><b>Uncredited service this month</b>, measured against Phorest's own
+        branch TOTAL line, so it is exact and needs no report:
+        ${asstRows.map(([n, v]) => `${escapeHtml(n)} ${lgAed(v)}`).join(' · ')}.
+        Courses are the rest of the gap and cannot be quantified until the Financial Totals upload
+        lands, which is the other session's work.</p>` : ''}
         <p><b>The rest of the report</b> is not held anywhere yet. Non-Revenue Sales (vouchers sold and
         topped up, paid into account, vouchers used, account used), Pay Outs, Payment Types
         (cash · card · Stripe · Tabby) and Total Banked are branch-level money movements, and every

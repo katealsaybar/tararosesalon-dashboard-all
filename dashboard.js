@@ -1709,6 +1709,30 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) {
   // leave it looking like two figures disagreeing.
   s.retailAttributed     = attributedRetail;
   s.retailUnattributed   = retailUnattributed;
+  // ── SERVICE REVENUE NOBODY WAS CREDITED WITH ──────────────────────────────
+  // The exact same idea as retailUnattributed above, on the other side of the till,
+  // and the one number that explains why this dashboard reads under Phorest's own
+  // Financial Totals report. Phorest's branch TOTAL line is every dirham the branch
+  // took; the figures on these pages are built by summing STAFF rows, and a staff
+  // row is dropped whenever it cannot be tied to a person the ledger knows about:
+  // an assistant (deliberately, since their work never attributes to a stylist and
+  // crediting it would break every stylist-against-target row), or a Phorest name
+  // with no ledger row that day at all.
+  //
+  // Kate, 4 Sep 2026, holding Saadiyat's August report against the page: services
+  // and products matched the report to the fils and the total was AED 786 under it.
+  // AED 481.35 of that was courses sold against courses performed, and the other
+  // AED 304.76 was this — Maria Theresa on the 2nd and Lhang Ann on the 22nd, two
+  // assistants at AED 152.38 each. Measuring it as a subtraction rather than by
+  // tallying assistants catches every cause at once, including the one that
+  // surprised us: on a day the ledger covers, a Phorest row with no ledger row is
+  // not an assistant and is dropped just the same.
+  //
+  // Null, not 0, when there is no Phorest branch TOTAL to subtract from — a
+  // ledger-only window cannot know what it is missing, and 0 would claim it does.
+  s.servicesUnattributed = (branchTotals && branchTotals.days)
+    ? ((branchTotals.services || 0) + (branchTotals.courses || 0)) - servicesTotal
+    : null;
   s.hairServicesIncl     = hairServicesIncl;
   // Kate's revenue vocabulary (3 Sep 2026), after the Khalifa "42k shortfall" that
   // was really an excl-treatments actual read against an incl-treatments target:
