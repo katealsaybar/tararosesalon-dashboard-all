@@ -9,9 +9,9 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=9"></script>
+<script src="upload.js?v=10"></script>
 <script src="name-aliases.js?v=3"></script>
-<script src="phorest-staff.js?v=13"></script>
+<script src="phorest-staff.js?v=14"></script>
 <script src="phorest-pdf.js?v=2"></script>
 <script src="utilisation-pdf.js?v=8"></script>
 <script src="sheet-sync.js?v=9"></script>
@@ -252,6 +252,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-day-strip{display:flex;gap:2px;flex-wrap:wrap}
 .sp-day-cell{width:15px;height:15px;flex-shrink:0;border-radius:3px;background:var(--border2);font-size:10px;color:var(--muted2);display:flex;align-items:center;justify-content:center}
 .sp-day-cell.done{background:var(--good);color:transparent}
+/* Closed: not captured, but not a gap either. Hollow so it reads as "nothing
+   was due here" rather than "something is missing" (Kate, 2026-09-04). */
+.sp-day-cell.closed{background:transparent;border:1px dashed var(--border);color:var(--muted2)}
 .sp-prog-legend{display:flex;gap:14px;font-size:12.5px;color:var(--muted2);margin-top:12px;flex-wrap:wrap}
 .sp-prog-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px;font-style:normal}
 .sp-pdf-drop{border:1.5px dashed var(--border);border-radius:12px;padding:20px;text-align:center;background:var(--surface2);transition:border-color .2s,background .2s}
@@ -538,6 +541,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <span><i style="background:var(--good)"></i>complete</span>
       <span><i style="background:var(--warn)"></i>partial</span>
       <span><i style="background:var(--border2)"></i>nothing yet</span>
+      <span><i style="border:1px dashed var(--border)"></i>closed, not counted</span>
     </div>
   </div>
   </div><!-- /seg-ops-progress -->
@@ -756,6 +760,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <span><i style="background:var(--good)"></i>complete</span>
       <span><i style="background:var(--warn)"></i>partial</span>
       <span><i style="background:var(--border2)"></i>nothing yet</span>
+      <span><i style="border:1px dashed var(--border)"></i>closed, not counted</span>
     </div>
   </div>
   </div><!-- /seg-staffperf-progress -->
@@ -840,6 +845,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <span><i style="background:var(--good)"></i>complete</span>
       <span><i style="background:var(--warn)"></i>partial</span>
       <span><i style="background:var(--border2)"></i>nothing yet</span>
+      <span><i style="border:1px dashed var(--border)"></i>closed, not counted</span>
     </div>
   </div>
 

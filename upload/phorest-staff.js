@@ -421,6 +421,18 @@ async function refreshStaffPerfProgress(){
 // Utilisation tab, which loads after this file (Kate, 2026-09-03).
 const SP_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+// Days the group does not trade. Nothing was captured because nothing happened,
+// so they are not gaps: they come out of every denominator, they never become
+// the oldest gap, and Copy missing dates leaves them off the list. Otherwise
+// Khalifa's "oldest gap 01/01/2025" would have stood for ever and sent someone
+// looking for a report that was never run. Group-wide and 1 January only
+// (Kate, 2026-09-04) — add a date here and every strip picks it up.
+const SP_CLOSED_DAYS = [{ month: 0, date: 1, why: "New Year's Day" }];
+
+function spClosedDay(d){
+  return SP_CLOSED_DAYS.find(c => c.month === d.getMonth() && c.date === d.getDate()) || null;
+}
+
 // The day panel and "Copy missing dates" both need the covered set and the
 // branch's own key function after render, so each strip parks them here under
 // an id the markup carries. spProgBeginBatch/EndBatch scope one card's strips
@@ -442,8 +454,9 @@ function spRenderBackfillStrips(label, days, covered, keyOf){
   spProg[uid] = { label, days, covered, keyOf };
   spProgBatch.push(uid);
 
-  const doneDays = days.filter(d => covered.has(keyOf(d)));
-  const firstMissing = days.find(d => !covered.has(keyOf(d)));
+  const open = days.filter(d => !spClosedDay(d));
+  const doneDays = open.filter(d => covered.has(keyOf(d)));
+  const firstMissing = open.find(d => !covered.has(keyOf(d)));
   const byYear = new Map();
   days.forEach(d => { const y = d.getFullYear(); if (!byYear.has(y)) byYear.set(y, []); byYear.get(y).push(d); });
   const years = [...byYear.keys()].sort((a,b) => b-a);
@@ -451,28 +464,33 @@ function spRenderBackfillStrips(label, days, covered, keyOf){
   return `<div class="sp-prog-branch">
       <div class="sp-prog-head">
         <span class="sp-prog-name">${label}</span>
-        <span class="sp-prog-meta">${doneDays.length}/${days.length} days${firstMissing ? ' · oldest gap <b>'+firstMissing.toLocaleDateString('en-GB')+'</b>' : ' · <b class="ok">fully captured</b>'}</span>
+        <span class="sp-prog-meta">${doneDays.length}/${open.length} days${firstMissing ? ' · oldest gap <b>'+firstMissing.toLocaleDateString('en-GB')+'</b>' : ' · <b class="ok">fully captured</b>'}</span>
       </div>` +
     years.map(y => {
       const yDays = byYear.get(y);
-      const yDone = yDays.filter(d => covered.has(keyOf(d))).length;
+      const yOpen = yDays.filter(d => !spClosedDay(d));
+      const yDone = yOpen.filter(d => covered.has(keyOf(d))).length;
       // Counted per month rather than assumed 28-31, so a branch whose range
-      // starts or ends mid-month (FRT) shows that month's real denominator.
-      const months = Array.from({length:12}, () => ({ total:0, done:0 }));
+      // starts or ends mid-month (FRT) shows that month's real denominator, and
+      // a closed day is counted as closed rather than as a day to chase.
+      const months = Array.from({length:12}, () => ({ total:0, done:0, closed:0 }));
       yDays.forEach(d => {
         const m = months[d.getMonth()];
+        if (spClosedDay(d)){ m.closed++; return; }
         m.total++;
         if (covered.has(keyOf(d))) m.done++;
       });
       return `<div class="sp-yr">
-        <span class="sp-yr-lbl"><b>${y}</b> ${yDone}/${yDays.length}</span>
+        <span class="sp-yr-lbl"><b>${y}</b> ${yDone}/${yOpen.length}</span>
         <div class="sp-mo-grid">` +
         months.map((m, i) => {
           if (!m.total){
-            return `<button class="sp-mo" disabled title="${SP_MONTHS[i]} ${y} — outside this branch's range"><div class="sp-mo-bar"></div><span class="sp-mo-lbl">${SP_MONTHS[i][0]}</span></button>`;
+            const why = m.closed ? 'closed all month' : "outside this branch's range";
+            return `<button class="sp-mo" disabled title="${SP_MONTHS[i]} ${y} — ${why}"><div class="sp-mo-bar"></div><span class="sp-mo-lbl">${SP_MONTHS[i][0]}</span></button>`;
           }
           const pct = Math.round(m.done / m.total * 100);
-          return `<button class="sp-mo" onclick="spOpenProgMonth(this,'${uid}',${y},${i})" title="${SP_MONTHS[i]} ${y} — ${m.done}/${m.total} days${m.done === m.total ? '' : ' · click for the days'}">
+          const closedNote = m.closed ? ` · ${m.closed} closed` : '';
+          return `<button class="sp-mo" onclick="spOpenProgMonth(this,'${uid}',${y},${i})" title="${SP_MONTHS[i]} ${y} — ${m.done}/${m.total} days${closedNote}${m.done === m.total ? '' : ' · click for the days'}">
             <div class="sp-mo-bar">${m.done ? `<div class="sp-mo-fill${pct === 100 ? '' : ' part'}" style="width:${pct}%"></div>` : ''}</div>
             <span class="sp-mo-lbl">${SP_MONTHS[i][0]}</span></button>`;
         }).join('') +
@@ -495,13 +513,17 @@ function spOpenProgMonth(btn, uid, year, monthIdx){
   if (wasOpen) return;
 
   btn.classList.add('open');
-  const mDays = st.days.filter(d => d.getFullYear() === year && d.getMonth() === monthIdx);
-  const done  = mDays.filter(d => st.covered.has(st.keyOf(d))).length;
-  box.innerHTML = `<div class="sp-mo-days-title"><b>${SP_MONTHS[monthIdx]} ${year}</b> · ${st.label} · ${done} of ${mDays.length} days captured</div>
+  const mDays  = st.days.filter(d => d.getFullYear() === year && d.getMonth() === monthIdx);
+  const mOpen  = mDays.filter(d => !spClosedDay(d));
+  const done   = mOpen.filter(d => st.covered.has(st.keyOf(d))).length;
+  const closed = mDays.length - mOpen.length;
+  box.innerHTML = `<div class="sp-mo-days-title"><b>${SP_MONTHS[monthIdx]} ${year}</b> · ${st.label} · ${done} of ${mOpen.length} days captured${closed ? ` · ${closed} closed` : ''}</div>
     <div class="sp-day-strip">` +
     mDays.map(d => {
-      const ok  = st.covered.has(st.keyOf(d));
-      const lbl = d.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'short', year:'numeric' });
+      const shut = spClosedDay(d);
+      const ok   = st.covered.has(st.keyOf(d));
+      const lbl  = d.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'short', year:'numeric' });
+      if (shut) return `<div class="sp-day-cell closed" title="${lbl} — closed, ${shut.why}">${d.getDate()}</div>`;
       return `<div class="sp-day-cell${ok ? ' done' : ''}" title="${lbl}${ok ? '' : ' — missing'}">${ok ? '' : d.getDate()}</div>`;
     }).join('') +
     '</div>';
@@ -516,7 +538,7 @@ function spCopyMissingDates(hostId){
   (spProgByHost[hostId] || []).forEach(uid => {
     const st = spProg[uid];
     if (!st) return;
-    const miss = st.days.filter(d => !st.covered.has(st.keyOf(d)));
+    const miss = st.days.filter(d => !spClosedDay(d) && !st.covered.has(st.keyOf(d)));
     if (!miss.length) return;
     total += miss.length;
     lines.push(`${st.label} (${miss.length}): ${miss.map(spIsoDate).join(', ')}`);

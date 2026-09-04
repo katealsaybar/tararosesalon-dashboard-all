@@ -117,7 +117,11 @@ function spRenderTodayStrip(hostId, pipId, pasteTab, rows, opts = {}){
   const badge   = opts.badge || 'Today';
   const inWord  = opts.pillTitle || 'in for today';
   const live    = rows.filter(r => !r.ended);
-  const missing = live.filter(r => !r.in);
+  // On a day the group does not trade there is nothing to chase, so the strip
+  // says so and the pip stays green rather than nagging for a report nobody
+  // ran (Kate, 2026-09-04).
+  const shut    = typeof spClosedDay === 'function' ? spClosedDay(new Date()) : null;
+  const missing = shut ? [] : live.filter(r => !r.in);
   const host = document.getElementById(hostId);
   if (host){
     const today = new Date().toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
@@ -129,7 +133,9 @@ function spRenderTodayStrip(hostId, pipId, pasteTab, rows, opts = {}){
           : `<span class="today-pill ${r.in ? 'in' : 'out'}" title="${r.title || (r.in ? r.label + ' — ' + inWord : r.label + ' — not ' + inWord)}">${r.in ? '&#10003;' : '&#9675;'} ${r.label}</span>`
         ).join('') +
       `</div>
-      <span class="today-note">${missing.length ? missing.length + ' ' + (opts.missingWord || 'still to come') : (opts.allInWord || 'all in')}</span>` +
+      <span class="today-note">${shut ? 'closed, ' + shut.why
+        : missing.length ? missing.length + ' ' + (opts.missingWord || 'still to come')
+        : (opts.allInWord || 'all in')}</span>` +
       (missing.length && pasteTab ? `<button class="btn" style="width:auto;padding:9px 18px" onclick="spJumpToPaste('${pasteTab}')">Paste now</button>` : '');
   }
   const pip = document.getElementById(pipId);
@@ -138,6 +144,7 @@ function spRenderTodayStrip(hostId, pipId, pasteTab, rows, opts = {}){
     pip.classList.toggle('warn', missing.length > 0);
     pip.title = missing.length
       ? `${missing.length} branch${missing.length === 1 ? '' : 'es'} ${opts.pipMissing || 'missing today'}`
+      : shut ? `closed today, ${shut.why} — nothing due`
       : `every branch ${opts.pipClear || 'in for today'}`;
   }
 }
