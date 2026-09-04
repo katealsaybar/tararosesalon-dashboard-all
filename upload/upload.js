@@ -344,9 +344,15 @@ function measureStickyChrome() {
   const hdr  = document.querySelector('header');
   const bar  = document.querySelector('.tab-bar');
   const hdrH = hdr ? hdr.offsetHeight : 0;
-  const barH = bar ? bar.offsetHeight : 0;
+  // Above 980px the rail is the fixed sidebar, so it sits BESIDE the content and
+  // contributes nothing to the band pinned above it — the day strip belongs
+  // directly under the header there, not 72px below it. Read off the live
+  // position rather than a second media query, the same way the strip and the
+  // segment row are read below. Written unconditionally, because the whole point
+  // is that the value can legitimately be 0 (Kate, 4 Sep 2026).
+  const barH = (bar && getComputedStyle(bar).position !== 'fixed') ? bar.offsetHeight : 0;
   if (hdrH) root.setProperty('--hdr-h', hdrH + 'px');
-  if (barH) root.setProperty('--tabbar-h', barH + 'px');
+  root.setProperty('--tabbar-h', barH + 'px');
 
   // --chrome-h is the bottom edge of everything pinned above the content, which
   // is what the browse tables are sized against. It is read off the live
@@ -414,6 +420,9 @@ function showPortal() {
   if (loginSection) loginSection.style.display = 'none';
   if (portalSection) portalSection.style.display = 'block';
   if (logoutBtn) logoutBtn.style.display = 'inline-block';
+  // The sidebar's gutter is on .page, which also holds the login card, so the
+  // offset is gated on being logged in rather than on the viewport alone.
+  document.body.classList.add('up-in');
 
   measureStickyChrome();
 
@@ -435,6 +444,7 @@ function logout() {
   if (portalSection) portalSection.style.display = 'none';
   if (loginSection) loginSection.style.display = 'block';
   if (logoutBtn) logoutBtn.style.display = 'none';
+  document.body.classList.remove('up-in');
 
   const pw = document.getElementById('pwInput');
   if (pw) pw.value = '';

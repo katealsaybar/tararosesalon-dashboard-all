@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=17"></script>
+<script src="upload.js?v=18"></script>
 <script src="name-aliases.js?v=4"></script>
 <script src="phorest-staff.js?v=16"></script>
 <script src="phorest-pdf.js?v=2"></script>
@@ -118,6 +118,59 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .tab-pip{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--border2);margin-left:7px;vertical-align:1px;flex-shrink:0}
 .tab-pip.warn{background:var(--warn)}
 .tab-pip.clear{background:var(--good)}
+/* ── THE SPINE ─────────────────────────────────────────────
+   Kate, 4 Sep 2026: "gawan mo na lang ng sidebar navi tong upload view na rin".
+   The dashboard's own ink-dark sidebar, brought over rather than reinvented: the
+   same re-scoped tokens, the same uppercase group titles, the same lavender pill
+   on the active item, so moving between the two pages does not read as two
+   products.
+
+   IT IS THE SAME RAIL, RE-LAID-OUT, not a second nav. The seven buttons keep
+   their .tab-btn class, their data-tab and their switchTab call, so which tab is
+   open, which one is remembered per device and which pip is amber are all
+   untouched — the only thing that changed is where the buttons sit. Two navs for
+   one set of tabs would have drifted the first time one was renamed.
+
+   Below 980px it lies back down into the sideways-scrolling rail it has always
+   been: a fixed 212px column is a quarter of a laptop lid and most of a phone.
+   The group titles are the one thing that cannot survive the fold, so they are
+   hidden rather than wrapped into the scroll.
+
+   The spine is fixed, which is why measureStickyChrome() gives a fixed bar a
+   height of 0 — it sits beside the content rather than above it, so the day
+   strip pins directly under the header instead of 72px below it. */
+:root{--up-nav-w:212px}
+.tab-grp{display:none}
+@media(min-width:980px){
+  /* Only once you are in: the login card is centred in this same .page. */
+  body.up-in .page{padding-left:calc(20px + var(--up-nav-w));max-width:calc(1400px + var(--up-nav-w))}
+  .tab-bar{
+    --surface:#20212A;--surface2:#2A2B36;--border:rgba(250,248,243,.08);
+    --border2:rgba(250,248,243,.10);--text:#FAF8F3;
+    --muted:rgba(250,248,243,.60);--muted2:rgba(250,248,243,.38);
+    position:fixed;left:0;top:var(--hdr-h,82px);bottom:0;width:var(--up-nav-w);
+    flex-direction:column;align-items:stretch;gap:2px;z-index:21;
+    margin:0;padding:18px 12px 26px;
+    background:var(--surface);color:var(--text);
+    border-bottom:none;border-right:1px solid var(--border);
+    overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+  .tab-grp{display:block;font-size:11.5px;letter-spacing:0.14em;text-transform:uppercase;
+    color:var(--muted2);padding:0 12px;margin:16px 0 6px}
+  .tab-grp:first-child{margin-top:0}
+  .tab-btn{display:flex;align-items:center;gap:7px;width:100%;
+    padding:9px 12px;margin:0;border-bottom:none;border-radius:9px;
+    font-size:14px;letter-spacing:0.05em;text-transform:none;text-align:left;white-space:nowrap}
+  .tab-btn:hover:not(.active){background:var(--surface2)}
+  /* The pill, as on the dashboard. The 3px underline the horizontal rail uses
+     cannot work on a vertical list — every item would carry one. */
+  .tab-btn.active{background:var(--accent-lavender);color:#1A1A1A;border-radius:999px;font-weight:600}
+  .tab-btn.active .tab-qual{color:rgba(26,26,26,.60)}
+  /* The qualifier goes to the far edge with the pip beside it, so the seven
+     nouns line up down the left and stay scannable. */
+  .tab-qual{margin-left:auto;font-size:11.5px;letter-spacing:0.02em}
+  .tab-pip{margin-left:0}
+  .tab-btn:not(:has(.tab-qual)) .tab-pip{margin-left:auto}
+}
 .tab-content{display:none}
 .tab-content.active{display:block}
 
@@ -130,7 +183,15 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .card-sub{font-size:14px;color:var(--muted);margin-bottom:14px}
 .field{display:flex;flex-direction:column;gap:5px}
 .field-label{font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
-input[type=text],input[type=password],input[type=date],input[type=number],select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;color:var(--text);background:var(--surface2);font-family:'Inter',sans-serif;transition:border-color .2s;appearance:none}
+/* input:not([type]) is here because an <input> with no type attribute matches none
+   of the selectors beside it. HTML defaults such a field to text, CSS does not:
+   input[type=text] is an attribute selector and an absent attribute is not an
+   empty one. The Targets tab's client-count and yellow-box fields are written
+   bare, so eight of them rendered as raw white browser boxes on a dark card
+   (Kate, 4 Sep 2026: "the boxes?"). Fixed on the selector rather than by adding
+   type=text to the eight, so the next bare input anywhere in the portal is
+   styled too. .tg-table input below still wins on the grid's own fields. */
+input:not([type]),input[type=text],input[type=password],input[type=date],input[type=number],select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;color:var(--text);background:var(--surface2);font-family:'Inter',sans-serif;transition:border-color .2s;appearance:none}
 /* Native date inputs: keep them typable (segment typing works as-is) but dress
    the widget — theme the popup calendar via color-scheme and tone the icon down
    to match the muted text instead of the browser's default black glyph. */
@@ -138,7 +199,7 @@ input[type=text],input[type=password],input[type=date],input[type=number],select
 [data-theme="dark"] input[type=date]{color-scheme:dark}
 input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.55;transition:opacity .2s}
 input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:1}
-input[type=date]:focus,input[type=number]:focus,input[type=text]:focus,input[type=password]:focus{border-color:var(--accent);outline:none}
+input:not([type]):focus,input[type=date]:focus,input[type=number]:focus,input[type=text]:focus,input[type=password]:focus{border-color:var(--accent);outline:none}
 input:focus,select:focus{outline:none;border-color:var(--accent)}
 .btn{width:100%;padding:11px;background:var(--btn);color:var(--btn-fg);border:none;border-radius:10px;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;font-weight:700;transition:background .2s,opacity .2s;white-space:nowrap}
 .btn:hover{background:var(--btn-hover)}
@@ -462,7 +523,10 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
    the point of the grid is that you scan it and touch two cells. */
 .tg-controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
 .tg-pcts{display:flex;gap:10px;flex-wrap:wrap;padding-left:14px;border-left:1px solid var(--border2)}
-.tg-pcts .field{max-width:104px}
+.tg-pcts .field{max-width:120px}
+/* TREATMENT % is the longest of the three and wrapped onto a second line at
+   104px, which pushed its box out of line with the other two. */
+.tg-pcts .field-label{white-space:nowrap}
 .tg-paste{width:100%;min-height:190px;background:var(--surface2);color:var(--text);border:1px solid var(--border);
   border-radius:10px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:13px;resize:vertical;line-height:1.5}
 .tg-paste:focus{outline:none;border-color:var(--accent)}
@@ -661,11 +725,14 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
          paint — which tab the portal opens on is a per-device preference,
          restored by trOpenRememberedTab() (Kate, 2026-09-04). -->
     <div class="tab-bar">
+      <div class="tab-grp">Every day</div>
       <button class="tab-btn active" data-tab="sheetsync" onclick="switchTab(event, 'sheetsync')">Ledgers<span class="tab-qual">Sheets</span><span class="tab-pip" id="tabPipSheetsync"></span></button>
       <button class="tab-btn" data-tab="staffperf" onclick="switchTab(event, 'staffperf')">Staff Daily<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipStaffperf"></span></button>
       <button class="tab-btn" data-tab="ops" onclick="switchTab(event, 'ops')">Utilisation<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipOps"></span></button>
       <button class="tab-btn" data-tab="fin" onclick="switchTab(event, 'fin')">Financial<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipFin"></span></button>
+      <div class="tab-grp">Once a month</div>
       <button class="tab-btn" data-tab="targets" onclick="switchTab(event, 'targets')">Targets<span class="tab-qual">Monthly</span><span class="tab-pip" id="tabPipTargets"></span></button>
+      <div class="tab-grp">Reference</div>
       <button class="tab-btn" data-tab="products" onclick="switchTab(event, 'products')">Products</button>
       <button class="tab-btn" data-tab="service" onclick="switchTab(event, 'service')">Services<span class="tab-qual">Yearly</span></button>
     </div>
@@ -924,8 +991,10 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       </div>
     </div>
     <div class="card-sub" style="font-size:13px;margin-bottom:14px">
-      Retail and treatment chain off the actual figure, not off the salon target — 10,000 → 8,000 → 960 → 1,600,
-      which is how every sheet so far computes them. Change a percentage and every unedited row follows it.
+      Retail and treatment are percentages of the <b>actual</b> figure, not of the salon target. A 10,000
+      salon target at 80% gives an 8,000 actual, and 12% and 20% of that same 8,000 give 960 retail and
+      1,600 treatment — which is how every sheet so far computes them. Change a percentage and every
+      unedited row follows it.
     </div>
 
     <textarea id="tgPasteBox" class="tg-paste" placeholder="STYLIST&#9;DESIGNATION&#9;TARGET GIVEN BY SALON&#9;ACTUAL by 80%&#9;RETAIL by 12%&#9;TREATMENT by 20%&#10;RUTH&#9;Style Director&#9;75000&#9;60000&#9;7200&#9;12000&#10;..."></textarea>
