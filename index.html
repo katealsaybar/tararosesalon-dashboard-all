@@ -186,6 +186,11 @@
   transition: background .2s, color .2s, border-color .2s;
 }
 
+/* Sits under a nav label to say the view behind it isn't finished yet. Inherits
+   currentColor so it stays readable inside the filled active pill too. */
+.nav-note{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  opacity:.6;margin-top:2px}
+
 .nav-sub:hover {
   background: var(--surface2);
   color: var(--text);
@@ -2193,7 +2198,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <!-- Level 1 + 2: Reviews -->
   <div class="nav-group">
     <div class="nav-title">REVIEWS</div>
-    <div class="nav-sub" onclick="showView('reviews', this)">Salon Reviews</div>
+    <div class="nav-sub" onclick="showView('reviews', this)">Salon Reviews<span class="nav-note">Under construction</span></div>
   </div>
 
   <div class="nav-group nav-admin-only" style="display:none">
