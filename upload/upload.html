@@ -74,6 +74,13 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .tab-sticky{position:sticky;top:calc(var(--hdr-h,82px) + var(--tabbar-h,72px));z-index:18;
   background:var(--bg);padding-top:20px;margin-top:-20px;padding-bottom:16px}
 .tab-sticky .seg-bar{margin-bottom:0}
+/* Under 700px the pinned band came to 450px of an 812px phone screen, more
+   than half the display handed to chrome. The strip and the segment row let
+   go there and scroll with the page; the header and the tab bar stay pinned,
+   which is 148px and still tells you which tab you are in. The negative
+   margin against the padding nets to zero either way, so the spacing does
+   not move when it releases. Kate, 2026-09-04. */
+@media(max-width:700px){.tab-sticky{position:static}}
 .tab-btn{padding:9px 18px;border:none;border-bottom:3px solid transparent;margin-bottom:-1px;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:color .2s,border-color .2s,background .2s;white-space:nowrap;flex-shrink:0;border-radius:9px 9px 0 0}
 .tab-btn:hover{color:var(--text)}
 .tab-btn:hover:not(.active){background:var(--border2)}
