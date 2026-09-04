@@ -105,6 +105,16 @@ try {
   const g = localStorage.getItem('lgGrain');
   if (g === 'weekly' || g === 'daily') lgGrain = g;
 } catch (e) { /* private mode — the default is fine */ }
+// A split= in the address bar beats the remembered one, and it is read here
+// rather than in the boot because the grain has to be settled before the first
+// render, not after it. Safe this early: trSyncUrl() does not write until the
+// boot's own showView(), so the parameter is still there to read. Kate, 4 Sep
+// 2026 — the URL carries the Split now, which only means anything if it also
+// opens on it.
+try {
+  const u = new URLSearchParams(location.search).get('split');
+  if (u === 'mtd' || u === 'weekly' || u === 'daily') lgGrain = u;
+} catch (e) { /* no URL to read — the stored grain stands */ }
 
 const LG_GRAINS = [['mtd', 'MTD'], ['weekly', 'Weekly'], ['daily', 'Daily']];
 
@@ -122,6 +132,10 @@ function lgSetGrain(g) {
   if (vis('ledgerTargets')) renderLedgerTargets();
   if (vis('ledgerActuals')) renderLedgerActuals();
   if (vis('ledgerStylist')) renderLedgerStylist();
+  // A chip press is a move like any other, so the address bar follows it. spy()
+  // rather than trSyncUrl() directly: the repaint above rebuilds the rail, so the
+  // section has to be re-read at the same time as the split.
+  if (typeof spy === 'function') spy();
 }
 
 // The chip row, in the masthead filters' own idiom so it reads as a filter and

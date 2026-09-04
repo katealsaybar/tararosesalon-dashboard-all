@@ -2454,7 +2454,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="dashboard.js?v=20260904b"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20260904a"></script>
+<script src="branch-ledger.js?v=20260904c"></script>
 <script src="team-performance.js?v=20260814d"></script>
 <script src="pulse-narrative.js?v=20260814a"></script>
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
@@ -2920,9 +2920,18 @@ let TR_URL_SLUG = '';
 let TR_URL_READY = false;
 function trSyncUrl(sectionId){
   if (!TR_URL_READY) return;
+  const parts = [];
   // The Pulse is the default view, so it stays a bare path — same URL the load
   // path builds when ?view= is absent.
-  const q = (CURRENT_VIEW && CURRENT_VIEW !== 'dashboard') ? '?view=' + CURRENT_VIEW : '';
+  if (CURRENT_VIEW && CURRENT_VIEW !== 'dashboard') parts.push('view=' + CURRENT_VIEW);
+  // Kate, 4 Sep 2026: the Split too. MTD, Weekly and Daily are three readings of
+  // the same month rather than a preference you happen to hold, so which one you
+  // are looking at is part of where you are. Written in full including the
+  // default — a link that leaves it out is a link that does not say what it
+  // shows. Ledgers pages only; nothing else has a Split.
+  if (typeof LEDGER_VIEWS !== 'undefined' && LEDGER_VIEWS.has(CURRENT_VIEW)
+      && typeof lgGrain !== 'undefined') parts.push('split=' + lgGrain);
+  const q = parts.length ? '?' + parts.join('&') : '';
   const slug = location.pathname + q + (sectionId ? '#' + sectionId : '');
   if (slug === TR_URL_SLUG) return;
   TR_URL_SLUG = slug;
