@@ -412,8 +412,8 @@ const trendArrow = (curr, prev, higherIsBetter = true, periodLabel = '') => {
   const up   = delta > 0;
   const good = higherIsBetter ? up : !up;
   const col  = good ? 'var(--good)' : 'var(--bad)';
-  const tag  = periodLabel ? `<span style="font-size:9px;color:var(--muted);font-weight:400;margin-left:2px">vs ${periodLabel}</span>` : '';
-  return `<span style="color:${col};font-size:13px;font-weight:700;margin-left:6px">${up?'↑':'↓'}${pct.toFixed(1)}%${tag}</span>`;
+  const tag  = periodLabel ? `<span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:2px">vs ${periodLabel}</span>` : '';
+  return `<span style="color:${col};font-size:15px;font-weight:700;margin-left:6px">${up?'↑':'↓'}${pct.toFixed(1)}%${tag}</span>`;
 };
 
 const sc = (v, t) => {
@@ -425,12 +425,12 @@ const sc = (v, t) => {
   return 'bad';
 };
 const statusBanner = (status, isDark) => {
-  if (status === 'critical') return `<div style="margin-top:6px;padding:3px 7px;background:rgba(255,68,68,0.15);border:1px solid rgba(255,68,68,0.4);border-radius:6px;font-size:9px;color:#FF4444;letter-spacing:0.06em;text-transform:uppercase;font-weight:700">⚠ Critical — Needs Attention</div>`;
+  if (status === 'critical') return `<div style="margin-top:6px;padding:3px 7px;background:rgba(255,68,68,0.15);border:1px solid rgba(255,68,68,0.4);border-radius:6px;font-size:11px;color:#FF4444;letter-spacing:0.06em;text-transform:uppercase;font-weight:700">⚠ Critical — Needs Attention</div>`;
   const bg  = isDark ? 'rgba(238,243,199,0.1)'  : 'rgba(186,117,23,0.08)';
   const br  = isDark ? 'rgba(238,243,199,0.35)' : 'rgba(186,117,23,0.4)';
   const col = isDark ? '#EEF3C7' : '#8A5F0A';
-  if (status === 'bad')  return `<div style="margin-top:6px;padding:3px 7px;background:${bg};border:1px solid ${br};border-radius:6px;font-size:9px;color:${col};letter-spacing:0.06em;text-transform:uppercase;font-weight:700">⚠ Below Target — Needs Action</div>`;
-  if (status === 'warn') return `<div style="margin-top:6px;padding:3px 7px;background:${bg};border:1px solid ${br};border-radius:6px;font-size:9px;color:${col};letter-spacing:0.06em;text-transform:uppercase;font-weight:700">↑ Near Target — Keep Pushing</div>`;
+  if (status === 'bad')  return `<div style="margin-top:6px;padding:3px 7px;background:${bg};border:1px solid ${br};border-radius:6px;font-size:11px;color:${col};letter-spacing:0.06em;text-transform:uppercase;font-weight:700">⚠ Below Target — Needs Action</div>`;
+  if (status === 'warn') return `<div style="margin-top:6px;padding:3px 7px;background:${bg};border:1px solid ${br};border-radius:6px;font-size:11px;color:${col};letter-spacing:0.06em;text-transform:uppercase;font-weight:700">↑ Near Target — Keep Pushing</div>`;
   return '';
 };
 const fmtAED = n  => 'AED ' + (n || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -916,7 +916,7 @@ async function drawStylistCard(box) {
   } catch (err) {
     // Nothing to salvage in place, so point at the file itself.
     console.error('Stylist card failed to draw', url, err);
-    box.innerHTML = `<div style="padding:22px;color:#FAF8F3;font-size:13.5px;line-height:1.5">
+    box.innerHTML = `<div style="padding:22px;color:#FAF8F3;font-size:15.5px;line-height:1.5">
       This card couldn&rsquo;t be drawn here. Use the link below to open the PDF.</div>`;
   }
 }
@@ -1103,7 +1103,7 @@ function renderStylistCards() {
         : escapeHtml(s.name);
       const handle = s.ig
         ? `<a href="https://instagram.com/${encodeURIComponent(s.ig)}" target="_blank" rel="noopener noreferrer"
-              style="font-size:11.5px;color:var(--muted);text-decoration:none">@${escapeHtml(s.ig)}</a>`
+              style="font-size:13.5px;color:var(--muted);text-decoration:none">@${escapeHtml(s.ig)}</a>`
         : '';
       // Outside the Instagram link on purpose: the link is the first name, and a
       // surname that opened Instagram would be a surprise. Sized in em off .sc-name,
@@ -1167,7 +1167,7 @@ function renderStylistCards() {
               onclick="collapseAllStylistCards()" hidden>Hide open cards</button>
       <div class="sc-seg" role="group" aria-label="Card density">${seg}</div>
     </div>
-    <div style="font-size:13.5px;color:var(--muted);margin:8px 0 4px;max-width:760px">
+    <div style="font-size:15.5px;color:var(--muted);margin:8px 0 4px;max-width:760px">
       The hair and beauty teams across all four branches. Names link to Instagram.
     </div>
     ${typeof lgShell === 'function' ? lgShell(rail, sections) : sections}`;
@@ -2343,13 +2343,13 @@ function buildClientFunnelHTML(s, dark) {
     return `
       <div style="display:flex;align-items:center;margin-bottom:12px">
         <div style="flex:1;display:flex;justify-content:flex-end;align-items:center;gap:8px;min-width:0">
-          <span class="tabular" style="font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap">${st.hair.toLocaleString()}</span>
+          <span class="tabular" style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap">${st.hair.toLocaleString()}</span>
           <div style="height:26px;width:${hairPct}%;background:${hairColor};border-radius:6px 2px 2px 6px;box-shadow:${barShadow};transition:width .6s ease"></div>
         </div>
-        <div style="width:104px;flex-shrink:0;text-align:center;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-left:1px dashed var(--border);border-right:1px dashed var(--border);padding:0 6px">${st.label}</div>
+        <div style="width:104px;flex-shrink:0;text-align:center;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-left:1px dashed var(--border);border-right:1px dashed var(--border);padding:0 6px">${st.label}</div>
         <div style="flex:1;display:flex;justify-content:flex-start;align-items:center;gap:8px;min-width:0">
           <div style="height:26px;width:${beautyPct}%;background:${beautyColor};border-radius:2px 6px 6px 2px;box-shadow:${barShadow};transition:width .6s ease"></div>
-          <span class="tabular" style="font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap">${st.beauty.toLocaleString()}</span>
+          <span class="tabular" style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap">${st.beauty.toLocaleString()}</span>
         </div>
       </div>`;
   }).join('');
@@ -2357,8 +2357,8 @@ function buildClientFunnelHTML(s, dark) {
   return `
     <div style="max-width:520px">
       <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-        <span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${hairColor}">◂ Hair</span>
-        <span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${beautyColor}">Beauty ▸</span>
+        <span style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${hairColor}">◂ Hair</span>
+        <span style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${beautyColor}">Beauty ▸</span>
       </div>
       ${rows}
     </div>`;
@@ -2399,14 +2399,14 @@ function buildWinsHTML(s, prevS, prevPeriodLabel, hairStaff, beautyStaff, branch
       : '';
     return `
     <div style="flex:1;min-width:200px;padding:14px 16px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid ${color}">
-      <div style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">
         <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></span>${eyebrow}
       </div>
       <div style="display:flex;align-items:center;gap:11px;margin-top:6px">
         ${avatarHtml}
         <div style="min-width:0">
-          <div style="font-family:'Playfair Display',serif;font-weight:600;font-size:16px;color:var(--text);line-height:1.3">${titleHtml}</div>
-          <div style="font-size:11.5px;color:var(--muted);margin-top:4px">${sub}</div>
+          <div style="font-family:'Playfair Display',serif;font-weight:600;font-size:18px;color:var(--text);line-height:1.3">${titleHtml}</div>
+          <div style="font-size:13.5px;color:var(--muted);margin-top:4px">${sub}</div>
         </div>
       </div>
     </div>`;
@@ -2527,8 +2527,8 @@ function buildCmpChart(byBranch, metric, dark, ttStyle, gc, tc, catFilter, canva
       { type:'line', label:'── Average ' + (metricLabels[metric]||metric), data: vals.map(()=>+avg.toFixed(2)), borderColor: lc, backgroundColor:'transparent', borderWidth:2, borderDash:[6,4], pointRadius:5, pointBackgroundColor:lc, pointBorderColor:lc, tension:0, yAxisID:'y' }
     ]},
     options: { animation:{duration:500,easing:'easeInOutQuart'}, responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:true,labels:{color:tc,font:{family:'Inter',size:11},boxWidth:12,filter:(item)=>item.datasetIndex===1}},tooltip:ttStyle},
-      scales:{x:{ticks:{color:tc,font:{family:'Inter',size:11}},grid:{color:gc}},y:{ticks:{color:tc,font:{family:'Inter',size:11}},grid:{color:gc}}}
+      plugins:{legend:{display:true,labels:{color:tc,font:{family:'Inter',size:13},boxWidth:12,filter:(item)=>item.datasetIndex===1}},tooltip:ttStyle},
+      scales:{x:{ticks:{color:tc,font:{family:'Inter',size:13}},grid:{color:gc}},y:{ticks:{color:tc,font:{family:'Inter',size:13}},grid:{color:gc}}}
     },
     plugins: [barShadowPlugin],
   });
@@ -2605,11 +2605,11 @@ function buildTrendChart(dark, ttStyle, gc, tc) {
     },
     options: {
       animation:{duration:500,easing:'easeInOutQuart'}, responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-      plugins:{ legend:{display:true,labels:{color:tc,font:{family:'DM Sans',size:11},boxWidth:12}}, tooltip:ttStyle },
+      plugins:{ legend:{display:true,labels:{color:tc,font:{family:'DM Sans',size:13},boxWidth:12}}, tooltip:ttStyle },
       scales:{
-        x:{ ticks:{color:tc,font:{family:'DM Sans',size:10}}, grid:{color:gc} },
-        yRev:{ position:'left', ticks:{color:tc,font:{family:'DM Sans',size:10}}, grid:{color:gc} },
-        yClients:{ position:'right', ticks:{color:tc,font:{family:'DM Sans',size:10}}, grid:{drawOnChartArea:false} },
+        x:{ ticks:{color:tc,font:{family:'DM Sans',size:12}}, grid:{color:gc} },
+        yRev:{ position:'left', ticks:{color:tc,font:{family:'DM Sans',size:12}}, grid:{color:gc} },
+        yClients:{ position:'right', ticks:{color:tc,font:{family:'DM Sans',size:12}}, grid:{drawOnChartArea:false} },
       }
     }
   });
@@ -2734,9 +2734,9 @@ async function renderDashboard() {
   } catch(err) {
     destroyCharts();
     main.innerHTML = `<div class="empty" style="border:1px solid rgba(255,68,68,0.3);color:var(--bad)">
-      <div style="font-size:14px;font-weight:600;margin-bottom:6px">⚠ Failed to load data</div>
-      <div style="font-size:12px;opacity:0.8">Check your connection and try refreshing the page.</div>
-      ${err && err.message ? `<div style="font-size:10px;opacity:0.5;margin-top:6px;font-family:monospace">${err.message}</div>` : ''}
+      <div style="font-size:16px;font-weight:600;margin-bottom:6px">⚠ Failed to load data</div>
+      <div style="font-size:14px;opacity:0.8">Check your connection and try refreshing the page.</div>
+      ${err && err.message ? `<div style="font-size:12px;opacity:0.5;margin-top:6px;font-family:monospace">${err.message}</div>` : ''}
     </div>`;
     return;
   }
@@ -3444,7 +3444,7 @@ ${actionHtml}
 
 <div class="fine">
   <p><b>What net take means</b>. Everything the salon billed in the period: hair and beauty services, treatments and courses, plus retail, added together, before staff cost. Hair net take and beauty net take are each that department's own services plus its own retail, so the two add up to the total.</p>
-  <p><b>Sources</b>. Client counts, the department split and the treatment figure come from the branch ledger (<code>branch_staff_daily</code>); revenue comes from Phorest (<code>phorest_staff_daily</code>), matched to the ledger's staff and day. Figures tagged <span style="font-size:8px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle">LEDGER</span> on Branch Performance are hand-tallied and have no Phorest equivalent. Utilisation is matched separately and drops out entirely when the period has no roster hours to match, rather than scoring as zero.</p>
+  <p><b>Sources</b>. Client counts, the department split and the treatment figure come from the branch ledger (<code>branch_staff_daily</code>); revenue comes from Phorest (<code>phorest_staff_daily</code>), matched to the ledger's staff and day. Figures tagged <span style="font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle">LEDGER</span> on Branch Performance are hand-tallied and have no Phorest equivalent. Utilisation is matched separately and drops out entirely when the period has no roster hours to match, rather than scoring as zero.</p>
   <p><b>What is scored and what is not</b>. Seven benchmarks carry a single unambiguous target and are raced against it, worst first. Total Clients is not one of them: its target is stated per week and per branch, so multiplying it across whatever window the filter happens to hold would measure the window, not the salon. It sits in the headline three with its target printed as a note. Net take and Clients are read against the previous period for the same reason.</p>
   <p><b>Layout rules</b>. One token set, 10px radius, 8pt spacing spine, Playfair for figures and Inter for labels. Colour carries status only; the accent quartet carries identity. Three headline cards, never twenty-one. Anything below target sorts by the size of its gap. No data, no card.</p>
 </div>
@@ -3703,7 +3703,7 @@ function _svcWindow() {
 // Printed above the rankings when the masthead range crosses New Year.
 function _svcSpansYearsNote(content, year) {
   content.insertAdjacentHTML('afterbegin',
-    `<div style="padding:8px 0 12px;font-size:12px;color:var(--muted2)">Service and client rankings read one year at a time. Showing ${year} up to 31 December; pick a range inside one year to see the rest.</div>`);
+    `<div style="padding:8px 0 12px;font-size:14px;color:var(--muted2)">Service and client rankings read one year at a time. Showing ${year} up to 31 December; pick a range inside one year to see the rest.</div>`);
 }
 
 // The Year row only earns its place when no date range is driving the page.
@@ -3746,7 +3746,7 @@ function _svcEmpty(what) {
   const w = _svcWindow();
   return `<div class="empty">
     <div style="font-weight:600;margin-bottom:6px">No ${what} for ${w.from} – ${w.to}</div>
-    <div style="font-size:12px;opacity:.75;max-width:52ch;margin:0 auto;line-height:1.55">
+    <div style="font-size:14px;opacity:.75;max-width:52ch;margin:0 auto;line-height:1.55">
       This page reads the Service Performance upload, which is a separate feed from the
       daily ledger and does not always run to the current month. Widen the period in the
       header, or upload a newer Service Performance file.
@@ -3831,8 +3831,8 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
           <div class="card-sub">${note ? escapeHtml(note) : `${pFrom} to ${pTo}`}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Top ${rows.length} Combined Revenue</div>
-          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Top ${rows.length} Combined Revenue</div>
+          <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
         </div>
       </div>
       <table>
@@ -3850,14 +3850,14 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
             const pct = totalRev > 0 ? (rev/totalRev*100) : 0;
             return `<tr>
               <td><span class="top3-rank ${_rankCls(i)}">${i+1}</span></td>
-              <td style="font-weight:500;font-size:12px">${escapeHtml(r.service_name)||'—'}</td>
-              <td><span class="badge" style="background:var(--surface2);color:var(--muted);font-size:10px">${escapeHtml(r.category)||'—'}</span></td>
-              <td style="text-align:right;font-family:'Playfair Display',serif;font-size:15px;font-weight:600">${_fmtAed(rev)}</td>
+              <td style="font-weight:500;font-size:14px">${escapeHtml(r.service_name)||'—'}</td>
+              <td><span class="badge" style="background:var(--surface2);color:var(--muted);font-size:12px">${escapeHtml(r.category)||'—'}</span></td>
+              <td style="text-align:right;font-family:'Playfair Display',serif;font-size:17px;font-weight:600">${_fmtAed(rev)}</td>
               <td style="text-align:right;color:var(--muted)">${(r.visit_count||0).toLocaleString()}</td>
               <td style="text-align:right">
                 <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
                   <div class="bar-track" style="width:56px"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:var(--accent)"></div></div>
-                  <span style="min-width:36px;color:var(--muted);font-size:11px">${pct.toFixed(1)}%</span>
+                  <span style="min-width:36px;color:var(--muted);font-size:13px">${pct.toFixed(1)}%</span>
                 </div>
               </td>
             </tr>`;
@@ -3880,12 +3880,12 @@ function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
             <div style="height:3px;border-radius:3px;background:${info.color};margin-bottom:14px"></div>
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
               <div>
-                <div class="card-title" style="font-size:14px">${info.name}</div>
-                <div class="card-sub" style="margin-bottom:0;font-size:10px">${rows.length} services shown</div>
+                <div class="card-title" style="font-size:16px">${info.name}</div>
+                <div class="card-sub" style="margin-bottom:0;font-size:12px">${rows.length} services shown</div>
               </div>
               <div style="text-align:right">
-                <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Top ${rows.length} Rev</div>
-                <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
+                <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Top ${rows.length} Rev</div>
+                <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
               </div>
             </div>
             ${!rows.length ? '<div class="top3-empty">No data for period</div>' : `
@@ -3901,10 +3901,10 @@ function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
                   const rev = parseFloat(r.total_revenue||0);
                   const pct = totalRev > 0 ? (rev/totalRev*100) : 0;
                   return `<tr>
-                    <td><span class="top3-rank ${_rankCls(i)}" style="font-size:12px">${i+1}</span></td>
-                    <td style="font-size:11px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.service_name)}">${escapeHtml(r.service_name)||'—'}</td>
-                    <td style="text-align:right;font-family:'Playfair Display',serif;font-size:13px;font-weight:600">${_fmtAed(rev)}</td>
-                    <td style="text-align:right;color:var(--muted);font-size:11px">${r.visit_count||0}</td>
+                    <td><span class="top3-rank ${_rankCls(i)}" style="font-size:14px">${i+1}</span></td>
+                    <td style="font-size:13px;font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.service_name)}">${escapeHtml(r.service_name)||'—'}</td>
+                    <td style="text-align:right;font-family:'Playfair Display',serif;font-size:15px;font-weight:600">${_fmtAed(rev)}</td>
+                    <td style="text-align:right;color:var(--muted);font-size:13px">${r.visit_count||0}</td>
                   </tr>`;
                 }).join('')}
               </tbody>
@@ -3953,8 +3953,8 @@ function _renderClients(rows, branches, year, pFrom, pTo) {
           <div class="card-sub">${pFrom} to ${pTo}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Combined Revenue (Top ${rows.length})</div>
-          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Combined Revenue (Top ${rows.length})</div>
+          <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
         </div>
       </div>
       <table>
@@ -3974,13 +3974,13 @@ function _renderClients(rows, branches, year, pFrom, pTo) {
               <td><span class="top3-rank ${_rankCls(i)}">${i+1}</span></td>
               <td>
                 <div style="display:flex;align-items:center;gap:8px">
-                  <div style="width:26px;height:26px;border-radius:50%;background:${avColor};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#2D2E37;flex-shrink:0">${escapeHtml(initials)}</div>
-                  <span style="font-weight:500;font-size:12px">${escapeHtml(r.client_name)||'—'}</span>
+                  <div style="width:26px;height:26px;border-radius:50%;background:${avColor};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#2D2E37;flex-shrink:0">${escapeHtml(initials)}</div>
+                  <span style="font-weight:500;font-size:14px">${escapeHtml(r.client_name)||'—'}</span>
                 </div>
               </td>
-              <td style="text-align:right;font-family:'Playfair Display',serif;font-size:15px;font-weight:600">${_fmtAed(rev)}</td>
+              <td style="text-align:right;font-family:'Playfair Display',serif;font-size:17px;font-weight:600">${_fmtAed(rev)}</td>
               <td style="text-align:right;color:var(--muted)">${(r.visit_count||0).toLocaleString()}</td>
-              <td style="color:var(--muted);font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.top_service)}">${escapeHtml(r.top_service)||'—'}</td>
+              <td style="color:var(--muted);font-size:13px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.top_service)}">${escapeHtml(r.top_service)||'—'}</td>
             </tr>`;
           }).join('')}
         </tbody>

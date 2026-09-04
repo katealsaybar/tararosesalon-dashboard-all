@@ -364,7 +364,7 @@ function utilCoveredDaySet(rows){
 async function refreshUtilProgress(){
   const host = document.getElementById('utilProgressGrid');
   if (!host) return;
-  host.innerHTML = '<div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div>';
+  host.innerHTML = '<div style="font-size:14px;color:var(--muted2);padding:8px 0">Loading…</div>';
 
   // PostgREST silently caps an unpaginated select at its own server-side max-rows
   // setting (commonly 1000) — with 5 branches' worth of daily rows that's blown
@@ -375,14 +375,14 @@ async function refreshUtilProgress(){
   // member per report, so in series it was the slowest thing in the portal
   // (Kate, 2026-09-03).
   const { count, error: countErr } = await sb.from(UTIL_TABLE).select('id',{count:'exact',head:true});
-  if (countErr){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${countErr.message}</div>`; return; }
+  if (countErr){ host.innerHTML = `<div style="font-size:14px;color:var(--bad)">Failed to load progress: ${countErr.message}</div>`; return; }
   const pages = [];
   for (let offset = 0; offset < (count || 0); offset += UTIL_PAGE_SIZE){
     pages.push(sb.from(UTIL_TABLE).select('branch,date_from,date_to').range(offset, offset + UTIL_PAGE_SIZE - 1));
   }
   const results = await Promise.all(pages);
   const failed = results.find(r => r.error);
-  if (failed){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${failed.error.message}</div>`; return; }
+  if (failed){ host.innerHTML = `<div style="font-size:14px;color:var(--bad)">Failed to load progress: ${failed.error.message}</div>`; return; }
   const all = results.flatMap(r => r.data || []);
 
   const covered = utilCoveredDaySet(all);
@@ -408,7 +408,7 @@ function utilSetDefaultFilterDates(force){
   const fromEl = document.getElementById('utilfFrom');
   const toEl   = document.getElementById('utilfTo');
   if (!fromEl || !toEl) return;
-  if (force || !fromEl.value) fromEl.value = spYearStartIso(); // current year, not the 2025 backfill start
+  if (force || !fromEl.value) fromEl.value = spMonthStartIso(); // this month, not the 2025 backfill start
   if (force || !toEl.value)   toEl.value   = spIsoDate(new Date());
 }
 
@@ -433,7 +433,7 @@ function resetUtilFilter(){
   utilColFilters = {};
   utilCloseColFilter();
   document.getElementById('utilTableHost').innerHTML =
-    '<div style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>';
+    '<div style="padding:16px;font-size:14px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>';
   document.getElementById('utilResultCount').textContent = '';
 }
 
@@ -674,7 +674,7 @@ document.addEventListener('click', (e) => {
 function utilRenderTable(){
   const host = document.getElementById('utilTableHost');
   if (!utilLastData.length){
-    host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">No matching rows.</div>';
+    host.innerHTML = '<div style="padding:16px;font-size:14px;color:var(--muted2)">No matching rows.</div>';
     document.getElementById('utilResultCount').textContent = '';
     return;
   }
@@ -692,7 +692,7 @@ function utilRenderTable(){
     countEl.textContent = `Showing first ${UTIL_ROW_LIMIT} rows — narrow your filters for more precision`;
   } else if (capped){
     countEl.innerHTML = `${displayRows.length} rows · showing the newest ${UTIL_RENDER_CAP} ` +
-      `<button class="btn-outline" style="padding:3px 9px;font-size:10.5px;margin-left:4px" onclick="utilRenderAllRows()">Show all</button>`;
+      `<button class="btn-outline" style="padding:3px 9px;font-size:12.5px;margin-left:4px" onclick="utilRenderAllRows()">Show all</button>`;
   } else {
     countEl.textContent = `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${utilSummaryMode ? ' (summarized per staff member)' : ''}`;
   }
@@ -744,7 +744,7 @@ async function runUtilFilter(){
   const to     = document.getElementById('utilfTo').value;
 
   const host = document.getElementById('utilTableHost');
-  host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">Loading…</div>';
+  host.innerHTML = '<div style="padding:16px;font-size:14px;color:var(--muted2)">Loading…</div>';
 
   const buildQuery = () => {
     let q = sb.from(UTIL_TABLE).select('*').order('date_from',{ascending:false}).order('branch').order('staff_name');
@@ -766,7 +766,7 @@ async function runUtilFilter(){
 
   // Count first, then every page at once — see runStaffPerfFilter's note.
   const { count, error: countErr } = await buildCountQuery();
-  if (countErr){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${countErr.message}</div>`; return; }
+  if (countErr){ host.innerHTML = `<div style="padding:16px;font-size:14px;color:var(--bad)">Query failed: ${countErr.message}</div>`; return; }
 
   const wanted = Math.min(count || 0, UTIL_ROW_LIMIT);
   const pages = [];
@@ -775,7 +775,7 @@ async function runUtilFilter(){
   }
   const results = await Promise.all(pages);
   const failed = results.find(r => r.error);
-  if (failed){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
+  if (failed){ host.innerHTML = `<div style="padding:16px;font-size:14px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
   const all = results.flatMap(r => r.data || []);
 
   utilCapWarning = all.length >= UTIL_ROW_LIMIT;

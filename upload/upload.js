@@ -109,21 +109,27 @@ function switchSegTo(tab, seg){
 // Answers "is today's data in yet" without scrolling or reading a 611-day
 // count. Rows come from the coverage set the backfill progress already
 // fetched, so it costs no extra query. Also drives the tab's pip.
-function spRenderTodayStrip(hostId, pipId, pasteTab, rows){
+// `opts` only rewords the strip for a tab whose bar is not literally today:
+// Ledgers arrives on Apps Script's own schedule and allows a day's grace, so
+// it says "Synced" and "behind" rather than "Today" and "still to come"
+// (Kate, 2026-09-04). Every default matches the two Phorest tabs unchanged.
+function spRenderTodayStrip(hostId, pipId, pasteTab, rows, opts = {}){
+  const badge   = opts.badge || 'Today';
+  const inWord  = opts.pillTitle || 'in for today';
   const live    = rows.filter(r => !r.ended);
   const missing = live.filter(r => !r.in);
   const host = document.getElementById(hostId);
   if (host){
     const today = new Date().toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
     host.innerHTML = `
-      <div class="today-date">${today}<span>Today</span></div>
+      <div class="today-date">${today}<span>${badge}</span></div>
       <div class="today-pills">` +
         rows.map(r => r.ended
           ? `<span class="today-pill ended" title="Past this branch's last day">– ${r.label}</span>`
-          : `<span class="today-pill ${r.in ? 'in' : 'out'}">${r.in ? '&#10003;' : '&#9675;'} ${r.label}</span>`
+          : `<span class="today-pill ${r.in ? 'in' : 'out'}" title="${r.title || (r.in ? r.label + ' — ' + inWord : r.label + ' — not ' + inWord)}">${r.in ? '&#10003;' : '&#9675;'} ${r.label}</span>`
         ).join('') +
       `</div>
-      <span class="today-note">${missing.length ? missing.length + ' still to come' : 'all in'}</span>` +
+      <span class="today-note">${missing.length ? missing.length + ' ' + (opts.missingWord || 'still to come') : (opts.allInWord || 'all in')}</span>` +
       (missing.length && pasteTab ? `<button class="btn" style="width:auto;padding:9px 18px" onclick="spJumpToPaste('${pasteTab}')">Paste now</button>` : '');
   }
   const pip = document.getElementById(pipId);
@@ -131,8 +137,8 @@ function spRenderTodayStrip(hostId, pipId, pasteTab, rows){
     pip.classList.toggle('clear', missing.length === 0);
     pip.classList.toggle('warn', missing.length > 0);
     pip.title = missing.length
-      ? `${missing.length} branch${missing.length === 1 ? '' : 'es'} missing today`
-      : 'every branch in for today';
+      ? `${missing.length} branch${missing.length === 1 ? '' : 'es'} ${opts.pipMissing || 'missing today'}`
+      : `every branch ${opts.pipClear || 'in for today'}`;
   }
 }
 
@@ -194,7 +200,7 @@ function trIsoDate(d){
 // back to "This year" and fold Custom away again.
 function trResetChips(tab, prefix){
   const chips = document.querySelectorAll(`#tab-${tab} .date-chip`);
-  chips.forEach(c => c.classList.toggle('active', c.textContent.trim() === 'This year'));
+  chips.forEach(c => c.classList.toggle('active', c.textContent.trim() === 'This month'));
   document.getElementById(`${prefix}Custom`)?.classList.remove('show');
 }
 
@@ -398,7 +404,7 @@ function addSlotFile(code, file, auto, mode) {
   drop.innerHTML = `
     <span class="slot-icon" style="opacity:1">✅</span>
     <div class="slot-filename">${count} file${count>1?'s':''} queued</div>
-    <div style="font-size:9px;color:var(--muted2);margin-top:3px;line-height:1.4">${fileSlots[code].map(f=>'• '+f.name).join('<br>')}</div>
+    <div style="font-size:11px;color:var(--muted2);margin-top:3px;line-height:1.4">${fileSlots[code].map(f=>'• '+f.name).join('<br>')}</div>
     <div class="slot-auto-tag ${auto?'detected':''}"></div>`;
 }
 
@@ -419,7 +425,7 @@ function dAddSlotFile(code, file, auto) {
   drop.innerHTML = `
     <span class="slot-icon" style="opacity:1">✅</span>
     <div class="slot-filename">${count} file${count>1?'s':''} queued</div>
-    <div style="font-size:9px;color:var(--muted2);margin-top:3px;line-height:1.4">${fileSlotsDaily[code].map(f=>'• '+f.name).join('<br>')}</div>
+    <div style="font-size:11px;color:var(--muted2);margin-top:3px;line-height:1.4">${fileSlotsDaily[code].map(f=>'• '+f.name).join('<br>')}</div>
     <div class="slot-auto-tag ${auto?'detected':''}"></div>
     ${existWarn}`;
 }
@@ -654,12 +660,12 @@ async function uploadAllWeekly() {
         const retailVal = data.summary.hairRetail || 0;
         let badge = '';
         if (retailVal === 0) {
-          badge = `<div style="margin-top:4px;padding:6px 8px;background:rgba(239,68,68,.15);border-left:3px solid #ef4444;border-radius:4px;font-size:11px;color:#fca5a5">⚠️ <strong>${BRANCHES[code].name}:</strong> No retail detected (source: ${rd.source}). Check spreadsheet labels.</div>`;
+          badge = `<div style="margin-top:4px;padding:6px 8px;background:rgba(239,68,68,.15);border-left:3px solid #ef4444;border-radius:4px;font-size:13px;color:#fca5a5">⚠️ <strong>${BRANCHES[code].name}:</strong> No retail detected (source: ${rd.source}). Check spreadsheet labels.</div>`;
         } else if (rd.mismatch) {
           const m = rd.mismatch;
-          badge = `<div style="margin-top:4px;padding:6px 8px;background:rgba(251,191,36,.12);border-left:3px solid #fbbf24;border-radius:4px;font-size:11px;color:#fcd34d">⚠️ <strong>${BRANCHES[code].name}:</strong> Retail mismatch — daily AED ${(m.daily||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} vs summary AED ${(m.summary||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} (${m.pctDiff}% drift). Using daily total.</div>`;
+          badge = `<div style="margin-top:4px;padding:6px 8px;background:rgba(251,191,36,.12);border-left:3px solid #fbbf24;border-radius:4px;font-size:13px;color:#fcd34d">⚠️ <strong>${BRANCHES[code].name}:</strong> Retail mismatch — daily AED ${(m.daily||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} vs summary AED ${(m.summary||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} (${m.pctDiff}% drift). Using daily total.</div>`;
         } else {
-          badge = `<div style="margin-top:4px;padding:4px 8px;font-size:10px;color:var(--muted)">Retail: AED ${(retailVal||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} (source: ${rd.source}, ${rd.daysWithRetail}/${rd.daysScanned} days)</div>`;
+          badge = `<div style="margin-top:4px;padding:4px 8px;font-size:12px;color:var(--muted)">Retail: AED ${(retailVal||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} (source: ${rd.source}, ${rd.daysWithRetail}/${rd.daysScanned} days)</div>`;
         }
         const psEl = document.getElementById('ps_'+code);
         if (psEl && psEl.parentElement) {
@@ -868,7 +874,7 @@ async function loadDailyOverview() {
 
   const container = document.getElementById('dailyOverview');
   if (error||!data||!data.length) {
-    container.innerHTML='<div style="font-size:12px;color:var(--muted2);padding:8px 0">No daily data uploaded yet.</div>';
+    container.innerHTML='<div style="font-size:14px;color:var(--muted2);padding:8px 0">No daily data uploaded yet.</div>';
     return;
   }
 
@@ -925,14 +931,14 @@ async function loadDailyOverview() {
         <div class="daily-branch-card" id="card_${k}">
           <div class="daily-branch-name">${BRANCHES[k].name}</div>
           <div class="daily-accent" style="background:${BRANCHES[k].color}"></div>
-          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:8px;align-items:center">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;align-items:center">
             <span style="color:var(--muted)">${rows.length} days total</span>
             <span style="color:var(--good);font-weight:700">AED ${(grandTotal||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
           </div>
           <!-- BULK DELETE BAR -->
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
             <input type="checkbox" id="selAll_${k}" onchange="toggleSelectAll('${k}',this.checked)" title="Select all">
-            <span style="font-size:10px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase">Select All</span>
+            <span style="font-size:12px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase">Select All</span>
             <button class="bulk-delete-btn" id="bulkDel_${k}" style="display:none;margin-left:auto" onclick="bulkDeleteBranch('${k}')">🗑 Delete Selected</button>
           </div>
           <!-- YEAR → MONTH → WEEK TREE -->
@@ -945,11 +951,11 @@ async function loadDailyOverview() {
               return `
                 <div style="margin-bottom:6px">
                   <div style="display:flex;align-items:center;gap:4px">
-                    <div onclick="toggleDailySection('${yrKey}')" style="flex:1;display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--surface);border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text);border:1px solid var(--border2)">
+                    <div onclick="toggleDailySection('${yrKey}')" style="flex:1;display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--surface);border-radius:7px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text);border:1px solid var(--border2)">
                       <span>${yr}</span>
-                      <span style="color:var(--good);font-size:10px">AED ${(yrTotal||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+                      <span style="color:var(--good);font-size:12px">AED ${(yrTotal||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
                     </div>
-                    <button class="btn-danger" style="padding:3px 7px;font-size:10px;flex-shrink:0" title="Delete entire year" onclick="deleteGroup(${JSON.stringify(yrIds)},'${yr} (${yrRows.length} days)')">🗑</button>
+                    <button class="btn-danger" style="padding:3px 7px;font-size:12px;flex-shrink:0" title="Delete entire year" onclick="deleteGroup(${JSON.stringify(yrIds)},'${yr} (${yrRows.length} days)')">🗑</button>
                   </div>
                   <div id="${yrKey}" style="display:none;margin-left:8px;margin-top:4px">
                     ${Object.keys(byYear[yr]).sort((a,b)=>b-a).map(mo=>{
@@ -960,11 +966,11 @@ async function loadDailyOverview() {
                       return `
                         <div style="margin-bottom:4px">
                           <div style="display:flex;align-items:center;gap:4px">
-                            <div onclick="toggleDailySection('${moKey}')" style="flex:1;display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:var(--surface2);border-radius:6px;cursor:pointer;font-size:11px;color:var(--muted);border:1px solid var(--border2)">
+                            <div onclick="toggleDailySection('${moKey}')" style="flex:1;display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:var(--surface2);border-radius:6px;cursor:pointer;font-size:13px;color:var(--muted);border:1px solid var(--border2)">
                               <span style="font-weight:600">${MONTHS_FULL[parseInt(mo)]}</span>
-                              <span style="color:var(--good);font-size:10px">AED ${(moTotal||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} · ${moRows.length}d</span>
+                              <span style="color:var(--good);font-size:12px">AED ${(moTotal||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} · ${moRows.length}d</span>
                             </div>
-                            <button class="btn-danger" style="padding:3px 7px;font-size:10px;flex-shrink:0" title="Delete entire month" onclick="deleteGroup(${JSON.stringify(moIds)},'${MONTHS_FULL[parseInt(mo)]} ${yr} (${moRows.length} days)')">🗑</button>
+                            <button class="btn-danger" style="padding:3px 7px;font-size:12px;flex-shrink:0" title="Delete entire month" onclick="deleteGroup(${JSON.stringify(moIds)},'${MONTHS_FULL[parseInt(mo)]} ${yr} (${moRows.length} days)')">🗑</button>
                           </div>
                           <div id="${moKey}" style="display:none;margin-left:8px;margin-top:2px">
                             ${Object.keys(byYear[yr][mo]).sort((a,b)=>b.localeCompare(a)).map(wk=>{
@@ -977,11 +983,11 @@ async function loadDailyOverview() {
                               return `
                                 <div style="margin-bottom:3px">
                                   <div style="display:flex;align-items:center;gap:4px">
-                                    <div onclick="toggleDailySection('${wkKey}')" style="flex:1;display:flex;justify-content:space-between;align-items:center;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:10px;color:var(--muted2);border-bottom:1px solid var(--border2)">
+                                    <div onclick="toggleDailySection('${wkKey}')" style="flex:1;display:flex;justify-content:space-between;align-items:center;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--muted2);border-bottom:1px solid var(--border2)">
                                       <span>Week: ${fmtShort(wk)} – ${fmtShort(sun)}</span>
                                       <span style="color:var(--good)">AED ${(wkTotal||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} · ${wkRows.length}d</span>
                                     </div>
-                                    <button class="btn-danger" style="padding:3px 7px;font-size:10px;flex-shrink:0" title="Delete entire week" onclick="deleteGroup(${JSON.stringify(wkIds)},'week ${fmtShort(wk)}–${fmtShort(sun)} (${wkRows.length} days)')">🗑</button>
+                                    <button class="btn-danger" style="padding:3px 7px;font-size:12px;flex-shrink:0" title="Delete entire week" onclick="deleteGroup(${JSON.stringify(wkIds)},'week ${fmtShort(wk)}–${fmtShort(sun)} (${wkRows.length} days)')">🗑</button>
                                   </div>
                                   <div id="${wkKey}" style="display:none">
                                     ${sorted.map(r=>`
@@ -991,7 +997,7 @@ async function loadDailyOverview() {
                                           <div class="daily-record-date">${r.date}</div>
                                           <div class="daily-record-day">${r.day_of_week}</div>
                                         </div>
-                                        <div class="daily-record-total" style="font-size:10px">AED ${(r.total||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+                                        <div class="daily-record-total" style="font-size:12px">AED ${(r.total||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
                                         <div class="daily-record-actions">
                                           <button class="btn-dl" onclick="downloadDailyRecord('${r.id}','${r.branch}','${r.date}')" title="Download">↓</button>
                                           <button class="btn-danger" onclick="deleteDailyRecord('${r.id}','${r.date}')" title="Delete">✕</button>
@@ -1142,7 +1148,7 @@ function renderBulkRename() {
     return bL-aL;
   });
   const container=document.getElementById('bulkWeekList');
-  if(!sorted.length){container.innerHTML='<div style="font-size:12px;color:var(--muted2);padding:12px 0">No data uploaded yet.</div>';return;}
+  if(!sorted.length){container.innerHTML='<div style="font-size:14px;color:var(--muted2);padding:12px 0">No data uploaded yet.</div>';return;}
   container.innerHTML=sorted.map(lbl=>{
     const rows=labelMap[lbl];
     const names=rows.map(r=>BRANCHES[r.branch]?.name||r.branch).join(', ');
@@ -1215,7 +1221,7 @@ function renderColumns() {
           <div class="branch-col-accent" style="background:${info.color}"></div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
             <input type="checkbox" id="wSelAll_${code}" onchange="toggleWeekSelectAll('${code}',this.checked)" title="Select all" style="width:13px;height:13px;accent-color:var(--accent);cursor:pointer">
-            <label for="wSelAll_${code}" style="font-size:10px;color:var(--muted);cursor:pointer;letter-spacing:0.08em;text-transform:uppercase">Select All</label>
+            <label for="wSelAll_${code}" style="font-size:12px;color:var(--muted);cursor:pointer;letter-spacing:0.08em;text-transform:uppercase">Select All</label>
             <button class="bulk-delete-btn" id="wBulkDel_${code}" style="display:none;margin-left:auto" onclick="bulkDeleteWeekly('${code}')">🗑 Delete Selected</button>
           </div>
         </div>
@@ -1294,7 +1300,7 @@ function renderWeekGroupsHTML(branchCode, moRows, moKey) {
     if (openState[subKey] === undefined) openState[subKey] = false;
     const isOpen = openState[subKey];
     return `<div style="margin-bottom:3px">
-      <div onclick="toggleSection('${subKey}')" style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:10px;color:var(--muted2);border-bottom:1px solid var(--border2)">
+      <div onclick="toggleSection('${subKey}')" style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--muted2);border-bottom:1px solid var(--border2)">
         <span style="font-weight:600">${grp.label}</span>
         <span style="display:flex;align-items:center;gap:6px">
           <span style="color:var(--muted2)">${grp.rows.length} file${grp.rows.length>1?'s':''}</span>

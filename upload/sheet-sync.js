@@ -27,57 +27,108 @@ function ssRenderAllRows(){
 }
 let ssCapWarning = false;
 
-// ── LAST SYNCED STATUS (per branch) ─────────────────────────
-async function refreshSheetSyncStatus(){
-  const host = document.getElementById('ssLastSynced');
+// ── BACKFILL PROGRESS + SYNC STATUS ──────────────────
+// The same month-block grid the Staff Daily and Utilisation tabs draw, so all
+// three daily feeds are read the same way. Fratelli's ledger range is its own:
+// the barber shop's rows run 2 Jan → 22 May 2026 only, so opening it at 2025
+// the way the Phorest tabs do would paint sixteen months of false gaps
+// (Kate, 2026-09-04).
+const SS_BACKFILL_START = '2025-01-01';
+const SS_BRANCH_START = { FRT: '2026-01-01' };
+const SS_BRANCH_END   = { FRT: '2026-05-22' };
+
+async function refreshSheetSyncProgress(){
+  const host = document.getElementById('ssProgressGrid');
   if (!host) return;
-  host.innerHTML = BRANCH_KEYS.map(k => `
-    <div class="sp-branch-box" id="ssStat_${k}">
-      <div class="sp-branch-box-title">${BRANCHES[k].name}</div>
-      <div style="font-size:12px;color:var(--muted)">Loading…</div>
-    </div>`).join('');
+  host.innerHTML = '<div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div>';
+  const boxes = document.getElementById('ssLastSynced');
+  if (boxes) boxes.innerHTML = BRANCH_KEYS.map(k =>
+    `<div class="sp-branch-box"><div class="sp-branch-box-title">${BRANCHES[k].name}</div>` +
+    `<div style="font-size:12px;color:var(--muted)">Loading…</div></div>`).join('');
 
-  const lastByBranch = {};
-  await Promise.all(BRANCH_KEYS.map(async k => {
-    const el = document.getElementById(`ssStat_${k}`);
-    if (!el) return;
-    const [{ data: latest, error: latestErr }, { count, error: countErr }] = await Promise.all([
-      sb.from(SS_TABLE).select('date').eq('branch', k).order('date',{ascending:false}).limit(1),
-      sb.from(SS_TABLE).select('id',{count:'exact',head:true}).eq('branch', k)
-    ]);
-    if (latestErr || countErr){
-      el.innerHTML = `<div class="sp-branch-box-title">${BRANCHES[k].name}</div><div style="font-size:11px;color:var(--bad)">Failed to load</div>`;
-      return;
-    }
-    const lastDate = latest && latest.length ? latest[0].date : null;
-    lastByBranch[k] = lastDate;
-    el.innerHTML = `
-      <div class="sp-branch-box-title">${BRANCHES[k].name}</div>
-      <div style="font-size:12px;color:${lastDate ? 'var(--good)' : 'var(--muted2)'};margin-top:2px">
-        ${lastDate ? '🟢 Last synced: ' + lastDate : '⚪ No data yet'}
-      </div>
-      <div style="font-size:11px;color:var(--muted)">${count || 0} row${count===1?'':'s'} total</div>`;
-  }));
+  // One paged read of branch+date now feeds the strips, the last-synced boxes
+  // and the pip, in place of the ten per-branch queries the status card used to
+  // fire. Counted first, then every page at once — same shape as
+  // refreshStaffPerfProgress; PostgREST caps an unpaginated select at 1000.
+  const { count, error: countErr } = await sb.from(SS_TABLE).select('id',{count:'exact',head:true});
+  if (countErr){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${countErr.message}</div>`; return; }
+  const pages = [];
+  for (let offset = 0; offset < (count || 0); offset += SS_PAGE_SIZE){
+    pages.push(sb.from(SS_TABLE).select('branch,date').range(offset, offset + SS_PAGE_SIZE - 1));
+  }
+  const results = await Promise.all(pages);
+  const failed = results.find(r => r.error);
+  if (failed){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${failed.error.message}</div>`; return; }
+  const all = results.flatMap(r => r.data || []);
 
-  ssSetTabPip(lastByBranch);
+  const covered = new Set();
+  const rowsByBranch = {}, lastByBranch = {};
+  for (const r of all){
+    covered.add(`${r.branch}|${r.date}`);
+    rowsByBranch[r.branch] = (rowsByBranch[r.branch] || 0) + 1;
+    if (r.date && (!lastByBranch[r.branch] || r.date > lastByBranch[r.branch])) lastByBranch[r.branch] = r.date;
+  }
+
+  spProgBeginBatch();
+  let html = '';
+  for (const code of BRANCH_KEYS){
+    const days = spGetBackfillDays(SS_BRANCH_START[code] || SS_BACKFILL_START, SS_BRANCH_END[code]);
+    html += spRenderBackfillStrips(BRANCHES[code].name, days, covered, d => `${code}|${spIsoDate(d)}`);
+  }
+  host.innerHTML = html;
+  spProgEndBatch('ssProgressGrid');
+
+  ssRenderLastSynced(rowsByBranch, lastByBranch);
+  ssRenderSyncStrip(lastByBranch);
 }
 
-// The Ledgers tab's pip. Unlike the Phorest tabs this feed arrives through
-// Apps Script on its own schedule, so "today" is the wrong bar — green means
-// every branch has landed something dated yesterday or later, i.e. the pipe is
-// alive; amber names the branch that has gone quiet (Kate, 2026-09-03).
-function ssSetTabPip(lastByBranch){
-  const pip = document.getElementById('tabPipSheetsync');
-  if (!pip) return;
+function ssRenderLastSynced(rowsByBranch, lastByBranch){
+  const host = document.getElementById('ssLastSynced');
+  if (!host) return;
+  host.innerHTML = BRANCH_KEYS.map(k => {
+    const last = lastByBranch[k];
+    const rows = rowsByBranch[k] || 0;
+    return `<div class="sp-branch-box">
+      <div class="sp-branch-box-title">${BRANCHES[k].name}</div>
+      <div style="font-size:12px;color:${last ? 'var(--good)' : 'var(--muted2)'};margin-top:2px">
+        ${last ? '🟢 Last synced: ' + last : '⚪ No data yet'}
+      </div>
+      <div style="font-size:11px;color:var(--muted)">${rows} row${rows === 1 ? '' : 's'} total</div>
+    </div>`;
+  }).join('');
+}
+
+// The Ledgers strip and its tab pip. Unlike the Phorest tabs this feed arrives
+// through Apps Script on its own schedule, so "today" is the wrong bar — green
+// means every branch has landed something dated yesterday or later, i.e. the
+// pipe is alive; amber names the branch that has gone quiet (Kate, 2026-09-03).
+function ssSyncCutoffIso(){
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 1);
-  const cutoffIso = spIsoDate(cutoff);
-  const stale = BRANCH_KEYS.filter(k => !lastByBranch[k] || lastByBranch[k] < cutoffIso);
-  pip.classList.toggle('clear', stale.length === 0);
-  pip.classList.toggle('warn', stale.length > 0);
-  pip.title = stale.length
-    ? `Nothing since ${cutoffIso} from: ${stale.map(k => BRANCHES[k].name).join(', ')}`
-    : 'every branch synced within the last day';
+  return spIsoDate(cutoff);
+}
+
+function ssRenderSyncStrip(lastByBranch){
+  const cutoffIso = ssSyncCutoffIso();
+  const todayIso  = spIsoDate(new Date());
+  const rows = BRANCH_KEYS.map(k => {
+    const end  = SS_BRANCH_END[k];
+    const last = lastByBranch[k];
+    return {
+      label: BRANCHES[k].name,
+      in: !!last && last >= cutoffIso,
+      ended: !!(end && todayIso > end),
+      title: last ? `${BRANCHES[k].name} — last synced ${last}` : `${BRANCHES[k].name} — nothing synced yet`,
+    };
+  });
+  // No paste tab: nothing here is uploaded by hand, the Sheet pushes it.
+  spRenderTodayStrip('ssTodayStrip', 'tabPipSheetsync', null, rows, {
+    badge: 'Synced',
+    missingWord: 'behind',
+    allInWord: 'all up to date',
+    pipMissing: `with nothing since ${cutoffIso}`,
+    pipClear: 'synced within the last day',
+  });
 }
 
 // ── BROWSE / FILTER ──────────────────────────────────────────
@@ -97,8 +148,7 @@ function ssSetDefaultFilterDates(force){
   const toEl   = document.getElementById('ssfTo');
   if (!fromEl || !toEl) return;
   const todayIso  = new Date().toISOString().split('T')[0];
-  const yearStart = `${new Date().getFullYear()}-01-01`; // rolls with the year; 2025 rows are reachable by moving the From date (Kate, 2026-09-03)
-  if (force || !fromEl.value) fromEl.value = yearStart;
+  if (force || !fromEl.value) fromEl.value = spMonthStartIso(); // this month; wider windows are a chip away (Kate, 2026-09-04)
   if (force || !toEl.value)   toEl.value   = todayIso;
 }
 
@@ -111,7 +161,7 @@ function resetSheetSyncFilter(){
   ssColFilters = {};
   ssCloseColFilter();
   document.getElementById('ssTableHost').innerHTML =
-    '<div style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply.</div>';
+    '<div style="padding:16px;font-size:14px;color:var(--muted2)">Pick a filter and click Apply.</div>';
   document.getElementById('ssResultCount').textContent = '';
 }
 
@@ -334,7 +384,7 @@ document.addEventListener('click', (e) => {
 function ssRenderTable(){
   const host = document.getElementById('ssTableHost');
   if (!ssLastData.length){
-    host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">No matching rows.</div>';
+    host.innerHTML = '<div style="padding:16px;font-size:14px;color:var(--muted2)">No matching rows.</div>';
     document.getElementById('ssResultCount').textContent = '';
     return;
   }
@@ -352,7 +402,7 @@ function ssRenderTable(){
     countEl.textContent = `Showing first ${SS_ROW_LIMIT} rows — narrow your filters for more precision`;
   } else if (capped){
     countEl.innerHTML = `${displayRows.length} rows · showing the newest ${SS_RENDER_CAP} ` +
-      `<button class="btn-outline" style="padding:3px 9px;font-size:10.5px;margin-left:4px" onclick="ssRenderAllRows()">Show all</button>`;
+      `<button class="btn-outline" style="padding:3px 9px;font-size:12.5px;margin-left:4px" onclick="ssRenderAllRows()">Show all</button>`;
   } else {
     countEl.textContent = `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${ssSummaryMode ? ' (summarized per staff member)' : ''}`;
   }
@@ -404,7 +454,7 @@ async function runSheetSyncFilter(){
   const to     = document.getElementById('ssfTo').value;
 
   const host = document.getElementById('ssTableHost');
-  host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">Loading…</div>';
+  host.innerHTML = '<div style="padding:16px;font-size:14px;color:var(--muted2)">Loading…</div>';
 
   const buildQuery = () => {
     let q = sb.from(SS_TABLE).select('*').order('date',{ascending:false}).order('branch').order('staff_name');
@@ -426,7 +476,7 @@ async function runSheetSyncFilter(){
 
   // Count first, then every page at once — see runStaffPerfFilter's note.
   const { count, error: countErr } = await buildCountQuery();
-  if (countErr){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${countErr.message}</div>`; return; }
+  if (countErr){ host.innerHTML = `<div style="padding:16px;font-size:14px;color:var(--bad)">Query failed: ${countErr.message}</div>`; return; }
 
   const wanted = Math.min(count || 0, SS_ROW_LIMIT);
   const pages = [];
@@ -435,7 +485,7 @@ async function runSheetSyncFilter(){
   }
   const results = await Promise.all(pages);
   const failed = results.find(r => r.error);
-  if (failed){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
+  if (failed){ host.innerHTML = `<div style="padding:16px;font-size:14px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
   const all = results.flatMap(r => r.data || []);
 
   ssCapWarning = all.length >= SS_ROW_LIMIT;
@@ -451,6 +501,6 @@ function initSheetSyncTab(){
   ssPopulateFilterBranch();
   ssSetDefaultFilterDates(false);
   ssSyncSummaryToggleUI();
-  refreshSheetSyncStatus();
+  refreshSheetSyncProgress();
   // Browse runs when Browse is opened, not on tab load — see trRunBrowseOnce.
 }
