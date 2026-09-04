@@ -40,25 +40,25 @@ const SS_BRANCH_END   = { FRT: '2026-05-22' };
 async function refreshSheetSyncProgress(){
   const host = document.getElementById('ssProgressGrid');
   if (!host) return;
-  host.innerHTML = '<div style="font-size:10px;color:var(--muted2);padding:8px 0">Loading…</div>';
+  host.innerHTML = '<div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div>';
   const boxes = document.getElementById('ssLastSynced');
   if (boxes) boxes.innerHTML = BRANCH_KEYS.map(k =>
     `<div class="sp-branch-box"><div class="sp-branch-box-title">${BRANCHES[k].name}</div>` +
-    `<div style="font-size:10px;color:var(--muted)">Loading…</div></div>`).join('');
+    `<div style="font-size:12px;color:var(--muted)">Loading…</div></div>`).join('');
 
   // One paged read of branch+date now feeds the strips, the last-synced boxes
   // and the pip, in place of the ten per-branch queries the status card used to
   // fire. Counted first, then every page at once — same shape as
   // refreshStaffPerfProgress; PostgREST caps an unpaginated select at 1000.
   const { count, error: countErr } = await sb.from(SS_TABLE).select('id',{count:'exact',head:true});
-  if (countErr){ host.innerHTML = `<div style="font-size:10px;color:var(--bad)">Failed to load progress: ${countErr.message}</div>`; return; }
+  if (countErr){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${countErr.message}</div>`; return; }
   const pages = [];
   for (let offset = 0; offset < (count || 0); offset += SS_PAGE_SIZE){
     pages.push(sb.from(SS_TABLE).select('branch,date').range(offset, offset + SS_PAGE_SIZE - 1));
   }
   const results = await Promise.all(pages);
   const failed = results.find(r => r.error);
-  if (failed){ host.innerHTML = `<div style="font-size:10px;color:var(--bad)">Failed to load progress: ${failed.error.message}</div>`; return; }
+  if (failed){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${failed.error.message}</div>`; return; }
   const all = results.flatMap(r => r.data || []);
 
   const covered = new Set();
@@ -90,10 +90,10 @@ function ssRenderLastSynced(rowsByBranch, lastByBranch){
     const rows = rowsByBranch[k] || 0;
     return `<div class="sp-branch-box">
       <div class="sp-branch-box-title">${BRANCHES[k].name}</div>
-      <div style="font-size:10px;color:${last ? 'var(--good)' : 'var(--muted2)'};margin-top:2px">
+      <div style="font-size:12px;color:${last ? 'var(--good)' : 'var(--muted2)'};margin-top:2px">
         ${last ? '🟢 Last synced: ' + last : '⚪ No data yet'}
       </div>
-      <div style="font-size:9px;color:var(--muted)">${rows} row${rows === 1 ? '' : 's'} total</div>
+      <div style="font-size:11px;color:var(--muted)">${rows} row${rows === 1 ? '' : 's'} total</div>
     </div>`;
   }).join('');
 }
@@ -161,7 +161,7 @@ function resetSheetSyncFilter(){
   ssColFilters = {};
   ssCloseColFilter();
   document.getElementById('ssTableHost').innerHTML =
-    '<div style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply.</div>';
+    '<div style="padding:16px;font-size:14px;color:var(--muted2)">Pick a filter and click Apply.</div>';
   document.getElementById('ssResultCount').textContent = '';
 }
 
@@ -384,7 +384,7 @@ document.addEventListener('click', (e) => {
 function ssRenderTable(){
   const host = document.getElementById('ssTableHost');
   if (!ssLastData.length){
-    host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">No matching rows.</div>';
+    host.innerHTML = '<div style="padding:16px;font-size:14px;color:var(--muted2)">No matching rows.</div>';
     document.getElementById('ssResultCount').textContent = '';
     return;
   }
@@ -402,7 +402,7 @@ function ssRenderTable(){
     countEl.textContent = `Showing first ${SS_ROW_LIMIT} rows — narrow your filters for more precision`;
   } else if (capped){
     countEl.innerHTML = `${displayRows.length} rows · showing the newest ${SS_RENDER_CAP} ` +
-      `<button class="btn-outline" style="padding:3px 9px;font-size:10.5px;margin-left:4px" onclick="ssRenderAllRows()">Show all</button>`;
+      `<button class="btn-outline" style="padding:3px 9px;font-size:12.5px;margin-left:4px" onclick="ssRenderAllRows()">Show all</button>`;
   } else {
     countEl.textContent = `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${ssSummaryMode ? ' (summarized per staff member)' : ''}`;
   }
@@ -454,7 +454,7 @@ async function runSheetSyncFilter(){
   const to     = document.getElementById('ssfTo').value;
 
   const host = document.getElementById('ssTableHost');
-  host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">Loading…</div>';
+  host.innerHTML = '<div style="padding:16px;font-size:14px;color:var(--muted2)">Loading…</div>';
 
   const buildQuery = () => {
     let q = sb.from(SS_TABLE).select('*').order('date',{ascending:false}).order('branch').order('staff_name');
@@ -476,7 +476,7 @@ async function runSheetSyncFilter(){
 
   // Count first, then every page at once — see runStaffPerfFilter's note.
   const { count, error: countErr } = await buildCountQuery();
-  if (countErr){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${countErr.message}</div>`; return; }
+  if (countErr){ host.innerHTML = `<div style="padding:16px;font-size:14px;color:var(--bad)">Query failed: ${countErr.message}</div>`; return; }
 
   const wanted = Math.min(count || 0, SS_ROW_LIMIT);
   const pages = [];
@@ -485,7 +485,7 @@ async function runSheetSyncFilter(){
   }
   const results = await Promise.all(pages);
   const failed = results.find(r => r.error);
-  if (failed){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
+  if (failed){ host.innerHTML = `<div style="padding:16px;font-size:14px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
   const all = results.flatMap(r => r.data || []);
 
   ssCapWarning = all.length >= SS_ROW_LIMIT;

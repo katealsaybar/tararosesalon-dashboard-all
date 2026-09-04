@@ -373,7 +373,7 @@ function spGetBackfillDays(startDate, endDate){
 async function refreshStaffPerfProgress(){
   const host = document.getElementById('spProgressGrid');
   if (!host) return;
-  host.innerHTML = '<div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div>';
+  host.innerHTML = '<div style="font-size:14px;color:var(--muted2);padding:8px 0">Loading…</div>';
 
   // PostgREST silently caps an unpaginated select at its server-side max-rows
   // setting (1000 here) — the is_total rows crossed that in Aug 2026 (one per
@@ -383,14 +383,14 @@ async function refreshStaffPerfProgress(){
   // trips before the strips could draw, on the segment that now opens by
   // default (Kate, 2026-09-03).
   const { count, error: countErr } = await sb.from(SP_TABLE).select('id',{count:'exact',head:true}).eq('is_total', true);
-  if (countErr){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${countErr.message}</div>`; return; }
+  if (countErr){ host.innerHTML = `<div style="font-size:14px;color:var(--bad)">Failed to load progress: ${countErr.message}</div>`; return; }
   const pages = [];
   for (let offset = 0; offset < (count || 0); offset += SP_PAGE_SIZE){
     pages.push(sb.from(SP_TABLE).select('branch,date').eq('is_total', true).range(offset, offset + SP_PAGE_SIZE - 1));
   }
   const results = await Promise.all(pages);
   const failed = results.find(r => r.error);
-  if (failed){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${failed.error.message}</div>`; return; }
+  if (failed){ host.innerHTML = `<div style="font-size:14px;color:var(--bad)">Failed to load progress: ${failed.error.message}</div>`; return; }
   const all = results.flatMap(r => r.data || []);
 
   const covered = new Set(all.map(r => `${r.branch}|${r.date}`));
@@ -558,7 +558,7 @@ function resetStaffPerfFilter(){
   spColFilters = {};
   spCloseColFilter();
   document.getElementById('spTableHost').innerHTML =
-    '<div style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>';
+    '<div style="padding:16px;font-size:14px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>';
   document.getElementById('spResultCount').textContent = '';
 }
 
@@ -822,7 +822,7 @@ document.addEventListener('click', (e) => {
 function spRenderTable(){
   const host = document.getElementById('spTableHost');
   if (!spLastData.length){
-    host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">No matching rows.</div>';
+    host.innerHTML = '<div style="padding:16px;font-size:14px;color:var(--muted2)">No matching rows.</div>';
     document.getElementById('spResultCount').textContent = '';
     return;
   }
@@ -844,7 +844,7 @@ function spRenderTable(){
     countEl.textContent = `Showing first ${SP_ROW_LIMIT} rows — narrow your filters for more precision`;
   } else if (capped){
     countEl.innerHTML = `${displayRows.length} rows · showing the newest ${SP_RENDER_CAP} ` +
-      `<button class="btn-outline" style="padding:3px 9px;font-size:10.5px;margin-left:4px" onclick="spRenderAllRows()">Show all</button>`;
+      `<button class="btn-outline" style="padding:3px 9px;font-size:12.5px;margin-left:4px" onclick="spRenderAllRows()">Show all</button>`;
   } else {
     countEl.textContent = `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${spSummaryMode ? ' (summarized per employee)' : ''}`;
   }
@@ -905,7 +905,7 @@ async function runStaffPerfFilter(){
   const to      = document.getElementById('spfTo').value;
 
   const host = document.getElementById('spTableHost');
-  host.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--muted2)">Loading…</div>';
+  host.innerHTML = '<div style="padding:16px;font-size:14px;color:var(--muted2)">Loading…</div>';
 
   const buildQuery = () => {
     let q = sb.from(SP_TABLE).select('*').order('date',{ascending:false}).order('branch').order('employee_name');
@@ -929,7 +929,7 @@ async function runStaffPerfFilter(){
   // request at a time meant a year of Staff Daily (~7,900 rows) cost eight
   // round trips in series before a single row appeared (Kate, 2026-09-03).
   const { count, error: countErr } = await buildCountQuery();
-  if (countErr){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${countErr.message}</div>`; return; }
+  if (countErr){ host.innerHTML = `<div style="padding:16px;font-size:14px;color:var(--bad)">Query failed: ${countErr.message}</div>`; return; }
 
   const wanted = Math.min(count || 0, SP_ROW_LIMIT);
   const pages = [];
@@ -938,7 +938,7 @@ async function runStaffPerfFilter(){
   }
   const results = await Promise.all(pages);
   const failed = results.find(r => r.error);
-  if (failed){ host.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
+  if (failed){ host.innerHTML = `<div style="padding:16px;font-size:14px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
   const all = results.flatMap(r => r.data || []);
 
   spCapWarning = all.length >= SP_ROW_LIMIT;

@@ -11,9 +11,9 @@
 <script src="parser.js?v=4"></script>
 <script src="upload.js?v=9"></script>
 <script src="name-aliases.js?v=3"></script>
-<script src="phorest-staff.js?v=12"></script>
+<script src="phorest-staff.js?v=13"></script>
 <script src="phorest-pdf.js?v=2"></script>
-<script src="utilisation-pdf.js?v=7"></script>
+<script src="utilisation-pdf.js?v=8"></script>
 <script src="sheet-sync.js?v=9"></script>
 
 <!-- Same two faces as the main dashboard: Inter for everything, Playfair for the
@@ -39,15 +39,15 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .logo{display:flex;align-items:center;gap:12px;min-width:0;flex-shrink:1;overflow:hidden}
 .logo-crop{width:192px;height:58px;overflow:hidden;flex-shrink:0;position:relative}
 .logo-crop img{position:absolute;left:-25px;top:-90px;width:241px;height:241px;max-width:none}
-.portal-label{font-family:'Playfair Display',serif;font-weight:500;font-size:13px;letter-spacing:0.03em;text-transform:none;color:#7C5CD4;display:inline-block;padding:3px 12px;border-radius:20px;background:rgba(124,92,212,0.12);white-space:nowrap}
+.portal-label{font-family:'Playfair Display',serif;font-weight:500;font-size:15px;letter-spacing:0.03em;text-transform:none;color:#7C5CD4;display:inline-block;padding:3px 12px;border-radius:20px;background:rgba(124,92,212,0.12);white-space:nowrap}
 .header-right{display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:auto;padding-left:12px}
 @media(max-width:700px){.portal-label{display:none}}
 .toggle-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
-.toggle-lbl{font-size:11px;color:var(--muted);min-width:30px}
+.toggle-lbl{font-size:13px;color:var(--muted);min-width:30px}
 .toggle-track{width:38px;height:20px;border-radius:10px;background:var(--border);position:relative;transition:background .3s;flex-shrink:0;border:1px solid var(--border)}
 .toggle-thumb{width:14px;height:14px;border-radius:50%;background:var(--toggle-knob);position:absolute;top:2px;left:2px;transition:transform .25s ease}
 [data-theme="dark"] .toggle-thumb{transform:translateX(18px)}
-.logout-btn{padding:6px 14px;border:1px solid var(--border);border-radius:18px;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);background:transparent;cursor:pointer;font-family:'Inter',sans-serif;font-weight:500;transition:border-color .2s,color .2s}
+.logout-btn{padding:6px 14px;border:1px solid var(--border);border-radius:18px;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);background:transparent;cursor:pointer;font-family:'Inter',sans-serif;font-weight:500;transition:border-color .2s,color .2s}
 .logout-btn:hover{border-color:var(--bad);color:var(--bad)}
 .page{max-width:1400px;margin:0 auto;padding:28px 20px 60px}
 
@@ -58,7 +58,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
    Overflows sideways now instead of wrapping (Kate, 2026-08-13). */
 .tab-bar{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
 .tab-bar::-webkit-scrollbar{display:none}
-.tab-btn{padding:9px 18px;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:color .2s,border-color .2s;white-space:nowrap;flex-shrink:0}
+.tab-btn{padding:9px 18px;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:color .2s,border-color .2s;white-space:nowrap;flex-shrink:0}
 .tab-btn:hover{color:var(--text)}
 .tab-btn.active{color:var(--text);border-bottom-color:var(--accent)}
 /* the (Phorest) / (Yearly) qualifiers — kept, but demoted out of the uppercase rail */
@@ -76,11 +76,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
    was on 16px/24px/18px/11px-tracked, which is what made the two pages feel like
    different products even where the colours already matched (Kate, 2026-08-13). */
 .upload-card{background:var(--surface);border-radius:10px;padding:20px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:16px}
-.card-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:500;color:var(--text);margin-bottom:4px}
-.card-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.card-title{font-family:'Playfair Display',serif;font-size:23px;font-weight:500;color:var(--text);margin-bottom:4px}
+.card-sub{font-size:14px;color:var(--muted);margin-bottom:14px}
 .field{display:flex;flex-direction:column;gap:5px}
-.field-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
-input[type=text],input[type=password],input[type=date],input[type=number],select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--text);background:var(--surface2);font-family:'Inter',sans-serif;transition:border-color .2s;appearance:none}
+.field-label{font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
+input[type=text],input[type=password],input[type=date],input[type=number],select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;color:var(--text);background:var(--surface2);font-family:'Inter',sans-serif;transition:border-color .2s;appearance:none}
 /* Native date inputs: keep them typable (segment typing works as-is) but dress
    the widget — theme the popup calendar via color-scheme and tone the icon down
    to match the muted text instead of the browser's default black glyph. */
@@ -90,16 +90,16 @@ input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.55;t
 input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:1}
 input[type=date]:focus,input[type=number]:focus,input[type=text]:focus,input[type=password]:focus{border-color:var(--accent);outline:none}
 input:focus,select:focus{outline:none;border-color:var(--accent)}
-.btn{width:100%;padding:11px;background:var(--btn);color:var(--btn-fg);border:none;border-radius:10px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;font-weight:700;transition:background .2s,opacity .2s;white-space:nowrap}
+.btn{width:100%;padding:11px;background:var(--btn);color:var(--btn-fg);border:none;border-radius:10px;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;font-weight:700;transition:background .2s,opacity .2s;white-space:nowrap}
 .btn:hover{background:var(--btn-hover)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:7px 14px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:7px 14px;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
 .btn-outline:hover{border-color:var(--accent);color:var(--text)}
-.btn-danger{background:transparent;border:1px solid var(--bad);color:var(--bad);border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
+.btn-danger{background:transparent;border:1px solid var(--bad);color:var(--bad);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
 .btn-danger:hover{background:var(--bad-bg)}
-.btn-dl{background:transparent;border:1px solid var(--good);color:var(--good);border-radius:8px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
+.btn-dl{background:transparent;border:1px solid var(--good);color:var(--good);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
 .btn-dl:hover{background:var(--good-bg)}
-.xlsx-badge{display:inline-flex;align-items:center;gap:5px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px}
+.xlsx-badge{display:inline-flex;align-items:center;gap:5px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px}
 
 /* WEEK LABEL ROW */
 .week-label-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-bottom:16px}
@@ -111,34 +111,34 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .file-slot{border:1.5px dashed var(--border);border-radius:12px;padding:12px 10px;background:var(--surface2);transition:border-color .2s,background .2s;position:relative;cursor:pointer}
 /* Service Data queue: one pill per queued file — name, detected-branch badge,
    and a real remove button (not a bare ✕ that reads as an emoji). */
-.svc-file-row{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 6px 5px 12px;margin:3px 4px;font-size:11px;font-weight:600;color:var(--text)}
-.svc-branch-badge{background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:10px;padding:1px 8px;font-size:9px;font-weight:700;letter-spacing:0.08em}
+.svc-file-row{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 6px 5px 12px;margin:3px 4px;font-size:13px;font-weight:600;color:var(--text)}
+.svc-branch-badge{background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700;letter-spacing:0.08em}
 .svc-branch-badge.unknown{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
-.svc-remove-btn{width:18px;height:18px;border-radius:50%;border:none;background:var(--surface2);color:var(--muted);font-size:11px;line-height:1;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;font-family:'Inter',sans-serif;transition:all .15s}
+.svc-remove-btn{width:18px;height:18px;border-radius:50%;border:none;background:var(--surface2);color:var(--muted);font-size:13px;line-height:1;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;font-family:'Inter',sans-serif;transition:all .15s}
 .svc-remove-btn:hover{background:var(--bad-bg);color:var(--bad)}
 .file-slot:hover,.file-slot.dragover{border-color:var(--accent);background:var(--bg)}
 .file-slot.has-file{border-style:solid;border-color:var(--good);background:var(--good-bg)}
 .file-slot.has-existing{border-style:solid;border-color:var(--warn);background:var(--warn-bg)}
-.slot-branch-name{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text);margin-bottom:2px}
-.slot-branch-sub{font-size:10px;color:var(--muted);margin-bottom:8px}
+.slot-branch-name{font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text);margin-bottom:2px}
+.slot-branch-sub{font-size:12px;color:var(--muted);margin-bottom:8px}
 .slot-accent{height:2px;border-radius:2px;margin-bottom:10px}
 .slot-drop-area{text-align:center;padding:6px 0}
-.slot-icon{font-size:18px;opacity:.3;transition:opacity .2s;display:block;margin-bottom:4px}
-.slot-hint{font-size:10px;color:var(--muted);line-height:1.4}
-.slot-filename{font-size:10px;color:var(--good);font-weight:600;margin-top:4px;word-break:break-all;line-height:1.3}
-.slot-existing{font-size:9px;color:var(--warn);margin-top:4px;line-height:1.4}
-.slot-clear{position:absolute;top:6px;right:7px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;line-height:1;padding:2px;transition:color .2s}
+.slot-icon{font-size:20px;opacity:.3;transition:opacity .2s;display:block;margin-bottom:4px}
+.slot-hint{font-size:12px;color:var(--muted);line-height:1.4}
+.slot-filename{font-size:12px;color:var(--good);font-weight:600;margin-top:4px;word-break:break-all;line-height:1.3}
+.slot-existing{font-size:11px;color:var(--warn);margin-top:4px;line-height:1.4}
+.slot-clear{position:absolute;top:6px;right:7px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;line-height:1;padding:2px;transition:color .2s}
 .slot-clear:hover{color:var(--bad)}
-.slot-auto-tag{font-size:9px;color:var(--muted2);margin-top:4px;letter-spacing:0.06em;text-transform:uppercase}
+.slot-auto-tag{font-size:11px;color:var(--muted2);margin-top:4px;letter-spacing:0.06em;text-transform:uppercase}
 .slot-auto-tag.detected{color:var(--good)}
 
 /* PROGRESS */
 .upload-progress{margin-top:12px}
-.prog-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:12px}
+.prog-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:14px}
 .prog-branch{min-width:100px;color:var(--muted)}
 .prog-bar-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
 .prog-bar-fill{height:100%;border-radius:3px;transition:width .4s ease;width:0}
-.prog-status{min-width:70px;text-align:right;font-size:11px}
+.prog-status{min-width:70px;text-align:right;font-size:13px}
 .prog-status.ok{color:var(--good)}
 .prog-status.err{color:var(--bad)}
 .prog-status.pending{color:var(--muted2)}
@@ -150,79 +150,79 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 @media(max-width:700px){.branches-grid{grid-template-columns:1fr 1fr}}
 .branch-col{background:var(--surface);border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden}
 .branch-col-header{padding:14px 16px;background:var(--col-header);border-bottom:1px solid var(--border)}
-.branch-col-name{font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text)}
-.branch-col-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.branch-col-name{font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text)}
+.branch-col-sub{font-size:12px;color:var(--muted);margin-top:2px}
 .branch-col-accent{height:2px;border-radius:2px;margin-top:8px}
 .branch-col-body{padding:10px 12px}
 .year-section{margin-bottom:8px}
-.year-toggle{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:8px;cursor:pointer;background:var(--surface2);border:1px solid var(--border2);font-size:11px;font-weight:700;color:var(--text);letter-spacing:0.06em;user-select:none;transition:background .2s;margin-bottom:4px}
+.year-toggle{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:8px;cursor:pointer;background:var(--surface2);border:1px solid var(--border2);font-size:13px;font-weight:700;color:var(--text);letter-spacing:0.06em;user-select:none;transition:background .2s;margin-bottom:4px}
 .year-toggle:hover{background:var(--border2)}
-.year-arrow{font-size:10px;transition:transform .2s;color:var(--muted)}
+.year-arrow{font-size:12px;transition:transform .2s;color:var(--muted)}
 .year-arrow.open{transform:rotate(180deg)}
 .month-section{margin-left:4px;margin-bottom:4px}
-.month-toggle{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:7px;cursor:pointer;font-size:11px;color:var(--muted);user-select:none;transition:background .15s}
+.month-toggle{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:7px;cursor:pointer;font-size:13px;color:var(--muted);user-select:none;transition:background .15s}
 .month-toggle:hover{background:var(--surface2);color:var(--text)}
-.month-arrow{font-size:9px;transition:transform .2s}
+.month-arrow{font-size:11px;transition:transform .2s}
 .month-arrow.open{transform:rotate(180deg)}
-.month-count{font-size:10px;color:var(--muted2);margin-left:4px}
+.month-count{font-size:12px;color:var(--muted2);margin-left:4px}
 .weeks-list{margin-left:8px;padding-bottom:4px}
 .week-item{padding:7px 8px;border-radius:7px;margin-bottom:3px;border:1px solid var(--border2);background:var(--surface2);transition:background .2s}
 .week-item:hover{background:var(--border2)}
 .week-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.week-label-text{font-size:11px;color:var(--text);font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.week-date{font-size:10px;color:var(--muted2);margin-top:1px}
+.week-label-text{font-size:13px;color:var(--text);font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.week-date{font-size:12px;color:var(--muted2);margin-top:1px}
 .week-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
-.icon-btn{background:none;border:none;cursor:pointer;padding:3px 5px;color:var(--muted);font-size:13px;line-height:1;transition:color .2s;border-radius:5px}
+.icon-btn{background:none;border:none;cursor:pointer;padding:3px 5px;color:var(--muted);font-size:15px;line-height:1;transition:color .2s;border-radius:5px}
 .icon-btn:hover{color:var(--text)}
 .icon-btn.del:hover{color:var(--bad)}
 .icon-btn.dl:hover{color:var(--good)}
-.empty-col{font-size:11px;color:var(--muted2);text-align:center;padding:16px 8px}
+.empty-col{font-size:13px;color:var(--muted2);text-align:center;padding:16px 8px}
 
 /* BULK RENAME */
 .bulk-rename-card{background:var(--surface);border-radius:16px;padding:20px 24px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:24px}
 .bulk-week-list{display:flex;flex-direction:column;gap:6px;margin-top:12px}
 .bulk-week-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border2)}
-.bulk-week-label{font-size:12px;font-weight:600;color:var(--text);flex:1}
-.bulk-week-count{font-size:11px;color:var(--muted2);flex-shrink:0}
-.bulk-edit-btn{padding:5px 12px;background:transparent;border:1px solid var(--border);border-radius:18px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;white-space:nowrap}
+.bulk-week-label{font-size:14px;font-weight:600;color:var(--text);flex:1}
+.bulk-week-count{font-size:13px;color:var(--muted2);flex-shrink:0}
+.bulk-edit-btn{padding:5px 12px;background:transparent;border:1px solid var(--border);border-radius:18px;font-size:13px;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;white-space:nowrap}
 .bulk-edit-btn:hover{border-color:var(--accent);color:var(--accent)}
 .bulk-inline-edit{display:none;align-items:center;gap:8px;margin-top:8px}
-.bulk-inline-edit input{flex:1;padding:7px 10px;border:1px solid var(--accent);border-radius:8px;font-size:12px;background:var(--surface);color:var(--text);font-family:'Inter',sans-serif}
+.bulk-inline-edit input{flex:1;padding:7px 10px;border:1px solid var(--accent);border-radius:8px;font-size:14px;background:var(--surface);color:var(--text);font-family:'Inter',sans-serif}
 .bulk-inline-edit input:focus{outline:none}
-.bulk-save-btn{padding:7px 14px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:opacity .2s}
+.bulk-save-btn{padding:7px 14px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:opacity .2s}
 .bulk-save-btn:hover{opacity:.8}
-.bulk-cancel-btn{padding:7px 10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;font-size:11px;cursor:pointer;font-family:'Inter',sans-serif}
+.bulk-cancel-btn{padding:7px 10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif}
 
 /* DAILY OVERVIEW */
 .daily-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
 .daily-branch-card{background:var(--surface2);border-radius:12px;padding:14px;border:1px solid var(--border2)}
-.daily-branch-name{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text);margin-bottom:4px}
+.daily-branch-name{font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text);margin-bottom:4px}
 .daily-accent{height:2px;border-radius:2px;margin-bottom:10px}
-.daily-record{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border2);font-size:11px}
+.daily-record{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border2);font-size:13px}
 .daily-record:last-child{border-bottom:none}
 .daily-record input[type=checkbox]{width:13px;height:13px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
 .daily-record-date{color:var(--text);font-weight:500}
-.daily-record-day{color:var(--muted);font-size:10px}
+.daily-record-day{color:var(--muted);font-size:12px}
 .daily-record-total{color:var(--good);font-weight:600;margin-left:auto}
 .daily-record-actions{display:flex;gap:4px;flex-shrink:0}
-.bulk-bar{display:none;align-items:center;gap:8px;padding:8px 10px;background:var(--bad-bg);border:1px solid var(--bad);border-radius:8px;margin-bottom:8px;font-size:11px}
+.bulk-bar{display:none;align-items:center;gap:8px;padding:8px 10px;background:var(--bad-bg);border:1px solid var(--bad);border-radius:8px;margin-bottom:8px;font-size:13px}
 .bulk-bar.show{display:flex}
 .bulk-bar-text{color:var(--bad);font-weight:600;flex:1}
-.bulk-delete-btn{background:var(--bad);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+.bulk-delete-btn{background:var(--bad);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
 
 /* STAFF PERFORMANCE (PHOREST) */
 .branch-pills{display:flex;gap:8px;flex-wrap:wrap}
-.branch-pill{padding:9px 18px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em;cursor:pointer;transition:all .15s}
+.branch-pill{padding:9px 18px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'Inter',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.04em;cursor:pointer;transition:all .15s}
 .branch-pill:hover{border-color:var(--accent)}
 .branch-pill.active{background:var(--btn);border-color:var(--btn);color:var(--btn-fg)}
 .sp-branch-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 @media(max-width:1100px){.sp-branch-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.sp-branch-grid{grid-template-columns:1fr}}
 .sp-branch-box{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
-.sp-branch-box-title{font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase}
-.sp-branch-box textarea{width:100%;min-height:180px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:ui-monospace,Consolas,monospace;font-size:11px;resize:vertical}
+.sp-branch-box-title{font-size:14px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase}
+.sp-branch-box textarea{width:100%;min-height:180px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:ui-monospace,Consolas,monospace;font-size:13px;resize:vertical}
 .sp-branch-box-actions{display:flex;gap:6px}
-.sp-branch-box-msg{font-size:11px;line-height:1.5}
+.sp-branch-box-msg{font-size:13px;line-height:1.5}
 /* BACKFILL PROGRESS — 12 month blocks per year, not 365 day cells. A year of
    6px cells is 2,190px wide, so every year row grew its own sideways scrollbar
    and a whole year was never visible at once. Click a month to open its days;
@@ -231,45 +231,45 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-prog-branch{border-top:1px solid var(--border2);padding:13px 0}
 .sp-prog-branch:first-child{border-top:none;padding-top:4px}
 .sp-prog-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:9px}
-.sp-prog-name{font-size:12.5px;font-weight:600}
-.sp-prog-meta{font-size:11px;color:var(--muted)}
+.sp-prog-name{font-size:14.5px;font-weight:600}
+.sp-prog-meta{font-size:13px;color:var(--muted)}
 .sp-prog-meta b{color:var(--warn)}
 .sp-prog-meta b.ok{color:var(--good)}
 .sp-yr{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-.sp-yr-lbl{font-size:10.5px;color:var(--muted2);width:78px;flex-shrink:0}
+.sp-yr-lbl{font-size:12.5px;color:var(--muted2);width:78px;flex-shrink:0}
 .sp-yr-lbl b{color:var(--muted);font-weight:600}
 .sp-mo-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;flex:1;min-width:0}
 .sp-mo{border:none;background:transparent;padding:0;cursor:pointer;text-align:center;font-family:'Inter',sans-serif}
 .sp-mo-bar{height:20px;border-radius:4px;background:var(--border2);position:relative;overflow:hidden}
 .sp-mo-fill{position:absolute;left:0;top:0;bottom:0;background:var(--good)}
 .sp-mo-fill.part{background:var(--warn)}
-.sp-mo-lbl{display:block;font-size:9px;letter-spacing:0.04em;color:var(--muted2);margin-top:3px}
+.sp-mo-lbl{display:block;font-size:11px;letter-spacing:0.04em;color:var(--muted2);margin-top:3px}
 .sp-mo:hover .sp-mo-bar,.sp-mo.open .sp-mo-bar{outline:1.5px solid var(--accent);outline-offset:1px}
 .sp-mo[disabled]{cursor:default;opacity:.45}
 .sp-mo-days{display:none;margin:8px 0 4px 88px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px}
 .sp-mo-days.show{display:block}
-.sp-mo-days-title{font-size:10.5px;color:var(--muted);margin-bottom:7px}
+.sp-mo-days-title{font-size:12.5px;color:var(--muted);margin-bottom:7px}
 .sp-day-strip{display:flex;gap:2px;flex-wrap:wrap}
-.sp-day-cell{width:15px;height:15px;flex-shrink:0;border-radius:3px;background:var(--border2);font-size:8px;color:var(--muted2);display:flex;align-items:center;justify-content:center}
+.sp-day-cell{width:15px;height:15px;flex-shrink:0;border-radius:3px;background:var(--border2);font-size:10px;color:var(--muted2);display:flex;align-items:center;justify-content:center}
 .sp-day-cell.done{background:var(--good);color:transparent}
-.sp-prog-legend{display:flex;gap:14px;font-size:10.5px;color:var(--muted2);margin-top:12px;flex-wrap:wrap}
+.sp-prog-legend{display:flex;gap:14px;font-size:12.5px;color:var(--muted2);margin-top:12px;flex-wrap:wrap}
 .sp-prog-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px;font-style:normal}
 .sp-pdf-drop{border:1.5px dashed var(--border);border-radius:12px;padding:20px;text-align:center;background:var(--surface2);transition:border-color .2s,background .2s}
 .sp-pdf-drop.dragover{border-color:var(--accent);background:var(--bg)}
-.sp-pdf-row{display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:5px 0;border-bottom:1px solid var(--border2)}
+.sp-pdf-row{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border2)}
 .sp-pdf-row:last-child{border-bottom:none}
 .sp-pdf-row .fn{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sp-pdf-row .status.ok{color:var(--good)}
 .sp-pdf-row .status.bad{color:var(--bad)}
 .sp-table-wrap{overflow-x:auto;max-height:60vh;overflow-y:auto;margin-top:10px;border:1px solid var(--border2);border-radius:10px}
-.sp-table{width:100%;border-collapse:collapse;font-size:11px}
+.sp-table{width:100%;border-collapse:collapse;font-size:13px}
 .sp-table th,.sp-table td{padding:6px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border2)}
-.sp-table th{position:sticky;top:0;background:var(--col-header);color:var(--muted);font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:0.04em}
+.sp-table th{position:sticky;top:0;background:var(--col-header);color:var(--muted);font-weight:700;text-transform:uppercase;font-size:12px;letter-spacing:0.04em}
 .sp-table td:first-child,.sp-table td:nth-child(2),.sp-table td:nth-child(3),
 .sp-table th:first-child,.sp-table th:nth-child(2),.sp-table th:nth-child(3){text-align:left}
 .sp-table tr.sp-group-spacer td{border:none;padding:5px 0;background:transparent}
 .mini-toggle-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
-.mini-toggle-lbl{font-size:11px;color:var(--muted);min-width:44px;text-align:right}
+.mini-toggle-lbl{font-size:13px;color:var(--muted);min-width:44px;text-align:right}
 .mini-toggle-track{width:38px;height:20px;border-radius:10px;background:var(--border);position:relative;transition:background .3s;flex-shrink:0;border:1px solid var(--border)}
 .mini-toggle-thumb{width:14px;height:14px;border-radius:50%;background:var(--toggle-knob);position:absolute;top:2px;left:2px;transition:transform .25s ease}
 .mini-toggle-track.on{background:var(--accent)}
@@ -277,14 +277,14 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-table tr.is-total td{font-weight:700;background:var(--surface2);position:sticky;top:26px;z-index:5}
 .sp-filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:4px}
 .sp-filter-field{display:flex;flex-direction:column;gap:4px}
-.sp-filter-field label{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
-.sp-filter-field input,.sp-filter-field select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:12px;font-family:'Inter',sans-serif}
+.sp-filter-field label{font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
+.sp-filter-field input,.sp-filter-field select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;font-family:'Inter',sans-serif}
 
 /* SEGMENTS — Upload · Progress · Browse inside one tab, so only the section
    you are using is in the scroll (Kate, 2026-09-03). */
 .seg-bar{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:4px;gap:3px;margin-bottom:16px;max-width:100%;overflow-x:auto;scrollbar-width:none}
 .seg-bar::-webkit-scrollbar{display:none}
-.seg-btn{padding:7px 15px;border:none;background:transparent;border-radius:8px;font-family:'Inter',sans-serif;font-size:11.5px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap;flex-shrink:0}
+.seg-btn{padding:7px 15px;border:none;background:transparent;border-radius:8px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap;flex-shrink:0}
 .seg-btn:hover{color:var(--text)}
 .seg-btn.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
 .seg-pane{display:none}
@@ -292,18 +292,18 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
 /* TODAY STRIP — is today's data in yet, without scrolling for it. */
 .today-strip{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 20px;box-shadow:var(--shadow);margin-bottom:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.today-date{font-family:'Playfair Display',serif;font-size:15px;font-weight:500;white-space:nowrap}
-.today-date span{display:block;font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted2);font-weight:500;margin-top:2px}
+.today-date{font-family:'Playfair Display',serif;font-size:17px;font-weight:500;white-space:nowrap}
+.today-date span{display:block;font-family:'Inter',sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted2);font-weight:500;margin-top:2px}
 .today-pills{display:flex;gap:8px;flex-wrap:wrap;flex:1;min-width:220px}
-.today-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:20px;font-size:11.5px;font-weight:500;border:1px solid transparent}
+.today-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:20px;font-size:13.5px;font-weight:500;border:1px solid transparent}
 .today-pill.in{background:var(--good-bg)}
 .today-pill.out{background:var(--warn-bg)}
 .today-pill.ended{border-color:var(--border);color:var(--muted2)}
-.today-note{font-size:11px;color:var(--muted);white-space:nowrap}
+.today-note{font-size:13px;color:var(--muted);white-space:nowrap}
 
 /* DATE PRESET CHIPS — the four windows anyone asks for; From/To only on Custom. */
 .date-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-.date-chip{padding:6px 13px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:11.5px;font-weight:500;cursor:pointer}
+.date-chip{padding:6px 13px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;cursor:pointer}
 .date-chip:hover{color:var(--text);border-color:var(--muted2)}
 .date-chip.active{background:var(--btn);color:var(--btn-fg);border-color:transparent}
 .date-custom{display:none;gap:10px}
@@ -311,9 +311,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
 /* STICKY SAVE BAR — one Save All per paste card, always reachable. */
 .save-bar{position:sticky;bottom:12px;margin-top:14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;box-shadow:var(--shadow);z-index:5}
-.save-bar-count{font-size:11.5px;color:var(--muted)}
+.save-bar-count{font-size:13.5px;color:var(--muted)}
 .sp-col-picker{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:10px;z-index:30;min-width:180px;max-height:320px;overflow-y:auto}
-.sp-col-picker label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);padding:5px 4px;cursor:pointer;border-radius:6px;white-space:nowrap}
+.sp-col-picker label{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text);padding:5px 4px;cursor:pointer;border-radius:6px;white-space:nowrap}
 .sp-col-picker label:hover{background:var(--surface2)}
 .sp-col-picker input{accent-color:var(--accent);cursor:pointer;flex-shrink:0}
 .sp-col-picker-actions{display:flex;gap:6px;margin-top:6px;padding-top:8px;border-top:1px solid var(--border2)}
@@ -322,18 +322,18 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-th-label{cursor:pointer}
 .sp-th-sort:hover .sp-th-label{color:var(--text)}
 .sp-th-sort.active .sp-th-label{color:var(--accent)}
-.sp-th-filter-ic{cursor:pointer;opacity:.4;font-size:9px}
+.sp-th-filter-ic{cursor:pointer;opacity:.4;font-size:11px}
 .sp-th-filter-ic:hover{opacity:.8}
 .sp-th-filter-ic.active{opacity:1;color:var(--accent)}
 .sp-colval-panel{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:10px;z-index:40;width:220px;display:flex;flex-direction:column;gap:8px}
-.sp-colval-search{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:12px;font-family:'Inter',sans-serif;box-sizing:border-box}
+.sp-colval-search{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;font-family:'Inter',sans-serif;box-sizing:border-box}
 .sp-colval-actions{display:flex;gap:6px}
-.sp-colval-actions button{flex:1;padding:5px;font-size:10px}
+.sp-colval-actions button{flex:1;padding:5px;font-size:12px}
 .sp-colval-list{max-height:220px;overflow-y:auto;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);padding:4px 0}
-.sp-colval-list label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);padding:4px;cursor:pointer;border-radius:6px;white-space:nowrap;text-align:left}
+.sp-colval-list label{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text);padding:4px;cursor:pointer;border-radius:6px;white-space:nowrap;text-align:left}
 .sp-colval-list label:hover{background:var(--surface2)}
 .sp-colval-list input{accent-color:var(--accent);cursor:pointer;flex-shrink:0}
-.sp-colval-empty{font-size:11px;color:var(--muted2);padding:8px 4px}
+.sp-colval-empty{font-size:13px;color:var(--muted2);padding:8px 4px}
 .sp-colval-footer{display:flex}
 
 /* LOGIN — the dashboard's torn-receipt gate, same paper, same torn edges, same
@@ -355,19 +355,19 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .login-wrap::after{bottom:-8px;transform:scaleY(-1)}
 .login-logo-crop{width:260px;height:82px;overflow:hidden;margin:0 auto}
 .login-logo-crop img{width:100%;height:100%;object-fit:cover;object-position:center}
-.login-dash-lbl{font-family:'Playfair Display',serif;font-weight:500;font-size:18px;letter-spacing:0.03em;color:#7C5CD4;display:inline-block;padding:4px 16px;border-radius:20px;background:rgba(124,92,212,0.12);margin-top:10px}
+.login-dash-lbl{font-family:'Playfair Display',serif;font-weight:500;font-size:20px;letter-spacing:0.03em;color:#7C5CD4;display:inline-block;padding:4px 16px;border-radius:20px;background:rgba(124,92,212,0.12);margin-top:10px}
 .login-divider{height:0;border-top:1px dashed #b8b0a4;margin:20px 0 18px}
 .login-wrap .field{text-align:left;gap:7px}
-.login-wrap .field-label{font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#565049}
-.login-wrap input[type=password],.login-wrap input[type=text]{background:#F4F1E9;border:1px solid #E8E2D6;color:#1A1A1A;font-size:14px;padding:10px 40px 10px 14px;border-radius:10px}
+.login-wrap .field-label{font-size:14px;letter-spacing:0.1em;text-transform:uppercase;color:#565049}
+.login-wrap input[type=password],.login-wrap input[type=text]{background:#F4F1E9;border:1px solid #E8E2D6;color:#1A1A1A;font-size:16px;padding:10px 40px 10px 14px;border-radius:10px}
 .login-wrap input:focus{border-color:#1A1A1A}
-.login-wrap .btn{background:#FF9B9B;color:#2A2A2A;border-radius:10px;padding:11px 0;font-size:14px;font-weight:700;letter-spacing:0.08em;text-transform:none;margin-top:16px;box-shadow:none}
+.login-wrap .btn{background:#FF9B9B;color:#2A2A2A;border-radius:10px;padding:11px 0;font-size:16px;font-weight:700;letter-spacing:0.08em;text-transform:none;margin-top:16px;box-shadow:none}
 .login-wrap .btn:hover{background:#FF9B9B;opacity:0.88;transform:none;box-shadow:none}
-.err{color:var(--bad);font-size:13px;text-align:center;margin-top:8px}
+.err{color:var(--bad);font-size:15px;text-align:center;margin-top:8px}
 .login-wrap .err{color:#A32D2D}
 .pw-field-wrap{position:relative}
 .pw-field-wrap input{padding-right:40px}
-.pw-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:2px 4px}
+.pw-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:17px;line-height:1;padding:2px 4px}
 .pw-eye:hover{color:var(--text)}
 .login-wrap .pw-eye{color:#565049}
 .login-wrap .pw-eye:hover{color:#1A1A1A}
@@ -377,21 +377,21 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .modal-overlay.open{opacity:1;pointer-events:all}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px 26px;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.35);transform:translateY(10px);transition:transform .2s}
 .modal-overlay.open .modal{transform:translateY(0)}
-.modal-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:500;color:var(--text);margin-bottom:6px}
-.modal-sub{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6}
-.modal-change{background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:12px;line-height:1.7;border:1px solid var(--border2)}
+.modal-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:var(--text);margin-bottom:6px}
+.modal-sub{font-size:14px;color:var(--muted);margin-bottom:16px;line-height:1.6}
+.modal-change{background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:14px;line-height:1.7;border:1px solid var(--border2)}
 .modal-from{color:var(--muted);text-decoration:line-through}
 .modal-to{color:var(--good);font-weight:600}
-.modal-branches{font-size:11px;color:var(--muted2);margin-top:6px}
+.modal-branches{font-size:13px;color:var(--muted2);margin-top:6px}
 .modal-btns{display:flex;gap:8px}
-.modal-confirm{flex:1;padding:10px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:0.08em;text-transform:uppercase;transition:opacity .2s}
+.modal-confirm{flex:1;padding:10px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:0.08em;text-transform:uppercase;transition:opacity .2s}
 .modal-confirm:hover{opacity:.8}
 .modal-confirm.danger{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
-.modal-cancel{padding:10px 16px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif}
+.modal-cancel{padding:10px 16px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;font-size:14px;cursor:pointer;font-family:'Inter',sans-serif}
 .modal-cancel:hover{color:var(--text);border-color:var(--text)}
 
 /* TOAST */
-#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--good-bg);color:var(--good);border:1px solid var(--good);padding:10px 20px;border-radius:20px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;z-index:999;transition:opacity .4s;pointer-events:none;opacity:0}
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--good-bg);color:var(--good);border:1px solid var(--good);padding:10px 20px;border-radius:20px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;z-index:999;transition:opacity .4s;pointer-events:none;opacity:0}
 </style>
 </head>
 <body>
@@ -402,7 +402,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <div class="modal-sub" id="modalSub"></div>
     <div class="modal-change" id="modalChange" style="display:none">
       <div class="modal-from" id="modalFrom"></div>
-      <div style="font-size:11px;color:var(--muted2);margin:3px 0">↓ new name</div>
+      <div style="font-size:13px;color:var(--muted2);margin:3px 0">↓ new name</div>
       <div class="modal-to" id="modalTo"></div>
       <div class="modal-branches" id="modalBranches"></div>
     </div>
@@ -512,9 +512,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <div id="utilPdfDrop" class="sp-pdf-drop">
       <input type="file" id="utilPdfInput" accept="application/pdf" multiple style="display:none" onchange="utilQueuePdfFiles(this.files)">
       <div onclick="document.getElementById('utilPdfInput').click()" style="cursor:pointer">
-        <div style="font-size:13px;color:var(--muted)">Click to choose PDFs, or drag &amp; drop them here</div>
-        <div style="font-size:10.5px;color:var(--muted2);margin-top:4px">al-quoz-staff-utilisation-2026-01-01.pdf</div>
-        <div id="utilPdfQueueCount" style="font-size:11px;color:var(--muted2);margin-top:4px">No files queued</div>
+        <div style="font-size:15px;color:var(--muted)">Click to choose PDFs, or drag &amp; drop them here</div>
+        <div style="font-size:12.5px;color:var(--muted2);margin-top:4px">al-quoz-staff-utilisation-2026-01-01.pdf</div>
+        <div id="utilPdfQueueCount" style="font-size:13px;color:var(--muted2);margin-top:4px">No files queued</div>
       </div>
     </div>
     <div id="utilPdfResults" style="margin-top:10px"></div>
@@ -533,7 +533,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       </div>
     </div>
     <div class="card-sub">One pull per branch per day, Jan 2025 → today. Click a month to open its days.</div>
-    <div id="utilProgressGrid"><div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div></div>
+    <div id="utilProgressGrid"><div style="font-size:14px;color:var(--muted2);padding:8px 0">Loading…</div></div>
     <div class="sp-prog-legend">
       <span><i style="background:var(--good)"></i>complete</span>
       <span><i style="background:var(--warn)"></i>partial</span>
@@ -590,7 +590,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <button class="btn-outline" onclick="resetUtilFilter()">Reset</button>
     </div>
     <div class="sp-table-wrap">
-      <div id="utilTableHost" style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>
+      <div id="utilTableHost" style="padding:16px;font-size:14px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>
     </div>
   </div>
   </div><!-- /seg-ops-browse -->
@@ -650,7 +650,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
         <input type="date" id="svc-period-to" style="width:100%">
       </div>
     </div>
-    <div class="card-sub" style="margin-bottom:16px;font-size:11px">Only Top Services reports need a period. The transaction file carries its own dates.</div>
+    <div class="card-sub" style="margin-bottom:16px;font-size:13px">Only Top Services reports need a period. The transaction file carries its own dates.</div>
 
     <div class="field" style="margin-bottom:16px">
       <label class="field-label">Service Performance Files</label>
@@ -673,7 +673,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       Upload Service Data
     </button>
 
-    <div id="svc-progress" style="display:none;margin-top:14px;padding:12px;background:var(--surface2);border-radius:10px;font-size:12px;line-height:1.7"></div>
+    <div id="svc-progress" style="display:none;margin-top:14px;padding:12px;background:var(--surface2);border-radius:10px;font-size:14px;line-height:1.7"></div>
   </div>
 </div>
 
@@ -730,9 +730,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <div id="spPdfDrop" class="sp-pdf-drop">
       <input type="file" id="spPdfInput" accept="application/pdf" multiple style="display:none" onchange="spQueuePdfFiles(this.files)">
       <div onclick="document.getElementById('spPdfInput').click()" style="cursor:pointer">
-        <div style="font-size:13px;color:var(--muted)">Click to choose PDFs, or drag &amp; drop them here</div>
-        <div style="font-size:10.5px;color:var(--muted2);margin-top:4px">al-quoz-staff-performance-2026-02-13.pdf</div>
-        <div id="spPdfQueueCount" style="font-size:11px;color:var(--muted2);margin-top:4px">No files queued</div>
+        <div style="font-size:15px;color:var(--muted)">Click to choose PDFs, or drag &amp; drop them here</div>
+        <div style="font-size:12.5px;color:var(--muted2);margin-top:4px">al-quoz-staff-performance-2026-02-13.pdf</div>
+        <div id="spPdfQueueCount" style="font-size:13px;color:var(--muted2);margin-top:4px">No files queued</div>
       </div>
     </div>
     <div id="spPdfResults" style="margin-top:10px"></div>
@@ -751,7 +751,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       </div>
     </div>
     <div class="card-sub">One pull per branch per day, Jan 2025 → today. Click a month to open its days.</div>
-    <div id="spProgressGrid"><div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div></div>
+    <div id="spProgressGrid"><div style="font-size:14px;color:var(--muted2);padding:8px 0">Loading…</div></div>
     <div class="sp-prog-legend">
       <span><i style="background:var(--good)"></i>complete</span>
       <span><i style="background:var(--warn)"></i>partial</span>
@@ -808,7 +808,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <button class="btn-outline" onclick="resetStaffPerfFilter()">Reset</button>
     </div>
     <div class="sp-table-wrap">
-      <div id="spTableHost" style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>
+      <div id="spTableHost" style="padding:16px;font-size:14px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>
     </div>
   </div>
   </div><!-- /seg-staffperf-browse -->
@@ -835,7 +835,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       </div>
     </div>
     <div class="card-sub">One push per branch per day, Jan 2025 → today. Click a month to open its days.</div>
-    <div id="ssProgressGrid"><div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div></div>
+    <div id="ssProgressGrid"><div style="font-size:14px;color:var(--muted2);padding:8px 0">Loading…</div></div>
     <div class="sp-prog-legend">
       <span><i style="background:var(--good)"></i>complete</span>
       <span><i style="background:var(--warn)"></i>partial</span>
@@ -846,7 +846,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <div class="upload-card">
     <div class="card-title">Google Sheets Sync</div>
     <div class="card-sub">Auto-pushed from each branch's Sheet (<code>_temp_placeholder</code> tab). Nothing to upload here.</div>
-    <div id="ssLastSynced" class="sp-branch-grid"><div style="font-size:12px;color:var(--muted2);padding:8px 0">Loading…</div></div>
+    <div id="ssLastSynced" class="sp-branch-grid"><div style="font-size:14px;color:var(--muted2);padding:8px 0">Loading…</div></div>
   </div>
   </div><!-- /seg-sheetsync-progress -->
 
@@ -898,7 +898,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <button class="btn-outline" onclick="resetSheetSyncFilter()">Reset</button>
     </div>
     <div class="sp-table-wrap">
-      <div id="ssTableHost" style="padding:16px;font-size:12px;color:var(--muted2)">Pick a filter and click Apply.</div>
+      <div id="ssTableHost" style="padding:16px;font-size:14px;color:var(--muted2)">Pick a filter and click Apply.</div>
     </div>
   </div>
   </div><!-- /seg-sheetsync-browse -->

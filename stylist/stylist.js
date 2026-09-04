@@ -4,7 +4,7 @@ function formatViewedTimestamp() {
   const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   document.getElementById('viewedTimestamp').innerHTML =
-    `Viewed ${dateStr}<br><span style="font-size:9px;opacity:.7">${tz.replace('_',' ')} · ${timeStr}</span>`;
+    `Viewed ${dateStr}<br><span style="font-size:11px;opacity:.7">${tz.replace('_',' ')} · ${timeStr}</span>`;
 }
 window.addEventListener('DOMContentLoaded', formatViewedTimestamp);
 
@@ -812,7 +812,7 @@ function renderDetail(s){
         <div class="detail-sub" style="display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:3px">
           <span class="job-pill ${isBeauty?'beauty':'hair'}">${isBeauty?'💅 Beautician':'✂️ Hair Stylist'}</span>
           ${[...new Set(st.weeks.map(w=>w.branch))].map(b=>{const slug={KCA:'kca',SAA:'saa',MC:'mc',AQ:'aq',FRT:'frt'}[b]||'kca';const label=BRANCH_INFO[b]?.name||b;return`<span class="branch-pill ${slug}">${label}</span>`;}).join('')}
-          <span style="color:var(--muted);font-size:10px">· Active ${st.weeksActive}w ·</span>
+          <span style="color:var(--muted);font-size:12px">· Active ${st.weeksActive}w ·</span>
         </div>
         ${(()=>{
   const cn  = s.name.toLowerCase().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
@@ -877,7 +877,7 @@ function renderDetail(s){
     <!-- WEEKLY BREAKDOWN TABLE -->
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;margin-top:4px;cursor:pointer;" onclick="toggleWeeklyTable(this)">
       <div class="chart-title" style="margin-bottom:0">WEEK-BY-WEEK BREAKDOWN</div>
-      <span class="weekly-toggle-icon" style="font-size:11px;color:var(--muted);user-select:none;">▾ Hide</span>
+      <span class="weekly-toggle-icon" style="font-size:13px;color:var(--muted);user-select:none;">▾ Hide</span>
     </div>
     <div class="weekly-table-wrap">
       ${renderWeekTable(st, isBeauty)}
@@ -1022,7 +1022,7 @@ function drawRadar(st, isBeauty){
           ticks: { display: false },
           grid: { color: gridColor },
           angleLines: { color: gridColor },
-          pointLabels: { color: textColor, font: { size: 10 } }
+          pointLabels: { color: textColor, font: { size: 12 } }
         }
       }
     }
@@ -1092,11 +1092,11 @@ function drawChart(st, isBeauty){
     },
     options:{
       responsive:true, maintainAspectRatio:true,
-      plugins:{ legend:{ labels:{ color:textColor, font:{size:11}, boxWidth:12 } } },
+      plugins:{ legend:{ labels:{ color:textColor, font:{size:13}, boxWidth:12 } } },
       scales:{
-        x:{ ticks:{ color:textColor, font:{size:10} }, grid:{ color:gridColor } },
-        y:{ ticks:{ color:textColor, font:{size:10}, callback:v=>'AED '+Math.round(v/1000)+'k' }, grid:{ color:gridColor }, position:'left' },
-        y2:{ ticks:{ color:textColor, font:{size:10} }, grid:{ display:false }, position:'right' },
+        x:{ ticks:{ color:textColor, font:{size:12} }, grid:{ color:gridColor } },
+        y:{ ticks:{ color:textColor, font:{size:12}, callback:v=>'AED '+Math.round(v/1000)+'k' }, grid:{ color:gridColor }, position:'left' },
+        y2:{ ticks:{ color:textColor, font:{size:12} }, grid:{ display:false }, position:'right' },
       }
     }
   });
