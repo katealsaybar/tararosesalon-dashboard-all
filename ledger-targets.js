@@ -205,13 +205,41 @@ const LEDGER_TARGETS = {
 
 // Sum a branch-level target across a selection of branch codes. Pass the same
 // array the filters hold — ['all'] expands to every active branch.
+//
+// `metric` may be an array, which combines several of the sheet's targets into one
+// the sheet does not itself carry. A '-' prefix subtracts. Two callers:
+//
+//   ['servicesTotal','retailTotal']       total revenue — the sheet has no such
+//                                         line, but these two cover the same ground
+//   ['servicesTotal','-hairTreatment']    services total EXCLUDING treatments,
+//                                         which is Kate's definition of that row
+//
+// The second one is the fix to the phantom shortfall of 4 Sep 2026. The sheet's
+// servicesTotal is hair INCLUDING treatments and courses plus beauty (500,000 +
+// 70,000 = 570,000 at Saadiyat); the dashboard row is hair EXCLUDING them plus
+// beauty, per Kate's vocabulary of 3 Sep. Read against each other they printed a
+// −254k group variance that was mostly just the treatment line being counted on
+// one side and not the other — the same mistake that made Khalifa look 42k down in
+// the September leadership call, one row along. Treatments have their own target,
+// so taking them back off gives a target on the row's own terms.
+//
+// COURSES ARE THE ONE THING LEFT IN. They carry no target anywhere in the sheet,
+// so they cannot be subtracted the way treatments can, and the derived target still
+// has them in it. That is worth about 2.6k a month against 1.3m — a rounding error
+// beside the 254k it replaces, but it is not nothing, and if a courses target ever
+// lands in the sheet this is where it belongs.
 function ledgerBranchTarget(metric, branchCodes) {
   const codes = (!branchCodes || branchCodes.includes('all'))
     ? Object.keys(LEDGER_TARGETS.branch)
     : branchCodes;
+  const metrics = Array.isArray(metric) ? metric : [metric];
   return codes.reduce((sum, code) => {
     const b = LEDGER_TARGETS.branch[code];
-    return sum + ((b && b[metric]) || 0);
+    return sum + metrics.reduce((n, m) => {
+      const neg = m.charAt(0) === '-';
+      const v = (b && b[neg ? m.slice(1) : m]) || 0;
+      return n + (neg ? -v : v);
+    }, 0);
   }, 0);
 }
 

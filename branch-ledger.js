@@ -168,6 +168,41 @@ function lgServicesTotal(d) {
 const LG_SERVICES_LABEL = 'Services Total (hair excl. treatments and courses + beauty, no retail)';
 const LG_RETAIL_LABEL   = 'Retail Total (Hair + Beauty)';
 
+// Total revenue, Kate's ask (4 Sep 2026): the one line Phorest's Financial Totals
+// report prints as its Sales "Total", so a branch block can be checked against that
+// report without adding four rows up by hand. Everything the salon took, ex VAT:
+//
+//   hair revenue (services + treatments + courses)   Phorest "Services" + "Courses"
+// + beauty services (beautySales already has courses in it)
+// + retail total (Phorest's own branch products line, house account included)
+// = total revenue                                    Phorest Sales "Total", Net (Ex VAT)
+//
+// Two things it is NOT. It is not net take plus vouchers: Phorest's Non-Revenue
+// Sales block (vouchers sold, paid into account, account used) is money moving, not
+// revenue, and stays out. And courses here are courses PERFORMED, where Phorest's
+// Total counts courses SOLD — August group was 2,623 performed, so the two reports
+// can differ by a low four figures on that line alone.
+//
+// Unlike lgServicesTotal this survives a Phorest-only month: nothing is subtracted,
+// so an unknown treatment figure cannot make it null. Null only when the window has
+// no revenue of any kind, which prints a dash rather than a zero.
+function lgTotalRevenue(d) {
+  if (!d) return null;
+  const parts = [d.hairServicesIncl, d.beautyServicesTotal, d.retailTotal];
+  if (parts.every(v => v == null)) return null;
+  return parts.reduce((t, v) => t + (Number(v) || 0), 0);
+}
+const LG_TOTAL_LABEL  = 'Total revenue (services + treatments + courses + retail, ex VAT)';
+// No total-revenue line in the target sheet, so it is built from the two targets
+// that between them cover the same ground — see ledgerBranchTarget().
+const LG_TOTAL_TARGET = ['servicesTotal', 'retailTotal'];
+// Services Total is Kate's excl-treatments definition, so it is read against the
+// sheet's services target with the treatment target taken back off. Kate, 4 Sep
+// 2026: without this the row compared an actual with treatments stripped out
+// against a target that had them in, and printed a −254k group variance that was
+// mostly the treatment line. See ledgerBranchTarget() for what is still left in.
+const LG_SERVICES_TARGET = ['servicesTotal', '-hairTreatment'];
+
 function lgRollup(list) {
   const t = {
     servicesTotal:0, retailTotal:0, hairServicesIncl:0, hairRetailOnly:0, treatmentSales:0,
@@ -735,13 +770,18 @@ async function lgSeries() {
 // `fmt` decides money vs count; `ratio` marks the benchmark rows, which are
 // percentages of their own window rather than something that can be summed.
 const LG_SHEET_ROWS = [
-  // Kate's eleven revenue lines, her order, 3 Sep 2026. The target sits on HAIR
+  // Kate's eleven revenue lines, her order, 3 Sep 2026, under a total-revenue line
+  // added 4 Sep 2026 so the block opens on the figure Phorest's Financial Totals
+  // report leads with. The target sits on HAIR
   // REVENUE (treatments and courses in, retail out): that is the figure the Monday
   // sheet's "hair services" number always was, which is how Khalifa's +14k read as
   // a 42k shortfall in the September leadership call. Hair services and courses are
   // its parts and carry no target of their own. The # rows are counts off the ledger.
   { group: 'Revenue' },
-  { label: LG_SERVICES_LABEL,                               key: 'servicesTotal',  pick: lgServicesTotal },
+  // Everything the branch took, first, so the block opens on the figure the
+  // Financial Totals report opens on. The lines below are its parts.
+  { label: LG_TOTAL_LABEL,                                  key: LG_TOTAL_TARGET,  pick: lgTotalRevenue, tot: true },
+  { label: LG_SERVICES_LABEL,                               key: LG_SERVICES_TARGET, pick: lgServicesTotal },
   { label: LG_RETAIL_LABEL,                                 key: 'retailTotal',    pick: d => d.retailTotal },
   { label: 'Hair revenue (incl. treatments and courses)',   key: 'hairRevenue',    pick: d => d.hairServicesIncl },
   { label: 'Hair services (excl. treatments and courses)',  key: null,             pick: d => d.hairServicesExcl },
@@ -823,11 +863,14 @@ function lgSheetSection(series, code, ctx) {
       ? '<span class="lg-na">no target</span>'
       : `<span class="lg-na">no ${escapeHtml(w.month.label)} sheet</span>`;
 
-    rows.push([r.label + (r.ledger ? ' <span class="lg-tag">LEDGER</span>' : ''),
+    const cells = [r.label + (r.ledger ? ' <span class="lg-tag">LEDGER</span>' : ''),
       bucket.prev ? (r.pick(bucket.prev) == null ? '—' : fmt(r.pick(bucket.prev))) : '—',
       target != null ? fmt(target) : noTarget]
       .concat(lgSplitCells(series, bucket, s => r.pick(s), fmt))
-      .concat([mtdRaw == null ? '—' : fmt(mtd), p ? lgDelta(p.variance, fmt) : '—']));
+      .concat([mtdRaw == null ? '—' : fmt(mtd), p ? lgDelta(p.variance, fmt) : '—']);
+    // `tot` is the total-revenue line, set in bold on its own rule so it reads as
+    // the sum of the block rather than as another line in it.
+    rows.push(r.tot ? { total: cells } : cells);
   });
 
   return lgTable(cols, rows, { compact: true }) + lgIdentityNote(bucket.mtd);
@@ -842,10 +885,16 @@ function lgSheetSection(series, code, ctx) {
 // and the block should not be trusted until someone finds out why.
 function lgIdentityNote(s) {
   if (!s) return '';
-  const line = (aL, a, bL, b, tL, t) => {
-    const ok = Math.abs((a + b) - t) < 1;
-    return `<span class="${ok ? 'lg-up' : 'lg-down'}">${ok ? '✓' : '✗'}</span> ${aL} ${lgAed(a)} + ${bL} ${lgAed(b)} = ${tL} ${lgAed(t)}`;
+  // `parts` is [label, amount] pairs, so a two-term identity and the three-term
+  // total-revenue one print in the same shape and are checked the same way.
+  const lineOf = (parts, tL, t) => {
+    const sum = parts.reduce((n, p) => n + p[1], 0);
+    const ok  = Math.abs(sum - t) < 1;
+    return `<span class="${ok ? 'lg-up' : 'lg-down'}">${ok ? '✓' : '✗'}</span> `
+      + parts.map(p => `${p[0]} ${lgAed(p[1])}`).join(' + ')
+      + ` = ${tL} ${lgAed(t)}`;
   };
+  const line = (aL, a, bL, b, tL, t) => lineOf([[aL, a], [bL, b]], tL, t);
   let split = '';
   if ((s.retailUnattributed || 0) >= 1) {
     const share = (s.retailHairShare == null) ? null : Math.round(s.retailHairShare * 100);
@@ -854,7 +903,10 @@ function lgIdentityNote(s) {
   }
   return `<div class="foot">` +
     line('Hair services (excl. treatments and courses)', s.hairServicesExcl || 0, 'beauty services', s.beautyServicesTotal || 0, 'services total', lgServicesTotal(s) || 0) + '<br>' +
-    line('Hair retail', s.hairRetailOnly || 0, 'beauty retail', s.beautyRetailOnly || 0, 'retail total', s.retailTotal || 0) +
+    line('Hair retail', s.hairRetailOnly || 0, 'beauty retail', s.beautyRetailOnly || 0, 'retail total', s.retailTotal || 0) + '<br>' +
+    lineOf([['Hair revenue (incl. treatments and courses)', s.hairServicesIncl || 0],
+            ['beauty services', s.beautyServicesTotal || 0],
+            ['retail total', s.retailTotal || 0]], 'total revenue', lgTotalRevenue(s) || 0) +
     split + `</div>`;
 }
 
@@ -1076,10 +1128,12 @@ async function renderBranchPerformance() {
 
   // ── REVENUE ────────────────────────────────────────────────
   // Ledger row order, and the ledger's own names for each line.
-  // Kate's eleven lines in her order (3 Sep 2026) — see LG_SHEET_ROWS for why the
+  // Kate's eleven lines in her order (3 Sep 2026) under the total-revenue line
+  // (4 Sep 2026) — see LG_SHEET_ROWS for why the
   // target sits on hair REVENUE. Fifth element marks a count, formatted as a number.
   const revenueRows = [
-    [LG_SERVICES_LABEL,                              'servicesTotal',  lgServicesTotal(s)],
+    [LG_TOTAL_LABEL,                                 LG_TOTAL_TARGET,  lgTotalRevenue(s), false, false, true],
+    [LG_SERVICES_LABEL,                              LG_SERVICES_TARGET, lgServicesTotal(s)],
     [LG_RETAIL_LABEL,                                'retailTotal',    s.retailTotal],
     ['Hair revenue (incl. treatments and courses)',  'hairRevenue',    s.hairServicesIncl],
     ['Hair services (excl. treatments and courses)', null,             s.hairServicesExcl],
@@ -1098,15 +1152,18 @@ async function renderBranchPerformance() {
        {label:'Variance',align:'r'},{label:'% done',align:'r',w:'116px'},{label:'Remaining',align:'r'}]
     : [{label:'Metric'},{label:'Actual',align:'r'}];
 
-  const revBody = revenueRows.map(([label, key, actual, isLedger, isCount]) => {
+  // Sixth element is the total-revenue line — bold, on its own rule, the same way
+  // the Ledgers block sets it.
+  const revBody = revenueRows.map(([label, key, actual, isLedger, isCount, isTotal]) => {
     const tag = isLedger ? ' <span class="lg-tag">LEDGER</span>' : '';
     const f   = isCount ? lgNum : lgAed;
-    if (!ctx.applies) return [label + tag, f(actual)];
-    if (!key)         return [label + tag, f(actual), '<span class="lg-na">no target</span>', '—', '—', '—'];
+    const out = cells => (isTotal ? { total: cells } : cells);
+    if (!ctx.applies) return out([label + tag, f(actual)]);
+    if (!key)         return out([label + tag, f(actual), '<span class="lg-na">no target</span>', '—', '—', '—']);
     const t = ledgerBranchTarget(key, codes);
     const p = ledgerPace(actual, t);
-    return [label + tag, f(p.actual), f(p.target),
-            lgDelta(p.variance, f), lgDoneBar(p.pctDone), f(p.remaining)];
+    return out([label + tag, f(p.actual), f(p.target),
+            lgDelta(p.variance, f), lgDoneBar(p.pctDone), f(p.remaining)]);
   });
 
   // ── CLIENTS ────────────────────────────────────────────────
@@ -1341,7 +1398,7 @@ function bpDrawCharts(codes, ctx) {
   // one chart that colours by status.
   if (ctx.applies) {
     const METRICS = [
-      ['Salon total services', 'servicesTotal',    lgServicesTotal],
+      ['Salon total services', LG_SERVICES_TARGET, lgServicesTotal],
       ['Salon total retail (hair + beauty)', 'retailTotal', d => d.retailTotal],
       ['Hair revenue',         'hairRevenue',      d => d.hairServicesIncl],
       ['Hair treatment',       'hairTreatment',    d => d.treatmentSales],
@@ -1581,7 +1638,7 @@ async function renderLedgerTargets() {
   // The six pacing blocks, in the sheet's own order and with its own titles.
   // `pick` pulls the actual for one branch's summary; `key` is the target field.
   const BLOCKS = [
-    { title:'Salon total services (hair excl. treatments and courses + beauty)', key:'servicesTotal', pick: lgServicesTotal },
+    { title:'Salon total services (hair excl. treatments and courses + beauty)', key:LG_SERVICES_TARGET, pick: lgServicesTotal },
     { title:'Salon total retail (hair + beauty)', key:'retailTotal', pick: d => d.retailTotal },
     { title:'Hair treatment',       key:'hairTreatment',    pick: d => d.treatmentSales },
     { title:'Hair revenue (incl. treatments and courses)', key:'hairRevenue', pick: d => d.hairServicesIncl },

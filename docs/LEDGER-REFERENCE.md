@@ -174,11 +174,13 @@ identity holds at Saadiyat and Al Quoz. Like for like, Khalifa's hair
 department beat its target by about 14k.
 
 The eleven lines, in Kate's order, printed on Branch Performance, Actuals vs
-Targets and the Daily Target Sheet:
+Targets and the Daily Target Sheet, under a **Total revenue** line added
+4 Sep 2026:
 
 | Line | Definition | Source | Target |
 |---|---|---|---|
-| Services Total | hair revenue + beauty services | Phorest | sheet |
+| **Total revenue** | hair revenue + beauty services + retail total | Phorest | sheet, `servicesTotal` + `retailTotal` summed |
+| Services Total | hair services (excl. treatments and courses) + beauty services | Phorest | sheet, `servicesTotal` − `hairTreatment` |
 | Retail Total | Phorest's branch TOTAL products line | Phorest | sheet |
 | Hair revenue | retail out; treatments and courses **in** | Phorest services + courses, hair staff | sheet (was labelled "excl.") |
 | Hair services | retail, treatments **and courses** out | hair revenue − treatment AED − courses | none, a part |
@@ -191,9 +193,31 @@ Targets and the Daily Target Sheet:
 | Beauty retail revenue | products, beauty staff + beauty's share of unattributed | Phorest | none |
 | # beauty retail sold | unit count | ledger (branches barely fill it) | none |
 
-**Two identities are printed under every revenue block**: hair revenue + beauty
-services = services total, and hair retail + beauty retail = retail total. A
-cross instead of a tick means the figures came from different places.
+**Three identities are printed under every revenue block**: hair services (excl.)
++ beauty services = services total, hair retail + beauty retail = retail total,
+and hair revenue + beauty services + retail total = total revenue. A cross
+instead of a tick means the figures came from different places.
+
+**The Services Total target has the treatment target taken off it** (4 Sep 2026).
+The sheet's `servicesTotal` is hair *including* treatments and courses plus
+beauty; the dashboard row is hair *excluding* them plus beauty. Read against each
+other they printed a −254k group variance that was mostly the treatment line
+counted on one side and not the other — the September leadership call's phantom
+Khalifa shortfall, one row along. With treatments subtracted, Khalifa reads
++9,565 (102% of target) rather than a shortfall, which is the like-for-like
+figure that call landed on. Courses are the one thing still in the derived
+target: they carry no target anywhere in the sheet, so they cannot be taken off,
+which is worth about 2.6k a month against 1.3m. Applies on all three places the
+row appears — Actuals vs Targets, Actuals vs Targets by branch, and Branch
+Performance's pace chart.
+
+**Total revenue is the Phorest cross-check.** It is built to equal the Sales
+`Total`, Net (Ex VAT), on Phorest's *Financial Totals* report — services,
+courses and products, with the Non-Revenue Sales block (vouchers sold, paid into
+account, account used) deliberately out, because that is money moving rather
+than revenue. One known gap: Phorest counts courses **sold**, the dashboard
+counts courses **performed**, so the two can differ by a low four figures on
+that line. Compare ex VAT, never the gross Total column.
 
 **Unattributed retail is split, not dumped on hair.** Phorest books a share of
 retail to the house account with no stylist. It used to land wholly on Hair
@@ -214,6 +238,7 @@ The metric vocabulary matches almost exactly — the ledger's names and
 
 | Ledger row | Dashboard field |
 |---|---|
+| Total revenue | `lgTotalRevenue(s)` — `s.hairServicesIncl` + `s.beautyServicesTotal` + `s.retailTotal` |
 | Services Total | `s.servicesTotal` |
 | Retail Total | `s.retailTotal` |
 | Hair revenue (incl. treatments and courses) | `s.hairServicesIncl` (alias `s.hairRevenue`) |
