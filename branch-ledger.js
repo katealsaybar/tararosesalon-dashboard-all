@@ -428,6 +428,13 @@ function lgWatchScroll(root) {
 
 // The collapsible shell, reusing Organisation Pulse's own section chrome so these
 // pages feel like the same dashboard rather than a bolted-on report.
+//
+// The export buttons are asked for by id rather than passed in: lgxToolbar returns
+// nothing for a section that has not registered an export, so the Ledgers sections
+// get their three buttons and Branch Performance and Stylist Cards, which share
+// this same chrome, are untouched without either end knowing about the other.
+// Guarded on the function existing, so the pages still render if ledger-export.js
+// fails to load.
 function lgSection(id, dotColor, title, subtitle, bodyHtml) {
   return `
     <div class="support-section" id="sec-${id}" style="margin-bottom:14px">
@@ -437,7 +444,10 @@ function lgSection(id, dotColor, title, subtitle, bodyHtml) {
           <span style="font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:18px;letter-spacing:0.02em;color:var(--text)">${title}</span>
           ${subtitle ? `<span style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${subtitle}</span>` : ''}
         </div>
-        <span id="arrow-${id}" class="support-toggle-arrow">▸</span>
+        <span style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+          ${typeof lgxToolbar === 'function' ? lgxToolbar(id) : ''}
+          <span id="arrow-${id}" class="support-toggle-arrow">▸</span>
+        </span>
       </div>
       <div id="body-${id}" class="support-section-body" style="padding:14px 6px 6px">${bodyHtml}</div>
     </div>`;
@@ -789,10 +799,32 @@ async function lgSeries() {
   return series;
 }
 
+// ── THE SIX PACING BLOCKS ────────────────────────────────────
+// Daily Target Sheet's six blocks, in the sheet's own order and under its own
+// titles. `pick` pulls the actual out of one branch's summary; `key` is the target
+// field it is read against.
+//
+// Module level rather than inside renderLedgerTargets, so the spreadsheet exports
+// build the same six blocks from the same definitions instead of from a copy that
+// would drift the first time one of these titles changed.
+const LG_PACE_BLOCKS = [
+  { title:'Salon total services (hair excl. treatments and courses + beauty)', key:LG_SERVICES_TARGET, pick: lgServicesTotal },
+  { title:'Salon total retail (hair + beauty)', key:'retailTotal', pick: d => d.retailTotal },
+  { title:'Hair treatment',       key:'hairTreatment',    pick: d => d.treatmentSales },
+  { title:'Hair revenue (incl. treatments and courses)', key:'hairRevenue', pick: d => d.hairServicesIncl },
+  { title:'Hair retail',          key:'hairRetail',       pick: d => d.hairRetailOnly },
+  { title:'Beauty services',      key:'beautyServices',   pick: d => d.beautyServicesTotal },
+];
+
 // ── THE ROWS ─────────────────────────────────────────────────
 // Her row order, her row names, and the target key each one is measured against.
 // `fmt` decides money vs count; `ratio` marks the benchmark rows, which are
 // percentages of their own window rather than something that can be summed.
+//
+// `xk` is the row's export key — what a formula in the spreadsheet exports calls
+// this row (ledger-export.js). It lives here rather than in a lookup table over
+// there so that renaming a row and losing the formula that points at it cannot
+// happen in two separate commits.
 const LG_SHEET_ROWS = [
   // Kate's eleven revenue lines, her order, 3 Sep 2026, under a total-revenue line
   // added 4 Sep 2026 so the block opens on the figure Phorest's Financial Totals
@@ -804,31 +836,31 @@ const LG_SHEET_ROWS = [
   { group: 'Revenue' },
   // Everything the branch took, first, so the block opens on the figure the
   // Financial Totals report opens on. The lines below are its parts.
-  { label: LG_TOTAL_LABEL,                                  key: LG_TOTAL_TARGET,  pick: lgTotalRevenue, tot: true },
-  { label: LG_SERVICES_LABEL,                               key: LG_SERVICES_TARGET, pick: lgServicesTotal },
-  { label: LG_RETAIL_LABEL,                                 key: 'retailTotal',    pick: d => d.retailTotal },
-  { label: 'Hair revenue (incl. treatments and courses)',   key: 'hairRevenue',    pick: d => d.hairServicesIncl },
-  { label: 'Hair services (excl. treatments and courses)',  key: null,             pick: d => d.hairServicesExcl },
-  { label: 'Hair treatments revenue',                       key: 'hairTreatment',  pick: d => d.treatmentSales, ledger: true },
-  { label: '# hair treatments sold',                        key: null,             pick: d => d.hairTreatmentUnits, num: true, ledger: true },
-  { label: 'Hair courses revenue (performed)',              key: null,             pick: d => d.hairCourses },
-  { label: 'Hair retail revenue',                           key: 'hairRetail',     pick: d => d.hairRetailOnly },
-  { label: '# hair retail sold',                            key: null,             pick: d => d.hairRetailUnits, num: true, ledger: true },
-  { label: 'Beauty services revenue',                       key: 'beautyServices', pick: d => d.beautyServicesTotal, beauty: true },
-  { label: 'Beauty retail revenue',                         key: null,             pick: d => d.beautyRetailOnly, beauty: true },
-  { label: '# beauty retail sold',                          key: null,             pick: d => d.beautyRetailUnits, num: true, beauty: true, ledger: true },
+  { xk: 'totalRevenue',       label: LG_TOTAL_LABEL,                                 key: LG_TOTAL_TARGET,  pick: lgTotalRevenue, tot: true },
+  { xk: 'servicesTotal',      label: LG_SERVICES_LABEL,                              key: LG_SERVICES_TARGET, pick: lgServicesTotal },
+  { xk: 'retailTotal',        label: LG_RETAIL_LABEL,                                key: 'retailTotal',    pick: d => d.retailTotal },
+  { xk: 'hairRevenue',        label: 'Hair revenue (incl. treatments and courses)',  key: 'hairRevenue',    pick: d => d.hairServicesIncl },
+  { xk: 'hairServicesExcl',   label: 'Hair services (excl. treatments and courses)', key: null,             pick: d => d.hairServicesExcl },
+  { xk: 'hairTreatments',     label: 'Hair treatments revenue',                      key: 'hairTreatment',  pick: d => d.treatmentSales, ledger: true },
+  { xk: 'hairTreatmentUnits', label: '# hair treatments sold',                       key: null,             pick: d => d.hairTreatmentUnits, num: true, ledger: true },
+  { xk: 'hairCourses',        label: 'Hair courses revenue (performed)',             key: null,             pick: d => d.hairCourses },
+  { xk: 'hairRetail',         label: 'Hair retail revenue',                          key: 'hairRetail',     pick: d => d.hairRetailOnly },
+  { xk: 'hairRetailUnits',    label: '# hair retail sold',                           key: null,             pick: d => d.hairRetailUnits, num: true, ledger: true },
+  { xk: 'beautyServices',     label: 'Beauty services revenue',                      key: 'beautyServices', pick: d => d.beautyServicesTotal, beauty: true },
+  { xk: 'beautyRetail',       label: 'Beauty retail revenue',                        key: null,             pick: d => d.beautyRetailOnly, beauty: true },
+  { xk: 'beautyRetailUnits',  label: '# beauty retail sold',                         key: null,             pick: d => d.beautyRetailUnits, num: true, beauty: true, ledger: true },
   { group: 'Clients' },
-  { label: 'Beauty Rebooked', key: 'beautyRebooked', pick: d => d.beautyRebookedCount, num: true, beauty: true },
-  { label: 'Rebooked',        key: 'rebooked',       pick: d => d.totalRebooked,   num: true },
-  { label: 'Total Clients',   key: 'totalClients',   pick: d => d.totalClients,    num: true },
-  { label: 'New Clients',     key: 'newClients',     pick: d => d.newClientsTotal, num: true },
-  { label: 'NCR',             key: 'ncr',            pick: d => d.ncrTotal,        num: true },
+  { xk: 'beautyRebooked',     label: 'Beauty Rebooked',                              key: 'beautyRebooked', pick: d => d.beautyRebookedCount, num: true, beauty: true },
+  { xk: 'rebooked',           label: 'Rebooked',                                     key: 'rebooked',       pick: d => d.totalRebooked,   num: true },
+  { xk: 'totalClients',       label: 'Total Clients',                                key: 'totalClients',   pick: d => d.totalClients,    num: true },
+  { xk: 'newClients',         label: 'New Clients',                                  key: 'newClients',     pick: d => d.newClientsTotal, num: true },
+  { xk: 'ncr',                label: 'NCR',                                          key: 'ncr',            pick: d => d.ncrTotal,        num: true },
   { group: 'Benchmarks' },
-  { label: 'Rebooking %',   bm: 'rebookPct',    pick: d => (d.rebookPct != null ? d.rebookPct : d.hairRebookPct), ratio: true },
-  { label: 'Treatment %',   bm: 'treatmentPct', pick: d => (d.treatmentSales == null || !(d.hairServicesIncl || 0)) ? null : d.treatmentSales / d.hairServicesIncl * 100, ratio: true },
-  { label: 'Retail %',      bm: 'retailPct',    pick: d => { const n = (d.hairServicesIncl||0) + (d.hairRetailOnly||0); return n ? (d.hairRetailOnly||0)/n*100 : null; }, ratio: true },
-  { label: 'Hair Avg Bill', bm: 'hairAvgBill',  pick: d => d.hairAvgBill,   ratio: true, money: true },
-  { label: 'Beauty Avg Bill', bm: 'beautyAvgBill', pick: d => d.beautyAvgBill, ratio: true, money: true, beauty: true },
+  { xk: 'rebookPct',          label: 'Rebooking %',                                  bm: 'rebookPct',    pick: d => (d.rebookPct != null ? d.rebookPct : d.hairRebookPct), ratio: true },
+  { xk: 'treatmentPct',       label: 'Treatment %',                                  bm: 'treatmentPct', pick: d => (d.treatmentSales == null || !(d.hairServicesIncl || 0)) ? null : d.treatmentSales / d.hairServicesIncl * 100, ratio: true },
+  { xk: 'retailPct',          label: 'Retail %',                                     bm: 'retailPct',    pick: d => { const n = (d.hairServicesIncl||0) + (d.hairRetailOnly||0); return n ? (d.hairRetailOnly||0)/n*100 : null; }, ratio: true },
+  { xk: 'hairAvgBill',        label: 'Hair Avg Bill',                                bm: 'hairAvgBill',  pick: d => d.hairAvgBill,   ratio: true, money: true },
+  { xk: 'beautyAvgBill',      label: 'Beauty Avg Bill',                              bm: 'beautyAvgBill', pick: d => d.beautyAvgBill, ratio: true, money: true, beauty: true },
 ];
 
 // One branch section in her shape: metric down the side, the month across.
@@ -1617,6 +1649,17 @@ function lgPersonName(name) {
   return last ? `${first} <span class="lg-last">${escapeHtml(last)}</span>` : first;
 }
 
+// The same name with no markup, for anywhere that is not HTML — the spreadsheet
+// exports. Reads the same surname source as the function above, so the two cannot
+// disagree about who somebody is. Added 4 Sep 2026: the exports called
+// lgPersonName and put `KATE <span class="lg-last">Alsaybar</span>` in a cell.
+function lgPersonNamePlain(name) {
+  if (!name) return '';
+  const first = String(name).trim().toUpperCase();
+  const last  = (typeof staffSurname === 'function') ? staffSurname(name) : null;
+  return last ? first + ' ' + last : first;
+}
+
 // A stylist's name, with her services target against it when one exists. The
 // target is monthly, so it is only shown when the window makes it meaningful.
 function lgStaffName(code, dept, st, ctx) {
@@ -1659,16 +1702,7 @@ async function renderLedgerTargets() {
   // total is rolled up from the branches on screen rather than read off the group.
   const roll  = lgRollup(codes.map(c => series[c] && series[c].mtd));
 
-  // The six pacing blocks, in the sheet's own order and with its own titles.
-  // `pick` pulls the actual for one branch's summary; `key` is the target field.
-  const BLOCKS = [
-    { title:'Salon total services (hair excl. treatments and courses + beauty)', key:LG_SERVICES_TARGET, pick: lgServicesTotal },
-    { title:'Salon total retail (hair + beauty)', key:'retailTotal', pick: d => d.retailTotal },
-    { title:'Hair treatment',       key:'hairTreatment',    pick: d => d.treatmentSales },
-    { title:'Hair revenue (incl. treatments and courses)', key:'hairRevenue', pick: d => d.hairServicesIncl },
-    { title:'Hair retail',          key:'hairRetail',       pick: d => d.hairRetailOnly },
-    { title:'Beauty services',      key:'beautyServices',   pick: d => d.beautyServicesTotal },
-  ];
+  const BLOCKS = LG_PACE_BLOCKS;
 
   // Target and the four pacing columns are fixed; the split columns sit between
   // them, so the eye still lands on Target → MTD → Variance in every mode.
@@ -1770,12 +1804,18 @@ async function renderLedgerTargets() {
     lgNum(roll.totalClients), lgNum(roll.newClientsTotal), rollCount(roll.ncrTotal), rollCount(roll.totalRebooked)] });
 
   const paceTitle = showTargets ? 'Target vs actual' : 'Actuals by branch';
+
+  // Registered before the HTML is built, because lgSection only draws the export
+  // buttons for a section it can already see registered.
+  if (typeof lgxRegisterTargets === 'function') lgxRegisterTargets(series, ctx);
+
   host.innerHTML =
     lgHeader('Ledgers · Daily Target Sheet',
       `The block she opens the sheet to read: where every branch stands against the month, on live numbers.`,
       ctx) +
     lgMonthRow() +
     lgGrainRow() +
+    (typeof lgxPageBar === 'function' ? lgxPageBar() : '') +
     lgShell([['ltPivot', 'Benchmarks by branch'], ['ltPace', paceTitle]],
     lgSection('ltPivot', '#99F6E4', 'Benchmarks by branch',
       escapeHtml(series.windows.month.label + ' · month to date'),
@@ -1818,6 +1858,8 @@ async function renderLedgerActuals() {
   const rail = [['laAll', 'Group total']].concat(
     SHEET_ORDER.map(c => ['la' + c, (BRANCH_INFO[c] || {}).name || c]));
 
+  if (typeof lgxRegisterActuals === 'function') lgxRegisterActuals(series, ctx);
+
   host.innerHTML =
     lgHeader('Ledgers · Actuals vs Targets',
       ctx.applies
@@ -1826,6 +1868,7 @@ async function renderLedgerActuals() {
       ctx) +
     lgMonthRow() +
     lgGrainRow() +
+    (typeof lgxPageBar === 'function' ? lgxPageBar() : '') +
     lgShell(rail,
     lgSection('laAll', 'var(--hair)', 'Group total — all salons',
       escapeHtml(series.windows.month.label), lgSheetSection(series, null, ctx)) +
@@ -2071,6 +2114,13 @@ async function renderLedgerFinancials() {
   // every section below that reads it is skipped rather than rendered empty.
   const ft = lgFtAggregate(await lgLoadFinancialTotals(lgYmd(w.month.from), lgYmd(w.month.to)));
   const monthDays = Math.round((w.month.to - w.month.from) / 86400000) + 1;
+
+  // Registered HERE, not down beside host.innerHTML like the other three pages:
+  // this one builds splitHtml, reportHtml and reconHtml into locals further down,
+  // and lgSection only draws a section's export buttons for a section already
+  // registered when it runs. Registered late, three of the four sections came out
+  // with no buttons at all.
+  if (typeof lgxRegisterFinancials === 'function') lgxRegisterFinancials(series, ft, monthDays);
 
   // Ex VAT down the side, because that is the figure everything else on the
   // dashboard is in and the one a target is set against. VAT and the gross follow
@@ -2358,6 +2408,7 @@ async function renderLedgerFinancials() {
           + `second table showing which ${lgGrain === 'daily' ? 'day' : 'week'} it went wrong on.` }) +
     lgMonthRow() +
     lgGrainRow() +
+    (typeof lgxPageBar === 'function' ? lgxPageBar() : '') +
     lgShell((ft ? [['fnReport', 'Phorest report'], ['fnRecon', 'Report vs dashboard']] : [])
       .concat([['fnSales', ft ? 'This dashboard' : 'Sales']])
       .concat(sp.key ? [['fnSplit', 'By ' + (lgGrain === 'daily' ? 'day' : 'week')]] : [])
@@ -2583,6 +2634,8 @@ async function renderLedgerStylist() {
     });
   });
 
+  if (typeof lgxRegisterStylist === 'function') lgxRegisterStylist(series, ctx);
+
   host.innerHTML =
     lgHeader('Ledgers · Daily Stylist Target',
       showTargets
@@ -2591,6 +2644,7 @@ async function renderLedgerStylist() {
       ctx) +
     lgMonthRow() +
     lgGrainRow() +
+    (typeof lgxPageBar === 'function' ? lgxPageBar('lsAll') : '') +
     lgShell(rail,
     (rows.length ? lgTable(cols, rows, {compact:true, groups:colGroups}) : lgEmpty('No staff figures for this window.')) +
     `<div class="fine">

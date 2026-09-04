@@ -1633,6 +1633,45 @@ tr.lg-tot td:first-child{background:var(--surface2)}
 .lg-month-sel:hover{border-color:var(--muted2)}
 .lg-month .lg-month-sel+.lg-month-sel{margin-left:6px}
 .lg-month-warn{font-size:12px;color:var(--warn)}
+
+/* ── EXPORT BUTTONS ───────────────────────────────────────────
+   Three per Ledgers section, in the section header beside the collapse arrow, and
+   one page-level bar under the Split chips. Deliberately quiet: they are next to a
+   heading on every section of four pages, so at the page's own button weight they
+   would read as the loudest thing on a page whose job is figures. Small caps, a
+   hairline border, and they take the text colour only on hover.
+   The wrapper stops the click reaching the header, which would otherwise collapse
+   the section you just exported — see lgxToolbar. */
+.lgx-bar{display:inline-flex;gap:4px;align-items:center}
+.lgx-b{appearance:none;font-family:inherit;font-size:10.5px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted2);background:var(--surface);
+  border:1px solid var(--border);border-radius:5px;padding:3px 7px;cursor:pointer;
+  transition:color .15s,border-color .15s,background .15s;white-space:nowrap}
+@media(hover:hover){.lgx-b:hover{color:var(--text);border-color:var(--muted2);background:var(--surface2)}}
+.lgx-b:focus-visible{outline:2px solid var(--good);outline-offset:2px}
+.lgx-b:active{transform:translateY(1px)}
+/* The page-level one is a sentence, not a label: small caps across nine words
+   reads as shouting and runs half the width of the page. */
+.lgx-b-lg{font-size:12.5px;font-weight:600;padding:6px 12px;letter-spacing:0;
+  text-transform:none;color:var(--text)}
+.lgx-page{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:0 0 12px}
+.lgx-hint{font-size:12px;color:var(--muted2);line-height:1.5;max-width:52ch}
+.lgx-own{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted2)}
+/* The Ledgers pages are wide and the section headings are already tight on a
+   laptop; below this the buttons drop under the hint rather than squeezing the
+   heading they sit beside. */
+@media(max-width:720px){
+  .lgx-page{gap:8px}
+  .lgx-hint{max-width:none}
+}
+.lgx-toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);
+  z-index:9999;max-width:min(560px,calc(100vw - 32px));
+  padding:10px 16px;border-radius:8px;font-size:13.5px;line-height:1.45;
+  background:var(--text);color:var(--bg);box-shadow:var(--shadow-card-hover);
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
+.lgx-toast.on{opacity:1;transform:translate(-50%,0)}
+.lgx-toast.bad{background:var(--bad);color:#fff}
 /* The week number, or the weekday, sits above its dates — so the header stays two
    short lines instead of one long one that forces the column wider than its
    figures. Thirty-one of those is the difference between a table that scrolls and
@@ -2454,7 +2493,10 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="dashboard.js?v=20260904b"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20260904c"></script>
+<script src="branch-ledger.js?v=20260904d"></script>
+<!-- After branch-ledger.js, because the models it exports are built from that file's
+     own series/target helpers. Nothing here runs on load. -->
+<script src="ledger-export.js?v=20260904a"></script>
 <script src="team-performance.js?v=20260814d"></script>
 <script src="pulse-narrative.js?v=20260814a"></script>
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
