@@ -576,6 +576,15 @@ try {
   const m = localStorage.getItem('lgMonth');
   if (m && /^\d{4}-\d{2}$/.test(m) && m >= LG_FIRST_MONTH && m <= lgThisMonth()) lgMonth = m;
 } catch (e) { /* private mode — the target sheet's own month is a fine default */ }
+// A month= in the address bar beats the remembered one, same as split= does, and
+// against the same window: a link can only point at a month there is data for.
+// Read here rather than in the boot because the month decides which series is
+// FETCHED, so it has to be settled before the first render asks for one.
+// Kate, 4 Sep 2026.
+try {
+  const u = new URLSearchParams(location.search).get('month');
+  if (u && /^\d{4}-\d{2}$/.test(u) && u >= LG_FIRST_MONTH && u <= lgThisMonth()) lgMonth = u;
+} catch (e) { /* no URL to read — the stored month stands */ }
 
 function lgThisMonth() {
   const n = new Date();
@@ -621,6 +630,10 @@ function lgSetMonth(m) {
   if (vis('ledgerTargets')) renderLedgerTargets();
   if (vis('ledgerActuals')) renderLedgerActuals();
   if (vis('ledgerStylist')) renderLedgerStylist();
+  // Same as the Split chips: changing month is a move, so the address bar follows
+  // it. The renders above are the ones that refetch, and they call spy() again
+  // when their rails are back — this is only so the URL is right immediately.
+  if (typeof spy === 'function') spy();
 }
 
 // The month picker, sitting in the same bar as Split so the two controls that
