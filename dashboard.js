@@ -40,6 +40,20 @@ let allData = [];
 let charts  = {};
 const sel   = { branch: ['all'] };
 let pendingSel = { branch: ['all'] }; // buffered branch selection — applied only on Save
+// A branch= in the address bar sets the filter before anything renders. It is the
+// only one of the four URL controls with no stored counterpart — the branch
+// selection has never survived a reload — so there is nothing here for it to beat,
+// only a default to replace. Comma-separated codes or "all"; anything that is not
+// a live branch code is dropped, and a list with nothing left in it falls back to
+// All Branches. FRT is not a live code, so an old link naming Fratelli lands on
+// All Branches rather than on a branch that stopped syncing in May. Kate, 4 Sep 2026.
+try {
+  const u = new URLSearchParams(location.search).get('branch');
+  if (u && u !== 'all') {
+    const picked = u.split(',').map(x => x.trim().toUpperCase()).filter(x => ACTIVE_BRANCHES.includes(x));
+    if (picked.length) { sel.branch = picked; pendingSel.branch = [...picked]; }
+  }
+} catch (e) { /* no URL to read — All Branches stands */ }
 let dateFrom = null; // JS Date object
 let dateTo   = null; // JS Date object
 
@@ -827,6 +841,10 @@ function refreshActiveView() {
     if (visible('ledgerStylist')) renderLedgerStylist();
     if (visible('services'))       onSvcFiltersChange();
     if (visible('clients'))        onCliFiltersChange();
+    // Every branch change comes through here — the chips and the dropdown's Save
+    // both — so this is the one place the address bar has to be told. spy() rather
+    // than trSyncUrl(): the re-render above rebuilds the rail underneath it.
+    if (typeof spy === 'function') spy();
   });
 }
 

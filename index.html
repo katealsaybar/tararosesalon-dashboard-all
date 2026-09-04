@@ -2491,7 +2491,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets.js?v=20260903a"></script>
 <script src="staff-profiles.js?v=20260904a"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
-<script src="dashboard.js?v=20260904c"></script>
+<script src="dashboard.js?v=20260904d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260904e"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
@@ -2971,8 +2971,15 @@ function trSyncUrl(sectionId){
   // are looking at is part of where you are. Written in full including the
   // default — a link that leaves it out is a link that does not say what it
   // shows. Ledgers pages only; nothing else has a Split.
+  // The branch filter, on every page that reads it, not just Ledgers. Left out
+  // when it is All Branches: that is the default a bare URL already means, and
+  // carrying it would put a parameter on the Pulse's clean path for nothing.
+  if (typeof FILTERED_VIEWS !== 'undefined' && FILTERED_VIEWS.has(CURRENT_VIEW)
+      && typeof sel !== 'undefined' && sel.branch && !sel.branch.includes('all')) {
+    parts.push('branch=' + sel.branch.join(','));
+  }
   // Month goes in ahead of Split so the URL reads in the order the page does:
-  // which page, which month, how that month is cut.
+  // which page, which branches, which month, how that month is cut.
   if (typeof LEDGER_VIEWS !== 'undefined' && LEDGER_VIEWS.has(CURRENT_VIEW)) {
     if (typeof lgMonth !== 'undefined' && lgMonth) parts.push('month=' + lgMonth);
     if (typeof lgGrain !== 'undefined') parts.push('split=' + lgGrain);
