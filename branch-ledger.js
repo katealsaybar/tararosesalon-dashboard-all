@@ -1911,10 +1911,16 @@ const LG_FT_MONEY = [
   'vat_product_net','vat_product_vat','vat_product_total',
 ];
 
+// NOTHING IS CACHED UNTIL THERE IS SOMETHING TO CACHE. Caching the empty answer
+// looked free and was a trap: the table went live empty on 4 Sep 2026, so a page
+// open at that moment would hold null for the month it was looking at, and the
+// first upload would not show until a reload — on a page whose whole job is to be
+// checked against a report someone has just uploaded. A miss costs one indexed
+// query per render and buys a page that lights up on Refresh figures.
 let _lgFtCache = {};
 async function lgLoadFinancialTotals(fromStr, toStr) {
   const key = fromStr + '|' + toStr;
-  if (key in _lgFtCache) return _lgFtCache[key];
+  if (_lgFtCache[key]) return _lgFtCache[key];
   let out = null;
   try {
     const { data, error } = await sb.from('financial_totals')
@@ -1922,11 +1928,11 @@ async function lgLoadFinancialTotals(fromStr, toStr) {
     if (error) throw error;
     out = (data && data.length) ? data : null;
   } catch (e) {
-    // A missing table reads as a schema-cache error, which is the normal state
-    // until the migration is run. Not worth a warning every render.
+    // Before the migration is run this is a schema-cache error, which is the normal
+    // state rather than a fault, so it is not worth a warning on every render.
     out = null;
   }
-  _lgFtCache[key] = out;
+  if (out) _lgFtCache[key] = out;
   return out;
 }
 
