@@ -127,7 +127,13 @@ async function handleStaffPerfPdfBatch(){
       const { error } = await sb.from(SP_TABLE).insert(rows);
       if (error) throw error;
 
-      statuses[idx] = { name: file.name, ok: true, msg: `Saved — ${branch.label}, ${isoDate}, ${rows.length} rows` };
+      // A day the branch did not open: stored like any other, and recorded as a
+      // closure so no feed's progress grid chases it (Kate, 2026-09-04).
+      if (rec.closed) await spRecordClosedDay(branch.code, isoDate, 'staff performance');
+
+      statuses[idx] = { name: file.name, ok: true, msg: rec.closed
+        ? `Saved — ${branch.label}, ${isoDate}, closed (no trading)`
+        : `Saved — ${branch.label}, ${isoDate}, ${rows.length} rows` };
     } catch(e){
       statuses[idx] = { name: file.name, ok: false, msg: e.message || String(e) };
     }

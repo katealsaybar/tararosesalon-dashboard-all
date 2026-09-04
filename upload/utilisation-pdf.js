@@ -153,13 +153,8 @@ function utilLooksClosed(lines, parsed){
   return zeroHours >= 2 && zeroPct;
 }
 
-// One row per branch-day, so re-reading the same PDF is harmless.
-async function utilRecordClosedDay(branchCode, isoDate, source){
-  const { error } = await sb.from('closed_days')
-    .upsert({ branch: branchCode, date: isoDate, why: 'no trading', detected_from: source },
-            { onConflict: 'branch,date' });
-  if (error) throw new Error(`Read as a closed day, but could not record it: ${error.message}`);
-}
+// Closures are recorded by spRecordClosedDay in phorest-staff.js, which loads
+// first and is shared with the performance uploader: one writer, one table.
 
 async function utilSaveRows(branchCode, isoFrom, isoTo, dbRows){
   await sb.from(UTIL_TABLE).delete().eq('branch', branchCode).eq('date_from', isoFrom).eq('date_to', isoTo);
@@ -227,7 +222,7 @@ async function utilParseAndSaveBox(code){
       const isoFrom = utilDdmmyyToISO(parsed.dateFrom);
       const isoTo = utilDdmmyyToISO(parsed.dateTo);
       if (closed){
-        await utilRecordClosedDay(code, isoFrom, 'staff utilisation');
+        await spRecordClosedDay(code, isoFrom, 'staff utilisation');
         closedDates.push(isoFrom);
         continue;
       }
@@ -352,7 +347,7 @@ async function handleUtilPdfBatch(){
       const isoFrom = utilDdmmyyToISO(dateFrom);
       const isoTo = utilDdmmyyToISO(dateTo);
       if (closed){
-        await utilRecordClosedDay(branchCode, isoFrom, 'staff utilisation');
+        await spRecordClosedDay(branchCode, isoFrom, 'staff utilisation');
         statuses[idx] = { name: file.name, ok: true, msg: `Closed day — ${BRANCHES[branchCode].name}, ${isoFrom}, no trading` };
         anyOk = true;
       } else {

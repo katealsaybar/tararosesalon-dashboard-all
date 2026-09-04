@@ -201,7 +201,24 @@ function spParseOneBlock(lines, branchCode){
   // reject when neither employees nor a Total line were found.
   if (!employees.length && !totals) throw new Error('No employee rows recognised — the report format may have changed.');
 
-  return { branch: branchCode, date: dateFrom, employees, totals };
+  return { branch: branchCode, date: dateFrom, employees, totals, closed: spRecIsClosed(employees, totals) };
+}
+
+// The same shape the parser has always tolerated, now named: no employee rows at
+// all and a Total line of nothing but zeros is a day the branch did not open.
+// This report stores fine either way, so the day was never a gap here the way it
+// was on Utilisation. Recording it is still worth doing twice over: the grid can
+// show it as closed rather than as a captured day, and because a closure belongs
+// to the branch and not to one feed, a performance PDF read for a shut day also
+// stops Utilisation and Ledgers chasing that day. Every branch-day of 2025 has a
+// performance PDF downloaded, and Utilisation is the feed with the holes
+// (Kate, 2026-09-04).
+const SP_TOTAL_MONEY_FIELDS = ['servicesExVat','servicesTotal','coursesExVat','coursesTotal',
+  'productsExVat','productsTotal','totalExVat','totalTotal'];
+
+function spRecIsClosed(employees, totals){
+  if (employees.length || !totals) return false;
+  return SP_TOTAL_MONEY_FIELDS.every(f => !totals[f]);
 }
 
 // Parses one or more reports pasted back-to-back. Each block is parsed
@@ -311,8 +328,14 @@ async function spParseAndSaveBox(code){
     const { error } = await sb.from(SP_TABLE).insert(allRows);
     if (error) throw error;
 
+    const closedDays = oks.filter(o => o.rec.closed);
+    for (const { rec } of closedDays){
+      await spRecordClosedDay(code, spToISODate(rec.date), 'staff performance');
+    }
+
     const daysList = oks.map(o => o.rec.date).join(', ');
     let msg = `Saved ${oks.length} day${oks.length===1?'':'s'} (${allRows.length} rows): ${daysList}.`;
+    if (closedDays.length) msg += ` ${closedDays.length} of them closed (no trading).`;
     if (fails.length) msg += ` — ${fails.length} report(s) failed: ` + fails.map(f => `#${f.blockIndex+1} (${f.error})`).join('; ');
 
     spShowBoxMsg(code, msg, fails.length === 0);
@@ -459,6 +482,15 @@ async function spLoadClosedDays(){
   }
   spClosedLoadFailed = false;
   spClosedByKey = new Map((data || []).map(r => [`${r.branch}|${r.date}`, r.why || 'no trading']));
+}
+
+// One row per branch-day, so re-reading the same report is harmless. Shared with
+// the utilisation uploader, which recognises its own report's closed shape.
+async function spRecordClosedDay(branchCode, isoDate, source){
+  const { error } = await sb.from(SP_CLOSED_TABLE)
+    .upsert({ branch: branchCode, date: isoDate, why: 'no trading', detected_from: source },
+            { onConflict: 'branch,date' });
+  if (error) throw new Error(`Read as a closed day, but could not record it: ${error.message}`);
 }
 
 // Both rules in one answer: the group-wide calendar, then the recorded one-offs.
