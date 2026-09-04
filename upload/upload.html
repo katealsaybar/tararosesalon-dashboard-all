@@ -303,6 +303,19 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-day-cell.closed{background:transparent;border:1px dashed var(--border);color:var(--muted2)}
 .sp-prog-legend{display:flex;gap:14px;font-size:12.5px;color:var(--muted2);margin-top:12px;flex-wrap:wrap}
 .sp-prog-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px;font-style:normal}
+/* The gap list in the open, not only on the clipboard: the same days Copy
+   missing dates hands over, grouped branch → month so a backfill session can
+   read it off the screen. Folded away by default, otherwise 300-odd dates push
+   the month blocks off the card (Kate, 2026-09-04). */
+.sp-miss{display:none;margin:10px 0 2px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;max-height:340px;overflow-y:auto}
+.sp-miss.show{display:block}
+.sp-miss-grp+.sp-miss-grp{margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)}
+.sp-miss-hd{font-size:13px;font-weight:600}
+.sp-miss-hd span{font-weight:400;color:var(--warn);margin-left:7px}
+.sp-miss-row{display:flex;gap:8px;font-size:12.5px;padding:3px 0}
+.sp-miss-mo{flex-shrink:0;width:86px;color:var(--muted2)}
+.sp-miss-days{flex:1;min-width:0;color:var(--muted);font-variant-numeric:tabular-nums}
+.sp-miss-empty{font-size:13px;color:var(--muted2)}
 .sp-pdf-drop{border:1.5px dashed var(--border);border-radius:12px;padding:20px;text-align:center;background:var(--surface2);transition:border-color .2s,background .2s}
 .sp-pdf-drop.dragover{border-color:var(--accent);background:var(--bg)}
 .sp-pdf-row{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border2)}
@@ -597,11 +610,13 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px;flex-wrap:wrap">
       <div class="card-title" style="margin-bottom:0">Backfill Progress</div>
       <div style="display:flex;gap:8px">
+        <button class="btn-outline" id="utilProgressGridMissingBtn" onclick="spToggleMissingList('utilProgressGrid')" style="padding:8px 16px">Show missing dates</button>
         <button class="btn-outline" onclick="spCopyMissingDates('utilProgressGrid')" style="padding:8px 16px">Copy missing dates</button>
         <button class="btn-outline" onclick="refreshUtilProgress()" style="padding:8px 16px">↻ Refresh</button>
       </div>
     </div>
     <div class="card-sub">One pull per branch per day, Jan 2025 → today. Click a month to open its days.</div>
+    <div id="utilProgressGridMissing" class="sp-miss"></div>
     <div id="utilProgressGrid"><div style="font-size:14px;color:var(--muted2);padding:8px 0">Loading…</div></div>
     <div class="sp-prog-legend">
       <span><i style="background:var(--good)"></i>complete</span>
@@ -820,11 +835,13 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px;flex-wrap:wrap">
       <div class="card-title" style="margin-bottom:0">Backfill Progress</div>
       <div style="display:flex;gap:8px">
+        <button class="btn-outline" id="spProgressGridMissingBtn" onclick="spToggleMissingList('spProgressGrid')" style="padding:8px 16px">Show missing dates</button>
         <button class="btn-outline" onclick="spCopyMissingDates('spProgressGrid')" style="padding:8px 16px">Copy missing dates</button>
         <button class="btn-outline" onclick="refreshStaffPerfProgress()" style="padding:8px 16px">↻ Refresh</button>
       </div>
     </div>
     <div class="card-sub">One pull per branch per day, Jan 2025 → today. Click a month to open its days.</div>
+    <div id="spProgressGridMissing" class="sp-miss"></div>
     <div id="spProgressGrid"><div style="font-size:14px;color:var(--muted2);padding:8px 0">Loading…</div></div>
     <div class="sp-prog-legend">
       <span><i style="background:var(--good)"></i>complete</span>
@@ -909,11 +926,13 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px;flex-wrap:wrap">
       <div class="card-title" style="margin-bottom:0">Backfill Progress</div>
       <div style="display:flex;gap:8px">
+        <button class="btn-outline" id="ssProgressGridMissingBtn" onclick="spToggleMissingList('ssProgressGrid')" style="padding:8px 16px">Show missing dates</button>
         <button class="btn-outline" onclick="spCopyMissingDates('ssProgressGrid')" style="padding:8px 16px">Copy missing dates</button>
         <button class="btn-outline" onclick="refreshSheetSyncProgress()" style="padding:8px 16px">↻ Refresh</button>
       </div>
     </div>
     <div class="card-sub">One push per branch per day, Jan 2025 → today. Click a month to open its days.</div>
+    <div id="ssProgressGridMissing" class="sp-miss"></div>
     <div id="ssProgressGrid"><div style="font-size:14px;color:var(--muted2);padding:8px 0">Loading…</div></div>
     <div class="sp-prog-legend">
       <span><i style="background:var(--good)"></i>complete</span>

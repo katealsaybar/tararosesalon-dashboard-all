@@ -515,6 +515,7 @@ function spProgEndBatch(hostId){
   (spProgByHost[hostId] || []).forEach(uid => { delete spProg[uid]; });
   spProgByHost[hostId] = spProgBatch.slice();
   spProgBatch = [];
+  spRenderMissingList(hostId);
 }
 
 function spRenderBackfillStrips(label, days, covered, keyOf){
@@ -615,6 +616,56 @@ function spCopyMissingDates(hostId){
   navigator.clipboard.writeText(lines.join('\n'))
     .then(() => showToast(`Copied ${total} missing date${total === 1 ? '' : 's'}`))
     .catch(() => showToast('Could not reach the clipboard'));
+}
+
+// The same gaps on the page instead of only on the clipboard, because a month
+// block says a month is amber without saying which days (Kate, 2026-09-04). One
+// card's strips, oldest first, grouped branch → month so 300 backfill days read
+// as a dozen lines. Folded by default and dropped from the DOM when folded, so
+// the three cards that share this cost nothing until someone opens one.
+function spMissingByHost(hostId){
+  const out = [];
+  (spProgByHost[hostId] || []).forEach(uid => {
+    const st = spProg[uid];
+    if (!st) return;
+    const miss = st.days.filter(d => !spClosedReason(d, st.keyOf) && !st.covered.has(st.keyOf(d)));
+    if (miss.length) out.push({ label: st.label, miss });
+  });
+  return out;
+}
+
+function spRenderMissingList(hostId){
+  const box = document.getElementById(`${hostId}Missing`);
+  const btn = document.getElementById(`${hostId}MissingBtn`);
+  if (!box) return;
+  const groups = spMissingByHost(hostId);
+  const total  = groups.reduce((n, g) => n + g.miss.length, 0);
+  const shown  = box.classList.contains('show');
+  if (btn) btn.textContent = `${shown ? 'Hide' : 'Show'} missing dates${total ? ` (${total})` : ''}`;
+  if (!shown){ box.innerHTML = ''; return; }
+  if (!total){ box.innerHTML = '<div class="sp-miss-empty">Nothing missing — fully captured.</div>'; return; }
+  box.innerHTML = groups.map(g => {
+    const byMonth = new Map();
+    g.miss.forEach(d => {
+      const k = `${d.getFullYear()}-${d.getMonth()}`;
+      if (!byMonth.has(k)) byMonth.set(k, []);
+      byMonth.get(k).push(d);
+    });
+    return `<div class="sp-miss-grp">
+        <div class="sp-miss-hd">${g.label}<span>${g.miss.length} missing</span></div>` +
+      [...byMonth.values()].map(ds => `<div class="sp-miss-row">
+          <span class="sp-miss-mo">${SP_MONTHS[ds[0].getMonth()]} ${ds[0].getFullYear()}</span>
+          <span class="sp-miss-days">${ds.map(d => String(d.getDate()).padStart(2, '0')).join(', ')}</span>
+        </div>`).join('') +
+      `</div>`;
+  }).join('');
+}
+
+function spToggleMissingList(hostId){
+  const box = document.getElementById(`${hostId}Missing`);
+  if (!box) return;
+  box.classList.toggle('show');
+  spRenderMissingList(hostId);
 }
 
 // ── BROWSE / FILTER ──────────────────────────────────────────
