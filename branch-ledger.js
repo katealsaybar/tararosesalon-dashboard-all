@@ -378,8 +378,8 @@ function lgSection(id, dotColor, title, subtitle, bodyHtml) {
       <div class="support-section-hdr" onclick="toggleSection('${id}')">
         <div style="display:flex;align-items:center;gap:8px;min-width:0">
           <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0"></span>
-          <span style="font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:18px;letter-spacing:0.02em;color:var(--text)">${title}</span>
-          ${subtitle ? `<span style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${subtitle}</span>` : ''}
+          <span style="font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:16px;letter-spacing:0.02em;color:var(--text)">${title}</span>
+          ${subtitle ? `<span style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${subtitle}</span>` : ''}
         </div>
         <span id="arrow-${id}" class="support-toggle-arrow">▸</span>
       </div>
@@ -1285,7 +1285,7 @@ function bpDrawCharts(codes, ctx) {
   const dark = (typeof isDark === 'function') ? isDark() : false;
   const grid = dark ? 'rgba(250,248,243,0.07)' : 'rgba(26,26,26,0.07)';
   const tick = dark ? 'rgba(250,248,243,0.55)' : '#77706A';
-  const font = { family: 'Inter', size: 13 };
+  const font = { family: 'Inter', size: 11 };
   const tip  = {
     backgroundColor: dark ? '#383944' : '#fff',
     titleColor: dark ? '#FAF8F3' : '#1A1A1A',
