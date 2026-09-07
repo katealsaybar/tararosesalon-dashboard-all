@@ -203,8 +203,19 @@ const CHAIN = [
 // ENTRY POINTS
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
-/** Step 1. Builds the queue of weekly files under ROOTS, then starts processing. */
-function backfillStart() {
+/**
+ * Step 1. Builds the queue of weekly files under ROOTS, then starts processing.
+ *
+ * Called plain it starts the year over: the year's queue tab is cleared and every file is read
+ * again. Called with { refresh: true } (what backfillNightly does) it keeps the tab and touches
+ * only what changed since: a file Drive has not seen since its row's finished_at is left alone,
+ * a file saved after that is set back to pending and read again, and a file the tab has never
+ * seen is appended. The chain then runs as usual. This is how 2026 stays current without anyone
+ * building mirror sheets by hand: the branches save their weekly files, and the next night the
+ * changed ones are re-read (Kate, 7 Sep 2026: "ayoko na mag manual pull").
+ */
+function backfillStart(opts) {
+  opts = opts || {};
   if (!ROOTS) {
     throw new Error(
       `No folders recorded for ${YEAR}. Add a ${YEAR} entry to ROOTS_BY_YEAR (branch code → the ` +
@@ -214,25 +225,66 @@ function backfillStart() {
   PROP.deleteProperty(RETRY_FLAG);   // this run gets its own automatic retry
   PROP.deleteProperty(STAGE_KEY);    // and its after-run chain starts from the first step
   deleteContinueTriggers_();
-  const ss = getLog_(true);
+  const ss = getLog_(!opts.refresh);
   const queue = [];
   Object.keys(ROOTS).forEach(branch => {
     const root = DriveApp.getFolderById(ROOTS[branch]);
     walk_(root, root.getName(), branch, queue);
   });
   const q = ss.getSheetByName(QUEUE_TAB);
-  if (queue.length) {
-    q.getRange(2, 1, queue.length, QUEUE_HEADER.length)
+  const pad = function (e) {
+    const row = [e.id, e.name, e.path, e.branch, e.mime];
     // Padded to the header's own width rather than a typed row of blanks, so widening
     // QUEUE_HEADER can never again leave setValues writing 10 columns into 13 (Kate, 4 Sep 2026).
-     .setValues(queue.map(function (e) {
-       const row = [e.id, e.name, e.path, e.branch, e.mime];
-       while (row.length < QUEUE_HEADER.length) row.push('');
-       return row;
-     }));
+    while (row.length < QUEUE_HEADER.length) row.push('');
+    return row;
+  };
+
+  if (!opts.refresh) {
+    if (queue.length) q.getRange(2, 1, queue.length, QUEUE_HEADER.length).setValues(queue.map(pad));
+    Logger.log(`Queued ${queue.length} weekly files for ${YEAR}. Log sheet: ${ss.getUrl()}`);
+    backfillContinue();
+    return;
   }
-  Logger.log(`Queued ${queue.length} weekly files for ${YEAR}. Log sheet: ${ss.getUrl()}`);
-  backfillContinue();
+
+  const last = q.getLastRow();
+  const data = last >= 2 ? q.getRange(2, 1, last - 1, QUEUE_HEADER.length).getValues() : [];
+  const rowOf = {};
+  data.forEach(function (r, i) { rowOf[r[0]] = i; });
+  const fresh = [];
+  let reset = 0;
+  queue.forEach(function (e) {
+    const i = rowOf[e.id];
+    if (i === undefined) { fresh.push(e); return; }
+    const finished = data[i][9] instanceof Date ? data[i][9].getTime() : 0;
+    if (!data[i][5] || e.updated > finished) {
+      // status, dates, rows, note, finished_at back to blank; the triage columns stay
+      q.getRange(i + 2, 6, 1, 5).clearContent();
+      reset++;
+    }
+  });
+  if (fresh.length) q.getRange(last + 1, 1, fresh.length, QUEUE_HEADER.length).setValues(fresh.map(pad));
+  Logger.log(`Refresh for ${YEAR}: ${reset} changed file(s) queued again, ${fresh.length} new file(s) added, ` +
+             `${queue.length - reset - fresh.length} unchanged. Log sheet: ${ss.getUrl()}`);
+  if (reset + fresh.length) backfillContinue();
+  else Logger.log('Nothing changed since the last run; nothing to do.');
+}
+
+/** What the nightly trigger runs: re-read the files that changed, add the new ones, then the chain. */
+function backfillNightly() { backfillStart({ refresh: true }); }
+
+/**
+ * Installs the nightly trigger, once. 8 pm Dubai: the branches have saved the day by then and the
+ * mirror-sheet sync (sync-all-branches.gs) has already run at a quarter to seven, so the weekly
+ * files win the day. Running it again replaces the trigger rather than adding a second.
+ */
+function setupNightlyTrigger() {
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === 'backfillNightly')
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('backfillNightly').timeBased().everyDays(1).atHour(20).create();
+  Logger.log('Nightly trigger installed: backfillNightly() every day at 20:00, project timezone ' +
+             Session.getScriptTimeZone() + '. YEAR is ' + YEAR + '.');
 }
 
 /** Step 2 (automatic). Processes pending queue rows until the time budget runs out, then re-arms itself. */
@@ -1818,7 +1870,8 @@ function walk_(folder, path, branch, out) {
     const f = files.next();
     const mime = f.getMimeType();
     if (mime === MimeType.GOOGLE_SHEETS || mime === XLSX_MIME) {
-      out.push({ id: f.getId(), name: f.getName(), path: path, branch: branch, mime: mime });
+      out.push({ id: f.getId(), name: f.getName(), path: path, branch: branch, mime: mime,
+                 updated: f.getLastUpdated().getTime() });
     }
   }
   const subs = folder.getFolders();
