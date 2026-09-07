@@ -77,15 +77,20 @@ async function refreshSheetSyncProgress(){
 
   // Phorest's own branch TOTAL line, one row per branch-day, is what decides
   // whether a sheet of zeros is a closed day or an unfilled one. `visits` is null
-  // on that line, so the takings are the signal.
+  // on that line, so the takings are the signal, the SERVICE takings rather than the
+  // whole total. Motor City, Monday 3 March 2025: Phorest has AED 2,380 for the
+  // day, all of it two retail units rung on the Business account, and no stylist
+  // saw anyone. The ledger records exactly that (retail under BUSINESS, no client
+  // rows), so a zero-client sheet is the truth there, not a sheet nobody filled
+  // in. Products do not need a stylist; services do. (Kate, 7 Sep 2026.)
   const [led, pho] = await Promise.all([
     ssReadAll(SS_TABLE, 'branch,date,total'),
-    ssReadAll('phorest_staff_daily', 'branch,date,total_ex_vat', q => q.eq('is_total', true)),
+    ssReadAll('phorest_staff_daily', 'branch,date,services_ex_vat', q => q.eq('is_total', true)),
   ]);
   const failed = led.error || pho.error;
   if (failed){ host.innerHTML = `<div style="font-size:12px;color:var(--bad)">Failed to load progress: ${failed.message}</div>`; return; }
   const traded = new Set((pho.rows || [])
-    .filter(r => Math.abs(Number(r.total_ex_vat) || 0) >= 0.005)
+    .filter(r => Math.abs(Number(r.services_ex_vat) || 0) >= 0.005)
     .map(r => `${r.branch}|${r.date}`));
   const all = led.rows;
 
@@ -101,8 +106,8 @@ async function refreshSheetSyncProgress(){
   }
 
   // ARRIVED, AND SAYS NOTHING. The sheet is there, it records no clients at all,
-  // and Phorest has the branch taking money that day — so it is not a quiet day
-  // and not a closure, it is a day nobody filled in. Clients is the right test
+  // and Phorest has stylists taking service money that day — so it is not a quiet
+  // day, not a closure and not a retail-only day, it is a day nobody filled in. Clients is the right test
   // rather than "every column zero": no clients is exactly the condition that
   // makes the dashboard discard the day's ledger and read it from Phorest, which
   // silently loses that day's rebookings, NCR and treatment AED.

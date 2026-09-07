@@ -656,7 +656,7 @@ function spOpenProgMonth(btn, uid, year, monthIdx){
       if (shut) return `<div class="sp-day-cell closed" title="${lbl} — closed, ${shut.why}">${d.getDate()}</div>`;
       // The sheet is there and the till says the branch traded, so this is not a
       // day to chase the sync for — it is a day to chase the numbers for.
-      if (empty) return `<div class="sp-day-cell blank" title="${lbl} — the sheet arrived with every figure zero, but Phorest has the branch trading that day. The clients, rebookings, NCR and treatment AED need filling in.">${d.getDate()}</div>`;
+      if (empty) return `<div class="sp-day-cell blank" title="${lbl} — the sheet arrived with no clients, but Phorest has stylists taking service money that day. The clients, rebookings, NCR and treatment AED need filling in.">${d.getDate()}</div>`;
       return `<div class="sp-day-cell${ok ? ' done' : ''}" title="${lbl}${ok ? '' : ' — missing'}">${ok ? '' : d.getDate()}</div>`;
     }).join('') +
     '</div>';
