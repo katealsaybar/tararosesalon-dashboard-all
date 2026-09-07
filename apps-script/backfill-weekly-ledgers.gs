@@ -134,10 +134,11 @@ const NAME_FIXES = {
   // so a title-case value here was fighting the rule two hundred lines below it: KCA's 2026 rows
   // all say HAZEL MAE and this was about to add a second "Hazel Mae" beside them (Kate, 4 Sep 2026).
   'HAZEL MAY': 'HAZEL MAE',
-  // KCA's Beauty block heads her column KIMBERLY; every KCA row already stored, all of 2026, says
-  // KIM. Phorest carries "Kimberly Casas", which nameLinks_ matches from either spelling, so
-  // neither reconcile nor autoTriage would ever have noticed the split (Kate, 4 Sep 2026).
-  'KIMBERLY': 'KIM',
+  // KCA's Beauty block heads her column KIMBERLY some weeks and KIM others, and Phorest carries
+  // "Kimberly Casas". On 4 Sep this folded KIMBERLY onto KIM because every stored KCA row said
+  // KIM; on 7 Sep Kate settled it the other way round ("kim is kimberly"), so the till's first
+  // name wins here as it does for everyone else. The stored rows were renamed the same day.
+  'KIM': 'KIMBERLY',
   'ASISSTANTS': 'ASSISTANTS',
   // Both spellings sit in AQ's own 2025 tabs for one person; Phorest has XYRHY UNISA.
   'XYHRY': 'XYRHY',
@@ -152,6 +153,11 @@ const NAME_FIXES = {
   // Phorest has MA. ERCELY VACAL, the MC tabs write her three ways; MARCELLA SAVICIC, one L
   // on two MC days; ASSISTANT once at KCA beside ASSISTANTS everywhere else.
   'MMI': 'MIMI',
+  // Fratelli's tabs write the walk-in bucket three ways, BUSINESS, business and BUSSINESS, and on
+  // 121 days two of them sit side by side in one tab, so they are added up in pushRows_ like
+  // ASSISTANTS rather than left as two rows of one bucket (Kate, 7 Sep 2026).
+  'BUSINESS': 'BUSINESS',
+  'BUSSINESS': 'BUSINESS',
   'ERCELY': 'MA. ERCELY',
   'MA ERCELY': 'MA. ERCELY',
   'MARCELA': 'MARCELLA',
@@ -1742,13 +1748,15 @@ function pushRows_(branchCode, rows) {
   // day tab - SAA's 31 May 2025 carries MAY/xav and MYRA/APOL side by side - and both now
   // normalise to the same name, so the plain overwrite would have thrown one column's figures
   // away in silence. They are two different columns of one bucket, not one column read twice, so
-  // the figures belong together. Every other name keeps the old behaviour: a name repeated in one
-  // day tab is a mistake in the tab, and doubling it would invent visits (Kate, 4 Sep 2026).
+  // the figures belong together. BUSINESS is the same kind of bucket and Fratelli's tabs carry
+  // it twice (BUSINESS beside business), so it is added up too (Kate, 7 Sep 2026). Every other
+  // name keeps the old behaviour: a name repeated in one day tab is a mistake in the tab, and
+  // doubling it would invent visits (Kate, 4 Sep 2026).
   const deduped = new Map();
   rows.forEach(function (r) {
     const key = `${r.date}|${r.dept}|${r.staff_name}`;
     const seen = deduped.get(key);
-    if (seen && r.staff_name === 'ASSISTANTS') {
+    if (seen && (r.staff_name === 'ASSISTANTS' || r.staff_name === 'BUSINESS')) {
       ['ncr', 'req', 'salon', 'new_client', 'rebooked', 'total', 'treatment_aed',
        'retail_unit_qty', 'treatments_unit_qty'].forEach(function (f) {
         seen[f] = (Number(seen[f]) || 0) + (Number(r[f]) || 0);
