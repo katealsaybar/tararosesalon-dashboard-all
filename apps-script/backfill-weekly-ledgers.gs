@@ -29,8 +29,12 @@
  *     different files pushed (a stale copy, a mislabelled week). Check those by hand.
  *  7. Run resolveDuplicates(): where two files claimed one date, the file whose own name covers
  *     that date wins and is pushed again. Dates only one file claimed are never touched.
+ *     resolveCopiedWeeks() then moves whole files saved under another week's dates, and
+ *     rescueStrayTabs() settles single day tabs whose A1 belongs to another week.
  *  8. Then run reconcile(): checks the year against Phorest, whose dates come from the till, and
  *     writes a "RECONCILE <year>" tab listing only the days worth looking at.
+ *  Steps 6 to 8 run themselves once the queue drains, then autoTriageSafe() repairs the
+ *  mechanical findings (template columns, spellings, archived markers, closed days).
  *
  * TO RE-RUN FOR ANOTHER SCOPE (e.g. one branch, one month, another year)
  *  Change YEAR to a year listed in ROOTS_BY_YEAR, then run backfillStart() again. It clears that
@@ -38,12 +42,13 @@
  *  Pushing the same dates twice is harmless: every (branch, date) is deleted then re-inserted.
  *
  * WHAT IT DELIBERATELY SKIPS (all logged as SKIPPED / WARN, never silently)
- *  - Files whose name starts with "Copy of" (duplicates; decide by hand which one is real).
+ *  - Files whose name starts with "Copy of" WHEN the original sits beside them in the same
+ *    branch. A copy with no original is the only record of its week and is read normally.
  *  - Day tabs whose A1 date is outside YEAR (e.g. the Dec days inside a "Dec 30 - Jan 5" week).
  *    A blank or 1899/1900 A1 is NOT this: that date is filled in from the rest of the week.
- *  - Day tabs whose A1 date falls on a different weekday than the tab name says AND lands outside
- *    the week the rest of the file covers (a genuinely stale copied week). One inside that week is
- *    a slipped date formula, and is corrected to the day its tab name asks for rather than skipped.
+ *  - Day tabs whose A1 lands outside the week the rest of the file covers are left for
+ *    rescueStrayTabs(), which runs after the queue drains (see there). One inside that week on the
+ *    wrong weekday is a slipped date formula, and is corrected to the day its tab name asks for.
  *  - Placeholder staff blocks (AA, BB, CC, DD, XX…) when the whole block is zero.
  *  - Blocks whose name is a spreadsheet error (#REF!).
  */
@@ -58,11 +63,34 @@ const YEAR = 2025;
 // differently every year (WEEKLY LEDGERS, Weekly Ledgers, Week End, WEEKEND), so each entry is
 // the branch folder whose subtree is walked, not a guess at the name.
 const ROOTS_BY_YEAR = {
+  // 2026 is the live year, so its days are already in branch_staff_daily: the daily sync pushed
+  // them from the branch mirror sheet. Where that sheet was empty the sync still pushed the whole
+  // roster, every figure zero, which is what the Upload Portal calls "arrived blank" - the rows
+  // are there, the numbers never were. KCA's 2 - 4 January are exactly that, and the weekly file
+  // holding the real figures (WEEK 1 (JAN.2-4).xlsx: KATE 7 requests, AED5,055; TEGAN 4, AED6,015)
+  // had never been read, because no 2026 entry existed here.
+  //
+  // Deliberately ONE month folder, not the branch folder: pushRows_ deletes a (branch, date) and
+  // re-inserts it, so a run replaces every day it touches. Wide open on 2026 would swap the daily
+  // sync's full-roster rows for the day tabs' own five or six name blocks across the whole year,
+  // on days that are already right. January proves the parse on a partial week first; widen after
+  // (the branch folders are KCA 1UuZwha1A9gPPq4-CKLiv-biZnp9NhvOw, SAA 1_XeEvBD7TWWbpUIh-Ud7KZWsvtjhehCm,
+  // MC 1tlKxg4UyWFD2e3dLV2lCDEYYaT28O7kf, AQ 1OAo7uYiYVyEpf3IxpVg5zVIUdWE4BvCn, all under
+  // "TARA ROSE LADIES SALON 2026" 16SP8AeirlTNT68W4KuPPtOFW8avPzzIL). Kate, 4 Sep 2026.
+  2026: {
+    // KHALIFA CITY 2026 / WEEKLY LEDGERS / 01 JANUARY 2026                          (.xlsx)
+    KCA: '1eOW9ojLNsEBmcNgS37N2ItTsjQ5i_rSZ',
+  },
   2025: {
     SAA: '1PAHi6DCHX5MFZeOAU0dbVxPFzV2Ib1ly', // SAADIYAT / WEEKLY LEDGERS
     KCA: '1t7SCQxkd8q0-otw-L2m9xVgkO6qHqR-6', // KHALIFA / WEEKLY LEDGERS          (.xlsx)
     MC:  '1CbFpjAeMCuncah6cN4nXxixE4Ktwu66X', // MOTOR CITY 2025 / WEEK END-2025
     AQ:  '1qZz8vidhNDkGSXyP1JLfBSZzJnZolRLX', // AL QUOZ / TARA ROSE / WEEKEND     (.xlsx)
+    // Fratelli has a full 2025 ledger and this script had never looked at it: twelve month
+    // folders of WK n xlsx named exactly like the other branches, against 0 rows in
+    // branch_staff_daily and 365 Phorest days. Its 2026 folder, for when that year is added,
+    // is 1hbAqBE1lBDmTt0dJUYJaqA57XNMaHFva (Kate, 4 Sep 2026).
+    FRT: '1FOQ07ynWAXp1uqW8ME_S3gJ8T9afm6Sf', // FRATELLI / WEEKEND LEDGERS        (.xlsx)
   },
   2024: {
     SAA: '1cqDYbmzH9s5cRJb2XwS1SuHppWf7BNoW', // SAADIYAT / 2024- WEEKLY LEDGER
@@ -96,9 +124,19 @@ const MAX_ROWS_READ = 160;             // day tabs put everything that matters a
 
 // Same list as sync-all-branches.gs, plus the ASSISTANTS misspelling seen in 2026 data.
 const NAME_FIXES = {
-  'LIZANNIE': 'Lizanie',
-  'SHELLY': 'Shelley',
-  'HAZEL MAY': 'Hazel Mae',
+  // Capitalised, like every value below: the title-case forms this list carried from
+  // sync-all-branches.gs put 77 days of "Lizanie" beside 246 of LIZANIE in 2025 (Kate, 7 Sep 2026).
+  'LIZANNIE': 'LIZANIE',
+  'SHELLY': 'SHELLEY',
+  // Capitalised, not title case. The ledger writes first names in caps, the roster is keyed in
+  // caps, and autoTriage's own caseVariants step folds any odd spelling ONTO the capitalised one,
+  // so a title-case value here was fighting the rule two hundred lines below it: KCA's 2026 rows
+  // all say HAZEL MAE and this was about to add a second "Hazel Mae" beside them (Kate, 4 Sep 2026).
+  'HAZEL MAY': 'HAZEL MAE',
+  // KCA's Beauty block heads her column KIMBERLY; every KCA row already stored, all of 2026, says
+  // KIM. Phorest carries "Kimberly Casas", which nameLinks_ matches from either spelling, so
+  // neither reconcile nor autoTriage would ever have noticed the split (Kate, 4 Sep 2026).
+  'KIMBERLY': 'KIM',
   'ASISSTANTS': 'ASSISTANTS',
   // Both spellings sit in AQ's own 2025 tabs for one person; Phorest has XYRHY UNISA.
   'XYHRY': 'XYRHY',
@@ -108,6 +146,15 @@ const NAME_FIXES = {
   // GALOS on 194.
   'ROZA': 'ROJA',
   'MJ': 'MARY JOY',
+  // Phorest's spelling wins whenever the ledger and the till disagree, settled by Kate on
+  // 7 Sep 2026 ("gayahin natin kung ano nasa Phorest"). MMI is a typo for MIMI (one day, KCA);
+  // Phorest has MA. ERCELY VACAL, the MC tabs write her three ways; MARCELLA SAVICIC, one L
+  // on two MC days; ASSISTANT once at KCA beside ASSISTANTS everywhere else.
+  'MMI': 'MIMI',
+  'ERCELY': 'MA. ERCELY',
+  'MA ERCELY': 'MA. ERCELY',
+  'MARCELA': 'MARCELLA',
+  'ASSISTANT': 'ASSISTANTS',
 };
 
 // One log file for every year; each year gets its own tab, named after the year, and its own
@@ -115,8 +162,13 @@ const NAME_FIXES = {
 const LOG_TITLE = 'LEDGER BACKFILL — log';
 const QUEUE_TAB = String(YEAR);
 const REPORT_TAB = `REPORT ${YEAR}`;
-const QUEUE_HEADER = ['file_id', 'name', 'path', 'branch', 'mime', 'status', 'dates', 'rows', 'note', 'finished_at'];
+// The last three are the triage's: what it repaired for this file's dates, and when. Part of
+// the header so a fresh backfillStart lays them out rather than wiping them (Kate, 4 Sep 2026).
+const QUEUE_HEADER = ['file_id', 'name', 'path', 'branch', 'mime', 'status', 'dates', 'rows', 'note',
+                      'finished_at', 'fixed?', 'fix notes', 'fix finished at'];
 const PROP = PropertiesService.getScriptProperties();
+// Set once a run has spent its automatic retry; cleared by backfillStart.
+const RETRY_FLAG = 'RETRIED_' + YEAR;
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
 // ENTRY POINTS
@@ -130,6 +182,7 @@ function backfillStart() {
       `branch folder under LEDGERS YEARS / ${YEAR} / LEDGERS) and run this again. ` +
       `Years ready now: ${Object.keys(ROOTS_BY_YEAR).join(', ')}.`);
   }
+  PROP.deleteProperty(RETRY_FLAG);   // this run gets its own automatic retry
   deleteContinueTriggers_();
   const ss = getLog_(true);
   const queue = [];
@@ -140,7 +193,13 @@ function backfillStart() {
   const q = ss.getSheetByName(QUEUE_TAB);
   if (queue.length) {
     q.getRange(2, 1, queue.length, QUEUE_HEADER.length)
-     .setValues(queue.map(e => [e.id, e.name, e.path, e.branch, e.mime, '', '', '', '', '']));
+    // Padded to the header's own width rather than a typed row of blanks, so widening
+    // QUEUE_HEADER can never again leave setValues writing 10 columns into 13 (Kate, 4 Sep 2026).
+     .setValues(queue.map(function (e) {
+       const row = [e.id, e.name, e.path, e.branch, e.mime];
+       while (row.length < QUEUE_HEADER.length) row.push('');
+       return row;
+     }));
   }
   Logger.log(`Queued ${queue.length} weekly files for ${YEAR}. Log sheet: ${ss.getUrl()}`);
   backfillContinue();
@@ -149,7 +208,16 @@ function backfillStart() {
 /** Step 2 (automatic). Processes pending queue rows until the time budget runs out, then re-arms itself. */
 function backfillContinue() {
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(5000)) { Logger.log('Another slice is still running; skipping.'); return; }
+  // A slice already running is the normal case, not a reason to stop: a trigger fires every
+  // minute and backfillStart calls this directly, so the two meet often. Returning without
+  // re-arming was what killed the 9:49 run on 4 Sep 2026 - 226 files queued, the lock busy for
+  // those five seconds, and nothing ever picked them up. Hand the work back to a trigger
+  // instead, so the queue always drains on its own (Kate, 4 Sep 2026).
+  if (!lock.tryLock(5000)) {
+    scheduleContinue_();
+    Logger.log('Another slice is still running; this one steps aside and retries in a minute.');
+    return;
+  }
   try {
     const started = Date.now();
     const ss = getLog_(false);
@@ -158,13 +226,15 @@ function backfillContinue() {
     if (last < 2) { Logger.log('Queue is empty. Run backfillStart() first.'); return; }
     const data = q.getRange(2, 1, last - 1, QUEUE_HEADER.length).getValues();
     let pending = 0, doneThisRun = 0;
+    const failedRows = [];   // filled as the loop goes; the snapshot above predates every status
 
     for (let i = 0; i < data.length; i++) {
       if (data[i][5]) continue; // status already set
       pending++;
       if (Date.now() - started > TIME_BUDGET_MS) continue; // out of time; leave for next slice
 
-      const entry = { id: data[i][0], name: data[i][1], path: data[i][2], branch: data[i][3], mime: data[i][4] };
+      const entry = { id: data[i][0], name: data[i][1], path: data[i][2], branch: data[i][3], mime: data[i][4],
+                      copyHasOriginal: copyHasOriginal_(data, i) };
       let result;
       try {
         result = processFile_(entry);
@@ -175,15 +245,39 @@ function backfillContinue() {
         result.status, result.dates.join(' '), result.rows, result.note || '', new Date(),
       ]]);
       SpreadsheetApp.flush();
+      if (result.status === 'FAILED') failedRows.push(i + 2);
       pending--; doneThisRun++;
     }
 
     if (pending > 0) {
       scheduleContinue_();
       Logger.log(`Slice done: ${doneThisRun} files this run, ${pending} still pending. Next slice in ~1 minute.`);
+    } else if (retryFailedOnce_(q, failedRows)) {
+      // A file that failed on a Drive hiccup usually reads fine on a second attempt, so the run
+      // gives every FAILED row exactly one more go before it calls itself finished. Once per
+      // backfillStart, tracked in a script property, so a file that is genuinely broken cannot
+      // put the run in a loop (Kate, 4 Sep 2026).
+      scheduleContinue_();
+      Logger.log('Queue drained with failures. Retrying those once; next slice in ~1 minute.');
     } else {
       deleteContinueTriggers_();
-      Logger.log(`ALL DONE. ${doneThisRun} files this run. Now run backfillReport(). Log: ${ss.getUrl()}`);
+      // The queue is drained, so the steps that always came next run themselves. Each is safe
+      // to repeat. resolveDuplicates only ever re-pushes a file that already pushed once;
+      // resolveCopiedWeeks and rescueStrayTabs write only onto days the table holds nothing for.
+      // autoTriageSafe runs last and repairs the mechanical findings (template columns saved as
+      // staff, one person under two spellings, archived markers, closed days) on its own; the
+      // cross-table name pairings it is less sure of stay on the TRIAGE tab for a person, and
+      // autoTriageApply() acts on those (Kate, 7 Sep 2026: the run should clean up after itself).
+      const after = [];
+      [['backfillReport', backfillReport], ['resolveDuplicates', resolveDuplicates],
+       ['resolveCopiedWeeks', resolveCopiedWeeks], ['rescueStrayTabs', rescueStrayTabs],
+       ['reconcile', reconcile], ['autoTriageSafe', autoTriageSafe]]
+        .forEach(function (step) {
+          try { step[1](); after.push(step[0] + ' ok'); }
+          catch (e) { after.push(step[0] + ' FAILED: ' + String(e && e.message || e)); }
+        });
+      Logger.log('ALL DONE. ' + doneThisRun + ' files this run. Then ran: ' + after.join(', ') +
+                 '. Log: ' + ss.getUrl());
     }
   } finally {
     lock.releaseLock();
@@ -437,6 +531,252 @@ function resolveDuplicates() {
              ' date(s) still need a person. REPORT tab: ' + REPORT_TAB);
 }
 
+/**
+ * Step 3c. A whole week saved under another week's dates.
+ *
+ * resolveDuplicates settles who owns a date two files both claimed. It cannot give back the week
+ * the losing file was actually about. AQ's "WK 4 (Aug 25-31).xlsx" holds 11 to 17 August in its
+ * A1s: whoever made it copied the file before it and never changed the dates. The parser believes
+ * the dates, as it should, so that week landed on 11-17 August on top of the real WK 2, and 25-31
+ * August was left with nothing at all. Three of AQ's missing weeks of 2025 are this, and so are
+ * some of KCA's and MC's.
+ *
+ * A file is only moved when all four of these hold, so nothing moves on a hunch:
+ *   1. every date it pushed lies OUTSIDE the week its own file name claims;
+ *   2. the week its name claims is completely empty in branch_staff_daily;
+ *   3. every date it pushed is also claimed by another file whose name DOES cover that date,
+ *      so moving this one takes nothing away from anybody;
+ *   4. its figures differ from the ones now stored on those dates. Identical figures mean the
+ *      file is an unfilled copy of the week before it rather than a mislabelled week, and
+ *      writing it onto the empty week would be inventing a week of trade. Those are reported.
+ *
+ * The move is a whole number of weeks, so every tab keeps its own weekday and every check in
+ * processFile_ still means what it meant. Run it after resolveDuplicates; backfillContinue
+ * already does. What it moved, and what it decided not to, go to the REPORT tab.
+ */
+function resolveCopiedWeeks() {
+  const ss = getLog_(false);
+  const q = ss.getSheetByName(QUEUE_TAB);
+  const last = q.getLastRow();
+  if (last < 2) { Logger.log('Nothing queued for ' + YEAR + '.'); return; }
+  const data = q.getRange(2, 1, last - 1, QUEUE_HEADER.length).getValues();
+
+  // who pushed what, and what is in the table now
+  const byDate = {};
+  data.forEach(function (r, i) {
+    if (r[5] !== 'OK') return;
+    String(r[6] || '').split(' ').filter(String).forEach(function (d) {
+      (byDate[r[3] + '|' + d] = byDate[r[3] + '|' + d] || []).push(i);
+    });
+  });
+  const stored = {};   // branch|date|dept|staff → that row's figures
+  const hasDay = {};   // branch|date → true
+  supaAll_('branch_staff_daily',
+           'branch,date,dept,staff_name,ncr,req,salon,new_client,rebooked,total,treatment_aed,retail_unit_qty,treatments_unit_qty')
+    .forEach(function (r) {
+      hasDay[r.branch + '|' + r.date] = true;
+      stored[r.branch + '|' + r.date + '|' + r.dept + '|' + r.staff_name] = figures_(r);
+    });
+
+  const moved = [], held = [];
+  data.forEach(function (r, i) {
+    if (r[5] !== 'OK') return;
+    const branch = r[3];
+    const wk = weekFromName_(r[1], r[2]);
+    if (!wk) return;
+    const pushed = String(r[6] || '').split(' ').filter(String).sort();
+    if (!pushed.length) return;
+
+    // 1. nothing it pushed is inside the week its name claims
+    if (pushed.some(function (d) { return d >= wk.from && d <= wk.to; })) return;
+
+    const fileMonday = mondayOf_(pushed[0]);
+    const nameMonday = mondayOf_(wk.from);
+    const shift = isoDiff_(nameMonday, fileMonday);
+    if (!shift || shift % 7 !== 0) return;   // not a clean week apart; leave that to a person
+
+    // 2. the week its name claims is empty
+    const emptyDays = [];
+    for (let n = 0; n < 7; n++) {
+      const d = isoAdd_(nameMonday, n);
+      if (d >= wk.from && d <= wk.to && !hasDay[branch + '|' + d]) emptyDays.push(d);
+    }
+    if (emptyDays.length < 7) {
+      if (emptyDays.length) {
+        held.push([branch, r[2] + ' / ' + r[1], wk.from + ' → ' + wk.to,
+                   'only ' + emptyDays.length + ' of that week is empty, so a person should look']);
+      }
+      return;
+    }
+
+    // 3. everything it pushed is already held by a file whose name covers it
+    const safeToMove = pushed.every(function (d) {
+      return (byDate[branch + '|' + d] || []).some(function (j) {
+        if (j === i) return false;
+        const w2 = weekFromName_(data[j][1], data[j][2]);
+        return w2 && d >= w2.from && d <= w2.to;
+      });
+    });
+    if (!safeToMove) {
+      held.push([branch, r[2] + ' / ' + r[1], pushed[0] + ' → ' + pushed[pushed.length - 1],
+                 'no other file claims the dates it pushed, so moving it would empty them']);
+      return;
+    }
+
+    // 4. read it again without writing, and compare with what is stored on those dates
+    let read;
+    try {
+      read = processFile_({ id: r[0], name: r[1], path: r[2], branch: branch, mime: r[4] }, { dryRun: true });
+    } catch (e) {
+      held.push([branch, r[2] + ' / ' + r[1], '', 'could not be re-read: ' + String(e && e.message || e)]);
+      return;
+    }
+    if (!read.parsed.length) {
+      held.push([branch, r[2] + ' / ' + r[1], wk.from + ' → ' + wk.to, 'reads as empty now, nothing to move']);
+      return;
+    }
+    let same = 0, differs = 0;
+    read.parsed.forEach(function (row) {
+      const was = stored[branch + '|' + row.date + '|' + row.dept + '|' + row.staff_name];
+      if (was === undefined || was !== figures_(row)) differs++; else same++;
+    });
+    if (!differs) {
+      held.push([branch, r[2] + ' / ' + r[1], wk.from + ' → ' + wk.to,
+                 'all ' + same + ' of its rows match the week already stored: an unfilled copy, not a mislabelled week']);
+      return;
+    }
+
+    let res;
+    try {
+      res = processFile_({ id: r[0], name: r[1], path: r[2], branch: branch, mime: r[4] }, { shiftDays: shift });
+    } catch (e) {
+      held.push([branch, r[2] + ' / ' + r[1], '', 'move failed: ' + String(e && e.message || e)]);
+      return;
+    }
+    moved.push([branch, r[2] + ' / ' + r[1], pushed[0] + ' → ' + pushed[pushed.length - 1],
+                res.dates.join(' '), res.rows]);
+    res.dates.forEach(function (d) { hasDay[branch + '|' + d] = true; });
+    q.getRange(i + 2, 6, 1, 5).setValues([[res.status, res.dates.join(' '), res.rows,
+      (res.note ? res.note + ' | ' : '') + 'moved ' + (shift / 7) + ' week(s) onto the dates its own file name claims',
+      new Date()]]);
+    SpreadsheetApp.flush();
+  });
+
+  const rep = ss.getSheetByName(REPORT_TAB) || ss.insertSheet(REPORT_TAB);
+  let row = rep.getLastRow() + 2;
+  rep.getRange(row, 1).setValue('Weeks saved under another week\'s dates, ' + new Date()).setFontWeight('bold');
+  row++;
+  rep.getRange(row, 1, 1, 5).setValues([['branch', 'file', 'was on', 'moved to', 'rows']]).setFontWeight('bold');
+  if (moved.length) { rep.getRange(row + 1, 1, moved.length, 5).setValues(moved); row += moved.length; }
+  row += 2;
+  rep.getRange(row, 1).setValue('Looked like one and was left alone').setFontWeight('bold');
+  row++;
+  rep.getRange(row, 1, 1, 4).setValues([['branch', 'file', 'week', 'why']]).setFontWeight('bold');
+  if (held.length) rep.getRange(row + 1, 1, held.length, 4).setValues(held);
+
+  Logger.log('Moved ' + moved.length + ' week(s) onto the dates their file names claim; ' +
+             held.length + ' left alone. REPORT tab: ' + REPORT_TAB);
+}
+
+/**
+ * Step 3d. Single day tabs whose A1 belongs to another week.
+ *
+ * processFile_ leaves such a tab alone on the first pass and writes "STRAY <tab>: ..." into the
+ * file's note (see the long comment there for the two shapes and the rules). Once the queue has
+ * drained this re-reads every file carrying a STRAY note with opts.rescue, which handles those
+ * tabs and nothing else, so a date another file won in resolveDuplicates is never pushed again.
+ * A tab is only ever written onto a day the table holds nothing for. What was rescued and what
+ * was held, and why, go to the REPORT tab; the file's own queue row gains the rescued dates.
+ *
+ * Whole files whose every tab is a copy of another week never get here: their tabs agree with
+ * each other, so weekMonday_ takes their week and resolveCopiedWeeks moves the file. Files whose
+ * every A1 is impossible (MC's WK 5 (Oct 27 - Nov 2), WK 4 (Nov 24 - Nov 30), AQ's WK 4 (Oct
+ * 20- Oct 26)) do: weekMonday_ finds nothing to count from, the name gives the week, and every
+ * tab is a stray of the typed-mistake kind (Kate, 7 Sep 2026).
+ */
+function rescueStrayTabs() {
+  const ss = getLog_(false);
+  const q = ss.getSheetByName(QUEUE_TAB);
+  const last = q.getLastRow();
+  if (last < 2) { Logger.log('Nothing queued for ' + YEAR + '.'); return; }
+  const data = q.getRange(2, 1, last - 1, QUEUE_HEADER.length).getValues();
+
+  const rescued = [], held = [];
+  data.forEach(function (r, i) {
+    if (r[5] !== 'OK' && r[5] !== 'EMPTY') return;
+    if (String(r[8] || '').indexOf('STRAY ') === -1) return;
+    const label = r[2] + ' / ' + r[1];
+    let res;
+    try {
+      res = processFile_({ id: r[0], name: r[1], path: r[2], branch: r[3], mime: r[4] }, { rescue: true });
+    } catch (e) {
+      held.push([r[3], label, '', '', 'could not be re-read: ' + String(e && e.message || e)]);
+      return;
+    }
+    (res.held || []).forEach(function (h) { held.push([r[3], label, h.tab, h.a1 + ' -> ' + h.date, h.why]); });
+    if (!res.rescued || !res.rescued.length) return;
+    res.rescued.forEach(function (x) { rescued.push([r[3], label, x.tab, x.a1, x.date, x.rows]); });
+    const dates = {};
+    String(r[6] || '').split(' ').filter(String).forEach(function (d) { dates[d] = true; });
+    res.rescued.forEach(function (x) { dates[x.date] = true; });
+    const note = (r[8] ? r[8] + ' | ' : '') + 'rescued ' +
+      res.rescued.map(function (x) { return x.tab + ' onto ' + x.date; }).join(', ');
+    q.getRange(i + 2, 6, 1, 5).setValues([['OK', Object.keys(dates).sort().join(' '),
+      (Number(r[7]) || 0) + res.rows, note, new Date()]]);
+    SpreadsheetApp.flush();
+  });
+
+  const rep = ss.getSheetByName(REPORT_TAB) || ss.insertSheet(REPORT_TAB);
+  let row = rep.getLastRow() + 2;
+  rep.getRange(row, 1).setValue('Day tabs dated from their own name, ' + new Date()).setFontWeight('bold');
+  row++;
+  rep.getRange(row, 1, 1, 6).setValues([['branch', 'file', 'tab', 'A1 said', 'pushed on', 'rows']]).setFontWeight('bold');
+  if (rescued.length) { rep.getRange(row + 1, 1, rescued.length, 6).setValues(rescued); row += rescued.length; }
+  row += 2;
+  rep.getRange(row, 1).setValue('Stray tabs left alone').setFontWeight('bold');
+  row++;
+  rep.getRange(row, 1, 1, 5).setValues([['branch', 'file', 'tab', 'A1 -> would be', 'why']]).setFontWeight('bold');
+  if (held.length) rep.getRange(row + 1, 1, held.length, 5).setValues(held);
+
+  Logger.log('Rescued ' + rescued.length + ' stray tab(s); ' + held.length + ' left alone. REPORT tab: ' + REPORT_TAB);
+}
+
+// What branch_staff_daily holds for one branch-day: dept|staff -> figures_ string. Empty when nothing.
+function storedDay_(branch, date) {
+  const url = SUPA_URL + '/rest/v1/branch_staff_daily?select=dept,staff_name,ncr,req,salon,new_client,rebooked,total,' +
+              'treatment_aed,retail_unit_qty,treatments_unit_qty&branch=eq.' + encodeURIComponent(branch) + '&date=eq.' + date;
+  const resp = UrlFetchApp.fetch(url, { headers: supaHeaders_(), muteHttpExceptions: true });
+  if (resp.getResponseCode() >= 300) {
+    throw new Error('read of ' + branch + ' ' + date + ' failed (' + resp.getResponseCode() + '): ' + resp.getContentText().slice(0, 200));
+  }
+  const out = {};
+  JSON.parse(resp.getContentText()).forEach(function (r) { out[r.dept + '|' + r.staff_name] = figures_(r); });
+  return out;
+}
+
+// True when a "Copy of X" sits beside an "X" in the same branch's queue. Only then is the copy a
+// duplicate worth skipping; a copy with no original is the only record of its week and is read
+// like any other file. All 17 of 2025's copies have their original beside them (Kate, 7 Sep 2026).
+function copyHasOriginal_(data, i) {
+  const name = String(data[i][1]);
+  if (!SKIP_FILE.test(name)) return false;
+  const squash = function (n) { return String(n).replace(/\s+/g, ' ').trim().toUpperCase(); };
+  const base = squash(name.replace(SKIP_FILE, ''));
+  return data.some(function (r, j) {
+    return j !== i && r[3] === data[i][3] && !SKIP_FILE.test(String(r[1])) && squash(r[1]) === base;
+  });
+}
+
+// One staff row's figures as a single string, so two readings of the same day compare in one go.
+function figures_(r) {
+  return [r.ncr, r.req, r.salon, r.new_client, r.rebooked, r.total,
+          Number(r.treatment_aed).toFixed(2), r.retail_unit_qty, r.treatments_unit_qty].join('|');
+}
+
+function mondayOf_(iso) { return isoAdd_(iso, -isoDayIndex_(iso)); }
+
+function isoDiff_(a, b) { return Math.round((isoParts_(a) - isoParts_(b)) / 86400000); }
+
 // The week a file's own name claims, as {from, to} in yyyy-MM-dd, or null when the name does not
 // say. Reads the last bracketed part of the name ("WK 2 (Apr 7 - 13)", "WEEK 5 ( JULY 28-AUG 3)",
 // "WEEK 2 (APR 7TH - 13TH)", "WK 1 (02 - 05)") and takes the month from the folder when the name
@@ -486,10 +826,56 @@ function weekFromName_(name, path) {
 
   const from = new Date(year, month - 1, day);
   if (isNaN(from)) return null;
+  // Every file is a Monday-to-Sunday week and the brackets are typed by hand, so a name is off
+  // by a day now and then: KCA's "WEEK 2 (JULY 6-12)" is the week of 7 to 13 July, its
+  // "WEEK 1 (JUNE 30-JULY 5)" runs to the 6th. The week is the one whose Monday is nearest the
+  // first day the name gives, so `from` is always a Monday from here on (Kate, 7 Sep 2026).
+  const idx = (from.getDay() + 6) % 7;
+  from.setDate(from.getDate() - (idx <= 3 ? idx : idx - 7));
   const to = new Date(from.getTime());
   to.setDate(to.getDate() + 6);
   const tz = Session.getScriptTimeZone();
   return { from: fmt_(from, tz), to: fmt_(to, tz) };
+}
+
+/**
+ * A HANDFUL OF DAYS, RIGHT NOW. The small tool next to backfillStart's big one.
+ *
+ * backfillStart is built for a year: it queues a whole folder, processes it in four-minute slices
+ * behind a self-re-arming trigger, then chains backfillReport, resolveDuplicates, reconcile and
+ * autoTriage across every branch of YEAR. Correct for a year, far too slow for three days.
+ *
+ * This reads the files listed below and pushes them. Nothing else: no queue tab, no log sheet,
+ * no trigger, no chain. Same parser and same push as the big run, so what it writes is exactly
+ * what the big run would have written, and running the big one later changes nothing.
+ *
+ * A file's own day tabs decide the dates, so listing WEEK 1 (JAN.2-4) touches 1 to 4 January and
+ * no other day. Check YEAR matches the files' year, edit FILES, run it, read the execution log.
+ * (Kate, 4 Sep 2026: the three days KCA arrived blank did not need a month queued.)
+ */
+function backfillFiles() {
+  const FILES = [
+    // branch, file id                                  file
+    ['KCA', '1ZEGmTwEIjuGKRPXkvHW0mP1cd8UYEnYZ'],    // WEEK 1 (JAN.2-4).xlsx  → 1-4 Jan 2026
+  ];
+
+  const log = [];
+  FILES.forEach(function (pair) {
+    const branch = pair[0], id = pair[1];
+    let f;
+    try { f = DriveApp.getFileById(id); }
+    catch (e) { log.push(branch + '  ' + id + '\n  CANNOT OPEN: ' + String(e && e.message || e)); return; }
+    const parents = f.getParents();
+    const entry = { id: id, name: f.getName(), branch: branch, mime: f.getMimeType(),
+                    path: parents.hasNext() ? parents.next().getName() : '' };
+    let res;
+    try { res = processFile_(entry); }
+    catch (e) { log.push(branch + '  ' + entry.name + '\n  FAILED: ' + String(e && e.message || e)); return; }
+    log.push(branch + '  ' + entry.name + '  [' + entry.path + ']' +
+             '\n  ' + res.status + ', ' + res.rows + ' rows on ' + (res.dates.join(' ') || 'no dates') +
+             (res.note ? '\n  notes: ' + res.note : ''));
+  });
+  Logger.log('YEAR ' + YEAR + ', ' + FILES.length + ' file(s):\n\n' + log.join('\n\n'));
 }
 
 /** Emergency stop: removes the self-re-arming trigger. Pending rows stay pending. */
@@ -502,9 +888,10 @@ function backfillStop() {
 // ONE FILE
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
-function processFile_(entry) {
-  if (SKIP_FILE.test(entry.name)) {
-    return { status: 'SKIPPED', dates: [], rows: 0, note: '"Copy of" duplicate — check by hand which version is real' };
+function processFile_(entry, opts) {
+  opts = opts || {};
+  if (SKIP_FILE.test(entry.name) && entry.copyHasOriginal) {
+    return { status: 'SKIPPED', dates: [], rows: 0, note: '"Copy of" duplicate; the original sits beside it and was read instead' };
   }
 
   let tempId = null;
@@ -524,6 +911,16 @@ function processFile_(entry) {
     // belongs to a known week: the tabs that ARE dated give the Monday, and the tab's own name
     // gives the offset from it. 77 day tabs across 2025 were lost to a blank or 1899/1900 A1
     // before this (Kate, 3 Sep 2026).
+    //
+    // Every date below is a plain 'yyyy-MM-dd' STRING from here on, never a Date. A cell's date
+    // is read once, through the spreadsheet's own timezone, which is the date a person sees in
+    // it; after that all the arithmetic is calendar arithmetic on the string. The old code did
+    // the arithmetic on Date objects and then formatted them back through that timezone, and the
+    // Apps Script project's timezone is not the spreadsheets' - so a date built at midnight here
+    // formatted as the DAY BEFORE there. Directly-dated tabs were fine, because their date came
+    // from the original instant; every derived or corrected one landed a day early, failed the
+    // weekday check and was thrown away as a stale copy. 90 day tabs of 2025 went that way,
+    // including 35 Sundays, which is Motor City's missing Sundays (Kate, 4 Sep 2026).
     const days = [];
     ss.getSheets().forEach(sheet => {
       const tab = sheet.getName().trim().toUpperCase();
@@ -532,40 +929,97 @@ function processFile_(entry) {
       const lastCol = sheet.getLastColumn();
       if (lastRow < 5 || lastCol < 4) return;
       const values = sheet.getRange(1, 1, lastRow, lastCol).getValues();
-      days.push({ tab: tab, values: values, date: readDate_(values[0][0], tz) });
+      days.push({ tab: tab, values: values, iso: cellIso_(values[0][0], tz) });
     });
 
-    const monday = weekMonday_(days, tz, notes);
+    // The week from the day tabs when any of them is dated, and from the file's own name when
+    // none is. Without the second, a workbook whose A1s were all left blank lost its whole week
+    // rather than a day: nothing to count from. weekFromName_ reads the bracket in the file name
+    // and the month from its folder, and the date is snapped back to that week's Monday. Every
+    // tab still has to land on the weekday its own name claims, so a name that turns out to
+    // describe a different week is skipped loudly instead of saved wrongly (Kate, 4 Sep 2026).
+    const wk = weekFromName_(entry.name, entry.path);   // its `from` is a Monday
+    let monday = weekMonday_(days, notes, wk ? wk.from : null);
+    if (!monday && wk) {
+      monday = wk.from;
+      notes.push('week taken from the file name, Monday ' + monday);
+    }
+    const rescued = [], held = [];
 
     days.forEach(day => {
       const tab = day.tab;
-      let date = day.date;
+      let dateStr = day.iso;
       // Blank, or one of the 1899-12-31 / 1900-01-01 serials an empty cell formats into. A real
       // date from the neighbouring year (a Dec 30 - Jan 5 week) is NOT this, and is left alone.
-      const unfilled = !date || date.getFullYear() < 1990;
+      const unfilled = !dateStr || Number(dateStr.slice(0, 4)) < 1990;
       let derived = false;
       if (unfilled) {
         if (!monday) { notes.push(`${tab}: no date in A1 and the week could not be worked out, skipped`); return; }
-        date = new Date(monday.getTime());
-        date.setDate(date.getDate() + DAY_TABS.indexOf(tab));
+        dateStr = isoAdd_(monday, DAY_TABS.indexOf(tab));
         derived = true;
       }
-      if (date.getFullYear() !== YEAR) { notes.push(`${tab}: ${fmt_(date, tz)} outside ${YEAR}, skipped`); return; }
-      let weekday = Utilities.formatDate(date, tz, 'EEEE').toUpperCase();
+      let weekday = isoWeekday_(dateStr);
       // A1 on the wrong weekday splits two ways, and the file's own week tells them apart.
       // Inside this file's week: the A1s are "the day before, plus one" formulas and one of them
       // slipped, so the week is not in doubt, only the offset. Take the date the tab name asks
-      // for. Outside it: the tab really is a copy of another week and is skipped, as before.
-      if (weekday !== tab && monday && withinWeek_(date, monday)) {
-        const was = fmt_(date, tz);
-        date = new Date(monday.getTime());
-        date.setDate(date.getDate() + DAY_TABS.indexOf(tab));
-        weekday = Utilities.formatDate(date, tz, 'EEEE').toUpperCase();
-        notes.push(`${tab}: A1 said ${was}, a ${weekday === tab ? 'shifted' : 'wrong'} day inside this week, corrected to ${fmt_(date, tz)}`);
+      // for. Outside it: the tab is a stray, settled below.
+      if (weekday !== tab && monday && isoWithinWeek_(dateStr, monday)) {
+        const was = dateStr;
+        dateStr = isoAdd_(monday, DAY_TABS.indexOf(tab));
+        weekday = isoWeekday_(dateStr);
+        notes.push(`${tab}: A1 said ${was}, a ${weekday === tab ? 'shifted' : 'wrong'} day inside this week, corrected to ${dateStr}`);
       }
-      if (weekday !== tab) { notes.push(`WARN ${tab}: A1 says ${fmt_(date, tz)} which is a ${weekday} — stale copy? skipped`); return; }
 
-      const dateStr = fmt_(date, tz);
+      // A stray: an A1 outside the week the rest of the file covers. Two shapes, told apart by
+      // the weekday. A1 on the WRONG weekday for its tab is a typed mistake (MC's WK 5 (Oct 27 -
+      // Nov 2) has Monday as 25/10/2025, SAA's WEEK 1 (JUNE 2- JUNE 8) has Thursday as 05/04/2025)
+      // and the tab is the day its name and its file say it is. A1 on the RIGHT weekday in another
+      // week is a tab copied from that week, and only its figures can say whether anyone filled it
+      // in. Both need the rest of the year in the table to be judged, so the first pass writes a
+      // STRAY note and leaves the tab; rescueStrayTabs() re-reads the file with opts.rescue once
+      // the queue has drained and handles nothing but these (Kate, 7 Sep 2026).
+      const stray = monday ? !isoWithinWeek_(dateStr, monday) : weekday !== tab;
+      if (opts.rescue && !stray) return;
+      if (stray) {
+        if (!monday) { notes.push(`WARN ${tab}: A1 says ${dateStr} which is a ${weekday} — stale copy? skipped`); return; }
+        const target = isoAdd_(monday, DAY_TABS.indexOf(tab));
+        if (!opts.rescue) {
+          notes.push(`STRAY ${tab}: A1 says ${dateStr}, a ${weekday} outside this file's week; tried on ${target} after the run`);
+          return;
+        }
+        const hold = function (why) { held.push({ tab: tab, a1: dateStr, date: target, why: why }); };
+        if (Number(target.slice(0, 4)) !== YEAR) { hold(`${target} is outside ${YEAR}`); return; }
+        const rows = parseDay_(day.values, target, tab, notes);
+        if (!rows.length) { hold('no staff rows'); return; }
+        const there = storedDay_(entry.branch, target);
+        const nThere = Object.keys(there).length;
+        if (nThere) { hold(`${target} already holds ${nThere} rows from another file`); return; }
+        if (weekday === tab) {
+          const was = storedDay_(entry.branch, dateStr);
+          if (!Object.keys(was).length) { hold(`nothing stored on ${dateStr} to compare with`); return; }
+          const differs = rows.some(function (row) { return was[row.dept + '|' + row.staff_name] !== figures_(row); });
+          if (!differs) { hold(`same figures as ${dateStr}, an unfilled copy`); return; }
+        }
+        rescued.push({ tab: tab, a1: dateStr, date: target, rows: rows.length });
+        dates.push(target);
+        allRows.push(...rows.map(r => Object.assign({ branch: entry.branch }, r)));
+        return;
+      }
+      if (Number(dateStr.slice(0, 4)) !== YEAR) { notes.push(`${tab}: ${dateStr} outside ${YEAR}, skipped`); return; }
+
+      // A whole week saved under another week's dates, settled by resolveCopiedWeeks and handed
+      // back here as a shift. Always a multiple of seven days, so every tab keeps its own
+      // weekday and the checks above still mean what they meant.
+      if (opts.shiftDays) {
+        const was = dateStr;
+        dateStr = isoAdd_(dateStr, opts.shiftDays);
+        if (Number(dateStr.slice(0, 4)) !== YEAR) {
+          notes.push(`${tab}: ${was} shifts to ${dateStr}, outside ${YEAR}, skipped`);
+          return;
+        }
+        notes.push(`${tab}: ${was} → ${dateStr}, the week this file's own name claims`);
+      }
+
       if (derived) notes.push(`${tab}: A1 was blank, dated ${dateStr} from the rest of the week`);
       const rows = parseDay_(day.values, dateStr, tab, notes);
       if (!rows.length) { notes.push(`${tab} ${dateStr}: no staff rows`); return; }
@@ -573,9 +1027,17 @@ function processFile_(entry) {
       allRows.push(...rows.map(r => Object.assign({ branch: entry.branch }, r)));
     });
 
-    if (!allRows.length) return { status: 'EMPTY', dates: [], rows: 0, note: notes.join(' | ') };
+    if (opts.rescue) {
+      const pushed = allRows.length ? pushRows_(entry.branch, allRows) : 0;
+      return { status: 'RESCUE', dates: dates.sort(), rows: pushed, note: notes.join(' | '),
+               parsed: allRows, rescued: rescued, held: held };
+    }
+    if (!allRows.length) return { status: 'EMPTY', dates: [], rows: 0, note: notes.join(' | '), parsed: [] };
+    if (opts.dryRun) {
+      return { status: 'READ', dates: dates.sort(), rows: allRows.length, note: notes.join(' | '), parsed: allRows };
+    }
     const pushed = pushRows_(entry.branch, allRows);
-    return { status: 'OK', dates: dates.sort(), rows: pushed, note: notes.join(' | ') };
+    return { status: 'OK', dates: dates.sort(), rows: pushed, note: notes.join(' | '), parsed: allRows };
   } finally {
     if (tempId) { try { DriveApp.getFileById(tempId).setTrashed(true); } catch (e) { /* ignore */ } }
   }
@@ -633,34 +1095,70 @@ function tempFolderId_() {
 // REBOOKED=Rebooked, TOTAL = NCR+REQ+SALON+NEW (Hair) / REQ+SALON+NEW (Beauty),
 // TREATMENT AED = treatment total / 1.05 (Hair only).
 
-// The Monday of the week a file covers, from whichever day tabs carry a date that is real,
-// inside YEAR, and lands on the weekday its own tab name claims. Every such tab implies the
-// same Monday. If they disagree the file is a mix of weeks and nothing is filled in.
-function weekMonday_(days, tz, notes) {
-  const seen = {};
-  days.forEach(day => {
-    const d = day.date;
-    if (!d || d.getFullYear() !== YEAR) return;
-    if (Utilities.formatDate(d, tz, 'EEEE').toUpperCase() !== day.tab) return;
-    const m = new Date(d.getTime());
-    m.setDate(m.getDate() - DAY_TABS.indexOf(day.tab));
-    const k = fmt_(m, tz);
-    seen[k] = (seen[k] || 0) + 1;
-  });
-  const keys = Object.keys(seen);
-  if (keys.length > 1) {
-    notes.push(`WARN the day tabs point at ${keys.length} different weeks (${keys.join(', ')}); no dates filled in`);
-    return null;
-  }
-  if (!keys.length) return null;
-  const p = keys[0].split('-');
+// ── DATES AS STRINGS ────────────────────────────────────────────────────────────────────
+// One conversion at the boundary, then calendar arithmetic on 'yyyy-MM-dd'. Nothing below
+// touches a timezone, so the gap between the script project's and the spreadsheets' can no
+// longer move a date (Kate, 4 Sep 2026 - see the long note in processFile_).
+
+// The date a person sees in the cell. The only place a timezone is consulted.
+function cellIso_(v, tz) {
+  const d = readDate_(v, tz);
+  return d ? fmt_(d, tz) : null;
+}
+
+function isoParts_(iso) {
+  const p = String(iso).split('-');
   return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
 }
 
-// True when a date falls inside the Monday-to-Sunday week that starts at monday.
-function withinWeek_(date, monday) {
-  const days = Math.round((date.getTime() - monday.getTime()) / 86400000);
-  return days >= 0 && days <= 6;
+function isoOf_(d) {
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+
+function isoAdd_(iso, n) {
+  const d = isoParts_(iso);
+  d.setDate(d.getDate() + n);
+  return isoOf_(d);
+}
+
+// 0 for Monday, matching DAY_TABS, so an offset is always index arithmetic.
+function isoDayIndex_(iso) { return (isoParts_(iso).getDay() + 6) % 7; }
+
+function isoWeekday_(iso) { return DAY_TABS[isoDayIndex_(iso)]; }
+
+// True when a date falls inside the Monday-to-Sunday week that starts at mondayIso.
+function isoWithinWeek_(iso, mondayIso) {
+  const n = Math.round((isoParts_(iso) - isoParts_(mondayIso)) / 86400000);
+  return n >= 0 && n <= 6;
+}
+
+// The Monday of the week a file covers, as 'yyyy-MM-dd', from whichever day tabs carry a date
+// that is real, inside YEAR, and lands on the weekday its own tab name claims. Every such tab
+// implies the same Monday. If they disagree the file is a mix of weeks and nothing is filled in.
+function weekMonday_(days, notes, nameMonday) {
+  const seen = {};
+  days.forEach(function (day) {
+    const iso = day.iso;
+    if (!iso || Number(iso.slice(0, 4)) !== YEAR) return;
+    if (isoWeekday_(iso) !== day.tab) return;
+    const m = isoAdd_(iso, -DAY_TABS.indexOf(day.tab));
+    seen[m] = (seen[m] || 0) + 1;
+  });
+  const keys = Object.keys(seen);
+  if (keys.length > 1) {
+    // Half the tabs re-dated for the new week, half still carrying the week the file was copied
+    // from: KCA's WEEK 2 (JULY 6-12), WEEK 1 (SEPT 1-7) and WEEK 4 (OCT 20-26) all read this way.
+    // The file's own name settles which week is meant when it matches one of them; the tabs on
+    // the other week then go to rescueStrayTabs instead of overwriting the week they are copied
+    // from, which is what pushed KCA's 8 to 10 August three times (Kate, 7 Sep 2026).
+    if (nameMonday && seen[nameMonday]) {
+      notes.push(`the day tabs point at ${keys.length} different weeks (${keys.join(', ')}); the file name settles it on ${nameMonday}`);
+      return nameMonday;
+    }
+    notes.push(`WARN the day tabs point at ${keys.length} different weeks (${keys.join(', ')}); no dates filled in`);
+    return null;
+  }
+  return keys.length ? keys[0] : null;
 }
 
 // True when a block carries the summary labels even though its own "Type | Count" cell is blank.
@@ -712,7 +1210,10 @@ function parseDay_(values, dateStr, tab, notes) {
 
     for (let c = 0; c < ncols; c += 4) {
       const name = str_(cell(namesRow, c));
-      if (!name || name.charAt(0) === '#') continue;
+      // Blank column, a spreadsheet error, or one of the template's own words sitting where a
+      // name should be. All three mean "not a staff block", and none of them is a judgement about
+      // the figures: an idle stylist with a real name is still read and still pushed.
+      if (!name || name.charAt(0) === '#' || isLabel_(name)) continue;
 
       let sr = (c in srByCol) ? srByCol[c] : -1;
       if (sr < 0 && commonSr >= 0 && blockHasLabels_(low, commonSr, c, secEnd)) {
@@ -775,13 +1276,460 @@ function parseDay_(values, dateStr, tab, notes) {
   return rows;
 }
 
+
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// AUTOMATED TRIAGE — repairs the saved data, and reports on the row that caused it
+// ══════════════════════════════════════════════════════════════════════════════════════════
+//
+// reconcile() names what is wrong. This fixes what can be fixed without guessing, in
+// branch_staff_daily itself, and writes the outcome into the three columns beside each file in
+// the year's queue tab: fixed?, fix notes, fix finished at. Reading down one row therefore tells
+// you what that weekly file pushed AND what had to be repaired afterwards, instead of holding a
+// separate report next to it (Kate, 4 Sep 2026).
+//
+// A finding belongs to a branch and a date, not to a file, so it is attributed back through the
+// dates column: the file that pushed 2025-08-17 for MC owns anything repaired on that day. Days
+// no file pushed cannot be attributed that way, so a missing day is attributed instead to the
+// file whose own NAME covers it, which is the folder to start hunting in. Whatever is left over
+// belongs to no file at all and goes to the TRIAGE tab.
+//
+// DRY RUN unless you call autoTriageApply(). The dry run writes the same three columns with the
+// note prefixed "would", so the plan appears exactly where the repair will.
+//
+// THE THREE IT FIXES
+//  1. Template columns saved as staff. AA, BB, CC and the rest are the named-but-empty columns a
+//     ledger template ships with, and they carry a stray retail or treatment figure often enough
+//     that the parser's zero test kept them. They are not people, so the rows go. Safe because
+//     the placeholder test is a repeated letter: MJ, IVY, MAY, KIM and EDS cannot match it.
+//  2. A stylist under two spellings. Phorest carries the till's own name and the dashboard
+//     attaches revenue by name, so the ledger's spelling moves onto Phorest's. Only when the
+//     pairing is unambiguous: one unmatched ledger name and one unmatched Phorest name on the
+//     same branch, sharing at least TRIAGE_MIN_DAYS days. Anything less is reported, not renamed.
+//  3. A day nobody traded. Phorest has the day with nothing on it and the ledger has nothing
+//     either, so it goes into closed_days and stops being a gap in every progress grid.
+//
+// THE TWO IT WILL NOT
+//  4. A day the till has and the ledger does not. The figures were never captured; nothing in the
+//     database can invent them.
+//  5. Ledger figures on a day the till says was quiet. Those figures are real money sitting on
+//     the wrong date, and the right date is elsewhere reading empty. Deleting them would lose a
+//     day's takings and moving them would be a guess, so a person looks.
+const TRIAGE_MIN_DAYS = 30;   // days two spellings must share before they are taken as one person
+
+function autoTriage()      { runTriage_(false, false); }
+function autoTriageApply() { runTriage_(true, false); }
+// What the run does on its own: everything but the cross-table renames.
+function autoTriageSafe()  { runTriage_(true, true); }
+
+function runTriage_(apply, safeOnly) {
+  const led = supaAll_('branch_staff_daily', 'branch,date,staff_name,dept,total');
+  const pho = supaAll_('phorest_staff_daily', 'branch,date,employee_name,visits,is_total');
+
+  const L = {}, P = {}, phoQuiet = {};
+  led.forEach(function (r) {
+    const k = r.branch + '|' + r.date;
+    (L[k] = L[k] || []).push({ name: normUpper_(r.staff_name), raw: r.staff_name, total: Number(r.total) || 0 });
+  });
+  pho.forEach(function (r) {
+    const k = r.branch + '|' + r.date;
+    if (r.is_total) { if (!(k in phoQuiet)) phoQuiet[k] = true; return; }
+    if (!(Number(r.visits) > 0)) return;
+    phoQuiet[k] = false;
+    (P[k] = P[k] || []).push({ name: normUpper_(r.employee_name) });
+  });
+
+  const plan = { placeholders: [], renames: [], caseVariants: [], archived: [], closures: [], missingDays: [],
+                 copiedWeeks: [], unclear: [] };
+
+  // ── 0. one person, two spellings ACROSS the two tables ──
+  // Phorest hangs "(A)" on an archived staff member's name. The Staff Utilisation report's
+  // parser strips it and keeps the fact in its own column; the Staff Performance one used to
+  // leave it in the name. So the same person sat in phorest_staff_daily as "Rovina Jordan (A)"
+  // and in staff_utilisation as "Rovina Jordan", and the dashboard joins them by name: 3,383
+  // rows and 38 people were cut off from their own hours. The parser strips it now, and this
+  // repairs what is already stored. Unambiguous - a marker comes off the end of a name and
+  // nothing else changes - and checked for collisions first, because (branch, date,
+  // employee_name) is unique (Kate, 4 Sep 2026).
+  const pnames = supaAll_('phorest_staff_daily', 'branch,date,employee_name');
+  const taken = {}, marked = {};
+  pnames.forEach(function (r) {
+    const raw = str_(r.employee_name);
+    taken[r.branch + '|' + r.date + '|' + raw] = true;
+    if (/\(A\)\s*$/.test(raw)) (marked[raw] = marked[raw] || []).push(r);
+  });
+  Object.keys(marked).sort().forEach(function (raw) {
+    const to = raw.replace(/\s*\(A\)\s*$/, '').trim();
+    const rows = marked[raw];
+    const clash = rows.filter(function (r) { return taken[r.branch + '|' + r.date + '|' + to]; });
+    if (clash.length) {
+      plan.unclear.push({ branch: 'any', phorest: raw,
+        ledger: 'cannot drop the (A): ' + to + ' already has a row on ' + clash.length +
+                ' of the same days - two rows for one person' });
+      return;
+    }
+    const dates = {};
+    rows.forEach(function (r) { dates[r.branch + '|' + r.date] = true; });
+    plan.archived.push({ from: raw, to: to, rows: rows.length, dates: dates });
+  });
+
+  // ── 1. template columns saved as staff, with the dates they sat on ──
+  const ph = {};
+  led.forEach(function (r) {
+    if (!isPlaceholder_(r.staff_name)) return;
+    const k = r.branch + '|' + normUpper_(r.staff_name);
+    const e = ph[k] = ph[k] || { branch: r.branch, name: normUpper_(r.staff_name), rows: 0, dates: {} };
+    e.rows++; e.dates[r.date] = true;
+  });
+  Object.keys(ph).sort().forEach(function (k) { plan.placeholders.push(ph[k]); });
+
+  // ── 2. one person written two ways in the ledger alone ──
+  // LIZANIE and Lizanie are the same person, and the dashboard attaches Phorest revenue by
+  // name, so the second spelling reads as a phantom second stylist. Invisible to the check
+  // below, because both spellings match Phorest perfectly well. The ledger writes first names
+  // in caps and the roster is keyed in caps, so the capitalised form is the one to keep, and it
+  // is the majority spelling in every group found so far. Skipped where both spellings sit on
+  // one branch-day-dept, because (branch, date, dept, staff_name) is unique and the rename
+  // would collide - that is two rows for one person on one day, which a person settles
+  // (Kate, 4 Sep 2026).
+  const spellings = {};
+  led.forEach(function (r) {
+    const raw = str_(r.staff_name), up = normUpper_(raw);
+    if (!raw) return;
+    const g = spellings[up] = spellings[up] || { variants: {}, cells: {}, dates: {} };
+    g.variants[raw] = (g.variants[raw] || 0) + 1;
+    const cell = r.branch + '|' + r.date + '|' + r.dept;
+    (g.cells[cell] = g.cells[cell] || {})[raw] = true;
+    if (raw !== up) g.dates[r.branch + '|' + r.date] = true;
+  });
+  Object.keys(spellings).sort().forEach(function (up) {
+    const g = spellings[up];
+    const others = Object.keys(g.variants).filter(function (v) { return v !== up; });
+    if (!others.length) return;
+    const clash = Object.keys(g.cells).some(function (c) { return Object.keys(g.cells[c]).length > 1; });
+    const rows = others.reduce(function (n, v) { return n + g.variants[v]; }, 0);
+    if (clash) {
+      plan.unclear.push({ branch: 'any', phorest: 'n/a',
+        ledger: up + ' is also written ' + others.join(', ') + ' and both sit on the same day, ' +
+                rows + ' rows - two rows for one person' });
+      return;
+    }
+    plan.caseVariants.push({ to: up, from: others, rows: rows, dates: g.dates });
+  });
+
+  // ── 2. a stylist under two spellings ──
+  const unmatchedPho = {}, unmatchedLed = {};
+  Object.keys(P).forEach(function (k) {
+    const parts = k.split('|'), branch = parts[0], date = parts[1];
+    const l = L[k] || [];
+    P[k].forEach(function (p) {
+      if (l.some(function (y) { return nameLinks_(p.name, y.name); })) return;
+      const key = branch + '|' + p.name;
+      const e = unmatchedPho[key] = unmatchedPho[key] || { branch: branch, name: p.name, days: 0 };
+      e.days++;
+    });
+    l.forEach(function (y) {
+      if (P[k].some(function (p) { return nameLinks_(p.name, y.name); })) return;
+      const key = branch + '|' + y.name;
+      const e = unmatchedLed[key] = unmatchedLed[key] || { branch: branch, name: y.name, raw: y.raw, days: 0, dates: {} };
+      e.days++; e.dates[date] = true;
+    });
+  });
+  const sides = {};
+  Object.keys(unmatchedPho).forEach(function (k) {
+    const u = unmatchedPho[k];
+    (sides[u.branch] = sides[u.branch] || { pho: [], led: [] }).pho.push(u);
+  });
+  Object.keys(unmatchedLed).forEach(function (k) {
+    const u = unmatchedLed[k];
+    if (isPlaceholder_(u.name)) return;   // dealt with as a placeholder
+    (sides[u.branch] = sides[u.branch] || { pho: [], led: [] }).led.push(u);
+  });
+  Object.keys(sides).sort().forEach(function (branch) {
+    const s = sides[branch];
+    const pho1 = s.pho.filter(function (x) { return x.days >= TRIAGE_MIN_DAYS; });
+    const led1 = s.led.filter(function (x) { return x.days >= TRIAGE_MIN_DAYS; });
+    if (pho1.length === 1 && led1.length === 1) {
+      plan.renames.push({ branch: branch, from: led1[0].raw, fromKey: led1[0].name, to: pho1[0].name,
+                          days: led1[0].days, dates: led1[0].dates });
+    } else if (pho1.length || led1.length) {
+      plan.unclear.push({ branch: branch,
+        phorest: pho1.map(function (x) { return x.name + ' (' + x.days + 'd)'; }).join(', ') || 'none',
+        ledger:  led1.map(function (x) { return x.name + ' (' + x.days + 'd)'; }).join(', ') || 'none' });
+    }
+  });
+
+  // ── 3, 4, 5. one pass over every branch-day either side knows about ──
+  const keys = {};
+  [L, P, phoQuiet].forEach(function (m) { Object.keys(m).forEach(function (k) { keys[k] = true; }); });
+  Object.keys(keys).sort().forEach(function (k) {
+    const parts = k.split('|'), branch = parts[0], date = parts[1];
+    const l = L[k] || [], p = P[k] || [];
+    if (!l.length && !p.length && phoQuiet[k] === true) {
+      plan.closures.push({ branch: branch, date: date });
+    } else if (p.length && !l.length) {
+      plan.missingDays.push({ branch: branch, date: date, stylists: p.length });
+    } else if (l.length && !p.length) {
+      const busy = l.filter(function (x) { return x.total > 0; });
+      if (busy.length) plan.copiedWeeks.push({ branch: branch, date: date, stylists: busy.length });
+    }
+  });
+
+  // The pairing rule (one unmatched name each side, 30 shared days) is a good guess, not a
+  // certainty, so the unattended run lists these for a person instead of renaming.
+  if (safeOnly && plan.renames.length) {
+    plan.renames.forEach(function (r) {
+      plan.unclear.push({ branch: r.branch, phorest: r.to + ' (' + r.days + 'd)',
+        ledger: r.from + ' (' + r.days + 'd), one person by the look of it; autoTriageApply() renames it' });
+    });
+    plan.renames = [];
+  }
+  const acted = apply ? applyTriage_(plan) : null;
+  const orphans = writeTriageOntoQueue_(plan, apply);
+  writeTriageTab_(plan, acted, orphans);
+
+  const n = function (a) { return a.length; };
+  Logger.log((apply ? 'TRIAGE APPLIED' : 'TRIAGE DRY RUN') + ' ' + YEAR +
+    ': placeholder names ' + n(plan.placeholders) + ', spellings ' + n(plan.caseVariants) +
+    ', archived markers ' + n(plan.archived) +
+    ', renames ' + n(plan.renames) +
+    ', copied weeks ' + n(plan.copiedWeeks) + ', unclear names ' + n(plan.unclear) +
+    '. Written beside each file in the ' + QUEUE_TAB + ' tab' +
+    (apply ? '.' : '; nothing changed, run autoTriageApply() to act.'));
+}
+
+// Writes fixed? / fix notes / fix finished at beside every file, and hands back the findings
+// that belong to no file at all.
+function writeTriageOntoQueue_(plan, apply) {
+  const ss = getLog_(false);
+  const q = ss.getSheetByName(QUEUE_TAB);
+  const last = q.getLastRow();
+  if (last < 2) return [];
+  const data = q.getRange(2, 1, last - 1, QUEUE_HEADER.length).getValues();
+
+  const pushedBy = {};   // branch|date → row indexes that pushed it
+  const coversBy = {};   // branch|date → row indexes whose file NAME covers it
+  data.forEach(function (r, i) {
+    String(r[6] || '').split(' ').filter(String).forEach(function (d) {
+      const k = r[3] + '|' + d;
+      (pushedBy[k] = pushedBy[k] || []).push(i);
+    });
+    const wk = weekFromName_(r[1], r[2]);
+    if (!wk) return;
+    for (let iso = wk.from; iso <= wk.to; iso = isoAdd_(iso, 1)) {
+      const k = r[3] + '|' + iso;
+      (coversBy[k] = coversBy[k] || []).push(i);
+    }
+  });
+
+  const fixedNotes = data.map(function () { return []; });
+  const openNotes  = data.map(function () { return []; });
+  const orphans = [];
+  const attribute = function (index, branch, date, text, isFix, label) {
+    const rows = index[branch + '|' + date];
+    if (!rows || !rows.length) { orphans.push([label, branch, date, text]); return; }
+    rows.forEach(function (i) { (isFix ? fixedNotes : openNotes)[i].push(text); });
+  };
+
+  // the two that span many dates: one note per file, counting only that file's own days
+  plan.placeholders.forEach(function (p) {
+    const per = {};
+    Object.keys(p.dates).forEach(function (d) {
+      const rows = pushedBy[p.branch + '|' + d];
+      if (!rows || !rows.length) { orphans.push(['template column', p.branch, d, p.name]); return; }
+      rows.forEach(function (i) { per[i] = (per[i] || 0) + 1; });
+    });
+    Object.keys(per).forEach(function (i) {
+      fixedNotes[i].push('removed template column ' + p.name + ' (' + per[i] + (per[i] === 1 ? ' day' : ' days') + ')');
+    });
+  });
+  plan.archived.forEach(function (a) {
+    const per = {};
+    Object.keys(a.dates).forEach(function (k) {
+      const rows = pushedBy[k]; const parts = k.split('|');
+      if (!rows || !rows.length) { orphans.push(['archived marker', parts[0], parts[1], a.from + ' to ' + a.to]); return; }
+      rows.forEach(function (i) { per[i] = (per[i] || 0) + 1; });
+    });
+    Object.keys(per).forEach(function (i) {
+      fixedNotes[i].push('dropped the (A) from ' + a.from + ' (' + per[i] + (per[i] === 1 ? ' day' : ' days') + ')');
+    });
+  });
+  plan.caseVariants.forEach(function (c) {
+    const per = {};
+    Object.keys(c.dates).forEach(function (k) {
+      const rows = pushedBy[k];
+      const parts = k.split('|');
+      if (!rows || !rows.length) { orphans.push(['spelling', parts[0], parts[1], c.from.join(', ') + ' to ' + c.to]); return; }
+      rows.forEach(function (i) { per[i] = (per[i] || 0) + 1; });
+    });
+    Object.keys(per).forEach(function (i) {
+      fixedNotes[i].push(c.from.join(' and ') + ' written as ' + c.to + ' (' + per[i] +
+                         (per[i] === 1 ? ' day' : ' days') + ')');
+    });
+  });
+  plan.renames.forEach(function (r) {
+    const per = {};
+    Object.keys(r.dates).forEach(function (d) {
+      const rows = pushedBy[r.branch + '|' + d];
+      if (!rows || !rows.length) { orphans.push(['name', r.branch, d, r.from + ' to ' + r.to]); return; }
+      rows.forEach(function (i) { per[i] = (per[i] || 0) + 1; });
+    });
+    Object.keys(per).forEach(function (i) {
+      fixedNotes[i].push(r.from + ' renamed to ' + r.to + ' (' + per[i] + (per[i] === 1 ? ' day' : ' days') + ')');
+    });
+  });
+
+  // the three that are one date each
+  plan.closures.forEach(function (c) {
+    attribute(pushedBy, c.branch, c.date, 'recorded ' + c.date + ' as closed, nobody traded', true, 'closed day');
+  });
+  plan.copiedWeeks.forEach(function (c) {
+    attribute(pushedBy, c.branch, c.date, 'figures on ' + c.date + ' but the till was quiet, ' +
+      c.stylists + ' stylists, check the dates on this week', false, 'copied week');
+  });
+  plan.missingDays.forEach(function (m) {
+    attribute(coversBy, m.branch, m.date, 'no ledger for ' + m.date + ', ' + m.stylists +
+      ' stylists in Phorest', false, 'missing day');
+  });
+
+  const stamp = new Date();
+  const out = data.map(function (r, i) {
+    const fixes = fixedNotes[i], open = openNotes[i];
+    if (!fixes.length && !open.length) return ['', '', ''];
+    const notes = (fixes.length ? (apply ? '' : 'would: ') + fixes.join('; ') : '') +
+                  (fixes.length && open.length ? ' — ' : '') +
+                  (open.length ? 'needs you: ' + open.join('; ') : '');
+    const flag = fixes.length ? (open.length ? 'partly' : 'yes') : 'no';
+    return [flag, notes, fixes.length && apply ? stamp : ''];
+  });
+  q.getRange(2, 11, out.length, 3).setValues(out);
+  SpreadsheetApp.flush();
+  return orphans;
+}
+
+function applyTriage_(plan) {
+  const acted = { rowsDeleted: 0, rowsRenamed: 0, closuresWritten: 0 };
+  plan.placeholders.forEach(function (p) {
+    supaDelete_('branch_staff_daily',
+      'branch=eq.' + encodeURIComponent(p.branch) + '&staff_name=eq.' + encodeURIComponent(p.name));
+    acted.rowsDeleted += p.rows;
+  });
+  // One patch per odd spelling, every branch at once, inside the year.
+  plan.archived.forEach(function (a) {
+    supaPatch_('phorest_staff_daily', 'employee_name=eq.' + encodeURIComponent(a.from), { employee_name: a.to });
+    acted.rowsRenamed += a.rows;
+  });
+  plan.caseVariants.forEach(function (c) {
+    c.from.forEach(function (v) {
+      supaPatch_('branch_staff_daily', 'staff_name=eq.' + encodeURIComponent(v), { staff_name: c.to });
+    });
+    acted.rowsRenamed += c.rows;
+  });
+  plan.renames.forEach(function (r) {
+    supaPatch_('branch_staff_daily',
+      'branch=eq.' + encodeURIComponent(r.branch) + '&staff_name=eq.' + encodeURIComponent(r.from),
+      { staff_name: r.to });
+    acted.rowsRenamed += r.days;
+  });
+  if (plan.closures.length) {
+    supaUpsert_('closed_days?on_conflict=branch,date', plan.closures.map(function (c) {
+      return { branch: c.branch, date: c.date, why: 'no trading', detected_from: 'triage' };
+    }));
+    acted.closuresWritten = plan.closures.length;
+  }
+  return acted;
+}
+
+// Only what could not be pinned to a file, plus the count of everything.
+function writeTriageTab_(plan, acted, orphans) {
+  const ss = getLog_(false);
+  const name = 'TRIAGE ' + YEAR;
+  const sh = ss.getSheetByName(name) || ss.insertSheet(name);
+  sh.clearContents();
+  const out = [];
+  out.push([(acted ? 'APPLIED ' : 'DRY RUN, nothing changed — ') + new Date(), '', '', '']);
+  out.push(['FIXED: ' + plan.placeholders.length + ' template columns, ' + plan.archived.length +
+            ' archived markers, ' + plan.caseVariants.length + ' spellings, ' + plan.renames.length +
+            ' renames.  FOR A PERSON: ' + plan.missingDays.length + ' missing days, ' +
+            plan.copiedWeeks.length + ' copied weeks, ' + plan.unclear.length + ' unclear names.',
+            '', '', '']);
+  if (acted) {
+    out.push(['deleted ' + acted.rowsDeleted + ' rows, renamed ' + acted.rowsRenamed +
+              ', recorded ' + acted.closuresWritten + ' closures', '', '', '']);
+  }
+  out.push(['', '', '', '']);
+  out.push(['NAMES THAT MAY OR MAY NOT PAIR — add to NAME_FIXES once you know', '', '', '']);
+  out.push(['branch', 'in Phorest, not in the ledger', 'in the ledger, not in Phorest', '']);
+  plan.unclear.forEach(function (u) { out.push([u.branch, u.phorest, u.ledger, '']); });
+  out.push(['', '', '', '']);
+  out.push(['BELONGS TO NO FILE IN THE QUEUE', '', '', '']);
+  out.push(['what', 'branch', 'date', 'detail']);
+  orphans.forEach(function (o) { out.push(o); });
+  sh.getRange(1, 1, out.length, 4).setValues(out);
+  sh.getRange(5, 1).setFontWeight('bold');
+  sh.getRange(6, 1, 1, 3).setFontWeight('bold');
+  sh.getRange(out.length - orphans.length - 1, 1).setFontWeight('bold');
+}
+
+// ── the Supabase writes the triage needs, alongside pushRows_'s own ──
+function supaHeaders_() { return { apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY }; }
+
+function supaYearRange_() { return '&date=gte.' + YEAR + '-01-01&date=lte.' + YEAR + '-12-31'; }
+
+function supaDelete_(table, filter) {
+  const resp = UrlFetchApp.fetch(SUPA_URL + '/rest/v1/' + table + '?' + filter + supaYearRange_(),
+    { method: 'delete', headers: Object.assign({ Prefer: 'return=minimal' }, supaHeaders_()),
+      muteHttpExceptions: true });
+  if (resp.getResponseCode() >= 300) {
+    throw new Error('triage delete failed (' + resp.getResponseCode() + '): ' + resp.getContentText().slice(0, 200));
+  }
+}
+
+function supaPatch_(table, filter, patch) {
+  const resp = UrlFetchApp.fetch(SUPA_URL + '/rest/v1/' + table + '?' + filter + supaYearRange_(),
+    { method: 'patch', contentType: 'application/json',
+      headers: Object.assign({ Prefer: 'return=minimal' }, supaHeaders_()),
+      payload: JSON.stringify(patch), muteHttpExceptions: true });
+  if (resp.getResponseCode() >= 300) {
+    throw new Error('triage rename failed (' + resp.getResponseCode() + '): ' + resp.getContentText().slice(0, 200));
+  }
+}
+
+function supaUpsert_(path, rows) {
+  const resp = UrlFetchApp.fetch(SUPA_URL + '/rest/v1/' + path, {
+    method: 'post', contentType: 'application/json',
+    headers: Object.assign({ Prefer: 'resolution=merge-duplicates,return=minimal' }, supaHeaders_()),
+    payload: JSON.stringify(rows), muteHttpExceptions: true });
+  if (resp.getResponseCode() >= 300) {
+    throw new Error('triage upsert failed (' + resp.getResponseCode() + '): ' + resp.getContentText().slice(0, 200));
+  }
+}
+
 // ══════════════════════════════════════════════════════════════════════════════════════════
 // SUPABASE (identical behaviour to sync-all-branches.gs: dedupe, delete each date, insert fresh)
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
 function pushRows_(branchCode, rows) {
+  // Last one wins, EXCEPT for ASSISTANTS, which is added up. Two shared columns can land on one
+  // day tab - SAA's 31 May 2025 carries MAY/xav and MYRA/APOL side by side - and both now
+  // normalise to the same name, so the plain overwrite would have thrown one column's figures
+  // away in silence. They are two different columns of one bucket, not one column read twice, so
+  // the figures belong together. Every other name keeps the old behaviour: a name repeated in one
+  // day tab is a mistake in the tab, and doubling it would invent visits (Kate, 4 Sep 2026).
   const deduped = new Map();
-  rows.forEach(r => deduped.set(`${r.date}|${r.dept}|${r.staff_name}`, r));
+  rows.forEach(function (r) {
+    const key = `${r.date}|${r.dept}|${r.staff_name}`;
+    const seen = deduped.get(key);
+    if (seen && r.staff_name === 'ASSISTANTS') {
+      ['ncr', 'req', 'salon', 'new_client', 'rebooked', 'total', 'treatment_aed',
+       'retail_unit_qty', 'treatments_unit_qty'].forEach(function (f) {
+        seen[f] = (Number(seen[f]) || 0) + (Number(r[f]) || 0);
+      });
+      seen.treatment_aed = Math.round(seen.treatment_aed * 100) / 100;
+      return;
+    }
+    deduped.set(key, r);
+  });
   const uniqueRows = [...deduped.values()];
   if (!uniqueRows.length) return 0;
 
@@ -868,6 +1816,18 @@ function getLog_(reset) {
   return ss;
 }
 
+// Clears FAILED rows back to pending, once per backfillStart. Returns whether it cleared any,
+// so the caller knows to arm another slice rather than declare the run finished.
+function retryFailedOnce_(q, failed) {
+  if (PROP.getProperty(RETRY_FLAG) === '1') return false;
+  if (!failed || !failed.length) return false;
+  failed.forEach(function (row) { q.getRange(row, 6, 1, 5).clearContent(); });
+  SpreadsheetApp.flush();
+  PROP.setProperty(RETRY_FLAG, '1');
+  Logger.log('Reset ' + failed.length + ' FAILED row(s) for one more attempt.');
+  return true;
+}
+
 function scheduleContinue_() {
   deleteContinueTriggers_();
   ScriptApp.newTrigger('backfillContinue').timeBased().after(60 * 1000).create();
@@ -918,7 +1878,53 @@ function isPlaceholder_(name) {
   return /^([A-Z])\1{0,3}[0-9]?$/.test(n);
 }
 
+// The template's own vocabulary, never a person. A block's name is read one row ABOVE the
+// section's "Client | Type" header, and on the second section that row lands on the tail of the
+// first section's structure. KCA's 2 - 4 January 2026 tabs are the clear case: the Beauty header
+// runs the full 64 columns, the four left blocks are MIMI GRACE STELLA KIMBERLY, and the right
+// blocks carry "TOTALS", "Client" and a merged "GRAND TOTAL\n(CHECKING)" where a name should be.
+// Every one is all-zero, so only the name gives it away, and `name.charAt(0) === '#'` caught the
+// #REF! ones and nothing else. Each label was arriving in branch_staff_daily as a stylist, seven
+// columns of it deduped by pushRows_ into one phantom per day.
+//
+// A list, not a shape: unlike isPlaceholder_ these are real words, and a rule loose enough to
+// guess them would eat real names. Whitespace is collapsed first so the merged two-line cell is
+// caught, and GRAND TOTAL is matched as a prefix because the template hangs "(CHECKING)" and
+// "(HAIR)" off it (Kate, 4 Sep 2026).
+const BLOCK_LABELS = ['CLIENT', 'TYPE', 'SERVICE', 'AMOUNT', 'COUNT', 'TOTAL', 'TOTALS',
+                      'SALES', 'RETAIL', 'TREATMENT', 'COST', 'STAFF', 'REBOOKED',
+                      'QTY RETAIL', 'QTY TREATMENT', 'TOTAL RETAIL', 'TOTAL RETAIL QTY',
+                      // The roll-up rows the 2025 tabs hang under the Beauty section. Stored as
+                      // staff on 45 KCA days and a handful at AQ and MC before this (Kate, 7 Sep 2026).
+                      'TOTAL CLIENTS', 'HAIR RETAIL SALES', 'BEAUTY RETAIL SALES', 'RETAIL SALES',
+                      'TREATMENT SALES'];
+// BUSINESS and EXTENSIONS are NOT labels: they are the template's own buckets and carry real
+// retail and visit figures, so they stay as rows (Kate, 7 Sep 2026).
+
+function isLabel_(name) {
+  const n = str_(name).toUpperCase().replace(/\s+/g, ' ');
+  if (BLOCK_LABELS.indexOf(n) !== -1) return true;
+  return n.indexOf('GRAND TOTAL') === 0;
+}
+
+// A column headed with two or three names divided by a slash is the assistants' column, never one
+// stylist: SAA's MYRA/APOL, MYRA/MICHELLE, MYRA/KATHY, MYRA/MAY, MYRA/MARIA, MYRA/APOL/XAVRINA,
+// MARIA/APOL, MAY/xav, and KCA's ESTHER/PEARL and CHONA/ ESTHER. Kate settled it on 4 Sep 2026:
+// automatically assistants. So they join the ASSISTANTS bucket every branch already keeps, rather
+// than standing as ten phantom stylists splitting 81 visits between them and diluting the real
+// per-stylist averages.
+//
+// Only the slash is read as the divider, because it is the only one the ledgers actually use, and
+// case is irrelevant, so "MAY/xav" is the same shape as "MYRA/APOL". An ampersand or a plus would
+// be a rule invented ahead of any data asking for it.
+//
+// Note the names inside a slash are often real stylists in their own right elsewhere (SAA's MYRA
+// carries 258 rows of her own, MAY 75, KCA's CHONA 99). That is not a contradiction: somebody can
+// assist on one day and hold her own column on another. Only the shared column becomes ASSISTANTS.
+function isSharedColumn_(name) { return str_(name).indexOf('/') !== -1; }
+
 function normalizeStaffName_(name) {
   const trimmed = str_(name);
+  if (isSharedColumn_(trimmed)) return 'ASSISTANTS';
   return NAME_FIXES[trimmed.toUpperCase()] || trimmed;
 }
