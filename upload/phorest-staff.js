@@ -75,7 +75,7 @@ function spDetectMarkerBranch(text){
 // "Rovina Jordan (A)" becomes "Rovina Jordan". Only a trailing marker, so a name that
 // genuinely contains a bracket is left alone.
 function spStripArchived_(name){
-  return str_(name).replace(/\s*\(A\)$/, '').trim();
+  return String(name || "").replace(/\s*\(A\)$/, '').trim();
 }
 
 function spBranchLabel(code){
