@@ -47,6 +47,11 @@ const NAME_FIXES = {
   'LIZANNIE': 'Lizanie',
   'SHELLY': 'Shelley',
   'HAZEL MAY': 'Hazel Mae',
+  // Same two settlements as backfill-weekly-ledgers.gs, 7 Sep 2026: KCA's Beauty column is KIM
+  // (the name on her staff card) whichever way the tab heads it, and the walk-in bucket is
+  // BUSINESS however it is spelt.
+  'KIMBERLY': 'KIM',
+  'BUSSINESS': 'BUSINESS',
 };
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -61,6 +66,23 @@ function detectBranch_(fileName) {
   return null;
 }
 
+// The months the nightly run is allowed to touch: this month and the one before it. Everything
+// older belongs to backfill-weekly-ledgers.gs, which reads the raw weekly files. Until 7 Sep 2026
+// this walked every month folder every night and re-pushed the whole year from the mirror sheets,
+// which is how the backfill's January fix was overwritten with zero rosters the same evening and
+// how Saadiyat's January stayed a copy of Khalifa's. A month folder is named MMYYYY first
+// ("092026 SEPTEMBER"); one that is not is skipped and said so (Kate, 7 Sep 2026).
+function monthAllowed_(folderName) {
+  const m = String(folderName).match(/^\s*(\d{2})(\d{4})/);
+  if (!m) return null;
+  const key = m[2] + m[1];
+  const now = new Date();
+  const cur = Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyyMM');
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prev = Utilities.formatDate(prevDate, Session.getScriptTimeZone(), 'yyyyMM');
+  return key === cur || key === prev;
+}
+
 function syncAllBranches() {
   const root = DriveApp.getFolderById(LEDGERS_DAILY_FOLDER_ID);
   const monthFolders = root.getFolders();
@@ -68,6 +90,9 @@ function syncAllBranches() {
 
   while (monthFolders.hasNext()) {
     const monthFolder = monthFolders.next();
+    const allowed = monthAllowed_(monthFolder.getName());
+    if (allowed === null) { results.push(`SKIP (no MMYYYY in name) — ${monthFolder.getName()}`); continue; }
+    if (!allowed) { results.push(`SKIP (closed month, the backfill owns it) — ${monthFolder.getName()}`); continue; }
     const files = monthFolder.getFilesByType(MimeType.GOOGLE_SHEETS);
 
     while (files.hasNext()) {
@@ -206,8 +231,25 @@ function pushOneBranch_(ss, branchCode) {
   // ON CONFLICT DO UPDATE fails the whole batch if the same conflict target
   // shows up twice in one command, so dedupe here (keep the last one) before
   // sending, instead of letting one bad row sink the entire branch/month.
+  // ASSISTANTS is the exception and is added up instead. Two shared columns can sit on one day
+  // tab and both normalise to that one name, so keeping the last would drop a column's figures
+  // without saying so. They are two columns of one bucket, not one column read twice. Every other
+  // name keeps the old behaviour, where a repeat is a mistake in the sheet and summing it would
+  // invent visits (Kate, 4 Sep 2026).
   const deduped = new Map();
-  rows.forEach(r => deduped.set(`${r.date}|${r.dept}|${r.staff_name}`, r));
+  rows.forEach(function (r) {
+    const key = `${r.date}|${r.dept}|${r.staff_name}`;
+    const seen = deduped.get(key);
+    if (seen && r.staff_name === 'ASSISTANTS') {
+      ['ncr', 'req', 'salon', 'new_client', 'rebooked', 'total', 'treatment_aed',
+       'retail_unit_qty', 'treatments_unit_qty'].forEach(function (f) {
+        seen[f] = (Number(seen[f]) || 0) + (Number(r[f]) || 0);
+      });
+      seen.treatment_aed = Math.round(seen.treatment_aed * 100) / 100;
+      return;
+    }
+    deduped.set(key, r);
+  });
   const uniqueRows = [...deduped.values()];
 
   // Wipe existing rows for every (branch, date) this run covers, THEN insert fresh.
@@ -299,8 +341,19 @@ function toAed_(v) {
   return isNaN(n) ? 0 : Math.round(n * 100) / 100;
 }
 
+// A column headed with two or three names divided by a slash is the assistants' column, never one
+// stylist. KCA's "CHONA/ ESTHER" is the 2026 one this script produced; SAA's 2025 tabs carry
+// MYRA/APOL and eight more. Kate settled it on 4 Sep 2026: automatically assistants, so they join
+// the ASSISTANTS bucket every branch already keeps instead of standing as phantom stylists.
+// Only the slash counts, it is the only divider the ledgers use, and case is irrelevant.
+// Kept identical to backfill-weekly-ledgers.gs, which reads the same tabs for closed years: if
+// one script bucketed them and the other did not, the same day would change name depending on
+// which script last touched it.
+function isSharedColumn_(name) { return String(name || '').indexOf('/') !== -1; }
+
 // Collapses known misspelled/duplicate spellings to one canonical name (see NAME_FIXES above).
 function normalizeStaffName_(name) {
   const trimmed = String(name || '').trim();
+  if (isSharedColumn_(trimmed)) return 'ASSISTANTS';
   return NAME_FIXES[trimmed.toUpperCase()] || trimmed;
 }

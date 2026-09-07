@@ -55,7 +55,7 @@
  */
 
 // ── EDIT: the only line that changes between years ─────────────────────────────────────────
-const YEAR = 2025;
+const YEAR = 2026;
 
 // Every year's folders, recorded once. A year is added here, never by editing YEAR's meaning:
 // one copy of this script runs them all, so a fix made here is a fix for every year. The log
@@ -71,16 +71,24 @@ const ROOTS_BY_YEAR = {
   // holding the real figures (WEEK 1 (JAN.2-4).xlsx: KATE 7 requests, AED5,055; TEGAN 4, AED6,015)
   // had never been read, because no 2026 entry existed here.
   //
-  // Deliberately ONE month folder, not the branch folder: pushRows_ deletes a (branch, date) and
-  // re-inserts it, so a run replaces every day it touches. Wide open on 2026 would swap the daily
-  // sync's full-roster rows for the day tabs' own five or six name blocks across the whole year,
-  // on days that are already right. January proves the parse on a partial week first; widen after
-  // (the branch folders are KCA 1UuZwha1A9gPPq4-CKLiv-biZnp9NhvOw, SAA 1_XeEvBD7TWWbpUIh-Ud7KZWsvtjhehCm,
-  // MC 1tlKxg4UyWFD2e3dLV2lCDEYYaT28O7kf, AQ 1OAo7uYiYVyEpf3IxpVg5zVIUdWE4BvCn, all under
-  // "TARA ROSE LADIES SALON 2026" 16SP8AeirlTNT68W4KuPPtOFW8avPzzIL). Kate, 4 Sep 2026.
+  // Widened from one January folder to the whole year on 7 Sep 2026, once the 2025 run had
+  // proved the parser: Kate wants 2026 read from the weekly files too, so the day tabs replace
+  // the mirror-sheet rows the daily sync pushed (full rosters of zeros on days the mirror never
+  // had, names by column position, Saadiyat's January that was really Khalifa's). The nightly
+  // sync now confines itself to the current and previous month (see sync-all-branches.gs, same
+  // day), so what this writes for closed months stays written.
+  //
+  // Each entry is the WEEKLY folder, not the branch folder: the branch folders under
+  // "TARA ROSE LADIES SALON 2026" (16SP8AeirlTNT68W4KuPPtOFW8avPzzIL) also hold target sheets,
+  // rebooking lists, hours-owed workbooks and a 9 MB June target file that would each be
+  // converted and opened for nothing. Al Quoz keeps Fratelli's folder inside its own, so the
+  // two are listed separately and neither walks the other. Verified against Drive 7 Sep 2026.
   2026: {
-    // KHALIFA CITY 2026 / WEEKLY LEDGERS / 01 JANUARY 2026                          (.xlsx)
-    KCA: '1eOW9ojLNsEBmcNgS37N2ItTsjQ5i_rSZ',
+    KCA: '1UuZwha1A9gPPq4-CKLiv-biZnp9NhvOw', // KHALIFA CITY 2026 / WEEKLY LEDGERS   (.xlsx)
+    SAA: '1tnGCHqoKU10wlhqcbn4TtVAE2GDjz3AQ', // SAADIYAT 2026 / WEEKLY LEDGERS
+    MC:  '1VdpEKmjMHiLrUzjbXYRSeRCNvU7RFTq0', // MOTOR CITY 2026 / WEEKEND LEDGER
+    AQ:  '1ITcZT9TV7zNyxafFo0IYk_hRnr1sl7U3', // AL QUOZ 2026 / TARA ROSE
+    FRT: '1UV4w_3jT05ESekZE2npcwqCmWPdQFm_i', // AL QUOZ 2026 / FRATELLI / WEEKEND LEDGER (closed 22 May 2026)
   },
   2025: {
     SAA: '1PAHi6DCHX5MFZeOAU0dbVxPFzV2Ib1ly', // SAADIYAT / WEEKLY LEDGERS
