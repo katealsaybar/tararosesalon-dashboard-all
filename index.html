@@ -1845,6 +1845,33 @@ table.lg thead.lg-float tr:last-child th{box-shadow:0 8px 10px -8px rgba(0,0,0,.
    .sc-last on the cards: lighter, italic, sized in em so it follows the cell. */
 .lg-last{font-size:0.88em;font-weight:400;font-style:italic;letter-spacing:.01em;color:var(--muted)}
 
+/* Staff name hover menu (staff-links.js). Kate, 7 Sep 2026. The name keeps its own
+   type; only a hairline appears under it on hover so it reads as something you can
+   open, and the menu sits just below it in the page's card language. */
+.who{cursor:pointer;border-bottom:1px dotted transparent;transition:border-color .15s;outline:none;border-radius:2px}
+.who:hover,.who.who-on,.who:focus-visible{border-bottom-color:var(--muted)}
+.who:focus-visible{box-shadow:0 0 0 2px var(--accent)}
+#whoMenu{position:fixed;z-index:9000;min-width:190px;padding:5px;border-radius:10px;
+  background:var(--surface);border:1px solid var(--border);
+  box-shadow:0 10px 30px rgba(0,0,0,.18),0 1px 3px rgba(0,0,0,.08);
+  font-family:'DM Sans',system-ui,sans-serif}
+.who-opt{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;
+  padding:8px 10px;border:0;border-radius:7px;background:transparent;color:var(--text);
+  text-align:left;cursor:pointer;font:inherit}
+.who-opt:hover,.who-opt:focus-visible{background:var(--surface2);outline:none}
+.who-opt.off{cursor:default;opacity:.55}
+.who-opt-t{font-size:13px;font-weight:600;letter-spacing:.01em}
+.who-opt-s{font-size:11px;color:var(--muted);letter-spacing:.02em}
+.who-flash{animation:whoFlash 2.2s var(--card-ease,ease) both}
+@keyframes whoFlash{0%,35%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
+tr.who-flash td{animation:whoFlashRow 2.2s ease both}
+@keyframes whoFlashRow{0%,35%{background:color-mix(in srgb,var(--accent) 28%,transparent)}100%{background:transparent}}
+#whoNote{position:fixed;left:50%;top:calc(var(--topbar-cond-h,104px) + 10px);transform:translate(-50%,-8px);
+  z-index:9000;padding:8px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--border);
+  box-shadow:0 8px 24px rgba(0,0,0,.16);font:500 12.5px 'DM Sans',system-ui,sans-serif;color:var(--text);
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+#whoNote.on{opacity:1;transform:translate(-50%,0)}
+
 /* % done: a bar behind the number, so the laggards are findable without reading
    every row. Fill is capped at 100% while the number keeps counting past it. */
 .lg-done{display:inline-flex;align-items:center;gap:7px;justify-content:flex-end;min-width:104px}
@@ -2164,7 +2191,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('dashboard', this)">Organisation Pulse</div>
     <div class="nav-sub lvl2" onclick="showView('branchperf', this)">Branch Performance</div>
     <div class="nav-sub" onclick="showView('team', this)">Team Performance</div>
-    <div class="nav-sub" onclick="showView('stylists', this)">Stylist Cards</div>
+    <div class="nav-sub" onclick="showView('stylists', this)">Staff Cards</div>
     <!-- The four branch jumps used to sit here. Kate, 2026-08-14: Stylist Cards
          carries its own "On this page" rail now, so the sidebar copy was the same
          four links one level further from the page — and it scrolled away with the
@@ -2496,15 +2523,17 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets.js?v=20260904a"></script>
 <!-- After ledger-targets.js: the Supabase target layer overrides its lookups per month. -->
 <script src="ledger-targets-db.js?v=20260904a"></script>
-<script src="staff-profiles.js?v=20260904a"></script>
+<script src="staff-profiles.js?v=20260907a"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
-<script src="dashboard.js?v=20260904e"></script>
+<script src="dashboard.js?v=20260907a"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20260904e"></script>
+<script src="branch-ledger.js?v=20260907a"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20260904b"></script>
-<script src="team-performance.js?v=20260814d"></script>
+<script src="team-performance.js?v=20260907a"></script>
+<!-- After the three renderers it decorates: the hover menu on every staff name. -->
+<script src="staff-links.js?v=20260907a"></script>
 <script src="pulse-narrative.js?v=20260814a"></script>
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
 <script src="branch-narrative.js?v=20260814c"></script>

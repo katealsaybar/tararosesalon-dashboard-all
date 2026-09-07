@@ -223,10 +223,13 @@ function tpPodiumCard(st, i) {
   const prof = (typeof staffProfile === 'function') ? staffProfile(st.name) : null;
   const medal = ['#E7C86A', '#C9CBD1', '#D3A17A'][i] || 'var(--border)';
   const nm = escapeHtml(st.name);
-  const name = (prof && prof.ig)
+  const linked = (prof && prof.ig)
     ? `<a href="https://instagram.com/${encodeURIComponent(prof.ig)}" target="_blank" rel="noopener noreferrer"
          title="@${escapeHtml(prof.ig)} on Instagram">${nm}</a>`
     : nm;
+  // Wrapped for the hover menu (staff-links.js): her card and her branch figures.
+  const name = (typeof staffWho === 'function')
+    ? staffWho(st.name, linked, { dept: tpDept, branch: st.branchCode }) : linked;
   const picked = tpCompare.includes(tpKey(st));
   return `<div class="card tp-pod" style="--tp-medal:${medal}">
     <div class="tp-pod-rk">${i + 1}</div>
@@ -257,7 +260,8 @@ function tpFloorRow(st, rank) {
     <span class="tp-rk tabular">${rank}</span>
     ${tpAvatar(st.name, 'sm')}
     <div class="tp-row-who">
-      <div class="tp-row-nm">${escapeHtml(st.name)}</div>
+      <div class="tp-row-nm">${(typeof staffWho === 'function')
+        ? staffWho(st.name, escapeHtml(st.name), { dept: tpDept, branch: st.branchCode }) : escapeHtml(st.name)}</div>
       <div class="tp-row-s tabular">${tpAed(st.net)} · ${tpPct(st.rebookPct)} rebook</div>
       <div class="tp-branch"><span class="tp-bdot" style="background:${st.branchColor}"></span>${escapeHtml(st.branchName)}</div>
     </div>

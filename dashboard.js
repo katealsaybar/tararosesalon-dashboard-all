@@ -862,7 +862,7 @@ function heroPeriodPhrasing() {
 // so it stays correct no matter which of renderDashboard()'s early-return
 // paths (loading/empty/error) last touched #mainContent.
 const VIEW_SECTION_LABELS = {
-  dashboard: 'Organisation Pulse', team: 'Team Performance', stylists: 'Stylist Cards',
+  dashboard: 'Organisation Pulse', team: 'Team Performance', stylists: 'Staff Cards',
   services: 'Service Rankings', clients: 'Top Clients', reviews: 'Salon Reviews',
   branchperf: 'Branch Performance',
   ledgerFinancials: 'Ledgers · Financial Totals',
@@ -1272,13 +1272,18 @@ function renderStylistCards() {
       const detail = card ? stylistCardEmbed(s.name) : '';
       const chevron = card ? `<span class="sc-chev">&#9660;</span>` : '';
       // Pills mode hides the role line, so the title carries it there.
+      // The id is what the hover menu's "Staff card" jump lands on (staff-links.js).
+      const cardId = (typeof staffLinkId === 'function') ? ` id="${staffLinkId(staffLinkKey(s.name))}"` : '';
+      const whoName = (typeof staffWho === 'function')
+        ? staffWho(s.name, nameHtml + surname, { dept: /Beauty|Nail/.test(s.role || '') ? 'beauty' : 'hair', branch: b })
+        : nameHtml + surname;
       return `
-        <div class="sc-item"${card ? ' data-has-card="1"' : ''}
+        <div class="sc-item"${cardId}${card ? ' data-has-card="1"' : ''}
              title="${escapeHtml([s.name, s.last].filter(Boolean).join(' '))} · ${escapeHtml(s.role || '')}">
           <div class="sc-head"${card ? ' onclick="toggleStylistCard(this)" aria-expanded="false"' : ''}>
             ${photo}
             <div class="sc-meta">
-              <div class="sc-name">${nameHtml}${surname}</div>
+              <div class="sc-name">${whoName}</div>
               <div class="sc-role" style="color:${colour}">${escapeHtml(s.role || '')}</div>
               <div class="sc-handle">${handle}</div>
             </div>
@@ -1290,7 +1295,7 @@ function renderStylistCards() {
     // The id is what the sidebar's branch jumps aim at. Scoped with a prefix rather
     // than the bare branch key, which is short enough to collide with anything.
     return `
-      <div class="section-label" id="scBranch-${b}" data-scrollspy="Stylist Cards"
+      <div class="section-label" id="scBranch-${b}" data-scrollspy="Staff Cards"
            style="display:flex;align-items:center;gap:7px;margin-top:22px;margin-bottom:10px;
                   scroll-margin-top:170px">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
@@ -1309,7 +1314,7 @@ function renderStylistCards() {
 
   host.innerHTML = `
     <div class="sc-bar">
-      <span class="sc-bar-t">Stylist Cards</span>
+      <span class="sc-bar-t">Staff Cards</span>
       <span class="sc-bar-sp"></span>
       <button type="button" class="sc-btn" id="stylistCloseAll"
               onclick="collapseAllStylistCards()" hidden>Hide open cards</button>
@@ -1925,7 +1930,11 @@ const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTAN
 // are checked per slash-separated part, not on the raw string only. Marjorie
 // (Al Quoz) is an Assistant in Phorest as well but Kate has not named her — left
 // alone until she does.
-const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL']);
+//
+// Kate, 7 Sep 2026 — Ivy (Al Quoz) too: "ivy sierra is an assistant. should be marked
+// as such". Her profile already carried the role; this is what takes her out of the
+// stylist table, where she sat on a row of zeros.
+const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL', 'IVY']);
 
 function isLedgerAssistantName(rawUp) {
   const parts = String(rawUp || '').split('/').map(s => s.trim()).filter(Boolean);

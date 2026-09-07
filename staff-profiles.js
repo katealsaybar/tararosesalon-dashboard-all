@@ -149,8 +149,13 @@ const STAFF_PROFILES = {
   // ledger writes her (MJ, not Mary Joy — 242 recent AQ rows against none).
   'SHINE':     { photo: 'shine.png',     role: 'Beauty Therapist', branch: 'AQ', ig: 'beauty_by_shineshine' },
   'MJ':        { photo: 'mj.png',        role: 'Nail Technician',  branch: 'AQ', ig: 'mj_torresgalos' },
+  // Kate, 7 Sep 2026: photo and handle sent over WhatsApp-style, cut to 200px like the rest.
+  'GALINA':    { photo: 'galina.png',    role: 'Beauty Therapist', branch: 'AQ', ig: 'galina_spierling' },
   'IVY':       { role: 'Assistant', branch: 'AQ' },
   'LUNINGNING':{ role: 'Assistant', branch: 'AQ' },
+  // No entry yet for ANDREA (Gladstone) or SIMON (Faddoul) on purpose. Kate, 7 Sep 2026:
+  // neither has a visa yet, so no card until the visa is in and the trade test is passed.
+  // Andrea's surname is in STAFF_SURNAMES below so her table row reads in full meanwhile.
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
@@ -177,6 +182,7 @@ const STAFF_PROFILES = {
 // than none.
 const STAFF_SURNAMES = {
   'ALAN':      'Russell',
+  'ANDREA':    'Gladstone',   // Kate, 7 Sep 2026
   'APRIL':     'Miraflor',
   'AREANNE':   'Miranda',
   'ARNALYN':   'Salisi',

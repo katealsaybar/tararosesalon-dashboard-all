@@ -1705,7 +1705,10 @@ function lgPersonNamePlain(name) {
 // A stylist's name, with her services target against it when one exists. The
 // target is monthly, so it is only shown when the window makes it meaningful.
 function lgStaffName(code, dept, st, ctx) {
-  const name = lgPersonName(st.name);
+  // Wrapped for the hover menu (staff-links.js): her card and her team stats, from this row.
+  const plain = lgPersonName(st.name);
+  const name = (typeof staffWho === 'function')
+    ? staffWho(st.name, plain, { dept: dept, branch: code }) : plain;
   if (!ctx.applies || typeof ledgerStaffTarget !== 'function') return name;
   const t = ledgerStaffTarget(code, dept, st.name);
   if (!t || !t.services) return name;
@@ -2639,7 +2642,10 @@ async function renderLedgerStylist() {
           const key = canon(st.name);
           const split = maps.map(m => (m[key] == null ? '—' : lgAed(m[key])));
 
-          rows.push([lgPersonName(st.name), dept === 'HAIR' ? 'Hair' : 'Beauty']
+          // Wrapped for the hover menu (staff-links.js), the same as the Staff table.
+          const who = (typeof staffWho === 'function')
+            ? staffWho(st.name, lgPersonName(st.name), { dept: dept, branch: code }) : lgPersonName(st.name);
+          rows.push([who, dept === 'HAIR' ? 'Hair' : 'Beauty']
             .concat(showTargets ? [svcT ? lgAed(svcT) : noTgt] : [])
             .concat(split)
             .concat([lgAed(svcA)])

@@ -18,6 +18,7 @@ const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 // surname change needs both.
 const STYLIST_SURNAMES = {
   "Alan":      "Russell",
+  "Andrea":    "Gladstone",   // Kate, 7 Sep 2026
   "April":     "Miraflor",
   "Ashleigh":  "Fairgrieve",
   "Bethany":   "Smith",
@@ -161,6 +162,7 @@ const STYLIST_PHOTOS = {
   // 2nd batch cards, Sep 2026 — see the KCA note. "Mj" because this map is keyed
   // by cleanName(), which title-cases the ledger's MJ.
   "Shine":     "AQ/shine castillo.png",
+  "Galina":    "AQ/galina spierling.png",   // Kate, 7 Sep 2026
   "Mj":        "AQ/mj galos.png",
 
   "Ibrahim":   "MC/ibrahim al mofdi.jpg",
@@ -219,6 +221,7 @@ const STYLIST_IG = {
   "Judy":       "https://www.instagram.com/nailsbyjudy.1",
   "Arni":       "https://www.instagram.com/nailsby_rni13",
   "Shine":      "https://www.instagram.com/beauty_by_shineshine",
+  "Galina":     "https://www.instagram.com/galina_spierling",
   "Mj":         "https://www.instagram.com/mj_torresgalos"
 };
 
@@ -231,7 +234,7 @@ const BRANCH_INFO = {
 };
 const BEAUTY_NAMES = new Set(['MIMI','GRACE','SHILA','KIM','KIMBERLY','REDA','CHONA',
   'MONA','SANIA','JUDY','ARNI','ARNALYN',
-  'SHINE','MJ']); // beauty bench + the nail desks — 2nd batch cards, Sep 2026 (Shine & MJ are AQ)
+  'SHINE','MJ','GALINA']); // beauty bench + the nail desks — 2nd batch cards, Sep 2026 (Shine, MJ & Galina are AQ)
 const SKIP_NAMES   = new Set(['STAFF','TOTALS','TYPE','TYPE ','BUSINESS','TARA','ASISSTANTS','ASSISTANTS',
   'HAIR RETAIL SALES','TREATMENT SALES','COL TAKE AED','CBD TAKE AED','BEAUTY SALES','BEAUTY RETAIL SALES',
   'NET SALON TAKE','TOTAL CLIENTS',
