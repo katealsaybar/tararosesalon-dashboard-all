@@ -378,7 +378,7 @@ function backfillReport() {
   const q = ss.getSheetByName(QUEUE_TAB);
   const last = q.getLastRow();
   const seen = {}; // branch|date → [file names]
-  const stats = { OK: 0, SKIPPED: 0, FAILED: 0, EMPTY: 0, rows: 0 };
+  const stats = { OK: 0, SKIPPED: 0, FAILED: 0, EMPTY: 0, HELD: 0, rows: 0 };
   if (last >= 2) {
     q.getRange(2, 1, last - 1, QUEUE_HEADER.length).getValues().forEach(r => {
       const [id, name, path, branch, mime, status, dates, rows] = r;
@@ -400,7 +400,7 @@ function backfillReport() {
       return [b, d, seen[k].join('  |  ')];
     }));
   }
-  const summary = `Files: OK ${stats.OK}, SKIPPED ${stats.SKIPPED}, FAILED ${stats.FAILED}, EMPTY ${stats.EMPTY}. ` +
+  const summary = `Files: OK ${stats.OK}, SKIPPED ${stats.SKIPPED}, FAILED ${stats.FAILED}, EMPTY ${stats.EMPTY}, HELD ${stats.HELD}. ` +
                   `Rows pushed: ${stats.rows}. Dates pushed by more than one file: ${dupes.length}.`;
   rep.getRange(dupes.length + 3, 1).setValue(summary);
   Logger.log(summary + `\nReport tab: ${ss.getUrl()}`);
@@ -863,6 +863,8 @@ function copyHasOriginal_(data, i) {
 }
 
 // One staff row's figures as a single string, so two readings of the same day compare in one go.
+// ZERO_FIGURES is what a row with nothing in it reads as.
+const ZERO_FIGURES = '0|0|0|0|0|0|0.00|0|0';
 function figures_(r) {
   return [r.ncr, r.req, r.salon, r.new_client, r.rebooked, r.total,
           Number(r.treatment_aed).toFixed(2), r.retail_unit_qty, r.treatments_unit_qty].join('|');
@@ -951,7 +953,7 @@ function weekFromName_(name, path) {
 function backfillFiles() {
   const FILES = [
     // branch, file id                                  file
-    ['KCA', '1ZEGmTwEIjuGKRPXkvHW0mP1cd8UYEnYZ'],    // WEEK 1 (JAN.2-4).xlsx  → 1-4 Jan 2026
+    ['SAA', '1Mcu9lJb83ZU83aWiIWVHVK-ulbLOxN1R'],    // WEEK 4 (AUG 24- 30).xlsx → 24-30 Aug 2026, the week four September templates wrote over
   ];
 
   const log = [];
@@ -1039,6 +1041,34 @@ function processFile_(entry, opts) {
       monday = wk.from;
       notes.push('week taken from the file name, Monday ' + monday);
     }
+    // A whole file sitting on the dates of the week it was copied from. Saadiyat's four September
+    // files (SEPT 7-13 through SEPT 28-OCT 4) were copied from WEEK 4 (AUG 24-30) with every A1
+    // left as it was, so each read as 24 to 30 August and each in turn wrote over the real week:
+    // three of them a roster of zeros, the fourth this week's own figures as they were typed in
+    // (Kate, 7 Sep 2026: "meron din naman ang aug 25-30"). When the day tabs all agree on one
+    // week and the file's own name says another, a whole number of weeks away, the name is the
+    // week meant and the A1s are stale: the file is dated by its name, the way resolveCopiedWeeks
+    // would have moved it afterwards. The move only happens onto a week that holds nothing yet;
+    // a week with rows in it is left exactly as it is and the file is HELD for a person, so a
+    // mistyped name can never delete a real week. A file with no figures at all is EMPTY below.
+    let copiedShift = 0;
+    if (wk && monday && !opts.shiftDays && !opts.rescue && monday !== wk.from) {
+      const diff = isoDiff_(wk.from, monday);
+      if (diff % 7 === 0) {
+        const taken = [];
+        for (let n = 0; n < 7; n++) {
+          const d = isoAdd_(wk.from, n);
+          if (Object.keys(storedDay_(entry.branch, d)).length) taken.push(d);
+        }
+        if (taken.length) {
+          notes.push(`HELD: the day tabs sit on the week of ${monday} while the name says ${wk.from}; ` +
+                     `that week already holds ${taken.length} day(s) (${taken.join(' ')}), so nothing was pushed and a person should look`);
+          return { status: 'HELD', dates: [], rows: 0, note: notes.join(' | '), parsed: [] };
+        }
+        copiedShift = diff;
+        notes.push(`the day tabs sit on the week of ${monday} while the name says ${wk.from}: dated by the name, ${diff / 7} week(s) on`);
+      }
+    }
     const rescued = [], held = [];
 
     days.forEach(day => {
@@ -1105,9 +1135,10 @@ function processFile_(entry, opts) {
       // A whole week saved under another week's dates, settled by resolveCopiedWeeks and handed
       // back here as a shift. Always a multiple of seven days, so every tab keeps its own
       // weekday and the checks above still mean what they meant.
-      if (opts.shiftDays) {
+      const shift = opts.shiftDays || copiedShift;
+      if (shift) {
         const was = dateStr;
-        dateStr = isoAdd_(dateStr, opts.shiftDays);
+        dateStr = isoAdd_(dateStr, shift);
         if (Number(dateStr.slice(0, 4)) !== YEAR) {
           notes.push(`${tab}: ${was} shifts to ${dateStr}, outside ${YEAR}, skipped`);
           return;
@@ -1126,6 +1157,14 @@ function processFile_(entry, opts) {
       const pushed = allRows.length ? pushRows_(entry.branch, allRows) : 0;
       return { status: 'RESCUE', dates: dates.sort(), rows: pushed, note: notes.join(' | '),
                parsed: allRows, rescued: rescued, held: held };
+    }
+    // Dated by its name and carrying no figures at all: an unfilled copy waiting for its week.
+    // Nothing is pushed, so a template never writes a roster of zeros anywhere. A zero week whose
+    // A1s match its name is still pushed: that is a week nobody filled in, which the Upload
+    // Portal shows as "arrived blank" for a person to complete.
+    if (copiedShift && allRows.length && allRows.every(function (r) { return figures_(r) === ZERO_FIGURES; })) {
+      notes.push('every figure zero: an unfilled copy, nothing pushed');
+      return { status: 'EMPTY', dates: [], rows: 0, note: notes.join(' | '), parsed: [] };
     }
     if (!allRows.length) return { status: 'EMPTY', dates: [], rows: 0, note: notes.join(' | '), parsed: [] };
     if (opts.dryRun) {
