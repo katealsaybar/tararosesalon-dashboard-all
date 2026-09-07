@@ -33,8 +33,9 @@
  *     rescueStrayTabs() settles single day tabs whose A1 belongs to another week.
  *  8. Then run reconcile(): checks the year against Phorest, whose dates come from the till, and
  *     writes a "RECONCILE <year>" tab listing only the days worth looking at.
- *  Steps 6 to 8 run themselves once the queue drains, then autoTriageSafe() repairs the
- *  mechanical findings (template columns, spellings, archived markers, closed days).
+ *  Steps 6 to 8 run themselves once the queue drains, one step per trigger slice so no step
+ *  shares its six minutes with another, then autoTriageSafe() repairs the mechanical findings
+ *  (template columns, spellings, archived markers, closed days).
  *
  * TO RE-RUN FOR ANOTHER SCOPE (e.g. one branch, one month, another year)
  *  Change YEAR to a year listed in ROOTS_BY_YEAR, then run backfillStart() again. It clears that
@@ -169,6 +170,19 @@ const QUEUE_HEADER = ['file_id', 'name', 'path', 'branch', 'mime', 'status', 'da
 const PROP = PropertiesService.getScriptProperties();
 // Set once a run has spent its automatic retry; cleared by backfillStart.
 const RETRY_FLAG = 'RETRIED_' + YEAR;
+// How far the after-run chain has got, one step per trigger slice; cleared by backfillStart.
+const STAGE_KEY = 'CHAIN_STAGE_' + YEAR;
+// The steps that follow the queue, in order. Each is safe to repeat. resolveDuplicates only ever
+// re-pushes a file that already pushed once; resolveCopiedWeeks and rescueStrayTabs write only
+// onto days the table holds nothing for. autoTriageSafe runs last and repairs the mechanical
+// findings (template columns saved as staff, one person under two spellings, archived markers,
+// closed days) on its own; the cross-table name pairings it is less sure of stay on the TRIAGE
+// tab for a person, and autoTriageApply() acts on those (Kate, 7 Sep 2026).
+const CHAIN = [
+  ['backfillReport', backfillReport], ['resolveDuplicates', resolveDuplicates],
+  ['resolveCopiedWeeks', resolveCopiedWeeks], ['rescueStrayTabs', rescueStrayTabs],
+  ['reconcile', reconcile], ['autoTriageSafe', autoTriageSafe],
+];
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
 // ENTRY POINTS
@@ -183,6 +197,7 @@ function backfillStart() {
       `Years ready now: ${Object.keys(ROOTS_BY_YEAR).join(', ')}.`);
   }
   PROP.deleteProperty(RETRY_FLAG);   // this run gets its own automatic retry
+  PROP.deleteProperty(STAGE_KEY);    // and its after-run chain starts from the first step
   deleteContinueTriggers_();
   const ss = getLog_(true);
   const queue = [];
@@ -260,24 +275,30 @@ function backfillContinue() {
       scheduleContinue_();
       Logger.log('Queue drained with failures. Retrying those once; next slice in ~1 minute.');
     } else {
-      deleteContinueTriggers_();
-      // The queue is drained, so the steps that always came next run themselves. Each is safe
-      // to repeat. resolveDuplicates only ever re-pushes a file that already pushed once;
-      // resolveCopiedWeeks and rescueStrayTabs write only onto days the table holds nothing for.
-      // autoTriageSafe runs last and repairs the mechanical findings (template columns saved as
-      // staff, one person under two spellings, archived markers, closed days) on its own; the
-      // cross-table name pairings it is less sure of stay on the TRIAGE tab for a person, and
-      // autoTriageApply() acts on those (Kate, 7 Sep 2026: the run should clean up after itself).
-      const after = [];
-      [['backfillReport', backfillReport], ['resolveDuplicates', resolveDuplicates],
-       ['resolveCopiedWeeks', resolveCopiedWeeks], ['rescueStrayTabs', rescueStrayTabs],
-       ['reconcile', reconcile], ['autoTriageSafe', autoTriageSafe]]
-        .forEach(function (step) {
-          try { step[1](); after.push(step[0] + ' ok'); }
-          catch (e) { after.push(step[0] + ' FAILED: ' + String(e && e.message || e)); }
-        });
-      Logger.log('ALL DONE. ' + doneThisRun + ' files this run. Then ran: ' + after.join(', ') +
-                 '. Log: ' + ss.getUrl());
+      // The queue is drained, so the CHAIN runs: ONE step per trigger slice, never all of them
+      // inside one execution. They used to run back to back right here, and on 7 Sep 2026 that
+      // took the last slice to 415 seconds: Apps Script killed it at six minutes with
+      // resolveDuplicates done, resolveCopiedWeeks half way, and rescueStrayTabs, reconcile and
+      // autoTriageSafe never reached. The stage lives in a script property and is advanced
+      // BEFORE the step runs, so a step that dies on the limit is skipped and logged rather than
+      // retried for ever; the next slice is armed before the step too, so the hand-over does not
+      // depend on this execution surviving (Kate, 7 Sep 2026).
+      const stage = Number(PROP.getProperty(STAGE_KEY) || 0);
+      if (stage >= CHAIN.length) {
+        deleteContinueTriggers_();
+        PROP.deleteProperty(STAGE_KEY);
+        Logger.log('ALL DONE. Every step of the chain has run. Log: ' + ss.getUrl());
+        return;
+      }
+      const step = CHAIN[stage];
+      PROP.setProperty(STAGE_KEY, String(stage + 1));
+      scheduleContinue_();
+      let outcome;
+      try { step[1](); outcome = 'ok'; }
+      catch (e) { outcome = 'FAILED: ' + String(e && e.message || e); }
+      Logger.log('Chain step ' + (stage + 1) + ' of ' + CHAIN.length + ', ' + step[0] + ': ' + outcome +
+                 (stage + 1 < CHAIN.length ? '. Next step in ~1 minute.' : '. Last step; the next slice closes the run.') +
+                 ' Log: ' + ss.getUrl());
     }
   } finally {
     lock.releaseLock();
@@ -706,9 +727,16 @@ function rescueStrayTabs() {
     if (r[5] !== 'OK' && r[5] !== 'EMPTY') return;
     if (String(r[8] || '').indexOf('STRAY ') === -1) return;
     const label = r[2] + ' / ' + r[1];
+    // A file resolveCopiedWeeks has already moved carries its move in the note. Its strays belong
+    // to the moved week too: FRT's WK 4 (Sept 22 - 28) has Monday to Wednesday dated 15 to 17
+    // September and was moved a week on, but its Thursday to Sunday, dated by hand to the 22nd
+    // to the 24th, were about to be tried on 18 to 21 September, the week it was moved away
+    // from (Kate, 7 Sep 2026).
+    const moved = String(r[8] || '').match(/moved (\d+) week\(s\)/);
+    const shift = moved ? Number(moved[1]) * 7 : 0;
     let res;
     try {
-      res = processFile_({ id: r[0], name: r[1], path: r[2], branch: r[3], mime: r[4] }, { rescue: true });
+      res = processFile_({ id: r[0], name: r[1], path: r[2], branch: r[3], mime: r[4] }, { rescue: true, rescueShift: shift });
     } catch (e) {
       held.push([r[3], label, '', '', 'could not be re-read: ' + String(e && e.message || e)]);
       return;
@@ -982,7 +1010,7 @@ function processFile_(entry, opts) {
       if (opts.rescue && !stray) return;
       if (stray) {
         if (!monday) { notes.push(`WARN ${tab}: A1 says ${dateStr} which is a ${weekday} — stale copy? skipped`); return; }
-        const target = isoAdd_(monday, DAY_TABS.indexOf(tab));
+        const target = isoAdd_(monday, DAY_TABS.indexOf(tab) + (opts.rescueShift || 0));
         if (!opts.rescue) {
           notes.push(`STRAY ${tab}: A1 says ${dateStr}, a ${weekday} outside this file's week; tried on ${target} after the run`);
           return;
