@@ -135,10 +135,11 @@ const NAME_FIXES = {
   // all say HAZEL MAE and this was about to add a second "Hazel Mae" beside them (Kate, 4 Sep 2026).
   'HAZEL MAY': 'HAZEL MAE',
   // KCA's Beauty block heads her column KIMBERLY some weeks and KIM others, and Phorest carries
-  // "Kimberly Casas". On 4 Sep this folded KIMBERLY onto KIM because every stored KCA row said
-  // KIM; on 7 Sep Kate settled it the other way round ("kim is kimberly"), so the till's first
-  // name wins here as it does for everyone else. The stored rows were renamed the same day.
-  'KIM': 'KIMBERLY',
+  // "Kimberly Casas". KIM is the name on her staff card, so KIM it stays, the one place the
+  // ledger's short name beats the till's: nameLinks_ still finds "KIMBERLY CASAS" from KIM, so
+  // reconcile and the dashboard join are unaffected (Kate, 7 Sep 2026, after a brief detour
+  // through KIMBERLY the same afternoon).
+  'KIMBERLY': 'KIM',
   'ASISSTANTS': 'ASSISTANTS',
   // Both spellings sit in AQ's own 2025 tabs for one person; Phorest has XYRHY UNISA.
   'XYHRY': 'XYRHY',
