@@ -867,11 +867,11 @@ const STYLIST_CARDS = {
   "bio": "From India, with over fifteen years in the beauty industry and based here in the UAE since 2010, now five years as a senior beauty therapist. Facials are my specialty; I love knowing the products properly and recommending the treatment that's genuinely right for each client's skin. Clients tell me they feel cared for, comfortable and beautiful when they leave.",
   "specialises": [
    "Facials",
-   "Threading & Brow Shaping",
-   "Waxing",
-   "Brow & Lash Lamination",
-   "Manicures & Pedicures",
-   "Eyelash Extensions"
+   "Spa Treatments",
+   "Massages",
+   "Threading & Waxing",
+   "LVL and Brow Lamination",
+   "Manicures & Pedicures"
   ],
   "bestFor": "Clients who want personalised care, professional expertise and beautiful results.",
   "vibe": [
@@ -895,7 +895,7 @@ const STYLIST_CARDS = {
    "Waxing",
    "Brow & Lash Lamination",
    "Manicures & Pedicures",
-   "Eyelash Extensions"
+   "Massages"
   ],
   "bestFor": "Clients who are looking for a flawless touch of beauty.",
   "vibe": [
@@ -914,10 +914,10 @@ const STYLIST_CARDS = {
   "quote": "Beautiful results, thoughtful service, and a little moment of self-care every time you sit in my chair.",
   "bio": "From the Philippines, with fourteen years in the beauty industry and a real passion for nails, lashes and brows. I love helping clients feel confident and beautiful, while making sure they're comfortable and well looked after from start to finish. Clients often describe me as friendly, patient and detail-oriented, and say I take the time to understand exactly what they want.",
   "specialises": [
-   "Nails",
+   "BIAB Nail extensions",
    "Lash Extensions",
-   "Lash Lifting",
-   "Brow Lamination",
+   "LVL, Brow Lamination",
+   "Waxing",
    "Facials"
   ],
   "bestFor": "Clients who love beautifully detailed results, a personalised experience, and a little time to relax.",

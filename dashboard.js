@@ -972,7 +972,7 @@ const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Juni
 // ?v= stamps for a while and the cards did not, so Katie's redrawn card would have
 // arrived looking exactly like a card that was never updated — the browser holds
 // these hard, and no number of refreshes tells you which one you are looking at.
-const STYLIST_CARD_V = '20260903a';
+const STYLIST_CARD_V = '20260908a';
 
 function stylistCardEmbed(name) {
   const src = `assets/stylist-cards/${encodeURIComponent(String(name || '').toLowerCase())}.pdf?v=${STYLIST_CARD_V}`;
