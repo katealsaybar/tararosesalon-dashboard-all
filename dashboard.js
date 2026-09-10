@@ -3599,8 +3599,7 @@ async function renderDashboard() {
 
 ${hasBeauty ? `
 <div class="eyebrow eyebrow-sm"><span class="dot" style="background:var(--beauty)"></span>Wins · Beauty · ${rangeLabel}</div>
-<div class="wins">${winsBeauty || '<div class="foot">No staff-level beauty figures for this date range.</div>'}</div>
-<p class="foot" style="margin-top:10px">Beauty portraits aren't shot yet, so initials stand in until they are. Same card, same slot: drop the file into <code>assets/staff/</code> and add the name to <code>staff-profiles.js</code>, and it appears.</p>` : ''}
+<div class="wins">${winsBeauty || '<div class="foot">No staff-level beauty figures for this date range.</div>'}</div>` : ''}
 
 <!-- ══ PERFORMANCE OVERVIEW ══ -->
 <div class="eyebrow" id="s-perf"><span class="dot" style="background:var(--accent-lavender)"></span>${escapeHtml(branchLabel)} · Performance Overview</div>
