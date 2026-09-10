@@ -292,7 +292,7 @@ function setChartView(mode, el){
 
   const lbl = document.getElementById('chartTitleLabel');
   const rawName = (selectedStylist || '');
-const cleanName = rawName.replace(/\s?IG$/, '');
+const cleanName = displayName(rawName.replace(/\s?IG$/, ''));
 
 if(lbl) lbl.textContent = cleanName + ' · ' + mode.charAt(0).toUpperCase()+mode.slice(1) + ' Trend';
 
@@ -456,6 +456,16 @@ const NAME_ALIASES = {
 const REVERSE_ALIASES = Object.fromEntries(
   Object.entries(NAME_ALIASES).map(([alias, canonical]) => [canonical, alias])
 );
+
+// Card/detail/chart text that should read differently from the internal bucket
+// name, without touching that bucket — STYLIST_SURNAMES, STYLIST_IG and
+// STYLIST_PHOTOS all stay keyed on the canonical name above, only the label
+// on screen changes. Kate, 10 Sep 2026: MJ as her name everywhere on this
+// page too, matching the main dashboard, not just as the small nickname line.
+const DISPLAY_NAME_OVERRIDES = { "Mary Joy": "MJ" };
+function displayName(canonical) {
+  return DISPLAY_NAME_OVERRIDES[canonical] || canonical;
+}
 
 function normaliseName(raw) {
   if (NAME_ALIASES[raw]) return NAME_ALIASES[raw];
@@ -712,9 +722,9 @@ function renderSection(list, gridId, title, count, titleId){
           <div style="min-width:0;flex:1">
             <div style="display:flex;align-items:center;gap:6px">
               <span class="card-rank">${rankLabel}</span>
-              <div class="stylist-card-name">${cleanName}${surname ? ' ' + surname : ''}</div>
+              <div class="stylist-card-name">${displayName(cleanName)}${surname ? ' ' + surname : ''}</div>
             </div>
-            ${REVERSE_ALIASES[cleanName] ? `<div class="stylist-card-nickname">${REVERSE_ALIASES[cleanName]}</div>` : ''}
+            ${(REVERSE_ALIASES[cleanName] && !DISPLAY_NAME_OVERRIDES[cleanName]) ? `<div class="stylist-card-nickname">${REVERSE_ALIASES[cleanName]}</div>` : ''}
             <div class="stylist-card-type" style="margin-top:4px">
               <span class="job-pill ${s.isBeauty?'beauty':'hair'}">${s.isBeauty?'💅 Beautician':'✂️ Hair Stylist'}</span>
             </div>
@@ -810,7 +820,7 @@ function renderDetail(s){
         <div class="detail-name">${(()=>{
   const cn  = s.name.toLowerCase().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
   const sn  = STYLIST_SURNAMES[cn] || '';
-  return `${s.name}${sn?' '+sn:''}`;
+  return `${displayName(s.name)}${sn?' '+sn:''}`;
 })()}</div>
         <div class="detail-sub" style="display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:3px">
           <span class="job-pill ${isBeauty?'beauty':'hair'}">${isBeauty?'💅 Beautician':'✂️ Hair Stylist'}</span>
@@ -907,7 +917,7 @@ function renderDetail(s){
     </div>
   </div>
 
-  <span id="chartTitleLabel">${s.name} · ${viewMode.charAt(0).toUpperCase()+viewMode.slice(1)} Trend</span>
+  <span id="chartTitleLabel">${displayName(s.name)} · ${viewMode.charAt(0).toUpperCase()+viewMode.slice(1)} Trend</span>
   <canvas id="trendChart"></canvas>
 </div>
   `;

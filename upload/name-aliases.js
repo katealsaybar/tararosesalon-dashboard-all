@@ -29,6 +29,13 @@ const STAFF_NAME_ALIASES = {
   // this is the same fact, in the one place every page reads. Branch attribution is
   // per row, so folding the name moves no revenue between branches.
   'ARNI': 'ARNALYN',
+  // Same pattern as LUCY/TAMMY/KIM below: MJ is the name on the page, same as her
+  // stylist card (STAFF_PROFILES key 'MJ', photo mj.png). PHOREST_RECONCILE_ALIASES
+  // in dashboard.js already has 'MJ': 'MARY JOY' to find her Phorest rows, so this
+  // alias just closes the loop — without it her win cards read MARY JOY and her
+  // profile lookup missed, so she showed initials instead of her card photo.
+  // Kate, 10 Sep 2026.
+  'MARY JOY': 'MJ',
 };
 
 function canonicalStaffName(name){
