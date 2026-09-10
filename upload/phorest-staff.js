@@ -112,6 +112,10 @@ const SP_REPORT_KINDS = {
     label: 'Financial Totals', section: 'Financial Totals',
     file: /-financial-totals-/i, title: /financial\s+totals/i,
   },
+  salestx: {
+    label: 'Sales Transactions', section: 'Sales Transactions',
+    file: /-sales-transactions-/i, title: /sales\s+transactions/i,
+  },
 };
 
 // `expected` is the uploader's own kind. Filename is the reliable signal (both

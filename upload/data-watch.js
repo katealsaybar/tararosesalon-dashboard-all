@@ -63,6 +63,14 @@ const UPD_FEEDS = [
     affects: 'the coverage card and the tab pip',
     refresher: 'refreshFinProgress',
   },
+  {
+    key: 'salestx',
+    table: 'staff_financial_totals',
+    stamp: 'date',
+    label: 'Sales Transactions · Phorest',
+    affects: 'the coverage card and the tab pip',
+    refresher: 'refreshStxProgress',
+  },
   // Monthly rather than daily, so `stamp` is the month column and a "now through
   // Sep" line means a new month's sheet has landed. The count is what actually
   // moves most of the time: a branch's ~14 rows arriving, or a re-paste changing

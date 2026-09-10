@@ -15,6 +15,7 @@
 <script src="phorest-pdf.js?v=2"></script>
 <script src="utilisation-pdf.js?v=10"></script>
 <script src="financial-totals-pdf.js?v=2"></script>
+<script src="sales-transactions-pdf.js?v=1"></script>
 <script src="sheet-sync.js?v=12"></script>
 <script src="targets.js?v=2"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
@@ -735,6 +736,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <button class="tab-btn" data-tab="staffperf" onclick="switchTab(event, 'staffperf')">Staff Daily<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipStaffperf"></span></button>
       <button class="tab-btn" data-tab="ops" onclick="switchTab(event, 'ops')">Utilisation<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipOps"></span></button>
       <button class="tab-btn" data-tab="fin" onclick="switchTab(event, 'fin')">Financial<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipFin"></span></button>
+      <button class="tab-btn" data-tab="salestx" onclick="switchTab(event, 'salestx')">Sales Transactions<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipSalestx"></span></button>
       <div class="tab-grp">Once a month</div>
       <button class="tab-btn" data-tab="targets" onclick="switchTab(event, 'targets')">Targets<span class="tab-qual">Monthly</span><span class="tab-pip" id="tabPipTargets"></span></button>
       <div class="tab-grp">Reference</div>
@@ -949,6 +951,80 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     </div>
   </div>
   </div><!-- /seg-fin-progress -->
+
+</div>
+
+<!-- ══ SALES TRANSACTIONS TAB ══ -->
+<!-- Per-staff treasury view Financial Totals can't give (that report has a Staff
+     *filter*, not a breakdown). Same PDF-upload shape as Financial: Progress ·
+     Upload, one PDF per branch per day, backfill grid from Jan 2025. Feeds
+     staff_financial_totals — one row per (branch, date, employee), delete-then-
+     insert like Staff Daily rather than upsert, since a re-parse can add or drop
+     staff between runs (Kate, 2026-09-10). -->
+<div class="tab-content" id="tab-salestx">
+
+  <div class="tab-sticky">
+  <div id="stxTodayStrip" class="today-strip"></div>
+  </div>
+
+  <div class="seg-wrap">
+  <div class="seg-bar">
+    <button class="seg-btn active" data-seg="progress" onclick="switchSeg(event,'salestx','progress')">Progress</button>
+    <button class="seg-btn" data-seg="upload" onclick="switchSeg(event,'salestx','upload')">Upload</button>
+  </div>
+  </div>
+
+  <!-- BULK PDF UPLOAD -->
+  <div class="seg-pane" id="seg-salestx-upload">
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <div class="card-title">Upload Sales Transactions PDFs</div>
+        <div class="card-sub">Branch and date are read from each filename. One PDF per branch per day.</div>
+      </div>
+      <button class="btn" id="stxPdfParseBtn" style="width:auto;padding:11px 22px;flex-shrink:0" onclick="handleStxPdfBatch()">Parse &amp; Save All</button>
+    </div>
+    <div id="stxPdfDrop" class="sp-pdf-drop">
+      <input type="file" id="stxPdfInput" accept="application/pdf" multiple style="display:none" onchange="stxQueuePdfFiles(this.files)">
+      <div onclick="document.getElementById('stxPdfInput').click()" style="cursor:pointer">
+        <div style="font-size:15px;color:var(--muted)">Click to choose PDFs, or drag &amp; drop them here</div>
+        <div style="font-size:12.5px;color:var(--muted2);margin-top:4px">motor-city-sales-transactions-2026-09-01.pdf</div>
+        <div id="stxPdfQueueCount" style="font-size:13px;color:var(--muted2);margin-top:4px">No files queued</div>
+      </div>
+    </div>
+    <div id="stxPdfResults" style="margin-top:10px"></div>
+    <div class="card-sub" style="margin-top:14px;margin-bottom:0">
+      One row per staff member who worked that branch-day; unassigned lines (till deposits, voucher sales, and the
+      occasional sale reception rang up without a stylist) land under one <strong>BUSINESS (unassigned)</strong> row
+      rather than being dropped. Two checks gate every push: every line item sums to the report's own Total row, and
+      every sale's payment fragments sum to that sale's own total — a file that fails either is refused rather than saved.
+    </div>
+  </div>
+  </div><!-- /seg-salestx-upload -->
+
+  <!-- BACKFILL PROGRESS -->
+  <div class="seg-pane active" id="seg-salestx-progress">
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:10px;flex-wrap:wrap">
+      <div class="card-title" style="margin-bottom:0">Backfill Progress</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-outline" id="stxProgressGridMissingBtn" onclick="spToggleMissingList('stxProgressGrid')" style="padding:8px 16px">Show missing dates</button>
+        <button class="btn-outline" onclick="spCopyMissingDates('stxProgressGrid')" style="padding:8px 16px">Copy missing dates</button>
+        <button class="btn-outline" onclick="refreshStxProgress()" style="padding:8px 16px">↻ Refresh</button>
+      </div>
+    </div>
+    <div class="card-sub">One pull per branch per day, Jan 2025 → today. Click a month to open its days.</div>
+    <div id="stxChecksWarn" class="err" style="display:none;text-align:left;margin:10px 0"></div>
+    <div id="stxProgressGridMissing" class="sp-miss"></div>
+    <div id="stxProgressGrid"><div style="font-size:14px;color:var(--muted2);padding:8px 0">Loading…</div></div>
+    <div class="sp-prog-legend">
+      <span><i style="background:var(--good)"></i>complete</span>
+      <span><i style="background:var(--warn)"></i>partial</span>
+      <span><i style="background:var(--border2)"></i>nothing yet</span>
+      <span><i style="border:1px dashed var(--border)"></i>closed, not counted</span>
+    </div>
+  </div>
+  </div><!-- /seg-salestx-progress -->
 
 </div>
 

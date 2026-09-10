@@ -81,6 +81,7 @@ function switchTab(e, tab) {
   if (tab === 'sheetsync') initSheetSyncTab();
   if (tab === 'ops' && typeof initUtilTab === 'function') initUtilTab();
   if (tab === 'fin' && typeof initFinTab === 'function') initFinTab();
+  if (tab === 'salestx' && typeof initSalesTxTab === 'function') initSalesTxTab();
   if (tab === 'targets' && typeof initTargetsTab === 'function') initTargetsTab();
 
   // Each tab's band is its own height, and Ledgers has two segments where the
