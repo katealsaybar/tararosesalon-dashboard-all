@@ -32,6 +32,12 @@
    ============================================================ */
 
 const STX_TABLE = 'staff_financial_totals';
+// One row per sale LINE (client, item, staff, amounts) rather than per
+// staff-day — Kate, 10 Sep 2026: "bakit walang client names" / "wala rin
+// yung services". Pushed alongside STX_TABLE from the same parse, not
+// instead of it: Financial/Progress reconciliation reads the staff-day
+// summary, a client/service Browse reads this.
+const STX_LINES_TABLE = 'sales_transaction_lines';
 
 // Column left edges, in PDF points — read off the header row by pdfplumber,
 // which always reports true visual x0 regardless of the page's own /Rotate.
@@ -177,18 +183,19 @@ function stxParseTransactionRow(tokens){
   const tail = stxSplitTail(tokens.slice(idx + 1));
   if (!tail) return null;
 
-  const staffParts = [], itemParts = [];
+  const staffParts = [], itemParts = [], clientParts = [];
   tail.textTokens.forEach(t => {
     if (t.x >= STX_COL_STAFF && t.x < STX_COL_ITEM) staffParts.push(t.text);
     else if (t.x >= STX_COL_ITEM && t.x < STX_COL_CLIENT) itemParts.push(t.text);
-    // Id/Time/AM-PM block (x < STX_COL_STAFF) and Client (x >= STX_COL_CLIENT)
-    // are read here but dropped — not needed for this table.
+    else if (t.x >= STX_COL_CLIENT) clientParts.push(t.text);
+    // Id/Time/AM-PM block (x < STX_COL_STAFF) is read here but dropped.
   });
 
   return {
     saleId: tokens[idx].text,
     staff: staffParts.join(' ').trim(),
     item: itemParts.join(' ').trim(),
+    client: clientParts.join(' ').trim(),
     discount: tail.discount, net: tail.net, vat: tail.vat, total: tail.total,
     paymentRaw: tail.paymentRaw,
   };
@@ -309,6 +316,24 @@ function stxParseRows(rows, branchCode){
   });
 
   const checksPassed = fails.length === 0;
+
+  // Line-item detail (client, item, sale) for sales_transaction_lines — kept
+  // alongside the per-staff summary above rather than instead of it, since
+  // Financial/Progress reconciliation reads the summary and a per-client
+  // Browse reads this. Same BUSINESS→unassigned staff mapping as the summary
+  // so the two tables' employee_name values line up for cross-reference.
+  const linesOut = transactions.map(r => {
+    const rawStaff = r.staff || '';
+    const staff = (!rawStaff || /^BUSINESS\b/i.test(rawStaff)) ? STX_UNASSIGNED : rawStaff;
+    return {
+      branch: branchCode, date: dateFrom, sale_id: r.saleId, employee_name: staff,
+      client_name: r.client || null, item: r.item || null,
+      discount: r.discount, net: r.net, vat: r.vat, total: r.total,
+      payment_raw: paymentBySale[r.saleId] || r.paymentRaw || null,
+      checks_passed: checksPassed,
+    };
+  });
+
   const rowsOut = Object.keys(perStaff).map(staff => {
     const s = perStaff[staff];
     const paymentTypes = {};
@@ -327,7 +352,7 @@ function stxParseRows(rows, branchCode){
   const namedStaffTotal = stxRound2(rowsOut.filter(r => r.employee_name !== STX_UNASSIGNED).reduce((s, r) => s + r.total, 0));
   const staffTotalSum = stxRound2(rowsOut.reduce((s, r) => s + r.total, 0));
 
-  return { branch: branchCode, date: dateFrom, fails, rows: rowsOut, grandTotal, staffTotalSum, namedStaffTotal };
+  return { branch: branchCode, date: dateFrom, fails, rows: rowsOut, lines: linesOut, grandTotal, staffTotalSum, namedStaffTotal };
 }
 
 // ── UPLOAD PORTAL TAB ─────────────────────────────────────────
@@ -408,6 +433,13 @@ async function handleStxPdfBatch(){
       await sb.from(STX_TABLE).delete().eq('branch', branch).eq('date', parsed.date);
       if (rowsToSave.length){
         const { error } = await sb.from(STX_TABLE).insert(rowsToSave);
+        if (error) throw error;
+      }
+
+      const linesToSave = parsed.lines.map(r => ({ ...r, source_file: file.name }));
+      await sb.from(STX_LINES_TABLE).delete().eq('branch', branch).eq('date', parsed.date);
+      if (linesToSave.length){
+        const { error } = await sb.from(STX_LINES_TABLE).insert(linesToSave);
         if (error) throw error;
       }
 
@@ -770,11 +802,187 @@ async function runStxFilter(){
   stxRenderTable();
 }
 
+// ── CLIENTS / LINE ITEMS ─────────────────────────────────────
+// One row per sale line (client, item, staff, amounts) from
+// sales_transaction_lines — see the comment above STX_LINES_TABLE. Its own
+// segment rather than folded into Browse above: Browse's grain is one row
+// per staff per day, this is one row per sale, and mixing the two in one
+// table would mean either two different row shapes or losing the staff-day
+// totals view Financial reconciliation actually reads.
+
+function stxlSetDefaultFilterDates(force){
+  const fromEl = document.getElementById('stxlfFrom');
+  const toEl   = document.getElementById('stxlfTo');
+  if (!fromEl || !toEl) return;
+  if (force || !fromEl.value) fromEl.value = spMonthStartIso();
+  if (force || !toEl.value)   toEl.value   = spIsoDate(new Date());
+}
+
+function stxlPopulateFilterBranch(){
+  const sel = document.getElementById('stxlfBranch');
+  if (!sel || sel.dataset.populated) return;
+  BRANCH_KEYS.forEach(code => {
+    const opt = document.createElement('option');
+    opt.value = code; opt.textContent = BRANCHES[code].name;
+    sel.appendChild(opt);
+  });
+  sel.dataset.populated = '1';
+}
+
+function resetStxLinesFilter(){
+  trResetChips('salestx','stxlf');
+  document.getElementById('stxlfBranch').value = '';
+  document.getElementById('stxlfClient').value = '';
+  document.getElementById('stxlfEmployee').value = '';
+  document.getElementById('stxlfItem').value = '';
+  stxlSetDefaultFilterDates(true);
+  stxlLastData = [];
+  document.getElementById('stxlTableHost').innerHTML =
+    '<div style="padding:16px;font-size:14px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>';
+  document.getElementById('stxlResultCount').textContent = '';
+}
+
+const STXL_COLS = [
+  ['Branch','branch'],['Date','date'],['Employee','employee_name'],
+  ['Client','client_name'],['Item','item'],
+  ['Discount','discount'],['Net','net'],['VAT','vat'],['Total','total'],
+  ['Payment','payment_raw'],
+];
+const STXL_ROW_LIMIT = 25000;
+const STXL_RENDER_CAP = 2000;
+const STXL_SUM_FIELDS = ['discount','net','vat','total'];
+let stxlLastData    = [];
+let stxlSortCol      = 'date';
+let stxlSortDir      = 'desc';
+let stxlCapWarning   = false;
+let stxlShowAllRows  = false;
+let stxlRan = false;
+
+function stxlRenderAllRows(){
+  stxlShowAllRows = true;
+  stxlRenderTable();
+}
+
+function stxlFmt(v, key){
+  if (typeof v !== 'number') return v ?? '';
+  return TR_NUM_FMT[STXL_SUM_FIELDS.includes(key) ? 2 : 0].format(v);
+}
+
+function stxlGrandTotal(rows){
+  const t = { branch: '', date: '', employee_name: 'TOTAL', client_name: '', item: '', payment_raw: '' };
+  for (const f of STXL_SUM_FIELDS) t[f] = 0;
+  for (const r of rows) for (const f of STXL_SUM_FIELDS) t[f] += (typeof r[f] === 'number' ? r[f] : 0);
+  return t;
+}
+
+function stxlSortBy(key){
+  if (stxlSortCol === key) stxlSortDir = stxlSortDir === 'asc' ? 'desc' : 'asc';
+  else { stxlSortCol = key; stxlSortDir = 'asc'; }
+  stxlRenderTable();
+}
+
+function stxlRenderTable(){
+  const host = document.getElementById('stxlTableHost');
+  if (!stxlLastData.length){
+    host.innerHTML = '<div style="padding:16px;font-size:14px;color:var(--muted2)">No matching rows.</div>';
+    document.getElementById('stxlResultCount').textContent = '';
+    return;
+  }
+
+  const capped = !stxlShowAllRows && stxlLastData.length > STXL_RENDER_CAP;
+  const renderRows = capped ? stxlLastData.slice(0, STXL_RENDER_CAP) : stxlLastData;
+
+  const countEl = document.getElementById('stxlResultCount');
+  if (stxlCapWarning){
+    countEl.textContent = `Showing first ${STXL_ROW_LIMIT} rows — narrow your filters for more precision`;
+  } else if (capped){
+    countEl.innerHTML = `${stxlLastData.length} rows · showing the newest ${STXL_RENDER_CAP} ` +
+      `<button class="btn-outline" style="padding:3px 9px;font-size:12.5px;margin-left:4px" onclick="stxlRenderAllRows()">Show all</button>`;
+  } else {
+    countEl.textContent = `${stxlLastData.length} row${stxlLastData.length === 1 ? '' : 's'}`;
+  }
+
+  let html = '<table class="sp-table"><thead><tr>' + STXL_COLS.map(c => {
+    const active = c[1] === stxlSortCol;
+    const arrow = active ? (stxlSortDir === 'asc' ? ' ▲' : ' ▼') : '';
+    return `<th class="sp-th-sort${active?' active':''}"><span class="sp-th-inner">` +
+      `<span class="sp-th-label" onclick="stxlSortBy('${c[1]}')">${c[0]}${arrow}</span>` +
+      `</span></th>`;
+  }).join('') + '</tr></thead><tbody>';
+
+  const grandTotal = stxlGrandTotal(stxlLastData);
+  html += '<tr class="is-total">' + STXL_COLS.map(c => `<td>${stxlFmt(grandTotal[c[1]], c[1])}</td>`).join('') + '</tr>';
+
+  const sorted = renderRows.slice().sort((a,b) => spCompare(a[stxlSortCol], b[stxlSortCol], stxlSortDir));
+  for (const row of sorted){
+    html += '<tr>' + STXL_COLS.map(c => `<td>${stxlFmt(row[c[1]], c[1])}</td>`).join('') + '</tr>';
+  }
+  html += '</tbody></table>';
+  host.innerHTML = html;
+}
+
+const STXL_PAGE_SIZE = 1000;
+
+async function runStxLinesFilter(){
+  const branch   = document.getElementById('stxlfBranch').value;
+  const client   = document.getElementById('stxlfClient').value.trim();
+  const employee = document.getElementById('stxlfEmployee').value.trim();
+  const item     = document.getElementById('stxlfItem').value.trim();
+  const from     = document.getElementById('stxlfFrom').value;
+  const to       = document.getElementById('stxlfTo').value;
+
+  const host = document.getElementById('stxlTableHost');
+  host.innerHTML = '<div style="padding:16px;font-size:14px;color:var(--muted2)">Loading…</div>';
+
+  const applyFilters = (q) => {
+    if (branch)   q = q.eq('branch', branch);
+    if (from)     q = q.gte('date', from);
+    if (to)       q = q.lte('date', to);
+    if (client)   q = q.ilike('client_name', `%${client}%`);
+    if (employee) q = q.ilike('employee_name', `%${employee}%`);
+    if (item)     q = q.ilike('item', `%${item}%`);
+    return q;
+  };
+
+  const buildQuery = () => applyFilters(sb.from(STX_LINES_TABLE).select('*')
+    .order('date',{ascending:false}).order('branch').order('sale_id'));
+  const buildCountQuery = () => applyFilters(sb.from(STX_LINES_TABLE).select('id', { count:'exact', head:true }));
+
+  const { count, error: countErr } = await buildCountQuery();
+  if (countErr){ host.innerHTML = `<div style="padding:16px;font-size:14px;color:var(--bad)">Query failed: ${countErr.message}</div>`; return; }
+
+  const wanted = Math.min(count || 0, STXL_ROW_LIMIT);
+  const pages = [];
+  for (let offset = 0; offset < wanted; offset += STXL_PAGE_SIZE){
+    pages.push(buildQuery().range(offset, Math.min(offset + STXL_PAGE_SIZE, wanted) - 1));
+  }
+  const results = await Promise.all(pages);
+  const failed = results.find(r => r.error);
+  if (failed){ host.innerHTML = `<div style="padding:16px;font-size:14px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
+  const all = results.flatMap(r => r.data || []);
+
+  stxlCapWarning = all.length >= STXL_ROW_LIMIT;
+  stxlLastData = all.slice(0, STXL_ROW_LIMIT).map(row => ({...row, employee_name: canonicalStaffName(row.employee_name)}));
+  stxlShowAllRows = false;
+  stxlRenderTable();
+}
+
+// Clients runs when its segment is opened, not on tab load — mirrors
+// trRunBrowseOnce (upload.js), scoped here rather than added to that shared
+// dispatcher since this tab has one more data segment than the others.
+function stxlRunOnce(){
+  if (stxlRan) return;
+  stxlRan = true;
+  Promise.resolve(runStxLinesFilter()).finally(measureStickyChrome);
+}
+
 function initSalesTxTab(){
   initStxPdfDrop();
   refreshStxProgress();
   stxPopulateFilterBranch();
   stxSetDefaultFilterDates(false);
   stxSyncSummaryToggleUI();
-  // Browse runs when Browse is opened, not on tab load — see trRunBrowseOnce.
+  stxlPopulateFilterBranch();
+  stxlSetDefaultFilterDates(false);
+  // Browse/Clients run when opened, not on tab load — see trRunBrowseOnce / stxlRunOnce.
 }

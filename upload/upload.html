@@ -15,7 +15,7 @@
 <script src="phorest-pdf.js?v=2"></script>
 <script src="utilisation-pdf.js?v=10"></script>
 <script src="financial-totals-pdf.js?v=2"></script>
-<script src="sales-transactions-pdf.js?v=2"></script>
+<script src="sales-transactions-pdf.js?v=3"></script>
 <script src="sheet-sync.js?v=12"></script>
 <script src="targets.js?v=2"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
@@ -976,6 +976,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <div class="seg-bar">
     <button class="seg-btn active" data-seg="progress" onclick="switchSeg(event,'salestx','progress')">Progress</button>
     <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'salestx','browse')">Browse</button>
+    <button class="seg-btn" data-seg="clients" onclick="switchSeg(event,'salestx','clients'); stxlRunOnce()">Clients</button>
     <button class="seg-btn" data-seg="upload" onclick="switchSeg(event,'salestx','upload')">Upload</button>
   </div>
   </div>
@@ -1084,6 +1085,63 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     </div>
   </div>
   </div><!-- /seg-salestx-browse -->
+
+  <!-- CLIENTS / LINE ITEMS — the per-sale detail the staff-day summary above
+       aggregates away. Kate, 10 Sep 2026, right after Browse went live: "bakit
+       walang client names" then "wala rin yung services" — the parser read
+       both columns off the PDF from the start but dropped them, since this
+       tab was only ever built for the staff totals. Same PDFs, one more table
+       (sales_transaction_lines), one row per sale line instead of per
+       staff-day. See sales-transactions-pdf.js. -->
+  <div class="seg-pane" id="seg-salestx-clients">
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:0">Browse Clients &amp; Services</div>
+      <span id="stxlResultCount" class="card-sub" style="margin-bottom:0"></span>
+    </div>
+    <div class="date-chips">
+      <button class="date-chip" onclick="trDatePreset(event,'stxlf','today','runStxLinesFilter')">Today</button>
+      <button class="date-chip" onclick="trDatePreset(event,'stxlf','week','runStxLinesFilter')">Last 7 days</button>
+      <button class="date-chip active" onclick="trDatePreset(event,'stxlf','month','runStxLinesFilter')">This month</button>
+      <button class="date-chip" onclick="trDatePreset(event,'stxlf','lastmonth','runStxLinesFilter')">Last month</button>
+      <button class="date-chip" onclick="trDatePreset(event,'stxlf','year','runStxLinesFilter')">This year</button>
+      <button class="date-chip" onclick="trDatePreset(event,'stxlf','custom','runStxLinesFilter')">Custom…</button>
+    </div>
+    <div class="sp-filter-row">
+      <div class="sp-filter-field">
+        <label>Branch</label>
+        <select id="stxlfBranch"><option value="">All branches</option></select>
+      </div>
+      <div class="sp-filter-field">
+        <label>Client</label>
+        <input type="text" id="stxlfClient" placeholder="Search client…">
+      </div>
+      <div class="sp-filter-field">
+        <label>Employee</label>
+        <input type="text" id="stxlfEmployee" placeholder="Search name…">
+      </div>
+      <div class="sp-filter-field">
+        <label>Item</label>
+        <input type="text" id="stxlfItem" placeholder="Search item…">
+      </div>
+      <div class="date-custom" id="stxlfCustom">
+        <div class="sp-filter-field">
+          <label>From</label>
+          <input type="date" id="stxlfFrom">
+        </div>
+        <div class="sp-filter-field">
+          <label>To</label>
+          <input type="date" id="stxlfTo">
+        </div>
+      </div>
+      <button class="btn" style="width:auto;padding:9px 18px" onclick="runStxLinesFilter()">Apply</button>
+      <button class="btn-outline" onclick="resetStxLinesFilter()">Reset</button>
+    </div>
+    <div class="sp-table-wrap">
+      <div id="stxlTableHost" style="padding:16px;font-size:14px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>
+    </div>
+  </div>
+  </div><!-- /seg-salestx-clients -->
 
 </div>
 
