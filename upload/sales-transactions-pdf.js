@@ -500,7 +500,281 @@ async function refreshStxProgress(){
   if (typeof updStamp === 'function') updStamp('salestx');
 }
 
+// ── BROWSE / FILTER ──────────────────────────────────────────
+// Mirrors Staff Daily's Browse (phorest-staff.js) — same shape of data, one
+// row per branch/date/employee — trimmed to the columns this table actually
+// has and without the Excel-style per-column value filter, which Staff Daily
+// needed for its ~20 columns more than this one's 14 does. spCompare and
+// spEsc are generic (no report-specific assumptions) so reused as-is.
+
+function stxSetDefaultFilterDates(force){
+  const fromEl = document.getElementById('stxfFrom');
+  const toEl   = document.getElementById('stxfTo');
+  if (!fromEl || !toEl) return;
+  if (force || !fromEl.value) fromEl.value = spMonthStartIso();
+  if (force || !toEl.value)   toEl.value   = spIsoDate(new Date());
+}
+
+function stxPopulateFilterBranch(){
+  const sel = document.getElementById('stxfBranch');
+  if (!sel || sel.dataset.populated) return;
+  BRANCH_KEYS.forEach(code => {
+    const opt = document.createElement('option');
+    opt.value = code; opt.textContent = BRANCHES[code].name;
+    sel.appendChild(opt);
+  });
+  sel.dataset.populated = '1';
+}
+
+function resetStxFilter(){
+  trResetChips('salestx','stxf');
+  document.getElementById('stxfBranch').value = '';
+  document.getElementById('stxfStylist').value = '';
+  stxSetDefaultFilterDates(true);
+  stxLastData = [];
+  document.getElementById('stxTableHost').innerHTML =
+    '<div style="padding:16px;font-size:14px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>';
+  document.getElementById('stxResultCount').textContent = '';
+}
+
+const STX_COLS = [
+  ['Branch','branch'],['Date','date'],['Employee','employee_name'],
+  ['Sales','sale_count'],['Lines','line_count'],
+  ['Net','net'],['VAT','vat'],['Total','total'],
+  ['Cash','pay_cash'],['Card','pay_card'],['Account','pay_account'],
+  ['Voucher','pay_voucher'],['Stripe','pay_stripe'],['Tabby','pay_tabby_link'],
+];
+const STX_ROW_LIMIT = 25000;
+const STX_RENDER_CAP = 2000;
+let stxShowAllRows = false;
+
+function stxRenderAllRows(){
+  stxShowAllRows = true;
+  stxRenderTable();
+}
+
+// Sale/line counts are whole numbers — every other numeric column here is
+// money (AED) and keeps 2 decimals.
+const STX_COUNT_FIELDS = new Set(['sale_count','line_count']);
+function stxFmt(v, key){
+  if (typeof v !== 'number') return v ?? '';
+  const d = key && STX_COUNT_FIELDS.has(key) ? 0 : 2;
+  return TR_NUM_FMT[d].format(v);
+}
+
+let stxLastData   = [];
+let stxSortCol    = 'date';
+let stxSortDir    = 'desc';
+let stxHiddenCols = new Set(JSON.parse(localStorage.getItem('stxHiddenCols') || '[]'));
+let stxCapWarning = false;
+let stxSummaryMode = localStorage.getItem('stxSummaryMode') === '1';
+
+const STX_SUM_FIELDS = [
+  'sale_count','line_count','net','vat','total',
+  'pay_cash','pay_card','pay_account','pay_voucher','pay_stripe','pay_tabby_link',
+];
+
+function stxAggregateByEmployee(rows){
+  // Branch column hidden → fold an employee's rows together across branches
+  // too, same reasoning as Staff Daily's spAggregateByEmployee.
+  const groupByBranch = !stxHiddenCols.has('branch');
+  const groups = new Map();
+  for (const row of rows){
+    const key = groupByBranch ? (row.branch + '|' + row.employee_name) : row.employee_name;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  }
+  const out = [];
+  for (const rs of groups.values()){
+    const agg = { branch: groupByBranch ? rs[0].branch : 'ALL', employee_name: rs[0].employee_name };
+    for (const f of STX_SUM_FIELDS) agg[f] = 0;
+    for (const r of rs) for (const f of STX_SUM_FIELDS) agg[f] += (typeof r[f] === 'number' ? r[f] : 0);
+    const dates = rs.map(r => r.date).filter(Boolean).sort();
+    agg.date = !dates.length ? '' : dates[0] === dates[dates.length-1] ? dates[0] : `${dates[0]} → ${dates[dates.length-1]}`;
+    out.push(agg);
+  }
+  return out;
+}
+
+function stxGrandTotal(rows){
+  const t = { branch: '', date: '', employee_name: 'TOTAL' };
+  for (const f of STX_SUM_FIELDS) t[f] = 0;
+  for (const r of rows) for (const f of STX_SUM_FIELDS) t[f] += (typeof r[f] === 'number' ? r[f] : 0);
+  return t;
+}
+
+function stxToggleSummaryMode(){
+  stxSummaryMode = !stxSummaryMode;
+  localStorage.setItem('stxSummaryMode', stxSummaryMode ? '1' : '0');
+  stxSyncSummaryToggleUI();
+  stxRenderTable();
+}
+
+function stxSyncSummaryToggleUI(){
+  const track = document.getElementById('stxSummaryTrack');
+  const lbl = document.getElementById('stxSummaryLbl');
+  if (!track) return;
+  track.classList.toggle('on', stxSummaryMode);
+  lbl.textContent = stxSummaryMode ? 'Summary' : 'Daily';
+}
+
+function stxSortBy(key){
+  if (stxSortCol === key) stxSortDir = stxSortDir === 'asc' ? 'desc' : 'asc';
+  else { stxSortCol = key; stxSortDir = 'asc'; }
+  stxRenderTable();
+}
+
+function stxToggleCol(key, checked){
+  if (checked) stxHiddenCols.delete(key); else stxHiddenCols.add(key);
+  localStorage.setItem('stxHiddenCols', JSON.stringify([...stxHiddenCols]));
+  stxRenderTable();
+}
+
+function stxShowAllCols(){
+  stxHiddenCols.clear();
+  localStorage.setItem('stxHiddenCols', JSON.stringify([]));
+  stxBuildColPicker();
+  stxRenderTable();
+}
+
+function stxBuildColPicker(){
+  const panel = document.getElementById('stxColPicker');
+  if (!panel) return;
+  panel.innerHTML = STX_COLS.map(c =>
+    `<label><input type="checkbox" ${stxHiddenCols.has(c[1])?'':'checked'} onchange="stxToggleCol('${c[1]}', this.checked)">${c[0]}</label>`
+  ).join('') + '<div class="sp-col-picker-actions"><button class="btn-outline" style="flex:1;padding:6px" onclick="stxShowAllCols()">Show all</button></div>';
+}
+
+function stxToggleColPicker(e){
+  e.stopPropagation();
+  const panel = document.getElementById('stxColPicker');
+  if (!panel) return;
+  const opening = panel.style.display !== 'block';
+  if (opening){ stxBuildColPicker(); panel.style.display = 'block'; }
+  else panel.style.display = 'none';
+}
+
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('stxColPicker');
+  const btn   = document.getElementById('stxColPickerBtn');
+  if (panel && panel.style.display === 'block' && !panel.contains(e.target) && e.target !== btn) {
+    panel.style.display = 'none';
+  }
+});
+
+function stxRenderTable(){
+  const host = document.getElementById('stxTableHost');
+  if (!stxLastData.length){
+    host.innerHTML = '<div style="padding:16px;font-size:14px;color:var(--muted2)">No matching rows.</div>';
+    document.getElementById('stxResultCount').textContent = '';
+    return;
+  }
+
+  const displayRows = stxSummaryMode ? stxAggregateByEmployee(stxLastData) : stxLastData;
+
+  const capped = !stxSummaryMode && !stxShowAllRows && displayRows.length > STX_RENDER_CAP;
+  const renderRows = capped ? displayRows.slice(0, STX_RENDER_CAP) : displayRows;
+
+  const countEl = document.getElementById('stxResultCount');
+  if (stxCapWarning){
+    countEl.textContent = `Showing first ${STX_ROW_LIMIT} rows — narrow your filters for more precision`;
+  } else if (capped){
+    countEl.innerHTML = `${displayRows.length} rows · showing the newest ${STX_RENDER_CAP} ` +
+      `<button class="btn-outline" style="padding:3px 9px;font-size:12.5px;margin-left:4px" onclick="stxRenderAllRows()">Show all</button>`;
+  } else {
+    countEl.textContent = `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${stxSummaryMode ? ' (summarized per employee)' : ''}`;
+  }
+
+  const visibleCols = STX_COLS.filter(c => !stxHiddenCols.has(c[1]));
+
+  // Same branch-block grouping as Staff Daily, canonical BRANCH_KEYS order.
+  const groups = new Map();
+  for (const row of renderRows){
+    if (!groups.has(row.branch)) groups.set(row.branch, []);
+    groups.get(row.branch).push(row);
+  }
+  const orderedKeys = [...groups.keys()].sort((a,b) => {
+    const ia = BRANCH_KEYS.indexOf(a), ib = BRANCH_KEYS.indexOf(b);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
+
+  let html = '<table class="sp-table"><thead><tr>' + visibleCols.map(c => {
+    const active = c[1] === stxSortCol;
+    const arrow = active ? (stxSortDir === 'asc' ? ' ▲' : ' ▼') : '';
+    return `<th class="sp-th-sort${active?' active':''}"><span class="sp-th-inner">` +
+      `<span class="sp-th-label" onclick="stxSortBy('${c[1]}')">${c[0]}${arrow}</span>` +
+      `</span></th>`;
+  }).join('') + '</tr></thead><tbody>';
+
+  const grandTotal = stxGrandTotal(displayRows);
+  html += '<tr class="is-total">' + visibleCols.map(c => `<td>${stxFmt(grandTotal[c[1]], c[1])}</td>`).join('') + '</tr>';
+
+  orderedKeys.forEach((key, gi) => {
+    const rows = groups.get(key).slice().sort((a,b) => spCompare(a[stxSortCol], b[stxSortCol], stxSortDir));
+    for (const row of rows){
+      html += '<tr>' + visibleCols.map(c => `<td>${stxFmt(row[c[1]], c[1])}</td>`).join('') + '</tr>';
+    }
+    if (gi < orderedKeys.length - 1){
+      html += `<tr class="sp-group-spacer"><td colspan="${visibleCols.length}"></td></tr>`;
+    }
+  });
+  html += '</tbody></table>';
+  host.innerHTML = html;
+}
+
+const STX_FILTER_PAGE_SIZE = 1000;
+
+async function runStxFilter(){
+  const branch  = document.getElementById('stxfBranch').value;
+  const stylist = document.getElementById('stxfStylist').value.trim();
+  const from    = document.getElementById('stxfFrom').value;
+  const to      = document.getElementById('stxfTo').value;
+
+  const host = document.getElementById('stxTableHost');
+  host.innerHTML = '<div style="padding:16px;font-size:14px;color:var(--muted2)">Loading…</div>';
+
+  const buildQuery = () => {
+    let q = sb.from(STX_TABLE).select('*').order('date',{ascending:false}).order('branch').order('employee_name');
+    if (branch)  q = q.eq('branch', branch);
+    if (from)    q = q.gte('date', from);
+    if (to)      q = q.lte('date', to);
+    if (stylist) q = q.ilike('employee_name', `%${stylist}%`);
+    return q;
+  };
+
+  const buildCountQuery = () => {
+    let q = sb.from(STX_TABLE).select('id', { count:'exact', head:true });
+    if (branch)  q = q.eq('branch', branch);
+    if (from)    q = q.gte('date', from);
+    if (to)      q = q.lte('date', to);
+    if (stylist) q = q.ilike('employee_name', `%${stylist}%`);
+    return q;
+  };
+
+  const { count, error: countErr } = await buildCountQuery();
+  if (countErr){ host.innerHTML = `<div style="padding:16px;font-size:14px;color:var(--bad)">Query failed: ${countErr.message}</div>`; return; }
+
+  const wanted = Math.min(count || 0, STX_ROW_LIMIT);
+  const pages = [];
+  for (let offset = 0; offset < wanted; offset += STX_FILTER_PAGE_SIZE){
+    pages.push(buildQuery().range(offset, Math.min(offset + STX_FILTER_PAGE_SIZE, wanted) - 1));
+  }
+  const results = await Promise.all(pages);
+  const failed = results.find(r => r.error);
+  if (failed){ host.innerHTML = `<div style="padding:16px;font-size:14px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
+  const all = results.flatMap(r => r.data || []);
+
+  stxCapWarning = all.length >= STX_ROW_LIMIT;
+  stxLastData = all.slice(0, STX_ROW_LIMIT).map(row => ({...row, employee_name: canonicalStaffName(row.employee_name)}));
+  stxShowAllRows = false;
+  stxRenderTable();
+}
+
 function initSalesTxTab(){
   initStxPdfDrop();
   refreshStxProgress();
+  stxPopulateFilterBranch();
+  stxSetDefaultFilterDates(false);
+  stxSyncSummaryToggleUI();
+  // Browse runs when Browse is opened, not on tab load — see trRunBrowseOnce.
 }

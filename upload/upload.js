@@ -145,6 +145,7 @@ const TR_BROWSE_RUNNERS = {
   ops:       'runUtilFilter',
   sheetsync: 'runSheetSyncFilter',
   targets:   'runTargetsFilter',
+  salestx:   'runStxFilter',
 };
 function trRunBrowseOnce(tab){
   if (trBrowseRan[tab]) return;

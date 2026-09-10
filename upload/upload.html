@@ -15,7 +15,7 @@
 <script src="phorest-pdf.js?v=2"></script>
 <script src="utilisation-pdf.js?v=10"></script>
 <script src="financial-totals-pdf.js?v=2"></script>
-<script src="sales-transactions-pdf.js?v=1"></script>
+<script src="sales-transactions-pdf.js?v=2"></script>
 <script src="sheet-sync.js?v=12"></script>
 <script src="targets.js?v=2"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
@@ -169,6 +169,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
   /* The qualifier goes to the far edge with the pip beside it, so the seven
      nouns line up down the left and stay scannable. */
   .tab-qual{margin-left:auto;font-size:11.5px;letter-spacing:0.02em}
+  /* Every other label is short enough to fit the fixed nav width as-is, so this
+     only needs to exist for "Sales Transactions" — a flex child's default
+     min-width is auto, not 0, so without this the label refused to shrink and
+     pushed the Phorest badge past the pill's edge instead. */
+  .tab-label{min-width:0;overflow:hidden;text-overflow:ellipsis}
   .tab-pip{margin-left:0}
   .tab-btn:not(:has(.tab-qual)) .tab-pip{margin-left:auto}
 }
@@ -736,7 +741,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <button class="tab-btn" data-tab="staffperf" onclick="switchTab(event, 'staffperf')">Staff Daily<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipStaffperf"></span></button>
       <button class="tab-btn" data-tab="ops" onclick="switchTab(event, 'ops')">Utilisation<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipOps"></span></button>
       <button class="tab-btn" data-tab="fin" onclick="switchTab(event, 'fin')">Financial<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipFin"></span></button>
-      <button class="tab-btn" data-tab="salestx" onclick="switchTab(event, 'salestx')">Sales Transactions<span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipSalestx"></span></button>
+      <button class="tab-btn" data-tab="salestx" onclick="switchTab(event, 'salestx')"><span class="tab-label">Sales Transactions</span><span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipSalestx"></span></button>
       <div class="tab-grp">Once a month</div>
       <button class="tab-btn" data-tab="targets" onclick="switchTab(event, 'targets')">Targets<span class="tab-qual">Monthly</span><span class="tab-pip" id="tabPipTargets"></span></button>
       <div class="tab-grp">Reference</div>
@@ -970,6 +975,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <div class="seg-wrap">
   <div class="seg-bar">
     <button class="seg-btn active" data-seg="progress" onclick="switchSeg(event,'salestx','progress')">Progress</button>
+    <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'salestx','browse')">Browse</button>
     <button class="seg-btn" data-seg="upload" onclick="switchSeg(event,'salestx','upload')">Upload</button>
   </div>
   </div>
@@ -1025,6 +1031,59 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     </div>
   </div>
   </div><!-- /seg-salestx-progress -->
+
+  <!-- BROWSE / FILTER -->
+  <div class="seg-pane" id="seg-salestx-browse">
+  <div class="upload-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="card-title" style="margin-bottom:0">Browse Data</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="stxResultCount" class="card-sub" style="margin-bottom:0"></span>
+        <div class="mini-toggle-wrap" onclick="stxToggleSummaryMode()" role="button" title="Summary sums each employee's numbers across the selected date range, instead of one row per day">
+          <span class="mini-toggle-lbl" id="stxSummaryLbl">Daily</span>
+          <div class="mini-toggle-track" id="stxSummaryTrack"><div class="mini-toggle-thumb"></div></div>
+        </div>
+        <div style="position:relative">
+          <button class="btn-outline" id="stxColPickerBtn" onclick="stxToggleColPicker(event)" style="padding:8px 14px">Columns ▾</button>
+          <div id="stxColPicker" class="sp-col-picker"></div>
+        </div>
+      </div>
+    </div>
+    <div class="date-chips">
+      <button class="date-chip" onclick="trDatePreset(event,'stxf','today','runStxFilter')">Today</button>
+      <button class="date-chip" onclick="trDatePreset(event,'stxf','week','runStxFilter')">Last 7 days</button>
+      <button class="date-chip active" onclick="trDatePreset(event,'stxf','month','runStxFilter')">This month</button>
+      <button class="date-chip" onclick="trDatePreset(event,'stxf','lastmonth','runStxFilter')">Last month</button>
+      <button class="date-chip" onclick="trDatePreset(event,'stxf','year','runStxFilter')">This year</button>
+      <button class="date-chip" onclick="trDatePreset(event,'stxf','custom','runStxFilter')">Custom…</button>
+    </div>
+    <div class="sp-filter-row">
+      <div class="sp-filter-field">
+        <label>Branch</label>
+        <select id="stxfBranch"><option value="">All branches</option></select>
+      </div>
+      <div class="sp-filter-field">
+        <label>Employee</label>
+        <input type="text" id="stxfStylist" placeholder="Search name…">
+      </div>
+      <div class="date-custom" id="stxfCustom">
+        <div class="sp-filter-field">
+          <label>From</label>
+          <input type="date" id="stxfFrom">
+        </div>
+        <div class="sp-filter-field">
+          <label>To</label>
+          <input type="date" id="stxfTo">
+        </div>
+      </div>
+      <button class="btn" style="width:auto;padding:9px 18px" onclick="runStxFilter()">Apply</button>
+      <button class="btn-outline" onclick="resetStxFilter()">Reset</button>
+    </div>
+    <div class="sp-table-wrap">
+      <div id="stxTableHost" style="padding:16px;font-size:14px;color:var(--muted2)">Pick a filter and click Apply — showing everything by default can be slow once the backfill fills up.</div>
+    </div>
+  </div>
+  </div><!-- /seg-salestx-browse -->
 
 </div>
 
