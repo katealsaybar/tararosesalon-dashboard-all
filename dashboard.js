@@ -1905,7 +1905,14 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) {
 // to sit here has gone: ledgerNameKey() canonicalises before it reads this map, so an
 // 'ARNI' key could never match again, and ledgerNameFor() would have sent her Phorest
 // rows back to a ledger name that no longer exists (Kate, 4 Sep 2026).
-const PHOREST_RECONCILE_ALIASES = { 'LUCY': 'LUCIA', 'MJ': 'MARY JOY', 'TAMMY': 'TAMRYN', 'KIM': 'KIMBERLY', 'AREANNE': 'PRINCESS' };
+// Hazel Mae is the one stylist whose ledger name is two words. Phorest's legal name
+// (Hazel Mae Marco) cleans to "HAZEL MAE MARCO", and ledgerNameFor()'s fallback takes
+// only the first word — "HAZEL" — on any day the ledger has no row yet and her figures
+// come from Phorest alone (12 Sep and 14 Sep 2026 both did this, the second landing her
+// AED 229 on a phantom "HAZEL" row on Team Performance, Kate flagged 16 Sep 2026). The
+// alias maps to itself so ledgerNameFor's prefix match catches the two-word case before
+// it ever reaches the one-word fallback.
+const PHOREST_RECONCILE_ALIASES = { 'LUCY': 'LUCIA', 'MJ': 'MARY JOY', 'TAMMY': 'TAMRYN', 'KIM': 'KIMBERLY', 'AREANNE': 'PRINCESS', 'HAZEL MAE': 'HAZEL MAE' };
 
 // Non-person rows found in branch_staff_daily (2026-08-02 audit, ~2.8k of ~15k rows) —
 // ledger summary/label rows the sync script misreads as if they were staff rows.
@@ -1934,7 +1941,13 @@ const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTAN
 // Kate, 7 Sep 2026 — Ivy (Al Quoz) too: "ivy sierra is an assistant. should be marked
 // as such". Her profile already carried the role; this is what takes her out of the
 // stylist table, where she sat on a row of zeros.
-const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL', 'IVY']);
+//
+// Kate, 16 Sep 2026 — Frances (Al Quoz) is a Salon Coordinator, not a stylist: same
+// row-of-zeros pattern as the assistants above (27 AQ Hair rows, every one 0 total, 0
+// treatment_aed, Jan-Sep 2026), which is what put her on Team Performance's Hair floor
+// at AED 0. Folded into the same set even though she is front-desk rather than an
+// assistant — the effect needed (pull her out of the stylist maps) is identical.
+const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL', 'IVY', 'FRANCES']);
 
 function isLedgerAssistantName(rawUp) {
   const parts = String(rawUp || '').split('/').map(s => s.trim()).filter(Boolean);
