@@ -24,10 +24,18 @@ const LEDGER_TARGETS = {
 
   // Benchmark ratios. These already agree with TARGETS in dashboard.js, and are
   // repeated per branch in the sheet rather than varied — every branch is held to
-  // the same standard. Rebooking is 45% per branch; the sheet's group row shows
-  // 44% because it is a weighted average of actuals, not a target.
+  // the same standard. Rebooking is 45% per branch pre-September; the sheet's
+  // group row shows 44% because it is a weighted average of actuals, not a target.
+  //
+  // TRS One Source of Truth doctrine raised the Rebooking Rate target to 70+,
+  // effective September 2026 — same cutover as TARGETS.rebookPct in dashboard.js.
+  // Follows lgMonth (the Ledgers month picker, declared in branch-ledger.js), not
+  // this file's own `month` above, so a past month keeps reading against 45 even
+  // after a September+ sheet is keyed in here. Kate, 14 Sep 2026.
   benchmarks: {
-    rebookPct: 45,
+    get rebookPct() {
+      return (typeof lgMonth !== 'undefined' && lgMonth && lgMonth >= '2026-09') ? 70 : 45;
+    },
     treatmentPct: 20,
     retailPct: 12,
     hairAvgBill: 650,

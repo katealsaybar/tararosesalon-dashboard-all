@@ -9,7 +9,21 @@ const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
 const SUPA_KEY = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-const TARGETS = { hairAvgBill: 650, beautyAvgBill: 200, treatmentPct: 20, retailPct: 12, rebookPct: 45, hairUtilPct: 80, beautyUtilPct: 70 };
+// TRS One Source of Truth doctrine sets Treatment % at 30+ and Rebooking Rate at 70+;
+// the dashboard was still scoring against the old 20/45. Raised effective September
+// 2026 — a month before that was never actually asked to clear the new bar, so it
+// keeps reading against the old one. Reference is whichever period is selected
+// (dateTo), falling back to today before a range is picked. Kate, 14 Sep 2026.
+const TARGET_CUTOVER_ISO = '2026-09-01';
+function isPostTargetCutover() {
+  const ref = (typeof dateTo !== 'undefined' && dateTo) ? dateTo : new Date();
+  return dateToIso(ref) >= TARGET_CUTOVER_ISO;
+}
+const TARGETS = {
+  hairAvgBill: 650, beautyAvgBill: 200, retailPct: 12, hairUtilPct: 80, beautyUtilPct: 70,
+  get treatmentPct() { return isPostTargetCutover() ? 30 : 20; },
+  get rebookPct()    { return isPostTargetCutover() ? 70 : 45; },
+};
 
 // `color` is the dark-theme/decorative-dot pastel; `colorLight` is the same hue darkened
 // for use as a light-mode graph fill (same pattern as hairColor/beautyColor elsewhere —
@@ -862,7 +876,7 @@ function heroPeriodPhrasing() {
 // so it stays correct no matter which of renderDashboard()'s early-return
 // paths (loading/empty/error) last touched #mainContent.
 const VIEW_SECTION_LABELS = {
-  dashboard: 'Organisation Pulse', team: 'Team Performance', stylists: 'Staff Cards',
+  dashboard: 'Organisation Pulse', team: 'Team Performance', staffperf: 'Staff Performance', stylists: 'Staff Cards',
   services: 'Service Rankings', clients: 'Top Clients', reviews: 'Salon Reviews',
   branchperf: 'Branch Performance',
   ledgerFinancials: 'Ledgers · Financial Totals',
@@ -877,7 +891,7 @@ const VIEW_SECTION_LABELS = {
 // 'khalifa' and 'saadiyat', which have not existed for months.
 const ALL_VIEWS = [
   'dashboard','branchperf','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
-  'team','stylists','services','clients','reviews','calendar','giveaway','trk',
+  'team','staffperf','stylists','services','clients','reviews','calendar','giveaway','trk',
 ];
 
 // Which pages read the shared branch + period filters. Everything that shows a

@@ -2191,6 +2191,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('dashboard', this)">Organisation Pulse</div>
     <div class="nav-sub lvl2" onclick="showView('branchperf', this)">Branch Performance</div>
     <div class="nav-sub" onclick="showView('team', this)">Team Performance</div>
+    <div class="nav-sub" onclick="showView('staffperf', this)">Staff Performance<span class="nav-note">Under construction</span></div>
     <div class="nav-sub" onclick="showView('stylists', this)">Staff Cards</div>
     <!-- The four branch jumps used to sit here. Kate, 2026-08-14: Stylist Cards
          carries its own "On this page" rail now, so the sidebar copy was the same
@@ -2403,6 +2404,17 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div id="view-team" style="display:none">
     <main id="teamContent" style="max-width:1400px;margin:0 auto;padding:10px 28px 48px">
       <div class="loading">Loading data...</div>
+    </main>
+  </div>
+
+  <!-- STAFF PERFORMANCE — placeholder. Per-staff view (Money Five style: revenue,
+       client count, rebooking, treatment/retail split) once the data + layout are ready. -->
+  <div id="view-staffperf" style="display:none">
+    <main style="max-width:1400px;margin:0 auto;padding:10px 28px 48px">
+      <div class="card" style="text-align:center;padding:48px 24px">
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">Staff Performance</div>
+        <div style="opacity:.65">Under construction — coming soon.</div>
+      </div>
     </main>
   </div>
 
