@@ -65,8 +65,6 @@ const STAFF_PROFILES = {
   'MIMI':      { photo: 'mimi.png',      role: 'Senior Beauty Therapist', branch: 'KCA', ig: 'beauty_bymimi15' },
   'SHILA':     { photo: 'shila.png',     role: 'Senior Beauty Therapist', branch: 'KCA', ig: 'mandalshila' },
   'KIM':       { photo: 'kim.png',       role: 'Senior Nail Technician',  branch: 'KCA', ig: 'kimberly_nails27' },
-  // Her card shipped with the photo box empty — no cutout to make yet.
-  //
   // Keyed ARNALYN, and filed at Saadiyat. Both were wrong here until 4 Sep 2026 and
   // for the same reason: this entry was written by looking up ARNI, which only ever
   // matches her 21 Khalifa cover days. Under ARNALYN she has 212 Saadiyat rows since
@@ -74,7 +72,7 @@ const STAFF_PROFILES = {
   // because staffProfile() and the surname join both canonicalise first — as ARNI
   // she matched neither STAFF_SURNAMES nor anything the ledger writes, which is why
   // her card had no surname on it.
-  'ARNALYN':   {                         role: 'Nail Technician',         branch: 'SAA', ig: 'nailsby_rni13' },
+  'ARNALYN':   { photo: 'arni.png',      role: 'Nail Technician',         branch: 'SAA', ig: 'nailsby_rni13' },
   // Assistants. Kate, 4 Sep 2026: they work the floor and belong on the dashboard as
   // Assistant, which is why the role joined STYLIST_ROLE_ORDER at the same time. No
   // photo for any of them yet, which the map allows - the name renders plain.
