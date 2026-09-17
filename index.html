@@ -1474,6 +1474,11 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .sc-chev{margin-left:auto;flex-shrink:0;color:var(--muted);font-size:14px;transition:transform .2s}
 .sc-item.open .sc-chev{transform:rotate(180deg)}
 
+/* No longer with TRS: photo desaturated, name faded — see the "Former team" block
+   in staff-profiles.js (STAFF_PROFILES) for who this applies to. */
+.sc-photo.is-resigned{filter:grayscale(1)}
+.sc-name.is-resigned{color:var(--muted)}
+
 /* LIST: one line each, the whole team in one scan. */
 .mode-list .sc-head{padding:9px 13px;gap:11px}
 .mode-list .sc-photo{height:52px}
@@ -2542,15 +2547,15 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets.js?v=20260904a"></script>
 <!-- After ledger-targets.js: the Supabase target layer overrides its lookups per month. -->
 <script src="ledger-targets-db.js?v=20260904a"></script>
-<script src="staff-profiles.js?v=20260907a"></script>
+<script src="staff-profiles.js?v=20260917a"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
-<script src="dashboard.js?v=20260917a"></script>
+<script src="dashboard.js?v=20260917c"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260907a"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20260904b"></script>
-<script src="team-performance.js?v=20260917a"></script>
+<script src="team-performance.js?v=20260917b"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=20260907a"></script>
 <script src="pulse-narrative.js?v=20260814a"></script>

@@ -1212,11 +1212,15 @@ function stylistCountLabel(list) {
 function stylistBranchGroups() {
   if (typeof STAFF_PROFILES === 'undefined') return [];
   // Dedupe by photo: alias keys (e.g. a stylist listed under two spellings) point
-  // at the same person and must not produce two cards.
+  // at the same person and must not produce two cards. Falls back to photoFull,
+  // then ig, then the profile's own (always-unique) name key — without that last
+  // fallback, anyone with neither a photo nor an Instagram handle (e.g. Stuart,
+  // Goncalo, or current assistants like Ercely) had no key at all and silently
+  // never rendered. Kate, 17 Sep 2026.
   const seen = new Set();
-  const people = Object.entries(STAFF_PROFILES).filter(([, p]) => {
-    const k = p.photo || p.ig;
-    if (!k || seen.has(k)) return false;
+  const people = Object.entries(STAFF_PROFILES).filter(([name, p]) => {
+    const k = p.photo || p.photoFull || p.ig || name;
+    if (seen.has(k)) return false;
     seen.add(k); return true;
   });
 
@@ -1297,8 +1301,16 @@ function renderStylistCards() {
       // No border-radius or background on the image: the rounded accent block is
       // part of the PNG, and clipping it would remove the head overhang. Sizing
       // lives in .sc-photo, which each density mode overrides.
-      const photo = s.photo
-        ? `<img class="sc-photo" src="assets/staff/${encodeURIComponent(s.photo)}" alt="" loading="lazy"
+      // `resigned` (former team, kept for the record) desaturates the photo and
+      // fades the name below — see the STAFF_PROFILES comment on this section.
+      // `photoFull` is a repo-relative path (used for former team whose photo lives
+      // outside assets/staff/) — encodeURI, not encodeURIComponent, so its slashes
+      // survive; plain `photo` stays relative to assets/staff/ as before.
+      const photo = s.photoFull
+        ? `<img class="sc-photo${s.resigned ? ' is-resigned' : ''}" src="${encodeURI(s.photoFull)}" alt="" loading="lazy"
+               onerror="this.style.display='none'">`
+        : s.photo
+        ? `<img class="sc-photo${s.resigned ? ' is-resigned' : ''}" src="assets/staff/${encodeURIComponent(s.photo)}" alt="" loading="lazy"
                onerror="this.style.display='none'">`
         : '';
       // STYLIST_CARDS is the roster of who has artwork: its 44 keys match the 44
@@ -1320,7 +1332,7 @@ function renderStylistCards() {
           <div class="sc-head"${card ? ' onclick="toggleStylistCard(this)" aria-expanded="false"' : ''}>
             ${photo}
             <div class="sc-meta">
-              <div class="sc-name">${whoName}</div>
+              <div class="sc-name${s.resigned ? ' is-resigned' : ''}">${whoName}</div>
               <div class="sc-role" style="color:${colour}">${escapeHtml(s.role || '')}</div>
               <div class="sc-handle">${handle}</div>
             </div>
@@ -1337,7 +1349,7 @@ function renderStylistCards() {
                   scroll-margin-top:170px">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
                      background:${colour};flex-shrink:0"></span>
-        ${escapeHtml(label)} · ${stylistCountLabel(list)}
+        ${escapeHtml(b === 'other' ? 'Former Team' : label)} · ${stylistCountLabel(list)}
       </div>
       <div class="sc-grid mode-${stylistViewMode}">${cards}</div>`;
   }).join('');
@@ -1603,6 +1615,22 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
   return { summary: s, hairStaff, beautyStaff };
 }
 
+// The key every staff map below is built and merged on. Same alias resolution
+// as canonicalStaffName, then trimmed/upper-cased, so a stylist logged as
+// "Chalani" in one upload and "CHALANI" in the next lands in the same bucket
+// instead of splitting her figures across two silent entries. Kate, 17 Sep
+// 2026, found via Team Performance printing Khalifa City twice on one card —
+// the branch was fine, the row for it was just cut in half by casing.
+// canonicalStaffName() itself only resolves known misspellings and returns
+// whatever casing it was given otherwise, which is exactly why every map here
+// needs this on top of it rather than relying on canonicalStaffName alone.
+// The DISPLAY name (map[key].name) is untouched — only which bucket a row's
+// numbers land in changes.
+function staffMapKey(name) {
+  const canon = (typeof canonicalStaffName === 'function') ? canonicalStaffName(name) : name;
+  return String(canon || '').trim().toUpperCase();
+}
+
 // Adds a Phorest-only staff map onto a ledger-joined one, name by name, every numeric
 // field summed. ledgerClients keeps the client count that came through the ledger,
 // so a stylist's rebooking and NCR percentages can be read against the clients the
@@ -1611,7 +1639,8 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
 function mergeStaffMaps(ledgerMap, phorestMap) {
   const out = {};
   const add = (src, fromLedger) => Object.values(src || {}).forEach(st => {
-    const cur = out[st.name] || (out[st.name] = { name: st.name, ledgerClients: 0 });
+    const key = staffMapKey(st.name);
+    const cur = out[key] || (out[key] = { name: st.name, ledgerClients: 0 });
     Object.keys(st).forEach(k => { if (k !== 'name' && k !== 'ledgerClients' && typeof st[k] === 'number') cur[k] = (cur[k] || 0) + st[k]; });
     if (fromLedger) cur.ledgerClients += Number(st.total) || 0;
   });
@@ -1650,11 +1679,12 @@ function buildPhorestOnlyStaffMaps(phorestRows) {
     if (isLedgerAssistantName(name)) return;
     const isBeauty = deptMap[name] === 'beauty';
     const map = isBeauty ? beautyMap : hairMap;
-    if (!map[name]) {
-      map[name] = { name, total: 0, newC: 0, rebooked: 0, req: 0, salon: 0, newClientReq: 0,
+    const key = staffMapKey(name);
+    if (!map[key]) {
+      map[key] = { name, total: 0, newC: 0, rebooked: 0, req: 0, salon: 0, newClientReq: 0,
         hairSalesNet: 0, retail: 0, treatments: 0, beautySales: 0, courses: 0, treatmentUnits: 0, retailUnits: 0 };
     }
-    const st = map[name];
+    const st = map[key];
     st.total += Number(r.visits) || 0;
     st.newC  += Number(r.new_clients) || 0;
     const svc = (Number(r.services_ex_vat) || 0) + (Number(r.courses_ex_vat) || 0);
@@ -1978,9 +2008,7 @@ const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTAN
 // Kate, 1 Sep 2026 — Dorah, Pearl and the CHONA/ ESTHER row are assistants too:
 // "they should be named assistants per branch talaga, no name". Same treatment as
 // Chona. The branch files write the Khalifa City row as "CHONA/ ESTHER", so names
-// are checked per slash-separated part, not on the raw string only. Marjorie
-// (Al Quoz) is an Assistant in Phorest as well but Kate has not named her — left
-// alone until she does.
+// are checked per slash-separated part, not on the raw string only.
 //
 // Kate, 7 Sep 2026 — Ivy (Al Quoz) too: "ivy sierra is an assistant. should be marked
 // as such". Her profile already carried the role; this is what takes her out of the
@@ -1991,7 +2019,11 @@ const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTAN
 // treatment_aed, Jan-Sep 2026), which is what put her on Team Performance's Hair floor
 // at AED 0. Folded into the same set even though she is front-desk rather than an
 // assistant — the effect needed (pull her out of the stylist maps) is identical.
-const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL', 'IVY', 'FRANCES']);
+//
+// Kate, 17 Sep 2026 — Margie (Al Quoz) confirmed off Phorest's own Staff list:
+// Marjorie Sevilla, an Assistant, not the misread-row bug staff-profiles.js had
+// flagged her as. Same all-zeros pattern as the others; same fix.
+const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL', 'IVY', 'FRANCES', 'MARGIE']);
 
 function isLedgerAssistantName(rawUp) {
   const parts = String(rawUp || '').split('/').map(s => s.trim()).filter(Boolean);
@@ -2057,8 +2089,9 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
     const isBeauty = String(r.dept || '').trim().toLowerCase() === 'beauty';
     const rev = matchRevenue(r.branch, r.date, r.staff_name) || { services: 0, courses: 0, products: 0 };
     const map = isBeauty ? beautyMap : hairMap;
-    if (!map[name]) {
-      map[name] = {
+    const key = staffMapKey(name);
+    if (!map[key]) {
+      map[key] = {
         name, total: 0, newC: 0, rebooked: 0, req: 0, salon: 0, newClientReq: 0,
         hairSalesNet: 0, retail: 0, treatments: 0, beautySales: 0,
         // Courses PERFORMED — Phorest's "Courses (perf)" column, so redeemed sessions,
@@ -2072,7 +2105,7 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
         treatmentUnits: 0, retailUnits: 0,
       };
     }
-    const st = map[name];
+    const st = map[key];
     st.total        += r.total      || 0;
     st.newC         += r.new_client || 0;
     st.rebooked     += r.rebooked   || 0;
@@ -2406,10 +2439,11 @@ function aggData(datasets) {
       const retailVal = Number(
         st.retail ?? st.retailSales ?? st.productSales ?? st.product ?? 0
       ) || 0;
-      if (!hairMap[st.name]) {
-        hairMap[st.name] = { ...st, retail: retailVal };
+      const key = staffMapKey(st.name);
+      if (!hairMap[key]) {
+        hairMap[key] = { ...st, retail: retailVal };
       } else {
-        const a = hairMap[st.name];
+        const a = hairMap[key];
         a.total        += st.total;
         a.newC         += st.newC;
         a.rebooked     += st.rebooked;
@@ -2422,14 +2456,15 @@ function aggData(datasets) {
       }
     });
     (d.beautyStaff || []).forEach(st => {
-      if (!beautyMap[st.name]) beautyMap[st.name] = { ...st };
+      const key = staffMapKey(st.name);
+      if (!beautyMap[key]) beautyMap[key] = { ...st };
       else {
-        beautyMap[st.name].total       += st.total;
-        beautyMap[st.name].beautySales += st.beautySales;
-        beautyMap[st.name].rebooked    += (st.rebooked || 0);
-        beautyMap[st.name].newC        += (st.newC || 0);
-        beautyMap[st.name].req         += (st.req || 0);
-        beautyMap[st.name].salon       += (st.salon || 0);
+        beautyMap[key].total       += st.total;
+        beautyMap[key].beautySales += st.beautySales;
+        beautyMap[key].rebooked    += (st.rebooked || 0);
+        beautyMap[key].newC        += (st.newC || 0);
+        beautyMap[key].req         += (st.req || 0);
+        beautyMap[key].salon       += (st.salon || 0);
       }
     });
   });

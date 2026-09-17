@@ -90,6 +90,41 @@ const STYLIST_SURNAMES = {
   "Marjorie":      "Sevilla",
   "Oliver":        "Green",
   "Stuart":        "Hastings",
+  // Kate, 16 Sep 2026 — kept in sync with staff-profiles.js's STAFF_SURNAMES (see
+  // that file's comment for the same list). MAY, "Lhang Ann" and "Xavrina X" stay
+  // out for the same reasons noted there. Marjorie was in the same boat until Kate
+  // confirmed her (17 Sep 2026, off Phorest's own Staff list) — added above.
+  "Abbie":         "Tuazon",
+  "Apol":          "Santos",
+  "Ara":           "Gonzales",
+  "Belle":         "Bustos",
+  "Beverly":       "Arambala",
+  "Cori":          "Paul",
+  "Cristina":      "Cucos",
+  "Cristine":      "Bracamonte",
+  "Eden":          "Domasin",
+  "Elena":         "Bacabac",
+  "Emin":          "Salamovic",
+  "Ercely":        "Vacal",
+  "Esther":        "Gabutin",
+  "Hazel":         "Alcala",
+  "Jessa":         "Padilla",
+  "Jho":           "Cairel",
+  "Joy":           "Hernando",
+  "Joyce":         "Dy",
+  "Kaisha":        "Balbuena",
+  "Kris":          "Asuncion",
+  "Laila":         "Pabico",
+  "Liberty":       "Caparas",
+  "Lorainne":      "Palmon",
+  "Luningning":    "Stevens",
+  "Maan":          "Solis",
+  "Neeka":         "Kainth",
+  "Shiela":        "Avena",
+  "Simon":         "Faddoul",
+  "Sunitha":       "Dhakshinamurtht",
+  "Vicki":         "Taylor",
+  "Zandra":        "Competente",
 };
 
 // Map first name → photo path (relative to stylist/photos/)
@@ -224,6 +259,19 @@ const STYLIST_IG = {
   "Galina":     "https://www.instagram.com/galina_spierling",
   "Mj":         "https://www.instagram.com/mj_torresgalos"
 };
+
+// Stylists who no longer work at TRS. They stay in STYLIST_SURNAMES/PHOTOS/IG above
+// so past periods still show their real name, photo and handle — this list only
+// controls the black-and-white/faded treatment so it's clear at a glance they've
+// left. Hand-maintained: add a first name here the day someone resigns, remove it
+// if she comes back (see Hazel Mae, who left this list when her 2nd-batch card and
+// STAFF_PROFILES entry came back, Sep 2026). Keys match STYLIST_PHOTOS spelling.
+const STYLIST_RESIGNED = new Set([
+  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika",
+]);
+function isResignedStylist(cleanName) {
+  return STYLIST_RESIGNED.has(cleanName);
+}
 
 const BRANCH_INFO = {
   KCA:{ name:'Khalifa City',  color:'#FFD4D9' },
@@ -698,8 +746,9 @@ function renderSection(list, gridId, title, count, titleId){
     const igUrl     = STYLIST_IG[cleanName];
     const surname   = STYLIST_SURNAMES[cleanName] || '';
     const photoFile = STYLIST_PHOTOS[cleanName];
+    const resigned  = isResignedStylist(cleanName);
     const avatarHTML = photoFile
-      ? `<img class="stylist-avatar stylist-avatar-photo" src="photos/${photoFile}" alt="${s.name}" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src=this.src.replace(/\\.\\w+$/,'.jfif')}else{this.style.display='none';this.nextElementSibling.style.display='flex'}"><div class="stylist-avatar" style="background:${s.color};display:none">${initials(s.name)}</div>`
+      ? `<img class="stylist-avatar stylist-avatar-photo${resigned ? ' is-resigned' : ''}" src="photos/${photoFile}" alt="${s.name}" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src=this.src.replace(/\\.\\w+$/,'.jfif')}else{this.style.display='none';this.nextElementSibling.style.display='flex'}"><div class="stylist-avatar" style="background:${s.color};display:none">${initials(s.name)}</div>`
       : `<div class="stylist-avatar" style="background:${s.color}">${initials(s.name)}</div>`;
 
     // Branch accent colour for card top bar + avatar ring
@@ -722,7 +771,7 @@ function renderSection(list, gridId, title, count, titleId){
           <div style="min-width:0;flex:1">
             <div style="display:flex;align-items:center;gap:6px">
               <span class="card-rank">${rankLabel}</span>
-              <div class="stylist-card-name">${displayName(cleanName)}${surname ? ' ' + surname : ''}</div>
+              <div class="stylist-card-name${resigned ? ' is-resigned' : ''}">${displayName(cleanName)}${surname ? ' ' + surname : ''}</div>
             </div>
             ${(REVERSE_ALIASES[cleanName] && !DISPLAY_NAME_OVERRIDES[cleanName]) ? `<div class="stylist-card-nickname">${REVERSE_ALIASES[cleanName]}</div>` : ''}
             <div class="stylist-card-type" style="margin-top:4px">
@@ -806,20 +855,20 @@ function renderDetail(s){
   const retailClass    = st.retailPct >= 12 ? 'good' : st.retailPct >= 8 ? 'warn' : 'bad';
   const treatmentClass = st.treatmentPct >= 20 ? 'good' : st.treatmentPct >= 10 ? 'warn' : 'bad';
   const colClass = st.colPct >= 60 ? 'good' : st.colPct >= 40 ? '' : 'bad';
-  
+  const detailCleanName = s.name.toLowerCase().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+  const detailResigned  = isResignedStylist(detailCleanName);
+
   panel.innerHTML = `
     <div class="detail-header">
       ${(()=>{
-        const cn = s.name.toLowerCase().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
-        const pf = STYLIST_PHOTOS[cn];
+        const pf = STYLIST_PHOTOS[detailCleanName];
         return pf
-          ? `<img class="detail-avatar detail-avatar-photo" src="photos/${pf}" alt="${s.name}" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src=this.src.replace(/\\.\\w+$/,'.jfif')}else{this.style.display='none';this.nextElementSibling.style.display='flex'}"><div class="detail-avatar" style="background:${s.color};display:none">${initials(s.name)}</div>`
+          ? `<img class="detail-avatar detail-avatar-photo${detailResigned ? ' is-resigned' : ''}" src="photos/${pf}" alt="${s.name}" onerror="if(!this.dataset.tried){this.dataset.tried=1;this.src=this.src.replace(/\\.\\w+$/,'.jfif')}else{this.style.display='none';this.nextElementSibling.style.display='flex'}"><div class="detail-avatar" style="background:${s.color};display:none">${initials(s.name)}</div>`
           : `<div class="detail-avatar" style="background:${s.color}">${initials(s.name)}</div>`;
       })()}
       <div>
-        <div class="detail-name">${(()=>{
-  const cn  = s.name.toLowerCase().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
-  const sn  = STYLIST_SURNAMES[cn] || '';
+        <div class="detail-name${detailResigned ? ' is-resigned' : ''}">${(()=>{
+  const sn  = STYLIST_SURNAMES[detailCleanName] || '';
   return `${displayName(s.name)}${sn?' '+sn:''}`;
 })()}</div>
         <div class="detail-sub" style="display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:3px">

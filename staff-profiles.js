@@ -151,9 +151,30 @@ const STAFF_PROFILES = {
   'GALINA':    { photo: 'galina.png',    role: 'Beauty Therapist', branch: 'AQ', ig: 'galina_spierling' },
   'IVY':       { role: 'Assistant', branch: 'AQ' },
   'LUNINGNING':{ role: 'Assistant', branch: 'AQ' },
+  // Kate, 17 Sep 2026, confirmed off Phorest's Staff list: Marjorie Sevilla, an
+  // Assistant, not a stylist — the all-zero ledger rows under her name are exactly
+  // what an assistant's row looks like, not a misread.
+  'MARGIE':    { role: 'Assistant', branch: 'AQ' },
   // No entry yet for ANDREA (Gladstone) or SIMON (Faddoul) on purpose. Kate, 7 Sep 2026:
   // neither has a visa yet, so no card until the visa is in and the trade test is passed.
   // Andrea's surname is in STAFF_SURNAMES below so her table row reads in full meanwhile.
+
+  // -- Former team, kept for the record (Kate, 17 Sep 2026) --
+  // `resigned: true` renders the card in black-and-white/faded (dashboard.js
+  // renderStylistCards()) instead of leaving them off the grid entirely. None of
+  // them has a cutout in assets/staff/, so `photoFull` points straight at the plain
+  // photo already sitting in stylist/photos/ for the standalone Stylist page — a
+  // flat crop, not the accent-block cutout style the current cards use, but B&W
+  // narrows that gap. Stuart and Goncalo have no photo anywhere, so they render on
+  // name alone, same as anyone else in this file without a `photo`. `role` is a
+  // neutral placeholder, not their real title — Kate to correct if it matters.
+  'SAMANTHA': { photoFull: 'stylist/photos/KCA/samantha amad.png', role: 'Former Team Member', branch: 'KCA', ig: 'samanthaahmadhair', resigned: true },
+  'SOPHIE':   { photoFull: 'stylist/photos/KCA/sophie harrison.jpg', role: 'Former Team Member', branch: 'KCA', ig: 'sophiepatriciahair', resigned: true },
+  'TONI':     { photoFull: 'stylist/photos/KCA/toni brits.png', role: 'Former Team Member', branch: 'KCA', resigned: true },
+  'ZANDRI':   { photoFull: 'stylist/photos/MC/zandri wilson.jpg', role: 'Former Team Member', branch: 'MC', ig: 'hairby.zandri', resigned: true },
+  'DANIKA':   { photoFull: 'stylist/photos/SAA/danika ogrady.jfif', role: 'Former Team Member', branch: 'SAA', ig: 'hairby_danika', resigned: true },
+  'STUART':   { role: 'Former Team Member', branch: 'other', resigned: true },
+  'GONCALO':  { role: 'Former Team Member', branch: 'other', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
@@ -250,6 +271,48 @@ const STAFF_SURNAMES = {
   'TONI':      'Brits',
   'XYRHY':     'Unisa',
   'ZANDRI':    'Wilson',
+
+  // Kate, 16 Sep 2026 — "lagyan mo na lahat ng apelyido across all sections", filled
+  // in off the Staff Performance / Utilisation uploads (Phorest spelling, same rule as
+  // CHALANI/IVY above). MAY is deliberately NOT touched here: there are two of her
+  // (Fernandez at Khalifa City, Manguiat at Saadiyat) and this map only holds one
+  // surname per first name — ask Kate before picking one. LHANG ANN and XAVRINA X
+  // stay blank on purpose, same reasoning as Lhang Ann above.
+  'ABBIE':     'Tuazon',
+  'APOL':      'Santos',
+  'ARA':       'Gonzales',
+  'BELLE':     'Bustos',
+  'BEVERLY':   'Arambala',
+  'CORI':      'Paul',
+  'CRISTINA':  'Cucos',
+  'CRISTINE':  'Bracamonte',
+  'EDEN':      'Domasin',
+  'ELENA':     'Bacabac',
+  'EMIN':      'Salamovic',
+  'ERCELY':    'Vacal',
+  'ESTHER':    'Gabutin',
+  'HAZEL':     'Alcala',
+  'JESSA':     'Padilla',
+  'JHO':       'Cairel',
+  'JOY':       'Hernando',
+  'JOYCE':     'Dy',
+  'KAISHA':    'Balbuena',
+  'KRIS':      'Asuncion',
+  'LAILA':     'Pabico',
+  'LIBERTY':   'Caparas',
+  'LORAINNE':  'Palmon',
+  'LUNINGNING':'Stevens',
+  'MAAN':      'Solis',
+  // Kate, 17 Sep 2026, off Phorest's own Staff list: not a misread ledger row after
+  // all — Marjorie Sevilla, an Assistant at Al Quoz, same as the other assistants
+  // below. Was flagged unresolved above until now.
+  'MARGIE':    'Sevilla',
+  'NEEKA':     'Kainth',
+  'SHIELA':    'Avena',
+  'SIMON':     'Faddoul',
+  'SUNITHA':   'Dhakshinamurtht',
+  'VICKI':     'Taylor',
+  'ZANDRA':    'Competente',
 };
 
 // The surname on its own, canonical name in and Title Case out, or null when we do

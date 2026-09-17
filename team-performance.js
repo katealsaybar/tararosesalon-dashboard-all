@@ -40,23 +40,32 @@ const tpNum  = n => Math.round(Number(n) || 0).toLocaleString('en-GB');
 const tpPct  = n => (Math.round((Number(n) || 0) * 10) / 10) + '%';
 
 // ── STATE ────────────────────────────────────────────────────
-// Which bench is on show, and who is in the tray. The tray holds branch|name
-// keys rather than objects: the objects are rebuilt on every filter change, so
+// Which bench is on show, and who is in the tray. The tray holds mergeKey
+// strings rather than objects: the objects are rebuilt on every filter change, so
 // holding one would pin a stylist's January figures into an August comparison.
 let tpDept = 'hair';
 let tpCompare = [];
 const TP_MAX_COMPARE = 3;
-const tpKey = st => st.branchCode + '|' + st.name;
+const tpKey = st => st.mergeKey;
 
-// The selected bench, flattened across whichever branches are in the filter,
-// each stylist tagged with where she works. Sorted by net salon take: the podium
-// and the floor are one ranked list, cut at three.
-//
-// Per branch and then flattened — rather than aggregating the whole selection at
-// once — is what lets every stylist carry the branch she worked in. Nicknames
-// repeat across branches (Chalani is at both Khalifa City and Motor City), so
-// name alone is never a key here. Same reason the ledger's stylist rows are
-// keyed branch + dept + name.
+// The canonical key a stylist's rows are grouped under — same resolution
+// staff-profiles.js's surname join uses, so LUCIA folds into LUCY here too.
+function tpMergeKey(name) {
+  const canon = (typeof canonicalStaffName === 'function') ? canonicalStaffName(name) : name;
+  return String(canon).trim().toUpperCase();
+}
+
+// First names that are genuinely two different colleagues, not one stylist
+// covering two branches — merging these would move one person's revenue onto
+// another. staff-profiles.js's STAFF_SURNAMES carries the same call for MAY:
+// Fernandez at Khalifa City, Manguiat at Saadiyat, kept apart on purpose.
+const TP_SPLIT_NAMES = new Set(['MAY']);
+
+// One card per stylist, kahit ilang branch niya na-cover sa window — Kate, 17
+// Sep 2026. Rows come in per branch (staff work cover shifts, Chalani is a
+// regular at both Khalifa City and Motor City), so they are grouped by
+// mergeKey and summed before the podium/floor ever see them; TP_SPLIT_NAMES is
+// the one opt-out, for a shared first name that is not a shared person.
 //
 // aggByBranch() rather than a private aggregator: it is the one place that knows
 // which source answers for a given window — weekly_totals for whole weeks, the
@@ -66,12 +75,12 @@ const tpKey = st => st.branchCode + '|' + st.name;
 function tpRoster(dept) {
   const byBranch = (typeof aggByBranch === 'function') ? aggByBranch() : {};
   const branches = sel.branch.includes('all') ? ACTIVE_BRANCHES : sel.branch;
-  const list = [];
+  const rows = [];
   branches.forEach(code => {
     const bd = byBranch[code];
     if (!bd) return;
     const staff = dept === 'beauty' ? bd.beautyStaff : bd.hairStaff;
-    staff.forEach(st => list.push({
+    staff.forEach(st => rows.push({
       ...st,
       isBeauty:    dept === 'beauty',
       branchCode:  code,
@@ -82,7 +91,74 @@ function tpRoster(dept) {
       net: st.netSalonTake || 0,
     }));
   });
+
+  const groups = {}, order = [];
+  rows.forEach(r => {
+    const canon = tpMergeKey(r.name);
+    const key = TP_SPLIT_NAMES.has(canon) ? (canon + '|' + r.branchCode) : canon;
+    if (!groups[key]) { groups[key] = []; order.push(key); }
+    groups[key].push(r);
+  });
+  const list = order.map(key => tpCombine(groups[key], key));
   return list.sort((a, b) => (b.net || 0) - (a.net || 0));
+}
+
+// Sums the additive figures across every branch a stylist worked in the
+// selected window, then rebuilds the ratios from those totals rather than
+// averaging percentages — a 90%-rebooking week of 10 clients at one branch and
+// a 20%-rebooking week of 40 at another must not average out to 55%.
+function tpCombine(group, mergeKey) {
+  const first = group[0];
+  if (group.length === 1) return { ...first, mergeKey, branches: [{ code: first.branchCode, name: first.branchName, color: first.branchColor }] };
+
+  const sum = k => group.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+  const total        = sum('total');
+  const rebooked     = sum('rebooked');
+  const treatments   = sum('treatments');
+  const retail       = sum('retail');
+  const hairSalesNet = sum('hairSalesNet');
+  const beautySales  = sum('beautySales');
+  const net          = sum('net');
+  const services     = first.isBeauty ? beautySales : hairSalesNet;
+  // Every branch she touched gets its own dot on the card, largest net take
+  // first. Grouped by branch code rather than listed per row: the same branch
+  // can appear twice in `group` when the ledger logged her name in two
+  // different cases that week (e.g. "CHALANI" one upload, "Chalani" the next) —
+  // canonicalStaffName folds those into one card here, but without this the
+  // branch tag would print "Khalifa City + Khalifa City".
+  const byBranch = {};
+  group.forEach(r => {
+    if (!byBranch[r.branchCode]) byBranch[r.branchCode] = { code: r.branchCode, name: r.branchName, color: r.branchColor, net: 0 };
+    byBranch[r.branchCode].net += r.net || 0;
+  });
+  const branches = Object.values(byBranch).sort((a, b) => b.net - a.net);
+
+  return {
+    ...first,
+    mergeKey,
+    total, rebooked, newC: sum('newC'), req: sum('req'), salon: sum('salon'),
+    treatments, retail, hairSalesNet, beautySales, net, netSalonTake: net,
+    avgBill:      total ? services / total : 0,
+    rebookPct:    total ? (rebooked / total * 100) : 0,
+    treatmentPct: hairSalesNet ? (treatments / hairSalesNet * 100) : 0,
+    retailPct:    net ? (retail / net * 100) : 0,
+    branchCode:   branches[0].code,
+    branchName:   branches.map(b => b.name).join(' + '),
+    branchColor:  branches[0].color,
+    branches,
+  };
+}
+
+// The branch tag: one dot for a single-branch stylist, exactly as before, or
+// one dot per branch she worked this window for a merged card — so "combined"
+// reads as combined rather than quietly picking one branch to show.
+function tpBranchTag(st) {
+  if (!st.branches || st.branches.length < 2) {
+    return `<span class="tp-bdot" style="background:${st.branchColor}"></span>${escapeHtml(st.branchName)}`;
+  }
+  return st.branches.map(b =>
+    `<span class="tp-bdot" style="background:${b.color}"></span>${escapeHtml(b.name)}`
+  ).join(' + ');
 }
 
 // ── AVATARS ──────────────────────────────────────────────────
@@ -241,7 +317,7 @@ function tpPodiumCard(st, i) {
       <div class="tp-pod-who">
         <div class="tp-pod-nm">${name}</div>
         ${prof && prof.role ? `<div class="tp-role">${escapeHtml(prof.role)}</div>` : ''}
-        <div class="tp-branch"><span class="tp-bdot" style="background:${st.branchColor}"></span>${escapeHtml(st.branchName)}</div>
+        <div class="tp-branch">${tpBranchTag(st)}</div>
       </div>
     </div>
     <div class="tp-pod-fig">
@@ -269,7 +345,7 @@ function tpFloorRow(st, rank) {
       <div class="tp-row-nm">${(typeof staffWho === 'function')
         ? staffWho(st.name, plain, { dept: tpDept, branch: st.branchCode }) : plain}</div>
       <div class="tp-row-s tabular">${tpAed(st.net)} · ${tpPct(st.rebookPct)} rebook</div>
-      <div class="tp-branch"><span class="tp-bdot" style="background:${st.branchColor}"></span>${escapeHtml(st.branchName)}</div>
+      <div class="tp-branch">${tpBranchTag(st)}</div>
     </div>
     <button class="tp-add ${picked ? 'on' : ''}" onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')"
       aria-label="${picked ? 'Remove from comparison' : 'Add to comparison'}">${picked ? '✓' : '+'}</button>
@@ -348,7 +424,7 @@ function tpTrayMatrix(picked, roster) {
         ${tpAvatar(st.name, 'sm')}
         <div class="tp-cmp-meta">
           <div class="tp-cmp-nm">${nm}</div>
-          <div class="tp-cmp-br"><span class="tp-bdot" style="background:${st.branchColor}"></span>${escapeHtml(st.branchName)}</div>
+          <div class="tp-cmp-br">${tpBranchTag(st)}</div>
         </div>
         <button class="tp-x" onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')"
           aria-label="Remove ${escapeHtml(st.name)} from comparison">×</button>
