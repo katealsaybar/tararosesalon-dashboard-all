@@ -227,9 +227,12 @@ function tpPodiumCard(st, i) {
     ? `<a href="https://instagram.com/${encodeURIComponent(prof.ig)}" target="_blank" rel="noopener noreferrer"
          title="@${escapeHtml(prof.ig)} on Instagram">${nm}</a>`
     : nm;
+  // Outside the Instagram link, same convention as the stylist cards (sc-last):
+  // the link is the first name, and a surname that opened Instagram would surprise.
+  const surname = prof && prof.last ? ` <span class="tp-last">${escapeHtml(prof.last)}</span>` : '';
   // Wrapped for the hover menu (staff-links.js): her card and her branch figures.
   const name = (typeof staffWho === 'function')
-    ? staffWho(st.name, linked, { dept: tpDept, branch: st.branchCode }) : linked;
+    ? staffWho(st.name, linked + surname, { dept: tpDept, branch: st.branchCode }) : linked + surname;
   const picked = tpCompare.includes(tpKey(st));
   return `<div class="card tp-pod" style="--tp-medal:${medal}">
     <div class="tp-pod-rk">${i + 1}</div>
@@ -256,12 +259,15 @@ function tpPodiumCard(st, i) {
 // whether they came back. Everything else is a tap away in the tray.
 function tpFloorRow(st, rank) {
   const picked = tpCompare.includes(tpKey(st));
+  const nm = escapeHtml(st.name);
+  const last = (typeof staffSurname === 'function') ? staffSurname(st.name) : null;
+  const plain = last ? `${nm} <span class="tp-last">${escapeHtml(last)}</span>` : nm;
   return `<div class="card tp-row">
     <span class="tp-rk tabular">${rank}</span>
     ${tpAvatar(st.name, 'sm')}
     <div class="tp-row-who">
       <div class="tp-row-nm">${(typeof staffWho === 'function')
-        ? staffWho(st.name, escapeHtml(st.name), { dept: tpDept, branch: st.branchCode }) : escapeHtml(st.name)}</div>
+        ? staffWho(st.name, plain, { dept: tpDept, branch: st.branchCode }) : plain}</div>
       <div class="tp-row-s tabular">${tpAed(st.net)} · ${tpPct(st.rebookPct)} rebook</div>
       <div class="tp-branch"><span class="tp-bdot" style="background:${st.branchColor}"></span>${escapeHtml(st.branchName)}</div>
     </div>
@@ -334,16 +340,20 @@ function tpTrayMatrix(picked, roster) {
 
   const head = `<tr>
     <th class="tp-cmp-k">Metric</th>
-    ${picked.map(st => `<th class="tp-cmp-who">
+    ${picked.map(st => {
+      const last = (typeof staffSurname === 'function') ? staffSurname(st.name) : null;
+      const nm = escapeHtml(st.name) + (last ? ` <span class="tp-last">${escapeHtml(last)}</span>` : '');
+      return `<th class="tp-cmp-who">
       <div class="tp-cmp-hd">
         ${tpAvatar(st.name, 'sm')}
         <div class="tp-cmp-meta">
-          <div class="tp-cmp-nm">${escapeHtml(st.name)}</div>
+          <div class="tp-cmp-nm">${nm}</div>
           <div class="tp-cmp-br"><span class="tp-bdot" style="background:${st.branchColor}"></span>${escapeHtml(st.branchName)}</div>
         </div>
         <button class="tp-x" onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')"
           aria-label="Remove ${escapeHtml(st.name)} from comparison">×</button>
-      </div></th>`).join('')}
+      </div></th>`;
+    }).join('')}
     <th class="tp-cmp-agg r">Bench avg</th>
     <th class="tp-cmp-agg r">Target</th>
   </tr>`;

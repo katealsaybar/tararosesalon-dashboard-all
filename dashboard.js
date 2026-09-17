@@ -1186,6 +1186,29 @@ function updateStylistBar() {
 // same grouping the page is: one list, one order, one set of counts. Two readings of
 // STAFF_PROFILES would eventually disagree, and a rail that offers a section the page
 // doesn't have is worse than no rail.
+// Kate, 16 Sep 2026: the branch heading's count read "16 stylists" for Khalifa City
+// even though 6 of those 16 are beauty/nail roles, not stylists — "should be 10
+// stylists · 2 blow dry specialists · 3 senior beauty therapists · 1 senior nail
+// technician". The four hair-floor roles (Style Director through Junior Stylist)
+// collapse into one "stylist" bucket; everything else in STYLIST_ROLE_ORDER gets its
+// own count, in that order, and only roles actually present in the group are shown.
+const STYLIST_COUNT_HAIR_ROLES = new Set(['Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist']);
+
+function stylistCountLabel(list) {
+  const counts = new Map();
+  list.forEach(s => {
+    const bucket = STYLIST_COUNT_HAIR_ROLES.has(s.role) ? 'stylist' : String(s.role || '').toLowerCase().replace(/-/g, ' ');
+    counts.set(bucket, (counts.get(bucket) || 0) + 1);
+  });
+  const order = ['stylist', ...STYLIST_ROLE_ORDER
+    .filter(r => !STYLIST_COUNT_HAIR_ROLES.has(r))
+    .map(r => r.toLowerCase().replace(/-/g, ' '))];
+  return order
+    .filter(bucket => counts.has(bucket))
+    .map(bucket => `${counts.get(bucket)} ${bucket}${counts.get(bucket) === 1 ? '' : 's'}`)
+    .join(' · ');
+}
+
 function stylistBranchGroups() {
   if (typeof STAFF_PROFILES === 'undefined') return [];
   // Dedupe by photo: alias keys (e.g. a stylist listed under two spellings) point
@@ -1314,7 +1337,7 @@ function renderStylistCards() {
                   scroll-margin-top:170px">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
                      background:${colour};flex-shrink:0"></span>
-        ${escapeHtml(label)} · ${list.length} stylist${list.length === 1 ? '' : 's'}
+        ${escapeHtml(label)} · ${stylistCountLabel(list)}
       </div>
       <div class="sc-grid mode-${stylistViewMode}">${cards}</div>`;
   }).join('');
@@ -1930,7 +1953,14 @@ const PHOREST_RECONCILE_ALIASES = { 'LUCY': 'LUCIA', 'MJ': 'MARY JOY', 'TAMMY': 
 
 // Non-person rows found in branch_staff_daily (2026-08-02 audit, ~2.8k of ~15k rows) —
 // ledger summary/label rows the sync script misreads as if they were staff rows.
-const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTANTS', 'ASISSTANTS', 'RETAIL', 'RETAIL SALES', ']']);
+//
+// Kate, 16 Sep 2026 — OR/ABCR/BWR are the retail sub-category codes from the same
+// breakdown table parser.js sums under RETAIL (see its ['KMR','SKR','ABCR','BWR','OR',...]
+// list), and KMR/SKR/ABCT/OT/FCT/BMD/GB are that table's siblings (retail + treatment
+// sub-columns). All zero everywhere and showing up as phantom stylists — same class of
+// bug as BUSINESS/AA/BB/CC/RETAIL above, just a different sync run that misread them.
+const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTANTS', 'ASISSTANTS', 'RETAIL', 'RETAIL SALES', ']',
+  'OR', 'ABCR', 'BWR', 'KMR', 'SKR', 'ABCT', 'OT', 'FCT', 'BMD', 'GB']);
 
 // Assistants are one pooled ASSISTANTS row per branch in the ledger, and this
 // dashboard has never listed them as staff — they are above, with the other rows
@@ -2637,11 +2667,14 @@ function buildWinsHTML(s, prevS, prevPeriodLabel, hairStaff, beautyStaff, branch
       .sort((a,b) => b.revenue - a.revenue);
   const topOf = (pool, label) => {
     const t = pool[0];
-    return t
-      ? winCard(label, t.color, `${t.name} — ${t.dept}`,
-          `${fmtAED(t.revenue)} · ${t.total.toLocaleString()} clients · ${fmtPct(t.rebookPct)} rebooked`,
-          (typeof staffProfile === 'function') ? staffProfile(t.name) : null)
-      : winCard(label, 'var(--muted)', 'No staff data for this period', 'Staff-level figures aren’t available for this date range.');
+    if (!t) return winCard(label, 'var(--muted)', 'No staff data for this period', 'Staff-level figures aren’t available for this date range.');
+    const prof = (typeof staffProfile === 'function') ? staffProfile(t.name) : null;
+    // Plain text, not a span: this title also doubles as the Instagram link text,
+    // which winCard() escapes whole rather than accepting markup.
+    const who = prof && prof.last ? `${t.name} ${prof.last}` : t.name;
+    return winCard(label, t.color, `${who} — ${t.dept}`,
+      `${fmtAED(t.revenue)} · ${t.total.toLocaleString()} clients · ${fmtPct(t.rebookPct)} rebooked`,
+      prof);
   };
   const performerCard = topOf(poolFor(hairStaff,   'Hair',   hairColor,   'hairSalesNet'), 'Top Performer · Hair');
   const beautyCard    = topOf(poolFor(beautyStaff, 'Beauty', beautyColor, 'beautySales'),  'Top Performer · Beauty');
@@ -3463,6 +3496,8 @@ async function renderDashboard() {
     const name = (prof && prof.ig)
       ? `<a href="https://instagram.com/${encodeURIComponent(prof.ig)}" target="_blank" rel="noopener noreferrer" title="@${escapeHtml(prof.ig)} on Instagram">${nm}</a>`
       : nm;
+    // Outside the Instagram link, same convention as the stylist cards' sc-last.
+    const surname = prof && prof.last ? ` <span class="win-last">${escapeHtml(prof.last)}</span>` : '';
     // The branch comes from the profile or not at all. Falling back to the current
     // filter label printed "All Branches" under every beauty therapist, which reads
     // as a claim that they work at all four. No profile, no tag.
@@ -3473,7 +3508,7 @@ async function renderDashboard() {
         ${av}
         <div style="min-width:0">
           <div class="win-k">${w.k}</div>
-          <div class="win-name">${name}</div>
+          <div class="win-name">${name}${surname}</div>
           <div class="win-v tabular">${w.v}</div>
           ${tag ? `<span class="tagb">${escapeHtml(tag)}</span>` : ''}
         </div>

@@ -960,6 +960,9 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .win-name{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;line-height:1.2;margin-top:5px;
   overflow-wrap:anywhere}
 .win-name a{color:inherit;text-decoration:none;border-bottom:1px solid var(--border)}
+/* The surname, same voice as .sc-last on the stylist cards. */
+.win-last{font-size:0.76em;font-weight:400;font-style:italic;letter-spacing:0.01em;
+  color:var(--muted);margin-left:3px}
 .win-v{font-size:14.5px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
 .win-v b{color:var(--text);font-weight:600}
 .tagb{display:inline-block;margin-top:8px;font-size:11px;font-weight:700;letter-spacing:.1em;
@@ -1991,6 +1994,10 @@ body.ledger-chrome .lg-month-sel{font-size:15px}
 .tp-pod-nm{font-family:'Playfair Display',serif;font-size:21px;font-weight:600;
   line-height:1.2;overflow-wrap:anywhere}
 .tp-pod-nm a{color:inherit;text-decoration:none;border-bottom:1px solid var(--border)}
+/* The surname, same voice as .sc-last on the stylist cards — sized in em so it
+   follows the name down through the podium, the floor and the compare tray. */
+.tp-last{font-size:0.76em;font-weight:400;font-style:italic;letter-spacing:0.01em;
+  color:var(--muted);margin-left:3px}
 .tp-pod-fig{padding:0 16px 14px}
 .tp-pod-v{font-size:23px;font-weight:600;margin-top:3px}
 .tp-pod-s{font-size:13.5px;color:var(--muted2);margin-top:2px}
@@ -2537,13 +2544,13 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260907a"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
-<script src="dashboard.js?v=20260908a"></script>
+<script src="dashboard.js?v=20260917a"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260907a"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20260904b"></script>
-<script src="team-performance.js?v=20260907a"></script>
+<script src="team-performance.js?v=20260917a"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=20260907a"></script>
 <script src="pulse-narrative.js?v=20260814a"></script>
