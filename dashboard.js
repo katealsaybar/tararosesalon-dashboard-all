@@ -3826,7 +3826,7 @@ async function getLatestCompleteDate(table) {
   // while every branch had in fact synced through to 11 Aug (Kate, 2026-08-12).
   // Page through like loadAllRows does, ordered by id so pages can't overlap or skip.
   const data = await loadDatesSince(table, sinceStr);
-  if (!data.length) return { date: null, complete: false, missing: [] };
+  if (!data.length) return { date: null, complete: false, missing: [], gaps: [] };
   // Two maps: "any row at all" (for the fallback/missing list, same as before)
   // and "a row with real figures" (what counts toward complete). A branch/date
   // with only zero-everywhere rows sits in the first map but not the second.
@@ -3842,12 +3842,25 @@ async function getLatestCompleteDate(table) {
     }
   });
   const datesDesc = [...byDateAny.keys()].sort((a, b) => b.localeCompare(a));
+  let completeDate = null;
   for (const d of datesDesc) {
-    if ((byDateReal.get(d) || new Set()).size >= expectedBranches) return { date: d, complete: true, missing: [] };
+    if ((byDateReal.get(d) || new Set()).size >= expectedBranches) { completeDate = d; break; }
   }
+  // Kate, 17 Sep 2026: "which branch/date is missing" is the question the badge
+  // gets asked in chat every time it looks stale, so it answers itself on hover
+  // instead. Every date newer than the complete one (up to today) that still has
+  // a branch with no real figures — no row synced at all, or only the "arrived
+  // blank" placeholder — goes in `gaps`, oldest first, for the tooltip to read out.
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const gaps = datesDesc
+    .filter(d => d <= todayStr && (completeDate === null || d > completeDate))
+    .map(d => ({ date: d, missing: ACTIVE_BRANCHES.filter(b => !(byDateReal.get(d) || new Set()).has(b)) }))
+    .filter(g => g.missing.length > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (completeDate) return { date: completeDate, complete: true, missing: [], gaps };
   const newest = datesDesc[0];
   const missing = ACTIVE_BRANCHES.filter(b => !byDateAny.get(newest).has(b));
-  return { date: newest, complete: false, missing };
+  return { date: newest, complete: false, missing, gaps };
 }
 
 // How old each feed is, on the masthead's meta rule. Only the date is stated; the
@@ -3862,7 +3875,19 @@ function freshnessLine(label, info) {
   const dateStr = `${synced.getDate()} ${MON_SHORT[synced.getMonth()]}`;
   const flag = info.complete ? ''
     : ` <span title="Missing: ${escapeHtml(info.missing.map(b=>BRANCH_INFO[b]?.name||b).join(', '))}">(partial)</span>`;
-  return `<span class="${diffDays >= 2 || !info.complete ? 'stale' : ''}">${label} <b>${dateStr}</b>, ${age}${flag}</span>`;
+  // Hover tooltip on the whole badge: which branch is still missing or blank, per
+  // date, from the shown date up to today. Native title attribute — no extra
+  // markup or CSS, and it degrades to nothing when there's nothing to report.
+  const gaps = info.gaps || [];
+  const gapTitle = gaps.length
+    ? gaps.map(g => {
+        const gd = new Date(g.date + 'T00:00:00');
+        const gStr = `${gd.getDate()} ${MON_SHORT[gd.getMonth()]}`;
+        return `${gStr}: ${g.missing.map(b => BRANCH_INFO[b]?.name || b).join(', ')}`;
+      }).join('\n')
+    : '';
+  const titleAttr = gapTitle ? ` title="${escapeHtml(gapTitle)}"` : '';
+  return `<span class="${diffDays >= 2 || !info.complete ? 'stale' : ''}"${titleAttr}>${label} <b>${dateStr}</b>, ${age}${flag}</span>`;
 }
 
 function renderFreshnessBadge(ledgerInfo, phorestInfo) {
