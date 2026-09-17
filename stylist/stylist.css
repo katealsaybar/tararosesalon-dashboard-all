@@ -116,6 +116,10 @@ select{cursor:pointer;min-width:140px}
   border:2px solid var(--card-accent,var(--border));
 }
 .stylist-avatar-photo{object-fit:cover;display:block}
+/* No longer with TRS: photo desaturated, name/role faded. Toggled by
+   isResignedStylist() in stylist.js off the STYLIST_RESIGNED list. */
+.is-resigned.stylist-avatar-photo{filter:grayscale(1)}
+.stylist-card-name.is-resigned{color:var(--muted);opacity:.7}
 .stylist-card-name{font-weight:700;font-size:15px;letter-spacing:0.04em;text-transform:uppercase;line-height:1.2}
 .stylist-card-nickname{font-size:12px;color:var(--muted);font-style:italic;margin-top:1px}
 .stylist-card-type{font-size:12px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
@@ -194,6 +198,8 @@ select{cursor:pointer;min-width:140px}
 .detail-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap}
 .detail-avatar{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;flex-shrink:0;color:#fff}
 .detail-avatar-photo{object-fit:cover;display:block}
+.is-resigned.detail-avatar-photo{filter:grayscale(1)}
+.detail-name.is-resigned{color:var(--muted);opacity:.7}
 .detail-name{font-weight:700;font-size:24px;letter-spacing:0.06em;text-transform:uppercase}
 .detail-sub{font-size:13px;color:var(--muted);margin-top:2px}
 .detail-close{margin-left:auto;padding:6px 14px;border:1px solid var(--border);border-radius:10px;background:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;transition:all .2s}
