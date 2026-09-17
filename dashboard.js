@@ -3770,9 +3770,22 @@ async function loadData() {
   hideUpdateNotice();
 }
 
+// The column whose sum tells a real synced day apart from a blank placeholder
+// row. Both weekly-ledger backfill and the daily sync write the whole roster
+// ahead of time for days that haven't happened yet — full staff list, every
+// figure zero (the "arrived blank" pattern documented in
+// backfill-weekly-ledgers.gs) — so a row existing is not proof the day's
+// actual numbers are in yet.
+const FRESHNESS_ACTIVITY_COLUMN = {
+  branch_staff_daily: 'total',
+  phorest_staff_daily: 'total_total',
+};
+
 // Pulls every branch+date pair from `since` onwards, in 1000-row pages, so the
 // freshness badge sees the whole window instead of PostgREST's first 1000 rows.
 async function loadDatesSince(table, sinceStr) {
+  const activityCol = FRESHNESS_ACTIVITY_COLUMN[table];
+  const cols = activityCol ? `branch,date,${activityCol}` : 'branch,date';
   const PAGE = 1000;
   const { count, error: countErr } = await sb
     .from(table)
@@ -3782,7 +3795,7 @@ async function loadDatesSince(table, sinceStr) {
   const pages = await Promise.all(
     Array.from({ length: Math.ceil(count / PAGE) }, (_, i) =>
       sb.from(table)
-        .select('branch,date')
+        .select(cols)
         .gte('date', sinceStr)
         .order('id', { ascending: true })
         .range(i * PAGE, i * PAGE + PAGE - 1)
@@ -3792,15 +3805,18 @@ async function loadDatesSince(table, sinceStr) {
 }
 
 // Finds the most recent date (within the last 21 days) where every branch in
-// ACTIVE_BRANCHES has at least one synced row — a genuinely "complete" data day,
-// not just whichever row happened to sync most recently. Falls back to the
-// newest date with any data (flagged incomplete, with the missing branches
-// listed) if no fully-complete day exists in the window.
+// ACTIVE_BRANCHES has at least one synced row carrying real, non-zero figures
+// — a genuinely "complete" data day, not just whichever row happened to sync
+// last, and not a future day whose roster was written ahead with every figure
+// still at zero. Falls back to the newest date with any (even blank) data
+// (flagged incomplete, with the missing branches listed) if no fully-complete
+// day exists in the window.
 // Uses ACTIVE_BRANCHES (not BRANCH_INFO) — Fratelli closed ~May 2026 and will never
 // sync again, so counting it here meant `complete` could never be true and the header
 // permanently showed "(partial branches)" (Kate, 2026-08-04).
 async function getLatestCompleteDate(table) {
   const expectedBranches = ACTIVE_BRANCHES.length;
+  const activityCol = FRESHNESS_ACTIVITY_COLUMN[table];
   const since = new Date();
   since.setDate(since.getDate() - 21);
   const sinceStr = since.toISOString().slice(0, 10);
@@ -3811,17 +3827,26 @@ async function getLatestCompleteDate(table) {
   // Page through like loadAllRows does, ordered by id so pages can't overlap or skip.
   const data = await loadDatesSince(table, sinceStr);
   if (!data.length) return { date: null, complete: false, missing: [] };
-  const byDate = new Map();
+  // Two maps: "any row at all" (for the fallback/missing list, same as before)
+  // and "a row with real figures" (what counts toward complete). A branch/date
+  // with only zero-everywhere rows sits in the first map but not the second.
+  const byDateAny = new Map();
+  const byDateReal = new Map();
   data.forEach(r => {
-    if (!byDate.has(r.date)) byDate.set(r.date, new Set());
-    byDate.get(r.date).add(r.branch);
+    if (!byDateAny.has(r.date)) byDateAny.set(r.date, new Set());
+    byDateAny.get(r.date).add(r.branch);
+    const hasActivity = !activityCol || Number(r[activityCol]) !== 0;
+    if (hasActivity) {
+      if (!byDateReal.has(r.date)) byDateReal.set(r.date, new Set());
+      byDateReal.get(r.date).add(r.branch);
+    }
   });
-  const datesDesc = [...byDate.keys()].sort((a, b) => b.localeCompare(a));
+  const datesDesc = [...byDateAny.keys()].sort((a, b) => b.localeCompare(a));
   for (const d of datesDesc) {
-    if (byDate.get(d).size >= expectedBranches) return { date: d, complete: true, missing: [] };
+    if ((byDateReal.get(d) || new Set()).size >= expectedBranches) return { date: d, complete: true, missing: [] };
   }
   const newest = datesDesc[0];
-  const missing = ACTIVE_BRANCHES.filter(b => !byDate.get(newest).has(b));
+  const missing = ACTIVE_BRANCHES.filter(b => !byDateAny.get(newest).has(b));
   return { date: newest, complete: false, missing };
 }
 
