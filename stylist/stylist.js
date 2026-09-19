@@ -124,6 +124,7 @@ const STYLIST_SURNAMES = {
   "Simon":         "Faddoul",
   "Sunitha":       "Dhakshinamurtht",
   "Vicki":         "Taylor",
+  "Virginija":     "Lisauskaite",   // new joiner, Motor City — Kate, 19 Sep 2026
   "Zandra":        "Competente",
 };
 
