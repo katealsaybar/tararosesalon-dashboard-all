@@ -1247,8 +1247,8 @@ function stylistBranchGroups() {
   // branch's section (Samantha/Sophie/Toni/Zandra inside Khalifa City, etc.),
   // which scattered them across four sections instead of being one list. Every
   // resigned person now lands in the 'other' bucket regardless of their real
-  // branch — that bucket already renders as "Former Team" below — while `branch`
-  // on the profile itself is untouched (Team Roster in the Upload Portal still
+  // branch — that bucket renders as "Former Stylists" below — while `branch` on
+  // the profile itself is untouched (Team Roster in the Upload Portal still
   // needs it to group by where they actually worked).
   const byBranch = new Map();
   people.forEach(([name, p]) => {
@@ -1262,7 +1262,11 @@ function stylistBranchGroups() {
   return [...ACTIVE_BRANCHES, 'other'].filter(b => byBranch.has(b)).map(b => ({
     branch: b,
     colour: BRANCH_INFO[b]?.colorLight || BRANCH_INFO[b]?.color || 'var(--muted)',
-    label: BRANCH_INFO[b]?.name || b,
+    // Kate, 19 Sep 2026: "instead of 'other', say 'Former Stylists'" — the rail's
+    // "On this page" jump was printing the raw bucket key since 'other' has no
+    // BRANCH_INFO entry. Matches the section heading below it, which special-cases
+    // the same string.
+    label: BRANCH_INFO[b]?.name || (b === 'other' ? 'Former Stylists' : b),
     list: byBranch.get(b).sort((x, y) => {
       const d = STYLIST_ROLE_ORDER.indexOf(x.role) - STYLIST_ROLE_ORDER.indexOf(y.role);
       return d !== 0 ? d : x.name.localeCompare(y.name);
@@ -1380,7 +1384,7 @@ async function renderStylistCards() {
                   scroll-margin-top:170px">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
                      background:${colour};flex-shrink:0"></span>
-        ${escapeHtml(b === 'other' ? 'Former Team' : label)} · ${stylistCountLabel(list)}
+        ${escapeHtml(b === 'other' ? 'Former Stylists' : label)} · ${stylistCountLabel(list)}
       </div>
       <div class="sc-grid mode-${stylistViewMode}">${cards}</div>`;
   }).join('');
