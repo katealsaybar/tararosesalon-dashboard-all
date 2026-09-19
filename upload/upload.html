@@ -11,6 +11,9 @@
 <script src="parser.js?v=4"></script>
 <script src="upload.js?v=19"></script>
 <script src="name-aliases.js?v=4"></script>
+<!-- staff-profiles.js wants canonicalStaffName() from name-aliases.js above it,
+     same load order the dashboard itself uses (its own comment says so). -->
+<script src="../staff-profiles.js?v=1"></script>
 <script src="phorest-staff.js?v=17"></script>
 <script src="phorest-pdf.js?v=2"></script>
 <script src="utilisation-pdf.js?v=10"></script>
@@ -18,6 +21,7 @@
 <script src="sales-transactions-pdf.js?v=3"></script>
 <script src="sheet-sync.js?v=12"></script>
 <script src="targets.js?v=2"></script>
+<script src="team-roster.js?v=1"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
 <script src="data-watch.js?v=1"></script>
 
@@ -428,6 +432,17 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .mini-toggle-thumb{width:14px;height:14px;border-radius:50%;background:var(--toggle-knob);position:absolute;top:2px;left:2px;transition:transform .25s ease}
 .mini-toggle-track.on{background:var(--accent)}
 .mini-toggle-track.on .mini-toggle-thumb{transform:translateX(18px)}
+
+/* TEAM ROSTER — one branch block per group, one row per person, the mini-toggle
+   from above re-used at row scale rather than a second switch component. */
+.roster-branch{margin-bottom:22px}
+.roster-branch:last-child{margin-bottom:4px}
+.roster-branch-hd{font-size:12.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding-bottom:8px;margin-bottom:6px;border-bottom:1px solid var(--border2)}
+.roster-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px;border-bottom:1px solid var(--border2)}
+.roster-row:last-child{border-bottom:none}
+.roster-row-name{font-size:14.5px;font-weight:600;color:var(--text)}
+.roster-row-role{font-size:12.5px;color:var(--muted);margin-top:1px}
+.roster-toggle .mini-toggle-lbl{min-width:64px}
 /* 26px was the header row's height at the old type size; it is 27 to 28px
    now, so TOTAL was sitting on the last pixel or two of the headers.
    Measured into --th-h so it stops being a number that drifts every time
@@ -747,6 +762,8 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div class="tab-grp">Reference</div>
       <button class="tab-btn" data-tab="products" onclick="switchTab(event, 'products')">Products</button>
       <button class="tab-btn" data-tab="service" onclick="switchTab(event, 'service')">Services<span class="tab-qual">Yearly</span></button>
+      <div class="tab-grp">Team</div>
+      <button class="tab-btn" data-tab="roster" onclick="switchTab(event, 'roster')">Team Roster</button>
     </div>
 
     <div class="tab-content" id="tab-ops">
@@ -1334,6 +1351,20 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     </button>
 
     <div id="svc-progress" style="display:none;margin-top:14px;padding:12px;background:var(--surface2);border-radius:10px;font-size:14px;line-height:1.7"></div>
+  </div>
+</div>
+
+<!-- ══ TEAM ROSTER TAB ══
+     Kate, 19 Sep 2026: "an on and off switch for each staff... to put in if
+     resigned na ba or employed pa rin". One toggle per person, reading from and
+     writing to the staff_status table — the dashboard's Staff Cards (Stylist
+     Cards view) read that table over staff-profiles.js's own hardcoded
+     `resigned` field, so this replaces a code edit with a click. -->
+<div class="tab-content" id="tab-roster">
+  <div class="upload-card">
+    <div class="card-title">Team Roster</div>
+    <div class="card-sub">Employed / Resigned, per person. Flips the same status that fades a card on Staff Cards — no code edit needed.</div>
+    <div id="rosterList">Loading…</div>
   </div>
 </div>
 

@@ -83,6 +83,7 @@ function switchTab(e, tab) {
   if (tab === 'fin' && typeof initFinTab === 'function') initFinTab();
   if (tab === 'salestx' && typeof initSalesTxTab === 'function') initSalesTxTab();
   if (tab === 'targets' && typeof initTargetsTab === 'function') initTargetsTab();
+  if (tab === 'roster' && typeof initRosterTab === 'function') initRosterTab();
 
   // Each tab's band is its own height, and Ledgers has two segments where the
   // others have three, so the chrome has to be re-read on every switch.

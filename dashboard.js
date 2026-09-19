@@ -1209,6 +1209,24 @@ function stylistCountLabel(list) {
     .join(' · ');
 }
 
+// Resigned-status overrides from the staff_status table (staff_name, resigned),
+// set from the Upload Portal's Team Roster tab instead of a hand edit to
+// staff-profiles.js's own `resigned:true` entries. Fetched once and reused;
+// loadStaffStatusOverrides() is only called again by a manual refresh path if
+// one is ever added. Kate, 19 Sep 2026.
+let STAFF_STATUS_OVERRIDES = null;
+async function loadStaffStatusOverrides() {
+  try {
+    const { data, error } = await sb.from('staff_status').select('staff_name,resigned');
+    if (error) throw error;
+    STAFF_STATUS_OVERRIDES = new Map((data || []).map(r => [r.staff_name, r.resigned]));
+  } catch (e) {
+    console.error('staff_status load failed', e);
+    STAFF_STATUS_OVERRIDES = new Map();
+  }
+  return STAFF_STATUS_OVERRIDES;
+}
+
 function stylistBranchGroups() {
   if (typeof STAFF_PROFILES === 'undefined') return [];
   // Dedupe by photo: alias keys (e.g. a stylist listed under two spellings) point
@@ -1227,8 +1245,10 @@ function stylistBranchGroups() {
   const byBranch = new Map();
   people.forEach(([name, p]) => {
     const b = p.branch || 'other';
+    const override = STAFF_STATUS_OVERRIDES && STAFF_STATUS_OVERRIDES.has(name)
+      ? !!STAFF_STATUS_OVERRIDES.get(name) : p.resigned;
     if (!byBranch.has(b)) byBranch.set(b, []);
-    byBranch.get(b).push({ name, ...p });
+    byBranch.get(b).push({ name, ...p, resigned: override });
   });
 
   return [...ACTIVE_BRANCHES, 'other'].filter(b => byBranch.has(b)).map(b => ({
@@ -1269,13 +1289,16 @@ function jumpToStylistBranch(branch) {
   window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
 }
 
-function renderStylistCards() {
+async function renderStylistCards() {
   const host = document.getElementById('stylistCardsContent');
   if (!host) return;
   if (typeof STAFF_PROFILES === 'undefined') {
     host.innerHTML = `<div class="loading">Stylist profiles didn’t load.</div>`;
     return;
   }
+  // Fetched once per page load: a resigned toggle flipped from the Upload
+  // Portal mid-session needs a refresh here to show, same as any other figure.
+  if (!STAFF_STATUS_OVERRIDES) await loadStaffStatusOverrides();
   // The same "On this page" rail the Ledgers pages carry — Kate, 2026-08-14. The
   // sidebar's branch list is one nav level up and scrolls away with the sidebar;
   // this one sits in the page's own gutter and lights the branch you are reading.

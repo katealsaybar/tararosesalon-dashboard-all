@@ -76,12 +76,13 @@ const STAFF_PROFILES = {
   // Assistants. Kate, 4 Sep 2026: they work the floor and belong on the dashboard as
   // Assistant, which is why the role joined STYLIST_ROLE_ORDER at the same time. No
   // photo for any of them yet, which the map allows - the name renders plain.
+  // Kate, 19 Sep 2026: the ledger sometimes writes two assistants sharing a cell
+  // as "CHONA/ ESTHER" or "ESTHER/PEARL" for the week — that used to render as its
+  // own combined Staff Card ("two different people, not one"). Removed; each
+  // assistant already has her own row below, which is the correct card.
   'CHONA':     { role: 'Assistant', branch: 'KCA' },
   'ESTHER':    { role: 'Assistant', branch: 'KCA' },
   'PEARL':     { role: 'Assistant', branch: 'KCA' },
-  // A cell two assistants shared for a week, named after both of them.
-  'CHONA/ ESTHER': { role: 'Assistant', branch: 'KCA' },
-  'ESTHER/PEARL':  { role: 'Assistant', branch: 'KCA' },
 
   // -- Mamsha Al Saadiyat --
   'EMMA':      { photo: 'emma.png',      role: 'Style Director', branch: 'SAA',  ig: 'emmalou.williamson' },
