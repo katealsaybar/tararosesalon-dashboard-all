@@ -162,20 +162,28 @@ const STAFF_PROFILES = {
 
   // -- Former team, kept for the record (Kate, 17 Sep 2026) --
   // `resigned: true` renders the card in black-and-white/faded (dashboard.js
-  // renderStylistCards()) instead of leaving them off the grid entirely. None of
-  // them has a cutout in assets/staff/, so `photoFull` points straight at the plain
-  // photo already sitting in stylist/photos/ for the standalone Stylist page — a
-  // flat crop, not the accent-block cutout style the current cards use, but B&W
-  // narrows that gap. Stuart and Goncalo have no photo anywhere, so they render on
-  // name alone, same as anyone else in this file without a `photo`. `role` is a
+  // renderStylistCards()) instead of leaving them off the grid entirely. Photos
+  // below were the plain colour crops from the standalone Stylist page until 19
+  // Sep 2026, when Kate built a proper "RESIGNED" board in the FINAL STYLIST CARD
+  // Canva file (pages 40-41) with a uniform black-and-white headshot per person —
+  // these paths are that board's exports, cropped one-per-file. `role` is a
   // neutral placeholder, not their real title — Kate to correct if it matters.
   'SAMANTHA': { photoFull: 'stylist/photos/KCA/samantha amad.png', role: 'Former Team Member', branch: 'KCA', ig: 'samanthaahmadhair', resigned: true },
-  'SOPHIE':   { photoFull: 'stylist/photos/KCA/sophie harrison.jpg', role: 'Former Team Member', branch: 'KCA', ig: 'sophiepatriciahair', resigned: true },
+  'SOPHIE':   { photoFull: 'stylist/photos/KCA/sophie harrison.png', role: 'Former Team Member', branch: 'KCA', ig: 'sophiepatriciahair', resigned: true },
   'TONI':     { photoFull: 'stylist/photos/KCA/toni brits.png', role: 'Former Team Member', branch: 'KCA', resigned: true },
-  'ZANDRI':   { photoFull: 'stylist/photos/MC/zandri wilson.jpg', role: 'Former Team Member', branch: 'MC', ig: 'hairby.zandri', resigned: true },
-  'DANIKA':   { photoFull: 'stylist/photos/SAA/danika ogrady.jfif', role: 'Former Team Member', branch: 'SAA', ig: 'hairby_danika', resigned: true },
-  'STUART':   { role: 'Former Team Member', branch: 'other', resigned: true },
-  'GONCALO':  { role: 'Former Team Member', branch: 'other', resigned: true },
+  'ZANDRI':   { photoFull: 'stylist/photos/MC/zandri wilson.png', role: 'Former Team Member', branch: 'MC', ig: 'hairby.zandri', resigned: true },
+  'DANIKA':   { photoFull: 'stylist/photos/SAA/danika ogrady.png', role: 'Former Team Member', branch: 'SAA', ig: 'hairby_danika', resigned: true },
+  // Added 19 Sep 2026 from the same RESIGNED board, branch read off their ledger
+  // history (staff_utilisation/branch_staff_daily volume) since none of the four
+  // had a card before now: Zandra almost entirely at KCA, Beatriz/Zara/Blossom
+  // almost entirely at SAA (each also has a single-digit-row cover shift at
+  // another branch, which is not their branch).
+  'ZANDRA':   { photoFull: 'stylist/photos/KCA/zandra competente.png', role: 'Former Team Member', branch: 'KCA', resigned: true },
+  'BEATRIZ':  { photoFull: 'stylist/photos/SAA/beatriz chaparro.png', role: 'Former Team Member', branch: 'SAA', resigned: true },
+  'ZARA':     { photoFull: 'stylist/photos/SAA/zara lhouvum.png', role: 'Former Team Member', branch: 'SAA', resigned: true },
+  'BLOSSOM':  { photoFull: 'stylist/photos/SAA/blossom day.png', role: 'Former Team Member', branch: 'SAA', resigned: true },
+  'STUART':   { photoFull: 'stylist/photos/other/stuart hastings.png', role: 'Former Team Member', branch: 'other', resigned: true },
+  'GONCALO':  { photoFull: 'stylist/photos/other/goncalo de almeida.png', role: 'Former Team Member', branch: 'other', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
@@ -207,7 +215,9 @@ const STAFF_SURNAMES = {
   'AREANNE':   'Miranda',
   'ARNALYN':   'Salisi',
   'ASHLEIGH':  'Fairgrieve',
+  'BEATRIZ':   'Chaparro',
   'BETHANY':   'Smith',
+  'BLOSSOM':   'Day',
   'CHALANI':   'Kaushallya',
   'CLARISSA':  'Destacamento',
   'CHONA':     'Manlapaz',
@@ -272,6 +282,7 @@ const STAFF_SURNAMES = {
   'TONI':      'Brits',
   'XYRHY':     'Unisa',
   'ZANDRI':    'Wilson',
+  'ZARA':      'Lhouvum',
 
   // Kate, 16 Sep 2026 — "lagyan mo na lahat ng apelyido across all sections", filled
   // in off the Staff Performance / Utilisation uploads (Phorest spelling, same rule as
