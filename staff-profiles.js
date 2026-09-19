@@ -83,6 +83,12 @@ const STAFF_PROFILES = {
   'CHONA':     { role: 'Assistant', branch: 'KCA' },
   'ESTHER':    { role: 'Assistant', branch: 'KCA' },
   'PEARL':     { role: 'Assistant', branch: 'KCA' },
+  // Kate, 19 Sep 2026, confirmed off Phorest's own Staff list (Category: Assistant):
+  // "laila pabico is an assistant pls mark her off as such". Filed here rather than
+  // under Saadiyat — Kate confirmed she genuinely covers both (422 KCA vs 378 SAA
+  // staff_utilisation rows, both still running through Sep 2026, not a one-off cover
+  // shift) — but STAFF_PROFILES only carries one branch per card, and KCA edges it.
+  'LAILA':     { role: 'Assistant', branch: 'KCA' },
 
   // -- Mamsha Al Saadiyat --
   'EMMA':      { photo: 'emma.png',      role: 'Style Director', branch: 'SAA',  ig: 'emmalou.williamson' },
@@ -93,6 +99,12 @@ const STAFF_PROFILES = {
   'BETHANY':   { photo: 'bethany.png',   role: 'Stylist',        branch: 'SAA',  ig: 'bethanysmith.hair' },
   'SHELLEY':   { photo: 'shelley.png',   role: 'Stylist',        branch: 'SAA',  ig: 'shelley_the_global_hairstylist' },
   'TAMMY':     { photo: 'tammy.png',     role: 'Stylist',        branch: 'SAA',  ig: 'tammy_peter_hair' },
+  // New joiner, Sep 2026 (Vicki Taylor — NOT Virginija Lisauskaite, a different,
+  // separate new stylist also joining this month; Kate, 19 Sep 2026, confirmed
+  // after the two got mixed up here). Ledger writes her VICKI (14 SAA Hair rows
+  // since 7 Sep), also the name on her Canva card, so it's canonical with no
+  // alias needed. No IG handle yet.
+  'VICKI':     { photo: 'vicki.png',     role: 'Stylist',        branch: 'SAA',  ig: '' },
   'EDS':       { photo: 'eds.png',       role: 'Junior Stylist', branch: 'SAA',  ig: 'edzasuncion' },
   // 2nd batch cards, Sep 2026 — see the KCA note above. Helen's card carries no
   // Instagram handle (Kate: "yung iba wala talaga"), so hers stays blank.
@@ -138,6 +150,10 @@ const STAFF_PROFILES = {
   // 2nd batch cards, Sep 2026 — see the KCA note above.
   'CLARISSA':  { photo: 'clarissa.png',  role: 'Blow-Dry Specialist', branch: 'MC', ig: 'hairbyclarissa' },
   'XYRHY':     { photo: 'xyrhy.png',     role: 'Blow-Dry Specialist', branch: 'MC', ig: 'hairgoalsbyxy' },
+  // New joiner, confirmed Motor City off the 17 Sep Phorest export ("Virginija
+  // Lisauskaite", 2 visits that day, MC). No card/photo yet (Kate, 19 Sep 2026) —
+  // she renders plain text until one exists, same as Andrea/Simon below.
+  'VIRGINIJA': { role: 'Stylist', branch: 'MC' },
   'ERCELY':    { role: 'Assistant', branch: 'MC' },
 
   // -- Al Quoz --
@@ -324,6 +340,7 @@ const STAFF_SURNAMES = {
   'SIMON':     'Faddoul',
   'SUNITHA':   'Dhakshinamurtht',
   'VICKI':     'Taylor',
+  'VIRGINIJA': 'Lisauskaite',
   'ZANDRA':    'Competente',
 };
 
