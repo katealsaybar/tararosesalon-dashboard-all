@@ -307,15 +307,19 @@ body.kpi-view:not(.revealed) footer{display:none}
   opacity:0;max-height:0;margin-top:0;padding-top:0;padding-bottom:0;border-width:0}
 .topbar.stuck .tglr{min-height:34px;padding:6px 12px}
 .topbar.stuck .filters{padding-top:8px}
-/* Kate, 1 Sep 2026: on the Ledgers pages the masthead is the logo and nothing
-   else — no buttons, no meta rule, no filter rows. Those pages carry their own
-   Month and Split controls, the Period chips were already dead there, and the
-   branch sections are one jump away on the page's own rail. showView() sets the
-   class and re-measures the spacer straight after, so no band of bare background
-   opens where the filters used to sit. */
+/* Kate, 1 Sep 2026: on the Ledgers pages the masthead drops the buttons and
+   filter rows — those pages carry their own Month and Split controls, the
+   Period chips were already dead there, and the branch sections are one jump
+   away on the page's own rail. showView() sets the class and re-measures the
+   spacer straight after, so no band of bare background opens where the
+   filters used to sit.
+   Kate asked for the date-range/freshness line back on 19 Sep 2026 — Ledger
+   and Phorest "as of" plus the GST offset are worth keeping here too. Only
+   the "All Branches" label stays hidden, since Ledgers has no branch filter
+   for it to describe. */
 body.ledger-chrome .mast-acts,
-body.ledger-chrome .mast-rule,
 body.ledger-chrome .filters-wrap{display:none}
+body.ledger-chrome #mastBranch{display:none}
 .mast,.mast-logo,.tglr,.filters{
   transition:width 200ms var(--card-ease),min-height 200ms var(--card-ease),padding 200ms var(--card-ease)}
 
@@ -326,8 +330,12 @@ body.ledger-chrome .filters-wrap{display:none}
    box is x 337-2658, y 1149-1812, i.e. 2321x663 (3.50:1, the draft's 620x177).
    Percentages on the img are read against the WRAPPER width and the img's own
    box respectively, so this crop is exact at any size — which is what lets the
-   masthead step 148px → 104px on scroll without the mark drifting. */
-.mark{display:block;overflow:hidden;position:relative;aspect-ratio:620/177;flex-shrink:0}
+   masthead step 148px → 104px on scroll without the mark drifting.
+   Kate flagged SALON looking clipped (19 Sep 2026): the box bottom sat at 1812,
+   1px under SALON's own lowest pixel (1811) — no headroom for the S/O's optical
+   overshoot below the baseline, so it rounded away at small render sizes. Bottom
+   now runs to 1836 (2321x687, 3.38:1); top/left/width%/translate are untouched. */
+.mark{display:block;overflow:hidden;position:relative;aspect-ratio:2321/687;flex-shrink:0}
 .mark img{position:absolute;left:0;top:0;width:129.254%;height:auto;max-width:none;
   transform:translate(-11.2333%,-38.3%)}
 .mast-logo{width:148px;cursor:pointer}
