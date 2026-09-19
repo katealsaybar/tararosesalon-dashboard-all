@@ -172,9 +172,15 @@ const STAFF_PROFILES = {
   // Assistant, not a stylist — the all-zero ledger rows under her name are exactly
   // what an assistant's row looks like, not a misread.
   'MARGIE':    { role: 'Assistant', branch: 'AQ' },
-  // No entry yet for ANDREA (Gladstone) or SIMON (Faddoul) on purpose. Kate, 7 Sep 2026:
-  // neither has a visa yet, so no card until the visa is in and the trade test is passed.
-  // Andrea's surname is in STAFF_SURNAMES below so her table row reads in full meanwhile.
+  // Kate, 7 Sep 2026: no visa yet, so no PHOTO until the visa is in and the trade
+  // test is passed — that rule is about the card image, not the whole entry. Kate,
+  // 19 Sep 2026: add her IG handle now (instagram.com/andygladstone_hair), so no
+  // `photo` key here yet, but she's no longer left out of the map entirely; her
+  // surname is in STAFF_SURNAMES below too.
+  'ANDREA':    { role: 'Stylist', branch: 'AQ', ig: 'andygladstone_hair' },
+  // Same visa/trade-test hold as Andrea above. No entry yet for SIMON (Faddoul) on
+  // purpose (Kate, 7 Sep 2026) — his surname is in STAFF_SURNAMES below so his
+  // table row reads in full meanwhile.
 
   // -- Former team, kept for the record (Kate, 17 Sep 2026) --
   // `resigned: true` renders the card in black-and-white/faded (dashboard.js
@@ -200,6 +206,9 @@ const STAFF_PROFILES = {
   'BLOSSOM':  { photoFull: 'stylist/photos/SAA/blossom day.png', role: 'Former Team Member', branch: 'SAA', resigned: true },
   'STUART':   { photoFull: 'stylist/photos/other/stuart hastings.png', role: 'Former Team Member', branch: 'other', resigned: true },
   'GONCALO':  { photoFull: 'stylist/photos/other/goncalo de almeida.png', role: 'Former Team Member', branch: 'other', resigned: true },
+  // Added 19 Sep 2026, same RESIGNED board. Branch off her ledger history: 499 SAA
+  // Beauty rows (Jan 2025-May 2026) against 9 KCA cover rows.
+  'ROVINA':   { photoFull: 'stylist/photos/SAA/rovina jordan.png', role: 'Former Team Member', branch: 'SAA', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
