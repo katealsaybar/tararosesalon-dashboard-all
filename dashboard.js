@@ -1242,11 +1242,19 @@ function stylistBranchGroups() {
     seen.add(k); return true;
   });
 
+  // Kate, 19 Sep 2026: "dito mo na lang i add lahat ng former team members, gawan
+  // mo na lang ng sariling tab" — former team used to sit inside their old
+  // branch's section (Samantha/Sophie/Toni/Zandra inside Khalifa City, etc.),
+  // which scattered them across four sections instead of being one list. Every
+  // resigned person now lands in the 'other' bucket regardless of their real
+  // branch — that bucket already renders as "Former Team" below — while `branch`
+  // on the profile itself is untouched (Team Roster in the Upload Portal still
+  // needs it to group by where they actually worked).
   const byBranch = new Map();
   people.forEach(([name, p]) => {
-    const b = p.branch || 'other';
     const override = STAFF_STATUS_OVERRIDES && STAFF_STATUS_OVERRIDES.has(name)
       ? !!STAFF_STATUS_OVERRIDES.get(name) : p.resigned;
+    const b = override ? 'other' : (p.branch || 'other');
     if (!byBranch.has(b)) byBranch.set(b, []);
     byBranch.get(b).push({ name, ...p, resigned: override });
   });
