@@ -69,12 +69,12 @@ const ORG_CHART = [
           ],
         },
         {
-          name: 'Jumera Chavenia',
-          role: 'Accounts and Admin Head',
+          name: 'Accounts & Admin Department',
+          role: 'Department',
           children: [
             {
-              name: 'Accounts & Admin Team',
-              role: 'Department',
+              name: 'Jumera Chavenia',
+              role: 'Accounts and Admin Head',
               children: [
                 {
                   name: 'Mary Ann Yanson',
