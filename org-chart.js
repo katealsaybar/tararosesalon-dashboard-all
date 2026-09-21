@@ -23,39 +23,51 @@ const ORG_CHART = [
         { name: 'Daisy Charlotte Cropper', role: 'Managing Director, Tara Rose Bahrain' },
         { name: 'Mette Haxthausen', role: 'Executive Partner (Salon Consultant)' },
         {
-          name: 'Emma-Louise Usher',
-          role: 'General Manager',
+          name: 'Core Team',
+          role: 'Department',
           children: [
             {
-              name: 'Call Centre Team',
-              role: 'Department',
+              name: 'Emma-Louise Usher',
+              role: 'General Manager',
               children: [
                 {
-                  name: 'Christabelle Bustos',
-                  role: 'Call Centre Team Lead',
+                  name: 'Call Centre Team',
+                  role: 'Department',
                   children: [
-                    { name: 'Hazel Alcala', role: 'Call Centre Receptionist' },
+                    {
+                      name: 'Christabelle Bustos',
+                      role: 'Call Centre Team Lead',
+                      children: [
+                        { name: 'Hazel Alcala', role: 'Call Centre Receptionist' },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  name: 'Educators',
+                  role: 'Department',
+                  children: [
+                    { name: 'Emma Williamson', role: 'Treatments & Retail Educator' },
+                    { name: 'Ashleigh Fairgrieve', role: 'Blondes & Extensions Educator' },
+                  ],
+                },
+                { name: 'Ruth Bocock', role: 'Salon Manager, Al Quoz Branch' },
+                {
+                  name: 'Salon Coordinators',
+                  role: 'Department',
+                  children: [
+                    { name: 'Jhoana Cairel', role: 'Salon Coordinator, Khalifa City Branch' },
+                    { name: 'Cristine Bracamonte', role: 'Salon Coordinator, Saadiyat Branch' },
+                    { name: 'Frances Pia Sergio', role: 'Salon Coordinator, Al Quoz Branch' },
+                    { name: 'Shiela Avena', role: 'Salon Coordinator, Motor City Branch' },
                   ],
                 },
               ],
             },
-            { name: 'Emma Williamson', role: 'Treatments & Retail Educator' },
-            { name: 'Ashleigh Fairgrieve', role: 'Blondes & Extensions Educator' },
-            { name: 'Ruth Bocock', role: 'Salon Manager, Al Quoz Branch' },
-            {
-              name: 'Salon Coordinators',
-              role: 'Department',
-              children: [
-                { name: 'Jhoana Cairel', role: 'Salon Coordinator, Khalifa City Branch' },
-                { name: 'Cristine Bracamonte', role: 'Salon Coordinator, Saadiyat Branch' },
-                { name: 'Frances Pia Sergio', role: 'Salon Coordinator, Al Quoz Branch' },
-                { name: 'Shiela Avena', role: 'Salon Coordinator, Motor City Branch' },
-              ],
-            },
+            { name: 'Kate Alsaybar', role: 'Operations and Performance Manager, EA' },
+            { name: 'Hanneh Rose Rejas', role: 'Social Media Manager' },
           ],
         },
-        { name: 'Kate Alsaybar', role: 'Operations and Performance Manager, EA' },
-        { name: 'Hanneh Rose Rejas', role: 'Social Media Manager' },
         {
           name: 'Jumera Chavenia',
           role: 'Accounts and Admin Head',
