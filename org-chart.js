@@ -130,4 +130,56 @@ function renderOrgChart() {
       <ul class="oc-tree">${ocNode(team.root, true)}</ul>
     </div>
   `).join('');
+  host.querySelectorAll('.oc-tree').forEach(drawOcConnectors);
+  if (!window.__ocResizeBound) {
+    window.__ocResizeBound = true;
+    let t;
+    addEventListener('resize', () => {
+      clearTimeout(t);
+      t = setTimeout(() => host.querySelectorAll('.oc-tree').forEach(drawOcConnectors), 150);
+    });
+  }
+}
+
+// One straight elbow line per box, from its own parent box only — no
+// shared "bus" line across siblings. Coordinates are computed relative
+// to the scrollable .oc-tree itself (not the viewport), so the lines
+// stay put when the tree is scrolled horizontally.
+function drawOcConnectors(tree) {
+  const old = tree.querySelector('svg.oc-lines');
+  if (old) old.remove();
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('class', 'oc-lines');
+  svg.setAttribute('width', tree.scrollWidth);
+  svg.setAttribute('height', tree.scrollHeight);
+
+  const treeRect = tree.getBoundingClientRect();
+  const toLocal = (r) => ({
+    cx: r.left + r.width / 2 - treeRect.left + tree.scrollLeft,
+    top: r.top - treeRect.top + tree.scrollTop,
+    bottom: r.bottom - treeRect.top + tree.scrollTop,
+  });
+
+  tree.querySelectorAll('.oc-node').forEach(node => {
+    const li = node.closest('li');
+    const parentLi = li.parentElement.closest('li');
+    if (!parentLi) return; // root box has no incoming line
+    const parentNode = parentLi.querySelector(':scope > .oc-node');
+    if (!parentNode) return;
+
+    const c = toLocal(node.getBoundingClientRect());
+    const p = toLocal(parentNode.getBoundingClientRect());
+    const midY = (p.bottom + c.top) / 2;
+
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', `M ${p.cx} ${p.bottom} V ${midY} H ${c.cx} V ${c.top}`);
+    path.setAttribute('fill', 'none');
+    path.style.stroke = 'var(--border)';
+    path.setAttribute('stroke-width', '2');
+    svg.appendChild(path);
+  });
+
+  tree.appendChild(svg);
 }

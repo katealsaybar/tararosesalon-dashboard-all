@@ -1521,25 +1521,18 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 @media(hover:hover){.sc-acts a:hover{color:var(--text)}}
 
 /* ── ORG CHART (org-chart.js) ─────────────────────────────────
-   Classic pure-CSS connector tree: each <li> draws its own top+side
-   line via ::before/::after, an :only-child (one box, no siblings)
-   draws none. Reference page, same as Staff Cards — no date filter. */
+   Connectors are drawn by JS (drawOcConnectors in org-chart.js) as one
+   SVG path per box, straight from its own parent — not the old shared
+   "bus line" pseudo-element tree, which kept drawing into the cards
+   (Kate, 21 Sep 2026: "1 bus line per box"). Reference page, same as
+   Staff Cards — no date filter. */
 .oc-section{margin-top:26px}
 .oc-section:first-child{margin-top:0}
 .oc-tree,.oc-tree ul{list-style:none;margin:0;padding:0;display:flex;justify-content:safe center}
-.oc-tree{overflow-x:auto;padding-bottom:6px}
-.oc-tree ul{padding-top:28px;position:relative}
-.oc-tree ul::before{content:'';position:absolute;top:0;left:50%;
-  border-left:2px solid var(--border);width:0;height:28px}
+.oc-tree{overflow-x:auto;padding-bottom:6px;position:relative}
+.oc-tree ul{padding-top:28px}
 .oc-tree li{display:flex;flex-direction:column;align-items:center;position:relative;padding:0 14px}
-.oc-tree li::before,.oc-tree li::after{content:'';position:absolute;top:-28px;right:50%;
-  border-top:2px solid var(--border);width:50%;height:28px}
-.oc-tree li::after{right:auto;left:50%;border-left:2px solid var(--border)}
-.oc-tree li:only-child::after,.oc-tree li:only-child::before{display:none}
-.oc-tree li:only-child{padding-top:0}
-.oc-tree li:first-child::before,.oc-tree li:last-child::after{border:0 none}
-.oc-tree li:last-child::before{border-right:2px solid var(--border);border-radius:0 6px 0 0}
-.oc-tree li:first-child::after{border-radius:6px 0 0 0}
+.oc-lines{position:absolute;top:0;left:0;pointer-events:none;overflow:visible}
 .oc-node{display:inline-flex;flex-direction:column;align-items:center;gap:3px;
   min-width:168px;padding:12px 16px;border-radius:12px;background:var(--surface);
   border:1px solid var(--border);box-shadow:var(--shadow-card)}
@@ -2595,7 +2588,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260919c"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
-<script src="org-chart.js?v=20260921g"></script>
+<script src="org-chart.js?v=20260921h"></script>
 <script src="dashboard.js?v=20260921a"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260907a"></script>
