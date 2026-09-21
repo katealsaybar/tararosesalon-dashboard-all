@@ -3245,11 +3245,15 @@ async function renderDashboard() {
       hair:s.hairNcrPct, beauty:s.beautyNcrPct, combined:s.combinedNcrPct, target:NCR_TARGET, fmt:pct2 },
     { name:'Rebooking %',     sub:`target ${TARGETS.rebookPct}%`,
       hair:s.hairRebookPct, beauty:s.beautyRebookPct, combined:s.rebookPct, target:TARGETS.rebookPct, fmt:pct2 },
-    { name:'Retail %',        sub:`target ≥ ${TARGETS.retailPct}%`,
-      hair:hairRetailPctDept, beauty:beautyRetailPctDept, combined:rvHBRetPct, target:TARGETS.retailPct, fmt:pct2 },
+    // Treatment before Retail, always — Kate/Mette, 2026-09-21. Source order
+    // matters even though hitRows/lowRows re-sort by attainment: Array#sort is
+    // stable, so a tie between the two keeps this array's order, and the
+    // strip's benchRows.length reads (unsorted) do too.
     { name:'Treatment %',     sub:`target ≥ ${TARGETS.treatmentPct}%`,
       hair:hairTreatmentPctDept, beauty:null, combined:rvHBTxPct, target:TARGETS.treatmentPct, fmt:pct2,
       beautyNote:'not tracked' },
+    { name:'Retail %',        sub:`target ≥ ${TARGETS.retailPct}%`,
+      hair:hairRetailPctDept, beauty:beautyRetailPctDept, combined:rvHBRetPct, target:TARGETS.retailPct, fmt:pct2 },
     { name:'Beauty Avg Bill', sub:`target AED ${TARGETS.beautyAvgBill}`,
       hair:null, beauty:s.beautyAvgBill, combined:s.beautyAvgBill, target:TARGETS.beautyAvgBill, fmt:aed0,
       hairNote:'counted under Hair Avg Bill' },
