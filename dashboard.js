@@ -1251,23 +1251,34 @@ function stylistBranchGroups() {
   // branch — that bucket renders as "Former Stylists" below — while `branch` on
   // the profile itself is untouched (Team Roster in the Upload Portal still
   // needs it to group by where they actually worked).
+  // Kate, 21 Sep 2026: "rovina is a former beautician, not stylist — gawa ka na
+  // lang ng another sub section tab under former stylists" — a resigned beauty/nail
+  // role (role containing "Beauty" or "Nail") now lands in its own 'other-beauty'
+  // bucket, rendered as "Former Beauty Team" right after "Former Stylists" instead
+  // of being mixed into the hair team's former-staff grid.
   const byBranch = new Map();
   people.forEach(([name, p]) => {
     const override = STAFF_STATUS_OVERRIDES && STAFF_STATUS_OVERRIDES.has(name)
       ? !!STAFF_STATUS_OVERRIDES.get(name) : p.resigned;
-    const b = override ? 'other' : (p.branch || 'other');
+    let b;
+    if (override) {
+      b = /Beauty|Nail/i.test(p.role || '') ? 'other-beauty' : 'other';
+    } else {
+      b = p.branch || 'other';
+    }
     if (!byBranch.has(b)) byBranch.set(b, []);
     byBranch.get(b).push({ name, ...p, resigned: override });
   });
 
-  return [...ACTIVE_BRANCHES, 'other'].filter(b => byBranch.has(b)).map(b => ({
+  return [...ACTIVE_BRANCHES, 'other', 'other-beauty'].filter(b => byBranch.has(b)).map(b => ({
     branch: b,
     colour: BRANCH_INFO[b]?.colorLight || BRANCH_INFO[b]?.color || 'var(--muted)',
     // Kate, 19 Sep 2026: "instead of 'other', say 'Former Stylists'" — the rail's
     // "On this page" jump was printing the raw bucket key since 'other' has no
     // BRANCH_INFO entry. Matches the section heading below it, which special-cases
-    // the same string.
-    label: BRANCH_INFO[b]?.name || (b === 'other' ? 'Former Stylists' : b),
+    // the same string. 'other-beauty' gets the same treatment, 21 Sep 2026.
+    label: BRANCH_INFO[b]?.name
+      || (b === 'other' ? 'Former Stylists' : b === 'other-beauty' ? 'Former Beauty Team' : b),
     list: byBranch.get(b).sort((x, y) => {
       const d = STYLIST_ROLE_ORDER.indexOf(x.role) - STYLIST_ROLE_ORDER.indexOf(y.role);
       return d !== 0 ? d : x.name.localeCompare(y.name);
@@ -1321,7 +1332,20 @@ async function renderStylistCards() {
   const rail = groups.map(g =>
     [`scBranch-${g.branch}`, g.label, `event.preventDefault();jumpToStylistBranch('${g.branch}')`]);
   const sections = groups.map(({ branch: b, colour, label, list }) => {
-    const cards = list.map(s => {
+    // Kate, 21 Sep 2026: "assistants: umbrella only" — Saadiyat's shared-cell assistant
+    // rows (MYRA/APOL, MARIA/APOL, MAY/XAV, and the standalone APOL/KATHY/MARIA/XAVRINA
+    // entries) were each rendering their own card, one per distinct name in
+    // staff-profiles.js. Those individual STAFF_PROFILES entries stay exactly as they
+    // are — the ledger reconciliation and stylistCountLabel() below still need every one
+    // of them by name — but the card grid itself now shows a single "Assistants" card per
+    // branch instead of one per name. `list` (unchanged) is what stylistCountLabel() above
+    // already counted from, so "N assistants" in the section heading still reflects the
+    // real headcount.
+    const assistantCount = list.filter(s => s.role === 'Assistant').length;
+    const cardsList = assistantCount
+      ? [...list.filter(s => s.role !== 'Assistant'), { name: 'Assistants', role: 'Assistant', branch: b }]
+      : list;
+    const cards = cardsList.map(s => {
       const nameHtml = s.ig
         ? `<a href="https://instagram.com/${encodeURIComponent(s.ig)}" target="_blank" rel="noopener noreferrer"
               style="color:inherit;text-decoration:none;border-bottom:1px solid ${colour}">${escapeHtml(s.name)}</a>`
@@ -1385,7 +1409,7 @@ async function renderStylistCards() {
                   scroll-margin-top:170px">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
                      background:${colour};flex-shrink:0"></span>
-        ${escapeHtml(b === 'other' ? 'Former Stylists' : label)} · ${stylistCountLabel(list)}
+        ${escapeHtml(label)} · ${stylistCountLabel(list)}
       </div>
       <div class="sc-grid mode-${stylistViewMode}">${cards}</div>`;
   }).join('');
