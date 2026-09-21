@@ -877,6 +877,7 @@ function heroPeriodPhrasing() {
 // paths (loading/empty/error) last touched #mainContent.
 const VIEW_SECTION_LABELS = {
   dashboard: 'Organisation Pulse', team: 'Team Performance', staffperf: 'Staff Performance', stylists: 'Staff Cards',
+  orgchart: 'Org Chart',
   services: 'Service Rankings', clients: 'Top Clients', reviews: 'Salon Reviews',
   branchperf: 'Branch Performance',
   ledgerFinancials: 'Ledgers · Financial Totals',
@@ -891,7 +892,7 @@ const VIEW_SECTION_LABELS = {
 // 'khalifa' and 'saadiyat', which have not existed for months.
 const ALL_VIEWS = [
   'dashboard','branchperf','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
-  'team','staffperf','stylists','services','clients','reviews','calendar','giveaway','trk',
+  'team','staffperf','stylists','orgchart','services','clients','reviews','calendar','giveaway','trk',
 ];
 
 // Which pages read the shared branch + period filters. Everything that shows a
@@ -3919,6 +3920,17 @@ async function loadDatesSince(table, sinceStr) {
 // Uses ACTIVE_BRANCHES (not BRANCH_INFO) — Fratelli closed ~May 2026 and will never
 // sync again, so counting it here meant `complete` could never be true and the header
 // permanently showed "(partial branches)" (Kate, 2026-08-04).
+// Al Quoz trades five days a week, closed Sunday and Monday — a standing fact,
+// not a data gap. Without this, the completeness check below could never be
+// satisfied on either day (AQ's real-activity total is genuinely zero), so the
+// badge froze on the last Friday until Tuesday's AQ numbers landed, a 3-4 day
+// lag every week. Kate, 21 Sep 2026.
+const BRANCH_WEEKLY_CLOSURE = { AQ: [0, 1] }; // Date#getDay(): 0 = Sun, 1 = Mon
+function isKnownClosedDay(branch, dateStr) {
+  const days = BRANCH_WEEKLY_CLOSURE[branch];
+  return !!days && days.includes(new Date(dateStr + 'T00:00:00').getDay());
+}
+
 async function getLatestCompleteDate(table) {
   const expectedBranches = ACTIVE_BRANCHES.length;
   const activityCol = FRESHNESS_ACTIVITY_COLUMN[table];
@@ -3949,17 +3961,20 @@ async function getLatestCompleteDate(table) {
   const datesDesc = [...byDateAny.keys()].sort((a, b) => b.localeCompare(a));
   let completeDate = null;
   for (const d of datesDesc) {
-    if ((byDateReal.get(d) || new Set()).size >= expectedBranches) { completeDate = d; break; }
+    const realSet = byDateReal.get(d) || new Set();
+    const satisfied = ACTIVE_BRANCHES.filter(b => realSet.has(b) || isKnownClosedDay(b, d)).length;
+    if (satisfied >= expectedBranches) { completeDate = d; break; }
   }
   // Kate, 17 Sep 2026: "which branch/date is missing" is the question the badge
   // gets asked in chat every time it looks stale, so it answers itself on hover
   // instead. Every date newer than the complete one (up to today) that still has
   // a branch with no real figures — no row synced at all, or only the "arrived
   // blank" placeholder — goes in `gaps`, oldest first, for the tooltip to read out.
+  // A branch's own known closure day is not a gap, so it's excluded here too.
   const todayStr = new Date().toISOString().slice(0, 10);
   const gaps = datesDesc
     .filter(d => d <= todayStr && (completeDate === null || d > completeDate))
-    .map(d => ({ date: d, missing: ACTIVE_BRANCHES.filter(b => !(byDateReal.get(d) || new Set()).has(b)) }))
+    .map(d => ({ date: d, missing: ACTIVE_BRANCHES.filter(b => !(byDateReal.get(d) || new Set()).has(b) && !isKnownClosedDay(b, d)) }))
     .filter(g => g.missing.length > 0)
     .sort((a, b) => a.date.localeCompare(b.date));
   if (completeDate) return { date: completeDate, complete: true, missing: [], gaps };

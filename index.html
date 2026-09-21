@@ -1520,6 +1520,35 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .sc-acts a{color:var(--muted);text-decoration:none}
 @media(hover:hover){.sc-acts a:hover{color:var(--text)}}
 
+/* ── ORG CHART (org-chart.js) ─────────────────────────────────
+   Classic pure-CSS connector tree: each <li> draws its own top+side
+   line via ::before/::after, an :only-child (one box, no siblings)
+   draws none. Reference page, same as Staff Cards — no date filter. */
+.oc-section{margin-top:26px}
+.oc-section:first-child{margin-top:0}
+.oc-tree,.oc-tree ul{list-style:none;margin:0;padding:0;display:flex;justify-content:safe center}
+.oc-tree{overflow-x:auto;padding-bottom:6px}
+.oc-tree ul{padding-top:28px;position:relative}
+.oc-tree ul::before{content:'';position:absolute;top:0;left:50%;
+  border-left:2px solid var(--border);width:0;height:28px}
+.oc-tree li{display:flex;flex-direction:column;align-items:center;position:relative;padding:0 14px}
+.oc-tree li::before,.oc-tree li::after{content:'';position:absolute;top:0;right:50%;
+  border-top:2px solid var(--border);width:50%;height:28px}
+.oc-tree li::after{right:auto;left:50%;border-left:2px solid var(--border)}
+.oc-tree li:only-child::after,.oc-tree li:only-child::before{display:none}
+.oc-tree li:only-child{padding-top:0}
+.oc-tree li:first-child::before,.oc-tree li:last-child::after{border:0 none}
+.oc-tree li:last-child::before{border-right:2px solid var(--border);border-radius:0 6px 0 0}
+.oc-tree li:first-child::after{border-radius:6px 0 0 0}
+.oc-node{display:inline-flex;flex-direction:column;align-items:center;gap:3px;
+  min-width:168px;padding:12px 16px;border-radius:12px;background:var(--surface);
+  border:1px solid var(--border);box-shadow:var(--shadow-card)}
+.oc-node.is-head{border-color:var(--accent-mint)}
+.oc-name{font-family:'Playfair Display',serif;font-weight:600;font-size:16px;color:var(--text);
+  white-space:nowrap}
+.oc-role{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);text-align:center}
+
 /* ══════════════════════════════════════════════════════════════
    BRANCH PERFORMANCE + LEDGERS  (branch-ledger.js)
    A ledger is a table, and this is the first thing in here that admits it. The
@@ -2213,6 +2242,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('team', this)">Team Performance</div>
     <div class="nav-sub" onclick="showView('staffperf', this)">Staff Performance<span class="nav-note">Under construction</span></div>
     <div class="nav-sub" onclick="showView('stylists', this)">Staff Cards</div>
+    <div class="nav-sub" onclick="showView('orgchart', this)">Org Chart</div>
     <!-- The four branch jumps used to sit here. Kate, 2026-08-14: Stylist Cards
          carries its own "On this page" rail now, so the sidebar copy was the same
          four links one level further from the page — and it scrolled away with the
@@ -2444,6 +2474,14 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="stylistCardsContent" style="max-width:1400px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- ORG CHART — Ops + Contact Centre reporting lines, from ORG_CHART in
+       org-chart.js. Built team by team as Kate sends each one (Accounts &
+       Admin first, 19 Sep 2026). Static reference like Staff Cards: no date
+       filter, no data load. -->
+  <div id="view-orgchart" style="display:none">
+    <main id="orgChartContent" style="max-width:1400px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <!-- SERVICES -->
   <div id="view-services" style="display:none">
     <!-- Branch and dates come from the masthead now, like every other page. What
@@ -2557,7 +2595,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260919c"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
-<script src="dashboard.js?v=20260919c"></script>
+<script src="org-chart.js?v=20260919a"></script>
+<script src="dashboard.js?v=20260921a"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260907a"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
@@ -2703,6 +2742,7 @@ function showView(view, el){
 
   if (view === 'team' && allData.length) renderTeam();
   if (view === 'stylists') renderStylistCards();
+  if (view === 'orgchart') renderOrgChart();
   if (view === 'services') initSvcView();
   if (view === 'clients') initCliView();
   if (view === 'branchperf')    renderBranchPerformance();
