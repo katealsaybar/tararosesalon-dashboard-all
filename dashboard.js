@@ -3280,7 +3280,14 @@ async function renderDashboard() {
 
   const hitRows = benchRows.filter(r => r.att >= 1).sort((a, b) => b.att - a.att);
   const lowRows = benchRows.filter(r => r.att <  1).sort((a, b) => a.att - b.att);
-  const worst   = lowRows[0] || null;
+  // Treatment and Retail are the standing priority (Kate/Mette, 21 Sep 2026) —
+  // whichever of the two is short wins the headline/"fix first" slot even when
+  // another benchmark (NCR etc.) is mathematically further below target. The
+  // true worst, if different, still gets named — just as a second line, not
+  // the headline. Falls back to the plain worst-gap pick when neither is short.
+  const priorityLow = lowRows.filter(r => r.name === 'Treatment %' || r.name === 'Retail %');
+  const worst     = priorityLow[0] || lowRows[0] || null;
+  const alsoWorst = (worst && lowRows[0] && worst !== lowRows[0]) ? lowRows[0] : null;
 
   const attRow = (r, rank) => {
     const vals = [r.hair, r.beauty, r.combined, r.target, r.beautyTarget].filter(Number.isFinite);
@@ -3396,7 +3403,17 @@ async function renderDashboard() {
       parts.push(`Beauty is ${beautyClientShare}% of the clients and ${beautyShare}% of the money.`);
     }
     if (worst) {
-      parts.push(`${worst.name.replace(/\s*%$/, '')} at ${worst.fmt(worst.combined)} against a ${tidyTarget(worst.fmt(worst.target))} target is the number that isn't in the same conversation as the rest.`);
+      // "isn't in the same conversation as the rest" is a claim about being the
+      // mathematical outlier — only true when worst still IS lowRows[0]. When
+      // Treatment/Retail priority bumped something else into that slot instead,
+      // this reads as "the one to fix first" and the real outlier (alsoWorst)
+      // gets its own line below rather than a false comparative claim.
+      parts.push(alsoWorst
+        ? `${worst.name.replace(/\s*%$/, '')} at ${worst.fmt(worst.combined)} against a ${tidyTarget(worst.fmt(worst.target))} target is the one to fix first.`
+        : `${worst.name.replace(/\s*%$/, '')} at ${worst.fmt(worst.combined)} against a ${tidyTarget(worst.fmt(worst.target))} target is the number that isn't in the same conversation as the rest.`);
+    }
+    if (alsoWorst) {
+      parts.push(`${alsoWorst.name.replace(/\s*%$/, '')} at ${alsoWorst.fmt(alsoWorst.combined)} against a ${tidyTarget(alsoWorst.fmt(alsoWorst.target))} target isn't in the same conversation as the rest.`);
     }
     standfirstEl.textContent = parts.join(' ');
   }
@@ -3669,7 +3686,11 @@ async function renderDashboard() {
   const actionHtml = worst ? `
     <div class="action">
       <div class="tag">✦ Fix first</div>
-      <h2>${escapeHtml(worst.name.replace(/\s*%$/, ''))} at ${worst.fmt(worst.combined)}. ${lowRows.length > 1 ? 'Every other gap is small next to this one.' : 'It is the only gap left.'}</h2>
+      <h2>${escapeHtml(worst.name.replace(/\s*%$/, ''))} at ${worst.fmt(worst.combined)}. ${
+        alsoWorst
+          ? `${escapeHtml(alsoWorst.name.replace(/\s*%$/, ''))} is the wider gap, but this is the priority.`
+          : lowRows.length > 1 ? 'Every other gap is small next to this one.' : 'It is the only gap left.'
+      }</h2>
       <p class="why">${Math.round(worst.att * 100)}% of a ${tidyTarget(worst.fmt(worst.target))} target${Number.isFinite(worst.hair) && Number.isFinite(worst.beauty) ? ` — hair ${worst.fmt(worst.hair)}, beauty ${worst.fmt(worst.beauty)}` : ''}.</p>
       <div class="meta">
         <div>Action<b>Audit how ${escapeHtml(worst.name.replace(/\s*%$/, ''))} is captured and coached at reception</b></div>
