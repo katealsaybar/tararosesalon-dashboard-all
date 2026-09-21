@@ -151,9 +151,8 @@ const STAFF_PROFILES = {
   'CLARISSA':  { photo: 'clarissa.png',  role: 'Blow-Dry Specialist', branch: 'MC', ig: 'hairbyclarissa' },
   'XYRHY':     { photo: 'xyrhy.png',     role: 'Blow-Dry Specialist', branch: 'MC', ig: 'hairgoalsbyxy' },
   // New joiner, confirmed Motor City off the 17 Sep Phorest export ("Virginija
-  // Lisauskaite", 2 visits that day, MC). No card/photo yet (Kate, 19 Sep 2026) —
-  // she renders plain text until one exists, same as Andrea/Simon below.
-  'VIRGINIJA': { role: 'Stylist', branch: 'MC', ig: 'hair_by_virginia_dxb' },
+  // Lisauskaite", 2 visits that day, MC). Card photo added 21 Sep 2026.
+  'VIRGINIJA': { photo: 'virginija.png', role: 'Stylist', branch: 'MC', ig: 'hair_by_virginia_dxb' },
   'ERCELY':    { role: 'Assistant', branch: 'MC' },
 
   // -- Al Quoz --
@@ -172,15 +171,12 @@ const STAFF_PROFILES = {
   // Assistant, not a stylist — the all-zero ledger rows under her name are exactly
   // what an assistant's row looks like, not a misread.
   'MARGIE':    { role: 'Assistant', branch: 'AQ' },
-  // Kate, 7 Sep 2026: no visa yet, so no PHOTO until the visa is in and the trade
-  // test is passed — that rule is about the card image, not the whole entry. Kate,
-  // 19 Sep 2026: add her IG handle now (instagram.com/andygladstone_hair), so no
-  // `photo` key here yet, but she's no longer left out of the map entirely; her
-  // surname is in STAFF_SURNAMES below too.
-  'ANDREA':    { role: 'Stylist', branch: 'AQ', ig: 'andygladstone_hair' },
-  // Same visa/trade-test hold as Andrea above — no `photo` yet. Kate, 21 Sep 2026:
-  // add his IG handle too (instagram.com/semon.hairstyle, bio reads "Simoun Faddoul").
-  'SIMON':     { role: 'Stylist', branch: 'AQ', ig: 'semon.hairstyle' },
+  // Kate, 7 Sep 2026: held with no card, pending visa + trade test. IG handle
+  // added 19 Sep 2026 (instagram.com/andygladstone_hair); card photo 21 Sep 2026.
+  'ANDREA':    { photo: 'andrea.png', role: 'Stylist', branch: 'AQ', ig: 'andygladstone_hair' },
+  // Same visa/trade-test hold as Andrea above. IG handle added 21 Sep 2026
+  // (instagram.com/semon.hairstyle, bio reads "Simoun Faddoul"); card photo same day.
+  'SIMON':     { photo: 'simon.png', role: 'Stylist', branch: 'AQ', ig: 'semon.hairstyle' },
 
   // -- Former team, kept for the record (Kate, 17 Sep 2026) --
   // `resigned: true` renders the card in black-and-white/faded (dashboard.js
