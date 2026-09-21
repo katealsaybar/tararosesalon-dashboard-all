@@ -19,16 +19,56 @@ const ORG_CHART = [
     root: {
       name: 'Tara Rose Kidd',
       role: 'Founder & Managing Director',
+      photo: 'assets/org-chart/tara-rose-kidd.png',
       children: [
-        { name: 'Daisy Charlotte Cropper', role: 'Managing Director, Tara Rose Bahrain' },
-        { name: 'Mette Haxthausen', role: 'Executive Partner (Salon Consultant)' },
+        { name: 'Daisy Charlotte Cropper', role: 'Managing Director, Tara Rose Bahrain', photo: 'assets/org-chart/daisy-charlotte-cropper.png' },
+        { name: 'Mette Haxthausen', role: 'Executive Partner (Salon Consultant)', photo: 'assets/org-chart/mette-haxthausen.png' },
         {
           name: 'Core Team',
           role: 'Department',
           children: [
-            { name: 'Emma-Louise Usher', role: 'General Manager — see Salon Operations Team below' },
-            { name: 'Kate Alsaybar', role: 'Operations and Performance Manager, EA' },
-            { name: 'Hanneh Rose Rejas', role: 'Social Media Manager' },
+            { name: 'Hanneh Rose Rejas', role: 'Social Media Manager', photo: 'assets/org-chart/hanneh-rose-rejas.png' },
+            { name: 'Kate Alsaybar', role: 'Operations and Performance Manager, EA', photo: 'assets/org-chart/kate-alsaybar.png' },
+            {
+              name: 'Emma-Louise Usher',
+              role: 'General Manager',
+              photo: 'assets/org-chart/emma-louise-usher.png',
+              children: [
+                {
+                  name: 'Call Centre Team',
+                  role: 'Department',
+                  children: [
+                    {
+                      name: 'Christabelle Bustos',
+                      role: 'Call Centre Team Lead',
+                      photo: 'assets/org-chart/christabelle-bustos.png',
+                      children: [
+                        { name: 'Hazel Alcala', role: 'Call Centre Receptionist', photo: 'assets/org-chart/hazel-alcala.png' },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  name: 'Educators',
+                  role: 'Department',
+                  children: [
+                    { name: 'Emma Williamson', role: 'Treatments & Retail Educator', photo: 'assets/org-chart/emma-williamson.png' },
+                    { name: 'Ashleigh Fairgrieve', role: 'Blondes & Extensions Educator', photo: 'assets/org-chart/ashleigh-fairgrieve.png' },
+                  ],
+                },
+                { name: 'Ruth Bocock', role: 'Salon Manager, Al Quoz Branch', photo: 'assets/org-chart/ruth-bocock.png' },
+                {
+                  name: 'Salon Coordinators',
+                  role: 'Department',
+                  children: [
+                    { name: 'Jhoana Cairel', role: 'Salon Coordinator, Khalifa City Branch', photo: 'assets/org-chart/jhoana-cairel.png' },
+                    { name: 'Cristine Bracamonte', role: 'Salon Coordinator, Saadiyat Branch', photo: 'assets/org-chart/cristine-bracamonte.png' },
+                    { name: 'Frances Pia Sergio', role: 'Salon Coordinator, Al Quoz Branch', photo: 'assets/org-chart/frances-pia-sergio.png' },
+                    { name: 'Shiela Avena', role: 'Salon Coordinator, Motor City Branch', photo: 'assets/org-chart/shiela-avena.png' },
+                  ],
+                },
+              ],
+            },
           ],
         },
         {
@@ -38,60 +78,19 @@ const ORG_CHART = [
             {
               name: 'Jumera Chavenia',
               role: 'Accounts and Admin Head',
+              photo: 'assets/org-chart/jumera-chavenia.png',
               children: [
                 {
                   name: 'Mary Ann Yanson',
                   role: 'Accounts Manager',
+                  photo: 'assets/org-chart/mary-ann-yanson.png',
                   children: [
-                    { name: 'Suncirie Pedrosa', role: 'Accounts Officer' },
+                    { name: 'Suncirie Pedrosa', role: 'Accounts Officer', photo: 'assets/org-chart/suncirie-pedrosa.png' },
                   ],
                 },
-                { name: 'Jeanylyn Pacada', role: 'HR & Admin Officer' },
+                { name: 'Jeanylyn Pacada', role: 'HR & Admin Officer', photo: 'assets/org-chart/jeanylyn-pacada.png' },
               ],
             },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    id: 'salon-ops',
-    label: 'Salon Operations Team',
-    colour: '#99F6E4',
-    root: {
-      name: 'Emma-Louise Usher',
-      role: 'General Manager',
-      children: [
-        {
-          name: 'Call Centre Team',
-          role: 'Department',
-          children: [
-            {
-              name: 'Christabelle Bustos',
-              role: 'Call Centre Team Lead',
-              children: [
-                { name: 'Hazel Alcala', role: 'Call Centre Receptionist' },
-              ],
-            },
-          ],
-        },
-        {
-          name: 'Educators',
-          role: 'Department',
-          children: [
-            { name: 'Emma Williamson', role: 'Treatments & Retail Educator' },
-            { name: 'Ashleigh Fairgrieve', role: 'Blondes & Extensions Educator' },
-          ],
-        },
-        { name: 'Ruth Bocock', role: 'Salon Manager, Al Quoz Branch' },
-        {
-          name: 'Salon Coordinators',
-          role: 'Department',
-          children: [
-            { name: 'Jhoana Cairel', role: 'Salon Coordinator, Khalifa City Branch' },
-            { name: 'Cristine Bracamonte', role: 'Salon Coordinator, Saadiyat Branch' },
-            { name: 'Frances Pia Sergio', role: 'Salon Coordinator, Al Quoz Branch' },
-            { name: 'Shiela Avena', role: 'Salon Coordinator, Motor City Branch' },
           ],
         },
       ],
@@ -103,15 +102,26 @@ function ocNode(node, isHead) {
   const children = node.children && node.children.length
     ? `<ul>${node.children.map(c => ocNode(c, false)).join('')}</ul>`
     : '';
+  const photo = node.photo
+    ? `<img class="oc-photo" src="${encodeURI(node.photo)}" alt="" loading="lazy" onerror="this.remove()">`
+    : '';
   return `
     <li>
-      <div class="oc-node${isHead ? ' is-head' : ''}">
+      <div class="oc-node${isHead ? ' is-head' : ''}${node.photo ? ' has-photo' : ''}">
+        ${photo}
         <div class="oc-name">${escapeHtml(node.name)}</div>
         <div class="oc-role">${escapeHtml(node.role || '')}</div>
       </div>
       ${children}
     </li>`;
 }
+
+// Zoom range for the container's --oc-scale (see the CSS comment above the
+// .oc-container rules): a real reflow via calc(), never a transform, so the
+// connector lines drawOcConnectors() draws from live getBoundingClientRect()
+// values stay put instead of being scaled twice.
+const OC_ZOOM_MIN = 0.55, OC_ZOOM_MAX = 1.4, OC_ZOOM_STEP = 0.1;
+let ocScale = 1;
 
 function renderOrgChart() {
   const host = document.getElementById('orgChartContent');
@@ -120,17 +130,34 @@ function renderOrgChart() {
     host.innerHTML = `<div class="loading">No teams added yet.</div>`;
     return;
   }
-  host.innerHTML = ORG_CHART.map(team => `
-    <div class="oc-section">
-      <div class="section-label" style="display:flex;align-items:center;gap:7px;margin-bottom:14px">
-        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
-                     background:${team.colour};flex-shrink:0"></span>
-        ${escapeHtml(team.label)}
+  ocScale = 1;
+  host.innerHTML = `
+    <div class="oc-container" id="ocContainer" style="--oc-scale:1">
+      <div class="oc-zoom-controls">
+        <button class="oc-zoom-btn" type="button" onclick="ocZoom(-1)" aria-label="Zoom out">−</button>
+        <button class="oc-zoom-btn" type="button" onclick="ocZoom(1)" aria-label="Zoom in">+</button>
       </div>
-      <ul class="oc-tree">${ocNode(team.root, true)}</ul>
+      ${ORG_CHART.map(team => `
+        <div class="oc-section">
+          <div class="section-label" style="display:flex;align-items:center;gap:7px;margin-bottom:14px">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
+                         background:${team.colour};flex-shrink:0"></span>
+            ${escapeHtml(team.label)}
+          </div>
+          <ul class="oc-tree">${ocNode(team.root, true)}</ul>
+        </div>
+      `).join('')}
     </div>
-  `).join('');
+  `;
   host.querySelectorAll('.oc-tree').forEach(drawOcConnectors);
+
+  // Opened as its own popped-out window (ocOpenNewWindow() below sets this):
+  // fit the widest team to the window instead of leaving Kate to scroll
+  // sideways to find everyone. Kate, 21 Sep 2026.
+  if (new URLSearchParams(location.search).get('ocFit') === '1') {
+    requestAnimationFrame(ocFitToWindow);
+  }
+
   if (!window.__ocResizeBound) {
     window.__ocResizeBound = true;
     let t;
@@ -139,6 +166,40 @@ function renderOrgChart() {
       t = setTimeout(() => host.querySelectorAll('.oc-tree').forEach(drawOcConnectors), 150);
     });
   }
+}
+
+function ocSetZoom(scale) {
+  ocScale = Math.min(OC_ZOOM_MAX, Math.max(OC_ZOOM_MIN, +scale.toFixed(2)));
+  const el = document.getElementById('ocContainer');
+  if (!el) return;
+  el.style.setProperty('--oc-scale', ocScale);
+  el.querySelectorAll('.oc-tree').forEach(drawOcConnectors);
+}
+
+function ocZoom(dir) {
+  ocSetZoom(ocScale + dir * OC_ZOOM_STEP);
+}
+
+// Shrinks the chart just enough that its widest team fits the window with no
+// side-scrolling — the state the popped-out window opens into.
+function ocFitToWindow() {
+  const container = document.getElementById('ocContainer');
+  if (!container) return;
+  ocSetZoom(1); // measure from the natural size, not whatever zoom is live
+  let widest = 0;
+  container.querySelectorAll('.oc-tree').forEach(t => { widest = Math.max(widest, t.scrollWidth); });
+  if (!widest) return;
+  const available = container.clientWidth - 8;
+  if (widest > available) ocSetZoom(available / widest);
+}
+
+// The masthead's "Open in new window" link — a separate window so Kate can
+// project or share it standalone, pre-zoomed to fit everyone on screen.
+function ocOpenNewWindow() {
+  const url = new URL(location.href);
+  url.searchParams.set('view', 'orgchart');
+  url.searchParams.set('ocFit', '1');
+  window.open(url.toString(), '_blank', 'noopener');
 }
 
 // One straight elbow line per box, from its own parent box only — no

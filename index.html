@@ -320,6 +320,11 @@ body.kpi-view:not(.revealed) footer{display:none}
 body.ledger-chrome .mast-acts,
 body.ledger-chrome .filters-wrap{display:none}
 body.ledger-chrome #mastBranch{display:none}
+/* Kate, 21 Sep 2026: Org Chart is a static reference page like Staff Cards —
+   no date filter, no data load — so the branch/date/freshness line has
+   nothing to describe there and just reads as clutter. */
+body.orgchart-chrome .mast-rule,
+body.orgchart-chrome .filters-wrap{display:none}
 .mast,.mast-logo,.tglr,.filters{
   transition:width 200ms var(--card-ease),min-height 200ms var(--card-ease),padding 200ms var(--card-ease)}
 
@@ -1526,21 +1531,47 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
    "bus line" pseudo-element tree, which kept drawing into the cards
    (Kate, 21 Sep 2026: "1 bus line per box"). Reference page, same as
    Staff Cards — no date filter. */
+/* Kate, 21 Sep 2026: a clear container boundary around the whole chart, plus
+   zoom in/out — the tree can run wider than the page, and scale is the escape
+   hatch instead of endless side-scrolling. --oc-scale drives every size below
+   through calc() so zoom is a genuine reflow (ocSetZoom() in org-chart.js),
+   not a CSS transform — a transform would visually scale the connector SVGs
+   drawOcConnectors() draws from real getBoundingClientRect() values, which
+   would then be double-scaled and misaligned. */
+.oc-container{position:relative;border:1px solid var(--border);border-radius:16px;
+  background:var(--surface);padding:24px 18px 28px;box-shadow:var(--shadow-card)}
+.oc-zoom-controls{position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:5}
+.oc-zoom-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface);color:var(--text);font-size:18px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-card)}
+@media(hover:hover){.oc-zoom-btn:hover{background:var(--surface2)}}
+.oc-zoom-btn:disabled{opacity:.35;cursor:default}
 .oc-section{margin-top:26px}
 .oc-section:first-child{margin-top:0}
 .oc-tree,.oc-tree ul{list-style:none;margin:0;padding:0;display:flex;justify-content:safe center}
 .oc-tree{overflow-x:auto;padding-bottom:6px;position:relative}
-.oc-tree ul{padding-top:28px}
-.oc-tree li{display:flex;flex-direction:column;align-items:center;position:relative;padding:0 14px}
+.oc-tree ul{padding-top:calc(28px * var(--oc-scale,1))}
+.oc-tree li{display:flex;flex-direction:column;align-items:center;position:relative;padding:0 calc(14px * var(--oc-scale,1))}
 .oc-lines{position:absolute;top:0;left:0;pointer-events:none;overflow:visible}
 .oc-node{display:inline-flex;flex-direction:column;align-items:center;gap:3px;
-  min-width:168px;padding:12px 16px;border-radius:12px;background:var(--surface);
+  min-width:calc(168px * var(--oc-scale,1));padding:calc(12px * var(--oc-scale,1)) calc(16px * var(--oc-scale,1));
+  border-radius:12px;background:var(--surface);
   border:1px solid var(--border);box-shadow:var(--shadow-card)}
 .oc-node.is-head{border-color:var(--accent-mint)}
-.oc-name{font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:16px;color:var(--text);
-  white-space:nowrap}
-.oc-role{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+.oc-node.has-photo{width:calc(132px * var(--oc-scale,1));min-width:calc(132px * var(--oc-scale,1));
+  padding:calc(10px * var(--oc-scale,1)) calc(10px * var(--oc-scale,1)) calc(12px * var(--oc-scale,1))}
+/* assets/org-chart/*.png already has the rounded mint card baked in (same
+   convention as assets/staff/*.png for .sc-photo) — no crop/background here,
+   just scale it. The crown of the head sitting right at/slightly past the
+   top edge is the design, not a bug. */
+.oc-photo{height:calc(120px * var(--oc-scale,1));width:auto;margin-bottom:6px}
+.oc-name{font-family:'Playfair Display',serif;font-style:italic;font-weight:600;
+  font-size:calc(16px * var(--oc-scale,1));color:var(--text);text-align:center}
+.oc-node:not(.has-photo) .oc-name{white-space:nowrap}
+.oc-node.has-photo .oc-name{font-size:calc(13px * var(--oc-scale,1))}
+.oc-role{font-size:calc(11px * var(--oc-scale,1));font-weight:700;letter-spacing:.08em;text-transform:uppercase;
   color:var(--hair);text-align:center}
+.oc-node.has-photo .oc-role{font-size:calc(9.5px * var(--oc-scale,1))}
 
 /* ══════════════════════════════════════════════════════════════
    BRANCH PERFORMANCE + LEDGERS  (branch-ledger.js)
@@ -2296,7 +2327,12 @@ table.tp-cmp td.bad{color:var(--bad)}
         <!-- headerLogoImg keeps its id: applyLogoForTheme() swaps 6.png (ink) and
              5.png (paper) on this element, same as it always has. -->
         <div class="mark mast-logo" onclick="backToTop()"><img id="headerLogoImg" src="assets/6.png" alt="Tara Rose Ladies Salon"></div>
-        <div class="mast-sub" id="headerSectionLabel">Organisation Pulse</div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-top:7px">
+          <div class="mast-sub" id="headerSectionLabel" style="margin-top:0">Organisation Pulse</div>
+          <a id="ocOpenNewWin" href="javascript:void(0)" onclick="ocOpenNewWindow()"
+             style="display:none;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+                    text-decoration:underline;cursor:pointer;white-space:nowrap">Open in new window ↗</a>
+        </div>
       </div>
       <div class="mast-acts">
         <button class="tglr navbtn" id="navBtn" onclick="toggleNav()" aria-expanded="false" aria-controls="sidebar">Sections</button>
@@ -2588,7 +2624,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260919c"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
-<script src="org-chart.js?v=20260921h"></script>
+<script src="org-chart.js?v=20260921i"></script>
 <script src="dashboard.js?v=20260921a"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260907a"></script>
@@ -2732,6 +2768,13 @@ function showView(view, el){
   // the spacer for the shorter bar.
   document.body.classList.toggle('ledger-chrome',
     typeof LEDGER_VIEWS !== 'undefined' && LEDGER_VIEWS.has(view));
+
+  // Org Chart: same static-reference treatment as the Ledgers chrome above,
+  // plus its own "open in new window" link since this is the page people
+  // pop out to project or share standalone.
+  document.body.classList.toggle('orgchart-chrome', view === 'orgchart');
+  const ocOpenLink = document.getElementById('ocOpenNewWin');
+  if (ocOpenLink) ocOpenLink.style.display = view === 'orgchart' ? '' : 'none';
 
   if (view === 'team' && allData.length) renderTeam();
   if (view === 'stylists') renderStylistCards();
