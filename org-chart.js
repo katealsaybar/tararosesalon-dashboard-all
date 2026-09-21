@@ -26,44 +26,7 @@ const ORG_CHART = [
           name: 'Core Team',
           role: 'Department',
           children: [
-            {
-              name: 'Emma-Louise Usher',
-              role: 'General Manager',
-              children: [
-                {
-                  name: 'Call Centre Team',
-                  role: 'Department',
-                  children: [
-                    {
-                      name: 'Christabelle Bustos',
-                      role: 'Call Centre Team Lead',
-                      children: [
-                        { name: 'Hazel Alcala', role: 'Call Centre Receptionist' },
-                      ],
-                    },
-                  ],
-                },
-                {
-                  name: 'Educators',
-                  role: 'Department',
-                  children: [
-                    { name: 'Emma Williamson', role: 'Treatments & Retail Educator' },
-                    { name: 'Ashleigh Fairgrieve', role: 'Blondes & Extensions Educator' },
-                  ],
-                },
-                { name: 'Ruth Bocock', role: 'Salon Manager, Al Quoz Branch' },
-                {
-                  name: 'Salon Coordinators',
-                  role: 'Department',
-                  children: [
-                    { name: 'Jhoana Cairel', role: 'Salon Coordinator, Khalifa City Branch' },
-                    { name: 'Cristine Bracamonte', role: 'Salon Coordinator, Saadiyat Branch' },
-                    { name: 'Frances Pia Sergio', role: 'Salon Coordinator, Al Quoz Branch' },
-                    { name: 'Shiela Avena', role: 'Salon Coordinator, Motor City Branch' },
-                  ],
-                },
-              ],
-            },
+            { name: 'Emma-Louise Usher', role: 'General Manager — see Salon Operations Team below' },
             { name: 'Kate Alsaybar', role: 'Operations and Performance Manager, EA' },
             { name: 'Hanneh Rose Rejas', role: 'Social Media Manager' },
           ],
@@ -86,6 +49,49 @@ const ORG_CHART = [
                 { name: 'Jeanylyn Pacada', role: 'HR & Admin Officer' },
               ],
             },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'salon-ops',
+    label: 'Salon Operations Team',
+    colour: '#99F6E4',
+    root: {
+      name: 'Emma-Louise Usher',
+      role: 'General Manager',
+      children: [
+        {
+          name: 'Call Centre Team',
+          role: 'Department',
+          children: [
+            {
+              name: 'Christabelle Bustos',
+              role: 'Call Centre Team Lead',
+              children: [
+                { name: 'Hazel Alcala', role: 'Call Centre Receptionist' },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'Educators',
+          role: 'Department',
+          children: [
+            { name: 'Emma Williamson', role: 'Treatments & Retail Educator' },
+            { name: 'Ashleigh Fairgrieve', role: 'Blondes & Extensions Educator' },
+          ],
+        },
+        { name: 'Ruth Bocock', role: 'Salon Manager, Al Quoz Branch' },
+        {
+          name: 'Salon Coordinators',
+          role: 'Department',
+          children: [
+            { name: 'Jhoana Cairel', role: 'Salon Coordinator, Khalifa City Branch' },
+            { name: 'Cristine Bracamonte', role: 'Salon Coordinator, Saadiyat Branch' },
+            { name: 'Frances Pia Sergio', role: 'Salon Coordinator, Al Quoz Branch' },
+            { name: 'Shiela Avena', role: 'Salon Coordinator, Motor City Branch' },
           ],
         },
       ],
