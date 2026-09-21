@@ -27,19 +27,31 @@ const ORG_CHART = [
           role: 'General Manager',
           children: [
             {
-              name: 'Christabelle Bustos',
-              role: 'Call Centre Team Lead',
+              name: 'Call Centre Team',
+              role: 'Department',
               children: [
-                { name: 'Hazel Alcala', role: 'Call Centre Receptionist' },
+                {
+                  name: 'Christabelle Bustos',
+                  role: 'Call Centre Team Lead',
+                  children: [
+                    { name: 'Hazel Alcala', role: 'Call Centre Receptionist' },
+                  ],
+                },
               ],
             },
             { name: 'Emma Williamson', role: 'Treatments & Retail Educator' },
             { name: 'Ashleigh Fairgrieve', role: 'Blondes & Extensions Educator' },
             { name: 'Ruth Bocock', role: 'Salon Manager, Al Quoz Branch' },
-            { name: 'Jhoana Cairel', role: 'Salon Coordinator, Khalifa City Branch' },
-            { name: 'Cristine Bracamonte', role: 'Salon Coordinator, Saadiyat Branch' },
-            { name: 'Frances Pia Sergio', role: 'Salon Coordinator, Al Quoz Branch' },
-            { name: 'Shiela Avena', role: 'Salon Coordinator, Motor City Branch' },
+            {
+              name: 'Salon Coordinators',
+              role: 'Department',
+              children: [
+                { name: 'Jhoana Cairel', role: 'Salon Coordinator, Khalifa City Branch' },
+                { name: 'Cristine Bracamonte', role: 'Salon Coordinator, Saadiyat Branch' },
+                { name: 'Frances Pia Sergio', role: 'Salon Coordinator, Al Quoz Branch' },
+                { name: 'Shiela Avena', role: 'Salon Coordinator, Motor City Branch' },
+              ],
+            },
           ],
         },
         { name: 'Kate Alsaybar', role: 'Operations and Performance Manager, EA' },
@@ -49,13 +61,19 @@ const ORG_CHART = [
           role: 'Accounts and Admin Head',
           children: [
             {
-              name: 'Mary Ann Yanson',
-              role: 'Accounts Manager',
+              name: 'Accounts & Admin Team',
+              role: 'Department',
               children: [
-                { name: 'Suncirie Pedrosa', role: 'Accounts Officer' },
+                {
+                  name: 'Mary Ann Yanson',
+                  role: 'Accounts Manager',
+                  children: [
+                    { name: 'Suncirie Pedrosa', role: 'Accounts Officer' },
+                  ],
+                },
+                { name: 'Jeanylyn Pacada', role: 'HR & Admin Officer' },
               ],
             },
-            { name: 'Jeanylyn Pacada', role: 'HR & Admin Officer' },
           ],
         },
       ],
