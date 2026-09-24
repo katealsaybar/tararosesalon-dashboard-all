@@ -178,7 +178,9 @@ const STAFF_PROFILES = {
   'ANDREA':    { photo: 'andrea.png', role: 'Stylist', branch: 'AQ', ig: 'andygladstone_hair' },
   // Same visa/trade-test hold as Andrea above. IG handle added 21 Sep 2026
   // (instagram.com/semon.hairstyle, bio reads "Simoun Faddoul"); card photo same day.
-  'SIMON':     { photo: 'simon.png', role: 'Stylist', branch: 'AQ', ig: 'semon.hairstyle' },
+  // Kate, 24 Sep 2026: Senior Stylist per Phorest, not Stylist; photo swapped for the
+  // Senior Stylist background (new filename so no browser serves the old one).
+  'SIMON':     { photo: 'simon-senior.png', role: 'Senior Stylist', branch: 'AQ', ig: 'semon.hairstyle' },
 
   // -- Former team, kept for the record (Kate, 17 Sep 2026) --
   // `resigned: true` renders the card in black-and-white/faded (dashboard.js
