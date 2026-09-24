@@ -156,7 +156,8 @@
     var btn = el("button", "trs-ask-btn");
     btn.type = "button";
     btn.setAttribute("aria-expanded", "false");
-    btn.innerHTML = '<span aria-hidden="true">?</span> Ask a question';
+    btn.innerHTML = '<span aria-hidden="true">?</span><b class="trs-ask-txt">Ask a question</b>';
+    btn.setAttribute("aria-label", "Ask a question");
 
     var panel = el("div", "trs-ask-panel");
     panel.setAttribute("role", "dialog");

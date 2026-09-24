@@ -43,7 +43,14 @@ function cmpDataEnd() {
   return t;
 }
 
-const cmpBranchName = code => code === 'all' ? 'All Branches' : (BRANCH_INFO[code]?.name || code);
+// A side's branch is 'all', one code, or several joined by commas ('SAA,KCA').
+// Kate, 24 Sep 2026: pick any mix of branches, not just one or All.
+const cmpCodes = branch => (!branch || branch === 'all') ? null : branch.split(',').filter(Boolean);
+const cmpBranchName = branch => {
+  const codes = cmpCodes(branch);
+  if (!codes) return 'All Branches';
+  return codes.map(c => BRANCH_INFO[c]?.name || c).join(' + ');
+};
 
 function cmpRangeText(from, to) {
   if (!from || !to) return '';
@@ -105,7 +112,7 @@ function cmpPresets() {
         // over the period I was just looking at" is one click.
         const from = (cmpState.b && cmpState.b.from) || new Date(y, m, 1);
         const to   = (cmpState.b && cmpState.b.to)   || end;
-        const bBr  = keepBranch === 'all' ? 'SAA' : keepBranch;
+        const bBr  = (cmpCodes(keepBranch) || ['SAA'])[0];
         const aBr  = ACTIVE_BRANCHES.find(c => c !== bBr) || 'KCA';
         return { a: { branch: aBr, from, to }, b: { branch: bBr, from, to } };
       },
@@ -166,7 +173,7 @@ function cmpRestore() {
 // ── ONE SIDE'S SUMMARY ──────────────────────────────────────
 async function cmpSummary(side) {
   const { from, to, branch } = side;
-  const codes = branch === 'all' ? null : [branch];
+  const codes = cmpCodes(branch);
   const keep = rows => codes ? rows.filter(r => codes.includes(r.branch)) : rows;
   const key = `daily|${cmpIso(from)}|${cmpIso(to)}`;
   let [dailyRows, branchStaffRows, phorestStaffRows] = await cachedRange(key, () => Promise.all([
@@ -258,6 +265,10 @@ async function renderCompare() {
   const seq = ++cmpSeq;
 
   // Controls paint first and stay put; only the results area shows Loading.
+  const mast = document.getElementById('cmpModeMast');
+  if (mast) mast.innerHTML = `
+    <button type="button" data-mode="visual" class="${cmpState.mode === 'visual' ? 'on' : ''}" onclick="cmpSetMode('visual')">Visual</button>
+    <button type="button" data-mode="table" class="${cmpState.mode === 'table' ? 'on' : ''}" onclick="cmpSetMode('table')">Table</button>`;
   host.innerHTML = cmpControlsHtml() + `<div id="cmpResults"><div class="loading">Loading both windows…</div></div>`;
   if (typeof sizeTopbar === 'function') sizeTopbar();
 
@@ -297,14 +308,11 @@ function cmpControlsHtml() {
     `<button type="button" class="cmp-chip${cmpState.preset === k ? ' on' : ''}" onclick="cmpApplyPreset('${k}')" title="${escapeHtml(p.hint)}">${escapeHtml(p.label)}</button>`
   ).join('') + `<span class="cmp-chip cmp-chip-note${cmpState.preset === 'custom' ? ' on' : ''}">Custom</span>`;
 
-  const branchOpts = cur => ['all', ...ACTIVE_BRANCHES].map(c =>
-    `<option value="${c}"${c === cur ? ' selected' : ''}>${escapeHtml(cmpBranchName(c))}</option>`).join('');
   const maxIso = cmpIso(cmpToday());
   const side = (key, label, s) => `
     <div class="cmp-side cmp-side-${key}">
       <div class="cmp-side-k"><span class="cmp-tag cmp-tag-${key}">${label}</span> ${daysBetween(s.from, s.to) || 0} days</div>
-      <label class="cmp-f"><span>Branch</span>
-        <select onchange="cmpSet('${key}','branch',this.value)">${branchOpts(s.branch)}</select></label>
+      <div class="cmp-f"><span>Branch</span>${cmpPickerHtml(key, s.branch)}</div>
       <div class="cmp-dates">
         <label class="cmp-f"><span>From</span>
           <input type="date" value="${s.from ? cmpIso(s.from) : ''}" min="${PERIOD_FIRST_YEAR}-01-01" max="${maxIso}" onchange="cmpSet('${key}','from',this.value)"></label>
@@ -318,12 +326,6 @@ function cmpControlsHtml() {
 
   return `
     <div class="lg-head">
-      <div class="lg-head-k cmp-k">Comparison
-        <span class="cmp-mode" role="group" aria-label="Show as">
-          <button type="button" data-mode="visual" class="${cmpState.mode === 'visual' ? 'on' : ''}" onclick="cmpSetMode('visual')">Visual</button>
-          <button type="button" data-mode="table" class="${cmpState.mode === 'table' ? 'on' : ''}" onclick="cmpSetMode('table')">Table</button>
-        </span>
-      </div>
       <h1>Two windows, side by side</h1>
       <p class="lg-stand">Pick a branch and dates for each side. Same branch across two periods, two branches over one period, or any mix. B is read against A, so the change column is B minus A.</p>
     </div>
@@ -349,6 +351,67 @@ function cmpSet(key, field, value) {
   cmpSave();
   renderCompare();
 }
+// ── BRANCH PICKER ───────────────────────────────────────────
+// A custom dropdown rather than a <select>: the native list can't be rounded
+// or hold tickboxes. Ticks are held in the open panel and only committed when
+// it closes, so picking three branches is one reload, not three.
+function cmpPickerHtml(key, branch) {
+  const codes = cmpCodes(branch);
+  const row = (v, label, on, dot) => `
+    <button type="button" class="cmp-bp-opt${on ? ' on' : ''}${v === 'all' ? ' all' : ''}" data-v="${v}" onclick="cmpPickToggle('${key}','${v}')">
+      <span class="cmp-bp-chk"></span>${dot || ''}${escapeHtml(label)}
+    </button>`;
+  return `
+    <div class="cmp-bp" id="cmpBp-${key}" data-branch="${escapeHtml(branch || 'all')}">
+      <button type="button" class="cmp-bp-btn" onclick="cmpPickOpen('${key}')" aria-haspopup="listbox">
+        <span class="cmp-bp-lbl">${escapeHtml(cmpBranchName(branch))}</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="cmp-bp-drop" role="listbox" aria-multiselectable="true">
+        ${row('all', 'All Branches', !codes)}
+        ${ACTIVE_BRANCHES.map(c => row(c, BRANCH_INFO[c]?.name || c, !!codes && codes.includes(c),
+          `<i class="cmp-bp-dot" style="background:${BRANCH_INFO[c]?.color || 'var(--muted2)'}"></i>`)).join('')}
+        <div class="cmp-bp-foot"><button type="button" onclick="cmpPickClose('${key}')">Done</button></div>
+      </div>
+    </div>`;
+}
+function cmpPickOpen(key) {
+  const el = document.getElementById('cmpBp-' + key);
+  if (!el) return;
+  if (el.classList.contains('open')) { cmpPickClose(key); return; }
+  ['a', 'b'].filter(k => k !== key).forEach(cmpPickClose);
+  el.classList.add('open');
+}
+function cmpPickToggle(key, v) {
+  const el = document.getElementById('cmpBp-' + key);
+  if (!el) return;
+  let codes = cmpCodes(el.dataset.branch);
+  if (v === 'all') codes = null;
+  else if (!codes) codes = [v];
+  else if (codes.includes(v)) codes = codes.filter(c => c !== v);
+  else codes = [...codes, v];
+  // Nothing ticked, or every branch ticked, both mean All Branches.
+  if (codes && (!codes.length || ACTIVE_BRANCHES.every(c => codes.includes(c)))) codes = null;
+  const branch = codes ? ACTIVE_BRANCHES.filter(c => codes.includes(c)).join(',') : 'all';
+  el.dataset.branch = branch;
+  el.querySelectorAll('.cmp-bp-opt').forEach(o =>
+    o.classList.toggle('on', o.dataset.v === 'all' ? !codes : !!codes && codes.includes(o.dataset.v)));
+  el.querySelector('.cmp-bp-lbl').textContent = cmpBranchName(branch);
+}
+function cmpPickClose(key) {
+  const el = document.getElementById('cmpBp-' + key);
+  if (!el || !el.classList.contains('open')) return;
+  el.classList.remove('open');
+  if (el.dataset.branch !== (cmpState[key].branch || 'all')) cmpSet(key, 'branch', el.dataset.branch);
+}
+document.addEventListener('click', e => {
+  ['a', 'b'].forEach(k => {
+    const el = document.getElementById('cmpBp-' + k);
+    if (el && !el.contains(e.target)) cmpPickClose(k);
+  });
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') ['a', 'b'].forEach(cmpPickClose); });
+
 function cmpSetPer(on) { cmpState.per = !!on; cmpSave(); renderCompare(); }
 function cmpSwap() {
   const t = cmpState.a; cmpState.a = cmpState.b; cmpState.b = t;
@@ -785,7 +848,8 @@ function cmpDrawTrend() {
 function cmpVisualHtml(sa, sb2) {
   const A = cmpState.a, B = cmpState.b;
   const { per } = cmpScaler();
-  const both = A.branch === 'all' && B.branch === 'all';
+  const multi = s => { const c = cmpCodes(s.branch); return !c || c.length > 1; };
+  const both = multi(A) && multi(B);
   const perTxt = per ? ' Per day, because the windows are different lengths.' : '';
   return `
     <div class="cmp-key"><span><i class="a"></i><b>A</b> ${escapeHtml(cmpShortSide(A))}</span><span><i class="b"></i><b>B</b> ${escapeHtml(cmpShortSide(B))}</span></div>
@@ -881,9 +945,13 @@ function cmpDrawCharts(sa, sb2) {
     const d = aggDailyData(f(s._rows.dailyRows), f(s._rows.branchStaffRows), f(s._rows.phorestStaffRows));
     return d ? (d.summary.netTake || 0) : null;
   };
-  const va = ACTIVE_BRANCHES.map(c => sc('aed', cut(sa, c), dA));
-  const vb = ACTIVE_BRANCHES.map(c => sc('aed', cut(sb2, c), dB));
-  const labels = ACTIVE_BRANCHES.map((c, i) => {
+  // Only the branches either side picked, so a two-branch pick is not padded
+  // out with empty bars for the other two.
+  const picked = new Set([].concat(cmpCodes(A.branch) || ACTIVE_BRANCHES, cmpCodes(B.branch) || ACTIVE_BRANCHES));
+  const codes = ACTIVE_BRANCHES.filter(c => picked.has(c));
+  const va = codes.map(c => sc('aed', cut(sa, c), dA));
+  const vb = codes.map(c => sc('aed', cut(sb2, c), dB));
+  const labels = codes.map((c, i) => {
     const r = va[i] ? (vb[i] - va[i]) / va[i] * 100 : null;
     return [cmpBranchName(c), r == null ? '' : `${r >= 0 ? '↑' : '↓'} ${Math.abs(r).toFixed(1)}%`];
   });

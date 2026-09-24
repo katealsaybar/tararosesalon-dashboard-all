@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="ask-widget.css?v=20260924a">
+<link rel="stylesheet" href="ask-widget.css?v=20260924b">
 
 
 <style>
@@ -325,8 +325,9 @@ body.ledger-chrome #mastBranch{display:none}
    no date filter, no data load — so the branch/date/freshness line has
    nothing to describe there and just reads as clutter. */
 /* Comparison sets its own two windows, so the masthead's single branch and
-   range would describe neither. The freshness stamps stay: they matter here. */
-body.compare-chrome #mastBranch,body.compare-chrome #mastRange{display:none}
+   range would describe neither. Kate, 24 Sep 2026: the freshness line goes
+   too, the page carries its own filters, so the whole row is hidden. */
+body.compare-chrome .mast-rule{display:none}
 body.orgchart-chrome .mast-rule,
 body.orgchart-chrome .filters-wrap{display:none}
 /* Kate, 24 Sep 2026: Google Reviews carries its own filters and pull date, so the
@@ -1150,6 +1151,37 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .cmp-f{display:grid;gap:4px;font-size:12px;color:var(--muted2);min-width:0}
 .cmp-f select,.cmp-f input{font:inherit;font-size:14px;color:var(--text);background:var(--surface2);
   border:1px solid var(--border);border-radius:8px;padding:7px 9px;width:100%;min-width:0;color-scheme:light dark}
+/* Branch picker: a rounded, multi-select dropdown in place of the native
+   <select> (Kate, 24 Sep 2026). Built by cmpPickerHtml() in compare.js. */
+/* The results below animate in and so stack above plain siblings; lift the
+   whole row so an open panel covers them rather than showing them through. */
+.cmp-sides{position:relative;z-index:20}
+.cmp-bp{position:relative}
+.cmp-bp-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;font:inherit;font-size:14px;
+  color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:8px 12px;cursor:pointer;
+  text-align:left;transition:border-color .2s}
+.cmp-bp-lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.cmp-bp-btn svg{flex-shrink:0;opacity:.55;transition:transform .2s}
+.cmp-bp-btn:hover,.cmp-bp.open .cmp-bp-btn{border-color:var(--accent)}
+.cmp-bp.open .cmp-bp-btn svg{transform:rotate(180deg)}
+.cmp-bp-drop{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;box-shadow:var(--shadow);padding:6px;overflow:hidden;opacity:0;pointer-events:none;transform:translateY(-6px);
+  transition:opacity .18s ease,transform .18s ease}
+.cmp-bp.open .cmp-bp-drop{opacity:1;pointer-events:auto;transform:translateY(0)}
+.cmp-bp-opt{display:flex;align-items:center;gap:10px;width:100%;font:inherit;font-size:14px;color:var(--text);background:none;border:0;
+  border-radius:9px;padding:8px 10px;cursor:pointer;text-align:left}
+.cmp-bp-opt:hover{background:var(--surface2)}
+.cmp-bp-opt.on{font-weight:600}
+.cmp-bp-opt.all{margin-bottom:4px;position:relative}
+.cmp-bp-opt.all::after{content:'';position:absolute;left:8px;right:8px;bottom:-3px;height:1px;background:var(--border)}
+.cmp-bp-chk{width:16px;height:16px;border:1.5px solid var(--muted2);border-radius:5px;flex-shrink:0;position:relative;transition:all .15s}
+.cmp-bp-opt.on .cmp-bp-chk{background:var(--text);border-color:var(--text)}
+.cmp-bp-opt.on .cmp-bp-chk::after{content:'';position:absolute;left:4.5px;top:1.5px;width:4px;height:8px;border:solid var(--bg);
+  border-width:0 2px 2px 0;transform:rotate(45deg)}
+.cmp-bp-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cmp-bp-foot{display:flex;justify-content:flex-end;padding:6px 4px 2px;border-top:1px solid var(--border);margin-top:4px}
+.cmp-bp-foot button{font:inherit;font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;background:var(--text);color:var(--bg);
+  border:0;border-radius:999px;padding:6px 14px;cursor:pointer}
 .cmp-swap{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:50%;
   width:38px;height:38px;font-size:17px;cursor:pointer}
 .cmp-swap:hover{color:var(--text)}
@@ -1181,6 +1213,10 @@ table.lg td.cmp-miss{color:var(--bad);font-weight:600}
 :root{--cmp-a:#CDBFF0;--cmp-b:#7C5CD4}
 [data-theme="dark"]{--cmp-a:rgba(196,181,253,.38);--cmp-b:#C4B5FD}
 .lg-head-k.cmp-k{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+/* Kate, 24 Sep 2026: the switch sits beside the masthead's COMPARISON label
+   instead of repeating the word in the page head. */
+#cmpModeMast{display:none;align-self:center}
+body.compare-chrome #cmpModeMast{display:inline-flex}
 .cmp-mode{display:inline-flex;border:1px solid var(--border);border-radius:20px;overflow:hidden}
 .cmp-mode button{border:0;background:var(--surface);color:var(--muted);font:inherit;font-size:11.5px;
   letter-spacing:.14em;text-transform:uppercase;padding:6px 16px;cursor:pointer}
@@ -2521,6 +2557,8 @@ table.tp-cmp td.bad{color:var(--bad)}
         <div class="mark mast-logo" onclick="backToTop()"><img id="headerLogoImg" src="assets/6.png" alt="Tara Rose Ladies Salon"></div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-top:7px">
           <div class="mast-sub" id="headerSectionLabel" style="margin-top:0">Organisation Pulse</div>
+          <!-- Comparison's Visual/Table switch, painted by compare.js. Shown only on that view. -->
+          <span class="cmp-mode" id="cmpModeMast" role="group" aria-label="Show as"></span>
           <a id="ocOpenNewWin" href="javascript:void(0)" onclick="ocOpenNewWindow()"
              style="display:none;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
                     text-decoration:underline;cursor:pointer;white-space:nowrap">Open in new window ↗</a>
@@ -2831,7 +2869,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="dashboard.js?v=20260924d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260924a"></script>
-<script src="compare.js?v=20260924f"></script>
+<script src="compare.js?v=20260924g"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20260904b"></script>
@@ -2842,7 +2880,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
 <script src="branch-narrative.js?v=20260814c"></script>
 <!-- The "Ask a question" widget. Reads the open view at ask time; see ask-widget.js. -->
-<script src="ask-widget.js?v=20260924a"></script>
+<script src="ask-widget.js?v=20260924b"></script>
 <script>
 
 // ── PASSWORD GATE ────────────────────────────────────────────

@@ -16,6 +16,14 @@
   cursor:pointer;box-shadow:var(--shadow-card);transition:transform .13s;
 }
 .trs-ask-btn:hover{transform:translateY(-2px);}
+/* Kate, 24 Sep 2026: at rest it is just the "?" circle; the label slides out on
+   hover or keyboard focus, and stays out while the panel is open. */
+.trs-ask-btn{gap:0;padding:12px;transition:transform .13s,padding .22s ease,gap .22s ease;}
+.trs-ask-txt{font-weight:inherit;max-width:0;overflow:hidden;white-space:nowrap;opacity:0;
+  transition:max-width .25s ease,opacity .18s ease;}
+.trs-ask-btn:hover,.trs-ask-btn:focus-visible,.trs-ask-btn[aria-expanded="true"]{gap:9px;padding:12px 20px;}
+.trs-ask-btn:hover .trs-ask-txt,.trs-ask-btn:focus-visible .trs-ask-txt,
+.trs-ask-btn[aria-expanded="true"] .trs-ask-txt{max-width:160px;opacity:1;}
 .trs-ask-btn span[aria-hidden]{
   display:inline-flex;align-items:center;justify-content:center;
   width:21px;height:21px;border-radius:50%;
