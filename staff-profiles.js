@@ -204,7 +204,7 @@ const STAFF_PROFILES = {
   'ZARA':     { photoFull: 'stylist/photos/SAA/zara lhouvum.png', role: 'Former Style Director', branch: 'SAA', ig: 'zaralvhair', resigned: true },
   'BLOSSOM':  { photoFull: 'stylist/photos/SAA/blossom day.png', role: 'Former Style Director', branch: 'SAA', ig: 'blossommagic', resigned: true },
   'STUART':   { photoFull: 'stylist/photos/other/stuart hastings.png', role: 'Former Style Director', branch: 'other', ig: 'stuarthastings791', resigned: true },
-  'GONCALO':  { photoFull: 'stylist/photos/other/goncalo de almeida.png', role: 'Former Barber', branch: 'other', resigned: true },
+  'GONCALO':  { photoFull: 'stylist/photos/other/goncalo de almeida.png', role: 'Former Barber', branch: 'other', ig: 'almeida_barber.dxb', resigned: true },
   // Added 19 Sep 2026, same RESIGNED board. Branch off her ledger history: 499 SAA
   // Beauty rows (Jan 2025-May 2026) against 9 KCA cover rows. Kate, 21 Sep 2026: she
   // was a beautician, not a stylist — role corrected off the placeholder so she sorts
