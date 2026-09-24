@@ -72,7 +72,7 @@ const ORG_CHART = [
           ],
         },
         {
-          name: 'Accounts & Admin Department',
+          name: 'Accounts & Admin',
           role: 'Department',
           children: [
             {

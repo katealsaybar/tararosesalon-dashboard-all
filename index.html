@@ -323,6 +323,9 @@ body.ledger-chrome #mastBranch{display:none}
 /* Kate, 21 Sep 2026: Org Chart is a static reference page like Staff Cards —
    no date filter, no data load — so the branch/date/freshness line has
    nothing to describe there and just reads as clutter. */
+/* Comparison sets its own two windows, so the masthead's single branch and
+   range would describe neither. The freshness stamps stay: they matter here. */
+body.compare-chrome #mastBranch,body.compare-chrome #mastRange{display:none}
 body.orgchart-chrome .mast-rule,
 body.orgchart-chrome .filters-wrap{display:none}
 .mast,.mast-logo,.tglr,.filters{
@@ -1108,6 +1111,149 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
   font-size:12.5px;color:var(--muted2);line-height:1.7;max-width:78ch}
 .fine b{color:var(--muted);font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-size:11.5px}
 .fine p+p{margin-top:10px}
+/* ── COMPARISON (compare.js) ── Kate, 24 Sep 2026 */
+.cmp-presets{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.cmp-chip{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:20px;
+  padding:7px 14px;font:inherit;font-size:13.5px;cursor:pointer}
+.cmp-chip:hover{color:var(--text)}
+.cmp-chip.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.cmp-chip-note{cursor:default;opacity:.55}
+.cmp-chip-note.on{opacity:1}
+.cmp-sides{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;align-items:center;margin-bottom:12px}
+.cmp-side{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
+.cmp-side-k{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);display:flex;align-items:center;gap:8px}
+.cmp-tag{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;
+  font-size:11.5px;font-weight:700;letter-spacing:0;color:#fff;flex-shrink:0}
+.cmp-tag-a{background:var(--muted2)}
+.cmp-tag-b{background:var(--text);color:var(--bg)}
+.cmp-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cmp-f{display:grid;gap:4px;font-size:12px;color:var(--muted2);min-width:0}
+.cmp-f select,.cmp-f input{font:inherit;font-size:14px;color:var(--text);background:var(--surface2);
+  border:1px solid var(--border);border-radius:8px;padding:7px 9px;width:100%;min-width:0;color-scheme:light dark}
+.cmp-swap{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:50%;
+  width:38px;height:38px;font-size:17px;cursor:pointer}
+.cmp-swap:hover{color:var(--text)}
+.cmp-opts{margin:0 0 18px}
+.cmp-check{display:flex;align-items:baseline;gap:8px;font-size:14px;cursor:pointer}
+.cmp-check small{color:var(--muted2);font-size:12.5px}
+.cmp-check.dim{opacity:.55;cursor:default}
+.cmp-read{font-size:16.5px;line-height:1.55;max-width:78ch;margin:0 0 16px;color:var(--text)}
+.cmp-read .up,.cmp-d.up{color:var(--good)}
+.cmp-read .down,.cmp-d.down{color:var(--bad)}
+.cmp-d.flat{color:var(--muted2)}
+.cmp-table th .cmp-tag{margin-right:6px;vertical-align:-4px}
+.cmp-th{white-space:nowrap}
+.cmp-sub{color:var(--muted2);font-size:12px}
+.cmp-tgt{display:block;font-size:11px;color:var(--muted2);font-weight:400}
+table.lg td.cmp-hit{color:var(--good);font-weight:600}
+table.lg td.cmp-miss{color:var(--bad);font-weight:600}
+.cmp-d{font-weight:600}
+.cmp-rel{display:inline-block;min-width:58px}
+.cmp-bar{display:inline-block;position:relative;width:90px;height:8px;margin-left:8px;vertical-align:middle;
+  background:var(--border2);border-radius:4px}
+.cmp-bar::after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--muted2)}
+.cmp-bar-f{position:absolute;top:0;bottom:0;border-radius:4px;background:var(--muted2)}
+.cmp-bar-f.up{background:var(--good)}
+.cmp-bar-f.down{background:var(--bad)}
+.cmp-warn{display:block;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--warn)}
+/* Comparison visual. A is the pale shade, B the strong one, everywhere on the
+   page; green/red only ever mean hit or missed. Kate, 24 Sep 2026. */
+:root{--cmp-a:#CDBFF0;--cmp-b:#7C5CD4}
+[data-theme="dark"]{--cmp-a:rgba(196,181,253,.38);--cmp-b:#C4B5FD}
+.lg-head-k.cmp-k{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.cmp-mode{display:inline-flex;border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.cmp-mode button{border:0;background:var(--surface);color:var(--muted);font:inherit;font-size:11.5px;
+  letter-spacing:.14em;text-transform:uppercase;padding:6px 16px;cursor:pointer}
+.cmp-mode button+button{border-left:1px solid var(--border)}
+.cmp-mode button.on{background:var(--accent);color:var(--accent-fg)}
+.cmp-chip-d{font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.cmp-chip-d.up{color:var(--good);background:var(--good-bg)}
+.cmp-chip-d.down{color:var(--bad);background:var(--bad-bg)}
+.cmp-chip-d.flat{color:var(--muted2);background:var(--surface2)}
+
+/* 1 · the answer */
+.cmp-answer{border:1px solid var(--border);background:var(--surface);border-radius:16px;padding:22px 24px;margin-bottom:18px;
+  box-shadow:var(--shadow-card,0 1px 3px rgba(26,26,26,.05))}
+.cmp-ans-k0,.cmp-ans-k{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2)}
+.cmp-ans-h{font-family:'Playfair Display',serif;font-size:clamp(26px,4vw,36px);line-height:1.15;margin-top:6px}
+.cmp-ans-h em.up{color:var(--good)}
+.cmp-ans-h em.down{color:var(--bad)}
+.cmp-ans-sub{font-size:15px;color:var(--muted);margin-top:6px;max-width:70ch;line-height:1.5}
+.cmp-ans-cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));margin-top:18px}
+.cmp-ans-card{border-radius:12px;padding:13px 15px;border:1px solid var(--border2);background:var(--surface2);border-left:4px solid var(--muted2)}
+.cmp-ans-card.good{border-left-color:var(--good)}
+.cmp-ans-card.bad{border-left-color:var(--bad)}
+.cmp-ans-card.warn{border-left-color:var(--warn)}
+.cmp-ans-big{font-size:17px;font-weight:600;margin-top:5px;color:var(--text)}
+.cmp-ans-big span{font-weight:700;margin-left:4px}
+.cmp-ans-card.good .cmp-ans-big span{color:var(--good)}
+.cmp-ans-card.bad .cmp-ans-big span{color:var(--bad)}
+.cmp-ans-card.warn .cmp-ans-big span{color:var(--warn)}
+.cmp-ans-small{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+
+/* the A/B key */
+.cmp-key{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:13.5px;color:var(--muted);margin:0 0 12px}
+.cmp-key b{color:var(--text);margin-right:3px}
+.cmp-key i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:7px;vertical-align:-1px}
+.cmp-key i.a{background:var(--cmp-a)}
+.cmp-key i.b{background:var(--cmp-b)}
+
+/* cards */
+.cmp-card{border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:18px 20px;min-width:0;
+  box-shadow:var(--shadow-card,0 1px 3px rgba(26,26,26,.05))}
+.cmp-h{font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:21px;color:var(--text)}
+.cmp-what{font-size:13.5px;color:var(--muted);margin:3px 0 14px;line-height:1.45}
+.cmp-two{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr));margin-bottom:16px}
+.cmp-chart{position:relative;height:300px}
+#cmpVisual>.cmp-card{margin-bottom:16px}
+
+/* 2 · mirrored, Client Funnel style */
+.cmp-f-head{display:flex;justify-content:space-between;margin-bottom:10px;font-size:13px;font-weight:700;letter-spacing:.1em}
+.cmp-f-head .a{color:var(--muted2)}
+.cmp-f-head .b{color:var(--cmp-b)}
+.cmp-f-head small{font-weight:500;letter-spacing:.02em;font-size:12px;color:var(--muted2)}
+.cmp-f-row{display:flex;align-items:center;margin-bottom:12px}
+.cmp-f-side{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.cmp-f-side.l{justify-content:flex-end}
+.cmp-f-v{font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap}
+.cmp-f-bar{height:26px;flex-shrink:1;min-width:0;transition:width .6s ease}
+.cmp-f-bar.a{background:var(--cmp-a);border-radius:6px 2px 2px 6px}
+.cmp-f-bar.b{background:var(--cmp-b);border-radius:2px 6px 6px 2px;box-shadow:0 2px 6px rgba(26,26,26,.16)}
+.cmp-f-mid{width:132px;flex-shrink:0;margin:0 6px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;
+  padding:0 6px;border-left:1px dashed var(--border);border-right:1px dashed var(--border)}
+.cmp-f-n{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);line-height:1.2}
+
+/* Performance over time: metric chips, the stat strip, one chart */
+.cmp-tchips{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 14px}
+.cmp-tchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--surface);
+  color:var(--muted);border-radius:20px;padding:7px 14px;font:inherit;font-size:13.5px;cursor:pointer}
+.cmp-tchip:hover{color:var(--text)}
+.cmp-tchip.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.cmp-tchip i{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cmp-tchip i.hit{background:var(--good)}
+.cmp-tchip i.miss{background:var(--bad)}
+.cmp-strip{display:flex;flex-wrap:wrap;gap:10px 28px;align-items:flex-end;padding:12px 14px;margin-bottom:14px;
+  background:var(--surface2);border-radius:10px}
+.cmp-stat{display:flex;flex-direction:column;gap:3px}
+.cmp-stat-k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);display:flex;align-items:center;gap:6px}
+.cmp-stat-k i{width:10px;height:10px;border-radius:3px}
+.cmp-stat-k i.a{background:var(--cmp-a)}
+.cmp-stat-k i.b{background:var(--cmp-b)}
+.cmp-stat-v{font-family:'Playfair Display',serif;font-size:24px;line-height:1.1;color:var(--text)}
+.cmp-res{font-size:12px;font-weight:700}
+.cmp-res.hit{color:var(--good)}
+.cmp-res.miss{color:var(--bad)}
+.cmp-trend .cmp-chart{height:320px}
+@media (max-width:720px){
+  .cmp-answer{padding:16px}
+  .cmp-card{padding:14px 12px}
+  .cmp-f-mid{width:96px;padding:0 4px}
+  .cmp-f-v{font-size:12px}
+  .cmp-f-bar{height:20px}
+  .cmp-chart{height:240px}
+}
+@media (max-width:720px){
+  .cmp-sides{grid-template-columns:1fr}
 
 /* METRICS */
 .metric{
@@ -2263,6 +2409,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-title">DASHBOARDS</div>
     <div class="nav-sub" onclick="showView('dashboard', this)">Organisation Pulse</div>
     <div class="nav-sub lvl2" onclick="showView('branchperf', this)">Branch Performance</div>
+    <div class="nav-sub lvl2" onclick="showView('compare', this)">Comparison</div>
     <div class="nav-sub" onclick="showView('team', this)">Team Performance</div>
     <div class="nav-sub" onclick="showView('staffperf', this)">Staff Performance<span class="nav-note">Under construction</span></div>
     <div class="nav-sub" onclick="showView('stylists', this)">Staff Cards</div>
@@ -2461,6 +2608,13 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="branchPerfContent" style="padding:10px 0 48px"></main>
   </div>
 
+  <!-- COMPARISON: two windows side by side, each its own branch + dates.
+       Rendered by renderCompare() in compare.js; carries its own controls, so
+       it is not one of FILTERED_VIEWS. Kate, 24 Sep 2026. -->
+  <div id="view-compare" style="display:none">
+    <main id="compareContent" style="padding:10px 0 48px"></main>
+  </div>
+
   <!-- LEDGERS: EMMA COACH'S VIEW — her sheet, as three pages.
        The ids say what each one holds rather than which tab it came from: her
        SUMMARY tab is two separate things (the pacing panel, headed "Daily target
@@ -2624,10 +2778,11 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260919c"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
-<script src="org-chart.js?v=20260921i"></script>
-<script src="dashboard.js?v=20260921a"></script>
+<script src="org-chart.js?v=20260924a"></script>
+<script src="dashboard.js?v=20260924a"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260907a"></script>
+<script src="compare.js?v=20260924e"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20260904b"></script>
@@ -2773,6 +2928,7 @@ function showView(view, el){
   // plus its own "open in new window" link since this is the page people
   // pop out to project or share standalone.
   document.body.classList.toggle('orgchart-chrome', view === 'orgchart');
+  document.body.classList.toggle('compare-chrome', view === 'compare');
   const ocOpenLink = document.getElementById('ocOpenNewWin');
   if (ocOpenLink) ocOpenLink.style.display = view === 'orgchart' ? '' : 'none';
 
@@ -2782,6 +2938,7 @@ function showView(view, el){
   if (view === 'services') initSvcView();
   if (view === 'clients') initCliView();
   if (view === 'branchperf')    renderBranchPerformance();
+  if (view === 'compare')       renderCompare();
   if (view === 'ledgerFinancials') renderLedgerFinancials();
   if (view === 'ledgerTargets') renderLedgerTargets();
   if (view === 'ledgerActuals') renderLedgerActuals();

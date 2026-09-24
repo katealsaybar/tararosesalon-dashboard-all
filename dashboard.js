@@ -112,6 +112,7 @@ function toggleTheme() {
   // redrawn too, or a theme switch leaves four charts in the old palette. Redraw
   // only, no data reload: nothing about the figures changed.
   if (typeof bpRedrawForTheme === 'function') bpRedrawForTheme();
+  if (typeof cmpRedrawForTheme === 'function') cmpRedrawForTheme();
 }
 // 5.png = light/white wordmark (for dark backgrounds), 6.png = dark/black wordmark (for light backgrounds)
 function applyLogoForTheme() {
@@ -880,6 +881,7 @@ const VIEW_SECTION_LABELS = {
   orgchart: 'Org Chart',
   services: 'Service Rankings', clients: 'Top Clients', reviews: 'Salon Reviews',
   branchperf: 'Branch Performance',
+  compare: 'Comparison',
   ledgerFinancials: 'Ledgers · Financial Totals',
   ledgerTargets: 'Ledgers · Daily Target Sheet',
   ledgerActuals: 'Ledgers · Actuals vs Targets',
@@ -891,7 +893,7 @@ const VIEW_SECTION_LABELS = {
 // used to hide an inline array that had drifted out of date — it still carried
 // 'khalifa' and 'saadiyat', which have not existed for months.
 const ALL_VIEWS = [
-  'dashboard','branchperf','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
+  'dashboard','branchperf','compare','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
   'team','staffperf','stylists','orgchart','services','clients','reviews','calendar','giveaway','trk',
 ];
 
@@ -3915,6 +3917,8 @@ async function loadData() {
     getLatestCompleteDate('phorest_staff_daily'),
   ]);
   renderFreshnessBadge(ledgerInfo, phorestInfo);
+  // Comparison's presets stop at the last day Phorest synced (compare.js).
+  window._freshness = { ledgerInfo, phorestInfo };
   // The signature the figures now on screen were drawn from. Everything the
   // newer-data watch says afterwards is measured against this line, so it has to
   // be stamped here — at the end of the load that drew them — and nowhere else.
@@ -4244,6 +4248,7 @@ function redrawCurrentView() {
   else if (v === 'services')           initSvcView();
   else if (v === 'clients')            initCliView();
   else if (v === 'branchperf')         renderBranchPerformance();
+  else if (v === 'compare')            renderCompare();
   else if (v === 'ledgerFinancials')   renderLedgerFinancials();
   else if (v === 'ledgerTargets')      renderLedgerTargets();
   else if (v === 'ledgerActuals')      renderLedgerActuals();
