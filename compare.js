@@ -120,9 +120,11 @@ function cmpApplyPreset(key) {
   cmpState.preset = key;
   cmpState.a = w.a;
   cmpState.b = w.b;
-  // Unequal windows are the only case Per day exists for; switch it on by
-  // default there so "full August vs 23 days of September" is fair out of the box.
-  cmpState.per = daysBetween(w.a.from, w.a.to) !== daysBetween(w.b.from, w.b.to);
+  // Totals by default, always. Kate, 24 Sep 2026: Per day switched itself on
+  // for unequal windows and turned client counts into 77.6 and 96.3, which read
+  // as broken. It stays as a tickbox for anyone who wants it; a preset never
+  // turns it on.
+  cmpState.per = false;
   cmpSave();
   renderCompare();
 }
@@ -149,7 +151,7 @@ function cmpRestore() {
     cmpState.preset = 'custom';
     cmpState.a = side(saved.a);
     cmpState.b = side(saved.b);
-    cmpState.per = !!saved.per;
+    cmpState.per = false;
     if (cmpState.a.from && cmpState.a.to && cmpState.b.from && cmpState.b.to) return;
   }
   const key = (saved && cmpPresets()[saved.preset]) ? saved.preset : 'mom';
@@ -158,8 +160,7 @@ function cmpRestore() {
   cmpState.preset = key;
   cmpState.a = w.a;
   cmpState.b = w.b;
-  cmpState.per = saved && key === saved.preset ? !!saved.per
-    : daysBetween(w.a.from, w.a.to) !== daysBetween(w.b.from, w.b.to);
+  cmpState.per = false;
 }
 
 // ── ONE SIDE'S SUMMARY ──────────────────────────────────────
@@ -335,7 +336,7 @@ function cmpControlsHtml() {
     <div class="cmp-opts">
       <label class="cmp-check${unequal ? '' : ' dim'}">
         <input type="checkbox" ${cmpState.per ? 'checked' : ''} ${unequal ? '' : 'disabled'} onchange="cmpSetPer(this.checked)">
-        Per day <small>${unequal ? 'the two windows are different lengths: totals and counts are divided by days' : 'both windows are the same length'}</small>
+        Per day <small>${unequal ? `off shows totals. The windows are different lengths (${daysBetween(cmpState.a.from, cmpState.a.to)} vs ${daysBetween(cmpState.b.from, cmpState.b.to)} days); tick to see a daily average instead` : 'both windows are the same length'}</small>
       </label>
     </div>`;
 }

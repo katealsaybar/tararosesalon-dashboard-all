@@ -587,14 +587,21 @@ body.nav-open .topbar{left:var(--nav-shift)}
 
 /* Back up. Appears once the cover is behind you, so it never sits over the thing
    it would take you to. */
-.totop{position:fixed;right:20px;bottom:20px;z-index:95;
-  border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:20px;
-  padding:10px 16px;font:inherit;font-size:13px;letter-spacing:.1em;text-transform:uppercase;
-  cursor:pointer;min-height:44px;white-space:nowrap;box-shadow:var(--shadow-card);
+.totop{position:fixed;right:22px;bottom:22px;z-index:95;
+  /* Kate, 24 Sep 2026: every view, not just the Pulse, and a round button with
+     TOP stacked over the arrow instead of an "↑ Top" pill. */
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  width:58px;height:58px;border-radius:50%;
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);
+  font:inherit;cursor:pointer;box-shadow:var(--shadow-card);
   opacity:0;pointer-events:none;transform:translateY(10px);
-  transition:opacity 220ms var(--card-ease),transform 220ms var(--card-ease)}
+  transition:opacity 220ms var(--card-ease),transform 220ms var(--card-ease),color 150ms,border-color 150ms}
+.totop-k{font-size:10.5px;font-weight:700;letter-spacing:.16em;margin-right:-.16em;line-height:1}
+.totop-a{font-size:19px;line-height:1}
 .totop.on{opacity:1;pointer-events:auto;transform:none}
 @media(hover:hover){.totop:hover{color:var(--text);border-color:var(--text)}}
+@media(max-width:720px){.totop{right:14px;bottom:14px;width:52px;height:52px}}
+@media print{.totop{display:none!important}}
 
 *{box-sizing:border-box;margin:0;padding:0}
 
@@ -2385,7 +2392,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 
 <!-- ══ MAIN NAV: fixed in the left gutter, collapsible ══ -->
 <div class="nav-scrim" id="navScrim" onclick="toggleNav(false)"></div>
-<button class="totop" id="toTop" onclick="backToTop()">↑ Top</button>
+<button class="totop" id="toTop" onclick="backToTop()" aria-label="Back to top"><span class="totop-k">TOP</span><span class="totop-a" aria-hidden="true">↑</span></button>
 <!-- The arrow. Travels with the panel's edge, points whichever way it will go. -->
 <button class="nav-edge" id="navEdge" onclick="toggleNav()"
         aria-expanded="false" aria-controls="sidebar" aria-label="Show sections">
@@ -2786,7 +2793,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="dashboard.js?v=20260924b"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260907a"></script>
-<script src="compare.js?v=20260924e"></script>
+<script src="compare.js?v=20260924f"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20260904b"></script>
@@ -3318,8 +3325,10 @@ function spy(){
   if (TOPBAR) TOPBAR.classList.toggle('stuck', scrollY > CONDENSE_AT);
   stickLgHead();
 
-  const onKpi = document.body.classList.contains('kpi-view');
-  if (TOTOP) TOTOP.classList.toggle('on', onKpi && scrollY > innerHeight * 0.9);
+  // Every view, once you are most of a screen down. Kate, 24 Sep 2026: it used
+  // to be the Pulse only, and the long pages (Comparison, the Ledgers, Staff
+  // Cards, Google Reviews) are exactly where you need the way back.
+  if (TOTOP) TOTOP.classList.toggle('on', scrollY > innerHeight * 0.8);
 
   // Only the rail on the page you are looking at. Every hidden view is display:none,
   // so its links measure zero and a document-wide query would light the wrong page's
