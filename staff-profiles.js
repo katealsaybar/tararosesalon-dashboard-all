@@ -185,9 +185,9 @@ const STAFF_PROFILES = {
   // Sep 2026, when Kate built a proper "RESIGNED" board in the FINAL STYLIST CARD
   // Canva file (pages 40-41) with a uniform black-and-white headshot per person —
   // these paths are that board's exports, cropped one-per-file. `role` is
-  // their real former title (Kate, 24 Sep 2026); Samantha and Zandra still carry
+  // their real former title (Kate, 24 Sep 2026); Zandra still carries
   // the neutral 'Former Team Member' placeholder.
-  'SAMANTHA': { photoFull: 'stylist/photos/KCA/samantha amad.png', role: 'Former Team Member', branch: 'KCA', ig: 'samanthaahmadhair', resigned: true },
+  'SAMANTHA': { photoFull: 'stylist/photos/KCA/samantha amad.png', role: 'Former Senior Stylist', branch: 'KCA', ig: 'samanthaahmadhair', resigned: true },
   'SOPHIE':   { photoFull: 'stylist/photos/KCA/sophie harrison.png', role: 'Former Style Director', branch: 'KCA', ig: 'sophiepatriciahair', resigned: true },
   'TONI':     { photoFull: 'stylist/photos/KCA/toni brits.png', role: 'Former Stylist', branch: 'KCA', resigned: true },
   'ZANDRI':   { photoFull: 'stylist/photos/MC/zandri wilson.png', role: 'Former Senior Stylist', branch: 'MC', ig: 'hairby.zandri', resigned: true },
