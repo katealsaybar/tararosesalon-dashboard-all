@@ -1,0 +1,21 @@
+/* Sidebar collapsible sections (nav-collapse.js). Kate, 24 Sep 2026. */
+.nav-title.nav-fold{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  cursor:pointer;user-select:none;border-radius:6px;padding:2px 4px;margin-left:-4px;margin-right:-4px}
+.nav-title.nav-fold:hover{color:var(--text)}
+.nav-title.nav-fold:focus-visible{outline:2px solid var(--accent-lavender);outline-offset:2px}
+.nav-title.nav-fold::after{content:'';flex-shrink:0;width:7px;height:7px;margin-right:4px;
+  border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+  transform:rotate(45deg) translateY(-2px);transition:transform .2s;opacity:.7}
+.nav-group.folded>.nav-title.nav-fold::after{transform:rotate(-45deg)}
+.nav-group.folded>:not(.nav-title){display:none}
+.nav-group.folded>.nav-title{margin-bottom:0}
+
+.nav-sub.has-kids{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.nav-kids-btn{flex-shrink:0;width:26px;height:26px;margin:-4px -4px -4px 0;border:0;border-radius:50%;
+  background:transparent;color:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.75}
+.nav-kids-btn:hover{opacity:1;background:rgba(127,127,127,.18)}
+.nav-kids-btn:focus-visible{outline:2px solid var(--accent-lavender);outline-offset:1px}
+.nav-kids-btn::before{content:'';width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+  transform:rotate(45deg) translateY(-2px);transition:transform .2s}
+.nav-sub.kids-folded .nav-kids-btn::before{transform:rotate(-45deg)}
+.nav-sub.nav-kid-hidden{display:none}
