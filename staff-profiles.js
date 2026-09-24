@@ -210,8 +210,8 @@ const STAFF_PROFILES = {
   'GONCALO':  { photoFull: 'stylist/photos/other/goncalo de almeida.png', role: 'Barber', branch: 'other', ig: 'almeida_barber.dxb', resigned: true },
   // Kate, 24 Sep 2026: at KCA in early 2025, last ledger row 12 Jan 2025 (11 daily
   // rows as RACHEL, 3 utilisation rows as Rachel White). Not Rachel Dawson, who is
-  // still active at MC. Role is a placeholder until Kate confirms.
-  'RACHEL':   { photoFull: 'stylist/photos/KCA/rachel white.png', role: 'Team Member', branch: 'KCA', ig: 'hairbyrachel.w', resigned: true },
+  // still active at MC.
+  'RACHEL':   { photoFull: 'stylist/photos/KCA/rachel white.png', role: 'Stylist', branch: 'KCA', ig: 'hairbyrachel.w', resigned: true },
   // Added 19 Sep 2026, same RESIGNED board. Branch off her ledger history: 499 SAA
   // Beauty rows (Jan 2025-May 2026) against 9 KCA cover rows. Kate, 21 Sep 2026: she
   // was a beautician, not a stylist — role corrected off the placeholder so she sorts
