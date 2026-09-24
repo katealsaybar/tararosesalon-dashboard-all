@@ -208,11 +208,23 @@ const STAFF_PROFILES = {
   'BLOSSOM':  { photoFull: 'stylist/photos/SAA/blossom day.png', role: 'Style Director', branch: 'SAA', ig: 'blossomsmagic', resigned: true },
   'STUART':   { photoFull: 'stylist/photos/other/stuart hastings.png', role: 'Style Director', branch: 'other', ig: 'stuarthastings791', resigned: true },
   'GONCALO':  { photoFull: 'stylist/photos/other/goncalo de almeida.png', role: 'Barber', branch: 'other', ig: 'almeida_barber.dxb', resigned: true },
+  // Kate, 24 Sep 2026: at KCA in early 2025, last ledger row 12 Jan 2025 (11 daily
+  // rows as RACHEL, 3 utilisation rows as Rachel White). Not Rachel Dawson, who is
+  // still active at MC. Role is a placeholder until Kate confirms.
+  'RACHEL':   { photoFull: 'stylist/photos/KCA/rachel white.png', role: 'Team Member', branch: 'KCA', ig: 'hairbyrachel.w', resigned: true },
   // Added 19 Sep 2026, same RESIGNED board. Branch off her ledger history: 499 SAA
   // Beauty rows (Jan 2025-May 2026) against 9 KCA cover rows. Kate, 21 Sep 2026: she
   // was a beautician, not a stylist — role corrected off the placeholder so she sorts
   // into the "Former Beauty Team" subsection in dashboard.js instead of Former Stylists.
   'ROVINA':   { photoFull: 'stylist/photos/SAA/rovina jordan.png', role: 'Beauty Team Member', branch: 'SAA', resigned: true },
+  // Kate, 24 Sep 2026: former beautician, same Former Beauty Team subsection as
+  // Rovina. Branch off her ledger history: 244 AQ utilisation rows (2025) against
+  // 42 at Fratelli, which is closed, so AQ.
+  'ROJA':     { photoFull: 'stylist/photos/AQ/roja pudtado.png', role: 'Beauty Team Member', branch: 'AQ', ig: '___roza123', resigned: true },
+  // Kate, 24 Sep 2026: KCA beautician (dept Beauty), 194 utilisation rows 4 Jan 2025
+  // to 23 Jan 2026. The KCA ledger keeps an all-zero STELLA row after that, which is
+  // the template, not shifts.
+  'STELLA':   { photoFull: 'stylist/photos/KCA/stella mendes.png', role: 'Beauty Team Member', branch: 'KCA', ig: 'beautybystellamendes', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
@@ -293,6 +305,7 @@ const STAFF_SURNAMES = {
   'PRINCESS AREANNE': 'Miranda',
   'REDA':      'Ramirez',
   'ROBYN':     'Hart',
+  'RACHEL':    'White',
   'ROJA':      'Pudtado',
   'ROVINA':    'Jordan',
   'RUTH':      'Bocock',
