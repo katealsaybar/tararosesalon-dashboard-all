@@ -1641,7 +1641,11 @@ function lgStaffTables(codes, ctx) {
       {label:'New',align:'r'},{label:'NCR',align:'r'},{label:'Rebooked',align:'r'},
       {label:'Rebook %',align:'r'},{label:'Avg bill',align:'r'},
     ];
-    const hairRows = (bd.hairStaff || [])
+    // Kate, 24 Sep 2026: a leaver only shows on a window where she still has figures.
+    // Resigned plus no clients and no take = gone from the table.
+    const keep = st => !(typeof isResignedStaff === 'function' && isResignedStaff(st.name)
+      && !(st.total || 0) && !(st.netSalonTake || 0));
+    const hairRows = (bd.hairStaff || []).filter(keep)
       .slice().sort((a, b) => (b.netSalonTake || 0) - (a.netSalonTake || 0))
       .map(st => [
         lgStaffName(code, 'HAIR', st, ctx),
@@ -1656,7 +1660,7 @@ function lgStaffTables(codes, ctx) {
       {label:'NCR',align:'r'},{label:'Rebooked',align:'r'},{label:'Rebook %',align:'r'},
       {label:'Avg bill',align:'r'},
     ];
-    const beautyRows = (bd.beautyStaff || [])
+    const beautyRows = (bd.beautyStaff || []).filter(keep)
       .slice().sort((a, b) => (b.netSalonTake || 0) - (a.netSalonTake || 0))
       .map(st => [
         lgStaffName(code, 'BEAUTY', st, ctx),

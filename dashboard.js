@@ -1619,11 +1619,37 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
     const covered = new Set(Object.keys(ledgerClientsByDay).filter(k => ledgerClientsByDay[k] > 0));
     const phIn = [], phOut = [];
     (phorestStaffRows || []).forEach(r => (covered.has(r.branch + '|' + r.date) ? phIn : phOut).push(r));
+    // Kate, 24 Sep 2026 (Sunitha, AQ 28 Aug): on a day the ledger covers, a Phorest
+    // row for someone with no ledger row that day used to drop out of the staff
+    // tables entirely. Those rows now go through the Phorest-only path instead, so
+    // her services still land against her name. Totals were never affected, they
+    // come from Phorest's own TOTAL line.
+    const ledgerKeysByDay = {};
+    branchStaffRows.forEach(r => {
+      const k = r.branch + '|' + r.date;
+      (ledgerKeysByDay[k] || (ledgerKeysByDay[k] = [])).push(ledgerNameKey(r.staff_name));
+    });
+    phIn.slice().forEach(r => {
+      if (r.is_total) return;
+      const pk = cleanPhorestName(r.employee_name);
+      const keys = ledgerKeysByDay[r.branch + '|' + r.date] || [];
+      if (!keys.some(k => k && (pk === k || pk.indexOf(k + ' ') === 0))) {
+        phIn.splice(phIn.indexOf(r), 1);
+        phOut.push(r);
+      }
+    });
     const L = buildLedgerPhorestStaffMaps(branchStaffRows, phIn);
     if (!phOut.length) {
       ({ hairMap, beautyMap, branchTotals } = L);
     } else {
-      const P = buildPhorestOnlyStaffMaps(phOut);
+      // Which side of the ledger each name sits on, for Phorest-only rows whose
+      // name has no weekly_data history to say (Sunitha: Beauty on every AQ row).
+      const ledgerDept = {};
+      branchStaffRows.forEach(r => {
+        const d = String(r.dept || '').trim().toLowerCase();
+        if (d) ledgerDept[staffMapKey(r.staff_name)] = d === 'beauty' ? 'beauty' : 'hair';
+      });
+      const P = buildPhorestOnlyStaffMaps(phOut, ledgerDept);
       hairMap   = mergeStaffMaps(L.hairMap,   P.hairMap);
       beautyMap = mergeStaffMaps(L.beautyMap, P.beautyMap);
       branchTotals = {
@@ -1732,7 +1758,7 @@ function mergeStaffMaps(ledgerMap, phorestMap) {
 // are Phorest visits, new clients Phorest's own count; request/salon/rebooked and
 // treatment AED have no Phorest source and stay 0. The house account and the
 // assistants are left out, as the ledger path leaves them out.
-function buildPhorestOnlyStaffMaps(phorestRows) {
+function buildPhorestOnlyStaffMaps(phorestRows, ledgerDept) {
   const branchTotals = { services: 0, courses: 0, products: 0, days: 0 };
   const deptMap = (typeof buildStaffDeptMap === 'function') ? buildStaffDeptMap() : {};
   const reverse = Object.entries(PHOREST_RECONCILE_ALIASES); // [ledgerName, phorestFirstWords]
@@ -1753,7 +1779,13 @@ function buildPhorestOnlyStaffMaps(phorestRows) {
     if (!pk || LEDGER_NON_PERSON_NAMES.has(pk) || pk.indexOf('BUSINESS') === 0) return;
     const name = ledgerNameFor(pk);
     if (isLedgerAssistantName(name)) return;
-    const isBeauty = deptMap[name] === 'beauty';
+    // No weekly_data history for her (Sunitha, Kate 24 Sep 2026): fall back to the
+    // profile's role, so a beauty therapist does not default into Hair.
+    const prof = (typeof STAFF_PROFILES !== 'undefined') ? STAFF_PROFILES[staffMapKey(name)] : null;
+    const dk = staffMapKey(name);
+    const isBeauty = deptMap[dk] ? deptMap[dk] === 'beauty'
+      : (ledgerDept && ledgerDept[dk]) ? ledgerDept[dk] === 'beauty'
+      : !!(prof && /Beauty|Nail|Therapist/i.test(prof.role || ''));
     const map = isBeauty ? beautyMap : hairMap;
     const key = staffMapKey(name);
     if (!map[key]) {
@@ -2065,7 +2097,7 @@ const PHOREST_RECONCILE_ALIASES = { 'LUCY': 'LUCIA', 'MJ': 'MARY JOY', 'TAMMY': 
 // list), and KMR/SKR/ABCT/OT/FCT/BMD/GB are that table's siblings (retail + treatment
 // sub-columns). All zero everywhere and showing up as phantom stylists — same class of
 // bug as BUSINESS/AA/BB/CC/RETAIL above, just a different sync run that misread them.
-const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTANTS', 'ASISSTANTS', 'RETAIL', 'RETAIL SALES', ']',
+const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTANTS', 'ASISSTANTS', 'ASISTANTS', 'RETAIL', 'RETAIL SALES', ']',
   'OR', 'ABCR', 'BWR', 'KMR', 'SKR', 'ABCT', 'OT', 'FCT', 'BMD', 'GB']);
 
 // Assistants are one pooled ASSISTANTS row per branch in the ledger, and this
@@ -2101,9 +2133,33 @@ const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTAN
 // flagged her as. Same all-zeros pattern as the others; same fix.
 const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL', 'IVY', 'FRANCES', 'MARGIE']);
 
+// Kate, 24 Sep 2026: Apol and Marjorie were still showing on Branch Performance as
+// stylists/therapists. The set above only caught names typed into it, so anyone whose
+// staff-profiles.js role is Assistant now counts too, read through the name aliases
+// (MARJORIE → MARGIE). A shared cell like MYRA/APOL is checked whole first, because
+// its profile is Assistant even though Myra's own entry is not.
+function isAssistantPart(p) {
+  const canon = staffMapKey(p);
+  if (LEDGER_ASSISTANT_NAMES.has(p) || LEDGER_ASSISTANT_NAMES.has(canon)) return true;
+  const prof = (typeof STAFF_PROFILES !== 'undefined') ? STAFF_PROFILES[canon] : null;
+  return !!(prof && prof.role === 'Assistant');
+}
+
 function isLedgerAssistantName(rawUp) {
-  const parts = String(rawUp || '').split('/').map(s => s.trim()).filter(Boolean);
-  return parts.length > 0 && parts.every(p => LEDGER_ASSISTANT_NAMES.has(p));
+  const whole = String(rawUp || '').trim().toUpperCase();
+  if (!whole) return false;
+  if (isAssistantPart(whole.replace(/\s*\/\s*/g, '/'))) return true;
+  const parts = whole.split('/').map(s => s.trim()).filter(Boolean);
+  return parts.length > 0 && parts.every(isAssistantPart);
+}
+
+// Resigned, per the Team Roster override when there is one, else staff-profiles.js.
+// Used to drop leavers from the staff tables on windows where they did nothing.
+function isResignedStaff(name) {
+  const key = staffMapKey(name);
+  if (STAFF_STATUS_OVERRIDES && STAFF_STATUS_OVERRIDES.has(key)) return !!STAFF_STATUS_OVERRIDES.get(key);
+  const prof = (typeof STAFF_PROFILES !== 'undefined') ? STAFF_PROFILES[key] : null;
+  return !!(prof && prof.resigned);
 }
 
 function cleanPhorestName(name) {

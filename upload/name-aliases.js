@@ -36,6 +36,14 @@ const STAFF_NAME_ALIASES = {
   // profile lookup missed, so she showed initials instead of her card photo.
   // Kate, 10 Sep 2026.
   'MARY JOY': 'MJ',
+  // Kate, 24 Sep 2026, off Branch Performance: Phorest writes her Marjorie (Sevilla),
+  // her profile is keyed MARGIE. Assistant at Al Quoz.
+  'MARJORIE': 'MARGIE',
+  // Same day: the data writes him SIMOUN (his IG bio spells it that way too), his
+  // profile is SIMON Faddoul, Al Quoz.
+  'SIMOUN': 'SIMON',
+  // Motor City writes Virginija as VIRGINIA; the profile is VIRGINIJA Lisauskaite.
+  'VIRGINIA': 'VIRGINIJA',
 };
 
 function canonicalStaffName(name){
