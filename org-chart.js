@@ -168,12 +168,21 @@ function renderOrgChart() {
   }
 }
 
-function ocSetZoom(scale) {
-  ocScale = Math.min(OC_ZOOM_MAX, Math.max(OC_ZOOM_MIN, +scale.toFixed(2)));
+// The raw setter behind ocSetZoom, without OC_ZOOM_MIN/MAX — the on-screen
+// zoom buttons need that floor so the boxes never go illegibly small, but
+// ocPrint() below sometimes has to shrink well past it to get a wide chart
+// onto one printed page, and that's fine since it's not meant to be read
+// zoomed-in on a screen.
+function ocApplyScale(scale) {
+  ocScale = +scale.toFixed(3);
   const el = document.getElementById('ocContainer');
   if (!el) return;
   el.style.setProperty('--oc-scale', ocScale);
   el.querySelectorAll('.oc-tree').forEach(drawOcConnectors);
+}
+
+function ocSetZoom(scale) {
+  ocApplyScale(Math.min(OC_ZOOM_MAX, Math.max(OC_ZOOM_MIN, scale)));
 }
 
 function ocZoom(dir) {
@@ -200,6 +209,42 @@ function ocOpenNewWindow() {
   url.searchParams.set('view', 'orgchart');
   url.searchParams.set('ocFit', '1');
   window.open(url.toString(), '_blank', 'noopener');
+}
+
+// A landscape page's printable width in CSS px is roughly 950-1050px
+// (Letter/A4 minus the @page margin set in the print CSS) regardless of how
+// wide Kate's own screen is — so scale to a fixed print target, not to the
+// window, same idea as ocFitToWindow() but for paper instead of glass.
+const OC_PRINT_TARGET_WIDTH = 950;
+
+// The masthead's "Print" link. Shrinks the chart to fit one landscape page
+// wide via the same --oc-scale the zoom buttons use (see the CSS comment
+// above .oc-tree's @media print block for why not transform:scale), prints,
+// then puts the zoom Kate was looking at back.
+function ocPrint() {
+  const container = document.getElementById('ocContainer');
+  if (!container) { window.print(); return; }
+  const zoomBefore = ocScale;
+  ocApplyScale(1); // measure natural size before shrinking
+  let widest = 0;
+  container.querySelectorAll('.oc-tree').forEach(t => { widest = Math.max(widest, t.scrollWidth); });
+  // No OC_ZOOM_MIN floor here on purpose — see ocApplyScale's comment. The
+  // whole group is wide enough at scale 1 that fitting it to one landscape
+  // page needs a smaller scale than the on-screen zoom-out ever allows.
+  if (widest > OC_PRINT_TARGET_WIDTH) ocApplyScale(OC_PRINT_TARGET_WIDTH / widest);
+
+  const restore = () => { ocApplyScale(zoomBefore); removeEventListener('afterprint', restore); };
+  addEventListener('afterprint', restore);
+  // The photos are loading="lazy", so any box scrolled off to the side has not
+  // fetched its photo yet and would print as an empty circle. Load them all
+  // first (capped at 4s so a slow photo cannot hold the dialog hostage), then
+  // print once the shrunk layout and redrawn connectors have painted.
+  const imgs = [...container.querySelectorAll('img')];
+  imgs.forEach(img => { img.loading = 'eager'; });
+  const loaded = Promise.all(imgs.map(img => (img.complete && img.naturalWidth) ? null
+    : new Promise(res => { img.addEventListener('load', res, { once: true }); img.addEventListener('error', res, { once: true }); })));
+  Promise.race([loaded, new Promise(res => setTimeout(res, 4000))])
+    .then(() => setTimeout(() => window.print(), 50));
 }
 
 // One straight elbow line per box, from its own parent box only — no
