@@ -26,6 +26,10 @@
   var ANON_KEY = (typeof SUPA_KEY !== "undefined") ? SUPA_KEY : "";
   var ENDPOINT = BASE_URL + "/functions/v1/dashboard-ask";
   var MAX_PAGE_CHARS = 150000;
+  // Kate, 24 Sep 2026: switched off while the Anthropic API account has no
+  // credit, so nobody sees a "run out of credit" error. Set back to true once
+  // it is topped up; nothing else needs changing.
+  var ENABLED = false;
 
   // Tappable starters, per view. The placeholder alone reads like a question
   // somebody already typed, so people press Ask on grey text and nothing happens.
@@ -150,6 +154,7 @@
   }
 
   function mount() {
+    if (!ENABLED) return;
     var host = document.getElementById("dashboardWrap") || document.body;
     var root = el("div", null); root.id = "trs-ask";
 
