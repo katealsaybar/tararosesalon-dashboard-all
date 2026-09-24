@@ -306,6 +306,9 @@ body.kpi-view:not(.revealed) footer{display:none}
              margin 240ms var(--card-ease),padding 240ms var(--card-ease)}
 .topbar.stuck .mast-sub,.topbar.stuck .mast-rule{
   opacity:0;max-height:0;margin-top:0;padding-top:0;padding-bottom:0;border-width:0}
+/* Kate, 24 Sep 2026: on Comparison the Visual/Table switch stays in the stuck
+   bar, so its COMPARISON label stays with it rather than folding away. */
+body.compare-chrome .topbar.stuck #headerSectionLabel{opacity:1;max-height:140px}
 .topbar.stuck .tglr{min-height:34px;padding:6px 12px}
 .topbar.stuck .filters{padding-top:8px}
 /* Kate, 1 Sep 2026: on the Ledgers pages the masthead drops the buttons and
