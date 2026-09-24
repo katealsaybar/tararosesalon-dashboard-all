@@ -328,6 +328,10 @@ body.ledger-chrome #mastBranch{display:none}
 body.compare-chrome #mastBranch,body.compare-chrome #mastRange{display:none}
 body.orgchart-chrome .mast-rule,
 body.orgchart-chrome .filters-wrap{display:none}
+/* Kate, 24 Sep 2026: Google Reviews carries its own filters and pull date, so the
+   masthead's branch/range/freshness line describes nothing there. */
+body.reviews-chrome .mast-rule,
+body.reviews-chrome .filters-wrap{display:none}
 /* Kate, 22 Sep 2026: the popped-out org chart window (ocOpenNewWindow(),
    ?ocFit=1) is for projecting/sharing/printing — no Sections button (so no
    way to slide the sidebar over it) and no card border, just the tree,
@@ -2973,6 +2977,7 @@ function showView(view, el){
   // plus its own "open in new window" link since this is the page people
   // pop out to project or share standalone.
   document.body.classList.toggle('orgchart-chrome', view === 'orgchart');
+  document.body.classList.toggle('reviews-chrome', view === 'reviews');
   document.body.classList.toggle('compare-chrome', view === 'compare');
   // Popped-out standalone window (ocOpenNewWindow() sets ocFit=1): no sidebar
   // nav to open and no card border round the tree, just the chart, edge to
