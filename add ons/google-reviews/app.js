@@ -1,0 +1,183 @@
+const R = window.REVIEWS, META = window.META;
+const TODAY = new Date(META.generated + "T00:00:00");
+const BRANCHES = ["Khalifa City A, Abu Dhabi","Saadiyat, Abu Dhabi","Al Quoz, Dubai","Motor City, Dubai","District 2, Bahrain"];
+const SHORT = {"Khalifa City A, Abu Dhabi":"Khalifa City A","Saadiyat, Abu Dhabi":"Saadiyat","Al Quoz, Dubai":"Al Quoz","Motor City, Dubai":"Motor City","District 2, Bahrain":"Bahrain"};
+const REC = [["30","Last 30 days"],["90","Last 90 days"],["180","Last 6 months"],["365","Last 12 months"],["730","Last 2 years"],["all","All time"]];
+const ALL = [1,2,3,4,5];
+const state = {branches:new Set(BRANCHES), stars:new Set(ALL), rec:"all", withText:false, noReply:false, q:"", sort:"new"};
+const days = d => (TODAY - new Date(d+"T00:00:00"))/864e5;
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const setEq = (a,b) => a.size===b.length && b.every(x=>a.has(x));
+
+function windowStart(rec){ if(rec==="all") return null; const d=new Date(TODAY); d.setDate(d.getDate()-(+rec)); return d.toISOString().slice(0,10); }
+function isComplete(rec, branches){
+  const ws = windowStart(rec);
+  return [...branches].every(b => META.cover[b]===null || (ws && ws >= META.cover[b]));
+}
+
+function baseFilter(skip){
+  return R.filter(r =>
+    (skip==="branch" || state.branches.has(r.branch)) &&
+    (skip==="stars" || state.stars.has(r.stars)) &&
+    (skip==="rec" || state.rec==="all" || days(r.date) <= +state.rec) &&
+    (!state.withText || r.comment) && (!state.noReply || !r.replied) &&
+    (!state.q || (r.comment+" "+r.reviewer+" "+r.reply).toLowerCase().includes(state.q.toLowerCase())));
+}
+function chip(label, on, n, fn, extra){
+  const b=document.createElement("button"); b.className="chip"+(on?" on":"");
+  b.innerHTML=esc(label)+(extra||"")+(n!==null?` <span class="n">${n}</span>`:""); b.onclick=fn; return b;
+}
+function sep(){const d=document.createElement("span");d.className="sep";return d;}
+function toggle(set, all, v){
+  if(set.size===all.length) return new Set([v]);
+  if(set.has(v)){ set.delete(v); return set.size? set : new Set(all); }
+  set.add(v); return set;
+}
+function renderFilters(){
+  const fb=document.getElementById("fBranch"); fb.innerHTML="";
+  const pb=baseFilter("branch");
+  fb.appendChild(chip("All", state.branches.size===BRANCHES.length, pb.length, ()=>{state.branches=new Set(BRANCHES);render();}));
+  BRANCHES.forEach(b=>fb.appendChild(chip(SHORT[b], state.branches.has(b) && state.branches.size!==BRANCHES.length, pb.filter(r=>r.branch===b).length, ()=>{state.branches=toggle(state.branches,BRANCHES,b);render();})));
+
+  const fs=document.getElementById("fStars"); fs.innerHTML="";
+  const ps=baseFilter("stars");
+  fs.appendChild(chip("All", setEq(state.stars,ALL), ps.length, ()=>{state.stars=new Set(ALL);render();}));
+  fs.appendChild(chip("Complaints 1–3★", setEq(state.stars,[1,2,3]), ps.filter(r=>r.stars<=3).length, ()=>{state.stars=new Set([1,2,3]);render();}));
+  fs.appendChild(chip("Positive 4–5★", setEq(state.stars,[4,5]), ps.filter(r=>r.stars>=4).length, ()=>{state.stars=new Set([4,5]);render();}));
+  fs.appendChild(sep());
+  const single = !setEq(state.stars,ALL) && !setEq(state.stars,[1,2,3]) && !setEq(state.stars,[4,5]);
+  ALL.forEach(s=>fs.appendChild(chip(s+"★", single && state.stars.has(s), ps.filter(r=>r.stars===s).length, ()=>{
+    if(!single) state.stars=new Set([s]); else state.stars=toggle(state.stars,ALL,s);
+    render();})));
+
+  const fr=document.getElementById("fRec"); fr.innerHTML="";
+  const pr=baseFilter("rec");
+  REC.forEach(([k,l])=>{
+    const full = isComplete(k, state.branches);
+    fr.appendChild(chip(l, state.rec===k, k==="all"?pr.length:pr.filter(r=>days(r.date)<=+k).length, ()=>{state.rec=k;render();}, ""));
+  });
+  const fm=document.getElementById("fMore"); fm.innerHTML="";
+  fm.appendChild(chip("With written comment only", state.withText, null, ()=>{state.withText=!state.withText;render();}));
+  fm.appendChild(chip("No reply yet", state.noReply, null, ()=>{state.noReply=!state.noReply;render();}));
+}
+function renderKpis(F){
+  const low=F.filter(r=>r.stars<=3).length, hi=F.length-low;
+  const avg=F.length?(F.reduce((a,r)=>a+r.stars,0)/F.length).toFixed(2):"–";
+  const replied=F.filter(r=>r.replied).length;
+  const recLabel = REC.find(x=>x[0]===state.rec)[1].toLowerCase();
+  const pct=n=>F.length?Math.round(n/F.length*100):0;
+  document.getElementById("kpis").innerHTML=`
+   <div class="kpi"><div class="l">Reviews shown</div><div class="v">${F.length}</div><div class="h">${recLabel}</div></div>
+   <div class="kpi"><div class="l">Average rating</div><div class="v">${avg}<span style="font-size:16px;color:var(--faint)">★</span></div><div class="h">of filtered reviews</div></div>
+   <div class="kpi"><div class="l">Complaints (1–3★)</div><div class="v" style="color:var(--s1)">${low}</div><div class="h">${pct(low)}% of filtered</div></div>
+   <div class="kpi"><div class="l">Positive (4–5★)</div><div class="v" style="color:var(--s5)">${hi}</div><div class="h">${pct(hi)}% of filtered</div></div>
+   <div class="kpi"><div class="l">Replied</div><div class="v">${F.length?Math.floor(replied/F.length*1000)/10:0}%</div><div class="h">${F.length-replied} without a reply</div></div>`;
+}
+function renderExact(){
+  const E=META.exact, T=META.totals;
+  const cell=(b,s)=>{const v=E[b][String(s)]; if(v!==null) return `<td>${v.toLocaleString()}</td>`;
+    if(s===3) return `<td class="q" title="At least 12; Google caps results at 50">12+</td>`;
+    return `<td class="q" title="Google doesn't expose this split for Khalifa City A">–</td>`;};
+  let rows=BRANCHES.map(b=>{
+    const low=[1,2,3].reduce((a,s)=>a+(E[b][s]===null&&s===3?12:(E[b][s]||0)),0);
+    const lowTxt = E[b]["3"]===null? low+"+" : low;
+    return `<tr><td>${SHORT[b]}</td>${ALL.map(s=>cell(b,s)).join("")}<td><b>${T[b].toLocaleString()}</b></td><td>${META.avg[b].toFixed(2)}★</td><td>${lowTxt} <span style="color:var(--faint)">(${(low/T[b]*100).toFixed(1)}%${E[b]["3"]===null?"+":""})</span></td></tr>`;}).join("");
+  const sum=s=>BRANCHES.reduce((a,b)=>a+(E[b][String(s)]===null&&s===3?12:(E[b][String(s)]||0)),0);
+  const tot=BRANCHES.reduce((a,b)=>a+T[b],0);
+  const lowAll=[1,2,3].reduce((a,s)=>a+sum(s),0);
+  rows+=`<tr class="tot"><td>All branches</td><td>${sum(1)}</td><td>${sum(2)}</td><td>${sum(3)}</td><td>${sum(4)}</td><td>${sum(5).toLocaleString()}</td><td>${tot.toLocaleString()}</td><td></td><td>${lowAll} (${(lowAll/tot*100).toFixed(1)}%)</td></tr>`;
+  document.getElementById("exact").innerHTML=`<div style="overflow-x:auto"><table class="ex" style="min-width:620px"><thead><tr><th>Branch</th><th>1★</th><th>2★</th><th>3★</th><th>4★</th><th>5★</th><th>Total</th><th>Avg</th><th>1–3★ share</th></tr></thead><tbody>${rows}</tbody></table></div>
+  `;
+}
+function renderBranches(){
+  const F=baseFilter("branch");
+  const max=Math.max(1,...BRANCHES.map(b=>F.filter(r=>r.branch===b).length));
+  const el=document.getElementById("branches"); el.innerHTML="";
+  BRANCHES.forEach(b=>{
+    const rs=F.filter(r=>r.branch===b), n=rs.length, dim=!state.branches.has(b);
+    const seg=s=>{const k=rs.filter(r=>r.stars===s).length; return k?`<span style="width:${k/max*100}%;background:var(--s${s})" title="${s}★: ${k}"></span>`:"";};
+    const low=rs.filter(r=>r.stars<=3).length;
+    const row=document.createElement("div"); row.className="brow"; row.style.opacity=dim?.4:1;
+    row.innerHTML=`<div class="bname" title="${b}">${SHORT[b]}</div><div class="bar">${ALL.map(seg).join("")}</div><div class="bval"><b>${n}</b> <small>${low} complaint${low===1?"":"s"}</small></div>`;
+    row.onclick=()=>{state.branches=new Set([b]);render();};
+    el.appendChild(row);
+  });
+}
+function renderTimeline(F){
+  const tl=document.getElementById("tl"), lab=document.getElementById("tlab"); tl.innerHTML=""; lab.innerHTML="";
+  let buckets=[], keyOf, per;
+  if(state.rec!=="all" && +state.rec<=365){
+    per="month"; const cnt=Math.max(Math.ceil(+state.rec/30.4),3);
+    for(let i=cnt-1;i>=0;i--){const d=new Date(TODAY.getFullYear(),TODAY.getMonth()-i,1);buckets.push({k:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"),l:d.toLocaleString("en",{month:"short"})+" "+String(d.getFullYear()).slice(2)});}
+    keyOf=d=>d.slice(0,7);
+  } else {
+    per="year"; const ys=F.length?F.map(r=>+r.date.slice(0,4)):[TODAY.getFullYear()];
+    let y0=Math.min(...ys); if(state.rec==="730") y0=Math.min(y0,TODAY.getFullYear()-2);
+    for(let y=y0;y<=TODAY.getFullYear();y++) buckets.push({k:String(y),l:String(y)});
+    keyOf=d=>d.slice(0,4);
+  }
+  document.getElementById("tlTitle").textContent="Over time · per "+per;
+  const counts=buckets.map(b=>ALL.map(s=>F.filter(r=>keyOf(r.date)===b.k&&r.stars===s).length));
+  const max=Math.max(1,...counts.map(c=>c.reduce((a,x)=>a+x,0)));
+  const tip=document.getElementById("tip");
+  buckets.forEach((b,i)=>{
+    const col=document.createElement("div"); col.className="tcol";
+    ALL.forEach((s,j)=>{ if(counts[i][j]){const sp=document.createElement("span");sp.style.height=(counts[i][j]/max*100)+"%";sp.style.background=`var(--s${s})`;col.appendChild(sp);} });
+    const tot=counts[i].reduce((a,x)=>a+x,0);
+    col.onmousemove=e=>{tip.style.display="block";tip.style.left=(e.clientX+12)+"px";tip.style.top=(e.clientY-10)+"px";tip.innerHTML=`<b>${b.l}</b>: ${tot}<br>`+ALL.map((s,j)=>`${s}★ ${counts[i][j]}`).join(" · ");};
+    col.onmouseleave=()=>tip.style.display="none";
+    tl.appendChild(col);
+    const l=document.createElement("div"); l.textContent=b.l; lab.appendChild(l);
+  });
+}
+function fmtDate(d){return new Date(d+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}
+function ago(d){const n=Math.round(days(d)); if(n<1)return "today"; if(n<60)return n+"d ago"; if(n<730)return Math.round(n/30.4)+"mo ago"; return Math.round(n/365)+"y ago";}
+let LIMIT=60;
+function renderList(F){
+  const L=[...F].sort((a,b)=> state.sort==="new"? b.date.localeCompare(a.date) : state.sort==="old"? a.date.localeCompare(b.date) : state.sort==="low"? a.stars-b.stars || b.date.localeCompare(a.date) : b.stars-a.stars || b.date.localeCompare(a.date));
+  document.getElementById("listTitle").textContent=`Reviews (${L.length})`;
+  const el=document.getElementById("list");
+  if(!L.length){el.innerHTML=`<div class="empty">No reviews match these filters.</div>`;return;}
+  el.innerHTML=L.slice(0,LIMIT).map((r,i)=>{
+    const st="<b>"+"★".repeat(r.stars)+"</b><em>"+"★".repeat(5-r.stars)+"</em>";
+    const long=r.comment.length>380;
+    return `<div class="rev s${r.stars}">
+      <div class="rtop"><span class="stars">${st}</span><span class="who">${esc(r.reviewer||"Anonymous")}</span><span class="tag">${SHORT[r.branch]}</span>
+      ${r.replied?'<span class="tag ok">Replied</span>':'<span class="tag no">No reply</span>'}
+      <span class="date" title="${r.approx?'Approximate date from Google Maps':r.date}">${r.approx?esc((r.when||'').replace(/^Edited /,'edited '))+' · approx.':fmtDate(r.date)+' · '+ago(r.date)}</span></div>
+      ${r.comment?`<div class="rtext${long?" clamp":""}" id="t${i}">${esc(r.comment)}</div>${long?`<button class="more" onclick="document.getElementById('t${i}').classList.toggle('clamp');this.textContent=this.textContent==='Show more'?'Show less':'Show more'">Show more</button>`:""}`:`<div class="rtext none">Rating only, no written comment</div>`}
+      ${r.replied?`<details class="reply"><summary><b>Our reply</b></summary><div style="white-space:pre-wrap;margin-top:6px">${esc(r.reply)}</div></details>`:""}
+      ${r.url?`<div style="margin-top:8px"><a class="gbp" href="${r.url}" target="_blank" rel="noopener">Open in Business Profile →</a></div>`:""}
+    </div>`;}).join("") + (L.length>LIMIT?`<div style="text-align:center;margin-top:12px"><button class="chip" id="moreBtn">Show ${Math.min(60,L.length-LIMIT)} more of ${L.length-LIMIT} remaining</button></div>`:"");
+  const mb=document.getElementById("moreBtn"); if(mb) mb.onclick=()=>{LIMIT+=60;renderList(F);};
+}
+function renderNote(){
+  const n=R.length.toLocaleString();
+  document.getElementById("note").innerHTML = `<b>✓ Complete: all ${n} Google reviews</b> across the 5 branches, all 1–5★. Reviews since roughly the last 3–9 months (by branch) have exact dates from Business Profile; older ones use Google Maps' approximate dates ("3 months ago", "a year ago").`;
+}
+function render(){
+  const F=baseFilter();
+  LIMIT=60;
+  renderFilters(); renderKpis(F); renderNote(); renderBranches(); renderTimeline(F); renderList(F);
+}
+document.getElementById("q").oninput=e=>{state.q=e.target.value;render();};
+document.getElementById("sort").onchange=e=>{state.sort=e.target.value;render();};
+document.getElementById("reset").onclick=()=>{Object.assign(state,{branches:new Set(BRANCHES),stars:new Set(ALL),rec:"all",withText:false,noReply:false,q:""});document.getElementById("q").value="";render();};
+// Embedded in the dashboard: no own toggle and no own scrollbar. The dashboard's
+// sticky-header toggle sends the theme by postMessage (direct parent access is
+// blocked when the dashboard is opened from file://), and this page reports its
+// height so the iframe grows to fit and only the dashboard scrolls.
+const tb=document.getElementById("theme");
+const setTheme=t=>{document.documentElement.setAttribute("data-theme",t);tb.textContent=t==="dark"?"Light mode":"Dark mode";};
+tb.onclick=()=>setTheme(document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark");
+if(window.parent!==window){
+  tb.style.display="none";
+  document.documentElement.classList.add("embedded");
+  window.addEventListener("message",e=>{
+    if(e.source===window.parent&&e.data&&e.data.type==="trs-theme"){setTheme(e.data.theme==="dark"?"dark":"light");setTimeout(postH,50);}
+  });
+  function postH(){window.parent.postMessage({type:"trs-reviews-height",h:Math.ceil(document.body.getBoundingClientRect().height)},"*");}
+  new ResizeObserver(postH).observe(document.body);
+  window.parent.postMessage({type:"trs-reviews-ready"},"*");
+}
+renderExact(); render();

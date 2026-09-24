@@ -100,6 +100,7 @@ function toggleTheme() {
   const lbl = document.getElementById('themeLbl');
   if (lbl) lbl.textContent = dark ? 'Dark' : 'Light';
   applyLogoForTheme();
+  postReviewsTheme();
   // The gate used to be `if (charts.length)`, which worked only because the KPI
   // page owned two canvases. It draws its branch columns in the page's own type
   // now, so it holds no charts at all and the gate silently stopped re-rendering
@@ -114,6 +115,19 @@ function toggleTheme() {
   if (typeof bpRedrawForTheme === 'function') bpRedrawForTheme();
   if (typeof cmpRedrawForTheme === 'function') cmpRedrawForTheme();
 }
+// Google Reviews iframe: send it the theme (it has no toggle of its own) and size
+// it to its content so the dashboard page is the only scrollbar. postMessage, not
+// contentDocument, because file:// treats the iframe as another origin.
+function postReviewsTheme() {
+  const f = document.getElementById('reviewsFrame');
+  if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'trs-theme', theme: document.documentElement.getAttribute('data-theme') }, '*');
+}
+window.addEventListener('message', e => {
+  const f = document.getElementById('reviewsFrame');
+  if (!f || e.source !== f.contentWindow || !e.data) return;
+  if (e.data.type === 'trs-reviews-ready') postReviewsTheme();
+  if (e.data.type === 'trs-reviews-height' && e.data.h > 0) f.style.height = e.data.h + 'px';
+});
 // 5.png = light/white wordmark (for dark backgrounds), 6.png = dark/black wordmark (for light backgrounds)
 function applyLogoForTheme() {
   const dark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -879,7 +893,7 @@ function heroPeriodPhrasing() {
 const VIEW_SECTION_LABELS = {
   dashboard: 'Organisation Pulse', team: 'Team Performance', staffperf: 'Staff Performance', stylists: 'Staff Cards',
   orgchart: 'Org Chart',
-  services: 'Service Rankings', clients: 'Top Clients', reviews: 'Salon Reviews',
+  services: 'Service Rankings', clients: 'Top Clients', reviews: 'Google Reviews',
   branchperf: 'Branch Performance',
   compare: 'Comparison',
   ledgerFinancials: 'Ledgers · Financial Totals',

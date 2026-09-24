@@ -1254,6 +1254,9 @@ table.lg td.cmp-miss{color:var(--bad);font-weight:600}
 }
 @media (max-width:720px){
   .cmp-sides{grid-template-columns:1fr}
+  .cmp-swap{justify-self:center;transform:rotate(90deg)}
+  .cmp-bar{display:none}
+}
 
 /* METRICS */
 .metric{
@@ -2447,7 +2450,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <!-- Level 1 + 2: Reviews -->
   <div class="nav-group">
     <div class="nav-title">REVIEWS</div>
-    <div class="nav-sub" onclick="showView('reviews', this)">Salon Reviews<span class="nav-note">Under construction</span></div>
+    <div class="nav-sub" onclick="showView('reviews', this)">Google Reviews</div>
   </div>
 
   <div class="nav-group nav-admin-only" style="display:none">
@@ -2720,8 +2723,9 @@ table.tp-cmp td.bad{color:var(--bad)}
   <!-- REVIEWS -->
   <div id="view-reviews" style="display:none">
     <iframe 
-      src="./add%20ons/TRS%20REVIEWS.html"
-      style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;">
+      id="reviewsFrame" scrolling="no"
+      src="./add%20ons/google-reviews/index.html?v=3"
+      style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;display:block;overflow:hidden;">
     </iframe>
   </div>
 
@@ -2779,7 +2783,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=20260919c"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260924a"></script>
-<script src="dashboard.js?v=20260924a"></script>
+<script src="dashboard.js?v=20260924b"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260907a"></script>
 <script src="compare.js?v=20260924e"></script>
@@ -2898,6 +2902,8 @@ function showView(view, el){
   // with height:100% because they lived inside an inner scroll area that no longer
   // exists — in a document-scrolled page that collapsed them to nothing.
   target.style.display = 'block';
+  // Google Reviews sizes its iframe to its content; ask again now it's visible.
+  if (view === 'reviews' && typeof postReviewsTheme === 'function') postReviewsTheme();
 
   // Kate, 2026-08-14: one branch picker and one date picker, for every page that
   // shows a number. It used to be these two only, and Services and Clients each
