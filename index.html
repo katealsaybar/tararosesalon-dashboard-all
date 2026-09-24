@@ -1220,6 +1220,9 @@ table.lg td.cmp-miss{color:var(--bad);font-weight:600}
    instead of repeating the word in the page head. */
 #cmpModeMast{display:none;align-self:center}
 body.compare-chrome #cmpModeMast{display:inline-flex}
+/* The row lines up on text baselines; centre the label on the switch instead,
+   or it sits high against the taller pill. */
+body.compare-chrome #headerSectionLabel{align-self:center}
 .cmp-mode{display:inline-flex;border:1px solid var(--border);border-radius:20px;overflow:hidden}
 .cmp-mode button{border:0;background:var(--surface);color:var(--muted);font:inherit;font-size:11.5px;
   letter-spacing:.14em;text-transform:uppercase;padding:6px 16px;cursor:pointer}
