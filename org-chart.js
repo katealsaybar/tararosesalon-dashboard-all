@@ -56,7 +56,7 @@ const ORG_CHART = [
                     { name: 'Ashleigh Fairgrieve', role: 'Blondes & Extensions Educator', photo: 'assets/org-chart/ashleigh-fairgrieve.png' },
                   ],
                 },
-                { name: 'Ruth Bocock', role: 'Salon Manager, Al Quoz Branch', photo: 'assets/org-chart/ruth-bocock.png' },
+                { name: 'Ruth Bocock', role: 'Salon Manager, Al Quoz Branch', photo: 'assets/org-chart/ruth-bocock.png', dropToPhotoRow: true },
                 {
                   name: 'Salon Coordinators',
                   role: 'Department',
@@ -106,7 +106,7 @@ function ocNode(node, isHead) {
     ? `<img class="oc-photo" src="${encodeURI(node.photo)}" alt="" loading="lazy" onerror="this.remove()">`
     : '';
   return `
-    <li>
+    <li${node.dropToPhotoRow ? ' class="oc-drop"' : ''}>
       <div class="oc-node${isHead ? ' is-head' : ''}${node.photo ? ' has-photo' : ''}">
         ${photo}
         <div class="oc-name">${escapeHtml(node.name)}</div>
@@ -251,9 +251,28 @@ function ocPrint() {
 // shared "bus" line across siblings. Coordinates are computed relative
 // to the scrollable .oc-tree itself (not the viewport), so the lines
 // stay put when the tree is scrolled horizontally.
+// Kate, 24 Sep 2026: Ruth Bocock sits among Emma-Louise's department boxes
+// (Call Centre Team, Educators, Salon Coordinators) but is a person, so her
+// card belongs on the row of people under them, not level with the
+// departments. A node marked dropToPhotoRow is pushed down until its top meets
+// the first card under a sibling department. Measured, not a fixed margin, so
+// it holds at every zoom level; runs before the lines are drawn so her
+// connector is drawn to where the card ends up.
+function ocAlignDrops(tree) {
+  tree.querySelectorAll('li.oc-drop').forEach(li => {
+    li.style.marginTop = '0px';
+    const sib = [...li.parentElement.children].find(x => x !== li && x.querySelector(':scope > ul > li > .oc-node'));
+    if (!sib) return;
+    const target = sib.querySelector(':scope > ul > li > .oc-node').getBoundingClientRect().top;
+    const mine = li.querySelector(':scope > .oc-node').getBoundingClientRect().top;
+    if (target > mine) li.style.marginTop = (target - mine) + 'px';
+  });
+}
+
 function drawOcConnectors(tree) {
   const old = tree.querySelector('svg.oc-lines');
   if (old) old.remove();
+  ocAlignDrops(tree);
 
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS, 'svg');
