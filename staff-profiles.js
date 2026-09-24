@@ -184,24 +184,25 @@ const STAFF_PROFILES = {
   // below were the plain colour crops from the standalone Stylist page until 19
   // Sep 2026, when Kate built a proper "RESIGNED" board in the FINAL STYLIST CARD
   // Canva file (pages 40-41) with a uniform black-and-white headshot per person —
-  // these paths are that board's exports, cropped one-per-file. `role` is a
-  // neutral placeholder, not their real title — Kate to correct if it matters.
+  // these paths are that board's exports, cropped one-per-file. `role` is
+  // their real former title (Kate, 24 Sep 2026); Samantha and Zandra still carry
+  // the neutral 'Former Team Member' placeholder.
   'SAMANTHA': { photoFull: 'stylist/photos/KCA/samantha amad.png', role: 'Former Team Member', branch: 'KCA', ig: 'samanthaahmadhair', resigned: true },
-  'SOPHIE':   { photoFull: 'stylist/photos/KCA/sophie harrison.png', role: 'Former Team Member', branch: 'KCA', ig: 'sophiepatriciahair', resigned: true },
-  'TONI':     { photoFull: 'stylist/photos/KCA/toni brits.png', role: 'Former Senior Stylist', branch: 'KCA', resigned: true },
-  'ZANDRI':   { photoFull: 'stylist/photos/MC/zandri wilson.png', role: 'Former Team Member', branch: 'MC', ig: 'hairby.zandri', resigned: true },
-  'DANIKA':   { photoFull: 'stylist/photos/SAA/danika ogrady.png', role: 'Former Team Member', branch: 'SAA', ig: 'hairby_danika', resigned: true },
+  'SOPHIE':   { photoFull: 'stylist/photos/KCA/sophie harrison.png', role: 'Former Style Director', branch: 'KCA', ig: 'sophiepatriciahair', resigned: true },
+  'TONI':     { photoFull: 'stylist/photos/KCA/toni brits.png', role: 'Former Stylist', branch: 'KCA', resigned: true },
+  'ZANDRI':   { photoFull: 'stylist/photos/MC/zandri wilson.png', role: 'Former Senior Stylist', branch: 'MC', ig: 'hairby.zandri', resigned: true },
+  'DANIKA':   { photoFull: 'stylist/photos/SAA/danika ogrady.png', role: 'Former Style Director', branch: 'SAA', ig: 'hairby_danika', resigned: true },
   // Added 19 Sep 2026 from the same RESIGNED board, branch read off their ledger
   // history (staff_utilisation/branch_staff_daily volume) since none of the four
   // had a card before now: Zandra almost entirely at KCA, Beatriz/Zara/Blossom
   // almost entirely at SAA (each also has a single-digit-row cover shift at
   // another branch, which is not their branch).
   'ZANDRA':   { photoFull: 'stylist/photos/KCA/zandra competente.png', role: 'Former Team Member', branch: 'KCA', resigned: true },
-  'BEATRIZ':  { photoFull: 'stylist/photos/SAA/beatriz chaparro.png', role: 'Former Team Member', branch: 'SAA', resigned: true },
-  'ZARA':     { photoFull: 'stylist/photos/SAA/zara lhouvum.png', role: 'Former Team Member', branch: 'SAA', resigned: true },
-  'BLOSSOM':  { photoFull: 'stylist/photos/SAA/blossom day.png', role: 'Former Team Member', branch: 'SAA', resigned: true },
-  'STUART':   { photoFull: 'stylist/photos/other/stuart hastings.png', role: 'Former Team Member', branch: 'other', ig: 'stuarthastings791', resigned: true },
-  'GONCALO':  { photoFull: 'stylist/photos/other/goncalo de almeida.png', role: 'Former Team Member', branch: 'other', resigned: true },
+  'BEATRIZ':  { photoFull: 'stylist/photos/SAA/beatriz chaparro.png', role: 'Former Senior Stylist', branch: 'SAA', resigned: true },
+  'ZARA':     { photoFull: 'stylist/photos/SAA/zara lhouvum.png', role: 'Former Style Director', branch: 'SAA', resigned: true },
+  'BLOSSOM':  { photoFull: 'stylist/photos/SAA/blossom day.png', role: 'Former Style Director', branch: 'SAA', resigned: true },
+  'STUART':   { photoFull: 'stylist/photos/other/stuart hastings.png', role: 'Former Style Director', branch: 'other', ig: 'stuarthastings791', resigned: true },
+  'GONCALO':  { photoFull: 'stylist/photos/other/goncalo de almeida.png', role: 'Former Barber', branch: 'other', resigned: true },
   // Added 19 Sep 2026, same RESIGNED board. Branch off her ledger history: 499 SAA
   // Beauty rows (Jan 2025-May 2026) against 9 KCA cover rows. Kate, 21 Sep 2026: she
   // was a beautician, not a stylist — role corrected off the placeholder so she sorts
