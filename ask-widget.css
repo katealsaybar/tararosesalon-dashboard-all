@@ -1,0 +1,93 @@
+/* ============================================================
+   TARA ROSE LADIES SALON — the dashboard question widget
+   ask-widget.css
+   Ported from the Wellness Voucher pack's shared/ask-widget.css, 24 Sep 2026,
+   and moved onto the dashboard's own tokens so it follows Light and Dark.
+   ============================================================ */
+
+/* Sits left of the round TOP button (58px at right:22px), so the two never
+   overlap. Hidden entirely from print. */
+#trs-ask{position:fixed;right:94px;bottom:28px;z-index:96;font-family:'Inter',sans-serif;
+  display:flex;flex-direction:column;align-items:flex-end;}
+.trs-ask-btn{
+  display:flex;align-items:center;gap:9px;
+  background:var(--accent);color:var(--accent-fg);border:none;border-radius:100px;
+  padding:12px 20px;font:inherit;font-size:14px;font-weight:700;letter-spacing:.02em;
+  cursor:pointer;box-shadow:var(--shadow-card);transition:transform .13s;
+}
+.trs-ask-btn:hover{transform:translateY(-2px);}
+.trs-ask-btn span[aria-hidden]{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:21px;height:21px;border-radius:50%;
+  background:var(--accent-fg);color:var(--accent);font-weight:800;font-size:13px;
+}
+/* [hidden] loses to the class below unless it comes after it. */
+.trs-ask-panel{
+  width:min(420px,calc(100vw - 40px));margin-bottom:12px;
+  background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:18px;
+  box-shadow:var(--shadow-card-hover);overflow:hidden;
+  display:flex;flex-direction:column;max-height:min(600px,calc(100vh - 140px));
+}
+.trs-ask-panel[hidden]{display:none !important;}
+.trs-ask-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:15px 18px;background:var(--accent);color:var(--accent-fg);
+}
+.trs-ask-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:600;font-style:italic;}
+.trs-ask-close{background:none;border:none;color:inherit;font-size:23px;line-height:1;cursor:pointer;padding:0 3px;opacity:.75;}
+.trs-ask-close:hover{opacity:1;}
+.trs-ask-note{
+  padding:11px 18px;font-size:12.5px;line-height:1.5;color:var(--muted);
+  background:var(--surface2);border-bottom:1px solid var(--border);margin:0;
+}
+.trs-ask-log{flex:1;overflow-y:auto;padding:14px 18px;min-height:60px;}
+.trs-ask-log:empty{display:none;}
+.trs-ask-msg{margin-bottom:11px;font-size:14px;line-height:1.6;border-radius:12px;padding:10px 13px;white-space:pre-wrap;}
+.trs-ask-q{background:var(--accent);color:var(--accent-fg);margin-left:34px;}
+.trs-ask-a{background:var(--surface2);color:var(--text);}
+.trs-ask-wait{background:none;color:var(--muted);font-style:italic;padding-left:0;}
+.trs-ask-err{background:var(--bad-bg);color:var(--bad);border-left:3px solid var(--bad);border-radius:8px;}
+.trs-ask-none{background:var(--warn-bg);color:var(--text);border-left:3px solid var(--warn);border-radius:8px;}
+.trs-ask-src{
+  margin:-4px 0 14px;padding:9px 13px;border-left:3px solid var(--accent);
+  background:var(--bg);border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.55;color:var(--muted);
+}
+.trs-ask-srclbl{display:block;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text);opacity:.6;margin-bottom:4px;}
+.trs-ask-by{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);margin:-4px 0 12px;}
+
+.trs-ask-chips{display:flex;flex-wrap:wrap;gap:6px;padding:11px 15px 0;}
+.trs-ask-chips:empty{display:none;}
+.trs-ask-chip{
+  background:var(--surface2);border:1px solid var(--border);border-radius:100px;
+  padding:7px 12px;font:inherit;font-size:12.5px;color:var(--text);
+  cursor:pointer;text-align:left;line-height:1.35;
+}
+.trs-ask-chip:hover{border-color:var(--text);}
+
+.trs-ask-models{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:11px 15px 0;}
+.trs-ask-models-lbl{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-right:3px;}
+.trs-ask-model{
+  background:var(--surface2);border:1px solid var(--border);border-radius:100px;
+  padding:5px 12px;font:inherit;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;
+}
+.trs-ask-model:hover{color:var(--text);border-color:var(--text);}
+.trs-ask-model.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);}
+
+.trs-ask-form{display:flex;gap:8px;padding:13px 15px;border-top:1px solid var(--border);margin-top:11px;}
+.trs-ask-input{
+  flex:1;min-width:0;border:1px solid var(--border);border-radius:100px;
+  padding:11px 16px;font:inherit;font-size:14px;color:var(--text);background:var(--bg);
+}
+.trs-ask-input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent;}
+.trs-ask-input:disabled{opacity:.55;}
+.trs-ask-send{
+  background:var(--accent);color:var(--accent-fg);border:none;border-radius:100px;
+  padding:11px 19px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;
+}
+.trs-ask-send:disabled{opacity:.5;cursor:default;}
+
+@media (max-width:760px){
+  #trs-ask{right:13px;left:13px;bottom:90px;}
+  .trs-ask-panel{width:100%;max-height:calc(100vh - 200px);}
+}
+@media print{ #trs-ask{display:none !important;} }

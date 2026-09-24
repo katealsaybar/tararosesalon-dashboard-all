@@ -1,5 +1,9 @@
-const R = window.REVIEWS, META = window.META;
-const TODAY = new Date(META.generated + "T00:00:00");
+// Reviews come from google_reviews on the dashboard's Supabase, kept current by
+// apps-script/sync-google-reviews.gs. data.js (the 24 Sep 2026 pull) is only
+// loaded if Supabase can't be reached, and the note then says it's the old copy.
+const SUPA_URL = "https://gvijxenafoowajqktqvd.supabase.co";
+const SUPA_KEY = "sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO";
+let R = [], META, TODAY, SYNC = null;
 const BRANCHES = ["Khalifa City A, Abu Dhabi","Saadiyat, Abu Dhabi","Al Quoz, Dubai","Motor City, Dubai","District 2, Bahrain"];
 const SHORT = {"Khalifa City A, Abu Dhabi":"Khalifa City A","Saadiyat, Abu Dhabi":"Saadiyat","Al Quoz, Dubai":"Al Quoz","Motor City, Dubai":"Motor City","District 2, Bahrain":"Bahrain"};
 const REC = [["30","Last 30 days"],["90","Last 90 days"],["180","Last 6 months"],["365","Last 12 months"],["730","Last 2 years"],["all","All time"]];
@@ -152,8 +156,33 @@ function renderList(F){
   const mb=document.getElementById("moreBtn"); if(mb) mb.onclick=()=>{LIMIT+=60;renderList(F);};
 }
 function renderNote(){
-  const n=R.length.toLocaleString();
-  document.getElementById("note").innerHTML = `<b>✓ Complete: all ${n} Google reviews</b> across the 5 branches, all 1–5★. Reviews since roughly the last 3–9 months (by branch) have exact dates from Business Profile; older ones use Google Maps' approximate dates ("3 months ago", "a year ago").`;
+  const n=R.length.toLocaleString(), el=document.getElementById("note");
+  if(!SYNC){ el.innerHTML=`<b>⚠ Offline copy: ${n} Google reviews as of 24 Sep 2026.</b> The live table couldn't be reached, so anything newer, and any reply posted since, is missing here.`; return; }
+  const when=new Date(SYNC.last).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"Asia/Dubai"});
+  el.innerHTML = SYNC.seedOnly
+    ? `<b>✓ All ${n} Google reviews</b> across the 5 branches, from the 24 Sep 2026 pull. The daily sync from Business Profile starts once Google approves API access. Older reviews use Google Maps' approximate dates ("a year ago").`
+    : `<b>✓ All ${n} Google reviews</b> across the 5 branches, synced from Business Profile. Last sync ${when}.`;
+}
+async function loadLive(){
+  const rows=[], cols="branch,stars,reviewer,comment,review_date,date_approx,when_text,replied,reply,url,source,synced_at";
+  for(let from=0;;from+=1000){
+    const res=await fetch(`${SUPA_URL}/rest/v1/google_reviews?select=${cols}&order=review_date.desc,review_id`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+SUPA_KEY,Range:`${from}-${from+999}`}});
+    if(!res.ok) throw new Error("google_reviews "+res.status);
+    const page=await res.json(); rows.push(...page); if(page.length<1000) break;
+  }
+  if(!rows.length) throw new Error("google_reviews is empty");
+  R=rows.map(r=>({branch:r.branch,stars:r.stars,reviewer:r.reviewer,date:r.review_date,comment:r.comment||"",replied:r.replied,reply:r.reply||"",url:r.url,approx:r.date_approx,when:r.when_text}));
+  SYNC={last:rows.reduce((m,r)=>r.synced_at>m?r.synced_at:m,""),seedOnly:rows.every(r=>r.source==="seed")};
+  const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Dubai"});
+  const totals={},exact={},avg={},cover={};
+  BRANCHES.forEach(b=>{const rs=R.filter(r=>r.branch===b);totals[b]=rs.length;cover[b]=null;
+    exact[b]={};ALL.forEach(s=>exact[b][s]=rs.filter(r=>r.stars===s).length);
+    avg[b]=rs.length?rs.reduce((a,r)=>a+r.stars,0)/rs.length:0;});
+  META={generated:today,totals,exact,avg,cover};
+}
+function loadOffline(){
+  return new Promise((ok,fail)=>{const s=document.createElement("script");s.src="data.js";
+    s.onload=()=>{R=window.REVIEWS;META=window.META;ok();};s.onerror=fail;document.body.appendChild(s);});
 }
 function render(){
   const F=baseFilter();
@@ -180,4 +209,5 @@ if(window.parent!==window){
   new ResizeObserver(postH).observe(document.body);
   window.parent.postMessage({type:"trs-reviews-ready"},"*");
 }
-renderExact(); render();
+loadLive().catch(e=>{console.warn("Google reviews: live load failed, using the 24 Sep copy.",e);return loadOffline();})
+  .then(()=>{TODAY=new Date(META.generated+"T00:00:00");renderExact();render();});

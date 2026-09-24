@@ -11,6 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ask-widget.css?v=20260924a">
 
 
 <style>
@@ -2768,7 +2769,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div id="view-reviews" style="display:none">
     <iframe 
       id="reviewsFrame" scrolling="no"
-      src="./add%20ons/google-reviews/index.html?v=3"
+      src="./add%20ons/google-reviews/index.html?v=4"
       style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;display:block;overflow:hidden;">
     </iframe>
   </div>
@@ -2840,6 +2841,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="pulse-narrative.js?v=20260814a"></script>
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
 <script src="branch-narrative.js?v=20260814c"></script>
+<!-- The "Ask a question" widget. Reads the open view at ask time; see ask-widget.js. -->
+<script src="ask-widget.js?v=20260924a"></script>
 <script>
 
 // ── PASSWORD GATE ────────────────────────────────────────────
