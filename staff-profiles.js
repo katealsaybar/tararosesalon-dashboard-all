@@ -185,12 +185,13 @@ const STAFF_PROFILES = {
   // Sep 2026, when Kate built a proper "RESIGNED" board in the FINAL STYLIST CARD
   // Canva file (pages 40-41) with a uniform black-and-white headshot per person —
   // these paths are that board's exports, cropped one-per-file. `role` is
-  // their real former title (Kate, 24 Sep 2026).
-  'SAMANTHA': { photoFull: 'stylist/photos/KCA/samantha amad.png', role: 'Former Senior Stylist', branch: 'KCA', ig: 'samanthaahmadhair', resigned: true },
-  'SOPHIE':   { photoFull: 'stylist/photos/KCA/sophie harrison.png', role: 'Former Style Director', branch: 'KCA', ig: 'sophiepatriciahair', resigned: true },
-  'TONI':     { photoFull: 'stylist/photos/KCA/toni brits.png', role: 'Former Stylist', branch: 'KCA', ig: 'toni.brits', resigned: true },
-  'ZANDRI':   { photoFull: 'stylist/photos/MC/zandri wilson.png', role: 'Former Senior Stylist', branch: 'MC', ig: 'hairby.zandri', resigned: true },
-  'DANIKA':   { photoFull: 'stylist/photos/SAA/danika ogrady.png', role: 'Former Style Director', branch: 'SAA', ig: 'hairby_danika', resigned: true },
+  // their real former title (Kate, 24 Sep 2026), without a "Former" prefix since
+  // the Former Stylists / Former Beauty Team heading already says it.
+  'SAMANTHA': { photoFull: 'stylist/photos/KCA/samantha amad.png', role: 'Senior Stylist', branch: 'KCA', ig: 'samanthaahmadhair', resigned: true },
+  'SOPHIE':   { photoFull: 'stylist/photos/KCA/sophie harrison.png', role: 'Style Director', branch: 'KCA', ig: 'sophiepatriciahair', resigned: true },
+  'TONI':     { photoFull: 'stylist/photos/KCA/toni brits.png', role: 'Stylist', branch: 'KCA', ig: 'toni.brits', resigned: true },
+  'ZANDRI':   { photoFull: 'stylist/photos/MC/zandri wilson.png', role: 'Senior Stylist', branch: 'MC', ig: 'hairby.zandri', resigned: true },
+  'DANIKA':   { photoFull: 'stylist/photos/SAA/danika ogrady.png', role: 'Style Director', branch: 'SAA', ig: 'hairby_danika', resigned: true },
   // Added 19 Sep 2026 from the same RESIGNED board, branch read off their ledger
   // history (staff_utilisation/branch_staff_daily volume) since none of the four
   // had a card before now: Zandra almost entirely at KCA, Beatriz/Zara/Blossom
@@ -200,16 +201,16 @@ const STAFF_PROFILES = {
   // former stylist, so she's off the Former Stylists grid and folds into KCA's
   // Assistants card like the rest.
   'ZANDRA':   { role: 'Assistant', branch: 'KCA' },
-  'BEATRIZ':  { photoFull: 'stylist/photos/SAA/beatriz chaparro.png', role: 'Former Senior Stylist', branch: 'SAA', ig: 'chroniclesofamessyhair', resigned: true },
-  'ZARA':     { photoFull: 'stylist/photos/SAA/zara lhouvum.png', role: 'Former Style Director', branch: 'SAA', ig: 'zaralvhair', resigned: true },
-  'BLOSSOM':  { photoFull: 'stylist/photos/SAA/blossom day.png', role: 'Former Style Director', branch: 'SAA', ig: 'blossommagic', resigned: true },
-  'STUART':   { photoFull: 'stylist/photos/other/stuart hastings.png', role: 'Former Style Director', branch: 'other', ig: 'stuarthastings791', resigned: true },
-  'GONCALO':  { photoFull: 'stylist/photos/other/goncalo de almeida.png', role: 'Former Barber', branch: 'other', ig: 'almeida_barber.dxb', resigned: true },
+  'BEATRIZ':  { photoFull: 'stylist/photos/SAA/beatriz chaparro.png', role: 'Senior Stylist', branch: 'SAA', ig: 'chroniclesofamessyhair', resigned: true },
+  'ZARA':     { photoFull: 'stylist/photos/SAA/zara lhouvum.png', role: 'Style Director', branch: 'SAA', ig: 'zaralvhair', resigned: true },
+  'BLOSSOM':  { photoFull: 'stylist/photos/SAA/blossom day.png', role: 'Style Director', branch: 'SAA', ig: 'blossommagic', resigned: true },
+  'STUART':   { photoFull: 'stylist/photos/other/stuart hastings.png', role: 'Style Director', branch: 'other', ig: 'stuarthastings791', resigned: true },
+  'GONCALO':  { photoFull: 'stylist/photos/other/goncalo de almeida.png', role: 'Barber', branch: 'other', ig: 'almeida_barber.dxb', resigned: true },
   // Added 19 Sep 2026, same RESIGNED board. Branch off her ledger history: 499 SAA
   // Beauty rows (Jan 2025-May 2026) against 9 KCA cover rows. Kate, 21 Sep 2026: she
   // was a beautician, not a stylist — role corrected off the placeholder so she sorts
   // into the "Former Beauty Team" subsection in dashboard.js instead of Former Stylists.
-  'ROVINA':   { photoFull: 'stylist/photos/SAA/rovina jordan.png', role: 'Former Beauty Team Member', branch: 'SAA', resigned: true },
+  'ROVINA':   { photoFull: 'stylist/photos/SAA/rovina jordan.png', role: 'Beauty Team Member', branch: 'SAA', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
