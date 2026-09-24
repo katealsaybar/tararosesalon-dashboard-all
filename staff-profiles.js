@@ -94,7 +94,9 @@ const STAFF_PROFILES = {
   'EMMA':      { photo: 'emma.png',      role: 'Style Director', branch: 'SAA',  ig: 'emmalou.williamson' },
   'JEIDA':     { photo: 'jeida.png',     role: 'Style Director', branch: 'SAA',  ig: 'jeida11' },
   'HOLLY':     { photo: 'holly.png',     role: 'Senior Stylist', branch: 'SAA',  ig: 'holly_the_hairdresser' },
-  'MOLLY':     { photo: 'molly.png',     role: 'Senior Stylist', branch: 'SAA',  ig: 'mollyrobinsonhair' },
+  // Kate, 24 Sep 2026: resigned 9 Sep 2026. Was only on the Former Stylists grid
+  // through the Upload Portal's staff_status toggle; marked here too so the two agree.
+  'MOLLY':     { photo: 'molly.png',     role: 'Senior Stylist', branch: 'SAA',  ig: 'mollyrobinsonhair', resigned: true },
   'APRIL':     { photo: 'april.png',     role: 'Stylist',        branch: 'SAA',  ig: 'april_apple_13' },
   'BETHANY':   { photo: 'bethany.png',   role: 'Stylist',        branch: 'SAA',  ig: 'bethanysmith.hair' },
   'SHELLEY':   { photo: 'shelley.png',   role: 'Stylist',        branch: 'SAA',  ig: 'shelley_the_global_hairstylist' },
@@ -187,10 +189,10 @@ const STAFF_PROFILES = {
   // these paths are that board's exports, cropped one-per-file. `role` is
   // their real former title (Kate, 24 Sep 2026), without a "Former" prefix since
   // the Former Stylists / Former Beauty Team heading already says it.
-  'SAMANTHA': { photoFull: 'stylist/photos/KCA/samantha amad.png', role: 'Senior Stylist', branch: 'KCA', ig: 'samanthaahmadhair', resigned: true },
+  'SAMANTHA': { photoFull: 'stylist/photos/KCA/samantha amad.png', role: 'Senior Stylist', branch: 'KCA', ig: 'samanthajhair__', resigned: true },
   'SOPHIE':   { photoFull: 'stylist/photos/KCA/sophie harrison.png', role: 'Style Director', branch: 'KCA', ig: 'sophiepatriciahair', resigned: true },
   'TONI':     { photoFull: 'stylist/photos/KCA/toni brits.png', role: 'Stylist', branch: 'KCA', ig: 'toni.brits', resigned: true },
-  'ZANDRI':   { photoFull: 'stylist/photos/MC/zandri wilson.png', role: 'Senior Stylist', branch: 'MC', ig: 'hairby.zandri', resigned: true },
+  'ZANDRI':   { photoFull: 'stylist/photos/MC/zandri wilson.png', role: 'Senior Stylist', branch: 'MC', ig: 'zandrihair', resigned: true },
   'DANIKA':   { photoFull: 'stylist/photos/SAA/danika ogrady.png', role: 'Style Director', branch: 'SAA', ig: 'hairby_danika', resigned: true },
   // Added 19 Sep 2026 from the same RESIGNED board, branch read off their ledger
   // history (staff_utilisation/branch_staff_daily volume) since none of the four
@@ -203,7 +205,7 @@ const STAFF_PROFILES = {
   'ZANDRA':   { role: 'Assistant', branch: 'KCA' },
   'BEATRIZ':  { photoFull: 'stylist/photos/SAA/beatriz chaparro.png', role: 'Senior Stylist', branch: 'SAA', ig: 'chroniclesofamessyhair', resigned: true },
   'ZARA':     { photoFull: 'stylist/photos/SAA/zara lhouvum.png', role: 'Style Director', branch: 'SAA', ig: 'zaralvhair', resigned: true },
-  'BLOSSOM':  { photoFull: 'stylist/photos/SAA/blossom day.png', role: 'Style Director', branch: 'SAA', ig: 'blossommagic', resigned: true },
+  'BLOSSOM':  { photoFull: 'stylist/photos/SAA/blossom day.png', role: 'Style Director', branch: 'SAA', ig: 'blossomsmagic', resigned: true },
   'STUART':   { photoFull: 'stylist/photos/other/stuart hastings.png', role: 'Style Director', branch: 'other', ig: 'stuarthastings791', resigned: true },
   'GONCALO':  { photoFull: 'stylist/photos/other/goncalo de almeida.png', role: 'Barber', branch: 'other', ig: 'almeida_barber.dxb', resigned: true },
   // Added 19 Sep 2026, same RESIGNED board. Branch off her ledger history: 499 SAA
