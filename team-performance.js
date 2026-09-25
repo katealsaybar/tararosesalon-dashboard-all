@@ -45,6 +45,17 @@ const tpPct  = n => (Math.round((Number(n) || 0) * 10) / 10) + '%';
 // holding one would pin a stylist's January figures into an August comparison.
 let tpDept = 'hair';
 let tpCompare = [];
+// Rank by: 'net' (podium + floor by net salon take) or 'level' (one group per
+// position, top of the ladder first, net take order inside each). Kate, 25 Sep
+// 2026; remembered per browser.
+let tpSort = 'net';
+try { if (localStorage.getItem('tp-sort') === 'level') tpSort = 'level'; } catch (e) {}
+// The ladder, top first. Hair ladder is perf_benchmarks' level_order; beauty
+// roles follow. Roles come from staff-profiles.js; anyone without one goes last.
+const TP_LADDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist', 'Blow-Dry Specialist', 'Barber',
+  'Senior Beauty Therapist', 'Senior Nail Technician', 'Beauty Therapist', 'Nail Technician', 'Beauty Team Member', 'Assistant'];
+const tpRole = st => { const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.role) || 'No position set'; };
+const tpRoleRank = r => { const i = TP_LADDER.indexOf(r); return i < 0 ? TP_LADDER.length : i; };
 const TP_MAX_COMPARE = 3;
 const tpKey = st => st.mergeKey;
 
@@ -248,12 +259,16 @@ async function renderTeam() {
         <button class="${tpDept === 'hair'   ? 'on' : ''}" onclick="tpSetDept('hair')">Hair</button>
         <button class="${tpDept === 'beauty' ? 'on' : ''}" onclick="tpSetDept('beauty')">Beauty</button>
       </div>
+      <div class="tp-seg" role="group" aria-label="Rank by">
+        <button class="${tpSort === 'net'   ? 'on' : ''}" onclick="tpSetSort('net')">Takings</button>
+        <button class="${tpSort === 'level' ? 'on' : ''}" onclick="tpSetSort('level')">Position</button>
+      </div>
       <span class="tp-bar-n">${branchLabel} · ${roster.length} ${roster.length === 1 ? 'person' : 'people'}</span>
       <span class="tp-bar-sp"></span>
       <span class="tp-bar-n">Tap + on anyone to compare · up to ${TP_MAX_COMPARE}</span>
     </div>
 
-    ${!roster.length ? '<div class="empty">Nobody on this bench in the selected period.</div>' : `
+    ${!roster.length ? '<div class="empty">Nobody on this bench in the selected period.</div>' : tpSort === 'level' ? tpByLevel(roster) : `
       <div class="section-label">Leading this period
         <span class="tp-sec-n">by net salon take</span></div>
       <div class="tp-podium">${podium.map(tpPodiumCard).join('')}</div>
@@ -333,6 +348,17 @@ function tpPodiumCard(st, i) {
 
 // The two figures that decide whether you look closer: what she took, and
 // whether they came back. Everything else is a tap away in the tray.
+// Position view: one section per role, top of the ladder first, each ranked by
+// net take (roster is already in that order).
+function tpByLevel(roster) {
+  const groups = {};
+  roster.forEach(st => (groups[tpRole(st)] ||= []).push(st));
+  return Object.keys(groups).sort((a, b) => tpRoleRank(a) - tpRoleRank(b)).map(r => `
+      <div class="section-label">${escapeHtml(r)}
+        <span class="tp-sec-n">${groups[r].length} ${groups[r].length === 1 ? 'person' : 'people'} · by net salon take</span></div>
+      <div class="tp-floor">${groups[r].map((st, i) => tpFloorRow(st, i + 1)).join('')}</div>`).join('');
+}
+
 function tpFloorRow(st, rank) {
   const picked = tpCompare.includes(tpKey(st));
   const nm = escapeHtml(st.name);
@@ -459,6 +485,13 @@ function tpTrayMatrix(picked, roster) {
 // Switching bench clears the tray on purpose: a hair stylist beside a beautician
 // compares an avg bill against two different targets, and the bars would say one
 // of them is failing when they are being read on different scales.
+function tpSetSort(k) {
+  if (tpSort === k) return;
+  tpSort = k;
+  try { localStorage.setItem('tp-sort', k); } catch (e) {}
+  renderTeam();
+}
+
 function tpSetDept(dept) {
   if (tpDept === dept) return;
   tpDept = dept;
