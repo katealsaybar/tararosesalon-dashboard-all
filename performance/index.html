@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="../assets/favicon-96x96.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="performance.css?v=20260925x">
+<link rel="stylesheet" href="performance.css?v=20260926a">
 <script>
 // Light / Dark (Kate, 25 Sep 2026): a stylist's own link remembers the choice per
 // browser; with none saved it follows the phone. Inside the dashboard the frame takes
@@ -61,8 +61,20 @@ function perfToggleTheme() {
 </main>
 
 <footer class="foot" id="foot"></footer>
+<!-- Back to top (Kate, 25 Sep 2026), same round TOP button as the dashboard. Shows once
+     the first screen is behind you; not in the dashboard frame, which has its own. -->
+<button type="button" class="perf-top" id="perfTop" aria-label="Back to top"
+        onclick="window.scrollTo({top:0, behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth'})"><span class="perf-top-k">TOP</span><span aria-hidden="true">↑</span></button>
+<script>
+(function () {
+  var b = document.getElementById('perfTop');
+  if (!b || new URLSearchParams(location.search).get('embed') === '1') { if (b) b.remove(); return; }
+  var paint = function () { b.classList.toggle('on', scrollY > innerHeight * 0.9); };
+  addEventListener('scroll', paint, {passive: true}); paint();
+})();
+</script>
 
 <script src="../staff-profiles.js?v=20260924n"></script>
-<script src="performance.js?v=20260925z"></script>
+<script src="performance.js?v=20260926a"></script>
 </body>
 </html>

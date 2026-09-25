@@ -2909,6 +2909,14 @@ table.tp-cmp td.bad{color:var(--bad)}
   // picker is hidden when embedded, so this is the only one on the dashboard.
   // Turns a hidden <select> into the soft pill menu. The select keeps the value
   // and its onchange; sel._ddPaint() refreshes the label after a code change.
+  // Kate, 25 Sep 2026: the closed pill says "Sept 2026", not "September 2026", which
+  // wrapped the pill onto two lines on a phone. The open list keeps the full names;
+  // anything that is not "<Month> <year>" (Sort: Branch) is left as it is.
+  function pillShort(t) {
+    // Inside the function: pillMenu() runs before this part of the file is reached.
+    const mon = {January:'Jan',February:'Feb',March:'Mar',April:'Apr',May:'May',June:'Jun',July:'Jul', August:'Aug',September:'Sept',October:'Oct',November:'Nov',December:'Dec'};
+    return t.replace(/^(January|February|March|April|May|June|July|August|September|October|November|December) (\d{4})$/, (m, mo, y) => mon[mo] + ' ' + y);
+  }
   function spfDD(sel){
     const wrap = sel.parentNode;
     if (sel._ddPaint) return sel._ddPaint();
@@ -2921,7 +2929,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     const close = () => { wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
     sel._ddPaint = () => {
       const cur = sel.options[sel.selectedIndex];
-      btn.innerHTML = (cur ? cur.text : '') + '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      btn.innerHTML = (cur ? pillShort(cur.text) : '') + '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       menu.innerHTML = '';
       [...sel.options].forEach(o => {
         const b = document.createElement('button');

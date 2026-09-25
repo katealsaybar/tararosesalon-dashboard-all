@@ -145,6 +145,14 @@ const MONTH = /^\d{4}-\d{2}$/.test(qs.get('m') || '') ? qs.get('m') : thisMonth;
   pillMenu(sel);
 })();
 
+// Kate, 25 Sep 2026: the closed pill says "Sept 2026", not "September 2026", which
+// wrapped the pill onto two lines on a phone. The open list keeps the full names;
+// anything that is not "<Month> <year>" (Sort: Branch) is left as it is.
+function pillShort(t) {
+  // Inside the function: pillMenu() runs before this part of the file is reached.
+  const mon = {January:'Jan',February:'Feb',March:'Mar',April:'Apr',May:'May',June:'Jun',July:'Jul', August:'Aug',September:'Sept',October:'Oct',November:'Nov',December:'Dec'};
+  return t.replace(/^(January|February|March|April|May|June|July|August|September|October|November|December) (\d{4})$/, (m, mo, y) => mon[mo] + ' ' + y);
+}
 // The dashboard's soft pill menu over a hidden <select> (a port of spfDD in index.html):
 // the select keeps the value and fires its own change event.
 function pillMenu(sel) {
@@ -157,7 +165,7 @@ function pillMenu(sel) {
   wrap.append(btn, menu);
   const close = () => { wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
   const cur = sel.options[sel.selectedIndex];
-  btn.innerHTML = esc(cur ? cur.text : '') + '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  btn.innerHTML = esc(cur ? pillShort(cur.text) : '') + '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   [...sel.options].forEach(o => {
     const b = document.createElement('button');
     b.type = 'button'; b.textContent = o.text; b.setAttribute('role', 'option');
