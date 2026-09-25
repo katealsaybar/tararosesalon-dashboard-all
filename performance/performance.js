@@ -64,7 +64,7 @@ if (EMBED) {
     if (e.data && e.data.type === 'perf-month' && /^\d{4}-\d{2}$/.test(e.data.m)) {
       qs.set('m', e.data.m); location.search = qs.toString(); return;
     }
-    if (e.data && e.data.type === 'trs-theme') document.documentElement.dataset.theme = e.data.theme === 'dark' ? 'dark' : 'light';
+    if (e.data && e.data.type === 'trs-theme') { document.documentElement.dataset.theme = e.data.theme === 'dark' ? 'dark' : 'light'; if (typeof perfPaintTheme === 'function') perfPaintTheme(); }
   });
 }
 const app = document.getElementById('app');

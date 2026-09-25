@@ -30,6 +30,16 @@
 }
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.45;font-size:15px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+/* The dashboard sidebar's lockup: rule + TARA ROSE cropped from the 3000px PNG (same
+   window and translate as index.html's .mark), SALONS set as text. */
+.brand{display:flex;flex-direction:column;align-items:center;gap:5px}
+.brand-mark{width:118px;aspect-ratio:2321/396;overflow:hidden;position:relative}
+.brand-mark img{position:absolute;left:0;top:0;width:129.254%;height:auto;max-width:none;transform:translate(-11.2333%,-38.3%)}
+.brand-word{font-size:10px;letter-spacing:.36em;text-indent:.36em;text-transform:uppercase;color:var(--text)}
+.top-acts{display:flex;align-items:center;gap:10px}
+.theme-btn{font:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;cursor:pointer}
+.theme-btn:hover{color:var(--text);border-color:var(--text)}
+@media (max-width:420px){.month-pick{font-size:0;gap:0}.month-pick select{font-size:13px}}
 .brand-name{font-weight:700;letter-spacing:.2em;text-transform:uppercase;font-size:15px}
 .brand-strip{height:2px;width:80px;margin-top:4px;border-radius:2px;background:linear-gradient(to right,#99F6E4,#EEF3C7,#C4B5FD,#FF9B9B,#FFD4D9)}
 .month-pick{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
