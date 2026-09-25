@@ -9,7 +9,8 @@
    that writes into them keeps working unchanged.
    ══════════════════════════════════════════════════════════════ */
 (function () {
-  const PHONE = matchMedia('(max-width:760px)');
+  // Same band as mobile.css: portrait phones by width, landscape ones by height.
+  const PHONE = matchMedia('(max-width:760px),(hover:none) and (max-height:480px)');
   const $ = id => document.getElementById(id);
   const topbar = $('topbar');
   const labelRow = $('headerSectionLabel') && $('headerSectionLabel').parentElement;

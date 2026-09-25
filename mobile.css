@@ -2,7 +2,8 @@
    PHONE LAYER (Kate, 25 Sep 2026)
    Loaded last, so it wins ties with index.html's own rules. Three bands only:
      ≤ 900px  tablet      (the existing overlay-nav band; nothing new here yet)
-     ≤ 760px  phones      everything below
+     ≤ 760px  phones      everything below, and phones on their side
+              (any touch screen 480px tall or less, whatever its width)
      ≤ 480px  small phones
    Every rule here sits inside a max-width query or targets an element that is
    display:none from 761px up, so the desktop page is untouched. mobile.js does
@@ -15,7 +16,7 @@
 .mast-body,.fsheet,.fsheet-scrim,#fSheetBtn,.nav-phone{display:none}
 
 /* ===== MOBILE (≤ 760px) · 1. COMPACT HEADER ===== */
-@media(max-width:760px){
+@media(max-width:760px),(hover:none) and (max-height:480px){
   /* One row: wordmark, filters summary, sections. 56px + the notch. */
   .topbar{padding-top:env(safe-area-inset-top);
     transition:transform 220ms var(--card-ease),box-shadow 220ms var(--card-ease)}
@@ -96,13 +97,13 @@
 }
 
 /* ===== MOBILE (≤ 760px) · 3. TABLES ===== */
-@media(max-width:760px){
+@media(max-width:760px),(hover:none) and (max-height:480px){
   /* The label column gives the figures room: capped, wrapped, tighter cells.
      Group-heading rows span the table, so they are left alone. */
   table.lg td,table.lg th{padding-left:9px;padding-right:9px}
   table.lg tbody tr:not(.lg-grp) > td:first-child:not([colspan]),
   table.lg thead th:first-child:not([colspan]){
-    width:42vw;max-width:42vw;min-width:120px;white-space:normal;line-height:1.25;
+    width:min(42vw,260px);max-width:min(42vw,260px);min-width:120px;white-space:normal;line-height:1.25;
     overflow-wrap:anywhere}
   table.lg,table.lg td.r,table.lg th.r{font-variant-numeric:tabular-nums}
   .lg-wrap.sx-l table.lg td:first-child,.lg-wrap.sx-l table.lg th:first-child{
@@ -159,7 +160,7 @@
 }
 
 /* ===== MOBILE (≤ 760px) · 4. ORG CHART AS AN INDENTED LIST ===== */
-@media(max-width:760px){
+@media(max-width:760px),(hover:none) and (max-height:480px){
   body:not(.orgchart-pop) .oc-container{padding:14px 12px 16px;--oc-scale:1!important}
   body:not(.orgchart-pop) .oc-zoom-controls{display:none}
   body:not(.orgchart-pop) .oc-lines{display:none}

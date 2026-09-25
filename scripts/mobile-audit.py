@@ -141,7 +141,7 @@ def run(tag):
             phone = w < 900
             ctx = browser.new_context(viewport={'width': w, 'height': h},
                                       device_scale_factor=1 if not phone else 2,
-                                      is_mobile=phone and w < h, has_touch=phone,
+                                      is_mobile=phone, has_touch=phone,
                                       color_scheme='light')
             page = ctx.new_page()
             page.goto(f'http://127.0.0.1:{port}/index.html', wait_until='domcontentloaded')
