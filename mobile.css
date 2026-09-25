@@ -212,6 +212,8 @@
   select,.lg-month-sel,.svc-yr-sel,.svc-date-inp,input[type=date],input[type=search],input[type=text]{
     min-height:44px;font-size:16px}
   .nav-kids-btn{width:44px;height:44px;margin:-10px -10px -10px 0}
+  /* Staff Benchmarks' team-key card (inline-styled). */
+  #spfKeyCard input,#spfKeyCard button{min-height:44px!important;font-size:16px!important}
   /* Tap-to-open names and small round buttons: the look stays, the target grows. */
   .who,.tp-add,a[href*="instagram.com"],#spfKeyReset a,#ocOpenNewWin,#ocPrintBtn{position:relative}
   #spfKeyReset a,#ocOpenNewWin,#ocPrintBtn{display:inline-block}

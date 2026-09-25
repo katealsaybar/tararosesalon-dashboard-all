@@ -696,6 +696,19 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .upd.mini .upd-full{display:none}
 .upd.mini .upd-pill{display:block}
 @media(max-width:700px){.upd{right:12px;left:12px;width:auto}}
+/* Phones (Kate, 25 Sep 2026): 16px form controls so iOS does not zoom the page on
+   focus, and 44px targets. Desktop is untouched. The file pickers are hidden inputs
+   opened from a tap, which iOS and Android both allow. */
+@media (max-width:760px),(hover:none) and (max-height:480px){
+  input:not([type]),input[type=text],input[type=password],input[type=date],input[type=number],input[type=email],select,textarea{font-size:16px;min-height:44px}
+  .btn,.btn-outline,.btn-danger,.btn-dl,.tab-btn,.logout-btn,.branch-pill,.seg-btn,.date-chip,.bulk-edit-btn,.bulk-save-btn,.modal-confirm,.modal-cancel{min-height:44px}
+  .btn-danger,.btn-dl{padding:0 14px}
+  .icon-btn,.slot-clear,.svc-remove-btn,.pw-eye{position:relative}
+  .icon-btn::after,.slot-clear::after,.svc-remove-btn::after,.pw-eye::after{content:"";position:absolute;
+    top:min(0px,calc(50% - 22px));bottom:min(0px,calc(50% - 22px));left:min(0px,calc(50% - 22px));right:min(0px,calc(50% - 22px))}
+  .toggle-wrap{min-height:44px}
+  button,[onclick]{-webkit-tap-highlight-color:transparent}
+}
 </style>
 </head>
 <body>

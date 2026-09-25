@@ -122,4 +122,5 @@ body.embed main{max-width:none}
 
 /* Framed in the dashboard on a phone (Kate, 25 Sep 2026): the dashboard page already
    has its side gutter, so the frame's own 16px would indent every card a second time. */
-@media(max-width:760px),(hover:none) and (max-height:480px){body.embed main{padding-left:0;padding-right:0}}
+@media(max-width:760px),(hover:none) and (max-height:480px){body.embed main{padding-left:0;padding-right:0}
+  select,input,textarea{font-size:16px;min-height:44px}.btn{min-height:44px}}

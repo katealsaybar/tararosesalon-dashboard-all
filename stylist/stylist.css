@@ -334,3 +334,14 @@ canvas{max-height:220px}
 .date-picker-clear:hover { border-color: var(--bad); color: var(--bad); }
 
 .detail-panel:empty { display: none !important; }
+
+/* Phones (Kate, 25 Sep 2026): 12px label floor, 16px form controls (no iOS focus
+   zoom), 44px targets. Desktop is untouched. */
+@media (max-width:760px),(hover:none) and (max-height:480px){
+  .logo-text .logo-sub,.card-revenue-label,.card-stat-label,.cb-tag{font-size:12px}
+  .ig-link,.ig-link span{font-size:12px}
+  #viewedTimestamp span{font-size:12px!important}
+  .card-revenue-label,.card-stat-label{letter-spacing:.06em}
+  input,select{font-size:16px;min-height:44px}
+  button,.toggle-wrap{min-height:44px}
+}
