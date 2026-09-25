@@ -311,6 +311,19 @@
   .lg-stand,.lg-note,.lgx-hint,.card-sub,.m-def{font-size:max(14px,1em)}
 }
 
+/* ===== MOBILE · 10. THE DRAWER (P2) ===== */
+/* The drag-to-resize strip is a mouse affordance. */
+@media(hover:none),(max-width:900px){.nav-resize{display:none}}
+@media(max-width:760px),(hover:none) and (max-height:480px){
+  /* A set width, not the saved desktop drag width (--nav-w may be inline on :root). */
+  aside.sidebar{width:min(85vw,320px);
+    padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  aside.sidebar .nav-sub{min-height:48px;display:flex;align-items:center;box-sizing:border-box}
+  aside.sidebar .nav-title.nav-fold{min-height:44px}
+  /* The page under an open drawer stays put. */
+  body.nav-open{overflow:hidden}
+}
+
 /* ===== SMALL PHONES (≤ 480px) ===== */
 @media(max-width:480px){
   .mast-logo,.topbar.stuck .mast-logo{width:88px}

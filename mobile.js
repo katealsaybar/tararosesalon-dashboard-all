@@ -157,6 +157,29 @@
     schedule();
   }
 
+  // ── 10. THE DRAWER ──
+  // Its items are <div onclick>: make each one a keyboard button at every width
+  // (focusable, Enter and Space), without changing how any of them looks.
+  document.querySelectorAll('aside.sidebar .nav-sub[onclick]').forEach(d => {
+    if (!d.hasAttribute('role')) d.setAttribute('role', 'button');
+    if (!d.hasAttribute('tabindex')) d.tabIndex = 0;
+    d.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); d.click(); }
+    });
+  });
+  // Swipe it closed on a phone: a mostly-sideways drag to the left of 60px or more.
+  const side = document.querySelector('aside.sidebar');
+  if (side) {
+    let x0 = null, y0 = 0;
+    side.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive: true});
+    side.addEventListener('touchend', e => {
+      if (x0 === null || !PHONE.matches) return;
+      const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+      x0 = null;
+      if (dx < -60 && Math.abs(dx) > Math.abs(dy) * 1.5 && typeof toggleNav === 'function') toggleNav(false);
+    }, {passive: true});
+  }
+
   // ── 3. TABLES: swipe hint, and cards for the widest ones ──
   let seen = new WeakSet();
   function tables() {
