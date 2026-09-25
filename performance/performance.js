@@ -142,7 +142,38 @@ const MONTH = /^\d{4}-\d{2}$/.test(qs.get('m') || '') ? qs.get('m') : thisMonth;
     sel.add(new Option(d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }), v, false, v === MONTH));
   }
   sel.onchange = () => { qs.set('m', sel.value); location.search = qs.toString(); };
+  pillMenu(sel);
 })();
+
+// The dashboard's soft pill menu over a hidden <select> (a port of spfDD in index.html):
+// the select keeps the value and fires its own change event.
+function pillMenu(sel) {
+  const wrap = sel.parentNode;
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'pdd-btn';
+  btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-label', sel.getAttribute('aria-label') || '');
+  const menu = document.createElement('div');
+  menu.className = 'pdd-menu'; menu.setAttribute('role', 'listbox');
+  wrap.append(btn, menu);
+  const close = () => { wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
+  const cur = sel.options[sel.selectedIndex];
+  btn.innerHTML = esc(cur ? cur.text : '') + '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  [...sel.options].forEach(o => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = o.text; b.setAttribute('role', 'option');
+    if (o.value === sel.value) { b.className = 'on'; b.setAttribute('aria-selected', 'true'); }
+    b.onclick = () => { close(); if (sel.value !== o.value) { sel.value = o.value; sel.dispatchEvent(new Event('change')); } };
+    menu.append(b);
+  });
+  btn.onclick = e => {
+    e.stopPropagation();
+    const open = !wrap.classList.contains('open');
+    wrap.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open));
+    if (open) (menu.querySelector('.on') || menu.firstChild).focus();
+  };
+  document.addEventListener('click', e => { if (!wrap.contains(e.target)) close(); });
+  wrap.addEventListener('keydown', e => { if (e.key === 'Escape') { close(); btn.focus(); } });
+}
 
 // ── scoring ──────────────────────────────────────────────────────────────
 // Share of the month the data covers, so a sum KPI on 12 Sep is judged on pace.

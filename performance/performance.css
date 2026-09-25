@@ -39,11 +39,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);lin
 .top-acts{display:flex;align-items:center;gap:10px}
 .theme-btn{font:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;cursor:pointer}
 .theme-btn:hover{color:var(--text);border-color:var(--text)}
-@media (max-width:420px){.month-pick{font-size:0;gap:0}.month-pick select{font-size:13px}}
+@media (max-width:420px){.month-lbl{display:none}}
 .brand-name{font-weight:700;letter-spacing:.2em;text-transform:uppercase;font-size:15px}
 .brand-strip{height:2px;width:80px;margin-top:4px;border-radius:2px;background:linear-gradient(to right,#99F6E4,#EEF3C7,#C4B5FD,#FF9B9B,#FFD4D9)}
 .month-pick{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
-.month-pick select{font:inherit;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 8px}
+/* The month picker is the dashboard's soft pill menu (spfDD in index.html), not the
+   browser's own list: the select stays hidden and keeps the value and onchange. */
+.pdd{position:relative;display:inline-flex}
+.pdd select{display:none}
+.pdd-btn{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:14px;font-weight:500;color:var(--text);
+  background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:7px 14px;cursor:pointer}
+.pdd-btn svg{width:10px;height:10px;opacity:.6;transition:transform .18s}
+.pdd.open .pdd-btn{border-color:var(--text)}
+.pdd.open .pdd-btn svg{transform:rotate(180deg)}
+.pdd-menu{position:absolute;top:calc(100% + 6px);right:0;z-index:60;min-width:100%;display:none;flex-direction:column;gap:2px;
+  padding:6px;border-radius:16px;background:var(--surface);border:1px solid var(--border);box-shadow:0 12px 30px -10px rgba(0,0,0,.35);
+  max-height:320px;overflow-y:auto}
+.pdd.open .pdd-menu{display:flex}
+.pdd-menu button{appearance:none;border:0;background:transparent;color:var(--text);text-align:left;white-space:nowrap;
+  font:inherit;font-size:13.5px;font-weight:500;padding:7px 14px;border-radius:999px;cursor:pointer}
+.pdd-menu button:hover{background:var(--surface2)}
+.pdd-menu button.on{background:var(--btn);color:var(--btn-fg);font-weight:700}
+.pdd-btn:focus-visible,.pdd-menu button:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 main{max-width:780px;margin:0 auto;padding:16px}
 .loading,.err{padding:40px 0;text-align:center;color:var(--muted)}
 h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:34px;line-height:1.1}

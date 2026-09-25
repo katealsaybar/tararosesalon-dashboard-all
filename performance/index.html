@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="../assets/favicon-96x96.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="performance.css?v=20260925t">
+<link rel="stylesheet" href="performance.css?v=20260925u">
 <script>
 // Light / Dark (Kate, 25 Sep 2026): a stylist's own link remembers the choice per
 // browser; with none saved it follows the phone. Inside the dashboard the frame takes
@@ -48,9 +48,9 @@ function perfToggleTheme() {
     <div class="brand-word">Salons</div>
   </div>
   <div class="top-acts">
-    <label class="month-pick">Month
-      <select id="monthSel"></select>
-    </label>
+    <div class="month-pick"><span class="month-lbl">Month</span>
+      <span class="pdd"><select id="monthSel" aria-label="Month"></select></span>
+    </div>
     <button type="button" class="theme-btn" id="themeBtn" onclick="perfToggleTheme()">Dark</button>
   </div>
 <script>perfPaintTheme(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', perfPaintTheme);</script>
@@ -63,6 +63,6 @@ function perfToggleTheme() {
 <footer class="foot" id="foot"></footer>
 
 <script src="../staff-profiles.js?v=20260924n"></script>
-<script src="performance.js?v=20260925v"></script>
+<script src="performance.js?v=20260925w"></script>
 </body>
 </html>
