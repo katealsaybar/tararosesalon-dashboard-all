@@ -40,7 +40,8 @@ const json = (body: unknown, status = 200) =>
 
 async function adminFor(token: unknown) {
   if (typeof token !== "string" || !UUID.test(token)) return null;
-  const { data } = await sb.from("perf_admins").select("name, role").eq("token", token).maybeSingle();
+  // The dashboard's built-in viewer key never gets payslips.
+  const { data } = await sb.from("perf_admins").select("name, role").eq("token", token).in("role", ["leader", "payroll"]).maybeSingle();
   return data;
 }
 const monthDate = (m: string) => `${m}-01`;

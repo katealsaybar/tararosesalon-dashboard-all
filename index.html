@@ -2896,13 +2896,22 @@ table.tp-cmp td.bad{color:var(--bad)}
     const f = document.getElementById('spfFrame');
     if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'perf-sort', k: next.k, rev: next.rev }, '*');
   }
-  function spfGet(){ try { return localStorage.getItem(SPF_KEY); } catch(e){ return null; } }
+  // Kate, 25 Sep 2026: the view opens straight away on a built-in VIEWER key
+  // (perf_admins role 'viewer'): numbers and notes only, no emails, no staff
+  // tokens, no payslips, no note writing, so it's safe in this public file. A
+  // leader key typed once (kept in localStorage) replaces it for Kate, Tara and
+  // Emma, and brings back notes and copy-link.
+  const SPF_VIEWER = '354555f6-a77d-4cb1-955f-7e9d819e9dfa';
+  let spfAskKey = false;
+  function spfStored(){ try { return localStorage.getItem(SPF_KEY); } catch(e){ return null; } }
+  function spfGet(){ return spfStored() || SPF_VIEWER; }
   function initStaffPerfView(){
-    const key = spfGet();
+    const key = spfAskKey ? null : spfGet();
     const frame = document.getElementById('spfFrame');
     document.getElementById('spfKeyCard').style.display = key ? 'none' : '';
     frame.style.display = key ? '' : 'none';
     document.getElementById('spfKeyReset').style.display = key ? '' : 'none';
+    document.getElementById('spfKeyReset').querySelector('a').textContent = spfStored() ? 'Back to the view-only key' : 'Leader? Use your team key';
     document.getElementById('spfBar').style.display = key ? '' : 'none';
     spfPaintDept();
     spfBuildMonths();
@@ -2918,10 +2927,17 @@ table.tp-cmp td.bad{color:var(--bad)}
     const v = document.getElementById('spfKeyInput').value.trim();
     if (!/^[0-9a-f-]{36}$/i.test(v)) { alert("That doesn't look like a team key."); return; }
     try { localStorage.setItem(SPF_KEY, v); } catch(e){}
+    spfAskKey = false;
+    const frame = document.getElementById('spfFrame');
+    frame.removeAttribute('src'); delete frame.dataset.loaded;
     initStaffPerfView();
   }
+  // With a leader key saved: drop it and go back to view-only. Without one:
+  // show the key card so a leader can enter theirs.
   function spfForgetKey(){
+    const had = !!spfStored();
     try { localStorage.removeItem(SPF_KEY); } catch(e){}
+    spfAskKey = !had;
     const frame = document.getElementById('spfFrame');
     frame.removeAttribute('src'); delete frame.dataset.loaded;
     initStaffPerfView();

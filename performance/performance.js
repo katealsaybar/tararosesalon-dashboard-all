@@ -21,6 +21,12 @@ const qs = new URLSearchParams(location.search);
 let TOKEN = qs.get('t');
 const STAFF_SLUG = qs.get('staff');   // dashboard address: ?view=staffperf&staff=andrea-gladstone
 const ADMIN = qs.get('admin');
+// sid: a person opened from the team grid by staff id. The dashboard's built-in
+// viewer key never gets staff tokens (those open payslips), so its links use
+// this instead; leader keys still link by token.
+let SID = qs.get('sid');
+let ROLE = null;   // 'leader' | 'viewer', from the server
+const canEdit = () => !!ADMIN && !!TOKEN && ROLE !== 'viewer';
 // embed=1: framed inside the dashboard's Staff Performance view. No brand bar,
 // transparent background, and the page tells the dashboard how tall it is.
 const EMBED = qs.get('embed') === '1';
@@ -42,7 +48,7 @@ if (EMBED) {
     if (e.data && e.data.type === 'perf-dept') {
       DEPT = ['Hair', 'Beauty'].includes(e.data.dept) ? e.data.dept : 'all';
       // On someone's page, the bar takes you back to the team grid, filtered.
-      if (TOKEN) { location.search = `?admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}`; return; }
+      if (TOKEN || SID) { location.search = `?admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}`; return; }
       renderTeam();
     }
     // The dashboard's sort, in the same bar.
@@ -208,8 +214,11 @@ function scoreLine(n, bm, pace) {
 }
 
 async function renderStylist() {
-  const d = await rpc('perf_dashboard', { p_token: TOKEN, p_month: MONTH + '-01' });
+  const d = TOKEN
+    ? await rpc('perf_dashboard', { p_token: TOKEN, p_month: MONTH + '-01' })
+    : await rpc('perf_dashboard_by_id', { p_admin: ADMIN, p_staff_id: SID, p_month: MONTH + '-01' });
   if (!d) { app.innerHTML = `<p class="err">This link isn't active. Ask your salon manager for a new one.</p>`; return; }
+  if (d.role) ROLE = d.role; else if (ADMIN && TOKEN && !ROLE) ROLE = 'leader';
   const n = d.numbers, s = d.staff, pace = paceFactor(d);
   const isHair = s.dept === 'Hair';
   const midMonth = pace < 1;
@@ -238,11 +247,11 @@ async function renderStylist() {
   const hist = (d.history || []).map(h => `<tr><td>${esc(monthLabel(h.month))}</td><td>${fmt(h.numbers.total_revenue, 'aed')}</td><td>${fmt(h.numbers.clients, 'num')}</td><td>${fmt(h.numbers.rebooking_pct, 'pct')}</td><td>${fmt(h.numbers.avg_bill, 'aed')}</td></tr>`).join('');
 
   const cw = n.conversion_weeks || {};
-  const notes = (d.notes || []).map(x => `<div class="note">${esc(x.note)}<div class="by">${esc(x.author)} · ${new Date(x.at).toLocaleDateString('en-GB')}${ADMIN ? `<button data-del="${x.id}">remove</button>` : ''}</div></div>`).join('');
+  const notes = (d.notes || []).map(x => `<div class="note">${esc(x.note)}<div class="by">${esc(x.author)} · ${new Date(x.at).toLocaleDateString('en-GB')}${canEdit() ? `<button data-del="${x.id}">remove</button>` : ''}</div></div>`).join('');
 
   app.innerHTML = `
     ${ADMIN ? `<div class="admin-bar"><a class="back" href="?admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}">← Your team</a>
-      <button class="btn small" id="copyLink">Copy ${esc(s.name.split(' ')[0])}'s link</button></div>` : ''}
+      ${canEdit() ? `<button class="btn small" id="copyLink">Copy ${esc(s.name.split(' ')[0])}'s link</button>` : ''}</div>` : ''}
     <section class="card hero">
       ${photoFor(s.keys) ? `<img class="hero-photo" src="${photoFor(s.keys)}" alt="" onerror="this.remove()">` : ''}
       <h1>${esc(s.name)}</h1>
@@ -295,7 +304,7 @@ async function renderStylist() {
     <section class="card">
       <div class="eyebrow">Notes from Tara and Emma</div>
       ${notes || `<p class="muted">No notes yet for this month. They appear here once a leader has written them.</p>`}
-      ${ADMIN ? `<textarea id="noteText" placeholder="Write a note for ${esc(s.name)}…"></textarea><button class="btn" id="noteSave">Add note</button>` : ''}
+      ${canEdit() ? `<textarea id="noteText" placeholder="Write a note for ${esc(s.name)}…"></textarea><button class="btn" id="noteSave">Add note</button>` : ''}
     </section>
 
     <section class="card">
@@ -316,7 +325,7 @@ async function renderStylist() {
 
     <section class="card">
       <div class="eyebrow">Payslip · ${esc(monthLabel(d.month))}</div>
-      <div id="payslipBox"><p class="muted">Checking for your payslip…</p></div>
+      <div id="payslipBox">${TOKEN ? '<p class="muted">Checking for your payslip…</p>' : `<p class="muted">Payslips are private. Only ${esc(s.name.split(' ')[0])} can open hers, from her own link.</p>`}</div>
     </section>
     ${isHair ? `
     <section class="card">
@@ -329,7 +338,7 @@ async function renderStylist() {
       <p class="legend"><a href="${BROCHURE}overview" target="_blank" rel="noopener">See all three paths side by side</a>. If you need more details, ask Tara or your manager about each path.</p>
     </section>` : ''}`;
 
-  loadPayslip();
+  if (TOKEN) loadPayslip();
   document.getElementById('foot').textContent =
     `Reviews to ${dayLabel(d.data_through.reviews)} · sales to ${dayLabel(d.data_through.revenue)} · clients to ${dayLabel(d.data_through.clients)} · column fill to ${dayLabel(d.data_through.column_fill)} · client history to ${dayLabel(d.data_through.client_history)}. Revenue is ex VAT.`;
 
@@ -355,7 +364,7 @@ async function renderStylist() {
     });
   }
 
-  if (ADMIN) {
+  if (canEdit()) {
     // Their own link: no admin key, no month, so it always opens on the current month.
     document.getElementById('copyLink').onclick = async (e) => {
       const link = PUBLIC_PAGE + '?t=' + TOKEN;
@@ -415,9 +424,10 @@ async function loadPayslip() {
 async function renderTeam() {
   const d = await rpc('perf_team', { p_admin: ADMIN, p_month: MONTH + '-01' });
   if (!d) { app.innerHTML = `<p class="err">This team link isn't valid.</p>`; return; }
+  ROLE = d.role || 'leader';
   // Opened from a dashboard address with &staff=<slug>: go straight to that person.
   const hit = STAFF_SLUG && d.staff.find(s => slugOf(s.name) === STAFF_SLUG);
-  if (hit) { TOKEN = hit.token; return renderStylist(); }
+  if (hit) { if (hit.token) TOKEN = hit.token; else SID = hit.id; return renderStylist(); }
   tellParent(null);
   const BR = { KCA: 'Khalifa City A', SAA: 'Saadiyat', MC: 'Motor City', AQ: 'Al Quoz' };
   // The standalone page carries its own Hair / Beauty switch; in the dashboard
@@ -437,7 +447,7 @@ async function renderTeam() {
   if (!SORTS[SORT]) SORT = 'branch';
   const flip = SORT_REV ? -1 : 1;
   const card = s => `
-        <a class="member" href="?t=${encodeURIComponent(s.token)}&admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}&staff=${slugOf(s.name)}">
+        <a class="member" href="?${s.token ? 't=' + encodeURIComponent(s.token) : 'sid=' + encodeURIComponent(s.id)}&admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}&staff=${slugOf(s.name)}">
           ${photoFor(s.keys)
             ? `<img class="photo" src="${photoFor(s.keys)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;ini&quot;>${esc(initials(s.name))}</div>'">`
             : `<div class="ini">${esc(initials(s.name))}</div>`}
@@ -445,7 +455,7 @@ async function renderTeam() {
           <div class="lv">${esc(s.level || s.dept)}${SORT === 'branch' ? '' : ` · ${esc(BR[s.branch] || s.branch)}`}</div>
           <div class="mini">${fmt(s.numbers.total_revenue, 'aed')} · ${fmt(s.numbers.clients, 'num')} clients<br>Rebook ${fmt(s.numbers.rebooking_pct, 'pct')}</div>
           ${s.notes ? `<div class="lv">${s.notes} note${s.notes > 1 ? 's' : ''}</div>` : ''}
-          ${!s.email ? `<div class="flag">No email on file</div>` : (!s.send_email ? `<div class="flag">Email paused</div>` : '')}
+          ${!s.has_email ? `<div class="flag">No email on file</div>` : (!s.send_email ? `<div class="flag">Email paused</div>` : '')}
         </a>`;
   let body;
   if (SORT === 'branch') {
@@ -464,7 +474,7 @@ async function renderTeam() {
     <section class="card hero">
       <div class="eyebrow">Your team · ${esc(monthLabel(d.month))}</div>
       <h1>Hi ${esc(d.admin)}.</h1>
-      <p class="sub">Every number fills itself: sales from Phorest, client numbers counted once each from the ledgers. Tap a person to see their page and leave a note.</p>
+      <p class="sub">Every number fills itself: sales from Phorest, client numbers counted once each from the ledgers. Tap a person to see their page${ROLE === 'viewer' ? '' : ' and leave a note'}.</p>
     </section>
     ${EMBED ? '' : `<div class="dept-seg" role="group" aria-label="Team">${['all', 'Hair', 'Beauty'].map(x =>
       `<button type="button" data-dept="${x}" class="${DEPT === x ? 'on' : ''}">${x === 'all' ? 'All' : x}</button>`).join('')}</div>`}
@@ -484,7 +494,7 @@ async function renderTeam() {
 
 (async () => {
   try {
-    if (TOKEN) await renderStylist();
+    if (TOKEN || (SID && ADMIN)) await renderStylist();
     else if (ADMIN) await renderTeam();
     else app.innerHTML = `<p class="err">Open this page from the link in your performance email.</p>`;
     requestAnimationFrame(postHeight);

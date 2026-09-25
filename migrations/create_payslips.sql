@@ -188,3 +188,52 @@ language sql stable set search_path = public as $$
       and coalesce(reviewer, '') !~* ('\m' || v.variant || '\M')
       and not (v.variant in ('April','May') and comment ~ ('((in|on|of|since|last|this|next|early|late|mid|from|until|till|during|by) ' || v.variant || '\M|\m' || v.variant || '\s*[0-9])')))
 $$;
+
+-- ── Viewer key (built into the dashboard) ────────────────────────────────
+-- Opens the Staff Performance view without asking for a key. Numbers and
+-- notes only: no emails, no staff tokens (those open payslips), no note
+-- writing, and the payslips edge function refuses it.
+alter table perf_admins drop constraint if exists perf_admins_role_check;
+alter table perf_admins add constraint perf_admins_role_check check (role in ('leader','payroll','viewer'));
+insert into perf_admins (name, role) values ('Dashboard', 'viewer') on conflict (name) do nothing;
+
+create or replace function perf_team(p_admin uuid, p_month date default null) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare
+  m1 date := date_trunc('month', coalesce(p_month, current_date))::date;
+  m2 date := (date_trunc('month', coalesce(p_month, current_date)) + interval '1 month - 1 day')::date;
+  r text;
+begin
+  select role into r from perf_admins where token = p_admin and role in ('leader','viewer');
+  if r is null then return null; end if;
+  return jsonb_build_object(
+    'admin', (select name from perf_admins where token = p_admin),
+    'role', r,
+    'month', m1,
+    'staff', (select coalesce(jsonb_agg(jsonb_build_object(
+                'id', s.id,
+                'token', case when r = 'leader' then s.token end,
+                'name', s.display_name, 'branch', s.branch, 'dept', s.dept,
+                'level', s.level,
+                'email', case when r = 'leader' then s.email end,
+                'has_email', s.email is not null, 'send_email', s.send_email, 'keys', s.ledger_names,
+                'numbers', perf_core(s, m1, m2),
+                'notes', (select count(*) from perf_notes n where n.staff_id = s.id and n.month = m1))
+                order by s.branch, s.dept desc, s.display_name), '[]')
+              from perf_staff s where s.active)
+  );
+end $$;
+
+-- A person's page opened from the team grid by staff id, so a viewer key never
+-- needs (or sees) the person's own token.
+create or replace function perf_dashboard_by_id(p_admin uuid, p_staff_id uuid, p_month date default null) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare t uuid;
+begin
+  if not exists (select 1 from perf_admins where token = p_admin and role in ('leader','viewer')) then return null; end if;
+  select token into t from perf_staff where id = p_staff_id and active;
+  if t is null then return null; end if;
+  return perf_dashboard(t, p_month) || jsonb_build_object('staff_id', p_staff_id,
+    'role', (select role from perf_admins where token = p_admin));
+end $$;
+grant execute on function perf_dashboard_by_id(uuid, uuid, date) to anon;
