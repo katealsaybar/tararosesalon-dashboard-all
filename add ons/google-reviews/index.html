@@ -33,7 +33,7 @@ h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;m
 .frow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .flabel{width:78px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 .chip{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:5px 12px;font:inherit;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
-.chip:hover{border-color:var(--rose)}
+@media(hover:hover){.chip:hover{border-color:var(--rose)}}
 .chip.on{background:var(--rose);border-color:var(--rose);color:var(--on-accent);font-weight:600}
 .chip .n{font-variant-numeric:tabular-nums;color:var(--faint);font-weight:500}
 .chip.on .n{color:var(--on-accent);opacity:.7}
@@ -50,7 +50,7 @@ h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;m
 .legend{display:flex;gap:12px;font-size:12px;color:var(--muted);margin-bottom:10px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 .brow{display:grid;grid-template-columns:130px 1fr 120px;gap:10px;align-items:center;padding:6px 0;cursor:pointer;border-radius:6px}
-.brow:hover .bname{color:var(--rose)}
+@media(hover:hover){.brow:hover .bname{color:var(--rose)}}
 .bname{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar{height:18px;background:var(--surface2);border-radius:4px;display:flex;overflow:hidden}
 .bar span{display:block;height:100%}
@@ -59,7 +59,7 @@ h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;m
 .tl{display:flex;align-items:flex-end;gap:4px;height:150px;padding-top:6px}
 .tcol{flex:1;display:flex;flex-direction:column-reverse;min-width:0;position:relative;height:100%}
 .tcol span{display:block;width:100%}
-.tcol:hover{opacity:.8}
+@media(hover:hover){.tcol:hover{opacity:.8}}
 .tlab{display:flex;gap:4px;margin-top:6px}
 .tlab div{flex:1;font-size:10px;color:var(--faint);text-align:center;white-space:nowrap;overflow:hidden}
 .tip{position:fixed;pointer-events:none;background:var(--text);color:var(--bg);box-shadow:var(--shadow);font-size:12px;padding:6px 8px;border-radius:6px;display:none;z-index:20}
@@ -95,17 +95,17 @@ table.ex tr.tot td{font-weight:700;border-bottom:none}
 .note{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:18px}
 .note b{color:var(--text)}
 a.gbp{color:var(--rose);font-size:12px;text-decoration:none}
-a.gbp:hover{text-decoration:underline}
+@media(hover:hover){a.gbp:hover{text-decoration:underline}}
 /* staff named in reviews: photos keep their own shape, no circle */
 .srow{display:grid;grid-template-columns:40px 150px 1fr 150px;gap:10px;align-items:center;padding:5px 6px;cursor:pointer;border-radius:8px}
-.srow:hover .sname b{color:var(--rose)}
+@media(hover:hover){.srow:hover .sname b{color:var(--rose)}}
 .srow.on{background:var(--surface2)}
 .srow img,.srow .sph{height:40px;width:auto;max-width:40px;object-fit:contain;display:block}
 .sname{min-width:0;line-height:1.2}.sname b{display:block;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sname small{color:var(--faint);font-size:11px}
 .stag{display:inline-flex;align-items:center;gap:5px;font:inherit;font-size:12px;font-weight:600;padding:2px 9px 2px 3px;border-radius:999px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer}
 .stag img{height:20px;width:auto;object-fit:contain}
-.stag:hover{border-color:var(--rose)}
+@media(hover:hover){.stag:hover{border-color:var(--rose)}}
 .stag.via{border-style:dashed;font-weight:500}
 .rtext mark{background:#FAEEDA;color:inherit;font-weight:600;padding:0 2px;border-radius:3px}
 [data-theme="dark"] .rtext mark{background:var(--rose-soft)}
@@ -113,6 +113,31 @@ html.embedded,html.embedded body{overflow:hidden}
 html.embedded .wrap{padding-top:8px}
 html.embedded .filters{position:static}
 @media (max-width:900px){.srow{grid-template-columns:36px 1fr 90px}.srow .bar{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.brow{grid-template-columns:110px 1fr 70px}.filters{position:static}}
+/* Phones (Kate, 25 Sep 2026). Framed in the dashboard, whose page already has a
+   side gutter, so the frame's own goes. Bars and staff rows stack: name and count
+   on one line, the bar under them, so no figure is squeezed into a fixed column. */
+@media (max-width:760px),(hover:none) and (max-height:480px){
+  html.embedded .wrap{padding-left:0;padding-right:0}
+  .grid2{grid-template-columns:minmax(0,1fr)}.grid2 > *,.card{min-width:0}
+  .brow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"n v" "b b";row-gap:6px;padding:8px 0}
+  .brow .bname{grid-area:n;font-size:14px}.brow .bar{grid-area:b}.brow .bval{grid-area:v}
+  .bval small{display:inline;font-size:12px;margin-left:4px}
+  .srow{grid-template-columns:40px minmax(0,1fr);grid-template-areas:"p n" "p v";row-gap:2px;padding:8px 6px}
+  .srow > img,.srow > .sph{grid-area:p}.srow .sname{grid-area:n}.srow .bval{grid-area:v;text-align:left}
+  .sname b{white-space:normal;font-size:14px}.sname small{font-size:12px}
+  table.ex th{font-size:12px}
+  /* The star table scrolls; the right edge fades so the cut reads as more to come. */
+  #exact{position:relative}
+  #exact::after{content:"";position:absolute;top:0;right:0;bottom:0;width:32px;pointer-events:none;
+    background:linear-gradient(to right,transparent,var(--surface) 80%)}
+  /* The last year's label ran off the right edge of the timeline. */
+  .tlab div{font-size:12px;overflow:visible;min-width:0}
+  /* Eleven years do not fit at 12px: every other one, always the latest. */
+  .tlab div:nth-last-child(even){visibility:hidden}
+  .tlab div:last-child{direction:rtl;text-align:right}
+  input,select{font-size:16px}
+  .chip,button{min-height:44px}
+}
 </style>
 </head>
 <body>

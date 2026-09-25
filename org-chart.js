@@ -103,7 +103,7 @@ function ocNode(node, isHead) {
     ? `<ul>${node.children.map(c => ocNode(c, false)).join('')}</ul>`
     : '';
   const photo = node.photo
-    ? `<img class="oc-photo" src="${encodeURI(node.photo)}" alt="" loading="lazy" onerror="this.remove()">`
+    ? `<img class="oc-photo" src="${encodeURI(node.photo)}" alt="" loading="lazy" decoding="async" onerror="this.remove()">`
     : '';
   return `
     <li${node.dropToPhotoRow ? ' class="oc-drop"' : ''}>

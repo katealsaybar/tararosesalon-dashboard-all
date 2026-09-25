@@ -181,7 +181,7 @@ function tpAvatar(name, cls) {
   const prof = (typeof staffProfile === 'function') ? staffProfile(name) : null;
   if (prof && prof.photo) {
     return `<img class="tp-av ${cls || ''}" src="assets/staff/${encodeURIComponent(prof.photo)}"
-      alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
+      alt="" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'">`;
   }
   // No shoot yet — the beauty bench has no cards in the deck. The placeholder
   // rebuilds the same footprint by hand and has no head to protrude, which is

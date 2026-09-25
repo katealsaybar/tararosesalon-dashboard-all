@@ -1385,10 +1385,10 @@ async function renderStylistCards() {
       // outside assets/staff/) — encodeURI, not encodeURIComponent, so its slashes
       // survive; plain `photo` stays relative to assets/staff/ as before.
       const photo = s.photoFull
-        ? `<img class="sc-photo${s.resigned ? ' is-resigned' : ''}" src="${encodeURI(s.photoFull)}" alt="" loading="lazy"
+        ? `<img class="sc-photo${s.resigned ? ' is-resigned' : ''}" src="${encodeURI(s.photoFull)}" alt="" loading="lazy" decoding="async"
                onerror="this.style.display='none'">`
         : s.photo
-        ? `<img class="sc-photo${s.resigned ? ' is-resigned' : ''}" src="assets/staff/${encodeURIComponent(s.photo)}" alt="" loading="lazy"
+        ? `<img class="sc-photo${s.resigned ? ' is-resigned' : ''}" src="assets/staff/${encodeURIComponent(s.photo)}" alt="" loading="lazy" decoding="async"
                onerror="this.style.display='none'">`
         : '';
       // STYLIST_CARDS is the roster of who has artwork: its 44 keys match the 44
@@ -1427,7 +1427,7 @@ async function renderStylistCards() {
                   scroll-margin-top:170px">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
                      background:${colour};flex-shrink:0"></span>
-        ${escapeHtml(label)} · ${stylistCountLabel(list)}
+        <span>${escapeHtml(label)}<span class="sl-sub"><span class="sl-dot"> · </span>${stylistCountLabel(list)}</span></span>
       </div>
       <div class="sc-grid mode-${stylistViewMode}">${cards}</div>`;
   }).join('');
@@ -2804,7 +2804,7 @@ function buildWinsHTML(s, prevS, prevPeriodLabel, hairStaff, beautyStaff, branch
     // area above it is transparent. So no border-radius, background or border here;
     // adding any would clip the very overhang that makes it read as the card.
     const avatarHtml = p.photo
-      ? `<img src="assets/staff/${encodeURIComponent(p.photo)}" alt="" loading="lazy"
+      ? `<img src="assets/staff/${encodeURIComponent(p.photo)}" alt="" loading="lazy" decoding="async"
              onerror="this.style.display='none'"
              style="height:62px;width:auto;flex-shrink:0">`
       : '';
@@ -3681,7 +3681,7 @@ async function renderDashboard() {
     // into the PNG, so no border-radius, background or border here — any of the
     // three clips the overhang and the card falls back to a plain circle.
     const av = (prof && prof.photo)
-      ? `<img class="av" src="assets/staff/${encodeURIComponent(prof.photo)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      ? `<img class="av" src="assets/staff/${encodeURIComponent(prof.photo)}" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'">`
       : `<div class="av-ph" title="Portrait to come"><b>${escapeHtml(initials(w.p.name))}</b></div>`;
     const name = (prof && prof.ig)
       ? `<a href="https://instagram.com/${encodeURIComponent(prof.ig)}" target="_blank" rel="noopener noreferrer" title="@${escapeHtml(prof.ig)} on Instagram">${nm}</a>`
@@ -4551,7 +4551,7 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
   const branchLabel = branches.length === 4 ? 'All Branches' : branches.map(b => BRANCH_INFO[b]?.name||b).join(' · ');
 
   content.innerHTML = `
-    <div class="section-label" style="margin-top:16px">${branchLabel} — Combined Top ${rows.length} Services · ${year}</div>
+    <div class="section-label" style="margin-top:16px">${branchLabel} — Combined Top ${rows.length} Services<span class="sl-sub"><span class="sl-dot"> · </span>${year}</span></div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
         <div>
@@ -4598,7 +4598,7 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
 function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
   const content = document.getElementById('svc-content');
   content.innerHTML = `
-    <div class="section-label" style="margin-top:16px">Top ${limit} Services Per Branch · ${year} · ${note ? escapeHtml(note) : `${pFrom} – ${pTo}`}</div>
+    <div class="section-label" style="margin-top:16px">Top ${limit} Services Per Branch<span class="sl-sub"><span class="sl-dot"> · </span>${year} · ${note ? escapeHtml(note) : `${pFrom} – ${pTo}`}</span></div>
     <div class="${results.length > 2 ? 'svc-scroll-wrap' : ''}"><div class="svc-grid-${results.length <= 2 ? '2' : '4'}">
       ${results.map(({ branch, rows }) => {
         const info = BRANCH_INFO[branch] || { name: branch, color: '#FFD4D9' };
@@ -4606,7 +4606,7 @@ function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
         return `
           <div class="card" style="margin-bottom:0">
             <div style="height:3px;border-radius:3px;background:${info.color};margin-bottom:14px"></div>
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+            <div class="svc-bhead" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
               <div>
                 <div class="card-title" style="font-size:16px">${info.name}</div>
                 <div class="card-sub" style="margin-bottom:0;font-size:12px">${rows.length} services shown</div>
