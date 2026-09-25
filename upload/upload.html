@@ -15,8 +15,20 @@
 <script src="parser.js?v=4"></script>
 <script src="upload.js?v=20"></script>
 <!-- Signed-in people on the dashboard list only (auth.js, 25 Sep 2026); anyone else goes to the dashboard's sign-in and comes back. -->
-<script src="../auth.js?v=20260925b"></script>
-<script>document.documentElement.style.visibility='hidden';TRSAuth.guard('../').then(()=>{document.documentElement.style.visibility='';});</script>
+<script src="../auth.js?v=20260925c"></script>
+<!-- Owner (Kate) gets every tab; payroll (accounts and admin) gets Payslips only; the rest of the list goes back to the dashboard. -->
+<style>.role-payroll .tab-btn:not([data-tab="payslips"]),.role-payroll .tab-grp{display:none!important}</style>
+<script>
+document.documentElement.style.visibility = 'hidden';
+TRSAuth.guard('../', ['owner', 'payroll']).then(role => {
+  if (role === 'payroll') {
+    document.documentElement.classList.add('role-payroll');
+    const go = () => { const b = document.querySelector('.tab-btn[data-tab="payslips"]'); if (b) b.click(); };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+  }
+  document.documentElement.style.visibility = '';
+});
+</script>
 <script src="name-aliases.js?v=4"></script>
 <!-- staff-profiles.js wants canonicalStaffName() from name-aliases.js above it,
      same load order the dashboard itself uses (its own comment says so). -->

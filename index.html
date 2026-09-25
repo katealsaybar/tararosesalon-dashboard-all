@@ -389,7 +389,7 @@ body.orgchart-pop main#orgChartContent{max-width:none;padding:6px 14px 40px}
 .mast-acts{display:flex;gap:8px;flex-shrink:0}
 /* "Hello, Kate" beside the header buttons, from dashboard_users (Kate, 25 Sep 2026). */
 .mast-hello{align-self:center;font-size:13px;letter-spacing:.04em;color:var(--muted);white-space:nowrap;margin-left:6px}
-.tglr.signout{color:var(--bad)}
+.tglr.signout{color:var(--bad);font-size:11px;padding:6px 12px;min-height:34px;align-self:center}
 @media(hover:hover){.tglr.signout:hover{color:var(--bad);border-color:var(--bad);background:var(--bad-bg)}}
 .mast-hello b{color:var(--text);font-weight:600}
 @media(max-width:760px){.mast-hello{display:none}}
@@ -2527,22 +2527,19 @@ table.tp-cmp td.bad{color:var(--bad)}
 // the end of May 2026, so the login screen was frozen on "1 Jun 2026" ever since
 // (Kate, 2026-08-13).
 // Since the sign-in (25 Sep 2026) it asks dashboard_data_asof(), the one thing the
-// public key may still read before someone signs in.
+// public key may still read before someone signs in. It gives the newest DAY per
+// feed, worded like the masthead ("Ledger 24 Sep · Phorest 24 Sep"): the old upload
+// time never moved when a sync re-sent days already there, so it read as stale.
 (function(){
   const SUPA_URL2 = 'https://gvijxenafoowajqktqvd.supabase.co';
   const SUPA_KEY2 = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
   const headers = {'apikey':SUPA_KEY2,'Authorization':'Bearer '+SUPA_KEY2,'Content-Type':'application/json'};
   fetch(`${SUPA_URL2}/rest/v1/rpc/dashboard_data_asof`,{method:'POST',headers,body:'{}'}).then(r=>r.json()).then(asof => {
     const el=document.getElementById('loginLastUpdated');
-    if(!el||!asof||typeof asof!=='string')return;
-    const latest=new Date(asof);
-    // Ask for Asia/Dubai directly. The old version shifted the timestamp by hand
-    // and then formatted it in the browser's own zone, which double-counted the
-    // offset and printed a GST upload 8 hours late (Kate, 2026-08-13).
-    const gstOpts={timeZone:'Asia/Dubai'};
-    const dateFmt=latest.toLocaleDateString('en-GB',{...gstOpts,day:'numeric',month:'short',year:'numeric'});
-    const timeFmt=latest.toLocaleTimeString('en-GB',{...gstOpts,hour:'2-digit',minute:'2-digit',hour12:true});
-    el.textContent=`Data as of ${dateFmt} · ${timeFmt} GST`;
+    const row=Array.isArray(asof)?asof[0]:null;
+    if(!el||!row||(!row.ledger&&!row.phorest))return;
+    const day=d=>new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    el.textContent=[row.ledger&&`Ledger ${day(row.ledger)}`,row.phorest&&`Phorest ${day(row.phorest)}`].filter(Boolean).join(' · ');
   }).catch(()=>{
     const el=document.getElementById('loginLastUpdated');
     if(el)el.style.display='none';
@@ -3141,7 +3138,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="org-chart.js?v=20260925c"></script>
 <script src="dashboard.js?v=20260925c"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
-<script src="auth.js?v=20260925b"></script>
+<script src="auth.js?v=20260925c"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260924a"></script>
 <script src="compare.js?v=20260924g"></script>
@@ -3291,9 +3288,12 @@ async function enterDashboard(role){
   showView(activeView, btn || null);
 }
 
+// Access levels (dashboard_users.role, 25 Sep 2026): owner = Kate, everything;
+// payroll = accounts and admin, the dashboard plus the Upload Portal's Payslips tab;
+// team = the dashboard only. The Upload Data link shows for owner and payroll.
 function applyRole(role){
   document.querySelectorAll('.nav-admin-only').forEach(el => {
-    el.style.display = role === 'admin' ? '' : 'none';
+    el.style.display = (role === 'owner' || role === 'payroll') ? '' : 'none';
   });
 }
 

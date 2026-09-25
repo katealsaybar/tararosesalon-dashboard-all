@@ -47,11 +47,12 @@
   }
 
   // Pages other than the dashboard: no session, or not on the list, goes to the
-  // dashboard's sign-in and comes back here afterwards.
-  async function guard(root) {
+  // dashboard's sign-in and comes back here afterwards. `allowed` limits the page
+  // to some roles; anyone else signed in lands on the dashboard instead.
+  async function guard(root, allowed) {
     var r = (await client().auth.getSession()).data.session ? await role() : null;
-    if (r) return r;
-    location.replace((root || '../') + '?next=' + encodeURIComponent(location.pathname + location.search));
+    if (r && (!allowed || allowed.indexOf(r) !== -1)) return r;
+    location.replace((root || '../') + (r ? '' : '?next=' + encodeURIComponent(location.pathname + location.search)));
     return new Promise(function () {});
   }
 
