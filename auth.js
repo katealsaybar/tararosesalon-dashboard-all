@@ -40,6 +40,12 @@
     return r.error ? null : r.data;
   }
 
+  // { name, role } from dashboard_users, for the header greeting.
+  async function me() {
+    var r = await client().rpc('dashboard_me');
+    return (!r.error && r.data && r.data[0]) || null;
+  }
+
   // Pages other than the dashboard: no session, or not on the list, goes to the
   // dashboard's sign-in and comes back here afterwards.
   async function guard(root) {
@@ -49,5 +55,5 @@
     return new Promise(function () {});
   }
 
-  window.TRSAuth = { URL: URL, KEY: KEY, client: client, token: token, headers: headers, role: role, guard: guard };
+  window.TRSAuth = { URL: URL, KEY: KEY, client: client, token: token, headers: headers, role: role, me: me, guard: guard };
 })();

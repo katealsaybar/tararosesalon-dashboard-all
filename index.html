@@ -387,6 +387,10 @@ body.orgchart-pop main#orgChartContent{max-width:none;padding:6px 14px 40px}
 .mast-logo{width:148px;cursor:pointer}
 .mast-sub{font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-top:7px}
 .mast-acts{display:flex;gap:8px;flex-shrink:0}
+/* "Hello, Kate" beside the header buttons, from dashboard_users (Kate, 25 Sep 2026). */
+.mast-hello{align-self:center;font-size:13px;letter-spacing:.04em;color:var(--muted);white-space:nowrap;margin-right:4px}
+.mast-hello b{color:var(--text);font-weight:600}
+@media(max-width:760px){.mast-hello{display:none}}
 .tglr{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:20px;
   padding:9px 14px;font:inherit;font-size:13px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
   white-space:nowrap;min-height:44px}
@@ -2656,9 +2660,11 @@ table.tp-cmp td.bad{color:var(--bad)}
         </div>
       </div>
       <div class="mast-acts">
+        <span class="mast-hello" id="mastHello"></span>
         <button class="tglr navbtn" id="navBtn" onclick="toggleNav()" aria-expanded="false" aria-controls="sidebar">Sections</button>
         <button class="tglr" id="filtersBtn" onclick="toggleFiltersBar()" aria-expanded="true" aria-controls="filters">Hide filters</button>
         <button class="tglr" id="themeBtn" onclick="toggleTheme()"><span id="themeLbl">Dark</span></button>
+        <button class="tglr" id="signOutBtn" onclick="doLogout()">Sign out</button>
       </div>
     </div>
     <div class="mast-rule">
@@ -3133,7 +3139,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="org-chart.js?v=20260925c"></script>
 <script src="dashboard.js?v=20260925c"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
-<script src="auth.js?v=20260925a"></script>
+<script src="auth.js?v=20260925b"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260924a"></script>
 <script src="compare.js?v=20260924g"></script>
@@ -3269,6 +3275,10 @@ async function enterDashboard(role){
   if (DASHBOARD_OPEN) return;
   DASHBOARD_OPEN = true;
   applyRole(role);
+  TRSAuth.me().then(me => {
+    const first = ((me && me.name) || '').split(/[\s(]/)[0].replace(/[<>&"]/g, '');
+    if (first) document.getElementById('mastHello').innerHTML = `Hello, <b>${first}</b>`;
+  });
   document.getElementById('loginGate').style.display = 'none';
   document.getElementById('dashboardWrap').style.display = 'block';
   await loadData();
