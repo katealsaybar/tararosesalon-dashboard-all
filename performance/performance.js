@@ -348,16 +348,20 @@ async function renderStylist() {
       data: {
         labels: weeks.map(w => new Date(w.week_start + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })),
         datasets: [
-          { type: 'bar', label: 'Sales (AED)', data: weeks.map(w => w.numbers.total_revenue), backgroundColor: '#C4B5FD', yAxisID: 'y', borderRadius: 6 },
-          { type: 'line', label: 'Clients', data: weeks.map(w => w.numbers.clients), borderColor: '#0F6E56', backgroundColor: '#0F6E56', yAxisID: 'y1', tension: .3 },
+          // Lower order draws on top, so the line sits over the bars instead of vanishing behind them.
+          { type: 'bar', order: 2, label: 'Sales (AED)', data: weeks.map(w => w.numbers.total_revenue), backgroundColor: '#C4B5FD', yAxisID: 'y', borderRadius: 6, maxBarThickness: 120 },
+          { type: 'line', order: 1, label: 'Clients', data: weeks.map(w => w.numbers.clients), borderColor: '#0F6E56', borderWidth: 2.5, backgroundColor: '#0F6E56',
+            pointRadius: 5, pointHoverRadius: 7, pointBackgroundColor: '#fff', pointBorderColor: '#0F6E56', pointBorderWidth: 2.5, yAxisID: 'y1', tension: 0 },
         ],
       },
       options: {
         maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: css.getPropertyValue('--muted') } } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { labels: { color: css.getPropertyValue('--muted'), usePointStyle: true, pointStyle: 'circle', boxHeight: 8 } } },
         scales: {
-          y: { ticks: { color: css.getPropertyValue('--muted') }, grid: { color: css.getPropertyValue('--border') } },
-          y1: { position: 'right', ticks: { color: css.getPropertyValue('--muted'), precision: 0 }, grid: { display: false } },
+          // Both axes start at zero with headroom, so a short week doesn't look like a cliff and the tallest bar doesn't hit the ceiling.
+          y: { beginAtZero: true, grace: '10%', ticks: { color: css.getPropertyValue('--muted') }, grid: { color: css.getPropertyValue('--border') } },
+          y1: { position: 'right', beginAtZero: true, grace: '10%', ticks: { color: css.getPropertyValue('--muted'), precision: 0 }, grid: { display: false } },
           x: { ticks: { color: css.getPropertyValue('--muted') }, grid: { display: false } },
         },
       },
