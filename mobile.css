@@ -293,6 +293,24 @@
   .att-bars .bar-tick b{display:none}
 }
 
+/* ===== MOBILE · 9. TYPE FLOOR (P2) =====
+   12px for every label, less tracking so a spaced-caps label does not wrap, and
+   16px on every form control (iOS zooms the page on focus below that, section 5). */
+@media(max-width:760px),(hover:none) and (max-height:480px){
+  .tp-last,.fine p,.fine p *,.lg-tag,.cmp-f-n,.bar-lbl,.tp-mtr-l,.tp-mtr-l *,
+  .hc-list button i,.win-k,.tagb,.lg-sub,.sp-k,.side-k,.att-chip,.bp-gc-rk,.bn-k,.bn-grp-k,
+  table.lg th,.lg-blk-t,.lg-grp-t,.cmp-stat-k,.tp-k,.r-sec span,.ht-k,.lg-head-k,.lg-grain-k,
+  .cmp-mode button,.cmp-tag,.cmp-ans-k0,.cmp-ans-k,.lgx-own,.mast-fresh,#mastBranch,#mastRange,
+  .f-lbl,.upd-eye,.upd-aff,.upd-foot{font-size:12px}
+  .svc-bhead > div > div:first-child{font-size:12px!important}
+  .att-bars .bar-lbl,body.ledger-chrome .lg-tag{font-size:12px}
+  .fine p span{font-size:12px!important}
+  .tp-mtr-l,.win-k,.tagb,.side-k,.bn-k,.bn-grp-k,.lg-grain-k,.lg-head-k,.ht-k,.hc-list button i,
+  .cmp-stat-k,.tp-k,.lg-blk-t,.lg-grp-t,table.lg th,.att-chip{letter-spacing:.06em}
+  /* Running text: a 14px floor for the muted explanatory paragraphs. */
+  .lg-stand,.lg-note,.lgx-hint,.card-sub,.m-def{font-size:max(14px,1em)}
+}
+
 /* ===== SMALL PHONES (≤ 480px) ===== */
 @media(max-width:480px){
   .mast-logo,.topbar.stuck .mast-logo{width:88px}
