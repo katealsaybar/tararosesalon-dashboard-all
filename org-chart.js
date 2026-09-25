@@ -211,51 +211,67 @@ function ocOpenNewWindow() {
   window.open(url.toString(), '_blank', 'noopener');
 }
 
-// A landscape page's printable width in CSS px is roughly 950-1050px
-// (Letter/A4 minus the @page margin set in the print CSS) regardless of how
-// wide Kate's own screen is — so scale to a fixed print target, not to the
-// window, same idea as ocFitToWindow() but for paper instead of glass.
-// Kate, 25 Sep 2026: the page is A4 landscape with a 10mm gutter (see the print
-// CSS), 1047 x 718 CSS px, and the chart must fit it both ways so it prints on
-// one page. A little under each for the section heading and rounding.
-const OC_PRINT_TARGET_WIDTH = 1000;
-const OC_PRINT_TARGET_HEIGHT = 680;
+// Printing. Kate, 25 Sep 2026: the first version shrank the chart on screen
+// and let print reflow it, which moved every card out from under its
+// connector line. Now ocPrepPrint() puts html.oc-print on first (see the CSS
+// by .oc-tree), so the screen takes the exact A4 landscape box the printer
+// will use, then scales the chart to fill that box and redraws the lines in
+// it. Runs on beforeprint too, so Ctrl+P prints the same page as the link.
+// Scale may grow past 1 as well as shrink: the goal is a full page, not just
+// a page that fits. OC_PRINT_MAX stops a small team printing comically big.
+const OC_PRINT_MAX = 1.6;
+let ocPrintZoomBefore = null;
 
-// The masthead's "Print" link. Shrinks the chart to fit one landscape page
-// wide via the same --oc-scale the zoom buttons use (see the CSS comment
-// above .oc-tree's @media print block for why not transform:scale), prints,
-// then puts the zoom Kate was looking at back.
+function ocPrepPrint() {
+  const container = document.getElementById('ocContainer');
+  const view = document.getElementById('view-orgchart');
+  if (!container || !view || !document.body.classList.contains('orgchart-chrome')) return;
+  if (ocPrintZoomBefore === null) ocPrintZoomBefore = ocScale;
+  document.documentElement.classList.add('oc-print');
+  // The page box, less a hair for rounding so nothing tips onto a page 2.
+  const W = view.clientWidth - 4, H = view.clientHeight - 4;
+  ocApplyScale(1);
+  // Gaps and headings don't all scale with --oc-scale, so converge over a few
+  // passes rather than trusting one ratio.
+  for (let i = 0; i < 6; i++) {
+    let wide = 0;
+    container.querySelectorAll('.oc-tree').forEach(t => { wide = Math.max(wide, t.scrollWidth); });
+    const tall = container.scrollHeight;
+    if (!wide || !tall) break;
+    const next = Math.min(OC_PRINT_MAX, ocScale * Math.min(W / wide, H / tall));
+    if (Math.abs(next - ocScale) < 0.005) break;
+    ocApplyScale(next);
+  }
+  // Final safety: never overflow, even if the last pass rounded up.
+  let wide = 0;
+  container.querySelectorAll('.oc-tree').forEach(t => { wide = Math.max(wide, t.scrollWidth); });
+  if (wide > W || container.scrollHeight > H) ocApplyScale(ocScale * 0.98);
+}
+
+function ocEndPrint() {
+  if (ocPrintZoomBefore === null) return;
+  document.documentElement.classList.remove('oc-print');
+  ocApplyScale(ocPrintZoomBefore);
+  ocPrintZoomBefore = null;
+}
+
+addEventListener('beforeprint', ocPrepPrint);
+addEventListener('afterprint', ocEndPrint);
+
+// The masthead's "Print" link.
 function ocPrint() {
   const container = document.getElementById('ocContainer');
   if (!container) { window.print(); return; }
-  const zoomBefore = ocScale;
-  ocApplyScale(1); // measure natural size before shrinking
-  let widest = 0;
-  container.querySelectorAll('.oc-tree').forEach(t => { widest = Math.max(widest, t.scrollWidth); });
-  // No OC_ZOOM_MIN floor here on purpose — see ocApplyScale's comment. The
-  // whole group is wide enough at scale 1 that fitting it to one landscape
-  // page needs a smaller scale than the on-screen zoom-out ever allows.
-  if (widest > OC_PRINT_TARGET_WIDTH) ocApplyScale(OC_PRINT_TARGET_WIDTH / widest);
-  // Then the height. Gaps and headings don't all shrink with --oc-scale, so
-  // measure and step down a few times rather than trusting one ratio.
-  for (let i = 0; i < 6; i++) {
-    const tall = container.getBoundingClientRect().height;
-    if (tall <= OC_PRINT_TARGET_HEIGHT) break;
-    ocApplyScale(ocScale * Math.max(0.5, OC_PRINT_TARGET_HEIGHT / tall) * 0.99);
-  }
-
-  const restore = () => { ocApplyScale(zoomBefore); removeEventListener('afterprint', restore); };
-  addEventListener('afterprint', restore);
   // The photos are loading="lazy", so any box scrolled off to the side has not
   // fetched its photo yet and would print as an empty circle. Load them all
   // first (capped at 4s so a slow photo cannot hold the dialog hostage), then
-  // print once the shrunk layout and redrawn connectors have painted.
+  // lay out and print once the connectors have painted.
   const imgs = [...container.querySelectorAll('img')];
   imgs.forEach(img => { img.loading = 'eager'; });
   const loaded = Promise.all(imgs.map(img => (img.complete && img.naturalWidth) ? null
     : new Promise(res => { img.addEventListener('load', res, { once: true }); img.addEventListener('error', res, { once: true }); })));
   Promise.race([loaded, new Promise(res => setTimeout(res, 4000))])
-    .then(() => setTimeout(() => window.print(), 50));
+    .then(() => { ocPrepPrint(); setTimeout(() => window.print(), 80); });
 }
 
 // One straight elbow line per box, from its own parent box only — no

@@ -1816,25 +1816,31 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
    uses means drawOcConnectors() redraws the lines to match — a transform:
    scale() on the container would leave the connector SVG's own coordinates
    sized for the old layout. */
+/* Kate, 25 Sep 2026 (second pass): the printed chart had every connector
+   line off to the right of its card and a third of the page empty. The lines
+   are measured from the screen layout, then print reflowed everything (no
+   sidebar, new padding, page width) under them. So the print layout is now a
+   class, html.oc-print, that ocPrepPrint() in org-chart.js puts on BEFORE it
+   measures: the screen briefly takes the exact A4 landscape shape (277 x 190mm
+   inside a 10mm gutter), the chart is scaled to fill it and the lines drawn
+   there, and paper gets the same thing. afterprint takes the class off. */
+html.oc-print body.orgchart-chrome aside.sidebar,html.oc-print .nav-scrim,html.oc-print .nav-edge,
+html.oc-print body.orgchart-chrome .topbar,html.oc-print body.orgchart-chrome #topbarSpacer,
+html.oc-print body.orgchart-chrome .oc-zoom-controls,
+html.oc-print body.orgchart-chrome footer{display:none!important}
+html.oc-print body.orgchart-chrome #wrap{padding:0!important;margin:0!important;max-width:none!important}
+html.oc-print,html.oc-print body.orgchart-chrome{background:var(--bg)}
+html.oc-print body.orgchart-chrome{padding:10mm;margin:0;min-height:0;width:297mm;height:209mm;overflow:hidden;box-sizing:border-box}
+html.oc-print body.orgchart-chrome #view-orgchart{display:flex!important;flex-direction:column;
+  justify-content:center;width:277mm;height:190mm;overflow:hidden}
+html.oc-print body.orgchart-chrome main#orgChartContent{max-width:none!important;margin:0!important;padding:0!important}
+html.oc-print body.orgchart-chrome .oc-container{border:none;box-shadow:none;background:transparent;padding:0}
+html.oc-print body.orgchart-chrome .oc-tree{overflow:visible}
 @media print{
-  body.orgchart-chrome aside.sidebar,.nav-scrim,
-  body.orgchart-chrome .topbar,body.orgchart-chrome #topbarSpacer,
-  body.orgchart-chrome .oc-zoom-controls,
-  body.orgchart-chrome #ocOpenNewWin,body.orgchart-chrome #ocPrintBtn{display:none!important}
-  /* Kate, 25 Sep 2026: one A4 landscape page, printed in whichever theme is on
-     screen (dark prints dark, light prints light). Margin 0 on the page drops
-     the browser's own date / URL / page-number lines; the 10mm gutter is padding
-     on the body instead, painted in the page colour so dark has no white edge.
-     The footer credits went to a page 2 of their own, so they stay off paper. */
+  /* One A4 landscape page, in whichever theme is on screen. Margin 0 drops
+     the browser's date / URL lines; the gutter is the body padding above. */
   @page{size:A4 landscape;margin:0}
   body.orgchart-chrome,body.orgchart-chrome *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  html:has(body.orgchart-chrome){background:var(--bg)}
-  body.orgchart-chrome{background:var(--bg);padding:10mm;min-height:0}
-  body.orgchart-chrome > footer{display:none!important}
-  body.orgchart-chrome .oc-container{border:none;box-shadow:none;background:transparent;padding:0}
-  body.orgchart-chrome .oc-tree{overflow:visible}
-  body.orgchart-chrome main#orgChartContent{max-width:none;margin:0;padding:0}
-  body.orgchart-chrome .oc-section{page-break-inside:avoid}
   body.orgchart-chrome #view-orgchart{break-inside:avoid;page-break-inside:avoid}
 }
 
@@ -3065,7 +3071,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260924n"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
-<script src="org-chart.js?v=20260925b"></script>
+<script src="org-chart.js?v=20260925c"></script>
 <script src="dashboard.js?v=20260925a"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260924a"></script>
