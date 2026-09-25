@@ -291,14 +291,42 @@
     if (node) node.parentElement.classList.toggle('m-fold');
   });
 
+  // ── 8. CHARTS ──
+  // The Group avg label, above the columns. Rebuilt from the line's own text on
+  // every render, so it can never say a different figure from the dashed line.
+  function charts() {
+    if (!PHONE.matches) return;
+    document.querySelectorAll('.cols-plot').forEach(plot => {
+      const lbl = plot.querySelector('.avgline b');
+      let cap = plot.previousElementSibling;
+      if (!cap || !cap.classList.contains('m-avg')) {
+        if (!lbl) return;
+        cap = document.createElement('div');
+        cap.className = 'm-avg';
+        plot.before(cap);
+      }
+      const txt = lbl ? lbl.textContent : '';
+      // Only on a change: this runs from the page's MutationObserver, and an
+      // identical write is still a mutation, which would loop.
+      if (cap.textContent !== txt) cap.textContent = txt;
+    });
+  }
+  // Canvas charts (Chart.js) draw their own text: 12px floor on a phone.
+  function chartFont() {
+    if (typeof Chart === 'undefined' || !Chart.defaults || !Chart.defaults.font) return;
+    if (chartFont.base === undefined) chartFont.base = Chart.defaults.font.size;
+    Chart.defaults.font.size = PHONE.matches ? Math.max(12, chartFont.base || 12) : chartFont.base;
+  }
+
   // Renderers write their views after a fetch, so watch for them rather than guess.
   let t = null;
-  function schedule() { clearTimeout(t); t = setTimeout(() => { tables(); orgChart(); }, 250); }
+  function schedule() { clearTimeout(t); t = setTimeout(() => { tables(); orgChart(); charts(); }, 250); }
   const main = $('mainScrollArea');
   if (main) new MutationObserver(schedule).observe(main, {childList: true, subtree: true});
 
   function apply() {
     place(PHONE.matches);
+    chartFont();
     if (!PHONE.matches) undoTables();
     afterView();
   }

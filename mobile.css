@@ -13,7 +13,7 @@
    ══════════════════════════════════════════════════════════════ */
 
 /* Phone-only pieces exist in the markup at every width; they only show below. */
-.mast-body,.fsheet,.fsheet-scrim,#fSheetBtn,.nav-phone{display:none}
+.mast-body,.fsheet,.fsheet-scrim,#fSheetBtn,.nav-phone,.m-avg{display:none}
 
 /* ===== MOBILE (≤ 760px) · 1. COMPACT HEADER ===== */
 @media(max-width:760px),(hover:none) and (max-height:480px){
@@ -274,6 +274,23 @@
     font-weight:400;color:var(--muted);font-size:13px}
   .section-label .sl-dot{display:none}
   .ctrl-label{display:block}
+}
+
+/* ===== MOBILE · 8. CHARTS (P1) ===== */
+@media(max-width:760px),(hover:none) and (max-height:480px){
+  /* Group average: said once above the columns (mobile.js copies the line's own
+     label), instead of a 10.5px tag sitting on top of the bars it measures. */
+  .avgline b{display:none}
+  .m-avg{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:12px;font-weight:700;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .m-avg::before{content:'';width:18px;border-top:2px dashed var(--text);opacity:.55}
+  .cols-plot{padding-top:12px}
+  .cx-k{font-size:12px;letter-spacing:.06em}
+  .cx-s,.fn-head,.fn-c{font-size:12px}
+  .fn-head{letter-spacing:.08em}
+  /* Benchmark bars: each metric already says its target in words, so the floating
+     "Target" over every tick (10px, overlapping Hair and Beauty) goes. */
+  .att-bars .bar-tick b{display:none}
 }
 
 /* ===== SMALL PHONES (≤ 480px) ===== */
