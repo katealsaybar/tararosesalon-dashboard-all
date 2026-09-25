@@ -33,11 +33,14 @@
   /* Sign out lives in the drawer's footer on a phone (Log Out); the greeting is
      already hidden under 760px by the page's own rule. */
   #filtersBtn,#themeBtn,#signOutBtn{display:none!important}
-  #navBtn{width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;
-    display:grid;place-items:center;color:var(--text);
+  #navBtn{position:relative;width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;
+    color:var(--text);
     /* The label stays for screen readers (toggleNav rewrites it); only the eye loses it. */
     font-size:12px;text-indent:-999px;overflow:hidden;white-space:nowrap}
-  #navBtn::before{content:'';width:18px;height:14px;
+  /* Pinned to the centre, not laid out beside the hidden label: as a grid item the
+     label took a second row and pushed the lines to the top of the circle. */
+  #navBtn::before{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    text-indent:0;width:18px;height:14px;
     background:linear-gradient(currentColor,currentColor) 0 0/100% 2px no-repeat,
                linear-gradient(currentColor,currentColor) 0 50%/100% 2px no-repeat,
                linear-gradient(currentColor,currentColor) 0 100%/100% 2px no-repeat}
@@ -95,6 +98,14 @@
 
   /* Second sticky bars would stack under the header: on phones they scroll. */
   .tp-bar,.sc-bar,#spfBar{position:relative;top:auto}
+  /* Staff Benchmarks' bar: Sort, A-Z and Month on one row, the team switch under
+     them. The spacer that right-aligns Sort on a desktop left Month alone on a
+     line of its own; the pills tighten a touch so all three fit a 360px phone. */
+  #spfBar{justify-content:flex-start;gap:6px}
+  #spfBar .sc-bar-sp{display:none}
+  #spfBar .sc-btn{padding:0 9px;font-size:12.5px}
+  #spfBar .spf-dd-btn{gap:5px}
+  #spfBar #spfSortWrap{gap:6px!important}
 
   /* Jumps land below whatever the header is at the time. */
   .eyebrow[id],[id^="s-"],[id^="sec-"]{scroll-margin-top:calc(var(--topbar-cond-h,64px) + 12px)}

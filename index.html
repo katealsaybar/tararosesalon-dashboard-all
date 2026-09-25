@@ -2493,7 +2493,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 </style>
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20260925o">
+<link rel="stylesheet" href="mobile.css?v=20260925q">
 </head>
 <body>
 
@@ -3031,6 +3031,9 @@ table.tp-cmp td.bad{color:var(--bad)}
       if (e.data.staff) u.searchParams.set('staff', e.data.staff); else u.searchParams.delete('staff');
       // Sort only means something on the team grid.
       document.getElementById('spfSortWrap').style.display = e.data.staff ? 'none' : 'inline-flex';
+      // Kate, 25 Sep 2026: nor does All / Hair / Beauty once one person is open.
+      const spfSeg = document.querySelector('#spfBar .sc-seg');
+      if (spfSeg) spfSeg.style.display = e.data.staff ? 'none' : '';
       history.replaceState(history.state, '', u);
     }
     if (e.data && e.data.type === 'perf-height') {
