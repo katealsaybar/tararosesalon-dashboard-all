@@ -121,6 +121,9 @@ function toggleTheme() {
 function postReviewsTheme() {
   const f = document.getElementById('reviewsFrame');
   if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'trs-theme', theme: document.documentElement.getAttribute('data-theme') }, '*');
+  // Staff Performance frame (performance/?embed=1) follows the same toggle.
+  const sp = document.getElementById('spfFrame');
+  if (sp && sp.contentWindow) sp.contentWindow.postMessage({ type: 'trs-theme', theme: document.documentElement.getAttribute('data-theme') }, '*');
 }
 window.addEventListener('message', e => {
   const f = document.getElementById('reviewsFrame');

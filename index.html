@@ -2498,7 +2498,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub lvl2" onclick="showView('branchperf', this)">Branch Performance</div>
     <div class="nav-sub lvl2" onclick="showView('compare', this)">Comparison</div>
     <div class="nav-sub" onclick="showView('team', this)">Team Performance</div>
-    <div class="nav-sub" onclick="showView('staffperf', this)">Staff Performance<span class="nav-note">Under construction</span></div>
+    <div class="nav-sub" onclick="showView('staffperf', this)">Staff Performance</div>
     <div class="nav-sub" onclick="showView('stylists', this)">Staff Cards</div>
     <div class="nav-sub" onclick="showView('orgchart', this)">Org Chart</div>
     <!-- The four branch jumps used to sit here. Kate, 2026-08-14: Stylist Cards
@@ -2732,16 +2732,67 @@ table.tp-cmp td.bad{color:var(--bad)}
     </main>
   </div>
 
-  <!-- STAFF PERFORMANCE — placeholder. Per-staff view (Money Five style: revenue,
-       client count, rebooking, treatment/retail split) once the data + layout are ready. -->
+  <!-- STAFF PERFORMANCE: the Money Five team view from performance/ (Kate, 25 Sep
+       2026), framed in. It needs an admin token from perf_admins, and this site is
+       public, so the token is never in the code: it's asked for once and kept in
+       this browser's localStorage. -->
   <div id="view-staffperf" style="display:none">
     <main style="max-width:1400px;margin:0 auto;padding:10px 28px 48px">
-      <div class="card" style="text-align:center;padding:48px 24px">
+      <div id="spfKeyCard" class="card" style="display:none;max-width:520px;margin:24px auto;padding:28px 24px">
         <div style="font-size:15px;font-weight:600;margin-bottom:6px">Staff Performance</div>
-        <div style="opacity:.65">Under construction — coming soon.</div>
+        <div style="opacity:.7;font-size:14px;margin-bottom:12px">Paste your team key once. This browser remembers it after that.</div>
+        <input id="spfKeyInput" type="text" placeholder="Team key" autocomplete="off"
+          style="width:100%;font:inherit;padding:10px;border:1px solid var(--border);border-radius:8px;background:transparent;color:inherit">
+        <button onclick="spfSaveKey()" style="margin-top:10px;font:inherit;font-weight:600;padding:9px 16px;border-radius:8px;border:none;cursor:pointer;background:var(--text);color:var(--bg)">Open</button>
+      </div>
+      <iframe id="spfFrame" title="Staff Performance" style="display:none;width:100%;min-height:400px;border:0;background:transparent"></iframe>
+      <div id="spfKeyReset" style="display:none;text-align:right;font-size:12px;opacity:.6;margin-top:6px">
+        <a href="#" onclick="spfForgetKey();return false" style="color:inherit">Use a different team key</a>
       </div>
     </main>
   </div>
+  <script>
+  const SPF_KEY = 'perfAdminKey';
+  function spfGet(){ try { return localStorage.getItem(SPF_KEY); } catch(e){ return null; } }
+  function initStaffPerfView(){
+    const key = spfGet();
+    const frame = document.getElementById('spfFrame');
+    document.getElementById('spfKeyCard').style.display = key ? 'none' : '';
+    frame.style.display = key ? '' : 'none';
+    document.getElementById('spfKeyReset').style.display = key ? '' : 'none';
+    if (key && !frame.dataset.loaded){
+      frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
+      const slug = new URLSearchParams(location.search).get('staff');
+      frame.src = 'performance/index.html?admin=' + encodeURIComponent(key) + '&embed=1' + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.dataset.loaded = '1';
+    }
+  }
+  function spfSaveKey(){
+    const v = document.getElementById('spfKeyInput').value.trim();
+    if (!/^[0-9a-f-]{36}$/i.test(v)) { alert("That doesn't look like a team key."); return; }
+    try { localStorage.setItem(SPF_KEY, v); } catch(e){}
+    initStaffPerfView();
+  }
+  function spfForgetKey(){
+    try { localStorage.removeItem(SPF_KEY); } catch(e){}
+    const frame = document.getElementById('spfFrame');
+    frame.removeAttribute('src'); delete frame.dataset.loaded;
+    initStaffPerfView();
+  }
+  // The framed page reports its height so the dashboard scrolls, not the frame.
+  window.addEventListener('message', e => {
+    // Which person is open in the frame → the dashboard's own address, so it can be bookmarked.
+    if (e.data && e.data.type === 'perf-nav') {
+      const u = new URL(location.href);
+      if (u.searchParams.get('view') !== 'staffperf') return;
+      if (e.data.staff) u.searchParams.set('staff', e.data.staff); else u.searchParams.delete('staff');
+      history.replaceState(history.state, '', u);
+    }
+    if (e.data && e.data.type === 'perf-height') {
+      document.getElementById('spfFrame').style.height = Math.max(400, e.data.h) + 'px';
+    }
+  });
+  </script>
 
   <!-- STYLIST CARDS — the hair team from STAFF_PROFILES, grouped by branch.
        Static reference, so it takes no date filter and needs no data load. -->
@@ -2872,7 +2923,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=20260924n"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260924c"></script>
-<script src="dashboard.js?v=20260924d"></script>
+<script src="dashboard.js?v=20260925a"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260924a"></script>
 <script src="compare.js?v=20260924g"></script>
@@ -3041,6 +3092,7 @@ function showView(view, el){
   if (view === 'team' && allData.length) renderTeam();
   if (view === 'stylists') renderStylistCards();
   if (view === 'orgchart') renderOrgChart();
+  if (view === 'staffperf') initStaffPerfView();
   if (view === 'services') initSvcView();
   if (view === 'clients') initCliView();
   if (view === 'branchperf')    renderBranchPerformance();
