@@ -210,6 +210,14 @@ window.TRS_AUTH_HASH = location.hash;
 
 /* Sits under a nav label to say the view behind it isn't finished yet. Inherits
    currentColor so it stays readable inside the filled active pill too. */
+/* Kate, 25 Sep 2026: the banner that opens each Additional Reports page. */
+.uc-banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:14px 0 6px;padding:11px 14px;
+  border:1px dashed var(--warn);border-radius:12px;font-size:12.5px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--text)}
+.uc-tag{color:var(--warn);letter-spacing:.1em}
+.uc-tag::before{content:'(';}.uc-tag::after{content:')'}
+/* Under a folding heading the note takes its own line, with the chevron kept on the title's. */
+.nav-title.nav-fold{flex-wrap:wrap}.nav-title.nav-fold::after{order:1}.nav-title > .nav-note{order:2;flex-basis:100%;margin-top:3px}
 .nav-note{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
   opacity:.6;margin-top:2px}
 
@@ -2493,7 +2501,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 </style>
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20260925q">
+<link rel="stylesheet" href="mobile.css?v=20260925r">
 </head>
 <body>
 
@@ -2625,7 +2633,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <!-- Services + Clients -->
   <div class="nav-group">
-    <div class="nav-title">PERFORMANCE</div>
+    <!-- Kate, 25 Sep 2026: renamed from PERFORMANCE, and flagged as not finished. -->
+    <div class="nav-title">ADDITIONAL REPORTS<span class="nav-note">(Under construction)</span></div>
     <div class="nav-sub" onclick="showView('services', this)">Service Rankings</div>
     <div class="nav-sub" onclick="showView('clients', this)">Top Clients</div>
   </div>
@@ -3066,6 +3075,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <!-- SERVICES -->
   <div id="view-services" style="display:none">
+    <!-- Kate, 25 Sep 2026: this group is still being built. -->
+    <div class="uc-banner" role="note"><span>Additional Reports</span><span class="uc-tag">Under construction</span></div>
     <!-- Branch and dates come from the masthead now, like every other page. What
          is left is what is genuinely this page's own: which year to load when no
          date range is set, and how to break the ranking up. The Year group hides
@@ -3102,6 +3113,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <!-- CLIENTS -->
   <div id="view-clients" style="display:none">
+    <div class="uc-banner" role="note"><span>Additional Reports</span><span class="uc-tag">Under construction</span></div>
     <!-- Same as Service Rankings: branch and dates live in the masthead. -->
     <div class="svc-controls" id="cli-controls">
       <div class="ctrl-group yr-group">
@@ -3120,7 +3132,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div id="view-reviews" style="display:none">
     <iframe 
       id="reviewsFrame" scrolling="no"
-      src="./add%20ons/google-reviews/index.html?v=11"
+      src="./add%20ons/google-reviews/index.html?v=12"
       style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;display:block;overflow:hidden;">
     </iframe>
   </div>
@@ -3188,7 +3200,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20260904b"></script>
-<script src="team-performance.js?v=20260925u"></script>
+<script src="team-performance.js?v=20260925v"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=20260907a"></script>
 <script src="pulse-narrative.js?v=20260814a"></script>

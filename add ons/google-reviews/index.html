@@ -35,6 +35,12 @@ h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;m
 .chip{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:5px 12px;font:inherit;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
 @media(hover:hover){.chip:hover{border-color:var(--rose)}}
 .chip.on{background:var(--rose);border-color:var(--rose);color:var(--on-accent);font-weight:600}
+.board-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.board-hd h2{margin:0}
+.dseg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}
+.dseg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13.5px;font-weight:600;padding:6px 14px;border-radius:999px;cursor:pointer}
+@media(hover:hover){.dseg button:hover:not(.on){color:var(--text)}}
+.dseg button.on{background:var(--rose);color:var(--on-accent)}
 .chip .n{font-variant-numeric:tabular-nums;color:var(--faint);font-weight:500}
 .chip.on .n{color:var(--on-accent);opacity:.7}
 .search{flex:1;min-width:200px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:7px 10px;font:inherit}
@@ -185,7 +191,9 @@ html.embedded .filters{position:static}
 </div>
 
 <div class="card" style="margin-bottom:18px">
-  <h2>Staff named in reviews · filtered reviews</h2>
+  <!-- Kate, 25 Sep 2026: All / Hair / Beauty, the same switch as Staff Benchmarks. -->
+  <div class="board-hd"><h2>Staff named in reviews · filtered reviews</h2>
+    <div class="dseg" id="staffDept" role="group" aria-label="Team"><button type="button" data-d="all" class="on" aria-pressed="true">All</button><button type="button" data-d="hair" aria-pressed="false">Hair</button><button type="button" data-d="beauty" aria-pressed="false">Beauty</button></div></div>
   <div class="legend"><span><i style="background:var(--s1)"></i>1★</span><span><i style="background:var(--s2)"></i>2★</span><span><i style="background:var(--s3)"></i>3★</span><span><i style="background:var(--s4)"></i>4★</span><span><i style="background:var(--s5)"></i>5★</span><span style="margin-left:auto">Tap a name to see their reviews</span></div>
   <div id="staffBoard"></div>
 </div>
@@ -206,6 +214,6 @@ html.embedded .filters{position:static}
 
 <script src="../../staff-profiles.js?v=20260924n"></script>
 <script src="../../auth.js?v=20260925d"></script>
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

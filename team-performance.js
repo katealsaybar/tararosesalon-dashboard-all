@@ -52,9 +52,18 @@ let tpSort = 'net';
 try { if (localStorage.getItem('tp-sort') === 'level') tpSort = 'level'; } catch (e) {}
 // The ladder, top first. Hair ladder is perf_benchmarks' level_order; beauty
 // roles follow. Roles come from staff-profiles.js; anyone without one goes last.
-const TP_LADDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist', 'Blow-Dry Specialist', 'Barber',
+const TP_LADDER = ['Owner', 'Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist', 'Blow-Dry Specialist', 'Barber',
   'Senior Beauty Therapist', 'Senior Nail Technician', 'Beauty Therapist', 'Nail Technician', 'Beauty Team Member', 'Assistant'];
-const tpRole = st => { const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.role) || 'No position set'; };
+// Kate, 25 Sep 2026: people on this page that staff-profiles.js does not place
+// (it also drives Staff Cards, where these four are not meant to appear). Keyed by
+// tpMergeKey, the ledger's own spelling: Tara is the owner, and Cristine Bracamonte,
+// Lhang Ann and Ma. Ercely worked the floor as assistants.
+const TP_ROLE_FIX = { 'TARA': 'Owner', 'TARA KIDD': 'Owner',
+  'CRISTINE': 'Assistant', 'CRISTINE BRACAMONTE': 'Assistant',
+  'LHANG': 'Assistant', 'LHANG ANN': 'Assistant', 'MA. ERCELY': 'Assistant' };
+const TP_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'TARA KIDD': 'assets/org-chart/tara-rose-kidd.png' };
+const tpRole = st => { const fix = TP_ROLE_FIX[tpMergeKey(st.name)]; if (fix) return fix;
+  const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.role) || 'No position set'; };
 const tpRoleRank = r => { const i = TP_LADDER.indexOf(r); return i < 0 ? TP_LADDER.length : i; };
 const TP_MAX_COMPARE = 3;
 const tpKey = st => st.mergeKey;
@@ -178,6 +187,9 @@ function tpBranchTag(st) {
 // of the three clips the overhang. Identical reasoning to .av on the win cards,
 // and .tp-av is a size variant of it rather than a new treatment.
 function tpAvatar(name, cls) {
+  const fixed = TP_PHOTO_FIX[tpMergeKey(name)];
+  if (fixed) return `<img class="tp-av ${cls || ''}" src="${fixed}"
+      alt="" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'">`;
   const prof = (typeof staffProfile === 'function') ? staffProfile(name) : null;
   if (prof && prof.photo) {
     return `<img class="tp-av ${cls || ''}" src="assets/staff/${encodeURIComponent(prof.photo)}"

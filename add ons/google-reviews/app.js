@@ -219,12 +219,23 @@ function renderBranches(){
 }
 // Who clients name, within every filter except the staff one.
 let STAFF_ALL=false;
+// Kate, 25 Sep 2026: All / Hair / Beauty on the board, read off each person's role.
+// Assistants work the hair floor, so they count as Hair.
+let STAFF_DEPT="all";
+const BEAUTY_ROLES=new Set(["Beauty Therapist","Senior Beauty Therapist","Nail Technician","Senior Nail Technician","Beauty Team Member"]);
+const deptOf=s=>BEAUTY_ROLES.has(s.role)?"beauty":"hair";
+document.getElementById("staffDept")?.addEventListener("click",e=>{
+  const b=e.target.closest("button[data-d]"); if(!b||b.dataset.d===STAFF_DEPT) return;
+  STAFF_DEPT=b.dataset.d; STAFF_ALL=false;
+  b.parentElement.querySelectorAll("button").forEach(x=>{const on=x===b; x.classList.toggle("on",on); x.setAttribute("aria-pressed",String(on));});
+  renderStaffBoard();
+});
 function renderStaffBoard(){
   const el=document.getElementById("staffBoard"); if(!el) return;
   const F=baseFilter("staff"), rows={};
   F.forEach(r=>r.staff.forEach(k=>{(rows[k] ||= []).push(r);}));
-  const list=Object.entries(rows).map(([k,rs])=>({s:staffBy(k),rs})).filter(x=>x.s).sort((a,b)=>b.rs.length-a.rs.length||a.s.label.localeCompare(b.s.label));
-  if(!list.length){el.innerHTML=`<div class="empty" style="padding:20px">No staff named in these reviews.</div>`;return;}
+  const list=Object.entries(rows).map(([k,rs])=>({s:staffBy(k),rs})).filter(x=>x.s&&(STAFF_DEPT==="all"||deptOf(x.s)===STAFF_DEPT)).sort((a,b)=>b.rs.length-a.rs.length||a.s.label.localeCompare(b.s.label));
+  if(!list.length){el.innerHTML=`<div class="empty" style="padding:20px">No ${STAFF_DEPT==="all"?"":STAFF_DEPT+" "}staff named in these reviews.</div>`;return;}
   const max=list[0].rs.length, show=STAFF_ALL?list:list.slice(0,12);
   el.innerHTML=show.map(({s,rs})=>{
     const seg=st=>{const k=rs.filter(r=>r.stars===st).length;return k?`<span style="width:${k/max*100}%;background:var(--s${st})" title="${st}★: ${k}"></span>`:"";};
