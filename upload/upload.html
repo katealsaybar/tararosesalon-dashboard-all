@@ -62,7 +62,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 .toggle-thumb{width:14px;height:14px;border-radius:50%;background:var(--toggle-knob);position:absolute;top:2px;left:2px;transition:transform .25s ease}
 [data-theme="dark"] .toggle-thumb{transform:translateX(18px)}
 .logout-btn{padding:6px 14px;border:1px solid var(--border);border-radius:18px;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);background:transparent;cursor:pointer;font-family:'Inter',sans-serif;font-weight:500;transition:border-color .2s,color .2s}
-.logout-btn:hover{border-color:var(--bad);color:var(--bad)}
+@media(hover:hover){.logout-btn:hover{border-color:var(--bad);color:var(--bad)}}
 .page{max-width:1400px;margin:0 auto;padding:28px 20px 60px}
 
 /* TABS — the dashboard's .tabs idiom: a single underlined rail, uppercase, the
@@ -110,8 +110,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
    not move when it releases. Kate, 2026-09-04. */
 @media(max-width:700px){.tab-sticky,.seg-wrap{position:static}}
 .tab-btn{padding:9px 18px;border:none;border-bottom:3px solid transparent;margin-bottom:-1px;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:color .2s,border-color .2s,background .2s;white-space:nowrap;flex-shrink:0;border-radius:9px 9px 0 0}
-.tab-btn:hover{color:var(--text)}
-.tab-btn:hover:not(.active){background:var(--border2)}
+@media(hover:hover){.tab-btn:hover{color:var(--text)}}
+@media(hover:hover){.tab-btn:hover:not(.active){background:var(--border2)}}
 /* The 2px rule on its own was not enough to find in a dark window: five
    uppercase labels in muted grey, one of them a shade lighter, reads as five
    of the same thing, and Kate could not tell she was on Utilisation. The
@@ -170,7 +170,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
   .tab-btn{display:flex;align-items:center;gap:7px;width:100%;
     padding:9px 12px;margin:0;border-bottom:none;border-radius:9px;
     font-size:14px;letter-spacing:0.05em;text-transform:none;text-align:left;white-space:nowrap}
-  .tab-btn:hover:not(.active){background:var(--surface2)}
+  @media(hover:hover){.tab-btn:hover:not(.active){background:var(--surface2)}}
   /* The pill, as on the dashboard. The 3px underline the horizontal rail uses
      cannot work on a vertical list — every item would carry one. */
   .tab-btn.active{background:var(--accent-lavender);color:#1A1A1A;border-radius:999px;font-weight:600}
@@ -213,18 +213,18 @@ input:not([type]),input[type=text],input[type=password],input[type=date],input[t
 [data-theme="light"] input[type=date]{color-scheme:light}
 [data-theme="dark"] input[type=date]{color-scheme:dark}
 input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.55;transition:opacity .2s}
-input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:1}
+@media(hover:hover){input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:1}}
 input:not([type]):focus,input[type=date]:focus,input[type=number]:focus,input[type=text]:focus,input[type=password]:focus{border-color:var(--accent);outline:none}
 input:focus,select:focus{outline:none;border-color:var(--accent)}
 .btn{width:100%;padding:11px;background:var(--btn);color:var(--btn-fg);border:none;border-radius:10px;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;font-weight:700;transition:background .2s,opacity .2s;white-space:nowrap}
-.btn:hover{background:var(--btn-hover)}
+@media(hover:hover){.btn:hover{background:var(--btn-hover)}}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:7px 14px;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
-.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+@media(hover:hover){.btn-outline:hover{border-color:var(--accent);color:var(--text)}}
 .btn-danger{background:transparent;border:1px solid var(--bad);color:var(--bad);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
-.btn-danger:hover{background:var(--bad-bg)}
+@media(hover:hover){.btn-danger:hover{background:var(--bad-bg)}}
 .btn-dl{background:transparent;border:1px solid var(--good);color:var(--good);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
-.btn-dl:hover{background:var(--good-bg)}
+@media(hover:hover){.btn-dl:hover{background:var(--good-bg)}}
 .xlsx-badge{display:inline-flex;align-items:center;gap:5px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px}
 
 /* WEEK LABEL ROW */
@@ -241,8 +241,8 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .svc-branch-badge{background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700;letter-spacing:0.08em}
 .svc-branch-badge.unknown{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
 .svc-remove-btn{width:18px;height:18px;border-radius:50%;border:none;background:var(--surface2);color:var(--muted);font-size:13px;line-height:1;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;font-family:'Inter',sans-serif;transition:all .15s}
-.svc-remove-btn:hover{background:var(--bad-bg);color:var(--bad)}
-.file-slot:hover,.file-slot.dragover{border-color:var(--accent);background:var(--bg)}
+@media(hover:hover){.svc-remove-btn:hover{background:var(--bad-bg);color:var(--bad)}}
+.file-slot.dragover{border-color:var(--accent);background:var(--bg)}@media(hover:hover){.file-slot:hover{border-color:var(--accent);background:var(--bg)}}
 .file-slot.has-file{border-style:solid;border-color:var(--good);background:var(--good-bg)}
 .file-slot.has-existing{border-style:solid;border-color:var(--warn);background:var(--warn-bg)}
 .slot-branch-name{font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text);margin-bottom:2px}
@@ -254,7 +254,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .slot-filename{font-size:12px;color:var(--good);font-weight:600;margin-top:4px;word-break:break-all;line-height:1.3}
 .slot-existing{font-size:11px;color:var(--warn);margin-top:4px;line-height:1.4}
 .slot-clear{position:absolute;top:6px;right:7px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;line-height:1;padding:2px;transition:color .2s}
-.slot-clear:hover{color:var(--bad)}
+@media(hover:hover){.slot-clear:hover{color:var(--bad)}}
 .slot-auto-tag{font-size:11px;color:var(--muted2);margin-top:4px;letter-spacing:0.06em;text-transform:uppercase}
 .slot-auto-tag.detected{color:var(--good)}
 
@@ -282,26 +282,26 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .branch-col-body{padding:10px 12px}
 .year-section{margin-bottom:8px}
 .year-toggle{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:8px;cursor:pointer;background:var(--surface2);border:1px solid var(--border2);font-size:13px;font-weight:700;color:var(--text);letter-spacing:0.06em;user-select:none;transition:background .2s;margin-bottom:4px}
-.year-toggle:hover{background:var(--border2)}
+@media(hover:hover){.year-toggle:hover{background:var(--border2)}}
 .year-arrow{font-size:12px;transition:transform .2s;color:var(--muted)}
 .year-arrow.open{transform:rotate(180deg)}
 .month-section{margin-left:4px;margin-bottom:4px}
 .month-toggle{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:7px;cursor:pointer;font-size:13px;color:var(--muted);user-select:none;transition:background .15s}
-.month-toggle:hover{background:var(--surface2);color:var(--text)}
+@media(hover:hover){.month-toggle:hover{background:var(--surface2);color:var(--text)}}
 .month-arrow{font-size:11px;transition:transform .2s}
 .month-arrow.open{transform:rotate(180deg)}
 .month-count{font-size:12px;color:var(--muted2);margin-left:4px}
 .weeks-list{margin-left:8px;padding-bottom:4px}
 .week-item{padding:7px 8px;border-radius:7px;margin-bottom:3px;border:1px solid var(--border2);background:var(--surface2);transition:background .2s}
-.week-item:hover{background:var(--border2)}
+@media(hover:hover){.week-item:hover{background:var(--border2)}}
 .week-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
 .week-label-text{font-size:13px;color:var(--text);font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .week-date{font-size:12px;color:var(--muted2);margin-top:1px}
 .week-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .icon-btn{background:none;border:none;cursor:pointer;padding:3px 5px;color:var(--muted);font-size:15px;line-height:1;transition:color .2s;border-radius:5px}
-.icon-btn:hover{color:var(--text)}
-.icon-btn.del:hover{color:var(--bad)}
-.icon-btn.dl:hover{color:var(--good)}
+@media(hover:hover){.icon-btn:hover{color:var(--text)}}
+@media(hover:hover){.icon-btn.del:hover{color:var(--bad)}}
+@media(hover:hover){.icon-btn.dl:hover{color:var(--good)}}
 .empty-col{font-size:13px;color:var(--muted2);text-align:center;padding:16px 8px}
 
 /* BULK RENAME */
@@ -311,12 +311,12 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .bulk-week-label{font-size:14px;font-weight:600;color:var(--text);flex:1}
 .bulk-week-count{font-size:13px;color:var(--muted2);flex-shrink:0}
 .bulk-edit-btn{padding:5px 12px;background:transparent;border:1px solid var(--border);border-radius:18px;font-size:13px;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;white-space:nowrap}
-.bulk-edit-btn:hover{border-color:var(--accent);color:var(--accent)}
+@media(hover:hover){.bulk-edit-btn:hover{border-color:var(--accent);color:var(--accent)}}
 .bulk-inline-edit{display:none;align-items:center;gap:8px;margin-top:8px}
 .bulk-inline-edit input{flex:1;padding:7px 10px;border:1px solid var(--accent);border-radius:8px;font-size:14px;background:var(--surface);color:var(--text);font-family:'Inter',sans-serif}
 .bulk-inline-edit input:focus{outline:none}
 .bulk-save-btn{padding:7px 14px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:opacity .2s}
-.bulk-save-btn:hover{opacity:.8}
+@media(hover:hover){.bulk-save-btn:hover{opacity:.8}}
 .bulk-cancel-btn{padding:7px 10px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif}
 
 /* DAILY OVERVIEW */
@@ -339,7 +339,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 /* STAFF PERFORMANCE (PHOREST) */
 .branch-pills{display:flex;gap:8px;flex-wrap:wrap}
 .branch-pill{padding:9px 18px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'Inter',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.04em;cursor:pointer;transition:all .15s}
-.branch-pill:hover{border-color:var(--accent)}
+@media(hover:hover){.branch-pill:hover{border-color:var(--accent)}}
 .branch-pill.active{background:var(--btn);border-color:var(--btn);color:var(--btn-fg)}
 .sp-branch-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 @media(max-width:1100px){.sp-branch-grid{grid-template-columns:repeat(2,1fr)}}
@@ -370,7 +370,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-mo-fill{position:absolute;left:0;top:0;bottom:0;background:var(--good)}
 .sp-mo-fill.part{background:var(--warn)}
 .sp-mo-lbl{display:block;font-size:11px;letter-spacing:0.04em;color:var(--muted2);margin-top:3px}
-.sp-mo:hover .sp-mo-bar,.sp-mo.open .sp-mo-bar{outline:1.5px solid var(--accent);outline-offset:1px}
+.sp-mo.open .sp-mo-bar{outline:1.5px solid var(--accent);outline-offset:1px}@media(hover:hover){.sp-mo:hover .sp-mo-bar{outline:1.5px solid var(--accent);outline-offset:1px}}
 .sp-mo[disabled]{cursor:default;opacity:.45}
 .sp-mo-days{display:none;margin:8px 0 4px 88px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px}
 .sp-mo-days.show{display:block}
@@ -485,7 +485,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .seg-bar{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:4px;gap:3px;margin-bottom:16px;max-width:100%;overflow-x:auto;scrollbar-width:none}
 .seg-bar::-webkit-scrollbar{display:none}
 .seg-btn{padding:7px 15px;border:none;background:transparent;border-radius:8px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap;flex-shrink:0}
-.seg-btn:hover{color:var(--text)}
+@media(hover:hover){.seg-btn:hover{color:var(--text)}}
 .seg-btn.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
 .seg-pane{display:none}
 .seg-pane.active{display:block}
@@ -504,7 +504,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 /* DATE PRESET CHIPS — the four windows anyone asks for; From/To only on Custom. */
 .date-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .date-chip{padding:6px 13px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;cursor:pointer}
-.date-chip:hover{color:var(--text);border-color:var(--muted2)}
+@media(hover:hover){.date-chip:hover{color:var(--text);border-color:var(--muted2)}}
 .date-chip.active{background:var(--btn);color:var(--btn-fg);border-color:transparent}
 .date-custom{display:none;gap:10px}
 .date-custom.show{display:flex}
@@ -514,16 +514,16 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .save-bar-count{font-size:13.5px;color:var(--muted)}
 .sp-col-picker{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:10px;z-index:30;min-width:180px;max-height:320px;overflow-y:auto}
 .sp-col-picker label{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text);padding:5px 4px;cursor:pointer;border-radius:6px;white-space:nowrap}
-.sp-col-picker label:hover{background:var(--surface2)}
+@media(hover:hover){.sp-col-picker label:hover{background:var(--surface2)}}
 .sp-col-picker input{accent-color:var(--accent);cursor:pointer;flex-shrink:0}
 .sp-col-picker-actions{display:flex;gap:6px;margin-top:6px;padding-top:8px;border-top:1px solid var(--border2)}
 .sp-th-sort{user-select:none}
 .sp-th-inner{display:inline-flex;align-items:center;gap:5px}
 .sp-th-label{cursor:pointer}
-.sp-th-sort:hover .sp-th-label{color:var(--text)}
+@media(hover:hover){.sp-th-sort:hover .sp-th-label{color:var(--text)}}
 .sp-th-sort.active .sp-th-label{color:var(--accent)}
 .sp-th-filter-ic{cursor:pointer;opacity:.4;font-size:11px}
-.sp-th-filter-ic:hover{opacity:.8}
+@media(hover:hover){.sp-th-filter-ic:hover{opacity:.8}}
 .sp-th-filter-ic.active{opacity:1;color:var(--accent)}
 .sp-colval-panel{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:10px;z-index:40;width:220px;display:flex;flex-direction:column;gap:8px}
 .sp-colval-search{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;font-family:'Inter',sans-serif;box-sizing:border-box}
@@ -531,7 +531,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .sp-colval-actions button{flex:1;padding:5px;font-size:12px}
 .sp-colval-list{max-height:220px;overflow-y:auto;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);padding:4px 0}
 .sp-colval-list label{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text);padding:4px;cursor:pointer;border-radius:6px;white-space:nowrap;text-align:left}
-.sp-colval-list label:hover{background:var(--surface2)}
+@media(hover:hover){.sp-colval-list label:hover{background:var(--surface2)}}
 .sp-colval-list input{accent-color:var(--accent);cursor:pointer;flex-shrink:0}
 .sp-colval-empty{font-size:13px;color:var(--muted2);padding:8px 4px}
 .sp-colval-footer{display:flex}
@@ -562,7 +562,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .login-wrap input[type=password],.login-wrap input[type=text]{background:#F4F1E9;border:1px solid #E8E2D6;color:#1A1A1A;font-size:16px;padding:10px 40px 10px 14px;border-radius:10px}
 .login-wrap input:focus{border-color:#1A1A1A}
 .login-wrap .btn{background:#FF9B9B;color:#2A2A2A;border-radius:10px;padding:11px 0;font-size:16px;font-weight:700;letter-spacing:0.08em;text-transform:none;margin-top:16px;box-shadow:none}
-.login-wrap .btn:hover{background:#FF9B9B;opacity:0.88;transform:none;box-shadow:none}
+@media(hover:hover){.login-wrap .btn:hover{background:#FF9B9B;opacity:0.88;transform:none;box-shadow:none}}
 .err{color:var(--bad);font-size:15px;text-align:center;margin-top:8px}
 
 /* TARGETS TAB — the grid is a form, not a report, so it borrows .sp-table for
@@ -586,7 +586,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .tg-table input,.tg-table select{width:100%;padding:5px 7px;border:1px solid transparent;border-radius:6px;
   background:transparent;color:var(--text);font-size:13px;font-family:'Inter',sans-serif}
 .tg-table input.tg-n{text-align:right;font-variant-numeric:tabular-nums}
-.tg-table input:hover,.tg-table select:hover{border-color:var(--border2);background:var(--surface2)}
+@media(hover:hover){.tg-table input:hover,.tg-table select:hover{border-color:var(--border2);background:var(--surface2)}}
 .tg-table input:focus,.tg-table select:focus{border-color:var(--accent);background:var(--surface2);outline:none}
 /* A derived cell somebody has typed into. It stops following the percentages,
    which is invisible otherwise, so it carries a mark and a Recompute button. */
@@ -628,9 +628,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .pw-field-wrap{position:relative}
 .pw-field-wrap input{padding-right:40px}
 .pw-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:17px;line-height:1;padding:2px 4px}
-.pw-eye:hover{color:var(--text)}
+@media(hover:hover){.pw-eye:hover{color:var(--text)}}
 .login-wrap .pw-eye{color:#565049}
-.login-wrap .pw-eye:hover{color:#1A1A1A}
+@media(hover:hover){.login-wrap .pw-eye:hover{color:#1A1A1A}}
 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);opacity:0;transition:opacity .2s;pointer-events:none}
@@ -645,10 +645,10 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .modal-branches{font-size:13px;color:var(--muted2);margin-top:6px}
 .modal-btns{display:flex;gap:8px}
 .modal-confirm{flex:1;padding:10px;background:var(--good-bg);color:var(--good);border:1px solid var(--good);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:0.08em;text-transform:uppercase;transition:opacity .2s}
-.modal-confirm:hover{opacity:.8}
+@media(hover:hover){.modal-confirm:hover{opacity:.8}}
 .modal-confirm.danger{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
 .modal-cancel{padding:10px 16px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;font-size:14px;cursor:pointer;font-family:'Inter',sans-serif}
-.modal-cancel:hover{color:var(--text);border-color:var(--text)}
+@media(hover:hover){.modal-cancel:hover{color:var(--text);border-color:var(--text)}}
 
 /* TOAST */
 #toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--good-bg);color:var(--good);border:1px solid var(--good);padding:10px 20px;border-radius:20px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;z-index:999;transition:opacity .4s;pointer-events:none;opacity:0}
@@ -685,7 +685,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   text-transform:uppercase;cursor:pointer;white-space:nowrap}
 .upd-btn.small{padding:6px 11px;font-size:11px;margin-top:7px}
 .upd-btn.ghost{background:var(--surface);color:var(--muted);border-color:var(--border)}
-.upd-btn.ghost:hover{color:var(--text);border-color:var(--text)}
+@media(hover:hover){.upd-btn.ghost:hover{color:var(--text);border-color:var(--text)}}
 .upd-btn[disabled]{opacity:.55;cursor:default}
 /* Waved off, not resolved: the card folds to this pill rather than vanishing, so
    the page never quietly pretends the gaps on it are current. */

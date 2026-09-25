@@ -33,7 +33,7 @@ h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;m
 .frow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .flabel{width:78px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 .chip{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:5px 12px;font:inherit;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
-.chip:hover{border-color:var(--rose)}
+@media(hover:hover){.chip:hover{border-color:var(--rose)}}
 .chip.on{background:var(--rose);border-color:var(--rose);color:var(--on-accent);font-weight:600}
 .chip .n{font-variant-numeric:tabular-nums;color:var(--faint);font-weight:500}
 .chip.on .n{color:var(--on-accent);opacity:.7}
@@ -50,7 +50,7 @@ h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;m
 .legend{display:flex;gap:12px;font-size:12px;color:var(--muted);margin-bottom:10px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 .brow{display:grid;grid-template-columns:130px 1fr 120px;gap:10px;align-items:center;padding:6px 0;cursor:pointer;border-radius:6px}
-.brow:hover .bname{color:var(--rose)}
+@media(hover:hover){.brow:hover .bname{color:var(--rose)}}
 .bname{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar{height:18px;background:var(--surface2);border-radius:4px;display:flex;overflow:hidden}
 .bar span{display:block;height:100%}
@@ -59,7 +59,7 @@ h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;m
 .tl{display:flex;align-items:flex-end;gap:4px;height:150px;padding-top:6px}
 .tcol{flex:1;display:flex;flex-direction:column-reverse;min-width:0;position:relative;height:100%}
 .tcol span{display:block;width:100%}
-.tcol:hover{opacity:.8}
+@media(hover:hover){.tcol:hover{opacity:.8}}
 .tlab{display:flex;gap:4px;margin-top:6px}
 .tlab div{flex:1;font-size:10px;color:var(--faint);text-align:center;white-space:nowrap;overflow:hidden}
 .tip{position:fixed;pointer-events:none;background:var(--text);color:var(--bg);box-shadow:var(--shadow);font-size:12px;padding:6px 8px;border-radius:6px;display:none;z-index:20}
@@ -95,17 +95,17 @@ table.ex tr.tot td{font-weight:700;border-bottom:none}
 .note{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:18px}
 .note b{color:var(--text)}
 a.gbp{color:var(--rose);font-size:12px;text-decoration:none}
-a.gbp:hover{text-decoration:underline}
+@media(hover:hover){a.gbp:hover{text-decoration:underline}}
 /* staff named in reviews: photos keep their own shape, no circle */
 .srow{display:grid;grid-template-columns:40px 150px 1fr 150px;gap:10px;align-items:center;padding:5px 6px;cursor:pointer;border-radius:8px}
-.srow:hover .sname b{color:var(--rose)}
+@media(hover:hover){.srow:hover .sname b{color:var(--rose)}}
 .srow.on{background:var(--surface2)}
 .srow img,.srow .sph{height:40px;width:auto;max-width:40px;object-fit:contain;display:block}
 .sname{min-width:0;line-height:1.2}.sname b{display:block;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sname small{color:var(--faint);font-size:11px}
 .stag{display:inline-flex;align-items:center;gap:5px;font:inherit;font-size:12px;font-weight:600;padding:2px 9px 2px 3px;border-radius:999px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer}
 .stag img{height:20px;width:auto;object-fit:contain}
-.stag:hover{border-color:var(--rose)}
+@media(hover:hover){.stag:hover{border-color:var(--rose)}}
 .stag.via{border-style:dashed;font-weight:500}
 .rtext mark{background:#FAEEDA;color:inherit;font-weight:600;padding:0 2px;border-radius:3px}
 [data-theme="dark"] .rtext mark{background:var(--rose-soft)}

@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="ask-widget.css?v=20260924b">
+<link rel="stylesheet" href="ask-widget.css?v=20260925a">
 
 
 <style>
@@ -29,10 +29,10 @@
   overflow:hidden;
   transition:box-shadow 220ms var(--card-ease),transform 220ms var(--card-ease);
 }
-.support-section:hover{
+@media(hover:hover){.support-section:hover{
   box-shadow:var(--shadow-card-hover);
   transform:translateY(-2px);
-}
+}}
 .support-section-hdr{
   display:flex;
   align-items:center;
@@ -44,9 +44,9 @@
   border-bottom:1px solid transparent;
   transition:border-color .2s, background .2s;
 }
-.support-section-hdr:hover{
+@media(hover:hover){.support-section-hdr:hover{
   background:var(--surface2);
-}
+}}
 .support-section-hdr.open{
   border-bottom-color:var(--border);
 }
@@ -196,10 +196,10 @@
 .nav-note{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
   opacity:.6;margin-top:2px}
 
-.nav-sub:hover {
+@media(hover:hover){.nav-sub:hover{
   background: var(--surface2);
   color: var(--text);
-}
+}}
 
 .nav-sub.active {
   background: var(--accent-lavender);
@@ -219,7 +219,7 @@
 .nav-kid{display:flex;align-items:center;gap:8px;font-size:14.5px;padding:6px 9px;
   border-radius:7px;cursor:pointer;color:var(--muted);
   transition:background .2s,color .2s}
-.nav-kid:hover{background:var(--surface2);color:var(--text)}
+@media(hover:hover){.nav-kid:hover{background:var(--surface2);color:var(--text)}}
 .nav-kid .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .nav-kid .n{margin-left:auto;font-size:12.5px;color:var(--muted2);
   font-variant-numeric:tabular-nums}
@@ -668,10 +668,10 @@ body.nav-open .topbar{left:var(--nav-shift)}
   transition:all .2s ease;
 }
 
-.nav-btn:hover{
+@media(hover:hover){.nav-btn:hover{
   background:var(--surface2);
   color:var(--text);
-}
+}}
 
 .nav-btn.active{
   background:var(--accent);
@@ -732,13 +732,13 @@ body.kpi-view .shell{scroll-margin-top:calc(var(--topbar-cond-h,104px) + 8px)}
 .ctrl-label{font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
 .ms-wrap{position:relative}
 .ms-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 12px;border:1px solid var(--border);border-radius:18px;font-size:15px;color:var(--text);background:var(--surface);font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;min-width:140px;transition:all .2s}
-.ms-btn:hover,.ms-btn.open{border-color:var(--accent)}
+.ms-btn.open{border-color:var(--accent)}@media(hover:hover){.ms-btn:hover{border-color:var(--accent)}}
 .ms-btn svg{flex-shrink:0;opacity:.5;transition:transform .2s}
 .ms-btn.open svg{transform:rotate(180deg)}
 .ms-drop{position:absolute;top:calc(100% + 5px);left:0;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);min-width:100%;max-height:260px;overflow-y:auto;opacity:0;pointer-events:none;transform:translateY(-6px);transition:opacity .2s ease,transform .2s ease}
 .ms-drop.open{opacity:1;pointer-events:auto;transform:translateY(0)}
 .ms-opt{display:flex;align-items:center;gap:9px;padding:8px 13px;font-size:15px;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none;border-left:3px solid transparent}
-.ms-opt:hover{background:var(--surface2);color:var(--text)}
+@media(hover:hover){.ms-opt:hover{background:var(--surface2);color:var(--text)}}
 .ms-opt.selected{color:var(--accent);background:var(--surface2);border-left-color:var(--accent);font-weight:600}
 .ms-opt.all-opt{font-weight:600;border-bottom:1px solid var(--border);border-left:3px solid transparent}
 .ms-opt.all-opt.selected{color:var(--accent);background:var(--surface2);border-left-color:var(--accent)}
@@ -749,9 +749,9 @@ body.kpi-view .shell{scroll-margin-top:calc(var(--topbar-cond-h,104px) + 8px)}
 [data-theme="dark"] .date-inp{color-scheme:dark}
 [data-theme="light"] .date-inp{color-scheme:light}
 .date-picker-clear{background:none;border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:14px;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;white-space:nowrap}
-.date-picker-clear:hover{border-color:var(--bad);color:var(--bad)}
+@media(hover:hover){.date-picker-clear:hover{border-color:var(--bad);color:var(--bad)}}
 .date-picker-apply{padding:7px 16px;background:var(--btn);color:var(--btn-fg);border:none;border-radius:8px;font-size:14px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;transition:background .2s}
-.date-picker-apply:hover{background:var(--btn-hover)}
+@media(hover:hover){.date-picker-apply:hover{background:var(--btn-hover)}}
 
 /* MAIN — the side padding lives on .wrap now, so a <main> inside it only owns
    its own vertical rhythm. */
@@ -1147,7 +1147,7 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .cmp-presets{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
 .cmp-chip{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:20px;
   padding:7px 14px;font:inherit;font-size:13.5px;cursor:pointer}
-.cmp-chip:hover{color:var(--text)}
+@media(hover:hover){.cmp-chip:hover{color:var(--text)}}
 .cmp-chip.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .cmp-chip-note{cursor:default;opacity:.55}
 .cmp-chip-note.on{opacity:1}
@@ -1173,7 +1173,7 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
   text-align:left;transition:border-color .2s}
 .cmp-bp-lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .cmp-bp-btn svg{flex-shrink:0;opacity:.55;transition:transform .2s}
-.cmp-bp-btn:hover,.cmp-bp.open .cmp-bp-btn{border-color:var(--accent)}
+.cmp-bp.open .cmp-bp-btn{border-color:var(--accent)}@media(hover:hover){.cmp-bp-btn:hover{border-color:var(--accent)}}
 .cmp-bp.open .cmp-bp-btn svg{transform:rotate(180deg)}
 .cmp-bp-drop{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;background:var(--surface);border:1px solid var(--border);
   border-radius:14px;box-shadow:var(--shadow);padding:6px;overflow:hidden;opacity:0;pointer-events:none;transform:translateY(-6px);
@@ -1181,7 +1181,7 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .cmp-bp.open .cmp-bp-drop{opacity:1;pointer-events:auto;transform:translateY(0)}
 .cmp-bp-opt{display:flex;align-items:center;gap:10px;width:100%;font:inherit;font-size:14px;color:var(--text);background:none;border:0;
   border-radius:9px;padding:8px 10px;cursor:pointer;text-align:left}
-.cmp-bp-opt:hover{background:var(--surface2)}
+@media(hover:hover){.cmp-bp-opt:hover{background:var(--surface2)}}
 .cmp-bp-opt.on{font-weight:600}
 .cmp-bp-opt.all{margin-bottom:4px;position:relative}
 .cmp-bp-opt.all::after{content:'';position:absolute;left:8px;right:8px;bottom:-3px;height:1px;background:var(--border)}
@@ -1195,7 +1195,7 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
   border:0;border-radius:999px;padding:6px 14px;cursor:pointer}
 .cmp-swap{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:50%;
   width:38px;height:38px;font-size:17px;cursor:pointer}
-.cmp-swap:hover{color:var(--text)}
+@media(hover:hover){.cmp-swap:hover{color:var(--text)}}
 .cmp-opts{margin:0 0 18px}
 .cmp-check{display:flex;align-items:baseline;gap:8px;font-size:14px;cursor:pointer}
 .cmp-check small{color:var(--muted2);font-size:12.5px}
@@ -1297,7 +1297,7 @@ body.compare-chrome #headerSectionLabel{align-self:center}
 .cmp-tchips{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 14px}
 .cmp-tchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--surface);
   color:var(--muted);border-radius:20px;padding:7px 14px;font:inherit;font-size:13.5px;cursor:pointer}
-.cmp-tchip:hover{color:var(--text)}
+@media(hover:hover){.cmp-tchip:hover{color:var(--text)}}
 .cmp-tchip.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .cmp-tchip i{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .cmp-tchip i.hit{background:var(--good)}
@@ -1335,7 +1335,7 @@ body.compare-chrome #headerSectionLabel{align-self:center}
   position:relative;overflow:hidden;border-bottom:3px solid transparent;
   transition:background .3s,border-color .3s,box-shadow 220ms var(--card-ease),transform 220ms var(--card-ease);
 }
-.metric:hover{box-shadow:var(--shadow-card-hover);transform:translateY(-2px)}
+@media(hover:hover){.metric:hover{box-shadow:var(--shadow-card-hover);transform:translateY(-2px)}}
 /* transparent-by-default top strip — only painted by the RAG pulse-glow rules below */
 .metric::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius-card) var(--radius-card) 0 0}
 /* rotating KPI accent — mint, butter, lavender, coral — for cards with no explicit m-* modifier */
@@ -1376,7 +1376,7 @@ body.compare-chrome #headerSectionLabel{align-self:center}
   border:1px solid var(--border);box-shadow:var(--shadow-card);margin-bottom:12px;
   transition:background .3s,border-color .3s,box-shadow 220ms var(--card-ease),transform 220ms var(--card-ease);
 }
-.card:hover{box-shadow:var(--shadow-card-hover);transform:translateY(-2px)}
+@media(hover:hover){.card:hover{box-shadow:var(--shadow-card-hover);transform:translateY(-2px)}}
 .card-title{font-family:'Playfair Display',serif;font-weight:500;font-size:23px;color:var(--text);margin-bottom:4px}
 .card-sub{font-size:14px;color:var(--muted);margin-bottom:14px}
 
@@ -1419,7 +1419,7 @@ tr:last-child td{border-bottom:none}
 .badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:14px;font-weight:500}
 .badge.good{background:var(--good-bg);color:var(--good)}.badge.warn{background:var(--warn-bg);color:var(--warn)}.badge.bad{background:var(--bad-bg);color:var(--bad)}
 th.sortable{cursor:pointer;user-select:none}
-th.sortable:hover{color:var(--text)}
+@media(hover:hover){th.sortable:hover{color:var(--text)}}
 th.sort-asc::after{content:' ▲';font-size:12px;opacity:0.7}
 th.sort-desc::after{content:' ▼';font-size:12px;opacity:0.7}
 th:not(.sort-asc):not(.sort-desc).sortable::after{content:' ⇅';font-size:12px;opacity:0.3}
@@ -1427,7 +1427,7 @@ th:not(.sort-asc):not(.sort-desc).sortable::after{content:' ⇅';font-size:12px;
 /* F-PILLS */
 .f-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 .f-pill{padding:4px 12px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
-.f-pill:hover{border-color:var(--accent);color:var(--accent)}
+@media(hover:hover){.f-pill:hover{border-color:var(--accent);color:var(--accent)}}
 .f-pill.active{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:700}
 .canvas-wrap{position:relative;height:230px}
 
@@ -1435,14 +1435,14 @@ th:not(.sort-asc):not(.sort-desc).sortable::after{content:' ⇅';font-size:12px;
 .top3-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
 .top3-grid-row2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;max-width:66%;margin-left:auto;margin-right:auto}
 .top3-col{background:var(--surface);border-radius:var(--radius-card);border:1px solid var(--border);box-shadow:var(--shadow-card);overflow:hidden;transition:box-shadow 220ms var(--card-ease),transform 220ms var(--card-ease)}
-.top3-col:hover{box-shadow:var(--shadow-card-hover);transform:translateY(-2px)}
+@media(hover:hover){.top3-col:hover{box-shadow:var(--shadow-card-hover);transform:translateY(-2px)}}
 .top3-col-hdr{padding:12px 14px;border-bottom:1px solid var(--border)}
 .top3-col-name{font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text)}
 .top3-accent{height:2px;border-radius:2px;margin-top:6px}
 .top3-col-body{padding:10px 12px}
 .top3-metric-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
 .top3-tab{padding:3px 9px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
-.top3-tab:hover{border-color:var(--accent);color:var(--accent)}
+@media(hover:hover){.top3-tab:hover{border-color:var(--accent);color:var(--accent)}}
 .top3-tab.active{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:700}
 .top3-subtabs{display:flex;margin-bottom:10px;border-bottom:1px solid var(--border)}
 .top3-subtab{padding:5px 10px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);margin-bottom:-1px;text-transform:uppercase;font-family:'Inter',sans-serif;background:none;border-top:none;border-left:none;border-right:none;letter-spacing:0.06em;transition:color .2s}
@@ -1609,7 +1609,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   color:var(--muted);padding:4px;display:flex;
   transition:color .2s;
 }
-.login-eye:hover{color:var(--text);}
+@media(hover:hover){.login-eye:hover{color:var(--text);}}
 .login-error{
   font-size:15px;color:var(--bad);min-height:16px;
   display:none;
@@ -1622,7 +1622,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   font-weight:700;font-size:16px;letter-spacing:0.08em;
   transition:opacity .2s;
 }
-.login-btn:hover{opacity:0.88;}
+@media(hover:hover){.login-btn:hover{opacity:0.88;}}
 .login-footer{
   font-size:13px;color:var(--muted2);text-align:center;
   letter-spacing:0.1em;
@@ -1979,7 +1979,7 @@ tr.lg-tot td:first-child{background:var(--surface2)}
                    linear-gradient(135deg,currentColor 50%,transparent 50%);
   background-position:calc(100% - 14px) calc(50% + 1px),calc(100% - 9px) calc(50% + 1px);
   background-size:5px 5px,5px 5px;background-repeat:no-repeat}
-.lg-month-sel:hover{border-color:var(--muted2)}
+@media(hover:hover){.lg-month-sel:hover{border-color:var(--muted2)}}
 .lg-month .lg-month-sel+.lg-month-sel{margin-left:6px}
 .lg-month-warn{font-size:12px;color:var(--warn)}
 
@@ -2193,7 +2193,7 @@ table.lg thead.lg-float tr:last-child th{box-shadow:0 8px 10px -8px rgba(0,0,0,.
    type; only a hairline appears under it on hover so it reads as something you can
    open, and the menu sits just below it in the page's card language. */
 .who{cursor:pointer;border-bottom:1px dotted transparent;transition:border-color .15s;outline:none;border-radius:2px}
-.who:hover,.who.who-on,.who:focus-visible{border-bottom-color:var(--muted)}
+.who.who-on,.who:focus-visible{border-bottom-color:var(--muted)}@media(hover:hover){.who:hover{border-bottom-color:var(--muted)}}
 .who:focus-visible{box-shadow:0 0 0 2px var(--accent)}
 #whoMenu{position:fixed;z-index:9000;min-width:190px;padding:5px;border-radius:10px;
   background:var(--surface);border:1px solid var(--border);
@@ -2202,7 +2202,7 @@ table.lg thead.lg-float tr:last-child th{box-shadow:0 8px 10px -8px rgba(0,0,0,.
 .who-opt{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;
   padding:8px 10px;border:0;border-radius:7px;background:transparent;color:var(--text);
   text-align:left;cursor:pointer;font:inherit}
-.who-opt:hover,.who-opt:focus-visible{background:var(--surface2);outline:none}
+.who-opt:focus-visible{background:var(--surface2);outline:none}@media(hover:hover){.who-opt:hover{background:var(--surface2);outline:none}}
 .who-opt.off{cursor:default;opacity:.55}
 .who-opt-t{font-size:13px;font-weight:600;letter-spacing:.01em}
 .who-opt-s{font-size:11px;color:var(--muted);letter-spacing:.02em}
@@ -2445,7 +2445,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 }
 
 </style>
-<link rel="stylesheet" href="nav-collapse.css?v=20260924a">
+<link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
 <link rel="stylesheet" href="mobile.css?v=20260925h">
 </head>
@@ -3052,7 +3052,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div id="view-reviews" style="display:none">
     <iframe 
       id="reviewsFrame" scrolling="no"
-      src="./add%20ons/google-reviews/index.html?v=9"
+      src="./add%20ons/google-reviews/index.html?v=10"
       style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;display:block;overflow:hidden;">
     </iframe>
   </div>
