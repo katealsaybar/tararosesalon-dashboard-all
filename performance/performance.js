@@ -469,12 +469,18 @@ async function renderTeam() {
   // Branch keeps the grouped layout; any other sort is one flat grid with the
   // branch on each card. Names and branches run A–Z first, numbers high first.
   const num = v => (v === null || v === undefined || Number.isNaN(v)) ? -Infinity : v;
+  // Position: the hair ladder, top first (same order as perf_benchmarks.level_order).
+  // Beauty has no level set, so it sits after the ladder as one group.
+  const LADDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist', 'Blow-Dry Specialist'];
+  const rankOf = s => { const i = LADDER.indexOf(s.level); return i < 0 ? -1 : LADDER.length - i; };
+  const posOf = s => s.level || s.dept;
   const SORTS = {
     branch:  { label: 'Branch' },
     name:    { label: 'Name',    cmp: (a, b) => a.name.localeCompare(b.name) },
     takings: { label: 'Takings', cmp: (a, b) => num(b.numbers.total_revenue) - num(a.numbers.total_revenue) },
     clients: { label: 'Clients', cmp: (a, b) => num(b.numbers.clients) - num(a.numbers.clients) },
     rebook:  { label: 'Rebook %', cmp: (a, b) => num(b.numbers.rebooking_pct) - num(a.numbers.rebooking_pct) },
+    level:   { label: 'Position', cmp: (a, b) => rankOf(b) - rankOf(a) },
   };
   if (!SORTS[SORT]) SORT = 'branch';
   const flip = SORT_REV ? -1 : 1;
@@ -498,6 +504,13 @@ async function renderTeam() {
       ${['Hair', 'Beauty'].filter(dp => groups[b].some(s => s.dept === dp)).map(dp => `
       ${DEPT === 'all' ? `<div class="dept-h">${dp}</div>` : ''}
       <div class="team-grid">${groups[b].filter(s => s.dept === dp).map(card).join('')}</div>`).join('')}`).join('');
+  } else if (SORT === 'level') {
+    // Grouped like Branch: one heading per position, branch on each card.
+    const groups = {};
+    shown.forEach(s => (groups[posOf(s)] ||= []).push(s));
+    body = Object.keys(groups).sort((a, b) => flip * (rankOf(groups[b][0]) - rankOf(groups[a][0]))).map(g => `
+      <div class="branch-h">${esc(g)}</div>
+      <div class="team-grid">${groups[g].sort((a, b) => a.name.localeCompare(b.name)).map(card).join('')}</div>`).join('');
   } else {
     const cmp = SORTS[SORT].cmp;
     body = `<div class="team-grid flat">${[...shown].sort((a, b) => flip * cmp(a, b) || a.name.localeCompare(b.name)).map(card).join('')}</div>`;
