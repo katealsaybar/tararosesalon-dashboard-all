@@ -104,3 +104,8 @@ body.embed main{max-width:none}
 .admin-bar .back{margin-bottom:0}
 .btn.small{margin-top:0;padding:7px 12px;font-size:13px}
 .stars{color:#BA7517;letter-spacing:1px}
+/* Hair / Beauty switch (standalone page; the dashboard has its own sticky bar) */
+.dept-seg{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--border);border-radius:999px;background:var(--surface);position:sticky;top:64px;z-index:4;margin:4px 0 6px}
+.dept-seg button{appearance:none;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;cursor:pointer}
+.dept-seg button.on{background:var(--btn);color:var(--btn-fg)}
+.dept-h{margin:6px 0 8px;font-size:12px;font-weight:600;color:var(--muted)}

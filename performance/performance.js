@@ -18,6 +18,7 @@ const ADMIN = qs.get('admin');
 // embed=1: framed inside the dashboard's Staff Performance view. No brand bar,
 // transparent background, and the page tells the dashboard how tall it is.
 const EMBED = qs.get('embed') === '1';
+let DEPT = ['Hair', 'Beauty'].includes(qs.get('dept')) ? qs.get('dept') : 'all';
 const keep = EMBED ? '&embed=1' : '';
 function postHeight() {
   if (EMBED) parent.postMessage({ type: 'perf-height', h: Math.ceil(document.body.getBoundingClientRect().height) + 8 }, '*');
@@ -28,6 +29,13 @@ if (EMBED) {
   window.perfResize.observe(document.body);
   addEventListener('load', postHeight);
   addEventListener('message', e => {
+    // The dashboard's sticky Hair / Beauty bar.
+    if (e.data && e.data.type === 'perf-dept') {
+      DEPT = ['Hair', 'Beauty'].includes(e.data.dept) ? e.data.dept : 'all';
+      // On someone's page, the bar takes you back to the team grid, filtered.
+      if (TOKEN) { location.search = `?admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}`; return; }
+      renderTeam();
+    }
     if (e.data && e.data.type === 'trs-theme') document.documentElement.dataset.theme = e.data.theme === 'dark' ? 'dark' : 'light';
   });
 }
@@ -214,7 +222,7 @@ async function renderStylist() {
   const notes = (d.notes || []).map(x => `<div class="note">${esc(x.note)}<div class="by">${esc(x.author)} · ${new Date(x.at).toLocaleDateString('en-GB')}${ADMIN ? `<button data-del="${x.id}">remove</button>` : ''}</div></div>`).join('');
 
   app.innerHTML = `
-    ${ADMIN ? `<div class="admin-bar"><a class="back" href="?admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}">← Your team</a>
+    ${ADMIN ? `<div class="admin-bar"><a class="back" href="?admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}">← Your team</a>
       <button class="btn small" id="copyLink">Copy ${esc(s.name.split(' ')[0])}'s link</button></div>` : ''}
     <section class="card hero">
       ${photoFor(s.keys) ? `<img class="hero-photo" src="${photoFor(s.keys)}" alt="" onerror="this.remove()">` : ''}
@@ -357,8 +365,11 @@ async function renderTeam() {
   if (hit) { TOKEN = hit.token; return renderStylist(); }
   tellParent(null);
   const BR = { KCA: 'Khalifa City A', SAA: 'Saadiyat', MC: 'Motor City', AQ: 'Al Quoz' };
+  // The standalone page carries its own Hair / Beauty switch; in the dashboard
+  // the sticky bar above the frame does it.
+  const shown = d.staff.filter(s => DEPT === 'all' || s.dept === DEPT);
   const groups = {};
-  d.staff.forEach(s => (groups[s.branch] ||= []).push(s));
+  shown.forEach(s => (groups[s.branch] ||= []).push(s));
   const initials = n => n.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
   app.innerHTML = `
     <section class="card hero">
@@ -366,10 +377,14 @@ async function renderTeam() {
       <h1>Hi ${esc(d.admin)}.</h1>
       <p class="sub">Every number fills itself from Phorest. Tap a person to see their page and leave a note.</p>
     </section>
+    ${EMBED ? '' : `<div class="dept-seg" role="group" aria-label="Team">${['all', 'Hair', 'Beauty'].map(x =>
+      `<button type="button" data-dept="${x}" class="${DEPT === x ? 'on' : ''}">${x === 'all' ? 'All' : x}</button>`).join('')}</div>`}
     ${Object.keys(groups).map(b => `
       <div class="branch-h">${esc(BR[b] || b)}</div>
-      <div class="team-grid">${groups[b].map(s => `
-        <a class="member" href="?t=${encodeURIComponent(s.token)}&admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&staff=${slugOf(s.name)}">
+      ${['Hair', 'Beauty'].filter(dp => groups[b].some(s => s.dept === dp)).map(dp => `
+      ${DEPT === 'all' ? `<div class="dept-h">${dp}</div>` : ''}
+      <div class="team-grid">${groups[b].filter(s => s.dept === dp).map(s => `
+        <a class="member" href="?t=${encodeURIComponent(s.token)}&admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}&staff=${slugOf(s.name)}">
           ${photoFor(s.keys)
             ? `<img class="photo" src="${photoFor(s.keys)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;ini&quot;>${esc(initials(s.name))}</div>'">`
             : `<div class="ini">${esc(initials(s.name))}</div>`}
@@ -378,7 +393,8 @@ async function renderTeam() {
           <div class="mini">${fmt(s.numbers.total_revenue, 'aed')} · ${fmt(s.numbers.clients, 'num')} clients<br>Rebook ${fmt(s.numbers.rebooking_pct, 'pct')}</div>
           ${s.notes ? `<div class="lv">${s.notes} note${s.notes > 1 ? 's' : ''}</div>` : ''}
           ${!s.email ? `<div class="flag">No email on file</div>` : (!s.send_email ? `<div class="flag">Email paused</div>` : '')}
-        </a>`).join('')}</div>`).join('')}`;
+        </a>`).join('')}</div>`).join('')}`).join('')}`;
+  app.querySelectorAll('.dept-seg [data-dept]').forEach(b => b.onclick = () => { DEPT = b.dataset.dept; renderTeam(); });
 }
 
 (async () => {

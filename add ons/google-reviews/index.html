@@ -96,10 +96,22 @@ table.ex tr.tot td{font-weight:700;border-bottom:none}
 .note b{color:var(--text)}
 a.gbp{color:var(--rose);font-size:12px;text-decoration:none}
 a.gbp:hover{text-decoration:underline}
+/* staff named in reviews: photos keep their own shape, no circle */
+.srow{display:grid;grid-template-columns:40px 150px 1fr 150px;gap:10px;align-items:center;padding:5px 6px;cursor:pointer;border-radius:8px}
+.srow:hover .sname b{color:var(--rose)}
+.srow.on{background:var(--surface2)}
+.srow img,.srow .sph{height:40px;width:auto;max-width:40px;object-fit:contain;display:block}
+.sname{min-width:0;line-height:1.2}.sname b{display:block;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sname small{color:var(--faint);font-size:11px}
+.stag{display:inline-flex;align-items:center;gap:5px;font:inherit;font-size:12px;font-weight:600;padding:2px 9px 2px 3px;border-radius:999px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer}
+.stag img{height:20px;width:auto;object-fit:contain}
+.stag:hover{border-color:var(--rose)}
+.rtext mark{background:#FAEEDA;color:inherit;font-weight:600;padding:0 2px;border-radius:3px}
+[data-theme="dark"] .rtext mark{background:var(--rose-soft)}
 html.embedded,html.embedded body{overflow:hidden}
 html.embedded .wrap{padding-top:8px}
 html.embedded .filters{position:static}
-@media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.brow{grid-template-columns:110px 1fr 70px}.filters{position:static}}
+@media (max-width:900px){.srow{grid-template-columns:36px 1fr 90px}.srow .bar{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.brow{grid-template-columns:110px 1fr 70px}.filters{position:static}}
 </style>
 </head>
 <body>
@@ -116,6 +128,7 @@ html.embedded .filters{position:static}
   <div class="frow"><span class="flabel">Branch</span><div id="fBranch" class="frow"></div></div>
   <div class="frow"><span class="flabel">Rating</span><div id="fStars" class="frow"></div></div>
   <div class="frow"><span class="flabel">Recency</span><div id="fRec" class="frow"></div></div>
+  <div class="frow"><span class="flabel">Staff</span><select id="fStaff"></select></div>
   <div class="frow"><span class="flabel">More</span>
     <div class="frow" id="fMore"></div>
     <input class="search" id="q" placeholder="Search review text, reviewer, stylist name…">
@@ -145,6 +158,12 @@ html.embedded .filters{position:static}
   </div>
 </div>
 
+<div class="card" style="margin-bottom:18px">
+  <h2>Staff named in reviews · filtered reviews</h2>
+  <div class="legend"><span><i style="background:var(--s1)"></i>1★</span><span><i style="background:var(--s2)"></i>2★</span><span><i style="background:var(--s3)"></i>3★</span><span><i style="background:var(--s4)"></i>4★</span><span><i style="background:var(--s5)"></i>5★</span><span style="margin-left:auto">Tap a name to see their reviews</span></div>
+  <div id="staffBoard"></div>
+</div>
+
 <div class="listhead">
   <h2 id="listTitle">Reviews</h2>
   <select id="sort">
@@ -159,6 +178,7 @@ html.embedded .filters{position:static}
 <div class="tip" id="tip"></div>
 
 
-<script src="app.js?v=4"></script>
+<script src="../../staff-profiles.js?v=20260924n"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

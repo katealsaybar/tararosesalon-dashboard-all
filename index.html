@@ -2745,6 +2745,15 @@ table.tp-cmp td.bad{color:var(--bad)}
           style="width:100%;font:inherit;padding:10px;border:1px solid var(--border);border-radius:8px;background:transparent;color:inherit">
         <button onclick="spfSaveKey()" style="margin-top:10px;font:inherit;font-weight:600;padding:9px 16px;border-radius:8px;border:none;cursor:pointer;background:var(--text);color:var(--bg)">Open</button>
       </div>
+      <div class="sc-bar" id="spfBar" style="display:none">
+        <span class="sc-bar-t">Staff Performance</span>
+        <span class="sc-bar-sp"></span>
+        <div class="sc-seg" role="group" aria-label="Team">
+          <button type="button" data-dept="all" onclick="spfSetDept('all')">All</button>
+          <button type="button" data-dept="Hair" onclick="spfSetDept('Hair')">Hair</button>
+          <button type="button" data-dept="Beauty" onclick="spfSetDept('Beauty')">Beauty</button>
+        </div>
+      </div>
       <iframe id="spfFrame" title="Staff Performance" style="display:none;width:100%;min-height:400px;border:0;background:transparent"></iframe>
       <div id="spfKeyReset" style="display:none;text-align:right;font-size:12px;opacity:.6;margin-top:6px">
         <a href="#" onclick="spfForgetKey();return false" style="color:inherit">Use a different team key</a>
@@ -2753,6 +2762,19 @@ table.tp-cmp td.bad{color:var(--bad)}
   </div>
   <script>
   const SPF_KEY = 'perfAdminKey';
+  // Hair / Beauty / All for the team grid, remembered in this browser.
+  function spfDept(){ try { return localStorage.getItem('perfDept') || 'all'; } catch(e){ return 'all'; } }
+  function spfPaintDept(){
+    const d = spfDept();
+    document.querySelectorAll('#spfBar [data-dept]').forEach(b => b.classList.toggle('on', b.dataset.dept === d));
+  }
+  function spfSetDept(d){
+    try { localStorage.setItem('perfDept', d); } catch(e){}
+    spfPaintDept();
+    const f = document.getElementById('spfFrame');
+    if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'perf-dept', dept: d }, '*');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   function spfGet(){ try { return localStorage.getItem(SPF_KEY); } catch(e){ return null; } }
   function initStaffPerfView(){
     const key = spfGet();
@@ -2760,10 +2782,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     document.getElementById('spfKeyCard').style.display = key ? 'none' : '';
     frame.style.display = key ? '' : 'none';
     document.getElementById('spfKeyReset').style.display = key ? '' : 'none';
+    document.getElementById('spfBar').style.display = key ? '' : 'none';
+    spfPaintDept();
     if (key && !frame.dataset.loaded){
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = new URLSearchParams(location.search).get('staff');
-      frame.src = 'performance/index.html?admin=' + encodeURIComponent(key) + '&embed=1' + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
     }
   }
@@ -2864,7 +2888,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div id="view-reviews" style="display:none">
     <iframe 
       id="reviewsFrame" scrolling="no"
-      src="./add%20ons/google-reviews/index.html?v=4"
+      src="./add%20ons/google-reviews/index.html?v=6"
       style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;display:block;overflow:hidden;">
     </iframe>
   </div>

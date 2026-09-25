@@ -8,7 +8,73 @@ const BRANCHES = ["Khalifa City A, Abu Dhabi","Saadiyat, Abu Dhabi","Al Quoz, Du
 const SHORT = {"Khalifa City A, Abu Dhabi":"Khalifa City A","Saadiyat, Abu Dhabi":"Saadiyat","Al Quoz, Dubai":"Al Quoz","Motor City, Dubai":"Motor City","District 2, Bahrain":"Bahrain"};
 const REC = [["30","Last 30 days"],["90","Last 90 days"],["180","Last 6 months"],["365","Last 12 months"],["730","Last 2 years"],["all","All time"]];
 const ALL = [1,2,3,4,5];
-const state = {branches:new Set(BRANCHES), stars:new Set(ALL), rec:"all", withText:false, noReply:false, q:"", sort:"new"};
+const state = {branches:new Set(BRANCHES), stars:new Set(ALL), rec:"all", withText:false, noReply:false, q:"", sort:"new", staff:""};
+
+// ── Staff named in reviews (Kate, 25 Sep 2026) ───────────────────────────
+// Who a review names is decided by staff_name_variants in Supabase: every
+// spelling we accept per person (name, nicknames, typos clients really made).
+// The Staff Performance pages read the same table (perf_review_names), so the
+// two always agree. Names and photos come from ../../staff-profiles.js, the same
+// list Staff Cards uses, so leavers stay in for history.
+//   loose spellings match in any case ("nikki" = Nikki) at any UAE branch
+//   strict spellings (May, Grace, Shine, Robin...) match only capitalised and at
+//   the person's own branch
+//   never the reviewer's own name; April / May not when they read as a month
+const BR_OF = {KCA:"Khalifa City A, Abu Dhabi", SAA:"Saadiyat, Abu Dhabi", MC:"Motor City, Dubai", AQ:"Al Quoz, Dubai"};
+const MONTH_BEFORE = /(?:\b(?:in|on|of|since|last|this|next|early|late|mid|from|until|till|during|by)\s+)$/i;
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const wordRe = (list, flags) => list.length ? new RegExp("(?<![\\p{L}])(" + list.map(reEsc).join("|") + ")(?![\\p{L}])", flags + "u") : null;
+let STAFF = [], VARIANTS = null;
+async function loadVariants(){
+  try {
+    const res = await fetch(`${SUPA_URL}/rest/v1/staff_name_variants?select=staff_key,variant,strict`, {headers:{apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY}});
+    if (res.ok) VARIANTS = await res.json();
+  } catch (e) { console.warn("staff_name_variants unreachable, matching on first names only", e); }
+}
+function buildStaff(){
+  if (typeof STAFF_PROFILES === "undefined") return;
+  const by = {};
+  (VARIANTS || []).forEach(v => (by[v.staff_key] ||= []).push(v));
+  const seen = new Set();
+  STAFF = Object.entries(STAFF_PROFILES).filter(([k]) => !k.includes("/")).map(([k,p]) => {
+    const label = k.length <= 2 ? k : k.toLowerCase().replace(/(^|\s)[a-z]/g, c => c.toUpperCase());
+    const vs = by[k] || [{variant: label, strict: false}];   // offline: first name only
+    const loose = vs.filter(v => !v.strict).map(v => v.variant).sort((a,b) => b.length - a.length);
+    const strict = vs.filter(v => v.strict).map(v => v.variant).sort((a,b) => b.length - a.length);
+    return {key:k, label, names: vs.map(v => v.variant), branch:BR_OF[p.branch] || null, role:p.role || "", resigned:!!p.resigned,
+      photo: p.photoFull ? "../../" + encodeURI(p.photoFull) : p.photo ? "../../assets/staff/" + encodeURIComponent(p.photo) : null,
+      loose: wordRe(loose, "gi"), strict: wordRe(strict, "g")};
+  }).filter(s => { const id = s.photo || s.key; if (seen.has(id)) return false; seen.add(id); return true; });
+}
+// Which staff a review names, and where, so the text can highlight them.
+function tagStaff(r){
+  r.staff = []; r.hits = [];
+  if (!r.comment || r.branch === "District 2, Bahrain") return;
+  STAFF.forEach(s => {
+    // A client signing off with her own name ("... Maria.") isn't naming a stylist.
+    const own = s.names.find(n => wordRe([n], "i").test(r.reviewer || ""));
+    const hits = [];
+    [[s.loose, true], [s.strict, r.branch === s.branch]].forEach(([re, ok]) => {
+      if (!re || !ok) return;
+      re.lastIndex = 0; let m;
+      while ((m = re.exec(r.comment))) {
+        const w = m[1];
+        if (own && own.toLowerCase() === w.toLowerCase()) continue;
+        if ((w === "April" || w === "May") &&
+            (MONTH_BEFORE.test(r.comment.slice(Math.max(0, m.index - 12), m.index)) || /^\s*\d/.test(r.comment.slice(m.index + w.length)))) continue;
+        hits.push([m.index, m.index + w.length]);
+      }
+    });
+    if (hits.length) { r.staff.push(s.key); r.hits.push(...hits); }
+  });
+}
+const staffBy = k => STAFF.find(s => s.key === k);
+function markNames(r){
+  if (!r.hits || !r.hits.length) return esc(r.comment);
+  const hs = [...r.hits].sort((a,b) => a[0]-b[0]); let out = "", at = 0;
+  hs.forEach(([a,b]) => { if (a < at) return; out += esc(r.comment.slice(at, a)) + "<mark>" + esc(r.comment.slice(a, b)) + "</mark>"; at = b; });
+  return out + esc(r.comment.slice(at));
+}
 const days = d => (TODAY - new Date(d+"T00:00:00"))/864e5;
 const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const setEq = (a,b) => a.size===b.length && b.every(x=>a.has(x));
@@ -25,6 +91,7 @@ function baseFilter(skip){
     (skip==="stars" || state.stars.has(r.stars)) &&
     (skip==="rec" || state.rec==="all" || days(r.date) <= +state.rec) &&
     (!state.withText || r.comment) && (!state.noReply || !r.replied) &&
+    (skip==="staff" || !state.staff || (state.staff==="__any" ? r.staff.length : r.staff.includes(state.staff))) &&
     (!state.q || (r.comment+" "+r.reviewer+" "+r.reply).toLowerCase().includes(state.q.toLowerCase())));
 }
 function chip(label, on, n, fn, extra){
@@ -60,6 +127,15 @@ function renderFilters(){
     const full = isComplete(k, state.branches);
     fr.appendChild(chip(l, state.rec===k, k==="all"?pr.length:pr.filter(r=>days(r.date)<=+k).length, ()=>{state.rec=k;render();}, ""));
   });
+  const fst=document.getElementById("fStaff");
+  if (fst) {
+    const pst=baseFilter("staff"), cnt={};
+    pst.forEach(r=>r.staff.forEach(k=>cnt[k]=(cnt[k]||0)+1));
+    const any=pst.filter(r=>r.staff.length).length;
+    const opts=STAFF.filter(s=>cnt[s.key]||s.key===state.staff).sort((a,b)=>(cnt[b.key]||0)-(cnt[a.key]||0)||a.label.localeCompare(b.label));
+    fst.innerHTML=`<option value="">All reviews</option><option value="__any"${state.staff==="__any"?" selected":""}>Names any staff (${any})</option>`+
+      opts.map(s=>`<option value="${esc(s.key)}"${s.key===state.staff?" selected":""}>${esc(s.label)}${s.resigned?" (former)":""} · ${cnt[s.key]||0}</option>`).join("");
+  }
   const fm=document.getElementById("fMore"); fm.innerHTML="";
   fm.appendChild(chip("With written comment only", state.withText, null, ()=>{state.withText=!state.withText;render();}));
   fm.appendChild(chip("No reply yet", state.noReply, null, ()=>{state.noReply=!state.noReply;render();}));
@@ -107,6 +183,27 @@ function renderBranches(){
     el.appendChild(row);
   });
 }
+// Who clients name, within every filter except the staff one.
+let STAFF_ALL=false;
+function renderStaffBoard(){
+  const el=document.getElementById("staffBoard"); if(!el) return;
+  const F=baseFilter("staff"), rows={};
+  F.forEach(r=>r.staff.forEach(k=>{(rows[k] ||= []).push(r);}));
+  const list=Object.entries(rows).map(([k,rs])=>({s:staffBy(k),rs})).filter(x=>x.s).sort((a,b)=>b.rs.length-a.rs.length||a.s.label.localeCompare(b.s.label));
+  if(!list.length){el.innerHTML=`<div class="empty" style="padding:20px">No staff named in these reviews.</div>`;return;}
+  const max=list[0].rs.length, show=STAFF_ALL?list:list.slice(0,12);
+  el.innerHTML=show.map(({s,rs})=>{
+    const seg=st=>{const k=rs.filter(r=>r.stars===st).length;return k?`<span style="width:${k/max*100}%;background:var(--s${st})" title="${st}★: ${k}"></span>`:"";};
+    const low=rs.filter(r=>r.stars<=3).length, avg=(rs.reduce((a,r)=>a+r.stars,0)/rs.length).toFixed(1);
+    return `<div class="srow${state.staff===s.key?" on":""}" data-k="${esc(s.key)}">
+      ${s.photo?`<img src="${s.photo}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`:`<span class="sph"></span>`}
+      <div class="sname"><b>${esc(s.label)}</b><small>${esc((s.branch?SHORT[s.branch]:"")+(s.resigned?" · former":""))}</small></div>
+      <div class="bar">${ALL.map(seg).join("")}</div>
+      <div class="bval"><b>${rs.length}</b> <small>${avg}★${low?` · ${low} complaint${low===1?"":"s"}`:""}</small></div></div>`;}).join("")
+    + (list.length>12?`<div style="text-align:center;margin-top:8px"><button class="chip" id="staffAll">${STAFF_ALL?"Show top 12":`Show all ${list.length}`}</button></div>`:"");
+  el.querySelectorAll(".srow").forEach(r=>r.onclick=()=>{state.staff=state.staff===r.dataset.k?"":r.dataset.k;render();});
+  const b=document.getElementById("staffAll"); if(b) b.onclick=()=>{STAFF_ALL=!STAFF_ALL;renderStaffBoard();};
+}
 function renderTimeline(F){
   const tl=document.getElementById("tl"), lab=document.getElementById("tlab"); tl.innerHTML=""; lab.innerHTML="";
   let buckets=[], keyOf, per;
@@ -148,12 +245,14 @@ function renderList(F){
     return `<div class="rev s${r.stars}">
       <div class="rtop"><span class="stars">${st}</span><span class="who">${esc(r.reviewer||"Anonymous")}</span><span class="tag">${SHORT[r.branch]}</span>
       ${r.replied?'<span class="tag ok">Replied</span>':'<span class="tag no">No reply</span>'}
+      ${r.staff.map(k=>{const s=staffBy(k);return s?`<button class="stag" data-k="${esc(k)}">${s.photo?`<img src="${s.photo}" alt="">`:""}${esc(s.label)}</button>`:"";}).join("")}
       <span class="date" title="${r.approx?'Approximate date from Google Maps':r.date}">${r.approx?esc((r.when||'').replace(/^Edited /,'edited '))+' · approx.':fmtDate(r.date)+' · '+ago(r.date)}</span></div>
-      ${r.comment?`<div class="rtext${long?" clamp":""}" id="t${i}">${esc(r.comment)}</div>${long?`<button class="more" onclick="document.getElementById('t${i}').classList.toggle('clamp');this.textContent=this.textContent==='Show more'?'Show less':'Show more'">Show more</button>`:""}`:`<div class="rtext none">Rating only, no written comment</div>`}
+      ${r.comment?`<div class="rtext${long?" clamp":""}" id="t${i}">${markNames(r)}</div>${long?`<button class="more" onclick="document.getElementById('t${i}').classList.toggle('clamp');this.textContent=this.textContent==='Show more'?'Show less':'Show more'">Show more</button>`:""}`:`<div class="rtext none">Rating only, no written comment</div>`}
       ${r.replied?`<details class="reply"><summary><b>Our reply</b></summary><div style="white-space:pre-wrap;margin-top:6px">${esc(r.reply)}</div></details>`:""}
       ${r.url?`<div style="margin-top:8px"><a class="gbp" href="${r.url}" target="_blank" rel="noopener">Open in Business Profile →</a></div>`:""}
     </div>`;}).join("") + (L.length>LIMIT?`<div style="text-align:center;margin-top:12px"><button class="chip" id="moreBtn">Show ${Math.min(60,L.length-LIMIT)} more of ${L.length-LIMIT} remaining</button></div>`:"");
   const mb=document.getElementById("moreBtn"); if(mb) mb.onclick=()=>{LIMIT+=60;renderList(F);};
+  el.querySelectorAll(".stag").forEach(b=>b.onclick=()=>{state.staff=b.dataset.k;render();window.scrollTo(0,0);});
 }
 function renderNote(){
   const n=R.length.toLocaleString(), el=document.getElementById("note");
@@ -187,11 +286,11 @@ function loadOffline(){
 function render(){
   const F=baseFilter();
   LIMIT=60;
-  renderFilters(); renderKpis(F); renderNote(); renderBranches(); renderTimeline(F); renderList(F);
+  renderFilters(); renderKpis(F); renderNote(); renderBranches(); renderStaffBoard(); renderTimeline(F); renderList(F);
 }
 document.getElementById("q").oninput=e=>{state.q=e.target.value;render();};
 document.getElementById("sort").onchange=e=>{state.sort=e.target.value;render();};
-document.getElementById("reset").onclick=()=>{Object.assign(state,{branches:new Set(BRANCHES),stars:new Set(ALL),rec:"all",withText:false,noReply:false,q:""});document.getElementById("q").value="";render();};
+document.getElementById("reset").onclick=()=>{Object.assign(state,{branches:new Set(BRANCHES),stars:new Set(ALL),rec:"all",withText:false,noReply:false,q:"",staff:""});document.getElementById("q").value="";render();};
 // Embedded in the dashboard: no own toggle and no own scrollbar. The dashboard's
 // sticky-header toggle sends the theme by postMessage (direct parent access is
 // blocked when the dashboard is opened from file://), and this page reports its
@@ -210,4 +309,6 @@ if(window.parent!==window){
   window.parent.postMessage({type:"trs-reviews-ready"},"*");
 }
 loadLive().catch(e=>{console.warn("Google reviews: live load failed, using the 24 Sep copy.",e);return loadOffline();})
-  .then(()=>{TODAY=new Date(META.generated+"T00:00:00");renderExact();render();});
+  .then(loadVariants)
+  .then(()=>{TODAY=new Date(META.generated+"T00:00:00");buildStaff();R.forEach(tagStaff);renderExact();render();});
+document.getElementById("fStaff").onchange=e=>{state.staff=e.target.value;render();};

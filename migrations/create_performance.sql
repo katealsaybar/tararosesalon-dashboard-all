@@ -34,7 +34,6 @@ create table if not exists perf_staff (
   dept          text not null check (dept in ('Hair','Beauty')),
   level         text,                     -- perf_benchmarks.level, null = no benchmark (beauty)
   email         text,
-  mention_names text[],                   -- names a Google review uses for them (default: first name)
   send_email    boolean not null default true,
   active        boolean not null default true,
   token         uuid not null unique default gen_random_uuid(),
@@ -77,6 +76,99 @@ create or replace function perf_is_colour(item text) returns boolean
 language sql immutable as $$
   select coalesce(item ~* '(toner|toning|root colou?r|root hairline|root stretch|bleach|colou?r|balayage|foil|ombre|highlight|max\. bright|face frame|partial)'
      and item !~* '(polish|biab|gel|nail|lock trt|shampoo|conditioner|mask|brow|lash|consultation)', false)
+$$;
+
+-- ── Staff name variants: the basis for "which staff does this review name" ─
+-- (Kate, 25 Sep 2026). One row per spelling we accept for a person: their name,
+-- nicknames, and typos clients actually made (mined from google_reviews with
+-- fuzzystrmatch's levenshtein, each one checked by hand). staff_key = the
+-- STAFF_PROFILES key in staff-profiles.js, which is also what perf_staff
+-- ledger_names holds. strict = the spelling is also an ordinary word or a common
+-- name, so it only counts capitalised and at the person's own branch; everything
+-- else matches in any case ("nikki" = Nikki). Read by the Google Reviews add-on
+-- (anon, read only) and by perf_review_names(). New typo? Add a row here, both
+-- pages pick it up.
+create extension if not exists fuzzystrmatch with schema extensions;
+
+create table if not exists staff_name_variants (
+  staff_key  text not null,
+  variant    text not null,
+  kind       text not null check (kind in ('name','nickname','typo')),
+  strict     boolean not null default false,
+  note       text,
+  created_at timestamptz not null default now(),
+  primary key (staff_key, variant)
+);
+alter table staff_name_variants enable row level security;
+drop policy if exists snv_read on staff_name_variants;
+create policy snv_read on staff_name_variants for select to anon, authenticated using (true);
+
+insert into staff_name_variants (staff_key, variant, kind, strict, note) values
+ ('KATE','Kate','name',false,null),('TEGAN','Tegan','name',false,null),('KATIE','Katie','name',false,null),
+ ('KYLIE','Kylie','name',false,null),('NIKKI','Nikki','name',false,null),('OLENA','Olena','name',false,null),
+ ('CHALANI','Chalani','name',false,null),('LIZANIE','Lizanie','name',false,null),('IRLYN','Irlyn','name',false,null),
+ ('MAY','May','name',true,'also a month and a verb'),('HAZEL MAE','Hazel Mae','name',false,null),('MEVIL','Mevil','name',false,null),
+ ('GRACE','Grace','name',true,'ordinary word'),('MIMI','Mimi','name',false,null),('SHILA','Shila','name',false,null),
+ ('KIM','Kim','name',false,null),('ARNALYN','Arnalyn','name',false,null),('CHONA','Chona','name',false,null),
+ ('ESTHER','Esther','name',false,null),('PEARL','Pearl','name',true,'ordinary word'),('LAILA','Laila','name',false,null),
+ ('EMMA','Emma','name',false,null),('JEIDA','Jeida','name',false,null),('HOLLY','Holly','name',true,'ordinary word'),
+ ('MOLLY','Molly','name',false,null),('APRIL','April','name',true,'also a month'),('BETHANY','Bethany','name',false,null),
+ ('SHELLEY','Shelley','name',false,null),('TAMMY','Tammy','name',false,null),('VICKI','Vicki','name',false,null),
+ ('EDS','Eds','name',false,null),('MYRA','Myra','name',false,null),('HELEN','Helen','name',false,null),
+ ('MONA','Mona','name',false,null),('REDA','Reda','name',false,null),('SANIA','Sania','name',false,null),
+ ('JUDY','Judy','name',false,null),('APOL','Apol','name',false,null),('KATHY','Kathy','name',false,null),
+ ('MARIA','Maria','name',false,null),('XAVRINA','Xavrina','name',false,null),('ALAN','Alan','name',false,null),
+ ('ASHLEIGH','Ashleigh','name',false,null),('LUCY','Lucy','name',false,null),('ELISE','Elise','name',false,null),
+ ('ROBYN','Robyn','name',false,null),('CLARISSA','Clarissa','name',false,null),('XYRHY','Xyrhy','name',false,null),
+ ('VIRGINIJA','Virginija','name',false,null),('ERCELY','Ercely','name',false,null),('RUTH','Ruth','name',true,'ordinary word'),
+ ('IBRAHIM','Ibrahim','name',false,null),('AREANNE','Areanne','name',false,null),('SHINE','Shine','name',true,'ordinary word'),
+ ('MJ','MJ','name',true,'initials, capitals only'),('GALINA','Galina','name',false,null),('IVY','Ivy','name',true,'ordinary word'),
+ ('LUNINGNING','Luningning','name',false,null),('MARGIE','Margie','name',false,null),('ANDREA','Andrea','name',false,null),
+ ('SIMON','Simon','name',false,null),('SAMANTHA','Samantha','name',false,null),('SOPHIE','Sophie','name',false,null),
+ ('TONI','Toni','name',false,null),('ZANDRI','Zandri','name',false,null),('DANIKA','Danika','name',false,null),
+ ('ZANDRA','Zandra','name',false,null),('BEATRIZ','Beatriz','name',false,null),('ZARA','Zara','name',true,'also a shop'),
+ ('BLOSSOM','Blossom','name',true,'ordinary word'),('STUART','Stuart','name',false,null),('GONCALO','Goncalo','name',false,null),
+ ('RACHEL','Rachel','name',false,null),('ROVINA','Rovina','name',false,null),('ROJA','Roja','name',false,null),
+ ('STELLA','Stella','name',true,'also a beer'),
+ ('IRLYN','Lyn','nickname',true,'short, and a common name'),('LUCY','Lucia','nickname',false,'Phorest name Lucia Gonzalez Rodriguez'),
+ ('TAMMY','Tamryn','nickname',false,'Phorest name Tamryn Peter'),('KIM','Kimberly','nickname',false,'Phorest name Kimberly Casas'),
+ ('MJ','Mary Joy','nickname',false,'Phorest name Mary Joy Galos'),('VIRGINIJA','Virginia','nickname',false,'how clients spell it'),
+ ('HAZEL MAE','Hazel','nickname',true,'ordinary word'),('ROJA','Roza','nickname',false,'her IG is ___roza123'),
+ ('ROJA','Rosa','nickname',true,'common name'),('SIMON','Semon','nickname',false,'his IG is semon.hairstyle'),
+ ('EDS','Edz','nickname',false,'22 reviews spell it this way'),('GONCALO','Gonçalo','nickname',false,'with the cedilla'),
+ ('OLENA','Elena','nickname',true,'Russian form, also a common name'),
+ ('ALAN','Allan','typo',false,null),('AREANNE','Areanna','typo',false,null),('BLOSSOM','Blossum','typo',false,null),
+ ('CHALANI','Chalini','typo',false,null),('CLARISSA','Clarisa','typo',false,null),('CLARISSA','Clarrisa','typo',false,null),
+ ('EMMA','Ema','typo',false,null),('ESTHER','Ester','typo',false,null),('IBRAHIM','Ibriham','typo',false,null),
+ ('IBRAHIM','Ibraheem','typo',false,'common spelling'),('IBRAHIM','Ibrahem','typo',false,'common spelling'),
+ ('IRLYN','Irlin','typo',false,null),('IRLYN','Erlyn','typo',false,'common spelling'),
+ ('JEIDA','Jaeida','typo',false,null),('JEIDA','Jaida','typo',false,null),('KYLIE','Kylir','typo',false,null),
+ ('LIZANIE','Lezanie','typo',false,null),('LIZANIE','Lizanne','typo',false,null),('LIZANIE','Lizani','typo',false,null),('LIZANIE','Lizane','typo',false,null),
+ ('LUCY','Lucie','typo',false,null),('MEVIL','Melvil','typo',false,null),('MOLLY','Moly','typo',false,null),
+ ('MONA','Mouna','typo',false,null),('NIKKI','Nicki','typo',false,null),('NIKKI','Niki','typo',false,null),
+ ('NIKKI','Nilki','typo',false,null),('NIKKI','Nikii','typo',false,null),('NIKKI','Nicky','typo',false,'common spelling'),
+ ('OLENA','Oleina','typo',false,null),('OLENA','Olina','typo',false,null),
+ ('RACHEL','Ratchel','typo',false,null),('RACHEL','Rachael','typo',false,null),('ROBYN','Robin','typo',true,'also a bird and a common name'),
+ ('ROVINA','Rovena','typo',false,null),('ROVINA','Ruvina','typo',false,null),('ROVINA','Robina','typo',false,null),
+ ('SAMANTHA','Samanta','typo',false,null),('SANIA','Sanya','typo',false,null),('SANIA','Sanie','typo',false,null),
+ ('SHELLEY','Shelly','typo',false,null),('STELLA','Stela','typo',false,null),('TAMMY','Tamy','typo',false,null),
+ ('TEGAN','Teagan','typo',false,null),('TEGAN','Tiegan','typo',false,null),('TEGAN','Teegan','typo',false,null),
+ ('TONI','Tonni','typo',false,null),('XAVRINA','Xavina','typo',false,null),('XYRHY','Xyrhi','typo',false,'likely spelling')
+on conflict (staff_key, variant) do nothing;
+
+-- "This review names this person", shared by perf_core and perf_reviews and the
+-- same rule as the Google Reviews add-on (app.js tagStaff). keys = the person's
+-- ledger_names; home = the review is at their home branch (strict spellings need
+-- it). Never the reviewer's own name; April / May not when they read as a month.
+create or replace function perf_review_names(keys text[], comment text, reviewer text, home boolean) returns boolean
+language sql stable set search_path = public as $$
+  select exists (
+    select 1 from staff_name_variants v
+    where v.staff_key = any(keys)
+      and case when v.strict then home and comment ~ ('\m' || v.variant || '\M')
+               else comment ~* ('\m' || v.variant || '\M') end
+      and coalesce(reviewer, '') !~* ('\m' || v.variant || '\M')
+      and not (v.variant in ('April','May') and comment ~ ('((in|on|of|since|last|this|next|early|late|mid|from|until|till|during|by) ' || v.variant || '\M|\m' || v.variant || '\s*[0-9])')))
 $$;
 
 -- ── Core numbers for one stylist over a date range ───────────────────────
@@ -126,7 +218,7 @@ language sql stable security definer set search_path = public as $$
                                     when g.branch like 'Motor%' then 'MC' when g.branch like 'Saadiyat%' then 'SAA' end)
                               in (select s.branch union select distinct branch from phorest_staff_daily
                                   where employee_name = s.phorest_name and not is_total and date between d1 and d2)
-                          and exists (select 1 from unnest(s.mention_names) n where g.comment ~ ('\m' || n || '\M'))),
+                          and perf_review_names(s.ledger_names, g.comment, g.reviewer, (case when g.branch like 'Al Quoz%' then 'AQ' when g.branch like 'Khalifa%' then 'KCA' when g.branch like 'Motor%' then 'MC' when g.branch like 'Saadiyat%' then 'SAA' end) = s.branch)),
     'last_date',       p.last_date
   )
   from p, l, u
@@ -199,7 +291,7 @@ $$;
 -- ── Google reviews that name this person ─────────────────────────────────
 -- At a branch they worked that month (or their home branch). Capitalised
 -- whole-word match, so "shine" or "may" in a sentence doesn't count, only Shine
--- or May the person. Nicknames (Lyn, Lucia, Tamryn, MJ) live in mention_names.
+-- or May the person. Spellings, nicknames and typos live in staff_name_variants.
 create or replace function perf_reviews(s perf_staff, d1 date, d2 date) returns jsonb
 language sql stable security definer set search_path = public as $$
   with br as (
@@ -212,7 +304,7 @@ language sql stable security definer set search_path = public as $$
     where g.review_date between d1 and d2
       and (case when g.branch like 'Al Quoz%' then 'AQ' when g.branch like 'Khalifa%' then 'KCA'
                 when g.branch like 'Motor%' then 'MC' when g.branch like 'Saadiyat%' then 'SAA' end) in (select b from br)
-      and exists (select 1 from unnest(s.mention_names) n where g.comment ~ ('\m' || n || '\M'))
+      and perf_review_names(s.ledger_names, g.comment, g.reviewer, (case when g.branch like 'Al Quoz%' then 'AQ' when g.branch like 'Khalifa%' then 'KCA' when g.branch like 'Motor%' then 'MC' when g.branch like 'Saadiyat%' then 'SAA' end) = s.branch)
   )
   select jsonb_build_object(
     'google_reviews', (select count(*) from r),
