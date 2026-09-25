@@ -87,8 +87,13 @@ h2{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:24px;margin-
 .lever{font-size:16px}
 .lever strong{font-weight:700}
 .rows{display:flex;flex-direction:column;gap:6px}
-.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:14px}
-.row .r-val{font-variant-numeric:tabular-nums;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;padding:9px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:14px}
+/* Kate, 25 Sep 2026: the figure, its aim and the pace note ran off the card on a phone.
+   They wrap now, right-aligned under the label when the line cannot hold them. */
+.row .r-val{font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;
+  column-gap:8px;row-gap:2px;margin-left:auto;min-width:0;text-align:right}
+/* The aim and its status dot travel together, so the dot never wraps onto a line alone. */
+.row .r-tail{display:inline-flex;align-items:center;gap:8px}
 .row .r-val small{color:var(--muted)}
 .row.untracked{opacity:.6}
 .score{font-size:14px;margin-bottom:10px}
@@ -119,7 +124,12 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 .member .mini{font-size:12px;margin-top:6px;font-variant-numeric:tabular-nums}
 .member .flag{font-size:11px;color:var(--warn)}
 .branch-h{margin:18px 0 8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.back{display:inline-block;margin-bottom:10px;font-size:13px;color:var(--muted)}
+/* Kate, 25 Sep 2026: the way back to the team reads as a button, not a faint link. */
+.back{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 16px;margin-bottom:10px;
+  border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text);
+  font-size:14px;font-weight:600;text-decoration:none}
+@media(hover:hover){.back:hover{border-color:var(--text)}}
+@media(max-width:760px),(hover:none) and (max-height:480px){.back{min-height:44px}}
 /* framed inside the dashboard (?embed=1) */
 body.embed{background:transparent}
 body.embed .top{display:none}
@@ -130,7 +140,7 @@ body.embed main{max-width:none}
 .member .photo{display:block;height:96px;width:auto;max-width:100%;margin:0 auto 8px;object-fit:contain}
 .hero-photo{float:right;height:120px;width:auto;max-width:40%;object-fit:contain;margin:0 0 8px 12px}
 .hero::after{content:"";display:block;clear:both}
-.admin-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.admin-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .admin-bar .back{margin-bottom:0}
 .btn.small{margin-top:0;padding:7px 12px;font-size:13px}
 .stars{color:#BA7517;letter-spacing:1px}

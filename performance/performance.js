@@ -236,8 +236,8 @@ function kpiRows(n, bm, pace, keys) {
     if (x.untracked) return `<div class="row untracked"><span>${esc(x.label)}</span><span class="r-val"><small>Not tracked yet · aim ${fmt(b.target, x.fmt)}</small></span></div>`;
     const st = x.unscored ? '' : status(judged(k, n, pace), b);
     const pn = paceNote(k, n, pace);
-    const tail = x.unscored ? `<small>${esc(x.unscored)}</small>` : `<small>/ ${fmt(b.target, x.fmt)}${pn ? ' · ' + esc(pn.toLowerCase()) : ''}</small>`;
-    return `<div class="row"><span>${esc(x.label)}</span><span class="r-val">${fmt(n[k], x.fmt)} ${tail}<span class="dot ${st}"></span></span></div>`;
+    const tail = x.unscored ? `<small>${esc(x.unscored)}</small>` : `<small>/ ${fmt(b.target, x.fmt)}${pn ? ' · ' + esc(pn.charAt(0).toLowerCase() + pn.slice(1)) : ''}</small>`;
+    return `<div class="row"><span>${esc(x.label)}</span><span class="r-val">${fmt(n[k], x.fmt)} <span class="r-tail">${tail}<span class="dot ${st}"></span></span></span></div>`;
   }).join('');
 }
 
@@ -291,7 +291,7 @@ async function renderStylist() {
 
   app.innerHTML = `
     ${ADMIN ? `<div class="admin-bar"><a class="back" href="?admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}">← Your team</a>
-      ${canEdit() ? `<button class="btn small" id="copyLink">Copy ${esc(s.name.split(' ')[0])}'s link</button>` : ''}</div>` : ''}
+      ${canEdit() ? `<button class="btn small" id="copyLink">Open ${esc(s.name.split(' ')[0])}'s view in another window ↗</button>` : ''}</div>` : ''}
     <section class="card hero">
       ${photoFor(s.keys) ? `<img class="hero-photo" src="${photoFor(s.keys)}" alt="" onerror="this.remove()">` : ''}
       <h1>${esc(s.name)}</h1>
@@ -429,10 +429,15 @@ async function renderStylist() {
 
   if (canEdit()) {
     // Their own link: no admin key, no month, so it always opens on the current month.
+    // Kate, 25 Sep 2026: opens it (so you see what they see) and copies it in the same
+    // tap. The window opens first, while the tap still counts as the gesture that
+    // allows a new window; the copy waits on the clipboard after that.
     document.getElementById('copyLink').onclick = async (e) => {
+      const btn = e.currentTarget;
       const link = PUBLIC_PAGE + '?t=' + TOKEN;
-      try { await navigator.clipboard.writeText(link); e.target.textContent = 'Copied'; }
-      catch (err) { prompt('Copy this link:', link); }
+      window.open(link, '_blank', 'noopener');
+      try { await navigator.clipboard.writeText(link); btn.textContent = 'Opened · link copied'; }
+      catch (err) { btn.textContent = 'Opened'; prompt('Copy this link:', link); }
     };
     document.getElementById('noteSave').onclick = async () => {
       const t = document.getElementById('noteText').value;
