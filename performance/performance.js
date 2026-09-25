@@ -267,10 +267,10 @@ async function renderStylist() {
     </section>` : ''}
 
     <section class="card">
-      <div class="eyebrow">Google reviews that name you</div>
+      <div class="eyebrow">Your Google reviews</div>
       ${(n.review_list || []).length ? `<p class="sub">${n.google_reviews} this month${n.review_stars ? ` · average ${n.review_stars} stars` : ''}.</p>
-        ${n.review_list.map(r => `<div class="note"><span class="stars">${'★'.repeat(r.stars || 0)}</span> ${esc(r.comment)}<div class="by">${esc(dayLabel(r.date))}</div></div>`).join('')}`
-        : `<p class="muted">No Google reviews have named you yet this month. Ask happy clients to mention you by name.</p>`}
+        ${n.review_list.map(r => `<div class="note"><span class="stars">${'★'.repeat(r.stars || 0)}</span> ${r.comment ? esc(r.comment) : '<i class="muted">Rating only, no written comment</i>'}<div class="by">${esc(dayLabel(r.date))}${r.how === 'client' ? ' · from your client, who didn\'t name anyone' : ''}</div></div>`).join('')}`
+        : `<p class="muted">No Google reviews for you yet this month. Ask happy clients to mention you by name.</p>`}
     </section>
 
     <section class="card">
@@ -296,8 +296,8 @@ async function renderStylist() {
       <table class="hist"><tr><th>Month</th><th>Revenue</th><th>Clients</th><th>Rebook</th><th>Avg bill</th></tr>${hist}</table></section>` : ''}
 
     <section class="card">
-      <div class="eyebrow">Payslip</div>
-      <p>Your payslip comes attached to your monthly performance email. Only you receive it.</p>
+      <div class="eyebrow">Payslip · ${esc(monthLabel(d.month))}</div>
+      <div id="payslipBox"><p class="muted">Checking for your payslip…</p></div>
     </section>
 
     <section class="card">
@@ -310,6 +310,7 @@ async function renderStylist() {
       <p class="legend">Ask Tara or your manager for the full brochure for each path.</p>
     </section>`;
 
+  loadPayslip();
   document.getElementById('foot').textContent =
     `Reviews to ${dayLabel(d.data_through.reviews)} · sales to ${dayLabel(d.data_through.revenue)} · clients to ${dayLabel(d.data_through.clients)} · column fill to ${dayLabel(d.data_through.column_fill)} · client history to ${dayLabel(d.data_through.client_history)}. Revenue is ex VAT.`;
 
@@ -354,6 +355,41 @@ async function renderStylist() {
       renderStylist();
     });
   }
+}
+
+// Her own payslip for the month, from the private bucket through the payslips
+// edge function. The link it hands back is signed and lasts ten minutes, so it
+// is fetched fresh on the click rather than baked into the page.
+const PAYSLIP_FN = SUPA_URL + '/functions/v1/payslips';
+async function payslipMine() {
+  const r = await fetch(PAYSLIP_FN, {
+    method: 'POST',
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'mine', token: TOKEN, month: MONTH }),
+  });
+  if (!r.ok) throw new Error('payslip ' + r.status);
+  return r.json();
+}
+async function loadPayslip() {
+  const box = document.getElementById('payslipBox');
+  if (!box) return;
+  try {
+    const p = await payslipMine();
+    if (!p.exists) {
+      box.innerHTML = `<p class="muted">Your payslip for this month isn't up yet. It appears here, and comes attached to your monthly email, once the accounts team has uploaded it.</p>`;
+      return;
+    }
+    box.innerHTML = `<p>Your payslip is ready. Only you can open it.</p>
+      <button class="btn" id="payslipOpen">Open your payslip (PDF)</button>`;
+    document.getElementById('payslipOpen').onclick = async () => {
+      const w = window.open('', '_blank');
+      try { const q = await payslipMine(); if (q.url) w.location = q.url; else w.close(); }
+      catch (e) { w.close(); alert("Couldn't open it just now. Try again in a minute."); }
+    };
+  } catch (e) {
+    box.innerHTML = `<p class="muted">Couldn't check for your payslip just now.</p>`;
+  }
+  postHeight();
 }
 
 // ── team view ────────────────────────────────────────────────────────────

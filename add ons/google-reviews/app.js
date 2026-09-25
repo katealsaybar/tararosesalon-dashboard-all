@@ -25,6 +25,15 @@ const MONTH_BEFORE = /(?:\b(?:in|on|of|since|last|this|next|early|late|mid|from|
 const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const wordRe = (list, flags) => list.length ? new RegExp("(?<![\\p{L}])(" + list.map(reEsc).join("|") + ")(?![\\p{L}])", flags + "u") : null;
 let STAFF = [], VARIANTS = null;
+// Reviews that name nobody but came from a client of that stylist within 14 days
+// of a visit (google_review_client_credit view, built from the sales lines).
+let CLIENT_CREDIT = {};
+async function loadClientCredit(){
+  try {
+    const res = await fetch(`${SUPA_URL}/rest/v1/google_review_client_credit?select=review_id,staff_key`, {headers:{apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY}});
+    if (res.ok) (await res.json()).forEach(c => { if (c.staff_key) (CLIENT_CREDIT[c.review_id] ||= []).push(c.staff_key); });
+  } catch (e) { console.warn("google_review_client_credit unreachable", e); }
+}
 async function loadVariants(){
   try {
     const res = await fetch(`${SUPA_URL}/rest/v1/staff_name_variants?select=staff_key,variant,strict`, {headers:{apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY}});
@@ -48,8 +57,9 @@ function buildStaff(){
 }
 // Which staff a review names, and where, so the text can highlight them.
 function tagStaff(r){
-  r.staff = []; r.hits = [];
-  if (!r.comment || r.branch === "District 2, Bahrain") return;
+  r.staff = []; r.hits = []; r.viaClient = false;
+  if (r.branch === "District 2, Bahrain") return;
+  if (!r.comment) { if (r.id && CLIENT_CREDIT[r.id]) { r.staff = [...new Set(CLIENT_CREDIT[r.id])]; r.viaClient = true; } return; }
   STAFF.forEach(s => {
     // A client signing off with her own name ("... Maria.") isn't naming a stylist.
     const own = s.names.find(n => wordRe([n], "i").test(r.reviewer || ""));
@@ -67,6 +77,9 @@ function tagStaff(r){
     });
     if (hits.length) { r.staff.push(s.key); r.hits.push(...hits); }
   });
+  // Nobody named: fall back to whoever served this reviewer just before.
+  r.viaClient = false;
+  if (!r.staff.length && r.id && CLIENT_CREDIT[r.id]) { r.staff = [...new Set(CLIENT_CREDIT[r.id])]; r.viaClient = true; }
 }
 const staffBy = k => STAFF.find(s => s.key === k);
 function markNames(r){
@@ -245,7 +258,7 @@ function renderList(F){
     return `<div class="rev s${r.stars}">
       <div class="rtop"><span class="stars">${st}</span><span class="who">${esc(r.reviewer||"Anonymous")}</span><span class="tag">${SHORT[r.branch]}</span>
       ${r.replied?'<span class="tag ok">Replied</span>':'<span class="tag no">No reply</span>'}
-      ${r.staff.map(k=>{const s=staffBy(k);return s?`<button class="stag" data-k="${esc(k)}">${s.photo?`<img src="${s.photo}" alt="">`:""}${esc(s.label)}</button>`:"";}).join("")}
+      ${r.staff.map(k=>{const s=staffBy(k);return s?`<button class="stag${r.viaClient?" via":""}" data-k="${esc(k)}" title="${r.viaClient?"Not named, but this reviewer was their client in the 14 days before":"Named in the review"}">${s.photo?`<img src="${s.photo}" alt="">`:""}${esc(s.label)}${r.viaClient?" · client":""}</button>`:"";}).join("")}
       <span class="date" title="${r.approx?'Approximate date from Google Maps':r.date}">${r.approx?esc((r.when||'').replace(/^Edited /,'edited '))+' · approx.':fmtDate(r.date)+' · '+ago(r.date)}</span></div>
       ${r.comment?`<div class="rtext${long?" clamp":""}" id="t${i}">${markNames(r)}</div>${long?`<button class="more" onclick="document.getElementById('t${i}').classList.toggle('clamp');this.textContent=this.textContent==='Show more'?'Show less':'Show more'">Show more</button>`:""}`:`<div class="rtext none">Rating only, no written comment</div>`}
       ${r.replied?`<details class="reply"><summary><b>Our reply</b></summary><div style="white-space:pre-wrap;margin-top:6px">${esc(r.reply)}</div></details>`:""}
@@ -263,14 +276,14 @@ function renderNote(){
     : `<b>✓ All ${n} Google reviews</b> across the 5 branches, synced from Business Profile. Last sync ${when}.`;
 }
 async function loadLive(){
-  const rows=[], cols="branch,stars,reviewer,comment,review_date,date_approx,when_text,replied,reply,url,source,synced_at";
+  const rows=[], cols="review_id,branch,stars,reviewer,comment,review_date,date_approx,when_text,replied,reply,url,source,synced_at";
   for(let from=0;;from+=1000){
     const res=await fetch(`${SUPA_URL}/rest/v1/google_reviews?select=${cols}&order=review_date.desc,review_id`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+SUPA_KEY,Range:`${from}-${from+999}`}});
     if(!res.ok) throw new Error("google_reviews "+res.status);
     const page=await res.json(); rows.push(...page); if(page.length<1000) break;
   }
   if(!rows.length) throw new Error("google_reviews is empty");
-  R=rows.map(r=>({branch:r.branch,stars:r.stars,reviewer:r.reviewer,date:r.review_date,comment:r.comment||"",replied:r.replied,reply:r.reply||"",url:r.url,approx:r.date_approx,when:r.when_text}));
+  R=rows.map(r=>({id:r.review_id,branch:r.branch,stars:r.stars,reviewer:r.reviewer,date:r.review_date,comment:r.comment||"",replied:r.replied,reply:r.reply||"",url:r.url,approx:r.date_approx,when:r.when_text}));
   SYNC={last:rows.reduce((m,r)=>r.synced_at>m?r.synced_at:m,""),seedOnly:rows.every(r=>r.source==="seed")};
   const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Dubai"});
   const totals={},exact={},avg={},cover={};
@@ -309,6 +322,6 @@ if(window.parent!==window){
   window.parent.postMessage({type:"trs-reviews-ready"},"*");
 }
 loadLive().catch(e=>{console.warn("Google reviews: live load failed, using the 24 Sep copy.",e);return loadOffline();})
-  .then(loadVariants)
+  .then(()=>Promise.all([loadVariants(), loadClientCredit()]))
   .then(()=>{TODAY=new Date(META.generated+"T00:00:00");buildStaff();R.forEach(tagStaff);renderExact();render();});
 document.getElementById("fStaff").onchange=e=>{state.staff=e.target.value;render();};

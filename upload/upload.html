@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=19"></script>
+<script src="upload.js?v=20"></script>
 <script src="name-aliases.js?v=4"></script>
 <!-- staff-profiles.js wants canonicalStaffName() from name-aliases.js above it,
      same load order the dashboard itself uses (its own comment says so). -->
@@ -22,6 +22,7 @@
 <script src="sheet-sync.js?v=12"></script>
 <script src="targets.js?v=2"></script>
 <script src="team-roster.js?v=1"></script>
+<script src="payslips.js?v=1"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
 <script src="data-watch.js?v=1"></script>
 
@@ -435,6 +436,28 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
 /* TEAM ROSTER — one branch block per group, one row per person, the mini-toggle
    from above re-used at row scale rather than a second switch component. */
+/* payslips tab */
+.ps-top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:6px 0 14px}
+.ps-month{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.ps-month select{font:inherit;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 8px}
+.ps-count{font-size:14px}
+.ps-key{margin-left:auto;font-size:12px;color:var(--muted)}
+.ps-drop{border:1.5px dashed var(--border);border-radius:12px;padding:18px;background:var(--surface2);text-align:center;margin-bottom:14px;transition:border-color .2s,background .2s}
+.ps-drop.dragover{border-color:var(--accent);background:var(--bg)}
+.ps-link{color:var(--accent);text-decoration:underline;cursor:pointer}
+.ps-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.ps-pending{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:16px;background:var(--surface)}
+.ps-prow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--border2)}
+.ps-prow:last-of-type{border-bottom:none}
+.ps-prow select{font:inherit;font-size:13px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 8px}
+.ps-fname{font-weight:600;font-size:13.5px;min-width:200px;word-break:break-all}
+.ps-err{color:var(--bad);font-size:13px}
+.ps-ok{color:var(--good);font-size:13px;font-weight:600}
+.ps-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 6px;border-bottom:1px solid var(--border2)}
+.ps-row.done .ps-name::after{content:" ✓";color:var(--good)}
+.ps-name{font-weight:600;font-size:14.5px}
+.ps-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.ps-pick{display:inline-block}
 .roster-branch{margin-bottom:22px}
 .roster-branch:last-child{margin-bottom:4px}
 .roster-branch-hd{font-size:12.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding-bottom:8px;margin-bottom:6px;border-bottom:1px solid var(--border2)}
@@ -759,6 +782,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <button class="tab-btn" data-tab="salestx" onclick="switchTab(event, 'salestx')"><span class="tab-label">Sales Transactions</span><span class="tab-qual">Phorest</span><span class="tab-pip" id="tabPipSalestx"></span></button>
       <div class="tab-grp">Once a month</div>
       <button class="tab-btn" data-tab="targets" onclick="switchTab(event, 'targets')">Targets<span class="tab-qual">Monthly</span><span class="tab-pip" id="tabPipTargets"></span></button>
+      <button class="tab-btn" data-tab="payslips" onclick="switchTab(event, 'payslips')">Payslips<span class="tab-qual">PDF</span></button>
       <div class="tab-grp">Reference</div>
       <button class="tab-btn" data-tab="products" onclick="switchTab(event, 'products')">Products</button>
       <button class="tab-btn" data-tab="service" onclick="switchTab(event, 'service')">Services<span class="tab-qual">Yearly</span></button>
@@ -1360,6 +1384,16 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
      writing to the staff_status table — the dashboard's Staff Cards (Stylist
      Cards view) read that table over staff-profiles.js's own hardcoded
      `resigned` field, so this replaces a code edit with a click. -->
+<!-- ══ PAYSLIPS TAB ══ Accounts / admin upload one PDF per person per month.
+     Private bucket behind the payslips edge function; see upload/payslips.js. -->
+<div class="tab-content" id="tab-payslips">
+  <div class="upload-card">
+    <div class="card-title">Payslips</div>
+    <div class="card-sub">One PDF per person for the month. Each stylist sees only her own, on her performance page and attached to her monthly email.</div>
+    <div id="payslipHost">Loading…</div>
+  </div>
+</div>
+
 <div class="tab-content" id="tab-roster">
   <div class="upload-card">
     <div class="card-title">Team Roster</div>
