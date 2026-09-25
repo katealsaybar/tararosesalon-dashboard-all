@@ -358,6 +358,21 @@
   .oc-photo{aspect-ratio:auto 375/435}
 }
 
+/* ===== 14. ACCESSIBILITY (P2) ===== */
+/* A visible keyboard ring wherever a control has none of its own. :where() keeps
+   it at zero specificity, so every existing focus style still wins; it only shows
+   on keyboard focus, never on a click or a tap. */
+:where(button,a,[role=button],summary,[tabindex]:not(input):not(select):not(textarea)):focus-visible{
+  outline:2px solid var(--good);outline-offset:2px}
+@media(max-width:760px),(hover:none) and (max-height:480px){
+  /* Muted text at 4.5:1 on every surface it sits on. Measured: light muted2 was
+     4.32 on the tinted surface, the warning amber 3.3-3.7, dark muted2 3.7-4.4,
+     the drawer's section headings 3.1. The smallest change that clears 4.5. */
+  :root:not([data-theme="dark"]){--muted2:#736D67;--warn:#9A6113}
+  :root[data-theme="dark"]{--muted2:rgba(250,248,243,.6)}
+  aside.sidebar{--muted2:rgba(250,248,243,.6)}
+}
+
 /* ===== SMALL PHONES (≤ 480px) ===== */
 @media(max-width:480px){
   .mast-logo,.topbar.stuck .mast-logo{width:88px}

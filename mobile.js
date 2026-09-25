@@ -94,6 +94,8 @@
     const t = typeof dateTo !== 'undefined' ? dateTo : null;
     const rg = rangeShort(f, t);
     out.textContent = rg ? `${br} · ${rg}` : br;
+    // The button is named by its label for a screen reader, so the label says both.
+    if (sheetBtn) sheetBtn.setAttribute('aria-label', 'Filters: ' + out.textContent);
   }
   ['branchChips', 'periodChips', 'mastRange'].forEach(id => {
     const el = $(id);
