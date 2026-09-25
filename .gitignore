@@ -11,3 +11,7 @@
 #
 # If you add something genuinely disposable later, it belongs here. Large source
 # binaries do not — add them to the LFS patterns in .gitattributes instead.
+
+# Mobile audit output (scripts/mobile-audit.py): screenshots carry real figures and
+# staff names, and this is a public Pages repo.
+mobile-audit/
