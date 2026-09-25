@@ -294,7 +294,7 @@
       // changed since the last question.
       var page = buildPage();
       var headers = { "Content-Type": "application/json" };
-      if (ANON_KEY) { headers["apikey"] = ANON_KEY; headers["Authorization"] = "Bearer " + ANON_KEY; }
+      if (ANON_KEY) { headers["apikey"] = ANON_KEY; headers["Authorization"] = "Bearer " + ((window.TRSAuth && TRSAuth.token()) || ANON_KEY); }
 
       fetch(ENDPOINT, { method: "POST", headers: headers, body: JSON.stringify({ question: q, page: page, model: chosen }) })
         .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })

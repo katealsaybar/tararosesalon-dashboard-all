@@ -56,7 +56,10 @@ const NAME_FIXES = {
 // ─────────────────────────────────────────────────────────────────────────
 
 const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
-const SUPA_KEY = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
+// The dashboard's secret (service) key, from Project Settings → Script Properties →
+// DASH_SERVICE_KEY. Since the dashboard sign-in (25 Sep 2026) the public key can't
+// write these tables. Never paste the key itself into this file.
+const SUPA_KEY = PropertiesService.getScriptProperties().getProperty('DASH_SERVICE_KEY');
 
 function detectBranch_(fileName) {
   const lower = fileName.toLowerCase();

@@ -122,7 +122,10 @@ const ROOTS = ROOTS_BY_YEAR[YEAR];
 const LOG_FILE_ID = '1nmf5udEm_kurfJrhpSxQKKbXog2HvuldZnre5QYc-DA';
 
 const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
-const SUPA_KEY = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
+// The dashboard's secret (service) key, from Project Settings → Script Properties →
+// DASH_SERVICE_KEY. Since the dashboard sign-in (25 Sep 2026) the public key can't
+// write these tables. Never paste the key itself into this file.
+const SUPA_KEY = PropertiesService.getScriptProperties().getProperty('DASH_SERVICE_KEY');
 
 const DAY_TABS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
 const SKIP_FILE = /^\s*copy of/i;

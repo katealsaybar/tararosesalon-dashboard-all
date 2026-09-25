@@ -12,6 +12,8 @@
 <link rel="icon" href="assets/favicon-96x96.png" sizes="96x96" type="image/png">
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
+<!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
+<script>window.TRS_AUTH_HASH = location.hash;</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1623,6 +1625,24 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   transition:opacity .2s;
 }
 .login-btn:hover{opacity:0.88;}
+.login-btn:disabled{opacity:.55;cursor:default;}
+.login-google{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:10px 0;border-radius:10px;border:1px solid var(--border);
+  background:#fff;color:#2A2A2A;cursor:pointer;
+  font-family:'Inter',sans-serif;font-weight:600;font-size:15px;
+  transition:border-color .2s;
+}
+.login-google:hover{border-color:#2A2A2A;}
+.login-or{display:flex;align-items:center;gap:10px;color:var(--muted2);font-size:12px;letter-spacing:.14em;text-transform:uppercase;}
+.login-or::before,.login-or::after{content:'';flex:1;border-top:1px solid var(--border);}
+.login-email{padding-right:14px;}
+.login-info{font-size:14px;color:var(--text);line-height:1.45;display:none;}
+.login-info.visible{display:block;}
+.login-links{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;}
+.login-links a{color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer;}
+.login-links a:hover{color:var(--text);}
+.login-links:has(a:only-child){justify-content:center;}
 .login-footer{
   font-size:13px;color:var(--muted2);text-align:center;
   letter-spacing:0.1em;
@@ -2459,15 +2479,24 @@ table.tp-cmp td.bad{color:var(--bad)}
       <div class="login-dash-lbl">Internal Dashboard</div>
     </div>
     <div class="login-divider"></div>
-    <div class="login-label">Enter your access password</div>
-    <div class="login-input-wrap">
-      <input type="password" id="loginInput" class="login-input" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <!-- Sign-in modes (see auth.js): signin · signup · forgot · reset · denied -->
+    <div class="login-label" id="loginTitle">Sign in</div>
+    <button class="login-google" id="loginGoogle" onclick="doGoogleLogin()">
+      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+      Continue with Google
+    </button>
+    <div class="login-or" id="loginOr"><span>or</span></div>
+    <input type="email" id="loginEmail" class="login-input login-email" placeholder="Email" autocomplete="email" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="login-input-wrap" id="loginPwWrap">
+      <input type="password" id="loginInput" class="login-input" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
       <button class="login-eye" onclick="toggleLoginEye()" id="loginEyeBtn" title="Show/hide password">
         <svg id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
     </div>
     <div id="loginError" class="login-error"></div>
-    <button class="login-btn" onclick="doLogin()">Access Dashboard</button>
+    <div id="loginInfo" class="login-info"></div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign in</button>
+    <div class="login-links" id="loginLinks"></div>
     <div id="loginLastUpdated" style="text-align:center;font-size:12px;color:var(--muted2);letter-spacing:0.08em;margin-top:-8px;opacity:0.7;">Checking data freshness...</div>
   </div>
 </div>
@@ -2479,18 +2508,16 @@ table.tp-cmp td.bad{color:var(--bad)}
 // freshness badge uses. It used to read weekly_data/daily_data, both retired at
 // the end of May 2026, so the login screen was frozen on "1 Jun 2026" ever since
 // (Kate, 2026-08-13).
+// Since the sign-in (25 Sep 2026) it asks dashboard_data_asof(), the one thing the
+// public key may still read before someone signs in.
 (function(){
   const SUPA_URL2 = 'https://gvijxenafoowajqktqvd.supabase.co';
   const SUPA_KEY2 = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
-  const headers = {'apikey':SUPA_KEY2,'Authorization':'Bearer '+SUPA_KEY2};
-  Promise.all([
-    fetch(`${SUPA_URL2}/rest/v1/branch_staff_daily?select=created_at&order=created_at.desc.nullslast&limit=1`,{headers}).then(r=>r.json()).catch(()=>[]),
-    fetch(`${SUPA_URL2}/rest/v1/phorest_staff_daily?select=created_at&order=created_at.desc.nullslast&limit=1`,{headers}).then(r=>r.json()).catch(()=>[]),
-  ]).then(([ledgerRows, phorestRows]) => {
+  const headers = {'apikey':SUPA_KEY2,'Authorization':'Bearer '+SUPA_KEY2,'Content-Type':'application/json'};
+  fetch(`${SUPA_URL2}/rest/v1/rpc/dashboard_data_asof`,{method:'POST',headers,body:'{}'}).then(r=>r.json()).then(asof => {
     const el=document.getElementById('loginLastUpdated');
-    const candidates=[ledgerRows?.[0]?.created_at, phorestRows?.[0]?.created_at].filter(Boolean).map(d=>new Date(d));
-    if(!el||!candidates.length)return;
-    const latest=new Date(Math.max(...candidates));
+    if(!el||!asof||typeof asof!=='string')return;
+    const latest=new Date(asof);
     // Ask for Asia/Dubai directly. The old version shifted the timestamp by hand
     // and then formatted it in the browser's own zone, which double-counted the
     // offset and printed a GST upload 8 hours late (Kate, 2026-08-13).
@@ -3033,7 +3060,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div id="view-reviews" style="display:none">
     <iframe 
       id="reviewsFrame" scrolling="no"
-      src="./add%20ons/google-reviews/index.html?v=8"
+      src="./add%20ons/google-reviews/index.html?v=9"
       style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;display:block;overflow:hidden;">
     </iframe>
   </div>
@@ -3093,6 +3120,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925c"></script>
 <script src="dashboard.js?v=20260925c"></script>
+<!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
+<script src="auth.js?v=20260925a"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260924a"></script>
 <script src="compare.js?v=20260924g"></script>
@@ -3109,35 +3138,127 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ask-widget.js?v=20260924c"></script>
 <script>
 
-// ── PASSWORD GATE ────────────────────────────────────────────
-const PASSWORDS = {
-  'Coordinators2026@': 'coordinator',
-  'AbuDhabi2026@':     'admin'
+// ── SIGN-IN GATE ─────────────────────────────────────────────
+// Supabase Auth since 25 Sep 2026 (auth.js): Google, or email + password, with
+// forgot-password. The two shared passwords that sat here are gone. Who gets in is
+// public.dashboard_users; the role there ('admin' / 'coordinator') replaces the
+// role each password used to carry. ?next=<path> sends people back to the page
+// that sent them here (the Upload Portal does this).
+let GATE_MODE = 'signin';
+const GATE_BACK = location.origin + location.pathname;
+
+const GATE_MODES = {
+  signin: { title:'Sign in', btn:'Sign in', google:true, email:true, pw:true,
+            links:[['Forgot password?','forgot'],['First time? Create a password','signup']] },
+  signup: { title:'Create your password', btn:'Create account', google:true, email:true, pw:true,
+            links:[['Back to sign in','signin']] },
+  forgot: { title:'Reset your password', btn:'Send reset link', google:false, email:true, pw:false,
+            links:[['Back to sign in','signin']] },
+  reset:  { title:'Choose a new password', btn:'Save password', google:false, email:false, pw:true, links:[] },
+  denied: { title:'Not on the list yet', btn:'Sign out', google:false, email:false, pw:false, links:[] },
 };
 
-function doLogin(){
-  const val = document.getElementById('loginInput').value;
-  const role = PASSWORDS[val];
-  const errEl = document.getElementById('loginError');
-  if(!role){
-    errEl.textContent = 'Incorrect password. Please try again.';
-    errEl.classList.add('visible');
-    document.getElementById('loginInput').value = '';
-    document.getElementById('loginInput').focus();
+function gateMode(mode, info){
+  GATE_MODE = mode;
+  const m = GATE_MODES[mode];
+  document.getElementById('loginTitle').textContent = m.title;
+  document.getElementById('loginGoogle').style.display = m.google ? '' : 'none';
+  document.getElementById('loginOr').style.display = (m.google && m.email) ? '' : 'none';
+  document.getElementById('loginEmail').style.display = m.email ? '' : 'none';
+  document.getElementById('loginPwWrap').style.display = m.pw ? '' : 'none';
+  document.getElementById('loginInput').placeholder = mode === 'signin' ? 'Password' : 'New password (8+ characters)';
+  document.getElementById('loginInput').autocomplete = mode === 'signin' ? 'current-password' : 'new-password';
+  document.getElementById('loginBtn').textContent = m.btn;
+  document.getElementById('loginLinks').innerHTML = m.links
+    .map(([label, to]) => `<a onclick="gateMode('${to}')">${label}</a>`).join('');
+  gateMsg('', 'error'); gateMsg(info || '', 'info');
+  const first = m.email ? 'loginEmail' : (m.pw ? 'loginInput' : null);
+  if (first) document.getElementById(first).focus();
+}
+
+function gateMsg(text, kind){
+  const el = document.getElementById(kind === 'error' ? 'loginError' : 'loginInfo');
+  el.textContent = text;
+  el.classList.toggle('visible', !!text);
+}
+
+function gateBusy(on){ document.getElementById('loginBtn').disabled = on; }
+
+async function doGoogleLogin(){
+  const { error } = await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: GATE_BACK + location.search } });
+  if (error) gateMsg('Google sign-in is not switched on yet. Use email and password for now.', 'error');
+}
+
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pw = document.getElementById('loginInput').value;
+  gateMsg('', 'error'); gateMsg('', 'info');
+
+  if (GATE_MODE === 'denied') { await sb.auth.signOut(); gateMode('signin'); return; }
+  if (GATE_MODE !== 'reset' && !email) { gateMsg('Enter your email.', 'error'); return; }
+  if ((GATE_MODE === 'signup' || GATE_MODE === 'reset') && pw.length < 8) {
+    gateMsg('Use at least 8 characters.', 'error'); return;
+  }
+  gateBusy(true);
+  try {
+    if (GATE_MODE === 'signin') {
+      const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+      if (error) {
+        gateMsg(/confirm/i.test(error.message)
+          ? 'Confirm your email first. The link is in your inbox.'
+          : 'That email and password don’t match. If you usually use Google, use the Google button, or set a password with Forgot password.', 'error');
+        document.getElementById('loginInput').value = '';
+        return;
+      }
+      await enterIfAllowed();
+    } else if (GATE_MODE === 'signup') {
+      const ok = await sb.rpc('dashboard_email_allowed', { p_email: email });
+      if (ok.data !== true) { gateMsg('That email isn’t on the dashboard list. Ask Kate to add you.', 'error'); return; }
+      const { data, error } = await sb.auth.signUp({ email, password: pw, options:{ emailRedirectTo: GATE_BACK } });
+      if (error) { gateMsg(error.message, 'error'); return; }
+      if (data.session) { await enterIfAllowed(); return; }
+      gateMode('signin', 'Check your inbox for a confirmation link, then sign in here. If you already have an account, use Forgot password.');
+      document.getElementById('loginEmail').value = email;
+    } else if (GATE_MODE === 'forgot') {
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: GATE_BACK });
+      if (error) { gateMsg('Couldn’t send the email just now. Try again in a minute.', 'error'); return; }
+      gateMsg('If that email is on the list, a reset link is on its way. Check spam too.', 'info');
+    } else if (GATE_MODE === 'reset') {
+      const { error } = await sb.auth.updateUser({ password: pw });
+      if (error) { gateMsg(error.message, 'error'); return; }
+      document.getElementById('loginInput').value = '';
+      await enterIfAllowed();
+    }
+  } finally { gateBusy(false); }
+}
+
+// Signed in: on the list opens the dashboard (or goes back to ?next=), otherwise says so.
+async function enterIfAllowed(){
+  const role = await TRSAuth.role();
+  if (!role) {
+    const { data } = await sb.auth.getUser();
+    gateMode('denied', `${data.user?.email || 'This account'} isn’t on the dashboard list. Ask Kate to add you, or sign out and use another account.`);
     return;
   }
-  errEl.classList.remove('visible');
-  localStorage.setItem('trsRole', role);
+  const next = new URLSearchParams(location.search).get('next');
+  if (next && next.startsWith('/') && !next.startsWith('//')) { location.replace(next); return; }
+  history.replaceState(null, '', location.pathname + location.search);
+  enterDashboard(role);
+}
+
+let DASHBOARD_OPEN = false;
+async function enterDashboard(role){
+  if (DASHBOARD_OPEN) return;
+  DASHBOARD_OPEN = true;
   applyRole(role);
   document.getElementById('loginGate').style.display = 'none';
   document.getElementById('dashboardWrap').style.display = 'block';
-  loadData().then(() => {
-    startFreshnessWatch();
-    const params = new URLSearchParams(window.location.search);
-    const activeView = params.get('view') || 'dashboard';
-    const btn = document.querySelector(`[onclick*="${activeView}"]`);
-    showView(activeView, btn || null);
-  });
+  await loadData();
+  startFreshnessWatch();
+  const params = new URLSearchParams(window.location.search);
+  const activeView = params.get('view') || 'dashboard';
+  const btn = document.querySelector(`[onclick*="${activeView}"]`);
+  showView(activeView, btn || null);
 }
 
 function applyRole(role){
@@ -3146,12 +3267,10 @@ function applyRole(role){
   });
 }
 
-function doLogout(){
+async function doLogout(){
+  await sb.auth.signOut();
   localStorage.removeItem('trsRole');
-  document.getElementById('dashboardWrap').style.display = 'none';
-  document.getElementById('loginGate').style.display = 'flex';
-  document.getElementById('loginInput').value = '';
-  document.getElementById('loginInput').focus();
+  location.replace(location.pathname);
 }
 
 function toggleLoginEye(){
@@ -3166,38 +3285,22 @@ function toggleLoginEye(){
   }
 }
 
-// TEMP: password gate disabled while we're mid-repair on the dashboard (Kate, 2026-08-03).
-// Flip back to false to restore the login screen.
-const GATE_DISABLED = true;
+// A reset link lands here signed in, flagged as a recovery: ask for the new password first.
+let GATE_RECOVERY = /type=recovery/.test(window.TRS_AUTH_HASH || '');
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') { GATE_RECOVERY = true; gateMode('reset'); }
+});
 
-// Check if already logged in (persists across hard refresh)
+// Already signed in (persists across refreshes), or just back from Google / an email link.
 (async function checkSession(){
-  if (GATE_DISABLED) {
-    applyRole('admin');
-    document.getElementById('loginGate').style.display = 'none';
-    document.getElementById('dashboardWrap').style.display = 'block';
-    await loadData();
-    startFreshnessWatch();
-    const params = new URLSearchParams(window.location.search);
-    const activeView = params.get('view') || 'dashboard';
-    const btn = document.querySelector(`[onclick*="${activeView}"]`);
-    showView(activeView, btn || null);
-    return;
-  }
-  const role = localStorage.getItem('trsRole');
-  if(role && Object.values(PASSWORDS).includes(role)){
-    applyRole(role);
-    document.getElementById('loginGate').style.display = 'none';
-    document.getElementById('dashboardWrap').style.display = 'block';
-    await loadData();
-    startFreshnessWatch();
-    const params = new URLSearchParams(window.location.search);
-    const activeView = params.get('view') || 'dashboard';
-    const btn = document.querySelector(`[onclick*="${activeView}"]`);
-    showView(activeView, btn || null);
-  } else {
-    document.getElementById('loginInput').focus();
-  }
+  localStorage.removeItem('trsRole');   // the old shared-password role, no longer used
+  gateMode('signin');
+  const err = new URLSearchParams((window.TRS_AUTH_HASH || '').slice(1)).get('error_description');
+  if (err) gateMsg(err.replace(/\+/g, ' '), 'error');
+  const { data } = await sb.auth.getSession();
+  if (!data.session) return;
+  if (GATE_RECOVERY) { gateMode('reset'); return; }
+  await enterIfAllowed();
 })();
 
 // ── VIEW SWITCHER

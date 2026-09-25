@@ -3,6 +3,8 @@
 // loaded if Supabase can't be reached, and the note then says it's the old copy.
 const SUPA_URL = "https://gvijxenafoowajqktqvd.supabase.co";
 const SUPA_KEY = "sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO";
+// The dashboard's sign-in session (auth.js, 25 Sep 2026); the public key alone can't read these once Phase B is on.
+const authHeaders = () => (window.TRSAuth ? TRSAuth.headers() : {apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY});
 let R = [], META, TODAY, SYNC = null;
 const BRANCHES = ["Khalifa City A, Abu Dhabi","Saadiyat, Abu Dhabi","Al Quoz, Dubai","Motor City, Dubai","District 2, Bahrain"];
 const SHORT = {"Khalifa City A, Abu Dhabi":"Khalifa City A","Saadiyat, Abu Dhabi":"Saadiyat","Al Quoz, Dubai":"Al Quoz","Motor City, Dubai":"Motor City","District 2, Bahrain":"Bahrain"};
@@ -35,13 +37,13 @@ let STAFF = [], VARIANTS = null;
 let CLIENT_CREDIT = {};
 async function loadClientCredit(){
   try {
-    const res = await fetch(`${SUPA_URL}/rest/v1/google_review_client_credit?select=review_id,staff_key`, {headers:{apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY}});
+    const res = await fetch(`${SUPA_URL}/rest/v1/google_review_client_credit?select=review_id,staff_key`, {headers:authHeaders()});
     if (res.ok) (await res.json()).forEach(c => { if (c.staff_key) (CLIENT_CREDIT[c.review_id] ||= []).push(c.staff_key); });
   } catch (e) { console.warn("google_review_client_credit unreachable", e); }
 }
 async function loadVariants(){
   try {
-    const res = await fetch(`${SUPA_URL}/rest/v1/staff_name_variants?select=staff_key,variant,strict,not_after,label,home_branch,photo`, {headers:{apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY}});
+    const res = await fetch(`${SUPA_URL}/rest/v1/staff_name_variants?select=staff_key,variant,strict,not_after,label,home_branch,photo`, {headers:authHeaders()});
     if (res.ok) VARIANTS = await res.json();
   } catch (e) { console.warn("staff_name_variants unreachable, matching on first names only", e); }
 }
@@ -297,7 +299,7 @@ function renderNote(){
 async function loadLive(){
   const rows=[], cols="review_id,branch,stars,reviewer,comment,review_date,date_approx,when_text,replied,reply,url,source,synced_at";
   for(let from=0;;from+=1000){
-    const res=await fetch(`${SUPA_URL}/rest/v1/google_reviews?select=${cols}&order=review_date.desc,review_id`,{headers:{apikey:SUPA_KEY,Authorization:"Bearer "+SUPA_KEY,Range:`${from}-${from+999}`}});
+    const res=await fetch(`${SUPA_URL}/rest/v1/google_reviews?select=${cols}&order=review_date.desc,review_id`,{headers:{...authHeaders(),Range:`${from}-${from+999}`}});
     if(!res.ok) throw new Error("google_reviews "+res.status);
     const page=await res.json(); rows.push(...page); if(page.length<1000) break;
   }
