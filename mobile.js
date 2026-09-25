@@ -41,6 +41,14 @@
       fw.classList.toggle('closed', wasClosed);
       topbar.classList.remove('tb-hide');
     }
+    // The wordmark's tap area becomes the whole 44px row it sits in.
+    const logo = document.querySelector('.mast-logo'), hitBox = labelHome;
+    if (logo && hitBox) {
+      if (on) { hitBox._logoClick = logo.getAttribute('onclick'); logo.removeAttribute('onclick');
+                hitBox.classList.add('m-logo-hit'); hitBox.onclick = () => backToTop(); }
+      else if (hitBox._logoClick) { logo.setAttribute('onclick', hitBox._logoClick);
+                hitBox.classList.remove('m-logo-hit'); hitBox.onclick = null; }
+    }
     document.body.classList.toggle('phone-chrome', on);
     if (typeof sizeTopbar === 'function') sizeTopbar();
   }

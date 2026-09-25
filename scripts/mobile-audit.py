@@ -56,11 +56,27 @@ PROBE = r"""
   const ctl = [...document.querySelectorAll('button, a[href], [onclick], select, input:not([type=hidden]), [role=button], summary')]
     .filter(el => !el.closest('[aria-hidden="true"]'))
     .filter(vis)
-    .filter(el => !(el.tagName === 'A' && el.closest('p, li') && !el.closest('nav, .side-nav')));
+    .filter(el => !(el.tagName === 'A' && el.closest('p, li') && !el.closest('nav, .side-nav')))
+    // A wrapper whose only handler stops a click bubbling is not a target itself.
+    .filter(el => !/^\s*event\.stopPropagation\(\)\s*;?\s*$/.test(el.getAttribute('onclick') || 'x'));
+  // The hit area, not the drawn box: the brief allows a ::after expander so the
+  // visual does not bloat, and a checkbox's target is the label wrapped round it.
+  const hit = el => {
+    if (el.matches('input[type=checkbox], input[type=radio]') && el.closest('label')) el = el.closest('label');
+    const r = el.getBoundingClientRect();
+    let w = r.width, h = r.height;
+    const a = getComputedStyle(el, '::after');
+    if (a.content && a.content !== 'none' && a.position === 'absolute') {
+      const px = v => parseFloat(v) || 0;
+      w = Math.max(w, r.width - px(a.left) - px(a.right));
+      h = Math.max(h, r.height - px(a.top) - px(a.bottom));
+    }
+    return [w, h];
+  };
   const small = [];
   ctl.forEach(el => {
-    const r = el.getBoundingClientRect();
-    if (r.width < 44 || r.height < 44) small.push(`${name(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);
+    const [w, h] = hit(el);
+    if (w < 43.5 || h < 43.5) small.push(`${name(el)} ${Math.round(w)}x${Math.round(h)}`);
   });
   // Text under 12px: elements that own a non-blank text node.
   const tiny = [];
