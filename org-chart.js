@@ -62,7 +62,7 @@ const ORG_CHART = [
                   role: 'Department',
                   children: [
                     { name: 'Jhoana Cairel', role: 'Salon Coordinator, Khalifa City Branch', photo: 'assets/org-chart/jhoana-cairel.png' },
-                    { name: 'Cristine Bracamonte', role: 'Salon Coordinator, Saadiyat Branch', photo: 'assets/org-chart/cristine-bracamonte.png' },
+                    { name: 'Cristine Bracamonte', role: 'Salon Coordinator, Saadiyat Branch', photo: 'assets/org-chart/cristine-bracamonte.png?v=20260925' },
                     { name: 'Frances Pia Sergio', role: 'Salon Coordinator, Al Quoz Branch', photo: 'assets/org-chart/frances-pia-sergio.png' },
                     { name: 'Shiela Avena', role: 'Salon Coordinator, Motor City Branch', photo: 'assets/org-chart/shiela-avena.png' },
                   ],
