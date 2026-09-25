@@ -92,7 +92,7 @@ table.hist th:first-child,table.hist td:first-child{text-align:left}
 .back{display:inline-block;margin-bottom:10px;font-size:13px;color:var(--muted)}
 /* framed inside the dashboard (?embed=1) */
 body.embed{background:transparent}
-body.embed .top{position:static;background:transparent;border-bottom:none;justify-content:flex-end;padding:0 16px}
+body.embed .top{display:none}
 body.embed .brand{display:none}
 body.embed main{max-width:none}
 @media(min-width:900px){body.embed .team-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
@@ -108,4 +108,8 @@ body.embed main{max-width:none}
 .dept-seg{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--border);border-radius:999px;background:var(--surface);position:sticky;top:64px;z-index:4;margin:4px 0 6px}
 .dept-seg button{appearance:none;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;cursor:pointer}
 .dept-seg button.on{background:var(--btn);color:var(--btn-fg)}
+.sort-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:10px 0 0;font-size:13px;color:var(--muted)}
+.sort-bar select{font:inherit;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 8px;margin-left:4px}
+.sort-dir{appearance:none;font:inherit;font-size:13px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer}
+.team-grid.flat{margin-top:14px}
 .dept-h{margin:6px 0 8px;font-size:12px;font-weight:600;color:var(--muted)}

@@ -2748,6 +2748,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       <div class="sc-bar" id="spfBar" style="display:none">
         <span class="sc-bar-t">Staff Performance</span>
         <span class="sc-bar-sp"></span>
+        <select id="spfMonth" class="sc-btn" aria-label="Month" onchange="spfSetMonth(this.value)"></select>
         <div class="sc-seg" role="group" aria-label="Team">
           <button type="button" data-dept="all" onclick="spfSetDept('all')">All</button>
           <button type="button" data-dept="Hair" onclick="spfSetDept('Hair')">Hair</button>
@@ -2775,6 +2776,22 @@ table.tp-cmp td.bad{color:var(--bad)}
     if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'perf-dept', dept: d }, '*');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+  // Month for the framed page: the last 12, this month first. The frame's own
+  // picker is hidden when embedded, so this is the only one on the dashboard.
+  function spfBuildMonths(){
+    const sel = document.getElementById('spfMonth');
+    if (sel.options.length) return;
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const v = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      sel.add(new Option(d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }), v));
+    }
+  }
+  function spfSetMonth(m){
+    const f = document.getElementById('spfFrame');
+    if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'perf-month', m }, '*');
+  }
   function spfGet(){ try { return localStorage.getItem(SPF_KEY); } catch(e){ return null; } }
   function initStaffPerfView(){
     const key = spfGet();
@@ -2784,10 +2801,11 @@ table.tp-cmp td.bad{color:var(--bad)}
     document.getElementById('spfKeyReset').style.display = key ? '' : 'none';
     document.getElementById('spfBar').style.display = key ? '' : 'none';
     spfPaintDept();
+    spfBuildMonths();
     if (key && !frame.dataset.loaded){
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = new URLSearchParams(location.search).get('staff');
-      frame.src = 'performance/index.html?admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
     }
   }

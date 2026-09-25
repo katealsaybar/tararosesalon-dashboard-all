@@ -20,6 +20,9 @@ const ADMIN = qs.get('admin');
 const EMBED = qs.get('embed') === '1';
 let DEPT = ['Hair', 'Beauty'].includes(qs.get('dept')) ? qs.get('dept') : 'all';
 const keep = EMBED ? '&embed=1' : '';
+// Team grid sort, remembered per browser.
+let SORT = 'branch', SORT_REV = false;
+try { const v = JSON.parse(localStorage.getItem('perf-sort') || 'null'); if (v) { SORT = v.k; SORT_REV = !!v.rev; } } catch (e) {}
 function postHeight() {
   if (EMBED) parent.postMessage({ type: 'perf-height', h: Math.ceil(document.body.getBoundingClientRect().height) + 8 }, '*');
 }
@@ -35,6 +38,10 @@ if (EMBED) {
       // On someone's page, the bar takes you back to the team grid, filtered.
       if (TOKEN) { location.search = `?admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}`; return; }
       renderTeam();
+    }
+    // The dashboard's month picker, in the same bar.
+    if (e.data && e.data.type === 'perf-month' && /^\d{4}-\d{2}$/.test(e.data.m)) {
+      qs.set('m', e.data.m); location.search = qs.toString(); return;
     }
     if (e.data && e.data.type === 'trs-theme') document.documentElement.dataset.theme = e.data.theme === 'dark' ? 'dark' : 'light';
   });
@@ -299,7 +306,7 @@ async function renderStylist() {
       <div class="eyebrow">Payslip · ${esc(monthLabel(d.month))}</div>
       <div id="payslipBox"><p class="muted">Checking for your payslip…</p></div>
     </section>
-
+    ${isHair ? `
     <section class="card">
       <div class="eyebrow">Your three paths at Tara Rose</div>
       <div class="paths">
@@ -308,7 +315,7 @@ async function renderStylist() {
         <div class="path"><b>Rent-a-Chair</b>Pay a monthly chair fee and keep your own clients and bookings.</div>
       </div>
       <p class="legend">Ask Tara or your manager for the full brochure for each path.</p>
-    </section>`;
+    </section>` : ''}`;
 
   loadPayslip();
   document.getElementById('foot').textContent =
@@ -404,33 +411,61 @@ async function renderTeam() {
   // The standalone page carries its own Hair / Beauty switch; in the dashboard
   // the sticky bar above the frame does it.
   const shown = d.staff.filter(s => DEPT === 'all' || s.dept === DEPT);
-  const groups = {};
-  shown.forEach(s => (groups[s.branch] ||= []).push(s));
   const initials = n => n.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-  app.innerHTML = `
-    <section class="card hero">
-      <div class="eyebrow">Your team · ${esc(monthLabel(d.month))}</div>
-      <h1>Hi ${esc(d.admin)}.</h1>
-      <p class="sub">Every number fills itself from Phorest. Tap a person to see their page and leave a note.</p>
-    </section>
-    ${EMBED ? '' : `<div class="dept-seg" role="group" aria-label="Team">${['all', 'Hair', 'Beauty'].map(x =>
-      `<button type="button" data-dept="${x}" class="${DEPT === x ? 'on' : ''}">${x === 'all' ? 'All' : x}</button>`).join('')}</div>`}
-    ${Object.keys(groups).map(b => `
-      <div class="branch-h">${esc(BR[b] || b)}</div>
-      ${['Hair', 'Beauty'].filter(dp => groups[b].some(s => s.dept === dp)).map(dp => `
-      ${DEPT === 'all' ? `<div class="dept-h">${dp}</div>` : ''}
-      <div class="team-grid">${groups[b].filter(s => s.dept === dp).map(s => `
+  // Branch keeps the grouped layout; any other sort is one flat grid with the
+  // branch on each card. Names and branches run A–Z first, numbers high first.
+  const num = v => (v === null || v === undefined || Number.isNaN(v)) ? -Infinity : v;
+  const SORTS = {
+    branch:  { label: 'Branch' },
+    name:    { label: 'Name',    cmp: (a, b) => a.name.localeCompare(b.name) },
+    takings: { label: 'Takings', cmp: (a, b) => num(b.numbers.total_revenue) - num(a.numbers.total_revenue) },
+    clients: { label: 'Clients', cmp: (a, b) => num(b.numbers.clients) - num(a.numbers.clients) },
+    rebook:  { label: 'Rebook %', cmp: (a, b) => num(b.numbers.rebooking_pct) - num(a.numbers.rebooking_pct) },
+  };
+  if (!SORTS[SORT]) SORT = 'branch';
+  const flip = SORT_REV ? -1 : 1;
+  const card = s => `
         <a class="member" href="?t=${encodeURIComponent(s.token)}&admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}&staff=${slugOf(s.name)}">
           ${photoFor(s.keys)
             ? `<img class="photo" src="${photoFor(s.keys)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=&quot;ini&quot;>${esc(initials(s.name))}</div>'">`
             : `<div class="ini">${esc(initials(s.name))}</div>`}
           <div class="nm">${esc(s.name)}</div>
-          <div class="lv">${esc(s.level || s.dept)}</div>
+          <div class="lv">${esc(s.level || s.dept)}${SORT === 'branch' ? '' : ` · ${esc(BR[s.branch] || s.branch)}`}</div>
           <div class="mini">${fmt(s.numbers.total_revenue, 'aed')} · ${fmt(s.numbers.clients, 'num')} clients<br>Rebook ${fmt(s.numbers.rebooking_pct, 'pct')}</div>
           ${s.notes ? `<div class="lv">${s.notes} note${s.notes > 1 ? 's' : ''}</div>` : ''}
           ${!s.email ? `<div class="flag">No email on file</div>` : (!s.send_email ? `<div class="flag">Email paused</div>` : '')}
-        </a>`).join('')}</div>`).join('')}`).join('')}`;
+        </a>`;
+  let body;
+  if (SORT === 'branch') {
+    const groups = {};
+    shown.forEach(s => (groups[s.branch] ||= []).push(s));
+    body = Object.keys(groups).sort((a, b) => flip * (BR[a] || a).localeCompare(BR[b] || b)).map(b => `
+      <div class="branch-h">${esc(BR[b] || b)}</div>
+      ${['Hair', 'Beauty'].filter(dp => groups[b].some(s => s.dept === dp)).map(dp => `
+      ${DEPT === 'all' ? `<div class="dept-h">${dp}</div>` : ''}
+      <div class="team-grid">${groups[b].filter(s => s.dept === dp).map(card).join('')}</div>`).join('')}`).join('');
+  } else {
+    const cmp = SORTS[SORT].cmp;
+    body = `<div class="team-grid flat">${[...shown].sort((a, b) => flip * cmp(a, b) || a.name.localeCompare(b.name)).map(card).join('')}</div>`;
+  }
+  app.innerHTML = `
+    <section class="card hero">
+      <div class="eyebrow">Your team · ${esc(monthLabel(d.month))}</div>
+      <h1>Hi ${esc(d.admin)}.</h1>
+      <p class="sub">Every number fills itself: sales from Phorest, client numbers counted once each from the ledgers. Tap a person to see their page and leave a note.</p>
+    </section>
+    ${EMBED ? '' : `<div class="dept-seg" role="group" aria-label="Team">${['all', 'Hair', 'Beauty'].map(x =>
+      `<button type="button" data-dept="${x}" class="${DEPT === x ? 'on' : ''}">${x === 'all' ? 'All' : x}</button>`).join('')}</div>`}
+    <div class="sort-bar">
+      <label>Sort by <select id="sortSel">${Object.entries(SORTS).map(([k, o]) =>
+        `<option value="${k}"${k === SORT ? ' selected' : ''}>${o.label}</option>`).join('')}</select></label>
+      <button type="button" class="sort-dir" id="sortDir" title="Reverse the order">${['branch', 'name'].includes(SORT) ? (SORT_REV ? 'Z–A' : 'A–Z') : (SORT_REV ? 'Lowest first' : 'Highest first')} ⇅</button>
+    </div>
+    ${body}`;
   app.querySelectorAll('.dept-seg [data-dept]').forEach(b => b.onclick = () => { DEPT = b.dataset.dept; renderTeam(); });
+  const saveSort = () => { try { localStorage.setItem('perf-sort', JSON.stringify({ k: SORT, rev: SORT_REV })); } catch (e) {} renderTeam(); };
+  document.getElementById('sortSel').onchange = e => { SORT = e.target.value; SORT_REV = false; saveSort(); };
+  document.getElementById('sortDir').onclick = () => { SORT_REV = !SORT_REV; saveSort(); };
 }
 
 (async () => {
