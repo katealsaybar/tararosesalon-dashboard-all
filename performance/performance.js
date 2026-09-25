@@ -16,7 +16,7 @@ const BROCHURE = 'https://promo.tararosesalon.com/employment-models?b=';
 // A review's branch → that branch's Google Maps listing, where its reviews can
 // be read in full. A search link, not a place ID, by Kate's choice (25 Sep 2026).
 const mapsFor = branch => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('Tara Rose Salon ' + branch);
-const PUBLIC_PAGE ='https://katealsaybar.github.io/tararosesalon-dashboard-all/performance/';
+const PUBLIC_PAGE = 'https://trk-salon-os.com/performance/';
 const qs = new URLSearchParams(location.search);
 let TOKEN = qs.get('t');
 const STAFF_SLUG = qs.get('staff');   // dashboard address: ?view=staffperf&staff=andrea-gladstone
