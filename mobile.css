@@ -226,6 +226,22 @@
   button:active,[role=button]:active,.chip:active,.nav-sub:active{opacity:.7}
 }
 
+/* ===== MOBILE · 6. FLOATING CONTROLS (P1) ===== */
+@media(max-width:760px),(hover:none) and (max-height:480px){
+  /* The header's menu icon is the way in; the edge tab only covered text. */
+  .nav-edge{display:none}
+  /* TOP: two screens down before it shows, never while you are scrolling, clear of
+     the home indicator and of the Team tray. mobile.js sets the two classes. */
+  .totop{bottom:calc(16px + var(--tray-h,0px) + env(safe-area-inset-bottom));right:calc(14px + env(safe-area-inset-right))}
+  body:not(.m-deep) .totop.on,body.m-scrolling .totop.on{opacity:0;pointer-events:none;transform:translateY(10px)}
+  .totop-k{font-size:12px;letter-spacing:.1em;margin-right:-.1em}
+  /* Room under the last line for TOP (the Pulse's closed cover keeps its zero, its
+     own rule is more specific), and under the footer for the tray while it is up. */
+  .wrap{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+  body{padding-bottom:var(--tray-h,0px)}
+  .tp-tray-in{padding:12px 16px calc(16px + env(safe-area-inset-bottom))}
+}
+
 /* ===== SMALL PHONES (≤ 480px) ===== */
 @media(max-width:480px){
   .mast-logo,.topbar.stuck .mast-logo{width:88px}

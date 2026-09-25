@@ -116,6 +116,24 @@
     }
     lastY = y;
   }, {passive: true});
+  // ── 6. TOP: shown two screens down, and not while the page is moving ──
+  let still = null;
+  addEventListener('scroll', () => {
+    if (!PHONE.matches) return;
+    document.body.classList.toggle('m-deep', scrollY > innerHeight * 2);
+    document.body.classList.add('m-scrolling');
+    clearTimeout(still);
+    still = setTimeout(() => document.body.classList.remove('m-scrolling'), 450);
+  }, {passive: true});
+  // The Team tray is fixed at the foot; while it is up the page reserves its height.
+  function trayRoom() {
+    const tray = document.querySelector('#view-team .tp-tray');
+    const h = tray && tray.classList.contains('up') && PHONE.matches ? tray.offsetHeight : 0;
+    document.documentElement.style.setProperty('--tray-h', h + 'px');
+  }
+  const team = $('view-team');
+  if (team) new MutationObserver(trayRoom).observe(team, {subtree: true, attributes: true, attributeFilter: ['class'], childList: true});
+
   topbar.addEventListener('transitionend', e => {
     if (e.propertyName === 'transform' && typeof spy === 'function') spy();
   });
@@ -135,6 +153,7 @@
     closeSheet();
     topbar.classList.remove('tb-hide');
     paintSum();
+    trayRoom();
     schedule();
   }
 
