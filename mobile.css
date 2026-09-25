@@ -158,9 +158,40 @@
   .mast-top > div:first-child{min-width:0}
 }
 
+/* ===== MOBILE (≤ 760px) · 4. ORG CHART AS AN INDENTED LIST ===== */
+@media(max-width:760px){
+  body:not(.orgchart-pop) .oc-container{padding:14px 12px 16px;--oc-scale:1!important}
+  body:not(.orgchart-pop) .oc-zoom-controls{display:none}
+  body:not(.orgchart-pop) .oc-lines{display:none}
+  body:not(.orgchart-pop) .oc-tree,body:not(.orgchart-pop) .oc-tree ul{display:block;overflow:visible}
+  body:not(.orgchart-pop) .oc-tree ul{padding:0 0 0 8px;margin:6px 0 0 6px;border-left:2px solid var(--border)}
+  body:not(.orgchart-pop) .oc-tree li{display:block;padding:0;margin:0 0 6px!important}
+  body:not(.orgchart-pop) main#orgChartContent{padding-left:0;padding-right:0}
+  /* Photo on the left over two rows, name over role, the fold mark on the right. */
+  body:not(.orgchart-pop) .oc-node,body:not(.orgchart-pop) .oc-node.has-photo{
+    display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto auto;
+    align-content:center;column-gap:12px;row-gap:2px;width:100%;min-width:0;
+    padding:8px 12px;text-align:left;box-sizing:border-box}
+  body:not(.orgchart-pop) .oc-node > *{grid-column:2;min-width:0}
+  body:not(.orgchart-pop) .oc-photo{grid-column:1;grid-row:1/3;align-self:center;
+    height:56px;width:auto;margin:0}
+  body:not(.orgchart-pop) .oc-name,body:not(.orgchart-pop) .oc-node.has-photo .oc-name{
+    font-size:15px;text-align:left;white-space:normal;overflow-wrap:anywhere}
+  body:not(.orgchart-pop) .oc-role,body:not(.orgchart-pop) .oc-node.has-photo .oc-role{
+    font-size:12px;text-align:left;letter-spacing:.06em}
+  /* Tap a card with a team under it to fold that team away. */
+  body:not(.orgchart-pop) .oc-tree li.m-fold > ul{display:none}
+  body:not(.orgchart-pop) .oc-tree li.m-kids > .oc-node{cursor:pointer}
+  body:not(.orgchart-pop) .oc-tree li.m-kids > .oc-node::after{content:'–';grid-column:3;grid-row:1/3;
+    align-self:center;color:var(--muted);font-size:20px;line-height:1}
+  body:not(.orgchart-pop) .oc-tree li.m-kids.m-fold > .oc-node::after{content:'+'}
+}
+
 /* ===== SMALL PHONES (≤ 480px) ===== */
 @media(max-width:480px){
   .mast-logo,.topbar.stuck .mast-logo{width:88px}
+  body:not(.orgchart-pop) .oc-photo{height:44px}
+  body:not(.orgchart-pop) .oc-node,body:not(.orgchart-pop) .oc-node.has-photo{column-gap:9px;padding:7px 9px}
   #fSheetBtn{padding:0 11px;max-width:48vw}
 }
 

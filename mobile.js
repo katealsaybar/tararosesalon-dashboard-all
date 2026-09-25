@@ -234,9 +234,22 @@
     seen = new WeakSet();
   }
 
+  // ── 4. ORG CHART: tap a card with a team under it to fold the team ──
+  function orgChart() {
+    if (!PHONE.matches) return;
+    document.querySelectorAll('#view-orgchart .oc-tree li').forEach(li => {
+      li.classList.toggle('m-kids', !!li.querySelector(':scope > ul > li'));
+    });
+  }
+  document.addEventListener('click', e => {
+    if (!PHONE.matches || document.body.classList.contains('orgchart-pop')) return;
+    const node = e.target.closest('#view-orgchart .oc-tree li.m-kids > .oc-node');
+    if (node) node.parentElement.classList.toggle('m-fold');
+  });
+
   // Renderers write their views after a fetch, so watch for them rather than guess.
   let t = null;
-  function schedule() { clearTimeout(t); t = setTimeout(() => { tables(); }, 250); }
+  function schedule() { clearTimeout(t); t = setTimeout(() => { tables(); orgChart(); }, 250); }
   const main = $('mainScrollArea');
   if (main) new MutationObserver(schedule).observe(main, {childList: true, subtree: true});
 
