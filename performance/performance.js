@@ -10,6 +10,9 @@ const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aWp4ZW5hZm9vd2FqcWt0cXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTA1OTksImV4cCI6MjA5MTI4NjU5OX0.GL3YXupXOBGfN4FCyelbQWraUw12VJNJu-wUB3zR7Zw';
 
 // The live address a stylist's own link points at, whatever this page was opened from.
+// The employment-model brochures (GHL page); ?b= picks one. Flex has an Abu Dhabi
+// and a Dubai version, chosen by the stylist's branch.
+const BROCHURE = 'https://promo.tararosesalon.com/employment-models?b=';
 const PUBLIC_PAGE = 'https://katealsaybar.github.io/tararosesalon-dashboard-all/performance/';
 const qs = new URLSearchParams(location.search);
 let TOKEN = qs.get('t');
@@ -316,11 +319,11 @@ async function renderStylist() {
     <section class="card">
       <div class="eyebrow">Your three paths at Tara Rose</div>
       <div class="paths">
-        <div class="path"><b>The Employed Stylist</b>Commission on your quota with a guaranteed income while you build. Tara Rose brings the clients, colour, visa and health cover.</div>
-        <div class="path"><b>The Flex Stylist</b>A higher commission split and more say over your schedule, with the full Tara Rose support behind you.</div>
-        <div class="path"><b>Rent-a-Chair</b>Pay a monthly chair fee and keep your own clients and bookings.</div>
+        <div class="path"><b>The Employed Stylist</b>Commission on your quota with a guaranteed income while you build. Tara Rose brings the clients, colour, visa and health cover.<a class="path-link" href="${BROCHURE}employed" target="_blank" rel="noopener">Read the brochure →</a></div>
+        <div class="path"><b>The Flex Stylist</b>A higher commission split and more say over your schedule, with the full Tara Rose support behind you.<a class="path-link" href="${BROCHURE}${/^(SAA|KCA)$|saadiyat|khalifa/i.test(s.branch || '') ? 'flex-abudhabi' : 'flex-dubai'}" target="_blank" rel="noopener">Read the brochure →</a></div>
+        <div class="path"><b>Rent-a-Chair</b>Pay a monthly chair fee and keep your own clients and bookings.<a class="path-link" href="${BROCHURE}chair" target="_blank" rel="noopener">Read the brochure →</a></div>
       </div>
-      <p class="legend">Ask Tara or your manager for the full brochure for each path.</p>
+      <p class="legend"><a href="${BROCHURE}overview" target="_blank" rel="noopener">See all three paths side by side</a>. If you need more details, ask Tara or your manager about each path.</p>
     </section>` : ''}`;
 
   loadPayslip();

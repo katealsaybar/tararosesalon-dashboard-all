@@ -1821,11 +1821,21 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   body.orgchart-chrome .topbar,body.orgchart-chrome #topbarSpacer,
   body.orgchart-chrome .oc-zoom-controls,
   body.orgchart-chrome #ocOpenNewWin,body.orgchart-chrome #ocPrintBtn{display:none!important}
-  body.orgchart-chrome .oc-container{border:none;box-shadow:none;background:#fff;padding:0}
+  /* Kate, 25 Sep 2026: one A4 landscape page, printed in whichever theme is on
+     screen (dark prints dark, light prints light). Margin 0 on the page drops
+     the browser's own date / URL / page-number lines; the 10mm gutter is padding
+     on the body instead, painted in the page colour so dark has no white edge.
+     The footer credits went to a page 2 of their own, so they stay off paper. */
+  @page{size:A4 landscape;margin:0}
+  body.orgchart-chrome,body.orgchart-chrome *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  html:has(body.orgchart-chrome){background:var(--bg)}
+  body.orgchart-chrome{background:var(--bg);padding:10mm;min-height:0}
+  body.orgchart-chrome > footer{display:none!important}
+  body.orgchart-chrome .oc-container{border:none;box-shadow:none;background:transparent;padding:0}
   body.orgchart-chrome .oc-tree{overflow:visible}
   body.orgchart-chrome main#orgChartContent{max-width:none;margin:0;padding:0}
   body.orgchart-chrome .oc-section{page-break-inside:avoid}
-  @page{size:landscape;margin:10mm}
+  body.orgchart-chrome #view-orgchart{break-inside:avoid;page-break-inside:avoid}
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -3055,7 +3065,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260924n"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
-<script src="org-chart.js?v=20260925a"></script>
+<script src="org-chart.js?v=20260925b"></script>
 <script src="dashboard.js?v=20260925a"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260924a"></script>

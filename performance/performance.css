@@ -74,6 +74,8 @@ textarea{width:100%;font:inherit;color:var(--text);background:var(--surface2);bo
 .paths{display:grid;gap:8px}
 .path{padding:10px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:14px}
 .path b{display:block;margin-bottom:2px}
+.path-link{display:table;margin-top:6px;font-size:13px;font-weight:600;color:var(--text);text-decoration:underline;text-underline-offset:3px}
+.legend a{color:inherit;text-decoration:underline;text-underline-offset:3px}
 .chart-wrap{position:relative;height:200px}
 table.hist{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
 table.hist th,table.hist td{padding:6px 4px;text-align:right;border-bottom:1px solid var(--border)}

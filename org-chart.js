@@ -215,7 +215,11 @@ function ocOpenNewWindow() {
 // (Letter/A4 minus the @page margin set in the print CSS) regardless of how
 // wide Kate's own screen is — so scale to a fixed print target, not to the
 // window, same idea as ocFitToWindow() but for paper instead of glass.
-const OC_PRINT_TARGET_WIDTH = 950;
+// Kate, 25 Sep 2026: the page is A4 landscape with a 10mm gutter (see the print
+// CSS), 1047 x 718 CSS px, and the chart must fit it both ways so it prints on
+// one page. A little under each for the section heading and rounding.
+const OC_PRINT_TARGET_WIDTH = 1000;
+const OC_PRINT_TARGET_HEIGHT = 680;
 
 // The masthead's "Print" link. Shrinks the chart to fit one landscape page
 // wide via the same --oc-scale the zoom buttons use (see the CSS comment
@@ -232,6 +236,13 @@ function ocPrint() {
   // whole group is wide enough at scale 1 that fitting it to one landscape
   // page needs a smaller scale than the on-screen zoom-out ever allows.
   if (widest > OC_PRINT_TARGET_WIDTH) ocApplyScale(OC_PRINT_TARGET_WIDTH / widest);
+  // Then the height. Gaps and headings don't all shrink with --oc-scale, so
+  // measure and step down a few times rather than trusting one ratio.
+  for (let i = 0; i < 6; i++) {
+    const tall = container.getBoundingClientRect().height;
+    if (tall <= OC_PRINT_TARGET_HEIGHT) break;
+    ocApplyScale(ocScale * Math.max(0.5, OC_PRINT_TARGET_HEIGHT / tall) * 0.99);
+  }
 
   const restore = () => { ocApplyScale(zoomBefore); removeEventListener('afterprint', restore); };
   addEventListener('afterprint', restore);
