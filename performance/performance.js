@@ -505,7 +505,6 @@ async function renderTeam() {
   app.innerHTML = `
     <section class="card hero">
       <div class="eyebrow">Your team · ${esc(monthLabel(d.month))}</div>
-      <h1>Hi ${esc(d.admin)}.</h1>
       <p class="sub">Every number fills itself: sales from Phorest, client numbers counted once each from the ledgers. Tap a person to see their page${ROLE === 'viewer' ? '' : ' and leave a note'}.</p>
     </section>
     ${EMBED ? '' : `<div class="dept-seg" role="group" aria-label="Team">${['all', 'Hair', 'Beauty'].map(x =>

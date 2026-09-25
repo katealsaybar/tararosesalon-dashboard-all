@@ -1582,6 +1582,11 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .login-logo{
   display:flex;flex-direction:column;align-items:center;gap:10px;
 }
+/* Same crop as the sidebar lockup (see THE SIDEBAR LOCKUP): rule + TARA ROSE from the
+   PNG, SALONS set as text. The card is always light, so the ink version, always. */
+.login-lockup{display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:4px}
+.login-lockup .mark{width:230px;aspect-ratio:2321/396}
+.login-word{font-size:14px;letter-spacing:.42em;text-indent:.42em;text-transform:uppercase;color:#1A1A1A}
 .login-logo-crop{
   width:260px;height:82px;overflow:hidden;flex-shrink:0;
 }
@@ -2493,7 +2498,11 @@ table.tp-cmp td.bad{color:var(--bad)}
 <div id="loginGate">
   <div class="login-card">
     <div class="login-logo">
-      <div class="login-logo-crop"><img id="loginLogoImg" src="assets/5.png" alt="Tara Rose Ladies"></div>
+      <!-- TARA ROSE SALONS, the sidebar's lockup in ink with the mint rule (assets/logo-ink-mint.png). -->
+      <div class="login-lockup">
+        <div class="mark"><img id="loginLogoImg" src="assets/logo-ink-mint.png" alt="Tara Rose Salons"></div>
+        <div class="login-word">Salons</div>
+      </div>
       <div class="login-dash-lbl">Internal Dashboard</div>
     </div>
     <div class="login-divider"></div>
@@ -2952,13 +2961,13 @@ table.tp-cmp td.bad{color:var(--bad)}
   const SPF_VIEWER = '354555f6-a77d-4cb1-955f-7e9d819e9dfa';
   let spfAskKey = false;
   function spfStored(){ try { return localStorage.getItem(SPF_KEY); } catch(e){ return null; } }
-  function spfGet(){ return spfStored() || SPF_VIEWER; }
+  function spfGet(){ return spfStored() || window.SPF_AUTO || SPF_VIEWER; }
   function initStaffPerfView(){
     const key = spfAskKey ? null : spfGet();
     const frame = document.getElementById('spfFrame');
     document.getElementById('spfKeyCard').style.display = key ? 'none' : '';
     frame.style.display = key ? '' : 'none';
-    document.getElementById('spfKeyReset').style.display = key ? '' : 'none';
+    document.getElementById('spfKeyReset').style.display = (key && (spfStored() || !window.SPF_AUTO)) ? '' : 'none';
     document.getElementById('spfKeyReset').querySelector('a').textContent = spfStored() ? 'Back to the view-only key' : 'Leader? Use your team key';
     document.getElementById('spfBar').style.display = key ? '' : 'none';
     spfPaintDept();
@@ -3136,9 +3145,9 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=20260924n"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925c"></script>
-<script src="dashboard.js?v=20260925c"></script>
+<script src="dashboard.js?v=20260925d"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
-<script src="auth.js?v=20260925c"></script>
+<script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20260924a"></script>
 <script src="compare.js?v=20260924g"></script>
@@ -3280,7 +3289,11 @@ async function enterDashboard(role){
   });
   document.getElementById('loginGate').style.display = 'none';
   document.getElementById('dashboardWrap').style.display = 'block';
+  // Leaders (Kate, Tara, Emma) get their Staff Benchmarks key from the sign-in, so
+  // notes and "Copy her link" are there without typing a team key.
+  const perfKey = TRSAuth.perfKey();
   await loadData();
+  window.SPF_AUTO = await perfKey;
   startFreshnessWatch();
   const params = new URLSearchParams(window.location.search);
   const activeView = params.get('view') || 'dashboard';

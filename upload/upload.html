@@ -15,12 +15,13 @@
 <script src="parser.js?v=4"></script>
 <script src="upload.js?v=20"></script>
 <!-- Signed-in people on the dashboard list only (auth.js, 25 Sep 2026); anyone else goes to the dashboard's sign-in and comes back. -->
-<script src="../auth.js?v=20260925c"></script>
+<script src="../auth.js?v=20260925d"></script>
 <!-- Owner (Kate) gets every tab; payroll (accounts and admin) gets Payslips only; the rest of the list goes back to the dashboard. -->
 <style>.role-payroll .tab-btn:not([data-tab="payslips"]),.role-payroll .tab-grp{display:none!important}</style>
 <script>
 document.documentElement.style.visibility = 'hidden';
-TRSAuth.guard('../', ['owner', 'payroll']).then(role => {
+TRSAuth.guard('../', ['owner', 'payroll']).then(async role => {
+  window.PS_AUTO = await TRSAuth.perfKey();   // payslip key without typing it
   if (role === 'payroll') {
     document.documentElement.classList.add('role-payroll');
     const go = () => { const b = document.querySelector('.tab-btn[data-tab="payslips"]'); if (b) b.click(); };
@@ -41,7 +42,7 @@ TRSAuth.guard('../', ['owner', 'payroll']).then(role => {
 <script src="sheet-sync.js?v=12"></script>
 <script src="targets.js?v=2"></script>
 <script src="team-roster.js?v=1"></script>
-<script src="payslips.js?v=1"></script>
+<script src="payslips.js?v=2"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
 <script src="data-watch.js?v=1"></script>
 

@@ -46,6 +46,13 @@
     return (!r.error && r.data && r.data[0]) || null;
   }
 
+  // The signed-in person's perf_admins key (leaders: Staff Benchmarks notes and
+  // copy-link; payroll: the Payslips tab), or null.
+  async function perfKey() {
+    var r = await client().rpc('dashboard_perf_key');
+    return (!r.error && r.data) || null;
+  }
+
   // Pages other than the dashboard: no session, or not on the list, goes to the
   // dashboard's sign-in and comes back here afterwards. `allowed` limits the page
   // to some roles; anyone else signed in lands on the dashboard instead.
@@ -56,5 +63,5 @@
     return new Promise(function () {});
   }
 
-  window.TRSAuth = { URL: URL, KEY: KEY, client: client, token: token, headers: headers, role: role, me: me, guard: guard };
+  window.TRSAuth = { URL: URL, KEY: KEY, client: client, token: token, headers: headers, role: role, me: me, perfKey: perfKey, guard: guard };
 })();

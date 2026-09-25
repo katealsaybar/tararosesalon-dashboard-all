@@ -136,9 +136,8 @@ function applyLogoForTheme() {
   const dark = document.documentElement.getAttribute('data-theme') === 'dark';
   const src = dark ? 'assets/5.png' : 'assets/6.png';
   const header = document.getElementById('headerLogoImg');
-  const login  = document.getElementById('loginLogoImg');
+  // The sign-in card is always light and has its own ink + mint lockup, so it stays put.
   if (header) header.src = src;
-  if (login)  login.src  = src;
 }
 applyLogoForTheme();
 const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
