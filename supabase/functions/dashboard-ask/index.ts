@@ -92,7 +92,8 @@ const SCHEMA = {
 
 // Only the Pages host plus local preview may call this. Not a security boundary
 // on its own, but it stops the endpoint being casually reused from anywhere else.
-const ALLOWED_ORIGINS = ["https://katealsaybar.github.io", "https://tararose83.github.io"];
+// trk-salon-os.com is the dashboard's own domain since 25 Sep 2026 (CNAME file).
+const ALLOWED_ORIGINS = ["https://trk-salon-os.com", "https://www.trk-salon-os.com", "https://katealsaybar.github.io", "https://tararose83.github.io"];
 const LOCAL = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
 
 function cors(origin: string | null): Record<string, string> {
