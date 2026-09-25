@@ -188,11 +188,16 @@
     const box = document.createElement('div');
     box.className = 'm-cards';
     let html = '';
+    // Rows the page's "On this page" rail points at, by id (Daily Stylist Target's
+    // branch rows). Hidden, they measure zero: the rail lit its last entry and a
+    // jump went nowhere. The card built for the row holds the id while Cards is on.
+    const anchored = [];
+    const mid = tr => tr.id ? (anchored.push(tr), ` data-mid="${esc(tr.id)}"`) : '';
     [...tbl.tBodies].forEach(tb => [...tb.rows].forEach(tr => {
       const cells = [...tr.cells];
       if (!cells.length) return;
       if (tr.classList.contains('lg-grp') || (cells.length === 1 && cells[0].colSpan > 1)) {
-        html += `<div class="m-grp">${esc(tr.textContent.trim())}</div>`;
+        html += `<div class="m-grp"${mid(tr)}>${esc(tr.textContent.trim())}</div>`;
         return;
       }
       let c = 0, band = null, dl = '';
@@ -205,9 +210,16 @@
         dl += `<dt>${esc(col.leaf || '—')}</dt><dd>${esc(val || '—')}</dd>`;
       });
       const tot = tr.classList.contains('lg-tot') ? ' tot' : '';
-      html += `<details class="m-card${tot}"><summary>${esc(cells[0].textContent.trim())}</summary><dl>${dl}</dl></details>`;
+      html += `<details class="m-card${tot}"${mid(tr)}><summary>${esc(cells[0].textContent.trim())}</summary><dl>${dl}</dl></details>`;
     }));
     box.innerHTML = html;
+    const pairs = anchored.map(tr => [tr, box.querySelector(`[data-mid="${CSS.escape(tr.id)}"]`), tr.id]);
+    const holdIds = cardsOn => pairs.forEach(([tr, card, id]) => {
+      if (!card) return;
+      if (cardsOn) { tr.removeAttribute('id'); card.id = id; }
+      else { card.removeAttribute('id'); tr.id = id; }
+    });
+    box._holdIds = holdIds;
     const tv = document.createElement('div');
     tv.className = 'm-tv';
     tv.setAttribute('role', 'group');
@@ -221,14 +233,18 @@
       tv.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
       box.hidden = !on;
       frame.style.display = on ? 'none' : '';
-      if (!on && typeof spy === 'function') spy();
+      holdIds(on);
+      if (typeof spy === 'function') spy();
     });
     frame.before(tv, box);
     frame.style.display = 'none';
     frame.dataset.mCards = '1';
+    holdIds(true);
+    if (typeof spy === 'function') spy();
   }
 
   function undoTables() {
+    document.querySelectorAll('.m-cards').forEach(n => n._holdIds && n._holdIds(false));
     document.querySelectorAll('.m-tv,.m-cards,.m-swipe').forEach(n => n.remove());
     document.querySelectorAll('[data-m-cards]').forEach(n => { n.style.display = ''; delete n.dataset.mCards; });
     seen = new WeakSet();
