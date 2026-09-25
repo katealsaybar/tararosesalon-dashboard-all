@@ -157,6 +157,19 @@
     schedule();
   }
 
+  // ── 13. BOOT ──
+  // mobile.css reserves the Pulse cover's filled heights while this class is on.
+  const head = $('pulseHeadline');
+  if (head && /Reading the numbers/.test(head.textContent)) {
+    document.body.classList.add('m-boot');
+    const done = new MutationObserver(() => {
+      if (/Reading the numbers/.test(head.textContent)) return;
+      document.body.classList.remove('m-boot');
+      done.disconnect();
+    });
+    done.observe(head, {childList: true, characterData: true, subtree: true});
+  }
+
   // ── 10. THE DRAWER ──
   // Its items are <div onclick>: make each one a keyboard button at every width
   // (focusable, Enter and Space), without changing how any of them looks.

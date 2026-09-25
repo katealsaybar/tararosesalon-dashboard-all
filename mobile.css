@@ -340,6 +340,24 @@
 }
 @media(max-width:480px){.cmp-dates{grid-template-columns:1fr}}
 
+/* ===== MOBILE · 13. FIRST SCREEN WITHOUT THE JUMP (P2) =====
+   The Pulse cover arrives as "Reading the numbers…" and fills in when the data
+   lands, pushing everything under it down (CLS 0.285 at 390px). While the page is
+   still booting (body.m-boot, lifted by mobile.js the moment the headline is
+   written) each piece holds the height it will have: measured at 320, 390 and
+   430px. Nothing stays reserved once it is filled. */
+@media(max-width:760px),(hover:none) and (max-height:480px){
+  body.m-boot .mast-body .mast-rule{min-height:82px;box-sizing:border-box}
+  body.m-boot #pulseHeadline{min-height:3lh}
+  body.m-boot #pulseDeck:empty{min-height:3lh}
+  body.m-boot #pulseStandfirst:empty{min-height:6lh}
+  body.m-boot #heroTargets:empty{display:block;min-height:38px}
+  body.m-boot #heroReceipt:empty{min-height:442px}
+  /* Photos hold their shape before they load; the file's own ratio wins after. */
+  .sc-photo,.tp-av,img.av{aspect-ratio:auto 200/228}
+  .oc-photo{aspect-ratio:auto 375/435}
+}
+
 /* ===== SMALL PHONES (≤ 480px) ===== */
 @media(max-width:480px){
   .mast-logo,.topbar.stuck .mast-logo{width:88px}

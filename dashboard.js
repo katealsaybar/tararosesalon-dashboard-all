@@ -1386,10 +1386,10 @@ async function renderStylistCards() {
       // outside assets/staff/) — encodeURI, not encodeURIComponent, so its slashes
       // survive; plain `photo` stays relative to assets/staff/ as before.
       const photo = s.photoFull
-        ? `<img class="sc-photo${s.resigned ? ' is-resigned' : ''}" src="${encodeURI(s.photoFull)}" alt="" loading="lazy"
+        ? `<img class="sc-photo${s.resigned ? ' is-resigned' : ''}" src="${encodeURI(s.photoFull)}" alt="" loading="lazy" decoding="async"
                onerror="this.style.display='none'">`
         : s.photo
-        ? `<img class="sc-photo${s.resigned ? ' is-resigned' : ''}" src="assets/staff/${encodeURIComponent(s.photo)}" alt="" loading="lazy"
+        ? `<img class="sc-photo${s.resigned ? ' is-resigned' : ''}" src="assets/staff/${encodeURIComponent(s.photo)}" alt="" loading="lazy" decoding="async"
                onerror="this.style.display='none'">`
         : '';
       // STYLIST_CARDS is the roster of who has artwork: its 44 keys match the 44
@@ -2805,7 +2805,7 @@ function buildWinsHTML(s, prevS, prevPeriodLabel, hairStaff, beautyStaff, branch
     // area above it is transparent. So no border-radius, background or border here;
     // adding any would clip the very overhang that makes it read as the card.
     const avatarHtml = p.photo
-      ? `<img src="assets/staff/${encodeURIComponent(p.photo)}" alt="" loading="lazy"
+      ? `<img src="assets/staff/${encodeURIComponent(p.photo)}" alt="" loading="lazy" decoding="async"
              onerror="this.style.display='none'"
              style="height:62px;width:auto;flex-shrink:0">`
       : '';
@@ -3682,7 +3682,7 @@ async function renderDashboard() {
     // into the PNG, so no border-radius, background or border here — any of the
     // three clips the overhang and the card falls back to a plain circle.
     const av = (prof && prof.photo)
-      ? `<img class="av" src="assets/staff/${encodeURIComponent(prof.photo)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      ? `<img class="av" src="assets/staff/${encodeURIComponent(prof.photo)}" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'">`
       : `<div class="av-ph" title="Portrait to come"><b>${escapeHtml(initials(w.p.name))}</b></div>`;
     const name = (prof && prof.ig)
       ? `<a href="https://instagram.com/${encodeURIComponent(prof.ig)}" target="_blank" rel="noopener noreferrer" title="@${escapeHtml(prof.ig)} on Instagram">${nm}</a>`
