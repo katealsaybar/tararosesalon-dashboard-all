@@ -322,6 +322,7 @@ declare
   m2 date := (date_trunc('month', coalesce(p_month, current_date)) + interval '1 month - 1 day')::date;
   lvl_order int;
   weeks jsonb;
+  days jsonb;
 begin
   select * into s from perf_staff where token = p_token and active;
   if not found then return null; end if;
@@ -332,11 +333,22 @@ begin
     into weeks
   from generate_series(date_trunc('week', m1::timestamp), m2::timestamp, interval '7 day') g(g0), lateral (select g0::date w) x;
 
+  -- Day by day for the chart's Daily toggle: just sales and clients, the same
+  -- sources perf_core uses, without running the whole of perf_core 30 times.
+  select coalesce(jsonb_agg(jsonb_build_object('date', d, 'total_revenue', round(coalesce(p.svc,0), 2), 'clients', coalesce(l.clients,0)) order by d), '[]')
+    into days
+  from (select g0::date d from generate_series(m1::timestamp, m2::timestamp, interval '1 day') g(g0)) x
+  left join (select date, sum(services_ex_vat) svc from phorest_staff_daily
+             where employee_name = s.phorest_name and not is_total and date between m1 and m2 group by date) p on p.date = x.d
+  left join (select date, sum(total) clients from branch_staff_daily
+             where upper(trim(staff_name)) = any(s.ledger_names) and dept = s.dept and date between m1 and m2 group by date) l on l.date = x.d;
+
   return jsonb_build_object(
     'staff', jsonb_build_object('name', s.display_name, 'branch', s.branch, 'dept', s.dept, 'level', s.level, 'keys', s.ledger_names),
     'month', m1,
     'numbers', perf_core(s, m1, m2) || perf_clients(s, m1, m2) || perf_reviews(s, m1, m2),
     'weeks', weeks,
+    'days', days,
     'history', (select jsonb_agg(jsonb_build_object('month', mm, 'numbers', perf_core(s, mm, (mm + interval '1 month - 1 day')::date)) order by mm)
                 from (select (m1 - (k || ' month')::interval)::date mm from generate_series(1, 3) k) h),
     'benchmarks', (select jsonb_object_agg(kpi, jsonb_build_object('min', minimum, 'target', target))

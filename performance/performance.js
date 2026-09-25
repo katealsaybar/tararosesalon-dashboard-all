@@ -34,6 +34,9 @@ let DEPT = ['Hair', 'Beauty'].includes(qs.get('dept')) ? qs.get('dept') : 'all';
 const keep = EMBED ? '&embed=1' : '';
 // Team grid sort, remembered per browser.
 let SORT = 'branch', SORT_REV = false;
+// Sales chart: 'week' or 'day', remembered per browser.
+let CHART_MODE = 'week';
+try { if (localStorage.getItem('perf-chart') === 'day') CHART_MODE = 'day'; } catch (e) {}
 try { const v = JSON.parse(localStorage.getItem('perf-sort') || 'null'); if (v) { SORT = v.k; SORT_REV = !!v.rev; } } catch (e) {}
 function postHeight() {
   if (EMBED) parent.postMessage({ type: 'perf-height', h: Math.ceil(document.body.getBoundingClientRect().height) + 8 }, '*');
@@ -244,6 +247,12 @@ async function renderStylist() {
   const next = d.next_benchmarks ? scoreLine(n, d.next_benchmarks, pace) : null;
 
   const weeks = d.weeks.filter(w => w.numbers.total_revenue > 0 || w.numbers.clients > 0);
+  // Daily: every day from the 1st to the last day with any sales or clients, days off
+  // left in as zeros so the gaps show.
+  const allDays = d.days || [];
+  let lastDay = -1;
+  allDays.forEach((x, i) => { if (x.total_revenue > 0 || x.clients > 0) lastDay = i; });
+  const days = allDays.slice(0, lastDay + 1);
   const hist = (d.history || []).map(h => `<tr><td>${esc(monthLabel(h.month))}</td><td>${fmt(h.numbers.total_revenue, 'aed')}</td><td>${fmt(h.numbers.clients, 'num')}</td><td>${fmt(h.numbers.rebooking_pct, 'pct')}</td><td>${fmt(h.numbers.avg_bill, 'aed')}</td></tr>`).join('');
 
   const cw = n.conversion_weeks || {};
@@ -278,7 +287,7 @@ async function renderStylist() {
       <div class="grid">${clientTiles}</div>
     </section>
 
-    ${weeks.length ? `<section class="card"><h2>Week by week</h2><p class="sub">Sales (bars) and clients (line).</p><div class="chart-wrap"><canvas id="wk"></canvas></div></section>` : ''}
+    ${weeks.length ? `<section class="card"><div class="card-head"><h2 id="wkTitle">${CHART_MODE === 'day' ? 'Day by day' : 'Week by week'}</h2>${days.length ? `<div class="dept-seg chart-seg" id="wkSeg"><button type="button" data-m="day"${CHART_MODE === 'day' ? ' class="on"' : ''}>Daily</button><button type="button" data-m="week"${CHART_MODE === 'week' ? ' class="on"' : ''}>Weekly</button></div>` : ''}</div><p class="sub">Sales (bars) and clients (line).</p><div class="chart-wrap"><canvas id="wk"></canvas></div></section>` : ''}
 
     ${d.benchmarks ? `<section class="card">
       <div class="eyebrow">Your level · ${esc(s.level)}</div>
@@ -342,16 +351,22 @@ async function renderStylist() {
   document.getElementById('foot').textContent =
     `Reviews to ${dayLabel(d.data_through.reviews)} · sales to ${dayLabel(d.data_through.revenue)} · clients to ${dayLabel(d.data_through.clients)} · column fill to ${dayLabel(d.data_through.column_fill)} · client history to ${dayLabel(d.data_through.client_history)}. Revenue is ex VAT.`;
 
-  if (weeks.length && window.Chart) {
+  let wkChart = null;
+  const drawChart = () => {
     const css = getComputedStyle(document.documentElement);
-    new Chart(document.getElementById('wk'), {
+    const daily = CHART_MODE === 'day' && days.length;
+    const rows = daily
+      ? days.map(x => ({ label: new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }), sales: x.total_revenue, clients: x.clients }))
+      : weeks.map(w => ({ label: new Date(w.week_start + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), sales: w.numbers.total_revenue, clients: w.numbers.clients }));
+    if (wkChart) wkChart.destroy();
+    wkChart = new Chart(document.getElementById('wk'), {
       data: {
-        labels: weeks.map(w => new Date(w.week_start + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })),
+        labels: rows.map(r => r.label),
         datasets: [
           // Lower order draws on top, so the line sits over the bars instead of vanishing behind them.
-          { type: 'bar', order: 2, label: 'Sales (AED)', data: weeks.map(w => w.numbers.total_revenue), backgroundColor: '#C4B5FD', yAxisID: 'y', borderRadius: 6, maxBarThickness: 120 },
-          { type: 'line', order: 1, label: 'Clients', data: weeks.map(w => w.numbers.clients), borderColor: '#0F6E56', borderWidth: 2.5, backgroundColor: '#0F6E56',
-            pointRadius: 5, pointHoverRadius: 7, pointBackgroundColor: '#fff', pointBorderColor: '#0F6E56', pointBorderWidth: 2.5, yAxisID: 'y1', tension: 0 },
+          { type: 'bar', order: 2, label: 'Sales (AED)', data: rows.map(r => r.sales), backgroundColor: '#C4B5FD', yAxisID: 'y', borderRadius: daily ? 3 : 6, maxBarThickness: 120 },
+          { type: 'line', order: 1, label: 'Clients', data: rows.map(r => r.clients), borderColor: '#0F6E56', borderWidth: daily ? 2 : 2.5, backgroundColor: '#0F6E56',
+            pointRadius: daily ? 3 : 5, pointHoverRadius: daily ? 5 : 7, pointBackgroundColor: '#fff', pointBorderColor: '#0F6E56', pointBorderWidth: 2, yAxisID: 'y1', tension: 0 },
         ],
       },
       options: {
@@ -362,10 +377,23 @@ async function renderStylist() {
           // Both axes start at zero with headroom, so a short week doesn't look like a cliff and the tallest bar doesn't hit the ceiling.
           y: { beginAtZero: true, grace: '10%', ticks: { color: css.getPropertyValue('--muted') }, grid: { color: css.getPropertyValue('--border') } },
           y1: { position: 'right', beginAtZero: true, grace: '10%', ticks: { color: css.getPropertyValue('--muted'), precision: 0 }, grid: { display: false } },
-          x: { ticks: { color: css.getPropertyValue('--muted') }, grid: { display: false } },
+          x: { ticks: { color: css.getPropertyValue('--muted'), autoSkip: true, maxRotation: 0 }, grid: { display: false } },
         },
       },
     });
+  };
+  if (weeks.length && window.Chart) {
+    drawChart();
+    const seg = document.getElementById('wkSeg');
+    if (seg) seg.onclick = (e) => {
+      const b = e.target.closest('button[data-m]');
+      if (!b || b.dataset.m === CHART_MODE) return;
+      CHART_MODE = b.dataset.m;
+      try { localStorage.setItem('perf-chart', CHART_MODE); } catch (err) {}
+      seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      document.getElementById('wkTitle').textContent = CHART_MODE === 'day' ? 'Day by day' : 'Week by week';
+      drawChart();
+    };
   }
 
   if (canEdit()) {

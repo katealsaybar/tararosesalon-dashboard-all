@@ -111,6 +111,9 @@ body.embed main{max-width:none}
 .dept-seg{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--border);border-radius:999px;background:var(--surface);position:sticky;top:64px;z-index:4;margin:4px 0 6px}
 .dept-seg button{appearance:none;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;cursor:pointer}
 .dept-seg button.on{background:var(--btn);color:var(--btn-fg)}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.card-head h2{margin:0}
+.chart-seg{position:static;margin:0}
 .sort-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:10px 0 0;font-size:13px;color:var(--muted)}
 .sort-bar select{font:inherit;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 8px;margin-left:4px}
 .sort-dir{appearance:none;font:inherit;font-size:13px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer}
