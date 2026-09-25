@@ -126,10 +126,123 @@
     closeSheet();
     topbar.classList.remove('tb-hide');
     paintSum();
+    schedule();
   }
+
+  // ── 3. TABLES: swipe hint, and cards for the widest ones ──
+  let seen = new WeakSet();
+  function tables() {
+    if (!PHONE.matches) return;
+    const v = typeof CURRENT_VIEW !== 'undefined' ? $('view-' + CURRENT_VIEW) : null;
+    if (!v) return;
+    v.querySelectorAll('.lg-wrap > table.lg').forEach(tbl => {
+      if (seen.has(tbl)) return;
+      const wrap = tbl.parentElement;
+      if (!wrap.clientWidth) return;           // not laid out yet; next pass
+      seen.add(tbl);
+      const frame = wrap.parentElement.classList.contains('lg-sx') ? wrap.parentElement : wrap;
+      // Cards only where the table cannot work on a phone at all: Daily Stylist
+      // Target (31 days across) and Branch Performance's compact ledgers. The rest
+      // stay tables, with the label column capped so the figures show.
+      const wide = CURRENT_VIEW === 'ledgerStylist'
+        || (CURRENT_VIEW === 'branchperf' && tbl.classList.contains('lg-compact'));
+      if (wide && tbl.scrollWidth > wrap.clientWidth + 4 && tbl.tBodies[0] && tbl.tBodies[0].rows.length) {
+        cards(tbl, frame);
+      } else if (tbl.scrollWidth > wrap.clientWidth + 4 && frame !== wrap) {
+        const hint = document.createElement('span');
+        hint.className = 'm-swipe';
+        hint.textContent = 'Swipe for more →';
+        frame.appendChild(hint);
+        wrap.addEventListener('scroll', () => hint.classList.add('gone'), {once: true, passive: true});
+      }
+    });
+  }
+
+  // One label per column, read off the header rows with their spans resolved.
+  function headGrid(tbl) {
+    const rows = tbl.tHead ? [...tbl.tHead.rows] : [];
+    const grid = rows.map(() => []);
+    rows.forEach((tr, ri) => {
+      let c = 0;
+      [...tr.cells].forEach(cell => {
+        while (grid[ri][c] !== undefined) c++;
+        const cs = cell.colSpan || 1, rs = cell.rowSpan || 1;
+        for (let r = 0; r < rs; r++) for (let k = 0; k < cs; k++) {
+          if (grid[ri + r]) grid[ri + r][c + k] = {text: cell.textContent.trim(), wide: cs > 1};
+        }
+        c += cs;
+      });
+    });
+    const n = Math.max(0, ...grid.map(r => r.length));
+    const cols = [];
+    for (let c = 0; c < n; c++) {
+      const band = grid.slice(0, -1).map(r => r[c]).filter(x => x && x.wide).map(x => x.text).join(' · ');
+      const leaf = grid.length ? (grid[grid.length - 1][c] || {}).text || '' : '';
+      cols.push({band, leaf});
+    }
+    return cols;
+  }
+
+  function cards(tbl, frame) {
+    const cols = headGrid(tbl);
+    const box = document.createElement('div');
+    box.className = 'm-cards';
+    let html = '';
+    [...tbl.tBodies].forEach(tb => [...tb.rows].forEach(tr => {
+      const cells = [...tr.cells];
+      if (!cells.length) return;
+      if (tr.classList.contains('lg-grp') || (cells.length === 1 && cells[0].colSpan > 1)) {
+        html += `<div class="m-grp">${esc(tr.textContent.trim())}</div>`;
+        return;
+      }
+      let c = 0, band = null, dl = '';
+      cells.forEach((cell, i) => {
+        const col = cols[c] || {band: '', leaf: ''};
+        c += cell.colSpan || 1;
+        if (i === 0) return;
+        const val = cell.textContent.trim();
+        if (col.band && col.band !== band) { dl += `<dt class="band">${esc(col.band)}</dt>`; band = col.band; }
+        dl += `<dt>${esc(col.leaf || '—')}</dt><dd>${esc(val || '—')}</dd>`;
+      });
+      const tot = tr.classList.contains('lg-tot') ? ' tot' : '';
+      html += `<details class="m-card${tot}"><summary>${esc(cells[0].textContent.trim())}</summary><dl>${dl}</dl></details>`;
+    }));
+    box.innerHTML = html;
+    const tv = document.createElement('div');
+    tv.className = 'm-tv';
+    tv.setAttribute('role', 'group');
+    tv.setAttribute('aria-label', 'Show as');
+    tv.innerHTML = '<button type="button" aria-pressed="true" data-m="cards">Cards</button>'
+                 + '<button type="button" aria-pressed="false" data-m="table">Table</button>';
+    tv.addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      const on = b.dataset.m === 'cards';
+      tv.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      box.hidden = !on;
+      frame.style.display = on ? 'none' : '';
+      if (!on && typeof spy === 'function') spy();
+    });
+    frame.before(tv, box);
+    frame.style.display = 'none';
+    frame.dataset.mCards = '1';
+  }
+
+  function undoTables() {
+    document.querySelectorAll('.m-tv,.m-cards,.m-swipe').forEach(n => n.remove());
+    document.querySelectorAll('[data-m-cards]').forEach(n => { n.style.display = ''; delete n.dataset.mCards; });
+    seen = new WeakSet();
+  }
+
+  // Renderers write their views after a fetch, so watch for them rather than guess.
+  let t = null;
+  function schedule() { clearTimeout(t); t = setTimeout(() => { tables(); }, 250); }
+  const main = $('mainScrollArea');
+  if (main) new MutationObserver(schedule).observe(main, {childList: true, subtree: true});
 
   function apply() {
     place(PHONE.matches);
+    if (!PHONE.matches) undoTables();
     afterView();
   }
   PHONE.addEventListener('change', apply);

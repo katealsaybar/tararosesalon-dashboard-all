@@ -4607,7 +4607,7 @@ function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
         return `
           <div class="card" style="margin-bottom:0">
             <div style="height:3px;border-radius:3px;background:${info.color};margin-bottom:14px"></div>
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+            <div class="svc-bhead" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
               <div>
                 <div class="card-title" style="font-size:16px">${info.name}</div>
                 <div class="card-sub" style="margin-bottom:0;font-size:12px">${rows.length} services shown</div>

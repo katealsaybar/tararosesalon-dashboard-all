@@ -95,6 +95,69 @@
   .eyebrow[id],[id^="s-"],[id^="sec-"]{scroll-margin-top:calc(var(--topbar-cond-h,64px) + 12px)}
 }
 
+/* ===== MOBILE (≤ 760px) · 3. TABLES ===== */
+@media(max-width:760px){
+  /* The label column gives the figures room: capped, wrapped, tighter cells.
+     Group-heading rows span the table, so they are left alone. */
+  table.lg td,table.lg th{padding-left:9px;padding-right:9px}
+  table.lg tbody tr:not(.lg-grp) > td:first-child:not([colspan]),
+  table.lg thead th:first-child:not([colspan]){
+    width:42vw;max-width:42vw;min-width:120px;white-space:normal;line-height:1.25;
+    overflow-wrap:anywhere}
+  table.lg,table.lg td.r,table.lg th.r{font-variant-numeric:tabular-nums}
+  .lg-wrap.sx-l table.lg td:first-child,.lg-wrap.sx-l table.lg th:first-child{
+    box-shadow:6px 0 8px -7px rgba(0,0,0,.35)}
+
+  /* "Swipe for more" the first time a scroller has more to the right. */
+  .lg-sx{--hint:''}
+  .m-swipe{position:absolute;right:8px;bottom:10px;z-index:4;pointer-events:none;
+    font-size:12px;letter-spacing:.06em;color:var(--text);background:var(--surface);
+    border:1px solid var(--border);border-radius:999px;padding:4px 10px;
+    box-shadow:var(--shadow-card);transition:opacity 200ms}
+  .m-swipe.gone{opacity:0}
+
+  /* Cards / Table for the widest tables (mobile.js builds the cards). */
+  .m-tv{display:flex;gap:8px;margin:0 0 10px}
+  .m-tv button{min-height:44px;padding:0 16px;border:1px solid var(--border);border-radius:999px;
+    background:var(--surface);color:var(--muted);font:inherit;font-size:13px;letter-spacing:.06em;
+    text-transform:uppercase;cursor:pointer}
+  .m-tv button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+  .m-cards-on > .lg-wrap{display:none}
+  .m-cards-on > .lg-sx,.lg-sx.m-cards-on .lg-wrap{display:none}
+  .m-cards{display:grid;gap:8px}
+  .m-cards[hidden]{display:none}
+  .m-grp{margin:14px 0 2px;font-size:12px;font-weight:700;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted)}
+  .m-card{border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden}
+  .m-card.tot{border-color:var(--text)}
+  .m-card summary{list-style:none;display:flex;align-items:center;justify-content:space-between;
+    gap:10px;min-height:48px;padding:10px 14px;cursor:pointer;font-weight:600;font-size:15px}
+  .m-card summary::-webkit-details-marker{display:none}
+  .m-card summary::after{content:'+';font-weight:400;color:var(--muted);font-size:20px;line-height:1}
+  .m-card[open] summary::after{content:'–'}
+  .m-card summary .m-lead{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}
+  .m-card dl{margin:0;padding:0 14px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;
+    gap:6px 14px;font-size:14px}
+  .m-card dt{color:var(--muted);min-width:0;overflow-wrap:anywhere}
+  .m-card dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .m-card dt.band{grid-column:1/-1;margin-top:6px;font-size:12px;font-weight:700;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--text);opacity:.75}
+
+  /* Service Rankings: one branch per card, # · Service · AED. */
+  .svc-scroll-wrap{overflow-x:visible}
+  .svc-grid-4{grid-template-columns:1fr;min-width:0}
+  .svc-grid-4 table th:nth-child(4),.svc-grid-4 table td:nth-child(4){display:none}
+  .svc-grid-4 table td:nth-child(2){white-space:normal!important;max-width:none!important}
+  .svc-bhead{flex-wrap:wrap;gap:6px 12px}
+  .svc-bhead > div:last-child{text-align:left!important}
+
+  /* The "Open in Google Sheets" style buttons are one long nowrap line; let them wrap. */
+  .lgx-b-lg{white-space:normal;max-width:100%;text-align:left}
+  /* Page-level sideways scroll: nothing in the masthead may be wider than the screen. */
+  .topbar-in,.mast,.mast-top{max-width:100%;min-width:0}
+  .mast-top > div:first-child{min-width:0}
+}
+
 /* ===== SMALL PHONES (≤ 480px) ===== */
 @media(max-width:480px){
   .mast-logo,.topbar.stuck .mast-logo{width:88px}
