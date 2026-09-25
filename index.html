@@ -324,6 +324,10 @@ body.compare-chrome .topbar.stuck #headerSectionLabel{opacity:1;max-height:140px
 body.ledger-chrome .mast-acts,
 body.ledger-chrome .filters-wrap{display:none}
 body.ledger-chrome #mastBranch{display:none}
+/* Kate, 25 Sep 2026: Staff Performance picks its own month in its bar, so the
+   masthead's branch and date range would disagree with it and confuse people. */
+body.staffperf-chrome #mastBranch,
+body.staffperf-chrome #mastRange{display:none}
 /* Kate, 21 Sep 2026: Org Chart is a static reference page like Staff Cards —
    no date filter, no data load — so the branch/date/freshness line has
    nothing to describe there and just reads as clutter. */
@@ -3151,6 +3155,7 @@ function showView(view, el){
   document.body.classList.toggle('orgchart-chrome', view === 'orgchart');
   document.body.classList.toggle('reviews-chrome', view === 'reviews');
   document.body.classList.toggle('compare-chrome', view === 'compare');
+  document.body.classList.toggle('staffperf-chrome', view === 'staffperf');
   // Popped-out standalone window (ocOpenNewWindow() sets ocFit=1): no sidebar
   // nav to open and no card border round the tree, just the chart, edge to
   // edge — this window's whole reason to exist is projecting/sharing/printing
