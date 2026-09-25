@@ -113,6 +113,31 @@ html.embedded,html.embedded body{overflow:hidden}
 html.embedded .wrap{padding-top:8px}
 html.embedded .filters{position:static}
 @media (max-width:900px){.srow{grid-template-columns:36px 1fr 90px}.srow .bar{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.brow{grid-template-columns:110px 1fr 70px}.filters{position:static}}
+/* Phones (Kate, 25 Sep 2026). Framed in the dashboard, whose page already has a
+   side gutter, so the frame's own goes. Bars and staff rows stack: name and count
+   on one line, the bar under them, so no figure is squeezed into a fixed column. */
+@media (max-width:760px),(hover:none) and (max-height:480px){
+  html.embedded .wrap{padding-left:0;padding-right:0}
+  .grid2{grid-template-columns:minmax(0,1fr)}.grid2 > *,.card{min-width:0}
+  .brow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"n v" "b b";row-gap:6px;padding:8px 0}
+  .brow .bname{grid-area:n;font-size:14px}.brow .bar{grid-area:b}.brow .bval{grid-area:v}
+  .bval small{display:inline;font-size:12px;margin-left:4px}
+  .srow{grid-template-columns:40px minmax(0,1fr);grid-template-areas:"p n" "p v";row-gap:2px;padding:8px 6px}
+  .srow > img,.srow > .sph{grid-area:p}.srow .sname{grid-area:n}.srow .bval{grid-area:v;text-align:left}
+  .sname b{white-space:normal;font-size:14px}.sname small{font-size:12px}
+  table.ex th{font-size:12px}
+  /* The star table scrolls; the right edge fades so the cut reads as more to come. */
+  #exact{position:relative}
+  #exact::after{content:"";position:absolute;top:0;right:0;bottom:0;width:32px;pointer-events:none;
+    background:linear-gradient(to right,transparent,var(--surface) 80%)}
+  /* The last year's label ran off the right edge of the timeline. */
+  .tlab div{font-size:12px;overflow:visible;min-width:0}
+  /* Eleven years do not fit at 12px: every other one, always the latest. */
+  .tlab div:nth-last-child(even){visibility:hidden}
+  .tlab div:last-child{direction:rtl;text-align:right}
+  input,select{font-size:16px}
+  .chip,button{min-height:44px}
+}
 </style>
 </head>
 <body>

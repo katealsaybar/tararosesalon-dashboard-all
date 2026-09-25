@@ -119,3 +119,7 @@ body.embed main{max-width:none}
 .sort-dir{appearance:none;font:inherit;font-size:13px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer}
 .team-grid.flat{margin-top:14px}
 .dept-h{margin:6px 0 8px;font-size:12px;font-weight:600;color:var(--muted)}
+
+/* Framed in the dashboard on a phone (Kate, 25 Sep 2026): the dashboard page already
+   has its side gutter, so the frame's own 16px would indent every card a second time. */
+@media(max-width:760px),(hover:none) and (max-height:480px){body.embed main{padding-left:0;padding-right:0}}

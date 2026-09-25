@@ -1428,7 +1428,7 @@ async function renderStylistCards() {
                   scroll-margin-top:170px">
         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
                      background:${colour};flex-shrink:0"></span>
-        ${escapeHtml(label)} · ${stylistCountLabel(list)}
+        <span>${escapeHtml(label)}<span class="sl-sub"><span class="sl-dot"> · </span>${stylistCountLabel(list)}</span></span>
       </div>
       <div class="sc-grid mode-${stylistViewMode}">${cards}</div>`;
   }).join('');
@@ -4552,7 +4552,7 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
   const branchLabel = branches.length === 4 ? 'All Branches' : branches.map(b => BRANCH_INFO[b]?.name||b).join(' · ');
 
   content.innerHTML = `
-    <div class="section-label" style="margin-top:16px">${branchLabel} — Combined Top ${rows.length} Services · ${year}</div>
+    <div class="section-label" style="margin-top:16px">${branchLabel} — Combined Top ${rows.length} Services<span class="sl-sub"><span class="sl-dot"> · </span>${year}</span></div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
         <div>
@@ -4599,7 +4599,7 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
 function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
   const content = document.getElementById('svc-content');
   content.innerHTML = `
-    <div class="section-label" style="margin-top:16px">Top ${limit} Services Per Branch · ${year} · ${note ? escapeHtml(note) : `${pFrom} – ${pTo}`}</div>
+    <div class="section-label" style="margin-top:16px">Top ${limit} Services Per Branch<span class="sl-sub"><span class="sl-dot"> · </span>${year} · ${note ? escapeHtml(note) : `${pFrom} – ${pTo}`}</span></div>
     <div class="${results.length > 2 ? 'svc-scroll-wrap' : ''}"><div class="svc-grid-${results.length <= 2 ? '2' : '4'}">
       ${results.map(({ branch, rows }) => {
         const info = BRANCH_INFO[branch] || { name: branch, color: '#FFD4D9' };
