@@ -119,7 +119,13 @@ function tpRoster(dept) {
     if (!groups[key]) { groups[key] = []; order.push(key); }
     groups[key].push(r);
   });
-  const list = order.map(key => tpCombine(groups[key], key));
+  // Kate, 25 Sep 2026: a name the ledger still carries with nothing against it in
+  // this window (leavers kept on the sheet as blank rows, e.g. Samantha and Zandri
+  // into August) is not a person on the floor. Anyone with a sale or a client stays,
+  // including assistants who bring no money through their own name; Phorest-only
+  // staff count their visits as clients.
+  const list = order.map(key => tpCombine(groups[key], key))
+    .filter(st => (st.net || 0) > 0 || (st.total || 0) > 0);
   return list.sort((a, b) => (b.net || 0) - (a.net || 0));
 }
 
