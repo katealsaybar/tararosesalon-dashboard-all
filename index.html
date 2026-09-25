@@ -6,7 +6,7 @@
 <meta http-equiv="Expires" content="0">
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Tara Rose Ladies Salon — Dashboard</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/favicon-96x96.png" sizes="96x96" type="image/png">
@@ -2446,6 +2446,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 
 </style>
 <link rel="stylesheet" href="nav-collapse.css?v=20260924a">
+<!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
+<link rel="stylesheet" href="mobile.css?v=20260925a">
 </head>
 <body>
 
@@ -2587,6 +2589,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <!-- Logout button -->
   <div class="nav-out">
+    <!-- Phones only: Dark mode leaves the header and lives here. -->
+    <div class="nav-sub nav-phone" role="button" tabindex="0" onclick="toggleTheme()"><span class="nt-dark">Dark mode</span><span class="nt-light">Light mode</span></div>
     <div class="nav-sub" onclick="doLogout()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Log Out
@@ -2620,6 +2624,10 @@ table.tp-cmp td.bad{color:var(--bad)}
         <button class="tglr navbtn" id="navBtn" onclick="toggleNav()" aria-expanded="false" aria-controls="sidebar">Sections</button>
         <button class="tglr" id="filtersBtn" onclick="toggleFiltersBar()" aria-expanded="true" aria-controls="filters">Hide filters</button>
         <button class="tglr" id="themeBtn" onclick="toggleTheme()"><span id="themeLbl">Dark</span></button>
+        <!-- Phones only (mobile.css): opens the filters sheet and says what they are set to. -->
+        <button class="tglr" id="fSheetBtn" onclick="openFilterSheet()" aria-expanded="false" aria-controls="fSheet"
+                aria-label="Filters"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span id="fSheetSum">All</span></button>
       </div>
     </div>
     <div class="mast-rule">
@@ -2674,6 +2682,14 @@ table.tp-cmp td.bad{color:var(--bad)}
      poll behind it never redraws the page on its own: this notice is the whole
      of what a data change does to the screen until someone presses the button
      (Kate, 4 Sep 2026). -->
+<!-- Phones only: the Branch and Period filters, as a bottom sheet. mobile.js moves
+     #filtersWrap in here on a phone and back into the header above 760px. -->
+<div class="fsheet-scrim" id="fSheetScrim" onclick="closeFilterSheet()"></div>
+<div class="fsheet" id="fSheet" role="dialog" aria-modal="true" aria-label="Filters">
+  <div class="fsheet-head"><b>Filters</b><button class="tglr" type="button" onclick="closeFilterSheet()">Done</button></div>
+  <div class="fsheet-body" id="fSheetBody"></div>
+</div>
+
 <div class="upd" id="updNotice" hidden role="status" aria-live="polite">
   <button class="upd-pill" onclick="expandUpdateNotice()">Newer data · see what changed</button>
   <div class="upd-full" id="updFull"></div>
@@ -2682,6 +2698,9 @@ table.tp-cmp td.bad{color:var(--bad)}
 <div class="wrap" id="wrap">
 
   <div id="topbarSpacer"></div>
+  <!-- Phones only: mobile.js moves the section label and the meta rule in here,
+       out of the fixed header, so they scroll away with the page. -->
+  <div class="mast-body" id="mastBody"></div>
 
   <!-- SCROLLABLE CONTENT AREA — the window scrolls now, not this box. The id
        stays because updateScrollProgress() and showView() both look for it. -->
@@ -3766,4 +3785,5 @@ addEventListener('load', sizeTopbar);
 </script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
 <script src="nav-collapse.js?v=20260924a"></script>
+<script src="mobile.js?v=20260925a"></script>
 </body>

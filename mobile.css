@@ -1,0 +1,106 @@
+/* ══════════════════════════════════════════════════════════════
+   PHONE LAYER (Kate, 25 Sep 2026)
+   Loaded last, so it wins ties with index.html's own rules. Three bands only:
+     ≤ 900px  tablet      (the existing overlay-nav band; nothing new here yet)
+     ≤ 760px  phones      everything below
+     ≤ 480px  small phones
+   Every rule here sits inside a max-width query or targets an element that is
+   display:none from 761px up, so the desktop page is untouched. mobile.js does
+   the moving: on phones it lifts the section label, the meta rule and the
+   filters OUT of the fixed header (same nodes, same ids) and back again above
+   760px.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Phone-only pieces exist in the markup at every width; they only show below. */
+.mast-body,.fsheet,.fsheet-scrim,#fSheetBtn,.nav-phone{display:none}
+
+/* ===== MOBILE (≤ 760px) · 1. COMPACT HEADER ===== */
+@media(max-width:760px){
+  /* One row: wordmark, filters summary, sections. 56px + the notch. */
+  .topbar{padding-top:env(safe-area-inset-top);
+    transition:transform 220ms var(--card-ease),box-shadow 220ms var(--card-ease)}
+  .topbar-in{padding:0 16px}
+  .topbar.stuck{padding-bottom:0}
+  .topbar .mast,.topbar.stuck .mast{padding:6px 0}
+  .mast-top{align-items:center;min-height:44px}
+  .mast-logo,.topbar.stuck .mast-logo{width:96px}
+  /* Scrolling down tucks it away, any scroll up brings it back (mobile.js). */
+  .topbar.tb-hide{transform:translateY(-100%);box-shadow:none}
+
+  /* Buttons. Dark mode moves into the drawer; Hide filters becomes the sheet. */
+  .mast-acts,body.ledger-chrome .mast-acts{display:flex;flex-wrap:nowrap;gap:8px;flex-shrink:0}
+  #filtersBtn,#themeBtn{display:none!important}
+  #navBtn{width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;font-size:0;
+    display:grid;place-items:center;color:var(--text)}
+  #navBtn::before{content:'';width:18px;height:14px;
+    background:linear-gradient(currentColor,currentColor) 0 0/100% 2px no-repeat,
+               linear-gradient(currentColor,currentColor) 0 50%/100% 2px no-repeat,
+               linear-gradient(currentColor,currentColor) 0 100%/100% 2px no-repeat}
+  #fSheetBtn{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 14px;
+    max-width:min(52vw,220px);font-size:12.5px;letter-spacing:.02em;text-transform:none;color:var(--text)}
+  #fSheetBtn.off{display:none}
+  #fSheetBtn svg{flex-shrink:0}
+  #fSheetSum{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* What used to ride in the header now opens the page: section label (with the
+     Comparison switch and the org chart links) and the branch · range · feed line. */
+  .mast-body{display:block;padding:8px 0 2px}
+  .mast-body > div{flex-wrap:wrap;row-gap:4px;margin-top:0!important}
+  .mast-body .mast-sub{font-size:12px;letter-spacing:.16em;max-height:none;opacity:1}
+  .mast-body .mast-rule{margin-top:10px;font-size:12px;letter-spacing:.1em;max-height:none;opacity:1}
+  .mast-body #ocOpenNewWin,.mast-body #ocPrintBtn{display:inline-flex;align-items:center;
+    min-height:44px;font-size:12px!important}
+  .mast-body #ocOpenNewWin[style*="display: none"],.mast-body #ocPrintBtn[style*="display: none"]{display:none!important}
+
+  /* Filters: a bottom sheet, opened from the header. */
+  .fsheet-scrim{display:block;position:fixed;inset:0;z-index:130;background:rgba(26,26,26,.38);
+    opacity:0;pointer-events:none;transition:opacity 220ms var(--card-ease)}
+  .fsheet{display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:0;z-index:131;
+    max-height:min(80dvh,80vh);background:var(--bg);border-radius:18px 18px 0 0;
+    box-shadow:0 -12px 30px -12px rgba(0,0,0,.35);
+    padding:0 16px calc(16px + env(safe-area-inset-bottom));
+    transform:translateY(105%);visibility:hidden;overscroll-behavior:contain;
+    transition:transform 260ms var(--card-ease),visibility 0s linear 260ms}
+  body.fsheet-open .fsheet{transform:none;visibility:visible;transition:transform 260ms var(--card-ease),visibility 0s}
+  body.fsheet-open .fsheet-scrim{opacity:1;pointer-events:auto}
+  body.fsheet-open{overflow:hidden}
+  .fsheet-head{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 0;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg)}
+  .fsheet-head b{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .fsheet-body{overflow-y:auto;padding-top:6px}
+  .fsheet .filters-wrap{display:block!important}
+  .fsheet .filters{flex-direction:column;align-items:stretch;gap:14px;padding:10px 0 4px}
+  .fsheet .f-row{flex-direction:column;align-items:stretch;gap:8px}
+  .fsheet .f-lbl{font-size:12px}
+  /* Chips as pills, not middot text: they are the whole control on a phone. */
+  .fsheet .chipset{gap:8px}
+  .fsheet .chipset .sep{display:none}
+  .fsheet .chip{min-height:44px;padding:0 16px;border:1px solid var(--border);border-radius:999px;
+    background:var(--surface);color:var(--text);font-size:14px}
+  .fsheet .chip[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+  .fsheet .f-dates{margin-left:0;gap:8px;align-items:center}
+  .fsheet .f-dates input,.fsheet .f-dates select,.fsheet .f-dates .lg-month-sel{font-size:16px;min-height:44px}
+  .fsheet .f-dates button{min-height:44px;font-size:14px!important}
+
+  /* The drawer carries Dark mode now. */
+  .nav-phone{display:flex;align-items:center;min-height:48px}
+  .nav-phone .nt-light{display:none}
+  [data-theme="dark"] .nav-phone .nt-dark{display:none}
+  [data-theme="dark"] .nav-phone .nt-light{display:inline}
+
+  /* Second sticky bars would stack under the header: on phones they scroll. */
+  .tp-bar,.sc-bar,#spfBar{position:relative;top:auto}
+
+  /* Jumps land below whatever the header is at the time. */
+  .eyebrow[id],[id^="s-"],[id^="sec-"]{scroll-margin-top:calc(var(--topbar-cond-h,64px) + 12px)}
+}
+
+/* ===== SMALL PHONES (≤ 480px) ===== */
+@media(max-width:480px){
+  .mast-logo,.topbar.stuck .mast-logo{width:88px}
+  #fSheetBtn{padding:0 11px;max-width:48vw}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .topbar,.fsheet,.fsheet-scrim{transition:none!important}
+}
