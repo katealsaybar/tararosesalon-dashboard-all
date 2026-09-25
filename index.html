@@ -13,7 +13,19 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
-<script>window.TRS_AUTH_HASH = location.hash;</script>
+<script>
+window.TRS_AUTH_HASH = location.hash;
+// A failed sign-in leaves ?error=... in the address. supabase-js treats any error
+// there as the result of the NEXT sign-in too and ignores its session, so keep the
+// message for the card and take the params out before supabase-js looks.
+(function(){
+  var q = new URLSearchParams(location.search);
+  if (!q.has('error') && !q.has('error_code') && !q.has('error_description')) return;
+  window.TRS_AUTH_ERROR = q.get('error_description');
+  ['error','error_code','error_description'].forEach(function(k){ q.delete(k); });
+  history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -3184,8 +3196,14 @@ function gateMsg(text, kind){
 
 function gateBusy(on){ document.getElementById('loginBtn').disabled = on; }
 
+// Only ?next= rides along to Google and back; anything else in the address stays behind.
+function gateNextQuery(){
+  const next = new URLSearchParams(location.search).get('next');
+  return next ? '?next=' + encodeURIComponent(next) : '';
+}
+
 async function doGoogleLogin(){
-  const { error } = await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: GATE_BACK + location.search } });
+  const { error } = await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: GATE_BACK + gateNextQuery() } });
   if (error) gateMsg('Google sign-in is not switched on yet. Use email and password for now.', 'error');
 }
 
@@ -3295,7 +3313,7 @@ sb.auth.onAuthStateChange((event) => {
 (async function checkSession(){
   localStorage.removeItem('trsRole');   // the old shared-password role, no longer used
   gateMode('signin');
-  const err = new URLSearchParams((window.TRS_AUTH_HASH || '').slice(1)).get('error_description');
+  const err = window.TRS_AUTH_ERROR || new URLSearchParams((window.TRS_AUTH_HASH || '').slice(1)).get('error_description');
   if (err) gateMsg(err.replace(/\+/g, ' '), 'error');
   const { data } = await sb.auth.getSession();
   if (!data.session) return;
