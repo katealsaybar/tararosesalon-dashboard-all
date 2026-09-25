@@ -1672,6 +1672,25 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   background:transparent;color:var(--muted);font-family:'Inter',sans-serif;
   font-size:13.5px;font-weight:600;cursor:pointer;transition:border-color .2s,color .2s}
 @media(hover:hover){.sc-btn:hover{border-color:var(--accent);color:var(--accent)}}
+/* Kate, 25 Sep 2026: soft pill menu for the bar's Sort and Month, in place of the
+   browser's square native dropdown. The <select> stays underneath as the value. */
+.spf-dd{position:relative;display:inline-flex}
+.spf-dd select{display:none}
+.spf-dd-btn{display:inline-flex;align-items:center;gap:7px}
+.spf-dd-btn svg{width:10px;height:10px;opacity:.6;transition:transform .18s}
+.spf-dd.open .spf-dd-btn{border-color:var(--accent);color:var(--text)}
+.spf-dd.open .spf-dd-btn svg{transform:rotate(180deg)}
+.spf-dd-btn:focus-visible,.spf-dd-menu button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.spf-dd-menu{position:absolute;top:calc(100% + 6px);right:0;z-index:60;min-width:100%;
+  display:none;flex-direction:column;gap:2px;padding:6px;border-radius:16px;
+  background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-card);
+  max-height:320px;overflow-y:auto}
+.spf-dd.open .spf-dd-menu{display:flex}
+.spf-dd-menu button{appearance:none;border:0;background:transparent;color:var(--text);text-align:left;
+  white-space:nowrap;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;
+  padding:7px 14px;border-radius:999px;cursor:pointer;transition:background .15s}
+@media(hover:hover){.spf-dd-menu button:hover{background:var(--surface2)}}
+.spf-dd-menu button.on{background:var(--accent);color:var(--accent-fg);font-weight:700}
 /* On a phone the label costs the controls their single line, and the masthead
    already says which view you are in. */
 @media(max-width:640px){.sc-bar-t{display:none}}
@@ -2753,16 +2772,16 @@ table.tp-cmp td.bad{color:var(--bad)}
         <span class="sc-bar-t">Staff Performance</span>
         <span class="sc-bar-sp"></span>
         <span id="spfSortWrap" style="display:inline-flex;gap:6px">
-          <select id="spfSort" class="sc-btn" aria-label="Sort by" onchange="spfSetSort(this.value, false)">
+          <span class="spf-dd"><select id="spfSort" aria-label="Sort by" onchange="spfSetSort(this.value, false)">
             <option value="branch">Sort: Branch</option>
             <option value="name">Sort: Name</option>
             <option value="takings">Sort: Takings</option>
             <option value="clients">Sort: Clients</option>
             <option value="rebook">Sort: Rebook %</option>
-          </select>
+          </select></span>
           <button type="button" id="spfSortDir" class="sc-btn" title="Reverse the order" onclick="spfSetSort(null, true)"></button>
         </span>
-        <select id="spfMonth" class="sc-btn" aria-label="Month" onchange="spfSetMonth(this.value)"></select>
+        <span class="spf-dd"><select id="spfMonth" aria-label="Month" onchange="spfSetMonth(this.value)"></select></span>
         <div class="sc-seg" role="group" aria-label="Team">
           <button type="button" data-dept="all" onclick="spfSetDept('all')">All</button>
           <button type="button" data-dept="Hair" onclick="spfSetDept('Hair')">Hair</button>
@@ -2792,15 +2811,51 @@ table.tp-cmp td.bad{color:var(--bad)}
   }
   // Month for the framed page: the last 12, this month first. The frame's own
   // picker is hidden when embedded, so this is the only one on the dashboard.
+  // Turns a hidden <select> into the soft pill menu. The select keeps the value
+  // and its onchange; sel._ddPaint() refreshes the label after a code change.
+  function spfDD(sel){
+    const wrap = sel.parentNode;
+    if (sel._ddPaint) return sel._ddPaint();
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'sc-btn spf-dd-btn';
+    btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-label', sel.getAttribute('aria-label'));
+    const menu = document.createElement('div');
+    menu.className = 'spf-dd-menu'; menu.setAttribute('role', 'listbox');
+    wrap.append(btn, menu);
+    const close = () => { wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); };
+    sel._ddPaint = () => {
+      const cur = sel.options[sel.selectedIndex];
+      btn.innerHTML = (cur ? cur.text : '') + '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      menu.innerHTML = '';
+      [...sel.options].forEach(o => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = o.text; b.setAttribute('role', 'option');
+        if (o.value === sel.value) { b.className = 'on'; b.setAttribute('aria-selected', 'true'); }
+        b.onclick = () => { close(); if (sel.value !== o.value) { sel.value = o.value; sel._ddPaint(); sel.dispatchEvent(new Event('change')); } };
+        menu.append(b);
+      });
+    };
+    btn.onclick = e => {
+      e.stopPropagation();
+      const open = !wrap.classList.contains('open');
+      document.querySelectorAll('.spf-dd.open').forEach(w => w.classList.remove('open'));
+      wrap.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open));
+      if (open) (menu.querySelector('.on') || menu.firstChild)?.focus();
+    };
+    document.addEventListener('click', e => { if (!wrap.contains(e.target)) close(); });
+    wrap.addEventListener('keydown', e => { if (e.key === 'Escape') { close(); btn.focus(); } });
+    sel._ddPaint();
+  }
   function spfBuildMonths(){
     const sel = document.getElementById('spfMonth');
-    if (sel.options.length) return;
+    if (sel.options.length) return spfDD(sel);
     const now = new Date();
     for (let i = 0; i < 12; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const v = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
       sel.add(new Option(d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }), v));
     }
+    spfDD(sel);
   }
   function spfSetMonth(m){
     const f = document.getElementById('spfFrame');
@@ -2814,6 +2869,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   function spfPaintSort(){
     const st = spfSortState();
     document.getElementById('spfSort').value = st.k;
+    spfDD(document.getElementById('spfSort'));
     document.getElementById('spfSortDir').textContent = (['branch', 'name'].includes(st.k) ? (st.rev ? 'Z–A' : 'A–Z') : (st.rev ? 'Lowest first' : 'Highest first')) + ' ⇅';
   }
   function spfSetSort(k, flip){
