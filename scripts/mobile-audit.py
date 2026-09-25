@@ -28,12 +28,19 @@ import functools, http.server, json, socketserver, sys, threading, time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / 'mobile-audit'
+# AUDIT_ROOT serves another checkout (e.g. a worktree of main for a desktop baseline);
+# AUDIT_SIZES limits the run, e.g. AUDIT_SIZES=1440x900.
+import os
+if os.environ.get('AUDIT_ROOT'):
+    ROOT = Path(os.environ['AUDIT_ROOT']).resolve()
+OUT = Path(__file__).resolve().parent.parent / 'mobile-audit'
 
 VIEWS = ['dashboard', 'dashboard-open', 'branchperf', 'compare', 'team', 'staffperf',
          'stylists', 'orgchart', 'ledgerFinancials', 'ledgerTargets', 'ledgerActuals',
          'ledgerStylist', 'services', 'clients', 'reviews']
 SIZES = [(320, 640), (375, 667), (390, 844), (430, 932), (844, 390), (1440, 900)]
+if os.environ.get('AUDIT_SIZES'):
+    SIZES = [tuple(map(int, x.split('x'))) for x in os.environ['AUDIT_SIZES'].split(',')]
 PHONE_CHROME_MAX = 0.15
 
 # Everything the page measures, in one pass. Returned as plain JSON.
@@ -164,6 +171,8 @@ def run(tag):
             page.wait_for_function("() => { const h = document.getElementById('pulseHeadline');"
                                    " return h && !/Reading the numbers/.test(h.textContent); }", timeout=60000)
             page.wait_for_timeout(1500)
+            # Charts drawn after this skip their grow-in, so two runs shoot the same frame.
+            page.evaluate("() => { if (window.Chart) Chart.defaults.animation = false; }")
             for view in VIEWS:
                 open_view(page, view)
                 shot = out / 'shots' / f'{view}-{w}x{h}.png'
