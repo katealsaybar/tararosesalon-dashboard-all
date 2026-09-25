@@ -19,8 +19,13 @@ const state = {branches:new Set(BRANCHES), stars:new Set(ALL), rec:"all", withTe
 //   loose spellings match in any case ("nikki" = Nikki) at any UAE branch
 //   strict spellings (May, Grace, Shine, Robin...) match only capitalised and at
 //   the person's own branch
-//   never the reviewer's own name; April / May not when they read as a month
-const BR_OF = {KCA:"Khalifa City A, Abu Dhabi", SAA:"Saadiyat, Abu Dhabi", MC:"Motor City, Dubai", AQ:"Al Quoz, Dubai"};
+//   never the reviewer's own name; April / May not when they read as a month;
+//   not_after: never right after that word (the table's own exceptions)
+// People who aren't in staff-profiles.js (kept off Staff Cards on purpose) but
+// whose reviews still count come from the table too: label / home_branch / photo
+// on their name row. Daisy Cropper, Managing Director of TRS Bahrain, is one, so
+// Bahrain reviews count for whoever's home it is.
+const BR_OF = {KCA:"Khalifa City A, Abu Dhabi", SAA:"Saadiyat, Abu Dhabi", MC:"Motor City, Dubai", AQ:"Al Quoz, Dubai", BAH:"District 2, Bahrain"};
 const MONTH_BEFORE = /(?:\b(?:in|on|of|since|last|this|next|early|late|mid|from|until|till|during|by)\s+)$/i;
 const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const wordRe = (list, flags) => list.length ? new RegExp("(?<![\\p{L}])(" + list.map(reEsc).join("|") + ")(?![\\p{L}])", flags + "u") : null;
@@ -36,7 +41,7 @@ async function loadClientCredit(){
 }
 async function loadVariants(){
   try {
-    const res = await fetch(`${SUPA_URL}/rest/v1/staff_name_variants?select=staff_key,variant,strict`, {headers:{apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY}});
+    const res = await fetch(`${SUPA_URL}/rest/v1/staff_name_variants?select=staff_key,variant,strict,not_after,label,home_branch,photo`, {headers:{apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY}});
     if (res.ok) VARIANTS = await res.json();
   } catch (e) { console.warn("staff_name_variants unreachable, matching on first names only", e); }
 }
@@ -45,22 +50,34 @@ function buildStaff(){
   const by = {};
   (VARIANTS || []).forEach(v => (by[v.staff_key] ||= []).push(v));
   const seen = new Set();
-  STAFF = Object.entries(STAFF_PROFILES).filter(([k]) => !k.includes("/")).map(([k,p]) => {
-    const label = k.length <= 2 ? k : k.toLowerCase().replace(/(^|\s)[a-z]/g, c => c.toUpperCase());
+  const make = (k, p, label) => {
     const vs = by[k] || [{variant: label, strict: false}];   // offline: first name only
     const loose = vs.filter(v => !v.strict).map(v => v.variant).sort((a,b) => b.length - a.length);
     const strict = vs.filter(v => v.strict).map(v => v.variant).sort((a,b) => b.length - a.length);
     return {key:k, label, names: vs.map(v => v.variant), branch:BR_OF[p.branch] || null, role:p.role || "", resigned:!!p.resigned,
       photo: p.photoFull ? "../../" + encodeURI(p.photoFull) : p.photo ? "../../assets/staff/" + encodeURIComponent(p.photo) : null,
+      notAfter: Object.fromEntries(vs.filter(v => v.not_after).map(v => [v.variant.toLowerCase(), new RegExp("(?<![\\p{L}])" + reEsc(v.not_after) + "\\s+$", "iu")])),
       loose: wordRe(loose, "gi"), strict: wordRe(strict, "g")};
-  }).filter(s => { const id = s.photo || s.key; if (seen.has(id)) return false; seen.add(id); return true; });
+  };
+  // People in the table with no profile: name row carries label / home_branch / photo.
+  const extra = Object.entries(by).filter(([k]) => !STAFF_PROFILES[k]).map(([k, vs]) => {
+    const row = vs.find(v => v.label || v.home_branch || v.photo) || vs[0];
+    return make(k, {branch: row.home_branch, photoFull: row.photo || null}, row.label || row.variant);
+  });
+  STAFF = [...Object.entries(STAFF_PROFILES).filter(([k]) => !k.includes("/")).map(([k,p]) => {
+    const label = k.length <= 2 ? k : k.toLowerCase().replace(/(^|\s)[a-z]/g, c => c.toUpperCase());
+    return make(k, p, label);
+  }), ...extra].filter(s => { const id = s.photo || s.key; if (seen.has(id)) return false; seen.add(id); return true; });
 }
 // Which staff a review names, and where, so the text can highlight them.
 function tagStaff(r){
   r.staff = []; r.hits = []; r.viaClient = false;
-  if (r.branch === "District 2, Bahrain") return;
   if (!r.comment) { if (r.id && CLIENT_CREDIT[r.id]) { r.staff = [...new Set(CLIENT_CREDIT[r.id])]; r.viaClient = true; } return; }
+  r.staff = [];
+  const bahrain = r.branch === "District 2, Bahrain";
   STAFF.forEach(s => {
+    // Bahrain reviews only count for someone whose home is Bahrain.
+    if (bahrain && s.branch !== r.branch) return;
     // A client signing off with her own name ("... Maria.") isn't naming a stylist.
     const own = s.names.find(n => wordRe([n], "i").test(r.reviewer || ""));
     const hits = [];
@@ -70,6 +87,8 @@ function tagStaff(r){
       while ((m = re.exec(r.comment))) {
         const w = m[1];
         if (own && own.toLowerCase() === w.toLowerCase()) continue;
+        const na = s.notAfter[w.toLowerCase()];
+        if (na && na.test(r.comment.slice(Math.max(0, m.index - 20), m.index))) continue;
         if ((w === "April" || w === "May") &&
             (MONTH_BEFORE.test(r.comment.slice(Math.max(0, m.index - 12), m.index)) || /^\s*\d/.test(r.comment.slice(m.index + w.length)))) continue;
         hits.push([m.index, m.index + w.length]);

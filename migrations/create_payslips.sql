@@ -154,3 +154,35 @@ insert into staff_name_variants (staff_key, variant, kind, strict, note) values
  ('EDS','Adz','nickname',false,'confirmed: reviewer Nadine Mourad was Eds''s client 14 days before'),
  ('IRLYN','Lynn','nickname',true,'confirmed: reviewer Asma Alhammadi was Irlyn''s client; also a common name')
 on conflict do nothing;
+
+-- ── Name variants: exceptions and people outside staff-profiles.js ───────
+-- not_after: a word that, right before this spelling, means someone else.
+-- label / home_branch / photo: on the name row of someone who isn't in
+-- staff-profiles.js (kept off Staff Cards on purpose) but whose reviews count.
+-- (The column is home_branch, not home: perf_review_names has a parameter
+-- called home, and a same-named column would shadow it.)
+alter table staff_name_variants add column if not exists not_after text;
+alter table staff_name_variants add column if not exists label text;
+alter table staff_name_variants add column if not exists home_branch text;
+alter table staff_name_variants add column if not exists photo text;
+
+insert into staff_name_variants (staff_key, variant, kind, strict, note) values
+ ('HAZEL MAE','Mae','nickname',true,'Kate 25 Sep: "Mae" in KCA reviews is Hazel Mae; also a common name, KCA only')
+on conflict (staff_key, variant) do nothing;
+
+insert into staff_name_variants (staff_key, variant, kind, strict, label, home_branch, photo, note) values
+ ('DAISY','Daisy','name',false,'Daisy Cropper','BAH','assets/org-chart/daisy-charlotte-cropper.png',
+  'Daisy Charlotte Cropper: Style Director at KCA before, now Managing Director of TRS Bahrain. Not in staff-profiles.js on purpose.')
+on conflict (staff_key, variant) do update set label = excluded.label, home_branch = excluded.home_branch, photo = excluded.photo, note = excluded.note;
+
+create or replace function perf_review_names(keys text[], comment text, reviewer text, home boolean) returns boolean
+language sql stable set search_path = public as $$
+  select exists (
+    select 1 from staff_name_variants v
+    where v.staff_key = any(keys)
+      and case when v.strict then home and comment ~ ('\m' || v.variant || '\M')
+               else comment ~* ('\m' || v.variant || '\M') end
+      and (v.not_after is null or comment !~* ('\m' || v.not_after || '\s+' || v.variant || '\M'))
+      and coalesce(reviewer, '') !~* ('\m' || v.variant || '\M')
+      and not (v.variant in ('April','May') and comment ~ ('((in|on|of|since|last|this|next|early|late|mid|from|until|till|during|by) ' || v.variant || '\M|\m' || v.variant || '\s*[0-9])')))
+$$;
