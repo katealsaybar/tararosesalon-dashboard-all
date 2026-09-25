@@ -2748,6 +2748,16 @@ table.tp-cmp td.bad{color:var(--bad)}
       <div class="sc-bar" id="spfBar" style="display:none">
         <span class="sc-bar-t">Staff Performance</span>
         <span class="sc-bar-sp"></span>
+        <span id="spfSortWrap" style="display:inline-flex;gap:6px">
+          <select id="spfSort" class="sc-btn" aria-label="Sort by" onchange="spfSetSort(this.value, false)">
+            <option value="branch">Sort: Branch</option>
+            <option value="name">Sort: Name</option>
+            <option value="takings">Sort: Takings</option>
+            <option value="clients">Sort: Clients</option>
+            <option value="rebook">Sort: Rebook %</option>
+          </select>
+          <button type="button" id="spfSortDir" class="sc-btn" title="Reverse the order" onclick="spfSetSort(null, true)"></button>
+        </span>
         <select id="spfMonth" class="sc-btn" aria-label="Month" onchange="spfSetMonth(this.value)"></select>
         <div class="sc-seg" role="group" aria-label="Team">
           <button type="button" data-dept="all" onclick="spfSetDept('all')">All</button>
@@ -2792,6 +2802,24 @@ table.tp-cmp td.bad{color:var(--bad)}
     const f = document.getElementById('spfFrame');
     if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'perf-month', m }, '*');
   }
+  // Team grid sort. Same key the framed page reads (same origin), so both agree.
+  function spfSortState(){
+    try { const v = JSON.parse(localStorage.getItem('perf-sort') || 'null'); if (v && v.k) return { k: v.k, rev: !!v.rev }; } catch(e){}
+    return { k: 'branch', rev: false };
+  }
+  function spfPaintSort(){
+    const st = spfSortState();
+    document.getElementById('spfSort').value = st.k;
+    document.getElementById('spfSortDir').textContent = (['branch', 'name'].includes(st.k) ? (st.rev ? 'Z–A' : 'A–Z') : (st.rev ? 'Lowest first' : 'Highest first')) + ' ⇅';
+  }
+  function spfSetSort(k, flip){
+    const st = spfSortState();
+    const next = flip ? { k: st.k, rev: !st.rev } : { k, rev: false };
+    try { localStorage.setItem('perf-sort', JSON.stringify(next)); } catch(e){}
+    spfPaintSort();
+    const f = document.getElementById('spfFrame');
+    if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'perf-sort', k: next.k, rev: next.rev }, '*');
+  }
   function spfGet(){ try { return localStorage.getItem(SPF_KEY); } catch(e){ return null; } }
   function initStaffPerfView(){
     const key = spfGet();
@@ -2802,6 +2830,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     document.getElementById('spfBar').style.display = key ? '' : 'none';
     spfPaintDept();
     spfBuildMonths();
+    spfPaintSort();
     if (key && !frame.dataset.loaded){
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = new URLSearchParams(location.search).get('staff');
@@ -2828,6 +2857,8 @@ table.tp-cmp td.bad{color:var(--bad)}
       const u = new URL(location.href);
       if (u.searchParams.get('view') !== 'staffperf') return;
       if (e.data.staff) u.searchParams.set('staff', e.data.staff); else u.searchParams.delete('staff');
+      // Sort only means something on the team grid.
+      document.getElementById('spfSortWrap').style.display = e.data.staff ? 'none' : 'inline-flex';
       history.replaceState(history.state, '', u);
     }
     if (e.data && e.data.type === 'perf-height') {

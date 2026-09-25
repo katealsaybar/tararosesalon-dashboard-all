@@ -39,6 +39,12 @@ if (EMBED) {
       if (TOKEN) { location.search = `?admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}`; return; }
       renderTeam();
     }
+    // The dashboard's sort, in the same bar.
+    if (e.data && e.data.type === 'perf-sort') {
+      SORT = e.data.k; SORT_REV = !!e.data.rev;
+      if (!TOKEN) renderTeam();
+      return;
+    }
     // The dashboard's month picker, in the same bar.
     if (e.data && e.data.type === 'perf-month' && /^\d{4}-\d{2}$/.test(e.data.m)) {
       qs.set('m', e.data.m); location.search = qs.toString(); return;
@@ -456,16 +462,18 @@ async function renderTeam() {
     </section>
     ${EMBED ? '' : `<div class="dept-seg" role="group" aria-label="Team">${['all', 'Hair', 'Beauty'].map(x =>
       `<button type="button" data-dept="${x}" class="${DEPT === x ? 'on' : ''}">${x === 'all' ? 'All' : x}</button>`).join('')}</div>`}
-    <div class="sort-bar">
+    ${EMBED ? '' : `<div class="sort-bar">
       <label>Sort by <select id="sortSel">${Object.entries(SORTS).map(([k, o]) =>
         `<option value="${k}"${k === SORT ? ' selected' : ''}>${o.label}</option>`).join('')}</select></label>
       <button type="button" class="sort-dir" id="sortDir" title="Reverse the order">${['branch', 'name'].includes(SORT) ? (SORT_REV ? 'Z–A' : 'A–Z') : (SORT_REV ? 'Lowest first' : 'Highest first')} ⇅</button>
-    </div>
+    </div>`}
     ${body}`;
   app.querySelectorAll('.dept-seg [data-dept]').forEach(b => b.onclick = () => { DEPT = b.dataset.dept; renderTeam(); });
   const saveSort = () => { try { localStorage.setItem('perf-sort', JSON.stringify({ k: SORT, rev: SORT_REV })); } catch (e) {} renderTeam(); };
-  document.getElementById('sortSel').onchange = e => { SORT = e.target.value; SORT_REV = false; saveSort(); };
-  document.getElementById('sortDir').onclick = () => { SORT_REV = !SORT_REV; saveSort(); };
+  if (!EMBED) {
+    document.getElementById('sortSel').onchange = e => { SORT = e.target.value; SORT_REV = false; saveSort(); };
+    document.getElementById('sortDir').onclick = () => { SORT_REV = !SORT_REV; saveSort(); };
+  }
 }
 
 (async () => {
