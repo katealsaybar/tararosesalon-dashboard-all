@@ -108,6 +108,8 @@ grant select on google_review_client_credit to anon, authenticated;
 -- A stylist's reviews for the month: named (staff_name_variants) plus her own
 -- clients' unnamed ones. perf_dashboard merges this over perf_core, so her page
 -- and her email count both; the team grid keeps perf_core's named-only count.
+-- Each review carries its Google branch (25 Sep 2026) so her page can link it to
+-- that branch's Google Maps listing to read in full.
 create or replace function perf_reviews(s perf_staff, d1 date, d2 date) returns jsonb
 language sql stable security definer set search_path = public as $$
   with br as (
@@ -115,14 +117,14 @@ language sql stable security definer set search_path = public as $$
     union select distinct branch from phorest_staff_daily
       where employee_name = s.phorest_name and not is_total and date between d1 and d2
   ), named as (
-    select g.review_id, g.review_date, g.stars, g.comment, 'named' how
+    select g.review_id, g.review_date, g.stars, g.comment, g.branch, 'named' how
     from google_reviews g
     where g.review_date between d1 and d2
       and (case when g.branch like 'Al Quoz%' then 'AQ' when g.branch like 'Khalifa%' then 'KCA'
                 when g.branch like 'Motor%' then 'MC' when g.branch like 'Saadiyat%' then 'SAA' end) in (select b from br)
       and perf_review_names(s.ledger_names, g.comment, g.reviewer, (case when g.branch like 'Al Quoz%' then 'AQ' when g.branch like 'Khalifa%' then 'KCA' when g.branch like 'Motor%' then 'MC' when g.branch like 'Saadiyat%' then 'SAA' end) = s.branch)
   ), client as (
-    select g.review_id, g.review_date, g.stars, g.comment, 'client' how
+    select g.review_id, g.review_date, g.stars, g.comment, g.branch, 'client' how
     from google_review_client_credit c join google_reviews g using (review_id)
     where c.phorest_name = s.phorest_name and c.review_date between d1 and d2
       and g.review_id not in (select review_id from named)
@@ -131,7 +133,7 @@ language sql stable security definer set search_path = public as $$
     'google_reviews', (select count(*) from r),
     'google_reviews_named', (select count(*) from named),
     'review_stars',   (select round(avg(stars), 1) from r),
-    'review_list',    (select coalesce(jsonb_agg(jsonb_build_object('date', review_date, 'stars', stars, 'comment', left(coalesce(comment,''), 600), 'how', how) order by review_date desc), '[]') from r)
+    'review_list',    (select coalesce(jsonb_agg(jsonb_build_object('date', review_date, 'stars', stars, 'comment', left(coalesce(comment,''), 600), 'how', how, 'branch', branch) order by review_date desc), '[]') from r)
   )
 $$;
 revoke all on function perf_reviews(perf_staff, date, date) from public, anon, authenticated;

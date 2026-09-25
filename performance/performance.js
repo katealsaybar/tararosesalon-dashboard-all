@@ -13,7 +13,10 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 // The employment-model brochures (GHL page); ?b= picks one. Flex has an Abu Dhabi
 // and a Dubai version, chosen by the stylist's branch.
 const BROCHURE = 'https://promo.tararosesalon.com/employment-models?b=';
-const PUBLIC_PAGE = 'https://katealsaybar.github.io/tararosesalon-dashboard-all/performance/';
+// A review's branch → that branch's Google Maps listing, where its reviews can
+// be read in full. A search link, not a place ID, by Kate's choice (25 Sep 2026).
+const mapsFor = branch => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('Tara Rose Salon ' + branch);
+const PUBLIC_PAGE ='https://katealsaybar.github.io/tararosesalon-dashboard-all/performance/';
 const qs = new URLSearchParams(location.search);
 let TOKEN = qs.get('t');
 const STAFF_SLUG = qs.get('staff');   // dashboard address: ?view=staffperf&staff=andrea-gladstone
@@ -285,7 +288,7 @@ async function renderStylist() {
     <section class="card">
       <div class="eyebrow">Your Google reviews</div>
       ${(n.review_list || []).length ? `<p class="sub">${n.google_reviews} this month${n.review_stars ? ` · average ${n.review_stars} stars` : ''}.</p>
-        ${n.review_list.map(r => `<div class="note"><span class="stars">${'★'.repeat(r.stars || 0)}</span> ${r.comment ? esc(r.comment) : '<i class="muted">Rating only, no written comment</i>'}<div class="by">${esc(dayLabel(r.date))}${r.how === 'client' ? ' · from your client, who didn\'t name anyone' : ''}</div></div>`).join('')}`
+        ${n.review_list.map(r => `<div class="note"><span class="stars">${'★'.repeat(r.stars || 0)}</span> ${r.comment ? esc(r.comment) : '<i class="muted">Rating only, no written comment</i>'}<div class="by">${esc(dayLabel(r.date))}${r.how === 'client' ? ' · from your client, who didn\'t name anyone' : ''}${r.branch ? ` · <a class="rv-link" href="${mapsFor(r.branch)}" target="_blank" rel="noopener">Read on Google ↗</a>` : ''}</div></div>`).join('')}`
         : `<p class="muted">No Google reviews for you yet this month. Ask happy clients to mention you by name.</p>`}
     </section>
 
