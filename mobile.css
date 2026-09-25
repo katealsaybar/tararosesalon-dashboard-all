@@ -324,6 +324,22 @@
   body.nav-open{overflow:hidden}
 }
 
+/* ===== MOBILE · 12. VIEWPORT, SAFE AREAS, iOS (P2) =====
+   The header, drawer, TOP, the Team tray and the filters sheet already take the
+   safe-area insets (sections 1, 6 and 10; viewport-fit=cover is on the meta tag).
+   100vh on a phone is the height with the address bar hidden, so anything sized to
+   it overflows while the bar shows: dvh, with the vh line above as the fallback. */
+@media(max-width:760px),(hover:none) and (max-height:480px){
+  body{min-height:100vh;min-height:100dvh}
+  .tp-tray{max-height:52vh;max-height:52dvh}
+  #view-calendar iframe,#view-giveaway iframe,#view-trk iframe{
+    height:calc(100vh - 120px)!important;height:calc(100dvh - 120px)!important}
+  /* Comparison's native date pickers: full height, and From / To stack on a small
+     phone, where two side by side cut the year off. */
+  .cmp-dates input[type=date]{min-height:44px;width:100%;box-sizing:border-box}
+}
+@media(max-width:480px){.cmp-dates{grid-template-columns:1fr}}
+
 /* ===== SMALL PHONES (≤ 480px) ===== */
 @media(max-width:480px){
   .mast-logo,.topbar.stuck .mast-logo{width:88px}
