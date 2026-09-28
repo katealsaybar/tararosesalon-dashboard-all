@@ -428,7 +428,7 @@ async function renderStylist() {
   allDays.forEach((x, i) => { if (x.total_revenue > 0 || x.clients > 0) lastDay = i; });
   const days = allDays.slice(0, lastDay + 1);
   // Kate, 28 Sep 2026: on a phone five columns with "AED" in two of them wrapped every
-  // figure onto two lines. AED moves to the headers, the month shortens (Jun 2026),
+  // figure onto two lines. AED moves to a note under the title (so the headers stay one even row), the month shortens (Jun 2026),
   // and the figures never wrap; only the month column may.
   const hist = (d.history || []).map(h => `<tr><td>${esc(monthLabel(h.month).replace(/^(\w{3})\w*/, '$1'))}</td><td>${fmt(h.numbers.total_revenue, 'num')}</td><td>${fmt(h.numbers.clients, 'num')}</td><td>${fmt(h.numbers.rebooking_pct, 'pct')}</td><td>${fmt(h.numbers.avg_bill, 'num')}</td></tr>`).join('');
 
@@ -518,7 +518,8 @@ async function renderStylist() {
     </section>
 
     ${hist ? `<section class="card"><h2>The last three months</h2>
-      <table class="hist"><tr><th>Month</th><th>Revenue<small>AED</small></th><th>Clients</th><th>Rebook</th><th>Avg bill<small>AED</small></th></tr>${hist}</table></section>` : ''}
+      <p class="hist-note">Revenue and average bill in AED.</p>
+      <table class="hist"><tr><th>Month</th><th>Revenue</th><th>Clients</th><th>Rebook</th><th>Avg bill</th></tr>${hist}</table></section>` : ''}
 
     <section class="card">
       <div class="eyebrow">Payslip · ${esc(monthLabel(d.month))}</div>

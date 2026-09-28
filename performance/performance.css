@@ -114,9 +114,8 @@ textarea{width:100%;font:inherit;color:var(--text);background:var(--surface2);bo
 table.hist{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
 table.hist th,table.hist td{padding:6px 4px;text-align:right;border-bottom:1px solid var(--border)}
 table.hist th:first-child,table.hist td:first-child{text-align:left}
-table.hist th,table.hist td:not(:first-child){white-space:nowrap;vertical-align:bottom}
-table.hist td{vertical-align:middle!important}
-table.hist th small{display:block;font-size:10.5px;font-weight:500;letter-spacing:.08em;color:var(--muted)}
+table.hist th,table.hist td:not(:first-child){white-space:nowrap}
+.hist-note{margin:-4px 0 8px;font-size:12px;color:var(--muted)}
 .foot{max-width:780px;margin:0 auto;padding:0 16px 30px;font-size:12px;color:var(--muted)}
 /* team view */
 .team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
