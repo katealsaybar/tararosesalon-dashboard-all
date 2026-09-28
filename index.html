@@ -2763,6 +2763,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-title">ADDITIONAL REPORTS<span class="nav-note">(Under construction)</span></div>
     <div class="nav-sub" onclick="showView('services', this)">Service Rankings</div>
     <div class="nav-sub" onclick="showView('clients', this)">Top Clients</div>
+    <div class="nav-sub" onclick="showView('products', this)">Products</div>
   </div>
 
   <!-- Level 1 + 2: Reviews -->
@@ -3277,6 +3278,18 @@ table.tp-cmp td.bad{color:var(--bad)}
     </main>
   </div>
 
+  <!-- PRODUCTS (Kate, 28 Sep 2026): weekly spend on products. A placeholder
+       until we know where the figures come from in Phorest. -->
+  <div id="view-products" style="display:none">
+    <div class="uc-banner" role="note"><span>Additional Reports</span><span class="uc-tag">Under construction</span></div>
+    <main style="max-width:760px;padding:10px 0 48px">
+      <div class="empty" style="text-align:left;line-height:1.6">
+        <b>Products</b> will show what we spend on products each week, per branch.<br>
+        We're working out how to pull the figures out of Phorest. Nothing to read here yet.
+      </div>
+    </main>
+  </div>
+
   <!-- REVIEWS -->
   <div id="view-reviews" style="display:none">
     <iframe 
@@ -3341,7 +3354,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20260928c"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20260928f"></script>
+<script src="dashboard.js?v=20260928g"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
