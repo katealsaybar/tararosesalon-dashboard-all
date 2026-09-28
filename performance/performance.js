@@ -198,7 +198,8 @@ function judged(k, n, pace) {
   return KPI[k]?.sum && pace < 1 ? v / pace : v;
 }
 function paceNote(k, n, pace) {
-  if (!KPI[k]?.sum || pace >= 1 || n[k] === null || n[k] === undefined) return '';
+  // Nothing yet (0) has no pace to speak of: "on pace for 0" read like it was on track.
+  if (!KPI[k]?.sum || pace >= 1 || !n[k]) return '';
   return `On pace for ${fmt(n[k] / pace, KPI[k].fmt)}`;
 }
 // good = at or above target, warn = at or above minimum (or within 15% of the
