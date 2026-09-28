@@ -484,3 +484,18 @@ insert into perf_admins (name) values ('Kate'), ('Tara'), ('Emma') on conflict (
 -- These two bring it to ~126 ms. Already run live.
 create index if not exists idx_staff_utilisation_staff_day on staff_utilisation (staff_name, date_from) where date_from = date_to;
 create index if not exists idx_branch_staff_daily_upname_date on branch_staff_daily ((upper(trim(staff_name))), date);
+
+-- Reputation score, rebuilt (Kate, 28 Sep 2026): the average Google stars of the reviews
+-- that name her or are credited to her (perf_reviews), over the 90 days to the month's
+-- end (or today); null under 3 reviews so the page says how many she has. It replaces the
+-- old (Request % + Rebooking %) / 2 / 20 key, which is gone from perf_core. Only
+-- perf_dashboard adds it (|| perf_reputation(s, m2)); perf_team leaves it out because the
+-- team grid never shows it and 48 calls cost about 1.7 s. Already run live.
+create or replace function public.perf_reputation(s perf_staff, d2 date)
+ returns jsonb language sql stable security definer set search_path to 'public'
+as $$
+  select jsonb_build_object(
+    'reputation',   case when (j->>'google_reviews')::int >= 3 then (j->>'review_stars')::numeric end,
+    'reputation_n', (j->>'google_reviews')::int)
+  from (select perf_reviews(s, least(d2, current_date) - 89, least(d2, current_date)) j) x
+$$;

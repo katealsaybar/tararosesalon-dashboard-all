@@ -50,3 +50,27 @@ create table if not exists ig_story_mentions (
 );
 create index if not exists idx_ig_story_mentions_user_time on ig_story_mentions (lower(username), mentioned_at);
 alter table ig_story_mentions enable row level security;
+
+-- Your socials card (Kate, 28 Sep 2026): perf_socials feeds a card on every person's
+-- page, Beauty included, since the benchmark row only shows where a level has aims.
+-- perf_dashboard's numbers now end: || perf_reviews(s, m1, m2) || perf_socials(s, m1, m2). Already run live.
+create or replace function public.perf_socials(s perf_staff, d1 date, d2 date)
+ returns jsonb language sql stable security definer set search_path to 'public'
+as $$
+  with p as (
+    select posted_at, media_type, permalink from ig_tagged_posts
+    where s.ig_handles is not null and lower(username) = any(s.ig_handles)
+      and (posted_at at time zone 'Asia/Dubai')::date between d1 and d2
+  ), m as (
+    select mentioned_at from ig_story_mentions
+    where s.ig_handles is not null and lower(username) = any(s.ig_handles)
+      and (mentioned_at at time zone 'Asia/Dubai')::date between d1 and d2
+  )
+  select jsonb_build_object(
+    'ig_handles', to_jsonb(s.ig_handles),
+    'social_stories', case when s.ig_handles is not null then (select count(*) from m) end,
+    'social_list', (select coalesce(jsonb_agg(jsonb_build_object(
+        'date', (posted_at at time zone 'Asia/Dubai')::date, 'type', media_type, 'link', permalink)
+        order by posted_at desc), '[]') from p)
+  )
+$$;

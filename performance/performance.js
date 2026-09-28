@@ -90,7 +90,10 @@ const KPIS = [
   { k: 'conversion_pct',  label: 'Conversion %',           fmt: 'pct' },
   { k: 'column_fill_pct', label: 'Column fill %',          fmt: 'pct' },
   { k: 'colour_pct',      label: 'Colour %',               fmt: 'pct' },
-  { k: 'reputation',      label: 'Reputation score',       fmt: 'rep', unscored: 'Formula being finalised with Tara' },
+  // Average Google stars over 90 days, from 3 reviews (perf_reputation). Kate, 28 Sep 2026.
+  { k: 'reputation',      label: 'Reputation score',       fmt: 'rep',
+    needs: n => `Needs 3 Google reviews in 90 days, has ${n.reputation_n || 0}`,
+    note: 'Average star rating of the Google reviews that name you or come from your clients, over the last 90 days. Counts once you have at least 3.' },
   { k: 'google_reviews',  label: 'Google reviews',         fmt: 'num', sum: true },
   // Posts tagging @tararosesalon from her own handle (ig-tags-sync, nightly). Kate, 28 Sep 2026.
   { k: 'social_feed',     label: 'Social posts (feed)',    fmt: 'num', sum: true, needs: 'No Instagram handle on file' },
@@ -243,12 +246,28 @@ function lever(d) {
 function kpiRows(n, bm, pace, keys) {
   return keys.filter(k => bm?.[k]).map(k => {
     const x = KPI[k], b = bm[k];
-    if (x.untracked || (x.needs && (n[k] === null || n[k] === undefined))) return `<div class="row untracked"><span>${esc(x.label)}</span><span class="r-val"><small>${x.untracked ? 'Not tracked yet' : esc(x.needs)} · aim ${fmt(b.target, x.fmt)}</small></span></div>`;
+    const note = x.note ? `<small class="r-note">${esc(x.note)}</small>` : '';
+    const needs = typeof x.needs === 'function' ? x.needs(n) : x.needs;
+    if (x.untracked || (x.needs && (n[k] === null || n[k] === undefined))) return `<div class="row untracked"><span>${esc(x.label)}</span><span class="r-val"><small>${x.untracked ? 'Not tracked yet' : esc(needs)} · aim ${fmt(b.target, x.fmt)}</small></span>${note}</div>`;
     const st = x.unscored ? '' : status(judged(k, n, pace), b);
     const pn = paceNote(k, n, pace);
     const tail = x.unscored ? `<small>${esc(x.unscored)}</small>` : `<small>/ ${fmt(b.target, x.fmt)}${pn ? ' · ' + esc(pn.charAt(0).toLowerCase() + pn.slice(1)) : ''}</small>`;
-    return `<div class="row"><span>${esc(x.label)}</span><span class="r-val">${fmt(n[k], x.fmt)} <span class="r-tail">${tail}<span class="dot ${st}"></span></span></span></div>`;
+    return `<div class="row"><span>${esc(x.label)}</span><span class="r-val">${fmt(n[k], x.fmt)} <span class="r-tail">${tail}<span class="dot ${st}"></span></span></span>${note}</div>`;
   }).join('');
+}
+
+// Instagram posts that tag @tararosesalon from her own handle, plus story mentions
+// (perf_socials). Shown for everyone, Beauty included, benchmark or not. Kate, 28 Sep 2026.
+const IG_TYPE = { VIDEO: 'Reel', CAROUSEL_ALBUM: 'Carousel', IMAGE: 'Post' };
+function socials(n) {
+  const h = n.ig_handles || [];
+  if (!h.length) return `<p class="muted">No Instagram handle on file yet. Tell your salon manager yours so your posts count.</p>`;
+  const list = n.social_list || [];
+  const handles = h.map(x => `<a class="rv-link" href="https://www.instagram.com/${encodeURIComponent(x)}/" target="_blank" rel="noopener">@${esc(x)}</a>`).join(', ');
+  return `<p class="sub">${fmt(list.length, 'num')} ${list.length === 1 ? 'post' : 'posts'} tagging @tararosesalon this month · ${fmt(n.social_stories, 'num')} story ${n.social_stories === 1 ? 'mention' : 'mentions'} · ${handles}</p>
+    ${list.length ? list.map(p => `<div class="note">${esc(IG_TYPE[p.type] || 'Post')}<div class="by">${esc(dayLabel(p.date))}${p.link ? ` · <a class="rv-link" href="${esc(p.link)}" target="_blank" rel="noopener">View on Instagram ↗</a>` : ''}</div></div>`).join('')
+      : `<p class="muted">Nothing tagged yet this month. Tag @tararosesalon on your posts and reels so they show here.</p>`}
+    <p class="legend">Feed posts, reels and carousels update nightly. Story mentions count from 28 Sep 2026.</p>`;
 }
 
 function scoreLine(n, bm, pace) {
@@ -349,6 +368,11 @@ async function renderStylist() {
       ${(n.review_list || []).length ? `<p class="sub">${n.google_reviews} this month${n.review_stars ? ` · average ${n.review_stars} stars` : ''}.</p>
         ${n.review_list.map(r => `<div class="note"><span class="stars">${'★'.repeat(r.stars || 0)}</span> ${r.comment ? esc(r.comment) : '<i class="muted">Rating only, no written comment</i>'}<div class="by">${esc(dayLabel(r.date))}${r.how === 'client' ? ' · from your client, who didn\'t name anyone' : ''}${r.branch ? ` · <a class="rv-link" href="${mapsFor(r.branch)}" target="_blank" rel="noopener">Read on Google ↗</a>` : ''}</div></div>`).join('')}`
         : `<p class="muted">No Google reviews for you yet this month. Ask happy clients to mention you by name.</p>`}
+    </section>
+
+    <section class="card">
+      <div class="eyebrow">Your socials</div>
+      ${socials(n)}
     </section>
 
     <section class="card">
