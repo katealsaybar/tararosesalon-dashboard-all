@@ -1573,7 +1573,10 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 #bootLoader{position:fixed;inset:0;z-index:10000;background:var(--bg,#F7F3EC);display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:18px;transition:opacity .3s ease}
 #bootLoader.out{opacity:0;pointer-events:none}
-#bootLoader img{width:170px;max-width:48vw;height:auto}
+/* Same lockup as the sidebar and sign-in: the PNG cropped to the rule + TARA ROSE, SALONS as text. */
+#bootLoader .bl-lockup{display:flex;flex-direction:column;align-items:center;gap:9px}
+#bootLoader .mark{width:190px;max-width:52vw;aspect-ratio:2321/396}
+#bootLoader .bl-word{font:500 12.5px/1 'Inter',sans-serif;letter-spacing:.4em;text-indent:.4em;text-transform:uppercase;color:var(--text,#1c1b19);opacity:.85}
 #bootLoader .bl-t{font:500 12px/1 'Inter',sans-serif;letter-spacing:.24em;text-transform:uppercase;color:var(--muted,#8a8378)}
 #bootLoader .bl-bar{width:140px;height:2px;border-radius:2px;background:var(--border,#e6dfd3);overflow:hidden;position:relative}
 #bootLoader .bl-bar::after{content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;border-radius:2px;
@@ -2562,7 +2565,10 @@ table.tp-cmp td.bad{color:var(--bad)}
 </head>
 <body>
 <div id="bootLoader" role="status" aria-live="polite">
-  <img id="bootLogo" src="assets/logo-ink-mint.png" alt="Tara Rose Salons">
+  <div class="bl-lockup">
+    <div class="mark"><img id="bootLogo" src="assets/logo-ink-mint.png" alt="Tara Rose Salons"></div>
+    <div class="bl-word" aria-hidden="true">Salons</div>
+  </div>
   <div class="bl-bar" aria-hidden="true"></div>
   <div class="bl-t">Loading your dashboard</div>
 </div>
