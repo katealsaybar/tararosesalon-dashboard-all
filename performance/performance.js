@@ -92,7 +92,8 @@ const KPIS = [
   { k: 'colour_pct',      label: 'Colour %',               fmt: 'pct' },
   { k: 'reputation',      label: 'Reputation score',       fmt: 'rep', unscored: 'Formula being finalised with Tara' },
   { k: 'google_reviews',  label: 'Google reviews',         fmt: 'num', sum: true },
-  { k: 'social_feed',     label: 'Social posts (feed)',    fmt: 'num', untracked: true },
+  // Posts tagging @tararosesalon from her own handle (ig-tags-sync, nightly). Kate, 28 Sep 2026.
+  { k: 'social_feed',     label: 'Social posts (feed)',    fmt: 'num', sum: true, needs: 'No Instagram handle on file' },
   { k: 'social_workdays', label: 'Social posts (workdays)', fmt: 'num', untracked: true },
 ];
 const KPI = Object.fromEntries(KPIS.map(x => [x.k, x]));
@@ -242,7 +243,7 @@ function lever(d) {
 function kpiRows(n, bm, pace, keys) {
   return keys.filter(k => bm?.[k]).map(k => {
     const x = KPI[k], b = bm[k];
-    if (x.untracked) return `<div class="row untracked"><span>${esc(x.label)}</span><span class="r-val"><small>Not tracked yet · aim ${fmt(b.target, x.fmt)}</small></span></div>`;
+    if (x.untracked || (x.needs && (n[k] === null || n[k] === undefined))) return `<div class="row untracked"><span>${esc(x.label)}</span><span class="r-val"><small>${x.untracked ? 'Not tracked yet' : esc(x.needs)} · aim ${fmt(b.target, x.fmt)}</small></span></div>`;
     const st = x.unscored ? '' : status(judged(k, n, pace), b);
     const pn = paceNote(k, n, pace);
     const tail = x.unscored ? `<small>${esc(x.unscored)}</small>` : `<small>/ ${fmt(b.target, x.fmt)}${pn ? ' · ' + esc(pn.charAt(0).toLowerCase() + pn.slice(1)) : ''}</small>`;
