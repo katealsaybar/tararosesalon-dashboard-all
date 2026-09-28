@@ -35,3 +35,18 @@ select cron.schedule('ig-tags-sync-nightly', '0 17 * * *', $$
     body := '{"days":45}'::jsonb,
     timeout_milliseconds := 150000);
 $$);
+
+-- Story mentions (Kate, 28 Sep 2026): Meta's Instagram "messages" webhook posts to the
+-- ig-webhook edge function (verify_jwt off, checked by X-Hub-Signature-256 against
+-- META_APP_SECRET; handshake token IG_WEBHOOK_VERIFY_TOKEN). The TRS Staff Benchmarks
+-- app is Live and the Tara Rose Salon Page is subscribed to it for "messages".
+-- Only story mentions are kept: who and when, never message text.
+create table if not exists ig_story_mentions (
+  mid          text primary key,
+  igsid        text not null,
+  username     text,
+  mentioned_at timestamptz not null,
+  received_at  timestamptz not null default now()
+);
+create index if not exists idx_ig_story_mentions_user_time on ig_story_mentions (lower(username), mentioned_at);
+alter table ig_story_mentions enable row level security;

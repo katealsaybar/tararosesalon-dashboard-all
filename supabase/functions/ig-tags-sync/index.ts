@@ -9,7 +9,7 @@ const IG_USER = '17841403590323716';   // @tararosesalon
 const GRAPH = 'https://graph.facebook.com/v26.0';
 
 Deno.serve(async (req) => {
-  const token = Deno.env.get('IG_ACCESS_TOKEN');
+  const token = (Deno.env.get('IG_ACCESS_TOKEN') || '').trim();   // a pasted secret can carry a stray space
   if (!token) return json({ error: 'IG_ACCESS_TOKEN not set' }, 500);
   const u = new URL(req.url);
   let days = Number(u.searchParams.get('days') || 0);
