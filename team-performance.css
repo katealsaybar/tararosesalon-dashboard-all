@@ -1,0 +1,94 @@
+/* ══════════════════════════════════════════════════════════════
+   TEAM PERFORMANCE — QUADRANT · PODIUM · CHASING · RACE  (team-performance.js)
+   Kate, 28 Sep 2026: samples C and D from add ons/team-performance-revamp-samples.html,
+   for hair and beauty alike. Loaded after index.html's own tp- block, so the
+   podium rules here override the old left-aligned card; the tray, the avatars and
+   the compare matrix are untouched and still live in index.html.
+   ══════════════════════════════════════════════════════════════ */
+
+.tp-av.xs{height:30px}
+.tp-av-ph.xs{width:26px;height:30px;font-size:11px}
+
+/* ── QUADRANT ── */
+.tp-quad{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;margin-bottom:6px}
+.tp-q-plot{padding:14px}
+.tp-q-plot svg{width:100%;height:auto;display:block;overflow:visible}
+.tp-q-grid{stroke:var(--border)}
+.tp-q-ax{font-size:12px;fill:var(--muted2)}
+.tp-q-ttl{font-size:12px;fill:var(--muted)}
+.tp-q-star{fill:var(--good);opacity:.07}
+.tp-q-tgt{stroke:var(--good);stroke-dasharray:5 4}
+.tp-q-tgt-l{font-size:12px;font-weight:600;fill:var(--good)}
+.tp-q-med{stroke:var(--muted2);stroke-dasharray:3 4}
+.tp-q-dot{cursor:pointer}
+.tp-q-on{fill:none;stroke:var(--accent);stroke-width:3}
+.tp-q-ph{fill:var(--surface2);stroke:var(--border);stroke-dasharray:3 2}
+.tp-q-in{font-family:'Playfair Display',serif;font-size:12px;font-weight:600;fill:var(--muted2)}
+@media(hover:hover){.tp-q-dot:hover image,.tp-q-dot:hover .tp-q-ph{filter:brightness(1.12)}}
+.tp-q-side{padding:12px;display:flex;flex-direction:column;gap:10px;max-height:560px;overflow:auto}
+.tp-q-grp{border-radius:8px;padding:10px 12px;background:var(--surface2)}
+.tp-q-h{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px}
+.tp-q-h.good{color:var(--good)}.tp-q-h.warn{color:var(--warn)}.tp-q-h.bad{color:var(--bad)}
+.tp-q-grp p{font-size:13px;color:var(--muted);margin:0 0 8px}
+.tp-q-chips{display:flex;flex-wrap:wrap;gap:4px 10px}
+.tp-q-chip{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600}
+
+/* ── PODIUM, centred with target rings ── */
+.tp-pod{padding:18px 16px 16px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.tp-pod::before{content:'';position:absolute;inset:0 0 auto;height:4px;background:var(--tp-medal)}
+.tp-pod-rk{left:16px;right:auto;top:12px;opacity:1}
+.tp-pod .tp-add{top:12px;right:12px;bottom:auto}
+.tp-pod .tp-av.lg,.tp-pod .tp-av-ph.lg{margin-top:4px}
+.tp-pod-nm{margin-top:8px}
+.tp-pod .tp-role{margin-top:2px}
+.tp-pod .tp-branch{justify-content:center;flex-wrap:wrap}
+.tp-pod-v{font-size:26px;font-weight:700;margin-top:8px}
+.tp-rings{display:flex;gap:12px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.tp-ring{width:54px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted2)}
+.tp-ring svg{display:block;margin:0 auto 3px}
+.tp-ring text{font-size:11px;font-weight:700;fill:var(--text);font-variant-numeric:tabular-nums}
+.tp-ring circle.good{stroke:var(--good)}.tp-ring circle.warn{stroke:var(--warn)}.tp-ring circle.bad{stroke:var(--bad)}
+
+/* ── RACE ROWS: chasing (4-10) and the rest ── */
+.tp-race{display:flex;flex-direction:column;gap:6px}
+.tp-ch{display:grid;grid-template-columns:30px 40px minmax(160px,210px) minmax(0,1fr) auto 28px;
+  align-items:center;gap:14px;padding:12px 14px;border-left:3px solid var(--accent)}
+.tp-ch-rk{font-family:'Playfair Display',serif;font-size:24px;font-weight:600;color:var(--accent);text-align:right}
+.tp-ch-who{min-width:0}
+.tp-gap{font-size:12px;color:var(--muted2);margin-top:2px}
+.tp-rr{display:grid;grid-template-columns:22px 30px minmax(160px,210px) minmax(0,1fr) 72px 28px;
+  align-items:center;gap:12px;padding:8px 14px}
+.tp-rr .tp-rk{width:auto}
+.tp-trk{height:22px;border-radius:6px;background:var(--surface2);overflow:hidden}
+.tp-trk.lg{height:30px}
+.tp-fill{height:100%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;
+  padding:0 8px;font-size:13px;font-weight:700;color:#2D2E37;white-space:nowrap;
+  transition:width .45s var(--card-ease)}
+.tp-tiles{display:grid;grid-template-columns:repeat(4,64px);gap:6px}
+.tp-tile{border-radius:7px;padding:4px 7px;background:var(--surface2);line-height:1.25}
+.tp-tile span{display:block;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2)}
+.tp-tile b{font-size:14px}
+.tp-tile.good{background:var(--good-bg);color:var(--good)}
+.tp-tile.warn{background:var(--warn-bg);color:var(--warn)}
+.tp-tile.bad{background:var(--bad-bg);color:var(--bad)}
+.tp-rb{font-size:12px;text-align:right;color:var(--muted2)}
+.tp-rb b{display:block;font-size:14px}
+.tp-rb.good b{color:var(--good)}.tp-rb.warn b{color:var(--warn)}.tp-rb.bad b{color:var(--bad)}
+
+/* Beauty has no treatment target, so its tile row is three wide. */
+.tp-tiles:has(> :nth-child(3):last-child){grid-template-columns:repeat(3,64px)}
+
+@media(max-width:1100px){
+  .tp-quad{grid-template-columns:1fr}
+  .tp-q-side{max-height:none}
+  .tp-ch{grid-template-columns:30px 40px minmax(0,1fr) auto 28px}
+  .tp-ch .tp-trk{grid-column:3/5;grid-row:2}
+  .tp-ch .tp-tiles{grid-column:4;grid-row:1}
+}
+@media(max-width:700px){
+  .tp-ch{grid-template-columns:26px 40px minmax(0,1fr) 28px;gap:10px}
+  .tp-ch .tp-trk{grid-column:1/-1;grid-row:2}
+  .tp-ch .tp-tiles{grid-column:1/-1;grid-row:3;grid-template-columns:repeat(auto-fit,minmax(60px,1fr))}
+  .tp-rr{grid-template-columns:22px 30px minmax(0,1fr) 60px 28px;gap:10px}
+  .tp-rr .tp-trk{grid-column:1/-1;grid-row:2}
+}

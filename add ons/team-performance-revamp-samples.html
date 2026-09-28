@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Team Performance Revamp</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Team Performance revamp: four sample directions. Kate, 28 Sep 2026.
+   Not wired to anything. The eight Style Directors carry their real This-month
+   net take and rebook % from the live page; every other figure is invented so
+   the layouts can be judged at realistic sizes. Tokens copied from index.html. */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--radius:10px;--good-ring:#99F6E4}
+[data-theme="dark"]{
+  --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;--border:rgba(250,248,243,0.09);--border2:rgba(250,248,243,0.05);
+  --text:#FAF8F3;--muted:rgba(250,248,243,0.68);--muted2:rgba(250,248,243,0.5);--accent:#FFD4D9;--accent-fg:#2D2E37;
+  --shadow:0 1px 2px rgba(0,0,0,0.3),0 10px 28px -8px rgba(0,0,0,0.35);
+  --good:#99F6E4;--good-bg:rgba(153,246,228,0.14);--warn:#EEF3C7;--warn-bg:rgba(238,243,199,0.13);--bad:#FF9B9B;--bad-bg:rgba(255,155,155,0.14);
+  --KCA:#FFD4D9;--SAA:#C4B5FD;--MC:#99F6E4;--AQ:#FF9B9B;
+}
+[data-theme="light"]{
+  --bg:#FAF7F0;--surface:#fff;--surface2:#F4F1E9;--border:#E8E2D6;--border2:#F0ECE3;
+  --text:#1A1A1A;--muted:#565049;--muted2:#77706A;--accent:#1A1A1A;--accent-fg:#FBF7F0;
+  --shadow:0 1px 2px rgba(26,26,26,0.05),0 10px 28px -8px rgba(26,26,26,0.10);
+  --good:#0F6E56;--good-bg:#E1F5EE;--warn:#BA7517;--warn-bg:#FAEEDA;--bad:#A32D2D;--bad-bg:#FCEBEB;
+  --KCA:#C2506D;--SAA:#7C5CD4;--MC:#0F8A72;--AQ:#A32D2D;
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.tab{font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit}
+
+/* sample chrome */
+.sbar{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.sbar h1{font-family:'Playfair Display',serif;font-weight:600;font-size:19px;margin-right:6px}
+.seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
+.seg button.on{background:var(--accent);color:var(--accent-fg)}
+.ghost{border:1px solid var(--border);background:none;border-radius:999px;padding:6px 13px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;margin-left:auto}
+.stage{max-width:1320px;margin:0 auto;padding:20px 20px 80px}
+.brief{border-left:2px solid var(--accent);padding:2px 0 2px 14px;margin:0 0 22px;color:var(--muted);max-width:820px}
+.brief b{color:var(--text)}
+.brief .dir{font-family:'Playfair Display',serif;font-size:22px;color:var(--text);display:block;margin-bottom:4px}
+
+/* shared bits */
+.sec{display:flex;align-items:baseline;gap:12px;margin:26px 0 12px;font-size:13px;font-weight:700;letter-spacing:.2em;text-transform:uppercase}
+.sec::before{content:'';width:22px;height:1px;background:var(--muted2);align-self:center}
+.sec small{font-size:13px;letter-spacing:0;text-transform:none;font-weight:500;color:var(--muted2)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.av{height:44px;width:auto;display:block;flex-shrink:0}
+.av.lg{height:84px}.av.xs{height:30px}
+.ph{width:38px;height:44px;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;font-family:'Playfair Display',serif;color:var(--muted2);position:relative}
+.ph::before{content:'';position:absolute;inset:20% 0 0;border-radius:8px;background:var(--surface2);border:1px dashed var(--border)}
+.ph b{position:relative;margin-bottom:6px;font-weight:600}
+.ph.xs{width:26px;height:30px;font-size:11px}.ph.lg{width:72px;height:84px;font-size:22px}
+.nm{font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+.last{font-family:'Playfair Display',serif;font-style:italic;font-weight:400;text-transform:none;color:var(--muted);margin-left:5px}
+.br{font-size:13px;color:var(--muted);display:flex;gap:4px 10px;flex-wrap:wrap}
+.br i{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:1px}
+.add{width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:none;cursor:pointer;font-size:16px;color:var(--muted);flex-shrink:0}
+.add.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:6px}
+.kpi{padding:14px 16px}
+.kpi .k{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}
+.kpi .v{font-size:24px;font-weight:700;margin-top:2px}
+.kpi .s{font-size:13px;color:var(--muted)}
+.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+
+/* A: scorecards */
+.a-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.a-card{padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px}
+.a-top{display:flex;gap:12px;align-items:center}
+.a-who{flex:1;min-width:0}
+.a-net{font-size:20px;font-weight:700}
+.a-net small{font-size:12px;font-weight:500;color:var(--muted2);margin-left:6px}
+.a-pills{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.a-pill{border-radius:8px;padding:6px 8px;background:var(--surface2)}
+.a-pill .l{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2)}
+.a-pill .v{font-size:14px;font-weight:700}
+.a-pill.good{background:var(--good-bg)}.a-pill.warn{background:var(--warn-bg)}.a-pill.bad{background:var(--bad-bg)}
+.a-pill.na{opacity:.45}
+.a-hit{font-size:12px;color:var(--muted2);display:flex;justify-content:space-between}
+
+/* B: heatmap table */
+.b-wrap{overflow-x:auto;border-radius:var(--radius)}
+.b-t{width:100%;border-collapse:separate;border-spacing:0;min-width:900px}
+.b-t th{position:sticky;top:0;text-align:right;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap}
+.b-t th:first-child,.b-t th:nth-child(2){text-align:left}
+.b-t th.on{color:var(--text)}
+.b-t th .tg{display:block;font-size:11px;letter-spacing:0;text-transform:none;font-weight:500}
+.b-t td{padding:8px 12px;border-bottom:1px solid var(--border2);text-align:right;background:var(--surface);white-space:nowrap}
+.b-t td:first-child,.b-t td:nth-child(2){text-align:left}
+.b-t tr.grp td{background:var(--bg);font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding:14px 12px 6px;border-bottom:0}
+.b-who{display:flex;align-items:center;gap:10px}
+.b-cell{display:inline-block;min-width:64px;padding:3px 8px;border-radius:6px;font-weight:600}
+.b-cell.good{background:var(--good-bg)}.b-cell.warn{background:var(--warn-bg)}.b-cell.bad{background:var(--bad-bg)}
+.b-bar{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+.b-bar span.t{width:120px;height:6px;border-radius:3px;background:var(--surface2);overflow:hidden}
+.b-bar span.f{display:block;height:100%;background:var(--accent);border-radius:3px}
+.b-rk{color:var(--muted2);width:22px;display:inline-block}
+
+/* C: podium + race */
+.c-pod{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.c-p{padding:18px;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;overflow:hidden}
+.c-p::before{content:'';position:absolute;inset:0 0 auto;height:4px;background:var(--medal)}
+.c-p .rk{position:absolute;top:12px;left:16px;font-family:'Playfair Display',serif;font-size:34px;color:var(--medal)}
+.c-p .add{position:absolute;top:12px;right:12px}
+.c-p .v{font-size:26px;font-weight:700;margin-top:8px}
+.c-p .s{font-size:13px;color:var(--muted)}
+.c-ring{display:flex;gap:14px;margin-top:12px}
+.ring{width:54px;text-align:center;font-size:11px;color:var(--muted2);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.ring svg{display:block;margin:0 auto 3px}
+.c-race{display:flex;flex-direction:column;gap:6px}
+.c-row{display:grid;grid-template-columns:26px 36px 190px 1fr 92px 30px;align-items:center;gap:10px;padding:8px 12px}
+.c-row .rk{color:var(--muted2);text-align:right}
+.c-trk{height:22px;border-radius:6px;background:var(--surface2);position:relative;overflow:hidden}
+.c-fill{height:100%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:13px;font-weight:700;color:var(--accent-fg);min-width:fit-content}
+.c-ch{display:grid;grid-template-columns:30px 40px 210px 1fr 300px 30px;align-items:center;gap:14px;padding:12px 14px;border-left:3px solid var(--accent)}
+.c-ch-rk{font-family:'Playfair Display',serif;font-size:24px;color:var(--accent);text-align:right}
+.c-gap{font-size:12px;color:var(--muted2);margin-top:2px}
+.c-trk.lg{height:30px}
+.c-ch-p .a-pill{padding:4px 7px}
+.c-rb{font-size:13px;text-align:right}
+.c-rb b{display:block;font-size:14px}
+
+/* D: quadrant */
+.d-wrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px}
+.d-plot{padding:16px;position:relative}
+.d-plot svg{width:100%;height:auto;display:block;overflow:visible}
+.d-side{padding:14px;display:flex;flex-direction:column;gap:14px;max-height:640px;overflow:auto}
+.d-q{border-radius:8px;padding:10px 12px;background:var(--surface2)}
+.d-q h4{font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+.d-q p{font-size:13px;color:var(--muted);margin-bottom:6px}
+.d-chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;margin:0 8px 4px 0;font-weight:600}
+.d-tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:8px;padding:8px 10px;font-size:13px;display:none;z-index:5;min-width:180px}
+
+.tray-note{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:var(--accent);color:var(--accent-fg);font-weight:600;font-size:13px;padding:8px 16px;border-radius:999px;box-shadow:var(--shadow);display:none}
+
+@media(max-width:900px){.d-wrap{grid-template-columns:1fr}.c-pod{grid-template-columns:1fr}.c-row{grid-template-columns:22px 32px 1fr 80px 30px}.c-row .c-trk{grid-column:3/6;grid-row:2}}
+@media(max-width:560px){.stage{padding:16px}.sbar{padding:10px 16px}.a-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="sbar">
+  <h1>Team Performance · samples</h1>
+  <div class="seg" id="dirSeg">
+    <button data-d="A" class="on">A · Scorecards</button>
+    <button data-d="B">B · Heatmap table</button>
+    <button data-d="C">C · Podium + race</button>
+    <button data-d="D">D · Quadrant</button>
+  </div>
+  <button class="ghost" id="theme">Light</button>
+</div>
+<div class="stage" id="stage"></div>
+<div class="tray-note" id="trayNote"></div>
+
+<script>
+const T = { rebook:70, treat:30, retail:12, avg:650 };
+const BR = { KCA:'Khalifa City', SAA:'Saadiyat', MC:'Motor City', AQ:'Al Quoz' };
+const LADDER = ['Owner','Style Director','Senior Stylist','Stylist','Junior Stylist','Blow-Dry Specialist'];
+
+// Real This-month net + rebook for the owner and Style Directors; the rest invented.
+const RAW = [
+  ['Tara','Kidd','Owner',['KCA','SAA'],400,0,'../assets/org-chart/tara-rose-kidd.png'],
+  ['Kate','Siryk','Style Director',['KCA'],85991,38.4,'kate'],
+  ['Jeida','Rachmanova','Style Director',['SAA'],76345,16,'jeida'],
+  ['Ruth','Bocock','Style Director',['AQ'],72548,91.4,'ruth'],
+  ['Tegan','Skinner','Style Director',['KCA'],59105,60.7,'tegan'],
+  ['Alan','Russell','Style Director',['MC'],52028,50,'alan'],
+  ['Emma','Williamson','Style Director',['SAA'],45595,52.4,'emma'],
+  ['Ashleigh','Fairgrieve','Style Director',['MC'],38233,60,'ashleigh'],
+  ['Lucy','Rodriguez','Style Director',['MC','AQ','SAA'],28039,18.2,'lucy'],
+  ['Chalani','','Senior Stylist',['KCA','MC'],41200,72,'chalani'],
+  ['Galina','','Senior Stylist',['SAA'],37850,64,'galina'],
+  ['Holly','','Senior Stylist',['MC'],34110,77,'holly'],
+  ['Kylie','','Senior Stylist',['KCA'],31980,48,'kylie'],
+  ['Molly','','Senior Stylist',['AQ'],29440,81,'molly'],
+  ['Nikki','','Senior Stylist',['SAA'],26700,55,'nikki'],
+  ['Robyn','','Senior Stylist',['MC'],24120,69,'robyn'],
+  ['Bethany','','Stylist',['AQ'],23400,74,'bethany'],
+  ['Clarissa','','Stylist',['SAA'],21870,41,'clarissa'],
+  ['Elise','','Stylist',['KCA'],20550,66,'elise'],
+  ['Grace','','Stylist',['MC'],18900,58,'grace'],
+  ['Helen','','Stylist',['SAA'],17340,71,'helen'],
+  ['Katie','','Stylist',['KCA'],15800,36,'katie'],
+  ['Olena','','Stylist',['AQ'],14260,62,'olena'],
+  ['Virginija','','Stylist',['SAA'],12980,45,'virginija'],
+  ['April','','Junior Stylist',['MC'],9800,52,'april'],
+  ['Hazel Mae','','Junior Stylist',['KCA'],8420,33,'hazel-mae'],
+  ['Myra','','Junior Stylist',['SAA'],7150,61,'myra'],
+  ['Areanne','','Blow-Dry Specialist',['SAA'],6300,28,'areanne'],
+  ['Irlyn','','Blow-Dry Specialist',['KCA'],5480,39,'irlyn'],
+  ['Lizanie','','Blow-Dry Specialist',['MC'],4120,22,'lizanie'],
+];
+let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+const PEOPLE = RAW.map(([name,last,role,br,net,rebook,photo]) => {
+  const avg = net < 1000 ? 400 : Math.round(420 + rnd() * 460);
+  return { key:name, name, last, role, br, net, rebook,
+    treat: +(8 + rnd() * 34).toFixed(1), retail: +(3 + rnd() * 15).toFixed(1), avg,
+    clients: Math.max(1, Math.round(net / avg)),
+    photo: photo.includes('/') ? photo : '../assets/staff/' + photo + '.png' };
+}).sort((a, b) => b.net - a.net);
+
+const aed = n => 'AED ' + Math.round(n).toLocaleString('en-GB');
+const num = n => Math.round(n).toLocaleString('en-GB');
+const pct = n => (Math.round(n * 10) / 10) + '%';
+const band = (v, t) => v / t >= 1 ? 'good' : v / t >= .8 ? 'warn' : 'bad';
+const METRICS = [
+  { k:'rebook', l:'Rebook', t:T.rebook, f:pct },
+  { k:'treat',  l:'Treat',  t:T.treat,  f:pct },
+  { k:'retail', l:'Retail', t:T.retail, f:pct },
+  { k:'avg',    l:'Avg bill', t:T.avg,  f:num },
+];
+const hits = p => METRICS.filter(m => p[m.k] >= m.t).length;
+
+const initials = n => n.split(' ').map(w => w[0]).join('').slice(0, 2);
+const av = (p, cls = '') => `<img class="av ${cls}" src="${p.photo}" alt="" onerror="this.outerHTML='<div class=&quot;ph ${cls}&quot;><b>${initials(p.name)}</b></div>'">`;
+const brTag = p => `<div class="br">${p.br.map(b => `<span><i style="background:var(--${b})"></i>${BR[b]}</span>`).join('')}</div>`;
+const who = p => `<span class="nm">${p.name}</span>${p.last ? `<span class="last">${p.last}</span>` : ''}`;
+
+let picked = [];
+const addBtn = p => `<button class="add ${picked.includes(p.key) ? 'on' : ''}" onclick="pick('${p.key}')" aria-label="Compare">${picked.includes(p.key) ? '✓' : '+'}</button>`;
+function pick(k) {
+  const i = picked.indexOf(k);
+  if (i >= 0) picked.splice(i, 1); else { if (picked.length >= 3) picked.shift(); picked.push(k); }
+  const n = document.getElementById('trayNote');
+  n.style.display = picked.length ? 'block' : 'none';
+  n.textContent = `Comparing ${picked.length} of 3: ${picked.join(', ')} (tray opens here, same as today)`;
+  render();
+}
+
+const byRole = () => { const g = {}; PEOPLE.forEach(p => (g[p.role] ||= []).push(p)); return LADDER.filter(r => g[r]).map(r => [r, g[r]]); };
+
+function kpis() {
+  const tot = PEOPLE.reduce((a, p) => a + p.net, 0);
+  const cl = PEOPLE.reduce((a, p) => a + p.clients, 0);
+  const rb = PEOPLE.reduce((a, p) => a + p.clients * p.rebook / 100, 0) / cl * 100;
+  const all4 = PEOPLE.filter(p => hits(p) === 4).length;
+  const under = PEOPLE.filter(p => p.rebook < T.rebook * .8).length;
+  return `<div class="kpis">
+    <div class="card kpi"><div class="k">Net salon take</div><div class="v tab">${aed(tot)}</div><div class="s">${PEOPLE.length} people on the hair floor</div></div>
+    <div class="card kpi"><div class="k">Bench rebooking</div><div class="v tab ${band(rb, T.rebook)}">${pct(rb)}</div><div class="s">target ${T.rebook}%</div></div>
+    <div class="card kpi"><div class="k">Hitting all 4 targets</div><div class="v tab">${all4}</div><div class="s">of ${PEOPLE.length}</div></div>
+    <div class="card kpi"><div class="k">Rebooking below 56%</div><div class="v tab bad">${under}</div><div class="s">more than a fifth under target</div></div>
+  </div>`;
+}
+
+// ── A: Scorecards ──
+function A() {
+  const card = p => `<div class="card a-card">
+    <div class="a-top">${av(p)}<div class="a-who">${who(p)}${brTag(p)}</div>${addBtn(p)}</div>
+    <div class="a-net tab">${aed(p.net)}<small>${num(p.clients)} clients</small></div>
+    <div class="a-pills">${METRICS.map(m => `<div class="a-pill ${p.net < 1000 ? 'na' : band(p[m.k], m.t)}"><div class="l">${m.l}</div><div class="v tab">${m.f(p[m.k])}</div></div>`).join('')}</div>
+    <div class="a-hit"><span>${hits(p)} of 4 targets hit</span><span>target ${T.rebook}% · ${T.treat}% · ${T.retail}% · ${T.avg}</span></div>
+  </div>`;
+  return brief('A · Scorecards', 'Today\'s card, plus the four targets shown as coloured tiles on every person, so <b>green / amber / red is readable without opening the tray</b>. A summary strip on top. Grouped by position, ranked by net take inside each.')
+    + kpis() + byRole().map(([r, ps]) => `<div class="sec">${r}<small>${ps.length} ${ps.length === 1 ? 'person' : 'people'} · by net salon take</small></div><div class="a-grid">${ps.map(card).join('')}</div>`).join('');
+}
+
+// ── B: Heatmap table ──
+let bSort = 'net', bGroup = true;
+function B() {
+  const cols = [{ k:'net', l:'Net take' }, { k:'clients', l:'Clients' }, ...METRICS.map(m => ({ k:m.k, l:m.l, t:m.t, f:m.f }))];
+  const max = Math.max(...PEOPLE.map(p => p.net));
+  const row = (p, i) => `<tr>
+    <td><span class="b-rk tab">${i + 1}</span></td>
+    <td><div class="b-who">${av(p, 'xs')}<div>${who(p)}${brTag(p)}</div></div></td>
+    <td><div class="b-bar"><span class="tab">${aed(p.net)}</span><span class="t"><span class="f" style="width:${p.net / max * 100}%"></span></span></div></td>
+    <td class="tab">${num(p.clients)}</td>
+    ${METRICS.map(m => `<td><span class="b-cell tab ${band(p[m.k], m.t)}">${m.f(p[m.k])}</span></td>`).join('')}
+    <td>${addBtn(p)}</td></tr>`;
+  const sortFn = (a, b) => b[bSort] - a[bSort];
+  const body = bGroup
+    ? byRole().map(([r, ps]) => `<tr class="grp"><td colspan="9">${r} · ${ps.length}</td></tr>` + [...ps].sort(sortFn).map(row).join('')).join('')
+    : [...PEOPLE].sort(sortFn).map(row).join('');
+  return brief('B · Heatmap table', 'One dense table, every metric in a column, <b>each cell tinted against its target</b>. Tap a column heading to rank by it (e.g. who is lowest on retail). Toggle grouping by position on or off. Most information per screen; least "photo-led".')
+    + `<div style="margin-bottom:12px"><div class="seg"><button class="${bGroup ? 'on' : ''}" onclick="bGroup=true;render()">By position</button><button class="${!bGroup ? 'on' : ''}" onclick="bGroup=false;render()">Whole floor</button></div></div>
+    <div class="card b-wrap"><table class="b-t"><thead><tr><th>#</th><th>Stylist</th>
+    ${cols.map(c => `<th class="${bSort === c.k ? 'on' : ''}" onclick="bSort='${c.k}';render()">${c.l}${bSort === c.k ? ' ↓' : ''}${c.t ? `<span class="tg">target ${c.f(c.t)}</span>` : '<span class="tg">&nbsp;</span>'}</th>`).join('')}
+    <th></th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+// ── C: Podium + race ──
+function ring(v, t, label, f) {
+  const r = 20, c = 2 * Math.PI * r, frac = Math.min(1, v / t), b = band(v, t);
+  return `<div class="ring"><svg width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="5"/>
+    <circle cx="24" cy="24" r="${r}" fill="none" stroke="var(--${b})" stroke-width="5" stroke-linecap="round" stroke-dasharray="${c * frac} ${c}" transform="rotate(-90 24 24)"/>
+    <text x="24" y="28" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)">${f(v)}</text></svg>${label}</div>`;
+}
+function C() {
+  const floor = PEOPLE.filter(p => p.role !== 'Owner');
+  const top = floor.slice(0, 3), chase = floor.slice(3, 10), rest = floor.slice(10), max = top[0].net;
+  const medals = ['#E7C86A', '#C9CBD1', '#D3A17A'];
+  const pod = (p, i) => `<div class="card c-p" style="--medal:${medals[i]}"><div class="rk">${i + 1}</div>${addBtn(p)}
+    ${av(p, 'lg')}<div style="margin-top:8px">${who(p)}</div><div style="font-size:13px;color:var(--muted2)">${p.role}</div>${brTag(p)}
+    <div class="v tab">${aed(p.net)}</div><div class="s tab">${num(p.clients)} clients</div>
+    <div class="c-ring">${METRICS.map(m => ring(p[m.k], m.t, m.l, m.f)).join('')}</div></div>`;
+  // Ranks 4-10: bigger row, photo at full card size, the four targets as tiles,
+  // and how far she sits behind the next rank up.
+  const chaseRow = (p, i) => { const ahead = floor[i + 2];
+    return `<div class="card c-ch">
+    <span class="c-ch-rk tab">${i + 4}</span>${av(p)}
+    <div style="min-width:0">${who(p)}<div class="br">${p.role} · ${p.br.map(b => BR[b]).join(' + ')}</div>
+      <div class="c-gap tab">${aed(ahead.net - p.net)} behind ${ahead.name}</div></div>
+    <div class="c-trk lg"><div class="c-fill tab" style="width:${Math.max(18, p.net / max * 100)}%;background:var(--${p.br[0]})">${aed(p.net)}</div></div>
+    <div class="a-pills c-ch-p">${METRICS.map(m => `<div class="a-pill ${band(p[m.k], m.t)}"><div class="l">${m.l}</div><div class="v tab">${m.f(p[m.k])}</div></div>`).join('')}</div>
+    ${addBtn(p)}</div>`; };
+  const race = (p, i) => `<div class="card c-row"><span class="rk tab">${i + 11}</span>${av(p, 'xs')}
+    <div style="min-width:0">${who(p)}<div class="br">${p.role} · ${p.br.map(b => BR[b]).join(' + ')}</div></div>
+    <div class="c-trk"><div class="c-fill tab" style="width:${Math.max(18, p.net / max * 100)}%;background:var(--${p.br[0]})">${aed(p.net)}</div></div>
+    <div class="c-rb tab ${band(p.rebook, T.rebook)}"><b>${pct(p.rebook)}</b>rebook</div>${addBtn(p)}</div>`;
+  return brief('C · Podium + race', 'Keeps a proper podium for the top three with <b>four target rings</b> each, then everyone else as a <b>race bar scaled to the leader</b>, coloured by home branch. Reads the gap between people at a glance. Best suited to the Takings view; Position view would reuse the race rows per level.')
+    + `<div class="sec">Leading this period<small>by net salon take</small></div><div class="c-pod">${top.map(pod).join('')}</div>
+    <div class="sec">Chasing the podium<small>ranks 4 to 10 · bar = share of the leader's take</small></div><div class="c-race">${chase.map(chaseRow).join('')}</div>
+    <div class="sec">The rest of the hair floor<small>${rest.length} people</small></div><div class="c-race">${rest.map(race).join('')}</div>`;
+}
+
+// ── D: Quadrant ──
+function D() {
+  const floor = PEOPLE.filter(p => p.role !== 'Owner');
+  const W = 820, H = 520, pad = { l:64, r:24, t:24, b:48 };
+  const xMax = Math.ceil(Math.max(...floor.map(p => p.net)) / 10000) * 10000;
+  const x = v => pad.l + v / xMax * (W - pad.l - pad.r);
+  const y = v => pad.t + (1 - v / 100) * (H - pad.t - pad.b);
+  const medNet = [...floor].sort((a, b) => a.net - b.net)[Math.floor(floor.length / 2)].net;
+  const q = p => p.net >= medNet ? (p.rebook >= T.rebook ? 'star' : 'leak') : (p.rebook >= T.rebook ? 'grow' : 'focus');
+  const Q = { star:['Earning and keeping','good','Above-median take, rebooking at target.'],
+              leak:['Earning, not keeping','warn','Big takings, but clients are not rebooking. The retention conversation.'],
+              grow:['Keeping, still building','good','Clients come back; the book needs filling.'],
+              focus:['Needs support','bad','Below median take and below rebooking target.'] };
+  const grid = [0, 25, 50, 75, 100].map(v => `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border)"/><text x="${pad.l - 10}" y="${y(v) + 4}" text-anchor="end" font-size="12" fill="var(--muted2)">${v}%</text>`).join('')
+    + [0, .25, .5, .75, 1].map(f => `<text x="${x(xMax * f)}" y="${H - pad.b + 20}" text-anchor="middle" font-size="12" fill="var(--muted2)">${f ? Math.round(xMax * f / 1000) + 'k' : '0'}</text>`).join('');
+  // Same head-over-the-block PNGs as the cards, unclipped so the head still breaks
+  // out of the top. The point is the block's centre; the branch sits as a dot under it.
+  const IW = 34, IH = 40;
+  const dots = floor.map(p => { const cx = x(p.net), cy = y(p.rebook), on = picked.includes(p.key);
+    return `<g class="d-dot" data-k="${p.key}" style="cursor:pointer" onclick="pick('${p.key}')">
+      ${on ? `<rect x="${cx - IW / 2 - 4}" y="${cy - IH / 2 + 4}" width="${IW + 8}" height="${IH}" rx="9" fill="none" stroke="var(--accent)" stroke-width="3"/>` : ''}
+      <image href="${p.photo}" x="${cx - IW / 2}" y="${cy - IH / 2}" width="${IW}" height="${IH}" preserveAspectRatio="xMidYMax meet"/>
+      <circle cx="${cx}" cy="${cy + IH / 2 + 6}" r="3.5" fill="var(--${p.br[0]})"/></g>`; }).join('');
+  const svg = `<svg viewBox="0 0 ${W} ${H}">${grid}
+    <rect x="${x(medNet)}" y="${pad.t}" width="${W - pad.r - x(medNet)}" height="${y(T.rebook) - pad.t}" fill="var(--good-bg)" opacity=".6"/>
+    <line x1="${pad.l}" x2="${W - pad.r}" y1="${y(T.rebook)}" y2="${y(T.rebook)}" stroke="var(--good)" stroke-dasharray="5 4"/>
+    <text x="${W - pad.r}" y="${y(T.rebook) - 6}" text-anchor="end" font-size="12" font-weight="600" fill="var(--good)">rebook target ${T.rebook}%</text>
+    <line x1="${x(medNet)}" x2="${x(medNet)}" y1="${pad.t}" y2="${H - pad.b}" stroke="var(--muted2)" stroke-dasharray="3 4"/>
+    <text x="${x(medNet) + 6}" y="${pad.t + 14}" font-size="12" fill="var(--muted2)">floor median ${aed(medNet)}</text>
+    <text x="${(pad.l + W - pad.r) / 2}" y="${H - 6}" text-anchor="middle" font-size="12" fill="var(--muted)">Net salon take →</text>
+    <text transform="translate(16 ${(pad.t + H - pad.b) / 2}) rotate(-90)" text-anchor="middle" font-size="12" fill="var(--muted)">Rebooking % →</text>
+    ${dots}</svg>`;
+  const side = ['leak', 'focus', 'star', 'grow'].map(k => { const ps = floor.filter(p => q(p) === k); return `<div class="d-q"><h4 class="${Q[k][1]}">${Q[k][0]} · ${ps.length}</h4><p>${Q[k][2]}</p>${ps.map(p => `<span class="d-chip">${av(p, 'xs')}${p.name}</span>`).join('')}</div>`; }).join('');
+  return brief('D · Quadrant', 'A new lens rather than a list: <b>takings across, rebooking up</b>, with the target line and the floor median splitting the team into four groups. The side panel names who sits where, so the coaching question is on the page. Tap a face to compare. Could sit <b>above</b> today\'s list instead of replacing it.')
+    + `<div class="d-wrap"><div class="card d-plot" id="dPlot">${svg}<div class="d-tip" id="dTip"></div></div><div class="card d-side">${side}</div></div>`;
+}
+
+const brief = (t, s) => `<p class="brief"><span class="dir">${t}</span>${s} The compare tray stays exactly as it is today in every option.</p>`;
+let dir = 'A';
+function render() {
+  document.getElementById('stage').innerHTML = ({ A, B, C, D })[dir]();
+  if (dir === 'D') {
+    const tip = document.getElementById('dTip'), plot = document.getElementById('dPlot');
+    plot.querySelectorAll('.d-dot').forEach(g => {
+      g.addEventListener('mousemove', e => { const p = PEOPLE.find(x => x.key === g.dataset.k), r = plot.getBoundingClientRect();
+        tip.innerHTML = `<b>${p.name}</b> ${p.last || ''}<br>${aed(p.net)} · ${pct(p.rebook)} rebook<br><span style="color:var(--muted2)">${p.role} · ${p.br.map(b => BR[b]).join(' + ')}</span>`;
+        tip.style.display = 'block'; tip.style.left = (e.clientX - r.left + 14) + 'px'; tip.style.top = (e.clientY - r.top + 14) + 'px'; });
+      g.addEventListener('mouseleave', () => tip.style.display = 'none');
+    });
+  }
+}
+document.getElementById('dirSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  dir = b.dataset.d; document.querySelectorAll('#dirSeg button').forEach(x => x.classList.toggle('on', x === b)); render();
+});
+document.getElementById('theme').onclick = e => {
+  const h = document.documentElement, d = h.dataset.theme === 'dark';
+  h.dataset.theme = d ? 'light' : 'dark'; e.target.textContent = d ? 'Dark' : 'Light';
+};
+render();
+</script>
+</body>
+</html>

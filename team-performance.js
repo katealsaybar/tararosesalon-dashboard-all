@@ -195,15 +195,18 @@ function tpBranchTag(st) {
 // into the PNG, so the img carries no border-radius, background or border — any
 // of the three clips the overhang. Identical reasoning to .av on the win cards,
 // and .tp-av is a size variant of it rather than a new treatment.
-function tpAvatar(name, cls) {
+// The portrait's URL, or null when there is no shoot yet. Shared by the <img>
+// avatars and the quadrant chart, which draws the same PNG as an SVG <image>.
+function tpPhotoSrc(name) {
   const fixed = TP_PHOTO_FIX[tpMergeKey(name)];
-  if (fixed) return `<img class="tp-av ${cls || ''}" src="${fixed}"
-      alt="" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'">`;
+  if (fixed) return fixed;
   const prof = (typeof staffProfile === 'function') ? staffProfile(name) : null;
-  if (prof && prof.photo) {
-    return `<img class="tp-av ${cls || ''}" src="assets/staff/${encodeURIComponent(prof.photo)}"
+  return (prof && prof.photo) ? 'assets/staff/' + encodeURIComponent(prof.photo) : null;
+}
+function tpAvatar(name, cls) {
+  const src = tpPhotoSrc(name);
+  if (src) return `<img class="tp-av ${cls || ''}" src="${src}"
       alt="" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'">`;
-  }
   // No shoot yet — the beauty bench has no cards in the deck. The placeholder
   // rebuilds the same footprint by hand and has no head to protrude, which is
   // the honest tell that a portrait is missing rather than broken.
@@ -218,28 +221,35 @@ function tpBand(val, target) {
   const r = target ? (Number(val) || 0) / target : 0;
   return r >= 1 ? 'good' : r >= 0.8 ? 'warn' : 'bad';
 }
-function tpMeter(label, val, target, fmt) {
-  const v = Number(val) || 0;
-  const pctOfTarget = target ? (v / target * 100) : 0;
-  const scale = Math.max(100, pctOfTarget);          // the track's own top end
-  return `<div class="tp-mtr ${tpBand(v, target)}">
-    <div class="tp-mtr-l"><span>${label}</span><span class="tabular">${fmt(target)}</span></div>
-    <div class="tp-mtr-v tabular">${fmt(v)}</div>
-    <div class="tp-mtr-t">
-      <span class="tp-mtr-tick" style="left:${100 / scale * 100}%"></span>
-      <span class="tp-mtr-f" style="width:${Math.min(100, pctOfTarget / scale * 100)}%"></span>
-    </div>
-  </div>`;
+// The four targets every card is read against, as one list the podium rings and
+// the chasing-row tiles both draw from. Beauty carries no treatment target, so
+// that one drops out rather than being scored against a number that does not
+// apply to the bench.
+function tpTargets(st) {
+  const out = [{ l: 'Rebook', v: st.rebookPct, t: TARGETS.rebookPct, f: tpPct }];
+  if (!st.isBeauty) out.push({ l: 'Treat', v: st.treatmentPct, t: TARGETS.treatmentPct, f: tpPct });
+  out.push({ l: 'Retail', v: st.retailPct, t: TARGETS.retailPct, f: tpPct });
+  out.push({ l: 'Avg bill', v: st.avgBill, t: st.isBeauty ? TARGETS.beautyAvgBill : TARGETS.hairAvgBill, f: tpNum });
+  return out;
 }
-// Beauty carries no treatment target, so that bar drops out rather than being
-// scored against a number that does not apply to the bench.
-function tpMeters(st) {
-  const avgTarget = st.isBeauty ? TARGETS.beautyAvgBill : TARGETS.hairAvgBill;
-  const out = [tpMeter('Rebooking', st.rebookPct, TARGETS.rebookPct, tpPct)];
-  if (!st.isBeauty) out.push(tpMeter('Treatment', st.treatmentPct, TARGETS.treatmentPct, tpPct));
-  out.push(tpMeter('Retail', st.retailPct, TARGETS.retailPct, tpPct));
-  out.push(tpMeter('Avg bill', st.avgBill, avgTarget, tpNum));
-  return out.join('');
+// Podium: a ring per target, filled to the share of target reached (capped at a
+// full ring), coloured by the same band as everywhere else.
+function tpRings(st) {
+  const r = 20, c = 2 * Math.PI * r;
+  return tpTargets(st).map(m => {
+    const v = Number(m.v) || 0, frac = m.t ? Math.min(1, v / m.t) : 0;
+    return `<div class="tp-ring" title="${m.l}: ${m.f(v)} against ${m.f(m.t)}">
+      <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="24" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="5"/>
+        <circle class="${tpBand(v, m.t)}" cx="24" cy="24" r="${r}" fill="none" stroke-width="5" stroke-linecap="round"
+          stroke-dasharray="${c * frac} ${c}" transform="rotate(-90 24 24)"/>
+        <text x="24" y="28" text-anchor="middle">${m.f(v)}</text></svg>${m.l}</div>`;
+  }).join('');
+}
+// Ranks 4-10: the same four targets as small tinted tiles.
+function tpTiles(st) {
+  return tpTargets(st).map(m => `<div class="tp-tile ${tpBand(m.v, m.t)}" title="target ${m.f(m.t)}">
+    <span>${m.l}</span><b class="tabular">${m.f(m.v)}</b></div>`).join('');
 }
 
 // ── THE PAGE ─────────────────────────────────────────────────
@@ -270,8 +280,11 @@ async function renderTeam() {
   const present = new Set(roster.map(tpKey));
   tpCompare = tpCompare.filter(k => present.has(k));
 
+  // Kate, 28 Sep 2026: podium (1-3), chasing the podium (4-10), then the rest.
   const podium = roster.slice(0, 3);
-  const floor  = roster.slice(3);
+  const chase  = roster.slice(3, 10);
+  const rest   = roster.slice(10);
+  const lead   = roster.length ? (roster[0].net || 0) : 0;
   const benchWord = tpDept === 'beauty' ? 'beauty bench' : 'hair floor';
 
   host.innerHTML = `
@@ -289,16 +302,23 @@ async function renderTeam() {
       <span class="tp-bar-n">Tap + on anyone to compare · up to ${TP_MAX_COMPARE}</span>
     </div>
 
-    ${!roster.length ? '<div class="empty">Nobody on this bench in the selected period.</div>' : tpSort === 'level' ? tpByLevel(roster) : `
+    ${!roster.length ? '<div class="empty">Nobody on this bench in the selected period.</div>' : `
+      ${tpQuadrant(roster)}
+      ${tpSort === 'level' ? tpByLevel(roster, lead) : `
       <div class="section-label">Leading this period
         <span class="tp-sec-n">by net salon take</span></div>
       <div class="tp-podium">${podium.map(tpPodiumCard).join('')}</div>
 
-      ${floor.length ? `
+      ${chase.length ? `
+        <div class="section-label">Chasing the podium
+          <span class="tp-sec-n">ranks 4 to ${3 + chase.length} · bar is her take against the leader's</span></div>
+        <div class="tp-race">${chase.map((st, i) => tpChaseRow(st, i + 4, roster[i + 2], lead)).join('')}</div>` : ''}
+
+      ${rest.length ? `
         <div class="section-label">The rest of the ${benchWord}
-          <span class="tp-sec-n">${floor.length} ${floor.length === 1 ? 'person' : 'people'}</span></div>
-        <div class="tp-floor">${floor.map((st, i) => tpFloorRow(st, i + 4)).join('')}</div>` : ''}
-    `}
+          <span class="tp-sec-n">${rest.length} ${rest.length === 1 ? 'person' : 'people'}</span></div>
+        <div class="tp-race">${rest.map((st, i) => tpRaceRow(st, i + 11, lead)).join('')}</div>` : ''}
+    `}`}
 
     <!-- Fixed to the bottom of the window, but rendered inside the view so it
          disappears with it: a fixed child of a display:none parent is hidden. -->
@@ -331,72 +351,180 @@ function tpSizeTraySpace() {
 }
 addEventListener('resize', tpSizeTraySpace);
 
-function tpPodiumCard(st, i) {
+// Her name as the rest of the page prints it: first name (the Instagram link when
+// she has one), surname in italics outside the link, wrapped for the hover menu.
+function tpName(st, withIg) {
   const prof = (typeof staffProfile === 'function') ? staffProfile(st.name) : null;
-  const medal = ['#E7C86A', '#C9CBD1', '#D3A17A'][i] || 'var(--border)';
   const nm = escapeHtml(st.name);
-  const linked = (prof && prof.ig)
+  const linked = (withIg && prof && prof.ig)
     ? `<a href="https://instagram.com/${encodeURIComponent(prof.ig)}" target="_blank" rel="noopener noreferrer"
          title="@${escapeHtml(prof.ig)} on Instagram">${nm}</a>`
     : nm;
-  // Outside the Instagram link, same convention as the stylist cards (sc-last):
-  // the link is the first name, and a surname that opened Instagram would surprise.
-  const surname = prof && prof.last ? ` <span class="tp-last">${escapeHtml(prof.last)}</span>` : '';
-  // Wrapped for the hover menu (staff-links.js): her card and her branch figures.
-  const name = (typeof staffWho === 'function')
-    ? staffWho(st.name, linked + surname, { dept: tpDept, branch: st.branchCode }) : linked + surname;
+  const last = (typeof staffSurname === 'function') ? staffSurname(st.name) : (prof && prof.last);
+  const html = linked + (last ? ` <span class="tp-last">${escapeHtml(last)}</span>` : '');
+  return (typeof staffWho === 'function') ? staffWho(st.name, html, { dept: tpDept, branch: st.branchCode }) : html;
+}
+function tpAddBtn(st) {
   const picked = tpCompare.includes(tpKey(st));
+  return `<button class="tp-add ${picked ? 'on' : ''}" onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')"
+      aria-label="${picked ? 'Remove from comparison' : 'Add to comparison'}">${picked ? '✓' : '+'}</button>`;
+}
+// The race bar: her net take as a share of the leader's, in her home branch colour.
+// A floor of 18% keeps the figure inside the bar readable for the smallest books.
+function tpBar(st, lead, cls) {
+  const w = lead ? Math.max(18, (st.net || 0) / lead * 100) : 18;
+  return `<div class="tp-trk ${cls || ''}"><div class="tp-fill tabular" style="width:${Math.min(100, w)}%;background:${st.branchColor}">${tpAed(st.net)}</div></div>`;
+}
+function tpRoleBranch(st) {
+  return `${escapeHtml(tpRole(st))} · ${(st.branches || [{ name: st.branchName }]).map(b => escapeHtml(b.name)).join(' + ')}`;
+}
+
+// Kate, 28 Sep 2026 (sample C): podium centred and photo-led, net take large,
+// and the four targets as rings under it instead of the old benchmark bars.
+function tpPodiumCard(st, i) {
+  const medal = ['#E7C86A', '#C9CBD1', '#D3A17A'][i] || 'var(--border)';
   return `<div class="card tp-pod" style="--tp-medal:${medal}">
     <div class="tp-pod-rk">${i + 1}</div>
-    <div class="tp-pod-top">
-      ${tpAvatar(st.name, 'lg')}
-      <div class="tp-pod-who">
-        <div class="tp-pod-nm">${name}</div>
-        ${prof && prof.role ? `<div class="tp-role">${escapeHtml(prof.role)}</div>` : ''}
-        <div class="tp-branch">${tpBranchTag(st)}</div>
-      </div>
-    </div>
-    <div class="tp-pod-fig">
-      <div class="tp-k">Net salon take</div>
-      <div class="tp-pod-v tabular">${tpAed(st.net)}</div>
-      <div class="tp-pod-s tabular">${tpNum(st.total)} clients · ${tpNum(st.rebooked)} rebooked</div>
-    </div>
-    <div class="tp-pod-mtrs">${tpMeters(st)}</div>
-    <button class="tp-add ${picked ? 'on' : ''}" onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')"
-      aria-label="${picked ? 'Remove from comparison' : 'Add to comparison'}">${picked ? '✓' : '+'}</button>
+    ${tpAddBtn(st)}
+    ${tpAvatar(st.name, 'lg')}
+    <div class="tp-pod-nm">${tpName(st, true)}</div>
+    <div class="tp-role">${escapeHtml(tpRole(st))}</div>
+    <div class="tp-branch">${tpBranchTag(st)}</div>
+    <div class="tp-pod-v tabular">${tpAed(st.net)}</div>
+    <div class="tp-pod-s tabular">${tpNum(st.total)} clients · ${tpNum(st.rebooked)} rebooked</div>
+    <div class="tp-rings">${tpRings(st)}</div>
   </div>`;
 }
 
-// The two figures that decide whether you look closer: what she took, and
-// whether they came back. Everything else is a tap away in the tray.
+// Ranks 4-10: a fuller row than the rest, with the four targets as tiles and how
+// far she sits behind the person one place above her.
+function tpChaseRow(st, rank, ahead, lead) {
+  const gap = ahead ? Math.max(0, (ahead.net || 0) - (st.net || 0)) : 0;
+  return `<div class="card tp-ch">
+    <span class="tp-ch-rk tabular">${rank}</span>
+    ${tpAvatar(st.name)}
+    <div class="tp-ch-who">
+      <div class="tp-row-nm">${tpName(st)}</div>
+      <div class="tp-row-s">${tpRoleBranch(st)}</div>
+      ${ahead ? `<div class="tp-gap tabular">${tpAed(gap)} behind ${escapeHtml(ahead.name)}</div>` : ''}
+    </div>
+    ${tpBar(st, lead, 'lg')}
+    <div class="tp-tiles">${tpTiles(st)}</div>
+    ${tpAddBtn(st)}
+  </div>`;
+}
+
+// Everyone from 11 down, and every row of the Position view: one line, the bar
+// and her rebooking, which is the figure that decides whether you look closer.
+function tpRaceRow(st, rank, lead) {
+  return `<div class="card tp-rr">
+    <span class="tp-rk tabular">${rank}</span>
+    ${tpAvatar(st.name, 'xs')}
+    <div class="tp-ch-who">
+      <div class="tp-row-nm">${tpName(st)}</div>
+      <div class="tp-row-s">${tpRoleBranch(st)}</div>
+    </div>
+    ${tpBar(st, lead)}
+    <div class="tp-rb tabular ${tpBand(st.rebookPct, TARGETS.rebookPct)}"><b>${tpPct(st.rebookPct)}</b>rebook</div>
+    ${tpAddBtn(st)}
+  </div>`;
+}
+
 // Position view: one section per role, top of the ladder first, each ranked by
-// net take (roster is already in that order).
-function tpByLevel(roster) {
+// net take (roster is already in that order). Bars stay scaled to the overall
+// leader so a group's length still reads against the whole bench.
+function tpByLevel(roster, lead) {
   const groups = {};
   roster.forEach(st => (groups[tpRole(st)] ||= []).push(st));
   return Object.keys(groups).sort((a, b) => tpRoleRank(a) - tpRoleRank(b)).map(r => `
       <div class="section-label">${escapeHtml(r)}
         <span class="tp-sec-n">${groups[r].length} ${groups[r].length === 1 ? 'person' : 'people'} · by net salon take</span></div>
-      <div class="tp-floor">${groups[r].map((st, i) => tpFloorRow(st, i + 1)).join('')}</div>`).join('');
+      <div class="tp-race">${groups[r].map((st, i) => tpRaceRow(st, i + 1, lead)).join('')}</div>`).join('');
 }
 
-function tpFloorRow(st, rank) {
-  const picked = tpCompare.includes(tpKey(st));
-  const nm = escapeHtml(st.name);
-  const last = (typeof staffSurname === 'function') ? staffSurname(st.name) : null;
-  const plain = last ? `${nm} <span class="tp-last">${escapeHtml(last)}</span>` : nm;
-  return `<div class="card tp-row">
-    <span class="tp-rk tabular">${rank}</span>
-    ${tpAvatar(st.name, 'sm')}
-    <div class="tp-row-who">
-      <div class="tp-row-nm">${(typeof staffWho === 'function')
-        ? staffWho(st.name, plain, { dept: tpDept, branch: st.branchCode }) : plain}</div>
-      <div class="tp-row-s tabular">${tpAed(st.net)} · ${tpPct(st.rebookPct)} rebook</div>
-      <div class="tp-branch">${tpBranchTag(st)}</div>
-    </div>
-    <button class="tp-add ${picked ? 'on' : ''}" onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')"
-      aria-label="${picked ? 'Remove from comparison' : 'Add to comparison'}">${picked ? '✓' : '+'}</button>
-  </div>`;
+/* ── THE QUADRANT ─────────────────────────────────────────────
+   Kate, 28 Sep 2026 (sample D). Net take across, rebooking up, split by the
+   rebooking target and the bench's median take into four groups, with the side
+   panel naming who sits in each. The owner is left off: her own few clients are
+   not a floor figure to coach against. Needs four people to be worth drawing.
+
+   Faces are the same head-over-the-block PNGs as the cards, drawn unclipped so
+   the head still breaks out of the top; anyone without a shoot gets the dashed
+   placeholder block with initials. Branch is the dot under each face. */
+const TP_QUAD = {
+  leak:  { t: 'Earning, not keeping', cls: 'warn', d: 'Above-median take, rebooking under target. The retention conversation.' },
+  focus: { t: 'Needs support',        cls: 'bad',  d: 'Below-median take and below the rebooking target.' },
+  star:  { t: 'Earning and keeping',  cls: 'good', d: 'Above-median take, rebooking at target.' },
+  grow:  { t: 'Keeping, still building', cls: 'good', d: 'Clients come back; the book needs filling.' },
+};
+function tpNiceMax(v) {
+  if (v <= 0) return 1000;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  const m = [1, 2, 2.5, 5, 10].find(s => s * p >= v);
+  return m * p;
+}
+function tpQuadrant(roster) {
+  const pts = roster.filter(st => tpRole(st) !== 'Owner');
+  if (pts.length < 4) return '';
+  const target = TARGETS.rebookPct;
+  const nets = pts.map(st => st.net || 0).sort((a, b) => a - b);
+  const median = nets[Math.floor(nets.length / 2)];
+  const W = 820, H = 500, pad = { l: 58, r: 22, t: 26, b: 46 }, IW = 34, IH = 40;
+  const xMax = tpNiceMax(nets[nets.length - 1]);
+  const x = v => pad.l + Math.min(v, xMax) / xMax * (W - pad.l - pad.r);
+  const y = v => pad.t + (1 - Math.min(100, Math.max(0, v)) / 100) * (H - pad.t - pad.b);
+  const k = v => v >= 1000 ? Math.round(v / 1000) + 'k' : String(Math.round(v));
+  const group = st => (st.net || 0) >= median
+    ? ((st.rebookPct || 0) >= target ? 'star' : 'leak')
+    : ((st.rebookPct || 0) >= target ? 'grow' : 'focus');
+
+  const axes = [0, 25, 50, 75, 100].map(v =>
+      `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}" class="tp-q-grid"/>
+       <text x="${pad.l - 10}" y="${y(v) + 4}" text-anchor="end" class="tp-q-ax">${v}%</text>`).join('')
+    + [0, .25, .5, .75, 1].map(f =>
+      `<text x="${x(xMax * f)}" y="${H - pad.b + 20}" text-anchor="middle" class="tp-q-ax">${k(xMax * f)}</text>`).join('');
+
+  const faces = pts.map(st => {
+    const cx = x(st.net || 0), cy = y(st.rebookPct || 0), on = tpCompare.includes(tpKey(st));
+    const src = tpPhotoSrc(st.name);
+    const face = src
+      ? `<image href="${src}" x="${cx - IW / 2}" y="${cy - IH / 2}" width="${IW}" height="${IH}" preserveAspectRatio="xMidYMax meet"/>`
+      : `<rect x="${cx - IW / 2 + 2}" y="${cy - IH / 2 + 8}" width="${IW - 4}" height="${IH - 8}" rx="7" class="tp-q-ph"/>
+         <text x="${cx}" y="${cy + IH / 2 - 8}" text-anchor="middle" class="tp-q-in">${escapeHtml(initials(st.name))}</text>`;
+    return `<g class="tp-q-dot" onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')">
+      <title>${escapeHtml(st.name)} · ${tpAed(st.net)} · ${tpPct(st.rebookPct)} rebook · ${escapeHtml(tpRole(st))}</title>
+      ${on ? `<rect x="${cx - IW / 2 - 4}" y="${cy - IH / 2 + 4}" width="${IW + 8}" height="${IH}" rx="9" class="tp-q-on"/>` : ''}
+      ${face}
+      <circle cx="${cx}" cy="${cy + IH / 2 + 6}" r="3.5" fill="${st.branchColor}"/></g>`;
+  }).join('');
+
+  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Net salon take against rebooking, one face per person">
+    ${axes}
+    <rect x="${x(median)}" y="${pad.t}" width="${W - pad.r - x(median)}" height="${y(target) - pad.t}" class="tp-q-star"/>
+    <line x1="${pad.l}" x2="${W - pad.r}" y1="${y(target)}" y2="${y(target)}" class="tp-q-tgt"/>
+    <text x="${W - pad.r}" y="${y(target) - 7}" text-anchor="end" class="tp-q-tgt-l">rebook target ${target}%</text>
+    <line x1="${x(median)}" x2="${x(median)}" y1="${pad.t}" y2="${H - pad.b}" class="tp-q-med"/>
+    <text x="${x(median) + 6}" y="${pad.t + 14}" class="tp-q-ax">bench median ${tpAed(median)}</text>
+    <text x="${(pad.l + W - pad.r) / 2}" y="${H - 6}" text-anchor="middle" class="tp-q-ttl">Net salon take →</text>
+    <text transform="translate(14 ${(pad.t + H - pad.b) / 2}) rotate(-90)" text-anchor="middle" class="tp-q-ttl">Rebooking % →</text>
+    ${faces}</svg>`;
+
+  const side = ['leak', 'focus', 'star', 'grow'].map(g => {
+    const ps = pts.filter(st => group(st) === g);
+    if (!ps.length) return '';
+    return `<div class="tp-q-grp">
+      <div class="tp-q-h ${TP_QUAD[g].cls}">${TP_QUAD[g].t} · ${ps.length}</div>
+      <p>${TP_QUAD[g].d}</p>
+      <div class="tp-q-chips">${ps.map(st => `<span class="tp-q-chip">${tpAvatar(st.name, 'xs')}${escapeHtml(st.name)}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="section-label">Takings against rebooking
+      <span class="tp-sec-n">tap a face to compare</span></div>
+    <div class="tp-quad">
+      <div class="card tp-q-plot">${svg}</div>
+      <div class="card tp-q-side">${side}</div>
+    </div>`;
 }
 
 /* ── THE TRAY ─────────────────────────────────────────────────
