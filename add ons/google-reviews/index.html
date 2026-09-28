@@ -102,6 +102,8 @@ table.ex tr.tot td{font-weight:700;border-bottom:none}
 .note b{color:var(--text)}
 a.gbp{color:var(--rose);font-size:12px;text-decoration:none}
 @media(hover:hover){a.gbp:hover{text-decoration:underline}}
+.links{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px 18px}
+@media(max-width:700px){.links{margin-top:2px;gap:0 18px}.links a.gbp{display:inline-flex;align-items:center;min-height:44px}}
 /* staff named in reviews: photos keep their own shape, no circle */
 .srow{display:grid;grid-template-columns:40px 150px 1fr 150px;gap:10px;align-items:center;padding:5px 6px;cursor:pointer;border-radius:8px}
 @media(hover:hover){.srow:hover .sname b{color:var(--rose)}}
@@ -214,6 +216,7 @@ html.embedded .filters{position:static}
 
 <script src="../../staff-profiles.js?v=20260924n"></script>
 <script src="../../auth.js?v=20260925d"></script>
-<script src="app.js?v=10"></script>
+<script src="review-links.js?v=20260928a"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

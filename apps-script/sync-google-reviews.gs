@@ -144,7 +144,9 @@ function fetchReviews_(loc) {
         replied: !!(reply && reply.comment),
         reply: reply ? (reply.comment || '') : '',
         reply_at: reply ? (reply.updateTime || null) : null,
-        url: 'https://business.google.com/n/' + locId + '/reviews',
+        // The review itself in Business Profile (Kate, 28 Sep 2026). The add-on builds the
+        // public Google link from review_id, which is the same id Google Maps uses.
+        url: 'https://business.google.com/n/' + locId + '/reviews/' + v.reviewId,
         source: 'api',
         created_at: v.createTime,
         updated_at: v.updateTime || v.createTime,

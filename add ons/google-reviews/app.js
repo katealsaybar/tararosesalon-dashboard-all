@@ -8,6 +8,23 @@ const authHeaders = () => (window.TRSAuth ? TRSAuth.headers() : {apikey:SUPA_KEY
 let R = [], META, TODAY, SYNC = null;
 const BRANCHES = ["Khalifa City A, Abu Dhabi","Saadiyat, Abu Dhabi","Al Quoz, Dubai","Motor City, Dubai","District 2, Bahrain"];
 const SHORT = {"Khalifa City A, Abu Dhabi":"Khalifa City A","Saadiyat, Abu Dhabi":"Saadiyat","Al Quoz, Dubai":"Al Quoz","Motor City, Dubai":"Motor City","District 2, Bahrain":"Bahrain"};
+// Each review's own public Google link (Kate, 28 Sep 2026): the exact URL Google's
+// Share button gives, rebuilt from the Maps review id and the branch's Maps CID.
+// Opens that one review for anyone, signed in or not; the Business Profile link
+// beside it stays for replying. The id is the row's review_id (an API reviewId or
+// "seed:" + one), or for the older hash-keyed seed rows, review-links.js.
+const MAPS_CID = {"Khalifa City A, Abu Dhabi":"0x22d8bf3bc3c4e957","Saadiyat, Abu Dhabi":"0xe3bea74269b98995","Al Quoz, Dubai":"0x662e693c3678cb39","Motor City, Dubai":"0x66221db8f29e9130","District 2, Bahrain":"0xf7a43c8e59e763dd"};
+function googleReviewUrl(r){
+  let id=String(r.id||"").replace(/^seed:/,"");
+  if(!/^C[hi]/.test(id)) id=(window.REVIEW_MAPS_IDS||{})[id] || (String(r.url||"").match(/\/reviews\/(C[hi][\w-]+)/)||[])[1] || "";
+  const cid=MAPS_CID[r.branch];
+  if(!id||!cid) return "";
+  let inner="";
+  try{ const b=atob(id.replace(/-/g,"+").replace(/_/g,"/")); if(b.charCodeAt(0)===10) inner=b.substr(2,b.charCodeAt(1)); }catch(e){}
+  return "https://www.google.com/maps/reviews/data=" + (inner
+    ? `!4m8!14m7!1m6!2m5!1s${id}!2m1!1s0x0:${cid}!3m1!1s2@1:${inner}%7C%7C`
+    : `!4m6!14m5!1m4!2m3!1s${id}!2m1!1s0x0:${cid}`) + "?hl=en";
+}
 const REC = [["30","Last 30 days"],["90","Last 90 days"],["180","Last 6 months"],["365","Last 12 months"],["730","Last 2 years"],["all","All time"]];
 const ALL = [1,2,3,4,5];
 const state = {branches:new Set(BRANCHES), stars:new Set(ALL), rec:"all", withText:false, noReply:false, q:"", sort:"new", staff:""};
@@ -294,7 +311,7 @@ function renderList(F){
       <span class="date" title="${r.approx?'Approximate date from Google Maps':r.date}">${r.approx?esc((r.when||'').replace(/^Edited /,'edited '))+' · approx.':fmtDate(r.date)+' · '+ago(r.date)}</span></div>
       ${r.comment?`<div class="rtext${long?" clamp":""}" id="t${i}">${markNames(r)}</div>${long?`<button class="more" onclick="document.getElementById('t${i}').classList.toggle('clamp');this.textContent=this.textContent==='Show more'?'Show less':'Show more'">Show more</button>`:""}`:`<div class="rtext none">Rating only, no written comment</div>`}
       ${r.replied?`<details class="reply"><summary><b>Our reply</b></summary><div style="white-space:pre-wrap;margin-top:6px">${esc(r.reply)}</div></details>`:""}
-      ${r.url?`<div style="margin-top:8px"><a class="gbp" href="${r.url}" target="_blank" rel="noopener">Open in Business Profile →</a></div>`:""}
+      ${(()=>{const g=googleReviewUrl(r);return g||r.url?`<div class="links">${g?`<a class="gbp" href="${g}" target="_blank" rel="noopener">View on Google ↗</a>`:""}${r.url?`<a class="gbp" href="${r.url}" target="_blank" rel="noopener">Reply in Business Profile →</a>`:""}</div>`:"";})()}
     </div>`;}).join("") + (L.length>LIMIT?`<div style="text-align:center;margin-top:12px"><button class="chip" id="moreBtn">Show ${Math.min(60,L.length-LIMIT)} more of ${L.length-LIMIT} remaining</button></div>`:"");
   const mb=document.getElementById("moreBtn"); if(mb) mb.onclick=()=>{LIMIT+=60;renderList(F);};
   el.querySelectorAll(".stag").forEach(b=>b.onclick=()=>{state.staff=b.dataset.k;render();window.scrollTo(0,0);});
