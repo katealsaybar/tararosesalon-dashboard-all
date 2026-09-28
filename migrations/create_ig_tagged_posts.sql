@@ -91,3 +91,16 @@ create index if not exists idx_ig_collab_posts_user_time on ig_collab_posts (low
 alter table ig_collab_posts enable row level security;
 -- perf_core's social_feed became count(distinct media_id) over tagged posts and
 -- collab rows matching s.ig_handles, Dubai dates, so a post that is both counts once.
+
+-- perf_socials (live, 28 Sep 2026): social_list now carries the same posts social_feed
+-- counts, tagged posts plus collab rows, one per media_id, with 'via' = 'tag' | 'collab'
+-- (a post that is both reads as tag). The page labels collabs "Collab on a salon post".
+-- Same day: the collab rewrite of perf_core had been written from a copy older than
+-- the Reputation rebuild and brought back the old reputation key; it was removed again,
+-- perf_reputation owns that number.
+
+-- perf_core social_workdays (live, 28 Sep 2026), interim until Tara defines the row:
+-- days she worked (a ledger row with clients, or Phorest visits) on which she had a
+-- post tagging @tararosesalon, a collab on a salon post, or a story mention, Dubai
+-- dates; null while no handle is on file. Stylists often post on days off, so this
+-- runs well under social_feed (Vicki Taylor Sept: 11 posts, 3 workdays).
