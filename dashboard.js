@@ -4478,19 +4478,18 @@ function setSvcViewMode(mode) {
 function onSvcFiltersChange() { _syncSvcYearRow(); loadAndRenderServices(); }
 function onCliFiltersChange() { _syncSvcYearRow(); loadAndRenderClients(); }
 
-// These two pages used to default to their own Jan–May window, which happened to
-// be where the service uploads are. They follow the masthead now, so landing on a
-// month with no Service Performance upload is the common case rather than the odd
-// one — and "No data for selected filters" reads as a broken page. Say which
-// window came up empty, and that this feed is uploaded separately from the ledger.
+// Say which window came up empty, and where the data comes from. Since 28 Sep
+// 2026 both pages read the Sales Transactions feed (sales_transaction_lines,
+// pushed per day by /daily-reports, Jan 2025 onwards), so an empty window
+// almost always means those days haven't been pushed yet.
 function _svcEmpty(what) {
   const w = _svcWindow();
   return `<div class="empty">
     <div style="font-weight:600;margin-bottom:6px">No ${what} for ${w.from} – ${w.to}</div>
     <div style="font-size:14px;opacity:.75;max-width:52ch;margin:0 auto;line-height:1.55">
-      This page reads the Service Performance upload, which is a separate feed from the
-      daily ledger and does not always run to the current month. Widen the period in the
-      header, or upload a newer Service Performance file.
+      This page reads the Phorest Sales Transactions report, which is pushed one day at a
+      time and starts in January 2025. If these dates are recent, they may not be uploaded
+      yet: push them from Upload Data, or widen the period in the header.
     </div>
   </div>`;
 }
