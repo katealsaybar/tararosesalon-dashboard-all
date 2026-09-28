@@ -906,7 +906,7 @@ function heroPeriodPhrasing() {
 // so it stays correct no matter which of renderDashboard()'s early-return
 // paths (loading/empty/error) last touched #mainContent.
 const VIEW_SECTION_LABELS = {
-  dashboard: 'Organisation Pulse', team: 'Team Performance', staffperf: 'Staff Benchmarks', stafflevels: 'Stylist Levels', stylists: 'Staff Cards',
+  dashboard: 'Organisation Pulse', team: 'Podium Race', teamquad: 'Takings vs Rebooking', staffperf: 'Staff Benchmarks', stafflevels: 'Stylist Levels', stylists: 'Staff Cards',
   orgchart: 'Org Chart',
   services: 'Service Rankings', clients: 'Top Clients', reviews: 'Google Reviews',
   branchperf: 'Branch Performance',
@@ -923,13 +923,13 @@ const VIEW_SECTION_LABELS = {
 // 'khalifa' and 'saadiyat', which have not existed for months.
 const ALL_VIEWS = [
   'dashboard','branchperf','compare','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
-  'team','staffperf','stafflevels','stylists','orgchart','services','clients','reviews','calendar','giveaway','trk',
+  'team','teamquad','staffperf','stafflevels','stylists','orgchart','services','clients','reviews','calendar','giveaway','trk',
 ];
 
 // Which pages read the shared branch + period filters. Everything that shows a
 // number: the reference pages (stylist cards) and the embedded iframes do not.
 const FILTERED_VIEWS = new Set([
-  'dashboard','team','branchperf','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
+  'dashboard','team','teamquad','branchperf','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
   'services','clients',
 ]);
 
@@ -957,7 +957,7 @@ function refreshActiveView() {
       const n = document.getElementById('view-' + v);
       return n && n.style.display !== 'none';
     };
-    if (visible('team'))          renderTeam();
+    if (visible('team') || visible('teamquad')) renderTeam();
     if (visible('branchperf'))    renderBranchPerformance();
     if (visible('ledgerFinancials')) renderLedgerFinancials();
     if (visible('ledgerTargets')) renderLedgerTargets();
@@ -4364,7 +4364,7 @@ async function refreshNow(btn) {
 // do to someone reading halfway down a table.
 function redrawCurrentView() {
   const v = (typeof CURRENT_VIEW === 'string') ? CURRENT_VIEW : 'dashboard';
-  if (v === 'team' && allData.length)  renderTeam();
+  if ((v === 'team' || v === 'teamquad') && allData.length) renderTeam();
   else if (v === 'stylists')           renderStylistCards();
   else if (v === 'services')           initSvcView();
   else if (v === 'clients')            initCliView();

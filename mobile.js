@@ -129,12 +129,12 @@
   }, {passive: true});
   // The Team tray is fixed at the foot; while it is up the page reserves its height.
   function trayRoom() {
-    const tray = document.querySelector('#view-team .tp-tray');
+    const tray = document.querySelector('#view-team .tp-tray, #view-teamquad .tp-tray');
     const h = tray && tray.classList.contains('up') && PHONE.matches ? tray.offsetHeight : 0;
     document.documentElement.style.setProperty('--tray-h', h + 'px');
   }
-  const team = $('view-team');
-  if (team) new MutationObserver(trayRoom).observe(team, {subtree: true, attributes: true, attributeFilter: ['class'], childList: true});
+  ['view-team', 'view-teamquad'].forEach(id => { const team = $(id);
+    if (team) new MutationObserver(trayRoom).observe(team, {subtree: true, attributes: true, attributeFilter: ['class'], childList: true}); });
 
   topbar.addEventListener('transitionend', e => {
     if (e.propertyName === 'transform' && typeof spy === 'function') spy();

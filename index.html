@@ -2600,7 +2600,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="team-performance.css?v=20260928a">
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20260928c">
+<link rel="stylesheet" href="mobile.css?v=20260928d">
 </head>
 <body>
 <div id="bootLoader" role="status" aria-live="polite">
@@ -2724,7 +2724,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('dashboard', this)">Organisation Pulse</div>
     <div class="nav-sub lvl2" onclick="showView('branchperf', this)">Branch Performance</div>
     <div class="nav-sub lvl2" onclick="showView('compare', this)">Comparison</div>
-    <div class="nav-sub" onclick="showView('team', this)">Team Performance</div>
+    <!-- Kate, 28 Sep 2026: two pages under Team Performance. The parent is a real
+         destination as well as a heading, like the ledgers: it lands on Podium Race
+         and lights that row (data-lands, read in showView()). -->
+    <div class="nav-sub" data-lands="navTeamRace" onclick="showView('team', this)">Team Performance</div>
+    <div class="nav-sub lvl2" id="navTeamRace" onclick="showView('team', this)">Podium Race</div>
+    <div class="nav-sub lvl2" onclick="showView('teamquad', this)">Takings vs Rebooking</div>
     <div class="nav-sub" onclick="showView('staffperf', this)">Staff Benchmarks</div>
     <div class="nav-sub lvl2" onclick="showView('stafflevels', this)">Stylist Levels</div>
     <div class="nav-sub" onclick="showView('stylists', this)">Staff Cards</div>
@@ -2973,9 +2978,15 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="ledgerStylistContent" style="padding:10px 0 48px"></main>
   </div>
 
-  <!-- TEAM PERFORMANCE -->
+  <!-- TEAM PERFORMANCE: Podium Race -->
   <div id="view-team" style="display:none">
     <main id="teamContent" style="max-width:1400px;margin:0 auto;padding:10px 28px 48px">
+      <div class="loading">Loading data...</div>
+    </main>
+  </div>
+  <!-- TEAM PERFORMANCE: Takings vs Rebooking. Same renderer (team-performance.js). -->
+  <div id="view-teamquad" style="display:none">
+    <main id="teamQuadContent" style="max-width:1400px;margin:0 auto;padding:10px 28px 48px">
       <div class="loading">Loading data...</div>
     </main>
   </div>
@@ -3330,7 +3341,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20260928c"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20260928e"></script>
+<script src="dashboard.js?v=20260928f"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -3339,9 +3350,9 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20260904b"></script>
-<script src="team-performance.js?v=20260928b"></script>
+<script src="team-performance.js?v=20260928c"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
-<script src="staff-links.js?v=20260907a"></script>
+<script src="staff-links.js?v=20260928a"></script>
 <script src="pulse-narrative.js?v=20260928a"></script>
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
 <script src="branch-narrative.js?v=20260814c"></script>
@@ -3596,7 +3607,7 @@ function showView(view, el){
   const ocPrintLink = document.getElementById('ocPrintBtn');
   if (ocPrintLink) ocPrintLink.style.display = view === 'orgchart' ? '' : 'none';
 
-  if (view === 'team' && allData.length) renderTeam();
+  if ((view === 'team' || view === 'teamquad') && allData.length) renderTeam();
   if (view === 'stylists') renderStylistCards();
   if (view === 'orgchart') renderOrgChart();
   if (view === 'staffperf') initStaffPerfView();
@@ -3620,6 +3631,7 @@ function showView(view, el){
 
   // active button state
   document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active'));
+  if (el && el.dataset && el.dataset.lands) el = document.getElementById(el.dataset.lands) || el;
   if (el) el.classList.add('active');
 
   window.scrollTo(0, 0);
@@ -4111,5 +4123,5 @@ addEventListener('load', sizeTopbar);
 </script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
 <script src="nav-collapse.js?v=20260924a"></script>
-<script src="mobile.js?v=20260925i"></script>
+<script src="mobile.js?v=20260928a"></script>
 </body>

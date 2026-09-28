@@ -258,9 +258,20 @@ function tpTiles(st) {
 // them empty. Same guard the ledger pages use. refreshActiveView() already
 // renders the dashboard before calling this, so on a filter change it is a
 // no-op.
+// Kate, 28 Sep 2026: Team Performance is two pages in the sidebar now, Podium Race
+// (view 'team', #teamContent) and Takings vs Rebooking (view 'teamquad',
+// #teamQuadContent). One renderer serves both and draws into whichever is on
+// screen; the other is emptied so there is only ever one #tpTray in the page.
+function tpPart() {
+  const q = document.getElementById('view-teamquad');
+  return (q && q.style.display !== 'none') ? 'quad' : 'race';
+}
 async function renderTeam() {
-  const host = document.getElementById('teamContent');
+  const part = tpPart();
+  const host  = document.getElementById(part === 'quad' ? 'teamQuadContent' : 'teamContent');
+  const other = document.getElementById(part === 'quad' ? 'teamContent' : 'teamQuadContent');
   if (!host) return;
+  if (other) other.innerHTML = '';
   if (!window._lastDashState && typeof renderDashboard === 'function') {
     host.innerHTML = '<div class="loading">Loading data...</div>';
     await renderDashboard();
@@ -293,17 +304,17 @@ async function renderTeam() {
         <button class="${tpDept === 'hair'   ? 'on' : ''}" onclick="tpSetDept('hair')">Hair</button>
         <button class="${tpDept === 'beauty' ? 'on' : ''}" onclick="tpSetDept('beauty')">Beauty</button>
       </div>
-      <div class="tp-seg" role="group" aria-label="Rank by">
+      ${part === 'race' ? `<div class="tp-seg" role="group" aria-label="Rank by">
         <button class="${tpSort === 'net'   ? 'on' : ''}" onclick="tpSetSort('net')">Takings</button>
         <button class="${tpSort === 'level' ? 'on' : ''}" onclick="tpSetSort('level')">Position</button>
-      </div>
+      </div>` : ''}
       <span class="tp-bar-n">${branchLabel} · ${roster.length} ${roster.length === 1 ? 'person' : 'people'}</span>
       <span class="tp-bar-sp"></span>
-      <span class="tp-bar-n">Tap + on anyone to compare · up to ${TP_MAX_COMPARE}</span>
+      <span class="tp-bar-n">${part === 'quad' ? 'Tap a face' : 'Tap + on anyone'} to compare · up to ${TP_MAX_COMPARE}</span>
     </div>
 
-    ${!roster.length ? '<div class="empty">Nobody on this bench in the selected period.</div>' : `
-      ${tpQuadrant(roster)}
+    ${!roster.length ? '<div class="empty">Nobody on this bench in the selected period.</div>'
+      : part === 'quad' ? (tpQuadrant(roster) || '<div class="empty">The chart needs at least four people on this bench.</div>') : `
       ${tpSort === 'level' ? tpByLevel(roster, lead) : `
       <div class="section-label">Leading this period
         <span class="tp-sec-n">by net salon take</span></div>

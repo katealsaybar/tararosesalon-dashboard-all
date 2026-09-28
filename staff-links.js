@@ -221,7 +221,7 @@ function whoGoStats(key, dept, branch) {
   whoShowView('team');
   if (typeof renderTeam === 'function') renderTeam();
   const find = () => document.querySelector(`#view-team .who[data-who="${key}"]`);
-  whoWaitFor(find, el => whoLand(el.closest('.tp-pod, .tp-row') || el),
+  whoWaitFor(find, el => whoLand(el.closest('.tp-pod, .tp-ch, .tp-rr') || el),
     () => whoNote(key + ' is not in the selected branch or period.'));
 }
 
