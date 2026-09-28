@@ -34,7 +34,7 @@
 .tp-q-chip{display:inline-flex;align-items:center;gap:6px}
 /* Kate, 28 Sep 2026: the names in the panel in the page's serif, title case,
    rather than bold capitals. */
-.tp-q-cn{font-family:'Playfair Display',Georgia,serif;font-size:16px;font-weight:500;letter-spacing:.01em}
+.tp-q-cn{font-family:'Playfair Display',Georgia,serif;font-size:14px;font-weight:500;letter-spacing:.01em}
 
 /* ── PODIUM, centred with target rings ── */
 .tp-pod{padding:18px 16px 16px;display:flex;flex-direction:column;align-items:center;text-align:center}
