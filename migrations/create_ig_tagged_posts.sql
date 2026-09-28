@@ -74,3 +74,20 @@ as $$
         order by posted_at desc), '[]') from p)
   )
 $$;
+
+-- Collabs (Kate, 28 Sep 2026): the salon's own posts, one row per collaborator,
+-- from the /media edge's collaborators field (ig-tags-sync, source 'collabs').
+-- Kate's call: each collaborator on a salon post counts it once. A stylist's own
+-- post with the salon as collaborator is on neither edge unless she also tags it.
+create table if not exists ig_collab_posts (
+  media_id  text not null,
+  username  text not null,
+  posted_at timestamptz not null,
+  permalink text,
+  synced_at timestamptz not null default now(),
+  primary key (media_id, username)
+);
+create index if not exists idx_ig_collab_posts_user_time on ig_collab_posts (lower(username), posted_at);
+alter table ig_collab_posts enable row level security;
+-- perf_core's social_feed became count(distinct media_id) over tagged posts and
+-- collab rows matching s.ig_handles, Dubai dates, so a post that is both counts once.
