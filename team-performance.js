@@ -468,6 +468,8 @@ const TP_QUAD = {
   star:  { t: 'Earning and keeping',  cls: 'good', d: 'Above-median take, rebooking at target.' },
   grow:  { t: 'Keeping, still building', cls: 'good', d: 'Clients come back; the book needs filling.' },
 };
+// The ledger spells names in capitals; the side panel reads them as names.
+const tpTitle = n => String(n).toLowerCase().replace(/(^|[\s.'-])\S/g, c => c.toUpperCase());
 function tpNiceMax(v) {
   if (v <= 0) return 1000;
   const p = Math.pow(10, Math.floor(Math.log10(v)));
@@ -526,7 +528,7 @@ function tpQuadrant(roster) {
     return `<div class="tp-q-grp">
       <div class="tp-q-h ${TP_QUAD[g].cls}">${TP_QUAD[g].t} · ${ps.length}</div>
       <p>${TP_QUAD[g].d}</p>
-      <div class="tp-q-chips">${ps.map(st => `<span class="tp-q-chip">${tpAvatar(st.name, 'xs')}${escapeHtml(st.name)}</span>`).join('')}</div>
+      <div class="tp-q-chips">${ps.map(st => `<span class="tp-q-chip">${tpAvatar(st.name, 'xs')}<span class="tp-q-cn">${escapeHtml(tpTitle(st.name))}</span></span>`).join('')}</div>
     </div>`;
   }).join('');
 

@@ -31,7 +31,10 @@
 .tp-q-h.good{color:var(--good)}.tp-q-h.warn{color:var(--warn)}.tp-q-h.bad{color:var(--bad)}
 .tp-q-grp p{font-size:13px;color:var(--muted);margin:0 0 8px}
 .tp-q-chips{display:flex;flex-wrap:wrap;gap:4px 10px}
-.tp-q-chip{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600}
+.tp-q-chip{display:inline-flex;align-items:center;gap:6px}
+/* Kate, 28 Sep 2026: the names in the panel in the page's serif, title case,
+   rather than bold capitals. */
+.tp-q-cn{font-family:'Playfair Display',Georgia,serif;font-size:16px;font-weight:500;letter-spacing:.01em}
 
 /* ── PODIUM, centred with target rings ── */
 .tp-pod{padding:18px 16px 16px;display:flex;flex-direction:column;align-items:center;text-align:center}
