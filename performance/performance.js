@@ -110,7 +110,8 @@ function fmt(v, f) {
   if (v === null || v === undefined || Number.isNaN(v)) return '–';
   if (f === 'aed') return 'AED ' + nf.format(v);
   if (f === 'pct') return (Math.round(v * 10) / 10) + '%';
-  if (f === 'rep') return (Math.round(v * 10) / 10) + '/5';
+  // Stars, not "x/5": "5/5 / 4.8/5" read like two scores (Kate, 28 Sep 2026).
+  if (f === 'rep') return (Math.round(v * 10) / 10).toFixed(1) + '★';
   return nf.format(v);
 }
 const dayLabel = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '–';
