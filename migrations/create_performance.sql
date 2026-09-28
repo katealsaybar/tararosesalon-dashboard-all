@@ -499,3 +499,18 @@ as $$
     'reputation_n', (j->>'google_reviews')::int)
   from (select perf_reviews(s, least(d2, current_date) - 89, least(d2, current_date)) j) x
 $$;
+
+-- Stylist Levels guide (Kate, 28 Sep 2026): every level's minimum and aim per KPI for the
+-- dashboard's Stylist Levels page (stylist-levels.js), for a leader/viewer key or any
+-- active staff token. Already run live.
+create or replace function public.perf_levels(p_admin uuid default null, p_token uuid default null)
+ returns jsonb language sql stable security definer set search_path to 'public'
+as $$
+  select case when exists (select 1 from perf_admins where token = p_admin and role in ('leader','viewer'))
+                or exists (select 1 from perf_staff where token = p_token and active)
+    then (select jsonb_agg(jsonb_build_object('level', level, 'order', level_order, 'kpis', kpis) order by level_order)
+          from (select level, level_order, jsonb_object_agg(kpi, jsonb_build_object('min', minimum, 'target', target)) kpis
+                from perf_benchmarks group by level, level_order) x)
+  end
+$$;
+grant execute on function public.perf_levels(uuid, uuid) to anon, authenticated;
