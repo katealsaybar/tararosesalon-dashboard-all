@@ -142,6 +142,12 @@ function applyLogoForTheme() {
   if (header) header.src = src;
 }
 applyLogoForTheme();
+// Hidden filters stay hidden on the next visit (Kate, 28 Sep 2026). Computers only:
+// phones carry the filters in their own sheet, which has no hide.
+try { if (localStorage.getItem('trs-filters') === 'closed' && matchMedia('(min-width:761px)').matches) {
+  const w = document.getElementById('filtersWrap'), b = document.getElementById('filtersBtn');
+  if (w && b) { w.classList.add('closed'); b.textContent = 'Show filters'; b.setAttribute('aria-expanded', 'false'); }
+} } catch (e) {}
 // A remembered dark theme (set in <head>) starts the button on "Light".
 { const l = document.getElementById('themeLbl'); if (l && document.documentElement.getAttribute('data-theme') === 'dark') l.textContent = 'Light'; }
 const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
@@ -159,6 +165,7 @@ function toggleFiltersBar() {
   const open = !wrap.classList.toggle('closed');
   btn.textContent = open ? 'Hide filters' : 'Show filters';
   btn.setAttribute('aria-expanded', String(open));
+  try { localStorage.setItem('trs-filters', open ? 'open' : 'closed'); } catch (e) {}
   setTimeout(() => { if (typeof sizeTopbar === 'function') sizeTopbar(); }, 320);
 }
 

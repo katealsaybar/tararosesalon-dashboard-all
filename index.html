@@ -30,6 +30,23 @@ window.TRS_AUTH_HASH = location.hash;
   ['error','error_code','error_description'].forEach(function(k){ q.delete(k); });
   history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
 })();
+// Kate, 28 Sep 2026: the branch and period you last picked come back on the next
+// visit. trSyncUrl() stores them; a bare address gets them written in here, before
+// dashboard.js reads branch= / period=, so they go through the same checks a
+// shared link does. A link that names its own branch or period always wins.
+(function(){
+  try {
+    var q = new URLSearchParams(location.search);
+    if (q.has('branch') || q.has('period') || q.has('next') || q.has('code')) return;
+    var b = localStorage.getItem('trs-branch'), p = localStorage.getItem('trs-period');
+    var v = q.get('view') || 'dashboard';
+    if (/^ledgers?/i.test(v)) p = null;           // Ledgers read their own month
+    if (b && b !== 'all') q.set('branch', b);
+    if (p) q.set('period', p);
+    if (q.toString() !== location.search.slice(1))
+      history.replaceState(null, '', location.pathname + '?' + q + location.hash);
+  } catch (e) {}
+})();
 </script>
 <!-- Phone browser chrome in the page's own paper and ink (Kate, 25 Sep 2026). -->
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
@@ -1604,6 +1621,12 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   display:flex;align-items:center;justify-content:center;
   font-family:'Inter',sans-serif;
 }
+/* The card is always light, so its fields, links and messages take the light tokens
+   even when the page around it is dark (the theme is remembered since 28 Sep 2026,
+   so a dark sign-in screen is now the usual case for anyone who likes it dark). */
+.login-card{--bg:#FAF7F0;--surface:#fff;--surface2:#F4F1E9;--border:#E8E2D6;--border2:#F0ECE3;
+  --text:#1A1A1A;--muted:#565049;--muted2:#77706A;--accent:#1A1A1A;--accent-fg:#FBF7F0;
+  --good:#0F6E56;--good-bg:#E1F5EE;--warn:#BA7517;--warn-bg:#FAEEDA;--bad:#A32D2D;--bad-bg:#FCEBEB;color:#1A1A1A}
 .login-card{
   background:#FFFEFA;
   border:none;
@@ -2576,7 +2599,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 </style>
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20260928b">
+<link rel="stylesheet" href="mobile.css?v=20260928c">
 </head>
 <body>
 <div id="bootLoader" role="status" aria-live="polite">
@@ -2618,16 +2641,20 @@ table.tp-cmp td.bad{color:var(--bad)}
       Continue with Google
     </button>
     <div class="login-or" id="loginOr"><span>or</span></div>
-    <input type="email" id="loginEmail" class="login-input login-email" placeholder="Email" autocomplete="email" onkeydown="if(event.key==='Enter')doLogin()">
+    <!-- A real form (Kate, 28 Sep 2026) so the browser's password manager offers to
+         save and fill the email and password; Enter submits it, doLogin() does the rest. -->
+    <form id="loginForm" action="#" method="post" onsubmit="event.preventDefault();doLogin()" style="display:contents">
+    <input type="email" id="loginEmail" name="email" class="login-input login-email" placeholder="Email" autocomplete="username email">
     <div class="login-input-wrap" id="loginPwWrap">
-      <input type="password" id="loginInput" class="login-input" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-      <button class="login-eye" onclick="toggleLoginEye()" id="loginEyeBtn" title="Show/hide password">
+      <input type="password" id="loginInput" name="password" class="login-input" placeholder="Password" autocomplete="current-password">
+      <button type="button" class="login-eye" onclick="toggleLoginEye()" id="loginEyeBtn" title="Show/hide password">
         <svg id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
     </div>
     <div id="loginError" class="login-error"></div>
     <div id="loginInfo" class="login-info"></div>
-    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign in</button>
+    <button type="submit" class="login-btn" id="loginBtn">Sign in</button>
+    </form>
     <div class="login-links" id="loginLinks"></div>
     <div id="loginLastUpdated" style="text-align:center;font-size:12px;color:var(--muted2);letter-spacing:0.08em;margin-top:-8px;opacity:0.7;">Checking data freshness...</div>
   </div>
@@ -3302,7 +3329,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20260928c"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20260928b"></script>
+<script src="dashboard.js?v=20260928c"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -3392,6 +3419,7 @@ async function doLogin(){
   try {
     if (GATE_MODE === 'signin') {
       const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+      if (!error) { try { localStorage.setItem('trs-login-email', email); } catch (e) {} }
       if (error) {
         gateMsg(/confirm/i.test(error.message)
           ? 'Confirm your email first. The link is in your inbox.'
@@ -3497,6 +3525,8 @@ sb.auth.onAuthStateChange((event) => {
 (async function checkSession(){
   localStorage.removeItem('trsRole');   // the old shared-password role, no longer used
   gateMode('signin');
+  // The email you last signed in with is filled in for you (Kate, 28 Sep 2026).
+  try { const le = localStorage.getItem('trs-login-email'); if (le) document.getElementById('loginEmail').value = le; } catch (e) {}
   const err = window.TRS_AUTH_ERROR || new URLSearchParams((window.TRS_AUTH_HASH || '').slice(1)).get('error_description');
   if (err) gateMsg(err.replace(/\+/g, ' '), 'error');
   const { data } = await sb.auth.getSession();
@@ -3922,6 +3952,13 @@ function trSyncUrl(sectionId){
       && typeof periodParam === 'function') {
     const per = periodParam();
     if (per) parts.push('period=' + per);
+    // Remembered for next time (read back in <head>). Custom date ranges are not:
+    // they are one-off questions, and would open the next visit on a stale window.
+    try { if (!per || per.indexOf('..') === -1) localStorage.setItem('trs-period', per || ''); } catch (e) {}
+  }
+  if (typeof FILTERED_VIEWS !== 'undefined' && FILTERED_VIEWS.has(CURRENT_VIEW)
+      && typeof sel !== 'undefined' && sel.branch) {
+    try { localStorage.setItem('trs-branch', sel.branch.join(',')); } catch (e) {}
   }
   // Month goes in ahead of Split so the URL reads in the order the page does:
   // which page, which branches, which period, which month, how that month is cut.

@@ -88,6 +88,8 @@
   .fsheet-head b{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
   .fsheet-body{overflow-y:auto;padding-top:6px}
   .fsheet .filters-wrap{display:block!important}
+  .fsheet .filters-wrap.closed{grid-template-rows:none;opacity:1}
+  .fsheet .filters-wrap.closed .filters{visibility:visible}
   .fsheet .filters{flex-direction:column;align-items:stretch;gap:14px;padding:10px 0 4px}
   .fsheet .f-row{flex-direction:column;align-items:stretch;gap:8px}
   .fsheet .f-lbl{font-size:12px}
