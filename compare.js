@@ -191,7 +191,7 @@ async function cmpSummary(side) {
   // failed fetch leaves the rows blank rather than the page broken.
   try {
     const rows = await loadUtilisationForFilter(from, to, codes || ACTIVE_BRANCHES);
-    const u = aggregateUtilisation(rows, buildStaffDeptMap());
+    const u = aggregateUtilisation(rows, await loadUtilDeptMap(branchStaffRows, to));
     s.hairUtilPct   = u.hairAvail   ? u.hairHours   / u.hairAvail   * 100 : null;
     s.beautyUtilPct = u.beautyAvail ? u.beautyHours / u.beautyAvail * 100 : null;
     const h = u.hairHours + u.beautyHours, a = u.hairAvail + u.beautyAvail;

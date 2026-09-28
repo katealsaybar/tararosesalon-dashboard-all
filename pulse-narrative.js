@@ -24,7 +24,7 @@ const PULSE_FACT_KEYS = [
   'hairServicesIncl', 'hairSalesNet', 'hairTotalClients', 'hairAvgBill', 'hairRebookPct', 'hairNCR', 'hairNewClients',
   'beautySales', 'beautyServicesTotal', 'beautyTotalClients', 'beautyAvgBill', 'beautyRebookPct', 'beautyNCR', 'beautyNewClients',
   'treatmentSales', 'treatmentPct', 'hairRetail', 'retailTotal', 'hairRetailPct',
-  'rebookPct', 'totalRebooked', 'newClientsTotal', 'ncrPct', 'utilisationPct',
+  'rebookPct', 'totalRebooked', 'newClientsTotal', 'ncrPct', 'utilPct', 'hairUtilPct', 'beautyUtilPct',
 ];
 
 function pulseFacts(s, targets) {

@@ -2400,11 +2400,20 @@ async function loadPhorestStaffDailyRange(from, to) {
 }
 
 // ── UTILISATION (staff_utilisation, from upload/utilisation-pdf.js) ──
-// The Staff Utilisation report has no Hair/Beauty column of its own — names are
-// attributed to a department by cross-referencing every name we've ever seen in
-// the weekly ledger's hairStaff/beautyStaff blobs (allData, loaded once at
-// startup). Kate, 2026-08-03: "ibase sa names na makikita sa ledgers".
-function buildStaffDeptMap() {
+// The Staff Utilisation report has no Hair/Beauty column of its own, so each
+// name is given a department off the ledger. Kate, 2026-08-03: "ibase sa names
+// na makikita sa ledgers".
+//
+// Kate, 28 Sep 2026: the Pulse had no Utilisation card at all. The roster used
+// to come only from weekly_data, whose last upload was 28 May, and it was
+// matched on the exact name: Phorest writes "Tegan Skinner", the ledger writes
+// "TEGAN", so not one row since the daily feed took over had matched and the
+// card hid itself as "no data". The roster now comes from branch_staff_daily
+// (its own dept column), weekly_data kept underneath for the old names, and a
+// Phorest name matches a ledger name the way revenue already does in
+// buildLedgerPhorestStaffMaps: the same name, or the ledger name plus a space
+// at the start of it, longest wins (HAZEL MAE before HAZEL).
+function buildStaffDeptMap(ledgerRows) {
   const map = {};
   const canon = (typeof canonicalStaffName === 'function') ? canonicalStaffName : (n => n);
   (allData || []).forEach(row => {
@@ -2412,7 +2421,36 @@ function buildStaffDeptMap() {
     (data.hairStaff   || []).forEach(st => { if (st.name && st.name !== 'ASSISTANTS') map[canon(st.name).trim().toUpperCase()] = 'hair'; });
     (data.beautyStaff || []).forEach(st => { if (st.name && st.name !== 'ASSISTANTS') map[canon(st.name).trim().toUpperCase()] = 'beauty'; });
   });
+  // Oldest to newest, so a stylist who moved department lands on the latest one.
+  [...(ledgerRows || [])].sort((a, b) => String(a.date).localeCompare(String(b.date))).forEach(r => {
+    const raw = String(r.staff_name || '').trim().toUpperCase();
+    if (!raw || LEDGER_NON_PERSON_NAMES.has(raw) || isLedgerAssistantName(raw)) return;
+    map[ledgerNameKey(r.staff_name)] = String(r.dept || '').trim().toLowerCase() === 'beauty' ? 'beauty' : 'hair';
+  });
   return map;
+}
+
+// The roster for a utilisation window: the ledger rows already loaded for the
+// page when there are some, otherwise the last 60 days of the ledger up to the
+// window's end (the weekly path and the no-dates view load none).
+async function loadUtilDeptMap(ledgerRows, to) {
+  let rows = ledgerRows;
+  if (!rows || !rows.length) {
+    const end = to || new Date();
+    rows = await loadBranchStaffDailyRange(new Date(end.getTime() - 60 * 864e5), end);
+  }
+  return buildStaffDeptMap(rows);
+}
+
+function utilDeptFor(staffName, deptMap) {
+  const canon = (typeof canonicalStaffName === 'function') ? canonicalStaffName : (n => n);
+  const full = cleanPhorestName(canon(staffName || ''));
+  if (deptMap[full]) return deptMap[full];
+  let best = null;
+  Object.keys(deptMap).forEach(k => {
+    if (full.indexOf(k + ' ') === 0 && (!best || k.length > best.length)) best = k;
+  });
+  return best ? deptMap[best] : null;
 }
 
 async function loadUtilisationForFilter(from, to, branches) {
@@ -2441,12 +2479,10 @@ async function loadUtilisationForFilter(from, to, branches) {
 // Hours-weighted, not a naive average of per-row percentages — mirrors
 // utilAggregateByStaff's own math in upload/utilisation-pdf.js.
 function aggregateUtilisation(rows, deptMap) {
-  const canon = (typeof canonicalStaffName === 'function') ? canonicalStaffName : (n => n);
   let hairHours = 0, hairAvail = 0, beautyHours = 0, beautyAvail = 0;
   const unmatched = new Set();
   (rows || []).forEach(r => {
-    const key  = canon(r.staff_name || '').trim().toUpperCase();
-    const dept = deptMap[key];
+    const dept = utilDeptFor(r.staff_name, deptMap);
     const avail = Number(r.available_hours) || 0;
     const used  = Number(r.utilisation_hours) || 0;
     if (dept === 'hair')        { hairHours += used; hairAvail += avail; }
@@ -3185,7 +3221,7 @@ async function renderDashboard() {
     const utilFrom = dateFrom || new Date('2025-01-01T00:00:00'); // the backfill start, opened to 2025 (Kate, 3 Sep 2026)
     const utilTo   = dateTo   || new Date();
     const utilRows = await loadUtilisationForFilter(utilFrom, utilTo, branchesForUtil);
-    const utilAgg  = aggregateUtilisation(utilRows, buildStaffDeptMap());
+    const utilAgg  = aggregateUtilisation(utilRows, await loadUtilDeptMap(window._cachedDailyJoin && window._cachedDailyJoin.branchStaffRows, utilTo));
     s.hairUtilHours      = utilAgg.hairHours;
     s.hairUtilAvailHours = utilAgg.hairAvail;
     s.hairUtilPct        = utilAgg.hairAvail   ? (utilAgg.hairHours   / utilAgg.hairAvail   * 100) : null;
