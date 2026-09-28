@@ -270,6 +270,12 @@ function socials(n) {
     <p class="legend">Feed posts, reels and carousels update nightly. Story mentions count from 28 Sep 2026.</p>`;
 }
 
+// Reputation on its own, no aim, for a page with no benchmarks yet (Beauty). Kate, 28 Sep 2026.
+function repRow(n) {
+  const x = KPI.reputation, has = n.reputation !== null && n.reputation !== undefined;
+  return `<div class="row${has ? '' : ' untracked'}"><span>${esc(x.label)}</span><span class="r-val">${has ? fmt(n.reputation, x.fmt) : `<small>${esc(x.needs(n))}</small>`}</span><small class="r-note">${esc(x.note)}</small></div>`;
+}
+
 function scoreLine(n, bm, pace) {
   const keys = KPIS.filter(x => !x.untracked && !x.unscored && bm?.[x.k] && n[x.k] !== null && n[x.k] !== undefined).map(x => x.k);
   const hit = keys.filter(k => judged(k, n, pace) >= bm[k].target).length;
@@ -362,6 +368,11 @@ async function renderStylist() {
       <p class="score">These are the aims for ${esc(d.next_level)}. You're there on <strong>${next.hit} of ${next.of}</strong>.</p>
       <div class="rows">${kpiRows(n, d.next_benchmarks, pace, allKeys)}</div>
     </section>` : ''}
+
+    ${d.benchmarks ? '' : `<section class="card">
+      <div class="eyebrow">Your reputation score</div>
+      <div class="rows">${repRow(n)}</div>
+    </section>`}
 
     <section class="card">
       <div class="eyebrow">Your Google reviews</div>
