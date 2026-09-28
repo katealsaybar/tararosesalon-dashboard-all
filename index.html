@@ -3019,6 +3019,11 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.src = 'performance/index.html?admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
     }
+    // Preloaded while hidden, the frame measured itself at 0 tall; measure it again
+    // now it's on screen (same site, so the dashboard can read it directly).
+    setTimeout(() => {
+      try { const h = frame.contentDocument.body.getBoundingClientRect().height; if (h) frame.style.height = Math.max(400, Math.ceil(h) + 8) + 'px'; } catch(e){}
+    }, 0);
   }
   function spfSaveKey(){
     const v = document.getElementById('spfKeyInput').value.trim();
@@ -3057,6 +3062,12 @@ table.tp-cmp td.bad{color:var(--bad)}
       document.getElementById('spfFrame').style.height = Math.max(400, e.data.h) + 'px';
     }
   });
+  // Kate, 28 Sep 2026: the grid took ~2s to appear because the frame only started
+  // loading on the click. Load it quietly a moment after the dashboard settles, so
+  // the numbers are already there when Staff Benchmarks is opened.
+  window.addEventListener('load', () => setTimeout(() => {
+    if (!document.getElementById('spfFrame').dataset.loaded) initStaffPerfView();
+  }, 1500));
   </script>
 
   <!-- STYLIST CARDS — the hair team from STAFF_PROFILES, grouped by branch.

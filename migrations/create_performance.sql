@@ -478,3 +478,9 @@ insert into perf_benchmarks (level, level_order, kpi, minimum, target) values
 on conflict (level, kpi) do update set level_order = excluded.level_order, minimum = excluded.minimum, target = excluded.target;
 
 insert into perf_admins (name) values ('Kate'), ('Tara'), ('Emma') on conflict (name) do nothing;
+
+-- Speed (Kate, 28 Sep 2026): perf_team ran 519 ms, 250 of it scanning
+-- staff_utilisation once per stylist and 90 on the upper(trim()) ledger match.
+-- These two bring it to ~126 ms. Already run live.
+create index if not exists idx_staff_utilisation_staff_day on staff_utilisation (staff_name, date_from) where date_from = date_to;
+create index if not exists idx_branch_staff_daily_upname_date on branch_staff_daily ((upper(trim(staff_name))), date);
