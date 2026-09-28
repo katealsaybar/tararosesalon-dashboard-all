@@ -366,7 +366,7 @@ addEventListener('resize', tpSizeTraySpace);
 // she has one), surname in italics outside the link, wrapped for the hover menu.
 function tpName(st, withIg) {
   const prof = (typeof staffProfile === 'function') ? staffProfile(st.name) : null;
-  const nm = escapeHtml(st.name);
+  const nm = escapeHtml(tpTitle(st.name));   // title case, as in the quadrant panel
   const linked = (withIg && prof && prof.ig)
     ? `<a href="https://instagram.com/${encodeURIComponent(prof.ig)}" target="_blank" rel="noopener noreferrer"
          title="@${escapeHtml(prof.ig)} on Instagram">${nm}</a>`
