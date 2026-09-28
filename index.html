@@ -6,6 +6,11 @@
 <meta http-equiv="Expires" content="0">
 
 <meta charset="UTF-8">
+<script>
+  // Kate, 28 Sep 2026: the theme is remembered in this browser and set before the first
+  // paint, so a refresh (loading screen included) comes back in the mode you left it in.
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Tara Rose Ladies Salon — Dashboard</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -399,6 +404,16 @@ body.orgchart-pop main#orgChartContent{max-width:none;padding:6px 14px 40px}
 .mark img{position:absolute;left:0;top:0;width:129.254%;height:auto;max-width:none;
   transform:translate(-11.2333%,-38.3%)}
 .mast-logo{width:148px;cursor:pointer}
+/* Kate, 28 Sep 2026: the masthead reads TARA ROSE SALONS with the mint rule, like the
+   sidebar, sign-in and loader. It also read jagged on phones, a 3000px PNG squeezed to
+   ~90px through a crop transform, so it loads assets/mast-ink.png / mast-paper.png:
+   the rule + TARA ROSE window (2321x396) pre-cut and downsampled to 696x119, no
+   transform. SALONS is text, sized off the lockup's own width (cqw) so it keeps
+   its proportion as the mark steps 148 → 104 → 88px. */
+.mast-lockup{display:flex;flex-direction:column;align-items:center;container-type:inline-size}
+.mast-lockup img{display:block;width:100%;height:auto;aspect-ratio:2321/396}
+.mast-word{display:block;margin-top:max(4.2cqw,4px);font:500 max(7.4cqw,7.5px)/1 'Inter',sans-serif;letter-spacing:.42em;
+  text-indent:.42em;text-transform:uppercase;color:var(--text);white-space:nowrap}
 .mast-sub{font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-top:7px}
 .mast-acts{display:flex;gap:8px;flex-shrink:0}
 /* "Hello, Kate" beside the header buttons, from dashboard_users (Kate, 25 Sep 2026). */
@@ -2561,7 +2576,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 </style>
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20260928a">
+<link rel="stylesheet" href="mobile.css?v=20260928b">
 </head>
 <body>
 <div id="bootLoader" role="status" aria-live="polite">
@@ -2748,7 +2763,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       <div>
         <!-- headerLogoImg keeps its id: applyLogoForTheme() swaps 6.png (ink) and
              5.png (paper) on this element, same as it always has. -->
-        <div class="mark mast-logo" onclick="backToTop()"><img id="headerLogoImg" src="assets/6.png" alt="Tara Rose Ladies Salon"></div>
+        <div class="mast-logo mast-lockup" onclick="backToTop()"><img id="headerLogoImg" src="assets/mast-ink.png" alt="Tara Rose Salons"><span class="mast-word" aria-hidden="true">Salons</span></div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-top:7px">
           <div class="mast-sub" id="headerSectionLabel" style="margin-top:0">Organisation Pulse</div>
           <!-- Comparison's Visual/Table switch, painted by compare.js. Shown only on that view. -->
@@ -3287,7 +3302,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20260928c"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20260928a"></script>
+<script src="dashboard.js?v=20260928b"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->

@@ -24,9 +24,14 @@
   .topbar.stuck{padding-bottom:0}
   .topbar .mast,.topbar.stuck .mast{padding:6px 0}
   .mast-top{align-items:center;min-height:44px}
-  .mast-logo,.topbar.stuck .mast-logo{width:96px}
+  .mast-logo,.topbar.stuck .mast-logo{width:108px}
   /* Scrolling down tucks it away, any scroll up brings it back (mobile.js). */
   .topbar.tb-hide{transform:translateY(-100%);box-shadow:none}
+  /* Kate, 28 Sep 2026: bars that park under the header (Stylist Levels' pills) left
+     a band of page showing above them once the header tucked away. While it is
+     tucked they park at the very top instead. */
+  .slv-top{transition:top 220ms var(--card-ease),padding .15s}
+  body:has(.topbar.tb-hide) .slv-top{top:env(safe-area-inset-top)}
 
   /* Buttons. Dark mode moves into the drawer; Hide filters becomes the sheet. */
   .mast-acts,body.ledger-chrome .mast-acts{display:flex;flex-wrap:nowrap;gap:8px;flex-shrink:0}
@@ -55,7 +60,13 @@
   .mast-body{display:block;padding:8px 0 2px}
   .mast-body > div{flex-wrap:wrap;row-gap:4px;margin-top:0!important}
   .mast-body .mast-sub{font-size:12px;letter-spacing:.16em;max-height:none;opacity:1}
-  .mast-body .mast-rule{margin-top:10px;font-size:12px;letter-spacing:.1em;max-height:none;opacity:1}
+  /* Kate, 28 Sep 2026: the rule read as three ragged lines, two left and the feeds
+     right-aligned and wrapping. Now two quiet left-aligned lines: branch · range,
+     then the feeds. The page's own header says the same in full just below. */
+  .mast-body .mast-rule{margin-top:10px;max-height:none;opacity:1;display:block;padding:8px 0;
+    font-size:12px;letter-spacing:.05em;line-height:1.5}
+  .mast-body #mastBranch::after{content:'\00a0\00b7\00a0'}
+  .mast-body .mast-fresh{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:0 12px;margin-top:3px;letter-spacing:.04em}
   .mast-body #ocOpenNewWin,.mast-body #ocPrintBtn{display:inline-flex;align-items:center;
     min-height:44px;font-size:12px!important}
   .mast-body #ocOpenNewWin[style*="display: none"],.mast-body #ocPrintBtn[style*="display: none"]{display:none!important}
@@ -398,7 +409,7 @@
 
 /* ===== SMALL PHONES (≤ 480px) ===== */
 @media(max-width:480px){
-  .mast-logo,.topbar.stuck .mast-logo{width:88px}
+  .mast-logo,.topbar.stuck .mast-logo{width:100px}
   body:not(.orgchart-pop) .oc-photo{height:44px}
   body:not(.orgchart-pop) .oc-node,body:not(.orgchart-pop) .oc-node.has-photo{column-gap:9px;padding:7px 9px}
   #fSheetBtn{padding:0 11px;max-width:48vw}

@@ -99,6 +99,7 @@ function toggleTheme() {
   // turned the page dark and left the button still saying "Dark".
   const lbl = document.getElementById('themeLbl');
   if (lbl) lbl.textContent = dark ? 'Dark' : 'Light';
+  try { localStorage.setItem('trs-theme', dark ? 'light' : 'dark'); } catch (e) {}
   applyLogoForTheme();
   postReviewsTheme();
   // The gate used to be `if (charts.length)`, which worked only because the KPI
@@ -134,12 +135,15 @@ window.addEventListener('message', e => {
 // 5.png = light/white wordmark (for dark backgrounds), 6.png = dark/black wordmark (for light backgrounds)
 function applyLogoForTheme() {
   const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const src = dark ? 'assets/5.png' : 'assets/6.png';
+  // The masthead takes the pre-cut, downsampled pair (see .mast-logo img in index.html).
+  const src = dark ? 'assets/mast-paper.png' : 'assets/mast-ink.png';
   const header = document.getElementById('headerLogoImg');
   // The sign-in card is always light and has its own ink + mint lockup, so it stays put.
   if (header) header.src = src;
 }
 applyLogoForTheme();
+// A remembered dark theme (set in <head>) starts the button on "Light".
+{ const l = document.getElementById('themeLbl'); if (l && document.documentElement.getAttribute('data-theme') === 'dark') l.textContent = 'Light'; }
 const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
 
 // ── FILTER BAR COLLAPSE (ADHD-friendly decluttering) ─────────
@@ -428,10 +432,12 @@ function paintFilterChips() {
   const mr = document.getElementById('mastRange');
   if (mb) mb.textContent = branchLabel;
   // One year is printed once, at the end; a range that crosses New Year names both.
+  // Phones take short months (1 Sep – 28 Sep 2026) so the line fits beside the branch.
+  const rD = matchMedia('(max-width:760px)').matches ? (d => d ? `${d.getDate()} ${MON_SHORT[d.getMonth()]}` : '—') : longD;
   if (mr) mr.textContent = (dateFrom && dateTo)
     ? (dateFrom.getFullYear() === dateTo.getFullYear()
-        ? `${longD(dateFrom)} – ${longD(dateTo)} ${dateTo.getFullYear()}`
-        : `${longD(dateFrom)} ${dateFrom.getFullYear()} – ${longD(dateTo)} ${dateTo.getFullYear()}`)
+        ? `${rD(dateFrom)} – ${rD(dateTo)} ${dateTo.getFullYear()}`
+        : `${rD(dateFrom)} ${dateFrom.getFullYear()} – ${rD(dateTo)} ${dateTo.getFullYear()}`)
     : '';
 }
 
