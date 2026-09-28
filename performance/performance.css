@@ -183,3 +183,14 @@ body:not(.embed) .foot{padding-bottom:84px}
   letter-spacing:0;text-transform:none;white-space:normal;box-shadow:0 6px 20px rgba(0,0,0,.18)}
 .kpi-lbl:hover .kpi-tip,.kpi-lbl:focus .kpi-tip,.kpi-lbl:focus-within .kpi-tip{display:block}
 .row.untracked .kpi-tip{opacity:1}
+/* Folding cards (Kate, 28 Sep 2026). */
+.fold-h{display:flex;align-items:center;gap:10px;width:100%;padding:0;margin:0;background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.fold-h .fold-t{flex:1;min-width:0}
+.fold-h .fold-t .eyebrow{margin-bottom:0}
+.fold-h .fold-t .card-head{margin-bottom:0}
+.fold-sum{font-size:12px;color:var(--muted);white-space:nowrap}
+.fold-chev{font-size:16px;line-height:1;color:var(--muted);transition:transform .15s;transform:rotate(180deg)}
+.card.folded .fold-chev{transform:none}
+.card:not(.folded) .fold-h{margin-bottom:6px}
+.card.folded .fold-body{display:none}
+.card.folded{padding-top:12px;padding-bottom:12px}

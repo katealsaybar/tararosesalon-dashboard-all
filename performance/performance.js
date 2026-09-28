@@ -198,7 +198,29 @@ function paceFactor(d) {
   const days = new Date(m1.getFullYear(), m1.getMonth() + 1, 0).getDate();
   const last = d.numbers.last_date ? new Date(d.numbers.last_date + 'T00:00:00') : null;
   if (!last || last.getMonth() !== m1.getMonth()) return 1;
-  return Math.min(1, last.getDate() / days);
+  // In her first month the pace runs from her start day, not the 1st.
+  const from = startIn(d) ? startIn(d).day : 1;
+  return Math.min(1, (last.getDate() - from + 1) / (days - from + 1));
+}
+// Kate, 28 Sep 2026: a stylist who started this month (perf_staff.started_on, her first
+// day with clients) is judged on the days since, so the month's summed aims are
+// prorated; percentages and averages don't depend on days and stay as they are.
+function startIn(d) {
+  const sd = d.numbers.start_date ? new Date(d.numbers.start_date + 'T00:00:00') : null;
+  const m1 = new Date(d.month + 'T00:00:00');
+  if (!sd || sd.getFullYear() !== m1.getFullYear() || sd.getMonth() !== m1.getMonth() || sd.getDate() === 1) return null;
+  const days = new Date(m1.getFullYear(), m1.getMonth() + 1, 0).getDate();
+  return { day: sd.getDate(), left: days - sd.getDate() + 1, f: (days - sd.getDate() + 1) / days };
+}
+function prorate(bm, f) {
+  if (!bm) return;
+  const cut = (v, fm) => v === null || v === undefined ? v
+    : fm === 'aed' ? Math.round(v * f / 100) * 100 : Math.max(v > 0 ? 1 : 0, Math.round(v * f));
+  Object.entries(bm).forEach(([k, b]) => {
+    if (!KPI[k]?.sum || !b) return;
+    b.target = cut(b.target, KPI[k].fmt);
+    b.min = cut(b.min, KPI[k].fmt);
+  });
 }
 function judged(k, n, pace) {
   const v = n[k];
@@ -328,12 +350,52 @@ function scoreLine(n, bm, pace) {
   return { hit, of: keys.length };
 }
 
+// Kate, 28 Sep 2026: the cards under the numbers fold, so the page isn't a wall of
+// information. Tap a card's title to open or close it; each card remembers its state
+// in this browser. Google reviews and socials start closed, with a one-line summary
+// on the title so the headline still shows; the month's numbers never fold.
+const FOLD_KEEP = /^(This month so far|Your month|Your team)/;
+const FOLD_SHUT = ['Your Google reviews', 'Your socials'];
+let FOLD = {};
+try { FOLD = JSON.parse(localStorage.getItem('perf-fold') || '{}') || {}; } catch (e) {}
+function foldCards(summary) {
+  app.querySelectorAll('section.card').forEach(card => {
+    // Eyebrow titles only: the chart's own head carries its Week / Day buttons.
+    const head = card.querySelector(':scope > .eyebrow');
+    if (!head || card.classList.contains('hero')) return;
+    const title = head.textContent.trim();
+    if (FOLD_KEEP.test(title)) return;
+    const key = title.replace(/ · .*/, '');
+    const body = document.createElement('div');
+    body.className = 'fold-body';
+    while (head.nextSibling) body.appendChild(head.nextSibling);
+    card.appendChild(body);
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'fold-h';
+    const sum = summary[key] ? `<span class="fold-sum">${esc(summary[key])}</span>` : '';
+    btn.innerHTML = `<span class="fold-t"></span>${sum}<span class="fold-chev" aria-hidden="true">⌄</span>`;
+    head.replaceWith(btn);
+    btn.querySelector('.fold-t').appendChild(head);
+    const shut = key in FOLD ? FOLD[key] : FOLD_SHUT.includes(key);
+    const paint = s => { card.classList.toggle('folded', s); btn.setAttribute('aria-expanded', String(!s)); };
+    paint(shut);
+    btn.onclick = () => {
+      const s = !card.classList.contains('folded');
+      paint(s); FOLD[key] = s;
+      try { localStorage.setItem('perf-fold', JSON.stringify(FOLD)); } catch (e) {}
+      postHeight();
+    };
+  });
+}
+
 async function renderStylist() {
   const d = TOKEN
     ? await rpc('perf_dashboard', { p_token: TOKEN, p_month: MONTH + '-01' })
     : await rpc('perf_dashboard_by_id', { p_admin: ADMIN, p_staff_id: SID, p_month: MONTH + '-01' });
   if (!d) { app.innerHTML = `<p class="err">This link isn't active. Ask your salon manager for a new one.</p>`; return; }
   if (d.role) ROLE = d.role; else if (ADMIN && TOKEN && !ROLE) ROLE = 'leader';
+  const started = startIn(d);
+  if (started) { prorate(d.benchmarks, started.f); prorate(d.next_benchmarks, started.f); }
   const n = d.numbers, s = d.staff, pace = paceFactor(d);
   const isHair = s.dept === 'Hair';
   const midMonth = pace < 1;
@@ -384,6 +446,7 @@ async function renderStylist() {
       <div class="eyebrow">${midMonth ? 'This month so far' : 'Your month'}</div>
       <h2>The six numbers.</h2>
       ${midMonth ? `<p class="sub">Money numbers are judged on pace for the full month, with data up to ${esc(dayLabel(n.last_date))}.</p>` : ''}
+      ${started ? `<p class="sub">You started on ${esc(dayLabel(n.start_date))}, so this month's totals are aimed at the ${started.left} days since.</p>` : ''}
       <div class="grid three">${six}</div>
       <p class="legend">${d.benchmarks ? 'Green means at or above your aim, amber means close, red means under.' : 'Benchmarks for the beauty team are still being set, so these show your numbers only.'}</p>
     </section>
@@ -469,6 +532,10 @@ async function renderStylist() {
       <p class="legend"><a href="${BROCHURE}overview" target="_blank" rel="noopener">See all three paths side by side</a>. If you need more details, ask Tara or your manager about each path.</p>
     </section>` : ''}`;
 
+  foldCards({
+    'Your Google reviews': `${fmt(n.google_reviews || 0, 'num')} this month`,
+    'Your socials': `${fmt((n.social_list || []).length, 'num')} ${(n.social_list || []).length === 1 ? 'post' : 'posts'}`,
+  });
   if (TOKEN) loadPayslip();
   document.getElementById('foot').textContent =
     `Reviews to ${dayLabel(d.data_through.reviews)} · sales to ${dayLabel(d.data_through.revenue)} · clients to ${dayLabel(d.data_through.clients)} · column fill to ${dayLabel(d.data_through.column_fill)} · client history to ${dayLabel(d.data_through.client_history)}. Revenue is ex VAT.`;

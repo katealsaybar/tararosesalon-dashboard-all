@@ -1567,6 +1567,19 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 }
 
 /* ── LOGIN GATE ── */
+/* Boot loader (Kate, 28 Sep 2026): a hard refresh showed the half-built Pulse cover
+   and filters until the data landed. This sits over everything until the first page
+   is drawn or the sign-in screen is the answer; trsBootDone() lifts it. */
+#bootLoader{position:fixed;inset:0;z-index:10000;background:var(--bg,#F7F3EC);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:18px;transition:opacity .3s ease}
+#bootLoader.out{opacity:0;pointer-events:none}
+#bootLoader img{width:170px;max-width:48vw;height:auto}
+#bootLoader .bl-t{font:500 12px/1 'Inter',sans-serif;letter-spacing:.24em;text-transform:uppercase;color:var(--muted,#8a8378)}
+#bootLoader .bl-bar{width:140px;height:2px;border-radius:2px;background:var(--border,#e6dfd3);overflow:hidden;position:relative}
+#bootLoader .bl-bar::after{content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;border-radius:2px;
+  background:var(--text,#1c1b19);animation:blSlide 1.1s ease-in-out infinite}
+@keyframes blSlide{to{left:100%}}
+@media(prefers-reduced-motion:reduce){#bootLoader .bl-bar::after{animation:none;left:30%}}
 #loginGate{
   position:fixed;inset:0;z-index:9999;
   background:var(--bg);
@@ -2548,6 +2561,20 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="mobile.css?v=20260928a">
 </head>
 <body>
+<div id="bootLoader" role="status" aria-live="polite">
+  <img id="bootLogo" src="assets/logo-ink-mint.png" alt="Tara Rose Salons">
+  <div class="bl-bar" aria-hidden="true"></div>
+  <div class="bl-t">Loading your dashboard</div>
+</div>
+<script>
+  // Dark theme picks the light-on-dark logo before anything paints.
+  (function(){ try { var th = document.documentElement.getAttribute('data-theme');
+    var dark = th ? th === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    if (dark) document.getElementById('bootLogo').src = 'assets/5.png'; } catch (e) {} })();
+  window.trsBootDone = function(){ var b = document.getElementById('bootLoader'); if (!b || b.classList.contains('out')) return;
+    b.classList.add('out'); setTimeout(function(){ b.remove(); }, 350); };
+  setTimeout(window.trsBootDone, 25000);   // never strand anyone behind it
+</script>
 
 <!-- ══════════════════════════════════════════════════
      PASSWORD GATE
@@ -3379,6 +3406,7 @@ async function enterIfAllowed(){
   if (!role) {
     const { data } = await sb.auth.getUser();
     gateMode('denied', `${data.user?.email || 'This account'} isn’t on the dashboard list. Ask Kate to add you, or sign out and use another account.`);
+    trsBootDone();
     return;
   }
   const next = new URLSearchParams(location.search).get('next');
@@ -3408,6 +3436,7 @@ async function enterDashboard(role){
   const activeView = params.get('view') || 'dashboard';
   const btn = document.querySelector(`[onclick*="${activeView}"]`);
   showView(activeView, btn || null);
+  trsBootDone();
 }
 
 // Access levels (dashboard_users.role, 25 Sep 2026): owner = Kate, everything;
@@ -3450,8 +3479,8 @@ sb.auth.onAuthStateChange((event) => {
   const err = window.TRS_AUTH_ERROR || new URLSearchParams((window.TRS_AUTH_HASH || '').slice(1)).get('error_description');
   if (err) gateMsg(err.replace(/\+/g, ' '), 'error');
   const { data } = await sb.auth.getSession();
-  if (!data.session) return;
-  if (GATE_RECOVERY) { gateMode('reset'); return; }
+  if (!data.session) { trsBootDone(); return; }
+  if (GATE_RECOVERY) { gateMode('reset'); trsBootDone(); return; }
   await enterIfAllowed();
 })();
 

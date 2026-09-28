@@ -104,3 +104,12 @@ alter table ig_collab_posts enable row level security;
 -- post tagging @tararosesalon, a collab on a salon post, or a story mention, Dubai
 -- dates; null while no handle is on file. Stylists often post on days off, so this
 -- runs well under social_feed (Vicki Taylor Sept: 11 posts, 3 workdays).
+
+-- Start date (live, 28 Sep 2026): perf_staff.started_on = her first day with ledger
+-- clients or Phorest visits, set by perf_refresh_started_on() and refreshed nightly by
+-- pg_cron job 'perf-started-on-nightly' (17:30 UTC). perf_start_date(s) returns it.
+-- perf_core's social_feed and perf_socials' list count only from that date, and
+-- perf_core returns 'start_date' so the page can prorate a first month's summed aims.
+-- Stored rather than computed in perf_core because computing it there took perf_team
+-- from 0.13 s to 0.65 s.
+alter table perf_staff add column if not exists started_on date;
