@@ -22,7 +22,9 @@ const SLV_GROUPS = [
 ];
 const SLV_NOTES = {
   reputation: 'Average Google stars over the last 90 days, from 3 reviews.',
-  social_workdays: 'Not tracked yet.',
+  social_feed: 'Posts tagging @tararosesalon plus salon posts she is a collaborator on, each post once.',
+  // Interim until Tara defines it (Kate, 28 Sep 2026), same as the stylist page.
+  social_workdays: 'Days worked with a post, a collab on a salon post, or a story mention of the salon.',
 };
 let slvData = null;
 let slvPick = null;
@@ -33,7 +35,7 @@ function slvFmt(v, f) {
   const n = Number(v);
   if (f === 'aed') return 'AED ' + n.toLocaleString('en-GB', { maximumFractionDigits: 0 });
   if (f === 'pct') return n + '%';
-  if (f === 'rep') return n.toFixed(1) + '/5';
+  if (f === 'rep') return n.toFixed(1) + '★';   // stars, as on the stylist page
   return n.toLocaleString('en-GB');
 }
 const slvEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

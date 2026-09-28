@@ -221,6 +221,45 @@ function status(v, b) {
   const floor = b.min !== null && b.min !== undefined ? b.min : b.target * 0.85;
   return v >= floor ? 'warn' : 'bad';
 }
+// What each number means, shown on hover or tap of the ⓘ by its label. Kept in step
+// with perf_core / perf_clients / perf_reputation (Kate, 28 Sep 2026).
+const TIPS = {
+  total_revenue:   'Your service sales this month from Phorest, before VAT. Retail is not included.',
+  hair_services:   'Your service sales minus treatments, before VAT.',
+  treatments:      'Treatment sales on your clients this month, from the branch ledger, before VAT.',
+  treatments_pct:  'Treatments as a share of your hair services.',
+  retail:          'Products you sold this month, from Phorest, before VAT.',
+  retail_pct:      'Retail as a share of your service sales.',
+  avg_bill:        'Your service sales divided by your client numbers.',
+  rebooking_pct:   'The share of your clients who booked their next visit before they left.',
+  retention_pct:   'Of the returning clients you saw 3 to 6 months ago, the share you have seen again in the last 3 months.',
+  clients:         'The clients you saw this month, from the branch ledger.',
+  ncr:             'New clients who asked for you by name, usually through a referral or your socials.',
+  request_pct:     'Clients who asked for you (request clients plus new client requests) as a share of your client numbers.',
+  conversion_pct:  'Of the brand new clients whose first visit was with you 3 to 6 months ago, the share who came back within 12 weeks.',
+  column_fill_pct: 'Your booked hours as a share of your available hours, from Phorest.',
+  colour_pct:      'The share of your client visits this month that included a colour service.',
+  reputation:      'Average star rating of the Google reviews that name you or come from your clients, over the last 90 days. Counts once you have at least 3.',
+  google_reviews:  'Google reviews this month that name you.',
+  social_feed:     'Your posts tagging @tararosesalon this month, plus salon posts you are a collaborator on. Each post counts once.',
+  social_workdays: 'Days you worked this month on which you posted with @tararosesalon, were a collaborator on a salon post, or mentioned the salon in your story.',
+};
+// A label with its meaning: hover on a computer, tap on a phone (tabindex makes it focusable).
+const tipLbl = (k, label) => TIPS[k]
+  ? `<span class="kpi-lbl" tabindex="0">${esc(label)}<span class="kpi-i" aria-hidden="true">ⓘ</span><span class="kpi-tip" role="tooltip">${esc(TIPS[k])}</span></span>`
+  : `<span>${esc(label)}</span>`;
+// A tip on a label near the right edge (the right-hand tiles on a phone) would run off
+// the screen; slide it left just enough to stay on.
+function fitTip(e) {
+  const l = e.target.closest && e.target.closest('.kpi-lbl');
+  if (!l) return;
+  const tip = l.querySelector('.kpi-tip');
+  tip.style.left = '0px';
+  const over = tip.getBoundingClientRect().right - (document.documentElement.clientWidth - 8);
+  if (over > 0) tip.style.left = -over + 'px';
+}
+document.addEventListener('mouseover', fitTip);
+document.addEventListener('focusin', fitTip);
 // ── stylist page ─────────────────────────────────────────────────────────
 function tile(k, label, d, pace, extra = '') {
   const b = d.benchmarks?.[k];
@@ -228,7 +267,7 @@ function tile(k, label, d, pace, extra = '') {
   const f = KPI[k].fmt;
   const aim = b ? (b.min !== null && b.min !== undefined && b.min !== b.target
     ? `Minimum ${fmt(b.min, f)} · aim ${fmt(b.target, f)}` : `Aim ${fmt(b.target, f)}`) : '';
-  return `<div class="tile ${st}"><div class="lbl"><span class="dot"></span>${esc(label)}</div>
+  return `<div class="tile ${st}"><div class="lbl"><span class="dot"></span>${tipLbl(k, label)}</div>
     <div class="val">${fmt(d.numbers[k], f)}</div><div class="aim">${esc(aim)}${paceNote(k, d.numbers, pace, b?.target) ? '<br>' + esc(paceNote(k, d.numbers, pace, b?.target)) : ''}${extra}</div></div>`;
 }
 
@@ -255,11 +294,11 @@ function kpiRows(n, bm, pace, keys) {
     const x = KPI[k], b = bm[k];
     const note = x.note ? `<small class="r-note">${esc(x.note)}</small>` : '';
     const needs = typeof x.needs === 'function' ? x.needs(n) : x.needs;
-    if (x.untracked || (x.needs && (n[k] === null || n[k] === undefined))) return `<div class="row untracked"><span>${esc(x.label)}</span><span class="r-val"><small>${x.untracked ? 'Not tracked yet' : esc(needs)} · aim ${fmt(b.target, x.fmt)}</small></span>${note}</div>`;
+    if (x.untracked || (x.needs && (n[k] === null || n[k] === undefined))) return `<div class="row untracked">${tipLbl(k, x.label)}<span class="r-val"><small>${x.untracked ? 'Not tracked yet' : esc(needs)} · aim ${fmt(b.target, x.fmt)}</small></span>${note}</div>`;
     const st = x.unscored ? '' : status(judged(k, n, pace), b);
     const pn = paceNote(k, n, pace, b.target);
     const tail = x.unscored ? `<small>${esc(x.unscored)}</small>` : `<small>/ ${fmt(b.target, x.fmt)}${pn ? ' · ' + esc(pn.charAt(0).toLowerCase() + pn.slice(1)) : ''}</small>`;
-    return `<div class="row"><span>${esc(x.label)}</span><span class="r-val">${fmt(n[k], x.fmt)} <span class="r-tail">${tail}<span class="dot ${st}"></span></span></span>${note}</div>`;
+    return `<div class="row">${tipLbl(k, x.label)}<span class="r-val">${fmt(n[k], x.fmt)} <span class="r-tail">${tail}<span class="dot ${st}"></span></span></span>${note}</div>`;
   }).join('');
 }
 
@@ -280,7 +319,7 @@ function socials(n) {
 // Reputation on its own, no aim, for a page with no benchmarks yet (Beauty). Kate, 28 Sep 2026.
 function repRow(n) {
   const x = KPI.reputation, has = n.reputation !== null && n.reputation !== undefined;
-  return `<div class="row${has ? '' : ' untracked'}"><span>${esc(x.label)}</span><span class="r-val">${has ? fmt(n.reputation, x.fmt) : `<small>${esc(x.needs(n))}</small>`}</span><small class="r-note">${esc(x.note)}</small></div>`;
+  return `<div class="row${has ? '' : ' untracked'}">${tipLbl('reputation', x.label)}<span class="r-val">${has ? fmt(n.reputation, x.fmt) : `<small>${esc(x.needs(n))}</small>`}</span><small class="r-note">${esc(x.note)}</small></div>`;
 }
 
 function scoreLine(n, bm, pace) {

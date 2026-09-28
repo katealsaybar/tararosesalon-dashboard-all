@@ -175,3 +175,11 @@ body.embed main{max-width:none}
 @media(prefers-reduced-motion:reduce){.perf-top{transition:none}}
 /* Room under the footer so the last line never sits under it. */
 body:not(.embed) .foot{padding-bottom:84px}
+/* What each number means (Kate, 28 Sep 2026): hover on a computer, tap on a phone. */
+.kpi-lbl{position:relative;display:inline-flex;align-items:center;gap:5px;cursor:help;outline:none}
+.kpi-i{font-size:11px;color:var(--muted);line-height:1}
+.kpi-tip{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:30;width:max-content;max-width:min(300px,78vw);
+  padding:8px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12px;line-height:1.45;font-weight:400;
+  letter-spacing:0;text-transform:none;white-space:normal;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.kpi-lbl:hover .kpi-tip,.kpi-lbl:focus .kpi-tip,.kpi-lbl:focus-within .kpi-tip{display:block}
+.row.untracked .kpi-tip{opacity:1}
