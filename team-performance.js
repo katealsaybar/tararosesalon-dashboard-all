@@ -60,7 +60,7 @@ const TP_LADDER = ['Owner', 'Style Director', 'Senior Stylist', 'Stylist', 'Juni
 // Lhang Ann and Ma. Ercely worked the floor as assistants.
 const TP_ROLE_FIX = { 'TARA': 'Owner', 'TARA KIDD': 'Owner',
   'CRISTINE': 'Assistant', 'CRISTINE BRACAMONTE': 'Assistant',
-  'LHANG': 'Assistant', 'LHANG ANN': 'Assistant', 'MA. ERCELY': 'Assistant' };
+  'LHANG': 'Assistant', 'LHANG ANN': 'Assistant', 'MA. ERCELY': 'Assistant', 'MA.': 'Assistant' };
 const TP_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'TARA KIDD': 'assets/org-chart/tara-rose-kidd.png' };
 const tpRole = st => { const fix = TP_ROLE_FIX[tpMergeKey(st.name)]; if (fix) return fix;
   const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.role) || 'No position set'; };
@@ -124,8 +124,11 @@ function tpRoster(dept) {
   // into August) is not a person on the floor. Anyone with a sale or a client stays,
   // including assistants who bring no money through their own name; Phorest-only
   // staff count their visits as clients.
+  // Kate, 28 Sep 2026: assistants are left off this page altogether (Lhang, Cristine,
+  // Ma. Ercely, whom the Motor City ledger spells just "MA.").
   const list = order.map(key => tpCombine(groups[key], key))
-    .filter(st => (st.net || 0) > 0 || (st.total || 0) > 0);
+    .filter(st => (st.net || 0) > 0 || (st.total || 0) > 0)
+    .filter(st => tpRole(st) !== 'Assistant');
   return list.sort((a, b) => (b.net || 0) - (a.net || 0));
 }
 

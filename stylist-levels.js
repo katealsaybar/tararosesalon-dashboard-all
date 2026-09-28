@@ -62,13 +62,14 @@ async function renderStylistLevels() {
   }).join('');
 
   el.innerHTML = `
-    <div class="sc-bar"><span class="sc-bar-t">Stylist Levels</span></div>
+    <div class="slv-top" id="slvTop">
     <section class="slv-intro">
       <h2>How you move up.</h2>
       <p>Every level has a minimum that holds it and an aim to work towards. To move on to the next level, reach that level's aims. Pick a level to see the numbers.</p>
     </section>
     <div class="slv-ladder" role="tablist" aria-label="Level">
       ${levels.map((l, j) => `<button type="button" role="tab" aria-selected="${j === i}" class="${j === i ? 'on' : ''}" onclick="slvSet('${slvEsc(l.level)}')"><span class="slv-step">${j + 1}</span>${slvEsc(l.level)}</button>`).join('')}
+    </div>
     </div>
     <section class="slv-card">
       <div class="slv-head">
@@ -81,7 +82,21 @@ async function renderStylistLevels() {
       </table></div>
       <p class="slv-muted">Monthly numbers. A dash means it isn't set for that level. Beauty levels are still being set with Tara.</p>
     </section>`;
+  // On a phone the pills are one swipeable row: keep the chosen level in view.
+  const on = el.querySelector('.slv-ladder .on');
+  if (on && on.parentNode.scrollWidth > on.parentNode.clientWidth) on.parentNode.scrollLeft = on.offsetLeft - 16;
+  slvStuck();
 }
+// Kate, 28 Sep 2026: the intro and the level pills stay under the header while the
+// table scrolls; once parked they condense (the paragraph folds away) so the table
+// keeps the screen, which matters most on a phone.
+function slvStuck() {
+  const top = document.getElementById('slvTop');
+  if (!top || top.offsetParent === null) return;
+  const park = parseFloat(getComputedStyle(top).top) || 0;
+  top.classList.toggle('stuck', window.scrollY > 0 && top.getBoundingClientRect().top <= park + 1);
+}
+window.addEventListener('scroll', slvStuck, { passive: true });
 function slvSet(level) {
   slvPick = level;
   try { localStorage.setItem('slv-level', level); } catch (e) {}

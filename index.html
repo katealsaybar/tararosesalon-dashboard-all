@@ -368,6 +368,9 @@ body.orgchart-chrome .mast-rule,
 body.orgchart-chrome .filters-wrap{display:none}
 /* Kate, 24 Sep 2026: Google Reviews carries its own filters and pull date, so the
    masthead's branch/range/freshness line describes nothing there. */
+/* Stylist Levels (Kate, 28 Sep 2026): a reference page, no branch, period or feed dates. */
+body.stafflevels-chrome .mast-rule,
+body.stafflevels-chrome .filters-wrap,
 body.reviews-chrome .mast-rule,
 body.reviews-chrome .filters-wrap{display:none}
 /* Kate, 22 Sep 2026: the popped-out org chart window (ocOpenNewWindow(),
@@ -1720,6 +1723,14 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   color:var(--text);opacity:0.72}
 .sc-bar-sp{margin-left:auto}
 /* Stylist Levels guide (stylist-levels.js). Kate, 28 Sep 2026. */
+/* The intro and pills park under the condensed header; .stuck folds the paragraph away. */
+.slv-top{position:sticky;top:var(--topbar-cond-h,104px);z-index:40;background:var(--bg);
+  margin:0 -28px 14px;padding:4px 28px 12px;border-bottom:1px solid transparent;transition:padding .15s}
+.slv-top.stuck{border-bottom-color:var(--border);padding-top:10px;padding-bottom:10px}
+.slv-top.stuck .slv-intro{margin:0 0 8px}
+.slv-top.stuck .slv-intro h2{font-size:22px;margin:0}
+.slv-top.stuck .slv-intro p{display:none}
+.slv-top .slv-ladder{margin:0}
 .slv-intro{margin:22px 0 14px}
 .slv-intro h2{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:30px;margin:0 0 6px;color:var(--text)}
 .slv-intro p{margin:0;max-width:640px;color:var(--muted);font-size:15px;line-height:1.5}
@@ -1744,7 +1755,14 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .slv-table td.slv-next{font-weight:600;color:var(--hair)}
 .slv-note{font-size:12px;color:var(--muted);margin-top:2px}
 .slv-muted{color:var(--muted);font-size:13px;margin:12px 0 0}
-@media(max-width:600px){.slv-card{padding:14px}.slv-table{font-size:13px}.slv-table th,.slv-table td{padding:8px 6px}}
+@media(max-width:600px){
+  /* One swipeable row of pills instead of three wrapped rows. */
+  .slv-ladder{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  .slv-ladder::-webkit-scrollbar{display:none}
+  .slv-ladder button{flex:0 0 auto;font-size:13px;padding:6px 12px 6px 6px}
+  .slv-intro h2{font-size:26px}.slv-intro p{font-size:14px}
+  .slv-top.stuck .slv-intro h2{font-size:19px}
+  .slv-card{padding:14px}.slv-table{font-size:13px}.slv-table th,.slv-table td{padding:8px 6px}}
 .sc-seg{display:flex;gap:2px;padding:2px;border:1px solid var(--border);
   border-radius:999px;background:var(--surface)}
 .sc-seg button{appearance:none;border:0;background:transparent;color:var(--muted);
@@ -2527,7 +2545,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 </style>
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20260925r">
+<link rel="stylesheet" href="mobile.css?v=20260928a">
 </head>
 <body>
 
@@ -3233,7 +3251,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- After ledger-targets.js: the Supabase target layer overrides its lookups per month. -->
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260924n"></script>
-<script src="stylist-levels.js?v=20260928b"></script>
+<script src="stylist-levels.js?v=20260928c"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20260928a"></script>
@@ -3245,7 +3263,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20260904b"></script>
-<script src="team-performance.js?v=20260925w"></script>
+<script src="team-performance.js?v=20260928a"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=20260907a"></script>
 <script src="pulse-narrative.js?v=20260814a"></script>
@@ -3485,6 +3503,7 @@ function showView(view, el){
   document.body.classList.toggle('reviews-chrome', view === 'reviews');
   document.body.classList.toggle('compare-chrome', view === 'compare');
   document.body.classList.toggle('staffperf-chrome', view === 'staffperf');
+  document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   // Popped-out standalone window (ocOpenNewWindow() sets ocFit=1): no sidebar
   // nav to open and no card border round the tree, just the chart, edge to
   // edge — this window's whole reason to exist is projecting/sharing/printing
