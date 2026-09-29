@@ -15,8 +15,10 @@
      is read-only. Embedded in the dashboard under CAMPAIGNS, and it opens on its own too. -->
 <style>
 :root{
-  --bg:#FAF8F4; --paper:#FFFFFF; --ink:#2D2E37; --ink2:#4A4B55; --muted:#6E6E77;
-  --line:#E7E2D8; --grid:#EFEAE1; --sand:#F1ECE3;
+  /* Surfaces are the dashboard's own tokens (index.html [data-theme] blocks), so the report
+     reads as one page with it when embedded, in both themes. */
+  --bg:#FAF7F0; --paper:#FFFFFF; --ink:#2D2E37; --ink2:#4A4B55; --muted:#565049;
+  --line:#E8E2D6; --grid:#F0ECE3; --sand:#F4F1E9;
   --good:#3E7A5E; --good-bg:#E4F1EA; --warn:#B4823A; --warn-bg:#FBF3E2; --bad:#B24A4A; --bad-bg:#F7E9E9;
   --series:#0F8A72; --target:#8C8C94;
   /* One fixed categorical order for payment method and tier, checked with the dataviz
@@ -27,16 +29,16 @@
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#16171C; --paper:#1F2027; --ink:#F1EEE8; --ink2:#D2CFC9; --muted:#9C9CA5;
-    --line:#33343D; --grid:#2A2B33; --sand:#2A2B33;
-    --good:#7FC4A2; --good-bg:#1E3329; --warn:#E0B26A; --warn-bg:#3A2F1C; --bad:#E08A8A; --bad-bg:#3A2224;
+    --bg:#2D2E37; --paper:#383944; --ink:#FAF8F3; --ink2:rgba(250,248,243,.85); --muted:rgba(250,248,243,.68);
+    --line:rgba(250,248,243,.09); --grid:rgba(250,248,243,.06); --sand:#3F4052;
+    --good:#99F6E4; --good-bg:rgba(153,246,228,.12); --warn:#EEF3C7; --warn-bg:rgba(238,243,199,.12); --bad:#FF9B9B; --bad-bg:rgba(255,155,155,.12);
     --series:#99F6E4; --c1:#2FA58B; --c2:#8C74DE; --c3:#BD852D;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#16171C; --paper:#1F2027; --ink:#F1EEE8; --ink2:#D2CFC9; --muted:#9C9CA5;
-  --line:#33343D; --grid:#2A2B33; --sand:#2A2B33;
-  --good:#7FC4A2; --good-bg:#1E3329; --warn:#E0B26A; --warn-bg:#3A2F1C; --bad:#E08A8A; --bad-bg:#3A2224;
+  --bg:#2D2E37; --paper:#383944; --ink:#FAF8F3; --ink2:rgba(250,248,243,.85); --muted:rgba(250,248,243,.68);
+  --line:rgba(250,248,243,.09); --grid:rgba(250,248,243,.06); --sand:#3F4052;
+  --good:#99F6E4; --good-bg:rgba(153,246,228,.12); --warn:#EEF3C7; --warn-bg:rgba(238,243,199,.12); --bad:#FF9B9B; --bad-bg:rgba(255,155,155,.12);
   --series:#99F6E4; --c1:#2FA58B; --c2:#8C74DE; --c3:#BD852D;
 }
 *{box-sizing:border-box}
