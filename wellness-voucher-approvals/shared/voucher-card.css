@@ -1,0 +1,290 @@
+/* The saved page's geometry, in ONE place. The print block below and the on-screen page
+ * preview both read these, because a preview that disagrees with the PDF is worse than no
+ * preview at all: it teaches reception the wrong thing and nobody finds out until a client
+ * has it. Change a number here and both move together.
+ */
+:root{
+  --wv-page-w:210mm;    --wv-page-h:297mm;   /* A4 portrait */
+  --wv-card-w:140mm;    --wv-card-h:88.3mm;  /* holds the ID-1 ratio to a rounding error */
+  --wv-card-fs:3.66mm;  --wv-page-gap:12mm;
+  --wv-cover-fs:4.2mm;  /* the cover is a page, not a card, so it has its own scale */
+  --wv-page-bg:#FAF8F4;
+}
+
+/* The Wellness Card itself, and how it prints.
+ *
+ * Shared by voucher-issue (the till) and voucher-log (the record) so there is one card, not
+ * two that drift. Both pages sit one folder below the pack root, so the logo path written by
+ * voucher-card.js, ../assets/tara-rose-logo-white.png, resolves from either.
+ *
+ * The artwork is a placeholder for Hanneh's. When her PNGs land, only .card's background and
+ * the positions below change; nothing outside this file knows what the card looks like.
+ */
+
+.card{
+  /* 85.6 x 54 mm, the real ID-1 credit card. Two rules inside, and they are not the same:
+       TYPE sizes use em, so everything scales off this one font-size.
+       VERTICAL POSITIONS use % of the card's height, never em.
+     The second rule is not a style preference. `top` in em resolves against the element's OWN
+     font-size, so .of at font-size:.6em and top:18.6em landed at 123px rather than 205px and
+     sat on top of the chip. The card has a fixed aspect ratio, so a percentage means the same
+     place at any size, on screen and in print alike. Do not put px inside the card. */
+  width:428px; height:270px; font-size:11px;
+  position:relative;border-radius:4.6%/7.3%;overflow:hidden;
+  background:
+    radial-gradient(120% 90% at 18% 12%, #3a3a42 0%, transparent 55%),
+    radial-gradient(90% 70% at 82% 88%, #34343c 0%, transparent 60%),
+    linear-gradient(145deg,#131316 0%,#0a0a0c 46%,#1b1b20 74%,#0d0d10 100%);
+  color:#F1ECE3;
+  box-shadow:0 10px 30px rgba(45,46,55,.28);
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  line-height:1.4;
+}
+.card .sheen{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(118deg,transparent 34%,rgba(241,236,227,.055) 46%,transparent 58%);}
+
+.card .brand{position:absolute;top:8.56%;left:0;right:0;text-align:center;}
+.card .brand img{height:3.5em;width:auto;display:inline-block;}
+
+.card .tier{position:absolute;top:25.7%;left:0;right:0;text-align:center;
+  font-size:.9em;letter-spacing:.15em;font-weight:600;text-transform:uppercase;
+  color:#C9A961;text-indent:.15em;padding:0 8%;}
+.card .gift{position:absolute;top:30%;left:0;right:0;text-align:center;
+  font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:1.45em;color:#F1ECE3;}
+
+/* The chip sits ABOVE the number, on the left, the way a real card reads. Named .emv rather
+   than .chip because .chip is a button elsewhere in the pack and the two collided: the card's
+   gold plate inherited a border and a pointer cursor from it. */
+.card .emv{position:absolute;left:8%;top:46.4%;width:3.2em;height:2.45em;border-radius:.4em;
+  background:linear-gradient(140deg,#E4C77E,#B08F45 52%,#E9D496);overflow:hidden;}
+.card .emv i{position:absolute;background:rgba(90,68,20,.5);}
+.card .emv i:nth-child(1){left:22%;top:0;width:1px;height:100%;}
+.card .emv i:nth-child(2){left:56%;top:0;width:1px;height:100%;}
+.card .emv i:nth-child(3){left:0;top:34%;width:100%;height:1px;}
+.card .emv i:nth-child(4){left:0;top:66%;width:100%;height:1px;}
+
+.card .val{position:absolute;right:8%;top:45.2%;text-align:right;}
+.card .val .lb{font-size:.6em;letter-spacing:.2em;opacity:.6;text-transform:uppercase;text-indent:.2em;}
+.card .val .wv-amt{font-family:'Playfair Display',Georgia,serif;font-size:1.7em;line-height:1.15;color:#C9A961;}
+.card .val .wv-amt small{font-size:.5em;letter-spacing:.14em;opacity:.85;margin-right:.35em;
+  font-family:'Inter',system-ui,sans-serif;vertical-align:.4em;}
+
+.card .num{position:absolute;left:8%;right:8%;top:70.6%;display:flex;gap:1.5em;
+  font-size:1.14em;letter-spacing:.14em;font-weight:500;font-variant-numeric:tabular-nums;}
+.card .num span{white-space:nowrap;}
+
+/* The small print, along the bottom edge under the foot. There is about 20px of card left
+   below the dates, so this is deliberately tiny and deliberately one line.
+   FOR HANNEH: this line has to survive into the real artwork. A card carrying up to AED
+   5,400 of credit with nothing on it about cash is the one thing on here that is not a
+   design choice. The wording is Dawn's, lifted from term 12, not written here. */
+.card .fine{position:absolute;left:8%;right:8%;top:93%;font-size:.5em;letter-spacing:.14em;
+  opacity:.5;text-transform:uppercase;text-align:center;white-space:nowrap;}
+
+/* Between the chip and the serial. It used to be below the serial, where the foot leaves
+   about five pixels, which is why it ended up on the chip instead. */
+.card .of{position:absolute;left:8%;top:62.2%;font-size:.6em;letter-spacing:.2em;
+  opacity:.6;text-transform:uppercase;text-indent:.2em;}
+
+/* Anchored from the TOP, not the bottom. It was bottom:1.7em, and the card is very slightly
+   shorter in print than on screen when measured in em (24.1 against 24.5), so everything
+   anchored to the bottom rose by about a line and the CARDHOLDER label landed on top of the
+   serial. Measuring from the top means the gap between the serial and the foot is fixed and
+   cannot close, whatever the card's height rounds to. */
+.card .wv-cardfoot{position:absolute;left:8%;right:8%;top:79%;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:1em;}
+.card .wv-holder .lb{font-size:.6em;letter-spacing:.2em;opacity:.6;text-transform:uppercase;
+  margin-bottom:.25em;text-indent:.2em;}
+.card .wv-holder .nm{font-size:1.02em;letter-spacing:.09em;text-transform:uppercase;font-weight:500;}
+.card .dates{text-align:right;font-size:.64em;letter-spacing:.13em;opacity:.8;line-height:1.7;
+  text-transform:uppercase;white-space:nowrap;}
+.card .dates b{font-weight:600;opacity:1;letter-spacing:.07em;}
+
+/* ---------------- the five cards ----------------
+ * Colours sampled off Hanneh's exported pages, not chosen here. The gift card is black like the
+ * main card; the referral and birthday cards are light, and a light card is not the black card
+ * with a different background: the wordmark, the gold, the QR panel and the shadow all have to
+ * turn over with it. TRSCard.cardTheme decides which of the two a card is and adds .wv-light.
+ *
+ * Only .card's own paint changes below. Every position is still the % and em geometry above, so
+ * the five cards cannot drift apart in layout, only in colour.
+ */
+.card.wv-t-R{background:linear-gradient(160deg,#D5CBC4 0%,#D8D0C9 52%,#DAD4CD 100%);}
+.card.wv-t-B{background:linear-gradient(160deg,#E4E1EC 0%,#EDEAF2 48%,#F6F4F9 100%);}
+/* The kit card, and the ONE colour here that is not Hanneh's: there is no artwork page for it,
+   because the set was four cards when she drew them. Sage, chosen against the other two rather
+   than out of the air. The taupe is a warm neutral and the lilac is a cool one, so a third
+   neutral would have given the desk three pale cards to tell apart at arm's length; a green is
+   far enough from both to read as a different card in the hand, and it is the one hue home care
+   already lives in. Replace this line when her page lands. */
+.card.wv-t-K{background:linear-gradient(160deg,#D7E0D6 0%,#E3EAE0 48%,#F0F5EE 100%);}
+
+.card.wv-light{color:#2D2E37;box-shadow:0 10px 26px rgba(45,46,55,.18);}
+/* The sheen is a highlight for a dark surface. At full strength on a pale card it reads as a
+   printing fault, so it is nearly off rather than removed: the geometry stays identical. */
+.card.wv-light .sheen{background:linear-gradient(118deg,transparent 34%,rgba(255,255,255,.5) 46%,transparent 58%);}
+/* #C9A961 is legible on black and washes out on taupe. This is the same gold darkened until it
+   holds against a light ground; it is the gold on the QR frame in Hanneh's own artwork. */
+.card.wv-light .tier,
+.card.wv-light .val .wv-amt{color:#8D7840;}
+.card.wv-light .gift{color:#2D2E37;}
+/* The panel exists to make the QR scannable, so on a light card it goes WHITE rather than cream:
+   cream on taupe is not enough separation for a phone camera at an angle. */
+.card.back.wv-light .wv-qrbox{background:#FFFFFF;border:1px solid rgba(141,120,64,.55);}
+
+/* A smaller card, for the hover preview in the log. One value, because of the em rule above. */
+.card.sm{width:257px;height:162px;font-size:6.6px;box-shadow:0 12px 28px rgba(45,46,55,.34);}
+
+/* ---------------- the back ----------------
+ * Same body as the front, same em and % rules, so the two faces scale together off .card's
+ * font-size and neither can drift from the other.
+ *
+ * The QR panel is CREAM on purpose. The QR modules are #2d2e37 and a dark QR on a black card
+ * will not scan at any size; the panel is what makes it readable, not a design flourish. Its
+ * height comes from aspect-ratio rather than a percentage, because it has to stay square and
+ * the card is wider than it is tall.
+ */
+.card.back .brand{top:7%;}
+.card.back .brand img{height:2.4em;}
+
+.card.back .wv-qrbox{position:absolute;left:8%;top:23%;width:29%;aspect-ratio:1;
+  background:#F1ECE3;border-radius:2%;padding:3.5%;}
+.card.back .wv-qrbox img{width:100%;height:100%;display:block;}
+.card.back .wv-qrcap{position:absolute;left:8%;width:29%;top:72.5%;text-align:center;
+  font-size:.55em;letter-spacing:.18em;text-transform:uppercase;opacity:.6;text-indent:.18em;}
+
+.card.back .wv-bk{position:absolute;left:43%;right:8%;top:23%;}
+.card.back .wv-bk .wv-row{margin-bottom:.8em;}
+.card.back .wv-bk .wv-row:last-child{margin-bottom:0;}
+.card.back .wv-bk .lb{font-size:.6em;letter-spacing:.2em;opacity:.6;text-transform:uppercase;
+  text-indent:.2em;margin-bottom:.2em;}
+.card.back .wv-bk .vl{font-size:.82em;letter-spacing:.06em;line-height:1.35;}
+
+/* Three clauses, never four: the fourth line is where this stops being readable and starts
+   being the wall of type the front was built to avoid. */
+.card.back .wv-rules{position:absolute;left:8%;right:8%;top:79.5%;
+  font-size:.55em;letter-spacing:.05em;line-height:1.62;opacity:.62;}
+
+/* Lower case, unlike .fine on the front. It is an address, and an uppercase URL reads as
+   shouting and is harder to type back in by hand. */
+.card.back .wv-bkurl{position:absolute;left:8%;right:8%;top:93%;text-align:center;
+  font-size:.5em;letter-spacing:.1em;opacity:.5;}
+
+
+/* ---------------- the cover ----------------
+ * Page one of HER file, and the reason the file needs no covering email: everything reception
+ * would have had to type is on it. Cream with ink on it, the reverse of the cards, so it reads
+ * as the letter the cards arrived in rather than a ninth card. The black wordmark for the same
+ * reason; the white one is for the black cards.
+ *
+ * Sizes are em off .cover's font-size, the same rule the card follows, so the whole page scales
+ * from one number.
+ */
+.wv-cover{width:100%;height:100%;padding:26mm 30mm 22mm;
+  display:flex;flex-direction:column;
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  color:#2D2E37;font-size:var(--wv-cover-fs);line-height:1.55;}
+.wv-cover .wv-brandline{text-align:center;}
+.wv-cover .wv-brandline img{height:3.4em;width:auto;display:inline-block;}
+.wv-cover h1{font-family:'Playfair Display',Georgia,serif;font-weight:600;
+  font-size:2.5em;line-height:1.1;margin:1.5em 0 .35em;letter-spacing:.005em;}
+.wv-cover .wv-line{font-size:1.05em;letter-spacing:.02em;}
+.wv-cover .wv-line b{font-weight:600;}
+.wv-cover .wv-rule{height:1px;background:#E7E2D8;margin:1.5em 0;}
+
+.wv-cover .wv-amt{font-family:'Playfair Display',Georgia,serif;font-size:2.1em;color:#B4823A;
+  line-height:1.15;}
+.wv-cover .wv-amt small{font-family:'Inter',system-ui,sans-serif;font-size:.42em;letter-spacing:.14em;
+  margin-right:.4em;vertical-align:.35em;}
+.wv-cover .wv-sub{font-size:.95em;opacity:.78;}
+
+.wv-cover h2{font-size:.72em;letter-spacing:.2em;text-transform:uppercase;font-weight:600;
+  opacity:.55;margin:1.7em 0 .5em;text-indent:.2em;}
+.wv-cover ul{list-style:none;}
+.wv-cover li{font-size:.95em;padding:.22em 0;}
+.wv-cover li b{font-weight:600;}
+.wv-cover p{font-size:.95em;}
+
+/* Pushed to the bottom of the page rather than placed, so the block above can grow by a line
+   without the terms sliding off the paper. */
+.wv-cover .wv-foot{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;
+  gap:2em;padding-top:1.6em;border-top:1px solid #E7E2D8;}
+.wv-cover .wv-foot .wv-qr{width:24mm;height:24mm;flex:0 0 auto;}
+.wv-cover .wv-foot .wv-qr img{width:100%;height:100%;display:block;}
+.wv-cover .wv-foot .wv-terms{font-size:.78em;opacity:.7;}
+.wv-cover .wv-foot .wv-terms b{display:block;font-size:1.05em;opacity:1;font-weight:600;margin-bottom:.2em;}
+
+/* ---------------- the page, on screen ----------------
+ * What the saved PDF looks like, without saving it. Built for the practice run: printing is
+ * refused there on purpose, so before this there was no way to see the page at all without
+ * spending a real serial on it.
+ *
+ * The page is laid out at its TRUE size and then scaled with a transform, rather than being
+ * rebuilt smaller. A transform cannot change the layout, so what you see is the same box the
+ * printer is handed, at 55%. Rebuilding it smaller is what would let it drift.
+ * A transform does not shrink the space the element takes, which is why .wv-pagewrap carries the
+ * scaled height itself.
+ */
+.wv-pagewrap{--s:.55;
+  width:calc(var(--wv-page-w) * var(--s));
+  height:calc(var(--wv-page-h) * var(--s));
+  margin:0 auto;overflow:hidden;
+  box-shadow:0 6px 24px rgba(45,46,55,.16);border:1px solid #E7E2D8;}
+.wv-pagescale{width:var(--wv-page-w);height:var(--wv-page-h);
+  transform:scale(var(--s));transform-origin:top left;}
+
+.wv-sheet.wv-preview{width:var(--wv-page-w);height:var(--wv-page-h);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:var(--wv-page-gap);background:var(--wv-page-bg);}
+.wv-sheet.wv-preview .card{width:var(--wv-card-w);height:var(--wv-card-h);font-size:var(--wv-card-fs);
+  box-shadow:none;margin:0;}
+
+/* ---------------- printing ----------------
+ * TRSCard.print() fills #trs-printroot and adds .trs-printing to <body>. The rules below hide
+ * every other top-level element, so this works on any page in the pack without that page
+ * having to list what to hide. Nothing here rasterises the card: it stays live text, so the
+ * serial and the dates are selectable and vector in the saved PDF.
+ *
+ * ONE A4 PAGE PER CARD, front and back, not one card-sized page. Measured off the real print path on 20 Aug:
+ * at a true 85.6 x 54mm page the small print resolves to 3.1pt and the CARDHOLDER label to
+ * 3.7pt. That is fine on plastic you can hold up to the light, and unreadable in a PDF on a
+ * phone, which is the only way a client ever receives this. The same card at 140mm gives
+ * 5.1pt and 6.2pt. Both faces sit on one A4 portrait page, so a set stays one page per card. Every size on the card is em or %, so the three numbers on .card
+ * below are the only thing that changes: nothing above this comment knows about print.
+ *
+ * TO GO BACK to a real card-sized page (a plastic card run, say): @page 85.6mm 54mm, .card
+ * width:85.6mm height:54mm font-size:2.24mm border-radius:0, and drop .sheet's sizing so it
+ * stops being a page of its own.
+ */
+#trs-printroot{display:none;}
+
+@media print{
+  @page{size:210mm 297mm;margin:0;}  /* @page cannot take a var, so this pair is the one duplicate */
+  body.trs-printing{background:#fff;}
+  body.trs-printing > *{display:none !important;}
+  body.trs-printing > #trs-printroot{display:block !important;}
+
+  /* The SHEET carries the page break now, not the card, which is what lets the two be sized
+     independently. Written by TRSCard.print, one per card. */
+  #trs-printroot .wv-sheet{
+    width:var(--wv-page-w);height:var(--wv-page-h);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:var(--wv-page-gap);
+    background:var(--wv-page-bg);
+    page-break-after:always;break-after:page;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+  #trs-printroot .wv-sheet:last-child{page-break-after:auto;break-after:auto;}
+
+  /* The cover fills its page instead of being centred in it, so this one sheet is a block. */
+  #trs-printroot .wv-sheet.wv-cover-sheet{display:block;}
+
+  /* 140 x 88.3mm holds the real ID-1 ratio to within a rounding error, so the card is the
+     same shape in print as on screen. The border-radius is deliberately NOT reset here: at
+     card size the trim made the corners, on a page the card has to draw its own. */
+  #trs-printroot .card{
+    width:var(--wv-card-w);height:var(--wv-card-h);font-size:var(--wv-card-fs);
+    box-shadow:none;margin:0;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+}

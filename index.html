@@ -2766,6 +2766,14 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('products', this)">Products</div>
   </div>
 
+  <!-- Kate, 29 Sep 2026: campaign tracking. Wellness Voucher Performance is the
+       voucher log from the approval pack (progress against the AED 150k target),
+       embedded for tracking only. The till stays out of the dashboard. -->
+  <div class="nav-group">
+    <div class="nav-title">CAMPAIGNS</div>
+    <div class="nav-sub" onclick="showView('wvperf', this)">Wellness Voucher Performance</div>
+  </div>
+
   <!-- Level 1 + 2: Reviews -->
   <div class="nav-group">
     <div class="nav-title">REVIEWS</div>
@@ -3290,6 +3298,21 @@ table.tp-cmp td.bad{color:var(--bad)}
     </main>
   </div>
 
+  <!-- WELLNESS VOUCHER PERFORMANCE (Kate, 29 Sep 2026): the voucher log, which now
+       lives in this repo at wellness-voucher-approvals/voucher-log/ (moved from the
+       approval pack, whose old URL redirects here). Same origin as the dashboard, but
+       its sign-in is its own: info@, on the voucher Supabase, storage key
+       trs-approval-auth, so it never touches the dashboard session.
+       data-src, not src: loaded on first open only, so a dashboard visit does not
+       boot the voucher page and its sign-in gate in the background. -->
+  <div id="view-wvperf" style="display:none">
+    <iframe
+      id="wvperfFrame" title="Wellness Voucher Performance"
+      data-src="wellness-voucher-approvals/voucher-log/"
+      style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;display:block;">
+    </iframe>
+  </div>
+
   <!-- REVIEWS -->
   <div id="view-reviews" style="display:none">
     <iframe 
@@ -3354,7 +3377,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20260928c"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20260928g"></script>
+<script src="dashboard.js?v=20260929a"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -3575,6 +3598,10 @@ function showView(view, el){
   target.style.display = 'block';
   // Google Reviews sizes its iframe to its content; ask again now it's visible.
   if (view === 'reviews' && typeof postReviewsTheme === 'function') postReviewsTheme();
+  if (view === 'wvperf') {
+    const wf = document.getElementById('wvperfFrame');
+    if (wf && !wf.getAttribute('src')) wf.setAttribute('src', wf.dataset.src);
+  }
 
   // Kate, 2026-08-14: one branch picker and one date picker, for every page that
   // shows a number. It used to be these two only, and Services and Clients each
@@ -3605,7 +3632,7 @@ function showView(view, el){
   // plus its own "open in new window" link since this is the page people
   // pop out to project or share standalone.
   document.body.classList.toggle('orgchart-chrome', view === 'orgchart');
-  document.body.classList.toggle('reviews-chrome', view === 'reviews');
+  document.body.classList.toggle('reviews-chrome', view === 'reviews' || view === 'wvperf');
   document.body.classList.toggle('compare-chrome', view === 'compare');
   document.body.classList.toggle('staffperf-chrome', view === 'staffperf');
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');

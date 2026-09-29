@@ -909,6 +909,7 @@ const VIEW_SECTION_LABELS = {
   dashboard: 'Organisation Pulse', team: 'Podium Race', teamquad: 'Takings vs Rebooking', staffperf: 'Staff Benchmarks', stafflevels: 'Stylist Levels', stylists: 'Staff Cards',
   orgchart: 'Org Chart',
   services: 'Service Rankings', clients: 'Top Clients', products: 'Products', reviews: 'Google Reviews',
+  wvperf: 'Wellness Voucher Performance',
   branchperf: 'Branch Performance',
   compare: 'Comparison',
   ledgerFinancials: 'Ledgers · Financial Totals',
@@ -923,7 +924,7 @@ const VIEW_SECTION_LABELS = {
 // 'khalifa' and 'saadiyat', which have not existed for months.
 const ALL_VIEWS = [
   'dashboard','branchperf','compare','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
-  'team','teamquad','staffperf','stafflevels','stylists','orgchart','services','clients','products','reviews','calendar','giveaway','trk',
+  'team','teamquad','staffperf','stafflevels','stylists','orgchart','services','clients','products','wvperf','reviews','calendar','giveaway','trk',
 ];
 
 // Which pages read the shared branch + period filters. Everything that shows a
