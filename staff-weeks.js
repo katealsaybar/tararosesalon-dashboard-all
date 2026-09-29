@@ -51,10 +51,9 @@ let w13Mode = 'week';
 // and a swipe on the chart move the window. w13Win is days shown (0 = all), w13Off how
 // many days back from the latest the window ends.
 let w13Win = 28, w13Off = 0;
-// Which measure is the bars (Kate, 29 Sep 2026): 'sales' (default) or 'clients'; the
-// other becomes the line. Bars read first, so this picks what the chart leads with.
-// The quarter shades follow the bars. Not remembered: every report opens on Sales.
-let w13Bars = 'sales';
+// Which measure is the bars. Sales, always: a Sales / Clients swap toggle was tried and
+// taken off the same evening (Kate, 29 Sep 2026, too chunky beside the other controls).
+const w13Bars = 'sales';
 let w13QOpen = null;       // quarters open in her table; null = only the latest one
 const w13ChartTitleText = () => (w13Mode === 'day' ? 'Day by day' : 'Week by week') + ' · ' +
   (w13Bars === 'clients' ? 'clients (bars) and sales (line)' : 'sales (bars) and clients (line)');
@@ -101,6 +100,15 @@ const W13_SHADES = {
 const w13Shades = dept => W13_SHADES[dept === 'Beauty' ? 'Beauty' : 'Hair'];
 // Quarter of a date inside the loaded year (days since its Week 1 Monday).
 const w13QOfDate = (date, from) => Math.min(4, Math.floor(Math.round((new Date(date + 'T00:00:00') - new Date(from + 'T00:00:00')) / 864e5) / 91) + 1);
+// What the bars and the line are (Kate, 29 Sep 2026): a bar swatch for Sales and a
+// line-with-dot for Clients, in the same small labelled style as the quarter key.
+function w13SeriesKey(dept) {
+  const beauty = dept === 'Beauty', bar = beauty ? '#FF9B9B' : '#C4B5FD', line = beauty ? '#6D28D9' : '#0F6E56';
+  return `<span class="w13-skey" aria-label="Chart key">
+    <span><i class="bar" style="background:${bar}"></i>Sales (AED)</span>
+    <span><i class="line" style="--c:${line}"></i>Clients</span>
+  </span>`;
+}
 // The Q1-Q4 key beside the chart title, only for quarters the chart has.
 function w13QKey(dept, qs) {
   const sh = w13Shades(dept);
@@ -283,12 +291,8 @@ async function renderStaffWeeks() {
       <div class="w13-chart-head">
         <div class="slv-eyebrow" id="w13ChartTitle">${w13ChartTitleText()}</div>
         <div class="w13-chart-ctl">
+        ${w13SeriesKey(s.dept)}
         ${w13QKey(s.dept, [...new Set(d.weeks.map(w => w13Q(w.week_no)))])}
-        <div class="sc-seg w13-bars-seg" role="group" aria-label="Bars show" style="display:inline-flex">
-          <span class="w13-seg-k">Bars</span>
-          <button type="button" data-b="sales" class="${w13Bars === 'sales' ? 'on' : ''}" onclick="w13SetBars('sales')">Sales</button>
-          <button type="button" data-b="clients" class="${w13Bars === 'clients' ? 'on' : ''}" onclick="w13SetBars('clients')">Clients</button>
-        </div>
         ${(d.days || []).length ? `<div class="sc-seg" role="group" aria-label="Chart" style="display:inline-flex">
           <button type="button" data-m="day" class="${w13Mode === 'day' ? 'on' : ''}" onclick="w13SetMode('day')">Daily</button>
           <button type="button" data-m="week" class="${w13Mode === 'week' ? 'on' : ''}" onclick="w13SetMode('week')">Weekly</button>
@@ -296,7 +300,7 @@ async function renderStaffWeeks() {
         </div>
       </div>
       <div class="w13-zoom" id="w13Zoom"></div>
-      <div style="position:relative;height:310px"><canvas id="w13Canvas"></canvas></div>
+      <div style="position:relative;height:320px;margin-top:14px"><canvas id="w13Canvas"></canvas></div>
       <div class="slv-wrap" style="margin-top:14px"><table class="slv-table w13-table">
         <thead><tr><th>Week</th><th>Sales (AED)</th><th>Clients</th><th>Rebooked</th><th>Avg bill</th><th>Retail</th><th>Column fill</th></tr></thead>
         ${rows}
@@ -452,9 +456,11 @@ function w13Draw() {
     },
     options: {
       maintainAspectRatio: false,
-      layout: { padding: { top: 22 } },   // room for the quarter names above the bands
+      layout: { padding: { top: 30 } },   // room for the quarter names above the bands
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { position: 'bottom', labels: { color: muted, usePointStyle: true, pointStyle: 'circle', boxHeight: 8 } },
+      // The Sales / Clients key lives in the controls row (w13SeriesKey), so the quarter
+      // names have the top of the chart to themselves.
+      plugins: { legend: { display: false },
                  tooltip: { callbacks: { title: items => { const r = rows[items[0].dataIndex]; if (r && r.tip) return r.tip; const l = items[0].chart.data.labels[items[0].dataIndex]; return Array.isArray(l) ? l.join(' · ') : l; } } } },
       scales: {
         // Left axis is always the bars, right axis the line, whichever measure each is.
@@ -521,17 +527,9 @@ function w13ToggleQ(q) {
   const b = tb.querySelector('.w13-qbtn');
   if (b) b.setAttribute('aria-expanded', open);
 }
-function w13SetBars(b) {
-  if (b === w13Bars) return;
-  w13Bars = b;
-  document.querySelectorAll('.w13-bars-seg button').forEach(x => x.classList.toggle('on', x.dataset.b === b));
-  const t = document.getElementById('w13ChartTitle');
-  if (t) t.textContent = w13ChartTitleText();
-  w13Draw();
-}
 function w13Set(id) {
   w13Pick = id || null;
-  w13Mode = 'week'; w13Win = 28; w13Off = 0; w13Bars = 'sales';
+  w13Mode = 'week'; w13Win = 28; w13Off = 0;
   window.scrollTo(0, 0);
   renderStaffWeeks();
 }
