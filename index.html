@@ -1821,6 +1821,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .w13-val{font-size:22px;font-weight:600;color:var(--text);margin:4px 0 2px;font-variant-numeric:tabular-nums}
 .slv-table tr.w13-off td{color:var(--muted)}
 .slv-table tr.w13-tot td{font-weight:700;border-top:2px solid var(--border)}
+.slv-table tr.w13-sub td{font-weight:600;background:var(--surface2);color:var(--text)}
 @media(max-width:700px){.w13-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.w13-val{font-size:19px}}
 .w13-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
 .w13-card{appearance:none;font:inherit;text-align:left;cursor:pointer;color:inherit;background:var(--surface);border:1px solid var(--border);
@@ -1847,6 +1848,12 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .w13-branches{margin:0 0 12px;font-size:14px;color:var(--muted);line-height:1.8}
 .w13-br+.w13-br::before{content:'  |  ';white-space:pre;color:var(--border)}
 .w13-branches b{color:var(--text);font-weight:600}
+.w13-zoom{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
+.w13-zoom .sc-seg{display:inline-flex}
+.w13-pan{display:inline-flex;align-items:center;gap:8px}
+.w13-pan .sc-btn{min-width:38px;font-size:18px;line-height:1;padding:6px 10px}
+.w13-pan .sc-btn[disabled]{opacity:.35;cursor:default}
+@media(max-width:700px){.w13-zoom{flex-direction:column;align-items:stretch}.w13-zoom .sc-seg{justify-content:space-between}.w13-zoom .sc-seg button{flex:1;padding-left:4px;padding-right:4px}.w13-pan{justify-content:space-between}}
 .w13-chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:18px 0 6px}
 .w13-hero{height:120px;width:auto;max-width:140px;object-fit:contain;object-position:bottom}
 @media(max-width:700px){.w13-hero{height:88px;max-width:100px}}
@@ -3424,7 +3431,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260924n"></script>
 <script src="stylist-levels.js?v=20260928c"></script>
-<script src="staff-weeks.js?v=20260929l"></script>
+<script src="staff-weeks.js?v=20260929n"></script>
 <script src="products.js?v=20260929a"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>

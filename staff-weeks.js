@@ -13,13 +13,22 @@ let w13Team = null;       // perf_weeks reply with no stylist: the grid
 // Fixed cycles (Emma, 29 Sep 2026): Week 1 is the first week of January and the year is
 // Weeks 1-13, 14-26, 27-39, 40-52. null = the default, the cycle holding the last
 // complete week; otherwise the Monday the picked cycle starts on.
-let w13Start = null;
+let w13Year = null;       // null = the year the latest complete week sits in
+// One long list (Emma, 29 Sep 2026: "the point is seeing all together on one big
+// list"): every complete week of the year, Week 1 onwards, with the quarters as
+// subtotal rows inside it. perf_year_weeks (migrations/create_perf_year_weeks.sql).
 let w13Chart = null;
 let w13Pick = null;       // null = the grid
 let w13Dept = 'all';
 // Chart grain, Daily or Weekly like the Staff Benchmarks chart. Always opens on Weekly
 // (Kate, 29 Sep 2026), so it is not remembered.
 let w13Mode = 'week';
+// Daily zoom (Kate, 29 Sep 2026): a year of days is ~270 hair-thin bars, so Daily opens
+// on the last month and zooms with chips (2 weeks, 1 month, 3 months, All); the arrows
+// and a swipe on the chart move the window. w13Win is days shown (0 = all), w13Off how
+// many days back from the latest the window ends.
+let w13Win = 28, w13Off = 0;
+const W13_WINS = [[14, '2 weeks'], [28, '1 month'], [91, '3 months'], [0, 'All']];
 try { w13Dept = localStorage.getItem('w13-dept') || 'all'; } catch (e) {}
 // The same bar as Staff Benchmarks (Kate, 29 Sep 2026): All / Hair / Beauty, a Sort,
 // and a direction. Remembered in this browser, on its own key so the two pages can
@@ -50,31 +59,17 @@ const w13DayEnd = d => { const x = new Date(d + 'T00:00:00'); x.setDate(x.getDat
 // the number, on the chart and in the table alike.
 // The year's own week number, Week 1 being the first week of January.
 const w13Wk = no => 'Week ' + String(no).padStart(2, '0');
-// A cycle is a quarter of the year's weeks: Q1 = Weeks 1-13 ... Q4 = Weeks 40-52.
-const w13CycleName = c => `Q${c.no} ${c.year} · Weeks ${c.week_first}–${c.week_last}`;
-// Two pills, Year then Quarter (Kate, 29 Sep 2026), shared by the grid and her report.
-// Selects dressed as the Staff Benchmarks pill; each quarter's dates ride in its label.
-function w13CyclePick(d) {
-  const all = d.cycles || [], cur = d.cycle;
-  const years = [...new Set(all.map(c => c.year))];
-  const qs = all.filter(c => c.year === cur.year).sort((a, b) => a.no - b.no);
+// Quarters inside the year: Q1 = Weeks 1-13, Q2 14-26, Q3 27-39, Q4 40-52 (and 53).
+const w13Q = no => Math.min(4, Math.floor((no - 1) / 13) + 1);
+// The Year pill, shared by the grid and her report, dressed as the Staff Benchmarks pill.
+function w13YearPick(d) {
   return `<span class="spf-dd"><select id="w13Year" aria-label="Year" onchange="w13SetYear(+this.value)">
-    ${years.map(y => `<option value="${y}"${y === cur.year ? ' selected' : ''}>${y}</option>`).join('')}
-  </select></span>
-  <span class="spf-dd"><select id="w13Cycle" aria-label="Quarter" onchange="w13SetCycle(this.value)">
-    ${qs.map(c => `<option value="${w13Esc(c.start)}"${c.from === cur.from ? ' selected' : ''}>Q${c.no} · Weeks ${c.week_first}–${c.week_last} · ${w13Esc(w13Day(c.from))} – ${w13Esc(w13Day(c.to))}</option>`).join('')}
+    ${(d.years || [d.year]).map(y => `<option value="${y}"${y === d.year ? ' selected' : ''}>${y}</option>`).join('')}
   </select></span>`;
 }
-// A new year keeps the same quarter when that year has it, else its latest one.
 function w13SetYear(y) {
-  const d = w13Team || w13Data; if (!d) return;
-  const qs = d.cycles.filter(c => c.year === y);
-  const pick = qs.find(c => c.no === d.cycle.no) || qs[0];
-  if (pick) w13SetCycle(pick.start);
-}
-function w13SetCycle(start) {
-  const latest = (w13Team || w13Data || {}).cycles;
-  w13Start = (latest && latest[0] && latest[0].start === start) ? null : start;
+  const latest = ((w13Team || w13Data || {}).years || [])[0];
+  w13Year = y === latest ? null : y;
   w13Team = null; w13Data = null;
   renderStaffWeeks();
 }
@@ -92,7 +87,7 @@ function w13Rebook(rebooked, clients) {
 }
 
 async function w13Load(staffId) {
-  const { data, error } = await sb.rpc('perf_weeks', { p_admin: typeof spfGet === 'function' ? spfGet() : null, p_staff_id: staffId || null, p_start: w13Start });
+  const { data, error } = await sb.rpc('perf_year_weeks', { p_admin: typeof spfGet === 'function' ? spfGet() : null, p_staff_id: staffId || null, p_year: w13Year });
   if (error || !data) throw error || new Error('no data');
   return data;
 }
@@ -144,15 +139,31 @@ async function renderStaffWeeks() {
                 uh: sum('booked_hours'), ah: sum('available_hours') };
   const worked = weeks.filter(w => w.numbers.total_revenue > 0 || w.numbers.clients > 0).length;
 
-  const rows = weeks.map((w, i) => {
+  // One row per complete week, and after each quarter's last week a subtotal row, so
+  // the 13-week view sits inside the long list.
+  const fillOf = n => n.ah > 0 ? Math.round(100 * n.uh / n.ah) + '%' : '–';
+  const sumOf = ws => ws.reduce((a, w) => { const n = w.numbers;
+    a.sales += +n.total_revenue || 0; a.clients += +n.clients || 0; a.rebooked += +n.rebooked || 0;
+    a.retail += +n.retail || 0; a.uh += +n.booked_hours || 0; a.ah += +n.available_hours || 0; return a; },
+    { sales: 0, clients: 0, rebooked: 0, retail: 0, uh: 0, ah: 0 });
+  const subRow = (label, t, cls) => `<tr class="${cls}"><td>${w13Esc(label)}</td><td>${w13Num(t.sales)}</td><td>${w13Num(t.clients)}</td>
+      <td class="slv-aim">${w13Rebook(t.rebooked, t.clients)}</td><td>${t.clients ? w13Num(t.sales / t.clients) : '–'}</td><td>${w13Num(t.retail)}</td><td>${fillOf(t)}</td></tr>`;
+  let rows = '';
+  weeks.forEach((w, i) => {
     const n = w.numbers;
     const fill = n.available_hours > 0 ? Math.round(100 * n.booked_hours / n.available_hours) + '%' : '–';
-    return `<tr${n.total_revenue > 0 || n.clients > 0 ? '' : ' class="w13-off"'}>
+    rows += `<tr${n.total_revenue > 0 || n.clients > 0 ? '' : ' class="w13-off"'}>
       <td><b>${w13Wk(w.week_no)}</b><div class="slv-note">${w13Esc(w13Range(w.week_start))}</div></td>
       <td>${w13Num(n.total_revenue)}</td><td>${w13Num(n.clients)}</td>
       <td class="slv-aim">${w13Rebook(n.rebooked, n.clients)}</td>
       <td>${w13Num(n.avg_bill)}</td><td>${w13Num(n.retail)}</td><td>${fill}</td></tr>`;
-  }).join('');
+    const q = w13Q(w.week_no), next = weeks[i + 1];
+    if (!next || w13Q(next.week_no) !== q) {
+      const qw = weeks.filter(x => w13Q(x.week_no) === q);
+      const done = qw.length < 13 && q < 4 ? ` (${qw.length} of 13 weeks)` : '';
+      rows += subRow(`Q${q} · Weeks ${qw[0].week_no}–${qw[qw.length - 1].week_no}${done}`, sumOf(qw), 'w13-sub');
+    }
+  });
   const totFill = tot.ah > 0 ? Math.round(100 * tot.uh / tot.ah) + '%' : '–';
   const curRow = curWk ? (() => {
     const n = curWk.numbers, fill = n.available_hours > 0 ? Math.round(100 * n.booked_hours / n.available_hours) + '%' : '–';
@@ -164,16 +175,16 @@ async function renderStaffWeeks() {
   el.innerHTML = `
     <section class="slv-intro">
       <h2>13-Week Report</h2>
-      <p>Thirteen-week quarters, Monday to Sunday, counted from the first week of January: Q1 is Weeks 1–13, Q2 14–26, Q3 27–39, Q4 40–52. Only complete weeks count in the totals; the week still being traded shows on the end as "so far". Sales are services before VAT, retail not included.</p>
+      <p>Every week of the year in one list, Monday to Sunday from the first week of January, with each 13-week quarter totalled as you go: Q1 is Weeks 1–13, Q2 14–26, Q3 27–39, Q4 40–52. Only complete weeks count in the totals; the week still being traded shows on the end as "so far". Sales are services before VAT, retail not included.</p>
     </section>
     <div class="sc-bar w13-bar" style="margin-bottom:14px">
       <button type="button" class="sc-btn" onclick="w13Set(null)">← All stylists</button>
-      ${w13CyclePick(d)}
+      ${w13YearPick(d)}
     </div>
     <section class="slv-card">
       <div class="slv-head">
         <div class="w13-who">${ph ? `<img class="w13-hero" src="${ph}" alt="" onerror="this.remove()">` : ''}<div><div class="slv-eyebrow">${w13Esc(s.level || s.dept)} · ${w13Esc(W13_BRANCH[s.branch] || s.branch)}</div><h3>${w13Esc(s.name)}</h3></div></div>
-        <p>${w13Esc(w13CycleName(d.cycle))} · ${w13Esc(w13Day(d.cycle.from))} to ${w13Esc(w13Day(d.to))} · ${worked} of ${weeks.length} weeks with clients${weeks.length < 13 ? ` (${weeks.length} complete so far)` : ''}</p>
+        <p>${d.year}${weeks.length ? ` · Weeks 1–${weeks[weeks.length - 1].week_no}` : ''} · ${w13Esc(w13Day(d.from))} to ${w13Esc(w13Day(d.to))} · ${worked} of ${weeks.length} weeks with clients</p>
       </div>
       ${(d.branches || []).length > 1 ? `<div class="w13-branches"><span class="slv-eyebrow">Worked at</span> ${d.branches.map(x =>
         `<span class="w13-br"><b>${w13Esc(W13_BRANCH[x.branch] || x.branch)}</b> ${w13Aed(x.sales)} · ${w13Num(x.clients)} clients</span>`).join('')}<div class="slv-note">Every branch is counted in the totals below, including cover days away from ${w13Esc(W13_BRANCH[s.branch] || s.branch)}.</div></div>` : ''}
@@ -190,18 +201,19 @@ async function renderStaffWeeks() {
           <button type="button" data-m="week" class="${w13Mode === 'week' ? 'on' : ''}" onclick="w13SetMode('week')">Weekly</button>
         </div>` : ''}
       </div>
+      <div class="w13-zoom" id="w13Zoom"></div>
       <div style="position:relative;height:280px"><canvas id="w13Canvas"></canvas></div>
       <div class="slv-wrap" style="margin-top:14px"><table class="slv-table w13-table">
         <thead><tr><th>Week</th><th>Sales (AED)</th><th>Clients</th><th>Rebooked</th><th>Avg bill</th><th>Retail</th><th>Column fill</th></tr></thead>
         <tbody>${rows}
-          <tr class="w13-tot"><td>${w13Esc(`Weeks ${d.cycle.week_first}–${weeks.length ? weeks[weeks.length - 1].week_no : d.cycle.week_last}`)}</td><td>${w13Num(tot.sales)}</td><td>${w13Num(tot.clients)}</td><td class="slv-aim">${w13Rebook(tot.rebooked, tot.clients)}</td>
+          <tr class="w13-tot"><td>${w13Esc(`${d.year} · Weeks 1–${weeks.length ? weeks[weeks.length - 1].week_no : 0}`)}</td><td>${w13Num(tot.sales)}</td><td>${w13Num(tot.clients)}</td><td class="slv-aim">${w13Rebook(tot.rebooked, tot.clients)}</td>
             <td>${tot.clients ? w13Num(tot.sales / tot.clients) : '–'}</td><td>${w13Num(tot.retail)}</td><td>${totFill}</td></tr>
           ${curRow}
         </tbody>
       </table></div>
       <p class="slv-muted">Sales to ${w13Esc(w13Day(d.data_through))}. The totals are the complete weeks only; the week still being traded joins them once Sunday closes. Weeks with no clients stay in as zeros so the gaps show (leave, days off, or a week not uploaded yet).</p>
     </section>`;
-  if (typeof spfDD === 'function') { spfDD(document.getElementById('w13Year')); spfDD(document.getElementById('w13Cycle')); }
+  if (typeof spfDD === 'function') spfDD(document.getElementById('w13Year'));
   w13Draw();
 }
 
@@ -233,14 +245,14 @@ async function w13RenderTeam(el) {
   el.innerHTML = `
     <section class="slv-intro">
       <h2>13-Week Report</h2>
-      <p>Everyone's ${w13Esc(w13CycleName(t.cycle))}, ${w13Esc(w13Day(t.cycle.from))} to ${w13Esc(w13Day(t.to))}. Quarters run from the first week of January: Q1 is Weeks 1–13, Q2 14–26, Q3 27–39, Q4 40–52. The small bars are her sales week by week${t.current_week_no ? `, with Week ${t.current_week_no} so far as the paler one on the end` : ''}. Tap a stylist for her full report.</p>
+      <p>Everyone's ${t.year} so far, week by week from the first week of January: ${w13Esc(w13Day(t.from))} to ${w13Esc(w13Day(t.to))}. The small bars are her sales, one a week${t.current_week_no ? `, with Week ${t.current_week_no} so far as the paler one on the end` : ''}. Tap a stylist for her full list, with each 13-week quarter totalled.</p>
     </section>
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Team">
         ${[['all', 'All'], ['Hair', 'Hair'], ['Beauty', 'Beauty']].map(([k, l]) =>
           `<button type="button" class="${w13Dept === k ? 'on' : ''}" onclick="w13SetDept('${k}')">${l}</button>`).join('')}
       </div>
-      ${w13CyclePick(t)}
+      ${w13YearPick(t)}
       <span class="spf-dd"><select id="w13Sort" aria-label="Sort by" onchange="w13SetSort(this.value, false)">
         ${Object.entries(W13_SORTS).map(([k, v]) => `<option value="${k}"${k === w13Sort ? ' selected' : ''}>Sort: ${v.label}</option>`).join('')}
       </select></span>
@@ -248,7 +260,7 @@ async function w13RenderTeam(el) {
     </div>
     ${w13Body(list, flip, byTakings, grid, head)}
     <p class="slv-muted">Sales are services before VAT, retail not included. A grey bar is a week with no sales (leave, days off, or not uploaded yet).</p>`;
-  if (typeof spfDD === 'function') { spfDD(document.getElementById('w13Sort')); spfDD(document.getElementById('w13Year')); spfDD(document.getElementById('w13Cycle')); }
+  if (typeof spfDD === 'function') { spfDD(document.getElementById('w13Sort')); spfDD(document.getElementById('w13Year')); }
 }
 // Branch and Position keep headed groups (busiest first inside each); the rest are
 // one flat grid with the branch on each card. Same rules as Staff Benchmarks.
@@ -284,8 +296,14 @@ function w13Draw() {
   const css = getComputedStyle(document.documentElement);
   const muted = css.getPropertyValue('--muted'), border = css.getPropertyValue('--border');
   const daily = w13Mode === 'day' && (w13Data.days || []).length;
+  const all = w13Data.days || [];
+  const win = daily && w13Win && w13Win < all.length ? w13Win : all.length;
+  w13Off = Math.max(0, Math.min(w13Off, all.length - win));
+  const shown = daily ? all.slice(all.length - w13Off - win, all.length - w13Off) : [];
+  w13PaintZoom(daily, all.length, win, shown);
   const rows = daily
-    ? w13Data.days.map(x => ({ label: w13Day(x.date), sales: x.total_revenue, clients: x.clients }))
+    ? shown.map(x => ({ label: win <= 31 ? [new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short' }), w13Day(x.date)] : w13Day(x.date),
+        tip: new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), sales: x.total_revenue, clients: x.clients }))
     : w13Data.weeks.map((w, i) => ({ label: w.current ? [w13Wk(w.week_no), 'so far'] : [w13Wk(w.week_no), w13Range(w.week_start)], cur: !!w.current, sales: w.numbers.total_revenue, clients: w.numbers.clients }));
   // Same colours as her Staff Benchmarks chart: hair violet bars and a green line,
   // beauty pink bars and a deep violet line (Kate, 29 Sep 2026).
@@ -296,16 +314,16 @@ function w13Draw() {
       labels: rows.map(r => r.label),
       datasets: [
         // Same look as the stylist page's chart. Lower order draws on top.
-        { type: 'bar', order: 2, label: 'Sales (AED)', data: rows.map(r => r.sales), backgroundColor: rows.map(r => r.cur ? pal.bar + '73' : pal.bar), yAxisID: 'y', borderRadius: daily ? 2 : 6, maxBarThickness: 60 },
+        { type: 'bar', order: 2, label: 'Sales (AED)', data: rows.map(r => r.sales), backgroundColor: rows.map(r => r.cur ? pal.bar + '73' : pal.bar), yAxisID: 'y', borderRadius: daily ? (win <= 31 ? 4 : 2) : 6, maxBarThickness: 60 },
         { type: 'line', order: 1, label: 'Clients', data: rows.map(r => r.clients), borderColor: pal.line, borderWidth: daily ? 1.5 : 2.5, backgroundColor: pal.line,
-          pointRadius: daily ? 2 : 4, pointHoverRadius: daily ? 4 : 6, pointBackgroundColor: '#fff', pointBorderColor: pal.line, pointBorderWidth: 2, yAxisID: 'y1', tension: 0 },
+          pointRadius: daily ? (win <= 31 ? 3 : win <= 91 ? 2 : 0) : 4, pointHoverRadius: daily ? 4 : 6, pointBackgroundColor: '#fff', pointBorderColor: pal.line, pointBorderWidth: 2, yAxisID: 'y1', tension: 0 },
       ],
     },
     options: {
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { labels: { color: muted, usePointStyle: true, pointStyle: 'circle', boxHeight: 8 } },
-                 tooltip: { callbacks: { title: items => { const l = items[0].chart.data.labels[items[0].dataIndex]; return Array.isArray(l) ? l.join(' · ') : l; } } } },
+                 tooltip: { callbacks: { title: items => { const r = rows[items[0].dataIndex]; if (r && r.tip) return r.tip; const l = items[0].chart.data.labels[items[0].dataIndex]; return Array.isArray(l) ? l.join(' · ') : l; } } } },
       scales: {
         y: { beginAtZero: true, grace: '10%', ticks: { color: muted }, grid: { color: border } },
         y1: { position: 'right', beginAtZero: true, grace: '10%', ticks: { color: muted, precision: 0 }, grid: { display: false } },
@@ -317,7 +335,36 @@ function w13Draw() {
       },
     },
   });
+  // Swipe the chart sideways to move a zoomed Daily window (phone), same as the arrows.
+  if (!cv._w13Swipe) {
+    cv._w13Swipe = true;
+    let x0 = null;
+    cv.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+    cv.addEventListener('touchend', e => {
+      if (x0 === null || w13Mode !== 'day' || !w13Win) return;
+      const dx = e.changedTouches[0].clientX - x0; x0 = null;
+      if (Math.abs(dx) > 50) w13Pan(dx > 0 ? 1 : -1);
+    }, { passive: true });
+  }
 }
+// The zoom row under the chart heading: chips, the range shown, and back/forward.
+function w13PaintZoom(daily, n, win, shown) {
+  const z = document.getElementById('w13Zoom');
+  if (!z) return;
+  if (!daily) { z.innerHTML = ''; z.style.display = 'none'; return; }
+  z.style.display = '';
+  const back = w13Off + win < n, fwd = w13Off > 0;
+  z.innerHTML = `<div class="sc-seg" role="group" aria-label="Zoom">${W13_WINS.map(([k, l]) =>
+      `<button type="button" class="${(w13Win || 0) === k ? 'on' : ''}" onclick="w13Zoom(${k})">${l}</button>`).join('')}</div>
+    <div class="w13-pan">
+      <button type="button" class="sc-btn" aria-label="Earlier" onclick="w13Pan(1)"${back ? '' : ' disabled'}>‹</button>
+      <span class="slv-note">${shown.length ? `${w13Esc(w13Day(shown[0].date))} – ${w13Esc(w13Day(shown[shown.length - 1].date))}` : ''}</span>
+      <button type="button" class="sc-btn" aria-label="Later" onclick="w13Pan(-1)"${fwd ? '' : ' disabled'}>›</button>
+    </div>`;
+}
+function w13Zoom(k) { w13Win = k; w13Off = 0; w13Draw(); }
+// Move by half a window: 1 = earlier, -1 = later.
+function w13Pan(dir) { if (!w13Win) return; w13Off += dir * Math.max(1, Math.round(w13Win / 2)); w13Draw(); }
 function w13RedrawForTheme() {
   const v = document.getElementById('view-staffweeks');
   if (v && v.style.display !== 'none') w13Draw();
@@ -332,7 +379,7 @@ function w13SetMode(m) {
 }
 function w13Set(id) {
   w13Pick = id || null;
-  w13Mode = 'week';
+  w13Mode = 'week'; w13Win = 28; w13Off = 0;
   window.scrollTo(0, 0);
   renderStaffWeeks();
 }
