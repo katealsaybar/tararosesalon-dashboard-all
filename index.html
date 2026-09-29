@@ -390,7 +390,10 @@ body.orgchart-chrome .mast-rule,
 body.orgchart-chrome .filters-wrap{display:none}
 /* Kate, 24 Sep 2026: Google Reviews carries its own filters and pull date, so the
    masthead's branch/range/freshness line describes nothing there. */
-/* Stylist Levels (Kate, 28 Sep 2026): a reference page, no branch, period or feed dates. */
+/* Stylist Levels (Kate, 28 Sep 2026): a reference page, no branch, period or feed dates.
+   13-Week Report (29 Sep) sets its own window and stylist, so the same. */
+body.staffweeks-chrome .mast-rule,
+body.staffweeks-chrome .filters-wrap,
 body.stafflevels-chrome .mast-rule,
 body.stafflevels-chrome .filters-wrap,
 body.reviews-chrome .mast-rule,
@@ -1812,6 +1815,13 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .slv-table td.slv-next{font-weight:600;color:var(--hair)}
 .slv-note{font-size:12px;color:var(--muted);margin-top:2px}
 .slv-muted{color:var(--muted);font-size:13px;margin:12px 0 0}
+/* 13-Week Report (staff-weeks.js), riding on the Stylist Levels card and table. */
+.w13-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.w13-tile{border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.w13-val{font-size:22px;font-weight:600;color:var(--text);margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.slv-table tr.w13-off td{color:var(--muted)}
+.slv-table tr.w13-tot td{font-weight:700;border-top:2px solid var(--border)}
+@media(max-width:700px){.w13-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.w13-val{font-size:19px}}
 @media(max-width:600px){
   /* One swipeable row of pills instead of three wrapped rows. */
   .slv-ladder{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
@@ -2734,6 +2744,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub lvl2" id="navTeamRace" onclick="showView('team', this)">Podium Race</div>
     <div class="nav-sub lvl2" onclick="showView('teamquad', this)">Takings vs Rebooking</div>
     <div class="nav-sub" onclick="showView('staffperf', this)">Staff Benchmarks</div>
+    <div class="nav-sub lvl2" onclick="showView('staffweeks', this)">13-Week Report</div>
     <div class="nav-sub lvl2" onclick="showView('stafflevels', this)">Stylist Levels</div>
     <div class="nav-sub" onclick="showView('stylists', this)">Staff Cards</div>
     <div class="nav-sub" onclick="showView('orgchart', this)">Org Chart</div>
@@ -3226,6 +3237,12 @@ table.tp-cmp td.bad{color:var(--bad)}
        filter, no data load. -->
   <!-- STYLIST LEVELS (Kate, 28 Sep 2026): the level guide under Staff Benchmarks,
        from perf_benchmarks via perf_levels. stylist-levels.js draws it. -->
+  <!-- 13-WEEK REPORT (Kate, 29 Sep 2026, Emma's ask): one stylist's last thirteen
+       full weeks, from perf_weeks. staff-weeks.js draws it. -->
+  <div id="view-staffweeks" style="display:none">
+    <main id="staffWeeksContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <div id="view-stafflevels" style="display:none">
     <main id="stylistLevelsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
@@ -3378,9 +3395,10 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260924n"></script>
 <script src="stylist-levels.js?v=20260928c"></script>
+<script src="staff-weeks.js?v=20260929a"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20260929c"></script>
+<script src="dashboard.js?v=20260929d"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -3657,6 +3675,7 @@ function showView(view, el){
   document.body.classList.toggle('compare-chrome', view === 'compare');
   document.body.classList.toggle('staffperf-chrome', view === 'staffperf');
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
+  document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
   // Popped-out standalone window (ocOpenNewWindow() sets ocFit=1): no sidebar
   // nav to open and no card border round the tree, just the chart, edge to
   // edge — this window's whole reason to exist is projecting/sharing/printing
@@ -3673,6 +3692,7 @@ function showView(view, el){
   if (view === 'orgchart') renderOrgChart();
   if (view === 'staffperf') initStaffPerfView();
   if (view === 'stafflevels') renderStylistLevels();
+  if (view === 'staffweeks') renderStaffWeeks();
   if (view === 'services') initSvcView();
   if (view === 'clients') initCliView();
   if (view === 'branchperf')    renderBranchPerformance();
