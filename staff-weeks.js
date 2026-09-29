@@ -5,10 +5,15 @@
 // runs perf_core per week, so a week here matches the same week on her own page.
 // Same key as Staff Benchmarks (spfGet): the viewer key is enough, the roster it
 // returns has names only.
-let w13Data = null;       // last perf_weeks reply
+//
+// Kate, 29 Sep 2026: opens on the team grid (everyone's 13 weeks as small cards), not a
+// 48-name dropdown; tap a card for her report, "All stylists" goes back.
+let w13Data = null;       // last perf_weeks reply for one stylist
+let w13Team = null;       // perf_weeks reply with no stylist: the grid
 let w13Chart = null;
-let w13Pick = null;
-try { w13Pick = localStorage.getItem('w13-staff'); } catch (e) {}
+let w13Pick = null;       // null = the grid
+let w13Dept = 'all';
+try { w13Dept = localStorage.getItem('w13-dept') || 'all'; } catch (e) {}
 
 const w13Esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const w13Num = v => (v === null || v === undefined) ? '–' : Math.round(Number(v)).toLocaleString('en-GB');
@@ -30,24 +35,36 @@ async function w13Load(staffId) {
   return data;
 }
 
+function w13Photo(keys) {
+  if (typeof STAFF_PROFILES === 'undefined') return null;
+  for (const k of keys || []) {
+    const p = STAFF_PROFILES[String(k).toUpperCase()];
+    if (p && p.photoFull) return encodeURI(p.photoFull);
+    if (p && p.photo) return 'assets/staff/' + encodeURIComponent(p.photo);
+  }
+  return null;
+}
+// Thirteen small bars, one a week, scaled to her own best week, so a card shows the
+// shape of her quarter at a glance. Grey where the week had nothing.
+function w13Spark(weekly) {
+  const v = (weekly || []).map(Number), max = Math.max(1, ...v);
+  const bw = 7, gap = 3, h = 34;
+  return `<svg class="w13-spark" viewBox="0 0 ${v.length * (bw + gap) - gap} ${h}" preserveAspectRatio="none" aria-hidden="true">${v.map((x, i) => {
+    const bh = x > 0 ? Math.max(2, Math.round(h * x / max)) : 2;
+    return `<rect x="${i * (bw + gap)}" y="${h - bh}" width="${bw}" height="${bh}" rx="1.5" class="${x > 0 ? 'on' : ''}"/>`;
+  }).join('')}</svg>`;
+}
+
 async function renderStaffWeeks() {
   const el = document.getElementById('staffWeeksContent');
-  if (!w13Data || (w13Pick && (!w13Data.staff || w13Data.staff.id !== w13Pick))) {
-    el.innerHTML = '<p class="slv-muted">Loading the 13 weeks…</p>';
-    try {
-      w13Data = await w13Load(w13Pick);
-      // A remembered person who has since left: fall back to the first on the list.
-      if (!w13Data.staff && w13Data.roster.length) {
-        w13Pick = w13Data.roster[0].id;
-        w13Data = await w13Load(w13Pick);
-      }
-    } catch (e) {
-      el.innerHTML = '<p class="slv-muted">The 13-week report didn\'t load. Refresh to try again.</p>';
-      return;
-    }
+  if (!w13Pick) return w13RenderTeam(el);
+  if (!w13Data || !w13Data.staff || w13Data.staff.id !== w13Pick) {
+    el.innerHTML = '<p class="slv-muted">Loading her 13 weeks…</p>';
+    try { w13Data = await w13Load(w13Pick); }
+    catch (e) { el.innerHTML = '<p class="slv-muted">The 13-week report didn\'t load. Refresh to try again.</p>'; return; }
   }
   const d = w13Data, s = d.staff;
-  if (!s) { el.innerHTML = '<p class="slv-muted">No active staff to show.</p>'; return; }
+  if (!s) { w13Pick = null; return w13RenderTeam(el); }
 
   const weeks = d.weeks;
   const thisWeek = weeks.length ? weeks[weeks.length - 1].week_start : null;
@@ -57,12 +74,6 @@ async function renderStaffWeeks() {
   const tot = { sales: sum('total_revenue'), clients: sum('clients'), rebooked: sum('rebooked'), retail: sum('retail'),
                 uh: sum('booked_hours'), ah: sum('available_hours') };
   const worked = weeks.filter(w => w.numbers.total_revenue > 0 || w.numbers.clients > 0).length;
-
-  // The picker: grouped by branch, same order as the team grid.
-  const groups = {};
-  d.roster.forEach(r => { (groups[r.branch] = groups[r.branch] || []).push(r); });
-  const opts = Object.keys(groups).map(b => groups[b].map(r =>
-    `<option value="${w13Esc(r.id)}"${r.id === s.id ? ' selected' : ''}>${w13Esc(r.name)} · ${w13Esc(b)}</option>`).join('')).join('');
 
   const rows = weeks.map(w => {
     const n = w.numbers, now = partial && w.week_start === thisWeek;
@@ -80,9 +91,7 @@ async function renderStaffWeeks() {
       <h2>13-Week Report</h2>
       <p>The last thirteen full weeks, Monday to Sunday, so you can see the run of the quarter and not just one month. Sales are services before VAT, retail not included.</p>
     </section>
-    <div class="sc-bar" style="margin-bottom:14px">
-      <span class="spf-dd"><select id="w13Staff" aria-label="Stylist" onchange="w13Set(this.value)">${opts}</select></span>
-    </div>
+    <button type="button" class="sc-btn" style="margin-bottom:14px" onclick="w13Set(null)">← All stylists</button>
     <section class="slv-card">
       <div class="slv-head">
         <div><div class="slv-eyebrow">${w13Esc(s.level || s.dept)} · ${w13Esc(W13_BRANCH[s.branch] || s.branch)}</div><h3>${w13Esc(s.name)}</h3></div>
@@ -105,8 +114,52 @@ async function renderStaffWeeks() {
       </table></div>
       <p class="slv-muted">Sales to ${w13Esc(w13Day(d.data_through))}. Weeks with no clients stay in as zeros so the gaps show (leave, days off, or a week not uploaded yet).</p>
     </section>`;
-  if (typeof spfDD === 'function') spfDD(document.getElementById('w13Staff'));
   w13Draw();
+}
+
+async function w13RenderTeam(el) {
+  if (w13Chart) { w13Chart.destroy(); w13Chart = null; }
+  if (!w13Team) {
+    el.innerHTML = '<p class="slv-muted">Loading the team\'s 13 weeks…</p>';
+    try { w13Team = await w13Load(null); }
+    catch (e) { el.innerHTML = '<p class="slv-muted">The 13-week report didn\'t load. Refresh to try again.</p>'; return; }
+  }
+  const t = w13Team;
+  const list = t.roster.filter(r => w13Dept === 'all' || r.dept === w13Dept);
+  // Branch order as the rest of the dashboard, busiest first inside each branch.
+  const order = ['SAA', 'KCA', 'MC', 'AQ'];
+  const branches = [...new Set(list.map(r => r.branch))].sort((a, b) => (order.indexOf(a) + 1 || 9) - (order.indexOf(b) + 1 || 9));
+  const card = r => {
+    const n = r.numbers || {}, ph = w13Photo(r.keys);
+    return `<button type="button" class="w13-card" onclick="w13Set('${w13Esc(r.id)}')">
+      <div class="w13-card-top">
+        ${ph ? `<img src="${ph}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+        <div><div class="w13-card-name">${w13Esc(r.name)}</div><div class="slv-note">${w13Esc(r.level || r.dept)}</div></div>
+      </div>
+      <div class="w13-card-val">${w13Aed(n.total_revenue)}</div>
+      <div class="slv-note">${w13Num(n.clients)} clients · ${n.clients ? `${w13Num(n.rebooked)} of ${w13Num(n.clients)} rebooked` : 'no clients'}</div>
+      ${w13Spark(r.weekly)}
+    </button>`;
+  };
+  el.innerHTML = `
+    <section class="slv-intro">
+      <h2>13-Week Report</h2>
+      <p>Everyone's last thirteen full weeks, ${w13Esc(w13Day(t.from))} to ${w13Esc(w13Day(t.data_through))}. The small bars are her sales week by week. Tap a stylist for her full report.</p>
+    </section>
+    <div class="sc-seg" role="group" aria-label="Team" style="display:inline-flex;margin-bottom:6px">
+      ${[['all', 'All'], ['Hair', 'Hair'], ['Beauty', 'Beauty']].map(([k, l]) =>
+        `<button type="button" class="${w13Dept === k ? 'on' : ''}" onclick="w13SetDept('${k}')">${l}</button>`).join('')}
+    </div>
+    ${branches.map(b => `
+      <div class="slv-eyebrow" style="margin:22px 0 10px">${w13Esc(W13_BRANCH[b] || b)}</div>
+      <div class="w13-grid">${list.filter(r => r.branch === b)
+        .sort((x, y) => ((y.numbers || {}).total_revenue || 0) - ((x.numbers || {}).total_revenue || 0)).map(card).join('')}</div>`).join('')}
+    <p class="slv-muted">Sales are services before VAT, retail not included. A grey bar is a week with no sales (leave, days off, or not uploaded yet).</p>`;
+}
+function w13SetDept(k) {
+  w13Dept = k;
+  try { localStorage.setItem('w13-dept', k); } catch (e) {}
+  renderStaffWeeks();
 }
 
 function w13Draw() {
@@ -143,7 +196,7 @@ function w13RedrawForTheme() {
   if (v && v.style.display !== 'none') w13Draw();
 }
 function w13Set(id) {
-  w13Pick = id;
-  try { localStorage.setItem('w13-staff', id); } catch (e) {}
+  w13Pick = id || null;
+  window.scrollTo(0, 0);
   renderStaffWeeks();
 }

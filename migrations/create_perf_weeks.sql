@@ -29,9 +29,19 @@ begin
 
   return jsonb_build_object(
     'data_through', last_d,
+    -- The team grid (Kate, 29 Sep 2026): everyone's 13 weeks as one perf_core over the
+    -- whole span, plus the weekly sales for each card's small bars. Only built when no
+    -- stylist is asked for, so opening one person stays quick.
     'roster', (select coalesce(jsonb_agg(jsonb_build_object('id', r.id, 'name', r.display_name, 'branch', r.branch,
-                 'dept', r.dept, 'level', r.level) order by r.branch, r.dept desc, r.display_name), '[]')
+                 'dept', r.dept, 'level', r.level, 'keys', r.ledger_names,
+                 'numbers', case when p_staff_id is null then perf_core(r, w_end - 7 * (n - 1), w_end + 6) end,
+                 'weekly', case when p_staff_id is null then (
+                    select jsonb_agg(round(coalesce((select sum(services_ex_vat) from phorest_staff_daily
+                             where employee_name = r.phorest_name and not is_total and date between wk and wk + 6), 0)) order by wk)
+                    from (select (w_end - 7 * k)::date wk from generate_series(0, n - 1) k) z) end)
+                 order by r.branch, r.dept desc, r.display_name), '[]')
                from perf_staff r where r.active),
+    'from', w_end - 7 * (n - 1),
     'staff', case when s.id is not null then jsonb_build_object('id', s.id, 'name', s.display_name, 'branch', s.branch,
                'dept', s.dept, 'level', s.level) end,
     'weeks', coalesce(weeks, '[]')

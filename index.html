@@ -1822,6 +1822,18 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .slv-table tr.w13-off td{color:var(--muted)}
 .slv-table tr.w13-tot td{font-weight:700;border-top:2px solid var(--border)}
 @media(max-width:700px){.w13-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.w13-val{font-size:19px}}
+.w13-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.w13-card{appearance:none;font:inherit;text-align:left;cursor:pointer;color:inherit;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:14px;display:flex;flex-direction:column;gap:4px;transition:border-color .15s,transform .15s}
+@media(hover:hover){.w13-card:hover{border-color:var(--text);transform:translateY(-1px)}}
+.w13-card-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.w13-card-top img{width:40px;height:40px;border-radius:50%;object-fit:cover;object-position:top;flex:0 0 auto}
+.w13-card-name{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;line-height:1.1;color:var(--text)}
+.w13-card-val{font-size:20px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
+.w13-spark{width:100%;height:34px;margin-top:8px}
+.w13-spark rect{fill:var(--border)}
+.w13-spark rect.on{fill:#C4B5FD}
+@media(max-width:700px){.w13-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.w13-card{padding:10px}.w13-card-val{font-size:17px}}
 @media(max-width:600px){
   /* One swipeable row of pills instead of three wrapped rows. */
   .slv-ladder{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
@@ -3395,7 +3407,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260924n"></script>
 <script src="stylist-levels.js?v=20260928c"></script>
-<script src="staff-weeks.js?v=20260929a"></script>
+<script src="staff-weeks.js?v=20260929b"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20260929d"></script>
