@@ -93,6 +93,8 @@ td{padding:7px 8px;border-bottom:1px solid var(--grid);font-variant-numeric:tabu
 td.n,th.n{text-align:right}
 tr.tot td{font-weight:600;border-bottom:0}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+.mini{display:inline-block;width:60px;height:6px;background:var(--sand);border-radius:999px;overflow:hidden;vertical-align:middle;margin-right:8px}
+.mini i{display:block;height:100%;background:var(--series);border-radius:999px}
 details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12px}
 .funnel{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
 @media (max-width:560px){.funnel{grid-template-columns:1fr}}
@@ -157,7 +159,7 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
   <div class="grid2">
     <section class="card">
       <h2>By tier</h2>
-      <p class="sub">Units sold and cash collected per voucher type.</p>
+      <p class="sub">Units sold against the unit target (45 by 31 Oct), and cash collected, per voucher type.</p>
       <div id="tierTable"></div>
     </section>
     <section class="card">
@@ -202,6 +204,9 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
 /* Same target as voucher-log/index.html (CAMPAIGN_TARGET_AED / CAMPAIGN_TARGET_DATE). Change
    both the day it changes. */
 var TARGET = 150000, TARGET_DATE = day('2026-10-31');
+/* Unit targets (Kate, 29 Sep 2026): 45 vouchers by the same date. Tier 1 = Dip Your Toes,
+   tier 2 = Season of You, tier 3 = All-In VIP Year. */
+var UNIT_TARGETS = { D:15, S:20, V:10 }, UNIT_TARGET = 45;
 var DAY = 86400000;
 var BR = [['SAA','Saadiyat'],['KCA','Khalifa City'],['MC','Motor City'],['AQ','Al Quoz']];
 var TIERS = [['D','Dip Your Toes'],['S','Season of You'],['V','All-In VIP Year']];
@@ -316,7 +321,7 @@ function render(){
     '<div class="row"><span>Still to collect</span><b>' + aed(still) + '</b></div>';
 
   el('tiles').innerHTML = [
-    ['Vouchers sold', live.length, 'live, not voided or archived'],
+    ['Vouchers sold', live.length + ' <small style="font-family:var(--sans);font-size:13px;color:var(--muted);font-weight:500">of ' + UNIT_TARGET + '</small>', pc(live.length, UNIT_TARGET) + ' of the unit target'],
     ['Cash collected', aed(collected), 'what clients paid'],
     ['Credit placed', aed(placed), 'what we owe in services'],
     ['Redeemed so far', aed(spent), pc(spent, placed) + ' of credit used'],
@@ -335,12 +340,16 @@ function render(){
     '<tr class="tot"><td>Total</td><td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td class="n">100%</td><td class="n">' + aed(spent) + '</td></tr></tbody></table>';
 
   /* tiers */
-  el('tierTable').innerHTML = '<table><thead><tr><th>Tier</th><th class="n">Sold</th><th class="n">Collected</th><th class="n">Share of cash</th></tr></thead><tbody>' +
-    TIERS.map(function(t, i){
-      var vs = live.filter(function(r){ return r.tier === t[0]; }), p = vs.reduce(function(a,r){ return a + num(r.paid_aed); }, 0);
-      return '<tr><td><span class="dot" style="background:var(--c' + (i+1) + ')"></span>' + t[1] + '</td><td class="n">' + vs.length + '</td><td class="n">' + aed(p) + '</td><td class="n">' + pc(p, collected) + '</td></tr>';
+  function mini(n, of){ return '<span class="mini" aria-hidden="true"><i style="width:' + Math.min(100, of ? n / of * 100 : 0) + '%"></i></span>' + pc(n, of); }
+  M.tiers = TIERS.map(function(t){
+    var vs = live.filter(function(r){ return r.tier === t[0]; });
+    return { name:t[1], n:vs.length, target:UNIT_TARGETS[t[0]], paid:vs.reduce(function(a,r){ return a + num(r.paid_aed); }, 0) };
+  });
+  el('tierTable').innerHTML = '<table><thead><tr><th>Tier</th><th class="n">Sold</th><th class="n">Target</th><th>Progress</th><th class="n">Collected</th></tr></thead><tbody>' +
+    M.tiers.map(function(t, i){
+      return '<tr><td><span class="dot" style="background:var(--c' + (i+1) + ')"></span>' + t.name + '</td><td class="n">' + t.n + '</td><td class="n">' + t.target + '</td><td>' + mini(t.n, t.target) + '</td><td class="n">' + aed(t.paid) + '</td></tr>';
     }).join('') +
-    '<tr class="tot"><td>Total</td><td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td class="n">100%</td></tr></tbody></table>';
+    '<tr class="tot"><td>Total</td><td class="n">' + live.length + '</td><td class="n">' + UNIT_TARGET + '</td><td>' + mini(live.length, UNIT_TARGET) + '</td><td class="n">' + aed(collected) + '</td></tr></tbody></table>';
 
   /* payment methods; anything unrecorded gets its own grey slice rather than vanishing */
   M.pay = PAY.map(function(p){ return { name:p[0], color:p[1], rows: live.filter(function(r){ return r.payment_method === p[0]; }) }; });
@@ -551,7 +560,10 @@ function exportXlsx(){
     if (M && M.byBr){
       sum.push(['Cash collected (AED)', M.collected], ['Target (AED)', TARGET], ['Target date', xDate(iso(TARGET_DATE))],
                ['Credit placed (AED)', M.placed], ['Redeemed (AED)', M.spent], ['Credit still open (AED)', M.placed - M.spent],
-               ['Live vouchers', DATA.live.length], ['', ''], ['Branch', 'Sold', 'Collected (AED)', 'Redeemed (AED)']);
+               ['Live vouchers', DATA.live.length], ['Unit target', UNIT_TARGET], ['', ''],
+               ['Tier', 'Sold', 'Target', 'Collected (AED)']);
+      M.tiers.forEach(function(t){ sum.push([t.name, t.n, t.target, t.paid]); });
+      sum.push(['', ''], ['Branch', 'Sold', 'Collected (AED)', 'Redeemed (AED)']);
       M.byBr.forEach(function(b){ sum.push([b.name, b.units, b.paid, b.red]); });
       sum.push(['', ''], ['Payment method', 'Vouchers', 'Collected (AED)']);
       M.pay.forEach(function(p){ sum.push([p.name, p.n, p.amt]); });
