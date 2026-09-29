@@ -116,6 +116,7 @@ function toggleTheme() {
   if (typeof bpRedrawForTheme === 'function') bpRedrawForTheme();
   if (typeof cmpRedrawForTheme === 'function') cmpRedrawForTheme();
   if (typeof w13RedrawForTheme === 'function') w13RedrawForTheme();
+  if (typeof prdRedrawForTheme === 'function') prdRedrawForTheme();
 }
 // Google Reviews iframe: send it the theme (it has no toggle of its own) and size
 // it to its content so the dashboard page is the only scrollbar. postMessage, not
@@ -941,7 +942,7 @@ const ALL_VIEWS = [
 // number: the reference pages (stylist cards) and the embedded iframes do not.
 const FILTERED_VIEWS = new Set([
   'dashboard','team','teamquad','branchperf','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
-  'services','clients',
+  'services','clients','products',
 ]);
 
 // Of those, the ones that take the Branch filter but fix the period to the ledger
@@ -976,6 +977,7 @@ function refreshActiveView() {
     if (visible('ledgerStylist')) renderLedgerStylist();
     if (visible('services'))       onSvcFiltersChange();
     if (visible('clients'))        onCliFiltersChange();
+    if (visible('products'))       renderProducts();
     // Every branch change comes through here — the chips and the dropdown's Save
     // both — so this is the one place the address bar has to be told. spy() rather
     // than trSyncUrl(): the re-render above rebuilds the rail underneath it.
