@@ -51,6 +51,12 @@ let w13Mode = 'week';
 // and a swipe on the chart move the window. w13Win is days shown (0 = all), w13Off how
 // many days back from the latest the window ends.
 let w13Win = 28, w13Off = 0;
+// Which measure is the bars (Kate, 29 Sep 2026): 'sales' (default) or 'clients'; the
+// other becomes the line. Bars read first, so this picks what the chart leads with.
+// The quarter shades follow the bars. Not remembered: every report opens on Sales.
+let w13Bars = 'sales';
+const w13ChartTitleText = () => (w13Mode === 'day' ? 'Day by day' : 'Week by week') + ' · ' +
+  (w13Bars === 'clients' ? 'clients (bars) and sales (line)' : 'sales (bars) and clients (line)');
 const W13_WINS = [[14, '2 weeks'], [28, '1 month'], [91, '3 months'], [0, 'All']];
 try { w13Dept = localStorage.getItem('w13-dept') || 'all'; } catch (e) {}
 // The same bar as Staff Benchmarks (Kate, 29 Sep 2026): All / Hair / Beauty, a Sort,
@@ -246,9 +252,14 @@ async function renderStaffWeeks() {
         <div class="w13-tile"><div class="slv-eyebrow">Column fill</div><div class="w13-val">${totFill}</div><div class="slv-note">${tot.ah ? `${w13Num(tot.uh)} of ${w13Num(tot.ah)} hours booked` : ''}</div></div>
       </div>
       <div class="w13-chart-head">
-        <div class="slv-eyebrow" id="w13ChartTitle">${w13Mode === 'day' ? 'Day by day' : 'Week by week'} · sales (bars) and clients (line)</div>
+        <div class="slv-eyebrow" id="w13ChartTitle">${w13ChartTitleText()}</div>
         <div class="w13-chart-ctl">
         ${w13QKey(s.dept, [...new Set(d.weeks.map(w => w13Q(w.week_no)))])}
+        <div class="sc-seg w13-bars-seg" role="group" aria-label="Bars show" style="display:inline-flex">
+          <span class="w13-seg-k">Bars</span>
+          <button type="button" data-b="sales" class="${w13Bars === 'sales' ? 'on' : ''}" onclick="w13SetBars('sales')">Sales</button>
+          <button type="button" data-b="clients" class="${w13Bars === 'clients' ? 'on' : ''}" onclick="w13SetBars('clients')">Clients</button>
+        </div>
         ${(d.days || []).length ? `<div class="sc-seg" role="group" aria-label="Chart" style="display:inline-flex">
           <button type="button" data-m="day" class="${w13Mode === 'day' ? 'on' : ''}" onclick="w13SetMode('day')">Daily</button>
           <button type="button" data-m="week" class="${w13Mode === 'week' ? 'on' : ''}" onclick="w13SetMode('week')">Weekly</button>
@@ -364,14 +375,35 @@ function w13Draw() {
   // beauty pink bars and a deep violet line (Kate, 29 Sep 2026). The pink is the brand's
   // coral pillar accent, #FF9B9B (trs-brand-guardian palette), as the lavender is.
   const pal = (w13Data.staff && w13Data.staff.dept === 'Beauty') ? { bar: '#FF9B9B', line: '#6D28D9' } : { bar: '#C4B5FD', line: '#0F6E56' };
+  const barKey = w13Bars === 'clients' ? 'clients' : 'sales', lineKey = barKey === 'sales' ? 'clients' : 'sales';
+  const LBL = { sales: 'Sales (AED)', clients: 'Clients' }, barLbl = LBL[barKey], lineLbl = LBL[lineKey];
+  // A light dashed line where one quarter ends and the next begins (Kate, 29 Sep 2026),
+  // drawn between the two bars, weekly and daily alike.
+  const qLines = {
+    id: 'w13QLines',
+    beforeDatasetsDraw(chart) {
+      const x = chart.scales.x, a = chart.chartArea, ctx = chart.ctx;
+      ctx.save();
+      ctx.strokeStyle = border || 'rgba(128,128,128,.35)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i].q === rows[i - 1].q) continue;
+        const px = (x.getPixelForValue(i - 1) + x.getPixelForValue(i)) / 2;
+        ctx.beginPath(); ctx.moveTo(px, a.top); ctx.lineTo(px, a.bottom); ctx.stroke();
+      }
+      ctx.restore();
+    },
+  };
   if (w13Chart) w13Chart.destroy();
   w13Chart = new Chart(cv, {
+    plugins: [qLines],
     data: {
       labels: rows.map(r => r.label),
       datasets: [
         // Same look as the stylist page's chart. Lower order draws on top.
-        { type: 'bar', order: 2, label: 'Sales (AED)', data: rows.map(r => r.sales), backgroundColor: rows.map(r => { const c = shades[(r.q || 1) - 1] || pal.bar; return r.cur ? c + '73' : c; }), yAxisID: 'y', borderRadius: daily ? (win <= 31 ? 4 : 2) : 6, maxBarThickness: 60 },
-        { type: 'line', order: 1, label: 'Clients', data: rows.map(r => r.clients), borderColor: pal.line, borderWidth: daily ? 1.5 : 2.5, backgroundColor: pal.line,
+        { type: 'bar', order: 2, label: barLbl, data: rows.map(r => r[barKey]), backgroundColor: rows.map(r => { const c = shades[(r.q || 1) - 1] || pal.bar; return r.cur ? c + '73' : c; }), yAxisID: 'y', borderRadius: daily ? (win <= 31 ? 4 : 2) : 6, maxBarThickness: 60 },
+        { type: 'line', order: 1, label: lineLbl, data: rows.map(r => r[lineKey]), borderColor: pal.line, borderWidth: daily ? 1.5 : 2.5, backgroundColor: pal.line,
           pointRadius: daily ? (win <= 31 ? 3 : win <= 91 ? 2 : 0) : 4, pointHoverRadius: daily ? 4 : 6, pointBackgroundColor: '#fff', pointBorderColor: pal.line, pointBorderWidth: 2, yAxisID: 'y1', tension: 0 },
       ],
     },
@@ -381,8 +413,9 @@ function w13Draw() {
       plugins: { legend: { labels: { color: muted, usePointStyle: true, pointStyle: 'circle', boxHeight: 8 } },
                  tooltip: { callbacks: { title: items => { const r = rows[items[0].dataIndex]; if (r && r.tip) return r.tip; const l = items[0].chart.data.labels[items[0].dataIndex]; return Array.isArray(l) ? l.join(' · ') : l; } } } },
       scales: {
-        y: { beginAtZero: true, grace: '10%', ticks: { color: muted }, grid: { color: border } },
-        y1: { position: 'right', beginAtZero: true, grace: '10%', ticks: { color: muted, precision: 0 }, grid: { display: false } },
+        // Left axis is always the bars, right axis the line, whichever measure each is.
+        y: { beginAtZero: true, grace: '10%', ticks: { color: muted, precision: barKey === 'clients' ? 0 : undefined }, grid: { color: border } },
+        y1: { position: 'right', beginAtZero: true, grace: '10%', ticks: { color: muted, precision: lineKey === 'clients' ? 0 : undefined }, grid: { display: false } },
         // A phone has room for all thirteen only as W01..W13; the tooltip and the table
         // below still give "Week 01" and its dates. Desktop shows both lines.
         x: { ticks: { color: muted, autoSkip: true, maxRotation: 0,
@@ -430,12 +463,20 @@ function w13SetMode(m) {
   w13Mode = m;
   document.querySelectorAll('.w13-chart-head .sc-seg button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
   const t = document.getElementById('w13ChartTitle');
-  if (t) t.textContent = (m === 'day' ? 'Day by day' : 'Week by week') + ' · sales (bars) and clients (line)';
+  if (t) t.textContent = w13ChartTitleText();
+  w13Draw();
+}
+function w13SetBars(b) {
+  if (b === w13Bars) return;
+  w13Bars = b;
+  document.querySelectorAll('.w13-bars-seg button').forEach(x => x.classList.toggle('on', x.dataset.b === b));
+  const t = document.getElementById('w13ChartTitle');
+  if (t) t.textContent = w13ChartTitleText();
   w13Draw();
 }
 function w13Set(id) {
   w13Pick = id || null;
-  w13Mode = 'week'; w13Win = 28; w13Off = 0;
+  w13Mode = 'week'; w13Win = 28; w13Off = 0; w13Bars = 'sales';
   window.scrollTo(0, 0);
   renderStaffWeeks();
 }
