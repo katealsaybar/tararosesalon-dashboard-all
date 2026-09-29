@@ -84,6 +84,22 @@ const w13DayEnd = d => { const x = new Date(d + 'T00:00:00'); x.setDate(x.getDat
 const w13Wk = no => 'Week ' + String(no).padStart(2, '0');
 // Quarters inside the year: Q1 = Weeks 1-13, Q2 14-26, Q3 27-39, Q4 40-52 (and 53).
 const w13Q = no => Math.min(4, Math.floor((no - 1) / 13) + 1);
+// Each quarter its own shade, light to dark (Kate, 29 Sep 2026), so the 13-week blocks
+// read at a glance. Hair on the brand lavender, beauty on the brand coral; the brand
+// colour itself is one of the four. Index 0 = Q1.
+const W13_SHADES = {
+  Hair:   ['#DDD6FE', '#C4B5FD', '#A78BFA', '#8B5CF6'],
+  Beauty: ['#FFD1D1', '#FFB5B5', '#FF9B9B', '#F47C7C'],
+};
+const w13Shades = dept => W13_SHADES[dept === 'Beauty' ? 'Beauty' : 'Hair'];
+// Quarter of a date inside the loaded year (days since its Week 1 Monday).
+const w13QOfDate = (date, from) => Math.min(4, Math.floor(Math.round((new Date(date + 'T00:00:00') - new Date(from + 'T00:00:00')) / 864e5) / 91) + 1);
+// The Q1-Q4 key beside the chart title, only for quarters the chart has.
+function w13QKey(dept, qs) {
+  const sh = w13Shades(dept);
+  return `<span class="w13-qkey" aria-label="Quarter colours">${[1, 2, 3, 4].filter(q => qs.includes(q)).map(q =>
+    `<span><i style="background:${sh[q - 1]}"></i>Q${q}</span>`).join('')}</span>`;
+}
 // The Year pill, shared by the grid and her report, dressed as the Staff Benchmarks pill.
 function w13YearPick(d) {
   return `<span class="spf-dd"><select id="w13Year" aria-label="Year" onchange="w13SetYear(+this.value)">
@@ -127,14 +143,15 @@ function w13Photo(keys) {
 // Thirteen small bars, one a week, scaled to her own best week, so a card shows the
 // shape of her quarter at a glance. Grey where the week had nothing.
 // The week still being traded rides on the end as a paler bar (Kate, 29 Sep 2026).
-function w13Spark(weekly, cur) {
+function w13Spark(weekly, cur, dept) {
+  const sh = w13Shades(dept);
   const v = (weekly || []).map(Number);
   if (cur !== null && cur !== undefined) v.push(Number(cur));
   const last = (cur !== null && cur !== undefined) ? v.length - 1 : -1, max = Math.max(1, ...v);
   const bw = 7, gap = 3, h = 34;
   return `<svg class="w13-spark" viewBox="0 0 ${v.length * (bw + gap) - gap} ${h}" preserveAspectRatio="none" aria-hidden="true">${v.map((x, i) => {
     const bh = x > 0 ? Math.max(2, Math.round(h * x / max)) : 2;
-    return `<rect x="${i * (bw + gap)}" y="${h - bh}" width="${bw}" height="${bh}" rx="1.5" class="${x > 0 ? 'on' : ''}${i === last ? ' cur' : ''}"/>`;
+    return `<rect x="${i * (bw + gap)}" y="${h - bh}" width="${bw}" height="${bh}" rx="1.5" class="${x > 0 ? 'on' : ''}${i === last ? ' cur' : ''}"${x > 0 ? ` style="fill:${sh[Math.min(3, Math.floor(i / 13))]}"` : ''}/>`;
   }).join('')}</svg>`;
 }
 
@@ -230,10 +247,13 @@ async function renderStaffWeeks() {
       </div>
       <div class="w13-chart-head">
         <div class="slv-eyebrow" id="w13ChartTitle">${w13Mode === 'day' ? 'Day by day' : 'Week by week'} · sales (bars) and clients (line)</div>
+        <div class="w13-chart-ctl">
+        ${w13QKey(s.dept, [...new Set(d.weeks.map(w => w13Q(w.week_no)))])}
         ${(d.days || []).length ? `<div class="sc-seg" role="group" aria-label="Chart" style="display:inline-flex">
           <button type="button" data-m="day" class="${w13Mode === 'day' ? 'on' : ''}" onclick="w13SetMode('day')">Daily</button>
           <button type="button" data-m="week" class="${w13Mode === 'week' ? 'on' : ''}" onclick="w13SetMode('week')">Weekly</button>
         </div>` : ''}
+        </div>
       </div>
       <div class="w13-zoom" id="w13Zoom"></div>
       <div style="position:relative;height:280px"><canvas id="w13Canvas"></canvas></div>
@@ -273,7 +293,7 @@ async function w13RenderTeam(el) {
       </div>
       <div class="w13-card-val">${w13Aed(n.total_revenue)}</div>
       <div class="slv-note">${w13Num(n.clients)} clients · ${n.clients ? `${w13Num(n.rebooked)} of ${w13Num(n.clients)} rebooked` : 'no clients'}</div>
-      ${w13Spark(r.weekly, r.current)}
+      ${w13Spark(r.weekly, r.current, r.dept)}
     </button>`;
   };
   el.innerHTML = `
@@ -337,8 +357,9 @@ function w13Draw() {
   w13PaintZoom(daily, all.length, win, shown);
   const rows = daily
     ? shown.map(x => ({ label: win <= 31 ? [new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short' }), w13Day(x.date)] : w13Day(x.date),
-        tip: new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), sales: x.total_revenue, clients: x.clients }))
-    : w13Data.weeks.map((w, i) => ({ label: w.current ? [w13Wk(w.week_no), 'so far'] : [w13Wk(w.week_no), w13Range(w.week_start)], cur: !!w.current, sales: w.numbers.total_revenue, clients: w.numbers.clients }));
+        tip: new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), q: w13QOfDate(x.date, w13Data.from), sales: x.total_revenue, clients: x.clients }))
+    : w13Data.weeks.map((w, i) => ({ label: w.current ? [w13Wk(w.week_no), 'so far'] : [w13Wk(w.week_no), w13Range(w.week_start)], cur: !!w.current, q: w13Q(w.week_no), sales: w.numbers.total_revenue, clients: w.numbers.clients }));
+  const shades = w13Shades(w13Data.staff && w13Data.staff.dept);
   // Same colours as her Staff Benchmarks chart: hair violet bars and a green line,
   // beauty pink bars and a deep violet line (Kate, 29 Sep 2026). The pink is the brand's
   // coral pillar accent, #FF9B9B (trs-brand-guardian palette), as the lavender is.
@@ -349,7 +370,7 @@ function w13Draw() {
       labels: rows.map(r => r.label),
       datasets: [
         // Same look as the stylist page's chart. Lower order draws on top.
-        { type: 'bar', order: 2, label: 'Sales (AED)', data: rows.map(r => r.sales), backgroundColor: rows.map(r => r.cur ? pal.bar + '73' : pal.bar), yAxisID: 'y', borderRadius: daily ? (win <= 31 ? 4 : 2) : 6, maxBarThickness: 60 },
+        { type: 'bar', order: 2, label: 'Sales (AED)', data: rows.map(r => r.sales), backgroundColor: rows.map(r => { const c = shades[(r.q || 1) - 1] || pal.bar; return r.cur ? c + '73' : c; }), yAxisID: 'y', borderRadius: daily ? (win <= 31 ? 4 : 2) : 6, maxBarThickness: 60 },
         { type: 'line', order: 1, label: 'Clients', data: rows.map(r => r.clients), borderColor: pal.line, borderWidth: daily ? 1.5 : 2.5, backgroundColor: pal.line,
           pointRadius: daily ? (win <= 31 ? 3 : win <= 91 ? 2 : 0) : 4, pointHoverRadius: daily ? 4 : 6, pointBackgroundColor: '#fff', pointBorderColor: pal.line, pointBorderWidth: 2, yAxisID: 'y1', tension: 0 },
       ],

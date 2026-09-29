@@ -1858,6 +1858,12 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .w13-pan .sc-btn{min-width:38px;font-size:18px;line-height:1;padding:6px 10px}
 .w13-pan .sc-btn[disabled]{opacity:.35;cursor:default}
 @media(max-width:700px){.w13-zoom{flex-direction:column;align-items:stretch}.w13-zoom .sc-seg{justify-content:space-between}.w13-zoom .sc-seg button{flex:1;padding-left:4px;padding-right:4px}.w13-pan{justify-content:space-between}}
+/* Quarter colour key beside the Daily / Weekly toggle: small soft squares, labelled. */
+.w13-chart-ctl{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 16px}
+.w13-qkey{display:inline-flex;align-items:center;gap:12px;font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.w13-qkey span{display:inline-flex;align-items:center;gap:6px}
+.w13-qkey i{display:inline-block;width:13px;height:13px;border-radius:4px}
+@media(max-width:700px){.w13-chart-ctl{width:100%;justify-content:space-between}}
 .w13-chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:18px 0 6px}
 .w13-hero{height:120px;width:auto;max-width:140px;object-fit:contain;object-position:bottom}
 @media(max-width:700px){.w13-hero{height:88px;max-width:100px}}
@@ -3435,7 +3441,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260924n"></script>
 <script src="stylist-levels.js?v=20260928c"></script>
-<script src="staff-weeks.js?v=20260929q"></script>
+<script src="staff-weeks.js?v=20260929s"></script>
 <script src="products.js?v=20260929a"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
