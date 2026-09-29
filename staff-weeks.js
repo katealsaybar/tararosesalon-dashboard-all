@@ -229,6 +229,27 @@ async function renderStaffWeeks() {
     rows += '</tbody>';
   });
   const totFill = tot.ah > 0 ? Math.round(100 * tot.uh / tot.ah) + '%' : '–';
+  // The quarter strip (Kate, 29 Sep 2026): one card per quarter with its sales, clients
+  // and rebooking, and how its weekly average compares with the quarter before, so the
+  // "is she growing?" answer is in plain numbers above the chart. Weekly average, not
+  // the total, so a quarter still in progress compares fairly.
+  const qShade = w13Shades(s.dept);   // qs (the quarters present) is defined above, with the fold state
+  let prevAvg = null;
+  const qCards = qs.map(q => {
+    const qw = weeks.filter(w => w13Q(w.week_no) === q), t = sumOf(qw), avg = t.sales / qw.length;
+    let chg = '';
+    if (prevAvg) {
+      const pct = Math.round(100 * (avg - prevAvg) / prevAvg);
+      chg = `<div class="w13-q-chg ${pct > 0 ? 'up' : pct < 0 ? 'down' : ''}">${pct > 0 ? '▲' : pct < 0 ? '▼' : '='} ${Math.abs(pct)}% vs Q${q - 1} <span>· weekly average</span></div>`;
+    } else chg = `<div class="w13-q-chg"><span>first quarter of ${d.year}</span></div>`;
+    prevAvg = avg;
+    return `<div class="w13-qcard" style="border-top-color:${qShade[q - 1]}">
+      <div class="slv-eyebrow">Q${q} · Weeks ${qw[0].week_no}–${qw[qw.length - 1].week_no}${qw.length < 13 && q < 4 ? ` <span class="w13-q-part">${qw.length} of 13</span>` : ''}</div>
+      <div class="w13-q-val">${w13Aed(t.sales)}</div>
+      <div class="slv-note">${w13Num(t.clients)} clients · ${t.clients ? `${w13Num(t.rebooked)} of ${w13Num(t.clients)} rebooked (${Math.round(100 * t.rebooked / t.clients)}%)` : 'no clients'}</div>
+      ${chg}
+    </div>`;
+  }).join('');
   const curRow = curWk ? (() => {
     const n = curWk.numbers, fill = n.available_hours > 0 ? Math.round(100 * n.booked_hours / n.available_hours) + '%' : '–';
     return `<tr class="w13-cur"><td><b>${w13Wk(curWk.week_no)}</b> <span class="slv-note" style="display:inline">so far</span><div class="slv-note">${curWk.week_start === d.data_through ? w13Esc(w13Day(d.data_through)) : `${w13Esc(w13Day(curWk.week_start))} to ${w13Esc(w13Day(d.data_through))}`}</div></td>
@@ -258,6 +279,7 @@ async function renderStaffWeeks() {
         <div class="w13-tile"><div class="slv-eyebrow">Rebooking</div><div class="w13-val">${tot.clients ? Math.round(100 * tot.rebooked / tot.clients) + '%' : '–'}</div><div class="slv-note">${tot.clients ? `${w13Num(tot.rebooked)} of ${w13Num(tot.clients)} clients rebooked` : ''}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Column fill</div><div class="w13-val">${totFill}</div><div class="slv-note">${tot.ah ? `${w13Num(tot.uh)} of ${w13Num(tot.ah)} hours booked` : ''}</div></div>
       </div>
+      ${qCards ? `<div class="w13-qstrip">${qCards}</div>` : ''}
       <div class="w13-chart-head">
         <div class="slv-eyebrow" id="w13ChartTitle">${w13ChartTitleText()}</div>
         <div class="w13-chart-ctl">
@@ -274,7 +296,7 @@ async function renderStaffWeeks() {
         </div>
       </div>
       <div class="w13-zoom" id="w13Zoom"></div>
-      <div style="position:relative;height:280px"><canvas id="w13Canvas"></canvas></div>
+      <div style="position:relative;height:310px"><canvas id="w13Canvas"></canvas></div>
       <div class="slv-wrap" style="margin-top:14px"><table class="slv-table w13-table">
         <thead><tr><th>Week</th><th>Sales (AED)</th><th>Clients</th><th>Rebooked</th><th>Avg bill</th><th>Retail</th><th>Column fill</th></tr></thead>
         ${rows}
@@ -377,7 +399,7 @@ function w13Draw() {
   const rows = daily
     ? shown.map(x => ({ label: win <= 31 ? [new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short' }), w13Day(x.date)] : w13Day(x.date),
         tip: new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), q: w13QOfDate(x.date, w13Data.from), sales: x.total_revenue, clients: x.clients }))
-    : w13Data.weeks.map((w, i) => ({ label: w.current ? [w13Wk(w.week_no), 'so far'] : [w13Wk(w.week_no), w13Range(w.week_start)], cur: !!w.current, q: w13Q(w.week_no), sales: w.numbers.total_revenue, clients: w.numbers.clients }));
+    : w13Data.weeks.map((w, i) => ({ label: w.current ? [w13Wk(w.week_no), 'so far'] : [w13Wk(w.week_no), w13Range(w.week_start)], cur: !!w.current, q: w13Q(w.week_no), no: w.week_no, sales: w.numbers.total_revenue, clients: w.numbers.clients }));
   const shades = w13Shades(w13Data.staff && w13Data.staff.dept);
   // Same colours as her Staff Benchmarks chart: hair violet bars and a green line,
   // beauty pink bars and a deep violet line (Kate, 29 Sep 2026). The pink is the brand's
@@ -385,27 +407,40 @@ function w13Draw() {
   const pal = (w13Data.staff && w13Data.staff.dept === 'Beauty') ? { bar: '#FF9B9B', line: '#6D28D9' } : { bar: '#C4B5FD', line: '#0F6E56' };
   const barKey = w13Bars === 'clients' ? 'clients' : 'sales', lineKey = barKey === 'sales' ? 'clients' : 'sales';
   const LBL = { sales: 'Sales (AED)', clients: 'Clients' }, barLbl = LBL[barKey], lineLbl = LBL[lineKey];
-  // A light dashed line where one quarter ends and the next begins (Kate, 29 Sep 2026),
-  // drawn between the two bars, weekly and daily alike.
-  const qLines = {
-    id: 'w13QLines',
+  // Quarter bands (Kate, 29 Sep 2026: the dashed line was too quiet for the untrained
+  // eye). Each quarter gets a faint wash of its own shade behind its bars, a firm line
+  // where it meets the next, and its name printed above it: "Q2 · Weeks 14–26".
+  const qBands = {
+    id: 'w13QBands',
     beforeDatasetsDraw(chart) {
-      const x = chart.scales.x, a = chart.chartArea, ctx = chart.ctx;
+      const x = chart.scales.x, a = chart.chartArea, ctx = chart.ctx, n = rows.length;
+      if (!n) return;
+      const mid = (i, k) => (x.getPixelForValue(i) + x.getPixelForValue(k)) / 2;
+      const runs = [];
+      rows.forEach((r, i) => { const last = runs[runs.length - 1]; if (last && last.q === r.q) last.to = i; else runs.push({ q: r.q, from: i, to: i }); });
       ctx.save();
-      ctx.strokeStyle = border || 'rgba(128,128,128,.35)';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 4]);
-      for (let i = 1; i < rows.length; i++) {
-        if (rows[i].q === rows[i - 1].q) continue;
-        const px = (x.getPixelForValue(i - 1) + x.getPixelForValue(i)) / 2;
-        ctx.beginPath(); ctx.moveTo(px, a.top); ctx.lineTo(px, a.bottom); ctx.stroke();
-      }
+      runs.forEach((run, k) => {
+        const l = run.from === 0 ? a.left : mid(run.from - 1, run.from);
+        const rgt = run.to === n - 1 ? a.right : mid(run.to, run.to + 1);
+        ctx.fillStyle = (shades[(run.q || 1) - 1] || '#999999') + '26';
+        ctx.fillRect(l, a.top, rgt - l, a.bottom - a.top);
+        if (k > 0) { ctx.strokeStyle = muted || '#888'; ctx.globalAlpha = .45; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(l, a.top); ctx.lineTo(l, a.bottom); ctx.stroke(); ctx.globalAlpha = 1; }
+        // The name above the band, shortened when the band is narrow.
+        const wk = daily ? null : rows.slice(run.from, run.to + 1).map(r => r.no).filter(Boolean);
+        const long = `Q${run.q}${wk && wk.length ? (wk.length === 1 ? ` · Week ${wk[0]}` : ` · Weeks ${wk[0]}–${wk[wk.length - 1]}`) : ''}`;
+        ctx.font = "600 12px Inter, system-ui, sans-serif";
+        const txt = ctx.measureText(long).width + 8 < rgt - l ? long : `Q${run.q}`;
+        if (ctx.measureText(txt).width + 4 < rgt - l) {
+          ctx.fillStyle = muted || '#888'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+          ctx.fillText(txt, (l + rgt) / 2, a.top - 6);
+        }
+      });
       ctx.restore();
     },
   };
   if (w13Chart) w13Chart.destroy();
   w13Chart = new Chart(cv, {
-    plugins: [qLines],
+    plugins: [qBands],
     data: {
       labels: rows.map(r => r.label),
       datasets: [
@@ -417,8 +452,9 @@ function w13Draw() {
     },
     options: {
       maintainAspectRatio: false,
+      layout: { padding: { top: 22 } },   // room for the quarter names above the bands
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { labels: { color: muted, usePointStyle: true, pointStyle: 'circle', boxHeight: 8 } },
+      plugins: { legend: { position: 'bottom', labels: { color: muted, usePointStyle: true, pointStyle: 'circle', boxHeight: 8 } },
                  tooltip: { callbacks: { title: items => { const r = rows[items[0].dataIndex]; if (r && r.tip) return r.tip; const l = items[0].chart.data.labels[items[0].dataIndex]; return Array.isArray(l) ? l.join(' · ') : l; } } } },
       scales: {
         // Left axis is always the bars, right axis the line, whichever measure each is.
