@@ -546,6 +546,9 @@ async function renderStylist() {
     `Reviews to ${dayLabel(d.data_through.reviews)} · sales to ${dayLabel(d.data_through.revenue)} · clients to ${dayLabel(d.data_through.clients)} · column fill to ${dayLabel(d.data_through.column_fill)} · client history to ${dayLabel(d.data_through.client_history)}. Revenue is ex VAT.`;
 
   let wkChart = null;
+  // Kate, 29 Sep 2026: hair keeps violet bars and a green line; beauty is pink bars
+  // and a deep violet line, so the two teams' charts never look alike.
+  const pal = isHair ? { bar: '#C4B5FD', line: '#0F6E56' } : { bar: '#F9A8D4', line: '#6D28D9' };
   const drawChart = () => {
     const css = getComputedStyle(document.documentElement);
     const daily = CHART_MODE === 'day' && days.length;
@@ -558,9 +561,9 @@ async function renderStylist() {
         labels: rows.map(r => r.label),
         datasets: [
           // Lower order draws on top, so the line sits over the bars instead of vanishing behind them.
-          { type: 'bar', order: 2, label: 'Sales (AED)', data: rows.map(r => r.sales), backgroundColor: '#C4B5FD', yAxisID: 'y', borderRadius: daily ? 3 : 6, maxBarThickness: 120 },
-          { type: 'line', order: 1, label: 'Clients', data: rows.map(r => r.clients), borderColor: '#0F6E56', borderWidth: daily ? 2 : 2.5, backgroundColor: '#0F6E56',
-            pointRadius: daily ? 3 : 5, pointHoverRadius: daily ? 5 : 7, pointBackgroundColor: '#fff', pointBorderColor: '#0F6E56', pointBorderWidth: 2, yAxisID: 'y1', tension: 0 },
+          { type: 'bar', order: 2, label: 'Sales (AED)', data: rows.map(r => r.sales), backgroundColor: pal.bar, yAxisID: 'y', borderRadius: daily ? 3 : 6, maxBarThickness: 120 },
+          { type: 'line', order: 1, label: 'Clients', data: rows.map(r => r.clients), borderColor: pal.line, borderWidth: daily ? 2 : 2.5, backgroundColor: pal.line,
+            pointRadius: daily ? 3 : 5, pointHoverRadius: daily ? 5 : 7, pointBackgroundColor: '#fff', pointBorderColor: pal.line, pointBorderWidth: 2, yAxisID: 'y1', tension: 0 },
         ],
       },
       options: {
