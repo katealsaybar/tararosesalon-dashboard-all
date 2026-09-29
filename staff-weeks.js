@@ -7,7 +7,7 @@
 // returns has names only.
 //
 // Kate, 29 Sep 2026: opens on the team grid (everyone's 13 weeks as small cards), not a
-// 48-name dropdown; tap a card for her report, "All stylists" goes back.
+// 48-name dropdown; tap a card for her report, the back button (All staff / Hair team / Beauty team, whichever filter you came from) goes back.
 let w13Data = null;       // last perf_weeks reply for one stylist
 let w13Team = null;       // perf_weeks reply with no stylist: the grid
 // Fixed cycles (Emma, 29 Sep 2026): Week 1 is the first week of January and the year is
@@ -212,7 +212,7 @@ async function renderStaffWeeks() {
       <p>Every week of the year in one list, Monday to Sunday from the first week of January, with each 13-week quarter totalled as you go: Q1 is Weeks 1–13, Q2 14–26, Q3 27–39, Q4 40–52. Only complete weeks count in the totals; the week still being traded shows on the end as "so far". Sales are services before VAT, retail not included.</p>
     </section>
     <div class="sc-bar w13-bar" style="margin-bottom:14px">
-      <button type="button" class="sc-btn" onclick="w13Set(null)">← All stylists</button>
+      <button type="button" class="sc-btn" onclick="w13Set(null)">← ${w13Dept === 'Hair' ? 'Hair team' : w13Dept === 'Beauty' ? 'Beauty team' : 'All staff'}</button>
       ${w13YearPick(d)}
     </div>
     <section class="slv-card">
@@ -279,7 +279,7 @@ async function w13RenderTeam(el) {
   el.innerHTML = `
     <section class="slv-intro">
       <h2>13-Week Report</h2>
-      <p>Everyone's ${t.year} so far, week by week from the first week of January: ${w13Esc(w13Day(t.from))} to ${w13Esc(w13Day(t.to))}. The small bars are her sales, one a week${t.current_week_no ? `, with Week ${t.current_week_no} so far as the paler one on the end` : ''}. Tap a stylist for her full list, with each 13-week quarter totalled.</p>
+      <p>Everyone's ${t.year} so far, week by week from the first week of January: ${w13Esc(w13Day(t.from))} to ${w13Esc(w13Day(t.to))}. The small bars are her sales, one a week${t.current_week_no ? `, with Week ${t.current_week_no} so far as the paler one on the end` : ''}. Tap anyone for her full list, with each 13-week quarter totalled.</p>
     </section>
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Team">
@@ -340,8 +340,9 @@ function w13Draw() {
         tip: new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), sales: x.total_revenue, clients: x.clients }))
     : w13Data.weeks.map((w, i) => ({ label: w.current ? [w13Wk(w.week_no), 'so far'] : [w13Wk(w.week_no), w13Range(w.week_start)], cur: !!w.current, sales: w.numbers.total_revenue, clients: w.numbers.clients }));
   // Same colours as her Staff Benchmarks chart: hair violet bars and a green line,
-  // beauty pink bars and a deep violet line (Kate, 29 Sep 2026).
-  const pal = (w13Data.staff && w13Data.staff.dept === 'Beauty') ? { bar: '#F9A8D4', line: '#6D28D9' } : { bar: '#C4B5FD', line: '#0F6E56' };
+  // beauty pink bars and a deep violet line (Kate, 29 Sep 2026). The pink is the brand's
+  // coral pillar accent, #FF9B9B (trs-brand-guardian palette), as the lavender is.
+  const pal = (w13Data.staff && w13Data.staff.dept === 'Beauty') ? { bar: '#FF9B9B', line: '#6D28D9' } : { bar: '#C4B5FD', line: '#0F6E56' };
   if (w13Chart) w13Chart.destroy();
   w13Chart = new Chart(cv, {
     data: {

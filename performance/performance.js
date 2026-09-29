@@ -548,7 +548,7 @@ async function renderStylist() {
   let wkChart = null;
   // Kate, 29 Sep 2026: hair keeps violet bars and a green line; beauty is pink bars
   // and a deep violet line, so the two teams' charts never look alike.
-  const pal = isHair ? { bar: '#C4B5FD', line: '#0F6E56' } : { bar: '#F9A8D4', line: '#6D28D9' };
+  const pal = isHair ? { bar: '#C4B5FD', line: '#0F6E56' } : { bar: '#FF9B9B', line: '#6D28D9' };
   const drawChart = () => {
     const css = getComputedStyle(document.documentElement);
     const daily = CHART_MODE === 'day' && days.length;
