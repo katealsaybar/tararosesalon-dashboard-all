@@ -3295,16 +3295,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     </main>
   </div>
 
-  <!-- PRODUCTS (Kate, 28 Sep 2026): weekly spend on products. A placeholder
-       until we know where the figures come from in Phorest. -->
+  <!-- PRODUCTS (Kate, 28-29 Sep 2026): stock spend per week, retail vs
+       professional, from stock_order_lines via get_product_spend. products.js
+       draws it. -->
   <div id="view-products" style="display:none">
     <div class="uc-banner" role="note"><span>Additional Reports</span><span class="uc-tag">Under construction</span></div>
-    <main style="max-width:760px;padding:10px 0 48px">
-      <div class="empty" style="text-align:left;line-height:1.6">
-        <b>Products</b> will show what we spend on products each week, per branch.<br>
-        We're working out how to pull the figures out of Phorest. Nothing to read here yet.
-      </div>
-    </main>
+    <main id="productsContent" style="padding:10px 0 48px"></main>
   </div>
 
   <!-- REVIEWS -->
@@ -3370,9 +3366,10 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=20260924n"></script>
 <script src="stylist-levels.js?v=20260928c"></script>
 <script src="staff-weeks.js?v=20260929a"></script>
+<script src="products.js?v=20260929a"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20260929a"></script>
+<script src="dashboard.js?v=20260929e"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -3647,6 +3644,7 @@ function showView(view, el){
   if (view === 'staffweeks') renderStaffWeeks();
   if (view === 'services') initSvcView();
   if (view === 'clients') initCliView();
+  if (view === 'products') renderProducts();
   if (view === 'branchperf')    renderBranchPerformance();
   if (view === 'compare')       renderCompare();
   if (view === 'ledgerFinancials') renderLedgerFinancials();
