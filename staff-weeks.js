@@ -50,14 +50,27 @@ const w13DayEnd = d => { const x = new Date(d + 'T00:00:00'); x.setDate(x.getDat
 // the number, on the chart and in the table alike.
 // The year's own week number, Week 1 being the first week of January.
 const w13Wk = no => 'Week ' + String(no).padStart(2, '0');
-const w13CycleName = c => `Weeks ${c.week_first}–${c.week_last}, ${c.year}`;
-// The cycle picker, shared by the grid and her report. A <select> dressed as the
-// Staff Benchmarks pill; the dates of each cycle ride in the option text.
+// A cycle is a quarter of the year's weeks: Q1 = Weeks 1-13 ... Q4 = Weeks 40-52.
+const w13CycleName = c => `Q${c.no} ${c.year} · Weeks ${c.week_first}–${c.week_last}`;
+// Two pills, Year then Quarter (Kate, 29 Sep 2026), shared by the grid and her report.
+// Selects dressed as the Staff Benchmarks pill; each quarter's dates ride in its label.
 function w13CyclePick(d) {
-  const cur = d.cycle.from;
-  return `<span class="spf-dd"><select id="w13Cycle" aria-label="Cycle" onchange="w13SetCycle(this.value)">
-    ${(d.cycles || []).map(c => `<option value="${w13Esc(c.start)}"${c.from === cur ? ' selected' : ''}>${w13Esc(w13CycleName(c))} · ${w13Esc(w13Day(c.from))} – ${w13Esc(w13Day(c.to))}</option>`).join('')}
+  const all = d.cycles || [], cur = d.cycle;
+  const years = [...new Set(all.map(c => c.year))];
+  const qs = all.filter(c => c.year === cur.year).sort((a, b) => a.no - b.no);
+  return `<span class="spf-dd"><select id="w13Year" aria-label="Year" onchange="w13SetYear(+this.value)">
+    ${years.map(y => `<option value="${y}"${y === cur.year ? ' selected' : ''}>${y}</option>`).join('')}
+  </select></span>
+  <span class="spf-dd"><select id="w13Cycle" aria-label="Quarter" onchange="w13SetCycle(this.value)">
+    ${qs.map(c => `<option value="${w13Esc(c.start)}"${c.from === cur.from ? ' selected' : ''}>Q${c.no} · Weeks ${c.week_first}–${c.week_last} · ${w13Esc(w13Day(c.from))} – ${w13Esc(w13Day(c.to))}</option>`).join('')}
   </select></span>`;
+}
+// A new year keeps the same quarter when that year has it, else its latest one.
+function w13SetYear(y) {
+  const d = w13Team || w13Data; if (!d) return;
+  const qs = d.cycles.filter(c => c.year === y);
+  const pick = qs.find(c => c.no === d.cycle.no) || qs[0];
+  if (pick) w13SetCycle(pick.start);
 }
 function w13SetCycle(start) {
   const latest = (w13Team || w13Data || {}).cycles;
@@ -151,7 +164,7 @@ async function renderStaffWeeks() {
   el.innerHTML = `
     <section class="slv-intro">
       <h2>13-Week Report</h2>
-      <p>Thirteen-week cycles, Monday to Sunday, counted from the first week of January: Weeks 1–13, 14–26, 27–39 and 40–52. Only complete weeks count in the totals; the week still being traded shows on the end as "so far". Sales are services before VAT, retail not included.</p>
+      <p>Thirteen-week quarters, Monday to Sunday, counted from the first week of January: Q1 is Weeks 1–13, Q2 14–26, Q3 27–39, Q4 40–52. Only complete weeks count in the totals; the week still being traded shows on the end as "so far". Sales are services before VAT, retail not included.</p>
     </section>
     <div class="sc-bar w13-bar" style="margin-bottom:14px">
       <button type="button" class="sc-btn" onclick="w13Set(null)">← All stylists</button>
@@ -188,7 +201,7 @@ async function renderStaffWeeks() {
       </table></div>
       <p class="slv-muted">Sales to ${w13Esc(w13Day(d.data_through))}. The totals are the complete weeks only; the week still being traded joins them once Sunday closes. Weeks with no clients stay in as zeros so the gaps show (leave, days off, or a week not uploaded yet).</p>
     </section>`;
-  if (typeof spfDD === 'function') spfDD(document.getElementById('w13Cycle'));
+  if (typeof spfDD === 'function') { spfDD(document.getElementById('w13Year')); spfDD(document.getElementById('w13Cycle')); }
   w13Draw();
 }
 
@@ -220,7 +233,7 @@ async function w13RenderTeam(el) {
   el.innerHTML = `
     <section class="slv-intro">
       <h2>13-Week Report</h2>
-      <p>Everyone's ${w13Esc(w13CycleName(t.cycle))}, ${w13Esc(w13Day(t.cycle.from))} to ${w13Esc(w13Day(t.to))}. Cycles run from the first week of January: Weeks 1–13, 14–26, 27–39, 40–52. The small bars are her sales week by week${t.current_week_no ? `, with Week ${t.current_week_no} so far as the paler one on the end` : ''}. Tap a stylist for her full report.</p>
+      <p>Everyone's ${w13Esc(w13CycleName(t.cycle))}, ${w13Esc(w13Day(t.cycle.from))} to ${w13Esc(w13Day(t.to))}. Quarters run from the first week of January: Q1 is Weeks 1–13, Q2 14–26, Q3 27–39, Q4 40–52. The small bars are her sales week by week${t.current_week_no ? `, with Week ${t.current_week_no} so far as the paler one on the end` : ''}. Tap a stylist for her full report.</p>
     </section>
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Team">
@@ -235,7 +248,7 @@ async function w13RenderTeam(el) {
     </div>
     ${w13Body(list, flip, byTakings, grid, head)}
     <p class="slv-muted">Sales are services before VAT, retail not included. A grey bar is a week with no sales (leave, days off, or not uploaded yet).</p>`;
-  if (typeof spfDD === 'function') { spfDD(document.getElementById('w13Sort')); spfDD(document.getElementById('w13Cycle')); }
+  if (typeof spfDD === 'function') { spfDD(document.getElementById('w13Sort')); spfDD(document.getElementById('w13Year')); spfDD(document.getElementById('w13Cycle')); }
 }
 // Branch and Position keep headed groups (busiest first inside each); the rest are
 // one flat grid with the branch on each card. Same rules as Staff Benchmarks.
