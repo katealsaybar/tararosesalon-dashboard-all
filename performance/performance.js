@@ -563,7 +563,7 @@ async function renderStylist() {
           // Lower order draws on top, so the line sits over the bars instead of vanishing behind them.
           { type: 'bar', order: 2, label: 'Sales (AED)', data: rows.map(r => r.sales), backgroundColor: pal.bar, yAxisID: 'y', borderRadius: daily ? 3 : 6, maxBarThickness: 120 },
           { type: 'line', order: 1, label: 'Clients', data: rows.map(r => r.clients), borderColor: pal.line, borderWidth: daily ? 2 : 2.5, backgroundColor: pal.line,
-            pointRadius: daily ? 3 : 5, pointHoverRadius: daily ? 5 : 7, pointBackgroundColor: '#fff', pointBorderColor: pal.line, pointBorderWidth: 2, yAxisID: 'y1', tension: 0 },
+            pointRadius: daily ? 3 : 5, pointHoverRadius: daily ? 5 : 7, pointBackgroundColor: '#fff', pointBorderColor: pal.line, pointBorderWidth: 2, yAxisID: 'y1', tension: 0.4, cubicInterpolationMode: 'monotone' },   // smooth, never overshoots (Kate, 29 Sep 2026)
         ],
       },
       options: {

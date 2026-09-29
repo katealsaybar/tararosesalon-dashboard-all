@@ -28,7 +28,7 @@
     --none:rgba(250,248,243,0.4);--none-bg:rgba(250,248,243,0.05);
     --btn:#FFD4D9;--btn-fg:#2D2E37;
 }
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.45;font-size:15px}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.45;font-size:15px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
 /* The dashboard sidebar's lockup: rule + TARA ROSE cropped from the 3000px PNG (same
    window and translate as index.html's .mark), SALONS set as text. */
@@ -63,8 +63,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);lin
 .pdd-btn:focus-visible,.pdd-menu button:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 main{max-width:780px;margin:0 auto;padding:16px}
 .loading,.err{padding:40px 0;text-align:center;color:var(--muted)}
-h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:34px;line-height:1.1}
-h2{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:24px;margin-bottom:4px}
+h1{font-family:'Playfair Display',Georgia,serif;font-weight:600;font-size:34px;line-height:1.15;letter-spacing:.005em}
+h2{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:23px;margin-bottom:4px;letter-spacing:.005em}
 .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 .sub{color:var(--muted);font-size:13px;margin-bottom:12px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px}
@@ -122,7 +122,7 @@ table.hist th,table.hist td:not(:first-child){white-space:nowrap}
 @media(min-width:620px){.team-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .member{display:block;text-decoration:none;color:inherit;text-align:center;padding:14px 10px;border-radius:12px;border:1px solid var(--border);background:var(--surface2)}
 .member .ini{width:40px;height:40px;border-radius:50%;background:var(--none-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-weight:700;font-size:14px}
-.member .nm{font-weight:600;font-size:14px}
+.member .nm{font-family:'Playfair Display',Georgia,serif;font-weight:600;font-size:15px;letter-spacing:.01em}
 .member .lv{font-size:12px;color:var(--muted)}
 .member .mini{font-size:12px;margin-top:6px;font-variant-numeric:tabular-nums}
 .member .flag{font-size:11px;color:var(--warn)}
