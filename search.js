@@ -10,6 +10,19 @@
 //             the same three jumps the name menu in staff-links.js makes
 //   Branches  sets the Branch filter to that one branch
 //   Periods   the named Period chips (This month, Last month, ...)
+//   Services  the Service Rankings list, Top Clients and the top Products, read
+//   Clients   in the background the first time search opens (same calls and the
+//   Products  same Branch/Period window as those pages), so they are findable
+//             without opening the page first
+//   Content   text on every page: headings, sections, table rows, names. Picking
+//             one opens that page and lands on it, lit for a moment
+//
+// Kate, 29 Sep 2026, third pass: "anything that is inside this site is searchable".
+//
+// Kate, 29 Sep 2026, second pass: "jumera" found nothing, because Jumera is on
+// the Org Chart and not on Staff Cards. Everyone on ORG_CHART is in Team now, typos
+// are forgiven (one letter off, two on a long word), Abu Dhabi / Dubai / Mamsha
+// find their branches, and a search with no exact hit still offers the closest.
 //
 // Open with the bar in the masthead, or / or Ctrl+K from anywhere, including the
 // Ledgers pages where the masthead buttons are hidden. Styles in search.css.
@@ -47,6 +60,9 @@
     : String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
   const title = s => String(s || '').toLowerCase().replace(/(^|[\s-])\S/g, c => c.toUpperCase());
   const isPhone = () => matchMedia('(max-width:760px)').matches;
+  // Where each branch is, in the words people use for it.
+  const BRANCH_WORDS = { SAA: 'abu dhabi ad mamsha saadiyat', KCA: 'abu dhabi ad khalifa kca',
+    MC: 'dubai dxb motor', AQ: 'dubai dxb quoz' };
 
   // ── THE INDEX ──
   // Rebuilt on every open: cheap, and it picks up the roster once it has loaded
@@ -92,9 +108,30 @@
             ['Card', () => whoGoCard(key)],
             ['Stats', () => whoGoStats(key, dept, branch)],
             ['Figures', () => whoGoRow(key, branch)],
+            ['13 weeks', () => goWeeks(full)],
           ],
         });
       }));
+    }
+
+    // The Org Chart: management, the call centre, educators, coordinators, accounts.
+    // A name already in Team from Staff Cards gets an Org chart button instead of a
+    // second row.
+    if (typeof ORG_CHART !== 'undefined') {
+      const walk = (node, parent) => {
+        if (node.role !== 'Department') {
+          const same = items.find(x => x.kind === 'staff' && norm(x.t) === norm(node.name));
+          const go = () => goOrg(node.name);
+          if (same) same.acts.push(['Org chart', go]);
+          else items.push({
+            kind: 'staff', id: 'org:' + node.name, t: node.name, s: node.role || '',
+            words: [node.role, parent && parent.role === 'Department' ? parent.name : '', 'org chart'].join(' '),
+            photo: node.photo || '', go,
+          });
+        }
+        (node.children || []).forEach(c => walk(c, node));
+      };
+      ORG_CHART.forEach(team => team.root && walk(team.root, null));
     }
 
     if (typeof ACTIVE_BRANCHES !== 'undefined') {
@@ -102,7 +139,7 @@
         const b = BRANCH_INFO[code];
         items.push({
           kind: 'branch', id: 'branch:' + code, t: b.name, s: 'Show this branch only',
-          words: code + ' branch salon', colour: b.colorLight || b.color,
+          words: code + ' branch salon ' + (BRANCH_WORDS[code] || ''), colour: b.colorLight || b.color,
           go: () => setBranch([code]),
         });
       });
@@ -119,6 +156,186 @@
       }));
     }
     return items;
+  }
+
+  // Land on a person on the Org Chart. The chart scrolls sideways inside its own
+  // box, so scrollIntoView rather than the window-only whoLand.
+  function goOrg(name) {
+    whoShowView('orgchart');
+    whoWaitFor(() => [...document.querySelectorAll('#view-orgchart .oc-name')]
+      .find(n => norm(n.textContent) === norm(name)), el => {
+      const node = el.closest('.oc-node') || el;
+      node.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      flash(node);
+    });
+  }
+  // Her 13-Week Report, by the same slug the page's own links use.
+  function goWeeks(full) {
+    if (typeof w13SlugOf !== 'function') return;
+    w13Pick = null; w13Data = null;
+    w13WantSlug = w13SlugOf(full);
+    showView('staffweeks', document.querySelector(`#sidebar .nav-sub[onclick*="'staffweeks'"]`));
+  }
+  function flash(el) {
+    el.classList.remove('who-flash');
+    void el.offsetWidth;
+    el.classList.add('who-flash');
+    setTimeout(() => el.classList.remove('who-flash'), 2200);
+  }
+
+  // ── EVERYTHING ON THE PAGES ──
+  // Every view's headings, section links, names and table rows, read live from the
+  // page, hidden views included: whatever a page has drawn this session is
+  // findable. A table row is known by its first cell with words in it (so Top
+  // Clients' rank number is skipped for the name beside it).
+  const HEADS = 'h2, h3, h4, .card-title, .side-nav a, .hero-contents a, .oc-name, .who';
+  const hasWords = t => /[a-z]{2}/i.test(t);
+  // A cell's own words first (Products' name, not the brand line under it), then
+  // its first child with words in it.
+  const leafText = el => {
+    const own = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join(' ').replace(/\s+/g, ' ').trim();
+    if (hasWords(own)) return own;
+    const t = [...el.querySelectorAll('*')].find(c => !c.children.length && hasWords(c.textContent));
+    return (t || el).textContent.replace(/\s+/g, ' ').trim();
+  };
+  function viewNames() {
+    const m = {};
+    document.querySelectorAll('#sidebar .nav-sub').forEach(n => {
+      const v = ((n.getAttribute('onclick') || '').match(/showView\('([^']+)'/) || [])[1];
+      if (v && !m[v]) m[v] = n.textContent.trim();
+    });
+    return m;
+  }
+  function contentItems() {
+    const names = viewNames(), out = [], seen = new Set();
+    ALL_VIEWS.forEach(view => {
+      const root = document.getElementById('view-' + view);
+      if (!root || !names[view]) return;
+      const add = (el, text, row) => {
+        // A section link ("Hair vs Beauty" in Organisation Pulse's contents) lands
+        // on the section it points at, not on the link.
+        const href = el.getAttribute && el.getAttribute('href');
+        const anchor = href && href[0] === '#' && href.length > 1 ? href.slice(1) : '';
+        if (!text || text.length > 80 || !hasWords(text)) return;
+        const k = view + '|' + text.toLowerCase();
+        if (seen.has(k)) return;
+        seen.add(k);
+        const snip = row ? row.textContent.replace(/\s+/g, ' ').replace(text, '').trim().slice(0, 60) : '';
+        out.push({ kind: 'content', view, id: 'content:' + k, t: text,
+          s: names[view] + (snip ? ' · ' + snip : ''), words: names[view],
+          go: () => goText(view, text, null, anchor) });
+      };
+      root.querySelectorAll(HEADS).forEach(el => add(el, el.textContent.replace(/\s+/g, ' ').trim()));
+      root.querySelectorAll('tbody tr').forEach(tr => {
+        const cell = [...tr.cells].find(c => hasWords(c.textContent));
+        if (cell) add(cell, leafText(cell), tr);
+      });
+    });
+    return out;
+  }
+
+  // Open a page (if not already on it) and land on the first thing showing this text.
+  function findText(view, text) {
+    const want = norm(text);
+    const root = document.getElementById('view-' + view);
+    if (!root) return null;
+    const own = el => norm(leafText(el)) === want || norm(el.textContent.replace(/\s+/g, ' ').trim()) === want;
+    const all = [...root.querySelectorAll('h2, h3, h4, a, td, span, div, b')]
+      .filter(el => own(el) && ![...el.children].some(c => norm(c.textContent.trim()) === want));
+    const hit = all.find(el => el.offsetParent);
+    if (hit) return hit.closest('tr') || hit;
+    // Only in a folded section: open it, and the next tick finds it.
+    all.forEach(el => {
+      const sec = el.closest('[id^="sec-"]');
+      const k = sec && sec.id.slice(4);
+      if (k && typeof sectionState !== 'undefined' && !sectionState[k] && typeof toggleSection === 'function') toggleSection(k);
+      const det = el.closest('details');
+      if (det) det.open = true;
+    });
+    return null;
+  }
+  // Pages that fetch their rows can take a few seconds, so this waits up to 8s
+  // (whoWaitFor gives up at 2.5s), then lands once.
+  function goText(view, text, prep, anchor) {
+    if (prep) prep(CURRENT_VIEW === view);
+    whoShowView(view);
+    // Organisation Pulse keeps its sections behind the cover until it is opened.
+    if (view === 'dashboard' && !document.body.classList.contains('revealed')) {
+      document.body.classList.add('revealed');
+      const btn = document.getElementById('revealBtn');
+      if (btn) btn.setAttribute('aria-expanded', 'true');
+      if (typeof sizeTopbar === 'function') sizeTopbar();
+    }
+    const t0 = Date.now();
+    (function tick() {
+      const el = (anchor && document.getElementById(anchor)) || findText(view, text);
+      if (el) { whoLand(el); flash(el); return; }
+      if (Date.now() - t0 > 8000) {
+        whoNote(`“${text}” isn't on ${viewNames()[view] || 'that page'} for the branch and period picked.`);
+        return;
+      }
+      setTimeout(tick, 120);
+    })();
+  }
+  // Service Rankings shows each branch's top 10 by default. A service further down
+  // switches it to the combined list and opens enough rows to include it.
+  function goService(name, rank) {
+    // Set before the page opens, so its own first load is already the right one;
+    // when it is already open, reload it.
+    goText('services', name, already => {
+      const rows = document.getElementById('svc-rows');
+      let changed = svcViewMode !== 'combined';
+      if (rows) {
+        const opts = [...rows.options].map(o => +o.value);
+        const need = opts.find(v => v >= rank) || opts[opts.length - 1];
+        if (+rows.value < need) { rows.value = String(need); changed = true; }
+      }
+      if (already && changed) setSvcViewMode('combined');
+      else {
+        svcViewMode = 'combined';
+        document.getElementById('svc-toggle-branch')?.classList.remove('active');
+        document.getElementById('svc-toggle-combined')?.classList.add('active');
+      }
+    });
+  }
+
+  // ── DATA THE PAGES SHOW ──
+  // Services, clients and products, fetched once per Branch/Period window with the
+  // same calls those pages make, so a name is findable before its page is opened.
+  let dataItems = [], dataKey = '', dataBusy = false;
+  function loadData() {
+    if (typeof sb === 'undefined' || typeof _svcWindow !== 'function') return;
+    const w = _svcWindow();
+    const key = [w.year, w.from, w.to, w.branches.join(',')].join('|');
+    if (key === dataKey || dataBusy) return;
+    dataBusy = true;
+    const aed = v => 'AED ' + Math.round(Number(v) || 0).toLocaleString('en-GB');
+    const jobs = [
+      sb.rpc('get_top_services', { p_year: w.year, p_branches: w.branches, p_from: w.from, p_to: w.to, p_limit: 100 })
+        .then(({ data }) => (data || []).filter(r => r.service_name).map((r, i) => ({
+          kind: 'service', id: 'service:' + r.service_name, t: r.service_name,
+          s: `Service Rankings · #${i + 1} · ${aed(r.total_revenue)}`, words: 'service treatment',
+          go: () => goService(r.service_name, i + 1) }))),
+      sb.rpc('get_top_clients', { p_year: w.year, p_branches: w.branches, p_from: w.from, p_to: w.to, p_limit: 25 })
+        .then(({ data }) => (data || []).filter(r => r.client_name).map((r, i) => ({
+          kind: 'client', id: 'client:' + r.client_name, t: r.client_name,
+          s: `Top Clients · #${i + 1} · ${aed(r.total_revenue)}${r.top_service ? ' · ' + r.top_service : ''}`, words: 'client',
+          go: () => goText('clients', r.client_name) }))),
+    ];
+    if (typeof prdWindow === 'function') {
+      const pw = prdWindow();
+      jobs.push(sb.rpc('get_product_spend', { p_branches: pw.branches, p_from: pw.from, p_to: pw.to })
+        .then(({ data }) => ((data && data.products) || []).map(p => ({
+          kind: 'product', id: 'product:' + p.product, t: p.product,
+          s: ['Products', p.brand, p.type, aed(p.spend)].filter(Boolean).join(' · '), words: 'product stock ' + (p.brand || ''),
+          go: () => goText('products', p.product) }))));
+    }
+    Promise.all(jobs.map(j => j.then(x => x, () => []))).then(lists => {
+      dataItems = lists.flat();
+      dataKey = key;
+      dataBusy = false;
+      if (panel && !panel.hidden && input.value.trim()) render();
+    });
   }
 
   // Filters apply to the numbered pages only; from anywhere else, land on
@@ -149,23 +366,47 @@
   // Name matches beat keyword matches; a word that starts with what you typed beats
   // one that merely contains it; initials ("dts" → Daily Target Sheet) are the last
   // resort. Every typed word has to land somewhere.
-  function score(item, q) {
+  function score(item, q, loose) {
     const t = norm(item.t), w = norm(item.words), s = norm(item.s);
+    const tw = t.split(/[\s·,-]+/).filter(Boolean), ww = w.split(/\s+/).filter(Boolean);
     let total = 0;
     for (const part of q.split(/\s+/).filter(Boolean)) {
       let best = 0;
       if (t === part) best = 100;
       else if (t.startsWith(part)) best = 80;
-      else if (t.split(/[\s·-]+/).some(x => x.startsWith(part))) best = 65;
+      else if (tw.some(x => x.startsWith(part))) best = 65;
       else if (t.includes(part)) best = 45;
-      else if (w.split(/\s+/).some(x => x.startsWith(part))) best = 30;
+      else if (ww.some(x => x.startsWith(part))) best = 30;
       else if (s.includes(part)) best = 20;
       else if (part.length >= 2 && initials(t).startsWith(part)) best = 25;
+      // Typos: "jumeira" for Jumera, "saadyat" for Saadiyat, "kaet" for Kate.
+      else if (part.length >= 3 && tw.some(x => near(part, x))) best = 35;
+      else if (loose && part.length >= 3 && ww.some(x => near(part, x))) best = 15;
       if (!best) return 0;
       total += best;
     }
     if (item.resigned) total -= 5;
+    // Text on the page you are looking at outranks the same text elsewhere.
+    if (item.kind === 'content' && item.view === CURRENT_VIEW) total += 10;
     return total;
+  }
+  // Is the typed word within reach of this word (or of its start, while typing)?
+  // One slip allowed, two once the word is seven letters or more.
+  function near(a, b) {
+    const room = a.length >= 7 ? 2 : 1;
+    const cands = [b, b.slice(0, a.length), b.slice(0, a.length + 1)];
+    return cands.some(c => c.length >= 3 && Math.abs(c.length - a.length) <= room && dist(a, c) <= room);
+  }
+  // Edit distance, with a swap of two neighbours counted as one slip.
+  function dist(a, b) {
+    const d = [];
+    for (let i = 0; i <= a.length; i++) d[i] = [i];
+    for (let j = 1; j <= b.length; j++) d[0][j] = j;
+    for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+    return d[a.length][b.length];
   }
   const initials = t => t.split(/[\s·-]+/).map(x => x[0] || '').join('');
 
@@ -235,7 +476,7 @@
     panel.innerHTML = `
       <div class="gs-head">${ICON}
         <input class="gs-in" id="gsIn" type="search" autocomplete="off" autocapitalize="off" spellcheck="false"
-          enterkeyhint="go" placeholder="Pages, team, branches, periods" role="combobox"
+          enterkeyhint="go" placeholder="Search anything on the dashboard" role="combobox"
           aria-expanded="true" aria-controls="gsList" aria-autocomplete="list">
         <button type="button" class="gs-x gs-clear" aria-label="Clear" hidden>&times;</button>
         <button type="button" class="gs-x gs-cancel">Cancel</button>
@@ -276,6 +517,7 @@
     if (gate && gate.style.display !== 'none') return;
     lastFocus = document.activeElement;
     index = buildIndex();
+    loadData();
     input.value = '';
     panel.querySelector('.gs-clear').hidden = true;
     scrim.hidden = false;
@@ -311,7 +553,8 @@
     }
   }
 
-  const GROUPS = [['page', 'Pages', 6], ['staff', 'Team', 6], ['branch', 'Branches', 5], ['period', 'Period', 3]];
+  const GROUPS = [['page', 'Pages', 6], ['staff', 'Team', 6], ['branch', 'Branches', 5], ['period', 'Period', 3],
+    ['service', 'Services', 5], ['client', 'Clients', 5], ['product', 'Products', 5], ['content', 'On the pages', 6]];
 
   function render() {
     const q = norm(input.value.trim());
@@ -326,7 +569,12 @@
         .filter(x => x && !recent.includes(x));
       blocks.push(['Jump to', quick]);
     } else {
-      const scored = index.map(x => [x, score(x, q)]).filter(([, s]) => s > 0);
+      // Page text that just repeats a service, client or product row is left to that row.
+      const dataNames = new Set(dataItems.map(x => norm(x.t)));
+      const pool = index.concat(dataItems, contentItems().filter(x => !dataNames.has(norm(x.t))));
+      let scored = pool.map(x => [x, score(x, q)]).filter(([, s]) => s > 0);
+      // Nothing close: loosen up and offer the nearest, rather than a dead end.
+      if (!scored.length) scored = pool.map(x => [x, score(x, q, true)]).filter(([, s]) => s > 0);
       GROUPS.forEach(([kind, label, max]) => {
         const hits = scored.filter(([x]) => x.kind === kind).sort((a, b) => b[1] - a[1]).slice(0, max).map(([x]) => x);
         if (hits.length) blocks.push([label, hits, Math.max(...scored.filter(([x]) => x.kind === kind).map(([, s]) => s))]);
@@ -345,7 +593,12 @@
       });
     });
     if (!shown.length) {
-      html = `<div class="gs-empty">Nothing matches “${esc(input.value.trim())}”. Try a page, a name or a branch.</div>`;
+      // Still somewhere to go: the main pages under the message.
+      html = `<div class="gs-empty">Nothing matches “${esc(input.value.trim())}”. Search covers every page, the team and the org chart, branches, periods, services, clients and products.</div>`;
+      const quick = ['dashboard', 'branchperf', 'team', 'stylists', 'orgchart']
+        .map(v => index.find(x => x.kind === 'page' && x.view === v)).filter(Boolean);
+      if (quick.length) html += '<div class="gs-grp" role="presentation">Jump to</div>'
+        + quick.map(item => rowHtml(item, shown.push(item) - 1, '')).join('');
     }
     list.innerHTML = html;
     cur = 0;
@@ -361,6 +614,8 @@
         : `<span class="gs-ico">${init}</span>`;
     } else if (item.kind === 'branch') {
       ico = `<span class="gs-ico"><i style="background:${esc(item.colour || 'var(--muted)')}"></i></span>`;
+    } else if (item.kind === 'content' || item.kind === 'service' || item.kind === 'client' || item.kind === 'product') {
+      ico = `<span class="gs-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>`;
     } else if (item.kind === 'period') {
       ico = `<span class="gs-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>`;
     } else {
