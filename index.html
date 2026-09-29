@@ -1792,7 +1792,10 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .slv-top.stuck .slv-intro p{display:none}
 .slv-top .slv-ladder{margin:0}
 .slv-intro{margin:22px 0 14px}
-.slv-intro h2{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:30px;margin:0 0 6px;color:var(--text)}
+/* Brand serif (Kate, 29 Sep 2026): these asked for Cormorant Garamond, which the dashboard
+   never loads, so Stylist Levels (and the 13-Week Report, which borrows these) fell back to
+   Times. Playfair Display is the TRS heading face (trs-brand-guardian) and is loaded. */
+.slv-intro h2{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;margin:0 0 6px;color:var(--text);letter-spacing:.005em}
 .slv-intro p{margin:0;max-width:640px;color:var(--muted);font-size:15px;line-height:1.5}
 .slv-ladder{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
 .slv-ladder button{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:14px;padding:8px 14px 8px 8px;
@@ -1802,7 +1805,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .slv-ladder button.on .slv-step{background:var(--bg);color:var(--text)}
 .slv-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:20px}
 .slv-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 20px;margin-bottom:12px}
-.slv-head h3{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:26px;margin:2px 0 0;color:var(--text)}
+.slv-head h3{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:26px;margin:2px 0 0;color:var(--text);letter-spacing:.005em}
 .slv-head p{margin:0;color:var(--muted);font-size:14px}
 .slv-eyebrow{font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 .slv-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -1845,10 +1848,6 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .w13-card{align-items:stretch}
 .w13-card .w13-card-val,.w13-card>.slv-note{text-align:center}
 .w13-card-name{font-family:'Playfair Display',Georgia,serif;font-size:18px;font-weight:600;line-height:1.2;letter-spacing:.01em;color:var(--text)}
-/* Brand type on this page (Kate, 29 Sep 2026): Playfair Display for the title and her
-   name, as trs-brand-guardian sets it. The Stylist Levels classes it borrows ask for
-   Cormorant Garamond, which the dashboard never loads, so it fell back to Times. */
-#staffWeeksContent .slv-intro h2,#staffWeeksContent .slv-head h3{font-family:'Playfair Display',Georgia,serif;font-weight:500;letter-spacing:.005em}
 .w13-card-val{font-size:20px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
 .w13-spark{width:100%;height:34px;margin-top:8px}
 .w13-spark rect{fill:var(--border)}
