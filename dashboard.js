@@ -115,6 +115,7 @@ function toggleTheme() {
   // only, no data reload: nothing about the figures changed.
   if (typeof bpRedrawForTheme === 'function') bpRedrawForTheme();
   if (typeof cmpRedrawForTheme === 'function') cmpRedrawForTheme();
+  if (typeof w13RedrawForTheme === 'function') w13RedrawForTheme();
 }
 // Google Reviews iframe: send it the theme (it has no toggle of its own) and size
 // it to its content so the dashboard page is the only scrollbar. postMessage, not
@@ -906,7 +907,7 @@ function heroPeriodPhrasing() {
 // so it stays correct no matter which of renderDashboard()'s early-return
 // paths (loading/empty/error) last touched #mainContent.
 const VIEW_SECTION_LABELS = {
-  dashboard: 'Organisation Pulse', team: 'Podium Race', teamquad: 'Takings vs Rebooking', staffperf: 'Staff Benchmarks', stafflevels: 'Stylist Levels', stylists: 'Staff Cards',
+  dashboard: 'Organisation Pulse', team: 'Podium Race', teamquad: 'Takings vs Rebooking', staffperf: 'Staff Benchmarks', stafflevels: 'Stylist Levels', staffweeks: '13-Week Report', stylists: 'Staff Cards',
   orgchart: 'Org Chart',
   services: 'Service Rankings', clients: 'Top Clients', products: 'Products', reviews: 'Google Reviews',
   branchperf: 'Branch Performance',
@@ -923,7 +924,7 @@ const VIEW_SECTION_LABELS = {
 // 'khalifa' and 'saadiyat', which have not existed for months.
 const ALL_VIEWS = [
   'dashboard','branchperf','compare','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
-  'team','teamquad','staffperf','stafflevels','stylists','orgchart','services','clients','products','reviews','calendar','giveaway','trk',
+  'team','teamquad','staffperf','staffweeks','stafflevels','stylists','orgchart','services','clients','products','reviews','calendar','giveaway','trk',
 ];
 
 // Which pages read the shared branch + period filters. Everything that shows a

@@ -407,7 +407,8 @@ async function renderStylist() {
       `<br>With retail: ${fmt(n.avg_bill_retail, 'aed')}`),
     isHair ? tile('treatments_pct', 'Treatment %', d, pace) : tile('request_pct', 'Request rate', d, pace),
     tile('retail_pct', 'Retail %', d, pace),
-    tile('rebooking_pct', 'Rebooking %', d, pace),
+    // Emma, 29 Sep 2026: the count under the rate, "10 of 20 clients rebooked".
+    tile('rebooking_pct', 'Rebooking %', d, pace, n.clients > 0 ? `<br>${fmt(n.rebooked, 'num')} of ${fmt(n.clients, 'num')} clients rebooked` : ''),
     tile('clients', 'Total clients', d, pace),
     tile('column_fill_pct', 'Column fill', d, pace, `<br>${fmt(n.booked_hours, 'num')} of ${fmt(n.available_hours, 'num')} hours booked`),
   ].join('');
