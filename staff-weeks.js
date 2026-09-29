@@ -10,6 +10,10 @@
 // 48-name dropdown; tap a card for her report, "All stylists" goes back.
 let w13Data = null;       // last perf_weeks reply for one stylist
 let w13Team = null;       // perf_weeks reply with no stylist: the grid
+// Fixed cycles (Emma, 29 Sep 2026): Week 1 is the first week of January and the year is
+// Weeks 1-13, 14-26, 27-39, 40-52. null = the default, the cycle holding the last
+// complete week; otherwise the Monday the picked cycle starts on.
+let w13Start = null;
 let w13Chart = null;
 let w13Pick = null;       // null = the grid
 let w13Dept = 'all';
@@ -44,7 +48,23 @@ const w13Day = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day:
 const w13DayEnd = d => { const x = new Date(d + 'T00:00:00'); x.setDate(x.getDate() + 6); return x.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); };
 // Kate, 29 Sep 2026: weeks read as Week 01 to Week 13, with the dates they cover under
 // the number, on the chart and in the table alike.
-const w13Wk = i => 'Week ' + String(i + 1).padStart(2, '0');
+// The year's own week number, Week 1 being the first week of January.
+const w13Wk = no => 'Week ' + String(no).padStart(2, '0');
+const w13CycleName = c => `Weeks ${c.week_first}–${c.week_last}, ${c.year}`;
+// The cycle picker, shared by the grid and her report. A <select> dressed as the
+// Staff Benchmarks pill; the dates of each cycle ride in the option text.
+function w13CyclePick(d) {
+  const cur = d.cycle.from;
+  return `<span class="spf-dd"><select id="w13Cycle" aria-label="Cycle" onchange="w13SetCycle(this.value)">
+    ${(d.cycles || []).map(c => `<option value="${w13Esc(c.start)}"${c.from === cur ? ' selected' : ''}>${w13Esc(w13CycleName(c))} · ${w13Esc(w13Day(c.from))} – ${w13Esc(w13Day(c.to))}</option>`).join('')}
+  </select></span>`;
+}
+function w13SetCycle(start) {
+  const latest = (w13Team || w13Data || {}).cycles;
+  w13Start = (latest && latest[0] && latest[0].start === start) ? null : start;
+  w13Team = null; w13Data = null;
+  renderStaffWeeks();
+}
 // "6–12 Jul" inside one month, "27 Jul – 2 Aug" across two, so the chart labels stay short.
 const w13Range = d => {
   const a = w13Day(d), b = w13DayEnd(d), am = a.split(' ')[1], bm = b.split(' ')[1];
@@ -59,7 +79,7 @@ function w13Rebook(rebooked, clients) {
 }
 
 async function w13Load(staffId) {
-  const { data, error } = await sb.rpc('perf_weeks', { p_admin: typeof spfGet === 'function' ? spfGet() : null, p_staff_id: staffId || null });
+  const { data, error } = await sb.rpc('perf_weeks', { p_admin: typeof spfGet === 'function' ? spfGet() : null, p_staff_id: staffId || null, p_start: w13Start });
   if (error || !data) throw error || new Error('no data');
   return data;
 }
@@ -115,7 +135,7 @@ async function renderStaffWeeks() {
     const n = w.numbers;
     const fill = n.available_hours > 0 ? Math.round(100 * n.booked_hours / n.available_hours) + '%' : '–';
     return `<tr${n.total_revenue > 0 || n.clients > 0 ? '' : ' class="w13-off"'}>
-      <td><b>${w13Wk(i)}</b><div class="slv-note">${w13Esc(w13Range(w.week_start))}</div></td>
+      <td><b>${w13Wk(w.week_no)}</b><div class="slv-note">${w13Esc(w13Range(w.week_start))}</div></td>
       <td>${w13Num(n.total_revenue)}</td><td>${w13Num(n.clients)}</td>
       <td class="slv-aim">${w13Rebook(n.rebooked, n.clients)}</td>
       <td>${w13Num(n.avg_bill)}</td><td>${w13Num(n.retail)}</td><td>${fill}</td></tr>`;
@@ -123,7 +143,7 @@ async function renderStaffWeeks() {
   const totFill = tot.ah > 0 ? Math.round(100 * tot.uh / tot.ah) + '%' : '–';
   const curRow = curWk ? (() => {
     const n = curWk.numbers, fill = n.available_hours > 0 ? Math.round(100 * n.booked_hours / n.available_hours) + '%' : '–';
-    return `<tr class="w13-cur"><td><b>This week</b> <span class="slv-note" style="display:inline">so far</span><div class="slv-note">${curWk.week_start === d.data_through ? w13Esc(w13Day(d.data_through)) : `${w13Esc(w13Day(curWk.week_start))} to ${w13Esc(w13Day(d.data_through))}`}</div></td>
+    return `<tr class="w13-cur"><td><b>${w13Wk(curWk.week_no)}</b> <span class="slv-note" style="display:inline">so far</span><div class="slv-note">${curWk.week_start === d.data_through ? w13Esc(w13Day(d.data_through)) : `${w13Esc(w13Day(curWk.week_start))} to ${w13Esc(w13Day(d.data_through))}`}</div></td>
       <td>${w13Num(n.total_revenue)}</td><td>${w13Num(n.clients)}</td><td class="slv-aim">${w13Rebook(n.rebooked, n.clients)}</td>
       <td>${w13Num(n.avg_bill)}</td><td>${w13Num(n.retail)}</td><td>${fill}</td></tr>`;
   })() : '';
@@ -131,13 +151,16 @@ async function renderStaffWeeks() {
   el.innerHTML = `
     <section class="slv-intro">
       <h2>13-Week Report</h2>
-      <p>The last thirteen complete weeks, Monday to Sunday, so you can see the run of the quarter and not just one month, with this week so far on the end. Sales are services before VAT, retail not included.</p>
+      <p>Thirteen-week cycles, Monday to Sunday, counted from the first week of January: Weeks 1–13, 14–26, 27–39 and 40–52. Only complete weeks count in the totals; the week still being traded shows on the end as "so far". Sales are services before VAT, retail not included.</p>
     </section>
-    <button type="button" class="sc-btn" style="margin-bottom:14px" onclick="w13Set(null)">← All stylists</button>
+    <div class="sc-bar w13-bar" style="margin-bottom:14px">
+      <button type="button" class="sc-btn" onclick="w13Set(null)">← All stylists</button>
+      ${w13CyclePick(d)}
+    </div>
     <section class="slv-card">
       <div class="slv-head">
         <div class="w13-who">${ph ? `<img class="w13-hero" src="${ph}" alt="" onerror="this.remove()">` : ''}<div><div class="slv-eyebrow">${w13Esc(s.level || s.dept)} · ${w13Esc(W13_BRANCH[s.branch] || s.branch)}</div><h3>${w13Esc(s.name)}</h3></div></div>
-        <p>${w13Esc(w13Day(weeks[0].week_start))} to ${w13Esc(w13Day(d.to))} · ${worked} of ${weeks.length} weeks with clients</p>
+        <p>${w13Esc(w13CycleName(d.cycle))} · ${w13Esc(w13Day(d.cycle.from))} to ${w13Esc(w13Day(d.to))} · ${worked} of ${weeks.length} weeks with clients${weeks.length < 13 ? ` (${weeks.length} complete so far)` : ''}</p>
       </div>
       ${(d.branches || []).length > 1 ? `<div class="w13-branches"><span class="slv-eyebrow">Worked at</span> ${d.branches.map(x =>
         `<span class="w13-br"><b>${w13Esc(W13_BRANCH[x.branch] || x.branch)}</b> ${w13Aed(x.sales)} · ${w13Num(x.clients)} clients</span>`).join('')}<div class="slv-note">Every branch is counted in the totals below, including cover days away from ${w13Esc(W13_BRANCH[s.branch] || s.branch)}.</div></div>` : ''}
@@ -158,13 +181,14 @@ async function renderStaffWeeks() {
       <div class="slv-wrap" style="margin-top:14px"><table class="slv-table w13-table">
         <thead><tr><th>Week</th><th>Sales (AED)</th><th>Clients</th><th>Rebooked</th><th>Avg bill</th><th>Retail</th><th>Column fill</th></tr></thead>
         <tbody>${rows}
-          <tr class="w13-tot"><td>13 weeks</td><td>${w13Num(tot.sales)}</td><td>${w13Num(tot.clients)}</td><td class="slv-aim">${w13Rebook(tot.rebooked, tot.clients)}</td>
+          <tr class="w13-tot"><td>${w13Esc(`Weeks ${d.cycle.week_first}–${weeks.length ? weeks[weeks.length - 1].week_no : d.cycle.week_last}`)}</td><td>${w13Num(tot.sales)}</td><td>${w13Num(tot.clients)}</td><td class="slv-aim">${w13Rebook(tot.rebooked, tot.clients)}</td>
             <td>${tot.clients ? w13Num(tot.sales / tot.clients) : '–'}</td><td>${w13Num(tot.retail)}</td><td>${totFill}</td></tr>
           ${curRow}
         </tbody>
       </table></div>
-      <p class="slv-muted">Sales to ${w13Esc(w13Day(d.data_through))}. The 13-week totals are the complete weeks only; this week joins them once Sunday closes. Weeks with no clients stay in as zeros so the gaps show (leave, days off, or a week not uploaded yet).</p>
+      <p class="slv-muted">Sales to ${w13Esc(w13Day(d.data_through))}. The totals are the complete weeks only; the week still being traded joins them once Sunday closes. Weeks with no clients stay in as zeros so the gaps show (leave, days off, or a week not uploaded yet).</p>
     </section>`;
+  if (typeof spfDD === 'function') spfDD(document.getElementById('w13Cycle'));
   w13Draw();
 }
 
@@ -196,13 +220,14 @@ async function w13RenderTeam(el) {
   el.innerHTML = `
     <section class="slv-intro">
       <h2>13-Week Report</h2>
-      <p>Everyone's last thirteen complete weeks, ${w13Esc(w13Day(t.from))} to ${w13Esc(w13Day(t.to))}. The small bars are her sales week by week, with this week so far as the paler one on the end. Tap a stylist for her full report.</p>
+      <p>Everyone's ${w13Esc(w13CycleName(t.cycle))}, ${w13Esc(w13Day(t.cycle.from))} to ${w13Esc(w13Day(t.to))}. Cycles run from the first week of January: Weeks 1–13, 14–26, 27–39, 40–52. The small bars are her sales week by week${t.current_week_no ? `, with Week ${t.current_week_no} so far as the paler one on the end` : ''}. Tap a stylist for her full report.</p>
     </section>
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Team">
         ${[['all', 'All'], ['Hair', 'Hair'], ['Beauty', 'Beauty']].map(([k, l]) =>
           `<button type="button" class="${w13Dept === k ? 'on' : ''}" onclick="w13SetDept('${k}')">${l}</button>`).join('')}
       </div>
+      ${w13CyclePick(t)}
       <span class="spf-dd"><select id="w13Sort" aria-label="Sort by" onchange="w13SetSort(this.value, false)">
         ${Object.entries(W13_SORTS).map(([k, v]) => `<option value="${k}"${k === w13Sort ? ' selected' : ''}>Sort: ${v.label}</option>`).join('')}
       </select></span>
@@ -210,7 +235,7 @@ async function w13RenderTeam(el) {
     </div>
     ${w13Body(list, flip, byTakings, grid, head)}
     <p class="slv-muted">Sales are services before VAT, retail not included. A grey bar is a week with no sales (leave, days off, or not uploaded yet).</p>`;
-  if (typeof spfDD === 'function') spfDD(document.getElementById('w13Sort'));
+  if (typeof spfDD === 'function') { spfDD(document.getElementById('w13Sort')); spfDD(document.getElementById('w13Cycle')); }
 }
 // Branch and Position keep headed groups (busiest first inside each); the rest are
 // one flat grid with the branch on each card. Same rules as Staff Benchmarks.
@@ -248,7 +273,7 @@ function w13Draw() {
   const daily = w13Mode === 'day' && (w13Data.days || []).length;
   const rows = daily
     ? w13Data.days.map(x => ({ label: w13Day(x.date), sales: x.total_revenue, clients: x.clients }))
-    : w13Data.weeks.map((w, i) => ({ label: w.current ? ['This week', 'so far'] : [w13Wk(i), w13Range(w.week_start)], cur: !!w.current, sales: w.numbers.total_revenue, clients: w.numbers.clients }));
+    : w13Data.weeks.map((w, i) => ({ label: w.current ? [w13Wk(w.week_no), 'so far'] : [w13Wk(w.week_no), w13Range(w.week_start)], cur: !!w.current, sales: w.numbers.total_revenue, clients: w.numbers.clients }));
   // Same colours as her Staff Benchmarks chart: hair violet bars and a green line,
   // beauty pink bars and a deep violet line (Kate, 29 Sep 2026).
   const pal = (w13Data.staff && w13Data.staff.dept === 'Beauty') ? { bar: '#F9A8D4', line: '#6D28D9' } : { bar: '#C4B5FD', line: '#0F6E56' };
@@ -274,7 +299,7 @@ function w13Draw() {
         // A phone has room for all thirteen only as W01..W13; the tooltip and the table
         // below still give "Week 01" and its dates. Desktop shows both lines.
         x: { ticks: { color: muted, autoSkip: true, maxRotation: 0,
-               callback(v) { const l = this.getLabelForValue(v); return (!daily && Array.isArray(l) && this.chart.width < 560) ? (l[0] === 'This week' ? 'Now' : 'W' + l[0].slice(5)) : l; } },
+               callback(v) { const l = this.getLabelForValue(v); return (!daily && Array.isArray(l) && this.chart.width < 560) ? ('W' + l[0].slice(5)) : l; } },
              grid: { display: false } },
       },
     },
