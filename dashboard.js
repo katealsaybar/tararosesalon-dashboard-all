@@ -129,6 +129,12 @@ function postReviewsTheme() {
   const wv = document.getElementById('wvperfFrame');
   if (wv && wv.contentWindow) wv.contentWindow.postMessage({ type: 'trs-theme', theme: document.documentElement.getAttribute('data-theme') }, location.origin);
 }
+// Wellness Voucher Performance reports its own height after each draw (same origin).
+window.addEventListener('message', e => {
+  const w = document.getElementById('wvperfFrame');
+  if (!w || e.source !== w.contentWindow || e.origin !== location.origin || !e.data) return;
+  if (e.data.type === 'trs-wvperf-height' && e.data.h > 0) w.style.height = e.data.h + 'px';
+});
 window.addEventListener('message', e => {
   const f = document.getElementById('reviewsFrame');
   if (!f || e.source !== f.contentWindow || !e.data) return;

@@ -11,7 +11,8 @@
 <!-- Wellness Voucher Performance (Kate, 29 Sep 2026). Sample B from
      Downloads/wellness-voucher-performance-samples, on live data. It sits behind the same
      sign-in as the log and till, because voucher_log has no anon grant
-     (sql/voucher_lockdown.sql), but it never selects a client name or contact. The whole page
+     (sql/voucher_lockdown.sql). Nothing on screen shows a client name or contact; only
+     "Save as xlsx" fetches names, on click, to match the log's own export. The whole page
      is read-only. Embedded in the dashboard under CAMPAIGNS, and it opens on its own too. -->
 <style>
 :root{
@@ -44,6 +45,8 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5}
 .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 56px}
+/* Inside the dashboard the frame is sized to this page, so the bottom gap is the dashboard's. */
+html.embedded .wrap{padding-bottom:4px}
 h1{font-family:var(--serif);font-weight:600;font-size:28px;margin:0;letter-spacing:-.01em}
 h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:0 0 2px}
 .sub{color:var(--muted);font-size:13px;margin:2px 0 0}
@@ -111,6 +114,7 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
     </div>
     <div class="toplinks">
       <button class="btn" id="refresh" type="button">Refresh</button>
+      <button class="btn" id="exportxlsx" type="button">Save as xlsx</button>
       <a class="btn" href="../voucher-log/" target="_blank" rel="noopener">Open the full log</a>
     </div>
   </div>
@@ -190,6 +194,7 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
 <div class="tip" id="tip"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="../auth/supabase-client.js"></script>
 <script src="../shared/signin-gate.js"></script>
 <script>
@@ -204,6 +209,7 @@ var PAY = [['Stripe','var(--c1)'],['Salon Payment','var(--c2)'],['Tabby','var(--
 
 /* ---------- theme: follow the dashboard when embedded ---------- */
 function setTheme(t){ if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); }
+if (window.parent !== window) document.documentElement.classList.add('embedded');
 try { if (window.parent !== window) setTheme(window.parent.document.documentElement.getAttribute('data-theme')); } catch (e) {}
 window.addEventListener('message', function(e){
   if (e.origin !== location.origin || !e.data || e.data.type !== 'trs-theme') return;
@@ -262,6 +268,7 @@ function load(){
     .catch(function(err){
       el('report').style.display = 'none'; el('state').style.display = '';
       el('state').innerHTML = 'Could not read the voucher log. <span class="cap">' + esc(err.message || err) + '</span>';
+      tellHeight();
     });
 }
 
@@ -273,6 +280,7 @@ function render(){
     el('report').style.display = 'none'; el('state').style.display = '';
     el('state').textContent = 'No live vouchers yet. This fills in as reception issues them.';
     el('asof').textContent = 'Updated ' + DATA.at.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    tellHeight();
     return;
   }
   el('state').style.display = 'none'; el('report').style.display = 'block';
@@ -475,9 +483,95 @@ function drawRed(){
   host.innerHTML = s + '</svg>';
   hover(host, 'rect[data-i]', function(i){ var x = weeks[i]; return '<b>Week of ' + fmtD(x.w) + '</b><br>' + aed(x.amt) + ' spent · ' + x.n + (x.n === 1 ? ' line' : ' lines'); });
 }
-function drawAll(){ if (!DATA || !DATA.live.length) return; drawCum(); drawBranches(); drawPay(); drawRed(); }
+function drawAll(){ if (DATA && DATA.live.length){ drawCum(); drawBranches(); drawPay(); drawRed(); } tellHeight(); }
+/* Embedded in the dashboard, the frame is sized to this page: say how tall it is after every
+   draw, and whenever a "Show as table" opens or closes. */
+function tellHeight(){
+  if (window.parent === window) return;
+  requestAnimationFrame(function(){ try { window.parent.postMessage({ type:'trs-wvperf-height', h: document.body.scrollHeight }, location.origin); } catch (e) {} });
+}
+document.addEventListener('toggle', tellHeight, true);
 var rt; window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(drawAll, 120); });
 el('refresh').onclick = load;
+
+/* ---------- Save as xlsx (Kate, 29 Sep 2026, for the accounts team) ----------
+   The same columns and the same Redemptions sheet as the log's own "Save as xlsx", plus a
+   Summary sheet with this report's figures. The report never loads client names, so the
+   export fetches the full rows itself, on click only. Money goes out as numbers and dates
+   as real dates, so the sheet can be summed and filtered straight away. Every voucher is
+   in it, voided and archived included, with a Status column to filter on. */
+// Dates go out as Excel serial numbers built from the YYYY-MM-DD text, not as JS Dates:
+// SheetJS turns a Date through UTC, and at UTC+4 every local midnight lands on the day before.
+function xSerial(y, m, d){ return (Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / DAY; }
+function xDate(s){
+  if (!s) return '';
+  // A timestamp (created_at) is dated on the salon's clock, not UTC's.
+  if (String(s).length > 10){ var t = new Date(s); return { t:'n', v: xSerial(t.getFullYear(), t.getMonth()+1, t.getDate()), z:'dd mmm yyyy' }; }
+  var p = String(s).slice(0,10).split('-');
+  return { t:'n', v: xSerial(+p[0], +p[1], +p[2]), z:'dd mmm yyyy' };
+}
+function xNow(){
+  var n = new Date();
+  return { t:'n', v: xSerial(n.getFullYear(), n.getMonth()+1, n.getDate()) + (n.getHours()*3600 + n.getMinutes()*60) / 86400, z:'dd mmm yyyy hh:mm' };
+}
+function exportXlsx(){
+  var btn = el('exportxlsx'), d = window.TRS && window.TRS.db;
+  if (!d || typeof XLSX === 'undefined'){ alert('The export could not load. Reload the page and try again.'); return; }
+  btn.disabled = true; btn.textContent = 'Preparing…';
+  Promise.all([
+    d.from('voucher_log').select('*').limit(2000),
+    d.from('voucher_redemptions').select('*').order('redeemed_on', {ascending:true}).limit(10000)
+  ]).then(function(res){
+    if (res[0].error) throw res[0].error;
+    if (res[1].error) throw res[1].error;
+    var rows = (res[0].data || []).slice().sort(function(a, b){
+      return a.branch === b.branch ? (a.seq || 0) - (b.seq || 0) : (a.branch < b.branch ? -1 : 1);
+    });
+    var byId = {}; rows.forEach(function(r){ byId[r.id] = r; });
+
+    var log = [['Serial','Client','Status','Branch','Emirate','Voucher','Paid via','Paid (AED)','Credit (AED)','Spent (AED)','Remaining (AED)','Bought','Expires','Referral','Issued by','Logged']];
+    rows.forEach(function(r){
+      log.push([
+        r.main_serial, r.client_name || '', r.is_voided ? 'Voided' : r.is_archived ? 'Archived' : 'Live',
+        r.branch, r.emirate || '', r.tier_name || '', r.payment_method || '',
+        num(r.paid_aed), num(r.credit_aed), num(r.redeemed_aed), num(r.remaining_aed),
+        xDate(r.purchase_date), xDate(r.main_expires_on),
+        r.referral_earned ? 'Earned, AED ' + num(r.referral_aed) : (num(r.friends_so_far) + ' of ' + (r.friends_needed || 3)),
+        r.issued_by || '', xDate(r.created_at)
+      ]);
+    });
+
+    var red = [['Serial','Client','Branch','Date','Service','Amount (AED)','Stylist']];
+    (res[1].data || []).forEach(function(u){
+      var r = byId[u.issue_id]; if (!r) return;
+      red.push([r.main_serial, r.client_name || '', r.branch, xDate(u.redeemed_on), u.service || '', num(u.amount_aed), u.stylist || '']);
+    });
+
+    var sum = [['Wellness Voucher Performance', ''], ['Exported', xNow()], ['', '']];
+    if (M && M.byBr){
+      sum.push(['Cash collected (AED)', M.collected], ['Target (AED)', TARGET], ['Target date', xDate(iso(TARGET_DATE))],
+               ['Credit placed (AED)', M.placed], ['Redeemed (AED)', M.spent], ['Credit still open (AED)', M.placed - M.spent],
+               ['Live vouchers', DATA.live.length], ['', ''], ['Branch', 'Sold', 'Collected (AED)', 'Redeemed (AED)']);
+      M.byBr.forEach(function(b){ sum.push([b.name, b.units, b.paid, b.red]); });
+      sum.push(['', ''], ['Payment method', 'Vouchers', 'Collected (AED)']);
+      M.pay.forEach(function(p){ sum.push([p.name, p.n, p.amt]); });
+      sum.push(['', ''], ['Live vouchers only. Voided and archived are in the Voucher log sheet with their status.', '']);
+    }
+
+    var opts = {};
+    var wb = XLSX.utils.book_new();
+    var wsS = XLSX.utils.aoa_to_sheet(sum, opts); wsS['!cols'] = [{wch:30},{wch:14},{wch:16},{wch:16}];
+    var wsL = XLSX.utils.aoa_to_sheet(log, opts); wsL['!cols'] = log[0].map(function(h){ return {wch: Math.max(12, h.length + 2)}; }); wsL['!cols'][1] = {wch:24};
+    var wsR = XLSX.utils.aoa_to_sheet(red, opts); wsR['!cols'] = [{wch:20},{wch:24},{wch:8},{wch:12},{wch:36},{wch:13},{wch:16}];
+    XLSX.utils.book_append_sheet(wb, wsS, 'Summary');
+    XLSX.utils.book_append_sheet(wb, wsL, 'Voucher log');
+    XLSX.utils.book_append_sheet(wb, wsR, 'Redemptions');
+    XLSX.writeFile(wb, 'wellness-voucher-performance-' + iso(new Date()) + '.xlsx');
+  }).catch(function(err){
+    alert('Could not build the export: ' + (err.message || err));
+  }).then(function(){ btn.disabled = false; btn.textContent = 'Save as xlsx'; });
+}
+el('exportxlsx').onclick = exportXlsx;
 
 /* ---------- start: sign in first, same gate as the log ---------- */
 if (window.TRSGate){
