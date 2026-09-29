@@ -14,6 +14,29 @@ let w13Team = null;       // perf_weeks reply with no stylist: the grid
 // Weeks 1-13, 14-26, 27-39, 40-52. null = the default, the cycle holding the last
 // complete week; otherwise the Monday the picked cycle starts on.
 let w13Year = null;       // null = the year the latest complete week sits in
+// The address bar carries who is open (Kate, 29 Sep 2026), same slug as Staff
+// Benchmarks: ?view=staffweeks&staff=kate-siryk, plus &year= when it is not the
+// latest. Read once at load; trSyncUrl() in index.html writes it back.
+const w13SlugOf = n => String(n).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+let w13WantSlug = null;
+try {
+  const q = new URLSearchParams(location.search);
+  if (q.get('view') === 'staffweeks') {
+    w13WantSlug = q.get('staff') || null;
+    const y = parseInt(q.get('year'), 10);
+    if (y >= 2025 && y <= 2100) w13Year = y;
+  }
+} catch (e) { /* no address to read */ }
+// What trSyncUrl() adds for this page.
+function w13UrlParts() {
+  const parts = [];
+  const d = w13Pick ? w13Data : w13Team;
+  if (w13Pick && d && d.staff) parts.push('staff=' + w13SlugOf(d.staff.name));
+  else if (w13Pick && w13WantSlug) parts.push('staff=' + w13WantSlug);
+  if (w13Year) parts.push('year=' + w13Year);
+  return parts;
+}
+const w13Sync = () => { if (typeof trSyncUrl === 'function') trSyncUrl(null); };
 // One long list (Emma, 29 Sep 2026: "the point is seeing all together on one big
 // list"): every complete week of the year, Week 1 onwards, with the quarters as
 // subtotal rows inside it. perf_year_weeks (migrations/create_perf_year_weeks.sql).
@@ -117,14 +140,25 @@ function w13Spark(weekly, cur) {
 
 async function renderStaffWeeks() {
   const el = document.getElementById('staffWeeksContent');
-  if (!w13Pick) return w13RenderTeam(el);
+  // A link that names a stylist opens straight on her report.
+  if (!w13Pick && w13WantSlug) {
+    if (!w13Team) {
+      el.innerHTML = '<p class="slv-muted">Loading…</p>';
+      try { w13Team = await w13Load(null); } catch (e) { w13WantSlug = null; }
+    }
+    const hit = w13Team && w13Team.roster.find(r => w13SlugOf(r.name) === w13WantSlug);
+    w13WantSlug = null;
+    if (hit) w13Pick = hit.id;
+  }
+  if (!w13Pick) { await w13RenderTeam(el); w13Sync(); return; }
   if (!w13Data || !w13Data.staff || w13Data.staff.id !== w13Pick) {
     el.innerHTML = '<p class="slv-muted">Loading her 13 weeks…</p>';
     try { w13Data = await w13Load(w13Pick); }
     catch (e) { el.innerHTML = '<p class="slv-muted">The 13-week report didn\'t load. Refresh to try again.</p>'; return; }
   }
   const d = w13Data, s = d.staff;
-  if (!s) { w13Pick = null; return w13RenderTeam(el); }
+  if (!s) { w13Pick = null; await w13RenderTeam(el); w13Sync(); return; }
+  w13Sync();
 
   // Thirteen complete Mon-Sun weeks carry every total; the week still being traded
   // (current) is shown after them so its growth is visible, never added in.
