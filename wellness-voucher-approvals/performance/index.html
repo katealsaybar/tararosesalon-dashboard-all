@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wellness Voucher Performance</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
+<!-- Wellness Voucher Performance (Kate, 29 Sep 2026). Sample B from
+     Downloads/wellness-voucher-performance-samples, on live data. It sits behind the same
+     sign-in as the log and till, because voucher_log has no anon grant
+     (sql/voucher_lockdown.sql), but it never selects a client name or contact. The whole page
+     is read-only. Embedded in the dashboard under CAMPAIGNS, and it opens on its own too. -->
+<style>
+:root{
+  --bg:#FAF8F4; --paper:#FFFFFF; --ink:#2D2E37; --ink2:#4A4B55; --muted:#6E6E77;
+  --line:#E7E2D8; --grid:#EFEAE1; --sand:#F1ECE3;
+  --good:#3E7A5E; --good-bg:#E4F1EA; --warn:#B4823A; --warn-bg:#FBF3E2; --bad:#B24A4A; --bad-bg:#F7E9E9;
+  --series:#0F8A72; --target:#8C8C94;
+  /* One fixed categorical order for payment method and tier, checked with the dataviz
+     validator (light on white, dark on #1F2027). The dashboard's branch colours fail the
+     colour-blind check, so branch bars use the single series colour and carry their names. */
+  --c1:#0F8A72; --c2:#7C5CD4; --c3:#B87A1E;
+  --serif:'Playfair Display',Georgia,serif; --sans:'Inter',system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16171C; --paper:#1F2027; --ink:#F1EEE8; --ink2:#D2CFC9; --muted:#9C9CA5;
+    --line:#33343D; --grid:#2A2B33; --sand:#2A2B33;
+    --good:#7FC4A2; --good-bg:#1E3329; --warn:#E0B26A; --warn-bg:#3A2F1C; --bad:#E08A8A; --bad-bg:#3A2224;
+    --series:#99F6E4; --c1:#2FA58B; --c2:#8C74DE; --c3:#BD852D;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16171C; --paper:#1F2027; --ink:#F1EEE8; --ink2:#D2CFC9; --muted:#9C9CA5;
+  --line:#33343D; --grid:#2A2B33; --sand:#2A2B33;
+  --good:#7FC4A2; --good-bg:#1E3329; --warn:#E0B26A; --warn-bg:#3A2F1C; --bad:#E08A8A; --bad-bg:#3A2224;
+  --series:#99F6E4; --c1:#2FA58B; --c2:#8C74DE; --c3:#BD852D;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 56px}
+h1{font-family:var(--serif);font-weight:600;font-size:28px;margin:0;letter-spacing:-.01em}
+h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px;margin:2px 0 0}
+a{color:inherit}
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+.toplinks{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--paper);color:var(--ink2);font:600 13px var(--sans);padding:7px 14px;border-radius:999px;cursor:pointer;text-decoration:none}
+.btn:hover{color:var(--ink)}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid2 .card{margin-bottom:0}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.hero{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:center}
+@media (max-width:760px){.hero{grid-template-columns:1fr}}
+.big{font-family:var(--serif);font-size:44px;font-weight:600;line-height:1.05;letter-spacing:-.02em}
+.big small{font-family:var(--sans);font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0}
+.track{height:12px;background:var(--sand);border-radius:999px;overflow:hidden;margin:12px 0 6px}
+.fill{height:100%;background:var(--series);border-radius:999px}
+.cap{color:var(--muted);font-size:13px}
+.pace{border-left:1px solid var(--line);padding-left:24px}
+@media (max-width:760px){.pace{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}}
+.pace .row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;color:var(--ink2)}
+.pace .row b{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+.status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-weight:600;font-size:12px;margin-bottom:6px}
+.status.bad{background:var(--bad-bg);color:var(--bad)} .status.good{background:var(--good-bg);color:var(--good)} .status.warn{background:var(--warn-bg);color:var(--warn)}
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+@media (max-width:900px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.tile .l{color:var(--muted);font-size:12px;font-weight:500}
+.tile .v{font-family:var(--serif);font-size:24px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+.tile .h{color:var(--muted);font-size:12px}
+.chart{position:relative;margin-top:10px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.ax{fill:var(--muted);font-size:11px;font-family:var(--sans)}
+.gl{stroke:var(--grid);stroke-width:1}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink2);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.legend i.dash{height:0;border-top:2px dashed var(--target);border-radius:0;width:14px;vertical-align:3px}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;border-radius:8px;padding:7px 10px;white-space:nowrap;opacity:0;transition:opacity .1s;z-index:5}
+.tip b{font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--muted);font-weight:500;font-size:12px;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:7px 8px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums}
+td.n,th.n{text-align:right}
+tr.tot td{font-weight:600;border-bottom:0}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12px}
+.funnel{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+@media (max-width:560px){.funnel{grid-template-columns:1fr}}
+.funnel div{background:var(--sand);border-radius:10px;padding:10px 12px}
+.funnel .v{font-family:var(--serif);font-size:22px;font-weight:600}
+.funnel .l{font-size:12px;color:var(--muted)}
+.empty{color:var(--muted);font-size:13px;padding:8px 0}
+.state{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center;color:var(--muted)}
+.foot{color:var(--muted);font-size:12px;margin-top:18px}
+#report{display:none}
+</style>
+</head>
+<body data-auth-root="../">
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Wellness Voucher Performance</h1>
+      <p class="sub" id="asof">Loading…</p>
+    </div>
+    <div class="toplinks">
+      <button class="btn" id="refresh" type="button">Refresh</button>
+      <a class="btn" href="../voucher-log/" target="_blank" rel="noopener">Open the full log</a>
+    </div>
+  </div>
+
+  <div class="state" id="state">Loading the voucher log…</div>
+
+  <div id="report">
+  <!-- 1. The headline: are we going to hit the target? -->
+  <section class="card">
+    <div class="hero">
+      <div>
+        <div class="cap">Cash collected so far</div>
+        <div class="big" id="hCollected"></div>
+        <div class="track"><div class="fill" id="hFill"></div></div>
+        <div class="cap" id="hCap"></div>
+      </div>
+      <div class="pace" id="pace"></div>
+    </div>
+  </section>
+
+  <div class="tiles" id="tiles"></div>
+
+  <!-- 2. Running total vs the straight line to the target -->
+  <section class="card">
+    <h2>Collected vs the target line</h2>
+    <p class="sub" id="cumSub"></p>
+    <div class="chart" id="cumChart"></div>
+    <div class="legend"><span><i style="background:var(--series)"></i>Collected</span><span><i class="dash"></i>Target line</span></div>
+    <details><summary>Show as table</summary><div id="cumTable"></div></details>
+  </section>
+
+  <!-- 3. Branches -->
+  <section class="card">
+    <h2>By branch</h2>
+    <p class="sub">Cash collected per salon. Redeemed is counted against the branch that sold the voucher, since vouchers redeem UAE-wide.</p>
+    <div class="chart" id="brChart"></div>
+    <details><summary>Show as table</summary><div id="brTable"></div></details>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>By tier</h2>
+      <p class="sub">Units sold and cash collected per voucher type.</p>
+      <div id="tierTable"></div>
+    </section>
+    <section class="card">
+      <h2>How they paid</h2>
+      <p class="sub">Share of cash collected by payment method.</p>
+      <div class="chart" id="payChart"></div>
+      <div id="payLegend" class="legend"></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Referrals: new faces through the door</h2>
+    <p class="sub">Friends who came in on a voucher holder's Gift card, as logged on the voucher log. Three friends earn the holder AED 50 more credit.</p>
+    <div class="funnel" id="funnel"></div>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Redemptions per week</h2>
+      <p class="sub">Credit spent in the salon, by week (Monday start).</p>
+      <div class="chart" id="redChart"></div>
+      <details><summary>Show as table</summary><div id="redTable"></div></details>
+    </section>
+    <section class="card">
+      <h2>Credit left to use, by expiry month</h2>
+      <p class="sub">Unspent credit on live vouchers, by the month the voucher runs out. A reminder list for reception.</p>
+      <div id="expTable"></div>
+    </section>
+  </div>
+
+  <p class="foot">Cash collected is what the client paid (1,000 / 2,500 / 4,500). Credit is what the voucher is worth (1,150 / 3,000 / 5,400, plus 50 once three friends come in). Voided and archived vouchers are left out of everything. Redemptions come from the twice-daily Phorest sync plus anything added by hand on the log.</p>
+  </div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../auth/supabase-client.js"></script>
+<script src="../shared/signin-gate.js"></script>
+<script>
+(function(){
+/* Same target as voucher-log/index.html (CAMPAIGN_TARGET_AED / CAMPAIGN_TARGET_DATE). Change
+   both the day it changes. */
+var TARGET = 150000, TARGET_DATE = day('2026-10-31');
+var DAY = 86400000;
+var BR = [['SAA','Saadiyat'],['KCA','Khalifa City'],['MC','Motor City'],['AQ','Al Quoz']];
+var TIERS = [['D','Dip Your Toes'],['S','Season of You'],['V','All-In VIP Year']];
+var PAY = [['Stripe','var(--c1)'],['Salon Payment','var(--c2)'],['Tabby','var(--c3)']];
+
+/* ---------- theme: follow the dashboard when embedded ---------- */
+function setTheme(t){ if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); }
+try { if (window.parent !== window) setTheme(window.parent.document.documentElement.getAttribute('data-theme')); } catch (e) {}
+window.addEventListener('message', function(e){
+  if (e.origin !== location.origin || !e.data || e.data.type !== 'trs-theme') return;
+  setTheme(e.data.theme); if (DATA) drawAll();
+});
+
+/* ---------- helpers ---------- */
+function day(s){ return new Date(s + 'T00:00:00'); }
+function iso(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function num(v){ return Number(v) || 0; }
+function money(n){ return Math.round(n).toLocaleString('en-US'); }
+function aed(n){ return 'AED ' + money(n); }
+function pc(a, b){ return b ? Math.round(a / b * 100) + '%' : '0%'; }
+function fmtD(d){ return d.toLocaleDateString('en-GB', {day:'numeric', month:'short'}); }
+function el(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function niceMax(v){ if (v <= 0) return 1; var p = Math.pow(10, Math.floor(Math.log10(v))); var m = v / p; return (m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; }
+function kfmt(v){ return v >= 1000 ? (v/1000) + 'k' : String(v); }
+var tip = el('tip');
+function showTip(host, html, x, y){
+  tip.innerHTML = html; tip.style.opacity = 1;
+  var r = host.getBoundingClientRect(), tw = tip.offsetWidth;
+  var left = r.left + window.scrollX + x + 12;
+  if (left + tw > window.scrollX + document.documentElement.clientWidth - 8) left = r.left + window.scrollX + x - tw - 12;
+  tip.style.left = Math.max(8, left) + 'px'; tip.style.top = (r.top + window.scrollY + y - 10) + 'px';
+}
+function hideTip(){ tip.style.opacity = 0; }
+function hover(host, sel, fn){
+  host.querySelectorAll(sel).forEach(function(h){
+    h.addEventListener('mousemove', function(e){ var r = host.getBoundingClientRect(); showTip(host, fn(+h.dataset.i), e.clientX - r.left, e.clientY - r.top); });
+    h.addEventListener('mouseleave', hideTip);
+  });
+}
+
+/* ---------- load ---------- */
+var DATA = null;
+function load(){
+  var d = window.TRS && window.TRS.db;
+  el('state').style.display = ''; el('state').textContent = 'Loading the voucher log…';
+  // Only the columns the report uses. No client_name, no client_contact.
+  return d.from('voucher_log')
+    .select('id,branch,tier,paid_aed,credit_aed,redeemed_aed,remaining_aed,payment_method,purchase_date,main_expires_on,friends_so_far,referral_earned,is_voided,is_archived')
+    .limit(2000)
+    .then(function(res){
+      if (res.error) throw res.error;
+      var live = (res.data || []).filter(function(r){ return !r.is_voided && !r.is_archived; });
+      var ids = {}; live.forEach(function(r){ ids[r.id] = r; });
+      return d.from('voucher_redemptions').select('issue_id,redeemed_on,amount_aed').limit(10000)
+        .then(function(r2){
+          if (r2.error) throw r2.error;
+          var reds = (r2.data || []).filter(function(u){ return ids[u.issue_id]; });
+          DATA = { live: live, reds: reds, byId: ids, at: new Date() };
+          render();
+        });
+    })
+    .catch(function(err){
+      el('report').style.display = 'none'; el('state').style.display = '';
+      el('state').innerHTML = 'Could not read the voucher log. <span class="cap">' + esc(err.message || err) + '</span>';
+    });
+}
+
+/* ---------- render ---------- */
+var M = {};
+function render(){
+  var live = DATA.live, reds = DATA.reds;
+  if (!live.length){
+    el('report').style.display = 'none'; el('state').style.display = '';
+    el('state').textContent = 'No live vouchers yet. This fills in as reception issues them.';
+    el('asof').textContent = 'Updated ' + DATA.at.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    return;
+  }
+  el('state').style.display = 'none'; el('report').style.display = 'block';
+
+  var today = day(iso(new Date()));
+  var launch = live.reduce(function(a, r){ var p = day(r.purchase_date); return p < a ? p : a; }, today);
+  var collected = live.reduce(function(a, r){ return a + num(r.paid_aed); }, 0);
+  var placed = live.reduce(function(a, r){ return a + num(r.credit_aed); }, 0);
+  var spent = live.reduce(function(a, r){ return a + num(r.redeemed_aed); }, 0);
+  var daysIn = Math.round((today - launch) / DAY) + 1;
+  var daysLeft = Math.max(0, Math.round((TARGET_DATE - today) / DAY));
+  var perDay = collected / daysIn;
+  var still = Math.max(0, TARGET - collected);
+  // Today counts as a day still to sell, so "needed a day" divides by the days left including it.
+  var needDay = still / Math.max(1, daysLeft + 1);
+  var projected = collected + perDay * (daysLeft + 1);
+  M = { today: today, launch: launch, collected: collected, placed: placed, spent: spent };
+
+  el('asof').textContent = 'As of ' + DATA.at.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'}) +
+    ', ' + DATA.at.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) + ' · first sale ' + fmtD(launch) + ', day ' + daysIn;
+  el('hCollected').innerHTML = aed(collected) + ' <small>of ' + aed(TARGET) + '</small>';
+  el('hFill').style.width = Math.min(100, collected / TARGET * 100) + '%';
+  el('hCap').textContent = pc(collected, TARGET) + ' of the target · ' + daysLeft + (daysLeft === 1 ? ' day' : ' days') + ' left to ' + fmtD(TARGET_DATE);
+
+  var st = collected >= TARGET ? ['good','&#10003;','Target reached']
+         : projected >= TARGET ? ['good','&#10003;','On pace']
+         : projected >= TARGET * .85 ? ['warn','!','Slightly behind'] : ['bad','&#9660;','Behind pace'];
+  el('pace').innerHTML =
+    '<div class="status ' + st[0] + '"><span aria-hidden="true">' + st[1] + '</span>' + st[2] + '</div>' +
+    '<div class="row"><span>Averaging so far</span><b>' + aed(perDay) + ' a day</b></div>' +
+    '<div class="row"><span>Needed from today to hit ' + kfmt(TARGET) + '</span><b>' + aed(needDay) + ' a day</b></div>' +
+    '<div class="row"><span>Where the current pace lands on ' + fmtD(TARGET_DATE) + '</span><b>' + aed(projected) + '</b></div>' +
+    '<div class="row"><span>Still to collect</span><b>' + aed(still) + '</b></div>';
+
+  el('tiles').innerHTML = [
+    ['Vouchers sold', live.length, 'live, not voided or archived'],
+    ['Cash collected', aed(collected), 'what clients paid'],
+    ['Credit placed', aed(placed), 'what we owe in services'],
+    ['Redeemed so far', aed(spent), pc(spent, placed) + ' of credit used'],
+    ['Credit still open', aed(placed - spent), 'services still to deliver']
+  ].map(function(t){ return '<div class="tile"><div class="l">' + t[0] + '</div><div class="v">' + t[1] + '</div><div class="h">' + t[2] + '</div></div>'; }).join('');
+  el('cumSub').textContent = 'Running total of cash collected by purchase date, against a straight line from the first sale to ' + aed(TARGET) + ' on ' + fmtD(TARGET_DATE) + '.';
+
+  /* branches */
+  M.byBr = BR.map(function(b){
+    var vs = live.filter(function(r){ return r.branch === b[0]; });
+    return { name:b[1], units:vs.length, paid:vs.reduce(function(a,r){ return a + num(r.paid_aed); }, 0),
+             red:vs.reduce(function(a,r){ return a + num(r.redeemed_aed); }, 0) };
+  });
+  el('brTable').innerHTML = '<table><thead><tr><th>Branch</th><th class="n">Sold</th><th class="n">Collected</th><th class="n">Share</th><th class="n">Redeemed</th></tr></thead><tbody>' +
+    M.byBr.map(function(r){ return '<tr><td>' + r.name + '</td><td class="n">' + r.units + '</td><td class="n">' + aed(r.paid) + '</td><td class="n">' + pc(r.paid, collected) + '</td><td class="n">' + aed(r.red) + '</td></tr>'; }).join('') +
+    '<tr class="tot"><td>Total</td><td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td class="n">100%</td><td class="n">' + aed(spent) + '</td></tr></tbody></table>';
+
+  /* tiers */
+  el('tierTable').innerHTML = '<table><thead><tr><th>Tier</th><th class="n">Sold</th><th class="n">Collected</th><th class="n">Share of cash</th></tr></thead><tbody>' +
+    TIERS.map(function(t, i){
+      var vs = live.filter(function(r){ return r.tier === t[0]; }), p = vs.reduce(function(a,r){ return a + num(r.paid_aed); }, 0);
+      return '<tr><td><span class="dot" style="background:var(--c' + (i+1) + ')"></span>' + t[1] + '</td><td class="n">' + vs.length + '</td><td class="n">' + aed(p) + '</td><td class="n">' + pc(p, collected) + '</td></tr>';
+    }).join('') +
+    '<tr class="tot"><td>Total</td><td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td class="n">100%</td></tr></tbody></table>';
+
+  /* payment methods; anything unrecorded gets its own grey slice rather than vanishing */
+  M.pay = PAY.map(function(p){ return { name:p[0], color:p[1], rows: live.filter(function(r){ return r.payment_method === p[0]; }) }; });
+  var none = live.filter(function(r){ return !PAY.some(function(p){ return p[0] === r.payment_method; }); });
+  if (none.length) M.pay.push({ name:'Not recorded', color:'var(--muted)', rows:none });
+  M.pay.forEach(function(p){ p.n = p.rows.length; p.amt = p.rows.reduce(function(a,r){ return a + num(r.paid_aed); }, 0); });
+  M.pay = M.pay.filter(function(p){ return p.n; });
+
+  /* referrals */
+  var friends = live.reduce(function(a,r){ return a + num(r.friends_so_far); }, 0);
+  var withFriend = live.filter(function(r){ return num(r.friends_so_far) > 0; }).length;
+  var earned = live.filter(function(r){ return r.referral_earned; }).length;
+  el('funnel').innerHTML =
+    '<div><div class="v">' + friends + '</div><div class="l">' + (friends === 1 ? 'friend has' : 'friends have') + ' come in on a Gift card</div></div>' +
+    '<div><div class="v">' + withFriend + ' of ' + live.length + '</div><div class="l">holders have brought at least one friend</div></div>' +
+    '<div><div class="v">' + earned + '</div><div class="l">' + (earned === 1 ? 'holder has' : 'holders have') + ' reached three and earned the AED 50</div></div>';
+
+  /* running total by day */
+  var byDay = {}; live.forEach(function(r){ byDay[r.purchase_date] = (byDay[r.purchase_date] || 0) + num(r.paid_aed); });
+  M.days = []; var run = 0;
+  for (var t = launch.getTime(); t <= today.getTime(); t += DAY){
+    var dd = new Date(t); dd = day(iso(dd)); var k = iso(dd); run += byDay[k] || 0;
+    M.days.push({ d:dd, v:run, add:byDay[k] || 0 });
+    t = dd.getTime();
+  }
+  el('cumTable').innerHTML = '<table><thead><tr><th>Date</th><th class="n">Sold that day</th><th class="n">Running total</th><th class="n">Target line</th></tr></thead><tbody>' +
+    M.days.filter(function(p){ return p.add; }).map(function(p){ return '<tr><td>' + fmtD(p.d) + '</td><td class="n">' + aed(p.add) + '</td><td class="n">' + aed(p.v) + '</td><td class="n">' + aed(targetAt(p.d)) + '</td></tr>'; }).join('') + '</tbody></table>';
+
+  /* redemptions per week, Monday start */
+  var start = new Date(launch); start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  M.weeks = [];
+  for (var w = new Date(start); w <= today; w = new Date(w.getFullYear(), w.getMonth(), w.getDate() + 7)){
+    var end = new Date(w.getFullYear(), w.getMonth(), w.getDate() + 7);
+    var rs = reds.filter(function(u){ var x = day(u.redeemed_on); return x >= w && x < end; });
+    M.weeks.push({ w:new Date(w), amt:rs.reduce(function(a,u){ return a + num(u.amount_aed); }, 0), n:rs.length });
+  }
+  el('redTable').innerHTML = '<table><thead><tr><th>Week of</th><th class="n">Lines</th><th class="n">Spent</th></tr></thead><tbody>' +
+    M.weeks.map(function(x){ return '<tr><td>' + fmtD(x.w) + '</td><td class="n">' + x.n + '</td><td class="n">' + aed(x.amt) + '</td></tr>'; }).join('') + '</tbody></table>';
+
+  /* credit left by expiry month */
+  var expBy = {};
+  live.forEach(function(r){
+    var left = num(r.remaining_aed); if (left <= 0 || !r.main_expires_on) return;
+    var k = r.main_expires_on.slice(0,7); expBy[k] = expBy[k] || {n:0, amt:0}; expBy[k].n++; expBy[k].amt += left;
+  });
+  var ks = Object.keys(expBy).sort();
+  el('expTable').innerHTML = ks.length ? '<table><thead><tr><th>Expires in</th><th class="n">Vouchers</th><th class="n">Credit left</th></tr></thead><tbody>' +
+    ks.map(function(k){ return '<tr><td>' + day(k + '-01').toLocaleDateString('en-GB',{month:'long', year:'numeric'}) + '</td><td class="n">' + expBy[k].n + '</td><td class="n">' + aed(expBy[k].amt) + '</td></tr>'; }).join('') + '</tbody></table>'
+    : '<div class="empty">Every live voucher is fully used.</div>';
+
+  drawAll();
+}
+function targetAt(d){ var a = M.launch.getTime(), b = TARGET_DATE.getTime(); return b > a ? TARGET * Math.min(1, Math.max(0, (d - a) / (b - a))) : TARGET; }
+
+/* ---------- charts ---------- */
+function drawCum(){
+  var host = el('cumChart'), W = Math.max(300, host.clientWidth), H = 260, L = 44, R = 12, T = 10, B = 26;
+  var days = M.days, x0 = M.launch.getTime(), x1 = Math.max(TARGET_DATE.getTime(), M.today.getTime()), ymax = niceMax(Math.max(TARGET, M.collected));
+  function X(d){ return L + (d - x0) / Math.max(1, x1 - x0) * (W - L - R); }
+  function Y(v){ return T + (1 - v / ymax) * (H - T - B); }
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Running total of cash collected against the target line">';
+  for (var g = 0; g <= ymax + 1; g += ymax/4) s += '<line class="gl" x1="' + L + '" x2="' + (W-R) + '" y1="' + Y(g) + '" y2="' + Y(g) + '"/><text class="ax" x="' + (L-8) + '" y="' + (Y(g)+4) + '" text-anchor="end">' + kfmt(g) + '</text>';
+  // Ticks: the first sale, the 1st and 15th of each month in between, and the target date.
+  var ticks = [new Date(x0)];
+  for (var m = new Date(M.launch.getFullYear(), M.launch.getMonth(), 1); m.getTime() < x1; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)){
+    [1, 15].forEach(function(dn){ var t = new Date(m.getFullYear(), m.getMonth(), dn); if (t.getTime() - x0 > 5*DAY && x1 - t.getTime() > 5*DAY) ticks.push(t); });
+  }
+  ticks.push(new Date(x1));
+  ticks.forEach(function(d, i){
+    var anc = i === ticks.length - 1 ? 'end' : i === 0 ? 'start' : 'middle';
+    s += '<text class="ax" x="' + X(d) + '" y="' + (H-6) + '" text-anchor="' + anc + '">' + fmtD(d) + '</text>';
+  });
+  s += '<line x1="' + X(x0) + '" y1="' + Y(0) + '" x2="' + X(TARGET_DATE.getTime()) + '" y2="' + Y(TARGET) + '" stroke="var(--target)" stroke-width="2" stroke-dasharray="5 5"/>';
+  s += '<text class="ax" x="' + (X(TARGET_DATE.getTime())-4) + '" y="' + (Y(TARGET)-8) + '" text-anchor="end">' + kfmt(TARGET) + ' target</text>';
+  var path = days.map(function(p,i){ return (i ? 'L' : 'M') + X(p.d).toFixed(1) + ' ' + Y(p.v).toFixed(1); }).join(' ');
+  var last = days[days.length-1];
+  s += '<path d="' + path + ' L' + X(last.d).toFixed(1) + ' ' + Y(0) + ' L' + X(x0) + ' ' + Y(0) + 'Z" fill="var(--series)" opacity=".10"/>';
+  s += '<path d="' + path + '" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round"/>';
+  s += '<circle cx="' + X(last.d) + '" cy="' + Y(last.v) + '" r="4.5" fill="var(--series)" stroke="var(--paper)" stroke-width="2"/>';
+  var lx = X(last.d), right = lx > W - 110;
+  s += '<text class="ax" x="' + (right ? lx - 8 : lx + 8) + '" y="' + (Y(last.v) + (right ? -10 : 4)) + '" text-anchor="' + (right ? 'end' : 'start') + '" style="fill:var(--ink);font-weight:600">' + aed(last.v) + '</text>';
+  s += '<line id="cx" x1="0" x2="0" y1="' + T + '" y2="' + (H-B) + '" stroke="var(--muted)" stroke-width="1" opacity="0"/><circle id="cd" r="4.5" fill="var(--series)" stroke="var(--paper)" stroke-width="2" opacity="0"/>';
+  s += '<rect x="' + L + '" y="' + T + '" width="' + (W-L-R) + '" height="' + (H-T-B) + '" fill="transparent" id="chit"/></svg>';
+  host.innerHTML = s;
+  var hit = host.querySelector('#chit'), cx = host.querySelector('#cx'), cd = host.querySelector('#cd');
+  function off(){ cx.setAttribute('opacity',0); cd.setAttribute('opacity',0); hideTip(); }
+  hit.addEventListener('mousemove', function(e){
+    var r = host.querySelector('svg').getBoundingClientRect(), mx = (e.clientX - r.left) * W / r.width;
+    var t = x0 + (mx - L) / (W - L - R) * (x1 - x0), best = null;
+    if (t > M.today.getTime() + DAY) return off();
+    days.forEach(function(p){ if (!best || Math.abs(p.d - t) < Math.abs(best.d - t)) best = p; });
+    if (!best) return off();
+    var bx = X(best.d);
+    cx.setAttribute('x1',bx); cx.setAttribute('x2',bx); cx.setAttribute('opacity',.5);
+    cd.setAttribute('cx',bx); cd.setAttribute('cy',Y(best.v)); cd.setAttribute('opacity',1);
+    showTip(host, '<b>' + fmtD(best.d) + '</b><br>Collected ' + aed(best.v) + (best.add ? ' (+' + money(best.add) + ' that day)' : '') + '<br>Target line ' + aed(targetAt(best.d)), bx * r.width / W, Y(best.v) * r.width / W);
+  });
+  hit.addEventListener('mouseleave', off);
+}
+function drawBranches(){
+  var host = el('brChart'), rows = M.byBr, W = Math.max(300, host.clientWidth), narrow = W < 460;
+  var rowH = 34, H = rows.length * rowH + 4, L = narrow ? 88 : 104, R = narrow ? 118 : 150;
+  var max = Math.max.apply(null, rows.map(function(r){ return r.paid; })) || 1;
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cash collected by branch">';
+  rows.forEach(function(r, i){
+    var y = i*rowH + 6, w = r.paid ? Math.max(4, r.paid / max * (W - L - R)) : 0;
+    s += '<text class="ax" x="0" y="' + (y+15) + '" style="fill:var(--ink2);font-size:12px">' + r.name + '</text>';
+    if (w) s += '<rect x="' + L + '" y="' + y + '" width="' + w + '" height="20" rx="4" fill="var(--series)"/>';
+    s += '<text class="ax" x="' + (L + w + 8) + '" y="' + (y+15) + '" style="fill:var(--ink);font-size:12px">' + aed(r.paid) + ' · ' + r.units + ' sold</text>';
+    s += '<rect x="0" y="' + (y-5) + '" width="' + W + '" height="' + rowH + '" fill="transparent" data-i="' + i + '"/>';
+  });
+  host.innerHTML = s + '</svg>';
+  hover(host, 'rect[data-i]', function(i){ var r = rows[i]; return '<b>' + r.name + '</b><br>' + r.units + ' vouchers · ' + aed(r.paid) + ' collected<br>' + pc(r.paid, M.collected) + ' of the total · ' + aed(r.red) + ' redeemed'; });
+}
+function drawPay(){
+  var host = el('payChart'), W = Math.max(300, host.clientWidth), H = 30, x = 0, parts = M.pay;
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cash collected by payment method">';
+  parts.forEach(function(p, i){
+    var w = (M.collected ? p.amt / M.collected : 0) * W - (i < parts.length-1 ? 2 : 0);
+    s += '<rect x="' + x + '" y="0" width="' + Math.max(0, w) + '" height="' + H + '" rx="4" fill="' + p.color + '" data-i="' + i + '"/>';
+    x += w + 2;
+  });
+  host.innerHTML = s + '</svg>';
+  hover(host, 'rect[data-i]', function(i){ var p = parts[i]; return '<b>' + p.name + '</b><br>' + p.n + (p.n === 1 ? ' voucher · ' : ' vouchers · ') + aed(p.amt) + ' (' + pc(p.amt, M.collected) + ')'; });
+  el('payLegend').innerHTML = parts.map(function(p){ return '<span><i style="background:' + p.color + '"></i>' + p.name + ' · ' + pc(p.amt, M.collected) + '</span>'; }).join('');
+}
+function drawRed(){
+  var host = el('redChart'), weeks = M.weeks, W = Math.max(300, host.clientWidth), H = 200, L = 40, R = 8, T = 10, B = 26;
+  var ymax = niceMax(Math.max.apply(null, weeks.map(function(x){ return x.amt; }))), bw = (W - L - R) / weeks.length;
+  function Y(v){ return T + (1 - v/ymax) * (H - T - B); }
+  var every = Math.max(1, Math.ceil(weeks.length / Math.floor((W - L) / 60)));
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Credit redeemed per week">';
+  for (var g = 0; g <= ymax + 1e-9; g += ymax/4) s += '<line class="gl" x1="' + L + '" x2="' + (W-R) + '" y1="' + Y(g) + '" y2="' + Y(g) + '"/><text class="ax" x="' + (L-6) + '" y="' + (Y(g)+4) + '" text-anchor="end">' + kfmt(Math.round(g)) + '</text>';
+  weeks.forEach(function(x, i){
+    var bx = L + i*bw + 2, bwi = Math.max(2, bw - 4), h = Y(0) - Y(x.amt), rr = Math.min(4, h, bwi/2);
+    if (x.amt) s += '<path d="M' + bx + ' ' + Y(0) + ' v' + (-(h-rr)) + ' q0 -' + rr + ' ' + rr + ' -' + rr + ' h' + (bwi - 2*rr) + ' q' + rr + ' 0 ' + rr + ' ' + rr + ' v' + (h-rr) + 'Z" fill="var(--series)"/>';
+    if (i % every === 0) s += '<text class="ax" x="' + (bx + bwi/2) + '" y="' + (H-6) + '" text-anchor="middle">' + fmtD(x.w) + '</text>';
+    s += '<rect x="' + (L + i*bw) + '" y="' + T + '" width="' + bw + '" height="' + (H-T-B) + '" fill="transparent" data-i="' + i + '"/>';
+  });
+  host.innerHTML = s + '</svg>';
+  hover(host, 'rect[data-i]', function(i){ var x = weeks[i]; return '<b>Week of ' + fmtD(x.w) + '</b><br>' + aed(x.amt) + ' spent · ' + x.n + (x.n === 1 ? ' line' : ' lines'); });
+}
+function drawAll(){ if (!DATA || !DATA.live.length) return; drawCum(); drawBranches(); drawPay(); drawRed(); }
+var rt; window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+el('refresh').onclick = load;
+
+/* ---------- start: sign in first, same gate as the log ---------- */
+if (window.TRSGate){
+  window.TRSGate.require('This report reads the voucher log, which holds client records').then(load);
+} else {
+  el('state').textContent = 'Could not load the sign-in check. Reload the page.';
+}
+})();
+</script>
+</body>
+</html>

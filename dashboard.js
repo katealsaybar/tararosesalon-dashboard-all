@@ -125,6 +125,9 @@ function postReviewsTheme() {
   // Staff Performance frame (performance/?embed=1) follows the same toggle.
   const sp = document.getElementById('spfFrame');
   if (sp && sp.contentWindow) sp.contentWindow.postMessage({ type: 'trs-theme', theme: document.documentElement.getAttribute('data-theme') }, '*');
+  // Wellness Voucher Performance (same origin): it reads the theme on load and listens for this.
+  const wv = document.getElementById('wvperfFrame');
+  if (wv && wv.contentWindow) wv.contentWindow.postMessage({ type: 'trs-theme', theme: document.documentElement.getAttribute('data-theme') }, location.origin);
 }
 window.addEventListener('message', e => {
   const f = document.getElementById('reviewsFrame');
