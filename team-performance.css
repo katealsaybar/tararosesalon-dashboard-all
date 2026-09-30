@@ -30,8 +30,12 @@
 .tp-q-h{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px}
 .tp-q-h.good{color:var(--good)}.tp-q-h.warn{color:var(--warn)}.tp-q-h.bad{color:var(--bad)}
 .tp-q-grp p{font-size:13px;color:var(--muted);margin:0 0 8px}
-.tp-q-chips{display:flex;flex-wrap:wrap;gap:4px 10px}
-.tp-q-chip{display:inline-flex;align-items:center;gap:6px}
+.tp-q-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:6px 10px}
+.tp-q-chip{display:flex;align-items:center;gap:6px;min-width:0}
+/* Kate, 30 Sep 2026: every face in the same 26x30 box, photo or initials, so the
+   names line up in columns instead of wandering with each portrait's width. */
+.tp-q-chip .tp-av.xs,.tp-q-chip .tp-av-ph.xs{flex:0 0 26px;width:26px;height:30px;aspect-ratio:auto;object-fit:cover;object-position:center bottom;margin:0}
+.tp-q-cn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Kate, 28 Sep 2026: the names in the panel in the page's serif, title case,
    rather than bold capitals. */
 .tp-q-cn{font-family:'Playfair Display',Georgia,serif;font-size:14px;font-weight:500;letter-spacing:.01em}

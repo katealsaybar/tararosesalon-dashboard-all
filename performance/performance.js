@@ -115,6 +115,8 @@ function fmt(v, f) {
   return nf.format(v);
 }
 const dayLabel = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '–';
+// When a leader wrote a note, always in UAE time whatever the reader's device is set to: 30 Sep 2026, 9:19 am.
+const noteStamp = at => new Date(at).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) + ' UAE';
 // Staff photo from staff-profiles.js (the same cutouts Staff Cards uses), matched
 // on the person's ledger names. Shown at its own shape, never cropped to a circle.
 function photoFor(keys) {
@@ -434,7 +436,7 @@ async function renderStylist() {
   const hist = (d.history || []).map(h => `<tr><td>${esc(monthLabel(h.month).replace(/^(\w{3})\w*/, '$1'))}</td><td>${fmt(h.numbers.total_revenue, 'num')}</td><td>${fmt(h.numbers.clients, 'num')}</td><td>${fmt(h.numbers.rebooking_pct, 'pct')}</td><td>${fmt(h.numbers.avg_bill, 'num')}</td></tr>`).join('');
 
   const cw = n.conversion_weeks || {};
-  const notes = (d.notes || []).map(x => `<div class="note">${esc(x.note)}<div class="by">${esc(x.author)} · ${new Date(x.at).toLocaleDateString('en-GB')}${canEdit() ? `<button data-del="${x.id}">remove</button>` : ''}</div></div>`).join('');
+  const notes = (d.notes || []).map(x => `<div class="note">${esc(x.note)}<div class="by">${esc(x.author)} · ${esc(noteStamp(x.at))}${canEdit() ? `<button data-del="${x.id}">remove</button>` : ''}</div></div>`).join('');
 
   app.innerHTML = `
     ${ADMIN ? `<div class="admin-bar"><a class="back" href="?admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}">← Your team</a>

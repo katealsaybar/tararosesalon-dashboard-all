@@ -201,7 +201,10 @@ function tpPhotoSrc(name) {
   const fixed = TP_PHOTO_FIX[tpMergeKey(name)];
   if (fixed) return fixed;
   const prof = (typeof staffProfile === 'function') ? staffProfile(name) : null;
-  return (prof && prof.photo) ? 'assets/staff/' + encodeURIComponent(prof.photo) : null;
+  if (prof && prof.photo) return 'assets/staff/' + encodeURIComponent(prof.photo);
+  // Kate, 30 Sep 2026: leavers have no card photo, only the black-and-white
+  // headshot from the RESIGNED board (photoFull), which they had here as initials.
+  return (prof && prof.photoFull) ? encodeURI(prof.photoFull) : null;
 }
 function tpAvatar(name, cls) {
   const src = tpPhotoSrc(name);
