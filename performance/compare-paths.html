@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>All Three Paths · Tara Rose</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="shortcut icon" href="../assets/favicon.ico">
+<link rel="apple-touch-icon" href="../assets/favicon-96x96.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Kate, 30 Sep 2026: "See all three paths side by side" on a stylist's page opens this,
+     the three employment models in one comparison, instead of the Full Overview PDF,
+     which runs them one after another. Every figure and line is taken from the brochures
+     in brochures/ (the Full Overview plus the Employed, Flex Dubai, Flex Abu Dhabi and
+     Rent-a-Chair PDFs); nothing here is new terms. "Not listed" means the brochure
+     doesn't mention it for that path. Same dark and mint look as employment-models.html. -->
+<style>
+  :root { --bg: #1C1B18; --card: #2D2E37; --line: rgba(255,255,255,.12); --text: #fff;
+    --muted: rgba(255,255,255,.62); --mint: #99F6E4; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: var(--text); font-size: 14px; line-height: 1.5; }
+  .page { min-height: 100vh; padding: 36px 16px 48px;
+    background: radial-gradient(ellipse 65% 45% at 50% 20%, rgba(153,246,228,.14), transparent 70%), var(--bg); }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+  .eyebrow { text-align: center; color: var(--mint); font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; }
+  h1 { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-weight: 500; font-size: 38px; text-align: center; margin: 6px 0 4px; }
+  .lede { text-align: center; color: var(--muted); margin: 0 0 26px; }
+
+  /* The comparison: a row label then the three paths, as one grid per row. */
+  .cmp { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: rgba(45,46,55,.55); }
+  .row { display: grid; grid-template-columns: 170px repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+  .row:first-child { border-top: 0; }
+  .row > div { padding: 14px 16px; }
+  .row > div + div { border-left: 1px solid var(--line); }
+  .lbl { color: var(--mint); font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; padding-top: 16px !important; }
+  .head { background: rgba(153,246,228,.07); }
+  .head .path-n { color: var(--mint); font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; }
+  .head .path-t { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 22px; line-height: 1.2; margin: 2px 0 4px; }
+  .head .path-s { color: var(--muted); font-size: 13px; }
+  .head .path-a { display: inline-block; margin-top: 10px; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--mint); text-decoration: none; border: 1px solid rgba(153,246,228,.5); border-radius: 999px; padding: 7px 14px; }
+  .head .path-a:hover { background: var(--mint); color: var(--bg); }
+  .cell .ph { display: none; }
+  .dash { color: var(--muted); }
+  table.t { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.t td { padding: 3px 0; vertical-align: top; }
+  table.t td:last-child { text-align: right; font-weight: 600; white-space: nowrap; padding-left: 10px; }
+  .sub { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .city { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 8px 0 2px; }
+  .city:first-child { margin-top: 0; }
+  .all3 { background: rgba(153,246,228,.05); }
+  .all3 .span { grid-column: 2 / 5; }
+  .foot { color: var(--muted); font-size: 12.5px; text-align: center; margin-top: 18px; }
+  .foot a { color: var(--mint); }
+
+  /* Phones: each row becomes a block, the label on top and each path named in its cell. */
+  @media (max-width: 760px) {
+    h1 { font-size: 30px; }
+    .row { grid-template-columns: 1fr; }
+    .row > div + div { border-left: 0; border-top: 1px dashed var(--line); }
+    .lbl { padding-bottom: 4px !important; }
+    .head { display: none; }
+    .cell .ph { display: block; font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 16px; margin-bottom: 4px; }
+    .all3 .span { grid-column: auto; }
+    .mob-heads { display: grid !important; }
+  }
+  .mob-heads { display: none; gap: 10px; margin-bottom: 14px; }
+  .mob-heads a { display: block; text-decoration: none; color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+    background: rgba(153,246,228,.07); }
+  .mob-heads b { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-weight: 500; font-size: 19px; display: block; }
+  .mob-heads span { color: var(--muted); font-size: 13px; }
+  .mob-heads em { font-style: normal; color: var(--mint); font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div class="page"><div class="wrap">
+  <div class="eyebrow">All three paths</div>
+  <h1>Side by side</h1>
+  <p class="lede">Three ways to work. One salon that means something.</p>
+
+  <!-- Phones get the three paths as cards up top, since the grid's header row is hidden there. -->
+  <div class="mob-heads">
+    <a href="employment-models.html?b=employed"><em>Path one</em><b>The Employed Stylist</b><span>Built around you. Backed by us.</span></a>
+    <a href="employment-models.html?b=flex-dubai"><em>Path two</em><b>The Flex Stylist</b><span>Greater independence. Still Tara Rose.</span></a>
+    <a href="employment-models.html?b=chair"><em>Path three</em><b>Rent-a-Chair</b><span>Your space. Your business. Our home.</span></a>
+  </div>
+
+  <div class="cmp">
+    <div class="row head">
+      <div></div>
+      <div><div class="path-n">Path one</div><div class="path-t">The Employed Stylist</div><div class="path-s">Built around you. Backed by us.</div>
+        <a class="path-a" href="employment-models.html?b=employed">Read the brochure</a></div>
+      <div><div class="path-n">Path two</div><div class="path-t">The Flex Stylist</div><div class="path-s">Greater independence. Still Tara Rose.</div>
+        <a class="path-a" href="employment-models.html?b=flex-dubai" id="flexLink">Read the brochure</a></div>
+      <div><div class="path-n">Path three</div><div class="path-t">Rent-a-Chair</div><div class="path-s">Your space. Your business. Our home.</div>
+        <a class="path-a" href="employment-models.html?b=chair">Read the brochure</a></div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">Best for</div>
+      <div class="cell"><span class="ph">The Employed Stylist</span>Stylists building their career who want full support, consistent clients, and financial security while they grow.</div>
+      <div class="cell"><span class="ph">The Flex Stylist</span>Established stylists ready for greater autonomy, higher earning, and full ownership of their column, while remaining part of the team.</div>
+      <div class="cell"><span class="ph">Rent-a-Chair</span>Fully established stylists who want to run their own business independently, in a salon that reflects the standard they hold themselves to.</div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">How you earn</div>
+      <div class="cell"><span class="ph">The Employed Stylist</span>
+        Commission on your monthly sales quota, service and treatment revenue together.
+        <table class="t"><tr><td>AED 38,000 and below</td><td>32%</td></tr><tr><td>AED 38,001 and above</td><td>36%</td></tr><tr><td>AED 50,000 and above</td><td>38%</td></tr></table>
+      </div>
+      <div class="cell"><span class="ph">The Flex Stylist</span>
+        A higher split on all service and treatment revenue. Once you cross a threshold, that rate applies to the whole month.
+        <div class="city">Dubai</div>
+        <table class="t"><tr><td>Up to AED 60,000</td><td>40%</td></tr><tr><td>AED 60,001 and above</td><td>50%</td></tr></table>
+        <div class="city">Abu Dhabi</div>
+        <table class="t"><tr><td>Below AED 35,000</td><td>35%</td></tr><tr><td>AED 35,001 to 60,000</td><td>40%</td></tr><tr><td>AED 60,001 to 75,000</td><td>45%</td></tr><tr><td>AED 75,001 and above</td><td>50%</td></tr></table>
+      </div>
+      <div class="cell"><span class="ph">Rent-a-Chair</span>
+        You keep your service revenue. TRS takes no percentage of it; the chair fee is your only fixed monthly cost.
+        <table class="t"><tr><td>Al Quoz, Dubai</td><td>AED 8,000</td></tr><tr><td>Motor City, Dubai</td><td>AED 10,000</td></tr><tr><td>Khalifa City, Abu Dhabi</td><td>By negotiation</td></tr><tr><td>Saadiyat, Abu Dhabi</td><td>By negotiation</td></tr></table>
+        <div class="sub">One chair, per month. Day rates and a second chair by negotiation with management.</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">Guaranteed income</div>
+      <div class="cell"><span class="ph">The Employed Stylist</span>AED 10,000 a month, or your commission if it's higher.
+        <table class="t"><tr><td>Dubai</td><td>First 6 months</td></tr><tr><td>Abu Dhabi</td><td>First 3 months</td></tr></table></div>
+      <div class="cell"><span class="ph">The Flex Stylist</span><span class="dash">Not listed</span></div>
+      <div class="cell"><span class="ph">Rent-a-Chair</span><span class="dash">Not listed</span></div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">Treatments</div>
+      <div class="cell"><span class="ph">The Employed Stylist</span>Counted in your commission.</div>
+      <div class="cell"><span class="ph">The Flex Stylist</span>Counted in your commission.</div>
+      <div class="cell"><span class="ph">Rent-a-Chair</span>Optional: use TRS backwash stock and earn 40% of that treatment revenue.</div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">Clients and bookings</div>
+      <div class="cell"><span class="ph">The Employed Stylist</span>Clients actively brought to you from day one.</div>
+      <div class="cell"><span class="ph">The Flex Stylist</span>Your clients stay yours to build, maintain and grow. Full TRS reception, with payments taken on your behalf and paid to you monthly.</div>
+      <div class="cell"><span class="ph">Rent-a-Chair</span>Your own clients. You manage your own bookings and payments.</div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">Colour and stock</div>
+      <div class="cell"><span class="ph">The Employed Stylist</span>Fully provided, no personal outlay.</div>
+      <div class="cell"><span class="ph">The Flex Stylist</span>Fully provided by the salon.</div>
+      <div class="cell"><span class="ph">Rent-a-Chair</span><span class="dash">Not listed</span></div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">Your week</div>
+      <div class="cell"><span class="ph">The Employed Stylist</span>A predictable 4 day, 44 hour week from day one.</div>
+      <div class="cell"><span class="ph">The Flex Stylist</span>A flexible schedule, agreed with your salon manager.</div>
+      <div class="cell"><span class="ph">Rent-a-Chair</span>Entirely on your own terms.</div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">Visa and cover</div>
+      <div class="cell"><span class="ph">The Employed Stylist</span>Visa sponsored and fully covered. Health insurance from day one. 30 days paid annual leave, and gratuity accrued monthly at the UAE statutory rate.</div>
+      <div class="cell"><span class="ph">The Flex Stylist</span><span class="dash">Not listed</span></div>
+      <div class="cell"><span class="ph">Rent-a-Chair</span><span class="dash">Not listed</span></div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">Around you</div>
+      <div class="cell"><span class="ph">The Employed Stylist</span>The clients, the team, the training and the structure to help you grow.</div>
+      <div class="cell"><span class="ph">The Flex Stylist</span>Free in-salon training, and the full TRS platform, environment and reputation.</div>
+      <div class="cell"><span class="ph">Rent-a-Chair</span>A premium address, with the TRS reputation and environment alongside you.</div>
+    </div>
+
+    <div class="row">
+      <div class="lbl">Who can join</div>
+      <div class="cell"><span class="ph">The Employed Stylist</span>Open to stylists building their career, including those relocating to the UAE.</div>
+      <div class="cell"><span class="ph">The Flex Stylist</span>At least 12 months on the Employed path at Senior Stylist or above, a branch manager's recommendation, and no current performance management.</div>
+      <div class="cell"><span class="ph">Rent-a-Chair</span>Fully established, independent stylists.</div>
+    </div>
+
+    <div class="row all3">
+      <div class="lbl">On every path</div>
+      <div class="span">
+        <b>Retail commission</b>, every month, all figures ex VAT:
+        <table class="t" style="max-width:420px"><tr><td>AED 3,000 to 4,499</td><td>10%</td></tr><tr><td>AED 4,500 to 5,999</td><td>12%</td></tr><tr><td>AED 6,000 and above</td><td>15%</td></tr></table>
+        <div class="sub">TRS brand standards apply to everyone, and continued professional development is expected of us all.</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">All figures exclusive of VAT. "Not listed" means that path's brochure doesn't mention it.
+    Moving country? <a href="employment-models.html?b=relocation">See what we cover</a>.
+    If you need more details, ask Tara or your manager about each path.</p>
+</div></div>
+<script>
+// ?city=abudhabi (sent by a Saadiyat or Khalifa City stylist's page) points the Flex links at the Abu Dhabi brochure.
+(function () {
+  var city = null;
+  try { city = new URLSearchParams(location.search).get('city'); } catch (e) {}
+  if (city !== 'abudhabi') return;
+  document.querySelectorAll('a[href="employment-models.html?b=flex-dubai"]').forEach(function (a) { a.href = 'employment-models.html?b=flex-abudhabi'; });
+})();
+</script>
+</body>
+</html>
