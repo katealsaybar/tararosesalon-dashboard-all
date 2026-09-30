@@ -76,6 +76,17 @@ function prdPaint(el) {
 
   const products = d.products.map((p, i) => `<tr><td>${i + 1}</td><td>${prdEsc(p.product)}<div class="slv-note">${prdEsc(p.brand || '')}</div></td>
     <td>${p.type === 'retail' ? 'Retail' : 'Professional'}</td><td>${prdNum(p.units)}</td><td>${prdNum(p.spend)}</td></tr>`).join('');
+  // Kate, 30 Sep 2026: five columns crushed on a phone, so under 760px the same
+  // list is one card per product (name first, spend on the right, a bar against
+  // the top product in its type's colour) and the table is hidden.
+  const topSpend = d.products.length ? Math.max(...d.products.map(p => Number(p.spend) || 0)) : 0;
+  const productCards = d.products.map((p, i) => `<li class="prd-card">
+      <span class="prd-rank">${i + 1}</span>
+      <div class="prd-body">
+        <div class="prd-top"><span class="prd-name">${prdEsc(p.product)}</span><span class="prd-spend">AED ${prdNum(p.spend)}</span></div>
+        <div class="prd-meta">${p.type === 'retail' ? 'Retail' : 'Professional'} · ${prdNum(p.units)} unit${Number(p.units) === 1 ? '' : 's'}${p.brand ? ' · ' + prdEsc(p.brand) : ''}</div>
+        <div class="prd-bar"><i style="width:${topSpend ? Math.max(2, Math.round(100 * (Number(p.spend) || 0) / topSpend)) : 0}%;background:${p.type === 'retail' ? PRD_RETAIL : PRD_PROF}"></i></div>
+      </div></li>`).join('');
 
   const unmatched = d.unmatched.length ? `
       <details style="margin-top:14px"><summary class="slv-eyebrow" style="cursor:pointer">${prdNum(unLines)} arrived line${unLines === 1 ? '' : 's'} with no cost, not in the totals</summary>
@@ -115,9 +126,10 @@ function prdPaint(el) {
     ${d.products.length ? `
     <section class="slv-card" style="margin-top:14px">
       <div class="slv-head"><div><div class="slv-eyebrow">Where the money went</div><h3>Top products by spend</h3></div></div>
-      <div class="slv-wrap"><table class="slv-table">
+      <div class="slv-wrap prd-desk"><table class="slv-table">
         <thead><tr><th>#</th><th>Product</th><th>Type</th><th>Units</th><th>Spend (AED)</th></tr></thead>
         <tbody>${products}</tbody></table></div>
+      <ol class="prd-cards">${productCards}</ol>
     </section>` : ''}
     <p class="slv-muted">Costs are Phorest's Stock List cost${d.priced_on ? ' as of ' + prdEsc(prdDayY(d.priced_on)) : ''}, not the price on the day each order went in. Igora Royal, Colour stock and hair extensions count as professional even where Phorest types them otherwise.</p>`;
   prdDraw(weeks, byWeek);

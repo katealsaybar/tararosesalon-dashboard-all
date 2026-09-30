@@ -1907,6 +1907,20 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   .slv-intro h2{font-size:26px}.slv-intro p{font-size:14px}
   .slv-top.stuck .slv-intro h2{font-size:19px}
   .slv-card{padding:14px}.slv-table{font-size:13px}.slv-table th,.slv-table td{padding:8px 6px}}
+/* Products · Top products by spend: a table on desktop, one card per product on a
+   phone (Kate, 30 Sep 2026: the five columns crushed at 390px). */
+.prd-cards{display:none;list-style:none;margin:6px 0 0;padding:0}
+.prd-card{display:flex;gap:10px;padding:11px 0;border-top:1px solid var(--border)}
+.prd-card:first-child{border-top:0}
+.prd-rank{flex:0 0 20px;font-size:12px;font-weight:700;color:var(--muted2);padding-top:2px}
+.prd-body{flex:1;min-width:0}
+.prd-top{display:flex;align-items:baseline;gap:10px}
+.prd-name{flex:1;min-width:0;font-size:14px;font-weight:600;line-height:1.3;color:var(--text);overflow-wrap:anywhere}
+.prd-spend{flex-shrink:0;font-size:14px;font-weight:700;color:var(--text);white-space:nowrap}
+.prd-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.prd-bar{height:4px;border-radius:2px;background:var(--surface2);margin-top:7px;overflow:hidden}
+.prd-bar i{display:block;height:100%;border-radius:2px}
+@media(max-width:760px){.prd-desk{display:none}.prd-cards{display:block}}
 .sc-seg{display:flex;gap:2px;padding:2px;border:1px solid var(--border);
   border-radius:999px;background:var(--surface)}
 .sc-seg button{appearance:none;border:0;background:transparent;color:var(--muted);
@@ -2496,6 +2510,9 @@ tr.who-flash td{animation:whoFlashRow 2.2s ease both}
    to 1560px instead of the dashboard's 1180px and every table steps up a size.
    The masthead is already reduced to the logo here, so the width is all figures. */
 body.ledger-chrome .wrap{max-width:1560px}
+/* Kate, 30 Sep 2026: the fixed masthead kept the 1180px cap, so with the sidebar
+   closed the logo and date line sat indented from the page below them. */
+body.ledger-chrome .topbar-in{max-width:1560px}
 body.ledger-chrome table.lg{font-size:16px}
 body.ledger-chrome table.lg.lg-compact{font-size:15px}
 body.ledger-chrome table.lg th{font-size:12.5px;padding:11px 13px}
@@ -2687,7 +2704,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 }
 
 </style>
-<link rel="stylesheet" href="team-performance.css?v=20260928d">
+<link rel="stylesheet" href="team-performance.css?v=20260930a">
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
 <link rel="stylesheet" href="mobile.css?v=20260929w">
@@ -3470,10 +3487,10 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=20260924n"></script>
 <script src="stylist-levels.js?v=20260928c"></script>
 <script src="staff-weeks.js?v=20260929z"></script>
-<script src="products.js?v=20260929a"></script>
+<script src="products.js?v=20260930a"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20260929e"></script>
+<script src="dashboard.js?v=20260930a"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -3482,7 +3499,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20260904b"></script>
-<script src="team-performance.js?v=20260928e"></script>
+<script src="team-performance.js?v=20260930a"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=20260928a"></script>
 <script src="pulse-narrative.js?v=20260928a"></script>
