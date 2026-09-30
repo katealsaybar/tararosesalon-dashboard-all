@@ -13,6 +13,8 @@
  *   Saturday     09:00 draftWeekend() makes one Gmail draft per person, but only for
  *                a month whose payslips are uploaded and that hasn't been sent.
  *                Kate gets a "Payslip drafts ready" summary draft.
+ *   Sunday       18:00 draftWeekend() again, for payslips uploaded after Saturday 09:00.
+ *                Only missing drafts are added; the summary is replaced.
  *   Weekend      Kate checks the drafts. Something wrong? Run holdMonday().
  *   Monday       08:00 sendMonday() sends every draft WITH a payslip attached.
  *                Drafts without one stay in Drafts. Kate gets a note either way.
@@ -21,7 +23,8 @@
  * ONE-TIME SETUP
  *   1. Paste this whole file into the project, Save.
  *   2. Run myDryRun once and approve the permissions (Gmail, fetch).
- *   3. Run setupPerformanceTrigger once. It sets the Saturday and Monday triggers.
+ *   3. Run setupPerformanceTrigger once. It sets the Saturday, Sunday and Monday
+ *      triggers (and clears any older ones of yours first).
  *
  * WHICH FUNCTION TO RUN (the dropdown next to Run)
  *   myDryRun            SAFE. Test emails to you only. Edit the DRY RUN lines first.
@@ -310,11 +313,15 @@ function setupPerformanceTrigger() {
     .forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('draftWeekend').timeBased()
     .onWeekDay(ScriptApp.WeekDay.SATURDAY).atHour(9).inTimezone('Asia/Dubai').create();
+  // Second pass Sunday evening: Accounts may finalise on Saturday morning, after the
+  // 09:00 run. A rerun only adds or rebuilds drafts that were missing a payslip.
+  ScriptApp.newTrigger('draftWeekend').timeBased()
+    .onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(18).inTimezone('Asia/Dubai').create();
   // Google runs an hourly trigger at a random minute in that hour; nearMinute pulls it
   // to about 08:00 (give or take 15 minutes) where Google allows it on a weekly one.
   const monday = () => ScriptApp.newTrigger('sendMonday').timeBased()
     .onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(8).inTimezone('Asia/Dubai');
   try { monday().nearMinute(0).create(); }
   catch (e) { monday().create(); Logger.log('Monday send runs some time between 08:00 and 09:00.'); }
-  Logger.log('Drafts on Saturday 09:00, send on Monday 08:00, Dubai.');
+  Logger.log('Drafts on Saturday 09:00 and Sunday 18:00, send on Monday 08:00, Dubai.');
 }
