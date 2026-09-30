@@ -140,7 +140,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
       <div class="team">Issue a Wellness Card</div>
       <p class="owns">Pick the branch, the tier and her name. The serial, the value and every expiry date are worked out for you. Then print the card she needs as a PDF.</p>
       <div class="stamp">Wellness Voucher &middot; purchases close <b>31 October 2026</b></div>
-      <div class="who" id="who"></div>
+      <div class="who" id="signedin"></div>
     </div>
 
     <div class="pdfrow">
@@ -427,7 +427,7 @@ function drawWho(){
   var email = window.TRS && window.TRS.email ? window.TRS.email() : null;
   var isAdm = !!(window.TRS && window.TRS.isAdmin && window.TRS.isAdmin());
 
-  el('who').innerHTML = email
+  el('signedin').innerHTML = email
     ? 'Signed in as <b>' + esc(email) + '</b> <span class="pill' + (isAdm ? ' admin' : '') + '">' +
       (isAdm ? 'can edit' : 'view only') + '</span> <button class="btn ghost sm" id="signout">Sign out</button>'
     : 'Not signed in <span class="pill">view only</span> ' +
