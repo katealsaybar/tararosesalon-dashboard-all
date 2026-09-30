@@ -8,6 +8,11 @@
 // and table styles (slv-*, w13-*) rather than adding new ones.
 let prdData = null;
 let prdChart = null;
+// Kate, 30 Sep 2026: All / Hair / Beauty, same pill as the 13-Week Report's
+// Team toggle. stock_order_lines.dept is read off the brand
+// (migrations/add_stock_order_lines_dept.sql). Remembered per browser.
+let prdDept = 'all';
+try { prdDept = localStorage.getItem('trs-prd-dept') || 'all'; } catch (e) {}
 
 const PRD_BRANCH = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
 const PRD_RETAIL = '#C4B5FD', PRD_PROF = '#0F6E56';
@@ -34,7 +39,7 @@ async function renderProducts() {
   const w = prdWindow();
   el.innerHTML = '<p class="slv-muted">Loading product spend…</p>';
   try {
-    const { data, error } = await sb.rpc('get_product_spend', { p_branches: w.branches, p_from: w.from, p_to: w.to });
+    const { data, error } = await sb.rpc('get_product_spend', { p_branches: w.branches, p_from: w.from, p_to: w.to, p_dept: prdDept });
     if (error || !data) throw error || new Error('no data');
     prdData = { ...data, win: w };
   } catch (e) {
@@ -43,6 +48,12 @@ async function renderProducts() {
     return;
   }
   prdPaint(el);
+}
+
+function prdSetDept(k) {
+  prdDept = k;
+  try { localStorage.setItem('trs-prd-dept', k); } catch (e) {}
+  renderProducts();
 }
 
 function prdPaint(el) {
@@ -60,7 +71,10 @@ function prdPaint(el) {
   const all = tot.retail + tot.professional;
   const shown = w.branches.filter(b => PRD_BRANCH[b]);
   const unLines = d.unmatched.reduce((a, r) => a + Number(r.lines), 0);
-  const perWeek = weeks.length ? all / weeks.length : null;
+  // Averaged over the whole window, not just the weeks stock arrived: Beauty has
+  // deliveries in a few weeks only, and dividing by those overstated it 4x.
+  const winWeeks = (new Date(w.to + 'T00:00:00') - new Date(w.from + 'T00:00:00')) / (7 * 864e5) + 1 / 7;
+  const perWeek = weeks.length ? all / winWeeks : null;
 
   const head = shown.length > 1
     ? shown.map(b => `<th>${prdEsc(PRD_BRANCH[b])}</th>`).join('') : '';
@@ -100,9 +114,15 @@ function prdPaint(el) {
       <h2>Products</h2>
       <p>What we spend on stock, week by week, split into retail (to sell) and professional (used on clients). Counted the day the order arrived.</p>
     </section>
+    <div class="sc-bar w13-bar">
+      <div class="sc-seg" role="group" aria-label="Team">
+        ${[['all', 'All'], ['Hair', 'Hair'], ['Beauty', 'Beauty']].map(([k, l]) =>
+          `<button type="button" class="${prdDept === k ? 'on' : ''}" onclick="prdSetDept('${k}')">${l}</button>`).join('')}
+      </div>
+    </div>
     <section class="slv-card">
       <div class="slv-head">
-        <div><div class="slv-eyebrow">${prdEsc(shown.length === ACTIVE_BRANCHES.length ? 'All branches' : shown.map(b => PRD_BRANCH[b]).join(' · '))}</div><h3>Stock spend</h3></div>
+        <div><div class="slv-eyebrow">${prdEsc(shown.length === ACTIVE_BRANCHES.length ? 'All branches' : shown.map(b => PRD_BRANCH[b]).join(' · '))}</div><h3>${prdDept === 'all' ? 'Stock spend' : prdEsc(prdDept) + ' stock spend'}</h3></div>
         <p>${prdEsc(prdDayY(w.from))} to ${prdEsc(prdDayY(w.to))}${w.ranged ? '' : ' · last 13 weeks'}</p>
       </div>
       ${weeks.length ? `
@@ -110,7 +130,7 @@ function prdPaint(el) {
         <div class="w13-tile"><div class="slv-eyebrow">Total spend</div><div class="w13-val">${prdAed(all)}</div><div class="slv-note">${perWeek !== null ? prdAed(perWeek) + ' a week' : ''}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Retail</div><div class="w13-val">${prdAed(tot.retail)}</div><div class="slv-note">${all ? Math.round(100 * tot.retail / all) + '% of spend' : ''}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Professional</div><div class="w13-val">${prdAed(tot.professional)}</div><div class="slv-note">${all ? Math.round(100 * tot.professional / all) + '% of spend' : ''}</div></div>
-        <div class="w13-tile"><div class="slv-eyebrow">On order now</div><div class="w13-val">${prdAed(d.on_order.spend)}</div><div class="slv-note">${prdNum(d.on_order.lines)} lines not arrived yet</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">On order now</div><div class="w13-val">${prdAed(d.on_order.spend)}</div><div class="slv-note">${prdNum(d.on_order.lines)} line${Number(d.on_order.lines) === 1 ? '' : 's'} not arrived yet</div></div>
       </div>
       <div class="slv-eyebrow" style="margin:18px 0 6px">Week by week · retail and professional</div>
       <div style="position:relative;height:280px"><canvas id="prdCanvas"></canvas></div>
@@ -131,7 +151,7 @@ function prdPaint(el) {
         <tbody>${products}</tbody></table></div>
       <ol class="prd-cards">${productCards}</ol>
     </section>` : ''}
-    <p class="slv-muted">Costs are Phorest's Stock List cost${d.priced_on ? ' as of ' + prdEsc(prdDayY(d.priced_on)) : ''}, not the price on the day each order went in. Igora Royal, Colour stock and hair extensions count as professional even where Phorest types them otherwise.</p>`;
+    <p class="slv-muted">Costs are Phorest's Stock List cost${d.priced_on ? ' as of ' + prdEsc(prdDayY(d.priced_on)) : ''}, not the price on the day each order went in. Igora Royal, Colour stock and hair extensions count as professional even where Phorest types them otherwise. Beauty is skin, lashes, nails and lip (Matis, Image, PCA, Xitronix, Nouveau, IOlite, OPI, Kinetics, Alessandro, LUK); every other brand is Hair.</p>`;
   prdDraw(weeks, byWeek);
 }
 
