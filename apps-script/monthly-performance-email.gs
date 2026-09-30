@@ -164,7 +164,7 @@ function perfEmailHtml_(d, token, month, hasPayslip) {
     <p><a href="${link}" style="display:inline-block;background:#5C5557;color:#F9E8DF;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">See my month</a></p>
     <p>Questions about your payslip? Just reply to this email. Questions about your numbers? Your salon manager can walk you through them.</p>
     <p style="font-size:12px;color:#9a8a87">This link is yours only, so please keep it to yourself.</p>
-    <p style="margin-top:22px"><img src="${PERF_LOGO}" alt="Tara Rose Salons" width="160" style="display:block;width:160px;height:auto;border:0"></p>
+    <p style="margin-top:22px"><img src="${PERF_LOGO}" alt="Tara Rose Salons" width="100" style="display:block;width:100px;height:auto;border:0"></p>
   </div>`;
 }
 const perfMailOpts_ = (html, payslip) => ({
