@@ -42,6 +42,15 @@ const BRANCH_INFO = {
 // dropdowns, the hero branch list, branch charts, and freshness checks. Kate, 2026-08-04.
 const ACTIVE_BRANCHES = Object.keys(BRANCH_INFO).filter(b => b !== 'FRT');
 
+// Tara Rose Salon Bahrain (branch BAH) is a separate Phorest business, trading in
+// BHD with 10% VAT, and its rows land in the same tables as the UAE branches. "All
+// Branches" has always meant "no branch filter at all", so the day BAH rows arrive
+// they would be added straight into the AED totals with no error. Every loader
+// below therefore keeps the UAE branches only (FRT included, for its old records);
+// Bahrain is read through its own view instead. Kate, 30 Sep 2026.
+const UAE_BRANCHES = Object.keys(BRANCH_INFO);
+const keepUae = rows => (rows || []).filter(r => UAE_BRANCHES.includes(r.branch));
+
 const SCOLS = ['#FFD4D9','#FF9B9B','#C4B5FD','#99F6E4','#EEF3C7','#FFB6C1','#B5EAD7','#FFDAC1'];
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -2408,14 +2417,14 @@ async function loadBranchStaffDailyRange(from, to) {
   const pad = n => String(n).padStart(2, '0');
   const fromStr = `${from.getFullYear()}-${pad(from.getMonth()+1)}-${pad(from.getDate())}`;
   const toStr   = `${to.getFullYear()}-${pad(to.getMonth()+1)}-${pad(to.getDate())}`;
-  return loadAllRows('branch_staff_daily_clean', fromStr, toStr);
+  return keepUae(await loadAllRows('branch_staff_daily_clean', fromStr, toStr));
 }
 
 async function loadPhorestStaffDailyRange(from, to) {
   const pad = n => String(n).padStart(2, '0');
   const fromStr = `${from.getFullYear()}-${pad(from.getMonth()+1)}-${pad(from.getDate())}`;
   const toStr   = `${to.getFullYear()}-${pad(to.getMonth()+1)}-${pad(to.getDate())}`;
-  return loadAllRows('phorest_staff_daily', fromStr, toStr);
+  return keepUae(await loadAllRows('phorest_staff_daily', fromStr, toStr));
 }
 
 // ── UTILISATION (staff_utilisation, from upload/utilisation-pdf.js) ──
@@ -2532,7 +2541,7 @@ async function loadWeeklyTotalsRange(from, to) {
     .gte('week_start', fromStr)
     .lte('week_end',   toStr)
     .order('week_start', { ascending: true });
-  return (error || !data) ? [] : data;
+  return (error || !data) ? [] : keepUae(data);
 }
 
 function aggWeeklyTotals(rows) {
@@ -4017,7 +4026,7 @@ async function loadDailyRange(from, to) {
     .gte('date', fromStr)
     .lte('date', toStr)
     .order('date', { ascending: true });
-  return (error || !data) ? [] : data;
+  return (error || !data) ? [] : keepUae(data);
 }
 
 // ── DATA LOAD + INIT ─────────────────────────────────────────

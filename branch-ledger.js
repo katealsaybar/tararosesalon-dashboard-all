@@ -2032,7 +2032,9 @@ async function lgLoadFinancialTotals(fromStr, toStr) {
     const { data, error } = await sb.from('financial_totals')
       .select('*').gte('date', fromStr).lte('date', toStr);
     if (error) throw error;
-    out = (data && data.length) ? data : null;
+    // UAE branches only: Bahrain's BHD rows share this table (see UAE_BRANCHES in dashboard.js).
+    const uae = keepUae(data);
+    out = uae.length ? uae : null;
   } catch (e) {
     // Before the migration is run this is a schema-cache error, which is the normal
     // state rather than a fault, so it is not worth a warning on every render.

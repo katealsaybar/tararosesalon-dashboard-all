@@ -244,8 +244,9 @@ const LEDGER_TARGETS = {
 function ledgerBranchTarget(metric, branchCodes) {
   const src = (typeof lgTargetSource === 'function') ? lgTargetSource() : null;
   const table = (src && src.kind === 'db') ? src.data.branch : LEDGER_TARGETS.branch;
+  // "All" is the UAE group: Bahrain's targets are BHD and never add into it.
   const codes = (!branchCodes || branchCodes.includes('all'))
-    ? Object.keys(table)
+    ? Object.keys(table).filter(c => typeof UAE_BRANCHES === 'undefined' || UAE_BRANCHES.includes(c))
     : branchCodes;
   const metrics = Array.isArray(metric) ? metric : [metric];
   return codes.reduce((sum, code) => {
@@ -267,7 +268,9 @@ function ledgerBranchTargetSet(metric, branchCodes) {
   const src = (typeof lgTargetSource === 'function') ? lgTargetSource() : null;
   if (src && src.kind === 'none') return false;
   const table = (src && src.kind === 'db') ? src.data.branch : LEDGER_TARGETS.branch;
-  const codes = (!branchCodes || branchCodes.includes('all')) ? Object.keys(table) : branchCodes;
+  const codes = (!branchCodes || branchCodes.includes('all'))
+    ? Object.keys(table).filter(c => typeof UAE_BRANCHES === 'undefined' || UAE_BRANCHES.includes(c))
+    : branchCodes;
   const keys = (Array.isArray(metric) ? metric : [metric]).map(m => m.charAt(0) === '-' ? m.slice(1) : m);
   return codes.some(code => {
     const b = table[code];
