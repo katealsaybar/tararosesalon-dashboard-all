@@ -294,7 +294,7 @@ async function renderTeam() {
   // the daily join, so counting weeks would call a full page of data empty.
   const roster = tpRoster(tpDept);
   const branchLabel = sel.branch.includes('all')
-    ? 'All Branches'
+    ? allLabel()
     : sel.branch.map(b => (BRANCH_INFO[b] || {}).name || b).join(', ');
 
   // Anyone dropped out of the selection leaves the tray with them — a compare

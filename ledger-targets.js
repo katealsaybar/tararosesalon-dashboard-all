@@ -242,6 +242,9 @@ const LEDGER_TARGETS = {
 // See ledger-targets-db.js. The arithmetic below is untouched; only where `b` comes
 // from has moved.
 function ledgerBranchTarget(metric, branchCodes) {
+  // The Group (UAE + Bahrain in one currency) has no target: the UAE's are AED and
+  // Bahrain has none, so any figure here would compare unlike with unlike.
+  if (typeof isGroupView === 'function' && isGroupView()) return 0;
   const src = (typeof lgTargetSource === 'function') ? lgTargetSource() : null;
   const table = (src && src.kind === 'db') ? src.data.branch : LEDGER_TARGETS.branch;
   // "All" is the UAE group: Bahrain's targets are BHD and never add into it.
@@ -265,6 +268,7 @@ function ledgerBranchTarget(metric, branchCodes) {
 // money metrics always exist once a month has rows, so this only ever answers false
 // for a head count or for a month with no targets at all.
 function ledgerBranchTargetSet(metric, branchCodes) {
+  if (typeof isGroupView === 'function' && isGroupView()) return false;
   const src = (typeof lgTargetSource === 'function') ? lgTargetSource() : null;
   if (src && src.kind === 'none') return false;
   const table = (src && src.kind === 'db') ? src.data.branch : LEDGER_TARGETS.branch;
@@ -281,6 +285,7 @@ function ledgerBranchTargetSet(metric, branchCodes) {
 // One stylist's targets, or null when she has none. Branch + dept + name,
 // because nicknames repeat across both.
 function ledgerStaffTarget(branchCode, dept, name) {
+  if (typeof isGroupView === 'function' && isGroupView()) return null;   // see ledgerBranchTarget
   const src = (typeof lgTargetSource === 'function') ? lgTargetSource() : null;
   const staffTable = (src && src.kind === 'db') ? src.data.staff : LEDGER_TARGETS.staff;
   const byBranch = staffTable[branchCode];
@@ -306,6 +311,7 @@ function ledgerStaffTarget(branchCode, dept, name) {
 // Returns the branch code, or null. Never used to supply a number — only to
 // explain the absence of one.
 function ledgerStaffTargetElsewhere(branchCode, dept, name) {
+  if (typeof isGroupView === 'function' && isGroupView()) return null;
   const key = typeof canonicalStaffName === 'function'
     ? String(canonicalStaffName(name) || '').toUpperCase()
     : String(name || '').trim().toUpperCase();

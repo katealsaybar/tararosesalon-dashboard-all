@@ -79,7 +79,7 @@ function lgBranches() {
 }
 function lgBranchLabel() {
   return (!sel.branch || sel.branch.includes('all'))
-    ? 'All Branches'
+    ? allLabel()
     : sel.branch.map(b => (BRANCH_INFO[b] && BRANCH_INFO[b].name) || b).join(', ');
 }
 function lgRangeLabel() {
@@ -2027,7 +2027,9 @@ const LG_FT_MONEY = [
 // query per render and buys a page that lights up on Refresh figures.
 let _lgFtCache = {};
 async function lgLoadFinancialTotals(fromStr, toStr) {
-  const key = fromStr + '|' + toStr;
+  // Per country and currency too: the rows cached are already filtered (and, on the
+  // Group, converted), so a UAE month must never be served to the Bahrain view.
+  const key = (typeof scopeKey === 'function' ? scopeKey() : '') + fromStr + '|' + toStr;
   if (_lgFtCache[key]) return _lgFtCache[key];
   let out = null;
   try {

@@ -23,8 +23,8 @@ const TARGETS = {
   // The avg-bill targets are AED amounts. Bahrain has none of its own yet, and a
   // peg-converted UAE figure would be a guess at Bahrain's pricing, so on the
   // Bahrain view they are unset and those rows drop out; the % targets hold.
-  get hairAvgBill()   { return (typeof isBahrainView === 'function' && isBahrainView()) ? null : 650; },
-  get beautyAvgBill() { return (typeof isBahrainView === 'function' && isBahrainView()) ? null : 200; },
+  get hairAvgBill()   { return (typeof isBahrainView === 'function' && (isBahrainView() || isGroupView())) ? null : 650; },
+  get beautyAvgBill() { return (typeof isBahrainView === 'function' && (isBahrainView() || isGroupView())) ? null : 200; },
   retailPct: 12, hairUtilPct: 80, beautyUtilPct: 70,
   get treatmentPct() { return isPostTargetCutover() ? 30 : 20; },
   get rebookPct()    { return isPostTargetCutover() ? 70 : 45; },
@@ -68,14 +68,67 @@ const UAE_BRANCHES = Object.keys(BRANCH_INFO).filter(b => BRANCH_INFO[b].country
 function isBahrainView() {
   return typeof sel !== 'undefined' && sel.branch.length > 0 && sel.branch.every(b => BH_BRANCHES.includes(b));
 }
-function scopeCodes() { return isBahrainView() ? BH_BRANCHES : UAE_BRANCHES; }
+// Group (Kate, 30 Sep 2026): UAE and Bahrain together, in one currency picked on
+// the page (AED or BHD). Both are pegged to the US dollar (AED 3.6725, BHD 0.376),
+// so one fixed rate converts every day of history the same way. It is All Branches
+// plus this flag, so every page that already understands "all" works unchanged,
+// and it applies on the four pages built for Bahrain; anywhere else "all" stays
+// the UAE, in AED.
+const BHD_TO_AED = 3.6725 / 0.376;
+const GROUP_VIEWS = new Set(['dashboard', 'branchperf', 'ledgerFinancials', 'team']);
+let GROUP_MODE = false;
+let GROUP_CUR = (() => { try { return localStorage.getItem('trs-currency') === 'BHD' ? 'BHD' : 'AED'; } catch (e) { return 'AED'; } })();
+function isGroupView() {
+  return GROUP_MODE && typeof sel !== 'undefined' && sel.branch.includes('all')
+    && (typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW));
+}
+function scopeCodes() { return isBahrainView() ? BH_BRANCHES : isGroupView() ? UAE_BRANCHES.concat(BH_BRANCHES) : UAE_BRANCHES; }
+// One cache entry per country and currency, so no window is ever served in the
+// wrong one.
+function scopeKey() { return isBahrainView() ? 'BH|' : isGroupView() ? `G|${GROUP_CUR}|` : ''; }
+// Every money column the Group view converts, across the tables these pages read.
+// Counts, clients, units and hours are left alone; jsonb is handled below.
+const MONEY_COLS = ['services_ex_vat','services_total','courses_ex_vat','courses_total','products_ex_vat',
+  'products_total','total_ex_vat','total_total','avg_spend_ex_vat','avg_spend_total',       // phorest_staff_daily
+  'treatment_aed',                                                                         // branch_staff_daily
+  'hair_sales','retail_total','treatments_total','beauty_sales','beauty_retail','total',   // daily_data
+  'net_take','hair_retail','treatments','col_take',                                        // weekly_totals
+  'services_net','services_vat','courses_net','courses_vat','products_net','products_vat',  // financial_totals
+  'sales_net','sales_vat','sales_total','vouchers_sold_total','paid_into_account_total','vouchers_used_total',
+  'memberships_used_total','account_used_total','non_revenue_total','sundries_total','pay_cash','pay_card',
+  'pay_stripe','pay_tabby_link','total_banked','vat_service_net','vat_service_vat','vat_service_total',
+  'vat_product_net','vat_product_vat','vat_product_total'];
+// branch_staff_daily's "total" is a client count, not money: only daily_data's is.
+const MONEY_SKIP = { branch_staff_daily: new Set(['total']) };
+function toGroupCurrency(rows) {
+  if (!isGroupView()) return rows;
+  return rows.map(r => {
+    const from = BH_BRANCHES.includes(r.branch) ? 'BHD' : 'AED';
+    if (from === GROUP_CUR) return r;
+    const f = from === 'BHD' ? BHD_TO_AED : 1 / BHD_TO_AED;
+    const skip = ('ncr' in r || 'rebooked' in r) ? MONEY_SKIP.branch_staff_daily : null;   // a ledger row
+    const o = { ...r };
+    MONEY_COLS.forEach(k => {
+      if (o[k] == null || (skip && skip.has(k))) return;
+      const n = Number(o[k]); if (isFinite(n)) o[k] = n * f;
+    });
+    if (o.payment_types && typeof o.payment_types === 'object')
+      o.payment_types = Object.fromEntries(Object.entries(o.payment_types).map(([k, v]) => [k, (Number(v) || 0) * f]));
+    if (o.cashbook && typeof o.cashbook === 'object')
+      o.cashbook = Object.fromEntries(Object.entries(o.cashbook).map(([k, v]) =>
+        [k, (v && typeof v === 'object') ? { ...v, total: (Number(v.total) || 0) * f } : v]));
+    return o;
+  });
+}
 function syncCountry() {
-  const want = isBahrainView() ? BH_BRANCHES : UAE_ACTIVE;
+  const want = isBahrainView() ? BH_BRANCHES : isGroupView() ? UAE_ACTIVE.concat(BH_BRANCHES) : UAE_ACTIVE;
   if (ACTIVE_BRANCHES.join() !== want.join()) ACTIVE_BRANCHES.splice(0, ACTIVE_BRANCHES.length, ...want);
 }
 // The currency every money figure is printed in: BHD on the Bahrain view.
-function CUR() { return isBahrainView() ? 'BHD' : 'AED'; }
-const keepUae = rows => { syncCountry(); const codes = scopeCodes(); return (rows || []).filter(r => codes.includes(r.branch)); };
+// What "all" is called on screen: the Group names both countries.
+function allLabel() { return isGroupView() ? 'Group · UAE + Bahrain' : 'All Branches'; }
+function CUR() { return isBahrainView() ? 'BHD' : isGroupView() ? GROUP_CUR : 'AED'; }
+const keepUae = rows => { syncCountry(); const codes = scopeCodes(); return toGroupCurrency((rows || []).filter(r => codes.includes(r.branch))); };
 
 const SCOLS = ['#FFD4D9','#FF9B9B','#C4B5FD','#99F6E4','#EEF3C7','#FFB6C1','#B5EAD7','#FFDAC1'];
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -98,7 +151,8 @@ let pendingSel = { branch: ['all'] }; // buffered branch selection — applied o
 // All Branches rather than on a branch that stopped syncing in May. Kate, 4 Sep 2026.
 try {
   const u = new URLSearchParams(location.search).get('branch');
-  if (u && u !== 'all') {
+  if (u === 'group') GROUP_MODE = true;   // sel.branch stays ['all']
+  else if (u && u !== 'all') {
     const asked = u.split(',').map(x => x.trim().toUpperCase());
     let picked = asked.filter(x => UAE_ACTIVE.includes(x));
     if (!picked.length) picked = asked.filter(x => BH_BRANCHES.includes(x));
@@ -445,17 +499,24 @@ function paintFilterChips() {
   // A scoped sign-in (Bahrain's team) gets its one branch and nothing to switch to.
   const scope = (typeof TRS_SCOPE !== 'undefined') ? TRS_SCOPE : null;
   if (scope) bEl.innerHTML = chipRow([{ v: scope, label: (BRANCH_INFO[scope] || {}).name || scope, on: true }]);
-  else bEl.innerHTML = chipRow([
-    { v: 'all', label: 'All Branches', on: isAll },
-    ...UAE_ACTIVE.map(code => ({
-      v: code, label: BRANCH_INFO[code].name,
-      on: !isAll && sel.branch.includes(code),
-    })),
-    ...BH_BRANCHES.map(code => ({
-      v: code, label: BRANCH_INFO[code].name,
-      on: sel.branch.includes(code),
-    })),
-  ]);
+  else {
+    const group = isGroupView();
+    const canGroup = typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW);
+    bEl.innerHTML = chipRow([
+      { v: 'all', label: 'All Branches', on: isAll && !group },
+      ...UAE_ACTIVE.map(code => ({
+        v: code, label: BRANCH_INFO[code].name,
+        on: !isAll && sel.branch.includes(code),
+      })),
+      ...BH_BRANCHES.map(code => ({
+        v: code, label: BRANCH_INFO[code].name,
+        on: sel.branch.includes(code),
+      })),
+      // UAE + Bahrain, on the pages that can show both; the currency picker follows it.
+      ...(canGroup ? [{ v: 'group', label: 'Group', on: group }] : []),
+    ]) + (group ? `<span class="sep">|</span>` + ['AED', 'BHD'].map(c =>
+      `<button type="button" class="chip chip-cur" aria-pressed="${GROUP_CUR === c}" data-cur="${c}" title="Show the Group in ${c}">${c}</button>`).join('<span class="sep">·</span>') : '');
+  }
 
   // The three Ledgers pages hold the ledger's own window — last month against this
   // month, month to date — because every column of that sheet is meaningless
@@ -489,7 +550,7 @@ function paintFilterChips() {
   // The masthead's meta rule says what you are reading, so it has to be repainted
   // with the chips and not only on a successful data load — otherwise a branch
   // with no rows leaves the rule describing the previous selection.
-  const branchLabel = isAll ? 'All Branches'
+  const branchLabel = isGroupView() ? `Group · UAE + Bahrain · ${GROUP_CUR}` : isAll ? 'All Branches'
     : sel.branch.map(b => BRANCH_INFO[b]?.name || b).join(' · ');
   const mb = document.getElementById('mastBranch');
   const mr = document.getElementById('mastRange');
@@ -606,7 +667,15 @@ document.addEventListener('click', e => {
 
   if (chip.closest('#branchChips')) {
     if (typeof TRS_SCOPE !== 'undefined' && TRS_SCOPE) return;   // one branch, nothing to change
+    if (chip.dataset.cur) {                                      // the Group's currency
+      GROUP_CUR = chip.dataset.cur;
+      try { localStorage.setItem('trs-currency', GROUP_CUR); } catch (e) {}
+      paintFilterChips(); refreshActiveView();
+      return;
+    }
     const v = chip.dataset.v;
+    GROUP_MODE = (v === 'group');
+    if (v === 'group') { sel.branch = ['all']; pendingSel.branch = ['all']; paintFilterChips(); refreshActiveView(); return; }
     if (v === 'all') sel.branch = ['all'];
     else if (BH_BRANCHES.includes(v) || isBahrainView()) sel.branch = [v];   // never mix currencies
     else if (sel.branch.includes('all')) sel.branch = [v];
@@ -744,6 +813,8 @@ function getWeeklyTarget(branches) {
 
 function getClientTarget(branches) {
   const map = { SAA:[700,800], KCA:[500,650], AQ:[700,900], MC:[500,650], FRT:[500,600] };
+  if (isGroupView()) return 'none for the Group (the UAE one is for the UAE alone)';
+  if (branches.every(b => BH_BRANCHES.includes(b))) return 'none set for Bahrain yet';
   if (branches.includes('all')) return '2,800–3,200 / week (All Branches Combined)';
   let min = 0, max = 0;
   branches.forEach(b => { if (map[b]) { min += map[b][0]; max += map[b][1]; } });
@@ -949,7 +1020,7 @@ function heroPeriodPhrasing() {
   return {
     phrase: computeHeroPeriodPhrase(dateFrom, dateTo),
     verb:   (dateTo && dateTo < today) ? 'shaped up' : 'is shaping up',
-    scope:  isAll ? 'across all branches'
+    scope:  isAll ? (isGroupView() ? 'across the UAE and Bahrain' : 'across all branches')
           : codes.length === 1 ? `at ${BRANCH_INFO[codes[0]]?.name || codes[0]}`
           : `across ${codes.map(c => BRANCH_INFO[c]?.name || c).join(', ')}`,
   };
@@ -2991,7 +3062,7 @@ function buildWinsHTML(s, prevS, prevPeriodLabel, hairStaff, beautyStaff, branch
 
   // ── Top branch (All Branches view) or top department (single-branch view) ──
   let branchCard;
-  const branchEntries = branchLabel === 'All Branches' && byBranch
+  const branchEntries = sel.branch.includes('all') && byBranch
     ? Object.keys(byBranch).map(code => ({ code, s: byBranch[code]?.summary })).filter(e => e.s && e.s.netTake > 0).sort((a,b) => b.s.netTake - a.s.netTake)
     : [];
   if (branchEntries.length) {
@@ -3203,7 +3274,7 @@ function restoreSections() {
 // entry so it can retry.
 const RANGE_CACHE = new Map();
 function cachedRange(key, loader) {
-  key = (isBahrainView() ? 'BH|' : '') + key;   // UAE and Bahrain never share a cached window
+  key = scopeKey() + key;   // UAE, Bahrain and Group (per currency) never share a cached window
   if (!RANGE_CACHE.has(key)) {
     RANGE_CACHE.set(key, loader().catch(err => { RANGE_CACHE.delete(key); throw err; }));
   }
@@ -3382,7 +3453,7 @@ async function renderDashboard() {
   const ttStyle = { backgroundColor: dark?'#2D2E37':'#fff', titleColor:dark?'#FAF8F3':'#5C5557', bodyColor:dark?'rgba(250,248,243,.7)':'#9a8a87', borderColor:dark?'rgba(250,248,243,.1)':'#e8d5cc', borderWidth:1 };
   const gc = dark ? 'rgba(250,248,243,0.06)' : 'rgba(92,85,87,0.07)';
   const tc = dark ? 'rgba(250,248,243,0.45)' : '#9a8a87';
-  const branchLabel = sel.branch.includes('all') ? 'All Branches' : sel.branch.map(b => BRANCH_INFO[b]?.name||b).join(', ');
+  const branchLabel = sel.branch.includes('all') ? allLabel() : sel.branch.map(b => BRANCH_INFO[b]?.name||b).join(', ');
 
   // Period label for section headers
   const _hasDateRangeSect = !!(dateFrom && dateTo);
@@ -4546,7 +4617,7 @@ async function _loadSvcYears() {
 const _iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
 function _svcWindow() {
-  const branches = (!sel.branch || sel.branch.includes('all')) ? ACTIVE_BRANCHES.slice() : sel.branch.slice();
+  const branches = (!sel.branch || sel.branch.includes('all')) ? UAE_ACTIVE.slice() : sel.branch.slice();   // AED page: UAE on "all"
   if (dateFrom && dateTo) {
     // get_top_services / get_top_clients filter on p_year as well as the range, so a
     // window that crosses New Year would silently lose everything after 31 Dec.

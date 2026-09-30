@@ -3496,25 +3496,25 @@ table.tp-cmp td.bad{color:var(--bad)}
 
 <script src="upload/name-aliases.js?v=20260930b"></script>
 <!-- After name-aliases.js: ledgerStaffTarget() canonicalises names through it. -->
-<script src="ledger-targets.js?v=20260930bh1"></script>
+<script src="ledger-targets.js?v=20260930g1"></script>
 <!-- After ledger-targets.js: the Supabase target layer overrides its lookups per month. -->
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20260924n"></script>
 <script src="stylist-levels.js?v=20260928c"></script>
 <script src="staff-weeks.js?v=20260929z"></script>
-<script src="products.js?v=20260930b"></script>
+<script src="products.js?v=20260930g1"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20260930bh8"></script>
+<script src="dashboard.js?v=20260930g3"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20260930bh4"></script>
+<script src="branch-ledger.js?v=20260930g2"></script>
 <script src="compare.js?v=20260928a"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20260904b"></script>
-<script src="team-performance.js?v=20260930bh4"></script>
+<script src="team-performance.js?v=20260930g2"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=20260928a"></script>
 <script src="pulse-narrative.js?v=20260928a"></script>
@@ -4178,6 +4178,8 @@ function trSyncUrl(sectionId){
   if (typeof FILTERED_VIEWS !== 'undefined' && FILTERED_VIEWS.has(CURRENT_VIEW)
       && typeof sel !== 'undefined' && sel.branch && !sel.branch.includes('all')) {
     parts.push('branch=' + sel.branch.join(','));
+  } else if (typeof isGroupView === 'function' && isGroupView()) {
+    parts.push('branch=group');   // the Group is All Branches plus a flag, so it says so
   }
   // The Period chips, on every filtered page EXCEPT Ledgers — those read the
   // ledger month instead, which month= below already carries, and their Period
@@ -4193,7 +4195,7 @@ function trSyncUrl(sectionId){
   }
   if (typeof FILTERED_VIEWS !== 'undefined' && FILTERED_VIEWS.has(CURRENT_VIEW)
       && typeof sel !== 'undefined' && sel.branch) {
-    try { localStorage.setItem('trs-branch', sel.branch.join(',')); } catch (e) {}
+    try { localStorage.setItem('trs-branch', (typeof GROUP_MODE !== 'undefined' && GROUP_MODE && sel.branch.includes('all')) ? 'group' : sel.branch.join(',')); } catch (e) {}
   }
   // Month goes in ahead of Split so the URL reads in the order the page does:
   // which page, which branches, which period, which month, how that month is cut.

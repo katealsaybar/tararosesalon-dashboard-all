@@ -25,7 +25,9 @@ const prdDayY = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day
 const prdIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 function prdWindow() {
-  const branches = (!sel.branch || sel.branch.includes('all')) ? ACTIVE_BRANCHES.slice() : sel.branch.slice();
+  // UAE only on "all", Group included: stock orders are costed in each country's own
+  // currency and this page prints AED. Bahrain reads through its own chip.
+  const branches = (!sel.branch || sel.branch.includes('all')) ? UAE_ACTIVE.slice() : sel.branch.slice();
   if (dateFrom && dateTo) return { branches, from: prdIso(dateFrom), to: prdIso(dateTo), ranged: true };
   // No range: the last 13 full weeks, Monday to Sunday, plus the week so far.
   const t = new Date(); t.setHours(0, 0, 0, 0);
