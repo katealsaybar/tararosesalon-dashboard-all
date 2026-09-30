@@ -44,6 +44,12 @@ const STAFF_NAME_ALIASES = {
   'SIMOUN': 'SIMON',
   // Motor City writes Virginija as VIRGINIA; the profile is VIRGINIJA Lisauskaite.
   'VIRGINIA': 'VIRGINIJA',
+  // Kate, 30 Sep 2026, off Takings vs Rebooking. Saadiyat's ledger wrote Shelley
+  // (Douglas) as SHELEY for one week, 11-17 May 2026 (7 rows). And Al Quoz wrote
+  // Marjorie as MARJ once (26 Jun 2026); she folds into MARGIE like MARJORIE does,
+  // so the assistant filters catch her.
+  'SHELEY': 'SHELLEY',
+  'MARJ': 'MARGIE',
 };
 
 function canonicalStaffName(name){

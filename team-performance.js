@@ -60,7 +60,10 @@ const TP_LADDER = ['Owner', 'Style Director', 'Senior Stylist', 'Stylist', 'Juni
 // Lhang Ann and Ma. Ercely worked the floor as assistants.
 const TP_ROLE_FIX = { 'TARA': 'Owner', 'TARA KIDD': 'Owner',
   'CRISTINE': 'Assistant', 'CRISTINE BRACAMONTE': 'Assistant',
-  'LHANG': 'Assistant', 'LHANG ANN': 'Assistant', 'MA. ERCELY': 'Assistant', 'MA.': 'Assistant' };
+  'LHANG': 'Assistant', 'LHANG ANN': 'Assistant', 'MA. ERCELY': 'Assistant', 'MA.': 'Assistant',
+  // Kate, 30 Sep 2026: Phorest-only assistants, a few days each in 2026. Ara
+  // Gonzales (KCA), Joyce Dy (SAA), Maan Solis (AQ, MC).
+  'ARA': 'Assistant', 'JOYCE': 'Assistant', 'MAAN': 'Assistant' };
 const TP_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'TARA KIDD': 'assets/org-chart/tara-rose-kidd.png' };
 const tpRole = st => { const fix = TP_ROLE_FIX[tpMergeKey(st.name)]; if (fix) return fix;
   const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.role) || 'No position set'; };

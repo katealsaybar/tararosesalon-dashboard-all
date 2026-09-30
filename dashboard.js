@@ -2164,7 +2164,8 @@ const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTAN
 // Team Performance already treats her and Lhang Ann as assistants (TP_ROLE_FIX), but
 // that fix is local to that page, so the ledger views never heard of it. Ma. Ercely
 // (Motor City) too: Phorest's "Ma. Ercely Vacal" reads as "MA." by its first word.
-const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL', 'IVY', 'FRANCES', 'MARGIE', 'CRISTINE', 'LHANG', 'MA.']);
+// And Ara (KCA), Joyce (SAA), Maan (AQ, MC), Phorest-only assistants (30 Sep).
+const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL', 'IVY', 'FRANCES', 'MARGIE', 'CRISTINE', 'LHANG', 'MA.', 'ARA', 'JOYCE', 'MAAN']);
 
 // Kate, 24 Sep 2026: Apol and Marjorie were still showing on Branch Performance as
 // stylists/therapists. The set above only caught names typed into it, so anyone whose
