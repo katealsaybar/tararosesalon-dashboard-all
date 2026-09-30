@@ -50,6 +50,11 @@ const STAFF_NAME_ALIASES = {
   // so the assistant filters catch her.
   'SHELEY': 'SHELLEY',
   'MARJ': 'MARGIE',
+  // Same day: Khalifa City's ledger wrote Tammy by her full first name, TAMRYN,
+  // on the one day she covered there (14 Feb 2026), so she had a second face.
+  // TAMMY is the card name; PHOREST_RECONCILE_ALIASES still maps TAMMY to
+  // Phorest's "Tamryn Peter".
+  'TAMRYN': 'TAMMY',
 };
 
 function canonicalStaffName(name){
