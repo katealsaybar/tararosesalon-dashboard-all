@@ -3276,6 +3276,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       const slug = new URLSearchParams(location.search).get('staff');
       frame.src = 'performance/index.html?admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
+      frame.dataset.key = key;
     }
     // Preloaded while hidden, the frame measured itself at 0 tall; measure it again
     // now it's on screen (same site, so the dashboard can read it directly).
@@ -3648,6 +3649,14 @@ async function enterDashboard(role){
   const perfKey = TRSAuth.perfKey();
   await loadData();
   window.SPF_AUTO = await perfKey;
+  // Kate, 30 Sep 2026: on a phone the quiet preload (1.5s after load) ran before the
+  // sign-in had fetched her leader key, so the frame stayed on the view-only key and
+  // "Open her view in another window" never showed. Drop it; showView below (or the
+  // next open of Staff Benchmarks) loads it again on the key it should have.
+  const spfF = document.getElementById('spfFrame');
+  if (spfF && spfF.dataset.loaded && spfF.dataset.key !== spfGet()) {
+    spfF.removeAttribute('src'); delete spfF.dataset.loaded;
+  }
   startFreshnessWatch();
   const params = new URLSearchParams(window.location.search);
   const activeView = params.get('view') || 'dashboard';
