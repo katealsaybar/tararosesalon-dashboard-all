@@ -547,6 +547,8 @@
 
   function open() {
     if (!panel) return;
+    // A scoped sign-in (Bahrain's team): the index covers UAE staff, clients and pages.
+    if (typeof TRS_SCOPE !== 'undefined' && TRS_SCOPE) return;
     // Not over the sign-in screen: the / would otherwise land in the email field.
     const gate = document.getElementById('loginGate');
     if (gate && gate.style.display !== 'none') return;

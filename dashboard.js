@@ -442,7 +442,10 @@ function paintFilterChips() {
   // disabled all four. The picker had been dead for months. The dashboard already
   // says "No data for this selection" when a branch really is empty, which is a
   // better answer than a chip you cannot press. Kate, 2026-08-14.
-  bEl.innerHTML = chipRow([
+  // A scoped sign-in (Bahrain's team) gets its one branch and nothing to switch to.
+  const scope = (typeof TRS_SCOPE !== 'undefined') ? TRS_SCOPE : null;
+  if (scope) bEl.innerHTML = chipRow([{ v: scope, label: (BRANCH_INFO[scope] || {}).name || scope, on: true }]);
+  else bEl.innerHTML = chipRow([
     { v: 'all', label: 'All Branches', on: isAll },
     ...UAE_ACTIVE.map(code => ({
       v: code, label: BRANCH_INFO[code].name,
@@ -602,6 +605,7 @@ document.addEventListener('click', e => {
   if (!chip || chip.disabled) return;
 
   if (chip.closest('#branchChips')) {
+    if (typeof TRS_SCOPE !== 'undefined' && TRS_SCOPE) return;   // one branch, nothing to change
     const v = chip.dataset.v;
     if (v === 'all') sel.branch = ['all'];
     else if (BH_BRANCHES.includes(v) || isBahrainView()) sel.branch = [v];   // never mix currencies
@@ -3665,7 +3669,8 @@ async function renderDashboard() {
         </a>` : ''}` : '';
 
     receiptEl.innerHTML = `
-      <div class="mark"><img src="assets/6.png" alt="Tara Rose Ladies Salon"></div>
+      <div class="mark"><img src="assets/6.png" alt="Tara Rose Salons"></div>
+      <div class="r-word">Salons</div>
       <div class="r-sub">${escapeHtml(branchLabel)} · ${rangeLabel}</div>
       <div class="r-rule"></div>
       ${hasBeauty ? `
