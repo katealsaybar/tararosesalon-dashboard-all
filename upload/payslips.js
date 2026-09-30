@@ -16,8 +16,12 @@
 // same person are saved together as one payslip.
 const PS_FN = 'https://gvijxenafoowajqktqvd.supabase.co/functions/v1/payslips';
 const PS_KEY_STORE = 'payslipKey';
+// The Staff Payslips Apps Script, deployed as a web app from payroll@ (Execute as:
+// Me, access: Anyone). It sends the monthly emails; see
+// apps-script/monthly-performance-email.gs. Every call carries the payslip key.
+const PS_SEND_URL = '';
 const PS_BRANCH = { KCA: 'Khalifa City A', SAA: 'Mamsha Al Saadiyat', MC: 'Motor City', AQ: 'Al Quoz' };
-let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '' };
+let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '', branch: (() => { try { return localStorage.getItem('trs-ps-branch') || ''; } catch (e) { return ''; } })(), pos: (() => { try { return localStorage.getItem('trs-ps-pos') || ''; } catch (e) { return ''; } })(), send: null, sendBusy: '', sendMsg: '', sendErr: '' };
 
 // A typed key wins; otherwise the one the sign-in hands payroll and leaders (PS_AUTO, set in upload.html).
 const psKey = () => { try { return localStorage.getItem(PS_KEY_STORE) || window.PS_AUTO || null; } catch (e) { return window.PS_AUTO || null; } };
@@ -53,6 +57,7 @@ async function initPayslipsTab() {
   if (!psKey()) { psRenderKeyPrompt(); return; }
   if (!PS_STATE.month) PS_STATE.month = psDefaultMonth();
   host.innerHTML = '<div class="empty-col">Loading…</div>';
+  PS_STATE.send = null;
   try {
     const d = await psCall({ action: 'list', admin: psKey(), month: PS_STATE.month });
     PS_STATE.staff = d.staff; PS_STATE.admin = d.admin;
@@ -160,8 +165,8 @@ function psRender() {
   PS_STATE.staff.forEach(s => (groups[s.branch] ||= []).push(s));
   const row = s => {
     const p = s.payslip;
-    return `<div class="ps-row${p ? ' done' : ''}" data-name="${psEsc(psNorm(s.name))}">
-      <div><div class="ps-name">${psEsc(s.name)}</div><div class="ps-meta">${psEsc(s.level || s.dept)}${p ? ` · ${psEsc(p.file_name || 'payslip.pdf')} · by ${psEsc(p.uploaded_by)}, ${new Date(p.uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}</div></div>
+    return `<div class="ps-row${p ? ' done' : ''}" data-name="${psEsc(psNorm(s.name))}" data-pos="${psEsc(s.level || s.dept || '')}">
+      <div><div class="ps-name">${psEsc(s.name)}<span class="ps-badge"></span></div><div class="ps-meta">${psEsc(s.level || s.dept)}${p ? ` · ${psEsc(p.file_name || 'payslip.pdf')} · by ${psEsc(p.uploaded_by)}, ${new Date(p.uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}</div></div>
       <div class="ps-actions">
         ${p ? `<button class="btn-dl" onclick="psView('${s.id}')">View</button>` : ''}
         <label class="btn-outline ps-pick">${p ? 'Replace' : 'Upload PDF'}<input type="file" accept="application/pdf,.pdf" hidden onchange="psUploadOne('${s.id}', this.files[0]); this.value=''"></label>
@@ -174,6 +179,7 @@ function psRender() {
       <div class="ps-count"><b>${done}</b> of ${all} uploaded</div>
       <a href="#" class="ps-key" onclick="psForgetKey();return false">Signed in as ${psEsc(PS_STATE.admin)} · change key</a>
     </div>
+    <div class="ps-send" id="psSendPanel"></div>
     <div class="ps-drop" id="psDrop">
       <b>Drop payslip PDFs here</b>, or <label class="ps-link">choose files<input type="file" accept="application/pdf,.pdf" multiple hidden onchange="psAddFiles(this.files); this.value=''"></label>.
       <div class="ps-meta">One PDF with everyone in it? Drop it here: each page is matched by the name printed on it. Or one file per person, named like “Holly Branchett.pdf”. PDF only, up to 10 MB each.</div>
@@ -182,16 +188,45 @@ function psRender() {
     <div class="ps-search-wrap">
       <input id="psSearch" class="ps-search" type="search" placeholder="Search a name…" autocomplete="off"
         value="${psEsc(PS_STATE.q)}" oninput="PS_STATE.q=this.value; psFilter()">
-      <span class="ps-meta" id="psSearchNone" hidden>Nobody by that name on the list.</span>
+      <div class="ps-branches">${['', 'KCA', 'SAA', 'MC', 'AQ'].filter(b => !b || groups[b]).map(b => `
+        <button type="button" class="ps-bpill${PS_STATE.branch === b ? ' on' : ''}" onclick="psPickBranch('${b}')">${b ? psEsc(PS_BRANCH[b]) : 'All'}</button>`).join('')}</div>
+      <select class="ps-pos" onchange="psPickPos(this.value)">
+        <option value="">All positions</option>
+        ${psPositions().map(v => `<option value="${psEsc(v)}"${PS_STATE.pos === v ? ' selected' : ''}>${psEsc(v)}</option>`).join('')}
+      </select>
+      <span class="ps-meta" id="psSearchNone" hidden>Nobody matches.</span>
     </div>
     ${['KCA', 'SAA', 'MC', 'AQ'].filter(b => groups[b]).map(b => `
-      <div class="roster-branch ps-branch"><div class="roster-branch-hd">${PS_BRANCH[b]} · ${groups[b].filter(s => s.payslip).length}/${groups[b].length}</div>
+      <div class="roster-branch ps-branch" data-branch="${b}"><div class="roster-branch-hd">${PS_BRANCH[b]} · ${groups[b].filter(s => s.payslip).length}/${groups[b].length}</div>
       ${groups[b].map(row).join('')}</div>`).join('')}`;
   const drop = document.getElementById('psDrop');
   ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('dragover'); }));
   ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('dragover'); }));
   drop.addEventListener('drop', e => psAddFiles(e.dataTransfer.files));
   psRenderPending();
+  psFilter();
+  psRenderSend();
+  if (!PS_STATE.send && PS_SEND_URL) psLoadSend();
+}
+
+// Branch pills next to the search (Kate, 30 Sep 2026), remembered per browser.
+function psPickBranch(b) {
+  PS_STATE.branch = b;
+  try { localStorage.setItem('trs-ps-branch', b); } catch (e) {}
+  document.querySelectorAll('#payslipHost .ps-bpill').forEach(x => x.classList.toggle('on', x.getAttribute('onclick') === `psPickBranch('${b}')`));
+  psFilter();
+}
+
+// Position dropdown (Kate, 30 Sep 2026): the level for hair, Beauty for the beauty team.
+const PS_POS_ORDER = ['Blow-Dry Specialist', 'Junior Stylist', 'Stylist', 'Senior Stylist', 'Style Director', 'Beauty'];
+function psPositions() {
+  const have = [...new Set(PS_STATE.staff.map(s => s.level || s.dept).filter(Boolean))];
+  const rank = v => { const i = PS_POS_ORDER.indexOf(v); return i < 0 ? 99 : i; };
+  return have.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+}
+function psPickPos(v) {
+  PS_STATE.pos = v;
+  try { localStorage.setItem('trs-ps-pos', v); } catch (e) {}
   psFilter();
 }
 
@@ -201,16 +236,18 @@ function psFilter() {
   const words = psNorm(PS_STATE.q || '').split(' ').filter(Boolean);
   let shown = 0;
   document.querySelectorAll('#payslipHost .ps-branch').forEach(br => {
+    if (PS_STATE.branch && br.dataset.branch !== PS_STATE.branch) { br.hidden = true; return; }
     let any = false;
     br.querySelectorAll('.ps-row').forEach(r => {
       const n = r.dataset.name || '';
       const ok = words.every(w => n.split(' ').some(part => part.startsWith(w)));
-      r.hidden = !ok; if (ok) { any = true; shown++; }
+      const okPos = !PS_STATE.pos || r.dataset.pos === PS_STATE.pos;
+      r.hidden = !(ok && okPos); if (ok && okPos) { any = true; shown++; }
     });
     br.hidden = !any;
   });
   const none = document.getElementById('psSearchNone');
-  if (none) none.hidden = !(words.length && !shown);
+  if (none) none.hidden = !!shown;
 }
 
 async function psAddFiles(files) {
@@ -334,4 +371,145 @@ async function psRemove(staffId) {
   if (!confirm(`Remove ${s ? s.name + '’s' : 'this'} payslip for this month?`)) return;
   try { await psCall({ action: 'delete', admin: psKey(), month: PS_STATE.month, staff_id: staffId }); await initPayslipsTab(); }
   catch (e) { alert(e.message); }
+}
+
+// ── EMAIL TO STAFF (Kate, 30 Sep 2026) ──────────────────────────────────
+// The monthly payslip email, run from here instead of the Apps Script editor, so
+// anyone on Accounts can check it, test it, pause it or send it. The script drafts
+// on Saturday 09:00 and Sunday 18:00 once payslips are in, and sends on Monday
+// around 08:00; these buttons only look at and nudge that.
+const PS_STATE_LABEL = {
+  sent: 'Emailed', draft_ready: 'Draft ready', draft_no_payslip: 'Draft, no payslip',
+  payslip_in: 'Payslip in', waiting: '', no_email: 'No email', paused: 'Email off',
+};
+
+async function psSend(action, extra) {
+  const r = await fetch(PS_SEND_URL, {
+    method: 'POST',   // text/plain body: Apps Script can't answer a CORS preflight
+    body: JSON.stringify(Object.assign({ action, key: psKey(), month: PS_STATE.month }, extra || {})),
+  });
+  let j = {};
+  try { j = await r.json(); } catch (e) { throw new Error('The payslip mailer didn’t answer. Try again in a minute.'); }
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+
+async function psLoadSend() {
+  const month = PS_STATE.month;
+  try {
+    const j = await psSend('status');
+    if (PS_STATE.month !== month) return;
+    PS_STATE.send = j; PS_STATE.sendErr = '';
+  } catch (e) { PS_STATE.sendErr = e.message; }
+  psRenderSend();
+}
+
+// 'Sat 3 Oct' for the next such weekday in Dubai (today counts until that hour).
+function psNextDay(dow, hour) {
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
+  let add = (dow - d.getDay() + 7) % 7;
+  if (add === 0 && d.getHours() >= hour) add = 7;
+  d.setDate(d.getDate() + add);
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+const psWhen = iso => new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+function psRenderSend() {
+  const el = document.getElementById('psSendPanel');
+  if (!el) return;
+  const monthName = new Date(PS_STATE.month + '-15').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  if (!PS_SEND_URL) {
+    el.innerHTML = `<div class="ps-send-hd">Email to staff · ${psEsc(monthName)}</div><div class="ps-meta">Not connected yet: the payslip mailer’s web address still needs adding to the portal.</div>`;
+    return;
+  }
+  const S = PS_STATE.send;
+  if (!S) {
+    el.innerHTML = `<div class="ps-send-hd">Email to staff · ${psEsc(monthName)}</div>
+      <div class="ps-meta">${PS_STATE.sendErr ? `<span class="ps-err">${psEsc(PS_STATE.sendErr)}</span> <a href="#" class="ps-link" onclick="PS_STATE.sendErr='';psRenderSend();psLoadSend();return false">Try again</a>` : 'Checking the email status…'}</div>`;
+    return;
+  }
+  const n = st => S.people.filter(p => p.state === st).length;
+  const ready = n('draft_ready'), sent = n('sent'), noSlip = n('draft_no_payslip') + n('waiting') + n('payslip_in'), noEmail = n('no_email');
+  const mon = psNextDay(1, 8), sat = psNextDay(6, 9), sun = psNextDay(0, 18);
+  let line;
+  if (S.hold) line = `<b>Paused.</b> Nothing goes out on Monday until someone presses Resume.`;
+  else if (S.sent) line = `<b>Sent ${psEsc(psWhen(S.sent))}.</b> ${sent} ${sent === 1 ? 'person has' : 'people have'} theirs.${ready ? ` ${ready} more ${ready === 1 ? 'draft is' : 'drafts are'} ready to send.` : ''}`;
+  else if (S.drafted) line = `<b>Drafts ready: ${ready}.</b> They go out ${psEsc(mon)} around 08:00.`;
+  else line = `<b>No drafts yet.</b> They’re made ${psEsc(sat)} at 09:00 (again ${psEsc(sun)} at 18:00) once payslips are in, and go out ${psEsc(mon)} around 08:00.`;
+  const people = S.people.filter(p => p.state !== 'no_email' && p.state !== 'paused');
+  const opts = people.map(p => `<option value="${psEsc(p.name)}">${psEsc(p.name)}${p.state === 'draft_ready' || p.state === 'payslip_in' || p.state === 'sent' ? '' : ' (no payslip yet)'}</option>`).join('');
+  const busy = PS_STATE.sendBusy;
+  const dis = busy ? ' disabled' : '';
+  el.innerHTML = `
+    <div class="ps-send-hd">Email to staff · ${psEsc(monthName)}</div>
+    <div class="ps-send-line">${line}</div>
+    ${S.schedule ? '' : `<div class="ps-err" style="margin-top:4px">The weekly schedule isn’t switched on in payroll@’s Apps Script, so nothing will be drafted or sent by itself. Ask Kate.</div>`}
+    <div class="ps-chips">
+      <span class="ps-chip st-sent">Emailed ${sent}</span>
+      <span class="ps-chip st-draft_ready">Ready ${ready}</span>
+      <span class="ps-chip st-waiting">Waiting for payslip ${noSlip}</span>
+      ${noEmail ? `<span class="ps-chip st-no_email">No email ${noEmail}</span>` : ''}
+    </div>
+    <div class="ps-send-row">
+      <select id="psTestWho"${dis}>${opts}</select>
+      <button class="btn-outline" onclick="psSendTest()"${dis}>Send a test to ${psEsc((S.sender || 'payroll@').split('@')[0])}@</button>
+    </div>
+    <div class="ps-send-row">
+      ${S.hold ? `<button class="btn" onclick="psSendAct('release')"${dis}>Resume Monday send</button>`
+               : `<button class="btn-outline" onclick="psSendAct('hold')"${dis}>Pause Monday send</button>`}
+      <button class="btn-outline" onclick="psSendAct('draft')"${dis}>Make drafts now</button>
+      <button class="btn-outline" onclick="psSendAct('send')"${dis || (!ready || S.hold ? ' disabled' : '')}>Send ${ready} ready now</button>
+      <a href="#" class="ps-link ps-refresh" onclick="PS_STATE.send=null;psRenderSend();psLoadSend();return false">Refresh</a>
+    </div>
+    ${busy ? `<div class="ps-meta">${psEsc(busy)}</div>` : ''}
+    ${PS_STATE.sendMsg ? `<div class="ps-ok">${psEsc(PS_STATE.sendMsg)}</div>` : ''}
+    ${PS_STATE.sendErr ? `<div class="ps-err">${psEsc(PS_STATE.sendErr)}</div>` : ''}
+    ${S.log && S.log.length ? `<div class="ps-send-log">${S.log.map(l => `<div>${psEsc(psWhen(l.at))} · ${psEsc(l.who)} · ${psEsc(l.what)}</div>`).join('')}</div>` : ''}`;
+  psBadges();
+}
+
+// A small state tag next to each name in the list below.
+function psBadges() {
+  const S = PS_STATE.send;
+  if (!S) return;
+  const by = {};
+  S.people.forEach(p => { by[psNorm(p.name)] = p.state; });
+  document.querySelectorAll('#payslipHost .ps-row').forEach(r => {
+    const b = r.querySelector('.ps-badge');
+    if (!b) return;
+    const st = by[r.dataset.name] || '';
+    b.className = 'ps-badge' + (st ? ' st-' + st : '');
+    b.textContent = PS_STATE_LABEL[st] || '';
+  });
+}
+
+const PS_CONFIRM = {
+  hold: null,
+  release: null,
+  draft: 'Make the drafts now? Anyone with a payslip gets a draft, and drafts with a payslip go out on Monday, or when someone presses Send. Nobody who already got theirs is emailed again.',
+  send: 'Send every draft that has a payslip, now? Staff get their email straight away.',
+};
+const PS_BUSY = {
+  hold: 'Pausing…', release: 'Resuming…',
+  draft: 'Making the drafts. This takes a minute or two, keep this page open.',
+  send: 'Sending. This takes a minute, keep this page open.',
+};
+
+async function psSendAct(action) {
+  if (PS_CONFIRM[action] && !confirm(PS_CONFIRM[action])) return;
+  PS_STATE.sendBusy = PS_BUSY[action]; PS_STATE.sendMsg = ''; PS_STATE.sendErr = ''; psRenderSend();
+  try {
+    const j = await psSend(action);
+    PS_STATE.send = j; PS_STATE.sendMsg = j.done || (action === 'hold' ? 'Paused. Nothing goes out on Monday.' : action === 'release' ? 'Resumed. Monday’s send is back on.' : '');
+  } catch (e) { PS_STATE.sendErr = e.message; }
+  PS_STATE.sendBusy = ''; psRenderSend();
+}
+
+async function psSendTest() {
+  const who = document.getElementById('psTestWho');
+  if (!who || !who.value) return;
+  PS_STATE.sendBusy = `Sending a test of ${who.value}’s email…`; PS_STATE.sendMsg = ''; PS_STATE.sendErr = ''; psRenderSend();
+  try { const j = await psSend('test', { staff: [who.value] }); PS_STATE.send = j; PS_STATE.sendMsg = j.done; }
+  catch (e) { PS_STATE.sendErr = e.message; }
+  PS_STATE.sendBusy = ''; psRenderSend();
 }

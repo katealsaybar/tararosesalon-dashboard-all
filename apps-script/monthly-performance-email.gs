@@ -26,6 +26,15 @@
  *   3. Run setupPerformanceTrigger once. It sets the Saturday, Sunday and Monday
  *      triggers (and clears any older ones of yours first).
  *
+ * UPLOAD PORTAL BUTTONS (Payslips tab: status, test, pause, drafts, send)
+ *   The portal calls this project as a web app. Signed in as payroll@:
+ *   Deploy → New deployment → gear → Web app. Execute as: Me. Who has access:
+ *   Anyone. Deploy, copy the /exec URL into PS_SEND_URL in upload/payslips.js.
+ *   After pasting a newer version of this file: Deploy → Manage deployments →
+ *   pencil → Version: New version → Deploy (the URL stays the same).
+ *   Every call must carry a payroll or leader key, checked by the payslips edge
+ *   function, so the open URL alone does nothing.
+ *
  * WHICH FUNCTION TO RUN (the dropdown next to Run)
  *   myDryRun            SAFE. Test emails to you only. Edit the DRY RUN lines first.
  *   holdMonday          Stops Monday's send. releaseMonday turns it back on.
@@ -182,7 +191,7 @@ const perfMailOpts_ = (html, payslip) => ({
 function dryRunToMe(month, who, to) {
   month = perfMonth_(month);
   const team = perfTeam_(month);
-  const me = to || Session.getActiveUser().getEmail();
+  const me = to || Session.getEffectiveUser().getEmail();
   const norm = v => String(v).toLowerCase().trim();
   const hit = (s, n) => norm(s.name) === n || norm(s.name).split(' ')[0] === n;
   const names = Array.isArray(who) ? who.map(norm).filter(Boolean) : [];
@@ -207,6 +216,7 @@ function dryRunToMe(month, who, to) {
     sent++;
   });
   Logger.log(`Sent ${sent} test emails to ${me} for ${month}. ${withSlip.length} of those picked have a payslip.`);
+  return { sent, to: me, withPayslip: withSlip.length };
 }
 
 // ── the real drafts ──────────────────────────────────────────────────────
@@ -217,11 +227,14 @@ function draftMonthlyEmails(month) {
   const team = perfTeam_(month);
   const subject = perfSubject_(month);
   const existing = existingDrafts_(subject);
-  const report = { drafted: [], rebuilt: [], kept: [], noEmail: [], paused: [], noPayslip: [], noData: [] };
+  const report = { drafted: [], rebuilt: [], kept: [], noEmail: [], paused: [], noPayslip: [], noData: [], alreadySent: [] };
+  const sentTo = perfSentTo_(month);
 
   team.staff.forEach(s => {
     if (!s.send_email) { report.paused.push(s.name); return; }
     if (!s.email) { report.noEmail.push(s.name); return; }
+    // Already emailed this month: a rerun after Monday only picks up the late ones.
+    if (sentTo.includes(s.email.toLowerCase())) { report.alreadySent.push(s.name); return; }
     const payslip = fetchPayslip_(s.token, month, s.name);
     const prior = existing[s.email.toLowerCase()];
     if (prior && (prior.attachments > 0 || !payslip)) {
@@ -240,34 +253,65 @@ function draftMonthlyEmails(month) {
   // The summary is a real email (not a draft) so the copy reaches PERF_CC_NOTES.
   // A rerun (Sunday, or late payslips) sends a fresh one; the newest is the one to read.
   const line = (k, v) => v.length ? `<p><b>${k} (${v.length})</b><br>${v.map(escH_).join(', ')}</p>` : '';
-  const me = Session.getActiveUser().getEmail();
+  const me = Session.getEffectiveUser().getEmail();
   GmailApp.sendEmail(me, `Payslip drafts ready · ${month}`, 'See HTML version.', {
     cc: PERF_CC_NOTES,
     htmlBody: `<div style="font-family:Arial,sans-serif">
       <p>Drafts for <b>${month}</b> are in your Drafts folder under "${subject}". Nothing has been sent.</p>
       ${line('New drafts', report.drafted)}${line('Rebuilt with payslip', report.rebuilt)}${line('Already drafted, left alone', report.kept)}
-      ${line('No payslip yet', report.noPayslip)}${line('No email on file', report.noEmail)}${line('Email paused', report.paused)}${line('No numbers this month', report.noData)}
-      <p>Every draft with a payslip attached goes out on <b>Monday at 08:00</b>. To stop that, run <b>holdMonday</b>. Late payslips: upload them in the Upload Portal → Payslips tab and run draftMonthlyEmails again.</p></div>`,
+      ${line('No payslip yet', report.noPayslip)}${line('No email on file', report.noEmail)}${line('Email paused', report.paused)}${line('No numbers this month', report.noData)}${line('Already sent this month', report.alreadySent)}
+      <p>Every draft with a payslip attached goes out on <b>Monday at 08:00</b>. To stop that, press <b>Pause Monday send</b> in the Upload Portal → Payslips tab (trk-salon-os.com/upload/). Late payslips: upload them there, then press <b>Make drafts now</b>.</p></div>`,
   });
   PropertiesService.getScriptProperties().setProperty('PERF_DRAFTED_' + month, new Date().toISOString());
   Logger.log(JSON.stringify(report, null, 1));
   return report;
 }
 
+// Everyone emailed so far for the month (lower-case addresses), so no one is sent twice.
+function perfSentTo_(month) {
+  try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('PERF_SENT_TO_' + month) || '[]'); }
+  catch (e) { return []; }
+}
+function perfAddSentTo_(month, emails) {
+  const all = perfSentTo_(month);
+  emails.forEach(e => { e = String(e).toLowerCase(); if (!all.includes(e)) all.push(e); });
+  PropertiesService.getScriptProperties().setProperty('PERF_SENT_TO_' + month, JSON.stringify(all));
+}
+
+// Sends this month's drafts: only those with a payslip attached, unless `all`.
+// Returns who went and who is still waiting in Drafts.
+function perfSendDrafts_(month, all) {
+  const subject = perfSubject_(month);
+  const sent = [], left = [];
+  GmailApp.getDrafts().forEach(dr => {
+    const m = dr.getMessage();
+    if (m.getSubject() !== subject) return;
+    if (all || m.getAttachments().length) { dr.send(); sent.push(m.getTo()); } else left.push(m.getTo());
+  });
+  if (sent.length) {
+    perfAddSentTo_(month, sent);
+    PropertiesService.getScriptProperties().setProperty('PERF_SENT_' + month, new Date().toISOString());
+  }
+  return { sent, left };
+}
+function perfSentNote_(month, r, how) {
+  GmailApp.sendEmail(Session.getEffectiveUser().getEmail(), `Payslip emails sent · ${month}`,
+    `${how}: sent ${r.sent.length} emails with payslips for ${month}.\n\n`
+    + (r.left.length ? `Still in Drafts, no payslip attached (${r.left.length}):\n${r.left.join('\n')}\n\nUpload their payslips in the Upload Portal → Payslips tab, press Make drafts now, then Send ready drafts now.` : 'Nothing left in Drafts.'),
+    { cc: PERF_CC_NOTES });
+}
+
 // Sends every draft of the month now, with or without a payslip. By hand only.
 function sendMonthlyDrafts(month) {
   month = perfMonth_(month);
-  const subject = perfSubject_(month);
-  let sent = 0;
-  GmailApp.getDrafts().forEach(dr => { if (dr.getMessage().getSubject() === subject) { dr.send(); sent++; } });
-  if (sent) PropertiesService.getScriptProperties().setProperty('PERF_SENT_' + month, new Date().toISOString());
-  Logger.log(`Sent ${sent} payslip emails for ${month}.`);
-  return sent;
+  const r = perfSendDrafts_(month, true);
+  Logger.log(`Sent ${r.sent.length} payslip emails for ${month}.`);
+  return r.sent.length;
 }
 
 // ── triggers ─────────────────────────────────────────────────────────────
-// Saturday 09:00. Drafts any month whose payslips are uploaded and that hasn't been
-// sent. No payslips = nothing happens, so it runs weekly but acts once a month.
+// Saturday 09:00 and Sunday 18:00. Drafts any month whose payslips are uploaded and
+// that hasn't been sent. No payslips = nothing happens, so it acts once a month.
 function draftWeekend() {
   const props = PropertiesService.getScriptProperties();
   perfCandidateMonths_().forEach(month => {
@@ -279,30 +323,21 @@ function draftWeekend() {
 }
 
 // Monday 08:00. Sends the drafts that carry a payslip, for any month drafted and not
-// yet sent. Drafts without a payslip stay put. Kate gets a note either way.
+// yet sent. Drafts without a payslip stay put. A note goes out either way.
 function sendMonday() {
   const props = PropertiesService.getScriptProperties();
-  const me = Session.getActiveUser().getEmail();
   perfCandidateMonths_().forEach(month => {
     if (!props.getProperty('PERF_DRAFTED_' + month) || props.getProperty('PERF_SENT_' + month)) return;
     if (props.getProperty('PERF_HOLD')) {
-      GmailApp.sendEmail(me, `Payslip emails held · ${month}`,
-        `Nothing was sent for ${month}: holdMonday is on. Run releaseMonday and then sendMonday to send now, or leave it for next Monday.`, { cc: PERF_CC_NOTES });
+      GmailApp.sendEmail(Session.getEffectiveUser().getEmail(), `Payslip emails held · ${month}`,
+        `Nothing was sent for ${month}: the Monday send is paused. Press Resume Monday send in the Upload Portal → Payslips tab, then Send ready drafts now, or leave it for next Monday.`, { cc: PERF_CC_NOTES });
+      perfLog_('Monday send skipped (paused)', 'schedule');
       return;
     }
-    const subject = perfSubject_(month);
-    const sent = [], left = [];
-    GmailApp.getDrafts().forEach(dr => {
-      const m = dr.getMessage();
-      if (m.getSubject() !== subject) return;
-      if (m.getAttachments().length) { dr.send(); sent.push(m.getTo()); } else left.push(m.getTo());
-    });
-    if (sent.length) props.setProperty('PERF_SENT_' + month, new Date().toISOString());
-    GmailApp.sendEmail(me, `Payslip emails sent · ${month}`,
-      `Sent ${sent.length} emails with payslips for ${month}.\n\n`
-      + (left.length ? `Still in Drafts, no payslip attached (${left.length}):\n${left.join('\n')}\n\nUpload their payslips, run draftMonthlyEmails and send those drafts by hand.` : 'Nothing left in Drafts.'),
-      { cc: PERF_CC_NOTES });
-    Logger.log(`Sent ${sent.length}, left ${left.length} for ${month}.`);
+    const r = perfSendDrafts_(month, false);
+    perfSentNote_(month, r, 'Monday send');
+    perfLog_(`Monday send: ${r.sent.length} sent, ${r.left.length} waiting`, 'schedule');
+    Logger.log(`Sent ${r.sent.length}, left ${r.left.length} for ${month}.`);
   });
 }
 
@@ -326,4 +361,106 @@ function setupPerformanceTrigger() {
   try { monday().nearMinute(0).create(); }
   catch (e) { monday().create(); Logger.log('Monday send runs some time between 08:00 and 09:00.'); }
   Logger.log('Drafts on Saturday 09:00 and Sunday 18:00, send on Monday 08:00, Dubai.');
+}
+
+// ── web app: the Upload Portal's buttons (Kate, 30 Sep 2026) ──────────────
+// POST {action, key, month, ...} as text/plain (no CORS preflight). `key` is the
+// caller's payroll or leader key; the payslips edge function checks it. Actions:
+//   status   state of the month, and one line per person
+//   test     the real email for up to 5 named people, to payroll@ only
+//   hold / release   pause or resume the Monday send
+//   draft    make drafts now (late payslips); never redrafts anyone already sent
+//   send     send the drafts that have a payslip, now
+function doGet() { return perfJson_({ ok: true, app: 'Staff Payslips' }); }
+
+function doPost(e) {
+  let req = {};
+  try { req = JSON.parse((e && e.postData && e.postData.contents) || '{}'); } catch (x) {}
+  try {
+    const who = perfCaller_(req.key);
+    const month = perfMonth_(req.month);
+    const lock = LockService.getScriptLock();
+    if (req.action !== 'status' && !lock.tryLock(20000)) throw new Error('Another payslip action is still running. Try again in a minute.');
+    try {
+      if (req.action === 'test') {
+        const names = (Array.isArray(req.staff) ? req.staff : []).map(String).filter(Boolean).slice(0, 5);
+        if (!names.length) throw new Error('Pick at least one person for the test.');
+        const r = dryRunToMe(month, names, '');
+        perfLog_(`Test sent for ${names.join(', ')}`, who.name);
+        return perfJson_(Object.assign({ done: `Sent ${r.sent} test email${r.sent === 1 ? '' : 's'} to ${r.to}.` }, perfStatus_(month)));
+      }
+      if (req.action === 'hold') { holdMonday(); perfLog_('Paused the Monday send', who.name); }
+      else if (req.action === 'release') { releaseMonday(); perfLog_('Resumed the Monday send', who.name); }
+      else if (req.action === 'draft') {
+        const r = draftMonthlyEmails(month);
+        perfLog_(`Made drafts: ${r.drafted.length} new, ${r.rebuilt.length} rebuilt`, who.name);
+        return perfJson_(Object.assign({ done: `Drafts made: ${r.drafted.length} new, ${r.rebuilt.length} rebuilt with a payslip, ${r.noPayslip.length} still without one.` }, perfStatus_(month)));
+      }
+      else if (req.action === 'send') {
+        if (PropertiesService.getScriptProperties().getProperty('PERF_HOLD')) throw new Error('The Monday send is paused. Resume it first.');
+        const r = perfSendDrafts_(month, false);
+        perfSentNote_(month, r, `Sent from the Upload Portal by ${who.name}`);
+        perfLog_(`Sent now: ${r.sent.length} sent, ${r.left.length} waiting`, who.name);
+        return perfJson_(Object.assign({ done: `Sent ${r.sent.length} email${r.sent.length === 1 ? '' : 's'}. ${r.left.length} still waiting for a payslip.` }, perfStatus_(month)));
+      }
+      else if (req.action !== 'status') throw new Error('Unknown action.');
+    } finally { if (req.action !== 'status') lock.releaseLock(); }
+    return perfJson_(perfStatus_(month));
+  } catch (err) {
+    return perfJson_({ error: String((err && err.message) || err) });
+  }
+}
+
+const perfJson_ = o => ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+
+// The caller's key must be a payroll or leader key (payslips edge function, 'list').
+function perfCaller_(key) {
+  if (!/^[0-9a-f-]{36}$/i.test(String(key || ''))) throw new Error('Not signed in with a payslip key.');
+  let r;
+  try { r = perfPayslipsFn_({ action: 'list', admin: key, month: previousMonth_() }); }
+  catch (e) { throw new Error('That payslip key is not allowed to send.'); }
+  return { name: r.admin, role: r.role };
+}
+
+// Who did what, newest first, the last 30 (shown under the portal's buttons).
+function perfLog_(what, who) {
+  const props = PropertiesService.getScriptProperties();
+  let log = [];
+  try { log = JSON.parse(props.getProperty('PERF_LOG') || '[]'); } catch (e) {}
+  log.unshift({ at: new Date().toISOString(), who, what });
+  props.setProperty('PERF_LOG', JSON.stringify(log.slice(0, 30)));
+}
+
+// Everything the portal shows for a month.
+function perfStatus_(month) {
+  const props = PropertiesService.getScriptProperties();
+  const team = perfTeam_(month);
+  const slips = perfPayslipsFn_({ action: 'list', admin: perfAdmin_(), month }).staff;
+  const hasSlip = {};
+  slips.forEach(x => { hasSlip[String(x.name).toLowerCase()] = !!x.payslip; });
+  const drafts = existingDrafts_(perfSubject_(month));
+  const sentTo = perfSentTo_(month);
+  const people = team.staff.map(s => {
+    const em = (s.email || '').toLowerCase();
+    let state = 'waiting';
+    if (!s.send_email) state = 'paused';
+    else if (!em) state = 'no_email';
+    else if (sentTo.includes(em)) state = 'sent';
+    else if (drafts[em]) state = drafts[em].attachments ? 'draft_ready' : 'draft_no_payslip';
+    else state = hasSlip[String(s.name).toLowerCase()] ? 'payslip_in' : 'waiting';
+    return { name: s.name, state };
+  });
+  let log = [];
+  try { log = JSON.parse(props.getProperty('PERF_LOG') || '[]'); } catch (e) {}
+  const handlers = ScriptApp.getProjectTriggers().map(t => t.getHandlerFunction());
+  return {
+    month,
+    hold: props.getProperty('PERF_HOLD') || null,
+    drafted: props.getProperty('PERF_DRAFTED_' + month) || null,
+    sent: props.getProperty('PERF_SENT_' + month) || null,
+    sender: Session.getEffectiveUser().getEmail(),
+    schedule: handlers.filter(h => h === 'draftWeekend').length >= 2 && handlers.includes('sendMonday'),
+    people,
+    log: log.slice(0, 8),
+  };
 }
