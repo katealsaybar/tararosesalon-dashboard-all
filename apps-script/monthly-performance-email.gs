@@ -12,12 +12,12 @@
  *   Friday       Accounts upload the payslip PDFs: Upload Portal → Payslips tab.
  *   Saturday     09:00 draftWeekend() makes one Gmail draft per person, but only for
  *                a month whose payslips are uploaded and that hasn't been sent.
- *                Kate gets a "Payslip drafts ready" summary draft.
+ *                payroll@ gets a "Payslip drafts ready" summary email, Kate copied.
  *   Sunday       18:00 draftWeekend() again, for payslips uploaded after Saturday 09:00.
  *                Only missing drafts are added; the summary is replaced.
  *   Weekend      Kate checks the drafts. Something wrong? Run holdMonday().
  *   Monday       08:00 sendMonday() sends every draft WITH a payslip attached.
- *                Drafts without one stay in Drafts. Kate gets a note either way.
+ *                Drafts without one stay in Drafts. A note goes to payroll@, Kate copied.
  *   After        Jumera tells the staff their payslip is in their email.
  *
  * ONE-TIME SETUP
@@ -40,7 +40,8 @@
 // ── SETTINGS ─────────────────────────────────────────────────────────────
 const ADMIN_TOKEN = '';               // Kate's perf_admins token (or Script Property PERF_ADMIN_TOKEN)
 const PERF_FROM_NAME = 'Tara Rose Salons Accounts';
-const PERF_REPLY_TO = 'payroll@tararosesalon.com, hr.tararose@gmail.com';   // Accounts + HR answer payslip questions; ONE string, commas inside the quotes
+const PERF_REPLY_TO = 'payroll@tararosesalon.com, hr.tararose@gmail.com';
+const PERF_CC_NOTES = 'kate@tararosesalon.com';   // copied on the weekend summary and the Monday note (never on staff emails)   // Accounts + HR answer payslip questions; ONE string, commas inside the quotes
 
 // ── DRY RUN: edit these three lines, Save, pick myDryRun and press Run ───
 const DRY_RUN_MONTH = '2026-09';
@@ -236,12 +237,12 @@ function draftMonthlyEmails(month) {
       perfMailOpts_(perfEmailHtml_(d, s.token, month, !!payslip), payslip));
   });
 
-  // One summary per month: a rerun replaces the last one instead of piling up.
+  // The summary is a real email (not a draft) so the copy reaches PERF_CC_NOTES.
+  // A rerun (Sunday, or late payslips) sends a fresh one; the newest is the one to read.
   const line = (k, v) => v.length ? `<p><b>${k} (${v.length})</b><br>${v.map(escH_).join(', ')}</p>` : '';
   const me = Session.getActiveUser().getEmail();
-  const reportSubject = `Payslip drafts ready · ${month}`;
-  GmailApp.getDrafts().forEach(dr => { if (dr.getMessage().getSubject() === reportSubject) dr.deleteDraft(); });
-  GmailApp.createDraft(me, reportSubject, 'See HTML version.', {
+  GmailApp.sendEmail(me, `Payslip drafts ready · ${month}`, 'See HTML version.', {
+    cc: PERF_CC_NOTES,
     htmlBody: `<div style="font-family:Arial,sans-serif">
       <p>Drafts for <b>${month}</b> are in your Drafts folder under "${subject}". Nothing has been sent.</p>
       ${line('New drafts', report.drafted)}${line('Rebuilt with payslip', report.rebuilt)}${line('Already drafted, left alone', report.kept)}
@@ -286,7 +287,7 @@ function sendMonday() {
     if (!props.getProperty('PERF_DRAFTED_' + month) || props.getProperty('PERF_SENT_' + month)) return;
     if (props.getProperty('PERF_HOLD')) {
       GmailApp.sendEmail(me, `Payslip emails held · ${month}`,
-        `Nothing was sent for ${month}: holdMonday is on. Run releaseMonday and then sendMonday to send now, or leave it for next Monday.`);
+        `Nothing was sent for ${month}: holdMonday is on. Run releaseMonday and then sendMonday to send now, or leave it for next Monday.`, { cc: PERF_CC_NOTES });
       return;
     }
     const subject = perfSubject_(month);
@@ -299,7 +300,8 @@ function sendMonday() {
     if (sent.length) props.setProperty('PERF_SENT_' + month, new Date().toISOString());
     GmailApp.sendEmail(me, `Payslip emails sent · ${month}`,
       `Sent ${sent.length} emails with payslips for ${month}.\n\n`
-      + (left.length ? `Still in Drafts, no payslip attached (${left.length}):\n${left.join('\n')}\n\nUpload their payslips, run draftMonthlyEmails and send those drafts by hand.` : 'Nothing left in Drafts.'));
+      + (left.length ? `Still in Drafts, no payslip attached (${left.length}):\n${left.join('\n')}\n\nUpload their payslips, run draftMonthlyEmails and send those drafts by hand.` : 'Nothing left in Drafts.'),
+      { cc: PERF_CC_NOTES });
     Logger.log(`Sent ${sent.length}, left ${left.length} for ${month}.`);
   });
 }

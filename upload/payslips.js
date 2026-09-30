@@ -17,7 +17,7 @@
 const PS_FN = 'https://gvijxenafoowajqktqvd.supabase.co/functions/v1/payslips';
 const PS_KEY_STORE = 'payslipKey';
 const PS_BRANCH = { KCA: 'Khalifa City A', SAA: 'Mamsha Al Saadiyat', MC: 'Motor City', AQ: 'Al Quoz' };
-let PS_STATE = { month: null, staff: [], admin: null, pending: [] };
+let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '' };
 
 // A typed key wins; otherwise the one the sign-in hands payroll and leaders (PS_AUTO, set in upload.html).
 const psKey = () => { try { return localStorage.getItem(PS_KEY_STORE) || window.PS_AUTO || null; } catch (e) { return window.PS_AUTO || null; } };
@@ -160,7 +160,7 @@ function psRender() {
   PS_STATE.staff.forEach(s => (groups[s.branch] ||= []).push(s));
   const row = s => {
     const p = s.payslip;
-    return `<div class="ps-row${p ? ' done' : ''}">
+    return `<div class="ps-row${p ? ' done' : ''}" data-name="${psEsc(psNorm(s.name))}">
       <div><div class="ps-name">${psEsc(s.name)}</div><div class="ps-meta">${psEsc(s.level || s.dept)}${p ? ` · ${psEsc(p.file_name || 'payslip.pdf')} · by ${psEsc(p.uploaded_by)}, ${new Date(p.uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}</div></div>
       <div class="ps-actions">
         ${p ? `<button class="btn-dl" onclick="psView('${s.id}')">View</button>` : ''}
@@ -179,14 +179,38 @@ function psRender() {
       <div class="ps-meta">One PDF with everyone in it? Drop it here: each page is matched by the name printed on it. Or one file per person, named like “Holly Branchett.pdf”. PDF only, up to 10 MB each.</div>
     </div>
     <div id="psPending"></div>
+    <div class="ps-search-wrap">
+      <input id="psSearch" class="ps-search" type="search" placeholder="Search a name…" autocomplete="off"
+        value="${psEsc(PS_STATE.q)}" oninput="PS_STATE.q=this.value; psFilter()">
+      <span class="ps-meta" id="psSearchNone" hidden>Nobody by that name on the list.</span>
+    </div>
     ${['KCA', 'SAA', 'MC', 'AQ'].filter(b => groups[b]).map(b => `
-      <div class="roster-branch"><div class="roster-branch-hd">${PS_BRANCH[b]} · ${groups[b].filter(s => s.payslip).length}/${groups[b].length}</div>
+      <div class="roster-branch ps-branch"><div class="roster-branch-hd">${PS_BRANCH[b]} · ${groups[b].filter(s => s.payslip).length}/${groups[b].length}</div>
       ${groups[b].map(row).join('')}</div>`).join('')}`;
   const drop = document.getElementById('psDrop');
   ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('dragover'); }));
   ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('dragover'); }));
   drop.addEventListener('drop', e => psAddFiles(e.dataTransfer.files));
   psRenderPending();
+  psFilter();
+}
+
+// Search box (Kate, 30 Sep 2026): shows only the people whose name has every word
+// typed, in any order ("mae marco", "ibra"). Branches with nobody left are hidden.
+function psFilter() {
+  const words = psNorm(PS_STATE.q || '').split(' ').filter(Boolean);
+  let shown = 0;
+  document.querySelectorAll('#payslipHost .ps-branch').forEach(br => {
+    let any = false;
+    br.querySelectorAll('.ps-row').forEach(r => {
+      const n = r.dataset.name || '';
+      const ok = words.every(w => n.split(' ').some(part => part.startsWith(w)));
+      r.hidden = !ok; if (ok) { any = true; shown++; }
+    });
+    br.hidden = !any;
+  });
+  const none = document.getElementById('psSearchNone');
+  if (none) none.hidden = !(words.length && !shown);
 }
 
 async function psAddFiles(files) {

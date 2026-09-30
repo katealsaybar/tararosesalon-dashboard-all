@@ -94,7 +94,7 @@ function upViewOnly() {
 <script src="sheet-sync.js?v=12"></script>
 <script src="targets.js?v=2"></script>
 <script src="team-roster.js?v=1"></script>
-<script src="payslips.js?v=3"></script>
+<script src="payslips.js?v=4"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
 <script src="data-watch.js?v=1"></script>
 
@@ -527,6 +527,10 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .ps-prow select{font:inherit;font-size:13px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 8px}
 .ps-fname{font-weight:600;font-size:13.5px;min-width:200px;word-break:break-all}
 .ps-err{color:var(--bad);font-size:13px}
+.ps-search-wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px}
+.ps-search{width:100%;max-width:340px;font:inherit;font-size:14px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 12px}
+.ps-search:focus{outline:none;border-color:var(--accent)}
+.ps-row[hidden],.ps-branch[hidden]{display:none}
 .ps-summary{font-size:13.5px;padding:2px 0 10px;border-bottom:1px solid var(--border2);margin-bottom:4px}
 .ps-prow.need{background:var(--surface2);border-radius:8px;padding:6px 8px}
 .ps-prow-btns{margin-left:auto;display:flex;gap:6px}
