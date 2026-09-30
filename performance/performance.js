@@ -20,6 +20,7 @@ const BROCHURE = {
   'flex-dubai': 'https://trk-salon-os.com/performance/brochures/flex-stylist-dubai.pdf',
   chair: 'https://trk-salon-os.com/performance/brochures/rent-a-chair.pdf',
   overview: 'https://trk-salon-os.com/performance/brochures/full-overview.pdf',
+  relocation: 'https://trk-salon-os.com/performance/brochures/relocation.pdf',
 };
 // A review's branch → that branch's Google Maps listing, where its reviews can
 // be read in full. A search link, not a place ID, by Kate's choice (25 Sep 2026).
@@ -543,6 +544,7 @@ async function renderStylist() {
         <div class="path"><b>The Employed Stylist</b>Commission on your quota with a guaranteed income while you build. Tara Rose brings the clients, colour, visa and health cover.<a class="path-link" href="${BROCHURE.employed}" target="_blank" rel="noopener">Read the brochure →</a></div>
         <div class="path"><b>The Flex Stylist</b>A higher commission split and more say over your schedule, with the full Tara Rose support behind you.<a class="path-link" href="${BROCHURE[/^(SAA|KCA)$|saadiyat|khalifa/i.test(s.branch || '') ? 'flex-abudhabi' : 'flex-dubai']}" target="_blank" rel="noopener">Read the brochure →</a></div>
         <div class="path"><b>Rent-a-Chair</b>Pay a monthly chair fee and keep your own clients and bookings.<a class="path-link" href="${BROCHURE.chair}" target="_blank" rel="noopener">Read the brochure →</a></div>
+        <div class="path"><b>Relocation</b>Moving country to join on the Employed path: what we cover, from visa and health cover to a guaranteed income while you settle in.<a class="path-link" href="${BROCHURE.relocation}" target="_blank" rel="noopener">Read the brochure →</a></div>
       </div>
       <p class="legend"><a href="${BROCHURE.overview}" target="_blank" rel="noopener">See all three paths side by side</a>. If you need more details, ask Tara or your manager about each path.</p>
     </section>` : ''}`;
