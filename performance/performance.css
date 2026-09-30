@@ -233,3 +233,12 @@ body:not(.embed) .foot{padding-bottom:84px}
 @media(max-width:619px){.hero .intro{display:none}}
 .fold-h:focus-visible{outline:2px solid var(--text);outline-offset:4px;border-radius:6px}
 .fold-h .card-head h2,.fold-h > .fold-t > h2{margin:0;font-size:20px}
+/* Road to promotion (Tara, 30 Sep 2026): a bar per number, from her now to the next level's aim. */
+.road-rows{display:grid;gap:12px;margin:12px 0}
+.road-top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:14px;font-weight:600}
+.road-worth{font-weight:400;color:var(--muted)}
+.road-bar{height:10px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);overflow:hidden;margin:6px 0 4px}
+.road-bar i{display:block;height:100%;border-radius:999px;background:#C4B5FD}
+.road-ends{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted)}
+.road-total{font-size:15px;margin:4px 0 0}
+.road-price{font-size:14px;margin:12px 0 0;padding:10px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border)}

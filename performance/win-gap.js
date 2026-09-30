@@ -116,8 +116,11 @@
   // ── the top tip ─────────────────────────────────────────────────────────
   // Every gap is turned into what it is worth a month, and the biggest one is
   // the tip, said as something to do each week.
-  function tip(d, sp) {
-    var n = d.numbers || {}, b = d.benchmarks || {}, s = d.staff || {};
+  // Every gap against the aims in b, biggest first. b is her own level's aims for the
+  // tip, the next level's for the road to promotion (perfGaps, Tara 30 Sep 2026).
+  function gapsFor(d, sp, b) {
+    var n = d.numbers || {}, s = d.staff || {};
+    b = b || {};
     var P = sp.pace, W = sp.weeks;
     var full = function (v) { return (num(v) || 0) / P; };   // the whole month, even mid-month
     var clients = full(n.clients), bill = num(n.avg_bill) || 0, opts = [];
@@ -132,7 +135,7 @@
       var perWeek = more / W;
       if (more >= 1) {
         var step = perWeek > 3 ? Math.max(2, Math.ceil(perWeek / 3)) : Math.max(1, Math.round(perWeek));
-        opts.push({ aed: more * bill,
+        opts.push({ k: 'column_fill_pct', now: fill, aim: fillAim, aed: more * bill,
           tip: perWeek > 3
             ? 'You are ' + pct(fill) + ' booked. Add ' + step + ' more clients a week this month, and keep building each month: in about three months that takes you to ' + pct(fillAim) + ', worth about ' + aed(more * bill) + ' more a month.'
             : 'You are ' + pct(fill) + ' booked. ' + step + ' more ' + (step === 1 ? 'client' : 'clients') + ' a week takes you to ' + pct(fillAim) + ', worth about ' + aed(more * bill) + ' more a month.',
@@ -144,7 +147,7 @@
     if (rb !== null && rb < rbAim && clients > 0 && bill > 0) {
       var extra = (rbAim - rb) / 100 * clients;
       var rw = extra / W, rstep = rw > 4 ? Math.ceil(rw / 3) : Math.max(1, Math.round(rw));
-      if (extra >= 1) opts.push({ aed: extra * bill,
+      if (extra >= 1) opts.push({ k: 'rebooking_pct', now: rb, aim: rbAim, aed: extra * bill,
         tip: rw > 4
           ? 'Your rebooking is ' + pct(rb) + '. Rebook ' + rstep + ' more clients a week before they leave, and add to it each month: in about three months that takes you to ' + pct(rbAim) + ', worth about ' + aed(extra * bill) + ' a month in visits already in the book.'
           : 'Rebook ' + rstep + ' more ' + (rstep > 1 ? 'clients' : 'client') + ' a week before they leave. That takes your rebooking from ' + pct(rb) + ' to ' + pct(rbAim) + ', worth about ' + aed(extra * bill) + ' a month in visits already in the book.',
@@ -154,7 +157,7 @@
     var rtAim = aim('retail_pct', 12), sales = full(n.total_revenue), retail = full(n.retail);
     if (sales > 0) {
       var rgap = rtAim / 100 * sales - retail;
-      if (rgap > 200) opts.push({ aed: rgap,
+      if (rgap > 200) opts.push({ k: 'retail_pct', now: num(n.retail_pct) || 0, aim: rtAim, aed: rgap,
         tip: 'Retail is ' + pct(num(n.retail_pct) || 0) + ' of your services. About ' + aed(rgap / W) + ' more a week takes you to ' + pct(rtAim) + ', worth ' + aed(rgap) + ' a month.',
         how: 'Recommend the one product you used on them today, and put it in their hand before they pay.' });
     }
@@ -162,17 +165,21 @@
     var trAim = aim('treatments_pct', 20), hair = full(n.hair_services), treat = full(n.treatments);
     if (s.dept === 'Hair' && hair > 0) {
       var tgap = trAim / 100 * hair - treat;
-      if (tgap > 200) opts.push({ aed: tgap,
+      if (tgap > 200) opts.push({ k: 'treatments_pct', now: num(n.treatments_pct) || 0, aim: trAim, aed: tgap,
         tip: 'Treatments are ' + pct(num(n.treatments_pct) || 0) + ' of your hair services. About ' + aed(tgap / W) + ' more a week takes you to ' + pct(trAim) + ', worth ' + aed(tgap) + ' a month.',
         how: 'Offer a treatment with every colour and every blow-dry, and tell them what it will do for their hair.' });
     }
     // Average bill: what each visit is worth.
     var abAim = b.avg_bill && num(b.avg_bill.target);
-    if (abAim && bill > 0 && bill < abAim && clients > 0) opts.push({ aed: (abAim - bill) * clients,
+    if (abAim && bill > 0 && bill < abAim && clients > 0) opts.push({ k: 'avg_bill', now: bill, aim: abAim, aed: (abAim - bill) * clients,
       tip: 'Your average bill is ' + aed(bill) + '. Lifting it to ' + aed(abAim) + ' is worth about ' + aed((abAim - bill) * clients) + ' a month.',
       how: 'In the consultation, talk through the full service their hair needs, not only what they asked for.' });
 
     opts.sort(function (a, c) { return c.aed - a.aed; });
+    return opts;
+  }
+  function tip(d, sp) {
+    var opts = gapsFor(d, sp, d.benchmarks);
     return opts[0] && opts[0].aed >= 300 ? opts[0] : null;
   }
 
@@ -189,4 +196,11 @@
   }
 
   root.winGap = winGap;
+  // The gaps to another level's aims, worth a month each, and the month's full-pace services.
+  root.perfGaps = function (d, b) {
+    if (!d || !d.numbers) return null;
+    var sp = span(d);
+    return { gaps: gapsFor(d, sp, b).filter(function (g) { return g.aed >= 300; }),
+      services: (num(d.numbers.total_revenue) || 0) / sp.pace };
+  };
 })(typeof window !== 'undefined' ? window : this);

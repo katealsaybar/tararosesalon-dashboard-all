@@ -341,6 +341,47 @@ function winTipCard(d) {
     </section>`;
 }
 
+// Road to promotion (Tara, 30 Sep 2026, phase two): the numbers at the bottom against
+// the next level's aims, what closing each is worth a month, and the price step that
+// comes with the level. "If they increased those, not only would they increase their
+// revenue dramatically, they would then also be ready for a price increase."
+// Prices: Downloads/Tara Rose Salons - Hair Price List.pdf (2026, by level). basket is the
+// medium-length price of the nine level-priced services (cut, blow-dry, root and full
+// colour, three balayages, half and full head foils) added up. No Artistic Director
+// column yet, so a Style Director's card has no price line until Tara sets them (Kate's call).
+const LEVEL_PRICES = {
+  'Junior Stylist': { cut: 255, basket: 4090 },
+  'Stylist':        { cut: 360, basket: 4845 },
+  'Senior Stylist': { cut: 395, basket: 5340 },
+  'Style Director': { cut: 420, basket: 5565 },
+};
+function roadCard(d, next) {
+  if (!d.next_benchmarks || !d.next_level || typeof perfGaps !== 'function') return '';
+  const g = perfGaps(d, d.next_benchmarks);
+  if (!g) return '';
+  const top = g.gaps.slice(0, 3), total = top.reduce((t, x) => t + x.aed, 0);
+  const lvl = esc(d.next_level);
+  const bar = x => {
+    const f = KPI[x.k].fmt, w = Math.max(4, Math.min(100, Math.round(100 * x.now / x.aim)));
+    return `<div class="road-row"><div class="road-top"><span>${esc(KPI[x.k].label.replace(/ %$/, ''))}</span><span class="road-worth">about ${fmt(x.aed, 'aed')} a month</span></div>
+      <div class="road-bar" role="img" aria-label="${esc(fmt(x.now, f))} of ${esc(fmt(x.aim, f))}"><i style="width:${w}%"></i></div>
+      <div class="road-ends"><span>You: ${esc(fmt(x.now, f))}</span><span>${lvl}: ${esc(fmt(x.aim, f))}</span></div></div>`;
+  };
+  const a = LEVEL_PRICES[d.staff.level], b = LEVEL_PRICES[d.next_level];
+  const up = a && b ? b.basket / a.basket - 1 : null;
+  const price = up > 0
+    ? `<p class="road-price">At ${lvl} your prices go up too. A Cut &amp; Finish goes from AED ${a.cut} to AED ${b.cut}, and colour and balayage rise about ${Math.round(up * 100)}% on average. On this month's column that is about ${fmt(g.services * up, 'aed')} more a month, with the same clients.</p>` : '';
+  return `<section class="card road">
+      <div class="eyebrow">Your road to ${lvl}</div>
+      <h2>${next ? `${next.hit} of ${next.of} there.` : 'Your next step.'}</h2>
+      ${top.length ? `<p class="sub">The ${top.length === 1 ? 'number' : `${top.length} numbers`} that would move you most. Each bar runs from where you are now to the ${lvl} aim.</p>
+        <div class="road-rows">${top.map(bar).join('')}</div>
+        <p class="road-total">Close ${top.length === 1 ? 'it' : top.length === 2 ? 'both' : 'these three'} and you would take about <strong>${fmt(total, 'aed')} more a month</strong>.</p>`
+        : `<p class="sub">Your money numbers are already at the ${lvl} aims. The rest of the step is in the list below.</p>`}
+      ${price}
+    </section>`;
+}
+
 // "Ask your coach" (Kate, 30 Sep 2026): a small chat box where she asks about her own
 // numbers. The server fetches her month itself from her link, so it can only ever
 // answer from her own data. Kept for the visit only, nothing is saved.
@@ -435,14 +476,14 @@ function scoreLine(n, bm, pace) {
 // information. Tap a card's title to open or close it; each card remembers its state
 // in this browser. Google reviews and socials start closed, with a one-line summary
 // on the title so the headline still shows; the month's numbers never fold.
-const FOLD_KEEP = /^(This month so far|Your month|Your team)/;
+const FOLD_KEEP = /^(This month so far|Your month|Your team|Your road to)/;
 const FOLD_SHUT = ['Your Google reviews', 'Your socials'];
 // Tara, 30 Sep 2026: "if I open it on my phone, I don't open it because there's so much".
 // On a phone the page opens on the win, the tip, the six numbers and the payslip; every
 // other card starts closed with a one-line summary, cards titled by a heading as well
 // as by an eyebrow. Desktop is as it was. A phone remembers its own open cards.
 const PHONE = matchMedia('(max-width:619px)').matches;
-const FOLD_KEEP_PHONE = /^(This month so far|Your month|Your team|Payslip|Ask your coach)/;
+const FOLD_KEEP_PHONE = /^(This month so far|Your month|Your team|Payslip|Ask your coach|Your road to)/;
 const FOLD_KEY = PHONE ? 'perf-fold-phone' : 'perf-fold';
 let FOLD = {};
 try { FOLD = JSON.parse(localStorage.getItem(FOLD_KEY) || '{}') || {}; } catch (e) {}
@@ -561,6 +602,8 @@ async function renderStylist() {
       <p class="legend">${d.benchmarks ? 'Green means at or above your aim, amber means close, red means under.' : 'Benchmarks for the beauty team are still being set, so these show your numbers only.'}</p>
     </section>
 
+
+    ${roadCard(d, next)}
 
     <section class="card">
       <h2>Your client numbers</h2>
