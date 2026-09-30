@@ -77,7 +77,9 @@ function isBahrainView() {
 const BHD_TO_AED = 3.6725 / 0.376;
 const GROUP_VIEWS = new Set(['dashboard', 'branchperf', 'ledgerFinancials', 'team']);
 let GROUP_MODE = false;
-let GROUP_CUR = (() => { try { return localStorage.getItem('trs-currency') === 'BHD' ? 'BHD' : 'AED'; } catch (e) { return 'AED'; } })();
+// Kate, 30 Sep 2026: the Group reads in AED, split UAE | Bahrain, rather than offering a
+// BHD version of the UAE. Kept as a variable so the conversion code stays general.
+const GROUP_CUR = 'AED';
 function isGroupView() {
   return GROUP_MODE && typeof sel !== 'undefined' && sel.branch.includes('all')
     && (typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW));
@@ -514,8 +516,7 @@ function paintFilterChips() {
       })),
       // UAE + Bahrain, on the pages that can show both; the currency picker follows it.
       ...(canGroup ? [{ v: 'group', label: 'Group', on: group }] : []),
-    ]) + (group ? `<span class="sep">|</span>` + ['AED', 'BHD'].map(c =>
-      `<button type="button" class="chip chip-cur" aria-pressed="${GROUP_CUR === c}" data-cur="${c}" title="Show the Group in ${c}">${c}</button>`).join('<span class="sep">·</span>') : '');
+    ]);
   }
 
   // The three Ledgers pages hold the ledger's own window — last month against this
@@ -550,7 +551,7 @@ function paintFilterChips() {
   // The masthead's meta rule says what you are reading, so it has to be repainted
   // with the chips and not only on a successful data load — otherwise a branch
   // with no rows leaves the rule describing the previous selection.
-  const branchLabel = isGroupView() ? `Group · UAE + Bahrain · ${GROUP_CUR}` : isAll ? 'All Branches'
+  const branchLabel = isGroupView() ? 'Group · UAE + Bahrain' : isAll ? 'All Branches'
     : sel.branch.map(b => BRANCH_INFO[b]?.name || b).join(' · ');
   const mb = document.getElementById('mastBranch');
   const mr = document.getElementById('mastRange');
@@ -667,12 +668,6 @@ document.addEventListener('click', e => {
 
   if (chip.closest('#branchChips')) {
     if (typeof TRS_SCOPE !== 'undefined' && TRS_SCOPE) return;   // one branch, nothing to change
-    if (chip.dataset.cur) {                                      // the Group's currency
-      GROUP_CUR = chip.dataset.cur;
-      try { localStorage.setItem('trs-currency', GROUP_CUR); } catch (e) {}
-      paintFilterChips(); refreshActiveView();
-      return;
-    }
     const v = chip.dataset.v;
     GROUP_MODE = (v === 'group');
     if (v === 'group') { sel.branch = ['all']; pendingSel.branch = ['all']; paintFilterChips(); refreshActiveView(); return; }
@@ -2630,7 +2625,10 @@ function aggregateUtilisation(rows, deptMap) {
   let hairHours = 0, hairAvail = 0, beautyHours = 0, beautyAvail = 0;
   const unmatched = new Set();
   (rows || []).forEach(r => {
-    const dept = utilDeptFor(r.staff_name, deptMap);
+    // Bahrain has no ledger to give a name its side, so its own list answers (BH_STAFF_DEPT).
+    const bh = (BRANCH_INFO[r.branch] && BRANCH_INFO[r.branch].country === 'BH')
+      ? BH_STAFF_DEPT[cleanPhorestName(r.staff_name || '').split(' ')[0]] : null;
+    const dept = bh || utilDeptFor(r.staff_name, deptMap);
     const avail = Number(r.available_hours) || 0;
     const used  = Number(r.utilisation_hours) || 0;
     if (dept === 'hair')        { hairHours += used; hairAvail += avail; }
@@ -3539,7 +3537,7 @@ async function renderDashboard() {
   // in the headline three, with its target printed as a note rather than raced
   // against a bar. Kate, 2026-08-14.
   const NCR_TARGET = 20;   // the same figure the old NCR card scored against
-  const benchRows = [
+  const benchAll = [
     { name:'NCR %',           sub:`target ${NCR_TARGET}%`,
       hair:s.hairNcrPct, beauty:s.beautyNcrPct, combined:s.combinedNcrPct, target:NCR_TARGET, fmt:pct2 },
     { name:'Rebooking %',     sub:`target ${TARGETS.rebookPct}%`,
@@ -3573,9 +3571,21 @@ async function renderDashboard() {
     // page in this case, so it is replaced rather than left dangling.
     beautyNote: r.name === 'Treatment %' ? r.beautyNote : noBeautyNote,
     combined: r.name === 'Beauty Avg Bill' ? null : r.combined,
-  }))
+  }));
+  const benchRows = benchAll
   .filter(r => Number.isFinite(r.combined) && r.target != null)   // no target (Bahrain avg bills): not scored
   .map(r => ({ ...r, att: r.target ? r.combined / r.target : 0 }));
+  // Kate, 30 Sep 2026: on Bahrain (and the Group) the strip keeps every benchmark,
+  // greyed with the reason, instead of shrinking to the one or two that can be
+  // scored: rebooking, NCR and treatment wait on Bahrain's ledger, the avg bills on
+  // a BHD target. Not counted in "x of y", which stays what was actually scored.
+  // Beauty Avg Bill still leaves a branch with no beauty team, as everywhere.
+  const LEDGER_ONLY = new Set(['NCR %', 'Rebooking %', 'Treatment %']);
+  const unscored = (isBahrainView() || isGroupView())
+    ? benchAll.filter(r => !benchRows.some(b => b.name === r.name) && (hasBeauty || r.name !== 'Beauty Avg Bill'))
+        .map(r => ({ ...r, why: Number.isFinite(r.combined) ? 'no target yet'
+          : (s._phorestOnly && LEDGER_ONLY.has(r.name)) ? 'no ledger yet' : 'no data' }))
+    : [];
 
   const hitRows = benchRows.filter(r => r.att >= 1).sort((a, b) => b.att - a.att);
   const lowRows = benchRows.filter(r => r.att <  1).sort((a, b) => a.att - b.att);
@@ -3659,7 +3669,7 @@ async function renderDashboard() {
     // ones hit. The headline says "1 of 6"; this is that same 1 of 6 as a shape
     // you can read without counting. Hits first, so the lit run is unbroken —
     // a lit-gap-lit pattern reads as a sequence rather than a score.
-    const strip = [...hitRows, ...lowRows];
+    const strip = [...hitRows, ...lowRows, ...unscored];
     // One builder, two sizes: the cover carries the names under each segment, the
     // rail is 240px wide and carries the segments alone. Same rows, same order,
     // so the two can never show a different score.
@@ -3667,6 +3677,10 @@ async function renderDashboard() {
       <div class="ht-k">${hitRows.length} of ${benchRows.length} targets reached</div>
       <div class="ht-seg">
         ${strip.map(r => {
+          if (r.why) return `<span class="ht-cell na" title="${escapeHtml(r.name.replace(/\s*%$/, ''))}: ${r.why}">
+            <span class="ht-bar"></span>
+            ${withLabels ? `<span class="ht-lbl">${escapeHtml(r.name.replace(/\s*%$/, '').replace(/ Avg Bill$/, ' bill'))}<small>${r.why}</small></span>` : ''}
+          </span>`;
           const pct = Math.round(r.att * 100);
           return `<span class="ht-cell${r.att >= 1 ? ' on' : ''}"
             title="${escapeHtml(r.name.replace(/\s*%$/, ''))}: ${r.fmt(r.combined)} of ${r.fmt(r.target)} · ${pct}%">
@@ -3723,6 +3737,15 @@ async function renderDashboard() {
   // the Below target card, so printing them twice made the receipt 500px tall and
   // left a dead 150px beside it in the hero. The summary row carries the worst of
   // them and links to the full list.
+  // The Group's country split (see THREE below): worked out here, ahead of the
+  // receipt, which prints it too.
+  let country = null;
+  if (isGroupView()) {
+    const bs = BH_BRANCHES.map(c => { const d = (typeof aggByBranch === 'function') ? aggByBranch()[c] : null; return d && d.summary; }).filter(Boolean);
+    const bNet = bs.reduce((n, x) => n + (x.netTake || 0), 0), bCli = bs.reduce((n, x) => n + (x.totalClients || 0), 0);
+    country = { bNet, bCli, uNet: (s.netTake || 0) - bNet, uCli: (s.totalClients || 0) - bCli,
+      bhd: n => 'BHD ' + Math.round(n / BHD_TO_AED).toLocaleString('en-GB') };
+  }
   const receiptEl = document.getElementById('heroReceipt');
   if (receiptEl) {
     const rTRow = r =>
@@ -3740,11 +3763,15 @@ async function renderDashboard() {
         </a>` : ''}` : '';
 
     receiptEl.innerHTML = `
-      <div class="mark"><img src="assets/6.png" alt="Tara Rose Salons"></div>
+      <div class="mark"><img src="assets/logo-ink-mint.png" alt="Tara Rose Salons"></div>
       <div class="r-word">Salons</div>
       <div class="r-sub">${escapeHtml(branchLabel)} · ${rangeLabel}</div>
       <div class="r-rule"></div>
-      ${hasBeauty ? `
+      ${country ? `
+      <div class="r-row"><span class="r-label">UAE net take</span><span class="r-val tabular">${num0(country.uNet)}</span></div>
+      <div class="r-row"><span class="r-label">Bahrain net take</span><span class="r-val tabular">${num0(country.bNet)}</span></div>
+      <div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">in BHD</span><span class="r-val tabular" style="opacity:.75">${country.bhd(country.bNet).replace('BHD ', '')}</span></div>
+      <div class="r-rule"></div>` : hasBeauty ? `
       <div class="r-row"><span class="r-label">Hair net take</span><span class="r-val tabular">${num0(hairNetSalonTake)}</span></div>
       <div class="r-row"><span class="r-label">Beauty net take</span><span class="r-val tabular">${num0(beautyNetTakeDept)}</span></div>
       <div class="r-rule"></div>` : ''}
@@ -3836,6 +3863,29 @@ async function renderDashboard() {
               cls: TARGETS.beautyAvgBill == null ? '' : beautyAvgOk ? 'good' : 'bad', color:'var(--beauty)' },
       ]) },
   ];
+
+  // The Group splits by country instead of by department (Kate, 30 Sep 2026: "UAE |
+  // BAH, para kita ang distinction"). One total in AED, then the UAE and Bahrain
+  // under it, Bahrain also in its own BHD so the converted figure never hides it.
+  // Bahrain's share comes off aggByBranch (already in AED on the Group); the UAE
+  // is the rest, which keeps Fratelli's old rows in it where a window has them.
+  if (country) {
+    const { uNet, bNet, uCli, bCli, bhd } = country;
+    const UAEC = 'var(--good)', BAHC = BRANCH_INFO.BAH.colorLight;
+    THREE[0].splits = [
+      { k:'UAE',     val:uNet, of:s.netTake, txt:aed0(uNet), extra:`${shareOf(uNet, s.netTake)}%`, color:UAEC },
+      { k:'Bahrain', val:bNet, of:s.netTake, txt:aed0(bNet), extra:`${bhd(bNet)} · ${shareOf(bNet, s.netTake)}%`, color:BAHC },
+    ];
+    THREE[1].splits = [
+      { k:'UAE',     val:uCli, of:s.totalClients, txt:`${num0(uCli)} clients`, extra:`${shareOf(uCli, s.totalClients)}%`, color:UAEC },
+      { k:'Bahrain', val:bCli, of:s.totalClients, txt:`${num0(bCli)} clients`, extra:`${shareOf(bCli, s.totalClients)}%`, color:BAHC },
+    ];
+    const uAvg = uCli ? uNet / uCli : 0, bAvg = bCli ? bNet / bCli : 0;
+    THREE[2].splits = [
+      { k:'UAE',     val:uAvg, of:Math.max(uAvg, bAvg), txt:aed0(uAvg), extra:'', color:UAEC },
+      { k:'Bahrain', val:bAvg, of:Math.max(uAvg, bAvg), txt:aed0(bAvg), extra:bhd(bAvg), color:BAHC },
+    ];
+  }
 
   // ── THE READ: hair vs beauty, in words ───────────────────────────
   // The prose is the templated glance copy, which pulse-narrative.js overwrites

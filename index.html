@@ -877,6 +877,10 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .ht-lbl{display:block;margin-top:6px;font-size:11.5px;line-height:1.25;color:var(--muted2);
   letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ht-cell.on .ht-lbl{color:var(--good);font-weight:600}
+/* A benchmark that cannot be scored yet (Bahrain, the Group): hatched, with its reason. */
+.ht-cell.na .ht-bar{background:repeating-linear-gradient(135deg,var(--surface2) 0 4px,transparent 4px 8px);opacity:.8}
+.ht-cell.na .ht-lbl{font-style:italic}
+.ht-lbl small{display:block;font-size:10px;letter-spacing:.02em;opacity:.8}
 @media(max-width:560px){
   /* The labels stop fitting long before the bars do, so they go and the segments
      stay — the count is the point, and the names are a tap away below. */
@@ -956,7 +960,8 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 /* Receipt paper stays #FFFEFA in both themes, so the receipt always takes the
    dark wordmark. Grayscale drops the mint rule to ink, which is what a printed
    till receipt would actually do. */
-.receipt .mark{width:62%;max-width:148px;margin:0 auto 7px;filter:grayscale(1)}
+/* Kate, 30 Sep 2026: the rule over TARA ROSE is teal, as on the sign-in card, not greyed out. */
+.receipt .mark{width:62%;max-width:148px;margin:0 auto 7px}
 .r-sub{text-align:center;font-size:12.5px;color:#6f6f6f;margin-bottom:8px}
 /* Kate, 30 Sep 2026: the receipt's mark said SALON. Same lockup as the sidebar and the
    sign-in now: the square mark cropped to TARA ROSE and its rule, SALONS as text. The
@@ -3505,7 +3510,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="products.js?v=20260930g1"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20260930g3"></script>
+<script src="dashboard.js?v=20260930s2"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
