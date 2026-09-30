@@ -10,9 +10,17 @@ const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aWp4ZW5hZm9vd2FqcWt0cXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTA1OTksImV4cCI6MjA5MTI4NjU5OX0.GL3YXupXOBGfN4FCyelbQWraUw12VJNJu-wUB3zR7Zw';
 
 // The live address a stylist's own link points at, whatever this page was opened from.
-// The employment-model brochures (GHL page); ?b= picks one. Flex has an Abu Dhabi
-// and a Dubai version, chosen by the stylist's branch.
-const BROCHURE = 'https://promo.tararosesalon.com/employment-models?b=';
+// The employment-model brochures, as PDFs next to this page (Kate, 30 Sep 2026:
+// the GHL page at promo.tararosesalon.com/employment-models went 404, so they are
+// served from here now). Flex has an Abu Dhabi and a Dubai version, chosen by the
+// stylist's branch. Absolute, so the same link works from the dashboard's frame.
+const BROCHURE = {
+  employed: 'https://trk-salon-os.com/performance/brochures/employed-stylist.pdf',
+  'flex-abudhabi': 'https://trk-salon-os.com/performance/brochures/flex-stylist-abu-dhabi.pdf',
+  'flex-dubai': 'https://trk-salon-os.com/performance/brochures/flex-stylist-dubai.pdf',
+  chair: 'https://trk-salon-os.com/performance/brochures/rent-a-chair.pdf',
+  overview: 'https://trk-salon-os.com/performance/brochures/full-overview.pdf',
+};
 // A review's branch → that branch's Google Maps listing, where its reviews can
 // be read in full. A search link, not a place ID, by Kate's choice (25 Sep 2026).
 const mapsFor = branch => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('Tara Rose Salon ' + branch);
@@ -532,11 +540,11 @@ async function renderStylist() {
     <section class="card">
       <div class="eyebrow">Your three paths at Tara Rose</div>
       <div class="paths">
-        <div class="path"><b>The Employed Stylist</b>Commission on your quota with a guaranteed income while you build. Tara Rose brings the clients, colour, visa and health cover.<a class="path-link" href="${BROCHURE}employed" target="_blank" rel="noopener">Read the brochure →</a></div>
-        <div class="path"><b>The Flex Stylist</b>A higher commission split and more say over your schedule, with the full Tara Rose support behind you.<a class="path-link" href="${BROCHURE}${/^(SAA|KCA)$|saadiyat|khalifa/i.test(s.branch || '') ? 'flex-abudhabi' : 'flex-dubai'}" target="_blank" rel="noopener">Read the brochure →</a></div>
-        <div class="path"><b>Rent-a-Chair</b>Pay a monthly chair fee and keep your own clients and bookings.<a class="path-link" href="${BROCHURE}chair" target="_blank" rel="noopener">Read the brochure →</a></div>
+        <div class="path"><b>The Employed Stylist</b>Commission on your quota with a guaranteed income while you build. Tara Rose brings the clients, colour, visa and health cover.<a class="path-link" href="${BROCHURE.employed}" target="_blank" rel="noopener">Read the brochure →</a></div>
+        <div class="path"><b>The Flex Stylist</b>A higher commission split and more say over your schedule, with the full Tara Rose support behind you.<a class="path-link" href="${BROCHURE[/^(SAA|KCA)$|saadiyat|khalifa/i.test(s.branch || '') ? 'flex-abudhabi' : 'flex-dubai']}" target="_blank" rel="noopener">Read the brochure →</a></div>
+        <div class="path"><b>Rent-a-Chair</b>Pay a monthly chair fee and keep your own clients and bookings.<a class="path-link" href="${BROCHURE.chair}" target="_blank" rel="noopener">Read the brochure →</a></div>
       </div>
-      <p class="legend"><a href="${BROCHURE}overview" target="_blank" rel="noopener">See all three paths side by side</a>. If you need more details, ask Tara or your manager about each path.</p>
+      <p class="legend"><a href="${BROCHURE.overview}" target="_blank" rel="noopener">See all three paths side by side</a>. If you need more details, ask Tara or your manager about each path.</p>
     </section>` : ''}`;
 
   foldCards({
