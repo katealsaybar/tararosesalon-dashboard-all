@@ -2845,6 +2845,9 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub lvl2" onclick="showView('stafflevels', this)">Stylist Levels</div>
     <div class="nav-sub" onclick="showView('stylists', this)">Staff Cards</div>
     <div class="nav-sub" onclick="showView('orgchart', this)">Org Chart</div>
+    <!-- Kate, 30 Sep 2026: out of Additional Reports (under construction) once
+         /daily-reports Step 6 started refreshing it daily. -->
+    <div class="nav-sub" onclick="showView('products', this)">Products</div>
     <!-- The four branch jumps used to sit here. Kate, 2026-08-14: Stylist Cards
          carries its own "On this page" rail now, so the sidebar copy was the same
          four links one level further from the page — and it scrolled away with the
@@ -2874,7 +2877,6 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-title">ADDITIONAL REPORTS<span class="nav-note">(Under construction)</span></div>
     <div class="nav-sub" onclick="showView('services', this)">Service Rankings</div>
     <div class="nav-sub" onclick="showView('clients', this)">Top Clients</div>
-    <div class="nav-sub" onclick="showView('products', this)">Products</div>
   </div>
 
   <!-- Kate, 29 Sep 2026: campaign tracking. Wellness Voucher Performance is the
@@ -3407,7 +3409,6 @@ table.tp-cmp td.bad{color:var(--bad)}
        professional, from stock_order_lines via get_product_spend. products.js
        draws it. -->
   <div id="view-products" style="display:none">
-    <div class="uc-banner" role="note"><span>Additional Reports</span><span class="uc-tag">Under construction</span></div>
     <main id="productsContent" style="padding:10px 0 48px"></main>
   </div>
 
