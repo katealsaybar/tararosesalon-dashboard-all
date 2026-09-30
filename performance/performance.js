@@ -209,11 +209,27 @@ function pillMenu(sel) {
 function paceFactor(d) {
   const m1 = new Date(d.month + 'T00:00:00');
   const days = new Date(m1.getFullYear(), m1.getMonth() + 1, 0).getDate();
-  const last = d.numbers.last_date ? new Date(d.numbers.last_date + 'T00:00:00') : null;
+  // Kate, 30 Sep 2026: the branch's last day of data, not hers. Ashleigh went on leave
+  // on 17 Sep and the page said "data up to 16 Sept", pacing her as if half the month
+  // was still to come.
+  const to = d.numbers.data_to || d.numbers.last_date;
+  const last = to ? new Date(to + 'T00:00:00') : null;
   if (!last || last.getMonth() !== m1.getMonth()) return 1;
-  // In her first month the pace runs from her start day, not the 1st.
-  const from = startIn(d) ? startIn(d).day : 1;
-  return Math.min(1, (last.getDate() - from + 1) / (days - from + 1));
+  // In her first month the pace runs from her start day, not the 1st; leave days count on neither side.
+  const from = startIn(d) ? startIn(d).day : 1, off = d.numbers.leave_days || 0;
+  const total = days - from + 1 - off;
+  return total > 0 ? Math.min(1, (last.getDate() - from + 1 - off) / total) : 1;
+}
+// Kate, 30 Sep 2026: "sa days lang na may pasok sila", for everyone. Four or more days
+// in a row with no clients and no rostered hours is leave (perf_leave in Supabase), and
+// the month's summed aims are cut to the days left, like a first month.
+function workShare(d) {
+  const m1 = new Date(d.month + 'T00:00:00');
+  const days = new Date(m1.getFullYear(), m1.getMonth() + 1, 0).getDate();
+  const st = startIn(d), off = d.numbers.leave_days || 0;
+  const left = (st ? st.left : days) - off;
+  if (!st && !off) return null;
+  return left > 0 ? { f: left / days, left, off } : null;
 }
 // Kate, 28 Sep 2026: a stylist who started this month (perf_staff.started_on, her first
 // day with clients) is judged on the days since, so the month's summed aims are
@@ -314,7 +330,8 @@ function tile(k, label, d, pace, extra = '') {
 // close the gap next month. An AI-written pair saved for the month (d.ai_tip, from
 // perf_tips) wins; otherwise the formula in win-gap.js, which the email uses too.
 function winTipCard(d) {
-  const f = typeof winGap === 'function' ? winGap(d) : null;
+  // win-gap.js cuts the aims for leave itself (the email has no page to do it), so it gets them uncut.
+  const f = typeof winGap === 'function' ? winGap(Object.assign({}, d, { benchmarks: d.benchmarks_full })) : null;
   const ai = d.ai_tip && d.ai_tip.win && d.ai_tip.tip ? d.ai_tip : null;
   const w = ai ? ai.win : f && f.win, t = ai ? ai.tip : f && f.tip, how = ai ? ai.how : f && f.how;
   if (!w && !t) return '';
@@ -463,8 +480,9 @@ async function renderStylist() {
     d.ai_tip = TOKEN ? await rpc('perf_tip', { p_token: TOKEN, p_month: MONTH + '-01' })
       : d.staff_id ? await rpc('perf_tip_by_id', { p_admin: ADMIN, p_staff_id: d.staff_id, p_month: MONTH + '-01' }) : null;
   } catch (e) { d.ai_tip = null; }
-  const started = startIn(d);
-  if (started) { prorate(d.benchmarks, started.f); prorate(d.next_benchmarks, started.f); }
+  const started = startIn(d), share = workShare(d);
+  d.benchmarks_full = d.benchmarks ? JSON.parse(JSON.stringify(d.benchmarks)) : d.benchmarks;
+  if (share) { prorate(d.benchmarks, share.f); prorate(d.next_benchmarks, share.f); }
   const n = d.numbers, s = d.staff, pace = paceFactor(d);
   const isHair = s.dept === 'Hair';
   const midMonth = pace < 1;
@@ -521,8 +539,9 @@ async function renderStylist() {
     <section class="card">
       <div class="eyebrow">${midMonth ? 'This month so far' : 'Your month'}</div>
       <h2>The six numbers.</h2>
-      ${midMonth ? `<p class="sub">Money numbers are judged on pace for the full month, with data up to ${esc(dayLabel(n.last_date))}.</p>` : ''}
-      ${started ? `<p class="sub">You started on ${esc(dayLabel(n.start_date))}, so this month's totals are aimed at the ${started.left} days since.</p>` : ''}
+      ${midMonth ? `<p class="sub">Money numbers are judged on pace for the full month, with data up to ${esc(dayLabel(n.data_to || n.last_date))}.</p>` : ''}
+      ${started && !(share && share.off) ? `<p class="sub">You started on ${esc(dayLabel(n.start_date))}, so this month's totals are aimed at the ${started.left} days since.</p>` : ''}
+      ${share && share.off ? `<p class="sub">${started ? `You started on ${esc(dayLabel(n.start_date))} and` : 'You'} were away ${(n.leave || []).map(x => x.from === x.to ? esc(dayLabel(x.from)) : `${esc(dayLabel(x.from))} to ${esc(dayLabel(x.to))}`).join(' and ')}, so this month's totals are aimed at the ${share.left} days you were here.</p>` : ''}
       <div class="grid three">${six}</div>
       <p class="legend">${d.benchmarks ? 'Green means at or above your aim, amber means close, red means under.' : 'Benchmarks for the beauty team are still being set, so these show your numbers only.'}</p>
     </section>

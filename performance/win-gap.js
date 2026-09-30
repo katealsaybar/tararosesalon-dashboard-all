@@ -28,10 +28,15 @@
     var days = new Date(m1.getFullYear(), m1.getMonth() + 1, 0).getDate();
     var sd = n.start_date ? new Date(n.start_date + 'T00:00:00') : null;
     var from = sd && sd.getFullYear() === m1.getFullYear() && sd.getMonth() === m1.getMonth() ? sd.getDate() : 1;
-    var last = n.last_date ? new Date(n.last_date + 'T00:00:00') : null;
-    var pace = !last || last.getMonth() !== m1.getMonth() ? 1
-      : Math.min(1, (last.getDate() - from + 1) / (days - from + 1));
-    return { pace: pace || 1, weeks: (days - from + 1) / 7 };
+    // The branch's last day of data, and her leave days left out of both sides (Kate, 30 Sep 2026).
+    var to = n.data_to || n.last_date, off = n.leave_days || 0;
+    var last = to ? new Date(to + 'T00:00:00') : null;
+    var total = days - from + 1 - off;
+    var pace = !last || last.getMonth() !== m1.getMonth() || total <= 0 ? 1
+      : Math.min(1, (last.getDate() - from + 1 - off) / total);
+    // Summed aims cut to the days she was here (first month and leave), as the page does.
+    var share = (sd && from > 1) || off ? Math.max(0, total) / days : 1;
+    return { pace: pace || 1, weeks: Math.max(1, total) / 7, share: share > 0 ? share : 1 };
   }
 
   // ── the win ─────────────────────────────────────────────────────────────
@@ -77,6 +82,7 @@
       keys.forEach(function (k) {
         var v = num(n[k]), t = b[k] && num(b[k].target);
         if (v === null || !t) return;
+        if (SUMS[k] && sp.share < 1) t = Math.max(1, k === 'total_revenue' ? Math.round(t * sp.share / 100) * 100 : Math.round(t * sp.share));
         if (k === 'rebooking_pct' && !(n.clients > 0)) return;
         if (k === 'reputation' && !(n.reputation_n >= 3)) return;
         var jv = SUMS[k] && mid ? v / sp.pace : v;
