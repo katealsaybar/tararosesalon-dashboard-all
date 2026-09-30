@@ -451,6 +451,10 @@ body.orgchart-pop main#orgChartContent{max-width:none;padding:6px 14px 40px}
   padding:9px 14px;font:inherit;font-size:13px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
   white-space:nowrap;min-height:44px}
 @media(hover:hover){.tglr:hover{color:var(--text);border-color:var(--text)}}
+/* Kate, 30 Sep 2026: on desktop the header buttons and Search sit as slim as Sign out,
+   stuck or not. Phones keep their bigger tap sizes. */
+@media(min-width:761px){.mast-acts .tglr{min-height:34px;padding:6px 12px;font-size:11px;align-self:center}
+  html .gs-trig{min-height:34px;align-self:center}}
 .mast-rule{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:16px;
   padding:9px 0;border-top:1px solid var(--text);border-bottom:1px solid var(--border);
   font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
@@ -4304,5 +4308,5 @@ addEventListener('load', sizeTopbar);
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
 <script src="nav-collapse.js?v=20260924a"></script>
 <script src="mobile.js?v=20260928a"></script>
-<script src="search.js?v=20260929f"></script>
+<script src="search.js?v=20260930a"></script>
 </body>

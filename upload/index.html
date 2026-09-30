@@ -134,6 +134,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 [data-theme="dark"] .toggle-thumb{transform:translateX(18px)}
 .logout-btn{padding:6px 14px;border:1px solid var(--border);border-radius:18px;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);background:transparent;cursor:pointer;font-family:'Inter',sans-serif;font-weight:500;transition:border-color .2s,color .2s}
 @media(hover:hover){.logout-btn:hover{border-color:var(--bad);color:var(--bad)}}
+/* Back to the dashboard (Kate, 30 Sep 2026): same pill as Log out, neutral hover. */
+.back-btn{text-decoration:none;display:inline-flex;align-items:center}
+@media(hover:hover){.back-btn:hover{border-color:var(--text);color:var(--text)}}
 .page{max-width:1400px;margin:0 auto;padding:28px 20px 60px}
 
 /* TABS — the dashboard's .tabs idiom: a single underlined rail, uppercase, the
@@ -850,6 +853,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <div class="portal-label">Upload Portal</div>
   </div>
   <div class="header-right">
+    <a class="logout-btn back-btn" href="../" title="Back to the dashboard">&larr; Dashboard</a>
     <button class="logout-btn" id="logoutBtn" style="display:none" onclick="logout()">Log out</button>
     <div class="toggle-wrap" onclick="toggleTheme()" role="button">
       <span class="toggle-lbl" id="themeLbl">Dark</span>

@@ -134,6 +134,41 @@
       ORG_CHART.forEach(team => team.root && walk(team.root, null));
     }
 
+    // Kate, 30 Sep 2026: "sunitha" found nothing, because she has no Staff Card and
+    // is not on the Org Chart. Everyone on Phorest's staff list (STAFF_SURNAMES in
+    // staff-profiles.js) is in Team now; without a card, Enter opens her row in
+    // Branch Performance, and Stats / 13 weeks are still offered.
+    // Already listed means: the same person under an alias (Lucia is Lucy, Mary Joy
+    // is MJ), or a name with the same surname that shares a first name (Princess
+    // Areanne is Areanne's card, and then Princess on her own is her too). Longer
+    // names go first so that second step can see the first.
+    if (typeof STAFF_SURNAMES !== 'undefined') {
+      const seen = items.filter(x => x.kind === 'staff').map(x => {
+        const w = norm(x.t).split(/\s+/);
+        return { key: x.id.replace(/^(staff|org):/, ''), last: w[w.length - 1], words: w.slice(0, -1), item: x };
+      });
+      Object.keys(STAFF_SURNAMES).sort((a, b) => b.split(' ').length - a.split(' ').length).forEach(name => {
+        const key = typeof staffLinkKey === 'function' ? staffLinkKey(name) : name;
+        const last = norm(STAFF_SURNAMES[name]), words = norm(name).split(/\s+/);
+        const dup = seen.find(x => x.key === key || (x.last === last && words.some(w => x.words.includes(w))));
+        // The other spelling still finds her: "lucia" lands on Lucy's row.
+        if (dup) { dup.item.words += ' ' + norm(name); seen.push({ key, last, words, item: dup.item }); return; }
+        const full = title(name) + ' ' + STAFF_SURNAMES[name];
+        const item = {
+          kind: 'staff', id: 'staff:' + key, t: full, s: 'Team · no card yet',
+          words: 'staff phorest', photo: '',
+          go: () => whoGoRow(key),
+          acts: [
+            ['Figures', () => whoGoRow(key)],
+            ['Stats', () => whoGoStats(key)],
+            ['13 weeks', () => goWeeks(full)],
+          ],
+        };
+        items.push(item);
+        seen.push({ key, last, words, item });
+      });
+    }
+
     if (typeof ACTIVE_BRANCHES !== 'undefined') {
       ACTIVE_BRANCHES.forEach(code => {
         const b = BRANCH_INFO[code];
@@ -456,7 +491,7 @@
       trig.className = 'gs-trig';
       trig.setAttribute('aria-label', 'Search the dashboard');
       trig.setAttribute('aria-haspopup', 'dialog');
-      trig.innerHTML = ICON + '<span class="gs-trig-t">Search</span><kbd>/</kbd>';
+      trig.innerHTML = ICON + '<span class="gs-trig-t">Search names, pages, clients</span><kbd>/</kbd>';
       trig.addEventListener('click', open);
       // On a phone it sits beside the menu button; on desktop it leads the row.
       acts.insertBefore(trig, acts.firstChild);
@@ -476,7 +511,7 @@
     panel.innerHTML = `
       <div class="gs-head">${ICON}
         <input class="gs-in" id="gsIn" type="search" autocomplete="off" autocapitalize="off" spellcheck="false"
-          enterkeyhint="go" placeholder="Search anything on the dashboard" role="combobox"
+          enterkeyhint="go" placeholder="A name, page, branch, client, service…" role="combobox"
           aria-expanded="true" aria-controls="gsList" aria-autocomplete="list">
         <button type="button" class="gs-x gs-clear" aria-label="Clear" hidden>&times;</button>
         <button type="button" class="gs-x gs-cancel">Cancel</button>
