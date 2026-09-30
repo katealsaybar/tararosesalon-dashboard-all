@@ -3,7 +3,7 @@
  * Built 25 Sep 2026 (Money Five pages, performance/ in this repo).
  *
  * It never sends on its own. A run makes one Gmail DRAFT per person in the
- * account that runs it: their six numbers, the one quickest way to earn more,
+ * account that runs it: their win and top tip for next month, their six numbers,
  * a link to their private page, and their payslip PDF attached. Kate reads the
  * drafts, then runs sendMonthlyDrafts() to send them all in one go.
  *
@@ -97,17 +97,30 @@ function perfStatus_(v, b) {
   const floor = b.min !== null && b.min !== undefined ? b.min : b.target * 0.85;
   return v >= floor ? 'warn' : 'bad';
 }
-function perfLever_(d) {
-  const n = d.numbers, b = d.benchmarks || {};
-  const rp = (b.retail_pct && b.retail_pct.target) || 12, tp = (b.treatments_pct && b.treatments_pct.target) || 20;
-  const o = [];
-  if (n.total_revenue > 0) o.push({ aed: rp / 100 * n.total_revenue - n.retail, txt: `bringing retail up to ${rp}% of your services` });
-  if (d.staff.dept === 'Hair' && n.hair_services > 0) o.push({ aed: tp / 100 * n.hair_services - n.treatments, txt: `adding treatments until they reach ${tp}% of your hair services` });
-  if (n.clients > 0 && n.avg_bill) o.push({ aed: 0.05 * n.clients * n.avg_bill, txt: 'rebooking 5% more of your clients before they leave' });
-  if (b.avg_bill && n.avg_bill && n.avg_bill < b.avg_bill.target) o.push({ aed: (b.avg_bill.target - n.avg_bill) * n.clients, txt: `lifting your average bill to AED ${b.avg_bill.target}` });
-  const best = o.filter(x => x.aed > 50).sort((a, c) => c.aed - a.aed)[0];
-  return best ? `Your quickest win next month: ${best.txt}. Last month that was worth about <b>AED ${Math.round(best.aed).toLocaleString('en-GB')}</b> more in sales.`
-              : `You hit the aims for your level across the board last month. Keep going.`;
+// Win + top tip (Kate, 30 Sep 2026, Tara's "always start with the win, then a top tip
+// to close the gap"). An AI-written pair saved for the month (perf_tips) wins; otherwise
+// the formula in performance/win-gap.js, fetched from the live site and run here, so the
+// email and the page always say the same thing.
+function perfWinGapFn_() {
+  if (!perfWinGapFn_.fn) {
+    const src = UrlFetchApp.fetch(PERF_PAGE + 'win-gap.js?' + Date.now()).getContentText();
+    const root = {};
+    new Function('window', src)(root);
+    perfWinGapFn_.fn = root.winGap;
+  }
+  return perfWinGapFn_.fn;
+}
+function perfWinTip_(d, token, month) {
+  let ai = null;
+  try { ai = perfRpc_('perf_tip', { p_token: token, p_month: month + '-01' }); } catch (e) {}
+  if (ai && ai.win && ai.tip) return ai;
+  try { return perfWinGapFn_()(d); } catch (e) { return null; }
+}
+function perfWinTipHtml_(wt) {
+  if (!wt) return '';
+  const escH = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  return (wt.win ? `<p style="margin:14px 0 8px;padding:10px 14px;background:#E1F5EE;border-radius:8px"><b style="color:#0F6E56">Your win</b><br>${escH(wt.win)}</p>` : '')
+    + (wt.tip ? `<p style="margin:8px 0 14px;padding:10px 14px;background:#FAEEDA;border-radius:8px"><b style="color:#BA7517">Top tip for next month</b><br>${escH(wt.tip)}${wt.how ? `<br><span style="color:#77706A">${escH(wt.how)}</span>` : ''}</p>` : '');
 }
 
 function perfEmailHtml_(d, token, month, hasPayslip) {
@@ -140,6 +153,7 @@ function perfEmailHtml_(d, token, month, hasPayslip) {
   return `<div style="font-family:Arial,sans-serif;color:#5C5557;max-width:560px;line-height:1.5">
     <p>Hi ${first},</p>
     <p>Here are your numbers for ${Utilities.formatDate(new Date(month + '-15T12:00:00Z'), 'Asia/Dubai', 'MMMM yyyy')}${hasPayslip ? ', with your payslip attached' : ''}.</p>
+    ${perfWinTipHtml_(perfWinTip_(d, token, month))}
     <table style="border-collapse:collapse;width:100%;font-size:14px">
       <tr><td style="padding:6px 10px;border-bottom:1px solid #eee"><b>Total revenue</b></td>
           <td style="padding:6px 10px;border-bottom:1px solid #eee;font-weight:700">${nfmt_(n.total_revenue, 'aed')}</td>
@@ -148,7 +162,6 @@ function perfEmailHtml_(d, token, month, hasPayslip) {
     </table>
     ${quote ? `<p style="margin:14px 0;padding:10px 14px;border-left:3px solid #BA7517;background:#FAEEDA;border-radius:6px">
       <span style="color:#BA7517">${'★'.repeat(best.stars)}</span> One of your clients wrote:<br><i>“${escH(quote)}”</i></p>` : ''}
-    <p>${perfLever_(d)}</p>
     ${d.next_level ? `<p>Your full page also shows how far you are from ${d.next_level}.</p>` : ''}
     <p><a href="${link}" style="display:inline-block;background:#5C5557;color:#F9E8DF;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">See your full page</a></p>
     <p style="font-size:12px;color:#9a8a87">This link is yours only, please don't forward it. Revenue is ex VAT. Any questions about your numbers or payslip, talk to your salon manager.</p>

@@ -23,6 +23,11 @@ const BROCHURE = Object.fromEntries(['employed', 'flex-abudhabi', 'flex-dubai', 
 // be read in full. A search link, not a place ID, by Kate's choice (25 Sep 2026).
 const mapsFor = branch => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('Tara Rose Salon ' + branch);
 const PUBLIC_PAGE = 'https://trk-salon-os.com/performance/';
+// The "Ask your coach" chat box (perf-coach edge function). Off until the Anthropic
+// account has credit again (it ran dry 24 Sep 2026); flip to true and bump the
+// performance.js stamp. ?coach=1 shows it anyway, for testing.
+const COACH_ON = false;
+const COACH_FN = SUPA_URL + '/functions/v1/perf-coach';
 const qs = new URLSearchParams(location.search);
 let TOKEN = qs.get('t');
 const STAFF_SLUG = qs.get('staff');   // dashboard address: ?view=staffperf&staff=andrea-gladstone
@@ -305,22 +310,69 @@ function tile(k, label, d, pace, extra = '') {
     <div class="val">${fmt(d.numbers[k], f)}</div><div class="aim">${esc(aim)}${paceNote(k, d.numbers, pace, b?.target) ? '<br>' + esc(paceNote(k, d.numbers, pace, b?.target)) : ''}${extra}</div></div>`;
 }
 
-function lever(d) {
-  const n = d.numbers, b = d.benchmarks || {};
-  const retailPct = b.retail_pct?.target ?? 12;
-  const treatPct = b.treatments_pct?.target ?? 20;
-  const opts = [];
-  if (n.total_revenue > 0) opts.push({ aed: retailPct / 100 * n.total_revenue - n.retail,
-    txt: `Bringing retail up to ${retailPct}% of your services` });
-  if (d.staff.dept === 'Hair' && n.hair_services > 0) opts.push({ aed: treatPct / 100 * n.hair_services - n.treatments,
-    txt: `Adding treatments until they reach ${treatPct}% of your hair services` });
-  if (n.clients > 0 && n.avg_bill) opts.push({ aed: 0.05 * n.clients * n.avg_bill,
-    txt: `Rebooking 5% more of your clients before they leave` });
-  if (b.avg_bill && n.avg_bill && n.avg_bill < b.avg_bill.target) opts.push({ aed: (b.avg_bill.target - n.avg_bill) * n.clients,
-    txt: `Lifting your average bill to AED ${nf.format(b.avg_bill.target)}` });
-  const best = opts.filter(o => o.aed > 50).sort((a, c) => c.aed - a.aed)[0];
-  if (!best) return `<p class="lever">Nothing standing out right now. You're hitting the aims set for your level.</p>`;
-  return `<p class="lever">${esc(best.txt)} is worth about <strong>AED ${nf.format(best.aed)}</strong> more in sales this month.</p>`;
+// Kate, 30 Sep 2026 (Tara on the call): always start with the win, then one top tip to
+// close the gap next month. An AI-written pair saved for the month (d.ai_tip, from
+// perf_tips) wins; otherwise the formula in win-gap.js, which the email uses too.
+function winTipCard(d) {
+  const f = typeof winGap === 'function' ? winGap(d) : null;
+  const ai = d.ai_tip && d.ai_tip.win && d.ai_tip.tip ? d.ai_tip : null;
+  const w = ai ? ai.win : f && f.win, t = ai ? ai.tip : f && f.tip, how = ai ? ai.how : f && f.how;
+  if (!w && !t) return '';
+  return `<section class="card wintip">
+      ${w ? `<div class="wt-block wt-win"><div class="eyebrow">Your win</div><p>${esc(w)}</p></div>` : ''}
+      ${t ? `<div class="wt-block wt-tip"><div class="eyebrow">Top tip for next month</div><p>${esc(t)}</p>${how ? `<p class="wt-how">${esc(how)}</p>` : ''}</div>` : ''}
+    </section>`;
+}
+
+// "Ask your coach" (Kate, 30 Sep 2026): a small chat box where she asks about her own
+// numbers. The server fetches her month itself from her link, so it can only ever
+// answer from her own data. Kept for the visit only, nothing is saved.
+const coachShown = () => COACH_ON || qs.get('coach') === '1';
+function coachCard(d) {
+  if (!coachShown()) return '';
+  const first = esc(d.staff.name.split(' ')[0]);
+  const ideas = d.staff.dept === 'Hair'
+    ? ['How do I get more clients?', 'What if I rebook 3 more a week?', 'How far am I from my next level?']
+    : ['How do I get more clients?', 'What if I rebook 3 more a week?', 'Which number should I work on first?'];
+  return `<section class="card coach" id="coach">
+      <div class="eyebrow">Ask your coach</div>
+      <p class="sub">Ask anything about your own numbers, ${first}. It only sees your page.</p>
+      <div class="coach-log" id="coachLog" aria-live="polite"></div>
+      <div class="coach-ideas">${ideas.map(q => `<button type="button" class="chip" data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+      <form class="coach-form" id="coachForm"><input id="coachIn" maxlength="500" placeholder="Type your question…" autocomplete="off"><button class="btn" type="submit">Ask</button></form>
+    </section>`;
+}
+function wireCoach(d) {
+  const form = document.getElementById('coachForm');
+  if (!form) return;
+  const log = document.getElementById('coachLog'), inp = document.getElementById('coachIn');
+  const history = [];
+  const bubble = (who, text) => {
+    const b = document.createElement('div');
+    b.className = 'coach-msg ' + who; b.textContent = text; log.appendChild(b);
+    b.scrollIntoView({ block: 'nearest' }); return b;
+  };
+  const ask = async (q) => {
+    q = q.trim(); if (!q) return;
+    bubble('me', q); inp.value = '';
+    const wait = bubble('ai wait', 'Thinking…');
+    try {
+      const r = await fetch(COACH_FN, {
+        method: 'POST',
+        headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ action: 'ask', question: q, month: MONTH, history },
+          TOKEN ? { token: TOKEN } : { admin: ADMIN, staff_id: d.staff_id })),
+      });
+      const out = await r.json().catch(() => ({}));
+      const a = out.answer || out.error || 'No answer came back. Try again.';
+      wait.className = 'coach-msg ai' + (out.answer ? '' : ' err'); wait.textContent = a;
+      if (out.answer) history.push({ role: 'user', content: q }, { role: 'assistant', content: a });
+    } catch (e) {
+      wait.className = 'coach-msg ai err'; wait.textContent = 'Could not reach the coach. Try again in a moment.';
+    }
+  };
+  form.onsubmit = (e) => { e.preventDefault(); ask(inp.value); };
+  document.querySelectorAll('#coach .chip').forEach(c => c.onclick = () => ask(c.dataset.q));
 }
 
 function kpiRows(n, bm, pace, keys) {
@@ -406,6 +458,11 @@ async function renderStylist() {
     : await rpc('perf_dashboard_by_id', { p_admin: ADMIN, p_staff_id: SID, p_month: MONTH + '-01' });
   if (!d) { app.innerHTML = `<p class="err">This link isn't active. Ask your salon manager for a new one.</p>`; return; }
   if (d.role) ROLE = d.role; else if (ADMIN && TOKEN && !ROLE) ROLE = 'leader';
+  // An AI-written win + tip for the month, if one was saved (perf_tips); the formula otherwise.
+  try {
+    d.ai_tip = TOKEN ? await rpc('perf_tip', { p_token: TOKEN, p_month: MONTH + '-01' })
+      : d.staff_id ? await rpc('perf_tip_by_id', { p_admin: ADMIN, p_staff_id: d.staff_id, p_month: MONTH + '-01' }) : null;
+  } catch (e) { d.ai_tip = null; }
   const started = startIn(d);
   if (started) { prorate(d.benchmarks, started.f); prorate(d.next_benchmarks, started.f); }
   const n = d.numbers, s = d.staff, pace = paceFactor(d);
@@ -455,8 +512,11 @@ async function renderStylist() {
       ${photoFor(s.keys) ? `<img class="hero-photo" src="${photoFor(s.keys)}" alt="" onerror="this.remove()">` : ''}
       <h1>${esc(s.name)}</h1>
       <div class="level">${esc(s.level || (isHair ? 'Hair team' : 'Beauty team'))} · ${esc(s.branch)} · ${esc(monthLabel(d.month))}</div>
-      <div class="intro">Your month in pictures: the quickest way to earn more, and where you are against the next step up. One page with your own numbers and your leader's notes, nothing about anyone else.</div>
+      <div class="intro">Your month in pictures: what went well, one tip for next month, and where you are against the next step up. One page with your own numbers and your leader's notes, nothing about anyone else.</div>
     </section>
+
+    ${winTipCard(d)}
+    ${coachCard(d)}
 
     <section class="card">
       <div class="eyebrow">${midMonth ? 'This month so far' : 'Your month'}</div>
@@ -467,10 +527,6 @@ async function renderStylist() {
       <p class="legend">${d.benchmarks ? 'Green means at or above your aim, amber means close, red means under.' : 'Benchmarks for the beauty team are still being set, so these show your numbers only.'}</p>
     </section>
 
-    <section class="card">
-      <div class="eyebrow">The quickest way to earn more</div>
-      ${lever(d)}
-    </section>
 
     <section class="card">
       <h2>Your client numbers</h2>
@@ -555,6 +611,7 @@ async function renderStylist() {
     'Your socials': `${fmt((n.social_list || []).length, 'num')} ${(n.social_list || []).length === 1 ? 'post' : 'posts'}`,
   });
   if (TOKEN) loadPayslip();
+  wireCoach(d);
   document.getElementById('foot').textContent =
     `Reviews to ${dayLabel(d.data_through.reviews)} · sales to ${dayLabel(d.data_through.revenue)} · clients to ${dayLabel(d.data_through.clients)} · column fill to ${dayLabel(d.data_through.column_fill)} · client history to ${dayLabel(d.data_through.client_history)}. Revenue is ex VAT.`;
 
