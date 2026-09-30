@@ -267,6 +267,10 @@ const TIPS = {
   rebooking_pct:   'The share of your clients who booked their next visit before they left.',
   retention_pct:   'Of the returning clients you saw 3 to 6 months ago, the share you have seen again in the last 3 months.',
   clients:         'The clients you saw this month, from the branch ledger.',
+  // Your client numbers (Kate, 30 Sep 2026): the four columns the branch ledger splits your clients into.
+  req:             'Returning clients who booked with you by name. From the branch ledger.',
+  salon:           'Returning clients who had no preference, so the salon booked them with you. From the branch ledger.',
+  new_clients:     'Brand new clients on their first visit who did not ask for anyone, so the salon booked them with you. From the branch ledger.',
   ncr:             'New clients who asked for you by name, usually through a referral or your socials.',
   request_pct:     'Clients who asked for you (request clients plus new client requests) as a share of your client numbers.',
   conversion_pct:  'Of the brand new clients whose first visit was with you 3 to 6 months ago, the share who came back within 12 weeks.',
@@ -425,8 +429,8 @@ async function renderStylist() {
   ].join('');
 
   const pct = v => n.clients > 0 ? ` · ${Math.round(100 * v / n.clients)}%` : '';
-  const clientTiles = [['Request', n.req], ['Salon', n.salon], ['New', n.new_clients], ['New client request', n.ncr]]
-    .map(([l, v]) => `<div class="tile"><div class="lbl">${esc(l)}</div><div class="val">${fmt(v, 'num')}</div><div class="aim">${fmt(v, 'num')} of ${fmt(n.clients, 'num')}${pct(v)}</div></div>`).join('');
+  const clientTiles = [['req', 'Request', n.req], ['salon', 'Salon', n.salon], ['new_clients', 'New', n.new_clients], ['ncr', 'New client request', n.ncr]]
+    .map(([k, l, v]) => `<div class="tile"><div class="lbl">${tipLbl(k, l)}</div><div class="val">${fmt(v, 'num')}</div><div class="aim">${fmt(v, 'num')} of ${fmt(n.clients, 'num')}${pct(v)}</div></div>`).join('');
 
   const allKeys = KPIS.map(x => x.k);
   const own = d.benchmarks ? scoreLine(n, d.benchmarks, pace) : null;
