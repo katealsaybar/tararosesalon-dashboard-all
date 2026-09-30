@@ -13,22 +13,74 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=20"></script>
+<script src="upload.js?v=21"></script>
 <!-- Signed-in people on the dashboard list only (auth.js, 25 Sep 2026); anyone else goes to the dashboard's sign-in and comes back. -->
 <script src="../auth.js?v=20260925d"></script>
-<!-- Owner (Kate) gets every tab; payroll (accounts and admin) gets Payslips only; the rest of the list goes back to the dashboard. -->
-<style>.role-payroll .tab-btn:not([data-tab="payslips"]),.role-payroll .tab-grp{display:none!important}</style>
+<!-- Kate, 30 Sep 2026: Google sign-in is the only way in (the old shared password card is gone).
+     Owner (Kate) can do everything. Payroll (Accounts and Admin) sees every tab but can only
+     change Payslips: the Upload segments, delete/edit buttons and roster switches are hidden,
+     and any table write outside Payslips is refused in the browser (payslips go through their
+     own edge function, not sb.from). The rest of the list goes back to the dashboard. -->
+<style>
+.role-payroll .seg-btn[data-seg="upload"],.role-payroll .seg-pane[id$="-upload"],
+.role-payroll .tab-btn[data-tab="products"],.role-payroll .tab-btn[data-tab="service"],
+.role-payroll .tab-content:not(#tab-payslips) :is(.btn-danger,.bulk-delete-btn,.bulk-edit-btn,.bulk-save-btn,.icon-btn.del,.slot-clear){display:none!important}
+.role-payroll .roster-toggle{pointer-events:none;opacity:.45}
+.role-payroll [onclick^="spJumpToPaste"]{display:none!important}
+/* Phones and Accounts (Kate, 30 Sep 2026): Payslips leads the tab row for payroll, the header
+   tightens, and each payslip row stacks its buttons under the name so they stay tappable. */
+@media(max-width:979px){.role-payroll .tab-btn[data-tab="payslips"]{order:-1}}
+@media(max-width:600px){
+  header{padding:8px 14px}
+  header .logout-btn{padding:6px 11px;font-size:11.5px;min-height:36px;letter-spacing:.06em}
+  header .toggle-lbl{display:none}
+  header .logo-lockup{width:104px}
+  #payslipHost .ps-top{gap:10px}
+  #payslipHost .ps-key{margin-left:0;width:100%}
+  #payslipHost .ps-month select{min-height:44px;font-size:16px}
+  #payslipHost .ps-row{flex-direction:column;align-items:stretch;gap:8px;padding:12px 4px}
+  #payslipHost .ps-actions{flex-wrap:wrap}
+  #payslipHost .ps-actions>*{flex:1 1 0;text-align:center;justify-content:center;min-height:44px;display:inline-flex;align-items:center}
+  #payslipHost .ps-drop{padding:16px 12px}
+}
+.view-only-note{display:none}
+.role-payroll .view-only-note{display:block;margin:0 0 14px;padding:10px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface2);font-size:13.5px;color:var(--muted)}
+.role-payroll #portalSection:has(#tab-payslips.active) .view-only-note{display:none}
+</style>
 <script>
 document.documentElement.style.visibility = 'hidden';
 TRSAuth.guard('../', ['owner', 'payroll']).then(async role => {
+  window.TRS_ROLE = role;
   window.PS_AUTO = await TRSAuth.perfKey();   // payslip key without typing it
-  if (role === 'payroll') {
-    document.documentElement.classList.add('role-payroll');
-    const go = () => { const b = document.querySelector('.tab-btn[data-tab="payslips"]'); if (b) b.click(); };
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
-  }
-  document.documentElement.style.visibility = '';
+  const go = () => {
+    if (role === 'payroll') {
+      document.documentElement.classList.add('role-payroll');
+      upViewOnly();
+      // Targets opens on its Enter segment, which payroll doesn't get.
+      document.querySelectorAll('.seg-btn[data-seg="upload"].active').forEach(b => {
+        const alt = b.parentElement.querySelector('.seg-btn:not([data-seg="upload"])'); if (alt) alt.click();
+      });
+    }
+    showPortal();
+    if (role === 'payroll') { const b = document.querySelector('.tab-btn[data-tab="payslips"]'); if (b) b.click(); }
+    document.documentElement.style.visibility = '';
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
 });
+// Every table write in the portal goes through sb.from(...).insert/upsert/update/delete,
+// so for payroll those come back as an error instead of reaching Supabase.
+function upViewOnly() {
+  const refuse = () => {
+    const res = { data: null, error: { message: 'View only: Accounts can change Payslips only.' } };
+    const p = new Proxy(function () {}, {
+      get: (t, k) => k === 'then' ? (ok, bad) => Promise.resolve(res).then(ok, bad) : () => p,
+      apply: () => p
+    });
+    return p;
+  };
+  const from = sb.from.bind(sb);
+  sb.from = t => { const q = from(t); ['insert', 'upsert', 'update', 'delete'].forEach(m => q[m] = refuse); return q; };
+}
 </script>
 <script src="name-aliases.js?v=6"></script>
 <!-- staff-profiles.js wants canonicalStaffName() from name-aliases.js above it,
@@ -65,10 +117,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
    pill label naming the section. It used to be typed-out text in a different
    font with a rainbow strip under it, which read as a different product
    (Kate, 2026-08-13). */
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);position:sticky;top:0;z-index:22;min-height:82px}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);position:sticky;top:0;z-index:22;min-height:64px}
 .logo{display:flex;align-items:center;gap:12px;min-width:0;flex-shrink:1;overflow:hidden}
-.logo-crop{width:192px;height:58px;overflow:hidden;flex-shrink:0;position:relative}
-.logo-crop img{position:absolute;left:-25px;top:-90px;width:241px;height:241px;max-width:none}
+/* Kate, 30 Sep 2026: smaller, and TARA ROSE SALONS like the dashboard masthead
+   (assets/mast-paper.png / mast-ink.png, SALONS set as text off the lockup width). */
+.logo-lockup{width:124px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;container-type:inline-size}
+.logo-lockup img{display:block;width:100%;height:auto;aspect-ratio:2321/396}
+.logo-word{display:block;margin-top:max(4.2cqw,4px);font:500 max(7.4cqw,7.5px)/1 'Inter',sans-serif;letter-spacing:.42em;text-indent:.42em;text-transform:uppercase;color:var(--text);white-space:nowrap}
 .portal-label{font-family:'Playfair Display',serif;font-weight:500;font-size:15px;letter-spacing:0.03em;text-transform:none;color:#7C5CD4;display:inline-block;padding:3px 12px;border-radius:20px;background:rgba(124,92,212,0.12);white-space:nowrap}
 .header-right{display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:auto;padding-left:12px}
 @media(max-width:700px){.portal-label{display:none}}
@@ -761,7 +816,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <!-- upHeaderLogo keeps its id: upApplyLogoForTheme() swaps 5.png (white wordmark,
            for the dark header) and 6.png (ink wordmark, for the light one). The src here is
            the boot state only, and <html> boots dark. -->
-      <div class="logo-crop"><img id="upHeaderLogo" src="../assets/5.png" alt="Tara Rose Salon"></div>
+      <div class="logo-lockup"><img id="upHeaderLogo" src="../assets/mast-paper.png" alt="Tara Rose Salons"><span class="logo-word" aria-hidden="true">Salons</span></div>
     <div class="portal-label">Upload Portal</div>
   </div>
   <div class="header-right">
@@ -774,24 +829,6 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 </header>
 
 <div class="page">
-  <!-- LOGIN -->
-  <div id="loginSection" class="login-wrap">
-    <!-- 6.png, the ink wordmark, and NOT theme-swapped: .login-wrap is #FFFEFA in both
-           themes, so the white wordmark was invisible on it in dark mode as well as light. -->
-      <div class="login-logo-crop"><img src="../assets/6.png" alt="Tara Rose Salon"></div>
-    <div class="login-dash-lbl">Upload Portal</div>
-    <div class="login-divider"></div>
-    <div class="field" style="margin-bottom:12px">
-      <label class="field-label">Enter your access password</label>
-      <div class="pw-field-wrap">
-        <input type="password" id="pwInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
-        <button class="pw-eye" id="pwEye" type="button" onclick="togglePwVis()">👁️</button>
-      </div>
-    </div>
-    <button class="btn" onclick="login()">Login</button>
-    <div class="err" id="loginErr"></div>
-  </div>
-
   <!-- PORTAL -->
   <div id="portalSection" style="display:none;">
     <!-- Labels trimmed to the noun and the qualifier moved into .tab-qual — the
@@ -822,6 +859,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div class="tab-grp">Team</div>
       <button class="tab-btn" data-tab="roster" onclick="switchTab(event, 'roster')">Team Roster</button>
     </div>
+    <div class="view-only-note" id="viewOnlyNote">View only. You can upload and change payslips here; the other tabs are for reading.</div>
 
     <div class="tab-content" id="tab-ops">
 

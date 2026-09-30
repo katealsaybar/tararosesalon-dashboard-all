@@ -1,5 +1,3 @@
-console.log('JS LOADED');
-const PASS     = 'AbuDhabi2026@';
 const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2aWp4ZW5hZm9vd2FqcWt0cXZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MTA1OTksImV4cCI6MjA5MTI4NjU5OX0.GL3YXupXOBGfN4FCyelbQWraUw12VJNJu-wUB3zR7Zw';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -41,7 +39,7 @@ function upApplyLogoForTheme() {
   const img = document.getElementById('upHeaderLogo');
   if (!img) return;
   const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-  img.src = dark ? '../assets/5.png' : '../assets/6.png';
+  img.src = dark ? '../assets/mast-paper.png' : '../assets/mast-ink.png';
 }
 
 function toggleTheme() {
@@ -50,13 +48,6 @@ function toggleTheme() {
   document.getElementById('themeLbl').textContent = dark ? 'Light' : 'Dark';
   upApplyLogoForTheme();
 }
-function togglePwVis() {
-  const inp = document.getElementById('pwInput'), eye = document.getElementById('pwEye');
-  const h = inp.type === 'password';
-  inp.type = h ? 'text' : 'password';
-  eye.textContent = h ? '🙈' : '👁️';
-}
-
 // ── TAB ──
 function switchTab(e, tab) {
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -67,6 +58,8 @@ function switchTab(e, tab) {
   // for the "Phorest"/"Yearly" qualifier, and clicking that span used to hand
   // the active class to the span instead of the button (Kate, 2026-08-13).
   e.currentTarget.classList.add('active');
+  // On a phone the tabs are one sideways row, so bring the chosen one into view (Kate, 30 Sep 2026).
+  if (e.currentTarget.scrollIntoView && innerWidth < 980) e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest' });
 
   document.querySelectorAll('.tab-content').forEach(el => {
     el.classList.remove('active');
@@ -328,31 +321,9 @@ window.addEventListener('DOMContentLoaded', () => {
   watchStickyChrome();
   upApplyLogoForTheme();
 
-  if (sessionStorage.getItem('tr_auth') === '1') showPortal();
+  // showPortal() runs from the sign-in guard in upload.html once Google sign-in checks out.
   buildFileSlotsDaily();
 });
-
-function login() {
-  const inputEl = document.getElementById('pwInput');
-  const errEl   = document.getElementById('loginErr');
-
-  if (!inputEl) {
-    alert('pwInput not found — HTML issue yan');
-    return;
-  }
-
-  const input = inputEl.value.trim();
-
-  console.log('INPUT:', `"${input}"`);
-  console.log('EXPECTED:', `"${PASS}"`);
-
-  if (input === PASS.trim()) {
-    sessionStorage.setItem('tr_auth','1');
-    showPortal();
-  } else {
-    if (errEl) errEl.textContent = 'Incorrect password.';
-  }
-}
 
 // ── STICKY CHROME ──
 // The tab bar pins below the header and each tab's strip-and-segments band pins
@@ -434,11 +405,9 @@ function watchStickyChrome() {
 }
 
 function showPortal() {
-  const loginSection  = document.getElementById('loginSection');
   const portalSection = document.getElementById('portalSection');
   const logoutBtn     = document.getElementById('logoutBtn');
 
-  if (loginSection) loginSection.style.display = 'none';
   if (portalSection) portalSection.style.display = 'block';
   if (logoutBtn) logoutBtn.style.display = 'inline-block';
   // The sidebar's gutter is on .page, which also holds the login card, so the
@@ -455,22 +424,11 @@ function showPortal() {
   if (typeof startUploadWatch === 'function') startUploadWatch();
 }
 
-function logout() {
-  sessionStorage.removeItem('tr_auth');
-
-  const loginSection  = document.getElementById('loginSection');
-  const portalSection = document.getElementById('portalSection');
-  const logoutBtn     = document.getElementById('logoutBtn');
-
-  if (portalSection) portalSection.style.display = 'none';
-  if (loginSection) loginSection.style.display = 'block';
-  if (logoutBtn) logoutBtn.style.display = 'none';
-  document.body.classList.remove('up-in');
-
-  const pw = document.getElementById('pwInput');
-  if (pw) pw.value = '';
-
+// Signs out of Google for the whole site (dashboard too) and lands on its sign-in.
+async function logout() {
   if (typeof stopUploadWatch === 'function') stopUploadWatch();
+  try { await TRSAuth.client().auth.signOut(); } catch (e) {}
+  location.replace('../');
 }
 
 // ── FILE SLOTS ──
