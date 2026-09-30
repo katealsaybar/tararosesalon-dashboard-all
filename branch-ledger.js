@@ -40,7 +40,7 @@
 // ── FORMATTERS ───────────────────────────────────────────────
 // Whole units. fmtAED's two decimals are right for a single headline figure and
 // wrong for a column of forty: the decimals are noise you have to read past.
-const lgAed = n => 'AED ' + Math.round(Number(n) || 0).toLocaleString('en-GB');
+const lgAed = n => CUR() + ' ' + Math.round(Number(n) || 0).toLocaleString('en-GB');
 const lgNum = n => Math.round(Number(n) || 0).toLocaleString('en-GB');
 const lgPct = (n, dp) => (n == null || !isFinite(n)) ? '—' : (+n).toFixed(dp == null ? 0 : dp) + '%';
 const lgDash = v => (v == null || v === '' || (typeof v === 'number' && !isFinite(v))) ? '—' : v;
@@ -1481,7 +1481,7 @@ function bpDrawCharts(codes, ctx) {
     options: base({
       scales: {
         x: { stacked: true, ticks: { color: tick, font }, grid: { display: false } },
-        y: { stacked: true, ticks: { color: tick, font, callback: v => 'AED ' + (v / 1000) + 'k' }, grid: { color: grid } },
+        y: { stacked: true, ticks: { color: tick, font, callback: v => CUR() + ' ' + (v / 1000) + 'k' }, grid: { color: grid } },
       },
       plugins: { legend, tooltip: Object.assign({}, tip, { callbacks: {
         label: c => `${c.dataset.label}: ${lgAed(c.parsed.y)}`,
@@ -1903,7 +1903,7 @@ async function renderLedgerActuals() {
   const ctx = lgLedgerContext(series);
 
   // Sheet order, and the group first — the way her tab reads down the page.
-  const SHEET_ORDER = ['SAA', 'KCA', 'AQ', 'MC'].filter(c => ACTIVE_BRANCHES.includes(c));
+  const SHEET_ORDER = ['SAA', 'KCA', 'AQ', 'MC', ...BH_BRANCHES].filter(c => ACTIVE_BRANCHES.includes(c));
   const rail = [['laAll', 'Group total']].concat(
     SHEET_ORDER.map(c => ['la' + c, (BRANCH_INFO[c] || {}).name || c]));
 
@@ -1987,6 +1987,8 @@ async function renderLedgerActuals() {
 // rather than assumed: its VAT Breakdown block prints "@ 5%" on both lines, and
 // 495,571.41 + 1,428.57 = 496,999.98 against 24,848.52 VAT is exactly 5% to the fils.
 const LG_VAT = 0.05;
+// Bahrain's rate is 10% (Tara Rose Salon Bahrain, its own Phorest business).
+const lgVat = () => (typeof isBahrainView === 'function' && isBahrainView()) ? 0.10 : LG_VAT;
 
 // ── THE PARSED REPORT ────────────────────────────────────────
 // financial_totals is Phorest's Financial Totals report itself, one row per branch
@@ -2147,7 +2149,7 @@ function lgFinancials(s) {
   const services = (s.hairServicesIncl || 0) + (s.beautyServicesTotal || 0) - courses;
   const products = s.retailTotal || 0;
   const net      = services + courses + products;
-  return { services, courses, products, net, vat: net * LG_VAT, gross: net * (1 + LG_VAT) };
+  return { services, courses, products, net, vat: net * lgVat(), gross: net * (1 + lgVat()) };
 }
 
 async function renderLedgerFinancials() {
@@ -2159,7 +2161,7 @@ async function renderLedgerFinancials() {
   if (!series) { host.innerHTML = lgEmpty('This page needs a targets file to know which month to read.'); return; }
 
   const w = series.windows;
-  const SHEET_ORDER = ['SAA', 'KCA', 'AQ', 'MC'].filter(c => ACTIVE_BRANCHES.includes(c));
+  const SHEET_ORDER = ['SAA', 'KCA', 'AQ', 'MC', ...BH_BRANCHES].filter(c => ACTIVE_BRANCHES.includes(c));
 
   // The report itself, if it has been uploaded for this month. Null until then, and
   // every section below that reads it is skipped rather than rendered empty.
@@ -2181,7 +2183,7 @@ async function renderLedgerFinancials() {
     { label: 'Courses',       align: 'r' },
     { label: 'Products',      align: 'r' },
     { label: 'Total (Ex VAT)', align: 'r' },
-    { label: 'VAT @ 5%',      align: 'r' },
+    { label: `VAT @ ${Math.round(lgVat() * 100)}%`,      align: 'r' },
     { label: 'Total (Inc VAT)', align: 'r' },
     { label: 'vs ' + escapeHtml(w.prev.label), align: 'r' }];
 
@@ -2470,7 +2472,7 @@ async function renderLedgerFinancials() {
       lgTable(cols, rows) +
       `<div class="foot">Services has courses taken out of it, the way Phorest's report splits them —
         every other page on this dashboard carries courses inside the service figure.
-        VAT is 5% on all three lines, which is what the report's own VAT Breakdown block applies.</div>`) +
+        VAT is ${Math.round(lgVat() * 100)}% on all three lines, which is what the report's own VAT Breakdown block applies.</div>`) +
     splitHtml +
     lgSection('fnCheck', '#C4B5FD', 'Checking against Phorest', 'what will and will not tie out',
       `<div class="fine" style="margin:0">
@@ -2478,7 +2480,7 @@ async function renderLedgerFinancials() {
         put the Sales block's <code>Total</code>, <code>Net (Ex VAT)</code> beside this page's
         Total (Ex VAT) for the same branch. Compare ex VAT, never the gross Total column: the rest of
         the dashboard is ex VAT throughout, and read against the gross the two will look wrong together
-        for no reason other than the 5%.</p>
+        for no reason other than the ${Math.round(lgVat() * 100)}%.</p>
         <p><b>Two reasons it reads under the report</b>, both deliberate, and between them they
         account for the gap exactly. <i>Courses</i>: Phorest counts courses <b>sold</b>, every figure
         here counts courses <b>performed</b>, because Phorest's staff export gives a "Courses (perf)"

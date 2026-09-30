@@ -20,7 +20,12 @@ function isPostTargetCutover() {
   return dateToIso(ref) >= TARGET_CUTOVER_ISO;
 }
 const TARGETS = {
-  hairAvgBill: 650, beautyAvgBill: 200, retailPct: 12, hairUtilPct: 80, beautyUtilPct: 70,
+  // The avg-bill targets are AED amounts. Bahrain has none of its own yet, and a
+  // peg-converted UAE figure would be a guess at Bahrain's pricing, so on the
+  // Bahrain view they are unset and those rows drop out; the % targets hold.
+  get hairAvgBill()   { return (typeof isBahrainView === 'function' && isBahrainView()) ? null : 650; },
+  get beautyAvgBill() { return (typeof isBahrainView === 'function' && isBahrainView()) ? null : 200; },
+  retailPct: 12, hairUtilPct: 80, beautyUtilPct: 70,
   get treatmentPct() { return isPostTargetCutover() ? 30 : 20; },
   get rebookPct()    { return isPostTargetCutover() ? 70 : 45; },
 };
@@ -34,13 +39,22 @@ const BRANCH_INFO = {
   MC:  { name: 'Motor City',   color: '#99F6E4', colorLight: '#0F8A72' },
   AQ:  { name: 'Al Quoz',      color: '#FF9B9B', colorLight: '#A32D2D' },
   FRT: { name: 'Fratelli',     color: '#EEF3C7', colorLight: '#BA7517' },
+  // Tara Rose Salon Bahrain: its own Phorest business, BHD, 10% VAT. country 'BH'
+  // keeps it out of every UAE list below; it is shown only as its own selection.
+  BAH: { name: 'Bahrain',      color: '#FDE68A', colorLight: '#B45309', country: 'BH' },
 };
 
 // Fratelli closed ~May 2026 and will never sync new data again. It stays in
 // BRANCH_INFO so old records (still tagged branch=FRT) resolve a name/color, but every
 // "All Branches" expansion below uses ACTIVE_BRANCHES instead so it stops appearing in
 // dropdowns, the hero branch list, branch charts, and freshness checks. Kate, 2026-08-04.
-const ACTIVE_BRANCHES = Object.keys(BRANCH_INFO).filter(b => b !== 'FRT');
+const UAE_ACTIVE = Object.keys(BRANCH_INFO).filter(b => b !== 'FRT' && BRANCH_INFO[b].country !== 'BH');
+const BH_BRANCHES = Object.keys(BRANCH_INFO).filter(b => BRANCH_INFO[b].country === 'BH');
+// The live branches of whichever country is on screen: the four UAE branches, or
+// Bahrain alone once its chip is picked. Mutated in place by syncCountry() (never
+// reassigned), so every page that expands "all" through it follows the country
+// without its own change. The chip row and the URL read UAE_ACTIVE instead.
+const ACTIVE_BRANCHES = UAE_ACTIVE.slice();
 
 // Tara Rose Salon Bahrain (branch BAH) is a separate Phorest business, trading in
 // BHD with 10% VAT, and its rows land in the same tables as the UAE branches. "All
@@ -48,8 +62,20 @@ const ACTIVE_BRANCHES = Object.keys(BRANCH_INFO).filter(b => b !== 'FRT');
 // they would be added straight into the AED totals with no error. Every loader
 // below therefore keeps the UAE branches only (FRT included, for its old records);
 // Bahrain is read through its own view instead. Kate, 30 Sep 2026.
-const UAE_BRANCHES = Object.keys(BRANCH_INFO);
-const keepUae = rows => (rows || []).filter(r => UAE_BRANCHES.includes(r.branch));
+const UAE_BRANCHES = Object.keys(BRANCH_INFO).filter(b => BRANCH_INFO[b].country !== 'BH');
+// Bahrain view = every selected code is a Bahrain branch. Picking Bahrain replaces
+// the UAE selection rather than joining it, so the two currencies never meet.
+function isBahrainView() {
+  return typeof sel !== 'undefined' && sel.branch.length > 0 && sel.branch.every(b => BH_BRANCHES.includes(b));
+}
+function scopeCodes() { return isBahrainView() ? BH_BRANCHES : UAE_BRANCHES; }
+function syncCountry() {
+  const want = isBahrainView() ? BH_BRANCHES : UAE_ACTIVE;
+  if (ACTIVE_BRANCHES.join() !== want.join()) ACTIVE_BRANCHES.splice(0, ACTIVE_BRANCHES.length, ...want);
+}
+// The currency every money figure is printed in: BHD on the Bahrain view.
+function CUR() { return isBahrainView() ? 'BHD' : 'AED'; }
+const keepUae = rows => { syncCountry(); const codes = scopeCodes(); return (rows || []).filter(r => codes.includes(r.branch)); };
 
 const SCOLS = ['#FFD4D9','#FF9B9B','#C4B5FD','#99F6E4','#EEF3C7','#FFB6C1','#B5EAD7','#FFDAC1'];
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -73,7 +99,9 @@ let pendingSel = { branch: ['all'] }; // buffered branch selection — applied o
 try {
   const u = new URLSearchParams(location.search).get('branch');
   if (u && u !== 'all') {
-    const picked = u.split(',').map(x => x.trim().toUpperCase()).filter(x => ACTIVE_BRANCHES.includes(x));
+    const asked = u.split(',').map(x => x.trim().toUpperCase());
+    let picked = asked.filter(x => UAE_ACTIVE.includes(x));
+    if (!picked.length) picked = asked.filter(x => BH_BRANCHES.includes(x));
     if (picked.length) { sel.branch = picked; pendingSel.branch = [...picked]; }
   }
 } catch (e) { /* no URL to read — All Branches stands */ }
@@ -406,6 +434,7 @@ function paintFilterChips() {
   const pEl = document.getElementById('periodChips');
   if (!bEl || !pEl) return;
 
+  syncCountry();
   const isAll = sel.branch.includes('all');
   // No "no data" greying here. branchesWithNoData() reads allData, which comes from
   // weekly_data — a table that stopped filling at the end of May 2026 — so on any
@@ -415,9 +444,13 @@ function paintFilterChips() {
   // better answer than a chip you cannot press. Kate, 2026-08-14.
   bEl.innerHTML = chipRow([
     { v: 'all', label: 'All Branches', on: isAll },
-    ...ACTIVE_BRANCHES.map(code => ({
+    ...UAE_ACTIVE.map(code => ({
       v: code, label: BRANCH_INFO[code].name,
       on: !isAll && sel.branch.includes(code),
+    })),
+    ...BH_BRANCHES.map(code => ({
+      v: code, label: BRANCH_INFO[code].name,
+      on: sel.branch.includes(code),
     })),
   ]);
 
@@ -571,6 +604,7 @@ document.addEventListener('click', e => {
   if (chip.closest('#branchChips')) {
     const v = chip.dataset.v;
     if (v === 'all') sel.branch = ['all'];
+    else if (BH_BRANCHES.includes(v) || isBahrainView()) sel.branch = [v];   // never mix currencies
     else if (sel.branch.includes('all')) sel.branch = [v];
     else {
       sel.branch = sel.branch.includes(v) ? sel.branch.filter(x => x !== v) : [...sel.branch, v];
@@ -639,7 +673,7 @@ const statusBanner = (status, isDark) => {
   if (status === 'warn') return `<div style="margin-top:6px;padding:3px 7px;background:${bg};border:1px solid ${br};border-radius:6px;font-size:11px;color:${col};letter-spacing:0.06em;text-transform:uppercase;font-weight:700">↑ Near Target — Keep Pushing</div>`;
   return '';
 };
-const fmtAED = n  => 'AED ' + (n || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtAED = n  => CUR() + ' ' + (n || 0).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
 const fmtPct = n  => (+(n || 0)).toFixed(2) + '%';
 const initials = name => name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 // Spreadsheet cells (staff/client names, service labels) land in innerHTML template strings
@@ -763,7 +797,7 @@ function toggleOpt(key, val) {
   if (val === 'all') {
     pendingSel[key] = ['all'];
   } else if (pendingSel[key].includes('all')) {
-    pendingSel[key] = ACTIVE_BRANCHES.filter(b => b !== val);
+    pendingSel[key] = UAE_ACTIVE.filter(b => b !== val);
     if (!pendingSel[key].length) pendingSel[key] = ['all'];
   } else {
     if (pendingSel[key].includes(val)) pendingSel[key] = pendingSel[key].filter(x => x !== val);
@@ -795,7 +829,7 @@ function saveBranchSelection() {
 function rebuildDependentDrops() {
   // Sync pendingSel to match committed sel before rebuilding
   pendingSel.branch = [...sel.branch];
-  buildDrop('branch', ACTIVE_BRANCHES.map(k => ({ val: k, label: BRANCH_INFO[k].name })));
+  buildDrop('branch', UAE_ACTIVE.map(k => ({ val: k, label: BRANCH_INFO[k].name })));
   paintFilterChips();
 }
 
@@ -1540,6 +1574,8 @@ function computeStatusStatement(s, branchLabel, periodPhrase, treatmentPct, reta
 // a KPI-count rollup. Reuses sc() so the good/warn/bad read matches the rest
 // of the dashboard. Per Kate's spec, 2026-08-03.
 function glanceClause(value, target, unit, goodPhrase, warnPhrase, badPhrase) {
+  if (value == null) return 'not in the ledger for this period';
+  if (target == null) return `at <strong>${unit === 'AED' ? fmtAED(value||0) : fmtPct(value||0)}</strong>, no target set for this branch yet`;
   const status = sc(value||0, target);
   const valColor = status === 'good' ? 'var(--good)' : 'var(--bad)';
   const val = `<strong style="color:${valColor}">${unit === 'AED' ? fmtAED(value||0) : fmtPct(value||0)}</strong>`;
@@ -1795,6 +1831,13 @@ function mergeStaffMaps(ledgerMap, phorestMap) {
 // are Phorest visits, new clients Phorest's own count; request/salon/rebooked and
 // treatment AED have no Phorest source and stay 0. The house account and the
 // assistants are left out, as the ledger path leaves them out.
+// Bahrain has no ledger yet, so nothing says which side a name sits on, and the
+// UAE's name-only history would hand a Bahrain name to a UAE namesake. Read off
+// what each of them actually rang up in Phorest, 9 Aug-29 Sep 2026: Daisy and
+// Kerryn colour and consults, Farwa blow-dries and styling, Charlene and Simi
+// nails, brows and massage. Checked before any UAE source, for BAH rows only.
+const BH_STAFF_DEPT = { DAISY: 'hair', KERRYN: 'hair', FARWA: 'hair', CHARLENE: 'beauty', SIMI: 'beauty' };
+
 function buildPhorestOnlyStaffMaps(phorestRows, ledgerDept) {
   const branchTotals = { services: 0, courses: 0, products: 0, days: 0 };
   const deptMap = (typeof buildStaffDeptMap === 'function') ? buildStaffDeptMap() : {};
@@ -1820,7 +1863,9 @@ function buildPhorestOnlyStaffMaps(phorestRows, ledgerDept) {
     // profile's role, so a beauty therapist does not default into Hair.
     const prof = (typeof STAFF_PROFILES !== 'undefined') ? STAFF_PROFILES[staffMapKey(name)] : null;
     const dk = staffMapKey(name);
-    const isBeauty = deptMap[dk] ? deptMap[dk] === 'beauty'
+    const bhDept = (BRANCH_INFO[r.branch] && BRANCH_INFO[r.branch].country === 'BH') ? BH_STAFF_DEPT[dk] : null;
+    const isBeauty = bhDept ? bhDept === 'beauty'
+      : deptMap[dk] ? deptMap[dk] === 'beauty'
       : (ledgerDept && ledgerDept[dk]) ? ledgerDept[dk] === 'beauty'
       : !!(prof && /Beauty|Nail|Therapist/i.test(prof.role || ''));
     const map = isBeauty ? beautyMap : hairMap;
@@ -2757,7 +2802,9 @@ function aggByBranch() {
       const dR = dailyRows.filter(r => r.branch === code);
       const bR = branchStaffRows.filter(r => r.branch === code);
       const pR = phorestStaffRows.filter(r => r.branch === code);
-      result[code] = (bR.length || dR.length) ? aggDailyData(dR, bR, pR) : null;
+      // Phorest alone is enough (Bahrain has no ledger yet; nor does most of 2025), the
+      // same rule aggDailyData() already applies to the page summary.
+      result[code] = (bR.length || dR.length || pR.length) ? aggDailyData(dR, bR, pR) : null;
     } else {
       // Weekly mode: filter allData by branch + date range
       const rows = allData.filter(d => {
@@ -2986,10 +3033,10 @@ function buildCmpChart(byBranch, metric, dark, ttStyle, gc, tc, catFilter, canva
   const avg    = nonZeroVals.length ? nonZeroVals.reduce((a,b) => a+b, 0) / nonZeroVals.length : 0;
   const catLabel = catFilter === 'hair' ? 'Hair' : catFilter === 'beauty' ? 'Beauty' : 'Hair & Beauty';
   const metricLabels = {
-    netTake:       'Revenue (AED)',
+    netTake:       `Revenue (${CUR()})`,
     totalClients:  'Total Clients',
     totalRebooked: 'Rebooked Clients',
-    avgBill:       `${catLabel} Avg Bill (AED)`,
+    avgBill:       `${catLabel} Avg Bill (${CUR()})`,
     rebookPct:     `${catLabel} Rebooking %`,
     ncrPct:        `${catLabel} NCR %`,
     treatmentPct:  'Treatment %',
@@ -3090,7 +3137,7 @@ function buildTrendChart(dark, ttStyle, gc, tc) {
     data: {
       labels,
       datasets: [
-        { type:'line', label:'Net Revenue (AED)', data: revenue, borderColor:'#99F6E4', backgroundColor:'rgba(153,246,228,0.12)', borderWidth:2, pointRadius:3, pointBackgroundColor:'#99F6E4', tension:0.3, fill:true, yAxisID:'yRev' },
+        { type:'line', label:`Net Revenue (${CUR()})`, data: revenue, borderColor:'#99F6E4', backgroundColor:'rgba(153,246,228,0.12)', borderWidth:2, pointRadius:3, pointBackgroundColor:'#99F6E4', tension:0.3, fill:true, yAxisID:'yRev' },
         { type:'line', label:'Total Clients', data: clients, borderColor:'#C4B5FD', backgroundColor:'transparent', borderWidth:2, pointRadius:3, pointBackgroundColor:'#C4B5FD', tension:0.3, borderDash:[5,3], yAxisID:'yClients' },
       ],
     },
@@ -3152,6 +3199,7 @@ function restoreSections() {
 // entry so it can retry.
 const RANGE_CACHE = new Map();
 function cachedRange(key, loader) {
+  key = (isBahrainView() ? 'BH|' : '') + key;   // UAE and Bahrain never share a cached window
   if (!RANGE_CACHE.has(key)) {
     RANGE_CACHE.set(key, loader().catch(err => { RANGE_CACHE.delete(key); throw err; }));
   }
@@ -3351,7 +3399,8 @@ async function renderDashboard() {
 
   // Revenue Run tab pre-computed values
   const rvHairSvc    = s.netTake - (s.beautySales||0) - (s.hairRetail||0);
-  const rvHairTxPct  = rvHairSvc ? ((s.treatmentSales||0) / rvHairSvc * 100) : 0;
+  // Treatment is a ledger column: unknown (not 0%) on a Phorest-only window, as rvHBTxPct below.
+  const rvHairTxPct  = s._phorestOnly ? null : rvHairSvc ? ((s.treatmentSales||0) / rvHairSvc * 100) : 0;
   const rvHairRetPct = rvHairSvc ? ((s.hairRetail||0) / rvHairSvc * 100) : 0;
   const rvBSvc       = s.beautySales||0;
   // Beauty: no per-dept treatment or retail split in uploaded data — rendered as static "—"
@@ -3369,7 +3418,7 @@ async function renderDashboard() {
      been kept wherever they explain a decision — each of them was a bug first.
      Kate, 2026-08-14. */
 
-  const aed0 = n => 'AED ' + Math.round(n || 0).toLocaleString('en-GB');
+  const aed0 = n => CUR() + ' ' + Math.round(n || 0).toLocaleString('en-GB');
   const num0 = n => Math.round(n || 0).toLocaleString('en-GB');
   const pct2 = n => (+(n || 0)).toFixed(2) + '%';
   const shareOf = (a, b) => b ? Math.round((a || 0) / b * 100) : 0;
@@ -3429,13 +3478,13 @@ async function renderDashboard() {
       beautyNote:'not tracked' },
     { name:'Retail %',        sub:`target ≥ ${TARGETS.retailPct}%`,
       hair:hairRetailPctDept, beauty:beautyRetailPctDept, combined:rvHBRetPct, target:TARGETS.retailPct, fmt:pct2 },
-    { name:'Beauty Avg Bill', sub:`target AED ${TARGETS.beautyAvgBill}`,
+    { name:'Beauty Avg Bill', sub:`target ${CUR()} ${TARGETS.beautyAvgBill}`,
       hair:null, beauty:s.beautyAvgBill, combined:s.beautyAvgBill, target:TARGETS.beautyAvgBill, fmt:aed0,
       hairNote:'counted under Hair Avg Bill' },
     { name:'Utilisation %',   sub:`hair ≥ ${TARGETS.hairUtilPct} · beauty ≥ ${TARGETS.beautyUtilPct}`,
       hair:s.hairUtilPct, beauty:s.beautyUtilPct, combined:s.utilPct,
       target:TARGETS.hairUtilPct, beautyTarget:TARGETS.beautyUtilPct, fmt:pct2 },
-    { name:'Hair Avg Bill',   sub:`target AED ${TARGETS.hairAvgBill}`,
+    { name:'Hair Avg Bill',   sub:`target ${CUR()} ${TARGETS.hairAvgBill}`,
       hair:s.hairAvgBill, beauty:null, combined:s.hairAvgBill, target:TARGETS.hairAvgBill, fmt:aed0,
       beautyNote:'counted under Beauty Avg Bill' },
   ]
@@ -3450,7 +3499,7 @@ async function renderDashboard() {
     beautyNote: r.name === 'Treatment %' ? r.beautyNote : noBeautyNote,
     combined: r.name === 'Beauty Avg Bill' ? null : r.combined,
   }))
-  .filter(r => Number.isFinite(r.combined))
+  .filter(r => Number.isFinite(r.combined) && r.target != null)   // no target (Bahrain avg bills): not scored
   .map(r => ({ ...r, att: r.target ? r.combined / r.target : 0 }));
 
   const hitRows = benchRows.filter(r => r.att >= 1).sort((a, b) => b.att - a.att);
@@ -3628,7 +3677,7 @@ async function renderDashboard() {
       <div class="r-row"><span class="r-label">Avg bill</span><span class="r-val tabular">${num0(s.avgBill)}</span></div>
       ${targetsBlock}
       <div class="r-rule"></div>
-      <div class="r-foot">All money in AED · takings before staff cost</div>`;
+      <div class="r-foot">All money in ${CUR()} · takings before staff cost</div>`;
   }
 
   // ── HEADLINE THREE ───────────────────────────────────────────────
@@ -3656,10 +3705,11 @@ async function renderDashboard() {
   const blendedAvgTarget = s.totalClients
     ? ((TARGETS.hairAvgBill * (s.hairTotalClients || 0)) + (TARGETS.beautyAvgBill * (s.beautyTotalClients || 0))) / s.totalClients
     : TARGETS.hairAvgBill;
-  const avgBillStatus = band(s.avgBill, blendedAvgTarget);
+  const avgBillStatus = TARGETS.hairAvgBill == null ? '' : band(s.avgBill, blendedAvgTarget);
   const hairAvgOk   = (s.hairAvgBill || 0) >= TARGETS.hairAvgBill;
   const beautyAvgOk = s.beautyAvgBill != null && s.beautyAvgBill >= TARGETS.beautyAvgBill;
-  const avgBillVerdict = avgBillStatus === 'good' ? 'On target'
+  const avgBillVerdict = TARGETS.hairAvgBill == null ? 'No target yet'
+    : avgBillStatus === 'good' ? 'On target'
     : (hairAvgOk && s.beautyAvgBill != null && !beautyAvgOk) ? 'Beauty is dragging it'
     : avgBillStatus === 'warn' ? 'Nearly' : 'Below target';
 
@@ -3695,18 +3745,19 @@ async function renderDashboard() {
       ]) },
     { k:'Avg bill', def:'Net take divided by clients: what one visit is worth.',
       v: aed0(s.avgBill), status: avgBillStatus,
-      t: `Hair target ${TARGETS.hairAvgBill} · Beauty target ${TARGETS.beautyAvgBill}`, verdict: avgBillVerdict,
+      t: TARGETS.hairAvgBill == null ? 'No avg-bill target set for this branch yet'
+        : `Hair target ${TARGETS.hairAvgBill} · Beauty target ${TARGETS.beautyAvgBill}`, verdict: avgBillVerdict,
       splits: splitsOf([
-        { k:'Hair', val:s.hairAvgBill, of:Math.max(s.hairAvgBill || 0, s.beautyAvgBill || 0, TARGETS.hairAvgBill),
+        { k:'Hair', val:s.hairAvgBill, of:Math.max(s.hairAvgBill || 0, s.beautyAvgBill || 0, TARGETS.hairAvgBill || 0),
           txt:aed0(s.hairAvgBill),
-          extra:`${(s.hairAvgBill || 0) >= TARGETS.hairAvgBill ? '+' : '−'}${Math.abs(Math.round(((s.hairAvgBill || 0) / TARGETS.hairAvgBill - 1) * 100))}%`,
-          cls: hairAvgOk ? 'good' : 'bad', color:'var(--hair)' },
+          extra: TARGETS.hairAvgBill == null ? '' : `${(s.hairAvgBill || 0) >= TARGETS.hairAvgBill ? '+' : '−'}${Math.abs(Math.round(((s.hairAvgBill || 0) / TARGETS.hairAvgBill - 1) * 100))}%`,
+          cls: TARGETS.hairAvgBill == null ? '' : hairAvgOk ? 'good' : 'bad', color:'var(--hair)' },
         s.beautyAvgBill == null
           ? { k:'Beauty', val:0, of:1, txt:'—', extra:'no data', color:'var(--beauty)' }
-          : { k:'Beauty', val:s.beautyAvgBill, of:Math.max(s.hairAvgBill || 0, s.beautyAvgBill || 0, TARGETS.hairAvgBill),
+          : { k:'Beauty', val:s.beautyAvgBill, of:Math.max(s.hairAvgBill || 0, s.beautyAvgBill || 0, TARGETS.hairAvgBill || 0),
               txt:aed0(s.beautyAvgBill),
-              extra:`${beautyAvgOk ? '+' : '−'}${Math.abs(Math.round((s.beautyAvgBill / TARGETS.beautyAvgBill - 1) * 100))}%`,
-              cls: beautyAvgOk ? 'good' : 'bad', color:'var(--beauty)' },
+              extra: TARGETS.beautyAvgBill == null ? '' : `${beautyAvgOk ? '+' : '−'}${Math.abs(Math.round((s.beautyAvgBill / TARGETS.beautyAvgBill - 1) * 100))}%`,
+              cls: TARGETS.beautyAvgBill == null ? '' : beautyAvgOk ? 'good' : 'bad', color:'var(--beauty)' },
       ]) },
   ];
 
@@ -4134,7 +4185,7 @@ function isKnownClosedDay(branch, dateStr) {
 }
 
 async function getLatestCompleteDate(table) {
-  const expectedBranches = ACTIVE_BRANCHES.length;
+  const expectedBranches = UAE_ACTIVE.length;
   const activityCol = FRESHNESS_ACTIVITY_COLUMN[table];
   const since = new Date();
   since.setDate(since.getDate() - 21);
@@ -4164,7 +4215,7 @@ async function getLatestCompleteDate(table) {
   let completeDate = null;
   for (const d of datesDesc) {
     const realSet = byDateReal.get(d) || new Set();
-    const satisfied = ACTIVE_BRANCHES.filter(b => realSet.has(b) || isKnownClosedDay(b, d)).length;
+    const satisfied = UAE_ACTIVE.filter(b => realSet.has(b) || isKnownClosedDay(b, d)).length;
     if (satisfied >= expectedBranches) { completeDate = d; break; }
   }
   // Kate, 17 Sep 2026: "which branch/date is missing" is the question the badge
@@ -4176,12 +4227,12 @@ async function getLatestCompleteDate(table) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const gaps = datesDesc
     .filter(d => d <= todayStr && (completeDate === null || d > completeDate))
-    .map(d => ({ date: d, missing: ACTIVE_BRANCHES.filter(b => !(byDateReal.get(d) || new Set()).has(b) && !isKnownClosedDay(b, d)) }))
+    .map(d => ({ date: d, missing: UAE_ACTIVE.filter(b => !(byDateReal.get(d) || new Set()).has(b) && !isKnownClosedDay(b, d)) }))
     .filter(g => g.missing.length > 0)
     .sort((a, b) => a.date.localeCompare(b.date));
   if (completeDate) return { date: completeDate, complete: true, missing: [], gaps };
   const newest = datesDesc[0];
-  const missing = ACTIVE_BRANCHES.filter(b => !byDateAny.get(newest).has(b));
+  const missing = UAE_ACTIVE.filter(b => !byDateAny.get(newest).has(b));
   return { date: newest, complete: false, missing, gaps };
 }
 

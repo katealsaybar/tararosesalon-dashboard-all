@@ -35,7 +35,7 @@
 // ── FORMATTERS ───────────────────────────────────────────────
 // Whole units. The two decimals in dashboard.js's fmtAED are right for one
 // headline figure and wrong for a wall of cards.
-const tpAed  = n => 'AED ' + Math.round(Number(n) || 0).toLocaleString('en-GB');
+const tpAed  = n => CUR() + ' ' + Math.round(Number(n) || 0).toLocaleString('en-GB');
 const tpNum  = n => Math.round(Number(n) || 0).toLocaleString('en-GB');
 const tpPct  = n => (Math.round((Number(n) || 0) * 10) / 10) + '%';
 
@@ -226,6 +226,7 @@ function tpAvatar(name, cls) {
 // below that is bad. The tick on the track sits at 100% of target, so someone
 // running at 130% visibly overshoots it instead of just filling the bar.
 function tpBand(val, target) {
+  if (target == null) return '';   // no target for this branch (Bahrain's avg bills): not scored
   const r = target ? (Number(val) || 0) / target : 0;
   return r >= 1 ? 'good' : r >= 0.8 ? 'warn' : 'bad';
 }
@@ -234,8 +235,11 @@ function tpBand(val, target) {
 // that one drops out rather than being scored against a number that does not
 // apply to the bench.
 function tpTargets(st) {
-  const out = [{ l: 'Rebook', v: st.rebookPct, t: TARGETS.rebookPct, f: tpPct }];
-  if (!st.isBeauty) out.push({ l: 'Treat', v: st.treatmentPct, t: TARGETS.treatmentPct, f: tpPct });
+  // Rebooking and treatment come off the ledger, which Bahrain does not have yet:
+  // leave them off rather than draw an empty ring that reads as 0%.
+  const ledger = !(typeof isBahrainView === 'function' && isBahrainView());
+  const out = ledger ? [{ l: 'Rebook', v: st.rebookPct, t: TARGETS.rebookPct, f: tpPct }] : [];
+  if (!st.isBeauty && ledger) out.push({ l: 'Treat', v: st.treatmentPct, t: TARGETS.treatmentPct, f: tpPct });
   out.push({ l: 'Retail', v: st.retailPct, t: TARGETS.retailPct, f: tpPct });
   out.push({ l: 'Avg bill', v: st.avgBill, t: st.isBeauty ? TARGETS.beautyAvgBill : TARGETS.hairAvgBill, f: tpNum });
   return out;
@@ -246,7 +250,7 @@ function tpRings(st) {
   const r = 20, c = 2 * Math.PI * r;
   return tpTargets(st).map(m => {
     const v = Number(m.v) || 0, frac = m.t ? Math.min(1, v / m.t) : 0;
-    return `<div class="tp-ring" title="${m.l}: ${m.f(v)} against ${m.f(m.t)}">
+    return `<div class="tp-ring" title="${m.l}: ${m.f(v)}${m.t == null ? ', no target set' : ` against ${m.f(m.t)}`}">
       <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
         <circle cx="24" cy="24" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="5"/>
         <circle class="${tpBand(v, m.t)}" cx="24" cy="24" r="${r}" fill="none" stroke-width="5" stroke-linecap="round"
@@ -256,7 +260,7 @@ function tpRings(st) {
 }
 // Ranks 4-10: the same four targets as small tinted tiles.
 function tpTiles(st) {
-  return tpTargets(st).map(m => `<div class="tp-tile ${tpBand(m.v, m.t)}" title="target ${m.f(m.t)}">
+  return tpTargets(st).map(m => `<div class="tp-tile ${tpBand(m.v, m.t)}" title="${m.t == null ? 'no target set' : `target ${m.f(m.t)}`}">
     <span>${m.l}</span><b class="tabular">${m.f(m.v)}</b></div>`).join('');
 }
 
@@ -410,7 +414,7 @@ function tpPodiumCard(st, i) {
     <div class="tp-role">${escapeHtml(tpRole(st))}</div>
     <div class="tp-branch">${tpBranchTag(st)}</div>
     <div class="tp-pod-v tabular">${tpAed(st.net)}</div>
-    <div class="tp-pod-s tabular">${tpNum(st.total)} clients · ${tpNum(st.rebooked)} rebooked</div>
+    <div class="tp-pod-s tabular">${tpNum(st.total)} clients${(typeof isBahrainView === 'function' && isBahrainView()) ? '' : ` · ${tpNum(st.rebooked)} rebooked`}</div>
     <div class="tp-rings">${tpRings(st)}</div>
   </div>`;
 }
@@ -444,7 +448,8 @@ function tpRaceRow(st, rank, lead) {
       <div class="tp-row-s">${tpRoleBranch(st)}</div>
     </div>
     ${tpBar(st, lead)}
-    <div class="tp-rb tabular ${tpBand(st.rebookPct, TARGETS.rebookPct)}"><b>${tpPct(st.rebookPct)}</b>rebook</div>
+    ${(typeof isBahrainView === 'function' && isBahrainView()) ? '<div class="tp-rb tabular"><b>—</b>rebook</div>'
+      : `<div class="tp-rb tabular ${tpBand(st.rebookPct, TARGETS.rebookPct)}"><b>${tpPct(st.rebookPct)}</b>rebook</div>`}
     ${tpAddBtn(st)}
   </div>`;
 }
