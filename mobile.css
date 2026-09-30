@@ -99,6 +99,10 @@
   .fsheet .chip{min-height:44px;padding:0 16px;border:1px solid var(--border);border-radius:999px;
     background:var(--surface);color:var(--text);font-size:14px}
   .fsheet .chip[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+  /* The UAE | All switch takes its own full-width row, two equal halves, above the branch pills. */
+  .fsheet .seg{display:flex;flex:1 0 100%;padding:3px;gap:3px;background:var(--surface)}
+  .fsheet .seg .seg-b{flex:1;min-height:42px;border:0;border-radius:999px;background:none;color:var(--muted2);font-size:15px}
+  .fsheet .seg .seg-b[aria-pressed="true"]{background:var(--text);color:var(--bg)}
   .fsheet .f-dates{margin-left:0;gap:8px;align-items:center}
   .fsheet .f-dates input,.fsheet .f-dates select,.fsheet .f-dates .lg-month-sel{font-size:16px;min-height:44px}
   .fsheet .f-dates button{min-height:44px;font-size:14px!important}

@@ -179,7 +179,7 @@
         });
       });
       items.push({
-        kind: 'branch', id: 'branch:all', t: 'All Branches', s: 'Clear the branch filter',
+        kind: 'branch', id: 'branch:all', t: 'UAE Branches', s: 'Clear the branch filter',
         words: 'all every branches reset', go: () => setBranch(['all']),
       });
     }

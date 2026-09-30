@@ -87,7 +87,7 @@
     if (!out || typeof sel === 'undefined') return;
     const all = sel.branch.includes('all');
     const info = typeof BRANCH_INFO !== 'undefined' ? BRANCH_INFO : {};
-    const br = all ? 'All' : sel.branch.length === 1
+    const br = all ? ((typeof isGroupView === 'function' && isGroupView()) ? 'All' : 'UAE') : sel.branch.length === 1
       ? ((info[sel.branch[0]] && info[sel.branch[0]].name) || sel.branch[0])
       : `${sel.branch.length} branches`;
     const f = typeof dateFrom !== 'undefined' ? dateFrom : null;

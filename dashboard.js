@@ -128,7 +128,7 @@ function syncCountry() {
 }
 // The currency every money figure is printed in: BHD on the Bahrain view.
 // What "all" is called on screen: the Group names both countries.
-function allLabel() { return isGroupView() ? 'Group · UAE + Bahrain' : 'All Branches'; }
+function allLabel() { return isGroupView() ? 'All · UAE + Bahrain' : 'UAE Branches'; }
 function CUR() { return isBahrainView() ? 'BHD' : isGroupView() ? GROUP_CUR : 'AED'; }
 const keepUae = rows => { syncCountry(); const codes = scopeCodes(); return toGroupCurrency((rows || []).filter(r => codes.includes(r.branch))); };
 
@@ -504,8 +504,15 @@ function paintFilterChips() {
   else {
     const group = isGroupView();
     const canGroup = typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW);
-    bEl.innerHTML = chipRow([
-      { v: 'all', label: 'All Branches', on: isAll && !group },
+    // "UAE Branches | All" is one two-way switch at the front of the row, so the
+    // country scope reads apart from the single-branch chips. "All" is the Group,
+    // UAE + Bahrain, and only appears on the pages that can show both. Kate, 30 Sep 2026.
+    const segBtn = (v, label, on) =>
+      `<button type="button" class="chip seg-b" aria-pressed="${on}" data-v="${v}">${label}</button>`;
+    const scopeSw = canGroup
+      ? `<span class="seg" role="group" aria-label="UAE or all countries">${segBtn('all', 'UAE Branches', isAll && !group)}${segBtn('group', 'All', group)}</span>`
+      : segBtn('all', 'UAE Branches', isAll && !group);
+    bEl.innerHTML = scopeSw + '<span class="sep">·</span>' + chipRow([
       ...UAE_ACTIVE.map(code => ({
         v: code, label: BRANCH_INFO[code].name,
         on: !isAll && sel.branch.includes(code),
@@ -514,8 +521,6 @@ function paintFilterChips() {
         v: code, label: BRANCH_INFO[code].name,
         on: sel.branch.includes(code),
       })),
-      // UAE + Bahrain, on the pages that can show both; the currency picker follows it.
-      ...(canGroup ? [{ v: 'group', label: 'Group', on: group }] : []),
     ]);
   }
 
@@ -551,7 +556,7 @@ function paintFilterChips() {
   // The masthead's meta rule says what you are reading, so it has to be repainted
   // with the chips and not only on a successful data load — otherwise a branch
   // with no rows leaves the rule describing the previous selection.
-  const branchLabel = isGroupView() ? 'Group · UAE + Bahrain' : isAll ? 'All Branches'
+  const branchLabel = isAll ? allLabel()
     : sel.branch.map(b => BRANCH_INFO[b]?.name || b).join(' · ');
   const mb = document.getElementById('mastBranch');
   const mr = document.getElementById('mastRange');
