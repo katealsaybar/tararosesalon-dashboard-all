@@ -3,8 +3,10 @@
  * their payslip PDF, their win and top tip for next month, and a link to their
  * own page (trk-salon-os.com/performance). Built 25 Sep 2026, rewritten 30 Sep 2026.
  *
- * Runs in kate@tararosesalon.com's Apps Script (Workspace: 1,500 recipients a day).
- * Staff see it from "Tara Rose Salons Accounts", and their replies go to Accounts.
+ * Runs as payroll@tararosesalon.com (Workspace: 1,500 recipients a day), the shared
+ * Accounts inbox: the triggers belong to whoever ran setupPerformanceTrigger, and
+ * drafts and sends happen in that person's Gmail, so payroll@ must be the one to run
+ * it. Staff see "Tara Rose Salons Accounts"; replies go to payroll@ and HR.
  *
  * THE MONTH (Kate + Jumera, 30 Sep 2026)
  *   Friday       Accounts upload the payslip PDFs: Upload Portal → Payslips tab.
@@ -35,7 +37,7 @@
 // ── SETTINGS ─────────────────────────────────────────────────────────────
 const ADMIN_TOKEN = '';               // Kate's perf_admins token (or Script Property PERF_ADMIN_TOKEN)
 const PERF_FROM_NAME = 'Tara Rose Salons Accounts';
-const PERF_REPLY_TO = 'tara.acct1@gmail.com, tara.acct2@gmail.com, adm.tararose@gmail.com, hr.tararose@gmail.com';   // Accounts + HR answer payslip questions; ONE string, commas inside the quotes
+const PERF_REPLY_TO = 'payroll@tararosesalon.com, hr.tararose@gmail.com';   // Accounts + HR answer payslip questions; ONE string, commas inside the quotes
 
 // ── DRY RUN: edit these three lines, Save, pick myDryRun and press Run ───
 const DRY_RUN_MONTH = '2026-09';
