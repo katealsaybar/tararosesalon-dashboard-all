@@ -263,6 +263,10 @@ async function psAddFiles(files) {
       PS_STATE.pending.push({ file: f, match: null, error: 'Couldn’t read this PDF: ' + e.message, status: 'ready' });
       continue;
     }
+    // No page names anyone, but the file name does ("Ibrahim.pdf"): it's that one
+    // person's file, however many pages, so keep it whole (Kate, 30 Sep 2026).
+    const byName = psMatch(f.name);
+    if (pages && byName && !pages.some(r => r.match)) pages = null;
     if (pages) PS_STATE.pending.push(...pages);
     else PS_STATE.pending.push({ file: f, match: psMatch(f.name), error: '', status: 'ready' });
   }
