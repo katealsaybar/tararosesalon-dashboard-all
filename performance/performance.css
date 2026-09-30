@@ -228,3 +228,8 @@ body:not(.embed) .foot{padding-bottom:84px}
 .coach-form{display:flex;gap:8px;align-items:center}
 .coach-form input{flex:1;min-width:0;font:inherit;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 12px}
 .coach-form .btn{margin-top:0}
+/* Tara, 30 Sep 2026: phone view. The intro is for the first read on a desktop; on a
+   phone the win and the numbers come first. Folded titles are tappable divs. */
+@media(max-width:619px){.hero .intro{display:none}}
+.fold-h:focus-visible{outline:2px solid var(--text);outline-offset:4px;border-radius:6px}
+.fold-h .card-head h2,.fold-h > .fold-t > h2{margin:0;font-size:20px}

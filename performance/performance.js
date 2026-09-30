@@ -437,35 +437,50 @@ function scoreLine(n, bm, pace) {
 // on the title so the headline still shows; the month's numbers never fold.
 const FOLD_KEEP = /^(This month so far|Your month|Your team)/;
 const FOLD_SHUT = ['Your Google reviews', 'Your socials'];
+// Tara, 30 Sep 2026: "if I open it on my phone, I don't open it because there's so much".
+// On a phone the page opens on the win, the tip, the six numbers and the payslip; every
+// other card starts closed with a one-line summary, cards titled by a heading as well
+// as by an eyebrow. Desktop is as it was. A phone remembers its own open cards.
+const PHONE = matchMedia('(max-width:619px)').matches;
+const FOLD_KEEP_PHONE = /^(This month so far|Your month|Your team|Payslip|Ask your coach)/;
+const FOLD_KEY = PHONE ? 'perf-fold-phone' : 'perf-fold';
 let FOLD = {};
-try { FOLD = JSON.parse(localStorage.getItem('perf-fold') || '{}') || {}; } catch (e) {}
+try { FOLD = JSON.parse(localStorage.getItem(FOLD_KEY) || '{}') || {}; } catch (e) {}
 function foldCards(summary) {
   app.querySelectorAll('section.card').forEach(card => {
-    // Eyebrow titles only: the chart's own head carries its Week / Day buttons.
-    const head = card.querySelector(':scope > .eyebrow');
-    if (!head || card.classList.contains('hero')) return;
-    const title = head.textContent.trim();
-    if (FOLD_KEEP.test(title)) return;
+    if (card.classList.contains('hero') || card.classList.contains('wintip')) return;
+    // Desktop: eyebrow titles only. Phone: a heading (or the chart's head, which carries
+    // its Daily / Weekly buttons) stands in when there is no eyebrow.
+    const head = card.querySelector(':scope > .eyebrow')
+      || (PHONE && (card.querySelector(':scope > .card-head') || card.querySelector(':scope > h2')));
+    if (!head) return;
+    const title = (head.querySelector('h2') || head).textContent.trim();
+    if ((PHONE ? FOLD_KEEP_PHONE : FOLD_KEEP).test(title)) return;
     const key = title.replace(/ · .*/, '');
     const body = document.createElement('div');
     body.className = 'fold-body';
     while (head.nextSibling) body.appendChild(head.nextSibling);
     card.appendChild(body);
-    const btn = document.createElement('button');
-    btn.type = 'button'; btn.className = 'fold-h';
+    // A div, not a button: the chart's head has buttons of its own inside it.
+    const btn = document.createElement('div');
+    btn.className = 'fold-h'; btn.setAttribute('role', 'button'); btn.tabIndex = 0;
     const sum = summary[key] ? `<span class="fold-sum">${esc(summary[key])}</span>` : '';
     btn.innerHTML = `<span class="fold-t"></span>${sum}<span class="fold-chev" aria-hidden="true">⌄</span>`;
     head.replaceWith(btn);
     btn.querySelector('.fold-t').appendChild(head);
-    const shut = key in FOLD ? FOLD[key] : FOLD_SHUT.includes(key);
+    const shut = key in FOLD ? FOLD[key] : PHONE || FOLD_SHUT.includes(key);
     const paint = s => { card.classList.toggle('folded', s); btn.setAttribute('aria-expanded', String(!s)); };
     paint(shut);
-    btn.onclick = () => {
+    const flip = () => {
       const s = !card.classList.contains('folded');
       paint(s); FOLD[key] = s;
-      try { localStorage.setItem('perf-fold', JSON.stringify(FOLD)); } catch (e) {}
+      try { localStorage.setItem(FOLD_KEY, JSON.stringify(FOLD)); } catch (e) {}
+      // A chart drawn while its card was closed has no size; redraw it once it shows.
+      if (!s && typeof Chart !== 'undefined') card.querySelectorAll('canvas').forEach(cv => { const ch = Chart.getChart(cv); if (ch) { ch.resize(); ch.update('none'); } });
       postHeight();
     };
+    btn.onclick = e => { if (!e.target.closest('button, a')) flip(); };
+    btn.onkeydown = e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === btn) { e.preventDefault(); flip(); } };
   });
 }
 
@@ -628,6 +643,12 @@ async function renderStylist() {
   foldCards({
     'Your Google reviews': `${fmt(n.google_reviews || 0, 'num')} this month`,
     'Your socials': `${fmt((n.social_list || []).length, 'num')} ${(n.social_list || []).length === 1 ? 'post' : 'posts'}`,
+    // Phone-only titles (desktop never folds these).
+    'Your client numbers': `${fmt(n.clients || 0, 'num')} clients`,
+    'Your level': own ? `${own.hit} of ${own.of} at target` : '',
+    [`Ready for ${d.next_level}?`]: next ? `${next.hit} of ${next.of}` : '',
+    'Notes from Tara and Emma': (d.notes || []).length ? `${d.notes.length} ${d.notes.length === 1 ? 'note' : 'notes'}` : 'None yet',
+    'New clients and returning clients': n.conversion_pct != null ? `${fmt(n.conversion_pct, 'pct')} came back` : '',
   });
   if (TOKEN) loadPayslip();
   wireCoach(d);
