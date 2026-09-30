@@ -14,22 +14,18 @@
 <!-- Kate, 30 Sep 2026: our own copy of the GHL page promo.tararosesalon.com/employment-models,
      which went 404. Each "Read the brochure" on a stylist's page opens this in a new window,
      on that brochure: ?b=overview | employed | flex-dubai | flex-abudhabi | chair | relocation.
-     The PDFs are the local copies in brochures/, and the logo is the dashboard's own
-     white + mint lockup, not the GHL media image. -->
+     The PDFs are the local copies in brochures/. No logo above the pills (Kate,
+     30 Sep 2026): every brochure opens on its own Tara Rose lockup already. -->
 <style>
   html, body { margin: 0; min-height: 100%; background: #1C1B18; }
   body { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #fff; }
   .page { min-height: 100vh; box-sizing: border-box; padding: 28px 16px 40px;
     background: radial-gradient(ellipse 65% 55% at 50% 40%, rgba(153,246,228,.16), transparent 70%), #1C1B18; }
-  /* 5.png is a 3000px square with the lockup at 337,1149 to 2658,1812; show just the lockup. */
-  .logo { position: relative; overflow: hidden; width: 200px; max-width: 60vw; aspect-ratio: 2321 / 663; margin: 0 auto 22px; }
-  .logo img { position: absolute; width: 129.254%; height: auto; left: -14.52%; top: -173.3%; }
   .page .br-wrap { background: none; padding: 0; margin: 0; overflow: visible; }
 </style>
 </head>
 <body>
 <div class="page">
-  <div class="logo"><img src="../assets/5.png" alt="Tara Rose Salons"></div>
   <div id="brochures"></div>
 </div>
 <script src="brochures.js?v=20260930b"></script>
