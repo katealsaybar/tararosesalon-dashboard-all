@@ -1,14 +1,14 @@
-// The employment-model brochures as a swipe viewer inside "Your three paths at
-// Tara Rose" (Kate, 30 Sep 2026). A port of the GHL Custom Code block Kate had on
+// The employment-model brochures as a swipe viewer, for employment-models.html,
+// which each "Read the brochure" on a stylist's page opens in a new window (Kate,
+// 30 Sep 2026). A port of the GHL Custom Code block Kate had on
 // promo.tararosesalon.com/employment-models (Downloads/EMPLOYMENT MODELS/
 // employment-brochures-ghl-code.html): pills to switch brochure, pages drawn from
 // the PDF with PDF.js, a mint progress dash, arrows, and Download PDF for the
 // real file. The PDFs are the local copies in performance/brochures/, not GHL
 // media, and the GHL logo is left out (the page has its own brand bar).
 //
-// mountBrochures(root, list, startKey) fills root. Each call is a fresh viewer:
-// renderStylist() rebuilds the page on a month change, so nothing global is kept
-// except PDF.js itself and the rendered pages, cached per PDF.
+// mountBrochures(root, list, startKey, onPick) fills root. onPick(key) runs when
+// someone taps a pill, so the page can keep ?b= in step for a shareable link.
 
 const BR_PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
 let brPdfReady = null;
@@ -55,7 +55,7 @@ function brHideContact(c, ctx, pageH, text) {
   return c;
 }
 
-function mountBrochures(root, list, startKey) {
+function mountBrochures(root, list, startKey, onPick) {
   root.innerHTML = `
     <div class="br-wrap">
       <div class="br-pills"></div>
@@ -79,7 +79,7 @@ function mountBrochures(root, list, startKey) {
   list.forEach(b => {
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'br-pill'; btn.textContent = b.label; btn.dataset.key = b.key;
-    btn.addEventListener('click', () => show(b.key));
+    btn.addEventListener('click', () => { show(b.key); if (onPick) onPick(b.key); });
     pills.appendChild(btn);
   });
 
