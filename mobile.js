@@ -259,6 +259,17 @@
     // jump went nowhere. The card built for the row holds the id while Cards is on.
     const anchored = [];
     const mid = tr => tr.id ? (anchored.push(tr), ` data-mid="${esc(tr.id)}"`) : '';
+    // Kate, 1 Oct 2026 (Comet BP5): a staff table's cards showed the name and nothing
+    // else, so the phone needed a tap per person to see anything. Where the table has
+    // a Net take column (the per-staff tables), the card face carries net take and
+    // rebook %, and a row whose every figure is zero (someone on the roster with
+    // nothing this period) is left out of the cards and counted instead. Table view
+    // still shows every row.
+    const colAt = name => cols.findIndex(x => x.leaf === name);
+    const iNet = colAt('Net take'), iReb = colAt('Rebook %');
+    const staffy = iNet > -1;
+    const nil = v => { const d = String(v || '').replace(/[^0-9.]/g, ''); return !d || Number(d) === 0; };
+    let hiddenN = 0;
     [...tbl.tBodies].forEach(tb => [...tb.rows].forEach(tr => {
       const cells = [...tr.cells];
       if (!cells.length) return;
@@ -266,18 +277,26 @@
         html += `<div class="m-grp"${mid(tr)}>${esc(tr.textContent.trim())}</div>`;
         return;
       }
-      let c = 0, band = null, dl = '';
+      let c = 0, band = null, dl = '', net = null, reb = null, allNil = true;
       cells.forEach((cell, i) => {
         const col = cols[c] || {band: '', leaf: ''};
+        const at = c;
         c += cell.colSpan || 1;
         if (i === 0) return;
         const val = cell.textContent.trim();
+        if (at === iNet) net = val;
+        if (at === iReb) reb = val;
+        if (!nil(val)) allNil = false;
         if (col.band && col.band !== band) { dl += `<dt class="band">${esc(col.band)}</dt>`; band = col.band; }
         dl += `<dt>${esc(col.leaf || '—')}</dt><dd>${esc(val || '—')}</dd>`;
       });
       const tot = tr.classList.contains('lg-tot') ? ' tot' : '';
-      html += `<details class="m-card${tot}"${mid(tr)}><summary>${esc(cells[0].textContent.trim())}</summary><dl>${dl}</dl></details>`;
+      if (staffy && !tot && !tr.id && allNil) { hiddenN++; return; }
+      const lead = staffy && (net || reb)
+        ? `<span class="m-lead">${esc(net || '—')}${reb && iReb > -1 ? ` <small>· ${esc(reb)} rebook</small>` : ''}</span>` : '';
+      html += `<details class="m-card${tot}"${mid(tr)}><summary><span class="m-nm">${esc(cells[0].textContent.trim())}</span>${lead}</summary><dl>${dl}</dl></details>`;
     }));
+    if (hiddenN) html += `<p class="m-hid">${hiddenN} ${hiddenN === 1 ? 'person' : 'people'} with no figures this period left out here. Table shows everyone.</p>`;
     box.innerHTML = html;
     const pairs = anchored.map(tr => [tr, box.querySelector(`[data-mid="${CSS.escape(tr.id)}"]`), tr.id]);
     const holdIds = cardsOn => pairs.forEach(([tr, card, id]) => {

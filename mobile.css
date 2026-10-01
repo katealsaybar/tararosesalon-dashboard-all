@@ -169,6 +169,11 @@
   .m-card summary::after{content:'+';font-weight:400;color:var(--muted);font-size:20px;line-height:1}
   .m-card[open] summary::after{content:'–'}
   .m-card summary .m-lead{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}
+  /* BP5: net take and rebook % on a staff card's face; the name gives way first. */
+  .m-card summary .m-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .m-card summary .m-lead{white-space:nowrap;text-align:right}
+  .m-card summary .m-lead small{font-weight:400;color:var(--muted);font-size:13px}
+  .m-hid{margin:6px 2px 0;font-size:13px;color:var(--muted)}
   .m-card dl{margin:0;padding:0 14px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;
     gap:6px 14px;font-size:14px}
   .m-card dt{color:var(--muted);min-width:0;overflow-wrap:anywhere}
