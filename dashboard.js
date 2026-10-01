@@ -3743,11 +3743,18 @@ async function renderDashboard() {
   .map(r => ({ ...r, att: r.target ? r.combined / r.target : 0,
     // Kate, 1 Oct 2026 (Comet OP4): a row was "on target" off the combined figure
     // while one department sat under its own bar (Utilisation on the hair 80%
-    // with beauty short of its own, say). Not re-scored: the combined figure is
-    // still what is counted. Flagged, so a hit never hides a department's miss.
+    // with beauty short of its own, say). Since the second pass the row counts as
+    // a miss (see `met` below).
     short: [['Hair', r.hair, r.target], ['Beauty', r.beauty, Number.isFinite(r.beautyTarget) ? r.beautyTarget : r.target]]
       .filter(([, v, t]) => Number.isFinite(v) && Number.isFinite(t) && v < t)
-      .map(([d, v, t]) => ({ dept: d, v, t })) }));
+      .map(([d, v, t]) => ({ dept: d, v, t })) }))
+  // Kate, 1 Oct 2026, OP4 second pass: a department under its own bar is a miss,
+  // not a flagged hit. `met` is what "x of y hit" counts; `gap` is how far the row
+  // really is (the shorter department's share of its bar, when that is lower than
+  // the combined figure), and is what Below target and Fix first sort on. `att`
+  // stays the combined figure for the chips that print it.
+  .map(r => ({ ...r, met: r.att >= 1 && !r.short.length,
+    gap: r.short.length ? Math.min(r.att, ...r.short.map(x => x.v / x.t)) : r.att }));
   // Kate, 30 Sep 2026: on Bahrain (and the Group) the strip keeps every benchmark,
   // greyed with the reason, instead of shrinking to the one or two that can be
   // scored: rebooking, NCR and treatment wait on Bahrain's ledger, the avg bills on
@@ -3760,8 +3767,8 @@ async function renderDashboard() {
           : (s._phorestOnly && LEDGER_ONLY.has(r.name)) ? 'no ledger yet' : 'no data' }))
     : [];
 
-  const hitRows = benchRows.filter(r => r.att >= 1).sort((a, b) => b.att - a.att);
-  const lowRows = benchRows.filter(r => r.att <  1).sort((a, b) => a.att - b.att);
+  const hitRows = benchRows.filter(r => r.met).sort((a, b) => b.att - a.att);
+  const lowRows = benchRows.filter(r => !r.met).sort((a, b) => a.gap - b.gap);
   // Treatment and Retail are the standing priority (Kate/Mette, 21 Sep 2026) —
   // whichever of the two is short wins the headline/"fix first" slot even when
   // another benchmark (NCR etc.) is mathematically further below target. The
@@ -3850,8 +3857,8 @@ async function renderDashboard() {
     // so the two can never show a different score.
     const segHtml = withLabels => `
       <div class="ht-k">${hitRows.length} of ${benchRows.length} targets reached${(() => {
-        const n = hitRows.filter(r => r.short && r.short.length).length;
-        return n ? ` · ${n} with a department short` : '';
+        const n = lowRows.filter(r => r.att >= 1).length;
+        return n ? ` · ${n} missed on a department` : '';
       })()}</div>
       <div class="ht-seg">
         ${strip.map(r => {
@@ -3861,7 +3868,7 @@ async function renderDashboard() {
           </span>`;
           const pct = Math.round(r.att * 100);
           const part = r.att >= 1 && r.short && r.short.length;
-          return `<span class="ht-cell${r.att >= 1 ? ' on' : ''}${part ? ' part' : ''}"
+          return `<span class="ht-cell${r.met ? ' on' : ''}${part ? ' part' : ''}"
             title="${escapeHtml(r.name.replace(/\s*%$/, ''))}: ${r.fmt(r.combined)} of ${r.fmt(r.target)} · ${pct}%${part
               ? ' · ' + r.short.map(x => `${x.dept} ${r.fmt(x.v)} of ${r.fmt(x.t)}`).join(', ') : ''}">
             <span class="ht-bar"></span>
@@ -3936,7 +3943,7 @@ async function renderDashboard() {
   const receiptEl = document.getElementById('heroReceipt');
   if (receiptEl) {
     const rTRow = r =>
-      `<div class="r-t ${r.att >= 1 ? 'hit' : 'low'}"><span class="n">${r.name}</span>` +
+      `<div class="r-t ${r.met ? 'hit' : 'low'}"><span class="n">${r.name}</span>` +
       `<span class="v tabular">${Math.round(r.att * 100)}%</span></div>`;
     const targetsBlock = benchRows.length ? `
       <div class="r-rule"></div>
@@ -3946,7 +3953,7 @@ async function renderDashboard() {
         <div class="r-gap"></div>
         <a class="r-more" href="#s-below" onclick="reveal()">
           <span>${lowRows.length} below target</span>
-          <span>worst ${escapeHtml(lowRows[0].name.replace(/\s*%$/, ''))} ${Math.round(lowRows[0].att * 100)}% ↓</span>
+          <span>worst ${escapeHtml(lowRows[0].name.replace(/\s*%$/, ''))} ${Math.round(lowRows[0].gap * 100)}% ↓</span>
         </a>` : ''}` : '';
 
     receiptEl.innerHTML = `
@@ -4001,9 +4008,10 @@ async function renderDashboard() {
   const avgShort = [!hairAvgOk && s.hairAvgBill != null ? 'Hair' : null,
                     hasBeauty && s.beautyAvgBill != null && !beautyAvgOk ? 'Beauty' : null].filter(Boolean);
   const avgBand = TARGETS.hairAvgBill == null ? '' : band(avgBillOf(s), blendedAvgTarget);
-  const avgBillStatus = (avgBand === 'good' && avgShort.length) ? 'warn' : avgBand;
+  // OP4 second pass (Kate, 1 Oct 2026): a department short is a miss, so red.
+  const avgBillStatus = (avgBand === 'good' && avgShort.length) ? 'bad' : avgBand;
   const avgBillVerdict = TARGETS.hairAvgBill == null ? 'No target yet'
-    : avgBand === 'good' ? (avgShort.length ? `On target, ${avgShort.join(' and ')} short` : 'On target')
+    : avgBand === 'good' ? (avgShort.length ? `${avgShort.join(' and ')} below target` : 'On target')
     : (hairAvgOk && s.beautyAvgBill != null && !beautyAvgOk) ? 'Beauty is dragging it'
     : avgBillStatus === 'warn' ? 'Nearly' : 'Below target';
 
@@ -4249,7 +4257,9 @@ async function renderDashboard() {
           ? `${escapeHtml(alsoWorst.name.replace(/\s*%$/, ''))} is the wider gap, but Treatment and Retail are the standing priority.`
           : lowRows.length > 1 ? 'Every other gap is small next to this one.' : 'It is the only gap left.'
       }</h2>
-      <p class="why">Target ${tidyTarget(worst.fmt(worst.target))}. ${worst.fmt(worst.combined)} is ${Math.round(worst.att * 100)}% of the way there${Number.isFinite(worst.hair) && Number.isFinite(worst.beauty) ? `; hair ${worst.fmt(worst.hair)}, beauty ${worst.fmt(worst.beauty)}` : ''}.</p>
+      <p class="why">Target ${tidyTarget(worst.fmt(worst.target))}. ${worst.att >= 1 && worst.short.length
+        ? `${worst.fmt(worst.combined)} clears it combined, but ${worst.short.map(x => `${x.dept.toLowerCase()} is ${worst.fmt(x.v)} against ${worst.fmt(x.t)}`).join(' and ')}`
+        : `${worst.fmt(worst.combined)} is ${Math.round(worst.att * 100)}% of the way there`}${Number.isFinite(worst.hair) && Number.isFinite(worst.beauty) ? `; hair ${worst.fmt(worst.hair)}, beauty ${worst.fmt(worst.beauty)}` : ''}.</p>
       <div class="meta">
         <div>Action<b>Audit how ${escapeHtml(worst.name.replace(/\s*%$/, ''))} is captured and coached at reception</b></div>
         <div>Owner<b>Kate</b></div>
