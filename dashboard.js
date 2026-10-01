@@ -4932,6 +4932,39 @@ function _svcLimit() {
   return parseInt(document.getElementById('svc-rows')?.value, 10) || 10;
 }
 
+// Kate, 1 Oct 2026 (Comet SR1): the rankings said what sold and never whether it
+// was selling more or less, or what one visit of it is worth. Avg per visit is the
+// row's revenue over its visits. The change is against the previous window, the
+// same previousWindow() the Pulse trends use (last month for a month, last year to
+// date for a year to date), read from the same get_top_services feed for the same
+// branches and matched by service name. Only for a dated range: the Top Services
+// report fallback is a whole-period export with nothing to step back from.
+async function _svcPrevMap(branches) {
+  const pw = (dateFrom && dateTo) ? previousWindow(dateFrom, dateTo) : null;
+  if (!pw) return null;
+  const y = pw.from.getFullYear();
+  const to = pw.to.getFullYear() !== y ? `${y}-12-31` : _iso(pw.to);
+  try {
+    const { data, error } = await sb.rpc('get_top_services', {
+      p_year: y, p_branches: branches, p_from: _iso(pw.from), p_to: to, p_limit: 1000 });
+    if (error) return null;
+    const m = {};
+    (data || []).forEach(r => { m[String(r.service_name || '').toLowerCase()] = parseFloat(r.total_revenue || 0); });
+    return { m, label: pw.label, any: (data || []).length > 0 };
+  } catch (e) { return null; }
+}
+// "+12%" / "−8%" / "new", coloured, for one row against the previous window.
+function _svcDelta(prev, r) {
+  if (!prev || !prev.any) return '';
+  const was = prev.m[String(r.service_name || '').toLowerCase()];
+  const now = parseFloat(r.total_revenue || 0);
+  if (!was) return `<span class="svc-d up" title="Not sold in ${escapeHtml(prev.label)}">new</span>`;
+  const p = (now - was) / Math.abs(was) * 100;
+  if (Math.abs(p) < 0.5) return `<span class="svc-d" title="AED ${_fmtAed(was)} in ${escapeHtml(prev.label)}">level</span>`;
+  return `<span class="svc-d ${p > 0 ? 'up' : 'down'}" title="AED ${_fmtAed(was)} in ${escapeHtml(prev.label)}">${p > 0 ? '+' : '−'}${Math.abs(p).toFixed(0)}%</span>`;
+}
+const _svcAvg = r => { const v = Number(r.visit_count) || 0; return v > 0 ? _fmtAed(parseFloat(r.total_revenue || 0) / v) : '—'; };
+
 async function loadAndRenderServices() {
   const content = document.getElementById('svc-content');
   if (!content) return;
@@ -4951,7 +4984,8 @@ async function loadAndRenderServices() {
         const { data: agg } = await sb.rpc('get_top_services_agg', { p_year: year, p_branches: branches, p_limit: limit });
         if (agg && agg.length) { rows = agg; note = _svcAggNote(agg); }
       }
-      _renderSvcCombined(rows, branches, year, pFrom, pTo, note);
+      const prev = note ? null : await _svcPrevMap(branches);
+      _renderSvcCombined(rows, branches, year, pFrom, pTo, note, prev);
       if (spansYears) _svcSpansYearsNote(content, year);
     } else {
       const targetBranches = branches;
@@ -4960,7 +4994,7 @@ async function loadAndRenderServices() {
         const { data } = await sb.rpc('get_top_services', {
           p_year: year, p_branches: [b], p_from: pFrom, p_to: pTo, p_limit: limit
         });
-        if (data && data.length) return { branch: b, rows: data };
+        if (data && data.length) return { branch: b, rows: data, prev: await _svcPrevMap([b]) };
         const { data: agg } = await sb.rpc('get_top_services_agg', { p_year: year, p_branches: [b], p_limit: limit });
         if (agg && agg.length) { note = note || _svcAggNote(agg); return { branch: b, rows: agg }; }
         return { branch: b, rows: [] };
@@ -4980,7 +5014,7 @@ function _fmtAed(n) {
 
 function _rankCls(i) { return i===0?'gold':i===1?'silver':i===2?'bronze':''; }
 
-function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
+function _renderSvcCombined(rows, branches, year, pFrom, pTo, note, prev) {
   const content = document.getElementById('svc-content');
   if (!rows.length) { content.innerHTML = _svcEmpty('data'); return; }
   const totalRev = rows.reduce((s,r) => s + parseFloat(r.total_revenue||0), 0);
@@ -5006,6 +5040,8 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
           <th>Category</th>
           <th style="text-align:right">Revenue (AED)</th>
           <th style="text-align:right">Visits</th>
+          <th style="text-align:right">Avg / visit</th>
+          ${prev && prev.any ? `<th style="text-align:right" title="Revenue against ${escapeHtml(prev.label)}">vs ${escapeHtml(prev.label)}</th>` : ''}
           <th style="text-align:right">% of Top ${rows.length}</th>
         </tr></thead>
         <tbody>
@@ -5018,6 +5054,8 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
               <td><span class="badge" style="background:var(--surface2);color:var(--muted);font-size:12px">${escapeHtml(r.category)||'—'}</span></td>
               <td style="text-align:right;font-family:'Playfair Display',serif;font-size:17px;font-weight:600">${_fmtAed(rev)}</td>
               <td style="text-align:right;color:var(--muted)">${(r.visit_count||0).toLocaleString()}</td>
+              <td style="text-align:right">${_svcAvg(r)}</td>
+              ${prev && prev.any ? `<td style="text-align:right">${_svcDelta(prev, r)}</td>` : ''}
               <td style="text-align:right">
                 <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
                   <div class="bar-track" style="width:56px"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:var(--accent)"></div></div>
@@ -5036,7 +5074,7 @@ function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
   content.innerHTML = `
     <div class="section-label" style="margin-top:16px">Top ${limit} Services Per Branch<span class="sl-sub"><span class="sl-dot"> · </span>${year} · ${note ? escapeHtml(note) : `${_isoD(pFrom)} – ${_isoD(pTo)}`}</span></div>
     <div class="${results.length > 2 ? 'svc-scroll-wrap' : ''}"><div class="svc-grid-${results.length <= 2 ? '2' : '4'}">
-      ${results.map(({ branch, rows }) => {
+      ${results.map(({ branch, rows, prev }) => {
         const info = BRANCH_INFO[branch] || { name: branch, color: '#FFD4D9' };
         const totalRev = rows.reduce((s,r) => s + parseFloat(r.total_revenue||0), 0);
         return `
@@ -5052,6 +5090,7 @@ function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
                 <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
               </div>
             </div>
+            ${prev && prev.any ? `<div class="card-sub" style="margin:-6px 0 8px;font-size:12px">Chg: revenue against ${escapeHtml(prev.label)}</div>` : ''}
             ${!rows.length ? '<div class="top3-empty">No data for period</div>' : `
             <table>
               <thead><tr>
@@ -5059,6 +5098,8 @@ function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
                 <th>Service</th>
                 <th style="text-align:right">AED</th>
                 <th style="text-align:right">Visits</th>
+                <th style="text-align:right" title="Revenue over visits">Avg</th>
+                ${prev && prev.any ? `<th style="text-align:right" title="Revenue against ${escapeHtml(prev.label)}">Chg</th>` : ''}
               </tr></thead>
               <tbody>
                 ${rows.map((r,i) => {
@@ -5069,6 +5110,8 @@ function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
                     <td style="font-size:13px;font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.service_name)}">${escapeHtml(r.service_name)||'—'}</td>
                     <td style="text-align:right;font-family:'Playfair Display',serif;font-size:15px;font-weight:600">${_fmtAed(rev)}</td>
                     <td style="text-align:right;color:var(--muted);font-size:13px">${r.visit_count||0}</td>
+                    <td style="text-align:right;font-size:13px">${_svcAvg(r)}</td>
+                    ${prev && prev.any ? `<td style="text-align:right;font-size:13px">${_svcDelta(prev, r)}</td>` : ''}
                   </tr>`;
                 }).join('')}
               </tbody>
