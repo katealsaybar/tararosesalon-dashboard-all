@@ -36,7 +36,12 @@ const LEDGER_TARGETS = {
     get rebookPct() {
       return (typeof lgMonth !== 'undefined' && lgMonth && lgMonth >= '2026-09') ? 70 : 45;
     },
-    treatmentPct: 20,
+    // Treatment rose 20 -> 30 at the same September 2026 cutover as rebooking
+    // (TARGETS.treatmentPct in dashboard.js); until 1 Oct 2026 this stayed at 20,
+    // so the ledger pages read September treatment against the old target.
+    get treatmentPct() {
+      return (typeof lgMonth !== 'undefined' && lgMonth && lgMonth >= '2026-09') ? 30 : 20;
+    },
     retailPct: 12,
     hairAvgBill: 650,
     beautyAvgBill: 200,

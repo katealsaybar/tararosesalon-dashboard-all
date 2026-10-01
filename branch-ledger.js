@@ -902,6 +902,23 @@ const LG_SHEET_ROWS = [
   { xk: 'beautyAvgBill',      label: 'Beauty Avg Bill',                              bm: 'beautyAvgBill', pick: d => d.beautyAvgBill, ratio: true, money: true, beauty: true },
 ];
 
+// Benchmark targets for Branch Performance. That page reads the period filter, so
+// the rebooking and treatment targets must follow the period (TARGETS, cut over by
+// dateTo) the way Organisation Pulse does. Reading LEDGER_TARGETS.benchmarks here
+// tied them to the Ledgers month picker instead, which showed September at the
+// old 45% rebooking / 20% treatment while Pulse showed 70% / 30%. Kate, 1 Oct 2026.
+// The other three stay on the ledger sheet's values, which are the same numbers.
+function bpBenchmarks() {
+  const base = (typeof LEDGER_TARGETS !== 'undefined') ? LEDGER_TARGETS.benchmarks : TARGETS;
+  return {
+    rebookPct: TARGETS.rebookPct,
+    treatmentPct: TARGETS.treatmentPct,
+    retailPct: base.retailPct,
+    hairAvgBill: base.hairAvgBill,
+    beautyAvgBill: base.beautyAvgBill,
+  };
+}
+
 // One branch section in her shape: metric down the side, the month across.
 //
 // `code` is null for the group total. Motor City runs hair only, so its beauty
@@ -1300,7 +1317,7 @@ async function renderBranchPerformance() {
   // ── BENCHMARKS ─────────────────────────────────────────────
   // Ratios, not totals, so unlike everything above these ARE comparable at any
   // window length and are shown whatever the date filter says.
-  const bm = (typeof LEDGER_TARGETS !== 'undefined') ? LEDGER_TARGETS.benchmarks : TARGETS;
+  const bm = bpBenchmarks();
   const bmRows = [
     ['Rebooking %',        s.rebookPct != null ? s.rebookPct : s.hairRebookPct, bm.rebookPct,   lgPct],
     ['Treatment % (hair)', hairTxPct,          bm.treatmentPct,   lgPct],
@@ -1554,7 +1571,7 @@ function bpDrawCharts(codes, ctx) {
   // One bar per branch per benchmark, with the standing target as a dashed rule
   // across each group. Avg bills are left out: they are AED and would flatten
   // three percentages into nothing on a shared axis.
-  const bm = (typeof LEDGER_TARGETS !== 'undefined') ? LEDGER_TARGETS.benchmarks : TARGETS;
+  const bm = bpBenchmarks();
   const BENCH = [
     ['Rebooking %', bm.rebookPct,    d => (d.rebookPct != null ? d.rebookPct : d.hairRebookPct)],
     ['Treatment %', bm.treatmentPct, d => (d.hairServicesIncl || 0) ? (d.treatmentSales || 0) / d.hairServicesIncl * 100 : 0],

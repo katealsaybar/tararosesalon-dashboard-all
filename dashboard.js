@@ -4045,10 +4045,10 @@ async function renderDashboard() {
       <div class="tag">✦ Fix first</div>
       <h2>${escapeHtml(worst.name.replace(/\s*%$/, ''))} at ${worst.fmt(worst.combined)}. ${
         alsoWorst
-          ? `${escapeHtml(alsoWorst.name.replace(/\s*%$/, ''))} is the wider gap, but this is the priority.`
+          ? `${escapeHtml(alsoWorst.name.replace(/\s*%$/, ''))} is the wider gap, but Treatment and Retail are the standing priority.`
           : lowRows.length > 1 ? 'Every other gap is small next to this one.' : 'It is the only gap left.'
       }</h2>
-      <p class="why">${Math.round(worst.att * 100)}% of a ${tidyTarget(worst.fmt(worst.target))} target${Number.isFinite(worst.hair) && Number.isFinite(worst.beauty) ? ` — hair ${worst.fmt(worst.hair)}, beauty ${worst.fmt(worst.beauty)}` : ''}.</p>
+      <p class="why">Target ${tidyTarget(worst.fmt(worst.target))}. ${worst.fmt(worst.combined)} is ${Math.round(worst.att * 100)}% of the way there${Number.isFinite(worst.hair) && Number.isFinite(worst.beauty) ? `; hair ${worst.fmt(worst.hair)}, beauty ${worst.fmt(worst.beauty)}` : ''}.</p>
       <div class="meta">
         <div>Action<b>Audit how ${escapeHtml(worst.name.replace(/\s*%$/, ''))} is captured and coached at reception</b></div>
         <div>Owner<b>Kate</b></div>
@@ -4745,9 +4745,16 @@ function _svcEmpty(what) {
 // once the year moves past the last transaction upload — fall back to the
 // Top Services report upload (top_services), which is a whole-period aggregate
 // and can't be sliced by date, so the caption says what it actually covers.
+// ISO 'YYYY-MM-DD' from the RPCs, printed the way the rest of the site writes a
+// date ("1 Sep"). Kate, 1 Oct 2026: these two pages showed raw 2026-09-01.
+function _isoD(v) {
+  const [y, m, d] = String(v || '').slice(0, 10).split('-').map(Number);
+  return (y && m && d) ? shortD(new Date(y, m - 1, d)) : (v || '—');
+}
+
 function _svcAggNote(rows) {
   const pf = rows[0]?.period_from, pt = rows[0]?.period_to;
-  return `Top Services report upload${pf && pt ? ` · covers ${pf} – ${pt}` : ''} — this feed is a whole-period export and does not follow the date range`;
+  return `Top Services report upload${pf && pt ? ` · covers ${_isoD(pf)} – ${_isoD(pt)}` : ''} — this feed is a whole-period export and does not follow the date range`;
 }
 
 function _svcLimit() {
@@ -4856,7 +4863,7 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note) {
 function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
   const content = document.getElementById('svc-content');
   content.innerHTML = `
-    <div class="section-label" style="margin-top:16px">Top ${limit} Services Per Branch<span class="sl-sub"><span class="sl-dot"> · </span>${year} · ${note ? escapeHtml(note) : `${pFrom} – ${pTo}`}</span></div>
+    <div class="section-label" style="margin-top:16px">Top ${limit} Services Per Branch<span class="sl-sub"><span class="sl-dot"> · </span>${year} · ${note ? escapeHtml(note) : `${_isoD(pFrom)} – ${_isoD(pTo)}`}</span></div>
     <div class="${results.length > 2 ? 'svc-scroll-wrap' : ''}"><div class="svc-grid-${results.length <= 2 ? '2' : '4'}">
       ${results.map(({ branch, rows }) => {
         const info = BRANCH_INFO[branch] || { name: branch, color: '#FFD4D9' };
@@ -4936,7 +4943,7 @@ function _renderClients(rows, branches, year, pFrom, pTo) {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
         <div>
           <div class="card-title">Top Clients by Revenue</div>
-          <div class="card-sub">${pFrom} to ${pTo}</div>
+          <div class="card-sub">${_isoD(pFrom)} to ${_isoD(pTo)}</div>
         </div>
         <div style="text-align:right">
           <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Combined Revenue (Top ${rows.length})</div>
