@@ -96,8 +96,9 @@
 
   .sitenav{background:var(--site-paper);border-bottom:1px solid var(--site-line);padding:18px 0;}
   .sitenav .wrap{display:flex;align-items:center;gap:18px;}
-  .wordmark{font-family:var(--serif);font-weight:400;font-size:21px;letter-spacing:.28em;line-height:1;}
-  .wordmark small{display:block;font-size:9px;letter-spacing:.34em;color:var(--muted);margin-top:5px;text-align:center;}
+  .wordmark{display:flex;flex-direction:column;align-items:center;font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:21px;letter-spacing:.32em;line-height:1;color:var(--ink);}
+  .wordmark::before{content:'';display:block;width:34px;height:2px;background:#7CE8D2;margin-bottom:8px;}
+  .wordmark small{display:block;font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:8.5px;letter-spacing:.44em;color:#6B6459;margin-top:5px;text-align:center;}
   .navspacer{margin-left:auto;}
   .navlink{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:2px;}
   .pill{
