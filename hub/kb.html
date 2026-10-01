@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261001cols">
+<link rel="stylesheet" href="/hub/hub.css?v=20261001star">
 </head>
 <body class="kb-wait">
 <!-- One page for both a section's list (?s=beauty-sop) and a single SOP (?p=<slug>).
@@ -27,7 +27,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261001lvl"></script>
+<script src="/hub/hub.js?v=20261001star"></script>
 <script>
 (function () {
   var q = new URLSearchParams(location.search), main = document.getElementById('kbMain'), esc = KB.esc;
@@ -39,6 +39,20 @@
   function notFound() {
     main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t here, or it isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
   }
+
+  // Every page can be starred, from the list and from the page itself (Kate, 1 Oct 2026).
+  // A star repaints just itself; the list and the page stay where they are.
+  main.addEventListener('click', function (e) {
+    var b = e.target.closest('.kb-star');
+    if (!b) return;
+    e.preventDefault();
+    var k = b.dataset.k, title = b.getAttribute('aria-label').replace(/^(Add|Remove) | (to|from) favourites$/g, '');
+    KB.toggleFav(k, function () {
+      var on = !!KB.favs[k], fresh = document.createElement('div');
+      fresh.innerHTML = KB.starBtn(k, title);
+      main.querySelectorAll('.kb-star').forEach(function (x) { if (x.dataset.k === k) x.replaceWith(fresh.firstChild.cloneNode(true)); });
+    });
+  });
 
   async function sectionList(key) {
     var sec = sectionOf(key);
@@ -61,7 +75,8 @@
         return '<section class="kb-group"><h2>' + esc(g) + '</h2><ul class="kb-list">' +
           by[g].map(function (p) {
             return '<li><a href="/hub/kb.html?p=' + encodeURIComponent(p.slug) + '">' +
-              (p.note ? '<span class="kb-dot" title="Being confirmed"></span>' : '') + esc(p.title) + '</a></li>';
+              (p.note ? '<span class="kb-dot" title="Being confirmed"></span>' : '') + esc(p.title) + '</a>' +
+              KB.starBtn('p:' + p.slug, p.title) + '</li>';
           }).join('') + '</ul></section>';
       }).join('');
   }
@@ -78,7 +93,7 @@
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a> › <a href="/hub/kb.html?s=' + encodeURIComponent(p.section) + '">' + esc(sec.title) + '</a>' +
         (p.group_name ? ' › ' + esc(p.group_name) : '') + '</p>' +
-      '<h2 class="kb-page-title">' + esc(p.title) + '</h2>' +
+      '<div class="kb-title-row"><h2 class="kb-page-title">' + esc(p.title) + '</h2>' + KB.starBtn('p:' + p.slug, p.title) + '</div>' +
       '<p class="kb-meta">Version ' + p.version + ' · updated ' + when(p.updated_at) + (p.owner ? ' · ' + esc(p.owner) : '') + '</p>' +
       (p.note ? p.note.split('\n').map(function (n) { return '<div class="kb-note">' + esc(n) + '</div>'; }).join('') : '') +
       '<article class="kb-doc">' + p.body_html + '</article>' +
@@ -89,7 +104,8 @@
     window.scrollTo(0, 0);
   }
 
-  KB.ready.then(function () {
+  KB.ready.then(async function () {
+    await KB.loadFavs();
     if (q.get('p')) onePage(q.get('p'));
     else if (q.get('s')) sectionList(q.get('s'));
     else location.replace('/hub/');

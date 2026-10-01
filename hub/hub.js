@@ -88,6 +88,33 @@
     return KB;
   })();
 
+  // Favourites (Kate, 1 Oct 2026): one row per star in kb_favourites. A section card is
+  // its key ('beauty-sop'); a single page inside a section is 'p:' + its slug, so every
+  // page can be starred too and all of them show at the top of Team Home.
+  KB.favs = null;
+  KB.loadFavs = async function () {
+    if (KB.favs) return KB.favs;
+    KB.favs = {};
+    var f = await c.from('kb_favourites').select('section');
+    (f.data || []).forEach(function (x) { KB.favs[x.section] = true; });
+    return KB.favs;
+  };
+  // Flips the star straight away, saves, and puts it back if the save fails.
+  KB.toggleFav = async function (k, repaint) {
+    var was = !!KB.favs[k];
+    if (was) delete KB.favs[k]; else KB.favs[k] = true;
+    repaint();
+    var res = was ? await c.from('kb_favourites').delete().eq('section', k)
+                  : await c.from('kb_favourites').insert({ section: k });
+    if (res.error) { if (was) KB.favs[k] = true; else delete KB.favs[k]; repaint(); }
+  };
+  KB.starBtn = function (k, title) {
+    var on = !!(KB.favs && KB.favs[k]);
+    return '<button type="button" class="kb-star' + (on ? ' on' : '') + '" data-k="' + esc(k) + '" aria-pressed="' + on + '"' +
+      ' aria-label="' + (on ? 'Remove ' : 'Add ') + esc(title) + (on ? ' from' : ' to') + ' favourites" title="' + (on ? 'In your favourites' : 'Add to favourites') + '">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z"/></svg></button>';
+  };
+
   KB.signOut = async function () {
     await c.auth.signOut();
     try { localStorage.removeItem('trsRole'); } catch (e) {}

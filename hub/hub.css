@@ -158,6 +158,19 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 .kb-list a{display:flex;align-items:center;gap:12px;padding:13px 18px;text-decoration:none;font-size:15.5px}
 .kb-list a:hover{background:var(--surface2)}
 .kb-list a::after{content:"›";margin-left:auto;color:var(--muted2);font-size:20px;line-height:1}
+/* Stars on every page (Kate, 1 Oct 2026): beside each row of a section's list, and
+   beside the title on the page itself. The card star stays absolute; these sit in flow. */
+.kb-list li{display:flex;align-items:center}
+.kb-list li > a{flex:1;min-width:0}
+.kb-list .kb-star,.kb-title-row .kb-star{position:static;flex:none}
+.kb-list .kb-star{margin-right:8px}
+.kb-title-row{display:flex;align-items:flex-start;gap:8px}
+.kb-title-row .kb-page-title{flex:1;min-width:0}
+/* A stylist's own numbers, under the greeting. */
+.kb-mylink{display:inline-flex;align-items:center;gap:8px;margin:4px 0 16px;padding:10px 18px;border-radius:999px;
+  background:var(--accent-mint);color:#1A1A1A;font-weight:600;font-size:14.5px;text-decoration:none;min-height:44px;box-sizing:border-box}
+.kb-mylink[hidden]{display:none}
+@media(hover:hover){.kb-mylink:hover{box-shadow:0 0 0 1px #1A1A1A inset}}
 .kb-dot{width:7px;height:7px;border-radius:50%;background:var(--warn);flex-shrink:0;opacity:.85}
 .kb-legend{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;margin:-8px 0 22px}
 
