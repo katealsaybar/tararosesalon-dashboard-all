@@ -3524,7 +3524,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div id="view-reviews" style="display:none">
     <iframe 
       id="reviewsFrame" scrolling="no"
-      src="./add%20ons/google-reviews/index.html?v=16"
+      data-src="./add%20ons/google-reviews/index.html?v=16"
       style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;display:block;overflow:hidden;">
     </iframe>
   </div>
@@ -3870,6 +3870,14 @@ function showView(view, el){
   // Google Reviews sizes its iframe to its content; ask again now it's visible.
   if (view === 'reviews' && typeof postReviewsTheme === 'function') postReviewsTheme();
   if (view === 'reviews' && typeof postReviewsBranch === 'function') postReviewsBranch();
+  // Kate, 1 Oct 2026 (dashboard lock): the Reviews frame loads on first opening, not with
+  // the page. Loaded with the page it fetched while the sign-in card was still up, so it
+  // asked as nobody, and once the public key can no longer read google_reviews it would
+  // sit on the old copy until a refresh.
+  if (view === 'reviews') {
+    const rf = document.getElementById('reviewsFrame');
+    if (rf && !rf.getAttribute('src') && rf.dataset.src) rf.setAttribute('src', rf.dataset.src);
+  }
   if (view === 'wvperf') {
     const wf = document.getElementById('wvperfFrame');
     if (wf && !wf.getAttribute('src')) {
