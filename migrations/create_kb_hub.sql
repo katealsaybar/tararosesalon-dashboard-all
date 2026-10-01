@@ -144,3 +144,38 @@ grant execute on function public.kb_search(text) to authenticated;
 -- pages.json; it went in on 1 Oct 2026 through a one-time loader function that was
 -- dropped straight after. Edits since go through SQL (or the phase 2 edit screen);
 -- the trigger above keeps every earlier version.
+
+-- ── Staff switch (kb_staff_open_switch, 1 Oct 2026) ─────────────────────────
+-- Staff access stays off until Tara has seen the preview. Dashboard users are not
+-- affected. To open it to staff:
+--   update public.kb_settings set on_off = true, changed_at = now() where key = 'staff_open';
+-- kb_role() and kb_email_allowed() above were replaced live by the versions below,
+-- which add the switch to the staff branch only.
+create table if not exists public.kb_settings (
+  key text primary key, on_off boolean not null, note text, changed_at timestamptz not null default now());
+alter table public.kb_settings enable row level security;
+insert into public.kb_settings (key, on_off, note) values
+  ('staff_open', false, 'Staff access to Team Home. Off until Tara has seen the preview (Kate, 1 Oct 2026).')
+on conflict (key) do nothing;
+
+create or replace function public.kb_role() returns text
+language sql stable security definer set search_path = '' as $$
+  select coalesce(public.dashboard_role(), (
+    select 'staff' from auth.users u
+    where u.id = auth.uid() and u.email_confirmed_at is not null
+      and coalesce((select s.on_off from public.kb_settings s where s.key = 'staff_open'), false)
+      and (exists (select 1 from public.perf_staff p
+                   where p.active and lower(trim(p.email)) = lower(u.email))
+        or exists (select 1 from public.kb_staff k
+                   where k.active and k.email = lower(u.email)))))
+$$;
+
+create or replace function public.kb_email_allowed(p_email text) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select public.dashboard_email_allowed(p_email)
+      or (coalesce((select s.on_off from public.kb_settings s where s.key = 'staff_open'), false)
+          and (exists (select 1 from public.perf_staff p
+                       where p.active and lower(trim(p.email)) = lower(trim(p_email)))
+            or exists (select 1 from public.kb_staff k
+                       where k.active and k.email = lower(trim(p_email)))))
+$$;
