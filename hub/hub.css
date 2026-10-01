@@ -58,7 +58,8 @@ body.kb-wait .wrap{visibility:hidden}
   :root:not([data-theme="light"]) .kb-logo-dark{display:block!important}}
 .kb-titles{display:flex;flex-direction:column;gap:2px;min-width:0}
 .kb-eyebrow{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
-.kb-titles h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;line-height:1.15;margin:0}
+/* 22px, not 30 (Kate, 1 Oct 2026): the page's own heading, not a second logo. */
+.kb-titles h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:22px;line-height:1.2;margin:0}
 
 /* Search */
 .kb-search-wrap{position:relative;flex:1;max-width:420px;margin-left:auto}
@@ -168,7 +169,7 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
   .kb-head{flex-wrap:wrap;gap:12px 14px;padding:10px 0 12px}
   .kb-brand img{width:104px}
   .kb-titles{flex:1}
-  .kb-titles h1{font-size:22px}
+  .kb-titles h1{font-size:18px}
   .kb-eyebrow{display:none}
   .kb-account{order:2}
   .kb-account-btn .kb-name{display:none}
