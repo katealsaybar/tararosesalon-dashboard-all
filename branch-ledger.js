@@ -2650,6 +2650,11 @@ async function renderLedgerStylist() {
   // guessed in advance: a branch with no beauty team has no beauty heading, and a
   // rail offering a section the page does not have is worse than no rail.
   const rows = [], rail = [];
+  // Kate, 1 Oct 2026 (Comet DST3): who has no target this month, counted as the rows
+  // are built, so the banner above the table says how many dashes to expect and whose.
+  // Keyed by person, not row: someone who took clients at two branches is one person.
+  const people = new Set(), noTarget = new Map();
+  let awayRows = 0;
   codes.forEach(code => {
     const bd = series[code] && series[code].staff.mtd;
     if (!bd) return;
@@ -2690,6 +2695,13 @@ async function renderLedgerStylist() {
           const noTgt = away
             ? `<span class="lg-na">target at ${escapeHtml((BRANCH_INFO[away] || {}).name || away)}</span>`
             : '<span class="lg-na">—</span>';
+          people.add(canon(st.name));
+          if (showTargets && !tg && away) awayRows++;
+          if (showTargets && !tg && !away) {
+            const k = canon(st.name);
+            if (!noTarget.has(k)) noTarget.set(k, { who: lgPersonName(st.name), at: [] });
+            noTarget.get(k).at.push(escapeHtml(info.name));
+          }
 
           tot.sa += svcA; tot.ta += txA; tot.ra += retA;
           tot.st += svcT || 0; tot.tt += txT || 0; tot.rt += retT || 0;
@@ -2744,6 +2756,16 @@ async function renderLedgerStylist() {
 
   if (typeof lgxRegisterStylist === 'function') lgxRegisterStylist(series, ctx);
 
+  const nMiss = noTarget.size;
+  const missList = [...noTarget.values()].map(x => `${x.who} (${x.at.join(', ')})`).join(', ');
+  const awayNote = awayRows
+    ? ` ${nMiss ? 'Another' : ''} ${awayRows} ${awayRows === 1 ? 'row is' : 'rows are'} somebody working away from the branch her target is written at; ${awayRows === 1 ? 'it says' : 'each says'} where.` : '';
+  const banner = !(showTargets && (nMiss || awayRows)) ? '' : `<div class="lg-warn">`
+    + (nMiss
+      ? `<strong>${nMiss} of ${people.size} people here ${nMiss === 1 ? 'has' : 'have'} no target for ${escapeHtml(series.windows.month.label)}</strong>, so ${nMiss === 1 ? 'her row reads' : 'their rows read'} a dash, not a miss: ${missList}.`
+      : `<strong>Everyone here has a target for ${escapeHtml(series.windows.month.label)}.</strong>`)
+    + awayNote + `</div>`;
+
   host.innerHTML =
     lgHeader('Ledgers · Daily Stylist Target',
       showTargets
@@ -2754,6 +2776,7 @@ async function renderLedgerStylist() {
     lgGrainRow() +
     (typeof lgxPageBar === 'function' ? lgxPageBar('lsAll') : '') +
     lgShell(rail,
+    banner +
     (rows.length ? lgTable(cols, rows, {compact:true, groups:colGroups}) : lgEmpty('No staff figures for this window.')) +
     `<div class="fine">
       <p><b>Split cuts the services column only</b>. Weekly and Daily add her services week by week or day by day inside the Services band; the target, the MTD total and the variance beside them do not move. Treatment and retail stay as month-to-date totals — a nineteen-column table with three metrics cut by day is a data dump, not a coaching sheet.</p>
