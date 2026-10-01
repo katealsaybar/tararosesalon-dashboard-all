@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tara Rose Salons · Dashboard</title>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<script>
+  // Kate, 1 Oct 2026: a plain trk-salon-os.com opens Team Home, so the dashboard has
+  // its own address to bookmark. Any ?view= / ?branch= / ?period= on this address
+  // rides along; with none, ?view=dashboard is what keeps the root from treating it
+  // as a bare visit and sending you to the hub.
+  (function () {
+    var q = location.search && location.search.length > 1 ? location.search : '?view=dashboard';
+    location.replace('/' + q + location.hash);
+  })();
+</script>
+</head>
+<body></body>
+</html>

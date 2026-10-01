@@ -34,8 +34,11 @@ window.TRS_AUTH_HASH = location.hash;
 // Kate, 1 Oct 2026: a plain trk-salon-os.com is the Knowledge Base hub's address.
 // Read here, before anything below or supabase-js touches the address: no query, no
 // sign-in hash. Signed in, enterIfAllowed() sends it on to /hub/.
+// A reload or Back keeps you where you were: the Pulse's own address is bare too.
 window.TRS_BARE_ROOT = /^\/(index\.html)?$/.test(location.pathname) && !location.search
-  && !/access_token|type=recovery|error/.test(location.hash);
+  && !/access_token|type=recovery|error/.test(location.hash)
+  && !(function () { try { var n = performance.getEntriesByType('navigation')[0];
+         return n && (n.type === 'reload' || n.type === 'back_forward'); } catch (e) { return false; } })();
 // Kate, 28 Sep 2026: the branch and period you last picked come back on the next
 // visit. trSyncUrl() stores them. A link that names its own branch or period always
 // wins. Kate, 1 Oct 2026: they no longer get written into the address here, which put
@@ -2796,7 +2799,12 @@ table.tp-cmp td.bad{color:var(--bad)}
         <div class="mark"><img id="loginLogoImg" src="assets/logo-ink-mint.png" alt="Tara Rose Salons"></div>
         <div class="login-word">Salons</div>
       </div>
-      <div class="login-dash-lbl">Internal Dashboard</div>
+      <div class="login-dash-lbl" id="loginDashLbl">Internal Dashboard</div>
+      <script>
+        // The same card is Team Home's door (a plain address, or ?next=/hub/...).
+        (function () { var n = new URLSearchParams(location.search).get('next') || '';
+          if (window.TRS_BARE_ROOT || n.indexOf('/hub/') === 0) document.getElementById('loginDashLbl').textContent = 'Team Home'; })();
+      </script>
     </div>
     <div class="login-divider"></div>
     <!-- Sign-in modes (see auth.js): signin · signup · forgot · reset · denied -->
@@ -2821,6 +2829,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <button type="submit" class="login-btn" id="loginBtn">Sign in</button>
     </form>
     <div class="login-links" id="loginLinks"></div>
+    <div style="text-align:center;font-size:12px;margin-top:-6px"><a href="/privacy/" style="color:var(--muted2)">Privacy</a></div>
     <div id="loginLastUpdated" style="text-align:center;font-size:12px;color:var(--muted2);letter-spacing:0.08em;margin-top:-8px;opacity:0.7;">Checking data freshness...</div>
   </div>
 </div>
@@ -2958,6 +2967,11 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <!-- Logout button -->
   <div class="nav-out">
+    <!-- Kate, 1 Oct 2026: Team Home, the hub at a plain trk-salon-os.com. -->
+    <div class="nav-sub" role="link" tabindex="0" onclick="location.href='/hub/'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+      Team Home
+    </div>
     <!-- Phones only: Dark mode leaves the header and lives here. -->
     <div class="nav-sub nav-phone" role="button" tabindex="0" onclick="toggleTheme()"><span class="nt-dark">Dark mode</span><span class="nt-light">Light mode</span></div>
     <div class="nav-sub" onclick="doLogout()">
@@ -3626,7 +3640,7 @@ function gateBusy(on){ document.getElementById('loginBtn').disabled = on; }
 
 // Only ?next= rides along to Google and back; anything else in the address stays behind.
 function gateNextQuery(){
-  const next = new URLSearchParams(location.search).get('next');
+  const next = new URLSearchParams(location.search).get('next') || (window.TRS_BARE_ROOT ? '/hub/' : null);
   return next ? '?next=' + encodeURIComponent(next) : '';
 }
 
@@ -3659,8 +3673,10 @@ async function doLogin(){
       }
       await enterIfAllowed();
     } else if (GATE_MODE === 'signup') {
-      const ok = await sb.rpc('dashboard_email_allowed', { p_email: email });
-      if (ok.data !== true) { gateMsg('That email isn’t on the dashboard list. Ask Kate to add you.', 'error'); return; }
+      // Staff too since 1 Oct 2026 (Team Home): kb_email_allowed covers dashboard_users,
+      // perf_staff and kb_staff.
+      const ok = await sb.rpc('kb_email_allowed', { p_email: email });
+      if (ok.data !== true) { gateMsg('That email isn’t on the team list. Ask Kate to add you.', 'error'); return; }
       const { data, error } = await sb.auth.signUp({ email, password: pw, options:{ emailRedirectTo: GATE_BACK } });
       if (error) { gateMsg(error.message, 'error'); return; }
       if (data.session) { await enterIfAllowed(); return; }
@@ -3680,16 +3696,26 @@ async function doLogin(){
 }
 
 // Signed in: on the list opens the dashboard (or goes back to ?next=), otherwise says so.
+// Kate, 1 Oct 2026: staff (perf_staff / kb_staff, kb_role() 'staff') have no dashboard
+// role and go to Team Home, the only place open to them; a plain trk-salon-os.com
+// takes everyone else to Team Home too.
 async function enterIfAllowed(){
   const role = await TRSAuth.role();
+  const next = new URLSearchParams(location.search).get('next');
+  const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : null;
   if (!role) {
+    const kb = await sb.rpc('kb_role');
+    if (!kb.error && kb.data === 'staff') {
+      location.replace(safeNext && safeNext.startsWith('/hub/') ? safeNext : '/hub/');
+      return;
+    }
     const { data } = await sb.auth.getUser();
-    gateMode('denied', `${data.user?.email || 'This account'} isn’t on the dashboard list. Ask Kate to add you, or sign out and use another account.`);
+    gateMode('denied', `${data.user?.email || 'This account'} isn’t on the team list. Ask Kate to add you, or sign out and use another account.`);
     trsBootDone();
     return;
   }
-  const next = new URLSearchParams(location.search).get('next');
-  if (next && next.startsWith('/') && !next.startsWith('//')) { location.replace(next); return; }
+  if (safeNext) { location.replace(safeNext); return; }
+  if (window.TRS_BARE_ROOT) { location.replace('/hub/'); return; }
   history.replaceState(null, '', location.pathname + location.search);
   enterDashboard(role);
 }

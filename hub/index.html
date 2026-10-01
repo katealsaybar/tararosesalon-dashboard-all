@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Team Home · Tara Rose Salons</title>
+<script>
+  // The dashboard's theme setting, before the first paint.
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=20261001a">
+</head>
+<body class="kb-wait">
+<div class="wrap">
+  <header class="kb-head" id="kbHead" data-title="Team Home"></header>
+  <main>
+    <p class="kb-hello" id="kbHello"></p>
+    <p class="kb-intro" id="kbIntro">Everything we do, written down in one place. Open a section, or search for a treatment.</p>
+    <div class="kb-grid" id="kbGrid"></div>
+  </main>
+  <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js?v=20261001kb"></script>
+<script src="/hub/hub.js?v=20261001a"></script>
+<script>
+KB.ready.then(async function () {
+  var first = (KB.name || '').split(/[\s(]/)[0];
+  document.getElementById('kbHello').textContent = first ? 'Hello, ' + first : 'Hello';
+  if (KB.isStaff) document.getElementById('kbIntro').textContent =
+    'Our SOPs and your induction, in one place. Open a section, or search for a treatment.';
+
+  // How many pages each section has. A row comes back only for sections this person may read.
+  var r = await KB.client.from('kb_pages').select('section');
+  var counts = {};
+  (r.data || []).forEach(function (x) { counts[x.section] = (counts[x.section] || 0) + 1; });
+
+  // Live sections first, then the ones still to come, each in KB.SECTIONS' order.
+  var isLive = function (s) { return !!(s.live || counts[s.key]); };
+  var shown = KB.SECTIONS.filter(function (s) { return s.staff || !KB.isStaff; });
+  shown = shown.filter(isLive).concat(shown.filter(function (s) { return !isLive(s); }));
+  document.getElementById('kbGrid').innerHTML = shown
+    .map(function (s) {
+      var n = counts[s.key] || 0, live = isLive(s);
+      var href = s.href || '/hub/kb.html?s=' + s.key;
+      var foot = s.href ? 'Open' : (n ? n + ' pages' : '');
+      var inner = '<span class="kb-badge' + (live ? ' live' : '') + '">' + (live ? 'Live' : 'Coming soon') + '</span>' +
+        '<h2>' + KB.esc(s.title) + '</h2><p>' + KB.esc(s.blurb) + '</p>' +
+        (live && foot ? '<span class="kb-card-foot">' + foot + '</span>' : '');
+      return live
+        ? '<a class="kb-card" style="--rule:' + s.rule + '" href="' + href + '">' + inner + '</a>'
+        : '<div class="kb-card soon" aria-disabled="true">' + inner + '</div>';
+    }).join('');
+});
+</script>
+</body>
+</html>

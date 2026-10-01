@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Team Home · Tara Rose Salons</title>
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=20261001a">
+</head>
+<body class="kb-wait">
+<!-- One page for both a section's list (?s=beauty-sop) and a single SOP (?p=<slug>).
+     There is deliberately no file per SOP: this repository is public, the pages are
+     rows in kb_pages, readable only once signed in (Kate, 1 Oct 2026). -->
+<div class="wrap">
+  <header class="kb-head" id="kbHead" data-title="Team Home"></header>
+  <main id="kbMain"><p class="kb-msg">Loading…</p></main>
+  <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js?v=20261001kb"></script>
+<script src="/hub/hub.js?v=20261001a"></script>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search), main = document.getElementById('kbMain'), esc = KB.esc;
+  function sectionOf(key) { return KB.SECTIONS.find(function (s) { return s.key === key; }) || { key: key, title: key }; }
+  function when(ts) {
+    try { return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }); }
+    catch (e) { return ''; }
+  }
+  function notFound() {
+    main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t here, or it isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
+  }
+
+  async function sectionList(key) {
+    var sec = sectionOf(key);
+    document.title = sec.title + ' · Team Home';
+    var r = await KB.client.from('kb_pages').select('slug,title,group_name,sort,note').eq('section', key).order('sort');
+    if (r.error || !r.data || !r.data.length) { notFound(); return; }
+    var groups = [], by = {};
+    r.data.forEach(function (p) {
+      var g = p.group_name || '';
+      if (!by[g]) { by[g] = []; groups.push(g); }
+      by[g].push(p);
+    });
+    var anyNote = r.data.some(function (p) { return p.note; });
+    main.innerHTML =
+      '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
+      '<h2 class="kb-page-title">' + esc(sec.title) + '</h2>' +
+      '<p class="kb-meta">' + r.data.length + ' pages</p>' +
+      (anyNote ? '<p class="kb-legend"><span class="kb-dot"></span>Something on this page is still being confirmed.</p>' : '') +
+      groups.map(function (g) {
+        return '<section class="kb-group"><h2>' + esc(g) + '</h2><ul class="kb-list">' +
+          by[g].map(function (p) {
+            return '<li><a href="/hub/kb.html?p=' + encodeURIComponent(p.slug) + '">' +
+              (p.note ? '<span class="kb-dot" title="Being confirmed"></span>' : '') + esc(p.title) + '</a></li>';
+          }).join('') + '</ul></section>';
+      }).join('');
+  }
+
+  async function onePage(slug) {
+    var r = await KB.client.from('kb_pages').select('slug,section,group_name,sort,title,body_html,note,owner,version,updated_at').eq('slug', slug).maybeSingle();
+    if (r.error || !r.data) { notFound(); return; }
+    var p = r.data, sec = sectionOf(p.section);
+    document.title = p.title + ' · ' + sec.title;
+    // Neighbours for the previous / next links: titles only.
+    var all = await KB.client.from('kb_pages').select('slug,title,sort').eq('section', p.section).order('sort');
+    var list = all.data || [], i = list.findIndex(function (x) { return x.slug === p.slug; });
+    var prev = i > 0 ? list[i - 1] : null, next = i >= 0 && i < list.length - 1 ? list[i + 1] : null;
+    main.innerHTML =
+      '<p class="kb-crumbs"><a href="/hub/">Team Home</a> › <a href="/hub/kb.html?s=' + encodeURIComponent(p.section) + '">' + esc(sec.title) + '</a>' +
+        (p.group_name ? ' › ' + esc(p.group_name) : '') + '</p>' +
+      '<h2 class="kb-page-title">' + esc(p.title) + '</h2>' +
+      '<p class="kb-meta">Version ' + p.version + ' · updated ' + when(p.updated_at) + (p.owner ? ' · ' + esc(p.owner) : '') + '</p>' +
+      (p.note ? p.note.split('\n').map(function (n) { return '<div class="kb-note">' + esc(n) + '</div>'; }).join('') : '') +
+      '<article class="kb-doc">' + p.body_html + '</article>' +
+      '<nav class="kb-pager">' +
+        (prev ? '<a class="prev" href="/hub/kb.html?p=' + encodeURIComponent(prev.slug) + '"><small>Previous</small>' + esc(prev.title) + '</a>' : '') +
+        (next ? '<a class="next" href="/hub/kb.html?p=' + encodeURIComponent(next.slug) + '"><small>Next</small>' + esc(next.title) + '</a>' : '') +
+      '</nav>';
+    window.scrollTo(0, 0);
+  }
+
+  KB.ready.then(function () {
+    if (q.get('p')) onePage(q.get('p'));
+    else if (q.get('s')) sectionList(q.get('s'));
+    else location.replace('/hub/');
+  });
+})();
+</script>
+</body>
+</html>
