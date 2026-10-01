@@ -38,6 +38,9 @@
   /* Sign out lives in the drawer's footer on a phone (Log Out); the greeting is
      already hidden under 760px by the page's own rule. */
   #filtersBtn,#themeBtn,#signOutBtn{display:none!important}
+  /* Team Home stays on phones as its house icon alone; the word would crowd the row. */
+  #homeBtn .hb-txt{display:none}
+  #homeBtn{padding:6px 10px}
   #navBtn{position:relative;width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;
     color:var(--text);
     /* The label stays for screen readers (toggleNav rewrites it); only the eye loses it. */
