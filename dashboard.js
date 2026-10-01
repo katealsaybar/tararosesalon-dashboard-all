@@ -235,8 +235,18 @@ window.addEventListener('message', e => {
   if (!f || e.source !== f.contentWindow || !e.data) return;
   if (e.data.type === 'trs-reviews-ready') postReviewsTheme();
   if (e.data.type === 'trs-reviews-height' && e.data.h > 0) f.style.height = e.data.h + 'px';
-  if (e.data.type === 'trs-reviews-ready') postReviewsScroll();
+  if (e.data.type === 'trs-reviews-ready') { postReviewsScroll(); postReviewsBranch(); }
 });
+// Kate, 1 Oct 2026 (Comet GR3): the reviews page kept its own branch chips, so a
+// branch picked anywhere else on the dashboard did not follow you there. The page
+// does not take the filter bar (its chips include Bahrain and its own names), so
+// the branch is handed over as a starting point when the page opens; the chips
+// inside still change it. "All" leaves the page's own All, Bahrain included.
+function postReviewsBranch() {
+  const f = document.getElementById('reviewsFrame');
+  if (!f || !f.contentWindow || typeof sel === 'undefined') return;
+  f.contentWindow.postMessage({ type: 'trs-reviews-branch', codes: sel.branch.slice() }, '*');
+}
 // Kate, 1 Oct 2026: the frame is as tall as its content, so the page here is what
 // scrolls and the frame's own sticky filter bar never stuck; 27 screens of reviews
 // left the filters behind at the top. This tells the frame how far its top has

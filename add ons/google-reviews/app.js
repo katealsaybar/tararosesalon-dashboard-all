@@ -373,11 +373,26 @@ if(window.parent!==window){
   window.addEventListener("message",e=>{
     if(e.source===window.parent&&e.data&&e.data.type==="trs-theme"){setTheme(e.data.theme==="dark"?"dark":"light");setTimeout(postH,50);}
     if(e.source===window.parent&&e.data&&e.data.type==="trs-reviews-scroll"){pin=+e.data.pin||0;placeFilters();}
+    if(e.source===window.parent&&e.data&&e.data.type==="trs-reviews-branch") seedBranch(e.data.codes);
   });
   // The dashboard scrolls, not this frame, so position:sticky has nothing to stick
   // to. The dashboard sends how far this frame's top is under its header (pin), and
   // the filter bar is moved down by that much, stopping at the end of the list.
   // Wide screens only: on a phone the five filter rows would cover half the screen.
+  // The dashboard's branch, handed over when this page opens (dashboard.js
+  // postReviewsBranch). Applied only when it differs from the last one handed over,
+  // so a chip picked here survives a trip to another page and back. "all" is the
+  // page's own All. Kate, 1 Oct 2026.
+  const CODE_TO_BRANCH={KCA:"Khalifa City A, Abu Dhabi",SAA:"Saadiyat, Abu Dhabi",AQ:"Al Quoz, Dubai",MC:"Motor City, Dubai",BAH:"District 2, Bahrain"};
+  let lastSeed=null;
+  function seedBranch(codes){
+    const key=(codes||[]).join(",");
+    if(key===lastSeed) return;
+    lastSeed=key;
+    const picked=(codes||[]).map(c=>CODE_TO_BRANCH[c]).filter(Boolean);
+    state.branches=(!picked.length||(codes||[]).includes("all")) ? new Set(BRANCHES) : new Set(picked);
+    if(META) render();
+  }
   const fl=document.querySelector(".filters"), wide=matchMedia("(min-width:761px)");
   let pin=0;
   function placeFilters(){
