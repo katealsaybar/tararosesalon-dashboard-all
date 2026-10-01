@@ -1667,8 +1667,10 @@ function glanceClause(value, target, unit, goodPhrase, warnPhrase, badPhrase) {
 }
 
 function computeAtAGlanceExplanation(s, hairRevenue, hairTreatmentPct) {
-  const hair = `Hair brought in <strong>${fmtAED(hairRevenue)}</strong>. Rebooking is ${glanceClause(s.hairRebookPct, TARGETS.rebookPct, 'pct', 'holding steady', 'getting there', 'lagging')}, treatment uptake is ${glanceClause(hairTreatmentPct, TARGETS.treatmentPct, 'pct', 'right on target', 'trending the right way', 'falling short')}, and avg bill is ${glanceClause(s.hairAvgBill, TARGETS.hairAvgBill, 'AED', 'comfortably ahead', 'nearly there', 'below where it needs to be')}.`;
-  const beauty = `Beauty brought in <strong>${fmtAED(s.beautySales||0)}</strong>. Rebooking is ${glanceClause(s.beautyRebookPct, TARGETS.rebookPct, 'pct', 'holding steady', 'getting there', 'lagging')}, and avg bill is ${glanceClause(s.beautyAvgBill, TARGETS.beautyAvgBill, 'AED', 'comfortably ahead', 'nearly there', 'below where it needs to be')}.`;
+  // Kate, 1 Oct 2026: services only, so say so. The receipt card's Hair net take
+  // adds retail, and two different "hair" totals on one page read as an error.
+  const hair = `Hair services brought in <strong>${fmtAED(hairRevenue)}</strong> before retail. Rebooking is ${glanceClause(s.hairRebookPct, TARGETS.rebookPct, 'pct', 'holding steady', 'getting there', 'lagging')}, treatment uptake is ${glanceClause(hairTreatmentPct, TARGETS.treatmentPct, 'pct', 'right on target', 'trending the right way', 'falling short')}, and avg bill is ${glanceClause(s.hairAvgBill, TARGETS.hairAvgBill, 'AED', 'comfortably ahead', 'nearly there', 'below where it needs to be')}.`;
+  const beauty = `Beauty services brought in <strong>${fmtAED(s.beautySales||0)}</strong> before retail. Rebooking is ${glanceClause(s.beautyRebookPct, TARGETS.rebookPct, 'pct', 'holding steady', 'getting there', 'lagging')}, and avg bill is ${glanceClause(s.beautyAvgBill, TARGETS.beautyAvgBill, 'AED', 'comfortably ahead', 'nearly there', 'below where it needs to be')}.`;
   return { hair, beauty };
 }
 

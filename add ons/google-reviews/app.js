@@ -294,7 +294,10 @@ function renderTimeline(F){
   });
 }
 function fmtDate(d){return new Date(d+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}
-function ago(d){const n=Math.round(days(d)); if(n<1)return "today"; if(n<60)return n+"d ago"; if(n<730)return Math.round(n/30.4)+"mo ago"; return Math.round(n/365)+"y ago";}
+// "ago" is counted from the real date, not from TODAY. TODAY is the snapshot's date
+// when the live table is out of reach, so an offline copy from 24 Sep printed
+// "1d ago" on 1 Oct. TODAY still anchors the recency filters. Kate, 1 Oct 2026.
+function ago(d){const now=new Date(new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Dubai"})+"T00:00:00"); const n=Math.round((now-new Date(d+"T00:00:00"))/864e5); if(n<1)return "today"; if(n<60)return n+"d ago"; if(n<730)return Math.round(n/30.4)+"mo ago"; return Math.round(n/365)+"y ago";}
 let LIMIT=60;
 function renderList(F){
   const L=[...F].sort((a,b)=> state.sort==="new"? b.date.localeCompare(a.date) : state.sort==="old"? a.date.localeCompare(b.date) : state.sort==="low"? a.stars-b.stars || b.date.localeCompare(a.date) : b.stars-a.stars || b.date.localeCompare(a.date));
@@ -308,7 +311,7 @@ function renderList(F){
       <div class="rtop"><span class="stars">${st}</span><span class="who">${esc(r.reviewer||"Anonymous")}</span><span class="tag">${SHORT[r.branch]}</span>
       ${r.replied?'<span class="tag ok">Replied</span>':'<span class="tag no">No reply</span>'}
       ${r.staff.map(k=>{const s=staffBy(k);return s?`<button class="stag${r.viaClient?" via":""}" data-k="${esc(k)}" title="${r.viaClient?"Not named, but this reviewer was their client in the 14 days before":"Named in the review"}">${s.photo?`<img src="${s.photo}" alt="">`:""}${esc(s.label)}${r.viaClient?" · client":""}</button>`:"";}).join("")}
-      <span class="date" title="${r.approx?'Approximate date from Google Maps':r.date}">${r.approx?esc((r.when||'').replace(/^Edited /,'edited '))+' · approx.':fmtDate(r.date)+' · '+ago(r.date)}</span></div>
+      <span class="date" title="${r.approx?'Approximate date from Google Maps'+(r.when?' ("'+esc(r.when)+'" when it was read)':''):r.date}">${r.approx?(r.date?fmtDate(r.date)+' · '+ago(r.date)+' · approx.':esc((r.when||'').replace(/^Edited /,'edited '))+' · approx.'):fmtDate(r.date)+' · '+ago(r.date)}</span></div>
       ${r.comment?`<div class="rtext${long?" clamp":""}" id="t${i}">${markNames(r)}</div>${long?`<button class="more" onclick="document.getElementById('t${i}').classList.toggle('clamp');this.textContent=this.textContent==='Show more'?'Show less':'Show more'">Show more</button>`:""}`:`<div class="rtext none">Rating only, no written comment</div>`}
       ${r.replied?`<details class="reply"><summary><b>Our reply</b></summary><div style="white-space:pre-wrap;margin-top:6px">${esc(r.reply)}</div></details>`:""}
       ${(()=>{const g=googleReviewUrl(r);return g||r.url?`<div class="links">${g?`<a class="gbp" href="${g}" target="_blank" rel="noopener">View on Google ↗</a>`:""}${r.url?`<a class="gbp" href="${r.url}" target="_blank" rel="noopener">Reply in Business Profile →</a>`:""}</div>`:"";})()}

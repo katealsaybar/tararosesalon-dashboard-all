@@ -85,6 +85,11 @@ function tpMergeKey(name) {
 // another. staff-profiles.js's STAFF_SURNAMES carries the same call for MAY:
 // Fernandez at Khalifa City, Manguiat at Saadiyat, kept apart on purpose.
 const TP_SPLIT_NAMES = new Set(['MAY']);
+// The split keeps the two Mays apart, but both rows still looked up the one MAY
+// profile, so Saadiyat's May printed as "May Fernandez · Junior Stylist" with
+// Khalifa City May's photo and read as a duplicate (Comet, 1 Oct 2026). The row
+// away from the profile's branch takes her full name, which matches no profile.
+const TP_SPLIT_FULL = { 'MAY|SAA': 'MAY MANGUIAT' };
 
 // One card per stylist, kahit ilang branch niya na-cover sa window — Kate, 17
 // Sep 2026. Rows come in per branch (staff work cover shifts, Chalani is a
@@ -115,6 +120,11 @@ function tpRoster(dept) {
       // retail, which is the number the ledger calls Net Salon Take.
       net: st.netSalonTake || 0,
     }));
+  });
+
+  rows.forEach(r => {
+    const full = TP_SPLIT_FULL[tpMergeKey(r.name) + '|' + r.branchCode];
+    if (full) r.name = full;
   });
 
   const groups = {}, order = [];

@@ -71,17 +71,24 @@ function cmpPresets() {
   const keepBranch = (cmpState.b && cmpState.b.branch) || 'all';
   const pm = (m + 11) % 12, py = m === 0 ? y - 1 : y;
   const ppm = (m + 10) % 12, ppy = m <= 1 ? y - 1 : y;
+  // Kate, 1 Oct 2026: "this month" means the month the data runs to, which on the
+  // 1st is the month just gone, so the labels name the months instead of saying
+  // "this" and "last". And when that month is complete there is no partial month to
+  // match, so side A is the whole previous month: Sep vs Aug compared 1-30 Aug and
+  // dropped 31 Aug, which is why this page and Branch Performance disagreed.
+  const monthDone = dd === lastOf(y, m);
+  const MN = i => MON_LONG[i];
   return {
     mom: {
-      label: 'This month vs last month',
-      hint: 'same days, like for like',
+      label: `${MN(m)} vs ${MN(pm)}`,
+      hint: monthDone ? 'two complete months' : 'same days, like for like',
       make: () => ({
-        a: { branch: keepBranch, from: new Date(py, pm, 1), to: new Date(py, pm, Math.min(dd, lastOf(py, pm))) },
+        a: { branch: keepBranch, from: new Date(py, pm, 1), to: new Date(py, pm, monthDone ? lastOf(py, pm) : Math.min(dd, lastOf(py, pm))) },
         b: { branch: keepBranch, from: new Date(y, m, 1),   to: end },
       }),
     },
     mom_full: {
-      label: 'Last month (full) vs this month',
+      label: `${MN(pm)} (full) vs ${MN(m)}${monthDone ? '' : ' so far'}`,
       hint: 'use Per day to even it out',
       make: () => ({
         a: { branch: keepBranch, from: new Date(py, pm, 1), to: new Date(py, pm, lastOf(py, pm)) },
@@ -89,7 +96,7 @@ function cmpPresets() {
       }),
     },
     prev2: {
-      label: 'Last month vs the month before',
+      label: `${MN(pm)} vs ${MN(ppm)}`,
       hint: 'two complete months',
       make: () => ({
         a: { branch: keepBranch, from: new Date(ppy, ppm, 1), to: new Date(ppy, ppm, lastOf(ppy, ppm)) },
