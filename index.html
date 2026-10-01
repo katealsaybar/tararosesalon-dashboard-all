@@ -3746,6 +3746,7 @@ let DASHBOARD_OPEN = false;
 // security returns them BAH rows only; this is the page's half, so nothing UAE is
 // offered to click either. Null for everyone else: the whole dashboard, as before.
 let TRS_SCOPE = null;
+let TRS_LEVEL = null;   // dashboard_users.level, from dashboard_me()
 const SCOPE_VIEWS = new Set(['dashboard', 'branchperf', 'ledgerFinancials', 'team']);
 function applyScope(code){
   TRS_SCOPE = code;
@@ -3770,6 +3771,13 @@ async function enterDashboard(role){
   // first load, or a Bahrain sign-in would fetch and paint the UAE first.
   const me = await TRSAuth.me();
   if (me && me.scope) applyScope(me.scope);
+  // Reception (Level 1 on dashboard_users, Kate 1 Oct 2026): the dashboards, but not
+  // Campaigns. The menu entry goes and the page itself refuses (showView).
+  TRS_LEVEL = (me && me.level) || null;
+  if (TRS_LEVEL === 1) {
+    const c = document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`);
+    if (c && c.closest('.nav-group')) c.closest('.nav-group').style.display = 'none';
+  }
   {
     const first = ((me && me.name) || '').split(/[\s(]/)[0].replace(/[<>&"]/g, '');
     if (first) document.getElementById('mastHello').innerHTML = `Hello, <b>${first}</b>`;
@@ -3847,6 +3855,7 @@ sb.auth.onAuthStateChange((event) => {
 // ── VIEW SWITCHER
 function showView(view, el){
   if (TRS_SCOPE && !SCOPE_VIEWS.has(view)) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
+  if (TRS_LEVEL === 1 && view === 'wvperf') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   ALL_VIEWS.forEach(v=>{
     const node=document.getElementById('view-'+v);
     if(node) node.style.display='none';
