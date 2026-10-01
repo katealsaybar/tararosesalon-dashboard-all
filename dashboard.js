@@ -3651,6 +3651,17 @@ async function renderDashboard() {
   // standfirst, so it is computed once, before anything renders.
   let byBranch = {};
   try { byBranch = aggByBranch(); } catch(e) { /* the column chart tolerates an empty object */ }
+  // Kate, 1 Oct 2026: the column chart's "visits" per branch follow the Clients
+  // switch too. Same cached window as s.doorClients, so this is no extra fetch.
+  if (CLIENT_BASIS === 'door' && s.doorClients != null) {
+    try {
+      const m = await doorClientsByBranch(dateFrom, dateTo);
+      Object.keys(byBranch).forEach(c => {
+        const bs = byBranch[c] && byBranch[c].summary;
+        if (bs && DOOR_BRANCHES.includes(c) && c in m) bs.doorClients = m[c];
+      });
+    } catch (e) { /* stays on handled */ }
+  }
 
   // ── BENCHMARKS ───────────────────────────────────────────────────
   // The draft scored eight rows; this scores seven. Total Clients is deliberately
@@ -4153,9 +4164,14 @@ async function renderDashboard() {
   const brCols = ACTIVE_BRANCHES.map(code => {
     const bs = byBranch[code] && byBranch[code].summary;
     if (!bs || !(bs.netTake > 0)) return null;
-    return { code, name: BRANCH_INFO[code].name, rev: bs.netTake, visits: bs.totalClients || 0,
+    return { code, name: BRANCH_INFO[code].name, rev: bs.netTake, visits: bs.totalClients || 0, bs,
              color: dark ? BRANCH_INFO[code].color : BRANCH_INFO[code].colorLight };
   }).filter(Boolean).sort((a, b) => b.rev - a.rev);
+  // Door counts only when every column has one: four branches side by side on two
+  // different counts would rank them on the switch, not on the floor.
+  const brDoor = brCols.length > 0 && brCols.every(b => doorOn(b.bs));
+  if (brDoor) brCols.forEach(b => { b.visits = b.bs.doorClients; });
+  const brVisitWord = brDoor ? 'visits through the door' : 'visits';
   const brTotal = brCols.reduce((a, b) => a + b.rev, 0);
   const brAvg   = brCols.length ? brTotal / brCols.length : 0;
   const brMax   = brCols.length ? Math.max(...brCols.map(b => b.rev)) * 1.16 : 1;
@@ -4170,7 +4186,7 @@ async function renderDashboard() {
   const colsX = brCols.map(b => `
     <div class="${brDim(b) ? 'dim' : ''}">
       <div class="cx-k">${escapeHtml(b.code)}</div>
-      <div class="cx-s">${num0(b.visits)} visits<br>${b.visits ? aed0(b.rev / b.visits) : '—'} avg</div>
+      <div class="cx-s">${num0(b.visits)} ${brDoor ? 'door visits' : 'visits'}<br>${b.visits ? aed0(b.rev / b.visits) : '—'} avg</div>
     </div>`).join('');
   // This card deliberately keeps ALL four branches even when one is picked — the
   // point of it is where that branch sits against the others. So the footnote is
@@ -4182,7 +4198,7 @@ async function renderDashboard() {
   const branchFoot = !brCols.length
     ? 'No per-branch figures for this selection.'
     : onlyPicked
-      ? `${onlyPicked.name}: ${aed0(onlyPicked.rev)} across ${num0(onlyPicked.visits)} visits, ${onlyPicked.visits ? aed0(onlyPicked.rev / onlyPicked.visits) : '—'} a visit. That is ${shareOf(onlyPicked.rev, brTotal)}% of the ${brCols.length}-branch total and ${onlyPicked.rev >= brAvg ? 'above' : 'below'} the group average of ${aed0(brAvg)}.`
+      ? `${onlyPicked.name}: ${aed0(onlyPicked.rev)} across ${num0(onlyPicked.visits)} ${brVisitWord}, ${onlyPicked.visits ? aed0(onlyPicked.rev / onlyPicked.visits) : '—'} a visit. That is ${shareOf(onlyPicked.rev, brTotal)}% of the ${brCols.length}-branch total and ${onlyPicked.rev >= brAvg ? 'above' : 'below'} the group average of ${aed0(brAvg)}.`
       : `Total ${aed0(brTotal)} across ${brCols.length} branches. ${brCols[0].name} is the biggest at ${shareOf(brCols[0].rev, brTotal)}% of it; ${brCols.filter(b => b.rev < brAvg).length} sit below the group average of ${aed0(brAvg)}.`;
 
   // ── DO THIS ──────────────────────────────────────────────────────
