@@ -3697,7 +3697,14 @@ async function renderDashboard() {
   }));
   const benchRows = benchAll
   .filter(r => !noSales && Number.isFinite(r.combined) && r.target != null)   // no target (Bahrain avg bills): not scored
-  .map(r => ({ ...r, att: r.target ? r.combined / r.target : 0 }));
+  .map(r => ({ ...r, att: r.target ? r.combined / r.target : 0,
+    // Kate, 1 Oct 2026 (Comet OP4): a row was "on target" off the combined figure
+    // while one department sat under its own bar (Utilisation on the hair 80%
+    // with beauty short of its own, say). Not re-scored: the combined figure is
+    // still what is counted. Flagged, so a hit never hides a department's miss.
+    short: [['Hair', r.hair, r.target], ['Beauty', r.beauty, Number.isFinite(r.beautyTarget) ? r.beautyTarget : r.target]]
+      .filter(([, v, t]) => Number.isFinite(v) && Number.isFinite(t) && v < t)
+      .map(([d, v, t]) => ({ dept: d, v, t })) }));
   // Kate, 30 Sep 2026: on Bahrain (and the Group) the strip keeps every benchmark,
   // greyed with the reason, instead of shrinking to the one or two that can be
   // scored: rebooking, NCR and treatment wait on Bahrain's ledger, the avg bills on
@@ -3724,7 +3731,8 @@ async function renderDashboard() {
   const attRow = (r, rank) => {
     const vals = [r.hair, r.beauty, r.combined, r.target, r.beautyTarget].filter(Number.isFinite);
     const max  = (Math.max(...vals) * 1.15) || 1;
-    const st   = band(r.combined, r.target);
+    const part = r.att >= 1 && r.short && r.short.length;   // hit overall, a department short (OP4)
+    const st   = part ? 'warn' : band(r.combined, r.target);
     const line = (lbl, val, color, tgt, tickLbl) => !Number.isFinite(val) ? '' : `
       <div class="bar-line">
         <span class="bar-lbl">${lbl}</span>
@@ -3745,7 +3753,7 @@ async function renderDashboard() {
           </div>
           <div class="att-side">
             <div class="att-big tabular ${st}">${r.fmt(r.combined)}</div>
-            <div class="att-chip chip-${st}">${Math.round(r.att * 100)}% of target</div>
+            <div class="att-chip chip-${st}">${Math.round(r.att * 100)}% of target${part ? ` · ${r.short.map(x => x.dept).join(' and ')} short` : ''}</div>
           </div>
         </div>
         <div class="att-bars">
@@ -3798,7 +3806,10 @@ async function renderDashboard() {
     // rail is 240px wide and carries the segments alone. Same rows, same order,
     // so the two can never show a different score.
     const segHtml = withLabels => `
-      <div class="ht-k">${hitRows.length} of ${benchRows.length} targets reached</div>
+      <div class="ht-k">${hitRows.length} of ${benchRows.length} targets reached${(() => {
+        const n = hitRows.filter(r => r.short && r.short.length).length;
+        return n ? ` · ${n} with a department short` : '';
+      })()}</div>
       <div class="ht-seg">
         ${strip.map(r => {
           if (r.why) return `<span class="ht-cell na" title="${escapeHtml(r.name.replace(/\s*%$/, ''))}: ${r.why}">
@@ -3806,8 +3817,10 @@ async function renderDashboard() {
             ${withLabels ? `<span class="ht-lbl">${escapeHtml(r.name.replace(/\s*%$/, '').replace(/ Avg Bill$/, ' bill'))}<small>${r.why}</small></span>` : ''}
           </span>`;
           const pct = Math.round(r.att * 100);
-          return `<span class="ht-cell${r.att >= 1 ? ' on' : ''}"
-            title="${escapeHtml(r.name.replace(/\s*%$/, ''))}: ${r.fmt(r.combined)} of ${r.fmt(r.target)} · ${pct}%">
+          const part = r.att >= 1 && r.short && r.short.length;
+          return `<span class="ht-cell${r.att >= 1 ? ' on' : ''}${part ? ' part' : ''}"
+            title="${escapeHtml(r.name.replace(/\s*%$/, ''))}: ${r.fmt(r.combined)} of ${r.fmt(r.target)} · ${pct}%${part
+              ? ' · ' + r.short.map(x => `${x.dept} ${r.fmt(x.v)} of ${r.fmt(x.t)}`).join(', ') : ''}">
             <span class="ht-bar"></span>
             ${withLabels ? `<span class="ht-lbl">${escapeHtml(r.name.replace(/\s*%$/, '').replace(/ Avg Bill$/, ' bill'))}</span>` : ''}
           </span>`;
@@ -3940,11 +3953,16 @@ async function renderDashboard() {
   const blendedAvgTarget = s.totalClients
     ? ((TARGETS.hairAvgBill * (s.hairTotalClients || 0)) + (TARGETS.beautyAvgBill * (s.beautyTotalClients || 0))) / s.totalClients
     : TARGETS.hairAvgBill;
-  const avgBillStatus = TARGETS.hairAvgBill == null ? '' : band(avgBillOf(s), blendedAvgTarget);
   const hairAvgOk   = (s.hairAvgBill || 0) >= TARGETS.hairAvgBill;
   const beautyAvgOk = s.beautyAvgBill != null && s.beautyAvgBill >= TARGETS.beautyAvgBill;
+  // OP4: the blended figure can clear its bar while one department misses its own.
+  // Then the card says which, in amber, instead of a plain "On target".
+  const avgShort = [!hairAvgOk && s.hairAvgBill != null ? 'Hair' : null,
+                    hasBeauty && s.beautyAvgBill != null && !beautyAvgOk ? 'Beauty' : null].filter(Boolean);
+  const avgBand = TARGETS.hairAvgBill == null ? '' : band(avgBillOf(s), blendedAvgTarget);
+  const avgBillStatus = (avgBand === 'good' && avgShort.length) ? 'warn' : avgBand;
   const avgBillVerdict = TARGETS.hairAvgBill == null ? 'No target yet'
-    : avgBillStatus === 'good' ? 'On target'
+    : avgBand === 'good' ? (avgShort.length ? `On target, ${avgShort.join(' and ')} short` : 'On target')
     : (hairAvgOk && s.beautyAvgBill != null && !beautyAvgOk) ? 'Beauty is dragging it'
     : avgBillStatus === 'warn' ? 'Nearly' : 'Below target';
 
