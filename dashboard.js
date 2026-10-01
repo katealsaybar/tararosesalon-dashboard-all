@@ -4088,7 +4088,9 @@ async function renderDashboard() {
     return [
       { k:'Top biller',       p:tBill, n:tBill[revKey] || 0,  v:`<b>${aed0(tBill[revKey] || 0)}</b> net take · ${num0(tBill.total)} visits` },
       { k:'Highest avg bill', p:tAvg,  n:tAvg.avgBill  || 0,  v:`<b>${aed0(tAvg.avgBill || 0)}</b> avg · ${num0(tAvg.total)} visits` },
-      { k:'Most requested',   p:tReq,  n:tReq.req      || 0,  v:`<b>${num0(tReq.req || 0)} requests</b> of ${num0(tReq.total)} visits` },
+      // Kate, 1 Oct 2026: `req` is returning clients who asked for her by name, not
+      // the tables' NCR column (new clients who did), so the card says which it is.
+      { k:'Requested by regulars', p:tReq, n:tReq.req || 0, v:`<b>${num0(tReq.req || 0)} requests</b> of ${num0(tReq.total)} visits` },
       { k:'Most new clients', p:tNew,  n:tNew.newC     || 0,  v:`<b>${num0(tNew.newC || 0)} new</b> of ${num0(tNew.total)} visits` },
     ].filter(w => w.n > 0);   // no data, no card
   };
