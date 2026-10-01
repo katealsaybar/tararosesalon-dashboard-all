@@ -1,23 +1,29 @@
--- Phase B of the dashboard sign-in (Kate, 25 Sep 2026). SUPERSEDED 1 Oct 2026 by dashboard_lock_round1.sql (+ round 2); never run as written.
--- Takes the public key's access away, so only signed-in people on dashboard_users
--- (Phase A) can read or change the dashboard's data.
+-- The dashboard lock, round 1 of 2 (Kate, 1 Oct 2026). Replaces the parked Phase B
+-- (dashboard_sign_in_phase_b.sql, 25 Sep), which predates stock_order_lines.
 --
--- Run ONLY after all three Apps Scripts send DASH_SERVICE_KEY instead of the public key:
---   sync-all-branches.gs, backfill-weekly-ledgers.gs, sync-voucher-redemptions.gs
--- Otherwise the ledger sync, the nightly backfill and the voucher redemption sync stop.
+-- Until now 21 tables answered to anyone holding the public key, and that key is in the
+-- public repo. This round takes the public key off the 13 that nothing writes with it any
+-- more; every one of them already has dashboard_users_read (anyone on dashboard_users) and
+-- the owner's write rules, so signed-in people keep exactly what they had.
 --
--- Left open on purpose:
---   event_allocations / event_allocation_log  (the public MediCube x Attria page)
---   perf_* RPCs  (stylists' own performance links; security definer, token-checked)
---   dashboard_email_allowed / dashboard_data_asof  (the sign-in card)
+-- Checked before running, in the edge logs for 29 Sep to 1 Oct: the Apps Scripts write with
+-- the secret key; the only signed-out reads of these tables from the live site were the
+-- Reviews frame loading before sign-in (fixed in 254b9cc, it now loads on opening).
+--
+-- Round 2 (the six tables the Phorest pushers write: sales_transaction_lines,
+-- staff_financial_totals, phorest_staff_daily, staff_utilisation, financial_totals,
+-- stock_order_lines) waits for the pushers' .supabase-secret file.
+--
+-- Left open on purpose: event_allocations / event_allocation_log (the public MediCube page),
+-- the perf_* RPCs (stylists' own links, token-checked), the sign-in card's functions.
+--
+-- To undo one table: create policy anon_all on public.<table> for all to anon using (true) with check (true);
 
 do $$
 declare t text;
 begin
-  foreach t in array array['branch_staff_daily','branch_targets','closed_days',
-    'financial_totals','phorest_staff_daily','product_usage','sales_transaction_lines',
-    'service_data','staff_financial_totals','staff_status','staff_targets','staff_utilisation',
-    'top_services']
+  foreach t in array array['branch_staff_daily','branch_targets','closed_days','product_usage',
+    'service_data','staff_status','staff_targets','top_services']
   loop
     execute format('drop policy if exists anon_all on public.%I', t);
   end loop;
@@ -34,8 +40,8 @@ drop policy if exists anon_read on public.google_reviews;
 drop policy if exists snv_read on public.staff_name_variants;
 
 -- The client-credit view runs as its owner (it needs perf_staff, which holds stylists'
--- private tokens), so it can't lean on table policies. Keep it that way, but only
--- answer for people on the list.
+-- private tokens), so table rules don't reach it. Same view, answering only people on the
+-- dashboard list, and closed to the public key.
 create or replace view public.google_review_client_credit as
  WITH visits AS MATERIALIZED (
          SELECT DISTINCT g.review_id, g.review_date, g.branch, g.comment, s.employee_name
@@ -52,6 +58,3 @@ create or replace view public.google_review_client_credit as
     AND (SELECT public.is_dashboard_user());
 revoke all on public.google_review_client_credit from anon;
 grant select on public.google_review_client_credit to authenticated;
-
-revoke execute on function public.get_service_years, public.get_top_clients,
-  public.get_top_services, public.get_top_services_agg from anon;
