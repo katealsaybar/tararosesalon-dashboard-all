@@ -893,6 +893,13 @@ async function renderTeam() {
 
 (async () => {
   try {
+    // Her name link (Kate, 1 Oct 2026): trk-salon-os.com/me/<slug> lands here as
+    // ?s=<slug> (404.html), and the slug is swapped for her token, after which the
+    // page is the same one the payslip email's ?t= link opens.
+    if (!TOKEN && qs.get('s')) {
+      TOKEN = await rpc('perf_slug_token', { p_slug: qs.get('s') });
+      if (!TOKEN) { app.innerHTML = `<p class="err">This link isn't active. Ask your salon manager for a new one.</p>`; return; }
+    }
     if (TOKEN || (SID && ADMIN)) await renderStylist();
     else if (ADMIN) await renderTeam();
     else app.innerHTML = `<p class="err">Open this page from the link in your performance email.</p>`;
