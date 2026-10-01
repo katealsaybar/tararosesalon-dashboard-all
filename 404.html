@@ -15,6 +15,8 @@
   (function () {
     var m = location.pathname.match(/^\/me\/([a-z0-9-]+)\/?$/i);
     if (m) location.replace('/performance/?s=' + encodeURIComponent(m[1].toLowerCase()));
+    // Kate, 1 Oct 2026: /home is what people type for Team Home, which lives at /hub/.
+    else if (/^\/(home|team|kb|sop|sops)\/?$/i.test(location.pathname)) location.replace('/hub/');
   })();
 </script>
 <style>
@@ -31,7 +33,7 @@
   <main>
     <h1>This page isn't here</h1>
     <p>The link may be old or mistyped.</p>
-    <a href="/">Go to the dashboard</a>
+    <a href="/hub/">Go to Team Home</a>
   </main>
 </body>
 </html>
