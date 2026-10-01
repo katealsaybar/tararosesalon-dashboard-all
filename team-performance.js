@@ -575,6 +575,10 @@ const tpQuadAddon = aim => ({
   grow:  { t: 'Retail, not treatments', cls: 'warn', d: `Retail at or above ${aim}, treatments under it. The treatment conversation.` },
 });
 
+// The phone band mobile.css uses. Crossing it (a phone turned on its side) redraws
+// the chart at the other size.
+const TP_PHONE = matchMedia('(max-width:760px),(hover:none) and (max-height:480px)');
+TP_PHONE.addEventListener('change', () => { if (tpPart() === 'quad') renderTeam(); });
 function tpQuadrant(roster) {
   const months = tpWindowMonths();
   const levels = tpLevels || {};
@@ -607,7 +611,13 @@ function tpQuadrant(roster) {
     : (st => byLevel ? (st.rebookPct || 0) / aimOf(st).rebook * 100 : (st.rebookPct || 0));
   const xSplit = byLevel ? 100 : addon ? TARGETS.treatmentPct : median;
   const ySplit = byLevel ? 100 : addon ? TARGETS.retailPct : target;
-  const W = 820, H = 500, pad = { l: 58, r: 22, t: 26, b: 46 }, IW = 34, IH = 40;
+  // Kate, 1 Oct 2026: on a phone the 820-wide chart shrank to a third, so every label
+  // read at 4px. The phone draws its own narrower, taller canvas with smaller faces,
+  // which keeps the text near its real size. Desktop geometry is unchanged.
+  const phone = TP_PHONE.matches;
+  const W = phone ? 360 : 820, H = phone ? 470 : 500;
+  const pad = phone ? { l: 50, r: 10, t: 22, b: 42 } : { l: 58, r: 22, t: 26, b: 46 };
+  const IW = phone ? 26 : 34, IH = phone ? 31 : 40;
   const aimMax = vs => Math.min(300, Math.max(150, Math.ceil(Math.max(...vs) / 50) * 50));
   // A bench percentage: room for twice the target, or the highest point, to the next 10%.
   const pctMax = (vs, split) => Math.min(100, Math.max(split * 2, Math.ceil(Math.max(...vs) / 10) * 10));
@@ -645,7 +655,7 @@ function tpQuadrant(roster) {
   const yTicks = (byLevel || addon) ? [0, .25, .5, .75, 1].map(f => Math.round(yMax * f)) : [0, 25, 50, 75, 100];
   const axes = yTicks.map(v =>
       `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}" class="tp-q-grid"/>
-       <text x="${pad.l - 10}" y="${y(v) + 4}" text-anchor="end" class="tp-q-ax">${v}%</text>`).join('')
+       <text x="${pad.l - (phone ? 6 : 10)}" y="${y(v) + 4}" text-anchor="end" class="tp-q-ax">${v}%</text>`).join('')
     + [0, .25, .5, .75, 1].map(f =>
       `<text x="${x(xMax * f)}" y="${H - pad.b + 20}" text-anchor="middle" class="tp-q-ax">${(byLevel || addon) ? Math.round(xMax * f) + '%' : k(xMax * f)}</text>`).join('');
 
@@ -704,9 +714,11 @@ function tpQuadrant(roster) {
     <line x1="${pad.l}" x2="${W - pad.r}" y1="${y(ySplit)}" y2="${y(ySplit)}" class="tp-q-tgt"/>
     <text x="${W - pad.r}" y="${y(ySplit) - 7}" text-anchor="end" class="tp-q-tgt-l">${L.yLine}</text>
     <line x1="${x(xSplit)}" x2="${x(xSplit)}" y1="${pad.t}" y2="${H - pad.b}" class="tp-q-med"/>
-    <text x="${x(xSplit) + 6}" y="${pad.t + 14}" class="tp-q-ax">${L.xLine}</text>
+    ${phone && x(xSplit) > W * 0.55
+      ? `<text x="${x(xSplit) - 6}" y="${pad.t + 14}" text-anchor="end" class="tp-q-ax">${L.xLine}</text>`
+      : `<text x="${x(xSplit) + 6}" y="${pad.t + 14}" class="tp-q-ax">${L.xLine}</text>`}
     <text x="${(pad.l + W - pad.r) / 2}" y="${H - 6}" text-anchor="middle" class="tp-q-ttl">${L.xT}</text>
-    <text transform="translate(14 ${(pad.t + H - pad.b) / 2}) rotate(-90)" text-anchor="middle" class="tp-q-ttl">${L.yT}</text>
+    <text transform="translate(${phone ? 10 : 14} ${(pad.t + H - pad.b) / 2}) rotate(-90)" text-anchor="middle" class="tp-q-ttl">${L.yT}</text>
     ${leaders}${faces}</svg>`;
 
   const chip = st => `<span class="tp-q-chip" data-k="${escapeHtml(tpKey(st))}" onmouseenter="tpQHl(this,true)" onmouseleave="tpQHl(this,false)" onclick="tpQHl(this,true)">${tpAvatar(st.name, 'xs')}<span class="tp-q-cn">${escapeHtml(tpTitle(st.name))}</span></span>`;
@@ -742,8 +754,13 @@ function tpQuadrant(roster) {
       <button type="button" class="${addon ? '' : 'on'}" onclick="tpSetQMetric('takings')">Takings vs Rebooking</button>
     </div>`;
 
+  // On a phone the label keeps only what the chart needs to be read; the rest of the
+  // legend is the same on every visit and pushed the chart off the first screen.
+  const note = phone
+    ? `tap a face to compare · shaded corner: above both aims${why ? ' · ' + why : ''}`
+    : `${legend} · a dot and a thin line mean the face was moved off its exact spot to stay readable · point at a name to find her${why ? ' · ' + why : ''}`;
   return `<div class="section-label">${L.title}
-      <span class="tp-sec-n">${legend} · a dot and a thin line mean the face was moved off its exact spot to stay readable · point at a name to find her${why ? ' · ' + why : ''}</span></div>
+      <span class="tp-sec-n">${note}</span></div>
     <div class="tp-q-segs">${metricSeg}${basisSeg}</div>
     <div class="tp-quad">
 

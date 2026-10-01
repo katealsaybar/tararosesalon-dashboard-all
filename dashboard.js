@@ -4404,15 +4404,16 @@ ${actionHtml}
 <div class="card">
   <div class="card-title">Every figure behind this read</div>
   <div class="card-sub">Revenue, clients and benchmarks, each against its ledger target — plus the full staff tables.</div>
-  <a class="r-more" href="#" onclick="showView('branchperf', document.querySelector('[onclick*=&quot;branchperf&quot;]'));return false">Open Branch Performance <span aria-hidden="true">→</span></a>
+  <a class="r-cta" href="#" onclick="showView('branchperf', document.querySelector('[onclick*=&quot;branchperf&quot;]'));return false">Open Branch Performance <span aria-hidden="true">→</span></a>
 </div>
 
-<div class="fine">
+<!-- Kate, 1 Oct 2026: the notes fold into a dropdown (nobody reads them unasked), and
+     only two stay: what net take means, and the sources in plain words. -->
+<details class="fine">
+  <summary>How these figures are worked out</summary>
   <p><b>What net take means</b>. Everything the salon billed in the period: hair and beauty services, treatments and courses, plus retail, added together, before staff cost. Hair net take and beauty net take are each that department's own services plus its own retail, so the two add up to the total.</p>
-  <p><b>Sources</b>. Client counts, the department split and the treatment figure come from the branch ledger (<code>branch_staff_daily</code>); revenue comes from Phorest (<code>phorest_staff_daily</code>), matched to the ledger's staff and day. Figures tagged <span style="font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle">LEDGER</span> on Branch Performance are hand-tallied and have no Phorest equivalent. Utilisation is matched separately and drops out entirely when the period has no roster hours to match, rather than scoring as zero.</p>
-  <p><b>What is scored and what is not</b>. Seven benchmarks carry a single unambiguous target and are raced against it, worst first. Total Clients is not one of them: its target is stated per week and per branch, so multiplying it across whatever window the filter happens to hold would measure the window, not the salon. It sits in the headline three with its target printed as a note. Net take and Clients are read against the previous period for the same reason.</p>
-  <p><b>Layout rules</b>. One token set, 10px radius, 8pt spacing spine, Playfair for figures and Inter for labels. Colour carries status only; the accent quartet carries identity. Three headline cards, never twenty-one. Anything below target sorts by the size of its gap. No data, no card.</p>
-</div>
+  <p><b>Sources</b>. Client counts, the hair and beauty split and treatments come from the branch ledger; revenue comes from Phorest, matched to the ledger by staff and day. Figures tagged <span style="font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle">LEDGER</span> on Branch Performance are hand-tallied and have no Phorest equivalent.</p>
+</details>
   `;
 
   // Nothing on this page collapses any more — the five support sections that did
