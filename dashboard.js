@@ -862,15 +862,45 @@ function getWeeklyTarget(branches) {
     : `≈ AED ${min}k–${max}k / week`;
 }
 
+// Kate, 1 Oct 2026 (Comet OP3): one client target. It used to be a hardcoded weekly
+// range here (SAA 700–800 a week and so on, 2,800–3,200 for all four, which only
+// matched as a MONTHLY total) while the Ledgers read a different hand-typed monthly
+// figure (Saadiyat and Khalifa at a placeholder 100). Now both read the same thing:
+// the monthly Total clients per branch keyed in the Upload Portal's Monthly Targets
+// tab (branch_targets, via lgLoadDbTargets in ledger-targets-db.js), on the handled
+// count. The Pulse prorates it to its window by days. No uploaded figure, no target.
+const ymOf = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+function windowMonths(from, to) {
+  const out = [];
+  for (let d = new Date(from.getFullYear(), from.getMonth(), 1); d <= to; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) out.push(ymOf(d));
+  return out;
+}
+async function loadClientTargets() {
+  if (!dateFrom || !dateTo || typeof lgLoadDbTargets !== 'function') return;
+  await Promise.all(windowMonths(dateFrom, dateTo).map(m => lgLoadDbTargets(m).catch(() => null)));
+}
 function getClientTarget(branches) {
-  const map = { SAA:[700,800], KCA:[500,650], AQ:[700,900], MC:[500,650], FRT:[500,600] };
-  if (isGroupView()) return 'none for the Group (the UAE one is for the UAE alone)';
-  if (branches.every(b => BH_BRANCHES.includes(b))) return 'none set for Bahrain yet';
-  if (branches.includes('all')) return '2,800–3,200 / week (All Branches Combined)';
-  let min = 0, max = 0;
-  branches.forEach(b => { if (map[b]) { min += map[b][0]; max += map[b][1]; } });
-  return (min === 0 && max === 0) ? 'Target varies by branch'
-    : `${min.toLocaleString()}–${max.toLocaleString()} / week`;
+  if (isGroupView()) return 'No client target for the Group (the UAE one is for the UAE alone)';
+  if (branches.every(b => BH_BRANCHES.includes(b))) return 'No client target set for Bahrain yet';
+  if (!dateFrom || !dateTo || typeof LG_DB_TARGETS === 'undefined') return 'No client target uploaded';
+  const codes = branches.includes('all') ? UAE_ACTIVE : branches;
+  let total = 0, monthly = 0, full = true;
+  const missing = [];
+  windowMonths(dateFrom, dateTo).forEach(m => {
+    const [y, mo] = m.split('-').map(Number), days = new Date(y, mo, 0).getDate();
+    const a = new Date(Math.max(dateFrom, new Date(y, mo - 1, 1))), b = new Date(Math.min(dateTo, new Date(y, mo - 1, days)));
+    const covered = Math.round((b - a) / 86400000) + 1;
+    if (covered < days) full = false;
+    const t = LG_DB_TARGETS[m];
+    const vals = codes.map(c => t && t.branch && t.branch[c] ? t.branch[c].totalClients : undefined);
+    if (vals.some(v => v === undefined || v === null)) { missing.push(MON_LONG[mo - 1]); return; }
+    const sum = vals.reduce((x, v) => x + v, 0);
+    monthly = sum; total += sum * covered / days;
+  });
+  if (missing.length) return `No client target uploaded for ${missing.join(', ')}`;
+  const n = Math.round(total).toLocaleString('en-GB');
+  return full ? `Target ${n} (handled, from the Monthly Targets)`
+    : `Target ${n} for these dates (${monthly.toLocaleString('en-GB')} a month, handled)`;
 }
 
 // ── DROPDOWN HELPERS ────────────────────────────────────────
@@ -3553,6 +3583,9 @@ async function renderDashboard() {
     } catch(e) { prevS = null; }
   }
 
+  // The month(s) of client targets the Clients card reads (OP3).
+  try { await loadClientTargets(); } catch (e) { /* no target is a valid answer */ }
+
   // Clients through the door, for the switch in the filter bar. Fetched either way,
   // so flipping it never waits on the network twice.
   {
@@ -3665,11 +3698,10 @@ async function renderDashboard() {
 
   // ── BENCHMARKS ───────────────────────────────────────────────────
   // The draft scored eight rows; this scores seven. Total Clients is deliberately
-  // NOT one of them: getClientTarget() is stated PER WEEK, so multiplying it out
-  // across an arbitrary filter window produces an attainment figure that says
-  // more about the length of the window than about the salon. It keeps its place
-  // in the headline three, with its target printed as a note rather than raced
-  // against a bar. Kate, 2026-08-14.
+  // NOT one of them. It keeps its place in the headline three, with its target
+  // printed as a note rather than raced against a bar. Kate, 2026-08-14. (Since
+  // 1 Oct 2026 that target is the uploaded monthly figure, prorated to the window:
+  // see getClientTarget.)
   const NCR_TARGET = 20;   // the same figure the old NCR card scored against
   const benchAll = [
     { name:'NCR %',           sub:`target ${NCR_TARGET}%`,
@@ -3940,10 +3972,8 @@ async function renderDashboard() {
   }
 
   // ── HEADLINE THREE ───────────────────────────────────────────────
-  // Net take and Clients have no single target in this app — getWeeklyTarget()
-  // and getClientTarget() are both stated per week and per branch — so they are
-  // scored against the previous period instead of against a number that would
-  // have to be invented. Avg bill has a real target on both sides, so it gets
+  // Net take and Clients are scored against the previous period; the Clients
+  // card prints its uploaded monthly target (getClientTarget) as a note. Avg bill has a real target on both sides, so it gets
   // the blended one and is scored properly.
   const noCompare = { status:'warn', txt:'No comparable previous period', verdict:'No comparison' };
   const trendOf = (curr, prev) => {
@@ -4006,7 +4036,7 @@ async function renderDashboard() {
           ? 'Handled, not through the door: Phorest’s Sales Transactions have no count for this selection (Bahrain is not in them), so this is each staff member’s clients from the ledgers.'
           : 'Handled: each staff member counts the clients she served (ledgers), hair and beauty.',
       v: num0(clientsOf(s)), status: clientTrend.status,
-      t: `Target ${getClientTarget(sel.branch)}`, verdict: clientTrend.verdict,
+      t: getClientTarget(sel.branch), verdict: clientTrend.verdict,
       splits: splitsOf([
         { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} clients`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
         { k:'Beauty', val:s.beautyTotalClients, of:s.totalClients, txt:`${num0(s.beautyTotalClients)} clients`, extra:`${shareOf(s.beautyTotalClients, s.totalClients)}%`, color:'var(--beauty)' },

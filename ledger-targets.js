@@ -66,10 +66,12 @@ const LEDGER_TARGETS = {
   // beauty) does not reconcile either way and is carried as the sheet has it.
   // When the September sheet lands, key its hair block here whatever it is headed.
   //
-  // Client-count targets come from the branch sections, which DO reconcile:
-  // 100 + 100 + 270 + 400 = 870 total, 225 new, 150 NCR, matching the group row.
-  // Flagged for Kate: Saadiyat and Khalifa are set to 100 clients/month against
-  // ~780 and ~640 actual, so those two look like placeholders rather than targets.
+  // No head counts here (Kate, 1 Oct 2026, Comet OP3). The sheet's client counts
+  // (100 / 100 / 270 / 400 total clients, with new, NCR and rebooked beside them)
+  // were placeholders for Saadiyat and Khalifa and did not match any other client
+  // target on the dashboard. Client targets now have one definition: monthly, per
+  // branch, on the handled (ledger) count, keyed in the Upload Portal's Monthly
+  // Targets tab (branch_targets). A month with nothing keyed shows no target.
   branch: {
     SAA: {
       servicesTotal:     570000,
@@ -78,11 +80,6 @@ const LEDGER_TARGETS = {
       hairTreatment:      62400,
       hairRetail:         50000,
       beautyServices:     70000,
-      totalClients:         100,
-      newClients:            75,
-      ncr:                   50,
-      rebooked:              80,
-      beautyRebooked:        15,
     },
     KCA: {
       servicesTotal:     530000,
@@ -91,11 +88,6 @@ const LEDGER_TARGETS = {
       hairTreatment:      60600,
       hairRetail:         30000,
       beautyServices:     45000,
-      totalClients:         100,
-      newClients:            75,
-      ncr:                   50,
-      rebooked:              80,
-      beautyRebooked:        15,
     },
     AQ: {
       servicesTotal:     152500,
@@ -104,11 +96,6 @@ const LEDGER_TARGETS = {
       hairTreatment:      18120,
       hairRetail:         11500,
       beautyServices:     21500,
-      totalClients:         270,
-      newClients:            25,
-      ncr:                   25,
-      rebooked:              80,
-      beautyRebooked:        15,
     },
     // Motor City runs hair only, so beautyServices is 0 rather than absent —
     // the pacing panel carries it as a real zero and the page renders a dash.
@@ -119,11 +106,6 @@ const LEDGER_TARGETS = {
       hairTreatment:      30000,
       hairRetail:         20000,
       beautyServices:         0,
-      totalClients:         400,
-      newClients:            50,
-      ncr:                   25,
-      rebooked:             140,
-      beautyRebooked:         0,
     },
   },
 
