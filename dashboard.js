@@ -3995,9 +3995,12 @@ async function renderDashboard() {
       ${doorOn(s) ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">handled by staff</span><span class="r-val tabular" style="opacity:.75">${num0(s.totalClients)}</span></div>` : ''}
       <div class="r-row"><span class="r-label">Avg bill</span><span class="r-val tabular">${num0(avgBillOf(s))}</span></div>
       ${s.doorClients != null ? `<div class="r-cl" role="group" aria-label="How clients are counted">
-        <span class="r-cl-k">Count clients</span>
+        <span class="r-cl-k">Client count</span>
         <span class="r-cl-seg">${[['handled', 'Handled'], ['door', 'Through the door']].map(([v, l]) =>
-          `<button type="button" aria-pressed="${CLIENT_BASIS === v}" onclick="pulseSetClients('${v}')">${l}</button>`).join('')}</span></div>` : ''}
+          `<button type="button" aria-pressed="${CLIENT_BASIS === v}" onclick="pulseSetClients('${v}')">${l}</button>`).join('')}</span>
+        <span class="r-cl-n">${CLIENT_BASIS === 'door'
+          ? 'Each client once a day, however many staff she saw.'
+          : 'Each staff member counts her own clients, so a client seen by two counts twice. Targets use this.'}</span></div>` : ''}
       ${targetsBlock}
       <div class="r-rule"></div>
       <div class="r-foot">All money in ${CUR()} · takings before staff cost</div>`;

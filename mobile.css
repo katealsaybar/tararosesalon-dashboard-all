@@ -25,6 +25,10 @@
   .topbar .mast,.topbar.stuck .mast{padding:6px 0}
   .mast-top{align-items:center;min-height:44px}
   .mast-logo,.topbar.stuck .mast-logo{width:108px}
+  /* Kate, 1 Oct 2026: with the acts fixed, a tight row squeezed the lockup instead, and
+     SALONS (which has a 7.5px floor) ended up wider than TARA ROSE. The lockup holds its
+     size; the filters pill is what gives way, it already truncates. */
+  .mast-top > .mast-logo,.mast-top > .m-logo-hit,.m-logo-hit > .mast-logo{flex-shrink:0}
   /* Scrolling down tucks it away, any scroll up brings it back (mobile.js). */
   .topbar.tb-hide{transform:translateY(-100%);box-shadow:none}
   /* Kate, 28 Sep 2026: bars that park under the header (Stylist Levels' pills) left
@@ -34,7 +38,8 @@
   body:has(.topbar.tb-hide) .slv-top{top:env(safe-area-inset-top)}
 
   /* Buttons. Dark mode moves into the drawer; Hide filters becomes the sheet. */
-  .mast-acts,body.ledger-chrome .mast-acts{display:flex;flex-wrap:nowrap;gap:8px;flex-shrink:0}
+  .mast-acts,body.ledger-chrome .mast-acts{display:flex;flex-wrap:nowrap;gap:8px;flex-shrink:1;min-width:0}
+  .mast-acts > *{flex-shrink:0}   /* the round buttons keep their size; #fSheetBtn shrinks */
   /* Sign out lives in the drawer's footer on a phone (Log Out); the greeting is
      already hidden under 760px by the page's own rule. */
   #filtersBtn,#themeBtn,#signOutBtn{display:none!important}
@@ -53,7 +58,7 @@
                linear-gradient(currentColor,currentColor) 0 50%/100% 2px no-repeat,
                linear-gradient(currentColor,currentColor) 0 100%/100% 2px no-repeat}
   #fSheetBtn{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 14px;
-    max-width:min(52vw,220px);font-size:12.5px;letter-spacing:.02em;text-transform:none;color:var(--text)}
+    max-width:min(52vw,220px);min-width:0;flex-shrink:1;font-size:12.5px;letter-spacing:.02em;text-transform:none;color:var(--text)}
   #fSheetBtn.off{display:none}
   #fSheetBtn svg{flex-shrink:0}
   #fSheetSum{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
@@ -443,6 +448,8 @@
 /* ===== SMALL PHONES (≤ 480px) ===== */
 @media(max-width:480px){
   .mast-logo,.topbar.stuck .mast-logo{width:100px}
+  /* Kate, 1 Oct 2026: a step smaller on 360-380px phones, so the filters pill keeps a word or two. */
+  @media(max-width:380px){.mast-logo,.topbar.stuck .mast-logo{width:88px}}
   body:not(.orgchart-pop) .oc-photo{height:44px}
   body:not(.orgchart-pop) .oc-node,body:not(.orgchart-pop) .oc-node.has-photo{column-gap:9px;padding:7px 9px}
   #fSheetBtn{padding:0 11px;max-width:48vw}
