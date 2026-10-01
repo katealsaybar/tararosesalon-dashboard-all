@@ -42,8 +42,9 @@ const state = {branches:new Set(BRANCHES), stars:new Set(ALL), rec:"all", withTe
 //   not_after: never right after that word (the table's own exceptions)
 // People who aren't in staff-profiles.js (kept off Staff Cards on purpose) but
 // whose reviews still count come from the table too: label / home_branch / photo
-// on their name row. Daisy Cropper, Managing Director of TRS Bahrain, is one, so
-// Bahrain reviews count for whoever's home it is.
+// / role (role decides hair or beauty) on their name row. Daisy Cropper, Managing
+// Director of TRS Bahrain, is one, so Bahrain reviews count for whoever's home it
+// is; Kerryn, Charlene, Simi and Farwa (Bahrain, 1 Oct 2026) are the others.
 const BR_OF = {KCA:"Khalifa City A, Abu Dhabi", SAA:"Saadiyat, Abu Dhabi", MC:"Motor City, Dubai", AQ:"Al Quoz, Dubai", BAH:"District 2, Bahrain"};
 const MONTH_BEFORE = /(?:\b(?:in|on|of|since|last|this|next|early|late|mid|from|until|till|during|by)\s+)$/i;
 const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -60,7 +61,7 @@ async function loadClientCredit(){
 }
 async function loadVariants(){
   try {
-    const res = await fetch(`${SUPA_URL}/rest/v1/staff_name_variants?select=staff_key,variant,strict,not_after,label,home_branch,photo`, {headers:authHeaders()});
+    const res = await fetch(`${SUPA_URL}/rest/v1/staff_name_variants?select=staff_key,variant,strict,not_after,label,home_branch,photo,role`, {headers:authHeaders()});
     if (res.ok) VARIANTS = await res.json();
   } catch (e) { console.warn("staff_name_variants unreachable, matching on first names only", e); }
 }
@@ -80,8 +81,8 @@ function buildStaff(){
   };
   // People in the table with no profile: name row carries label / home_branch / photo.
   const extra = Object.entries(by).filter(([k]) => !STAFF_PROFILES[k]).map(([k, vs]) => {
-    const row = vs.find(v => v.label || v.home_branch || v.photo) || vs[0];
-    return make(k, {branch: row.home_branch, photoFull: row.photo || null}, row.label || row.variant);
+    const row = vs.find(v => v.label || v.home_branch || v.photo || v.role) || vs[0];
+    return make(k, {branch: row.home_branch, photoFull: row.photo || null, role: row.role || ""}, row.label || row.variant);
   });
   STAFF = [...Object.entries(STAFF_PROFILES).filter(([k]) => !k.includes("/")).map(([k,p]) => {
     const label = k.length <= 2 ? k : k.toLowerCase().replace(/(^|\s)[a-z]/g, c => c.toUpperCase());
