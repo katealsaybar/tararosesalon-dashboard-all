@@ -194,6 +194,38 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 .kb-pager a:hover{border-color:var(--text)}
 .kb-pager small{display:block;color:var(--muted2);font-size:12px}
 .kb-pager .next{text-align:right;margin-left:auto}
+/* ── Reader (Kate, 1 Oct 2026): chapters down the side, Workbook | Text ── */
+.kb-reader{display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px;align-items:start}
+.kb-toc{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;padding:4px 4px 12px 0}
+.kb-toc summary{list-style:none;cursor:default;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);font-weight:600;margin:0 0 6px}
+.kb-toc summary::-webkit-details-marker{display:none}
+.kb-toc summary span{letter-spacing:0;font-weight:500}
+.kb-toc-g{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);margin:14px 0 4px}
+.kb-toc ul{list-style:none;margin:0;padding:0}
+.kb-toc a{display:block;padding:5px 10px;border-radius:8px;font-size:14px;line-height:1.35;text-decoration:none;color:var(--muted)}
+.kb-toc a:hover{background:var(--surface2);color:var(--text)}
+.kb-toc a.on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:inset 3px 0 0 var(--accent-mint)}
+.kb-read{min-width:0;max-width:860px}
+.kb-read .kb-pager{max-width:none}
+.kb-view{display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:3px;gap:3px;margin:0 0 16px;background:var(--surface)}
+.kb-view button{font:inherit;font-size:13.5px;border:0;border-radius:999px;padding:7px 16px;min-height:36px;background:transparent;color:var(--muted);cursor:pointer}
+.kb-view button[aria-pressed="true"]{background:var(--text);color:var(--bg);font-weight:600}
+.kb-doc .kb-sheets{display:flex;flex-direction:column;gap:16px}
+.kb-doc img.kb-sheet{max-width:100%;width:100%;height:auto;margin:0;border-radius:6px;background:var(--surface2);aspect-ratio:595/842;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.kb-doc.has-sheets{padding:16px}
+.kb-doc.has-sheets.show-text{padding:28px 34px 32px}
+.kb-doc.has-sheets:not(.show-text) .kb-text{display:none}
+.kb-doc.show-text .kb-sheets{display:none}
+@media (max-width:900px){
+  .kb-reader{display:block}
+  .kb-toc{position:static;max-height:none;margin:0 0 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:0}
+  .kb-toc summary{cursor:pointer;padding:12px 16px;margin:0;display:flex;justify-content:space-between;align-items:center;min-height:44px;box-sizing:border-box}
+  .kb-toc summary::after{content:"\25BE";font-size:14px;letter-spacing:0}
+  .kb-toc[open] summary::after{content:"\25B4"}
+  .kb-toc nav{padding:0 8px 12px;max-height:60vh;overflow:auto}
+  .kb-doc.has-sheets{padding:8px}
+  .kb-doc.has-sheets.show-text{padding:20px 18px 22px}
+}
 .kb-msg{padding:40px 0;color:var(--muted)}
 
 .kb-foot{margin-top:48px;font-size:12.5px;color:var(--muted2)}
