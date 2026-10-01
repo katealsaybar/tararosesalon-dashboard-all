@@ -13,7 +13,9 @@
   try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Tara Rose Ladies Salon — Dashboard</title>
+<!-- Kate, 1 Oct 2026: the signed-out page is Team Home's door and matches the Google sign-in app name;
+     enterDashboard() retitles it once the dashboard opens. -->
+<title>Team Home · Tara Rose Salons</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/favicon-96x96.png" sizes="96x96" type="image/png">
 <link rel="shortcut icon" href="assets/favicon.ico">
@@ -1736,6 +1738,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   background:rgba(124,92,212,0.12);
 }
 .login-divider{height:0;border-top:1px dashed #b8b0a4;}
+.login-about{margin:2px 0 0;max-width:330px;text-align:center;font-size:13px;line-height:1.5;color:#565049}
 .login-label{
   font-size:14px;letter-spacing:0.1em;text-transform:uppercase;
   color:var(--muted);
@@ -2811,6 +2814,8 @@ table.tp-cmp td.bad{color:var(--bad)}
         (function () { var n = new URLSearchParams(location.search).get('next') || '';
           if (window.TRS_BARE_ROOT || n.indexOf('/hub/') === 0) document.getElementById('loginDashLbl').textContent = 'Team Home'; })();
       </script>
+      <!-- Kate, 1 Oct 2026: says what the site is, for Google's brand review of the sign-in. -->
+      <p class="login-about">The private operations site for the Tara Rose Salons team in the UAE and Bahrain: procedures, training and team dashboards. Staff sign-in only.</p>
     </div>
     <div class="login-divider"></div>
     <!-- Sign-in modes (see auth.js): signin · signup · forgot · reset · denied -->
@@ -2836,37 +2841,11 @@ table.tp-cmp td.bad{color:var(--bad)}
     </form>
     <div class="login-links" id="loginLinks"></div>
     <div style="text-align:center;font-size:12px;margin-top:-6px"><a href="/privacy/" style="color:var(--muted2)">Privacy</a></div>
-    <div id="loginLastUpdated" style="text-align:center;font-size:12px;color:var(--muted2);letter-spacing:0.08em;margin-top:-8px;opacity:0.7;">Checking data freshness...</div>
+    <!-- The "Ledger / Phorest" dates were here; since 1 Oct 2026 they show only after sign-in (the masthead). -->
   </div>
 </div>
 
-<script>
-// Pre-fetch latest upload timestamp for login page display (GST). Reads the two
-// tables the dashboard actually runs on — branch_staff_daily (ledger) and
-// phorest_staff_daily — whichever synced most recently wins, same pair the header
-// freshness badge uses. It used to read weekly_data/daily_data, both retired at
-// the end of May 2026, so the login screen was frozen on "1 Jun 2026" ever since
-// (Kate, 2026-08-13).
-// Since the sign-in (25 Sep 2026) it asks dashboard_data_asof(), the one thing the
-// public key may still read before someone signs in. It gives the newest DAY per
-// feed, worded like the masthead ("Ledger 24 Sep · Phorest 24 Sep"): the old upload
-// time never moved when a sync re-sent days already there, so it read as stale.
-(function(){
-  const SUPA_URL2 = 'https://gvijxenafoowajqktqvd.supabase.co';
-  const SUPA_KEY2 = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
-  const headers = {'apikey':SUPA_KEY2,'Authorization':'Bearer '+SUPA_KEY2,'Content-Type':'application/json'};
-  fetch(`${SUPA_URL2}/rest/v1/rpc/dashboard_data_asof`,{method:'POST',headers,body:'{}'}).then(r=>r.json()).then(asof => {
-    const el=document.getElementById('loginLastUpdated');
-    const row=Array.isArray(asof)?asof[0]:null;
-    if(!el||!row||(!row.ledger&&!row.phorest))return;
-    const day=d=>new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-    el.textContent=[row.ledger&&`Ledger ${day(row.ledger)}`,row.phorest&&`Phorest ${day(row.phorest)}`].filter(Boolean).join(' · ');
-  }).catch(()=>{
-    const el=document.getElementById('loginLastUpdated');
-    if(el)el.style.display='none';
-  });
-})();
-</script>
+<!-- The sign-in card no longer asks dashboard_data_asof() (Kate, 1 Oct 2026): the dates show after sign-in, in the masthead. -->
 
 <!-- ══════════════════════════════════════════════════
      DASHBOARD (hidden until login)
@@ -3753,6 +3732,7 @@ function applyScope(code){
 async function enterDashboard(role){
   if (DASHBOARD_OPEN) return;
   DASHBOARD_OPEN = true;
+  document.title = 'Dashboard · Tara Rose Salons';
   applyRole(role);
   // Awaited now, not just for the greeting: the scope has to be set before the
   // first load, or a Bahrain sign-in would fetch and paint the UAE first.
