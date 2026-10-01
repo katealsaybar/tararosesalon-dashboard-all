@@ -45,6 +45,35 @@ const w13Sync = () => { if (typeof trSyncUrl === 'function') trSyncUrl(null); };
 let w13Chart = null;
 let w13Pick = null;       // null = the grid
 let w13Dept = 'all';
+// Kate, 1 Oct 2026 (Comet 13W2): the page hides the dashboard's filter bar, so a
+// branch picked on any other page did not follow you here and the grid always
+// showed every branch. Same answer as Google Reviews (GR3): the dashboard's branch
+// is the starting point, the Branch pill on the page changes it. A seed is only
+// applied when the dashboard's branch has changed since the last one, so a pick
+// made here survives a trip to another page and back. null = every branch.
+// Filters on each person's home branch; her cover days elsewhere stay in her totals.
+let w13Branch = null, w13BranchSeed = null;
+function w13SeedBranch() {
+  if (typeof sel === 'undefined' || !sel.branch) return;
+  const codes = sel.branch.filter(c => W13_BRANCH[c]);
+  const key = codes.join(',');
+  if (key === w13BranchSeed) return;
+  w13BranchSeed = key;
+  w13Branch = codes.length ? codes : null;
+}
+function w13SetBranch(v) {
+  w13Branch = v === 'all' ? null : v.split(',');
+  renderStaffWeeks();
+}
+function w13BranchPick() {
+  const cur = w13Branch ? w13Branch.join(',') : 'all';
+  const opts = [['all', 'All branches']].concat(Object.entries(W13_BRANCH));
+  // A multi-branch seed from the dashboard keeps its own entry so the pill can show it.
+  if (w13Branch && w13Branch.length > 1) opts.push([cur, w13Branch.map(c => W13_BRANCH[c]).join(' + ')]);
+  return `<span class="spf-dd"><select id="w13Branch" aria-label="Branch" onchange="w13SetBranch(this.value)">
+    ${opts.map(([k, l]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${w13Esc(l)}</option>`).join('')}
+  </select></span>`;
+}
 // Chart grain, Daily or Weekly like the Staff Benchmarks chart. Always opens on Weekly
 // (Kate, 29 Sep 2026), so it is not remembered.
 let w13Mode = 'week';
@@ -176,6 +205,7 @@ function w13Spark(weekly, cur, dept) {
 
 async function renderStaffWeeks() {
   const el = document.getElementById('staffWeeksContent');
+  w13SeedBranch();
   // A link that names a stylist opens straight on her report.
   if (!w13Pick && w13WantSlug) {
     if (!w13Team) {
@@ -328,7 +358,7 @@ async function w13RenderTeam(el) {
     catch (e) { el.innerHTML = '<p class="slv-muted">Staff’s Quarterly Performance didn\'t load. Refresh to try again.</p>'; return; }
   }
   const t = w13Team;
-  const list = t.roster.filter(r => w13Dept === 'all' || r.dept === w13Dept);
+  const list = t.roster.filter(r => (w13Dept === 'all' || r.dept === w13Dept) && (!w13Branch || w13Branch.includes(r.branch)));
   const flip = w13Rev ? -1 : 1;
   const byTakings = (a, b) => w13N((b.numbers || {}).total_revenue) - w13N((a.numbers || {}).total_revenue);
   const grid = rs => `<div class="w13-grid">${rs.map(card).join('')}</div>`;
@@ -355,15 +385,16 @@ async function w13RenderTeam(el) {
         ${[['all', 'All'], ['Hair', 'Hair'], ['Beauty', 'Beauty']].map(([k, l]) =>
           `<button type="button" class="${w13Dept === k ? 'on' : ''}" onclick="w13SetDept('${k}')">${l}</button>`).join('')}
       </div>
+      ${w13BranchPick()}
       ${w13YearPick(t)}
       <span class="spf-dd"><select id="w13Sort" aria-label="Sort by" onchange="w13SetSort(this.value, false)">
         ${Object.entries(W13_SORTS).map(([k, v]) => `<option value="${k}"${k === w13Sort ? ' selected' : ''}>Sort: ${v.label}</option>`).join('')}
       </select></span>
       <button type="button" class="sc-btn" title="Reverse the order" onclick="w13SetSort(null, true)">${['branch', 'name'].includes(w13Sort) ? (w13Rev ? 'Z–A' : 'A–Z') : (w13Rev ? 'Lowest first' : 'Highest first')} ⇅</button>
     </div>
-    ${w13Body(list, flip, byTakings, grid, head)}
+    ${list.length ? w13Body(list, flip, byTakings, grid, head) : '<p class="slv-muted" style="margin-top:22px">No one on this team at this branch.</p>'}
     <p class="slv-muted">Sales are services before VAT, retail not included. A grey bar is a week with no sales (leave, days off, or not uploaded yet).</p>`;
-  if (typeof spfDD === 'function') { spfDD(document.getElementById('w13Sort')); spfDD(document.getElementById('w13Year')); }
+  if (typeof spfDD === 'function') { spfDD(document.getElementById('w13Sort')); spfDD(document.getElementById('w13Year')); spfDD(document.getElementById('w13Branch')); }
 }
 // Branch and Position keep headed groups (busiest first inside each); the rest are
 // one flat grid with the branch on each card. Same rules as Staff Benchmarks.
