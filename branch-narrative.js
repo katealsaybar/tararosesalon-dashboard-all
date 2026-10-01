@@ -89,7 +89,7 @@ function bnFacts(g, targets) {
     const cur = g[code].cur, prev = g[code].prev;
     if (!cur) return;
     put(`${p}_net_take`,        cur.netTake);
-    put(`${p}_clients`,         cur.totalClients);
+    put(`${p}_clients`,         clientsOf(cur));
     put(`${p}_new_clients`,     cur.newClientsTotal);
     put(`${p}_ncr`,             cur.ncrTotal);
     put(`${p}_rebooked`,        cur.totalRebooked);
@@ -100,11 +100,11 @@ function bnFacts(g, targets) {
     put(`${p}_beauty_avg_bill`, cur.beautyAvgBill);
     if (prev) {
       put(`${p}_net_take_prev`,      prev.netTake);
-      put(`${p}_clients_prev`,       prev.totalClients);
+      put(`${p}_clients_prev`,       clientsPrevOf(cur, prev));
       put(`${p}_hair_avg_bill_prev`, prev.hairAvgBill);
       put(`${p}_rebook_pct_prev`,    prev.rebookPct);
       const t = bpDelta(cur.netTake, prev.netTake);
-      const c = bpDelta(cur.totalClients, prev.totalClients);
+      const c = bpDelta(clientsOf(cur), clientsPrevOf(cur, prev));
       const b = bpDelta(cur.hairAvgBill, prev.hairAvgBill);
       if (t.pct != null) put(`${p}_net_take_growth_pct`, t.pct);
       if (c.pct != null) put(`${p}_clients_growth_pct`, c.pct);
@@ -118,10 +118,12 @@ function bnFacts(g, targets) {
 // sentence is a fact rather than the model's arithmetic.
 function bnRanks(g) {
   const out = {};
+  // `key` is a field name, or a getter where the figure depends on a switch.
   const rank = (key, id) => {
+    const val = typeof key === 'function' ? key : (x => x[key]);
     const rows = ACTIVE_BRANCHES
-      .filter(c => g[c] && g[c].cur && typeof g[c].cur[key] === 'number' && g[c].cur[key] > 0)
-      .map(c => ({ code: c, v: g[c].cur[key] }))
+      .filter(c => g[c] && g[c].cur && typeof val(g[c].cur) === 'number' && val(g[c].cur) > 0)
+      .map(c => ({ code: c, v: val(g[c].cur) }))
       .sort((a, b) => b.v - a.v);
     if (rows.length) out[id] = { best: rows[0], worst: rows[rows.length - 1], rows };
   };
@@ -129,7 +131,7 @@ function bnRanks(g) {
   // Volume is not a benchmark — there is no target for "number of clients" — but it
   // is the most distinguishing thing about a floor, and without it three branches
   // whose only above-target figure is the hair bill all open on the same sentence.
-  rank('totalClients',    'clients');
+  rank(clientsOf,         'clients');   // handled or through the door, per the switch
   rank('newClientsTotal', 'newClients');
   return out;
 }
@@ -187,7 +189,7 @@ function bnFallback(g) {
 
   const gc = g.group.cur, gp = g.group.prev;
   const gt = gp ? bpDelta(gc.netTake, gp.netTake) : null;
-  const gcl = gp ? bpDelta(gc.totalClients, gp.totalClients) : null;
+  const gcl = gp ? bpDelta(clientsOf(gc), clientsPrevOf(gc, gp)) : null;
   copy.group = {
     heading: allDown ? 'Every branch moved the same way'
            : allUp   ? 'The whole group is up'
@@ -233,7 +235,7 @@ function bnFallback(g) {
     const worstLeadsToo = leads.includes(worst.label.toLowerCase());
 
     const take    = prev ? bpDelta(cur.netTake, prev.netTake) : null;
-    const clients = prev ? bpDelta(cur.totalClients, prev.totalClients) : null;
+    const clients = prev ? bpDelta(clientsOf(cur), clientsPrevOf(cur, prev)) : null;
     const bill    = prev ? bpDelta(cur.hairAvgBill, prev.hairAvgBill) : null;
 
     // WORKING — what genuinely distinguishes this floor, in this order: a benchmark
@@ -257,7 +259,7 @@ function bnFallback(g) {
       // longer both claim the busiest floor. Kate, 1 Oct 2026.
       subject = topClients ? 'The busiest floor in the group' : 'The most new clients in the group';
       workBits = [[
-        topClients ? `${lgNum(cur.totalClients)} clients` : null,
+        topClients ? `${lgNum(clientsOf(cur))} clients${doorOn(cur) ? ' through the door' : ''}` : null,
         topNew ? `${lgNum(cur.newClientsTotal)} new ones` : null,
       ].filter(Boolean).join(' and ') + `, more than any other branch. New business is arriving; what happens next is the question below.`];
       workBits.push(bnAgainst(best));

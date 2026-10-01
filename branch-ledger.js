@@ -1153,6 +1153,13 @@ async function bpGrowth() {
     group: forCode(null),
   };
   ACTIVE_BRANCHES.forEach(code => { out[code] = forCode(code); });
+  // Clients through the door for the same two windows (Kate, 1 Oct 2026), so the
+  // Clients switch in the filter bar can flip the cards without another fetch.
+  await Promise.all(['group'].concat(ACTIVE_BRANCHES).map(async code => {
+    const o = out[code], codes = code === 'group' ? ACTIVE_BRANCHES : [code];
+    if (o.cur)  o.cur.doorClients  = await doorClientsFor(dateFrom, effTo, codes);
+    if (o.prev) o.prev.doorClients = await doorClientsFor(prevFrom, prevTo, codes);
+  }));
   window._bpGrowth = out;
   return out;
 }
@@ -1219,7 +1226,7 @@ function bpGrowthCards(g, codes) {
           <span class="bp-gc-rk">${rank}</span>
         </div>
         <div class="bp-gc-v tabular">${lgAed(c.netTake)}</div>
-        <div class="bp-gc-sub">net take · ${lgNum(c.totalClients)} clients${hairOnly ? ' · hair only' : ''}</div>
+        <div class="bp-gc-sub">net take · ${lgNum(clientsOf(c))} clients${doorOn(c) ? ' through the door' : ''}${hairOnly ? ' · hair only' : ''}</div>
         <div class="bp-gc-g">
           <span class="bp-gc-pct tabular ${take.dir}">${take.pct == null ? '—'
             : `${take.pct > 0 ? '+' : ''}${take.pct.toFixed(1)}%`}</span>
@@ -1227,7 +1234,7 @@ function bpGrowthCards(g, codes) {
         </div>
         ${bpSpark(g[code].spark)}
         <div class="bp-chips">
-          ${bpChip('Clients', c.totalClients, lgNum, bpDelta(c.totalClients, p && p.totalClients))}
+          ${bpChip('Clients', clientsOf(c), lgNum, bpDelta(clientsOf(c), clientsPrevOf(c, p)))}
           ${bpChip('Hair avg bill', c.hairAvgBill, lgAed, bpDelta(c.hairAvgBill, p && p.hairAvgBill))}
           ${bpChip('Rebooking', lgPct(c.rebookPct), x => x,
             bpDelta(c.rebookPct, p && p.rebookPct), true)}
@@ -1326,6 +1333,9 @@ async function renderBranchPerformance() {
     { group: 'Combined' },
     ['Rebooked',      'rebooked',     s.totalRebooked],
     ['Total Clients', 'totalClients', s.totalClients],
+    // Phorest's once-a-day count, beside the ledger's, when the Clients switch is on
+    // Through the door. No target: the targets are written in ledger counts.
+    ...(doorOn(s) ? [['Clients through the door (Phorest)', null, s.doorClients]] : []),
     ['New Clients',   'newClients',   s.newClientsTotal],
     ['NCR',           'ncr',          s.ncrTotal],
   ];

@@ -563,6 +563,17 @@ function paintFilterChips() {
   pEl.innerHTML = chipRow(periodChips(shown).map(c => ({
     v: c.v, label: c.label, on: c.v === shown, disabled: onLedger })));
 
+  // Clients: handled or through the door. Only on the pages it changes.
+  const cRow = document.getElementById('clientRow'), cEl = document.getElementById('clientChips');
+  if (cRow && cEl) {
+    cRow.hidden = !CLIENT_VIEWS.has(CURRENT_VIEW);
+    const b = (v, label, title) => `<button type="button" class="chip seg-b" aria-pressed="${CLIENT_BASIS === v}" data-v="${v}" title="${title}">${label}</button>`;
+    cEl.innerHTML = `<span class="seg" role="group" aria-label="How clients are counted">`
+      + b('handled', 'Handled', 'Ledgers: each staff member counts the clients she served')
+      + b('door', 'Through the door', 'Phorest: each client counted once a day, however many staff she saw')
+      + `</span>`;
+  }
+
   const note = document.getElementById('filterNote');
   if (note) {
     note.hidden = !onLedger;
@@ -716,6 +727,16 @@ document.addEventListener('click', e => {
     pendingSel.branch = [...sel.branch];
     paintFilterChips();
     refreshActiveView();
+    return;
+  }
+
+  if (chip.closest('#clientChips')) {
+    if (chip.dataset.v === CLIENT_BASIS) return;
+    setClientBasis(chip.dataset.v);
+    paintFilterChips();
+    refreshActiveView();
+    const cv = document.getElementById('view-compare');
+    if (cv && cv.style.display !== 'none' && typeof renderCompare === 'function') renderCompare();
     return;
   }
 
@@ -3316,6 +3337,58 @@ function cachedRange(key, loader) {
   return RANGE_CACHE.get(key);
 }
 
+// ── CLIENTS: HANDLED OR THROUGH THE DOOR ────────────────────────
+// Kate, 1 Oct 2026. "Clients" here has always been the ledgers' per-staff count
+// added up, so a client who saw a colourist and a beautician counts twice: that is
+// clients HANDLED, the right figure for a stylist and the one every target and
+// rebooking rate is written against. The other reading is clients THROUGH THE
+// DOOR: one client, one visit a day, however many staff she saw, retail-only buyers
+// included, counted off Phorest's Sales Transactions (door_clients(), migrations/
+// create_door_clients.sql). September 2026: 2,843 handled, 2,699 through the door.
+//
+// One switch in the filter bar, remembered like the theme and branch, opening on
+// Handled. What follows it (her call): the Clients figure and Avg bill, on the
+// Pulse, Branch Performance and Comparison. What does not: rebooking and NCR,
+// which only exist per stylist in the ledger, the hair/beauty split (a door client
+// has no department), every staff table, and the Ledgers pages, whose targets are
+// written in ledger counts. Sales Transactions has no Bahrain, so a window that
+// takes in Bahrain stays on Handled and says so.
+const DOOR_BRANCHES = ['SAA', 'KCA', 'MC', 'AQ', 'FRT'];
+const CLIENT_VIEWS = new Set(['dashboard', 'branchperf', 'compare']);
+let CLIENT_BASIS = 'handled';
+try { if (localStorage.getItem('trs-clients') === 'door') CLIENT_BASIS = 'door'; } catch (e) {}
+function setClientBasis(v) {
+  CLIENT_BASIS = v === 'door' ? 'door' : 'handled';
+  try { localStorage.setItem('trs-clients', CLIENT_BASIS); } catch (e) {}
+}
+// { SAA: n, KCA: n, ... } for one window, fetched once per window.
+function doorClientsByBranch(from, to) {
+  return cachedRange(`door|${dateToIso(from)}|${dateToIso(to)}`, async () => {
+    const { data, error } = await sb.rpc('door_clients', { p_from: dateToIso(from), p_to: dateToIso(to) });
+    if (error) throw error;
+    const m = {};
+    (data || []).forEach(r => { m[r.branch] = Number(r.clients) || 0; });
+    return m;
+  });
+}
+// The door count for these branches over this window, or null when it cannot be
+// told: a branch Sales Transactions does not cover (Bahrain), or nothing loaded.
+async function doorClientsFor(from, to, codes) {
+  if (!from || !to) return null;
+  const list = (codes && codes.length) ? codes : scopeCodes();
+  if (list.some(c => !DOOR_BRANCHES.includes(c))) return null;
+  try {
+    const m = await doorClientsByBranch(from, to);
+    if (!list.some(c => c in m)) return null;
+    return list.reduce((a, c) => a + (m[c] || 0), 0);
+  } catch (e) { return null; }
+}
+const doorOn    = s => CLIENT_BASIS === 'door' && !!s && s.doorClients != null;
+const clientsOf = s => !s ? 0 : doorOn(s) ? s.doorClients : (s.totalClients || 0);
+const avgBillOf = s => !s ? 0 : doorOn(s) ? (s.doorClients ? (s.netTake || 0) / s.doorClients : 0) : (s.avgBill || 0);
+// A trend only when both windows are counted the same way.
+const clientsPrevOf = (s, p) => (!p || doorOn(s) !== doorOn(p)) ? null : clientsOf(p);
+
 async function renderDashboard() {
   paintFilterChips();
   const main = document.getElementById('mainContent');
@@ -3478,6 +3551,14 @@ async function renderDashboard() {
         prevPeriodLabel = diffDays <= 8 ? 'the week before' : diffDays <= 35 ? 'the month before' : `the ${Math.round(diffDays/7)} weeks before`;
       }
     } catch(e) { prevS = null; }
+  }
+
+  // Clients through the door, for the switch in the filter bar. Fetched either way,
+  // so flipping it never waits on the network twice.
+  {
+    const codes = sel.branch.includes('all') ? null : sel.branch;
+    s.doorClients = await doorClientsFor(dateFrom, dateTo, codes);
+    if (prevS && prevWin) prevS.doorClients = await doorClientsFor(prevWin.from, prevWin.to, codes);
   }
 
   destroyCharts();
@@ -3758,7 +3839,7 @@ async function renderDashboard() {
       // "Hair is carrying X: AED 297,130 of the AED 297,130, 100%" is the same
       // number twice and a share of itself. Nothing is being carried — it is the
       // only department there is.
-      ? `${branchLabel} is hair only: ${aed0(s.netTake)} across ${num0(s.totalClients)} clients.`
+      ? `${branchLabel} is hair only: ${aed0(s.netTake)} across ${num0(clientsOf(s))} clients${doorOn(s) ? ' through the door' : ''}.`
       : hairShare >= 60
         ? `Hair is carrying ${whole}: ${aed0(hairNetSalonTake)} of the ${aed0(s.netTake)}, ${hairShare}% of everything that came in.`
         : `Hair brought in ${aed0(hairNetSalonTake)} of the ${aed0(s.netTake)}, ${hairShare}% of the take.`);
@@ -3826,8 +3907,9 @@ async function renderDashboard() {
       <div class="r-row"><span class="r-label">Beauty net take</span><span class="r-val tabular">${num0(beautyNetTakeDept)}</span></div>
       <div class="r-rule"></div>` : ''}
       <div class="r-row"><span class="r-label">Net take</span><span class="r-val tabular">${num0(s.netTake)}</span></div>
-      <div class="r-row"><span class="r-label">Clients</span><span class="r-val tabular">${num0(s.totalClients)}</span></div>
-      <div class="r-row"><span class="r-label">Avg bill</span><span class="r-val tabular">${num0(s.avgBill)}</span></div>
+      <div class="r-row"><span class="r-label">Clients${doorOn(s) ? ' through the door' : ''}</span><span class="r-val tabular">${num0(clientsOf(s))}</span></div>
+      ${doorOn(s) ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">handled by staff</span><span class="r-val tabular" style="opacity:.75">${num0(s.totalClients)}</span></div>` : ''}
+      <div class="r-row"><span class="r-label">Avg bill</span><span class="r-val tabular">${num0(avgBillOf(s))}</span></div>
       ${targetsBlock}
       <div class="r-rule"></div>
       <div class="r-foot">All money in ${CUR()} · takings before staff cost</div>`;
@@ -3858,7 +3940,7 @@ async function renderDashboard() {
   const blendedAvgTarget = s.totalClients
     ? ((TARGETS.hairAvgBill * (s.hairTotalClients || 0)) + (TARGETS.beautyAvgBill * (s.beautyTotalClients || 0))) / s.totalClients
     : TARGETS.hairAvgBill;
-  const avgBillStatus = TARGETS.hairAvgBill == null ? '' : band(s.avgBill, blendedAvgTarget);
+  const avgBillStatus = TARGETS.hairAvgBill == null ? '' : band(avgBillOf(s), blendedAvgTarget);
   const hairAvgOk   = (s.hairAvgBill || 0) >= TARGETS.hairAvgBill;
   const beautyAvgOk = s.beautyAvgBill != null && s.beautyAvgBill >= TARGETS.beautyAvgBill;
   const avgBillVerdict = TARGETS.hairAvgBill == null ? 'No target yet'
@@ -3867,7 +3949,7 @@ async function renderDashboard() {
     : avgBillStatus === 'warn' ? 'Nearly' : 'Below target';
 
   const netTrend    = trendOf(s.netTake,      prevS ? prevS.netTake      : null);
-  const clientTrend = trendOf(s.totalClients, prevS ? prevS.totalClients : null);
+  const clientTrend = trendOf(clientsOf(s), clientsPrevOf(s, prevS));
 
   const splitBar = sp => `
     <div class="sp">
@@ -3889,15 +3971,19 @@ async function renderDashboard() {
         { k:'Hair',   val:hairNetSalonTake,  of:s.netTake, txt:aed0(hairNetSalonTake),  extra:`${shareOf(hairNetSalonTake, s.netTake)}%`,  color:'var(--hair)' },
         { k:'Beauty', val:beautyNetTakeDept, of:s.netTake, txt:aed0(beautyNetTakeDept), extra:`${shareOf(beautyNetTakeDept, s.netTake)}%`, color:'var(--beauty)' },
       ]) },
-    { k:'Clients', def:'Every client who paid a bill in the period, hair and beauty.',
-      v: num0(s.totalClients), status: clientTrend.status,
+    { k:'Clients', def: doorOn(s)
+        ? `Through the door: each client once a day, however many staff she saw (Phorest). ${num0(s.totalClients)} handled by staff; the split below is by staff.`
+        : CLIENT_BASIS === 'door'
+          ? 'Handled, not through the door: Phorest’s Sales Transactions have no count for this selection (Bahrain is not in them), so this is each staff member’s clients from the ledgers.'
+          : 'Handled: each staff member counts the clients she served (ledgers), hair and beauty.',
+      v: num0(clientsOf(s)), status: clientTrend.status,
       t: `Target ${getClientTarget(sel.branch)}`, verdict: clientTrend.verdict,
       splits: splitsOf([
         { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} clients`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
         { k:'Beauty', val:s.beautyTotalClients, of:s.totalClients, txt:`${num0(s.beautyTotalClients)} clients`, extra:`${shareOf(s.beautyTotalClients, s.totalClients)}%`, color:'var(--beauty)' },
       ]) },
-    { k:'Avg bill', def:'Net take divided by clients: what one visit is worth.',
-      v: aed0(s.avgBill), status: avgBillStatus,
+    { k:'Avg bill', def: doorOn(s) ? 'Net take divided by clients through the door: what one visit is worth.' : 'Net take divided by clients: what one visit is worth.',
+      v: aed0(avgBillOf(s)), status: avgBillStatus,
       t: TARGETS.hairAvgBill == null ? 'No avg-bill target set for this branch yet'
         : `Hair target ${TARGETS.hairAvgBill} · Beauty target ${TARGETS.beautyAvgBill}`, verdict: avgBillVerdict,
       splits: splitsOf([

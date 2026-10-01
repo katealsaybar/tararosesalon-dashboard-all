@@ -193,6 +193,8 @@ async function cmpSummary(side) {
   const d = aggDailyData(dailyRows, branchStaffRows, phorestStaffRows);
   if (!d) return null;
   const s = d.summary;
+  // For the Clients switch in the filter bar (Kate, 1 Oct 2026).
+  s.doorClients = await doorClientsFor(from, to, codes || ACTIVE_BRANCHES);
 
   // Utilisation, the same hours-weighted read as the Pulse. A nice-to-have: a
   // failed fetch leaves the rows blank rather than the page broken.
@@ -231,13 +233,13 @@ function cmpMetrics() {
     { name: 'Beauty services',          kind: 'aed', up: true, get: s => nz(s.beautyServicesTotal) },
     { name: 'Retail',                   kind: 'aed', up: true, get: s => nz(s.retailTotal) },
     { group: 'Clients' },
-    { name: 'Clients',                  kind: 'n', up: true, get: s => nz(s.totalClients) },
+    { name: 'Clients',                  sub: CLIENT_BASIS === 'door' ? 'through the door' : null, kind: 'n', up: true, get: s => nz(clientsOf(s)) },
     { name: 'Hair clients',             kind: 'n', up: true, get: s => nz(s.hairTotalClients) },
     { name: 'Beauty clients',           kind: 'n', up: true, get: s => nz(s.beautyTotalClients) },
     { name: 'New clients',              kind: 'n', up: true, get: s => nz(s.newClientsTotal) },
     { name: 'Rebooked',                 kind: 'n', up: true, get: s => nz(s.totalRebooked) },
     { group: 'Averages' },
-    { name: 'Avg bill',                 kind: 'avg', up: true, get: s => nz(s.avgBill) },
+    { name: 'Avg bill',                 sub: CLIENT_BASIS === 'door' ? 'per client through the door' : null, kind: 'avg', up: true, get: s => nz(avgBillOf(s)) },
     { name: 'Hair avg bill',            kind: 'avg', up: true, get: s => nz(s.hairAvgBill), target: () => TARGETS.hairAvgBill },
     { name: 'Beauty avg bill',          kind: 'avg', up: true, get: s => (s.beautyTotalClients ? nz(s.beautyAvgBill) : null), target: () => TARGETS.beautyAvgBill },
     { group: 'Benchmarks' },

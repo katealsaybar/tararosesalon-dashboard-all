@@ -566,7 +566,7 @@ body.scoped #gsTrig, body.scoped #trs-ask{display:none!important}
    sit on the filter row rather than in a card header. */
 .f-dates .lg-month-sel{font-size:13.5px;padding:4px 24px 4px 8px}
 .f-note{flex-basis:100%;font-size:12px;color:var(--warn);line-height:1.5;max-width:70ch;margin-top:2px}
-.f-note[hidden]{display:none}
+.f-note[hidden],.f-row[hidden]{display:none}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 /* ── MAIN NAV: the left gutter ───────────────────────
@@ -3014,6 +3014,13 @@ table.tp-cmp td.bad{color:var(--bad)}
         <select class="lg-month-sel" id="yearPickY" aria-label="Year" onchange="pickYearRange()"></select>
       </div>
     </div>
+    <!-- Kate, 1 Oct 2026: clients handled (ledgers, per staff) or through the door
+         (Phorest Sales Transactions, once per client a day). Painted by
+         paintFilterChips(); shown only on the pages it changes (CLIENT_VIEWS). -->
+    <div class="f-row" id="clientRow" hidden>
+      <span class="f-lbl" id="clientLbl">Clients</span>
+      <div class="chipset" role="group" aria-labelledby="clientLbl" id="clientChips"></div>
+    </div>
     <p class="f-note" id="filterNote" hidden></p>
   </div>
   </div>
@@ -3523,12 +3530,12 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="products.js?v=20261001sold"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261001ux8"></script>
+<script src="dashboard.js?v=20261001door"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20261001dst"></script>
-<script src="compare.js?v=20261001ux4"></script>
+<script src="branch-ledger.js?v=20261001door"></script>
+<script src="compare.js?v=20261001door"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20261001ux3"></script>
@@ -3537,7 +3544,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-links.js?v=20260928a"></script>
 <script src="pulse-narrative.js?v=20260928a"></script>
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
-<script src="branch-narrative.js?v=20261001ux2"></script>
+<script src="branch-narrative.js?v=20261001door"></script>
 <!-- The "Ask a question" widget. Reads the open view at ask time; see ask-widget.js. -->
 <script src="ask-widget.js?v=20261001a"></script>
 <script>
