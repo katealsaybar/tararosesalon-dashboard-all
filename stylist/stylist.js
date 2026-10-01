@@ -275,7 +275,7 @@ function isResignedStylist(cleanName) {
 }
 
 const BRANCH_INFO = {
-  KCA:{ name:'Khalifa City',  color:'#FFD4D9' },
+  KCA:{ name:'Khalifa City A', color:'#FFD4D9' },
   SAA:{ name:'Saadiyat',      color:'#C4B5FD' },
   MC: { name:'Motor City',    color:'#99F6E4' },
   AQ: { name:'Al Quoz',       color:'#FF9B9B' },

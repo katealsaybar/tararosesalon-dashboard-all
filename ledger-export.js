@@ -264,6 +264,8 @@ const LGX_FMTS = [
   ['aed2', 165, '#,##0.00;[Red]-#,##0.00'],
   ['pct',  166, '0.0"%"'],
   ['num',  167, '#,##0;[Red]-#,##0'],
+  // A benchmark's variance: percentage points, not a percentage (Comet AT3).
+  ['pts',  168, '0" pts";[Red]-0" pts"'],
 ];
 const LGX_FMT_IDX = {};
 LGX_FMTS.forEach((f, i) => { LGX_FMT_IDX[f[0]] = i; });
@@ -770,7 +772,7 @@ function lgxSheetActuals(series, ctx, code, name, peers) {
       // reads, so it gets its formula before anything else is considered.
       if (c.key === 'variance') {
         return lgxChk(value, (v.mtd == null || v.target == null) ? null : v.mtd - v.target,
-          A => A('mtd') + '-' + A('target'), fmt);
+          A => A('mtd') + '-' + A('target'), fmt === 'pct' ? 'pts' : fmt);
       }
 
       // Then: is this row something the other rows on this tab add up to?

@@ -3,7 +3,7 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 const BRANCHES = {
-  KCA:{ name:'Khalifa City', sub:'KCA',         color:'#FFD4D9' },
+  KCA:{ name:'Khalifa City A', sub:'KCA',         color:'#FFD4D9' },
   SAA:{ name:'Saadiyat',     sub:'SAA',         color:'#C4B5FD' },
   MC: { name:'Motor City',   sub:'MC',          color:'#99F6E4' },
   AQ: { name:'Al Quoz',      sub:'AQ',          color:'#FF9B9B' },

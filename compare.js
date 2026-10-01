@@ -622,6 +622,10 @@ function cmpAnswerHtml(sa, sb2) {
       <div class="cmp-ans-small">${small}</div>
     </div>`;
   const nm = m => escapeHtml(m.name.replace(/ %$/, ''));
+  // Kate, 1 Oct 2026 (Comet CP3): Treatment here is the hair figure, while the
+  // Pulse prints hair and beauty combined, so the two read as disagreeing.
+  // Name the scope on the card instead of leaving it to the table's sub-label.
+  const nmScoped = m => nm(m) + (m.sub && /hair/.test(m.sub) ? ' (hair)' : '');
   const cards = [
     win  ? card('good', 'Biggest win', `${nm(win.m)} <span>+${win.rel.toFixed(1)}%</span>`,
              `${fmtV(win.m, win.vb)} in B, up from ${fmtV(win.m, win.va)}.`)
@@ -629,8 +633,8 @@ function cmpAnswerHtml(sa, sb2) {
     drop ? card('bad', 'Biggest drop', `${nm(drop.m)} <span>−${Math.abs(drop.rel).toFixed(1)}%</span>`,
              `${fmtV(drop.m, drop.vb)} in B, down from ${fmtV(drop.m, drop.va)}.`)
          : card('flat', 'Biggest drop', 'Nothing fell', 'Every total is level or up on A.'),
-    fix  ? card('warn', 'Fix first', `${nm(fix.m)} <span>${fix.m.kind === 'pct' ? fix.v.toFixed(2) + '%' : 'AED ' + Math.round(fix.v)}</span>`,
-             `Target ${fix.m.kind === 'pct' ? fix.t + '%' : 'AED ' + fix.t}. ${fix.m.name === 'Treatment %' || fix.m.name === 'Retail %' ? 'Standing priority, so it comes first.' : 'Furthest below its target in B.'}`)
+    fix  ? card('warn', 'Fix first', `${nmScoped(fix.m)} <span>${fix.m.kind === 'pct' ? fix.v.toFixed(2) + '%' : 'AED ' + Math.round(fix.v)}</span>`,
+             `Target ${fix.m.kind === 'pct' ? fix.t + '%' : 'AED ' + fix.t}${fix.m.sub && fix.m.sub !== 'hair' ? ' ' + fix.m.sub : ''}. ${fix.m.name === 'Treatment %' || fix.m.name === 'Retail %' ? 'Standing priority, so it comes first.' : 'Furthest below its target in B.'}`)
          : card('good', 'Fix first', 'Nothing', 'B hits every target it is scored on.'),
   ].join('');
 

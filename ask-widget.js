@@ -35,7 +35,7 @@
   // somebody already typed, so people press Ask on grey text and nothing happens.
   var STARTERS = {
     dashboard:  ["Which branch is furthest behind target?", "What is the rebooking rate?", "What should we fix first?"],
-    branchperf: ["Who has the highest net take at Khalifa City?", "Which branch has the most new clients?", "Who sold the most retail?"],
+    branchperf: ["Who has the highest net take at Khalifa City A?", "Which branch has the most new clients?", "Who sold the most retail?"],
     compare:    ["Which branch grew the most?", "How does this period compare to the last?"],
     team:       ["Who has the best rebooking rate?", "Who is below target?"],
     services:   ["What is the top service by revenue?", "Which treatment sells most?"],

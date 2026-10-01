@@ -53,6 +53,8 @@ let w13Mode = 'week';
 // and a swipe on the chart move the window. w13Win is days shown (0 = all), w13Off how
 // many days back from the latest the window ends.
 let w13Win = 28, w13Off = 0;
+// Kate, 1 Oct 2026 (Comet 13W3): "sales" on this page is total_revenue, which is
+// services before VAT with retail left out, so every label says Service sales.
 // Which measure is the bars. Sales, always: a Sales / Clients swap toggle was tried and
 // taken off the same evening (Kate, 29 Sep 2026, too chunky beside the other controls).
 const w13Bars = 'sales';
@@ -74,7 +76,7 @@ const W13_SORTS = {
   level:   { label: 'Position' },
   branch:  { label: 'Branch' },
   name:    { label: 'Name',     cmp: (a, b) => a.name.localeCompare(b.name) },
-  takings: { label: 'Takings',  cmp: (a, b) => w13N((b.numbers || {}).total_revenue) - w13N((a.numbers || {}).total_revenue) },
+  takings: { label: 'Service sales',  cmp: (a, b) => w13N((b.numbers || {}).total_revenue) - w13N((a.numbers || {}).total_revenue) },
   clients: { label: 'Clients',  cmp: (a, b) => w13N((b.numbers || {}).clients) - w13N((a.numbers || {}).clients) },
   rebook:  { label: 'Rebook %', cmp: (a, b) => w13N(w13RebookPct(b)) - w13N(w13RebookPct(a)) },
 };
@@ -107,7 +109,7 @@ const w13QOfDate = (date, from) => Math.min(4, Math.floor(Math.round((new Date(d
 function w13SeriesKey(dept) {
   const beauty = dept === 'Beauty', bar = beauty ? '#FF9B9B' : '#C4B5FD', line = beauty ? '#6D28D9' : '#0F6E56';
   return `<span class="w13-skey" aria-label="Chart key">
-    <span><i class="bar" style="background:${bar}"></i>Sales (AED)</span>
+    <span><i class="bar" style="background:${bar}"></i>Service sales (AED)</span>
     <span><i class="line" style="--c:${line}"></i>Clients</span>
   </span>`;
 }
@@ -284,7 +286,7 @@ async function renderStaffWeeks() {
       ${(d.branches || []).length > 1 ? `<div class="w13-branches"><span class="slv-eyebrow">Worked at</span> ${d.branches.map(x =>
         `<span class="w13-br"><b>${w13Esc(W13_BRANCH[x.branch] || x.branch)}</b> ${w13Aed(x.sales)} · ${w13Num(x.clients)} clients</span>`).join('')}<div class="slv-note">Every branch is counted in the totals below, including cover days away from ${w13Esc(W13_BRANCH[s.branch] || s.branch)}.</div></div>` : ''}
       <div class="w13-tiles">
-        <div class="w13-tile"><div class="slv-eyebrow">Sales</div><div class="w13-val">${w13Aed(tot.sales)}</div><div class="slv-note">${worked ? w13Aed(tot.sales / worked) + ' a week worked' : ''}</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">Service sales (ex retail)</div><div class="w13-val">${w13Aed(tot.sales)}</div><div class="slv-note">${worked ? w13Aed(tot.sales / worked) + ' a week worked' : ''}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Clients</div><div class="w13-val">${w13Num(tot.clients)}</div><div class="slv-note">${tot.clients ? 'Average bill ' + w13Aed(tot.sales / tot.clients) : ''}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Rebooking</div><div class="w13-val">${tot.clients ? Math.round(100 * tot.rebooked / tot.clients) + '%' : '–'}</div><div class="slv-note">${tot.clients ? `${w13Num(tot.rebooked)} of ${w13Num(tot.clients)} clients rebooked` : ''}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Column fill</div><div class="w13-val">${totFill}</div><div class="slv-note">${tot.ah ? `${w13Num(tot.uh)} of ${w13Num(tot.ah)} hours booked` : ''}</div></div>
@@ -304,7 +306,7 @@ async function renderStaffWeeks() {
       <div class="w13-zoom" id="w13Zoom"></div>
       <div style="position:relative;height:320px;margin-top:14px"><canvas id="w13Canvas"></canvas></div>
       <div class="slv-wrap" style="margin-top:14px"><table class="slv-table w13-table">
-        <thead><tr><th>Week</th><th>Sales (AED)</th><th>Clients</th><th>Rebooked</th><th>Avg bill</th><th>Retail</th><th>Column fill</th></tr></thead>
+        <thead><tr><th>Week</th><th>Service sales (AED)</th><th>Clients</th><th>Rebooked</th><th>Avg bill</th><th>Retail</th><th>Column fill</th></tr></thead>
         ${rows}
         <tbody>
           <tr class="w13-tot"><td>${w13Esc(`${d.year} · Weeks 1–${weeks.length ? weeks[weeks.length - 1].week_no : 0}`)}</td><td>${w13Num(tot.sales)}</td><td>${w13Num(tot.clients)}</td><td class="slv-aim">${w13Rebook(tot.rebooked, tot.clients)}</td>
@@ -412,7 +414,7 @@ function w13Draw() {
   // coral pillar accent, #FF9B9B (trs-brand-guardian palette), as the lavender is.
   const pal = (w13Data.staff && w13Data.staff.dept === 'Beauty') ? { bar: '#FF9B9B', line: '#6D28D9' } : { bar: '#C4B5FD', line: '#0F6E56' };
   const barKey = w13Bars === 'clients' ? 'clients' : 'sales', lineKey = barKey === 'sales' ? 'clients' : 'sales';
-  const LBL = { sales: 'Sales (AED)', clients: 'Clients' }, barLbl = LBL[barKey], lineLbl = LBL[lineKey];
+  const LBL = { sales: 'Service sales (AED)', clients: 'Clients' }, barLbl = LBL[barKey], lineLbl = LBL[lineKey];
   // Quarter bands (Kate, 29 Sep 2026: the dashed line was too quiet for the untrained
   // eye). Each quarter gets a faint wash of its own shade behind its bars, a firm line
   // where it meets the next, and its name printed above it: "Q2 · Weeks 14–26".

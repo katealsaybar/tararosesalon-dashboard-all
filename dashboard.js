@@ -34,7 +34,7 @@ const TARGETS = {
 // for use as a light-mode graph fill (same pattern as hairColor/beautyColor elsewhere —
 // a flat pastel bar reads as too matingkad against the light-theme cream background).
 const BRANCH_INFO = {
-  KCA: { name: 'Khalifa City', color: '#FFD4D9', colorLight: '#C2506D' },
+  KCA: { name: 'Khalifa City A', color: '#FFD4D9', colorLight: '#C2506D' },
   SAA: { name: 'Saadiyat',     color: '#C4B5FD', colorLight: '#7C5CD4' },
   MC:  { name: 'Motor City',   color: '#99F6E4', colorLight: '#0F8A72' },
   AQ:  { name: 'Al Quoz',      color: '#FF9B9B', colorLight: '#A32D2D' },

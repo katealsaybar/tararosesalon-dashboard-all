@@ -43,6 +43,9 @@
 const lgAed = n => CUR() + ' ' + Math.round(Number(n) || 0).toLocaleString('en-GB');
 const lgNum = n => Math.round(Number(n) || 0).toLocaleString('en-GB');
 const lgPct = (n, dp) => (n == null || !isFinite(n)) ? '—' : (+n).toFixed(dp == null ? 0 : dp) + '%';
+// Kate, 1 Oct 2026 (Comet AT3): the gap between two percentages is in points.
+// 27% against a 45% target printed "−18%", which reads as 18% short of 45.
+const lgPts = n => (n == null || !isFinite(n)) ? '—' : Math.round(+n) + ' pts';
 const lgDash = v => (v == null || v === '' || (typeof v === 'number' && !isFinite(v))) ? '—' : v;
 
 // A signed figure that colours itself. Behind target is bad, at or above is good.
@@ -979,7 +982,7 @@ function lgSheetSection(series, code, ctx) {
         f(tgt)]
         .concat(lgSplitCells(series, bucket, r.pick, f))
         .concat([act != null ? f(act) : '—',
-                 act == null ? '—' : (act >= tgt ? '<span class="lg-up">✓ on target</span>' : lgDelta(act - tgt, f))]));
+                 act == null ? '—' : (act >= tgt ? '<span class="lg-up">✓ on target</span>' : lgDelta(act - tgt, r.money ? f : lgPts))]));
       return;
     }
 
