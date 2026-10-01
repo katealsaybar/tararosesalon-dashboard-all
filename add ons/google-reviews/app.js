@@ -27,7 +27,10 @@ function googleReviewUrl(r){
 }
 const REC = [["30","Last 30 days"],["90","Last 90 days"],["180","Last 6 months"],["365","Last 12 months"],["730","Last 2 years"],["all","All time"]];
 const ALL = [1,2,3,4,5];
-const state = {branches:new Set(BRANCHES), stars:new Set(ALL), rec:"all", withText:false, noReply:false, q:"", sort:"new", staff:""};
+// Opens on the last 90 days (Kate, 1 Oct 2026): "All time" averaged years of
+// reviews and hid the recent trend. The official all-time totals stay in their table.
+const DEFAULT_REC = "90";
+const state = {branches:new Set(BRANCHES), stars:new Set(ALL), rec:DEFAULT_REC, withText:false, noReply:false, q:"", sort:"new", staff:""};
 
 // ── Staff named in reviews (Kate, 25 Sep 2026) ───────────────────────────
 // Who a review names is decided by staff_name_variants in Supabase: every
@@ -356,7 +359,7 @@ function render(){
 }
 document.getElementById("q").oninput=e=>{state.q=e.target.value;render();};
 document.getElementById("sort").onchange=e=>{state.sort=e.target.value;render();};
-document.getElementById("reset").onclick=()=>{Object.assign(state,{branches:new Set(BRANCHES),stars:new Set(ALL),rec:"all",withText:false,noReply:false,q:"",staff:""});document.getElementById("q").value="";render();};
+document.getElementById("reset").onclick=()=>{Object.assign(state,{branches:new Set(BRANCHES),stars:new Set(ALL),rec:DEFAULT_REC,withText:false,noReply:false,q:"",staff:""});document.getElementById("q").value="";render();};
 // Embedded in the dashboard: no own toggle and no own scrollbar. The dashboard's
 // sticky-header toggle sends the theme by postMessage (direct parent access is
 // blocked when the dashboard is opened from file://), and this page reports its
@@ -369,8 +372,22 @@ if(window.parent!==window){
   document.documentElement.classList.add("embedded");
   window.addEventListener("message",e=>{
     if(e.source===window.parent&&e.data&&e.data.type==="trs-theme"){setTheme(e.data.theme==="dark"?"dark":"light");setTimeout(postH,50);}
+    if(e.source===window.parent&&e.data&&e.data.type==="trs-reviews-scroll"){pin=+e.data.pin||0;placeFilters();}
   });
-  function postH(){window.parent.postMessage({type:"trs-reviews-height",h:Math.ceil(document.body.getBoundingClientRect().height)},"*");}
+  // The dashboard scrolls, not this frame, so position:sticky has nothing to stick
+  // to. The dashboard sends how far this frame's top is under its header (pin), and
+  // the filter bar is moved down by that much, stopping at the end of the list.
+  // Wide screens only: on a phone the five filter rows would cover half the screen.
+  const fl=document.querySelector(".filters"), wide=matchMedia("(min-width:761px)");
+  let pin=0;
+  function placeFilters(){
+    if(!fl) return;
+    const list=document.getElementById("list");
+    const y=wide.matches ? Math.max(0, Math.min(pin - fl.offsetTop, list.offsetTop + list.offsetHeight - fl.offsetHeight - fl.offsetTop)) : 0;
+    fl.style.transform = y ? `translateY(${Math.round(y)}px)` : "";
+    fl.classList.toggle("pinned", y > 0);
+  }
+  function postH(){window.parent.postMessage({type:"trs-reviews-height",h:Math.ceil(document.body.getBoundingClientRect().height)},"*");placeFilters();}
   new ResizeObserver(postH).observe(document.body);
   window.parent.postMessage({type:"trs-reviews-ready"},"*");
 }

@@ -235,7 +235,21 @@ window.addEventListener('message', e => {
   if (!f || e.source !== f.contentWindow || !e.data) return;
   if (e.data.type === 'trs-reviews-ready') postReviewsTheme();
   if (e.data.type === 'trs-reviews-height' && e.data.h > 0) f.style.height = e.data.h + 'px';
+  if (e.data.type === 'trs-reviews-ready') postReviewsScroll();
 });
+// Kate, 1 Oct 2026: the frame is as tall as its content, so the page here is what
+// scrolls and the frame's own sticky filter bar never stuck; 27 screens of reviews
+// left the filters behind at the top. This tells the frame how far its top has
+// gone under the header, and the frame holds its filter bar there (app.js).
+function postReviewsScroll() {
+  const f = document.getElementById('reviewsFrame');
+  if (!f || !f.contentWindow || !f.offsetParent) return;
+  const tb = document.querySelector('.topbar');
+  const under = tb ? Math.max(0, tb.getBoundingClientRect().bottom) : 0;
+  f.contentWindow.postMessage({ type: 'trs-reviews-scroll', pin: Math.max(0, under - f.getBoundingClientRect().top) }, '*');
+}
+addEventListener('scroll', postReviewsScroll, { passive: true });
+addEventListener('resize', postReviewsScroll);
 // 5.png = light/white wordmark (for dark backgrounds), 6.png = dark/black wordmark (for light backgrounds)
 function applyLogoForTheme() {
   const dark = document.documentElement.getAttribute('data-theme') === 'dark';
