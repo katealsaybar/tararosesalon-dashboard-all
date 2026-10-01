@@ -173,6 +173,40 @@ function w13Rebook(rebooked, clients) {
   return `${w13Num(rebooked)} of ${w13Num(clients)} · ${Math.round(100 * rebooked / clients)}%`;
 }
 
+// Kate, 1 Oct 2026 (Comet 13W4). Two things the empty weeks could not say:
+// whether a week was not uploaded yet or she simply took nothing (leave, days off),
+// and where her week should have landed. Coverage is how many days each branch has
+// in Phorest's Staff Daily per Monday week (phorest_week_coverage(), migrations/
+// create_phorest_week_coverage.sql), the same feed her sales on this page come
+// from. The aim is her level's monthly take aim from Stylist Levels (perf_levels,
+// the one Takings vs Rebooking reads) times 12 over 52. Beauty has no level aims
+// yet, so beauty shows no aim line.
+let w13Cov = null, w13CovKey = null;
+async function w13LoadCoverage(from, to) {
+  const key = from + '|' + to;
+  if (w13Cov && w13CovKey === key) return w13Cov;
+  const m = {};
+  try {
+    const { data, error } = await sb.rpc('phorest_week_coverage', { p_from: from, p_to: to });
+    if (error) throw error;
+    (data || []).forEach(r => { m[r.branch + '|' + String(r.week_start).slice(0, 10)] = Number(r.days) || 0; });
+  } catch (e) { return null; }   // unknown coverage: every empty week stays plain grey, as before
+  w13Cov = m; w13CovKey = key;
+  return m;
+}
+// The Monday i weeks after `from`, as yyyy-mm-dd.
+const w13WeekIso = (from, i) => { const d = new Date(from + 'T00:00:00'); d.setDate(d.getDate() + 7 * i);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+// True when the branch has no Phorest day at all that week. Null coverage: unknown.
+const w13NoData = (branch, weekIso) => !!w13Cov && !(w13Cov[branch + '|' + weekIso] > 0);
+async function w13LoadAims() {
+  const lv = (typeof tpLoadLevels === 'function') ? await tpLoadLevels() : null;
+  return lv || {};
+}
+// Her level's weekly take aim in AED, or null (beauty, or no level set).
+const w13WeekAim = (levels, level) => (levels && level && levels[level] && levels[level].take) ? levels[level].take * 12 / 52 : null;
+let w13Aims = {};
+
 async function w13Load(staffId) {
   const { data, error } = await sb.rpc('perf_year_weeks', { p_admin: typeof spfGet === 'function' ? spfGet() : null, p_staff_id: staffId || null, p_year: w13Year });
   if (error || !data) throw error || new Error('no data');
@@ -191,16 +225,24 @@ function w13Photo(keys) {
 // Thirteen small bars, one a week, scaled to her own best week, so a card shows the
 // shape of her quarter at a glance. Grey where the week had nothing.
 // The week still being traded rides on the end as a paler bar (Kate, 29 Sep 2026).
-function w13Spark(weekly, cur, dept) {
+// 13W4: `o` = { branch, from, aim }. An empty week her branch has no Phorest day for
+// is drawn as an outline (not uploaded yet); an empty week it does have is the plain
+// grey (she took nothing: leave, days off). `aim` draws her weekly aim as a dotted line.
+function w13Spark(weekly, cur, dept, o) {
+  o = o || {};
   const sh = w13Shades(dept);
   const v = (weekly || []).map(Number);
   if (cur !== null && cur !== undefined) v.push(Number(cur));
-  const last = (cur !== null && cur !== undefined) ? v.length - 1 : -1, max = Math.max(1, ...v);
-  const bw = 7, gap = 3, h = 34;
-  return `<svg class="w13-spark" viewBox="0 0 ${v.length * (bw + gap) - gap} ${h}" preserveAspectRatio="none" aria-hidden="true">${v.map((x, i) => {
+  const last = (cur !== null && cur !== undefined) ? v.length - 1 : -1;
+  const aim = o.aim > 0 ? o.aim : null, max = Math.max(1, ...v, aim || 0);
+  const bw = 7, gap = 3, h = 34, wTot = v.length * (bw + gap) - gap;
+  const nd = i => i !== last && o.branch && o.from && w13NoData(o.branch, w13WeekIso(o.from, i));
+  const ay = aim ? (h - h * aim / max).toFixed(1) : null;
+  return `<svg class="w13-spark" viewBox="0 0 ${wTot} ${h}" preserveAspectRatio="none" aria-hidden="true">${v.map((x, i) => {
+    if (!(x > 0) && nd(i)) return `<rect x="${i * (bw + gap) + .5}" y="${h - 8.5}" width="${bw - 1}" height="8" rx="1.5" class="nd"/>`;
     const bh = x > 0 ? Math.max(2, Math.round(h * x / max)) : 2;
     return `<rect x="${i * (bw + gap)}" y="${h - bh}" width="${bw}" height="${bh}" rx="1.5" class="${x > 0 ? 'on' : ''}${i === last ? ' cur' : ''}"${x > 0 ? ` style="fill:${sh[Math.min(3, Math.floor(i / 13))]}"` : ''}/>`;
-  }).join('')}</svg>`;
+  }).join('')}${aim ? `<line x1="0" x2="${wTot}" y1="${ay}" y2="${ay}" class="aim"/>` : ''}</svg>`;
 }
 
 async function renderStaffWeeks() {
@@ -224,6 +266,7 @@ async function renderStaffWeeks() {
   }
   const d = w13Data, s = d.staff;
   if (!s) { w13Pick = null; await w13RenderTeam(el); w13Sync(); return; }
+  [w13Aims] = await Promise.all([w13LoadAims(), w13LoadCoverage(d.from, d.to)]);
   w13Sync();
 
   // Thirteen complete Mon-Sun weeks carry every total; the week still being traded
@@ -262,8 +305,10 @@ async function renderStaffWeeks() {
     qw.forEach(w => {
       const n = w.numbers;
       const fill = n.available_hours > 0 ? Math.round(100 * n.booked_hours / n.available_hours) + '%' : '–';
-      rows += `<tr class="w13-wk${n.total_revenue > 0 || n.clients > 0 ? '' : ' w13-off'}">
-      <td><b>${w13Wk(w.week_no)}</b><div class="slv-note">${w13Esc(w13Range(w.week_start))}</div></td>
+      const off = !(n.total_revenue > 0 || n.clients > 0);
+      const why = !off ? '' : w13NoData(d.staff.branch, String(w.week_start).slice(0, 10)) ? 'not uploaded yet' : (w13Cov ? 'no sales: leave or days off' : '');
+      rows += `<tr class="w13-wk${off ? ' w13-off' : ''}">
+      <td><b>${w13Wk(w.week_no)}</b><div class="slv-note">${w13Esc(w13Range(w.week_start))}${why ? ' · ' + why : ''}</div></td>
       <td>${w13Num(n.total_revenue)}</td><td>${w13Num(n.clients)}</td>
       <td class="slv-aim">${w13Rebook(n.rebooked, n.clients)}</td>
       <td>${w13Num(n.avg_bill)}</td><td>${w13Num(n.retail)}</td><td>${fill}</td></tr>`;
@@ -358,6 +403,7 @@ async function w13RenderTeam(el) {
     catch (e) { el.innerHTML = '<p class="slv-muted">Staff’s Quarterly Performance didn\'t load. Refresh to try again.</p>'; return; }
   }
   const t = w13Team;
+  [w13Aims] = await Promise.all([w13LoadAims(), w13LoadCoverage(t.from, t.to)]);
   const list = t.roster.filter(r => (w13Dept === 'all' || r.dept === w13Dept) && (!w13Branch || w13Branch.includes(r.branch)));
   const flip = w13Rev ? -1 : 1;
   const byTakings = (a, b) => w13N((b.numbers || {}).total_revenue) - w13N((a.numbers || {}).total_revenue);
@@ -372,7 +418,7 @@ async function w13RenderTeam(el) {
       </div>
       <div class="w13-card-val">${w13Aed(n.total_revenue)}</div>
       <div class="slv-note">${w13Num(n.clients)} clients · ${n.clients ? `${w13Num(n.rebooked)} of ${w13Num(n.clients)} rebooked` : 'no clients'}</div>
-      ${w13Spark(r.weekly, r.current, r.dept)}
+      ${w13Spark(r.weekly, r.current, r.dept, { branch: r.branch, from: t.from, aim: w13WeekAim(w13Aims, r.level) })}
     </button>`;
   };
   el.innerHTML = `
@@ -393,7 +439,7 @@ async function w13RenderTeam(el) {
       <button type="button" class="sc-btn" title="Reverse the order" onclick="w13SetSort(null, true)">${['branch', 'name'].includes(w13Sort) ? (w13Rev ? 'Z–A' : 'A–Z') : (w13Rev ? 'Lowest first' : 'Highest first')} ⇅</button>
     </div>
     ${list.length ? w13Body(list, flip, byTakings, grid, head) : '<p class="slv-muted" style="margin-top:22px">No one on this team at this branch.</p>'}
-    <p class="slv-muted">Sales are services before VAT, retail not included. A grey bar is a week with no sales (leave, days off, or not uploaded yet).</p>`;
+    <p class="slv-muted">Sales are services before VAT, retail not included. A solid grey stub is a week she took nothing (leave or days off); an outlined one is a week her branch has not uploaded yet. The dotted line is her level's weekly take aim (Stylist Levels' monthly aim × 12 ÷ 52; beauty has no level aims yet).</p>`;
   if (typeof spfDD === 'function') { spfDD(document.getElementById('w13Sort')); spfDD(document.getElementById('w13Year')); spfDD(document.getElementById('w13Branch')); }
 }
 // Branch and Position keep headed groups (busiest first inside each); the rest are
@@ -438,13 +484,19 @@ function w13Draw() {
   const rows = daily
     ? shown.map(x => ({ label: win <= 31 ? [new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short' }), w13Day(x.date)] : w13Day(x.date),
         tip: new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), q: w13QOfDate(x.date, w13Data.from), sales: x.total_revenue, clients: x.clients }))
-    : w13Data.weeks.map((w, i) => ({ label: w.current ? [w13Wk(w.week_no), 'so far'] : [w13Wk(w.week_no), w13Range(w.week_start)], cur: !!w.current, q: w13Q(w.week_no), no: w.week_no, sales: w.numbers.total_revenue, clients: w.numbers.clients }));
+    : w13Data.weeks.map((w, i) => ({ label: w.current ? [w13Wk(w.week_no), 'so far'] : [w13Wk(w.week_no), w13Range(w.week_start)], cur: !!w.current, q: w13Q(w.week_no), no: w.week_no, ws: w.week_start, sales: w.numbers.total_revenue, clients: w.numbers.clients }));
   const shades = w13Shades(w13Data.staff && w13Data.staff.dept);
   // Same colours as her Staff Benchmarks chart: hair violet bars and a green line,
   // beauty pink bars and a deep violet line (Kate, 29 Sep 2026). The pink is the brand's
   // coral pillar accent, #FF9B9B (trs-brand-guardian palette), as the lavender is.
   const pal = (w13Data.staff && w13Data.staff.dept === 'Beauty') ? { bar: '#FF9B9B', line: '#6D28D9' } : { bar: '#C4B5FD', line: '#0F6E56' };
   const barKey = w13Bars === 'clients' ? 'clients' : 'sales', lineKey = barKey === 'sales' ? 'clients' : 'sales';
+  // 13W4: her level's weekly aim on the bars' axis (weekly grain only; a daily
+  // aim would be a seventh of a week she does not work evenly).
+  const wAim = (!daily && barKey === 'sales' && w13Data.staff) ? w13WeekAim(w13Aims, w13Data.staff.level) : null;
+  const home = w13Data.staff && w13Data.staff.branch;
+  const whyEmpty = r => (r.sales > 0 || r.clients > 0 || r.cur || daily) ? null
+    : w13NoData(home, String(r.ws || '').slice(0, 10)) ? 'Not uploaded yet' : (w13Cov ? 'No sales: leave or days off' : null);
   const LBL = { sales: 'Service sales (AED)', clients: 'Clients' }, barLbl = LBL[barKey], lineLbl = LBL[lineKey];
   // Quarter bands (Kate, 29 Sep 2026: the dashed line was too quiet for the untrained
   // eye). Each quarter gets a faint wash of its own shade behind its bars, a firm line
@@ -487,6 +539,8 @@ function w13Draw() {
         { type: 'bar', order: 2, label: barLbl, data: rows.map(r => r[barKey]), backgroundColor: rows.map(r => { const c = shades[(r.q || 1) - 1] || pal.bar; return r.cur ? c + '73' : c; }), yAxisID: 'y', borderRadius: daily ? (win <= 31 ? 4 : 2) : 6, maxBarThickness: 60 },
         { type: 'line', order: 1, label: lineLbl, data: rows.map(r => r[lineKey]), borderColor: pal.line, borderWidth: daily ? 1.5 : 2.5, backgroundColor: pal.line,
           pointRadius: daily ? (win <= 31 ? 3 : win <= 91 ? 2 : 0) : 4, pointHoverRadius: daily ? 4 : 6, pointBackgroundColor: '#fff', pointBorderColor: pal.line, pointBorderWidth: 2, yAxisID: 'y1', tension: 0.4, cubicInterpolationMode: 'monotone' },   // smooth, never overshoots (Kate, 29 Sep 2026)
+        ...(wAim ? [{ type: 'line', order: 0, label: 'Weekly aim', data: rows.map(() => Math.round(wAim)), borderColor: muted || '#888',
+          borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, pointHoverRadius: 0, yAxisID: 'y', fill: false }] : []),
       ],
     },
     options: {
@@ -496,7 +550,8 @@ function w13Draw() {
       // The Sales / Clients key lives in the controls row (w13SeriesKey), so the quarter
       // names have the top of the chart to themselves.
       plugins: { legend: { display: false },
-                 tooltip: { callbacks: { title: items => { const r = rows[items[0].dataIndex]; if (r && r.tip) return r.tip; const l = items[0].chart.data.labels[items[0].dataIndex]; return Array.isArray(l) ? l.join(' · ') : l; } } } },
+                 tooltip: { callbacks: { title: items => { const r = rows[items[0].dataIndex]; if (r && r.tip) return r.tip; const l = items[0].chart.data.labels[items[0].dataIndex]; return Array.isArray(l) ? l.join(' · ') : l; },
+                                         afterBody: items => { const r = rows[items[0].dataIndex]; const w = r && whyEmpty(r); return w ? [w] : []; } } } },
       scales: {
         // Left axis is always the bars, right axis the line, whichever measure each is.
         y: { beginAtZero: true, grace: '10%', ticks: { color: muted, precision: barKey === 'clients' ? 0 : undefined }, grid: { color: border } },
