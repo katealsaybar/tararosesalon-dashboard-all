@@ -4075,7 +4075,7 @@ async function renderDashboard() {
     };
     const tBill = best(revKey), tAvg = best('avgBill', 10), tReq = best('req'), tNew = best('newC');
     return [
-      { k:'Top biller',       p:tBill, n:tBill[revKey] || 0,  v:`<b>${aed0(tBill[revKey] || 0)}</b> · ${num0(tBill.total)} visits` },
+      { k:'Top biller',       p:tBill, n:tBill[revKey] || 0,  v:`<b>${aed0(tBill[revKey] || 0)}</b> net take · ${num0(tBill.total)} visits` },
       { k:'Highest avg bill', p:tAvg,  n:tAvg.avgBill  || 0,  v:`<b>${aed0(tAvg.avgBill || 0)}</b> avg · ${num0(tAvg.total)} visits` },
       { k:'Most requested',   p:tReq,  n:tReq.req      || 0,  v:`<b>${num0(tReq.req || 0)} requests</b> of ${num0(tReq.total)} visits` },
       { k:'Most new clients', p:tNew,  n:tNew.newC     || 0,  v:`<b>${num0(tNew.newC || 0)} new</b> of ${num0(tNew.total)} visits` },
@@ -4112,8 +4112,12 @@ async function renderDashboard() {
         </div>
       </div>`;
   };
-  const winsHair   = winnersFor(d.hairStaff,   'hairSalesNet').map(winCard).join('');
-  const winsBeauty = winnersFor(d.beautyStaff, 'beautySales').map(winCard).join('');
+  // Kate, 1 Oct 2026 (Comet OP5): Top biller read services only (hairSalesNet /
+  // beautySales) while every staff table ranks and prints Net take, retail in, so
+  // the card's figure never matched the table row beside it (Kate Siryk, Sept:
+  // 92,199 on the card, 95,226 in the table). Both read Net take now.
+  const winsHair   = winnersFor(d.hairStaff,   'netSalonTake').map(winCard).join('');
+  const winsBeauty = winnersFor(d.beautyStaff, 'netSalonTake').map(winCard).join('');
 
   // ── CLIENT FUNNEL ────────────────────────────────────────────────
   // These are independent booking-type breakdowns, not strict sequential stages,
