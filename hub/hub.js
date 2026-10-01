@@ -18,6 +18,9 @@
   KB.SECTIONS = [
     { key: 'dashboards', title: 'Dashboards', staff: false, href: '/dashboard/', live: true, rule: 'var(--accent-lavender)',
       blurb: 'Sales, ledgers, team performance and every report, as before.' },
+    // Kate, 1 Oct 2026: Campaigns sits right after Dashboards.
+    { key: 'campaigns', title: 'Campaigns', staff: false, href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
+      blurb: 'Wellness Voucher performance.' },
     { key: 'beauty-sop', title: 'Beauty SOPs', staff: true, rule: 'var(--accent-mint)',
       blurb: 'Every beauty treatment, step by step: hands and feet, facials, face and body, plus hygiene and room set-up.' },
     { key: 'hair-sop', title: 'Hair SOPs', staff: true, rule: 'var(--accent-lavender)',
@@ -27,9 +30,7 @@
     { key: 'front-desk', title: 'Front Desk & Policies', staff: false, rule: 'var(--accent-coral)',
       blurb: 'The front desk manual, booking and deposit policy, cancellations.' },
     { key: 'hr-forms', title: 'HR Forms & Waivers', staff: false, rule: 'var(--accent-butter)',
-      blurb: 'Leave, probation and return-to-work forms; client waivers and consultation forms.' },
-    { key: 'campaigns', title: 'Campaigns', staff: false, href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
-      blurb: 'Wellness Voucher performance.' }
+      blurb: 'Leave, probation and return-to-work forms; client waivers and consultation forms.' }
   ];
 
   function esc(s) {
