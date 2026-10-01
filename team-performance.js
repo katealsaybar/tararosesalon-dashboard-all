@@ -267,13 +267,19 @@ function tpRings(st) {
         <circle cx="24" cy="24" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="5"/>
         <circle class="${tpBand(v, m.t)}" cx="24" cy="24" r="${r}" fill="none" stroke-width="5" stroke-linecap="round"
           stroke-dasharray="${c * frac} ${c}" transform="rotate(-90 24 24)"/>
-        <text x="24" y="28" text-anchor="middle">${m.f(v)}</text></svg>${m.l}</div>`;
+        <text x="24" y="28" text-anchor="middle">${m.f(v)}</text></svg>${m.l}${tpAim(m)}</div>`;
   }).join('');
+}
+// The aim printed under a figure. Kate, 1 Oct 2026 (Comet PR1): the colour said
+// good or bad but the target itself was only in a hover tooltip, which a phone
+// never shows, so nobody could see what a stylist was being read against.
+function tpAim(m) {
+  return m.t == null ? '' : `<small class="tp-aim tabular">aim ${m.f(m.t)}</small>`;
 }
 // Ranks 4-10: the same four targets as small tinted tiles.
 function tpTiles(st) {
   return tpTargets(st).map(m => `<div class="tp-tile ${tpBand(m.v, m.t)}" title="${m.t == null ? 'no target set' : `target ${m.f(m.t)}`}">
-    <span>${m.l}</span><b class="tabular">${m.f(m.v)}</b></div>`).join('');
+    <span>${m.l}</span><b class="tabular">${m.f(m.v)}</b>${tpAim(m)}</div>`).join('');
 }
 
 // ── THE PAGE ─────────────────────────────────────────────────
@@ -329,8 +335,8 @@ async function renderTeam() {
         <button class="${tpDept === 'beauty' ? 'on' : ''}" onclick="tpSetDept('beauty')">Beauty</button>
       </div>
       ${part === 'race' ? `<div class="tp-seg" role="group" aria-label="Rank by">
-        <button class="${tpSort === 'net'   ? 'on' : ''}" onclick="tpSetSort('net')">Takings</button>
-        <button class="${tpSort === 'level' ? 'on' : ''}" onclick="tpSetSort('level')">Position</button>
+        <button class="${tpSort === 'net'   ? 'on' : ''}" onclick="tpSetSort('net')" title="One race, everyone ranked by net salon take">Takings</button>
+        <button class="${tpSort === 'level' ? 'on' : ''}" onclick="tpSetSort('level')" title="Grouped by position (Style Director, Senior Stylist and so on), ranked by net take inside each group">Position</button>
       </div>` : ''}
       <span class="tp-bar-n">${branchLabel} · ${roster.length} ${roster.length === 1 ? 'person' : 'people'}</span>
       <span class="tp-bar-sp"></span>
@@ -346,7 +352,7 @@ async function renderTeam() {
 
       ${chase.length ? `
         <div class="section-label">Chasing the podium
-          <span class="tp-sec-n">ranks 4 to ${3 + chase.length} · bar is her take against the leader's</span></div>
+          <span class="tp-sec-n">ranks 4 to ${3 + chase.length} · bar is her take against the leader's · tiles are green at or above the aim, amber within a fifth of it, red below</span></div>
         <div class="tp-race">${chase.map((st, i) => tpChaseRow(st, i + 4, roster[i + 2], lead)).join('')}</div>` : ''}
 
       ${rest.length ? `
@@ -461,7 +467,7 @@ function tpRaceRow(st, rank, lead) {
     </div>
     ${tpBar(st, lead)}
     ${(typeof isBahrainView === 'function' && isBahrainView()) ? '<div class="tp-rb tabular"><b>—</b>rebook</div>'
-      : `<div class="tp-rb tabular ${tpBand(st.rebookPct, TARGETS.rebookPct)}"><b>${tpPct(st.rebookPct)}</b>rebook</div>`}
+      : `<div class="tp-rb tabular ${tpBand(st.rebookPct, TARGETS.rebookPct)}"><b>${tpPct(st.rebookPct)}</b>rebook${tpAim({ t: TARGETS.rebookPct, f: tpPct })}</div>`}
     ${tpAddBtn(st)}
   </div>`;
 }
