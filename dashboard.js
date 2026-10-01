@@ -569,6 +569,12 @@ function paintFilterChips() {
         ? `${rD(dateFrom)} – ${rD(dateTo)} ${dateTo.getFullYear()}`
         : `${rD(dateFrom)} ${dateFrom.getFullYear()} – ${rD(dateTo)} ${dateTo.getFullYear()}`)
     : '';
+  // The Ledgers pages read their own Month picker, not the period, so the rule
+  // names that month instead of a range the tables underneath are not showing.
+  // Kate, 1 Oct 2026: it said "1 September – 1 October" over an August ledger.
+  if (mr && onLedger && typeof lgMonth === 'string' && typeof lgMonthLabel === 'function') {
+    mr.textContent = `${lgMonthLabel(lgMonth)} · ledger month`;
+  }
 }
 
 // -- THE THREE PICKERS UNDER THE CHIPS -----------------------

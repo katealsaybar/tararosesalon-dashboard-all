@@ -73,7 +73,11 @@
 .tp-trk.lg{height:30px}
 .tp-fill{height:100%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;
   padding:0 8px;font-size:13px;font-weight:700;color:#2D2E37;white-space:nowrap;
-  transition:width .45s var(--card-ease)}
+  transition:width .45s var(--card-ease);
+  /* Kate, 1 Oct 2026: on a laptop-width window the 18% floor was narrower than
+     "AED 30,311", so the label lost its left digits. The fill now grows to fit
+     its own figure; it only ever affects bars already sitting on the floor. */
+  min-width:max-content}
 .tp-tiles{display:grid;grid-template-columns:repeat(4,64px);gap:6px}
 .tp-tile{border-radius:7px;padding:4px 7px;background:var(--surface2);line-height:1.25}
 .tp-tile span{display:block;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2)}

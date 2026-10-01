@@ -159,6 +159,16 @@ function bnScored(cur) {
     .sort((a, b) => a.ratio - b.ratio);
 }
 
+// One benchmark against its target, saying "clear of" only when it is. The rules
+// writer used to print "clear of its AED 650 target" for AED 649 and 632, because
+// the line was written for a branch's best benchmark and the best can still be
+// short. Kate, 1 Oct 2026.
+function bnAgainst(x) {
+  return x.ratio >= 1
+    ? `${x.label} is ${x.fmt(x.value)}, clear of its ${x.fmt(x.targetValue)} target.`
+    : `${x.label} is ${x.fmt(x.value)} against a ${x.fmt(x.targetValue)} target${x.ratio >= 0.95 ? ', just short of it' : ''}.`;
+}
+
 // ── THE RULES WRITER ─────────────────────────────────────────
 // Plain, and true. Every sentence here is assembled from a figure this file was
 // given, which is the same contract the function is held to.
@@ -242,17 +252,20 @@ function bnFallback(g) {
       workBits = [`${best.label} is ${best.fmt(best.value)} against a ${best.fmt(best.targetValue)} target${
         best.ratio >= 1 ? ', clear of it' : ''} and the best of the four.`];
     } else if (topClients || topNew) {
-      subject = 'The busiest floor in the group';
+      // "Busiest" belongs to the branch with the most clients only. A branch that
+      // leads on new clients alone gets its own subject, so two panels can no
+      // longer both claim the busiest floor. Kate, 1 Oct 2026.
+      subject = topClients ? 'The busiest floor in the group' : 'The most new clients in the group';
       workBits = [[
         topClients ? `${lgNum(cur.totalClients)} clients` : null,
         topNew ? `${lgNum(cur.newClientsTotal)} new ones` : null,
       ].filter(Boolean).join(' and ') + `, more than any other branch. New business is arriving; what happens next is the question below.`];
-      workBits.push(`${best.label} is ${best.fmt(best.value)}, clear of its ${best.fmt(best.targetValue)} target.`);
+      workBits.push(bnAgainst(best));
     } else if (runnerUp) {
       subject = `${runnerUp.label}, second in the group`;
       workBits = [`${runnerUp.label} is ${runnerUp.fmt(runnerUp.value)} against a ${runnerUp.fmt(runnerUp.targetValue)} target — second of the four.`];
       if (runnerUp.id !== best.id) {
-        workBits.push(`${best.label} is ${best.fmt(best.value)}, clear of its ${best.fmt(best.targetValue)} target.`);
+        workBits.push(bnAgainst(best));
       }
     } else {
       subject = `${best.label} is holding`;

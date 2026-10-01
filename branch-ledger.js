@@ -335,7 +335,11 @@ function lgLedgerContext(series) {
     // it the line printed lgRangeLabel() — the filter's range — on three pages that
     // do not read the filter, which is the same lie the warning stripe used to tell.
     rangeLabel: `${shortD(w.prev.from)} – ${shortD(through || w.month.to)}`,
-    note: `${w.prev.label} actuals against the full ${w.month.label} target`
+    // Kate, 1 Oct 2026: this used to open "July actuals against the full August
+    // target", but the MTD columns are the ledger month itself; the prior month
+    // is the Last Month column beside them. Comet and the UX inventory both read
+    // it as July data.
+    note: `${w.month.label} month to date against the full ${w.month.label} target, with ${w.prev.label} beside it as last month`
       + (through ? `, month to date to ${shortD(through)}` : '')
       + `. % done is raw progress through the target, not paced against days elapsed — the same way the ledger reads it. `
       + `The Period chips do not apply on the Ledgers pages: Month above picks which month all three read, and Split chooses how finely the actual is cut.`,
@@ -645,6 +649,8 @@ function lgSetMonth(m) {
   // A different month is a different fetch, unlike Split — drop the cache and let
   // the page reload its own series.
   window._lgSeries = null;
+  // The masthead names the ledger month on these pages; repaint it with the month.
+  if (typeof paintFilterChips === 'function') paintFilterChips();
   const vis = id => { const n = document.getElementById('view-' + id); return n && n.style.display !== 'none'; };
   // Financial Totals ignores Split — a monthly report cut by day reconciles
   // against nothing — but the Month picker is the one control that does move it.
@@ -932,7 +938,7 @@ function lgSheetSection(series, code, ctx) {
   const bm = (typeof LEDGER_TARGETS !== 'undefined') ? LEDGER_TARGETS.benchmarks : TARGETS;
 
   const sp = lgSplit(series);
-  const cols = [{ label: 'Category / Metric' }, { label: w.prev.label, align: 'r' }, { label: 'Target', align: 'r' }]
+  const cols = [{ label: 'Category / Metric' }, { label: `Last month (${w.prev.label})`, align: 'r' }, { label: 'Target', align: 'r' }]
     .concat(sp.windows.map((x, i) => ({ label: sp.head(x, i), align: 'r' })))
     .concat([{ label: 'MTD', align: 'r' }, { label: 'Variance', align: 'r' }]);
 
@@ -1652,6 +1658,9 @@ function lgStaffTables(codes, ctx) {
     if (!bd) return '';
     const info = BRANCH_INFO[code] || { name: code };
 
+    // Kate, 1 Oct 2026: the per-staff new-client count is `newC` (dashboard.js
+    // builds it that way). These tables read `newClients`, never set per staff, so
+    // New fell back to NCR on every row and the stylist totals summed New as 0.
     const hairCols = [
       {label:'Stylist'},{label:'Services excl. tx & courses',align:'r'},{label:'Treatments',align:'r'},
       {label:'Retail',align:'r'},{label:'Net take',align:'r'},{label:'Clients',align:'r'},
@@ -1667,7 +1676,7 @@ function lgStaffTables(codes, ctx) {
       .map(st => [
         lgStaffName(code, 'HAIR', st, ctx),
         lgAed(st.hairServicesExcl), lgAed(st.treatments), lgAed(st.retail), lgAed(st.netSalonTake),
-        lgNum(st.total), lgNum(st.newClients != null ? st.newClients : st.newClientReq),
+        lgNum(st.total), lgNum(st.newC != null ? st.newC : st.newClients),
         lgNum(st.newClientReq), lgNum(st.rebooked), lgPct(st.rebookPct), lgAed(st.avgBill),
       ]);
 
@@ -1682,7 +1691,7 @@ function lgStaffTables(codes, ctx) {
       .map(st => [
         lgStaffName(code, 'BEAUTY', st, ctx),
         lgAed(st.beautySales), lgAed(st.retail), lgAed(st.netSalonTake),
-        lgNum(st.total), lgNum(st.newClients != null ? st.newClients : st.newClientReq),
+        lgNum(st.total), lgNum(st.newC != null ? st.newC : st.newClients),
         lgNum(st.newClientReq), lgNum(st.rebooked), lgPct(st.rebookPct), lgAed(st.avgBill),
       ]);
 
@@ -1929,8 +1938,8 @@ async function renderLedgerActuals() {
   host.innerHTML =
     lgHeader('Ledgers · Actuals vs Targets',
       ctx.applies
-        ? `${escapeHtml(series.windows.prev.label)} actuals against ${escapeHtml(series.windows.month.label)} targets, group first and then branch by branch.`
-        : `${escapeHtml(series.windows.prev.label)} against ${escapeHtml(series.windows.month.label)}, group first and then branch by branch — actuals only, no target sheet for this month.`,
+        ? `${escapeHtml(series.windows.month.label)} actuals against ${escapeHtml(series.windows.month.label)} targets, with ${escapeHtml(series.windows.prev.label)} beside them as last month, group first and then branch by branch.`
+        : `${escapeHtml(series.windows.month.label)} actuals only, with ${escapeHtml(series.windows.prev.label)} beside them as last month, group first and then branch by branch. No target sheet is loaded for this month.`,
       ctx) +
     lgMonthRow() +
     lgGrainRow() +
@@ -1944,7 +1953,7 @@ async function renderLedgerActuals() {
         escapeHtml(series.windows.month.label), lgSheetSection(series, code, ctx));
     }).join('') +
     `<div class="fine">
-      <p><b>The Ledgers pages ignore the Period chips, on purpose</b>. Last Month · the split columns · MTD only mean anything against one whole month, so these pages read ${escapeHtml(series.windows.prev.label)} against ${escapeHtml(series.windows.month.label)} — and it is <b>Month</b> above, not the Period chips, that moves them. <b>Split</b> then chooses how finely the actual is cut: MTD for the month in one column, Weekly for her Week 00–04, Daily for a column per day. Every page outside Ledgers follows your filter as before.</p>
+      <p><b>The Ledgers pages ignore the Period chips, on purpose</b>. Last Month · the split columns · MTD only mean anything against one whole month, so these pages read ${escapeHtml(series.windows.month.label)}, with ${escapeHtml(series.windows.prev.label)} beside it as last month, and it is <b>Month</b> above, not the Period chips, that moves them. <b>Split</b> then chooses how finely the actual is cut: MTD for the month in one column, Weekly for her Week 00–04, Daily for a column per day. Every page outside Ledgers follows your filter as before.</p>
       <p><b>Motor City runs hair only</b>, so its beauty rows are absent rather than printed as zeros — the same way her sheet carries it.</p>
     </div>`);
 
@@ -2660,7 +2669,7 @@ async function renderLedgerStylist() {
 
           tot.sa += svcA; tot.ta += txA; tot.ra += retA;
           tot.st += svcT || 0; tot.tt += txT || 0; tot.rt += retT || 0;
-          tot.c += st.total || 0; tot.n += (st.newClients != null ? st.newClients : 0);
+          tot.c += st.total || 0; tot.n += (st.newC != null ? st.newC : (st.newClients || 0));
           tot.ncr += st.newClientReq || 0; tot.rb += st.rebooked || 0;
           tot.tu += st.treatmentUnits || 0; tot.ru += st.retailUnits || 0;
 
@@ -2678,7 +2687,7 @@ async function renderLedgerStylist() {
             .concat([lgAed(svcA)])
             .concat(showTargets ? [svcT ? lgDelta(svcA - svcT, lgAed) : '—'] : [])
             .concat([
-            lgNum(st.total), lgNum(st.newClients != null ? st.newClients : st.newClientReq),
+            lgNum(st.total), lgNum(st.newC != null ? st.newC : st.newClients),
             lgNum(st.newClientReq), lgNum(st.rebooked), lgPct(st.rebookPct), lgAed(st.avgBill)])
             .concat(showTargets ? [txT ? lgAed(txT) : '<span class="lg-na">—</span>'] : [])
             .concat([

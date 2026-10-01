@@ -55,15 +55,22 @@
 
       function check() {
         if (TRS.session) { lift(); resolve(TRS); return; }
-        var email = '<a href="' + TRS.loginUrl() + '" style="display:inline-block;' +
+        // Inside the dashboard (the Wellness Voucher Performance frame) the sign-in
+        // opens in its own tab: a Google sign-in cannot run inside a frame, and the
+        // auth-change listener below lifts this panel once that tab is done.
+        var framed = window.top !== window;
+        var email = '<a href="' + TRS.loginUrl() + '"' + (framed ? ' target="_blank" rel="noopener"' : '') +
+          ' style="display:inline-block;' +
           'margin-top:16px;background:#2D2E37;color:#fff;text-decoration:none;font-size:14px;' +
           'font-weight:600;padding:11px 20px;border-radius:8px">Sign in to continue</a>';
         panel('<div style="font-family:Georgia,serif;font-size:24px;margin-bottom:10px">' +
           'Sign in first</div>' +
           '<p style="color:#6E6E77;font-size:14px">' +
           (why || 'This page reaches real client records') +
-          ', so it is one of the two parts of the pack that ask who you are. The salon ' +
-          'account is enough, you do not need Kate\'s.</p>' + email);
+          ', so the voucher system asks who you are. It has its own sign-in, separate ' +
+          'from the dashboard; the salon account is enough.' +
+          (framed ? ' Sign in opens in a new tab, and this report loads here once you are done.' : '') +
+          '</p>' + email);
       }
 
       // Re-checked on every auth change, so signing in in the other tab lifts this one, and

@@ -1420,7 +1420,7 @@ function lgxModelStylist(series, ctx) {
 
           tot.sa += svcA || 0; tot.ta += txA || 0; tot.ra += retA || 0;
           tot.st += (tg ? tg.services : 0) || 0; tot.tt += (tg ? tg.treatment : 0) || 0; tot.rt += (tg ? tg.retail : 0) || 0;
-          tot.c += clients || 0; tot.n += lgxNum(st.newClients) || 0;
+          tot.c += clients || 0; tot.n += lgxNum(st.newC != null ? st.newC : st.newClients) || 0;
           tot.ncr += lgxNum(st.newClientReq) || 0; tot.rb += rebooked || 0;
           tot.tu += lgxNum(st.treatmentUnits) || 0; tot.ru += lgxNum(st.retailUnits) || 0;
 
@@ -1433,7 +1433,7 @@ function lgxModelStylist(series, ctx) {
             .concat(showTargets ? [lgxChk(tg ? svcA - tg.services : null, tg ? svcA - tg.services : null,
               A => A('svcMtd') + '-' + A('svcTarget'), 'aed')] : [])
             .concat([{ v: clients, fmt: 'num' },
-                     { v: lgxNum(st.newClients != null ? st.newClients : st.newClientReq), fmt: 'num' },
+                     { v: lgxNum(st.newC != null ? st.newC : st.newClients), fmt: 'num' },
                      { v: lgxNum(st.newClientReq), fmt: 'num' }, { v: rebooked, fmt: 'num' },
                      lgxChk(lgxNum(st.rebookPct), clients ? (rebooked || 0) / clients * 100 : null, rebookF, 'pct'),
                      lgxChk(lgxNum(st.avgBill), clients ? svcA / clients : null, avgF, 'aed')])
