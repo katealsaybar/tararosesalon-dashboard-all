@@ -4007,7 +4007,12 @@ async function renderDashboard() {
   // Then the card says which, in amber, instead of a plain "On target".
   const avgShort = [!hairAvgOk && s.hairAvgBill != null ? 'Hair' : null,
                     hasBeauty && s.beautyAvgBill != null && !beautyAvgOk ? 'Beauty' : null].filter(Boolean);
-  const avgBand = TARGETS.hairAvgBill == null ? '' : band(avgBillOf(s), blendedAvgTarget);
+  // Kate, 1 Oct 2026: on Through the door the avg bill is net take over fewer
+  // clients, so it is read against the same bar scaled the same way (target x
+  // handled / door). The verdict is then exactly the Handled one; only the
+  // figures change with the switch.
+  const avgTarget = (doorOn(s) && s.doorClients) ? blendedAvgTarget * (s.totalClients || 0) / s.doorClients : blendedAvgTarget;
+  const avgBand = TARGETS.hairAvgBill == null ? '' : band(avgBillOf(s), avgTarget);
   // OP4 second pass (Kate, 1 Oct 2026): a department short is a miss, so red.
   const avgBillStatus = (avgBand === 'good' && avgShort.length) ? 'bad' : avgBand;
   const avgBillVerdict = TARGETS.hairAvgBill == null ? 'No target yet'
@@ -4052,7 +4057,7 @@ async function renderDashboard() {
     { k:'Avg bill', def: doorOn(s) ? 'Net take divided by clients through the door: what one visit is worth.' : 'Net take divided by clients: what one visit is worth.',
       v: aed0(avgBillOf(s)), status: avgBillStatus,
       t: TARGETS.hairAvgBill == null ? 'No avg-bill target set for this branch yet'
-        : `Hair target ${TARGETS.hairAvgBill} · Beauty target ${TARGETS.beautyAvgBill}`, verdict: avgBillVerdict,
+        : `Hair target ${TARGETS.hairAvgBill} · Beauty target ${TARGETS.beautyAvgBill}${doorOn(s) ? ` · ${aed0(avgTarget)} a door client` : ''}`, verdict: avgBillVerdict,
       splits: splitsOf([
         { k:'Hair', val:s.hairAvgBill, of:Math.max(s.hairAvgBill || 0, s.beautyAvgBill || 0, TARGETS.hairAvgBill || 0),
           txt:aed0(s.hairAvgBill),
