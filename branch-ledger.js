@@ -1883,6 +1883,18 @@ async function renderLedgerTargets() {
     {label:'Retail %',align:'r'},{label:'Hair avg bill',align:'r'},{label:'Beauty avg bill',align:'r'},
     {label:'Total clients',align:'r'},{label:'New',align:'r'},{label:'NCR',align:'r'},{label:'Rebooked',align:'r'},
   ];
+  // Kate, 1 Oct 2026 (Comet DT4): the pivot printed each branch's benchmarks with
+  // no bar beside them. A Target row now heads it (the standing benchmarks, the
+  // same ones Actuals vs Targets scores against), and each ratio is green at or
+  // over its target, red under it. The four counts are month to date against a
+  // monthly target that differs by branch, so they carry "of <target>" when the
+  // Upload Portal has one for the month, and no colour: the pacing blocks below
+  // are where a count is paced.
+  const pbm = (typeof LEDGER_TARGETS !== 'undefined') ? LEDGER_TARGETS.benchmarks : TARGETS;
+  const scoreR = (v, t, txt) => (v == null || t == null || !isFinite(v)) ? txt
+    : `<span class="${v >= t ? 'lg-up' : 'lg-down'}">${txt}</span>`;
+  const ofT = (code, key) => (ctx.applies && typeof lgBranchTargetSet === 'function' && lgBranchTargetSet(key, [code]))
+    ? ` <span class="lg-na">of ${lgNum(ledgerBranchTarget(key, [code]))}</span>` : '';
   const pivRows = codes.map(code => {
     const d = series[code] && series[code].mtd;
     const info = BRANCH_INFO[code] || { name: code };
@@ -1893,23 +1905,32 @@ async function renderLedgerTargets() {
     const txPct   = (d.treatmentSales == null || !(d.hairServicesIncl || 0)) ? null : d.treatmentSales / d.hairServicesIncl * 100;
     const retPct  = hairNet ? (d.hairRetailOnly || 0) / hairNet * 100 : null;
     const count   = v => (v == null ? '—' : lgNum(v));
+    const rb = d.rebookPct != null ? d.rebookPct : d.hairRebookPct;
     return [escapeHtml(info.name),
-      lgPct(d.rebookPct != null ? d.rebookPct : d.hairRebookPct), lgPct(txPct), lgPct(retPct),
-      lgDash(d.hairAvgBill ? lgAed(d.hairAvgBill) : null),
-      lgDash(d.beautyAvgBill ? lgAed(d.beautyAvgBill) : null),
-      count(d.totalClients), count(d.newClientsTotal), count(d.ncrTotal), count(d.totalRebooked)];
+      scoreR(rb, pbm.rebookPct, lgPct(rb)), scoreR(txPct, pbm.treatmentPct, lgPct(txPct)), scoreR(retPct, pbm.retailPct, lgPct(retPct)),
+      d.hairAvgBill ? scoreR(d.hairAvgBill, pbm.hairAvgBill, lgAed(d.hairAvgBill)) : '—',
+      d.beautyAvgBill ? scoreR(d.beautyAvgBill, pbm.beautyAvgBill, lgAed(d.beautyAvgBill)) : '—',
+      count(d.totalClients) + ofT(code, 'totalClients'), count(d.newClientsTotal) + ofT(code, 'newClients'),
+      count(d.ncrTotal) + ofT(code, 'ncr'), count(d.totalRebooked) + ofT(code, 'rebooked')];
   });
+  pivRows.unshift(['<span class="lg-na">Target</span>',
+    lgPct(pbm.rebookPct), lgPct(pbm.treatmentPct), lgPct(pbm.retailPct),
+    lgAed(pbm.hairAvgBill), lgAed(pbm.beautyAvgBill),
+    '<span class="lg-na">by branch</span>', '<span class="lg-na">by branch</span>',
+    '<span class="lg-na">by branch</span>', '<span class="lg-na">by branch</span>']);
   const hairNetAll = roll.hairServicesIncl + roll.hairRetailOnly;
   // The rollup sums nulls as 0, so it has to be told: if no selected branch has a
   // ledger this month, the ledger-only totals are unknown too.
   const anyLedger = codes.some(c => series[c] && series[c].mtd && !series[c].mtd._phorestOnly);
   const rollCount = v => (anyLedger ? lgNum(v) : '—');
+  const gTx = roll.hairServicesIncl ? roll.treatmentSales / roll.hairServicesIncl * 100 : null;
+  const gRet = hairNetAll ? roll.hairRetailOnly / hairNetAll * 100 : null;
   pivRows.push({ total: ['Grand total',
-    anyLedger ? lgPct(roll.rebookPct) : '—',
-    anyLedger ? lgPct(roll.hairServicesIncl ? roll.treatmentSales / roll.hairServicesIncl * 100 : null) : '—',
-    lgPct(hairNetAll ? roll.hairRetailOnly / hairNetAll * 100 : null),
-    lgDash(roll.hairAvgBill ? lgAed(roll.hairAvgBill) : null),
-    lgDash(roll.beautyAvgBill ? lgAed(roll.beautyAvgBill) : null),
+    anyLedger ? scoreR(roll.rebookPct, pbm.rebookPct, lgPct(roll.rebookPct)) : '—',
+    anyLedger ? scoreR(gTx, pbm.treatmentPct, lgPct(gTx)) : '—',
+    scoreR(gRet, pbm.retailPct, lgPct(gRet)),
+    roll.hairAvgBill ? scoreR(roll.hairAvgBill, pbm.hairAvgBill, lgAed(roll.hairAvgBill)) : '—',
+    roll.beautyAvgBill ? scoreR(roll.beautyAvgBill, pbm.beautyAvgBill, lgAed(roll.beautyAvgBill)) : '—',
     lgNum(roll.totalClients), lgNum(roll.newClientsTotal), rollCount(roll.ncrTotal), rollCount(roll.totalRebooked)] });
 
   const paceTitle = showTargets ? 'Target vs actual' : 'Actuals by branch';
