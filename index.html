@@ -1319,7 +1319,8 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .cmp-swap{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:50%;
   width:38px;height:38px;font-size:17px;cursor:pointer}
 @media(hover:hover){.cmp-swap:hover{color:var(--text)}}
-.cmp-opts{margin:0 0 18px}
+.cmp-opts{margin:0 0 18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 28px}
+.cmp-clients{display:flex;align-items:center;gap:10px}
 .cmp-check{display:flex;align-items:baseline;gap:8px;font-size:14px;cursor:pointer}
 .cmp-check small{color:var(--muted2);font-size:12.5px}
 .cmp-check.dim{opacity:.55;cursor:default}
@@ -2772,7 +2773,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 }
 
 </style>
-<link rel="stylesheet" href="team-performance.css?v=20261001lvl">
+<link rel="stylesheet" href="team-performance.css?v=20261001quad">
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
 <link rel="stylesheet" href="mobile.css?v=20261001kb1">
@@ -2893,7 +2894,7 @@ table.tp-cmp td.bad{color:var(--bad)}
          and lights that row (data-lands, read in showView()). -->
     <div class="nav-sub" data-lands="navTeamRace" onclick="showView('team', this)">Team Performance</div>
     <div class="nav-sub lvl2" id="navTeamRace" onclick="showView('team', this)">Podium Race</div>
-    <div class="nav-sub lvl2" onclick="showView('teamquad', this)">Takings vs Rebooking</div>
+    <div class="nav-sub lvl2" onclick="showView('teamquad', this)">Staff Quadrant</div>
     <div class="nav-sub" onclick="showView('staffperf', this)">Staff Benchmarks</div>
     <div class="nav-sub lvl2" onclick="showView('staffweeks', this)">Staff&rsquo;s Quarterly Performance</div>
     <div class="nav-sub lvl2" onclick="showView('stafflevels', this)">Stylist Levels</div>
@@ -3169,7 +3170,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       <div class="loading">Loading data...</div>
     </main>
   </div>
-  <!-- TEAM PERFORMANCE: Takings vs Rebooking. Same renderer (team-performance.js). -->
+  <!-- TEAM PERFORMANCE: Staff Quadrant (Treatment vs Retail, Takings vs Rebooking). Same renderer (team-performance.js). -->
   <div id="view-teamquad" style="display:none">
     <main id="teamQuadContent" style="max-width:1400px;margin:0 auto;padding:10px 28px 48px">
       <div class="loading">Loading data...</div>
@@ -3562,11 +3563,11 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20261001dt4"></script>
-<script src="compare.js?v=20261001door"></script>
+<script src="compare.js?v=20261001cmpcl"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20261001ux3"></script>
-<script src="team-performance.js?v=20261001tr3"></script>
+<script src="team-performance.js?v=20261001quad"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=20260928a"></script>
 <script src="pulse-narrative.js?v=20260928a"></script>

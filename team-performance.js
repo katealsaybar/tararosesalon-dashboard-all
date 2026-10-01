@@ -527,16 +527,27 @@ async function tpLoadLevels() {
     if (error || !data) throw error || new Error('no levels');
     tpLevels = {};
     data.forEach(l => {
-      const t = l.kpis && l.kpis.total_revenue && Number(l.kpis.total_revenue.target);
-      const r = l.kpis && l.kpis.rebooking_pct && Number(l.kpis.rebooking_pct.target);
-      if (t && r) tpLevels[l.level] = { take: t, rebook: r };
+      const aim = k => l.kpis && l.kpis[k] && Number(l.kpis[k].target);
+      const t = aim('total_revenue'), r = aim('rebooking_pct');
+      if (t && r) tpLevels[l.level] = { take: t, rebook: r, treat: aim('treatments') || null, retail: aim('retail') || null };
     });
-  } catch (e) { console.warn('Takings vs Rebooking: level aims unavailable', e); tpLevels = {}; }
+  } catch (e) { console.warn('Staff Quadrant: level aims unavailable', e); tpLevels = {}; }
   return tpLevels;
 }
 function tpSetQBasis(k) {
   tpQBasis = k;
   try { localStorage.setItem('trs-tpq-basis', k); } catch (e) {}
+  renderTeam();
+}
+// Kate, 1 Oct 2026: the page is about treatment and retail first, so it opens on
+// Treatment vs Retail; Takings vs Rebooking is the other side of the switch. Both
+// read against her level's aims or the bench. Treatment is hair only (beauty has no
+// treatment line in the ledger), so the beauty bench always draws Takings vs Rebooking.
+let tpQMetric = 'addon';
+try { tpQMetric = localStorage.getItem('trs-tpq-metric') || 'addon'; } catch (e) {}
+function tpSetQMetric(k) {
+  tpQMetric = k;
+  try { localStorage.setItem('trs-tpq-metric', k); } catch (e) {}
   renderTeam();
 }
 // Calendar months the window covers, day by day (31 August is 1/31 of a month), so a
@@ -555,17 +566,29 @@ const TP_QUAD_LEVEL = {
   star:  { t: 'Earning and keeping',  cls: 'good', d: 'At or above both of her level\'s aims.' },
   grow:  { t: 'Keeping, still building', cls: 'good', d: 'Rebooking at her level\'s aim; takings still under it.' },
 };
+// Treatment vs Retail: treatment across, retail up. `aim` is "her level's aim" or
+// "the salon target", per basis.
+const tpQuadAddon = aim => ({
+  leak:  { t: 'Treatments, not retail', cls: 'warn', d: `Treatments at or above ${aim}, retail under it. The retail conversation.` },
+  focus: { t: 'Neither yet',            cls: 'bad',  d: `Treatments and retail both under ${aim}.` },
+  star:  { t: 'Selling both',           cls: 'good', d: `Treatments and retail both at or above ${aim}.` },
+  grow:  { t: 'Retail, not treatments', cls: 'warn', d: `Retail at or above ${aim}, treatments under it. The treatment conversation.` },
+});
 
 function tpQuadrant(roster) {
   const months = tpWindowMonths();
   const levels = tpLevels || {};
   const levelOk = tpDept === 'hair' && Object.keys(levels).length > 0 && !!months;
   const byLevel = tpQBasis === 'level' && levelOk;
+  const addon = tpQMetric === 'addon' && tpDept === 'hair';
   const all = roster.filter(st => tpRole(st) !== 'Owner');
   // Kate, 1 Oct 2026 (Comet TR3): the owner is left off on purpose, but silently,
   // so the bar read "38 people" over a chart of 37. She is named in the side list.
   const owners = roster.filter(st => tpRole(st) === 'Owner');
-  const aimOf = st => levels[tpRole(st)] || null;
+  const aimOf = st => {
+    const a = levels[tpRole(st)];
+    return a && (!addon || (a.treat && a.retail)) ? a : null;
+  };
   const pts = byLevel ? all.filter(aimOf) : all;
   const noAim = byLevel ? all.filter(st => !aimOf(st)) : [];
   if (pts.length < 4) return '';
@@ -573,28 +596,58 @@ function tpQuadrant(roster) {
   const target = TARGETS.rebookPct;
   const nets = pts.map(st => st.net || 0).sort((a, b) => a - b);
   const median = nets[Math.floor(nets.length / 2)];
-  // What each axis measures, per basis.
-  const vx = st => byLevel ? (st.net || 0) / (aimOf(st).take * months) * 100 : (st.net || 0);
-  const vy = st => byLevel ? (st.rebookPct || 0) / aimOf(st).rebook * 100 : (st.rebookPct || 0);
-  const xSplit = byLevel ? 100 : median, ySplit = byLevel ? 100 : target;
+  // What each axis measures, per page and basis. Against her level everything is a
+  // share of a monthly aim prorated to the window; on the bench, Treatment vs Retail
+  // reads the two percentages against the salon targets.
+  const vx = addon
+    ? (st => byLevel ? (st.treatments || 0) / (aimOf(st).treat * months) * 100 : (st.treatmentPct || 0))
+    : (st => byLevel ? (st.net || 0) / (aimOf(st).take * months) * 100 : (st.net || 0));
+  const vy = addon
+    ? (st => byLevel ? (st.retail || 0) / (aimOf(st).retail * months) * 100 : (st.retailPct || 0))
+    : (st => byLevel ? (st.rebookPct || 0) / aimOf(st).rebook * 100 : (st.rebookPct || 0));
+  const xSplit = byLevel ? 100 : addon ? TARGETS.treatmentPct : median;
+  const ySplit = byLevel ? 100 : addon ? TARGETS.retailPct : target;
   const W = 820, H = 500, pad = { l: 58, r: 22, t: 26, b: 46 }, IW = 34, IH = 40;
-  const xMax = byLevel ? Math.min(300, Math.max(150, Math.ceil(Math.max(...pts.map(vx)) / 50) * 50))
-                       : tpNiceMax(nets[nets.length - 1]);
-  const yMax = byLevel ? Math.min(300, Math.max(150, Math.ceil(Math.max(...pts.map(vy)) / 50) * 50)) : 100;
+  const aimMax = vs => Math.min(300, Math.max(150, Math.ceil(Math.max(...vs) / 50) * 50));
+  // A bench percentage: room for twice the target, or the highest point, to the next 10%.
+  const pctMax = (vs, split) => Math.min(100, Math.max(split * 2, Math.ceil(Math.max(...vs) / 10) * 10));
+  const xMax = byLevel ? aimMax(pts.map(vx)) : addon ? pctMax(pts.map(vx), xSplit) : tpNiceMax(nets[nets.length - 1]);
+  const yMax = byLevel ? aimMax(pts.map(vy)) : addon ? pctMax(pts.map(vy), ySplit) : 100;
   const x = v => pad.l + Math.min(Math.max(0, v), xMax) / xMax * (W - pad.l - pad.r);
   const y = v => pad.t + (1 - Math.min(yMax, Math.max(0, v)) / yMax) * (H - pad.t - pad.b);
   const k = v => v >= 1000 ? Math.round(v / 1000) + 'k' : String(Math.round(v));
   const group = st => vx(st) >= xSplit
     ? (vy(st) >= ySplit ? 'star' : 'leak')
     : (vy(st) >= ySplit ? 'grow' : 'focus');
-  const QUAD = byLevel ? TP_QUAD_LEVEL : TP_QUAD;
+  const QUAD = addon ? tpQuadAddon(byLevel ? 'her level\'s aim' : 'the salon target')
+    : byLevel ? TP_QUAD_LEVEL : TP_QUAD;
+  // Every label that changes with the page and the basis.
+  const L = addon ? {
+    title: 'Treatment against retail',
+    aria: byLevel ? 'Treatment and retail against each person\'s level aims' : 'Treatment % against retail %',
+    xT: byLevel ? 'Treatment takings, % of her level\'s aim →' : 'Treatment % of services →',
+    yT: byLevel ? 'Retail, % of her level\'s aim →' : 'Retail % of net take →',
+    yLine: byLevel ? 'her level\'s retail aim' : `retail target ${TARGETS.retailPct}%`,
+    xLine: byLevel ? 'her level\'s treatment aim' : `treatment target ${TARGETS.treatmentPct}%`,
+    yWord: byLevel ? 'her level\'s retail aim' : 'retail target',
+    xWord: byLevel ? 'her level\'s treatment aim' : 'treatment target',
+  } : {
+    title: 'Takings against rebooking',
+    aria: byLevel ? 'Takings and rebooking against each person\'s level aims' : 'Net salon take against rebooking',
+    xT: byLevel ? 'Net salon take, % of her level\'s aim →' : 'Net salon take →',
+    yT: byLevel ? 'Rebooking, % of her level\'s aim →' : 'Rebooking % →',
+    yLine: byLevel ? 'her level\'s rebook aim' : `rebook target ${target}%`,
+    xLine: byLevel ? 'her level\'s take aim' : `bench median ${tpAed(median)}`,
+    yWord: byLevel ? 'her level\'s rebook aim' : 'rebook target',
+    xWord: byLevel ? 'her level\'s take aim' : 'bench median take',
+  };
 
-  const yTicks = byLevel ? [0, .25, .5, .75, 1].map(f => Math.round(yMax * f)) : [0, 25, 50, 75, 100];
+  const yTicks = (byLevel || addon) ? [0, .25, .5, .75, 1].map(f => Math.round(yMax * f)) : [0, 25, 50, 75, 100];
   const axes = yTicks.map(v =>
       `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}" class="tp-q-grid"/>
        <text x="${pad.l - 10}" y="${y(v) + 4}" text-anchor="end" class="tp-q-ax">${v}%</text>`).join('')
     + [0, .25, .5, .75, 1].map(f =>
-      `<text x="${x(xMax * f)}" y="${H - pad.b + 20}" text-anchor="middle" class="tp-q-ax">${byLevel ? Math.round(xMax * f) + '%' : k(xMax * f)}</text>`).join('');
+      `<text x="${x(xMax * f)}" y="${H - pad.b + 20}" text-anchor="middle" class="tp-q-ax">${(byLevel || addon) ? Math.round(xMax * f) + '%' : k(xMax * f)}</text>`).join('');
 
   // Spread the faces so none sits on another: each starts on its exact point, is
   // pushed off any face it overlaps with a weak pull back, then a last pass of pushes
@@ -624,7 +677,10 @@ function tpQuadrant(roster) {
     `<line x1="${n.tx}" y1="${n.ty}" x2="${n.x}" y2="${n.y}" class="tp-q-lead"/>
      <circle cx="${n.tx}" cy="${n.ty}" r="2.5" fill="${n.st.branchColor}" class="tp-q-true"/>`).join('');
 
-  const tipOf = st => byLevel
+  const tipOf = st => addon ? (byLevel
+    ? `${escapeHtml(st.name)} · ${escapeHtml(tpRole(st))} · ${tpAed(st.treatments)} treatments, ${Math.round(vx(st))}% of her level's aim · ${tpAed(st.retail)} retail, ${Math.round(vy(st))}% of her level's aim`
+    : `${escapeHtml(st.name)} · ${tpPct(st.treatmentPct)} treatment · ${tpPct(st.retailPct)} retail · ${escapeHtml(tpRole(st))}`)
+    : byLevel
     ? `${escapeHtml(st.name)} · ${escapeHtml(tpRole(st))} · ${tpAed(st.net)}, ${Math.round(vx(st))}% of her level's take aim · ${tpPct(st.rebookPct)} rebook, ${Math.round(vy(st))}% of her level's ${aimOf(st).rebook}%`
     : `${escapeHtml(st.name)} · ${tpAed(st.net)} · ${tpPct(st.rebookPct)} rebook · ${escapeHtml(tpRole(st))}`;
   const faces = nodes.map(n => {
@@ -642,15 +698,15 @@ function tpQuadrant(roster) {
       <circle cx="${cx}" cy="${cy + IH / 2 + 6}" r="3.5" fill="${st.branchColor}"/></g>`;
   }).join('');
 
-  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${byLevel ? 'Takings and rebooking against each person\'s level aims' : 'Net salon take against rebooking'}, one face per person">
+  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${L.aria}, one face per person">
     ${axes}
     <rect x="${x(xSplit)}" y="${pad.t}" width="${W - pad.r - x(xSplit)}" height="${y(ySplit) - pad.t}" class="tp-q-star"/>
     <line x1="${pad.l}" x2="${W - pad.r}" y1="${y(ySplit)}" y2="${y(ySplit)}" class="tp-q-tgt"/>
-    <text x="${W - pad.r}" y="${y(ySplit) - 7}" text-anchor="end" class="tp-q-tgt-l">${byLevel ? 'her level\'s rebook aim' : `rebook target ${target}%`}</text>
+    <text x="${W - pad.r}" y="${y(ySplit) - 7}" text-anchor="end" class="tp-q-tgt-l">${L.yLine}</text>
     <line x1="${x(xSplit)}" x2="${x(xSplit)}" y1="${pad.t}" y2="${H - pad.b}" class="tp-q-med"/>
-    <text x="${x(xSplit) + 6}" y="${pad.t + 14}" class="tp-q-ax">${byLevel ? 'her level\'s take aim' : `bench median ${tpAed(median)}`}</text>
-    <text x="${(pad.l + W - pad.r) / 2}" y="${H - 6}" text-anchor="middle" class="tp-q-ttl">${byLevel ? 'Net salon take, % of her level\'s aim →' : 'Net salon take →'}</text>
-    <text transform="translate(14 ${(pad.t + H - pad.b) / 2}) rotate(-90)" text-anchor="middle" class="tp-q-ttl">${byLevel ? 'Rebooking, % of her level\'s aim →' : 'Rebooking % →'}</text>
+    <text x="${x(xSplit) + 6}" y="${pad.t + 14}" class="tp-q-ax">${L.xLine}</text>
+    <text x="${(pad.l + W - pad.r) / 2}" y="${H - 6}" text-anchor="middle" class="tp-q-ttl">${L.xT}</text>
+    <text transform="translate(14 ${(pad.t + H - pad.b) / 2}) rotate(-90)" text-anchor="middle" class="tp-q-ttl">${L.yT}</text>
     ${leaders}${faces}</svg>`;
 
   const chip = st => `<span class="tp-q-chip" data-k="${escapeHtml(tpKey(st))}" onmouseenter="tpQHl(this,true)" onmouseleave="tpQHl(this,false)" onclick="tpQHl(this,true)">${tpAvatar(st.name, 'xs')}<span class="tp-q-cn">${escapeHtml(tpTitle(st.name))}</span></span>`;
@@ -674,19 +730,23 @@ function tpQuadrant(roster) {
 
   const basisSeg = tpDept === 'hair' ? `<div class="tp-seg tp-q-basis" role="group" aria-label="Read against">
       <button type="button" class="${byLevel ? 'on' : ''}" onclick="tpSetQBasis('level')"${levelOk ? '' : ' disabled'} title="Each person against her own level's aims from Stylist Levels">Her level's aims</button>
-      <button type="button" class="${byLevel ? '' : 'on'}" onclick="tpSetQBasis('bench')" title="Everyone against the bench median take and the salon rebook target">Bench</button>
+      <button type="button" class="${byLevel ? '' : 'on'}" onclick="tpSetQBasis('bench')" title="${addon ? 'Everyone against the salon treatment and retail targets' : 'Everyone against the bench median take and the salon rebook target'}">Bench</button>
     </div>` : '';
   const why = tpDept !== 'hair' ? 'beauty has no level aims yet, so this reads against the bench'
     : !levelOk ? (months ? 'level aims did not load, so this reads against the bench' : 'pick a period to read against level aims')
     : byLevel ? `aims prorated to ${Math.round(months * 100) / 100} month${Math.abs(months - 1) < 0.01 ? '' : 's'} in this window` : '';
-  const legend = byLevel
-    ? 'tap a face to compare · green dashed line: her level\'s rebook aim · grey dashed line: her level\'s take aim · shaded corner: above both'
-    : 'tap a face to compare · green dashed line: rebook target · grey dashed line: bench median take · shaded corner: above both';
+  const legend = `tap a face to compare · green dashed line: ${L.yWord} · grey dashed line: ${L.xWord} · shaded corner: above both`;
+  // Which pair of figures the chart plots. Treatment is a hair line only.
+  const metricSeg = `<div class="tp-seg tp-q-basis" role="group" aria-label="Chart">
+      <button type="button" class="${addon ? 'on' : ''}" onclick="tpSetQMetric('addon')"${tpDept === 'hair' ? '' : ' disabled title="Beauty has no treatment line in the ledger"'}>Treatment vs Retail</button>
+      <button type="button" class="${addon ? '' : 'on'}" onclick="tpSetQMetric('takings')">Takings vs Rebooking</button>
+    </div>`;
 
-  return `<div class="section-label">Takings against rebooking
+  return `<div class="section-label">${L.title}
       <span class="tp-sec-n">${legend} · a dot and a thin line mean the face was moved off its exact spot to stay readable · point at a name to find her${why ? ' · ' + why : ''}</span></div>
-    ${basisSeg}
+    <div class="tp-q-segs">${metricSeg}${basisSeg}</div>
     <div class="tp-quad">
+
       <div class="card tp-q-plot">${svg}</div>
       <div class="card tp-q-side">${side}</div>
     </div>`;

@@ -349,8 +349,27 @@ function cmpControlsHtml() {
         <input type="checkbox" ${cmpState.per ? 'checked' : ''} ${unequal ? '' : 'disabled'} onchange="cmpSetPer(this.checked)">
         Per day <small>${unequal ? `off shows totals. The windows are different lengths (${daysBetween(cmpState.a.from, cmpState.a.to)} vs ${daysBetween(cmpState.b.from, cmpState.b.to)} days); tick to see a daily average instead` : 'both windows are the same length'}</small>
       </label>
+      ${cmpClientSeg()}
     </div>`;
 }
+
+// Kate, 1 Oct 2026: this page hides the shared filter bar (it has its own two
+// windows), so the Clients switch from that bar was never on screen here. The same
+// switch, drawn on the page: one CLIENT_BASIS, remembered, shared with every page.
+function cmpClientSeg() {
+  const b = (v, label, title) => `<button type="button" class="chip seg-b" aria-pressed="${CLIENT_BASIS === v}" onclick="cmpSetClients('${v}')" title="${title}">${label}</button>`;
+  return `<div class="cmp-clients"><span class="f-lbl">Clients</span>
+    <span class="seg" role="group" aria-label="How clients are counted">`
+    + b('handled', 'Handled', 'Ledgers: each staff member counts the clients she served')
+    + b('door', 'Through the door', 'Phorest: each client counted once a day, however many staff she saw')
+    + `</span></div>`;
+}
+function cmpSetClients(v) {
+  if (v === CLIENT_BASIS) return;
+  setClientBasis(v);
+  renderCompare();
+}
+
 
 function cmpSet(key, field, value) {
   const s = cmpState[key];

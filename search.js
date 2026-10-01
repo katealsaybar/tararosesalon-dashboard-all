@@ -39,7 +39,7 @@
     branchperf: 'branch staff table figures services retail',
     compare: 'compare versus vs side by side',
     team: 'podium race ranking leaderboard top performer',
-    teamquad: 'rebook rebooking takings quadrant',
+    teamquad: 'staff quadrant treatment retail rebook rebooking takings',
     staffperf: 'benchmarks money five kpi promotion',
     staffweeks: 'staff quarterly performance quarter q1 q2 q3 q4 13 week thirteen weekly report emma',
     stafflevels: 'levels promotion grade',

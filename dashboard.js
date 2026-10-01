@@ -1116,7 +1116,7 @@ function heroPeriodPhrasing() {
 // so it stays correct no matter which of renderDashboard()'s early-return
 // paths (loading/empty/error) last touched #mainContent.
 const VIEW_SECTION_LABELS = {
-  dashboard: 'Organisation Pulse', team: 'Podium Race', teamquad: 'Takings vs Rebooking', staffperf: 'Staff Benchmarks', stafflevels: 'Stylist Levels', staffweeks: 'Staff’s Quarterly Performance', stylists: 'Staff Cards',
+  dashboard: 'Organisation Pulse', team: 'Podium Race', teamquad: 'Staff Quadrant', staffperf: 'Staff Benchmarks', stafflevels: 'Stylist Levels', staffweeks: 'Staff’s Quarterly Performance', stylists: 'Staff Cards',
   orgchart: 'Org Chart',
   services: 'Service Rankings', clients: 'Top Clients', products: 'Products', reviews: 'Google Reviews',
   wvperf: 'Wellness Voucher Performance',
