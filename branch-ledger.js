@@ -69,6 +69,24 @@ function lgDoneBar(pct) {
   </span>`;
 }
 
+// Pace (Kate, 1 Oct 2026; Comet DT3). % done stays raw progress, the way Emma's
+// sheet reads it, so a late-month 85% and an early-month 85% look the same. While
+// the ledger month is still running, "On pace for" sits beside it: where the month
+// lands if the rest of it goes at the rate so far (% done ÷ share of the month
+// gone, counted to the last day with figures). A closed month has no pace column.
+function lgPaceFrac(series) {
+  const w = series && series.windows;
+  const last = w && w.days && w.days.length ? w.days[w.days.length - 1].to : null;
+  if (!last) return null;
+  const d = last instanceof Date ? last : new Date(last);
+  const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  const frac = d.getDate() / dim;
+  return frac < 1 ? frac : null;
+}
+function lgPaceBar(pctDone, frac) {
+  return (pctDone == null || !frac) ? '—' : lgDoneBar(pctDone / frac);
+}
+
 // ── STATE ────────────────────────────────────────────────────
 // Everything on these pages reads the same shared filter state as the rest of
 // the dashboard: sel.branch, dateFrom, dateTo. Nothing here holds its own.
@@ -341,7 +359,7 @@ function lgLedgerContext(series) {
     // it as July data.
     note: `${w.month.label} month to date against the full ${w.month.label} target, with ${w.prev.label} beside it as last month`
       + (through ? `, month to date to ${shortD(through)}` : '')
-      + `. % done is raw progress through the target, not paced against days elapsed — the same way the ledger reads it. `
+      + `. % done is raw progress through the target, not paced against days elapsed — the same way the ledger reads it; while the month is still running, On pace for (Daily Target Sheet) shows where it lands at the rate so far. `
       + `The Period chips do not apply on the Ledgers pages: Month above picks which month all three read, and Split chooses how finely the actual is cut.`,
   };
 }
@@ -1787,12 +1805,15 @@ async function renderLedgerTargets() {
   // need them, and five columns of dashes read as a broken page. What is left is
   // still worth having: each branch's actual for the month, cut by week or by day.
   const showTargets = ctx.applies;
+  const frac = showTargets ? lgPaceFrac(series) : null;
+  const paceCol = frac ? [{label:'On pace for',align:'r',w:'116px'}] : [];
+  const paceCell = p => frac ? [lgPaceBar(p.pctDone, frac)] : [];
   const paceCols = [{label:'Branch'}]
     .concat(showTargets ? [{label:'Target',align:'r'}] : [])
     .concat(sp.windows.map((x, i) => ({ label: sp.head(x, i), align:'r' })))
     .concat([{label:'MTD actual',align:'r'}])
     .concat(showTargets
-      ? [{label:'Variance',align:'r'},{label:'% done',align:'r',w:'116px'},{label:'Remaining',align:'r'}]
+      ? [{label:'Variance',align:'r'},{label:'% done',align:'r',w:'116px'}].concat(paceCol, [{label:'Remaining',align:'r'}])
       : []);
 
   const paceHtml = BLOCKS.map(b => {
@@ -1812,10 +1833,10 @@ async function renderLedgerTargets() {
       // not a gap to chase. Say so instead of showing −AED 0 at 0%.
       if (!target && !actual) {
         return [escapeHtml(info.name), '—'].concat(split.map(() => '—'))
-          .concat(['—', '<span class="lg-na">n/a</span>', '—', '—']);
+          .concat(['—', '<span class="lg-na">n/a</span>', '—'], frac ? ['—'] : [], ['—']);
       }
       return [escapeHtml(info.name), lgAed(p.target)].concat(split)
-        .concat([lgAed(p.actual), lgDelta(p.variance, lgAed), lgDoneBar(p.pctDone), lgAed(p.remaining)]);
+        .concat([lgAed(p.actual), lgDelta(p.variance, lgAed), lgDoneBar(p.pctDone)], paceCell(p), [lgAed(p.remaining)]);
     });
     const g = ledgerPace(aA, tA);
     const gSplit = sp.key
@@ -1829,7 +1850,7 @@ async function renderLedgerTargets() {
       .concat(gSplit)
       .concat([lgAed(g.actual)])
       .concat(showTargets
-        ? [lgDelta(g.variance, lgAed), lgDoneBar(g.pctDone), lgAed(g.remaining)]
+        ? [lgDelta(g.variance, lgAed), lgDoneBar(g.pctDone)].concat(paceCell(g), [lgAed(g.remaining)])
         : []) });
     return `<div class="lg-block"><div class="lg-block-k">${b.title}</div>${lgTable(paceCols, rows, {compact:true})}</div>`;
   }).join('');
