@@ -528,14 +528,46 @@ function tpQuadrant(roster) {
     + [0, .25, .5, .75, 1].map(f =>
       `<text x="${x(xMax * f)}" y="${H - pad.b + 20}" text-anchor="middle" class="tp-q-ax">${k(xMax * f)}</text>`).join('');
 
-  const faces = pts.map(st => {
-    const cx = x(st.net || 0), cy = y(st.rebookPct || 0), on = tpCompare.includes(tpKey(st));
+  // Kate, 1 Oct 2026 (Comet TR1): in the busy middle the faces sat on top of each
+  // other and nobody could tell who was who or tap the right one. Each face now
+  // starts on its exact point and is pushed off any face it overlaps, with a weak
+  // pull back towards its point, then a last pass of pushes only. A face that had to
+  // move keeps a small dot on its exact spot and a thin line to it, so the chart
+  // still says where the figures are. Same input, same layout every time.
+  const nodes = pts.map(st => {
+    const tx = x(st.net || 0), ty = y(st.rebookPct || 0);
+    return { st, tx, ty, x: tx, y: ty };
+  });
+  const MX = IW + 2, MY = IH - 4;
+  const clampN = n => {
+    n.x = Math.max(pad.l + IW / 2, Math.min(W - pad.r - IW / 2, n.x));
+    n.y = Math.max(pad.t + IH / 2, Math.min(H - pad.b - IH / 2, n.y));
+  };
+  for (let it = 0; it < 160; it++) {
+    for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+      const a = nodes[i], b = nodes[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const ox = MX - Math.abs(dx), oy = MY - Math.abs(dy);
+      if (ox <= 0 || oy <= 0) continue;
+      if (ox / MX < oy / MY) { const s = (dx >= 0 ? 1 : -1) * ox / 2; a.x -= s; b.x += s; }
+      else { const s = (dy >= 0 ? 1 : -1) * oy / 2; a.y -= s; b.y += s; }
+    }
+    if (it < 120) nodes.forEach(n => { n.x += (n.tx - n.x) * 0.05; n.y += (n.ty - n.y) * 0.05; });
+    nodes.forEach(clampN);
+  }
+  const leaders = nodes.filter(n => Math.hypot(n.x - n.tx, n.y - n.ty) > 6).map(n =>
+    `<line x1="${n.tx}" y1="${n.ty}" x2="${n.x}" y2="${n.y}" class="tp-q-lead"/>
+     <circle cx="${n.tx}" cy="${n.ty}" r="2.5" fill="${n.st.branchColor}" class="tp-q-true"/>`).join('');
+
+  const faces = nodes.map(n => {
+    const st = n.st;
+    const cx = n.x, cy = n.y, on = tpCompare.includes(tpKey(st));
     const src = tpPhotoSrc(st.name);
     const face = src
       ? `<image href="${src}" x="${cx - IW / 2}" y="${cy - IH / 2}" width="${IW}" height="${IH}" preserveAspectRatio="xMidYMax meet"/>`
       : `<rect x="${cx - IW / 2 + 2}" y="${cy - IH / 2 + 8}" width="${IW - 4}" height="${IH - 8}" rx="7" class="tp-q-ph"/>
          <text x="${cx}" y="${cy + IH / 2 - 8}" text-anchor="middle" class="tp-q-in">${escapeHtml(initials(st.name))}</text>`;
-    return `<g class="tp-q-dot" onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')">
+    return `<g class="tp-q-dot" data-k="${escapeHtml(tpKey(st))}" onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')">
       <title>${escapeHtml(st.name)} · ${tpAed(st.net)} · ${tpPct(st.rebookPct)} rebook · ${escapeHtml(tpRole(st))}</title>
       ${on ? `<rect x="${cx - IW / 2 - 4}" y="${cy - IH / 2 + 4}" width="${IW + 8}" height="${IH}" rx="9" class="tp-q-on"/>` : ''}
       ${face}
@@ -551,7 +583,7 @@ function tpQuadrant(roster) {
     <text x="${x(median) + 6}" y="${pad.t + 14}" class="tp-q-ax">bench median ${tpAed(median)}</text>
     <text x="${(pad.l + W - pad.r) / 2}" y="${H - 6}" text-anchor="middle" class="tp-q-ttl">Net salon take →</text>
     <text transform="translate(14 ${(pad.t + H - pad.b) / 2}) rotate(-90)" text-anchor="middle" class="tp-q-ttl">Rebooking % →</text>
-    ${faces}</svg>`;
+    ${leaders}${faces}</svg>`;
 
   const side = ['leak', 'focus', 'star', 'grow'].map(g => {
     const ps = pts.filter(st => group(st) === g);
@@ -559,16 +591,29 @@ function tpQuadrant(roster) {
     return `<div class="tp-q-grp">
       <div class="tp-q-h ${TP_QUAD[g].cls}">${TP_QUAD[g].t} · ${ps.length}</div>
       <p>${TP_QUAD[g].d}</p>
-      <div class="tp-q-chips">${ps.map(st => `<span class="tp-q-chip">${tpAvatar(st.name, 'xs')}<span class="tp-q-cn">${escapeHtml(tpTitle(st.name))}</span></span>`).join('')}</div>
+      <div class="tp-q-chips">${ps.map(st => `<span class="tp-q-chip" data-k="${escapeHtml(tpKey(st))}" onmouseenter="tpQHl(this,true)" onmouseleave="tpQHl(this,false)" onclick="tpQHl(this,true)">${tpAvatar(st.name, 'xs')}<span class="tp-q-cn">${escapeHtml(tpTitle(st.name))}</span></span>`).join('')}</div>
     </div>`;
   }).join('');
 
   return `<div class="section-label">Takings against rebooking
-      <span class="tp-sec-n">tap a face to compare</span></div>
+      <span class="tp-sec-n">tap a face to compare · green dashed line: rebook target · grey dashed line: bench median take · shaded corner: above both · a dot and a thin line mean the face was moved off its exact spot to stay readable · point at a name to find her</span></div>
     <div class="tp-quad">
       <div class="card tp-q-plot">${svg}</div>
       <div class="card tp-q-side">${side}</div>
     </div>`;
+}
+
+// A name in the side lists lights her face on the chart and dims the rest
+// (pointer on desktop, tap on a phone). Kate, 1 Oct 2026.
+function tpQHl(el, on) {
+  const svg = document.querySelector('.tp-q-plot svg');
+  if (!svg) return;
+  svg.classList.toggle('hl-on', !!on);
+  svg.querySelectorAll('.tp-q-dot').forEach(g => {
+    const hit = on && g.dataset.k === el.dataset.k;
+    g.classList.toggle('hl', hit);
+    if (hit) g.parentNode.appendChild(g);   // drawn last, so on top
+  });
 }
 
 /* ── THE TRAY ─────────────────────────────────────────────────

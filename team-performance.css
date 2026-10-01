@@ -25,7 +25,15 @@
 .tp-q-ph{fill:var(--surface2);stroke:var(--border);stroke-dasharray:3 2}
 .tp-q-in{font-family:'Playfair Display',serif;font-size:12px;font-weight:600;fill:var(--muted2)}
 @media(hover:hover){.tp-q-dot:hover image,.tp-q-dot:hover .tp-q-ph{filter:brightness(1.12)}}
-.tp-q-side{padding:12px;display:flex;flex-direction:column;gap:10px;max-height:560px;overflow:auto}
+/* Kate, 1 Oct 2026: the lists no longer scroll inside the page (Needs support sat
+   below a nested scroll); on a wide screen the chart rides alongside them instead. */
+.tp-q-side{padding:12px;display:flex;flex-direction:column;gap:10px}
+@media(min-width:900px){.tp-q-plot{align-self:start;position:sticky;top:calc(var(--topbar-cond-h,104px) + 62px)}}
+.tp-q-lead{stroke:var(--muted2);stroke-width:1;opacity:.7}
+.tp-q-true{opacity:.9}
+.tp-q-plot svg.hl-on .tp-q-dot:not(.hl){opacity:.22}
+.tp-q-dot.hl image,.tp-q-dot.hl .tp-q-ph{filter:drop-shadow(0 0 4px var(--accent))}
+.tp-q-chip{cursor:default}
 .tp-q-grp{border-radius:8px;padding:10px 12px;background:var(--surface2)}
 .tp-q-h{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px}
 .tp-q-h.good{color:var(--good)}.tp-q-h.warn{color:var(--warn)}.tp-q-h.bad{color:var(--bad)}
