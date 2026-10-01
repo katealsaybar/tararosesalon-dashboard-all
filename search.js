@@ -41,7 +41,7 @@
     team: 'podium race ranking leaderboard top performer',
     teamquad: 'rebook rebooking takings quadrant',
     staffperf: 'benchmarks money five kpi promotion',
-    staffweeks: '13 week thirteen weekly report emma',
+    staffweeks: 'staff quarterly performance quarter q1 q2 q3 q4 13 week thirteen weekly report emma',
     stafflevels: 'levels promotion grade',
     stylists: 'cards photos instagram profiles',
     orgchart: 'org chart structure hierarchy',
@@ -108,7 +108,7 @@
             ['Card', () => whoGoCard(key)],
             ['Stats', () => whoGoStats(key, dept, branch)],
             ['Figures', () => whoGoRow(key, branch)],
-            ['13 weeks', () => goWeeks(full)],
+            ['Quarterly performance', () => goWeeks(full)],
           ],
         });
       }));
@@ -161,7 +161,7 @@
           acts: [
             ['Figures', () => whoGoRow(key)],
             ['Stats', () => whoGoStats(key)],
-            ['13 weeks', () => goWeeks(full)],
+            ['Quarterly performance', () => goWeeks(full)],
           ],
         };
         items.push(item);

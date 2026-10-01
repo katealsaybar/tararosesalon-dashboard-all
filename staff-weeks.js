@@ -1,4 +1,6 @@
-// 13-Week Report (Kate, 29 Sep 2026, Emma's ask): the Staff Benchmarks page cuts its
+// Staff's Quarterly Performance, named 13-Week Report until 1 Oct 2026 (Kate: 13 weeks is a
+// quarter, four of them make the year, and the page already totals by quarter).
+// Built 29 Sep 2026, Emma's ask: the Staff Benchmarks page cuts its
 // week-by-week chart at the month, so it only ever shows 4 or 5 weeks. This is one
 // stylist's last thirteen full weeks, Monday to Sunday, so the quarter's ups and
 // downs show. Numbers come from perf_weeks (migrations/create_perf_weeks.sql), which
@@ -184,9 +186,9 @@ async function renderStaffWeeks() {
   }
   if (!w13Pick) { await w13RenderTeam(el); w13Sync(); return; }
   if (!w13Data || !w13Data.staff || w13Data.staff.id !== w13Pick) {
-    el.innerHTML = '<p class="slv-muted">Loading her 13 weeks…</p>';
+    el.innerHTML = '<p class="slv-muted">Loading her quarters…</p>';
     try { w13Data = await w13Load(w13Pick); }
-    catch (e) { el.innerHTML = '<p class="slv-muted">The 13-week report didn\'t load. Refresh to try again.</p>'; return; }
+    catch (e) { el.innerHTML = '<p class="slv-muted">Staff’s Quarterly Performance didn\'t load. Refresh to try again.</p>'; return; }
   }
   const d = w13Data, s = d.staff;
   if (!s) { w13Pick = null; await w13RenderTeam(el); w13Sync(); return; }
@@ -267,7 +269,7 @@ async function renderStaffWeeks() {
 
   el.innerHTML = `
     <section class="slv-intro">
-      <h2>13-Week Report</h2>
+      <h2>Staff&rsquo;s Quarterly Performance</h2>
       <p>Every week of the year in one list, Monday to Sunday from the first week of January, with each 13-week quarter totalled as you go: Q1 is Weeks 1–13, Q2 14–26, Q3 27–39, Q4 40–52. Only complete weeks count in the totals; the week still being traded shows on the end as "so far". Sales are services before VAT, retail not included.</p>
     </section>
     <div class="sc-bar w13-bar" style="margin-bottom:14px">
@@ -319,9 +321,9 @@ async function renderStaffWeeks() {
 async function w13RenderTeam(el) {
   if (w13Chart) { w13Chart.destroy(); w13Chart = null; }
   if (!w13Team) {
-    el.innerHTML = '<p class="slv-muted">Loading the team\'s 13 weeks…</p>';
+    el.innerHTML = '<p class="slv-muted">Loading the team\'s quarters…</p>';
     try { w13Team = await w13Load(null); }
-    catch (e) { el.innerHTML = '<p class="slv-muted">The 13-week report didn\'t load. Refresh to try again.</p>'; return; }
+    catch (e) { el.innerHTML = '<p class="slv-muted">Staff’s Quarterly Performance didn\'t load. Refresh to try again.</p>'; return; }
   }
   const t = w13Team;
   const list = t.roster.filter(r => w13Dept === 'all' || r.dept === w13Dept);
@@ -343,7 +345,7 @@ async function w13RenderTeam(el) {
   };
   el.innerHTML = `
     <section class="slv-intro">
-      <h2>13-Week Report</h2>
+      <h2>Staff&rsquo;s Quarterly Performance</h2>
       <p>Everyone's ${t.year} so far, week by week from the first week of January: ${w13Esc(w13Day(t.from))} to ${w13Esc(w13Day(t.to))}. The small bars are her sales, one a week${t.current_week_no ? `, with Week ${t.current_week_no} so far as the paler one on the end` : ''}. Tap anyone for her full list, with each 13-week quarter totalled.</p>
     </section>
     <div class="sc-bar w13-bar">

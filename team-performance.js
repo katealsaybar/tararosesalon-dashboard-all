@@ -65,7 +65,9 @@ const TP_ROLE_FIX = { 'TARA': 'Owner', 'TARA KIDD': 'Owner',
   // Gonzales (KCA), Joyce Dy (SAA), Maan Solis (AQ, MC).
   'ARA': 'Assistant', 'JOYCE': 'Assistant', 'MAAN': 'Assistant',
   // Oliver Green, barber at Al Quoz, Dec 2025 to Jan 2026 (Kate, 30 Sep 2026).
-  'OLIVER': 'Barber', 'OLIVER GREEN': 'Barber' };
+  'OLIVER': 'Barber', 'OLIVER GREEN': 'Barber',
+  // May Manguiat, Saadiyat (TP_SPLIT_FULL below), is an assistant (Kate, 1 Oct 2026).
+  'MAY MANGUIAT': 'Assistant' };
 const TP_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'TARA KIDD': 'assets/org-chart/tara-rose-kidd.png' };
 const tpRole = st => { const fix = TP_ROLE_FIX[tpMergeKey(st.name)]; if (fix) return fix;
   const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.role) || 'No position set'; };
