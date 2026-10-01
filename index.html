@@ -31,10 +31,19 @@ window.TRS_AUTH_HASH = location.hash;
   ['error','error_code','error_description'].forEach(function(k){ q.delete(k); });
   history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
 })();
+// Kate, 1 Oct 2026: a plain trk-salon-os.com is the Knowledge Base hub's address.
+// Read here, before anything below or supabase-js touches the address: no query, no
+// sign-in hash. Signed in, enterIfAllowed() sends it on to /hub/.
+window.TRS_BARE_ROOT = /^\/(index\.html)?$/.test(location.pathname) && !location.search
+  && !/access_token|type=recovery|error/.test(location.hash);
 // Kate, 28 Sep 2026: the branch and period you last picked come back on the next
-// visit. trSyncUrl() stores them; a bare address gets them written in here, before
-// dashboard.js reads branch= / period=, so they go through the same checks a
-// shared link does. A link that names its own branch or period always wins.
+// visit. trSyncUrl() stores them. A link that names its own branch or period always
+// wins. Kate, 1 Oct 2026: they no longer get written into the address here, which put
+// ?period=last-month on the sign-in screen of a plain trk-salon-os.com. They sit in
+// TRS_PREF instead, and dashboard.js reads them through trsParam(), so they still go
+// through the same checks a shared link does; the address picks them up once the
+// dashboard draws (trSyncUrl).
+window.TRS_PREF = {};
 (function(){
   try {
     var q = new URLSearchParams(location.search);
@@ -42,12 +51,16 @@ window.TRS_AUTH_HASH = location.hash;
     var b = localStorage.getItem('trs-branch'), p = localStorage.getItem('trs-period');
     var v = q.get('view') || 'dashboard';
     if (/^ledgers?/i.test(v)) p = null;           // Ledgers read their own month
-    if (b && b !== 'all') q.set('branch', b);
-    if (p) q.set('period', p);
-    if (q.toString() !== location.search.slice(1))
-      history.replaceState(null, '', location.pathname + '?' + q + location.hash);
+    if (b && b !== 'all') window.TRS_PREF.branch = b;
+    if (p) window.TRS_PREF.period = p;
   } catch (e) {}
 })();
+window.trsParam = function (k) {
+  try {
+    var q = new URLSearchParams(location.search);
+    return q.has(k) ? q.get(k) : (window.TRS_PREF[k] || null);
+  } catch (e) { return null; }
+};
 </script>
 <!-- Phone browser chrome in the page's own paper and ink (Kate, 25 Sep 2026). -->
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
@@ -3546,7 +3559,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="products.js?v=20261001sold"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261001sr1"></script>
+<script src="dashboard.js?v=20261001kb1"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->

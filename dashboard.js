@@ -152,7 +152,7 @@ let pendingSel = { branch: ['all'] }; // buffered branch selection — applied o
 // All Branches. FRT is not a live code, so an old link naming Fratelli lands on
 // All Branches rather than on a branch that stopped syncing in May. Kate, 4 Sep 2026.
 try {
-  const u = new URLSearchParams(location.search).get('branch');
+  const u = window.trsParam ? trsParam('branch') : new URLSearchParams(location.search).get('branch');
   if (u === 'group') GROUP_MODE = true;   // sel.branch stays ['all']
   else if (u && u !== 'all') {
     const asked = u.split(',').map(x => x.trim().toUpperCase());
@@ -452,7 +452,7 @@ function periodParam() {
 // month:2026-08 asked for in September is Last month, and the URL says so.
 function applyPeriodParam() {
   let u = null;
-  try { u = new URLSearchParams(location.search).get('period'); } catch (e) { return false; }
+  try { u = window.trsParam ? trsParam('period') : new URLSearchParams(location.search).get('period'); } catch (e) { return false; }
   if (!u) return false;
   const set = (from, to) => { dateFrom = from; dateTo = to; periodPick = null; return true; };
 
