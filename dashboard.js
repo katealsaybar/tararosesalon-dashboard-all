@@ -4970,8 +4970,18 @@ function _svcLimit() {
 // branches and matched by service name. Only for a dated range: the Top Services
 // report fallback is a whole-period export with nothing to step back from.
 async function _svcPrevMap(branches) {
-  const pw = (dateFrom && dateTo) ? previousWindow(dateFrom, dateTo) : null;
+  let pw = (dateFrom && dateTo) ? previousWindow(dateFrom, dateTo) : null;
   if (!pw) return null;
+  // Kate, 1 Oct 2026: a whole calendar month is read against the whole month
+  // before it (September against 1-31 August), not previousWindow()'s same-days
+  // cut (1-30 August), which is right for a month still running but drops the
+  // 31st from a finished one. Month to date keeps the same-days comparison.
+  const lastDay = new Date(dateTo.getFullYear(), dateTo.getMonth() + 1, 0).getDate();
+  if (dateFrom.getDate() === 1 && dateFrom.getFullYear() === dateTo.getFullYear()
+      && dateFrom.getMonth() === dateTo.getMonth() && dateTo.getDate() === lastDay) {
+    pw = { ...pw, from: new Date(dateFrom.getFullYear(), dateFrom.getMonth() - 1, 1),
+           to: new Date(dateFrom.getFullYear(), dateFrom.getMonth(), 0) };
+  }
   const y = pw.from.getFullYear();
   const to = pw.to.getFullYear() !== y ? `${y}-12-31` : _iso(pw.to);
   try {
