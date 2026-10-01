@@ -1843,6 +1843,10 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .slv-muted{color:var(--muted);font-size:13px;margin:12px 0 0}
 /* 13-Week Report (staff-weeks.js), riding on the Stylist Levels card and table. */
 .w13-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+/* Products: retail stock bought against retail sold, a full-width row under the four tiles (Kate, 1 Oct 2026). */
+.w13-tile.prd-sold{grid-column:1/-1}
+.prd-sold-row{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:4px}
+.prd-sold-row > span{display:flex;flex-direction:column}
 .w13-tile{border:1px solid var(--border);border-radius:12px;padding:12px 14px}
 .w13-val{font-size:22px;font-weight:600;color:var(--text);margin:4px 0 2px;font-variant-numeric:tabular-nums}
 .slv-table tr.w13-off td{color:var(--muted)}
@@ -3516,7 +3520,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=20260924n"></script>
 <script src="stylist-levels.js?v=20260928c"></script>
 <script src="staff-weeks.js?v=20261001ux4"></script>
-<script src="products.js?v=20260930g1"></script>
+<script src="products.js?v=20261001sold"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261001ux7"></script>

@@ -41,15 +41,52 @@ async function renderProducts() {
   const w = prdWindow();
   el.innerHTML = '<p class="slv-muted">Loading product spend…</p>';
   try {
-    const { data, error } = await sb.rpc('get_product_spend', { p_branches: w.branches, p_from: w.from, p_to: w.to, p_dept: prdDept });
+    const [{ data, error }, sold] = await Promise.all([
+      sb.rpc('get_product_spend', { p_branches: w.branches, p_from: w.from, p_to: w.to, p_dept: prdDept }),
+      prdRetailSold(w).catch(e => { console.warn('Products: retail sold did not load', e); return null; }),
+    ]);
     if (error || !data) throw error || new Error('no data');
-    prdData = { ...data, win: w };
+    prdData = { ...data, win: w, sold };
   } catch (e) {
     console.error(e);
     el.innerHTML = '<p class="slv-muted">Product spend didn\'t load. Refresh to try again.</p>';
     return;
   }
   prdPaint(el);
+}
+
+// Retail sold over the same window and branches, so the stock bought has something
+// to be read against (Kate, 1 Oct 2026; Comet PD1). Phorest's daily TOTAL line per
+// branch (phorest_staff_daily, is_total), products ex VAT: the same figure the other
+// pages' retail comes from. Paged, because a long custom range passes PostgREST's
+// 1000-row cap. Returns { aed, days } or null.
+async function prdRetailSold(w) {
+  let aed = 0, days = 0;
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from('phorest_staff_daily')
+      .select('products_ex_vat').eq('is_total', true).in('branch', w.branches)
+      .gte('date', w.from).lte('date', w.to).range(from, from + 999);
+    if (error) throw error;
+    (data || []).forEach(r => { aed += Number(r.products_ex_vat) || 0; days++; });
+    if (!data || data.length < 1000) break;
+  }
+  return days ? { aed, days } : null;
+}
+// "For every AED 100 of retail sold, AED X of retail stock came in." Shown on All only:
+// Phorest does not split retail sold by team, and beauty stock against all retail
+// sold would read as a figure it is not.
+function prdSoldStrip(d, retailBought) {
+  if (!d.sold) return '';
+  if (prdDept !== 'all') return `<div class="w13-tile prd-sold"><div class="slv-note">Retail sold is not split by team in Phorest, so stock bought against retail sold shows on All.</div></div>`;
+  const per100 = d.sold.aed ? Math.round(100 * retailBought / d.sold.aed) : null;
+  return `<div class="w13-tile prd-sold">
+    <div class="slv-eyebrow">Retail stock bought against retail sold</div>
+    <div class="prd-sold-row">
+      <span><b class="w13-val">${prdAed(d.sold.aed)}</b><span class="slv-note">retail sold, ex VAT (Phorest)</span></span>
+      <span><b class="w13-val">${prdAed(retailBought)}</b><span class="slv-note">retail stock bought, at cost</span></span>
+      ${per100 !== null ? `<span><b class="w13-val">AED ${per100}</b><span class="slv-note">of stock in for every AED 100 sold</span></span>` : ''}
+    </div>
+  </div>`;
 }
 
 function prdSetDept(k) {
@@ -133,6 +170,7 @@ function prdPaint(el) {
         <div class="w13-tile"><div class="slv-eyebrow">Retail</div><div class="w13-val">${prdAed(tot.retail)}</div><div class="slv-note">${all ? Math.round(100 * tot.retail / all) + '% of spend' : ''}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Professional</div><div class="w13-val">${prdAed(tot.professional)}</div><div class="slv-note">${all ? Math.round(100 * tot.professional / all) + '% of spend' : ''}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">On order now</div><div class="w13-val">${prdAed(d.on_order.spend)}</div><div class="slv-note">${prdNum(d.on_order.lines)} line${Number(d.on_order.lines) === 1 ? '' : 's'} not arrived yet</div></div>
+        ${prdSoldStrip(d, tot.retail)}
       </div>
       <div class="slv-eyebrow" style="margin:18px 0 6px">Week by week · retail and professional</div>
       <div style="position:relative;height:280px"><canvas id="prdCanvas"></canvas></div>
