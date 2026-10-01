@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261001lvl">
+<link rel="stylesheet" href="/hub/hub.css?v=20261001cols">
 </head>
 <body class="kb-wait">
 <div class="wrap">
@@ -71,16 +71,16 @@ KB.ready.then(async function () {
       : '<div class="kb-card soon" aria-disabled="true">' + inner + '</div>';
     return '<div class="kb-cell">' + body + star + '</div>';
   }
-  function group(title, list) {
+  function group(title, list, wide) {
     if (!list.length) return '';
     // Live first, then the ones still to come, each in KB.SECTIONS' order.
     list = list.filter(isLive).concat(list.filter(function (s) { return !isLive(s); }));
-    return '<section class="kb-dept"><h2 class="kb-section-title">' + esc(title) + '</h2>' +
+    return '<section class="kb-dept' + (wide ? ' wide' : '') + '"><h2 class="kb-section-title">' + esc(title) + '</h2>' +
       '<div class="kb-grid">' + list.map(card).join('') + '</div></section>';
   }
   function paint() {
     var starred = shown.filter(function (s) { return favs[s.key]; });
-    var html = group('Your favourites', starred);
+    var html = group('Your favourites', starred, true);
     // Staff have one department, so no headings beyond theirs; everyone else reads
     // Team Home by department.
     html += group('You', shown.filter(function (s) { return s.dept === 'You'; }));

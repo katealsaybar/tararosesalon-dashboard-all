@@ -125,6 +125,15 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 .kb-dept:first-child .kb-section-title{margin-top:6px}
 .kb-fav-hint{font-size:13px;color:var(--muted2);margin:-14px 0 0}
 .kb-cell{position:relative;display:flex}
+/* Kate, 1 Oct 2026: each department has one or two cards, so a four-across grid left
+   the right half of the page empty. Departments now sit two to a row, each with its
+   cards side by side; favourites (any number) keep the full width. */
+@media (min-width:900px){
+  #kbGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:36px;align-items:start}
+  #kbGrid > .kb-fav-hint,#kbGrid > .kb-dept.wide{grid-column:1/-1}
+  #kbGrid > .kb-dept:not(.wide) .kb-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+}
 .kb-cell>.kb-card{flex:1}
 .kb-star{position:absolute;top:14px;right:14px;width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:50%;
   background:transparent;color:var(--muted2);cursor:pointer;transition:background .15s,color .15s,transform .15s}

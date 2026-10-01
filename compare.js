@@ -360,8 +360,8 @@ function cmpClientSeg() {
   const b = (v, label, title) => `<button type="button" class="chip seg-b" aria-pressed="${CLIENT_BASIS === v}" onclick="cmpSetClients('${v}')" title="${title}">${label}</button>`;
   return `<div class="cmp-clients"><span class="f-lbl">Clients</span>
     <span class="seg" role="group" aria-label="How clients are counted">`
-    + b('handled', 'Handled', 'Ledgers: each staff member counts the clients she served')
-    + b('door', 'Through the door', 'Phorest: each client counted once a day, however many staff she saw')
+    + b('handled', 'Per staff', 'Ledgers: each staff member counts the clients she served')
+    + b('door', 'Per visit', 'Phorest: each client counted once a day, however many staff she saw')
     + `</span></div>`;
 }
 function cmpSetClients(v) {

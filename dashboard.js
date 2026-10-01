@@ -569,8 +569,8 @@ function paintFilterChips() {
     cRow.hidden = !CLIENT_VIEWS.has(CURRENT_VIEW);
     const b = (v, label, title) => `<button type="button" class="chip seg-b" aria-pressed="${CLIENT_BASIS === v}" data-v="${v}" title="${title}">${label}</button>`;
     cEl.innerHTML = `<span class="seg" role="group" aria-label="How clients are counted">`
-      + b('handled', 'Handled', 'Ledgers: each staff member counts the clients she served')
-      + b('door', 'Through the door', 'Phorest: each client counted once a day, however many staff she saw')
+      + b('handled', 'Per staff', 'Ledgers: each staff member counts the clients she served')
+      + b('door', 'Per visit', 'Phorest: each client counted once a day, however many staff she saw')
       + `</span>`;
   }
 
@@ -3996,7 +3996,7 @@ async function renderDashboard() {
       <div class="r-row"><span class="r-label">Avg bill</span><span class="r-val tabular">${num0(avgBillOf(s))}</span></div>
       ${s.doorClients != null ? `<div class="r-cl" role="group" aria-label="How clients are counted">
         <span class="r-cl-k">Client count</span>
-        <span class="r-cl-seg">${[['handled', 'Handled'], ['door', 'Through the door']].map(([v, l]) =>
+        <span class="r-cl-seg">${[['handled', 'Per staff'], ['door', 'Per visit']].map(([v, l]) =>
           `<button type="button" aria-pressed="${CLIENT_BASIS === v}" onclick="pulseSetClients('${v}')">${l}</button>`).join('')}</span>
         <span class="r-cl-n">${CLIENT_BASIS === 'door'
           ? 'Each client once a day, however many staff she saw.'

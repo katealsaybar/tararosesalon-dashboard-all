@@ -102,13 +102,13 @@
     let tag = $('fSheetDoor');
     if (!tag && out.parentElement) {
       tag = document.createElement('span');
-      tag.id = 'fSheetDoor'; tag.textContent = 'Door'; tag.setAttribute('aria-hidden', 'true');
+      tag.id = 'fSheetDoor'; tag.textContent = 'Per visit'; tag.setAttribute('aria-hidden', 'true');
       out.after(tag);
     }
     if (tag) tag.hidden = !door;
     if (sheetBtn) sheetBtn.classList.toggle('door', door);
     // The button is named by its label for a screen reader, so the label says both.
-    if (sheetBtn) sheetBtn.setAttribute('aria-label', 'Filters: ' + out.textContent + (door ? ', clients through the door' : ''));
+    if (sheetBtn) sheetBtn.setAttribute('aria-label', 'Filters: ' + out.textContent + (door ? ', clients counted per visit' : ''));
 
   }
   ['branchChips', 'periodChips', 'clientChips', 'mastRange'].forEach(id => {
