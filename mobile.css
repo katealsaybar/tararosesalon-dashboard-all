@@ -362,6 +362,13 @@
   aside.sidebar .nav-title.nav-fold{min-height:44px}
   /* The page under an open drawer stays put. */
   body.nav-open{overflow:hidden}
+  /* The drawer's own close button: the header's menu button sits under the open
+     drawer, so this is the visible way out besides the scrim and the swipe. */
+  aside.sidebar .nav-close{display:grid;place-items:center;position:absolute;
+    top:calc(8px + env(safe-area-inset-top));right:8px;width:44px;height:44px;padding:0;
+    border:0;border-radius:50%;background:transparent;color:var(--muted);
+    font-size:26px;line-height:1;cursor:pointer;z-index:2}
+  aside.sidebar .nav-close:active{background:rgba(250,248,243,.08);color:var(--text)}
 }
 
 /* ===== MOBILE · 12. VIEWPORT, SAFE AREAS, iOS (P2) =====

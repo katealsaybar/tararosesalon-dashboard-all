@@ -608,6 +608,7 @@ aside.sidebar{
 .nav-brand .mark{width:132px;aspect-ratio:2321/396}
 .nav-word{font-size:11.5px;letter-spacing:.36em;text-transform:uppercase;
   color:var(--text);opacity:.82;text-indent:.36em}
+.nav-close{display:none}   /* phones only, mobile.css */
 .nav-out{margin-top:auto;padding-top:12px;border-top:1px solid var(--border)}
 .nav-out .nav-sub{display:flex;align-items:center;gap:7px;font-size:15px;letter-spacing:.04em}
 @media(min-width:1100px){:root{--nav-w:200px}}
@@ -2729,7 +2730,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="team-performance.css?v=20261001ux2">
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20260930seg">
+<link rel="stylesheet" href="mobile.css?v=20261001ux5">
 <link rel="stylesheet" href="search.css?v=20260929b">
 </head>
 <body>
@@ -2836,6 +2837,10 @@ table.tp-cmp td.bad{color:var(--bad)}
   </svg>
 </button>
 <aside class="sidebar" id="sidebar" aria-label="Dashboards">
+
+  <!-- Phones only (mobile.css): the open drawer covers the header's menu button,
+       so it carries its own way out. Kate, 1 Oct 2026. -->
+  <button type="button" class="nav-close" onclick="toggleNav(false)" aria-label="Close sections">&times;</button>
 
   <!-- Drag this to resize the panel; double-click to go back to the default. -->
   <div class="nav-resize" id="navResize" title="Drag to resize · double-click to reset"></div>
@@ -3995,6 +4000,11 @@ function resetNavWidth(){
 
 toggleNav(NAV_FITS.matches);
 NAV_FITS.addEventListener('change', e => toggleNav(e.matches));
+// Narrowing past the push width (a resized window, a turned tablet) turns an open
+// panel into an overlay over the page. It closes instead of staying "open" off
+// screen, which left the next tap on the menu button closing a panel nobody could
+// see, so it took two taps to open (UX inventory, 1 Oct 2026).
+NAV_PUSHES.addEventListener('change', e => { if (!e.matches) toggleNav(false); });
 // Anything that covers the page has to be dismissible from the keyboard.
 addEventListener('keydown', e => { if(e.key === 'Escape') toggleNav(false); });
 // A jump from the nav has done its job the moment it lands, so on any width
