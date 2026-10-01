@@ -884,6 +884,12 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
   font-size:clamp(17px,4.6vw,21px);line-height:1.4;color:var(--text);opacity:.92;
   margin-top:18px;padding-left:14px;border-left:2px solid var(--text);max-width:38ch}
 .standfirst{font-size:clamp(14px,3.8vw,16px);color:var(--muted);margin-top:16px;max-width:52ch;line-height:1.6}
+/* The empty Pulse's way out (Kate, 1 Oct 2026): a pill in the page's ink, not a blue link. */
+.standfirst .sf-alt{display:flex;align-items:center;gap:8px;width:max-content;margin-top:14px;font:inherit;font-size:14px;font-weight:600;
+  color:var(--text);background:transparent;border:1px solid var(--border);border-radius:999px;padding:9px 18px;min-height:44px;cursor:pointer;
+  transition:border-color .15s,background .15s}
+.standfirst .sf-alt:hover{border-color:var(--text);background:rgba(127,127,127,.08)}
+.standfirst .sf-alt:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 /* The way in. Sits in the room the 52ch measure leaves under the standfirst,
    which the receipt's height turned into a visible hole. Reads as a line of the
    page rather than a button, and the arrow leans on hover. */
@@ -1006,6 +1012,16 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .r-label{color:#4a4a4a}
 .r-val{font-weight:700;white-space:nowrap}
 .r-foot{text-align:center;font-size:12px;color:#6f6f6f;margin-top:8px;letter-spacing:.08em}
+/* The receipt's own Clients switch (Kate, 1 Oct 2026): phones only, where the filter
+   bar is folded into a sheet. Desktop keeps the one in the filter bar. */
+.r-cl{display:none}
+@media (max-width:760px){
+  .r-cl{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed #d8d2c8}
+  .r-cl-k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6f6f6f}
+  .r-cl-seg{display:inline-flex;border:1px solid #cfc8bd;border-radius:999px;padding:2px;gap:2px}
+  .r-cl-seg button{font:inherit;font-size:12.5px;font-weight:500;border:0;border-radius:999px;padding:6px 10px;min-height:32px;background:transparent;color:#4a4a4a;cursor:pointer}
+  .r-cl-seg button[aria-pressed="true"]{background:#1a1a1a;color:#fff;font-weight:600}
+}
 @media(min-width:900px){
   /* The cover used to be sized to the fold — min-height 100svh minus the
      masthead — with the CTA pinned to its bottom edge by margin-top:auto.
@@ -2776,7 +2792,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="team-performance.css?v=20261001quad">
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20261001kb1">
+<link rel="stylesheet" href="mobile.css?v=20261001door2">
 <link rel="stylesheet" href="search.css?v=20260929b">
 </head>
 <body>
@@ -3558,7 +3574,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="products.js?v=20261001sold"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261001davg"></script>
+<script src="dashboard.js?v=20261001rcl"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4426,6 +4442,6 @@ addEventListener('load', sizeTopbar);
 </script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
 <script src="nav-collapse.js?v=20260924a"></script>
-<script src="mobile.js?v=20261001bp5"></script>
+<script src="mobile.js?v=20261001door2"></script>
 <script src="search.js?v=20261001ux4"></script>
 </body>

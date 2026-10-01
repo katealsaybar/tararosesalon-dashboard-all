@@ -93,11 +93,25 @@
     const f = typeof dateFrom !== 'undefined' ? dateFrom : null;
     const t = typeof dateTo !== 'undefined' ? dateTo : null;
     const rg = rangeShort(f, t);
+    // Kate, 1 Oct 2026: say when clients are counted through the door, so the pill
+    // tells you the page is not on the usual Handled count.
+    const door = typeof CLIENT_BASIS !== 'undefined' && CLIENT_BASIS === 'door'
+      && typeof CLIENT_VIEWS !== 'undefined' && CLIENT_VIEWS.has(typeof CURRENT_VIEW !== 'undefined' ? CURRENT_VIEW : '');
     out.textContent = rg ? `${br} · ${rg}` : br;
+    // Its own tag beside the summary, so it never gets cut off with the branch name.
+    let tag = $('fSheetDoor');
+    if (!tag && out.parentElement) {
+      tag = document.createElement('span');
+      tag.id = 'fSheetDoor'; tag.textContent = 'Door'; tag.setAttribute('aria-hidden', 'true');
+      out.after(tag);
+    }
+    if (tag) tag.hidden = !door;
+    if (sheetBtn) sheetBtn.classList.toggle('door', door);
     // The button is named by its label for a screen reader, so the label says both.
-    if (sheetBtn) sheetBtn.setAttribute('aria-label', 'Filters: ' + out.textContent);
+    if (sheetBtn) sheetBtn.setAttribute('aria-label', 'Filters: ' + out.textContent + (door ? ', clients through the door' : ''));
+
   }
-  ['branchChips', 'periodChips', 'mastRange'].forEach(id => {
+  ['branchChips', 'periodChips', 'clientChips', 'mastRange'].forEach(id => {
     const el = $(id);
     if (el) new MutationObserver(paintSum).observe(el, {childList: true, subtree: true, characterData: true, attributes: true});
   });

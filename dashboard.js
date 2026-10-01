@@ -1059,6 +1059,11 @@ function computeHeroPeriodPhrase(from, to) {
   }
 
   if (heroIsSingleWeek(from, to)) return 'this week';
+  // Kate, 1 Oct 2026: on the 1st, This month is one day and read "Here's how these
+  // days is shaping up". The month so far, or one named day, says it properly.
+  const sameMonthNow = from.getFullYear() === today.getFullYear() && from.getMonth() === today.getMonth() && to.getMonth() === today.getMonth();
+  if (sameMonthNow && from.getDate() === 1 && to >= today) return 'this month so far';
+  if (diffDays === 1) return +to === +today ? 'today' : `${to.getDate()} ${HERO_MONTH_NAMES[to.getMonth()]}`;
   if (diffDays <= 7) return 'these days';
 
   // Default range gets its own phrase rather than falling into "past few months"
@@ -1100,7 +1105,11 @@ function heroPeriodPhrasing() {
   const codes = isAll ? ACTIVE_BRANCHES : sel.branch;
   return {
     phrase: computeHeroPeriodPhrase(dateFrom, dateTo),
-    verb:   (dateTo && dateTo < today) ? 'shaped up' : 'is shaping up',
+    verb:   (() => {
+      const plural = /^these days/.test(computeHeroPeriodPhrase(dateFrom, dateTo));
+      return (dateTo && dateTo < today) ? 'shaped up' : plural ? 'are shaping up' : 'is shaping up';
+    })(),
+
     scope:  isAll ? (isGroupView() ? 'across the UAE and Bahrain' : 'across all branches')
           : codes.length === 1 ? `at ${BRANCH_INFO[codes[0]]?.name || codes[0]}`
           : `across ${codes.map(c => BRANCH_INFO[c]?.name || c).join(', ')}`,
@@ -3418,6 +3427,16 @@ const clientsOf = s => !s ? 0 : doorOn(s) ? s.doorClients : (s.totalClients || 0
 const avgBillOf = s => !s ? 0 : doorOn(s) ? (s.doorClients ? (s.netTake || 0) / s.doorClients : 0) : (s.avgBill || 0);
 // A trend only when both windows are counted the same way.
 const clientsPrevOf = (s, p) => (!p || doorOn(s) !== doorOn(p)) ? null : clientsOf(p);
+// Kate, 1 Oct 2026: on a phone the Clients switch lives in the filter sheet, out of
+// sight, so nobody knew it was there. The receipt carries its own copy, beside the
+// figures it changes (shown on phones only, see .r-cl in index.html).
+function pulseSetClients(v) {
+  if (v === CLIENT_BASIS) return;
+  setClientBasis(v);
+  paintFilterChips();
+  refreshActiveView();
+}
+
 
 async function renderDashboard() {
   paintFilterChips();
@@ -3888,8 +3907,10 @@ async function renderDashboard() {
     // still says This month, and an auto-switch would fight the saved period.
     const k = activePeriodKey();
     const alt = k === 'Last month' ? null : 'Last month';
+    // Kate, 1 Oct 2026: the way out was a bare <a>, so it showed in browser-default
+    // blue. It is a pill button on its own line now, in the page's own ink.
     standfirstEl.innerHTML = `No sales have come through for ${rangeLabel} yet, so there is nothing to score.` +
-      (alt ? ` <a href="#" onclick="document.querySelector('#periodChips .chip[data-v=&quot;${alt}&quot;]')?.click();return false">See ${alt.toLowerCase()}</a> instead.` : '');
+      (alt ? `<button type="button" class="sf-alt" onclick="document.querySelector('#periodChips .chip[data-v=&quot;${alt}&quot;]')?.click()">See ${alt.toLowerCase()} instead <span aria-hidden="true">→</span></button>` : '');
   } else if (standfirstEl) {
     const hairShare   = shareOf(hairNetSalonTake, s.netTake);
     const beautyShare = shareOf(beautyNetTakeDept, s.netTake);
@@ -3973,6 +3994,10 @@ async function renderDashboard() {
       <div class="r-row"><span class="r-label">Clients${doorOn(s) ? ' through the door' : ''}</span><span class="r-val tabular">${num0(clientsOf(s))}</span></div>
       ${doorOn(s) ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">handled by staff</span><span class="r-val tabular" style="opacity:.75">${num0(s.totalClients)}</span></div>` : ''}
       <div class="r-row"><span class="r-label">Avg bill</span><span class="r-val tabular">${num0(avgBillOf(s))}</span></div>
+      ${s.doorClients != null ? `<div class="r-cl" role="group" aria-label="How clients are counted">
+        <span class="r-cl-k">Count clients</span>
+        <span class="r-cl-seg">${[['handled', 'Handled'], ['door', 'Through the door']].map(([v, l]) =>
+          `<button type="button" aria-pressed="${CLIENT_BASIS === v}" onclick="pulseSetClients('${v}')">${l}</button>`).join('')}</span></div>` : ''}
       ${targetsBlock}
       <div class="r-rule"></div>
       <div class="r-foot">All money in ${CUR()} · takings before staff cost</div>`;
