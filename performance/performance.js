@@ -901,6 +901,9 @@ async function renderTeam() {
       if (!TOKEN) { app.innerHTML = `<p class="err">This link isn't active. Ask your salon manager for a new one.</p>`; return; }
     }
     if (TOKEN || (SID && ADMIN)) await renderStylist();
+    // My year + How you move up (year-levels.js): her own link only, not a leader's
+    // view and not the dashboard frame.
+    if (TOKEN && !ADMIN && !EMBED && window.PerfTabs) PerfTabs.mount(TOKEN);
     else if (ADMIN) await renderTeam();
     else app.innerHTML = `<p class="err">Open this page from the link in your performance email.</p>`;
     requestAnimationFrame(postHeight);

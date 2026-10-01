@@ -1,0 +1,101 @@
+/* My Numbers: My year + How you move up (Kate, 1 Oct 2026), drawn by year-levels.js.
+   Every rule is scoped to #perfTabs / #perfMore: performance.css already has its own
+   .chart, .legend, .grid and .aim for This month's chart. */
+/* The tab bar sits in the page's own 780px column, above This month / the tab. */
+.ptabs-wrap{max-width:780px;margin:0 auto;padding:16px 16px 0}
+.ptabs-wrap[hidden],#perfMore[hidden],#app[hidden]{display:none}
+#perfTabs{margin:0!important}
+.ptabs-wrap+#app,.ptabs-wrap+#app+#perfMore{padding-top:14px}
+:root{--bar:#8E7CC3;--bar-soft:rgba(142,124,195,.35);--aim:#5C5557}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bar:#C4B5FD;--bar-soft:rgba(196,181,253,.35);--aim:#FAF8F3}}
+:root[data-theme="dark"]{--bar:#C4B5FD;--bar-soft:rgba(196,181,253,.35);--aim:#FAF8F3}
+#perfTabs{display:flex;gap:4px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--surface);margin:0 0 16px;overflow-x:auto}
+#perfTabs button{flex:1 0 auto;font:inherit;font-size:14px;font-weight:600;border:0;border-radius:999px;padding:9px 14px;min-height:44px;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap}
+#perfTabs button.on{background:var(--btn);color:var(--btn-fg)}
+#perfTabs button[disabled]{opacity:.5;cursor:default}
+@media (max-width:619px){#perfTabs button{flex:1 1 0;font-size:13px;padding:9px 6px;white-space:normal;line-height:1.2}}
+#perfMore .why{font-size:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:8px 0 14px}
+#perfMore .why b{font-weight:600}
+#perfMore .hero-n{font-size:34px;font-weight:700;letter-spacing:-.01em;margin:2px 0}
+#perfMore .hero-s{font-size:13.5px;color:var(--muted)}
+#perfMore .step{border-left:3px solid var(--bar);padding:10px 12px;background:var(--surface2);border-radius:0 10px 10px 0;font-size:14.5px;margin-top:12px}
+#perfMore .step .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px}
+#perfMore .chart{position:relative}
+#perfMore .chart svg{width:100%;height:auto;display:block}
+#perfMore .chart .ax{font-size:10px;fill:var(--muted)}
+#perfMore .chart .ql{font-size:10.5px;fill:var(--muted);letter-spacing:.08em}
+#perfMore .chart .grid{stroke:var(--border);stroke-width:1}
+#perfMore .chart .aim{stroke:var(--aim);stroke-width:1.5;stroke-dasharray:5 4;opacity:.7}
+#perfMore .chart .bar{fill:var(--bar)}
+#perfMore .chart .bar.cur{fill:var(--bar-soft)}
+/* Kate, 1 Oct 2026: reading the chart is one smooth slide, finger or mouse. The whole
+   plot is the target (no tiny per-bar boxes), the nearest week lights and the rest
+   dim, a guide line and the tooltip glide with it. Up/down still scrolls the page. */
+#perfMore .chart svg{touch-action:pan-y;cursor:crosshair;-webkit-tap-highlight-color:transparent;outline:none}
+#perfMore .chart svg:focus-visible{outline:2px solid var(--text);outline-offset:4px;border-radius:6px}
+#perfMore .chart .bar{transition:opacity .15s ease}
+#perfMore .chart.scrub .bar{opacity:.35}
+#perfMore .chart.scrub .bar.hl{opacity:1}
+#perfMore .chart .guide{stroke:var(--text);stroke-width:1;opacity:0;transition:opacity .15s ease}
+#perfMore .chart.scrub .guide{opacity:.35}
+#perfMore .tip{position:absolute;left:0;top:0;pointer-events:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px 10px;font-size:12.5px;box-shadow:0 8px 24px -10px rgba(0,0,0,.35);white-space:nowrap;z-index:4;
+  opacity:0;transition:transform .12s ease-out,opacity .15s ease;will-change:transform}
+#perfMore .chart.scrub .tip{opacity:1}
+@media (prefers-reduced-motion:reduce){#perfMore .tip,#perfMore .chart .bar,#perfMore .chart .guide{transition:none}}
+
+#perfMore .tip b{display:block;font-size:14px}
+#perfMore .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}
+#perfMore .legend i{display:inline-block;width:12px;height:10px;border-radius:2px;background:var(--bar);vertical-align:-1px;margin-right:5px}
+#perfMore .legend i.soft{background:var(--bar-soft)}
+#perfMore .legend i.line{height:0;border-top:2px dashed var(--aim);border-radius:0;background:none;opacity:.7}
+#perfMore .qs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:619px){#perfMore .qs{grid-template-columns:repeat(2,1fr)}}
+#perfMore .q{display:flex;flex-direction:column;gap:2px;text-align:left;font:inherit;color:var(--text);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;background:var(--surface2);cursor:pointer;min-height:44px}
+#perfMore .q:hover{border-color:var(--muted)}
+#perfMore .q.on{border-color:var(--text);background:var(--surface)}
+#perfMore .q[disabled]{opacity:.5;cursor:default}
+#perfMore .q:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+#perfMore .wk-head{font-size:13px;color:var(--muted);margin:16px 0 4px}
+#perfMore .wk-head b{color:var(--text)}
+#perfMore .tbl.wk td{padding:9px 6px;white-space:nowrap}
+#perfMore .tbl.wk td:first-child{white-space:normal}
+#perfMore .wk-d{font-size:12px;color:var(--muted)}
+#perfMore .wk-hit{color:var(--good);font-weight:700}
+#perfMore .wk-off td{color:var(--muted)}
+#perfMore .wk-flag{text-align:right;font-size:12.5px}
+#perfMore .wk-foot{margin:10px 0 0}
+#perfMore .card .eyebrow+.hero-n{margin-top:0}
+#perfMore .hero-s b{color:var(--text);font-weight:600}
+#perfMore .step b{font-weight:700}
+#perfMore .q .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+#perfMore .q .v{font-size:19px;font-weight:700;margin:3px 0 1px}
+#perfMore .q .s{font-size:12px;color:var(--muted)}
+#perfMore details.more{margin-top:12px}
+/* Kate, 1 Oct 2026: "All 19 measures" did not read as something to tap. It is a full-width
+   button now, with a chevron that turns when it opens and a label that says what it does. */
+#perfMore details.more summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  min-height:48px;padding:10px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface2);
+  font-weight:600;font-size:14px;color:var(--text)}
+#perfMore details.more summary::-webkit-details-marker{display:none}
+#perfMore details.more summary:hover{border-color:var(--text)}
+#perfMore details.more summary:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+#perfMore details.more summary .chev{width:12px;height:12px;flex:none;transition:transform .18s}
+#perfMore details.more[open] summary .chev{transform:rotate(180deg)}
+#perfMore details.more summary .hint{font-weight:500;font-size:12.5px;color:var(--muted)}
+#perfMore details.more[open] summary .when-shut,#perfMore details.more:not([open]) summary .when-open{display:none}
+#perfMore details.more[open] summary{margin-bottom:8px}
+#perfMore .lv-card:has(details.more[open]) .lv-head{display:none}
+#perfMore .tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+#perfMore .tbl th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:600;padding:7px 6px;border-bottom:1px solid var(--border)}
+#perfMore .tbl td{padding:7px 6px;border-bottom:1px solid var(--border)}
+#perfMore .tbl .r{text-align:right;font-variant-numeric:tabular-nums}
+#perfMore .tbl tr.grp td{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-top:14px}
+#perfMore .tbl-wrap{overflow-x:auto}
+#perfMore .ladder{list-style:none;display:flex;flex-direction:column-reverse;gap:6px;margin:6px 0 4px}
+#perfMore .ladder li button{width:100%;display:flex;align-items:center;gap:12px;font:inherit;text-align:left;border:1px solid var(--border);border-radius:12px;padding:10px 12px;min-height:48px;background:var(--surface2);color:var(--text);cursor:pointer}
+#perfMore .ladder li button.pick{border-color:var(--text)}
+#perfMore .ladder .n{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--none-bg);flex:none}
+#perfMore .ladder .you .n{background:var(--bar);color:#2D2E37}
+#perfMore .ladder .nm{font-weight:600;flex:1}
+#perfMore .ladder .tag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+#perfMore .ladder .you .tag{color:var(--text);font-weight:700}

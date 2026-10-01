@@ -13,6 +13,7 @@
 <!-- Brand type (Kate, 29 Sep 2026): Playfair Display for headings and names, Inter for body, as trs-brand-guardian sets it and the dashboard around this frame already uses. -->
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="performance.css?v=20260930f">
+<link rel="stylesheet" href="year-levels.css?v=20261001a">
 <script>
 // Light / Dark (Kate, 25 Sep 2026): a stylist's own link remembers the choice per
 // browser; with none saved it follows the phone. Inside the dashboard the frame takes
@@ -57,9 +58,13 @@ function perfToggleTheme() {
 <script>perfPaintTheme(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', perfPaintTheme);</script>
 </header>
 
+<!-- This month | My year | How you move up (Kate, 1 Oct 2026). Drawn by year-levels.js
+     on a stylist's own link only; This month is #app as before. -->
+<div class="ptabs-wrap" hidden><nav id="perfTabs" role="tablist" aria-label="My Numbers pages"></nav></div>
 <main id="app">
   <p class="loading">Loading your numbers…</p>
 </main>
+<main id="perfMore" hidden></main>
 
 <footer class="foot" id="foot"></footer>
 <!-- Back to top (Kate, 25 Sep 2026), same round TOP button as the dashboard. Shows once
@@ -77,6 +82,7 @@ function perfToggleTheme() {
 
 <script src="../staff-profiles.js?v=20260924n"></script>
 <script src="win-gap.js?v=20260930c"></script>
-<script src="performance.js?v=20261001slug"></script>
+<script src="performance.js?v=20261001tabs"></script>
+<script src="year-levels.js?v=20261001b"></script>
 </body>
 </html>
