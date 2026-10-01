@@ -3339,15 +3339,17 @@ table.tp-cmp td.bad{color:var(--bad)}
     const f = document.getElementById('spfFrame');
     if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'perf-sort', k: next.k, rev: next.rev }, '*');
   }
-  // Kate, 25 Sep 2026: the view opens straight away on a built-in VIEWER key
-  // (perf_admins role 'viewer'): numbers and notes only, no emails, no staff
-  // tokens, no payslips, no note writing, so it's safe in this public file. A
-  // leader key typed once (kept in localStorage) replaces it for Kate, Tara and
-  // Emma, and brings back notes and copy-link.
-  const SPF_VIEWER = '354555f6-a77d-4cb1-955f-7e9d819e9dfa';
+  // Kate, 25 Sep 2026: the view opens straight away on a VIEWER key (perf_admins role
+  // 'viewer'): numbers and notes only, no emails, no staff tokens, no payslips, no note
+  // writing. A leader key typed once (kept in localStorage) replaces it for Kate, Tara
+  // and Emma, and brings back notes and copy-link.
+  // Kate, 1 Oct 2026 (phase 3): the viewer key used to be written here, in a public
+  // file, so anyone could read every stylist's numbers with it. It was replaced, and
+  // now only reaches someone signed in on the dashboard, as SPF_AUTO from
+  // dashboard_perf_key() (leaders get their own key the same way).
   let spfAskKey = false;
   function spfStored(){ try { return localStorage.getItem(SPF_KEY); } catch(e){ return null; } }
-  function spfGet(){ return spfStored() || window.SPF_AUTO || SPF_VIEWER; }
+  function spfGet(){ return spfStored() || window.SPF_AUTO || null; }
   function initStaffPerfView(){
     const key = spfAskKey ? null : spfGet();
     const frame = document.getElementById('spfFrame');
