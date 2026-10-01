@@ -562,6 +562,9 @@ function tpQuadrant(roster) {
   const levelOk = tpDept === 'hair' && Object.keys(levels).length > 0 && !!months;
   const byLevel = tpQBasis === 'level' && levelOk;
   const all = roster.filter(st => tpRole(st) !== 'Owner');
+  // Kate, 1 Oct 2026 (Comet TR3): the owner is left off on purpose, but silently,
+  // so the bar read "38 people" over a chart of 37. She is named in the side list.
+  const owners = roster.filter(st => tpRole(st) === 'Owner');
   const aimOf = st => levels[tpRole(st)] || null;
   const pts = byLevel ? all.filter(aimOf) : all;
   const noAim = byLevel ? all.filter(st => !aimOf(st)) : [];
@@ -663,6 +666,10 @@ function tpQuadrant(roster) {
       <div class="tp-q-h">No level aim · ${noAim.length}</div>
       <p>Positions Stylist Levels does not set aims for yet, so they are left off this chart. Switch to Bench to see them.</p>
       <div class="tp-q-chips">${noAim.map(chip).join('')}</div>
+    </div>` : '') + (owners.length ? `<div class="tp-q-grp">
+      <div class="tp-q-h">Not on this chart · ${owners.length}</div>
+      <p>The owner's chair is not measured against the bench or a level, so it is left off. Everyone else on this bench is above.</p>
+      <div class="tp-q-chips">${owners.map(chip).join('')}</div>
     </div>` : '');
 
   const basisSeg = tpDept === 'hair' ? `<div class="tp-seg tp-q-basis" role="group" aria-label="Read against">
