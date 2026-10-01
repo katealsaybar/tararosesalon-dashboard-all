@@ -3528,6 +3528,11 @@ async function renderDashboard() {
   // page follows it without an edit. Kate, 2026-08-14.
   const hasBeauty = (s.beautyTotalClients || 0) > 0;
   const noBeautyNote = 'no beauty team in this selection';
+  // Kate, 1 Oct 2026: on the 1st, "This month" opened to "0 of 5 targets hit.
+  // Treatment is the one that matters", worst NCR 0%, and "UAE Branches is hair
+  // only", all scored off a day nothing had happened in yet. A window with no
+  // clients and no money is empty, not failing, so nothing is scored or ranked.
+  const noSales = !(s.totalClients > 0) && !(s.netTake > 0);
 
   // byBranch feeds the standing column chart AND the branch read in the
   // standfirst, so it is computed once, before anything renders.
@@ -3578,7 +3583,7 @@ async function renderDashboard() {
     combined: r.name === 'Beauty Avg Bill' ? null : r.combined,
   }));
   const benchRows = benchAll
-  .filter(r => Number.isFinite(r.combined) && r.target != null)   // no target (Bahrain avg bills): not scored
+  .filter(r => !noSales && Number.isFinite(r.combined) && r.target != null)   // no target (Bahrain avg bills): not scored
   .map(r => ({ ...r, att: r.target ? r.combined / r.target : 0 }));
   // Kate, 30 Sep 2026: on Bahrain (and the Group) the strip keeps every benchmark,
   // greyed with the reason, instead of shrinking to the one or two that can be
@@ -3586,7 +3591,7 @@ async function renderDashboard() {
   // a BHD target. Not counted in "x of y", which stays what was actually scored.
   // Beauty Avg Bill still leaves a branch with no beauty team, as everywhere.
   const LEDGER_ONLY = new Set(['NCR %', 'Rebooking %', 'Treatment %']);
-  const unscored = (isBahrainView() || isGroupView())
+  const unscored = (!noSales && (isBahrainView() || isGroupView()))
     ? benchAll.filter(r => !benchRows.some(b => b.name === r.name) && (hasBeauty || r.name !== 'Beauty Avg Bill'))
         .map(r => ({ ...r, why: Number.isFinite(r.combined) ? 'no target yet'
           : (s._phorestOnly && LEDGER_ONLY.has(r.name)) ? 'no ledger yet' : 'no data' }))
@@ -3651,7 +3656,8 @@ async function renderDashboard() {
     // The draft's headline is a count plus the one name that matters. Both are
     // read off the same scored rows the Below-target list is built from, so the
     // sentence can never disagree with the card underneath it.
-    headlineEl.innerHTML = benchRows.length
+    headlineEl.innerHTML = noSales ? 'Nothing on the books <em>yet</em>.'
+      : benchRows.length
       ? (worst
           ? `${hitRows.length} of ${benchRows.length} targets hit. <em>${escapeHtml(worst.name.replace(/\s*%$/, ''))}</em> is the one that matters.`
           : `All ${benchRows.length} targets hit. <em>Hold it</em> — that is the whole job now.`)
@@ -3701,7 +3707,14 @@ async function renderDashboard() {
     if (sideEl) sideEl.innerHTML = !strip.length ? '' : segHtml(false);
   }
 
-  if (standfirstEl) {
+  if (standfirstEl && noSales) {
+    // The way out is one click, so it is offered rather than taken: the chip row
+    // still says This month, and an auto-switch would fight the saved period.
+    const k = activePeriodKey();
+    const alt = k === 'Last month' ? null : 'Last month';
+    standfirstEl.innerHTML = `No sales have come through for ${rangeLabel} yet, so there is nothing to score.` +
+      (alt ? ` <a href="#" onclick="document.querySelector('#periodChips .chip[data-v=&quot;${alt}&quot;]')?.click();return false">See ${alt.toLowerCase()}</a> instead.` : '');
+  } else if (standfirstEl) {
     const hairShare   = shareOf(hairNetSalonTake, s.netTake);
     const beautyShare = shareOf(beautyNetTakeDept, s.netTake);
     const beautyClientShare = shareOf(s.beautyTotalClients, s.totalClients);
