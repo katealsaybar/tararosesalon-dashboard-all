@@ -27,6 +27,9 @@
 .role-payroll .tab-btn[data-tab="products"],.role-payroll .tab-btn[data-tab="service"],
 .role-payroll .tab-content:not(#tab-payslips) :is(.btn-danger,.bulk-delete-btn,.bulk-edit-btn,.bulk-save-btn,.icon-btn.del,.slot-clear){display:none!important}
 .role-payroll .roster-toggle{pointer-events:none;opacity:.45}
+/* Level 4, Accounts & Admin (Kate, 1 Oct 2026): the Payslips tab only. Every other tab,
+   and the view-only note that went with them, is gone for payroll. */
+.role-payroll .tab-btn:not([data-tab="payslips"]),.role-payroll .tab-content:not(#tab-payslips){display:none!important}
 .role-payroll [onclick^="spJumpToPaste"]{display:none!important}
 /* Phones and Accounts (Kate, 30 Sep 2026): Payslips leads the tab row for payroll, the header
    tightens, and each payslip row stacks its buttons under the name so they stay tappable. */

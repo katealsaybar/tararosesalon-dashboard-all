@@ -2,11 +2,12 @@
    TARA ROSE SALONS: Team Home, shared script (Kate, 1 Oct 2026)
    hub.js: sign-in check, header (search + account menu), theme.
 
-   Who sees what: kb_role() in Supabase (migrations/create_kb_hub.sql). Everyone on
-   dashboard_users keeps their dashboard role and sees every card; staff (perf_staff
-   or kb_staff) get 'staff' and see the staff sections only. The page text is in
-   kb_pages and comes back only to someone kb_pages' policy lets read it, so this
-   file holds no content at all: the repo is public.
+   Who sees what (Kate, 1 Oct 2026): kb_access() in Supabase
+   (migrations/kb_access_levels.sql) returns this person's level (1 staff, 2
+   leadership, 3 executives and marketing, 4 accounts and admin, 5 owner) and the
+   section keys they may open. The kb_pages policy applies the same rule in the
+   database, so this file only draws what it is told. The page text is in kb_pages,
+   so this file holds no content at all: the repo is public.
    Needs supabase-js and ../auth.js loaded first.
    ============================================================ */
 (function () {
@@ -15,23 +16,35 @@
 
   // The sections. `staff: true` shows to everyone signed in; the rest to dashboard
   // users only. A section with pages in kb_pages is live; without, "Coming soon".
+  // Grouped by department (Kate, 1 Oct 2026). The keys match kb_sections in Supabase,
+  // which decides who opens what; `live` is for sections that link out rather than
+  // holding pages (a section with pages in kb_pages is live on its own).
+  KB.GROUPS = ['Management', 'Hair', 'Beauty', 'Front Desk', 'Marketing', 'Accounts & Admin'];
   KB.SECTIONS = [
-    { key: 'dashboards', title: 'Dashboards', staff: false, href: '/dashboard/', live: true, rule: 'var(--accent-lavender)',
+    { key: 'dashboards', dept: 'Management', title: 'Dashboards', href: '/dashboard/', live: true, rule: 'var(--accent-lavender)',
       blurb: 'Sales, ledgers, team performance and every report, as before.' },
-    // Kate, 1 Oct 2026: Campaigns sits right after Dashboards.
-    { key: 'campaigns', title: 'Campaigns', staff: false, href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
+    { key: 'campaigns', dept: 'Management', title: 'Campaigns', href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
       blurb: 'Wellness Voucher performance.' },
-    { key: 'beauty-sop', title: 'Beauty SOPs', staff: true, rule: 'var(--accent-mint)',
-      blurb: 'Every beauty treatment, step by step: hands and feet, facials, face and body, plus hygiene and room set-up.' },
-    { key: 'hair-sop', title: 'Hair SOPs', staff: true, rule: 'var(--accent-lavender)',
+    { key: 'hair-sop', dept: 'Hair', title: 'Hair SOPs', rule: 'var(--accent-lavender)',
       blurb: 'Hair services, the trade test and colour standards.' },
-    { key: 'induction', title: 'Induction & Onboarding', staff: true, rule: 'var(--accent-butter)',
-      blurb: 'Your induction programme, whether you are a stylist, an assistant or in beauty.' },
-    { key: 'front-desk', title: 'Front Desk & Policies', staff: false, rule: 'var(--accent-coral)',
+    { key: 'hair-induction', dept: 'Hair', title: 'Hair Induction & Onboarding', rule: 'var(--accent-butter)',
+      blurb: 'The induction programme for stylists and hair assistants.' },
+    { key: 'beauty-sop', dept: 'Beauty', title: 'Beauty SOPs', rule: 'var(--accent-mint)',
+      blurb: 'Every beauty treatment, step by step: hands and feet, facials, face and body, plus hygiene and room set-up.' },
+    { key: 'beauty-induction', dept: 'Beauty', title: 'Beauty Induction & Onboarding', rule: 'var(--accent-butter)',
+      blurb: 'The induction programme for the beauty team.' },
+    { key: 'front-desk', dept: 'Front Desk', title: 'Front Desk & Policies', rule: 'var(--accent-coral)',
       blurb: 'The front desk manual, booking and deposit policy, cancellations.' },
-    { key: 'hr-forms', title: 'HR Forms & Waivers', staff: false, rule: 'var(--accent-butter)',
-      blurb: 'Leave, probation and return-to-work forms; client waivers and consultation forms.' }
+    { key: 'front-desk-induction', dept: 'Front Desk', title: 'Front Desk Induction & Onboarding', rule: 'var(--accent-butter)',
+      blurb: 'The induction programme for reception.' },
+    { key: 'marketing', dept: 'Marketing', title: 'Marketing', rule: 'var(--accent-coral)',
+      blurb: 'Marketing strategy and plans.' },
+    { key: 'hr-forms', dept: 'Accounts & Admin', title: 'HR Forms & Waivers', rule: 'var(--accent-butter)',
+      blurb: 'Leave, probation and return-to-work forms; client waivers and consultation forms.' },
+    { key: 'uploads', dept: 'Accounts & Admin', title: 'Upload Portal', href: '/upload/', live: true, rule: 'var(--accent-mint)',
+      blurb: 'Payslips, and the uploads that feed the dashboard.' }
   ];
+  KB.LEVELS = { 1: 'Team', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin', 5: 'Backend' };
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) {
@@ -60,13 +73,16 @@
     var back = '/?next=' + encodeURIComponent(location.pathname + location.search);
     var s = (await c.auth.getSession()).data.session;
     if (!s) { location.replace(back); return new Promise(function () {}); }
-    var r = await c.rpc('kb_role');
+    var r = await c.rpc('kb_access');
     if (r.error || !r.data) { location.replace(back); return new Promise(function () {}); }
-    KB.role = r.data;
+    KB.access = r.data;
+    KB.level = r.data.level;
+    KB.allowed = r.data.sections || [];
+    KB.myLink = r.data.my_link || null;
+    KB.isStaff = KB.level === 1;
     KB.email = s.user && s.user.email;
     var n = await c.rpc('kb_me');
     KB.name = (!n.error && n.data) || '';
-    KB.isStaff = KB.role === 'staff';
     drawHeader();
     document.body.classList.remove('kb-wait');
     return KB;
@@ -100,8 +116,11 @@
           '<svg class="kb-caret" width="10" height="7" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
         '</button>' +
         '<div class="kb-menu hide" id="kbMenu">' +
-          '<div class="kb-menu-who"><b>' + esc(KB.name || 'Signed in') + '</b><span>' + esc(KB.email || '') + '</span></div>' +
-          (KB.isStaff ? '' : '<a href="/dashboard/">Open the dashboard</a>') +
+          '<div class="kb-menu-who"><b>' + esc(KB.name || 'Signed in') + '</b><span>' + esc(KB.email || '') + '</span>' +
+            '<em class="kb-menu-lvl">Level ' + KB.level + ' · ' + esc(KB.LEVELS[KB.level] || '') + (KB.access.scope === 'BAH' ? ' · Bahrain' : '') + '</em></div>' +
+          (KB.allowed.indexOf('dashboards') >= 0 ? '<a href="/dashboard/">Open the dashboard</a>' : '') +
+          (KB.myLink ? '<a href="' + esc(KB.myLink) + '">My numbers</a>' : '') +
+
           '<button id="kbThemeBtn" type="button">' + (theme() === 'dark' ? 'Light mode' : 'Dark mode') + '</button>' +
           '<button id="kbSignOut" type="button">Sign out</button>' +
         '</div></div>';

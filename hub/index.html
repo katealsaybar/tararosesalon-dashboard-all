@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261001c">
+<link rel="stylesheet" href="/hub/hub.css?v=20261001lvl">
 </head>
 <body class="kb-wait">
 <div class="wrap">
@@ -23,41 +23,85 @@
   <main>
     <p class="kb-hello" id="kbHello"></p>
     <p class="kb-intro" id="kbIntro">Everything we do, written down in one place. Open a section, or search for a treatment.</p>
-    <div class="kb-grid" id="kbGrid"></div>
+    <div id="kbGrid"></div>
   </main>
   <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261001b"></script>
+<script src="/hub/hub.js?v=20261001lvl"></script>
 <script>
 KB.ready.then(async function () {
+  var esc = KB.esc;
   var first = (KB.name || '').split(/[\s(]/)[0];
   document.getElementById('kbHello').textContent = first ? 'Hello, ' + first : 'Hello';
   if (KB.isStaff) document.getElementById('kbIntro').textContent =
-    'Our SOPs and your induction, in one place. Open a section, or search for a treatment.';
+    'Your SOPs and your induction, in one place. Open a section, or search for a treatment.';
 
   // How many pages each section has. A row comes back only for sections this person may read.
   var r = await KB.client.from('kb_pages').select('section');
   var counts = {};
   (r.data || []).forEach(function (x) { counts[x.section] = (counts[x.section] || 0) + 1; });
 
-  // Live sections first, then the ones still to come, each in KB.SECTIONS' order.
+  // Only what kb_access() opened to this person; the database refuses the rest anyway.
+  var shown = KB.SECTIONS.filter(function (s) { return KB.allowed.indexOf(s.key) >= 0; });
+  // A stylist's own My Numbers link, as a card of its own (Kate, 1 Oct 2026).
+  if (KB.myLink) shown.unshift({ key: 'my-numbers', dept: 'You', title: 'My numbers', href: KB.myLink, live: true,
+    rule: 'var(--accent-mint)', blurb: 'Your month, your year and your next step up. Only you can see it.' });
+
+  // Favourites (Kate, 1 Oct 2026): a star on any card, kept per person in kb_favourites.
+  var favs = {};
+  var f = await KB.client.from('kb_favourites').select('section');
+  (f.data || []).forEach(function (x) { favs[x.section] = true; });
+
   var isLive = function (s) { return !!(s.live || counts[s.key]); };
-  var shown = KB.SECTIONS.filter(function (s) { return s.staff || !KB.isStaff; });
-  shown = shown.filter(isLive).concat(shown.filter(function (s) { return !isLive(s); }));
-  document.getElementById('kbGrid').innerHTML = shown
-    .map(function (s) {
-      var n = counts[s.key] || 0, live = isLive(s);
-      var href = s.href || '/hub/kb.html?s=' + s.key;
-      var foot = s.href ? 'Open' : (n ? n + ' pages' : '');
-      var inner = '<span class="kb-badge' + (live ? ' live' : '') + '">' + (live ? 'Live' : 'Coming soon') + '</span>' +
-        '<h2>' + KB.esc(s.title) + '</h2><p>' + KB.esc(s.blurb) + '</p>' +
-        (live && foot ? '<span class="kb-card-foot">' + foot + '</span>' : '');
-      return live
-        ? '<a class="kb-card" style="--rule:' + s.rule + '" href="' + href + '">' + inner + '</a>'
-        : '<div class="kb-card soon" aria-disabled="true">' + inner + '</div>';
-    }).join('');
+  function card(s) {
+    var n = counts[s.key] || 0, live = isLive(s);
+    var href = s.href || '/hub/kb.html?s=' + s.key;
+    var foot = s.href ? 'Open' : (n ? n + ' pages' : '');
+    var inner = '<span class="kb-badge' + (live ? ' live' : '') + '">' + (live ? 'Live' : 'Coming soon') + '</span>' +
+      '<h2>' + esc(s.title) + '</h2><p>' + esc(s.blurb) + '</p>' +
+      (live && foot ? '<span class="kb-card-foot">' + foot + '</span>' : '');
+    var on = !!favs[s.key];
+    var star = '<button type="button" class="kb-star' + (on ? ' on' : '') + '" data-k="' + esc(s.key) + '" aria-pressed="' + on + '"' +
+      ' aria-label="' + (on ? 'Remove ' : 'Add ') + esc(s.title) + (on ? ' from' : ' to') + ' favourites" title="' + (on ? 'In your favourites' : 'Add to favourites') + '">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z"/></svg></button>';
+    var body = live
+      ? '<a class="kb-card" style="--rule:' + s.rule + '" href="' + esc(href) + '">' + inner + '</a>'
+      : '<div class="kb-card soon" aria-disabled="true">' + inner + '</div>';
+    return '<div class="kb-cell">' + body + star + '</div>';
+  }
+  function group(title, list) {
+    if (!list.length) return '';
+    // Live first, then the ones still to come, each in KB.SECTIONS' order.
+    list = list.filter(isLive).concat(list.filter(function (s) { return !isLive(s); }));
+    return '<section class="kb-dept"><h2 class="kb-section-title">' + esc(title) + '</h2>' +
+      '<div class="kb-grid">' + list.map(card).join('') + '</div></section>';
+  }
+  function paint() {
+    var starred = shown.filter(function (s) { return favs[s.key]; });
+    var html = group('Your favourites', starred);
+    // Staff have one department, so no headings beyond theirs; everyone else reads
+    // Team Home by department.
+    html += group('You', shown.filter(function (s) { return s.dept === 'You'; }));
+    KB.GROUPS.forEach(function (g) { html += group(g, shown.filter(function (s) { return s.dept === g; })); });
+    if (!starred.length) html = '<p class="kb-fav-hint">Tap the star on any card to keep it at the top.</p>' + html;
+    document.getElementById('kbGrid').innerHTML = html;
+  }
+  paint();
+
+  document.getElementById('kbGrid').addEventListener('click', async function (e) {
+    var b = e.target.closest('.kb-star');
+    if (!b) return;
+    e.preventDefault();
+    var k = b.dataset.k, was = !!favs[k];
+    if (was) delete favs[k]; else favs[k] = true;
+    paint();                                   // straight away; put back if the save fails
+    var res = was
+      ? await KB.client.from('kb_favourites').delete().eq('section', k)
+      : await KB.client.from('kb_favourites').insert({ section: k });
+    if (res.error) { if (was) favs[k] = true; else delete favs[k]; paint(); }
+  });
 });
 </script>
 </body>

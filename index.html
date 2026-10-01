@@ -3708,8 +3708,11 @@ async function enterIfAllowed(fresh){
   const next = new URLSearchParams(location.search).get('next');
   const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : null;
   if (!role) {
-    const kb = await sb.rpc('kb_role');
-    if (!kb.error && kb.data === 'staff') {
+    // Level 1 staff (kb_access, migrations/kb_access_levels.sql). Read the level, not
+    // kb_role(): someone kb_role() calls staff but with no department of their own
+    // would otherwise bounce between here and Team Home.
+    const kb = await sb.rpc('kb_access');
+    if (!kb.error && kb.data && kb.data.level === 1) {
       location.replace(safeNext && safeNext.startsWith('/hub/') ? safeNext : '/hub/');
       return;
     }

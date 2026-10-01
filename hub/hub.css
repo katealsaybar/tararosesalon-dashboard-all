@@ -121,6 +121,20 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 [data-theme="dark"] .kb-badge.live{background:rgba(153,246,228,.16);color:var(--accent-mint)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .kb-badge.live{background:rgba(153,246,228,.16);color:var(--accent-mint)}}
 .kb-section-title{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);margin:34px 0 12px}
+/* Departments and favourites (Kate, 1 Oct 2026). */
+.kb-dept:first-child .kb-section-title{margin-top:6px}
+.kb-fav-hint{font-size:13px;color:var(--muted2);margin:-14px 0 0}
+.kb-cell{position:relative;display:flex}
+.kb-cell>.kb-card{flex:1}
+.kb-star{position:absolute;top:14px;right:14px;width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:50%;
+  background:transparent;color:var(--muted2);cursor:pointer;transition:background .15s,color .15s,transform .15s}
+.kb-star svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round}
+.kb-star:hover{background:var(--surface2);color:var(--text)}
+.kb-star:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.kb-star.on{color:#E7B84A}
+.kb-star.on svg{fill:currentColor}
+.kb-star:active{transform:scale(.9)}
+.kb-menu-lvl{display:block;font-style:normal;font-size:11.5px;letter-spacing:.06em;color:var(--muted);margin-top:4px}
 
 /* ── Section list + page ────────────────────────────────────── */
 .kb-crumbs{font-size:13.5px;color:var(--muted);margin:20px 0 6px}
