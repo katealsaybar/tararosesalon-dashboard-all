@@ -98,7 +98,7 @@ function upViewOnly() {
 <script src="sheet-sync.js?v=12"></script>
 <script src="targets.js?v=2"></script>
 <script src="team-roster.js?v=1"></script>
-<script src="payslips.js?v=6"></script>
+<script src="payslips.js?v=7"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
 <script src="data-watch.js?v=1"></script>
 
@@ -565,6 +565,8 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .ps-prow-btns{margin-left:auto;display:flex;gap:6px}
 .ps-missing{margin-top:10px;color:var(--bad)}
 .ps-ok{color:var(--good);font-size:13px;font-weight:600}
+.ps-check{color:var(--warn);font-size:13px;font-weight:600}
+.ps-prow.guess{background:var(--warn-bg)}
 .ps-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 6px;border-bottom:1px solid var(--border2)}
 .ps-row.done .ps-name::after{content:" ✓";color:var(--good)}
 .ps-name{font-weight:600;font-size:14.5px}

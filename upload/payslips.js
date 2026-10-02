@@ -115,6 +115,69 @@ function psMatchText(text) {
   return hit.length === 1 ? hit[0] : null;
 }
 
+// Kate, 2 Oct 2026: the payslip carries the payroll name, which is often not the
+// dashboard's (Shelly Douglas / Shelley Douglas, Tamryn / Tammy Peter, Kimberly /
+// Kim Casas, Jovelyn Assuncion / Nikki Asuncion). Accounts' template prints it
+// under EMPLOYEE NAME, with the branch under BRANCH.
+const PS_PAY_LABELS = 'FROM|JOINING DATE|TO|STATUS|BRANCH|POSITION|NO\\.|MONTHLY SALARY|PAYMENT MODE|GROSS SALARY';
+function psPayslipFields(text) {
+  const t = String(text).replace(/\s+/g, ' ');
+  const grab = lbl => (t.match(new RegExp(`${lbl}\\s+(.+?)\\s+(?:${PS_PAY_LABELS})\\b`)) || [])[1] || '';
+  const name = grab('EMPLOYEE NAME').trim();
+  const b = grab('BRANCH').toLowerCase();
+  const branch = /saadiyat|mamsha/.test(b) ? 'SAA' : /khalifa/.test(b) ? 'KCA' : /motor/.test(b) ? 'MC' : /quoz/.test(b) ? 'AQ' : '';
+  return { name: /[a-z]/i.test(name) && name.length < 60 ? name : '', branch };
+}
+
+function psLev(a, b) {
+  const d = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = d[0]; d[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const t = d[j];
+      d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = t;
+    }
+  }
+  return d[b.length];
+}
+// How alike two name words are, 0 to 1: Kim/Kimberly 0.85, Shelly/Shelley 0.83.
+function psSim(a, b) {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  if ((a.length >= 3 && b.startsWith(a)) || (b.length >= 3 && a.startsWith(b))) return 0.85;
+  let cp = 0; while (cp < a.length && a[cp] === b[cp]) cp++;
+  return Math.max(1 - psLev(a, b) / Math.max(a.length, b.length), cp >= 3 ? 0.6 : 0);
+}
+// Closest person to a payslip name. A first or last name counts only when it is
+// close (0.75+: Shelly/Shelley, Ostertah/Ostertag, Kim/Kimberly), plus half a
+// point for the same branch, so one close name at the right branch is enough
+// (Mona Rakesh / Mona Soba) but loosely similar names are not (Stella Mendez /
+// Shila Mandal). Only a clear winner counts, and the row is marked for a check.
+function psFuzzy(payName, branch) {
+  const P = psNorm(payName).split(' ').filter(Boolean);
+  if (!P.length) return null;
+  const close = x => (x >= 0.75 ? x : 0);
+  const scored = PS_STATE.staff.map(s => {
+    const S = psNorm(s.name).split(' ');
+    const last = S.length > 1 ? Math.max(0, ...P.slice(1).map(w => psSim(w, S[S.length - 1]))) : 0;
+    return { s, score: close(psSim(P[0], S[0])) + close(last) + (branch && s.branch === branch ? 0.5 : 0) };
+  }).sort((x, y) => y.score - x.score);
+  const [a, b] = scored;
+  return a && a.score >= 1.2 && (!b || a.score - b.score >= 0.3) ? a.s : null;
+}
+
+// One page's person: exact words of the payslip name first, then the closest
+// name; pages from another template fall back to the whole page's text.
+function psMatchPage(text) {
+  const { name, branch } = psPayslipFields(text);
+  if (!name) return { match: psMatchText(text), payName: '', fuzzy: false };
+  const exact = psMatchText(name);
+  if (exact) return { match: exact, payName: name, fuzzy: false };
+  const near = psFuzzy(name, branch);
+  return { match: near, payName: name, fuzzy: !!near };
+}
+
 let psPdfLibReady = null;
 function psPdfLib() {
   psPdfLibReady ||= new Promise((ok, fail) => {
@@ -127,25 +190,38 @@ function psPdfLib() {
   return psPdfLibReady;
 }
 
+const psPageText = async (pdf, i) => (await (await pdf.getPage(i)).getTextContent()).items.map(t => t.str).join(' ');
+
 // One PDF → one pending row per page, each matched by the name printed on it.
-// A one-page PDF comes back as null and is handled like any single file.
+// A one-page PDF comes back as one row holding the file itself (no page number).
 async function psSplitPdf(file) {
   const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
-  if (pdf.numPages < 2) return null;
+  if (pdf.numPages < 2) {
+    const text = await psPageText(pdf, 1);
+    if (!text.trim()) return null;
+    return [{ file, ...psMatchPage(text), error: '', status: 'ready' }];
+  }
   const { PDFDocument } = await psPdfLib();
   const src = await PDFDocument.load(buf);
   const rows = [];
   for (let i = 1; i <= pdf.numPages; i++) {
-    const tc = await (await pdf.getPage(i)).getTextContent();
-    const text = tc.items.map(t => t.str).join(' ');
+    const text = await psPageText(pdf, i);
     const one = await PDFDocument.create();
     one.addPage((await one.copyPages(src, [i - 1]))[0]);
     const f = new File([await one.save()], `${file.name.replace(/\.pdf$/i, '')} page ${i}.pdf`, { type: 'application/pdf' });
-    rows.push({ file: f, match: text.trim() ? psMatchText(text) : null, error: '', status: 'ready',
+    rows.push({ file: f, ...(text.trim() ? psMatchPage(text) : { match: null, payName: '', fuzzy: false }), error: '', status: 'ready',
       page: i, of: pdf.numPages, source: file.name, noText: !text.trim() });
   }
   return rows;
+}
+
+// The payroll name on a single uploaded payslip (Upload PDF / Replace), or ''.
+async function psReadPayName(file) {
+  try {
+    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    return psPayslipFields(await psPageText(pdf, 1)).name;
+  } catch (e) { return ''; }
 }
 
 function psMonthOptions() {
@@ -270,6 +346,9 @@ async function psAddFiles(files) {
     if (pages) PS_STATE.pending.push(...pages);
     else PS_STATE.pending.push({ file: f, match: psMatch(f.name), error: '', status: 'ready' });
   }
+  // A closest-name guess never takes someone whose own name is already on a page.
+  const sure = new Set(PS_STATE.pending.filter(p => p.match && !p.fuzzy).map(p => p.match.id));
+  PS_STATE.pending.forEach(p => { if (p.fuzzy && p.match && sure.has(p.match.id)) { p.match = null; p.fuzzy = false; } });
   psRenderPending();
 }
 
@@ -283,18 +362,21 @@ function psRenderPending() {
   const people = new Set(live.map(p => p.match.id)).size;
   const count = id => live.filter(p => p.match.id === id).length;
   const need = P.filter(p => p.status === 'ready' && !p.match && !p.error).length;
+  const guess = live.filter(p => p.fuzzy).length;
   // From a combined PDF: who on the list has no page at all (and no payslip yet).
   const split = P.some(p => p.page);
   const missing = split ? PS_STATE.staff.filter(s => !s.payslip && !P.some(p => p.match && p.match.id === s.id)) : [];
   const label = p => p.page ? `Page ${p.page} of ${p.of}<span class="ps-meta"> · ${psEsc(p.source)}</span>` : psEsc(p.file.name);
   el.innerHTML = `<div class="ps-pending">
-    ${split ? `<div class="ps-summary"><b>${live.length} page${live.length === 1 ? '' : 's'} matched</b> to ${people} ${people === 1 ? 'person' : 'people'}${need ? ` · <span class="ps-err">${need} need${need === 1 ? 's' : ''} a name picked</span>` : ''}. Press View to check a page. A page that isn’t anyone on the list? Remove it with ✕.</div>` : ''}
-    ${P.map((p, i) => `<div class="ps-prow ${p.status}${p.status === 'ready' && !p.match && !p.error ? ' need' : ''}">
+    ${split ? `<div class="ps-summary"><b>${live.length} page${live.length === 1 ? '' : 's'} matched</b> to ${people} ${people === 1 ? 'person' : 'people'}${need ? ` · <span class="ps-err">${need} need${need === 1 ? 's' : ''} a name picked</span>` : ''}${guess ? ` · <span class="ps-check">${guess} matched by closest name, check ${guess === 1 ? 'it' : 'them'}</span>` : ''}. Press View to check a page. A page that isn’t anyone on the list? Remove it with ✕.</div>` : ''}
+    ${P.map((p, i) => `<div class="ps-prow ${p.status}${p.status === 'ready' && !p.match && !p.error ? ' need' : ''}${p.fuzzy && p.match && p.status === 'ready' ? ' guess' : ''}">
       <span class="ps-fname">${label(p)}</span>
       ${p.error ? `<span class="ps-err">${psEsc(p.error)}</span>`
         : p.status === 'done' ? `<span class="ps-ok">Saved for ${psEsc(p.match.name)}</span>`
         : p.status === 'saving' ? `<span class="ps-meta">Saving…</span>`
-        : `<select onchange="PS_STATE.pending[${i}].match=PS_STATE.staff.find(s=>s.id===this.value)||null; psRenderPending()">${opts(p.match)}</select>
+        : `${p.payName ? `<span class="ps-meta">On payslip: <b>${psEsc(p.payName)}</b></span>` : ''}
+           <select onchange="PS_STATE.pending[${i}].match=PS_STATE.staff.find(s=>s.id===this.value)||null; PS_STATE.pending[${i}].fuzzy=false; psRenderPending()">${opts(p.match)}</select>
+           ${p.fuzzy && p.match ? '<span class="ps-check">closest name, check it’s right</span>' : ''}
            ${p.noText && !p.match ? '<span class="ps-meta">no text on this page, press View and pick</span>' : ''}
            ${p.match && count(p.match.id) > 1 ? `<span class="ps-meta">saved together with ${count(p.match.id) - 1} other page${count(p.match.id) > 2 ? 's' : ''}</span>` : ''}
            ${p.match && p.match.payslip ? '<span class="ps-meta">replaces the one already there</span>' : ''}`}
@@ -318,11 +400,19 @@ function psViewPending(i) {
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
+// Kate, 2 Oct 2026: every saved payslip is named the same way, whatever the
+// file was called: "Shelly_Douglas_Sept_2026_payslip.pdf", from the name printed
+// on the payslip, or the dashboard name when the page carries none.
+const PS_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+function psFileName(person, payName) {
+  const [y, m] = PS_STATE.month.split('-');
+  const name = String(payName || person.name).trim().replace(/[\\/:*?"<>|]+/g, '').split(/\s+/).join('_');
+  return `${name}_${PS_MON[+m - 1]}_${y}_payslip.pdf`;
+}
+
 // Pages (or files) picked for the same person become one PDF, in the order dropped.
 async function psMergeFor(person, rows) {
-  if (rows.length === 1 && !rows[0].page) return rows[0].file;
-  const month = new Date(PS_STATE.month + '-15').toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
-  const name = `${person.name} payslip ${month}.pdf`;
+  const name = psFileName(person, (rows.find(r => r.payName) || {}).payName);
   if (rows.length === 1) return new File([rows[0].file], name, { type: 'application/pdf' });
   const { PDFDocument } = await psPdfLib();
   const out = await PDFDocument.create();
@@ -358,6 +448,8 @@ async function psSaveAll() {
 async function psUploadOne(staffId, file) {
   if (!file) return;
   if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { alert('Payslips must be PDF files.'); return; }
+  const person = PS_STATE.staff.find(s => s.id === staffId);
+  if (person) file = new File([file], psFileName(person, await psReadPayName(file)), { type: 'application/pdf' });
   try { await psCall({ action: 'upload', admin: psKey(), month: PS_STATE.month, staff_id: staffId }, file); await initPayslipsTab(); }
   catch (e) { alert('Couldn’t save it: ' + e.message); }
 }

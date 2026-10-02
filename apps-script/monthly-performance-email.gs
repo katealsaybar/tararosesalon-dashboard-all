@@ -120,7 +120,7 @@ function fetchPayslip_(token, month, name) {
   if (!p.exists) return null;
   const pdf = UrlFetchApp.fetch(p.url, { muteHttpExceptions: true });
   if (pdf.getResponseCode() !== 200) throw new Error(`payslip download ${pdf.getResponseCode()} for ${name}`);
-  return pdf.getBlob().setName(`${name} payslip ${month}.pdf`).setContentType('application/pdf');
+  return pdf.getBlob().setName(p.file_name || `${name} payslip ${month}.pdf`).setContentType('application/pdf');
 }
 function perfPayslipCount_(month) {
   return perfPayslipsFn_({ action: 'list', admin: perfAdmin_(), month }).staff.filter(s => s.payslip).length;
