@@ -21,7 +21,7 @@ const PS_KEY_STORE = 'payslipKey';
 // apps-script/monthly-performance-email.gs. Every call carries the payslip key.
 const PS_SEND_URL = '';
 const PS_BRANCH = { KCA: 'Khalifa City A', SAA: 'Mamsha Al Saadiyat', MC: 'Motor City', AQ: 'Al Quoz' };
-let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '', branch: (() => { try { return localStorage.getItem('trs-ps-branch') || ''; } catch (e) { return ''; } })(), pos: (() => { try { return localStorage.getItem('trs-ps-pos') || ''; } catch (e) { return ''; } })(), send: null, sendBusy: '', sendMsg: '', sendErr: '' };
+let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '', branch: (() => { try { return localStorage.getItem('trs-ps-branch') || ''; } catch (e) { return ''; } })(), pos: (() => { try { return localStorage.getItem('trs-ps-pos') || ''; } catch (e) { return ''; } })(), up: (() => { try { return localStorage.getItem('trs-ps-up') || ''; } catch (e) { return ''; } })(), send: null, sendBusy: '', sendMsg: '', sendErr: '' };
 
 // A typed key wins; otherwise the one the sign-in hands payroll and leaders (PS_AUTO, set in upload.html).
 const psKey = () => { try { return localStorage.getItem(PS_KEY_STORE) || window.PS_AUTO || null; } catch (e) { return window.PS_AUTO || null; } };
@@ -291,6 +291,8 @@ function psRender() {
         value="${psEsc(PS_STATE.q)}" oninput="PS_STATE.q=this.value; psFilter()">
       <div class="ps-branches">${['', 'KCA', 'SAA', 'MC', 'AQ'].filter(b => !b || groups[b]).map(b => `
         <button type="button" class="ps-bpill${PS_STATE.branch === b ? ' on' : ''}" onclick="psPickBranch('${b}')">${b ? psEsc(PS_BRANCH[b]) : 'All'}</button>`).join('')}</div>
+      <div class="ps-branches ps-up">${[['', 'Everyone'], ['done', `Uploaded · ${done}`], ['todo', `Not yet · ${all - done}`]].map(([v, t]) => `
+        <button type="button" class="ps-bpill${PS_STATE.up === v ? ' on' : ''}" data-up="${v}" onclick="psPickUp('${v}')">${t}</button>`).join('')}</div>
       <select class="ps-pos" onchange="psPickPos(this.value)">
         <option value="">All positions</option>
         ${psPositions().map(v => `<option value="${psEsc(v)}"${PS_STATE.pos === v ? ' selected' : ''}>${psEsc(v)}</option>`).join('')}
@@ -331,6 +333,14 @@ function psPickPos(v) {
   psFilter();
 }
 
+// Uploaded / not yet toggle (Kate, 2 Oct 2026), remembered per browser.
+function psPickUp(v) {
+  PS_STATE.up = v;
+  try { localStorage.setItem('trs-ps-up', v); } catch (e) {}
+  document.querySelectorAll('#payslipHost .ps-up .ps-bpill').forEach(x => x.classList.toggle('on', x.dataset.up === v));
+  psFilter();
+}
+
 // Search box (Kate, 30 Sep 2026): shows only the people whose name has every word
 // typed, in any order ("mae marco", "ibra"). Branches with nobody left are hidden.
 function psFilter() {
@@ -343,7 +353,9 @@ function psFilter() {
       const n = r.dataset.name || '';
       const ok = words.every(w => n.split(' ').some(part => part.startsWith(w)));
       const okPos = !PS_STATE.pos || r.dataset.pos === PS_STATE.pos;
-      r.hidden = !(ok && okPos); if (ok && okPos) { any = true; shown++; }
+      const okUp = !PS_STATE.up || r.classList.contains('done') === (PS_STATE.up === 'done');
+      const show = ok && okPos && okUp;
+      r.hidden = !show; if (show) { any = true; shown++; }
     });
     br.hidden = !any;
   });
