@@ -113,7 +113,6 @@ function lcPaint() {
         <input type="search" id="lcSearch" placeholder="Search name or stylist" value="${lcEsc(lcQuery)}"
           oninput="lcQuery=this.value;lcShowAll=false;lcPaintTable()"
           style="flex:1;min-width:180px;max-width:320px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit">
-        <button type="button" class="tglr" onclick="lcCopy()">Copy list</button>
         <button type="button" class="tglr" onclick="lcSaveFile('xlsx')">XLSX</button>
         <button type="button" class="tglr" onclick="lcSaveFile('csv')">CSV</button>
         <span id="lcCopied" class="slv-note" style="display:inline"></span>
@@ -122,7 +121,17 @@ function lcPaint() {
     </section>
     <p class="slv-muted">From Phorest's Sales Transactions, which starts in January 2025: a client who was a regular in 2024 and stopped before then isn't on this list. Visits are days she came in at this branch; a client seen at another branch in the same window is counted on its own line, not as lost. Usual stylist is whoever served most of her visits. "Last visit" is the newest day uploaded, so the last day or two can lag.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to your login only. The report doesn\'t say who opted out of marketing, so check consent in Phorest before anyone messages a client.' : ''}</p>`;
   lcPaintTable();
+  lcStickHead();
 }
+
+// The column heads stay put under the filter bar while the list scrolls (Kate, 2 Oct
+// 2026). The bar is itself sticky and wraps to two rows on a narrow window, so its
+// height is measured rather than typed into the CSS.
+function lcStickHead() {
+  const bar = document.querySelector('#lostClientsContent .lc-bar');
+  if (bar) document.documentElement.style.setProperty('--lc-bar-h', bar.offsetHeight + 'px');
+}
+window.addEventListener('resize', lcStickHead);
 
 // The table on its own, so typing in the search box redraws only this and keeps
 // the cursor where it is.
@@ -153,7 +162,7 @@ function lcPaintTable() {
         ${phones && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
       </div>
     </li>`).join('');
-  box.innerHTML = rows.length ? `<div class="slv-wrap prd-desk"><table class="slv-table">
+  box.innerHTML = rows.length ? `<div class="slv-wrap prd-desk lc-wrap"><table class="slv-table">
       <thead><tr><th>Client</th><th>Visits</th><th>Last visit</th><th>Spend (AED)</th><th>Usual stylist</th>${lcMovedView ? '<th>Now at</th>' : ''}${phones ? '<th>Phone</th>' : ''}</tr></thead>
       <tbody>${tr}</tbody></table></div>
       <ol class="prd-cards">${cards}</ol>
@@ -175,19 +184,24 @@ function lcStylist(name) {
 }
 
 // One number per client on screen. A common name can carry up to ten (everyone in
-// Phorest with that name), which stretched the column off the card; the rest sit
-// behind "+N more" on hover, and Copy list still carries them all.
+// Phorest with that name), which stretched the column off the card. The rest sit
+// behind "+N more", a button (Kate, 2 Oct 2026: it was only a hover title, so it
+// could not be clicked); it opens them under the first, each one tap-to-call. The
+// files carry them all.
 function lcPhone(r) {
   const nums = String(r.mobile || r.landline || '').split(' / ').filter(Boolean);
   if (!nums.length) return '–';
-  const first = `<a href="tel:${lcEsc(nums[0])}" style="color:inherit;white-space:nowrap">${lcEsc(nums[0])}</a>`;
+  const tel = n => `<a href="tel:${lcEsc(n)}" style="color:inherit;white-space:nowrap">${lcEsc(n)}</a>`;
   return nums.length > 1
-    ? `${first} <span class="slv-note" style="display:inline" title="${lcEsc(nums.slice(1).join(', '))}">+${nums.length - 1} more</span>`
-    : first;
+    ? `<span class="lc-ph">${tel(nums[0])} <button type="button" class="lc-more" aria-expanded="false"
+        onclick="const p=this.parentNode,o=p.classList.toggle('open');this.setAttribute('aria-expanded',o);this.textContent=o?'fewer':'+${nums.length - 1} more'">+${nums.length - 1} more</button>
+        <span class="lc-rest">${nums.slice(1).map(tel).join('<br>')}</span></span>`
+    : tel(nums[0]);
 }
 
 // The list as searched, all of it, not just the rows drawn: the header and one array
-// per client. Copy list, XLSX and CSV all read this, so the three never disagree.
+// per client. XLSX and CSV both read this, so the two never disagree. (Copy list went
+// the same day: a list of 1,300 clients is a file, not a paste.)
 function lcExportLines() {
   const q = lcQuery.trim().toLowerCase();
   const rows = (lcRows || []).filter(r => !q || `${r.client_name} ${r.stylist || ''}`.toLowerCase().includes(q));
@@ -214,13 +228,4 @@ function lcSaveFile(kind) {
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
   const s = document.getElementById('lcCopied');
   if (s) s.textContent = `Saved ${lcNum(lines.length)} rows as ${kind.toUpperCase()}`;
-}
-
-// Tab-separated, so it pastes into a sheet as columns.
-function lcCopy() {
-  const { head, lines: body, rows } = lcExportLines();
-  const lines = [head].concat(body);
-  const text = lines.map(l => l.join('\t')).join('\n');
-  const done = () => { const s = document.getElementById('lcCopied'); if (s) s.textContent = `Copied ${lcNum(rows.length)} rows`; };
-  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, () => {});
 }
