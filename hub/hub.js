@@ -189,11 +189,19 @@
         '<div class="kb-menu hide" id="kbMenu">' +
           '<div class="kb-menu-who"><b>' + esc(KB.name || 'Signed in') + '</b><span>' + esc(KB.email || '') + '</span>' +
             '<em class="kb-menu-lvl">Level ' + KB.realLevel + ' · ' + esc(KB.LEVELS[KB.realLevel] || '') + (KB.access.scope === 'BAH' ? ' · Bahrain' : '') + '</em></div>' +
-          (KB.realLevel === 5 ? '<label class="kb-menu-viewas"><span>View as</span><select id="kbViewAs">' +
-            KB.VIEW_AS.map(function (o) {
-              var cur = KB.viewAs ? KB.viewAs.level + (KB.viewAs.dept ? '|' + KB.viewAs.dept : '') : '5';
-              return '<option value="' + esc(o.v) + '"' + (o.v === cur ? ' selected' : '') + '>' + esc(o.label) + '</option>';
-            }).join('') + '</select></label>' : '') +
+          // Kate, 2 Oct 2026: our own list, not the browser's select box (it looked out of place).
+          (KB.realLevel === 5 ? (function () {
+            var cur = KB.viewAs ? KB.viewAs.level + (KB.viewAs.dept ? '|' + KB.viewAs.dept : '') : '5';
+            var curLabel = (KB.VIEW_AS.find(function (o) { return o.v === cur; }) || KB.VIEW_AS[0]).label;
+            return '<div class="kb-menu-viewas"><button type="button" class="kb-va-toggle" id="kbViewAsBtn" aria-expanded="false" aria-controls="kbViewAsList">' +
+              '<span class="kb-va-k">View as</span><span class="kb-va-cur">' + esc(curLabel.replace(' (you)', '')) + '</span>' +
+              '<svg width="10" height="7" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
+              '<div class="kb-va-list hide" id="kbViewAsList" role="listbox" aria-label="View as">' +
+              KB.VIEW_AS.map(function (o) {
+                return '<button type="button" role="option" data-v="' + esc(o.v) + '" aria-selected="' + (o.v === cur) + '"' +
+                  (o.v === cur ? ' class="on"' : '') + '>' + esc(o.label) + '</button>';
+              }).join('') + '</div></div>';
+          })() : '') +
           (KB.allowed.indexOf('dashboards') >= 0 ? '<a href="/dashboard/">Open the dashboard</a>' : '') +
           (KB.myLink ? '<a href="' + esc(KB.myLink) + '">My numbers</a>' : '') +
 
@@ -210,8 +218,17 @@
     document.addEventListener('click', function (e) {
       if (!menu.contains(e.target)) { menu.classList.add('hide'); btn.setAttribute('aria-expanded', 'false'); }
     });
-    var vaSel = document.getElementById('kbViewAs');
-    if (vaSel) vaSel.onchange = function () { KB.setViewAs(vaSel.value); };
+    var vaBtn = document.getElementById('kbViewAsBtn'), vaList = document.getElementById('kbViewAsList');
+    if (vaBtn) {
+      vaBtn.onclick = function () {
+        var open = vaList.classList.toggle('hide') === false;
+        vaBtn.setAttribute('aria-expanded', open);
+      };
+      vaList.onclick = function (e) {
+        var b = e.target.closest('button[data-v]');
+        if (b && !b.classList.contains('on')) KB.setViewAs(b.dataset.v);
+      };
+    }
     if (KB.viewAs) {
       var bar = document.createElement('div');
       bar.className = 'kb-viewas-bar';
