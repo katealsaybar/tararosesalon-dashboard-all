@@ -5121,6 +5121,20 @@ function _fmtAed(n) {
 
 function _rankCls(i) { return i===0?'gold':i===1?'silver':i===2?'bronze':''; }
 
+// Phones (Kate, 2 Oct 2026): the tables ran off the screen, so each one also gets
+// this ranked list, shown instead under 760px (mobile.css): name and AED on one
+// line, visits / avg / change under it. pctOf adds the share of the top N under the AED.
+function _svcMList(rows, prev, pctOf) {
+  return `<div class="svc-m">${rows.map((r,i) => {
+    const rev = parseFloat(r.total_revenue||0), v = Number(r.visit_count)||0;
+    const bits = [`${v.toLocaleString()} visit${v===1?'':'s'}`, `Avg ${_svcAvg(r)}`];
+    const d = _svcDelta(prev, r);
+    return `<div class="svc-mrow"><span class="top3-rank ${_rankCls(i)}">${i+1}</span>
+      <div class="svc-mname">${escapeHtml(r.service_name)||'—'}<small>${bits.join(' · ')}${d ? ' · ' + d : ''}</small></div>
+      <b class="svc-mamt">${_fmtAed(rev)}${pctOf > 0 ? `<small>${(rev/pctOf*100).toFixed(1)}%</small>` : ''}</b></div>`;
+  }).join('')}</div>`;
+}
+
 function _renderSvcCombined(rows, branches, year, pFrom, pTo, note, prev) {
   const content = document.getElementById('svc-content');
   if (!rows.length) { content.innerHTML = _svcEmpty('data'); return; }
@@ -5130,7 +5144,7 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note, prev) {
   content.innerHTML = `
     <div class="section-label" style="margin-top:16px">${branchLabel} — Combined Top ${rows.length} Services<span class="sl-sub"><span class="sl-dot"> · </span>${year}</span></div>
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div class="svc-bhead" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
         <div>
           <div class="card-title">Top Services by Revenue</div>
           <div class="card-sub">${note ? escapeHtml(note) : `${pFrom} to ${pTo}`}</div>
@@ -5140,7 +5154,8 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note, prev) {
           <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
         </div>
       </div>
-      <table>
+      ${_svcMList(rows, prev, totalRev)}
+      <table class="svc-t">
         <thead><tr>
           <th style="width:30px">#</th>
           <th class="sortable">Service</th>
@@ -5199,7 +5214,8 @@ function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
             </div>
             ${prev && prev.any ? `<div class="card-sub" style="margin:-6px 0 8px;font-size:12px">Chg: revenue against ${escapeHtml(prev.label)}</div>` : ''}
             ${!rows.length ? '<div class="top3-empty">No data for period</div>' : `
-            <table>
+            ${_svcMList(rows, prev, 0)}
+            <table class="svc-t">
               <thead><tr>
                 <th style="width:20px">#</th>
                 <th>Service</th>
