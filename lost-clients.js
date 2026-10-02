@@ -190,17 +190,18 @@ const lcCols = () => LC_COLS.filter(c => (!c.moved || lcMovedView) && (!c.phones
 const lcColOf = k => LC_COLS.find(c => c.k === k);
 function lcOn(k) {
   const f = lcF[k]; if (!f) return false;
-  return !!(f.set || f.has || lcRuleOn(f, '') || lcRuleOn(f, '2'));
+  return !!(f.set || f.has || (f.rules || []).some(lcRuleOn));
 }
-// Two rules in one column (Kate, 2 Oct 2026), joined by "or": spend under 500 or over
-// 5,000, two date ranges, two names. Rule two's fields end in 2 (q2, min2, to2...).
-function lcRuleOn(f, s) {
-  return !!(f['q' + s] || f['min' + s] != null || f['max' + s] != null || f['from' + s] || f['to' + s]);
+// As many rules in one column as you like (Kate, 2 Oct 2026), joined by "or": spend
+// under 500 or 2,000 to 3,000 or over 5,000, several date ranges, several names.
+// f.rules is a list of { q } / { min, max } / { from, to }; empty ones are ignored.
+function lcRuleOn(r) {
+  return !!(r && (r.q || r.min != null || r.max != null || r.from || r.to));
 }
-function lcRuleOk(c, f, s, v) {
-  if (c.type === 'text') return String(v).toLowerCase().includes(String(f['q' + s] || '').toLowerCase());
-  if (c.type === 'num') return !((f['min' + s] != null && v < f['min' + s]) || (f['max' + s] != null && v > f['max' + s]));
-  if (c.type === 'date') return !((f['from' + s] && v < f['from' + s]) || (f['to' + s] && v > f['to' + s]));
+function lcRuleOk(c, r, v) {
+  if (c.type === 'text') return String(v).toLowerCase().includes(String(r.q || '').toLowerCase());
+  if (c.type === 'num') return !((r.min != null && v < r.min) || (r.max != null && v > r.max));
+  if (c.type === 'date') return !((r.from && v < r.from) || (r.to && v > r.to));
   return true;
 }
 function lcPass(r, skip) {
@@ -210,8 +211,8 @@ function lcPass(r, skip) {
     if (c.k === skip || !lcOn(c.k)) continue;
     const f = lcF[c.k], v = c.get(r);
     if (c.type === 'text' || c.type === 'num' || c.type === 'date') {
-      const on1 = lcRuleOn(f, ''), on2 = lcRuleOn(f, '2');
-      if ((on1 || on2) && !((on1 && lcRuleOk(c, f, '', v)) || (on2 && lcRuleOk(c, f, '2', v)))) return false;
+      const on = (f.rules || []).filter(lcRuleOn);
+      if (on.length && !on.some(r => lcRuleOk(c, r, v))) return false;
     }
     if (c.type === 'pick' && f.set && !f.set.includes(v)) return false;
     if (c.type === 'has' && f.has && (f.has === 'yes') !== !!v) return false;
@@ -240,16 +241,8 @@ function lcOpenFilter(ev, k) {
   pop.setAttribute('aria-label', c.label + ': sort and filter');
   const words = c.type === 'num' ? ['Smallest first', 'Largest first'] : c.type === 'date' ? ['Oldest first', 'Newest first'] : ['A to Z', 'Z to A'];
   let body = '';
-  const rule = s => {
-    if (c.type === 'text') return `<input type="search" class="lc-in" data-f="q${s}" placeholder="Contains…" value="${lcEsc(f['q' + s] || '')}">`;
-    if (c.type === 'num') return `<div class="lc-two"><input type="number" inputmode="decimal" class="lc-in" data-f="min${s}" placeholder="From" value="${f['min' + s] ?? ''}"><input type="number" inputmode="decimal" class="lc-in" data-f="max${s}" placeholder="To" value="${f['max' + s] ?? ''}"></div>`;
-    return `<div class="lc-dates"><label>From<input type="date" class="lc-in" data-f="from${s}" value="${f['from' + s] || ''}"></label><label>To<input type="date" class="lc-in" data-f="to${s}" value="${f['to' + s] || ''}"></label></div>`;
-  };
-  if (c.type === 'text' || c.type === 'num' || c.type === 'date') {
-    const two = lcRuleOn(f, '2');
-    body = rule('') + `<button type="button" class="lc-or-add"${two ? ' hidden' : ''}>+ Or another rule</button>
-      <div class="lc-or"${two ? '' : ' hidden'}><div class="lc-or-word">or</div>${rule('2')}</div>`;
-  }
+  const ruled = c.type === 'text' || c.type === 'num' || c.type === 'date';
+  if (ruled) body = `<div class="lc-rules"></div><button type="button" class="lc-or-add">+ Or another rule</button>`;
   if (c.type === 'has') body = ['', 'yes', 'no'].map((v, i) => `<label class="lc-chk"><input type="radio" name="lcHas" value="${v}"${(f.has || '') === v ? ' checked' : ''}> ${['Everyone', 'Has a number', 'No number'][i]}</label>`).join('');
   if (c.type === 'pick') {
     const cnt = {};
@@ -272,12 +265,32 @@ function lcOpenFilter(ev, k) {
   pop.querySelectorAll('[data-dir]').forEach(b => b.onclick = () => { lcSort = { k, dir: +b.dataset.dir }; apply(); lcClosePop(); });
   pop.querySelector('[data-clear]').onclick = () => { delete lcF[k]; apply(); lcClosePop(); };
   pop.querySelector('[data-done]').onclick = lcClosePop;
+  // The rules list: one block per rule, "or" between them, × on all but the first.
+  const rules = () => (lcF[k] && lcF[k].rules && lcF[k].rules.length ? lcF[k].rules : [{}]);
+  const one = (r, i) => {
+    const x = i ? `<div class="lc-or-word">or<button type="button" class="lc-or-x" data-x="${i}" aria-label="Remove this rule">×</button></div>` : '';
+    if (c.type === 'text') return `<div class="lc-rule">${x}<input type="search" class="lc-in" data-i="${i}" data-f="q" placeholder="Contains…" value="${lcEsc(r.q || '')}"></div>`;
+    if (c.type === 'num') return `<div class="lc-rule">${x}<div class="lc-two"><input type="number" inputmode="decimal" class="lc-in" data-i="${i}" data-f="min" placeholder="From" value="${r.min ?? ''}"><input type="number" inputmode="decimal" class="lc-in" data-i="${i}" data-f="max" placeholder="To" value="${r.max ?? ''}"></div></div>`;
+    return `<div class="lc-rule">${x}<div class="lc-dates"><label>From<input type="date" class="lc-in" data-i="${i}" data-f="from" value="${r.from || ''}"></label><label>To<input type="date" class="lc-in" data-i="${i}" data-f="to" value="${r.to || ''}"></label></div></div>`;
+  };
+  const setRules = list => { lcF[k] = Object.assign({}, lcF[k], { rules: list }); apply(); };
+  const drawRules = () => {
+    const box = pop.querySelector('.lc-rules'); if (!box) return;
+    box.innerHTML = rules().map(one).join('');
+    box.querySelectorAll('.lc-in[data-f]').forEach(i => i.oninput = () => {
+      const raw = i.value.trim(), list = rules().map(r => Object.assign({}, r));
+      list[+i.dataset.i][i.dataset.f] = i.type === 'number' ? (raw === '' ? null : Number(raw)) : (raw || null);
+      setRules(list);
+    });
+    box.querySelectorAll('[data-x]').forEach(b => b.onclick = () => { const list = rules().slice(); list.splice(+b.dataset.x, 1); setRules(list); drawRules(); });
+  };
+  drawRules();
   const orAdd = pop.querySelector('.lc-or-add');
-  if (orAdd) orAdd.onclick = () => { orAdd.hidden = true; const o = pop.querySelector('.lc-or'); o.hidden = false; o.querySelector('input').focus(); };
-  pop.querySelectorAll('.lc-in[data-f]').forEach(i => i.oninput = () => {
-    const raw = i.value.trim();
-    set(i.dataset.f, i.type === 'number' ? (raw === '' ? null : Number(raw)) : (raw || null));
-  });
+  if (orAdd) orAdd.onclick = () => {
+    lcF[k] = Object.assign({}, lcF[k], { rules: rules().concat([{}]) });
+    drawRules();
+    const ins = pop.querySelectorAll('.lc-rules .lc-in'); if (ins.length) ins[ins.length - (c.type === 'text' ? 1 : 2)].focus();
+  };
   pop.querySelectorAll('input[name=lcHas]').forEach(i => i.onchange = () => set('has', i.value || null));
   const picks = [...pop.querySelectorAll('.lc-pick input')];
   const readPicks = () => { const on = picks.filter(p => p.checked).map(p => p.value); set('set', on.length === picks.length ? null : on); };
