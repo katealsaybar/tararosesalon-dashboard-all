@@ -173,6 +173,44 @@ tr.det.hide{display:none;}
 .snote{border-radius:10px;padding:11px 13px;font-size:13px;margin-top:14px;}
 .snote.good{background:var(--green-bg);border-left:3px solid var(--green);}
 .snote.flag{background:var(--red-bg);border-left:3px solid var(--red);}
+
+.msort{display:none!important;}
+/* Phones (Kate, 2 Oct 2026). The table was 14 columns, 1,380px wide. Under 760px each
+   voucher is a card: the client across the top, the other columns as a labelled
+   three-column grid (each cell's data-l), and a tap still opens the details row under
+   it. The header row goes, so the Sort by select stands in for it. Labels and tags
+   that were 9-11px are 12px. */
+@media (max-width:760px){
+  .wrap{padding:20px 16px 70px;}
+  #summary{max-width:none;}
+  .crumb,.lbl,.pill,.tag,.progcap,.sumtable th,.sumhead,.addf label,#peek .cap{font-size:12px;}
+  .sumtable{font-size:13px;}
+  .bar input[type=search]{flex-basis:100%;font-size:16px;}
+  .btn{min-height:40px;}
+  .msort{display:flex!important;flex:1 1 100%;}
+  .msort select{flex:1;font-family:var(--sans);font-size:16px;padding:8px 10px;border:1px solid var(--line);
+    border-radius:8px;background:#fff;color:var(--ink);}
+  .twrap{overflow:visible;max-height:none;background:none;border:0;border-radius:0;}
+  .twrap table{min-width:0;}
+  .twrap table,.twrap tbody{display:block;}
+  .twrap thead{display:none;}
+  tbody tr.r{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px;background:var(--paper);
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:10px;}
+  tbody tr.r.void{background:var(--red-bg);}
+  tbody td{display:block;padding:0;min-width:0;overflow-wrap:anywhere;}
+  tbody td::before{content:attr(data-l);display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;}
+  tbody td.nm{grid-column:1/-1;font-size:16px;order:-2;}
+  tbody td.nm::before,tbody td.ser::before{display:none;}
+  tbody td.ser{grid-column:1/-1;order:-1;font-size:13px;color:var(--muted);margin-top:-6px;}
+  tbody td.num{text-align:left;}
+  td.dt{white-space:normal;}
+  tr.det{display:block;}
+  tr.det > td{display:block;padding:0 14px 16px;background:var(--paper);border:1px solid var(--line);border-top:0;
+    border-radius:0 0 12px 12px;margin-top:-6px;}
+  tr.det > td::before{display:none;}
+  tr.det.hide{display:none;}
+}
 </style>
 </head>
 <body data-auth-root="../">
@@ -198,6 +236,7 @@ tr.det.hide{display:none;}
       <label><input type="checkbox" id="showarch"> Show archived</label>
       <button class="btn ghost" id="refresh">Refresh</button>
       <button class="btn ghost" id="exportxlsx">Save as xlsx</button>
+      <label class="msort">Sort by <select id="msort" aria-label="Sort by"></select></label>
     </div>
 
     <p class="tally" id="tally">Loading&hellip;</p>
@@ -469,8 +508,21 @@ function drawHead(){
   }).join('');
 }
 
+// Phones (Kate, 2 Oct 2026): the header row is hidden there, so this picks the sort.
+function drawSort(){
+  var opts = [];
+  COLS.forEach(function (c){
+    [1, -1].forEach(function (d){
+      opts.push('<option value="' + c.key + '|' + d + '"' + (c.key === sortKey && d === sortDir ? ' selected' : '') + '>' +
+        C.esc(c.head) + (d > 0 ? ' ↑' : ' ↓') + '</option>');
+    });
+  });
+  el('msort').innerHTML = opts.join('');
+}
+
 function draw(){
   drawHead();
+  drawSort();
 
   var term = el('q').value.trim().toLowerCase();
   var withArchived = el('showarch').checked;
@@ -562,7 +614,7 @@ function exportXlsx(){
 
 function rowHtml(r){
   var cells = COLS.map(function (c){
-    return '<td class="' + (c.cls || '') + '">' + c.get(r) + '</td>';
+    return '<td class="' + (c.cls || '') + '" data-l="' + C.esc(c.head) + '">' + c.get(r) + '</td>';
   }).join('');
 
   return '<tr class="r' + (r.is_voided ? ' void' : '') + (r.is_archived ? ' arch' : '') +
@@ -877,6 +929,11 @@ function editPayment(id){
 }
 
 /* ---------- wiring ---------- */
+el('msort').addEventListener('change', function (e){
+  var v = e.target.value.split('|');
+  sortKey = v[0]; sortDir = +v[1];
+  draw();
+});
 el('hrow').addEventListener('click', function (e){
   var th = e.target.closest('th');
   if (!th) return;
