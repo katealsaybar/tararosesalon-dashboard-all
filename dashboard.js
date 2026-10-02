@@ -2705,22 +2705,26 @@ async function loadUtilisationForFilter(from, to, branches) {
   const fromStr = `${from.getFullYear()}-${pad(from.getMonth()+1)}-${pad(from.getDate())}`;
   const toStr   = `${to.getFullYear()}-${pad(to.getMonth()+1)}-${pad(to.getDate())}`;
   const PAGE = 1000;
-  let all = [];
-  let offset = 0;
-  while (true) {
-    let q = sb.from('staff_utilisation')
-      .select('staff_name,branch,available_hours,utilisation_hours,date_from,date_to')
-      .lte('date_from', toStr)
-      .gte('date_to', fromStr)
-      .range(offset, offset + PAGE - 1);
-    if (branches && branches.length) q = q.in('branch', branches);
-    const { data, error } = await q;
-    if (error || !data) break;
-    all = all.concat(data);
-    if (data.length < PAGE) break;
-    offset += PAGE;
-  }
-  return all;
+  // Kate, 2 Oct 2026: the pages used to go one after another, each waiting on the last.
+  // Jan to today across the branches is ~20 pages (one row per person per day), which
+  // was 7 of the 8 seconds a long window took to draw. Now the count comes first and
+  // every page goes at once, as loadAllRows does. Ordered by id, too: these pages had
+  // no order, the same gap that once loaded ledger rows twice and missed others at a
+  // page boundary (loadAllRows, 3 Sep 2026).
+  const base = (q) => {
+    q = q.lte('date_from', toStr).gte('date_to', fromStr);
+    return (branches && branches.length) ? q.in('branch', branches) : q;
+  };
+  const { count, error: countErr } = await base(sb.from('staff_utilisation').select('*', { count: 'exact', head: true }));
+  if (countErr || !count) return [];
+  const pages = await Promise.all(
+    Array.from({ length: Math.ceil(count / PAGE) }, (_, i) =>
+      base(sb.from('staff_utilisation').select('staff_name,branch,available_hours,utilisation_hours,date_from,date_to'))
+        .order('id', { ascending: true })
+        .range(i * PAGE, i * PAGE + PAGE - 1)
+    )
+  );
+  return pages.flatMap(p => p.data || []);
 }
 
 // Hours-weighted, not a naive average of per-row percentages — mirrors
@@ -2728,11 +2732,19 @@ async function loadUtilisationForFilter(from, to, branches) {
 function aggregateUtilisation(rows, deptMap) {
   let hairHours = 0, hairAvail = 0, beautyHours = 0, beautyAvail = 0;
   const unmatched = new Set();
+  // One answer per branch + name, not per row (Kate, 2 Oct 2026): Jan to today is ~20k
+  // rows but only a few hundred people, and the name match below is the slow part.
+  const seen = new Map();
   (rows || []).forEach(r => {
-    // Bahrain has no ledger to give a name its side, so its own list answers (BH_STAFF_DEPT).
-    const bh = (BRANCH_INFO[r.branch] && BRANCH_INFO[r.branch].country === 'BH')
-      ? BH_STAFF_DEPT[cleanPhorestName(r.staff_name || '').split(' ')[0]] : null;
-    const dept = bh || utilDeptFor(r.staff_name, deptMap);
+    const key = r.branch + '|' + r.staff_name;
+    let dept = seen.get(key);
+    if (dept === undefined) {
+      // Bahrain has no ledger to give a name its side, so its own list answers (BH_STAFF_DEPT).
+      const bh = (BRANCH_INFO[r.branch] && BRANCH_INFO[r.branch].country === 'BH')
+        ? BH_STAFF_DEPT[cleanPhorestName(r.staff_name || '').split(' ')[0]] : null;
+      dept = bh || utilDeptFor(r.staff_name, deptMap);
+      seen.set(key, dept);
+    }
     const avail = Number(r.available_hours) || 0;
     const used  = Number(r.utilisation_hours) || 0;
     if (dept === 'hair')        { hairHours += used; hairAvail += avail; }
@@ -3257,10 +3269,19 @@ function buildDailyTrendCache(dailyRows, branchStaffRows, phorestStaffRows) {
   (branchStaffRows||[]).forEach(r => dates.add(r.date));
   (dailyRows||[]).forEach(r => dates.add(r.date));
   (phorestStaffRows||[]).forEach(r => dates.add(r.date)); // Phorest-only ranges (2025) still get a trend line
+  // Kate, 2 Oct 2026: grouped by date once. Filtering all three lists again for every
+  // day was ~280 days x ~28k rows on Jan-to-today, about a second of the draw. Each
+  // day still gets its rows in the same order the filter gave them.
+  const byDate = rows => {
+    const m = new Map();
+    (rows||[]).forEach(r => { const a = m.get(r.date); if (a) a.push(r); else m.set(r.date, [r]); });
+    return m;
+  };
+  const bBy = byDate(branchStaffRows), pBy = byDate(phorestStaffRows), dBy = byDate(dailyRows);
   return Array.from(dates).sort().map(date => {
-    const dayBranchRows  = (branchStaffRows||[]).filter(r => r.date === date);
-    const dayPhorestRows = (phorestStaffRows||[]).filter(r => r.date === date);
-    const dayDailyRows   = (dailyRows||[]).filter(r => r.date === date);
+    const dayBranchRows  = bBy.get(date) || [];
+    const dayPhorestRows = pBy.get(date) || [];
+    const dayDailyRows   = dBy.get(date) || [];
     const agg = aggDailyData(dayDailyRows, dayBranchRows, dayPhorestRows);
     return { date, netTake: agg ? agg.summary.netTake||0 : 0, totalClients: agg ? agg.summary.totalClients||0 : 0 };
   });
