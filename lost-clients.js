@@ -152,7 +152,7 @@ const LC_COLS = [
   { k: 'spend',   label: 'Total spend (AED)',   type: 'num',  get: r => Math.round(Number(r.spend) || 0) },
   { k: 'avg',     label: 'Avg per visit (AED)', type: 'num',  get: lcAvg },
   { k: 'stylist', label: 'Usual stylist',       type: 'pick', get: r => r.stylist || '' },
-  { k: 'also',    label: 'Also saw',            type: 'text', get: r => r.also_saw || '' },
+  { k: 'also',    label: 'Also saw',            type: 'text', get: r => lcAlsoNames(r.also_saw).join(', ') },
   { k: 'now',     label: 'Now at',              type: 'pick', get: r => r.now_at || '', moved: true },
   { k: 'phone',   label: 'Phone',               type: 'has',  get: r => r.mobile || r.landline || '', phones: true },
 ];
@@ -370,7 +370,7 @@ function lcPaintTable() {
       <div class="prd-body">
         <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${check(r)}</span><span class="prd-spend">AED ${lcNum(r.spend)}</span></div>
         <div class="prd-meta">${lcNum(r.visits)} visits · avg AED ${lcNum(lcAvg(r))} · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${r.stylist ? ' · ' + lcStylist(r.stylist) : ''}${lcMovedView && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}</div>
-        ${r.also_saw ? `<div class="prd-meta">Also saw ${lcAlso(r.also_saw)}</div>` : ''}
+        ${lcAlsoNames(r.also_saw).length ? `<div class="prd-meta">Also saw ${lcAlso(r.also_saw)}</div>` : ''}
         ${lcHasPhones() && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
       </div>
     </li>`).join('');
@@ -390,8 +390,17 @@ function lcClearAll() {
 }
 
 // "Also saw": the first two names as links, the rest counted ("+3"), all on hover.
+// Assistants are left out (Kate, 2 Oct 2026): they help on a visit, they are not who a
+// client books. The BUSINESS (unassigned) bucket is already gone in lost_clients.
+function lcIsAssistant(name) {
+  const up = String(name).trim().toUpperCase(), w = up.split(/\s+/);
+  const P = typeof STAFF_PROFILES !== 'undefined' ? STAFF_PROFILES : {};
+  const p = P[up] || P[w.slice(0, 2).join(' ')] || P[w[0]];
+  return !!(p && /assistant/i.test(p.role || ''));
+}
+const lcAlsoNames = list => String(list || '').split(', ').filter(n => n && !/^\s*business\b/i.test(n) && !lcIsAssistant(n));
 function lcAlso(list) {
-  const names = String(list || '').split(', ').filter(Boolean);
+  const names = lcAlsoNames(list);
   if (!names.length) return '–';
   return names.slice(0, 2).map(lcStylist).join(', ')
     + (names.length > 2 ? ` <span class="slv-note" style="display:inline" title="${lcEsc(names.slice(2).join(', '))}">+${names.length - 2}</span>` : '');

@@ -267,6 +267,16 @@ window.trsParam = function (k) {
   color: var(--text);
 }}
 
+/* Nav stars (nav-stars.js, Kate, 2 Oct 2026): faint until the row is pointed at, gold
+   once starred; a starred page also shows on Team Home under Your favourites. */
+.nav-sub.has-star{display:flex;align-items:center;gap:6px}
+.nav-star{margin-left:auto;flex:none;width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:50%;
+  background:transparent;color:inherit;opacity:0;cursor:pointer;padding:0;transition:opacity .15s,transform .15s}
+.nav-star svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.nav-star.on{opacity:1;color:#E7B84A}.nav-star.on svg{fill:currentColor}
+@media(hover:hover){.nav-sub:hover .nav-star{opacity:.6}.nav-sub .nav-star:hover{opacity:1;transform:scale(1.12)}}
+@media(hover:none){.nav-star{opacity:.45}}
+.nav-star:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
 .nav-sub.active {
   background: var(--accent-lavender);
   color: #1A1A1A;
@@ -2072,6 +2082,12 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .lc-chk em{font-style:normal;color:var(--muted);font-variant-numeric:tabular-nums}
 .lc-fnote{margin:0 0 8px}
 .lc-row{cursor:pointer}
+/* The table fits its card (Kate, 2 Oct 2026: Also saw ran it off the side): headings
+   and the two name columns wrap, cells are a little tighter. */
+.lc-wrap th,.lc-wrap td{padding-left:8px;padding-right:8px}
+.lc-wrap thead th{white-space:normal;vertical-align:bottom}
+.lc-wrap td.lc-also{white-space:normal;text-align:left;max-width:190px;font-size:13.5px;line-height:1.5}
+.lc-wrap td:has(.lc-st){white-space:normal}
 @media(hover:hover){.lc-wrap tbody tr.lc-row:hover td{background:var(--surface2)}}
 .lc-row.lc-open td{background:var(--surface2)}
 .lc-det > td{padding:0 0 14px!important;background:var(--surface2);text-align:left!important;white-space:normal!important}
@@ -3701,7 +3717,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20261002cards"></script>
 <script src="staff-weeks.js?v=20261001aim"></script>
 <script src="products.js?v=20261002wk"></script>
-<script src="lost-clients.js?v=20261002filt"></script>
+<script src="lost-clients.js?v=20261002also"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261002fast"></script>
@@ -4623,6 +4639,7 @@ addEventListener('load', sizeTopbar);
 </script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
 <script src="nav-collapse.js?v=20260924a"></script>
+<script src="nav-stars.js?v=20261002a"></script>
 <script src="mobile.js?v=20261002act"></script>
 <script src="search.js?v=20261002va"></script>
 </body>
