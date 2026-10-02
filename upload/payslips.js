@@ -167,10 +167,27 @@ function psFuzzy(payName, branch) {
   return a && a.score >= 1.2 && (!b || a.score - b.score >= 0.3) ? a.s : null;
 }
 
-// Payroll names too far from the dashboard name to guess, confirmed by Kate:
-// payslip name (as psNorm gives it) → dashboard name.
+// Payroll (government) names → dashboard names, from September 2026's payslips,
+// checked by Kate and Jumera on 2 Oct 2026. A payslip name here matches outright,
+// with no "check it's right" flag. Key = payslip name as psNorm gives it. Add a
+// line when a new starter's payslip name differs from their dashboard name.
 const PS_ALIASES = {
-  'lucia gonzales': 'Lucy Rodriguez', // Kate, 2 Oct 2026
+  'adelyn ancheta': 'Eds Asuncion',
+  'alaysa vertudis': 'Mimi Vertudes',
+  'chalani amarasinghe': 'Chalani Kaushallya',
+  'jovelyn assuncion': 'Nikki Asuncion',
+  'kateryna siryk': 'Kate Siryk',
+  'kimberly casas': 'Kim Casas',
+  'lizanie jacobs': 'Lizanie Jacobsz',
+  'lucia gonzales': 'Lucy Rodriguez',
+  'marry joy gales': 'Mary Joy Galos',
+  'mona rakesh': 'Mona Soba',
+  'olena ostertah': 'Olena Ostertag',
+  'redalyn ramirez': 'Reda Ramirez',
+  'shelly douglas': 'Shelley Douglas',
+  'sunshine castillo': 'Shine Castillo',
+  'tamryn peter': 'Tammy Peter',
+  'vicky taylor': 'Vicki Taylor',
 };
 
 // One page's person: a confirmed alias, then exact words of the payslip name,
