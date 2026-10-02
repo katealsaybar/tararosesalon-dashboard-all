@@ -8,6 +8,9 @@
 --
 -- Same rule as kb_can_read_for(); change the two together. Level 1 'Front Desk'
 -- stands for reception, who are on dashboard_users and so also open Dashboards.
+-- Level 1 'Hair' also hands back Kate Siryk's own My numbers address (Kate's pick,
+-- 2 Oct 2026, applied live as kb_view_as_sample_stylist), so the preview has a real
+-- stylist card to open. Looked up here so the address never sits in this public repo.
 
 create or replace function public.kb_access_as(p_level int, p_dept text)
 returns jsonb language sql stable security definer set search_path = '' as $$
@@ -20,7 +23,10 @@ returns jsonb language sql stable security definer set search_path = '' as $$
         when p_level = 5 then true
         when p_level >= 2 then s.min_level <= p_level
         else (p_dept = 'Front Desk' and s.key = 'dashboards') or s.staff_dept = p_dept
-      end), '[]'::jsonb)
+      end), '[]'::jsonb),
+    'my_link', case when p_level = 1 and p_dept = 'Hair' then
+      (select '/me/' || p.slug from public.perf_staff p
+        where p.active and p.slug is not null and p.display_name = 'Kate Siryk' limit 1) end
   ) end
 $$;
 revoke all on function public.kb_access_as(int, text) from public, anon;

@@ -30,7 +30,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261002mynum"></script>
+<script src="/hub/hub.js?v=20261002siryk"></script>
 <script>
 KB.ready.then(async function () {
   var esc = KB.esc;
@@ -54,7 +54,7 @@ KB.ready.then(async function () {
   if (KB.myLink) shown.unshift({ key: 'my-numbers', dept: 'You', title: 'My numbers & payslip', href: KB.myLink, live: true,
     rule: 'var(--accent-mint)', blurb: 'Your month, your year, your next step up, and your payslip. Only you can see it.' });
   // "View as" a stylist: the same card as a sample, not a link, so nobody's numbers show.
-  else if (KB.viewAs && KB.viewAs.level === 1 && (KB.viewAs.dept === 'Hair' || KB.viewAs.dept === 'Beauty'))
+  else if (KB.viewAs && KB.viewAs.level === 1 && KB.viewAs.dept === 'Beauty')
     shown.unshift({ key: 'my-numbers', dept: 'You', title: 'My numbers & payslip', sample: true, rule: 'var(--accent-mint)',
       blurb: 'Each stylist sees their own here: their month, year, next step up and payslip.' });
 

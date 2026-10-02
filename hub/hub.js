@@ -119,7 +119,7 @@
           KB.level = p.data.level;
           KB.allowed = p.data.sections || [];
           KB.isStaff = KB.level === 1;
-          KB.myLink = null;
+          KB.myLink = p.data.my_link || null;   // Level 1 Hair: Kate Siryk's, as the sample stylist
           KB.access = Object.assign({}, KB.access, { dept: p.data.dept, scope: null });
         }
       }
@@ -188,7 +188,8 @@
         '</button>' +
         '<div class="kb-menu hide" id="kbMenu">' +
           '<div class="kb-menu-who"><b>' + esc(KB.name || 'Signed in') + '</b><span>' + esc(KB.email || '') + '</span>' +
-            '<em class="kb-menu-lvl">Level ' + KB.realLevel + ' · ' + esc(KB.LEVELS[KB.realLevel] || '') + (KB.access.scope === 'BAH' ? ' · Bahrain' : '') + '</em></div>' +
+            // Kate, 2 Oct 2026: the level line is Level 5's alone; nobody else sees a level.
+            (KB.realLevel === 5 ? '<em class="kb-menu-lvl">Level 5 · ' + esc(KB.LEVELS[5]) + '</em>' : '') + '</div>' +
           // Kate, 2 Oct 2026: our own list, not the browser's select box (it looked out of place).
           (KB.realLevel === 5 ? (function () {
             var cur = KB.viewAs ? KB.viewAs.level + (KB.viewAs.dept ? '|' + KB.viewAs.dept : '') : '5';
