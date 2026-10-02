@@ -250,6 +250,10 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 
 /* ── Phones ─────────────────────────────────────────────────── */
 @media (max-width:760px){
+  /* Kate, 2 Oct 2026: the 12px floor the dashboard uses on a phone. Card badges
+     (Live / Coming soon), search group heads, the View as label, the menu's level
+     line and the chapter list's group heads were 11-11.5px. The wordmark stays. */
+  .kb-badge,.kb-result-group,.kb-va-k,.kb-menu-lvl,.kb-toc-g{font-size:12px}
   .wrap{padding:12px 16px 56px}
   /* Kate, 2 Oct 2026: "Team Home" sits on the right, beside the account button
      (replaces the 1 Oct centring). Logo takes the spare width. */
