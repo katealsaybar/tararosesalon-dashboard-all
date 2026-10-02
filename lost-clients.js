@@ -43,14 +43,35 @@ function lcSave() { try { localStorage.setItem('trs-lost', JSON.stringify(lcSel)
 function lcSet(k, v) { lcSel[k] = v; lcShowAll = false; lcMovedView = false; lcResetFilters(); lcSave(); renderLostClients(); }
 function lcToggleMoved() { lcMovedView = !lcMovedView; lcShowAll = false; lcResetFilters(); lcPaint(); }
 
+// Speed (Kate, 2 Oct 2026): opened straight on this page, the list waited ~4.5s for
+// the Pulse data it never uses, then the board's summary waited for the list. Both
+// are asked for at sign-in now (lcPrefetch, from enterDashboard, before loadData)
+// and side by side, so the page draws when its own two calls are back.
+let lcListP = null, lcListKey = '', lcSumP = null;
+function lcFetchList() {
+  const seg = LC_SEG[lcSel.seg] || LC_SEG.regular;
+  const key = [lcSel.branch, seg.min, seg.max, lcSel.days].join('|');
+  if (!lcListP || lcListKey !== key) {
+    lcListKey = key;
+    lcListP = Promise.resolve(sb.rpc('lost_clients', {
+      p_branch: lcSel.branch, p_min_visits: seg.min, p_max_visits: seg.max, p_days: Number(lcSel.days) }));
+  }
+  return lcListP;
+}
+function lcFetchSummary() { return lcSumP || (lcSumP = Promise.resolve(sb.rpc('lost_clients_summary'))); }
+function lcPrefetch() {
+  if (!(typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2)) return;
+  lcFetchList(); lcFetchSummary();
+}
+
 async function renderLostClients() {
   const el = document.getElementById('lostClientsContent');
   if (!el) return;
-  const seg = LC_SEG[lcSel.seg] || LC_SEG.regular;
   el.innerHTML = lcShell('<p class="slv-muted">Loading clients…</p>');
+  const listP = lcFetchList(); lcListP = null;   // used once; a later pick asks again
+  lcFetchSummary();
   try {
-    const { data, error } = await sb.rpc('lost_clients', {
-      p_branch: lcSel.branch, p_min_visits: seg.min, p_max_visits: seg.max, p_days: Number(lcSel.days) });
+    const { data, error } = await listP;
     if (error || !Array.isArray(data)) throw error || new Error('no data');
     lcAll = data;
   } catch (e) {
@@ -304,8 +325,8 @@ let lcSum = null, lcSumErr = false;
 async function lcLoadSummary() {
   if (lcSum || lcSumErr) { lcPaintBoard(); return; }
   try {
-    const { data, error } = await sb.rpc('lost_clients_summary');
-    if (error) throw error;
+    const { data, error } = await lcFetchSummary();
+    if (error) { lcSumP = null; throw error; }
     lcSum = data || [];
   } catch (e) { console.error(e); lcSumErr = true; }
   lcPaintBoard();

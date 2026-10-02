@@ -444,7 +444,7 @@ if(window.parent!==window){
     if(META) render();
   }
   const fl=document.querySelector(".filters"), wide=matchMedia("(min-width:761px)");
-  let pin=0, lastY=0;
+  let pin=0, lastY=0, fullH=0;
   function placeFilters(){
     if(!fl) return;
     const list=document.getElementById("list"), held=!wide.matches && fl.classList.contains("open");
@@ -452,6 +452,14 @@ if(window.parent!==window){
     lastY=y;
     fl.style.transform = y ? `translateY(${Math.round(y)}px)` : "";
     fl.classList.toggle("pinned", y > 0);
+    // Desktop: pinned, the panel folds to its bar (.mini). Back at the top it unfolds
+    // and closes. The bottom margin makes up the height it gave away, so the page
+    // under it doesn't jump when it folds. Kate, 2 Oct 2026.
+    const mini = wide.matches && y > 0;
+    if(!mini && fl.classList.contains("mini") && wide.matches){ fl.classList.remove("open"); document.getElementById("fOpen").setAttribute("aria-expanded",false); }
+    if(!fl.classList.contains("mini")) fullH = fl.offsetHeight;
+    fl.classList.toggle("mini", mini);
+    fl.style.marginBottom = mini ? `${fullH - fl.offsetHeight + 18}px` : "";
   }
   onFiltersToggle=placeFilters;
   function postH(){window.parent.postMessage({type:"trs-reviews-height",h:Math.ceil(document.body.getBoundingClientRect().height)},"*");placeFilters();}

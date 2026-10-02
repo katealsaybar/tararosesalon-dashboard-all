@@ -128,6 +128,26 @@ html.embedded .filters{position:static}
 /* The phone filter bar, pills and Done row; hidden here so desktop is unchanged. */
 .fbar,.fpills,.fdone,.chip .sh{display:none}
 .fbody{display:contents}
+/* Desktop (Kate, 2 Oct 2026): the five rows following the scroll covered half the
+   screen. Once pinned the panel folds to the same bar and pills as the phone; the
+   Filters button opens it in place. app.js placeFilters sets .mini. */
+@media (min-width:761px){
+  .filters.mini{padding:10px 18px;gap:0}
+  .filters.mini .fbar{display:flex;align-items:center;gap:10px}
+  .filters.mini .fopen{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rose);background:var(--rose);color:var(--on-accent);border-radius:999px;padding:6px 16px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .filters.mini .fbadge:not(:empty){min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--on-accent);color:var(--rose);font-size:11px;display:inline-flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+  .filters.mini .fcaret{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+  .filters.mini.open .fcaret{transform:translateY(2px) rotate(-135deg)}
+  .filters.mini .fcount{color:var(--muted);font-size:13px}
+  .filters.mini .fcount b{color:var(--text);font-variant-numeric:tabular-nums}
+  .filters.mini .fpills{display:flex;flex-wrap:wrap;gap:6px}
+  .filters.mini .fpills:not(:empty){margin-top:8px}
+  .filters.mini .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:999px;padding:2px 4px 2px 10px;font:inherit;font-size:12px;cursor:pointer}
+  .filters.mini .pill i{font-style:normal;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--surface);color:var(--muted);font-size:13px;line-height:1}
+  .filters.mini:not(.open) .fbody{display:none}
+  .filters.mini.open .fpills{display:none}
+  .filters.mini.open .fbody{display:grid;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+}
 /* Phones (Kate, 25 Sep 2026). Framed in the dashboard, whose page already has a
    side gutter, so the frame's own goes. Bars and staff rows stack: name and count
    on one line, the bar under them, so no figure is squeezed into a fixed column. */
@@ -277,6 +297,6 @@ html.embedded .filters{position:static}
 <script src="../../staff-profiles.js?v=20261002va"></script>
 <script src="../../auth.js?v=20260925d"></script>
 <script src="review-links.js?v=20260928a"></script>
-<script src="app.js?v=18"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>
