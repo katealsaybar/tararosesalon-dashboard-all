@@ -683,7 +683,12 @@ async function lcSaveFile(kind) {
   lcSaving = false;
   const nums = new Set(['Visits', 'Days since', 'Total spend (AED)', 'Avg per visit (AED)', 'Retail spend (AED)']);
   const cols = head.map(h => ({ label: h, fmt: /AED/.test(h) ? 'aed' : nums.has(h) ? 'num' : 'text' }));
-  const built = lgxBuild({ sheets: [{ name: 'Lost clients ' + lcSel.branch, blocks: [{ cols, rows: lines.map(l => ({ cells: l })) }] }] });
+  // Excel reads +971501234567 in a CSV as a number and shows 9.72E+11 (Kate, 2 Oct
+  // 2026). In the CSV the number goes in as ="+971…", which Excel and Google Sheets
+  // both show as the number itself, as text. The XLSX already has it as text.
+  const pi = head.indexOf('Phone');
+  const out = kind === 'csv' && pi >= 0 ? lines.map(l => l.map((v, j) => j === pi && v ? `="${v}"` : v)) : lines;
+  const built = lgxBuild({ sheets: [{ name: 'Lost clients ' + lcSel.branch, blocks: [{ cols, rows: out.map(l => ({ cells: l })) }] }] });
   const name = ['lost-clients', lcSel.branch, lcSel.seg === 'regular' ? 'regulars' : lcSel.seg, lcSel.days + 'd']
     .concat(lcMovedView ? ['moved'] : []).concat(lcQuery.trim() || Object.keys(lcF).some(lcOn) ? ['filtered'] : []).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
