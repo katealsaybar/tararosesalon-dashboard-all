@@ -2012,8 +2012,12 @@ async function renderLedgerActuals() {
       <p><b>Motor City runs hair only</b>, so its beauty rows are absent rather than printed as zeros — the same way her sheet carries it.</p>
     </div>`);
 
+  // On a phone (Kate, 2 Oct 2026) each branch is 26 cards, about 2,000px, so only
+  // the group total opens by itself; a branch opens on a tap of its name. A section
+  // already opened or closed keeps that.
+  const phone = matchMedia('(max-width:760px),(hover:none) and (max-height:480px)').matches;
   ['laAll'].concat(SHEET_ORDER.map(c => 'la' + c))
-    .forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
+    .forEach(id => { if (!(id in sectionState)) sectionState[id] = !phone || id === 'laAll'; });
   restoreSections();
   if (typeof sizeTopbar === 'function') sizeTopbar();
   lgWatchScroll();
