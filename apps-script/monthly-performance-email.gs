@@ -16,7 +16,7 @@
  *   Sunday       18:00 draftWeekend() again, for payslips uploaded after Saturday 09:00.
  *                Only missing drafts are added; the summary is replaced.
  *   Weekend      Kate checks the drafts. Something wrong? Run holdMonday().
- *   Monday       08:00 sendMonday() sends every draft WITH a payslip attached.
+ *   Monday       07:00 sendMonday() sends every draft WITH a payslip attached.
  *                Drafts without one stay in Drafts. A note goes to payroll@, Kate copied.
  *   After        Jumera tells the staff their payslip is in their email.
  *
@@ -260,7 +260,7 @@ function draftMonthlyEmails(month) {
       <p>Drafts for <b>${month}</b> are in your Drafts folder under "${subject}". Nothing has been sent.</p>
       ${line('New drafts', report.drafted)}${line('Rebuilt with payslip', report.rebuilt)}${line('Already drafted, left alone', report.kept)}
       ${line('No payslip yet', report.noPayslip)}${line('No email on file', report.noEmail)}${line('Email paused', report.paused)}${line('No numbers this month', report.noData)}${line('Already sent this month', report.alreadySent)}
-      <p>Every draft with a payslip attached goes out on <b>Monday at 08:00</b>. To stop that, press <b>Pause Monday send</b> in the Upload Portal → Payslips tab (trk-salon-os.com/upload/). Late payslips: upload them there, then press <b>Make drafts now</b>.</p></div>`,
+      <p>Every draft with a payslip attached goes out on <b>Monday at 07:00</b> (11:00 Philippines). To stop that, press <b>Pause Monday send</b> in the Upload Portal → Payslips tab (trk-salon-os.com/upload/). Late payslips: upload them there, then press <b>Make drafts now</b>.</p></div>`,
   });
   PropertiesService.getScriptProperties().setProperty('PERF_DRAFTED_' + month, new Date().toISOString());
   Logger.log(JSON.stringify(report, null, 1));
@@ -322,7 +322,7 @@ function draftWeekend() {
   });
 }
 
-// Monday 08:00. Sends the drafts that carry a payslip, for any month drafted and not
+// Monday 07:00. Sends the drafts that carry a payslip, for any month drafted and not
 // yet sent. Drafts without a payslip stay put. A note goes out either way.
 function sendMonday() {
   const props = PropertiesService.getScriptProperties();
@@ -355,12 +355,12 @@ function setupPerformanceTrigger() {
   ScriptApp.newTrigger('draftWeekend').timeBased()
     .onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(18).inTimezone('Asia/Dubai').create();
   // Google runs an hourly trigger at a random minute in that hour; nearMinute pulls it
-  // to about 08:00 (give or take 15 minutes) where Google allows it on a weekly one.
+  // to about 07:00 (give or take 15 minutes) where Google allows it on a weekly one.
   const monday = () => ScriptApp.newTrigger('sendMonday').timeBased()
-    .onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(8).inTimezone('Asia/Dubai');
+    .onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(7).inTimezone('Asia/Dubai');
   try { monday().nearMinute(0).create(); }
-  catch (e) { monday().create(); Logger.log('Monday send runs some time between 08:00 and 09:00.'); }
-  Logger.log('Drafts on Saturday 09:00 and Sunday 18:00, send on Monday 08:00, Dubai.');
+  catch (e) { monday().create(); Logger.log('Monday send runs some time between 07:00 and 08:00.'); }
+  Logger.log('Drafts on Saturday 09:00 and Sunday 18:00, send on Monday 07:00, Dubai.');
 }
 
 // ── web app: the Upload Portal's buttons (Kate, 30 Sep 2026) ──────────────

@@ -511,7 +511,7 @@ async function psRemove(staffId) {
 // The monthly payslip email, run from here instead of the Apps Script editor, so
 // anyone on Accounts can check it, test it, pause it or send it. The script drafts
 // on Saturday 09:00 and Sunday 18:00 once payslips are in, and sends on Monday
-// around 08:00; these buttons only look at and nudge that.
+// around 07:00; these buttons only look at and nudge that.
 const PS_STATE_LABEL = {
   sent: 'Emailed', draft_ready: 'Draft ready', draft_no_payslip: 'Draft, no payslip',
   payslip_in: 'Payslip in', waiting: '', no_email: 'No email', paused: 'Email off',
@@ -568,8 +568,8 @@ function psRenderSend() {
   let line;
   if (S.hold) line = `<b>Paused.</b> Nothing goes out on Monday until someone presses Resume.`;
   else if (S.sent) line = `<b>Sent ${psEsc(psWhen(S.sent))}.</b> ${sent} ${sent === 1 ? 'person has' : 'people have'} theirs.${ready ? ` ${ready} more ${ready === 1 ? 'draft is' : 'drafts are'} ready to send.` : ''}`;
-  else if (S.drafted) line = `<b>Drafts ready: ${ready}.</b> They go out ${psEsc(mon)} around 08:00.`;
-  else line = `<b>No drafts yet.</b> They’re made ${psEsc(sat)} at 09:00 (again ${psEsc(sun)} at 18:00) once payslips are in, and go out ${psEsc(mon)} around 08:00.`;
+  else if (S.drafted) line = `<b>Drafts ready: ${ready}.</b> They go out ${psEsc(mon)} around 07:00.`;
+  else line = `<b>No drafts yet.</b> They’re made ${psEsc(sat)} at 09:00 (again ${psEsc(sun)} at 18:00) once payslips are in, and go out ${psEsc(mon)} around 07:00.`;
   const people = S.people.filter(p => p.state !== 'no_email' && p.state !== 'paused');
   const opts = people.map(p => `<option value="${psEsc(p.name)}">${psEsc(p.name)}${p.state === 'draft_ready' || p.state === 'payslip_in' || p.state === 'sent' ? '' : ' (no payslip yet)'}</option>`).join('');
   const busy = PS_STATE.sendBusy;
