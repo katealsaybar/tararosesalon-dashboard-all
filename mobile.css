@@ -221,6 +221,13 @@
   .svc-mname .svc-d{font-size:12.5px}
   .svc-mamt{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.35;text-align:right}
   .svc-mamt small{display:block;margin-top:2px;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:400;color:var(--muted)}
+  /* Products' week table (Kate, 2 Oct 2026): Professional and Total were cut off.
+     Shorter heads ("Pro", "Total") and tighter cells fit one branch on a phone;
+     several branches add columns, which still scroll inside the card. */
+  .prd-wk .prd-lg{display:none}
+  .prd-wk th,.prd-wk td{padding:9px 6px;font-size:13px}
+  .prd-wk th:first-child,.prd-wk td:first-child{min-width:0;padding-left:0}
+  .prd-wk th:last-child,.prd-wk td:last-child{padding-right:0}
   .cli-mname{display:flex;gap:8px;align-items:flex-start}
   .cli-mname > div{min-width:0}
   .cli-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;

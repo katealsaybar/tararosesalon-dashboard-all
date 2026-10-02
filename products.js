@@ -174,8 +174,8 @@ function prdPaint(el) {
       </div>
       <div class="slv-eyebrow" style="margin:18px 0 6px">Week by week · retail and professional</div>
       <div style="position:relative;height:280px"><canvas id="prdCanvas"></canvas></div>
-      <div class="slv-wrap" style="margin-top:14px"><table class="slv-table">
-        <thead><tr><th>Week of</th><th>Retail</th><th>Professional</th><th>Total (AED)</th>${head}</tr></thead>
+      <div class="slv-wrap" style="margin-top:14px"><table class="slv-table prd-wk">
+        <thead><tr><th>Week of</th><th>Retail</th><th>Pro<span class="prd-lg">fessional</span></th><th>Total<span class="prd-lg"> (AED)</span></th>${head}</tr></thead>
         <tbody>${rows}
           <tr class="w13-tot"><td>${weeks.length} week${weeks.length === 1 ? '' : 's'}</td><td>${prdNum(tot.retail)}</td><td>${prdNum(tot.professional)}</td><td>${prdNum(all)}</td>
           ${shown.length > 1 ? shown.map(b => `<td>${prdNum(branchTot(b))}</td>`).join('') : ''}</tr>
