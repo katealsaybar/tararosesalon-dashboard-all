@@ -905,6 +905,17 @@ async function renderTeam() {
   }
 }
 
+// Team Home links (Kate, 2 Oct 2026). A stylist opening her email link isn't signed in,
+// and Team Home turns staff away until kb_settings.staff_open is on, so the logo and
+// the house button only work for someone signed in on this browser, or for everyone
+// once staff_open is on. Nothing to redeploy when Team Home opens.
+(async () => {
+  let ok = false;
+  try { ok = !!localStorage.getItem('sb-gvijxenafoowajqktqvd-auth-token'); } catch (e) {}
+  if (!ok) { try { ok = await rpc('kb_staff_open', {}) === true; } catch (e) {} }
+  if (ok) document.body.classList.add('hub-ok');
+})();
+
 (async () => {
   try {
     // Her name link (Kate, 1 Oct 2026): trk-salon-os.com/me/<slug> lands here as

@@ -45,6 +45,9 @@ a.brand{text-decoration:none;color:inherit}
   background:#99F6E4;color:#1A1A1A;border:1px solid #99F6E4;text-decoration:none}
 @media (hover:hover){.home-btn:hover{border-color:#1A1A1A}}
 .home-btn:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+/* Kate, 2 Oct 2026: the Team Home links wait until performance.js says Team Home will let this person in. */
+body:not(.hub-ok) .home-btn{display:none}
+body:not(.hub-ok) a.brand{pointer-events:none;cursor:default}
 @media (max-width:420px){.month-lbl{display:none}}
 .brand-name{font-weight:700;letter-spacing:.2em;text-transform:uppercase;font-size:15px}
 .brand-strip{height:2px;width:80px;margin-top:4px;border-radius:2px;background:linear-gradient(to right,#99F6E4,#EEF3C7,#C4B5FD,#FF9B9B,#FFD4D9)}
