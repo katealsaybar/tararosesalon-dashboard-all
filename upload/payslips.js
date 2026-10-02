@@ -167,11 +167,19 @@ function psFuzzy(payName, branch) {
   return a && a.score >= 1.2 && (!b || a.score - b.score >= 0.3) ? a.s : null;
 }
 
-// One page's person: exact words of the payslip name first, then the closest
-// name; pages from another template fall back to the whole page's text.
+// Payroll names too far from the dashboard name to guess, confirmed by Kate:
+// payslip name (as psNorm gives it) → dashboard name.
+const PS_ALIASES = {
+  'lucia gonzales': 'Lucy Rodriguez', // Kate, 2 Oct 2026
+};
+
+// One page's person: a confirmed alias, then exact words of the payslip name,
+// then the closest name; pages from another template fall back to the page text.
 function psMatchPage(text) {
   const { name, branch } = psPayslipFields(text);
   if (!name) return { match: psMatchText(text), payName: '', fuzzy: false };
+  const alias = PS_STATE.staff.find(s => s.name === PS_ALIASES[psNorm(name)]);
+  if (alias) return { match: alias, payName: name, fuzzy: false };
   const exact = psMatchText(name);
   if (exact) return { match: exact, payName: name, fuzzy: false };
   const near = psFuzzy(name, branch);
