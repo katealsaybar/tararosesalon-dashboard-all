@@ -33,11 +33,11 @@ const LC_SEG = {
   once:    { label: 'One visit only',       short: '1',  min: 1, max: 1 },
 };
 const LC_DAYS = [60, 90, 180];
-// Pages (Kate, 2 Oct 2026): 20 a page by default, or 50 or 100, with "Page 1 of N".
+// Pages (Kate, 2 Oct 2026): 10 a page by default, or 20, 50 or 100, with "Page 1 of N".
 // Replaces the first-200-then-Show-all list. The choice is kept per browser.
-const LC_PER = [20, 50, 100];
-let lcPer = 20;
-try { const v = Number(localStorage.getItem('trs-lost-per')); if (LC_PER.includes(v)) lcPer = v; } catch (e) {}
+const LC_PER = [10, 20, 50, 100];
+let lcPer = 10;
+try { const v = Number(localStorage.getItem('trs-lost-per10')); if (LC_PER.includes(v)) lcPer = v; } catch (e) {}
 
 const lcEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const lcNum = v => Math.round(Number(v) || 0).toLocaleString('en-GB');
@@ -542,7 +542,7 @@ function lcPager(total, pages, n) {
       </div>
     </div>`;
 }
-function lcSetPer(v) { lcPer = v; lcPage = 1; try { localStorage.setItem('trs-lost-per', v); } catch (e) {} lcPaintTable(); }
+function lcSetPer(v) { lcPer = v; lcPage = 1; try { localStorage.setItem('trs-lost-per10', v); } catch (e) {} lcPaintTable(); }
 // A new page starts at its first row: back up to the table's top if it is above the screen.
 function lcGo(d) {
   lcPage += d; lcPaintTable();
@@ -640,16 +640,53 @@ function lcExportLines() {
 // XLSX and CSV (Kate, 2 Oct 2026), written by ledger-export.js's own writer (no
 // library). Header row first, no title rows, so the file imports straight into a
 // sheet or a CRM. File name: lost-clients-SAA-regulars-60d (plus -moved / -search).
-function lcSaveFile(kind) {
-  if (typeof lgxBuild !== 'function') return;
-  const { head, lines } = lcExportLines();
-  const nums = new Set(['Visits', 'Days since', 'Total spend (AED)', 'Avg per visit (AED)']);
+// Her visits in the files too (Kate, 2 Oct 2026: the panel a click opens wasn't in
+// them). lost_clients_detail_bulk (migrations/create_lost_clients_detail_bulk.sql)
+// gives first visit, services, products and retail spend, 400 clients a call, a few
+// calls side by side; kept per branch and name so a second save is instant.
+const lcBulkCache = {};
+async function lcFetchDetails(rows) {
+  const key = n => lcSel.branch + '|' + n;
+  const need = [...new Set(rows.map(r => r.client_name).filter(n => !(key(n) in lcBulkCache)))];
+  const chunks = [];
+  for (let i = 0; i < need.length; i += 400) chunks.push(need.slice(i, i + 400));
+  let next = 0;
+  const worker = async () => {
+    while (next < chunks.length) {
+      const part = chunks[next++];
+      const { data, error } = await sb.rpc('lost_clients_detail_bulk', { p_branch: lcSel.branch, p_clients: part });
+      if (error) throw error;
+      part.forEach(n => { lcBulkCache[key(n)] = null; });
+      (data || []).forEach(d => { lcBulkCache[key(d.client_name)] = d; });
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  return n => lcBulkCache[key(n)] || {};
+}
+let lcSaving = false;
+async function lcSaveFile(kind) {
+  if (typeof lgxBuild !== 'function' || lcSaving) return;
+  const { head, lines, rows } = lcExportLines();
+  const s = document.getElementById('lcCopied');
+  lcSaving = true;
+  if (s) s.textContent = `Adding her visits to ${lcNum(rows.length)} rows…`;
+  try {
+    const det = await lcFetchDetails(rows);
+    head.push('First visit', 'Usual services', 'Products bought', 'Retail spend (AED)');
+    rows.forEach((r, i) => { const d = det(r.client_name); lines[i].push(d.first_visit || '', d.services || '', d.products || '', Number(d.retail_spend) || 0); });
+  } catch (e) {
+    console.error(e);
+    lcSaving = false;
+    if (s) s.textContent = 'Her visits did not load, so the file was not saved. Try again.';
+    return;
+  }
+  lcSaving = false;
+  const nums = new Set(['Visits', 'Days since', 'Total spend (AED)', 'Avg per visit (AED)', 'Retail spend (AED)']);
   const cols = head.map(h => ({ label: h, fmt: /AED/.test(h) ? 'aed' : nums.has(h) ? 'num' : 'text' }));
   const built = lgxBuild({ sheets: [{ name: 'Lost clients ' + lcSel.branch, blocks: [{ cols, rows: lines.map(l => ({ cells: l })) }] }] });
   const name = ['lost-clients', lcSel.branch, lcSel.seg === 'regular' ? 'regulars' : lcSel.seg, lcSel.days + 'd']
     .concat(lcMovedView ? ['moved'] : []).concat(lcQuery.trim() || Object.keys(lcF).some(lcOn) ? ['filtered'] : []).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
-  const s = document.getElementById('lcCopied');
   if (s) s.textContent = `Saved ${lcNum(lines.length)} rows as ${kind.toUpperCase()}`;
 }
