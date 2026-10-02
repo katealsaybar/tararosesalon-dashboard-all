@@ -49,7 +49,18 @@ function toggleTheme() {
   upApplyLogoForTheme();
 }
 // ── TAB ──
+// Phones (Kate, 2 Oct 2026): ten tabs made a 1,850px sideways strip, so under 700px
+// the bar shows only the open tab; tapping it unfolds all ten as a grid (index.html),
+// and picking one folds it again.
+const TAB_FOLD = matchMedia('(max-width:700px)');
 function switchTab(e, tab) {
+  const bar = e.currentTarget.closest('.tab-bar');
+  if (bar && TAB_FOLD.matches && e.currentTarget.classList.contains('active') && !bar.classList.contains('open')) {
+    bar.classList.add('open');
+    if (typeof measureStickyChrome === 'function') measureStickyChrome();
+    return;
+  }
+  if (bar) bar.classList.remove('open');
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.remove('active');
   });
@@ -59,7 +70,8 @@ function switchTab(e, tab) {
   // the active class to the span instead of the button (Kate, 2026-08-13).
   e.currentTarget.classList.add('active');
   // On a phone the tabs are one sideways row, so bring the chosen one into view (Kate, 30 Sep 2026).
-  if (e.currentTarget.scrollIntoView && innerWidth < 980) e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest' });
+  if (e.currentTarget.scrollIntoView && innerWidth < 980 && !TAB_FOLD.matches) e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest' });
+  if (TAB_FOLD.matches && typeof measureStickyChrome === 'function') measureStickyChrome();
 
   document.querySelectorAll('.tab-content').forEach(el => {
     el.classList.remove('active');

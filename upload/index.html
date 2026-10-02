@@ -14,7 +14,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=23"></script>
+<script src="upload.js?v=24"></script>
 <!-- Signed-in people on the dashboard list only (auth.js, 25 Sep 2026); anyone else goes to the dashboard's sign-in and comes back. -->
 <script src="../auth.js?v=20260925d"></script>
 <!-- Kate, 30 Sep 2026: Google sign-in is the only way in (the old shared password card is gone).
@@ -36,7 +36,7 @@
 @media(max-width:979px){.role-payroll .tab-btn[data-tab="payslips"]{order:-1}}
 @media(max-width:600px){
   header{padding:8px 14px}
-  header .logout-btn{padding:6px 11px;font-size:11.5px;min-height:36px;letter-spacing:.06em}
+  header .logout-btn{padding:6px 11px;font-size:12px;min-height:36px;letter-spacing:.06em}
   header .toggle-lbl{display:none}
   header .logo-lockup{width:104px}
   #payslipHost .ps-top{gap:10px}
@@ -265,6 +265,22 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
   .tab-label{min-width:0;overflow:hidden;text-overflow:ellipsis}
   .tab-pip{margin-left:0}
   .tab-btn:not(:has(.tab-qual)) .tab-pip{margin-left:auto}
+}
+/* Phones (Kate, 2 Oct 2026): the ten tabs were a 1,850px sideways strip. Under 700px
+   the bar is one full-width button for the open tab (caret on the right); a tap
+   opens all ten as a two-column grid and picking one folds it (upload.js switchTab). */
+@media(max-width:700px){
+  .tab-bar{flex-wrap:wrap;overflow:visible;gap:6px;border-bottom:0;padding-bottom:10px}
+  .tab-bar:not(.open) .tab-btn:not(.active){display:none}
+  .tab-btn{border:1px solid var(--border);border-radius:10px;margin:0;white-space:normal;text-align:left;
+    font-size:13px;letter-spacing:.06em;padding:10px 12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .tab-btn.active{border-color:var(--accent);background:var(--surface)}
+  .tab-bar:not(.open) .tab-btn.active{width:100%}
+  .tab-bar:not(.open) .tab-btn.active::after{content:"";margin-left:auto;width:8px;height:8px;
+    border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg)}
+  .role-payroll .tab-bar .tab-btn.active::after{display:none}
+  .tab-bar.open{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tab-qual{margin-left:0;font-size:12px}
 }
 .tab-content{display:none}
 .tab-content.active{display:block}
