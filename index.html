@@ -2034,7 +2034,14 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 @media(max-width:760px){.prd-desk{display:none}.prd-cards{display:block}}
 /* Lost Clients (lost-clients.js) on a phone: each control group takes the row, its
    buttons share it evenly. The table becomes the prd-cards list above. */
-@media(max-width:760px){.lc-bar .sc-seg{width:100%}.lc-bar .sc-seg button{flex:1;padding-left:4px;padding-right:4px;white-space:normal;line-height:1.2}}
+/* Lost Clients' controls: three labelled groups in a row on desktop. On a phone the
+   branch takes the first row and Visits / Days share the second, half each, buttons
+   splitting the width evenly (they keep mobile.css's 44px tap height). */
+.lc-bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}
+.lc-grp{display:flex;flex-direction:column;gap:5px}
+.lc-grp .slv-eyebrow{margin:0 0 0 4px}
+@media(max-width:760px){.lc-bar{gap:10px}.lc-grp{flex:1 1 0;min-width:0}.lc-grp-branch{flex-basis:100%}
+  .lc-bar .sc-seg{width:100%}.lc-bar .sc-seg button{flex:1;padding-left:2px;padding-right:2px}}
 .sc-seg{display:flex;gap:2px;padding:2px;border:1px solid var(--border);
   border-radius:999px;background:var(--surface)}
 .sc-seg button{appearance:none;border:0;background:transparent;color:var(--muted);
@@ -3627,7 +3634,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20261002cards"></script>
 <script src="staff-weeks.js?v=20261001aim"></script>
 <script src="products.js?v=20261002wk"></script>
-<script src="lost-clients.js?v=20261002mv"></script>
+<script src="lost-clients.js?v=20261002flt"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261002lost"></script>

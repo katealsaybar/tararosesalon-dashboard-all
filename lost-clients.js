@@ -28,9 +28,9 @@ try { Object.assign(lcSel, JSON.parse(localStorage.getItem('trs-lost') || '{}'))
 const LC_BRANCH = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
 // min/max visits per segment. Visits = days the client came in at that branch.
 const LC_SEG = {
-  regular: { label: 'Regulars (3+ visits)', min: 3, max: null },
-  twice:   { label: 'Came twice',           min: 2, max: 2 },
-  once:    { label: 'One visit only',       min: 1, max: 1 },
+  regular: { label: 'Regulars (3+ visits)', short: '3+', min: 3, max: null },
+  twice:   { label: 'Came twice',           short: '2',  min: 2, max: 2 },
+  once:    { label: 'One visit only',       short: '1',  min: 1, max: 1 },
 };
 const LC_DAYS = [60, 90, 180];
 const LC_LIMIT = 200;   // rows drawn before "Show all"; a branch can have 2,000+
@@ -69,10 +69,10 @@ function lcShell(body) {
       <h2>Lost Clients</h2>
       <p>Clients who used to come in and haven't been back, by branch, highest spend first. For reference and outreach planning.</p>
     </section>
-    <div class="sc-bar w13-bar lc-bar" style="flex-wrap:wrap;gap:8px">
-      ${seg('branch', Object.entries(LC_BRANCH).map(([k]) => [k, k]))}
-      ${seg('seg', Object.entries(LC_SEG).map(([k, s]) => [k, s.label]))}
-      ${seg('days', LC_DAYS.map(d => [d, `${d}+ days`]))}
+    <div class="sc-bar w13-bar lc-bar">
+      <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', Object.entries(LC_BRANCH).map(([k]) => [k, k]))}</div>
+      <div class="lc-grp"><div class="slv-eyebrow">Visits</div>${seg('seg', Object.entries(LC_SEG).map(([k, s]) => [k, s.short]))}</div>
+      <div class="lc-grp"><div class="slv-eyebrow">Days away</div>${seg('days', LC_DAYS.map(d => [d, `${d}+`]))}</div>
     </div>
     <div id="lcBody">${body}</div>`;
 }
