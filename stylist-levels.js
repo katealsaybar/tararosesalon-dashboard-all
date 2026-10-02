@@ -98,10 +98,35 @@ function slvAtLevel(cur, next) {
     const away = share !== null && share < 1 ? ` <span class="slv-note" style="display:inline">· aims cut to ${Math.round(share * 100)}% of the month</span>` : '';
     return `<tr><td>${slvEsc(s.name)}<div class="slv-note">${slvEsc((typeof BRANCH_INFO !== 'undefined' && BRANCH_INFO[s.branch] && BRANCH_INFO[s.branch].name) || s.branch)}${away}</div></td>${cells}${next ? `<td class="slv-next">${of ? `${hit} of ${of}` : '–'}</td>` : ''}</tr>`;
   }).join('');
-  return head + `<div class="slv-wrap"><table class="slv-table">
+  return head + slvAtCards(people, cols, cur, next, nextKeys) + `<div class="slv-wrap slv-at-t"><table class="slv-table">
       <thead><tr><th>Stylist</th>${cols.map(([, l]) => `<th>${slvEsc(l)}</th>`).join('')}${next ? `<th>${slvEsc(next.level)} aims hit</th>` : ''}</tr></thead>
       <tbody>${rows}</tbody></table></div>
-    <p class="slv-muted">Her month's actuals against this level: red under the minimum, amber between minimum and aim, green at the aim (point at a figure for both). Totals are cut to the days she worked in a first month or after 4+ days of leave, as on her own page.${next ? ` The last column counts the ${slvEsc(next.level)} aims she already reaches.` : ''}</p>`;
+    <p class="slv-muted">Her month's actuals against this level<span class="slv-cur-note">, amounts in AED</span>: red under the minimum, amber between minimum and aim, green at the aim (point at a figure for both). Totals are cut to the days she worked in a first month or after 4+ days of leave, as on her own page.${next ? ` The last column counts the ${slvEsc(next.level)} aims she already reaches.` : ''}</p>`;
+}
+// Phones (Kate, 2 Oct 2026): the table above is eight columns, 807px on a 375px
+// screen. Under 760px each stylist is a card instead (mobile.css): name and branch,
+// the next level's aims hit, and her figures as coloured tiles in the same bands.
+function slvAtCards(people, cols, cur, next, nextKeys) {
+  const fm = (v, f) => slvFmt(v, f === 'aed' ? 'num' : f);   // AED said once, in the note below
+  return `<div class="slv-m">${people.map(s => {
+    const n = s.numbers || {}, share = slvShare(n, slvMonth);
+    const tiles = cols.map(([k, l, f]) => {
+      const v = n[k], b = cur.kpis[k];
+      if (v === null || v === undefined) return `<div class="slv-mt"><span>${slvEsc(l)}</span><b>–</b></div>`;
+      const min = slvCut(b.min, k, f, share), aim = slvCut(b.target, k, f, share);
+      const cls = aim != null && v >= aim ? 'good' : min != null && v < min ? 'bad' : 'mid';
+      return `<div class="slv-mt ${cls}"><span>${slvEsc(l)}</span><b>${fm(v, f)}</b><small>aim ${fm(aim, f)}</small></div>`;
+    }).join('');
+    let hit = 0, of = 0;
+    nextKeys.forEach(k => { const v = n[k]; if (v === null || v === undefined) return; of++;
+      const f = (SLV_GROUPS.flatMap(g => g[1]).find(x => x[0] === k) || [, , 'num'])[2];
+      if (v >= slvCut(next.kpis[k].target, k, f, share)) hit++; });
+    const br = (typeof BRANCH_INFO !== 'undefined' && BRANCH_INFO[s.branch] && BRANCH_INFO[s.branch].name) || s.branch;
+    const away = share !== null && share < 1 ? ` · aims cut to ${Math.round(share * 100)}%` : '';
+    return `<div class="slv-mc"><div class="slv-mc-h"><div><b>${slvEsc(s.name)}</b><div class="slv-note">${slvEsc(br)}${away}</div></div>
+      ${next ? `<div class="slv-mc-n"><b>${of ? `${hit} of ${of}` : '–'}</b><span>${slvEsc(next.level)} aims</span></div>` : ''}</div>
+      <div class="slv-mts">${tiles}</div></div>`;
+  }).join('')}</div>`;
 }
 function slvSetMonth(m) {
   slvMonth = m;
@@ -131,12 +156,15 @@ async function renderStylistLevels() {
   const levels = slvData;
   const i = Math.max(0, levels.findIndex(l => l.level === slvPick));
   const cur = levels[i], next = levels[i + 1];
-  const cell = (b, f) => slvFmt(b && b.target, f);
+  // The guide's money cells: "AED " in its own span, dropped on a phone (mobile.css)
+  // so three amounts fit beside the measure; the note under the table says AED.
+  const amt = (v, f) => f === 'aed' && v != null && v !== '' ? '<span class="slv-cur">AED </span>' + slvFmt(v, 'num') : slvFmt(v, f);
+  const cell = (b, f) => amt(b && b.target, f);
   const rows = SLV_GROUPS.map(([g, list]) => {
     const body = list.filter(([k]) => cur.kpis[k] || (next && next.kpis[k])).map(([k, label, f]) => {
       const b = cur.kpis[k], nb = next && next.kpis[k];
       const note = SLV_NOTES[k] ? `<div class="slv-note">${slvEsc(SLV_NOTES[k])}</div>` : '';
-      return `<tr><td>${slvEsc(label)}${note}</td><td>${slvFmt(b && b.min, f)}</td><td class="slv-aim">${cell(b, f)}</td>${next ? `<td class="slv-next">${cell(nb, f)}</td>` : ''}</tr>`;
+      return `<tr><td>${slvEsc(label)}${note}</td><td>${amt(b && b.min, f)}</td><td class="slv-aim">${cell(b, f)}</td>${next ? `<td class="slv-next">${cell(nb, f)}</td>` : ''}</tr>`;
     }).join('');
     return body ? `<tr class="slv-g"><th colspan="${next ? 4 : 3}">${slvEsc(g)}</th></tr>${body}` : '';
   }).join('');
@@ -156,11 +184,11 @@ async function renderStylistLevels() {
         <div><div class="slv-eyebrow">Level ${i + 1} of ${levels.length}</div><h3>${slvEsc(cur.level)}</h3></div>
         <p>${next ? `To move up to <strong>${slvEsc(next.level)}</strong>, reach the numbers in the last column.` : 'The top of the ladder. Hold these aims month after month.'}</p>
       </div>
-      <div class="slv-wrap"><table class="slv-table">
+      <div class="slv-wrap"><table class="slv-table slv-guide">
         <thead><tr><th>Measure</th><th>Minimum</th><th>Aim</th>${next ? `<th>To reach ${slvEsc(next.level)}</th>` : ''}</tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
-      <p class="slv-muted">Monthly numbers. A dash means it isn't set for that level. Beauty levels are still being set with Tara.</p>
+      <p class="slv-muted">Monthly numbers<span class="slv-cur-note">, amounts in AED</span>. A dash means it isn't set for that level. Beauty levels are still being set with Tara.</p>
     </section>
     <section class="slv-card slv-at" id="slvAt">${slvAtLevel(cur, next)}</section>`;
   // On a phone the pills are one swipeable row: keep the chosen level in view.

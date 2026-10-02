@@ -13,7 +13,7 @@
    ══════════════════════════════════════════════════════════════ */
 
 /* Phone-only pieces exist in the markup at every width; they only show below. */
-.mast-body,.fsheet,.fsheet-scrim,#fSheetBtn,.nav-phone,.m-avg,.svc-m,.cmp-fold{display:none}
+.mast-body,.fsheet,.fsheet-scrim,#fSheetBtn,.nav-phone,.m-avg,.svc-m,.cmp-fold,.slv-m,.slv-cur-note{display:none}
 
 /* ===== MOBILE (≤ 760px) · 1. COMPACT HEADER ===== */
 @media(max-width:760px),(hover:none) and (max-height:480px){
@@ -408,6 +408,31 @@
   .tp-q-segs .tp-seg{display:flex;flex:1 1 100%}
   .tp-q-segs .tp-seg button{flex:1 1 0;line-height:1.2}
   .tp-q-chips{grid-template-columns:repeat(2,minmax(0,1fr))}
+  /* Staff Levels (Kate, 2 Oct 2026). At this level: a card per stylist instead of
+     the 8-column table (stylist-levels.js slvAtCards). The guide: tighter cells, the
+     measure column may wrap, so Minimum / Aim / next level fit the card. */
+  .slv-at-t{display:none}
+  .slv-m{display:grid;gap:10px}
+  .slv-mc{border:1px solid var(--border);border-radius:12px;padding:12px}
+  .slv-mc-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
+  .slv-mc-h b{font-size:15px}
+  .slv-mc-n{text-align:right;flex:none}
+  .slv-mc-n b{display:block;font-size:15px;color:var(--hair)}
+  .slv-mc-n span{font-size:12px;color:var(--muted)}
+  .slv-mts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .slv-mt{border-radius:8px;padding:6px 8px;background:var(--surface2);min-width:0;line-height:1.3}
+  .slv-mt span{display:block;font-size:12px;color:var(--muted)}
+  .slv-mt b{display:block;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .slv-mt small{display:block;font-size:12px;opacity:.85}
+  .slv-mt.good{background:var(--good-bg)}.slv-mt.good b{color:var(--good)}
+  .slv-mt.mid{background:var(--warn-bg)}.slv-mt.mid b{color:var(--warn)}
+  .slv-mt.bad{background:var(--bad-bg)}.slv-mt.bad b{color:var(--bad)}
+  .slv-guide th,.slv-guide td{padding:8px 5px;font-size:13px}
+  .slv-guide thead th{white-space:normal;vertical-align:bottom}
+  .slv-guide th:first-child,.slv-guide td:first-child{min-width:0;padding-left:0}
+  .slv-guide th:last-child,.slv-guide td:last-child{padding-right:0}
+  .slv-guide .slv-cur{display:none}
+  .slv-cur-note{display:inline}
   /* Podium Race (Kate, 2 Oct 2026): the rings' figures were 11px, their labels
      10.5px and the aims 10px, the smallest text on any page. On a phone the rings
      draw at 60px (the figure scales with them, to about 14px), labels and aims go
