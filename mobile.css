@@ -408,6 +408,17 @@
   .tp-q-segs .tp-seg{display:flex;flex:1 1 100%}
   .tp-q-segs .tp-seg button{flex:1 1 0;line-height:1.2}
   .tp-q-chips{grid-template-columns:repeat(2,minmax(0,1fr))}
+  /* Podium Race (Kate, 2 Oct 2026): the rings' figures were 11px, their labels
+     10.5px and the aims 10px, the smallest text on any page. On a phone the rings
+     draw at 60px (the figure scales with them, to about 14px), labels and aims go
+     to 12px, and the four share the card's width. The rank 4+ tiles do the same. */
+  .tp-rings{gap:6px;flex-wrap:nowrap}
+  .tp-ring{flex:1 1 0;min-width:0;width:auto;max-width:76px;font-size:12px;letter-spacing:.02em}
+  .tp-ring svg{width:60px;height:60px}
+  .tp-aim{font-size:12px;opacity:.9}
+  .tp-tiles{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .tp-tile{padding:5px 6px}
+  .tp-tile span{font-size:12px;letter-spacing:.02em}
 }
 
 /* ===== MOBILE · 9. TYPE FLOOR (P2) =====
