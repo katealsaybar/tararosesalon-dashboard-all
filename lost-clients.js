@@ -112,9 +112,15 @@ function lcPaint() {
   const phones = lcAll.some(r => r.mobile || r.landline);
   const spend = lost.reduce((a, r) => a + (Number(r.spend) || 0), 0);
   const withNo = lost.filter(r => r.mobile || r.landline).length;
-  const byStylist = {};
-  lost.forEach(r => { if (r.stylist) byStylist[r.stylist] = (byStylist[r.stylist] || 0) + 1; });
-  const topSt = Object.entries(byStylist).sort((a, b) => b[1] - a[1])[0];
+  // Who most of them saw, hair and beauty apart (Kate, 2 Oct 2026), from the same
+  // split as the table's Usual stylist and Usual beautician columns (lcTeam).
+  const topOf = side => {
+    const n = {};
+    lost.forEach(r => { const who = lcTeam(r)[side][0]; if (who) n[who] = (n[who] || 0) + 1; });
+    return Object.entries(n).sort((a, b) => b[1] - a[1])[0];
+  };
+  const topSt = topOf('hair'), topBt = topOf('beauty');
+  const topTile = (label, t) => `<div class="w13-tile"><div class="slv-eyebrow">${label}</div><div class="w13-val lc-who">${t ? lcStylist(t[0]) : '–'}</div><div class="slv-note">${t ? 'usual for ' + lcNum(t[1]) + ' of them' : ''}</div></div>`;
 
   document.getElementById('lcBody').innerHTML = `
     <section class="slv-card lc-board" id="lcBoard"></section>
@@ -123,11 +129,12 @@ function lcPaint() {
         <div><div class="slv-eyebrow">${lcEsc(LC_BRANCH[lcSel.branch])}</div><h3>${lcEsc(seg.label)}, not back in ${lcNum(lcSel.days)}+ days</h3></div>
         <p>Visits since 1 Jan 2025</p>
       </div>
-      <div class="w13-tiles">
+      <div class="w13-tiles lc-tiles">
         <div class="w13-tile"><div class="slv-eyebrow">Clients</div><div class="w13-val">${lcNum(lost.length)}</div><div class="slv-note">haven't been back</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">What they spent</div><div class="w13-val">AED ${lcNum(spend)}</div><div class="slv-note">since Jan 2025, ex VAT</div></div>
         ${phones ? `<div class="w13-tile"><div class="slv-eyebrow">With a phone number</div><div class="w13-val">${lcNum(withNo)}</div><div class="slv-note">${lost.length ? Math.round(100 * withNo / lost.length) : 0}% of the list</div></div>` : ''}
-        <div class="w13-tile"><div class="slv-eyebrow">Most of them saw</div><div class="w13-val" style="font-size:20px">${lcEsc(topSt ? topSt[0] : '–')}</div><div class="slv-note">${topSt ? lcNum(topSt[1]) + ' clients' : ''}</div></div>
+        ${topTile('Their stylist', topSt)}
+        ${topTile('Their beautician', topBt)}
       </div>
       ${moved.length ? `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0 0">
         <span class="slv-muted" style="margin:0">${lcMovedView
@@ -625,6 +632,7 @@ function lcExportLines() {
     if (c.k === 'stylist') { head.push('Usual stylist', 'Also saw (hair)'); pick.push(r => lcTeam(r).hair[0] || '', r => lcTeam(r).hair.slice(1).join(', ')); return; }
     if (c.k === 'beauty') { head.push('Usual beautician', 'Also saw (beauty)'); pick.push(r => lcTeam(r).beauty[0] || '', r => lcTeam(r).beauty.slice(1).join(', ')); return; }
     head.push(c.xl || c.label); pick.push(c.get);
+    if (c.k === 'client') { head.push('Branch'); pick.push(() => LC_BRANCH[lcSel.branch] || lcSel.branch); }
   });
   return { head, lines: rows.map(r => pick.map(f => f(r))), rows };
 }
