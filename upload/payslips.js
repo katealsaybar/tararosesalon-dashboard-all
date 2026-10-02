@@ -492,12 +492,16 @@ async function psUploadOne(staffId, file) {
   catch (e) { alert('Couldn’t save it: ' + e.message); }
 }
 
-async function psView(staffId) {
-  const w = window.open('', '_blank');
-  try {
-    const d = await psCall({ action: 'url', admin: psKey(), month: PS_STATE.month, staff_id: staffId });
-    if (d.url) w.location = d.url; else { w.close(); alert('No payslip for this month.'); }
-  } catch (e) { w.close(); alert(e.message); }
+// Kate, 2 Oct 2026: opens on trk-salon-os.com/payslip/, not the storage address
+// (payslip/open.js passes the 10-minute link across).
+function psView(staffId) {
+  const person = PS_STATE.staff.find(s => s.id === staffId);
+  openPayslipPage(
+    async () => {
+      const d = await psCall({ action: 'url', admin: psKey(), month: PS_STATE.month, staff_id: staffId });
+      return d.url ? { url: d.url, name: person ? psFileName(person) : 'payslip.pdf' } : null;
+    },
+    e => alert(e ? e.message : 'No payslip for this month.'));
 }
 
 async function psRemove(staffId) {

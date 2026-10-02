@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Payslip · Tara Rose Salons</title>
+<!-- Kate, 2 Oct 2026: payslips open here, on trk-salon-os.com, instead of on the
+     Supabase storage address. The page holds no link and no key of its own: the
+     button that opened it (payslip/open.js) posts it the 10-minute link, and it
+     fetches the PDF from that. A reload asks the opener again; with no opener it
+     says to go back and press the button. -->
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=20261002viewas">
+<style>
+  body{background:var(--bg)}
+  .ps-wrap{max-width:900px;margin:0 auto;padding:16px 16px 48px}
+  .ps-head{display:flex;align-items:center;gap:16px;padding:6px 0 14px;border-bottom:1px solid var(--border)}
+  .ps-head .kb-brand img{width:110px}
+  .ps-titles{flex:1;min-width:0}
+  .ps-titles h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:22px;margin:0;line-height:1.2}
+  .ps-titles p{margin:2px 0 0;font-size:12.5px;color:var(--muted2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ps-save{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 18px;border-radius:999px;flex:none;
+    background:var(--accent-mint);color:#1A1A1A;font-weight:600;font-size:14px;text-decoration:none}
+  .ps-save[hidden]{display:none}
+  .ps-msg{padding:48px 4px;color:var(--muted);font-size:15px;line-height:1.55;max-width:520px}
+  .ps-frame{display:block;width:100%;height:calc(100vh - 120px);height:calc(100dvh - 120px);margin-top:14px;border:1px solid var(--border);border-radius:12px;background:#fff}
+  .ps-pages{margin-top:14px;display:flex;flex-direction:column;gap:12px}
+  .ps-pages canvas{display:block;width:100%;height:auto;background:#fff;border-radius:8px;box-shadow:var(--shadow)}
+  @media (max-width:560px){
+    .ps-head{flex-wrap:wrap;gap:10px 14px}
+    .ps-head .kb-brand img{width:92px}
+    .ps-titles h1{font-size:19px}
+    .ps-save{width:100%;justify-content:center}
+  }
+</style>
+</head>
+<body>
+<div class="ps-wrap">
+  <header class="ps-head">
+    <span class="kb-brand"><img class="kb-logo-light" src="/assets/mast-ink.png" alt="Tara Rose"><img class="kb-logo-dark" src="/assets/mast-paper.png" alt="Tara Rose"><span>Salons</span></span>
+    <div class="ps-titles"><h1>Your payslip</h1><p id="psName"></p></div>
+    <a class="ps-save" id="psSave" hidden>Save PDF</a>
+  </header>
+  <main id="psMain"><p class="ps-msg">Opening your payslip…</p></main>
+</div>
+<script>
+(function () {
+  var main = document.getElementById('psMain');
+  var GONE = 'This page opens from the <b>Open your payslip</b> button. Go back to that page and press it again.';
+  function say(html) { main.innerHTML = '<p class="ps-msg">' + html + '</p>'; }
+  var shown = false;
+
+  async function pages(buf) {
+    // Phones with no PDF viewer inside a page (Android): draw each page with pdf.js.
+    await new Promise(function (ok, no) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+      s.onload = ok; s.onerror = no; document.head.append(s);
+    });
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    var pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    var box = document.createElement('div'); box.className = 'ps-pages';
+    main.innerHTML = ''; main.append(box);
+    var dpr = Math.min(window.devicePixelRatio || 1, 3), width = box.clientWidth;
+    for (var i = 1; i <= pdf.numPages; i++) {
+      var page = await pdf.getPage(i), base = page.getViewport({ scale: 1 });
+      var vp = page.getViewport({ scale: width / base.width * dpr });
+      var cv = document.createElement('canvas');
+      cv.width = Math.floor(vp.width); cv.height = Math.floor(vp.height);
+      cv.setAttribute('aria-label', 'Payslip page ' + i);
+      box.append(cv);
+      await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    }
+  }
+
+  async function show(url, name) {
+    if (shown) return;
+    shown = true;
+    try {
+      var r = await fetch(url);
+      if (!r.ok) throw new Error(String(r.status));
+      var buf = await r.arrayBuffer();
+      name = String(name || 'payslip.pdf');
+      var file = new File([buf], name, { type: 'application/pdf' });
+      var href = URL.createObjectURL(file);
+      document.getElementById('psName').textContent = name.replace(/_/g, ' ').replace(/\.pdf$/i, '');
+      var save = document.getElementById('psSave');
+      save.href = href; save.download = name; save.hidden = false;
+      if (navigator.pdfViewerEnabled) {
+        // Desktop browsers and iPhones: the real PDF, selectable and printable.
+        main.innerHTML = '';
+        var f = document.createElement('iframe');
+        f.className = 'ps-frame'; f.title = 'Payslip'; f.src = href;
+        main.append(f);
+      } else {
+        await pages(buf.slice(0));
+      }
+    } catch (e) {
+      shown = false;
+      say('This link has timed out or couldn’t load. ' + GONE);
+    }
+  }
+
+  window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin || !e.data || e.data.type !== 'payslip' || !e.data.url) return;
+    show(e.data.url, e.data.name);
+  });
+  if (window.opener) {
+    try { window.opener.postMessage({ type: 'payslip-ready' }, location.origin); } catch (e) {}
+  } else say(GONE);
+  setTimeout(function () { if (!shown) say(GONE); }, 12000);
+})();
+</script>
+</body>
+</html>

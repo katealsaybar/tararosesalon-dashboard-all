@@ -810,11 +810,11 @@ async function loadPayslip() {
     }
     box.innerHTML = `<p>Your payslip is ready. Only you can open it.</p>
       <button class="btn" id="payslipOpen">Open your payslip (PDF)</button>`;
-    document.getElementById('payslipOpen').onclick = async () => {
-      const w = window.open('', '_blank');
-      try { const q = await payslipMine(); if (q.url) w.location = q.url; else w.close(); }
-      catch (e) { w.close(); alert("Couldn't open it just now. Try again in a minute."); }
-    };
+    // Kate, 2 Oct 2026: opens on trk-salon-os.com/payslip/, not the storage address
+    // (payslip/open.js passes the 10-minute link across).
+    document.getElementById('payslipOpen').onclick = () => openPayslipPage(
+      async () => { const q = await payslipMine(); return q.url ? { url: q.url, name: q.file_name } : null; },
+      e => { if (e) alert("Couldn't open it just now. Try again in a minute."); });
   } catch (e) {
     box.innerHTML = `<p class="muted">Couldn't check for your payslip just now.</p>`;
   }
