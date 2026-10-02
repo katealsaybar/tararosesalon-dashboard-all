@@ -125,6 +125,9 @@ html.embedded,html.embedded body{overflow:hidden}
 html.embedded .wrap{padding-top:8px}
 html.embedded .filters{position:static}
 @media (max-width:900px){.srow{grid-template-columns:36px 1fr 90px}.srow .bar{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.brow{grid-template-columns:110px 1fr 70px}.filters{position:static}}
+/* The phone filter bar, pills and Done row; hidden here so desktop is unchanged. */
+.fbar,.fpills,.fdone,.chip .sh{display:none}
+.fbody{display:contents}
 /* Phones (Kate, 25 Sep 2026). Framed in the dashboard, whose page already has a
    side gutter, so the frame's own goes. Bars and staff rows stack: name and count
    on one line, the bar under them, so no figure is squeezed into a fixed column. */
@@ -149,6 +152,45 @@ html.embedded .filters{position:static}
   .tlab div:last-child{direction:rtl;text-align:right}
   input,select{font-size:16px}
   .chip,button{min-height:44px}
+  /* Filter panel (Kate, 2 Oct 2026). Closed: one bar plus pills of what's on, and it
+     follows the scroll (app.js placeFilters). Open: each group is a tile grid with
+     its label above, so nothing wraps into ragged rows. */
+  .filters{padding:10px 12px;gap:0}
+  html:not(.embedded) .filters:not(.open){position:sticky;top:0}
+  .fbar{display:flex;align-items:center;gap:10px}
+  .fopen{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rose);background:var(--rose);color:var(--on-accent);border-radius:999px;padding:0 16px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  .fbadge:not(:empty){min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--on-accent);color:var(--rose);font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+  .fcaret{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+  .filters.open .fcaret{transform:translateY(2px) rotate(-135deg)}
+  .fcount{color:var(--muted);font-size:13px;line-height:1.3;min-width:0}
+  .fcount b{color:var(--text);font-variant-numeric:tabular-nums}
+  .fpills{display:flex;flex-wrap:wrap;gap:6px}
+  .fpills:not(:empty){margin-top:10px}
+  .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:999px;padding:0 6px 0 12px;font:inherit;font-size:13px;cursor:pointer;min-height:36px;max-width:100%}
+  .pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pill i{font-style:normal;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--surface);color:var(--muted);font-size:14px;line-height:1;flex:none}
+  .filters.open .fpills{display:none}
+  .fbody{display:none}
+  .filters.open .fbody{display:grid;gap:16px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+  .fbody > .frow{display:block}
+  .fbody .flabel{display:block;width:auto;margin-bottom:8px}
+  #fBranch,#fRec{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  #fStars{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:6px}
+  #fStars .chip{grid-column:span 6}
+  #fStars .chip:first-child{grid-column:span 3}
+  #fStars .chip:nth-child(n+5){grid-column:span 3}
+  .fbody .chip .lb{display:none}.fbody .chip .sh{display:inline}
+  #fStars .sep{display:none}
+  .fbody .chip{border-radius:10px;flex-direction:column;justify-content:center;gap:0;padding:6px 4px;text-align:center;line-height:1.2;min-width:0;padding-left:2px;padding-right:2px}
+  .fbody .chip .n{font-size:12px}
+  #fStaff{width:100%;min-height:44px}
+  #fMore{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  #fMore .chip{border-radius:10px;padding:6px 10px}
+  .fbody .search{display:block;width:100%;min-width:0;margin-top:8px;min-height:44px}
+  .fbody .reset{display:none}
+  .fdone{display:flex;gap:8px;position:sticky;bottom:0}
+  .fdone .reset2{flex:none;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:0 16px;font:inherit;font-size:14px;cursor:pointer}
+  .fdone .done{flex:1;border:0;background:var(--rose);color:var(--on-accent);border-radius:999px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
 }
 </style>
 </head>
@@ -162,7 +204,15 @@ html.embedded .filters{position:static}
   <button class="themebtn" id="theme">Dark mode</button>
 </header>
 
-<div class="filters">
+<div class="filters" id="filters">
+  <!-- Phones only (Kate, 2 Oct 2026): the five rows took a whole screen, so they fold
+       behind this bar. It shows the count and what's on; tap a pill to clear it. -->
+  <div class="fbar">
+    <button type="button" class="fopen" id="fOpen" aria-expanded="false" aria-controls="fBody">Filters<span class="fbadge" id="fBadge"></span><span class="fcaret" aria-hidden="true"></span></button>
+    <span class="fcount" id="fCount"></span>
+  </div>
+  <div class="fpills" id="fPills"></div>
+  <div class="fbody" id="fBody">
   <div class="frow"><span class="flabel">Branch</span><div id="fBranch" class="frow"></div></div>
   <div class="frow"><span class="flabel">Rating</span><div id="fStars" class="frow"></div></div>
   <div class="frow"><span class="flabel">Recency</span><div id="fRec" class="frow"></div></div>
@@ -171,6 +221,8 @@ html.embedded .filters{position:static}
     <div class="frow" id="fMore"></div>
     <input class="search" id="q" placeholder="Search review text, reviewer, stylist name…">
     <button class="reset" id="reset">Reset filters</button>
+  </div>
+  <div class="fdone"><button type="button" class="reset2" id="reset2">Reset all</button><button type="button" class="done" id="fDone">Show <span id="fDoneN"></span> reviews</button></div>
   </div>
 </div>
 
@@ -221,6 +273,6 @@ html.embedded .filters{position:static}
 <script src="../../staff-profiles.js?v=20261002va"></script>
 <script src="../../auth.js?v=20260925d"></script>
 <script src="review-links.js?v=20260928a"></script>
-<script src="app.js?v=15"></script>
+<script src="app.js?v=17"></script>
 </body>
 </html>

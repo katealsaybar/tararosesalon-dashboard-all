@@ -149,9 +149,10 @@ function baseFilter(skip){
     (skip==="staff" || !state.staff || (state.staff==="__any" ? r.staff.length : r.staff.includes(state.staff))) &&
     (!state.q || (r.comment+" "+r.reviewer+" "+r.reply).toLowerCase().includes(state.q.toLowerCase())));
 }
-function chip(label, on, n, fn, extra){
+// short: the phone panel's label (index.html swaps it in under the phone band).
+function chip(label, on, n, fn, extra, short){
   const b=document.createElement("button"); b.className="chip"+(on?" on":"");
-  b.innerHTML=esc(label)+(extra||"")+(n!==null?` <span class="n">${n}</span>`:""); b.onclick=fn; return b;
+  b.innerHTML=(short?`<span class="lb">${esc(label)}</span><span class="sh">${esc(short)}</span>`:esc(label))+(extra||"")+(n!==null?` <span class="n">${n}</span>`:""); b.onclick=fn; return b;
 }
 function sep(){const d=document.createElement("span");d.className="sep";return d;}
 function toggle(set, all, v){
@@ -180,7 +181,7 @@ function renderFilters(){
   const pr=baseFilter("rec");
   REC.forEach(([k,l])=>{
     const full = isComplete(k, state.branches);
-    fr.appendChild(chip(l, state.rec===k, k==="all"?pr.length:pr.filter(r=>days(r.date)<=+k).length, ()=>{state.rec=k;render();}, ""));
+    fr.appendChild(chip(l, state.rec===k, k==="all"?pr.length:pr.filter(r=>days(r.date)<=+k).length, ()=>{state.rec=k;render();}, "", l.replace(/^Last /,"")));
   });
   const fst=document.getElementById("fStaff");
   if (fst) {
@@ -194,7 +195,48 @@ function renderFilters(){
   const fm=document.getElementById("fMore"); fm.innerHTML="";
   fm.appendChild(chip("With written comment only", state.withText, null, ()=>{state.withText=!state.withText;render();}));
   fm.appendChild(chip("No reply yet", state.noReply, null, ()=>{state.noReply=!state.noReply;render();}));
+  renderSummary();
 }
+// The phone filter bar (Kate, 2 Oct 2026): what's on, as pills that clear on a tap.
+// The recency pill shows only when it isn't the 90-day default, which the count
+// line names anyway. Hidden above the phone band (index.html).
+function renderSummary(){
+  const F=baseFilter(), pills=[];
+  if(state.branches.size!==BRANCHES.length){
+    const b=BRANCHES.filter(x=>state.branches.has(x)).map(x=>SHORT[x]);
+    pills.push([b.length>2?b.length+" branches":b.join(", "), ()=>{state.branches=new Set(BRANCHES);}]);
+  }
+  if(!setEq(state.stars,ALL)){
+    const l=setEq(state.stars,[1,2,3])?"Complaints 1–3★":setEq(state.stars,[4,5])?"Positive 4–5★":ALL.filter(x=>state.stars.has(x)).map(x=>x+"★").join(", ");
+    pills.push([l, ()=>{state.stars=new Set(ALL);}]);
+  }
+  if(state.rec!==DEFAULT_REC) pills.push([REC.find(x=>x[0]===state.rec)[1], ()=>{state.rec=DEFAULT_REC;}]);
+  if(state.staff){
+    const s=STAFF.find(x=>x.key===state.staff);
+    pills.push([state.staff==="__any"?"Names any staff":(s?s.label:state.staff), ()=>{state.staff="";}]);
+  }
+  if(state.withText) pills.push(["With comment", ()=>{state.withText=false;}]);
+  if(state.noReply) pills.push(["No reply yet", ()=>{state.noReply=false;}]);
+  if(state.q) pills.push(["“"+state.q+"”", ()=>{state.q="";document.getElementById("q").value="";}]);
+  const fp=document.getElementById("fPills"); fp.innerHTML="";
+  pills.forEach(([l,clear])=>{
+    const b=document.createElement("button"); b.type="button"; b.className="pill";
+    b.setAttribute("aria-label","Clear "+l); b.innerHTML=`<span>${esc(l)}</span><i aria-hidden="true">×</i>`;
+    b.onclick=()=>{clear();render();}; fp.appendChild(b);
+  });
+  document.getElementById("fBadge").textContent=pills.length||"";
+  const recLabel=REC.find(x=>x[0]===state.rec)[1];
+  document.getElementById("fCount").innerHTML=`<b>${F.length.toLocaleString("en-GB")}</b> review${F.length===1?"":"s"} · ${esc(recLabel)}`;
+  document.getElementById("fDoneN").textContent=F.length.toLocaleString("en-GB");
+}
+let onFiltersToggle=()=>{};
+function setFiltersOpen(open){
+  document.getElementById("filters").classList.toggle("open",open);
+  document.getElementById("fOpen").setAttribute("aria-expanded",open);
+  onFiltersToggle();
+}
+document.getElementById("fOpen").onclick=()=>setFiltersOpen(!document.getElementById("filters").classList.contains("open"));
+document.getElementById("fDone").onclick=()=>setFiltersOpen(false);
 function renderKpis(F){
   const low=F.filter(r=>r.stars<=3).length, hi=F.length-low;
   const avg=F.length?(F.reduce((a,r)=>a+r.stars,0)/F.length).toFixed(2):"–";
@@ -360,6 +402,7 @@ function render(){
 document.getElementById("q").oninput=e=>{state.q=e.target.value;render();};
 document.getElementById("sort").onchange=e=>{state.sort=e.target.value;render();};
 document.getElementById("reset").onclick=()=>{Object.assign(state,{branches:new Set(BRANCHES),stars:new Set(ALL),rec:DEFAULT_REC,withText:false,noReply:false,q:"",staff:""});document.getElementById("q").value="";render();};
+document.getElementById("reset2").onclick=()=>document.getElementById("reset").click();
 // Embedded in the dashboard: no own toggle and no own scrollbar. The dashboard's
 // sticky-header toggle sends the theme by postMessage (direct parent access is
 // blocked when the dashboard is opened from file://), and this page reports its
@@ -378,7 +421,8 @@ if(window.parent!==window){
   // The dashboard scrolls, not this frame, so position:sticky has nothing to stick
   // to. The dashboard sends how far this frame's top is under its header (pin), and
   // the filter bar is moved down by that much, stopping at the end of the list.
-  // Wide screens only: on a phone the five filter rows would cover half the screen.
+  // On a phone the closed bar follows too (Kate, 2 Oct 2026); the open panel holds
+  // where it opened, so it can be scrolled through and doesn't jump to the top.
   // The dashboard's branch, handed over when this page opens (dashboard.js
   // postReviewsBranch). Applied only when it differs from the last one handed over,
   // so a chip picked here survives a trip to another page and back. "all" is the
@@ -394,14 +438,16 @@ if(window.parent!==window){
     if(META) render();
   }
   const fl=document.querySelector(".filters"), wide=matchMedia("(min-width:761px)");
-  let pin=0;
+  let pin=0, lastY=0;
   function placeFilters(){
     if(!fl) return;
-    const list=document.getElementById("list");
-    const y=wide.matches ? Math.max(0, Math.min(pin - fl.offsetTop, list.offsetTop + list.offsetHeight - fl.offsetHeight - fl.offsetTop)) : 0;
+    const list=document.getElementById("list"), held=!wide.matches && fl.classList.contains("open");
+    const y=Math.max(0, Math.min(held ? lastY : pin - fl.offsetTop, list.offsetTop + list.offsetHeight - fl.offsetHeight - fl.offsetTop));
+    lastY=y;
     fl.style.transform = y ? `translateY(${Math.round(y)}px)` : "";
     fl.classList.toggle("pinned", y > 0);
   }
+  onFiltersToggle=placeFilters;
   function postH(){window.parent.postMessage({type:"trs-reviews-height",h:Math.ceil(document.body.getBoundingClientRect().height)},"*");placeFilters();}
   new ResizeObserver(postH).observe(document.body);
   window.parent.postMessage({type:"trs-reviews-ready"},"*");
