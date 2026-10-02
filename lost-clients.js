@@ -40,8 +40,8 @@ const lcNum = v => Math.round(Number(v) || 0).toLocaleString('en-GB');
 const lcDayY = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 function lcSave() { try { localStorage.setItem('trs-lost', JSON.stringify(lcSel)); } catch (e) {} }
-function lcSet(k, v) { lcSel[k] = v; lcShowAll = false; lcMovedView = false; lcSave(); renderLostClients(); }
-function lcToggleMoved() { lcMovedView = !lcMovedView; lcShowAll = false; lcPaint(); }
+function lcSet(k, v) { lcSel[k] = v; lcShowAll = false; lcMovedView = false; lcResetFilters(); lcSave(); renderLostClients(); }
+function lcToggleMoved() { lcMovedView = !lcMovedView; lcShowAll = false; lcResetFilters(); lcPaint(); }
 
 async function renderLostClients() {
   const el = document.getElementById('lostClientsContent');
@@ -92,6 +92,7 @@ function lcPaint() {
   const topSt = Object.entries(byStylist).sort((a, b) => b[1] - a[1])[0];
 
   document.getElementById('lcBody').innerHTML = `
+    <section class="slv-card lc-board" id="lcBoard"></section>
     <section class="slv-card">
       <div class="slv-head">
         <div><div class="slv-eyebrow">${lcEsc(LC_BRANCH[lcSel.branch])}</div><h3>${lcEsc(seg.label)}, not back in ${lcNum(lcSel.days)}+ days</h3></div>
@@ -122,6 +123,7 @@ function lcPaint() {
     <p class="slv-muted">From Phorest's Sales Transactions, which starts in January 2025: a client who was a regular in 2024 and stopped before then isn't on this list. Visits are days she came in at this branch; a client seen at another branch in the same window is counted on its own line, not as lost. Usual stylist is whoever served most of her visits. "Last visit" is the newest day uploaded, so the last day or two can lag.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to your login only. The report doesn\'t say who opted out of marketing, so check consent in Phorest before anyone messages a client.' : ''}</p>`;
   lcPaintTable();
   lcStickHead();
+  lcLoadSummary();
 }
 
 // The column heads stay put under the filter bar while the list scrolls (Kate, 2 Oct
@@ -133,54 +135,283 @@ function lcStickHead() {
 }
 window.addEventListener('resize', lcStickHead);
 
-// The table on its own, so typing in the search box redraws only this and keeps
-// the cursor where it is.
+// ── COLUMN FILTERS, LIKE A GOOGLE SHEET (Kate, 2 Oct 2026) ─────────────────
+// Every heading opens a menu: sort both ways, and a filter that suits the column
+// (contains for the name, a range for numbers and dates, a tick list for the stylist
+// and the branch she moved to, has / has not for the phone). Filters stack with the
+// search box and with each other, the heading of a filtered column is marked, and
+// XLSX / CSV save exactly what the filters leave. Spend is her total since Jan 2025;
+// Avg per visit is that over her visits (Kate asked which it was, same day).
+let lcSort = { k: 'spend', dir: -1 };
+let lcF = {};
+const lcAvg = r => (Number(r.visits) || 0) ? Math.round((Number(r.spend) || 0) / Number(r.visits)) : 0;
+const LC_COLS = [
+  { k: 'client',  label: 'Client',              type: 'text', get: r => r.client_name || '' },
+  { k: 'visits',  label: 'Visits',              type: 'num',  get: r => Number(r.visits) || 0 },
+  { k: 'last',    label: 'Last visit',          type: 'date', get: r => r.last_visit || '' },
+  { k: 'spend',   label: 'Total spend (AED)',   type: 'num',  get: r => Math.round(Number(r.spend) || 0) },
+  { k: 'avg',     label: 'Avg per visit (AED)', type: 'num',  get: lcAvg },
+  { k: 'stylist', label: 'Usual stylist',       type: 'pick', get: r => r.stylist || '' },
+  { k: 'also',    label: 'Also saw',            type: 'text', get: r => r.also_saw || '' },
+  { k: 'now',     label: 'Now at',              type: 'pick', get: r => r.now_at || '', moved: true },
+  { k: 'phone',   label: 'Phone',               type: 'has',  get: r => r.mobile || r.landline || '', phones: true },
+];
+const lcHasPhones = () => (lcAll || []).some(r => r.mobile || r.landline);
+const lcCols = () => LC_COLS.filter(c => (!c.moved || lcMovedView) && (!c.phones || lcHasPhones()));
+const lcColOf = k => LC_COLS.find(c => c.k === k);
+function lcOn(k) {
+  const f = lcF[k]; if (!f) return false;
+  return !!(f.q || f.min != null || f.max != null || f.from || f.to || f.set || f.has);
+}
+function lcPass(r, skip) {
+  const q = lcQuery.trim().toLowerCase();
+  if (q && !`${r.client_name} ${r.stylist || ''}`.toLowerCase().includes(q)) return false;
+  for (const c of LC_COLS) {
+    if (c.k === skip || !lcOn(c.k)) continue;
+    const f = lcF[c.k], v = c.get(r);
+    if (c.type === 'text' && f.q && !String(v).toLowerCase().includes(f.q.toLowerCase())) return false;
+    if (c.type === 'num' && ((f.min != null && v < f.min) || (f.max != null && v > f.max))) return false;
+    if (c.type === 'date' && ((f.from && v < f.from) || (f.to && v > f.to))) return false;
+    if (c.type === 'pick' && f.set && !f.set.includes(v)) return false;
+    if (c.type === 'has' && f.has && (f.has === 'yes') !== !!v) return false;
+  }
+  return true;
+}
+function lcFiltered() {
+  const c = lcColOf(lcSort.k) || lcColOf('spend');
+  return (lcRows || []).filter(r => lcPass(r)).sort((a, b) => {
+    const x = c.get(a), y = c.get(b);
+    return ((x < y ? -1 : x > y ? 1 : 0) * lcSort.dir) || ((Number(b.spend) || 0) - (Number(a.spend) || 0));
+  });
+}
+function lcResetFilters() { lcF = {}; lcSort = { k: 'spend', dir: -1 }; lcClosePop(); }
+
+let lcPopFor = null;
+function lcClosePop() { const p = document.getElementById('lcPop'); if (p) p.remove(); lcPopFor = null; }
+function lcOpenFilter(ev, k) {
+  ev.stopPropagation();
+  if (lcPopFor === k) { lcClosePop(); return; }
+  lcClosePop();
+  lcPopFor = k;
+  const c = lcColOf(k), f = lcF[k] || {};
+  const pop = document.createElement('div');
+  pop.id = 'lcPop'; pop.className = 'lc-pop'; pop.setAttribute('role', 'dialog');
+  pop.setAttribute('aria-label', c.label + ': sort and filter');
+  const words = c.type === 'num' ? ['Smallest first', 'Largest first'] : c.type === 'date' ? ['Oldest first', 'Newest first'] : ['A to Z', 'Z to A'];
+  let body = '';
+  if (c.type === 'text') body = `<input type="search" class="lc-in" data-f="q" placeholder="Contains…" value="${lcEsc(f.q || '')}">`;
+  if (c.type === 'num') body = `<div class="lc-two"><input type="number" class="lc-in" data-f="min" placeholder="From" value="${f.min ?? ''}"><input type="number" class="lc-in" data-f="max" placeholder="To" value="${f.max ?? ''}"></div>`;
+  if (c.type === 'date') body = `<div class="lc-two"><input type="date" class="lc-in" data-f="from" value="${f.from || ''}"><input type="date" class="lc-in" data-f="to" value="${f.to || ''}"></div>`;
+  if (c.type === 'has') body = ['', 'yes', 'no'].map((v, i) => `<label class="lc-chk"><input type="radio" name="lcHas" value="${v}"${(f.has || '') === v ? ' checked' : ''}> ${['Everyone', 'Has a number', 'No number'][i]}</label>`).join('');
+  if (c.type === 'pick') {
+    const cnt = {};
+    (lcRows || []).filter(r => lcPass(r, k)).forEach(r => { const v = c.get(r); cnt[v] = (cnt[v] || 0) + 1; });
+    const vals = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || a.localeCompare(b));
+    body = `<input type="search" class="lc-in lc-pick-q" placeholder="Search…">
+      <div class="lc-pick-acts"><button type="button" data-all="1">Select all</button><button type="button" data-all="0">Clear</button></div>
+      <div class="lc-pick">${vals.map(v => `<label class="lc-chk" data-v="${lcEsc(v.toLowerCase())}"><input type="checkbox" value="${lcEsc(v)}"${!f.set || f.set.includes(v) ? ' checked' : ''}> <span>${lcEsc(v || '(blank)')}</span><em>${cnt[v]}</em></label>`).join('')}</div>`;
+  }
+  pop.innerHTML = `<div class="lc-pop-sort"><button type="button" data-dir="1">${words[0]}</button><button type="button" data-dir="-1">${words[1]}</button></div>
+    <div class="slv-eyebrow" style="margin:10px 0 6px">Filter</div>${body}
+    <div class="lc-pop-foot"><button type="button" data-clear="1">Clear filter</button><button type="button" data-done="1" class="on">Done</button></div>`;
+  document.body.appendChild(pop);
+  const th = ev.currentTarget.getBoundingClientRect();
+  pop.style.top = Math.max(8, Math.min(th.bottom + 4, innerHeight - pop.offsetHeight - 8)) + 'px';
+  pop.style.left = Math.max(8, Math.min(th.left, innerWidth - pop.offsetWidth - 8)) + 'px';
+  const apply = () => { lcShowAll = false; lcPaintTable(); };
+  const set = (fk, v) => { lcF[k] = Object.assign({}, lcF[k], { [fk]: v }); apply(); };
+  pop.addEventListener('click', e => e.stopPropagation());
+  pop.querySelectorAll('[data-dir]').forEach(b => b.onclick = () => { lcSort = { k, dir: +b.dataset.dir }; apply(); lcClosePop(); });
+  pop.querySelector('[data-clear]').onclick = () => { delete lcF[k]; apply(); lcClosePop(); };
+  pop.querySelector('[data-done]').onclick = lcClosePop;
+  pop.querySelectorAll('.lc-in[data-f]').forEach(i => i.oninput = () => {
+    const raw = i.value.trim();
+    set(i.dataset.f, i.type === 'number' ? (raw === '' ? null : Number(raw)) : (raw || null));
+  });
+  pop.querySelectorAll('input[name=lcHas]').forEach(i => i.onchange = () => set('has', i.value || null));
+  const picks = [...pop.querySelectorAll('.lc-pick input')];
+  const readPicks = () => { const on = picks.filter(p => p.checked).map(p => p.value); set('set', on.length === picks.length ? null : on); };
+  picks.forEach(p => p.onchange = readPicks);
+  pop.querySelectorAll('[data-all]').forEach(b => b.onclick = () => { picks.forEach(p => { p.checked = b.dataset.all === '1'; }); readPicks(); });
+  const pq = pop.querySelector('.lc-pick-q');
+  if (pq) pq.oninput = () => pop.querySelectorAll('.lc-pick label').forEach(l => { l.style.display = l.dataset.v.includes(pq.value.toLowerCase()) ? '' : 'none'; });
+  const first = pop.querySelector('input'); if (first && matchMedia('(hover:hover)').matches) first.focus();
+}
+document.addEventListener('click', () => { if (lcPopFor) lcClosePop(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && lcPopFor) lcClosePop(); });
+
+// ── WHAT SHE CAME IN FOR (Kate, 2 Oct 2026) ────────────────────────────────
+// Tap a client (a row, or a card on a phone) and the panel under it lists her usual
+// services at this branch, what she took home and who looked after her, from
+// lost_client_detail. Asked once per client and kept.
+const lcDetailCache = {};
+let lcShown = [];
+async function lcToggleDetail(ev, i) {
+  if (ev.target.closest('a,button,.who,input,label,.lc-det-box')) return;
+  const r = lcShown[i];
+  if (!r) return;
+  const host = ev.currentTarget, phone = host.tagName === 'LI';
+  const open = phone ? host.querySelector('.lc-det-box')
+    : (host.nextElementSibling && host.nextElementSibling.classList.contains('lc-det') ? host.nextElementSibling : null);
+  if (open) { (phone ? open : open).remove(); host.classList.remove('lc-open'); return; }
+  host.classList.add('lc-open');
+  const box = document.createElement(phone ? 'div' : 'tr');
+  if (phone) box.className = 'lc-det-box';
+  else { box.className = 'lc-det'; box.innerHTML = `<td colspan="${host.children.length}"><div class="lc-det-box"></div></td>`; }
+  const inner = phone ? box : box.querySelector('.lc-det-box');
+  inner.innerHTML = '<p class="slv-muted" style="margin:0">Loading her visits…</p>';
+  if (phone) host.querySelector('.prd-body').appendChild(box); else host.after(box);
+  const key = lcSel.branch + '|' + r.client_name;
+  try {
+    if (!lcDetailCache[key]) {
+      const { data, error } = await sb.rpc('lost_client_detail', { p_branch: lcSel.branch, p_client: r.client_name });
+      if (error) throw error;
+      lcDetailCache[key] = data;
+    }
+    inner.innerHTML = lcDetailHtml(lcDetailCache[key]);
+  } catch (e) {
+    console.error(e);
+    inner.innerHTML = '<p class="slv-muted" style="margin:0">Her visits did not load. Tap again to retry.</p>';
+    host.classList.remove('lc-open');
+    setTimeout(() => box.remove(), 2500);
+  }
+}
+function lcDetailHtml(d) {
+  const svc = (d && d.services) || [], prod = (d && d.products) || [], st = (d && d.stylists) || [];
+  const svcHtml = svc.length ? `<ol class="lc-svc">${svc.map(s => `<li><b>${lcEsc(s.item)}</b>
+      <span>${lcNum(s.visits)} visit${s.visits === 1 ? '' : 's'} · last ${lcEsc(lcDayY(s.last_date))} · AED ${lcNum(s.spend)}${s.last_by ? ' · ' + lcStylist(s.last_by) : ''}</span></li>`).join('')}</ol>`
+    : '<p class="slv-muted" style="margin:0">No services on record.</p>';
+  return `<div class="lc-det-grid">
+      <div><div class="slv-eyebrow">What she came in for</div>${svcHtml}</div>
+      <div>
+        ${prod.length ? `<div class="slv-eyebrow">Took home</div><ul class="lc-prod">${prod.map(p => `<li>${lcEsc(p.item)} <span>AED ${lcNum(p.spend)}${p.times > 1 ? ' · ' + p.times + 'x' : ''}</span></li>`).join('')}</ul>` : ''}
+        ${st.length ? `<div class="slv-eyebrow" style="margin-top:${prod.length ? 14 : 0}px">Looked after by</div><div class="lc-sts">${st.map(s => `<span>${lcStylist(s.employee_name)} <em>${lcNum(s.visits)}</em></span>`).join('')}</div>` : ''}
+        ${d && d.first_visit ? `<p class="slv-note" style="margin-top:12px">First visit here ${lcEsc(lcDayY(d.first_visit))}</p>` : ''}
+      </div>
+    </div>`;
+}
+
+// ── THE BOARD (Kate, 2 Oct 2026) ───────────────────────────────────────────
+// How many have not come back, every branch at once, for the days picked above:
+// regulars, twice, once, and all of them, with what they had spent and the share of
+// that branch's clients it is. From lost_clients_summary, the same rules as the
+// list (moved-to-another-branch clients left out). Tap a cell to open that list.
+let lcSum = null, lcSumErr = false;
+async function lcLoadSummary() {
+  if (lcSum || lcSumErr) { lcPaintBoard(); return; }
+  try {
+    const { data, error } = await sb.rpc('lost_clients_summary');
+    if (error) throw error;
+    lcSum = data || [];
+  } catch (e) { console.error(e); lcSumErr = true; }
+  lcPaintBoard();
+}
+function lcOpenCell(b, s) { lcSel.seg = s; lcSet('branch', b); }
+function lcPaintBoard() {
+  const el = document.getElementById('lcBoard');
+  if (!el) return;
+  if (lcSumErr) { el.innerHTML = '<p class="slv-muted">The board did not load. Refresh to try again.</p>'; return; }
+  if (!lcSum) { el.innerHTML = '<p class="slv-muted">Counting every branch…</p>'; return; }
+  const days = Number(lcSel.days), segs = ['regular', 'twice', 'once'];
+  const at = (b, s) => lcSum.find(x => x.branch === b && x.seg === s && Number(x.days) === days) || { lost: 0, lost_spend: 0, active: 0, moved: 0 };
+  const sum = (list, f) => list.reduce((a, x) => a + (Number(x[f]) || 0), 0);
+  const cell = (b, s, x) => {
+    const on = b === lcSel.branch && s === lcSel.seg;
+    const go = b && s ? ` onclick="lcOpenCell('${b}','${s}')" role="button" tabindex="0"` : '';
+    return `<td class="${on ? 'on' : ''}${go ? ' go' : ''}"${go}><b>${lcNum(x.lost)}</b><small>AED ${lcNum(x.lost_spend)}</small></td>`;
+  };
+  const row = (label, xs, b, cls) => {
+    const tot = { lost: sum(xs, 'lost'), lost_spend: sum(xs, 'lost_spend') };
+    const all = sum(xs, 'lost') + sum(xs, 'active') + sum(xs, 'moved');
+    return `<tr${cls ? ` class="${cls}"` : ''}><th>${lcEsc(label)}</th>${segs.map((s, i) => cell(b, b ? s : null, xs[i])).join('')}${cell(null, null, tot)}
+      <td class="pct"><b>${all ? Math.round(100 * tot.lost / all) : 0}%</b><small>of ${lcNum(all)}</small></td></tr>`;
+  };
+  const rows = Object.keys(LC_BRANCH).map(b => row(LC_BRANCH[b], segs.map(s => at(b, s)), b)).join('');
+  const allXs = segs.map(s => { const l = Object.keys(LC_BRANCH).map(b => at(b, s));
+    return { lost: sum(l, 'lost'), lost_spend: sum(l, 'lost_spend'), active: sum(l, 'active'), moved: sum(l, 'moved') }; });
+  el.innerHTML = `<div class="slv-head"><div><div class="slv-eyebrow">Every branch</div><h3>Not back in ${days}+ days</h3></div>
+      <p>Tap a number to open that list</p></div>
+    <div class="slv-wrap"><table class="slv-table lc-board-t">
+      <thead><tr><th>Branch</th><th>Regulars (3+)</th><th>Came twice</th><th>One visit</th><th>All lost</th><th>Of their clients</th></tr></thead>
+      <tbody>${rows}${row('All salons', allXs, null, 'tot')}</tbody></table></div>
+    <p class="slv-note" style="margin-top:8px">Clients since Jan 2025, total spend ex VAT. "Of their clients" is everyone who came to that branch since then. A client who has since been in at another branch is not counted as lost.</p>`;
+}
+
+// The table on its own, so typing in the search box or changing a column filter
+// redraws only this and keeps the cursor where it is.
 function lcPaintTable() {
   const box = document.getElementById('lcTable');
   if (!box || !lcRows) return;
-  const nowAt = r => lcMovedView && r.now_at ? `${lcEsc(r.now_at)}<div class="slv-note">${lcEsc(lcDayY(r.now_last))}</div>` : '';
-  const q = lcQuery.trim().toLowerCase();
-  const rows = q ? lcRows.filter(r => `${r.client_name} ${r.stylist || ''}`.toLowerCase().includes(q)) : lcRows;
-  const phones = lcAll.some(r => r.mobile || r.landline);
+  const rows = lcFiltered(), cols = lcCols();
   const shown = lcShowAll ? rows : rows.slice(0, LC_LIMIT);
+  lcShown = shown;
   const check = r => r.match === 'check' ? ' <span class="slv-note" style="display:inline" title="Two different numbers under this name: two people, or one client entered twice in Phorest">check</span>' : '';
-  const tr = shown.map(r => `<tr>
-      <td>${lcEsc(r.client_name)}${check(r)}</td>
-      <td>${lcNum(r.visits)}</td>
-      <td>${lcEsc(lcDayY(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days ago</div></td>
-      <td>${lcNum(r.spend)}</td>
-      <td>${lcStylist(r.stylist)}</td>
-      ${lcMovedView ? `<td>${nowAt(r)}</td>` : ''}
-      ${phones ? `<td>${lcPhone(r)}</td>` : ''}
-    </tr>`).join('');
+  const td = (c, r) => {
+    if (c.k === 'client') return `<td>${lcEsc(r.client_name)}${check(r)}</td>`;
+    if (c.k === 'visits') return `<td>${lcNum(r.visits)}</td>`;
+    if (c.k === 'last') return `<td>${lcEsc(lcDayY(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days ago</div></td>`;
+    if (c.k === 'spend') return `<td>${lcNum(r.spend)}</td>`;
+    if (c.k === 'avg') return `<td>${lcNum(lcAvg(r))}</td>`;
+    if (c.k === 'stylist') return `<td>${lcStylist(r.stylist)}</td>`;
+    if (c.k === 'also') return `<td class="lc-also">${lcAlso(r.also_saw)}</td>`;
+    if (c.k === 'now') return `<td>${r.now_at ? `${lcEsc(r.now_at)}<div class="slv-note">${lcEsc(lcDayY(r.now_last))}</div>` : ''}</td>`;
+    if (c.k === 'phone') return `<td>${lcPhone(r)}</td>`;
+    return '<td></td>';
+  };
+  const th = c => {
+    const sorted = lcSort.k === c.k ? (lcSort.dir > 0 ? ' ▲' : ' ▼') : '';
+    return `<th class="lc-th${lcOn(c.k) ? ' on' : ''}"><button type="button" class="lc-thb" onclick="lcOpenFilter(event,'${c.k}')" aria-haspopup="dialog">${lcEsc(c.label)}<span class="lc-ar">${sorted}</span><span class="lc-fn" aria-hidden="true"></span></button></th>`;
+  };
+  const tr = shown.map((r, i) => `<tr class="lc-row" onclick="lcToggleDetail(event,${i})">${cols.map(c => td(c, r)).join('')}</tr>`).join('');
   // Under 760px the table becomes a list, like Products: name and spend on one line,
-  // visits / last visit / stylist under it, the number last (tap to call).
-  const cards = shown.map(r => `<li class="prd-card">
+  // visits / avg / last visit / stylist under it, the number last (tap to call). A tap
+  // opens the same panel as a row.
+  const cards = shown.map((r, i) => `<li class="prd-card lc-row" onclick="lcToggleDetail(event,${i})">
       <div class="prd-body">
         <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${check(r)}</span><span class="prd-spend">AED ${lcNum(r.spend)}</span></div>
-        <div class="prd-meta">${lcNum(r.visits)} visits · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${r.stylist ? ' · ' + lcStylist(r.stylist) : ''}${lcMovedView && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}</div>
-        ${phones && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
+        <div class="prd-meta">${lcNum(r.visits)} visits · avg AED ${lcNum(lcAvg(r))} · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${r.stylist ? ' · ' + lcStylist(r.stylist) : ''}${lcMovedView && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}</div>
+        ${r.also_saw ? `<div class="prd-meta">Also saw ${lcAlso(r.also_saw)}</div>` : ''}
+        ${lcHasPhones() && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
       </div>
     </li>`).join('');
-  box.innerHTML = rows.length ? `<div class="slv-wrap prd-desk lc-wrap"><table class="slv-table">
-      <thead><tr><th>Client</th><th>Visits</th><th>Last visit</th><th>Spend (AED)</th><th>Usual stylist</th>${lcMovedView ? '<th>Now at</th>' : ''}${phones ? '<th>Phone</th>' : ''}</tr></thead>
-      <tbody>${tr}</tbody></table></div>
-      <ol class="prd-cards">${cards}</ol>
-      ${rows.length > shown.length ? `<p style="margin-top:10px"><button type="button" class="tglr" onclick="lcShowAll=true;lcPaintTable()">Show all ${lcNum(rows.length)}</button></p>` : ''}`
-    : `<p class="slv-muted">${q ? 'No one on this list matches that search.' : 'No clients on this list.'}</p>`;
+  const filtered = Object.keys(lcF).some(lcOn);
+  const note = filtered || lcQuery.trim()
+    ? `<p class="slv-note lc-fnote">${lcNum(rows.length)} of ${lcNum(lcRows.length)} after filters · <button type="button" class="lc-more" onclick="lcClearAll()">clear all</button></p>` : '';
+  box.innerHTML = note + `<div class="slv-wrap prd-desk lc-wrap"><table class="slv-table">
+      <thead><tr>${cols.map(th).join('')}</tr></thead>
+      <tbody>${tr || `<tr><td colspan="${cols.length}" class="slv-muted">No one on this list matches those filters.</td></tr>`}</tbody></table></div>
+      <ol class="prd-cards">${cards || '<li class="slv-muted">No one on this list matches those filters.</li>'}</ol>
+      ${rows.length > shown.length ? `<p style="margin-top:10px"><button type="button" class="tglr" onclick="lcShowAll=true;lcPaintTable()">Show all ${lcNum(rows.length)}</button></p>` : ''}`;
+}
+function lcClearAll() {
+  lcResetFilters(); lcQuery = '';
+  const q = document.getElementById('lcSearch'); if (q) q.value = '';
+  lcPaintTable();
+}
+
+// "Also saw": the first two names as links, the rest counted ("+3"), all on hover.
+function lcAlso(list) {
+  const names = String(list || '').split(', ').filter(Boolean);
+  if (!names.length) return '–';
+  return names.slice(0, 2).map(lcStylist).join(', ')
+    + (names.length > 2 ? ` <span class="slv-note" style="display:inline" title="${lcEsc(names.slice(2).join(', '))}">+${names.length - 2}</span>` : '');
 }
 
 // Usual stylist as a link (Kate, 2 Oct 2026): the same hover / tap menu every other
 // staff name has (staff-links.js: Staff card, Staff stats, Branch figures), in the
-// hair or beauty accent by her role in staff-profiles.js. Hair when unknown.
+// hair or beauty accent by her role in staff-profiles.js, hair when unknown. The menu
+// is handed her Staff Cards key (SHINE, not SHINE CASTILLO), or it cannot find her
+// card. Someone marked resigned there is grey, like her faded card.
 function lcStylist(name) {
   if (!name) return '–';
   const up = String(name).trim().toUpperCase(), w = up.split(/\s+/);
-  const prof = (typeof STAFF_PROFILES !== 'undefined')
-    ? (STAFF_PROFILES[up] || STAFF_PROFILES[w.slice(0, 2).join(' ')] || STAFF_PROFILES[w[0]]) : null;
+  const P = typeof STAFF_PROFILES !== 'undefined' ? STAFF_PROFILES : {};
+  const key = [up, w.slice(0, 2).join(' '), w[0]].find(k => P[k]);
+  const prof = key ? P[key] : null;
   const dept = prof && /beauty|nail|lash|brow|therap|aesthet/i.test(prof.role || '') ? 'beauty' : 'hair';
-  const inner = `<span class="lc-st lc-st-${dept}">${lcEsc(name)}</span>`;
-  return typeof staffWho === 'function' ? staffWho(name, inner, { dept, branch: lcSel.branch }) : inner;
+  const gone = prof && prof.resigned ? ' lc-st-gone' : '';
+  const inner = `<span class="lc-st lc-st-${dept}${gone}"${gone ? ' title="Has left"' : ''}>${lcEsc(name)}</span>`;
+  return typeof staffWho === 'function' ? staffWho(key || name, inner, { dept, branch: lcSel.branch }) : inner;
 }
 
 // One number per client on screen. A common name can carry up to ten (everyone in
@@ -199,18 +430,18 @@ function lcPhone(r) {
     : tel(nums[0]);
 }
 
-// The list as searched, all of it, not just the rows drawn: the header and one array
-// per client. XLSX and CSV both read this, so the two never disagree. (Copy list went
-// the same day: a list of 1,300 clients is a file, not a paste.)
+// The list as filtered, all of it, not just the rows drawn: the header and one array
+// per client, in the columns on screen (Last visit adds Days since, Now at adds its
+// date). XLSX and CSV both read this, so the two never disagree.
 function lcExportLines() {
-  const q = lcQuery.trim().toLowerCase();
-  const rows = (lcRows || []).filter(r => !q || `${r.client_name} ${r.stylist || ''}`.toLowerCase().includes(q));
-  const phones = (lcAll || []).some(r => r.mobile || r.landline);
-  const head = ['Client', 'Visits', 'Last visit', 'Days since', 'Spend (AED)', 'Usual stylist']
-    .concat(lcMovedView ? ['Now at', 'Last visit there'] : []).concat(phones ? ['Phone'] : []);
-  const lines = rows.map(r => [r.client_name, Number(r.visits) || 0, r.last_visit, Number(r.days_since) || 0, Math.round(Number(r.spend) || 0),
-    r.stylist || ''].concat(lcMovedView ? [r.now_at || '', r.now_last || ''] : []).concat(phones ? [r.mobile || r.landline || ''] : []));
-  return { head, lines, rows };
+  const rows = lcFiltered(), cols = lcCols();
+  const head = [], pick = [];
+  cols.forEach(c => {
+    if (c.k === 'last') { head.push('Last visit', 'Days since'); pick.push(r => r.last_visit, r => Number(r.days_since) || 0); return; }
+    if (c.k === 'now') { head.push('Now at', 'Last visit there'); pick.push(r => r.now_at || '', r => r.now_last || ''); return; }
+    head.push(c.label); pick.push(c.get);
+  });
+  return { head, lines: rows.map(r => pick.map(f => f(r))), rows };
 }
 
 // XLSX and CSV (Kate, 2 Oct 2026), written by ledger-export.js's own writer (no
@@ -219,11 +450,11 @@ function lcExportLines() {
 function lcSaveFile(kind) {
   if (typeof lgxBuild !== 'function') return;
   const { head, lines } = lcExportLines();
-  const nums = new Set(['Visits', 'Days since', 'Spend (AED)']);
-  const cols = head.map(h => ({ label: h, fmt: h === 'Spend (AED)' ? 'aed' : nums.has(h) ? 'num' : 'text' }));
+  const nums = new Set(['Visits', 'Days since', 'Total spend (AED)', 'Avg per visit (AED)']);
+  const cols = head.map(h => ({ label: h, fmt: /AED/.test(h) ? 'aed' : nums.has(h) ? 'num' : 'text' }));
   const built = lgxBuild({ sheets: [{ name: 'Lost clients ' + lcSel.branch, blocks: [{ cols, rows: lines.map(l => ({ cells: l })) }] }] });
   const name = ['lost-clients', lcSel.branch, lcSel.seg === 'regular' ? 'regulars' : lcSel.seg, lcSel.days + 'd']
-    .concat(lcMovedView ? ['moved'] : []).concat(lcQuery.trim() ? ['search'] : []).join('-');
+    .concat(lcMovedView ? ['moved'] : []).concat(lcQuery.trim() || Object.keys(lcF).some(lcOn) ? ['filtered'] : []).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
   const s = document.getElementById('lcCopied');

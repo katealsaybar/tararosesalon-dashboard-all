@@ -2046,6 +2046,53 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 @media(hover:hover){.lc-more:hover{color:var(--text)}}
 .lc-rest{display:none;margin-top:4px;line-height:1.7}
 .lc-ph.open .lc-rest{display:block}
+/* Lost Clients, 2 Oct 2026: column headings that sort and filter like a Google Sheet
+   (lost-clients.js lcOpenFilter), the panel a row opens, and the board. */
+.lc-thb{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font:inherit;letter-spacing:inherit;
+  text-transform:inherit;color:inherit;border-radius:4px}
+.lc-thb:focus-visible{box-shadow:0 0 0 2px var(--accent)}
+.lc-fn{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor;opacity:.45;margin-left:2px}
+@media(hover:hover){.lc-thb:hover{color:var(--text)}.lc-thb:hover .lc-fn{opacity:1}}
+.lc-th.on .lc-thb{color:var(--text)}
+.lc-th.on .lc-fn{border:0;width:7px;height:7px;border-radius:50%;background:var(--accent);opacity:1}
+.lc-pop{position:fixed;z-index:9500;width:270px;max-width:calc(100vw - 16px);padding:12px;border-radius:12px;
+  background:var(--surface);border:1px solid var(--border);box-shadow:0 14px 36px rgba(0,0,0,.22);font-size:13.5px}
+.lc-pop button{font:inherit;cursor:pointer}
+.lc-pop-sort{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.lc-pop-sort button,.lc-pop-foot button,.lc-pick-acts button{border:1px solid var(--border);background:var(--surface2);color:var(--text);
+  border-radius:8px;padding:7px 8px;min-height:36px}
+.lc-pop-foot{display:flex;justify-content:space-between;gap:6px;margin-top:12px}
+.lc-pop-foot .on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.lc-in{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font:inherit}
+.lc-two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.lc-pick-acts{display:flex;gap:6px;margin:8px 0 4px}.lc-pick-acts button{flex:1;min-height:32px;padding:4px 6px}
+.lc-pick{max-height:230px;overflow:auto;margin-top:4px}
+.lc-chk{display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer}
+.lc-chk span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lc-chk em{font-style:normal;color:var(--muted);font-variant-numeric:tabular-nums}
+.lc-fnote{margin:0 0 8px}
+.lc-row{cursor:pointer}
+@media(hover:hover){.lc-wrap tbody tr.lc-row:hover td{background:var(--surface2)}}
+.lc-row.lc-open td{background:var(--surface2)}
+.lc-det > td{padding:0 0 14px!important;background:var(--surface2);text-align:left!important;white-space:normal!important}
+.lc-det-box{padding:14px 16px;cursor:default;text-align:left}
+.prd-card .lc-det-box{margin-top:10px;padding:12px;border-radius:10px;background:var(--surface2)}
+.lc-det-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px 28px}
+@media(max-width:760px){.lc-det-grid{grid-template-columns:minmax(0,1fr)}}
+.lc-svc{margin:8px 0 0;padding-left:20px}.lc-svc li{margin:0 0 8px}
+.lc-svc b{font-weight:600}.lc-svc span{display:block;font-size:12.5px;color:var(--muted)}
+.lc-prod{margin:8px 0 0;padding-left:18px}.lc-prod li{margin:0 0 4px}.lc-prod span{color:var(--muted);font-size:12.5px}
+.lc-sts{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px}.lc-sts em{font-style:normal;color:var(--muted);font-size:12.5px}
+.lc-board{margin-bottom:14px}
+.lc-board-t td,.lc-board-t th{text-align:right}
+.lc-board-t th:first-child{text-align:left}
+.lc-board-t td b{display:block;font-size:16px}
+.lc-board-t td small{display:block;font-size:12px;color:var(--muted);white-space:nowrap}
+.lc-board-t td.go{cursor:pointer;border-radius:8px}
+@media(hover:hover){.lc-board-t td.go:hover{background:var(--surface2)}}
+.lc-board-t td.on{box-shadow:inset 0 0 0 2px var(--accent);border-radius:8px}
+.lc-board-t tr.tot td,.lc-board-t tr.tot th{font-weight:700;border-top:2px solid var(--border)}
+.lc-board-t td.pct b{font-size:15px}
 .lc-wrap thead th{position:sticky;top:calc(var(--topbar-cond-h,104px) + var(--lc-bar-h,72px));z-index:5;
   background:var(--surface);box-shadow:0 1px 0 var(--border)}
 .lc-grp{display:flex;flex-direction:column;gap:5px}
@@ -2586,6 +2633,12 @@ table.lg thead.lg-float tr:last-child th{box-shadow:0 8px 10px -8px rgba(0,0,0,.
    accent, with the dotted line always there rather than only on hover. */
 .lc-st{color:var(--hair);font-weight:600}.lc-st-beauty{color:var(--beauty)}
 .who:has(.lc-st){border-bottom-color:currentColor}.who:has(.lc-st-beauty){color:var(--beauty)}.who:has(.lc-st-hair){color:var(--hair)}
+/* Resigned staff in grey, like their faded cards; and the name lifts a little under the
+   pointer or a finger, so it reads as something to press (Kate, 2 Oct 2026). */
+.lc-st-gone{color:var(--muted)!important;font-weight:500}.who:has(.lc-st-gone){color:var(--muted)!important}
+.who:has(.lc-st){display:inline-block;transition:transform .15s ease,border-color .15s}
+@media(hover:hover){.who:has(.lc-st):hover{transform:translateY(-2px)}}
+.who:has(.lc-st):active,.who.who-on:has(.lc-st){transform:translateY(-2px)}
 #whoMenu{position:fixed;z-index:9000;min-width:190px;padding:5px;border-radius:10px;
   background:var(--surface);border:1px solid var(--border);
   box-shadow:0 10px 30px rgba(0,0,0,.18),0 1px 3px rgba(0,0,0,.08);
@@ -3648,7 +3701,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20261002cards"></script>
 <script src="staff-weeks.js?v=20261001aim"></script>
 <script src="products.js?v=20261002wk"></script>
-<script src="lost-clients.js?v=20261002stick"></script>
+<script src="lost-clients.js?v=20261002filt"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261002fast"></script>
