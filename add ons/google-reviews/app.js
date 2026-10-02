@@ -25,6 +25,12 @@ function googleReviewUrl(r){
     ? `!4m8!14m7!1m6!2m5!1s${id}!2m1!1s0x0:${cid}!3m1!1s2@1:${inner}%7C%7C`
     : `!4m6!14m5!1m4!2m3!1s${id}!2m1!1s0x0:${cid}`) + "?hl=en";
 }
+// Reviews added by hand before review-links.js knows their Maps id (Kate, 2 Oct
+// 2026: Tiffany's had no link at all) still get both links: the branch's Google
+// listing, and its reviews page in Business Profile (location ids below).
+const GBP_LOC = {"Khalifa City A, Abu Dhabi":"5307528376474579201","Saadiyat, Abu Dhabi":"1607584651014081566","Al Quoz, Dubai":"15851980431586936756","Motor City, Dubai":"1197765864514331563","District 2, Bahrain":"9531547727804411119"};
+const branchMapsUrl = r => MAPS_CID[r.branch] ? "https://www.google.com/maps?cid=" + BigInt(MAPS_CID[r.branch]).toString() + "&hl=en" : "";
+const branchGbpUrl = r => GBP_LOC[r.branch] ? `https://www.google.com/local/business/${GBP_LOC[r.branch]}/customers/reviews?knm=0&ih=lu&hl=en&dcs=1` : "";
 const REC = [["30","Last 30 days"],["90","Last 90 days"],["180","Last 6 months"],["365","Last 12 months"],["730","Last 2 years"],["all","All time"]];
 const ALL = [1,2,3,4,5];
 // Opens on the last 90 days (Kate, 1 Oct 2026): "All time" averaged years of
@@ -360,7 +366,7 @@ function renderList(F){
       <span class="date" title="${r.approx?'Approximate date from Google Maps'+(r.when?' ("'+esc(r.when)+'" when it was read)':''):r.date}">${r.approx?(r.date?fmtDate(r.date)+' · '+ago(r.date)+' · approx.':esc((r.when||'').replace(/^Edited /,'edited '))+' · approx.'):fmtDate(r.date)+' · '+ago(r.date)}</span></div>
       ${r.comment?`<div class="rtext${long?" clamp":""}" id="t${i}">${markNames(r)}</div>${long?`<button class="more" onclick="document.getElementById('t${i}').classList.toggle('clamp');this.textContent=this.textContent==='Show more'?'Show less':'Show more'">Show more</button>`:""}`:`<div class="rtext none">Rating only, no written comment</div>`}
       ${r.replied?`<details class="reply"><summary><b>Our reply</b></summary><div style="white-space:pre-wrap;margin-top:6px">${esc(r.reply)}</div></details>`:""}
-      ${(()=>{const g=googleReviewUrl(r);return g||r.url?`<div class="links">${g?`<a class="gbp" href="${g}" target="_blank" rel="noopener">View on Google ↗</a>`:""}${r.url?`<a class="gbp" href="${r.url}" target="_blank" rel="noopener">Reply in Business Profile →</a>`:""}</div>`:"";})()}
+      ${(()=>{const g=googleReviewUrl(r)||branchMapsUrl(r),u=r.url||branchGbpUrl(r);return g||u?`<div class="links">${g?`<a class="gbp" href="${g}" target="_blank" rel="noopener">View on Google ↗</a>`:""}${u?`<a class="gbp" href="${u}" target="_blank" rel="noopener">Reply in Business Profile →</a>`:""}</div>`:"";})()}
     </div>`;}).join("") + (L.length>LIMIT?`<div style="text-align:center;margin-top:12px"><button class="chip" id="moreBtn">Show ${Math.min(60,L.length-LIMIT)} more of ${L.length-LIMIT} remaining</button></div>`:"");
   const mb=document.getElementById("moreBtn"); if(mb) mb.onclick=()=>{LIMIT+=60;renderList(F);};
   el.querySelectorAll(".stag").forEach(b=>b.onclick=()=>{state.staff=b.dataset.k;render();window.scrollTo(0,0);});

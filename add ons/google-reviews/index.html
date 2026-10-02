@@ -152,6 +152,10 @@ html.embedded .filters{position:static}
   .tlab div:last-child{direction:rtl;text-align:right}
   input,select{font-size:16px}
   .chip,button{min-height:44px}
+  /* The staff name pill came out 44px tall from the rule above (Kate, 2 Oct 2026).
+     It keeps its small look; the tap area stays 44px through ::after. */
+  .stag{min-height:0;position:relative;padding:2px 10px 2px 3px}
+  .stag::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
   /* Filter panel (Kate, 2 Oct 2026). Closed: one bar plus pills of what's on, and it
      follows the scroll (app.js placeFilters). Open: each group is a tile grid with
      its label above, so nothing wraps into ragged rows. */
@@ -273,6 +277,6 @@ html.embedded .filters{position:static}
 <script src="../../staff-profiles.js?v=20261002va"></script>
 <script src="../../auth.js?v=20260925d"></script>
 <script src="review-links.js?v=20260928a"></script>
-<script src="app.js?v=17"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>
