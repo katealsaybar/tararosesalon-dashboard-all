@@ -551,6 +551,9 @@ function foldCards(summary) {
 }
 
 async function renderStylist() {
+  // Kate, 2 Oct 2026: on her own link the tip only needs the token, so it is asked for
+  // alongside perf_dashboard instead of after it.
+  const tipAsk = TOKEN ? rpc('perf_tip', { p_token: TOKEN, p_month: MONTH + '-01' }).catch(() => null) : null;
   const d = TOKEN
     ? await rpc('perf_dashboard', { p_token: TOKEN, p_month: MONTH + '-01' })
     : await rpc('perf_dashboard_by_id', { p_admin: ADMIN, p_staff_id: SID, p_month: MONTH + '-01' });
@@ -558,7 +561,7 @@ async function renderStylist() {
   if (d.role) ROLE = d.role; else if (ADMIN && TOKEN && !ROLE) ROLE = 'leader';
   // An AI-written win + tip for the month, if one was saved (perf_tips); the formula otherwise.
   try {
-    d.ai_tip = TOKEN ? await rpc('perf_tip', { p_token: TOKEN, p_month: MONTH + '-01' })
+    d.ai_tip = TOKEN ? await tipAsk
       : d.staff_id ? await rpc('perf_tip_by_id', { p_admin: ADMIN, p_staff_id: d.staff_id, p_month: MONTH + '-01' }) : null;
   } catch (e) { d.ai_tip = null; }
   const started = startIn(d), share = workShare(d);
@@ -936,10 +939,14 @@ async function renderTeam() {
       TOKEN = await rpc('perf_slug_token', { p_slug: qs.get('s') });
       if (!TOKEN) { app.innerHTML = `<p class="err">This link isn't active. Ask your salon manager for a new one.</p>`; return; }
     }
-    if (TOKEN || (SID && ADMIN)) await renderStylist();
     // My year + How you move up (year-levels.js): her own link only, not a leader's
-    // view and not the dashboard frame.
-    if (TOKEN && !ADMIN && !EMBED && window.PerfTabs) PerfTabs.mount(TOKEN);
+    // view and not the dashboard frame. Kate, 2 Oct 2026: started before This month
+    // rather than after it, so a &tab=levels or &tab=year link doesn't wait for the
+    // month page and its chart to draw first.
+    const tabs = TOKEN && !ADMIN && !EMBED && window.PerfTabs;
+    if (tabs) PerfTabs.mount(TOKEN);
+    if (TOKEN || (SID && ADMIN)) await renderStylist();
+    if (tabs) { /* mounted above */ }
     else if (ADMIN) await renderTeam();
     else app.innerHTML = `<p class="err">Open this page from the link in your performance email.</p>`;
     requestAnimationFrame(postHeight);
