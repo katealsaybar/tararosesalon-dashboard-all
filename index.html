@@ -2082,6 +2082,17 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .lc-chk em{font-style:normal;color:var(--muted);font-variant-numeric:tabular-nums}
 .lc-fnote{margin:0 0 8px}
 .lc-row{cursor:pointer}
+/* The row says what a click does (Kate, 2 Oct 2026): "See her visits ›" fades in beside
+   the name under the pointer; on a phone card a small "Tap for her visits" sits last.
+   An open row swaps it for nothing, since its panel is already showing. */
+.lc-hint{display:inline-block;margin-left:10px;font-size:12px;color:var(--muted);opacity:0;transform:translateX(-4px);
+  transition:opacity .15s,transform .15s;white-space:nowrap;pointer-events:none}
+@media(hover:hover){.lc-wrap tr.lc-row:hover .lc-hint{opacity:1;transform:none}}
+.lc-row.lc-open .lc-hint,.lc-row.lc-open .lc-hint-m{display:none}
+.lc-hint-m{margin-top:6px;font-size:12px;color:var(--muted)}
+.lc-2nums{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;
+  color:var(--warn);background:var(--warn-bg);cursor:help;white-space:nowrap}
+@media(max-width:760px){.lc-2nums{font-size:12px}}
 /* The table fits its card (Kate, 2 Oct 2026: Also saw ran it off the side): headings
    and the two name columns wrap, cells are a little tighter. */
 .lc-wrap th,.lc-wrap td{padding-left:8px;padding-right:8px}
@@ -3752,7 +3763,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20261002cards"></script>
 <script src="staff-weeks.js?v=20261001aim"></script>
 <script src="products.js?v=20261002wk"></script>
-<script src="lost-clients.js?v=20261002tidy"></script>
+<script src="lost-clients.js?v=20261002hint"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261002fast"></script>

@@ -414,9 +414,12 @@ function lcPaintTable() {
   const rows = lcFiltered(), cols = lcCols();
   const shown = lcShowAll ? rows : rows.slice(0, LC_LIMIT);
   lcShown = shown;
-  const check = r => r.match === 'check' ? ' <span class="slv-note" style="display:inline" title="Two different numbers under this name: two people, or one client entered twice in Phorest">check</span>' : '';
+  // "2 numbers?" (Kate, 2 Oct 2026: it read "check", which said nothing): Phorest has two
+  // different numbers under this name, two people who share it or one client entered
+  // twice, so look before calling.
+  const check = r => r.match === 'check' ? ' <span class="lc-2nums" tabindex="0" title="Phorest has two different phone numbers under this name: two people who share it, or one client entered twice. Check in Phorest before you call.">2 numbers?</span>' : '';
   const td = (c, r) => {
-    if (c.k === 'client') return `<td>${lcEsc(r.client_name)}${check(r)}</td>`;
+    if (c.k === 'client') return `<td>${lcEsc(r.client_name)}${check(r)}<span class="lc-hint" aria-hidden="true">See her visits ›</span></td>`;
     if (c.k === 'visits') return `<td>${lcNum(r.visits)}</td>`;
     if (c.k === 'last') return `<td>${lcEsc(lcDayY(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days ago</div></td>`;
     if (c.k === 'spend') return `<td>${lcNum(r.spend)}</td>`;
@@ -431,7 +434,7 @@ function lcPaintTable() {
     const sorted = lcSort.k === c.k ? (lcSort.dir > 0 ? ' ▲' : ' ▼') : '';
     return `<th class="lc-th${lcOn(c.k) ? ' on' : ''}${c.k === 'stylist' || c.k === 'also' ? ' lc-l' : ''}"><button type="button" class="lc-thb" onclick="lcOpenFilter(event,'${c.k}')" aria-haspopup="dialog">${lcEsc(c.label)}<span class="lc-ar">${sorted}</span><span class="lc-fn" aria-hidden="true"></span></button></th>`;
   };
-  const tr = shown.map((r, i) => `<tr class="lc-row" onclick="lcToggleDetail(event,${i})">${cols.map(c => td(c, r)).join('')}</tr>`).join('');
+  const tr = shown.map((r, i) => `<tr class="lc-row" title="Click to see what she came in for, what she took home and who looked after her" onclick="lcToggleDetail(event,${i})">${cols.map(c => td(c, r)).join('')}</tr>`).join('');
   // Under 760px the table becomes a list, like Products: name and spend on one line,
   // visits / avg / last visit / stylist under it, the number last (tap to call). A tap
   // opens the same panel as a row.
@@ -441,6 +444,7 @@ function lcPaintTable() {
         <div class="prd-meta">${lcNum(r.visits)} visits · avg AED ${lcNum(lcAvg(r))} · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${r.stylist ? ' · ' + lcStylist(r.stylist) : ''}${lcMovedView && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}</div>
         ${lcAlsoNames(r.also_saw).length ? `<div class="prd-meta lc-also-line">Also saw ${lcAlsoNames(r.also_saw).slice(0, 3).map(lcStylist).join(', ')}${lcAlsoNames(r.also_saw).length > 3 ? ' +' + (lcAlsoNames(r.also_saw).length - 3) : ''}</div>` : ''}
         ${lcHasPhones() && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
+        <div class="lc-hint-m">Tap for her visits ›</div>
       </div>
     </li>`).join('');
   const filtered = Object.keys(lcF).some(lcOn);
