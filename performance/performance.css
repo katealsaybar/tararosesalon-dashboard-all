@@ -39,6 +39,12 @@ body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--tex
 .top-acts{display:flex;align-items:center;gap:10px}
 .theme-btn{font:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;cursor:pointer}
 .theme-btn:hover{color:var(--text);border-color:var(--text)}
+/* Kate, 2 Oct 2026: back to Team Home. */
+a.brand{text-decoration:none;color:inherit}
+.home-btn{display:inline-grid;place-items:center;width:40px;height:40px;flex:none;border-radius:50%;
+  background:#99F6E4;color:#1A1A1A;border:1px solid #99F6E4;text-decoration:none}
+@media (hover:hover){.home-btn:hover{border-color:#1A1A1A}}
+.home-btn:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 @media (max-width:420px){.month-lbl{display:none}}
 .brand-name{font-weight:700;letter-spacing:.2em;text-transform:uppercase;font-size:15px}
 .brand-strip{height:2px;width:80px;margin-top:4px;border-radius:2px;background:linear-gradient(to right,#99F6E4,#EEF3C7,#C4B5FD,#FF9B9B,#FFD4D9)}
@@ -51,6 +57,8 @@ body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--tex
   background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:7px 14px;cursor:pointer}
 .pdd-btn svg{width:10px;height:10px;opacity:.6;transition:transform .18s}
 .pdd.open .pdd-btn{border-color:var(--text)}
+/* Room for it on small phones: a smaller lockup and tighter gaps. */
+@media (max-width:420px){.top{gap:8px;padding:10px 12px}.top-acts{gap:7px}.brand-mark{width:96px}.home-btn{width:38px;height:38px}.pdd-btn{white-space:nowrap;padding-left:12px;padding-right:11px;gap:6px}.theme-btn{padding:6px 9px;letter-spacing:.06em}}
 .pdd.open .pdd-btn svg{transform:rotate(180deg)}
 .pdd-menu{position:absolute;top:calc(100% + 6px);right:0;z-index:60;min-width:100%;display:none;flex-direction:column;gap:2px;
   padding:6px;border-radius:16px;background:var(--surface);border:1px solid var(--border);box-shadow:0 12px 30px -10px rgba(0,0,0,.35);

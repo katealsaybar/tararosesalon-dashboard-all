@@ -12,7 +12,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <!-- Brand type (Kate, 29 Sep 2026): Playfair Display for headings and names, Inter for body, as trs-brand-guardian sets it and the dashboard around this frame already uses. -->
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="performance.css?v=20260930f">
+<link rel="stylesheet" href="performance.css?v=20261002home3">
 <link rel="stylesheet" href="year-levels.css?v=20261001a">
 <script>
 // Light / Dark (Kate, 25 Sep 2026): a stylist's own link remembers the choice per
@@ -45,11 +45,13 @@ function perfToggleTheme() {
 <body>
 <header class="top">
   <!-- TARA ROSE SALONS, the dashboard's lockup: white + mint in dark, ink + mint in light. -->
-  <div class="brand">
+  <!-- Kate, 2 Oct 2026: a way back to Team Home: the logo, and the round house button. -->
+  <a class="brand" href="/hub/" aria-label="Team Home">
     <div class="brand-mark"><img id="brandLogo" src="../assets/logo-ink-mint.png" alt="Tara Rose Salons"></div>
     <div class="brand-word">Salons</div>
-  </div>
+  </a>
   <div class="top-acts">
+    <a class="home-btn" href="/hub/" title="Team Home" aria-label="Team Home"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></a>
     <div class="month-pick"><span class="month-lbl">Month</span>
       <span class="pdd"><select id="monthSel" aria-label="Month"></select></span>
     </div>
