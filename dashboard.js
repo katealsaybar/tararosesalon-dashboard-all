@@ -1520,6 +1520,13 @@ function stylistBranchGroups() {
     }
     if (!byBranch.has(b)) byBranch.set(b, []);
     byBranch.get(b).push({ name, ...p, resigned: override });
+    // Someone who works at two branches shows under both (Virginija, MC + SAA,
+    // Kate, 2 Oct 2026). The extra copy is marked, so the card id and search
+    // keep to the home branch's one.
+    if (!override) (p.alsoAt || []).forEach(x => {
+      if (!byBranch.has(x)) byBranch.set(x, []);
+      byBranch.get(x).push({ name, ...p, resigned: false, alsoAtCopy: true });
+    });
   });
 
   return [...ACTIVE_BRANCHES, 'other', 'other-beauty'].filter(b => byBranch.has(b)).map(b => ({
@@ -1634,7 +1641,7 @@ async function renderStylistCards() {
       const chevron = card ? `<span class="sc-chev">&#9660;</span>` : '';
       // Pills mode hides the role line, so the title carries it there.
       // The id is what the hover menu's "Staff card" jump lands on (staff-links.js).
-      const cardId = (typeof staffLinkId === 'function') ? ` id="${staffLinkId(staffLinkKey(s.name))}"` : '';
+      const cardId = (typeof staffLinkId === 'function' && !s.alsoAtCopy) ? ` id="${staffLinkId(staffLinkKey(s.name))}"` : '';
       const whoName = (typeof staffWho === 'function')
         ? staffWho(s.name, nameHtml + surname, { dept: /Beauty|Nail/.test(s.role || '') ? 'beauty' : 'hair', branch: b })
         : nameHtml + surname;
@@ -4184,7 +4191,8 @@ async function renderDashboard() {
     // filter label printed "All Branches" under every beauty therapist, which reads
     // as a claim that they work at all four. No profile, no tag.
     const tag = (prof && prof.branch)
-      ? (BRANCH_INFO[prof.branch] ? BRANCH_INFO[prof.branch].name : prof.branch) : null;
+      ? [prof.branch, ...(prof.alsoAt || [])]
+          .map(c => BRANCH_INFO[c] ? BRANCH_INFO[c].name : c).join(' · ') : null;
     return `
       <div class="win">
         ${av}

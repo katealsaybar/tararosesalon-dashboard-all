@@ -29,6 +29,9 @@
 //           added to STYLIST_ROLE_ORDER in dashboard.js, or everyone holding it sorts
 //           to the top of their branch instead of into the list.
 //   branch  BRANCH_INFO key — KCA | SAA | MC | AQ
+//   alsoAt  optional list of OTHER branch keys she also works at, e.g. ['SAA'].
+//           Her card shows under each of them too, and her branch tag names all
+//           of them. `branch` stays her home branch; everything else reads that.
 //   ig      Instagram handle WITHOUT the leading @
 //
 // EVERY FIELD IS OPTIONAL AND INDEPENDENT. No photo = no avatar; no handle = the
@@ -154,7 +157,9 @@ const STAFF_PROFILES = {
   'XYRHY':     { photo: 'xyrhy.png',     role: 'Blow-Dry Specialist', branch: 'MC', ig: 'hairgoalsbyxy' },
   // New joiner, confirmed Motor City off the 17 Sep Phorest export ("Virginija
   // Lisauskaite", 2 visits that day, MC). Card photo added 21 Sep 2026.
-  'VIRGINIJA': { photo: 'virginija.png', role: 'Stylist', branch: 'MC', ig: 'hair_by_virginia_dxb' },
+  // Emma, 1 Oct 2026: she works between Saadiyat and Motor City, so she is shown
+  // at Saadiyat too.
+  'VIRGINIJA': { photo: 'virginija.png', role: 'Stylist', branch: 'MC', alsoAt: ['SAA'], ig: 'hair_by_virginia_dxb' },
   'ERCELY':    { role: 'Assistant', branch: 'MC' },
 
   // -- Al Quoz --

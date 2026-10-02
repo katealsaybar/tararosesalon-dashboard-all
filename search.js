@@ -92,11 +92,14 @@
 
     if (typeof stylistBranchGroups === 'function') {
       stylistBranchGroups().forEach(grp => grp.list.forEach(p => {
+        if (p.alsoAtCopy) return;   // one row per person, home branch first
         const key = typeof staffLinkKey === 'function' ? staffLinkKey(p.name) : p.name;
         const full = title(p.name) + (p.last ? ' ' + p.last : '');
         const dept = /Beauty|Nail/i.test(p.role || '') ? 'beauty' : 'hair';
         const branch = p.branch || '';
-        const bName = (typeof BRANCH_INFO !== 'undefined' && BRANCH_INFO[branch]?.name) || '';
+        const bName = [branch, ...(p.alsoAt || [])]
+          .map(c => (typeof BRANCH_INFO !== 'undefined' && BRANCH_INFO[c]?.name) || '')
+          .filter(Boolean).join(' · ');
         const photo = p.photo ? 'assets/staff/' + p.photo : (p.photoFull || '');
         items.push({
           kind: 'staff', id: 'staff:' + key, t: full,
