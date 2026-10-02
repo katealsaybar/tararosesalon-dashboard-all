@@ -307,33 +307,102 @@ async function lcLoadSummary() {
   lcPaintBoard();
 }
 function lcOpenCell(b, s) { lcSel.seg = s; lcSet('branch', b); }
+// The board as a picture (Kate, 2 Oct 2026: "I was expecting more of interactive visual
+// dashboards"). A headline row, then one bar per branch split into who has not come
+// back (regulars, twice, once), who moved to another branch and who is still coming,
+// in clients or in what they had spent. Point at or tap a piece to read it, click it to
+// open that list. The table it replaced is folded underneath ("Show the numbers").
+let lcBoardMode = 'clients', lcBoardOpenNums = false;
+try { lcBoardMode = localStorage.getItem('trs-lost-board') === 'spend' ? 'spend' : 'clients'; } catch (e) {}
+const LC_SEGS = [
+  { s: 'regular', label: 'Regulars (3+)', short: 'Regulars', color: 'var(--accent-coral)' },
+  { s: 'twice',   label: 'Came twice',    short: 'Twice',    color: 'var(--accent-butter)' },
+  { s: 'once',    label: 'One visit',     short: 'Once',     color: 'var(--accent-lavender)' },
+];
+function lcBoardSetMode(m) {
+  lcBoardMode = m;
+  try { localStorage.setItem('trs-lost-board', m); } catch (e) {}
+  lcPaintBoard();
+}
+const lcShortAed = v => v >= 1e6 ? 'AED ' + (v / 1e6).toFixed(v >= 1e7 ? 1 : 2) + 'M' : v >= 1e3 ? 'AED ' + Math.round(v / 1e3) + 'k' : 'AED ' + lcNum(v);
 function lcPaintBoard() {
   const el = document.getElementById('lcBoard');
   if (!el) return;
   if (lcSumErr) { el.innerHTML = '<p class="slv-muted">The board did not load. Refresh to try again.</p>'; return; }
   if (!lcSum) { el.innerHTML = '<p class="slv-muted">Counting every branch…</p>'; return; }
-  const days = Number(lcSel.days), segs = ['regular', 'twice', 'once'];
+  const days = Number(lcSel.days), spend = lcBoardMode === 'spend';
   const at = (b, s) => lcSum.find(x => x.branch === b && x.seg === s && Number(x.days) === days) || { lost: 0, lost_spend: 0, active: 0, moved: 0 };
-  const sum = (list, f) => list.reduce((a, x) => a + (Number(x[f]) || 0), 0);
-  const cell = (b, s, x) => {
+  const B = Object.keys(LC_BRANCH).map(b => {
+    const segs = LC_SEGS.map(g => Object.assign({ b }, g, at(b, g.s)));
+    const lost = segs.reduce((a, x) => a + x.lost, 0), lostSpend = segs.reduce((a, x) => a + Number(x.lost_spend), 0);
+    const moved = segs.reduce((a, x) => a + x.moved, 0), active = segs.reduce((a, x) => a + x.active, 0);
+    return { b, name: LC_BRANCH[b], segs, lost, lostSpend, moved, active, all: lost + moved + active };
+  });
+  const tot = k => B.reduce((a, x) => a + x[k], 0);
+  const allLost = tot('lost'), allSpend = tot('lostSpend'), allClients = tot('all');
+  const worst = [...B].sort((a, b) => (b.lost / (b.all || 1)) - (a.lost / (a.all || 1)))[0];
+  const byGroup = LC_SEGS.map(g => ({ g, n: B.reduce((a, x) => a + x.segs.find(y => y.s === g.s).lost, 0) }));
+  const topGroup = [...byGroup].sort((a, b) => b.n - a.n)[0];
+  // Clients: each bar is the branch's whole client book, so the lost share shows as
+  // length. Spend: only what the lost clients had spent (the summary has no spend for
+  // the rest), each bar against the biggest.
+  const scale = spend ? Math.max(...B.map(x => x.lostSpend), 1) : Math.max(...B.map(x => x.all), 1);
+  const bar = x => {
+    const parts = LC_SEGS.map(g => {
+      const seg = x.segs.find(y => y.s === g.s), v = spend ? Number(seg.lost_spend) : seg.lost;
+      const read = `${x.name} · ${g.label}: ${lcNum(seg.lost)} not back · ${lcShortAed(Number(seg.lost_spend))} · ${x.all ? Math.round(100 * seg.lost / x.all) : 0}% of their clients`;
+      const on = x.b === lcSel.branch && g.s === lcSel.seg;
+      return v > 0 ? `<button type="button" class="lc-seg${on ? ' on' : ''}" style="width:${(100 * v / scale).toFixed(2)}%;background:${g.color}"
+        data-read="${lcEsc(read)}" aria-label="${lcEsc(read)}. Open this list" onclick="lcOpenCell('${x.b}','${g.s}')"></button>` : '';
+    }).join('');
+    const rest = spend ? '' : [
+      x.moved ? `<span class="lc-seg rest moved" style="width:${(100 * x.moved / scale).toFixed(2)}%" data-read="${lcEsc(`${x.name} · Moved branch: ${lcNum(x.moved)} now come to another salon`)}"></span>` : '',
+      x.active ? `<span class="lc-seg rest" style="width:${(100 * x.active / scale).toFixed(2)}%" data-read="${lcEsc(`${x.name} · Still coming: ${lcNum(x.active)} seen in the last ${days} days`)}"></span>` : '',
+    ].join('');
+    const fig = spend ? `<b>${lcShortAed(x.lostSpend)}</b><small>${lcNum(x.lost)} clients</small>`
+                      : `<b>${lcNum(x.lost)}</b><small>${x.all ? Math.round(100 * x.lost / x.all) : 0}% of ${lcNum(x.all)}</small>`;
+    return `<div class="lc-brow"><div class="lc-bname">${lcEsc(x.name)}</div><div class="lc-btrack">${parts}${rest}</div><div class="lc-bfig">${fig}</div></div>`;
+  };
+  const tile = (k, v, n) => `<div class="w13-tile"><div class="slv-eyebrow">${k}</div><div class="w13-val">${v}</div><div class="slv-note">${n}</div></div>`;
+  el.innerHTML = `<div class="slv-head"><div><div class="slv-eyebrow">Every branch</div><h3>Not back in ${days}+ days</h3></div>
+      <div class="sc-seg lc-mode" role="group" aria-label="Show">
+        <button type="button" class="${spend ? '' : 'on'}" onclick="lcBoardSetMode('clients')">Clients</button>
+        <button type="button" class="${spend ? 'on' : ''}" onclick="lcBoardSetMode('spend')">Spend</button></div></div>
+    <div class="w13-tiles lc-btiles">
+      ${tile('Not back', lcNum(allLost), `${allClients ? Math.round(100 * allLost / allClients) : 0}% of ${lcNum(allClients)} clients`)}
+      ${tile('They had spent', lcShortAed(allSpend), 'since Jan 2025, ex VAT')}
+      ${tile('Most lost', lcEsc(worst.name), `${worst.all ? Math.round(100 * worst.lost / worst.all) : 0}% of its clients`)}
+      ${tile('Biggest group', lcEsc(topGroup.g.label), `${allLost ? Math.round(100 * topGroup.n / allLost) : 0}% of those not back`)}
+    </div>
+    <div class="lc-chart" onmouseover="lcBoardRead(event)" onfocusin="lcBoardRead(event)" onmouseleave="lcBoardRead(null)">
+      ${B.map(bar).join('')}
+    </div>
+    <p class="lc-read" id="lcRead" aria-live="polite">Point at a bar, or tap it, to read it. Click to open that list.</p>
+    <div class="lc-legend">${LC_SEGS.map(g => `<span><i style="background:${g.color}"></i>${g.label}</span>`).join('')}${spend ? '' : '<span><i class="moved"></i>Moved branch</span><span><i class="rest"></i>Still coming</span>'}</div>
+    <details class="lc-nums"${lcBoardOpenNums ? ' open' : ''} ontoggle="lcBoardOpenNums=this.open"><summary>Show the numbers</summary>${lcBoardTable(B, days)}</details>`;
+}
+function lcBoardRead(ev) {
+  const out = document.getElementById('lcRead');
+  if (!out) return;
+  const t = ev && ev.target && ev.target.closest && ev.target.closest('[data-read]');
+  out.textContent = t ? t.dataset.read : 'Point at a bar, or tap it, to read it. Click to open that list.';
+}
+// The table, folded under the chart: the same figures in rows, every cell but the
+// totals opening its list.
+function lcBoardTable(B, days) {
+  const segs = LC_SEGS.map(g => g.s);
+  const cell = (b, s, lost, sp) => {
     const on = b === lcSel.branch && s === lcSel.seg;
     const go = b && s ? ` onclick="lcOpenCell('${b}','${s}')" role="button" tabindex="0"` : '';
-    return `<td class="${on ? 'on' : ''}${go ? ' go' : ''}"${go}><b>${lcNum(x.lost)}</b><small>AED ${lcNum(x.lost_spend)}</small></td>`;
+    return `<td class="${on ? 'on' : ''}${go ? ' go' : ''}"${go}><b>${lcNum(lost)}</b><small>AED ${lcNum(sp)}</small></td>`;
   };
-  const row = (label, xs, b, cls) => {
-    const tot = { lost: sum(xs, 'lost'), lost_spend: sum(xs, 'lost_spend') };
-    const all = sum(xs, 'lost') + sum(xs, 'active') + sum(xs, 'moved');
-    return `<tr${cls ? ` class="${cls}"` : ''}><th>${lcEsc(label)}</th>${segs.map((s, i) => cell(b, b ? s : null, xs[i])).join('')}${cell(null, null, tot)}
-      <td class="pct"><b>${all ? Math.round(100 * tot.lost / all) : 0}%</b><small>of ${lcNum(all)}</small></td></tr>`;
-  };
-  const rows = Object.keys(LC_BRANCH).map(b => row(LC_BRANCH[b], segs.map(s => at(b, s)), b)).join('');
-  const allXs = segs.map(s => { const l = Object.keys(LC_BRANCH).map(b => at(b, s));
-    return { lost: sum(l, 'lost'), lost_spend: sum(l, 'lost_spend'), active: sum(l, 'active'), moved: sum(l, 'moved') }; });
-  el.innerHTML = `<div class="slv-head"><div><div class="slv-eyebrow">Every branch</div><h3>Not back in ${days}+ days</h3></div>
-      <p>Tap a number to open that list</p></div>
-    <div class="slv-wrap"><table class="slv-table lc-board-t">
+  const row = x => `<tr><th>${lcEsc(x.name)}</th>${x.segs.map(s => cell(x.b, s.s, s.lost, s.lost_spend)).join('')}${cell(null, null, x.lost, x.lostSpend)}
+    <td class="pct"><b>${x.all ? Math.round(100 * x.lost / x.all) : 0}%</b><small>of ${lcNum(x.all)}</small></td></tr>`;
+  const all = { name: 'All salons', b: null, segs: segs.map(s => ({ s: null, lost: B.reduce((a, x) => a + x.segs.find(y => y.s === s).lost, 0), lost_spend: B.reduce((a, x) => a + Number(x.segs.find(y => y.s === s).lost_spend), 0) })),
+    lost: B.reduce((a, x) => a + x.lost, 0), lostSpend: B.reduce((a, x) => a + x.lostSpend, 0), all: B.reduce((a, x) => a + x.all, 0) };
+  return `<div class="slv-wrap"><table class="slv-table lc-board-t">
       <thead><tr><th>Branch</th><th>Regulars (3+)</th><th>Came twice</th><th>One visit</th><th>All lost</th><th>Of their clients</th></tr></thead>
-      <tbody>${rows}${row('All salons', allXs, null, 'tot')}</tbody></table></div>
+      <tbody>${B.map(row).join('')}${row(all).replace('<tr>', '<tr class="tot">')}</tbody></table></div>
     <p class="slv-note" style="margin-top:8px">Clients since Jan 2025, total spend ex VAT. "Of their clients" is everyone who came to that branch since then. A client who has since been in at another branch is not counted as lost.</p>`;
 }
 

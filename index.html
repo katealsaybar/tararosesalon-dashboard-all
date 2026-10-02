@@ -2100,6 +2100,32 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .lc-prod{margin:8px 0 0;padding-left:18px}.lc-prod li{margin:0 0 4px}.lc-prod span{color:var(--muted);font-size:12.5px}
 .lc-sts{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px}.lc-sts em{font-style:normal;color:var(--muted);font-size:12.5px}
 .lc-board{margin-bottom:14px}
+/* The board's chart (Kate, 2 Oct 2026). One row per branch: name, the bar, the figure. */
+.lc-board .slv-head{align-items:center}
+.lc-btiles{margin-bottom:18px}
+.lc-chart{display:grid;gap:12px}
+.lc-brow{display:grid;grid-template-columns:130px minmax(0,1fr) 120px;gap:14px;align-items:center}
+.lc-bname{font-weight:600;font-size:14px}
+.lc-btrack{display:flex;height:34px;border-radius:9px;overflow:hidden;background:transparent;gap:2px}
+.lc-seg{display:block;height:100%;min-width:3px;border:0;padding:0;cursor:pointer;transition:filter .15s,transform .15s;flex:none}
+.lc-seg.rest{background:var(--surface2);cursor:default;box-shadow:inset 0 0 0 1px var(--border)}
+.lc-seg.moved{background:var(--accent-mint);opacity:.55}
+@media(hover:hover){button.lc-seg:hover{filter:brightness(1.08) saturate(1.15);transform:scaleY(1.08)}}
+button.lc-seg:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
+.lc-seg.on{box-shadow:inset 0 0 0 2px var(--text)}
+.lc-bfig{text-align:right;line-height:1.25}.lc-bfig b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.lc-bfig small{font-size:12px;color:var(--muted)}
+.lc-read{min-height:21px;margin:12px 0 6px;font-size:13.5px;color:var(--text)}
+.lc-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted)}
+.lc-legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.lc-legend i.rest{background:var(--surface2);box-shadow:inset 0 0 0 1px var(--border)}
+.lc-legend i.moved{background:var(--accent-mint);opacity:.55}
+.lc-nums{margin-top:14px}
+.lc-nums summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.lc-nums[open] summary{margin-bottom:10px}
+@media(max-width:760px){.lc-brow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"n f" "t t";gap:6px 10px}
+  .lc-bname{grid-area:n}.lc-bfig{grid-area:f}.lc-btrack{grid-area:t;height:30px}
+  .lc-board .slv-head{flex-wrap:wrap;gap:10px}}
 .lc-board-t td,.lc-board-t th{text-align:right}
 .lc-board-t th:first-child{text-align:left}
 .lc-board-t td b{display:block;font-size:16px}
@@ -3717,7 +3743,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20261002cards"></script>
 <script src="staff-weeks.js?v=20261001aim"></script>
 <script src="products.js?v=20261002wk"></script>
-<script src="lost-clients.js?v=20261002also"></script>
+<script src="lost-clients.js?v=20261002board"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261002fast"></script>
