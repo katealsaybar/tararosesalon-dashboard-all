@@ -45,6 +45,31 @@
       blurb: 'Payslips, and the uploads that feed the dashboard.' }
   ];
   KB.LEVELS = { 1: 'Team', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin', 5: 'Backend' };
+  // The "View as" choices, and the key they live under (this browser only).
+  KB.VIEW_AS = [
+    { v: '5', label: 'Level 5 · Backend (you)' },
+    { v: '4', label: 'Level 4 · Accounts & Admin' },
+    { v: '3', label: 'Level 3 · Executives & Marketing' },
+    { v: '2', label: 'Level 2 · Leadership' },
+    { v: '1|Front Desk', label: 'Level 1 · Team, Front Desk' },
+    { v: '1|Hair', label: 'Level 1 · Team, Hair' },
+    { v: '1|Beauty', label: 'Level 1 · Team, Beauty' }
+  ];
+  KB.readViewAs = function () {
+    try {
+      var v = JSON.parse(localStorage.getItem('trs-viewas') || 'null');
+      if (v && v.level >= 1 && v.level <= 4) return v;
+    } catch (e) {}
+    return null;
+  };
+  KB.setViewAs = function (v) {
+    var parts = String(v || '5').split('|'), lv = +parts[0];
+    try {
+      if (lv >= 1 && lv <= 4) localStorage.setItem('trs-viewas', JSON.stringify({ level: lv, dept: parts[1] || null }));
+      else localStorage.removeItem('trs-viewas');
+    } catch (e) {}
+    location.reload();
+  };
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) {
@@ -80,6 +105,25 @@
     KB.allowed = r.data.sections || [];
     KB.myLink = r.data.my_link || null;
     KB.isStaff = KB.level === 1;
+    // Kate, 2 Oct 2026: "View as". Level 5 can preview Team Home (and the dashboard
+    // sidebar, which reads the same key) as another level. kb_access_as() answers
+    // for Level 5 only; this changes what is drawn, never what Kate can open.
+    KB.realLevel = KB.level;
+    KB.viewAs = null;
+    if (KB.realLevel === 5) {
+      var va = KB.readViewAs();
+      if (va) {
+        var p = await c.rpc('kb_access_as', { p_level: va.level, p_dept: va.dept || null });
+        if (!p.error && p.data) {
+          KB.viewAs = va;
+          KB.level = p.data.level;
+          KB.allowed = p.data.sections || [];
+          KB.isStaff = KB.level === 1;
+          KB.myLink = null;
+          KB.access = Object.assign({}, KB.access, { dept: p.data.dept, scope: null });
+        }
+      }
+    }
     KB.email = s.user && s.user.email;
     var n = await c.rpc('kb_me');
     KB.name = (!n.error && n.data) || '';
@@ -135,7 +179,7 @@
       '<div class="kb-titles"><span class="kb-eyebrow">Knowledge Base</span><h1>' + esc(h.dataset.title || 'Team Home') + '</h1></div>' +
       '<div class="kb-search-wrap"><div class="kb-search">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
-        '<input type="search" id="kbSearch" placeholder="Search the SOPs" autocomplete="off" aria-label="Search the SOPs"></div>' +
+        '<input type="search" id="kbSearch" placeholder="Find a treatment, policy or how-to" autocomplete="off" aria-label="Find a treatment, policy or how-to"></div>' +
         '<div class="kb-results" id="kbResults" role="listbox"></div></div>' +
       '<div class="kb-account">' +
         '<button class="kb-account-btn" id="kbAccountBtn" aria-haspopup="true" aria-expanded="false">' +
@@ -144,7 +188,12 @@
         '</button>' +
         '<div class="kb-menu hide" id="kbMenu">' +
           '<div class="kb-menu-who"><b>' + esc(KB.name || 'Signed in') + '</b><span>' + esc(KB.email || '') + '</span>' +
-            '<em class="kb-menu-lvl">Level ' + KB.level + ' · ' + esc(KB.LEVELS[KB.level] || '') + (KB.access.scope === 'BAH' ? ' · Bahrain' : '') + '</em></div>' +
+            '<em class="kb-menu-lvl">Level ' + KB.realLevel + ' · ' + esc(KB.LEVELS[KB.realLevel] || '') + (KB.access.scope === 'BAH' ? ' · Bahrain' : '') + '</em></div>' +
+          (KB.realLevel === 5 ? '<label class="kb-menu-viewas"><span>View as</span><select id="kbViewAs">' +
+            KB.VIEW_AS.map(function (o) {
+              var cur = KB.viewAs ? KB.viewAs.level + (KB.viewAs.dept ? '|' + KB.viewAs.dept : '') : '5';
+              return '<option value="' + esc(o.v) + '"' + (o.v === cur ? ' selected' : '') + '>' + esc(o.label) + '</option>';
+            }).join('') + '</select></label>' : '') +
           (KB.allowed.indexOf('dashboards') >= 0 ? '<a href="/dashboard/">Open the dashboard</a>' : '') +
           (KB.myLink ? '<a href="' + esc(KB.myLink) + '">My numbers</a>' : '') +
 
@@ -161,6 +210,16 @@
     document.addEventListener('click', function (e) {
       if (!menu.contains(e.target)) { menu.classList.add('hide'); btn.setAttribute('aria-expanded', 'false'); }
     });
+    var vaSel = document.getElementById('kbViewAs');
+    if (vaSel) vaSel.onchange = function () { KB.setViewAs(vaSel.value); };
+    if (KB.viewAs) {
+      var bar = document.createElement('div');
+      bar.className = 'kb-viewas-bar';
+      bar.innerHTML = '<span>Viewing as <b>Level ' + KB.level + ' · ' + esc(KB.LEVELS[KB.level] || '') +
+        (KB.viewAs.dept ? ', ' + esc(KB.viewAs.dept) : '') + '</b></span><button type="button">Back to my view</button>';
+      bar.querySelector('button').onclick = function () { KB.setViewAs('5'); };
+      h.insertAdjacentElement('afterend', bar);
+    }
     document.getElementById('kbThemeBtn').onclick = KB.toggleTheme;
     document.getElementById('kbSignOut').onclick = KB.signOut;
     wireSearch();
@@ -198,6 +257,7 @@
         var r = await c.rpc('kb_search', { q: q });
         if (mine !== seq) return;            // a newer search has gone out
         items = r.error ? [] : (r.data || []);
+        if (KB.viewAs) items = items.filter(function (it) { return KB.allowed.indexOf(it.section) >= 0; });
         active = -1; paint(q);
       }, 220);
     });

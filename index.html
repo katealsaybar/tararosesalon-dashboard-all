@@ -461,6 +461,10 @@ body.orgchart-pop main#orgChartContent{max-width:none;padding:6px 14px 40px}
 .mast-sub{font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-top:7px}
 .mast-acts{display:flex;gap:8px;flex-shrink:0}
 /* Team Home: the way back to the hub (Kate, 1 Oct 2026). Mint, so it doesn't read as one more toggle. */
+.viewas-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  padding:8px 16px;background:#FAEEDA;color:#1A1A1A;font-size:13.5px}
+.viewas-bar button{border:1px solid rgba(0,0,0,.25);background:#fff;color:#1A1A1A;border-radius:999px;padding:6px 14px;min-height:36px;
+  font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 #homeBtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;background:var(--accent-mint);color:#1A1A1A;border-color:var(--accent-mint)}
 @media(hover:hover){#homeBtn:hover{color:#1A1A1A;border-color:#1A1A1A}}
 .nav-home{display:flex;align-items:center;justify-content:center;gap:7px;margin:0 10px 14px;padding:8px 12px;border-radius:20px;
@@ -3789,10 +3793,31 @@ function applyScope(code){
         && !g.querySelector('.nav-sub[onclick*="doLogout"]')) g.style.display = 'none';
   });
 }
+// Kate, 2 Oct 2026: "View as", set from Team Home's account menu (owner only, this
+// browser only, key trs-viewas). The sidebar shows what that level gets: Level 4 is
+// payroll, 1 to 3 are team, and Level 1 is reception (no Campaigns). Data access is
+// unchanged; it is a preview of the menu, with a bar saying so.
+const TRS_LEVEL_NAMES = { 1: 'Team', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin' };
+function trsViewAs(){
+  try { const v = JSON.parse(localStorage.getItem('trs-viewas') || 'null'); if (v && v.level >= 1 && v.level <= 4) return v; } catch(e){}
+  return null;
+}
+function trsViewAsBar(v){
+  const bar = document.createElement('div');
+  bar.className = 'viewas-bar';
+  const staffOnly = v.level === 1 && v.dept && v.dept !== 'Front Desk';
+  bar.innerHTML = `<span>Viewing as <b>Level ${v.level} · ${TRS_LEVEL_NAMES[v.level]}${v.dept ? ', ' + v.dept.replace(/[<>&"]/g, '') : ''}</b>${
+    staffOnly ? '. They don’t open the dashboard; they land on Team Home.' : ''}</span><button type="button">Back to my view</button>`;
+  bar.querySelector('button').onclick = () => { try { localStorage.removeItem('trs-viewas'); } catch(e){} location.reload(); };
+  (document.getElementById('topbar') || document.body).append(bar);
+  if (typeof sizeTopbar === 'function') requestAnimationFrame(sizeTopbar);
+}
 async function enterDashboard(role){
   if (DASHBOARD_OPEN) return;
   DASHBOARD_OPEN = true;
   document.title = 'Dashboard · Tara Rose Salons';
+  const viewAs = role === 'owner' ? trsViewAs() : null;
+  if (viewAs) { role = viewAs.level === 4 ? 'payroll' : 'team'; trsViewAsBar(viewAs); }
   applyRole(role);
   // Awaited now, not just for the greeting: the scope has to be set before the
   // first load, or a Bahrain sign-in would fetch and paint the UAE first.
@@ -3800,7 +3825,7 @@ async function enterDashboard(role){
   if (me && me.scope) applyScope(me.scope);
   // Reception (Level 1 on dashboard_users, Kate 1 Oct 2026): the dashboards, but not
   // Campaigns. The menu entry goes and the page itself refuses (showView).
-  TRS_LEVEL = (me && me.level) || null;
+  TRS_LEVEL = viewAs ? viewAs.level : ((me && me.level) || null);
   if (TRS_LEVEL === 1) {
     const c = document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`);
     if (c && c.closest('.nav-group')) c.closest('.nav-group').style.display = 'none';

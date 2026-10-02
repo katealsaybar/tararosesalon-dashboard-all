@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261002head">
+<link rel="stylesheet" href="/hub/hub.css?v=20261002viewas">
 </head>
 <body class="kb-wait">
 <!-- One page for both a section's list (?s=beauty-sop) and a single SOP (?p=<slug>).
@@ -27,7 +27,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261001star"></script>
+<script src="/hub/hub.js?v=20261002viewas"></script>
 <script>
 (function () {
   var q = new URLSearchParams(location.search), main = document.getElementById('kbMain'), esc = KB.esc;
@@ -56,6 +56,7 @@
 
   async function sectionList(key) {
     var sec = sectionOf(key);
+    if (KB.viewAs && KB.allowed.indexOf(key) < 0) { notFound(); return; }   // "View as": not open at that level
     document.title = sec.title + ' · Team Home';
     var r = await KB.client.from('kb_pages').select('slug,title,group_name,sort,note').eq('section', key).order('sort');
     if (r.error || !r.data || !r.data.length) { notFound(); return; }
@@ -108,6 +109,7 @@
     var r = await KB.client.from('kb_pages').select('slug,section,group_name,sort,title,body_html,note,owner,version,updated_at').eq('slug', slug).maybeSingle();
     if (r.error || !r.data) { notFound(); return; }
     var p = r.data, sec = sectionOf(p.section);
+    if (KB.viewAs && KB.allowed.indexOf(p.section) < 0) { notFound(); return; }
     document.title = p.title + ' · ' + sec.title;
     // The section's chapters, for the side list and previous / next: titles only.
     var all = await KB.client.from('kb_pages').select('slug,title,sort,group_name').eq('section', p.section).order('sort');
