@@ -779,6 +779,9 @@ body.nav-open .topbar{left:var(--nav-shift)}
   /* Hair/Beauty label colors — darker + more saturated than the dark-theme
      pastels so "HAIR"/"BEAUTY" tags stay readable on a white card. */
   --hair:#7C5CD4;--beauty:#0F8A72;
+  /* A beauty staff name as a link: pink, the Quarterly page's beauty colour, darkened
+     here so it reads on a light card (Kate, 2 Oct 2026). */
+  --staff-beauty:#C2416A;
 }
 
 .nav-btn{
@@ -814,6 +817,7 @@ body.nav-open .topbar{left:var(--nav-shift)}
   --good:#99F6E4;--good-bg:rgba(153,246,228,0.12);--warn:#EEF3C7;--warn-bg:rgba(238,243,199,0.12);--bad:#FF9B9B;--bad-bg:rgba(255,155,155,0.12);
   --logo-color:#FAF8F3;--toggle-knob:#FFD4D9;
   --hair:#C4B5FD;--beauty:#99F6E4;
+  --staff-beauty:#FF9B9B;
 }
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s;font-size:16px;line-height:1.6;-webkit-text-size-adjust:100%}
 html{scroll-behavior:smooth}
@@ -2693,8 +2697,8 @@ table.lg thead.lg-float tr:last-child th{box-shadow:0 8px 10px -8px rgba(0,0,0,.
 .who:focus-visible{box-shadow:0 0 0 2px var(--accent)}
 /* Lost Clients' usual stylist (Kate, 2 Oct 2026): reads as a link, in the hair or beauty
    accent, with the dotted line always there rather than only on hover. */
-.lc-st{color:var(--hair);font-weight:600}.lc-st-beauty{color:var(--beauty)}
-.who:has(.lc-st){border-bottom-color:transparent}.who:has(.lc-st-beauty){color:var(--beauty)}.who:has(.lc-st-hair){color:var(--hair)}
+.lc-st{color:var(--hair);font-weight:600}.lc-st-beauty{color:var(--staff-beauty)}
+.who:has(.lc-st){border-bottom-color:transparent}.who:has(.lc-st-beauty){color:var(--staff-beauty)}.who:has(.lc-st-hair){color:var(--hair)}
 /* Resigned staff in grey, like their faded cards; and the name lifts a little under the
    pointer or a finger, so it reads as something to press (Kate, 2 Oct 2026). */
 .lc-st-gone{color:var(--muted)!important;font-weight:500}.who:has(.lc-st-gone){color:var(--muted)!important}
