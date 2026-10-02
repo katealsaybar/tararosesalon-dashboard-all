@@ -224,7 +224,9 @@
       // Cards only where the table cannot work on a phone at all: Daily Stylist
       // Target (31 days across) and Branch Performance's compact ledgers. The rest
       // stay tables, with the label column capped so the figures show.
-      const wide = CURRENT_VIEW === 'ledgerStylist'
+      // Financial Totals (Kate, 2 Oct 2026): six branch-by-column tables, 730 to
+      // 1,221px wide, so a card per branch there too.
+      const wide = CURRENT_VIEW === 'ledgerStylist' || CURRENT_VIEW === 'ledgerFinancials'
         || (CURRENT_VIEW === 'branchperf' && tbl.classList.contains('lg-compact'));
       if (wide && tbl.scrollWidth > wrap.clientWidth + 4 && tbl.tBodies[0] && tbl.tBodies[0].rows.length) {
         cards(tbl, frame);
@@ -282,6 +284,9 @@
     const colAt = name => cols.findIndex(x => x.leaf === name);
     const iNet = colAt('Net take'), iReb = colAt('Rebook %');
     const staffy = iNet > -1;
+    // A branch table (Financial Totals) puts its last column on the card face instead,
+    // which is each table's total, so the branches can be read without opening each.
+    const iLast = cols.length - 1, byLast = !staffy && CURRENT_VIEW === 'ledgerFinancials' && iLast > 0;
     const nil = v => { const d = String(v || '').replace(/[^0-9.]/g, ''); return !d || Number(d) === 0; };
     let hiddenN = 0;
     [...tbl.tBodies].forEach(tb => [...tb.rows].forEach(tr => {
@@ -291,7 +296,7 @@
         html += `<div class="m-grp"${mid(tr)}>${esc(tr.textContent.trim())}</div>`;
         return;
       }
-      let c = 0, band = null, dl = '', net = null, reb = null, allNil = true;
+      let c = 0, band = null, dl = '', net = null, reb = null, last = null, allNil = true;
       cells.forEach((cell, i) => {
         const col = cols[c] || {band: '', leaf: ''};
         const at = c;
@@ -300,6 +305,7 @@
         const val = cell.textContent.trim();
         if (at === iNet) net = val;
         if (at === iReb) reb = val;
+        if (at === iLast) last = val;
         if (!nil(val)) allNil = false;
         if (col.band && col.band !== band) { dl += `<dt class="band">${esc(col.band)}</dt>`; band = col.band; }
         dl += `<dt>${esc(col.leaf || '—')}</dt><dd>${esc(val || '—')}</dd>`;
@@ -307,7 +313,8 @@
       const tot = tr.classList.contains('lg-tot') ? ' tot' : '';
       if (staffy && !tot && !tr.id && allNil) { hiddenN++; return; }
       const lead = staffy && (net || reb)
-        ? `<span class="m-lead">${esc(net || '—')}${reb && iReb > -1 ? ` <small>· ${esc(reb)} rebook</small>` : ''}</span>` : '';
+        ? `<span class="m-lead">${esc(net || '—')}${reb && iReb > -1 ? ` <small>· ${esc(reb)} rebook</small>` : ''}</span>`
+        : byLast && last ? `<span class="m-lead m-lead-col">${esc(last)}<small>${esc(cols[iLast].leaf)}</small></span>` : '';
       html += `<details class="m-card${tot}"${mid(tr)}><summary><span class="m-nm">${esc(cells[0].textContent.trim())}</span>${lead}</summary><dl>${dl}</dl></details>`;
     }));
     if (hiddenN) html += `<p class="m-hid">${hiddenN} ${hiddenN === 1 ? 'person' : 'people'} with no figures this period left out here. Table shows everyone.</p>`;

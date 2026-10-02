@@ -192,6 +192,8 @@
   .m-card summary .m-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .m-card summary .m-lead{white-space:nowrap;text-align:right}
   .m-card summary .m-lead small{font-weight:400;color:var(--muted);font-size:13px}
+  /* Financial Totals: the table's total column, its name under the figure. */
+  .m-card summary .m-lead-col small{display:block;font-size:12px;line-height:1.2}
   .m-hid{margin:6px 2px 0;font-size:13px;color:var(--muted)}
   .m-card dl{margin:0;padding:0 14px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;
     gap:6px 14px;font-size:14px}
