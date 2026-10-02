@@ -114,6 +114,8 @@ function lcPaint() {
           oninput="lcQuery=this.value;lcShowAll=false;lcPaintTable()"
           style="flex:1;min-width:180px;max-width:320px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit">
         <button type="button" class="tglr" onclick="lcCopy()">Copy list</button>
+        <button type="button" class="tglr" onclick="lcSaveFile('xlsx')">XLSX</button>
+        <button type="button" class="tglr" onclick="lcSaveFile('csv')">CSV</button>
         <span id="lcCopied" class="slv-note" style="display:inline"></span>
       </div>
       <div id="lcTable"></div>
@@ -138,7 +140,7 @@ function lcPaintTable() {
       <td>${lcNum(r.visits)}</td>
       <td>${lcEsc(lcDayY(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days ago</div></td>
       <td>${lcNum(r.spend)}</td>
-      <td>${lcEsc(r.stylist || '–')}</td>
+      <td>${lcStylist(r.stylist)}</td>
       ${lcMovedView ? `<td>${nowAt(r)}</td>` : ''}
       ${phones ? `<td>${lcPhone(r)}</td>` : ''}
     </tr>`).join('');
@@ -147,7 +149,7 @@ function lcPaintTable() {
   const cards = shown.map(r => `<li class="prd-card">
       <div class="prd-body">
         <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${check(r)}</span><span class="prd-spend">AED ${lcNum(r.spend)}</span></div>
-        <div class="prd-meta">${lcNum(r.visits)} visits · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${r.stylist ? ' · ' + lcEsc(r.stylist) : ''}${lcMovedView && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}</div>
+        <div class="prd-meta">${lcNum(r.visits)} visits · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${r.stylist ? ' · ' + lcStylist(r.stylist) : ''}${lcMovedView && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}</div>
         ${phones && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
       </div>
     </li>`).join('');
@@ -157,6 +159,19 @@ function lcPaintTable() {
       <ol class="prd-cards">${cards}</ol>
       ${rows.length > shown.length ? `<p style="margin-top:10px"><button type="button" class="tglr" onclick="lcShowAll=true;lcPaintTable()">Show all ${lcNum(rows.length)}</button></p>` : ''}`
     : `<p class="slv-muted">${q ? 'No one on this list matches that search.' : 'No clients on this list.'}</p>`;
+}
+
+// Usual stylist as a link (Kate, 2 Oct 2026): the same hover / tap menu every other
+// staff name has (staff-links.js: Staff card, Staff stats, Branch figures), in the
+// hair or beauty accent by her role in staff-profiles.js. Hair when unknown.
+function lcStylist(name) {
+  if (!name) return '–';
+  const up = String(name).trim().toUpperCase(), w = up.split(/\s+/);
+  const prof = (typeof STAFF_PROFILES !== 'undefined')
+    ? (STAFF_PROFILES[up] || STAFF_PROFILES[w.slice(0, 2).join(' ')] || STAFF_PROFILES[w[0]]) : null;
+  const dept = prof && /beauty|nail|lash|brow|therap|aesthet/i.test(prof.role || '') ? 'beauty' : 'hair';
+  const inner = `<span class="lc-st lc-st-${dept}">${lcEsc(name)}</span>`;
+  return typeof staffWho === 'function' ? staffWho(name, inner, { dept, branch: lcSel.branch }) : inner;
 }
 
 // One number per client on screen. A common name can carry up to ten (everyone in
@@ -171,16 +186,40 @@ function lcPhone(r) {
     : first;
 }
 
-// Tab-separated, so it pastes into a sheet as columns. Copies the list as searched,
-// all of it, not just the rows drawn.
-function lcCopy() {
+// The list as searched, all of it, not just the rows drawn: the header and one array
+// per client. Copy list, XLSX and CSV all read this, so the three never disagree.
+function lcExportLines() {
   const q = lcQuery.trim().toLowerCase();
   const rows = (lcRows || []).filter(r => !q || `${r.client_name} ${r.stylist || ''}`.toLowerCase().includes(q));
   const phones = (lcAll || []).some(r => r.mobile || r.landline);
   const head = ['Client', 'Visits', 'Last visit', 'Days since', 'Spend (AED)', 'Usual stylist']
     .concat(lcMovedView ? ['Now at', 'Last visit there'] : []).concat(phones ? ['Phone'] : []);
-  const lines = [head].concat(rows.map(r => [r.client_name, r.visits, r.last_visit, r.days_since, Math.round(Number(r.spend) || 0),
-    r.stylist || ''].concat(lcMovedView ? [r.now_at || '', r.now_last || ''] : []).concat(phones ? [r.mobile || r.landline || ''] : [])));
+  const lines = rows.map(r => [r.client_name, Number(r.visits) || 0, r.last_visit, Number(r.days_since) || 0, Math.round(Number(r.spend) || 0),
+    r.stylist || ''].concat(lcMovedView ? [r.now_at || '', r.now_last || ''] : []).concat(phones ? [r.mobile || r.landline || ''] : []));
+  return { head, lines, rows };
+}
+
+// XLSX and CSV (Kate, 2 Oct 2026), written by ledger-export.js's own writer (no
+// library). Header row first, no title rows, so the file imports straight into a
+// sheet or a CRM. File name: lost-clients-SAA-regulars-60d (plus -moved / -search).
+function lcSaveFile(kind) {
+  if (typeof lgxBuild !== 'function') return;
+  const { head, lines } = lcExportLines();
+  const nums = new Set(['Visits', 'Days since', 'Spend (AED)']);
+  const cols = head.map(h => ({ label: h, fmt: h === 'Spend (AED)' ? 'aed' : nums.has(h) ? 'num' : 'text' }));
+  const built = lgxBuild({ sheets: [{ name: 'Lost clients ' + lcSel.branch, blocks: [{ cols, rows: lines.map(l => ({ cells: l })) }] }] });
+  const name = ['lost-clients', lcSel.branch, lcSel.seg === 'regular' ? 'regulars' : lcSel.seg, lcSel.days + 'd']
+    .concat(lcMovedView ? ['moved'] : []).concat(lcQuery.trim() ? ['search'] : []).join('-');
+  if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
+  else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
+  const s = document.getElementById('lcCopied');
+  if (s) s.textContent = `Saved ${lcNum(lines.length)} rows as ${kind.toUpperCase()}`;
+}
+
+// Tab-separated, so it pastes into a sheet as columns.
+function lcCopy() {
+  const { head, lines: body, rows } = lcExportLines();
+  const lines = [head].concat(body);
   const text = lines.map(l => l.join('\t')).join('\n');
   const done = () => { const s = document.getElementById('lcCopied'); if (s) s.textContent = `Copied ${lcNum(rows.length)} rows`; };
   if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, () => {});

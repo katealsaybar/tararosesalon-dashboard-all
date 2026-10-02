@@ -2572,6 +2572,10 @@ table.lg thead.lg-float tr:last-child th{box-shadow:0 8px 10px -8px rgba(0,0,0,.
 .who{cursor:pointer;border-bottom:1px dotted transparent;transition:border-color .15s;outline:none;border-radius:2px}
 .who.who-on,.who:focus-visible{border-bottom-color:var(--muted)}@media(hover:hover){.who:hover{border-bottom-color:var(--muted)}}
 .who:focus-visible{box-shadow:0 0 0 2px var(--accent)}
+/* Lost Clients' usual stylist (Kate, 2 Oct 2026): reads as a link, in the hair or beauty
+   accent, with the dotted line always there rather than only on hover. */
+.lc-st{color:var(--hair);font-weight:600}.lc-st-beauty{color:var(--beauty)}
+.who:has(.lc-st){border-bottom-color:currentColor}.who:has(.lc-st-beauty){color:var(--beauty)}.who:has(.lc-st-hair){color:var(--hair)}
 #whoMenu{position:fixed;z-index:9000;min-width:190px;padding:5px;border-radius:10px;
   background:var(--surface);border:1px solid var(--border);
   box-shadow:0 10px 30px rgba(0,0,0,.18),0 1px 3px rgba(0,0,0,.08);
@@ -3634,7 +3638,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20261002cards"></script>
 <script src="staff-weeks.js?v=20261001aim"></script>
 <script src="products.js?v=20261002wk"></script>
-<script src="lost-clients.js?v=20261002flt"></script>
+<script src="lost-clients.js?v=20261002xlsx"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261002lost"></script>
