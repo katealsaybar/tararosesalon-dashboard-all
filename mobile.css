@@ -43,17 +43,17 @@
   /* Sign out lives in the drawer's footer on a phone (Log Out); the greeting is
      already hidden under 760px by the page's own rule. */
   #filtersBtn,#themeBtn,#signOutBtn{display:none!important}
-  /* Team Home stays on phones as its house icon alone; the word would crowd the row. */
-  #homeBtn .hb-txt{display:none}
-  #homeBtn{padding:6px 10px}
-  #navBtn{position:relative;width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;
-    color:var(--text);
-    /* The label stays for screen readers (toggleNav rewrites it); only the eye loses it. */
-    font-size:12px;text-indent:-999px;overflow:hidden;white-space:nowrap}
-  /* Pinned to the centre, not laid out beside the hidden label: as a grid item the
-     label took a second row and pushed the lines to the top of the circle. */
-  #navBtn::before{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    text-indent:0;width:18px;height:14px;
+  /* Kate, 2 Oct 2026: the mint Home button was the one people tapped first, and it
+     took them out of the dashboard. On a phone the bar is now Menu (first, in mint,
+     with its name on it), search, filters; Team Home lives at the top of the menu. */
+  #homeBtn{display:none!important}
+  #navBtn{order:-1;position:relative;display:inline-flex;align-items:center;height:44px;min-height:44px;
+    padding:0 16px 0 42px;border-radius:22px;background:var(--accent-mint);border-color:var(--accent-mint);color:#1A1A1A;
+    /* toggleNav writes "Sections" / "Hide sections" here for screen readers; the eye reads "Menu". */
+    font-size:0;white-space:nowrap}
+  #navBtn::after{content:'Menu';font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:none}
+  #navBtn::before{content:'';position:absolute;left:16px;top:50%;transform:translateY(-50%);
+    width:16px;height:12px;
     background:linear-gradient(currentColor,currentColor) 0 0/100% 2px no-repeat,
                linear-gradient(currentColor,currentColor) 0 50%/100% 2px no-repeat,
                linear-gradient(currentColor,currentColor) 0 100%/100% 2px no-repeat}
@@ -65,6 +65,14 @@
   /* "Door" when clients are counted through the door (Kate, 1 Oct 2026); never truncated. */
   #fSheetDoor{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--text);color:var(--bg)}
   #fSheetDoor[hidden]{display:none}
+  /* Team Home at the top of the menu reads as the way back out: a back arrow and a
+     light mint tint, not the solid button the dashboard lists sit under. */
+  .nav-home{justify-content:flex-start;gap:10px;padding:10px 14px;border-radius:12px;
+    background:rgba(153,246,228,.28);color:var(--text);font-size:14px;letter-spacing:.02em;text-transform:none}
+  [data-theme="dark"] .nav-home{background:rgba(153,246,228,.14);color:var(--accent-mint)}
+  .nav-home svg{display:none}
+  .nav-home::before{content:'';width:7px;height:7px;margin-left:3px;border-left:2px solid currentColor;
+    border-bottom:2px solid currentColor;transform:rotate(45deg)}
 
   /* What used to ride in the header now opens the page: section label (with the
      Comparison switch and the org chart links) and the branch · range · feed line. */
