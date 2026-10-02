@@ -49,8 +49,11 @@ function paint() {
   const hasLevel = !!levelOf(S.me && S.me.level);
   const tabs = document.getElementById('perfTabs'), more = document.getElementById('perfMore');
   const b = (k, l, extra = '') => `<button type="button" role="tab" aria-selected="${S.tab === k}" class="${S.tab === k ? 'on' : ''}" onclick="PerfTabs.go('${k}')"${extra}>${l}</button>`;
+  // No levels for her team (beauty, so far): no "How you move up" tab at all, rather
+  // than a greyed-out one (Kate, 2 Oct 2026). It comes back by itself once
+  // perf_benchmarks carries levels for that team.
   tabs.innerHTML = b('month', 'This month') + b('year', 'My year')
-    + b('levels', 'How you move up', hasLevel ? '' : ' disabled title="Levels for beauty are not set yet"');
+    + (hasLevel ? b('levels', 'How you move up') : '');
   tabs.parentElement.hidden = false;
   const onMonth = S.tab === 'month';
   document.getElementById('app').hidden = !onMonth;
