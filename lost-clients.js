@@ -21,7 +21,7 @@
 //
 // Own controls (branch, who, gone for), so the masthead filters are hidden on this
 // page. Borrows the Products page's card, tile and table styles (slv-*, w13-*).
-let lcAll = null, lcRows = null, lcShowAll = false, lcQuery = '', lcMovedView = false;
+let lcAll = null, lcRows = null, lcPage = 1, lcQuery = '', lcMovedView = false;
 let lcSel = { branch: 'SAA', seg: 'regular', days: 90 };
 try { Object.assign(lcSel, JSON.parse(localStorage.getItem('trs-lost') || '{}')); } catch (e) {}
 
@@ -33,15 +33,19 @@ const LC_SEG = {
   once:    { label: 'One visit only',       short: '1',  min: 1, max: 1 },
 };
 const LC_DAYS = [60, 90, 180];
-const LC_LIMIT = 200;   // rows drawn before "Show all"; a branch can have 2,000+
+// Pages (Kate, 2 Oct 2026): 20 a page by default, or 50 or 100, with "Page 1 of N".
+// Replaces the first-200-then-Show-all list. The choice is kept per browser.
+const LC_PER = [20, 50, 100];
+let lcPer = 20;
+try { const v = Number(localStorage.getItem('trs-lost-per')); if (LC_PER.includes(v)) lcPer = v; } catch (e) {}
 
 const lcEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const lcNum = v => Math.round(Number(v) || 0).toLocaleString('en-GB');
 const lcDayY = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 function lcSave() { try { localStorage.setItem('trs-lost', JSON.stringify(lcSel)); } catch (e) {} }
-function lcSet(k, v) { lcSel[k] = v; lcShowAll = false; lcMovedView = false; lcResetFilters(); lcSave(); renderLostClients(); }
-function lcToggleMoved() { lcMovedView = !lcMovedView; lcShowAll = false; lcResetFilters(); lcPaint(); }
+function lcSet(k, v) { lcSel[k] = v; lcPage = 1; lcMovedView = false; lcResetFilters(); lcSave(); renderLostClients(); }
+function lcToggleMoved() { lcMovedView = !lcMovedView; lcPage = 1; lcResetFilters(); lcPaint(); }
 
 // Speed (Kate, 2 Oct 2026): opened straight on this page, the list waited ~4.5s for
 // the Pulse data it never uses, then the board's summary waited for the list. Both
@@ -133,7 +137,7 @@ function lcPaint() {
       </div>` : ''}
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0 8px">
         <input type="search" id="lcSearch" placeholder="Search name or stylist" value="${lcEsc(lcQuery)}"
-          oninput="lcQuery=this.value;lcShowAll=false;lcPaintTable()"
+          oninput="lcQuery=this.value;lcPage=1;lcPaintTable()"
           style="flex:1;min-width:180px;max-width:320px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit">
         <button type="button" class="tglr" onclick="lcSaveFile('xlsx')">XLSX</button>
         <button type="button" class="tglr" onclick="lcSaveFile('csv')">CSV</button>
@@ -186,7 +190,18 @@ const lcCols = () => LC_COLS.filter(c => (!c.moved || lcMovedView) && (!c.phones
 const lcColOf = k => LC_COLS.find(c => c.k === k);
 function lcOn(k) {
   const f = lcF[k]; if (!f) return false;
-  return !!(f.q || f.min != null || f.max != null || f.from || f.to || f.set || f.has);
+  return !!(f.set || f.has || lcRuleOn(f, '') || lcRuleOn(f, '2'));
+}
+// Two rules in one column (Kate, 2 Oct 2026), joined by "or": spend under 500 or over
+// 5,000, two date ranges, two names. Rule two's fields end in 2 (q2, min2, to2...).
+function lcRuleOn(f, s) {
+  return !!(f['q' + s] || f['min' + s] != null || f['max' + s] != null || f['from' + s] || f['to' + s]);
+}
+function lcRuleOk(c, f, s, v) {
+  if (c.type === 'text') return String(v).toLowerCase().includes(String(f['q' + s] || '').toLowerCase());
+  if (c.type === 'num') return !((f['min' + s] != null && v < f['min' + s]) || (f['max' + s] != null && v > f['max' + s]));
+  if (c.type === 'date') return !((f['from' + s] && v < f['from' + s]) || (f['to' + s] && v > f['to' + s]));
+  return true;
 }
 function lcPass(r, skip) {
   const q = lcQuery.trim().toLowerCase();
@@ -194,9 +209,10 @@ function lcPass(r, skip) {
   for (const c of LC_COLS) {
     if (c.k === skip || !lcOn(c.k)) continue;
     const f = lcF[c.k], v = c.get(r);
-    if (c.type === 'text' && f.q && !String(v).toLowerCase().includes(f.q.toLowerCase())) return false;
-    if (c.type === 'num' && ((f.min != null && v < f.min) || (f.max != null && v > f.max))) return false;
-    if (c.type === 'date' && ((f.from && v < f.from) || (f.to && v > f.to))) return false;
+    if (c.type === 'text' || c.type === 'num' || c.type === 'date') {
+      const on1 = lcRuleOn(f, ''), on2 = lcRuleOn(f, '2');
+      if ((on1 || on2) && !((on1 && lcRuleOk(c, f, '', v)) || (on2 && lcRuleOk(c, f, '2', v)))) return false;
+    }
     if (c.type === 'pick' && f.set && !f.set.includes(v)) return false;
     if (c.type === 'has' && f.has && (f.has === 'yes') !== !!v) return false;
   }
@@ -224,9 +240,16 @@ function lcOpenFilter(ev, k) {
   pop.setAttribute('aria-label', c.label + ': sort and filter');
   const words = c.type === 'num' ? ['Smallest first', 'Largest first'] : c.type === 'date' ? ['Oldest first', 'Newest first'] : ['A to Z', 'Z to A'];
   let body = '';
-  if (c.type === 'text') body = `<input type="search" class="lc-in" data-f="q" placeholder="Contains…" value="${lcEsc(f.q || '')}">`;
-  if (c.type === 'num') body = `<div class="lc-two"><input type="number" inputmode="decimal" class="lc-in" data-f="min" placeholder="From" value="${f.min ?? ''}"><input type="number" inputmode="decimal" class="lc-in" data-f="max" placeholder="To" value="${f.max ?? ''}"></div>`;
-  if (c.type === 'date') body = `<div class="lc-dates"><label>From<input type="date" class="lc-in" data-f="from" value="${f.from || ''}"></label><label>To<input type="date" class="lc-in" data-f="to" value="${f.to || ''}"></label></div>`;
+  const rule = s => {
+    if (c.type === 'text') return `<input type="search" class="lc-in" data-f="q${s}" placeholder="Contains…" value="${lcEsc(f['q' + s] || '')}">`;
+    if (c.type === 'num') return `<div class="lc-two"><input type="number" inputmode="decimal" class="lc-in" data-f="min${s}" placeholder="From" value="${f['min' + s] ?? ''}"><input type="number" inputmode="decimal" class="lc-in" data-f="max${s}" placeholder="To" value="${f['max' + s] ?? ''}"></div>`;
+    return `<div class="lc-dates"><label>From<input type="date" class="lc-in" data-f="from${s}" value="${f['from' + s] || ''}"></label><label>To<input type="date" class="lc-in" data-f="to${s}" value="${f['to' + s] || ''}"></label></div>`;
+  };
+  if (c.type === 'text' || c.type === 'num' || c.type === 'date') {
+    const two = lcRuleOn(f, '2');
+    body = rule('') + `<button type="button" class="lc-or-add"${two ? ' hidden' : ''}>+ Or another rule</button>
+      <div class="lc-or"${two ? '' : ' hidden'}><div class="lc-or-word">or</div>${rule('2')}</div>`;
+  }
   if (c.type === 'has') body = ['', 'yes', 'no'].map((v, i) => `<label class="lc-chk"><input type="radio" name="lcHas" value="${v}"${(f.has || '') === v ? ' checked' : ''}> ${['Everyone', 'Has a number', 'No number'][i]}</label>`).join('');
   if (c.type === 'pick') {
     const cnt = {};
@@ -243,12 +266,14 @@ function lcOpenFilter(ev, k) {
   const th = ev.currentTarget.getBoundingClientRect();
   pop.style.top = Math.max(8, Math.min(th.bottom + 4, innerHeight - pop.offsetHeight - 8)) + 'px';
   pop.style.left = Math.max(8, Math.min(th.left, innerWidth - pop.offsetWidth - 8)) + 'px';
-  const apply = () => { lcShowAll = false; lcPaintTable(); };
+  const apply = () => { lcPage = 1; lcPaintTable(); };
   const set = (fk, v) => { lcF[k] = Object.assign({}, lcF[k], { [fk]: v }); apply(); };
   pop.addEventListener('click', e => e.stopPropagation());
   pop.querySelectorAll('[data-dir]').forEach(b => b.onclick = () => { lcSort = { k, dir: +b.dataset.dir }; apply(); lcClosePop(); });
   pop.querySelector('[data-clear]').onclick = () => { delete lcF[k]; apply(); lcClosePop(); };
   pop.querySelector('[data-done]').onclick = lcClosePop;
+  const orAdd = pop.querySelector('.lc-or-add');
+  if (orAdd) orAdd.onclick = () => { orAdd.hidden = true; const o = pop.querySelector('.lc-or'); o.hidden = false; o.querySelector('input').focus(); };
   pop.querySelectorAll('.lc-in[data-f]').forEach(i => i.oninput = () => {
     const raw = i.value.trim();
     set(i.dataset.f, i.type === 'number' ? (raw === '' ? null : Number(raw)) : (raw || null));
@@ -437,7 +462,9 @@ function lcPaintTable() {
   const box = document.getElementById('lcTable');
   if (!box || !lcRows) return;
   const rows = lcFiltered(), cols = lcCols();
-  const shown = lcShowAll ? rows : rows.slice(0, LC_LIMIT);
+  const pages = Math.max(1, Math.ceil(rows.length / lcPer));
+  lcPage = Math.min(Math.max(1, lcPage), pages);
+  const shown = rows.slice((lcPage - 1) * lcPer, lcPage * lcPer);
   lcShown = shown;
   // "2 numbers?" (Kate, 2 Oct 2026: it read "check", which said nothing): Phorest has two
   // different numbers under this name, two people who share it or one client entered
@@ -481,7 +508,26 @@ function lcPaintTable() {
       <thead><tr>${cols.map(th).join('')}</tr></thead>
       <tbody>${tr || `<tr><td colspan="${cols.length}" class="slv-muted">No one on this list matches those filters.</td></tr>`}</tbody></table></div>
       <ol class="prd-cards">${cards || '<li class="slv-muted">No one on this list matches those filters.</li>'}</ol>
-      ${rows.length > shown.length ? `<p style="margin-top:10px"><button type="button" class="tglr" onclick="lcShowAll=true;lcPaintTable()">Show all ${lcNum(rows.length)}</button></p>` : ''}`;
+      ${rows.length ? lcPager(rows.length, pages, shown.length) : ''}`;
+}
+function lcPager(total, pages, n) {
+  const from = (lcPage - 1) * lcPer + 1;
+  return `<div class="lc-pager">
+      <div class="lc-pg-size"><span class="slv-note">Show</span><div class="sc-seg" role="group" aria-label="Rows per page">${LC_PER.map(v =>
+        `<button type="button" class="${v === lcPer ? 'on' : ''}" onclick="lcSetPer(${v})">${v}</button>`).join('')}</div></div>
+      <div class="lc-pg-nav">
+        <span class="lc-pg-txt">Page <b>${lcPage}</b> of <b>${lcNum(pages)}</b><span class="slv-note"> · ${lcNum(from)}–${lcNum(from + n - 1)} of ${lcNum(total)}</span></span>
+        <button type="button" class="tglr" onclick="lcGo(-1)"${lcPage <= 1 ? ' disabled' : ''} aria-label="Previous page">‹ Prev</button>
+        <button type="button" class="tglr" onclick="lcGo(1)"${lcPage >= pages ? ' disabled' : ''} aria-label="Next page">Next ›</button>
+      </div>
+    </div>`;
+}
+function lcSetPer(v) { lcPer = v; lcPage = 1; try { localStorage.setItem('trs-lost-per', v); } catch (e) {} lcPaintTable(); }
+// A new page starts at its first row: back up to the table's top if it is above the screen.
+function lcGo(d) {
+  lcPage += d; lcPaintTable();
+  const box = document.getElementById('lcTable');
+  if (box && box.getBoundingClientRect().top < 0) scrollTo({ top: scrollY + box.getBoundingClientRect().top - 180 });
 }
 function lcClearAll() {
   lcResetFilters(); lcQuery = '';
