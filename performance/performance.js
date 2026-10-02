@@ -141,12 +141,23 @@ function photoFor(keys) {
 }
 const monthLabel = m => new Date(m + 'T00:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
-async function rpc(fn, args) {
-  const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`, {
-    method: 'POST',
-    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(args),
-  });
+// Kate, 2 Oct 2026: on phones a load often failed with "Couldn't load the numbers"
+// (perf_dashboard hit anon's 3s limit on a cold start; fixed in the database the same
+// day). A dropped connection or a server error now gets one quiet retry after a
+// second before the page gives up. A 4xx (a bad link) fails at once, as before.
+async function rpc(fn, args, retried) {
+  let r;
+  try {
+    r = await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`, {
+      method: 'POST',
+      headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(args),
+    });
+  } catch (e) {
+    if (!retried) { await new Promise(res => setTimeout(res, 1000)); return rpc(fn, args, true); }
+    throw e;
+  }
+  if (r.status >= 500 && !retried) { await new Promise(res => setTimeout(res, 1000)); return rpc(fn, args, true); }
   if (!r.ok) throw new Error(`${fn}: ${r.status} ${await r.text()}`);
   return r.json();
 }
