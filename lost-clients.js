@@ -149,8 +149,10 @@ const LC_COLS = [
   { k: 'client',  label: 'Client',              type: 'text', get: r => r.client_name || '' },
   { k: 'visits',  label: 'Visits',              type: 'num',  get: r => Number(r.visits) || 0 },
   { k: 'last',    label: 'Last visit',          type: 'date', get: r => r.last_visit || '' },
-  { k: 'spend',   label: 'Total spend (AED)',   type: 'num',  get: r => Math.round(Number(r.spend) || 0) },
-  { k: 'avg',     label: 'Avg per visit (AED)', type: 'num',  get: lcAvg },
+  // On screen the headings stay one line (Kate, 2 Oct 2026: "(AED)" stacked them three
+  // deep); the files keep the unit in the heading (xl).
+  { k: 'spend',   label: 'Total spend',   xl: 'Total spend (AED)',   type: 'num',  get: r => Math.round(Number(r.spend) || 0) },
+  { k: 'avg',     label: 'Avg per visit', xl: 'Avg per visit (AED)', type: 'num',  get: lcAvg },
   { k: 'stylist', label: 'Usual stylist',       type: 'pick', get: r => r.stylist || '' },
   { k: 'also',    label: 'Also saw',            type: 'text', get: r => lcAlsoNames(r.also_saw).join(', ') },
   { k: 'now',     label: 'Now at',              type: 'pick', get: r => r.now_at || '', moved: true },
@@ -432,7 +434,7 @@ function lcPaintTable() {
   };
   const th = c => {
     const sorted = lcSort.k === c.k ? (lcSort.dir > 0 ? ' ▲' : ' ▼') : '';
-    return `<th class="lc-th${lcOn(c.k) ? ' on' : ''}${c.k === 'stylist' || c.k === 'also' ? ' lc-l' : ''}"><button type="button" class="lc-thb" onclick="lcOpenFilter(event,'${c.k}')" aria-haspopup="dialog">${lcEsc(c.label)}<span class="lc-ar">${sorted}</span><span class="lc-fn" aria-hidden="true"></span></button></th>`;
+    return `<th class="lc-th${lcOn(c.k) ? ' on' : ''}${c.k === 'stylist' || c.k === 'also' ? ' lc-l' : ''}"><button type="button" class="lc-thb" onclick="lcOpenFilter(event,'${c.k}')" aria-haspopup="dialog"${c.xl ? ` title="${lcEsc(c.xl)}, ex VAT, since Jan 2025"` : ''}>${lcEsc(c.label)}<span class="lc-ar">${sorted}</span><span class="lc-fn" aria-hidden="true"></span></button></th>`;
   };
   const tr = shown.map((r, i) => `<tr class="lc-row" title="Click to see what she came in for, what she took home and who looked after her" onclick="lcToggleDetail(event,${i})">${cols.map(c => td(c, r)).join('')}</tr>`).join('');
   // Under 760px the table becomes a list, like Products: name and spend on one line,
@@ -521,7 +523,7 @@ function lcExportLines() {
   cols.forEach(c => {
     if (c.k === 'last') { head.push('Last visit', 'Days since'); pick.push(r => r.last_visit, r => Number(r.days_since) || 0); return; }
     if (c.k === 'now') { head.push('Now at', 'Last visit there'); pick.push(r => r.now_at || '', r => r.now_last || ''); return; }
-    head.push(c.label); pick.push(c.get);
+    head.push(c.xl || c.label); pick.push(c.get);
   });
   return { head, lines: rows.map(r => pick.map(f => f(r))), rows };
 }
