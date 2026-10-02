@@ -17,6 +17,11 @@
     if (m) location.replace('/performance/?s=' + encodeURIComponent(m[1].toLowerCase()));
     // Kate, 1 Oct 2026: /home is what people type for Team Home, which lives at /hub/.
     else if (/^\/(home|team|kb|sop|sops)\/?$/i.test(location.pathname)) location.replace('/hub/');
+    // Kate, 2 Oct 2026: each Upload Portal tab has its own address, /upload/<tab>.
+    // There is no file there, so the portal is opened with ?tab= and puts the
+    // address back itself (upload.js, trShowTabInAddress).
+    else if ((m = location.pathname.match(/^\/upload\/([a-z-]+)\/?$/i)))
+      location.replace('/upload/?tab=' + encodeURIComponent(m[1].toLowerCase()) + location.search.replace(/^\?/, '&') + location.hash);
   })();
 </script>
 <style>

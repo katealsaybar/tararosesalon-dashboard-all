@@ -68,6 +68,7 @@ function switchTab(e, tab) {
   document.getElementById('tab-' + tab).classList.add('active');
 
   trRememberTab(tab);
+  trShowTabInAddress(tab);
 
   if (tab === 'daily') loadDailyOverview();
   if (tab === 'staffperf') initStaffPerfTab();
@@ -95,9 +96,34 @@ const TR_TAB_KEY = 'tr_upload_tab';
 function trRememberTab(tab){
   try { localStorage.setItem(TR_TAB_KEY, tab); } catch (e) {}
 }
+// ── TAB ADDRESSES ──
+// Each tab has its own address, /upload/payslips, /upload/ledgers and so on, so
+// a section can be bookmarked or sent to someone. Pages has no file at those
+// paths: 404.html sends them on to /upload/?tab=<slug>, and the address is put
+// back to /upload/<slug> here once the tab opens. No trailing slash, so the
+// page's relative links still resolve from /upload/ (Kate, 2 Oct 2026).
+const TR_TAB_SLUGS = {
+  sheetsync: 'ledgers', staffperf: 'staff-daily', ops: 'utilisation', fin: 'financial',
+  salestx: 'sales-transactions', targets: 'targets', payslips: 'payslips',
+  products: 'products', service: 'services', roster: 'team-roster'
+};
+function trTabFromAddress(){
+  const q = new URLSearchParams(location.search).get('tab');
+  const m = location.pathname.match(/\/upload\/([a-z-]+)\/?$/i);
+  const slug = (q || (m && m[1]) || '').toLowerCase();
+  return Object.keys(TR_TAB_SLUGS).find(k => TR_TAB_SLUGS[k] === slug) || null;
+}
+function trShowTabInAddress(tab){
+  const slug = TR_TAB_SLUGS[tab];
+  if (!slug || !history.replaceState) return;
+  const q = new URLSearchParams(location.search); q.delete('tab');
+  const rest = q.toString();
+  try { history.replaceState(null, '', '/upload/' + slug + (rest ? '?' + rest : '') + location.hash); } catch (e) {}
+}
 function trOpenRememberedTab(){
-  let want = null;
-  try { want = localStorage.getItem(TR_TAB_KEY); } catch (e) {}
+  // An address that names a tab wins over the one this device last used.
+  let want = trTabFromAddress();
+  if (!want) try { want = localStorage.getItem(TR_TAB_KEY); } catch (e) {}
   // Falls back to the first button in the bar, so the default follows the tab
   // order rather than being typed in a second place.
   const btn = (want && document.querySelector(`.tab-btn[data-tab="${want}"]`))
