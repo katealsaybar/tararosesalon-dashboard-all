@@ -438,7 +438,7 @@ function lcPaintTable() {
     // One small mark per heading (Kate, 2 Oct 2026: two arrows side by side looked off):
     // a chevron that opens the menu, which becomes an accent arrow when that column sorts.
     const sorted = lcSort.k === c.k ? `<svg class="lc-sort${lcSort.dir > 0 ? ' up' : ''}" viewBox="0 0 12 12" aria-label="${lcSort.dir > 0 ? 'sorted up' : 'sorted down'}"><path d="M6 2v8M2.5 6.5 6 10l3.5-3.5"/></svg>` : '';
-    return `<th class="lc-th${lcOn(c.k) ? ' on' : ''}${c.k === 'stylist' || c.k === 'beauty' ? ' lc-l' : ''}"><button type="button" class="lc-thb" onclick="lcOpenFilter(event,'${c.k}')" aria-haspopup="dialog"${c.xl ? ` title="${lcEsc(c.xl)}, ex VAT, since Jan 2025"` : ''}>${lcEsc(c.label)}${sorted || '<svg class="lc-fn" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>'}</button></th>`;
+    return `<th class="lc-th lc-c-${c.k}${lcOn(c.k) ? ' on' : ''}${c.k === 'stylist' || c.k === 'beauty' ? ' lc-l' : ''}"><button type="button" class="lc-thb" onclick="lcOpenFilter(event,'${c.k}')" aria-haspopup="dialog"${c.xl ? ` title="${lcEsc(c.xl)}, ex VAT, since Jan 2025"` : ''}>${lcEsc(c.label)}${sorted || '<svg class="lc-fn" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>'}</button></th>`;
   };
   const tr = shown.map((r, i) => `<tr class="lc-row" title="Click to see what she came in for, what she took home and who looked after her" onclick="lcToggleDetail(event,${i})">${cols.map(c => td(c, r)).join('')}</tr>`).join('');
   // Under 760px the table becomes a list, like Products: name and spend on one line,
