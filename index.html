@@ -2065,25 +2065,44 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .lc-thb{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font:inherit;letter-spacing:inherit;
   text-transform:inherit;color:inherit;border-radius:4px}
 .lc-thb:focus-visible{box-shadow:0 0 0 2px var(--accent)}
-.lc-fn{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor;opacity:.45;margin-left:2px}
+.lc-fn,.lc-sort{width:12px;height:12px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.lc-fn{opacity:.4;transition:opacity .15s}
+.lc-sort{stroke:var(--hair);stroke-width:1.8}.lc-sort.up{transform:rotate(180deg)}
 @media(hover:hover){.lc-thb:hover{color:var(--text)}.lc-thb:hover .lc-fn{opacity:1}}
 .lc-th.on .lc-thb{color:var(--text)}
-.lc-th.on .lc-fn{border:0;width:7px;height:7px;border-radius:50%;background:var(--accent);opacity:1}
+.lc-th.on .lc-thb::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--hair);margin-left:2px}
+.lc-in[type=number]{-moz-appearance:textfield;appearance:textfield}
+.lc-in[type=number]::-webkit-inner-spin-button,.lc-in[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.lc-in:focus{outline:none;border-color:var(--accent-lavender);box-shadow:0 0 0 2px rgba(196,181,253,.25)}
 .lc-pop{position:fixed;z-index:9500;width:270px;max-width:calc(100vw - 16px);padding:12px;border-radius:12px;
   background:var(--surface);border:1px solid var(--border);box-shadow:0 14px 36px rgba(0,0,0,.22);font-size:13.5px}
 .lc-pop button{font:inherit;cursor:pointer}
+/* One look for the whole menu (Kate, 2 Oct 2026: "does not look uniform"): pill buttons
+   of one height, the hair accent for what is on (checkboxes, radios, the focused box,
+   Done), a thin scrollbar in the page's own colours, and Select all / None as small
+   links so they do not read as a second Clear. */
 .lc-pop-sort{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.lc-pop-sort button,.lc-pop-foot button,.lc-pick-acts button{border:1px solid var(--border);background:var(--surface2);color:var(--text);
-  border-radius:8px;padding:7px 8px;min-height:36px}
-.lc-pop-foot{display:flex;justify-content:space-between;gap:6px;margin-top:12px}
-.lc-pop-foot .on{background:var(--text);color:var(--bg);border-color:var(--text)}
-.lc-in{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font:inherit}
+.lc-pop-sort button,.lc-pop-foot button{border:1px solid var(--border);background:var(--surface2);color:var(--text);
+  border-radius:999px;padding:0 12px;min-height:36px;font-size:13px;font-weight:600}
+@media(hover:hover){.lc-pop-sort button:hover,.lc-pop-foot button:not(.on):hover{border-color:var(--hair)}}
+.lc-pop-foot{display:flex;justify-content:space-between;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.lc-pop-foot .on{background:var(--hair);border-color:var(--hair);color:var(--surface)}
+.lc-in{width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:var(--bg);color:var(--text);font:inherit;font-size:13.5px}
+.lc-dates .lc-in{border-radius:10px}
 .lc-two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.lc-pick-acts{display:flex;gap:6px;margin:8px 0 4px}.lc-pick-acts button{flex:1;min-height:32px;padding:4px 6px}
-.lc-pick{max-height:230px;overflow:auto;margin-top:4px}
-.lc-chk{display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer}
+.lc-dates{display:grid;gap:8px}
+.lc-dates label{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.lc-pick-acts{display:flex;align-items:center;gap:6px;margin:8px 2px 2px;color:var(--muted);font-size:12.5px}
+.lc-pick-acts button{border:0;background:none;padding:2px 0;color:var(--hair);font-size:12.5px;font-weight:600}
+@media(hover:hover){.lc-pick-acts button:hover{text-decoration:underline;text-underline-offset:3px}}
+.lc-pick{max-height:230px;overflow:auto;margin-top:4px;padding-right:4px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.lc-pick::-webkit-scrollbar{width:6px}.lc-pick::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.lc-pick::-webkit-scrollbar-track{background:transparent}
+.lc-chk{display:flex;align-items:center;gap:10px;padding:6px 4px;cursor:pointer;border-radius:8px}
+@media(hover:hover){.lc-chk:hover{background:var(--surface2)}}
+.lc-chk input{accent-color:var(--hair);width:16px;height:16px;margin:0;flex:none;cursor:pointer}
 .lc-chk span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lc-chk em{font-style:normal;color:var(--muted);font-variant-numeric:tabular-nums}
+.lc-chk em{font-style:normal;color:var(--muted);font-variant-numeric:tabular-nums;font-size:12.5px}
 .lc-fnote{margin:0 0 8px}
 .lc-row{cursor:pointer}
 /* The row says what a click does (Kate, 2 Oct 2026): "See her visits ›" fades in beside
@@ -2104,11 +2123,11 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 /* Stylist links (Kate, 2 Oct 2026, "ang pangit nung underlined"): no dotted rule, the
    colour says it is a link and an underline appears only under the pointer. Both
    stylist columns sit left, one whole name per line, never broken mid-name. */
-.lc-wrap th.lc-l,.lc-wrap td.lc-stc,.lc-wrap td.lc-also{text-align:left}
-.lc-wrap td.lc-stc,.lc-wrap td.lc-also{white-space:normal;max-width:180px;line-height:1.45}
-.lc-wrap td.lc-stc .who,.lc-wrap td.lc-also .who{display:block;width:max-content;max-width:100%;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lc-wrap td.lc-also .who + .who{margin-top:3px}
+.lc-wrap th.lc-l,.lc-wrap td.lc-stc{text-align:left}
+.lc-wrap td.lc-stc{white-space:normal;max-width:200px;line-height:1.45}
+.lc-wrap td.lc-stc > .who{display:block;width:max-content;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lc-others{margin-top:3px;font-size:12px;color:var(--muted);line-height:1.5}
+.lc-others .who{display:inline}.lc-others .lc-st{font-weight:500}
 .lc-also-more{display:block;margin-top:3px;font-size:12px;color:var(--muted)}
 @media(hover:hover){.who:has(.lc-st):hover .lc-st{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}}
 .lc-also-line .who{display:inline}
@@ -3766,7 +3785,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20261002cards"></script>
 <script src="staff-weeks.js?v=20261001aim"></script>
 <script src="products.js?v=20261002wk"></script>
-<script src="lost-clients.js?v=20261002head"></script>
+<script src="lost-clients.js?v=20261002pop"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261002long"></script>

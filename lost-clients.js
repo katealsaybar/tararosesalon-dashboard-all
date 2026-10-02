@@ -153,8 +153,10 @@ const LC_COLS = [
   // deep); the files keep the unit in the heading (xl).
   { k: 'spend',   label: 'Total spend',   xl: 'Total spend (AED)',   type: 'num',  get: r => Math.round(Number(r.spend) || 0) },
   { k: 'avg',     label: 'Avg per visit', xl: 'Avg per visit (AED)', type: 'num',  get: lcAvg },
-  { k: 'stylist', label: 'Usual stylist',       type: 'pick', get: r => r.stylist || '' },
-  { k: 'also',    label: 'Also saw',            type: 'text', get: r => lcAlsoNames(r.also_saw).join(', ') },
+  // Hair and beauty apart (Kate, 2 Oct 2026): her usual stylist and her usual beautician,
+  // each with the others she saw from that team in small type underneath (lcTeam).
+  { k: 'stylist', label: 'Usual stylist',    type: 'pick', get: r => lcTeam(r).hair[0] || '' },
+  { k: 'beauty',  label: 'Usual beautician', type: 'pick', get: r => lcTeam(r).beauty[0] || '' },
   { k: 'now',     label: 'Now at',              type: 'pick', get: r => r.now_at || '', moved: true },
   { k: 'phone',   label: 'Phone',               type: 'has',  get: r => r.mobile || r.landline || '', phones: true },
 ];
@@ -167,7 +169,7 @@ function lcOn(k) {
 }
 function lcPass(r, skip) {
   const q = lcQuery.trim().toLowerCase();
-  if (q && !`${r.client_name} ${r.stylist || ''}`.toLowerCase().includes(q)) return false;
+  if (q && !`${r.client_name} ${r.stylist || ''} ${r.also_saw || ''}`.toLowerCase().includes(q)) return false;
   for (const c of LC_COLS) {
     if (c.k === skip || !lcOn(c.k)) continue;
     const f = lcF[c.k], v = c.get(r);
@@ -202,15 +204,15 @@ function lcOpenFilter(ev, k) {
   const words = c.type === 'num' ? ['Smallest first', 'Largest first'] : c.type === 'date' ? ['Oldest first', 'Newest first'] : ['A to Z', 'Z to A'];
   let body = '';
   if (c.type === 'text') body = `<input type="search" class="lc-in" data-f="q" placeholder="Contains…" value="${lcEsc(f.q || '')}">`;
-  if (c.type === 'num') body = `<div class="lc-two"><input type="number" class="lc-in" data-f="min" placeholder="From" value="${f.min ?? ''}"><input type="number" class="lc-in" data-f="max" placeholder="To" value="${f.max ?? ''}"></div>`;
-  if (c.type === 'date') body = `<div class="lc-two"><input type="date" class="lc-in" data-f="from" value="${f.from || ''}"><input type="date" class="lc-in" data-f="to" value="${f.to || ''}"></div>`;
+  if (c.type === 'num') body = `<div class="lc-two"><input type="number" inputmode="decimal" class="lc-in" data-f="min" placeholder="From" value="${f.min ?? ''}"><input type="number" inputmode="decimal" class="lc-in" data-f="max" placeholder="To" value="${f.max ?? ''}"></div>`;
+  if (c.type === 'date') body = `<div class="lc-dates"><label>From<input type="date" class="lc-in" data-f="from" value="${f.from || ''}"></label><label>To<input type="date" class="lc-in" data-f="to" value="${f.to || ''}"></label></div>`;
   if (c.type === 'has') body = ['', 'yes', 'no'].map((v, i) => `<label class="lc-chk"><input type="radio" name="lcHas" value="${v}"${(f.has || '') === v ? ' checked' : ''}> ${['Everyone', 'Has a number', 'No number'][i]}</label>`).join('');
   if (c.type === 'pick') {
     const cnt = {};
     (lcRows || []).filter(r => lcPass(r, k)).forEach(r => { const v = c.get(r); cnt[v] = (cnt[v] || 0) + 1; });
     const vals = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || a.localeCompare(b));
     body = `<input type="search" class="lc-in lc-pick-q" placeholder="Search…">
-      <div class="lc-pick-acts"><button type="button" data-all="1">Select all</button><button type="button" data-all="0">Clear</button></div>
+      <div class="lc-pick-acts"><button type="button" data-all="1">Select all</button><span aria-hidden="true">·</span><button type="button" data-all="0">None</button></div>
       <div class="lc-pick">${vals.map(v => `<label class="lc-chk" data-v="${lcEsc(v.toLowerCase())}"><input type="checkbox" value="${lcEsc(v)}"${!f.set || f.set.includes(v) ? ' checked' : ''}> <span>${lcEsc(v || '(blank)')}</span><em>${cnt[v]}</em></label>`).join('')}</div>`;
   }
   pop.innerHTML = `<div class="lc-pop-sort"><button type="button" data-dir="1">${words[0]}</button><button type="button" data-dir="-1">${words[1]}</button></div>
@@ -426,15 +428,17 @@ function lcPaintTable() {
     if (c.k === 'last') return `<td>${lcEsc(lcDayY(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days ago</div></td>`;
     if (c.k === 'spend') return `<td>${lcNum(r.spend)}</td>`;
     if (c.k === 'avg') return `<td>${lcNum(lcAvg(r))}</td>`;
-    if (c.k === 'stylist') return `<td class="lc-stc">${lcStylist(r.stylist)}</td>`;
-    if (c.k === 'also') return `<td class="lc-also">${lcAlso(r.also_saw)}</td>`;
+    if (c.k === 'stylist') return `<td class="lc-stc">${lcTeamCell(lcTeam(r).hair)}</td>`;
+    if (c.k === 'beauty') return `<td class="lc-stc">${lcTeamCell(lcTeam(r).beauty)}</td>`;
     if (c.k === 'now') return `<td>${r.now_at ? `${lcEsc(r.now_at)}<div class="slv-note">${lcEsc(lcDayY(r.now_last))}</div>` : ''}</td>`;
     if (c.k === 'phone') return `<td>${lcPhone(r)}</td>`;
     return '<td></td>';
   };
   const th = c => {
-    const sorted = lcSort.k === c.k ? (lcSort.dir > 0 ? ' ▲' : ' ▼') : '';
-    return `<th class="lc-th${lcOn(c.k) ? ' on' : ''}${c.k === 'stylist' || c.k === 'also' ? ' lc-l' : ''}"><button type="button" class="lc-thb" onclick="lcOpenFilter(event,'${c.k}')" aria-haspopup="dialog"${c.xl ? ` title="${lcEsc(c.xl)}, ex VAT, since Jan 2025"` : ''}>${lcEsc(c.label)}<span class="lc-ar">${sorted}</span><span class="lc-fn" aria-hidden="true"></span></button></th>`;
+    // One small mark per heading (Kate, 2 Oct 2026: two arrows side by side looked off):
+    // a chevron that opens the menu, which becomes an accent arrow when that column sorts.
+    const sorted = lcSort.k === c.k ? `<svg class="lc-sort${lcSort.dir > 0 ? ' up' : ''}" viewBox="0 0 12 12" aria-label="${lcSort.dir > 0 ? 'sorted up' : 'sorted down'}"><path d="M6 2v8M2.5 6.5 6 10l3.5-3.5"/></svg>` : '';
+    return `<th class="lc-th${lcOn(c.k) ? ' on' : ''}${c.k === 'stylist' || c.k === 'beauty' ? ' lc-l' : ''}"><button type="button" class="lc-thb" onclick="lcOpenFilter(event,'${c.k}')" aria-haspopup="dialog"${c.xl ? ` title="${lcEsc(c.xl)}, ex VAT, since Jan 2025"` : ''}>${lcEsc(c.label)}${sorted || '<svg class="lc-fn" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>'}</button></th>`;
   };
   const tr = shown.map((r, i) => `<tr class="lc-row" title="Click to see what she came in for, what she took home and who looked after her" onclick="lcToggleDetail(event,${i})">${cols.map(c => td(c, r)).join('')}</tr>`).join('');
   // Under 760px the table becomes a list, like Products: name and spend on one line,
@@ -443,8 +447,8 @@ function lcPaintTable() {
   const cards = shown.map((r, i) => `<li class="prd-card lc-row" onclick="lcToggleDetail(event,${i})">
       <div class="prd-body">
         <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${check(r)}</span><span class="prd-spend">AED ${lcNum(r.spend)}</span></div>
-        <div class="prd-meta">${lcNum(r.visits)} visits · avg AED ${lcNum(lcAvg(r))} · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${r.stylist ? ' · ' + lcStylist(r.stylist) : ''}${lcMovedView && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}</div>
-        ${lcAlsoNames(r.also_saw).length ? `<div class="prd-meta lc-also-line">Also saw ${lcAlsoNames(r.also_saw).slice(0, 3).map(lcStylist).join(', ')}${lcAlsoNames(r.also_saw).length > 3 ? ' +' + (lcAlsoNames(r.also_saw).length - 3) : ''}</div>` : ''}
+        <div class="prd-meta">${lcNum(r.visits)} visits · avg AED ${lcNum(lcAvg(r))} · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${lcMovedView && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}</div>
+        ${['hair', 'beauty'].map(t => { const l = lcTeam(r)[t]; return l.length ? `<div class="prd-meta lc-also-line">${t === 'hair' ? 'Stylist' : 'Beautician'} ${lcStylist(l[0])}${l.length > 1 ? ' · also ' + l.slice(1, 3).map(lcStylist).join(', ') + (l.length > 3 ? ' +' + (l.length - 3) : '') : ''}</div>` : ''; }).join('')}
         ${lcHasPhones() && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
         <div class="lc-hint-m">Tap for her visits ›</div>
       </div>
@@ -464,21 +468,36 @@ function lcClearAll() {
   lcPaintTable();
 }
 
-// "Also saw": the first two names as links, the rest counted ("+3"), all on hover.
-// Assistants are left out (Kate, 2 Oct 2026): they help on a visit, they are not who a
-// client books. The BUSINESS (unassigned) bucket is already gone in lost_clients.
+// Who looked after her, split by team (Kate, 2 Oct 2026). lost_clients gives her usual
+// person and everyone else she saw, most visits first; together that is one ranked list,
+// cut into hair and beauty by role in staff-profiles.js (beauty, nail, lash, brow,
+// therapist, aesthetics; anyone else counts as hair). Assistants and the BUSINESS
+// (unassigned) bucket are left out: nobody books them.
 function lcIsAssistant(name) {
   const up = String(name).trim().toUpperCase(), w = up.split(/\s+/);
   const P = typeof STAFF_PROFILES !== 'undefined' ? STAFF_PROFILES : {};
   const p = P[up] || P[w.slice(0, 2).join(' ')] || P[w[0]];
   return !!(p && /assistant/i.test(p.role || ''));
 }
+function lcIsBeauty(name) {
+  const up = String(name).trim().toUpperCase(), w = up.split(/\s+/);
+  const P = typeof STAFF_PROFILES !== 'undefined' ? STAFF_PROFILES : {};
+  const p = P[up] || P[w.slice(0, 2).join(' ')] || P[w[0]];
+  return !!(p && /beauty|nail|lash|brow|therap|aesthet/i.test(p.role || ''));
+}
 const lcAlsoNames = list => String(list || '').split(', ').filter(n => n && !/^\s*business\b/i.test(n) && !lcIsAssistant(n));
-function lcAlso(list) {
-  const names = lcAlsoNames(list);
-  if (!names.length) return '–';
-  return names.slice(0, 2).map(lcStylist).join('')
-    + (names.length > 2 ? `<span class="lc-also-more" title="${lcEsc(names.slice(2).join(', '))}">+${names.length - 2} more</span>` : '');
+function lcTeam(r) {
+  if (r._team) return r._team;
+  const all = (r.stylist && !/^\s*business\b/i.test(r.stylist) && !lcIsAssistant(r.stylist) ? [r.stylist] : []).concat(lcAlsoNames(r.also_saw));
+  return (r._team = { hair: all.filter(n => !lcIsBeauty(n)), beauty: all.filter(lcIsBeauty) });
+}
+// One cell: the usual person, then "also" and up to two more in small type, the rest
+// counted, all of them on hover.
+function lcTeamCell(list) {
+  if (!list.length) return '<span class="slv-muted">–</span>';
+  const rest = list.slice(1);
+  return lcStylist(list[0]) + (rest.length ? `<div class="lc-others">also ${rest.slice(0, 2).map(lcStylist).join(', ')}${rest.length > 2
+    ? ` <span title="${lcEsc(rest.slice(2).join(', '))}">+${rest.length - 2}</span>` : ''}</div>` : '');
 }
 
 // Usual stylist as a link (Kate, 2 Oct 2026): the same hover / tap menu every other
@@ -523,6 +542,8 @@ function lcExportLines() {
   cols.forEach(c => {
     if (c.k === 'last') { head.push('Last visit', 'Days since'); pick.push(r => r.last_visit, r => Number(r.days_since) || 0); return; }
     if (c.k === 'now') { head.push('Now at', 'Last visit there'); pick.push(r => r.now_at || '', r => r.now_last || ''); return; }
+    if (c.k === 'stylist') { head.push('Usual stylist', 'Also saw (hair)'); pick.push(r => lcTeam(r).hair[0] || '', r => lcTeam(r).hair.slice(1).join(', ')); return; }
+    if (c.k === 'beauty') { head.push('Usual beautician', 'Also saw (beauty)'); pick.push(r => lcTeam(r).beauty[0] || '', r => lcTeam(r).beauty.slice(1).join(', ')); return; }
     head.push(c.xl || c.label); pick.push(c.get);
   });
   return { head, lines: rows.map(r => pick.map(f => f(r))), rows };
