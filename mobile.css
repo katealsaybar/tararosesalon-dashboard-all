@@ -355,7 +355,7 @@
 @media(max-width:760px),(hover:none) and (max-height:480px){
   /* These views kept their 28px desktop gutters inside an already padded page
      (inline styles, hence !important), so every card sat indented with dead space. */
-  #teamContent,#teamQuadContent,#stylistCardsContent,#orgChartContent,#view-staffperf > main,#stylistLevelsContent,#staffWeeksContent{
+  #teamContent,#teamQuadContent,#stylistCardsContent,#orgChartContent,#view-staffperf > main,#stylistLevelsContent,#staffWeeksContent,#lostClientsContent{
     padding-left:0!important;padding-right:0!important}
   .tp-bar,.sc-bar,.slv-top{margin-left:0;margin-right:0;padding-left:0;padding-right:0}
   .sc-grid{grid-template-columns:1fr}

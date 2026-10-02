@@ -10,6 +10,10 @@
 // the rows without numbers and the Phone column doesn't draw. Nothing here decides
 // who sees a number; the table's policy does.
 //
+// Level 2 and above only (Kate, 2 Oct 2026): index.html hides the menu entry and
+// refuses the view for Level 1, and lost_clients itself refuses them
+// (migrations/lost_clients_level2.sql).
+//
 // Own controls (branch, who, gone for), so the masthead filters are hidden on this
 // page. Borrows the Products page's card, tile and table styles (slv-*, w13-*).
 let lcRows = null, lcShowAll = false, lcQuery = '';
@@ -59,7 +63,7 @@ function lcShell(body) {
       <h2>Lost Clients</h2>
       <p>Clients who used to come in and haven't been back, by branch, highest spend first. For reference and outreach planning.</p>
     </section>
-    <div class="sc-bar w13-bar" style="flex-wrap:wrap;gap:8px">
+    <div class="sc-bar w13-bar lc-bar" style="flex-wrap:wrap;gap:8px">
       ${seg('branch', Object.entries(LC_BRANCH).map(([k]) => [k, k]))}
       ${seg('seg', Object.entries(LC_SEG).map(([k, s]) => [k, s.label]))}
       ${seg('days', LC_DAYS.map(d => [d, `${d}+ days`]))}
@@ -112,19 +116,42 @@ function lcPaintTable() {
   const rows = q ? lcRows.filter(r => `${r.client_name} ${r.stylist || ''}`.toLowerCase().includes(q)) : lcRows;
   const phones = lcRows.some(r => r.mobile || r.landline);
   const shown = lcShowAll ? rows : rows.slice(0, LC_LIMIT);
+  const check = r => r.match === 'check' ? ' <span class="slv-note" style="display:inline" title="Two different numbers under this name: two people, or one client entered twice in Phorest">check</span>' : '';
   const tr = shown.map(r => `<tr>
-      <td>${lcEsc(r.client_name)}${r.match === 'check' ? ' <span class="slv-note" style="display:inline" title="Two different numbers under this name: two people, or one client entered twice in Phorest">check</span>' : ''}</td>
+      <td>${lcEsc(r.client_name)}${check(r)}</td>
       <td>${lcNum(r.visits)}</td>
       <td>${lcEsc(lcDayY(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days ago</div></td>
       <td>${lcNum(r.spend)}</td>
       <td>${lcEsc(r.stylist || '–')}</td>
-      ${phones ? `<td style="white-space:nowrap">${lcEsc(r.mobile || r.landline || '–')}</td>` : ''}
+      ${phones ? `<td>${lcPhone(r)}</td>` : ''}
     </tr>`).join('');
-  box.innerHTML = rows.length ? `<div class="slv-wrap"><table class="slv-table">
+  // Under 760px the table becomes a list, like Products: name and spend on one line,
+  // visits / last visit / stylist under it, the number last (tap to call).
+  const cards = shown.map(r => `<li class="prd-card">
+      <div class="prd-body">
+        <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${check(r)}</span><span class="prd-spend">AED ${lcNum(r.spend)}</span></div>
+        <div class="prd-meta">${lcNum(r.visits)} visits · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${r.stylist ? ' · ' + lcEsc(r.stylist) : ''}</div>
+        ${phones && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
+      </div>
+    </li>`).join('');
+  box.innerHTML = rows.length ? `<div class="slv-wrap prd-desk"><table class="slv-table">
       <thead><tr><th>Client</th><th>Visits</th><th>Last visit</th><th>Spend (AED)</th><th>Usual stylist</th>${phones ? '<th>Phone</th>' : ''}</tr></thead>
       <tbody>${tr}</tbody></table></div>
+      <ol class="prd-cards">${cards}</ol>
       ${rows.length > shown.length ? `<p style="margin-top:10px"><button type="button" class="tglr" onclick="lcShowAll=true;lcPaintTable()">Show all ${lcNum(rows.length)}</button></p>` : ''}`
     : `<p class="slv-muted">${q ? 'No one on this list matches that search.' : 'No clients on this list.'}</p>`;
+}
+
+// One number per client on screen. A common name can carry up to ten (everyone in
+// Phorest with that name), which stretched the column off the card; the rest sit
+// behind "+N more" on hover, and Copy list still carries them all.
+function lcPhone(r) {
+  const nums = String(r.mobile || r.landline || '').split(' / ').filter(Boolean);
+  if (!nums.length) return '–';
+  const first = `<a href="tel:${lcEsc(nums[0])}" style="color:inherit;white-space:nowrap">${lcEsc(nums[0])}</a>`;
+  return nums.length > 1
+    ? `${first} <span class="slv-note" style="display:inline" title="${lcEsc(nums.slice(1).join(', '))}">+${nums.length - 1} more</span>`
+    : first;
 }
 
 // Tab-separated, so it pastes into a sheet as columns. Copies the list as searched,
