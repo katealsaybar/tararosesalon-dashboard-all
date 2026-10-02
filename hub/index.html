@@ -22,7 +22,7 @@
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
   <main>
     <p class="kb-hello" id="kbHello"></p>
-    <a class="kb-mylink" id="kbMyLink" hidden>My numbers <span aria-hidden="true">→</span></a>
+    <a class="kb-mylink" id="kbMyLink" hidden>My numbers &amp; payslip <span aria-hidden="true">→</span></a>
     <p class="kb-intro" id="kbIntro">Everything we do, written down in one place. Open a section, or search for a treatment.</p>
     <div id="kbGrid"></div>
   </main>
@@ -30,7 +30,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261002valist"></script>
+<script src="/hub/hub.js?v=20261002mynum"></script>
 <script>
 KB.ready.then(async function () {
   var esc = KB.esc;
@@ -50,8 +50,13 @@ KB.ready.then(async function () {
   // Kate, 1 Oct 2026: a stylist's link sits right under the greeting as well, so it is
   // the first thing she sees, not a card she has to find.
   if (KB.myLink) { var ml = document.getElementById('kbMyLink'); ml.href = KB.myLink; ml.hidden = false; }
-  if (KB.myLink) shown.unshift({ key: 'my-numbers', dept: 'You', title: 'My numbers', href: KB.myLink, live: true,
-    rule: 'var(--accent-mint)', blurb: 'Your month, your year and your next step up. Only you can see it.' });
+  // Kate, 2 Oct 2026: "& payslip", since the payslip button is on that page too.
+  if (KB.myLink) shown.unshift({ key: 'my-numbers', dept: 'You', title: 'My numbers & payslip', href: KB.myLink, live: true,
+    rule: 'var(--accent-mint)', blurb: 'Your month, your year, your next step up, and your payslip. Only you can see it.' });
+  // "View as" a stylist: the same card as a sample, not a link, so nobody's numbers show.
+  else if (KB.viewAs && KB.viewAs.level === 1 && (KB.viewAs.dept === 'Hair' || KB.viewAs.dept === 'Beauty'))
+    shown.unshift({ key: 'my-numbers', dept: 'You', title: 'My numbers & payslip', sample: true, rule: 'var(--accent-mint)',
+      blurb: 'Each stylist sees their own here: their month, year, next step up and payslip.' });
 
   // Favourites (Kate, 1 Oct 2026): a star on any card, kept per person in kb_favourites.
   var favs = await KB.loadFavs();
@@ -71,6 +76,8 @@ KB.ready.then(async function () {
   function card(s) {
     var n = counts[s.key] || 0, live = isLive(s);
     var href = s.href || '/hub/kb.html?s=' + s.key;
+    if (s.sample) return '<div class="kb-cell"><div class="kb-card soon" style="--rule:' + s.rule + '" aria-disabled="true">' +
+      '<span class="kb-badge">Sample</span><h2>' + esc(s.title) + '</h2><p>' + esc(s.blurb) + '</p></div></div>';
     var foot = s.href ? 'Open' : (n ? n + ' pages' : '');
     var inner = '<span class="kb-badge' + (live ? ' live' : '') + '">' + (live ? 'Live' : 'Coming soon') + '</span>' +
       '<h2>' + esc(s.title) + '</h2><p>' + esc(s.blurb) + '</p>' +

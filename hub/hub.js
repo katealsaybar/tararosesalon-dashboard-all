@@ -203,7 +203,7 @@
               }).join('') + '</div></div>';
           })() : '') +
           (KB.allowed.indexOf('dashboards') >= 0 ? '<a href="/dashboard/">Open the dashboard</a>' : '') +
-          (KB.myLink ? '<a href="' + esc(KB.myLink) + '">My numbers</a>' : '') +
+          (KB.myLink ? '<a href="' + esc(KB.myLink) + '">My numbers &amp; payslip</a>' : '') +
 
           '<button id="kbThemeBtn" type="button">' + (theme() === 'dark' ? 'Light mode' : 'Dark mode') + '</button>' +
           '<button id="kbSignOut" type="button">Sign out</button>' +
