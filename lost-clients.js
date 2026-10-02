@@ -421,7 +421,7 @@ function lcPaintTable() {
     if (c.k === 'last') return `<td>${lcEsc(lcDayY(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days ago</div></td>`;
     if (c.k === 'spend') return `<td>${lcNum(r.spend)}</td>`;
     if (c.k === 'avg') return `<td>${lcNum(lcAvg(r))}</td>`;
-    if (c.k === 'stylist') return `<td>${lcStylist(r.stylist)}</td>`;
+    if (c.k === 'stylist') return `<td class="lc-stc">${lcStylist(r.stylist)}</td>`;
     if (c.k === 'also') return `<td class="lc-also">${lcAlso(r.also_saw)}</td>`;
     if (c.k === 'now') return `<td>${r.now_at ? `${lcEsc(r.now_at)}<div class="slv-note">${lcEsc(lcDayY(r.now_last))}</div>` : ''}</td>`;
     if (c.k === 'phone') return `<td>${lcPhone(r)}</td>`;
@@ -429,7 +429,7 @@ function lcPaintTable() {
   };
   const th = c => {
     const sorted = lcSort.k === c.k ? (lcSort.dir > 0 ? ' ▲' : ' ▼') : '';
-    return `<th class="lc-th${lcOn(c.k) ? ' on' : ''}"><button type="button" class="lc-thb" onclick="lcOpenFilter(event,'${c.k}')" aria-haspopup="dialog">${lcEsc(c.label)}<span class="lc-ar">${sorted}</span><span class="lc-fn" aria-hidden="true"></span></button></th>`;
+    return `<th class="lc-th${lcOn(c.k) ? ' on' : ''}${c.k === 'stylist' || c.k === 'also' ? ' lc-l' : ''}"><button type="button" class="lc-thb" onclick="lcOpenFilter(event,'${c.k}')" aria-haspopup="dialog">${lcEsc(c.label)}<span class="lc-ar">${sorted}</span><span class="lc-fn" aria-hidden="true"></span></button></th>`;
   };
   const tr = shown.map((r, i) => `<tr class="lc-row" onclick="lcToggleDetail(event,${i})">${cols.map(c => td(c, r)).join('')}</tr>`).join('');
   // Under 760px the table becomes a list, like Products: name and spend on one line,
@@ -439,7 +439,7 @@ function lcPaintTable() {
       <div class="prd-body">
         <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${check(r)}</span><span class="prd-spend">AED ${lcNum(r.spend)}</span></div>
         <div class="prd-meta">${lcNum(r.visits)} visits · avg AED ${lcNum(lcAvg(r))} · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${r.stylist ? ' · ' + lcStylist(r.stylist) : ''}${lcMovedView && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}</div>
-        ${lcAlsoNames(r.also_saw).length ? `<div class="prd-meta">Also saw ${lcAlso(r.also_saw)}</div>` : ''}
+        ${lcAlsoNames(r.also_saw).length ? `<div class="prd-meta lc-also-line">Also saw ${lcAlsoNames(r.also_saw).slice(0, 3).map(lcStylist).join(', ')}${lcAlsoNames(r.also_saw).length > 3 ? ' +' + (lcAlsoNames(r.also_saw).length - 3) : ''}</div>` : ''}
         ${lcHasPhones() && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
       </div>
     </li>`).join('');
@@ -471,8 +471,8 @@ const lcAlsoNames = list => String(list || '').split(', ').filter(n => n && !/^\
 function lcAlso(list) {
   const names = lcAlsoNames(list);
   if (!names.length) return '–';
-  return names.slice(0, 2).map(lcStylist).join(', ')
-    + (names.length > 2 ? ` <span class="slv-note" style="display:inline" title="${lcEsc(names.slice(2).join(', '))}">+${names.length - 2}</span>` : '');
+  return names.slice(0, 2).map(lcStylist).join('')
+    + (names.length > 2 ? `<span class="lc-also-more" title="${lcEsc(names.slice(2).join(', '))}">+${names.length - 2} more</span>` : '');
 }
 
 // Usual stylist as a link (Kate, 2 Oct 2026): the same hover / tap menu every other

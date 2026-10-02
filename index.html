@@ -2086,8 +2086,17 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
    and the two name columns wrap, cells are a little tighter. */
 .lc-wrap th,.lc-wrap td{padding-left:8px;padding-right:8px}
 .lc-wrap thead th{white-space:normal;vertical-align:bottom}
-.lc-wrap td.lc-also{white-space:normal;text-align:left;max-width:190px;font-size:13.5px;line-height:1.5}
-.lc-wrap td:has(.lc-st){white-space:normal}
+/* Stylist links (Kate, 2 Oct 2026, "ang pangit nung underlined"): no dotted rule, the
+   colour says it is a link and an underline appears only under the pointer. Both
+   stylist columns sit left, one whole name per line, never broken mid-name. */
+.lc-wrap th.lc-l,.lc-wrap td.lc-stc,.lc-wrap td.lc-also{text-align:left}
+.lc-wrap td.lc-stc,.lc-wrap td.lc-also{white-space:normal;max-width:210px;line-height:1.45}
+.lc-wrap td.lc-stc .who,.lc-wrap td.lc-also .who{display:block;width:max-content;max-width:100%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lc-wrap td.lc-also .who + .who{margin-top:3px}
+.lc-also-more{display:block;margin-top:3px;font-size:12px;color:var(--muted)}
+@media(hover:hover){.who:has(.lc-st):hover .lc-st{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}}
+.lc-also-line .who{display:inline}
 @media(hover:hover){.lc-wrap tbody tr.lc-row:hover td{background:var(--surface2)}}
 .lc-row.lc-open td{background:var(--surface2)}
 .lc-det > td{padding:0 0 14px!important;background:var(--surface2);text-align:left!important;white-space:normal!important}
@@ -2674,7 +2683,7 @@ table.lg thead.lg-float tr:last-child th{box-shadow:0 8px 10px -8px rgba(0,0,0,.
 /* Lost Clients' usual stylist (Kate, 2 Oct 2026): reads as a link, in the hair or beauty
    accent, with the dotted line always there rather than only on hover. */
 .lc-st{color:var(--hair);font-weight:600}.lc-st-beauty{color:var(--beauty)}
-.who:has(.lc-st){border-bottom-color:currentColor}.who:has(.lc-st-beauty){color:var(--beauty)}.who:has(.lc-st-hair){color:var(--hair)}
+.who:has(.lc-st){border-bottom-color:transparent}.who:has(.lc-st-beauty){color:var(--beauty)}.who:has(.lc-st-hair){color:var(--hair)}
 /* Resigned staff in grey, like their faded cards; and the name lifts a little under the
    pointer or a finger, so it reads as something to press (Kate, 2 Oct 2026). */
 .lc-st-gone{color:var(--muted)!important;font-weight:500}.who:has(.lc-st-gone){color:var(--muted)!important}
@@ -3743,7 +3752,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20261002cards"></script>
 <script src="staff-weeks.js?v=20261001aim"></script>
 <script src="products.js?v=20261002wk"></script>
-<script src="lost-clients.js?v=20261002board"></script>
+<script src="lost-clients.js?v=20261002tidy"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261002fast"></script>
