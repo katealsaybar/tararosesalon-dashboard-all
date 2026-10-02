@@ -13,7 +13,7 @@
    ══════════════════════════════════════════════════════════════ */
 
 /* Phone-only pieces exist in the markup at every width; they only show below. */
-.mast-body,.fsheet,.fsheet-scrim,#fSheetBtn,.nav-phone,.m-avg,.svc-m{display:none}
+.mast-body,.fsheet,.fsheet-scrim,#fSheetBtn,.nav-phone,.m-avg,.svc-m,.cmp-fold{display:none}
 
 /* ===== MOBILE (≤ 760px) · 1. COMPACT HEADER ===== */
 @media(max-width:760px),(hover:none) and (max-height:480px){
@@ -221,6 +221,16 @@
   .svc-mname .svc-d{font-size:12.5px}
   .svc-mamt{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.35;text-align:right}
   .svc-mamt small{display:block;margin-top:2px;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:400;color:var(--muted)}
+  /* Comparison (Kate, 2 Oct 2026): the A and B windows fold into two summary
+     lines until "Change branches or dates" is tapped (compare.js cmpEditOpen). */
+  .cmp-fold{display:grid;gap:8px;border:1px solid var(--border);background:var(--surface);border-radius:12px;
+    padding:12px 14px;margin-bottom:12px}
+  .cmp-fold-row{display:flex;gap:10px;align-items:baseline;font-size:14px;line-height:1.35}
+  .cmp-fold-row small{color:var(--muted);font-size:12.5px;white-space:nowrap}
+  .cmp-fold-row .cmp-tag{flex:none}
+  .cmp-fold-btn{min-height:44px;margin-top:2px;border:1px solid var(--border);background:var(--surface2);color:var(--text);
+    border-radius:999px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  .cmp-sides:not(.open){display:none}
   /* Products' week table (Kate, 2 Oct 2026): Professional and Total were cut off.
      Shorter heads ("Pro", "Total") and tighter cells fit one branch on a phone;
      several branches add columns, which still scroll inside the card. */

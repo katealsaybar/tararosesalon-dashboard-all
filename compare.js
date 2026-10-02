@@ -339,7 +339,12 @@ function cmpControlsHtml() {
       <p class="lg-stand">Pick a branch and dates for each side. Same branch across two periods, two branches over one period, or any mix. B is read against A, so the change column is B minus A.</p>
     </div>
     <div class="cmp-presets">${chips}</div>
-    <div class="cmp-sides">
+    <div class="cmp-fold">
+      ${['a', 'b'].map(k => `<div class="cmp-fold-row"><span class="cmp-tag cmp-tag-${k}">${k.toUpperCase()}</span>
+        <span>${escapeHtml(cmpSideLabel(cmpState[k]))} <small>${daysBetween(cmpState[k].from, cmpState[k].to) || 0} days</small></span></div>`).join('')}
+      <button type="button" class="cmp-fold-btn" onclick="cmpToggleEdit()" aria-expanded="${cmpEditOpen}">${cmpEditOpen ? 'Done' : 'Change branches or dates'}</button>
+    </div>
+    <div class="cmp-sides${cmpEditOpen ? ' open' : ''}">
       ${side('a', 'A', cmpState.a)}
       <button type="button" class="cmp-swap" onclick="cmpSwap()" title="Swap A and B" aria-label="Swap A and B">⇄</button>
       ${side('b', 'B', cmpState.b)}
@@ -440,6 +445,12 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') ['a', 'b'].forEach(cmpPickClose); });
 
+// Phones (Kate, 2 Oct 2026): the two windows took a screen and a half before the
+// answer, so under 760px they fold into the two summary lines above (mobile.css)
+// until "Change branches or dates" is tapped. Stays open while editing; desktop
+// always shows them.
+let cmpEditOpen = false;
+function cmpToggleEdit() { cmpEditOpen = !cmpEditOpen; renderCompare(); }
 function cmpSetPer(on) { cmpState.per = !!on; cmpSave(); renderCompare(); }
 function cmpSwap() {
   const t = cmpState.a; cmpState.a = cmpState.b; cmpState.b = t;
