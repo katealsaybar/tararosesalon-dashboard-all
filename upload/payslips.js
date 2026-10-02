@@ -568,7 +568,7 @@ function psRenderSend() {
   }
   const n = st => S.people.filter(p => p.state === st).length;
   const ready = n('draft_ready'), sent = n('sent'), noSlip = n('draft_no_payslip') + n('waiting') + n('payslip_in'), noEmail = n('no_email');
-  const mon = psNextDay(1, 8), sat = psNextDay(6, 9), sun = psNextDay(0, 18);
+  const mon = psNextDay(1, 7), sat = psNextDay(6, 9), sun = psNextDay(0, 18);
   let line;
   if (S.hold) line = `<b>Paused.</b> Nothing goes out on Monday until someone presses Resume.`;
   else if (S.sent) line = `<b>Sent ${psEsc(psWhen(S.sent))}.</b> ${sent} ${sent === 1 ? 'person has' : 'people have'} theirs.${ready ? ` ${ready} more ${ready === 1 ? 'draft is' : 'drafts are'} ready to send.` : ''}`;
