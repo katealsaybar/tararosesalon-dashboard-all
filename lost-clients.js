@@ -14,9 +14,14 @@
 // refuses the view for Level 1, and lost_clients itself refuses them
 // (migrations/lost_clients_level2.sql).
 //
+// Clients seen at another branch inside the same window (now_at, from
+// migrations/lost_clients_moved.sql) switched salons rather than left: about 8% of
+// the list when Kate checked it. They are off the list and the tiles, on a line of
+// their own with a "Show them" switch.
+//
 // Own controls (branch, who, gone for), so the masthead filters are hidden on this
 // page. Borrows the Products page's card, tile and table styles (slv-*, w13-*).
-let lcRows = null, lcShowAll = false, lcQuery = '';
+let lcAll = null, lcRows = null, lcShowAll = false, lcQuery = '', lcMovedView = false;
 let lcSel = { branch: 'SAA', seg: 'regular', days: 90 };
 try { Object.assign(lcSel, JSON.parse(localStorage.getItem('trs-lost') || '{}')); } catch (e) {}
 
@@ -35,7 +40,8 @@ const lcNum = v => Math.round(Number(v) || 0).toLocaleString('en-GB');
 const lcDayY = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 function lcSave() { try { localStorage.setItem('trs-lost', JSON.stringify(lcSel)); } catch (e) {} }
-function lcSet(k, v) { lcSel[k] = v; lcShowAll = false; lcSave(); renderLostClients(); }
+function lcSet(k, v) { lcSel[k] = v; lcShowAll = false; lcMovedView = false; lcSave(); renderLostClients(); }
+function lcToggleMoved() { lcMovedView = !lcMovedView; lcShowAll = false; lcPaint(); }
 
 async function renderLostClients() {
   const el = document.getElementById('lostClientsContent');
@@ -46,7 +52,7 @@ async function renderLostClients() {
     const { data, error } = await sb.rpc('lost_clients', {
       p_branch: lcSel.branch, p_min_visits: seg.min, p_max_visits: seg.max, p_days: Number(lcSel.days) });
     if (error || !Array.isArray(data)) throw error || new Error('no data');
-    lcRows = data;
+    lcAll = data;
   } catch (e) {
     console.error(e);
     el.innerHTML = lcShell('<p class="slv-muted">The client list didn\'t load. Refresh to try again.</p>');
@@ -73,13 +79,16 @@ function lcShell(body) {
 
 function lcPaint() {
   const el = document.getElementById('lostClientsContent');
-  if (!el || !lcRows) return;
+  if (!el || !lcAll) return;
   const seg = LC_SEG[lcSel.seg] || LC_SEG.regular;
-  const phones = lcRows.some(r => r.mobile || r.landline);
-  const spend = lcRows.reduce((a, r) => a + (Number(r.spend) || 0), 0);
-  const withNo = lcRows.filter(r => r.mobile || r.landline).length;
+  const lost = lcAll.filter(r => !r.now_at), moved = lcAll.filter(r => r.now_at);
+  if (!moved.length) lcMovedView = false;
+  lcRows = lcMovedView ? moved : lost;
+  const phones = lcAll.some(r => r.mobile || r.landline);
+  const spend = lost.reduce((a, r) => a + (Number(r.spend) || 0), 0);
+  const withNo = lost.filter(r => r.mobile || r.landline).length;
   const byStylist = {};
-  lcRows.forEach(r => { if (r.stylist) byStylist[r.stylist] = (byStylist[r.stylist] || 0) + 1; });
+  lost.forEach(r => { if (r.stylist) byStylist[r.stylist] = (byStylist[r.stylist] || 0) + 1; });
   const topSt = Object.entries(byStylist).sort((a, b) => b[1] - a[1])[0];
 
   document.getElementById('lcBody').innerHTML = `
@@ -89,11 +98,17 @@ function lcPaint() {
         <p>Visits since 1 Jan 2025</p>
       </div>
       <div class="w13-tiles">
-        <div class="w13-tile"><div class="slv-eyebrow">Clients</div><div class="w13-val">${lcNum(lcRows.length)}</div><div class="slv-note">haven't been back</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">Clients</div><div class="w13-val">${lcNum(lost.length)}</div><div class="slv-note">haven't been back</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">What they spent</div><div class="w13-val">AED ${lcNum(spend)}</div><div class="slv-note">since Jan 2025, ex VAT</div></div>
-        ${phones ? `<div class="w13-tile"><div class="slv-eyebrow">With a phone number</div><div class="w13-val">${lcNum(withNo)}</div><div class="slv-note">${lcRows.length ? Math.round(100 * withNo / lcRows.length) : 0}% of the list</div></div>` : ''}
+        ${phones ? `<div class="w13-tile"><div class="slv-eyebrow">With a phone number</div><div class="w13-val">${lcNum(withNo)}</div><div class="slv-note">${lost.length ? Math.round(100 * withNo / lost.length) : 0}% of the list</div></div>` : ''}
         <div class="w13-tile"><div class="slv-eyebrow">Most of them saw</div><div class="w13-val" style="font-size:20px">${lcEsc(topSt ? topSt[0] : '–')}</div><div class="slv-note">${topSt ? lcNum(topSt[1]) + ' clients' : ''}</div></div>
       </div>
+      ${moved.length ? `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0 0">
+        <span class="slv-muted" style="margin:0">${lcMovedView
+          ? `Showing the ${lcNum(moved.length)} who came back at another branch instead. They aren't counted above.`
+          : `${lcNum(moved.length)} more came back at another branch in the last ${lcNum(lcSel.days)} days, so they aren't counted as lost.`}</span>
+        <button type="button" class="tglr" onclick="lcToggleMoved()">${lcMovedView ? 'Back to the lost list' : 'Show them'}</button>
+      </div>` : ''}
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0 8px">
         <input type="search" id="lcSearch" placeholder="Search name or stylist" value="${lcEsc(lcQuery)}"
           oninput="lcQuery=this.value;lcShowAll=false;lcPaintTable()"
@@ -103,7 +118,7 @@ function lcPaint() {
       </div>
       <div id="lcTable"></div>
     </section>
-    <p class="slv-muted">From Phorest's Sales Transactions, which starts in January 2025: a client who was a regular in 2024 and stopped before then isn't on this list. Visits are days she came in at this branch; a client who moved to another branch shows here as gone. Usual stylist is whoever served most of her visits. "Last visit" is the newest day uploaded, so the last day or two can lag.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to your login only. The report doesn\'t say who opted out of marketing, so check consent in Phorest before anyone messages a client.' : ''}</p>`;
+    <p class="slv-muted">From Phorest's Sales Transactions, which starts in January 2025: a client who was a regular in 2024 and stopped before then isn't on this list. Visits are days she came in at this branch; a client seen at another branch in the same window is counted on its own line, not as lost. Usual stylist is whoever served most of her visits. "Last visit" is the newest day uploaded, so the last day or two can lag.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to your login only. The report doesn\'t say who opted out of marketing, so check consent in Phorest before anyone messages a client.' : ''}</p>`;
   lcPaintTable();
 }
 
@@ -112,9 +127,10 @@ function lcPaint() {
 function lcPaintTable() {
   const box = document.getElementById('lcTable');
   if (!box || !lcRows) return;
+  const nowAt = r => lcMovedView && r.now_at ? `${lcEsc(r.now_at)}<div class="slv-note">${lcEsc(lcDayY(r.now_last))}</div>` : '';
   const q = lcQuery.trim().toLowerCase();
   const rows = q ? lcRows.filter(r => `${r.client_name} ${r.stylist || ''}`.toLowerCase().includes(q)) : lcRows;
-  const phones = lcRows.some(r => r.mobile || r.landline);
+  const phones = lcAll.some(r => r.mobile || r.landline);
   const shown = lcShowAll ? rows : rows.slice(0, LC_LIMIT);
   const check = r => r.match === 'check' ? ' <span class="slv-note" style="display:inline" title="Two different numbers under this name: two people, or one client entered twice in Phorest">check</span>' : '';
   const tr = shown.map(r => `<tr>
@@ -123,6 +139,7 @@ function lcPaintTable() {
       <td>${lcEsc(lcDayY(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days ago</div></td>
       <td>${lcNum(r.spend)}</td>
       <td>${lcEsc(r.stylist || '–')}</td>
+      ${lcMovedView ? `<td>${nowAt(r)}</td>` : ''}
       ${phones ? `<td>${lcPhone(r)}</td>` : ''}
     </tr>`).join('');
   // Under 760px the table becomes a list, like Products: name and spend on one line,
@@ -130,12 +147,12 @@ function lcPaintTable() {
   const cards = shown.map(r => `<li class="prd-card">
       <div class="prd-body">
         <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${check(r)}</span><span class="prd-spend">AED ${lcNum(r.spend)}</span></div>
-        <div class="prd-meta">${lcNum(r.visits)} visits · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${r.stylist ? ' · ' + lcEsc(r.stylist) : ''}</div>
+        <div class="prd-meta">${lcNum(r.visits)} visits · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${r.stylist ? ' · ' + lcEsc(r.stylist) : ''}${lcMovedView && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}</div>
         ${phones && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
       </div>
     </li>`).join('');
   box.innerHTML = rows.length ? `<div class="slv-wrap prd-desk"><table class="slv-table">
-      <thead><tr><th>Client</th><th>Visits</th><th>Last visit</th><th>Spend (AED)</th><th>Usual stylist</th>${phones ? '<th>Phone</th>' : ''}</tr></thead>
+      <thead><tr><th>Client</th><th>Visits</th><th>Last visit</th><th>Spend (AED)</th><th>Usual stylist</th>${lcMovedView ? '<th>Now at</th>' : ''}${phones ? '<th>Phone</th>' : ''}</tr></thead>
       <tbody>${tr}</tbody></table></div>
       <ol class="prd-cards">${cards}</ol>
       ${rows.length > shown.length ? `<p style="margin-top:10px"><button type="button" class="tglr" onclick="lcShowAll=true;lcPaintTable()">Show all ${lcNum(rows.length)}</button></p>` : ''}`
@@ -159,10 +176,11 @@ function lcPhone(r) {
 function lcCopy() {
   const q = lcQuery.trim().toLowerCase();
   const rows = (lcRows || []).filter(r => !q || `${r.client_name} ${r.stylist || ''}`.toLowerCase().includes(q));
-  const phones = (lcRows || []).some(r => r.mobile || r.landline);
-  const head = ['Client', 'Visits', 'Last visit', 'Days since', 'Spend (AED)', 'Usual stylist'].concat(phones ? ['Phone'] : []);
+  const phones = (lcAll || []).some(r => r.mobile || r.landline);
+  const head = ['Client', 'Visits', 'Last visit', 'Days since', 'Spend (AED)', 'Usual stylist']
+    .concat(lcMovedView ? ['Now at', 'Last visit there'] : []).concat(phones ? ['Phone'] : []);
   const lines = [head].concat(rows.map(r => [r.client_name, r.visits, r.last_visit, r.days_since, Math.round(Number(r.spend) || 0),
-    r.stylist || ''].concat(phones ? [r.mobile || r.landline || ''] : [])));
+    r.stylist || ''].concat(lcMovedView ? [r.now_at || '', r.now_last || ''] : []).concat(phones ? [r.mobile || r.landline || ''] : [])));
   const text = lines.map(l => l.join('\t')).join('\n');
   const done = () => { const s = document.getElementById('lcCopied'); if (s) s.textContent = `Copied ${lcNum(rows.length)} rows`; };
   if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, () => {});
