@@ -920,11 +920,19 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .ht-cell.na .ht-bar{background:repeating-linear-gradient(135deg,var(--surface2) 0 4px,transparent 4px 8px);opacity:.8}
 .ht-cell.na .ht-lbl{font-style:italic}
 .ht-lbl small{display:block;font-size:10px;letter-spacing:.02em;opacity:.8}
+.ht-read{display:none}
 @media(max-width:560px){
   /* The labels stop fitting long before the bars do, so they go and the segments
      stay — the count is the point, and the names are a tap away below. */
   .ht-lbl{display:none}
   .ht-bar{height:10px}
+  /* Kate, 2 Oct 2026: so each segment is a tap target (the padding makes it ~26px
+     tall without moving the bar), and the readout line says which one it is. */
+  .hero-targets .ht-seg{margin:-8px 0}
+  .hero-targets .ht-cell{padding:8px 0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .hero-targets .ht-cell:focus{outline:none}
+  .hero-targets .ht-cell.sel .ht-bar{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text)}
+  .ht-read{display:block;margin-top:10px;font-size:12.5px;line-height:1.4;color:var(--muted)}
 }
 
 /* The rail's copy of it. Smaller, no labels, and it sits above "On this page"
@@ -3299,11 +3307,27 @@ table.tp-cmp td.bad{color:var(--bad)}
       const open = !wrap.classList.contains('open');
       document.querySelectorAll('.spf-dd.open').forEach(w => w.classList.remove('open'));
       wrap.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open));
+      // Kate, 2 Oct 2026: the menu hangs from the button's right edge, so on a phone
+      // the Month pill (at the left) opened it off the screen. Flip it to the left
+      // edge whenever the right-hung menu would start past the screen's edge.
+      if (open) { menu.style.left = ''; menu.style.right = '';
+        if (menu.getBoundingClientRect().left < 8) { menu.style.right = 'auto'; menu.style.left = '0'; } }
       if (open) (menu.querySelector('.on') || menu.firstChild)?.focus();
     };
     document.addEventListener('click', e => { if (!wrap.contains(e.target)) close(); });
     wrap.addEventListener('keydown', e => { if (e.key === 'Escape') { close(); btn.focus(); } });
     sel._ddPaint();
+  }
+  // Kate, 2 Oct 2026: the month a page opens on. Last month stays the default until
+  // the day after the payslip email goes out (the first Monday of the month, 07:00
+  // Dubai), so nobody lands on a half-empty new month before their email. Dubai time.
+  // The same rule lives in performance/performance.js; change both together.
+  function spfOpeningMonth() {
+    const d = new Date(Date.now() + 4 * 3600e3);              // Dubai is UTC+4, no DST
+    const y = d.getUTCFullYear(), m = d.getUTCMonth();
+    const firstMon = 1 + (8 - new Date(Date.UTC(y, m, 1)).getUTCDay()) % 7;
+    const t = d.getUTCDate() > firstMon ? new Date(Date.UTC(y, m, 1)) : new Date(Date.UTC(y, m - 1, 1));
+    return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}`;
   }
   function spfBuildMonths(){
     const sel = document.getElementById('spfMonth');
@@ -3314,6 +3338,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       const v = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
       sel.add(new Option(d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }), v));
     }
+    sel.value = spfOpeningMonth();
     spfDD(sel);
   }
   function spfSetMonth(m){
@@ -3588,7 +3613,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="products.js?v=20261001sold"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261002va"></script>
+<script src="dashboard.js?v=20261002tap"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->

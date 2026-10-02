@@ -3881,29 +3881,44 @@ async function renderDashboard() {
     // One builder, two sizes: the cover carries the names under each segment, the
     // rail is 240px wide and carries the segments alone. Same rows, same order,
     // so the two can never show a different score.
-    const segHtml = withLabels => `
+    const segHtml = withLabels => { const tap = withLabels ? ' role="button" tabindex="0"' : ''; return `
       <div class="ht-k">${hitRows.length} of ${benchRows.length} targets reached${(() => {
         const n = lowRows.filter(r => r.att >= 1).length;
         return n ? ` · ${n} missed on a department` : '';
       })()}</div>
       <div class="ht-seg">
         ${strip.map(r => {
-          if (r.why) return `<span class="ht-cell na" title="${escapeHtml(r.name.replace(/\s*%$/, ''))}: ${r.why}">
+          if (r.why) return `<span class="ht-cell na"${tap} title="${escapeHtml(r.name.replace(/\s*%$/, ''))}: ${r.why}">
             <span class="ht-bar"></span>
             ${withLabels ? `<span class="ht-lbl">${escapeHtml(r.name.replace(/\s*%$/, '').replace(/ Avg Bill$/, ' bill'))}<small>${r.why}</small></span>` : ''}
           </span>`;
           const pct = Math.round(r.att * 100);
           const part = r.att >= 1 && r.short && r.short.length;
-          return `<span class="ht-cell${r.met ? ' on' : ''}${part ? ' part' : ''}"
+          return `<span class="ht-cell${r.met ? ' on' : ''}${part ? ' part' : ''}"${tap}
             title="${escapeHtml(r.name.replace(/\s*%$/, ''))}: ${r.fmt(r.combined)} of ${r.fmt(r.target)} · ${pct}%${part
               ? ' · ' + r.short.map(x => `${x.dept} ${r.fmt(x.v)} of ${r.fmt(x.t)}`).join(', ') : ''}">
             <span class="ht-bar"></span>
             ${withLabels ? `<span class="ht-lbl">${escapeHtml(r.name.replace(/\s*%$/, '').replace(/ Avg Bill$/, ' bill'))}</span>` : ''}
           </span>`;
         }).join('')}
-      </div>`;
+      </div>${withLabels ? '<div class="ht-read" aria-live="polite">Tap a bar to see which target it is.</div>' : ''}`; };
 
+    // Kate, 2 Oct 2026: under 560px the names go and the figures were only in the
+    // title tooltip, which a tap never shows. Each cover segment is a button now:
+    // tap, hover or focus one and the line under the strip says which target it is.
+    // The readout is hidden above 560px, where the names are on the page already.
     stripEl.innerHTML = !strip.length ? '' : segHtml(true);
+    const pick = cell => {
+      const read = stripEl.querySelector('.ht-read');
+      if (!cell || !read) return;
+      stripEl.querySelectorAll('.ht-cell.sel').forEach(c => c.classList.remove('sel'));
+      cell.classList.add('sel');
+      read.textContent = cell.getAttribute('title');
+    };
+    stripEl.onclick = e => pick(e.target.closest('.ht-cell'));
+    stripEl.onmouseover = e => pick(e.target.closest('.ht-cell'));
+    stripEl.onfocusin = e => pick(e.target.closest('.ht-cell'));
+    stripEl.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(e.target.closest('.ht-cell')); } };
 
     const sideEl = document.getElementById('sideTargets');
     if (sideEl) sideEl.innerHTML = !strip.length ? '' : segHtml(false);

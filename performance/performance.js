@@ -154,7 +154,18 @@ async function rpc(fn, args) {
 // ── month picker ─────────────────────────────────────────────────────────
 const now = new Date();
 const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-const MONTH = /^\d{4}-\d{2}$/.test(qs.get('m') || '') ? qs.get('m') : thisMonth;
+// Kate, 2 Oct 2026: the month a page opens on. Last month stays the default until
+// the day after the payslip email goes out (the first Monday of the month, 07:00
+// Dubai), so nobody lands on a half-empty new month before their email. Dubai time.
+// The same rule lives in index.html (spfOpeningMonth); change both together.
+function openingMonth() {
+  const d = new Date(Date.now() + 4 * 3600e3);              // Dubai is UTC+4, no DST
+  const y = d.getUTCFullYear(), m = d.getUTCMonth();
+  const firstMon = 1 + (8 - new Date(Date.UTC(y, m, 1)).getUTCDay()) % 7;
+  const t = d.getUTCDate() > firstMon ? new Date(Date.UTC(y, m, 1)) : new Date(Date.UTC(y, m - 1, 1));
+  return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+const MONTH = /^\d{4}-\d{2}$/.test(qs.get('m') || '') ? qs.get('m') : openingMonth();
 (function buildMonths() {
   const sel = document.getElementById('monthSel');
   for (let i = 0; i < 12; i++) {
@@ -198,6 +209,9 @@ function pillMenu(sel) {
     e.stopPropagation();
     const open = !wrap.classList.contains('open');
     wrap.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open));
+    // Kate, 2 Oct 2026: flip to the left edge when the right-hung menu would open off the screen.
+    if (open) { menu.style.left = ''; menu.style.right = '';
+      if (menu.getBoundingClientRect().left < 8) { menu.style.right = 'auto'; menu.style.left = '0'; } }
     if (open) (menu.querySelector('.on') || menu.firstChild).focus();
   };
   document.addEventListener('click', e => { if (!wrap.contains(e.target)) close(); });
