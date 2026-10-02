@@ -3445,6 +3445,28 @@ function pulseSetClients(v) {
 }
 
 
+// Starts the window on screen, the window before it, the client targets and the door
+// counts all at once, into the caches renderDashboard() reads (Kate, 2 Oct 2026).
+// Safe to call more than once: a window already cached or in flight isn't fetched again.
+function warmDashboardWindows() {
+  if (!dateFrom || !dateTo) return;
+  const weekly = isFullWeekRange(dateFrom, dateTo);
+  const warm = (from, to) => (weekly
+    ? cachedRange(`weekly|${dateToIso(from)}|${dateToIso(to)}`, () => loadWeeklyTotalsRange(from, to))
+    : cachedRange(`daily|${dateToIso(from)}|${dateToIso(to)}`, () => Promise.all([
+        loadDailyRange(from, to), loadBranchStaffDailyRange(from, to), loadPhorestStaffDailyRange(from, to)])))
+    .catch(() => {});
+  warm(dateFrom, dateTo);
+  const pw = previousWindow(dateFrom, dateTo);
+  if (pw) warm(pw.from, pw.to);
+  loadClientTargets().catch(() => {});
+  const doorCodes = sel.branch.includes('all') ? scopeCodes() : sel.branch;
+  if (doorCodes.every(c => DOOR_BRANCHES.includes(c))) {
+    doorClientsByBranch(dateFrom, dateTo).catch(() => {});
+    if (pw) doorClientsByBranch(pw.from, pw.to).catch(() => {});
+  }
+}
+
 async function renderDashboard() {
   paintFilterChips();
   const main = document.getElementById('mainContent');
@@ -3453,6 +3475,16 @@ async function renderDashboard() {
   // Which loader served this window, so the previous window is fetched the same
   // way and the two summaries are built by the same aggregator.
   let usedWeeklyPath = false;
+
+  // Kate, 2 Oct 2026: everything below used to be asked for one after another (this
+  // window, utilisation, the previous window, targets, door clients now, door clients
+  // before), ~1.5s of waiting in a row. It is all asked for here at once instead. Each
+  // loader keeps its own cache or in-flight dedupe (cachedRange, lgDbInflight), so the
+  // awaits further down pick up these same requests rather than fetching again.
+  const utilBranches = sel.branch.includes('all') ? ACTIVE_BRANCHES : sel.branch;
+  const utilAsk = loadUtilisationForFilter(dateFrom || new Date('2025-01-01T00:00:00'), dateTo || new Date(), utilBranches);
+  utilAsk.catch(() => {});
+  warmDashboardWindows();
 
   try {
 
@@ -3532,10 +3564,9 @@ async function renderDashboard() {
   // No explicit dateFrom/dateTo (weekly-view default) falls back to the whole
   // backfill window, branch-filtered only, rather than an exact period match.
   try {
-    const branchesForUtil = sel.branch.includes('all') ? ACTIVE_BRANCHES : sel.branch;
-    const utilFrom = dateFrom || new Date('2025-01-01T00:00:00'); // the backfill start, opened to 2025 (Kate, 3 Sep 2026)
+    // the backfill start, opened to 2025 (Kate, 3 Sep 2026); asked for at the top (utilAsk)
     const utilTo   = dateTo   || new Date();
-    const utilRows = await loadUtilisationForFilter(utilFrom, utilTo, branchesForUtil);
+    const utilRows = await utilAsk;
     const utilAgg  = aggregateUtilisation(utilRows, await loadUtilDeptMap(window._cachedDailyJoin && window._cachedDailyJoin.branchStaffRows, utilTo));
     s.hairUtilHours      = utilAgg.hairHours;
     s.hairUtilAvailHours = utilAgg.hairAvail;
@@ -4486,7 +4517,22 @@ async function loadData() {
   // below refetches, and every chip click until the next one reuses that fetch
   // instead of paying Supabase again.
   RANGE_CACHE.clear();
-  const { data, error } = await sb.from('weekly_data').select('*').order('uploaded_at', { ascending:true });
+  // .then() sends it now; a Supabase query only goes out once something awaits it.
+  const weeklyAsk = sb.from('weekly_data').select('*').order('uploaded_at', { ascending:true }).then(r => r);
+  // Only seed the default (Jan 1 → today) range on first load — loadData() runs
+  // again every time someone takes an update, and re-applying the default there
+  // would wipe out any custom range they had picked (Kate, 2026-08-03).
+  // Kate, 2 Oct 2026: seeded before weekly_data comes back rather than after (the
+  // range never read it), so the window's own data starts loading alongside it.
+  if (!dateFrom || !dateTo) {
+    await setDefaultRange();
+    // Then let a period= in the address bar replace that default, before the first
+    // render reads the window. Inside this branch and not after it, so taking an
+    // update never re-seeds over a range picked since.
+    applyPeriodParam();
+  }
+  warmDashboardWindows();
+  const { data, error } = await weeklyAsk;
   if (error || !data) {
     document.getElementById('mainContent').innerHTML = '<div class="empty">No data available yet.</div>';
     return;
@@ -4495,16 +4541,6 @@ async function loadData() {
   const branches = ACTIVE_BRANCHES.map(k => ({ val:k, label:BRANCH_INFO[k].name }));
   buildDrop('branch', branches);
   rebuildDependentDrops();
-  // Only seed the default (Jan 1 → today) range on first load — loadData() runs
-  // again every time someone takes an update, and re-applying the default there
-  // would wipe out any custom range they had picked (Kate, 2026-08-03).
-  if (!dateFrom || !dateTo) {
-    await setDefaultRange();
-    // Then let a period= in the address bar replace that default, before the first
-    // render reads the window. Inside this branch and not after it, so taking an
-    // update never re-seeds over a range picked since.
-    applyPeriodParam();
-  }
   renderDashboard();
   // Freshness badge — auto-detects the most recent date where EVERY branch has
   // actually synced, instead of trusting created_at of whatever row landed last.
