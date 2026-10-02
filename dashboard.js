@@ -5277,7 +5277,7 @@ function _renderClients(rows, branches, year, pFrom, pTo) {
   content.innerHTML = `
     <div class="section-label" style="margin-top:16px">${branchLabel} — Top ${rows.length} Clients · ${year}</div>
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div class="svc-bhead" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
         <div>
           <div class="card-title">Top Clients by Revenue</div>
           <div class="card-sub">${_isoD(pFrom)} to ${_isoD(pTo)}</div>
@@ -5287,7 +5287,15 @@ function _renderClients(rows, branches, year, pFrom, pTo) {
           <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
         </div>
       </div>
-      <table>
+      ${/* Phones (Kate, 2 Oct 2026): the same ranked list as Service Rankings. */''}
+      <div class="svc-m">${rows.map((r,i) => {
+        const v = Number(r.visit_count)||0;
+        const initials = (r.client_name||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+        return `<div class="svc-mrow"><span class="top3-rank ${_rankCls(i)}">${i+1}</span>
+          <div class="svc-mname cli-mname"><span class="cli-av" style="background:${avColors[i % avColors.length]}">${escapeHtml(initials)}</span><div>${escapeHtml(r.client_name)||'—'}<small>${v.toLocaleString()} visit${v===1?'':'s'}${r.top_service ? ' · ' + escapeHtml(r.top_service) : ''}</small></div></div>
+          <b class="svc-mamt">${_fmtAed(r.total_revenue)}</b></div>`;
+      }).join('')}</div>
+      <table class="svc-t">
         <thead><tr>
           <th style="width:30px">#</th>
           <th>Client</th>
