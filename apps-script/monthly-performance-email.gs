@@ -278,6 +278,24 @@ function perfAddSentTo_(month, emails) {
   PropertiesService.getScriptProperties().setProperty('PERF_SENT_TO_' + month, JSON.stringify(all));
 }
 
+// Kate, 3 Oct 2026: September 2026 went out from kate@ on code older than the sent
+// list, so the list is empty and a "Make drafts now" from payroll@ would draft (and
+// "Send" would email) everyone again. Run this ONCE as kate@, before handing over:
+// it reads kate@'s Sent folder for the month's subject and records every address.
+function seedSentSeptemberFromMySent() { perfSeedSentTo('2026-09'); }
+function perfSeedSentTo(month) {
+  month = perfMonth_(month);
+  const subject = perfSubject_(month);
+  const to = [];
+  GmailApp.search(`in:sent subject:"${subject}"`, 0, 200).forEach(t => t.getMessages().forEach(m => {
+    if (m.getSubject() !== subject) return;   // skips the [TEST] ones
+    m.getTo().split(',').forEach(a => { const e = ((a.match(/<([^>]+)>/) || [, a])[1] || '').trim(); if (e) to.push(e); });
+  }));
+  perfAddSentTo_(month, to);
+  Logger.log(`${month}: ${to.length} sent addresses found in ${Session.getEffectiveUser().getEmail()}'s Sent; the list now holds ${perfSentTo_(month).length}.`);
+  return to.length;
+}
+
 // Sends this month's drafts: only those with a payslip attached, unless `all`.
 // Returns who went and who is still waiting in Drafts.
 function perfSendDrafts_(month, all) {

@@ -3854,6 +3854,10 @@ const GATE_MODES = {
   forgot: { title:'Reset your password', btn:'Send reset link', google:false, email:true, pw:false,
             links:[['Back to sign in','signin']] },
   reset:  { title:'Choose a new password', btn:'Save password', google:false, email:false, pw:true, links:[] },
+  // An invite link lands here already signed in (Kate, 3 Oct 2026). A Google or Gmail
+  // address can skip the password and keep using the Google button.
+  welcome:{ title:'Welcome. Choose your password', btn:'Save password', google:false, email:false, pw:true,
+            links:[['Skip, I’ll sign in with Google','skip']] },
   denied: { title:'Not on the list yet', btn:'Sign out', google:false, email:false, pw:false, links:[] },
 };
 
@@ -3869,7 +3873,7 @@ function gateMode(mode, info){
   document.getElementById('loginInput').autocomplete = mode === 'signin' ? 'current-password' : 'new-password';
   document.getElementById('loginBtn').textContent = m.btn;
   document.getElementById('loginLinks').innerHTML = m.links
-    .map(([label, to]) => `<a onclick="gateMode('${to}')">${label}</a>`).join('');
+    .map(([label, to]) => `<a onclick="${to === 'skip' ? 'enterIfAllowed(true)' : `gateMode('${to}')`}">${label}</a>`).join('');
   gateMsg('', 'error'); gateMsg(info || '', 'info');
   const first = m.email ? 'loginEmail' : (m.pw ? 'loginInput' : null);
   if (first) document.getElementById(first).focus();
@@ -3903,8 +3907,9 @@ async function doLogin(){
   gateMsg('', 'error'); gateMsg('', 'info');
 
   if (GATE_MODE === 'denied') { await sb.auth.signOut(); gateMode('signin'); return; }
-  if (GATE_MODE !== 'reset' && !email) { gateMsg('Enter your email.', 'error'); return; }
-  if ((GATE_MODE === 'signup' || GATE_MODE === 'reset') && pw.length < 8) {
+  const setPw = GATE_MODE === 'reset' || GATE_MODE === 'welcome';
+  if (!setPw && !email) { gateMsg('Enter your email.', 'error'); return; }
+  if ((GATE_MODE === 'signup' || setPw) && pw.length < 8) {
     gateMsg('Use at least 8 characters.', 'error'); return;
   }
   gateBusy(true);
@@ -3934,7 +3939,7 @@ async function doLogin(){
       const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: GATE_BACK });
       if (error) { gateMsg('Couldn’t send the email just now. Try again in a minute.', 'error'); return; }
       gateMsg('If that email is on the list, a reset link is on its way. Check spam too.', 'info');
-    } else if (GATE_MODE === 'reset') {
+    } else if (setPw) {
       const { error } = await sb.auth.updateUser({ password: pw });
       if (error) { gateMsg(error.message, 'error'); return; }
       document.getElementById('loginInput').value = '';
@@ -4105,6 +4110,7 @@ function toggleLoginEye(){
 
 // A reset link lands here signed in, flagged as a recovery: ask for the new password first.
 let GATE_RECOVERY = /type=recovery/.test(window.TRS_AUTH_HASH || '');
+const GATE_INVITE = /type=invite/.test(window.TRS_AUTH_HASH || '');
 sb.auth.onAuthStateChange((event) => {
   if (event === 'PASSWORD_RECOVERY') { GATE_RECOVERY = true; gateMode('reset'); }
 });
@@ -4120,6 +4126,7 @@ sb.auth.onAuthStateChange((event) => {
   const { data } = await sb.auth.getSession();
   if (!data.session) { trsBootDone(); return; }
   if (GATE_RECOVERY) { gateMode('reset'); trsBootDone(); return; }
+  if (GATE_INVITE) { gateMode('welcome', 'You’re in. Pick a password so you can sign in next time.'); trsBootDone(); return; }
   await enterIfAllowed();
 })();
 

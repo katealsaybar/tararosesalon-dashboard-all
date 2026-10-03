@@ -1,0 +1,24 @@
+<!doctype html>
+<html><body style="margin:0;padding:0;background:#F6F1EC">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F6F1EC;padding:28px 12px">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:14px">
+<tr><td style="padding:28px 28px 8px">
+<img src="https://trk-salon-os.com/assets/email-logo.png" alt="Tara Rose Salons" width="120" style="display:block;width:120px;height:auto;border:0">
+</td></tr>
+<tr><td style="padding:12px 28px 28px;font-family:Arial,Helvetica,sans-serif;color:#5C5557;font-size:15px;line-height:1.55">
+<h1 style="margin:0 0 14px;font-size:21px;line-height:1.3;color:#5C5557;font-weight:700">You’re invited</h1>
+<p style="margin:0 0 12px">You now have access to the Tara Rose Salons team site, for <b>{{ .Email }}</b>.</p>
+<p style="margin:0">Press the button to come in and choose your password.</p>
+<p style="margin:24px 0">
+<a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#5C5557;color:#F9E8DF;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:700">Accept and set my password</a>
+</p>
+<p style="margin:0 0 10px">Using a Gmail or Google work address? You can skip the password and press <b>Continue with Google</b> on the sign-in page instead.</p>
+<p style="margin:0;font-size:13px;color:#77706A">This link works once and runs out after a while. If it has, go to trk-salon-os.com and use <b>Forgot password</b>.</p>
+<p style="margin:22px 0 0;font-size:12px;color:#9a8a87">Button not working? Copy this link into your browser:<br><span style="word-break:break-all">{{ .ConfirmationURL }}</span></p>
+</td></tr>
+</table>
+<p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#9a8a87;margin:14px 0 0">Tara Rose Salons · trk-salon-os.com</p>
+</td></tr>
+</table>
+</body></html>
