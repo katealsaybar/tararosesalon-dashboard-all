@@ -317,6 +317,15 @@
   input[type=email],input[type=password],input:not([type]){
     min-height:44px;font-size:16px}
   .nav-kids-btn{width:44px;height:44px;margin:-10px -10px -10px 0}
+  /* Pulse, Kate, 3 Oct 2026: the target strip's segments are 40px taps (were 26), the
+     receipt's Per staff | Per visit switch 40px (was 31) with a 12px label, and a long
+     benchmark chip (103% OF TARGET · BEAUTY SHORT) wraps instead of squeezing the name. */
+  .hero-targets .ht-seg{margin:-15px 0}
+  .hero-targets .ht-cell{padding:15px 0}
+  .r-cl-k{font-size:12px}
+  .r-cl-seg button{min-height:40px;padding:5px 14px}
+  .att-chip{max-width:140px;white-space:normal;text-align:center;line-height:1.35}
+  .att-name{letter-spacing:.06em}
   /* The sign-in card. Kate, 3 Oct 2026: a 16px gutter so the torn edges show, tighter
      padding and gaps inside, and the gate scrolls (margin:auto keeps it centred) when a
      short or landscape screen can't fit the whole card. */

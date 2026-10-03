@@ -1779,13 +1779,16 @@ function computeStatusStatement(s, branchLabel, periodPhrase, treatmentPct, reta
 // Beauty (revenue, rebooking, avg bill), read as two plain sentences instead of
 // a KPI-count rollup. Reuses sc() so the good/warn/bad read matches the rest
 // of the dashboard. Per Kate's spec, 2026-08-03.
+// Kate, 3 Oct 2026: the Hair and Beauty cards print whole dirhams, like every other
+// figure on the Pulse (they read "AED 12,245,992.91" and "AED 200.00").
+const fmtAEDw = n => CUR() + ' ' + Math.round(n || 0).toLocaleString('en-GB');
 function glanceClause(value, target, unit, goodPhrase, warnPhrase, badPhrase) {
   if (value == null) return 'not in the ledger for this period';
-  if (target == null) return `at <strong>${unit === 'AED' ? fmtAED(value||0) : fmtPct(value||0)}</strong>, no target set for this branch yet`;
+  if (target == null) return `at <strong>${unit === 'AED' ? fmtAEDw(value||0) : fmtPct(value||0)}</strong>, no target set for this branch yet`;
   const status = sc(value||0, target);
   const valColor = status === 'good' ? 'var(--good)' : 'var(--bad)';
-  const val = `<strong style="color:${valColor}">${unit === 'AED' ? fmtAED(value||0) : fmtPct(value||0)}</strong>`;
-  const tgt = `<strong>${unit === 'AED' ? fmtAED(target) : `${target}%`}</strong>`;
+  const val = `<strong style="color:${valColor}">${unit === 'AED' ? fmtAEDw(value||0) : fmtPct(value||0)}</strong>`;
+  const tgt = `<strong>${unit === 'AED' ? fmtAEDw(target) : `${target}%`}</strong>`;
   if (status === 'good') return `${goodPhrase} at ${val}`;
   if (status === 'warn') return `${warnPhrase} at ${val}, just off the ${tgt} mark`;
   return `${badPhrase} at ${val} against a ${tgt} goal`;
@@ -1794,8 +1797,8 @@ function glanceClause(value, target, unit, goodPhrase, warnPhrase, badPhrase) {
 function computeAtAGlanceExplanation(s, hairRevenue, hairTreatmentPct) {
   // Kate, 1 Oct 2026: services only, so say so. The receipt card's Hair net take
   // adds retail, and two different "hair" totals on one page read as an error.
-  const hair = `Hair services brought in <strong>${fmtAED(hairRevenue)}</strong> before retail. Rebooking is ${glanceClause(s.hairRebookPct, TARGETS.rebookPct, 'pct', 'holding steady', 'getting there', 'lagging')}, treatment uptake is ${glanceClause(hairTreatmentPct, TARGETS.treatmentPct, 'pct', 'right on target', 'trending the right way', 'falling short')}, and avg bill is ${glanceClause(s.hairAvgBill, TARGETS.hairAvgBill, 'AED', 'comfortably ahead', 'nearly there', 'below where it needs to be')}.`;
-  const beauty = `Beauty services brought in <strong>${fmtAED(s.beautySales||0)}</strong> before retail. Rebooking is ${glanceClause(s.beautyRebookPct, TARGETS.rebookPct, 'pct', 'holding steady', 'getting there', 'lagging')}, and avg bill is ${glanceClause(s.beautyAvgBill, TARGETS.beautyAvgBill, 'AED', 'comfortably ahead', 'nearly there', 'below where it needs to be')}.`;
+  const hair = `Hair services brought in <strong>${fmtAEDw(hairRevenue)}</strong> before retail. Rebooking is ${glanceClause(s.hairRebookPct, TARGETS.rebookPct, 'pct', 'holding steady', 'getting there', 'lagging')}, treatment uptake is ${glanceClause(hairTreatmentPct, TARGETS.treatmentPct, 'pct', 'right on target', 'trending the right way', 'falling short')}, and avg bill is ${glanceClause(s.hairAvgBill, TARGETS.hairAvgBill, 'AED', 'comfortably ahead', 'nearly there', 'below where it needs to be')}.`;
+  const beauty = `Beauty services brought in <strong>${fmtAEDw(s.beautySales||0)}</strong> before retail. Rebooking is ${glanceClause(s.beautyRebookPct, TARGETS.rebookPct, 'pct', 'holding steady', 'getting there', 'lagging')}, and avg bill is ${glanceClause(s.beautyAvgBill, TARGETS.beautyAvgBill, 'AED', 'comfortably ahead', 'nearly there', 'below where it needs to be')}.`;
   return { hair, beauty };
 }
 
