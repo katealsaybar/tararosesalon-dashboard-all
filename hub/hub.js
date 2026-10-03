@@ -29,7 +29,7 @@
     { key: 'access', dept: 'Management', title: 'Staff Roster & Access', href: '/hub/roster', live: true, rule: 'var(--accent-mint)',
       blurb: 'Everyone who can sign in: their level, team and when they were last in.' },
     { key: 'hair-sop', dept: 'Hair', title: 'Hair SOPs', rule: 'var(--accent-lavender)',
-      blurb: 'Hair services, the trade test and colour standards.' },
+      blurb: 'Every foundation cut, step by step, plus the backwash, the 8-Step Hair Plan, the client journey and stylist standards.' },
     { key: 'hair-induction', dept: 'Hair', title: 'Hair Induction & Onboarding', rule: 'var(--accent-butter)',
       blurb: 'The induction programme for stylists and hair assistants.' },
     { key: 'beauty-sop', dept: 'Beauty', title: 'Beauty SOPs', rule: 'var(--accent-mint)',
