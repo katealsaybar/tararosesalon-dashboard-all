@@ -317,6 +317,7 @@
   /* The sign-in card. */
   .login-lockup .mark{width:140px}
   .login-word{font-size:10px}
+  .login-dash-lbl{font-size:15px;padding:3px 12px}
   #loginGoogle,#loginBtn{min-height:44px}
   .login-links a{display:inline-flex;align-items:center;min-height:44px}
   /* The eye is already absolutely placed inside the field, which anchors the ::after. */
