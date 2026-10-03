@@ -330,6 +330,9 @@
   /* Branch Performance's charts (mix, benchmarks, clients): 320px tall (were 240), so the bars
      aren't squeezed under the legend and the slanted branch names. */
   #view-branchperf .bp-chart:not(.bp-chart-tall){height:320px}
+  /* Team page (Kate, 3 Oct 2026): a long name takes a second line instead of being cut
+     (Ashleigh Fairg…, Clarissa Destacam…). */
+  #view-team .tp-row-nm,#view-team .tp-row-nm .who{white-space:normal;overflow:visible}
   /* The sign-in card. Kate, 3 Oct 2026: a 16px gutter so the torn edges show, tighter
      padding and gaps inside, and the gate scrolls (margin:auto keeps it centred) when a
      short or landscape screen can't fit the whole card. */
