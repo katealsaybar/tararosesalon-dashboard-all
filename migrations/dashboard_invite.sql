@@ -27,7 +27,8 @@ begin
     url := 'https://gvijxenafoowajqktqvd.supabase.co/functions/v1/invite-user',
     body := jsonb_build_object('email', lower(trim(p_email)),
               'secret', (select decrypted_secret from vault.decrypted_secrets where name = 'invite_hook_secret')),
-    headers := '{"Content-Type":"application/json"}'::jsonb
+    headers := '{"Content-Type":"application/json"}'::jsonb,
+    timeout_milliseconds := 20000   -- the invite send can take over pg_net's 5s default (3 Oct 2026)
   ) into v_id;
   return v_id;
 end $$;
