@@ -978,10 +978,15 @@ async function renderTeam() {
     // view and not the dashboard frame. Kate, 2 Oct 2026: started before This month
     // rather than after it, so a &tab=levels or &tab=year link doesn't wait for the
     // month page and its chart to draw first.
+    // Kate, 3 Oct 2026: year-levels.js loads after this file, so on a ?t= link (no
+    // await above) PerfTabs wasn't there yet; the month drew and was then replaced by
+    // "Open this page from the link...". Wait for the page's scripts first, and only
+    // show that message when there is no token and no admin key at all.
+    if (!window.PerfTabs && document.readyState === 'loading')
+      await new Promise(res => document.addEventListener('DOMContentLoaded', res, { once: true }));
     const tabs = TOKEN && !ADMIN && !EMBED && window.PerfTabs;
     if (tabs) PerfTabs.mount(TOKEN);
     if (TOKEN || (SID && ADMIN)) await renderStylist();
-    if (tabs) { /* mounted above */ }
     else if (ADMIN) await renderTeam();
     else app.innerHTML = `<p class="err">Open this page from the link in your performance email.</p>`;
     requestAnimationFrame(postHeight);
