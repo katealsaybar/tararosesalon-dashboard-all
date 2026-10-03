@@ -2164,6 +2164,18 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .lc-det-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px 28px}
 @media(max-width:760px){.lc-det-grid{grid-template-columns:minmax(0,1fr)}}
 .lc-svc{margin:8px 0 0;padding-left:20px}.lc-svc li{margin:0 0 8px}
+/* Lost Clients on a phone (Kate, 3 Oct 2026): money tiles keep the figure on one line,
+   search takes its own row with XLSX and CSV halves under it, Prev and Next share a row
+   under the page count, and the visit list's two-digit numbers stay inside the panel. */
+@media(max-width:760px){
+  .lc-tiles .w13-val{font-size:15px;white-space:nowrap}
+  .lc-tools #lcSearch{flex:1 1 100%!important;max-width:none!important;min-width:0!important}
+  .lc-tools .tglr{flex:1}
+  .lc-pg-nav{width:100%}
+  .lc-pg-txt{flex:1 1 100%}
+  .lc-pg-nav .tglr{flex:1}
+  .lc-svc{padding-left:28px}
+}
 .lc-svc b{font-weight:600}.lc-svc span{display:block;font-size:12.5px;color:var(--muted)}
 .lc-prod{margin:8px 0 0;padding-left:18px}.lc-prod li{margin:0 0 4px}.lc-prod span{color:var(--muted);font-size:12.5px}
 .lc-sts{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px}.lc-sts em{font-style:normal;color:var(--muted);font-size:12.5px}
@@ -3815,7 +3827,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20261002cards"></script>
 <script src="staff-weeks.js?v=20261001aim"></script>
 <script src="products.js?v=20261002wk"></script>
-<script src="lost-clients.js?v=20261003names"></script>
+<script src="lost-clients.js?v=20261003keep"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261003card"></script>

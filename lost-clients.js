@@ -44,7 +44,9 @@ const lcNum = v => Math.round(Number(v) || 0).toLocaleString('en-GB');
 const lcDayY = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 function lcSave() { try { localStorage.setItem('trs-lost', JSON.stringify(lcSel)); } catch (e) {} }
-function lcSet(k, v) { lcSel[k] = v; lcPage = 1; lcMovedView = false; lcResetFilters(); lcSave(); renderLostClients(); }
+// Kate, 3 Oct 2026: the column filters, sort and search stay put when the branch,
+// visits or days change (they used to clear), and are kept per browser like the rest.
+function lcSet(k, v) { lcSel[k] = v; lcPage = 1; lcMovedView = false; lcClosePop(); lcSave(); renderLostClients(); }
 function lcToggleMoved() { lcMovedView = !lcMovedView; lcPage = 1; lcResetFilters(); lcPaint(); }
 
 // Speed (Kate, 2 Oct 2026): opened straight on this page, the list waited ~4.5s for
@@ -142,7 +144,7 @@ function lcPaint() {
           : `${lcNum(moved.length)} more came back at another branch in the last ${lcNum(lcSel.days)} days, so they aren't counted as lost.`}</span>
         <button type="button" class="tglr" onclick="lcToggleMoved()">${lcMovedView ? 'Back to the lost list' : 'Show them'}</button>
       </div>` : ''}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0 8px">
+      <div class="lc-tools" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0 8px">
         <input type="search" id="lcSearch" placeholder="Search name or stylist" value="${lcEsc(lcQuery)}"
           oninput="lcQuery=this.value;lcPage=1;lcPaintTable()"
           style="flex:1;min-width:180px;max-width:320px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit">
@@ -176,6 +178,12 @@ window.addEventListener('resize', lcStickHead);
 // Avg per visit is that over her visits (Kate asked which it was, same day).
 let lcSort = { k: 'spend', dir: -1 };
 let lcF = {};
+try {
+  const s = JSON.parse(localStorage.getItem('trs-lost-filters') || 'null');
+  if (s && s.f && typeof s.f === 'object') lcF = s.f;
+  if (s && s.sort && typeof s.sort.k === 'string') lcSort = { k: s.sort.k, dir: s.sort.dir > 0 ? 1 : -1 };
+} catch (e) {}
+function lcSaveFilters() { try { localStorage.setItem('trs-lost-filters', JSON.stringify({ f: lcF, sort: lcSort })); } catch (e) {} }
 const lcAvg = r => (Number(r.visits) || 0) ? Math.round((Number(r.spend) || 0) / Number(r.visits)) : 0;
 const LC_COLS = [
   { k: 'client',  label: 'Client',              type: 'text', get: r => r.client_name || '' },
@@ -479,6 +487,7 @@ function lcBoardTable(B, days) {
 // The table on its own, so typing in the search box or changing a column filter
 // redraws only this and keeps the cursor where it is.
 function lcPaintTable() {
+  lcSaveFilters();   // every filter, sort or clear change ends here
   const box = document.getElementById('lcTable');
   if (!box || !lcRows) return;
   const rows = lcFiltered(), cols = lcCols();
