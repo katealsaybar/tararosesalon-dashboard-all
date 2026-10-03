@@ -1511,7 +1511,9 @@ async function loadStaffStatusOverrides() {
   return STAFF_STATUS_OVERRIDES;
 }
 
-function stylistBranchGroups() {
+// bothCountries (Kate, 3 Oct 2026): every card in the UAE and Bahrain, whichever
+// country the masthead is on. The Staff Cards page itself keeps to the masthead's.
+function stylistBranchGroups(bothCountries) {
   if (typeof STAFF_PROFILES === 'undefined') return [];
   // Dedupe by photo: alias keys (e.g. a stylist listed under two spellings) point
   // at the same person and must not produce two cards. Falls back to photoFull,
@@ -1560,7 +1562,8 @@ function stylistBranchGroups() {
     });
   });
 
-  return [...ACTIVE_BRANCHES, 'other', 'other-beauty'].filter(b => byBranch.has(b)).map(b => ({
+  const order = bothCountries ? UAE_ACTIVE.concat(BH_BRANCHES) : ACTIVE_BRANCHES;
+  return [...order, 'other', 'other-beauty'].filter(b => byBranch.has(b)).map(b => ({
     branch: b,
     colour: BRANCH_INFO[b]?.colorLight || BRANCH_INFO[b]?.color || 'var(--muted)',
     // Kate, 19 Sep 2026: "instead of 'other', say 'Former Stylists'" — the rail's

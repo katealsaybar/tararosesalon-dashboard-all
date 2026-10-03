@@ -561,15 +561,13 @@ function lcClearAll() {
 // therapist, aesthetics; anyone else counts as hair). Assistants and the BUSINESS
 // (unassigned) bucket are left out: nobody books them.
 function lcIsAssistant(name) {
-  const up = String(name).trim().toUpperCase(), w = up.split(/\s+/);
   const P = typeof STAFF_PROFILES !== 'undefined' ? STAFF_PROFILES : {};
-  const p = P[up] || P[w.slice(0, 2).join(' ')] || P[w[0]];
+  const p = P[lcProfileKey(name)];
   return !!(p && /assistant/i.test(p.role || ''));
 }
 function lcIsBeauty(name) {
-  const up = String(name).trim().toUpperCase(), w = up.split(/\s+/);
   const P = typeof STAFF_PROFILES !== 'undefined' ? STAFF_PROFILES : {};
-  const p = P[up] || P[w.slice(0, 2).join(' ')] || P[w[0]];
+  const p = P[lcProfileKey(name)];
   return !!(p && /beauty|nail|lash|brow|therap|aesthet/i.test(p.role || ''));
 }
 const lcAlsoNames = list => String(list || '').split(', ').filter(n => n && !/^\s*business\b/i.test(n) && !lcIsAssistant(n));
@@ -587,6 +585,25 @@ function lcTeamCell(list) {
     ? ` <span title="${lcEsc(rest.slice(2).join(', '))}">+${rest.length - 2}</span>` : ''}</div>` : '');
 }
 
+// Phorest's full name → her staff-profiles.js key (Kate, 3 Oct 2026). The surname has
+// to agree, or May Manguiat lands on May Fernandez's card; and a nickname under the
+// same surname counts (LUCY for Lucia Gonzalez Rodriguez, KIM for Kimberly Casas, MJ
+// for Mary Joy Galos, AREANNE for Princess Areanne Miranda), as long as only one fits.
+function lcProfileKey(name) {
+  const P = typeof STAFF_PROFILES !== 'undefined' ? STAFF_PROFILES : {};
+  const up = String(name).trim().toUpperCase().replace(/\./g, '');
+  const w = up.split(/\s+/).filter(Boolean);
+  if (!w.length) return '';
+  const surname = w.length > 1 ? w[w.length - 1] : '';
+  const lastOf = k => String(P[k].last || '').toUpperCase().split(/\s+/).pop();
+  const fits = k => !surname || !P[k].last || lastOf(k) === surname;
+  const direct = [up, w.slice(0, 2).join(' '), w[0]].find(k => P[k] && fits(k));
+  if (direct || !surname) return direct || '';
+  const given = w.slice(0, -1), initials = given.map(x => x[0]).join('');
+  const hits = Object.keys(P).filter(k => P[k].last && lastOf(k) === surname
+    && (given.includes(k) || k === initials || given.some(g => g.length >= 3 && k.slice(0, 3) === g.slice(0, 3))));
+  return hits.length === 1 ? hits[0] : '';
+}
 // Usual stylist as a link (Kate, 2 Oct 2026): the same hover / tap menu every other
 // staff name has (staff-links.js: Staff card, Staff stats, Branch figures), in the
 // hair or beauty accent by her role in staff-profiles.js, hair when unknown. The menu
@@ -594,9 +611,8 @@ function lcTeamCell(list) {
 // card. Someone marked resigned there is grey, like her faded card.
 function lcStylist(name) {
   if (!name) return '–';
-  const up = String(name).trim().toUpperCase(), w = up.split(/\s+/);
   const P = typeof STAFF_PROFILES !== 'undefined' ? STAFF_PROFILES : {};
-  const key = [up, w.slice(0, 2).join(' '), w[0]].find(k => P[k]);
+  const key = lcProfileKey(name);
   const prof = key ? P[key] : null;
   const dept = prof && /beauty|nail|lash|brow|therap|aesthet/i.test(prof.role || '') ? 'beauty' : 'hair';
   const gone = prof && prof.resigned ? ' lc-st-gone' : '';

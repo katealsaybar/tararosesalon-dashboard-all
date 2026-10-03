@@ -46,9 +46,17 @@ function staffWho(name, innerHtml, opts) {
 // Who has a card on the Staff Cards page. stylistBranchGroups() is the roster that
 // page renders, so asking it is the same as asking the page — and it answers for
 // people who are not on the page yet (Andrea, the assistants) with "no card".
+// Kate, 3 Oct 2026: asked across both countries. It used to ask only the masthead's,
+// so with Bahrain picked every UAE colleague (Grace at KCA) showed "No card yet"
+// while former staff, who sit outside any branch, still had theirs.
 function staffHasCard(key) {
-  if (typeof stylistBranchGroups !== 'function') return false;
-  return stylistBranchGroups().some(g => g.list.some(p => staffLinkKey(p.name) === key));
+  return !!staffCardBranch(key);
+}
+// The Staff Cards section a person's card is in, or '' when she has none.
+function staffCardBranch(key) {
+  if (typeof stylistBranchGroups !== 'function') return '';
+  const g = stylistBranchGroups(true).find(g => g.list.some(p => staffLinkKey(p.name) === key));
+  return g ? g.branch : '';
 }
 
 // ── THE MENU ──────────────────────────────────────────────────
@@ -208,6 +216,18 @@ function whoNote(msg) {
 }
 
 function whoGoCard(key) {
+  // A card in the other country: switch the masthead there first, or the Staff
+  // Cards page won't have drawn it.
+  const b = staffCardBranch(key);
+  if (b && typeof isBahrainView === 'function' && typeof sel !== 'undefined') {
+    const bah = BH_BRANCHES.includes(b);
+    if (bah !== isBahrainView() && (bah || !['other', 'other-beauty'].includes(b))) {
+      if (typeof GROUP_MODE !== 'undefined') GROUP_MODE = false;
+      sel.branch = bah ? [b] : ['all'];
+      if (typeof pendingSel !== 'undefined') pendingSel.branch = [...sel.branch];
+      if (typeof paintFilterChips === 'function') paintFilterChips();
+    }
+  }
   whoShowView('stylists');
   whoWaitFor(() => document.getElementById(staffLinkId(key)), whoLand,
     () => whoNote('No card for ' + key + ' yet.'));
