@@ -28,10 +28,12 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261003roster"></script>
+<script src="/hub/hub.js?v=20261003rosterurl"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain'), esc = KB.esc;
+  // Kate, 3 Oct 2026: the address is /hub/roster, without .html (Pages serves both).
+  if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
   var BRANCH = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', BAH: 'Bahrain' };
   function notFound() {
     main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';

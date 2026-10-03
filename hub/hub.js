@@ -26,7 +26,7 @@
     { key: 'campaigns', dept: 'Management', title: 'Campaigns', href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
       blurb: 'Wellness Voucher performance.' },
     // Kate, 3 Oct 2026: who can sign in, for Level 3 and up (kb_sections.min_level 3), view only.
-    { key: 'access', dept: 'Management', title: 'Staff Roster & Access', href: '/hub/roster.html', live: true, rule: 'var(--accent-mint)',
+    { key: 'access', dept: 'Management', title: 'Staff Roster & Access', href: '/hub/roster', live: true, rule: 'var(--accent-mint)',
       blurb: 'Everyone who can sign in: their level, team and when they were last in.' },
     { key: 'hair-sop', dept: 'Hair', title: 'Hair SOPs', rule: 'var(--accent-lavender)',
       blurb: 'Hair services, the trade test and colour standards.' },
