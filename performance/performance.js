@@ -162,6 +162,36 @@ async function rpc(fn, args, retried) {
   return r.json();
 }
 
+// The signed-in person's Supabase session on this site (the dashboard keeps it in
+// localStorage), so an RPC can check who is asking. Null when signed out.
+function sessionJwt() {
+  try { return JSON.parse(localStorage.getItem('sb-gvijxenafoowajqktqvd-auth-token')).access_token || null; }
+  catch (e) { return null; }
+}
+async function staffLinkButton(s, staffId) {
+  const jwt = sessionJwt();
+  if (!jwt) return;
+  let slug = null;
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/rpc/perf_staff_link`, {
+      method: 'POST',
+      headers: { apikey: SUPA_KEY, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_staff_id: staffId }),
+    });
+    if (r.ok) slug = await r.json();
+  } catch (e) {}
+  const slot = document.getElementById('linkSlot');
+  if (!slug || !slot) return;
+  const link = 'https://trk-salon-os.com/me/' + slug;
+  slot.outerHTML = `<button class="btn small" id="copyLink">Open ${esc(s.name.split(' ')[0])}'s view in another window ↗</button>`;
+  document.getElementById('copyLink').onclick = async (e) => {
+    const btn = e.currentTarget;
+    window.open(link, '_blank', 'noopener');
+    try { await navigator.clipboard.writeText(link); btn.textContent = 'Opened · link copied'; }
+    catch (err) { btn.textContent = 'Opened'; prompt('Copy this link:', link); }
+  };
+}
+
 // ── month picker ─────────────────────────────────────────────────────────
 const now = new Date();
 const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -609,7 +639,7 @@ async function renderStylist() {
 
   app.innerHTML = `
     ${ADMIN ? `<div class="admin-bar"><a class="back" href="?admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}">← Your team</a>
-      ${canEdit() ? `<button class="btn small" id="copyLink">Open ${esc(s.name.split(' ')[0])}'s view in another window ↗</button>` : ''}</div>` : ''}
+      ${canEdit() ? `<button class="btn small" id="copyLink">Open ${esc(s.name.split(' ')[0])}'s view in another window ↗</button>` : `<span id="linkSlot"></span>`}</div>` : ''}
     <section class="card hero">
       ${photoFor(s.keys) ? `<img class="hero-photo" src="${photoFor(s.keys)}" alt="" onerror="this.remove()">` : ''}
       <h1>${esc(s.name)}</h1>
@@ -773,6 +803,11 @@ async function renderStylist() {
       drawChart();
     };
   }
+
+  // Kate, 3 Oct 2026: Level 3 and above see the staff link on a view-only key too.
+  // perf_staff_link answers only for a signed-in dashboard user at Level 3+ (UAE
+  // scope), with her /me/ link; Level 2 and below get null and no button.
+  if (!canEdit() && d.staff_id && document.getElementById('linkSlot')) staffLinkButton(s, d.staff_id);
 
   if (canEdit()) {
     // Their own link: no admin key, no month, so it always opens on the current month.
