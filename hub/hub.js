@@ -81,6 +81,62 @@
   }
   KB.esc = esc;
 
+  // Kate, 3 Oct 2026: a <select> drawn as the dashboard's soft pill menu (spfDD in
+  // index.html), so a dropdown looks the same wherever it is on the site. The select
+  // stays, hidden, and keeps the value and its 'change' event; sel._ddPaint() redraws
+  // the label after the value is set in code.
+  KB.pillDD = function (sel) {
+    var wrap = document.createElement('span');
+    wrap.className = 'kb-dd';
+    sel.parentNode.insertBefore(wrap, sel);
+    wrap.appendChild(sel);
+    var btn = document.createElement('button'), menu = document.createElement('div');
+    btn.type = 'button'; btn.className = 'kb-dd-btn';
+    btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-label', sel.getAttribute('aria-label') || '');
+    menu.className = 'kb-dd-menu'; menu.setAttribute('role', 'listbox');
+    wrap.appendChild(btn); wrap.appendChild(menu);
+    function close() { wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+    function paint() {
+      var cur = sel.options[sel.selectedIndex];
+      btn.innerHTML = '<span>' + esc(cur ? cur.text : '') + '</span><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      wrap.classList.toggle('on', !!sel.value);
+      menu.innerHTML = [].map.call(sel.options, function (o) {
+        var on = o.value === sel.value;
+        return '<button type="button" role="option" data-v="' + esc(o.value) + '" aria-selected="' + on + '"' + (on ? ' class="on"' : '') + '>' + esc(o.text) + '</button>';
+      }).join('');
+    }
+    menu.addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (!b) return;
+      close(); btn.focus();
+      if (sel.value !== b.dataset.v) { sel.value = b.dataset.v; paint(); sel.dispatchEvent(new Event('change')); }
+    });
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = !wrap.classList.contains('open');
+      document.querySelectorAll('.kb-dd.open').forEach(function (w) { w.classList.remove('open'); });
+      wrap.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', String(open));
+      if (!open) return;
+      // Hangs from the left edge; flips to the right edge if it would run off the screen.
+      menu.style.left = ''; menu.style.right = '';
+      if (menu.getBoundingClientRect().right > innerWidth - 8) { menu.style.left = 'auto'; menu.style.right = '0'; }
+      (menu.querySelector('.on') || menu.firstChild).focus();
+    });
+    wrap.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { close(); btn.focus(); return; }
+      if (!wrap.classList.contains('open') || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
+      e.preventDefault();
+      var bs = [].slice.call(menu.children), i = bs.indexOf(document.activeElement);
+      bs[e.key === 'ArrowDown' ? Math.min(i + 1, bs.length - 1) : Math.max(i - 1, 0)].focus();
+    });
+    document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) close(); });
+    sel._ddPaint = paint;
+    paint();
+    return wrap;
+  };
+
   // ── Theme: the dashboard's own setting (trs-theme), so the two always match.
   function theme() {
     var t = document.documentElement.getAttribute('data-theme');

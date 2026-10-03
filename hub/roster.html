@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261003soon">
+<link rel="stylesheet" href="/hub/hub.css?v=20261003pills">
 </head>
 <body class="kb-wait">
 <!-- Staff Roster & Access (Kate, 3 Oct 2026): everyone who can sign in to the site,
@@ -28,7 +28,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261003hairsop"></script>
+<script src="/hub/hub.js?v=20261003pills"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain'), esc = KB.esc;
@@ -85,7 +85,12 @@
     document.getElementById('rsList').innerHTML = groups.length ? groups.map(function (g) {
       return '<section class="kb-group"><h2>' + esc(g) + ' <span class="rs-n">' + by[g].length + '</span></h2><ul class="kb-list rs-list">' +
         by[g].map(function (p) {
-          return '<li><div class="rs-who"><b>' + esc(p.name) + '</b><span class="rs-pos">' + esc(p.position || '') + '</span></div>' +
+          // Kate, 3 Oct 2026: their photo (org chart or staff card, from kb_positions);
+          // initials when there is none yet, or if the picture fails to load.
+          var ini = (p.name.match(/[A-Za-z]+/g) || ['?']).map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
+          return '<li><div class="rs-who"><span class="rs-av" aria-hidden="true">' + esc(ini) +
+              (p.photo ? '<img src="' + esc(p.photo) + '" alt="" loading="lazy" onerror="this.remove()">' : '') + '</span>' +
+            '<div class="rs-id"><b>' + esc(p.name) + '</b><span class="rs-pos">' + esc(p.position || '') + '</span></div></div>' +
             '<div class="rs-contact"><span>' + esc(p.email) + '</span><span class="rs-where">' + esc(where(p)) + '</span></div>' +
             '<div class="rs-when' + (p.last_sign_in ? '' : ' never') + '">' + esc(when(p.last_sign_in)) + '</div></li>';
         }).join('') + '</ul></section>';
@@ -123,13 +128,15 @@
       '<div id="rsList"></div>';
     draw();
     document.getElementById('rsFilter').addEventListener('input', function (e) { f.q = e.target.value; draw(); });
+    // Kate, 3 Oct 2026: the site's own pill menus, not the browser's dropdowns.
     main.querySelectorAll('.rs-selects select').forEach(function (sel) {
-      sel.addEventListener('change', function () { f[sel.dataset.k] = sel.value; sel.classList.toggle('on', !!sel.value); draw(); });
+      KB.pillDD(sel);
+      sel.addEventListener('change', function () { f[sel.dataset.k] = sel.value; draw(); });
     });
     document.getElementById('rsClear').addEventListener('click', function () {
       f = { q: '', team: '', branch: '', seen: '', level: '' };
       document.getElementById('rsFilter').value = '';
-      main.querySelectorAll('.rs-selects select').forEach(function (sel) { sel.value = ''; sel.classList.remove('on'); });
+      main.querySelectorAll('.rs-selects select').forEach(function (sel) { sel.value = ''; sel._ddPaint(); });
       draw();
     });
   });
