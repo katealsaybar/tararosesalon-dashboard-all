@@ -308,15 +308,31 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 
 /* ── Staff Roster & Access (Kate, 3 Oct 2026) ───────────────── */
 .rs-n{font-weight:500;letter-spacing:0;color:var(--muted2);margin-left:4px}
-.rs-filter{max-width:420px;margin:0 0 24px}
-.rs-list li{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto;gap:4px 18px;align-items:center;padding:12px 18px}
-.rs-who{display:flex;flex-direction:column;min-width:0}
+.rs-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 10px}
+.rs-filter{flex:1 1 300px;max-width:420px}
+.rs-selects{display:flex;flex-wrap:wrap;gap:8px}
+.rs-selects select{appearance:none;-webkit-appearance:none;font:inherit;font-size:14px;color:var(--text);
+  background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2377706A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center;
+  border:1px solid var(--border);border-radius:999px;padding:9px 34px 9px 15px;cursor:pointer;max-width:100%}
+.rs-selects select:focus-visible{outline:0;border-color:var(--text);box-shadow:0 0 0 3px rgba(153,246,228,.45)}
+.rs-selects select.on{border-color:var(--text);font-weight:600}
+.rs-selects option{color:#1A1A1A;background:#fff}
+.rs-status{display:flex;gap:12px;align-items:center;min-height:22px;margin:0 0 14px;font-size:13px;color:var(--muted2)}
+.rs-status button{background:none;border:0;padding:0;font-size:13px;text-decoration:underline;cursor:pointer;color:var(--text)}
+.rs-list li{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) auto;gap:4px 18px;align-items:center;padding:12px 18px}
+.rs-who,.rs-contact{display:flex;flex-direction:column;min-width:0}
 .rs-who b{font-weight:600;font-size:15px}
-.rs-who span,.rs-where{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs-pos,.rs-contact span{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs-pos:empty,.rs-where:empty{display:none}
 .rs-when{font-size:12.5px;color:var(--muted2);white-space:nowrap;text-align:right}
 .rs-when.never{color:var(--warn)}
 @media (max-width:760px){
-  .rs-list li{grid-template-columns:1fr;gap:2px}
-  .rs-when{text-align:left}
-  .rs-where:empty{display:none}
+  .rs-filter{flex-basis:100%;max-width:none}
+  .rs-selects{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .rs-selects select{width:100%;font-size:13.5px;padding:9px 30px 9px 13px;background-position:right 12px center}
+  .rs-list li{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"who when" "contact contact";gap:2px 12px;padding:11px 14px;align-items:start}
+  .rs-who{grid-area:who}.rs-contact{grid-area:contact}.rs-when{grid-area:when;font-size:12px;padding-top:2px}
+  .rs-who b{font-size:14.5px}
+  .rs-pos,.rs-contact span{font-size:12.5px}
+  .rs-pos{white-space:normal}
 }
