@@ -3,7 +3,7 @@
 The org chart and staff card photos are cutouts whose head breaks out above a
 rounded colour block, so a circle crop cut the head off and showed the block's
 corners. This lays each photo on a solid square of its own block colour, then takes
-a square centred on the head with room above it, at 160px.
+a square centred on the face, with the whole head inside, at 160px.
 """
 import sys, os
 from collections import Counter
@@ -32,8 +32,11 @@ def avatar(src, dst, size=160):
     band = range(top, min(H, top + int(W * .25)))
     xs = [x for y in band for x in range(0, W, 2) if subj(x, y)]
     cx = sum(xs) / len(xs)
-    S = int(W * .66)
-    left, upper = int(cx - S / 2), int(top - S * .10)
+    # The face sits about a third of the photo's width below the top of the hair;
+    # the square is centred on it, wide enough to keep the hair and a little shoulder.
+    cy = top + W * .36
+    S = int(W * .92)
+    left, upper = int(cx - S / 2), int(cy - S / 2)
     canvas = Image.new('RGBA', (W + 2 * S, H + 2 * S), bg + (255,))
     canvas.alpha_composite(im, (S, S))
     crop = canvas.crop((left + S, upper + S, left + 2 * S, upper + 2 * S))
