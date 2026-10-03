@@ -314,12 +314,19 @@
   input[type=email],input[type=password],input:not([type]){
     min-height:44px;font-size:16px}
   .nav-kids-btn{width:44px;height:44px;margin:-10px -10px -10px 0}
-  /* The sign-in card. */
+  /* The sign-in card. Kate, 3 Oct 2026: a 16px gutter so the torn edges show, tighter
+     padding and gaps inside, and the gate scrolls (margin:auto keeps it centred) when a
+     short or landscape screen can't fit the whole card. */
+  #loginGate{padding:24px 16px;overflow-y:auto;align-items:flex-start}
+  .login-card{margin:auto;padding:30px 22px 26px;gap:13px}
+  .login-logo{gap:8px}
   .login-lockup .mark{width:140px}
   .login-word{font-size:10px}
   .login-dash-lbl{font-size:15px;padding:3px 12px}
   #loginGoogle,#loginBtn{min-height:44px}
   .login-links a{display:inline-flex;align-items:center;min-height:44px}
+  /* Both links on one line at 375px; if a narrower phone wraps them, no 12px gap on top of the 44px rows. */
+  .login-links{font-size:12.5px;gap:0 8px}
   /* The eye is already absolutely placed inside the field, which anchors the ::after. */
   #loginEyeBtn::after{content:'';position:absolute;top:min(0px,calc(50% - 22px));bottom:min(0px,calc(50% - 22px));
     left:min(0px,calc(50% - 22px));right:min(0px,calc(50% - 22px))}
