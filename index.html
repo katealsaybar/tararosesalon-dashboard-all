@@ -3054,9 +3054,11 @@ table.tp-cmp td.bad{color:var(--bad)}
       </div>
       <div class="login-dash-lbl" id="loginDashLbl">Internal Dashboard</div>
       <script>
-        // The same card is Team Home's door (a plain address, or ?next=/hub/...).
+        // The same card is Team Home's door (a plain address, or ?next=/hub/...), and the
+        // landing for reset and invite email links (Kate, 3 Oct 2026).
         (function () { var n = new URLSearchParams(location.search).get('next') || '';
-          if (window.TRS_BARE_ROOT || n.indexOf('/hub/') === 0) document.getElementById('loginDashLbl').textContent = 'Team Home'; })();
+          if (window.TRS_BARE_ROOT || n.indexOf('/hub/') === 0 || /type=(recovery|invite)/.test(window.TRS_AUTH_HASH || ''))
+            document.getElementById('loginDashLbl').textContent = 'Team Home'; })();
       </script>
       <!-- Kate, 1 Oct 2026: says what the site is, for Google's brand review of the sign-in. -->
       <p class="login-about">The private operations site for the Tara Rose Salons team in the UAE and Bahrain: procedures, training and team dashboards. Staff sign-in only.</p>
