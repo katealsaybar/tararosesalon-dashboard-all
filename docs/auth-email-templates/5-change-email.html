@@ -12,8 +12,9 @@
 <p style="margin:24px 0">
 <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#5C5557;color:#F9E8DF;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:700">Confirm new email</a>
 </p>
+<p style="margin:0 0 10px;font-size:13px;color:#77706A">This link expires in 1 hour and works once.</p>
 <p style="margin:0;font-size:13px;color:#77706A">Didn’t ask for this? Don’t press the button, and tell Kate.</p>
-<p style="margin:22px 0 0;font-size:12px;color:#9a8a87">Button not working? Copy this link into your browser:<br><span style="word-break:break-all">{{ .ConfirmationURL }}</span></p>
+<p style="margin:22px 0 0;font-size:12px;color:#9a8a87">Button not working? <a href="{{ .ConfirmationURL }}" style="color:#5C5557;text-decoration:underline">Click here to confirm your new email</a>.</p>
 </td></tr>
 </table>
 <p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#9a8a87;margin:14px 0 0">Tara Rose Salons · trk-salon-os.com</p>

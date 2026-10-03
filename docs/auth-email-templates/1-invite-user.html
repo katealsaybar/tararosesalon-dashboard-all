@@ -14,8 +14,8 @@
 <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#5C5557;color:#F9E8DF;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:700">Accept and set my password</a>
 </p>
 <p style="margin:0 0 10px">Using a Gmail or Google work address? You can skip the password and press <b>Continue with Google</b> on the sign-in page instead.</p>
-<p style="margin:0;font-size:13px;color:#77706A">This link works once and runs out after a while. If it has, go to trk-salon-os.com and use <b>Forgot password</b>.</p>
-<p style="margin:22px 0 0;font-size:12px;color:#9a8a87">Button not working? Copy this link into your browser:<br><span style="word-break:break-all">{{ .ConfirmationURL }}</span></p>
+<p style="margin:0;font-size:13px;color:#77706A">This link expires in 1 hour and works once. If it has run out, go to trk-salon-os.com and use <b>Forgot password</b>.</p>
+<p style="margin:22px 0 0;font-size:12px;color:#9a8a87">Button not working? <a href="{{ .ConfirmationURL }}" style="color:#5C5557;text-decoration:underline">Click here to accept your invite</a>.</p>
 </td></tr>
 </table>
 <p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#9a8a87;margin:14px 0 0">Tara Rose Salons · trk-salon-os.com</p>
