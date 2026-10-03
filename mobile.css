@@ -315,6 +315,8 @@
     min-height:44px;font-size:16px}
   .nav-kids-btn{width:44px;height:44px;margin:-10px -10px -10px 0}
   /* The sign-in card. */
+  .login-lockup .mark{width:140px}
+  .login-word{font-size:10px}
   #loginGoogle,#loginBtn{min-height:44px}
   .login-links a{display:inline-flex;align-items:center;min-height:44px}
   /* The eye is already absolutely placed inside the field, which anchors the ::after. */
