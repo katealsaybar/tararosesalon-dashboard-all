@@ -256,9 +256,11 @@
 
   // What a card shows closed, per page (Kate, 2 Oct 2026): the column to lead with
   // and one under it, by header name; '$last' is the table's last column. A table
-  // without that column shows the name alone.
+  // without that column shows the name alone; `or` is the column to use instead.
+  // Kate, 3 Oct 2026: Financial Totals leads with Total (Ex VAT), the figure the page
+  // says to check against (it showed Inc VAT, and "vs July 2026" on the last table).
   const CARD_FACE = {
-    ledgerFinancials: {main: '$last'},
+    ledgerFinancials: {main: 'Total (Ex VAT)', or: '$last'},
     ledgerActuals: {main: 'MTD', sub: 'Variance'},
     ledgerTargets: {main: '% done', sub: 'MTD actual'},
   };
@@ -310,7 +312,8 @@
     // A branch table (Financial Totals) puts its last column on the card face instead,
     // which is each table's total, so the branches can be read without opening each.
     const face = !staffy && CARD_FACE[CURRENT_VIEW];
-    const iMain = !face ? -1 : face.main === '$last' ? cols.length - 1 : colAt(face.main);
+    const pick = k => k === '$last' ? cols.length - 1 : k ? colAt(k) : -1;
+    const iMain = !face ? -1 : pick(face.main) > -1 ? pick(face.main) : pick(face.or);
     const iSub = face && face.sub ? colAt(face.sub) : -1;
     const nil = v => { const d = String(v || '').replace(/[^0-9.]/g, ''); return !d || Number(d) === 0; };
     let hiddenN = 0;
