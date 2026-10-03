@@ -273,6 +273,18 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
   .kb-doc{padding:20px 18px 22px}
   .kb-grid{grid-template-columns:1fr}
   .kb-card{min-height:0}
+  /* Kate, 3 Oct 2026: tighter cards and section gaps. Eleven cards one above the other
+     made the page about 2,900px tall; each card is about 30px shorter now. */
+  .kb-intro{margin-bottom:18px}
+  .kb-grid{gap:12px}
+  .kb-card{gap:6px;padding:16px 16px 14px}
+  .kb-card::before{left:16px;right:16px}
+  .kb-cell>.kb-star{top:7px;right:6px}
+  .kb-card h2{font-size:19px}
+  .kb-card p{font-size:14px;line-height:1.45}
+  .kb-card .kb-card-foot{margin-top:4px}
+  .kb-section-title{margin:24px 0 10px}
+  .kb-fav-hint{margin-top:-8px}
   .kb-pager{flex-direction:column}
   .kb-pager a{max-width:none}
 }
