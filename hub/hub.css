@@ -321,8 +321,7 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 .rs-status button{background:none;border:0;padding:0;font-size:13px;text-decoration:underline;cursor:pointer;color:var(--text)}
 .rs-list li{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:4px 18px;align-items:center;padding:12px 18px}
 .rs-who,.rs-contact{display:flex;flex-direction:column;min-width:0}
-/* Kate, 3 Oct 2026: emails sit centred in one column; the third column is the same width on every row, so they line up. */
-.rs-contact{align-items:center;text-align:center}
+/* Kate, 3 Oct 2026: emails start on one left edge; the columns are the same width on every row, so they line up. */
 .rs-who b{font-weight:600;font-size:15px}
 .rs-pos,.rs-contact span{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rs-pos:empty,.rs-where:empty{display:none}
@@ -333,7 +332,7 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
   .rs-selects{display:grid;grid-template-columns:1fr 1fr;width:100%}
   .rs-selects select{width:100%;font-size:13.5px;padding:9px 30px 9px 13px;background-position:right 12px center}
   .rs-list li{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"who when" "contact contact";gap:2px 12px;padding:11px 14px;align-items:start}
-  .rs-who{grid-area:who}.rs-contact{grid-area:contact;align-items:flex-start;text-align:left}.rs-when{grid-area:when;font-size:12px;padding-top:2px}
+  .rs-who{grid-area:who}.rs-contact{grid-area:contact}.rs-when{grid-area:when;font-size:12px;padding-top:2px}
   .rs-who b{font-size:14.5px}
   .rs-pos,.rs-contact span{font-size:12.5px}
   .rs-pos{white-space:normal}
