@@ -65,6 +65,9 @@
   /* "Door" when clients are counted through the door (Kate, 1 Oct 2026); never truncated. */
   #fSheetDoor{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--text);color:var(--bg)}
   #fSheetDoor[hidden]{display:none}
+  /* Kate, 3 Oct 2026: Bahrain read in AED, the same tag in mint. */
+  #fSheetCur{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.08em;padding:2px 7px;border-radius:999px;background:var(--accent-mint);color:#1A1A1A}
+  #fSheetCur[hidden]{display:none}
   /* Team Home at the top of the menu reads as the way back out: a back arrow and a
      light mint tint, not the solid button the dashboard lists sit under. */
   .nav-home{justify-content:flex-start;gap:10px;padding:10px 14px;border-radius:12px;
@@ -556,6 +559,8 @@
   #fSheetBtn{padding:0 11px;max-width:48vw}
   #fSheetBtn.door{max-width:58vw;gap:5px}
   #fSheetBtn.door #fSheetDoor{padding:2px 6px;font-size:9.5px}
+  #fSheetBtn.cur{max-width:58vw;gap:5px}
+  #fSheetBtn.cur #fSheetCur{padding:2px 6px;font-size:9.5px}
 }
 
 @media(prefers-reduced-motion:reduce){

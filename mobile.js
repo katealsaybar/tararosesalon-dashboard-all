@@ -106,12 +106,22 @@
       out.after(tag);
     }
     if (tag) tag.hidden = !door;
+    // Kate, 3 Oct 2026: Bahrain read in AED gets its own AED tag, like Per visit.
+    const aed = typeof bahInAed === 'function' && bahInAed();
+    let ctag = $('fSheetCur');
+    if (!ctag && out.parentElement) {
+      ctag = document.createElement('span');
+      ctag.id = 'fSheetCur'; ctag.textContent = 'AED'; ctag.setAttribute('aria-hidden', 'true');
+      (tag || out).after(ctag);
+    }
+    if (ctag) ctag.hidden = !aed;
+    if (sheetBtn) sheetBtn.classList.toggle('cur', aed);
     if (sheetBtn) sheetBtn.classList.toggle('door', door);
     // The button is named by its label for a screen reader, so the label says both.
-    if (sheetBtn) sheetBtn.setAttribute('aria-label', 'Filters: ' + out.textContent + (door ? ', clients counted per visit' : ''));
+    if (sheetBtn) sheetBtn.setAttribute('aria-label', 'Filters: ' + out.textContent + (door ? ', clients counted per visit' : '') + (aed ? ', in AED' : ''));
 
   }
-  ['branchChips', 'periodChips', 'clientChips', 'mastRange'].forEach(id => {
+  ['branchChips', 'periodChips', 'clientChips', 'curChips', 'mastRange'].forEach(id => {
     const el = $(id);
     if (el) new MutationObserver(paintSum).observe(el, {childList: true, subtree: true, characterData: true, attributes: true});
   });

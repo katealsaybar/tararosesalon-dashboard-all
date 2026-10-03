@@ -239,7 +239,9 @@ function ledgerBranchTarget(metric, branchCodes) {
     ? Object.keys(table).filter(c => typeof UAE_BRANCHES === 'undefined' || UAE_BRANCHES.includes(c))
     : branchCodes;
   const metrics = Array.isArray(metric) ? metric : [metric];
-  return codes.reduce((sum, code) => {
+  // Bahrain's targets are BHD: shown in AED, they convert at the same rate as the takings.
+  const f = (typeof bahInAed === 'function' && bahInAed() && codes.every(c => BH_BRANCHES.includes(c))) ? BHD_TO_AED : 1;
+  return f * codes.reduce((sum, code) => {
     const b = table[code];
     return sum + metrics.reduce((n, m) => {
       const neg = m.charAt(0) === '-';

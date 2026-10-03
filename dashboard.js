@@ -84,10 +84,21 @@ function isGroupView() {
   return GROUP_MODE && typeof sel !== 'undefined' && sel.branch.includes('all')
     && (typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW));
 }
+// Kate, 3 Oct 2026: Bahrain can be read in AED as well as its own BHD, at the same
+// fixed rate, on the same four pages as the Group (the others keep BHD and hide the
+// switch). Remembered per browser in trs-bahcur.
+let BAH_CUR = 'BHD';
+try { if (localStorage.getItem('trs-bahcur') === 'AED') BAH_CUR = 'AED'; } catch (e) {}
+function bahCurPage() { return typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW); }
+function bahInAed() { return BAH_CUR === 'AED' && isBahrainView() && bahCurPage(); }
+function setBahCur(v) {
+  BAH_CUR = v === 'AED' ? 'AED' : 'BHD';
+  try { localStorage.setItem('trs-bahcur', BAH_CUR); } catch (e) {}
+}
 function scopeCodes() { return isBahrainView() ? BH_BRANCHES : isGroupView() ? UAE_BRANCHES.concat(BH_BRANCHES) : UAE_BRANCHES; }
 // One cache entry per country and currency, so no window is ever served in the
 // wrong one.
-function scopeKey() { return isBahrainView() ? 'BH|' : isGroupView() ? `G|${GROUP_CUR}|` : ''; }
+function scopeKey() { return isBahrainView() ? (bahInAed() ? 'BH|AED|' : 'BH|') : isGroupView() ? `G|${GROUP_CUR}|` : ''; }
 // Every money column the Group view converts, across the tables these pages read.
 // Counts, clients, units and hours are left alone; jsonb is handled below.
 const MONEY_COLS = ['services_ex_vat','services_total','courses_ex_vat','courses_total','products_ex_vat',
@@ -103,10 +114,11 @@ const MONEY_COLS = ['services_ex_vat','services_total','courses_ex_vat','courses
 // branch_staff_daily's "total" is a client count, not money: only daily_data's is.
 const MONEY_SKIP = { branch_staff_daily: new Set(['total']) };
 function toGroupCurrency(rows) {
-  if (!isGroupView()) return rows;
+  const to = isGroupView() ? GROUP_CUR : bahInAed() ? 'AED' : null;
+  if (!to) return rows;
   return rows.map(r => {
     const from = BH_BRANCHES.includes(r.branch) ? 'BHD' : 'AED';
-    if (from === GROUP_CUR) return r;
+    if (from === to) return r;
     const f = from === 'BHD' ? BHD_TO_AED : 1 / BHD_TO_AED;
     const skip = ('ncr' in r || 'rebooked' in r) ? MONEY_SKIP.branch_staff_daily : null;   // a ledger row
     const o = { ...r };
@@ -129,7 +141,7 @@ function syncCountry() {
 // The currency every money figure is printed in: BHD on the Bahrain view.
 // What "all" is called on screen: the Group names both countries.
 function allLabel() { return isGroupView() ? 'All · UAE + Bahrain' : 'UAE Branches'; }
-function CUR() { return isBahrainView() ? 'BHD' : isGroupView() ? GROUP_CUR : 'AED'; }
+function CUR() { return isBahrainView() ? (bahInAed() ? 'AED' : 'BHD') : isGroupView() ? GROUP_CUR : 'AED'; }
 const keepUae = rows => { syncCountry(); const codes = scopeCodes(); return toGroupCurrency((rows || []).filter(r => codes.includes(r.branch))); };
 
 const SCOLS = ['#FFD4D9','#FF9B9B','#C4B5FD','#99F6E4','#EEF3C7','#FFB6C1','#B5EAD7','#FFDAC1'];
@@ -574,6 +586,17 @@ function paintFilterChips() {
       + `</span>`;
   }
 
+  // Currency: Bahrain only, on the pages that can convert it (Kate, 3 Oct 2026).
+  const kRow = document.getElementById('curRow'), kEl = document.getElementById('curChips');
+  if (kRow && kEl) {
+    kRow.hidden = !(isBahrainView() && bahCurPage());
+    const b = (v, title) => `<button type="button" class="chip seg-b" aria-pressed="${BAH_CUR === v}" data-v="${v}" title="${title}">${v}</button>`;
+    kEl.innerHTML = `<span class="seg" role="group" aria-label="Currency">`
+      + b('BHD', 'Bahrain in its own currency')
+      + b('AED', 'Bahrain converted to AED at the fixed rate, 1 BHD = 9.767 AED')
+      + `</span>`;
+  }
+
   const note = document.getElementById('filterNote');
   if (note) {
     note.hidden = !onLedger;
@@ -725,6 +748,14 @@ document.addEventListener('click', e => {
       if (!sel.branch.length) sel.branch = ['all'];
     }
     pendingSel.branch = [...sel.branch];
+    paintFilterChips();
+    refreshActiveView();
+    return;
+  }
+
+  if (chip.closest('#curChips')) {
+    if (chip.dataset.v === BAH_CUR) return;
+    setBahCur(chip.dataset.v);
     paintFilterChips();
     refreshActiveView();
     return;
