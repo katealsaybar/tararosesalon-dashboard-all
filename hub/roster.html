@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Staff Roster &amp; Access · Team Home</title>
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=20261003roster">
+</head>
+<body class="kb-wait">
+<!-- Staff Roster & Access (Kate, 3 Oct 2026): everyone who can sign in to the site,
+     for Level 3 and up, view only. The list comes from kb_roster() in Supabase
+     (migrations/kb_roster.sql), which answers Level 3 and up only; nothing of it is
+     in this file, the repo is public. -->
+<div class="wrap">
+  <header class="kb-head" id="kbHead" data-title="Team Home"></header>
+  <main id="kbMain"><p class="kb-msg">Loading…</p></main>
+  <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js?v=20261001kb"></script>
+<script src="/hub/hub.js?v=20261003roster"></script>
+<script>
+(function () {
+  var main = document.getElementById('kbMain'), esc = KB.esc;
+  var BRANCH = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', BAH: 'Bahrain' };
+  function notFound() {
+    main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
+  }
+  function when(ts) {
+    if (!ts) return 'Never signed in';
+    try { return 'Last in ' + new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }); }
+    catch (e) { return ''; }
+  }
+  function where(p) {
+    var bits = [];
+    if (p.dept) bits.push(p.dept);
+    if (p.branch) bits.push(BRANCH[p.branch] || p.branch);
+    if (p.scope) bits.push((BRANCH[p.scope] || p.scope) + ' only');
+    return bits.join(' · ');
+  }
+
+  var data = null;
+  function draw(filter) {
+    var f = (filter || '').trim().toLowerCase();
+    var people = data.people.filter(function (p) {
+      return !f || (p.name + ' ' + p.email + ' ' + where(p)).toLowerCase().indexOf(f) >= 0;
+    });
+    // Levels 5 to 2 as one group each; Level 1 split by department.
+    var groups = [], by = {};
+    people.forEach(function (p) {
+      var g = p.level > 1 ? 'Level ' + p.level + ' · ' + (KB.LEVELS[p.level] || '') : 'Level 1 · Team, ' + (p.dept || 'Other');
+      if (!by[g]) { by[g] = []; groups.push(g); }
+      by[g].push(p);
+    });
+    document.getElementById('rsList').innerHTML = groups.length ? groups.map(function (g) {
+      return '<section class="kb-group"><h2>' + esc(g) + ' <span class="rs-n">' + by[g].length + '</span></h2><ul class="kb-list rs-list">' +
+        by[g].map(function (p) {
+          var w = where(p);
+          return '<li><div class="rs-who"><b>' + esc(p.name) + '</b><span>' + esc(p.email) + '</span></div>' +
+            '<div class="rs-where">' + esc(w) + '</div>' +
+            '<div class="rs-when' + (p.last_sign_in ? '' : ' never') + '">' + esc(when(p.last_sign_in)) + '</div></li>';
+        }).join('') + '</ul></section>';
+    }).join('') : '<p class="kb-msg">Nobody matches “' + esc(filter) + '”.</p>';
+  }
+
+  KB.ready.then(async function () {
+    if (KB.allowed.indexOf('access') < 0) { notFound(); return; }   // also "View as" below Level 3
+    var r = await KB.client.rpc('kb_roster');
+    if (r.error || !r.data) { notFound(); return; }
+    data = r.data;
+    var staff = data.people.filter(function (p) { return p.level === 1; }).length;
+    main.innerHTML =
+      '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
+      '<h2 class="kb-page-title">Staff Roster &amp; Access</h2>' +
+      '<p class="kb-meta">' + data.people.length + ' people can sign in · ' + (data.people.length - staff) + ' on the dashboard list, ' + staff + ' team' +
+        ' · view only, changes go through Kate</p>' +
+      (data.staff_open ? '' : '<div class="kb-note">Team Home isn’t open to the team yet, so Level 1 can’t sign in until it is.</div>') +
+      '<div class="kb-search rs-filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+        '<input type="search" id="rsFilter" placeholder="Filter by name, email, branch or team" autocomplete="off" aria-label="Filter the roster"></div>' +
+      '<div id="rsList"></div>';
+    draw('');
+    document.getElementById('rsFilter').addEventListener('input', function (e) { draw(e.target.value); });
+  });
+})();
+</script>
+</body>
+</html>

@@ -301,3 +301,18 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
   .kb-head,.kb-pager,.kb-foot,.kb-crumbs{display:none}
   .kb-doc{box-shadow:none;border:0;padding:0}
 }
+
+/* ── Staff Roster & Access (Kate, 3 Oct 2026) ───────────────── */
+.rs-n{font-weight:500;letter-spacing:0;color:var(--muted2);margin-left:4px}
+.rs-filter{max-width:420px;margin:0 0 24px}
+.rs-list li{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto;gap:4px 18px;align-items:center;padding:12px 18px}
+.rs-who{display:flex;flex-direction:column;min-width:0}
+.rs-who b{font-weight:600;font-size:15px}
+.rs-who span,.rs-where{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs-when{font-size:12.5px;color:var(--muted2);white-space:nowrap;text-align:right}
+.rs-when.never{color:var(--warn)}
+@media (max-width:760px){
+  .rs-list li{grid-template-columns:1fr;gap:2px}
+  .rs-when{text-align:left}
+  .rs-where:empty{display:none}
+}
