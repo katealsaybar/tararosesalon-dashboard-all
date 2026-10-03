@@ -285,8 +285,17 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
   .kb-card .kb-card-foot{margin-top:4px}
   .kb-section-title{margin:24px 0 10px}
   .kb-fav-hint{margin-top:-8px}
-  .kb-pager{flex-direction:column}
-  .kb-pager a{max-width:none}
+  /* Kate, 3 Oct 2026, the reader on a phone. Previous and Next sit side by side (stacked,
+     Next shrank to its text on the right). */
+  .kb-pager{flex-direction:row}
+  .kb-pager a{flex:1 1 0;min-width:0;max-width:none}
+  /* Only the search stays pinned while reading: the logo row scrolls away, so the
+     header takes about 60px of the screen instead of 120. */
+  .kb-head{top:-58px}
+  /* The chapter count sits beside "Chapters", not in the middle of the bar. */
+  .kb-toc summary span{margin:0 auto 0 10px}
+  /* Workbook pages use the full width: no card frame around the page images. */
+  .kb-doc.has-sheets:not(.show-text){padding:0;border:0;background:none;box-shadow:none}
 }
 @media print{
   .kb-head,.kb-pager,.kb-foot,.kb-crumbs{display:none}
