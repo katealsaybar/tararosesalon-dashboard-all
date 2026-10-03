@@ -339,7 +339,9 @@
       const tot = tr.classList.contains('lg-tot') ? ' tot' : '';
       if (staffy && !tot && !tr.id && allNil) { hiddenN++; return; }
       const lead = staffy && (net || reb)
-        ? `<span class="m-lead">${esc(net || '—')}${reb && iReb > -1 ? ` <small>· ${esc(reb)} rebook</small>` : ''}</span>`
+        // Kate, 3 Oct 2026: rebook % under the net take, not beside it, so the name keeps
+        // the width (it read "KATE ..." and "NIKKI ...").
+        ? `<span class="m-lead m-lead-col">${esc(net || '—')}${reb && iReb > -1 ? `<small>${esc(reb)} rebook</small>` : ''}</span>`
         : iMain > 0 && main ? `<span class="m-lead m-lead-col">${esc(main)}<small>${iSub > 0 ? esc(cols[iSub].leaf) + ' ' + esc(sub || '—') : esc(cols[iMain].leaf)}</small></span>` : '';
       html += `<details class="m-card${tot}"${mid(tr)}><summary><span class="m-nm">${esc(cells[0].textContent.trim())}</span>${lead}</summary><dl>${dl}</dl></details>`;
     }));

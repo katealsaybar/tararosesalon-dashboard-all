@@ -191,8 +191,9 @@
   .m-card summary::after{content:'+';font-weight:400;color:var(--muted);font-size:20px;line-height:1}
   .m-card[open] summary::after{content:'–'}
   .m-card summary .m-lead{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}
-  /* BP5: net take and rebook % on a staff card's face; the name gives way first. */
-  .m-card summary .m-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* BP5: net take and rebook % on a staff card's face. Kate, 3 Oct 2026: a long name
+     (Virginija Lisauskaite) takes a second line instead of being cut short. */
+  .m-card summary .m-nm{min-width:0;overflow-wrap:anywhere}
   .m-card summary .m-lead{white-space:nowrap;text-align:right}
   .m-card summary .m-lead small{font-weight:400;color:var(--muted);font-size:13px}
   /* Financial Totals: the table's total column, its name under the figure. */
@@ -326,6 +327,9 @@
   .r-cl-seg button{min-height:40px;padding:5px 14px}
   .att-chip{max-width:140px;white-space:normal;text-align:center;line-height:1.35}
   .att-name{letter-spacing:.06em}
+  /* Branch Performance's charts (mix, benchmarks, clients): 320px tall (were 240), so the bars
+     aren't squeezed under the legend and the slanted branch names. */
+  #view-branchperf .bp-chart:not(.bp-chart-tall){height:320px}
   /* The sign-in card. Kate, 3 Oct 2026: a 16px gutter so the torn edges show, tighter
      padding and gaps inside, and the gate scrolls (margin:auto keeps it centred) when a
      short or landscape screen can't fit the whole card. */
