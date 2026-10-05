@@ -519,7 +519,7 @@ body.kb-wait .wrap{visibility:hidden}
   .fm-full{display:none}
   .fm-short{display:inline}
   .fm-row{flex-wrap:wrap}
-  .fm-code{width:auto}
+  .fm-code{width:48px;font-variant-numeric:tabular-nums}
   .fm-row .kb-row-tx{flex-basis:calc(100% - 70px)}
   .fm-row .kb-row-n{order:3}
   .fm-acts{order:4;margin-left:auto}
