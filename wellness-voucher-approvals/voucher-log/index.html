@@ -210,6 +210,12 @@ tr.det.hide{display:none;}
     border-radius:0 0 12px 12px;margin-top:-6px;}
   tr.det > td::before{display:none;}
   tr.det.hide{display:none;}
+  /* Kate, 5 Oct 2026: the card rules above caught the summary table too, so each voucher type
+     and its units sat on two rows. It stays a table. And the search / sort bar no longer sticks
+     on a phone, where it covered about 230px of the list while scrolling. */
+  .sumtable td{display:table-cell;padding:7px 11px;}
+  .sumtable td::before{display:none;}
+  .stickybar{position:static;}
 }
 </style>
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
