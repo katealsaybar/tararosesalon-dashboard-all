@@ -411,7 +411,7 @@ function bnByline(read, factCount, model) {
     <span class="bn-who">${rules ? '⌗ Written from the figures by rule' : '✦ Written by branch-narrative'}</span>
     <span>${rules
       ? 'no model called — the read is assembled from the benchmarks and the growth window'
-      : escapeHtml(`${model || 'claude-opus-5'} · from ${factCount} figures · cached for this period`)}</span>
+      : escapeHtml(`${model || 'claude-opus-5'}, from ${factCount} figures, cached for this period`)}</span>
   </div>`;
 }
 

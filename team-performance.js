@@ -342,7 +342,7 @@ async function renderTeam() {
       </div>` : ''}
       <span class="tp-bar-n">${branchLabel} · ${roster.length} ${roster.length === 1 ? 'person' : 'people'}</span>
       <span class="tp-bar-sp"></span>
-      <span class="tp-bar-n">${part === 'quad' ? 'Tap a face' : 'Tap + on anyone'} to compare · up to ${TP_MAX_COMPARE}</span>
+      <span class="tp-bar-n">${part === 'quad' ? 'Tap a face' : 'Tap + on anyone'} to compare, up to ${TP_MAX_COMPARE}</span>
     </div>
 
     ${!roster.length ? '<div class="empty">Nobody on this bench in the selected period.</div>'
@@ -354,7 +354,7 @@ async function renderTeam() {
 
       ${chase.length ? `
         <div class="section-label">Chasing the podium
-          <span class="tp-sec-n">ranks 4 to ${3 + chase.length} · bar is her take against the leader's · tiles are green at or above the aim, amber within a fifth of it, red below</span></div>
+          <span class="tp-sec-n">Ranks 4 to ${3 + chase.length}. The bar is her take against the leader's; tiles are green at or above the aim, amber within a fifth of it, red below.</span></div>
         <div class="tp-race">${chase.map((st, i) => tpChaseRow(st, i + 4, roster[i + 2], lead)).join('')}</div>` : ''}
 
       ${rest.length ? `
@@ -482,7 +482,7 @@ function tpByLevel(roster, lead) {
   roster.forEach(st => (groups[tpRole(st)] ||= []).push(st));
   return Object.keys(groups).sort((a, b) => tpRoleRank(a) - tpRoleRank(b)).map(r => `
       <div class="section-label">${escapeHtml(r)}
-        <span class="tp-sec-n">${groups[r].length} ${groups[r].length === 1 ? 'person' : 'people'} · by net salon take</span></div>
+        <span class="tp-sec-n">${groups[r].length} ${groups[r].length === 1 ? 'person' : 'people'}, by net salon take</span></div>
       <div class="tp-race">${groups[r].map((st, i) => tpRaceRow(st, i + 1, lead)).join('')}</div>`).join('');
 }
 
@@ -747,7 +747,7 @@ function tpQuadrant(roster) {
   const why = tpDept !== 'hair' ? 'beauty has no level aims yet, so this reads against the bench'
     : !levelOk ? (months ? 'level aims did not load, so this reads against the bench' : 'pick a period to read against level aims')
     : byLevel ? `aims prorated to ${Math.round(months * 100) / 100} month${Math.abs(months - 1) < 0.01 ? '' : 's'} in this window` : '';
-  const legend = `tap a face to compare · green dashed line: ${L.yWord} · grey dashed line: ${L.xWord} · shaded corner: above both`;
+  const legend = `Tap a face to compare. The green dashed line is ${L.yWord}, the grey dashed line ${L.xWord}, and the shaded corner is above both`;
   // Which pair of figures the chart plots. Treatment is a hair line only.
   const metricSeg = `<div class="tp-seg tp-q-basis" role="group" aria-label="Chart">
       <button type="button" class="${addon ? 'on' : ''}" onclick="tpSetQMetric('addon')"${tpDept === 'hair' ? '' : ' disabled title="Beauty has no treatment line in the ledger"'}>Treatment vs Retail</button>
@@ -757,8 +757,8 @@ function tpQuadrant(roster) {
   // On a phone the label keeps only what the chart needs to be read; the rest of the
   // legend is the same on every visit and pushed the chart off the first screen.
   const note = phone
-    ? `tap a face to compare · shaded corner: above both aims${why ? ' · ' + why : ''}`
-    : `${legend} · a dot and a thin line mean the face was moved off its exact spot to stay readable · point at a name to find her${why ? ' · ' + why : ''}`;
+    ? `Tap a face to compare. The shaded corner is above both aims${why ? '. ' + why : ''}.`
+    : `${legend}. A dot and a thin line mean the face was moved off its exact spot to stay readable; point at a name to find her${why ? '. ' + why : ''}.`;
   return `<div class="section-label">${L.title}
       <span class="tp-sec-n">${note}</span></div>
     <div class="tp-q-segs">${metricSeg}${basisSeg}</div>

@@ -162,7 +162,7 @@ function prdPaint(el) {
     <section class="slv-card">
       <div class="slv-head">
         <div><div class="slv-eyebrow">${prdEsc(shown.length === ACTIVE_BRANCHES.length ? 'All branches' : shown.map(b => PRD_BRANCH[b]).join(' · '))}</div><h3>${prdDept === 'all' ? 'Stock spend' : prdEsc(prdDept) + ' stock spend'}</h3></div>
-        <p>${prdEsc(prdDayY(w.from))} to ${prdEsc(prdDayY(w.to))}${w.ranged ? '' : ' · last 13 weeks'}</p>
+        <p>${prdEsc(prdDayY(w.from))} to ${prdEsc(prdDayY(w.to))}${w.ranged ? '' : ', the last 13 weeks'}</p>
       </div>
       ${weeks.length ? `
       <div class="w13-tiles">
@@ -172,7 +172,7 @@ function prdPaint(el) {
         <div class="w13-tile"><div class="slv-eyebrow">On order now</div><div class="w13-val">${prdAed(d.on_order.spend)}</div><div class="slv-note">${prdNum(d.on_order.lines)} line${Number(d.on_order.lines) === 1 ? '' : 's'} not arrived yet</div></div>
         ${prdSoldStrip(d, tot.retail)}
       </div>
-      <div class="slv-eyebrow" style="margin:18px 0 6px">Week by week · retail and professional</div>
+      <div class="slv-eyebrow" style="margin:18px 0 6px">Week by week, retail and professional</div>
       <div style="position:relative;height:280px"><canvas id="prdCanvas"></canvas></div>
       <div class="slv-wrap" style="margin-top:14px"><table class="slv-table prd-wk">
         <thead><tr><th>Week of</th><th>Retail</th><th>Pro<span class="prd-lg">fessional</span></th><th>Total<span class="prd-lg"> (AED)</span></th>${head}</tr></thead>

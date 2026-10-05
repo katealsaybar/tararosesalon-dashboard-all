@@ -554,7 +554,7 @@ function lcPaintTable() {
     </li>`).join('');
   const filtered = Object.keys(lcF).some(lcOn);
   const note = filtered || lcQuery.trim()
-    ? `<p class="slv-note lc-fnote">${lcNum(rows.length)} of ${lcNum(lcRows.length)} after filters · <button type="button" class="lc-more" onclick="lcClearAll()">clear all</button></p>` : '';
+    ? `<p class="slv-note lc-fnote">${lcNum(rows.length)} of ${lcNum(lcRows.length)} after filters. <button type="button" class="lc-more" onclick="lcClearAll()">Clear all</button></p>` : '';
   box.innerHTML = note + `<div class="slv-wrap prd-desk lc-wrap"><table class="slv-table">
       <thead><tr>${cols.map(th).join('')}</tr></thead>
       <tbody>${tr || `<tr><td colspan="${cols.length}" class="slv-muted">No one on this list matches those filters.</td></tr>`}</tbody></table></div>

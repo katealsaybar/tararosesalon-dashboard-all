@@ -311,7 +311,7 @@ function lgTargetContext() {
   const partial = dateFrom.getDate() !== 1 || !lgIsMonthEnd(dateTo);
   return { applies: true, label, partial,
     note: partial
-      ? `Month to date · ${lgRangeLabel()} against the full ${label} target. % done is raw progress through the target, not paced against days elapsed — the same way the ledger reads it.`
+      ? `Month to date, ${lgRangeLabel()}, against the full ${label} target. % done is raw progress through the target, not paced against days elapsed, the same way the ledger reads it.`
       : `The full month of ${label}.` };
 }
 function lgIsMonthEnd(d) {
@@ -1038,7 +1038,7 @@ function lgIdentityNote(s) {
   let split = '';
   if ((s.retailUnattributed || 0) >= 1) {
     const share = (s.retailHairShare == null) ? null : Math.round(s.retailHairShare * 100);
-    split = ` &nbsp;·&nbsp; ${lgAed(s.retailUnattributed)} of retail was rung with no stylist against it and is shared between the two departments in proportion to the retail that was credited` +
+    split = `. ${lgAed(s.retailUnattributed)} of retail was rung with no stylist against it and is shared between the two departments in proportion to the retail that was credited` +
       (share == null ? '.' : ` (${share}% hair, ${100 - share}% beauty here).`);
   }
   return `<div class="foot">` +
@@ -1430,7 +1430,7 @@ async function renderBranchPerformance() {
         ? `<div class="bp-chart bp-chart-tall"><canvas id="bpPaceChart"></canvas></div>
            <div class="foot">Bar = % of the month's target banked so far. The line at 100% is the target itself, not a pace marker — the ledger reads it the same way.</div>`
         : lgEmpty(ctx.note)) +
-    lgSection('bpBench', '#99F6E4', 'Benchmarks', 'ratios · comparable at any window length',
+    lgSection('bpBench', '#99F6E4', 'Benchmarks', 'ratios, comparable at any window length',
       `<div class="bp-chart"><canvas id="bpBenchChart"></canvas></div>
        <div class="foot">Bars are branches, the dashed line is the standing target for that benchmark.</div>` +
       lgTable([{label:'Metric'},{label:'Actual',align:'r'},{label:'Target',align:'r'},{label:'',align:'r',w:'150px'}], bmRows)) +
@@ -2011,7 +2011,7 @@ async function renderLedgerActuals() {
         escapeHtml(series.windows.month.label), lgSheetSection(series, code, ctx));
     }).join('') +
     `<div class="fine">
-      <p><b>The Ledgers pages ignore the Period chips, on purpose</b>. Last Month · the split columns · MTD only mean anything against one whole month, so these pages read ${escapeHtml(series.windows.month.label)}, with ${escapeHtml(series.windows.prev.label)} beside it as last month, and it is <b>Month</b> above, not the Period chips, that moves them. <b>Split</b> then chooses how finely the actual is cut: MTD for the month in one column, Weekly for her Week 00–04, Daily for a column per day. Every page outside Ledgers follows your filter as before.</p>
+      <p><b>The Ledgers pages ignore the Period chips, on purpose</b>. Last Month, the split columns and MTD only mean anything against one whole month, so these pages read ${escapeHtml(series.windows.month.label)}, with ${escapeHtml(series.windows.prev.label)} beside it as last month, and it is <b>Month</b> above, not the Period chips, that moves them. <b>Split</b> then chooses how finely the actual is cut: MTD for the month in one column, Weekly for her Week 00–04, Daily for a column per day. Every page outside Ledgers follows your filter as before.</p>
       <p><b>Motor City runs hair only</b>, so its beauty rows are absent rather than printed as zeros — the same way her sheet carries it.</p>
     </div>`);
 
@@ -2595,7 +2595,7 @@ async function renderLedgerFinancials() {
              a tick means the two agree once courses and uncredited service are taken off.</p>`
           : `<p><b>The rest of the report</b> is not uploaded for ${escapeHtml(w.month.label)} yet.
              Non-Revenue Sales (vouchers sold and topped up, paid into account, vouchers used,
-             account used), Pay Outs, Payment Types (cash · card · Stripe · Tabby) and Total Banked
+             account used), Pay Outs, Payment Types (cash, card, Stripe, Tabby) and Total Banked
              are branch-level money movements, and every feed behind this dashboard is staff-level
              daily takings, so none of them can be derived from what is loaded. They come from the
              Financial Totals upload. This page reads that table the moment it has rows for a month:

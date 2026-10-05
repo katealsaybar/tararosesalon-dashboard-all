@@ -3062,7 +3062,7 @@ table.tp-cmp td.bad{color:var(--bad)}
             document.getElementById('loginDashLbl').textContent = 'Team Home'; })();
       </script>
       <!-- Kate, 1 Oct 2026: says what the site is, for Google's brand review of the sign-in. -->
-      <p class="login-about">The private operations site for the Tara Rose Salons team in the UAE and Bahrain: procedures, training and team dashboards. Staff sign-in only.</p>
+      <p class="login-about">Where the Tara Rose Salons team in the UAE and Bahrain keeps its procedures, training and dashboards. Sign in with your work account.</p>
     </div>
     <div class="login-divider"></div>
     <!-- Sign-in modes (see auth.js): signin · signup · forgot · reset · denied -->
@@ -3117,7 +3117,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <button type="button" class="nav-close" onclick="toggleNav(false)" aria-label="Close sections">&times;</button>
 
   <!-- Drag this to resize the panel; double-click to go back to the default. -->
-  <div class="nav-resize" id="navResize" title="Drag to resize · double-click to reset"></div>
+  <div class="nav-resize" id="navResize" title="Drag to resize, or double-click to reset"></div>
 
   <div class="nav-brand">
     <div class="mark"><img src="assets/5.png" alt="Tara Rose Salons"></div>
@@ -3151,7 +3151,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <!-- Emma's three tabs and the stylist sheet, in the order she reads them. -->
   <div class="nav-group">
-    <div class="nav-title">Ledgers · Emma Coach&rsquo;s view</div>
+    <div class="nav-title">Ledgers, Emma Coach&rsquo;s view</div>
     <div class="nav-sub" onclick="showView('ledgerFinancials', this)">Financial Totals</div>
     <div class="nav-sub" onclick="showView('ledgerTargets', this)">Daily Target Sheet</div>
     <div class="nav-sub" onclick="showView('ledgerActuals', this)">Actuals vs Targets</div>
@@ -3302,7 +3302,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 </div>
 
 <div class="upd" id="updNotice" hidden role="status" aria-live="polite">
-  <button class="upd-pill" onclick="expandUpdateNotice()">Newer data · see what changed</button>
+  <button class="upd-pill" onclick="expandUpdateNotice()">Newer data. See what changed</button>
   <div class="upd-full" id="updFull"></div>
 </div>
 
@@ -3788,7 +3788,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 
 
 <footer style="text-align:center;">
-  Tara Rose Ladies Salon &nbsp;·&nbsp; Internal Dashboard &nbsp;·&nbsp; Confidential
+  Tara Rose Ladies Salon internal dashboard. Confidential.
   <br><br>
   <span style="opacity:0.7;">
     Dashboard Content prepared and designed by:
@@ -3810,27 +3810,27 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- After ledger-targets.js: the Supabase target layer overrides its lookups per month. -->
 <script src="ledger-targets-db.js?v=20260904a"></script>
 <script src="staff-profiles.js?v=20261002va"></script>
-<script src="stylist-levels.js?v=20261002cards"></script>
-<script src="staff-weeks.js?v=20261001aim"></script>
-<script src="products.js?v=20261002wk"></script>
-<script src="lost-clients.js?v=20261005book2"></script>
+<script src="stylist-levels.js?v=20261005dots"></script>
+<script src="staff-weeks.js?v=20261005dots"></script>
+<script src="products.js?v=20261005dots"></script>
+<script src="lost-clients.js?v=20261005dots"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261003pulse"></script>
+<script src="dashboard.js?v=20261005dots"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20261005bench"></script>
-<script src="compare.js?v=20261002fold"></script>
+<script src="branch-ledger.js?v=20261005dots"></script>
+<script src="compare.js?v=20261005dots"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
-<script src="ledger-export.js?v=20261001ux3"></script>
-<script src="team-performance.js?v=20261001qphone"></script>
+<script src="ledger-export.js?v=20261005dots"></script>
+<script src="team-performance.js?v=20261005dots"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=20261003card"></script>
 <script src="pulse-narrative.js?v=20260928a"></script>
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
-<script src="branch-narrative.js?v=20261001door"></script>
+<script src="branch-narrative.js?v=20261005dots"></script>
 <!-- The "Ask a question" widget. Reads the open view at ask time; see ask-widget.js. -->
 <script src="ask-widget.js?v=20261001a"></script>
 <script>

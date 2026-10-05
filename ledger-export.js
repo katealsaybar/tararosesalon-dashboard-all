@@ -825,8 +825,8 @@ function lgxSheetActuals(series, ctx, code, name, peers) {
   return {
     name: name,
     title: (code ? ((BRANCH_INFO[code] || {}).name || code) : 'Group total — all salons'),
-    subtitle: w.prev.label + ' actuals and ' + w.month.label + ' targets · ex VAT'
-      + (ctx.applies ? '' : ' · no target sheet for this month, so the Target column is empty'),
+    subtitle: w.prev.label + ' actuals and ' + w.month.label + ' targets, ex VAT'
+      + (ctx.applies ? '' : '. No target sheet for this month, so the Target column is empty'),
     blocks: [{ cols: cols, rows: modelRows, legend: legend }],
     _vals: vals,
   };
@@ -936,7 +936,7 @@ function lgxModelTargetsPace(series, ctx) {
   return {
     name: 'Pacing',
     title: 'Daily Target Sheet · ' + (ctx.applies ? 'target vs actual' : 'actuals by branch'),
-    subtitle: series.windows.month.label + ' · ex VAT · ' + ctx.label,
+    subtitle: series.windows.month.label + ', ex VAT, ' + ctx.label,
     blocks: LG_PACE_BLOCKS.map(b => lgxPaceBlock(series, ctx, b, codes)),
     legend: legend,
   };
@@ -1009,7 +1009,7 @@ function lgxModelTargetsPivot(series) {
   return {
     name: 'Benchmarks by branch',
     title: 'Daily Target Sheet · benchmarks by branch',
-    subtitle: series.windows.month.label + ' · month to date, whatever Split is set to',
+    subtitle: series.windows.month.label + ', month to date, whatever Split is set to',
     blocks: [{ cols: cols, rows: rows }],
     legend: [
       ['Rebooking %', 'Rebooked / Total clients × 100 — both of them columns here, so this one carries its working.'],
@@ -1126,7 +1126,7 @@ function lgxModelFinancialsSales(series) {
   return {
     name: 'Financial totals',
     title: 'Financial Totals · this dashboard',
-    subtitle: w.month.label + ' · ex VAT unless the column says otherwise',
+    subtitle: w.month.label + ', ex VAT unless the column says otherwise',
     blocks: [{ cols: cols, rows: rows }],
     legend: [
       ['Total (Ex VAT)', 'Services + Courses + Products. The figure to check a branch’s Phorest report against.'],
@@ -1176,7 +1176,7 @@ function lgxModelFinancialsSplit(series) {
   return {
     name: 'Total ex VAT by ' + (lgGrain === 'daily' ? 'day' : 'week'),
     title: 'Financial Totals · Total (Ex VAT) by ' + (lgGrain === 'daily' ? 'day' : 'week'),
-    subtitle: w.month.label + ' · ex VAT',
+    subtitle: w.month.label + ', ex VAT',
     blocks: [{ cols: cols, rows: rows }],
     legend: [
       [w.month.label + ' total', 'SUM of the ' + (lgGrain === 'daily' ? 'day' : 'week') + ' columns.'],
@@ -1281,7 +1281,7 @@ function lgxModelFinancialsReport(series, ft, monthDays) {
   return {
     name: 'Phorest report',
     title: 'Financial Totals · Phorest report',
-    subtitle: w.month.label + ' · the outside number',
+    subtitle: w.month.label + ', the outside number',
     blocks: [sales, nonRev, pay, cash, vat].filter(Boolean),
     legend: legend,
   };
@@ -1336,7 +1336,7 @@ function lgxModelFinancialsRecon(series, ft) {
   return {
     name: 'Report vs dashboard',
     title: 'Financial Totals · report against this dashboard',
-    subtitle: w.month.label + ' · ex VAT, to the fils',
+    subtitle: w.month.label + ', ex VAT, to the fils',
     blocks: [{ cols: cols, rows: rows }],
     legend: [
       ['Unexplained', 'Report − Dashboard − Courses − Uncredited service. This is the column to read: a nil means the two agree once both known causes are accounted for, and a figure is a real difference worth chasing.'],
@@ -1483,8 +1483,8 @@ function lgxModelStylist(series, ctx) {
   return {
     name: 'Stylist target',
     title: 'Daily Stylist Target',
-    subtitle: series.windows.month.label + ' · ex VAT'
-      + (showTargets ? '' : ' · no target sheet for this month, so the target columns are out'),
+    subtitle: series.windows.month.label + ', ex VAT'
+      + (showTargets ? '' : '. No target sheet for this month, so the target columns are out'),
     blocks: [{ cols: cols, rows: rows }],
     legend: [
       ['Services MTD', nSplit ? 'SUM of her ' + (lgGrain === 'daily' ? 'day' : 'week') + ' columns. A blank one is a window she did not work, which is not a zero.' : 'Her services for the month to date.'],
@@ -1542,7 +1542,7 @@ function lgxCoverSheet(series, ctx) {
   return {
     name: 'How to read this',
     title: 'Tara Rose Salons · Ledgers',
-    subtitle: w.month.label + ' · exported from the dashboard',
+    subtitle: w.month.label + ', exported from the dashboard',
     blocks: [{ cols: [{ key: 'k', label: 'What' }, { key: 'v', label: 'Which means' }],
                rows: rows.map(([k, v]) => ({ cells: [k, v] })) }],
   };

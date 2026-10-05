@@ -468,7 +468,7 @@ function cmpResultsHtml(sa, sb2) {
   const rows = [];
   const movers = [];
   cmpMetrics().forEach(m => {
-    if (m.group) { rows.push(`<tr class="lg-grp"><td colspan="5"><span class="lg-grp-t">${m.group}${per && m.group !== 'Averages' && m.group !== 'Benchmarks' ? ' · per day' : ''}</span></td></tr>`); return; }
+    if (m.group) { rows.push(`<tr class="lg-grp"><td colspan="5"><span class="lg-grp-t">${m.group}${per && m.group !== 'Averages' && m.group !== 'Benchmarks' ? ', per day' : ''}</span></td></tr>`); return; }
     const va = sa ? scale(m.kind, m.get(sa), daysA) : null;
     const vb = sb2 ? scale(m.kind, m.get(sb2), daysB) : null;
     // A row that is blank on both sides says nothing (beauty at Motor City vs

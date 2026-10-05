@@ -327,7 +327,7 @@ async function renderStaffWeeks() {
     let chg = '';
     if (prevAvg) {
       const pct = Math.round(100 * (avg - prevAvg) / prevAvg);
-      chg = `<div class="w13-q-chg ${pct > 0 ? 'up' : pct < 0 ? 'down' : ''}">${pct > 0 ? '▲' : pct < 0 ? '▼' : '='} ${Math.abs(pct)}% vs Q${q - 1} <span>· weekly average</span></div>`;
+      chg = `<div class="w13-q-chg ${pct > 0 ? 'up' : pct < 0 ? 'down' : ''}">${pct > 0 ? '▲' : pct < 0 ? '▼' : '='} ${Math.abs(pct)}% vs Q${q - 1}<span>’s weekly average</span></div>`;
     } else chg = `<div class="w13-q-chg"><span>first quarter of ${d.year}</span></div>`;
     prevAvg = avg;
     return `<div class="w13-qcard" style="border-top-color:${qShade[q - 1]}">
@@ -356,7 +356,7 @@ async function renderStaffWeeks() {
     <section class="slv-card">
       <div class="slv-head">
         <div class="w13-who">${ph ? `<img class="w13-hero" src="${ph}" alt="" onerror="this.remove()">` : ''}<div><div class="slv-eyebrow">${w13Esc(s.level || s.dept)} · ${w13Esc(W13_BRANCH[s.branch] || s.branch)}</div><h3>${w13Esc(s.name)}</h3></div></div>
-        <p>${d.year}${weeks.length ? ` · Weeks 1–${weeks[weeks.length - 1].week_no}` : ''} · ${w13Esc(w13Day(d.from))} to ${w13Esc(w13Day(d.to))} · ${worked} of ${weeks.length} weeks with clients</p>
+        <p>${d.year}${weeks.length ? `, weeks 1 to ${weeks[weeks.length - 1].week_no}` : ''}, ${w13Esc(w13Day(d.from))} to ${w13Esc(w13Day(d.to))}. ${worked} of ${weeks.length} weeks with clients.</p>
       </div>
       ${(d.branches || []).length > 1 ? `<div class="w13-branches"><span class="slv-eyebrow">Worked at</span> ${d.branches.map(x =>
         `<span class="w13-br"><b>${w13Esc(W13_BRANCH[x.branch] || x.branch)}</b> ${w13Aed(x.sales)} · ${w13Num(x.clients)} clients</span>`).join('')}<div class="slv-note">Every branch is counted in the totals below, including cover days away from ${w13Esc(W13_BRANCH[s.branch] || s.branch)}.</div></div>` : ''}

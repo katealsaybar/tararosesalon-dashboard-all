@@ -4114,7 +4114,7 @@ async function renderDashboard() {
           : 'Each staff member counts her own clients, so a client seen by two counts twice. Targets use this.'}</span></div>` : ''}
       ${targetsBlock}
       <div class="r-rule"></div>
-      <div class="r-foot">All money in ${CUR()} · takings before staff cost</div>`;
+      <div class="r-foot">All money in ${CUR()}, takings before staff cost.</div>`;
   }
 
   // ── HEADLINE THREE ───────────────────────────────────────────────
@@ -4484,7 +4484,7 @@ ${hasBeauty ? `
   </div>
   <div class="card">
     <div class="card-title">Branch Performance</div>
-    <div class="card-sub">Net revenue by branch · dashed line = group average</div>
+    <div class="card-sub">Net revenue by branch. The dashed line is the group average.</div>
     <div class="cols-plot">${colsPlot}</div>
     <div class="cols-x">${colsX}</div>
     <div class="foot">${branchFoot}</div>
@@ -4492,10 +4492,10 @@ ${hasBeauty ? `
 </div>
 
 <!-- ══ TARGET BARS ══ -->
-<div class="eyebrow" id="s-below"><span class="bar bad"></span>Below target · worst first</div>
+<div class="eyebrow" id="s-below"><span class="bar bad"></span>Below target, worst first</div>
 <div class="card">
   <div class="card-title">Benchmarks</div>
-  <div class="card-sub">Bar = actual · vertical tick = target · <span style="color:var(--hair)">■</span> hair · <span style="color:var(--beauty)">■</span> beauty</div>
+  <div class="card-sub">The bar is the actual and the tick is the target. <span style="color:var(--hair)">■</span> hair, <span style="color:var(--beauty)">■</span> beauty</div>
   <div id="attBelow">${lowRows.length ? lowRows.map((r, i) => attRow(r, i + 1)).join('') : '<div class="foot">Nothing below target this period.</div>'}</div>
 </div>
 
@@ -5116,7 +5116,7 @@ function _isoD(v) {
 
 function _svcAggNote(rows) {
   const pf = rows[0]?.period_from, pt = rows[0]?.period_to;
-  return `Top Services report upload${pf && pt ? ` · covers ${_isoD(pf)} – ${_isoD(pt)}` : ''} — this feed is a whole-period export and does not follow the date range`;
+  return `From the Top Services report upload${pf && pt ? `, covering ${_isoD(pf)} to ${_isoD(pt)}` : ''}. This feed is a whole-period export and does not follow the date range.`;
 }
 
 function _svcLimit() {
