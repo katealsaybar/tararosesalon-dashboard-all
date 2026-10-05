@@ -1631,7 +1631,10 @@ function bpDrawCharts(codes, ctx) {
     options: base({
       scales: {
         x: { ticks: { color: tick, font }, grid: { display: false } },
-        y: { beginAtZero: true, ticks: { color: tick, font, callback: v => v + '%' }, grid: { color: grid } },
+        // Kate, 5 Oct 2026: the axis always reaches the highest target, or a target
+        // above every bar (rebooking's 70% when the best branch is at 54%) was skipped.
+        y: { beginAtZero: true, suggestedMax: Math.max(0, ...BENCH.map(b => b[1] || 0)) + 5,
+          ticks: { color: tick, font, callback: v => v + '%' }, grid: { color: grid } },
       },
       plugins: { legend, tooltip: Object.assign({}, tip, { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y}%` } }) },
     }),
