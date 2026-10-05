@@ -502,6 +502,8 @@ body.kb-wait .wrap{visibility:hidden}
 .fm-switch button{font:inherit;font-size:14px;border:0;border-radius:999px;padding:7px 16px;min-height:38px;background:transparent;color:var(--muted);cursor:pointer}
 .fm-switch button span{font-size:12px;opacity:.7;margin-left:4px}
 .fm-switch button[aria-pressed="true"]{background:var(--text);color:var(--bg);font-weight:600}
+.fm-switch b{font-weight:inherit}
+.fm-short{display:none}
 .fm-dept[hidden]{display:none}
 .fm-code{flex:none;width:56px;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted2)}
 .fm-acts{flex:none;display:flex;gap:8px}
@@ -510,6 +512,12 @@ body.kb-wait .wrap{visibility:hidden}
 .fm-btn.fm-dl{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 .fm-btn:disabled{opacity:.6;cursor:wait}
 @media(max-width:760px){
+  /* Kate, 5 Oct 2026: on a phone the switch is one full-width row with short names
+     (HR, Hair, Beauty); the long ones wrapped it into a giant oval. */
+  .fm-switch{display:flex;flex-wrap:nowrap;width:100%}
+  .fm-switch button{flex:1;padding:7px 8px;white-space:nowrap}
+  .fm-full{display:none}
+  .fm-short{display:inline}
   .fm-row{flex-wrap:wrap}
   .fm-code{width:auto}
   .fm-row .kb-row-tx{flex-basis:calc(100% - 70px)}

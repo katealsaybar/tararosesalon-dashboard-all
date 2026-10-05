@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261005lines">
+<link rel="stylesheet" href="/hub/hub.css?v=20261005fmsw">
 </head>
 <body class="kb-wait">
 <!-- HR Forms & Waivers (Kate, 5 Oct 2026): the 14 fillable forms (real PDF form fields) rebuilt from the
@@ -92,7 +92,7 @@
       '<h2 class="kb-page-title">HR Forms &amp; Waivers</h2>' +
       '<p class="kb-meta">' + r.data.length + ' fillable A4 forms. Fill one in on screen and save it, or print it and fill it in by hand, then file the signed copy.</p>' +
       '<div class="fm-switch" role="group" aria-label="Which forms">' + groups.map(function (g, i) {
-        return '<button type="button" data-i="' + i + '" aria-pressed="' + (i === pick) + '">' + esc(g) + ' <span>' + by[g].length + '</span></button>';
+        return '<button type="button" data-i="' + i + '" aria-pressed="' + (i === pick) + '"><b class="fm-full">' + esc(g) + '</b><b class="fm-short">' + esc(g.replace(/( client)? forms$/, '')) + '</b> <span>' + by[g].length + '</span></button>';
       }).join('') + '</div>' +
       groups.map(function (g, i) {
         return '<section class="kb-dept fm-dept" data-i="' + i + '"' + (i === pick ? '' : ' hidden') + '><h2 class="kb-dept-h">' + esc(g) + '</h2>' + by[g].map(function (f) {
