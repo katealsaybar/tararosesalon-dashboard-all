@@ -21,7 +21,7 @@ const PS_KEY_STORE = 'payslipKey';
 // apps-script/monthly-performance-email.gs. Every call carries the payslip key.
 const PS_SEND_URL = 'https://script.google.com/macros/s/AKfycbxJLja-iKKSDUHXAk8sCCKRG4b7scPoIaVJ18dpLNAX3t3gwEg0RFUKLX9Li_-XCHVRdg/exec';
 const PS_BRANCH = { KCA: 'Khalifa City A', SAA: 'Mamsha Al Saadiyat', MC: 'Motor City', AQ: 'Al Quoz' };
-let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '', branch: (() => { try { return localStorage.getItem('trs-ps-branch') || ''; } catch (e) { return ''; } })(), pos: (() => { try { return localStorage.getItem('trs-ps-pos') || ''; } catch (e) { return ''; } })(), up: (() => { try { return localStorage.getItem('trs-ps-up') || ''; } catch (e) { return ''; } })(), send: null, sendBusy: '', sendMsg: '', sendErr: '' };
+let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '', branch: (() => { try { return localStorage.getItem('trs-ps-branch') || ''; } catch (e) { return ''; } })(), pos: (() => { try { return localStorage.getItem('trs-ps-pos') || ''; } catch (e) { return ''; } })(), up: (() => { try { return localStorage.getItem('trs-ps-up') || ''; } catch (e) { return ''; } })(), send: null, sendBusy: '', sendMsg: '', sendErr: '', tpl: { open: false, who: '', what: '' } };
 
 // A typed key wins; otherwise the one the sign-in hands payroll and leaders (PS_AUTO, set in upload.html).
 const psKey = () => { try { return localStorage.getItem(PS_KEY_STORE) || window.PS_AUTO || null; } catch (e) { return window.PS_AUTO || null; } };
@@ -282,6 +282,7 @@ function psRender() {
       <a href="#" class="ps-key" onclick="psForgetKey();return false">Signed in as ${psEsc(PS_STATE.admin)} · change key</a>
     </div>
     <div class="ps-send" id="psSendPanel"></div>
+    <div id="psTplPanel"></div>
     <div class="ps-drop" id="psDrop">
       <b>Drop payslip PDFs here</b>, or <label class="ps-link">choose files<input type="file" accept="application/pdf,.pdf" multiple hidden onchange="psAddFiles(this.files); this.value=''"></label>.
       <div class="ps-meta">One PDF with everyone in it? Drop it here: each page is matched by the name printed on it. Or one file per person, named like “Holly Branchett.pdf”. PDF only, up to 10 MB each.</div>
@@ -310,7 +311,47 @@ function psRender() {
   psRenderPending();
   psFilter();
   psRenderSend();
+  psRenderTpl();
   if (!PS_STATE.send && PS_SEND_URL) psLoadSend();
+}
+
+// Revised payslip email (Kate, 5 Oct 2026). When a payslip is corrected, Accounts reply
+// in that person's payslip email from payroll@ with the new PDF attached. This fills in
+// the first name and month; they write the one line of what changed and copy it.
+function psTplText() {
+  const t = PS_STATE.tpl, s = PS_STATE.staff.find(x => String(x.id) === t.who);
+  const first = s ? s.name.split(' ')[0] : '[First name]';
+  const month = new Date(PS_STATE.month + '-15').toLocaleDateString('en-GB', { month: 'long' });
+  return `Hi ${first},
+
+We've updated your ${month} payslip. The new one is attached and replaces the one we sent earlier, so please use this one.
+
+`
+    + `What changed: ${t.what.trim() || '[one line]'}
+
+If anything still looks off, just reply to this email and we'll sort it with you.
+
+Tara Rose Salons Accounts`;
+}
+function psRenderTpl() {
+  const el = document.getElementById('psTplPanel');
+  if (!el) return;
+  const t = PS_STATE.tpl;
+  el.innerHTML = `<details class="ps-send ps-tpl"${t.open ? ' open' : ''} ontoggle="PS_STATE.tpl.open=this.open">
+    <summary class="ps-send-hd">Revised payslip email</summary>
+    <div class="ps-meta">Fixing someone’s payslip? Press Replace next to their name below with the new PDF. Then in payroll@’s Gmail open their payslip email, press Reply (not Forward), attach the new PDF and paste this.</div>
+    <div class="ps-send-row"><select onchange="PS_STATE.tpl.who=this.value; psTplPreview()"><option value="">Pick a person</option>${PS_STATE.staff.map(s => `<option value="${psEsc(s.id)}"${t.who === String(s.id) ? ' selected' : ''}>${psEsc(s.name)}</option>`).join('')}</select></div>
+    <textarea class="ps-tpl-what" rows="2" placeholder="What changed, in one line. E.g. your service commission was corrected from AED 20,727 to AED 21,699." oninput="PS_STATE.tpl.what=this.value; psTplPreview()">${psEsc(t.what)}</textarea>
+    <pre class="ps-tpl-out" id="psTplOut"></pre>
+    <div class="ps-send-row"><button class="btn-outline" onclick="psTplCopy(this)">Copy email</button></div>
+  </details>`;
+  psTplPreview();
+}
+function psTplPreview() { const o = document.getElementById('psTplOut'); if (o) o.textContent = psTplText(); }
+async function psTplCopy(btn) {
+  try { await navigator.clipboard.writeText(psTplText()); btn.textContent = 'Copied'; }
+  catch (e) { btn.textContent = 'Select the text above and copy it'; }
+  setTimeout(() => { btn.textContent = 'Copy email'; }, 2500);
 }
 
 // Branch pills next to the search (Kate, 30 Sep 2026), remembered per browser.

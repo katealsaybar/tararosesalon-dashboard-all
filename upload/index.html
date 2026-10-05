@@ -99,7 +99,7 @@ function upViewOnly() {
 <script src="targets.js?v=2"></script>
 <script src="team-roster.js?v=1"></script>
 <script src="/payslip/open.js?v=2"></script>
-<script src="payslips.js?v=15"></script>
+<script src="payslips.js?v=16"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
 <script src="data-watch.js?v=1"></script>
 
@@ -569,6 +569,10 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .ps-badge.st-sent{background:color-mix(in srgb,var(--good) 14%,transparent)}
 .ps-badge.st-draft_ready,.ps-badge.st-payslip_in{background:var(--surface2);color:var(--text)}
 .ps-badge.st-draft_no_payslip,.ps-badge.st-no_email,.ps-badge.st-paused{color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}
+.ps-tpl summary{cursor:pointer;margin-bottom:0}
+.ps-tpl[open] summary{margin-bottom:6px}
+.ps-tpl-what{display:block;width:100%;box-sizing:border-box;font:inherit;font-size:13px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-top:10px;resize:vertical}
+.ps-tpl-out{white-space:pre-wrap;font:inherit;font-size:13.5px;line-height:1.55;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;margin:10px 0 0}
 @media(max-width:979px){.ps-send-row>*{flex:1 1 auto;min-height:44px}.ps-refresh{margin-left:0;text-align:center}}
 .ps-search{width:100%;max-width:340px;font:inherit;font-size:14px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 12px}
 .ps-search:focus{outline:none;border-color:var(--accent)}
