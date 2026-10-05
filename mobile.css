@@ -333,6 +333,12 @@
   /* Team page (Kate, 3 Oct 2026): a long name takes a second line instead of being cut
      (Ashleigh Fairg…, Clarissa Destacam…). */
   #view-team .tp-row-nm,#view-team .tp-row-nm .who{white-space:normal;overflow:visible}
+  /* Staff Cards' branch headings (Kate, 3 Oct 2026): the count line makes them two or three
+     lines on a phone, and the dash and branch dot sat in the middle of the block, apart
+     from the name. The dash goes; the dot lines up with the first line. */
+  #view-stylists .section-label[id^="scBranch-"]{align-items:flex-start!important}
+  #view-stylists .section-label[id^="scBranch-"]::before{display:none}
+  #view-stylists .section-label[id^="scBranch-"]>span:first-child{margin-top:6px}
   /* The sign-in card. Kate, 3 Oct 2026: a 16px gutter so the torn edges show, tighter
      padding and gaps inside, and the gate scrolls (margin:auto keeps it centred) when a
      short or landscape screen can't fit the whole card. */
