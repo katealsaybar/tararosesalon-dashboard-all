@@ -35,10 +35,17 @@
    tightens, and each payslip row stacks its buttons under the name so they stay tappable. */
 @media(max-width:979px){.role-payroll .tab-btn[data-tab="payslips"]{order:-1}}
 @media(max-width:600px){
-  header{padding:8px 14px}
-  header .logout-btn{padding:6px 11px;font-size:12px;min-height:36px;letter-spacing:.06em}
+  /* Kate, 5 Oct 2026: tighter again, so the logo isn't cut behind Team Home / Log out on a
+     360-375px phone (it read "TARA / SA"). Lockup 104 to 80px, 12px sides, 5px gaps. */
+  header{padding:8px 12px}
+  header .logout-btn{padding:6px 10px;font-size:12px;min-height:36px;letter-spacing:.04em}
   header .toggle-lbl{display:none}
-  header .logo-lockup{width:104px}
+  header .logo-lockup{width:80px}
+  header .header-right{gap:5px;padding-left:8px}
+  /* The payslip filters (branch, status, position) are 40px taps (were 30), and Refresh
+     takes its own line under the send buttons instead of floating beside the last one. */
+  #payslipHost .ps-bpill,#payslipHost .ps-pos{min-height:40px}
+  #payslipHost .ps-refresh{flex-basis:100%!important;min-height:0!important;padding:4px 0}
   #payslipHost .ps-top{gap:10px}
   #payslipHost .ps-key{margin-left:0;width:100%}
   #payslipHost .ps-month select{min-height:44px;font-size:16px}
