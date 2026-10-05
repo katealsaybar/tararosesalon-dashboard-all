@@ -1,0 +1,56 @@
+/* ══════════════════════════════════════════════════════════════
+   SIDEBAR LOOK (Kate, 5 Oct 2026): the dashboard's sidebar drawn like the
+   Marketing page's (hub/marketing-tool/shell.css). The lockup sits left,
+   "‹ Team Home" is a quiet text link, section titles are small spaced
+   capitals, and every page is a flat link on one left rule; the open page
+   lights its stretch of the rule in ink instead of the lavender pill. Dark
+   mode and Log out sit at the foot on every screen size, not phones only.
+   Loaded last, so it overrides index.html, nav-collapse.css and mobile.css.
+   The behaviour (open/close, resize, folding, stars, search) is unchanged.
+   ══════════════════════════════════════════════════════════════ */
+aside.sidebar{padding:28px 18px 18px;gap:0}
+.nav-brand{align-self:flex-start;align-items:center;padding:4px 0 22px}
+.nav-brand .mark{width:140px}
+
+/* ‹ Team Home: the way back out, as text. */
+aside.sidebar .nav-home{justify-content:flex-start;gap:8px;margin:0 0 24px;padding:4px 0;border-radius:0;
+  background:none;box-shadow:none;color:var(--muted);font-size:14.5px;font-weight:400;letter-spacing:0;text-transform:none}
+aside.sidebar .nav-home svg{display:none}
+aside.sidebar .nav-home::before{content:'';width:6px;height:6px;margin-left:2px;border-left:1.6px solid currentColor;
+  border-bottom:1.6px solid currentColor;transform:rotate(45deg)}
+@media(hover:hover){aside.sidebar .nav-home:hover{color:var(--text);box-shadow:none}}
+[data-theme="dark"] aside.sidebar .nav-home{background:none;color:var(--muted)}
+
+/* Section titles. */
+aside.sidebar .nav-group{margin-bottom:22px}
+aside.sidebar .nav-title{font-size:11.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted2);margin-bottom:8px}
+aside.sidebar .nav-title.nav-fold{padding:2px 0;margin-left:0;margin-right:0}
+@media(hover:hover){aside.sidebar .nav-title.nav-fold:hover{color:var(--text)}}
+aside.sidebar .nav-title.nav-fold:focus-visible{outline:2px solid var(--text)}
+
+/* Pages: flat links on one rule. */
+aside.sidebar .nav-group .nav-sub{margin:0;padding:8px 0 8px 13px;border-radius:0;border-left:2px solid var(--border);
+  font-size:15px;line-height:1.35;color:var(--muted);background:none}
+@media(hover:hover){aside.sidebar .nav-group .nav-sub:hover{background:none;color:var(--text)}}
+aside.sidebar .nav-group .nav-sub.active{background:none;color:var(--text);font-weight:600;
+  border-left-color:var(--text);border-radius:0}
+aside.sidebar .nav-group .nav-sub:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+aside.sidebar .nav-sub .nav-star{width:26px;height:26px}
+
+/* The foot: Dark mode and Log out, plain. */
+aside.sidebar .nav-out{padding-top:14px}
+aside.sidebar .nav-out .nav-sub{padding:7px 0;border:0;border-radius:0;font-size:14.5px;letter-spacing:0;
+  color:var(--muted);background:none}
+@media(hover:hover){aside.sidebar .nav-out .nav-sub:hover{background:none;color:var(--text)}}
+aside.sidebar .nav-out .nav-sub svg{display:none}
+aside.sidebar .nav-phone{display:flex;align-items:center}
+aside.sidebar .nav-phone .nt-light{display:none}
+[data-theme="dark"] aside.sidebar .nav-phone .nt-dark{display:none}
+[data-theme="dark"] aside.sidebar .nav-phone .nt-light{display:inline}
+
+/* Phones keep their 48px targets (mobile.css), on the same flat rule. */
+@media(max-width:760px),(hover:none) and (max-height:480px){
+  aside.sidebar{padding-left:22px;padding-right:22px}
+  aside.sidebar .nav-group .nav-sub,aside.sidebar .nav-out .nav-sub{min-height:46px}
+}
