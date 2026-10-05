@@ -24,9 +24,13 @@
      site (Perplexity), as she built it: Today, Campaign Calendar and Platform Health for
      5 to 31 October 2026. marketing.js and marketing.css are her files, unchanged;
      handover-base.css gives them her buttons and fields in Team Home's colours. Level 3
-     and up (kb_sections 'marketing', min_level 3). Work is kept in this browser only
-     (localStorage 'trs-marketing'), plus her Save my work / Open saved file, which read
-     and write the same file as her site. No team sync yet. -->
+     and up (kb_sections 'marketing', min_level 3).
+     Team sync (Kate, 5 Oct 2026): every card is a row in kb_marketing_tasks
+     (migrations/kb_marketing_tasks.sql), so a change shows for everyone, live over
+     Supabase Realtime. The first visit fills the table from Tara's plan; cards someone
+     had already changed in this browser before the sync (localStorage 'trs-marketing')
+     go up too, unless the team has changed that card since. "Save a copy" still
+     downloads her file format; "Open saved file" is gone, it would overwrite everyone. -->
 <!-- Kate, 5 Oct 2026: its own left sidebar, like Tara's site, and no Team Home header
      (it reads as a dashboard, not a Knowledge Base page). shell.css draws it; on a phone
      it is a drawer behind the Menu button. -->
@@ -58,9 +62,7 @@
     <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
   </div>
 </div>
-<input type="file" id="loadFile" accept=".json,application/json" hidden>
 <button type="button" id="saveBtn" hidden></button>
-<button type="button" id="loadBtn" hidden></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
 <script src="/hub/hub.js?v=20261005loop"></script>
@@ -69,22 +71,135 @@
 (function () {
   var main = document.getElementById('kbMain');
   if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
-  var KEY = 'trs-marketing';
+  var KEY = 'trs-marketing', MOVED = 'trs-marketing-moved';
   var M = window.TR_MARKETING;
-  // The rest of a handover file opened here (menu, tracker...), so saving gives Tara's
-  // site back a whole file.
-  var rest = {};
+  var DB = TRSAuth.client(), TABLE = 'kb_marketing_tasks';
   var state = null;
+  var synced = {};          // card id -> its JSON as the table last had it
+  var last = null;          // { by, at } of the newest change, for the status line
+  var sync = 'Saved';       // what the status line says
+  var pushTimer = null, needDraw = false;
+  var J = function (r) { return JSON.stringify(r); };
+  var seedOrder = {};
+  M.seed().records.forEach(function (r, i) { seedOrder[r.id] = i; });
 
-  function load() {
-    try {
-      var raw = localStorage.getItem(KEY);
-      if (raw) { var d = JSON.parse(raw); rest = d.rest || {}; return M.normalise(d.marketing); }
-    } catch (e) {}
-    return M.seed();
+  // Cards in Tara's order (new ones after, by id), each checked by her normalise().
+  function fromRows(rows) {
+    var st = M.normalise({ records: rows.map(function (x) { return x.record; }) });
+    st.records.sort(function (a, b) {
+      var x = a.id in seedOrder ? seedOrder[a.id] : 1e6, y = b.id in seedOrder ? seedOrder[b.id] : 1e6;
+      return x - y || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+    });
+    return st;
   }
+  function one(rec) { return M.normalise({ records: [rec] }).records[0]; }
+  function noteLast(rows) {
+    rows.forEach(function (x) { if (x.updated_by && (!last || x.updated_at > last.at)) last = { by: x.updated_by, at: x.updated_at }; });
+  }
+  async function fetchRows() {
+    var r = await DB.from(TABLE).select('id,record,updated_at,updated_by').range(0, 2999);
+    if (r.error) throw r.error;
+    return r.data || [];
+  }
+  // Work done in this browser before the sync: a card goes up if the table does not
+  // have it, or still has Tara's untouched version of it.
+  function localCards() {
+    try {
+      if (localStorage.getItem(MOVED)) return [];
+      var raw = localStorage.getItem(KEY);
+      return raw ? M.normalise(JSON.parse(raw).marketing).records : [];
+    } catch (e) { return []; }
+  }
+  async function boot() {
+    var rows = await fetchRows();
+    var have = {};
+    rows.forEach(function (x) { var r = one(x.record); if (r) have[x.id] = J(r); });
+    var seed = {}, add = [];
+    M.seed().records.forEach(function (r) { seed[r.id] = J(r); if (!(r.id in have)) add.push({ id: r.id, record: r }); });
+    var mine = localCards().filter(function (r) {
+      return J(r) !== seed[r.id] && (!(r.id in have) || have[r.id] === seed[r.id]);
+    });
+    if (add.length) {
+      var a = await DB.from(TABLE).upsert(add, { onConflict: 'id', ignoreDuplicates: true });
+      if (a.error) throw a.error;
+    }
+    if (mine.length) {
+      var m = await DB.from(TABLE).upsert(mine.map(function (r) { return { id: r.id, record: r }; }), { onConflict: 'id' });
+      if (m.error) throw m.error;
+    }
+    try { localStorage.setItem(MOVED, new Date().toISOString()); } catch (e) {}
+    if (add.length || mine.length) rows = await fetchRows();
+    state = fromRows(rows);
+    synced = {};
+    state.records.forEach(function (r) { synced[r.id] = J(r); });
+    noteLast(rows);
+  }
+
+  // Every edit in the tool calls this: the cards that differ from the table go up.
   function keep() {
-    try { localStorage.setItem(KEY, JSON.stringify({ marketing: state, rest: rest })); } catch (e) {}
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(push, 300);
+  }
+  async function push() {
+    var out = state.records.filter(function (r) { return synced[r.id] !== J(r); });
+    if (!out.length) return;
+    var sent = out.map(function (r) { return J(r); });
+    setSync('Saving…');
+    var res = await DB.from(TABLE).upsert(out.map(function (r) { return { id: r.id, record: r }; }), { onConflict: 'id' })
+      .select('id,record,updated_at,updated_by');
+    if (res.error) { setSync('Not saved yet, trying again'); pushTimer = setTimeout(push, 5000); return; }
+    out.forEach(function (r, i) { synced[r.id] = sent[i]; });
+    noteLast(res.data || []);
+    setSync('Saved');
+  }
+  // Someone else's change: take it, unless this browser has its own change to that
+  // card still on the way up (that one wins, it is newer).
+  function take(row) {
+    if (!row || !row.id || !row.record) return;
+    var rec = one(row.record);
+    if (!rec) return;
+    var j = J(rec), i = state.records.findIndex(function (r) { return r.id === rec.id; });
+    noteLast([row]);
+    if (synced[rec.id] === j) { paintSync(); return; }
+    if (i >= 0 && J(state.records[i]) !== synced[rec.id]) return;
+    if (i >= 0) state.records.splice(i, 1, rec); else state.records.push(rec);
+    synced[rec.id] = j;
+    needDraw = true;
+    redrawSoon();
+  }
+  async function refresh() {
+    try { (await fetchRows()).forEach(take); } catch (e) {}
+  }
+  // Never redraw under an open card: wait for it to close.
+  function redrawSoon() {
+    if (!needDraw) return;
+    if (document.getElementById('mkDialog')) { setTimeout(redrawSoon, 800); return; }
+    needDraw = false;
+    var y = window.scrollY;
+    draw();
+    window.scrollTo(0, y);
+  }
+
+  // Tara's status line says "Edits stay in this tab ... Not live team sync"; with the
+  // table behind it that is no longer true, so it is rewritten each time she draws it.
+  function setSync(t) { sync = t; paintSync(); }
+  function when(ts) {
+    try { return new Date(ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dubai' }); }
+    catch (e) { return ''; }
+  }
+  function paintSync() {
+    var box = document.querySelector('.mk-save');
+    if (!box) return;
+    var spans = box.querySelectorAll(':scope > span');
+    var el = spans[spans.length - 1];
+    if (!el) return;
+    if (!el.dataset.sync) {
+      el.dataset.sync = '1';
+      el.innerHTML = 'Shared with the team · <b id="mkSyncState"></b><span id="mkSyncLast"></span> · <button type="button" class="mk-textbtn" id="mkCopy">Save a copy</button>';
+      document.getElementById('mkCopy').onclick = function () { document.getElementById('saveBtn').click(); };
+    }
+    document.getElementById('mkSyncState').textContent = sync;
+    document.getElementById('mkSyncLast').textContent = last ? ' · last change by ' + last.by + ', ' + when(last.at) : '';
   }
   function today() {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -102,6 +217,7 @@
   function draw() {
     main.innerHTML = '<div class="mk-host" id="mkHost"></div>';
     M.render({ state: state, main: document.getElementById('mkHost'), markDirty: keep, download: download, tab: tab() });
+    paintSync();
     var on = document.querySelector('.mk .tab.on'), cur = on ? on.getAttribute('href').split('/').pop() : 'today';
     [].forEach.call(document.querySelectorAll('.mk-side-nav a'), function (a) {
       var lit = a.dataset.tab === cur;
@@ -125,38 +241,34 @@
     (document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark' ? 'Light mode' : 'Dark mode';
 
   document.getElementById('saveBtn').onclick = function () {
-    var out = Object.assign({ version: 2 }, rest, { marketing: state });
-    download('tara-rose-handover-' + today() + '.json', JSON.stringify(out, null, 2), 'application/json');
-  };
-  document.getElementById('loadBtn').onclick = function () { document.getElementById('loadFile').click(); };
-  document.getElementById('loadFile').onchange = function (e) {
-    var f = e.target.files && e.target.files[0];
-    e.target.value = '';
-    if (!f) return;
-    if (f.size > 5e6) { alert('That file is too large to be a saved handover file.'); return; }
-    var r = new FileReader();
-    r.onload = function () {
-      try {
-        var d = JSON.parse(r.result);
-        if (!d || !d.marketing || !Array.isArray(d.marketing.records)) throw new Error('no marketing');
-        if (!confirm('Replace the marketing work in this browser with the saved file?')) return;
-        state = M.normalise(d.marketing);
-        rest = {};
-        Object.keys(d).forEach(function (k) { if (k !== 'marketing' && k !== 'version') rest[k] = d[k]; });
-        keep(); draw();
-      } catch (err) { alert('That file has no marketing work in it. Choose a file saved from the handover or from this page.'); }
-    };
-    r.readAsText(f);
+    download('tara-rose-handover-' + today() + '.json', JSON.stringify({ version: 2, marketing: state }, null, 2), 'application/json');
   };
 
-  KB.ready.then(function () {
+  KB.ready.then(async function () {
     if (KB.allowed.indexOf('marketing') < 0) {   // also "View as" below Level 3
       main.innerHTML = '<p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
       return;
     }
-    state = load();
+    try { await boot(); }
+    catch (e) {
+      main.innerHTML = '<p class="kb-msg">The marketing plan didn’t load. Reload the page, and if it keeps happening tell Kate. <a href="/hub/">Back to Team Home</a></p>';
+      return;
+    }
     draw();
+    // Tara's tool redraws itself after each edit; put the team status back each time.
+    new MutationObserver(function () {
+      var b = document.querySelector('.mk-save');
+      if (b && !b.querySelector('[data-sync]')) paintSync();
+    }).observe(main, { childList: true, subtree: true });
     window.addEventListener('hashchange', function () { if (tab() || !location.hash) draw(); });
+    DB.channel('kb-marketing-tasks')
+      .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, function (p) { take(p.new); })
+      .subscribe();
+    // Back on the tab after a while (a phone asleep, a dropped connection): catch up.
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });
+    window.addEventListener('beforeunload', function (e) {
+      if (state.records.some(function (r) { return synced[r.id] !== J(r); })) { push(); e.preventDefault(); e.returnValue = ''; }
+    });
   });
 })();
 </script>
