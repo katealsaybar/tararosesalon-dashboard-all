@@ -497,7 +497,7 @@ body.kb-wait .wrap{visibility:hidden}
 .sg-pdf{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--border);font-size:13.5px;font-weight:600;text-decoration:none;color:var(--text);background:var(--surface2)}
 
 /* HR Forms & Waivers (Kate, 5 Oct 2026): /hub/forms, one panel per group. */
-.fm-dept{max-width:920px}
+.fm-row .kb-row-tx>span{white-space:normal;overflow:visible}
 .fm-code{flex:none;width:56px;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted2)}
 .fm-acts{flex:none;display:flex;gap:8px}
 .fm-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;min-height:36px}
