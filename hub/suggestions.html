@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261005reply">
+<link rel="stylesheet" href="/hub/hub.css?v=20261005sgst">
 </head>
 <body class="kb-wait">
 <!-- Suggestions box (Kate, 5 Oct 2026): everyone signed in can send one; Level 3 and up
@@ -61,7 +61,7 @@
         '<p class="sg-body">' + esc(s.body) + '</p>' +
         '<div class="sg-foot"><span class="sg-from">' + (s.sender_name ? 'From ' + esc(s.sender_name) : 'No name given') +
           (s.region === 'BAH' ? ' · Bahrain' : '') + '</span>' +
-          '<span class="kb-view sg-status" role="group" aria-label="Status">' +
+          '<span class="sg-status" role="group" aria-label="Status">' +
           ['new', 'seen', 'done'].map(function (k) {
             return '<button type="button" data-id="' + s.id + '" data-s="' + k + '" aria-pressed="' + (s.status === k) + '">' + STATUS[k] + '</button>';
           }).join('') + '</span></div>' +

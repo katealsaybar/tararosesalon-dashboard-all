@@ -381,8 +381,10 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 .sg-body{margin:6px 0 10px;font-size:15px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
 .sg-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .sg-from{font-size:13.5px;color:var(--muted)}
-.sg-status{margin:0}
-.sg-status button{padding:5px 13px;min-height:32px;font-size:13px}
+/* Kate, 5 Oct 2026: its own switch (it borrowed .kb-view, which went with the Workbook | Text toggle). */
+.sg-status{display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:3px;gap:3px;background:var(--surface);margin:0}
+.sg-status button{font:inherit;font-size:13px;border:0;border-radius:999px;padding:5px 13px;min-height:32px;background:transparent;color:var(--muted);cursor:pointer}
+.sg-status button[aria-pressed="true"]{background:var(--text);color:var(--bg);font-weight:600}
 .sg-by{font-size:12.5px;color:var(--muted2);margin-top:6px}
 .sg-none{color:var(--muted);padding:18px 0}
 @media (max-width:760px){
