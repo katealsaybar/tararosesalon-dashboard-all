@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Suggestions Box · Team Home</title>
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=20261005sugg">
+</head>
+<body class="kb-wait">
+<!-- Suggestions box (Kate, 5 Oct 2026): everyone signed in can send one; Level 3 and up
+     read them below the form. Saved and read through kb_suggest(), kb_suggestions() and
+     kb_suggestion_mark() in Supabase (migrations/kb_suggestions.sql); the table itself
+     answers to nobody. Without a name, nothing about the sender is saved. -->
+<div class="wrap">
+  <header class="kb-head" id="kbHead" data-title="Team Home"></header>
+  <main id="kbMain"><p class="kb-msg">Loading…</p></main>
+  <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js?v=20261001kb"></script>
+<script src="/hub/hub.js?v=20261005viewas"></script>
+<script>
+(function () {
+  var main = document.getElementById('kbMain'), esc = KB.esc;
+  if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
+  var TOPICS = ['Clients', 'Team', 'Salon & tools', 'Systems & admin', 'Other'];
+  var STATUS = { 'new': 'New', seen: 'Seen', done: 'Done' };
+  var list = [], f = { status: '', topic: '' };
+
+  function when(ts) {
+    try { return new Date(ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dubai' }); }
+    catch (e) { return ''; }
+  }
+  function opts(label, pairs) {
+    return '<option value="">' + esc(label) + '</option>' + pairs.map(function (p) {
+      return '<option value="' + esc(p[0]) + '">' + esc(p[1]) + '</option>';
+    }).join('');
+  }
+
+  // ── The inbox, Level 3 and up (and not on "View as" below Level 3).
+  function drawInbox() {
+    var rows = list.filter(function (s) { return (!f.status || s.status === f.status) && (!f.topic || s.topic === f.topic); });
+    var fresh = list.filter(function (s) { return s.status === 'new'; }).length;
+    document.getElementById('sgCount').textContent = list.length + ' received' + (fresh ? ' · ' + fresh + ' new' : '');
+    document.getElementById('sgList').innerHTML = rows.length ? rows.map(function (s) {
+      return '<li class="sg-item' + (s.status === 'new' ? ' is-new' : '') + '">' +
+        '<div class="sg-top"><span class="sg-topic">' + esc(s.topic) + '</span>' +
+          '<span class="sg-when">' + esc(when(s.created_at)) + '</span></div>' +
+        '<p class="sg-body">' + esc(s.body) + '</p>' +
+        '<div class="sg-foot"><span class="sg-from">' + (s.sender_name ? 'From ' + esc(s.sender_name) : 'No name given') +
+          (s.region === 'BAH' ? ' · Bahrain' : '') + '</span>' +
+          '<span class="kb-view sg-status" role="group" aria-label="Status">' +
+          ['new', 'seen', 'done'].map(function (k) {
+            return '<button type="button" data-id="' + s.id + '" data-s="' + k + '" aria-pressed="' + (s.status === k) + '">' + STATUS[k] + '</button>';
+          }).join('') + '</span></div>' +
+        (s.status !== 'new' && s.status_by ? '<div class="sg-by">' + STATUS[s.status] + ' by ' + esc(s.status_by) + ', ' + esc(when(s.status_at)) + '</div>' : '') +
+        '</li>';
+    }).join('') : '<li class="sg-none">' + (list.length ? 'Nothing matches those filters.' : 'No suggestions yet.') + '</li>';
+  }
+  async function loadInbox() {
+    var r = await KB.client.rpc('kb_suggestions');
+    if (r.error || !r.data) { document.getElementById('sgInbox').hidden = true; return; }
+    list = r.data;
+    drawInbox();
+  }
+
+  KB.ready.then(function () {
+    var reads = KB.level >= 3;
+    main.innerHTML =
+      '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
+      '<h2 class="kb-page-title">Suggestions Box</h2>' +
+      '<p class="kb-meta">An idea for our clients, the team or the salon? Tell us. Every suggestion is read by the management team.</p>' +
+      '<form class="sg-form" id="sgForm">' +
+        '<label class="sg-label" for="sgTopic">What is it about?</label>' +
+        '<select id="sgTopic" aria-label="What is it about?">' + TOPICS.map(function (t) { return '<option value="' + esc(t) + '"' + (t === 'Other' ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select>' +
+        '<label class="sg-label" for="sgBody">Your suggestion</label>' +
+        '<textarea id="sgBody" rows="6" maxlength="2000" required placeholder="What would make it better, and why?"></textarea>' +
+        '<label class="sg-anon"><input type="checkbox" id="sgAnon"> Send without my name</label>' +
+        '<p class="sg-hint" id="sgHint">Your name goes with it, so we can come back to you.</p>' +
+        '<div class="sg-actions"><button type="submit" class="sg-send" id="sgSend">Send suggestion</button><span class="sg-msg" id="sgMsg" role="status"></span></div>' +
+      '</form>' +
+      (reads ?
+        '<section id="sgInbox" class="sg-inbox"><h2 class="kb-section-title">Suggestions received</h2>' +
+          '<div class="rs-bar"><div class="rs-selects">' +
+            '<select data-k="status" aria-label="Status">' + opts('Any status', [['new', 'New'], ['seen', 'Seen'], ['done', 'Done']]) + '</select>' +
+            '<select data-k="topic" aria-label="Topic">' + opts('All topics', TOPICS.map(function (t) { return [t, t]; })) + '</select>' +
+          '</div></div>' +
+          '<div class="rs-status"><span id="sgCount"></span></div>' +
+          '<ul class="sg-list" id="sgList"><li class="sg-none">Loading…</li></ul></section>' : '');
+
+    KB.pillDD(document.getElementById('sgTopic'));
+    var anon = document.getElementById('sgAnon'), hint = document.getElementById('sgHint');
+    anon.addEventListener('change', function () {
+      hint.textContent = anon.checked
+        ? 'No name, email or account is saved with it, so nobody can tell who sent it. We can’t reply to you either.'
+        : 'Your name goes with it, so we can come back to you.';
+    });
+    document.getElementById('sgForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var body = document.getElementById('sgBody'), send = document.getElementById('sgSend'), msg = document.getElementById('sgMsg');
+      if (body.value.trim().length < 3) { msg.textContent = 'Write a little more first.'; body.focus(); return; }
+      send.disabled = true; msg.textContent = 'Sending…';
+      var r = await KB.client.rpc('kb_suggest', { p_topic: document.getElementById('sgTopic').value, p_body: body.value, p_anon: anon.checked });
+      send.disabled = false;
+      if (r.error) { msg.textContent = 'That didn’t send. Please try again.'; return; }
+      body.value = '';
+      msg.textContent = 'Thank you, it’s in the box.';
+      if (reads) loadInbox();
+    });
+
+    if (!reads) return;
+    main.querySelectorAll('.sg-inbox select').forEach(function (sel) {
+      KB.pillDD(sel);
+      sel.addEventListener('change', function () { f[sel.dataset.k] = sel.value; drawInbox(); });
+    });
+    document.getElementById('sgList').addEventListener('click', async function (e) {
+      var b = e.target.closest('button[data-s]');
+      if (!b || b.getAttribute('aria-pressed') === 'true') return;
+      var r = await KB.client.rpc('kb_suggestion_mark', { p_id: +b.dataset.id, p_status: b.dataset.s });
+      if (!r.error && r.data) loadInbox();
+    });
+    loadInbox();
+  });
+})();
+</script>
+</body>
+</html>

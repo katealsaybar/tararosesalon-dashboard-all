@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261003avatars">
+<link rel="stylesheet" href="/hub/hub.css?v=20261005sugg">
 </head>
 <body class="kb-wait">
 <div class="wrap">
@@ -57,6 +57,10 @@ KB.ready.then(async function () {
   else if (KB.viewAs && KB.viewAs.level === 1 && KB.viewAs.dept === 'Beauty')
     shown.unshift({ key: 'my-numbers', dept: 'You', title: 'My numbers & payslip', sample: true, rule: 'var(--accent-mint)',
       blurb: 'Each stylist sees their own here: their month, year, next step up and payslip.' });
+  // Kate, 5 Oct 2026: the suggestions box, for every level. Level 3 and up also read
+  // what came in on the same page (kb_suggestions() decides that, not this card).
+  shown.push({ key: 'suggestions', dept: 'You', title: 'Suggestions Box', href: '/hub/suggestions', live: true, rule: 'var(--accent-butter)',
+    blurb: KB.level >= 3 ? 'Send an idea, and read what the team has sent in.' : 'An idea for our clients, the team or the salon? Send it in, with or without your name.' });
 
   // Favourites (Kate, 1 Oct 2026): a star on any card, kept per person in kb_favourites.
   var favs = await KB.loadFavs();
