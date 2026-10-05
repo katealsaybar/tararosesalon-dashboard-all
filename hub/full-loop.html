@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="/hub/full-loop-tool/brand.css?v=20261005brand">
 <style>
   body.fl-wait .top,body.fl-wait .shell{visibility:hidden}
+  #loadBtn{display:none!important}
   .fl-msg{max-width:640px;margin:96px auto;padding:0 16px;font:400 16px/1.6 Inter,system-ui,sans-serif;color:var(--ink)}
   .fl-msg a{color:inherit}
 </style>
@@ -30,7 +31,11 @@
      them after the sign-in check. Her styles.css draws the layout; brand.css puts it in
      the site's look (lockup, colours, the Marketing-style sidebar), and the theme is the
      site's trs-theme. Her Marketing copy is left out: the Marketing row and any
-     #/marketing link go to the shared /hub/marketing instead. -->
+     #/marketing link go to the shared /hub/marketing instead.
+     Team sync (Kate, 5 Oct 2026): the Menu Builder and the Handover Tracker save to
+     kb_playbook_state as you go and show live for everyone (full-loop-tool/sync.js,
+     migrations/kb_playbook_state.sql). door() below gives sync.js its way into her
+     app; Open saved file is hidden, it would overwrite everyone. -->
 <a class="skip" href="#main">Skip to content</a>
 <header class="top">
   <button class="iconbtn menu-toggle" id="menuToggle" aria-label="Open navigation" aria-expanded="false">
@@ -69,10 +74,28 @@
 <script src="/auth.js?v=20261001kb"></script>
 <script src="/hub/hub.js?v=20261005way2"></script>
 <script src="/hub/marketing-tool/marketing.js?v=20261005mkt"></script>
+<script src="/hub/full-loop-tool/sync.js?v=20261005pb"></script>
 <script>
 (function () {
   if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
   var FILES = ['full-loop/content.js', 'full-loop/data.js', 'full-loop/app.js'];
+  // Team sync (Kate, 5 Oct 2026): her markDirty() also tells sync.js, a small
+  // window.TR_STATE lets sync.js read and redraw her state, and the sidebar note says
+  // the work is shared. Each edit must find its exact text in her app.js.
+  function door(src) {
+    var edits = [
+      ['const markDirty = () => { dirty = true; updateSaveState(); };',
+       'const markDirty = () => { dirty = true; updateSaveState(); if (window.TR_SYNC) window.TR_SYNC.changed(); };\n' +
+       '  window.TR_STATE = { get: () => S, redraw: () => route(), saved: t => { dirty = false; savedAt = t; updateSaveState(); }, unsaved: () => { dirty = true; updateSaveState(); } };'],
+      ['<strong>Saving:</strong> prices, handover and marketing work stay in this tab. Press <strong>Save my work</strong> to keep a file, and <strong>Open saved file</strong> to carry on. Not live team sync.',
+       '<strong>Saving:</strong> the Menu Builder and the Handover Tracker are shared with the team and save as you go. <strong>Save my work</strong> downloads a copy.']
+    ];
+    for (var i = 0; i < edits.length; i++) {
+      if (src.indexOf(edits[i][0]) < 0) return null;
+      src = src.replace(edits[i][0], edits[i][1]);
+    }
+    return src;
+  }
   function say(html) {
     document.querySelector('.shell').remove();
     document.querySelector('.top').remove();
@@ -92,9 +115,13 @@
     };
     if (toMarketing()) return;
     window.addEventListener('hashchange', toMarketing);
+    var stop = false;
     FILES.forEach(function (k) {
+      if (stop) return;
       var s = document.createElement('script');
-      s.text = got[k] + '\n//# sourceURL=' + k;
+      var body = got[k];
+      if (k === 'full-loop/app.js') { body = door(body); if (!body) { stop = true; say('The playbooks didn’t load. Reload the page, and if it keeps happening tell Kate. <a href="/hub/">Back to Team Home</a>'); return; } }
+      s.text = body + '\n//# sourceURL=' + k;
       document.body.appendChild(s);
       if (k === 'full-loop/data.js') window.TR_NAV = window.TR_NAV.map(function (n) {
         return n.id === 'marketing' ? Object.assign({}, n, { label: 'Marketing ↗' }) : n;
@@ -115,6 +142,9 @@
       try { localStorage.setItem('trs-theme', root.dataset.theme); } catch (e) {}
     });
     document.body.classList.remove('fl-wait');
+    if (stop) return;
+    try { await TR_SYNC.boot(); }
+    catch (e) { say('The shared menu and tracker didn’t load. Reload the page, and if it keeps happening tell Kate. <a href="/hub/">Back to Team Home</a>'); }
   });
 })();
 </script>
