@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261005file">
+<link rel="stylesheet" href="/hub/hub.css?v=20261005rows">
 </head>
 <body class="kb-wait">
 <div class="wrap">
@@ -89,39 +89,45 @@ KB.ready.then(async function () {
       return { key: k, title: DASH_PAGES[v], href: '/?view=' + v, live: true, rule: 'var(--accent-lavender)', blurb: 'Dashboards' }; });
 
   var isLive = function (s) { return !!(s.live || counts[s.key]); };
-  function card(s) {
-    var n = counts[s.key] || 0, live = isLive(s);
-    var href = s.href || '/hub/kb.html?s=' + s.key;
-    if (s.sample) return '<div class="kb-cell"><div class="kb-card soon" style="--rule:' + s.rule + '" aria-disabled="true">' +
-      '<span class="kb-badge">Sample</span><h2>' + esc(s.title) + '</h2><p>' + esc(s.blurb) + '</p></div></div>';
-    var foot = s.href ? 'Open' : (n ? n + ' pages' : '');
-    var inner = '<span class="kb-badge' + (live ? ' live' : '') + '">' + (live ? 'Live' : 'Coming soon') + '</span>' +
-      '<h2>' + esc(s.title) + '</h2><p>' + esc(s.blurb) + '</p>' +
-      (live && foot ? '<span class="kb-card-foot">' + foot + '</span>' : '');
-    var star = KB.starBtn(s.key, s.title);
-    var body = live
-      ? '<a class="kb-card" style="--rule:' + s.rule + '" href="' + esc(href) + '">' + inner + '</a>'
-      : '<div class="kb-card soon" aria-disabled="true">' + inner + '</div>';
-    return '<div class="kb-cell">' + body + star + '</div>';
+  // Kate, 5 Oct 2026: each department is one panel of rows (icon, title, one line,
+  // page count, star), the panels flowing in two columns on a desktop and one on a
+  // phone; favourites are pills along the top. Replaces the card grid, which left
+  // holes beside one-card departments and ran about 3,400px long on a phone.
+  function initials(t) {
+    return t.replace(/&/g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase();
   }
-  function group(title, list, wide) {
+  function icon(s) { return '<span class="kb-ic" style="--c:' + s.rule + '" aria-hidden="true">' + esc(initials(s.title)) + '</span>'; }
+  function row(s) {
+    var n = counts[s.key] || 0, live = isLive(s);
+    var text = '<span class="kb-row-tx"><b>' + (live && !s.sample ? '<a class="kb-row-link" href="' + esc(s.href || '/hub/kb.html?s=' + s.key) + '">' + esc(s.title) + '</a>' : esc(s.title)) +
+      '</b><span>' + esc(s.blurb) + '</span></span>';
+    if (s.sample) return '<div class="kb-row soon">' + icon(s) + text + '<span class="kb-tag">Sample</span></div>';
+    if (!live) return '<div class="kb-row soon" aria-disabled="true">' + icon(s) + text + '<span class="kb-tag">Soon</span></div>';
+    return '<div class="kb-row">' + icon(s) + text + (n && !s.href ? '<span class="kb-row-n">' + n + ' pages</span>' : '') +
+      KB.starBtn(s.key, s.title) + '<span class="kb-go" aria-hidden="true">›</span></div>';
+  }
+  function group(title, list) {
     if (!list.length) return '';
     // Live first, then the ones still to come, each in KB.SECTIONS' order.
     list = list.filter(isLive).concat(list.filter(function (s) { return !isLive(s); }));
-    return '<section class="kb-dept' + (wide ? ' wide' : '') + '"><h2 class="kb-section-title">' + esc(title) + '</h2>' +
-      '<div class="kb-grid">' + list.map(card).join('') + '</div></section>';
+    return '<section class="kb-dept"><h2 class="kb-dept-h">' + esc(title) + '</h2>' + list.map(row).join('') + '</section>';
+  }
+  function pill(s) {
+    return '<a class="kb-fv" href="' + esc(s.href || '/hub/kb.html?s=' + s.key) + '"' + (s.blurb ? ' title="' + esc(s.blurb) + '"' : '') + '>' +
+      icon(s) + '<span>' + esc(s.title) + '</span></a>';
   }
   function paint() {
-    var starred = shown.filter(function (s) { return favs[s.key]; })
+    var starred = shown.filter(function (s) { return favs[s.key] && isLive(s) && !s.sample; })
       .concat(pageFavs.filter(function (p) { return favs[p.key]; }))
       .concat(dashFavs.filter(function (p) { return favs[p.key]; }));
-    var html = group('Your favourites', starred, true);
+    var html = starred.length
+      ? '<h2 class="kb-section-title kb-fv-h">Your favourites</h2><div class="kb-fvs">' + starred.map(pill).join('') + '</div>'
+      : '<p class="kb-fav-hint">Tap the star on any section to keep it at the top.</p>';
     // Staff have one department, so no headings beyond theirs; everyone else reads
     // Team Home by department.
-    html += group('You', shown.filter(function (s) { return s.dept === 'You'; }));
+    html += '<div class="kb-depts">' + group('You', shown.filter(function (s) { return s.dept === 'You'; }));
     KB.GROUPS.forEach(function (g) { html += group(g, shown.filter(function (s) { return s.dept === g; })); });
-    if (!starred.length) html = '<p class="kb-fav-hint">Tap the star on any card to keep it at the top.</p>' + html;
-    document.getElementById('kbGrid').innerHTML = html;
+    document.getElementById('kbGrid').innerHTML = html + '</div>';
   }
   paint();
 
