@@ -98,6 +98,16 @@ table.ex tr.tot td{font-weight:700;border-bottom:none}
 .rtext.none{color:var(--faint);font-style:italic}
 .rtext.clamp{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .more{background:none;border:none;color:var(--rose);cursor:pointer;padding:0;font:inherit;font-size:12px;margin-top:4px}
+/* Client photos from Google (Kate, 5 Oct 2026): thumbnails under the text, full size on a tap. */
+.rphotos{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.rph{padding:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;width:84px;height:84px;background:var(--surface2);cursor:zoom-in;flex:none}
+.rph img{width:100%;height:100%;object-fit:cover;display:block}
+.lbox{position:fixed;inset:0;z-index:50;background:rgba(20,20,24,.88);display:flex;align-items:center;justify-content:center;padding:24px}
+.lbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
+.lbox button{position:absolute;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:26px;line-height:1;width:44px;height:44px;border-radius:50%;cursor:pointer}
+.lb-x{top:14px;right:14px}.lb-prev{left:14px;top:50%;transform:translateY(-50%)}.lb-next{right:14px;top:50%;transform:translateY(-50%)}
+.lb-n{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:#fff;font-size:13px;opacity:.8}
+@media (max-width:760px){.rph{width:72px;height:72px}.lbox{padding:8px}}
 .reply{margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:13px;color:var(--muted)}
 .reply b{color:var(--text);font-weight:600}
 .ok{color:var(--ok)}.no{color:var(--s1);font-weight:600}
@@ -297,6 +307,6 @@ html.embedded .filters{position:static}
 <script src="../../staff-profiles.js?v=20261002va"></script>
 <script src="../../auth.js?v=20260925d"></script>
 <script src="review-links.js?v=20260928a"></script>
-<script src="app.js?v=19"></script>
+<script src="app.js?v=20"></script>
 </body>
 </html>

@@ -36,7 +36,7 @@ const ALL = [1,2,3,4,5];
 // Opens on the last 90 days (Kate, 1 Oct 2026): "All time" averaged years of
 // reviews and hid the recent trend. The official all-time totals stay in their table.
 const DEFAULT_REC = "90";
-const state = {branches:new Set(BRANCHES), stars:new Set(ALL), rec:DEFAULT_REC, withText:false, noReply:false, q:"", sort:"new", staff:""};
+const state = {branches:new Set(BRANCHES), stars:new Set(ALL), rec:DEFAULT_REC, withText:false, noReply:false, withPhotos:false, q:"", sort:"new", staff:""};
 
 // ── Staff named in reviews (Kate, 25 Sep 2026) ───────────────────────────
 // Who a review names is decided by staff_name_variants in Supabase: every
@@ -151,7 +151,7 @@ function baseFilter(skip){
     (skip==="branch" || state.branches.has(r.branch)) &&
     (skip==="stars" || state.stars.has(r.stars)) &&
     (skip==="rec" || state.rec==="all" || days(r.date) <= +state.rec) &&
-    (!state.withText || r.comment) && (!state.noReply || !r.replied) &&
+    (!state.withText || r.comment) && (!state.noReply || !r.replied) && (!state.withPhotos || r.photos.length) &&
     (skip==="staff" || !state.staff || (state.staff==="__any" ? r.staff.length : r.staff.includes(state.staff))) &&
     (!state.q || (r.comment+" "+r.reviewer+" "+r.reply).toLowerCase().includes(state.q.toLowerCase())));
 }
@@ -201,6 +201,7 @@ function renderFilters(){
   const fm=document.getElementById("fMore"); fm.innerHTML="";
   fm.appendChild(chip("With written comment only", state.withText, null, ()=>{state.withText=!state.withText;render();}));
   fm.appendChild(chip("No reply yet", state.noReply, null, ()=>{state.noReply=!state.noReply;render();}));
+  fm.appendChild(chip("With client photos", state.withPhotos, null, ()=>{state.withPhotos=!state.withPhotos;render();}));
   renderSummary();
 }
 // The phone filter bar (Kate, 2 Oct 2026): what's on, as pills that clear on a tap.
@@ -223,6 +224,7 @@ function renderSummary(){
   }
   if(state.withText) pills.push(["With comment", ()=>{state.withText=false;}]);
   if(state.noReply) pills.push(["No reply yet", ()=>{state.noReply=false;}]);
+  if(state.withPhotos) pills.push(["With photos", ()=>{state.withPhotos=false;}]);
   if(state.q) pills.push(["“"+state.q+"”", ()=>{state.q="";document.getElementById("q").value="";}]);
   const fp=document.getElementById("fPills"); fp.innerHTML="";
   pills.forEach(([l,clear])=>{
@@ -365,11 +367,29 @@ function renderList(F){
       ${r.staff.map(k=>{const s=staffBy(k);return s?`<button class="stag${r.viaClient?" via":""}" data-k="${esc(k)}" title="${r.viaClient?"Not named, but this reviewer was their client in the 14 days before":"Named in the review"}">${s.photo?`<img src="${s.photo}" alt="">`:""}${esc(s.label)}${r.viaClient?" · client":""}</button>`:"";}).join("")}
       <span class="date" title="${r.approx?'Approximate date from Google Maps'+(r.when?' ("'+esc(r.when)+'" when it was read)':''):r.date}">${r.approx?(r.date?fmtDate(r.date)+' · '+ago(r.date)+' · approx.':esc((r.when||'').replace(/^Edited /,'edited '))+' · approx.'):fmtDate(r.date)+' · '+ago(r.date)}</span></div>
       ${r.comment?`<div class="rtext${long?" clamp":""}" id="t${i}">${markNames(r)}</div>${long?`<button class="more" onclick="document.getElementById('t${i}').classList.toggle('clamp');this.textContent=this.textContent==='Show more'?'Show less':'Show more'">Show more</button>`:""}`:`<div class="rtext none">Rating only, no written comment</div>`}
+      ${r.photos.length?`<div class="rphotos">${r.photos.map((u,k)=>`<button type="button" class="rph" data-u="${esc(u)}" aria-label="Photo ${k+1} of ${r.photos.length} from ${esc(r.reviewer||"the client")}"><img src="${esc(u)}=w240-h240-p" alt="" loading="lazy"></button>`).join("")}</div>`:""}
       ${r.replied?`<details class="reply"><summary><b>Our reply</b></summary><div style="white-space:pre-wrap;margin-top:6px">${esc(r.reply)}</div></details>`:""}
       ${(()=>{const g=googleReviewUrl(r)||branchMapsUrl(r),u=r.url||branchGbpUrl(r);return g||u?`<div class="links">${g?`<a class="gbp" href="${g}" target="_blank" rel="noopener">View on Google ↗</a>`:""}${u?`<a class="gbp" href="${u}" target="_blank" rel="noopener">Reply in Business Profile →</a>`:""}</div>`:"";})()}
     </div>`;}).join("") + (L.length>LIMIT?`<div style="text-align:center;margin-top:12px"><button class="chip" id="moreBtn">Show ${Math.min(60,L.length-LIMIT)} more of ${L.length-LIMIT} remaining</button></div>`:"");
   const mb=document.getElementById("moreBtn"); if(mb) mb.onclick=()=>{LIMIT+=60;renderList(F);};
   el.querySelectorAll(".stag").forEach(b=>b.onclick=()=>{state.staff=b.dataset.k;render();window.scrollTo(0,0);});
+  el.querySelectorAll(".rph").forEach(b=>b.onclick=()=>openPhoto(b));
+}
+// A client's photo full size, over the page; arrows step through that review's photos.
+function openPhoto(btn){
+  const all=[...btn.parentNode.querySelectorAll(".rph")]; let i=all.indexOf(btn);
+  const box=document.createElement("div"); box.className="lbox"; box.setAttribute("role","dialog"); box.setAttribute("aria-label","Client photo");
+  const show=()=>{box.innerHTML=`<img src="${esc(all[i].dataset.u)}=w1600" alt="">`+(all.length>1?`<button type="button" class="lb-prev" aria-label="Previous photo">‹</button><button type="button" class="lb-next" aria-label="Next photo">›</button><span class="lb-n">${i+1} / ${all.length}</span>`:"")+`<button type="button" class="lb-x" aria-label="Close">×</button>`;};
+  const close=()=>{box.remove();document.removeEventListener("keydown",key);btn.focus();};
+  const step=d=>{i=(i+d+all.length)%all.length;show();};
+  const key=e=>{if(e.key==="Escape")close();else if(e.key==="ArrowRight"&&all.length>1)step(1);else if(e.key==="ArrowLeft"&&all.length>1)step(-1);};
+  box.onclick=e=>{const t=e.target; if(t.classList.contains("lb-prev"))step(-1); else if(t.classList.contains("lb-next"))step(1); else if(t.tagName!=="IMG")close();};
+  // Embedded, this frame is as tall as the whole list and the dashboard scrolls, so a
+  // fixed box would sit mid-list: it covers only the part of the frame on screen.
+  let fe=null; try{fe=window.frameElement;}catch(e){}
+  if(fe){const fr=fe.getBoundingClientRect(), top=Math.max(0,-fr.top), bot=Math.min(fr.height,window.parent.innerHeight-fr.top);
+    box.style.cssText=`position:absolute;inset:auto 0 auto 0;top:${top}px;height:${Math.max(240,bot-top)}px`;}
+  document.addEventListener("keydown",key); show(); document.body.appendChild(box); box.querySelector(".lb-x").focus({preventScroll:true});
 }
 function renderNote(){
   const n=R.length.toLocaleString(), el=document.getElementById("note");
@@ -380,14 +400,15 @@ function renderNote(){
     : `<b>✓ All ${n} Google reviews</b> across the 5 branches, synced from Business Profile. Last sync ${when}.`;
 }
 async function loadLive(){
-  const rows=[], cols="review_id,branch,stars,reviewer,comment,review_date,date_approx,when_text,replied,reply,url,source,synced_at";
+  // photos: what the client attached on Google, read off Business Profile (google_review_photos, Kate, 5 Oct 2026).
+  const rows=[], cols="review_id,branch,stars,reviewer,comment,review_date,date_approx,when_text,replied,reply,url,source,synced_at,photos";
   for(let from=0;;from+=1000){
     const res=await fetch(`${SUPA_URL}/rest/v1/google_reviews?select=${cols}&order=review_date.desc,review_id`,{headers:{...authHeaders(),Range:`${from}-${from+999}`}});
     if(!res.ok) throw new Error("google_reviews "+res.status);
     const page=await res.json(); rows.push(...page); if(page.length<1000) break;
   }
   if(!rows.length) throw new Error("google_reviews is empty");
-  R=rows.map(r=>({id:r.review_id,branch:r.branch,stars:r.stars,reviewer:r.reviewer,date:r.review_date,comment:r.comment||"",replied:r.replied,reply:r.reply||"",url:r.url,approx:r.date_approx,when:r.when_text}));
+  R=rows.map(r=>({id:r.review_id,branch:r.branch,stars:r.stars,reviewer:r.reviewer,date:r.review_date,comment:r.comment||"",replied:r.replied,reply:r.reply||"",url:r.url,approx:r.date_approx,when:r.when_text,photos:r.photos||[]}));
   SYNC={last:rows.reduce((m,r)=>r.synced_at>m?r.synced_at:m,""),seedOnly:rows.every(r=>r.source==="seed")};
   const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Dubai"});
   const totals={},exact={},avg={},cover={};
@@ -398,7 +419,7 @@ async function loadLive(){
 }
 function loadOffline(){
   return new Promise((ok,fail)=>{const s=document.createElement("script");s.src="data.js";
-    s.onload=()=>{R=window.REVIEWS;META=window.META;ok();};s.onerror=fail;document.body.appendChild(s);});
+    s.onload=()=>{R=window.REVIEWS.map(r=>({...r,photos:r.photos||[]}));META=window.META;ok();};s.onerror=fail;document.body.appendChild(s);});
 }
 function render(){
   const F=baseFilter();
@@ -407,7 +428,7 @@ function render(){
 }
 document.getElementById("q").oninput=e=>{state.q=e.target.value;render();};
 document.getElementById("sort").onchange=e=>{state.sort=e.target.value;render();};
-document.getElementById("reset").onclick=()=>{Object.assign(state,{branches:new Set(BRANCHES),stars:new Set(ALL),rec:DEFAULT_REC,withText:false,noReply:false,q:"",staff:""});document.getElementById("q").value="";render();};
+document.getElementById("reset").onclick=()=>{Object.assign(state,{branches:new Set(BRANCHES),stars:new Set(ALL),rec:DEFAULT_REC,withText:false,noReply:false,withPhotos:false,q:"",staff:""});document.getElementById("q").value="";render();};
 document.getElementById("reset2").onclick=()=>document.getElementById("reset").click();
 // Embedded in the dashboard: no own toggle and no own scrollbar. The dashboard's
 // sticky-header toggle sends the theme by postMessage (direct parent access is
