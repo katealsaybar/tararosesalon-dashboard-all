@@ -49,6 +49,28 @@ let SORT = 'branch', SORT_REV = false;
 let CHART_MODE = 'week';
 try { if (localStorage.getItem('perf-chart') === 'day') CHART_MODE = 'day'; } catch (e) {}
 try { const v = JSON.parse(localStorage.getItem('perf-sort') || 'null'); if (v) { SORT = v.k; SORT_REV = !!v.rev; } } catch (e) {}
+// Kate, 5 Oct 2026: a Ledger | Phorest switch on her page. Sales are always Phorest's;
+// clients, requests, new clients and rebooking come from the branch ledger unless she
+// picks Phorest, which swaps in Phorest's own counts (perf_core's 'phorest'). Phorest
+// has no rebooking in what we pull, so that shows a dash. Remembered per browser,
+// &src=phorest|ledger in the address wins.
+let SRC = 'ledger';
+try { if (localStorage.getItem('perf-src') === 'phorest') SRC = 'phorest'; } catch (e) {}
+if (['ledger', 'phorest'].includes(qs.get('src'))) SRC = qs.get('src');
+let RAW = null, RAW_KEY = null;   // the last perf_dashboard answer, so the switch needn't ask again
+function withSource(d) {
+  if (SRC !== 'phorest') return d;
+  const swap = n => {
+    if (!n || !n.phorest) return;
+    Object.assign(n, n.phorest);
+    n.salon = n.ncr = n.rebooked = n.rebooking_pct = null;
+  };
+  swap(d.numbers);
+  (d.weeks || []).forEach(w => swap(w.numbers));
+  (d.history || []).forEach(h => swap(h.numbers));
+  (d.days || []).forEach(x => { if (x.phorest_clients !== undefined) x.clients = x.phorest_clients; });
+  return d;
+}
 function postHeight() {
   if (EMBED) parent.postMessage({ type: 'perf-height', h: Math.ceil(document.body.getBoundingClientRect().height) + 8 }, '*');
 }
@@ -584,9 +606,14 @@ async function renderStylist() {
   // Kate, 2 Oct 2026: on her own link the tip only needs the token, so it is asked for
   // alongside perf_dashboard instead of after it.
   const tipAsk = TOKEN ? rpc('perf_tip', { p_token: TOKEN, p_month: MONTH + '-01' }).catch(() => null) : null;
-  const d = TOKEN
-    ? await rpc('perf_dashboard', { p_token: TOKEN, p_month: MONTH + '-01' })
-    : await rpc('perf_dashboard_by_id', { p_admin: ADMIN, p_staff_id: SID, p_month: MONTH + '-01' });
+  const key = [TOKEN, SID, MONTH].join('|');
+  if (RAW_KEY !== key || !RAW) {
+    RAW = TOKEN
+      ? await rpc('perf_dashboard', { p_token: TOKEN, p_month: MONTH + '-01' })
+      : await rpc('perf_dashboard_by_id', { p_admin: ADMIN, p_staff_id: SID, p_month: MONTH + '-01' });
+    RAW_KEY = key;
+  }
+  const d = RAW ? withSource(JSON.parse(JSON.stringify(RAW))) : null;
   if (!d) { app.innerHTML = `<p class="err">This link isn't active. Ask your salon manager for a new one.</p>`; return; }
   if (d.role) ROLE = d.role; else if (ADMIN && TOKEN && !ROLE) ROLE = 'leader';
   // An AI-written win + tip for the month, if one was saved (perf_tips); the formula otherwise.
@@ -609,13 +636,16 @@ async function renderStylist() {
     isHair ? tile('treatments_pct', 'Treatment %', d, pace) : tile('request_pct', 'Request rate', d, pace),
     tile('retail_pct', 'Retail %', d, pace),
     // Emma, 29 Sep 2026: the count under the rate, "10 of 20 clients rebooked".
-    tile('rebooking_pct', 'Rebooking %', d, pace, n.clients > 0 ? `<br>${fmt(n.rebooked, 'num')} of ${fmt(n.clients, 'num')} clients rebooked` : ''),
+    tile('rebooking_pct', 'Rebooking %', d, pace, SRC === 'phorest' ? '<br>Not in our Phorest feed yet. Switch to Ledger to see it.'
+      : n.clients > 0 ? `<br>${fmt(n.rebooked, 'num')} of ${fmt(n.clients, 'num')} clients rebooked` : ''),
     tile('clients', 'Total clients', d, pace),
     tile('column_fill_pct', 'Column fill', d, pace, `<br>${fmt(n.booked_hours, 'num')} of ${fmt(n.available_hours, 'num')} hours booked`),
   ].join('');
 
   const pct = v => n.clients > 0 ? ` · ${Math.round(100 * v / n.clients)}%` : '';
+  // Phorest only splits out requests and new clients, so salon and NCR drop off there.
   const clientTiles = [['req', 'Request', n.req], ['salon', 'Salon', n.salon], ['new_clients', 'New', n.new_clients], ['ncr', 'New client request', n.ncr]]
+    .filter(([, , v]) => SRC !== 'phorest' || v !== null)
     .map(([k, l, v]) => `<div class="tile"><div class="lbl">${tipLbl(k, l)}</div><div class="val">${fmt(v, 'num')}</div><div class="aim">${fmt(v, 'num')} of ${fmt(n.clients, 'num')}${pct(v)}</div></div>`).join('');
 
   const allKeys = KPIS.map(x => x.k);
@@ -652,7 +682,10 @@ async function renderStylist() {
 
     <section class="card">
       <div class="eyebrow">${midMonth ? 'This month so far' : 'Your month'}</div>
-      <h2>The six numbers.</h2>
+      <div class="card-head"><h2>The six numbers.</h2><div class="dept-seg chart-seg" id="srcSeg" role="group" aria-label="Where the client numbers come from"><button type="button" data-src="ledger"${SRC === 'ledger' ? ' class="on"' : ''}>Ledger</button><button type="button" data-src="phorest"${SRC === 'phorest' ? ' class="on"' : ''}>Phorest</button></div></div>
+      <p class="sub">${SRC === 'phorest'
+        ? 'Clients, requests, new clients and average bill are Phorest’s own counts. Sales are from Phorest either way.'
+        : 'Clients, requests, new clients and rebooking are from the branch ledger reception fills in. Sales are from Phorest either way.'}</p>
       ${midMonth ? `<p class="sub">Money numbers are judged on pace for the full month, with data up to ${esc(dayLabel(n.data_to || n.last_date))}.</p>` : ''}
       ${started && !(share && share.off) ? `<p class="sub">You started on ${esc(dayLabel(n.start_date))}, so this month's totals are aimed at the ${started.left} days since.</p>` : ''}
       ${share && share.off ? `<p class="sub">${started ? `You started on ${esc(dayLabel(n.start_date))} and` : 'You'} were away ${(n.leave || []).map(x => x.from === x.to ? esc(dayLabel(x.from)) : `${esc(dayLabel(x.from))} to ${esc(dayLabel(x.to))}`).join(' and ')}, so this month's totals are aimed at the ${share.left} days you were here.</p>` : ''}
@@ -804,6 +837,16 @@ async function renderStylist() {
     };
   }
 
+  const srcSeg = document.getElementById('srcSeg');
+  if (srcSeg) srcSeg.onclick = (e) => {
+    const b = e.target.closest('button[data-src]');
+    if (!b || b.dataset.src === SRC) return;
+    SRC = b.dataset.src;
+    try { localStorage.setItem('perf-src', SRC); } catch (err) {}
+    const y = scrollY;
+    renderStylist().then(() => scrollTo(0, y));
+  };
+
   // Kate, 3 Oct 2026: Level 3 and above see the staff link on a view-only key too.
   // perf_staff_link answers only for a signed-in dashboard user at Level 3+ (UAE
   // scope), with her /me/ link; Level 2 and below get null and no button.
@@ -825,12 +868,12 @@ async function renderStylist() {
       const t = document.getElementById('noteText').value;
       if (!t.trim()) return;
       await rpc('perf_add_note', { p_admin: ADMIN, p_token: TOKEN, p_month: MONTH + '-01', p_note: t });
-      renderStylist();
+      RAW = null; renderStylist();
     };
     app.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
       if (!confirm('Remove this note?')) return;
       await rpc('perf_delete_note', { p_admin: ADMIN, p_note_id: Number(b.dataset.del) });
-      renderStylist();
+      RAW = null; renderStylist();
     });
   }
 }
