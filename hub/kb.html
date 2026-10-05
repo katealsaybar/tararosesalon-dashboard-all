@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261005sugg">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=20261005docsugg">
 </head>
 <body class="kb-wait">
 <!-- One page for both a section's list (?s=beauty-sop) and a single SOP (?p=<slug>).
@@ -28,6 +28,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
 <script src="/hub/hub.js?v=20261005viewas"></script>
+<script src="/hub/kb-doc.js?v=20261005doc"></script>
 <script>
 (function () {
   var q = new URLSearchParams(location.search), main = document.getElementById('kbMain'), esc = KB.esc;
@@ -54,6 +55,47 @@
     });
   });
 
+  // ── PDF (Kate, 5 Oct 2026): one page, or the whole section as one book ──
+  // KBDoc.pdf (kb-doc.js) builds a real PDF in the browser, same type and colours as the
+  // page, text selectable. Nothing goes to a server.
+  var PDF_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 14.5V16h12v-1.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function pdfBtn(label) { return '<button type="button" class="kb-pdf">' + PDF_ICON + '<span>' + esc(label) + '</span></button>'; }
+  function busy(btn, label) {
+    var span = btn.querySelector('span'), was = span.textContent;
+    btn.disabled = true; btn.classList.add('busy'); span.textContent = label;
+    return function (msg) {
+      btn.disabled = false; btn.classList.remove('busy'); span.textContent = was;
+      if (msg) alert(msg);
+    };
+  }
+  function metaLine(p, i, n) {
+    return (i >= 0 && n ? 'Chapter ' + (i + 1) + ' of ' + n + ' · ' : '') + 'Version ' + p.version +
+      ' · Updated ' + when(p.updated_at) + (p.owner ? ' · ' + p.owner : '');
+  }
+  function forPdf(p, sec, i, n) {
+    return { title: p.title, eyebrow: sec.title + (p.group_name ? ' · ' + p.group_name : ''), meta: metaLine(p, i, n),
+      note: p.note, html: p.body_html };
+  }
+  function failMsg(e) { return (e && e.message) || 'The PDF could not be made. Try again in a moment.'; }
+  function pagePdf(p, sec, i, n, btn) {
+    var done = busy(btn, 'Making the PDF…');
+    KBDoc.pdf([forPdf(p, sec, i, n)], { filename: KBDoc.filename(p.title), running: sec.title })
+      .then(function () { done(); }, function (e) { done(failMsg(e)); });
+  }
+  async function bookPdf(key, btn) {
+    var sec = sectionOf(key), done = busy(btn, 'Gathering the pages…');
+    try {
+      var r = await KB.client.from('kb_pages').select('slug,title,group_name,sort,body_html,note,owner,version,updated_at').eq('section', key).order('sort');
+      if (r.error) throw r.error;
+      var list = (r.data || []).filter(function (p) { return KB.shows(p.slug); });
+      btn.querySelector('span').textContent = 'Making the PDF…';
+      await KBDoc.pdf(list.map(function (p, i) { return forPdf(p, sec, i, list.length); }), {
+        filename: KBDoc.filename(sec.title), running: sec.title,
+        book: { title: sec.title, sub: list.length + ' chapters · downloaded ' + when(new Date()) } });
+      done();
+    } catch (e) { done(failMsg(e)); }
+  }
+
   async function sectionList(key) {
     var sec = sectionOf(key);
     if (KB.viewAs && KB.allowed.indexOf(key) < 0) { notFound(); return; }   // "View as": not open at that level
@@ -72,6 +114,7 @@
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       '<h2 class="kb-page-title">' + esc(sec.title) + '</h2>' +
       '<p class="kb-meta">' + r.data.length + ' pages</p>' +
+      '<div class="kb-tools">' + pdfBtn('Download all as one PDF') + '</div>' +
       (anyNote ? '<p class="kb-legend"><span class="kb-dot"></span>Something on this page is still being confirmed.</p>' : '') +
       groups.map(function (g) {
         return '<section class="kb-group"><h2>' + esc(g) + '</h2><ul class="kb-list">' +
@@ -81,20 +124,13 @@
               KB.starBtn('p:' + p.slug, p.title) + '</li>';
           }).join('') + '</ul></section>';
       }).join('');
+    main.querySelector('.kb-pdf').addEventListener('click', function (e) { bookPdf(key, e.currentTarget); });
   }
 
-  // Kate, 1 Oct 2026: a page reads like a document. The section's chapters sit down the
-  // side (a fold-out list on a phone), the page says which chapter of how many it is,
-  // and a chapter made from a workbook opens on Tara's designed pages, with the text
-  // version one tap away (Workbook | Text, remembered per person). The pictures live in
-  // the private kb-sheets bucket and arrive as short-lived signed links.
-  var VIEW_KEY = 'trs-kb-view';
-  function viewPref() { try { return localStorage.getItem(VIEW_KEY) || 'sheets'; } catch (e) { return 'sheets'; } }
-  function setView(doc, v) {
-    doc.classList.toggle('show-text', v === 'text');
-    document.querySelectorAll('.kb-view button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.v === v)); });
-    try { localStorage.setItem(VIEW_KEY, v); } catch (e) {}
-  }
+  // Kate, 1 Oct 2026: a page reads like a document, the section's chapters down the side
+  // (a fold-out list on a phone). 5 Oct 2026: one view only. The Workbook | Text switch is
+  // gone; every page is drawn as the house document (KBDoc.clean: Playfair + Inter, paper,
+  // ink and turquoise) and downloads as a PDF in the same look.
   function toc(list, cur) {
     var groups = [], by = {};
     list.forEach(function (x) { var g = x.group_name || ''; if (!by[g]) { by[g] = []; groups.push(g); } by[g].push(x); });
@@ -116,7 +152,6 @@
     var all = await KB.client.from('kb_pages').select('slug,title,sort,group_name').eq('section', p.section).order('sort');
     var list = (all.data || []).filter(function (x) { return KB.shows(x.slug); }), i = list.findIndex(function (x) { return x.slug === p.slug; });
     var prev = i > 0 ? list[i - 1] : null, next = i >= 0 && i < list.length - 1 ? list[i + 1] : null;
-    var sheets = p.body_html.indexOf('data-sheet=') >= 0;
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a> › <a href="/hub/kb.html?s=' + encodeURIComponent(p.section) + '">' + esc(sec.title) + '</a>' +
         (p.group_name ? ' › ' + esc(p.group_name) : '') + '</p>' +
@@ -124,14 +159,18 @@
         '<details class="kb-toc" open><summary>Chapters <span>' + list.length + '</span></summary>' +
           '<nav aria-label="Chapters in ' + esc(sec.title) + '">' + toc(list, p.slug) + '</nav></details>' +
         '<div class="kb-read">' +
-          '<div class="kb-title-row"><h2 class="kb-page-title">' + esc(p.title) + '</h2>' + KB.starBtn('p:' + p.slug, p.title) + '</div>' +
-          '<p class="kb-meta">' + (i >= 0 ? 'Chapter ' + (i + 1) + ' of ' + list.length + ' · ' : '') + 'version ' + p.version +
-            ' · updated ' + when(p.updated_at) + (p.owner ? ' · ' + esc(p.owner) : '') + '</p>' +
-          (sheets ? '<div class="kb-view" role="group" aria-label="Show">' +
-            '<button type="button" data-v="sheets" aria-pressed="false">Workbook</button>' +
-            '<button type="button" data-v="text" aria-pressed="false">Text</button></div>' : '') +
-          (p.note ? p.note.split('\n').map(function (n) { return '<div class="kb-note">' + esc(n) + '</div>'; }).join('') : '') +
-          '<article class="kb-doc' + (sheets ? ' has-sheets' : '') + '">' + p.body_html + '</article>' +
+          '<div class="kb-tools">' + pdfBtn('Download PDF') + KB.starBtn('p:' + p.slug, p.title) + '</div>' +
+          '<article class="kb-doc kd">' +
+            '<header class="kd-head">' +
+              '<p class="kd-eyebrow">' + esc(sec.title) + (p.group_name ? ' · ' + esc(p.group_name) : '') + '</p>' +
+              '<h2 class="kd-title">' + esc(p.title) + '</h2>' +
+              '<p class="kd-meta">' + esc(metaLine(p, i, list.length)) + '</p>' +
+            '</header>' +
+            (p.note ? p.note.split('\n').map(function (n) {
+              return '<div class="kb-note"><div><b>Being confirmed</b>' + esc(n.replace(/^Being confirmed:\s*/i, '')) + '</div></div>';
+            }).join('') : '') +
+            '<div class="kd-body">' + KBDoc.clean(p.body_html) + '</div>' +
+          '</article>' +
           '<nav class="kb-pager">' +
             (prev ? '<a class="prev" href="/hub/kb.html?p=' + encodeURIComponent(prev.slug) + '"><small>Previous</small>' + esc(prev.title) + '</a>' : '') +
             (next ? '<a class="next" href="/hub/kb.html?p=' + encodeURIComponent(next.slug) + '"><small>Next</small>' + esc(next.title) + '</a>' : '') +
@@ -143,17 +182,7 @@
     if (matchMedia('(max-width:900px)').matches) det.open = false;
     var on = det.querySelector('a.on'); if (on && det.open) on.scrollIntoView({ block: 'center' });
     window.scrollTo(0, 0);
-    if (sheets) {
-      var doc = main.querySelector('.kb-doc');
-      setView(doc, viewPref());
-      main.querySelector('.kb-view').addEventListener('click', function (e) {
-        var b = e.target.closest('button'); if (b) setView(doc, b.dataset.v);
-      });
-      var imgs = [].slice.call(doc.querySelectorAll('img[data-sheet]'));
-      var s = await KB.client.storage.from('kb-sheets').createSignedUrls(imgs.map(function (im) { return im.dataset.sheet; }), 3600);
-      if (s.error || !s.data) setView(doc, 'text');
-      else s.data.forEach(function (u, k) { if (u.signedUrl) imgs[k].src = u.signedUrl; });
-    }
+    main.querySelector('.kb-pdf').addEventListener('click', function (e) { pagePdf(p, sec, i, list.length, e.currentTarget); });
   }
 
   KB.ready.then(async function () {

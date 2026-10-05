@@ -179,7 +179,7 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
    beside the title on the page itself. The card star stays absolute; these sit in flow. */
 .kb-list li{display:flex;align-items:center}
 .kb-list li > a{flex:1;min-width:0}
-.kb-list .kb-star,.kb-title-row .kb-star{position:static;flex:none}
+.kb-list .kb-star,.kb-title-row .kb-star,.kb-tools .kb-star{position:static;flex:none}
 .kb-list .kb-star{margin-right:8px}
 .kb-title-row{display:flex;align-items:flex-start;gap:8px}
 .kb-title-row .kb-page-title{flex:1;min-width:0}
@@ -211,7 +211,7 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 .kb-pager a:hover{border-color:var(--text)}
 .kb-pager small{display:block;color:var(--muted2);font-size:12px}
 .kb-pager .next{text-align:right;margin-left:auto}
-/* ── Reader (Kate, 1 Oct 2026): chapters down the side, Workbook | Text ── */
+/* ── Reader (Kate, 1 Oct 2026): chapters down the side ── */
 .kb-reader{display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px;align-items:start}
 .kb-toc{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;padding:4px 4px 12px 0}
 .kb-toc summary{list-style:none;cursor:default;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);font-weight:600;margin:0 0 6px}
@@ -224,15 +224,6 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
 .kb-toc a.on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:inset 3px 0 0 var(--accent-mint)}
 .kb-read{min-width:0;max-width:860px}
 .kb-read .kb-pager{max-width:none}
-.kb-view{display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:3px;gap:3px;margin:0 0 16px;background:var(--surface)}
-.kb-view button{font:inherit;font-size:13.5px;border:0;border-radius:999px;padding:7px 16px;min-height:36px;background:transparent;color:var(--muted);cursor:pointer}
-.kb-view button[aria-pressed="true"]{background:var(--text);color:var(--bg);font-weight:600}
-.kb-doc .kb-sheets{display:flex;flex-direction:column;gap:16px}
-.kb-doc img.kb-sheet{max-width:100%;width:100%;height:auto;margin:0;border-radius:6px;background:var(--surface2);aspect-ratio:595/842;box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.kb-doc.has-sheets{padding:16px}
-.kb-doc.has-sheets.show-text{padding:28px 34px 32px}
-.kb-doc.has-sheets:not(.show-text) .kb-text{display:none}
-.kb-doc.show-text .kb-sheets{display:none}
 @media (max-width:900px){
   .kb-reader{display:block}
   .kb-toc{position:static;max-height:none;margin:0 0 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:0}
@@ -240,8 +231,6 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
   .kb-toc summary::after{content:"\25BE";font-size:14px;letter-spacing:0}
   .kb-toc[open] summary::after{content:"\25B4"}
   .kb-toc nav{padding:0 8px 12px;max-height:60vh;overflow:auto}
-  .kb-doc.has-sheets{padding:8px}
-  .kb-doc.has-sheets.show-text{padding:20px 18px 22px}
 }
 .kb-msg{padding:40px 0;color:var(--muted)}
 
@@ -303,12 +292,11 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
   .kb-head{top:-58px}
   /* The chapter count sits beside "Chapters", not in the middle of the bar. */
   .kb-toc summary span{margin:0 auto 0 10px}
-  /* Workbook pages use the full width: no card frame around the page images. */
-  .kb-doc.has-sheets:not(.show-text){padding:0;border:0;background:none;box-shadow:none}
 }
 @media print{
-  .kb-head,.kb-pager,.kb-foot,.kb-crumbs{display:none}
-  .kb-doc{box-shadow:none;border:0;padding:0}
+  .kb-head,.kb-pager,.kb-foot,.kb-crumbs,.kb-toc,.kb-tools,.kb-viewas-bar{display:none}
+  .kb-reader{display:block}
+  .kb-doc,.kd{box-shadow:none;border:0;padding:0}
 }
 
 /* ── Dropdowns (Kate, 3 Oct 2026): the dashboard's soft pill menu, made by KB.pillDD ── */
@@ -402,4 +390,74 @@ a.kb-card:focus-visible{outline:2px solid var(--text);outline-offset:3px}
   .sg-item{padding:13px 14px}
   .sg-topic,.sg-when{font-size:12px}
   .sg-status button{min-height:36px}
+}
+
+/* ── The house document (Kate, 5 Oct 2026) ──────────────────────────────
+   One view for every SOP and induction page, no more Workbook | Text: TRS Standard v1
+   type and colour (Playfair Display headings, Inter text, paper, ink, turquoise).
+   Paper and ink in the light theme; in the dark theme the same sheet in ink with
+   paper text. The PDF (kb-doc.js) draws the same parts in the paper colours. */
+.kd{--kd-paper:#FAF8F4;--kd-cream:#F1ECE3;--kd-ink:#2D2E37;--kd-soft:#74747B;--kd-hair:rgba(45,46,55,.11);
+  --kd-tq:#99F6E4;--kd-tq-deep:#7DE6D2;--kd-tq-text:#3aa892;--kd-lime:#EEF3C7;
+  background:var(--kd-paper);color:var(--kd-ink);border:1px solid var(--kd-hair);border-radius:22px;
+  padding:44px 52px 48px;max-width:820px;box-shadow:var(--shadow);font-size:16px;line-height:1.65}
+[data-theme="dark"] .kd{--kd-paper:#383944;--kd-cream:#2D2E37;--kd-ink:#FAF8F3;--kd-soft:rgba(250,248,243,.66);
+  --kd-hair:rgba(250,248,243,.10);--kd-tq-text:#99F6E4;--kd-lime:rgba(238,243,199,.14)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .kd{--kd-paper:#383944;--kd-cream:#2D2E37;--kd-ink:#FAF8F3;
+  --kd-soft:rgba(250,248,243,.66);--kd-hair:rgba(250,248,243,.10);--kd-tq-text:#99F6E4;--kd-lime:rgba(238,243,199,.14)}}
+.kd-head{margin:0 0 30px;padding:0 0 22px;position:relative;border-bottom:1px solid var(--kd-hair)}
+.kd-head::after{content:"";position:absolute;left:0;bottom:-2px;width:64px;height:3px;border-radius:3px;background:var(--kd-tq)}
+.kd-eyebrow,.kd .kd-kicker{font-size:11px;font-weight:500;letter-spacing:.32em;text-transform:uppercase;color:var(--kd-soft);margin:0 0 12px}
+.kd-title{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(30px,4vw,42px);line-height:1.08;letter-spacing:-.01em;margin:0 0 12px}
+.kd-meta{font-size:13px;color:var(--kd-soft);margin:0}
+.kd .kb-note{background:var(--kd-lime);color:var(--kd-ink);border-radius:14px;margin:0 0 26px}
+.kd .kb-note::before{background:var(--kd-ink);opacity:.55}
+.kd .kb-note b{display:block;font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:600;margin:0 0 2px}
+.kd-body > :first-child{margin-top:0}
+.kd-body h3{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(23px,2.6vw,28px);line-height:1.15;margin:42px 0 12px}
+.kd-body h3::before{content:"";display:block;width:28px;height:3px;border-radius:3px;background:var(--kd-tq);margin:0 0 14px}
+.kd-body .kd-kicker{margin:42px 0 0}
+.kd-body .kd-kicker + h3{margin-top:4px}
+.kd-body .kd-kicker + h3::before{display:none}
+.kd-body h4{font-family:'Inter',system-ui,sans-serif;font-weight:600;font-size:16px;margin:24px 0 8px}
+.kd-body p{margin:0 0 14px}
+.kd-body strong{font-weight:600}
+.kd-body ul{list-style:none;margin:0 0 18px;padding:0}
+.kd-body ul > li{position:relative;padding-left:22px;margin:0 0 8px}
+.kd-body ul > li::before{content:"";position:absolute;left:4px;top:.68em;width:7px;height:7px;border-radius:50%;background:var(--kd-tq-text)}
+.kd-body ol{list-style:none;counter-reset:kd;margin:6px 0 20px;padding:0}
+.kd-body ol > li{counter-increment:kd;position:relative;padding:0 0 0 42px;margin:0 0 12px;min-height:28px}
+.kd-body ol > li::before{content:counter(kd);position:absolute;left:0;top:-1px;width:28px;height:28px;border-radius:50%;
+  background:var(--kd-tq);color:#2D2E37;font-size:13px;font-weight:600;display:grid;place-items:center;line-height:1}
+.kd-body li > ul,.kd-body li > ol{margin:8px 0 0}
+.kd-say{position:relative;margin:8px 0 22px;padding:16px 20px 18px 22px;background:var(--kd-cream);border-left:3px solid var(--kd-tq-deep);
+  border-radius:0 16px 16px 0;font-family:'Playfair Display',Georgia,serif;font-style:italic;font-size:18.5px;line-height:1.5}
+.kd-say::before{content:"Say it like this";display:block;font-family:'Inter',system-ui,sans-serif;font-style:normal;font-size:10.5px;
+  font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--kd-tq-text);margin:0 0 6px}
+.kd-table{overflow-x:auto;margin:6px 0 22px;border:1px solid var(--kd-hair);border-radius:14px}
+.kd-body table{border-collapse:collapse;width:100%;font-size:14.5px;display:table;margin:0}
+.kd-body th,.kd-body td{border:0;border-bottom:1px solid var(--kd-hair);padding:10px 14px;vertical-align:top;text-align:left}
+.kd-body tr:last-child > *{border-bottom:0}
+.kd-body th{background:var(--kd-cream);font-weight:600}
+.kd-body tbody th{width:34%}
+.kd-photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 24px;max-width:560px}
+.kd-photos img,.kd-fig img{display:block;width:100%;height:auto;border-radius:14px;border:0;margin:0;max-width:none}
+.kd-fig{max-width:420px;margin:8px 0 24px}
+/* The page's buttons: Download PDF (an ink pill, turquoise in the dark theme) and the star. */
+.kb-tools{display:flex;align-items:center;gap:8px;margin:0 0 14px;max-width:820px}
+.kb-read .kb-tools{justify-content:flex-end}
+.kb-pdf{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 20px 0 16px;border:0;border-radius:100px;
+  background:#2D2E37;color:#FAF8F4;font-size:13.5px;font-weight:500;cursor:pointer;transition:transform .3s cubic-bezier(.22,.61,.36,1),background .3s}
+.kb-pdf svg{width:18px;height:18px;flex:none}
+@media(hover:hover){.kb-pdf:hover{transform:translateY(-2px);background:#3b3c47}}
+.kb-pdf:focus-visible{outline:2px solid #7DE6D2;outline-offset:3px}
+.kb-pdf.busy{opacity:.7;cursor:progress;transform:none}
+[data-theme="dark"] .kb-pdf{background:#99F6E4;color:#2D2E37}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .kb-pdf{background:#99F6E4;color:#2D2E37}}
+@media (max-width:760px){
+  .kd{padding:26px 20px 30px;border-radius:16px;font-size:15.5px}
+  .kd-head{margin-bottom:22px;padding-bottom:18px}
+  .kd-say{font-size:17px;padding:14px 16px 16px 18px}
+  .kd-photos{gap:8px}
+  .kd-body ol > li{padding-left:38px}
 }
