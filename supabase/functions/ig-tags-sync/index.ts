@@ -44,6 +44,11 @@ Deno.serve(async (req) => {
       'ig_collab_posts', 'media_id,username');
   }
   const failed = out.tags?.error || out.collabs?.error;
+  // Every run leaves a mark in sync_health, so a dead token shows on the socials card
+  // within a day (Kate, 5 Oct 2026: the token expired 28 Sep and nobody knew for a week).
+  const mark: any = { name: 'ig-tags-sync', last_run_at: now(), last_error: failed ? String(failed) : null };
+  if (!failed) mark.last_ok_at = mark.last_run_at;
+  await sb.from('sync_health').upsert(mark, { onConflict: 'name' });
   return json(out, failed ? 502 : 200);
 });
 

@@ -531,7 +531,11 @@ function socials(n) {
   if (!h.length) return `<p class="muted">No Instagram handle on file yet. Tell your salon manager yours so your posts count.</p>`;
   const list = n.social_list || [];
   const handles = h.map(x => `<a class="rv-link" href="https://www.instagram.com/${encodeURIComponent(x)}/" target="_blank" rel="noopener">@${esc(x)}</a>`).join(', ');
-  return `<p class="sub">${fmt(list.length, 'num')} ${list.length === 1 ? 'post' : 'posts'} with @tararosesalon this month · ${fmt(n.social_stories, 'num')} story ${n.social_stories === 1 ? 'mention' : 'mentions'} · ${handles}</p>
+  // The nightly Instagram read failing (sync_health via perf_socials). Kate, 5 Oct 2026.
+  const okAt = n.ig_sync_ok_at ? new Date(n.ig_sync_ok_at) : null;
+  const stale = okAt && Date.now() - okAt > 36 * 36e5
+    ? `<p class="muted"><b>Instagram counts are paused.</b> Nothing new has come in since ${esc(okAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Dubai' }))}, so recent posts are missing here. We're fixing it, and they'll fill in once it's back.</p>` : '';
+  return `${stale}<p class="sub">${fmt(list.length, 'num')} ${list.length === 1 ? 'post' : 'posts'} with @tararosesalon this month · ${fmt(n.social_stories, 'num')} story ${n.social_stories === 1 ? 'mention' : 'mentions'} · ${handles}</p>
     ${list.length ? list.map(p => `<div class="note">${p.via === 'collab' ? 'Collab on a salon post' : esc(IG_TYPE[p.type] || 'Post')}<div class="by">${esc(dayLabel(p.date))}${p.link ? ` · <a class="rv-link" href="${esc(p.link)}" target="_blank" rel="noopener">View on Instagram ↗</a>` : ''}</div></div>`).join('')
       : `<p class="muted">Nothing tagged yet this month. Tag @tararosesalon on your posts and reels so they show here.</p>`}
     <p class="legend">Feed posts, reels and carousels update nightly. Story mentions count from 28 Sep 2026.</p>`;
