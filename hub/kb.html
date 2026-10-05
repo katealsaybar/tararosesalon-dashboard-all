@@ -27,7 +27,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261003pills"></script>
+<script src="/hub/hub.js?v=20261005viewas"></script>
 <script>
 (function () {
   var q = new URLSearchParams(location.search), main = document.getElementById('kbMain'), esc = KB.esc;
@@ -59,6 +59,7 @@
     if (KB.viewAs && KB.allowed.indexOf(key) < 0) { notFound(); return; }   // "View as": not open at that level
     document.title = sec.title + ' · Team Home';
     var r = await KB.client.from('kb_pages').select('slug,title,group_name,sort,note').eq('section', key).order('sort');
+    if (r.data) r.data = r.data.filter(function (p) { return KB.shows(p.slug); });   // "View as": leadership-only pages
     if (r.error || !r.data || !r.data.length) { notFound(); return; }
     var groups = [], by = {};
     r.data.forEach(function (p) {
@@ -109,11 +110,11 @@
     var r = await KB.client.from('kb_pages').select('slug,section,group_name,sort,title,body_html,note,owner,version,updated_at').eq('slug', slug).maybeSingle();
     if (r.error || !r.data) { notFound(); return; }
     var p = r.data, sec = sectionOf(p.section);
-    if (KB.viewAs && KB.allowed.indexOf(p.section) < 0) { notFound(); return; }
+    if (KB.viewAs && (KB.allowed.indexOf(p.section) < 0 || !KB.shows(p.slug))) { notFound(); return; }
     document.title = p.title + ' · ' + sec.title;
     // The section's chapters, for the side list and previous / next: titles only.
     var all = await KB.client.from('kb_pages').select('slug,title,sort,group_name').eq('section', p.section).order('sort');
-    var list = all.data || [], i = list.findIndex(function (x) { return x.slug === p.slug; });
+    var list = (all.data || []).filter(function (x) { return KB.shows(x.slug); }), i = list.findIndex(function (x) { return x.slug === p.slug; });
     var prev = i > 0 ? list[i - 1] : null, next = i >= 0 && i < list.length - 1 ? list[i + 1] : null;
     var sheets = p.body_html.indexOf('data-sheet=') >= 0;
     main.innerHTML =

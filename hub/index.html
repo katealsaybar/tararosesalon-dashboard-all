@@ -30,7 +30,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261003pills"></script>
+<script src="/hub/hub.js?v=20261005viewas"></script>
 <script>
 KB.ready.then(async function () {
   var esc = KB.esc;
@@ -40,9 +40,9 @@ KB.ready.then(async function () {
     'Your SOPs and your induction, in one place. Open a section, or search for a treatment.';
 
   // How many pages each section has. A row comes back only for sections this person may read.
-  var r = await KB.client.from('kb_pages').select('section');
+  var r = await KB.client.from('kb_pages').select('section,slug');
   var counts = {};
-  (r.data || []).forEach(function (x) { counts[x.section] = (counts[x.section] || 0) + 1; });
+  (r.data || []).forEach(function (x) { if (KB.shows(x.slug)) counts[x.section] = (counts[x.section] || 0) + 1; });
 
   // Only what kb_access() opened to this person; the database refuses the rest anyway.
   var shown = KB.SECTIONS.filter(function (s) { return KB.allowed.indexOf(s.key) >= 0; });
@@ -65,7 +65,7 @@ KB.ready.then(async function () {
   var slugs = Object.keys(favs).filter(function (k) { return k.indexOf('p:') === 0; }).map(function (k) { return k.slice(2); });
   if (slugs.length) {
     var pr = await KB.client.from('kb_pages').select('slug,title,section,group_name').in('slug', slugs);
-    pageFavs = (pr.data || []).map(function (p) {
+    pageFavs = (pr.data || []).filter(function (p) { return KB.shows(p.slug); }).map(function (p) {
       var sec = KB.SECTIONS.find(function (s) { return s.key === p.section; }) || {};
       return { key: 'p:' + p.slug, title: p.title, href: '/hub/kb.html?p=' + encodeURIComponent(p.slug), live: true,
         rule: sec.rule || 'var(--accent-mint)', blurb: (sec.title || '') + (p.group_name ? ' · ' + p.group_name : '') };

@@ -183,6 +183,15 @@
         }
       }
     }
+    // Kate, 5 Oct 2026: a Level 1 preview also hides the leadership-only pages inside an
+    // open section (audience 'manager', like the trade test). The database already hides
+    // them from real staff, but Kate is Level 5, so without this the preview showed them.
+    KB.hidden = [];
+    if (KB.viewAs && KB.level < 2) {
+      var m = await c.from('kb_pages').select('slug').eq('audience', 'manager');
+      KB.hidden = (m.data || []).map(function (x) { return x.slug; });
+    }
+    KB.shows = function (slug) { return KB.hidden.indexOf(slug) < 0; };
     KB.email = s.user && s.user.email;
     var n = await c.rpc('kb_me');
     KB.name = (!n.error && n.data) || '';
@@ -334,7 +343,7 @@
         var r = await c.rpc('kb_search', { q: q });
         if (mine !== seq) return;            // a newer search has gone out
         items = r.error ? [] : (r.data || []);
-        if (KB.viewAs) items = items.filter(function (it) { return KB.allowed.indexOf(it.section) >= 0; });
+        if (KB.viewAs) items = items.filter(function (it) { return KB.allowed.indexOf(it.section) >= 0 && KB.shows(it.slug); });
         active = -1; paint(q);
       }, 220);
     });
