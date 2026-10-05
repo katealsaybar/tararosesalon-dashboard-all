@@ -498,6 +498,11 @@ body.kb-wait .wrap{visibility:hidden}
 
 /* HR Forms & Waivers (Kate, 5 Oct 2026): /hub/forms, one panel per group. */
 .fm-row .kb-row-tx>span{white-space:normal;overflow:visible}
+.fm-switch{display:inline-flex;flex-wrap:wrap;border:1px solid var(--border);border-radius:999px;padding:4px;gap:4px;background:var(--surface);margin:0 0 20px}
+.fm-switch button{font:inherit;font-size:14px;border:0;border-radius:999px;padding:7px 16px;min-height:38px;background:transparent;color:var(--muted);cursor:pointer}
+.fm-switch button span{font-size:12px;opacity:.7;margin-left:4px}
+.fm-switch button[aria-pressed="true"]{background:var(--text);color:var(--bg);font-weight:600}
+.fm-dept[hidden]{display:none}
 .fm-code{flex:none;width:56px;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted2)}
 .fm-acts{flex:none;display:flex;gap:8px}
 .fm-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;min-height:36px}

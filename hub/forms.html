@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261005forms2">
+<link rel="stylesheet" href="/hub/hub.css?v=20261005forms3">
 </head>
 <body class="kb-wait">
 <!-- HR Forms & Waivers (Kate, 5 Oct 2026): the 14 fillable forms (real PDF form fields) rebuilt from the
@@ -77,13 +77,25 @@
       .eq('section', 'hr-forms').order('sort');
     if (r.error || !r.data || !r.data.length) { notFound(); return; }
     var groups = [], by = {};
-    r.data.forEach(function (f) { if (!by[f.grp]) { by[f.grp] = []; groups.push(f.grp); } by[f.grp].push(f); });
+    // Kate, 5 Oct 2026: client forms split into Hair and Beauty; the general waiver
+    // (grp 'Hair and beauty client forms') shows under both.
+    var BOTH = 'Hair and beauty client forms', SPLIT = ['Hair client forms', 'Beauty client forms'];
+    function add(g, f) { if (!by[g]) { by[g] = []; groups.push(g); } by[g].push(f); }
+    r.data.forEach(function (f) { if (f.grp === BOTH) SPLIT.forEach(function (g) { add(g, f); }); else add(f.grp, f); });
+    // Kate, 5 Oct 2026: one group at a time, picked with the switch under the title.
+    // The pick stays in the address (?t=1, ?t=2) and in this browser (trs-forms-tab).
+    var pick = 0;
+    try { pick = +(new URLSearchParams(location.search).get('t') || localStorage.getItem('trs-forms-tab') || 1) - 1; } catch (e) {}
+    if (!(pick >= 0 && pick < groups.length)) pick = 0;
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       '<h2 class="kb-page-title">HR Forms &amp; Waivers</h2>' +
       '<p class="kb-meta">' + r.data.length + ' fillable A4 forms · fill in on screen and save, or print and fill in by hand · file the signed copy</p>' +
-      groups.map(function (g) {
-        return '<section class="kb-dept fm-dept"><h2 class="kb-dept-h">' + esc(g) + '</h2>' + by[g].map(function (f) {
+      '<div class="fm-switch" role="group" aria-label="Which forms">' + groups.map(function (g, i) {
+        return '<button type="button" data-i="' + i + '" aria-pressed="' + (i === pick) + '">' + esc(g) + ' <span>' + by[g].length + '</span></button>';
+      }).join('') + '</div>' +
+      groups.map(function (g, i) {
+        return '<section class="kb-dept fm-dept" data-i="' + i + '"' + (i === pick ? '' : ' hidden') + '><h2 class="kb-dept-h">' + esc(g) + '</h2>' + by[g].map(function (f) {
           var t = f.title + (f.subtitle ? ' (' + f.subtitle + ')' : '');
           return '<div class="kb-row fm-row"><span class="fm-code">' + esc(f.code) + '</span>' +
             '<span class="kb-row-tx"><b>' + esc(t) + '</b><span>' + esc(f.blurb || '') + '</span></span>' +
@@ -92,7 +104,17 @@
             '<button type="button" class="fm-btn fm-dl" data-act="dl" data-code="' + esc(f.code) + '" data-file="' + esc(f.filename) + '">Download</button></span></div>';
         }).join('') + '</section>';
       }).join('');
-    main.addEventListener('click', function (e) { var b = e.target.closest('.fm-btn'); if (b) act(b); });
+    main.addEventListener('click', function (e) {
+      var b = e.target.closest('.fm-btn');
+      if (b) { act(b); return; }
+      var s = e.target.closest('.fm-switch button');
+      if (!s) return;
+      var i = +s.dataset.i;
+      main.querySelectorAll('.fm-switch button').forEach(function (x) { x.setAttribute('aria-pressed', String(+x.dataset.i === i)); });
+      main.querySelectorAll('.fm-dept').forEach(function (d) { d.hidden = +d.dataset.i !== i; });
+      try { localStorage.setItem('trs-forms-tab', String(i + 1)); } catch (err) {}
+      var u = new URL(location.href); u.searchParams.set('t', String(i + 1)); history.replaceState(null, '', u.pathname + u.search);
+    });
   });
 })();
 </script>
