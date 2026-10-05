@@ -81,7 +81,7 @@
   }
   KB.ready.then(async function () {
     if (KB.allowed.indexOf('full-loop') < 0) { say('This page isn’t open to your account. <a href="/hub/">Back to Team Home</a>'); return; }
-    var r = await c.from('kb_assets').select('key,body').in('key', FILES);
+    var r = await TRSAuth.client().from('kb_assets').select('key,body').in('key', FILES);
     var got = {};
     (r.data || []).forEach(function (x) { got[x.key] = x.body; });
     if (r.error || FILES.some(function (k) { return !got[k]; })) { say('The handover didn’t load. Reload the page, and if it keeps happening tell Kate. <a href="/hub/">Back to Team Home</a>'); return; }
