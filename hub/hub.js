@@ -19,7 +19,7 @@
   // Grouped by department (Kate, 1 Oct 2026). The keys match kb_sections in Supabase,
   // which decides who opens what; `live` is for sections that link out rather than
   // holding pages (a section with pages in kb_pages is live on its own).
-  KB.GROUPS = ['Management', 'Hair', 'Beauty', 'Front Desk', 'Marketing', 'Accounts & Admin'];
+  KB.GROUPS = ['Management', 'Hair', 'Beauty', 'Front Desk', 'Call Centre', 'Marketing', 'Accounts & Admin'];
   KB.SECTIONS = [
     { key: 'dashboards', dept: 'Management', title: 'Dashboards', href: '/dashboard/', live: true, rule: 'var(--accent-lavender)',
       blurb: 'Sales, ledgers, team performance and every report, as before.' },
@@ -40,6 +40,12 @@
       blurb: 'The front desk manual, booking and deposit policy, cancellations.' },
     { key: 'front-desk-induction', dept: 'Front Desk', title: 'Front Desk Induction & Onboarding', rule: 'var(--accent-butter)',
       blurb: 'The induction programme for reception.' },
+    // Kate, 5 Oct 2026: the Call Centre Team, coming soon. Level 2 and up for now; no
+    // staff list maps anyone to 'Call Centre' yet, so no Level 1 sees it.
+    { key: 'call-centre', dept: 'Call Centre', title: 'Call Centre Scripts & Policies', rule: 'var(--accent-lavender)',
+      blurb: 'Call and WhatsApp scripts, booking follow-ups and lead handling.' },
+    { key: 'call-centre-induction', dept: 'Call Centre', title: 'Call Centre Induction & Onboarding', rule: 'var(--accent-butter)',
+      blurb: 'The induction programme for the call centre team.' },
     { key: 'marketing', dept: 'Marketing', title: 'Marketing', rule: 'var(--accent-coral)',
       blurb: 'Marketing strategy and plans.' },
     { key: 'hr-forms', dept: 'Accounts & Admin', title: 'HR Forms & Waivers', rule: 'var(--accent-butter)',
