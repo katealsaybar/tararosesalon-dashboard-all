@@ -52,7 +52,7 @@
     // Kate, 5 Oct 2026: Tara's Full Loop handover site (kb_sections min_level 3), named
     // Service Playbooks under The Tara Rose Way the same day.
     { key: 'full-loop', dept: 'The Tara Rose Way', title: 'Service Playbooks', href: '/hub/full-loop', live: true, rule: 'var(--accent-mint)',
-      blurb: 'Blonde, brunette, cut, treatments, beauty and home care, with the Low · Mid · High decoder, the Menu Builder and the Handover Tracker.' },
+      blurb: 'Blonde, brunette, cut, treatments, beauty and home care, with the Low, Mid and High decoder, the Menu Builder and the Handover Tracker.' },
     { key: 'hr-forms', dept: 'Accounts & Admin', title: 'HR Forms & Waivers', href: '/hub/forms', live: true, rule: 'var(--accent-butter)',
       blurb: 'Leave, probation and return-to-work forms; client waivers and consultation forms.' },
     { key: 'uploads', dept: 'Accounts & Admin', title: 'Upload Portal', href: '/upload/', live: true, rule: 'var(--accent-mint)',

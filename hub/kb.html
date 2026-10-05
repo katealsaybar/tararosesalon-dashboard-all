@@ -23,12 +23,12 @@
 <div class="wrap">
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
   <main id="kbMain"><p class="kb-msg">Loading…</p></main>
-  <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
+  <footer class="kb-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261005way2"></script>
-<script src="/hub/kb-doc.js?v=20261005doc"></script>
+<script src="/hub/hub.js?v=20261005dots"></script>
+<script src="/hub/kb-doc.js?v=20261005dots"></script>
 <script>
 (function () {
   var q = new URLSearchParams(location.search), main = document.getElementById('kbMain'), esc = KB.esc;
@@ -69,8 +69,8 @@
     };
   }
   function metaLine(p, i, n) {
-    return (i >= 0 && n ? 'Chapter ' + (i + 1) + ' of ' + n + ' · ' : '') + 'Version ' + p.version +
-      ' · Updated ' + when(p.updated_at) + (p.owner ? ' · ' + p.owner : '');
+    return (i >= 0 && n ? 'Chapter ' + (i + 1) + ' of ' + n + ', ' : '') + 'Version ' + p.version +
+      ', updated ' + when(p.updated_at) + (p.owner ? '. Owner: ' + p.owner : '');
   }
   function forPdf(p, sec, i, n) {
     return { title: p.title, eyebrow: sec.title + (p.group_name ? ' · ' + p.group_name : ''), meta: metaLine(p, i, n),
@@ -91,7 +91,7 @@
       btn.querySelector('span').textContent = 'Making the PDF…';
       await KBDoc.pdf(list.map(function (p, i) { return forPdf(p, sec, i, list.length); }), {
         filename: KBDoc.filename(sec.title), running: sec.title,
-        book: { title: sec.title, sub: list.length + ' chapters · downloaded ' + when(new Date()) } });
+        book: { title: sec.title, sub: list.length + ' chapters, downloaded ' + when(new Date()) } });
       done();
     } catch (e) { done(failMsg(e)); }
   }

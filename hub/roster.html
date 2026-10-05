@@ -24,11 +24,11 @@
 <div class="wrap">
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
   <main id="kbMain"><p class="kb-msg">Loading…</p></main>
-  <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
+  <footer class="kb-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261005way2"></script>
+<script src="/hub/hub.js?v=20261005dots"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain'), esc = KB.esc;
@@ -49,7 +49,7 @@
     var bits = [];
     if (p.branch) bits.push(BRANCH[p.branch] || p.branch);
     if (p.scope) bits.push((BRANCH[p.scope] || p.scope) + ' only');
-    return bits.join(' · ');
+    return bits.join(', ');
   }
 
   // Kate, 3 Oct 2026: levels are hers alone. Level 5 sees the list by level (and a Level
@@ -111,8 +111,8 @@
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       '<h2 class="kb-page-title">Staff Roster &amp; Access</h2>' +
       '<p class="kb-meta">' + data.people.length + ' people can sign in' +
-        (byLevel ? ' · ' + (data.people.length - staff) + ' on the dashboard list, ' + staff + ' team' : '') +
-        ' · view only, changes go through Kate</p>' +
+        (byLevel ? ': ' + (data.people.length - staff) + ' on the dashboard list and ' + staff + ' in the team' : '') +
+        '. View only; changes go through Kate.</p>' +
       (data.staff_open ? '' : '<div class="kb-note">Team Home isn’t open to the salon team yet, so they can’t sign in until it is.</div>') +
       '<div class="rs-bar">' +
         '<div class="kb-search rs-filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +

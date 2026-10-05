@@ -59,13 +59,13 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
       Menu</button>
     <main id="kbMain"><p class="kb-msg">Loading…</p></main>
-    <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
+    <footer class="kb-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
   </div>
 </div>
 <button type="button" id="saveBtn" hidden></button>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261005way2"></script>
+<script src="/hub/hub.js?v=20261005dots"></script>
 <script src="/hub/marketing-tool/marketing.js?v=20261005mkt"></script>
 <script>
 (function () {
@@ -195,11 +195,11 @@
     if (!el) return;
     if (!el.dataset.sync) {
       el.dataset.sync = '1';
-      el.innerHTML = 'Shared with the team · <b id="mkSyncState"></b><span id="mkSyncLast"></span> · <button type="button" class="mk-textbtn" id="mkCopy">Save a copy</button>';
+      el.innerHTML = 'Shared with the team: <b id="mkSyncState"></b><span id="mkSyncLast"></span>. <button type="button" class="mk-textbtn" id="mkCopy">Save a copy</button>';
       document.getElementById('mkCopy').onclick = function () { document.getElementById('saveBtn').click(); };
     }
     document.getElementById('mkSyncState').textContent = sync;
-    document.getElementById('mkSyncLast').textContent = last ? ' · last change by ' + last.by + ', ' + when(last.at) : '';
+    document.getElementById('mkSyncLast').textContent = last ? ', last change by ' + last.by + ', ' + when(last.at) : '';
   }
   function today() {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());

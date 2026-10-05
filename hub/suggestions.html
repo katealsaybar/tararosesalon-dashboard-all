@@ -28,11 +28,11 @@
 <div class="wrap">
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
   <main id="kbMain"><p class="kb-msg">Loading…</p></main>
-  <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
+  <footer class="kb-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261005way2"></script>
+<script src="/hub/hub.js?v=20261005dots"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain'), esc = KB.esc;
@@ -55,14 +55,14 @@
   function drawInbox() {
     var rows = list.filter(function (s) { return (!f.status || s.status === f.status) && (!f.topic || s.topic === f.topic); });
     var fresh = list.filter(function (s) { return s.status === 'new'; }).length;
-    document.getElementById('sgCount').textContent = list.length + ' received' + (fresh ? ' · ' + fresh + ' new' : '');
+    document.getElementById('sgCount').textContent = list.length + ' received' + (fresh ? ', ' + fresh + ' new' : '');
     document.getElementById('sgList').innerHTML = rows.length ? rows.map(function (s) {
       return '<li class="sg-item' + (s.status === 'new' ? ' is-new' : '') + '">' +
         '<div class="sg-top"><span class="sg-topic">' + esc(s.topic) + '</span>' +
           '<span class="sg-when">' + esc(when(s.created_at)) + '</span></div>' +
         '<p class="sg-body">' + esc(s.body) + '</p>' + filesBlock(s) +
         '<div class="sg-foot"><span class="sg-from">' + (s.sender_name ? 'From ' + esc(s.sender_name) : 'No name given') +
-          (s.region === 'BAH' ? ' · Bahrain' : '') + '</span>' +
+          (s.region === 'BAH' ? ', Bahrain' : '') + '</span>' +
           '<span class="sg-status" role="group" aria-label="Status">' +
           ['new', 'seen', 'done'].map(function (k) {
             return '<button type="button" data-id="' + s.id + '" data-s="' + k + '" aria-pressed="' + (s.status === k) + '">' + STATUS[k] + '</button>';
@@ -99,7 +99,7 @@
       '<div class="sg-actions"><button type="button" class="sg-send" data-save="' + s.id + '">Send reply</button>' +
       '<button type="button" class="sg-link" data-cancel="1">Cancel</button>' +
       (s.reply ? '<button type="button" class="sg-link" data-clear="' + s.id + '">Remove reply</button>' : '') + '</div></div>';
-    if (s.reply) return '<div class="sg-reply"><span class="sg-reply-k">Reply from ' + esc(s.reply_by || 'the team') + ' · ' + esc(when(s.reply_at)) + '</span>' +
+    if (s.reply) return '<div class="sg-reply"><span class="sg-reply-k">Reply from ' + esc(s.reply_by || 'the team') + ', ' + esc(when(s.reply_at)) + '</span>' +
       '<p>' + esc(s.reply) + '</p><button type="button" class="sg-link" data-edit="' + s.id + '">Edit reply</button></div>';
     return '<button type="button" class="sg-link sg-reply-btn" data-edit="' + s.id + '">Reply</button>' +
       (s.sender_name || s.has_code ? '' : '<span class="sg-hint-inline">The sender can’t see replies to this one.</span>');
@@ -229,7 +229,7 @@
     function mineItem(s) {
       return '<li class="sg-item"><div class="sg-top"><span class="sg-topic">' + esc(s.topic) + '</span><span class="sg-when">' + esc(when(s.created_at)) + '</span></div>' +
         '<p class="sg-body">' + esc(s.body) + '</p>' +
-        (s.reply ? '<div class="sg-reply"><span class="sg-reply-k">Reply from ' + esc(s.reply_by || 'the team') + ' · ' + esc(when(s.reply_at)) + '</span><p>' + esc(s.reply) + '</p></div>'
+        (s.reply ? '<div class="sg-reply"><span class="sg-reply-k">Reply from ' + esc(s.reply_by || 'the team') + ', ' + esc(when(s.reply_at)) + '</span><p>' + esc(s.reply) + '</p></div>'
                  : '<div class="sg-by">' + (s.status === 'new' ? 'Not read yet' : s.status === 'done' ? 'Done' : 'Read, no reply yet') + '</div>') + '</li>';
     }
     async function loadMine() {

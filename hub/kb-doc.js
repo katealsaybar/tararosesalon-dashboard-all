@@ -349,7 +349,7 @@
       if (opts.book) {
         content.push(
           { image: KBDoc._logo, width: 150, margin: [0, 150, 0, 54] },
-          { text: 'TEAM HOME · FOR THE TEAM ONLY', fontSize: 8, characterSpacing: 2, color: C.soft, margin: [0, 0, 0, 12] },
+          { text: 'TEAM HOME, FOR THE TEAM ONLY', fontSize: 8, characterSpacing: 2, color: C.soft, margin: [0, 0, 0, 12] },
           { text: opts.book.title, font: 'Playfair', fontSize: 38, lineHeight: 1.05, color: C.ink, margin: [0, 0, 0, 14] },
           { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 72, y2: 0, lineWidth: 3, lineColor: C.accentDeep }], margin: [0, 0, 0, 14] },
           { text: opts.book.sub || '', fontSize: 10.5, color: C.soft },
@@ -363,7 +363,7 @@
         var head = chapterHead(Object.assign({ toc: !!opts.book }, pg), !opts.book && i === 0);
         content.push({ stack: head.concat(blocks(box)), pageBreak: opts.book || i ? 'before' : undefined });
       });
-      var footLeft = opts.footer || 'Tara Rose Salons · for the team only';
+      var footLeft = opts.footer || 'For the Tara Rose Salons team only';
       var dd = {
         pageSize: 'A4',
         pageMargins: [56, 58, 56, 60],
