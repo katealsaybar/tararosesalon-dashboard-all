@@ -324,7 +324,8 @@ function psTplText() {
   const month = new Date(PS_STATE.month + '-15').toLocaleDateString('en-GB', { month: 'long' });
   // Reads on from "What changed:", so it starts lower case and ends with a full stop.
   let what = t.what.trim().replace(/[.\s]+$/, '');
-  what = what ? what[0].toLowerCase() + what.slice(1) + '.' : '[one line]';
+  if (/^[A-Z][a-z]/.test(what)) what = what[0].toLowerCase() + what.slice(1);   // "Your…", not "AED…"
+  what = what ? what + '.' : '[one line]';
   return `Hi ${first},\n\nWe've updated your ${month} payslip. The new one is attached and replaces the one we sent earlier, so please use this one.\n\n`
     + `What changed: ${what}\n\nIf anything still looks off, just reply to this email and we'll sort it with you.\n\nTara Rose Salons Accounts`;
 }
