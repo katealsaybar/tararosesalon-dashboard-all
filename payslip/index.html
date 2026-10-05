@@ -8,8 +8,9 @@
 <!-- Kate, 2 Oct 2026: payslips open here, on trk-salon-os.com, instead of on the
      Supabase storage address. The page holds no link and no key of its own: the
      button that opened it (payslip/open.js) posts it the 10-minute link, and it
-     fetches the PDF from that. A reload asks the opener again; with no opener it
-     says to go back and press the button. -->
+     fetches the PDF from that. When no new tab was allowed, the button opened this
+     page in its own tab and left the link in sessionStorage (5 Oct 2026). A reload
+     asks the opener again; with no opener it says to go back and press the button. -->
 <script>
   try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
 </script>
@@ -114,7 +115,11 @@
     if (e.origin !== location.origin || !e.data || e.data.type !== 'payslip' || !e.data.url) return;
     show(e.data.url, e.data.name);
   });
-  if (window.opener) {
+  // Opened in the same tab (no new tab allowed): the button left the link here, once.
+  var held = null;
+  try { held = JSON.parse(sessionStorage.getItem('trs-payslip') || 'null'); sessionStorage.removeItem('trs-payslip'); } catch (e) {}
+  if (held && held.url) show(held.url, held.name);
+  else if (window.opener) {
     try { window.opener.postMessage({ type: 'payslip-ready' }, location.origin); } catch (e) {}
   } else say(GONE);
   setTimeout(function () { if (!shown) say(GONE); }, 12000);
