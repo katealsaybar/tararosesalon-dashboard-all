@@ -4,43 +4,44 @@
 <meta name="robots" content="noindex, nofollow">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>The Full Loop Handover · Team Home</title>
+<title>Service Playbooks · Team Home</title>
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/hub/full-loop-tool/styles.css?v=20261005fl">
 <link rel="stylesheet" href="/hub/marketing-tool/marketing.css?v=20261005mkt">
+<link rel="stylesheet" href="/hub/full-loop-tool/brand.css?v=20261005brand">
 <style>
   body.fl-wait .top,body.fl-wait .shell{visibility:hidden}
   .fl-msg{max-width:640px;margin:96px auto;padding:0 16px;font:400 16px/1.6 Inter,system-ui,sans-serif;color:var(--ink)}
   .fl-msg a{color:inherit}
-  .fl-home{font-size:13.5px;color:var(--muted);text-decoration:none;white-space:nowrap;margin-right:4px}
-  .fl-home:hover{color:var(--ink)}
-  @media (max-width:640px){.fl-home{display:none}}
 </style>
 </head>
 <body class="fl-wait">
-<!-- The Full Loop Handover (Kate, 5 Oct 2026): Tara's handover site from Perplexity,
-     as she built it (playbooks, decoder, Menu Builder, Handover Tracker, Marketing).
-     Level 3 and up (kb_sections 'full-loop'). The three files that hold its text,
-     content.js, data.js and app.js, are not in this repo (it is public; they carry AED
-     tiers, the average bill and KPIs): they are rows in kb_assets, which only people
-     who can open the section can read (migrations/kb_full_loop.sql), and this page
-     runs them after the sign-in check. Her styles.css is in full-loop-tool/; the
-     marketing files are the same ones /hub/marketing uses. Work stays in this tab;
-     Save my work / Open saved file as on her site. ‹ Team Home is the only addition. -->
+<!-- Service Playbooks (Kate, 5 Oct 2026), under The Tara Rose Way on Team Home: Tara's
+     Full Loop handover site from Perplexity (playbooks, decoder, Menu Builder, Handover
+     Tracker). Level 3 and up (kb_sections 'full-loop'). The three files that hold its
+     text, content.js, data.js and app.js, are not in this repo (it is public; they carry
+     AED tiers, the average bill and KPIs): they are rows in kb_assets, which only people
+     who can open the section can read (migrations/kb_full_loop.sql), and this page runs
+     them after the sign-in check. Her styles.css draws the layout; brand.css puts it in
+     the site's look (lockup, colours, the Marketing-style sidebar), and the theme is the
+     site's trs-theme. Her Marketing copy is left out: the Marketing row and any
+     #/marketing link go to the shared /hub/marketing instead. -->
 <a class="skip" href="#main">Skip to content</a>
 <header class="top">
   <button class="iconbtn menu-toggle" id="menuToggle" aria-label="Open navigation" aria-expanded="false">
     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
   </button>
-  <a href="#/" class="brand" aria-label="Tara Rose handover home">
-    <svg class="logo" viewBox="0 0 40 40" width="34" height="34" fill="none" aria-hidden="true">
-      <path d="M20 6c-7.7 0-14 6.3-14 14s6.3 14 14 14 14-6.3 14-14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-      <path d="M20 13c-3.9 0-7 3.1-7 7s3.1 7 7 7 7-3.1 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>
-      <circle cx="31" cy="11" r="3" style="fill:var(--accent-ink)"/>
-    </svg>
-    <span class="brand-text"><span class="brand-name">Tara Rose</span><span class="brand-sub">The Full Loop · Handover</span></span>
+  <a href="#/" class="brand" aria-label="Service Playbooks home">
+    <span class="fl-lockup">
+      <img class="fl-logo-light" src="/assets/mast-ink.png" alt="Tara Rose">
+      <img class="fl-logo-dark" src="/assets/mast-paper.png" alt="Tara Rose">
+      <span>Salons</span>
+    </span>
   </a>
   <div class="search" role="search">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
@@ -66,7 +67,7 @@
 <div class="scrim" id="scrim" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261005forms"></script>
+<script src="/hub/hub.js?v=20261005way2"></script>
 <script src="/hub/marketing-tool/marketing.js?v=20261005mkt"></script>
 <script>
 (function () {
@@ -85,10 +86,33 @@
     var got = {};
     (r.data || []).forEach(function (x) { got[x.key] = x.body; });
     if (r.error || FILES.some(function (k) { return !got[k]; })) { say('The handover didn’t load. Reload the page, and if it keeps happening tell Kate. <a href="/hub/">Back to Team Home</a>'); return; }
+    // Marketing has its own page, shared by the team: no second copy in here.
+    var toMarketing = function () {
+      if (/^#\/marketing/.test(location.hash)) { location.replace('/hub/marketing' + location.hash); return true; }
+    };
+    if (toMarketing()) return;
+    window.addEventListener('hashchange', toMarketing);
     FILES.forEach(function (k) {
       var s = document.createElement('script');
       s.text = got[k] + '\n//# sourceURL=' + k;
       document.body.appendChild(s);
+      if (k === 'full-loop/data.js') window.TR_NAV = window.TR_NAV.map(function (n) {
+        return n.id === 'marketing' ? Object.assign({}, n, { label: 'Marketing ↗' }) : n;
+      });
+    });
+    // Her app picks light or dark from the computer; the site's own setting wins, and
+    // her moon button saves to it, so every page stays the same.
+    // Her app titles each page "… · Tara Rose Handover"; the site calls it Service Playbooks.
+    var retitle = function () {
+      var t = document.title.replace(/ · Tara Rose Handover$/, ' · Service Playbooks');
+      if (t !== document.title) document.title = t;
+    };
+    retitle();
+    new MutationObserver(retitle).observe(document.querySelector('title'), { childList: true });
+    var root = document.documentElement;
+    try { var th = localStorage.getItem('trs-theme'); if (th === 'dark' || th === 'light') root.dataset.theme = th; } catch (e) {}
+    document.getElementById('themeBtn').addEventListener('click', function () {
+      try { localStorage.setItem('trs-theme', root.dataset.theme); } catch (e) {}
     });
     document.body.classList.remove('fl-wait');
   });

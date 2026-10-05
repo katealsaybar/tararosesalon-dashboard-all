@@ -1,0 +1,52 @@
+/* ============================================================
+   Service Playbooks, in the site's own branding (Kate, 5 Oct 2026)
+
+   Tara's styles.css draws the layout; this file, loaded after it, puts it in the
+   same look as Team Home, the dashboard and the Marketing page: Team Home's
+   colours in light and dark (the teal accent is the one Marketing uses), the
+   TARA ROSE SALONS lockup instead of her Perplexity mark, and a sidebar drawn
+   like the Marketing one (spaced-capital headings, flat links on a left rule
+   that lights the open page, no icons or filled pills).
+   ============================================================ */
+:root:root{
+  --top:76px;
+  --paper:#FAF7F0;--surface:#fff;--cream:#F4F1E9;--sand:#EDE8DD;--line:#E8E2D6;
+  --ink:#1A1A1A;--ink-soft:#565049;--muted:#77706A;--taupe:#77706A;
+  --accent:#99F6E4;--accent-soft:#E3FBF5;--accent-ink:#1C7563;
+  --shadow:0 1px 2px rgba(26,26,26,.05),0 10px 28px -8px rgba(26,26,26,.10);
+}
+:root:root[data-theme="dark"]{
+  --paper:#2D2E37;--surface:#383944;--cream:#3f4052;--sand:#45465a;--line:rgba(250,248,243,.09);
+  --ink:#FAF8F3;--ink-soft:rgba(250,248,243,.72);--muted:rgba(250,248,243,.52);--taupe:rgba(250,248,243,.52);
+  --accent:#7DE6D2;--accent-soft:#1C3A35;--accent-ink:#7DE6D2;
+  --c-gray:#34353f;--c-blue:#323a46;--c-yellow:#3d3a2c;--c-purple:#383349;--c-green:#2f3d37;--c-red:#433536;--c-brown:#3e3732;--c-orange:#433a30;
+  --low:#1C3A35;--mid:#3d3a2c;--high:#433536;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -8px rgba(0,0,0,.35);
+}
+
+/* The lockup: same artwork as Team Home and the dashboard. */
+.brand{gap:0}
+.fl-lockup{display:flex;flex-direction:column;align-items:center;gap:5px}
+.fl-lockup img{width:132px;height:auto;display:block}
+.fl-lockup span{font-size:10.5px;letter-spacing:.36em;text-indent:.36em;text-transform:uppercase;color:var(--ink);opacity:.82}
+.fl-logo-dark{display:none!important}
+[data-theme="dark"] .fl-logo-light{display:none!important}
+[data-theme="dark"] .fl-logo-dark{display:block!important}
+
+/* Sidebar, like Marketing's. */
+.side{padding:24px 20px 40px}
+.nav-sec{margin-bottom:14px}
+.nav-head{padding:4px 0;border-radius:0;font-size:11.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.nav-head:hover,.nav-head.on{background:none;color:var(--ink)}
+.nav-head > svg{display:none}
+.nav-head .chev{color:var(--muted)}
+.nav-pages{padding:6px 0 4px;margin-left:0;border-left:0}
+.nav-link{padding:7px 0 7px 13px;border-radius:0;border-left:2px solid var(--line);font-size:14.5px;color:var(--ink-soft)}
+.nav-link:hover{background:none;color:var(--ink)}
+.nav-link.on{background:none;color:var(--ink);font-weight:600;border-left-color:var(--ink)}
+.side-foot{background:none;border-top:1px solid var(--line);border-radius:0;padding:14px 0 0}
+.fl-home{font-size:14px;color:var(--muted);text-decoration:none;white-space:nowrap;margin-right:4px}
+.fl-home:hover{color:var(--ink)}
+
+@media (max-width:960px){:root:root{--top:68px}.fl-lockup img{width:112px}}
+@media (max-width:640px){.fl-lockup img{width:96px}.fl-lockup span{font-size:9px}.fl-home{display:none}}

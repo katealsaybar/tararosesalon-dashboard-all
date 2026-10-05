@@ -6,7 +6,7 @@
 -- Applied to Supabase the same day.
 
 insert into public.kb_sections (key, dept, min_level, staff_dept, sort)
-values ('full-loop', 'The Full Loop', 3, null, 95)
+values ('full-loop', 'The Tara Rose Way', 3, null, 95)
 on conflict (key) do update set dept = excluded.dept, min_level = excluded.min_level, sort = excluded.sort;
 
 create table if not exists public.kb_assets (
