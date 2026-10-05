@@ -85,6 +85,9 @@ h2{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:23px;m
 @media(min-width:620px){.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .tile{border-radius:12px;padding:12px;border:1px solid var(--border);background:var(--none-bg)}
 .tile .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
+/* Kate, 5 Oct 2026: tighter tracking on a phone, so "Treatment %" and "Rebooking %" keep the %
+   on their own line (it dropped to a second line by itself). */
+@media(max-width:760px){.tile .lbl{letter-spacing:.04em;gap:5px}}
 .tile .val{font-size:26px;font-weight:700;margin:4px 0 2px}
 .tile .aim{font-size:12px;color:var(--muted)}
 .tile.good{background:var(--good-bg);border-color:transparent}
