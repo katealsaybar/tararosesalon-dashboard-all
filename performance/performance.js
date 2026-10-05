@@ -51,8 +51,8 @@ try { if (localStorage.getItem('perf-chart') === 'day') CHART_MODE = 'day'; } ca
 try { const v = JSON.parse(localStorage.getItem('perf-sort') || 'null'); if (v) { SORT = v.k; SORT_REV = !!v.rev; } } catch (e) {}
 // Kate, 5 Oct 2026: a Ledger | Phorest switch on her page. Sales are always Phorest's;
 // clients, requests, new clients and rebooking come from the branch ledger unless she
-// picks Phorest, which swaps in Phorest's own counts (perf_core's 'phorest'). Phorest
-// has no rebooking in what we pull, so that shows a dash. Remembered per browser,
+// picks Phorest, which swaps in Phorest's own counts (perf_core's 'phorest'), rebooking
+// from the Staff Performance Tracker (phorest_staff_rebooking). Remembered per browser,
 // &src=phorest|ledger in the address wins.
 let SRC = 'ledger';
 try { if (localStorage.getItem('perf-src') === 'phorest') SRC = 'phorest'; } catch (e) {}
@@ -63,7 +63,7 @@ function withSource(d) {
   const swap = n => {
     if (!n || !n.phorest) return;
     Object.assign(n, n.phorest);
-    n.salon = n.ncr = n.rebooked = n.rebooking_pct = null;
+    n.salon = n.ncr = null;
   };
   swap(d.numbers);
   (d.weeks || []).forEach(w => swap(w.numbers));
@@ -636,8 +636,8 @@ async function renderStylist() {
     isHair ? tile('treatments_pct', 'Treatment %', d, pace) : tile('request_pct', 'Request rate', d, pace),
     tile('retail_pct', 'Retail %', d, pace),
     // Emma, 29 Sep 2026: the count under the rate, "10 of 20 clients rebooked".
-    tile('rebooking_pct', 'Rebooking %', d, pace, SRC === 'phorest' ? '<br>Not in our Phorest feed yet. Switch to Ledger to see it.'
-      : n.clients > 0 ? `<br>${fmt(n.rebooked, 'num')} of ${fmt(n.clients, 'num')} clients rebooked` : ''),
+    tile('rebooking_pct', 'Rebooking %', d, pace, SRC === 'phorest' && n.rebooked == null ? '<br>Not in our Phorest feed for these dates yet.'
+      : n.clients > 0 ? `<br>${fmt(n.rebooked, 'num')} of ${fmt(n.rebook_visits ?? n.clients, 'num')} clients rebooked` : ''),
     tile('clients', 'Total clients', d, pace),
     tile('column_fill_pct', 'Column fill', d, pace, `<br>${fmt(n.booked_hours, 'num')} of ${fmt(n.available_hours, 'num')} hours booked`),
   ].join('');
@@ -684,7 +684,7 @@ async function renderStylist() {
       <div class="eyebrow">${midMonth ? 'This month so far' : 'Your month'}</div>
       <div class="card-head"><h2>The six numbers.</h2><div class="dept-seg chart-seg" id="srcSeg" role="group" aria-label="Where the client numbers come from"><button type="button" data-src="ledger"${SRC === 'ledger' ? ' class="on"' : ''}>Ledger</button><button type="button" data-src="phorest"${SRC === 'phorest' ? ' class="on"' : ''}>Phorest</button></div></div>
       <p class="sub">${SRC === 'phorest'
-        ? 'Clients, requests, new clients and average bill are Phorest’s own counts. Sales are from Phorest either way.'
+        ? 'Clients, requests, new clients, rebooking and average bill are Phorest’s own counts. Sales are from Phorest either way.'
         : 'Clients, requests, new clients and rebooking are from the branch ledger reception fills in. Sales are from Phorest either way.'}</p>
       ${midMonth ? `<p class="sub">Money numbers are judged on pace for the full month, with data up to ${esc(dayLabel(n.data_to || n.last_date))}.</p>` : ''}
       ${started && !(share && share.off) ? `<p class="sub">You started on ${esc(dayLabel(n.start_date))}, so this month's totals are aimed at the ${started.left} days since.</p>` : ''}
