@@ -1,0 +1,57 @@
+/* ============================================================
+   Marketing workspace on Team Home (Kate, 5 Oct 2026)
+
+   Tara's marketing.js and marketing.css come across as they are, from her Full Loop
+   handover site. They expect her site's tokens and base controls (buttons, fields,
+   tabs, folding sections), so this file gives them those, inside .mk-host and the
+   task dialog only, mapped onto Team Home's own colours so light and dark follow
+   the rest of the site.
+   ============================================================ */
+.mk-host,.mk-dialog{
+  --paper:var(--bg);--ink:var(--text);--ink-soft:var(--muted);--muted:var(--muted2);--taupe:var(--muted2);
+  --line:var(--border);--cream:var(--surface2);--sand:var(--surface2);
+  --accent-ink:#1C7563;--accent-soft:#E3FBF5;--rose-soft:#F6E9E6;--c-yellow:var(--warn-bg);
+  --ff-b:'Inter',system-ui,sans-serif;--ff-d:'Playfair Display',Georgia,serif;
+  --r:12px;--r-sm:8px;
+  font-family:var(--ff-b);color:var(--ink);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mk-host,:root:not([data-theme="light"]) .mk-dialog{
+  --accent-ink:#7DE6D2;--accent-soft:#1C3A35;--rose-soft:#3A2B2A;
+}}
+[data-theme="dark"] .mk-host,[data-theme="dark"] .mk-dialog{--accent-ink:#7DE6D2;--accent-soft:#1C3A35;--rose-soft:#3A2B2A}
+
+.mk-host{padding-top:20px}
+.mk-host h1,.mk-host h2,.mk-host h3,.mk-dialog h2{font-family:var(--ff-d);font-weight:500;line-height:1.2;color:var(--ink)}
+.mk-host .btn,.mk-dialog .btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 16px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s}
+.mk-host .btn:hover,.mk-dialog .btn:hover{border-color:var(--ink-soft)}
+.mk-host .btn.primary,.mk-dialog .btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.mk-host .btn.primary:hover,.mk-dialog .btn.primary:hover{background:var(--ink-soft)}
+.mk-host .btn.sm,.mk-dialog .btn.sm{padding:5px 12px;font-size:13px}
+.mk-dialog .iconbtn{display:grid;place-items:center;width:40px;height:40px;border-radius:999px;border:1px solid transparent;background:transparent;cursor:pointer;color:var(--ink);font-size:22px}
+.mk-dialog .iconbtn:hover{background:var(--cream)}
+.mk-host .eyebrow,.mk-dialog .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin:0 0 10px}
+.mk-host details,.mk-dialog details{border:1px solid var(--line);border-radius:var(--r-sm);margin:10px 0;background:var(--surface)}
+.mk-host details>summary,.mk-dialog details>summary{cursor:pointer;list-style:none;padding:10px 14px 10px 38px;position:relative;font-weight:500;font-size:14.5px;color:var(--ink-soft)}
+.mk-host details>summary::-webkit-details-marker,.mk-dialog details>summary::-webkit-details-marker{display:none}
+.mk-host details>summary::before,.mk-dialog details>summary::before{content:"";position:absolute;left:16px;top:50%;width:7px;height:7px;border-right:1.6px solid var(--muted);border-bottom:1.6px solid var(--muted);transform:translateY(-70%) rotate(-45deg);transition:transform .2s}
+.mk-host details[open]>summary::before,.mk-dialog details[open]>summary::before{transform:translateY(-50%) rotate(45deg)}
+.mk-host details[open]>summary,.mk-dialog details[open]>summary{border-bottom:1px solid var(--line);color:var(--ink)}
+.mk-host details>summary:hover,.mk-dialog details>summary:hover{background:var(--cream);border-radius:var(--r-sm)}
+.mk-host .dbody,.mk-dialog .dbody{padding:6px 16px 10px}
+.mk-host .tool-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.mk-host .tool-head h1{font-size:clamp(28px,3vw,38px);margin:0 0 6px}
+.mk-host .tool-head p{margin:0;color:var(--muted);max-width:62ch}
+.mk-host .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 14px;border-bottom:1px solid var(--line)}
+.mk-host .tab{border:0;background:transparent;padding:10px 14px;font-weight:500;font-size:14.5px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.mk-host .tab.on{color:var(--ink);border-color:var(--ink)}
+.mk-host .field,.mk-dialog .field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.mk-host .in,.mk-dialog .in{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit;font-size:14px;width:100%;min-width:0}
+.mk-host .in:focus,.mk-dialog .in:focus{outline:none;border-color:var(--accent-ink);box-shadow:0 0 0 3px var(--accent-soft)}
+.mk-host .in::placeholder,.mk-dialog .in::placeholder{color:var(--muted);opacity:.75}
+.mk-host button,.mk-dialog button{color:var(--ink)}
+.mk-host .btn.primary,.mk-dialog .btn.primary{color:var(--paper)}
+.mk-host .mk-textbtn{color:var(--accent-ink);font:inherit}
+.mk-crumbs{margin:0}
+.mk-host .mk-filterbox{border:0;background:transparent}
+@media (max-width:640px){.mk-host{padding-top:12px}}
+@media (max-width:600px){.mk-host .mk-filterbox{border:1px solid var(--line);background:var(--surface)}}

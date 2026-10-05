@@ -46,8 +46,9 @@
       blurb: 'Call and WhatsApp scripts, booking follow-ups and lead handling.' },
     { key: 'call-centre-induction', dept: 'Call Centre', title: 'Call Centre Induction & Onboarding', rule: 'var(--accent-butter)',
       blurb: 'The induction programme for the call centre team.' },
-    { key: 'marketing', dept: 'Marketing', title: 'Marketing', rule: 'var(--accent-coral)',
-      blurb: 'Marketing strategy and plans.' },
+    // Kate, 5 Oct 2026: Tara's marketing workspace from her Full Loop handover, as she built it.
+    { key: 'marketing', dept: 'Marketing', title: 'Marketing', href: '/hub/marketing', live: true, rule: 'var(--accent-coral)',
+      blurb: 'Today’s tasks, the October campaign calendar and platform checks.' },
     { key: 'hr-forms', dept: 'Accounts & Admin', title: 'HR Forms & Waivers', rule: 'var(--accent-butter)',
       blurb: 'Leave, probation and return-to-work forms; client waivers and consultation forms.' },
     { key: 'uploads', dept: 'Accounts & Admin', title: 'Upload Portal', href: '/upload/', live: true, rule: 'var(--accent-mint)',

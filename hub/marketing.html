@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Marketing · Team Home</title>
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=20261005rows">
+<link rel="stylesheet" href="/hub/marketing-tool/handover-base.css?v=20261005mkt">
+<link rel="stylesheet" href="/hub/marketing-tool/marketing.css?v=20261005mkt">
+</head>
+<body class="kb-wait">
+<!-- Marketing (Kate, 5 Oct 2026): Tara's marketing workspace from her Full Loop handover
+     site (Perplexity), as she built it: Today, Campaign Calendar and Platform Health for
+     5 to 31 October 2026. marketing.js and marketing.css are her files, unchanged;
+     handover-base.css gives them her buttons and fields in Team Home's colours. Level 3
+     and up (kb_sections 'marketing', min_level 3). Work is kept in this browser only
+     (localStorage 'trs-marketing'), plus her Save my work / Open saved file, which read
+     and write the same file as her site. No team sync yet. -->
+<div class="wrap">
+  <header class="kb-head" id="kbHead" data-title="Team Home"></header>
+  <main id="kbMain"><p class="kb-msg">Loading…</p></main>
+  <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
+</div>
+<input type="file" id="loadFile" accept=".json,application/json" hidden>
+<button type="button" id="saveBtn" hidden></button>
+<button type="button" id="loadBtn" hidden></button>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js?v=20261001kb"></script>
+<script src="/hub/hub.js?v=20261005mkt"></script>
+<script src="/hub/marketing-tool/marketing.js?v=20261005mkt"></script>
+<script>
+(function () {
+  var main = document.getElementById('kbMain');
+  if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
+  var KEY = 'trs-marketing';
+  var M = window.TR_MARKETING;
+  // The rest of a handover file opened here (menu, tracker...), so saving gives Tara's
+  // site back a whole file.
+  var rest = {};
+  var state = null;
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) { var d = JSON.parse(raw); rest = d.rest || {}; return M.normalise(d.marketing); }
+    } catch (e) {}
+    return M.seed();
+  }
+  function keep() {
+    try { localStorage.setItem(KEY, JSON.stringify({ marketing: state, rest: rest })); } catch (e) {}
+  }
+  function today() {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  }
+  function download(name, text, type) {
+    var url = URL.createObjectURL(new Blob([text], { type: type }));
+    var a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 500);
+  }
+  function tab() {
+    var p = location.hash.replace(/^#\/?/, '').split('/');
+    return p[0] === 'marketing' ? p[1] : '';
+  }
+  function draw() {
+    main.innerHTML = '<p class="kb-crumbs mk-crumbs"><a href="/hub/">Team Home</a> · Marketing</p><div class="mk-host" id="mkHost"></div>';
+    M.render({ state: state, main: document.getElementById('mkHost'), markDirty: keep, download: download, tab: tab() });
+  }
+
+  document.getElementById('saveBtn').onclick = function () {
+    var out = Object.assign({ version: 2 }, rest, { marketing: state });
+    download('tara-rose-handover-' + today() + '.json', JSON.stringify(out, null, 2), 'application/json');
+  };
+  document.getElementById('loadBtn').onclick = function () { document.getElementById('loadFile').click(); };
+  document.getElementById('loadFile').onchange = function (e) {
+    var f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    if (f.size > 5e6) { alert('That file is too large to be a saved handover file.'); return; }
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var d = JSON.parse(r.result);
+        if (!d || !d.marketing || !Array.isArray(d.marketing.records)) throw new Error('no marketing');
+        if (!confirm('Replace the marketing work in this browser with the saved file?')) return;
+        state = M.normalise(d.marketing);
+        rest = {};
+        Object.keys(d).forEach(function (k) { if (k !== 'marketing' && k !== 'version') rest[k] = d[k]; });
+        keep(); draw();
+      } catch (err) { alert('That file has no marketing work in it. Choose a file saved from the handover or from this page.'); }
+    };
+    r.readAsText(f);
+  };
+
+  KB.ready.then(function () {
+    if (KB.allowed.indexOf('marketing') < 0) {   // also "View as" below Level 3
+      main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
+      return;
+    }
+    state = load();
+    draw();
+    window.addEventListener('hashchange', function () { if (tab() || !location.hash) draw(); });
+  });
+})();
+</script>
+</body>
+</html>
