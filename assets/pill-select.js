@@ -48,7 +48,11 @@
     '@media(hover:hover){.ps-menu button:not(:disabled):hover{background:var(--ps-hover)}}',
     '.ps-menu button.on{background:var(--ps-on);color:var(--ps-on-fg);font-weight:700}',
     '.ps-menu button:disabled{opacity:.45;cursor:default}',
-    '.ps-menu .ps-grp{font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;opacity:.6;padding:8px 14px 3px;flex:none}'
+    '.ps-menu .ps-grp{font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;opacity:.6;padding:8px 14px 3px;flex:none}',
+    // Kate, 5 Oct 2026: on a phone (the site's 760px band) or any touch screen the pill is a
+    // 44px tap and each option a 40px row (they were about 35 and 32), and an empty select
+    // no longer draws a squat 28px pill.
+    '@media(max-width:760px),(pointer:coarse){.ps-btn{min-height:44px}.ps-menu button{min-height:40px}.ps-menu .ps-grp{font-size:12px}}'
   ].join('\n');
   var style = document.createElement('style');
   style.id = 'pill-select-css';
