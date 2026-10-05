@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="/hub/hub.css?v=20261005icons">
 <link rel="stylesheet" href="/hub/marketing-tool/handover-base.css?v=20261005mkt">
 <link rel="stylesheet" href="/hub/marketing-tool/marketing.css?v=20261005mkt">
+<link rel="stylesheet" href="/hub/marketing-tool/shell.css?v=20261005side">
 </head>
 <body class="kb-wait">
 <!-- Marketing (Kate, 5 Oct 2026): Tara's marketing workspace from her Full Loop handover
@@ -26,10 +27,36 @@
      and up (kb_sections 'marketing', min_level 3). Work is kept in this browser only
      (localStorage 'trs-marketing'), plus her Save my work / Open saved file, which read
      and write the same file as her site. No team sync yet. -->
-<div class="wrap">
-  <header class="kb-head" id="kbHead" data-title="Team Home"></header>
-  <main id="kbMain"><p class="kb-msg">Loading…</p></main>
-  <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
+<!-- Kate, 5 Oct 2026: its own left sidebar, like Tara's site, and no Team Home header
+     (it reads as a dashboard, not a Knowledge Base page). shell.css draws it; on a phone
+     it is a drawer behind the Menu button. -->
+<div class="wrap mk-shell">
+  <aside class="mk-side" id="mkSide" aria-label="Marketing">
+    <a class="kb-brand mk-side-brand" href="/hub/" aria-label="Team Home">
+      <img class="kb-logo-light" src="/assets/mast-ink.png" alt="Tara Rose">
+      <img class="kb-logo-dark" src="/assets/mast-paper.png" alt="Tara Rose">
+      <span>Salons</span></a>
+    <a class="mk-side-home" href="/hub/">&lsaquo; Team Home</a>
+    <nav class="mk-side-nav">
+      <div class="mk-side-title">Marketing</div>
+      <a href="#/marketing/today" data-tab="today">Today</a>
+      <a href="#/marketing/calendar" data-tab="calendar">Campaign Calendar</a>
+      <a href="#/marketing/health" data-tab="health">Platform Health</a>
+      <button type="button" id="mkSideLang">Our language</button>
+    </nav>
+    <div class="mk-side-foot">
+      <button type="button" id="kbThemeBtn">Dark mode</button>
+      <button type="button" id="mkSignOut">Sign out</button>
+    </div>
+  </aside>
+  <div class="mk-scrim" id="mkScrim"></div>
+  <div class="mk-body">
+    <button type="button" class="mk-menubtn" id="mkMenuBtn" aria-controls="mkSide" aria-expanded="false">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+      Menu</button>
+    <main id="kbMain"><p class="kb-msg">Loading…</p></main>
+    <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
+  </div>
 </div>
 <input type="file" id="loadFile" accept=".json,application/json" hidden>
 <button type="button" id="saveBtn" hidden></button>
@@ -73,9 +100,29 @@
     return p[0] === 'marketing' ? p[1] : '';
   }
   function draw() {
-    main.innerHTML = '<p class="kb-crumbs mk-crumbs"><a href="/hub/">Team Home</a> · Marketing</p><div class="mk-host" id="mkHost"></div>';
+    main.innerHTML = '<div class="mk-host" id="mkHost"></div>';
     M.render({ state: state, main: document.getElementById('mkHost'), markDirty: keep, download: download, tab: tab() });
+    var on = document.querySelector('.mk .tab.on'), cur = on ? on.getAttribute('href').split('/').pop() : 'today';
+    [].forEach.call(document.querySelectorAll('.mk-side-nav a'), function (a) {
+      var lit = a.dataset.tab === cur;
+      a.classList.toggle('on', lit);
+      if (lit) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
   }
+
+  // ── The sidebar: a drawer on a phone, always there on a wider screen.
+  function nav(open) {
+    document.body.classList.toggle('mk-nav-open', open);
+    document.getElementById('mkMenuBtn').setAttribute('aria-expanded', String(open));
+  }
+  document.getElementById('mkMenuBtn').onclick = function () { nav(!document.body.classList.contains('mk-nav-open')); };
+  document.getElementById('mkScrim').onclick = function () { nav(false); };
+  [].forEach.call(document.querySelectorAll('.mk-side-nav a'), function (a) { a.addEventListener('click', function () { nav(false); }); });
+  document.getElementById('mkSideLang').onclick = function () { nav(false); var b = document.getElementById('mkLanguage'); if (b) b.click(); };
+  document.getElementById('mkSignOut').onclick = function () { KB.signOut(); };
+  document.getElementById('kbThemeBtn').onclick = KB.toggleTheme;
+  document.getElementById('kbThemeBtn').textContent =
+    (document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark' ? 'Light mode' : 'Dark mode';
 
   document.getElementById('saveBtn').onclick = function () {
     var out = Object.assign({ version: 2 }, rest, { marketing: state });
@@ -104,7 +151,7 @@
 
   KB.ready.then(function () {
     if (KB.allowed.indexOf('marketing') < 0) {   // also "View as" below Level 3
-      main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
+      main.innerHTML = '<p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
       return;
     }
     state = load();
