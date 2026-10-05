@@ -2137,12 +2137,12 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .lc-wrap thead th{white-space:nowrap;vertical-align:bottom;letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis}
 /* The table can never be wider than its card (Kate, 2 Oct 2026: the phone column pushed
    it 65px past the edge and the sticky heads with it). Fixed layout, each column a
-   share of the card, long cells wrap inside their own column. With "Now at" showing the
-   shares add past 100 and the browser scales them down evenly. */
+   share of the card, long cells wrap inside their own column. With "Now at" or "Booked"
+   showing the shares add past 100 and the browser scales them down evenly. */
 .lc-wrap > table{table-layout:fixed;width:100%}
 .lc-wrap td{overflow-wrap:anywhere}
 .lc-c-client{width:14%}.lc-c-visits{width:8%}.lc-c-last{width:11%}.lc-c-spend{width:12%}.lc-c-avg{width:12.5%}
-.lc-c-stylist{width:13.5%}.lc-c-beauty{width:15.5%}.lc-c-phone{width:13.5%}.lc-c-now{width:11%}
+.lc-c-stylist{width:13.5%}.lc-c-beauty{width:15.5%}.lc-c-phone{width:13.5%}.lc-c-now{width:11%}.lc-c-booked{width:13%}
 .lc-wrap td .lc-ph,.lc-wrap td > a[href^="tel:"]{white-space:normal}
 .lc-wrap .lc-more{padding-left:0;display:inline-block}
 /* Stylist links (Kate, 2 Oct 2026, "ang pangit nung underlined"): no dotted rule, the
@@ -3831,7 +3831,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20261002cards"></script>
 <script src="staff-weeks.js?v=20261001aim"></script>
 <script src="products.js?v=20261002wk"></script>
-<script src="lost-clients.js?v=20261003keep"></script>
+<script src="lost-clients.js?v=20261005book"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261003pulse"></script>

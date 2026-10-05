@@ -19,9 +19,16 @@
 // the list when Kate checked it. They are off the list and the tiles, on a line of
 // their own with a "Show them" switch.
 //
+// Clients who already have a booking (booked_on, from migrations/lost_clients_booked.sql,
+// Kate 5 Oct 2026) are off the list the same way: the list only reads Sales
+// Transactions, so a client booked for next week looked lost. Bookings come from
+// Phorest's Staff Appointments report, matched on name, by
+// "phorest data export/staff appointments/parse_future_bookings.py". lcSide says which
+// list is showing: '' the lost, 'moved' or 'booked'.
+//
 // Own controls (branch, who, gone for), so the masthead filters are hidden on this
 // page. Borrows the Products page's card, tile and table styles (slv-*, w13-*).
-let lcAll = null, lcRows = null, lcPage = 1, lcQuery = '', lcMovedView = false;
+let lcAll = null, lcRows = null, lcPage = 1, lcQuery = '', lcSide = '';
 let lcSel = { branch: 'SAA', seg: 'regular', days: 90 };
 try { Object.assign(lcSel, JSON.parse(localStorage.getItem('trs-lost') || '{}')); } catch (e) {}
 
@@ -46,8 +53,12 @@ const lcDayY = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day:
 function lcSave() { try { localStorage.setItem('trs-lost', JSON.stringify(lcSel)); } catch (e) {} }
 // Kate, 3 Oct 2026: the column filters, sort and search stay put when the branch,
 // visits or days change (they used to clear), and are kept per browser like the rest.
-function lcSet(k, v) { lcSel[k] = v; lcPage = 1; lcMovedView = false; lcClosePop(); lcSave(); renderLostClients(); }
-function lcToggleMoved() { lcMovedView = !lcMovedView; lcPage = 1; lcResetFilters(); lcPaint(); }
+function lcSet(k, v) { lcSel[k] = v; lcPage = 1; lcSide = ''; lcClosePop(); lcSave(); renderLostClients(); }
+function lcShowSide(s) {
+  lcSide = lcSide === s ? '' : s; lcPage = 1; lcResetFilters();
+  if (lcSide === 'booked') lcSort = { k: 'booked', dir: 1 };   // soonest booking first
+  lcPaint();
+}
 
 // Speed (Kate, 2 Oct 2026): opened straight on this page, the list waited ~4.5s for
 // the Pulse data it never uses, then the board's summary waited for the list. Both
@@ -108,9 +119,15 @@ function lcPaint() {
   const el = document.getElementById('lostClientsContent');
   if (!el || !lcAll) return;
   const seg = LC_SEG[lcSel.seg] || LC_SEG.regular;
-  const lost = lcAll.filter(r => !r.now_at), moved = lcAll.filter(r => r.now_at);
-  if (!moved.length) lcMovedView = false;
-  lcRows = lcMovedView ? moved : lost;
+  const moved = lcAll.filter(r => r.now_at), booked = lcAll.filter(r => !r.now_at && r.booked_on);
+  const lost = lcAll.filter(r => !r.now_at && !r.booked_on);
+  if (!{ moved, booked }[lcSide]?.length) lcSide = '';
+  lcRows = lcSide === 'moved' ? moved : lcSide === 'booked' ? booked : lost;
+  // One line per group kept off the list, each with its own switch.
+  const sideLine = (s, n, off, on) => n ? `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0 0">
+        <span class="slv-muted" style="margin:0">${lcSide === s ? on : off}</span>
+        <button type="button" class="tglr" onclick="lcShowSide('${s}')">${lcSide === s ? 'Back to the lost list' : 'Show them'}</button>
+      </div>` : '';
   const phones = lcAll.some(r => r.mobile || r.landline);
   const spend = lost.reduce((a, r) => a + (Number(r.spend) || 0), 0);
   const withNo = lost.filter(r => r.mobile || r.landline).length;
@@ -138,12 +155,12 @@ function lcPaint() {
         ${topTile('Their stylist', topSt)}
         ${topTile('Their beautician', topBt)}
       </div>
-      ${moved.length ? `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0 0">
-        <span class="slv-muted" style="margin:0">${lcMovedView
-          ? `Showing the ${lcNum(moved.length)} who came back at another branch instead. They aren't counted above.`
-          : `${lcNum(moved.length)} more came back at another branch in the last ${lcNum(lcSel.days)} days, so they aren't counted as lost.`}</span>
-        <button type="button" class="tglr" onclick="lcToggleMoved()">${lcMovedView ? 'Back to the lost list' : 'Show them'}</button>
-      </div>` : ''}
+      ${sideLine('moved', moved.length,
+        `${lcNum(moved.length)} more came back at another branch in the last ${lcNum(lcSel.days)} days, so they aren't counted as lost.`,
+        `Showing the ${lcNum(moved.length)} who came back at another branch instead. They aren't counted above.`)}
+      ${sideLine('booked', booked.length,
+        `${lcNum(booked.length)} more already have a booking, so they aren't counted as lost.`,
+        `Showing the ${lcNum(booked.length)} who already have a booking, soonest first. They aren't counted above.`)}
       <div class="lc-tools" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0 8px">
         <input type="search" id="lcSearch" placeholder="Search name or stylist" value="${lcEsc(lcQuery)}"
           oninput="lcQuery=this.value;lcPage=1;lcPaintTable()"
@@ -154,7 +171,7 @@ function lcPaint() {
       </div>
       <div id="lcTable"></div>
     </section>
-    <p class="slv-muted">From Phorest's Sales Transactions, which starts in January 2025: a client who was a regular in 2024 and stopped before then isn't on this list. Visits are days she came in at this branch; a client seen at another branch in the same window is counted on its own line, not as lost. Usual stylist is whoever served most of her visits. "Last visit" is the newest day uploaded, so the last day or two can lag.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to your login only. The report doesn\'t say who opted out of marketing, so check consent in Phorest before anyone messages a client.' : ''}</p>`;
+    <p class="slv-muted">From Phorest's Sales Transactions, which starts in January 2025: a client who was a regular in 2024 and stopped before then isn't on this list. Visits are days she came in at this branch; a client seen at another branch in the same window is counted on its own line, not as lost, and so is a client with a booking from today on in Phorest's Staff Appointments report (matched on her name, from the last time it was pulled). Usual stylist is whoever served most of her visits. "Last visit" is the newest day uploaded, so the last day or two can lag.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to your login only. The report doesn\'t say who opted out of marketing, so check consent in Phorest before anyone messages a client.' : ''}</p>`;
   lcPaintTable();
   lcStickHead();
   lcLoadSummary();
@@ -197,11 +214,14 @@ const LC_COLS = [
   // each with the others she saw from that team in small type underneath (lcTeam).
   { k: 'stylist', label: 'Usual stylist',    type: 'pick', get: r => lcTeam(r).hair[0] || '' },
   { k: 'beauty',  label: 'Usual beautician', type: 'pick', get: r => lcTeam(r).beauty[0] || '' },
-  { k: 'now',     label: 'Now at',              type: 'pick', get: r => r.now_at || '', moved: true },
+  { k: 'now',     label: 'Now at',              type: 'pick', get: r => r.now_at || '', side: 'moved' },
+  { k: 'booked',  label: 'Booked',              type: 'date', get: r => r.booked_on || '', side: 'booked' },
   { k: 'phone',   label: 'Phone',               type: 'has',  get: r => r.mobile || r.landline || '', phones: true },
 ];
 const lcHasPhones = () => (lcAll || []).some(r => r.mobile || r.landline);
-const lcCols = () => LC_COLS.filter(c => (!c.moved || lcMovedView) && (!c.phones || lcHasPhones()));
+const lcCols = () => LC_COLS.filter(c => (!c.side || c.side === lcSide) && (!c.phones || lcHasPhones()));
+// "12 Oct 2026 at KCA" (the branch only when it isn't this list's) and who with.
+const lcBookedAt = r => lcDayY(r.booked_on) + (r.booked_at && r.booked_at !== lcSel.branch ? ' at ' + r.booked_at : '');
 const lcColOf = k => LC_COLS.find(c => c.k === k);
 function lcOn(k) {
   const f = lcF[k]; if (!f) return false;
@@ -414,7 +434,8 @@ function lcPaintBoard() {
     const segs = LC_SEGS.map(g => Object.assign({ b }, g, at(b, g.s)));
     const lost = segs.reduce((a, x) => a + x.lost, 0), lostSpend = segs.reduce((a, x) => a + Number(x.lost_spend), 0);
     const moved = segs.reduce((a, x) => a + x.moved, 0), active = segs.reduce((a, x) => a + x.active, 0);
-    return { b, name: LC_BRANCH[b], segs, lost, lostSpend, moved, active, all: lost + moved + active };
+    const booked = segs.reduce((a, x) => a + (x.booked || 0), 0);   // already inside active
+    return { b, name: LC_BRANCH[b], segs, lost, lostSpend, moved, active, booked, all: lost + moved + active };
   });
   const tot = k => B.reduce((a, x) => a + x[k], 0);
   const allLost = tot('lost'), allSpend = tot('lostSpend'), allClients = tot('all');
@@ -435,7 +456,7 @@ function lcPaintBoard() {
     }).join('');
     const rest = spend ? '' : [
       x.moved ? `<span class="lc-seg rest moved" style="width:${(100 * x.moved / scale).toFixed(2)}%" data-read="${lcEsc(`${x.name} · Moved branch: ${lcNum(x.moved)} now come to another salon`)}"></span>` : '',
-      x.active ? `<span class="lc-seg rest" style="width:${(100 * x.active / scale).toFixed(2)}%" data-read="${lcEsc(`${x.name} · Still coming: ${lcNum(x.active)} seen in the last ${days} days`)}"></span>` : '',
+      x.active ? `<span class="lc-seg rest" style="width:${(100 * x.active / scale).toFixed(2)}%" data-read="${lcEsc(`${x.name} · Still coming: ${lcNum(x.active)} seen in the last ${days} days${x.booked ? ` or booked in (${lcNum(x.booked)})` : ''}`)}"></span>` : '',
     ].join('');
     const fig = spend ? `<b>${lcShortAed(x.lostSpend)}</b><small>${lcNum(x.lost)} clients</small>`
                       : `<b>${lcNum(x.lost)}</b><small>${x.all ? Math.round(100 * x.lost / x.all) : 0}% of ${lcNum(x.all)}</small>`;
@@ -481,7 +502,7 @@ function lcBoardTable(B, days) {
   return `<div class="slv-wrap"><table class="slv-table lc-board-t">
       <thead><tr><th>Branch</th><th>Regulars (3+)</th><th>Came twice</th><th>One visit</th><th>All lost</th><th>Of their clients</th></tr></thead>
       <tbody>${B.map(row).join('')}${row(all).replace('<tr>', '<tr class="tot">')}</tbody></table></div>
-    <p class="slv-note" style="margin-top:8px">Clients since Jan 2025, total spend ex VAT. "Of their clients" is everyone who came to that branch since then. A client who has since been in at another branch is not counted as lost.</p>`;
+    <p class="slv-note" style="margin-top:8px">Clients since Jan 2025, total spend ex VAT. "Of their clients" is everyone who came to that branch since then. A client who has since been in at another branch, or who already has a booking, is not counted as lost.</p>`;
 }
 
 // The table on its own, so typing in the search box or changing a column filter
@@ -508,6 +529,7 @@ function lcPaintTable() {
     if (c.k === 'stylist') return `<td class="lc-stc">${lcTeamCell(lcTeam(r).hair)}</td>`;
     if (c.k === 'beauty') return `<td class="lc-stc">${lcTeamCell(lcTeam(r).beauty)}</td>`;
     if (c.k === 'now') return `<td>${r.now_at ? `${lcEsc(r.now_at)}<div class="slv-note">${lcEsc(lcDayY(r.now_last))}</div>` : ''}</td>`;
+    if (c.k === 'booked') return `<td>${r.booked_on ? `${lcEsc(lcBookedAt(r))}<div class="slv-note">${lcEsc(r.booked_with || '')}</div>` : ''}</td>`;
     if (c.k === 'phone') return `<td>${lcPhone(r)}</td>`;
     return '<td></td>';
   };
@@ -524,7 +546,7 @@ function lcPaintTable() {
   const cards = shown.map((r, i) => `<li class="prd-card lc-row" onclick="lcToggleDetail(event,${i})">
       <div class="prd-body">
         <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${check(r)}</span><span class="prd-spend">AED ${lcNum(r.spend)}</span></div>
-        <div class="prd-meta">${lcNum(r.visits)} visits · avg AED ${lcNum(lcAvg(r))} · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${lcMovedView && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}</div>
+        <div class="prd-meta">${lcNum(r.visits)} visits · avg AED ${lcNum(lcAvg(r))} · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${lcSide === 'moved' && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}${lcSide === 'booked' && r.booked_on ? ' · booked ' + lcEsc(lcBookedAt(r)) + (r.booked_with ? ' with ' + lcEsc(r.booked_with) : '') : ''}</div>
         ${['hair', 'beauty'].map(t => { const l = lcTeam(r)[t]; return l.length ? `<div class="prd-meta lc-also-line">${t === 'hair' ? 'Stylist' : 'Beautician'} ${lcStylist(l[0])}${l.length > 1 ? ' · also ' + l.slice(1, 3).map(lcStylist).join(', ') + (l.length > 3 ? ' +' + (l.length - 3) : '') : ''}</div>` : ''; }).join('')}
         ${lcHasPhones() && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
         <div class="lc-hint-m">Tap for her visits ›</div>
@@ -654,6 +676,10 @@ function lcExportLines() {
   cols.forEach(c => {
     if (c.k === 'last') { head.push('Last visit', 'Days since'); pick.push(r => r.last_visit, r => Number(r.days_since) || 0); return; }
     if (c.k === 'now') { head.push('Now at', 'Last visit there'); pick.push(r => r.now_at || '', r => r.now_last || ''); return; }
+    if (c.k === 'booked') {
+      head.push('Booked for', 'Booked at', 'Booked with', 'Booked services');
+      pick.push(r => r.booked_on || '', r => r.booked_at || '', r => r.booked_with || '', r => r.booked_for || ''); return;
+    }
     if (c.k === 'stylist') { head.push('Usual stylist', 'Also saw (hair)'); pick.push(r => lcTeam(r).hair[0] || '', r => lcTeam(r).hair.slice(1).join(', ')); return; }
     if (c.k === 'beauty') { head.push('Usual beautician', 'Also saw (beauty)'); pick.push(r => lcTeam(r).beauty[0] || '', r => lcTeam(r).beauty.slice(1).join(', ')); return; }
     head.push(c.xl || c.label); pick.push(c.get);
@@ -715,7 +741,7 @@ async function lcSaveFile(kind) {
   const out = kind === 'csv' && pi >= 0 ? lines.map(l => l.map((v, j) => j === pi && v ? `="${v}"` : v)) : lines;
   const built = lgxBuild({ sheets: [{ name: 'Lost clients ' + lcSel.branch, blocks: [{ cols, rows: out.map(l => ({ cells: l })) }] }] });
   const name = ['lost-clients', lcSel.branch, lcSel.seg === 'regular' ? 'regulars' : lcSel.seg, lcSel.days + 'd']
-    .concat(lcMovedView ? ['moved'] : []).concat(lcQuery.trim() || Object.keys(lcF).some(lcOn) ? ['filtered'] : []).join('-');
+    .concat(lcSide ? [lcSide] : []).concat(lcQuery.trim() || Object.keys(lcF).some(lcOn) ? ['filtered'] : []).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
   if (s) s.textContent = `Saved ${lcNum(lines.length)} rows as ${kind.toUpperCase()}`;
