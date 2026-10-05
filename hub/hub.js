@@ -52,7 +52,7 @@
     // Kate, 5 Oct 2026: Tara's Full Loop handover site, as she built it (kb_sections min_level 3).
     { key: 'full-loop', dept: 'The Full Loop', title: 'The Full Loop Handover', href: '/hub/full-loop', live: true, rule: 'var(--accent-mint)',
       blurb: 'The five playbooks, the Low · Mid · High decoder, the Menu Builder and the Handover Tracker.' },
-    { key: 'hr-forms', dept: 'Accounts & Admin', title: 'HR Forms & Waivers', rule: 'var(--accent-butter)',
+    { key: 'hr-forms', dept: 'Accounts & Admin', title: 'HR Forms & Waivers', href: '/hub/forms', live: true, rule: 'var(--accent-butter)',
       blurb: 'Leave, probation and return-to-work forms; client waivers and consultation forms.' },
     { key: 'uploads', dept: 'Accounts & Admin', title: 'Upload Portal', href: '/upload/', live: true, rule: 'var(--accent-mint)',
       blurb: 'Payslips, and the uploads that feed the dashboard.' }

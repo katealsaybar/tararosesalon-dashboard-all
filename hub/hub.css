@@ -495,3 +495,19 @@ body.kb-wait .wrap{visibility:hidden}
 .sg-thumb{display:block;width:84px;height:84px;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:var(--surface2)}
 .sg-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .sg-pdf{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--border);font-size:13.5px;font-weight:600;text-decoration:none;color:var(--text);background:var(--surface2)}
+
+/* HR Forms & Waivers (Kate, 5 Oct 2026): /hub/forms, one panel per group. */
+.fm-dept{max-width:920px}
+.fm-code{flex:none;width:56px;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted2)}
+.fm-acts{flex:none;display:flex;gap:8px}
+.fm-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;min-height:36px}
+.fm-btn:hover{border-color:var(--text)}
+.fm-btn.fm-dl{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.fm-btn:disabled{opacity:.6;cursor:wait}
+@media(max-width:760px){
+  .fm-row{flex-wrap:wrap}
+  .fm-code{width:auto}
+  .fm-row .kb-row-tx{flex-basis:calc(100% - 70px)}
+  .fm-row .kb-row-n{order:3}
+  .fm-acts{order:4;margin-left:auto}
+}

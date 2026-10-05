@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HR Forms &amp; Waivers · Team Home</title>
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=20261005forms">
+</head>
+<body class="kb-wait">
+<!-- HR Forms & Waivers (Kate, 5 Oct 2026): the 14 printable forms rebuilt from the
+     2020 pack with the current logo. The PDFs live in kb_files in Supabase
+     (migrations/kb_files.sql), readable only by those who may open the hr-forms
+     section (Level 2 and up); nothing of them is in this repo, which is public. -->
+<div class="wrap">
+  <header class="kb-head" id="kbHead" data-title="Team Home"></header>
+  <main id="kbMain"><p class="kb-msg">Loading…</p></main>
+  <footer class="kb-foot">Tara Rose Salons · for the team only · <a href="/privacy/">Privacy</a></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js?v=20261001kb"></script>
+<script src="/hub/hub.js?v=20261005forms"></script>
+<script>
+(function () {
+  var main = document.getElementById('kbMain'), esc = KB.esc;
+  if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
+  function notFound() {
+    main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
+  }
+  function size(b) { return b ? Math.round(b / 1024) + ' KB' : ''; }
+  // A bytea comes back from PostgREST as "\x" followed by hex.
+  function bytes(hex) {
+    hex = String(hex || '').replace(/^\\x/, '');
+    var out = new Uint8Array(hex.length / 2);
+    for (var i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+    return out;
+  }
+  var cache = {};
+  async function blobUrl(code) {
+    if (cache[code]) return cache[code];
+    var r = await KB.client.from('kb_files').select('pdf').eq('code', code).single();
+    if (r.error || !r.data || !r.data.pdf) throw new Error('not found');
+    return (cache[code] = URL.createObjectURL(new Blob([bytes(r.data.pdf)], { type: 'application/pdf' })));
+  }
+  async function act(btn) {
+    var open = btn.dataset.act === 'open';
+    var tab = open ? window.open('', '_blank') : null;   // opened on the click, so it isn't blocked
+    var was = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Loading…';
+    try {
+      var u = await blobUrl(btn.dataset.code);
+      if (tab) tab.location.href = u;
+      else {
+        var a = document.createElement('a');
+        a.href = u; a.download = btn.dataset.file;
+        document.body.appendChild(a); a.click(); a.remove();
+      }
+    } catch (e) {
+      if (tab) tab.close();
+      alert('That form couldn’t be loaded. Try again, or tell Kate.');
+    }
+    btn.disabled = false; btn.textContent = was;
+  }
+
+  KB.ready.then(async function () {
+    if (KB.allowed.indexOf('hr-forms') < 0) { notFound(); return; }   // also "View as" below Level 2
+    var r = await KB.client.from('kb_files').select('code,grp,title,subtitle,blurb,filename,pages,bytes,sort')
+      .eq('section', 'hr-forms').order('sort');
+    if (r.error || !r.data || !r.data.length) { notFound(); return; }
+    var groups = [], by = {};
+    r.data.forEach(function (f) { if (!by[f.grp]) { by[f.grp] = []; groups.push(f.grp); } by[f.grp].push(f); });
+    main.innerHTML =
+      '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
+      '<h2 class="kb-page-title">HR Forms &amp; Waivers</h2>' +
+      '<p class="kb-meta">' + r.data.length + ' printable A4 forms · print, fill in by hand, and file the signed copy</p>' +
+      groups.map(function (g) {
+        return '<section class="kb-dept fm-dept"><h2 class="kb-dept-h">' + esc(g) + '</h2>' + by[g].map(function (f) {
+          var t = f.title + (f.subtitle ? ' (' + f.subtitle + ')' : '');
+          return '<div class="kb-row fm-row"><span class="fm-code">' + esc(f.code) + '</span>' +
+            '<span class="kb-row-tx"><b>' + esc(t) + '</b><span>' + esc(f.blurb || '') + '</span></span>' +
+            '<span class="kb-row-n">' + (f.pages || 1) + (f.pages > 1 ? ' pages' : ' page') + ' · ' + size(f.bytes) + '</span>' +
+            '<span class="fm-acts"><button type="button" class="fm-btn" data-act="open" data-code="' + esc(f.code) + '">View</button>' +
+            '<button type="button" class="fm-btn fm-dl" data-act="dl" data-code="' + esc(f.code) + '" data-file="' + esc(f.filename) + '">Download</button></span></div>';
+        }).join('') + '</section>';
+      }).join('');
+    main.addEventListener('click', function (e) { var b = e.target.closest('.fm-btn'); if (b) act(b); });
+  });
+})();
+</script>
+</body>
+</html>
