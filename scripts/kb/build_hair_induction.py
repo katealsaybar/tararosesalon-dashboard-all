@@ -248,6 +248,8 @@ def page_html(doc, pn, title):
     # Lower-case "i" and quotes that open in lower case, left by the capitals styling.
     out = re.sub(r"(^|[\s\"“‘(;>]|&quot;)i(?=[\s’',!?])", r"\1I", out)
     out = re.sub(r"(<p>(?:&quot;|“))([a-z])", lambda m: m.group(1) + m.group(2).upper(), out)
+    # British English (brand rule): the season is autumn. "Natural fall" in cutting stays.
+    out = out.replace("for the fall season", "for autumn")
     return re.sub(r"</ul>\n<ul>", "", out)
 
 # Menu pages are price grids. With the prices gone their size labels ("Short:",
