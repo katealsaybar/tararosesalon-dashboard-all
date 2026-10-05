@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261005rows">
+<link rel="stylesheet" href="/hub/hub.css?v=20261005icons">
 </head>
 <body class="kb-wait">
 <div class="wrap">
@@ -72,7 +72,7 @@ KB.ready.then(async function () {
     pageFavs = (pr.data || []).filter(function (p) { return KB.shows(p.slug); }).map(function (p) {
       var sec = KB.SECTIONS.find(function (s) { return s.key === p.section; }) || {};
       return { key: 'p:' + p.slug, title: p.title, href: '/hub/kb.html?p=' + encodeURIComponent(p.slug), live: true,
-        rule: sec.rule || 'var(--accent-mint)', blurb: (sec.title || '') + (p.group_name ? ' · ' + p.group_name : '') };
+        rule: sec.rule || 'var(--accent-mint)', ic: sec.key, blurb: (sec.title || '') + (p.group_name ? ' · ' + p.group_name : '') };
     });
   }
 
@@ -86,7 +86,8 @@ KB.ready.then(async function () {
     wvperf: 'Wellness Voucher Performance', reviews: 'Google Reviews' };
   var dashFavs = Object.keys(favs).filter(function (k) { return k.indexOf('d:') === 0 && DASH_PAGES[k.slice(2)]; })
     .map(function (k) { var v = k.slice(2);
-      return { key: k, title: DASH_PAGES[v], href: '/?view=' + v, live: true, rule: 'var(--accent-lavender)', blurb: 'Dashboards' }; });
+      return { key: k, title: DASH_PAGES[v], href: '/?view=' + v, live: true, rule: 'var(--accent-lavender)', blurb: 'Dashboards',
+        ic: v === 'lostclients' ? 'lost-clients' : 'dashboards' }; });
 
   var isLive = function (s) { return !!(s.live || counts[s.key]); };
   // Kate, 5 Oct 2026: each department is one panel of rows (icon, title, one line,
@@ -96,7 +97,16 @@ KB.ready.then(async function () {
   function initials(t) {
     return t.replace(/&/g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase();
   }
-  function icon(s) { return '<span class="kb-ic" style="--c:' + s.rule + '" aria-hidden="true">' + esc(initials(s.title)) + '</span>'; }
+  // Kate, 5 Oct 2026: the illustrated icons she picked in Canva (hub/icons/<key>.png,
+  // 128px, cut from the "hub icons" design). A section without one keeps its initials.
+  var ICONS = ['suggestions', 'dashboards', 'campaigns', 'access', 'lost-clients', 'hair-sop', 'hair-induction',
+    'beauty-sop', 'beauty-induction', 'front-desk', 'front-desk-induction', 'call-centre', 'call-centre-induction',
+    'marketing', 'uploads', 'hr-forms'];
+  function icon(s) {
+    var k = s.ic || s.key;
+    if (ICONS.indexOf(k) >= 0) return '<span class="kb-ic kb-ic-img" aria-hidden="true"><img src="/hub/icons/' + k + '.png?v=20261005icons" alt="" loading="lazy" decoding="async"></span>';
+    return '<span class="kb-ic" style="--c:' + s.rule + '" aria-hidden="true">' + esc(initials(s.title)) + '</span>';
+  }
   function row(s) {
     var n = counts[s.key] || 0, live = isLive(s);
     var text = '<span class="kb-row-tx"><b>' + (live && !s.sample ? '<a class="kb-row-link" href="' + esc(s.href || '/hub/kb.html?s=' + s.key) + '">' + esc(s.title) + '</a>' : esc(s.title)) +
