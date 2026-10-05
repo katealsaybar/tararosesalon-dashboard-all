@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="/hub/hub.css?v=20261005forms">
 </head>
 <body class="kb-wait">
-<!-- HR Forms & Waivers (Kate, 5 Oct 2026): the 14 printable forms rebuilt from the
+<!-- HR Forms & Waivers (Kate, 5 Oct 2026): the 14 fillable forms (real PDF form fields) rebuilt from the
      2020 pack with the current logo. The PDFs live in kb_files in Supabase
      (migrations/kb_files.sql), readable only by those who may open the hr-forms
      section (Level 2 and up); nothing of them is in this repo, which is public. -->
@@ -81,14 +81,14 @@
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       '<h2 class="kb-page-title">HR Forms &amp; Waivers</h2>' +
-      '<p class="kb-meta">' + r.data.length + ' printable A4 forms · print, fill in by hand, and file the signed copy</p>' +
+      '<p class="kb-meta">' + r.data.length + ' fillable A4 forms · fill in on screen and save, or print and fill in by hand · file the signed copy</p>' +
       groups.map(function (g) {
         return '<section class="kb-dept fm-dept"><h2 class="kb-dept-h">' + esc(g) + '</h2>' + by[g].map(function (f) {
           var t = f.title + (f.subtitle ? ' (' + f.subtitle + ')' : '');
           return '<div class="kb-row fm-row"><span class="fm-code">' + esc(f.code) + '</span>' +
             '<span class="kb-row-tx"><b>' + esc(t) + '</b><span>' + esc(f.blurb || '') + '</span></span>' +
             '<span class="kb-row-n">' + (f.pages || 1) + (f.pages > 1 ? ' pages' : ' page') + ' · ' + size(f.bytes) + '</span>' +
-            '<span class="fm-acts"><button type="button" class="fm-btn" data-act="open" data-code="' + esc(f.code) + '">View</button>' +
+            '<span class="fm-acts"><button type="button" class="fm-btn" data-act="open" data-code="' + esc(f.code) + '" title="Opens the form to type in. Save it with the browser's download button.">Fill in</button>' +
             '<button type="button" class="fm-btn fm-dl" data-act="dl" data-code="' + esc(f.code) + '" data-file="' + esc(f.filename) + '">Download</button></span></div>';
         }).join('') + '</section>';
       }).join('');
