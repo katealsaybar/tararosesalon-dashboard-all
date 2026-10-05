@@ -19,7 +19,7 @@ const PS_KEY_STORE = 'payslipKey';
 // The Staff Payslips Apps Script, deployed as a web app from payroll@ (Execute as:
 // Me, access: Anyone). It sends the monthly emails; see
 // apps-script/monthly-performance-email.gs. Every call carries the payslip key.
-const PS_SEND_URL = '';
+const PS_SEND_URL = 'https://script.google.com/macros/s/AKfycbxJLja-iKKSDUHXAk8sCCKRG4b7scPoIaVJ18dpLNAX3t3gwEg0RFUKLX9Li_-XCHVRdg/exec';
 const PS_BRANCH = { KCA: 'Khalifa City A', SAA: 'Mamsha Al Saadiyat', MC: 'Motor City', AQ: 'Al Quoz' };
 let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '', branch: (() => { try { return localStorage.getItem('trs-ps-branch') || ''; } catch (e) { return ''; } })(), pos: (() => { try { return localStorage.getItem('trs-ps-pos') || ''; } catch (e) { return ''; } })(), up: (() => { try { return localStorage.getItem('trs-ps-up') || ''; } catch (e) { return ''; } })(), send: null, sendBusy: '', sendMsg: '', sendErr: '' };
 
