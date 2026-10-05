@@ -322,16 +322,11 @@ function psTplText() {
   const t = PS_STATE.tpl, s = PS_STATE.staff.find(x => String(x.id) === t.who);
   const first = s ? s.name.split(' ')[0] : '[First name]';
   const month = new Date(PS_STATE.month + '-15').toLocaleDateString('en-GB', { month: 'long' });
-  return `Hi ${first},
-
-We've updated your ${month} payslip. The new one is attached and replaces the one we sent earlier, so please use this one.
-
-`
-    + `What changed: ${t.what.trim() || '[one line]'}
-
-If anything still looks off, just reply to this email and we'll sort it with you.
-
-Tara Rose Salons Accounts`;
+  // Reads on from "What changed:", so it starts lower case and ends with a full stop.
+  let what = t.what.trim().replace(/[.\s]+$/, '');
+  what = what ? what[0].toLowerCase() + what.slice(1) + '.' : '[one line]';
+  return `Hi ${first},\n\nWe've updated your ${month} payslip. The new one is attached and replaces the one we sent earlier, so please use this one.\n\n`
+    + `What changed: ${what}\n\nIf anything still looks off, just reply to this email and we'll sort it with you.\n\nTara Rose Salons Accounts`;
 }
 function psRenderTpl() {
   const el = document.getElementById('psTplPanel');
@@ -341,7 +336,7 @@ function psRenderTpl() {
     <summary class="ps-send-hd">Revised payslip email</summary>
     <div class="ps-meta">Fixing someone’s payslip? Press Replace next to their name below with the new PDF. Then in payroll@’s Gmail open their payslip email, press Reply (not Forward), attach the new PDF and paste this.</div>
     <div class="ps-send-row"><select onchange="PS_STATE.tpl.who=this.value; psTplPreview()"><option value="">Pick a person</option>${PS_STATE.staff.map(s => `<option value="${psEsc(s.id)}"${t.who === String(s.id) ? ' selected' : ''}>${psEsc(s.name)}</option>`).join('')}</select></div>
-    <textarea class="ps-tpl-what" rows="2" placeholder="What changed, in one line. E.g. your service commission was corrected from AED 20,727 to AED 21,699." oninput="PS_STATE.tpl.what=this.value; psTplPreview()">${psEsc(t.what)}</textarea>
+    <textarea class="ps-tpl-what" rows="2" placeholder="What changed, in one line. E.g. your service commission was corrected from AED 19,901 to AED 21,006, so your net salary is now AED 21,006." oninput="PS_STATE.tpl.what=this.value; psTplPreview()">${psEsc(t.what)}</textarea>
     <pre class="ps-tpl-out" id="psTplOut"></pre>
     <div class="ps-send-row"><button class="btn-outline" onclick="psTplCopy(this)">Copy email</button></div>
   </details>`;
