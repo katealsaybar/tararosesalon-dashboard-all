@@ -69,7 +69,7 @@
     };
   }
   function metaLine(p, i, n) {
-    return (i >= 0 && n ? 'Chapter ' + (i + 1) + ' of ' + n + ', ' : '') + 'Version ' + p.version +
+    return (i >= 0 && n ? 'Chapter ' + (i + 1) + ' of ' + n + ', version ' : 'Version ') + p.version +
       ', updated ' + when(p.updated_at) + (p.owner ? '. Owner: ' + p.owner : '');
   }
   function forPdf(p, sec, i, n) {
