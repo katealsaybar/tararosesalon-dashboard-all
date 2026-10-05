@@ -88,7 +88,7 @@
           return '<div class="kb-row fm-row"><span class="fm-code">' + esc(f.code) + '</span>' +
             '<span class="kb-row-tx"><b>' + esc(t) + '</b><span>' + esc(f.blurb || '') + '</span></span>' +
             '<span class="kb-row-n">' + (f.pages || 1) + (f.pages > 1 ? ' pages' : ' page') + ' · ' + size(f.bytes) + '</span>' +
-            '<span class="fm-acts"><button type="button" class="fm-btn" data-act="open" data-code="' + esc(f.code) + '" title="Opens the form to type in. Save it with the browser's download button.">Fill in</button>' +
+            '<span class="fm-acts"><button type="button" class="fm-btn" data-act="open" data-code="' + esc(f.code) + '" title="Opens the form to type in. Save it with the download button in the PDF viewer.">Fill in</button>' +
             '<button type="button" class="fm-btn fm-dl" data-act="dl" data-code="' + esc(f.code) + '" data-file="' + esc(f.filename) + '">Download</button></span></div>';
         }).join('') + '</section>';
       }).join('');
