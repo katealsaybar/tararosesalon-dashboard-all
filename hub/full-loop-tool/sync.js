@@ -19,7 +19,14 @@
   var ST = null;              // window.TR_STATE, set at boot (her app runs first)
   var synced = {};             // key -> JSON the table last had (GONE for a removed line)
   var timer = null, needDraw = false;
-  var J = function (v) { return JSON.stringify(v); };
+  // Compared by content, keys sorted: Postgres hands jsonb back in its own key order,
+  // so a plain JSON.stringify read every line as changed (5 Oct 2026).
+  var J = function (v) {
+    return JSON.stringify(v, function (k, x) {
+      if (!x || typeof x !== 'object' || Array.isArray(x)) return x;
+      return Object.keys(x).sort().reduce(function (o, key) { o[key] = x[key]; return o; }, {});
+    });
+  };
   var okId = function (v) { return /^[A-Za-z0-9_-]{1,40}$/.test(String(v)); };
 
   // Her state as rows.
