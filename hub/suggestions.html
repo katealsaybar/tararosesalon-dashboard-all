@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261005sgst">
+<link rel="stylesheet" href="/hub/hub.css?v=20261005file">
 </head>
 <body class="kb-wait">
 <!-- Suggestions box (Kate, 5 Oct 2026): everyone signed in can send one; Level 3 and up
@@ -22,7 +22,9 @@
      kb_suggestion_mark() in Supabase (migrations/kb_suggestions.sql); the table itself
      answers to nobody. Without a name, nothing about the sender is saved.
      Replies (5 Oct 2026, migrations/kb_suggestion_replies.sql): kb_suggestion_reply()
-     for Level 3+, read back through kb_my_suggestions(), by email or by private code. -->
+     for Level 3+, read back through kb_my_suggestions(), by email or by private code.
+     Attachments (5 Oct 2026, migrations/kb_suggestion_files.sql): private bucket
+     kb-suggestion-files, Level 3+ opens them through signed links. -->
 <div class="wrap">
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
   <main id="kbMain"><p class="kb-msg">Loading…</p></main>
@@ -58,7 +60,7 @@
       return '<li class="sg-item' + (s.status === 'new' ? ' is-new' : '') + '">' +
         '<div class="sg-top"><span class="sg-topic">' + esc(s.topic) + '</span>' +
           '<span class="sg-when">' + esc(when(s.created_at)) + '</span></div>' +
-        '<p class="sg-body">' + esc(s.body) + '</p>' +
+        '<p class="sg-body">' + esc(s.body) + '</p>' + filesBlock(s) +
         '<div class="sg-foot"><span class="sg-from">' + (s.sender_name ? 'From ' + esc(s.sender_name) : 'No name given') +
           (s.region === 'BAH' ? ' · Bahrain' : '') + '</span>' +
           '<span class="sg-status" role="group" aria-label="Status">' +
@@ -72,6 +74,25 @@
   // Kate, 5 Oct 2026: Level 3+ answers here. The sender reads it on this page, under
   // "Your suggestions" (named) or with their private code (sent without a name).
   var editing = null;
+  // Attachments (Kate, 5 Oct 2026): signed links from the private bucket, an hour each.
+  var links = {};
+  function filesBlock(s) {
+    if (!s.files || !s.files.length) return '';
+    return '<div class="sg-att">' + s.files.map(function (f, i) {
+      var u = links[f];
+      if (/\.pdf$/.test(f)) return u ? '<a class="sg-pdf" href="' + esc(u) + '" target="_blank" rel="noopener">PDF ' + (i + 1) + '</a>' : '<span class="sg-pdf">PDF ' + (i + 1) + '</span>';
+      return u ? '<a class="sg-thumb" href="' + esc(u) + '" target="_blank" rel="noopener" aria-label="Photo ' + (i + 1) + '"><img src="' + esc(u) + '" alt="" loading="lazy"></a>'
+               : '<span class="sg-thumb"></span>';
+    }).join('') + '</div>';
+  }
+  async function signFiles() {
+    var want = [];
+    list.forEach(function (s) { (s.files || []).forEach(function (f) { if (!links[f]) want.push(f); }); });
+    if (!want.length) return;
+    var r = await KB.client.storage.from('kb-suggestion-files').createSignedUrls(want, 3600);
+    (r.data || []).forEach(function (x) { if (x.signedUrl) links[x.path] = x.signedUrl; });
+    drawInbox();
+  }
   function replyBlock(s) {
     if (editing === s.id) return '<div class="sg-reply-edit"><label class="sg-label" for="sgR' + s.id + '">Your reply</label>' +
       '<textarea id="sgR' + s.id + '" rows="3" maxlength="2000" placeholder="What happens next? The sender reads this.">' + esc(s.reply || '') + '</textarea>' +
@@ -88,6 +109,7 @@
     if (r.error || !r.data) { document.getElementById('sgInbox').hidden = true; return; }
     list = r.data;
     drawInbox();
+    signFiles();
   }
 
   KB.ready.then(function () {
@@ -101,6 +123,9 @@
         '<select id="sgTopic" aria-label="What is it about?">' + TOPICS.map(function (t) { return '<option value="' + esc(t) + '"' + (t === 'Other' ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select>' +
         '<label class="sg-label" for="sgBody">Your suggestion</label>' +
         '<textarea id="sgBody" rows="6" maxlength="2000" required placeholder="What would make it better, and why?"></textarea>' +
+        '<div class="sg-files"><label class="sg-attach"><input type="file" id="sgFile" accept="image/*,application/pdf" multiple hidden>' +
+          '<span>Attach photos or a PDF</span></label><span class="sg-hint-inline" id="sgFileHint">Up to 3 files.</span>' +
+          '<ul class="sg-chosen" id="sgChosen"></ul></div>' +
         '<label class="sg-anon"><input type="checkbox" id="sgAnon"> Send without my name</label>' +
         '<p class="sg-hint" id="sgHint">Your name goes with it, so we can come back to you.</p>' +
         '<div class="sg-actions"><button type="submit" class="sg-send" id="sgSend">Send suggestion</button><span class="sg-msg" id="sgMsg" role="status"></span></div>' +
@@ -127,15 +152,67 @@
         ? 'No name, email or account is saved with it, so nobody can tell who sent it. You get a private code instead, to read our reply here.'
         : 'Your name goes with it, so we can come back to you.';
     });
+    // Chosen files. Photos are shrunk to 1600px and redrawn as a new JPEG, which drops
+    // what the phone hid inside them (model, location). Without a name, photos only.
+    var chosen = [], fileHint = document.getElementById('sgFileHint');
+    function drawChosen() {
+      document.getElementById('sgChosen').innerHTML = chosen.map(function (f, i) {
+        return '<li><span>' + esc(f.name) + '</span><button type="button" class="sg-link" data-rm="' + i + '" aria-label="Remove ' + esc(f.name) + '">Remove</button></li>';
+      }).join('');
+      fileHint.textContent = anon.checked ? 'Up to 3 photos. PDFs can carry your name inside, so they go with named suggestions only.' : 'Up to 3 files.';
+    }
+    document.getElementById('sgFile').addEventListener('change', function (e) {
+      var msg = document.getElementById('sgMsg'); msg.textContent = '';
+      [].forEach.call(e.target.files, function (f) {
+        var pdf = f.type === 'application/pdf', img = /^image\//.test(f.type);
+        if (chosen.length >= 3) msg.textContent = 'Three files at most.';
+        else if (!pdf && !img) msg.textContent = f.name + ' isn’t a photo or a PDF.';
+        else if (pdf && f.size > 10485760) msg.textContent = f.name + ' is over 10 MB.';
+        else if (img && f.size > 26214400) msg.textContent = f.name + ' is too big.';
+        else chosen.push(f);
+      });
+      e.target.value = '';
+      drawChosen();
+    });
+    document.getElementById('sgChosen').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-rm]');
+      if (b) { chosen.splice(+b.dataset.rm, 1); drawChosen(); }
+    });
+    anon.addEventListener('change', drawChosen);
+    async function toJpeg(f) {
+      var bmp = await createImageBitmap(f, { imageOrientation: 'from-image' });
+      var k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+      var c = document.createElement('canvas');
+      c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      return new Promise(function (ok, no) { c.toBlob(function (b) { b ? ok(b) : no(new Error('jpeg')); }, 'image/jpeg', 0.82); });
+    }
+    async function upload() {
+      var dir = 's/' + crypto.randomUUID() + '/', paths = [];
+      for (var i = 0; i < chosen.length; i++) {
+        var f = chosen[i], pdf = f.type === 'application/pdf';
+        var blob = pdf ? f : await toJpeg(f), path = dir + (i + 1) + (pdf ? '.pdf' : '.jpg');
+        var r = await KB.client.storage.from('kb-suggestion-files').upload(path, blob, { contentType: pdf ? 'application/pdf' : 'image/jpeg', upsert: false });
+        if (r.error) throw r.error;
+        paths.push(path);
+      }
+      return paths;
+    }
+
     document.getElementById('sgForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       var body = document.getElementById('sgBody'), send = document.getElementById('sgSend'), msg = document.getElementById('sgMsg');
       if (body.value.trim().length < 3) { msg.textContent = 'Write a little more first.'; body.focus(); return; }
-      send.disabled = true; msg.textContent = 'Sending…';
-      var r = await KB.client.rpc('kb_suggest', { p_topic: document.getElementById('sgTopic').value, p_body: body.value, p_anon: anon.checked });
+      if (anon.checked && chosen.some(function (f) { return f.type === 'application/pdf'; })) { msg.textContent = 'Without your name, attach photos only (remove the PDF).'; return; }
+      send.disabled = true; msg.textContent = chosen.length ? 'Uploading…' : 'Sending…';
+      var files = [];
+      try { files = await upload(); }
+      catch (x) { send.disabled = false; msg.textContent = 'A file didn’t upload. Please try again.'; return; }
+      msg.textContent = 'Sending…';
+      var r = await KB.client.rpc('kb_suggest', { p_topic: document.getElementById('sgTopic').value, p_body: body.value, p_anon: anon.checked, p_files: files.length ? files : null });
       send.disabled = false;
       if (r.error) { msg.textContent = 'That didn’t send. Please try again.'; return; }
-      body.value = '';
+      body.value = ''; chosen = []; drawChosen();
       msg.textContent = 'Thank you, it’s in the box.';
       // Sent without a name: the private code, shown this once (only its hash is kept).
       var code = r.data && r.data.code;
