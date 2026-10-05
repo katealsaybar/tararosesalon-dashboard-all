@@ -14,13 +14,15 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261005turq">
+<link rel="stylesheet" href="/hub/hub.css?v=20261005reply">
 </head>
 <body class="kb-wait">
 <!-- Suggestions box (Kate, 5 Oct 2026): everyone signed in can send one; Level 3 and up
      read them below the form. Saved and read through kb_suggest(), kb_suggestions() and
      kb_suggestion_mark() in Supabase (migrations/kb_suggestions.sql); the table itself
-     answers to nobody. Without a name, nothing about the sender is saved. -->
+     answers to nobody. Without a name, nothing about the sender is saved.
+     Replies (5 Oct 2026, migrations/kb_suggestion_replies.sql): kb_suggestion_reply()
+     for Level 3+, read back through kb_my_suggestions(), by email or by private code. -->
 <div class="wrap">
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
   <main id="kbMain"><p class="kb-msg">Loading…</p></main>
@@ -64,8 +66,22 @@
             return '<button type="button" data-id="' + s.id + '" data-s="' + k + '" aria-pressed="' + (s.status === k) + '">' + STATUS[k] + '</button>';
           }).join('') + '</span></div>' +
         (s.status !== 'new' && s.status_by ? '<div class="sg-by">' + STATUS[s.status] + ' by ' + esc(s.status_by) + ', ' + esc(when(s.status_at)) + '</div>' : '') +
-        '</li>';
+        replyBlock(s) + '</li>';
     }).join('') : '<li class="sg-none">' + (list.length ? 'Nothing matches those filters.' : 'No suggestions yet.') + '</li>';
+  }
+  // Kate, 5 Oct 2026: Level 3+ answers here. The sender reads it on this page, under
+  // "Your suggestions" (named) or with their private code (sent without a name).
+  var editing = null;
+  function replyBlock(s) {
+    if (editing === s.id) return '<div class="sg-reply-edit"><label class="sg-label" for="sgR' + s.id + '">Your reply</label>' +
+      '<textarea id="sgR' + s.id + '" rows="3" maxlength="2000" placeholder="What happens next? The sender reads this.">' + esc(s.reply || '') + '</textarea>' +
+      '<div class="sg-actions"><button type="button" class="sg-send" data-save="' + s.id + '">Send reply</button>' +
+      '<button type="button" class="sg-link" data-cancel="1">Cancel</button>' +
+      (s.reply ? '<button type="button" class="sg-link" data-clear="' + s.id + '">Remove reply</button>' : '') + '</div></div>';
+    if (s.reply) return '<div class="sg-reply"><span class="sg-reply-k">Reply from ' + esc(s.reply_by || 'the team') + ' · ' + esc(when(s.reply_at)) + '</span>' +
+      '<p>' + esc(s.reply) + '</p><button type="button" class="sg-link" data-edit="' + s.id + '">Edit reply</button></div>';
+    return '<button type="button" class="sg-link sg-reply-btn" data-edit="' + s.id + '">Reply</button>' +
+      (s.sender_name || s.has_code ? '' : '<span class="sg-hint-inline">The sender can’t see replies to this one.</span>');
   }
   async function loadInbox() {
     var r = await KB.client.rpc('kb_suggestions');
@@ -88,7 +104,13 @@
         '<label class="sg-anon"><input type="checkbox" id="sgAnon"> Send without my name</label>' +
         '<p class="sg-hint" id="sgHint">Your name goes with it, so we can come back to you.</p>' +
         '<div class="sg-actions"><button type="submit" class="sg-send" id="sgSend">Send suggestion</button><span class="sg-msg" id="sgMsg" role="status"></span></div>' +
+        '<div id="sgCodeShow" aria-live="polite"></div>' +
       '</form>' +
+      '<section class="sg-mine"><h2 class="kb-section-title">Your suggestions</h2>' +
+        '<ul class="sg-list" id="sgMine"><li class="sg-none">Loading…</li></ul>' +
+        '<form class="sg-code" id="sgCodeForm"><label class="sg-label" for="sgCode">Sent one without your name? Enter its code to see the reply.</label>' +
+          '<div class="sg-code-row"><input id="sgCode" autocomplete="off" spellcheck="false" placeholder="ABCDE-23456" maxlength="20">' +
+          '<button type="submit" class="sg-send">Check</button></div><div id="sgCodeOut"></div></form></section>' +
       (reads ?
         '<section id="sgInbox" class="sg-inbox"><h2 class="kb-section-title">Suggestions received</h2>' +
           '<div class="rs-bar"><div class="rs-selects">' +
@@ -102,7 +124,7 @@
     var anon = document.getElementById('sgAnon'), hint = document.getElementById('sgHint');
     anon.addEventListener('change', function () {
       hint.textContent = anon.checked
-        ? 'No name, email or account is saved with it, so nobody can tell who sent it. We can’t reply to you either.'
+        ? 'No name, email or account is saved with it, so nobody can tell who sent it. You get a private code instead, to read our reply here.'
         : 'Your name goes with it, so we can come back to you.';
     });
     document.getElementById('sgForm').addEventListener('submit', async function (e) {
@@ -115,8 +137,40 @@
       if (r.error) { msg.textContent = 'That didn’t send. Please try again.'; return; }
       body.value = '';
       msg.textContent = 'Thank you, it’s in the box.';
+      // Sent without a name: the private code, shown this once (only its hash is kept).
+      var code = r.data && r.data.code;
+      document.getElementById('sgCodeShow').innerHTML = code ?
+        '<div class="sg-codebox"><span class="sg-reply-k">Your private code</span><b>' + esc(code) + '</b>' +
+        '<button type="button" class="sg-link" id="sgCopy">Copy</button>' +
+        '<p>Keep it somewhere safe. It is the only way to read our reply, and we can’t show it again or tell whose it is.</p></div>' : '';
+      var cp = document.getElementById('sgCopy');
+      if (cp) cp.onclick = function () { try { navigator.clipboard.writeText(code); cp.textContent = 'Copied'; } catch (x) {} };
+      if (!code) loadMine();
       if (reads) loadInbox();
     });
+
+    function mineItem(s) {
+      return '<li class="sg-item"><div class="sg-top"><span class="sg-topic">' + esc(s.topic) + '</span><span class="sg-when">' + esc(when(s.created_at)) + '</span></div>' +
+        '<p class="sg-body">' + esc(s.body) + '</p>' +
+        (s.reply ? '<div class="sg-reply"><span class="sg-reply-k">Reply from ' + esc(s.reply_by || 'the team') + ' · ' + esc(when(s.reply_at)) + '</span><p>' + esc(s.reply) + '</p></div>'
+                 : '<div class="sg-by">' + (s.status === 'new' ? 'Not read yet' : s.status === 'done' ? 'Done' : 'Read, no reply yet') + '</div>') + '</li>';
+    }
+    async function loadMine() {
+      var r = await KB.client.rpc('kb_my_suggestions');
+      var rows = (!r.error && r.data) || [];
+      document.getElementById('sgMine').innerHTML = rows.length ? rows.map(mineItem).join('')
+        : '<li class="sg-none">Nothing sent with your name yet.</li>';
+    }
+    document.getElementById('sgCodeForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var v = document.getElementById('sgCode').value.trim(), out = document.getElementById('sgCodeOut');
+      if (!v) return;
+      var r = await KB.client.rpc('kb_my_suggestions', { p_code: v });
+      var rows = (!r.error && r.data) || [];
+      out.innerHTML = rows.length ? '<ul class="sg-list">' + rows.map(mineItem).join('') + '</ul>'
+        : '<p class="sg-hint-inline">No suggestion has that code. Check it and try again.</p>';
+    });
+    loadMine();
 
     if (!reads) return;
     main.querySelectorAll('.sg-inbox select').forEach(function (sel) {
@@ -124,6 +178,17 @@
       sel.addEventListener('change', function () { f[sel.dataset.k] = sel.value; drawInbox(); });
     });
     document.getElementById('sgList').addEventListener('click', async function (e) {
+      var ed = e.target.closest('[data-edit]'), sv = e.target.closest('[data-save]'), cl = e.target.closest('[data-clear]');
+      if (e.target.closest('[data-cancel]')) { editing = null; drawInbox(); return; }
+      if (ed) { editing = +ed.dataset.edit; drawInbox(); var ta = document.getElementById('sgR' + editing); if (ta) ta.focus(); return; }
+      if (sv || cl) {
+        var btn = sv || cl, id = +(sv ? sv.dataset.save : cl.dataset.clear), txt = sv ? document.getElementById('sgR' + id).value : '';
+        if (sv && !txt.trim()) return;
+        btn.disabled = true;
+        var rr = await KB.client.rpc('kb_suggestion_reply', { p_id: id, p_reply: txt });
+        if (!rr.error && rr.data) { editing = null; loadInbox(); } else btn.disabled = false;
+        return;
+      }
       var b = e.target.closest('button[data-s]');
       if (!b || b.getAttribute('aria-pressed') === 'true') return;
       var r = await KB.client.rpc('kb_suggestion_mark', { p_id: +b.dataset.id, p_status: b.dataset.s });
