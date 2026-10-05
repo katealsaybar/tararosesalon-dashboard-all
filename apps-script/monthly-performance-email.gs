@@ -1,4 +1,10 @@
 /**
+ * RETIRED 5 Oct 2026. The payslip email is now sent from the site: Upload Portal →
+ * Payslips → Email to staff, through supabase/functions/payslip-mailer (Gmail SMTP as
+ * payroll@). Accounts pick the send date each month. This file stays for reference
+ * only; its triggers in payroll@'s "Staff Payslips" project are to be deleted.
+ */
+/**
  * STAFF PAYSLIPS. Monthly payslip email to every stylist and beauty therapist:
  * their payslip PDF, their win and top tip for next month, and a link to their
  * own page (trk-salon-os.com/performance). Built 25 Sep 2026, rewritten 30 Sep 2026.

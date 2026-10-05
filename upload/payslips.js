@@ -4,7 +4,7 @@
 // payslips edge function (supabase/functions/payslips), which checks a payroll
 // or leader key on every call; the portal password alone is not enough, since it
 // lives in this page's own code. Each stylist then sees her payslip on her
-// performance page, and apps-script/monthly-performance-email.gs attaches it.
+// performance page, and the payslip-mailer edge function attaches it to her email.
 //
 // Drop several PDFs at once: each is matched to a person by the words of their
 // name in the file name ("Holly Branchett Sep 2026.pdf"). Anything it can't
@@ -16,12 +16,11 @@
 // same person are saved together as one payslip.
 const PS_FN = 'https://gvijxenafoowajqktqvd.supabase.co/functions/v1/payslips';
 const PS_KEY_STORE = 'payslipKey';
-// The Staff Payslips Apps Script, deployed as a web app from payroll@ (Execute as:
-// Me, access: Anyone). It sends the monthly emails; see
-// apps-script/monthly-performance-email.gs. Every call carries the payslip key.
-const PS_SEND_URL = 'https://script.google.com/macros/s/AKfycbxJLja-iKKSDUHXAk8sCCKRG4b7scPoIaVJ18dpLNAX3t3gwEg0RFUKLX9Li_-XCHVRdg/exec';
+// Sends the monthly emails from payroll@ (supabase/functions/payslip-mailer).
+// Every call carries the payslip key. Replaced the Staff Payslips Apps Script, 5 Oct 2026.
+const PS_MAIL_FN = 'https://gvijxenafoowajqktqvd.supabase.co/functions/v1/payslip-mailer';
 const PS_BRANCH = { KCA: 'Khalifa City A', SAA: 'Mamsha Al Saadiyat', MC: 'Motor City', AQ: 'Al Quoz' };
-let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '', branch: (() => { try { return localStorage.getItem('trs-ps-branch') || ''; } catch (e) { return ''; } })(), pos: (() => { try { return localStorage.getItem('trs-ps-pos') || ''; } catch (e) { return ''; } })(), up: (() => { try { return localStorage.getItem('trs-ps-up') || ''; } catch (e) { return ''; } })(), send: null, sendBusy: '', sendMsg: '', sendErr: '', tpl: { open: false, who: '', what: '' } };
+let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '', branch: (() => { try { return localStorage.getItem('trs-ps-branch') || ''; } catch (e) { return ''; } })(), pos: (() => { try { return localStorage.getItem('trs-ps-pos') || ''; } catch (e) { return ''; } })(), up: (() => { try { return localStorage.getItem('trs-ps-up') || ''; } catch (e) { return ''; } })(), send: null, sendBusy: '', sendMsg: '', sendErr: '', tpl: { who: '', what: '' }, view: (() => { try { return localStorage.getItem('trs-ps-view') || 'upload'; } catch (e) { return 'upload'; } })() };
 
 // A typed key wins; otherwise the one the sign-in hands payroll and leaders (PS_AUTO, set in upload.html).
 const psKey = () => { try { return localStorage.getItem(PS_KEY_STORE) || window.PS_AUTO || null; } catch (e) { return window.PS_AUTO || null; } };
@@ -281,8 +280,10 @@ function psRender() {
       <div class="ps-count"><b>${done}</b> of ${all} uploaded</div>
       <a href="#" class="ps-key" onclick="psForgetKey();return false">Signed in as ${psEsc(PS_STATE.admin)} · change key</a>
     </div>
-    <div class="ps-send" id="psSendPanel"></div>
-    <div id="psTplPanel"></div>
+    <div class="ps-branches ps-views" id="psViews"></div>
+    <div class="ps-view" data-view="email" hidden><div class="ps-send" id="psSendPanel"></div></div>
+    <div class="ps-view" data-view="tpl" hidden><div class="ps-send ps-tpl" id="psTplPanel"></div></div>
+    <div class="ps-view" data-view="upload" hidden>
     <div class="ps-drop" id="psDrop">
       <b>Drop payslip PDFs here</b>, or <label class="ps-link">choose files<input type="file" accept="application/pdf,.pdf" multiple hidden onchange="psAddFiles(this.files); this.value=''"></label>.
       <div class="ps-meta">One PDF with everyone in it? Drop it here: each page is matched by the name printed on it. Or one file per person, named like “Holly Branchett.pdf”. PDF only, up to 10 MB each.</div>
@@ -303,16 +304,41 @@ function psRender() {
     </div>
     ${['KCA', 'SAA', 'MC', 'AQ'].filter(b => groups[b]).map(b => `
       <div class="roster-branch ps-branch" data-branch="${b}"><div class="roster-branch-hd">${PS_BRANCH[b]} · ${groups[b].filter(s => s.payslip).length}/${groups[b].length}</div>
-      ${groups[b].map(row).join('')}</div>`).join('')}`;
+      ${groups[b].map(row).join('')}</div>`).join('')}
+    </div>`;
   const drop = document.getElementById('psDrop');
   ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('dragover'); }));
   ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('dragover'); }));
   drop.addEventListener('drop', e => psAddFiles(e.dataTransfer.files));
   psRenderPending();
   psFilter();
+  psRenderViews();
   psRenderSend();
   psRenderTpl();
-  if (!PS_STATE.send && PS_SEND_URL) psLoadSend();
+  if (!PS_STATE.send) psLoadSend();
+}
+
+// Three parts under the month (Kate, 5 Oct 2026): uploading, the email, and the
+// copy-and-paste templates. The pick is remembered per browser.
+function psRenderViews() {
+  const el = document.getElementById('psViews');
+  if (!el) return;
+  const S = PS_STATE.send, done = PS_STATE.staff.filter(s => s.payslip).length;
+  const sent = S ? S.people.filter(p => p.state === 'sent').length : null;
+  const ready = S ? S.people.filter(p => p.state === 'ready').length : 0;
+  const views = [
+    ['upload', `Upload · ${done}/${PS_STATE.staff.length}`],
+    ['email', 'Email to staff' + (S ? (ready ? ` · ${ready} ready` : ` · ${sent} emailed`) : '')],
+    ['tpl', 'Templates'],
+  ];
+  if (!views.some(v => v[0] === PS_STATE.view)) PS_STATE.view = 'upload';
+  el.innerHTML = views.map(([v, t]) => `<button type="button" class="ps-bpill${PS_STATE.view === v ? ' on' : ''}" onclick="psPickView('${v}')">${psEsc(t)}</button>`).join('');
+  document.querySelectorAll('#payslipHost .ps-view').forEach(x => { x.hidden = x.dataset.view !== PS_STATE.view; });
+}
+function psPickView(v) {
+  PS_STATE.view = v;
+  try { localStorage.setItem('trs-ps-view', v); } catch (e) {}
+  psRenderViews();
 }
 
 // Revised payslip email (Kate, 5 Oct 2026). When a payslip is corrected, Accounts reply
@@ -333,14 +359,12 @@ function psRenderTpl() {
   const el = document.getElementById('psTplPanel');
   if (!el) return;
   const t = PS_STATE.tpl;
-  el.innerHTML = `<details class="ps-send ps-tpl"${t.open ? ' open' : ''} ontoggle="PS_STATE.tpl.open=this.open">
-    <summary class="ps-send-hd">Revised payslip email</summary>
-    <div class="ps-meta">Fixing someone’s payslip? Press Replace next to their name below with the new PDF. Then in payroll@’s Gmail open their payslip email, press Reply (not Forward), attach the new PDF and paste this.</div>
+  el.innerHTML = `<div class="ps-send-hd">Revised payslip email</div>
+    <div class="ps-meta">Fixing someone’s payslip? In the Upload tab, press Replace next to their name with the new PDF. Then in payroll@’s Gmail open their payslip email, press Reply (not Forward), attach the new PDF and paste this.</div>
     <div class="ps-send-row"><select onchange="PS_STATE.tpl.who=this.value; psTplPreview()"><option value="">Pick a person</option>${PS_STATE.staff.map(s => `<option value="${psEsc(s.id)}"${t.who === String(s.id) ? ' selected' : ''}>${psEsc(s.name)}</option>`).join('')}</select></div>
     <textarea class="ps-tpl-what" rows="2" placeholder="What changed, in one line. E.g. your service commission was corrected from AED 19,901 to AED 21,006, so your net salary is now AED 21,006." oninput="PS_STATE.tpl.what=this.value; psTplPreview()">${psEsc(t.what)}</textarea>
     <pre class="ps-tpl-out" id="psTplOut"></pre>
-    <div class="ps-send-row"><button class="btn-outline" onclick="psTplCopy(this)">Copy email</button></div>
-  </details>`;
+    <div class="ps-send-row"><button class="btn-outline" onclick="psTplCopy(this)">Copy email</button></div>`;
   psTplPreview();
 }
 function psTplPreview() { const o = document.getElementById('psTplOut'); if (o) o.textContent = psTplText(); }
@@ -548,19 +572,21 @@ async function psRemove(staffId) {
   catch (e) { alert(e.message); }
 }
 
-// ── EMAIL TO STAFF (Kate, 30 Sep 2026) ──────────────────────────────────
-// The monthly payslip email, run from here instead of the Apps Script editor, so
-// anyone on Accounts can check it, test it, pause it or send it. The script drafts
-// on Saturday 09:00 and Sunday 18:00 once payslips are in, and sends on Monday
-// around 07:00; these buttons only look at and nudge that.
+// ── EMAIL TO STAFF (Kate, 30 Sep 2026; sent from the site since 5 Oct 2026) ──
+// The monthly payslip email, run from here so anyone on Accounts can check it,
+// test it, pick when it goes out or send it now. The payslip-mailer edge function
+// sends it from payroll@ (supabase/functions/payslip-mailer); no Apps Script.
+// The day moves with the money (Jumera: the 4th or 5th, the 3rd or 6th around a
+// weekend), so Accounts pick the date and time each month; nothing goes by itself
+// until they do.
 const PS_STATE_LABEL = {
-  sent: 'Emailed', draft_ready: 'Draft ready', draft_no_payslip: 'Draft, no payslip',
-  payslip_in: 'Payslip in', waiting: '', no_email: 'No email', paused: 'Email off',
+  sent: 'Emailed', ready: 'Ready', waiting: '', no_email: 'No email', paused: 'Email off', check: 'Check Sent folder',
 };
 
 async function psSend(action, extra) {
-  const r = await fetch(PS_SEND_URL, {
-    method: 'POST',   // text/plain body: Apps Script can't answer a CORS preflight
+  const r = await fetch(PS_MAIL_FN, {
+    method: 'POST',
+    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(Object.assign({ action, key: psKey(), month: PS_STATE.month }, extra || {})),
   });
   let j = {};
@@ -577,26 +603,30 @@ async function psLoadSend() {
     PS_STATE.send = j; PS_STATE.sendErr = '';
   } catch (e) { PS_STATE.sendErr = e.message; }
   psRenderSend();
+  psRenderViews();
 }
 
-// 'Sat 3 Oct' for the next such weekday in Dubai (today counts until that hour).
-function psNextDay(dow, hour) {
-  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
-  let add = (dow - d.getDay() + 7) % 7;
-  if (add === 0 && d.getHours() >= hour) add = 7;
-  d.setDate(d.getDate() + add);
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-}
+// Times are Dubai time whoever is looking (Accounts work from the Philippines).
 const psWhen = iso => new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+// 'YYYY-MM-DDTHH:MM' in Dubai, for the date-time box.
+function psDubaiLocal(iso) {
+  const d = new Date(new Date(iso).getTime() + 4 * 3600e3);
+  return d.toISOString().slice(0, 16);
+}
+// The usual day: the 5th of the next month at 07:00 Dubai (11:00 Philippines);
+// a Saturday 5th becomes Friday the 4th, a Sunday 5th Monday the 6th.
+function psDefaultSendAt() {
+  const [y, m] = PS_STATE.month.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m, 5));
+  const dow = d.getUTCDay();
+  if (dow === 6) d.setUTCDate(4); else if (dow === 0) d.setUTCDate(6);
+  return d.toISOString().slice(0, 10) + 'T07:00';
+}
 
 function psRenderSend() {
   const el = document.getElementById('psSendPanel');
   if (!el) return;
   const monthName = new Date(PS_STATE.month + '-15').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-  if (!PS_SEND_URL) {
-    el.innerHTML = `<div class="ps-send-hd">Email to staff · ${psEsc(monthName)}</div><div class="ps-meta">Not connected yet: the payslip mailer’s web address still needs adding to the portal.</div>`;
-    return;
-  }
   const S = PS_STATE.send;
   if (!S) {
     el.innerHTML = `<div class="ps-send-hd">Email to staff · ${psEsc(monthName)}</div>
@@ -604,36 +634,43 @@ function psRenderSend() {
     return;
   }
   const n = st => S.people.filter(p => p.state === st).length;
-  const ready = n('draft_ready'), sent = n('sent'), noSlip = n('draft_no_payslip') + n('waiting') + n('payslip_in'), noEmail = n('no_email');
-  const mon = psNextDay(1, 7), sat = psNextDay(6, 9), sun = psNextDay(0, 18);
+  const ready = n('ready'), sent = n('sent'), waiting = n('waiting'), noEmail = n('no_email'), check = n('check');
+  const sch = S.schedule, pending = sch && !sch.done_at;
   let line;
-  if (S.hold) line = `<b>Paused.</b> Nothing goes out on Monday until someone presses Resume.`;
-  else if (S.sent) line = `<b>Sent ${psEsc(psWhen(S.sent))}.</b> ${sent} ${sent === 1 ? 'person has' : 'people have'} theirs.${ready ? ` ${ready} more ${ready === 1 ? 'draft is' : 'drafts are'} ready to send.` : ''}`;
-  else if (S.drafted) line = `<b>Drafts ready: ${ready}.</b> They go out ${psEsc(mon)} around 07:00.`;
-  else line = `<b>No drafts yet.</b> They’re made ${psEsc(sat)} at 09:00 (again ${psEsc(sun)} at 18:00) once payslips are in, and go out ${psEsc(mon)} around 07:00.`;
-  const people = S.people.filter(p => p.state !== 'no_email' && p.state !== 'paused');
-  const opts = people.map(p => `<option value="${psEsc(p.name)}">${psEsc(p.name)}${p.state === 'draft_ready' || p.state === 'payslip_in' || p.state === 'sent' ? '' : ' (no payslip yet)'}</option>`).join('');
-  const busy = PS_STATE.sendBusy;
-  const dis = busy ? ' disabled' : '';
+  if (pending) line = `<b>Goes out ${psEsc(psWhen(sch.send_at))}</b> (Dubai time). Set by ${psEsc(sch.set_by)}. ${ready} ${ready === 1 ? 'is' : 'are'} ready now; anyone uploaded before then goes too.`;
+  else if (sent && !ready) line = `<b>${sent} ${sent === 1 ? 'person has' : 'people have'} theirs.</b> Last sent ${psEsc(psWhen(S.last_sent))}.`;
+  else if (sent) line = `<b>${sent} ${sent === 1 ? 'person has' : 'people have'} theirs.</b> ${ready} more ${ready === 1 ? 'is' : 'are'} ready: send now, or pick a time below.`;
+  else line = `<b>No send time yet.</b> Pick when the ${psEsc(monthName.split(' ')[0])} emails go out, or send them now.`;
+  const opts = S.people.filter(p => p.state !== 'no_email' && p.state !== 'paused')
+    .map(p => `<option value="${psEsc(p.id)}">${psEsc(p.name)}${p.state === 'waiting' ? ' (no payslip yet)' : ''}</option>`).join('');
+  const busy = PS_STATE.sendBusy, dis = busy ? ' disabled' : '';
+  const value = pending ? psDubaiLocal(sch.send_at) : psDefaultSendAt();
   el.innerHTML = `
     <div class="ps-send-hd">Email to staff · ${psEsc(monthName)}</div>
     <div class="ps-send-line">${line}</div>
-    ${S.schedule ? '' : `<div class="ps-err" style="margin-top:4px">The weekly schedule isn’t switched on in payroll@’s Apps Script, so nothing will be drafted or sent by itself. Ask Kate.</div>`}
+    ${S.ready_to_send ? '' : `<div class="ps-err" style="margin-top:4px">The payroll@ email password isn’t saved in Supabase yet, so nothing can be sent. Ask Kate.</div>`}
     <div class="ps-chips">
       <span class="ps-chip st-sent">Emailed ${sent}</span>
-      <span class="ps-chip st-draft_ready">Ready ${ready}</span>
-      <span class="ps-chip st-waiting">Waiting for payslip ${noSlip}</span>
-      ${noEmail ? `<span class="ps-chip st-no_email">No email ${noEmail}</span>` : ''}
+      <span class="ps-chip">Ready ${ready}</span>
+      <span class="ps-chip">Waiting for payslip ${waiting}</span>
+      ${noEmail ? `<span class="ps-chip">No email ${noEmail}</span>` : ''}
+      ${check ? `<span class="ps-chip st-check">Check Sent folder ${check}</span>` : ''}
     </div>
+    <div class="ps-send-sub">When it goes out</div>
+    <div class="ps-send-row">
+      <input type="datetime-local" id="psSendAt" value="${value}"${dis}>
+      <button class="btn${pending ? '-outline' : ''}" onclick="psSchedule()"${dis}>${pending ? 'Change time' : 'Set send time'}</button>
+      ${pending ? `<button class="btn-outline" onclick="psSendAct('unschedule')"${dis}>Cancel</button>` : ''}
+    </div>
+    <div class="ps-meta">Dubai time. 07:00 Dubai is 11:00 in the Philippines.</div>
+    <div class="ps-send-sub">Check one first</div>
     <div class="ps-send-row">
       <select id="psTestWho"${dis}>${opts}</select>
       <button class="btn-outline" onclick="psSendTest()"${dis}>Send a test to ${psEsc((S.sender || 'payroll@').split('@')[0])}@</button>
     </div>
+    <div class="ps-send-sub">Or now</div>
     <div class="ps-send-row">
-      ${S.hold ? `<button class="btn" onclick="psSendAct('release')"${dis}>Resume Monday send</button>`
-               : `<button class="btn-outline" onclick="psSendAct('hold')"${dis}>Pause Monday send</button>`}
-      <button class="btn-outline" onclick="psSendAct('draft')"${dis}>Make drafts now</button>
-      <button class="btn-outline" onclick="psSendAct('send')"${dis || (!ready || S.hold ? ' disabled' : '')}>Send ${ready} ready now</button>
+      <button class="btn-outline" onclick="psSendAct('send')"${dis || (!ready ? ' disabled' : '')}>Send ${ready} ready now</button>
       <a href="#" class="ps-link ps-refresh" onclick="PS_STATE.send=null;psRenderSend();psLoadSend();return false">Refresh</a>
     </div>
     ${busy ? `<div class="ps-meta">${psEsc(busy)}</div>` : ''}
@@ -643,7 +680,7 @@ function psRenderSend() {
   psBadges();
 }
 
-// A small state tag next to each name in the list below.
+// A small state tag next to each name in the upload list.
 function psBadges() {
   const S = PS_STATE.send;
   if (!S) return;
@@ -659,31 +696,36 @@ function psBadges() {
 }
 
 const PS_CONFIRM = {
-  hold: null,
-  release: null,
-  draft: 'Make the drafts now? Anyone with a payslip gets a draft, and drafts with a payslip go out on Monday, or when someone presses Send. Nobody who already got theirs is emailed again.',
-  send: 'Send every draft that has a payslip, now? Staff get their email straight away.',
+  unschedule: 'Cancel the send time? Nothing goes out by itself until someone sets a new one.',
+  send: 'Send every ready payslip email now? Staff get theirs straight away.',
 };
-const PS_BUSY = {
-  hold: 'Pausing…', release: 'Resuming…',
-  draft: 'Making the drafts. This takes a minute or two, keep this page open.',
-  send: 'Sending. This takes a minute, keep this page open.',
-};
+const PS_BUSY = { unschedule: 'Cancelling…', send: 'Sending. This takes a minute or two, keep this page open.' };
 
-async function psSendAct(action) {
+async function psSendAct(action, extra) {
   if (PS_CONFIRM[action] && !confirm(PS_CONFIRM[action])) return;
-  PS_STATE.sendBusy = PS_BUSY[action]; PS_STATE.sendMsg = ''; PS_STATE.sendErr = ''; psRenderSend();
+  PS_STATE.sendBusy = PS_BUSY[action] || 'Saving…'; PS_STATE.sendMsg = ''; PS_STATE.sendErr = ''; psRenderSend();
   try {
-    const j = await psSend(action);
-    PS_STATE.send = j; PS_STATE.sendMsg = j.done || (action === 'hold' ? 'Paused. Nothing goes out on Monday.' : action === 'release' ? 'Resumed. Monday’s send is back on.' : '');
+    let j = await psSend(action, extra);
+    // A big month can outrun one call; keep going until everyone ready is done.
+    while (action === 'send' && j.left > 0) { PS_STATE.send = j; psRenderSend(); j = await psSend('send'); }
+    PS_STATE.send = j; PS_STATE.sendMsg = j.done || '';
   } catch (e) { PS_STATE.sendErr = e.message; }
-  PS_STATE.sendBusy = ''; psRenderSend();
+  PS_STATE.sendBusy = ''; psRenderSend(); psRenderViews();
+}
+
+function psSchedule() {
+  const v = (document.getElementById('psSendAt') || {}).value;
+  if (!v) { PS_STATE.sendErr = 'Pick a date and time.'; psRenderSend(); return; }
+  const at = new Date(v + ':00+04:00');   // the box is Dubai time
+  if (!confirm(`Send the payslip emails on ${psWhen(at.toISOString())} (Dubai time)?`)) return;
+  psSendAct('schedule', { send_at: at.toISOString() });
 }
 
 async function psSendTest() {
   const who = document.getElementById('psTestWho');
   if (!who || !who.value) return;
-  PS_STATE.sendBusy = `Sending a test of ${who.value}’s email…`; PS_STATE.sendMsg = ''; PS_STATE.sendErr = ''; psRenderSend();
+  const name = who.options[who.selectedIndex].text.replace(/ \(no payslip yet\)$/, '');
+  PS_STATE.sendBusy = `Sending a test of ${name}’s email…`; PS_STATE.sendMsg = ''; PS_STATE.sendErr = ''; psRenderSend();
   try { const j = await psSend('test', { staff: [who.value] }); PS_STATE.send = j; PS_STATE.sendMsg = j.done; }
   catch (e) { PS_STATE.sendErr = e.message; }
   PS_STATE.sendBusy = ''; psRenderSend();
