@@ -3,7 +3,7 @@
 -- still showed as lost until she came in and paid. client_bookings holds the future
 -- appointments from Phorest's Staff Appointments report (Additional reports > Staff),
 -- one row per client per branch per day, pushed by
--- "phorest data export/staff appointments/parse_future_bookings.py" in the cowork repo.
+-- scripts/phorest/parse_future_bookings.py.
 -- The report has names only, so a booking is matched on stl_client_key, the same key
 -- the list uses; two clients with the same name share a booking.
 --

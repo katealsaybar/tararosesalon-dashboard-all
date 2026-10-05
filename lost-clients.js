@@ -23,7 +23,7 @@
 // Kate 5 Oct 2026) are off the list the same way: the list only reads Sales
 // Transactions, so a client booked for next week looked lost. Bookings come from
 // Phorest's Staff Appointments report, matched on name, by
-// "phorest data export/staff appointments/parse_future_bookings.py". lcSide says which
+// scripts/phorest/parse_future_bookings.py. lcSide says which
 // list is showing: '' the lost, 'moved' or 'booked'.
 //
 // Own controls (branch, who, gone for), so the masthead filters are hidden on this
