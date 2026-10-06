@@ -435,7 +435,9 @@ body.reviews-chrome .filters-wrap,
 body.lostclients-chrome .mast-rule,
 body.lostclients-chrome .filters-wrap,
 body.googleads-chrome .mast-rule,
-body.googleads-chrome .filters-wrap{display:none}
+body.googleads-chrome .filters-wrap,
+body.website-chrome .mast-rule,
+body.website-chrome .filters-wrap{display:none}
 /* Wellness Voucher Performance: the frame is content-height, so only a few px sit
    between the report and the footer instead of the page's usual 96px. */
 body.wvperf-chrome .wrap{padding-bottom:12px}
@@ -3025,7 +3027,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="team-performance.css?v=20261001quad">
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20261006gads">
+<link rel="stylesheet" href="mobile.css?v=20261006web">
 <link rel="stylesheet" href="search.css?v=20260929b">
 <link rel="stylesheet" href="nav-style.css?v=20261005nav">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
@@ -3178,6 +3180,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div class="nav-group" id="navMarketing">
     <div class="nav-title">Marketing</div>
     <div class="nav-sub" onclick="showView('googleads', this)">Google Ads</div>
+    <div class="nav-sub" onclick="showView('website', this)">Website &amp; Search</div>
   </div>
 
   <div class="nav-group">
@@ -3748,6 +3751,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="googleAdsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- WEBSITE & SEARCH (Kate, 6 Oct 2026): GA4 visits, sources and pages, and Search
+       Console searches, from website_report. website.js draws it. -->
+  <div id="view-website" style="display:none">
+    <main id="websiteContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <!-- PRODUCTS (Kate, 28-29 Sep 2026): stock spend per week, retail vs
        professional, from stock_order_lines via get_product_spend. products.js
        draws it. -->
@@ -3836,9 +3845,10 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="products.js?v=20261005dots"></script>
 <script src="lost-clients.js?v=20261006btn"></script>
 <script src="google-ads.js?v=20261006gads"></script>
+<script src="website.js?v=20261006web"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261006gads"></script>
+<script src="dashboard.js?v=20261006web"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4063,7 +4073,7 @@ async function enterDashboard(role, meAsk){
     const lc = document.querySelector(`#sidebar .nav-sub[onclick*="showView('lostclients'"]`);
     if (lc) lc.style.display = 'none';
   }
-  // Marketing (Kate, 6 Oct 2026): Level 3 and above. google_ads_report refuses the rest too.
+  // Marketing (Kate, 6 Oct 2026): Level 3 and above. google_ads_report and website_report refuse the rest too.
   if (!(TRS_LEVEL >= 3)) {
     const mk = document.getElementById('navMarketing');
     if (mk) mk.style.display = 'none';
@@ -4160,7 +4170,7 @@ function showView(view, el){
   if (TRS_SCOPE && !SCOPE_VIEWS.has(view)) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (TRS_LEVEL === 1 && view === 'wvperf') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (!(TRS_LEVEL >= 2) && view === 'lostclients') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
-  if (!(TRS_LEVEL >= 3) && view === 'googleads') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
+  if (!(TRS_LEVEL >= 3) && (view === 'googleads' || view === 'website')) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   ALL_VIEWS.forEach(v=>{
     const node=document.getElementById('view-'+v);
     if(node) node.style.display='none';
@@ -4242,6 +4252,7 @@ function showView(view, el){
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
   document.body.classList.toggle('lostclients-chrome', view === 'lostclients');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
+  document.body.classList.toggle('website-chrome', view === 'website');
   // Popped-out standalone window (ocOpenNewWindow() sets ocFit=1): no sidebar
   // nav to open and no card border round the tree, just the chart, edge to
   // edge — this window's whole reason to exist is projecting/sharing/printing
@@ -4263,6 +4274,7 @@ function showView(view, el){
   if (view === 'clients') initCliView();
   if (view === 'lostclients') renderLostClients();
   if (view === 'googleads') renderGoogleAds();
+  if (view === 'website') renderWebsite();
   if (view === 'products') renderProducts();
   if (view === 'branchperf')    renderBranchPerformance();
   if (view === 'compare')       renderCompare();

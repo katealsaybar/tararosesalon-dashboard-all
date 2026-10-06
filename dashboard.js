@@ -223,6 +223,7 @@ function toggleTheme() {
   if (typeof w13RedrawForTheme === 'function') w13RedrawForTheme();
   if (typeof prdRedrawForTheme === 'function') prdRedrawForTheme();
   if (typeof gadsRedrawForTheme === 'function') gadsRedrawForTheme();
+  if (typeof webRedrawForTheme === 'function') webRedrawForTheme();
 }
 // Google Reviews iframe: send it the theme (it has no toggle of its own) and size
 // it to its content so the dashboard page is the only scrollbar. postMessage, not
@@ -1162,6 +1163,7 @@ const VIEW_SECTION_LABELS = {
   services: 'Service Rankings', clients: 'Top Clients', lostclients: 'Lost Clients', products: 'Products', reviews: 'Google Reviews',
   wvperf: 'Wellness Voucher Performance',
   googleads: 'Google Ads',
+  website: 'Website & Search',
   branchperf: 'Branch Performance',
   compare: 'Comparison',
   ledgerFinancials: 'Ledgers · Financial Totals',
@@ -1176,7 +1178,7 @@ const VIEW_SECTION_LABELS = {
 // 'khalifa' and 'saadiyat', which have not existed for months.
 const ALL_VIEWS = [
   'dashboard','branchperf','compare','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
-  'team','teamquad','staffperf','staffweeks','stafflevels','stylists','orgchart','services','clients','lostclients','products','googleads','wvperf','reviews','calendar','giveaway','trk',
+  'team','teamquad','staffperf','staffweeks','stafflevels','stylists','orgchart','services','clients','lostclients','products','googleads','website','wvperf','reviews','calendar','giveaway','trk',
 ];
 
 // Which pages read the shared branch + period filters. Everything that shows a
