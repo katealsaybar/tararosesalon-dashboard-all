@@ -14,7 +14,10 @@
 // window can be thin; the cards say up to which day each one has numbers. Audience and
 // best time are Metricool's last-30-days snapshot, refreshed nightly, whatever the dates.
 // Facebook has no daily page views in Metricool, so its views are its posts' and reels'
-// on the day they went out. YouTube is connected on the Bahrain brand in Metricool.
+// on the day they went out. YouTube is the salon's channel, The Tara Rose Podcast; in
+// Metricool it happens to be connected on the Bahrain brand (Kate, 6 Oct 2026), which the
+// sync doesn't mind. If it is moved to another brand, clear the old brand's youtube rows
+// in metricool_daily first, or the report counts both.
 //
 // Own window control (7, 30, 90 days, this year or custom dates), as google-ads.js,
 // and the same card, tile and table styles (slv-*, w13-*, mk-*).
@@ -343,7 +346,7 @@ function socPlatformHtml(net, T) {
   return `
     <section class="slv-card">
       <div class="slv-head">
-        <div><div class="slv-eyebrow"><i class="soc-dot" style="background:${cols[net]}"></i>${SOC_NETS[net]}${net === 'youtube' ? ' · on the Bahrain brand in Metricool' : ' · @tararosesalon'}</div><h3>${SOC_NETS[net]} report</h3></div>
+        <div><div class="slv-eyebrow"><i class="soc-dot" style="background:${cols[net]}"></i>${SOC_NETS[net]}${net === 'youtube' ? ' · The Tara Rose Podcast' : ' · @tararosesalon'}</div><h3>${SOC_NETS[net]} report</h3></div>
         <p>${mkEsc(socDayY(w.from))} to ${mkEsc(socDayY(w.to))}${last[net] ? ` · numbers up to ${mkDay(last[net])}` : ''}</p>
       </div>
       <div class="w13-tiles soc-tiles">${tiles}</div>
