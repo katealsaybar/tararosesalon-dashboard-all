@@ -49,8 +49,13 @@ body.kb-wait .wrap{visibility:hidden}
   display:flex;align-items:center;gap:28px;padding:14px 0 16px;margin-bottom:8px;
   border-bottom:1px solid var(--border);
   /* Kate, 6 Oct 2026: the header's background runs to both screen edges, so cards
-     scrolling under it no longer peek out in the side gutters (it looked cut off). */
-  box-shadow:0 0 0 100vmax var(--bg);clip-path:inset(0 -100vmax)}
+     scrolling under it no longer peek out in the side gutters (it looked cut off).
+     Painted with a border-image outset, which neither clips the account menu and search
+     results hanging below the header (the first try, a clip-path, cut them off) nor
+     widens the page. A border-image hides the border itself, so the rule under the
+     header is an inset shadow. */
+  border-image:linear-gradient(var(--bg),var(--bg)) fill 0/0/0 100vmax;
+  box-shadow:inset 0 -1px 0 var(--border)}
 /* Kate, 6 Oct 2026: on a desktop the logo sits in the centre of the header, the
    page title on the left and search + account on the right (.kb-head-r). */
 @media (min-width:761px){
