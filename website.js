@@ -12,7 +12,10 @@
 // Search Console runs 2 to 3 days behind, so its half says up to which day.
 // Own window control like Google Ads (7, 30, 90 days, this year or custom dates), masthead filters
 // hidden. Borrows the Products page's card, tile and table styles (slv-*, w13-*).
-let webData = null, webChart = null;
+let webData = null, webChart = null, webSChart = null;
+// The open row (Kate, 6 Oct 2026: rows clickable like Google Ads' campaigns): which list
+// ('channel', 'page' or 'query'), which row of it, its chart and its loaded days.
+let webOpen = null, webOpenChart = null, webOpenData = null;
 let webDays = 30;
 try { const v = localStorage.getItem('trs-web-days'); if (v !== null && [7, 30, 90, 365, 0].includes(Number(v))) webDays = Number(v); } catch (e) {}
 // Custom dates (Kate, 6 Oct 2026): webDays 0 reads webCustom, kept per browser like the rest.
@@ -28,7 +31,6 @@ const WEB_CHANNEL = {
   'Unassigned': 'Not known', 'Cross-network': 'Google Performance Max', 'Display': 'Google display ads',
   'Email': 'Email', 'Organic Video': 'Video, unpaid', 'Paid Video': 'Video ads', 'SMS': 'SMS',
 };
-const WEB_BAR = '#0F6E56';
 const webEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const webNum = v => Math.round(Number(v) || 0).toLocaleString('en-GB');
 const webPct = (a, b) => b ? Math.round(100 * a / b) + '%' : '–';
@@ -85,12 +87,16 @@ async function renderWebsite() {
     const { data, error } = await sb.rpc('website_report', { p_from: w.from, p_to: w.to });
     if (error || !data) throw error || new Error('no data');
     webData = { ...data, win: w };
+    // New dates: the open row keeps its place in a list only if the same item is still there.
+    if (webOpen) { const i = (webOpen.kind === 'channel' ? data.channels.map(c => c.channel) : webOpen.kind === 'page' ? data.pages.map(p => p.page) : data.queries.map(q => q.query)).indexOf(webOpen.key);
+      webOpen = i < 0 ? null : { ...webOpen, i }; webOpenData = null; }
   } catch (e) {
     console.error(e);
     el.innerHTML = '<p class="slv-muted">Website and search didn’t load. Refresh to try again.</p>';
     return;
   }
   webPaint(el);
+  if (webOpen) webLoadOpen();
 }
 
 function webPaint(el) {
@@ -102,12 +108,12 @@ function webPaint(el) {
   const chTotal = sum(d.channels, 'sessions');
   const paid = sum(d.channels.filter(c => /^(Paid|Cross-network|Display)/.test(c.channel)), 'sessions');
 
-  const chRows = d.channels.map(c => `<tr><td>${webEsc(WEB_CHANNEL[c.channel] || c.channel)}</td>
-    <td>${webNum(c.sessions)}</td><td>${webPct(c.sessions, chTotal)}</td><td>${webPct(c.engaged_sessions, c.sessions)}</td></tr>`).join('');
+  const chRows = d.channels.map((c, i) => webRow('channel', i, 4, `<td>${webChev()}${webEsc(WEB_CHANNEL[c.channel] || c.channel)}</td>
+    <td>${webNum(c.sessions)}</td><td>${webPct(c.sessions, chTotal)}</td><td>${webPct(c.engaged_sessions, c.sessions)}</td>`)).join('');
   const pgRows = d.pages.map((p, i) => { const x = webPage(p.page);
-    return `<tr><td>${i + 1}</td><td>${webEsc(x.name)}<div class="slv-note">${x.where ? webEsc(x.where) + ', ' : ''}${webEsc(p.page)}</div></td><td>${webNum(p.views)}</td></tr>`; }).join('');
-  const qRows = d.queries.map(q => `<tr><td>${webEsc(q.query)}</td><td>${webNum(q.clicks)}</td><td>${webNum(q.impressions)}</td>
-    <td class="web-st">${q.position !== null ? Number(q.position).toFixed(1) : '–'}</td></tr>`).join('');
+    return webRow('page', i, 3, `<td>${i + 1}</td><td>${webChev()}${webEsc(x.name)}<div class="slv-note">${x.where ? webEsc(x.where) + ', ' : ''}${webEsc(p.page)}</div></td><td>${webNum(p.views)}</td>`); }).join('');
+  const qRows = d.queries.map((q, i) => webRow('query', i, 4, `<td>${webChev()}${webEsc(q.query)}</td><td>${webNum(q.clicks)}</td><td>${webNum(q.impressions)}</td>
+    <td class="web-st">${q.position !== null ? Number(q.position).toFixed(1) : '–'}</td>`)).join('');
 
   const s = d.sync;
   const stale = !s || !s.last_ok_at || (Date.now() - new Date(s.last_ok_at).getTime()) > 36 * 3600e3;
@@ -143,8 +149,13 @@ function webPaint(el) {
         <div class="w13-tile"><div class="slv-eyebrow">Stayed to look</div><div class="w13-val">${webPct(engaged, visits)}</div><div class="slv-note">10 seconds or 2 pages or more</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">From ads</div><div class="w13-val">${webPct(paid, visits)}</div><div class="slv-note">${webNum(paid)} visits from paid ads</div></div>
       </div>
-      <div class="slv-eyebrow" style="margin:18px 0 6px">Visits day by day</div>
-      <div style="position:relative;height:240px"><canvas id="webCanvas"></canvas></div>` : '<p class="slv-muted">No visits in these dates.</p>'}
+      <div class="mk-chart-head">
+        <div class="slv-eyebrow">Visits ${webMode() === 'week' ? 'week by week' : 'day by day'}</div>
+        ${mkModePills('web', webMode(), 'webRepaint')}
+        <span id="webQKey"></span>${mkSeriesKey(WEB_SPEC.visits)}
+      </div>
+      <div style="position:relative;height:280px"><canvas id="webCanvas"></canvas></div>
+      ${mkQuarterStrip(mkBuckets(d.days, w.from, w.to, 'day', ['sessions']), { key: 'sessions', label: 'visits', fmt: webNum })}` : '<p class="slv-muted">No visits in these dates.</p>'}
     </section>
     ${chRows ? `
     <section class="slv-card" style="margin-top:14px">
@@ -152,7 +163,7 @@ function webPaint(el) {
       <div class="slv-wrap"><table class="slv-table">
         <thead><tr><th>Source</th><th>Visits</th><th>Share</th><th>Stayed to look</th></tr></thead>
         <tbody>${chRows}</tbody></table></div>
-      <p class="slv-note">A low "stayed to look" means people arrive and leave within seconds: worth checking the ad or post that sends them.</p>
+      <p class="slv-note">A low "stayed to look" means people arrive and leave within seconds: worth checking the ad or post that sends them. Tap a source, page or search for its weeks.</p>
     </section>` : ''}
     ${pgRows ? `
     <section class="slv-card" style="margin-top:14px">
@@ -173,6 +184,11 @@ function webPaint(el) {
         <div class="w13-tile"><div class="slv-eyebrow">Clicked</div><div class="w13-val">${sShown ? (100 * sClicks / sShown).toFixed(1) + '%' : '–'}</div><div class="slv-note">of the times we showed up</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Average place</div><div class="w13-val">${sPos !== null ? sPos.toFixed(1) : '–'}</div><div class="slv-note">1 is the top result</div></div>
       </div>
+      <div class="mk-chart-head">
+        <div class="slv-eyebrow">Google clicks ${webMode() === 'week' ? 'week by week' : 'day by day'}</div>
+        <span id="webSQKey"></span>${mkSeriesKey(WEB_SPEC.search)}
+      </div>
+      <div style="position:relative;height:240px"><canvas id="webSCanvas"></canvas></div>
       ${qRows ? `<div class="slv-eyebrow" style="margin:18px 0 6px">What they searched</div>
       <div class="slv-wrap"><table class="slv-table">
         <thead><tr><th>Search</th><th>Clicks</th><th>Showed up</th><th class="web-st">Place</th></tr></thead>
@@ -182,31 +198,92 @@ function webPaint(el) {
   webDraw(d.days);
 }
 
+// What each chart draws: bars by quarter shade and a line, as on the Quarterly page.
+const WEB_SPEC = {
+  visits:  { bar: { key: 'sessions', label: 'Visits', fmt: v => webNum(v) }, line: { key: 'users', label: 'People', fmt: v => webNum(v) } },
+  search:  { bar: { key: 'clicks', label: 'Clicks', fmt: v => webNum(v) }, line: { key: 'impressions', label: 'Times we showed up', fmt: v => webNum(v) } },
+  channel: { bar: { key: 'sessions', label: 'Visits', fmt: v => webNum(v) }, line: { key: 'stayed', label: 'Stayed to look (%)', fmt: v => v === null ? '–' : Math.round(v) + '%' } },
+  page:    { bar: { key: 'views', label: 'Views', fmt: v => webNum(v) } },
+  query:   { bar: { key: 'clicks', label: 'Clicks', fmt: v => webNum(v) }, line: { key: 'place', label: 'Place on Google (1 = top)', fmt: v => v === null ? '–' : Number(v).toFixed(1), reverse: true } },
+};
+const webMode = () => mkModeFor('web', webData.win.from, webData.win.to);
+function webRepaint() { if (webData) webPaint(document.getElementById('websiteContent')); }
+// Search Console stops 2 to 3 days short of the page's dates; its chart stops there too.
+const webSTo = () => { const d = webData; return d.search_last_day && d.search_last_day < d.win.to ? d.search_last_day : d.win.to; };
 function webDraw(days) {
-  const cv = document.getElementById('webCanvas');
-  if (!cv || !window.Chart) return;
-  const css = getComputedStyle(document.documentElement);
-  const muted = css.getPropertyValue('--muted'), border = css.getPropertyValue('--border');
-  if (webChart) webChart.destroy();
-  webChart = new Chart(cv, {
-    type: 'bar',
-    data: {
-      labels: days.map(r => webDay(r.date)),
-      datasets: [{ label: 'Visits', data: days.map(r => Number(r.sessions)), backgroundColor: WEB_BAR, borderRadius: 3, maxBarThickness: 28 }],
-    },
-    options: {
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: c => { const r = days[c.dataIndex];
-          return [`Visits: ${webNum(r.sessions)}`, `People: ${webNum(r.users)}`]; } } },
-      },
-      scales: {
-        y: { beginAtZero: true, grace: '10%', ticks: { color: muted }, grid: { color: border } },
-        x: { ticks: { color: muted, autoSkip: true, maxRotation: 0 }, grid: { display: false } },
-      },
-    },
-  });
+  const d = webData, w = d.win, mode = webMode();
+  const rows = mkBuckets(days, w.from, w.to, mode, ['sessions', 'users']);
+  const k = document.getElementById('webQKey');
+  if (k) k.innerHTML = mkQKeyHtml(rows);
+  webChart = mkDrawChart(document.getElementById('webCanvas'), rows, WEB_SPEC.visits, webChart);
+  const sTo = webSTo();
+  if (d.search_days.length && w.from <= sTo) {
+    const srows = mkBuckets(d.search_days, w.from, sTo, mode, ['clicks', 'impressions']);
+    const sk = document.getElementById('webSQKey');
+    if (sk) sk.innerHTML = mkQKeyHtml(srows);
+    webSChart = mkDrawChart(document.getElementById('webSCanvas'), srows, WEB_SPEC.search, webSChart);
+  }
+  if (webOpen) webDrawOpen();
+}
+
+// ── One source, page or search, opened in place under its row.
+const webChev = () => '<span class="mk-chev" aria-hidden="true">›</span>';
+function webRow(kind, i, cols, cells) {
+  const open = webOpen && webOpen.kind === kind && webOpen.i === i;
+  return `<tr class="mk-row${open ? ' mk-open' : ''}" tabindex="0" role="button" aria-expanded="${!!open}" onclick="webOpenRow('${kind}', ${i})" onkeydown="if(event.key==='Enter')webOpenRow('${kind}', ${i})">${cells}</tr>
+    ${open ? `<tr class="mk-detail"><td colspan="${cols}" id="webDetail">${webDetailHtml()}</td></tr>` : ''}`;
+}
+const webItemKey = (kind, i) => kind === 'channel' ? webData.channels[i].channel : kind === 'page' ? webData.pages[i].page : webData.queries[i].query;
+function webOpenRow(kind, i) {
+  webOpen = webOpen && webOpen.kind === kind && webOpen.i === i ? null : { kind, i, key: webItemKey(kind, i) };
+  webOpenData = null;
+  webRepaint();
+  if (webOpen) webLoadOpen();
+}
+async function webLoadOpen() {
+  const o = webOpen, w = webData.win;
+  try {
+    const { data, error } = await sb.rpc('website_item', { p_kind: o.kind, p_key: o.key, p_from: w.from, p_to: o.kind === 'query' ? webSTo() : w.to });
+    if (error || !data) throw error || new Error('no data');
+    if (webOpen !== o) return;
+    webOpenData = data;
+  } catch (e) {
+    console.error(e);
+    webOpenData = { error: true };
+  }
+  const td = document.getElementById('webDetail');
+  if (td) { td.innerHTML = webDetailHtml(); webDrawOpen(); }
+}
+function webDetailHtml() {
+  const o = webOpenData;
+  if (!o) return '<p class="slv-muted">Loading…</p>';
+  if (o.error) return '<p class="slv-muted">This didn’t load. Tap it again to retry.</p>';
+  const what = webOpen.kind === 'channel' ? 'Visits from this source' : webOpen.kind === 'page' ? 'Views of this page' : 'This search on Google';
+  return `<div class="mk-detail-in">
+    <div class="mk-chart-head"><div class="slv-eyebrow">${what}, ${webMode() === 'week' ? 'week by week' : 'day by day'}</div>
+      <span id="webOpenQKey"></span>${mkSeriesKey(WEB_SPEC[webOpen.kind])}</div>
+    <div style="position:relative;height:220px"><canvas id="webOpenCanvas"></canvas></div>
+    <div id="webOpenStrip"></div>
+  </div>`;
+}
+function webDrawOpen() {
+  const o = webOpenData;
+  if (!o || o.error || !webOpen) return;
+  mkFitDetail();
+  const w = webData.win, kind = webOpen.kind, to = kind === 'query' ? webSTo() : w.to;
+  // Rates are worked out per bar after adding up, not averaged across days.
+  const days = (o.days || []).map(r => ({ ...r, pos_imp: Number(r.position || 0) * Number(r.impressions || 0) }));
+  const fields = kind === 'channel' ? ['sessions', 'engaged_sessions'] : kind === 'page' ? ['views'] : ['clicks', 'impressions', 'pos_imp'];
+  const day = mkBuckets(days, w.from, to, 'day', fields);
+  const rows = mkBuckets(days, w.from, to, webMode(), fields).map(r => ({ ...r,
+    stayed: r.sessions ? 100 * r.engaged_sessions / r.sessions : null,
+    place: r.impressions ? r.pos_imp / r.impressions : null }));
+  const k = document.getElementById('webOpenQKey');
+  if (k) k.innerHTML = mkQKeyHtml(rows);
+  const st = document.getElementById('webOpenStrip');
+  const m = WEB_SPEC[kind].bar;
+  if (st) st.innerHTML = mkQuarterStrip(day, { key: m.key, label: m.label.toLowerCase(), fmt: webNum });
+  webOpenChart = mkDrawChart(document.getElementById('webOpenCanvas'), rows, WEB_SPEC[kind], webOpenChart);
 }
 
 function webRedrawForTheme() {

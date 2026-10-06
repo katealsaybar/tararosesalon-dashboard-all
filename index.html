@@ -2247,6 +2247,21 @@ button.lc-seg:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
 [data-theme=dark] .mk-dates input{color-scheme:dark}   /* the calendar icon and picker follow the page's theme */
 .mk-dates input:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .mk-dates span{padding:0 2px}
+/* Marketing pages (marketing-chart.js, Kate 6 Oct 2026): the chart's title row (title,
+   Daily/Weekly, quarter key, series key), and rows that open in place like Lost Clients'. */
+.mk-chart-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:18px 0 8px}
+.mk-chart-head .slv-eyebrow{margin:0}
+.mk-row{cursor:pointer}
+.mk-row td{transition:background .15s}
+@media(hover:hover){.mk-row:hover td{background:var(--surface2)}}
+.mk-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.mk-open td{background:var(--surface2)}
+.mk-chev{display:inline-block;width:14px;margin-right:4px;color:var(--muted);transition:transform .15s}
+.mk-open .mk-chev{transform:rotate(90deg)}
+.mk-detail > td{background:var(--surface2);padding:4px 14px 18px!important;white-space:normal}
+.mk-detail-in{max-width:100%;overflow:hidden}
+.mk-two{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
+@media(max-width:760px){.mk-two{grid-template-columns:1fr}}
 .sc-btn{appearance:none;padding:5px 12px;border-radius:999px;border:1px solid var(--border);
   background:transparent;color:var(--muted);font-family:'Inter',sans-serif;
   font-size:13.5px;font-weight:600;cursor:pointer;transition:border-color .2s,color .2s}
@@ -3853,8 +3868,9 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-weeks.js?v=20261005dots"></script>
 <script src="products.js?v=20261005dots"></script>
 <script src="lost-clients.js?v=20261006btn"></script>
-<script src="google-ads.js?v=20261006slim"></script>
-<script src="website.js?v=20261006slim"></script>
+<script src="marketing-chart.js?v=20261006q"></script>
+<script src="google-ads.js?v=20261006q"></script>
+<script src="website.js?v=20261006q"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261006web"></script>

@@ -11,6 +11,9 @@
 // Own window control (7, 30, 90 days, this year or custom dates), so the masthead filters are
 // hidden here. Borrows the Products page's card, tile and table styles (slv-*, w13-*).
 let gadsData = null, gadsChart = null;
+// The campaign row that is open (Kate, 6 Oct 2026: "each campaign should be clickable"),
+// its chart and its loaded detail. One open at a time.
+let gadsOpenId = null, gadsOpenChart = null, gadsOpenData = null;
 let gadsDays = 30;
 try { const v = localStorage.getItem('trs-gads-days'); if (v !== null && [7, 30, 90, 365, 0].includes(Number(v))) gadsDays = Number(v); } catch (e) {}
 // Custom dates (Kate, 6 Oct 2026): gadsDays 0 reads gadsCustom, kept per browser like the rest.
@@ -19,7 +22,6 @@ try { Object.assign(gadsCustom, JSON.parse(localStorage.getItem('trs-gads-custom
 
 const GADS_AREA = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz',
   AUH: 'Abu Dhabi, all', DXB: 'Dubai, all', BH: 'Bahrain', OTHER: 'Other' };
-const GADS_BAR = '#0F6E56';
 const gadsEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const gadsNum = v => Math.round(Number(v) || 0).toLocaleString('en-GB');
 const gadsAed = v => 'AED ' + gadsNum(v);
@@ -82,7 +84,9 @@ async function renderGoogleAds() {
     el.innerHTML = '<p class="slv-muted">Google Ads didn’t load. Refresh to try again.</p>';
     return;
   }
+  gadsOpenData = null;   // new dates: the open campaign reloads for them
   gadsPaint(el);
+  if (gadsOpenId) gadsLoadOpen();
 }
 
 function gadsPaint(el) {
@@ -106,9 +110,11 @@ function gadsPaint(el) {
   const campRows = d.campaigns.map(c => {
     const cost = Number(c.cost), clicks = Number(c.clicks), conv = Number(c.conversions);
     const odd = conv > clicks && clicks > 0;
-    return `<tr><td>${gadsEsc(c.campaign_name)}<div class="slv-note">${gadsEsc(GADS_AREA[c.area] || c.area)}${c.status === 'PAUSED' ? ', paused' : ''}${c.channel === 'PERFORMANCE_MAX' ? ', Performance Max' : ''}</div></td>
+    const open = gadsOpenId === String(c.campaign_id);
+    return `<tr class="mk-row${open ? ' mk-open' : ''}" tabindex="0" role="button" aria-expanded="${open}" onclick="gadsOpen('${gadsEsc(c.campaign_id)}')" onkeydown="if(event.key==='Enter')gadsOpen('${gadsEsc(c.campaign_id)}')"><td><span class="mk-chev" aria-hidden="true">›</span>${gadsEsc(c.campaign_name)}<div class="slv-note">${gadsEsc(GADS_AREA[c.area] || c.area)}${c.status === 'PAUSED' ? ', paused' : ''}${c.channel === 'PERFORMANCE_MAX' ? ', Performance Max' : ''}</div></td>
       <td>${gadsNum(cost)}</td><td>${gadsNum(clicks)}</td><td class="gads-pc">${gadsAed2(clicks ? cost / clicks : null)}</td>
-      <td>${gadsNum(conv)}${odd ? ' <span class="slv-note" style="display:inline" title="More conversions than clicks: Google is counting something other than one booking per click">*</span>' : ''}</td></tr>`;
+      <td>${gadsNum(conv)}${odd ? ' <span class="slv-note" style="display:inline" title="More conversions than clicks: Google is counting something other than one booking per click">*</span>' : ''}</td></tr>
+      ${open ? `<tr class="mk-detail"><td colspan="5" id="gadsDetail">${gadsDetailHtml(c)}</td></tr>` : ''}`;
   }).join('');
 
   // Same 36-hour rule as the Instagram counts on Staff Benchmarks.
@@ -145,8 +151,13 @@ function gadsPaint(el) {
         <div class="w13-tile"><div class="slv-eyebrow">Cost per click</div><div class="w13-val">${gadsAed2(tot.clicks ? tot.cost / tot.clicks : null)}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Conversions, Google’s count</div><div class="w13-val">${gadsNum(tot.conv)}</div><div class="slv-note">Not bookings, see the note below</div></div>
       </div>
-      <div class="slv-eyebrow" style="margin:18px 0 6px">Spend day by day</div>
-      <div style="position:relative;height:260px"><canvas id="gadsCanvas"></canvas></div>` : '<p class="slv-muted">No ad spend in these dates.</p>'}
+      <div class="mk-chart-head">
+        <div class="slv-eyebrow">Spend ${gadsMode() === 'week' ? 'week by week' : 'day by day'}</div>
+        ${mkModePills('gads', gadsMode(), 'gadsRepaint')}
+        <span id="gadsQKey"></span>${mkSeriesKey(GADS_SPEC)}
+      </div>
+      <div style="position:relative;height:280px"><canvas id="gadsCanvas"></canvas></div>
+      ${mkQuarterStrip(mkBuckets(d.days, w.from, w.to, 'day', ['cost']), { key: 'cost', label: 'spend', fmt: gadsAed })}` : '<p class="slv-muted">No ad spend in these dates.</p>'}
     </section>
     ${areaRows ? `
     <section class="slv-card" style="margin-top:14px">
@@ -161,36 +172,88 @@ function gadsPaint(el) {
       <div class="slv-wrap"><table class="slv-table">
         <thead><tr><th>Campaign</th><th>Spend (AED)</th><th>Clicks</th><th class="gads-pc">Per click</th><th>Conv.</th></tr></thead>
         <tbody>${campRows}</tbody></table></div>
+      <p class="slv-note">Tap a campaign for its weeks, the keywords it bids on and what people searched.</p>
     </section>` : ''}
     <p class="slv-muted">Conversions are whatever Google Ads counts as a conversion for this account. Some campaigns show more conversions than clicks (marked *), so they are not bookings. Spend is in AED as Google bills it.${synced ? ' Updated ' + gadsEsc(synced) + '.' : ''}${d.first_day ? ' Numbers start ' + gadsEsc(gadsDayY(d.first_day)) + '.' : ''}</p>`;
   gadsDraw(d.days);
 }
 
+// Spend bars by quarter shade, clicks as the line (as the Quarterly page's sales and clients).
+const GADS_SPEC = {
+  bar: { key: 'cost', label: 'Spend (AED)', fmt: v => 'AED ' + gadsNum(v) },
+  line: { key: 'clicks', label: 'Clicks', fmt: v => gadsNum(v) },
+};
+const gadsMode = () => mkModeFor('gads', gadsData.win.from, gadsData.win.to);
+function gadsRepaint() { if (gadsData) gadsPaint(document.getElementById('googleAdsContent')); }
 function gadsDraw(days) {
-  const cv = document.getElementById('gadsCanvas');
-  if (!cv || !window.Chart) return;
-  const css = getComputedStyle(document.documentElement);
-  const muted = css.getPropertyValue('--muted'), border = css.getPropertyValue('--border');
-  if (gadsChart) gadsChart.destroy();
-  gadsChart = new Chart(cv, {
-    type: 'bar',
-    data: {
-      labels: days.map(r => gadsDay(r.date)),
-      datasets: [{ label: 'Spend', data: days.map(r => Math.round(Number(r.cost))), backgroundColor: GADS_BAR, borderRadius: 3, maxBarThickness: 28 }],
-    },
-    options: {
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: c => { const r = days[c.dataIndex];
-          return [`Spend: AED ${gadsNum(r.cost)}`, `Clicks: ${gadsNum(r.clicks)}`]; } } },
-      },
-      scales: {
-        y: { beginAtZero: true, grace: '10%', ticks: { color: muted }, grid: { color: border } },
-        x: { ticks: { color: muted, autoSkip: true, maxRotation: 0 }, grid: { display: false } },
-      },
-    },
-  });
+  const w = gadsData.win, rows = mkBuckets(days, w.from, w.to, gadsMode(), ['cost', 'clicks']);
+  const k = document.getElementById('gadsQKey');
+  if (k) k.innerHTML = mkQKeyHtml(rows);
+  gadsChart = mkDrawChart(document.getElementById('gadsCanvas'), rows, GADS_SPEC, gadsChart);
+  if (gadsOpenId) gadsDrawOpen();
+}
+
+// ── One campaign, opened in place under its row.
+function gadsOpen(id) {
+  gadsOpenId = gadsOpenId === String(id) ? null : String(id);
+  gadsOpenData = null;
+  gadsRepaint();
+  if (gadsOpenId) gadsLoadOpen();
+}
+async function gadsLoadOpen() {
+  const id = gadsOpenId, w = gadsData.win;
+  try {
+    const { data, error } = await sb.rpc('google_ads_campaign', { p_campaign_id: id, p_from: w.from, p_to: w.to });
+    if (error || !data) throw error || new Error('no data');
+    if (gadsOpenId !== id) return;
+    gadsOpenData = data;
+  } catch (e) {
+    console.error(e);
+    gadsOpenData = { error: true };
+  }
+  const td = document.getElementById('gadsDetail');
+  const c = gadsData.campaigns.find(x => String(x.campaign_id) === id);
+  if (td && c) { td.innerHTML = gadsDetailHtml(c); gadsDrawOpen(); }
+}
+const GADS_MATCH = { EXACT: 'exact', PHRASE: 'phrase', BROAD: 'broad' };
+function gadsDetailHtml(c) {
+  const o = gadsOpenData;
+  if (!o) return '<p class="slv-muted">Loading the campaign…</p>';
+  if (o.error) return '<p class="slv-muted">This campaign didn’t load. Tap it again to retry.</p>';
+  const pmax = c.channel === 'PERFORMANCE_MAX';
+  const cost = Number(c.cost), clicks = Number(c.clicks);
+  const kw = (o.keywords || []).map(k => `<tr><td>${gadsEsc(k.keyword)}<div class="slv-note">${gadsEsc(GADS_MATCH[k.match_type] || String(k.match_type).toLowerCase())} match</div></td>
+    <td>${gadsNum(k.cost)}</td><td>${gadsNum(k.clicks)}</td><td class="gads-pc">${gadsAed2(Number(k.clicks) ? Number(k.cost) / Number(k.clicks) : null)}</td></tr>`).join('');
+  const tm = (o.terms || []).map(t => `<tr><td>${gadsEsc(t.term)}</td><td>${gadsNum(t.clicks)}</td><td>${gadsNum(t.cost)}</td></tr>`).join('');
+  const ran = o.first_day ? `ran ${gadsDayY(o.first_day)} to ${gadsDayY(o.last_day)}` : '';
+  const state = c.status === 'PAUSED' ? 'paused' : c.status === 'ENABLED' ? 'running' : String(c.status || '').toLowerCase();
+  return `<div class="mk-detail-in">
+    <div class="slv-note">${gadsEsc(GADS_AREA[c.area] || c.area)}, ${pmax ? 'Performance Max' : 'Search'}, ${gadsEsc(state)}${ran ? ', ' + gadsEsc(ran) : ''}</div>
+    <div class="w13-tiles" style="margin-top:10px">
+      <div class="w13-tile"><div class="slv-eyebrow">Spend</div><div class="w13-val">${gadsAed(cost)}</div></div>
+      <div class="w13-tile"><div class="slv-eyebrow">Clicks</div><div class="w13-val">${gadsNum(clicks)}</div><div class="slv-note">${Number(c.impressions) ? (100 * clicks / Number(c.impressions)).toFixed(1) + '% of ' + gadsNum(c.impressions) + ' views' : ''}</div></div>
+      <div class="w13-tile"><div class="slv-eyebrow">Cost per click</div><div class="w13-val">${gadsAed2(clicks ? cost / clicks : null)}</div></div>
+      <div class="w13-tile"><div class="slv-eyebrow">Conversions, Google’s count</div><div class="w13-val">${gadsNum(c.conversions)}</div></div>
+    </div>
+    <div class="mk-chart-head"><div class="slv-eyebrow">This campaign ${gadsMode() === 'week' ? 'week by week' : 'day by day'}</div><span id="gadsOpenQKey"></span></div>
+    <div style="position:relative;height:220px"><canvas id="gadsOpenCanvas"></canvas></div>
+    ${pmax ? '<p class="slv-note" style="margin-top:12px">Performance Max chooses its own searches and placements, so Google gives no keywords or search list for it.</p>' : `
+    <div class="mk-two">
+      <div><div class="slv-eyebrow" style="margin:16px 0 6px">Keywords it bids on</div>
+        ${kw ? `<div class="slv-wrap"><table class="slv-table"><thead><tr><th>Keyword</th><th>Spend</th><th>Clicks</th><th class="gads-pc">Per click</th></tr></thead><tbody>${kw}</tbody></table></div>` : '<p class="slv-muted">No keyword had views in these dates.</p>'}</div>
+      <div><div class="slv-eyebrow" style="margin:16px 0 6px">What people searched, and clicked</div>
+        ${tm ? `<div class="slv-wrap"><table class="slv-table"><thead><tr><th>Search</th><th>Clicks</th><th>Spend</th></tr></thead><tbody>${tm}</tbody></table></div>` : '<p class="slv-muted">No clicked searches in these dates.</p>'}</div>
+    </div>`}
+  </div>`;
+}
+function gadsDrawOpen() {
+  const o = gadsOpenData;
+  if (!o || o.error) return;
+  mkFitDetail();
+  const w = gadsData.win, rows = mkBuckets(o.days, w.from, w.to, gadsMode(), ['cost', 'clicks']);
+  const k = document.getElementById('gadsOpenQKey');
+  if (k) k.innerHTML = mkQKeyHtml(rows);
+  gadsOpenChart = mkDrawChart(document.getElementById('gadsOpenCanvas'), rows, GADS_SPEC, gadsOpenChart);
 }
 
 function gadsRedrawForTheme() {
