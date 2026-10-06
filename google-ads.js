@@ -8,11 +8,14 @@
 // more conversions than clicks, so the page says "Google's count" until Kate knows
 // what is being counted.
 //
-// Own window control (7, 30, 90 days or this year), so the masthead filters are
+// Own window control (7, 30, 90 days, this year or custom dates), so the masthead filters are
 // hidden here. Borrows the Products page's card, tile and table styles (slv-*, w13-*).
 let gadsData = null, gadsChart = null;
 let gadsDays = 30;
-try { const v = Number(localStorage.getItem('trs-gads-days')); if ([7, 30, 90, 365].includes(v)) gadsDays = v; } catch (e) {}
+try { const v = localStorage.getItem('trs-gads-days'); if (v !== null && [7, 30, 90, 365, 0].includes(Number(v))) gadsDays = Number(v); } catch (e) {}
+// Custom dates (Kate, 6 Oct 2026): gadsDays 0 reads gadsCustom, kept per browser like the rest.
+let gadsCustom = { from: '', to: '' };
+try { Object.assign(gadsCustom, JSON.parse(localStorage.getItem('trs-gads-custom') || '{}')); } catch (e) {}
 
 const GADS_AREA = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz',
   AUH: 'Abu Dhabi, all', DXB: 'Dubai, all', BH: 'Bahrain', OTHER: 'Other' };
@@ -30,13 +33,29 @@ function gadsWindow() {
   const t = new Date(); t.setHours(0, 0, 0, 0);
   const to = new Date(t); to.setDate(t.getDate() - 1);
   const from = new Date(to);
-  if (gadsDays === 365) from.setMonth(0, 1); else from.setDate(to.getDate() - gadsDays + 1);
+  if (gadsDays === 0 && gadsCustom.from && gadsCustom.to) {
+    const a = gadsCustom.from, b = gadsCustom.to;
+    return a <= b ? { from: a, to: b, custom: true } : { from: b, to: a, custom: true };
+  }
+  if (gadsDays === 365) from.setMonth(0, 1); else from.setDate(to.getDate() - (gadsDays || 30) + 1);
   return { from: gadsIso(from), to: gadsIso(to) };
 }
 
 function gadsSetDays(n) {
+  // Custom opens on the dates already on screen, so there is something to adjust.
+  if (n === 0 && !(gadsCustom.from && gadsCustom.to)) {
+    const w = gadsWindow(); gadsCustom = { from: w.from, to: w.to };
+    try { localStorage.setItem('trs-gads-custom', JSON.stringify(gadsCustom)); } catch (e) {}
+  }
   gadsDays = n;
   try { localStorage.setItem('trs-gads-days', String(n)); } catch (e) {}
+  renderGoogleAds();
+}
+
+function gadsSetCustom(k, v) {
+  if (!v) return;
+  gadsCustom[k] = v;
+  try { localStorage.setItem('trs-gads-custom', JSON.stringify(gadsCustom)); } catch (e) {}
   renderGoogleAds();
 }
 
@@ -103,10 +122,14 @@ function gadsPaint(el) {
     </section>
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Window">
-        ${[[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'This year']].map(([k, l]) =>
+        ${[[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'This year'], [0, 'Custom']].map(([k, l]) =>
           `<button type="button" class="${gadsDays === k ? 'on' : ''}" onclick="gadsSetDays(${k})">${l}</button>`).join('')}
       </div>
     </div>
+    ${gadsDays === 0 ? `<div class="cmp-dates" style="max-width:420px;margin:12px 0 4px">
+      <label class="cmp-f"><span>From</span><input type="date" value="${gadsEsc(gadsCustom.from)}" min="2025-01-01" max="${gadsIso(new Date())}" onchange="gadsSetCustom('from', this.value)"></label>
+      <label class="cmp-f"><span>To</span><input type="date" value="${gadsEsc(gadsCustom.to)}" min="2025-01-01" max="${gadsIso(new Date())}" onchange="gadsSetCustom('to', this.value)"></label>
+    </div>` : ''}
     ${stale ? `<p class="slv-muted" style="color:#b42318">Google Ads numbers are paused${s && s.last_error ? ': ' + gadsEsc(s.last_error) : ''}. Last good update: ${synced ? gadsEsc(synced) : 'never'}.</p>` : ''}
     <section class="slv-card">
       <div class="slv-head">

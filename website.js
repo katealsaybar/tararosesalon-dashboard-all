@@ -10,11 +10,14 @@
 // on purpose, see the migration.
 //
 // Search Console runs 2 to 3 days behind, so its half says up to which day.
-// Own window control like Google Ads (7, 30, 90 days or this year), masthead filters
+// Own window control like Google Ads (7, 30, 90 days, this year or custom dates), masthead filters
 // hidden. Borrows the Products page's card, tile and table styles (slv-*, w13-*).
 let webData = null, webChart = null;
 let webDays = 30;
-try { const v = Number(localStorage.getItem('trs-web-days')); if ([7, 30, 90, 365].includes(v)) webDays = v; } catch (e) {}
+try { const v = localStorage.getItem('trs-web-days'); if (v !== null && [7, 30, 90, 365, 0].includes(Number(v))) webDays = Number(v); } catch (e) {}
+// Custom dates (Kate, 6 Oct 2026): webDays 0 reads webCustom, kept per browser like the rest.
+let webCustom = { from: '', to: '' };
+try { Object.assign(webCustom, JSON.parse(localStorage.getItem('trs-web-custom') || '{}')); } catch (e) {}
 
 // GA4's channel names, said plainly.
 const WEB_CHANNEL = {
@@ -46,13 +49,29 @@ function webWindow() {
   const t = new Date(); t.setHours(0, 0, 0, 0);
   const to = new Date(t); to.setDate(t.getDate() - 1);
   const from = new Date(to);
-  if (webDays === 365) from.setMonth(0, 1); else from.setDate(to.getDate() - webDays + 1);
+  if (webDays === 0 && webCustom.from && webCustom.to) {
+    const a = webCustom.from, b = webCustom.to;
+    return a <= b ? { from: a, to: b, custom: true } : { from: b, to: a, custom: true };
+  }
+  if (webDays === 365) from.setMonth(0, 1); else from.setDate(to.getDate() - (webDays || 30) + 1);
   return { from: webIso(from), to: webIso(to) };
 }
 
 function webSetDays(n) {
+  // Custom opens on the dates already on screen, so there is something to adjust.
+  if (n === 0 && !(webCustom.from && webCustom.to)) {
+    const w = webWindow(); webCustom = { from: w.from, to: w.to };
+    try { localStorage.setItem('trs-web-custom', JSON.stringify(webCustom)); } catch (e) {}
+  }
   webDays = n;
   try { localStorage.setItem('trs-web-days', String(n)); } catch (e) {}
+  renderWebsite();
+}
+
+function webSetCustom(k, v) {
+  if (!v) return;
+  webCustom[k] = v;
+  try { localStorage.setItem('trs-web-custom', JSON.stringify(webCustom)); } catch (e) {}
   renderWebsite();
 }
 
@@ -101,10 +120,14 @@ function webPaint(el) {
     </section>
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Window">
-        ${[[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'This year']].map(([k, l]) =>
+        ${[[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'This year'], [0, 'Custom']].map(([k, l]) =>
           `<button type="button" class="${webDays === k ? 'on' : ''}" onclick="webSetDays(${k})">${l}</button>`).join('')}
       </div>
     </div>
+    ${webDays === 0 ? `<div class="cmp-dates" style="max-width:420px;margin:12px 0 4px">
+      <label class="cmp-f"><span>From</span><input type="date" value="${webEsc(webCustom.from)}" min="2025-01-01" max="${webIso(new Date())}" onchange="webSetCustom('from', this.value)"></label>
+      <label class="cmp-f"><span>To</span><input type="date" value="${webEsc(webCustom.to)}" min="2025-01-01" max="${webIso(new Date())}" onchange="webSetCustom('to', this.value)"></label>
+    </div>` : ''}
     ${stale ? `<p class="slv-muted" style="color:#b42318">Website numbers are paused${s && s.last_error ? ': ' + webEsc(s.last_error) : ''}. Last good update: ${synced ? webEsc(synced) : 'never'}.</p>` : ''}
     <section class="slv-card">
       <div class="slv-head">
