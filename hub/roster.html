@@ -15,12 +15,22 @@
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/hub/hub.css?v=20261006ttl">
+<style>
+/* Kate, 6 Oct 2026: Send invite, Level 5 only. */
+.rs-when{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.rs-inv{font-size:12px;color:var(--muted2)}
+.rs-send{font:inherit;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
+.rs-send:hover{border-color:var(--text)}
+.rs-send:disabled{cursor:default;opacity:.6;border-color:var(--border)}
+</style>
 </head>
 <body class="kb-wait">
 <!-- Staff Roster & Access (Kate, 3 Oct 2026): everyone who can sign in to the site,
      with their job position, for Level 3 and up, view only; levels show to Level 5 only. The list comes from kb_roster() in Supabase
      (migrations/kb_roster.sql), which answers Level 3 and up only; nothing of it is
-     in this file, the repo is public. -->
+     in this file, the repo is public.
+     Kate, 6 Oct 2026: Level 5 also gets a Send invite button on anyone from the
+     dashboard list who has never signed in (kb_send_invite(), migrations/kb_roster_invite.sql). -->
 <div class="wrap">
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
   <main id="kbMain"><p class="kb-msg">Loading…</p></main>
@@ -43,6 +53,19 @@
     if (!ts) return 'Never signed in';
     try { return 'Last in ' + new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }); }
     catch (e) { return ''; }
+  }
+  function day(ts) {
+    try { return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Dubai' }); }
+    catch (e) { return ''; }
+  }
+  // Kate, 6 Oct 2026: Level 5 (not on "View as") can send the dashboard invite to
+  // anyone on the dashboard list who has never signed in. Resends too, if they
+  // were invited before and never accepted.
+  function canInvite(p) { return byLevel && p.team === 'Management & Office' && !p.last_sign_in; }
+  function inviteBits(p) {
+    if (!canInvite(p)) return '';
+    return (p.invited ? '<span class="rs-inv">Invited ' + esc(day(p.invited)) + '</span>' : '') +
+      '<button type="button" class="rs-send" data-email="' + esc(p.email) + '">' + (p.invited ? 'Resend invite' : 'Send invite') + '</button>';
   }
   function branchOf(p) { return p.branch || p.scope || ''; }
   function where(p) {
@@ -92,7 +115,7 @@
               (p.photo ? '<img src="' + esc(p.photo) + '" alt="" loading="lazy" onerror="this.remove()">' : '') + '</span>' +
             '<div class="rs-id"><b>' + esc(p.name) + '</b><span class="rs-pos">' + esc(p.position || '') + '</span></div></div>' +
             '<div class="rs-contact"><span>' + esc(p.email) + '</span><span class="rs-where">' + esc(where(p)) + '</span></div>' +
-            '<div class="rs-when' + (p.last_sign_in ? '' : ' never') + '">' + esc(when(p.last_sign_in)) + '</div></li>';
+            '<div class="rs-when' + (p.last_sign_in ? '' : ' never') + '"><span>' + esc(when(p.last_sign_in)) + '</span>' + inviteBits(p) + '</div></li>';
         }).join('') + '</ul></section>';
     }).join('') : '<p class="kb-msg">Nobody matches those filters.</p>';
   }
@@ -132,6 +155,35 @@
     main.querySelectorAll('.rs-selects select').forEach(function (sel) {
       KB.pillDD(sel);
       sel.addEventListener('change', function () { f[sel.dataset.k] = sel.value; draw(); });
+    });
+    // Send invite: the email goes out from the invite-user edge function a few
+    // seconds later; the roster is read again to show the new "Invited" date.
+    document.getElementById('rsList').addEventListener('click', async function (e) {
+      var b = e.target.closest('.rs-send');
+      if (!b || b.disabled) return;
+      var email = b.dataset.email, who = data.people.find(function (p) { return p.email === email; });
+      if (!confirm('Send the Team Home invite email to ' + email + '?')) return;
+      b.disabled = true; b.textContent = 'Sending…';
+      var s = await KB.client.rpc('kb_send_invite', { p_email: email });
+      if (s.error) {
+        b.disabled = false; b.textContent = 'Try again';
+        alert('The invite didn’t send: ' + s.error.message);
+        return;
+      }
+      var before = who && who.invited;
+      for (var i = 0; i < 4; i++) {
+        await new Promise(function (r) { setTimeout(r, 2500); });
+        var r = await KB.client.rpc('kb_roster');
+        var now = r.data && r.data.people.find(function (p) { return p.email === email; });
+        if (now && now.invited && now.invited !== before) {
+          who.invited = now.invited;
+          draw();
+          var nb = document.querySelector('.rs-send[data-email="' + CSS.escape(email) + '"]');
+          if (nb) { nb.disabled = true; nb.textContent = 'Invite sent'; }
+          return;
+        }
+      }
+      b.textContent = 'Sent, not confirmed yet';
     });
     document.getElementById('rsClear').addEventListener('click', function () {
       f = { q: '', team: '', branch: '', seen: '', level: '' };
