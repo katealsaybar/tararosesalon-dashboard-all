@@ -50,3 +50,16 @@
 
 @media (max-width:960px){:root:root{--top:68px}.fl-lockup img{width:112px}}
 @media (max-width:640px){.fl-lockup img{width:96px}.fl-lockup span{font-size:9px}.fl-home{display:none}}
+
+/* Kate, 6 Oct 2026: each page's heading wears the Service Playbooks line icon, as
+   every Team Home page does (KB.iconTitles in hub.js). */
+.kb-has-ic{display:flex;align-items:center;gap:16px}
+.kb-has-ic>span{min-width:0}
+.kb-ic.kb-ic-line{flex:none;width:52px;height:52px;border-radius:14px;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--c) 30%,var(--surface));color:var(--ink)}
+.kb-ic-line svg{width:27px;height:27px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+@media(max-width:760px){
+  .kb-has-ic{gap:12px}
+  .kb-ic.kb-ic-line{width:40px;height:40px;border-radius:12px}
+  .kb-ic-line svg{width:21px;height:21px}
+}

@@ -120,6 +120,22 @@
     if (!rule) { var sec = KB.SECTIONS.filter(function (x) { return x.key === key; })[0]; rule = (sec && sec.rule) || ICON_RULE[key] || 'var(--accent-mint)'; }
     return '<span class="kb-ic kb-ic-line" style="--c:' + rule + '" aria-hidden="true"><svg viewBox="0 0 24 24">' + ICONS[key] + '</svg></span>';
   };
+  // Kate, 6 Oct 2026: for pages whose headings someone else's app draws (Marketing,
+  // Service Playbooks): every <h1> that appears gets the icon, on each redraw too.
+  KB.iconTitles = function (key, rule) {
+    var ic = KB.icon(key, rule);
+    if (!ic) return;
+    function tag() {
+      document.querySelectorAll('h1').forEach(function (h) {
+        if (h.firstElementChild && h.firstElementChild.classList.contains('kb-ic')) return;
+        var span = document.createElement('span');
+        while (h.firstChild) span.appendChild(h.firstChild);
+        h.innerHTML = ic; h.appendChild(span); h.classList.add('kb-has-ic');
+      });
+    }
+    tag();
+    new MutationObserver(tag).observe(document.body, { childList: true, subtree: true });
+  };
   // A page title with its section's icon in front: <h2 class="kb-page-title kb-has-ic">.
   KB.titleIcon = function (key, html, cls) {
     var ic = KB.icon(key);
