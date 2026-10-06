@@ -25,8 +25,8 @@
 // WHERE EACH BRANCH METRIC COMES FROM. The pages ask ledgerBranchTarget() for
 // eleven. Six are money and are summed out of staff_targets, per dept:
 //
-//     hairRevenue      Σ service_target   where dept = HAIR
-//     beautyServices   Σ service_target   where dept = BEAUTY
+//     hairRevenue      Σ actual_target    where dept = HAIR
+//     beautyServices   Σ actual_target    where dept = BEAUTY
 //     servicesTotal    the two above
 //     hairTreatment    Σ treatment_target where dept = HAIR
 //     hairRetail       Σ retail_target    where dept = HAIR
@@ -43,6 +43,18 @@
 // as "no target", the way a blank already does on these pages, and not as a target
 // of zero clients that every branch is beating by hundreds. So the metric is
 // reported as absent and the row keeps its dash.
+//
+// THE STYLIST'S TARGET IS THE ACTUAL COLUMN. Kate, 6 Oct 2026: "yung numero sa
+// sheet." Each row holds a salon target and an actual at 80% of it; the
+// coordinators' own sheets, and what they tell each stylist, are the actual
+// (Ruth, Al Quoz, September: salon 75,000, actual 60,000, and 60,000 is the
+// figure on Frans's sheet). Reading service_target showed every stylist a goal
+// a quarter above the one she was given. Treatment and retail were always
+// worked out from the actual, so only the services figure moves.
+function lgDbStylistTarget(r){
+  return r.actual_target != null ? (Number(r.actual_target) || 0)
+                                 : (Number(r.service_target) || 0);
+}
 
 // month -> { branch: {CODE: {metrics}}, staff: {CODE:{HAIR:{},BEAUTY:{}}}, staffCount, branches }
 // A month that has been fetched and holds nothing is cached as null, so an empty
@@ -60,10 +72,10 @@ function lgDbHas(month){
 function lgDbBranchMetrics(staffRows, branchRow){
   const sum = (dept, col) => staffRows
     .filter(r => !dept || r.dept === dept)
-    .reduce((n, r) => n + (Number(r[col]) || 0), 0);
+    .reduce((n, r) => n + (typeof col === 'function' ? col(r) : (Number(r[col]) || 0)), 0);
 
-  const hairRevenue    = sum('HAIR', 'service_target');
-  const beautyServices = sum('BEAUTY', 'service_target');
+  const hairRevenue    = sum('HAIR', lgDbStylistTarget);
+  const beautyServices = sum('BEAUTY', lgDbStylistTarget);
   const m = {
     hairRevenue,
     beautyServices,
@@ -123,7 +135,7 @@ async function lgLoadDbTargets(month){
         // Same shape ledgerStaffTarget() has always returned, so every caller and
         // every export column is untouched.
         dept[d][String(r.staff_name).toUpperCase()] = {
-          services:  Number(r.service_target)   || 0,
+          services:  lgDbStylistTarget(r),
           treatment: Number(r.treatment_target) || 0,
           retail:    Number(r.retail_target)    || 0,
         };
