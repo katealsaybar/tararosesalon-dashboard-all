@@ -126,7 +126,7 @@ function lcPaint() {
   // One line per group kept off the list, each with its own switch.
   const sideLine = (s, n, off, on) => n ? `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0 0">
         <span class="slv-muted" style="margin:0">${lcSide === s ? on : off}</span>
-        <button type="button" class="tglr" onclick="lcShowSide('${s}')">${lcSide === s ? 'Back to the lost list' : 'Show them'}</button>
+        <button type="button" class="tglr lc-btn" onclick="lcShowSide('${s}')">${lcSide === s ? 'Back to the lost list' : 'Show them'}</button>
       </div>` : '';
   const phones = lcAll.some(r => r.mobile || r.landline);
   const spend = lost.reduce((a, r) => a + (Number(r.spend) || 0), 0);
@@ -165,8 +165,8 @@ function lcPaint() {
         <input type="search" id="lcSearch" placeholder="Search name or stylist" value="${lcEsc(lcQuery)}"
           oninput="lcQuery=this.value;lcPage=1;lcPaintTable()"
           style="flex:1;min-width:180px;max-width:320px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit">
-        <button type="button" class="tglr" onclick="lcSaveFile('xlsx')">XLSX</button>
-        <button type="button" class="tglr" onclick="lcSaveFile('csv')">CSV</button>
+        <button type="button" class="tglr lc-btn" onclick="lcSaveFile('xlsx')" title="Download as Excel">XLSX</button>
+        <button type="button" class="tglr lc-btn" onclick="lcSaveFile('csv')" title="Download as CSV">CSV</button>
         <span id="lcCopied" class="slv-note" style="display:inline"></span>
       </div>
       <div id="lcTable"></div>
