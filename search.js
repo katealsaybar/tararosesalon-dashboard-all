@@ -31,6 +31,7 @@
 
 (function () {
   const RECENT_KEY = 'trs-search-recent';
+  const PLACEHOLDER = 'Find a person, page or client';
   const ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
 
   // Words people type that are not in the page's own name.
@@ -83,7 +84,7 @@
         // Team Performance and Podium Race land on the same view; keep the page name.
         if (view && items.some(x => x.kind === 'page' && x.view === view && n.id === 'navTeamRace')) return;
         items.push({
-          kind: 'page', id: 'page:' + name, view, t: name, s: group,
+          kind: 'page', id: 'page:' + name, view, t: name, g: group || 'Page', s: '',
           words: (PAGE_WORDS[view] || '') + ' ' + group,
           go: () => n.click(),
         });
@@ -102,7 +103,7 @@
           .filter(Boolean).join(' · ');
         const photo = p.photo ? 'assets/staff/' + p.photo : (p.photoFull || '');
         items.push({
-          kind: 'staff', id: 'staff:' + key, t: full,
+          kind: 'staff', id: 'staff:' + key, t: full, g: 'Team',
           s: [p.role, p.resigned ? 'Former' : bName].filter(Boolean).join(' · '),
           words: [p.role, bName, p.ig, p.resigned ? 'former resigned' : ''].join(' '),
           photo, resigned: !!p.resigned,
@@ -127,7 +128,7 @@
           const go = () => goOrg(node.name);
           if (same) same.acts.push(['Org chart', go]);
           else items.push({
-            kind: 'staff', id: 'org:' + node.name, t: node.name, s: node.role || '',
+            kind: 'staff', id: 'org:' + node.name, t: node.name, g: 'Team', s: node.role || '',
             words: [node.role, parent && parent.role === 'Department' ? parent.name : '', 'org chart'].join(' '),
             photo: node.photo || '', go,
           });
@@ -158,7 +159,7 @@
         if (dup) { dup.item.words += ' ' + norm(name); seen.push({ key, last, words, item: dup.item }); return; }
         const full = title(name) + ' ' + STAFF_SURNAMES[name];
         const item = {
-          kind: 'staff', id: 'staff:' + key, t: full, s: 'Team · no card yet',
+          kind: 'staff', id: 'staff:' + key, t: full, g: 'Team', s: 'No card yet',
           words: 'staff phorest', photo: '',
           go: () => whoGoRow(key),
           acts: [
@@ -176,20 +177,20 @@
       ACTIVE_BRANCHES.forEach(code => {
         const b = BRANCH_INFO[code];
         items.push({
-          kind: 'branch', id: 'branch:' + code, t: b.name, s: 'Show this branch only',
+          kind: 'branch', id: 'branch:' + code, t: b.name, g: 'Branch', s: 'Show this branch only',
           words: code + ' branch salon ' + (BRANCH_WORDS[code] || ''), colour: b.colorLight || b.color,
           go: () => setBranch([code]),
         });
       });
       items.push({
-        kind: 'branch', id: 'branch:all', t: 'UAE Branches', s: 'Clear the branch filter',
+        kind: 'branch', id: 'branch:all', t: 'UAE Branches', g: 'Branch', s: 'Clear the branch filter',
         words: 'all every branches reset', go: () => setBranch(['all']),
       });
     }
 
     if (typeof periodPresets === 'function') {
       periodPresets().forEach(p => items.push({
-        kind: 'period', id: 'period:' + p.k, t: p.k, s: 'Set the period',
+        kind: 'period', id: 'period:' + p.k, t: p.k, g: 'Period', s: 'Set the period',
         words: 'period date range mtd month', go: () => setPeriod(p),
       }));
     }
@@ -260,7 +261,7 @@
         seen.add(k);
         const snip = row ? row.textContent.replace(/\s+/g, ' ').replace(text, '').trim().slice(0, 60) : '';
         out.push({ kind: 'content', view, id: 'content:' + k, t: text,
-          s: names[view] + (snip ? ' · ' + snip : ''), words: names[view],
+          g: 'On ' + names[view], s: snip, words: names[view],
           go: () => goText(view, text, null, anchor) });
       };
       root.querySelectorAll(HEADS).forEach(el => add(el, el.textContent.replace(/\s+/g, ' ').trim()));
@@ -352,12 +353,12 @@
       sb.rpc('get_top_services', { p_year: w.year, p_branches: w.branches, p_from: w.from, p_to: w.to, p_limit: 100 })
         .then(({ data }) => (data || []).filter(r => r.service_name).map((r, i) => ({
           kind: 'service', id: 'service:' + r.service_name, t: r.service_name,
-          s: `Service Rankings · #${i + 1} · ${aed(r.total_revenue)}`, words: 'service treatment',
+          g: 'Service Rankings', s: `#${i + 1} · ${aed(r.total_revenue)}`, words: 'service treatment',
           go: () => goService(r.service_name, i + 1) }))),
       sb.rpc('get_top_clients', { p_year: w.year, p_branches: w.branches, p_from: w.from, p_to: w.to, p_limit: 25 })
         .then(({ data }) => (data || []).filter(r => r.client_name).map((r, i) => ({
           kind: 'client', id: 'client:' + r.client_name, t: r.client_name,
-          s: `Top Clients · #${i + 1} · ${aed(r.total_revenue)}${r.top_service ? ' · ' + r.top_service : ''}`, words: 'client',
+          g: 'Top Clients', s: `#${i + 1} · ${aed(r.total_revenue)}${r.top_service ? ' · ' + r.top_service : ''}`, words: 'client',
           go: () => goText('clients', r.client_name) }))),
     ];
     if (typeof prdWindow === 'function') {
@@ -365,7 +366,7 @@
       jobs.push(sb.rpc('get_product_spend', { p_branches: pw.branches, p_from: pw.from, p_to: pw.to })
         .then(({ data }) => ((data && data.products) || []).map(p => ({
           kind: 'product', id: 'product:' + p.product, t: p.product,
-          s: ['Products', p.brand, p.type, aed(p.spend)].filter(Boolean).join(' · '), words: 'product stock ' + (p.brand || ''),
+          g: 'Products', s: [p.brand, p.type, aed(p.spend)].filter(Boolean).join(' · '), words: 'product stock ' + (p.brand || ''),
           go: () => goText('products', p.product) }))));
     }
     Promise.all(jobs.map(j => j.then(x => x, () => []))).then(lists => {
@@ -405,7 +406,7 @@
   // one that merely contains it; initials ("dts" → Daily Target Sheet) are the last
   // resort. Every typed word has to land somewhere.
   function score(item, q, loose) {
-    const t = norm(item.t), w = norm(item.words), s = norm(item.s);
+    const t = norm(item.t), w = norm(item.words), s = norm((item.g || '') + ' ' + (item.s || ''));
     const tw = t.split(/[\s·,-]+/).filter(Boolean), ww = w.split(/\s+/).filter(Boolean);
     let total = 0;
     for (const part of q.split(/\s+/).filter(Boolean)) {
@@ -494,10 +495,10 @@
       trig.className = 'gs-trig';
       trig.setAttribute('aria-label', 'Search the dashboard');
       trig.setAttribute('aria-haspopup', 'dialog');
-      trig.innerHTML = ICON + '<span class="gs-trig-t">Search names, pages, clients</span><kbd>/</kbd>';
+      trig.innerHTML = ICON + '<span class="gs-trig-t">' + PLACEHOLDER + '</span><kbd>/</kbd>';
       trig.addEventListener('click', open);
-      // On a phone it sits beside the menu button; on desktop it leads the row.
       acts.insertBefore(trig, acts.firstChild);
+      placeTrig();
     }
 
     scrim = document.createElement('div');
@@ -514,13 +515,11 @@
     panel.innerHTML = `
       <div class="gs-head">${ICON}
         <input class="gs-in" id="gsIn" type="search" autocomplete="off" autocapitalize="off" spellcheck="false"
-          enterkeyhint="go" placeholder="A name, page, branch, client, service…" role="combobox"
+          enterkeyhint="go" placeholder="${PLACEHOLDER}" role="combobox"
           aria-expanded="true" aria-controls="gsList" aria-autocomplete="list">
         <button type="button" class="gs-x gs-clear" aria-label="Clear" hidden>&times;</button>
-        <button type="button" class="gs-x gs-cancel">Cancel</button>
       </div>
-      <div class="gs-list" id="gsList" role="listbox"></div>
-      <div class="gs-foot"><span><kbd>↑↓</kbd>move</span><span><kbd>Enter</kbd>open</span><span><kbd>Esc</kbd>close</span></div>`;
+      <div class="gs-list" id="gsList" role="listbox"></div>`;
     document.body.append(scrim, panel);
 
     input = panel.querySelector('.gs-in');
@@ -528,7 +527,6 @@
     const clear = panel.querySelector('.gs-clear');
     input.addEventListener('input', () => { clear.hidden = !input.value; render(); });
     clear.addEventListener('click', () => { input.value = ''; clear.hidden = true; render(); input.focus(); });
-    panel.querySelector('.gs-cancel').addEventListener('click', close);
     input.addEventListener('keydown', onKey);
 
     list.addEventListener('click', e => {
@@ -545,7 +543,9 @@
       if (row && +row.dataset.i !== cur) { cur = +row.dataset.i; paintCursor(); }
     });
 
-    addEventListener('resize', () => { if (!panel.hidden) place(); });
+    addEventListener('resize', () => { placeTrig(); if (!panel.hidden) place(); });
+    // The phone keyboard shrinks the visible page: the list ends above it.
+    if (window.visualViewport) visualViewport.addEventListener('resize', () => { if (!panel.hidden) place(); });
   }
 
   function open() {
@@ -576,38 +576,56 @@
     if (lastFocus && lastFocus.focus && document.contains(lastFocus)) lastFocus.focus({ preventScroll: true });
   }
 
-  // Desktop: over the bar when it is on screen, its right edge held so it grows
-  // leftwards into the masthead. Otherwise (Ledgers pages, bar hidden) top centre.
-  // The phone sheet is all CSS.
+  // Kate, 6 Oct 2026: "as intuitive as the hub". Team Home's search is a plain bar
+  // that drops its results straight below, on every screen. So here too: on a phone
+  // the bar gets its own full-width row under the logo (not a round icon), and the
+  // panel opens right on top of the bar at every width, its list dropping below,
+  // instead of a full-screen sheet. Tap anywhere else to close, as on Team Home.
+  function placeTrig() {
+    if (!trig) return;
+    const mast = document.querySelector('.mast'), top = document.querySelector('.mast-top');
+    const acts = document.querySelector('.mast-acts');
+    const want = isPhone() ? mast : acts;
+    if (!want || trig.parentNode === want) return;
+    if (want === mast) top.after(trig); else acts.insertBefore(trig, acts.firstChild);
+    if (typeof sizeTopbar === 'function') sizeTopbar();
+  }
+  // Over the bar when it is on screen, its right edge held on a wide screen so it
+  // grows leftwards into the masthead. Otherwise (Ledgers pages, or the phone header
+  // tucked away) at the top.
   function place() {
-    panel.style.left = panel.style.top = panel.style.right = '';
-    if (isPhone()) return;
-    const w = Math.min(440, innerWidth - 32);
+    const phone = isPhone();
+    const w = phone ? innerWidth - 32 : Math.min(480, innerWidth - 32);
     const r = trig && trig.offsetParent ? trig.getBoundingClientRect() : null;
-    if (r && r.width) {
-      panel.style.left = Math.max(16, Math.min(r.right - w, innerWidth - w - 16)) + 'px';
-      panel.style.top = Math.max(8, r.top - 1) + 'px';
+    let left, top;
+    if (r && r.width && r.bottom > 0) {
+      left = phone ? 16 : Math.max(16, Math.min(r.right - w, innerWidth - w - 16));
+      top = Math.max(8, r.top - 1);
     } else {
-      panel.style.left = Math.round((innerWidth - w) / 2) + 'px';
-      panel.style.top = '72px';
+      left = Math.round((innerWidth - w) / 2);
+      top = phone ? 8 : 72;
     }
+    panel.style.width = w + 'px';
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+    const vh = window.visualViewport ? visualViewport.height : innerHeight;
+    const head = panel.querySelector('.gs-head').offsetHeight || 48;
+    list.style.maxHeight = Math.max(160, Math.min(phone ? 9999 : 520, vh - top - head - 16)) + 'px';
   }
 
-  const GROUPS = [['page', 'Pages', 6], ['staff', 'Team', 6], ['branch', 'Branches', 5], ['period', 'Period', 3],
-    ['service', 'Services', 5], ['client', 'Clients', 5], ['product', 'Products', 5], ['content', 'On the pages', 6]];
+  // How many of each kind can make the list, so one kind never crowds out the rest.
+  const MAX = { page: 5, staff: 5, branch: 4, period: 3, service: 4, client: 4, product: 4, content: 5 };
+  const ORDER = Object.keys(MAX);
 
+  // One list, best match first, like Team Home. Each row says where it lives in a
+  // small line above its name. Nothing typed: what you opened last, or a hint.
   function render() {
     const q = norm(input.value.trim());
-    let blocks = [];
+    let rows = [], head = '';
     if (!q) {
-      // Nothing typed: what you opened last, then the pages people use most.
       const byId = new Map(index.map(x => [x.id, x]));
-      const recent = recentIds().map(id => byId.get(id)).filter(Boolean);
-      if (recent.length) blocks.push(['Recent', recent]);
-      const quick = ['dashboard', 'branchperf', 'team', 'ledgerTargets', 'stylists']
-        .map(v => index.find(x => x.kind === 'page' && x.view === v))
-        .filter(x => x && !recent.includes(x));
-      blocks.push(['Jump to', quick]);
+      rows = recentIds().map(id => byId.get(id)).filter(Boolean);
+      if (rows.length) head = 'Recent';
     } else {
       // Page text that just repeats a service, client or product row is left to that row.
       const dataNames = new Set(dataItems.map(x => norm(x.t)));
@@ -615,57 +633,32 @@
       let scored = pool.map(x => [x, score(x, q)]).filter(([, s]) => s > 0);
       // Nothing close: loosen up and offer the nearest, rather than a dead end.
       if (!scored.length) scored = pool.map(x => [x, score(x, q, true)]).filter(([, s]) => s > 0);
-      GROUPS.forEach(([kind, label, max]) => {
-        const hits = scored.filter(([x]) => x.kind === kind).sort((a, b) => b[1] - a[1]).slice(0, max).map(([x]) => x);
-        if (hits.length) blocks.push([label, hits, Math.max(...scored.filter(([x]) => x.kind === kind).map(([, s]) => s))]);
-      });
-      // The group holding the best match goes first, so Enter takes you there.
-      blocks.sort((a, b) => b[2] - a[2]);
+      scored.sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind));
+      const taken = {};
+      rows = scored.filter(([x]) => (taken[x.kind] = (taken[x.kind] || 0) + 1) <= MAX[x.kind])
+        .slice(0, 12).map(([x]) => x);
     }
 
-    shown = [];
-    let html = '';
-    blocks.forEach(([label, items]) => {
-      html += `<div class="gs-grp" role="presentation">${esc(label)}</div>`;
-      items.forEach(item => {
-        const i = shown.push(item) - 1;
-        html += rowHtml(item, i, q);
-      });
-    });
-    if (!shown.length) {
-      // Still somewhere to go: the main pages under the message.
-      html = `<div class="gs-empty">Nothing matches “${esc(input.value.trim())}”. Search covers every page, the team and the org chart, branches, periods, services, clients and products.</div>`;
-      const quick = ['dashboard', 'branchperf', 'team', 'stylists', 'orgchart']
-        .map(v => index.find(x => x.kind === 'page' && x.view === v)).filter(Boolean);
-      if (quick.length) html += '<div class="gs-grp" role="presentation">Jump to</div>'
-        + quick.map(item => rowHtml(item, shown.push(item) - 1, '')).join('');
-    }
+    shown = rows;
+    let html = head ? `<div class="gs-grp" role="presentation">${esc(head)}</div>` : '';
+    html += rows.map((item, i) => rowHtml(item, i, q)).join('');
+    if (!q && !rows.length) html = '<div class="gs-empty">Type a name, a page, a branch, a service, a client or a product.</div>';
+    else if (!rows.length) html = `<div class="gs-empty">Nothing matches “${esc(input.value.trim())}”.</div>`;
     list.innerHTML = html;
+    list.hidden = false;
     cur = 0;
     paintCursor();
   }
 
+  // Team Home's row: where it lives, the name (matched letters marked), one line
+  // more. A person's other jumps (stats, figures, 13 weeks) show on the top row
+  // only, when she is clearly the one you were after.
   function rowHtml(item, i, q) {
-    let ico;
-    if (item.kind === 'staff') {
-      const init = esc(item.t.split(' ').map(x => x[0]).slice(0, 2).join(''));
-      ico = item.photo
-        ? `<span class="gs-ico"><img src="${esc(item.photo)}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('${init}'))"></span>`
-        : `<span class="gs-ico">${init}</span>`;
-    } else if (item.kind === 'branch') {
-      ico = `<span class="gs-ico"><i style="background:${esc(item.colour || 'var(--muted)')}"></i></span>`;
-    } else if (item.kind === 'content' || item.kind === 'service' || item.kind === 'client' || item.kind === 'product') {
-      ico = `<span class="gs-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>`;
-    } else if (item.kind === 'period') {
-      ico = `<span class="gs-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>`;
-    } else {
-      ico = `<span class="gs-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16v16H4zM4 9h16M9 9v11"/></svg></span>`;
-    }
-    const acts = item.acts
-      ? `<span class="gs-acts">${item.acts.map(([l], a) => `<button type="button" class="gs-act" data-a="${a}" tabindex="-1">${l}</button>`).join('')}</span>`
-      : '<span class="gs-go" aria-hidden="true">↵</span>';
-    return `<div class="gs-row" role="option" id="gsOpt${i}" data-i="${i}">${ico}
-      <span class="gs-txt"><span class="gs-t">${highlight(item.t, q)}</span>${item.s ? `<span class="gs-s">${esc(item.s)}</span>` : ''}</span>${acts}</div>`;
+    const acts = item.acts && q && i === 0
+      ? `<span class="gs-acts">${item.acts.slice(1).map(([l], a) => `<button type="button" class="gs-act" data-a="${a + 1}" tabindex="-1">${esc(l)}</button>`).join('')}</span>`
+      : '';
+    return `<div class="gs-row" role="option" id="gsOpt${i}" data-i="${i}">
+      ${item.g ? `<span class="gs-g">${esc(item.g)}</span>` : ''}<span class="gs-t">${highlight(item.t, q)}</span>${item.s ? `<span class="gs-s">${esc(item.s)}</span>` : ''}${acts}</div>`;
   }
 
   function paintCursor() {
@@ -673,7 +666,7 @@
       const on = +r.dataset.i === cur;
       r.classList.toggle('on', on);
       r.setAttribute('aria-selected', on);
-      if (on && !isPhone()) r.scrollIntoView({ block: 'nearest' });
+      if (on) r.scrollIntoView({ block: 'nearest' });
     });
     input.setAttribute('aria-activedescendant', shown.length ? 'gsOpt' + cur : '');
   }
