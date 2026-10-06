@@ -111,7 +111,7 @@ function webPaint(el) {
   const chRows = d.channels.map((c, i) => webRow('channel', i, 4, `<td>${webChev()}${webEsc(WEB_CHANNEL[c.channel] || c.channel)}</td>
     <td>${webNum(c.sessions)}</td><td>${webPct(c.sessions, chTotal)}</td><td>${webPct(c.engaged_sessions, c.sessions)}</td>`)).join('');
   const pgRows = d.pages.map((p, i) => { const x = webPage(p.page);
-    return webRow('page', i, 3, `<td>${i + 1}</td><td>${webChev()}${webEsc(x.name)}<div class="slv-note">${x.where ? webEsc(x.where) + ', ' : ''}${webEsc(p.page)}</div></td><td>${webNum(p.views)}</td>`); }).join('');
+    return webRow('page', i, 2, `<td>${webChev()}<span class="web-rank">${i + 1}</span>${webEsc(x.name)}<div class="slv-note web-path">${x.where ? webEsc(x.where) + ', ' : ''}${webEsc(p.page)}</div></td><td>${webNum(p.views)}</td>`); }).join('');
   const qRows = d.queries.map((q, i) => webRow('query', i, 4, `<td>${webChev()}${webEsc(q.query)}</td><td>${webNum(q.clicks)}</td><td>${webNum(q.impressions)}</td>
     <td class="web-st">${q.position !== null ? Number(q.position).toFixed(1) : '–'}</td>`)).join('');
 
@@ -169,7 +169,7 @@ function webPaint(el) {
     <section class="slv-card" style="margin-top:14px">
       <div class="slv-head"><div><div class="slv-eyebrow">What they looked at</div><h3>Top pages</h3></div></div>
       <div class="slv-wrap"><table class="slv-table">
-        <thead><tr><th>#</th><th>Page</th><th>Views</th></tr></thead>
+        <thead><tr><th>Page</th><th>Views</th></tr></thead>
         <tbody>${pgRows}</tbody></table></div>
     </section>` : ''}
     <section class="slv-card" style="margin-top:14px">

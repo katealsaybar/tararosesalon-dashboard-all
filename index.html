@@ -2261,6 +2261,10 @@ button.lc-seg:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
 .mk-detail > td{background:var(--surface2);padding:4px 14px 18px!important;white-space:normal}
 .mk-detail-in{max-width:100%;overflow:hidden}
 .mk-two{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
+/* Website & Search's Top pages: the rank sits before the page name, and the address
+   under it breaks anywhere rather than pushing the table wider than a phone. */
+.web-rank{display:inline-block;min-width:22px;color:var(--muted);font-weight:600}
+.web-path{overflow-wrap:anywhere;padding-left:40px}
 @media(max-width:760px){.mk-two{grid-template-columns:1fr}}
 .sc-btn{appearance:none;padding:5px 12px;border-radius:999px;border:1px solid var(--border);
   background:transparent;color:var(--muted);font-family:'Inter',sans-serif;
@@ -3870,7 +3874,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="lost-clients.js?v=20261006btn"></script>
 <script src="marketing-chart.js?v=20261006q"></script>
 <script src="google-ads.js?v=20261006q"></script>
-<script src="website.js?v=20261006q"></script>
+<script src="website.js?v=20261006pages"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261006web"></script>
