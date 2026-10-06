@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261006nav4">
+<link rel="stylesheet" href="/hub/hub.css?v=20261006pgic">
 </head>
 <body class="kb-wait">
 <!-- One page for both a section's list (?s=beauty-sop) and a single SOP (?p=<slug>).
@@ -27,7 +27,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261006nav3"></script>
+<script src="/hub/hub.js?v=20261006pgic"></script>
 <script src="/hub/kb-doc.js?v=20261005dots"></script>
 <script>
 (function () {
@@ -129,6 +129,7 @@
         return '<section class="kb-group"><h2>' + esc(g) + '</h2><ul class="kb-list">' +
           list.map(function (p) {
             return '<li><a href="/hub/kb.html?p=' + encodeURIComponent(p.slug) + '">' +
+              KB.pageIcon(p, key, sec.rule) +
               (p.note && !toCheck(p) ? '<span class="kb-dot" title="Being confirmed"></span>' : '') + esc(p.title) +
               (toCheck(p) ? '<span class="kb-flag">To check</span>' : '') + '</a>' +
               KB.starBtn('p:' + p.slug, p.title) + '</li>';

@@ -154,7 +154,56 @@
     today: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
     approvals: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
     people: '<rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/>',
-    'hair-induction': CAP, 'beauty-induction': CAP, 'front-desk-induction': CAP, 'call-centre-induction': CAP
+    'hair-induction': CAP, 'beauty-induction': CAP, 'front-desk-induction': CAP, 'call-centre-induction': CAP,
+    // Kate, 6 Oct 2026: one icon per kind of page, for the page lists inside a section
+    // (KB.pageIcon picks one from the title and chapter).
+    'pg-nail': '<path d="M8 21v-9a4 4 0 0 1 8 0v9"/><path d="M10 12.5a2 2 0 0 1 4 0V15h-4z"/>',
+    'pg-eye': '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/>',
+    'pg-drop': '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+    'pg-face': '<circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01"/><path d="M9 15c1.5 1.2 4.5 1.2 6 0"/>',
+    'pg-wave': '<path d="M3 15c3-3 6-3 9 0s6 3 9 0"/><path d="M3 9c3-3 6-3 9 0s6 3 9 0"/>',
+    'pg-comb': '<path d="M4 7h16v4H4z"/><path d="M6 11v6M9 11v6M12 11v6M15 11v6M18 11v6"/>',
+    'pg-shield': '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="m9 12 2 2 4-4"/>',
+    'pg-alert': '<circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/>',
+    'pg-waiver': '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    'pg-check': '<path d="M10 6h10M10 12h10M10 18h10"/><path d="m3.5 6 1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17"/>',
+    'pg-phone': '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+    'pg-card': '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/><path d="M7 15h3"/>',
+    'pg-box': '<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/>',
+    'pg-clock': '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    'pg-person': '<circle cx="12" cy="8" r="3.5"/><path d="M5 21a7 7 0 0 1 14 0"/>',
+    'pg-badge': '<circle cx="12" cy="9" r="6"/><path d="M8.5 14 7 21l5-3 5 3-1.5-7"/>',
+    'pg-flag': '<path d="M5 21V4"/><path d="M5 4h12l-2 4 2 4H5"/>'
+  };
+  ICONS['pg-scissors'] = ICONS['hair-sop']; ICONS['pg-cap'] = CAP; ICONS['pg-chat'] = ICONS.suggestions;
+  ICONS['pg-trend'] = ICONS['my-numbers']; ICONS['pg-book'] = ICONS['full-loop']; ICONS['pg-cal'] = ICONS.marketing;
+  ICONS['pg-doc'] = ICONS['hr-forms'];
+  // First match on "title | chapter" wins, so the specific kinds come first. Checked
+  // against all 234 pages on 6 Oct 2026: every page gets one; the section's icon is the
+  // fallback for a page that matches nothing.
+  var PAGE_ICONS = [
+    ['waiver', /waiver|consent/], ['alert', /complain|redo|guarantee|cancel/],
+    ['shield', /steril|cleaning|hygiene|maintenance|municipality/], ['cap', /theory|trade test/],
+    ['flag', /mission|history|about tara|why this|success principles/], ['badge', /your role/],
+    ['nail', /manicure|pedicure|nail|acrygel|\bgel\b|hands|feet|polish/], ['eye', /lash|brow|lvl|tint|threading|eye/],
+    ['drop', /wax/], ['face', /facial|hydra|led therapy|microcurrent|skin/], ['wave', /massage|body|relax/],
+    ['scissors', /\bcut|bob\b|layer|graduation|length|pixie|inversion/],
+    ['comb', /backwash|blow-dry|blast|scalp|keratin|colour|balayage|hair treatment|smoothing|curly/],
+    ['cap', /skill|development|training|level|programme|pathway|induction|onboarding|assistant/], ['check', /checklist/],
+    ['phone', /call|whatsapp|enquir|message|follow.up|reminder|introducing/],
+    ['cal', /booking|appointment|confirmation|waiting list|rebook/], ['clock', /opening|closing|through the day|logbook/],
+    ['doc', /visa|salary|holiday|leave|staff services/],
+    ['card', /payment|till|cash|invoice|bank|exchange|deposit|discount|quot|loyalty|refer/],
+    ['book', /services guide|menu|welcome book|important information|reference|structure|shape|condition/],
+    ['box', /stock|order|product|brands|retail|home care|water filter|asset|trolley|setup|packages/],
+    ['chat', /consult|fact.find|question|plan|script|recommend|advis|agreement/],
+    ['trend', /sell|sales|clientele|your brand|measuring|success|goal|revenue|on demand|knowledge/],
+    ['person', /welcom|client|journey|finishing|experience/], ['badge', /standard|conduct|dress|role/]
+  ];
+  KB.pageIcon = function (p, sectionKey, rule) {
+    var s = ((p.title || '') + ' | ' + (p.group_name || '')).toLowerCase();
+    for (var i = 0; i < PAGE_ICONS.length; i++) if (PAGE_ICONS[i][1].test(s)) return KB.icon('pg-' + PAGE_ICONS[i][0], rule);
+    return KB.icon(sectionKey, rule);
   };
   var ICON_RULE = { suggestions: 'var(--accent-butter)', 'my-numbers': 'var(--accent-mint)' };
   KB.icon = function (key, rule) {

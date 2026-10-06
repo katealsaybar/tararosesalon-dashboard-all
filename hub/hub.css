@@ -196,6 +196,9 @@ body.kb-wait .wrap{visibility:hidden}
 .kb-list{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .kb-list li+li{border-top:1px solid var(--border2)}
 .kb-list a{display:flex;align-items:center;gap:12px;padding:13px 18px;text-decoration:none;font-size:15.5px}
+/* Kate, 6 Oct 2026: each page in a section's list wears a small icon for its kind. */
+.kb-list .kb-ic{flex:none;width:32px;height:32px;border-radius:9px}
+.kb-list .kb-ic-line svg{width:17px;height:17px}
 .kb-list a:hover{background:var(--surface2)}
 .kb-list a::after{content:"›";margin-left:auto;color:var(--muted2);font-size:20px;line-height:1}
 /* Stars on every page (Kate, 1 Oct 2026): beside each row of a section's list, and
