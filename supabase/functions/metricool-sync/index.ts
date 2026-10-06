@@ -7,7 +7,10 @@
 // location id (GMB_LOC), else the brand's name. Khalifa City A's Google profile is on the
 // main brand (connected 6 Oct 2026).
 // Body/query: { days? (default 10, back from today), from?, to? (Dubai dates),
-//               source?: 'all' | 'daily' | 'posts' | 'reviews', dry? } for a backfill.
+//               source?: 'all' | 'daily' | 'posts' | 'snapshots' | 'reviews', dry? } for a backfill.
+// Snapshots (Kate, 6 Oct 2026, the Social page's platform tabs): each platform's audience
+// (age, gender, country, city) and best time to post, over the last 30 days, overwritten
+// every run into metricool_snapshots. YouTube is connected on the Bahrain brand.
 // Reviews (Kate, 6 Oct 2026): each salon's Google reviews into google_reviews, until the
 // Business Profile API is approved. See syncReviews below; dry: true only reports.
 // Posts are re-read for at least the last 45 days, because their numbers keep growing.
@@ -19,10 +22,14 @@ const API = 'https://app.metricool.com/api';
 const TZ = 'Asia/Dubai';
 
 // Daily series per network: [subject, metric]. Follower counts are levels, the rest counts.
+// YouTube's channel numbers take subject=account; its likes and watch time take scope=all
+// (stored with subject 'all').
 const SERIES: Record<string, [string, string][]> = {
+  youtube: [['account', 'totalSubscribers'], ['account', 'subscribersGained'], ['account', 'subscribersLost'], ['account', 'views'],
+    ['all', 'likes'], ['all', 'comments'], ['all', 'shares'], ['all', 'estimatedMinutesWatched']],
   instagram: [['account', 'followers'], ['account', 'delta_followers'], ['account', 'followers_gained'], ['account', 'followers_lost'],
     ['account', 'views'], ['account', 'reach'], ['account', 'profile_views'], ['account', 'website_clicks']],
-  tiktok: [['account', 'followers_count'], ['account', 'video_views'], ['account', 'profile_views'],
+  tiktok: [['account', 'followers_count'], ['account', 'followers_delta_count'], ['account', 'video_views'], ['account', 'profile_views'],
     ['account', 'likes'], ['account', 'comments'], ['account', 'shares']],
   facebook: [['account', 'pageFollows'], ['account', 'page_daily_follows_unique'], ['account', 'page_daily_unfollows_unique']],
   gmb: [['', 'business_impressions_total'], ['', 'business_impressions_search'], ['', 'business_impressions_maps'],
@@ -91,7 +98,7 @@ Deno.serve(async (req) => {
     const brands = (await get('/admin/simpleProfiles', {})).map((b: any) => ({
       brand_id: b.id, label: b.label || b.title || String(b.id),
       branch: (BRANCH.find(([re]) => re.test(b.label || '')) || [])[1] || null,
-      networks: Object.fromEntries(['instagram', 'tiktok', 'facebook', 'gmb'].filter(n => b[n]).map(n => [n, String(b[n])])),
+      networks: Object.fromEntries(['instagram', 'tiktok', 'facebook', 'youtube', 'gmb'].filter(n => b[n]).map(n => [n, String(b[n])])),
       synced_at: now(),
     })).map((b: any) => ({ ...b, gmb_branch: b.networks.gmb ? (GMB_LOC[b.networks.gmb.split('/locations/')[1]] || b.branch) : null }));
     // Branch brands are a salon's Google profile only; Bahrain's also carries LinkedIn
@@ -103,10 +110,10 @@ Deno.serve(async (req) => {
       const rows: any[] = [];
       const jobs: (() => Promise<void>)[] = [];
       for (const b of brands) for (const net of Object.keys(b.networks)) {
-        if (b.branch && net !== 'gmb') continue;
+        if (b.branch && net !== 'gmb' && net !== 'youtube') continue;
         for (const [subject, metric] of SERIES[net] || []) for (const [a, z] of chunks(from, to)) jobs.push(async () => {
           const q: Record<string, string> = { blogId: String(b.brand_id), network: net, metric, ...win(a, z) };
-          if (subject) q.subject = subject;
+          if (subject === 'all') q.scope = 'all'; else if (subject) q.subject = subject;
           const vals = (await get('/v2/analytics/timelines', q)).data?.[0]?.values || [];
           for (const v of vals) {
             const date = String(v.dateTime).slice(0, 10);
@@ -138,7 +145,18 @@ Deno.serve(async (req) => {
           views: n(p.views ?? p.impressionsTotal), reach: n(p.reach), likes: n(p.likes), comments: n(p.comments), shares: n(p.shares), saves: n(p.saved), interactions: n(p.interactions) }));
         add('/v2/analytics/reels/instagram', 'instagram', p => ({
           post_key: `instagram:reel:${p.reelId}`, kind: 'reel', posted_at: zoned(p.publishedAt), caption: p.content, url: p.url, image_url: p.imageUrl,
-          views: n(p.views), reach: n(p.reach), likes: n(p.likes), comments: n(p.comments), shares: n(p.shares), saves: n(p.saved), interactions: n(p.interactions) }));
+          views: n(p.views), reach: n(p.reach), likes: n(p.likes), comments: n(p.comments), shares: n(p.shares), saves: n(p.saved), interactions: n(p.interactions),
+          extra: { avg_watch: n(p.averageWatchTime), skip_rate: n(p.reelsSkipRate), reposts: n(p.reposts) } }));
+        // Stories (Kate, 6 Oct 2026): views are impressions; taps and exits ride in extra.
+        add('/v2/analytics/stories/instagram', 'instagram', p => ({
+          post_key: `instagram:story:${p.postId}`, kind: 'story', posted_at: zoned(p.publishedAt), caption: null, url: p.permalink, image_url: p.thumbnailUrl,
+          views: n(p.impressions), reach: n(p.reach), likes: null, comments: n(p.replies), shares: null, saves: null, interactions: n(p.replies),
+          extra: { exits: n(p.exits), taps_forward: n(p.tapsForward), taps_back: n(p.tapsBack), replies: n(p.replies) } }));
+        add('/v2/analytics/stories/facebook', 'facebook', p => ({
+          post_key: `facebook:story:${p.postId || p.storyId || p.id}`, kind: 'story', posted_at: p.timestamp ? new Date(p.timestamp).toISOString() : zoned(p.created || p.publishedAt),
+          caption: null, url: p.permalink || p.url || null, image_url: p.thumbnailUrl || p.picture || null,
+          views: n(p.impressions ?? p.views), reach: n(p.reach ?? p.impressionsUnique), likes: n(p.reactions), comments: n(p.replies), shares: null, saves: null,
+          interactions: n(p.reactions), extra: { exits: n(p.exits), taps_forward: n(p.tapsForward), taps_back: n(p.tapsBack) } }));
         add('/v2/analytics/posts/facebook', 'facebook', p => ({
           post_key: `facebook:post:${p.postId}`, kind: 'post', posted_at: p.timestamp ? new Date(p.timestamp).toISOString() : zoned(p.created), caption: p.text, url: p.link, image_url: p.picture,
           views: n(p.impressions), reach: n(p.impressionsUnique), likes: n(p.reactions), comments: n(p.comments), shares: n(p.shares), saves: null,
@@ -152,12 +170,14 @@ Deno.serve(async (req) => {
           posted_at: p.createTime ? new Date(String(p.createTime).replace(/([+-]\d\d)(\d\d)$/, '$1:$2')).toISOString() : null,
           caption: p.videoDescription || p.title, url: String(p.shareUrl || '').split('?')[0], image_url: p.coverImageUrl,
           views: n(p.viewCount), reach: n(p.reach), likes: n(p.likeCount), comments: n(p.commentCount), shares: n(p.shareCount), saves: null,
-          interactions: (n(p.likeCount) || 0) + (n(p.commentCount) || 0) + (n(p.shareCount) || 0) }));
+          interactions: (n(p.likeCount) || 0) + (n(p.commentCount) || 0) + (n(p.shareCount) || 0),
+          extra: { watch_time: n(p.totalTimeWatched), avg_watch: n(p.averageTimeWatched), full_watch: n(p.fullVideoWatchedRate), sources: p.impressionSources || null } }));
       }
       await pool(jobs);
       // The same post can come back in two overlapping pieces: keep one.
       out.posts = await save('metricool_posts', Object.values(Object.fromEntries(rows.map(r => [r.post_key, r]))), 'post_key');
     }
+    if (want('snapshots')) out.snapshots = await syncSnapshots(sb, brands, get, dubai(Date.now() - 30 * 864e5), dubai(Date.now()));
     if (want('reviews')) out.reviews = await syncReviews(sb, brands, get, !!(body.dry || u.searchParams.get('dry')), errors);
     if (errors.length) { out.errors = errors; out.error = `${errors.length} call(s) failed: ${errors[0]}`; }
   } catch (e) {
@@ -279,4 +299,40 @@ async function syncReviews(sb: any, brands: any[], get: any, dry: boolean, error
     }
   }
   return report;
+}
+
+// ── Audience and best time (Kate, 6 Oct 2026) ──────────────────────────────────────
+// One snapshot over the last 30 days, overwritten each run. A kind a platform doesn't
+// give (Metricool answers 400) is skipped quietly: what each app offers differs.
+const DIST: Record<string, string[]> = {
+  instagram: ['gender', 'age', 'country', 'city'],
+  tiktok: ['gender', 'age', 'country', 'city'],
+  facebook: ['followersByCountry', 'followersByCity'],
+};
+async function syncSnapshots(sb: any, brands: any[], get: any, from: string, to: string) {
+  const done: Record<string, number> = {};
+  const put = async (b: any, net: string, kind: string, rows: { key: string; value: number }[]) => {
+    if (!rows.length) return;
+    await sb.from('metricool_snapshots').delete().eq('brand_id', b.brand_id).eq('network', net).eq('kind', kind);
+    const { error } = await sb.from('metricool_snapshots').insert(rows.map(r => ({ brand_id: b.brand_id, network: net, kind, key: r.key, value: r.value,
+      as_from: from, as_to: to, synced_at: new Date().toISOString() })));
+    if (!error) done[`${net}.${kind}`] = rows.length;
+  };
+  for (const b of brands) for (const net of Object.keys(b.networks)) {
+    if (net === 'gmb' || (b.branch && net !== 'youtube')) continue;
+    for (const kind of DIST[net] || []) {
+      try {
+        const d = await get('/v2/analytics/distribution', { blogId: String(b.brand_id), network: net, subject: 'account', metric: kind,
+          from: `${from}T00:00:00+04:00`, to: `${to}T23:59:59+04:00`, timezone: 'Asia/Dubai' });
+        await put(b, net, kind, (d.data || []).filter((x: any) => x.key && x.value !== null).map((x: any) => ({ key: String(x.key).trim(), value: Number(x.value) })));
+      } catch (_) { /* not offered for this platform */ }
+    }
+    try {
+      const d = await get(`/v2/scheduler/besttimes/${net}`, { blogId: String(b.brand_id), start: `${from}T00:00:00`, end: `${to}T23:59:59`, timezone: 'Asia/Dubai' });
+      const rows: { key: string; value: number }[] = [];
+      for (const day of d.data || []) for (const h of day.bestTimesByHour || []) rows.push({ key: `${day.dayOfWeek}-${h.hourOfDay}`, value: Number(h.value) || 0 });
+      await put(b, net, 'besttime', rows);
+    } catch (_) { /* not offered for this platform */ }
+  }
+  return done;
 }

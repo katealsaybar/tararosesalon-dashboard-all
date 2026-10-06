@@ -13,6 +13,8 @@
 --                     Follower counts are levels; everything else is that day's count.
 --   metricool_posts   one row per Instagram post or reel, TikTok video or photo, and
 --                     Facebook post or reel, with its latest numbers.
+-- (Later the same day: metricool_snapshots, stories and YouTube; social_report as it is
+-- now lives in metricool_report_tabs.sql.)
 -- Two report functions read them: social_report (the Social page, Level 3+, like
 -- Google Ads) and gbp_report (the strip on the Google Reviews page, anyone signed in,
 -- like the reviews themselves).
