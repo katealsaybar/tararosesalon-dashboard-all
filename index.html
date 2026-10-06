@@ -437,7 +437,9 @@ body.lostclients-chrome .filters-wrap,
 body.googleads-chrome .mast-rule,
 body.googleads-chrome .filters-wrap,
 body.website-chrome .mast-rule,
-body.website-chrome .filters-wrap{display:none}
+body.website-chrome .filters-wrap,
+body.social-chrome .mast-rule,
+body.social-chrome .filters-wrap{display:none}
 /* Wellness Voucher Performance: the frame is content-height, so only a few px sit
    between the report and the footer instead of the page's usual 96px. */
 body.wvperf-chrome .wrap{padding-bottom:12px}
@@ -2266,6 +2268,23 @@ button.lc-seg:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
 .web-rank{display:inline-block;min-width:22px;color:var(--muted);font-weight:600}
 .web-path{overflow-wrap:anywhere;padding-left:40px}
 @media(max-width:760px){.mk-two{grid-template-columns:1fr}}
+/* Social (social.js, Kate 6 Oct 2026): three platform tiles, the chart key, and post
+   rows with a small picture beside the caption. */
+.soc-plats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.soc-plat-top{display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:6px}
+.soc-plat-top i,.soc-key i{display:inline-block;width:10px;height:10px;border-radius:50%}
+.soc-kv{display:grid;grid-template-columns:1fr auto;gap:3px 10px;margin:10px 0 4px;font-size:13.5px;font-variant-numeric:tabular-nums}
+.soc-kv span:nth-child(odd){color:var(--muted)}
+.soc-kv span:nth-child(even){font-weight:600;text-align:right;color:var(--text)}
+.soc-key{display:inline-flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--muted)}
+.soc-key span{display:inline-flex;align-items:center;gap:5px}
+.soc-post{display:flex;gap:10px;align-items:flex-start;max-width:440px}
+.soc-post img{width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0;background:var(--surface2)}
+.soc-pill{font-size:12px;font-weight:700;letter-spacing:.02em}
+.soc-cap{font-size:13.5px;line-height:1.35;margin-top:2px;overflow-wrap:anywhere}
+.soc-cap a{color:var(--text);text-decoration:none}
+@media(hover:hover){.soc-cap a:hover{text-decoration:underline}}
+@media(max-width:760px){.soc-plats{grid-template-columns:1fr}.soc-sm{display:none}}
 .sc-btn{appearance:none;padding:5px 12px;border-radius:999px;border:1px solid var(--border);
   background:transparent;color:var(--muted);font-family:'Inter',sans-serif;
   font-size:13.5px;font-weight:600;cursor:pointer;transition:border-color .2s,color .2s}
@@ -3055,7 +3074,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="team-performance.css?v=20261001quad">
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20261006slim">
+<link rel="stylesheet" href="mobile.css?v=20261006soc">
 <link rel="stylesheet" href="search.css?v=20261006hub">
 <link rel="stylesheet" href="nav-style.css?v=20261006hub">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
@@ -3206,6 +3225,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-title">Content</div>
     <div class="nav-sub" onclick="showView('googleads', this)">Google Ads</div>
     <div class="nav-sub" onclick="showView('website', this)">Website &amp; Search</div>
+    <div class="nav-sub" onclick="showView('social', this)">Social</div>
     <div class="nav-sub" onclick="showView('wvperf', this)">Wellness Voucher Performance</div>
   </div>
 
@@ -3772,6 +3792,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="websiteContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- SOCIAL (Kate, 6 Oct 2026): Instagram, TikTok and the Facebook page from Metricool,
+       via social_report. social.js draws it. -->
+  <div id="view-social" style="display:none">
+    <main id="socialContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <!-- PRODUCTS (Kate, 28-29 Sep 2026): stock spend per week, retail vs
        professional, from stock_order_lines via get_product_spend. products.js
        draws it. -->
@@ -3798,7 +3824,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div id="view-reviews" style="display:none">
     <iframe 
       id="reviewsFrame" scrolling="no"
-      data-src="./add%20ons/google-reviews/index.html?v=21"
+      data-src="./add%20ons/google-reviews/index.html?v=22"
       style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;display:block;overflow:hidden;">
     </iframe>
   </div>
@@ -3862,9 +3888,10 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="marketing-chart.js?v=20261006q"></script>
 <script src="google-ads.js?v=20261006slim"></script>
 <script src="website.js?v=20261006slim"></script>
+<script src="social.js?v=20261006soc"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261006web"></script>
+<script src="dashboard.js?v=20261006soc"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4100,7 +4127,7 @@ async function enterDashboard(role, meAsk){
     if (lc) lc.style.display = 'none';
   }
   // Marketing (Kate, 6 Oct 2026): Level 3 and above. google_ads_report and website_report refuse the rest too.
-  if (!(TRS_LEVEL >= 3)) { hideNav('googleads'); hideNav('website'); }
+  if (!(TRS_LEVEL >= 3)) { hideNav('googleads'); hideNav('website'); hideNav('social'); }
   tidyNav();
   {
     const first = ((me && me.name) || '').split(/[\s(]/)[0].replace(/[<>&"]/g, '');
@@ -4195,7 +4222,7 @@ function showView(view, el){
   if (TRS_SCOPE && !SCOPE_VIEWS.has(view)) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (TRS_LEVEL === 1 && view === 'wvperf') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (!(TRS_LEVEL >= 2) && view === 'lostclients') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
-  if (!(TRS_LEVEL >= 3) && (view === 'googleads' || view === 'website')) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
+  if (!(TRS_LEVEL >= 3) && (view === 'googleads' || view === 'website' || view === 'social')) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   ALL_VIEWS.forEach(v=>{
     const node=document.getElementById('view-'+v);
     if(node) node.style.display='none';
@@ -4278,6 +4305,7 @@ function showView(view, el){
   document.body.classList.toggle('lostclients-chrome', view === 'lostclients');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('website-chrome', view === 'website');
+  document.body.classList.toggle('social-chrome', view === 'social');
   // Popped-out standalone window (ocOpenNewWindow() sets ocFit=1): no sidebar
   // nav to open and no card border round the tree, just the chart, edge to
   // edge — this window's whole reason to exist is projecting/sharing/printing
@@ -4300,6 +4328,7 @@ function showView(view, el){
   if (view === 'lostclients') renderLostClients();
   if (view === 'googleads') renderGoogleAds();
   if (view === 'website') renderWebsite();
+  if (view === 'social') renderSocial();
   if (view === 'products') renderProducts();
   if (view === 'branchperf')    renderBranchPerformance();
   if (view === 'compare')       renderCompare();

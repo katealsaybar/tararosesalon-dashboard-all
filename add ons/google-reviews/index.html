@@ -111,6 +111,23 @@ table.ex tr.tot td{font-weight:700;border-bottom:none}
 .reply{margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:13px;color:var(--muted)}
 .reply b{color:var(--text);font-weight:600}
 .ok{color:var(--ok)}.no{color:var(--s1);font-weight:600}
+/* Google profile strip (Kate, 6 Oct 2026): each salon's Business Profile numbers from
+   Metricool (gbp_report), above the filters. Follows the Branch chips. */
+.gbp{margin-bottom:18px}
+.gbp-hd{display:flex;align-items:flex-end;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;margin-bottom:10px}
+.gbp-hd h2{margin:0}
+.gbp-ey{color:var(--muted);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin-bottom:2px}
+.gbp-t{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.gbp-t th{font-size:12px;color:var(--muted);font-weight:600;text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+.gbp-t td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+.gbp-t th:first-child,.gbp-t td:first-child{text-align:left}
+.gbp-t tr.tot td{font-weight:700;border-bottom:0}
+.gbp-t tr.na td{color:var(--faint)}
+.gbp-bar{height:5px;border-radius:3px;background:var(--surface2);margin-top:4px;max-width:180px;overflow:hidden}
+.gbp-bar b{display:block;height:100%;background:var(--rose)}
+.gbp-note{color:var(--faint);font-size:12px;margin-top:8px}
+.gbp-wrap{overflow-x:auto}
+@media (max-width:760px){.gbp-t .gbp-sm{display:none}}
 .empty{padding:40px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius)}
 .note{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:18px}
 .note b{color:var(--text)}
@@ -238,6 +255,8 @@ html.embedded .filters{position:static}
   <button class="themebtn" id="theme">Dark mode</button>
 </header>
 
+<div class="card gbp" id="gbp" hidden></div>
+
 <div class="filters" id="filters">
   <!-- Phones only (Kate, 2 Oct 2026): the five rows took a whole screen, so they fold
        behind this bar. It shows the count and what's on; tap a pill to clear it. -->
@@ -307,6 +326,6 @@ html.embedded .filters{position:static}
 <script src="../../staff-profiles.js?v=20261002va"></script>
 <script src="../../auth.js?v=20260925d"></script>
 <script src="review-links.js?v=20260928a"></script>
-<script src="app.js?v=20"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>

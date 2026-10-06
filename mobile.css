@@ -311,9 +311,9 @@
   /* Marketing pages (Kate, 6 Oct 2026: "too chunky on phone view"): the window and
      Daily/Weekly pills stay one slim row: "7 days" without "Last", 36px high, and the
      custom dates pill as slim (16px text kept so iPhones do not zoom into it). */
-  #googleAdsContent .sc-seg button,#websiteContent .sc-seg button{min-height:36px;padding:0 9px;font-size:12.5px;letter-spacing:0;white-space:nowrap}
-  #googleAdsContent .mk-lg,#websiteContent .mk-lg{display:none}
-  #googleAdsContent .mk-dates input,#websiteContent .mk-dates input{min-height:0;height:30px;padding:0 4px}
+  #googleAdsContent .sc-seg button,#websiteContent .sc-seg button,#socialContent .sc-seg button{min-height:36px;padding:0 9px;font-size:12.5px;letter-spacing:0;white-space:nowrap}
+  #googleAdsContent .mk-lg,#websiteContent .mk-lg,#socialContent .mk-lg{display:none}
+  #googleAdsContent .mk-dates input,#websiteContent .mk-dates input,#socialContent .mk-dates input{min-height:0;height:30px;padding:0 4px}
   .chip{min-width:44px;justify-content:center}
   .cmp-chip,.cmp-tchip,.cmp-bp-btn{min-height:44px}
   .cmp-swap{width:44px;height:44px;min-width:44px}
@@ -396,7 +396,7 @@
 @media(max-width:760px),(hover:none) and (max-height:480px){
   /* These views kept their 28px desktop gutters inside an already padded page
      (inline styles, hence !important), so every card sat indented with dead space. */
-  #teamContent,#teamQuadContent,#stylistCardsContent,#orgChartContent,#view-staffperf > main,#stylistLevelsContent,#staffWeeksContent,#lostClientsContent,#googleAdsContent,#websiteContent{
+  #teamContent,#teamQuadContent,#stylistCardsContent,#orgChartContent,#view-staffperf > main,#stylistLevelsContent,#staffWeeksContent,#lostClientsContent,#googleAdsContent,#websiteContent,#socialContent{
     padding-left:0!important;padding-right:0!important}
   .tp-bar,.sc-bar,.slv-top{margin-left:0;margin-right:0;padding-left:0;padding-right:0}
   .sc-grid{grid-template-columns:1fr}

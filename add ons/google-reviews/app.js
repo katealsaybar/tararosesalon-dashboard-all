@@ -421,9 +421,51 @@ function loadOffline(){
   return new Promise((ok,fail)=>{const s=document.createElement("script");s.src="data.js";
     s.onload=()=>{R=window.REVIEWS.map(r=>({...r,photos:r.photos||[]}));META=window.META;ok();};s.onerror=fail;document.body.appendChild(s);});
 }
+// Google profile strip (Kate, 6 Oct 2026): how often each salon's Business Profile showed
+// on Google and what people did, from Metricool via gbp_report (metricool-sync fills it
+// nightly). Its own window, kept per browser; Google reports these about three days
+// late, so the window ends yesterday and the note says the last day with numbers.
+// Rows follow the Branch chips. Khalifa City A isn't connected in Metricool yet and
+// shows as such until it is.
+const GBP_CODE={KCA:"Khalifa City A, Abu Dhabi",SAA:"Saadiyat, Abu Dhabi",AQ:"Al Quoz, Dubai",MC:"Motor City, Dubai",BAH:"District 2, Bahrain"};
+let gbpDays=30; try{const v=+localStorage.getItem("trs-gbp-days"); if([7,30,90,365].includes(v)) gbpDays=v;}catch(e){}
+const gbpCache={};
+function gbpWindow(){
+  const t=new Date(new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Dubai"})+"T00:00:00"); t.setDate(t.getDate()-1);
+  const f=new Date(t); if(gbpDays===365) f.setMonth(0,1); else f.setDate(t.getDate()-gbpDays+1);
+  const iso=d=>d.toLocaleDateString("en-CA"); return {from:iso(f),to:iso(t)};
+}
+function gbpSet(n){gbpDays=n; try{localStorage.setItem("trs-gbp-days",String(n));}catch(e){} renderGbp();}
+async function renderGbp(){
+  const el=document.getElementById("gbp"); if(!el) return;
+  const w=gbpWindow(), k=w.from+"|"+w.to;
+  if(!gbpCache[k]){
+    gbpCache[k]=fetch(`${SUPA_URL}/rest/v1/rpc/gbp_report`,{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({p_from:w.from,p_to:w.to})})
+      .then(r=>{if(!r.ok) throw new Error("gbp_report "+r.status); return r.json();});
+    gbpCache[k].catch(()=>{delete gbpCache[k];});
+  }
+  let d; try{d=await gbpCache[k];}catch(e){console.warn("Google profile strip:",e); el.hidden=true; return;}
+  const num=v=>v==null?"–":Math.round(+v).toLocaleString("en-GB");
+  const by={}; (d.branches||[]).forEach(b=>{if(GBP_CODE[b.branch]) by[GBP_CODE[b.branch]]=b;});
+  const shown=BRANCHES.filter(b=>state.branches.has(b)), have=shown.filter(b=>by[b]&&by[b].seen!=null);
+  const mx=Math.max(1,...have.map(b=>+by[b].seen)), sum=f=>have.reduce((a,b)=>a+(+by[b][f]||0),0);
+  const rows=shown.map(b=>{const r=by[b];
+    if(!r) return `<tr class="na"><td>${SHORT[b]}</td><td colspan="5" style="text-align:left">Not connected in Metricool yet</td></tr>`;
+    if(r.seen==null) return `<tr class="na"><td>${SHORT[b]}</td><td colspan="5" style="text-align:left">No numbers in these dates</td></tr>`;
+    return `<tr><td><b>${SHORT[b]}</b><div class="gbp-bar"><b style="width:${100*r.seen/mx}%"></b></div></td><td>${num(r.seen)}</td><td>${num(r.calls)}</td><td>${num(r.directions)}</td><td>${num(r.website)}</td><td class="gbp-sm">${r.seen?(100*r.calls/r.seen).toFixed(1):"–"}</td></tr>`;}).join("");
+  const tot=have.length>1?`<tr class="tot"><td>All shown</td><td>${num(sum("seen"))}</td><td>${num(sum("calls"))}</td><td>${num(sum("directions"))}</td><td>${num(sum("website"))}</td><td class="gbp-sm">${sum("seen")?(100*sum("calls")/sum("seen")).toFixed(1):"–"}</td></tr>`:"";
+  const last=have.map(b=>by[b].last_date).filter(Boolean).sort().pop();
+  const s=d.sync, stale=!s||!s.last_ok_at||(Date.now()-new Date(s.last_ok_at).getTime())>36*3600e3;
+  el.hidden=false;
+  el.innerHTML=`<div class="gbp-hd"><div><div class="gbp-ey">Google Business Profile</div><h2>How people found each salon on Google</h2></div>
+    <div class="dseg" role="group" aria-label="Window">${[[7,"7 days"],[30,"30 days"],[90,"90 days"],[365,"This year"]].map(([n,l])=>`<button type="button" class="${gbpDays===n?"on":""}" onclick="gbpSet(${n})">${l}</button>`).join("")}</div></div>
+    ${shown.length?`<div class="gbp-wrap"><table class="gbp-t"><thead><tr><th>Salon</th><th>Seen on Google</th><th>Calls</th><th>Directions</th><th>Website clicks</th><th class="gbp-sm">Calls per 100 views</th></tr></thead><tbody>${rows}${tot}</tbody></table></div>`:""}
+    <div class="gbp-note">"Seen on Google" is how many times the salon's profile showed in Search or Maps. ${fmtDate(w.from)} to ${fmtDate(last&&last<w.to?last:w.to)}${last&&last<w.to?", the last day Google has reported (it runs about three days late)":""}. From Metricool, updated nightly.${stale?` <span class="no">Paused${s&&s.last_error?": "+String(s.last_error).replace(/[<>&]/g,""):""}.</span>`:""}</div>`;
+}
 function render(){
   const F=baseFilter();
   LIMIT=60;
+  renderGbp();
   renderFilters(); renderKpis(F); renderNote(); renderBranches(); renderStaffBoard(); renderTimeline(F); renderList(F);
 }
 document.getElementById("q").oninput=e=>{state.q=e.target.value;render();};
