@@ -151,7 +151,7 @@
     today: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
     approvals: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
     people: '<rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/>',
-    'hair-induction': CAP,'beauty-induction': CAP, 'front-desk-induction': CAP, 'call-centre-induction': CAP
+    'hair-induction': CAP, 'beauty-induction': CAP, 'front-desk-induction': CAP, 'call-centre-induction': CAP
   };
   var ICON_RULE = { suggestions: 'var(--accent-butter)', 'my-numbers': 'var(--accent-mint)' };
   KB.icon = function (key, rule) {
