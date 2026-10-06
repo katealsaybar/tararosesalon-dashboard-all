@@ -389,6 +389,9 @@ body.kpi-view:not(.revealed) footer{display:none}
 /* Kate, 24 Sep 2026: on Comparison the Visual/Table switch stays in the stuck
    bar, so its COMPARISON label stays with it rather than folding away. */
 body.compare-chrome .topbar.stuck #headerSectionLabel{opacity:1;max-height:140px}
+/* Kate, 6 Oct 2026: the page name (LOST CLIENTS, ORGANISATION PULSE...) stays under the
+   logo in the stuck bar on every view, so you still know where you are after scrolling. */
+.topbar.stuck #headerSectionLabel{opacity:1;max-height:140px}
 .topbar.stuck .tglr{min-height:34px;padding:6px 12px}
 .topbar.stuck .filters{padding-top:8px}
 /* Kate, 1 Sep 2026: on the Ledgers pages the masthead drops the buttons and
