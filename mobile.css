@@ -390,10 +390,13 @@
 @media(max-width:760px),(hover:none) and (max-height:480px){
   /* These views kept their 28px desktop gutters inside an already padded page
      (inline styles, hence !important), so every card sat indented with dead space. */
-  #teamContent,#teamQuadContent,#stylistCardsContent,#orgChartContent,#view-staffperf > main,#stylistLevelsContent,#staffWeeksContent,#lostClientsContent{
+  #teamContent,#teamQuadContent,#stylistCardsContent,#orgChartContent,#view-staffperf > main,#stylistLevelsContent,#staffWeeksContent,#lostClientsContent,#googleAdsContent{
     padding-left:0!important;padding-right:0!important}
   .tp-bar,.sc-bar,.slv-top{margin-left:0;margin-right:0;padding-left:0;padding-right:0}
   .sc-grid{grid-template-columns:1fr}
+  /* Google Ads (Kate, 6 Oct 2026): spend, clicks and conversions fit a phone; the
+     per-click column goes and the campaign names wrap. */
+  .gads-pc{display:none}
   /* Team reserves its tray room itself (56vh, tray up or not); on a phone the
      page reserves the tray's measured height instead (section 6). */
   .tp-tray-space{display:none}
