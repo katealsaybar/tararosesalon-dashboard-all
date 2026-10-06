@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261005fmsw2">
+<link rel="stylesheet" href="/hub/hub.css?v=20261006ttl">
 </head>
 <body class="kb-wait">
 <!-- Suggestions box (Kate, 5 Oct 2026): everyone signed in can send one; Level 3 and up
@@ -32,7 +32,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261005dots"></script>
+<script src="/hub/hub.js?v=20261006ttl"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain'), esc = KB.esc;
@@ -116,7 +116,7 @@
     var reads = KB.level >= 3;
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
-      '<h2 class="kb-page-title">Suggestions Box</h2>' +
+      KB.titleIcon('suggestions', 'Suggestions Box') +
       '<p class="kb-meta">An idea for our clients, the team or the salon? Tell us. Every suggestion is read by the management team.</p>' +
       '<form class="sg-form" id="sgForm">' +
         '<label class="sg-label" for="sgTopic">What is it about?</label>' +

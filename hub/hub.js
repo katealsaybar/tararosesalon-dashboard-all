@@ -92,6 +92,41 @@
   }
   KB.esc = esc;
 
+  // Kate, 5 Oct 2026: line icons (24px grid, drawn in the text colour on a tint of the
+  // section's colour), in place of the 3D Canva illustrations, which read as AI-made.
+  // A section without one keeps its initials. Moved here 6 Oct 2026 so every page can
+  // show its section's icon beside the title (KB.titleIcon).
+  var CAP = '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/><path d="M22 9v5"/>';
+  var ICONS = KB.ICONS = {
+    'my-numbers': '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+    suggestions: '<path d="M6 4h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4V6a2 2 0 0 1 2-2z"/>',
+    dashboards: '<path d="M4 20h16"/><path d="M7 16v-5"/><path d="M12 16V6"/><path d="M17 16v-8"/>',
+    campaigns: '<path d="M3 11v2a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16.5 9a4.5 4.5 0 0 1 0 6"/><path d="M19 6.5a8 8 0 0 1 0 11"/>',
+    access: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M18.5 14.5a6.5 6.5 0 0 1 3 5.5"/>',
+    'lost-clients': '<circle cx="10" cy="8" r="4"/><path d="M3 20a7 7 0 0 1 14 0"/><path d="M17 11h5"/>',
+    'hair-sop': '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9"/><path d="M14.5 14.5 20 20"/><path d="M8.1 8.1 12 12"/>',
+    'beauty-sop': '<rect x="7" y="10" width="10" height="11" rx="2"/><path d="M9 10V7h6v3"/><path d="M10.5 7V3h3v4"/>',
+    'front-desk': '<path d="M3 18h18"/><path d="M5 18a7 7 0 0 1 14 0"/><path d="M12 11V8"/><path d="M10 8h4"/>',
+    'call-centre': '<path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19a3 3 0 0 1-3 3h-3"/>',
+    marketing: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/>',
+    'full-loop': '<path d="M2 5h6a4 4 0 0 1 4 4v11a3 3 0 0 0-3-3H2z"/><path d="M22 5h-6a4 4 0 0 0-4 4v11a3 3 0 0 1 3-3h7z"/>',
+    'hr-forms': '<path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2.5" width="6" height="3" rx="1"/><path d="M9 12h6"/><path d="M9 16h4"/>',
+    uploads: '<path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
+    'hair-induction': CAP, 'beauty-induction': CAP, 'front-desk-induction': CAP, 'call-centre-induction': CAP
+  };
+  var ICON_RULE = { suggestions: 'var(--accent-butter)', 'my-numbers': 'var(--accent-mint)' };
+  KB.icon = function (key, rule) {
+    if (!ICONS[key]) return '';
+    if (!rule) { var sec = KB.SECTIONS.filter(function (x) { return x.key === key; })[0]; rule = (sec && sec.rule) || ICON_RULE[key] || 'var(--accent-mint)'; }
+    return '<span class="kb-ic kb-ic-line" style="--c:' + rule + '" aria-hidden="true"><svg viewBox="0 0 24 24">' + ICONS[key] + '</svg></span>';
+  };
+  // A page title with its section's icon in front: <h2 class="kb-page-title kb-has-ic">.
+  KB.titleIcon = function (key, html, cls) {
+    var ic = KB.icon(key);
+    return '<h2 class="' + (cls || 'kb-page-title') + (ic ? ' kb-has-ic' : '') + '">' + ic + (ic ? '<span>' + html + '</span>' : html) + '</h2>';
+  };
+
+
   // Kate, 3 Oct 2026: a <select> drawn as the dashboard's soft pill menu (spfDD in
   // index.html), so a dropdown looks the same wherever it is on the site. The select
   // stays, hidden, and keeps the value and its 'change' event; sel._ddPaint() redraws

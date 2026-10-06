@@ -153,6 +153,11 @@ body.kb-wait .wrap{visibility:hidden}
 .kb-ic-line svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .kb-row.soon .kb-ic.kb-ic-line{background:var(--surface2);color:var(--muted)}
 .kb-fv .kb-ic-line svg{width:17px;height:17px}
+/* Kate, 6 Oct 2026: an opened page wears its section's icon beside the title. */
+.kb-has-ic{display:flex;align-items:center;gap:14px}
+.kb-has-ic>.kb-ic{width:48px;height:48px;border-radius:14px}
+.kb-has-ic>.kb-ic svg{width:25px;height:25px}
+.kb-has-ic>span{min-width:0}
 .kb-tag{flex:none;margin-right:8px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--surface2);color:var(--muted)}
 .kb-star{position:absolute;top:14px;right:14px;width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:50%;
   background:transparent;color:var(--muted2);cursor:pointer;transition:background .15s,color .15s,transform .15s}
@@ -278,6 +283,9 @@ body.kb-wait .wrap{visibility:hidden}
   .kb-row{min-height:60px;gap:12px;padding:10px 6px 10px 14px}
   .kb-ic{width:36px;height:36px;border-radius:10px;font-size:15px}
   .kb-ic-line svg{width:19px;height:19px}
+  .kb-has-ic{gap:12px}
+  .kb-has-ic>.kb-ic{width:40px;height:40px;border-radius:12px}
+  .kb-has-ic>.kb-ic svg{width:21px;height:21px}
   .kb-row-tx b{font-size:15px}
   .kb-row-tx>span{font-size:13px}
   .kb-row-n{display:none}

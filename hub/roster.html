@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261005fmsw2">
+<link rel="stylesheet" href="/hub/hub.css?v=20261006ttl">
 </head>
 <body class="kb-wait">
 <!-- Staff Roster & Access (Kate, 3 Oct 2026): everyone who can sign in to the site,
@@ -28,7 +28,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261005dots"></script>
+<script src="/hub/hub.js?v=20261006ttl"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain'), esc = KB.esc;
@@ -109,7 +109,7 @@
     var teams = TEAMS.filter(function (t) { return data.people.some(function (p) { return p.team === t; }); });
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
-      '<h2 class="kb-page-title">Staff Roster &amp; Access</h2>' +
+      KB.titleIcon('access', 'Staff Roster &amp; Access') +
       '<p class="kb-meta">' + data.people.length + ' people can sign in' +
         (byLevel ? ': ' + (data.people.length - staff) + ' on the dashboard list and ' + staff + ' in the team' : '') +
         '. View only; changes go through Kate.</p>' +
