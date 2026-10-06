@@ -16,6 +16,26 @@ const mkQName = (k, withYear) => { const [y, q] = k.split('-Q'); return `Q${q}${
 const mkQMonths = k => { const q = Number(k.split('-Q')[1]); return `${MK_MON[(q - 1) * 3]}–${MK_MON[(q - 1) * 3 + 2]}`; };
 const mkEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// The Period row at the top of each Marketing page (Kate, 6 Oct 2026: "like Org Pulse,
+// but simpler"), in the masthead filters' look: text chips, Custom opening two date
+// boxes beside them. p is the page's prefix (gads, web, soc); it calls <p>SetDays(n)
+// and <p>SetCustom('from'|'to', date). days 0 = Custom; custom = { from, to }.
+function mkPeriodRow(p, days, custom) {
+  const PER = [[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'This year'], [0, 'Custom']];
+  return `<div class="filters mk-period">
+      <div class="f-row">
+        <span class="f-lbl" id="${p}PerLbl">Period</span>
+        <div class="chipset" role="group" aria-labelledby="${p}PerLbl">${PER.map(([k, l]) =>
+          `<button type="button" class="chip" aria-pressed="${days === k}" onclick="${p}SetDays(${k})">${l}</button>`).join('<span class="sep">·</span>')}</div>
+        ${days === 0 ? `<div class="f-dates">
+          <input type="date" aria-label="From" value="${mkEsc(custom.from)}" min="2025-01-01" max="${mkIso(new Date())}" onchange="${p}SetCustom('from', this.value)">
+          <span>to</span>
+          <input type="date" aria-label="To" value="${mkEsc(custom.to)}" min="2025-01-01" max="${mkIso(new Date())}" onchange="${p}SetCustom('to', this.value)">
+        </div>` : ''}
+      </div>
+    </div>`;
+}
+
 // Daily or weekly mode, per page, kept per browser. 'auto' = weekly past 92 days.
 const mkMode = {};
 try { Object.assign(mkMode, JSON.parse(localStorage.getItem('trs-mk-mode') || '{}')); } catch (e) {}

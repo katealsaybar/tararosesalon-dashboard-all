@@ -121,21 +121,11 @@ function webPaint(el) {
   const sTo = d.search_last_day && d.search_last_day < w.to ? d.search_last_day : w.to;
 
   el.innerHTML = `
+    ${mkPeriodRow('web', webDays, webCustom)}
     <section class="slv-intro">
       <h2>Website &amp; Search</h2>
       <p>Who comes to tararosesalon.com, where they come from and what they look at, and what people type into Google to find us. Up to yesterday.</p>
     </section>
-    <div class="sc-bar w13-bar">
-      <div class="sc-seg" role="group" aria-label="Window">
-        ${[[7, '<span class="mk-lg">Last </span>7 days'], [30, '<span class="mk-lg">Last </span>30 days'], [90, '<span class="mk-lg">Last </span>90 days'], [365, 'This year'], [0, 'Custom']].map(([k, l]) =>
-          `<button type="button" class="${webDays === k ? 'on' : ''}" onclick="webSetDays(${k})">${l}</button>`).join('')}
-      </div>
-      ${webDays === 0 ? `<div class="mk-dates" role="group" aria-label="Custom dates">
-        <input type="date" aria-label="From" value="${webEsc(webCustom.from)}" min="2025-01-01" max="${webIso(new Date())}" onchange="webSetCustom('from', this.value)">
-        <span>to</span>
-        <input type="date" aria-label="To" value="${webEsc(webCustom.to)}" min="2025-01-01" max="${webIso(new Date())}" onchange="webSetCustom('to', this.value)">
-      </div>` : ''}
-    </div>
     ${stale ? `<p class="slv-muted" style="color:#b42318">Website numbers are paused${s && s.last_error ? ': ' + webEsc(s.last_error) : ''}. Last good update: ${synced ? webEsc(synced) : 'never'}.</p>` : ''}
     <section class="slv-card">
       <div class="slv-head">

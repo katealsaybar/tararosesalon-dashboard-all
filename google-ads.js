@@ -123,21 +123,11 @@ function gadsPaint(el) {
   const synced = s && s.last_ok_at ? new Date(s.last_ok_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null;
 
   el.innerHTML = `
+    ${mkPeriodRow('gads', gadsDays, gadsCustom)}
     <section class="slv-intro">
       <h2>Google Ads</h2>
       <p>What we spend on Google search ads, the clicks it brings, and where the money goes by salon. Up to yesterday; today is still filling in.</p>
     </section>
-    <div class="sc-bar w13-bar">
-      <div class="sc-seg" role="group" aria-label="Window">
-        ${[[7, '<span class="mk-lg">Last </span>7 days'], [30, '<span class="mk-lg">Last </span>30 days'], [90, '<span class="mk-lg">Last </span>90 days'], [365, 'This year'], [0, 'Custom']].map(([k, l]) =>
-          `<button type="button" class="${gadsDays === k ? 'on' : ''}" onclick="gadsSetDays(${k})">${l}</button>`).join('')}
-      </div>
-      ${gadsDays === 0 ? `<div class="mk-dates" role="group" aria-label="Custom dates">
-        <input type="date" aria-label="From" value="${gadsEsc(gadsCustom.from)}" min="2025-01-01" max="${gadsIso(new Date())}" onchange="gadsSetCustom('from', this.value)">
-        <span>to</span>
-        <input type="date" aria-label="To" value="${gadsEsc(gadsCustom.to)}" min="2025-01-01" max="${gadsIso(new Date())}" onchange="gadsSetCustom('to', this.value)">
-      </div>` : ''}
-    </div>
     ${stale ? `<p class="slv-muted" style="color:#b42318">Google Ads numbers are paused${s && s.last_error ? ': ' + gadsEsc(s.last_error) : ''}. Last good update: ${synced ? gadsEsc(synced) : 'never'}.</p>` : ''}
     <section class="slv-card">
       <div class="slv-head">

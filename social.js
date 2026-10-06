@@ -151,22 +151,8 @@ function socPaint(el) {
   const stale = !s || !s.last_ok_at || (Date.now() - new Date(s.last_ok_at).getTime()) > 36 * 3600e3;
   const synced = s && s.last_ok_at ? new Date(s.last_ok_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null;
   const T = socTotals(d);
-  // Period at the top, as Organisation Pulse's (Kate, 6 Oct 2026: "like org pulse, but
-  // simpler"): text chips with an underline, Custom opening two date boxes beside them.
-  const PER = [[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'This year'], [0, 'Custom']];
   el.innerHTML = `
-    <div class="filters soc-period">
-      <div class="f-row">
-        <span class="f-lbl" id="socPerLbl">Period</span>
-        <div class="chipset" role="group" aria-labelledby="socPerLbl">${PER.map(([k, l]) =>
-          `<button type="button" class="chip" aria-pressed="${socDays === k}" onclick="socSetDays(${k})">${l}</button>`).join('<span class="sep">·</span>')}</div>
-        ${socDays === 0 ? `<div class="f-dates">
-          <input type="date" aria-label="From" value="${mkEsc(socCustom.from)}" min="2025-01-01" max="${mkIso(new Date())}" onchange="socSetCustom('from', this.value)">
-          <span>to</span>
-          <input type="date" aria-label="To" value="${mkEsc(socCustom.to)}" min="2025-01-01" max="${mkIso(new Date())}" onchange="socSetCustom('to', this.value)">
-        </div>` : ''}
-      </div>
-    </div>
+    ${mkPeriodRow('soc', socDays, socCustom)}
     <section class="slv-intro">
       <h2>Social</h2>
       <p>Instagram, TikTok, the Facebook page and YouTube in one place. Overview for the quick look; each platform's tab has its full report, as in Metricool. The apps report a day or two late.</p>
