@@ -14,50 +14,86 @@
   var c = TRSAuth.client();
   var KB = window.KB = { client: c, role: null, name: null, email: null };
 
-  // The sections. `staff: true` shows to everyone signed in; the rest to dashboard
-  // users only. A section with pages in kb_pages is live; without, "Coming soon".
-  // Grouped by department (Kate, 1 Oct 2026). The keys match kb_sections in Supabase,
-  // which decides who opens what; `live` is for sections that link out rather than
-  // holding pages (a section with pages in kb_pages is live on its own).
-  KB.GROUPS = ['Management', 'Hair', 'Beauty', 'Front Desk', 'Call Centre', 'Marketing', 'The Tara Rose Way', 'Accounts & Admin'];
+  // The sections. The keys match kb_sections in Supabase, which decides who opens what;
+  // `live` is for sections that link out rather than holding pages (a section with
+  // pages in kb_pages is live on its own).
+  // Kate, 6 Oct 2026: grouped by what you came to do, not by department. One front door:
+  // the Today, Numbers, Content and People rows that point into the dashboard are
+  // shortcuts (`via: 'dashboards'`), shown to whoever may open the dashboard and is at
+  // `min` level or above. They hold no data; the dashboard and the database still
+  // decide what each person can read.
+  KB.GROUPS = ['The Tara Rose Way', 'Me', 'Learn', 'Today', 'Numbers', 'Content', 'People', 'Admin'];
   KB.SECTIONS = [
-    { key: 'dashboards', dept: 'Management', title: 'Dashboards', href: '/dashboard/', live: true, rule: 'var(--accent-lavender)',
-      blurb: 'Sales, ledgers, team performance and every report, as before.' },
-    { key: 'campaigns', dept: 'Management', title: 'Campaigns', href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
-      blurb: 'Wellness Voucher performance.' },
-    // Kate, 3 Oct 2026: who can sign in, for Level 3 and up (kb_sections.min_level 3), view only.
-    { key: 'access', dept: 'Management', title: 'Staff Roster & Access', href: '/hub/roster', live: true, rule: 'var(--accent-mint)',
-      blurb: 'Everyone who can sign in: their level, team and when they were last in.' },
-    { key: 'hair-sop', dept: 'Hair', title: 'Hair SOPs', rule: 'var(--accent-lavender)',
-      blurb: 'Every foundation cut, step by step, plus the backwash, the 8-Step Hair Plan, the client journey and stylist standards.' },
-    { key: 'hair-induction', dept: 'Hair', title: 'Hair Induction & Onboarding', rule: 'var(--accent-butter)',
-      blurb: 'The induction programme for stylists and hair assistants.' },
-    { key: 'beauty-sop', dept: 'Beauty', title: 'Beauty SOPs', rule: 'var(--accent-mint)',
-      blurb: 'Every beauty treatment, step by step: hands and feet, facials, face and body, plus hygiene and room set-up.' },
-    { key: 'beauty-induction', dept: 'Beauty', title: 'Beauty Induction & Onboarding', rule: 'var(--accent-butter)',
-      blurb: 'The induction programme for the beauty team.' },
-    { key: 'front-desk', dept: 'Front Desk', title: 'Front Desk & Policies', rule: 'var(--accent-coral)',
-      blurb: 'The front desk manual, booking and deposit policy, cancellations.' },
-    { key: 'front-desk-induction', dept: 'Front Desk', title: 'Front Desk Induction & Onboarding', rule: 'var(--accent-butter)',
-      blurb: 'The induction programme for reception.' },
-    // Kate, 5 Oct 2026: the Call Centre Team, coming soon. Level 2 and up for now; no
-    // staff list maps anyone to 'Call Centre' yet, so no Level 1 sees it.
-    { key: 'call-centre', dept: 'Call Centre', title: 'Call Centre Scripts & Policies', rule: 'var(--accent-lavender)',
-      blurb: 'Call and WhatsApp scripts, booking follow-ups and lead handling.' },
-    { key: 'call-centre-induction', dept: 'Call Centre', title: 'Call Centre Induction & Onboarding', rule: 'var(--accent-butter)',
-      blurb: 'The induction programme for the call centre team.' },
-    // Kate, 5 Oct 2026: Tara's marketing workspace from her Full Loop handover, as she built it.
-    { key: 'marketing', dept: 'Marketing', title: 'Marketing', href: '/hub/marketing', live: true, rule: 'var(--accent-coral)',
-      blurb: 'Today’s tasks, the October campaign calendar and platform checks.' },
-    // Kate, 5 Oct 2026: Tara's Full Loop handover site (kb_sections min_level 3), named
-    // Service Playbooks under The Tara Rose Way the same day.
+    // Kate, 5 Oct 2026: Tara's Full Loop handover site (kb_sections min_level 3).
+    // 6 Oct 2026: its own group again, at the top, Level 3 and up.
     { key: 'full-loop', dept: 'The Tara Rose Way', title: 'Service Playbooks', href: '/hub/full-loop', live: true, rule: 'var(--accent-mint)',
       blurb: 'Blonde, brunette, cut, treatments, beauty and home care, with the Low, Mid and High decoder, the Menu Builder and the Handover Tracker.' },
-    { key: 'hr-forms', dept: 'Accounts & Admin', title: 'HR Forms & Waivers', href: '/hub/forms', live: true, rule: 'var(--accent-butter)',
+
+    { key: 'hr-forms', dept: 'Me', title: 'HR Forms & Waivers', href: '/hub/forms', live: true, rule: 'var(--accent-butter)',
       blurb: 'Leave, probation and return-to-work forms; client waivers and consultation forms.' },
-    { key: 'uploads', dept: 'Accounts & Admin', title: 'Upload Portal', href: '/upload/', live: true, rule: 'var(--accent-mint)',
+
+    { key: 'hair-sop', dept: 'Learn', title: 'Hair SOPs', rule: 'var(--accent-lavender)',
+      blurb: 'Every foundation cut, step by step, plus the backwash, the 8-Step Hair Plan, the client journey and stylist standards.' },
+    { key: 'hair-induction', dept: 'Learn', title: 'Hair Induction & Onboarding', rule: 'var(--accent-butter)',
+      blurb: 'The induction programme for stylists and hair assistants.' },
+    { key: 'beauty-sop', dept: 'Learn', title: 'Beauty SOPs', rule: 'var(--accent-mint)',
+      blurb: 'Every beauty treatment, step by step: hands and feet, facials, face and body, plus hygiene and room set-up.' },
+    { key: 'beauty-induction', dept: 'Learn', title: 'Beauty Induction & Onboarding', rule: 'var(--accent-butter)',
+      blurb: 'The induction programme for the beauty team.' },
+    { key: 'front-desk', dept: 'Learn', title: 'Front Desk & Policies', rule: 'var(--accent-coral)',
+      blurb: 'The front desk manual, booking and deposit policy, cancellations.' },
+    { key: 'front-desk-induction', dept: 'Learn', title: 'Front Desk Induction & Onboarding', rule: 'var(--accent-butter)',
+      blurb: 'The induction programme for reception.' },
+    // Kate, 5 Oct 2026: the Call Centre Team. Level 2 and up for now; no staff list maps
+    // anyone to 'Call Centre' yet, so no Level 1 sees it.
+    { key: 'call-centre', dept: 'Learn', title: 'Call Centre Scripts & Policies', rule: 'var(--accent-lavender)',
+      blurb: 'Call and WhatsApp scripts, booking follow-ups and lead handling.' },
+    { key: 'call-centre-induction', dept: 'Learn', title: 'Call Centre Induction & Onboarding', rule: 'var(--accent-butter)',
+      blurb: 'The induction programme for the call centre team.' },
+
+    { key: 'today-targets', via: 'dashboards', min: 1, ic: 'today', dept: 'Today', title: 'Daily Target Sheet', href: '/?view=ledgerTargets', rule: 'var(--accent-coral)',
+      blurb: 'Each branch against today’s target.' },
+    { key: 'today-stylist', via: 'dashboards', min: 1, ic: 'today', dept: 'Today', title: 'Daily Stylist Target', href: '/?view=ledgerStylist', rule: 'var(--accent-coral)',
+      blurb: 'Each stylist against today’s aim.' },
+    { key: 'today-actuals', via: 'dashboards', min: 1, ic: 'today', dept: 'Today', title: 'Actuals vs Targets', href: '/?view=ledgerActuals', rule: 'var(--accent-coral)',
+      blurb: 'The month so far, against target.' },
+
+    { key: 'dashboards', dept: 'Numbers', title: 'Business', href: '/?view=dashboard', live: true, rule: 'var(--accent-lavender)',
+      blurb: 'Organisation Pulse, branch performance, comparison and financial totals.' },
+    { key: 'numbers-team', via: 'dashboards', min: 1, ic: 'access', dept: 'Numbers', title: 'Team Performance', href: '/?view=team', rule: 'var(--accent-lavender)',
+      blurb: 'Podium race, staff quadrant, benchmarks, quarterly performance and stylist levels.' },
+    { key: 'numbers-clients', via: 'dashboards', min: 1, ic: 'lost-clients', dept: 'Numbers', title: 'Clients', href: '/?view=clients', rule: 'var(--accent-lavender)',
+      blurb: 'Top clients, lost clients and Google reviews.' },
+    { key: 'numbers-sales', via: 'dashboards', min: 1, ic: 'dashboards', dept: 'Numbers', title: 'Sales & Stock', href: '/?view=services', rule: 'var(--accent-lavender)',
+      blurb: 'Service rankings and products.' },
+
+    // Kate, 5 Oct 2026: Tara's marketing workspace from her Full Loop handover, as she built it.
+    { key: 'marketing', dept: 'Content', title: 'Marketing Workspace', href: '/hub/marketing', live: true, rule: 'var(--accent-coral)',
+      blurb: 'Today’s tasks, the campaign calendar and platform checks.' },
+    { key: 'post-approvals', via: 'dashboards', min: 3, ic: 'approvals', dept: 'Content', title: 'Post Approvals', href: 'https://katealsaybar.github.io/smm_board_approvals/', rule: 'var(--accent-coral)',
+      blurb: 'Posts waiting for a yes, with comments.' },
+    { key: 'content-ads', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Content', title: 'Ads Results', href: '/?view=googleads', rule: 'var(--accent-coral)',
+      blurb: 'Google Ads spend, clicks and leads.' },
+    { key: 'campaigns', dept: 'Content', title: 'Campaigns', href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
+      blurb: 'Wellness Voucher performance.' },
+
+    { key: 'people-orgchart', via: 'dashboards', min: 1, ic: 'people', dept: 'People', title: 'Org Chart', href: '/?view=orgchart', rule: 'var(--accent-mint)',
+      blurb: 'Who is who, and who reports to whom.' },
+    { key: 'people-cards', via: 'dashboards', min: 1, ic: 'access', dept: 'People', title: 'Staff Cards', href: '/?view=stylists', rule: 'var(--accent-mint)',
+      blurb: 'Every stylist and therapist, with photo and level.' },
+    // Kate, 3 Oct 2026: who can sign in, for Level 3 and up (kb_sections.min_level 3), view only.
+    { key: 'access', dept: 'People', title: 'Staff Roster & Access', href: '/hub/roster', live: true, rule: 'var(--accent-mint)',
+      blurb: 'Everyone who can sign in: their level, team and when they were last in.' },
+
+    { key: 'uploads', dept: 'Admin', title: 'Upload Portal', href: '/upload/', live: true, rule: 'var(--accent-mint)',
       blurb: 'Payslips, and the uploads that feed the dashboard.' }
   ];
+  // A shortcut row shows when its `via` section is open to this person and they are at
+  // its `min` level; every other row when kb_access() opened its own key.
+  KB.opens = function (s) {
+    if (s.via) return KB.allowed.indexOf(s.via) >= 0 && KB.level >= (s.min || 1);
+    return KB.allowed.indexOf(s.key) >= 0;
+  };
   KB.LEVELS = { 1: 'Team', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin', 5: 'Backend' };
   // The "View as" choices, and the key they live under (this browser only).
   KB.VIEW_AS = [
@@ -112,7 +148,10 @@
     'full-loop': '<path d="M2 5h6a4 4 0 0 1 4 4v11a3 3 0 0 0-3-3H2z"/><path d="M22 5h-6a4 4 0 0 0-4 4v11a3 3 0 0 1 3-3h7z"/>',
     'hr-forms': '<path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2.5" width="6" height="3" rx="1"/><path d="M9 12h6"/><path d="M9 16h4"/>',
     uploads: '<path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
-    'hair-induction': CAP, 'beauty-induction': CAP, 'front-desk-induction': CAP, 'call-centre-induction': CAP
+    today: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    approvals: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+    people: '<rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/>',
+    'hair-induction': CAP,'beauty-induction': CAP, 'front-desk-induction': CAP, 'call-centre-induction': CAP
   };
   var ICON_RULE = { suggestions: 'var(--accent-butter)', 'my-numbers': 'var(--accent-mint)' };
   KB.icon = function (key, rule) {

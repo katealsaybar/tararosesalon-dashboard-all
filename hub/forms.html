@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261006hdr2">
+<link rel="stylesheet" href="/hub/hub.css?v=20261006nav">
 </head>
 <body class="kb-wait">
 <!-- HR Forms & Waivers (Kate, 5 Oct 2026): the 14 fillable forms (real PDF form fields) rebuilt from the
@@ -28,7 +28,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261006hdr"></script>
+<script src="/hub/hub.js?v=20261006nav"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain'), esc = KB.esc;
@@ -73,7 +73,7 @@
 
   KB.ready.then(async function () {
     if (KB.allowed.indexOf('hr-forms') < 0) { notFound(); return; }   // also "View as" below Level 2
-    var r = await KB.client.from('kb_files').select('code,grp,title,subtitle,blurb,filename,pages,bytes,sort')
+    var r = await KB.client.from('kb_files').select('code,grp,title,subtitle,blurb,filename,pages,bytes,sort,note')
       .eq('section', 'hr-forms').order('sort');
     if (r.error || !r.data || !r.data.length) { notFound(); return; }
     var groups = [], by = {};
@@ -87,24 +87,42 @@
     var pick = 0;
     try { pick = +(new URLSearchParams(location.search).get('t') || localStorage.getItem('trs-forms-tab') || 1) - 1; } catch (e) {}
     if (!(pick >= 0 && pick < groups.length)) pick = 0;
+    // Kate, 6 Oct 2026: a form with an open question (kb_files.note, from CHANGES-hr-forms.md)
+    // wears "To check" and its questions; ?check=1, Team Home's "N to check" link, lists
+    // only those forms.
+    var flagged = function (f) { return !!f.note && /confirm|approv|review/i.test(f.note); };
+    var nCheck = r.data.filter(flagged).length;
+    var only = new URLSearchParams(location.search).get('check') === '1' && nCheck > 0;
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       KB.titleIcon('hr-forms', 'HR Forms &amp; Waivers') +
       '<p class="kb-meta">' + r.data.length + ' fillable A4 forms. Fill one in on screen and save it, or print it and fill it in by hand, then file the signed copy.</p>' +
+      (nCheck ? '<p class="kb-legend"><span class="kb-flag" style="margin:0">To check</span>' + nCheck + ' forms have a question still being confirmed.' +
+        '<button type="button" id="fmOnlyCheck" aria-pressed="' + only + '">' + (only ? 'Show all forms' : 'Show only these') + '</button></p>' : '') +
       '<div class="fm-switch" role="group" aria-label="Which forms">' + groups.map(function (g, i) {
-        return '<button type="button" data-i="' + i + '" aria-pressed="' + (i === pick) + '"><b class="fm-full">' + esc(g) + '</b><b class="fm-short">' + esc(g.replace(/( client)? forms$/, '')) + '</b> <span>' + by[g].length + '</span></button>';
+        var n = only ? by[g].filter(flagged).length : by[g].length;
+        return '<button type="button" data-i="' + i + '" aria-pressed="' + (i === pick) + '"><b class="fm-full">' + esc(g) + '</b><b class="fm-short">' + esc(g.replace(/( client)? forms$/, '')) + '</b> <span>' + n + '</span></button>';
       }).join('') + '</div>' +
       groups.map(function (g, i) {
-        return '<section class="kb-dept fm-dept" data-i="' + i + '"' + (i === pick ? '' : ' hidden') + '><h2 class="kb-dept-h">' + esc(g) + '</h2>' + by[g].map(function (f) {
+        var list = only ? by[g].filter(flagged) : by[g];
+        return '<section class="kb-dept fm-dept" data-i="' + i + '"' + (i === pick ? '' : ' hidden') + '><h2 class="kb-dept-h">' + esc(g) + '</h2>' +
+          (list.length ? '' : '<p class="kb-msg">Nothing to check in this group.</p>') + list.map(function (f) {
           var t = f.title + (f.subtitle ? ' (' + f.subtitle + ')' : '');
+          var notes = flagged(f) ? f.note.split('\n').map(function (x) { return '<span class="fm-note">' + esc(x.replace(/^Being confirmed:\s*/i, '').replace(/^./, function (ch) { return ch.toUpperCase(); })) + '</span>'; }).join('') : '';
           return '<div class="kb-row fm-row"><span class="fm-code">' + esc(f.code) + '</span>' +
-            '<span class="kb-row-tx"><b>' + esc(t) + '</b><span>' + esc(f.blurb || '') + '</span></span>' +
+            '<span class="kb-row-tx"><b>' + esc(t) + (flagged(f) ? '<span class="kb-flag">To check</span>' : '') + '</b><span>' + esc(f.blurb || '') + '</span>' + notes + '</span>' +
             '<span class="kb-row-n">' + (f.pages || 1) + (f.pages > 1 ? ' pages' : ' page') + ' · ' + size(f.bytes) + '</span>' +
             '<span class="fm-acts"><button type="button" class="fm-btn" data-act="open" data-code="' + esc(f.code) + '" title="Opens the form to type in. Save it with the download button in the PDF viewer.">Fill in</button>' +
             '<button type="button" class="fm-btn fm-dl" data-act="dl" data-code="' + esc(f.code) + '" data-file="' + esc(f.filename) + '">Download</button></span></div>';
         }).join('') + '</section>';
       }).join('');
     main.addEventListener('click', function (e) {
+      if (e.target.closest('#fmOnlyCheck')) {
+        var cu = new URL(location.href);
+        if (only) cu.searchParams.delete('check'); else cu.searchParams.set('check', '1');
+        location.replace(cu.pathname + cu.search);
+        return;
+      }
       var b = e.target.closest('.fm-btn');
       if (b) { act(b); return; }
       var s = e.target.closest('.fm-switch button');

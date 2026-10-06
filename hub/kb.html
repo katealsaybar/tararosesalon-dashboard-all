@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261006hdr2">
+<link rel="stylesheet" href="/hub/hub.css?v=20261006nav">
 </head>
 <body class="kb-wait">
 <!-- One page for both a section's list (?s=beauty-sop) and a single SOP (?p=<slug>).
@@ -27,7 +27,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261006hdr"></script>
+<script src="/hub/hub.js?v=20261006nav"></script>
 <script src="/hub/kb-doc.js?v=20261005dots"></script>
 <script>
 (function () {
@@ -110,20 +110,38 @@
       by[g].push(p);
     });
     var anyNote = r.data.some(function (p) { return p.note; });
+    // Kate, 6 Oct 2026: a page whose note says something is being confirmed wears a
+    // "To check" chip, and ?check=1 (the "N to check" link on Team Home) lists only those.
+    // Level 2 and up only; Level 1 keeps the plain dot and reads the note on the page.
+    var toCheck = function (p) { return KB.level >= 2 && !!p.note && /confirm|approv|review/i.test(p.note); };
+    var nCheck = r.data.filter(toCheck).length, only = q.get('check') === '1' && nCheck > 0;
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       KB.titleIcon(sec.key, esc(sec.title)) +
       '<p class="kb-meta">' + r.data.length + ' pages</p>' +
       '<div class="kb-tools">' + pdfBtn('Download all as one PDF') + '</div>' +
-      (anyNote ? '<p class="kb-legend"><span class="kb-dot"></span>Something on this page is still being confirmed.</p>' : '') +
+      (nCheck ? '<p class="kb-legend"><span class="kb-flag" style="margin:0">To check</span>' + nCheck + (nCheck > 1 ? ' pages have' : ' page has') +
+        ' something still being confirmed.<button type="button" id="kbOnlyCheck" aria-pressed="' + only + '">' + (only ? 'Show all pages' : 'Show only these') + '</button></p>'
+        : anyNote ? '<p class="kb-legend"><span class="kb-dot"></span>Something on this page is still being confirmed.</p>' : '') +
       groups.map(function (g) {
+        var list = only ? by[g].filter(toCheck) : by[g];
+        if (!list.length) return '';
         return '<section class="kb-group"><h2>' + esc(g) + '</h2><ul class="kb-list">' +
-          by[g].map(function (p) {
+          list.map(function (p) {
             return '<li><a href="/hub/kb.html?p=' + encodeURIComponent(p.slug) + '">' +
-              (p.note ? '<span class="kb-dot" title="Being confirmed"></span>' : '') + esc(p.title) + '</a>' +
+              (p.note && !toCheck(p) ? '<span class="kb-dot" title="Being confirmed"></span>' : '') + esc(p.title) +
+              (toCheck(p) ? '<span class="kb-flag">To check</span>' : '') + '</a>' +
               KB.starBtn('p:' + p.slug, p.title) + '</li>';
           }).join('') + '</ul></section>';
       }).join('');
+    var oc = document.getElementById('kbOnlyCheck');
+    if (oc) oc.addEventListener('click', function () {
+      var u = new URL(location.href);
+      if (only) u.searchParams.delete('check'); else u.searchParams.set('check', '1');
+      history.replaceState(null, '', u.pathname + u.search);
+      q = new URLSearchParams(u.search);
+      sectionList(key);
+    });
     main.querySelector('.kb-pdf').addEventListener('click', function (e) { bookPdf(key, e.currentTarget); });
   }
 

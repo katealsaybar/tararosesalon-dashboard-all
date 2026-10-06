@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=20261006hdr2">
+<link rel="stylesheet" href="/hub/hub.css?v=20261006nav">
 </head>
 <body class="kb-wait">
 <div class="wrap">
@@ -30,7 +30,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261006hdr"></script>
+<script src="/hub/hub.js?v=20261006nav"></script>
 <script>
 KB.ready.then(async function () {
   var esc = KB.esc;
@@ -40,26 +40,38 @@ KB.ready.then(async function () {
     'Your SOPs and your induction, in one place. Open a section, or search for a treatment.';
 
   // How many pages each section has. A row comes back only for sections this person may read.
-  var r = await KB.client.from('kb_pages').select('section,slug');
-  var counts = {};
-  (r.data || []).forEach(function (x) { if (KB.shows(x.slug)) counts[x.section] = (counts[x.section] || 0) + 1; });
+  var r = await KB.client.from('kb_pages').select('section,slug,note');
+  var counts = {}, checks = {};
+  // Kate, 6 Oct 2026: pages with a "being confirmed" note are counted per section and
+  // shown on its row as "N to check", so what still needs Tara's or HR's yes is visible
+  // from Team Home (Level 2 and up). HR Forms count from kb_files.note the same way.
+  var toCheck = function (n) { return !!n && /confirm|approv|review/i.test(n); };
+  (r.data || []).forEach(function (x) {
+    if (!KB.shows(x.slug)) return;
+    counts[x.section] = (counts[x.section] || 0) + 1;
+    if (toCheck(x.note)) checks[x.section] = (checks[x.section] || 0) + 1;
+  });
+  if (KB.allowed.indexOf('hr-forms') >= 0) {
+    var hf = await KB.client.from('kb_files').select('code,note').eq('section', 'hr-forms');
+    (hf.data || []).forEach(function (x) { if (toCheck(x.note)) checks['hr-forms'] = (checks['hr-forms'] || 0) + 1; });
+  }
 
   // Only what kb_access() opened to this person; the database refuses the rest anyway.
-  var shown = KB.SECTIONS.filter(function (s) { return KB.allowed.indexOf(s.key) >= 0; });
+  var shown = KB.SECTIONS.filter(KB.opens);
   // A stylist's own My Numbers link, as a card of its own (Kate, 1 Oct 2026).
   // Kate, 1 Oct 2026: a stylist's link sits right under the greeting as well, so it is
   // the first thing she sees, not a card she has to find.
   if (KB.myLink) { var ml = document.getElementById('kbMyLink'); ml.href = KB.myLink; ml.hidden = false; }
   // Kate, 2 Oct 2026: "& payslip", since the payslip button is on that page too.
-  if (KB.myLink) shown.unshift({ key: 'my-numbers', dept: 'You', title: 'My numbers & payslip', href: KB.myLink, live: true,
+  if (KB.myLink) shown.unshift({ key: 'my-numbers', dept: 'Me', title: 'My numbers & payslip', href: KB.myLink, live: true,
     rule: 'var(--accent-mint)', blurb: 'Your month, your year, your next step up, and your payslip. Only you can see it.' });
   // "View as" a stylist: the same card as a sample, not a link, so nobody's numbers show.
   else if (KB.viewAs && KB.viewAs.level === 1 && KB.viewAs.dept === 'Beauty')
-    shown.unshift({ key: 'my-numbers', dept: 'You', title: 'My numbers & payslip', sample: true, rule: 'var(--accent-mint)',
+    shown.unshift({ key: 'my-numbers', dept: 'Me', title: 'My numbers & payslip', sample: true, rule: 'var(--accent-mint)',
       blurb: 'Each stylist sees their own here: their month, year, next step up and payslip.' });
   // Kate, 5 Oct 2026: the suggestions box, for every level. Level 3 and up also read
   // what came in on the same page (kb_suggestions() decides that, not this card).
-  shown.push({ key: 'suggestions', dept: 'You', title: 'Suggestions Box', href: '/hub/suggestions', live: true, rule: 'var(--accent-butter)',
+  shown.push({ key: 'suggestions', dept: 'Me', title: 'Suggestions Box', href: '/hub/suggestions', live: true, rule: 'var(--accent-butter)',
     blurb: KB.level >= 3 ? 'Send an idea, and read what the team has sent in.' : 'An idea for our clients, the team or the salon? Send it in, with or without your name.' });
 
   // Favourites (Kate, 1 Oct 2026): a star on any card, kept per person in kb_favourites.
@@ -89,7 +101,7 @@ KB.ready.then(async function () {
       return { key: k, title: DASH_PAGES[v], href: '/?view=' + v, live: true, rule: 'var(--accent-lavender)', blurb: 'Dashboards',
         ic: v === 'lostclients' ? 'lost-clients' : 'dashboards' }; });
 
-  var isLive = function (s) { return !!(s.live || counts[s.key]); };
+  var isLive = function (s) { return !!(s.live || s.via || counts[s.key]); };
   // Kate, 5 Oct 2026: each department is one panel of rows (icon, title, one line,
   // page count, star), the panels flowing in two columns on a desktop and one on a
   // phone; favourites are pills along the top. Replaces the card grid, which left
@@ -107,7 +119,10 @@ KB.ready.then(async function () {
       '</b><span>' + esc(s.blurb) + '</span></span>';
     if (s.sample) return '<div class="kb-row soon">' + icon(s) + text + '<span class="kb-tag">Sample</span></div>';
     if (!live) return '<div class="kb-row soon" aria-disabled="true">' + icon(s) + text + '<span class="kb-tag">Soon</span></div>';
-    return '<div class="kb-row">' + icon(s) + text + (n && !s.href ? '<span class="kb-row-n">' + n + ' pages</span>' : '') +
+    var k = KB.level >= 2 ? checks[s.key] || 0 : 0;   // Level 1 reads the notes on the pages, without the counts
+    return '<div class="kb-row">' + icon(s) + text +
+      (k ? '<a class="kb-check" href="' + esc(s.href ? s.href + '?check=1' : '/hub/kb.html?s=' + s.key + '&check=1') + '" title="Pages with something still being confirmed">' + k + ' to check</a>' : '') +
+      (n && !s.href ? '<span class="kb-row-n">' + n + ' pages</span>' : '') +
       KB.starBtn(s.key, s.title) + '<span class="kb-go" aria-hidden="true">›</span></div>';
   }
   function group(title, list) {
@@ -129,7 +144,7 @@ KB.ready.then(async function () {
       : '<p class="kb-fav-hint">Tap the star on any section to keep it at the top.</p>';
     // Staff have one department, so no headings beyond theirs; everyone else reads
     // Team Home by department.
-    html += '<div class="kb-depts">' + group('You', shown.filter(function (s) { return s.dept === 'You'; }));
+    html += '<div class="kb-depts">';
     KB.GROUPS.forEach(function (g) { html += group(g, shown.filter(function (s) { return s.dept === g; })); });
     document.getElementById('kbGrid').innerHTML = html + '</div>';
   }
