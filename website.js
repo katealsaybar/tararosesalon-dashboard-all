@@ -124,10 +124,11 @@ function webPaint(el) {
         ${[[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'This year'], [0, 'Custom']].map(([k, l]) =>
           `<button type="button" class="${webDays === k ? 'on' : ''}" onclick="webSetDays(${k})">${l}</button>`).join('')}
       </div>
-      ${webDays === 0 ? `<div class="cmp-dates" style="width:min(100%,380px);margin-left:6px">
-      <label class="cmp-f"><span>From</span><input type="date" value="${webEsc(webCustom.from)}" min="2025-01-01" max="${webIso(new Date())}" onchange="webSetCustom('from', this.value)"></label>
-      <label class="cmp-f"><span>To</span><input type="date" value="${webEsc(webCustom.to)}" min="2025-01-01" max="${webIso(new Date())}" onchange="webSetCustom('to', this.value)"></label>
-    </div>` : ''}
+      ${webDays === 0 ? `<div class="mk-dates" role="group" aria-label="Custom dates">
+        <input type="date" aria-label="From" value="${webEsc(webCustom.from)}" min="2025-01-01" max="${webIso(new Date())}" onchange="webSetCustom('from', this.value)">
+        <span>to</span>
+        <input type="date" aria-label="To" value="${webEsc(webCustom.to)}" min="2025-01-01" max="${webIso(new Date())}" onchange="webSetCustom('to', this.value)">
+      </div>` : ''}
     </div>
     ${stale ? `<p class="slv-muted" style="color:#b42318">Website numbers are paused${s && s.last_error ? ': ' + webEsc(s.last_error) : ''}. Last good update: ${synced ? webEsc(synced) : 'never'}.</p>` : ''}
     <section class="slv-card">

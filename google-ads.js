@@ -126,10 +126,11 @@ function gadsPaint(el) {
         ${[[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'This year'], [0, 'Custom']].map(([k, l]) =>
           `<button type="button" class="${gadsDays === k ? 'on' : ''}" onclick="gadsSetDays(${k})">${l}</button>`).join('')}
       </div>
-      ${gadsDays === 0 ? `<div class="cmp-dates" style="width:min(100%,380px);margin-left:6px">
-      <label class="cmp-f"><span>From</span><input type="date" value="${gadsEsc(gadsCustom.from)}" min="2025-01-01" max="${gadsIso(new Date())}" onchange="gadsSetCustom('from', this.value)"></label>
-      <label class="cmp-f"><span>To</span><input type="date" value="${gadsEsc(gadsCustom.to)}" min="2025-01-01" max="${gadsIso(new Date())}" onchange="gadsSetCustom('to', this.value)"></label>
-    </div>` : ''}
+      ${gadsDays === 0 ? `<div class="mk-dates" role="group" aria-label="Custom dates">
+        <input type="date" aria-label="From" value="${gadsEsc(gadsCustom.from)}" min="2025-01-01" max="${gadsIso(new Date())}" onchange="gadsSetCustom('from', this.value)">
+        <span>to</span>
+        <input type="date" aria-label="To" value="${gadsEsc(gadsCustom.to)}" min="2025-01-01" max="${gadsIso(new Date())}" onchange="gadsSetCustom('to', this.value)">
+      </div>` : ''}
     </div>
     ${stale ? `<p class="slv-muted" style="color:#b42318">Google Ads numbers are paused${s && s.last_error ? ': ' + gadsEsc(s.last_error) : ''}. Last good update: ${synced ? gadsEsc(synced) : 'never'}.</p>` : ''}
     <section class="slv-card">
