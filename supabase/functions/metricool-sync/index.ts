@@ -3,8 +3,9 @@
 // the Google Reviews page. See migrations/create_metricool.sql for the tables.
 // Reads the Metricool API with secret METRICOOL_USER_TOKEN (Kate's account, userId
 // 4877991, plan Advanced 15). Every brand on the account is read from simpleProfiles
-// each run, so a salon added later (Khalifa City is not connected yet) comes in by
-// itself; its salon is read off the brand's name.
+// each run, so a salon added later comes in by itself; its salon is read off its Google
+// location id (GMB_LOC), else the brand's name. Khalifa City A's Google profile is on the
+// main brand (connected 6 Oct 2026).
 // Body/query: { days? (default 10, back from today), from?, to? (Dubai dates),
 //               source?: 'all' | 'daily' | 'posts' | 'reviews', dry? } for a backfill.
 // Reviews (Kate, 6 Oct 2026): each salon's Google reviews into google_reviews, until the
@@ -29,6 +30,11 @@ const SERIES: Record<string, [string, string][]> = {
 };
 const BRANCH: [RegExp, string][] = [[/bahrain/i, 'BAH'], [/al ?quoz/i, 'AQ'], [/motor ?city/i, 'MC'],
   [/khalifa/i, 'KCA'], [/saadiyat|mamsha/i, 'SAA']];
+// Which salon a Google profile is, by its Business Profile location id (Kate, 6 Oct 2026):
+// Khalifa City A's profile sits on the main brand, not a brand of its own, so the brand's
+// name can't say. A location not listed here falls back to the brand's name.
+const GMB_LOC: Record<string, string> = { '5307528376474579201': 'KCA', '1607584651014081566': 'SAA',
+  '15851980431586936756': 'AQ', '1197765864514331563': 'MC', '9531547727804411119': 'BAH' };
 
 Deno.serve(async (req) => {
   const u = new URL(req.url);
@@ -87,7 +93,7 @@ Deno.serve(async (req) => {
       branch: (BRANCH.find(([re]) => re.test(b.label || '')) || [])[1] || null,
       networks: Object.fromEntries(['instagram', 'tiktok', 'facebook', 'gmb'].filter(n => b[n]).map(n => [n, String(b[n])])),
       synced_at: now(),
-    }));
+    })).map((b: any) => ({ ...b, gmb_branch: b.networks.gmb ? (GMB_LOC[b.networks.gmb.split('/locations/')[1]] || b.branch) : null }));
     // Branch brands are a salon's Google profile only; Bahrain's also carries LinkedIn
     // and YouTube, which the dashboard doesn't use.
     await save('metricool_brands', brands, 'brand_id');
@@ -194,7 +200,6 @@ function zoned(x: any): string | null {
 // public list at the 24 Sep pull (the dry run on 6 Oct found 7, among them a 5★ from "Tara
 // Rose Management" and two unreplied low-star ones), so Google had most likely taken it
 // down; Metricool keeps them. They are counted as skipped, never shown.
-// Khalifa City A isn't in Metricool, so its new reviews wait until it is connected.
 const REVIEW_BRANCH: Record<string, string> = { KCA: 'Khalifa City A, Abu Dhabi', SAA: 'Saadiyat, Abu Dhabi',
   AQ: 'Al Quoz, Dubai', MC: 'Motor City, Dubai', BAH: 'District 2, Bahrain' };
 const letters = (s: any) => String(s || '').toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}]/gu, '');
@@ -205,9 +210,9 @@ async function syncReviews(sb: any, brands: any[], get: any, dry: boolean, error
   const now = new Date().toISOString();
   const dubaiDate = (ms: number) => new Date(ms + 4 * 3600e3).toISOString().slice(0, 10);
   const report: any = {};
-  for (const b of brands.filter((x: any) => x.branch && x.networks.gmb && REVIEW_BRANCH[x.branch])) {
-    const branch = REVIEW_BRANCH[b.branch];
-    const r: any = report[b.branch] = { metricool: 0, matched: 0, updated: 0, added: 0, skipped: 0, replies_read: 0 };
+  for (const b of brands.filter((x: any) => x.gmb_branch && REVIEW_BRANCH[x.gmb_branch])) {
+    const branch = REVIEW_BRANCH[b.gmb_branch];
+    const r: any = report[b.gmb_branch] = { metricool: 0, matched: 0, updated: 0, added: 0, skipped: 0, replies_read: 0 };
     try {
       const reviews = (await get('/v2/analytics/reviews/gbp', { blogId: String(b.brand_id),
         from: '2015-01-01T00:00:00+04:00', to: dubaiDate(Date.now()) + 'T23:59:59+04:00', timezone: 'Asia/Dubai' })).data || [];
@@ -270,7 +275,7 @@ async function syncReviews(sb: any, brands: any[], get: any, dry: boolean, error
       // A row Metricool vouches for shows as synced tonight; the page's "Last sync" reads it.
       if (!updates.length && reviews.length) await sb.from('google_reviews').update({ synced_at: now }).eq('gbp_name', reviews[0].name);
     } catch (e) {
-      errors.push(`reviews ${b.branch}: ${(e as Error).message || e}`);
+      errors.push(`reviews ${b.gmb_branch}: ${(e as Error).message || e}`);
     }
   }
   return report;

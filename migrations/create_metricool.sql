@@ -20,6 +20,7 @@ create table if not exists metricool_brands (
   brand_id   bigint primary key,
   label      text not null,
   branch     text,                     -- SAA KCA MC AQ BAH, null for the main brand
+  gmb_branch text,                     -- the salon of its Google profile, by location id
   networks   jsonb not null default '{}',
   synced_at  timestamptz not null default now()
 );
@@ -104,7 +105,7 @@ begin
   if not public.is_dashboard_user() then raise exception 'Sign in first'; end if;
   select jsonb_build_object(
     'branches', (select coalesce(jsonb_agg(r order by r.branch), '[]') from (
-        select b.branch, b.label,
+        select b.gmb_branch branch, max(b.label) label,
           sum(d.value) filter (where d.metric = 'business_impressions_total') seen,
           sum(d.value) filter (where d.metric = 'business_impressions_search') seen_search,
           sum(d.value) filter (where d.metric = 'business_impressions_maps') seen_maps,
@@ -114,8 +115,8 @@ begin
           min(d.date) first_date, max(d.date) last_date
         from metricool_brands b
         left join metricool_daily d on d.brand_id = b.brand_id and d.network = 'gmb' and d.date between p_from and p_to
-        where b.branch is not null and b.networks ? 'gmb'
-        group by b.branch, b.label) r),
+        where b.gmb_branch is not null and b.networks ? 'gmb'
+        group by b.gmb_branch) r),
     'sync', (select to_jsonb(s) from sync_health s where name = 'metricool-sync')
   ) into out;
   return out;
@@ -134,3 +135,9 @@ select cron.schedule('metricool-sync-nightly', '20 23 * * *', $$
     body := '{"days":10}'::jsonb,
     timeout_milliseconds := 150000);
 $$);
+
+-- 6 Oct 2026, later: Khalifa City A's Google profile was connected to the main brand, not a
+-- brand of its own, so a profile's salon now comes from its location id (gmb_branch, set by
+-- metricool-sync from GMB_LOC) and gbp_report groups by that. Applied live.
+alter table public.metricool_brands add column if not exists gmb_branch text;
+-- gbp_report above already reads gmb_branch.
