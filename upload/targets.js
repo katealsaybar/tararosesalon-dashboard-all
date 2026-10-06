@@ -673,7 +673,7 @@ function tgRenderSummary(){
   const totalsHtml = `
     <div class="tg-totals">
       <div class="tg-tot"><span>Branch service target</span><b>${tgFmt(sums.target, 2)}</b>
-        <i>${tgRows.length} people · ${hair} hair, ${beauty} beauty</i></div>
+        <i>${tgRows.length} people: ${hair} hair, ${beauty} beauty</i></div>
       <div class="tg-tot"><span>Actual ${tgFmt(tgPct.actual)}%</span><b>${tgFmt(sums.actual, 2)}</b></div>
       <div class="tg-tot"><span>Retail</span><b>${tgFmt(sums.retail, 2)}</b></div>
       <div class="tg-tot"><span>Treatment</span><b>${tgFmt(sums.treatment, 2)}</b></div>

@@ -329,7 +329,7 @@ function trCountFilledBoxes(){
       .map(code => BRANCHES[code]?.name || code);
     el.textContent = !boxes.length ? ''
       : !filled.length ? 'No boxes filled yet'
-      : `${filled.length} of ${boxes.length} boxes filled${empty.length ? ' · still empty: ' + empty.join(', ') : ''}`;
+      : `${filled.length} of ${boxes.length} boxes filled${empty.length ? '. Still empty: ' + empty.join(', ') : ''}`;
   });
 }
 

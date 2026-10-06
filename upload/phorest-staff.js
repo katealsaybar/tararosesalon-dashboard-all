@@ -593,8 +593,8 @@ function spRenderBackfillStrips(label, days, covered, keyOf, blank){
       <div class="sp-prog-head">
         <span class="sp-prog-name">${label}</span>
         <span class="sp-prog-meta">${doneDays.length}/${open.length} days${
-          blankDays.length ? ` · <b>${blankDays.length} arrived blank</b>` : ''}${
-          firstMissing ? ' · oldest gap <b>'+firstMissing.toLocaleDateString('en-GB')+'</b>' : ' · <b class="ok">fully captured</b>'}</span>
+          blankDays.length ? `, <b>${blankDays.length} arrived blank</b>` : ''}${
+          firstMissing ? ', oldest gap <b>'+firstMissing.toLocaleDateString('en-GB')+'</b>' : ', <b class="ok">fully captured</b>'}</span>
       </div>` +
     years.map(y => {
       const yDays = byYear.get(y);
@@ -620,9 +620,9 @@ function spRenderBackfillStrips(label, days, covered, keyOf, blank){
             return `<button class="sp-mo" disabled title="${SP_MONTHS[i]} ${y} — ${why}"><div class="sp-mo-bar"></div><span class="sp-mo-lbl">${SP_MONTHS[i][0]}</span></button>`;
           }
           const pct = Math.round(m.done / m.total * 100);
-          const closedNote = m.closed ? ` · ${m.closed} closed` : '';
-          const blankNote  = m.blank ? ` · ${m.blank} arrived blank` : '';
-          return `<button class="sp-mo" onclick="spOpenProgMonth(this,'${uid}',${y},${i})" title="${SP_MONTHS[i]} ${y} — ${m.done}/${m.total} days${blankNote}${closedNote}${m.done === m.total ? '' : ' · click for the days'}">
+          const closedNote = m.closed ? `, ${m.closed} closed` : '';
+          const blankNote  = m.blank ? `, ${m.blank} arrived blank` : '';
+          return `<button class="sp-mo" onclick="spOpenProgMonth(this,'${uid}',${y},${i})" title="${SP_MONTHS[i]} ${y}: ${m.done}/${m.total} days${blankNote}${closedNote}${m.done === m.total ? '' : '. Click for the days'}">
             <div class="sp-mo-bar">${m.done ? `<div class="sp-mo-fill${pct === 100 ? '' : ' part'}" style="width:${pct}%"></div>` : ''}</div>
             <span class="sp-mo-lbl">${SP_MONTHS[i][0]}</span></button>`;
         }).join('') +
@@ -650,7 +650,7 @@ function spOpenProgMonth(btn, uid, year, monthIdx){
   const done   = mOpen.filter(d => st.covered.has(st.keyOf(d)) && !spBlankDay(st, d)).length;
   const blank  = mOpen.filter(d => spBlankDay(st, d)).length;
   const closed = mDays.length - mOpen.length;
-  box.innerHTML = `<div class="sp-mo-days-title"><b>${SP_MONTHS[monthIdx]} ${year}</b> · ${st.label} · ${done} of ${mOpen.length} days captured${blank ? ` · ${blank} arrived blank` : ''}${closed ? ` · ${closed} closed` : ''}</div>
+  box.innerHTML = `<div class="sp-mo-days-title"><b>${SP_MONTHS[monthIdx]} ${year}</b>, ${st.label}: ${done} of ${mOpen.length} days captured${blank ? `, ${blank} arrived blank` : ''}${closed ? `, ${closed} closed` : ''}</div>
     <div class="sp-day-strip">` +
     mDays.map(d => {
       const shut = spClosedReason(d, st.keyOf);
@@ -1073,7 +1073,7 @@ function spRenderTable(){
   if (spCapWarning){
     countEl.textContent = `Showing first ${SP_ROW_LIMIT} rows — narrow your filters for more precision`;
   } else if (capped){
-    countEl.innerHTML = `${displayRows.length} rows · showing the newest ${SP_RENDER_CAP} ` +
+    countEl.innerHTML = `${displayRows.length} rows, showing the newest ${SP_RENDER_CAP} ` +
       `<button class="btn-outline" style="padding:3px 9px;font-size:12.5px;margin-left:4px" onclick="spRenderAllRows()">Show all</button>`;
   } else {
     countEl.textContent = `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${spSummaryMode ? ' (summarized per employee)' : ''}`;

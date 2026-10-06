@@ -166,7 +166,7 @@ function yearTab() {
     <section class="card">
       <div class="eyebrow">Your 2026 so far</div>
       <div class="hero-n">${aed(total)}</div>
-      <div class="hero-s">${atAim != null ? `<b>${atAim} of ${counted.length}</b> weeks at or above your aim` : `${full.length} weeks`}${leaveWeeks ? ` · ${leaveWeeks} on leave, not counted` : ''}</div>
+      <div class="hero-s">${atAim != null ? `<b>${atAim} of ${counted.length}</b> weeks at or above your aim` : `${full.length} weeks`}${leaveWeeks ? `, ${leaveWeeks} on leave and not counted` : ''}</div>
       ${step ? `<div class="step"><span class="k">Your next step</span>${step}</div>` : ''}
     </section>
     <section class="card">
@@ -181,7 +181,7 @@ function yearTab() {
       <h2>Your quarters</h2>
       <p class="sub">13 weeks each. Tap one to see its weeks.</p>
       <div class="qs">${qCards}</div>
-      <div class="wk-head"><b>Q${S.q}</b>, newest first${pq.cw.length && wkAim ? ` · ✓ means at or above your aim` : ''}</div>
+      <div class="wk-head"><b>Q${S.q}</b>, newest first${pq.cw.length && wkAim ? `. ✓ means at or above your aim` : ''}</div>
       <div class="tbl-wrap"><table class="tbl wk"><thead><tr><th>Week</th><th class="r">Sales</th><th class="r">Rebooked</th><th class="r">Retail</th></tr></thead>
         <tbody>${rows}</tbody></table></div>
       <p class="sub wk-foot">Money in AED. Rebooked is clients who booked again, out of all your clients that week.</p>

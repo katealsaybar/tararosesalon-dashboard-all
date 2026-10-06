@@ -278,7 +278,7 @@ function psRender() {
     <div class="ps-top">
       <label class="ps-month">Month <select onchange="PS_STATE.month=this.value; initPayslipsTab()">${psMonthOptions()}</select></label>
       <div class="ps-count"><b>${done}</b> of ${all} uploaded</div>
-      <a href="#" class="ps-key" onclick="psForgetKey();return false">Signed in as ${psEsc(PS_STATE.admin)} · change key</a>
+      <a href="#" class="ps-key" onclick="psForgetKey();return false">Signed in as ${psEsc(PS_STATE.admin)}. Change key</a>
     </div>
     <div class="ps-branches ps-views" id="psViews"></div>
     <div class="ps-view" data-view="email" hidden><div class="ps-send" id="psSendPanel"></div></div>
@@ -467,7 +467,7 @@ function psRenderPending() {
   const missing = split ? PS_STATE.staff.filter(s => !s.payslip && !P.some(p => p.match && p.match.id === s.id)) : [];
   const label = p => p.page ? `Page ${p.page} of ${p.of}<span class="ps-meta"> · ${psEsc(p.source)}</span>` : psEsc(p.file.name);
   el.innerHTML = `<div class="ps-pending">
-    ${split ? `<div class="ps-summary"><b>${live.length} page${live.length === 1 ? '' : 's'} matched</b> to ${people} ${people === 1 ? 'person' : 'people'}${need ? ` · <span class="ps-err">${need} need${need === 1 ? 's' : ''} a name picked</span>` : ''}${guess ? ` · <span class="ps-check">${guess} matched by closest name, check ${guess === 1 ? 'it' : 'them'}</span>` : ''}. Press View to check a page. A page that isn’t anyone on the list? Remove it with ✕.</div>` : ''}
+    ${split ? `<div class="ps-summary"><b>${live.length} page${live.length === 1 ? '' : 's'} matched</b> to ${people} ${people === 1 ? 'person' : 'people'}${need ? `, <span class="ps-err">${need} need${need === 1 ? 's' : ''} a name picked</span>` : ''}${guess ? `, <span class="ps-check">${guess} matched by closest name, check ${guess === 1 ? 'it' : 'them'}</span>` : ''}. Press View to check a page. A page that isn’t anyone on the list? Remove it with ✕.</div>` : ''}
     ${P.map((p, i) => `<div class="ps-prow ${p.status}${p.status === 'ready' && !p.match && !p.error ? ' need' : ''}${p.fuzzy && p.match && p.status === 'ready' ? ' guess' : ''}">
       <span class="ps-fname">${label(p)}</span>
       ${p.error ? `<span class="ps-err">${psEsc(p.error)}</span>`

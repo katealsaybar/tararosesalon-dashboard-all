@@ -14,7 +14,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
 <script src="parser.js?v=4"></script>
-<script src="upload.js?v=24"></script>
+<script src="upload.js?v=20261006dots"></script>
 <!-- Signed-in people on the dashboard list only (auth.js, 25 Sep 2026); anyone else goes to the dashboard's sign-in and comes back. -->
 <script src="../auth.js?v=20260925d"></script>
 <!-- Kate, 30 Sep 2026: Google sign-in is the only way in (the old shared password card is gone).
@@ -97,16 +97,16 @@ function upViewOnly() {
 <!-- staff-profiles.js wants canonicalStaffName() from name-aliases.js above it,
      same load order the dashboard itself uses (its own comment says so). -->
 <script src="../staff-profiles.js?v=4"></script>
-<script src="phorest-staff.js?v=17"></script>
+<script src="phorest-staff.js?v=20261006dots"></script>
 <script src="phorest-pdf.js?v=2"></script>
-<script src="utilisation-pdf.js?v=10"></script>
+<script src="utilisation-pdf.js?v=20261006dots"></script>
 <script src="financial-totals-pdf.js?v=2"></script>
-<script src="sales-transactions-pdf.js?v=3"></script>
-<script src="sheet-sync.js?v=12"></script>
-<script src="targets.js?v=2"></script>
+<script src="sales-transactions-pdf.js?v=20261006dots"></script>
+<script src="sheet-sync.js?v=20261006dots"></script>
+<script src="targets.js?v=20261006dots"></script>
 <script src="team-roster.js?v=1"></script>
 <script src="/payslip/open.js?v=2"></script>
-<script src="payslips.js?v=18"></script>
+<script src="payslips.js?v=20261006dots"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
 <script src="data-watch.js?v=1"></script>
 
@@ -881,7 +881,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
      what someone else's upload does to the screen until the card is reloaded on
      purpose (Kate, 4 Sep 2026). -->
 <div class="upd" id="updNotice" hidden role="status" aria-live="polite">
-  <button class="upd-pill" onclick="updExpand()">Newer data · see what changed</button>
+  <button class="upd-pill" onclick="updExpand()">Newer data. See what changed</button>
   <div class="upd-full" id="updFull"></div>
 </div>
 
@@ -1475,7 +1475,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <div class="upload-card">
     <div class="card-title">Service Performance Upload</div>
     <div class="card-sub">Two Phorest exports, auto-detected: the 4-sheet transaction file, or Top Services reports (one per branch). Re-uploading a year replaces that year for the branches in the file.</div>
-    <div class="xlsx-badge">✦ xlsx · xls (97) · csv · pdf — branch from sheet name or filename</div>
+    <div class="xlsx-badge">✦ xlsx, xls (97), csv or pdf. The branch comes from the sheet name or filename.</div>
 
     <!-- The period pair only matters for Top Services reports, which carry no
          dates inside the file. Folded away by default so the common case (the

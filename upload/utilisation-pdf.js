@@ -736,7 +736,7 @@ function utilRenderTable(){
   if (utilCapWarning){
     countEl.textContent = `Showing first ${UTIL_ROW_LIMIT} rows — narrow your filters for more precision`;
   } else if (capped){
-    countEl.innerHTML = `${displayRows.length} rows · showing the newest ${UTIL_RENDER_CAP} ` +
+    countEl.innerHTML = `${displayRows.length} rows, showing the newest ${UTIL_RENDER_CAP} ` +
       `<button class="btn-outline" style="padding:3px 9px;font-size:12.5px;margin-left:4px" onclick="utilRenderAllRows()">Show all</button>`;
   } else {
     countEl.textContent = `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${utilSummaryMode ? ' (summarized per staff member)' : ''}`;

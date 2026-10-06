@@ -209,7 +209,7 @@ async function staffLinkButton(s, staffId) {
   document.getElementById('copyLink').onclick = async (e) => {
     const btn = e.currentTarget;
     window.open(link, '_blank', 'noopener');
-    try { await navigator.clipboard.writeText(link); btn.textContent = 'Opened · link copied'; }
+    try { await navigator.clipboard.writeText(link); btn.textContent = 'Opened, link copied'; }
     catch (err) { btn.textContent = 'Opened'; prompt('Copy this link:', link); }
   };
 }
@@ -398,7 +398,7 @@ function tile(k, label, d, pace, extra = '') {
   const st = status(judged(k, d.numbers, pace), b);
   const f = KPI[k].fmt;
   const aim = b ? (b.min !== null && b.min !== undefined && b.min !== b.target
-    ? `Minimum ${fmt(b.min, f)} · aim ${fmt(b.target, f)}` : `Aim ${fmt(b.target, f)}`) : '';
+    ? `Minimum ${fmt(b.min, f)}, aim ${fmt(b.target, f)}` : `Aim ${fmt(b.target, f)}`) : '';
   return `<div class="tile ${st}"><div class="lbl"><span class="dot"></span>${tipLbl(k, label)}</div>
     <div class="val">${fmt(d.numbers[k], f)}</div><div class="aim">${esc(aim)}${paceNote(k, d.numbers, pace, b?.target) ? '<br>' + esc(paceNote(k, d.numbers, pace, b?.target)) : ''}${extra}</div></div>`;
 }
@@ -515,7 +515,7 @@ function kpiRows(n, bm, pace, keys) {
     const x = KPI[k], b = bm[k];
     const note = x.note ? `<small class="r-note">${esc(x.note)}</small>` : '';
     const needs = typeof x.needs === 'function' ? x.needs(n) : x.needs;
-    if (x.untracked || (x.needs && (n[k] === null || n[k] === undefined))) return `<div class="row untracked">${tipLbl(k, x.label)}<span class="r-val"><small>${x.untracked ? 'Not tracked yet' : esc(needs)} · aim ${fmt(b.target, x.fmt)}</small></span>${note}</div>`;
+    if (x.untracked || (x.needs && (n[k] === null || n[k] === undefined))) return `<div class="row untracked">${tipLbl(k, x.label)}<span class="r-val"><small>${x.untracked ? 'Not tracked yet' : esc(needs)}, aim ${fmt(b.target, x.fmt)}</small></span>${note}</div>`;
     const st = x.unscored ? '' : status(judged(k, n, pace), b);
     const pn = paceNote(k, n, pace, b.target);
     const tail = x.unscored ? `<small>${esc(x.unscored)}</small>` : `<small>/ ${fmt(b.target, x.fmt)}${pn ? ' · ' + esc(pn.charAt(0).toLowerCase() + pn.slice(1)) : ''}</small>`;
@@ -535,8 +535,8 @@ function socials(n) {
   const okAt = n.ig_sync_ok_at ? new Date(n.ig_sync_ok_at) : null;
   const stale = okAt && Date.now() - okAt > 36 * 36e5
     ? `<p class="muted"><b>Instagram counts are paused.</b> Nothing new has come in since ${esc(okAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Dubai' }))}, so recent posts are missing here. We're fixing it, and they'll fill in once it's back.</p>` : '';
-  return `${stale}<p class="sub">${fmt(list.length, 'num')} ${list.length === 1 ? 'post' : 'posts'} with @tararosesalon this month · ${fmt(n.social_stories, 'num')} story ${n.social_stories === 1 ? 'mention' : 'mentions'} · ${handles}</p>
-    ${list.length ? list.map(p => `<div class="note">${p.via === 'collab' ? 'Collab on a salon post' : esc(IG_TYPE[p.type] || 'Post')}<div class="by">${esc(dayLabel(p.date))}${p.link ? ` · <a class="rv-link" href="${esc(p.link)}" target="_blank" rel="noopener">View on Instagram ↗</a>` : ''}</div></div>`).join('')
+  return `${stale}<p class="sub">${fmt(list.length, 'num')} ${list.length === 1 ? 'post' : 'posts'} with @tararosesalon this month and ${fmt(n.social_stories, 'num')} story ${n.social_stories === 1 ? 'mention' : 'mentions'}. ${handles}</p>
+    ${list.length ? list.map(p => `<div class="note">${p.via === 'collab' ? 'Collab on a salon post' : esc(IG_TYPE[p.type] || 'Post')}<div class="by">${esc(dayLabel(p.date))}${p.link ? `. <a class="rv-link" href="${esc(p.link)}" target="_blank" rel="noopener">View on Instagram ↗</a>` : ''}</div></div>`).join('')
       : `<p class="muted">Nothing tagged yet this month. Tag @tararosesalon on your posts and reels so they show here.</p>`}
     <p class="legend">Feed posts, reels and carousels update nightly. Story mentions count from 28 Sep 2026.</p>`;
 }
@@ -755,7 +755,7 @@ async function renderStylist() {
         <div class="row"><span>9 to 12 weeks</span><span class="r-val">${fmt(cw.w12, 'num')}</span></div>
         <div class="row"><span>Not back yet</span><span class="r-val">${fmt(cw.not_yet, 'num')}</span></div>
       </div>
-      <p class="legend">Conversion ${fmt(n.conversion_pct, 'pct')} of ${fmt(n.conversion_n, 'num')} new clients · Retention ${fmt(n.retention_pct, 'pct')} of ${fmt(n.retention_n, 'num')} regulars. Client history runs to ${esc(dayLabel(n.asof))}.</p>
+      <p class="legend">Conversion ${fmt(n.conversion_pct, 'pct')} of ${fmt(n.conversion_n, 'num')} new clients. Retention ${fmt(n.retention_pct, 'pct')} of ${fmt(n.retention_n, 'num')} regulars. Client history runs to ${esc(dayLabel(n.asof))}.</p>
     </section>
 
     ${hist ? `<section class="card"><h2>The last three months</h2>
@@ -791,7 +791,7 @@ async function renderStylist() {
   if (TOKEN) loadPayslip();
   wireCoach(d);
   document.getElementById('foot').textContent =
-    `Reviews to ${dayLabel(d.data_through.reviews)} · sales to ${dayLabel(d.data_through.revenue)} · clients to ${dayLabel(d.data_through.clients)} · column fill to ${dayLabel(d.data_through.column_fill)} · client history to ${dayLabel(d.data_through.client_history)}. Revenue is ex VAT.`;
+    `Reviews to ${dayLabel(d.data_through.reviews)}, sales to ${dayLabel(d.data_through.revenue)}, clients to ${dayLabel(d.data_through.clients)}, column fill to ${dayLabel(d.data_through.column_fill)} and client history to ${dayLabel(d.data_through.client_history)}. Revenue is ex VAT.`;
 
   let wkChart = null;
   // Kate, 29 Sep 2026: hair keeps violet bars and a green line; beauty is pink bars
@@ -865,7 +865,7 @@ async function renderStylist() {
       const btn = e.currentTarget;
       const link = PUBLIC_PAGE + '?t=' + TOKEN;
       window.open(link, '_blank', 'noopener');
-      try { await navigator.clipboard.writeText(link); btn.textContent = 'Opened · link copied'; }
+      try { await navigator.clipboard.writeText(link); btn.textContent = 'Opened, link copied'; }
       catch (err) { btn.textContent = 'Opened'; prompt('Copy this link:', link); }
     };
     document.getElementById('noteSave').onclick = async () => {

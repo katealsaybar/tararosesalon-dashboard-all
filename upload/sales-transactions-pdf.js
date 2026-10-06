@@ -711,7 +711,7 @@ function stxRenderTable(){
   if (stxCapWarning){
     countEl.textContent = `Showing first ${STX_ROW_LIMIT} rows — narrow your filters for more precision`;
   } else if (capped){
-    countEl.innerHTML = `${displayRows.length} rows · showing the newest ${STX_RENDER_CAP} ` +
+    countEl.innerHTML = `${displayRows.length} rows, showing the newest ${STX_RENDER_CAP} ` +
       `<button class="btn-outline" style="padding:3px 9px;font-size:12.5px;margin-left:4px" onclick="stxRenderAllRows()">Show all</button>`;
   } else {
     countEl.textContent = `${displayRows.length} row${displayRows.length === 1 ? '' : 's'}${stxSummaryMode ? ' (summarized per employee)' : ''}`;
@@ -896,7 +896,7 @@ function stxlRenderTable(){
   if (stxlCapWarning){
     countEl.textContent = `Showing first ${STXL_ROW_LIMIT} rows — narrow your filters for more precision`;
   } else if (capped){
-    countEl.innerHTML = `${stxlLastData.length} rows · showing the newest ${STXL_RENDER_CAP} ` +
+    countEl.innerHTML = `${stxlLastData.length} rows, showing the newest ${STXL_RENDER_CAP} ` +
       `<button class="btn-outline" style="padding:3px 9px;font-size:12.5px;margin-left:4px" onclick="stxlRenderAllRows()">Show all</button>`;
   } else {
     countEl.textContent = `${stxlLastData.length} row${stxlLastData.length === 1 ? '' : 's'}`;
