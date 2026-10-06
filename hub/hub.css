@@ -48,6 +48,14 @@ body.kb-wait .wrap{visibility:hidden}
 .kb-head{position:sticky;top:0;z-index:20;background:var(--bg);
   display:flex;align-items:center;gap:28px;padding:14px 0 16px;margin-bottom:8px;
   border-bottom:1px solid var(--border)}
+/* Kate, 6 Oct 2026: on a desktop the logo sits in the centre of the header, the
+   page title on the left and search + account on the right (.kb-head-r). */
+@media (min-width:761px){
+  .kb-head{display:grid;grid-template-columns:1fr auto 1fr;gap:28px}
+  .kb-head>.kb-titles{grid-column:1;grid-row:1}
+  .kb-head>.kb-brand{grid-column:2;grid-row:1}
+  .kb-head-r{grid-column:3;grid-row:1;display:flex;align-items:center;justify-content:flex-end;gap:16px;min-width:0}
+}
 .kb-brand{display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;flex-shrink:0}
 .kb-brand img{width:138px;height:auto;display:block}
 .kb-brand span{font-size:11px;letter-spacing:.36em;text-indent:.36em;text-transform:uppercase;opacity:.82}
@@ -254,6 +262,7 @@ body.kb-wait .wrap{visibility:hidden}
   /* Kate, 2 Oct 2026: "Team Home" sits on the right, beside the account button
      (replaces the 1 Oct centring). Logo takes the spare width. */
   .kb-head{display:grid;grid-template-columns:1fr auto auto;gap:12px 10px;padding:10px 0 12px}
+  .kb-head-r{display:contents}
   .kb-brand{justify-self:start}
   .kb-account{justify-self:end}
   .kb-search-wrap{grid-column:1/-1}

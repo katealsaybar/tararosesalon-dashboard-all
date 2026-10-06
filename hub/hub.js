@@ -307,7 +307,7 @@
         '<img class="kb-logo-dark" src="/assets/mast-paper.png" alt="Tara Rose">' +
         '<span>Salons</span></a>' +
       '<div class="kb-titles"><span class="kb-eyebrow">Knowledge Base</span><h1>' + esc(h.dataset.title || 'Team Home') + '</h1></div>' +
-      '<div class="kb-search-wrap"><div class="kb-search">' +
+      '<div class="kb-head-r"><div class="kb-search-wrap"><div class="kb-search">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
         '<input type="search" id="kbSearch" placeholder="Find a treatment, policy or how-to" autocomplete="off" aria-label="Find a treatment, policy or how-to"></div>' +
         '<div class="kb-results" id="kbResults" role="listbox"></div></div>' +
@@ -338,7 +338,7 @@
 
           '<button id="kbThemeBtn" type="button">' + (theme() === 'dark' ? 'Light mode' : 'Dark mode') + '</button>' +
           '<button id="kbSignOut" type="button">Sign out</button>' +
-        '</div></div>';
+        '</div></div></div>';
 
     var btn = document.getElementById('kbAccountBtn'), menu = document.getElementById('kbMenu');
     btn.onclick = function (e) {
