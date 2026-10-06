@@ -55,12 +55,21 @@ Deno.serve(async (req) => {
 // One edge, newest first, upserting whatever rows(m) makes of each item.
 async function walk(sb: any, token: string, edge: string, fields: string, after: string, max: number, since: number,
                     rows: (m: any) => any[], table: string, conflict: string) {
-  let next: string | null = `${GRAPH}/${IG_USER}/${edge}?fields=${fields}&limit=50${after ? '&after=' + encodeURIComponent(after) : ''}&access_token=${encodeURIComponent(token)}`;
+  let limit = 50;
+  let next: string | null = `${GRAPH}/${IG_USER}/${edge}?fields=${fields}&limit=${limit}${after ? '&after=' + encodeURIComponent(after) : ''}&access_token=${encodeURIComponent(token)}`;
   let saved = 0, pages = 0, oldest: string | null = null, cursor: string | null = null, done = false;
   while (next && pages < max) {
     pages++;
     const r = await fetch(next);
     const d = await r.json();
+    // Meta refuses some heavy /tags pages at 50 ("Please reduce the amount of data...",
+    // Kate, 6 Oct 2026: page 9 every run). Retry the same page smaller, down to 5.
+    if (d.error && /reduce the amount of data/i.test(d.error.message || '') && limit > 5) {
+      limit = Math.max(5, Math.floor(limit / 2));
+      next = next.replace(/([?&])limit=\d+/, `$1limit=${limit}`);
+      pages--;
+      continue;
+    }
     if (!r.ok || d.error) return { error: d.error?.message || r.status, pages, saved };
     const items = d.data || [];
     const batch = items.flatMap(rows);
