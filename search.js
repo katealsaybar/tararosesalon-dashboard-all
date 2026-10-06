@@ -425,6 +425,10 @@
       total += best;
     }
     if (item.resigned) total -= 5;
+    // Kate, 6 Oct 2026: "perf" put a Performance heading on Organisation Pulse above
+    // the Branch Performance page. Text on the pages ranks below pages, people and
+    // data unless it is the exact words typed.
+    if (item.kind === 'content') total -= 30 * q.split(/\s+/).filter(Boolean).length;
     // Text on the page you are looking at outranks the same text elsewhere.
     if (item.kind === 'content' && item.view === CURRENT_VIEW) total += 10;
     return total;
