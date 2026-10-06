@@ -43,6 +43,7 @@ function gadsWindow() {
 
 function gadsSetDays(n) {
   // Custom opens on the dates already on screen, so there is something to adjust.
+  // The From and To boxes sit in the pill bar, beside Custom (Kate, 6 Oct 2026).
   if (n === 0 && !(gadsCustom.from && gadsCustom.to)) {
     const w = gadsWindow(); gadsCustom = { from: w.from, to: w.to };
     try { localStorage.setItem('trs-gads-custom', JSON.stringify(gadsCustom)); } catch (e) {}
@@ -125,11 +126,11 @@ function gadsPaint(el) {
         ${[[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'This year'], [0, 'Custom']].map(([k, l]) =>
           `<button type="button" class="${gadsDays === k ? 'on' : ''}" onclick="gadsSetDays(${k})">${l}</button>`).join('')}
       </div>
-    </div>
-    ${gadsDays === 0 ? `<div class="cmp-dates" style="max-width:420px;margin:12px 0 4px">
+      ${gadsDays === 0 ? `<div class="cmp-dates" style="width:min(100%,380px);margin-left:6px">
       <label class="cmp-f"><span>From</span><input type="date" value="${gadsEsc(gadsCustom.from)}" min="2025-01-01" max="${gadsIso(new Date())}" onchange="gadsSetCustom('from', this.value)"></label>
       <label class="cmp-f"><span>To</span><input type="date" value="${gadsEsc(gadsCustom.to)}" min="2025-01-01" max="${gadsIso(new Date())}" onchange="gadsSetCustom('to', this.value)"></label>
     </div>` : ''}
+    </div>
     ${stale ? `<p class="slv-muted" style="color:#b42318">Google Ads numbers are paused${s && s.last_error ? ': ' + gadsEsc(s.last_error) : ''}. Last good update: ${synced ? gadsEsc(synced) : 'never'}.</p>` : ''}
     <section class="slv-card">
       <div class="slv-head">
