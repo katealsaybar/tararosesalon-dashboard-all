@@ -1,5 +1,7 @@
-// Reviews come from google_reviews on the dashboard's Supabase, kept current by
-// apps-script/sync-google-reviews.gs. data.js (the 24 Sep 2026 pull) is only
+// Reviews come from google_reviews on the dashboard's Supabase. Since 6 Oct 2026 the
+// metricool-sync edge function keeps them current nightly through Metricool (new reviews,
+// replies, exact dates), for every salon connected there; apps-script/sync-google-reviews.gs
+// is the Business Profile API sync still waiting on Google's approval. data.js (the 24 Sep 2026 pull) is only
 // loaded if Supabase can't be reached, and the note then says it's the old copy.
 const SUPA_URL = "https://gvijxenafoowajqktqvd.supabase.co";
 const SUPA_KEY = "sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO";
@@ -395,13 +397,15 @@ function renderNote(){
   const n=R.length.toLocaleString(), el=document.getElementById("note");
   if(!SYNC){ el.innerHTML=`<b>⚠ Offline copy: ${n} Google reviews as of 24 Sep 2026.</b> The live table couldn't be reached, so anything newer, and any reply posted since, is missing here.`; return; }
   const when=new Date(SYNC.last).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"Asia/Dubai"});
-  el.innerHTML = SYNC.seedOnly
-    ? `<b>✓ All ${n} Google reviews</b> across the 5 branches, from the 24 Sep 2026 pull. The daily sync from Business Profile starts once Google approves API access. Older reviews use Google Maps' approximate dates ("a year ago").`
-    : `<b>✓ All ${n} Google reviews</b> across the 5 branches, synced from Business Profile. Last sync ${when}.`;
+  // Which salons Metricool keeps current (Kate, 6 Oct 2026): any with a matched review.
+  const live=BRANCHES.filter(b=>SYNC.live.has(b)), off=BRANCHES.filter(b=>!SYNC.live.has(b)).map(b=>SHORT[b]);
+  el.innerHTML = !live.length
+    ? `<b>✓ All ${n} Google reviews</b> across the 5 branches, from the 24 Sep 2026 pull. Older reviews use Google Maps' approximate dates ("a year ago").`
+    : `<b>✓ All ${n} Google reviews</b> across the 5 branches. New reviews and replies come in nightly through Metricool, last ${when}.${off.length?` ${off.join(", ")} ${off.length>1?"are":"is"} still as of the 24 Sep 2026 pull, until connected in Metricool.`:""} Older reviews use Google Maps' approximate dates ("a year ago").`;
 }
 async function loadLive(){
   // photos: what the client attached on Google, read off Business Profile (google_review_photos, Kate, 5 Oct 2026).
-  const rows=[], cols="review_id,branch,stars,reviewer,comment,review_date,date_approx,when_text,replied,reply,url,source,synced_at,photos";
+  const rows=[], cols="review_id,branch,stars,reviewer,comment,review_date,date_approx,when_text,replied,reply,url,source,synced_at,photos,gbp_name";
   for(let from=0;;from+=1000){
     const res=await fetch(`${SUPA_URL}/rest/v1/google_reviews?select=${cols}&order=review_date.desc,review_id`,{headers:{...authHeaders(),Range:`${from}-${from+999}`}});
     if(!res.ok) throw new Error("google_reviews "+res.status);
@@ -409,7 +413,7 @@ async function loadLive(){
   }
   if(!rows.length) throw new Error("google_reviews is empty");
   R=rows.map(r=>({id:r.review_id,branch:r.branch,stars:r.stars,reviewer:r.reviewer,date:r.review_date,comment:r.comment||"",replied:r.replied,reply:r.reply||"",url:r.url,approx:r.date_approx,when:r.when_text,photos:r.photos||[]}));
-  SYNC={last:rows.reduce((m,r)=>r.synced_at>m?r.synced_at:m,""),seedOnly:rows.every(r=>r.source==="seed")};
+  SYNC={last:rows.reduce((m,r)=>r.synced_at>m?r.synced_at:m,""),seedOnly:rows.every(r=>r.source==="seed"),live:new Set(rows.filter(r=>r.gbp_name).map(r=>r.branch))};
   const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Dubai"});
   const totals={},exact={},avg={},cover={};
   BRANCHES.forEach(b=>{const rs=R.filter(r=>r.branch===b);totals[b]=rs.length;cover[b]=null;

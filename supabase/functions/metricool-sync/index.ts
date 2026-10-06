@@ -6,7 +6,9 @@
 // each run, so a salon added later (Khalifa City is not connected yet) comes in by
 // itself; its salon is read off the brand's name.
 // Body/query: { days? (default 10, back from today), from?, to? (Dubai dates),
-//               source?: 'all' | 'daily' | 'posts' } for a backfill.
+//               source?: 'all' | 'daily' | 'posts' | 'reviews', dry? } for a backfill.
+// Reviews (Kate, 6 Oct 2026): each salon's Google reviews into google_reviews, until the
+// Business Profile API is approved. See syncReviews below; dry: true only reports.
 // Posts are re-read for at least the last 45 days, because their numbers keep growing.
 // Every run marks sync_health 'metricool-sync'.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -150,6 +152,7 @@ Deno.serve(async (req) => {
       // The same post can come back in two overlapping pieces: keep one.
       out.posts = await save('metricool_posts', Object.values(Object.fromEntries(rows.map(r => [r.post_key, r]))), 'post_key');
     }
+    if (want('reviews')) out.reviews = await syncReviews(sb, brands, get, !!(body.dry || u.searchParams.get('dry')), errors);
     if (errors.length) { out.errors = errors; out.error = `${errors.length} call(s) failed: ${errors[0]}`; }
   } catch (e) {
     out.error = String((e as Error).message || e);
@@ -174,4 +177,101 @@ function zoned(x: any): string | null {
     .formatToParts(new Date(guess)).map(p => [p.type, p.value]));
   const asTz = Date.parse(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}Z`);
   return new Date(guess - (asTz - guess)).toISOString();
+}
+
+// ── Google reviews (Kate, 6 Oct 2026) ──────────────────────────────────────────────
+// google_reviews holds every review from the 24 Sep 2026 pull (source 'seed', with their
+// Maps links and client photos). Metricool only has reviews from when each salon was
+// connected (Oct 2025 on; Bahrain Jul 2026), so it can't replace those rows. Instead each
+// Metricool review is matched to its row and the row is kept up to date (replied, the
+// reply, an exact date where the pull only had "a year ago"); a review with no row is
+// new and is added (source 'api', review_id = Google's review id, as the Business
+// Profile API sync would). gbp_name remembers the match, so it is made once.
+// Match: same salon, same stars, same reviewer name (letters only), and the same opening
+// words, a date within 3 days, or for a row dated "a year ago" within 60 days; the
+// closest date wins. A reply is never taken away: Metricool's flag can lag behind Google.
+// Only reviews from 20 Sep 2026 on are added: an older one with no row wasn't on Google's
+// public list at the 24 Sep pull (the dry run on 6 Oct found 7, among them a 5★ from "Tara
+// Rose Management" and two unreplied low-star ones), so Google had most likely taken it
+// down; Metricool keeps them. They are counted as skipped, never shown.
+// Khalifa City A isn't in Metricool, so its new reviews wait until it is connected.
+const REVIEW_BRANCH: Record<string, string> = { KCA: 'Khalifa City A, Abu Dhabi', SAA: 'Saadiyat, Abu Dhabi',
+  AQ: 'Al Quoz, Dubai', MC: 'Motor City, Dubai', BAH: 'District 2, Bahrain' };
+const letters = (s: any) => String(s || '').toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}]/gu, '');
+const opening = (s: any) => letters(s).slice(0, 40);
+const NEW_FROM = '2026-09-20';
+
+async function syncReviews(sb: any, brands: any[], get: any, dry: boolean, errors: string[]) {
+  const now = new Date().toISOString();
+  const dubaiDate = (ms: number) => new Date(ms + 4 * 3600e3).toISOString().slice(0, 10);
+  const report: any = {};
+  for (const b of brands.filter((x: any) => x.branch && x.networks.gmb && REVIEW_BRANCH[x.branch])) {
+    const branch = REVIEW_BRANCH[b.branch];
+    const r: any = report[b.branch] = { metricool: 0, matched: 0, updated: 0, added: 0, skipped: 0, replies_read: 0 };
+    try {
+      const reviews = (await get('/v2/analytics/reviews/gbp', { blogId: String(b.brand_id),
+        from: '2015-01-01T00:00:00+04:00', to: dubaiDate(Date.now()) + 'T23:59:59+04:00', timezone: 'Asia/Dubai' })).data || [];
+      r.metricool = reviews.length;
+      const rows: any[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await sb.from('google_reviews')
+          .select('review_id,reviewer,stars,comment,review_date,date_approx,replied,reply,gbp_name')
+          .eq('branch', branch).range(from, from + 999);
+        if (error) throw new Error('google_reviews: ' + error.message);
+        rows.push(...data); if (data.length < 1000) break;
+      }
+      const byName = new Map(rows.filter(x => x.gbp_name).map(x => [x.gbp_name, x]));
+      const taken = new Set(rows.filter(x => x.gbp_name).map(x => x.review_id));
+      const updates: any[] = [], inserts: any[] = [];
+      // Oldest first, so two reviews from one person match their rows in order.
+      for (const m of [...reviews].sort((a: any, z: any) => a.created - z.created)) {
+        const date = dubaiDate(m.created), stars = Number(m.starRating), who = letters(m.reviewerName);
+        let row = byName.get(m.name);
+        if (!row) {
+          const days = (x: any) => Math.abs(Date.parse(x.review_date) - Date.parse(date)) / 864e5;
+          const c = rows.filter(x => !taken.has(x.review_id) && x.stars === stars && letters(x.reviewer) === who && who &&
+            ((opening(m.text) && opening(x.comment) === opening(m.text)) || days(x) <= 3 || (x.date_approx && days(x) <= 60)))
+            .sort((a, z) => days(a) - days(z));
+          row = c[0];
+        }
+        if (!row && date < NEW_FROM) { r.skipped++; continue; }
+        let reply = row && row.reply ? row.reply : '';
+        const replied = !!(m.replied || (row && row.replied));
+        if (m.replied && !reply) {
+          try {
+            const rr = await get('/v2/analytics/reviews/gbp/replies', { blogId: String(b.brand_id), reviewId: m.name });
+            reply = String(rr.data?.comment || '').trim(); r.replies_read++;
+          } catch (_) { /* a few replies come back "not found"; the row still says replied */ }
+        }
+        if (row) {
+          r.matched++; taken.add(row.review_id);
+          const ch: any = { review_id: row.review_id, gbp_name: m.name, replied, reply: reply || row.reply || '', synced_at: now };
+          if (row.date_approx) { ch.review_date = date; ch.date_approx = false; ch.created_at = new Date(m.created).toISOString(); }
+          if (!row.comment && m.text) ch.comment = m.text;
+          const same = row.gbp_name === m.name && row.replied === ch.replied && (row.reply || '') === ch.reply && !ch.review_date && !ch.comment;
+          if (!same) updates.push(ch);
+        } else {
+          inserts.push({ review_id: m.name, gbp_name: m.name, branch, location: 'locations/' + m.locationId, stars, reviewer: m.reviewerName || null,
+            comment: m.text || '', review_date: date, date_approx: false, replied, reply, source: 'api',
+            created_at: new Date(m.created).toISOString(), updated_at: m.updated ? new Date(m.updated).toISOString() : null, synced_at: now });
+        }
+      }
+      r.updated = updates.length; r.added = inserts.length;
+      if (dry) { r.sample_added = inserts.slice(-5).map(x => `${x.review_date} ${x.stars}★ ${x.reviewer}`); continue; }
+      for (const u of updates) {
+        const { review_id, ...set } = u;
+        const { error } = await sb.from('google_reviews').update(set).eq('review_id', review_id);
+        if (error) throw new Error('google_reviews update: ' + error.message);
+      }
+      if (inserts.length) {
+        const { error } = await sb.from('google_reviews').upsert(inserts, { onConflict: 'review_id' });
+        if (error) throw new Error('google_reviews insert: ' + error.message);
+      }
+      // A row Metricool vouches for shows as synced tonight; the page's "Last sync" reads it.
+      if (!updates.length && reviews.length) await sb.from('google_reviews').update({ synced_at: now }).eq('gbp_name', reviews[0].name);
+    } catch (e) {
+      errors.push(`reviews ${b.branch}: ${(e as Error).message || e}`);
+    }
+  }
+  return report;
 }
