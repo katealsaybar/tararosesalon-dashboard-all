@@ -504,7 +504,7 @@ function progressHtml(collected){
   var pct = targetPct(collected);
   return '<div class="progwrap"><div class="progtrack"><div class="progfill" style="width:' + pct + '%"></div></div>' +
     '<div class="progcap">AED ' + C.money(collected) + ' of AED ' + C.money(CAMPAIGN_TARGET_AED) +
-    ' &middot; ' + Math.round(pct) + '% &middot; ' + daysLeftToTarget() + ' days left</div></div>';
+    ' (' + Math.round(pct) + '%), ' + daysLeftToTarget() + ' days left</div></div>';
 }
 
 /* ---------- draw ---------- */
@@ -558,11 +558,11 @@ function draw(){
   el('summary').innerHTML = '<div class="sumbox">' + summaryHtml(live) + progressHtml(collected) + '</div>';
 
   el('tally').innerHTML = '<b>' + live.length + '</b> live ' + (live.length === 1 ? 'voucher' : 'vouchers') +
-    ' &middot; <b>AED ' + C.money(placed) + '</b> of credit placed &middot; <b>AED ' + C.money(collected) +
-    '</b> collected &middot; <b>AED ' + C.money(spent) + '</b> spent &middot; <b>' + Math.round(targetPct(collected)) + '%</b> of the AED ' +
-    C.money(CAMPAIGN_TARGET_AED) + ' target, ' + daysLeftToTarget() + ' days left &middot; <b>' + earned + '</b> ' +
+    '. <b>AED ' + C.money(placed) + '</b> of credit placed, <b>AED ' + C.money(collected) +
+    '</b> collected and <b>AED ' + C.money(spent) + '</b> spent. <b>' + Math.round(targetPct(collected)) + '%</b> of the AED ' +
+    C.money(CAMPAIGN_TARGET_AED) + ' target, ' + daysLeftToTarget() + ' days left. <b>' + earned + '</b> ' +
     (earned === 1 ? 'has' : 'have') + ' earned the referral credit' +
-    (term ? ' &middot; showing ' + shown.length + ' for &ldquo;' + C.esc(term) + '&rdquo;' : '');
+    (term ? '. Showing ' + shown.length + ' for &ldquo;' + C.esc(term) + '&rdquo;' : '');
 
   if (!hasReferrals){
     el('rolenote').className = 'note flag';

@@ -309,10 +309,10 @@ function render(){
   M = { today: today, launch: launch, collected: collected, placed: placed, spent: spent };
 
   el('asof').textContent = 'As of ' + DATA.at.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'}) +
-    ', ' + DATA.at.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) + ' · first sale ' + fmtD(launch) + ', day ' + daysIn;
+    ', ' + DATA.at.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) + '. First sale ' + fmtD(launch) + ', day ' + daysIn + '.';
   el('hCollected').innerHTML = aed(collected) + ' <small>of ' + aed(TARGET) + '</small>';
   el('hFill').style.width = Math.min(100, collected / TARGET * 100) + '%';
-  el('hCap').textContent = pc(collected, TARGET) + ' of the target · ' + daysLeft + (daysLeft === 1 ? ' day' : ' days') + ' left to ' + fmtD(TARGET_DATE);
+  el('hCap').textContent = pc(collected, TARGET) + ' of the target, ' + daysLeft + (daysLeft === 1 ? ' day' : ' days') + ' left to ' + fmtD(TARGET_DATE);
 
   var st = collected >= TARGET ? ['good','&#10003;','Target reached']
          : projected >= TARGET ? ['good','&#10003;','On pace']

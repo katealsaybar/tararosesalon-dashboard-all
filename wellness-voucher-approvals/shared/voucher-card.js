@@ -340,7 +340,7 @@
       // Dawn's wording, term 12. The front stays a pointer rather than an address: the back
       // carries both the QR and the printed path, and repeating it here would cost the line
       // that tells her the credit is not cash.
-      '<div class="fine">Cannot be exchanged for cash &middot; Full terms apply</div>' +
+      '<div class="fine">Cannot be exchanged for cash. Full terms apply.</div>' +
     '</div>';
   };
 

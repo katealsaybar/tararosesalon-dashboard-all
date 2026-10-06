@@ -43,7 +43,7 @@
     if (!email) { who.textContent = ''; return; }
     var role = TRS.isAdmin() ? 'editor' : 'viewer';
     who.innerHTML = 'Signed in as <strong>' + email + '</strong> (' + role + '). ' +
-      '<a href="' + returnTo() + '">Back to the pack</a> · ' +
+      '<a href="' + returnTo() + '">Back to the pack</a>. ' +
       '<a href="#" id="signout">Sign out</a>';
     var so = document.getElementById('signout');
     if (so) so.addEventListener('click', function (e) {
