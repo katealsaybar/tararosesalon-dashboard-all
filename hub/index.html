@@ -30,7 +30,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261006nav2"></script>
+<script src="/hub/hub.js?v=20261006nav3"></script>
 <script>
 KB.ready.then(async function () {
   var esc = KB.esc;
@@ -95,7 +95,8 @@ KB.ready.then(async function () {
     stafflevels: 'Stylist Levels', stylists: 'Staff Cards', orgchart: 'Org Chart', products: 'Products',
     ledgerFinancials: 'Financial Totals', ledgerTargets: 'Daily Target Sheet', ledgerActuals: 'Actuals vs Targets',
     ledgerStylist: 'Daily Stylist Target', services: 'Service Rankings', clients: 'Top Clients', lostclients: 'Lost Clients',
-    wvperf: 'Wellness Voucher Performance', reviews: 'Google Reviews' };
+    wvperf: 'Wellness Voucher Performance', reviews: 'Google Reviews',
+    googleads: 'Google Ads', website: 'Website & Search' };
   var dashFavs = Object.keys(favs).filter(function (k) { return k.indexOf('d:') === 0 && DASH_PAGES[k.slice(2)]; })
     .map(function (k) { var v = k.slice(2);
       return { key: k, title: DASH_PAGES[v], href: '/?view=' + v, live: true, rule: 'var(--accent-lavender)', blurb: 'Dashboards',

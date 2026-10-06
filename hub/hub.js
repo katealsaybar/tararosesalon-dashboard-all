@@ -72,9 +72,12 @@
       blurb: 'Today’s tasks, the campaign calendar and platform checks.' },
     { key: 'post-approvals', via: 'dashboards', min: 3, ic: 'approvals', dept: 'Content', title: 'Post Approvals', href: 'https://katealsaybar.github.io/smm_board_approvals/', rule: 'var(--accent-coral)',
       blurb: 'Posts waiting for a yes, with comments.' },
-    { key: 'content-ads', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Content', title: 'Ads Results', href: '/?view=googleads', rule: 'var(--accent-coral)',
-      blurb: 'Google Ads spend, clicks and leads.' },
-    { key: 'campaigns', dept: 'Content', title: 'Campaigns', href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
+    // Kate, 6 Oct 2026: named as in the dashboard sidebar (Marketing & Campaigns).
+    { key: 'content-ads', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Content', title: 'Google Ads', href: '/?view=googleads', rule: 'var(--accent-coral)',
+      blurb: 'Spend, clicks and leads from Google Ads.' },
+    { key: 'content-web', via: 'dashboards', min: 3, ic: 'dashboards', dept: 'Content', title: 'Website & Search', href: '/?view=website', rule: 'var(--accent-coral)',
+      blurb: 'Website visits and how people find us on Google.' },
+    { key: 'campaigns', dept: 'Content', title: 'Wellness Voucher Performance', href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
       blurb: 'Wellness Voucher performance.' },
 
     { key: 'people-orgchart', via: 'dashboards', min: 1, ic: 'people', dept: 'People', title: 'Org Chart', href: '/?view=orgchart', rule: 'var(--accent-mint)',
