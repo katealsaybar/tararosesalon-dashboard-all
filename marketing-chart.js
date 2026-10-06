@@ -21,7 +21,8 @@ const mkEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<'
 // boxes beside them. p is the page's prefix (gads, web, soc); it calls <p>SetDays(n)
 // and <p>SetCustom('from'|'to', date). days 0 = Custom; custom = { from, to }.
 function mkPeriodRow(p, days, custom) {
-  const PER = [[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'This year'], [0, 'Custom']];
+  // "Last" drops on a phone (.mk-lg), so the five fit one line.
+  const PER = [[7, '<span class="mk-lg">Last </span>7 days'], [30, '<span class="mk-lg">Last </span>30 days'], [90, '<span class="mk-lg">Last </span>90 days'], [365, 'This year'], [0, 'Custom']];
   return `<div class="filters mk-period">
       <div class="f-row">
         <span class="f-lbl" id="${p}PerLbl">Period</span>

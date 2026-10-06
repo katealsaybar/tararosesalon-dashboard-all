@@ -2293,6 +2293,8 @@ button.lc-seg:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
 .soc-tabs::-webkit-scrollbar{display:none}
 .soc-tabs button{flex:none}
 .soc-tabs i{width:8px;height:8px;border-radius:50%;display:inline-block}
+/* On the selected tab the dot gets a ring, so it never vanishes into the selector (TikTok black on black, light). */
+.soc-tabs button.on i{box-shadow:0 0 0 2px var(--accent-fg)}
 /* Four across only when each card has room; two before that (Kate, 6 Oct 2026: words wrapping). */
 .soc-plats{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(min-width:1400px){.soc-plats{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -2312,6 +2314,18 @@ button.soc-plat:focus-visible{outline:2px solid var(--accent);outline-offset:2px
 .mk-period{padding:0 0 4px;overflow:visible}
 .mk-period .f-dates input{color-scheme:light}
 [data-theme=dark] .mk-period .f-dates input{color-scheme:dark}
+/* Phone (Kate, 6 Oct 2026: "looks awkward"): Period on its own line, the five chips one
+   row under it ("Last" dropped), sliding sideways if a screen is narrower still. */
+@media(max-width:760px){
+  .mk-period .f-row{flex-wrap:wrap;gap:0 12px}
+  .mk-period .f-lbl{flex-basis:100%}
+  .mk-period .chipset{flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:none}
+  .mk-period .chipset::-webkit-scrollbar{display:none}
+  .mk-period .chip{flex:none}
+  .mk-period .sep{padding:0 6px}
+  .mk-period .mk-lg{display:none}
+  .mk-period .f-dates{margin-left:0}
+}
 .soc-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px}
 .soc-tiles{grid-template-columns:repeat(5,minmax(0,1fr))}
 .soc-secs{padding-top:6px;padding-bottom:6px}
@@ -3939,10 +3953,10 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-weeks.js?v=20261005dots"></script>
 <script src="products.js?v=20261005dots"></script>
 <script src="lost-clients.js?v=20261006btn"></script>
-<script src="marketing-chart.js?v=20261006per"></script>
+<script src="marketing-chart.js?v=20261006ph"></script>
 <script src="google-ads.js?v=20261006per"></script>
 <script src="website.js?v=20261006per"></script>
-<script src="social.js?v=20261006per2"></script>
+<script src="social.js?v=20261006ph"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261006soc"></script>

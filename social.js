@@ -46,7 +46,7 @@ const SOC_PLAT = {
 // Platform colours, one set a theme (the charts are drawn in JS, so they read the theme at draw time).
 const socDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
 const socCols = () => socDark()
-  ? { instagram: '#FF9B9B', tiktok: '#99F6E4', facebook: '#C4B5FD', youtube: '#FFD4D9' }
+  ? { instagram: '#FF9B9B', tiktok: '#99F6E4', facebook: '#C4B5FD', youtube: '#EEF3C7' }   // YouTube butter: the pink was the selector's own colour
   : { instagram: '#C2416A', tiktok: '#1A1A1A', facebook: '#3B5BA9', youtube: '#C4302B' };
 const socRgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
 const socNum = v => (v === null || v === undefined || !isFinite(v)) ? '–' : Math.round(Number(v) || 0).toLocaleString('en-GB');
