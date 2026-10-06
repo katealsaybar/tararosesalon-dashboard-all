@@ -127,7 +127,7 @@ function webPaint(el) {
     </section>
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Window">
-        ${[[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'This year'], [0, 'Custom']].map(([k, l]) =>
+        ${[[7, '<span class="mk-lg">Last </span>7 days'], [30, '<span class="mk-lg">Last </span>30 days'], [90, '<span class="mk-lg">Last </span>90 days'], [365, 'This year'], [0, 'Custom']].map(([k, l]) =>
           `<button type="button" class="${webDays === k ? 'on' : ''}" onclick="webSetDays(${k})">${l}</button>`).join('')}
       </div>
       ${webDays === 0 ? `<div class="mk-dates" role="group" aria-label="Custom dates">

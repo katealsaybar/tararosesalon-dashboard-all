@@ -308,6 +308,12 @@
   .lgx-bar{gap:8px}
   .lgx-b{padding:0 14px;font-size:12px}
   .sc-seg button,.tp-seg button,.cmp-mode button{min-height:44px;padding:0 15px}
+  /* Marketing pages (Kate, 6 Oct 2026: "too chunky on phone view"): the window and
+     Daily/Weekly pills stay one slim row: "7 days" without "Last", 36px high, and the
+     custom dates pill as slim (16px text kept so iPhones do not zoom into it). */
+  #googleAdsContent .sc-seg button,#websiteContent .sc-seg button{min-height:36px;padding:0 9px;font-size:12.5px;letter-spacing:0;white-space:nowrap}
+  #googleAdsContent .mk-lg,#websiteContent .mk-lg{display:none}
+  #googleAdsContent .mk-dates input,#websiteContent .mk-dates input{min-height:0;height:30px;padding:0 4px}
   .chip{min-width:44px;justify-content:center}
   .cmp-chip,.cmp-tchip,.cmp-bp-btn{min-height:44px}
   .cmp-swap{width:44px;height:44px;min-width:44px}
