@@ -151,7 +151,22 @@ function socPaint(el) {
   const stale = !s || !s.last_ok_at || (Date.now() - new Date(s.last_ok_at).getTime()) > 36 * 3600e3;
   const synced = s && s.last_ok_at ? new Date(s.last_ok_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null;
   const T = socTotals(d);
+  // Period at the top, as Organisation Pulse's (Kate, 6 Oct 2026: "like org pulse, but
+  // simpler"): text chips with an underline, Custom opening two date boxes beside them.
+  const PER = [[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days'], [365, 'This year'], [0, 'Custom']];
   el.innerHTML = `
+    <div class="filters soc-period">
+      <div class="f-row">
+        <span class="f-lbl" id="socPerLbl">Period</span>
+        <div class="chipset" role="group" aria-labelledby="socPerLbl">${PER.map(([k, l]) =>
+          `<button type="button" class="chip" aria-pressed="${socDays === k}" onclick="socSetDays(${k})">${l}</button>`).join('<span class="sep">·</span>')}</div>
+        ${socDays === 0 ? `<div class="f-dates">
+          <input type="date" aria-label="From" value="${mkEsc(socCustom.from)}" min="2025-01-01" max="${mkIso(new Date())}" onchange="socSetCustom('from', this.value)">
+          <span>to</span>
+          <input type="date" aria-label="To" value="${mkEsc(socCustom.to)}" min="2025-01-01" max="${mkIso(new Date())}" onchange="socSetCustom('to', this.value)">
+        </div>` : ''}
+      </div>
+    </div>
     <section class="slv-intro">
       <h2>Social</h2>
       <p>Instagram, TikTok, the Facebook page and YouTube in one place. Overview for the quick look; each platform's tab has its full report, as in Metricool. The apps report a day or two late.</p>
@@ -161,15 +176,6 @@ function socPaint(el) {
         ${[['overview', 'Overview'], ...Object.entries(SOC_NETS)].map(([k, l]) =>
           `<button type="button" role="tab" aria-selected="${socTab === k}" class="${socTab === k ? 'on' : ''}" onclick="socSetTab('${k}')">${k !== 'overview' ? `<i style="background:${cols[k]}"></i>` : ''}${l}</button>`).join('')}
       </div>
-      <div class="sc-seg" role="group" aria-label="Window">
-        ${[[7, '<span class="mk-lg">Last </span>7 days'], [30, '<span class="mk-lg">Last </span>30 days'], [90, '<span class="mk-lg">Last </span>90 days'], [365, 'This year'], [0, 'Custom']].map(([k, l]) =>
-          `<button type="button" class="${socDays === k ? 'on' : ''}" onclick="socSetDays(${k})">${l}</button>`).join('')}
-      </div>
-      ${socDays === 0 ? `<div class="mk-dates" role="group" aria-label="Custom dates">
-        <input type="date" aria-label="From" value="${mkEsc(socCustom.from)}" min="2025-01-01" max="${mkIso(new Date())}" onchange="socSetCustom('from', this.value)">
-        <span>to</span>
-        <input type="date" aria-label="To" value="${mkEsc(socCustom.to)}" min="2025-01-01" max="${mkIso(new Date())}" onchange="socSetCustom('to', this.value)">
-      </div>` : ''}
     </div>
     ${stale ? `<p class="slv-muted" style="color:#b42318">Social numbers are paused${s && s.last_error ? ': ' + mkEsc(s.last_error) : ''}. Last good update: ${synced ? mkEsc(synced) : 'never'}.</p>` : ''}
     ${socTab === 'overview' ? socOverviewHtml(T) : socPlatformHtml(socTab, T)}
@@ -185,8 +191,9 @@ function socOverviewHtml(T) {
   const kv = rows => `<div class="soc-kv">${rows.filter(([, v]) => v !== '–').map(([k, v]) => `<span>${k}</span><span>${v}</span>`).join('')}</div>`;
   const upTo = net => last[net] ? `<div class="slv-note">Numbers up to ${mkDay(last[net])}</div>` : '';
   const card = (net, body) => { const f = socFollowers(net); return `<button type="button" class="w13-tile soc-plat" onclick="socSetTab('${net}')">
-      <div class="soc-plat-top"><span><i style="background:${cols[net]}"></i>${SOC_NETS[net]}</span><em>Full report ›</em></div>
-      <div class="slv-eyebrow">${SOC_PLAT[net].label}</div><div class="w13-val">${socNum(f.end)}${socChg(f.chg)}</div>${body}${upTo(net)}</button>`; };
+      <div class="soc-plat-top"><span><i style="background:${cols[net]}"></i>${SOC_NETS[net]}</span></div>
+      <div class="slv-eyebrow">${SOC_PLAT[net].label}</div><div class="w13-val">${socNum(f.end)}${socChg(f.chg)}</div>${body}
+      <div class="soc-plat-foot">${upTo(net)}<em>Full report ›</em></div></button>`; };
   const ig = posts.instagram.filter(p => p.kind !== 'story'), tt = posts.tiktok, fb = posts.facebook.filter(p => p.kind !== 'story');
 
   const nets = Object.keys(SOC_NETS).filter(n => d.posts.some(p => p.network === n && p.kind !== 'story'));
@@ -215,7 +222,7 @@ function socOverviewHtml(T) {
         ${card('tiktok', kv([
           ['Video views', socNum(t['tiktok.video_views'])],
           ['Profile visits', socNum(t['tiktok.profile_views'])],
-          ['Posted', count(tt, [['video', 'video'], ['photo', 'photo post']])],
+          ['Posted', count(tt, [['video', 'video'], ['photo', 'photo']])],
         ]))}
         ${card('facebook', kv([
           ['Reel plays', socNum(socSum(fb.filter(p => p.kind === 'reel'), 'views'))],

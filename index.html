@@ -2293,13 +2293,25 @@ button.lc-seg:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
 .soc-tabs::-webkit-scrollbar{display:none}
 .soc-tabs button{flex:none}
 .soc-tabs i{width:8px;height:8px;border-radius:50%;display:inline-block}
-.soc-plats{grid-template-columns:repeat(4,minmax(0,1fr))}
+/* Four across only when each card has room; two before that (Kate, 6 Oct 2026: words wrapping). */
+.soc-plats{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(min-width:1400px){.soc-plats{grid-template-columns:repeat(4,minmax(0,1fr))}}
 button.soc-plat{appearance:none;font:inherit;color:inherit;text-align:left;background:var(--surface);cursor:pointer;transition:border-color .15s,transform .15s}
 @media(hover:hover){button.soc-plat:hover{border-color:var(--accent);transform:translateY(-1px)}}
 button.soc-plat:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .soc-plat-top{justify-content:space-between}
 .soc-plat-top span{display:inline-flex;align-items:center;gap:8px}
-.soc-plat-top em{font-style:normal;font-size:12px;font-weight:500;color:var(--muted)}
+/* A button centres its content by default: the cards start at the top so the names line up. */
+.soc-plat{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
+.soc-plat .soc-kv span:nth-child(odd){white-space:nowrap}
+.soc-plat-foot{margin-top:auto;padding-top:6px;display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.soc-plat-foot .slv-note{margin:0}
+.soc-plat-foot em{font-style:normal;font-size:12.5px;font-weight:600;color:var(--muted);margin-left:auto;white-space:nowrap}
+@media(hover:hover){button.soc-plat:hover .soc-plat-foot em{color:var(--text)}}
+/* The Social page's own Period row, in the masthead filters' look (Kate, 6 Oct 2026). */
+.soc-period{padding:0 0 4px;overflow:visible}
+.soc-period .f-dates input{color-scheme:light}
+[data-theme=dark] .soc-period .f-dates input{color-scheme:dark}
 .soc-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px}
 .soc-tiles{grid-template-columns:repeat(5,minmax(0,1fr))}
 .soc-secs{padding-top:6px;padding-bottom:6px}
@@ -2323,7 +2335,7 @@ button.soc-plat:focus-visible{outline:2px solid var(--accent);outline-offset:2px
 .soc-heat-h{text-align:center}
 .soc-heat-d{display:flex;align-items:center}
 .soc-heat-c{height:20px;border-radius:3px}
-@media(max-width:900px){.soc-plats{grid-template-columns:repeat(2,minmax(0,1fr))}.soc-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:900px){.soc-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.soc-plats{grid-template-columns:1fr}.soc-sm{display:none}.soc-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
   .soc-two{grid-template-columns:1fr}.soc-heat{font-size:9px;grid-template-columns:30px repeat(24,minmax(0,1fr))}.soc-heat-c{height:14px}
   .soc-sec-s{max-width:55%}}
@@ -3930,7 +3942,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="marketing-chart.js?v=20261006q"></script>
 <script src="google-ads.js?v=20261006slim"></script>
 <script src="website.js?v=20261006slim"></script>
-<script src="social.js?v=20261006yt"></script>
+<script src="social.js?v=20261006per"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
 <script src="dashboard.js?v=20261006soc"></script>
