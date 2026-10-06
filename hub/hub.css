@@ -312,9 +312,9 @@ body.kb-wait .wrap{visibility:hidden}
      Next shrank to its text on the right). */
   .kb-pager{flex-direction:row}
   .kb-pager a{flex:1 1 0;min-width:0;max-width:none}
-  /* Only the search stays pinned while reading: the logo row scrolls away, so the
-     header takes about 60px of the screen instead of 120. */
-  .kb-head{top:-58px}
+  /* Kate, 6 Oct 2026: the whole header stays pinned on a phone, logo row included, so the
+     account menu (and View as) is always one tap away. Replaces the 3 Oct rule that let
+     the logo row scroll off and kept only the search. */
   /* The chapter count sits beside "Chapters", not in the middle of the bar. */
   .kb-toc summary span{margin:0 auto 0 10px}
 }
