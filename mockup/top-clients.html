@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Top Clients Mock-up</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Tokens copied from the dashboard (index.html): brand accents, light and dark themes. */
+:root{
+  --accent-mint:#99F6E4;--accent-butter:#EEF3C7;--accent-lavender:#C4B5FD;--accent-coral:#FF9B9B;
+  --radius-card:10px;
+}
+:root,:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#FAF7F0;--surface:#fff;--surface2:#F4F1E9;--border:#E8E2D6;
+  --text:#1A1A1A;--muted:#565049;--muted2:#77706A;--accent:#1A1A1A;--accent-fg:#FBF7F0;
+  --shadow-card:0 1px 2px rgba(26,26,26,.05),0 10px 28px -8px rgba(26,26,26,.10);
+  --good:#0F6E56;--warn:#BA7517;--bad:#A32D2D;
+  --hair:#7C5CD4;--beauty:#C2416A;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;--border:rgba(250,248,243,.09);
+    --text:#FAF8F3;--muted:rgba(250,248,243,.68);--muted2:rgba(250,248,243,.5);--accent:#FFD4D9;--accent-fg:#2D2E37;
+    --shadow-card:0 1px 2px rgba(0,0,0,.3),0 10px 28px -8px rgba(0,0,0,.35);
+    --good:#99F6E4;--warn:#EEF3C7;--bad:#FF9B9B;
+    --hair:#C4B5FD;--beauty:#FF9B9B;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;--border:rgba(250,248,243,.09);
+  --text:#FAF8F3;--muted:rgba(250,248,243,.68);--muted2:rgba(250,248,243,.5);--accent:#FFD4D9;--accent-fg:#2D2E37;
+  --shadow-card:0 1px 2px rgba(0,0,0,.3),0 10px 28px -8px rgba(0,0,0,.35);
+  --good:#99F6E4;--warn:#EEF3C7;--bad:#FF9B9B;
+  --hair:#C4B5FD;--beauty:#FF9B9B;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;line-height:1.6;transition:background .3s,color .3s}
+button,input,select{font:inherit;color:inherit}
+
+/* Mock-up banner and masthead */
+.mock{background:var(--accent-butter);color:#1A1A1A;font-size:13px;padding:8px 16px;text-align:center;line-height:1.45}
+.mock b{font-weight:700}
+.mast{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;max-width:1100px;margin:0 auto;padding:16px 16px 8px}
+.logo{font-family:'Playfair Display',Georgia,serif;letter-spacing:.42em;text-transform:uppercase;font-size:15px;font-weight:500}
+.mast-acts{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.mast-acts .lbl{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.tglr{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:20px;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;padding:6px 12px;min-height:34px;cursor:pointer}
+@media(hover:hover){.tglr:hover{color:var(--text);border-color:var(--text)}}
+.tglr[disabled]{opacity:.4;cursor:default}
+
+main{max-width:1100px;margin:0 auto;padding:10px 16px 56px}
+@media(min-width:761px){main{padding:10px 28px 56px}.mast{padding:16px 28px 8px}}
+
+/* Page intro (slv-intro) */
+.intro{margin:14px 0 14px}
+.intro h2{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;margin:0 0 6px;letter-spacing:.005em}
+.intro p{color:var(--muted);font-size:15px;line-height:1.5;max-width:660px}
+@media(max-width:760px){.intro h2{font-size:26px}.intro p{font-size:14px}}
+
+/* Pills (sc-seg) and the control bar (lc-bar) */
+.sc-seg{display:flex;gap:2px;padding:2px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}
+.sc-seg button{appearance:none;border:0;background:transparent;color:var(--muted);font-size:13.5px;font-weight:600;letter-spacing:.04em;padding:5px 13px;border-radius:999px;cursor:pointer;transition:background .18s,color .18s;white-space:nowrap}
+@media(hover:hover){.sc-seg button:hover{color:var(--text)}}
+.sc-seg button.on{background:var(--accent);color:var(--accent-fg);font-weight:700}
+.bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;padding:8px 0}
+.grp{display:flex;flex-direction:column;gap:5px}
+.eyebrow{font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.grp .eyebrow{margin-left:4px}
+.sub{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 0 4px;font-size:13px;color:var(--muted)}
+.sub input,.sub select{padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
+.sub input[type=number]{width:64px}
+@media(max-width:760px){
+  .bar{gap:10px}.grp{flex:1 1 100%;min-width:0}
+  .grp.half{flex:1 1 calc(50% - 5px)}
+  .bar .sc-seg{width:100%}.bar .sc-seg button{flex:1;padding-left:2px;padding-right:2px;font-size:12.5px;letter-spacing:0}
+}
+
+/* Cards, tiles */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:20px;margin-bottom:14px}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 20px;margin-bottom:12px}
+.head h3{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:26px;margin:2px 0 0;letter-spacing:.005em;line-height:1.25}
+.head p{color:var(--muted);font-size:14px}
+.note{font-size:12px;color:var(--muted);margin-top:2px}
+.muted{color:var(--muted);font-size:13px;margin:12px 0 0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.tile{border:1px solid var(--border);border-radius:12px;padding:12px 14px;min-width:0;text-align:left;background:transparent}
+button.tile{cursor:pointer;display:block;width:100%}
+@media(hover:hover){button.tile:hover{border-color:var(--text)}}
+.tile .val{font-size:22px;font-weight:600;margin:4px 0 2px;font-variant-numeric:tabular-nums;line-height:1.25;overflow-wrap:anywhere}
+.tile .val.who{font-size:18px}
+.tile.warn{border-color:var(--accent-coral)}
+@media(max-width:700px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{padding:10px 12px}.tile .val{font-size:18px}.tile .val.who{font-size:16px}.card{padding:14px}.head h3{font-size:22px}}
+
+/* Staff colours: hair lavender, beautician coral (the dashboard's --hair / --staff-beauty) */
+.st-hair{color:var(--hair);font-weight:600}
+.st-beauty{color:var(--beauty);font-weight:600}
+.others{margin-top:3px;font-size:12px;color:var(--muted);line-height:1.5}
+.others .st-hair,.others .st-beauty{font-weight:500}
+
+/* Every-branch board (lc-board) */
+.chart{display:grid;gap:8px;margin:16px 0 4px}
+.brow{display:grid;grid-template-columns:110px minmax(0,1fr) 120px;align-items:center;gap:10px}
+.bname{font-size:14px;font-weight:600}
+.btrack{display:flex;height:24px;border-radius:7px;background:var(--surface2);overflow:hidden;gap:1px}
+.seg{border:0;padding:0;height:100%;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.07);transition:filter .15s}
+.seg.on{outline:2px solid var(--text);outline-offset:-2px}
+@media(hover:hover){.seg:hover{filter:brightness(.93)}}
+.bfig{text-align:right;font-variant-numeric:tabular-nums;line-height:1.3}
+.bfig b{display:block;font-size:15px}.bfig small{font-size:12px;color:var(--muted)}
+.read{font-size:13px;color:var(--muted);margin:8px 0 0;min-height:20px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)}
+.c-now{background:var(--accent-mint)}.c-cool{background:var(--accent-butter)}.c-slip{background:var(--accent-coral)}
+details.nums{margin-top:12px}
+details.nums summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.t{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.t th,.t td{padding:9px 6px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+.t th:first-child,.t td:first-child{text-align:left}
+.t thead th{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em}
+.t tr.tot td,.t tr.tot th{font-weight:700;border-top:2px solid var(--border)}
+.t td small{display:block;font-size:12px;color:var(--muted)}
+@media(max-width:700px){.brow{grid-template-columns:76px minmax(0,1fr) 84px;gap:8px}.bname{font-size:13px}.bfig b{font-size:14px}.bfig small{font-size:11px}}
+
+/* Tools, table (lc-wrap), cards */
+.tools{display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center;margin:16px 0 8px}
+.tools input[type=search]{flex:1;min-width:180px;max-width:320px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
+.tools .sp{margin-left:auto;display:flex;align-items:center;gap:8px}
+.list{table-layout:fixed;min-width:900px}
+.nw{white-space:nowrap}
+.list td{white-space:normal;overflow-wrap:anywhere;vertical-align:top}
+.list th{vertical-align:bottom;white-space:normal;line-height:1.3}
+.list .thb{white-space:normal;text-align:inherit}
+.list td.l,.list th.l{text-align:left}
+.c-rank{width:4%}.c-client{width:16%}.c-rev{width:9%}.c-visits{width:6%}.c-avg{width:9%}.c-last{width:12%}.c-hair{width:12%}.c-beauty{width:12%}.c-fav{width:11%}.c-phone{width:14%}
+.thb{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font:inherit;letter-spacing:inherit;color:inherit;white-space:nowrap}
+.thb:focus-visible{box-shadow:0 0 0 2px var(--accent)}
+.thb svg{width:12px;height:12px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.4}
+.thb.on{color:var(--text)}.thb.on svg{opacity:1;stroke:var(--hair);stroke-width:1.8}.thb.on.up svg{transform:rotate(180deg)}
+tr.row{cursor:pointer}
+@media(hover:hover){tr.row:hover td{background:var(--surface2)}}
+tr.row.open td{background:var(--surface2)}
+.hint{display:inline-block;margin-left:10px;font-size:12px;color:var(--muted);opacity:0;transform:translateX(-4px);transition:opacity .15s,transform .15s}
+@media(hover:hover){tr.row:hover .hint{opacity:1;transform:none}}
+tr.row.open .hint{display:none}
+.rank{font-family:'Playfair Display',serif;font-size:17px;font-weight:600;color:var(--muted2);display:inline-block;min-width:16px;text-align:center}
+.rank.gold{color:#F5C842}.rank.silver{color:#B0B8C1}.rank.bronze{color:#CD7F32}
+.cl{display:flex;align-items:center;gap:8px}
+.av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#2D2E37;flex-shrink:0}
+.rev{font-family:'Playfair Display',serif;font-size:17px;font-weight:600}
+.dim{color:var(--muted)}
+.pill{display:inline-block;margin-top:3px;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid var(--border)}
+.pill.cool{border-color:var(--warn);color:var(--warn)}
+.pill.slip{border-color:var(--bad);color:var(--bad)}
+.det td{padding:0 0 14px!important;background:var(--surface2);text-align:left!important;white-space:normal!important}
+.det-box{padding:14px 16px;cursor:default;text-align:left}
+.grid2{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px 28px}
+@media(max-width:760px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.svc{margin:8px 0 0;padding-left:20px}.svc li{margin:0 0 8px}.svc b{font-weight:600}.svc li>span{display:block;font-size:12.5px;color:var(--muted)}
+.prod{margin:8px 0 0;padding-left:18px}.prod li{margin:0 0 4px}.prod span{color:var(--muted);font-size:12.5px}
+.sts{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px}.sts em{font-style:normal;color:var(--muted);font-size:12.5px}
+.months{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;align-items:end;height:64px;margin-top:8px}
+.months div{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:10.5px;color:var(--muted)}
+.months i{display:block;width:100%;border-radius:3px 3px 0 0;background:var(--accent-lavender);min-height:2px}
+.months div.cur i{opacity:.5}
+.callnote{margin-top:12px;padding:8px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:13px}
+ol.cards{display:none;list-style:none;margin:6px 0 0;padding:0}
+.card-r{display:block;padding:11px 0;border-top:1px solid var(--border);cursor:pointer}
+.card-r:first-child{border-top:0}
+.ctop{display:flex;align-items:baseline;gap:10px}
+.cname{flex:1;min-width:0;font-size:14px;font-weight:600;line-height:1.3;overflow-wrap:anywhere;display:flex;align-items:center;gap:8px}
+.cname .rank{font-size:15px;min-width:14px}
+.cspend{flex-shrink:0;font-size:14px;font-weight:700;white-space:nowrap}
+.cmeta{font-size:12px;color:var(--muted);margin-top:2px;padding-left:0}
+.hint-m{margin-top:6px;font-size:12px;color:var(--muted)}
+.card-r.open .hint-m{display:none}
+.card-r .det-box{margin-top:10px;padding:12px;border-radius:10px;background:var(--surface2)}
+@media(max-width:900px){.desk{display:none}ol.cards{display:block}}
+@media(max-width:760px){.tools input[type=search]{flex:1 1 100%;max-width:none}.tools .sp{margin-left:0;width:100%;justify-content:space-between}}
+.foot{color:var(--muted);font-size:13px;line-height:1.55;margin-top:6px}
+details.about{margin-top:18px;font-size:14px;color:var(--muted)}
+details.about summary{cursor:pointer}
+details.about ul{margin:8px 0 0 20px}
+.empty{padding:18px 6px;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="mock"><b>Mock-up.</b> Made-up clients, stylists and phone numbers, not connected to Phorest or Supabase. It shows layout and behaviour only. Today in this mock is 7 Oct 2026.</div>
+
+<header class="mast">
+  <div class="logo">Tara Rose Salons</div>
+  <div class="mast-acts">
+    <span class="lbl">Sign-in preview</span>
+    <div class="sc-seg" role="group" aria-label="Preview as">
+      <button type="button" data-a="owner" data-v="1" class="on">Owner</button>
+      <button type="button" data-a="owner" data-v="0">Level 2</button>
+    </div>
+    <button type="button" class="tglr" id="themeBtn" aria-label="Switch light or dark theme">Dark</button>
+  </div>
+</header>
+
+<main>
+  <section class="intro">
+    <h2>Top Clients</h2>
+    <p>Who spends the most, by branch, and when we last saw them. For reference and for knowing who to look after first.</p>
+  </section>
+
+  <div class="bar" id="bar"></div>
+  <div id="subrows"></div>
+
+  <section class="card" id="board"></section>
+
+  <section class="card">
+    <div class="head" id="listHead"></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="tools">
+      <input type="search" id="q" placeholder="Search name or stylist" aria-label="Search name or stylist">
+      <span class="sp"><span class="note" style="margin:0">Show top</span><div class="sc-seg" id="topSeg" role="group" aria-label="How many clients"></div></span>
+    </div>
+    <div id="table"></div>
+  </section>
+
+  <p class="foot">Revenue is ex VAT, from the sample visits in this mock. Visits are days she came in. Last seen is her newest visit at the branch picked (or any branch on All), so the last day or two can lag in the real page. Usual stylist is whoever served most of her visits. Phone numbers would be shown to the owner login only, as on Client's Last Visit, and check consent in Phorest before anyone messages a client.</p>
+
+  <details class="about">
+    <summary>What this mock-up borrows from Client's Last Visit</summary>
+    <ul>
+      <li>Branch pills, Visits pills, a Last seen pill row with a Custom range.</li>
+      <li>The every-branch board: one bar per branch, tap a piece to open that list.</li>
+      <li>Summary tiles, with their stylist (lavender) and their beautician (coral).</li>
+      <li>Search, sortable headings, tap a row for what she comes in for.</li>
+      <li>Phone column for the owner login, cards on a phone.</li>
+    </ul>
+  </details>
+</main>
+
+<script>
+/* ---------- Fake sample data (seeded, so it is the same every time) ---------- */
+const TODAY = '2026-10-07', TODAY_MS = Date.parse(TODAY);
+const BR = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
+const BKEYS = Object.keys(BR);
+const STAFF = {
+  SAA: { hair: ['Hana Sample', 'Rosa Example'],  beauty: ['Bea Sample', 'Lia Example'] },
+  KCA: { hair: ['Mina Demo', 'Zara Mockup'],     beauty: ['Ines Demo', 'Pia Mockup'] },
+  MC:  { hair: ['Tess Sample', 'Joy Example'],   beauty: ['Uma Sample', 'Kai Example'] },
+  AQ:  { hair: ['Cleo Demo', 'Dina Mockup'],     beauty: ['Sol Demo', 'Vera Mockup'] },
+};
+const HAIR_SV = ['Cut and finish', 'Blow dry', 'Full colour', 'Balayage', 'Keratin treatment', 'Scalp treatment'];
+const BEAUTY_SV = ['Manicure', 'Pedicure', 'Gel polish', 'Lash lift', 'Brow shape', 'Facial'];
+const PRODUCTS = ['Shampoo (sample)', 'Hair mask (sample)', 'Heat protect spray (sample)', 'Nail oil (sample)'];
+const FIRST = ['Aisha','Bella','Carmen','Dana','Elena','Farah','Gita','Hala','Iris','Jana','Kira','Lena','Maya','Nadia','Olivia','Priya','Qamar','Rima','Sara','Tala','Uma','Vera','Wafa','Yasmin'];
+const SUR = ['Sample','Example','Placeholder','Mockup','Testwell','Demo'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'];
+
+function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const R = rng(20261007);
+const iso = ms => new Date(ms).toISOString().slice(0, 10);
+const addDays = (s, n) => iso(Date.parse(s) + n * 864e5);
+const dow = s => new Date(Date.parse(s)).getUTCDay();
+const pick = (a, w) => { const r = R(); return a[Math.min(a.length - 1, Math.floor(Math.pow(r, w || 1) * a.length))]; };
+
+const CLIENTS = [];
+for (let i = 0; i < 72; i++) {
+  const u = R();
+  const primary = u < .34 ? 'SAA' : u < .6 ? 'KCA' : u < .83 ? 'MC' : 'AQ';
+  const t = R(), type = t < .4 ? 'hair' : t < .75 ? 'both' : 'beauty';
+  const vip = R() < .14;
+  const level = (250 + Math.pow(R(), 2) * 800) * (vip ? 1.7 : 1);
+  const n = 1 + Math.floor(Math.pow(R(), 1.35) * 18);
+  const a = R();
+  const away = a < .58 ? Math.floor(R() * 31) : a < .8 ? 31 + Math.floor(R() * 30) : 61 + Math.floor(R() * 95);
+  const lastD = addDays(TODAY, -away);
+  const span = Math.max(1, Math.round((Date.parse(lastD) - Date.parse('2026-01-01')) / 864e5));
+  const second = n >= 4 && R() < .3 ? BKEYS[(BKEYS.indexOf(primary) + 1 + Math.floor(R() * 3)) % 4] : null;
+  const pref = { hair: R() < .5 ? 0 : 1, beauty: R() < .5 ? 0 : 1 };
+  const ds = [];
+  for (let k = 0; k < n - 1; k++) ds.push(addDays('2026-01-01', Math.floor(R() * span)));
+  ds.push(lastD);
+  ds.sort();
+  const visits = ds.map((d0, k) => {
+    const br = second && k % 3 === 2 ? second : primary;
+    let d = d0;
+    if (br === 'AQ') { const w = dow(d); if (w === 0) d = addDays(d, -1); if (w === 1) d = addDays(d, -2); }   // Al Quoz is shut Sun and Mon
+    const who = kind => STAFF[br][kind][R() < .75 ? pref[kind] : 1 - pref[kind]];
+    const items = [];
+    const hair = type === 'hair' || (type === 'both' && R() < .7);
+    const beauty = type === 'beauty' || (type === 'both' && R() < .7);
+    if (hair) items.push({ n: HAIR_SV[Math.floor(Math.pow(R(), 1.4) * HAIR_SV.length)], kind: 'hair', by: who('hair') });
+    if (hair && R() < .3) items.push({ n: HAIR_SV[Math.floor(R() * HAIR_SV.length)], kind: 'hair', by: who('hair') });
+    if (beauty) items.push({ n: BEAUTY_SV[Math.floor(Math.pow(R(), 1.4) * BEAUTY_SV.length)], kind: 'beauty', by: who('beauty') });
+    if (!items.length) items.push({ n: HAIR_SV[0], kind: 'hair', by: who('hair') });
+    const amt = Math.round(level * (.6 + R() * .9) / 5) * 5;
+    items.forEach(x => { x.amt = Math.round(amt / items.length); });
+    const prods = R() < .25 ? [{ n: PRODUCTS[Math.floor(R() * PRODUCTS.length)], amt: 60 + Math.floor(R() * 150) }] : [];
+    const total = items.reduce((s, x) => s + x.amt, 0) + prods.reduce((s, x) => s + x.amt, 0);
+    return { d, br, items, prods, total };
+  });
+  visits.sort((x, y) => x.d < y.d ? -1 : 1);
+  CLIENTS.push({
+    id: i,
+    name: FIRST[i % 24] + ' ' + SUR[(i * 5 + Math.floor(i / 24)) % 6],
+    visits,
+    phone: R() < .8 ? '+971 50 000 ' + String(100 + i).padStart(4, '0') : '',
+  });
+}
+
+/* ---------- State ---------- */
+const S = { branch: 'all', period: 'year', month: 9, pfrom: '2026-07-01', pto: '2026-09-30',
+  seg: 'all', last: 'any', lfrom: 61, lto: 120, spend: 0, top: 25, q: '', sort: { k: 'rev', dir: -1 },
+  mode: 'rev', owner: true };
+const OPEN = new Set();
+
+/* ---------- Helpers ---------- */
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = v => Math.round(Number(v) || 0).toLocaleString('en-GB');
+const dfmt = s => new Date(Date.parse(s)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const shortAed = v => v >= 1e6 ? 'AED ' + (v / 1e6).toFixed(2) + 'M' : v >= 1e3 ? 'AED ' + (v / 1e3).toFixed(v >= 1e4 ? 0 : 1) + 'k' : 'AED ' + num(v);
+const AV = ['#FFD4D9', '#C4B5FD', '#99F6E4', '#FF9B9B', '#EEF3C7', '#FFB6C1', '#B5EAD7', '#FFDAC1'];
+const initials = n => n.split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+const rankCls = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+const st = (name, kind) => name ? `<span class="st-${kind}">${esc(name)}</span>` : '<span class="dim">none</span>';
+const bucket = away => away <= 30 ? 'now' : away <= 60 ? 'cool' : 'slip';
+const BUCKET = { now: 'Last 30 days', cool: '31 to 60 days', slip: '60+ days' };
+
+function range() {
+  if (S.period === 'this') return ['2026-10-01', TODAY];
+  if (S.period === 'last') return ['2026-09-01', '2026-09-30'];
+  if (S.period === 'month') { const m = String(S.month).padStart(2, '0'); const end = new Date(Date.UTC(2026, S.month, 0)).getUTCDate(); return ['2026-' + m + '-01', S.month === 10 ? TODAY : '2026-' + m + '-' + end]; }
+  if (S.period === 'custom') return [S.pfrom || '2026-01-01', S.pto || TODAY];
+  return ['2026-01-01', TODAY];
+}
+const periodTxt = () => { const r = range(); return dfmt(r[0]) + ' to ' + dfmt(r[1]); };
+
+function topOf(visits, kind) {
+  const n = {};
+  visits.forEach(v => v.items.forEach(x => { if (x.kind === kind) n[x.by] = (n[x.by] || 0) + 1; }));
+  return Object.entries(n).sort((a, b) => b[1] - a[1]).map(e => e[0]);
+}
+function stat(c, br, rg) {
+  const sv = c.visits.filter(v => br === 'all' || v.br === br);
+  if (!sv.length) return null;
+  const pv = sv.filter(v => v.d >= rg[0] && v.d <= rg[1]);
+  if (!pv.length) return null;
+  const last = sv[sv.length - 1].d;
+  const away = Math.round((TODAY_MS - Date.parse(last)) / 864e5);
+  const rev = pv.reduce((s, v) => s + v.total, 0);
+  const cnt = {};
+  pv.forEach(v => v.items.forEach(x => { cnt[x.n] = (cnt[x.n] || 0) + 1; }));
+  const fav = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+  return { c, sv, pv, rev, n: pv.length, avg: rev / pv.length, last, away,
+    hair: topOf(sv, 'hair'), beauty: topOf(sv, 'beauty'), fav: fav ? fav[0] : '' };
+}
+const passSeg = s => S.seg === 'all' || (S.seg === '3' && s.n >= 3) || (S.seg === '2' && s.n === 2) || (S.seg === '1' && s.n === 1);
+const passLast = s => S.last === 'any' || (S.last === 'custom' ? (s.away >= S.lfrom && s.away <= S.lto) : bucket(s.away) === S.last);
+const passSpend = s => s.rev >= S.spend;
+
+/* The list before search: every filter, ranked by revenue, cut to the top N. */
+function baseList(br, opts) {
+  opts = opts || {};
+  const rg = range();
+  const all = CLIENTS.map(c => stat(c, br, rg)).filter(Boolean);
+  const total = all.reduce((a, s) => a + s.rev, 0);
+  const ok = all.filter(s => passSeg(s) && passSpend(s) && (opts.anyLast || passLast(s))).sort((a, b) => b.rev - a.rev);
+  const ranked = ok.map((s, i) => Object.assign(s, { rank: i }));
+  return { all, total, matched: ranked.length, top: ranked.slice(0, S.top) };
+}
+const staffLine = (list, kind, n) => list.length ? st(list[0], kind) + (list.length > 1 ? `<div class="others">also ${list.slice(1, n || 2).map(x => st(x, kind)).join(', ')}</div>` : '') : '<span class="dim">none</span>';
+
+/* ---------- Drawing ---------- */
+function drawBar() {
+  const seg = (key, opts) => `<div class="sc-seg" role="group">${opts.map(([k, l]) =>
+    `<button type="button" data-a="set" data-k="${key}" data-v="${k}" class="${String(S[key]) === String(k) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  document.getElementById('bar').innerHTML = `
+    <div class="grp"><div class="eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(BKEYS.map(k => [k, k])))}</div>
+    <div class="grp"><div class="eyebrow">Period</div>${seg('period', [['this', 'This month'], ['last', 'Last month'], ['month', 'Month'], ['year', 'Year'], ['custom', 'Custom']])}</div>
+    <div class="grp half"><div class="eyebrow">Visits</div>${seg('seg', [['all', 'All'], ['3', '3+'], ['2', '2'], ['1', '1']])}</div>
+    <div class="grp half"><div class="eyebrow">Spend (AED)</div>${seg('spend', [[0, 'Any'], [2000, '2k+'], [5000, '5k+'], [10000, '10k+']])}</div>
+    <div class="grp"><div class="eyebrow">Last seen</div>${seg('last', [['any', 'Any'], ['now', '30 days'], ['cool', '31 to 60'], ['slip', '60+'], ['custom', 'Custom']])}</div>`;
+  let sub = '';
+  if (S.period === 'month') sub += `<div class="sub"><span>Month</span><select id="monthSel" aria-label="Month">${MONTHS.map((m, i) => `<option value="${i + 1}"${S.month === i + 1 ? ' selected' : ''}>${m} 2026</option>`).join('')}</select></div>`;
+  if (S.period === 'custom') sub += `<div class="sub"><span>Revenue from</span><input type="date" id="pf" value="${S.pfrom}" min="2026-01-01" max="${TODAY}" aria-label="From date"><span>to</span><input type="date" id="pt" value="${S.pto}" min="2026-01-01" max="${TODAY}" aria-label="To date"></div>`;
+  if (S.last === 'custom') sub += `<div class="sub"><span>Last seen between</span><input type="number" min="0" inputmode="numeric" id="lf" value="${S.lfrom}" aria-label="From days"><span>and</span><input type="number" min="0" inputmode="numeric" id="lt" value="${S.lto}" aria-label="To days"><span>days ago</span></div>`;
+  document.getElementById('subrows').innerHTML = sub;
+  document.getElementById('topSeg').innerHTML = [10, 25, 50].map(v => `<button type="button" data-a="set" data-k="top" data-v="${v}" class="${S.top === v ? 'on' : ''}">${v}</button>`).join('');
+}
+
+function drawBoard() {
+  const rev = S.mode === 'rev';
+  const rows = BKEYS.map(b => {
+    const l = baseList(b, { anyLast: true });
+    const g = { now: { n: 0, r: 0 }, cool: { n: 0, r: 0 }, slip: { n: 0, r: 0 } };
+    l.top.forEach(s => { const x = g[bucket(s.away)]; x.n++; x.r += s.rev; });
+    return { b, name: BR[b], g, n: l.top.length, r: l.top.reduce((a, s) => a + s.rev, 0), share: l.total ? l.top.reduce((a, s) => a + s.rev, 0) / l.total : 0 };
+  });
+  const scale = Math.max(1, ...rows.map(x => rev ? x.r : x.n));
+  const bar = x => {
+    const parts = ['now', 'cool', 'slip'].map(k => {
+      const v = rev ? x.g[k].r : x.g[k].n;
+      if (!v) return '';
+      const read = `${x.name} · ${BUCKET[k]}: ${num(x.g[k].n)} of the top ${S.top} · ${shortAed(x.g[k].r)}`;
+      const on = S.branch === x.b && S.last === k;
+      return `<button type="button" class="seg c-${k}${on ? ' on' : ''}" style="width:${(100 * v / scale).toFixed(2)}%" data-a="cell" data-b="${x.b}" data-l="${k}" data-read="${esc(read)}" aria-label="${esc(read)}. Open this list"></button>`;
+    }).join('');
+    const fig = rev ? `<b>${shortAed(x.r)}</b><small>${num(x.n)} clients</small>` : `<b>${num(x.n)}</b><small>${shortAed(x.r)}</small>`;
+    return `<div class="brow"><div class="bname">${esc(x.name)}</div><div class="btrack">${parts}</div><div class="bfig">${fig}</div></div>`;
+  };
+  const tr = x => `<tr><th>${esc(x.name)}</th>${['now', 'cool', 'slip'].map(k => `<td><b>${num(x.g[k].n)}</b><small>AED ${num(x.g[k].r)}</small></td>`).join('')}<td><b>${num(x.n)}</b><small>AED ${num(x.r)}</small></td><td><b>${Math.round(100 * x.share)}%</b><small>of branch revenue</small></td></tr>`;
+  const tot = { name: 'All salons', g: {}, n: 0, r: 0 };
+  ['now', 'cool', 'slip'].forEach(k => { tot.g[k] = { n: rows.reduce((a, x) => a + x.g[k].n, 0), r: rows.reduce((a, x) => a + x.g[k].r, 0) }; });
+  tot.n = rows.reduce((a, x) => a + x.n, 0); tot.r = rows.reduce((a, x) => a + x.r, 0);
+  const slipN = tot.g.slip.n;
+  const keepOpen = document.querySelector('#board details.nums')?.open ? ' open' : '';
+  document.getElementById('board').innerHTML = `
+    <div class="head"><div><div class="eyebrow">Every branch</div><h3>Top ${S.top} at each salon, by when we last saw them</h3></div>
+      <div class="sc-seg" role="group" aria-label="Show"><button type="button" data-a="mode" data-v="rev" class="${rev ? 'on' : ''}">Revenue</button><button type="button" data-a="mode" data-v="n" class="${rev ? '' : 'on'}">Clients</button></div></div>
+    <p class="note" style="margin:0 0 4px">${esc(periodTxt())}. ${slipN ? `${num(slipN)} of these ${num(tot.n)} top clients have not been in for 60+ days.` : 'No top client is 60+ days away.'}</p>
+    <div class="chart" onmouseover="boardRead(event)" onfocusin="boardRead(event)" onmouseleave="boardRead(null)">${rows.map(bar).join('')}</div>
+    <p class="read" id="read" aria-live="polite">Point at a bar, or tap it, to read it. Click to open that list.</p>
+    <div class="legend"><span><i class="c-now"></i>Seen in the last 30 days</span><span><i class="c-cool"></i>31 to 60 days</span><span><i class="c-slip"></i>60+ days</span></div>
+    <details class="nums"${keepOpen}><summary>Show the numbers</summary><div class="wrap"><table class="t"><thead><tr><th>Branch</th><th>Last 30 days</th><th>31 to 60</th><th>60+</th><th>Top ${S.top}</th><th>Their share</th></tr></thead><tbody>${rows.map(tr).join('')}<tr class="tot"><th>All salons</th>${['now', 'cool', 'slip'].map(k => `<td><b>${num(tot.g[k].n)}</b><small>AED ${num(tot.g[k].r)}</small></td>`).join('')}<td><b>${num(tot.n)}</b><small>AED ${num(tot.r)}</small></td><td></td></tr></tbody></table></div></details>`;
+}
+function boardRead(ev) {
+  const out = document.getElementById('read'); if (!out) return;
+  const t = ev && ev.target && ev.target.closest && ev.target.closest('[data-read]');
+  out.textContent = t ? t.dataset.read : 'Point at a bar, or tap it, to read it. Click to open that list.';
+}
+
+function drawTiles() {
+  const l = baseList(S.branch), list = l.top;
+  const rev = list.reduce((a, s) => a + s.rev, 0);
+  const share = l.total ? Math.round(100 * rev / l.total) : 0;
+  const withNo = list.filter(s => s.c.phone).length;
+  const slip = list.filter(s => s.away >= 61);
+  const topWho = kind => { const n = {}; list.forEach(s => { const w = s[kind][0]; if (w) n[w] = (n[w] || 0) + 1; }); return Object.entries(n).sort((a, b) => b[1] - a[1])[0]; };
+  const th = topWho('hair'), tb = topWho('beauty');
+  const tile = (k, v, n, cls) => `<div class="tile"><div class="eyebrow">${k}</div><div class="val${cls || ''}">${v}</div><div class="note">${n}</div></div>`;
+  const who = (t, kind) => t ? st(t[0], kind) : 'none';
+  document.getElementById('listHead').innerHTML = `<div><div class="eyebrow">${S.branch === 'all' ? 'All branches' : esc(BR[S.branch])}</div><h3>Top ${num(list.length)} client${list.length === 1 ? '' : 's'} by revenue${S.last !== 'any' ? ', last seen ' + lastTxt() : ''}</h3></div><p>${esc(periodTxt())}</p>`;
+  document.getElementById('tiles').innerHTML =
+    tile('Clients', num(list.length), l.matched > list.length ? `top ${num(list.length)} of ${num(l.matched)} who match` : 'who match these filters') +
+    tile('Combined revenue', 'AED ' + num(rev), `ex VAT, ${share}% of ${S.branch === 'all' ? 'all' : 'this branch\'s'} revenue`) +
+    (S.owner ? tile('With a phone number', num(withNo), `${list.length ? Math.round(100 * withNo / list.length) : 0}% of the list`) : '') +
+    tile('Their stylist', who(th, 'hair'), th ? `usual for ${num(th[1])} of them` : '', ' who') +
+    tile('Their beautician', who(tb, 'beauty'), tb ? `usual for ${num(tb[1])} of them` : '', ' who') +
+    `<button type="button" class="tile${slip.length ? ' warn' : ''}" data-a="slip"><div class="eyebrow">Not back in 60+ days</div><div class="val">${num(slip.length)}</div><div class="note">${slip.length ? 'AED ' + num(slip.reduce((a, s) => a + s.rev, 0)) + ' at stake. Tap to show them.' : 'none in this list'}</div></button>`;
+}
+const lastTxt = () => S.last === 'custom' ? `${num(S.lfrom)} to ${num(S.lto)} days ago` : { now: 'in the last 30 days', cool: '31 to 60 days ago', slip: '60+ days ago' }[S.last];
+
+function sortVal(s, k) { return k === 'name' ? s.c.name : k === 'rev' ? s.rev : k === 'n' ? s.n : k === 'avg' ? s.avg : s.away; }
+function detailHtml(s) {
+  const sv = s.sv, svc = {};
+  sv.forEach(v => v.items.forEach(x => { const o = svc[x.n] || (svc[x.n] = { n: x.n, c: 0, spend: 0, last: '', by: '' }); o.c++; o.spend += x.amt; if (v.d >= o.last) { o.last = v.d; o.by = x.by; o.kind = x.kind; } }));
+  const svcL = Object.values(svc).sort((a, b) => b.c - a.c || b.spend - a.spend).slice(0, 5);
+  const prod = {};
+  sv.forEach(v => v.prods.forEach(p => { const o = prod[p.n] || (prod[p.n] = { n: p.n, t: 0, spend: 0 }); o.t++; o.spend += p.amt; }));
+  const prodL = Object.values(prod);
+  const staff = {};
+  sv.forEach(v => v.items.forEach(x => { const o = staff[x.by] || (staff[x.by] = { n: x.by, kind: x.kind, c: 0 }); o.c++; }));
+  const staffL = Object.values(staff).sort((a, b) => b.c - a.c);
+  const bm = new Array(10).fill(0); sv.forEach(v => { bm[+v.d.slice(5, 7) - 1] += v.total; });
+  const mx = Math.max(1, ...bm);
+  const other = {}; s.c.visits.forEach(v => { if (S.branch !== 'all' && v.br !== S.branch) other[v.br] = (other[v.br] || 0) + 1; });
+  const otherTxt = Object.entries(other).map(e => `${BR[e[0]]} (${e[1]} visit${e[1] === 1 ? '' : 's'})`).join(', ');
+  const call = s.away >= 61 ? `<div class="callnote">Last seen ${num(s.away)} days ago. Worth a call from ${s.hair[0] || s.beauty[0] ? st(s.hair[0] || s.beauty[0], s.hair[0] ? 'hair' : 'beauty') : 'her usual team'}, one person, this week.</div>` : '';
+  return `<div class="grid2">
+    <div><div class="eyebrow">What she comes in for</div><ol class="svc">${svcL.map(x => `<li><b>${esc(x.n)}</b><span>${num(x.c)} visit${x.c === 1 ? '' : 's'} · last ${esc(dfmt(x.last))} · AED ${num(x.spend)} · ${st(x.by, x.kind)}</span></li>`).join('')}</ol>
+      <div class="eyebrow" style="margin-top:14px">Spend by month, 2026</div>
+      <div class="months">${bm.map((v, i) => `<div class="${i === 9 ? 'cur' : ''}" title="${MONTHS[i]}: AED ${num(v)}"><i style="height:${Math.max(2, Math.round(100 * v / mx * .46))}px"></i>${MONTHS[i][0]}</div>`).join('')}</div></div>
+    <div>${prodL.length ? `<div class="eyebrow">Took home</div><ul class="prod">${prodL.map(p => `<li>${esc(p.n)} <span>AED ${num(p.spend)}${p.t > 1 ? ' · ' + p.t + 'x' : ''}</span></li>`).join('')}</ul>` : ''}
+      <div class="eyebrow" style="margin-top:${prodL.length ? 14 : 0}px">Looked after by</div><div class="sts">${staffL.map(x => `<span>${st(x.n, x.kind)} <em>${num(x.c)}</em></span>`).join('')}</div>
+      <p class="note" style="margin-top:12px">First visit this year ${esc(dfmt(sv[0].d))}${otherTxt ? '<br>Also came to ' + esc(otherTxt) : ''}</p>
+      ${call}</div></div>`;
+}
+const SORTHEAD = k => (S.sort.k === k ? `<svg viewBox="0 0 12 12" aria-label="${S.sort.dir > 0 ? 'sorted up' : 'sorted down'}"><path d="M6 2v8M2.5 6.5 6 10l3.5-3.5"/></svg>` : '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>');
+
+function drawTable() {
+  const l = baseList(S.branch);
+  const q = S.q.trim().toLowerCase();
+  let rows = l.top.filter(s => !q || (s.c.name + ' ' + s.hair.join(' ') + ' ' + s.beauty.join(' ')).toLowerCase().includes(q));
+  rows = rows.slice().sort((a, b) => {
+    const x = sortVal(a, S.sort.k), y = sortVal(b, S.sort.k);
+    return ((x < y ? -1 : x > y ? 1 : 0) * S.sort.dir) || (a.rank - b.rank);
+  });
+  const ph = S.owner;
+  const th = (k, label, cls, l2) => `<th class="c-${cls}${l2 ? ' l' : ''}"><button type="button" class="thb${S.sort.k === k ? ' on' + (S.sort.dir > 0 ? ' up' : '') : ''}" data-a="sort" data-v="${k}">${label}${SORTHEAD(k)}</button></th>`;
+  const plain = (label, cls, l2) => `<th class="c-${cls}${l2 ? ' l' : ''}">${label}</th>`;
+  const lastCell = s => `<span class="nw">${esc(dfmt(s.last))}</span><small>${num(s.away)} days ago</small>${bucket(s.away) === 'now' ? '' : `<span class="pill ${bucket(s.away)}">${bucket(s.away) === 'cool' ? 'Cooling' : 'Slipping'}</span>`}`;
+  const colN = 9 + (ph ? 1 : 0);
+  const body = rows.map(s => {
+    const open = OPEN.has(s.c.id);
+    const main = `<tr class="row${open ? ' open' : ''}" data-a="row" data-id="${s.c.id}" title="Click to see what she comes in for and who looks after her">
+      <td><span class="rank ${rankCls(s.rank)}">${s.rank + 1}</span></td>
+      <td class="l"><div class="cl"><div class="av" style="background:${AV[s.c.id % AV.length]}">${esc(initials(s.c.name))}</div><span style="font-weight:500">${esc(s.c.name)}</span></div><span class="hint" aria-hidden="true">See her visits ›</span></td>
+      <td class="rev">${num(s.rev)}</td>
+      <td class="dim">${num(s.n)}</td>
+      <td>${num(s.avg)}</td>
+      <td>${lastCell(s)}</td>
+      <td class="l">${staffLine(s.hair, 'hair')}</td>
+      <td class="l">${staffLine(s.beauty, 'beauty')}</td>
+      <td class="l dim" style="font-size:13px">${esc(s.fav) || 'none'}</td>
+      ${ph ? `<td class="l">${s.c.phone ? `<a href="tel:${esc(s.c.phone.replace(/\s/g, ''))}" style="color:inherit">${esc(s.c.phone)}</a>` : '<span class="dim">none</span>'}</td>` : ''}
+    </tr>`;
+    return main + (open ? `<tr class="det"><td colspan="${colN}"><div class="det-box">${detailHtml(s)}</div></td></tr>` : '');
+  }).join('');
+  const cards = rows.map(s => {
+    const open = OPEN.has(s.c.id);
+    const lines = [['hair', 'Stylist'], ['beauty', 'Beautician']].map(([k, lab]) => s[k].length ? `<div class="cmeta">${lab} ${st(s[k][0], k)}${s[k].length > 1 ? ' · also ' + s[k].slice(1, 3).map(x => st(x, k)).join(', ') : ''}</div>` : '').join('');
+    return `<li class="card-r${open ? ' open' : ''}" data-a="row" data-id="${s.c.id}">
+      <div class="ctop"><span class="cname"><span class="rank ${rankCls(s.rank)}">${s.rank + 1}</span>${esc(s.c.name)}</span><span class="cspend">AED ${num(s.rev)}</span></div>
+      <div class="cmeta">${num(s.n)} visit${s.n === 1 ? '' : 's'} · avg AED ${num(s.avg)} · last ${esc(dfmt(s.last))} (${num(s.away)} days)</div>
+      <div class="cmeta">${esc(s.fav)}</div>${lines}
+      ${ph && s.c.phone ? `<div class="cmeta" style="margin-top:4px"><a href="tel:${esc(s.c.phone.replace(/\s/g, ''))}" style="color:inherit">${esc(s.c.phone)}</a></div>` : ''}
+      ${open ? `<div class="det-box">${detailHtml(s)}</div>` : '<div class="hint-m">Tap for her visits ›</div>'}
+    </li>`;
+  }).join('');
+  const emptyMsg = 'No one matches those filters. Try a wider period, or clear a filter.';
+  const filtered = S.branch !== 'all' || S.seg !== 'all' || S.last !== 'any' || S.spend || q;
+  document.getElementById('table').innerHTML =
+    `<p class="note" style="margin:0 0 8px">${num(rows.length)} shown. Revenue is in AED. # is her rank by revenue within these filters.${filtered ? ' <button type="button" class="tglr" style="min-height:28px;padding:3px 10px;text-transform:none;letter-spacing:0;font-size:12.5px" data-a="clear">Clear filters</button>' : ''}</p>
+    <div class="wrap desk"><table class="t list"><thead><tr>
+      ${plain('#', 'rank', true)}${th('name', 'Client', 'client', true)}${th('rev', 'Revenue', 'rev')}${th('n', 'Visits', 'visits')}${th('avg', 'Avg per visit', 'avg')}${th('away', 'Last seen', 'last')}${plain('Usual stylist', 'hair', true)}${plain('Usual beautician', 'beauty', true)}${plain('Favourite service', 'fav', true)}${ph ? plain('Phone', 'phone', true) : ''}
+    </tr></thead><tbody>${body || `<tr><td colspan="${colN}" class="empty">${emptyMsg}</td></tr>`}</tbody></table></div>
+    <ol class="cards">${cards || `<li class="empty">${emptyMsg}</li>`}</ol>`;
+}
+
+function paintAll() { drawBar(); drawBoard(); drawTiles(); drawTable(); drawTheme(); }
+
+/* ---------- Events ---------- */
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-a]'); if (!t) return;
+  const a = t.dataset.a;
+  if (a === 'set') {
+    const k = t.dataset.k; let v = t.dataset.v;
+    if (k === 'spend' || k === 'top') v = Number(v);
+    S[k] = v;
+    if (k === 'branch' || k === 'period') { /* keep the rest */ }
+    paintAll(); return;
+  }
+  if (a === 'mode') { S.mode = t.dataset.v; drawBoard(); return; }
+  if (a === 'cell') { S.branch = t.dataset.b; S.last = t.dataset.l; paintAll(); document.getElementById('listHead').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  if (a === 'slip') { S.last = 'slip'; paintAll(); return; }
+  if (a === 'sort') { const k = t.dataset.v; S.sort = S.sort.k === k ? { k, dir: -S.sort.dir } : { k, dir: k === 'name' ? 1 : -1 }; drawTable(); return; }
+  if (a === 'row') { if (e.target.closest('a')) return; const id = +t.dataset.id; OPEN.has(id) ? OPEN.delete(id) : OPEN.add(id); drawTable(); return; }
+  if (a === 'clear') { Object.assign(S, { branch: 'all', seg: 'all', last: 'any', spend: 0, q: '' }); document.getElementById('q').value = ''; paintAll(); return; }
+  if (a === 'owner') { S.owner = t.dataset.v === '1'; document.querySelectorAll('[data-a="owner"]').forEach(b => b.classList.toggle('on', b === t)); drawTiles(); drawTable(); return; }
+});
+document.addEventListener('change', e => {
+  const id = e.target.id;
+  if (id === 'monthSel') { S.month = +e.target.value; paintAll(); }
+  else if (id === 'pf') { S.pfrom = e.target.value || '2026-01-01'; if (S.pto < S.pfrom) S.pto = S.pfrom; paintAll(); }
+  else if (id === 'pt') { S.pto = e.target.value || TODAY; if (S.pto < S.pfrom) S.pfrom = S.pto; paintAll(); }
+  else if (id === 'lf') { S.lfrom = Math.max(0, Math.floor(+e.target.value) || 0); if (S.lto < S.lfrom) S.lto = S.lfrom; paintAll(); }
+  else if (id === 'lt') { S.lto = Math.max(S.lfrom, Math.floor(+e.target.value) || 0); paintAll(); }
+});
+document.getElementById('q').addEventListener('input', e => { S.q = e.target.value; drawTable(); });
+
+/* Theme: follows the device, with a toggle on top. */
+const dark = () => document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+function drawTheme() { document.getElementById('themeBtn').textContent = dark() ? 'Light' : 'Dark'; }
+document.getElementById('themeBtn').addEventListener('click', () => { document.documentElement.dataset.theme = dark() ? 'light' : 'dark'; drawTheme(); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawTheme);
+
+paintAll();
+</script>
+</body>
+</html>
