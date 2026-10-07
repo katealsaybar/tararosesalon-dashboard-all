@@ -9,7 +9,7 @@ const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
 const SUPA_KEY = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-// TRS One Source of Truth doctrine sets Treatment % at 30+ and Rebooking Rate at 70+;
+// TRS One Source of Truth doctrine sets Rebooking Rate at 70+ (Treatment stays 20, see TARGETS);
 // the dashboard was still scoring against the old 20/45. Raised effective September
 // 2026 — a month before that was never actually asked to clear the new bar, so it
 // keeps reading against the old one. Reference is whichever period is selected
@@ -26,7 +26,9 @@ const TARGETS = {
   get hairAvgBill()   { return (typeof isBahrainView === 'function' && (isBahrainView() || isGroupView())) ? null : 650; },
   get beautyAvgBill() { return (typeof isBahrainView === 'function' && (isBahrainView() || isGroupView())) ? null : 200; },
   retailPct: 12, hairUtilPct: 80, beautyUtilPct: 70,
-  get treatmentPct() { return isPostTargetCutover() ? 30 : 20; },
+  // Treatment stays at 20 (Coach Emma's figure all along); the 30 that came in with the
+  // September cutover was reversed on 7 Oct 2026 (Kate). Rebooking keeps its cutover.
+  treatmentPct: 20,
   get rebookPct()    { return isPostTargetCutover() ? 70 : 45; },
 };
 
