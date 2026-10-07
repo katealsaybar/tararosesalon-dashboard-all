@@ -167,6 +167,7 @@ textarea{min-height:64px;resize:vertical}
 .goalcol{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .goalcol h3{font-size:14px;font-weight:700}
 .goalcol .empty{font-size:13.5px;color:var(--muted);padding:6px 0}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:13.5px;z-index:50;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);max-width:90vw}
 .who{font-size:12.5px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 </style>
 </head>
@@ -201,6 +202,7 @@ textarea{min-height:64px;resize:vertical}
         <div class="n"><b>4</b><span><strong>Goals are the second pill.</strong> <em>Set once a year (6 months, 1 year, 3 years), checked every 13 weeks. Business milestones sit beside today's numbers.</em></span></div>
         <div class="n"><b>5</b><span><strong>Optional nudge on This month.</strong> <em>A single line under the win and tip, so nobody has to remember to open the new tab. Easy to drop.</em></span></div>
       </div>
+      <div class="n"><b>6</b><span><strong>Download my copy.</strong> <em>The PDF is made in the HR-10 and HR-09 layouts. Once Ibrahim confirms, it is frozen as signed and later edits never change it. Goals PDFs are download only, never emailed.</em></span></div>
     </div>
   </section>
 
@@ -336,6 +338,10 @@ function tabsHTML() {
 function goTab(t) { S.tab = t; drawPhone(); document.getElementById('phoneIn').scrollTop = 0; }
 function setSub(s) { S.sub = s; drawPhone(); }
 function setH(h) { S.h = h; drawPhone(); }
+function dl(what) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = 'Mockup: this would download "' + what + '" as a PDF.';
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2600);
+}
 function confirmIt() { S.confirmed = true; drawPhone(); drawSteps(); }
 
 function stub(txt, extra = '') {
@@ -344,10 +350,12 @@ function stub(txt, extra = '') {
 function phoneMonth() {
   const [y, t] = ckTotals();
   const confirmBlock = S.confirmed
-    ? `<p style="margin-top:10px;font-size:14px"><span class="chip good">Agreed by you both</span> <span class="muted" style="font-size:12.5px">Confirmed today</span></p>`
+    ? `<p style="margin-top:10px;font-size:14px"><span class="chip good">Agreed by you both</span> <span class="muted" style="font-size:12.5px">Confirmed today</span></p>
+       <button class="btn" type="button" onclick="dl('Your signed 1-to-1 (HR-10 layout)')">Download my signed copy (PDF)</button>
+       <p class="legend">Saved as it was signed. Later changes never alter it.</p>`
     : `<p style="margin-top:10px;font-size:14px"><span class="chip warn">Waiting for you</span> <span class="muted" style="font-size:12.5px">Emma signed it on 6 Oct.</span></p>
        <button class="btn" type="button" onclick="confirmIt()">I have read it, confirm</button>
-       <p class="legend">Confirming is your signature on the paper form.</p>`;
+       <p class="legend">Confirming is your signature on the paper form. Your PDF is saved at that moment.</p>`;
   return `
   <section class="card hero new">
     <div class="eyebrow">Monthly 1-to-1</div>
@@ -389,6 +397,8 @@ function phoneGoals() {
     <div class="eyebrow">My goals</div>
     <h2>Where I am heading</h2>
     <p class="sub" style="margin-bottom:0">Set on Tue 6 Oct 2026 · checked every 13 weeks · next check Tue 5 Jan 2027</p>
+    <button class="btn" type="button" onclick="dl('Your goals (HR-09 layout)')">Download my copy (PDF)</button>
+    <p class="legend">A PDF in the HR-09 layout, for you and Emma only. It is never sent by email.</p>
   </section>
   <div class="private"><span>&#128274;</span><span>These are your own words. Only you, Emma and Tara can read this page. Share only what you feel comfortable sharing.</span></div>
   <div class="pills">${['6 months','1 year','3 years'].map(h => `<button type="button" class="pill ${S.h === h ? 'on' : ''}" onclick="setH('${h}')">${h}</button>`).join('')}</div>
@@ -428,7 +438,7 @@ function stepsHTML() {
   const lb = ['Draft','Emma signs','Ibrahim confirms','Filed'];
   return lb.map((l, i) => `<span class="${st[i]}"><b>${st[i] === 'done' ? '&#10003;' : i + 1}</b>${l}</span>`).join('');
 }
-function drawSteps() { const e = document.getElementById('oneSteps'); if (e) e.innerHTML = stepsHTML(); const c = document.getElementById('oneChip'); if (c) { c.className = 'chip ' + (S.confirmed ? 'good' : 'warn'); c.textContent = S.confirmed ? 'Filed' : 'Waiting for Ibrahim'; } }
+function drawSteps() { const e = document.getElementById('oneSteps'); if (e) e.innerHTML = stepsHTML(); const nt = document.getElementById('oneNote'); if (nt && S.confirmed) nt.innerHTML = 'Filed. Signed copy saved, later edits do not change it. <a href="#" onclick="dl(&quot;Signed 1-to-1 (HR-10 layout)&quot;);return false" style="color:var(--new)">Download signed copy</a>'; const c = document.getElementById('oneChip'); if (c) { c.className = 'chip ' + (S.confirmed ? 'good' : 'warn'); c.textContent = S.confirmed ? 'Filed' : 'Waiting for Ibrahim'; } }
 function ckCount() {
   let y = 0, t = 0;
   document.querySelectorAll('#lead details.ckg').forEach(d => {
@@ -489,7 +499,7 @@ function leaderHTML() {
         ${s[1].map(x => `<label class="ck"><input type="checkbox" ${x[1] ? 'checked' : ''}><span>${esc(x[0])}</span></label>`).join('')}</details>`).join('')}
       <div class="g2" style="margin-top:12px">${fl('Our priorities for the next 13 weeks', '1. Rebooking at checkout, every time.\n2. Treatments suggested only when they suit the client.\n3. Four pieces of content a month.', 4)}${fl('Training or management support that would help', 'Blonding refresher. A monthly ten minutes with Emma on my numbers.', 4)}</div>
 
-      <div class="btns"><button class="btn" type="button">Save draft</button><button class="btn" type="button" style="background:var(--new);color:var(--bg)">Sign off as Emma</button><button class="btn ghost" type="button">Save as PDF (HR-10)</button><span class="who">Ibrahim confirms on his own link.</span></div>
+      <div class="btns"><button class="btn" type="button">Save draft</button><button class="btn" type="button" style="background:var(--new);color:var(--bg)">Sign off as Emma</button><button class="btn ghost" type="button" onclick="dl('Draft 1-to-1 (HR-10 layout)')">Save as PDF (HR-10)</button><span class="who" id="oneNote">Ibrahim confirms on his own link. The PDF is frozen when he does.</span></div>
     </section>
 
     <section class="card new" id="goalCard">
@@ -510,7 +520,7 @@ function leaderHTML() {
 
       <div class="sec">13-week follow-up <span class="muted" style="letter-spacing:0;text-transform:none;font-weight:500">first check Tue 5 Jan 2027</span></div>
       <div class="g2">${fl('What progress has been made, and what have we learned?', '', 3)}${fl('What should change or be prioritised next?', '', 3)}</div>
-      <div class="btns"><button class="btn" type="button">Save draft</button><button class="btn" type="button" style="background:var(--new);color:var(--bg)">Sign off as Emma</button><button class="btn ghost" type="button">Save as PDF (HR-09)</button></div>
+      <div class="btns"><button class="btn" type="button">Save draft</button><button class="btn" type="button" style="background:var(--new);color:var(--bg)">Sign off as Emma</button><button class="btn ghost" type="button" onclick="dl('Goals (HR-09 layout)')">Save as PDF (HR-09)</button></div>
     </section>
 
     <section class="card ctx"><div class="fold"><div class="eyebrow">New clients and returning clients</div><span class="s">32.4% came back</span><span class="muted">&#8963;</span></div></section>
