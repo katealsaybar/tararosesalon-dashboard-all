@@ -246,7 +246,7 @@ async function onMeClick(e) {
 // ════════════════════════════════════════════════════════════
 //  Leaders, in Staff Benchmarks
 // ════════════════════════════════════════════════════════════
-const L = { d: null, ctx: null, slot: null, open: { monthly: false, goals: false }, hz: 'm6', content: {}, timers: {}, wired: false };
+const L = { d: null, ctx: null, slot: null, panel: null, hz: 'm6', content: {}, timers: {}, wired: false };
 const period = kind => kind === 'monthly' ? L.d.month : L.d.year;
 const rec = kind => L.d[kind];
 const locked = kind => !!rec(kind) && rec(kind).status !== 'draft';
@@ -268,6 +268,7 @@ async function leader(slot, ctx) {
   if (!d) { slot.innerHTML = ''; return; }
   L.d = d; L.content = { monthly: initial('monthly'), goals: initial('goals') };
   L.wired = false; drawLeader();
+  if (ctx.bar) ctx.bar.onclick = e => { const b = e.target.closest('[data-act="panel"]'); if (b) openPanel(b.dataset.kind); };
 }
 async function reload() {
   await Promise.all(['monthly', 'goals'].map(k => L.timers[k] ? save(k) : null));
@@ -377,15 +378,28 @@ function goalsBody(k) {
 }
 
 function cardHTML(kind) {
-  const k = K(kind), isM = kind === 'monthly', open = L.open[kind];
+  const k = K(kind), isM = kind === 'monthly';
   const title = isM ? `One-to-one with ${first(L.d.staff.name)}` : `Goals with ${first(L.d.staff.name)}`;
   const eyebrow = isM ? `Monthly 1-to-1 · ${mLong(L.d.month)}` : `Yearly goals · ${day(L.d.year).getFullYear()}`;
-  return `<section class="card o2o-card${open ? ' open' : ''}" data-kind="${kind}" data-locked="${k.lock ? 1 : 0}">
-    <button type="button" class="o2o-fold" data-act="fold" data-kind="${kind}" aria-expanded="${open}"><span class="o2o-ft"><div class="eyebrow">${eyebrow}</div><h2>${title}</h2></span>${chip(kind)}<span class="o2o-chev" aria-hidden="true">&#8963;</span></button>
-    <div class="o2o-body"${open ? '' : ' hidden'}>${steps(kind)}${k.lock ? `<div class="o2o-banner">${rec(kind).status === 'filed' ? 'Filed and locked.' : 'Signed and locked.'} Reopen it to change anything.</div>` : ''}
+  return `<section class="card o2o-card" data-kind="${kind}" data-locked="${k.lock ? 1 : 0}"${L.panel === kind ? '' : ' hidden'}>
+    <div class="o2o-fold"><span class="o2o-ft"><div class="eyebrow">${eyebrow}</div><h2>${title}</h2></span>${chip(kind)}<button type="button" class="btn small o2o-ghost o2o-close" data-act="close" data-kind="${kind}">Close</button></div>
+    <div class="o2o-body">${steps(kind)}${k.lock ? `<div class="o2o-banner">${rec(kind).status === 'filed' ? 'Filed and locked.' : 'Signed and locked.'} Reopen it to change anything.</div>` : ''}
     ${isM ? monthlyBody(k) : goalsBody(k)}${btns(kind)}</div></section>`;
 }
+function barHTML() {
+  const dot = kind => { const r = rec(kind); return !r ? '' : r.status === 'draft' ? 'warn' : r.status === 'signed' ? 'warn' : 'good'; };
+  const lbl = { monthly: '1-to-1', goals: 'Goals' };
+  return ['monthly', 'goals'].map(kind => `<button type="button" class="o2o-tabbtn${L.panel === kind ? ' on' : ''}" data-act="panel" data-kind="${kind}" aria-expanded="${L.panel === kind}">${lbl[kind]}${dot(kind) ? `<i class="dot ${dot(kind)}"></i>` : ''}</button>`).join('');
+}
+function drawBar() { if (L.ctx.bar) L.ctx.bar.innerHTML = barHTML(); }
+function openPanel(kind) {
+  L.panel = L.panel === kind ? null : kind;
+  drawBar();
+  L.slot.querySelectorAll('.o2o-card').forEach(c => { c.hidden = c.dataset.kind !== L.panel; });
+  if (L.panel) L.slot.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
 function drawLeader() {
+  drawBar();
   L.slot.innerHTML = cardHTML('monthly') + cardHTML('goals');
   if (!L.wired) {
     L.slot.addEventListener('click', onLeaderClick);
@@ -417,7 +431,7 @@ async function save(kind) {
   setSave(kind, 'Saving…');
   try {
     const r = await call('perf_one2one_save', { p_admin: L.ctx.admin, p_token: L.ctx.token, p_kind: kind, p_period: period(kind), p_content: content });
-    if (r === 'ok') { L.d[kind] = Object.assign(L.d[kind] || { status: 'draft' }, { content, updated_at: new Date().toISOString() }); setSave(kind, 'Saved ' + stamp(new Date())); return true; }
+    if (r === 'ok') { L.d[kind] = Object.assign(L.d[kind] || { status: 'draft' }, { content, updated_at: new Date().toISOString() }); setSave(kind, 'Saved ' + stamp(new Date())); drawBar(); return true; }
     setSave(kind, r === 'locked' ? 'This one is already signed. Reopen it to edit.' : 'Could not save (' + r + ').');
   } catch (e) { setSave(kind, 'Could not save. Check the connection, it will try again as you type.'); }
   return false;
@@ -436,7 +450,7 @@ function onLeaderInput(e) {
 async function onLeaderClick(e) {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act, kind = b.dataset.kind;
-  if (a === 'fold') { L.open[kind] = !L.open[kind]; const card = b.closest('.o2o-card'); card.classList.toggle('open', L.open[kind]); card.querySelector('.o2o-body').hidden = !L.open[kind]; b.setAttribute('aria-expanded', L.open[kind]); }
+  if (a === 'close') { L.panel = kind; openPanel(kind); }
   else if (a === 'hz') { L.hz = b.dataset.v; const card = b.closest('.o2o-card'); card.querySelectorAll('.o2o-pill').forEach(p => p.classList.toggle('on', p === b)); card.querySelectorAll('[data-hz]').forEach(g => { g.hidden = g.dataset.hz !== L.hz; }); }
   else if (a === 'addrow') { if (locked(kind)) return; L.content[kind] = gather(kind); const arr = b.dataset.arr; L.content[kind][arr] = (L.content[kind][arr] || []).concat([{}]); redrawCard(kind); }
   else if (a === 'savenow') { await save(kind); }
@@ -447,7 +461,7 @@ async function onLeaderClick(e) {
     catch (err) { b.disabled = false; alert('Could not sign. Check the connection and try again.'); }
   } else if (a === 'reopen') {
     if (!confirm(`Reopen this for editing?\n\n${first(L.d.staff.name)} keeps seeing the signed version until you sign the new one.`)) return;
-    try { await call('perf_one2one_reopen', { p_admin: L.ctx.admin, p_token: L.ctx.token, p_kind: kind, p_period: period(kind) }); L.open[kind] = true; await reload(); }
+    try { await call('perf_one2one_reopen', { p_admin: L.ctx.admin, p_token: L.ctx.token, p_kind: kind, p_period: period(kind) }); L.panel = kind; await reload(); }
     catch (err) { alert('Could not reopen. Try again.'); }
   } else if (a === 'pdf') {
     if (!locked(kind)) await save(kind);

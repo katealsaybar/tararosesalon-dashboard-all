@@ -91,3 +91,13 @@
 
 .o2o-card [hidden],#perfMore [hidden].o2o-x{display:none!important}
 .o2o-tbl .dot{display:inline-block}
+
+/* The two buttons beside "Your team" (Kate, 7 Oct 2026): the form opens at the top of the page. */
+.o2o-bar{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap}
+.o2o-bar:empty{display:none}
+.o2o-tabbtn{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:14px;font-weight:600;min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
+.o2o-tabbtn.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+@media(hover:hover){.o2o-tabbtn:not(.on):hover{border-color:var(--text)}}
+.o2o-tabbtn:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+@media(max-width:760px){.o2o-tabbtn{min-height:44px}}
+.o2o-close{margin-left:auto}
