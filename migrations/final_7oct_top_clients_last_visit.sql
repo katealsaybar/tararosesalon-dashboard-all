@@ -12,6 +12,12 @@
 --   * CTEs the planner would otherwise re-run once per client row are MATERIALIZED
 --     (lost_clients' stylist CTE did that: One visit took 8.4s)
 --
+-- ALSO: lost_clients has SET enable_nestloop = off. Under row-level security (the role the dashboard
+-- really uses, `authenticated`) the planner under-estimates the bookings CTE and joins it by nested
+-- loop: All branches + One visit took 8s there and 1.2s as a superuser. Always time a new RPC as
+-- `authenticated` (set local role authenticated, with request.jwt.claim.sub set to Kate's user id),
+-- not as the postgres role the SQL tool uses.
+--
 -- Functions: top_clients, top_clients_board, lost_client_detail, lost_clients,
 -- lost_clients_detail_bulk, lost_clients_summary.
 
@@ -242,6 +248,7 @@ returns jsonb
 language plpgsql stable
 set search_path to 'public'
 set statement_timeout to '30s'
+set enable_nestloop to off
 as $function$
 declare out jsonb;
 begin
