@@ -262,7 +262,7 @@ async function renderStaffWeeks() {
   if (!w13Data || !w13Data.staff || w13Data.staff.id !== w13Pick) {
     el.innerHTML = '<p class="slv-muted">Loading her quarters…</p>';
     try { w13Data = await w13Load(w13Pick); }
-    catch (e) { el.innerHTML = '<p class="slv-muted">Staff’s Quarterly Performance didn\'t load. Refresh to try again.</p>'; return; }
+    catch (e) { el.innerHTML = '<p class="slv-muted">Staff’s 13 Week Report didn\'t load. Refresh to try again.</p>'; return; }
   }
   const d = w13Data, s = d.staff;
   if (!s) { w13Pick = null; await w13RenderTeam(el); w13Sync(); return; }
@@ -346,7 +346,7 @@ async function renderStaffWeeks() {
 
   el.innerHTML = `
     <section class="slv-intro">
-      <h2>Staff&rsquo;s Quarterly Performance</h2>
+      <h2>Staff&rsquo;s 13 Week Report</h2>
       <p>Every week of the year in one list, Monday to Sunday from the first week of January, with each 13-week quarter totalled as you go: Q1 is Weeks 1–13, Q2 14–26, Q3 27–39, Q4 40–52. Only complete weeks count in the totals; the week still being traded shows on the end as "so far". Sales are services before VAT, retail not included.</p>
     </section>
     <div class="sc-bar w13-bar" style="margin-bottom:14px">
@@ -400,7 +400,7 @@ async function w13RenderTeam(el) {
   if (!w13Team) {
     el.innerHTML = '<p class="slv-muted">Loading the team\'s quarters…</p>';
     try { w13Team = await w13Load(null); }
-    catch (e) { el.innerHTML = '<p class="slv-muted">Staff’s Quarterly Performance didn\'t load. Refresh to try again.</p>'; return; }
+    catch (e) { el.innerHTML = '<p class="slv-muted">Staff’s 13 Week Report didn\'t load. Refresh to try again.</p>'; return; }
   }
   const t = w13Team;
   [w13Aims] = await Promise.all([w13LoadAims(), w13LoadCoverage(t.from, t.to)]);
@@ -423,7 +423,7 @@ async function w13RenderTeam(el) {
   };
   el.innerHTML = `
     <section class="slv-intro">
-      <h2>Staff&rsquo;s Quarterly Performance</h2>
+      <h2>Staff&rsquo;s 13 Week Report</h2>
       <p>Everyone's ${t.year} so far, week by week from the first week of January: ${w13Esc(w13Day(t.from))} to ${w13Esc(w13Day(t.to))}. The small bars are her sales, one a week${t.current_week_no ? `, with Week ${t.current_week_no} so far as the paler one on the end` : ''}. Tap anyone for her full list, with each 13-week quarter totalled.</p>
     </section>
     <div class="sc-bar w13-bar">
@@ -439,7 +439,7 @@ async function w13RenderTeam(el) {
       <button type="button" class="sc-btn" title="Reverse the order" onclick="w13SetSort(null, true)">${['branch', 'name'].includes(w13Sort) ? (w13Rev ? 'Z–A' : 'A–Z') : (w13Rev ? 'Lowest first' : 'Highest first')} ⇅</button>
     </div>
     ${list.length ? w13Body(list, flip, byTakings, grid, head) : '<p class="slv-muted" style="margin-top:22px">No one on this team at this branch.</p>'}
-    <p class="slv-muted">Sales are services before VAT, retail not included. A solid grey stub is a week she took nothing (leave or days off); an outlined one is a week her branch has not uploaded yet. The dotted line is her level's weekly take aim (Stylist Levels' monthly aim × 12 ÷ 52; beauty has no level aims yet).</p>`;
+    <p class="slv-muted">Sales are services before VAT, retail not included. A solid grey stub is a week she took nothing (leave or days off); an outlined one is a week her branch has not uploaded yet. The dotted line is her level's weekly take aim (Stylist’s Benchmarks monthly aim × 12 ÷ 52; beauty has no level aims yet).</p>`;
   if (typeof spfDD === 'function') { spfDD(document.getElementById('w13Sort')); spfDD(document.getElementById('w13Year')); spfDD(document.getElementById('w13Branch')); }
 }
 // Branch and Position keep headed groups (busiest first inside each); the rest are

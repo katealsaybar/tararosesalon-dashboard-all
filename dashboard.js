@@ -939,6 +939,40 @@ function getClientTarget(branches) {
     : `Target ${n} for these dates (${monthly.toLocaleString('en-GB')} a month, handled)`;
 }
 
+// NCR (new client requests) is a COUNT, not a rate. Kate, 7 Oct 2026: 20% of clients
+// was never reachable (the branches ran 1 to 8% in 2026), so the target is a number of
+// requests a month per branch: Abu Dhabi 18 each, Dubai 17 each (70 for the four).
+// A figure keyed in branch_targets.ncr (Monthly Targets) wins over these, so the
+// number can move without a code edit. Prorated to the window by days, like the
+// client target above. Bahrain and the Group have none, so those rows drop out.
+const NCR_MONTHLY_TARGET = { SAA: 18, KCA: 18, MC: 17, AQ: 17 };
+function ncrMonthlyTarget(code, ym) {
+  const t = (typeof LG_DB_TARGETS !== 'undefined' && LG_DB_TARGETS[ym]) ? LG_DB_TARGETS[ym].branch : null;
+  const v = t && t[code] ? t[code].ncr : null;
+  return Number.isFinite(v) ? v : (NCR_MONTHLY_TARGET[code] ?? null);
+}
+function ncrTargetFor(branches, from, to) {
+  if (!from || !to) return null;
+  const list = (!branches || !branches.length || branches.includes('all')) ? UAE_ACTIVE : branches;
+  if (!list.length || list.some(c => !(c in NCR_MONTHLY_TARGET))) return null;
+  let total = 0;
+  windowMonths(from, to).forEach(m => {
+    const [y, mo] = m.split('-').map(Number), days = new Date(y, mo, 0).getDate();
+    const a = new Date(Math.max(from, new Date(y, mo - 1, 1))), b = new Date(Math.min(to, new Date(y, mo - 1, days)));
+    const covered = Math.round((b - a) / 86400000) + 1;
+    list.forEach(c => { total += ncrMonthlyTarget(c, m) * covered / days; });
+  });
+  return total;
+}
+// The window's NCR count, hair plus beauty. Null where the ledger does not cover it
+// (the same gate the old NCR % had: combinedNcrPct is nulled there).
+function ncrCountOf(s) {
+  if (!s || !Number.isFinite(s.combinedNcrPct)) return null;
+  const h = s.hairBreakdown ? s.hairBreakdown.ncr : 0, b = s.beautyBreakdown ? s.beautyBreakdown.ncr : 0;
+  return (Number(h) || 0) + (Number(b) || 0);
+}
+const ncrFmt = n => !Number.isFinite(n) ? '—' : (Number.isInteger(n) ? n.toLocaleString('en-GB') : n.toFixed(1));
+
 // ── DROPDOWN HELPERS ────────────────────────────────────────
 
 function toggleDrop(key) {
@@ -1161,7 +1195,7 @@ function heroPeriodPhrasing() {
 // so it stays correct no matter which of renderDashboard()'s early-return
 // paths (loading/empty/error) last touched #mainContent.
 const VIEW_SECTION_LABELS = {
-  dashboard: 'Organisation Pulse', team: 'Podium Race', teamquad: 'Staff Quadrant', staffperf: 'Staff Benchmarks', stafflevels: 'Stylist Levels', staffweeks: 'Staff’s Quarterly Performance', stylists: 'Staff Cards',
+  dashboard: 'Organisation Pulse', team: 'Podium Race', teamquad: 'Staff Quadrant', staffperf: 'Staff Dashboards', stafflevels: 'Stylist’s Benchmarks', staffweeks: 'Staff’s 13 Week Report', stylists: 'Staff Cards',
   orgchart: 'Org Chart',
   services: 'Service Rankings', clients: 'Top Clients', lostclients: 'Client’s Last Visit', products: 'Products', reviews: 'Google Reviews',
   wvperf: 'Wellness Voucher Performance',
@@ -1766,7 +1800,8 @@ function computeStatusStatement(s, branchLabel, periodPhrase, treatmentPct, reta
   const checks = [
     { label: 'Avg Bill',    status: sc(s.avgBill||0, TARGETS.hairAvgBill) },
     { label: 'Rebooking %', status: sc(s.rebookPct||0, TARGETS.rebookPct) },
-    { label: 'NCR %',       status: sc(s.combinedNcrPct||0, 20) },
+    ...(() => { const c = ncrCountOf(s), t = (isGroupView() || isBahrainView()) ? null : ncrTargetFor(sel.branch, dateFrom, dateTo);
+                return (c != null && t) ? [{ label: 'NCR', status: sc(c, t) }] : []; })(),
     { label: 'Treatment %', status: sc(treatmentPct||0, TARGETS.treatmentPct) },
     { label: 'Retail %',    status: sc(retailPct||0, TARGETS.retailPct) },
   ];
@@ -3825,10 +3860,14 @@ async function renderDashboard() {
   // printed as a note rather than raced against a bar. Kate, 2026-08-14. (Since
   // 1 Oct 2026 that target is the uploaded monthly figure, prorated to the window:
   // see getClientTarget.)
-  const NCR_TARGET = 20;   // the same figure the old NCR card scored against
+  // NCR is a count against a monthly unit target per branch (7 Oct 2026), not a % of
+  // clients. `splitless`: the target is for hair and beauty together, so the two bars
+  // carry no tick and neither is scored short on its own.
+  const ncrCount  = ncrCountOf(s);
+  const ncrTarget = (isGroupView() || isBahrainView()) ? null : ncrTargetFor(sel.branch, dateFrom, dateTo);
   const benchAll = [
-    { name:'NCR %',           sub:`target ${NCR_TARGET}%`,
-      hair:s.hairNcrPct, beauty:s.beautyNcrPct, combined:s.combinedNcrPct, target:NCR_TARGET, fmt:pct2 },
+    { name:'NCR',             sub: ncrTarget == null ? 'no target set' : `target ${ncrFmt(ncrTarget)}`,
+      hair:s.hairNCR, beauty:s.beautyNCR, combined:ncrCount, target:ncrTarget, fmt:ncrFmt, splitless:true },
     { name:'Rebooking %',     sub:`target ${TARGETS.rebookPct}%`,
       hair:s.hairRebookPct, beauty:s.beautyRebookPct, combined:s.rebookPct, target:TARGETS.rebookPct, fmt:pct2 },
     // Treatment before Retail, always — Kate/Mette, 2026-09-21. Source order
@@ -3868,7 +3907,7 @@ async function renderDashboard() {
     // while one department sat under its own bar (Utilisation on the hair 80%
     // with beauty short of its own, say). Since the second pass the row counts as
     // a miss (see `met` below).
-    short: [['Hair', r.hair, r.target], ['Beauty', r.beauty, Number.isFinite(r.beautyTarget) ? r.beautyTarget : r.target]]
+    short: r.splitless ? [] : [['Hair', r.hair, r.target], ['Beauty', r.beauty, Number.isFinite(r.beautyTarget) ? r.beautyTarget : r.target]]
       .filter(([, v, t]) => Number.isFinite(v) && Number.isFinite(t) && v < t)
       .map(([d, v, t]) => ({ dept: d, v, t })) }))
   // Kate, 1 Oct 2026, OP4 second pass: a department under its own bar is a miss,
@@ -3883,7 +3922,7 @@ async function renderDashboard() {
   // scored: rebooking, NCR and treatment wait on Bahrain's ledger, the avg bills on
   // a BHD target. Not counted in "x of y", which stays what was actually scored.
   // Beauty Avg Bill still leaves a branch with no beauty team, as everywhere.
-  const LEDGER_ONLY = new Set(['NCR %', 'Rebooking %', 'Treatment %']);
+  const LEDGER_ONLY = new Set(['NCR', 'Rebooking %', 'Treatment %']);
   const unscored = (!noSales && (isBahrainView() || isGroupView()))
     ? benchAll.filter(r => !benchRows.some(b => b.name === r.name) && (hasBeauty || r.name !== 'Beauty Avg Bill'))
         .map(r => ({ ...r, why: Number.isFinite(r.combined) ? 'no target yet'
@@ -3930,9 +3969,9 @@ async function renderDashboard() {
           </div>
         </div>
         <div class="att-bars">
-          ${Number.isFinite(r.hair)   ? line('Hair',   r.hair,   'var(--hair)',   r.target, both ? 'H' : 'Target')
+          ${Number.isFinite(r.hair)   ? line('Hair',   r.hair,   'var(--hair)',   r.splitless ? null : r.target, both ? 'H' : 'Target')
                                       : note('Hair · '   + (r.hairNote   || 'no data for this period'))}
-          ${Number.isFinite(r.beauty) ? line('Beauty', r.beauty, 'var(--beauty)', both ? r.beautyTarget : r.target, both ? 'B' : 'Target')
+          ${Number.isFinite(r.beauty) ? line('Beauty', r.beauty, 'var(--beauty)', r.splitless ? null : (both ? r.beautyTarget : r.target), both ? 'B' : 'Target')
                                       : note('Beauty · ' + (r.beautyNote || 'no data for this period'))}
         </div>
       </div>`;
