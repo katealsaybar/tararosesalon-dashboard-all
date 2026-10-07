@@ -43,7 +43,7 @@
     teamquad: 'staff quadrant treatment retail rebook rebooking takings',
     staffperf: 'benchmarks money five kpi promotion',
     staffweeks: 'staff quarterly performance quarter q1 q2 q3 q4 13 week thirteen weekly report emma',
-    stafflevels: 'levels promotion grade',
+    stafflevels: 'levels promotion grade stylist benchmarks',
     stylists: 'cards photos instagram profiles',
     orgchart: 'org chart structure hierarchy',
     ledgerFinancials: 'financial totals ledger cash card payments',
@@ -112,7 +112,7 @@
             ['Card', () => whoGoCard(key)],
             ['Stats', () => whoGoStats(key, dept, branch)],
             ['Figures', () => whoGoRow(key, branch)],
-            ['Quarterly performance', () => goWeeks(full)],
+            ['13 week report', () => goWeeks(full)],
           ],
         });
       }));
@@ -165,7 +165,7 @@
           acts: [
             ['Figures', () => whoGoRow(key)],
             ['Stats', () => whoGoStats(key)],
-            ['Quarterly performance', () => goWeeks(full)],
+            ['13 week report', () => goWeeks(full)],
           ],
         };
         items.push(item);

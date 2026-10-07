@@ -61,7 +61,7 @@
     { key: 'dashboards', dept: 'Numbers', title: 'Business', href: '/?view=dashboard', live: true, rule: 'var(--accent-lavender)',
       blurb: 'Organisation Pulse, branch performance, comparison and financial totals.' },
     { key: 'numbers-team', via: 'dashboards', min: 1, ic: 'access', dept: 'Numbers', title: 'Team Performance', href: '/?view=team', rule: 'var(--accent-lavender)',
-      blurb: 'Podium race, staff quadrant, benchmarks, quarterly performance and stylist levels.' },
+      blurb: 'Podium race, staff quadrant, staff dashboards, 13 week report and stylist’s benchmarks.' },
     { key: 'numbers-clients', via: 'dashboards', min: 1, ic: 'lost-clients', dept: 'Numbers', title: 'Clients', href: '/?view=clients', rule: 'var(--accent-lavender)',
       blurb: 'Top clients, lost clients and Google reviews.' },
     { key: 'numbers-sales', via: 'dashboards', min: 1, ic: 'dashboards', dept: 'Numbers', title: 'Sales & Stock', href: '/?view=services', rule: 'var(--accent-lavender)',

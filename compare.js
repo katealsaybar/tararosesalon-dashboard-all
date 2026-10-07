@@ -243,9 +243,11 @@ function cmpMetrics() {
     { name: 'Hair avg bill',            kind: 'avg', up: true, get: s => nz(s.hairAvgBill), target: () => TARGETS.hairAvgBill },
     { name: 'Beauty avg bill',          kind: 'avg', up: true, get: s => (s.beautyTotalClients ? nz(s.beautyAvgBill) : null), target: () => TARGETS.beautyAvgBill },
     { group: 'Benchmarks' },
-    { name: 'NCR %',                    sub: 'hair', kind: 'pct', up: true, get: s => nz(s.hairNcrPct), target: () => 20 },
+    // NCR is a count against a monthly unit target (Kate, 7 Oct 2026), prorated to the side's window.
+    { name: 'NCR',                      sub: 'hair + beauty', kind: 'n', up: true, noMover: true, get: s => nz(ncrCountOf(s)),
+      target: side => ncrTargetFor(cmpCodes(side.branch), side.from, side.to) },
     { name: 'Rebooking %',              kind: 'pct', up: true, get: s => nz(s.rebookPct), target: side => CMP_POST_CUTOVER(side) ? 70 : 45 },
-    { name: 'Treatment %',              sub: 'of hair revenue', kind: 'pct', up: true, get: hairTxPct, target: side => CMP_POST_CUTOVER(side) ? 30 : 20 },
+    { name: 'Treatment %',              sub: 'of hair revenue', kind: 'pct', up: true, get: hairTxPct, target: () => TARGETS.treatmentPct },
     { name: 'Retail %',                 sub: 'of services', kind: 'pct', up: true, get: retPct, target: () => TARGETS.retailPct },
     { name: 'Hair utilisation %',       kind: 'pct', up: true, get: s => nz(s.hairUtilPct),   target: () => TARGETS.hairUtilPct },
     { name: 'Beauty utilisation %',     kind: 'pct', up: true, get: s => nz(s.beautyUtilPct), target: () => TARGETS.beautyUtilPct },
@@ -475,10 +477,12 @@ function cmpResultsHtml(sa, sb2) {
     // Motor City); one blank side stays, so the gap itself is visible.
     if (va == null && vb == null) return;
 
-    const tA = m.target ? m.target(A) : null, tB = m.target ? m.target(B) : null;
+    // A count target is for the whole window, so Per day divides it like the figure.
+    const tScale = (t, days) => (t != null && per && m.kind === 'n') ? t / days : t;
+    const tA = m.target ? tScale(m.target(A), daysA) : null, tB = m.target ? tScale(m.target(B), daysB) : null;
     const hit = (v, t) => (v == null || t == null) ? '' : (v >= t ? ' cmp-hit' : ' cmp-miss');
     const tgtNote = (t, v) => (t == null || v == null) ? '' :
-      `<small class="cmp-tgt">${m.kind === 'pct' ? t + '%' : 'AED ' + t}</small>`;
+      `<small class="cmp-tgt">${m.kind === 'pct' ? t + '%' : m.kind === 'n' ? cmpFmt('n', t, t < 10) : 'AED ' + t}</small>`;
 
     let dAbs = '', dRel = '', cls = 'flat', bar = '';
     if (va != null && vb != null) {
@@ -627,7 +631,7 @@ function cmpAnswerHtml(sa, sb2) {
 
   // Movers among totals and counts only: a rate's change is in points and
   // does not rank against a percentage change.
-  const movers = cmpMetrics().filter(m => !m.group && (m.kind === 'aed' || m.kind === 'n' || m.kind === 'avg') && !m.lead)
+  const movers = cmpMetrics().filter(m => !m.group && (m.kind === 'aed' || m.kind === 'n' || m.kind === 'avg') && !m.lead && !m.noMover)
     .map(m => {
       const va = sc(m.kind, m.get(sa), dA), vb = sc(m.kind, m.get(sb2), dB);
       return (va && vb != null) ? { m, va, vb, rel: (vb - va) / Math.abs(va) * 100 } : null;
@@ -637,7 +641,7 @@ function cmpAnswerHtml(sa, sb2) {
 
   // Fix first: B's rates below their own target, Treatment and Retail first
   // (the standing priority, same rule as the Pulse headline), else the worst gap.
-  const scored = ['Treatment %', 'Retail %', 'Rebooking %', 'NCR %', 'Hair avg bill', 'Beauty avg bill']
+  const scored = ['Treatment %', 'Retail %', 'Rebooking %', 'NCR', 'Hair avg bill', 'Beauty avg bill']
     .map(n => M[n]).map(m => {
       const v = m.get(sb2), t = m.target ? m.target(B) : null;
       return (v == null || t == null) ? null : { m, v, t, att: v / t };
@@ -665,8 +669,8 @@ function cmpAnswerHtml(sa, sb2) {
     drop ? card('bad', 'Biggest drop', `${nm(drop.m)} <span>−${Math.abs(drop.rel).toFixed(1)}%</span>`,
              `${fmtV(drop.m, drop.vb)} in B, down from ${fmtV(drop.m, drop.va)}.`)
          : card('flat', 'Biggest drop', 'Nothing fell', 'Every total is level or up on A.'),
-    fix  ? card('warn', 'Fix first', `${nmScoped(fix.m)} <span>${fix.m.kind === 'pct' ? fix.v.toFixed(2) + '%' : 'AED ' + Math.round(fix.v)}</span>`,
-             `Target ${fix.m.kind === 'pct' ? fix.t + '%' : 'AED ' + fix.t}${fix.m.sub && fix.m.sub !== 'hair' ? ' ' + fix.m.sub : ''}. ${fix.m.name === 'Treatment %' || fix.m.name === 'Retail %' ? 'Standing priority, so it comes first.' : 'Furthest below its target in B.'}`)
+    fix  ? card('warn', 'Fix first', `${nmScoped(fix.m)} <span>${fix.m.kind === 'pct' ? fix.v.toFixed(2) + '%' : fix.m.kind === 'n' ? Math.round(fix.v) : 'AED ' + Math.round(fix.v)}</span>`,
+             `Target ${fix.m.kind === 'pct' ? fix.t + '%' : fix.m.kind === 'n' ? cmpFmt('n', fix.t, fix.t < 10) : 'AED ' + fix.t}${fix.m.sub && fix.m.sub !== 'hair' ? ' ' + fix.m.sub : ''}. ${fix.m.name === 'Treatment %' || fix.m.name === 'Retail %' ? 'Standing priority, so it comes first.' : 'Furthest below its target in B.'}`)
          : card('good', 'Fix first', 'Nothing', 'B hits every target it is scored on.'),
   ].join('');
 
@@ -735,7 +739,7 @@ const CMP_TRENDS = [
   { key: 'tx',     label: 'Treatment',       metric: 'Treatment %',     num: 'tx',       den: 'hairRev',       pct: true },
   { key: 'ret',    label: 'Retail',          metric: 'Retail %',        num: 'retail',   den: 'svc',           pct: true },
   { key: 'rebook', label: 'Rebooking',       metric: 'Rebooking %',     num: 'rebooked', den: 'rebookDen',       pct: true },
-  { key: 'ncr',    label: 'NCR',             metric: 'NCR %',           num: 'hairNcr',  den: 'ncrDen',   pct: true },
+  { key: 'ncr',    label: 'NCR',             metric: 'NCR',             num: 'ncr',      cum: true },
   { key: 'hab',    label: 'Hair avg bill',   metric: 'Hair avg bill',   num: 'hairRev',  den: 'hairClients' },
   { key: 'bab',    label: 'Beauty avg bill', metric: 'Beauty avg bill', num: 'beautyRev', den: 'beautyClients' },
 ];
@@ -765,9 +769,9 @@ function cmpTrendStripHtml(sa, sb2) {
   const t = cmpTrendDef();
   const m = cmpMetricMap()[t.metric];
   const va = sa ? m.get(sa) : null, vb = sb2 ? m.get(sb2) : null;
-  const fmt = v => v == null ? '—' : (m.kind === 'pct' ? v.toFixed(2) + '%' : 'AED ' + cmpFmt(m.kind === 'avg' ? 'avg' : 'aed', v));
+  const fmt = v => v == null ? '—' : (m.kind === 'pct' ? v.toFixed(2) + '%' : m.kind === 'n' ? cmpFmt('n', v, false) : 'AED ' + cmpFmt(m.kind === 'avg' ? 'avg' : 'aed', v));
   const tA = m.target ? m.target(A) : null, tB = m.target ? m.target(B) : null;
-  const tf = x => m.kind === 'pct' ? x + '%' : 'AED ' + x;
+  const tf = x => m.kind === 'pct' ? x + '%' : m.kind === 'n' ? cmpFmt('n', x, x < 10) : 'AED ' + x;
   const res = (v, tt) => (tt == null || v == null) ? '' : `<span class="cmp-res ${v >= tt ? 'hit' : 'miss'}">${v >= tt ? 'Hit' : 'Below'} ${tf(tt)}</span>`;
   const stat = (lbl, cls, v, tt) => `
     <div class="cmp-stat">
@@ -782,6 +786,7 @@ function cmpTrendStripHtml(sa, sb2) {
 function cmpTrendWhat() {
   const t = cmpTrendDef();
   if (t.key === 'net') return 'Net take added up day by day. If B\'s line is above A\'s, B is ahead at that point in its window.';
+  if (t.cum) return `${t.label} added up day by day. The dashed amber line is the pace the monthly target sets: above it is on track.`;
   return `${t.label}${t.pct ? ' %' : ''} so far, day by day. The dashed amber line is the target: above it is a hit.`;
 }
 
@@ -805,7 +810,7 @@ function cmpSetTrend(key) {
 function cmpDayParts(branchDays) {
   const known = v => (v == null || !Number.isFinite(+v)) ? 0 : +v;
   const p = { net: 0, hairRev: 0, retail: 0, svc: 0, clients: 0, hairClients: 0, beautyRev: 0, beautyClients: 0,
-              tx: null, rebooked: null, rebookDen: 0, hairNcr: null, ncrDen: 0 };
+              tx: null, rebooked: null, rebookDen: 0, hairNcr: null, ncrDen: 0, ncr: null };
   branchDays.forEach(({ s, covered }) => {
     p.net += known(s.netTake); p.hairRev += known(s.hairServicesIncl);
     p.retail += known(s.retailTotal); p.svc += known(s.netTake) - known(s.retailTotal);
@@ -818,6 +823,7 @@ function cmpDayParts(branchDays) {
     p.tx = (p.tx || 0) + known(s.treatmentSales);
     p.rebooked = (p.rebooked || 0) + known(s.totalRebooked); p.rebookDen += known(s.totalClients);
     p.hairNcr = (p.hairNcr || 0) + known(s.hairNCR); p.ncrDen += known(s.hairTotalClients);
+    p.ncr = (p.ncr || 0) + known(s.hairNCR) + known(s.beautyNCR);
   });
   return p;
 }
@@ -828,6 +834,7 @@ function cmpTrendValues(ser, t) {
   return ser.map(r => {
     const p = r.parts;
     if (t.key === 'net') { num += p ? p.net : 0; return num; }
+    if (t.cum) { num += p ? (p[t.num] || 0) : 0; return num; }
     if (p && (p[t.num] != null || t.key === 'tx')) { num += p[t.num] || 0; den += p[t.den] || 0; }
     return den ? num / den * (t.pct ? 100 : 1) : null;
   });
@@ -846,7 +853,7 @@ function cmpDrawTrend() {
   const n = Math.max(serA.length, serB.length);
   const labels = Array.from({ length: n }, (_, i) => 'Day ' + (i + 1));
   const valFmt = v => v == null ? '—' : t.key === 'net' ? 'AED ' + Math.round(v).toLocaleString('en-GB')
-    : t.pct ? v.toFixed(2) + '%' : 'AED ' + Math.round(v);
+    : t.cum ? String(Math.round(v)) : t.pct ? v.toFixed(2) + '%' : 'AED ' + Math.round(v);
   const line = (label, data, color, extra) => Object.assign({
     label, data, borderColor: color, backgroundColor: color, borderWidth: 3,
     pointRadius: 0, pointHoverRadius: 4, tension: 0.25, spanGaps: true,
@@ -857,12 +864,16 @@ function cmpDrawTrend() {
   ];
   if (m.target) {
     const tA = m.target(A), tB = m.target(B);
-    const flat = v => Array.from({ length: n }, () => v);
+    // A count target is for the whole window, so the line is a pace: it climbs to the
+    // target on the window's last day. The % targets stay flat.
+    const flat = (v, len) => t.cum
+      ? Array.from({ length: n }, (_, i) => (v != null && i < len) ? v * (i + 1) / len : null)
+      : Array.from({ length: n }, () => v);
     const dash = { borderDash: [6, 5], borderWidth: 2, pointHoverRadius: 0, tension: 0 };
-    if (tA === tB) datasets.push(line('Target', flat(tB), P.warn, dash));
+    if (!t.cum && tA === tB) datasets.push(line('Target', flat(tB), P.warn, dash));
     else {
-      datasets.push(line('Target A', flat(tA), P.warnSoft, dash));
-      datasets.push(line('Target B', flat(tB), P.warn, dash));
+      datasets.push(line('Target A', flat(tA, serA.length), P.warnSoft, dash));
+      datasets.push(line('Target B', flat(tB, serB.length), P.warn, dash));
     }
   }
   cmpCharts.cmpPace = new Chart(el, {
@@ -881,7 +892,7 @@ function cmpDrawTrend() {
         y: P.axis({
           beginAtZero: t.key === 'net',
           ticks: { color: P.tick, font: P.font,
-            callback: v => t.key === 'net' ? cmpAxisK(v) : t.pct ? v + '%' : 'AED ' + v },
+            callback: v => t.key === 'net' ? cmpAxisK(v) : t.cum ? v : t.pct ? v + '%' : 'AED ' + v },
         }),
       },
     }),

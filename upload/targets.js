@@ -70,9 +70,9 @@ const TG_MONTHS = ['January','February','March','April','May','June',
 
 // Default derivation rates. Every table seen so far uses these, but they are
 // typed into each branch's sheet by hand, so the grid exposes them and they are
-// saved per branch per month. Treatment is 30 since September 2026, the same
-// cutover as benchmarks.treatmentPct in ledger-targets.js (Kate, 6 Oct 2026).
-const TG_DEFAULT_PCT = { actual: 80, retail: 12, treatment: 30 };
+// saved per branch per month. Treatment is 20 (Coach Emma's figure); the 30 tried from
+// September 2026 was reversed on 7 Oct 2026 (Kate), as in ledger-targets.js.
+const TG_DEFAULT_PCT = { actual: 80, retail: 12, treatment: 20 };
 
 // ── DEPARTMENT ────────────────────────────────────────────────
 // dept is part of the staff_targets key because nicknames repeat across benches

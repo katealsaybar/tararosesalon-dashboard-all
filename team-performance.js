@@ -732,7 +732,7 @@ function tpQuadrant(roster) {
     </div>`;
   }).join('') + (noAim.length ? `<div class="tp-q-grp">
       <div class="tp-q-h">No level aim · ${noAim.length}</div>
-      <p>Positions Stylist Levels does not set aims for yet, so they are left off this chart. Switch to Bench to see them.</p>
+      <p>Positions Stylist’s Benchmarks does not set aims for yet, so they are left off this chart. Switch to Bench to see them.</p>
       <div class="tp-q-chips">${noAim.map(chip).join('')}</div>
     </div>` : '') + (owners.length ? `<div class="tp-q-grp">
       <div class="tp-q-h">Not on this chart · ${owners.length}</div>
@@ -741,7 +741,7 @@ function tpQuadrant(roster) {
     </div>` : '');
 
   const basisSeg = tpDept === 'hair' ? `<div class="tp-seg tp-q-basis" role="group" aria-label="Read against">
-      <button type="button" class="${byLevel ? 'on' : ''}" onclick="tpSetQBasis('level')"${levelOk ? '' : ' disabled'} title="Each person against her own level's aims from Stylist Levels">Her level's aims</button>
+      <button type="button" class="${byLevel ? 'on' : ''}" onclick="tpSetQBasis('level')"${levelOk ? '' : ' disabled'} title="Each person against her own level's aims from Stylist’s Benchmarks">Her level's aims</button>
       <button type="button" class="${byLevel ? '' : 'on'}" onclick="tpSetQBasis('bench')" title="${addon ? 'Everyone against the salon treatment and retail targets' : 'Everyone against the bench median take and the salon rebook target'}">Bench</button>
     </div>` : '';
   const why = tpDept !== 'hair' ? 'beauty has no level aims yet, so this reads against the bench'

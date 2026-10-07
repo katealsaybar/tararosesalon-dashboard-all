@@ -9,7 +9,7 @@ const SUPA_URL = 'https://gvijxenafoowajqktqvd.supabase.co';
 const SUPA_KEY = 'sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-// TRS One Source of Truth doctrine sets Treatment % at 30+ and Rebooking Rate at 70+;
+// TRS One Source of Truth doctrine sets Rebooking Rate at 70+ (Treatment stays 20, see TARGETS);
 // the dashboard was still scoring against the old 20/45. Raised effective September
 // 2026 — a month before that was never actually asked to clear the new bar, so it
 // keeps reading against the old one. Reference is whichever period is selected
@@ -26,7 +26,9 @@ const TARGETS = {
   get hairAvgBill()   { return (typeof isBahrainView === 'function' && (isBahrainView() || isGroupView())) ? null : 650; },
   get beautyAvgBill() { return (typeof isBahrainView === 'function' && (isBahrainView() || isGroupView())) ? null : 200; },
   retailPct: 12, hairUtilPct: 80, beautyUtilPct: 70,
-  get treatmentPct() { return isPostTargetCutover() ? 30 : 20; },
+  // Treatment stays at 20 (Coach Emma's figure all along); the 30 that came in with the
+  // September cutover was reversed on 7 Oct 2026 (Kate). Rebooking keeps its cutover.
+  treatmentPct: 20,
   get rebookPct()    { return isPostTargetCutover() ? 70 : 45; },
 };
 
@@ -337,14 +339,13 @@ let periodPick = null;
 
 // Recomputed on every paint rather than frozen at load, so a dashboard left open
 // overnight does not still think "this month so far" ends yesterday.
-// Three named windows only. Year so far and Last year were chips of their own
+// Two named windows only (the third, Last month + this, was dropped 7 Oct 2026, Kate). Year so far and Last year were chips of their own
 // until the row reached six and stopped reading as an index line; both are the
 // Year picker now, and any single month is the Month picker (Kate, 3 Sep 2026).
 function periodPresets() {
   const today = new Date(); today.setHours(0,0,0,0);
   const y = today.getFullYear(), m = today.getMonth();
   return [
-    { k: 'Last month + this', from: new Date(y, m-1, 1), to: today },
     { k: 'This month',        from: new Date(y, m,   1), to: today },
     { k: 'Last month',        from: new Date(y, m-1, 1), to: new Date(y, m, 0) },
   ];
@@ -433,8 +434,8 @@ function activePeriodKey() {
 // Only Custom has no name, and that one carries its two dates because there is
 // nothing else it could carry.
 //
-//   last-month-and-this   the default, and so never written
-//   this-month · last-month
+//   this-month            the default, and so never written
+//   last-month
 //   month:2026-06 · year:2025
 //   2026-08-11..2026-08-17   Custom, from..to
 //
@@ -442,7 +443,6 @@ function activePeriodKey() {
 // the ledger month instead, which is what month= carries), so a period= on one
 // of those URLs would name a control that page does not have.
 const PERIOD_URL_KEYS = {
-  'Last month + this': 'last-month-and-this',
   'This month':        'this-month',
   'Last month':        'last-month',
 };
@@ -452,7 +452,7 @@ function periodParam() {
   const k = activePeriodKey();
   // The boot's own window. A bare URL already means it, so writing it would put a
   // parameter on every clean path for nothing — same rule as branch=all.
-  if (k === 'Last month + this') return null;
+  if (k === 'This month') return null;
   if (PERIOD_URL_KEYS[k]) return PERIOD_URL_KEYS[k];
   if (k === 'Year')  return 'year:' + dateFrom.getFullYear();
   if (k === 'Month') return `month:${dateFrom.getFullYear()}-${String(dateFrom.getMonth()+1).padStart(2,'0')}`;
@@ -937,6 +937,40 @@ function getClientTarget(branches) {
     : `Target ${n} for these dates (${monthly.toLocaleString('en-GB')} a month, handled)`;
 }
 
+// NCR (new client requests) is a COUNT, not a rate. Kate, 7 Oct 2026: 20% of clients
+// was never reachable (the branches ran 1 to 8% in 2026), so the target is a number of
+// requests a month per branch: Abu Dhabi 18 each, Dubai 17 each (70 for the four).
+// A figure keyed in branch_targets.ncr (Monthly Targets) wins over these, so the
+// number can move without a code edit. Prorated to the window by days, like the
+// client target above. Bahrain and the Group have none, so those rows drop out.
+const NCR_MONTHLY_TARGET = { SAA: 18, KCA: 18, MC: 17, AQ: 17 };
+function ncrMonthlyTarget(code, ym) {
+  const t = (typeof LG_DB_TARGETS !== 'undefined' && LG_DB_TARGETS[ym]) ? LG_DB_TARGETS[ym].branch : null;
+  const v = t && t[code] ? t[code].ncr : null;
+  return Number.isFinite(v) ? v : (NCR_MONTHLY_TARGET[code] ?? null);
+}
+function ncrTargetFor(branches, from, to) {
+  if (!from || !to) return null;
+  const list = (!branches || !branches.length || branches.includes('all')) ? UAE_ACTIVE : branches;
+  if (!list.length || list.some(c => !(c in NCR_MONTHLY_TARGET))) return null;
+  let total = 0;
+  windowMonths(from, to).forEach(m => {
+    const [y, mo] = m.split('-').map(Number), days = new Date(y, mo, 0).getDate();
+    const a = new Date(Math.max(from, new Date(y, mo - 1, 1))), b = new Date(Math.min(to, new Date(y, mo - 1, days)));
+    const covered = Math.round((b - a) / 86400000) + 1;
+    list.forEach(c => { total += ncrMonthlyTarget(c, m) * covered / days; });
+  });
+  return total;
+}
+// The window's NCR count, hair plus beauty. Null where the ledger does not cover it
+// (the same gate the old NCR % had: combinedNcrPct is nulled there).
+function ncrCountOf(s) {
+  if (!s || !Number.isFinite(s.combinedNcrPct)) return null;
+  const h = s.hairBreakdown ? s.hairBreakdown.ncr : 0, b = s.beautyBreakdown ? s.beautyBreakdown.ncr : 0;
+  return (Number(h) || 0) + (Number(b) || 0);
+}
+const ncrFmt = n => !Number.isFinite(n) ? '—' : (Number.isInteger(n) ? n.toLocaleString('en-GB') : n.toFixed(1));
+
 // ── DROPDOWN HELPERS ────────────────────────────────────────
 
 function toggleDrop(key) {
@@ -1159,9 +1193,9 @@ function heroPeriodPhrasing() {
 // so it stays correct no matter which of renderDashboard()'s early-return
 // paths (loading/empty/error) last touched #mainContent.
 const VIEW_SECTION_LABELS = {
-  dashboard: 'Organisation Pulse', team: 'Podium Race', teamquad: 'Staff Quadrant', staffperf: 'Staff Benchmarks', stafflevels: 'Stylist Levels', staffweeks: 'Staff’s Quarterly Performance', stylists: 'Staff Cards',
+  dashboard: 'Organisation Pulse', team: 'Podium Race', teamquad: 'Staff Quadrant', staffperf: 'Staff Dashboards', stafflevels: 'Stylist’s Benchmarks', staffweeks: 'Staff’s 13 Week', stylists: 'Staff Cards',
   orgchart: 'Org Chart',
-  services: 'Service Rankings', clients: 'Top Clients', lostclients: 'Lost Clients', products: 'Products', reviews: 'Google Reviews',
+  services: 'Service Rankings', clients: 'Top Clients', lostclients: 'Client’s Last Visit', products: 'Products', reviews: 'Google Reviews',
   wvperf: 'Wellness Voucher Performance',
   googleads: 'Google Ads',
   website: 'Website & Search',
@@ -1764,7 +1798,8 @@ function computeStatusStatement(s, branchLabel, periodPhrase, treatmentPct, reta
   const checks = [
     { label: 'Avg Bill',    status: sc(s.avgBill||0, TARGETS.hairAvgBill) },
     { label: 'Rebooking %', status: sc(s.rebookPct||0, TARGETS.rebookPct) },
-    { label: 'NCR %',       status: sc(s.combinedNcrPct||0, 20) },
+    ...(() => { const c = ncrCountOf(s), t = (isGroupView() || isBahrainView()) ? null : ncrTargetFor(sel.branch, dateFrom, dateTo);
+                return (c != null && t) ? [{ label: 'NCR', status: sc(c, t) }] : []; })(),
     { label: 'Treatment %', status: sc(treatmentPct||0, TARGETS.treatmentPct) },
     { label: 'Retail %',    status: sc(retailPct||0, TARGETS.retailPct) },
   ];
@@ -1817,8 +1852,9 @@ function applyDateRange() {
   refreshActiveView();
 }
 
-// Default range: 1st of last month → today — covers the prior full month plus
-// whatever days have landed so far this month. Changed from Jan 1 (year-to-date)
+// Default range: 1st of this month → today (This month). Until 7 Oct 2026 it was the
+// 1st of last month → today (Last month + this). Before that, Jan 1 (year-to-date),
+// changed
 // per Kate's request, 2026-08-03 — she was manually re-applying this same range
 // every time. "Today" as the upper bound is still safe even if today's sync
 // hasn't landed yet (branch_staff_daily/phorest_staff_daily sync daily).
@@ -1827,7 +1863,8 @@ function applyDateRange() {
 // different use case, and still defaults to Jan 1.
 async function setDefaultRange() {
   const today = new Date(); today.setHours(0,0,0,0);
-  const from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  // Kate, 7 Oct 2026: the default is This month; the Last month + this window is gone.
+  const from = new Date(today.getFullYear(), today.getMonth(), 1);
   const to = today;
   dateFrom = from;
   dateTo   = to;
@@ -3823,10 +3860,14 @@ async function renderDashboard() {
   // printed as a note rather than raced against a bar. Kate, 2026-08-14. (Since
   // 1 Oct 2026 that target is the uploaded monthly figure, prorated to the window:
   // see getClientTarget.)
-  const NCR_TARGET = 20;   // the same figure the old NCR card scored against
+  // NCR is a count against a monthly unit target per branch (7 Oct 2026), not a % of
+  // clients. `splitless`: the target is for hair and beauty together, so the two bars
+  // carry no tick and neither is scored short on its own.
+  const ncrCount  = ncrCountOf(s);
+  const ncrTarget = (isGroupView() || isBahrainView()) ? null : ncrTargetFor(sel.branch, dateFrom, dateTo);
   const benchAll = [
-    { name:'NCR %',           sub:`target ${NCR_TARGET}%`,
-      hair:s.hairNcrPct, beauty:s.beautyNcrPct, combined:s.combinedNcrPct, target:NCR_TARGET, fmt:pct2 },
+    { name:'NCR',             sub: ncrTarget == null ? 'no target set' : `target ${ncrFmt(ncrTarget)}`,
+      hair:s.hairNCR, beauty:s.beautyNCR, combined:ncrCount, target:ncrTarget, fmt:ncrFmt, splitless:true },
     { name:'Rebooking %',     sub:`target ${TARGETS.rebookPct}%`,
       hair:s.hairRebookPct, beauty:s.beautyRebookPct, combined:s.rebookPct, target:TARGETS.rebookPct, fmt:pct2 },
     // Treatment before Retail, always — Kate/Mette, 2026-09-21. Source order
@@ -3866,7 +3907,7 @@ async function renderDashboard() {
     // while one department sat under its own bar (Utilisation on the hair 80%
     // with beauty short of its own, say). Since the second pass the row counts as
     // a miss (see `met` below).
-    short: [['Hair', r.hair, r.target], ['Beauty', r.beauty, Number.isFinite(r.beautyTarget) ? r.beautyTarget : r.target]]
+    short: r.splitless ? [] : [['Hair', r.hair, r.target], ['Beauty', r.beauty, Number.isFinite(r.beautyTarget) ? r.beautyTarget : r.target]]
       .filter(([, v, t]) => Number.isFinite(v) && Number.isFinite(t) && v < t)
       .map(([d, v, t]) => ({ dept: d, v, t })) }))
   // Kate, 1 Oct 2026, OP4 second pass: a department under its own bar is a miss,
@@ -3881,7 +3922,7 @@ async function renderDashboard() {
   // scored: rebooking, NCR and treatment wait on Bahrain's ledger, the avg bills on
   // a BHD target. Not counted in "x of y", which stays what was actually scored.
   // Beauty Avg Bill still leaves a branch with no beauty team, as everywhere.
-  const LEDGER_ONLY = new Set(['NCR %', 'Rebooking %', 'Treatment %']);
+  const LEDGER_ONLY = new Set(['NCR', 'Rebooking %', 'Treatment %']);
   const unscored = (!noSales && (isBahrainView() || isGroupView()))
     ? benchAll.filter(r => !benchRows.some(b => b.name === r.name) && (hasBeauty || r.name !== 'Beauty Avg Bill'))
         .map(r => ({ ...r, why: Number.isFinite(r.combined) ? 'no target yet'
@@ -3928,9 +3969,9 @@ async function renderDashboard() {
           </div>
         </div>
         <div class="att-bars">
-          ${Number.isFinite(r.hair)   ? line('Hair',   r.hair,   'var(--hair)',   r.target, both ? 'H' : 'Target')
+          ${Number.isFinite(r.hair)   ? line('Hair',   r.hair,   'var(--hair)',   r.splitless ? null : r.target, both ? 'H' : 'Target')
                                       : note('Hair · '   + (r.hairNote   || 'no data for this period'))}
-          ${Number.isFinite(r.beauty) ? line('Beauty', r.beauty, 'var(--beauty)', both ? r.beautyTarget : r.target, both ? 'B' : 'Target')
+          ${Number.isFinite(r.beauty) ? line('Beauty', r.beauty, 'var(--beauty)', r.splitless ? null : (both ? r.beautyTarget : r.target), both ? 'B' : 'Target')
                                       : note('Beauty · ' + (r.beautyNote || 'no data for this period'))}
         </div>
       </div>`;

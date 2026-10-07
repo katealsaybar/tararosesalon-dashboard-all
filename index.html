@@ -1946,7 +1946,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .svc-d.down{color:var(--bad)}
 .slv-note{font-size:12px;color:var(--muted);margin-top:2px}
 .slv-muted{color:var(--muted);font-size:13px;margin:12px 0 0}
-/* 13-Week Report (staff-weeks.js), riding on the Stylist Levels card and table. */
+/* Staff's 13 Week (staff-weeks.js), riding on the Stylist Benchmarks card and table. */
 .w13-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 /* Products: retail stock bought against retail sold, a full-width row under the four tiles (Kate, 1 Oct 2026). */
 .w13-tile.prd-sold{grid-column:1/-1}
@@ -1956,19 +1956,6 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .w13-val{font-size:22px;font-weight:600;color:var(--text);margin:4px 0 2px;font-variant-numeric:tabular-nums}
 .slv-table tr.w13-off td{color:var(--muted)}
 .slv-table tr.w13-tot td{font-weight:700;border-top:2px solid var(--border)}
-.slv-table tr.w13-sub td{font-weight:600;background:var(--surface2);color:var(--text)}
-/* Each quarter folds (Kate, 29 Sep 2026): the Q row is the header, its weeks hide
-   until it is opened. The whole row is the tap target; the button carries the state. */
-.w13-q:not(.open) tr.w13-wk{display:none}
-.slv-table tr.w13-qhead{cursor:pointer}
-.slv-table tr.w13-qhead td{border-top:1px solid var(--border)}
-@media(hover:hover){.slv-table tr.w13-qhead:hover td{background:var(--border2)}}
-.w13-qbtn{appearance:none;border:0;background:none;padding:0;margin:0;font:inherit;font-weight:600;color:inherit;
-  cursor:pointer;display:inline-flex;align-items:center;gap:10px;text-align:left;min-height:32px}
-.w13-chev{width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;
-  transform:rotate(-45deg);transition:transform .18s;flex-shrink:0;margin-left:2px}
-.w13-q.open .w13-chev{transform:rotate(45deg) translate(-2px,-2px)}
-@media(max-width:760px){.w13-qbtn{min-height:44px}}
 @media(max-width:700px){.w13-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.w13-val{font-size:19px}}
 /* Lost Clients' five tiles (Kate, 2 Oct 2026): one even row on a laptop, the two
    name tiles wrap a long name onto a second line instead of running out of the box. */
@@ -1994,6 +1981,20 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 /* 13W4: an outlined stub is a week not uploaded yet; the dotted line is her level's weekly aim. */
 .w13-spark rect.nd{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:2 1.5;vector-effect:non-scaling-stroke}
 .w13-spark line.aim{stroke:var(--text);stroke-width:1;stroke-dasharray:3 2;opacity:.55;vector-effect:non-scaling-stroke}
+/* Staff's 13 Week table across (Kate, 7 Oct 2026): a column a week, the labels and the year pinned on the left. */
+.w13-across{width:auto;min-width:100%;border-collapse:separate;border-spacing:0}
+.w13-across th,.w13-across td{text-align:right;white-space:nowrap}
+.w13-across thead th{vertical-align:bottom;line-height:1.35;color:var(--text);font-weight:400}
+.w13-across thead th b{display:block;font-weight:600}
+.w13-across thead th span{display:block;font-size:11.5px;color:var(--muted);font-weight:500}
+.w13-across th:first-child,.w13-across td:first-child{box-sizing:border-box;width:170px;min-width:170px;max-width:170px;white-space:normal;text-align:left;position:sticky;left:0;z-index:2;background:var(--surface)}
+.w13-across th.w13-yr,.w13-across td.w13-yr{position:sticky;left:170px;z-index:2;background:var(--surface2);font-weight:700;border-right:1px solid var(--border);box-sizing:border-box;width:116px;min-width:116px}
+.w13-across tr.slv-g th{position:static;text-align:left;background:none;padding:0;border-bottom:0;width:auto;min-width:0;max-width:none}
+.w13-across tr.slv-g th>span{position:sticky;left:0;display:inline-block;padding:18px 10px 6px}
+.w13-across td.w13-off,.w13-across th.w13-off{color:var(--muted)}
+.w13-across thead th.w13-cur,.w13-across td.w13-cur{border-left:1px dashed var(--border);color:var(--muted)}
+.w13-across thead th.w13-cur b{color:var(--text)}
+@media(max-width:700px){.w13-across th:first-child,.w13-across td:first-child{width:128px;min-width:128px;max-width:128px}.w13-across th.w13-yr,.w13-across td.w13-yr{position:static;width:96px;min-width:96px}}
 .slv-table tr.w13-cur td{border-top:1px dashed var(--border);color:var(--muted)}
 .slv-table tr.w13-cur td b{color:var(--text)}
 .w13-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 4px}
@@ -2009,22 +2010,10 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .w13-pan .sc-btn{min-width:38px;font-size:18px;line-height:1;padding:6px 10px}
 .w13-pan .sc-btn[disabled]{opacity:.35;cursor:default}
 @media(max-width:700px){.w13-zoom{flex-direction:column;align-items:stretch}.w13-zoom .sc-seg{justify-content:space-between}.w13-zoom .sc-seg button{flex:1;padding-left:4px;padding-right:4px}.w13-pan{justify-content:space-between}}
-/* Quarter colour key beside the Daily / Weekly toggle: small soft squares, labelled. */
+/* Controls beside the chart title: the key and the Daily / Weekly toggle. */
 .w13-chart-ctl{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 16px}
-.w13-qkey{display:inline-flex;align-items:center;gap:12px;font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.02em}
-.w13-qkey span{display:inline-flex;align-items:center;gap:6px}
-.w13-qkey i{display:inline-block;width:13px;height:13px;border-radius:4px}
 @media(max-width:700px){.w13-chart-ctl{width:100%;justify-content:space-between}}
-/* Quarter strip above the chart: one card per quarter, the quarter's shade on top. */
-.w13-qstrip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0 4px}
-.w13-qcard{border:1px solid var(--border);border-top:4px solid;border-radius:12px;padding:10px 12px}
-.w13-q-val{font-size:19px;font-weight:600;color:var(--text);margin:4px 0 2px;font-variant-numeric:tabular-nums}
-.w13-q-chg{font-size:12.5px;font-weight:700;margin-top:6px;color:var(--muted)}
-.w13-q-chg.up{color:var(--good)}.w13-q-chg.down{color:var(--bad)}
-.w13-q-chg span{font-weight:500;color:var(--muted)}
-.w13-q-part{letter-spacing:.04em;text-transform:none;opacity:.8}
-@media(max-width:700px){.w13-qstrip{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.w13-qcard{padding:9px 10px}.w13-q-val{font-size:16.5px}}
-/* Sales / Clients key, same scale as the quarter key; a divider keeps the two apart. */
+/* Sales / Clients key, with a divider between it and the toggle. */
 .w13-skey{display:inline-flex;align-items:center;gap:12px;font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.02em;padding-right:14px;border-right:1px solid var(--border)}
 .w13-skey span{display:inline-flex;align-items:center;gap:6px}
 .w13-skey i.bar{display:inline-block;width:10px;height:13px;border-radius:3px}
@@ -3275,9 +3264,9 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-subhead">Team Performance</div>
     <div class="nav-sub" id="navTeamRace" onclick="showView('team', this)">Podium Race</div>
     <div class="nav-sub" onclick="showView('teamquad', this)">Staff Quadrant</div>
-    <div class="nav-sub" onclick="showView('staffperf', this)">Staff Benchmarks</div>
-    <div class="nav-sub" onclick="showView('staffweeks', this)">Staff&rsquo;s Quarterly Performance</div>
-    <div class="nav-sub" onclick="showView('stafflevels', this)">Stylist Levels</div>
+    <div class="nav-sub" onclick="showView('staffperf', this)">Staff Dashboards</div>
+    <div class="nav-sub" onclick="showView('staffweeks', this)">Staff&rsquo;s 13 Week</div>
+    <div class="nav-sub" onclick="showView('stafflevels', this)">Stylist&rsquo;s Benchmarks</div>
     <div class="nav-subhead">Clients</div>
     <div class="nav-sub" onclick="showView('clients', this)">Top Clients</div>
     <div class="nav-sub" onclick="showView('lostclients', this)">Lost Clients</div>
@@ -3539,14 +3528,14 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div id="view-staffperf" style="display:none">
     <main style="max-width:1400px;margin:0 auto;padding:10px 28px 48px">
       <div id="spfKeyCard" class="card" style="display:none;max-width:520px;margin:24px auto;padding:28px 24px">
-        <div style="font-size:15px;font-weight:600;margin-bottom:6px">Staff Benchmarks</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">Staff Dashboards</div>
         <div style="opacity:.7;font-size:14px;margin-bottom:12px">Paste your team key once. This browser remembers it after that.</div>
         <input id="spfKeyInput" type="text" placeholder="Team key" autocomplete="off"
           style="width:100%;font:inherit;padding:10px;border:1px solid var(--border);border-radius:8px;background:transparent;color:inherit">
         <button onclick="spfSaveKey()" style="margin-top:10px;font:inherit;font-weight:600;padding:9px 16px;border-radius:8px;border:none;cursor:pointer;background:var(--text);color:var(--bg)">Open</button>
       </div>
       <div class="sc-bar" id="spfBar" style="display:none">
-        <span class="sc-bar-t">Staff Benchmarks</span>
+        <span class="sc-bar-t">Staff Dashboards</span>
         <span class="sc-bar-sp"></span>
         <span id="spfSortWrap" style="display:inline-flex;gap:6px">
           <span class="spf-dd"><select id="spfSort" aria-label="Sort by" onchange="spfSetSort(this.value, false)">
@@ -3566,7 +3555,7 @@ table.tp-cmp td.bad{color:var(--bad)}
           <button type="button" data-dept="Beauty" onclick="spfSetDept('Beauty')">Beauty</button>
         </div>
       </div>
-      <iframe id="spfFrame" title="Staff Benchmarks" style="display:none;width:100%;min-height:400px;border:0;background:transparent"></iframe>
+      <iframe id="spfFrame" title="Staff Dashboards" style="display:none;width:100%;min-height:400px;border:0;background:transparent"></iframe>
       <div id="spfKeyReset" style="display:none;text-align:right;font-size:12px;opacity:.6;margin-top:6px">
         <a href="#" onclick="spfForgetKey();return false" style="color:inherit">Use a different team key</a>
       </div>
@@ -3945,30 +3934,30 @@ table.tp-cmp td.bad{color:var(--bad)}
 
 <script src="upload/name-aliases.js?v=20260930b"></script>
 <!-- After name-aliases.js: ledgerStaffTarget() canonicalises names through it. -->
-<script src="ledger-targets.js?v=20261003cur"></script>
+<script src="ledger-targets.js?v=20261007t20"></script>
 <!-- After ledger-targets.js: the Supabase target layer overrides its lookups per month. -->
 <script src="ledger-targets-db.js?v=20261006act"></script>
 <script src="staff-profiles.js?v=20261002va"></script>
 <script src="stylist-levels.js?v=20261005dots"></script>
-<script src="staff-weeks.js?v=20261005dots"></script>
+<script src="staff-weeks.js?v=20261007wk"></script>
 <script src="products.js?v=20261005dots"></script>
-<script src="lost-clients.js?v=20261006btn"></script>
+<script src="lost-clients.js?v=20261007title"></script>
 <script src="marketing-chart.js?v=20261006ph"></script>
 <script src="google-ads.js?v=20261006per"></script>
 <script src="website.js?v=20261006per"></script>
 <script src="social.js?v=20261006ph"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261006soc"></script>
+<script src="dashboard.js?v=20261007per"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20261005dots"></script>
-<script src="compare.js?v=20261005dots"></script>
+<script src="compare.js?v=20261007ncr"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20261005dots"></script>
-<script src="team-performance.js?v=20261005dots"></script>
+<script src="team-performance.js?v=20261007ren"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=20261003card"></script>
 <script src="pulse-narrative.js?v=20260928a"></script>
@@ -4919,5 +4908,5 @@ addEventListener('load', sizeTopbar);
 <script src="nav-collapse.js?v=20260924a"></script>
 <script src="nav-stars.js?v=20261002a"></script>
 <script src="mobile.js?v=20261003exvat"></script>
-<script src="search.js?v=20261006hub2"></script>
+<script src="search.js?v=20261007ren"></script>
 </body>
