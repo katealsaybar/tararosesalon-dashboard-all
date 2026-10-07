@@ -97,6 +97,7 @@ function lcPrefetch() {
 async function renderLostClients() {
   const el = document.getElementById('lostClientsContent');
   if (!el) return;
+  lcDetailCtx = null;
   el.innerHTML = lcShell('<p class="slv-muted">Loading clients…</p>');
   const listP = lcFetchList(); lcListP = null;   // used once; a later pick asks again
   lcFetchSummary();
@@ -357,7 +358,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && lcPopFor) 
 // services at this branch, what she took home and who looked after her, from
 // lost_client_detail. Asked once per client and kept.
 const lcDetailCache = {};
-let lcShown = [];
+let lcShown = [], lcDetailCtx = null;
 async function lcToggleDetail(ev, i) {
   if (ev.target.closest('a,button,.who,input,label,.lc-det-box')) return;
   const r = lcShown[i];
@@ -373,14 +374,17 @@ async function lcToggleDetail(ev, i) {
   const inner = phone ? box : box.querySelector('.lc-det-box');
   inner.innerHTML = '<p class="slv-muted" style="margin:0">Loading her visits…</p>';
   if (phone) host.querySelector('.prd-body').appendChild(box); else host.after(box);
-  const key = lcSel.branch + '|' + r.client_name;
+  // Top Clients (top-clients.js) borrows this panel: its ctx names the branch (null = every
+  // branch) and draws the panel with its own extras.
+  const br = lcDetailCtx ? lcDetailCtx.branch() : lcSel.branch;
+  const key = (br || 'all') + '|' + r.client_name;
   try {
     if (!lcDetailCache[key]) {
-      const { data, error } = await sb.rpc('lost_client_detail', { p_branch: lcSel.branch, p_client: r.client_name });
+      const { data, error } = await sb.rpc('lost_client_detail', { p_branch: br, p_client: r.client_name });
       if (error) throw error;
       lcDetailCache[key] = data;
     }
-    inner.innerHTML = lcDetailHtml(lcDetailCache[key]);
+    inner.innerHTML = lcDetailCtx ? lcDetailCtx.html(lcDetailCache[key], r) : lcDetailHtml(lcDetailCache[key]);
   } catch (e) {
     console.error(e);
     inner.innerHTML = '<p class="slv-muted" style="margin:0">Her visits did not load. Tap again to retry.</p>';
@@ -388,17 +392,30 @@ async function lcToggleDetail(ev, i) {
     setTimeout(() => box.remove(), 2500);
   }
 }
-function lcDetailHtml(d) {
-  const svc = (d && d.services) || [], prod = (d && d.products) || [], st = (d && d.stylists) || [];
-  const svcHtml = svc.length ? `<ol class="lc-svc">${svc.map(s => `<li><b>${lcEsc(s.item)}</b>
-      <span>${lcNum(s.visits)} visit${s.visits === 1 ? '' : 's'} · last ${lcEsc(lcDayY(s.last_date))} · AED ${lcNum(s.spend)}${s.last_by ? ' · ' + lcStylist(s.last_by) : ''}</span></li>`).join('')}</ol>`
+// Kate, 7 Oct 2026: the panel used to cut services at 12, which hid her latest visit. Now
+// "Recent visits" (day by day) sits on top, and the services list shows everything:
+// the first few, the rest under a "Show all" fold.
+function lcFold(items, show, start, li, noun) {
+  const rows = (arr, from) => `<ol class="lc-svc" start="${from}">${arr.map(li).join('')}</ol>`;
+  if (items.length <= show) return rows(items, start);
+  return rows(items.slice(0, show), start)
+    + `<details class="lc-more"><summary>Show all ${lcNum(items.length)} ${noun}</summary>${rows(items.slice(show), start + show)}</details>`;
+}
+function lcDetailHtml(d, o) {
+  o = o || {};   // extra: more HTML for the right-hand column; allBranches: say which salon each visit was at
+  const svc = (d && d.services) || [], prod = (d && d.products) || [], st = (d && d.stylists) || [], vis = (d && d.visits) || [];
+  const svcHtml = svc.length ? lcFold(svc, 12, 1, s => `<li><b>${lcEsc(s.item)}</b>
+      <span>${lcNum(s.visits)} visit${s.visits === 1 ? '' : 's'} · last ${lcEsc(lcDayY(s.last_date))} · AED ${lcNum(s.spend)}${s.last_by ? ' · ' + lcStylist(s.last_by) : ''}</span></li>`, 'services')
     : '<p class="slv-muted" style="margin:0">No services on record.</p>';
+  const visHtml = vis.length ? lcFold(vis, 5, 1, v => `<li><b>${lcEsc(lcDayY(v.date))}</b>${o.allBranches && v.at ? ` <span class="tc-at">${lcEsc(v.at)}</span>` : ''}
+      <span>${(v.services || []).map(lcEsc).join(', ') || 'Retail only'}${v.products ? ' · ' + v.products + ' product' + (v.products === 1 ? '' : 's') : ''} · AED ${lcNum(v.total)}${(v.by_who || []).length ? ' · ' + v.by_who.map(lcStylist).join(', ') : ''}</span></li>`, 'visits') : '';
   return `<div class="lc-det-grid">
-      <div><div class="slv-eyebrow">What she came in for</div>${svcHtml}</div>
+      <div>${visHtml ? `<div class="slv-eyebrow">Recent visits</div>${visHtml}<div class="slv-eyebrow" style="margin-top:16px">What she came in for</div>` : '<div class="slv-eyebrow">What she came in for</div>'}${svcHtml}</div>
       <div>
         ${prod.length ? `<div class="slv-eyebrow">Took home</div><ul class="lc-prod">${prod.map(p => `<li>${lcEsc(p.item)} <span>AED ${lcNum(p.spend)}${p.times > 1 ? ' · ' + p.times + 'x' : ''}</span></li>`).join('')}</ul>` : ''}
         ${st.length ? `<div class="slv-eyebrow" style="margin-top:${prod.length ? 14 : 0}px">Looked after by</div><div class="lc-sts">${st.map(s => `<span>${lcStylist(s.employee_name)} <em>${lcNum(s.visits)}</em></span>`).join('')}</div>` : ''}
-        ${d && d.first_visit ? `<p class="slv-note" style="margin-top:12px">First visit here ${lcEsc(lcDayY(d.first_visit))}</p>` : ''}
+        ${d && d.first_visit ? `<p class="slv-note" style="margin-top:12px">First visit ${o.allBranches ? 'since Jan 2025' : 'here'} ${lcEsc(lcDayY(d.first_visit))}</p>` : ''}
+        ${o.extra || ''}
       </div>
     </div>`;
 }

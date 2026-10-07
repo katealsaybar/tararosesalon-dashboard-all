@@ -5117,10 +5117,10 @@ function initSvcView() {
   loadAndRenderServices();
 }
 
+// Top Clients was rebuilt on 7 Oct 2026 (top-clients.js, own controls); loadAndRenderClients
+// and _renderClients below are the old page and no longer have a place to draw.
 function initCliView() {
-  if (!svcDropsReady) { svcDropsReady = true; _loadSvcYears(); }
-  _syncSvcYearRow();
-  loadAndRenderClients();
+  if (typeof renderTopClients === 'function') renderTopClients();
 }
 
 function setSvcViewMode(mode) {

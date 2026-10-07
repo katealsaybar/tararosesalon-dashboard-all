@@ -2189,6 +2189,30 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   .lc-svc{padding-left:28px}
 }
 .lc-svc b{font-weight:600}.lc-svc span{display:block;font-size:12.5px;color:var(--muted)}
+.lc-more summary{cursor:pointer;margin:2px 0 8px;font-size:12.5px;font-weight:600;color:var(--accent,var(--text))}.lc-more[open] summary{margin-bottom:0}
+/* Top Clients (top-clients.js, Kate 7 Oct 2026): borrows Client's Last Visit's board, tiles,
+   table and panel (lc-*, w13-*, slv-*). Only what is its own is here. The control bar scrolls
+   away (five groups would eat the screen) so the column heads do not stick under it. */
+.sc-bar.tc-bar{position:static}
+.tc-wrap thead th{position:static;white-space:normal;line-height:1.3;overflow:visible;text-overflow:clip}
+.tc-wrap .lc-thb{white-space:normal;text-align:inherit}
+.tc-c-rank{width:4%}.tc-c-client{width:14%}.tc-c-rev{width:10%}.tc-c-visits{width:7%}.tc-c-avg{width:9%}.tc-c-last{width:12%}
+.tc-c-stylist{width:12%}.tc-c-beauty{width:12%}.tc-c-fav{width:11%}.tc-c-phone{width:13%}
+.tc-name{font-weight:500}
+.tc-rev{font-family:'Playfair Display',serif;font-size:17px;font-weight:600}
+.tc-flat td{cursor:default}
+.tc-pill{display:inline-block;margin-top:3px;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid var(--border)}
+.tc-pill.cool{border-color:var(--warn);color:var(--warn)}.tc-pill.slip{border-color:var(--bad);color:var(--bad)}
+button.tc-slip{cursor:pointer;display:block;width:100%;text-align:left;font:inherit;color:inherit;background:transparent}
+button.tc-slip.warn{border-color:var(--accent-coral)}
+@media(hover:hover){button.tc-slip:hover{border-color:var(--text)}}
+.lc-svc .tc-at{display:inline;margin-left:6px;font-size:12px;color:var(--muted)}
+.tc-months{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;align-items:end;height:64px;margin-top:8px}
+.tc-months div{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:10.5px;color:var(--muted)}
+.tc-months i{display:block;width:100%;border-radius:3px 3px 0 0;background:var(--accent-lavender);min-height:2px}
+.tc-months div.cur i{opacity:.5}
+.tc-call{margin-top:12px;padding:8px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);font-size:13px}
+.lc-cust select{padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit}
 .lc-prod{margin:8px 0 0;padding-left:18px}.lc-prod li{margin:0 0 4px}.lc-prod span{color:var(--muted);font-size:12.5px}
 .lc-sts{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px}.lc-sts em{font-style:normal;color:var(--muted);font-size:12.5px}
 .lc-board{margin-bottom:14px}
@@ -3829,19 +3853,11 @@ table.tp-cmp td.bad{color:var(--bad)}
   </div>
 
   <!-- CLIENTS -->
+  <!-- Top Clients (Kate, 7 Oct 2026): rebuilt like Client's Last Visit, with its own controls
+       (the masthead filters are hidden here), from top_clients and top_clients_board.
+       top-clients.js draws it. The old Year row and #cli-content went with the old page. -->
   <div id="view-clients" style="display:none">
-    <!-- Same as Service Rankings: branch and dates live in the masthead. -->
-    <div class="svc-controls" id="cli-controls">
-      <div class="ctrl-group yr-group">
-        <div class="ctrl-label">Year</div>
-        <select id="cli-year" class="svc-yr-sel" onchange="onCliFiltersChange()">
-          <option value="2026">2026</option>
-        </select>
-      </div>
-    </div>
-    <main style="padding:10px 0 48px">
-      <div id="cli-content"><div class="loading">Loading client data...</div></div>
-    </main>
+    <main id="topClientsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
   <!-- LOST CLIENTS (Kate, 2 Oct 2026): regulars who stopped coming back, per branch,
@@ -3954,7 +3970,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20261005dots"></script>
 <script src="staff-weeks.js?v=20261007wk"></script>
 <script src="products.js?v=20261005dots"></script>
-<script src="lost-clients.js?v=20261007custom2"></script>
+<script src="lost-clients.js?v=20261007topc"></script>
+<script src="top-clients.js?v=20261007topc"></script>
 <script src="marketing-chart.js?v=20261006ph"></script>
 <script src="google-ads.js?v=20261006per"></script>
 <script src="website.js?v=20261006per"></script>
@@ -4372,7 +4389,7 @@ function showView(view, el){
   document.body.classList.toggle('staffperf-chrome', view === 'staffperf');
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients');
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'clients');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('website-chrome', view === 'website');
   document.body.classList.toggle('social-chrome', view === 'social');

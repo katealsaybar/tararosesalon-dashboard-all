@@ -359,7 +359,7 @@
         .then(({ data }) => (data || []).filter(r => r.client_name).map((r, i) => ({
           kind: 'client', id: 'client:' + r.client_name, t: r.client_name,
           g: 'Top Clients', s: `#${i + 1} · ${aed(r.total_revenue)}${r.top_service ? ' · ' + r.top_service : ''}`, words: 'client',
-          go: () => goText('clients', r.client_name) }))),
+          go: () => goText('clients', r.client_name, () => { if (typeof tcSearchFor === 'function') tcSearchFor(r.client_name); }) }))),
     ];
     if (typeof prdWindow === 'function') {
       const pw = prdWindow();
