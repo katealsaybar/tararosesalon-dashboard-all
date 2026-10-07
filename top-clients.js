@@ -281,25 +281,24 @@ function tcPaintTable() {
   const rank = r => `<span class="top3-rank ${_rankCls(r._rank)}">${r._rank + 1}</span>`;
   const bucket = d => d <= 30 ? '' : d <= 60 ? '<span class="tc-pill cool">Cooling</span>' : '<span class="tc-pill slip">Slipping</span>';
   const cols = [
-    ['rank', '#', null], ['client', 'Client', 'name'], ['rev', 'Revenue', 'rev'], ['visits', 'Visits', 'n'], ['avg', 'Avg per visit', 'avg'],
-    ['last', 'Last seen', 'away'], ['stylist', 'Usual stylist', null], ['beauty', 'Usual beautician', null], ['fav', 'Favourite service', null],
+    ['rank', '#', null], ['client', 'Client', 'name'], ['rev', 'Revenue', 'rev'], ['visits', 'Visits', 'n'], ['avg', 'Avg / visit', 'avg'],
+    ['last', 'Last seen', 'away'], ['stylist', 'Usual stylist', null], ['beauty', 'Usual beautician', null],
   ].concat(phones ? [['phone', 'Phone', null]] : []);
   const head = ([c, label, k]) => {
-    const left = ['rank', 'client', 'stylist', 'beauty', 'fav', 'phone'].includes(c) ? ' lc-l' : '';
+    const left = ['rank', 'client', 'stylist', 'beauty', 'phone'].includes(c) ? ' lc-l' : '';
     if (!k) return `<th class="lc-th tc-c-${c}${left}">${label}</th>`;
     const sorted = TC.sortk === k ? `<svg class="lc-sort${TC.sortdir > 0 ? ' up' : ''}" viewBox="0 0 12 12" aria-label="${TC.sortdir > 0 ? 'sorted up' : 'sorted down'}"><path d="M6 2v8M2.5 6.5 6 10l3.5-3.5"/></svg>` : '<svg class="lc-fn" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>';
     return `<th class="lc-th tc-c-${c}${left}${TC.sortk === k ? ' on' : ''}"><button type="button" class="lc-thb" onclick="tcSort('${k}')">${label}${sorted}</button></th>`;
   };
   const tr = shown.map((r, i) => `<tr class="${cls}"${open ? ' title="Click to see what she comes in for and who looks after her"' : ''}${click(i)}>
       <td class="lc-stc">${rank(r)}</td>
-      <td class="lc-stc"><span class="tc-name">${lcEsc(r.client_name)}</span>${open ? '<span class="lc-hint" aria-hidden="true">See her visits ›</span>' : ''}</td>
+      <td class="lc-stc"><span class="tc-name">${lcEsc(r.client_name)}</span>${open ? '<span class="lc-hint" aria-hidden="true">See her visits ›</span>' : ''}${r.fav ? `<div class="slv-note">${lcEsc(r.fav)}</div>` : ''}</td>
       <td class="tc-rev">${lcNum(r.rev)}</td>
       <td>${lcNum(r.visits)}</td>
       <td>${lcNum(tcAvg(r))}</td>
       <td>${lcEsc(lcDayY(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days ago</div>${bucket(Number(r.days_since))}</td>
       <td class="lc-stc">${lcTeamCell(lcTeam(r).hair)}</td>
       <td class="lc-stc">${lcTeamCell(lcTeam(r).beauty)}</td>
-      <td class="lc-stc slv-muted" style="font-size:13px">${lcEsc(r.fav) || '–'}</td>
       ${phones ? `<td>${lcPhone(r)}</td>` : ''}
     </tr>`).join('');
   const cards = shown.map((r, i) => `<li class="prd-card ${cls}"${click(i)}>
