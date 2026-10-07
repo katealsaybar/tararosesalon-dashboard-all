@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en-GB" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup: 1-to-1 and Goals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F9E8DF;--surface:#fff;--surface2:#fdf8f6;
+  --border:#e8d5cc;--text:#5C5557;--muted:#9a8a87;
+  --good:#0F6E56;--good-bg:#E1F5EE;
+  --warn:#BA7517;--warn-bg:#FAEEDA;
+  --bad:#A32D2D;--bad-bg:#FCEBEB;
+  --none:#a09898;--none-bg:#f3eeec;
+  --btn:#5C5557;--btn-fg:#F9E8DF;--bar:#8E7CC3;--new:#6D28D9;--new-bg:rgba(109,40,217,.07);
+}
+:root[data-theme="dark"]{
+  --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;
+  --border:rgba(250,248,243,0.09);--text:#FAF8F3;--muted:rgba(250,248,243,0.55);
+  --good:#99F6E4;--good-bg:rgba(153,246,228,0.12);
+  --warn:#EEF3C7;--warn-bg:rgba(238,243,199,0.12);
+  --bad:#FF9B9B;--bad-bg:rgba(255,155,155,0.12);
+  --none:rgba(250,248,243,0.4);--none-bg:rgba(250,248,243,0.05);
+  --btn:#FFD4D9;--btn-fg:#2D2E37;--bar:#C4B5FD;--new:#C4B5FD;--new-bg:rgba(196,181,253,.10);
+}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.45;font-size:15px}
+h1{font-family:'Playfair Display',Georgia,serif;font-weight:600;font-size:34px;line-height:1.15}
+h2{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:23px;margin-bottom:4px}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:12px}
+.muted{color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px}
+.card.new{border-color:var(--new);box-shadow:0 0 0 3px var(--new-bg)}
+.rows{display:flex;flex-direction:column;gap:6px}
+.row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;padding:9px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:14px}
+.row .r-val{font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;column-gap:8px;margin-left:auto;text-align:right}
+.row .r-tail{display:inline-flex;align-items:center;gap:8px}
+.row .r-val small{color:var(--muted)}
+.row .r-note{flex-basis:100%;color:var(--muted);font-size:12px;line-height:1.4}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--none);flex-shrink:0;display:inline-block}
+.dot.good{background:var(--good)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
+.legend{font-size:12px;color:var(--muted);margin-top:10px}
+.note{border-left:3px solid var(--border);padding:6px 10px;margin-bottom:8px;font-size:14px}
+.btn{font:inherit;font-weight:600;background:var(--btn);color:var(--btn-fg);border:none;border-radius:10px;padding:9px 14px;cursor:pointer;margin-top:8px}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.chip{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--none-bg);color:var(--muted);white-space:nowrap}
+.chip.good{background:var(--good-bg);color:var(--good)}.chip.warn{background:var(--warn-bg);color:var(--warn)}.chip.new{background:var(--new-bg);color:var(--new)}
+.meter{height:6px;border-radius:99px;background:var(--none-bg);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--bar);border-radius:99px}
+.act{border-left:3px solid var(--bar);padding:10px 12px;background:var(--surface2);border-radius:0 10px 10px 0;font-size:14.5px;margin-top:10px}
+.act .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px}
+.act small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
+details.more{margin-top:10px}
+details.more summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:9px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface2);font-weight:600;font-size:14px;color:var(--text)}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary .hint{font-weight:500;font-size:12.5px;color:var(--muted)}
+details.more[open] summary{margin-bottom:8px}
+.pills{display:flex;gap:6px;margin:0 0 12px;flex-wrap:wrap}
+.pill{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:999px;padding:8px 14px;min-height:40px;background:var(--surface2);color:var(--muted);cursor:pointer}
+.pill.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:600;padding:7px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:7px 6px;border-bottom:1px solid var(--border);vertical-align:top}
+.tbl .r{text-align:right;font-variant-numeric:tabular-nums}
+.tbl-wrap{overflow-x:auto}
+.auto{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--new);font-weight:600}
+
+/* Page chrome around the two mockups */
+.page{max-width:1180px;margin:0 auto;padding:22px 18px 60px}
+.intro{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px}
+.intro h1{font-size:30px}
+.intro p{max-width:760px;margin-top:6px;color:var(--muted);font-size:14px}
+.sample{display:inline-block;margin-top:10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--warn-bg);color:var(--warn)}
+.theme{font:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:7px 14px;cursor:pointer}
+.part{margin-top:40px}
+.part>h2{font-size:26px;margin-bottom:2px}
+.part>.sub{margin-bottom:18px;font-size:14px}
+.a-grid{display:grid;grid-template-columns:minmax(0,410px) minmax(0,1fr);gap:30px;align-items:start}
+@media (max-width:900px){.a-grid{grid-template-columns:minmax(0,1fr)}}
+.notes{display:flex;flex-direction:column;gap:12px}
+.notes .n{display:flex;gap:12px;font-size:14px}
+.notes .n b{flex:none;width:26px;height:26px;border-radius:50%;background:var(--new);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+.notes .n span{padding-top:3px}
+.notes .n span em{font-style:normal;color:var(--muted)}
+.outline{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.outline span{font-size:12px;padding:6px 10px;border-radius:8px;border:1px dashed var(--border);color:var(--muted)}
+.outline span.n{border:1px solid var(--new);color:var(--new);background:var(--new-bg);font-weight:600}
+
+/* Phone frame: the live My Numbers page at 390px */
+.phone{border:1px solid var(--border);border-radius:30px;padding:8px;background:var(--surface);box-shadow:0 18px 50px -20px rgba(0,0,0,.5)}
+.phone-in{height:790px;overflow-y:auto;border-radius:22px;background:var(--bg);scrollbar-width:thin}
+.p-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+.brand{display:flex;flex-direction:column;align-items:center;gap:4px}
+.brand b{font-weight:400;letter-spacing:.22em;font-size:15px;text-indent:.22em}
+.brand i{font-style:normal;font-size:9px;letter-spacing:.36em;text-indent:.36em;text-transform:uppercase}
+.p-acts{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.home{width:36px;height:36px;border-radius:50%;background:#99F6E4;color:#1A1A1A;display:grid;place-items:center;font-size:16px}
+.pdd{background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--text);font-weight:500}
+.p-wrap{padding:14px 12px 0}
+#perfTabs{display:flex;gap:4px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--surface);overflow-x:auto}
+#perfTabs button{flex:1 1 0;font:inherit;font-size:13px;font-weight:600;border:0;border-radius:999px;padding:9px 6px;min-height:44px;background:transparent;color:var(--muted);cursor:pointer;line-height:1.2}
+#perfTabs button.on{background:var(--btn);color:var(--btn-fg)}
+#perfTabs button.fresh{position:relative}
+#perfTabs button.fresh:not(.on)::after{content:"";position:absolute;top:6px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--new)}
+.p-main{padding:14px 12px 24px}
+.p-main h2{font-size:22px}
+.stub{border:1.5px dashed var(--border);border-radius:14px;padding:16px;color:var(--muted);font-size:14px;margin-bottom:14px}
+.nudge{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1.5px dashed var(--new);background:var(--new-bg);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:14px}
+.nudge small{display:block;color:var(--muted);font-size:12px}
+.nudge .tag{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--new);font-weight:700}
+.sid{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;font-size:13.5px}
+.sid .meter{grid-column:1/-1;margin-bottom:6px}
+.chk{list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.chk li{display:flex;gap:9px;line-height:1.35}
+.chk li i{flex:none;font-style:normal;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:var(--none-bg);color:var(--muted)}
+.chk li.y i{background:var(--good-bg);color:var(--good)}
+.chk li.todo{color:var(--text);font-weight:500}
+.goal{font-size:17px;font-weight:600;line-height:1.3;margin:2px 0 8px}
+.qa{font-size:13.5px;margin-top:8px}.qa b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:1px}
+.private{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:14px}
+
+/* Leader view: Staff Benchmarks inside the dashboard */
+.lead{border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 18px 50px -24px rgba(0,0,0,.5)}
+.l-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 22px;background:var(--surface);border-bottom:1px solid var(--border)}
+.l-top .brand{align-items:flex-start}
+.l-top .grow{flex:1}
+.l-find{flex:1;min-width:200px;max-width:340px;border:1px solid var(--border);border-radius:999px;padding:9px 16px;color:var(--muted);font-size:14px;background:var(--surface2)}
+.l-btn{font-size:12px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--border);border-radius:999px;padding:9px 16px;color:var(--muted);background:var(--surface2)}
+.l-btn.mint{background:#99F6E4;color:#1A1A1A;border-color:#99F6E4;font-weight:600}
+.l-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 26px;border-bottom:1px solid var(--border);font-size:13px;letter-spacing:.22em;text-transform:uppercase;font-weight:600}
+.l-body{padding:22px 26px 10px;max-width:980px;margin:0 auto}
+.l-head h1{font-size:32px}
+.l-head .sub{font-size:14px;margin:2px 0 14px}
+.l-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.fold{display:flex;align-items:center;gap:10px;width:100%}
+.fold .eyebrow{margin:0;flex:1}
+.fold .s{font-size:12px;color:var(--muted)}
+.card.ctx{padding:13px 16px;opacity:.75}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.card-head h2{margin:0}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 16px;font-size:12.5px}
+.steps span{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
+.steps span b{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:10px;background:var(--none-bg)}
+.steps span.done{color:var(--good);border-color:transparent;background:var(--good-bg)}
+.steps span.done b{background:var(--good);color:var(--bg)}
+.steps span.cur{color:var(--text);border-color:var(--new);font-weight:600}
+.steps span.cur b{background:var(--new);color:var(--bg)}
+.sec{margin:20px 0 8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;gap:10px;align-items:center}
+.sec::after{content:"";flex:1;height:1px;background:var(--border)}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.g2,.g3{grid-template-columns:minmax(0,1fr)}}
+.fl{display:flex;flex-direction:column;gap:4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+input,select,textarea{font:inherit;font-size:14px;letter-spacing:0;text-transform:none;font-weight:400;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;width:100%}
+textarea{min-height:64px;resize:vertical}
+.ltbl input,.ltbl select{padding:6px 8px;font-size:13.5px}
+.ltbl td{padding:6px 5px}
+.ltbl .auto-v{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;padding-top:10px}
+.lock{font-size:11px;color:var(--muted)}
+.ck{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;padding:6px 2px;line-height:1.35}
+.ck input{width:18px;height:18px;margin-top:1px;flex:none;accent-color:#8E7CC3}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center}
+.btns .btn{margin-top:0}
+.goalcol{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.goalcol h3{font-size:14px;font-weight:700}
+.goalcol .empty{font-size:13.5px;color:var(--muted);padding:6px 0}
+.who{font-size:12.5px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="intro">
+    <div>
+      <h1>1-to-1 and Goals on My Numbers</h1>
+      <p>Ibrahim Al Mofdi as the one-stylist trial Emma asked for. Part A is his own link, Part B is the same stylist inside Staff Benchmarks. Click around: the tabs, the pills, the checklist and the Confirm button all work. Nothing is saved.</p>
+      <span class="sample">Sample wording and figures, not Ibrahim's</span>
+    </div>
+    <button class="theme" id="themeBtn" type="button">Light</button>
+  </div>
+
+  <!-- PART A -->
+  <section class="part">
+    <h2>A. Ibrahim's staff link</h2>
+    <p class="sub">A fourth tab, My 1-to-1. Monthly 1-to-1 and yearly Goals sit inside it as two pills.</p>
+    <div class="a-grid">
+      <div class="phone"><div class="phone-in" id="phoneIn">
+        <div class="p-top">
+          <div class="brand"><b>TARA ROSE</b><i>Salons</i></div>
+          <div class="p-acts"><span class="home">&#8962;</span><span>Month</span><span class="pdd">Oct 2026 &#8964;</span></div>
+        </div>
+        <div class="p-wrap"><nav id="perfTabs"></nav></div>
+        <div class="p-main" id="phBody"></div>
+      </div></div>
+      <div class="notes">
+        <div class="n"><b>1</b><span><strong>New tab after How you move up.</strong> <em>Four tabs still fit a phone: the labels wrap to two lines, as they do today. The dot says something new is waiting.</em></span></div>
+        <div class="n"><b>2</b><span><strong>Read-only for Ibrahim.</strong> <em>One button, Confirm, stands in for his signature on the paper form. Try it: Part B moves on to Filed.</em></span></div>
+        <div class="n"><b>3</b><span><strong>The 13-week table fills itself.</strong> <em>Same numbers as My year and the same aims as How you move up. Only the notes under each row are typed by Emma.</em></span></div>
+        <div class="n"><b>4</b><span><strong>Goals are the second pill.</strong> <em>Set once a year (6 months, 1 year, 3 years), checked every 13 weeks. Business milestones sit beside today's numbers.</em></span></div>
+        <div class="n"><b>5</b><span><strong>Optional nudge on This month.</strong> <em>A single line under the win and tip, so nobody has to remember to open the new tab. Easy to drop.</em></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PART B -->
+  <section class="part">
+    <h2>B. Staff Benchmarks, per staff</h2>
+    <p class="sub">The same person's page as Kate or Emma see it. Two new cards under Notes from Tara and Emma, same card style, folded on a phone.</p>
+    <div class="lead" id="lead"></div>
+    <div class="notes" style="margin-top:20px">
+      <div class="n"><b>1</b><span><strong>Where it sits.</strong> <em>It follows the month picker, so the card says October 2026 because the picker does.</em></span></div>
+      <div class="outline"><span>Win and tip</span><span>Your level</span><span>Google reviews</span><span>Socials</span><span>Notes from Tara and Emma</span><span class="n">1-to-1 (monthly)</span><span class="n">Goals (yearly)</span><span>New clients and returning clients</span><span>Last three months</span><span>Payslip</span></div>
+      <div class="n"><b>2</b><span><strong>Emma writes during the meeting.</strong> <em>Violet "auto" cells come from the numbers and are locked. Everything else is typed, then Save draft.</em></span></div>
+      <div class="n"><b>3</b><span><strong>The checklist is the HR-10 attachment.</strong> <em>35 ticks across six groups. The count updates as she ticks, and Ibrahim sees the same count on his link.</em></span></div>
+      <div class="n"><b>4</b><span><strong>Sign-off in two steps.</strong> <em>Emma signs, then Ibrahim confirms on his link. Save as PDF gives HR the HR-10 and HR-09 layouts.</em></span></div>
+      <div class="n"><b>5</b><span><strong>Goals carry more personal detail.</strong> <em>Personal and financial answers are shown here to fewer people than the numbers are. Proposed, not decided.</em></span></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const num = n => Number(n).toLocaleString('en-GB');
+const S = { tab: 'one', sub: 'month', h: '6 months', lh: '6 months', confirmed: false };
+
+/* ---------- sample data ---------- */
+const M13 = [
+  { k:'Service revenue', a:98400, t:100000, u:'AED', n:'Close to aim. Two leave weeks sit inside this.' },
+  { k:'Treatment revenue', a:12100, t:15000, u:'AED', n:'' },
+  { k:'Retail revenue', a:16200, t:14400, u:'AED', n:'Ahead of aim all quarter.' },
+  { k:'Total revenue', a:126700, t:129400, u:'AED', n:'' },
+  { k:'Rebooking %', a:71, t:70, u:'%', n:'' },
+  { k:'Retention and new clients', a:'61% kept · 32% of new came back', t:'60% · 40%', u:'', st:'warn', n:'New clients come back less than regulars do.' },
+  { k:'Average bill', a:412, t:400, u:'AED', n:'' }
+];
+const status = r => r.st || (r.a >= r.t ? 'good' : r.a >= r.t * 0.9 ? 'warn' : 'bad');
+const show = (v, u) => typeof v === 'number' ? (u === 'AED' ? 'AED ' + num(v) : v + u) : v;
+
+const LAST = [
+  ['Add one recommended treatment to every colour consultation', 'Offered more often. Two taken up in September.', 'Ongoing'],
+  ['Share two before-and-afters a month, with client consent (CL-12)', 'Four sent to marketing in September.', 'Done'],
+  ['Book onto the next colour education day', 'Waiting for dates from the education team.', 'Ongoing']
+];
+const ACTIONS = [
+  ['Rebook every happy client at checkout', 'Ibrahim', '31 Oct', 'Rebooking at 72% or more'],
+  ['Book the blonding refresher', 'Emma', '15 Oct', 'Date in the diary'],
+  ['Send marketing four usable photos or videos', 'Ibrahim', '25 Oct', 'Four sent, consent on file']
+];
+const CHECK = [
+  ['Essentials for every client, every visit', [
+    ['Take every client through the 8-Step Hair Plan consultation: lifestyle, hair history, desired outcome, condition and suitability.',1],
+    ['Give a clear quote before the service begins, so price and timings are understood and agreed.',1],
+    ['Complete the relevant waiver form with the client, whenever it applies.',1],
+    ["Fill in the client's colour notes on their record, every time.",1],
+    ['Put every client on a hair journey, with a considered plan for their next visits and longer-term goals.',0],
+    ['Talk through the Confidence Promise.',1],
+    ['Check out your client personally and invite them to rebook before they leave.',1]]],
+  ['Client experience and professional standards', [
+    ['Arrive prepared and on time, well groomed, with a clean and ready station.',1],
+    ['Welcome every guest warmly and give attentive, considered service.',1],
+    ['Talk through the service plan, realistic result, maintenance and timings before starting.',1],
+    ["Respect each client's comfort, privacy, preferences and appointment time, and let them know early if there is a delay.",1],
+    ['Share personalised aftercare advice, including the maintenance schedule that suits each client.',1]]],
+  ['Technical quality, safety and education', [
+    ['Follow consultation, patch and strand testing and manufacturer safety protocols wherever they apply.',1],
+    ['Deliver consistent cutting, colour, styling and treatment work, in line with your stylist level.',1],
+    ['Protect the integrity of the hair, recommending treatments only when they suit the client and explaining the benefits.',1],
+    ['Keep hygiene standards high: clean tools, a tidy trolley, correct product handling and considered stock use.',1],
+    ['Stay up to date with education from the brands we use, relevant to your work.',1],
+    ['Name the skills you would like to develop and agree a practical education or mentoring plan.',0]]],
+  ['Revenue, productivity and client retention', [
+    ['Know your 13-week service revenue, treatment revenue, retail and average bill trends, and review them together.',1],
+    ['Review utilisation, appointment gaps and column productivity, and plan how to make the best use of your time.',0],
+    ['Recommend treatments and homecare that genuinely suit each client, always with care and never with pressure.',1],
+    ['Work towards your agreed retail goals.',1],
+    ['Review new clients, repeat visits, retention and requests, and look for ways to build a loyal column.',1],
+    ['Support thoughtful cross-referrals to beauty, junior stylists and other Tara Rose Salons services.',0]]],
+  ['Social media, networking and personal brand', [
+    ['Keep a clear stylist identity: your specialist services, strengths and ideal client.',1],
+    ['Capture before-and-after content with client consent (CL-12), and share usable photos and videos with marketing.',1],
+    ['Contribute to Tara Rose Salons content and team-led expertise, where relevant.',0],
+    ['Share a realistic monthly social media and networking plan, and any support or training you would value.',0],
+    ['Build professional relationships, referrals and local visibility, representing Tara Rose Salons consistently.',1]]],
+  ['Teamwork, accountability and growth', [
+    ['Keep reception informed about bookings, timing, client requests and follow-ups.',1],
+    ['Guide and support assistants with respect, delegating thoughtfully and giving useful feedback.',1],
+    ['Take part in briefings, education and agreed salon initiatives.',1],
+    ['Review actions from your last one-to-one and share progress, or anything that has been in the way.',1],
+    ['Set personal, professional and financial goals (HR-09) that connect to clear, measurable actions.',0],
+    ['Agree specific next steps, who will lead each one, the support needed and completion dates.',1]]]
+];
+const ckTotals = () => { let t = 0, y = 0; CHECK.forEach(s => s[1].forEach(i => { t++; y += i[1]; })); return [y, t]; };
+
+const QS = [['goal','What is your specific goal?'],['why','Why is achieving this goal important to you?'],['gain','If you achieve this goal, how will it change your life?'],['lose','If you do not achieve this goal, how will it affect your life?'],['steps','What steps will you take, and what support or training would you like from us?']];
+const KINDS = ['Personal','Professional','Financial'];
+const G = {
+  '6 months': {
+    Personal: { goal:'Keep two evenings a week free for rest and family.', why:'I am tired by Friday and want to enjoy my time off.', gain:'More energy at work and at home.', lose:'I stay tired and it starts to show in my work.', steps:'Last booking at 6pm on two set days. Ask reception to protect them.' },
+    Professional: { goal:'Hit every aim for my level three months in a row.', why:'It shows I am ready to talk about my next step.', gain:'More confidence, and a clear plan with Emma.', lose:'I carry on without a plan for what comes next.', steps:'Rebook at checkout every time. Check my numbers every Monday. Blonding refresher with the education team.' },
+    Financial: { goal:'Save one month of salary as a cushion.', why:'So an unexpected bill does not worry me.', gain:'Less stress about money.', lose:'Every surprise cost lands on a credit card.', steps:'Move a fixed amount on payday. Emma to talk me through how my targets link to my pay.' }
+  },
+  '1 year': {
+    Personal: { goal:'Take a proper two-week holiday.', why:'I have not had one in a long time.', gain:'I come back rested and sharper.', lose:'I keep running on empty.', steps:'Agree dates early with Emma and plan my column around them.' },
+    Professional: { goal:'Be the colour specialist clients ask for by name at Al Quoz.', why:'It is the work I enjoy most.', gain:'A fuller column of the clients I love.', lose:'My column stays mixed and unfocused.', steps:'Two education days, a portfolio of before-and-afters, a specialist line on my profile.' },
+    Financial: { goal:'Save three months of salary.', why:'It gives me room to make choices.', gain:'More freedom and less worry.', lose:'I stay one bill away from stress.', steps:'Build on the six-month cushion. Review with Emma at each 13-week check.' }
+  },
+  '3 years': {
+    Personal: { goal:'Be settled, with a plan for where I want to live.', why:'So my work and my life point the same way.', gain:'A steady base.', lose:'I drift year to year.', steps:'Revisit this at every yearly goals meeting.' },
+    Professional: { goal:'Lead a specialism in my branch and help train others.', why:'I want to pass on what I have learned.', gain:'A role I am proud of.', lose:'I plateau.', steps:'Mentoring plan with Emma once the one-year goal is met.' },
+    Financial: null
+  }
+};
+const MILE = [
+  ['Service revenue (monthly)', 32800, 36000, 40000, 48000, 'AED'],
+  ['Treatment revenue (monthly)', 4000, 5500, 7000, 9000, 'AED'],
+  ['Retail (monthly)', 5400, 6000, 7000, 8500, 'AED'],
+  ['Average bill', 412, 430, 450, 480, 'AED'],
+  ['Rebooking %', 71, 75, 78, 80, '%'],
+  ['New clients (monthly)', 12, 15, 18, 22, ''],
+  ['Utilisation %', 80, 83, 85, 85, '%']
+];
+const PRI = [
+  ['Rebook every client at checkout', 'Ibrahim', 'Reception reminds me on the day', '31 Oct'],
+  ['Book the blonding refresher', 'Emma', 'Education team dates', '15 Oct'],
+  ['Share four usable photos or videos with marketing', 'Ibrahim', 'Consent form QR from marketing', '25 Oct']
+];
+const mv = (v, u) => u === 'AED' ? 'AED ' + num(v) : v + u;
+
+/* ---------- Part A: the staff link ---------- */
+function tabsHTML() {
+  const b = (k, l, c = '') => `<button type="button" class="${S.tab === k ? 'on' : ''} ${c}" onclick="goTab('${k}')">${l}</button>`;
+  return b('month','This month') + b('year','My year') + b('levels','How you move up') + b('one','My 1-to-1','fresh');
+}
+function goTab(t) { S.tab = t; drawPhone(); document.getElementById('phoneIn').scrollTop = 0; }
+function setSub(s) { S.sub = s; drawPhone(); }
+function setH(h) { S.h = h; drawPhone(); }
+function confirmIt() { S.confirmed = true; drawPhone(); drawSteps(); }
+
+function stub(txt, extra = '') {
+  return `<section class="card" style="margin-bottom:14px"><h1 style="font-size:28px">Ibrahim Al Mofdi</h1><p class="sub" style="margin:2px 0 0">Senior Stylist · AQ · October 2026</p></section>${extra}<div class="stub">${txt}</div>`;
+}
+function phoneMonth() {
+  const [y, t] = ckTotals();
+  const confirmBlock = S.confirmed
+    ? `<p style="margin-top:10px;font-size:14px"><span class="chip good">Agreed by you both</span> <span class="muted" style="font-size:12.5px">Confirmed today</span></p>`
+    : `<p style="margin-top:10px;font-size:14px"><span class="chip warn">Waiting for you</span> <span class="muted" style="font-size:12.5px">Emma signed it on 6 Oct.</span></p>
+       <button class="btn" type="button" onclick="confirmIt()">I have read it, confirm</button>
+       <p class="legend">Confirming is your signature on the paper form.</p>`;
+  return `
+  <section class="card hero new">
+    <div class="eyebrow">Monthly 1-to-1</div>
+    <h2>October, with Emma</h2>
+    <p class="sub" style="margin-bottom:0">Tuesday 6 Oct 2026 · looking back over 13 weeks, 6 Jul to 4 Oct</p>
+    ${confirmBlock}
+  </section>
+  <section class="card"><div class="eyebrow">Wins and highlights</div>
+    <p style="font-size:14.5px">Retail ahead of aim for three months running. Two clients wrote kind words about the 8-Step Hair Plan consultation.</p></section>
+  <section class="card"><div class="eyebrow">Actions from last time</div>
+    <div class="rows">${LAST.map(a => `<div class="row"><span style="flex:1 1 200px">${esc(a[0])}</span><span class="r-val"><span class="chip ${a[2] === 'Done' ? 'good' : 'warn'}">${a[2]}</span></span><span class="r-note">${esc(a[1])}</span></div>`).join('')}</div></section>
+  <section class="card"><div class="eyebrow">Your 13 weeks</div>
+    <p class="sub">Filled in from your own numbers. Emma's notes sit under each line.</p>
+    <div class="rows">${M13.map(r => `<div class="row"><span>${r.k}</span><span class="r-val">${show(r.a, r.u)}<span class="r-tail"><small>aim ${show(r.t, r.u)}</small><i class="dot ${status(r)}"></i></span></span>${r.n ? `<span class="r-note">${esc(r.n)}</span>` : ''}</div>`).join('')}</div></section>
+  <section class="card"><div class="eyebrow">Support you would value</div>
+    <p style="font-size:14.5px">More Saturday slots for new clients. A blonding refresher with the education team.</p>
+    <div class="eyebrow" style="margin-top:14px">Social media and networking</div>
+    <p style="font-size:14.5px">Two Reels a month from the content shoot day. Marketing to share the consent form QR so before-and-afters are easy.</p></section>
+  <section class="card"><div class="eyebrow">What you agreed</div>
+    ${ACTIONS.map(a => `<div class="act"><span class="k">${esc(a[1])} · due ${esc(a[2])}</span>${esc(a[0])}<small>Success looks like: ${esc(a[3])}</small></div>`).join('')}
+    <p class="legend">Next 1-to-1: Tuesday 3 Nov 2026</p></section>
+  <section class="card"><div class="eyebrow">Stylist priorities checklist</div>
+    <div style="font-size:30px;font-weight:700;margin:2px 0">${y} of ${t}</div>
+    <p class="sub">things you are consistently showing. The rest are the next focus, not a mark against you.</p>
+    <div class="sid">${CHECK.map((s, i) => { const n = s[1].filter(x => x[1]).length; return `<span>0${i + 1} ${esc(s[0])}</span><b>${n} of ${s[1].length}</b><div class="meter"><i style="width:${n / s[1].length * 100}%"></i></div>`; }).join('')}</div>
+    <details class="more"><summary><span>What is still to work on</span><span class="hint">${t - y} items</span></summary>
+      <ul class="chk">${CHECK.map(s => s[1].filter(x => !x[1]).map(x => `<li class="todo"><i>&#9675;</i><span>${esc(x[0])}</span></li>`).join('')).join('')}</ul></details></section>
+  <section class="card"><div class="eyebrow">Our priorities for the next 13 weeks</div>
+    <ol style="padding-left:20px;font-size:14.5px;display:flex;flex-direction:column;gap:4px"><li>Rebooking at checkout, every time.</li><li>Treatments suggested only when they suit the client.</li><li>Four pieces of content a month.</li></ol>
+    <div class="eyebrow" style="margin-top:14px">Training or support that would help</div>
+    <p style="font-size:14.5px">Blonding refresher. A monthly ten minutes with Emma on my numbers.</p></section>
+  <details class="more"><summary><span>Earlier 1-to-1s</span><span class="hint">2</span></summary>
+    <div class="rows"><div class="row"><span>September, with Emma</span><span class="r-val"><small>Tue 1 Sep</small></span></div><div class="row"><span>August, with Emma</span><span class="r-val"><small>Tue 4 Aug</small></span></div></div></details>`;
+}
+function phoneGoals() {
+  const set = G[S.h];
+  return `
+  <section class="card hero new">
+    <div class="eyebrow">My goals</div>
+    <h2>Where I am heading</h2>
+    <p class="sub" style="margin-bottom:0">Set on Tue 6 Oct 2026 · checked every 13 weeks · next check Tue 5 Jan 2027</p>
+  </section>
+  <div class="private"><span>&#128274;</span><span>These are your own words. Only you, Emma and Tara can read this page. Share only what you feel comfortable sharing.</span></div>
+  <div class="pills">${['6 months','1 year','3 years'].map(h => `<button type="button" class="pill ${S.h === h ? 'on' : ''}" onclick="setH('${h}')">${h}</button>`).join('')}</div>
+  ${KINDS.map(k => { const g = set[k]; return g
+    ? `<section class="card"><div class="eyebrow">${k} goal</div><div class="goal">${esc(g.goal)}</div>
+        <div class="qa"><b>Why it matters</b>${esc(g.why)}</div>
+        <details class="more"><summary><span>Everything we talked through</span></summary>
+          ${QS.slice(2).map(q => `<div class="qa"><b>${q[1]}</b>${esc(g[q[0]])}</div>`).join('')}</details></section>`
+    : `<section class="card"><div class="eyebrow">${k} goal</div><p class="muted" style="font-size:14px">Not set yet. You and Emma can add it at your next goals check.</p></section>`; }).join('')}
+  <section class="card"><div class="eyebrow">Where the numbers need to go</div>
+    <p class="sub">Your 13-week average is filled in from your own numbers. The milestones are the ones you and Emma agreed.</p>
+    <div class="tbl-wrap"><table class="tbl"><tr><th>Measure</th><th class="r">Now</th><th class="r">6 m</th><th class="r">1 yr</th><th class="r">3 yrs</th></tr>
+    ${MILE.map(m => `<tr><td>${m[0]}</td><td class="r"><b>${mv(m[1], m[5])}</b></td><td class="r">${mv(m[2], m[5])}</td><td class="r">${mv(m[3], m[5])}</td><td class="r">${mv(m[4], m[5])}</td></tr>`).join('')}</table></div></section>
+  <section class="card"><div class="eyebrow">Our agreed priorities, next 13 weeks</div>
+    ${PRI.map(a => `<div class="act"><span class="k">${esc(a[1])} leads · due ${esc(a[3])}</span>${esc(a[0])}<small>Support: ${esc(a[2])}</small></div>`).join('')}</section>
+  <section class="card"><div class="eyebrow">13-week follow-up</div><p class="muted" style="font-size:14px">Not due yet. The first check is on Tue 5 Jan 2027: what progress has been made, what we learned, and what to change.</p></section>`;
+}
+function phoneNudge() {
+  return `<div class="nudge"><div><span class="tag">New, optional</span><div>Your 1-to-1 with Emma is on Tue 3 Nov</div><small>3 actions from October, 1 due this week</small></div><button class="btn" type="button" style="margin:0" onclick="goTab('one')">Open</button></div>`;
+}
+function drawPhone() {
+  document.getElementById('perfTabs').innerHTML = tabsHTML();
+  let h = '';
+  if (S.tab === 'one') {
+    h = `<div class="pills"><button type="button" class="pill ${S.sub === 'month' ? 'on' : ''}" onclick="setSub('month')">Monthly 1-to-1</button><button type="button" class="pill ${S.sub === 'goals' ? 'on' : ''}" onclick="setSub('goals')">My goals</button></div>` + (S.sub === 'month' ? phoneMonth() : phoneGoals());
+  } else if (S.tab === 'month') h = stub('This is today\'s This month page: the win, the tip and every card below stay exactly as they are.', phoneNudge());
+  else if (S.tab === 'year') h = stub('This is today\'s My year tab, unchanged.');
+  else h = stub('This is today\'s How you move up tab, unchanged.');
+  document.getElementById('phBody').innerHTML = h;
+}
+
+/* ---------- Part B: Staff Benchmarks, leaders ---------- */
+const fl = (label, v, rows = 2) => `<label class="fl">${label}<textarea rows="${rows}">${esc(v)}</textarea></label>`;
+const inp = (v, ph = '') => `<input value="${esc(v)}" placeholder="${ph}">`;
+function stepsHTML() {
+  const st = S.confirmed ? ['done','done','done','done'] : ['done','done','cur',''];
+  const lb = ['Draft','Emma signs','Ibrahim confirms','Filed'];
+  return lb.map((l, i) => `<span class="${st[i]}"><b>${st[i] === 'done' ? '&#10003;' : i + 1}</b>${l}</span>`).join('');
+}
+function drawSteps() { const e = document.getElementById('oneSteps'); if (e) e.innerHTML = stepsHTML(); const c = document.getElementById('oneChip'); if (c) { c.className = 'chip ' + (S.confirmed ? 'good' : 'warn'); c.textContent = S.confirmed ? 'Filed' : 'Waiting for Ibrahim'; } }
+function ckCount() {
+  let y = 0, t = 0;
+  document.querySelectorAll('#lead details.ckg').forEach(d => {
+    const bx = d.querySelectorAll('input[type=checkbox]'); const n = [...bx].filter(b => b.checked).length;
+    d.querySelector('.cs').textContent = n + ' of ' + bx.length; y += n; t += bx.length;
+  });
+  const e = document.getElementById('ckTotal'); if (e) e.textContent = y + ' of ' + t + ' ticked';
+}
+function setLH(h) { S.lh = h; document.getElementById('goalBody').innerHTML = goalBodyHTML(); }
+function goalBodyHTML() {
+  const set = G[S.lh];
+  const cols = KINDS.map(k => { const g = set[k];
+    return `<div class="goalcol"><h3>${k} goal</h3>${g ? QS.map(q => fl(q[1], g[q[0]], q[0] === 'goal' ? 2 : 2)).join('') : `<div class="empty">Not set yet.</div>${fl(QS[0][1], '', 2)}`}</div>`; }).join('');
+  return `<div class="g3">${cols}</div>`;
+}
+function leaderHTML() {
+  const [y, t] = ckTotals();
+  return `
+  <div class="l-top"><div class="brand"><b>TARA ROSE</b><i>Salons</i></div><div class="l-find">&#9906; Find a person, page ...</div><span class="grow"></span><span class="l-btn mint">Team Home</span><span class="l-btn">Sections</span><span class="l-btn">Light</span><span style="font-size:14px">Hello, <b>Kate</b></span><span class="l-btn" style="color:var(--bad)">Sign out</span></div>
+  <div class="l-bar"><span>Staff Benchmarks</span><span class="pdd" style="letter-spacing:0;text-transform:none;font-weight:500">Oct 2026 &#8964;</span></div>
+  <div class="l-body">
+    <div class="l-head"><h1>Ibrahim Al Mofdi</h1><p class="sub">Senior Stylist · AQ · October 2026</p>
+      <div class="l-chips"><span class="chip new">1-to-1 October: signed by Emma</span><span class="chip">Goals: next check Tue 5 Jan 2027</span></div></div>
+    <section class="card ctx"><div class="fold"><div class="eyebrow">Notes from Tara and Emma</div><span class="s">None yet</span><span class="muted">&#8963;</span></div></section>
+
+    <section class="card new" id="oneCard">
+      <div class="card-head"><div><div class="eyebrow">Monthly 1-to-1 · October 2026</div><h2>One-to-one with Ibrahim</h2></div><span class="chip warn" id="oneChip">Waiting for Ibrahim</span></div>
+      <div class="steps" id="oneSteps">${stepsHTML()}</div>
+      <div class="g3">
+        <label class="fl">Team member${inp('Ibrahim Al Mofdi')}</label><label class="fl">Role${inp('Senior Stylist')}</label><label class="fl">Branch${inp('Al Quoz')}</label>
+        <label class="fl">Manager${inp('Emma')}</label><label class="fl">Meeting date${inp('Tue 6 Oct 2026')}</label><label class="fl">Review period (13 weeks)${inp('6 Jul to 4 Oct 2026')}</label>
+      </div>
+
+      <div class="sec">01 Wins and highlights</div>
+      ${fl('What has gone well since we last met: achievements, progress and kind words from clients or colleagues', 'Retail ahead of aim for three months running. Two clients wrote kind words about the 8-Step Hair Plan consultation.', 2)}
+
+      <div class="sec">02 Actions from our last meeting</div>
+      <div class="tbl-wrap"><table class="tbl ltbl"><tr><th>Previous action</th><th>Progress and outcome</th><th>Status</th></tr>
+      ${LAST.map(a => `<tr><td>${inp(a[0])}</td><td>${inp(a[1])}</td><td style="width:120px"><select><option ${a[2] === 'Done' ? 'selected' : ''}>Done</option><option ${a[2] === 'Ongoing' ? 'selected' : ''}>Ongoing</option></select></td></tr>`).join('')}</table></div>
+
+      <div class="sec">03 Business revenue, 13-week review</div>
+      <p class="lock" style="margin-bottom:6px"><span class="auto">Auto</span> cells come from Ibrahim's numbers and the aims for his level. Only the notes are typed.</p>
+      <div class="tbl-wrap"><table class="tbl ltbl"><tr><th>Metric</th><th>13-week actual</th><th>Target</th><th></th><th>Notes and trends</th></tr>
+      ${M13.map(r => `<tr><td style="padding-top:11px">${r.k}</td><td class="auto-v">${show(r.a, r.u)}</td><td class="auto-v">${show(r.t, r.u)}</td><td style="padding-top:12px"><i class="dot ${status(r)}"></i></td><td style="min-width:240px">${inp(r.n)}</td></tr>`).join('')}</table></div>
+      <div style="margin-top:12px">${fl('Key opportunities and the support you would value', 'More Saturday slots for new clients. A blonding refresher with the education team.', 2)}</div>
+
+      <div class="sec">04 Social media and networking</div>
+      <div class="g2">${fl('How would you like to grow your visibility, build relationships and welcome new clients?', 'Two Reels a month from the content shoot day.', 2)}${fl('What help, resources, training or support would be useful to you?', 'Marketing to share the consent form QR so before-and-afters are easy.', 2)}</div>
+
+      <div class="sec">05 Agreed actions</div>
+      <div class="tbl-wrap"><table class="tbl ltbl"><tr><th>Action or next step</th><th>Owner</th><th>Due date</th><th>Success measure</th></tr>
+      ${ACTIONS.map(a => `<tr><td>${inp(a[0])}</td><td style="width:130px"><select><option ${a[1] === 'Ibrahim' ? 'selected' : ''}>Ibrahim</option><option ${a[1] === 'Emma' ? 'selected' : ''}>Emma</option><option>Tara</option></select></td><td style="width:120px">${inp(a[2])}</td><td>${inp(a[3])}</td></tr>`).join('')}
+      <tr><td>${inp('', 'Add an action')}</td><td></td><td></td><td></td></tr></table></div>
+      <div class="g3" style="margin-top:12px"><label class="fl">Next meeting date${inp('Tue 3 Nov 2026')}</label></div>
+
+      <div class="sec">Stylist priorities checklist <span class="muted" style="letter-spacing:0;text-transform:none;font-weight:500" id="ckTotal">${y} of ${t} ticked</span></div>
+      ${CHECK.map((s, i) => `<details class="more ckg" ${i === 3 ? 'open' : ''}><summary><span>0${i + 1} ${esc(s[0])}</span><span class="hint cs">${s[1].filter(x => x[1]).length} of ${s[1].length}</span></summary>
+        ${s[1].map(x => `<label class="ck"><input type="checkbox" ${x[1] ? 'checked' : ''}><span>${esc(x[0])}</span></label>`).join('')}</details>`).join('')}
+      <div class="g2" style="margin-top:12px">${fl('Our priorities for the next 13 weeks', '1. Rebooking at checkout, every time.\n2. Treatments suggested only when they suit the client.\n3. Four pieces of content a month.', 4)}${fl('Training or management support that would help', 'Blonding refresher. A monthly ten minutes with Emma on my numbers.', 4)}</div>
+
+      <div class="btns"><button class="btn" type="button">Save draft</button><button class="btn" type="button" style="background:var(--new);color:var(--bg)">Sign off as Emma</button><button class="btn ghost" type="button">Save as PDF (HR-10)</button><span class="who">Ibrahim confirms on his own link.</span></div>
+    </section>
+
+    <section class="card new" id="goalCard">
+      <div class="card-head"><div><div class="eyebrow">Yearly goals · Personal, professional and financial</div><h2>Goals with Ibrahim</h2></div><span class="chip good">Set 6 Oct 2026</span></div>
+      <p class="who" style="margin-bottom:12px">&#128274; Proposed: Ibrahim, Emma, Tara and Kate can read the answers. Not shown to other Level 3 leaders.</p>
+      <div class="g3" style="margin-bottom:12px"><label class="fl">Meeting date${inp('Tue 6 Oct 2026')}</label><label class="fl">Next 13-week review${inp('Tue 5 Jan 2027')}</label><label class="fl">Manager${inp('Emma')}</label></div>
+      <div class="pills"><button type="button" class="pill on" onclick="setLH('6 months');this.parentNode.querySelectorAll('.pill').forEach(p=>p.classList.toggle('on',p===this))">6 months</button><button type="button" class="pill" onclick="setLH('1 year');this.parentNode.querySelectorAll('.pill').forEach(p=>p.classList.toggle('on',p===this))">1 year</button><button type="button" class="pill" onclick="setLH('3 years');this.parentNode.querySelectorAll('.pill').forEach(p=>p.classList.toggle('on',p===this))">3 years</button></div>
+      <div id="goalBody">${goalBodyHTML()}</div>
+
+      <div class="sec">Business performance, 13-week review</div>
+      <p class="lock" style="margin-bottom:6px"><span class="auto">Auto</span> is the current 13-week average. The three milestone columns are typed.</p>
+      <div class="tbl-wrap"><table class="tbl ltbl"><tr><th>Measure</th><th>Current 13-week avg</th><th>6 months</th><th>1 year</th><th>3 years</th></tr>
+      ${MILE.map(m => `<tr><td style="padding-top:11px">${m[0]}</td><td class="auto-v">${mv(m[1], m[5])}</td><td>${inp(m[2])}</td><td>${inp(m[3])}</td><td>${inp(m[4])}</td></tr>`).join('')}</table></div>
+
+      <div class="sec">Our agreed priorities, next 13 weeks (up to three)</div>
+      <div class="tbl-wrap"><table class="tbl ltbl"><tr><th>Action</th><th>Led by</th><th>Support needed</th><th>Due date</th></tr>
+      ${PRI.map(a => `<tr><td>${inp(a[0])}</td><td style="width:130px"><select><option ${a[1] === 'Ibrahim' ? 'selected' : ''}>Ibrahim</option><option ${a[1] === 'Emma' ? 'selected' : ''}>Emma</option><option>Tara</option></select></td><td>${inp(a[2])}</td><td style="width:110px">${inp(a[3])}</td></tr>`).join('')}</table></div>
+
+      <div class="sec">13-week follow-up <span class="muted" style="letter-spacing:0;text-transform:none;font-weight:500">first check Tue 5 Jan 2027</span></div>
+      <div class="g2">${fl('What progress has been made, and what have we learned?', '', 3)}${fl('What should change or be prioritised next?', '', 3)}</div>
+      <div class="btns"><button class="btn" type="button">Save draft</button><button class="btn" type="button" style="background:var(--new);color:var(--bg)">Sign off as Emma</button><button class="btn ghost" type="button">Save as PDF (HR-09)</button></div>
+    </section>
+
+    <section class="card ctx"><div class="fold"><div class="eyebrow">New clients and returning clients</div><span class="s">32.4% came back</span><span class="muted">&#8963;</span></div></section>
+  </div>`;
+}
+
+/* ---------- boot ---------- */
+document.getElementById('lead').innerHTML = leaderHTML();
+document.getElementById('lead').addEventListener('change', e => { if (e.target.matches('.ck input')) ckCount(); });
+document.getElementById('themeBtn').addEventListener('click', e => {
+  const r = document.documentElement, dark = r.dataset.theme === 'dark';
+  r.dataset.theme = dark ? 'light' : 'dark'; e.target.textContent = dark ? 'Dark' : 'Light';
+});
+drawPhone();
+</script>
+</body>
+</html>
