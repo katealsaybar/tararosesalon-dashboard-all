@@ -38,7 +38,7 @@ const GROUPS = [
 // The four a stylist reads first; the rest fold away (progressive disclosure).
 const HEADLINE = ['total_revenue', 'treatments', 'retail', 'rebooking_pct'];
 
-const S = { tab: 'month', levels: [], me: null, year: null, pick: null, q: null };
+const S = { tab: 'month', levels: [], me: null, year: null, pick: null };
 const levelOf = name => S.levels.find(l => l.level === name) || null;
 const nextOf = name => { const l = levelOf(name); return l ? S.levels.find(x => x.order === l.order + 1) || null : null; };
 
@@ -107,51 +107,25 @@ function yearTab() {
   const leaveWeeks = full.filter(onLeave).length;
   const best = full.slice().sort((a, b) => b.numbers.total_revenue - a.numbers.total_revenue)[0];
 
-  // Quarters: 1-13, 14-26, 27-39, 40-52.
-  const qs = [1, 2, 3, 4].map(n => {
-    const ws = full.filter(w => w.quarter === n);
-    const cw = counted.filter(w => w.quarter === n);
-    return { n, ws, cw, sum: ws.reduce((a, w) => a + w.numbers.total_revenue, 0),
-      aimSum: ws.reduce((a, w) => a + (aimOf(w) || 0), 0),
-      hit: wkAim ? cw.filter(w => w.numbers.total_revenue >= aimOf(w)).length : null };
-  });
-  // One next step, worked out for her (2% action: one thing, this quarter).
-  const live = qs.slice().reverse().find(q => q.ws.length || (q.n === 4 && cur)) || qs[0];
+  // One next step, worked out for her (2% action: one thing, this year). Kate, 7 Oct 2026:
+  // no quarters on the staff link, so it reads against the year's 52 weeks.
   let step = '';
   if (wkAim) {
+    const lastNo = cur ? cur.week_no : (full.length ? full[full.length - 1].week_no : 0);
+    const left = Math.max(0, 52 - lastNo);
     // Weeks gone carry their own aim (less for leave); weeks to come carry the full one.
-    const left = 13 - live.ws.length - (live.n === 4 && cur ? 1 : 0);
-    const curIn = live.n === 4 && cur;
-    const qAim = live.aimSum + (curIn ? wkAim : 0) + left * wkAim;
-    const done = live.sum + (curIn ? cur.numbers.total_revenue || 0 : 0);
-    step = done >= qAim
-      ? `You have already reached this quarter's aim of ${aed(qAim)}. Every week from here is above it.`
+    const yAim = full.reduce((a, w) => a + (aimOf(w) || 0), 0) + (cur ? wkAim : 0) + left * wkAim;
+    const done = total + (cur ? cur.numbers.total_revenue || 0 : 0);
+    step = done >= yAim
+      ? `You have already reached this year's aim of ${aed(yAim)}. Every week from here is above it.`
       : left > 0
-        ? `Q${live.n}'s aim is ${aed(qAim)}. You are at ${aed(done)}, so <b>${aed((qAim - done) / left)} a week</b> for the ${left} weeks left gets you there.`
-        : `Q${live.n} finished at ${aed(done)} against an aim of ${aed(qAim)}.`;
+        ? `This year's aim is ${aed(yAim)}. You are at ${aed(done)}, so <b>${aed((yAim - done) / left)} a week</b> for the ${left} weeks left gets you there.`
+        : `The year finished at ${aed(done)} against an aim of ${aed(yAim)}.`;
   }
 
-  // Kate, 1 Oct 2026: forty rows in one list was hard to find your way round. The
-  // quarter cards are the way in now: tap one and its weeks show underneath, one
-  // line each, newest first. Opens on the quarter she is in.
-  if (S.q == null || !qs[S.q - 1] || !(qs[S.q - 1].ws.length || (S.q === 4 && cur))) S.q = live.n;
-  const qCards = qs.map((q, i) => {
-    const prev = i ? qs[i - 1] : null;
-    const chg = prev && prev.ws.length && q.ws.length ? (q.sum - prev.sum) / prev.sum * 100 : null;
-    const soFar = !q.ws.length && q.n === 4 && cur;
-    const has = q.ws.length || soFar;
-    const note = !q.ws.length ? (soFar ? 'started this week' : 'not started')
-      : chg == null ? '' : `${chg >= 0 ? '▲' : '▼'} ${Math.abs(Math.round(chg))}% on Q${q.n - 1}`;
-    return `<button type="button" class="q${S.q === q.n ? ' on' : ''}" onclick="PerfTabs.pickQ(${q.n})" aria-pressed="${S.q === q.n}"${has ? '' : ' disabled'}>
-      <span class="lbl">Q${q.n}</span>
-      <span class="v">${q.ws.length ? aed(q.sum) : soFar ? aed(cur.numbers.total_revenue) : '·'}</span>
-      <span class="s">${note}</span>
-      ${q.cw.length && wkAim ? `<span class="s">${q.hit} of ${q.cw.length} at aim</span>` : ''}</button>`;
-  }).join('');
-
-  const pq = qs[S.q - 1];
-  const qWeeks = weeks.filter(w => w.quarter === S.q).reverse();
-  const rows = qWeeks.map(w => {
+  // Weeks 1 to 52 in one list, newest first (Kate, 7 Oct 2026: no quarters).
+  const allWeeks = weeks.slice().reverse();
+  const rows = allWeeks.map(w => {
     const n = w.numbers || {};
     const hit = wkAim && !onLeave(w) && !noData(w) && aimOf(w) > 0 && n.total_revenue >= aimOf(w);
     if (onLeave(w) || noData(w)) return `<tr class="wk-off"><td><b>W${w.week_no}</b> <span class="wk-d">${dShort(w.week_start)}</span></td>
@@ -178,16 +152,13 @@ function yearTab() {
         One quiet week is normal. A run of them is the thing to talk about with your manager.</p></details>
     </section>
     <section class="card">
-      <h2>Your quarters</h2>
-      <p class="sub">13 weeks each. Tap one to see its weeks.</p>
-      <div class="qs">${qCards}</div>
-      <div class="wk-head"><b>Q${S.q}</b>, newest first${pq.cw.length && wkAim ? `. ✓ means at or above your aim` : ''}</div>
+      <h2>Weeks 1 to 52</h2>
+      <p class="sub">Newest first${counted.length && wkAim ? '. ✓ means at or above your aim' : ''}.</p>
       <div class="tbl-wrap"><table class="tbl wk"><thead><tr><th>Week</th><th class="r">Sales</th><th class="r">Rebooked</th><th class="r">Retail</th></tr></thead>
         <tbody>${rows}</tbody></table></div>
       <p class="sub wk-foot">Money in AED. Rebooked is clients who booked again, out of all your clients that week.</p>
     </section>`;
 }
-function pickQ(n) { S.q = n; paint(); document.querySelector('#perfMore .qs')?.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
 
 function chartSvg(weeks, wkAim, aimOf) {
   if (!weeks.length) return '<p class="sub">No weeks yet this year.</p>';
@@ -199,7 +170,6 @@ function chartSvg(weeks, wkAim, aimOf) {
   const y = v => pad.t + (1 - v / max) * (H - pad.t - pad.b);
   const ticks = [0, .5, 1].map(f => max / 1.08 * f);
   let s = ticks.map(t => `<line class="grid" x1="${pad.l}" x2="${W - pad.r}" y1="${y(t)}" y2="${y(t)}"/><text class="ax" x="${pad.l - 6}" y="${y(t) + 3}" text-anchor="end">${k(t)}</text>`).join('');
-  s += [1, 2, 3, 4].map(q => `<text class="ql" x="${x((q - 1) * 13 + 1)}" y="12">Q${q}</text>${q > 1 ? `<line class="grid" x1="${x((q - 1) * 13 + 1) - 1.5}" x2="${x((q - 1) * 13 + 1) - 1.5}" y1="${pad.t - 6}" y2="${H - pad.b}"/>` : ''}`).join('');
   s += weeks.map(w => {
     const v = w.numbers.total_revenue || 0, top = y(v), h = Math.max(0, H - pad.b - top), bx = x(w.week_no) + (slot - bw) / 2;
     const r = Math.min(3, bw / 2, h);
@@ -220,9 +190,9 @@ function chartSvg(weeks, wkAim, aimOf) {
     }
     s += `<path class="aim" d="${d}" fill="none"/>`;
   }
-  s += (W < 500 ? [1, 14, 27, 40] : [1, 14, 27, 40, 52]).map(wk =>
+  s += (W < 500 ? [1, 26, 52] : [1, 13, 26, 39, 52]).map(wk =>
  `<text class="ax" x="${x(wk) + slot / 2}" y="${H - 8}" text-anchor="middle">W${wk}</text>`).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" tabindex="0" role="img" aria-label="Weekly sales for 2026${wkAim ? ', with your aim as a dashed line' : ''}. Slide along it, or use the arrow keys, to read each week. Every figure is also in the weeks list under Your quarters.">${s}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" tabindex="0" role="img" aria-label="Weekly sales for 2026${wkAim ? ', with your aim as a dashed line' : ''}. Slide along it, or use the arrow keys, to read each week. Every figure is also in the weeks list under Weeks 1 to 52.">${s}</svg>`;
 }
 
 function wireChart() {
@@ -324,5 +294,5 @@ function levelsTab() {
 }
 function pickLevel(l) { S.pick = l; paint(); }
 
-window.PerfTabs = { mount, go, pickQ, pickLevel };
+window.PerfTabs = { mount, go, pickLevel };
 })();

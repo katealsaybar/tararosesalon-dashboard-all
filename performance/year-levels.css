@@ -23,7 +23,6 @@
 #perfMore .chart{position:relative}
 #perfMore .chart svg{width:100%;height:auto;display:block}
 #perfMore .chart .ax{font-size:10px;fill:var(--muted)}
-#perfMore .chart .ql{font-size:10.5px;fill:var(--muted);letter-spacing:.08em}
 #perfMore .chart .grid{stroke:var(--border);stroke-width:1}
 #perfMore .chart .aim{stroke:var(--aim);stroke-width:1.5;stroke-dasharray:5 4;opacity:.7}
 #perfMore .chart .bar{fill:var(--bar)}
@@ -48,13 +47,6 @@
 #perfMore .legend i{display:inline-block;width:12px;height:10px;border-radius:2px;background:var(--bar);vertical-align:-1px;margin-right:5px}
 #perfMore .legend i.soft{background:var(--bar-soft)}
 #perfMore .legend i.line{height:0;border-top:2px dashed var(--aim);border-radius:0;background:none;opacity:.7}
-#perfMore .qs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-@media (max-width:619px){#perfMore .qs{grid-template-columns:repeat(2,1fr)}}
-#perfMore .q{display:flex;flex-direction:column;gap:2px;text-align:left;font:inherit;color:var(--text);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;background:var(--surface2);cursor:pointer;min-height:44px}
-#perfMore .q:hover{border-color:var(--muted)}
-#perfMore .q.on{border-color:var(--text);background:var(--surface)}
-#perfMore .q[disabled]{opacity:.5;cursor:default}
-#perfMore .q:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 #perfMore .wk-head{font-size:13px;color:var(--muted);margin:16px 0 4px}
 #perfMore .wk-head b{color:var(--text)}
 #perfMore .tbl.wk td{padding:9px 6px;white-space:nowrap}
@@ -67,9 +59,6 @@
 #perfMore .card .eyebrow+.hero-n{margin-top:0}
 #perfMore .hero-s b{color:var(--text);font-weight:600}
 #perfMore .step b{font-weight:700}
-#perfMore .q .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
-#perfMore .q .v{font-size:19px;font-weight:700;margin:3px 0 1px}
-#perfMore .q .s{font-size:12px;color:var(--muted)}
 #perfMore details.more{margin-top:12px}
 /* Kate, 1 Oct 2026: "All 19 measures" did not read as something to tap. It is a full-width
    button now, with a chevron that turns when it opens and a label that says what it does. */
