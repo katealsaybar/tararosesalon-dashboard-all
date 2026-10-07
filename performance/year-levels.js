@@ -60,7 +60,8 @@ function paint() {
   const onMonth = S.tab === 'month';
   document.getElementById('app').hidden = !onMonth;
   more.hidden = onMonth;
-  const mp = document.querySelector('.month-pick'); if (mp) mp.style.visibility = onMonth ? '' : 'hidden';
+  // Kate, 7 Oct 2026: gone, not just invisible: it left a blank gap between the home and Light buttons.
+  const mp = document.querySelector('.month-pick'); if (mp) mp.style.display = onMonth ? '' : 'none';
   if (onMonth) { more.innerHTML = ''; return; }
   if (S.tab === 'one') {
     more.innerHTML = '';
