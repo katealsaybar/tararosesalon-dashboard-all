@@ -29,7 +29,7 @@
 // Own controls (branch, who, gone for), so the masthead filters are hidden on this
 // page. Borrows the Products page's card, tile and table styles (slv-*, w13-*).
 let lcAll = null, lcRows = null, lcPage = 1, lcQuery = '', lcSide = '';
-let lcSel = { branch: 'SAA', seg: 'regular', days: 90 };
+let lcSel = { branch: 'SAA', seg: 'regular', days: 90, cfrom: 0, cto: 60 };
 try { Object.assign(lcSel, JSON.parse(localStorage.getItem('trs-lost') || '{}')); } catch (e) {}
 
 const LC_BRANCH = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
@@ -40,6 +40,14 @@ const LC_SEG = {
   once:    { label: 'One visit only',       short: '1',  min: 1, max: 1 },
 };
 const LC_DAYS = [60, 90, 180];
+// Custom (Kate, 7 Oct 2026): a From and To in days since the last visit, so the list can show
+// who is still coming (0 to 60) as well as who is gone. From goes to the RPC as p_days; To is
+// applied here, on the rows that come back.
+const lcCustom = () => lcSel.days === 'custom';
+const lcFrom = () => Math.max(0, Math.floor(Number(lcSel.cfrom)) || 0);
+const lcTo = () => Math.max(lcFrom(), Math.floor(Number(lcSel.cto)) || 0);
+const lcDaysFetch = () => lcCustom() ? lcFrom() : Number(lcSel.days);
+const lcDaysTxt = () => lcCustom() ? `${lcNum(lcFrom())} to ${lcNum(lcTo())} days` : `${lcNum(lcSel.days)}+ days`;
 // Pages (Kate, 2 Oct 2026): 10 a page by default, or 20, 50 or 100, with "Page 1 of N".
 // Replaces the first-200-then-Show-all list. The choice is kept per browser.
 const LC_PER = [10, 20, 50, 100];
@@ -54,6 +62,11 @@ function lcSave() { try { localStorage.setItem('trs-lost', JSON.stringify(lcSel)
 // Kate, 3 Oct 2026: the column filters, sort and search stay put when the branch,
 // visits or days change (they used to clear), and are kept per browser like the rest.
 function lcSet(k, v) { lcSel[k] = v; lcPage = 1; lcSide = ''; lcClosePop(); lcSave(); renderLostClients(); }
+function lcSetCustom(k, v) {
+  lcSel[k] = Math.max(0, Math.floor(Number(v)) || 0);
+  if (lcSel.cto < lcSel.cfrom) { if (k === 'cfrom') lcSel.cto = lcSel.cfrom; else lcSel.cfrom = lcSel.cto; }
+  lcPage = 1; lcSide = ''; lcSave(); renderLostClients();
+}
 function lcShowSide(s) {
   lcSide = lcSide === s ? '' : s; lcPage = 1; lcResetFilters();
   if (lcSide === 'booked') lcSort = { k: 'booked', dir: 1 };   // soonest booking first
@@ -67,11 +80,11 @@ function lcShowSide(s) {
 let lcListP = null, lcListKey = '', lcSumP = null;
 function lcFetchList() {
   const seg = LC_SEG[lcSel.seg] || LC_SEG.regular;
-  const key = [lcSel.branch, seg.min, seg.max, lcSel.days].join('|');
+  const key = [lcSel.branch, seg.min, seg.max, lcDaysFetch()].join('|');
   if (!lcListP || lcListKey !== key) {
     lcListKey = key;
     lcListP = Promise.resolve(sb.rpc('lost_clients', {
-      p_branch: lcSel.branch, p_min_visits: seg.min, p_max_visits: seg.max, p_days: Number(lcSel.days) }));
+      p_branch: lcSel.branch, p_min_visits: seg.min, p_max_visits: seg.max, p_days: lcDaysFetch() }));
   }
   return lcListP;
 }
@@ -90,7 +103,7 @@ async function renderLostClients() {
   try {
     const { data, error } = await listP;
     if (error || !Array.isArray(data)) throw error || new Error('no data');
-    lcAll = data;
+    lcAll = lcCustom() ? data.filter(r => Number(r.days_since) <= lcTo()) : data;
   } catch (e) {
     console.error(e);
     el.innerHTML = lcShell('<p class="slv-muted">The client list didn\'t load. Refresh to try again.</p>');
@@ -110,7 +123,7 @@ function lcShell(body) {
     <div class="sc-bar w13-bar lc-bar">
       <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', Object.entries(LC_BRANCH).map(([k]) => [k, k]))}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Visits</div>${seg('seg', Object.entries(LC_SEG).map(([k, s]) => [k, s.short]))}</div>
-      <div class="lc-grp"><div class="slv-eyebrow">Days away</div>${seg('days', LC_DAYS.map(d => [d, `${d}+`]))}</div>
+      <div class="lc-grp"><div class="slv-eyebrow">Days away</div>${seg('days', LC_DAYS.map(d => [d, `${d}+`]).concat([['custom', 'Custom']]))}${lcCustom() ? `<div class="lc-cust"><input type="number" min="0" inputmode="numeric" value="${lcFrom()}" aria-label="From days" onchange="lcSetCustom('cfrom', this.value)"><span>to</span><input type="number" min="0" inputmode="numeric" value="${lcTo()}" aria-label="To days" onchange="lcSetCustom('cto', this.value)"><span>days since her last visit</span></div>` : ''}</div>
     </div>
     <div id="lcBody">${body}</div>`;
 }
@@ -145,7 +158,7 @@ function lcPaint() {
     <section class="slv-card lc-board" id="lcBoard"></section>
     <section class="slv-card">
       <div class="slv-head">
-        <div><div class="slv-eyebrow">${lcEsc(LC_BRANCH[lcSel.branch])}</div><h3>${lcEsc(seg.label)}, not back in ${lcNum(lcSel.days)}+ days</h3></div>
+        <div><div class="slv-eyebrow">${lcEsc(LC_BRANCH[lcSel.branch])}</div><h3>${lcEsc(seg.label)}, ${lcCustom() ? 'last seen ' + lcDaysTxt() + ' ago' : 'not back in ' + lcDaysTxt()}</h3></div>
         <p>Visits since 1 Jan 2025</p>
       </div>
       <div class="w13-tiles lc-tiles">
@@ -156,7 +169,7 @@ function lcPaint() {
         ${topTile('Their beautician', topBt)}
       </div>
       ${sideLine('moved', moved.length,
-        `${lcNum(moved.length)} more came back at another branch in the last ${lcNum(lcSel.days)} days, so they aren't counted as lost.`,
+        `${lcNum(moved.length)} more came back at another branch in the last ${lcNum(lcCustom() ? lcFrom() : lcSel.days)} days, so they aren't counted as lost.`,
         `Showing the ${lcNum(moved.length)} who came back at another branch instead. They aren't counted above.`)}
       ${sideLine('booked', booked.length,
         `${lcNum(booked.length)} more already have a booking, so they aren't counted as lost.`,
@@ -427,6 +440,7 @@ function lcPaintBoard() {
   const el = document.getElementById('lcBoard');
   if (!el) return;
   if (lcSumErr) { el.innerHTML = '<p class="slv-muted">The board did not load. Refresh to try again.</p>'; return; }
+  if (lcCustom()) { el.innerHTML = '<p class="slv-muted">The every-branch board shows the 60, 90 and 180 day views. Pick one of those to see it; the list below follows your custom days.</p>'; return; }
   if (!lcSum) { el.innerHTML = '<p class="slv-muted">Counting every branch…</p>'; return; }
   const days = Number(lcSel.days), spend = lcBoardMode === 'spend';
   const at = (b, s) => lcSum.find(x => x.branch === b && x.seg === s && Number(x.days) === days) || { lost: 0, lost_spend: 0, active: 0, moved: 0 };
@@ -740,7 +754,7 @@ async function lcSaveFile(kind) {
   const pi = head.indexOf('Phone');
   const out = kind === 'csv' && pi >= 0 ? lines.map(l => l.map((v, j) => j === pi && v ? `="${v}"` : v)) : lines;
   const built = lgxBuild({ sheets: [{ name: 'Lost clients ' + lcSel.branch, blocks: [{ cols, rows: out.map(l => ({ cells: l })) }] }] });
-  const name = ['lost-clients', lcSel.branch, lcSel.seg === 'regular' ? 'regulars' : lcSel.seg, lcSel.days + 'd']
+  const name = ['lost-clients', lcSel.branch, lcSel.seg === 'regular' ? 'regulars' : lcSel.seg, (lcCustom() ? lcFrom() + '-' + lcTo() : lcSel.days) + 'd']
     .concat(lcSide ? [lcSide] : []).concat(lcQuery.trim() || Object.keys(lcF).some(lcOn) ? ['filtered'] : []).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
