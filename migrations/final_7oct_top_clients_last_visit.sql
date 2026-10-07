@@ -180,13 +180,30 @@ revoke all on function public.top_clients_board(date, date, int, int, numeric, i
 grant execute on function public.top_clients_board(date, date, int, int, numeric, int) to authenticated;
 
 -- ── The row panel (both pages): every service, every visit, spend by month, branches ──
+-- stl_names_for_key finds the raw spellings of a client's name through the stl_client_key index.
+-- It is SECURITY DEFINER because under row-level security Postgres cannot use that index (the
+-- function is not leakproof), so the panel read the whole table on every open (0.6 to 0.9s). It
+-- returns only spellings of the name the caller already typed; the panel's own query still goes
+-- through the table's policies. Panel now 15 to 80ms in SQL, 0.1 to 0.5s in the browser.
+create or replace function public.stl_names_for_key(p_key text)
+returns text[]
+language sql stable security definer
+set search_path to 'public'
+as $$
+  select coalesce(array_agg(distinct s.client_name), array[]::text[])
+  from sales_transaction_lines s
+  where public.stl_client_key(s.client_name) = p_key;
+$$;
+revoke all on function public.stl_names_for_key(text) from public, anon;
+grant execute on function public.stl_names_for_key(text) to authenticated;
+
 create or replace function public.lost_client_detail(p_branch text, p_client text)
 returns jsonb
 language plpgsql stable
 set search_path to 'public'
 set statement_timeout to '15s'
 as $function$
-declare out jsonb; k text := public.stl_client_key(p_client);
+declare out jsonb; k text := public.stl_client_key(p_client); names text[] := public.stl_names_for_key(public.stl_client_key(p_client));
 begin
   if coalesce((select m.level from public.dashboard_me() m limit 1), 0) < 2 then
     raise exception 'Lost Clients is for Level 2 and above';
@@ -197,7 +214,7 @@ begin
     from sales_transaction_lines s
     where (s.branch = p_branch or (p_branch is null and s.branch in ('SAA','KCA','MC','AQ')))
       and s.date >= date '2025-01-01'
-      and public.stl_client_key(s.client_name) = k
+      and s.client_name = any(names)
   ), svc as (
     select (array_agg(item order by date desc))[1] as item,
            count(distinct date)::int visits, max(date) last_date, round(sum(coalesce(net,0)))::int spend,
@@ -226,7 +243,7 @@ begin
     select s.branch, count(distinct s.date)::int as visits
     from sales_transaction_lines s
     where s.branch in ('SAA','KCA','MC','AQ') and s.date >= date '2025-01-01'
-      and public.stl_client_key(s.client_name) = k
+      and s.client_name = any(names)
     group by s.branch
   )
   select jsonb_build_object(
