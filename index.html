@@ -2066,7 +2066,9 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 /* Lost Clients' controls: three labelled groups in a row on desktop. On a phone the
    branch takes the first row and Visits / Days share the second, half each, buttons
    splitting the width evenly (they keep mobile.css's 44px tap height). */
-.lc-bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}
+/* No side padding (Kate, 7 Oct 2026): .sc-bar's 28px gutters only line up where its -28px margin
+   survives, and .w13-bar's margin wipes that out, so the groups sat 28px right of the cards. */
+.lc-bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;padding-left:0;padding-right:0}
 /* Sticky column heads (Kate, 2 Oct 2026), pinned under the sticky filter bar. The wrap
    gives up its sideways scroll here, which a sticky head cannot live inside; the six
    columns fit the card at desktop widths, and phones get the card list instead. */
@@ -3970,8 +3972,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20261005dots"></script>
 <script src="staff-weeks.js?v=20261007wk"></script>
 <script src="products.js?v=20261005dots"></script>
-<script src="lost-clients.js?v=20261007topc"></script>
-<script src="top-clients.js?v=20261007topc"></script>
+<script src="lost-clients.js?v=20261007lvall"></script>
+<script src="top-clients.js?v=20261007lvall"></script>
 <script src="marketing-chart.js?v=20261006ph"></script>
 <script src="google-ads.js?v=20261006per"></script>
 <script src="website.js?v=20261006per"></script>

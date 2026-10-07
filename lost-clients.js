@@ -33,13 +33,15 @@ let lcSel = { branch: 'SAA', seg: 'regular', days: 90, cfrom: 0, cto: 60 };
 try { Object.assign(lcSel, JSON.parse(localStorage.getItem('trs-lost') || '{}')); } catch (e) {}
 
 const LC_BRANCH = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
+// "All" (Kate, 7 Oct 2026) asks the server for every branch at once: the RPCs take a null branch.
+const lcBranchArg = () => lcSel.branch === 'all' ? null : lcSel.branch;
 // min/max visits per segment. Visits = days the client came in at that branch.
 const LC_SEG = {
   regular: { label: 'Regulars (3+ visits)', short: '3+', min: 3, max: null },
   twice:   { label: 'Came twice',           short: '2',  min: 2, max: 2 },
   once:    { label: 'One visit only',       short: '1',  min: 1, max: 1 },
 };
-const LC_DAYS = [60, 90, 180];
+const LC_DAYS = [30, 60, 90, 180];
 // Custom (Kate, 7 Oct 2026): a From and To in days since the last visit, so the list can show
 // who is still coming (0 to 60) as well as who is gone. From goes to the RPC as p_days; To is
 // applied here, on the rows that come back.
@@ -84,7 +86,7 @@ function lcFetchList() {
   if (!lcListP || lcListKey !== key) {
     lcListKey = key;
     lcListP = Promise.resolve(sb.rpc('lost_clients', {
-      p_branch: lcSel.branch, p_min_visits: seg.min, p_max_visits: seg.max, p_days: lcDaysFetch() }));
+      p_branch: lcBranchArg(), p_min_visits: seg.min, p_max_visits: seg.max, p_days: lcDaysFetch() }));
   }
   return lcListP;
 }
@@ -122,7 +124,7 @@ function lcShell(body) {
       <p>Clients who used to come in and haven't been back, by branch, highest spend first. For reference and outreach planning.</p>
     </section>
     <div class="sc-bar w13-bar lc-bar">
-      <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', Object.entries(LC_BRANCH).map(([k]) => [k, k]))}</div>
+      <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(Object.keys(LC_BRANCH).map(k => [k, k])))}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Visits</div>${seg('seg', Object.entries(LC_SEG).map(([k, s]) => [k, s.short]))}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Days away</div>${seg('days', LC_DAYS.map(d => [d, `${d}+`]).concat([['custom', 'Custom']]))}</div>
     </div>
@@ -160,7 +162,7 @@ function lcPaint() {
     <section class="slv-card lc-board" id="lcBoard"></section>
     <section class="slv-card">
       <div class="slv-head">
-        <div><div class="slv-eyebrow">${lcEsc(LC_BRANCH[lcSel.branch])}</div><h3>${lcEsc(seg.label)}, ${lcCustom() ? 'last seen ' + lcDaysTxt() + ' ago' : 'not back in ' + lcDaysTxt()}</h3></div>
+        <div><div class="slv-eyebrow">${lcSel.branch === 'all' ? 'All branches' : lcEsc(LC_BRANCH[lcSel.branch])}</div><h3>${lcEsc(seg.label)}, ${lcCustom() ? 'last seen ' + lcDaysTxt() + ' ago' : 'not back in ' + lcDaysTxt()}</h3></div>
         <p>Visits since 1 Jan 2025</p>
       </div>
       <div class="w13-tiles lc-tiles">
@@ -236,7 +238,7 @@ const LC_COLS = [
 const lcHasPhones = () => (lcAll || []).some(r => r.mobile || r.landline);
 const lcCols = () => LC_COLS.filter(c => (!c.side || c.side === lcSide) && (!c.phones || lcHasPhones()));
 // "12 Oct 2026 at KCA" (the branch only when it isn't this list's) and who with.
-const lcBookedAt = r => lcDayY(r.booked_on) + (r.booked_at && r.booked_at !== lcSel.branch ? ' at ' + r.booked_at : '');
+const lcBookedAt = r => lcDayY(r.booked_on) + (r.booked_at && (lcSel.branch === 'all' || r.booked_at !== lcSel.branch) ? ' at ' + r.booked_at : '');
 const lcColOf = k => LC_COLS.find(c => c.k === k);
 function lcOn(k) {
   const f = lcF[k]; if (!f) return false;
@@ -376,7 +378,7 @@ async function lcToggleDetail(ev, i) {
   if (phone) host.querySelector('.prd-body').appendChild(box); else host.after(box);
   // Top Clients (top-clients.js) borrows this panel: its ctx names the branch (null = every
   // branch) and draws the panel with its own extras.
-  const br = lcDetailCtx ? lcDetailCtx.branch() : lcSel.branch;
+  const br = lcDetailCtx ? lcDetailCtx.branch() : lcBranchArg();
   const key = (br || 'all') + '|' + r.client_name;
   try {
     if (!lcDetailCache[key]) {
@@ -435,6 +437,18 @@ async function lcLoadSummary() {
   } catch (e) { console.error(e); lcSumErr = true; }
   lcPaintBoard();
 }
+// The Custom board's own ask, kept for the From / To it was made for.
+let lcCust = { key: '', data: null, err: false };
+function lcLoadCustom() {
+  const key = lcFrom() + '-' + lcTo();
+  if (lcCust.key === key) return;
+  lcCust = { key, data: null, err: false };
+  Promise.resolve(sb.rpc('lost_clients_summary', { p_days: [lcFrom()], p_to: lcTo() })).then(({ data, error }) => {
+    if (lcCust.key !== key) return;
+    if (error) throw error;
+    lcCust.data = data || []; lcPaintBoard();
+  }).catch(e => { console.error(e); if (lcCust.key === key) { lcCust.err = true; lcPaintBoard(); } });
+}
 function lcOpenCell(b, s) { lcSel.seg = s; lcSet('branch', b); }
 // The board as a picture (Kate, 2 Oct 2026: "I was expecting more of interactive visual
 // dashboards"). A headline row, then one bar per branch split into who has not come
@@ -458,10 +472,18 @@ function lcPaintBoard() {
   const el = document.getElementById('lcBoard');
   if (!el) return;
   if (lcSumErr) { el.innerHTML = '<p class="slv-muted">The board did not load. Refresh to try again.</p>'; return; }
-  if (lcCustom()) { el.innerHTML = '<p class="slv-muted">The every-branch board shows the 60, 90 and 180 day views. Pick one of those to see it; the list below follows your custom days.</p>'; return; }
-  if (!lcSum) { el.innerHTML = '<p class="slv-muted">Counting every branch…</p>'; return; }
-  const days = Number(lcSel.days), spend = lcBoardMode === 'spend';
-  const at = (b, s) => lcSum.find(x => x.branch === b && x.seg === s && Number(x.days) === days) || { lost: 0, lost_spend: 0, active: 0, moved: 0 };
+  // Custom (Kate, 7 Oct 2026): the board follows the range too (clients last seen between From
+  // and To days ago), from lost_clients_summary(p_days => [From], p_to => To). Only the clients
+  // in the range are drawn: everyone else is outside it, so there is no "still coming" remainder.
+  const cust = lcCustom();
+  if (cust) {
+    lcLoadCustom();
+    if (lcCust.err) { el.innerHTML = '<p class="slv-muted">The board did not load. Refresh to try again.</p>'; return; }
+    if (!lcCust.data) { el.innerHTML = '<p class="slv-muted">Counting every branch…</p>'; return; }
+  } else if (!lcSum) { el.innerHTML = '<p class="slv-muted">Counting every branch…</p>'; return; }
+  const src = cust ? lcCust.data : lcSum;
+  const days = cust ? lcFrom() : Number(lcSel.days), spend = lcBoardMode === 'spend';
+  const at = (b, s) => src.find(x => x.branch === b && x.seg === s && Number(x.days) === days) || { lost: 0, lost_spend: 0, active: 0, moved: 0 };
   const B = Object.keys(LC_BRANCH).map(b => {
     const segs = LC_SEGS.map(g => Object.assign({ b }, g, at(b, g.s)));
     const lost = segs.reduce((a, x) => a + x.lost, 0), lostSpend = segs.reduce((a, x) => a + Number(x.lost_spend), 0);
@@ -477,16 +499,16 @@ function lcPaintBoard() {
   // Clients: each bar is the branch's whole client book, so the lost share shows as
   // length. Spend: only what the lost clients had spent (the summary has no spend for
   // the rest), each bar against the biggest.
-  const scale = spend ? Math.max(...B.map(x => x.lostSpend), 1) : Math.max(...B.map(x => x.all), 1);
+  const scale = spend || cust ? Math.max(...B.map(x => spend ? x.lostSpend : x.lost), 1) : Math.max(...B.map(x => x.all), 1);
   const bar = x => {
     const parts = LC_SEGS.map(g => {
       const seg = x.segs.find(y => y.s === g.s), v = spend ? Number(seg.lost_spend) : seg.lost;
-      const read = `${x.name} · ${g.label}: ${lcNum(seg.lost)} not back · ${lcShortAed(Number(seg.lost_spend))} · ${x.all ? Math.round(100 * seg.lost / x.all) : 0}% of their clients`;
+      const read = `${x.name} · ${g.label}: ${lcNum(seg.lost)} ${cust ? 'in this range' : 'not back'} · ${lcShortAed(Number(seg.lost_spend))} · ${x.all ? Math.round(100 * seg.lost / x.all) : 0}% of their clients`;
       const on = x.b === lcSel.branch && g.s === lcSel.seg;
       return v > 0 ? `<button type="button" class="lc-seg${on ? ' on' : ''}" style="width:${(100 * v / scale).toFixed(2)}%;background:${g.color}"
         data-read="${lcEsc(read)}" aria-label="${lcEsc(read)}. Open this list" onclick="lcOpenCell('${x.b}','${g.s}')"></button>` : '';
     }).join('');
-    const rest = spend ? '' : [
+    const rest = spend || cust ? '' : [
       x.moved ? `<span class="lc-seg rest moved" style="width:${(100 * x.moved / scale).toFixed(2)}%" data-read="${lcEsc(`${x.name} · Moved branch: ${lcNum(x.moved)} now come to another salon`)}"></span>` : '',
       x.active ? `<span class="lc-seg rest" style="width:${(100 * x.active / scale).toFixed(2)}%" data-read="${lcEsc(`${x.name} · Still coming: ${lcNum(x.active)} seen in the last ${days} days${x.booked ? ` or booked in (${lcNum(x.booked)})` : ''}`)}"></span>` : '',
     ].join('');
@@ -495,21 +517,21 @@ function lcPaintBoard() {
     return `<div class="lc-brow"><div class="lc-bname">${lcEsc(x.name)}</div><div class="lc-btrack">${parts}${rest}</div><div class="lc-bfig">${fig}</div></div>`;
   };
   const tile = (k, v, n) => `<div class="w13-tile"><div class="slv-eyebrow">${k}</div><div class="w13-val">${v}</div><div class="slv-note">${n}</div></div>`;
-  el.innerHTML = `<div class="slv-head"><div><div class="slv-eyebrow">Every branch</div><h3>Not back in ${days}+ days</h3></div>
+  el.innerHTML = `<div class="slv-head"><div><div class="slv-eyebrow">Every branch</div><h3>${cust ? 'Last seen ' + lcDaysTxt() + ' ago' : 'Not back in ' + days + '+ days'}</h3></div>
       <div class="sc-seg lc-mode" role="group" aria-label="Show">
         <button type="button" class="${spend ? '' : 'on'}" onclick="lcBoardSetMode('clients')">Clients</button>
         <button type="button" class="${spend ? 'on' : ''}" onclick="lcBoardSetMode('spend')">Spend</button></div></div>
     <div class="w13-tiles lc-btiles">
-      ${tile('Not back', lcNum(allLost), `${allClients ? Math.round(100 * allLost / allClients) : 0}% of ${lcNum(allClients)} clients`)}
+      ${tile(cust ? 'In this range' : 'Not back', lcNum(allLost), `${allClients ? Math.round(100 * allLost / allClients) : 0}% of ${lcNum(allClients)} clients`)}
       ${tile('They had spent', lcShortAed(allSpend), 'since Jan 2025, ex VAT')}
-      ${tile('Most lost', lcEsc(worst.name), `${worst.all ? Math.round(100 * worst.lost / worst.all) : 0}% of its clients`)}
-      ${tile('Biggest group', lcEsc(topGroup.g.label), `${allLost ? Math.round(100 * topGroup.n / allLost) : 0}% of those not back`)}
+      ${tile(cust ? 'Most in range' : 'Most lost', lcEsc(worst.name), `${worst.all ? Math.round(100 * worst.lost / worst.all) : 0}% of its clients`)}
+      ${tile('Biggest group', lcEsc(topGroup.g.label), `${allLost ? Math.round(100 * topGroup.n / allLost) : 0}% ${cust ? 'of this range' : 'of those not back'}`)}
     </div>
     <div class="lc-chart" onmouseover="lcBoardRead(event)" onfocusin="lcBoardRead(event)" onmouseleave="lcBoardRead(null)">
       ${B.map(bar).join('')}
     </div>
     <p class="lc-read" id="lcRead" aria-live="polite">Point at a bar, or tap it, to read it. Click to open that list.</p>
-    <div class="lc-legend">${LC_SEGS.map(g => `<span><i style="background:${g.color}"></i>${g.label}</span>`).join('')}${spend ? '' : '<span><i class="moved"></i>Moved branch</span><span><i class="rest"></i>Still coming</span>'}</div>
+    <div class="lc-legend">${LC_SEGS.map(g => `<span><i style="background:${g.color}"></i>${g.label}</span>`).join('')}${spend || cust ? '' : '<span><i class="moved"></i>Moved branch</span><span><i class="rest"></i>Still coming</span>'}</div>
     <details class="lc-nums"${lcBoardOpenNums ? ' open' : ''} ontoggle="lcBoardOpenNums=this.open"><summary>Show the numbers</summary>${lcBoardTable(B, days)}</details>`;
 }
 function lcBoardRead(ev) {
@@ -680,7 +702,7 @@ function lcStylist(name) {
   const dept = prof && /beauty|nail|lash|brow|therap|aesthet/i.test(prof.role || '') ? 'beauty' : 'hair';
   const gone = prof && prof.resigned ? ' lc-st-gone' : '';
   const inner = `<span class="lc-st lc-st-${dept}${gone}"${gone ? ' title="Has left"' : ''}>${lcEsc(name)}</span>`;
-  return typeof staffWho === 'function' ? staffWho(key || name, inner, { dept, branch: lcSel.branch }) : inner;
+  return typeof staffWho === 'function' ? staffWho(key || name, inner, { dept, branch: lcBranchArg() || undefined }) : inner;
 }
 
 // One number per client on screen. A common name can carry up to ten (everyone in
@@ -715,7 +737,7 @@ function lcExportLines() {
     if (c.k === 'stylist') { head.push('Usual stylist', 'Also saw (hair)'); pick.push(r => lcTeam(r).hair[0] || '', r => lcTeam(r).hair.slice(1).join(', ')); return; }
     if (c.k === 'beauty') { head.push('Usual beautician', 'Also saw (beauty)'); pick.push(r => lcTeam(r).beauty[0] || '', r => lcTeam(r).beauty.slice(1).join(', ')); return; }
     head.push(c.xl || c.label); pick.push(c.get);
-    if (c.k === 'client') { head.push('Branch'); pick.push(() => LC_BRANCH[lcSel.branch] || lcSel.branch); }
+    if (c.k === 'client') { head.push('Branch'); pick.push(() => LC_BRANCH[lcSel.branch] || 'All branches'); }
   });
   return { head, lines: rows.map(r => pick.map(f => f(r))), rows };
 }
@@ -737,7 +759,7 @@ async function lcFetchDetails(rows) {
   const worker = async () => {
     while (next < chunks.length) {
       const part = chunks[next++];
-      const { data, error } = await sb.rpc('lost_clients_detail_bulk', { p_branch: lcSel.branch, p_clients: part });
+      const { data, error } = await sb.rpc('lost_clients_detail_bulk', { p_branch: lcBranchArg(), p_clients: part });
       if (error) throw error;
       part.forEach(n => { lcBulkCache[key(n)] = null; });
       (data || []).forEach(d => { lcBulkCache[key(d.client_name)] = d; });
