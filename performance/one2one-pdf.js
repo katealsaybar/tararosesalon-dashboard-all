@@ -22,7 +22,7 @@ function load() {
     s.onload = res; s.onerror = () => { ready = null; rej(new Error('The PDF maker did not load. Check the connection and try again.')); };
     document.head.appendChild(s);
   }).then(() => Promise.all(FONTS.map(f => fetch('/assets/fonts/pdf/' + f).then(r => { if (!r.ok) throw new Error(f); return r.arrayBuffer(); }).then(b => [f, b64(b)]))
-    .concat([fetch('/assets/mast-ink.png').then(r => r.arrayBuffer()).then(b => ['__logo', 'data:image/png;base64,' + b64(b)])])))
+    .concat([fetch('/assets/email-logo.png').then(r => r.arrayBuffer()).then(b => ['__logo', 'data:image/png;base64,' + b64(b)])])))
   .then(files => {
     pdfMake.vfs = pdfMake.vfs || {};
     files.forEach(f => { if (f[0] === '__logo') logo = f[1]; else pdfMake.vfs[f[0]] = f[1]; });
@@ -65,7 +65,7 @@ function top(form, title, sub) {
 const frame = (form, ver, draft) => ({
   pageSize: 'A4', pageMargins: [40, 84, 40, 46], defaultStyle: { font: 'Inter', fontSize: 9.5, color: C.ink },
   // The logo, small and centred at the top of every page (Kate, 7 Oct 2026).
-  header: { margin: [0, 26, 0, 0], stack: [logo ? { image: logo, width: 74, alignment: 'center' } : { text: 'TARA ROSE SALONS', alignment: 'center', fontSize: 9, characterSpacing: 2 }] },
+  header: { margin: [0, 20, 0, 0], stack: [logo ? { image: logo, width: 84, alignment: 'center' } : { text: 'TARA ROSE SALONS', alignment: 'center', fontSize: 9, characterSpacing: 2 }] },
   footer: (cur, total) => ({ columns: [{ text: 'Tara Rose Salons · Mamsha al Saadiyat · Khalifa City A · Motor City · Al Quoz', fontSize: 7, color: C.soft }, { text: `${form} · ${ver} · page ${cur} of ${total}`, alignment: 'right', fontSize: 7, color: C.soft }], margin: [40, 14, 40, 0] }),
   watermark: draft ? { text: 'DRAFT', color: '#999999', opacity: 0.12, bold: true, italics: false } : undefined
 });
