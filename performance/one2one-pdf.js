@@ -1,0 +1,133 @@
+/* PDFs for My 1-to-1 and Goals (Kate, 7 Oct 2026): the HR-10 and HR-09 layouts, made in the
+   browser with pdfmake from the saved record (and its frozen numbers), so a signed copy is
+   always the same document. Same lazy loader and static Inter / Playfair cuts as Team Home's
+   PDFs (hub/kb-doc.js). Drafts carry a DRAFT watermark. */
+(function () {
+'use strict';
+const C = { ink: '#2D2E37', soft: '#74747B', hair: '#E2DDD3', cream: '#F1ECE3', good: '#0F6E56', warn: '#BA7517', bad: '#A32D2D' };
+const FONTS = ['Inter-Regular.ttf', 'Inter-SemiBold.ttf', 'Inter-Italic.ttf', 'Inter-SemiBoldItalic.ttf', 'PlayfairDisplay-Medium.ttf', 'PlayfairDisplay-MediumItalic.ttf'];
+let ready = null, logo = null;
+
+function b64(buf) {
+  let s = '', a = new Uint8Array(buf);
+  for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function load() {
+  if (ready) return ready;
+  ready = new Promise((res, rej) => {
+    if (window.pdfMake) return res();
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.12/pdfmake.min.js';
+    s.onload = res; s.onerror = () => { ready = null; rej(new Error('The PDF maker did not load. Check the connection and try again.')); };
+    document.head.appendChild(s);
+  }).then(() => Promise.all(FONTS.map(f => fetch('/assets/fonts/pdf/' + f).then(r => { if (!r.ok) throw new Error(f); return r.arrayBuffer(); }).then(b => [f, b64(b)]))
+    .concat([fetch('/assets/mast-ink.png').then(r => r.arrayBuffer()).then(b => ['__logo', 'data:image/png;base64,' + b64(b)])])))
+  .then(files => {
+    pdfMake.vfs = pdfMake.vfs || {};
+    files.forEach(f => { if (f[0] === '__logo') logo = f[1]; else pdfMake.vfs[f[0]] = f[1]; });
+    pdfMake.fonts = {
+      Inter: { normal: 'Inter-Regular.ttf', bold: 'Inter-SemiBold.ttf', italics: 'Inter-Italic.ttf', bolditalics: 'Inter-SemiBoldItalic.ttf' },
+      Playfair: { normal: 'PlayfairDisplay-Medium.ttf', bold: 'PlayfairDisplay-Medium.ttf', italics: 'PlayfairDisplay-MediumItalic.ttf', bolditalics: 'PlayfairDisplay-MediumItalic.ttf' }
+    };
+  }, e => { ready = null; throw e; });
+  return ready;
+}
+
+const has = v => v != null && String(v).trim() !== '';
+const t = v => has(v) ? String(v) : '·';
+const stampY = ts => ts ? new Date(ts).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+const lab = s => ({ text: s.toUpperCase(), fontSize: 7, color: C.soft, characterSpacing: 0.7, margin: [0, 8, 0, 2] });
+const val = s => has(s) ? { text: String(s), fontSize: 9.5, color: C.ink, lineHeight: 1.3 } : { text: 'Not filled in', fontSize: 8.5, italics: true, color: C.soft };
+const field = (l, v) => ({ stack: [lab(l), val(v)] });
+const sec = s => ({ text: s, font: 'Playfair', fontSize: 13, color: C.ink, margin: [0, 18, 0, 4] });
+const small = s => ({ text: s, fontSize: 8.5, color: C.soft, margin: [0, 0, 0, 4] });
+function table(head, rows, widths) {
+  return { table: { headerRows: 1, widths, body: [head.map(h => ({ text: h.toUpperCase(), fontSize: 7, color: C.soft, characterSpacing: 0.6 })),
+      ...(rows.length ? rows : [head.map(() => ({ text: ' ' }))]).map(r => r.map(c => (typeof c === 'object' && c !== null && !Array.isArray(c) ? c : { text: t(c), fontSize: 9, color: C.ink })))] },
+    layout: { hLineColor: () => C.hair, vLineWidth: () => 0, hLineWidth: (i, n) => (i === 0 || i === 1 || i === n.table.body.length) ? 0.7 : 0.3, paddingTop: () => 5, paddingBottom: () => 5, paddingLeft: () => 4, paddingRight: () => 4 } };
+}
+function sigs(rec, staff, form) {
+  const mgr = rec.signed_by || rec.manager || '';
+  return { columns: [
+    { width: '*', stack: [lab('Team member signature'), { text: staff.name, font: 'Playfair', fontSize: 12, color: C.ink }, { text: rec.confirmed_at ? 'Confirmed on screen, ' + stampY(rec.confirmed_at) : 'Awaiting confirmation', fontSize: 8, color: C.soft, margin: [0, 2, 0, 0] }] },
+    { width: '*', stack: [lab('Manager signature'), { text: mgr || '·', font: 'Playfair', fontSize: 12, color: C.ink }, { text: rec.signed_at ? 'Signed on screen, ' + stampY(rec.signed_at) : 'Not signed yet', fontSize: 8, color: C.soft, margin: [0, 2, 0, 0] }] }],
+    columnGap: 24, margin: [0, 16, 0, 0], unbreakable: true };
+}
+function top(form, title, sub) {
+  return [{ columns: [logo ? { image: logo, width: 112 } : { text: 'TARA ROSE SALONS', fontSize: 10 }, { text: form, alignment: 'right', fontSize: 8, color: C.soft, characterSpacing: 1.4, margin: [0, 6, 0, 0] }] },
+    { text: title, font: 'Playfair', fontSize: 25, color: C.ink, margin: [0, 20, 0, 2] }, sub ? { text: sub, fontSize: 10, color: C.soft, margin: [0, 0, 0, 6] } : {}];
+}
+const frame = (form, ver, draft) => ({
+  pageSize: 'A4', pageMargins: [40, 40, 40, 46], defaultStyle: { font: 'Inter', fontSize: 9.5, color: C.ink },
+  footer: (cur, total) => ({ columns: [{ text: 'Tara Rose Salons · Mamsha al Saadiyat · Khalifa City A · Motor City · Al Quoz', fontSize: 7, color: C.soft }, { text: `${form} · ${ver} · page ${cur} of ${total}`, alignment: 'right', fontSize: 7, color: C.soft }], margin: [40, 14, 40, 0] }),
+  watermark: draft ? { text: 'DRAFT', color: '#999999', opacity: 0.12, bold: true, italics: false } : undefined
+});
+const grid3 = items => ({ columns: items.map(i => i[0] ? ({ width: '*', ...field(i[0], i[1]) }) : ({ width: '*', text: '' })), columnGap: 14, margin: [0, 0, 0, 2] });
+
+function monthly(rec, staff, P) {
+  const c = rec.content || {}, snap = rec.snapshot || {}, mgr = rec.signed_by || rec.manager || '';
+  const win = snap.from ? `${P.dShort(snap.from)} to ${P.dShort(snap.to)} ${new Date(snap.to + 'T00:00:00').getFullYear()}` : '';
+  const prev = (c.prev_actions || []).filter(a => has(a.action)).map(a => [a.action, a.progress, a.status]);
+  const numRows = P.NUM_ROWS.map(([k, l]) => { const r = P.numRow(snap, k); return [l, r.a, r.t || '·', (c.notes13 || {})[k]]; });
+  const acts = (c.actions || []).filter(a => has(a.action)).map(a => [a.action, a.owner, P.dShort(a.due) || a.due, a.measure]);
+  const cc = P.ckCounts(c);
+  const body = [].concat(
+    top('HR FORM · HR-10', 'One-to-One Meeting Form', 'With stylist priorities checklist'),
+    sec('Details'),
+    grid3([['Team member', staff.name], ['Role', staff.role], ['Branch', staff.branch]]),
+    grid3([['Manager', mgr], ['Meeting date', P.dMid(c.meeting_date)], ['Review period (13 weeks)', win]]),
+    sec('01  Wins and highlights'), field('What has gone well since we last met: achievements, progress and kind words from clients or colleagues', c.wins),
+    sec('02  Actions from our last meeting'), table(['Previous action', 'Progress and outcome', 'Status'], prev, ['*', '*', 70]),
+    sec('03  Business revenue, 13-week review'), small('Worked out from the stylist\'s own numbers' + (snap.off_days > 0 ? `, with aims cut for ${snap.off_days} days away.` : '.')),
+    table(['Metric', '13-week actual', 'Target', 'Notes and trends'], numRows, [105, 115, 85, '*']),
+    field('Key opportunities and the support you would value', c.opportunities),
+    sec('04  Social media and networking'), field('How would you like to grow your visibility, build relationships and welcome new clients?', c.social_grow), field('What help, resources, training or support would be useful to you?', c.social_help),
+    sec('05  Agreed actions'), table(['Action or next step', 'Owner', 'Due date', 'Success measure'], acts, ['*', 70, 70, '*']),
+    field('Next meeting date', P.dMid(c.next_meeting)), sigs(rec, staff),
+    { text: 'ONE-TO-ONE ATTACHMENT · HR-10', pageBreak: 'before', fontSize: 8, color: C.soft, characterSpacing: 1.4 },
+    { text: 'Stylist Priorities Checklist', font: 'Playfair', fontSize: 22, color: C.ink, margin: [0, 6, 0, 6] },
+    grid3([['Stylist', staff.name], ['Level', staff.role], ['Branch', staff.branch]]), grid3([['Date', P.dMid(c.meeting_date)], ['Consistently shown', `${cc.y} of ${cc.t}`], ['', '']]),
+    small('Reviewed together. Ticked when consistently shown; the rest are the next focus.'),
+    ...P.CHECK.map((g, i) => [sec(`0${i + 1}  ${g[0]}`), table(['Item', 'Shown'], g[1].map((x, j) => [x, (c.check && c.check[i] && c.check[i][j])
+        ? { text: 'Consistently', fontSize: 8.5, color: C.good, bold: true } : { text: 'Next focus', fontSize: 8.5, color: C.soft }]), ['*', 70])]),
+    sec('Our priorities for the next 13 weeks'), val(c.priorities), field('Training or management support that would help', c.support), sigs(rec, staff));
+  return Object.assign(frame('HR-10', 'v1 · Oct 2026', rec.status === 'draft'), { content: body });
+}
+
+function goals(rec, staff, P) {
+  const c = rec.content || {}, snap = rec.snapshot || {}, mgr = rec.signed_by || rec.manager || '';
+  const pri = (c.priorities || []).filter(a => has(a.action)).map(a => [a.action, a.led, a.support, P.dShort(a.due) || a.due]);
+  const mile = P.MILE.map(([k, l, how, w]) => { const v = (c.mile || {})[k] || {}; return [l, { text: P.nowOf(snap, k, how, w), fontSize: 9, bold: true }, v.m6, v.y1, v.y3]; });
+  const fol = (c.follow || []).filter(f => has(f.progress) || has(f.change));
+  const body = [].concat(
+    top('HR FORM · HR-09', 'Personal, Professional & Financial Goals', '6 months, 1 year, 3 years'),
+    { text: 'A guided conversation about what matters to you and how Tara Rose Salons can support your growth. Set goals across three time horizons and review progress every 13 weeks. Share personal or financial details only as far as you feel comfortable.', fontSize: 9, color: C.soft, margin: [0, 4, 0, 4], lineHeight: 1.3 },
+    sec('Details'),
+    grid3([['Team member', staff.name], ['Role', staff.role], ['Branch', staff.branch]]),
+    grid3([['Manager', mgr], ['Meeting date', P.dMid(c.meeting_date)], ['Next 13-week review', P.dMid(c.next_review)]]),
+    ...P.HZ.map(([h, hl]) => [sec(`Goals · ${hl}`), small('For every goal, talk through the reason behind it and what achieving it, or not, would mean.'),
+      ...P.KINDS.map(([k, kl], n) => [{ text: `0${n + 1}  ${kl} goal`, bold: true, fontSize: 10.5, margin: [0, 8, 0, 0] }, ...P.QS.map(([qk, ql], qi) => field(`${qi + 1}. ${ql}`, ((c.goals || {})[h] || {})[k] && c.goals[h][k][qk]))])]),
+    sec('Business performance · 13-week review'), small('Current figures are worked out from the stylist\'s own numbers. The milestones are the ones agreed together.'),
+    table(['Measure', 'Current 13-week', '6 months', '1 year', '3 years'], mile, ['*', 80, 60, 60, 60]),
+    sec('Our agreed priorities · next 13 weeks'), table(['Action', 'Led by', 'Support needed', 'Due date'], pri, ['*', 70, '*', 70]),
+    sec('13-week follow-up'),
+    ...(fol.length ? fol.map(f => [field('What progress has been made, and what have we learned?' + (has(f.date) ? ` (${P.dMid(f.date)})` : ''), f.progress), field('What should change or be prioritised next?', f.change)])
+      : [field('What progress has been made, and what have we learned?', ''), field('What should change or be prioritised next?', '')]),
+    sigs(rec, staff));
+  return Object.assign(frame('HR-09', 'v1 · Oct 2026', rec.status === 'draft'), { content: body });
+}
+
+async function build(kind, rec, staff) {
+  await load();
+  const P = window.PerfO2O;
+  return kind === 'monthly' ? monthly(rec, staff, P) : goals(rec, staff, P);
+}
+async function make(kind, rec, staff) {
+  const doc = await build(kind, rec, staff);
+  const ym = String(rec.period || '').slice(0, kind === 'monthly' ? 7 : 4);
+  const name = `Tara Rose ${kind === 'monthly' ? 'HR-10 One-to-One' : 'HR-09 Goals'} ${staff.name} ${ym}${rec.status === 'draft' ? ' DRAFT' : ''}.pdf`;
+  return new Promise((res, rej) => { try { pdfMake.createPdf(doc).download(name, res); } catch (e) { rej(e); } });
+}
+window.PerfO2OPdf = { make, build };
+})();

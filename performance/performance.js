@@ -745,6 +745,8 @@ async function renderStylist() {
       ${canEdit() ? `<textarea id="noteText" placeholder="Write a note for ${esc(s.name)}…"></textarea><button class="btn" id="noteSave">Add note</button>` : ''}
     </section>
 
+    ${canEdit() ? '<div id="o2oSlot"></div>' : ''}
+
     <section class="card">
       <div class="eyebrow">New clients and returning clients</div>
       <p class="sub">The ${fmt(n.conversion_n, 'num')} new clients whose first visit was with you 3 to 6 months ago, and when they came back.</p>
@@ -855,6 +857,10 @@ async function renderStylist() {
   // perf_staff_link answers only for a signed-in dashboard user at Level 3+ (UAE
   // scope), with her /me/ link; Level 2 and below get null and no button.
   if (!canEdit() && d.staff_id && document.getElementById('linkSlot')) staffLinkButton(s, d.staff_id);
+
+  // 1-to-1 and Goals (Kate, 7 Oct 2026): two cards for a leader key, only for a stylist the
+  // trial is on for (perf_one2one_get answers null otherwise and the slot stays empty).
+  if (canEdit() && window.PerfO2O && document.getElementById('o2oSlot')) PerfO2O.leader(document.getElementById('o2oSlot'), { admin: ADMIN, token: TOKEN, month: MONTH });
 
   if (canEdit()) {
     // Their own link: no admin key, no month, so it always opens on the current month.
