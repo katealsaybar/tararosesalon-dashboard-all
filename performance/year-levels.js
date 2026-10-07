@@ -62,7 +62,7 @@ function paint() {
   more.hidden = onMonth;
   // Kate, 7 Oct 2026: gone, not just invisible: it left a blank gap between the home and Light buttons.
   const mp = document.querySelector('.month-pick'); if (mp) mp.style.display = onMonth ? '' : 'none';
-  if (onMonth) { more.innerHTML = ''; return; }
+  if (onMonth) { more.innerHTML = ''; placeNudge(); return; }
   if (S.tab === 'one') {
     more.innerHTML = '';
     window.PerfO2O.me(more, { token: S.token, data: S.o2o, reload: async () => { S.o2o = await call('perf_one2one_me', { p_token: S.token }); paint(); } });
@@ -70,6 +70,18 @@ function paint() {
   }
   more.innerHTML = S.tab === 'year' ? yearTab() : levelsTab();
   if (S.tab === 'year') wireChart();
+}
+// The 1-to-1 line under the win and tip on This month. performance.js redraws #app now and then
+// (the Ledger | Phorest switch), so it is put back whenever the page changes under it.
+function placeNudge() {
+  const app = document.getElementById('app');
+  if (!app || S.tab !== 'month') return;
+  const n = S.o2o && window.PerfO2O ? PerfO2O.nudge(S.o2o) : null, old = app.querySelector('.o2o-nudge');
+  if (!n) { if (old) old.remove(); return; }
+  if (old && old.dataset.h === n.key) return;
+  if (old) old.remove();
+  const anchor = app.querySelector('.wintip') || app.querySelector('.hero');
+  if (anchor) anchor.insertAdjacentHTML('afterend', n.html);
 }
 function go(t) {
   if (t === 'levels' && !levelOf(S.me && S.me.level)) return;
@@ -95,6 +107,7 @@ async function mount(token) {
     const want = new URLSearchParams(location.search).get('tab');
     S.tab = want === 'year' || (want === 'levels' && levelOf(S.me.level)) || (want === 'one' && S.o2o) ? want : 'month';
     paint();
+    if (S.o2o) new MutationObserver(placeNudge).observe(document.getElementById('app'), { childList: true });
   } catch (e) { console.warn('My year / levels unavailable', e); }
 }
 

@@ -148,6 +148,7 @@ function sigPanel(slot, o) {
     <div data-pane="draw"><canvas class="o2o-pad" aria-label="Signature pad"></canvas><div class="o2o-sig-row"><span class="legend" style="margin:0">Sign with your finger or mouse.</span><button type="button" class="btn small o2o-ghost" data-clear>Clear</button></div></div>
     <div data-pane="upload" hidden><input type="file" accept="image/*" data-file><p class="legend">A photo or scan of your signature on white paper.</p><img class="o2o-sigprev" data-prev alt="" hidden></div>
     <div data-pane="saved" hidden>${saved ? `<img class="o2o-sigprev" src="${saved}" alt="Your saved signature">` : ''}</div>
+    ${o.withComment ? '<label class="o2o-fl" style="margin-top:12px">Add a comment (optional)<textarea data-comment rows="3" maxlength="2000" placeholder="Anything you want to add or talk about"></textarea></label>' : ''}
     <label class="o2o-ck"><input type="checkbox" data-remember><span>Remember my signature on this device</span></label>
     <p class="legend">No signature? The PDF then shows your name and the time instead.</p>
     <div class="o2o-btns"><button type="button" class="btn o2o-new" data-go>${esc(o.cta)}</button><button type="button" class="btn o2o-ghost" data-cancel>Cancel</button></div></div>`;
@@ -197,7 +198,8 @@ function sigPanel(slot, o) {
     const sig = mode === 'draw' ? (drawn ? drawnPng() : null) : mode === 'upload' ? uploaded : saved;
     if (sig && root.querySelector('[data-remember]').checked) { try { localStorage.setItem(key, sig); } catch (err) {} }
     btn.disabled = true;
-    try { await o.onSign(sig); } catch (err) { btn.disabled = false; }
+    const comment = o.withComment ? root.querySelector('[data-comment]').value.trim() : null;
+    try { await o.onSign(sig, comment); } catch (err) { btn.disabled = false; }
   };
   slot.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
@@ -217,13 +219,13 @@ const recs = kind => (ME.ctx.data.records || []).filter(r => r.kind === kind);
 function meHead(r, kind) {
   const who = first(r.signed_by) || 'your leader';
   if (r.updating) return `<p style="margin-top:10px"><span class="o2o-chip">${esc(who)} is updating this one</span></p><p class="o2o-done">You are seeing the version you last agreed. The new one appears once it is signed.</p>`;
-  if (r.status === 'filed') return `<p style="margin-top:10px"><span class="o2o-chip good">Agreed by you both</span> <span class="o2o-done">You confirmed it on ${esc(stamp(r.confirmed_at))}</span></p>
+  if (r.status === 'filed') return `<p style="margin-top:10px"><span class="o2o-chip good">Signed by you both</span> <span class="o2o-done">You signed it on ${esc(stamp(r.confirmed_at))}</span></p>${has(r.staff_comment) ? `<div class="o2o-qa"><b>Your comment</b>${br(r.staff_comment)}</div>` : ''}
     <button class="btn" type="button" data-act="pdf" data-kind="${kind}" data-i="${r._i}">Download my signed copy (PDF)</button>
     <p class="legend">Saved as it was signed. Later changes never alter it.</p>`;
   return `<p style="margin-top:10px"><span class="o2o-chip warn">Waiting for you</span> <span class="o2o-done">${esc(who)} signed it on ${esc(stamp(r.signed_at))}.</span></p>
-    <button class="btn" type="button" data-act="confirm" data-kind="${kind}" data-period="${esc(String(r.period).slice(0, 10))}">I have read it, confirm</button>
+    <button class="btn" type="button" data-act="confirm" data-kind="${kind}" data-period="${esc(String(r.period).slice(0, 10))}">I have read this, sign to acknowledge</button>
     <button class="btn o2o-ghost" type="button" data-act="pdf" data-kind="${kind}" data-i="${r._i}" style="margin-left:6px">Download a copy (PDF)</button>
-    <p class="legend">Confirming is your signature on the paper form. You can add your handwritten signature, and your PDF is saved at that moment.</p><div data-sigslot></div>`;
+    <p class="legend">Signing shows you have read it, like your signature on the paper form. You can add your handwritten signature and a comment, and your PDF is saved at that moment.</p><div data-sigslot></div>`;
 }
 
 function meMonth() {
@@ -302,13 +304,41 @@ async function onMeClick(e) {
   else if (a === 'hz') { ME.hz = b.dataset.v; drawMe(); }
   else if (a === 'confirm') {
     const slot = b.closest('.card').querySelector('[data-sigslot]'), kind = b.dataset.kind, per = b.dataset.period;
-    sigPanel(slot, { title: 'Add your signature', cta: 'Confirm', saveKey: 's-' + ME.ctx.token.slice(0, 8), onSign: async sig => {
-      try { const ok = await call('perf_one2one_confirm', { p_token: ME.ctx.token, p_kind: kind, p_period: per, p_sig: sig }); if (!ok) throw new Error('not confirmed'); await ME.ctx.reload(); }
+    sigPanel(slot, { title: 'Acknowledge and sign', cta: 'Acknowledge', withComment: true, saveKey: 's-' + ME.ctx.token.slice(0, 8), onSign: async (sig, comment) => {
+      try { const ok = await call('perf_one2one_confirm', { p_token: ME.ctx.token, p_kind: kind, p_period: per, p_sig: sig, p_comment: comment }); if (!ok) throw new Error('not confirmed'); await ME.ctx.reload(); }
       catch (err) { alert('Could not save. Check the connection and try again.'); throw err; } } });
   } else if (a === 'pdf') {
     const r = recs(b.dataset.kind)[Number(b.dataset.i)]; if (!r) return;
-    pdf(b.dataset.kind, { content: r.content, snapshot: r.snapshot, status: r.status, signed_by: r.signed_by, signed_at: r.signed_at, confirmed_at: r.confirmed_at, manager_sig: r.manager_sig, staff_sig: r.staff_sig, period: r.period }, ME.ctx.data.staff, b);
+    pdf(b.dataset.kind, { content: r.content, snapshot: r.snapshot, status: r.status, signed_by: r.signed_by, signed_at: r.signed_at, confirmed_at: r.confirmed_at, manager_sig: r.manager_sig, staff_sig: r.staff_sig, staff_comment: r.staff_comment, period: r.period }, ME.ctx.data.staff, b);
   }
+}
+
+// ════════════════════════════════════════════════════════════
+//  The line on This month: what is waiting for her, and the next 1-to-1 with an Add to calendar file.
+// ════════════════════════════════════════════════════════════
+function nudge(data) {
+  const recs = (data && data.records) || [], monthly = recs.filter(r => r.kind === 'monthly');
+  const waiting = recs.filter(r => r.status === 'signed' && !r.updating);
+  const latest = monthly[0], nm = latest && latest.content && latest.content.next_meeting;
+  const upcoming = nm && String(nm).slice(0, 10) >= todayISO() ? String(nm).slice(0, 10) : null;
+  if (!waiting.length && !upcoming) return null;
+  const who = first((waiting[0] || latest || {}).signed_by) || 'your leader';
+  const lines = [];
+  waiting.forEach(r => lines.push(`<p class="o2o-text">Your ${r.kind === 'monthly' ? mName(r.period) + ' 1-to-1' : 'goals'} with ${esc(first(r.signed_by) || 'your leader')} is ready. Read it and sign to acknowledge.</p>`));
+  let cal = '';
+  if (upcoming) {
+    const d = day(upcoming), nx = new Date(d); nx.setDate(nx.getDate() + 1);
+    const ymd = x => x.toLocaleDateString('en-CA').replace(/-/g, '');
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tara Rose Salons//1-to-1//EN', 'BEGIN:VEVENT', `UID:o2o-${upcoming}@trk-salon-os.com`,
+      `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '')}`, `DTSTART;VALUE=DATE:${ymd(d)}`, `DTEND;VALUE=DATE:${ymd(nx)}`,
+      `SUMMARY:1-to-1 with ${who}`, 'DESCRIPTION:Your monthly 1-to-1 at Tara Rose Salons. The time is agreed with your leader.',
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:1-to-1 tomorrow', 'TRIGGER:-PT15H', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    lines.push(`<p class="o2o-text">Your next 1-to-1: <b>${esc(dFull(upcoming))}</b></p>`);
+    cal = `<a class="btn small o2o-ghost" download="1-to-1 ${esc(upcoming)}.ics" href="data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}">Add to calendar</a>`;
+  }
+  const key = waiting.map(r => r.kind + r.period + r.status).join(',') + '|' + (upcoming || '');
+  const open = waiting.length ? `<button class="btn small" type="button" onclick="PerfTabs.go('one')">Open My 1-to-1</button>` : '';
+  return { key, html: `<section class="card o2o-nudge" data-h="${esc(key)}"><div class="eyebrow">1-to-1</div>${lines.join('')}<div class="o2o-btns" style="margin-top:10px">${open}${cal}</div></section>` };
 }
 
 // ════════════════════════════════════════════════════════════
@@ -363,7 +393,7 @@ const rowsOf = (k, arr, min) => Math.max(min, (getP(k.c, arr) || []).length);
 
 function steps(kind) {
   const r = rec(kind), st = !r ? 0 : r.status === 'draft' ? 1 : r.status === 'signed' ? 2 : 3;
-  const lb = ['Draft', `${L.d.who} signs`, `${first(L.d.staff.name)} confirms`, 'Filed'];
+  const lb = ['Draft', `${L.d.who} signs`, `${first(L.d.staff.name)} signs`, 'Filed'];
   const cls = i => i < st ? 'done' : i === st ? 'cur' : '';
   return `<div class="o2o-steps">${lb.map((l, i) => `<span class="${cls(i)}"><b>${i < st ? '&#10003;' : i + 1}</b>${esc(l)}</span>`).join('')}</div>`;
 }
@@ -380,7 +410,7 @@ function btns(kind) {
   const r = rec(kind), name = first(L.d.staff.name), pdfTxt = kind === 'monthly' ? 'HR-10' : 'HR-09';
   if (locked(kind)) return `<div class="o2o-btns"><button class="btn" type="button" data-act="pdf" data-kind="${kind}">Download ${r.status === 'filed' ? 'signed copy' : 'copy'} (PDF, ${pdfTxt})</button>
     <button class="btn o2o-ghost" type="button" data-act="reopen" data-kind="${kind}">Reopen to edit</button>
-    <span class="o2o-save">${r.status === 'filed' ? `Filed. ${esc(name)} confirmed on ${esc(stamp(r.confirmed_at))}. Reopening starts a new version and keeps this one.` : `Signed by ${esc(r.signed_by)} on ${esc(stamp(r.signed_at))}. ${esc(name)} confirms on their own link.`}</span></div>`;
+    <span class="o2o-save">${r.status === 'filed' ? `Filed. ${esc(name)} acknowledged and signed on ${esc(stamp(r.confirmed_at))}. Reopening starts a new version and keeps this one.` : `Signed by ${esc(r.signed_by)} on ${esc(stamp(r.signed_at))}. ${esc(name)} signs on their own link.`}</span></div>`;
   return `<div class="o2o-btns"><button class="btn" type="button" data-act="savenow" data-kind="${kind}">Save draft</button>
     <button class="btn o2o-new" type="button" data-act="sign" data-kind="${kind}">Sign off as ${esc(L.d.who)}</button>
     <button class="btn o2o-ghost" type="button" data-act="pdf" data-kind="${kind}">Preview PDF (${pdfTxt})</button>
@@ -457,7 +487,7 @@ function cardHTML(kind) {
   const eyebrow = isM ? `Monthly 1-to-1 · ${mLong(L.d.month)}` : `Yearly goals · ${day(L.d.year).getFullYear()}`;
   return `<section class="card o2o-card" data-kind="${kind}" data-locked="${k.lock ? 1 : 0}"${L.view === kind ? '' : ' hidden'}>
     <div class="o2o-fold"><span class="o2o-ft"><div class="eyebrow">${eyebrow}</div><h2>${title}</h2></span>${chip(kind)}</div>
-    <div class="o2o-body">${steps(kind)}${k.lock ? `<div class="o2o-banner">${rec(kind).status === 'filed' ? 'Filed and locked.' : 'Signed and locked.'} Reopen it to change anything.</div>` : ''}
+    <div class="o2o-body">${steps(kind)}${k.lock ? `<div class="o2o-banner">${rec(kind).status === 'filed' ? 'Filed and locked.' : 'Signed and locked.'} Reopen it to change anything.</div>${has(rec(kind).staff_comment) ? `<div class="o2o-banner"><b>${esc(first(L.d.staff.name))}'s comment:</b> ${br(rec(kind).staff_comment)}</div>` : ''}` : ''}
     ${isM ? monthlyBody(k) : goalsBody(k)}${btns(kind)}</div></section>`;
 }
 function barHTML() {
@@ -543,7 +573,7 @@ async function onLeaderClick(e) {
   } else if (a === 'pdf') {
     if (!locked(kind)) await save(kind);
     const r = rec(kind) || {};
-    pdf(kind, { content: locked(kind) ? r.content : gather(kind), snapshot: snapOf(kind), status: r.status || 'draft', signed_by: r.signed_by, signed_at: r.signed_at, confirmed_at: r.confirmed_at, manager_sig: r.manager_sig, staff_sig: r.staff_sig, period: period(kind), manager: L.d.who }, L.d.staff, b);
+    pdf(kind, { content: locked(kind) ? r.content : gather(kind), snapshot: snapOf(kind), status: r.status || 'draft', signed_by: r.signed_by, signed_at: r.signed_at, confirmed_at: r.confirmed_at, manager_sig: r.manager_sig, staff_sig: r.staff_sig, staff_comment: r.staff_comment, period: period(kind), manager: L.d.who }, L.d.staff, b);
   }
 }
 
@@ -559,5 +589,5 @@ async function pdf(kind, record, staff, btn) {
   if (btn) { btn.disabled = false; btn.textContent = txt; }
 }
 
-window.PerfO2O = { me, leader, CHECK, QS, KINDS, HZ, NUM_ROWS, MILE, numRow, nowOf, ckCounts, dFull, dMid, dShort, mLong, stamp, first, has };
+window.PerfO2O = { me, leader, nudge, CHECK, QS, KINDS, HZ, NUM_ROWS, MILE, numRow, nowOf, ckCounts, dFull, dMid, dShort, mLong, stamp, first, has };
 })();

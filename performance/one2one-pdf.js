@@ -50,9 +50,13 @@ function table(head, rows, widths) {
 function sigs(rec, staff, form) {
   const mgr = rec.signed_by || rec.manager || '';
   return { columns: [
-    { width: '*', stack: [lab('Team member signature'), rec.staff_sig ? { image: rec.staff_sig, fit: [150, 56], margin: [0, 2, 0, 2] } : { text: ' ' }, { text: staff.name, font: 'Playfair', fontSize: 12, color: C.ink }, { text: rec.confirmed_at ? 'Confirmed on screen, ' + stampY(rec.confirmed_at) : 'Awaiting confirmation', fontSize: 8, color: C.soft, margin: [0, 2, 0, 0] }] },
+    { width: '*', stack: [lab('Team member signature'), rec.staff_sig ? { image: rec.staff_sig, fit: [150, 56], margin: [0, 2, 0, 2] } : { text: ' ' }, { text: staff.name, font: 'Playfair', fontSize: 12, color: C.ink }, { text: rec.confirmed_at ? 'Acknowledged on screen, ' + stampY(rec.confirmed_at) : 'Awaiting acknowledgement', fontSize: 8, color: C.soft, margin: [0, 2, 0, 0] }] },
     { width: '*', stack: [lab('Manager signature'), rec.manager_sig ? { image: rec.manager_sig, fit: [150, 56], margin: [0, 2, 0, 2] } : { text: ' ' }, { text: mgr || '·', font: 'Playfair', fontSize: 12, color: C.ink }, { text: rec.signed_at ? 'Signed on screen, ' + stampY(rec.signed_at) : 'Not signed yet', fontSize: 8, color: C.soft, margin: [0, 2, 0, 0] }] }],
-    columnGap: 24, margin: [0, 16, 0, 0], unbreakable: true };
+    columnGap: 24 };
+}
+function sigBlock(rec, staff, form) {
+  const cols = sigs(rec, staff, form);
+  return { stack: [cols, rec.staff_comment ? field('Team member comment', rec.staff_comment) : { text: '' }], margin: [0, 16, 0, 0], unbreakable: true };
 }
 function top(form, title, sub) {
   return [{ text: form, fontSize: 8, color: C.soft, characterSpacing: 1.4 },
@@ -86,14 +90,14 @@ function monthly(rec, staff, P) {
     field('Key opportunities and the support you would value', c.opportunities),
     sec('04  Social media and networking'), field('How would you like to grow your visibility, build relationships and welcome new clients?', c.social_grow), field('What help, resources, training or support would be useful to you?', c.social_help),
     sec('05  Agreed actions'), table(['Action or next step', 'Owner', 'Due date', 'Success measure'], acts, ['*', 70, 70, '*']),
-    field('Next meeting date', P.dMid(c.next_meeting)), sigs(rec, staff),
+    field('Next meeting date', P.dMid(c.next_meeting)), sigBlock(rec, staff),
     { text: 'ONE-TO-ONE ATTACHMENT · HR-10', pageBreak: 'before', fontSize: 8, color: C.soft, characterSpacing: 1.4 },
     { text: 'Stylist Priorities Checklist', font: 'Playfair', fontSize: 22, color: C.ink, margin: [0, 6, 0, 6] },
     grid3([['Stylist', staff.name], ['Level', staff.role], ['Branch', staff.branch]]), grid3([['Date', P.dMid(c.meeting_date)], ['Consistently shown', `${cc.y} of ${cc.t}`], ['', '']]),
     small('Reviewed together. Ticked when consistently shown; the rest are the next focus.'),
     ...P.CHECK.map((g, i) => [sec(`0${i + 1}  ${g[0]}`), table(['Item', 'Shown'], g[1].map((x, j) => [x, (c.check && c.check[i] && c.check[i][j])
         ? { text: 'Consistently', fontSize: 8.5, color: C.good, bold: true } : { text: 'Next focus', fontSize: 8.5, color: C.soft }]), ['*', 70])]),
-    sec('Our priorities for the next 13 weeks'), val(c.priorities), field('Training or management support that would help', c.support), sigs(rec, staff));
+    sec('Our priorities for the next 13 weeks'), val(c.priorities), field('Training or management support that would help', c.support), sigBlock(rec, staff));
   return Object.assign(frame('HR-10', 'v1 · Oct 2026', rec.status === 'draft'), { content: body });
 }
 
@@ -116,7 +120,7 @@ function goals(rec, staff, P) {
     sec('13-week follow-up'),
     ...(fol.length ? fol.map(f => [field('What progress has been made, and what have we learned?' + (has(f.date) ? ` (${P.dMid(f.date)})` : ''), f.progress), field('What should change or be prioritised next?', f.change)])
       : [field('What progress has been made, and what have we learned?', ''), field('What should change or be prioritised next?', '')]),
-    sigs(rec, staff));
+    sigBlock(rec, staff));
   return Object.assign(frame('HR-09', 'v1 · Oct 2026', rec.status === 'draft'), { content: body });
 }
 
