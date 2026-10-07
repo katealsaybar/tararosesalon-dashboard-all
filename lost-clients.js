@@ -124,8 +124,8 @@ function lcShell(body) {
       <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', Object.entries(LC_BRANCH).map(([k]) => [k, k]))}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Visits</div>${seg('seg', Object.entries(LC_SEG).map(([k, s]) => [k, s.short]))}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Days away</div>${seg('days', LC_DAYS.map(d => [d, `${d}+`]).concat([['custom', 'Custom']]))}</div>
+      ${lcCustom() ? `<div class="lc-cust"><span>Last seen between</span><input type="number" min="0" inputmode="numeric" value="${lcFrom()}" aria-label="From days" onchange="lcSetCustom('cfrom', this.value)"><span>and</span><input type="number" min="0" inputmode="numeric" value="${lcTo()}" aria-label="To days" onchange="lcSetCustom('cto', this.value)"><span>days ago</span></div>` : ''}
     </div>
-    ${lcCustom() ? `<div class="lc-cust"><span>Last seen between</span><input type="number" min="0" inputmode="numeric" value="${lcFrom()}" aria-label="From days" onchange="lcSetCustom('cfrom', this.value)"><span>and</span><input type="number" min="0" inputmode="numeric" value="${lcTo()}" aria-label="To days" onchange="lcSetCustom('cto', this.value)"><span>days ago</span></div>` : ''}
     <div id="lcBody">${body}</div>`;
 }
 
