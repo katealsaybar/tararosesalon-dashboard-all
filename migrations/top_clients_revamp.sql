@@ -1,3 +1,4 @@
+-- SUPERSEDED (7 Oct 2026): first version, slow. Run final_7oct_top_clients_last_visit.sql instead.
 -- Kate, 7 Oct 2026: Top Clients rebuilt from Downloads/top-clients-mockup.html, on the
 -- same footing as Client's Last Visit. Three calls, all over sales_transaction_lines
 -- (from 1 Jan 2025), all security invoker so the table's own policies decide which

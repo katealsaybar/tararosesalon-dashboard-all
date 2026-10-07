@@ -1,3 +1,4 @@
+-- SUPERSEDED (7 Oct 2026): first version, slow. Run final_7oct_top_clients_last_visit.sql instead.
 -- NOTE (7 Oct 2026): this file and top_clients_revamp.sql hold the FIRST versions. The live functions
 -- were then rewritten for speed and are recorded in Supabase's migration history as
 -- top_clients_speed, top_clients_speed2, top_clients_speed3b (top_clients, top_clients_board) and

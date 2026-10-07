@@ -1,3 +1,4 @@
+-- SUPERSEDED (7 Oct 2026): first version, slow. Run final_7oct_top_clients_last_visit.sql instead.
 -- Kate, 7 Oct 2026: the row panel (lost_client_detail) showed only the top 12 services by
 -- visit count, so a client with many services lost her latest visit (Julia Bergheim's
 -- 2 Oct cut, toner and treatment were pushed out by older repeats). Now it returns
