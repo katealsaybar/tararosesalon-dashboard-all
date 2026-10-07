@@ -136,6 +136,73 @@ function numbersRows(snap, notes) {
 }
 
 // ════════════════════════════════════════════════════════════
+//  Signature pad: draw with a finger or mouse, or upload a picture. Optional; the result is a small
+//  PNG/JPEG data URL. An inline panel, not a pop-up (in Staff Benchmarks the page is a tall frame).
+// ════════════════════════════════════════════════════════════
+function sigPanel(slot, o) {
+  const key = 'trs-o2o-sig:' + o.saveKey;
+  let saved = null; try { saved = localStorage.getItem(key); } catch (e) {}
+  let mode = 'draw', drawn = false, uploaded = null;
+  slot.innerHTML = `<div class="o2o-sig"><div class="o2o-sig-t">${esc(o.title)}</div>
+    <div class="o2o-pills"><button type="button" class="o2o-pill on" data-m="draw">Draw</button><button type="button" class="o2o-pill" data-m="upload">Upload a picture</button>${saved ? '<button type="button" class="o2o-pill" data-m="saved">My saved signature</button>' : ''}</div>
+    <div data-pane="draw"><canvas class="o2o-pad" aria-label="Signature pad"></canvas><div class="o2o-sig-row"><span class="legend" style="margin:0">Sign with your finger or mouse.</span><button type="button" class="btn small o2o-ghost" data-clear>Clear</button></div></div>
+    <div data-pane="upload" hidden><input type="file" accept="image/*" data-file><p class="legend">A photo or scan of your signature on white paper.</p><img class="o2o-sigprev" data-prev alt="" hidden></div>
+    <div data-pane="saved" hidden>${saved ? `<img class="o2o-sigprev" src="${saved}" alt="Your saved signature">` : ''}</div>
+    <label class="o2o-ck"><input type="checkbox" data-remember><span>Remember my signature on this device</span></label>
+    <p class="legend">No signature? The PDF then shows your name and the time instead.</p>
+    <div class="o2o-btns"><button type="button" class="btn o2o-new" data-go>${esc(o.cta)}</button><button type="button" class="btn o2o-ghost" data-cancel>Cancel</button></div></div>`;
+  const root = slot.firstElementChild, cv = root.querySelector('canvas'), g = cv.getContext('2d');
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const fit = () => { const w = cv.clientWidth || 300; cv.width = w * dpr; cv.height = 170 * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.lineWidth = 2.4; g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#1F2937'; };
+  fit();
+  let down = false;
+  const pt = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  cv.addEventListener('pointerdown', e => { down = true; drawn = true; try { cv.setPointerCapture(e.pointerId); } catch (err) {} const [x, y] = pt(e); g.beginPath(); g.moveTo(x, y); g.lineTo(x + 0.01, y + 0.01); g.stroke(); e.preventDefault(); });
+  cv.addEventListener('pointermove', e => { if (!down) return; const [x, y] = pt(e); g.lineTo(x, y); g.stroke(); g.beginPath(); g.moveTo(x, y); e.preventDefault(); });
+  const up = () => { down = false; };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  root.querySelector('[data-clear]').onclick = () => { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height); g.restore(); drawn = false; };
+  root.querySelectorAll('[data-m]').forEach(b => b.onclick = () => {
+    mode = b.dataset.m;
+    root.querySelectorAll('[data-m]').forEach(x => x.classList.toggle('on', x === b));
+    root.querySelectorAll('[data-pane]').forEach(p => { p.hidden = p.dataset.pane !== mode; });
+    if (mode === 'draw' && !drawn) fit();
+  });
+  root.querySelector('[data-file]').onchange = e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const im = new Image(), fr = new FileReader();
+    fr.onload = () => { im.onload = () => {
+      const sc = Math.min(1, 600 / im.width, 220 / im.height), c2 = document.createElement('canvas');
+      c2.width = Math.max(1, Math.round(im.width * sc)); c2.height = Math.max(1, Math.round(im.height * sc));
+      const x = c2.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c2.width, c2.height); x.drawImage(im, 0, 0, c2.width, c2.height);
+      uploaded = c2.toDataURL('image/jpeg', 0.85);
+      const pv = root.querySelector('[data-prev]'); pv.src = uploaded; pv.hidden = false;
+    }; im.src = fr.result; };
+    fr.readAsDataURL(f);
+  };
+  // The drawing, cropped to the ink with a little margin, as a transparent PNG.
+  const drawnPng = () => {
+    const w = cv.width, h = cv.height, d = g.getImageData(0, 0, w, h).data;
+    let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 0) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
+    const m = 6 * dpr; x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m); x1 = Math.min(w - 1, x1 + m); y1 = Math.min(h - 1, y1 + m);
+    const c2 = document.createElement('canvas'); c2.width = x1 - x0 + 1; c2.height = y1 - y0 + 1;
+    c2.getContext('2d').drawImage(cv, x0, y0, c2.width, c2.height, 0, 0, c2.width, c2.height);
+    return c2.toDataURL('image/png');
+  };
+  root.querySelector('[data-cancel]').onclick = () => { slot.innerHTML = ''; };
+  root.querySelector('[data-go]').onclick = async e => {
+    const btn = e.currentTarget;
+    const sig = mode === 'draw' ? (drawn ? drawnPng() : null) : mode === 'upload' ? uploaded : saved;
+    if (sig && root.querySelector('[data-remember]').checked) { try { localStorage.setItem(key, sig); } catch (err) {} }
+    btn.disabled = true;
+    try { await o.onSign(sig); } catch (err) { btn.disabled = false; }
+  };
+  slot.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// ════════════════════════════════════════════════════════════
 //  The stylist's own tab
 // ════════════════════════════════════════════════════════════
 const ME = { tab: 'month', sel: 0, hz: 'm6', el: null, ctx: null, wired: false };
@@ -156,7 +223,7 @@ function meHead(r, kind) {
   return `<p style="margin-top:10px"><span class="o2o-chip warn">Waiting for you</span> <span class="o2o-done">${esc(who)} signed it on ${esc(stamp(r.signed_at))}.</span></p>
     <button class="btn" type="button" data-act="confirm" data-kind="${kind}" data-period="${esc(String(r.period).slice(0, 10))}">I have read it, confirm</button>
     <button class="btn o2o-ghost" type="button" data-act="pdf" data-kind="${kind}" data-i="${r._i}" style="margin-left:6px">Download a copy (PDF)</button>
-    <p class="legend">Confirming is your signature on the paper form. Your PDF is saved at that moment.</p>`;
+    <p class="legend">Confirming is your signature on the paper form. You can add your handwritten signature, and your PDF is saved at that moment.</p><div data-sigslot></div>`;
 }
 
 function meMonth() {
@@ -234,12 +301,13 @@ async function onMeClick(e) {
   else if (a === 'sel') { ME.sel = Number(b.dataset.i); drawMe(); window.scrollTo(0, 0); }
   else if (a === 'hz') { ME.hz = b.dataset.v; drawMe(); }
   else if (a === 'confirm') {
-    b.disabled = true; b.textContent = 'Saving…';
-    try { const ok = await call('perf_one2one_confirm', { p_token: ME.ctx.token, p_kind: b.dataset.kind, p_period: b.dataset.period }); if (!ok) throw new Error('not confirmed'); await ME.ctx.reload(); }
-    catch (err) { b.disabled = false; b.textContent = 'Could not save, try again'; }
+    const slot = b.closest('.card').querySelector('[data-sigslot]'), kind = b.dataset.kind, per = b.dataset.period;
+    sigPanel(slot, { title: 'Add your signature', cta: 'Confirm', saveKey: 's-' + ME.ctx.token.slice(0, 8), onSign: async sig => {
+      try { const ok = await call('perf_one2one_confirm', { p_token: ME.ctx.token, p_kind: kind, p_period: per, p_sig: sig }); if (!ok) throw new Error('not confirmed'); await ME.ctx.reload(); }
+      catch (err) { alert('Could not save. Check the connection and try again.'); throw err; } } });
   } else if (a === 'pdf') {
     const r = recs(b.dataset.kind)[Number(b.dataset.i)]; if (!r) return;
-    pdf(b.dataset.kind, { content: r.content, snapshot: r.snapshot, status: r.status, signed_by: r.signed_by, signed_at: r.signed_at, confirmed_at: r.confirmed_at, period: r.period }, ME.ctx.data.staff, b);
+    pdf(b.dataset.kind, { content: r.content, snapshot: r.snapshot, status: r.status, signed_by: r.signed_by, signed_at: r.signed_at, confirmed_at: r.confirmed_at, manager_sig: r.manager_sig, staff_sig: r.staff_sig, period: r.period }, ME.ctx.data.staff, b);
   }
 }
 
@@ -317,7 +385,7 @@ function btns(kind) {
     <button class="btn o2o-new" type="button" data-act="sign" data-kind="${kind}">Sign off as ${esc(L.d.who)}</button>
     <button class="btn o2o-ghost" type="button" data-act="pdf" data-kind="${kind}">Preview PDF (${pdfTxt})</button>
     <span class="o2o-save" data-save="${kind}">${r ? 'Saved ' + esc(stamp(r.updated_at)) : 'Not saved yet. It saves by itself as you type.'}</span></div>
-    <p class="o2o-who">${esc(name)} sees it on their link once you sign, not before.</p>`;
+    <p class="o2o-who">${esc(name)} sees it on their link once you sign, not before.</p><div data-sigslot="${kind}"></div>`;
 }
 
 function monthlyBody(k) {
@@ -462,10 +530,12 @@ async function onLeaderClick(e) {
   else if (a === 'addrow') { if (locked(kind)) return; L.content[kind] = gather(kind, true); const arr = b.dataset.arr; L.content[kind][arr] = (L.content[kind][arr] || []).concat([{}]); redrawCard(kind); }
   else if (a === 'savenow') { await save(kind); }
   else if (a === 'sign') {
-    if (!confirm(`Sign off as ${L.d.who}?\n\nThe numbers freeze and ${first(L.d.staff.name)} can see this on their own link. You can reopen it later; the signed version is kept.`)) return;
-    b.disabled = true; if (!(await save(kind))) { b.disabled = false; return; }
-    try { const r = await call('perf_one2one_sign', { p_admin: L.ctx.admin, p_token: L.ctx.token, p_kind: kind, p_period: period(kind) }); if (r !== 'ok') alert('Could not sign: ' + r); await reload(); }
-    catch (err) { b.disabled = false; alert('Could not sign. Check the connection and try again.'); }
+    b.disabled = true; const okSave = await save(kind); b.disabled = false; if (!okSave) return;
+    const slot = L.slot.querySelector(`[data-sigslot="${kind}"]`), name = first(L.d.staff.name);
+    sigPanel(slot, { title: `Sign off as ${L.d.who}`, cta: `Sign off as ${L.d.who}`, saveKey: 'm-' + L.d.who, onSign: async sig => {
+      if (!confirm(`Sign off as ${L.d.who}?\n\nThe numbers freeze and ${name} can see this on their own link. You can reopen it later; the signed version is kept.`)) throw new Error('cancelled');
+      try { const r = await call('perf_one2one_sign', { p_admin: L.ctx.admin, p_token: L.ctx.token, p_kind: kind, p_period: period(kind), p_sig: sig }); if (r !== 'ok') alert('Could not sign: ' + r); await reload(); }
+      catch (err) { alert('Could not sign. Check the connection and try again.'); throw err; } } });
   } else if (a === 'reopen') {
     if (!confirm(`Reopen this for editing?\n\n${first(L.d.staff.name)} keeps seeing the signed version until you sign the new one.`)) return;
     try { await call('perf_one2one_reopen', { p_admin: L.ctx.admin, p_token: L.ctx.token, p_kind: kind, p_period: period(kind) }); L.view = kind; await reload(); }
@@ -473,7 +543,7 @@ async function onLeaderClick(e) {
   } else if (a === 'pdf') {
     if (!locked(kind)) await save(kind);
     const r = rec(kind) || {};
-    pdf(kind, { content: locked(kind) ? r.content : gather(kind), snapshot: snapOf(kind), status: r.status || 'draft', signed_by: r.signed_by, signed_at: r.signed_at, confirmed_at: r.confirmed_at, period: period(kind), manager: L.d.who }, L.d.staff, b);
+    pdf(kind, { content: locked(kind) ? r.content : gather(kind), snapshot: snapOf(kind), status: r.status || 'draft', signed_by: r.signed_by, signed_at: r.signed_at, confirmed_at: r.confirmed_at, manager_sig: r.manager_sig, staff_sig: r.staff_sig, period: period(kind), manager: L.d.who }, L.d.staff, b);
   }
 }
 

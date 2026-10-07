@@ -50,8 +50,8 @@ function table(head, rows, widths) {
 function sigs(rec, staff, form) {
   const mgr = rec.signed_by || rec.manager || '';
   return { columns: [
-    { width: '*', stack: [lab('Team member signature'), { text: staff.name, font: 'Playfair', fontSize: 12, color: C.ink }, { text: rec.confirmed_at ? 'Confirmed on screen, ' + stampY(rec.confirmed_at) : 'Awaiting confirmation', fontSize: 8, color: C.soft, margin: [0, 2, 0, 0] }] },
-    { width: '*', stack: [lab('Manager signature'), { text: mgr || '·', font: 'Playfair', fontSize: 12, color: C.ink }, { text: rec.signed_at ? 'Signed on screen, ' + stampY(rec.signed_at) : 'Not signed yet', fontSize: 8, color: C.soft, margin: [0, 2, 0, 0] }] }],
+    { width: '*', stack: [lab('Team member signature'), rec.staff_sig ? { image: rec.staff_sig, fit: [150, 56], margin: [0, 2, 0, 2] } : { text: ' ' }, { text: staff.name, font: 'Playfair', fontSize: 12, color: C.ink }, { text: rec.confirmed_at ? 'Confirmed on screen, ' + stampY(rec.confirmed_at) : 'Awaiting confirmation', fontSize: 8, color: C.soft, margin: [0, 2, 0, 0] }] },
+    { width: '*', stack: [lab('Manager signature'), rec.manager_sig ? { image: rec.manager_sig, fit: [150, 56], margin: [0, 2, 0, 2] } : { text: ' ' }, { text: mgr || '·', font: 'Playfair', fontSize: 12, color: C.ink }, { text: rec.signed_at ? 'Signed on screen, ' + stampY(rec.signed_at) : 'Not signed yet', fontSize: 8, color: C.soft, margin: [0, 2, 0, 0] }] }],
     columnGap: 24, margin: [0, 16, 0, 0], unbreakable: true };
 }
 function top(form, title, sub) {
