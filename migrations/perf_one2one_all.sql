@@ -1,3 +1,5 @@
+-- NOTE (Kate, 7 Oct 2026, later): goals became the stylist's to write. Run perf_one2one_goals_by_staff.sql after this file; it
+-- adds the 'submitted' status and redefines perf_one2one_me, _get, _save, _sign and _reopen.
 -- Monthly 1-to-1 (HR-10), yearly Goals (HR-09) and 13-week checks: the whole database side in one file
 -- (Kate, 7 Oct 2026). This is the REPLAYABLE copy of what is live: the table, the columns added over the
 -- day, and the final definition of every function (dumped from the database with pg_get_functiondef).

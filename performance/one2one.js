@@ -1,13 +1,18 @@
 /* ============================================================
-   My 1-to-1 and Goals (Kate, 7 Oct 2026). Monthly 1-to-1 (HR-10, with the Stylist Priorities
+   My 1-to-1 and Goals (Kate, 7 Oct 2026). The 1-to-1 (HR-10, with the Stylist Priorities
    Checklist) and yearly Goals (HR-09). Trial: Ibrahim only (perf_staff.one2one_on).
+   The two are written by different people. Goals are the stylist's own: she writes them on her link
+   (private draft, autosaved), then submits; only then do Kate, Tara and Emma see them, and Emma signs
+   them off or sends them back. The 1-to-1 is Coach Emma's: she fills it in and signs it, and it
+   appears on the stylist's link once she has finished. No cadence (monthly, quarterly) is promised.
    Two faces of one module:
-     me(el, ctx)      a stylist's own link, the fourth tab, read-only. She sees a record once a
-                      leader has signed it, and confirms it (her signature). perf_one2one_me,
-                      perf_one2one_confirm.
-     leader(el, ctx)  Staff Benchmarks, a leader key only (Kate, Tara, Emma): two editable cards
-                      that autosave a draft, then Sign off. perf_one2one_get / save / sign /
-                      reopen. The viewer and payroll keys get nothing.
+     me(el, ctx)      a stylist's own link, the fourth tab. Goals: an editable form, then Submit
+                      (perf_one2one_me_save / _me_submit). 1-to-1 and checks: read-only, and she
+                      acknowledges them with her signature (perf_one2one_confirm). perf_one2one_me.
+     leader(el, ctx)  Staff Benchmarks, a leader key only (Kate, Tara, Emma): the 1-to-1 and the
+                      13-week checks are editable by Emma (autosave, then Sign off); the goals are
+                      read-only once submitted (Sign off or Ask to revise). perf_one2one_get / save /
+                      sign / reopen. The viewer and payroll keys get nothing.
    The 13-week numbers are never typed: the database works them out and freezes them at
    sign-off, so a signed copy and its PDF never change. Wrapped in one function: performance.js
    keeps esc, fmt, rpc and friends at the top level.
@@ -227,11 +232,13 @@ function sigPanel(slot, o) {
 // ════════════════════════════════════════════════════════════
 //  The stylist's own tab
 // ════════════════════════════════════════════════════════════
-const ME = { tab: 'month', sel: 0, hz: 'm6', el: null, ctx: null, wired: false };
+const ME = { tab: 'month', sel: 0, hz: 'm6', el: null, ctx: null, wired: false, g: null };
 
 function me(el, ctx) {
-  ME.el = el; ME.ctx = ctx;
-  if (!ME.wired) { el.addEventListener('click', onMeClick); ME.wired = true; }
+  // A goals edit still waiting for its autosave goes out before the page is rebuilt from the database.
+  if (ME.g && ME.g.timer) meSave();
+  ME.el = el; ME.ctx = ctx; ME.g = null;
+  if (!ME.wired) { el.addEventListener('click', onMeClick); el.addEventListener('input', onMeInput); ME.wired = true; }
   drawMe();
 }
 const recs = kind => (ME.ctx.data.records || []).filter(r => r.kind === kind);
@@ -258,7 +265,7 @@ function meMonth() {
   const acts = (c.actions || []).filter(a => has(a.action));
   const pri = String(c.priorities || '').split('\n').map(x => x.trim()).filter(Boolean);
   const bits = [];
-  bits.push(`<section class="card hero o2o-card-new"><div class="eyebrow">Monthly 1-to-1</div><h2>${esc(mName(r.period))}, with ${esc(first(r.signed_by) || 'your leader')}</h2>
+  bits.push(`<section class="card hero o2o-card-new"><div class="eyebrow">1-to-1</div><h2>Your 1-to-1 with ${esc(first(r.signed_by) || 'your leader')}</h2>
     <p class="sub" style="margin-bottom:0">${esc(dMid(c.meeting_date))}${snap.from ? ' · looking back at ' + esc(winLine(snap)) : ''}</p><p class="o2o-fill">${esc(fillLine(r, snap, c.meeting_date, false))}</p><p class="o2o-fill">${esc(PRIV_NOTE)}</p>${meHead(r, 'monthly')}</section>`);
   if (has(c.wins)) bits.push(`<section class="card"><div class="eyebrow">Wins and highlights</div><p class="o2o-text">${br(c.wins)}</p></section>`);
   if (prev.length) bits.push(`<section class="card"><div class="eyebrow">Actions from last time</div><div class="rows">${prev.map(a =>
@@ -278,41 +285,95 @@ function meMonth() {
   if (pri.length || has(c.support)) bits.push(`<section class="card">${pri.length ? `<div class="eyebrow">Our priorities for the next 13 weeks</div><ol class="o2o-text" style="padding-left:20px">${pri.map(p => `<li>${esc(p.replace(/^\d+[.)]\s*/, ''))}</li>`).join('')}</ol>` : ''}
     ${has(c.support) ? `<div class="eyebrow" style="margin-top:14px">Training or support that would help</div><p class="o2o-text">${br(c.support)}</p>` : ''}</section>`);
   if (all.length > 1) bits.push(`<details class="o2o-more"><summary><span>Earlier 1-to-1s</span><span class="hint">${all.length - 1}</span></summary><div class="rows">${all.map((x, i) => i === ME.sel ? '' :
-    `<button class="row" type="button" data-act="sel" data-i="${i}" style="font:inherit;color:inherit;cursor:pointer;text-align:left;width:100%"><span>${esc(mLong(x.period))}</span><span class="r-val"><small>${esc(first(x.signed_by))}</small></span></button>`).join('')}</div></details>`);
+    `<button class="row" type="button" data-act="sel" data-i="${i}" style="font:inherit;color:inherit;cursor:pointer;text-align:left;width:100%"><span>${esc(dMid((x.content || {}).meeting_date) || mLong(x.period))}</span><span class="r-val"><small>${esc(first(x.signed_by))}</small></span></button>`).join('')}</div></details>`);
   return bits.join('');
 }
 
-function meGoals() {
-  const all = recs('goals').map((r, i) => Object.assign(r, { _i: i }));
-  if (!all.length) return `<div class="o2o-empty">Your goals will appear here once you and your leader have talked them through and your leader has signed them. They cover 6 months, 1 year and 3 years, and are checked every 13 weeks.</div>`;
-  const r = all[0], c = r.content || {}, snap = r.snapshot || {}, set = (c.goals || {})[ME.hz] || {};
-  const bits = [];
-  bits.push(`<section class="card hero o2o-card-new"><div class="eyebrow">My goals</div><h2>Where I am heading</h2>
-    <p class="sub" style="margin-bottom:0">${has(c.meeting_date) ? 'Set on ' + esc(dMid(c.meeting_date)) + ' · ' : ''}checked every 13 weeks${has(c.next_review) ? ' · next check ' + esc(dMid(c.next_review)) : ''}</p><p class="o2o-fill">${esc(fillLine(r, snap, c.meeting_date, false))}</p>${meHead(r, 'goals')}</section>`);
+const yearStart = () => todayISO().slice(0, 4) + '-01-01';
+const goalRec = () => recs('goals')[0] || null;
+const gVal = p => { const v = getP(ME.g.content, p); return v == null ? '' : v; };
+function gStatus(txt) { const e = ME.el && ME.el.querySelector('[data-gsave]'); if (e) e.textContent = txt; }
+async function meSave() {
+  const g = ME.g; if (!g) return false;
+  clearTimeout(g.timer); g.timer = null;
+  gStatus('Saving…');
+  try {
+    const r = await call('perf_one2one_me_save', { p_token: ME.ctx.token, p_period: g.per, p_content: g.content });
+    if (r === 'ok') { gStatus('Saved ' + stamp(new Date())); return true; }
+    gStatus(r === 'locked' ? 'These goals are already submitted.' : 'Could not save (' + r + ').');
+  } catch (e) { gStatus('Could not save. Check the connection; it will try again as you type.'); }
+  return false;
+}
+function onMeInput(e) {
+  const t = e.target; if (!ME.g || !t.matches || !t.matches('[data-gp]')) return;
+  setP(ME.g.content, t.dataset.gp, t.value);
+  gStatus('Unsaved changes…');
+  clearTimeout(ME.g.timer); ME.g.timer = setTimeout(meSave, 1500);
+}
+
+// Her own goals, while they are a draft: only she can see them. The 13-week figures beside the milestones
+// are live ("Now"); they freeze when she submits.
+function meGoalsEdit(r) {
+  if (!ME.g) {
+    const c = (r && r.content) || {};
+    ME.g = { per: r ? String(r.period).slice(0, 10) : yearStart(), timer: null, content: JSON.parse(JSON.stringify({ goals: c.goals || {}, mile: c.mile || {} })) };
+  }
+  const d = ME.ctx.data || {}, snap = d.numbers || {}, yr = ME.g.per.slice(0, 4), bits = [];
+  bits.push(`<section class="card hero o2o-card-new"><div class="eyebrow">My goals · ${esc(yr)}</div><h2>Where I am heading</h2>
+    <p class="sub" style="margin-bottom:0">Your goals for this year, in your own words: what you want, why it matters, and what would help. Take your time. It saves as you type, and nobody else can read it until you submit it.</p>
+    <p style="margin-top:10px"><span class="o2o-chip">Draft, only you can see this</span></p></section>`);
+  bits.push(`<div class="o2o-priv"><span>&#128274;</span><span>${esc(PRIV_ME)}</span></div>`);
+  bits.push(`<div class="o2o-pills">${HZ.map(([k, l]) => `<button type="button" class="o2o-pill ${ME.hz === k ? 'on' : ''}" data-act="hz" data-v="${k}">${l}</button>`).join('')}</div>`);
+  bits.push(`<section class="card">${HZ.map(([h]) => `<div class="o2o-g3" data-hz="${h}"${ME.hz === h ? '' : ' hidden'}>${KINDS.map(([kk, l]) =>
+    `<div class="o2o-goalcol"><h3>${l} goal</h3>${QS.map(([qk, ql]) => `<label class="o2o-fl">${ql}<textarea rows="3" data-gp="goals.${h}.${kk}.${qk}">${esc(gVal(`goals.${h}.${kk}.${qk}`))}</textarea></label>`).join('')}</div>`).join('')}</div>`).join('')}</section>`);
+  bits.push(`<section class="card"><div class="eyebrow">Where I want my numbers to be</div>
+    <p class="sub">"Now" is your 13-week figure today, worked out from your own numbers. Type where you would like each one to be.</p>
+    <div class="o2o-wrap"><table class="o2o-tbl ed"><tr><th>Measure</th><th class="r">Now</th><th>6 months</th><th>1 year</th><th>3 years</th></tr>
+    ${MILE.map(([k, l, how, w]) => `<tr><td style="padding-top:11px">${l}</td><td class="r o2o-auto">${esc(nowOf(snap, k, how, w))}</td>${['m6', 'y1', 'y3'].map(h => `<td><input data-gp="mile.${k}.${h}" value="${esc(gVal(`mile.${k}.${h}`))}"></td>`).join('')}</tr>`).join('')}</table></div></section>`);
+  bits.push(`<section class="card"><div class="eyebrow">When you are ready</div>
+    <p class="sub">Submitting lets Emma, Tara and Kate read your goals, and saves your 13-week numbers with them as they are today. You cannot change them after that unless Emma opens them again for you.</p>
+    <div class="o2o-btns"><button class="btn o2o-new" type="button" data-act="gsubmit">Submit my goals</button><span class="o2o-save" data-gsave>${r && r.updated_at ? 'Saved ' + esc(stamp(r.updated_at)) : 'Not saved yet. It saves by itself as you type.'}</span></div><div data-sigslot></div></section>`);
+  return bits.join('');
+}
+
+// Submitted (Emma has it) or signed off (filed): her answers, read-only.
+function meGoalsDone(r) {
+  const c = r.content || {}, snap = r.snapshot || {}, set = (c.goals || {})[ME.hz] || {}, filed = r.status === 'filed', bits = [];
+  r._i = 0;
+  const head = filed
+    ? `<span class="o2o-chip good">Signed off by ${esc(first(r.signed_by))}</span> <span class="o2o-done">on ${esc(stamp(r.signed_at))}</span>`
+    : `<span class="o2o-chip warn">Submitted</span> <span class="o2o-done">on ${esc(stamp(r.submitted_at))}. Emma, Tara and Kate can read it, and Emma signs it off.</span>`;
+  bits.push(`<section class="card hero o2o-card-new"><div class="eyebrow">My goals · ${esc(String(r.period).slice(0, 4))}</div><h2>Where I am heading</h2>
+    <p class="o2o-fill">${esc(fillLine(r, snap, String(r.submitted_at || '').slice(0, 10), false))}</p>
+    <p style="margin-top:10px">${head}</p>
+    <button class="btn o2o-ghost" type="button" data-act="pdf" data-kind="goals" data-i="0">Download a copy (PDF)</button>
+    <p class="legend">Saved as it was submitted. If Emma opens it again for you to change, you submit it again.</p></section>`);
   bits.push(`<div class="o2o-priv"><span>&#128274;</span><span>${esc(PRIV_ME)}</span></div>`);
   bits.push(`<div class="o2o-pills">${HZ.map(([k, l]) => `<button type="button" class="o2o-pill ${ME.hz === k ? 'on' : ''}" data-act="hz" data-v="${k}">${l}</button>`).join('')}</div>`);
   KINDS.forEach(([k, l]) => {
     const g = set[k] || {};
     bits.push(has(g.goal)
       ? `<section class="card"><div class="eyebrow">${l} goal</div><div class="o2o-goal">${esc(g.goal)}</div>${has(g.why) ? `<div class="o2o-qa"><b>Why it matters</b>${br(g.why)}</div>` : ''}
-        <details class="o2o-more"><summary><span>Everything we talked through</span></summary>${QS.slice(2).filter(q => has(g[q[0]])).map(q => `<div class="o2o-qa"><b>${q[1]}</b>${br(g[q[0]])}</div>`).join('')}</details></section>`
-      : `<section class="card"><div class="eyebrow">${l} goal</div><p class="muted" style="font-size:14px">Not set yet. You and your leader can add it at your next goals check.</p></section>`);
+        <details class="o2o-more"><summary><span>Everything I wrote</span></summary>${QS.slice(2).filter(q => has(g[q[0]])).map(q => `<div class="o2o-qa"><b>${q[1]}</b>${br(g[q[0]])}</div>`).join('')}</details></section>`
+      : `<section class="card"><div class="eyebrow">${l} goal</div><p class="muted" style="font-size:14px">Nothing written here for this time frame.</p></section>`);
   });
   const mileHas = MILE.some(m => { const v = (c.mile || {})[m[0]] || {}; return has(v.m6) || has(v.y1) || has(v.y3); });
   if (snap.rows || mileHas) bits.push(`<section class="card"><div class="eyebrow">Where the numbers are heading</div>
-    <p class="sub">"Now" is your 13-week average, worked out from your own numbers. The milestones are the ones you agreed.</p>
+    <p class="sub">"Now" is your 13-week average on the day you submitted. The milestones are the ones you wrote.</p>
     <div class="o2o-wrap"><table class="o2o-tbl"><tr><th>Measure</th><th class="r">Now</th><th class="r">6 m</th><th class="r">1 yr</th><th class="r">3 yrs</th></tr>
     ${MILE.map(([k, l, how, w]) => { const v = (c.mile || {})[k] || {}; return `<tr><td>${l}</td><td class="r"><b>${esc(nowOf(snap, k, how, w))}</b></td><td class="r">${esc(v.m6 || '·')}</td><td class="r">${esc(v.y1 || '·')}</td><td class="r">${esc(v.y3 || '·')}</td></tr>`; }).join('')}</table></div></section>`);
   const pri = (c.priorities || []).filter(a => has(a.action));
   if (pri.length) bits.push(`<section class="card"><div class="eyebrow">Our agreed priorities, next 13 weeks</div>${pri.map(a =>
     `<div class="o2o-act"><span class="k">${esc(a.led || '')} leads${has(a.due) ? ' · due ' + esc(dShort(a.due) || a.due) : ''}</span>${esc(a.action)}${has(a.support) ? `<small>Support: ${esc(a.support)}</small>` : ''}</div>`).join('')}</section>`);
-  const fol = (c.follow || []).filter(f => has(f.progress) || has(f.change));
-  const checks = recs('check').map((r, n) => Object.assign(r, { _i: n }));
+  const checks = recs('check').map((x, n) => Object.assign(x, { _i: n }));
   bits.push(`<section class="card"><div class="eyebrow">13-week checks</div>${checks.length ? '<p class="sub" style="margin:0">Each check is signed on its own. The newest is first.</p>'
-    : `<p class="muted" style="font-size:14px">Not due yet. At each check you look at what progress has been made, what you learned, and what to change.</p>`}
-    ${fol.map(f => `<div class="o2o-qa">${has(f.date) ? `<b>${esc(dMid(f.date))}</b>` : ''}${has(f.progress) ? br(f.progress) : ''}${has(f.change) ? `<div style="margin-top:6px"><b>Change or prioritise next</b>${br(f.change)}</div>` : ''}</div>`).join('')}</section>`);
-  checks.forEach(r => bits.push(meCheck(r)));
+    : `<p class="muted" style="font-size:14px">Not due yet. At each check you look at what progress has been made, what you learned, and what to change.</p>`}</section>`);
+  checks.forEach(x => bits.push(meCheck(x)));
   return bits.join('');
+}
+function meGoals() {
+  const r = goalRec();
+  return !r || r.status === 'draft' ? meGoalsEdit(r) : meGoalsDone(r);
 }
 
 function meCheck(r) {
@@ -325,14 +386,31 @@ function meCheck(r) {
 }
 function drawMe() {
   const sub = ME.tab === 'month' ? 'month' : 'goals';
-  ME.el.innerHTML = `<div class="o2o-pills"><button type="button" class="o2o-pill ${sub === 'month' ? 'on' : ''}" data-act="tab" data-v="month">Monthly 1-to-1</button><button type="button" class="o2o-pill ${sub === 'goals' ? 'on' : ''}" data-act="tab" data-v="goals">My goals</button></div>` + (sub === 'month' ? meMonth() : meGoals());
+  ME.el.innerHTML = `<div class="o2o-pills"><button type="button" class="o2o-pill ${sub === 'month' ? 'on' : ''}" data-act="tab" data-v="month">1-to-1</button><button type="button" class="o2o-pill ${sub === 'goals' ? 'on' : ''}" data-act="tab" data-v="goals">My goals</button></div>` + (sub === 'month' ? meMonth() : meGoals());
 }
 async function onMeClick(e) {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act;
   if (a === 'tab') { ME.tab = b.dataset.v; ME.sel = 0; drawMe(); window.scrollTo(0, 0); }
   else if (a === 'sel') { ME.sel = Number(b.dataset.i); drawMe(); window.scrollTo(0, 0); }
-  else if (a === 'hz') { ME.hz = b.dataset.v; drawMe(); }
+  else if (a === 'hz') {
+    ME.hz = b.dataset.v;
+    if (ME.g) { ME.el.querySelectorAll('.o2o-pill[data-act="hz"]').forEach(p => p.classList.toggle('on', p === b)); ME.el.querySelectorAll('[data-hz]').forEach(g => { g.hidden = g.dataset.hz !== ME.hz; }); }
+    else drawMe();
+  }
+  else if (a === 'gsubmit') {
+    const any = HZ.some(([h]) => KINDS.some(([k]) => has(getP(ME.g.content, `goals.${h}.${k}.goal`))));
+    if (!any) { alert('Write at least one goal first. Even one line is a start.'); return; }
+    b.disabled = true; const ok = await meSave(); b.disabled = false; if (!ok) return;
+    const slot = b.closest('.card').querySelector('[data-sigslot]');
+    sigPanel(slot, { title: 'Sign and submit my goals', cta: 'Submit my goals', saveKey: 's-' + ME.ctx.token.slice(0, 8), onSign: async sig => {
+      if (!confirm('Submit your goals?\n\nEmma, Tara and Kate can read them once you do. You cannot change them unless Emma opens them again for you.')) throw new Error('cancelled');
+      try {
+        const res = await call('perf_one2one_me_submit', { p_token: ME.ctx.token, p_period: ME.g.per, p_sig: sig });
+        if (res !== 'ok') { alert('Could not submit: ' + res); throw new Error(res); }
+        ME.g = null; await ME.ctx.reload();
+      } catch (err) { if (String(err && err.message) !== 'cancelled') alert('Could not submit. Check the connection and try again.'); throw err; } } });
+  }
   else if (a === 'confirm') {
     const slot = b.closest('.card').querySelector('[data-sigslot]'), kind = b.dataset.kind, per = b.dataset.period;
     sigPanel(slot, { title: 'Acknowledge and sign', cta: 'Acknowledge', withComment: true, saveKey: 's-' + ME.ctx.token.slice(0, 8), onSign: async (sig, comment) => {
@@ -340,7 +418,7 @@ async function onMeClick(e) {
       catch (err) { alert('Could not save. Check the connection and try again.'); throw err; } } });
   } else if (a === 'pdf') {
     const r = recs(b.dataset.kind)[Number(b.dataset.i)]; if (!r) return;
-    pdf(b.dataset.kind, { content: r.content, snapshot: r.snapshot, status: r.status, signed_by: r.signed_by, signed_at: r.signed_at, confirmed_at: r.confirmed_at, manager_sig: r.manager_sig, staff_sig: r.staff_sig, staff_comment: r.staff_comment, period: r.period, checks: b.dataset.kind === 'goals' ? recs('check') : undefined }, ME.ctx.data.staff, b);
+    pdf(b.dataset.kind, { content: r.content, snapshot: r.snapshot, status: r.status, submitted_at: r.submitted_at, signed_by: r.signed_by, signed_at: r.signed_at, confirmed_at: r.confirmed_at, manager_sig: r.manager_sig, staff_sig: r.staff_sig, staff_comment: r.staff_comment, period: r.period, checks: b.dataset.kind === 'goals' ? recs('check') : undefined }, ME.ctx.data.staff, b);
   }
 }
 
@@ -350,25 +428,28 @@ async function onMeClick(e) {
 function nudge(data) {
   const recs = (data && data.records) || [], monthly = recs.filter(r => r.kind === 'monthly');
   const waiting = recs.filter(r => r.status === 'signed' && !r.updating);
+  const gl = recs.find(r => r.kind === 'goals'), needGoals = !gl || gl.status === 'draft';
   const latest = monthly[0], nm = latest && latest.content && latest.content.next_meeting;
   const upcoming = nm && String(nm).slice(0, 10) >= todayISO() ? String(nm).slice(0, 10) : null;
-  if (!waiting.length && !upcoming) return null;
+  if (!waiting.length && !upcoming && !needGoals) return null;
   const who = first((waiting[0] || latest || {}).signed_by) || 'your leader';
   const lines = [];
-  waiting.forEach(r => lines.push(`<p class="o2o-text">Your ${r.kind === 'monthly' ? mName(r.period) + ' 1-to-1' : r.kind === 'check' ? '13-week check' : 'goals'} with ${esc(first(r.signed_by) || 'your leader')} is ready. Read it through, then sign to acknowledge when you are ready.</p>`));
+  waiting.forEach(r => lines.push(`<p class="o2o-text">Your ${r.kind === 'monthly' ? '1-to-1' : r.kind === 'check' ? '13-week check' : 'goals'} with ${esc(first(r.signed_by) || 'your leader')} is ready. Read it through, then sign to acknowledge when you are ready.</p>`));
+  if (needGoals) lines.push(`<p class="o2o-text">Your yearly goals are yours to write. Take your time: nobody else can read them until you submit.</p>`);
   let cal = '';
   if (upcoming) {
     const d = day(upcoming), nx = new Date(d); nx.setDate(nx.getDate() + 1);
     const ymd = x => x.toLocaleDateString('en-CA').replace(/-/g, '');
     const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tara Rose Salons//1-to-1//EN', 'BEGIN:VEVENT', `UID:o2o-${upcoming}@trk-salon-os.com`,
       `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '')}`, `DTSTART;VALUE=DATE:${ymd(d)}`, `DTEND;VALUE=DATE:${ymd(nx)}`,
-      `SUMMARY:1-to-1 with ${who}`, 'DESCRIPTION:Your monthly 1-to-1 at Tara Rose Salons. The time is agreed with your leader.',
+      `SUMMARY:1-to-1 with ${who}`, 'DESCRIPTION:Your 1-to-1 at Tara Rose Salons. The time is agreed with your leader.',
       'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:1-to-1 tomorrow', 'TRIGGER:-PT15H', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
     lines.push(`<p class="o2o-text">Your next 1-to-1: <b>${esc(dFull(upcoming))}</b></p>`);
     cal = `<a class="btn small o2o-ghost" download="1-to-1 ${esc(upcoming)}.ics" href="data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}">Add to calendar</a>`;
   }
-  const key = waiting.map(r => r.kind + r.period + r.status).join(',') + '|' + (upcoming || '');
-  const open = waiting.length ? `<button class="btn small" type="button" onclick="PerfTabs.go('one')">Open My 1-to-1</button>` : '';
+  const key = waiting.map(r => r.kind + r.period + r.status).join(',') + '|' + (upcoming || '') + '|' + (needGoals ? 'g' : '');
+  const open = (waiting.length ? `<button class="btn small" type="button" onclick="PerfTabs.go('one')">Open My 1-to-1</button>` : '')
+    + (needGoals ? `<button class="btn small" type="button" onclick="PerfO2O.showGoals();PerfTabs.go('one')">Write my goals</button>` : '');
   return { key, html: `<section class="card o2o-nudge" data-h="${esc(key)}"><div class="eyebrow">1-to-1</div>${lines.join('')}<div class="o2o-btns" style="margin-top:10px">${open}${cal}</div></section>` };
 }
 
@@ -386,7 +467,8 @@ const rec = key => key === 'monthly' ? L.d.monthly : key === 'goals' ? L.d.goals
 // Only the editor (Coach Emma) writes and signs; Tara and Kate read (perf_admins.one2one_editor).
 const ro = () => !L.d.can_edit;
 const isSigned = key => !!rec(key) && rec(key).status !== 'draft';
-const locked = key => ro() || isSigned(key);
+// Goals are the stylist's to write: the leader side only reads them (and signs off or sends them back).
+const locked = key => ro() || isSigned(key) || kindOf(key) === 'goals';
 const checkKeys = () => {
   const have = (L.d.checks || []).map(c => 'check:' + String(c.period).slice(0, 10));
   return have.concat(L.newChecks.filter(k => !have.includes(k))).sort().reverse();
@@ -467,13 +549,22 @@ function onDate(e) {
 }
 
 function steps(key) {
-  const r = rec(key), st = !r ? 0 : r.status === 'draft' ? 1 : r.status === 'signed' ? 2 : 3;
+  const r = rec(key);
+  if (kindOf(key) === 'goals') {
+    const g = !r || r.status === 'draft' ? 0 : r.status === 'submitted' ? 2 : 3, lb = [`${first(L.d.staff.name)} writes`, 'Submitted', `${L.d.editor || L.d.who} signs off`];
+    return `<div class="o2o-steps">${lb.map((l, i) => `<span class="${i < g ? 'done' : i === g ? 'cur' : ''}"><b>${i < g ? '&#10003;' : i + 1}</b>${esc(l)}</span>`).join('')}</div>`;
+  }
+  const st = !r ? 0 : r.status === 'draft' ? 1 : r.status === 'signed' ? 2 : 3;
   const lb = ['Draft', `${L.d.editor || L.d.who} signs`, `${first(L.d.staff.name)} signs`, 'Filed'];
   const cls = i => i < st ? 'done' : i === st ? 'cur' : '';
   return `<div class="o2o-steps">${lb.map((l, i) => `<span class="${cls(i)}"><b>${i < st ? '&#10003;' : i + 1}</b>${esc(l)}</span>`).join('')}</div>`;
 }
 function chip(key) {
   const r = rec(key);
+  if (kindOf(key) === 'goals') {
+    if (!r) return `<span class="o2o-chip">Not started</span>`;
+    return r.status === 'draft' ? `<span class="o2o-chip">Being written</span>` : r.status === 'submitted' ? `<span class="o2o-chip warn">Submitted</span>` : `<span class="o2o-chip good">Signed off</span>`;
+  }
   if (!r) return `<span class="o2o-chip">Not started</span>`;
   if (r.status === 'draft') return `<span class="o2o-chip">Draft</span>`;
   if (r.status === 'signed') return `<span class="o2o-chip warn">Waiting for ${esc(first(L.d.staff.name))}</span>`;
@@ -483,12 +574,22 @@ function snapOf(key) { return isSigned(key) && rec(key).snapshot ? rec(key).snap
 // When it was filled in and what the figures are, on every card, so a signed copy is never read as today's numbers.
 function fillNote(key) {
   const r = rec(key), c = L.content[key] || {};
-  return fillLine(r, snapOf(key), c.meeting_date, !isSigned(key));
+  const md = kindOf(key) === 'goals' ? String((r && r.submitted_at) || '').slice(0, 10) : c.meeting_date;
+  return fillLine(r, snapOf(key), md, !isSigned(key));
 }
 
 function btns(key) {
   const r = rec(key), name = first(L.d.staff.name), kind = kindOf(key), pdfTxt = kind === 'monthly' ? 'HR-10' : 'HR-09';
   const pdfBtn = (label, cls = '') => kind === 'check' ? '' : `<button class="btn${cls}" type="button" data-act="pdf" data-kind="${key}">${label}</button>`;
+  if (kind === 'goals') {
+    if (r && r.status === 'submitted') return `<div class="o2o-btns">${ro() ? '' : `<button class="btn o2o-new" type="button" data-act="sign" data-kind="${key}">Sign off as ${esc(L.d.who)}</button>
+      <button class="btn o2o-ghost" type="button" data-act="reopen" data-kind="${key}">Ask ${esc(name)} to revise</button>`}
+      ${pdfBtn(`Preview PDF (${pdfTxt})`, ' o2o-ghost')}<span class="o2o-save">${ro() ? `View only. ${esc(L.d.editor || 'The editor')} signs these off.` : `${esc(name)} wrote these. Read them, then sign off, or send them back to be revised.`}</span></div><div data-sigslot="${key}"></div>`;
+    if (r && r.status === 'filed') return `<div class="o2o-btns">${pdfBtn(`Download signed copy (PDF, ${pdfTxt})`)}
+      ${ro() ? '' : `<button class="btn o2o-ghost" type="button" data-act="reopen" data-kind="${key}">Ask ${esc(name)} to revise</button>`}
+      <span class="o2o-save">Submitted ${esc(stamp(r.submitted_at))}. Signed off by ${esc(r.signed_by)} on ${esc(stamp(r.signed_at))}.</span></div>`;
+    return '';
+  }
   if (isSigned(key)) return `<div class="o2o-btns">${pdfBtn(`Download ${r.status === 'filed' ? 'signed copy' : 'copy'} (PDF, ${pdfTxt})`)}
     ${ro() ? '' : `<button class="btn o2o-ghost" type="button" data-act="reopen" data-kind="${key}">Reopen to edit</button>`}
     <span class="o2o-save">${r.status === 'filed' ? `Filed. ${esc(name)} acknowledged and signed on ${esc(stamp(r.confirmed_at))}.${ro() ? '' : ' Reopening starts a new version and keeps this one.'}` : `Signed by ${esc(r.signed_by)} on ${esc(stamp(r.signed_at))}. ${esc(name)} signs on their own link.`}</span></div>`;
@@ -548,18 +649,17 @@ function goalsBody(k) {
   const legacy = (getP(k.c, 'follow') || []).filter(f => has(f.progress) || has(f.change));
   return `
   <p class="o2o-who">&#128274; ${esc(PRIV_LEADER(st))}</p>
-  <div class="o2o-g3">${people(k)}<label class="o2o-fl">Meeting date${fDate(k, 'meeting_date')}</label><label class="o2o-fl">Next 13-week check${fDate(k, 'next_review')}</label></div>
+  <div class="o2o-g3">${people(k)}</div>
   <div class="o2o-sec">Goals</div>
   <div class="o2o-pills">${HZ.map(([h, l]) => `<button type="button" class="o2o-pill ${L.hz === h ? 'on' : ''}" data-act="hz" data-v="${h}">${l}</button>`).join('')}</div>
   ${HZ.map(([h]) => `<div class="o2o-g3" data-hz="${h}"${L.hz === h ? '' : ' hidden'}>${KINDS.map(([kk, l]) => `<div class="o2o-goalcol"><h3>${l} goal</h3>${QS.map(([qk, ql]) => fTa(k, `goals.${h}.${kk}.${qk}`, ql, 2)).join('')}</div>`).join('')}</div>`).join('')}
 
   <div class="o2o-sec">Business performance, 13-week review</div>
-  <p class="o2o-lock"><span class="o2o-autoh">Auto</span> is the current 13-week figure. The three milestone columns are typed.</p>
+  <p class="o2o-lock"><span class="o2o-autoh">Auto</span> is the 13-week figure on the day ${esc(first(st.name))} submitted. The three milestone columns are what they wrote.</p>
   <div class="o2o-wrap"><table class="o2o-tbl ed"><tr><th>Measure</th><th>Current 13-week</th><th>6 months</th><th>1 year</th><th>3 years</th></tr>
   ${MILE.map(([key, label, how, w]) => `<tr><td style="padding-top:11px">${label}</td><td class="o2o-auto">${esc(nowOf(snap, key, how, w))}</td><td>${fIn(k, `mile.${key}.m6`)}</td><td>${fIn(k, `mile.${key}.y1`)}</td><td>${fIn(k, `mile.${key}.y3`)}</td></tr>`).join('')}</table></div>
 
-  <div class="o2o-sec">Our agreed priorities, next 13 weeks</div>
-  ${priTable(k, rowsOf(k, 'priorities', 3))}
+  ${(getP(k.c, 'priorities') || []).some(a => has(a.action)) ? `<div class="o2o-sec">Our agreed priorities, next 13 weeks</div>${priTable(k, rowsOf(k, 'priorities', 3))}` : ''}
   ${legacy.length ? `<div class="o2o-sec">Earlier follow-up notes</div>${legacy.map(f => `<p class="o2o-text">${has(f.date) ? `<b>${esc(dMid(f.date))}</b><br>` : ''}${br(f.progress || '')}${has(f.change) ? `<br><i>Next:</i> ${br(f.change)}` : ''}</p>`).join('')}` : ''}`;
 }
 
@@ -575,9 +675,15 @@ function checkBody(k) {
 function cardHTML(key) {
   const k = K(key), kind = k.kind, name = first(L.d.staff.name);
   const title = kind === 'monthly' ? `1-to-1 with ${name}` : kind === 'goals' ? `Goals with ${name}` : `13-week check with ${name}`;
-  const eyebrow = kind === 'monthly' ? `Monthly 1-to-1 · ${mLong(L.d.month)}` : kind === 'goals' ? `Yearly goals · ${day(L.d.year).getFullYear()}` : `13-week check · ${mLong(periodOf(key))}`;
+  const eyebrow = kind === 'monthly' ? `1-to-1` : kind === 'goals' ? `Yearly goals · ${day(L.d.year).getFullYear()}` : `13-week check · ${mLong(periodOf(key))}`;
   const r = rec(key);
-  const banner = isSigned(key) ? `<div class="o2o-banner">${r.status === 'filed' ? 'Filed and locked.' : 'Signed and locked.'}${ro() ? '' : ' Reopen it to change anything.'}</div>${has(r.staff_comment) ? `<div class="o2o-banner"><b>${esc(name)}'s comment:</b> ${br(r.staff_comment)}</div>` : ''}`
+  if (kind === 'goals' && (!r || r.status === 'draft')) {
+    return `<section class="card o2o-card" data-kind="${key}" data-view="${viewOf(key)}" data-locked="1"${L.view === viewOf(key) ? '' : ' hidden'}>
+      <div class="o2o-fold"><span class="o2o-ft"><div class="eyebrow">${eyebrow}</div><h2>${title}</h2></span>${chip(key)}</div>
+      <div class="o2o-body">${steps(key)}<p class="o2o-who">${r ? `${esc(name)} is writing their goals. They appear here once ${esc(name)} submits them.` : `${esc(name)} has not started their goals. They write them on their own link, and they appear here once submitted.`}</p></div></section>`;
+  }
+  const gBanner = kind === 'goals' ? (r.status === 'filed' ? `<div class="o2o-banner">Signed off and filed. Read only.</div>` : `<div class="o2o-banner">Submitted by ${esc(name)} on ${esc(stamp(r.submitted_at))}. These are ${esc(name)}'s own words, so they are read only here.</div>`) : '';
+  const banner = kind === 'goals' ? gBanner : isSigned(key) ? `<div class="o2o-banner">${r.status === 'filed' ? 'Filed and locked.' : 'Signed and locked.'}${ro() ? '' : ' Reopen it to change anything.'}</div>${has(r.staff_comment) ? `<div class="o2o-banner"><b>${esc(name)}'s comment:</b> ${br(r.staff_comment)}</div>` : ''}`
     : ro() ? `<div class="o2o-banner">View only. ${esc(L.d.editor || 'The editor')} writes and signs these.</div>` : '';
   return `<section class="card o2o-card" data-kind="${key}" data-view="${viewOf(key)}" data-locked="${locked(key) ? 1 : 0}"${L.view === viewOf(key) ? '' : ' hidden'}>
     <div class="o2o-fold"><span class="o2o-ft"><div class="eyebrow">${eyebrow}</div><h2>${title}</h2></span>${chip(key)}</div>
@@ -587,13 +693,13 @@ function cardHTML(key) {
 function checksHTML() {
   const g = rec('goals'), ready = g && g.status !== 'draft', keys = checkKeys();
   return `<div class="o2o-checks" data-view="goals"${L.view === 'goals' ? '' : ' hidden'}><div class="o2o-sec">13-week checks</div>
-    <p class="o2o-who">Each check is signed on its own, so the goals above stay exactly as they were signed. ${ready ? '' : 'Sign off the goals first; the first check comes about 13 weeks later.'}</p>
+    <p class="o2o-who">Each check is signed on its own, so the goals above stay exactly as they were submitted. ${ready ? '' : 'The first check comes once the goals are submitted, about 13 weeks later.'}</p>
     ${keys.map(cardHTML).join('')}
     ${ready && !ro() ? `<button class="btn" type="button" data-act="newcheck">Start a 13-week check</button>` : ''}</div>`;
 }
 function barHTML() {
   const worst = rs => { rs = rs.filter(Boolean); return !rs.length ? '' : rs.every(r => r.status === 'filed') ? 'good' : 'warn'; };
-  const dot = v => v === 'monthly' ? worst([rec('monthly')]) : v === 'goals' ? worst([rec('goals')].concat(L.d.checks || [])) : '';
+  const dot = v => v === 'monthly' ? worst([rec('monthly')]) : v === 'goals' ? ((!rec('goals') || rec('goals').status === 'draft') ? '' : worst([rec('goals')].concat(L.d.checks || []))) : '';
   const seg = [['numbers', 'This month'], ['monthly', '1-to-1'], ['goals', 'Goals']];
   return seg.map(([v, l]) => `<button type="button" role="tab" aria-selected="${L.view === v}" class="${L.view === v ? 'on' : ''}" data-act="view" data-v="${v}">${l}${dot(v) ? `<i class="dot ${dot(v)}"></i>` : ''}</button>`).join('');
 }
@@ -680,15 +786,17 @@ async function onLeaderClick(e) {
   }
   else if (a === 'sign') {
     if (ro()) return;
-    b.disabled = true; const okSave = await save(key); b.disabled = false; if (!okSave) return;
+    b.disabled = true; const okSave = kindOf(key) === 'goals' ? true : await save(key); b.disabled = false; if (!okSave) return;
     const slot = L.slot.querySelector(`[data-sigslot="${key}"]`), name = first(L.d.staff.name);
     sigPanel(slot, { title: `Sign off as ${L.d.who}`, cta: `Sign off as ${L.d.who}`, remember: true, saveKey: 'm-' + L.d.who, onSign: async sig => {
-      if (!confirm(`Sign off as ${L.d.who}?\n\nThe numbers freeze and ${name} can see this on their own link. You can reopen it later; the signed version is kept.`)) throw new Error('cancelled');
+      if (!confirm(kindOf(key) === 'goals' ? `Sign off ${name}'s goals as ${L.d.who}?\n\nThis files them. You can send them back to ${name} later; the version they submitted is kept.`
+        : `Sign off as ${L.d.who}?\n\nThe numbers freeze and ${name} can see this on their own link. You can reopen it later; the signed version is kept.`)) throw new Error('cancelled');
       try { const r = await call('perf_one2one_sign', { p_admin: L.ctx.admin, p_token: L.ctx.token, p_kind: kindOf(key), p_period: periodOf(key), p_sig: sig }); if (r !== 'ok') alert('Could not sign: ' + r); await reload(); }
       catch (err) { alert('Could not sign. Check the connection and try again.'); throw err; } } });
   } else if (a === 'reopen') {
     if (ro()) return;
-    if (!confirm(`Reopen this for editing?\n\n${first(L.d.staff.name)} keeps seeing the signed version until you sign the new one.`)) return;
+    if (!confirm(kindOf(key) === 'goals' ? `Send these goals back to ${first(L.d.staff.name)} to revise?\n\nThey can edit and submit them again. The version they submitted is kept.`
+      : `Reopen this for editing?\n\n${first(L.d.staff.name)} keeps seeing the signed version until you sign the new one.`)) return;
     try { await call('perf_one2one_reopen', { p_admin: L.ctx.admin, p_token: L.ctx.token, p_kind: kindOf(key), p_period: periodOf(key) }); await reload(); }
     catch (err) { alert('Could not reopen. Try again.'); }
   } else if (a === 'pdf') {
@@ -696,7 +804,7 @@ async function onLeaderClick(e) {
     if (!locked(key)) await save(key);
     const r = rec(key) || {};
     const checks = kind === 'goals' ? (L.d.checks || []).map(c => ({ period: c.period, status: c.status, content: c.content, signed_by: c.signed_by, signed_at: c.signed_at, confirmed_at: c.confirmed_at, manager_sig: c.manager_sig, staff_sig: c.staff_sig, staff_comment: c.staff_comment })) : undefined;
-    pdf(kind, { content: locked(key) ? r.content : gather(key), snapshot: snapOf(key), status: r.status || 'draft', signed_by: r.signed_by, signed_at: r.signed_at, confirmed_at: r.confirmed_at, manager_sig: r.manager_sig, staff_sig: r.staff_sig, staff_comment: r.staff_comment, period: periodOf(key), manager: L.d.editor || L.d.who, checks }, L.d.staff, b);
+    pdf(kind, { content: locked(key) ? r.content : gather(key), submitted_at: r.submitted_at, snapshot: snapOf(key), status: r.status || 'draft', signed_by: r.signed_by, signed_at: r.signed_at, confirmed_at: r.confirmed_at, manager_sig: r.manager_sig, staff_sig: r.staff_sig, staff_comment: r.staff_comment, period: periodOf(key), manager: L.d.editor || L.d.who, checks }, L.d.staff, b);
   }
 }
 
@@ -712,5 +820,5 @@ async function pdf(kind, record, staff, btn) {
   if (btn) { btn.disabled = false; btn.textContent = txt; }
 }
 
-window.PerfO2O = { me, leader, nudge, fillLine, CHECK, QS, KINDS, HZ, NUM_ROWS, MILE, numRow, nowOf, ckCounts, dFull, dMid, dShort, mLong, stamp, first, has };
+window.PerfO2O = { showGoals: () => { ME.tab = 'goals'; ME.sel = 0; }, me, leader, nudge, fillLine, CHECK, QS, KINDS, HZ, NUM_ROWS, MILE, numRow, nowOf, ckCounts, dFull, dMid, dShort, mLong, stamp, first, has };
 })();
