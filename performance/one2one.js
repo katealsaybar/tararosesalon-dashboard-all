@@ -359,7 +359,7 @@ function monthlyBody(k) {
 
 function goalsBody(k) {
   const st = L.d.staff, snap = snapOf('goals');
-  const polN = 3, folN = rowsOf(k, 'follow', 1);
+  const polN = rowsOf(k, 'priorities', 3), folN = rowsOf(k, 'follow', 1);
   return `
   <p class="o2o-who">&#128274; Only ${esc(first(st.name))}, Tara, Emma and Kate can read these answers. They are never shown to the Level 3 leaders, the viewer key or payroll.</p>
   <div class="o2o-g3"><label class="o2o-fl">Team member<input value="${esc(st.name)}" disabled></label><label class="o2o-fl">Role<input value="${esc(st.role)}" disabled></label><label class="o2o-fl">Branch<input value="${esc(st.branch)}" disabled></label>
@@ -373,9 +373,10 @@ function goalsBody(k) {
   <div class="o2o-wrap"><table class="o2o-tbl ed"><tr><th>Measure</th><th>Current 13-week</th><th>6 months</th><th>1 year</th><th>3 years</th></tr>
   ${MILE.map(([key, label, how, w]) => `<tr><td style="padding-top:11px">${label}</td><td class="o2o-auto">${esc(nowOf(snap, key, how, w))}</td><td>${fIn(k, `mile.${key}.m6`)}</td><td>${fIn(k, `mile.${key}.y1`)}</td><td>${fIn(k, `mile.${key}.y3`)}</td></tr>`).join('')}</table></div>
 
-  <div class="o2o-sec">Our agreed priorities, next 13 weeks (up to three)</div>
+  <div class="o2o-sec">Our agreed priorities, next 13 weeks</div>
   <div class="o2o-wrap"><table class="o2o-tbl ed"><tr><th>Action</th><th>Led by</th><th>Support needed</th><th>Due date</th></tr>
   ${Array.from({ length: polN }, (_, i) => `<tr><td>${fIn(k, `priorities.${i}.action`)}</td><td style="width:130px">${fSel(k, `priorities.${i}.led`, [first(st.name), L.d.who])}</td><td>${fIn(k, `priorities.${i}.support`)}</td><td style="width:140px">${fIn(k, `priorities.${i}.due`, 'date')}</td></tr>`).join('')}</table></div>
+  ${k.lock ? '' : `<button class="btn o2o-ghost" type="button" data-act="addrow" data-kind="goals" data-arr="priorities" style="margin-top:6px">Add a priority</button>`}
 
   <div class="o2o-sec">13-week follow-up</div>
   ${Array.from({ length: folN }, (_, i) => `<div class="o2o-g2" style="margin-bottom:10px"><label class="o2o-fl">Check date${fIn(k, `follow.${i}.date`, 'date')}</label><span></span>${fTa(k, `follow.${i}.progress`, 'What progress has been made, and what have we learned?', 3)}${fTa(k, `follow.${i}.change`, 'What should change or be prioritised next?', 3)}</div>`).join('')}
@@ -421,12 +422,12 @@ function redrawCard(kind) {
   old.replaceWith(t.firstElementChild);
 }
 
-function gather(kind) {
+function gather(kind, raw) {
   const card = L.slot.querySelector(`[data-kind="${kind}"]`), out = {};
   card.querySelectorAll('[data-p]').forEach(el => setP(out, el.dataset.p, el.type === 'checkbox' ? el.checked : el.value));
   // Rows nobody filled in are dropped; the sheets re-pad on the next draw.
   [['prev_actions', ['action', 'progress']], ['actions', ['action', 'due', 'measure']], ['priorities', ['action', 'support', 'due']], ['follow', ['date', 'progress', 'change']]]
-    .forEach(([arr, keys]) => { if (Array.isArray(out[arr])) out[arr] = out[arr].filter(r => r && keys.some(x => has(r[x]))); });
+    .forEach(([arr, keys]) => { if (!raw && Array.isArray(out[arr])) out[arr] = out[arr].filter(r => r && keys.some(x => has(r[x]))); });
   if (L.content[kind] && L.content[kind].next_meeting && out.next_meeting == null) out.next_meeting = L.content[kind].next_meeting;
   return out;
 }
@@ -458,7 +459,7 @@ async function onLeaderClick(e) {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act, kind = b.dataset.kind;
   if (a === 'hz') { L.hz = b.dataset.v; const card = b.closest('.o2o-card'); card.querySelectorAll('.o2o-pill').forEach(p => p.classList.toggle('on', p === b)); card.querySelectorAll('[data-hz]').forEach(g => { g.hidden = g.dataset.hz !== L.hz; }); }
-  else if (a === 'addrow') { if (locked(kind)) return; L.content[kind] = gather(kind); const arr = b.dataset.arr; L.content[kind][arr] = (L.content[kind][arr] || []).concat([{}]); redrawCard(kind); }
+  else if (a === 'addrow') { if (locked(kind)) return; L.content[kind] = gather(kind, true); const arr = b.dataset.arr; L.content[kind][arr] = (L.content[kind][arr] || []).concat([{}]); redrawCard(kind); }
   else if (a === 'savenow') { await save(kind); }
   else if (a === 'sign') {
     if (!confirm(`Sign off as ${L.d.who}?\n\nThe numbers freeze and ${first(L.d.staff.name)} can see this on their own link. You can reopen it later; the signed version is kept.`)) return;
