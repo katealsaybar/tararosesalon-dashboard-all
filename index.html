@@ -33,6 +33,17 @@ window.TRS_AUTH_HASH = location.hash;
   ['error','error_code','error_description'].forEach(function(k){ q.delete(k); });
   history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
 })();
+// Kate, 7 Oct 2026: Client's Last Visit's address reads ?view=last-visit. Everything below still
+// knows the page as 'lostclients' (stars, favourites, the nav), so the new name is turned back
+// into it here before anything reads the address; trSyncUrl writes last-visit out again.
+(function(){
+  try {
+    var q = new URLSearchParams(location.search);
+    if (q.get('view') !== 'last-visit') return;
+    q.set('view', 'lostclients');
+    history.replaceState(null, '', location.pathname + '?' + q + location.hash);
+  } catch (e) {}
+})();
 // Kate, 1 Oct 2026: a plain trk-salon-os.com is the Knowledge Base hub's address.
 // Read here, before anything below or supabase-js touches the address: no query, no
 // sign-in hash. Signed in, enterIfAllowed() sends it on to /hub/.
@@ -4724,7 +4735,7 @@ function trSyncUrl(sectionId){
   const parts = [];
   // The Pulse is the default view, so it stays a bare path — same URL the load
   // path builds when ?view= is absent.
-  if (CURRENT_VIEW && CURRENT_VIEW !== 'dashboard') parts.push('view=' + CURRENT_VIEW);
+  if (CURRENT_VIEW && CURRENT_VIEW !== 'dashboard') parts.push('view=' + (CURRENT_VIEW === 'lostclients' ? 'last-visit' : CURRENT_VIEW));
   // Kate, 4 Sep 2026: the Split too. MTD, Weekly and Daily are three readings of
   // the same month rather than a preference you happen to hold, so which one you
   // are looking at is part of where you are. Written in full including the
