@@ -1,5 +1,6 @@
-// Staff's Quarterly Performance, named 13-Week Report until 1 Oct 2026 (Kate: 13 weeks is a
-// quarter, four of them make the year, and the page already totals by quarter).
+// Staff's 13 Week. Named 13-Week Report until 1 Oct 2026, then Staff's Quarterly Performance; Kate, 7 Oct 2026: no
+// quarters on this page, just Weeks 1 to 52, and the table runs across (a column a week) with every figure
+// perf_core gives a week.
 // Built 29 Sep 2026, Emma's ask: the Staff Benchmarks page cuts its
 // week-by-week chart at the month, so it only ever shows 4 or 5 weeks. This is one
 // stylist's last thirteen full weeks, Monday to Sunday, so the quarter's ups and
@@ -87,7 +88,6 @@ let w13Win = 28, w13Off = 0;
 // Which measure is the bars. Sales, always: a Sales / Clients swap toggle was tried and
 // taken off the same evening (Kate, 29 Sep 2026, too chunky beside the other controls).
 const w13Bars = 'sales';
-let w13QOpen = null;       // quarters open in her table; null = only the latest one
 const w13ChartTitleText = () => (w13Mode === 'day' ? 'Day by day' : 'Week by week') + ' · ' +
   (w13Bars === 'clients' ? 'clients (bars) and sales (line)' : 'sales (bars) and clients (line)');
 const W13_WINS = [[14, '2 weeks'], [28, '1 month'], [91, '3 months'], [0, 'All']];
@@ -121,18 +121,8 @@ const w13DayEnd = d => { const x = new Date(d + 'T00:00:00'); x.setDate(x.getDat
 // the number, on the chart and in the table alike.
 // The year's own week number, Week 1 being the first week of January.
 const w13Wk = no => 'Week ' + String(no).padStart(2, '0');
-// Quarters inside the year: Q1 = Weeks 1-13, Q2 14-26, Q3 27-39, Q4 40-52 (and 53).
-const w13Q = no => Math.min(4, Math.floor((no - 1) / 13) + 1);
-// Each quarter its own shade, light to dark (Kate, 29 Sep 2026), so the 13-week blocks
-// read at a glance. Hair on the brand lavender, beauty on the brand coral; the brand
-// colour itself is one of the four. Index 0 = Q1.
-const W13_SHADES = {
-  Hair:   ['#DDD6FE', '#C4B5FD', '#A78BFA', '#8B5CF6'],
-  Beauty: ['#FFD1D1', '#FFB5B5', '#FF9B9B', '#F47C7C'],
-};
-const w13Shades = dept => W13_SHADES[dept === 'Beauty' ? 'Beauty' : 'Hair'];
-// Quarter of a date inside the loaded year (days since its Week 1 Monday).
-const w13QOfDate = (date, from) => Math.min(4, Math.floor(Math.round((new Date(date + 'T00:00:00') - new Date(from + 'T00:00:00')) / 864e5) / 91) + 1);
+// One colour a dept for the bars (Kate, 7 Oct 2026: no quarter shades). Hair on the brand lavender, beauty on the brand coral.
+const w13BarCol = dept => dept === 'Beauty' ? '#FF9B9B' : '#C4B5FD';
 // What the bars and the line are (Kate, 29 Sep 2026): a bar swatch for Sales and a
 // line-with-dot for Clients, in the same small labelled style as the quarter key.
 function w13SeriesKey(dept) {
@@ -141,12 +131,6 @@ function w13SeriesKey(dept) {
     <span><i class="bar" style="background:${bar}"></i>Service sales (AED)</span>
     <span><i class="line" style="--c:${line}"></i>Clients</span>
   </span>`;
-}
-// The Q1-Q4 key beside the chart title, only for quarters the chart has.
-function w13QKey(dept, qs) {
-  const sh = w13Shades(dept);
-  return `<span class="w13-qkey" aria-label="Quarter colours">${[1, 2, 3, 4].filter(q => qs.includes(q)).map(q =>
-    `<span><i style="background:${sh[q - 1]}"></i>Q${q}</span>`).join('')}</span>`;
 }
 // The Year pill, shared by the grid and her report, dressed as the Staff Benchmarks pill.
 function w13YearPick(d) {
@@ -168,6 +152,35 @@ const w13Range = d => {
 const W13_BRANCH = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
 
 // "10 of 20 · 50%" — Emma's ask for rebooking everywhere: the count, not just the rate.
+// The rows of the table across the page. 'g' rows are group heads; the rest are
+// [label, how to show it from a week's numbers or from the year's sums].
+const W13_SUMS = ['total_revenue', 'hair_services', 'treatments', 'retail', 'clients', 'salon', 'req', 'new_clients', 'ncr',
+                  'rebooked', 'booked_hours', 'available_hours', 'google_reviews'];
+const w13Ratio = (a, b, f) => b > 0 ? f(a / b) : '–';
+const W13_ROWS = [
+  ['g', 'Sales'],
+  ['Service sales (AED)', n => w13Num(n.total_revenue)],
+  ['Hair services (AED)', n => w13Num(n.hair_services)],
+  ['Treatments (AED)', n => w13Num(n.treatments)],
+  ['Retail (AED)', n => w13Num(n.retail)],
+  ['Average bill (AED)', n => w13Ratio(n.total_revenue, n.clients, w13Num)],
+  ['g', 'Clients'],
+  ['Clients', n => w13Num(n.clients)],
+  ['Salon clients', n => w13Num(n.salon)],
+  ['Requests', n => w13Num(n.req)],
+  ['New clients', n => w13Num(n.new_clients)],
+  ['New client requests', n => w13Num(n.ncr)],
+  ['Request %', n => w13Ratio(100 * (+n.req + +n.ncr), n.clients, v => Math.round(v) + '%')],
+  ['g', 'Rebooking'],
+  ['Rebooked', n => n.clients > 0 ? `${w13Num(n.rebooked)} of ${w13Num(n.clients)}` : '–'],
+  ['Rebooking %', n => w13Ratio(100 * n.rebooked, n.clients, v => Math.round(v) + '%')],
+  ['g', 'Column'],
+  ['Column fill %', n => w13Ratio(100 * n.booked_hours, n.available_hours, v => Math.round(v) + '%')],
+  ['Hours booked', n => w13Num(n.booked_hours)],
+  ['Hours available', n => w13Num(n.available_hours)],
+  ['g', 'Reviews'],
+  ['Google reviews', n => w13Num(n.google_reviews)],
+];
 function w13Rebook(rebooked, clients) {
   if (!clients) return '–';
   return `${w13Num(rebooked)} of ${w13Num(clients)} · ${Math.round(100 * rebooked / clients)}%`;
@@ -230,7 +243,6 @@ function w13Photo(keys) {
 // grey (she took nothing: leave, days off). `aim` draws her weekly aim as a dotted line.
 function w13Spark(weekly, cur, dept, o) {
   o = o || {};
-  const sh = w13Shades(dept);
   const v = (weekly || []).map(Number);
   if (cur !== null && cur !== undefined) v.push(Number(cur));
   const last = (cur !== null && cur !== undefined) ? v.length - 1 : -1;
@@ -241,7 +253,7 @@ function w13Spark(weekly, cur, dept, o) {
   return `<svg class="w13-spark" viewBox="0 0 ${wTot} ${h}" preserveAspectRatio="none" aria-hidden="true">${v.map((x, i) => {
     if (!(x > 0) && nd(i)) return `<rect x="${i * (bw + gap) + .5}" y="${h - 8.5}" width="${bw - 1}" height="8" rx="1.5" class="nd"/>`;
     const bh = x > 0 ? Math.max(2, Math.round(h * x / max)) : 2;
-    return `<rect x="${i * (bw + gap)}" y="${h - bh}" width="${bw}" height="${bh}" rx="1.5" class="${x > 0 ? 'on' : ''}${i === last ? ' cur' : ''}"${x > 0 ? ` style="fill:${sh[Math.min(3, Math.floor(i / 13))]}"` : ''}/>`;
+    return `<rect x="${i * (bw + gap)}" y="${h - bh}" width="${bw}" height="${bh}" rx="1.5" class="${x > 0 ? 'on' : ''}${i === last ? ' cur' : ''}"/>`;
   }).join('')}${aim ? `<line x1="0" x2="${wTot}" y1="${ay}" y2="${ay}" class="aim"/>` : ''}</svg>`;
 }
 
@@ -260,9 +272,9 @@ async function renderStaffWeeks() {
   }
   if (!w13Pick) { await w13RenderTeam(el); w13Sync(); return; }
   if (!w13Data || !w13Data.staff || w13Data.staff.id !== w13Pick) {
-    el.innerHTML = '<p class="slv-muted">Loading her quarters…</p>';
+    el.innerHTML = '<p class="slv-muted">Loading her weeks…</p>';
     try { w13Data = await w13Load(w13Pick); }
-    catch (e) { el.innerHTML = '<p class="slv-muted">Staff’s 13 Week Report didn\'t load. Refresh to try again.</p>'; return; }
+    catch (e) { el.innerHTML = '<p class="slv-muted">Staff’s 13 Week didn\'t load. Refresh to try again.</p>'; return; }
   }
   const d = w13Data, s = d.staff;
   if (!s) { w13Pick = null; await w13RenderTeam(el); w13Sync(); return; }
@@ -282,72 +294,26 @@ async function renderStaffWeeks() {
                 uh: sum('booked_hours'), ah: sum('available_hours') };
   const worked = weeks.filter(w => w.numbers.total_revenue > 0 || w.numbers.clients > 0).length;
 
-  // One block per quarter: the quarter's totals on top, its weeks under it. Kate,
-  // 29 Sep 2026: each quarter folds away, so a full year is four lines to read and
-  // one tap to open. The quarter the latest week sits in starts open, the rest
-  // closed; whatever you open or close is kept while you move between stylists.
-  const fillOf = n => n.ah > 0 ? Math.round(100 * n.uh / n.ah) + '%' : '–';
-  const sumOf = ws => ws.reduce((a, w) => { const n = w.numbers;
-    a.sales += +n.total_revenue || 0; a.clients += +n.clients || 0; a.rebooked += +n.rebooked || 0;
-    a.retail += +n.retail || 0; a.uh += +n.booked_hours || 0; a.ah += +n.available_hours || 0; return a; },
-    { sales: 0, clients: 0, rebooked: 0, retail: 0, uh: 0, ah: 0 });
-  const qs = [...new Set(weeks.map(w => w13Q(w.week_no)))];
-  if (!w13QOpen) w13QOpen = new Set(qs.slice(-1));
-  let rows = '';
-  qs.forEach(q => {
-    const qw = weeks.filter(x => w13Q(x.week_no) === q), t = sumOf(qw), open = w13QOpen.has(q);
-    const done = qw.length < 13 && q < 4 ? ` (${qw.length} of 13 weeks)` : '';
-    rows += `<tbody class="w13-q${open ? ' open' : ''}" data-q="${q}">
-      <tr class="w13-sub w13-qhead" onclick="w13ToggleQ(${q})"><td><button type="button" class="w13-qbtn" aria-expanded="${open}"
-        onclick="event.stopPropagation();w13ToggleQ(${q})"><span class="w13-chev" aria-hidden="true"></span>${w13Esc(`Q${q} · Weeks ${qw[0].week_no}–${qw[qw.length - 1].week_no}${done}`)}</button></td>
-      <td>${w13Num(t.sales)}</td><td>${w13Num(t.clients)}</td>
-      <td class="slv-aim">${w13Rebook(t.rebooked, t.clients)}</td><td>${t.clients ? w13Num(t.sales / t.clients) : '–'}</td><td>${w13Num(t.retail)}</td><td>${fillOf(t)}</td></tr>`;
-    qw.forEach(w => {
-      const n = w.numbers;
-      const fill = n.available_hours > 0 ? Math.round(100 * n.booked_hours / n.available_hours) + '%' : '–';
-      const off = !(n.total_revenue > 0 || n.clients > 0);
-      const why = !off ? '' : w13NoData(d.staff.branch, String(w.week_start).slice(0, 10)) ? 'not uploaded yet' : (w13Cov ? 'no sales: leave or days off' : '');
-      rows += `<tr class="w13-wk${off ? ' w13-off' : ''}">
-      <td><b>${w13Wk(w.week_no)}</b><div class="slv-note">${w13Esc(w13Range(w.week_start))}${why ? ' · ' + why : ''}</div></td>
-      <td>${w13Num(n.total_revenue)}</td><td>${w13Num(n.clients)}</td>
-      <td class="slv-aim">${w13Rebook(n.rebooked, n.clients)}</td>
-      <td>${w13Num(n.avg_bill)}</td><td>${w13Num(n.retail)}</td><td>${fill}</td></tr>`;
-    });
-    rows += '</tbody>';
-  });
+  // The table runs across (Kate, 7 Oct 2026): a column a week, Weeks 1 to 52 with no quarters, the
+  // year's total beside the labels, and a row for every figure perf_core gives a week. The year
+  // column is worked out from the same sums as a week, so a ratio is a ratio of totals.
+  const yr = Object.fromEntries(W13_SUMS.map(k => [k, weeks.reduce((x, w) => x + (Number(w.numbers[k]) || 0), 0)]));
   const totFill = tot.ah > 0 ? Math.round(100 * tot.uh / tot.ah) + '%' : '–';
-  // The quarter strip (Kate, 29 Sep 2026): one card per quarter with its sales, clients
-  // and rebooking, and how its weekly average compares with the quarter before, so the
-  // "is she growing?" answer is in plain numbers above the chart. Weekly average, not
-  // the total, so a quarter still in progress compares fairly.
-  const qShade = w13Shades(s.dept);   // qs (the quarters present) is defined above, with the fold state
-  let prevAvg = null;
-  const qCards = qs.map(q => {
-    const qw = weeks.filter(w => w13Q(w.week_no) === q), t = sumOf(qw), avg = t.sales / qw.length;
-    let chg = '';
-    if (prevAvg) {
-      const pct = Math.round(100 * (avg - prevAvg) / prevAvg);
-      chg = `<div class="w13-q-chg ${pct > 0 ? 'up' : pct < 0 ? 'down' : ''}">${pct > 0 ? '▲' : pct < 0 ? '▼' : '='} ${Math.abs(pct)}% vs Q${q - 1}<span>’s weekly average</span></div>`;
-    } else chg = `<div class="w13-q-chg"><span>first quarter of ${d.year}</span></div>`;
-    prevAvg = avg;
-    return `<div class="w13-qcard" style="border-top-color:${qShade[q - 1]}">
-      <div class="slv-eyebrow">Q${q} · Weeks ${qw[0].week_no}–${qw[qw.length - 1].week_no}${qw.length < 13 && q < 4 ? ` <span class="w13-q-part">${qw.length} of 13</span>` : ''}</div>
-      <div class="w13-q-val">${w13Aed(t.sales)}</div>
-      <div class="slv-note">${w13Num(t.clients)} clients · ${t.clients ? `${w13Num(t.rebooked)} of ${w13Num(t.clients)} rebooked (${Math.round(100 * t.rebooked / t.clients)}%)` : 'no clients'}</div>
-      ${chg}
-    </div>`;
+  const cols = weeks.length + (curWk ? 1 : 0) + 2;
+  const head = weeks.map(w => {
+    const n = w.numbers, off = !(n.total_revenue > 0 || n.clients > 0);
+    const why = !off ? '' : w13NoData(d.staff.branch, String(w.week_start).slice(0, 10)) ? 'not uploaded yet' : (w13Cov ? 'leave or days off' : '');
+    return `<th class="${off ? 'w13-off' : ''}"><b>${w13Wk(w.week_no)}</b><span>${w13Esc(w13Range(w.week_start))}</span>${why ? `<span>${why}</span>` : ''}</th>`;
+  }).join('') + (curWk ? `<th class="w13-cur"><b>${w13Wk(curWk.week_no)}</b><span>so far</span><span>${curWk.week_start === d.data_through ? w13Esc(w13Day(d.data_through)) : `${w13Esc(w13Day(curWk.week_start))} – ${w13Esc(w13Day(d.data_through))}`}</span></th>` : '');
+  const body = W13_ROWS.map(r => {
+    if (r[0] === 'g') return `<tr class="slv-g"><th colspan="${cols}"><span>${r[1]}</span></th></tr>`;
+    const cell = (n, cls) => `<td${cls ? ` class="${cls}"` : ''}>${r[1](n)}</td>`;
+    return `<tr><td>${r[0]}</td>${cell(yr, 'w13-yr')}${weeks.map(w => cell(w.numbers, !(w.numbers.total_revenue > 0 || w.numbers.clients > 0) ? 'w13-off' : '')).join('')}${curWk ? cell(curWk.numbers, 'w13-cur') : ''}</tr>`;
   }).join('');
-  const curRow = curWk ? (() => {
-    const n = curWk.numbers, fill = n.available_hours > 0 ? Math.round(100 * n.booked_hours / n.available_hours) + '%' : '–';
-    return `<tr class="w13-cur"><td><b>${w13Wk(curWk.week_no)}</b> <span class="slv-note" style="display:inline">so far</span><div class="slv-note">${curWk.week_start === d.data_through ? w13Esc(w13Day(d.data_through)) : `${w13Esc(w13Day(curWk.week_start))} to ${w13Esc(w13Day(d.data_through))}`}</div></td>
-      <td>${w13Num(n.total_revenue)}</td><td>${w13Num(n.clients)}</td><td class="slv-aim">${w13Rebook(n.rebooked, n.clients)}</td>
-      <td>${w13Num(n.avg_bill)}</td><td>${w13Num(n.retail)}</td><td>${fill}</td></tr>`;
-  })() : '';
-
   el.innerHTML = `
     <section class="slv-intro">
-      <h2>Staff&rsquo;s 13 Week Report</h2>
-      <p>Every week of the year in one list, Monday to Sunday from the first week of January, with each 13-week quarter totalled as you go: Q1 is Weeks 1–13, Q2 14–26, Q3 27–39, Q4 40–52. Only complete weeks count in the totals; the week still being traded shows on the end as "so far". Sales are services before VAT, retail not included.</p>
+      <h2>Staff&rsquo;s 13 Week</h2>
+      <p>Weeks 1 to 52, Monday to Sunday from the first week of January, one column a week, with the year's total beside the labels. Sales sit at the top, then clients, rebooking and column fill. Only complete weeks count in the total; the week still being traded shows on the end as "so far". Service sales are before VAT, retail not included.</p>
     </section>
     <div class="sc-bar w13-bar" style="margin-bottom:14px">
       <button type="button" class="sc-btn" onclick="w13Set(null)">← ${w13Dept === 'Hair' ? 'Hair team' : w13Dept === 'Beauty' ? 'Beauty team' : 'All staff'}</button>
@@ -366,13 +332,11 @@ async function renderStaffWeeks() {
         <div class="w13-tile"><div class="slv-eyebrow">Rebooking</div><div class="w13-val">${tot.clients ? Math.round(100 * tot.rebooked / tot.clients) + '%' : '–'}</div><div class="slv-note">${tot.clients ? `${w13Num(tot.rebooked)} of ${w13Num(tot.clients)} clients rebooked` : ''}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Column fill</div><div class="w13-val">${totFill}</div><div class="slv-note">${tot.ah ? `${w13Num(tot.uh)} of ${w13Num(tot.ah)} hours booked` : ''}</div></div>
       </div>
-      ${qCards ? `<div class="w13-qstrip">${qCards}</div>` : ''}
       <div class="w13-chart-head">
         <div class="slv-eyebrow" id="w13ChartTitle">${w13ChartTitleText()}</div>
         <div class="w13-chart-ctl">
         ${w13SeriesKey(s.dept)}
-        ${w13QKey(s.dept, [...new Set(d.weeks.map(w => w13Q(w.week_no)))])}
-        ${(d.days || []).length ? `<div class="sc-seg" role="group" aria-label="Chart" style="display:inline-flex">
+                ${(d.days || []).length ? `<div class="sc-seg" role="group" aria-label="Chart" style="display:inline-flex">
           <button type="button" data-m="day" class="${w13Mode === 'day' ? 'on' : ''}" onclick="w13SetMode('day')">Daily</button>
           <button type="button" data-m="week" class="${w13Mode === 'week' ? 'on' : ''}" onclick="w13SetMode('week')">Weekly</button>
         </div>` : ''}
@@ -380,27 +344,25 @@ async function renderStaffWeeks() {
       </div>
       <div class="w13-zoom" id="w13Zoom"></div>
       <div style="position:relative;height:320px;margin-top:14px"><canvas id="w13Canvas"></canvas></div>
-      <div class="slv-wrap" style="margin-top:14px"><table class="slv-table w13-table">
-        <thead><tr><th>Week</th><th>Service sales (AED)</th><th>Clients</th><th>Rebooked</th><th>Avg bill</th><th>Retail</th><th>Column fill</th></tr></thead>
-        ${rows}
-        <tbody>
-          <tr class="w13-tot"><td>${w13Esc(`${d.year} · Weeks 1–${weeks.length ? weeks[weeks.length - 1].week_no : 0}`)}</td><td>${w13Num(tot.sales)}</td><td>${w13Num(tot.clients)}</td><td class="slv-aim">${w13Rebook(tot.rebooked, tot.clients)}</td>
-            <td>${tot.clients ? w13Num(tot.sales / tot.clients) : '–'}</td><td>${w13Num(tot.retail)}</td><td>${totFill}</td></tr>
-          ${curRow}
-        </tbody>
+      <div class="slv-wrap w13-across-wrap" id="w13Wrap" style="margin-top:14px"><table class="slv-table w13-table w13-across">
+        <thead><tr><th>Figure</th><th class="w13-yr">${w13Esc(`${d.year} · Weeks 1–${weeks.length ? weeks[weeks.length - 1].week_no : 0}`)}</th>${head}</tr></thead>
+        <tbody>${body}</tbody>
       </table></div>
       <p class="slv-muted">Sales to ${w13Esc(w13Day(d.data_through))}. The totals are the complete weeks only; the week still being traded joins them once Sunday closes. Weeks with no clients stay in as zeros so the gaps show (leave, days off, or a week not uploaded yet).</p>
     </section>`;
   if (typeof spfDD === 'function') spfDD(document.getElementById('w13Year'));
+  // The latest weeks are the ones read first; the labels and the year stay put on the left.
+  const wrap = document.getElementById('w13Wrap');
+  if (wrap) wrap.scrollLeft = wrap.scrollWidth;
   w13Draw();
 }
 
 async function w13RenderTeam(el) {
   if (w13Chart) { w13Chart.destroy(); w13Chart = null; }
   if (!w13Team) {
-    el.innerHTML = '<p class="slv-muted">Loading the team\'s quarters…</p>';
+    el.innerHTML = '<p class="slv-muted">Loading the team\'s weeks…</p>';
     try { w13Team = await w13Load(null); }
-    catch (e) { el.innerHTML = '<p class="slv-muted">Staff’s 13 Week Report didn\'t load. Refresh to try again.</p>'; return; }
+    catch (e) { el.innerHTML = '<p class="slv-muted">Staff’s 13 Week didn\'t load. Refresh to try again.</p>'; return; }
   }
   const t = w13Team;
   [w13Aims] = await Promise.all([w13LoadAims(), w13LoadCoverage(t.from, t.to)]);
@@ -423,8 +385,8 @@ async function w13RenderTeam(el) {
   };
   el.innerHTML = `
     <section class="slv-intro">
-      <h2>Staff&rsquo;s 13 Week Report</h2>
-      <p>Everyone's ${t.year} so far, week by week from the first week of January: ${w13Esc(w13Day(t.from))} to ${w13Esc(w13Day(t.to))}. The small bars are her sales, one a week${t.current_week_no ? `, with Week ${t.current_week_no} so far as the paler one on the end` : ''}. Tap anyone for her full list, with each 13-week quarter totalled.</p>
+      <h2>Staff&rsquo;s 13 Week</h2>
+      <p>Everyone's ${t.year} so far, week by week from the first week of January: ${w13Esc(w13Day(t.from))} to ${w13Esc(w13Day(t.to))}. The small bars are her sales, one a week${t.current_week_no ? `, with Week ${t.current_week_no} so far as the paler one on the end` : ''}. Tap anyone for her full year, week by week.</p>
     </section>
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Team">
@@ -483,9 +445,8 @@ function w13Draw() {
   w13PaintZoom(daily, all.length, win, shown);
   const rows = daily
     ? shown.map(x => ({ label: win <= 31 ? [new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short' }), w13Day(x.date)] : w13Day(x.date),
-        tip: new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), q: w13QOfDate(x.date, w13Data.from), sales: x.total_revenue, clients: x.clients }))
-    : w13Data.weeks.map((w, i) => ({ label: w.current ? [w13Wk(w.week_no), 'so far'] : [w13Wk(w.week_no), w13Range(w.week_start)], cur: !!w.current, q: w13Q(w.week_no), no: w.week_no, ws: w.week_start, sales: w.numbers.total_revenue, clients: w.numbers.clients }));
-  const shades = w13Shades(w13Data.staff && w13Data.staff.dept);
+        tip: new Date(x.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), sales: x.total_revenue, clients: x.clients }))
+    : w13Data.weeks.map((w, i) => ({ label: w.current ? [w13Wk(w.week_no), 'so far'] : [w13Wk(w.week_no), w13Range(w.week_start)], cur: !!w.current, no: w.week_no, ws: w.week_start, sales: w.numbers.total_revenue, clients: w.numbers.clients }));
   // Same colours as her Staff Benchmarks chart: hair violet bars and a green line,
   // beauty pink bars and a deep violet line (Kate, 29 Sep 2026). The pink is the brand's
   // coral pillar accent, #FF9B9B (trs-brand-guardian palette), as the lavender is.
@@ -498,45 +459,13 @@ function w13Draw() {
   const whyEmpty = r => (r.sales > 0 || r.clients > 0 || r.cur || daily) ? null
     : w13NoData(home, String(r.ws || '').slice(0, 10)) ? 'Not uploaded yet' : (w13Cov ? 'No sales: leave or days off' : null);
   const LBL = { sales: 'Service sales (AED)', clients: 'Clients' }, barLbl = LBL[barKey], lineLbl = LBL[lineKey];
-  // Quarter bands (Kate, 29 Sep 2026: the dashed line was too quiet for the untrained
-  // eye). Each quarter gets a faint wash of its own shade behind its bars, a firm line
-  // where it meets the next, and its name printed above it: "Q2 · Weeks 14–26".
-  const qBands = {
-    id: 'w13QBands',
-    beforeDatasetsDraw(chart) {
-      const x = chart.scales.x, a = chart.chartArea, ctx = chart.ctx, n = rows.length;
-      if (!n) return;
-      const mid = (i, k) => (x.getPixelForValue(i) + x.getPixelForValue(k)) / 2;
-      const runs = [];
-      rows.forEach((r, i) => { const last = runs[runs.length - 1]; if (last && last.q === r.q) last.to = i; else runs.push({ q: r.q, from: i, to: i }); });
-      ctx.save();
-      runs.forEach((run, k) => {
-        const l = run.from === 0 ? a.left : mid(run.from - 1, run.from);
-        const rgt = run.to === n - 1 ? a.right : mid(run.to, run.to + 1);
-        ctx.fillStyle = (shades[(run.q || 1) - 1] || '#999999') + '26';
-        ctx.fillRect(l, a.top, rgt - l, a.bottom - a.top);
-        if (k > 0) { ctx.strokeStyle = muted || '#888'; ctx.globalAlpha = .45; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(l, a.top); ctx.lineTo(l, a.bottom); ctx.stroke(); ctx.globalAlpha = 1; }
-        // The name above the band, shortened when the band is narrow.
-        const wk = daily ? null : rows.slice(run.from, run.to + 1).map(r => r.no).filter(Boolean);
-        const long = `Q${run.q}${wk && wk.length ? (wk.length === 1 ? ` · Week ${wk[0]}` : ` · Weeks ${wk[0]}–${wk[wk.length - 1]}`) : ''}`;
-        ctx.font = "600 12px Inter, system-ui, sans-serif";
-        const txt = ctx.measureText(long).width + 8 < rgt - l ? long : `Q${run.q}`;
-        if (ctx.measureText(txt).width + 4 < rgt - l) {
-          ctx.fillStyle = muted || '#888'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-          ctx.fillText(txt, (l + rgt) / 2, a.top - 6);
-        }
-      });
-      ctx.restore();
-    },
-  };
   if (w13Chart) w13Chart.destroy();
   w13Chart = new Chart(cv, {
-    plugins: [qBands],
     data: {
       labels: rows.map(r => r.label),
       datasets: [
         // Same look as the stylist page's chart. Lower order draws on top.
-        { type: 'bar', order: 2, label: barLbl, data: rows.map(r => r[barKey]), backgroundColor: rows.map(r => { const c = shades[(r.q || 1) - 1] || pal.bar; return r.cur ? c + '73' : c; }), yAxisID: 'y', borderRadius: daily ? (win <= 31 ? 4 : 2) : 6, maxBarThickness: 60 },
+        { type: 'bar', order: 2, label: barLbl, data: rows.map(r => r[barKey]), backgroundColor: rows.map(r => r.cur ? pal.bar + '73' : pal.bar), yAxisID: 'y', borderRadius: daily ? (win <= 31 ? 4 : 2) : 6, maxBarThickness: 60 },
         { type: 'line', order: 1, label: lineLbl, data: rows.map(r => r[lineKey]), borderColor: pal.line, borderWidth: daily ? 1.5 : 2.5, backgroundColor: pal.line,
           pointRadius: daily ? (win <= 31 ? 3 : win <= 91 ? 2 : 0) : 4, pointHoverRadius: daily ? 4 : 6, pointBackgroundColor: '#fff', pointBorderColor: pal.line, pointBorderWidth: 2, yAxisID: 'y1', tension: 0.4, cubicInterpolationMode: 'monotone' },   // smooth, never overshoots (Kate, 29 Sep 2026)
         ...(wAim ? [{ type: 'line', order: 0, label: 'Weekly aim', data: rows.map(() => Math.round(wAim)), borderColor: muted || '#888',
@@ -545,10 +474,8 @@ function w13Draw() {
     },
     options: {
       maintainAspectRatio: false,
-      layout: { padding: { top: 30 } },   // room for the quarter names above the bands
       interaction: { mode: 'index', intersect: false },
-      // The Sales / Clients key lives in the controls row (w13SeriesKey), so the quarter
-      // names have the top of the chart to themselves.
+      // The Sales / Clients key lives in the controls row (w13SeriesKey).
       plugins: { legend: { display: false },
                  tooltip: { callbacks: { title: items => { const r = rows[items[0].dataIndex]; if (r && r.tip) return r.tip; const l = items[0].chart.data.labels[items[0].dataIndex]; return Array.isArray(l) ? l.join(' · ') : l; },
                                          afterBody: items => { const r = rows[items[0].dataIndex]; const w = r && whyEmpty(r); return w ? [w] : []; } } } },
@@ -605,17 +532,6 @@ function w13SetMode(m) {
   const t = document.getElementById('w13ChartTitle');
   if (t) t.textContent = w13ChartTitleText();
   w13Draw();
-}
-// Fold or open one quarter of her table, in place: no redraw, the chart stays put.
-function w13ToggleQ(q) {
-  if (!w13QOpen) w13QOpen = new Set();
-  const open = !w13QOpen.has(q);
-  if (open) w13QOpen.add(q); else w13QOpen.delete(q);
-  const tb = document.querySelector(`#staffWeeksContent .w13-q[data-q="${q}"]`);
-  if (!tb) return;
-  tb.classList.toggle('open', open);
-  const b = tb.querySelector('.w13-qbtn');
-  if (b) b.setAttribute('aria-expanded', open);
 }
 function w13Set(id) {
   w13Pick = id || null;
