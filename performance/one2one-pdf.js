@@ -71,6 +71,20 @@ const frame = (form, ver, draft) => ({
 });
 const grid3 = items => ({ columns: items.map(i => i[0] ? ({ width: '*', ...field(i[0], i[1]) }) : ({ width: '*', text: '' })), columnGap: 14, margin: [0, 0, 0, 2] });
 
+// One signed 13-week check: what was said, the next priorities, and who signed it when.
+function checkBlock(ch, staff, P) {
+  const cc = ch.content || {}, pri = (cc.priorities || []).filter(a => has(a.action)).map(a => [a.action, a.led, a.support, P.dShort(a.due) || a.due]);
+  const state = ch.status === 'filed' ? `Signed by ${ch.signed_by} on ${stampY(ch.signed_at)}. Acknowledged by ${staff.name} on ${stampY(ch.confirmed_at)}.`
+    : ch.status === 'signed' ? `Signed by ${ch.signed_by} on ${stampY(ch.signed_at)}. Waiting for ${staff.name} to acknowledge.` : 'Draft, not signed.';
+  const img = (src, who) => src ? { stack: [{ image: src, fit: [110, 40] }, { text: who, fontSize: 7, color: C.soft }] } : { text: '' };
+  return { stack: [{ text: `Check on ${P.dMid(cc.meeting_date) || P.mLong(ch.period)}`, bold: true, fontSize: 10.5, margin: [0, 12, 0, 0] }, small(state),
+    field('What progress has been made, and what have we learned?', cc.progress), field('What should change or be prioritised next?', cc.change),
+    { text: 'AGREED PRIORITIES, NEXT 13 WEEKS', fontSize: 7, color: C.soft, characterSpacing: 0.7, margin: [0, 8, 0, 2] },
+    table(['Action', 'Led by', 'Support needed', 'Due date'], pri, ['*', 70, '*', 70]),
+    ch.staff_comment ? field('Team member comment', ch.staff_comment) : { text: '' },
+    { columns: [img(ch.staff_sig, staff.name), img(ch.manager_sig, ch.signed_by || '')], columnGap: 16, margin: [0, 6, 0, 0] }], unbreakable: true };
+}
+
 function monthly(rec, staff, P) {
   const c = rec.content || {}, snap = rec.snapshot || {}, mgr = rec.signed_by || rec.manager || '';
   const win = snap.from ? `${P.dShort(snap.from)} to ${P.dShort(snap.to)} ${new Date(snap.to + 'T00:00:00').getFullYear()}` : '';
@@ -83,9 +97,10 @@ function monthly(rec, staff, P) {
     sec('Details'),
     grid3([['Team member', staff.name], ['Role', staff.role], ['Branch', staff.branch]]),
     grid3([['Manager', mgr], ['Meeting date', P.dMid(c.meeting_date)], ['Review period (13 weeks)', win]]),
+    small(P.fillLine(rec, snap, c.meeting_date, rec.status === 'draft')),
     sec('01  Wins and highlights'), field('What has gone well since we last met: achievements, progress and kind words from clients or colleagues', c.wins),
     sec('02  Actions from our last meeting'), table(['Previous action', 'Progress and outcome', 'Status'], prev, ['*', '*', 70]),
-    sec('03  Business revenue, 13-week review'), small('Worked out from the stylist\'s own numbers' + (snap.off_days > 0 ? `, with aims cut for ${snap.off_days} days away.` : '.')),
+    sec('03  Business revenue, 13-week review'), small('Worked out from the stylist\'s own numbers' + (snap.off_days > 0 ? `, with aims adjusted for ${snap.off_days} days away.` : '.')),
     table(['Metric', '13-week actual', 'Target', 'Notes and trends'], numRows, [105, 115, 85, '*']),
     field('Key opportunities and the support you would value', c.opportunities),
     sec('04  Social media and networking'), field('How would you like to grow your visibility, build relationships and welcome new clients?', c.social_grow), field('What help, resources, training or support would be useful to you?', c.social_help),
@@ -106,20 +121,22 @@ function goals(rec, staff, P) {
   const pri = (c.priorities || []).filter(a => has(a.action)).map(a => [a.action, a.led, a.support, P.dShort(a.due) || a.due]);
   const mile = P.MILE.map(([k, l, how, w]) => { const v = (c.mile || {})[k] || {}; return [l, { text: P.nowOf(snap, k, how, w), fontSize: 9, bold: true }, v.m6, v.y1, v.y3]; });
   const fol = (c.follow || []).filter(f => has(f.progress) || has(f.change));
+  const checks = (rec.checks || []).slice().sort((x, y) => String(x.period).localeCompare(String(y.period)));
   const body = [].concat(
     top('HR FORM · HR-09', 'Personal, Professional & Financial Goals', '6 months, 1 year, 3 years'),
     { text: 'A guided conversation about what matters to you and how Tara Rose Salons can support your growth. Set goals across three time horizons and review progress every 13 weeks. Share personal or financial details only as far as you feel comfortable.', fontSize: 9, color: C.soft, margin: [0, 4, 0, 4], lineHeight: 1.3 },
     sec('Details'),
     grid3([['Team member', staff.name], ['Role', staff.role], ['Branch', staff.branch]]),
-    grid3([['Manager', mgr], ['Meeting date', P.dMid(c.meeting_date)], ['Next 13-week review', P.dMid(c.next_review)]]),
+    grid3([['Manager', mgr], ['Meeting date', P.dMid(c.meeting_date)], ['Next 13-week check', P.dMid(c.next_review)]]),
+    small(P.fillLine(rec, snap, c.meeting_date, rec.status === 'draft')),
     ...P.HZ.map(([h, hl]) => [sec(`Goals · ${hl}`), small('For every goal, talk through the reason behind it and what achieving it, or not, would mean.'),
       ...P.KINDS.map(([k, kl], n) => [{ text: `0${n + 1}  ${kl} goal`, bold: true, fontSize: 10.5, margin: [0, 8, 0, 0] }, ...P.QS.map(([qk, ql], qi) => field(`${qi + 1}. ${ql}`, ((c.goals || {})[h] || {})[k] && c.goals[h][k][qk]))])]),
     sec('Business performance · 13-week review'), small('Current figures are worked out from the stylist\'s own numbers. The milestones are the ones agreed together.'),
     table(['Measure', 'Current 13-week', '6 months', '1 year', '3 years'], mile, ['*', 80, 60, 60, 60]),
     sec('Our agreed priorities · next 13 weeks'), table(['Action', 'Led by', 'Support needed', 'Due date'], pri, ['*', 70, '*', 70]),
     sec('13-week follow-up'),
-    ...(fol.length ? fol.map(f => [field('What progress has been made, and what have we learned?' + (has(f.date) ? ` (${P.dMid(f.date)})` : ''), f.progress), field('What should change or be prioritised next?', f.change)])
-      : [field('What progress has been made, and what have we learned?', ''), field('What should change or be prioritised next?', '')]),
+    ...(fol.length ? fol.map(f => [field('Earlier note' + (has(f.date) ? ` (${P.dMid(f.date)})` : ''), f.progress), field('What should change or be prioritised next?', f.change)]) : []),
+    ...(checks.length ? checks.map(ch => checkBlock(ch, staff, P)) : (fol.length ? [] : [small('No 13-week check has been signed yet. Each check is signed on its own.')])),
     sigBlock(rec, staff));
   return Object.assign(frame('HR-09', 'v1 · Oct 2026', rec.status === 'draft'), { content: body });
 }
