@@ -266,8 +266,8 @@ function meMonth() {
   if (snap.rows) bits.push(`<section class="card"><div class="eyebrow">Your 13 weeks</div><p class="sub">${esc(winLine(snap))}. Worked out from your own numbers; your leader's notes sit under each line.${snap.off_days > 0 ? ` You were away ${snap.off_days} days in this window, so your aims are adjusted to match.` : ''}</p><div class="rows">${numbersRows(snap, c.notes13)}</div>
     <p class="legend">Green means at or above your aim, amber means close, red means still to reach.</p></section>`);
   if (has(c.opportunities) || has(c.social_grow) || has(c.social_help)) bits.push(`<section class="card">
-    ${has(c.opportunities) ? `<div class="eyebrow">Support you would value</div><p class="o2o-text">${br(c.opportunities)}</p>` : ''}
-    ${has(c.social_grow) || has(c.social_help) ? `<div class="eyebrow" style="margin-top:14px">Social media and networking</div>${has(c.social_grow) ? `<p class="o2o-text">${br(c.social_grow)}</p>` : ''}${has(c.social_help) ? `<p class="o2o-text" style="margin-top:6px">${br(c.social_help)}</p>` : ''}` : ''}</section>`);
+    ${has(c.opportunities) ? `<div class="eyebrow">Performance notes</div><p class="o2o-text">${br(c.opportunities)}</p>` : ''}
+    ${has(c.social_grow) || has(c.social_help) ? `<div class="eyebrow" style="margin-top:14px">Social media / personal brand marketing notes</div>${has(c.social_grow) ? `<p class="o2o-text">${br(c.social_grow)}</p>` : ''}${has(c.social_help) ? `<p class="o2o-text" style="margin-top:6px">${br(c.social_help)}</p>` : ''}` : ''}</section>`);
   if (acts.length || has(c.next_meeting)) bits.push(`<section class="card"><div class="eyebrow">What you agreed</div>${acts.map(a =>
     `<div class="o2o-act"><span class="k">${esc(a.owner || '')}${has(a.due) ? ' · due ' + esc(dShort(a.due) || a.due) : ''}</span>${esc(a.action)}${has(a.measure) ? `<small>Success looks like: ${esc(a.measure)}</small>` : ''}</div>`).join('')}
     ${has(c.next_meeting) ? `<p class="legend">Next 1-to-1: ${esc(dFull(c.next_meeting))}</p>` : ''}</section>`);
@@ -522,10 +522,10 @@ function monthlyBody(k) {
   <p class="o2o-lock"><span class="o2o-autoh">Auto</span> figures come from ${esc(first(st.name))}'s numbers and the aims for their level${snap.off_days > 0 ? `, adjusted for the ${snap.off_days} days away` : ''}. Only the notes are typed.${k.lock ? '' : ' They update until you sign.'}</p>
   <div class="o2o-wrap"><table class="o2o-tbl ed"><tr><th>Metric</th><th>13-week actual</th><th>Target</th><th></th><th>Notes and trends</th></tr>
   ${NUM_ROWS.map(([key, label]) => { const r = numRow(snap, key); return `<tr><td style="padding-top:11px">${label}</td><td class="o2o-auto">${esc(r.a)}</td><td class="o2o-auto">${esc(r.t || '·')}</td><td style="padding-top:12px"><i class="dot ${r.st}"></i></td><td style="min-width:230px">${fIn(k, `notes13.${key}`)}</td></tr>`; }).join('')}</table></div>
-  <div style="margin-top:12px">${fTa(k, 'opportunities', 'Key opportunities and the support you would value', 2)}</div>
+  <div style="margin-top:12px">${fTa(k, 'opportunities', 'Performance notes', 2)}</div>
 
-  <div class="o2o-sec">04 Social media and networking</div>
-  <div class="o2o-g2">${fTa(k, 'social_grow', 'How would you like to grow your visibility, build relationships and welcome new clients?')}${fTa(k, 'social_help', 'What help, resources, training or support would be useful to you?')}</div>
+  <div class="o2o-sec">04 Social media / personal brand marketing notes</div>
+  <div>${fTa(k, 'social_grow', '', 3)}</div>
 
   <div class="o2o-sec">05 Agreed actions</div>
   <div class="o2o-wrap"><table class="o2o-tbl ed"><tr><th>Action or next step</th><th>Owner</th><th>Due date</th><th>Success measure</th></tr>
