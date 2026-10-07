@@ -1,6 +1,10 @@
 /* My 1-to-1 and Goals (Kate, 7 Oct 2026), drawn by one2one.js. Stylist's own link: the fourth
    tab, in #perfMore. Leaders: two cards in Staff Benchmarks, in #o2oSlot. Every class is
    prefixed o2o- so nothing here can touch performance.css or year-levels.css. */
+/* The site-wide pill dropdown (assets/pill-select.js) fills the chosen option with --accent. This page
+   never defined one, so it fell back to near-black text on a near-black pill (Kate, 7 Oct 2026). Use the
+   page's own button colours, the same as the month picker's chosen month. */
+:root{--accent:var(--btn);--accent-fg:var(--btn-fg)}
 :root{--o2o-new:#6D28D9;--o2o-new-bg:rgba(109,40,217,.07)}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--o2o-new:#C4B5FD;--o2o-new-bg:rgba(196,181,253,.10)}}
 :root[data-theme="dark"]{--o2o-new:#C4B5FD;--o2o-new-bg:rgba(196,181,253,.10)}
