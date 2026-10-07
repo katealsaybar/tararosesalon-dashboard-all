@@ -92,12 +92,19 @@
 .o2o-card [hidden],#perfMore [hidden].o2o-x{display:none!important}
 .o2o-tbl .dot{display:inline-block}
 
-/* The two buttons beside "Your team" (Kate, 7 Oct 2026): the form opens at the top of the page. */
-.o2o-bar{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap}
-.o2o-bar:empty{display:none}
-.o2o-tabbtn{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:14px;font-weight:600;min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
-.o2o-tabbtn.on{background:var(--text);color:var(--bg);border-color:var(--text)}
-@media(hover:hover){.o2o-tabbtn:not(.on):hover{border-color:var(--text)}}
-.o2o-tabbtn:focus-visible{outline:2px solid var(--text);outline-offset:2px}
-@media(max-width:760px){.o2o-tabbtn{min-height:44px}}
-.o2o-close{margin-left:auto}
+/* This month | 1-to-1 | Goals toggle beside the Open view button (Kate, 7 Oct 2026), the same
+   segmented pill as the tabs on a stylist's own link. 1-to-1 and Goals swap the numbers out. */
+.o2o-right{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.o2o-seg{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}
+.o2o-seg:empty{display:none}
+.o2o-seg button{font:inherit;font-size:14px;font-weight:600;border:0;border-radius:999px;padding:0 14px;min-height:36px;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.o2o-seg button.on{background:var(--btn);color:var(--btn-fg)}
+.o2o-seg button:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+#app.o2o-view>:not(.admin-bar):not(#o2oSlot){display:none!important}
+#o2oSlot[hidden]{display:none}
+@media(max-width:760px){
+  .o2o-right{width:100%;justify-content:stretch}
+  .o2o-seg{width:100%}
+  .o2o-seg button{flex:1 1 0;min-height:44px;padding:0 6px}
+  .o2o-right>.btn{flex:1 1 100%;min-height:44px}
+}

@@ -123,11 +123,30 @@ async function build(kind, rec, staff) {
   const P = window.PerfO2O;
   return kind === 'monthly' ? monthly(rec, staff, P) : goals(rec, staff, P);
 }
-async function make(kind, rec, staff) {
+const attr = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// The window the PDF opens in: the PDF itself, with a Download button that keeps a proper file name.
+const viewer = (name, url) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${attr(name)}</title>
+<style>html,body{margin:0;height:100%;font-family:Inter,system-ui,sans-serif}body{display:flex;flex-direction:column;background:#2D2E37}
+.bar{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 16px;background:#383944;color:#FAF8F3;font-size:14px}
+.bar span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar a{flex:none;background:#FFD4D9;color:#2D2E37;text-decoration:none;font-weight:600;padding:10px 18px;border-radius:999px}
+iframe{flex:1;border:0;width:100%;background:#fff}</style>
+<div class="bar"><span>${attr(name)}</span><a href="${url}" download="${attr(name)}">Download PDF</a></div><iframe src="${url}" title="${attr(name)}"></iframe>`;
+// win: a window opened on the click (so the pop-up blocker lets it); without one the file downloads.
+async function make(kind, rec, staff, win) {
   const doc = await build(kind, rec, staff);
   const ym = String(rec.period || '').slice(0, kind === 'monthly' ? 7 : 4);
   const name = `Tara Rose ${kind === 'monthly' ? 'HR-10 One-to-One' : 'HR-09 Goals'} ${staff.name} ${ym}${rec.status === 'draft' ? ' DRAFT' : ''}.pdf`;
-  return new Promise((res, rej) => { try { pdfMake.createPdf(doc).download(name, res); } catch (e) { rej(e); } });
+  return new Promise((res, rej) => {
+    try {
+      pdfMake.createPdf(doc).getBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        if (win && !win.closed) { win.document.open(); win.document.write(viewer(name, url)); win.document.close(); }
+        else { const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+        res();
+      });
+    } catch (e) { rej(e); }
+  });
 }
 window.PerfO2OPdf = { make, build };
 })();

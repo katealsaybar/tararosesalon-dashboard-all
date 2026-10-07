@@ -246,7 +246,8 @@ async function onMeClick(e) {
 // ════════════════════════════════════════════════════════════
 //  Leaders, in Staff Benchmarks
 // ════════════════════════════════════════════════════════════
-const L = { d: null, ctx: null, slot: null, panel: null, hz: 'm6', content: {}, timers: {}, wired: false };
+const L = { d: null, ctx: null, slot: null, view: 'numbers', tok: null, hz: 'm6', content: {}, timers: {}, wired: false };
+const appEl = () => document.getElementById('app');
 const period = kind => kind === 'monthly' ? L.d.month : L.d.year;
 const rec = kind => L.d[kind];
 const locked = kind => !!rec(kind) && rec(kind).status !== 'draft';
@@ -263,12 +264,16 @@ function initial(kind) {
 }
 async function leader(slot, ctx) {
   L.slot = slot; L.ctx = ctx;
+  // Another stylist, or the page redrawn: always start from the numbers unless it is the same person.
+  if (L.tok !== ctx.token) L.view = 'numbers';
+  L.tok = ctx.token;
+  appEl().classList.remove('o2o-view');
   let d = null;
   try { d = await call('perf_one2one_get', { p_admin: ctx.admin, p_token: ctx.token, p_month: ctx.month + '-01' }); } catch (e) {}
-  if (!d) { slot.innerHTML = ''; return; }
+  if (!d) { slot.innerHTML = ''; if (ctx.bar) ctx.bar.innerHTML = ''; return; }
   L.d = d; L.content = { monthly: initial('monthly'), goals: initial('goals') };
   L.wired = false; drawLeader();
-  if (ctx.bar) ctx.bar.onclick = e => { const b = e.target.closest('[data-act="panel"]'); if (b) openPanel(b.dataset.kind); };
+  if (ctx.bar) ctx.bar.onclick = e => { const b = e.target.closest('[data-act="view"]'); if (b) setView(b.dataset.v); };
 }
 async function reload() {
   await Promise.all(['monthly', 'goals'].map(k => L.timers[k] ? save(k) : null));
@@ -381,26 +386,28 @@ function cardHTML(kind) {
   const k = K(kind), isM = kind === 'monthly';
   const title = isM ? `One-to-one with ${first(L.d.staff.name)}` : `Goals with ${first(L.d.staff.name)}`;
   const eyebrow = isM ? `Monthly 1-to-1 · ${mLong(L.d.month)}` : `Yearly goals · ${day(L.d.year).getFullYear()}`;
-  return `<section class="card o2o-card" data-kind="${kind}" data-locked="${k.lock ? 1 : 0}"${L.panel === kind ? '' : ' hidden'}>
-    <div class="o2o-fold"><span class="o2o-ft"><div class="eyebrow">${eyebrow}</div><h2>${title}</h2></span>${chip(kind)}<button type="button" class="btn small o2o-ghost o2o-close" data-act="close" data-kind="${kind}">Close</button></div>
+  return `<section class="card o2o-card" data-kind="${kind}" data-locked="${k.lock ? 1 : 0}"${L.view === kind ? '' : ' hidden'}>
+    <div class="o2o-fold"><span class="o2o-ft"><div class="eyebrow">${eyebrow}</div><h2>${title}</h2></span>${chip(kind)}</div>
     <div class="o2o-body">${steps(kind)}${k.lock ? `<div class="o2o-banner">${rec(kind).status === 'filed' ? 'Filed and locked.' : 'Signed and locked.'} Reopen it to change anything.</div>` : ''}
     ${isM ? monthlyBody(k) : goalsBody(k)}${btns(kind)}</div></section>`;
 }
 function barHTML() {
-  const dot = kind => { const r = rec(kind); return !r ? '' : r.status === 'draft' ? 'warn' : r.status === 'signed' ? 'warn' : 'good'; };
-  const lbl = { monthly: '1-to-1', goals: 'Goals' };
-  return ['monthly', 'goals'].map(kind => `<button type="button" class="o2o-tabbtn${L.panel === kind ? ' on' : ''}" data-act="panel" data-kind="${kind}" aria-expanded="${L.panel === kind}">${lbl[kind]}${dot(kind) ? `<i class="dot ${dot(kind)}"></i>` : ''}</button>`).join('');
+  const dot = kind => { const r = rec(kind); return !r ? '' : r.status === 'filed' ? 'good' : 'warn'; };
+  const seg = [['numbers', 'This month'], ['monthly', '1-to-1'], ['goals', 'Goals']];
+  return seg.map(([v, l]) => `<button type="button" role="tab" aria-selected="${L.view === v}" class="${L.view === v ? 'on' : ''}" data-act="view" data-v="${v}">${l}${dot(v) ? `<i class="dot ${dot(v)}"></i>` : ''}</button>`).join('');
 }
 function drawBar() { if (L.ctx.bar) L.ctx.bar.innerHTML = barHTML(); }
-function openPanel(kind) {
-  L.panel = L.panel === kind ? null : kind;
+// The numbers page is #app's own cards; 1-to-1 and Goals swap them out (CSS .o2o-view hides the rest).
+function applyView() {
+  appEl().classList.toggle('o2o-view', L.view !== 'numbers');
+  L.slot.hidden = L.view === 'numbers';
+  L.slot.querySelectorAll('.o2o-card').forEach(c => { c.hidden = c.dataset.kind !== L.view; });
   drawBar();
-  L.slot.querySelectorAll('.o2o-card').forEach(c => { c.hidden = c.dataset.kind !== L.panel; });
-  if (L.panel) L.slot.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
+function setView(v) { L.view = v; applyView(); window.scrollTo(0, 0); }
 function drawLeader() {
-  drawBar();
   L.slot.innerHTML = cardHTML('monthly') + cardHTML('goals');
+  applyView();
   if (!L.wired) {
     L.slot.addEventListener('click', onLeaderClick);
     L.slot.addEventListener('input', onLeaderInput);
@@ -450,8 +457,7 @@ function onLeaderInput(e) {
 async function onLeaderClick(e) {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act, kind = b.dataset.kind;
-  if (a === 'close') { L.panel = kind; openPanel(kind); }
-  else if (a === 'hz') { L.hz = b.dataset.v; const card = b.closest('.o2o-card'); card.querySelectorAll('.o2o-pill').forEach(p => p.classList.toggle('on', p === b)); card.querySelectorAll('[data-hz]').forEach(g => { g.hidden = g.dataset.hz !== L.hz; }); }
+  if (a === 'hz') { L.hz = b.dataset.v; const card = b.closest('.o2o-card'); card.querySelectorAll('.o2o-pill').forEach(p => p.classList.toggle('on', p === b)); card.querySelectorAll('[data-hz]').forEach(g => { g.hidden = g.dataset.hz !== L.hz; }); }
   else if (a === 'addrow') { if (locked(kind)) return; L.content[kind] = gather(kind); const arr = b.dataset.arr; L.content[kind][arr] = (L.content[kind][arr] || []).concat([{}]); redrawCard(kind); }
   else if (a === 'savenow') { await save(kind); }
   else if (a === 'sign') {
@@ -461,7 +467,7 @@ async function onLeaderClick(e) {
     catch (err) { b.disabled = false; alert('Could not sign. Check the connection and try again.'); }
   } else if (a === 'reopen') {
     if (!confirm(`Reopen this for editing?\n\n${first(L.d.staff.name)} keeps seeing the signed version until you sign the new one.`)) return;
-    try { await call('perf_one2one_reopen', { p_admin: L.ctx.admin, p_token: L.ctx.token, p_kind: kind, p_period: period(kind) }); L.panel = kind; await reload(); }
+    try { await call('perf_one2one_reopen', { p_admin: L.ctx.admin, p_token: L.ctx.token, p_kind: kind, p_period: period(kind) }); L.view = kind; await reload(); }
     catch (err) { alert('Could not reopen. Try again.'); }
   } else if (a === 'pdf') {
     if (!locked(kind)) await save(kind);
@@ -473,8 +479,12 @@ async function onLeaderClick(e) {
 async function pdf(kind, record, staff, btn) {
   const txt = btn && btn.textContent;
   if (btn) { btn.disabled = true; btn.textContent = 'Making the PDF…'; }
-  try { await window.PerfO2OPdf.make(kind, record, staff); }
-  catch (e) { alert('The PDF could not be made. ' + (e && e.message || '')); }
+  // The PDF opens in its own window (with a Download button), not straight into Downloads. The window
+  // is opened now, on the click, so the pop-up blocker allows it; the PDF follows once it is made.
+  const win = window.open('', '_blank');
+  if (win) win.document.write('<title>Making your PDF</title><body style="font-family:system-ui,sans-serif;background:#2D2E37;color:#FAF8F3;padding:32px">Making your PDF…</body>');
+  try { await window.PerfO2OPdf.make(kind, record, staff, win); }
+  catch (e) { if (win) win.close(); alert('The PDF could not be made. ' + (e && e.message || '')); }
   if (btn) { btn.disabled = false; btn.textContent = txt; }
 }
 
