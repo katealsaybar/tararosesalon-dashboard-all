@@ -339,14 +339,13 @@ let periodPick = null;
 
 // Recomputed on every paint rather than frozen at load, so a dashboard left open
 // overnight does not still think "this month so far" ends yesterday.
-// Three named windows only. Year so far and Last year were chips of their own
+// Two named windows only (the third, Last month + this, was dropped 7 Oct 2026, Kate). Year so far and Last year were chips of their own
 // until the row reached six and stopped reading as an index line; both are the
 // Year picker now, and any single month is the Month picker (Kate, 3 Sep 2026).
 function periodPresets() {
   const today = new Date(); today.setHours(0,0,0,0);
   const y = today.getFullYear(), m = today.getMonth();
   return [
-    { k: 'Last month + this', from: new Date(y, m-1, 1), to: today },
     { k: 'This month',        from: new Date(y, m,   1), to: today },
     { k: 'Last month',        from: new Date(y, m-1, 1), to: new Date(y, m, 0) },
   ];
@@ -435,8 +434,8 @@ function activePeriodKey() {
 // Only Custom has no name, and that one carries its two dates because there is
 // nothing else it could carry.
 //
-//   last-month-and-this   the default, and so never written
-//   this-month · last-month
+//   this-month            the default, and so never written
+//   last-month
 //   month:2026-06 · year:2025
 //   2026-08-11..2026-08-17   Custom, from..to
 //
@@ -444,7 +443,6 @@ function activePeriodKey() {
 // the ledger month instead, which is what month= carries), so a period= on one
 // of those URLs would name a control that page does not have.
 const PERIOD_URL_KEYS = {
-  'Last month + this': 'last-month-and-this',
   'This month':        'this-month',
   'Last month':        'last-month',
 };
@@ -454,7 +452,7 @@ function periodParam() {
   const k = activePeriodKey();
   // The boot's own window. A bare URL already means it, so writing it would put a
   // parameter on every clean path for nothing — same rule as branch=all.
-  if (k === 'Last month + this') return null;
+  if (k === 'This month') return null;
   if (PERIOD_URL_KEYS[k]) return PERIOD_URL_KEYS[k];
   if (k === 'Year')  return 'year:' + dateFrom.getFullYear();
   if (k === 'Month') return `month:${dateFrom.getFullYear()}-${String(dateFrom.getMonth()+1).padStart(2,'0')}`;
@@ -1854,8 +1852,9 @@ function applyDateRange() {
   refreshActiveView();
 }
 
-// Default range: 1st of last month → today — covers the prior full month plus
-// whatever days have landed so far this month. Changed from Jan 1 (year-to-date)
+// Default range: 1st of this month → today (This month). Until 7 Oct 2026 it was the
+// 1st of last month → today (Last month + this). Before that, Jan 1 (year-to-date),
+// changed
 // per Kate's request, 2026-08-03 — she was manually re-applying this same range
 // every time. "Today" as the upper bound is still safe even if today's sync
 // hasn't landed yet (branch_staff_daily/phorest_staff_daily sync daily).
@@ -1864,7 +1863,8 @@ function applyDateRange() {
 // different use case, and still defaults to Jan 1.
 async function setDefaultRange() {
   const today = new Date(); today.setHours(0,0,0,0);
-  const from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  // Kate, 7 Oct 2026: the default is This month; the Last month + this window is gone.
+  const from = new Date(today.getFullYear(), today.getMonth(), 1);
   const to = today;
   dateFrom = from;
   dateTo   = to;
