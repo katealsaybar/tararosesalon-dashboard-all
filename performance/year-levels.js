@@ -38,7 +38,7 @@ const GROUPS = [
 // The four a stylist reads first; the rest fold away (progressive disclosure).
 const HEADLINE = ['total_revenue', 'treatments', 'retail', 'rebooking_pct'];
 
-const S = { tab: 'month', levels: [], me: null, year: null, pick: null };
+const S = { tab: 'month', levels: [], me: null, year: null, pick: null, o2o: null, token: null };
 const levelOf = name => S.levels.find(l => l.level === name) || null;
 const nextOf = name => { const l = levelOf(name); return l ? S.levels.find(x => x.order === l.order + 1) || null : null; };
 
@@ -52,19 +52,40 @@ function paint() {
   // No levels for her team (beauty, so far): no "How you move up" tab at all, rather
   // than a greyed-out one (Kate, 2 Oct 2026). It comes back by itself once
   // perf_benchmarks carries levels for that team.
+  // My 1-to-1 (Kate, 7 Oct 2026): only for a stylist the trial is switched on for
+  // (perf_one2one_me answers null for everyone else), drawn by one2one.js.
   tabs.innerHTML = b('month', 'This month') + b('year', 'My year')
-    + (hasLevel ? b('levels', 'How you move up') : '');
+    + (hasLevel ? b('levels', 'How you move up') : '') + (S.o2o ? b('one', 'My 1-to-1') : '');
   tabs.parentElement.hidden = false;
   const onMonth = S.tab === 'month';
   document.getElementById('app').hidden = !onMonth;
   more.hidden = onMonth;
-  const mp = document.querySelector('.month-pick'); if (mp) mp.style.visibility = onMonth ? '' : 'hidden';
-  if (onMonth) { more.innerHTML = ''; return; }
+  // Kate, 7 Oct 2026: gone, not just invisible: it left a blank gap between the home and Light buttons.
+  const mp = document.querySelector('.month-pick'); if (mp) mp.style.display = onMonth ? '' : 'none';
+  if (onMonth) { more.innerHTML = ''; placeNudge(); return; }
+  if (S.tab === 'one') {
+    more.innerHTML = '';
+    window.PerfO2O.me(more, { token: S.token, data: S.o2o, reload: async () => { S.o2o = await call('perf_one2one_me', { p_token: S.token }); paint(); } });
+    return;
+  }
   more.innerHTML = S.tab === 'year' ? yearTab() : levelsTab();
   if (S.tab === 'year') wireChart();
 }
+// The 1-to-1 line under the win and tip on This month. performance.js redraws #app now and then
+// (the Ledger | Phorest switch), so it is put back whenever the page changes under it.
+function placeNudge() {
+  const app = document.getElementById('app');
+  if (!app || S.tab !== 'month') return;
+  const n = S.o2o && window.PerfO2O ? PerfO2O.nudge(S.o2o) : null, old = app.querySelector('.o2o-nudge');
+  if (!n) { if (old) old.remove(); return; }
+  if (old && old.dataset.h === n.key) return;
+  if (old) old.remove();
+  const anchor = app.querySelector('.wintip') || app.querySelector('.hero');
+  if (anchor) anchor.insertAdjacentHTML('afterend', n.html);
+}
 function go(t) {
   if (t === 'levels' && !levelOf(S.me && S.me.level)) return;
+  if (t === 'one' && !S.o2o) return;
   S.tab = t;
   // Kept in the address, so a refresh or a shared bookmark lands on the same tab.
   const u = new URL(location.href);
@@ -79,12 +100,14 @@ addEventListener('resize', () => { if (Math.abs(innerWidth - lastW) > 40 && S.ta
 async function mount(token) {
   if (!token || !document.getElementById('perfTabs')) return;
   try {
-    const [levels, year] = await Promise.all([call('perf_levels', { p_token: token }), call('perf_year_weeks_me', { p_token: token })]);
+    const [levels, year, o2o] = await Promise.all([call('perf_levels', { p_token: token }), call('perf_year_weeks_me', { p_token: token }),
+      window.PerfO2O ? call('perf_one2one_me', { p_token: token }).catch(() => null) : null]);
     if (!year) return;                     // link not active: This month already says so
-    S.levels = levels || []; S.year = year; S.me = year.staff; S.pick = S.me.level;
+    S.levels = levels || []; S.year = year; S.me = year.staff; S.pick = S.me.level; S.token = token; S.o2o = o2o && o2o.enabled ? o2o : null;
     const want = new URLSearchParams(location.search).get('tab');
-    S.tab = want === 'year' || (want === 'levels' && levelOf(S.me.level)) ? want : 'month';
+    S.tab = want === 'year' || (want === 'levels' && levelOf(S.me.level)) || (want === 'one' && S.o2o) ? want : 'month';
     paint();
+    if (S.o2o) new MutationObserver(placeNudge).observe(document.getElementById('app'), { childList: true });
   } catch (e) { console.warn('My year / levels unavailable', e); }
 }
 

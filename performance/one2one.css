@@ -1,0 +1,134 @@
+/* My 1-to-1 and Goals (Kate, 7 Oct 2026), drawn by one2one.js. Stylist's own link: the fourth
+   tab, in #perfMore. Leaders: two cards in Staff Benchmarks, in #o2oSlot. Every class is
+   prefixed o2o- so nothing here can touch performance.css or year-levels.css. */
+/* The site-wide pill dropdown (assets/pill-select.js) fills the chosen option with --accent. This page
+   never defined one, so it fell back to near-black text on a near-black pill (Kate, 7 Oct 2026). Use the
+   page's own button colours, the same as the month picker's chosen month. */
+:root{--accent:var(--btn);--accent-fg:var(--btn-fg)}
+:root{--o2o-new:#6D28D9;--o2o-new-bg:rgba(109,40,217,.07)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--o2o-new:#C4B5FD;--o2o-new-bg:rgba(196,181,253,.10)}}
+:root[data-theme="dark"]{--o2o-new:#C4B5FD;--o2o-new-bg:rgba(196,181,253,.10)}
+
+.o2o-chip{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--none-bg);color:var(--muted);white-space:nowrap}
+.o2o-chip.good{background:var(--good-bg);color:var(--good)}
+.o2o-chip.warn{background:var(--warn-bg);color:var(--warn)}
+.o2o-chip.new{background:var(--o2o-new-bg);color:var(--o2o-new)}
+.o2o-pills{display:flex;gap:6px;margin:0 0 12px;flex-wrap:wrap}
+.o2o-pill{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:999px;padding:8px 14px;min-height:40px;background:var(--surface2);color:var(--muted);cursor:pointer}
+.o2o-pill.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.o2o-pill:focus-visible,.o2o-fold:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.o2o-meter{height:6px;border-radius:99px;background:var(--none-bg);overflow:hidden}
+.o2o-meter i{display:block;height:100%;background:var(--bar,#8E7CC3);border-radius:99px}
+.o2o-act{border-left:3px solid var(--bar,#8E7CC3);padding:10px 12px;background:var(--surface2);border-radius:0 10px 10px 0;font-size:14.5px;margin-top:10px}
+.o2o-act .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px}
+.o2o-act small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
+.o2o-card-new{border-color:var(--o2o-new)}
+.o2o-text{font-size:14.5px;line-height:1.5}
+.o2o-side{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
+.o2o-more{margin-top:10px}
+.o2o-more summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:9px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface2);font-weight:600;font-size:14px;color:var(--text)}
+.o2o-more summary::-webkit-details-marker{display:none}
+.o2o-more summary .hint{font-weight:500;font-size:12.5px;color:var(--muted)}
+.o2o-more[open]>summary{margin-bottom:8px}
+.o2o-sid{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;font-size:13.5px}
+.o2o-sid .o2o-meter{grid-column:1/-1;margin-bottom:6px}
+.o2o-chk{list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.o2o-chk li{display:flex;gap:9px;line-height:1.35}
+.o2o-chk li i{flex:none;font-style:normal;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:var(--none-bg);color:var(--muted)}
+.o2o-goal{font-size:17px;font-weight:600;line-height:1.3;margin:2px 0 8px}
+.o2o-qa{font-size:13.5px;margin-top:8px}
+.o2o-qa b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:1px}
+.o2o-priv{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:14px}
+.o2o-tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.o2o-tbl th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:600;padding:7px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
+.o2o-tbl td{padding:7px 6px;border-bottom:1px solid var(--border);vertical-align:top}
+.o2o-tbl .r{text-align:right;font-variant-numeric:tabular-nums}
+.o2o-wrap{overflow-x:auto}
+.o2o-empty{border:1.5px dashed var(--border);border-radius:14px;padding:16px;color:var(--muted);font-size:14px}
+.o2o-done{font-size:13px;color:var(--muted);margin-top:8px}
+
+/* Leaders: the two cards in Staff Benchmarks */
+.o2o-fold{display:flex;align-items:center;gap:10px;width:100%;padding:0;margin:0;background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.o2o-fold .o2o-ft{flex:1;min-width:0}
+.o2o-fold .eyebrow{margin-bottom:2px}
+.o2o-fold h2{margin:0}
+.o2o-fold .o2o-chev{font-size:16px;line-height:1;color:var(--muted);transition:transform .15s}
+.o2o-card.open .o2o-chev{transform:rotate(180deg)}
+.o2o-body{margin-top:14px}
+.o2o-steps{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 16px;font-size:12.5px}
+.o2o-steps span{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
+.o2o-steps span b{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:10px;background:var(--none-bg)}
+.o2o-steps span.done{color:var(--good);border-color:transparent;background:var(--good-bg)}
+.o2o-steps span.done b{background:var(--good);color:var(--bg)}
+.o2o-steps span.cur{color:var(--text);border-color:var(--o2o-new);font-weight:600}
+.o2o-steps span.cur b{background:var(--o2o-new);color:var(--bg)}
+.o2o-sec{margin:22px 0 8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;gap:10px;align-items:center}
+.o2o-sec::after{content:"";flex:1;height:1px;background:var(--border)}
+.o2o-g2,.o2o-g3{display:grid;gap:12px}
+.o2o-g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.o2o-g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:760px){.o2o-g2,.o2o-g3{grid-template-columns:minmax(0,1fr)}}
+.o2o-fl{display:flex;flex-direction:column;gap:4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.o2o-fl input,.o2o-fl select,.o2o-fl textarea,.o2o-tbl input,.o2o-tbl select{font:inherit;font-size:14px;letter-spacing:0;text-transform:none;font-weight:400;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;width:100%;min-height:0;margin:0}
+.o2o-fl textarea{min-height:64px;resize:vertical}
+.o2o-tbl input,.o2o-tbl select{padding:6px 8px;font-size:13.5px}
+.o2o-tbl.ed td{padding:6px 5px;border-bottom:0}
+.o2o-fl input:disabled,.o2o-fl select:disabled,.o2o-fl textarea:disabled,.o2o-tbl input:disabled,.o2o-tbl select:disabled{opacity:.75;cursor:default}
+.o2o-auto{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;padding-top:10px!important}
+.o2o-autoh{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--o2o-new);font-weight:600}
+.o2o-lock{font-size:12px;color:var(--muted);margin-bottom:6px}
+.o2o-ck{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;padding:6px 2px;line-height:1.35;cursor:pointer}
+.o2o-ck input{width:18px;height:18px;margin-top:1px;flex:none;accent-color:#8E7CC3}
+.o2o-btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;align-items:center}
+.o2o-btns .btn{margin-top:0}
+.btn.o2o-new{background:var(--o2o-new);color:var(--bg)}
+.btn.o2o-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.o2o-save{font-size:12.5px;color:var(--muted)}
+.o2o-goalcol{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.o2o-goalcol h3{font-size:14px;font-weight:700}
+.o2o-who{font-size:12.5px;color:var(--muted);margin-bottom:12px}
+.o2o-banner{font-size:13.5px;background:var(--o2o-new-bg);border-radius:10px;padding:9px 12px;margin-bottom:12px}
+
+.o2o-card [hidden],#perfMore [hidden].o2o-x{display:none!important}
+.o2o-tbl .dot{display:inline-block}
+
+/* This month | 1-to-1 | Goals toggle beside the Open view button (Kate, 7 Oct 2026), the same
+   segmented pill as the tabs on a stylist's own link. 1-to-1 and Goals swap the numbers out. */
+.o2o-right{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.o2o-seg{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}
+.o2o-seg:empty{display:none}
+.o2o-seg button{font:inherit;font-size:14px;font-weight:600;border:0;border-radius:999px;padding:0 14px;min-height:36px;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.o2o-seg button.on{background:var(--btn);color:var(--btn-fg)}
+.o2o-seg button:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+#app.o2o-view>:not(.admin-bar):not(#o2oSlot){display:none!important}
+#o2oSlot[hidden]{display:none}
+@media(max-width:760px){
+  .o2o-right{width:100%;justify-content:stretch}
+  .o2o-seg{width:100%}
+  .o2o-seg button{flex:1 1 0;min-height:44px;padding:0 6px}
+  .o2o-right>.btn{flex:1 1 100%;min-height:44px}
+}
+
+/* Signature pad (Kate, 7 Oct 2026) */
+.o2o-sig{margin-top:14px;border:1px solid var(--o2o-new);border-radius:14px;padding:14px;background:var(--surface2)}
+.o2o-sig-t{font-weight:700;margin-bottom:10px}
+.o2o-pad{display:block;width:100%;height:170px;background:#fff;border:1px dashed var(--border);border-radius:10px;touch-action:none;cursor:crosshair}
+.o2o-sig-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px}
+.o2o-sig-row .btn{margin-top:0}
+.o2o-sigprev{display:block;max-width:100%;max-height:150px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:6px}
+.o2o-sig input[type=file]{width:100%;font:inherit;font-size:14px;color:var(--text)}
+
+/* The 1-to-1 line on This month (Kate, 7 Oct 2026) */
+.o2o-nudge{border-color:var(--o2o-new)}
+.o2o-nudge .o2o-text{margin:2px 0}
+.o2o-nudge .btn{text-decoration:none;display:inline-flex;align-items:center}
+
+/* Plain dates: day, month by name, year, and the whole date written out (Kate, 7 Oct 2026) */
+.o2o-date{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.o2o-date select{flex:1 1 64px;min-width:0;width:auto}
+.o2o-dread{flex:1 0 100%;font-size:13px;font-weight:700;color:var(--o2o-new);text-transform:none;letter-spacing:0}
+.o2o-fill{font-size:12.5px;color:var(--muted);margin:2px 0 12px;line-height:1.45}
+.o2o-card .o2o-fill{margin-top:-4px}
+[data-view][hidden]{display:none!important}
+.o2o-checks .o2o-card{margin-top:14px}
+.o2o-date select[data-dp="y"]{flex-basis:84px}.o2o-date select[data-dp="m"]{flex-basis:78px}

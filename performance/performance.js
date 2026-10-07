@@ -705,7 +705,9 @@ async function renderStylist() {
 
   app.innerHTML = `
     ${ADMIN ? `<div class="admin-bar"><a class="back" href="?admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}">← Your team</a>
-      ${canEdit() ? `<button class="btn small" id="copyLink">Open ${esc(s.name.split(' ')[0])}'s view in another window ↗</button>` : `<span id="linkSlot"></span>`}</div>` : ''}
+      <div class="o2o-right">${canEdit() ? '<span id="o2oBar" class="o2o-seg" role="tablist" aria-label="Page"></span>' : ''}
+      ${canEdit() ? `<button class="btn small" id="copyLink">Open ${esc(s.name.split(' ')[0])}'s view in another window ↗</button>` : `<span id="linkSlot"></span>`}</div></div>` : ''}
+    ${canEdit() ? '<div id="o2oSlot"></div>' : ''}
     <section class="card hero">
       ${photoFor(s.keys) ? `<img class="hero-photo" src="${photoFor(s.keys)}" alt="" onerror="this.remove()">` : ''}
       <h1>${esc(s.name)}</h1>
@@ -887,6 +889,11 @@ async function renderStylist() {
   // perf_staff_link answers only for a signed-in dashboard user at Level 3+ (UAE
   // scope), with her /me/ link; Level 2 and below get null and no button.
   if (!canEdit() && d.staff_id && document.getElementById('linkSlot')) staffLinkButton(s, d.staff_id);
+
+  // 1-to-1 and Goals (Kate, 7 Oct 2026): a This month | 1-to-1 | Goals toggle beside the Open
+  // view button, like the tabs on a stylist's own link. For a leader key and only for a stylist
+  // the trial is on for (perf_one2one_get answers null otherwise and the toggle stays empty).
+  if (canEdit() && window.PerfO2O && document.getElementById('o2oSlot')) PerfO2O.leader(document.getElementById('o2oSlot'), { admin: ADMIN, token: TOKEN, month: MONTH, bar: document.getElementById('o2oBar') });
 
   if (canEdit()) {
     // Their own link: no admin key, no month, so it always opens on the current month.
