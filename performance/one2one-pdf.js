@@ -55,11 +55,13 @@ function sigs(rec, staff, form) {
     columnGap: 24, margin: [0, 16, 0, 0], unbreakable: true };
 }
 function top(form, title, sub) {
-  return [{ columns: [logo ? { image: logo, width: 112 } : { text: 'TARA ROSE SALONS', fontSize: 10 }, { text: form, alignment: 'right', fontSize: 8, color: C.soft, characterSpacing: 1.4, margin: [0, 6, 0, 0] }] },
-    { text: title, font: 'Playfair', fontSize: 25, color: C.ink, margin: [0, 20, 0, 2] }, sub ? { text: sub, fontSize: 10, color: C.soft, margin: [0, 0, 0, 6] } : {}];
+  return [{ text: form, fontSize: 8, color: C.soft, characterSpacing: 1.4 },
+    { text: title, font: 'Playfair', fontSize: 25, color: C.ink, margin: [0, 8, 0, 2] }, sub ? { text: sub, fontSize: 10, color: C.soft, margin: [0, 0, 0, 6] } : {}];
 }
 const frame = (form, ver, draft) => ({
-  pageSize: 'A4', pageMargins: [40, 40, 40, 46], defaultStyle: { font: 'Inter', fontSize: 9.5, color: C.ink },
+  pageSize: 'A4', pageMargins: [40, 84, 40, 46], defaultStyle: { font: 'Inter', fontSize: 9.5, color: C.ink },
+  // The logo, small and centred at the top of every page (Kate, 7 Oct 2026).
+  header: { margin: [0, 26, 0, 0], stack: [logo ? { image: logo, width: 74, alignment: 'center' } : { text: 'TARA ROSE SALONS', alignment: 'center', fontSize: 9, characterSpacing: 2 }] },
   footer: (cur, total) => ({ columns: [{ text: 'Tara Rose Salons · Mamsha al Saadiyat · Khalifa City A · Motor City · Al Quoz', fontSize: 7, color: C.soft }, { text: `${form} · ${ver} · page ${cur} of ${total}`, alignment: 'right', fontSize: 7, color: C.soft }], margin: [40, 14, 40, 0] }),
   watermark: draft ? { text: 'DRAFT', color: '#999999', opacity: 0.12, bold: true, italics: false } : undefined
 });
