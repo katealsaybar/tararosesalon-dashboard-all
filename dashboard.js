@@ -1161,7 +1161,7 @@ function heroPeriodPhrasing() {
 const VIEW_SECTION_LABELS = {
   dashboard: 'Organisation Pulse', team: 'Podium Race', teamquad: 'Staff Quadrant', staffperf: 'Staff Benchmarks', stafflevels: 'Stylist Levels', staffweeks: 'Staff’s Quarterly Performance', stylists: 'Staff Cards',
   orgchart: 'Org Chart',
-  services: 'Service Rankings', clients: 'Top Clients', lostclients: 'Lost Clients', products: 'Products', reviews: 'Google Reviews',
+  services: 'Service Rankings', clients: 'Top Clients', lostclients: 'Client’s Last Visit', products: 'Products', reviews: 'Google Reviews',
   wvperf: 'Wellness Voucher Performance',
   googleads: 'Google Ads',
   website: 'Website & Search',

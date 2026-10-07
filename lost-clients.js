@@ -104,7 +104,7 @@ function lcShell(body) {
     `<button type="button" class="${String(lcSel[key]) === String(k) ? 'on' : ''}" onclick="lcSet('${key}', ${typeof k === 'number' ? k : `'${k}'`})">${l}</button>`).join('')}</div>`;
   return `
     <section class="slv-intro">
-      <h2>Lost Clients</h2>
+      <h2>Client’s Last Visit</h2>
       <p>Clients who used to come in and haven't been back, by branch, highest spend first. For reference and outreach planning.</p>
     </section>
     <div class="sc-bar w13-bar lc-bar">
