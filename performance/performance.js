@@ -19,9 +19,41 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const BROCHURE_VIEWER = 'https://trk-salon-os.com/performance/employment-models.html?b=';
 const BROCHURE = Object.fromEntries(['employed', 'flex-abudhabi', 'flex-dubai', 'chair', 'overview', 'relocation']
   .map(k => [k, BROCHURE_VIEWER + k]));
-// A review's branch → that branch's Google Maps listing, where its reviews can
-// be read in full. A search link, not a place ID, by Kate's choice (25 Sep 2026).
+// A review's own public Google link (Kate, 7 Oct 2026; was a Maps search for the branch,
+// which never landed on the review). Same rule as add ons/google-reviews/app.js: the
+// Maps review id plus the branch's Maps CID. Older rows keep a hash id, so their Maps
+// ids come from review-links.js, loaded only when a page lists one. A review with no
+// id (added by hand) opens the branch's Google listing instead.
+const MAPS_CID = {'Khalifa City A, Abu Dhabi': '0x22d8bf3bc3c4e957', 'Saadiyat, Abu Dhabi': '0xe3bea74269b98995', 'Al Quoz, Dubai': '0x662e693c3678cb39', 'Motor City, Dubai': '0x66221db8f29e9130', 'District 2, Bahrain': '0xf7a43c8e59e763dd'};
 const mapsFor = branch => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('Tara Rose Salon ' + branch);
+function reviewUrl(r) {
+  const cid = MAPS_CID[r.branch];
+  if (!cid) return mapsFor(r.branch || '');
+  let id = String(r.id || '').replace(/^seed:/, '');
+  if (!/^C[hi]/.test(id)) id = (window.REVIEW_MAPS_IDS || {})[id] || (String(r.url || '').match(/\/reviews\/(C[hi][\w-]+)/) || [])[1] || '';
+  if (!id) return 'https://www.google.com/maps?cid=' + BigInt(cid).toString() + '&hl=en';
+  let inner = '';
+  try { const b = atob(id.replace(/-/g, '+').replace(/_/g, '/')); if (b.charCodeAt(0) === 10) inner = b.substr(2, b.charCodeAt(1)); } catch (e) {}
+  return 'https://www.google.com/maps/reviews/data=' + (inner
+    ? `!4m8!14m7!1m6!2m5!1s${id}!2m1!1s0x0:${cid}!3m1!1s2@1:${inner}%7C%7C`
+    : `!4m6!14m5!1m4!2m3!1s${id}!2m1!1s0x0:${cid}`) + '?hl=en';
+}
+// The page's review list, so links can be redrawn once review-links.js arrives.
+let RV_LIST = [];
+function rvInit(list) {
+  RV_LIST = list || [];
+  if (window.REVIEW_MAPS_IDS || !RV_LIST.some(r => /^[0-9a-f]{24}$/.test(String(r.id || '').replace(/^seed:/, '')))) return '';
+  if (!rvInit.loading) {
+    rvInit.loading = true;
+    const sc = document.createElement('script');
+    sc.src = '../add%20ons/google-reviews/review-links.js?v=20260928a';
+    sc.onload = () => document.querySelectorAll('a[data-ri]').forEach(a => { const r = RV_LIST[+a.dataset.ri]; if (r) a.href = reviewUrl(r); });
+    document.head.appendChild(sc);
+  }
+  return '';
+}
+const reviewPhotos = r => (r.photos || []).length
+  ? `<div class="rphotos">${r.photos.map((u, k) => `<a class="rph" href="${esc(u)}=w1600" target="_blank" rel="noopener" aria-label="Photo ${k + 1} of ${r.photos.length} from ${esc(r.reviewer || 'the client')}"><img src="${esc(u)}=w240-h240-p" alt="" loading="lazy"></a>`).join('')}</div>` : '';
 const PUBLIC_PAGE = 'https://trk-salon-os.com/performance/';
 // The "Ask your coach" chat box (perf-coach edge function). Off until the Anthropic
 // account has credit again (it ran dry 24 Sep 2026); flip to true and bump the
@@ -730,7 +762,7 @@ async function renderStylist() {
     <section class="card">
       <div class="eyebrow">Your Google reviews</div>
       ${(n.review_list || []).length ? `<p class="sub">${n.google_reviews} this month${n.review_stars ? ` · average ${n.review_stars} stars` : ''}.</p>
-        ${n.review_list.map(r => `<div class="note"><span class="stars">${'★'.repeat(r.stars || 0)}</span> ${r.comment ? esc(r.comment) : '<i class="muted">Rating only, no written comment</i>'}<div class="by">${esc(dayLabel(r.date))}${r.how === 'client' ? ' · from your client, who didn\'t name anyone' : ''}${r.branch ? ` · <a class="rv-link" href="${mapsFor(r.branch)}" target="_blank" rel="noopener">Read on Google ↗</a>` : ''}</div></div>`).join('')}`
+        ${rvInit(n.review_list)}${n.review_list.map((r, i) => `<div class="note"><span class="stars">${'★'.repeat(r.stars || 0)}</span> <b class="rv-name">${esc(r.reviewer || 'Anonymous')}</b><div>${r.comment ? esc(r.comment) : '<i class="muted">Rating only, no written comment</i>'}</div>${reviewPhotos(r)}<div class="by">${esc(dayLabel(r.date))}${r.how === 'client' ? ' · from your client, who didn\'t name anyone' : ''}${r.branch ? ` · <a class="rv-link" data-ri="${i}" href="${reviewUrl(r)}" target="_blank" rel="noopener">Read on Google ↗</a>` : ''}</div></div>`).join('')}`
         : `<p class="muted">No Google reviews for you yet this month. Ask happy clients to mention you by name.</p>`}
     </section>
 

@@ -122,6 +122,10 @@ textarea{width:100%;font:inherit;color:var(--text);background:var(--surface2);bo
 .path{padding:10px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:14px}
 .path b{display:block;margin-bottom:2px}
 .path-link{display:table;margin-top:6px;font-size:13px;font-weight:600;color:var(--text);text-decoration:underline;text-underline-offset:3px}
+.rv-name{font-weight:600}
+.rphotos{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+.rph{display:block;width:84px;height:84px;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:none}
+.rph img{width:100%;height:100%;object-fit:cover;display:block}
 .rv-link{color:inherit;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
 .legend a{color:inherit;text-decoration:underline;text-underline-offset:3px}
 .chart-wrap{position:relative;height:200px}
