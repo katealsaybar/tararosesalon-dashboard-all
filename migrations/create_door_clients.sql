@@ -1,3 +1,4 @@
+-- SUPERSEDED 8 Oct 2026 by door_and_last_visit_no_deposit_days.sql (deposit, balance-payment and voucher-only days and walk-in names no longer count). Do not re-run this file.
 -- Clients through the door, per branch, for one window (Kate, 1 Oct 2026).
 --
 -- The dashboard's Clients figure has always been the ledger's per-staff count added

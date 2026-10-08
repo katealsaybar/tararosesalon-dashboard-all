@@ -1,3 +1,4 @@
+-- 8 Oct 2026: lost_client_detail, lost_clients, lost_clients_detail_bulk and lost_clients_summary below were replaced by door_and_last_visit_no_deposit_days.sql (deposit and voucher-only days no longer count as visits). Run that file after this one, or instead of those four.
 -- Kate, 7 Oct 2026: the FINAL live definitions of the six functions behind Top Clients and
 -- Client's Last Visit, as they stand in Supabase after the speed work. The earlier files
 -- (lost_client_detail_visits.sql, top_clients_revamp.sql, last_visit_all_30_custom_board.sql)

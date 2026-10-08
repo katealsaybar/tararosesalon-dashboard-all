@@ -4292,7 +4292,7 @@ async function renderDashboard() {
         { k:'Beauty', val:beautyNetTakeDept, of:s.netTake, txt:aed0(beautyNetTakeDept), extra:`${shareOf(beautyNetTakeDept, s.netTake)}%`, color:'var(--beauty)' },
       ]) },
     { k:'Clients', def: doorOn(s)
-        ? `Through the door: each client once a day, however many staff she saw (Phorest). ${num0(s.totalClients)} handled by staff; the split below is by staff.`
+        ? `Through the door: each client once a day, however many staff she saw (Phorest). Deposits, balance payments and voucher-only days are not visits. ${num0(s.totalClients)} handled by staff; the split below is by staff.`
         : CLIENT_BASIS === 'door'
           ? 'Handled, not through the door: Phorest’s Sales Transactions have no count for this selection (Bahrain is not in them), so this is each staff member’s clients from the ledgers.'
           : 'Handled: each staff member counts the clients she served (ledgers), hair and beauty.',
