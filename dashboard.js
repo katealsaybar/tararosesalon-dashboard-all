@@ -382,6 +382,14 @@ const longD  = d => d ? `${d.getDate()} ${MON_LONG[d.getMonth()]}` : '—';
 // January 2025 (Kate, 3 Sep 2026); LG_FIRST_MONTH in branch-ledger.js is the
 // Ledgers pages' copy of the same floor.
 const PERIOD_FIRST_YEAR = 2025;
+// Google Reviews comes from its own table, which goes back to 2015 (Kate, 8 Oct 2026),
+// so its Month and Year pickers start there. Also true while the address bar says
+// view=reviews, because period=year:2019 is read before the view is shown.
+function periodFirstYear() {
+  let rv = typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'reviews';
+  if (!rv) { try { rv = new URLSearchParams(location.search).get('view') === 'reviews'; } catch (e) {} }
+  return rv ? 2015 : PERIOD_FIRST_YEAR;
+}
 
 // Which picker is open under the chip row: 'Month', 'Year', 'Custom' or null.
 // Held here and not read off the DOM, because paintFilterChips() replaces the
@@ -552,7 +560,7 @@ function applyPeriodParam() {
   let m = /^month:(\d{4})-(\d{2})$/.exec(u);
   if (m) {
     const y = +m[1], mo = +m[2];
-    if (y < PERIOD_FIRST_YEAR || mo < 1 || mo > 12) return false;
+    if (y < periodFirstYear() || mo < 1 || mo > 12) return false;
     const r = monthRange(y, mo - 1);
     return r.to >= r.from ? set(r.from, r.to) : false;   // a month in the future has no window
   }
@@ -560,7 +568,7 @@ function applyPeriodParam() {
   m = /^year:(\d{4})$/.exec(u);
   if (m) {
     const y = +m[1];
-    if (y < PERIOD_FIRST_YEAR) return false;
+    if (y < periodFirstYear()) return false;
     const r = yearRange(y);
     return r.to >= r.from ? set(r.from, r.to) : false;
   }
@@ -723,7 +731,7 @@ function paintFilterChips() {
 function yearOptions(sel, soFar) {
   const ty = new Date().getFullYear();
   let out = '';
-  for (let y = ty; y >= PERIOD_FIRST_YEAR; y--)
+  for (let y = ty; y >= periodFirstYear(); y--)
     out += `<option value="${y}"${y === sel ? ' selected' : ''}>${y}${(soFar && y === ty) ? ' so far' : ''}</option>`;
   return out;
 }
@@ -739,7 +747,7 @@ function paintPeriodPickers(onLedger, active) {
   const ty = today.getFullYear();
   // All time starts in 2000, which the Month and Year pickers cannot show: seed them
   // from this month instead.
-  const seed = (dateFrom && dateFrom.getFullYear() >= PERIOD_FIRST_YEAR) ? dateFrom
+  const seed = (dateFrom && dateFrom.getFullYear() >= periodFirstYear()) ? dateFrom
     : new Date(ty, today.getMonth() - (dateFrom ? 0 : 1), 1);
 
   const mSel = box('monthPickM'), mYr = box('monthPickY');
