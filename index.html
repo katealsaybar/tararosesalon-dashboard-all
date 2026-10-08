@@ -1768,19 +1768,10 @@ th:not(.sort-asc):not(.sort-desc).sortable::after{content:' ⇅';font-size:12px;
 .top3-val{font-size:13px;color:var(--muted);margin-top:1px}
 .top3-empty{font-size:14px;color:var(--muted2);text-align:center;padding:16px 0}
 
-.svc-date-inp,.svc-yr-sel{padding:7px 12px;border:1px solid var(--border);border-radius:18px;font-size:15px;color:var(--text);background:var(--surface);font-family:'Inter',sans-serif;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .2s}
-.svc-date-inp:focus,.svc-yr-sel:focus{border-color:var(--accent)}
 /* Was position:sticky;top:0 back when each view had its own inner scroll area.
    The page scrolls in the window now and the masthead is fixed over the top of
    it, so a sticky bar here would park itself underneath the masthead and be
    invisible exactly when it mattered. Static, and it scrolls with its view. */
-.svc-controls{display:flex;flex-wrap:wrap;gap:10px;padding:10px 0 14px;align-items:flex-end;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0;margin-bottom:8px}
-.svc-grid-2{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:16px}
-.svc-scroll-wrap{overflow-x:auto;overflow-y:visible;padding-bottom:12px}
-.svc-scroll-wrap::-webkit-scrollbar{height:6px}
-.svc-scroll-wrap::-webkit-scrollbar-track{background:transparent}
-.svc-scroll-wrap::-webkit-scrollbar-thumb{background:var(--border,#333);border-radius:3px}
-.svc-grid-4{display:grid;grid-template-columns:repeat(4,minmax(280px,1fr));gap:16px;min-width:max-content;width:100%}
 @media(max-width:700px){.svc-grid-2{grid-template-columns:1fr}}
 .empty{text-align:center;padding:4rem;color:var(--muted);font-size:17px}
 .loading{text-align:center;padding:4rem;color:var(--muted);letter-spacing:0.1em;font-size:15px;text-transform:uppercase}
@@ -2077,9 +2068,6 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .slv-table td.slv-a-mid{color:var(--warn)}
 .slv-table td.slv-a-bad{color:var(--bad)}
 /* SR1: Service Rankings change against the previous window. */
-.svc-d{font-size:12.5px;font-weight:600;color:var(--muted);white-space:nowrap}
-.svc-d.up{color:var(--good)}
-.svc-d.down{color:var(--bad)}
 .slv-note{font-size:12px;color:var(--muted);margin-top:2px}
 .slv-muted{color:var(--muted);font-size:13px;margin:12px 0 0}
 /* Staff's 13 Week (staff-weeks.js), riding on the Stylist Benchmarks card and table. */
@@ -2721,7 +2709,6 @@ html.oc-print body.orgchart-chrome .oc-tree{overflow:visible}
 /* A date range in the masthead supersedes the Year dropdown, so it steps out of
    the way rather than sitting there contradicting the header. Kept in the DOM —
    _loadSvcYears() still populates it, and it comes back when the range clears. */
-.svc-controls.yr-idle .yr-group{display:none}
 
 /* Data-quality alert — the two retail sources disagreeing. Sits next to the
    figure it doubts, which is why it moved here off the Pulse. */
@@ -3312,7 +3299,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="team-performance.css?v=20261001quad">
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20261008sp">
+<link rel="stylesheet" href="mobile.css?v=20261008sp2">
 <link rel="stylesheet" href="search.css?v=20261008s29">
 <link rel="stylesheet" href="client-mix.css?v=20261008cm3">
 <link rel="stylesheet" href="nav-style.css?v=20261006hub">
@@ -3967,43 +3954,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <!-- Service Rankings (Kate, 8 Oct 2026): rebuilt on the Client Mix footing, with its own
          controls (the masthead filters are hidden here), from service_rankings over
          sales_transaction_lines sorted by Phorest's categories. service-rankings.js draws it.
-         The old controls and #svc-content stay below, hidden and unused. -->
+         The old page (Per Branch and Combined) is gone. -->
     <main id="serviceRankingsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
-    <div id="svc-old" style="display:none">
-    <!-- Kate, 25 Sep 2026: this group is still being built. -->
-    <!-- Branch and dates come from the masthead now, like every other page. What
-         is left is what is genuinely this page's own: which year to load when no
-         date range is set, and how to break the ranking up. The Year group hides
-         itself (.yr-idle) whenever a date range is driving the page. -->
-    <div class="svc-controls" id="svc-controls">
-      <div class="ctrl-group yr-group">
-        <div class="ctrl-label">Year</div>
-        <select id="svc-year" class="svc-yr-sel" onchange="onSvcFiltersChange()">
-          <option value="2026">2026</option>
-        </select>
-      </div>
-      <div class="ctrl-group" style="margin-left:auto">
-        <div class="ctrl-label">Rows</div>
-        <select id="svc-rows" class="svc-yr-sel" onchange="onSvcFiltersChange()">
-          <option value="10">10</option>
-          <option value="20">20</option>
-          <option value="50">50</option>
-          <option value="75">75</option>
-          <option value="100">100</option>
-        </select>
-      </div>
-      <div class="ctrl-group">
-        <div class="ctrl-label">View</div>
-        <div style="display:flex;gap:4px">
-          <button id="svc-toggle-branch" class="f-pill active" onclick="setSvcViewMode('branch')">Per Branch</button>
-          <button id="svc-toggle-combined" class="f-pill" onclick="setSvcViewMode('combined')">Combined</button>
-        </div>
-      </div>
-    </div>
-    <main style="padding:10px 0 48px">
-      <div id="svc-content"><div class="loading">Loading service data...</div></div>
-    </main>
-    </div>
   </div>
 
   <!-- CLIENTS -->
@@ -4143,7 +4095,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261008sr2"></script>
+<script src="dashboard.js?v=20261008sr3"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -5108,6 +5060,6 @@ addEventListener('load', sizeTopbar);
 <script src="nav-collapse.js?v=20260924a"></script>
 <script src="nav-stars.js?v=20261002a"></script>
 <script src="mobile.js?v=20261008sa"></script>
-<script src="search.js?v=20261008s29"></script>
+<script src="search.js?v=20261008s30"></script>
 <script src="visits.js?v=20261008v1"></script>
 </body>

@@ -13,7 +13,7 @@
    ══════════════════════════════════════════════════════════════ */
 
 /* Phone-only pieces exist in the markup at every width; they only show below. */
-.mast-body,.fsheet,.fsheet-scrim,#fSheetBtn,.nav-phone,.m-avg,.svc-m,.cmp-fold,.slv-m,.slv-cur-note{display:none}
+.mast-body,.fsheet,.fsheet-scrim,#fSheetBtn,.nav-phone,.m-avg,.cmp-fold,.slv-m,.slv-cur-note{display:none}
 
 /* ===== MOBILE (≤ 760px) · 1. COMPACT HEADER ===== */
 @media(max-width:760px),(hover:none) and (max-height:480px){
@@ -206,27 +206,6 @@
   .m-card dt.band{grid-column:1/-1;margin-top:6px;font-size:12px;font-weight:700;letter-spacing:.12em;
     text-transform:uppercase;color:var(--text);opacity:.75}
 
-  /* Service Rankings: one branch per card, # · Service · AED. */
-  .svc-scroll-wrap{overflow-x:visible}
-  .svc-grid-4{grid-template-columns:1fr;min-width:0}
-  .svc-grid-4 table th:nth-child(4),.svc-grid-4 table td:nth-child(4){display:none}
-  .svc-grid-4 table td:nth-child(2){white-space:normal!important;max-width:none!important}
-  .svc-bhead{flex-wrap:wrap;gap:6px 12px}
-  .svc-bhead > div:last-child{text-align:left!important}
-  /* Kate, 2 Oct 2026: the tables still ran off the screen (a single branch is a
-     6-column table at 489px). On a phone each is a ranked list instead (dashboard.js
-     _svcMList); the table stays for desktop. */
-  .svc-t{display:none}
-  .svc-m{display:block}
-  .svc-mrow{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:2px 10px;align-items:start;
-    padding:10px 0;border-top:1px solid var(--border)}
-  .svc-mrow:first-child{border-top:0}
-  .svc-mrow .top3-rank{font-size:14px;line-height:1.35}
-  .svc-mname{font-size:14px;font-weight:500;line-height:1.35;overflow-wrap:anywhere}
-  .svc-mname small{display:block;margin-top:2px;font-size:12.5px;font-weight:400;color:var(--muted)}
-  .svc-mname .svc-d{font-size:12.5px}
-  .svc-mamt{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.35;text-align:right}
-  .svc-mamt small{display:block;margin-top:2px;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:400;color:var(--muted)}
   /* Comparison (Kate, 2 Oct 2026): the A and B windows fold into two summary
      lines until "Change branches or dates" is tapped (compare.js cmpEditOpen). */
   .cmp-fold{display:grid;gap:8px;border:1px solid var(--border);background:var(--surface);border-radius:12px;
@@ -248,16 +227,8 @@
   .cli-mname > div{min-width:0}
   .cli-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     font-size:11px;font-weight:700;color:#2D2E37;flex-shrink:0}
-  .svc-grid-2{grid-template-columns:minmax(0,1fr)}
-  .svc-grid-2 > .card,.svc-grid-4 > .card{min-width:0}
   /* Rows and View on one line: the select sized to its number, the two views
      splitting the rest. The Year group (when shown) keeps its own line. */
-  #svc-controls{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:end;gap:10px}
-  #svc-controls .yr-group{grid-column:1/-1}
-  #svc-controls .ctrl-group{margin-left:0!important;min-width:0}
-  #svc-rows{min-width:76px}
-  #svc-controls .ctrl-group:last-child > div:last-child{display:grid!important;grid-template-columns:1fr 1fr}
-  #svc-controls .f-pill{width:100%;justify-content:center}
 
   /* The "Open in Google Sheets" style buttons are one long nowrap line; let them wrap. */
   .lgx-b-lg{white-space:normal;max-width:100%;text-align:left}
@@ -320,7 +291,7 @@
   label:has(> input[type=checkbox]),label:has(> input[type=radio]){display:flex;align-items:center;gap:10px;min-height:44px}
   input[type=checkbox],input[type=radio]{width:20px;height:20px;flex-shrink:0}
   .sc-seg{padding:2px}
-  select,.lg-month-sel,.svc-yr-sel,.svc-date-inp,input[type=date],input[type=search],input[type=text],
+  select,.lg-month-sel,input[type=date],input[type=search],input[type=text],
   input[type=email],input[type=password],input:not([type]){
     min-height:44px;font-size:16px}
   .nav-kids-btn{width:44px;height:44px;margin:-10px -10px -10px 0}
@@ -504,7 +475,6 @@
   .cmp-mode button,.cmp-tag,.cmp-ans-k0,.cmp-ans-k,.lgx-own,.mast-fresh,#mastBranch,#mastRange,
   .f-lbl,.upd-eye,.upd-aff,.upd-foot,.ht-lbl,.nav-note{font-size:12px}
   .uc-banner{letter-spacing:.08em}
-  .svc-bhead > div:last-child > div:first-child{font-size:12px!important}
   .att-bars .bar-lbl,body.ledger-chrome .lg-tag{font-size:12px}
   .fine p span{font-size:12px!important}
   .tp-mtr-l,.win-k,.tagb,.side-k,.bn-k,.bn-grp-k,.lg-grain-k,.lg-head-k,.ht-k,.hc-list button i,

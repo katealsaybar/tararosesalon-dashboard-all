@@ -196,8 +196,6 @@ let currentDailyRows = [];
 // notions of "the current branch". Delete the lot, don't revive it.
 const svcSel = { branch: ['all'] };
 const cliSel = { branch: ['all'] };
-let svcViewMode = 'branch';
-let svcDropsReady = false;
 
 // ── THEME ───────────────────────────────────────────────────
 
@@ -1334,8 +1332,6 @@ function refreshActiveView() {
     if (visible('ledgerTargets')) renderLedgerTargets();
     if (visible('ledgerActuals')) renderLedgerActuals();
     if (visible('ledgerStylist')) renderLedgerStylist();
-    if (visible('services'))       onSvcFiltersChange();
-    if (visible('clients'))        onCliFiltersChange();
     if (visible('products'))       renderProducts();
     // Every branch change comes through here — the chips and the dropdown's Save
     // both — so this is the one place the address bar has to be told. spy() rather
@@ -5197,34 +5193,13 @@ function _toggleSvcBranch(dropId, code) {
   if (drop._onChange) drop._onChange();
 }
 
-async function _loadSvcYears() {
-  try {
-    const { data } = await sb.rpc('get_service_years');
-    if (!data || !data.length) return;
-    const years = data.map(r => r.year).sort((a,b) => b-a);
-    ['svc-year','cli-year'].forEach(id => {
-      const sel = document.getElementById(id);
-      if (!sel) return;
-      const cur = sel.value;
-      sel.innerHTML = years.map(y => `<option value="${y}"${y==cur?' selected':''}>${y}</option>`).join('');
-    });
-  } catch(e) { /* table may not exist yet */ }
-}
-
 // ── SERVICES VIEW ────────────────────────────────────────────
 
-// ── THE SHARED WINDOW ────────────────────────────────────────
-// Kate, 2026-08-14: Service Rankings and Top Clients used to carry their own
-// branch dropdown and their own From/To inputs, so the dashboard had three
-// independent notions of "the current period" and nothing kept them in step —
-// you could read August on the Pulse and January here without a single hint that
-// the window had changed under you. Both pages now read the masthead's filters,
-// the same as every other page, and their private controls are gone from the DOM.
-//
-// The Year dropdown stays, because it is not a duplicate: the service RPCs take
-// p_year as well as a range, and with no date range set it is the only thing
-// saying which year to load. When a range IS set, the year is derived from it and
-// the dropdown steps aside.
+// ── THE MASTHEAD WINDOW ──────────────────────────────────────
+// Branch and period as the masthead has them, in the shape the older service and client
+// RPCs took (year, from, to, branches). Only search.js reads it now, to fetch the names it
+// can find before a page is opened. Service Rankings, Top Clients and Client Mix carry
+// their own controls and no longer follow the masthead.
 const _iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
 function _svcWindow() {
@@ -5238,32 +5213,14 @@ function _svcWindow() {
     const to = spansYears ? `${year}-12-31` : _iso(dateTo);
     return { year, from: _iso(dateFrom), to, branches, ranged: true, spansYears };
   }
-  const el = document.getElementById('svc-year');
-  const year = parseInt((el && el.value) || String(new Date().getFullYear()), 10);
+  const year = new Date().getFullYear();
   return { year, from: `${year}-01-01`, to: `${year}-12-31`, branches, ranged: false };
 }
 
-// Printed above the rankings when the masthead range crosses New Year.
-function _svcSpansYearsNote(content, year) {
-  content.insertAdjacentHTML('afterbegin',
-    `<div style="padding:8px 0 12px;font-size:14px;color:var(--muted2)">Service and client rankings read one year at a time. Showing ${year} up to 31 December; pick a range inside one year to see the rest.</div>`);
-}
-
-// The Year row only earns its place when no date range is driving the page.
-function _syncSvcYearRow() {
-  const ranged = !!(dateFrom && dateTo);
-  ['svc-controls','cli-controls'].forEach(id => {
-    const row = document.getElementById(id);
-    if (row) row.classList.toggle('yr-idle', ranged);
-  });
-}
-
+// Service Rankings draws itself (service-rankings.js, own controls); the old page, its Per Branch and
+// Combined views and the get_top_services calls behind them are gone.
 function initSvcView() {
-  // Service Rankings was rebuilt on 8 Oct 2026 (service-rankings.js, own controls).
-  if (typeof renderServiceRankings === 'function') { renderServiceRankings(); return; }
-  if (!svcDropsReady) { svcDropsReady = true; _loadSvcYears(); }
-  _syncSvcYearRow();
-  loadAndRenderServices();
+  if (typeof renderServiceRankings === 'function') renderServiceRankings();
 }
 
 // Top Clients was rebuilt on 7 Oct 2026 (top-clients.js, own controls).
@@ -5271,267 +5228,6 @@ function initCliView() {
   if (typeof renderTopClients === 'function') renderTopClients();
 }
 
-function setSvcViewMode(mode) {
-  svcViewMode = mode;
-  document.getElementById('svc-toggle-branch')?.classList.toggle('active', mode === 'branch');
-  document.getElementById('svc-toggle-combined')?.classList.toggle('active', mode === 'combined');
-  loadAndRenderServices();
-}
-
-function onSvcFiltersChange() { _syncSvcYearRow(); loadAndRenderServices(); }
-// Top Clients draws itself (top-clients.js); the old page and its get_top_clients call are gone.
-function onCliFiltersChange() { _syncSvcYearRow(); }
-
-// Say which window came up empty, and where the data comes from. Since 28 Sep
-// 2026 both pages read the Sales Transactions feed (sales_transaction_lines,
-// pushed per day by /daily-reports, Jan 2025 onwards), so an empty window
-// almost always means those days haven't been pushed yet.
-function _svcEmpty(what) {
-  const w = _svcWindow();
-  return `<div class="empty">
-    <div style="font-weight:600;margin-bottom:6px">No ${what} for ${w.from} – ${w.to}</div>
-    <div style="font-size:14px;opacity:.75;max-width:52ch;margin:0 auto;line-height:1.55">
-      This page reads the Phorest Sales Transactions report, which is pushed one day at a
-      time and starts in January 2025. If these dates are recent, they may not be uploaded
-      yet: push them from Upload Data, or widen the period in the header.
-    </div>
-  </div>`;
-}
-
-// Two feeds serve this page. The transaction upload (service_data) slices by the
-// masthead's date range; when it has nothing for the window — the common case
-// once the year moves past the last transaction upload — fall back to the
-// Top Services report upload (top_services), which is a whole-period aggregate
-// and can't be sliced by date, so the caption says what it actually covers.
-// ISO 'YYYY-MM-DD' from the RPCs, printed the way the rest of the site writes a
-// date ("1 Sep"). Kate, 1 Oct 2026: these two pages showed raw 2026-09-01.
-function _isoD(v) {
-  const [y, m, d] = String(v || '').slice(0, 10).split('-').map(Number);
-  return (y && m && d) ? shortD(new Date(y, m - 1, d)) : (v || '—');
-}
-
-function _svcAggNote(rows) {
-  const pf = rows[0]?.period_from, pt = rows[0]?.period_to;
-  return `From the Top Services report upload${pf && pt ? `, covering ${_isoD(pf)} to ${_isoD(pt)}` : ''}. This feed is a whole-period export and does not follow the date range.`;
-}
-
-function _svcLimit() {
-  return parseInt(document.getElementById('svc-rows')?.value, 10) || 10;
-}
-
-// Kate, 1 Oct 2026 (Comet SR1): the rankings said what sold and never whether it
-// was selling more or less, or what one visit of it is worth. Avg per visit is the
-// row's revenue over its visits. The change is against the previous window, the
-// same previousWindow() the Pulse trends use (last month for a month, last year to
-// date for a year to date), read from the same get_top_services feed for the same
-// branches and matched by service name. Only for a dated range: the Top Services
-// report fallback is a whole-period export with nothing to step back from.
-async function _svcPrevMap(branches) {
-  let pw = (dateFrom && dateTo) ? previousWindow(dateFrom, dateTo) : null;
-  if (!pw) return null;
-  // Kate, 1 Oct 2026: a whole calendar month is read against the whole month
-  // before it (September against 1-31 August), not previousWindow()'s same-days
-  // cut (1-30 August), which is right for a month still running but drops the
-  // 31st from a finished one. Month to date keeps the same-days comparison.
-  const lastDay = new Date(dateTo.getFullYear(), dateTo.getMonth() + 1, 0).getDate();
-  if (dateFrom.getDate() === 1 && dateFrom.getFullYear() === dateTo.getFullYear()
-      && dateFrom.getMonth() === dateTo.getMonth() && dateTo.getDate() === lastDay) {
-    pw = { ...pw, from: new Date(dateFrom.getFullYear(), dateFrom.getMonth() - 1, 1),
-           to: new Date(dateFrom.getFullYear(), dateFrom.getMonth(), 0) };
-  }
-  const y = pw.from.getFullYear();
-  const to = pw.to.getFullYear() !== y ? `${y}-12-31` : _iso(pw.to);
-  try {
-    const { data, error } = await sb.rpc('get_top_services', {
-      p_year: y, p_branches: branches, p_from: _iso(pw.from), p_to: to, p_limit: 1000 });
-    if (error) return null;
-    const m = {};
-    (data || []).forEach(r => { m[String(r.service_name || '').toLowerCase()] = parseFloat(r.total_revenue || 0); });
-    return { m, label: pw.label, any: (data || []).length > 0 };
-  } catch (e) { return null; }
-}
-// "+12%" / "−8%" / "new", coloured, for one row against the previous window.
-function _svcDelta(prev, r) {
-  if (!prev || !prev.any) return '';
-  const was = prev.m[String(r.service_name || '').toLowerCase()];
-  const now = parseFloat(r.total_revenue || 0);
-  if (!was) return `<span class="svc-d up" title="Not sold in ${escapeHtml(prev.label)}">new</span>`;
-  const p = (now - was) / Math.abs(was) * 100;
-  if (Math.abs(p) < 0.5) return `<span class="svc-d" title="AED ${_fmtAed(was)} in ${escapeHtml(prev.label)}">level</span>`;
-  return `<span class="svc-d ${p > 0 ? 'up' : 'down'}" title="AED ${_fmtAed(was)} in ${escapeHtml(prev.label)}">${p > 0 ? '+' : '−'}${Math.abs(p).toFixed(0)}%</span>`;
-}
-const _svcAvg = r => { const v = Number(r.visit_count) || 0; return v > 0 ? _fmtAed(parseFloat(r.total_revenue || 0) / v) : '—'; };
-
-async function loadAndRenderServices() {
-  const content = document.getElementById('svc-content');
-  if (!content) return;
-  content.innerHTML = '<div class="loading">Loading...</div>';
-
-  const { year, from: pFrom, to: pTo, branches, spansYears } = _svcWindow();
-  const limit = _svcLimit();
-
-  try {
-    if (svcViewMode === 'combined') {
-      const { data, error } = await sb.rpc('get_top_services', {
-        p_year: year, p_branches: branches, p_from: pFrom, p_to: pTo, p_limit: limit
-      });
-      if (error) throw error;
-      let rows = data || [], note = null;
-      if (!rows.length) {
-        const { data: agg } = await sb.rpc('get_top_services_agg', { p_year: year, p_branches: branches, p_limit: limit });
-        if (agg && agg.length) { rows = agg; note = _svcAggNote(agg); }
-      }
-      const prev = note ? null : await _svcPrevMap(branches);
-      _renderSvcCombined(rows, branches, year, pFrom, pTo, note, prev);
-      if (spansYears) _svcSpansYearsNote(content, year);
-    } else {
-      const targetBranches = branches;
-      let note = null;
-      const results = await Promise.all(targetBranches.map(async b => {
-        const { data } = await sb.rpc('get_top_services', {
-          p_year: year, p_branches: [b], p_from: pFrom, p_to: pTo, p_limit: limit
-        });
-        if (data && data.length) return { branch: b, rows: data, prev: await _svcPrevMap([b]) };
-        const { data: agg } = await sb.rpc('get_top_services_agg', { p_year: year, p_branches: [b], p_limit: limit });
-        if (agg && agg.length) { note = note || _svcAggNote(agg); return { branch: b, rows: agg }; }
-        return { branch: b, rows: [] };
-      }));
-      _renderSvcPerBranch(results, year, pFrom, pTo, note, limit);
-      if (spansYears) _svcSpansYearsNote(content, year);
-    }
-  } catch(e) {
-    console.error(e);
-    content.innerHTML = _svcEmpty('service data');
-  }
-}
-
-function _fmtAed(n) {
-  return (parseFloat(n) || 0).toLocaleString('en-AE', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
-
 function _rankCls(i) { return i===0?'gold':i===1?'silver':i===2?'bronze':''; }
-
-// Phones (Kate, 2 Oct 2026): the tables ran off the screen, so each one also gets
-// this ranked list, shown instead under 760px (mobile.css): name and AED on one
-// line, visits / avg / change under it. pctOf adds the share of the top N under the AED.
-function _svcMList(rows, prev, pctOf) {
-  return `<div class="svc-m">${rows.map((r,i) => {
-    const rev = parseFloat(r.total_revenue||0), v = Number(r.visit_count)||0;
-    const bits = [`${v.toLocaleString()} sold`, `Avg ${_svcAvg(r)}`];
-    const d = _svcDelta(prev, r);
-    return `<div class="svc-mrow"><span class="top3-rank ${_rankCls(i)}">${i+1}</span>
-      <div class="svc-mname">${escapeHtml(r.service_name)||'—'}<small>${bits.join(' · ')}${d ? ' · ' + d : ''}</small></div>
-      <b class="svc-mamt">${_fmtAed(rev)}${pctOf > 0 ? `<small>${(rev/pctOf*100).toFixed(1)}%</small>` : ''}</b></div>`;
-  }).join('')}</div>`;
-}
-
-function _renderSvcCombined(rows, branches, year, pFrom, pTo, note, prev) {
-  const content = document.getElementById('svc-content');
-  if (!rows.length) { content.innerHTML = _svcEmpty('data'); return; }
-  const totalRev = rows.reduce((s,r) => s + parseFloat(r.total_revenue||0), 0);
-  const branchLabel = branches.length === 4 ? 'All Branches' : branches.map(b => BRANCH_INFO[b]?.name||b).join(' · ');
-
-  content.innerHTML = `
-    <div class="section-label" style="margin-top:16px">${branchLabel} — Combined Top ${rows.length} Services<span class="sl-sub"><span class="sl-dot"> · </span>${year}</span></div>
-    <div class="card">
-      <div class="svc-bhead" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-        <div>
-          <div class="card-title">Top Services by Revenue</div>
-          <div class="card-sub">${note ? escapeHtml(note) : `${pFrom} to ${pTo}`}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Top ${rows.length} Combined Revenue</div>
-          <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
-        </div>
-      </div>
-      ${_svcMList(rows, prev, totalRev)}
-      <table class="svc-t">
-        <thead><tr>
-          <th style="width:30px">#</th>
-          <th class="sortable">Service</th>
-          <th>Category</th>
-          <th style="text-align:right">Revenue (AED)</th>
-          <th style="text-align:right">Units sold</th>
-          <th style="text-align:right">Avg / unit</th>
-          ${prev && prev.any ? `<th style="text-align:right" title="Revenue against ${escapeHtml(prev.label)}">vs ${escapeHtml(prev.label)}</th>` : ''}
-          <th style="text-align:right">% of Top ${rows.length}</th>
-        </tr></thead>
-        <tbody>
-          ${rows.map((r,i) => {
-            const rev = parseFloat(r.total_revenue||0);
-            const pct = totalRev > 0 ? (rev/totalRev*100) : 0;
-            return `<tr>
-              <td><span class="top3-rank ${_rankCls(i)}">${i+1}</span></td>
-              <td style="font-weight:500;font-size:14px">${escapeHtml(r.service_name)||'—'}</td>
-              <td><span class="badge" style="background:var(--surface2);color:var(--muted);font-size:12px">${escapeHtml(r.category)||'—'}</span></td>
-              <td style="text-align:right;font-family:'Playfair Display',serif;font-size:17px;font-weight:600">${_fmtAed(rev)}</td>
-              <td style="text-align:right;color:var(--muted)">${(r.visit_count||0).toLocaleString()}</td>
-              <td style="text-align:right">${_svcAvg(r)}</td>
-              ${prev && prev.any ? `<td style="text-align:right">${_svcDelta(prev, r)}</td>` : ''}
-              <td style="text-align:right">
-                <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
-                  <div class="bar-track" style="width:56px"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:var(--accent)"></div></div>
-                  <span style="min-width:36px;color:var(--muted);font-size:13px">${pct.toFixed(1)}%</span>
-                </div>
-              </td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>`;
-}
-
-function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
-  const content = document.getElementById('svc-content');
-  content.innerHTML = `
-    <div class="section-label" style="margin-top:16px">Top ${limit} Services Per Branch<span class="sl-sub"><span class="sl-dot"> · </span>${year} · ${note ? escapeHtml(note) : `${_isoD(pFrom)} – ${_isoD(pTo)}`}</span></div>
-    <div class="${results.length > 2 ? 'svc-scroll-wrap' : ''}"><div class="svc-grid-${results.length <= 2 ? '2' : '4'}">
-      ${results.map(({ branch, rows, prev }) => {
-        const info = BRANCH_INFO[branch] || { name: branch, color: '#FFD4D9' };
-        const totalRev = rows.reduce((s,r) => s + parseFloat(r.total_revenue||0), 0);
-        return `
-          <div class="card" style="margin-bottom:0">
-            <div style="height:3px;border-radius:3px;background:${info.color};margin-bottom:14px"></div>
-            <div class="svc-bhead" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-              <div>
-                <div class="card-title" style="font-size:16px">${info.name}</div>
-                <div class="card-sub" style="margin-bottom:0;font-size:12px">${rows.length} services shown</div>
-              </div>
-              <div style="text-align:right">
-                <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Top ${rows.length} Rev</div>
-                <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
-              </div>
-            </div>
-            ${prev && prev.any ? `<div class="card-sub" style="margin:-6px 0 8px;font-size:12px">Chg: revenue against ${escapeHtml(prev.label)}</div>` : ''}
-            ${!rows.length ? '<div class="top3-empty">No data for period</div>' : `
-            ${_svcMList(rows, prev, 0)}
-            <table class="svc-t">
-              <thead><tr>
-                <th style="width:20px">#</th>
-                <th>Service</th>
-                <th style="text-align:right">AED</th>
-                <th style="text-align:right">Visits</th>
-                <th style="text-align:right" title="Revenue over visits">Avg</th>
-                ${prev && prev.any ? `<th style="text-align:right" title="Revenue against ${escapeHtml(prev.label)}">Chg</th>` : ''}
-              </tr></thead>
-              <tbody>
-                ${rows.map((r,i) => {
-                  const rev = parseFloat(r.total_revenue||0);
-                  const pct = totalRev > 0 ? (rev/totalRev*100) : 0;
-                  return `<tr>
-                    <td><span class="top3-rank ${_rankCls(i)}" style="font-size:14px">${i+1}</span></td>
-                    <td style="font-size:13px;font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.service_name)}">${escapeHtml(r.service_name)||'—'}</td>
-                    <td style="text-align:right;font-family:'Playfair Display',serif;font-size:15px;font-weight:600">${_fmtAed(rev)}</td>
-                    <td style="text-align:right;color:var(--muted);font-size:13px">${r.visit_count||0}</td>
-                    <td style="text-align:right;font-size:13px">${_svcAvg(r)}</td>
-                    ${prev && prev.any ? `<td style="text-align:right;font-size:13px">${_svcDelta(prev, r)}</td>` : ''}
-                  </tr>`;
-                }).join('')}
-              </tbody>
-            </table>`}
-          </div>`;
-      }).join('')}
-    </div></div>`;
-}
 
 // ── CLIENTS VIEW ─────────────────────────────────────────────

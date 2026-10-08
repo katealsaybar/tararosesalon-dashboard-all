@@ -433,25 +433,14 @@
       setTimeout(tick, 120);
     })();
   }
-  // Service Rankings shows each branch's top 10 by default. A service further down
-  // switches it to the combined list and opens enough rows to include it.
-  function goService(name, rank) {
-    // Set before the page opens, so its own first load is already the right one;
-    // when it is already open, reload it.
+  // Service Rankings lists 25 services and a "Show more" button. A hit further down opens the
+  // whole list first, so the line is on the page when goText looks for it (set before the page
+  // opens, so its own first draw already has it; when it is already open, draw the table again).
+  function goService(name) {
     goText('services', name, already => {
-      const rows = document.getElementById('svc-rows');
-      let changed = svcViewMode !== 'combined';
-      if (rows) {
-        const opts = [...rows.options].map(o => +o.value);
-        const need = opts.find(v => v >= rank) || opts[opts.length - 1];
-        if (+rows.value < need) { rows.value = String(need); changed = true; }
-      }
-      if (already && changed) setSvcViewMode('combined');
-      else {
-        svcViewMode = 'combined';
-        document.getElementById('svc-toggle-branch')?.classList.remove('active');
-        document.getElementById('svc-toggle-combined')?.classList.add('active');
-      }
+      if (typeof srShowN === 'undefined') return;
+      srShowN = 400;
+      if (already && typeof srPaintTable === 'function') srPaintTable();
     });
   }
 
@@ -467,11 +456,13 @@
     dataBusy = true;
     const aed = v => 'AED ' + Math.round(Number(v) || 0).toLocaleString('en-GB');
     const jobs = [
-      sb.rpc('get_top_services', { p_year: w.year, p_branches: w.branches, p_from: w.from, p_to: w.to, p_limit: 100 })
-        .then(({ data }) => (data || []).filter(r => r.service_name).map((r, i) => ({
-          kind: 'service', view: 'services', id: 'service:' + r.service_name, t: r.service_name,
-          g: 'Service Rankings', s: `#${i + 1} · ${aed(r.total_revenue)}`, words: 'service treatment',
-          go: () => goService(r.service_name, i + 1) }))),
+      sb.rpc('service_rankings', { p_from: w.from, p_to: w.to, p_pfrom: null, p_pto: null,
+          p_branch: w.branches.length === 1 ? w.branches[0] : null, p_fam: null, p_cat: null, p_limit: 150 })
+        .then(({ data }) => ((data && data.rows) || []).filter(r => r.stem).map(r => ({
+          kind: 'service', view: 'services', id: 'service:' + r.stem, t: r.stem,
+          g: 'Service Rankings', s: r.category,   // no rank or AED: this list is the masthead window, the page has its own period
+          words: 'service treatment ' + (r.family || ''),
+          go: () => goService(r.stem) }))),
       sb.rpc('get_top_clients', { p_year: w.year, p_branches: w.branches, p_from: w.from, p_to: w.to, p_limit: 25 })
         .then(({ data }) => (data || []).filter(r => r.client_name).map((r, i) => ({
           kind: 'client', view: 'clients', id: 'client:' + r.client_name, t: r.client_name,
