@@ -125,6 +125,11 @@ const TP_ROLE_FIX = { 'TARA': 'Owner', 'TARA KIDD': 'Owner',
 // Photos for people with no staff card: the owner and Bahrain's managing director, both from the org chart.
 const TP_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'TARA KIDD': 'assets/org-chart/tara-rose-kidd.png',
   'DAISY': 'assets/org-chart/daisy-charlotte-cropper.png', 'DAISY CROPPER': 'assets/org-chart/daisy-charlotte-cropper.png' };
+// Kate, 8 Oct 2026: people the ledger or Phorest carries who are not on the floor, so they
+// do not belong in a race. Farwa is Bahrain's assistant, Shiela Avena is a salon
+// coordinator (org chart), and Nimi Firth was at Al Quoz for four days in Jan 2025 with six
+// clients and nobody recognises the name. Keys are letters only, as tpMergeKey gives them.
+const TP_NOT_STYLISTS = new Set(['FARWA', 'SHIELA', 'SHIELA AVENA', 'NIMI', 'NIMI FIRTH']);
 const tpRole = st => { const fix = TP_ROLE_FIX[tpMergeKey(st.name)]; if (fix) return fix;
   const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.role) || 'No position set'; };
 // Someone who has left (resigned: true in staff-profiles.js) stays in the race for the
@@ -204,7 +209,8 @@ function tpRoster(dept) {
   // Ma. Ercely, whom the Motor City ledger spells just "MA.").
   const list = order.map(key => tpCombine(groups[key], key))
     .filter(st => (st.net || 0) > 0 || (st.total || 0) > 0)
-    .filter(st => tpRole(st) !== 'Assistant');
+    .filter(st => tpRole(st) !== 'Assistant')
+    .filter(st => !TP_NOT_STYLISTS.has(tpMergeKey(st.name).replace(/[^A-Z ]/g, '').trim()));
   return list.sort((a, b) => (b.net || 0) - (a.net || 0));
 }
 
