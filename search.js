@@ -1195,12 +1195,19 @@
       sb.rpc('kb_search', { q: kbq }).then(({ data, error }) => {
         if (seq !== serpSeq || error) return;
         serpKb = (data || []).map(r => ({
-          kind: 'kb', id: 'kb:' + r.slug, t: r.title, g: 'Team Home · ' + (r.group_name || 'Page'),
+          kind: 'kb', id: 'kb:' + r.slug, t: r.title, g: kbWhere(r),
           snip: r.snippet ? '…' + r.snippet + '…' : '', href: '/hub/kb.html?p=' + encodeURIComponent(r.slug),
         })).filter(x => !Q.not.some(n => norm(x.t + ' ' + x.snip).includes(n)));
         paintSerp();
       }, () => {});
     }
+  }
+
+  // Where a Team Home page lives: its section, then its group. Hair and Beauty each have an
+  // "Induction and skill set checklists" page, so the title alone cannot tell them apart.
+  function kbWhere(r) {
+    const sec = ftKb.find(k => k[3].endsWith('?s=' + r.section));
+    return 'Team Home · ' + (sec ? sec[0] + ' › ' : '') + (r.group_name || 'Page');
   }
 
   // What a page covers, as its line of text: only the typed words it is known by.
