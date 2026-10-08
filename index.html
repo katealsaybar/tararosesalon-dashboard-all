@@ -1297,11 +1297,18 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 
 /* ── TARGET BARS ──────────────────────────────────────────── */
 .att-row{padding:15px 0;border-bottom:1px solid var(--border2)}
-/* Organisation Pulse, More measures (Kate, 8 Oct 2026): same bars as the Benchmarks cards, a wider label column for branch names. */
-.opm .att-row:last-of-type{border-bottom:none}
-.opm .att-bars .bar-line{grid-template-columns:92px 1fr 72px}
-.opm-cap{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);text-align:right;margin-top:6px}
+/* Organisation Pulse, More measures (Kate, 8 Oct 2026, option A): eight tiles. */
+.opm-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
+.opm-tile{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;min-width:0}
+.opm-k{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.opm-big{font-family:'Playfair Display',serif;font-weight:600;font-size:28px;line-height:1.1;margin-top:6px;color:var(--text)}
+.opm-sp{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;margin-top:10px;font-size:12.5px;font-weight:600}
+.opm-h{color:var(--hair)}.opm-b{color:var(--beauty)}
+.opm-sub{margin-top:10px;font-size:12.5px;color:var(--muted2);line-height:1.4}
+.opm-stack{display:flex;height:6px;border-radius:3px;overflow:hidden;margin-top:10px;background:var(--border2)}
+.opm-stack span{display:block;height:100%}
 .opm-na{color:var(--muted2);font-weight:400}
+@media(max-width:900px){.opm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .att-row:last-child{border-bottom:none}
 .att-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .att-id{display:flex;align-items:baseline;gap:9px;min-width:0}
@@ -4022,7 +4029,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261006ph"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261008s6"></script>
+<script src="dashboard.js?v=20261008s7"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->

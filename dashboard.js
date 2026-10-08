@@ -3701,7 +3701,6 @@ async function renderOrgPulseMore(s) {
   const pct1 = v => (Math.round(v * 10) / 10) + '%';
   const num0 = v => Math.round(v).toLocaleString('en-GB');
   const stars = v => v.toFixed(1) + '★';
-  const cell = (v, f) => Number.isFinite(v) ? f(v) : '<span class="opm-na">–</span>';
   if (!dateFrom || !dateTo) { el.innerHTML = '<div class="foot">Pick a period to see these.</div>'; return; }
   if (isBahrainView()) { el.innerHTML = '<div class="foot">Not available for Bahrain yet: these come from the stylist pages, which do not cover Bahrain.</div>'; return; }
   let x;
@@ -3716,63 +3715,41 @@ async function renderOrgPulseMore(s) {
   const sum = (dept, k) => staff.filter(r => !dept || r.dept === dept).reduce((a, r) => a + (Number(r[k]) || 0), 0);
   const rate = (n, d) => d > 0 ? n / d * 100 : NaN;
 
-  // One bar per line, the same bar the Benchmarks cards use: label, track, figure.
-  const bar = (lbl, val, color, max, f) => !Number.isFinite(val) ? '' : `
-    <div class="bar-line">
-      <span class="bar-lbl">${lbl}</span>
-      <span class="bar-track"><span class="bar-fill" style="width:${Math.min(100, Math.max(1.5, val / max * 100)).toFixed(1)}%;background:${color}"></span></span>
-      <span class="bar-val tabular">${f(val)}</span>
-    </div>`;
-  const note = (lbl, txt) => `<div class="bar-line"><span class="bar-lbl">${lbl}</span><span class="bar-note">${txt}</span></div>`;
-  const top = (name, sub, comb, f) => `
-    <div class="att-top">
-      <div class="att-id"><span class="att-name">${name}<small>${sub}</small></span></div>
-      <div class="att-side"><div class="att-big tabular">${cell(comb, f)}</div><div class="opm-cap">All together</div></div>
-    </div>`;
-
-  // Hair and Beauty bars, with the combined figure big on the right. Percentages are drawn
-  // against 100%, so one row can be read against another; counts against the larger side.
-  const split = (name, sub, hair, beauty, comb, f, o) => {
+  // Kate, 8 Oct 2026 (option A): eight tiles, the figure for everyone large, hair and beauty
+  // beneath in their own colours. The two social counts also carry a stacked bar.
+  const tile = (name, comb, f, hair, beauty, o) => {
     o = o || {};
-    const max = o.max || ((Math.max(hair || 0, beauty || 0) * 1.15) || 1);
-    return `<div class="att-row">${top(name, sub, comb, f)}<div class="att-bars">
-      ${Number.isFinite(hair) ? bar('Hair', hair, 'var(--hair)', max, f) : note('Hair', o.hairNote || 'no data for this period')}
-      ${Number.isFinite(beauty) ? bar('Beauty', beauty, 'var(--beauty)', max, f) : note('Beauty', o.beautyNote || 'no data for this period')}
-    </div></div>`;
+    const part = (lbl, v, cls, none) => Number.isFinite(v) ? `<span class="${cls}">${lbl} ${f(v)}</span>` : (none ? `<span class="opm-na">${lbl} ${none}</span>` : '');
+    const split = (o.stack && Number.isFinite(hair) && Number.isFinite(beauty) && hair + beauty > 0)
+      ? `<div class="opm-stack" title="Hair ${f(hair)}, Beauty ${f(beauty)}"><span style="width:${(hair / (hair + beauty) * 100).toFixed(1)}%;background:var(--hair)"></span><span style="width:${(beauty / (hair + beauty) * 100).toFixed(1)}%;background:var(--beauty)"></span></div>` : '';
+    return `<div class="opm-tile">
+      <div class="opm-k">${name}</div>
+      <div class="opm-big tabular">${Number.isFinite(comb) ? f(comb) : '<span class="opm-na">–</span>'}</div>
+      ${o.note ? `<div class="opm-sub">${o.note}</div>` : `<div class="opm-sp">${part('Hair', hair, 'opm-h', o.hairNone)}${part('Beauty', beauty, 'opm-b', o.beautyNone)}</div>`}
+      ${split}
+    </div>`;
   };
-  // Reputation and Google reviews are not split by team, so each branch gets its own bar.
-  const reviews = (x.reviews || []).filter(r => codes.includes(r.branch));
-  const bName = c => (BRANCH_INFO[c] && BRANCH_INFO[c].name) || c;
-  const bColor = c => (BRANCH_INFO[c] && BRANCH_INFO[c].color) || 'var(--accent)';
-  const perBranch = (name, sub, comb, f, val, max) => `<div class="att-row">${top(name, sub, comb, f)}<div class="att-bars">
-      ${reviews.map(r => Number.isFinite(val(r)) ? bar(bName(r.branch).replace(/ A$/, ''), val(r), bColor(r.branch), max, f) : note(bName(r.branch).replace(/ A$/, ''), 'under 3 reviews')).join('')}
-    </div></div>`;
-  const rvN = reviews.reduce((a, r) => a + r.n_window, 0);
-  const n90 = reviews.reduce((a, r) => a + r.n90, 0), stars90 = reviews.reduce((a, r) => a + r.stars90, 0);
 
   // Request rate: clients who asked for their stylist (requested, or new and asking) over all clients.
   const bd = b => b ? { ask: (b.req || 0) + (b.ncr || 0), all: (b.req || 0) + (b.salon || 0) + (b.new || 0) + (b.ncr || 0) } : { ask: 0, all: 0 };
   const hb = bd(s && s.hairBreakdown), bb = bd(s && s.beautyBreakdown);
 
-  const rows = [
-    split('Retention %', 'clients seen 3 to 6 months ago who came back in the last 3',
-      rate(sum('Hair', 'ret_back'), sum('Hair', 'ret_n')), rate(sum('Beauty', 'ret_back'), sum('Beauty', 'ret_n')), rate(sum(null, 'ret_back'), sum(null, 'ret_n')), pct1, { max: 100 }),
-    split('Request rate %', 'clients who asked for their stylist',
-      rate(hb.ask, hb.all), rate(bb.ask, bb.all), rate(hb.ask + bb.ask, hb.all + bb.all), pct1, { max: 100 }),
-    split('Conversion %', 'new clients 3 to 6 months ago who came back within 12 weeks',
-      rate(sum('Hair', 'conv_back'), sum('Hair', 'conv_n')), rate(sum('Beauty', 'conv_back'), sum('Beauty', 'conv_n')), rate(sum(null, 'conv_back'), sum(null, 'conv_n')), pct1, { max: 100 }),
-    split('Colour %', 'visits with a colour service',
-      rate(sum('Hair', 'colour'), sum('Hair', 'visits')), NaN, rate(sum('Hair', 'colour'), sum('Hair', 'visits')), pct1, { max: 100, beautyNote: 'not tracked for beauty' }),
-    perBranch('Reputation', 'average Google stars, last 90 days, by branch', n90 >= 3 ? stars90 / n90 : NaN, stars,
-      r => r.n90 >= 3 ? r.stars90 / r.n90 : NaN, 5),
-    perBranch('Google reviews', 'posted in the period, by branch', rvN, num0,
-      r => r.n_window, (Math.max(...reviews.map(r => r.n_window), 0) * 1.15) || 1),
-    split('Social posts (feed)', 'posts and collabs that tag the salon, all stylists',
-      sum('Hair', 'social_feed'), sum('Beauty', 'social_feed'), sum(null, 'social_feed'), num0),
-    split('Social posts (workdays)', 'days a stylist worked and posted or shared a story',
-      sum('Hair', 'social_workdays'), sum('Beauty', 'social_workdays'), sum(null, 'social_workdays'), num0),
+  const reviews = (x.reviews || []).filter(r => codes.includes(r.branch));
+  const rvN = reviews.reduce((a, r) => a + r.n_window, 0);
+  const n90 = reviews.reduce((a, r) => a + r.n90, 0), stars90 = reviews.reduce((a, r) => a + r.stars90, 0);
+
+  const tiles = [
+    tile('Retention', rate(sum(null, 'ret_back'), sum(null, 'ret_n')), pct1, rate(sum('Hair', 'ret_back'), sum('Hair', 'ret_n')), rate(sum('Beauty', 'ret_back'), sum('Beauty', 'ret_n'))),
+    tile('Request rate', rate(hb.ask + bb.ask, hb.all + bb.all), pct1, rate(hb.ask, hb.all), rate(bb.ask, bb.all)),
+    tile('Conversion', rate(sum(null, 'conv_back'), sum(null, 'conv_n')), pct1, rate(sum('Hair', 'conv_back'), sum('Hair', 'conv_n')), rate(sum('Beauty', 'conv_back'), sum('Beauty', 'conv_n'))),
+    tile('Colour', rate(sum('Hair', 'colour'), sum('Hair', 'visits')), pct1, rate(sum('Hair', 'colour'), sum('Hair', 'visits')), NaN, { beautyNone: 'n/a' }),
+    tile('Reputation', n90 >= 3 ? stars90 / n90 : NaN, stars, NaN, NaN, { note: n90 >= 3 ? `last 90 days, ${num0(n90)} reviews` : 'needs 3 reviews in 90 days' }),
+    tile('Google reviews', rvN, num0, NaN, NaN, { note: 'posted in the period' }),
+    tile('Social posts', sum(null, 'social_feed'), num0, sum('Hair', 'social_feed'), sum('Beauty', 'social_feed'), { stack: true }),
+    tile('Social workdays', sum(null, 'social_workdays'), num0, sum('Hair', 'social_workdays'), sum('Beauty', 'social_workdays'), { stack: true }),
   ].join('');
-  el.innerHTML = rows + `<div class="foot">${isGroupView() ? 'UAE branches only. ' : ''}Retention and Conversion look back 180 days${x.cache_asof ? ` to ${escapeHtml(x.cache_asof)}` : ''}, so they stay the same whatever period is on screen. Reputation needs at least 3 reviews. These have no aims here: the aims are set for each level on a stylist's own page.</div>`;
+  el.innerHTML = `<div class="opm-grid">${tiles}</div>
+    <div class="foot">${isGroupView() ? 'UAE branches only. ' : ''}The big figure is hair and beauty together. Retention: clients seen 3 to 6 months ago who came back in the last 3. Conversion: new clients from the same window who came back within 12 weeks. Both look back 180 days${x.cache_asof ? ` to ${escapeHtml(x.cache_asof)}` : ''}, so they stay the same whatever period is on screen. Request rate: clients who asked for their stylist. Colour: visits with a colour service (hair only). Social posts: posts and collabs tagging the salon, added up over stylists; workdays: days a stylist worked and posted or shared a story. No aims here: they are set for each level on a stylist's own page.</div>`;
 }
 
 async function renderDashboard() {
