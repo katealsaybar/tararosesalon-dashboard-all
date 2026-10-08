@@ -3079,6 +3079,7 @@ body.ledger-chrome .lg-month-sel{font-size:15px}
    whole card reads as a status colour, which the benchmark bars already own. */
 .tp-podium{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))}
 .tp-pod{position:relative;padding:0;overflow:hidden}
+.tp-gone{filter:grayscale(1);opacity:.6}
 .tp-pod-rk{position:absolute;top:8px;right:13px;font-family:'Playfair Display',serif;
   font-size:32px;font-weight:700;line-height:1;color:var(--tp-medal);opacity:.55}
 .tp-pod-top{display:flex;gap:13px;align-items:flex-end;padding:16px 16px 12px;
@@ -4019,7 +4020,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20261005dots"></script>
-<script src="team-performance.js?v=20261008li"></script>
+<script src="team-performance.js?v=20261008lj"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=20261003card"></script>
 <script src="pulse-narrative.js?v=20260928a"></script>

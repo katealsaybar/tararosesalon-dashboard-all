@@ -127,6 +127,9 @@ const TP_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'TARA KIDD
   'DAISY': 'assets/org-chart/daisy-charlotte-cropper.png', 'DAISY CROPPER': 'assets/org-chart/daisy-charlotte-cropper.png' };
 const tpRole = st => { const fix = TP_ROLE_FIX[tpMergeKey(st.name)]; if (fix) return fix;
   const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.role) || 'No position set'; };
+// Someone who has left (resigned: true in staff-profiles.js) stays in the race for the
+// period she worked, greyed out so she is not read as a current stylist (Kate, 8 Oct 2026).
+const tpGone = st => { const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return p && p.resigned ? ' tp-gone' : ''; };
 const tpRoleRank = r => { const i = TP_LADDER.indexOf(r); return i < 0 ? TP_LADDER.length : i; };
 const TP_MAX_COMPARE = 3;
 const tpKey = st => st.mergeKey;
@@ -494,7 +497,7 @@ function tpRoleBranch(st) {
 // and the four targets as rings under it instead of the old benchmark bars.
 function tpPodiumCard(st, i) {
   const medal = ['#E7C86A', '#C9CBD1', '#D3A17A'][i] || 'var(--border)';
-  return `<div class="card tp-pod" style="--tp-medal:${medal}">
+  return `<div class="card tp-pod${tpGone(st)}" style="--tp-medal:${medal}">
     <div class="tp-pod-rk">${i + 1}</div>
     ${tpAddBtn(st)}
     ${tpAvatar(st.name, 'lg')}
@@ -512,7 +515,7 @@ function tpPodiumCard(st, i) {
 function tpChaseRow(st, rank, ahead, lead) {
   const lg = tpLg();
   const gap = ahead ? Math.max(0, lg.get(ahead) - lg.get(st)) : 0;
-  return `<div class="card tp-ch">
+  return `<div class="card tp-ch${tpGone(st)}">
     <span class="tp-ch-rk tabular">${rank}</span>
     ${tpAvatar(st.name)}
     <div class="tp-ch-who">
@@ -529,7 +532,7 @@ function tpChaseRow(st, rank, ahead, lead) {
 // Everyone from 11 down: one line, the bar
 // and her rebooking, which is the figure that decides whether you look closer.
 function tpRaceRow(st, rank, lead) {
-  return `<div class="card tp-rr">
+  return `<div class="card tp-rr${tpGone(st)}">
     <span class="tp-rk tabular">${rank}</span>
     ${tpAvatar(st.name, 'xs')}
     <div class="tp-ch-who">
