@@ -1373,6 +1373,9 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .opm-big{font-family:'Playfair Display',serif;font-weight:600;font-size:28px;line-height:1.1;margin-top:6px;color:var(--text)}
 .opm-sp{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;margin-top:10px;font-size:12.5px;font-weight:600}
 .opm-h{color:var(--hair)}.opm-b{color:var(--beauty)}
+.opm-sp small{display:block;font-size:11.5px;font-weight:400;color:var(--muted2);font-variant-numeric:tabular-nums}
+.opm-cnt{margin-top:4px;font-size:12.5px;color:var(--muted)}
+.opm-ph{margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);font-size:12px;color:var(--muted2);line-height:1.4}
 .opm-sub{margin-top:10px;font-size:12.5px;color:var(--muted2);line-height:1.4}
 .opm-stack{display:flex;height:6px;border-radius:3px;overflow:hidden;margin-top:10px;background:var(--border2)}
 .opm-stack span{display:block;height:100%}
@@ -1393,6 +1396,14 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .chip-warn{color:var(--warn);border-color:var(--warn)}
 .chip-bad,.chip-critical{color:var(--bad);border-color:var(--bad)}
 .att-bars{margin-top:12px;display:grid;gap:6px}
+.ih-lbl{position:relative;display:inline-flex;align-items:center;gap:5px;cursor:help;outline:none}
+.ih-i{font-size:11px;color:var(--muted);line-height:1;font-weight:400;letter-spacing:0;text-transform:none}
+.ih-tip{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:40;width:max-content;max-width:min(300px,78vw);
+  padding:8px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12px;line-height:1.45;font-weight:400;
+  letter-spacing:0;text-transform:none;white-space:normal;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.ih-lbl:hover .ih-tip,.ih-lbl:focus .ih-tip,.ih-lbl:focus-within .ih-tip{display:block}
+.opm-tile:nth-child(4n) .ih-tip,.metric:nth-child(3n) .ih-tip{left:auto;right:0}
+.att-ph{margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);font-size:12.5px;color:var(--muted)}
 .att-bars .bar-line{display:grid;grid-template-columns:64px 1fr 72px;gap:12px;align-items:center}
 .att-bars .bar-lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .att-bars .bar-track{position:relative;height:14px;background:var(--border2);border-radius:4px;flex:none}
@@ -4119,12 +4130,12 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261008cb2"></script>
+<script src="dashboard.js?v=20261008cb3"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20261008cb1"></script>
-<script src="compare.js?v=20261008cb1"></script>
+<script src="branch-ledger.js?v=20261008cb3"></script>
+<script src="compare.js?v=20261008cb3"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20261008cb1"></script>
@@ -5083,5 +5094,5 @@ addEventListener('load', sizeTopbar);
 <script src="nav-collapse.js?v=20260924a"></script>
 <script src="nav-stars.js?v=20261002a"></script>
 <script src="mobile.js?v=20261008sa"></script>
-<script src="search.js?v=20261008cb2"></script>
+<script src="search.js?v=20261008cb3"></script>
 </body>

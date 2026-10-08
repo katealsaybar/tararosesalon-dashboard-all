@@ -2123,6 +2123,9 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
   // The client count the ledger's own columns (rebooked, NCR) were written against. A
   // roll-up over branches divides rebooked by this, not by totalClients, which on a
   // window the ledger lags also carries Phorest-only visits that have no rebooking column.
+  // Phorest's own staff counts per side (visits, RQ, new clients, services), carried on every summary
+  // so each page can print them beside the ledger's (Kate, 8 Oct 2026).
+  s.ph = (phorestStaffRows && phorestStaffRows.length) ? fnPhorestCounts(phorestStaffRows, null, branchStaffRows) : null;
   s.ledgerTotalClients = s._phorestOnly ? 0 : (ledgerPart ? ledgerPart.summary.totalClients : s.totalClients);
   const { hairStaff, beautyStaff } = buildStaffArraysFromMaps(hairMap, beautyMap);
   return { summary: s, hairStaff, beautyStaff };
@@ -3255,7 +3258,7 @@ function fnPhorestSide(employeeName, branch, ledgerDept, deptMap) {
 // Phorest's visits, requests and new clients (and rebooked, once the tracker rows are in),
 // summed per side. rebooked is null until then, so it reads as unknown, not zero.
 function fnPhorestCounts(phRows, rebookRows, ledgerRows) {
-  const z = () => ({ t: 0, req: 0, nw: 0, reb: rebookRows ? 0 : null });
+  const z = () => ({ t: 0, req: 0, nw: 0, svc: 0, reb: rebookRows ? 0 : null });
   const out = { hair: z(), beauty: z() };
   const deptMap = (typeof buildStaffDeptMap === 'function') ? buildStaffDeptMap() : {};
   const ledgerDept = {};
@@ -3269,12 +3272,28 @@ function fnPhorestCounts(phRows, rebookRows, ledgerRows) {
     if (!side) return;
     const o = out[side];
     o.t += Number(r.visits) || 0; o.req += Number(r.rqs) || 0; o.nw += Number(r.new_clients) || 0;
+    o.svc += (Number(r.services_ex_vat) || 0) + (Number(r.courses_ex_vat) || 0);   // for Phorest's own average bill
   });
   (rebookRows || []).forEach(r => {
     const side = fnPhorestSide(r.employee_name, r.branch, ledgerDept, deptMap);
     if (side) out[side].reb += Number(r.rebooked) || 0;
   });
   return out;
+}
+
+// The Phorest line under the Rebooking % benchmark (Kate, 8 Oct 2026: every figure that needs
+// a client count carries both computations). Rebooked is the Staff Performance Tracker's, read
+// over Phorest's staff visits per side, the same as the funnel's Phorest view. The tracker only
+// goes back to 1 Jul 2026, so an older window says so rather than printing a 0%.
+async function phRebookFill() {
+  if (!document.getElementById('phRebook')) return;
+  const F = window._fn;
+  const put = txt => { const el = document.getElementById('phRebook'); if (el) el.textContent = txt; };
+  if (!F || !F.phorest) { put(''); return; }
+  await fnLoadRebook(F);
+  if (!F.rebook || !F.phorest) { put('Phorest: rebooking is not available for this window (the Staff Performance Tracker starts 1 Jul 2026)'); return; }
+  const side = (lbl, o) => o.t ? `${lbl} ${(o.reb / o.t * 100).toFixed(1)}% (${fnNum(o.reb)} of ${fnNum(o.t)} staff visits)` : `${lbl} n/a`;
+  put(`Phorest: ${side('Hair', F.phorest.hair)} · ${side('Beauty', F.phorest.beauty)}`);
 }
 
 // The tracker rows for the window and branches on screen. A table the signed-in person
@@ -3575,6 +3594,23 @@ async function opmLoad() {
   OPM_CACHE = { key, data };
   return data;
 }
+// A little ⓘ that explains a figure on hover or tap, the same as on the Staff Dashboards, so
+// the page does not need a paragraph of definitions underneath (Kate, 8 Oct 2026). label may be
+// empty for an icon alone.
+function ihTip(label, text) {
+  return `<span class="ih-lbl" tabindex="0">${label}<span class="ih-i" aria-hidden="true">ⓘ</span><span class="ih-tip" role="tooltip">${escapeHtml(text)}</span></span>`;
+}
+const OPM_TIPS = {
+  'Retention': 'Clients a stylist saw 3 to 6 months ago who came back to her in the last 3 months. Counted per stylist, so a client who saw two stylists counts for each. Looks back 180 days, so it stays the same whatever period is on screen.',
+  'Request rate': 'Clients who asked for their stylist by name (requests plus new client requests) out of the clients the ledger types: request, salon, new and NCR. Per staff, from the ledgers. The Phorest line under it is Phorest’s RQ count over its staff visits.',
+  'Conversion': 'New clients whose first visit was with a stylist and who came back, to anyone, within 12 weeks. Counted per stylist. Looks back 180 days, so it stays the same whatever period is on screen.',
+  'Colour': 'Hair visits that included a colour service, out of all hair visits. Hair only: beauty is not tracked.',
+  'Reputation': 'Average star rating of the Google reviews in the last 90 days. Shown once there are at least 3.',
+  'Google reviews': 'Google reviews posted in the period, for the branches on screen.',
+  'Social posts': 'Posts and collabs tagging the salon, added up over stylists.',
+  'Social workdays': 'Days a stylist worked and posted or shared a story, added up over stylists.',
+};
+
 async function renderOrgPulseMore(s) {
   const el = document.getElementById('opMore');
   if (!el) return;
@@ -3599,13 +3635,16 @@ async function renderOrgPulseMore(s) {
   // beneath in their own colours. The two social counts also carry a stacked bar.
   const tile = (name, comb, f, hair, beauty, o) => {
     o = o || {};
-    const part = (lbl, v, cls, none) => Number.isFinite(v) ? `<span class="${cls}">${lbl} ${f(v)}</span>` : (none ? `<span class="opm-na">${lbl} ${none}</span>` : '');
+    const c = o.cnt || {};
+    const part = (lbl, v, cls, none, cn) => Number.isFinite(v) ? `<span class="${cls}">${lbl} ${f(v)}${cn ? `<small>${cn}</small>` : ''}</span>` : (none ? `<span class="opm-na">${lbl} ${none}</span>` : '');
     const split = (o.stack && Number.isFinite(hair) && Number.isFinite(beauty) && hair + beauty > 0)
       ? `<div class="opm-stack" title="Hair ${f(hair)}, Beauty ${f(beauty)}"><span style="width:${(hair / (hair + beauty) * 100).toFixed(1)}%;background:var(--hair)"></span><span style="width:${(beauty / (hair + beauty) * 100).toFixed(1)}%;background:var(--beauty)"></span></div>` : '';
     return `<div class="opm-tile">
-      <div class="opm-k">${name}</div>
+      <div class="opm-k">${OPM_TIPS[name] ? ihTip(name, OPM_TIPS[name]) : name}</div>
       <div class="opm-big tabular">${Number.isFinite(comb) ? f(comb) : '<span class="opm-na">–</span>'}</div>
-      ${o.note ? `<div class="opm-sub">${o.note}</div>` : `<div class="opm-sp">${part('Hair', hair, 'opm-h', o.hairNone)}${part('Beauty', beauty, 'opm-b', o.beautyNone)}</div>`}
+      ${c.comb ? `<div class="opm-cnt tabular">${c.comb}</div>` : ''}
+      ${o.note ? `<div class="opm-sub">${o.note}</div>` : `<div class="opm-sp">${part('Hair', hair, 'opm-h', o.hairNone, c.hair)}${part('Beauty', beauty, 'opm-b', o.beautyNone, c.beauty)}</div>`}
+      ${o.ph ? `<div class="opm-ph">${o.ph}</div>` : ''}
       ${split}
     </div>`;
   };
@@ -3614,22 +3653,32 @@ async function renderOrgPulseMore(s) {
   const bd = b => b ? { ask: (b.req || 0) + (b.ncr || 0), all: (b.req || 0) + (b.salon || 0) + (b.new || 0) + (b.ncr || 0) } : { ask: 0, all: 0 };
   const hb = bd(s && s.hairBreakdown), bb = bd(s && s.beautyBreakdown);
 
+  // The numbers behind each percentage (Kate, 8 Oct 2026: "need ng numbers, hindi lang percentages").
+  const xof = (n, d, unit) => d > 0 ? `${num0(n)} of ${num0(d)}${unit ? ' ' + unit : ''}` : '';
+  const PHx = (window._fnRows && window._fnRows.phorest && window._fnRows.phorest.length)
+    ? fnPhorestCounts(window._fnRows.phorest, null, window._fnRows.ledger) : null;
+  const phReq = PHx ? `Phorest RQ: ${xof(PHx.hair.req + PHx.beauty.req, PHx.hair.t + PHx.beauty.t, 'staff visits')}${PHx.beauty.t ? ` · Hair ${xof(PHx.hair.req, PHx.hair.t)} · Beauty ${xof(PHx.beauty.req, PHx.beauty.t)}` : ''}` : '';
+
   const reviews = (x.reviews || []).filter(r => codes.includes(r.branch));
   const rvN = reviews.reduce((a, r) => a + r.n_window, 0);
   const n90 = reviews.reduce((a, r) => a + r.n90, 0), stars90 = reviews.reduce((a, r) => a + r.stars90, 0);
 
   const tiles = [
-    tile('Retention', rate(sum(null, 'ret_back'), sum(null, 'ret_n')), pct1, rate(sum('Hair', 'ret_back'), sum('Hair', 'ret_n')), rate(sum('Beauty', 'ret_back'), sum('Beauty', 'ret_n'))),
-    tile('Request rate', rate(hb.ask + bb.ask, hb.all + bb.all), pct1, rate(hb.ask, hb.all), rate(bb.ask, bb.all)),
-    tile('Conversion', rate(sum(null, 'conv_back'), sum(null, 'conv_n')), pct1, rate(sum('Hair', 'conv_back'), sum('Hair', 'conv_n')), rate(sum('Beauty', 'conv_back'), sum('Beauty', 'conv_n'))),
-    tile('Colour', rate(sum('Hair', 'colour'), sum('Hair', 'visits')), pct1, rate(sum('Hair', 'colour'), sum('Hair', 'visits')), NaN, { beautyNone: 'n/a' }),
+    tile('Retention', rate(sum(null, 'ret_back'), sum(null, 'ret_n')), pct1, rate(sum('Hair', 'ret_back'), sum('Hair', 'ret_n')), rate(sum('Beauty', 'ret_back'), sum('Beauty', 'ret_n')),
+      { cnt: { comb: xof(sum(null, 'ret_back'), sum(null, 'ret_n'), 'clients came back'), hair: xof(sum('Hair', 'ret_back'), sum('Hair', 'ret_n')), beauty: xof(sum('Beauty', 'ret_back'), sum('Beauty', 'ret_n')) } }),
+    tile('Request rate', rate(hb.ask + bb.ask, hb.all + bb.all), pct1, rate(hb.ask, hb.all), rate(bb.ask, bb.all),
+      { cnt: { comb: xof(hb.ask + bb.ask, hb.all + bb.all, 'clients asked (ledgers, per staff)'), hair: xof(hb.ask, hb.all), beauty: xof(bb.ask, bb.all) }, ph: phReq }),
+    tile('Conversion', rate(sum(null, 'conv_back'), sum(null, 'conv_n')), pct1, rate(sum('Hair', 'conv_back'), sum('Hair', 'conv_n')), rate(sum('Beauty', 'conv_back'), sum('Beauty', 'conv_n')),
+      { cnt: { comb: xof(sum(null, 'conv_back'), sum(null, 'conv_n'), 'new clients came back'), hair: xof(sum('Hair', 'conv_back'), sum('Hair', 'conv_n')), beauty: xof(sum('Beauty', 'conv_back'), sum('Beauty', 'conv_n')) } }),
+    tile('Colour', rate(sum('Hair', 'colour'), sum('Hair', 'visits')), pct1, rate(sum('Hair', 'colour'), sum('Hair', 'visits')), NaN,
+      { beautyNone: 'n/a', cnt: { comb: xof(sum('Hair', 'colour'), sum('Hair', 'visits'), 'hair visits had colour'), hair: xof(sum('Hair', 'colour'), sum('Hair', 'visits')) } }),
     tile('Reputation', n90 >= 3 ? stars90 / n90 : NaN, stars, NaN, NaN, { note: n90 >= 3 ? `last 90 days, ${num0(n90)} reviews` : 'needs 3 reviews in 90 days' }),
     tile('Google reviews', rvN, num0, NaN, NaN, { note: 'posted in the period' }),
     tile('Social posts', sum(null, 'social_feed'), num0, sum('Hair', 'social_feed'), sum('Beauty', 'social_feed'), { stack: true }),
     tile('Social workdays', sum(null, 'social_workdays'), num0, sum('Hair', 'social_workdays'), sum('Beauty', 'social_workdays'), { stack: true }),
   ].join('');
   el.innerHTML = `<div class="opm-grid">${tiles}</div>
-    <div class="foot">${isGroupView() ? 'UAE branches only. ' : ''}The big figure is hair and beauty together. Retention: clients a stylist saw 3 to 6 months ago who came back to her in the last 3. Conversion: new clients whose first visit was with a stylist and who came back, to anyone, within 12 weeks. Both are counted per stylist, so a client who saw two stylists counts for each. Both look back 180 days${x.cache_asof ? ` to ${escapeHtml(x.cache_asof)}` : ''}, so they stay the same whatever period is on screen. Request rate: clients who asked for their stylist, per staff, out of the ledger's request, salon, new and NCR clients. Colour: visits with a colour service (hair only). Social posts: posts and collabs tagging the salon, added up over stylists; workdays: days a stylist worked and posted or shared a story. No aims here: they are set for each level on a stylist's own page.</div>`;
+    <div class="foot">${isGroupView() ? 'UAE branches only. ' : ''}The big figure is hair and beauty together. Hover the ⓘ on a tile for how it is counted. No aims here: they are set for each level on a stylist’s own page.</div>`;
 }
 
 async function renderDashboard() {
@@ -3923,6 +3972,18 @@ async function renderDashboard() {
     } catch (e) { /* stays on handled */ }
   }
 
+  // ── BOTH COMPUTATIONS (Kate, 8 Oct 2026) ─────────────────────────
+  // Every figure that needs a client count carries both: the ledgers (per staff, the
+  // basis the targets are written on) and Phorest. PH is Phorest's Staff Daily read per
+  // side: visits per staff, requests (RQ), new clients and services, so a Phorest
+  // average bill is that side's services over that side's Phorest visits. Phorest has no
+  // salon or NCR split, so those stay ledger. null on a window with no Phorest rows.
+  const PH = (window._fnRows && window._fnRows.phorest && window._fnRows.phorest.length)
+    ? fnPhorestCounts(window._fnRows.phorest, null, window._fnRows.ledger) : null;
+  const phVisits  = PH ? PH.hair.t + PH.beauty.t : null;
+  const phAvg     = side => (PH && PH[side].t) ? PH[side].svc / PH[side].t : null;
+  const phAvgTxt  = side => phAvg(side) == null ? 'n/a' : aed0(phAvg(side));
+
   // ── BENCHMARKS ───────────────────────────────────────────────────
   // The draft scored eight rows; this scores seven. Total Clients is deliberately
   // NOT one of them. It keeps its place in the headline three, with its target
@@ -3936,9 +3997,11 @@ async function renderDashboard() {
   const ncrTarget = (isGroupView() || isBahrainView()) ? null : ncrTargetFor(sel.branch, dateFrom, dateTo);
   const benchAll = [
     { name:'NCR',             sub: ncrTarget == null ? 'no target set' : `target ${ncrFmt(ncrTarget)}`,
-      hair:s.hairNCR, beauty:s.beautyNCR, combined:ncrCount, target:ncrTarget, fmt:ncrFmt, splitless:true },
+      hair:s.hairNCR, beauty:s.beautyNCR, combined:ncrCount, target:ncrTarget, fmt:ncrFmt, splitless:true,
+      ph: PH ? `Phorest has no NCR split. Requests (RQ): Hair ${num0(PH.hair.req)} · Beauty ${num0(PH.beauty.req)}` : '' },
     { name:'Rebooking %',     sub:`target ${TARGETS.rebookPct}%`,
-      hair:s.hairRebookPct, beauty:s.beautyRebookPct, combined:s.rebookPct, target:TARGETS.rebookPct, fmt:pct2 },
+      hair:s.hairRebookPct, beauty:s.beautyRebookPct, combined:s.rebookPct, target:TARGETS.rebookPct, fmt:pct2,
+      ph: PH ? '<span id="phRebook">Phorest: loading the Staff Performance Tracker…</span>' : '' },
     // Treatment before Retail, always — Kate/Mette, 2026-09-21. Source order
     // matters even though hitRows/lowRows re-sort by attainment: Array#sort is
     // stable, so a tie between the two keeps this array's order, and the
@@ -3950,13 +4013,15 @@ async function renderDashboard() {
       hair:hairRetailPctDept, beauty:beautyRetailPctDept, combined:rvHBRetPct, target:TARGETS.retailPct, fmt:pct2 },
     { name:'Beauty Avg Bill', sub:`target ${CUR()} ${TARGETS.beautyAvgBill}`,
       hair:null, beauty:s.beautyAvgBill, combined:s.beautyAvgBill, target:TARGETS.beautyAvgBill, fmt:aed0,
-      hairNote:'counted under Hair Avg Bill' },
+      hairNote:'counted under Hair Avg Bill',
+      ph: PH ? `Phorest: Beauty ${phAvgTxt('beauty')} per visit (${num0(PH.beauty.t)} staff visits)` : '' },
     { name:'Utilisation %',   sub:`hair ≥ ${TARGETS.hairUtilPct} · beauty ≥ ${TARGETS.beautyUtilPct}`,
       hair:s.hairUtilPct, beauty:s.beautyUtilPct, combined:s.utilPct,
       target:TARGETS.hairUtilPct, beautyTarget:TARGETS.beautyUtilPct, fmt:pct2 },
     { name:'Hair Avg Bill',   sub:`target ${CUR()} ${TARGETS.hairAvgBill}`,
       hair:s.hairAvgBill, beauty:null, combined:s.hairAvgBill, target:TARGETS.hairAvgBill, fmt:aed0,
-      beautyNote:'counted under Beauty Avg Bill' },
+      beautyNote:'counted under Beauty Avg Bill',
+      ph: PH ? `Phorest: Hair ${phAvgTxt('hair')} per visit (${num0(PH.hair.t)} staff visits)` : '' },
   ]
   // No data, no card. Utilisation is null whenever the period has no matching
   // roster hours, and a null scored against 80% would print as a catastrophic
@@ -4043,6 +4108,7 @@ async function renderDashboard() {
           ${Number.isFinite(r.beauty) ? line('Beauty', r.beauty, 'var(--beauty)', r.splitless ? null : (both ? r.beautyTarget : r.target), both ? 'B' : 'Target')
                                       : note('Beauty · ' + (r.beautyNote || 'no data for this period'))}
         </div>
+        ${r.ph ? `<div class="att-ph">${r.ph}</div>` : ''}
       </div>`;
   };
 
@@ -4219,7 +4285,8 @@ async function renderDashboard() {
       <div class="r-rule"></div>` : ''}
       <div class="r-row"><span class="r-label">Net take</span><span class="r-val tabular">${num0(s.netTake)}</span></div>
       <div class="r-row"><span class="r-label">Clients${doorOn(s) ? ' through the door' : ''}</span><span class="r-val tabular">${num0(clientsOf(s))}</span></div>
-      ${doorOn(s) ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">handled by staff</span><span class="r-val tabular" style="opacity:.75">${num0(s.totalClients)}</span></div>` : ''}
+      ${doorOn(s) ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">handled by staff (ledgers)</span><span class="r-val tabular" style="opacity:.75">${num0(s.totalClients)}</span></div>` : ''}
+      ${PH ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">staff visits (Phorest)</span><span class="r-val tabular" style="opacity:.75">${num0(phVisits)}</span></div>` : ''}
       <div class="r-row"><span class="r-label">Avg bill</span><span class="r-val tabular">${num0(avgBillOf(s))}</span></div>
       ${targetsBlock}
       <div class="r-rule"></div>
@@ -4291,23 +4358,29 @@ async function renderDashboard() {
         { k:'Hair',   val:hairNetSalonTake,  of:s.netTake, txt:aed0(hairNetSalonTake),  extra:`${shareOf(hairNetSalonTake, s.netTake)}%`,  color:'var(--hair)' },
         { k:'Beauty', val:beautyNetTakeDept, of:s.netTake, txt:aed0(beautyNetTakeDept), extra:`${shareOf(beautyNetTakeDept, s.netTake)}%`, color:'var(--beauty)' },
       ]) },
-    { k:'Clients', def: doorOn(s)
-        ? `Through the door: each client once a day, however many staff she saw (Phorest). Deposits, balance payments and voucher-only days are not visits. ${num0(s.totalClients)} handled by staff; the split below is by staff.`
+    { k:'Clients', def: doorOn(s) ? 'Each client once a day, through the door (Phorest). Per staff and Phorest staff visits below.' : 'Per staff, from the ledgers.',
+      tip: doorOn(s)
+        ? `Through the door: each client once a day, however many staff she saw (Phorest Sales Transactions). Deposits, balance payments and voucher-only days are not visits. Handled by staff is the ledgers' count (${num0(s.totalClients)}), where a client seen by two staff counts twice; the targets are written on it. Staff visits is Phorest's Staff Daily count per employee. The Hair and Beauty split is by staff.`
         : CLIENT_BASIS === 'door'
           ? 'Handled, not through the door: Phorest’s Sales Transactions have no count for this selection (Bahrain is not in them), so this is each staff member’s clients from the ledgers.'
           : 'Handled: each staff member counts the clients she served (ledgers), hair and beauty.',
       v: num0(clientsOf(s)), status: clientTrend.status,
       pill: doorOn(s) ? 'Per visit' : null,
-      sub: doorOn(s) ? [['Handled by staff', num0(s.totalClients)]] : [],
+      sub: (doorOn(s) ? [['Handled by staff (ledgers)', num0(s.totalClients)]] : [])
+        .concat(PH ? [['Staff visits (Phorest)', num0(phVisits)]] : []),
+      foot: PH ? [['Hair, Phorest staff visits', num0(PH.hair.t)], ['Beauty, Phorest staff visits', num0(PH.beauty.t)]] : [],
       t: getClientTarget(sel.branch), verdict: clientTrend.verdict,
       splits: splitsOf([
         { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} by staff`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
         { k:'Beauty', val:s.beautyTotalClients, of:s.totalClients, txt:`${num0(s.beautyTotalClients)} by staff`, extra:`${shareOf(s.beautyTotalClients, s.totalClients)}%`, color:'var(--beauty)' },
       ]) },
-    { k:'Avg bill', def: doorOn(s) ? 'Net take divided by clients through the door: what one visit is worth.' : 'Net take divided by clients: what one visit is worth.',
+    { k:'Avg bill', def: doorOn(s) ? 'Net take per client through the door.' : 'Net take per client.',
+      tip: doorOn(s) ? 'Net take divided by clients through the door: what one visit is worth. The per staff count line divides by the ledgers’ clients, the Phorest line by Phorest’s staff visits. Hair and Beauty are that side’s services over that side’s clients, per staff.' : 'Net take divided by clients: what one visit is worth.',
       v: aed0(avgBillOf(s)), status: avgBillStatus,
       pill: doorOn(s) ? 'Per visit' : null,
-      sub: doorOn(s) ? [[`Per staff count (${num0(s.totalClients)})`, aed0(s.avgBill)]] : [],
+      sub: (doorOn(s) ? [[`Per staff count, ledgers (${num0(s.totalClients)})`, aed0(s.avgBill)]] : [])
+        .concat(PH && phVisits ? [[`Per staff visit, Phorest (${num0(phVisits)})`, aed0((s.netTake || 0) / phVisits)]] : []),
+      foot: PH ? [['Hair, Phorest', phAvgTxt('hair')], ['Beauty, Phorest', phAvgTxt('beauty')]] : [],
       t: TARGETS.hairAvgBill == null ? 'No avg-bill target set for this branch yet'
         : `Hair target ${TARGETS.hairAvgBill} · Beauty target ${TARGETS.beautyAvgBill}${doorOn(s) ? ` · ${aed0(avgTarget)} a door client` : ''}`, verdict: avgBillVerdict,
       splits: splitsOf([
@@ -4538,12 +4611,13 @@ async function renderDashboard() {
 <div class="three">
   ${THREE.map(m => `
     <div class="metric st-${m.status}">
-      <div class="m-k">${m.k}${m.pill ? `<span class="m-pill">${m.pill}</span>` : ''}</div>
+      <div class="m-k">${m.k}${m.pill ? `<span class="m-pill">${m.pill}</span>` : ''}${m.tip ? ihTip('', m.tip) : ''}</div>
       <div class="m-def">${m.def}</div>
       <div class="m-v tabular ${m.status === 'good' ? 'good' : m.status === 'warn' ? 'warn' : 'bad'}">${m.v}</div>
       <div class="m-t">${m.t}</div>
       ${(m.sub || []).map(([k, v]) => `<div class="m-sub"><span>${k}</span><span class="tabular">${v}</span></div>`).join('')}
       ${m.splits.length ? `<div class="m-split">${m.splits.map(splitBar).join('')}</div>` : ''}
+      ${(m.foot || []).map(([k, v]) => `<div class="m-sub"><span>${k}</span><span class="tabular">${v}</span></div>`).join('')}
       <span class="verdict st-${m.status}">${m.verdict}</span>
     </div>`).join('')}
 </div>
@@ -4654,6 +4728,7 @@ ${actionHtml}
   // you collapsed over there collapsed when you come back to it.
   restoreSections();
   renderOrgPulseMore(s);
+  phRebookFill();
 
   // The funnel and the branch columns are drawn in the template above, in the
   // page's own type, so there is no canvas left on this view to build or destroy.
