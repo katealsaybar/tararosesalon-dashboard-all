@@ -45,11 +45,30 @@ const tpPct  = n => (Math.round((Number(n) || 0) * 10) / 10) + '%';
 // holding one would pin a stylist's January figures into an August comparison.
 let tpDept = 'hair';
 let tpCompare = [];
-// Rank by: 'net' (podium + floor by net salon take) or 'level' (one group per
-// position, top of the ladder first, net take order inside each). Kate, 25 Sep
-// 2026; remembered per browser.
+// Rank by: net take, or one of the weekly and monthly leagues from 2026 LEAGUES.xlsx
+// (Services, Retail, Treatment, Rebooking %, New Client Requests). Kate, 8 Oct 2026:
+// the Position grouping is gone. Reels and Google reviews are leagues in the sheet
+// too, but the dashboard holds no per-stylist count for them, so they are not here.
+// Remembered per browser.
+const TP_PTS = n => (Math.round(Math.max(0, Number(n) || 0) * 10) / 10) + ' pts';
+const TP_LEAGUES = {
+  net:       { label: 'Takings',             note: 'net salon take',        get: s => s.net || 0,         f: tpAed },
+  services:  { label: 'Services',            note: 'service sales',         get: s => (s.isBeauty ? s.beautySales : s.hairSalesNet) || 0, f: tpAed },
+  retail:    { label: 'Retail',              note: 'retail sales',          get: s => s.retail || 0,      f: tpAed },
+  treatment: { label: 'Treatment',           note: 'treatment sales',       get: s => s.treatments || 0,  f: tpAed, hairOnly: true, ledger: true },
+  rebook:    { label: 'Rebooking %',         note: 'rebooking %',           get: s => s.rebookPct || 0,   f: tpPct, gap: TP_PTS, ledger: true },
+  ncr:       { label: 'New client requests', note: 'new client requests',   get: s => s.newClientReq || 0, f: n => tpNum(n) + ' NCR', ledger: true },
+};
 let tpSort = 'net';
-try { if (localStorage.getItem('tp-sort') === 'level') tpSort = 'level'; } catch (e) {}
+try { const k = localStorage.getItem('tp-sort'); if (TP_LEAGUES[k]) tpSort = k; } catch (e) {}
+// The league actually in force: one that this bench or this view has no figures for
+// (Treatment on the beauty bench, anything off the ledger in Bahrain) falls back to net.
+function tpLeagues() {
+  const bh = typeof isBahrainView === 'function' && isBahrainView();
+  return Object.keys(TP_LEAGUES).filter(k => !(TP_LEAGUES[k].hairOnly && tpDept === 'beauty') && !(TP_LEAGUES[k].ledger && bh));
+}
+function tpLeagueKey() { return tpLeagues().includes(tpSort) ? tpSort : 'net'; }
+function tpLg() { return TP_LEAGUES[tpLeagueKey()]; }
 // The ladder, top first. Hair ladder is perf_benchmarks' level_order; beauty
 // roles follow. Roles come from staff-profiles.js; anyone without one goes last.
 const TP_LADDER = ['Owner', 'Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist', 'Blow-Dry Specialist', 'Barber',
@@ -182,7 +201,7 @@ function tpCombine(group, mergeKey) {
   return {
     ...first,
     mergeKey,
-    total, rebooked, newC: sum('newC'), req: sum('req'), salon: sum('salon'),
+    total, rebooked, newC: sum('newC'), newClientReq: sum('newClientReq'), req: sum('req'), salon: sum('salon'),
     treatments, retail, hairSalesNet, beautySales, net, netSalonTake: net,
     avgBill:      total ? services / total : 0,
     rebookPct:    total ? (rebooked / total * 100) : 0,
@@ -312,7 +331,11 @@ async function renderTeam() {
   // The emptiness test is the roster itself, not a weekly_data row count: on a
   // part-week window there are no weekly rows at all and the figures come from
   // the daily join, so counting weeks would call a full page of data empty.
-  const roster = tpRoster(tpDept);
+  const lg = tpLg();
+  let roster = tpRoster(tpDept);
+  // The race is re-ranked by the league picked; ties fall back to net take, which is
+  // the order tpRoster already returns, and Array.sort is stable.
+  if (part === 'race' && tpLeagueKey() !== 'net') roster = roster.slice().sort((a, b) => lg.get(b) - lg.get(a));
   const branchLabel = sel.branch.includes('all')
     ? allLabel()
     : sel.branch.map(b => (BRANCH_INFO[b] || {}).name || b).join(', ');
@@ -327,7 +350,7 @@ async function renderTeam() {
   const podium = roster.slice(0, 3);
   const chase  = roster.slice(3, 10);
   const rest   = roster.slice(10);
-  const lead   = roster.length ? (roster[0].net || 0) : 0;
+  const lead   = roster.length ? lg.get(roster[0]) : 0;
   const benchWord = tpDept === 'beauty' ? 'beauty bench' : 'hair floor';
 
   host.innerHTML = `
@@ -336,10 +359,9 @@ async function renderTeam() {
         <button class="${tpDept === 'hair'   ? 'on' : ''}" onclick="tpSetDept('hair')">Hair</button>
         <button class="${tpDept === 'beauty' ? 'on' : ''}" onclick="tpSetDept('beauty')">Beauty</button>
       </div>
-      ${part === 'race' ? `<div class="tp-seg" role="group" aria-label="Rank by">
-        <button class="${tpSort === 'net'   ? 'on' : ''}" onclick="tpSetSort('net')" title="One race, everyone ranked by net salon take">Takings</button>
-        <button class="${tpSort === 'level' ? 'on' : ''}" onclick="tpSetSort('level')" title="Grouped by position (Style Director, Senior Stylist and so on), ranked by net take inside each group">Position</button>
-      </div>` : ''}
+      ${part === 'race' ? `<select id="tpRankBy" aria-label="Rank by" onchange="tpSetSort(this.value)">
+        ${tpLeagues().map(k => `<option value="${k}" ${k === tpLeagueKey() ? 'selected' : ''}>Rank by: ${TP_LEAGUES[k].label}</option>`).join('')}
+      </select>` : ''}
       <span class="tp-bar-n">${branchLabel} · ${roster.length} ${roster.length === 1 ? 'person' : 'people'}</span>
       <span class="tp-bar-sp"></span>
       <span class="tp-bar-n">${part === 'quad' ? 'Tap a face' : 'Tap + on anyone'} to compare, up to ${TP_MAX_COMPARE}</span>
@@ -347,21 +369,20 @@ async function renderTeam() {
 
     ${!roster.length ? '<div class="empty">Nobody on this bench in the selected period.</div>'
       : part === 'quad' ? (tpQuadrant(roster) || '<div class="empty">The chart needs at least four people on this bench.</div>') : `
-      ${tpSort === 'level' ? tpByLevel(roster, lead) : `
       <div class="section-label">Leading this period
-        <span class="tp-sec-n">by net salon take</span></div>
+        <span class="tp-sec-n">by ${lg.note}</span></div>
       <div class="tp-podium">${podium.map(tpPodiumCard).join('')}</div>
 
       ${chase.length ? `
         <div class="section-label">Chasing the podium
-          <span class="tp-sec-n">Ranks 4 to ${3 + chase.length}. The bar is her take against the leader's; tiles are green at or above the aim, amber within a fifth of it, red below.</span></div>
+          <span class="tp-sec-n">Ranks 4 to ${3 + chase.length}. The bar is her ${lg.note} against the leader's; tiles are green at or above the aim, amber within a fifth of it, red below.</span></div>
         <div class="tp-race">${chase.map((st, i) => tpChaseRow(st, i + 4, roster[i + 2], lead)).join('')}</div>` : ''}
 
       ${rest.length ? `
         <div class="section-label">The rest of the ${benchWord}
           <span class="tp-sec-n">${rest.length} ${rest.length === 1 ? 'person' : 'people'}</span></div>
         <div class="tp-race">${rest.map((st, i) => tpRaceRow(st, i + 11, lead)).join('')}</div>` : ''}
-    `}`}
+    `}
 
     <!-- Fixed to the bottom of the window, but rendered inside the view so it
          disappears with it: a fixed child of a display:none parent is hidden. -->
@@ -415,8 +436,9 @@ function tpAddBtn(st) {
 // The race bar: her net take as a share of the leader's, in her home branch colour.
 // A floor of 18% keeps the figure inside the bar readable for the smallest books.
 function tpBar(st, lead, cls) {
-  const w = lead ? Math.max(18, (st.net || 0) / lead * 100) : 18;
-  return `<div class="tp-trk ${cls || ''}"><div class="tp-fill tabular" style="width:${Math.min(100, w)}%;background:${st.branchColor}">${tpAed(st.net)}</div></div>`;
+  const lg = tpLg(), v = lg.get(st);
+  const w = lead ? Math.max(18, v / lead * 100) : 18;
+  return `<div class="tp-trk ${cls || ''}"><div class="tp-fill tabular" style="width:${Math.min(100, w)}%;background:${st.branchColor}">${lg.f(v)}</div></div>`;
 }
 function tpRoleBranch(st) {
   return `${escapeHtml(tpRole(st))} · ${(st.branches || [{ name: st.branchName }]).map(b => escapeHtml(b.name)).join(' + ')}`;
@@ -433,8 +455,8 @@ function tpPodiumCard(st, i) {
     <div class="tp-pod-nm">${tpName(st, true)}</div>
     <div class="tp-role">${escapeHtml(tpRole(st))}</div>
     <div class="tp-branch">${tpBranchTag(st)}</div>
-    <div class="tp-pod-v tabular">${tpAed(st.net)}</div>
-    <div class="tp-pod-s tabular">${tpNum(st.total)} clients${(typeof isBahrainView === 'function' && isBahrainView()) ? '' : ` · ${tpNum(st.rebooked)} rebooked`}</div>
+    <div class="tp-pod-v tabular">${tpLg().f(tpLg().get(st))}</div>
+    <div class="tp-pod-s tabular">${tpLeagueKey() === 'net' ? '' : tpAed(st.net) + ' take · '}${tpNum(st.total)} clients${(typeof isBahrainView === 'function' && isBahrainView()) ? '' : ` · ${tpNum(st.rebooked)} rebooked`}</div>
     <div class="tp-rings">${tpRings(st)}</div>
   </div>`;
 }
@@ -442,14 +464,15 @@ function tpPodiumCard(st, i) {
 // Ranks 4-10: a fuller row than the rest, with the four targets as tiles and how
 // far she sits behind the person one place above her.
 function tpChaseRow(st, rank, ahead, lead) {
-  const gap = ahead ? Math.max(0, (ahead.net || 0) - (st.net || 0)) : 0;
+  const lg = tpLg();
+  const gap = ahead ? Math.max(0, lg.get(ahead) - lg.get(st)) : 0;
   return `<div class="card tp-ch">
     <span class="tp-ch-rk tabular">${rank}</span>
     ${tpAvatar(st.name)}
     <div class="tp-ch-who">
       <div class="tp-row-nm">${tpName(st)}</div>
       <div class="tp-row-s">${tpRoleBranch(st)}</div>
-      ${ahead ? `<div class="tp-gap tabular">${tpAed(gap)} behind ${escapeHtml(ahead.name)}</div>` : ''}
+      ${ahead ? `<div class="tp-gap tabular">${(lg.gap || lg.f)(gap)} behind ${escapeHtml(ahead.name)}</div>` : ''}
     </div>
     ${tpBar(st, lead, 'lg')}
     <div class="tp-tiles">${tpTiles(st)}</div>
@@ -457,7 +480,7 @@ function tpChaseRow(st, rank, ahead, lead) {
   </div>`;
 }
 
-// Everyone from 11 down, and every row of the Position view: one line, the bar
+// Everyone from 11 down: one line, the bar
 // and her rebooking, which is the figure that decides whether you look closer.
 function tpRaceRow(st, rank, lead) {
   return `<div class="card tp-rr">
@@ -472,18 +495,6 @@ function tpRaceRow(st, rank, lead) {
       : `<div class="tp-rb tabular ${tpBand(st.rebookPct, TARGETS.rebookPct)}"><b>${tpPct(st.rebookPct)}</b>rebook${tpAim({ t: TARGETS.rebookPct, f: tpPct })}</div>`}
     ${tpAddBtn(st)}
   </div>`;
-}
-
-// Position view: one section per role, top of the ladder first, each ranked by
-// net take (roster is already in that order). Bars stay scaled to the overall
-// leader so a group's length still reads against the whole bench.
-function tpByLevel(roster, lead) {
-  const groups = {};
-  roster.forEach(st => (groups[tpRole(st)] ||= []).push(st));
-  return Object.keys(groups).sort((a, b) => tpRoleRank(a) - tpRoleRank(b)).map(r => `
-      <div class="section-label">${escapeHtml(r)}
-        <span class="tp-sec-n">${groups[r].length} ${groups[r].length === 1 ? 'person' : 'people'}, by net salon take</span></div>
-      <div class="tp-race">${groups[r].map((st, i) => tpRaceRow(st, i + 1, lead)).join('')}</div>`).join('');
 }
 
 /* ── THE QUADRANT ─────────────────────────────────────────────
