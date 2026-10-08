@@ -392,7 +392,7 @@
     const pieces = norm(text).split('…').map(p => p.replace(/\s+/g, ' ').trim()).filter(p => p.length >= 4);
     if (!pieces.length) return null;
     let best = null, bestLen = Infinity;
-    viewRoots(view).forEach(({ root, frame }) => root.querySelectorAll(SCAN).forEach(el => {
+    viewRoots(view).forEach(({ root, frame }) => root.querySelectorAll(SCAN + ', p, li, small, em, strong, summary, button, dd').forEach(el => {
       const raw = el.textContent;
       if (raw.length > 900 || raw.length >= bestLen) return;
       const t = norm(raw).replace(/\s+/g, ' ');
