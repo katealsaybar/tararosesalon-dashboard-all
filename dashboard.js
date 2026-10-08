@@ -299,7 +299,14 @@ function reviewsViewSwitch(prev, next) {
     const st = REVIEWS_STASH; REVIEWS_STASH = null;
     let changed = false;
     if (st.group && GROUP_MODE && sel.branch.includes('all')) { GROUP_MODE = false; changed = true; }
-    if (st.range && activePeriodKey() === 'Last 90 days') { dateFrom = st.range.from; dateTo = st.range.to; periodPick = null; changed = true; }
+    // Kate, 8 Oct 2026: any window only Reviews has (Last 30, Last 90, All time) goes back,
+    // not just the 90 days it opened on. All time is 1 Jan 2000, which the other pages
+    // would read as a custom range and show as "1 January 2000 - today".
+    if (reviewsPresets().some(isRange)) {
+      const t = new Date(); t.setHours(0,0,0,0);
+      const back = st.range || { from: new Date(t.getFullYear(), t.getMonth(), 1), to: t };
+      dateFrom = back.from; dateTo = back.to; periodPick = null; changed = true;
+    }
     if (changed) { paintFilterChips(); renderDashboard(); }
   }
   if (next === 'reviews') {

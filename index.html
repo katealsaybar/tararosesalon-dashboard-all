@@ -523,7 +523,10 @@ body.scoped #gsTrig, body.scoped #trs-ask{display:none!important}
    title block keeps its width and the buttons wrap onto a second line instead. */
 @media(min-width:761px){
   .mast-top > div:first-child{flex-shrink:0}
-  .mast-acts{flex-shrink:1;min-width:0;flex-wrap:wrap;justify-content:flex-end;row-gap:6px}}
+  .mast-acts{flex-shrink:1;min-width:0;flex-wrap:wrap;justify-content:flex-end;row-gap:6px}
+  .mast-who{display:flex;align-items:center;gap:8px;flex-shrink:0;align-self:center}}
+/* Phones: the wrapper drops out of the layout so the old rules apply as before. */
+@media(max-width:760px){.mast-who{display:contents}}
 .mast-rule{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:16px;
   padding:9px 0;border-top:1px solid var(--text);border-bottom:1px solid var(--border);
   font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
@@ -3397,8 +3400,8 @@ table.tp-cmp td.bad{color:var(--bad)}
         <button class="tglr navbtn" id="navBtn" onclick="toggleNav()" aria-expanded="false" aria-controls="sidebar">Sections</button>
         <button class="tglr" id="filtersBtn" onclick="toggleFiltersBar()" aria-expanded="true" aria-controls="filters">Hide filters</button>
         <button class="tglr" id="themeBtn" onclick="toggleTheme()"><span id="themeLbl">Dark</span></button>
-        <span class="mast-hello" id="mastHello"></span>
-        <button class="tglr signout" id="signOutBtn" onclick="doLogout()">Sign out</button>
+        <span class="mast-who"><span class="mast-hello" id="mastHello"></span>
+        <button class="tglr signout" id="signOutBtn" onclick="doLogout()">Sign out</button></span>
         <!-- Phones only (mobile.css): opens the filters sheet and says what they are set to. -->
         <button class="tglr" id="fSheetBtn" onclick="openFilterSheet()" aria-expanded="false" aria-controls="fSheet"
                 aria-label="Filters"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -4007,7 +4010,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261006ph"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261008ry"></script>
+<script src="dashboard.js?v=20261008rz"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
