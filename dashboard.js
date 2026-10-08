@@ -3591,7 +3591,7 @@ function cachedRange(key, loader) {
 // create_door_clients.sql). September 2026: 2,843 handled, 2,699 through the door.
 //
 // One switch in the filter bar, remembered like the theme and branch, opening on
-// Handled. What follows it (her call): the Clients figure and Avg bill, on the
+// Through the door (Handled until 8 Oct 2026). What follows it (her call): the Clients figure and Avg bill, on the
 // Pulse, Branch Performance and Comparison. What does not: rebooking and NCR,
 // which only exist per stylist in the ledger, the hair/beauty split (a door client
 // has no department), every staff table, and the Ledgers pages, whose targets are
@@ -3599,8 +3599,11 @@ function cachedRange(key, loader) {
 // takes in Bahrain stays on Handled and says so.
 const DOOR_BRANCHES = ['SAA', 'KCA', 'MC', 'AQ', 'FRT'];
 const CLIENT_VIEWS = new Set(['dashboard', 'branchperf', 'compare']);
-let CLIENT_BASIS = 'handled';
-try { if (localStorage.getItem('trs-clients') === 'door') CLIENT_BASIS = 'door'; } catch (e) {}
+// Kate, 8 Oct 2026: Through the door is the default, so the Pulse receipt shows both counts
+// (clients through the door, and handled by staff beneath it) the moment it opens. Anyone
+// who has picked Handled before keeps it.
+let CLIENT_BASIS = 'door';
+try { if (localStorage.getItem('trs-clients') === 'handled') CLIENT_BASIS = 'handled'; } catch (e) {}
 function setClientBasis(v) {
   CLIENT_BASIS = v === 'door' ? 'door' : 'handled';
   try { localStorage.setItem('trs-clients', CLIENT_BASIS); } catch (e) {}
