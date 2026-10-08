@@ -177,6 +177,36 @@ function cmpRestore() {
   cmpState.per = false;
 }
 
+// ── THE WINDOW'S OWN EXTRAS ─────────────────────────────────
+// Colour, Google reviews, social posts and workdays, and the 90-day reputation to the window's end,
+// from the same org_pulse_extra call the Pulse's More measures reads, one window per side. UAE only
+// (Bahrain is not in it yet), and a side with no UAE branch has none. Retention and Conversion are
+// left out on purpose: they look back 180 days from today, the same for any window, so there is
+// nothing to compare. null on any failure; the rows then print a dash.
+async function cmpExtra(from, to, codes) {
+  const uae = ['AQ', 'KCA', 'MC', 'SAA'];
+  const want = (codes && codes.length ? codes : uae).filter(c => uae.includes(c));
+  if (!want.length || typeof viewerKey !== 'function') return null;
+  try {
+    const data = await cachedRange(`opx|${cmpIso(from)}|${cmpIso(to)}`, async () => {
+      const { data, error } = await sb.rpc('org_pulse_extra', { p_admin: await viewerKey(), p_from: cmpIso(from), p_to: cmpIso(to) });
+      if (error || !data) throw error || new Error('no data');
+      return data;
+    });
+    const staff = (data.staff || []).filter(r => want.includes(r.branch));
+    const sum = (dept, k) => staff.filter(r => !dept || r.dept === dept).reduce((a, r) => a + (Number(r[k]) || 0), 0);
+    const rev = (data.reviews || []).filter(r => want.includes(r.branch));
+    const n90 = rev.reduce((a, r) => a + (r.n90 || 0), 0), st90 = rev.reduce((a, r) => a + (r.stars90 || 0), 0);
+    const hv = sum('Hair', 'visits');
+    return {
+      colour: hv > 0 ? sum('Hair', 'colour') / hv * 100 : null,
+      reviews: rev.reduce((a, r) => a + (r.n_window || 0), 0),
+      posts: sum(null, 'social_feed'), workdays: sum(null, 'social_workdays'),
+      stars: n90 >= 3 ? st90 / n90 : null,
+    };
+  } catch (e) { return null; }
+}
+
 // ── ONE SIDE'S SUMMARY ──────────────────────────────────────
 async function cmpSummary(side) {
   const { from, to, branch } = side;
@@ -207,6 +237,8 @@ async function cmpSummary(side) {
     s.utilPct = a ? h / a * 100 : null;
   } catch (e) { s.hairUtilPct = s.beautyUtilPct = s.utilPct = null; }
 
+  s.opx = await cmpExtra(from, to, codes);
+
   s._days = daysBetween(from, to);
   // Kept for the pace chart and the by-branch chart, which re-cut the same rows
   // rather than fetching again.
@@ -228,6 +260,13 @@ const CMP_POST_CUTOVER = side => cmpIso(side.to) >= TARGET_CUTOVER_ISO;
 function cmpMetrics() {
   const nz = v => (v == null || !Number.isFinite(+v)) ? null : +v;
   const hairTxPct = s => s._phorestOnly ? null : (s.hairServicesIncl ? (s.treatmentSales || 0) / s.hairServicesIncl * 100 : null);
+  // Clients who asked for their stylist (requests plus new client requests) out of the clients the
+  // ledger types: request, salon, new and NCR. The same figure as the Pulse's Request rate.
+  const reqRate   = s => {
+    const bd = b => b ? { ask: (b.req || 0) + (b.ncr || 0), all: (b.req || 0) + (b.salon || 0) + (b.new || 0) + (b.ncr || 0) } : { ask: 0, all: 0 };
+    const h = bd(s.hairBreakdown), b = bd(s.beautyBreakdown);
+    return (h.all + b.all) > 0 && !s._phorestOnly ? (h.ask + b.ask) / (h.all + b.all) * 100 : null;
+  };
   const retPct    = s => { const svc = (s.netTake || 0) - (s.retailTotal || 0); return svc ? (s.retailTotal || 0) / svc * 100 : null; };
   return [
     { group: 'Revenue' },
@@ -236,11 +275,18 @@ function cmpMetrics() {
     { name: 'Hair treatments',          kind: 'aed', up: true, get: s => nz(s.treatmentSales) },
     { name: 'Beauty services',          kind: 'aed', up: true, get: s => nz(s.beautyServicesTotal) },
     { name: 'Retail',                   kind: 'aed', up: true, get: s => nz(s.retailTotal) },
+    { name: 'Hair retail',              kind: 'aed', up: true, get: s => nz(s.hairRetailOnly) },
+    { name: 'Beauty retail',            kind: 'aed', up: true, get: s => nz(s.beautyRetailOnly) },
+    { name: 'Courses',                  sub: 'hair + beauty', kind: 'aed', up: true, get: s => (s.hairCourses == null && s.beautyCourses == null) ? null : nz((s.hairCourses || 0) + (s.beautyCourses || 0)) },
+    { name: 'Treatment units',          sub: 'hair', kind: 'n', up: true, get: s => nz(s.hairTreatmentUnits) },
+    { name: 'Retail units',             sub: 'hair + beauty', kind: 'n', up: true, get: s => (s.hairRetailUnits == null && s.beautyRetailUnits == null) ? null : nz((s.hairRetailUnits || 0) + (s.beautyRetailUnits || 0)) },
     { group: 'Clients' },
     { name: 'Clients',                  sub: CMP_DOOR ? 'through the door (Phorest)' : 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(clientsOf(s)) },
     ...(CMP_DOOR ? [{ name: 'Handled by staff', sub: 'ledgers', muted: true, kind: 'n', up: true, get: s => nz(s.totalClients) }] : []),
     { name: 'Hair clients',             sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.hairTotalClients) },
     { name: 'Beauty clients',           sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.beautyTotalClients) },
+    { name: 'Request clients',          sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.requestClientTotal) },
+    { name: 'Salon clients',            sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.salonClientTotal) },
     { name: 'New clients',              sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.newClientsTotal) },
     { name: 'Rebooked',                 sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.totalRebooked) },
     { name: 'New clients, Phorest',     sub: 'Phorest’s own count', muted: true, kind: 'n', up: true, get: s => s.ph ? nz(s.ph.hair.nw + s.ph.beauty.nw) : null },
@@ -255,16 +301,24 @@ function cmpMetrics() {
     { name: 'NCR',                      sub: 'hair + beauty, per staff', kind: 'n', up: true, noMover: true, get: s => nz(ncrCountOf(s)),
       target: side => ncrTargetFor(cmpCodes(side.branch), side.from, side.to) },
     { name: 'Rebooking %',              sub: 'per staff (ledgers)', kind: 'pct', up: true, get: s => nz(s.rebookPct), target: side => CMP_POST_CUTOVER(side) ? 70 : 45 },
+    { name: 'Request rate',             sub: 'asked for her stylist, per staff', kind: 'pct', up: true, get: reqRate },
     { name: 'Treatment %',              sub: 'of hair revenue', kind: 'pct', up: true, get: hairTxPct, target: () => TARGETS.treatmentPct },
     { name: 'Retail %',                 sub: 'of services', kind: 'pct', up: true, get: retPct, target: () => TARGETS.retailPct },
     { name: 'Hair utilisation %',       kind: 'pct', up: true, get: s => nz(s.hairUtilPct),   target: () => TARGETS.hairUtilPct },
     { name: 'Beauty utilisation %',     kind: 'pct', up: true, get: s => nz(s.beautyUtilPct), target: () => TARGETS.beautyUtilPct },
+    { group: 'More measures' },
+    { name: 'Colour %',                 sub: 'hair visits with colour', kind: 'pct', up: true, get: s => s.opx ? nz(s.opx.colour) : null },
+    { name: 'Reputation',               sub: '90 days to the end of the window', kind: 'star', up: true, get: s => s.opx ? nz(s.opx.stars) : null },
+    { name: 'Google reviews',           kind: 'n', up: true, get: s => s.opx ? nz(s.opx.reviews) : null },
+    { name: 'Social posts',             kind: 'n', up: true, get: s => s.opx ? nz(s.opx.posts) : null },
+    { name: 'Social workdays',          kind: 'n', up: true, get: s => s.opx ? nz(s.opx.workdays) : null },
   ];
 }
 
 const cmpFmt = (kind, v, per) => {
   if (v == null) return '—';
   if (kind === 'pct') return v.toFixed(2) + '%';
+  if (kind === 'star') return v.toFixed(1) + '\u2605';
   if (kind === 'n')   return per ? v.toLocaleString('en-GB', { maximumFractionDigits: 1 }) : Math.round(v).toLocaleString('en-GB');
   return Math.round(v).toLocaleString('en-GB');
 };
@@ -524,8 +578,8 @@ function cmpResultsHtml(sa, sb2) {
       ? `Net take is level: AED ${cmpFmt('aed', nb)}${unit} on both sides.`
       : `B took AED ${cmpFmt('aed', nb)}${unit} against A's AED ${cmpFmt('aed', na)}, <b class="${lead.rel > 0 ? 'up' : 'down'}">${lead.rel > 0 ? 'up' : 'down'} ${pctTxt(lead.rel)}</b>.`;
     const bits = [];
-    if (best)  bits.push(`biggest rise is ${escapeHtml(best.name.toLowerCase())} (+${pctTxt(best.rel)})`);
-    if (worst) bits.push(`biggest drop is ${escapeHtml(worst.name.toLowerCase())} (−${pctTxt(worst.rel)})`);
+    if (best)  bits.push(`biggest rise is ${escapeHtml(cmpNm(best.name).toLowerCase())} (+${pctTxt(best.rel)})`);
+    if (worst) bits.push(`biggest drop is ${escapeHtml(cmpNm(worst.name).toLowerCase())} (−${pctTxt(worst.rel)})`);
     if (bits.length) read += ` The ${bits.join(', and the ')}.`;
   } else {
     read = `${!sa ? 'A' : 'B'} has no data for its window, so there is nothing to read it against.`;
@@ -547,6 +601,7 @@ function cmpResultsHtml(sa, sb2) {
     </table></div></div>
     <div class="fine">
       <p><b>How to read it</b>. Money is AED, ex VAT, takings before staff cost. Rates move in <b>points</b>, not percent: 20% to 32% is +12 pts. Green and red mark whether the move is good, not just its direction. A figure in green or red type is against that side's own standing target, shown small beneath it; the rebooking and treatment bars rose on 1 Sep 2026, so a window before then is judged against the old bar.</p>
+      <p><b>Clients</b>. Two counts, and each row says which. <b>Per visit</b> is each client once a day through the door, from Phorest Sales Transactions. <b>Per staff</b> is the ledgers\u2019 count, where a client seen by two staff counts twice, and the targets are written on it. If either side has no through-the-door count (Bahrain, or a window before Sales Transactions start) both sides show per staff. Retention and Conversion are not here: they look back 180 days from today, so they are the same for any two windows.</p>
       <p><b>Where it comes from</b>. The same ledger and Phorest join the Organisation Pulse reads, one window per side. Presets that end today stop at the last day Phorest has synced, so the newer side is never counting an unsynced day as a day that took nothing.</p>
     </div>` };
 }
@@ -594,6 +649,9 @@ function cmpDeltaChip(va, vb, kind, up) {
   return `<span class="cmp-chip-d ${cls}">${arrow} ${txt}</span>`;
 }
 
+// A metric's name as a sentence should say it: Clients and Avg bill are per visit (through the door) or
+// per staff (ledgers) depending on the page, and the other rows already say per staff.
+const cmpNm = name => (name === 'Clients' || name === 'Avg bill') ? `${name} (${CMP_DOOR ? 'per visit' : 'per staff'})` : name;
 const cmpMetricMap = () => {
   const M = {};
   cmpMetrics().forEach(m => { if (!m.group) M[m.name] = m; });
@@ -653,7 +711,7 @@ function cmpAnswerHtml(sa, sb2) {
       <div class="cmp-ans-big">${big}</div>
       <div class="cmp-ans-small">${small}</div>
     </div>`;
-  const nm = m => escapeHtml(m.name.replace(/ %$/, ''));
+  const nm = m => escapeHtml(cmpNm(m.name).replace(/ %$/, ''));
   // Kate, 1 Oct 2026 (Comet CP3): Treatment here is the hair figure, while the
   // Pulse prints hair and beauty combined, so the two read as disagreeing.
   // Name the scope on the card instead of leaving it to the table's sub-label.
@@ -686,7 +744,7 @@ function cmpMirrorHtml(title, what, names, sa, sb2) {
   const A = cmpState.a, B = cmpState.b;
   const { per, dA, dB, sc } = cmpScaler();
   const M = cmpMetricMap();
-  const rows = names.map(n => M[n]).map(m => ({
+  const rows = names.map(n => M[n]).filter(Boolean).map(m => ({
     m, va: sa ? sc(m.kind, m.get(sa), dA) : null, vb: sb2 ? sc(m.kind, m.get(sb2), dB) : null,
   })).filter(r => r.va != null || r.vb != null);
   if (!rows.length) return '';
@@ -707,7 +765,7 @@ function cmpMirrorHtml(title, what, names, sa, sb2) {
             <span class="cmp-f-bar a" style="width:${w(r.va).toFixed(1)}%"></span>
           </div>
           <div class="cmp-f-mid">
-            <span class="cmp-f-n">${escapeHtml(r.m.name)}</span>
+            <span class="cmp-f-n">${escapeHtml(r.m.name)}${r.m.sub ? `<small class="cmp-f-sub">${escapeHtml(r.m.sub)}</small>` : ''}</span>
             ${cmpDeltaChip(r.va, r.vb, r.m.kind, r.m.up)}
           </div>
           <div class="cmp-f-side r">
@@ -907,7 +965,11 @@ function cmpVisualHtml(sa, sb2) {
       ${cmpMirrorHtml('Money', 'Where the takings came from, in AED ex VAT.' + perTxt,
         ['Net take', 'Hair revenue', 'Hair treatments', 'Beauty services', 'Retail'], sa, sb2)}
       ${cmpMirrorHtml('Clients', (CMP_DOOR ? 'Clients is through the door (Phorest); the rows under it are per staff (ledgers).' : 'Per staff, from the ledgers: a client seen by two staff counts twice.') + perTxt,
-        ['Clients', 'Hair clients', 'Beauty clients', 'Rebooked', 'New clients'], sa, sb2)}
+        ['Clients', 'Handled by staff', 'Hair clients', 'Beauty clients', 'Request clients', 'Salon clients', 'New clients', 'Rebooked'], sa, sb2)}
+    </div>
+    <div class="cmp-two">
+      ${cmpMirrorHtml('Averages', (CMP_DOOR ? 'Avg bill is per client through the door; the rows under it are per staff (ledgers).' : 'Per staff, from the ledgers.') + ' In AED, ex VAT.',
+        ['Avg bill', 'Avg bill, per staff count', 'Hair avg bill', 'Beauty avg bill'], sa, sb2)}
     </div>
     <div class="cmp-card cmp-trend">
       <div class="cmp-h">Performance over time</div>
