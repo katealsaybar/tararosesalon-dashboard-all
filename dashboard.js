@@ -4317,8 +4317,8 @@ async function renderDashboard() {
       <div class="r-rule"></div>` : ''}
       <div class="r-row"><span class="r-label">Net take</span><span class="r-val tabular">${num0(s.netTake)}</span></div>
       <div class="r-row"><span class="r-label">Clients${doorOn(s) ? ' through the door' : ''}</span><span class="r-val tabular">${num0(clientsOf(s))}</span></div>
-      ${doorOn(s) ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">handled by staff (ledgers)</span><span class="r-val tabular" style="opacity:.75">${num0(s.totalClients)}</span></div>` : ''}
-      ${PH ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">staff visits (Phorest)</span><span class="r-val tabular" style="opacity:.75">${num0(phVisits)}</span></div>` : ''}
+      ${doorOn(s) ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">per staff, ledgers (hand-typed)</span><span class="r-val tabular" style="opacity:.75">${num0(s.totalClients)}</span></div>` : ''}
+      ${PH ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">per staff, Phorest (system)</span><span class="r-val tabular" style="opacity:.75">${num0(phVisits)}</span></div>` : ''}
       <div class="r-row"><span class="r-label">Avg bill</span><span class="r-val tabular">${num0(avgBillOf(s))}</span></div>
       ${targetsBlock}
       <div class="r-rule"></div>
@@ -4390,17 +4390,17 @@ async function renderDashboard() {
         { k:'Hair',   val:hairNetSalonTake,  of:s.netTake, txt:aed0(hairNetSalonTake),  extra:`${shareOf(hairNetSalonTake, s.netTake)}%`,  color:'var(--hair)' },
         { k:'Beauty', val:beautyNetTakeDept, of:s.netTake, txt:aed0(beautyNetTakeDept), extra:`${shareOf(beautyNetTakeDept, s.netTake)}%`, color:'var(--beauty)' },
       ]) },
-    { k:'Clients', def: doorOn(s) ? 'Each client once a day, through the door (Phorest). Per staff and Phorest staff visits below.' : 'Per staff, from the ledgers.',
+    { k:'Clients', def: doorOn(s) ? 'Each client once a day, through the door (Phorest). The per staff counts, ledgers and Phorest, are below.' : 'Per staff, from the ledgers.',
       tip: doorOn(s)
-        ? `Through the door: each client once a day, however many staff she saw (Phorest Sales Transactions). Deposits, balance payments and voucher-only days are not visits. Handled by staff is the ledgers' count (${num0(s.totalClients)}), where a client seen by two staff counts twice; the targets are written on it. Staff visits is Phorest's Staff Daily count per employee. The Hair and Beauty split is by staff.`
+        ? `Three counts, because a client can be counted three ways. THROUGH THE DOOR: each client once a day, however many staff she saw (Phorest Sales Transactions); a deposit, a balance payment or a voucher bought on its own is not a visit. PER STAFF, LEDGERS: what reception types into the ledger for each staff member (${num0(s.totalClients)}), so a client seen by two staff counts twice; the targets are written on it. PER STAFF, PHOREST: Phorest’s own count for each staff member, so a client seen by two staff counts twice there too, and it runs higher than the ledger because it counts every appointment, not only the ones reception typed in. The Hair and Beauty split is per staff.`
         : CLIENT_BASIS === 'door'
           ? 'Handled, not through the door: Phorest’s Sales Transactions have no count for this selection (Bahrain is not in them), so this is each staff member’s clients from the ledgers.'
           : 'Handled: each staff member counts the clients she served (ledgers), hair and beauty.',
       v: num0(clientsOf(s)), status: clientTrend.status,
       pill: doorOn(s) ? 'Per visit' : null,
-      sub: (doorOn(s) ? [['Handled by staff (ledgers)', num0(s.totalClients)]] : [])
-        .concat(PH ? [['Staff visits (Phorest)', num0(phVisits)]] : []),
-      foot: PH ? [['Hair, Phorest staff visits', num0(PH.hair.t)], ['Beauty, Phorest staff visits', num0(PH.beauty.t)]] : [],
+      sub: (doorOn(s) ? [['Per staff, ledgers (hand-typed)', num0(s.totalClients)]] : [])
+        .concat(PH ? [['Per staff, Phorest (system)', num0(phVisits)]] : []),
+      foot: PH ? [['Hair, per staff, Phorest', num0(PH.hair.t)], ['Beauty, per staff, Phorest', num0(PH.beauty.t)]] : [],
       t: getClientTarget(sel.branch), verdict: clientTrend.verdict,
       splits: splitsOf([
         { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} by staff`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
