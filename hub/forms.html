@@ -44,6 +44,9 @@
     for (var i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
     return out;
   }
+  // Kate, 8 Oct 2026: the booking and deposit policy documents sit in their own group. Not forms:
+  // no fields to fill in, so View instead of Fill in; a row with an href is a link to the live client page.
+  var POLICY = 'Policies';
   var cache = {};
   async function blobUrl(code) {
     if (cache[code]) return cache[code];
@@ -73,7 +76,7 @@
 
   KB.ready.then(async function () {
     if (KB.allowed.indexOf('hr-forms') < 0) { notFound(); return; }   // also "View as" below Level 2
-    var r = await KB.client.from('kb_files').select('code,grp,title,subtitle,blurb,filename,pages,bytes,sort,note')
+    var r = await KB.client.from('kb_files').select('code,grp,title,subtitle,blurb,filename,pages,bytes,sort,note,href')
       .eq('section', 'hr-forms').order('sort');
     if (r.error || !r.data || !r.data.length) { notFound(); return; }
     var groups = [], by = {};
@@ -96,7 +99,7 @@
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       KB.titleIcon('hr-forms', 'HR Forms &amp; Waivers') +
-      '<p class="kb-meta">' + r.data.length + ' fillable A4 forms. Fill one in on screen and save it, or print it and fill it in by hand, then file the signed copy.</p>' +
+      '<p class="kb-meta">' + r.data.filter(function (f) { return f.grp !== POLICY; }).length + ' fillable A4 forms. Fill one in on screen and save it, or print it and fill it in by hand, then file the signed copy. The booking and deposit policy sits under Policies.</p>' +
       (nCheck ? '<p class="kb-legend"><span class="kb-flag" style="margin:0">To check</span>' + nCheck + ' forms have a question still being confirmed.' +
         '<button type="button" id="fmOnlyCheck" aria-pressed="' + only + '">' + (only ? 'Show all forms' : 'Show only these') + '</button></p>' : '') +
       '<div class="fm-switch" role="group" aria-label="Which forms">' + groups.map(function (g, i) {
@@ -111,9 +114,11 @@
           var notes = flagged(f) ? f.note.split('\n').map(function (x) { return '<span class="fm-note">' + esc(x.replace(/^Being confirmed:\s*/i, '').replace(/^./, function (ch) { return ch.toUpperCase(); })) + '</span>'; }).join('') : '';
           return '<div class="kb-row fm-row"><span class="fm-code">' + esc(f.code) + '</span>' +
             '<span class="kb-row-tx"><b>' + esc(t) + (flagged(f) ? '<span class="kb-flag">To check</span>' : '') + '</b><span>' + esc(f.blurb || '') + '</span>' + notes + '</span>' +
-            '<span class="kb-row-n">' + (f.pages || 1) + (f.pages > 1 ? ' pages' : ' page') + ' · ' + size(f.bytes) + '</span>' +
-            '<span class="fm-acts"><button type="button" class="fm-btn" data-act="open" data-code="' + esc(f.code) + '" title="Opens the form to type in. Save it with the download button in the PDF viewer.">Fill in</button>' +
-            '<button type="button" class="fm-btn fm-dl" data-act="dl" data-code="' + esc(f.code) + '" data-file="' + esc(f.filename) + '">Download</button></span></div>';
+            (f.href ? '<span class="kb-row-n">Web page</span>' : '<span class="kb-row-n">' + (f.pages || 1) + (f.pages > 1 ? ' pages' : ' page') + ' · ' + size(f.bytes) + '</span>') +
+            (f.href
+              ? '<span class="fm-acts"><a class="fm-btn fm-dl" style="display:inline-flex;align-items:center;text-decoration:none" href="' + esc(f.href) + '" target="_blank" rel="noopener">Open page</a></span></div>'
+              : '<span class="fm-acts"><button type="button" class="fm-btn" data-act="open" data-code="' + esc(f.code) + '"' + (f.grp === POLICY ? '>View' : ' title="Opens the form to type in. Save it with the download button in the PDF viewer.">Fill in') + '</button>' +
+                '<button type="button" class="fm-btn fm-dl" data-act="dl" data-code="' + esc(f.code) + '" data-file="' + esc(f.filename) + '">Download</button></span></div>');
         }).join('') + '</section>';
       }).join('');
     main.addEventListener('click', function (e) {
@@ -124,7 +129,7 @@
         return;
       }
       var b = e.target.closest('.fm-btn');
-      if (b) { act(b); return; }
+      if (b) { if (b.tagName !== 'A') act(b); return; }   // a link row just follows its link
       var s = e.target.closest('.fm-switch button');
       if (!s) return;
       var i = +s.dataset.i;
