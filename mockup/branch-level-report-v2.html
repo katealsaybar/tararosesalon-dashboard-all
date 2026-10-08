@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Against its team's levels · Branch Performance mock-up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Mock-up only. Fake numbers, no database calls.
+   Tokens and furniture copied from the dashboard's index.html (Pulse hero, target strip,
+   headline-three cards, eyebrows). */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent-mint:#99F6E4;--accent-butter:#EEF3C7;--accent-lavender:#C4B5FD;--accent-coral:#FF9B9B;--accent-pink:#FFD4D9;
+  --radius-card:10px;--card-ease:cubic-bezier(.2,.7,.2,1);
+  --s1:8px;--s2:16px;--s3:24px;--s4:32px;--s6:48px;
+  --bg:#FAF7F0;--surface:#fff;--surface2:#F4F1E9;--border:#E8E2D6;--border2:#F0ECE3;
+  --text:#1A1A1A;--muted:#565049;--muted2:#77706A;--accent:#1A1A1A;--accent-fg:#FBF7F0;
+  --shadow-card:0 1px 2px rgba(26,26,26,.05),0 10px 28px -8px rgba(26,26,26,.10);
+  --shadow-card-hover:0 2px 4px rgba(26,26,26,.07),0 18px 40px -10px rgba(26,26,26,.16);
+  --good:#0F6E56;--good-bg:#E1F5EE;--warn:#BA7517;--warn-bg:#FAEEDA;--bad:#A32D2D;--bad-bg:#FCEBEB;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;--border:rgba(250,248,243,.09);--border2:rgba(250,248,243,.05);
+    --text:#FAF8F3;--muted:rgba(250,248,243,.68);--muted2:rgba(250,248,243,.5);--accent:#FFD4D9;--accent-fg:#2D2E37;
+    --shadow-card:0 1px 2px rgba(0,0,0,.3),0 10px 28px -8px rgba(0,0,0,.35);
+    --shadow-card-hover:0 2px 4px rgba(0,0,0,.35),0 20px 44px -10px rgba(0,0,0,.45);
+    --good:#99F6E4;--good-bg:rgba(153,246,228,.12);--warn:#EEF3C7;--warn-bg:rgba(238,243,199,.12);--bad:#FF9B9B;--bad-bg:rgba(255,155,155,.12);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;--border:rgba(250,248,243,.09);--border2:rgba(250,248,243,.05);
+  --text:#FAF8F3;--muted:rgba(250,248,243,.68);--muted2:rgba(250,248,243,.5);--accent:#FFD4D9;--accent-fg:#2D2E37;
+  --shadow-card:0 1px 2px rgba(0,0,0,.3),0 10px 28px -8px rgba(0,0,0,.35);
+  --shadow-card-hover:0 2px 4px rgba(0,0,0,.35),0 20px 44px -10px rgba(0,0,0,.45);
+  --good:#99F6E4;--good-bg:rgba(153,246,228,.12);--warn:#EEF3C7;--warn-bg:rgba(238,243,199,.12);--bad:#FF9B9B;--bad-bg:rgba(255,155,155,.12);
+}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;font-size:16px;min-height:100vh;transition:background .3s,color .3s}
+button{font:inherit;color:inherit}
+.tabular{font-variant-numeric:tabular-nums;font-feature-settings:'tnum'}
+.wrap{max-width:1180px;margin:0 auto;padding:0 18px 64px}
+@media(min-width:900px){.wrap{padding:0 40px 64px}}
+
+/* One-line mock-up strip */
+.mockbar{background:var(--accent);color:var(--accent-fg);font-size:12px;letter-spacing:.04em;text-align:center;padding:5px 12px;line-height:1.4}
+.mockbar b{font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin-right:8px}
+
+/* Masthead */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0 12px}
+.word{font-weight:700;letter-spacing:.2em;text-transform:uppercase;font-size:15px;line-height:1.1}
+.word small{display:block;font-size:9px;letter-spacing:.42em;font-weight:500;color:var(--muted);margin-top:5px}
+.mast-sub{font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-top:7px}
+.theme-btn{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:7px 14px;cursor:pointer;min-height:36px}
+.theme-btn:hover{color:var(--text);border-color:var(--text)}
+
+/* Controls: branch tabs + period, sticky */
+.controls{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0 12px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.tabs{display:flex;gap:6px;flex:1 1 auto;min-width:0}
+.tab{appearance:none;flex:1 1 0;min-width:0;max-width:150px;text-align:left;cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:7px 10px 8px;line-height:1.2;transition:border-color .15s,box-shadow .2s}
+.tab b{display:block;font-size:13px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+.tab b i{font-style:normal}
+.tab b{white-space:nowrap}
+@media(min-width:561px){.tab{min-width:78px}}
+.tab span{display:block;font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap}
+.tab:hover{border-color:var(--text)}
+.tab[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.tab[aria-pressed="true"] span{color:inherit;opacity:.8}
+.tab:focus-visible,.seg button:focus-visible,.theme-btn:focus-visible,.ht-cell:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.period{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.seg{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}
+.seg button{appearance:none;border:0;background:transparent;color:var(--muted);font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;cursor:pointer;min-height:34px;white-space:nowrap}
+.seg button.on{background:var(--accent);color:var(--accent-fg)}
+.pnote{font-size:12px;color:var(--muted2)}
+@media(max-width:760px){.controls{position:static}}
+@media(max-width:560px){
+  .tab b i{display:none}
+  .tabs{flex:1 1 100%}.tab{padding:6px 6px 7px}.tab b{font-size:12px;letter-spacing:.08em}.tab span{font-size:11px}
+  .period{width:100%;justify-content:space-between}
+}
+
+/* Hero: the cover, as on the Pulse */
+.hero{padding:26px 0 var(--s3)}
+@media(min-width:900px){.hero{display:grid;grid-template-columns:1fr 300px;gap:44px;align-items:start;padding:34px 0 var(--s3)}}
+.kicker{font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.hero h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(30px,8.4vw,54px);line-height:1.06;letter-spacing:-.015em}
+.hero h1 em{font-style:italic;font-weight:600}
+.hero h1 em.good{color:var(--good)}.hero h1 em.warn{color:var(--warn)}.hero h1 em.bad{color:var(--bad)}
+.deck{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:400;font-size:clamp(17px,4.6vw,21px);line-height:1.4;opacity:.92;margin-top:18px;padding-left:14px;border-left:2px solid var(--text);max-width:44ch}
+.tri{display:flex;gap:18px;margin-top:22px}
+@media(min-width:900px){.tri{flex-direction:column;gap:0;margin-top:6px;border-left:1px solid var(--border);padding-left:28px}}
+.tri div{flex:1}
+@media(min-width:900px){.tri div{padding:12px 0;border-bottom:1px solid var(--border2)}.tri div:last-child{border-bottom:0}}
+.tri b{display:block;font-family:'Playfair Display',Georgia,serif;font-weight:600;font-size:40px;line-height:1}
+.tri span{display:block;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.tri .g b{color:var(--good)}.tri .w b{color:var(--warn)}.tri .r b{color:var(--bad)}
+
+/* Target strip, as on the Pulse */
+.hero-targets{margin-top:var(--s3)}
+.ht-k{font-size:11.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted2);margin-bottom:9px}
+.ht-seg{display:flex;gap:4px;align-items:flex-start}
+.ht-cell{flex:1;min-width:0;display:block;padding:8px 0;margin:-8px 0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ht-bar{display:block;height:10px;border-radius:3px;background:var(--surface2);border:1px solid var(--border)}
+.ht-cell.on .ht-bar{background:var(--good);border-color:var(--good)}
+.ht-cell.part .ht-bar{background:var(--warn);border-color:var(--warn);opacity:.55}
+.ht-cell.sel .ht-bar{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text)}
+.ht-read{margin-top:12px;font-size:13px;line-height:1.45;color:var(--muted);min-height:1.45em}
+.ht-read b{color:var(--text);font-weight:600}
+
+/* Eyebrow headings */
+.eyebrow{display:flex;align-items:center;gap:9px;margin:var(--s6) 0 var(--s2);font-size:12.5px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--text);opacity:.75}
+.eyebrow .bar{width:24px;height:2px;border-radius:2px;background:currentColor;flex-shrink:0}
+
+/* Themed cards: the headline-three furniture */
+.grid{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:760px){.grid{grid-template-columns:1fr 1fr}}
+@media(min-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}}
+.metric{background:var(--surface);border-radius:var(--radius-card);padding:18px 16px;border:1px solid var(--border);border-bottom:3px solid transparent;box-shadow:var(--shadow-card);position:relative;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow 220ms var(--card-ease),transform 220ms var(--card-ease)}
+@media(hover:hover){.metric:hover{box-shadow:var(--shadow-card-hover);transform:translateY(-2px)}}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:none}
+.metric.st-good::before{background:var(--good)}.metric.st-warn::before{background:var(--warn)}.metric.st-bad::before{background:var(--bad)}
+.metric.st-good{border-bottom-color:var(--accent-mint)}.metric.st-warn{border-bottom-color:var(--accent-butter)}.metric.st-bad{border-bottom-color:var(--accent-coral)}
+.m-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.m-k{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.m-c{font-size:12px;color:var(--muted2);white-space:nowrap}
+.m-def{font-size:13.5px;color:var(--muted);margin-top:10px}
+.m-v{font-family:'Playfair Display',Georgia,serif;font-weight:600;font-size:clamp(34px,9vw,40px);line-height:1;margin-top:8px}
+.m-v.good{color:var(--good)}.m-v.warn{color:var(--warn)}.m-v.bad{color:var(--bad)}
+.m-t{font-size:13.5px;color:var(--muted2);margin-top:8px;letter-spacing:.03em}
+.verdict{display:inline-block;align-self:flex-start;margin-top:13px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:20px}
+.verdict.st-good{background:var(--good-bg);color:var(--good)}.verdict.st-warn{background:var(--warn-bg);color:var(--warn)}.verdict.st-bad{background:var(--bad-bg);color:var(--bad)}
+.m-split{margin-top:14px;padding-top:6px;border-top:1px solid var(--border2);display:grid;gap:0}
+.sp{padding:10px 0;border-bottom:1px solid var(--border2)}
+.sp:last-child{border-bottom:0;padding-bottom:2px}
+.sp-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.sp-k{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.sp-v{font-size:15px;font-weight:700;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
+.sp-t{font-size:12.5px;color:var(--muted2);margin-top:2px}
+.sp-track{height:5px;border-radius:4px;background:var(--border2);margin-top:7px;overflow:hidden}
+.sp-fill{display:block;height:100%;border-radius:4px;background:var(--bad)}
+.sp-fill.good{background:var(--good)}.sp-fill.warn{background:var(--warn)}.sp-fill.bad{background:var(--bad)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted2);flex-shrink:0;display:inline-block}
+.dot.good{background:var(--good)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
+.legend{font-size:12.5px;color:var(--muted2);margin-top:14px}
+
+/* Tooltips */
+.kpi-lbl{position:relative;display:inline-flex;align-items:center;gap:5px;cursor:help;outline:none}
+.kpi-lbl:focus-visible{outline:2px solid var(--text);outline-offset:3px;border-radius:4px}
+.kpi-i{font-size:11px;color:var(--muted);line-height:1;text-transform:none;letter-spacing:0}
+.kpi-tip{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:30;width:max-content;max-width:min(300px,78vw);padding:8px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12px;line-height:1.45;font-weight:400;letter-spacing:0;text-transform:none;white-space:normal;box-shadow:0 6px 20px rgba(0,0,0,.18);text-align:left}
+.kpi-lbl:hover .kpi-tip,.kpi-lbl:focus .kpi-tip,.kpi-lbl:focus-within .kpi-tip{display:block}
+
+.fine{margin-top:var(--s6);padding-top:var(--s2);border-top:1px solid var(--border);font-size:12.5px;color:var(--muted2);line-height:1.7;max-width:78ch}
+</style>
+</head>
+<body>
+<div class="mockbar"><b>Mock-up</b>Fake numbers, not wired to the dashboard.</div>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="word">Tara Rose<small>Salons</small></div>
+      <div class="mast-sub">Branch Performance</div>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch between light and dark">Dark</button>
+  </header>
+
+  <div class="controls">
+    <div class="tabs" id="tabs" role="group" aria-label="Branch"></div>
+    <div class="period">
+      <div class="seg" id="moSeg" role="group" aria-label="Period"></div>
+      <span class="pnote" id="pnote"></span>
+    </div>
+  </div>
+
+  <main id="page"></main>
+
+  <p class="fine" id="fine">Targets are built from the aims of the levels in the team, cut for days away. Hair team only for now. Social posts belong to the person, so they are not in the branch score.</p>
+</div>
+
+<script>
+/* ============ Fake data. Level aims are the real ones from perf_benchmarks (min, aim). ============
+   Only used to add up one branch figure and one branch target. Nothing per person is shown. */
+const LV = {
+ 'Blow-Dry Specialist':{total_revenue:[null,18000],hair_services:[10000,15000],treatments:[2000,3000],treatments_pct:[null,20],retail:[1120,2500],retail_pct:[null,12],avg_bill:[220,220],rebooking_pct:[20,30],retention_pct:[20,30],clients:[45,80],ncr:[4,4],request_pct:[20,20],conversion_pct:[20,30],column_fill_pct:[30,50],reputation:[null,4.5]},
+ 'Junior Stylist':{total_revenue:[18000,33600],hair_services:[15000,28000],treatments:[3000,5600],treatments_pct:[20,20],retail:[2500,4000],retail_pct:[12,12],avg_bill:[220,400],rebooking_pct:[30,30],retention_pct:[30,30],clients:[81,84],ncr:[4,12],request_pct:[20,30],conversion_pct:[30,35],column_fill_pct:[50,75],colour_pct:[40,55],reputation:[4.5,4.6]},
+ 'Stylist':{total_revenue:[44000,60000],hair_services:[40000,50000],treatments:[4000,10000],treatments_pct:[null,20],retail:[4000,6000],retail_pct:[null,12],avg_bill:[500,575],rebooking_pct:[30,55],retention_pct:[30,55],clients:[88,104],ncr:[8,16],request_pct:[40,40],conversion_pct:[30,40],column_fill_pct:[50,80],colour_pct:[60,60],reputation:[3,4.7],google_reviews:[8,12]},
+ 'Senior Stylist':{total_revenue:[60000,78000],hair_services:[50000,65000],treatments:[10000,13000],treatments_pct:[20,20],retail:[6000,7800],retail_pct:[12,12],avg_bill:[600,650],rebooking_pct:[55,60],retention_pct:[55,60],clients:[104,124],ncr:[16,12],request_pct:[40,50],conversion_pct:[40,50],column_fill_pct:[80,85],colour_pct:[60,65],reputation:[4.7,4.8],google_reviews:[10,12]},
+ 'Style Director':{total_revenue:[78000,93600],hair_services:[65000,78000],treatments:[13000,15600],treatments_pct:[20,20],retail:[7800,11232],retail_pct:[12,12],avg_bill:[695,795],rebooking_pct:[60,70],retention_pct:[60,70],clients:[124,130],ncr:[12,12],request_pct:[50,60],conversion_pct:[50,50],column_fill_pct:[85,90],colour_pct:[65,70],reputation:[4.8,4.9],google_reviews:[10,12]},
+ 'Artistic Director':{total_revenue:[93600,114000],hair_services:[78000,95000],treatments:[15600,19000],treatments_pct:[20,20],retail:[11232,13680],retail_pct:[12,12],avg_bill:[700,800],rebooking_pct:[70,80],retention_pct:[70,80],clients:[130,140],ncr:[12,12],request_pct:[60,80],conversion_pct:[50,60],column_fill_pct:[90,95],colour_pct:[70,75],reputation:[4.9,5.0],google_reviews:[10,12]}
+};
+const BR = {SAA:{name:'Saadiyat'},KCA:{name:'Khalifa City A'},MC:{name:'Motor City'},AQ:{name:'Al Quoz'},ALL:{name:'All UAE'}};
+// branch, level, days away, strength (fake)
+const ROSTER = [
+ ['SAA','Artistic Director',0,1.08],['SAA','Style Director',0,1.06],['SAA','Style Director',6,.92],['SAA','Senior Stylist',0,1.02],['SAA','Senior Stylist',0,.86],
+ ['SAA','Stylist',12,.8],['SAA','Stylist',0,1.04],['SAA','Junior Stylist',0,.97],['SAA','Junior Stylist',3,.7],
+ ['KCA','Style Director',0,.95],['KCA','Senior Stylist',0,.9],['KCA','Senior Stylist',0,.82],['KCA','Senior Stylist',5,.76],['KCA','Stylist',0,.98],
+ ['KCA','Stylist',0,.84],['KCA','Junior Stylist',0,1.02],['KCA','Blow-Dry Specialist',0,.9],
+ ['MC','Style Director',0,1.12],['MC','Senior Stylist',0,1.05],['MC','Senior Stylist',0,1.0],['MC','Stylist',4,1.06],['MC','Stylist',0,.94],['MC','Junior Stylist',0,1.1],['MC','Junior Stylist',0,.88],
+ ['AQ','Style Director',0,.8],['AQ','Senior Stylist',0,.78],['AQ','Stylist',9,.7],['AQ','Stylist',0,.86],['AQ','Junior Stylist',0,.82],['AQ','Junior Stylist',0,.62]
+];
+const BIAS = {
+  SAA:{rev:1.02,bill:1.03,treat:.9,retail:.9,rebook:.94,req:1,fill:1,colour:1,rep:1,ret:.97,conv:1,rev90:.9},
+  KCA:{rev:.98,bill:.99,treat:.98,retail:.88,rebook:.96,req:.98,fill:.96,colour:.99,rep:.99,ret:.95,conv:.94,rev90:.7},
+  MC:{rev:1.04,bill:1.04,treat:1.1,retail:1.05,rebook:1.04,req:1.05,fill:1.02,colour:1.03,rep:1.01,ret:1.03,conv:1.05,rev90:1},
+  AQ:{rev:.92,bill:.95,treat:.9,retail:.8,rebook:.9,req:.92,fill:.9,colour:.93,rep:.98,ret:.9,conv:.88,rev90:.6}
+};
+const Q_ADD = {SAA:.06,KCA:.12,MC:-.04,AQ:.27};
+function rng(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const MODES = {
+  sofar:{label:'October so far', short:'So far', days:31, d:7, dataTo:'7 Oct', seed:11},
+  full: {label:'September, full month', short:'September', days:30, d:30, dataTo:'30 Sep', seed:23}
+};
+const prorateCut=(v,isAed,f)=>v==null?v:(isAed?Math.round(v*f/100)*100:Math.max(v>0?1:0,Math.round(v*f)));
+
+function buildTeam(mode){
+  const M=MODES[mode];
+  return ROSTER.map((r,i)=>{
+    const [br,level,leave,q0]=r, q=q0+Q_ADD[br], A=LV[level], b=BIAS[br];
+    const R=rng(M.seed*1000+i*7919), j=()=>0.9+0.2*R();
+    const wShare=(M.days-leave)/M.days;
+    const elapsedOff=Math.min(leave,Math.round(leave*M.d/M.days));
+    const pace=Math.min(1,(M.d-elapsedOff)/(M.days-leave));
+    const T=(k)=>A[k]?A[k][1]:null, cl=(v,lo,hi)=>Math.max(lo,Math.min(hi,v)), f=g=>cl(q*b[g]*j(),.35,1.3);
+    const clients=Math.max(1,Math.round(T('clients')*wShare*f('rev')*pace*(0.97+0.06*R())));
+    const svc=Math.round(clients*T('avg_bill')*f('bill'));
+    const tp=cl(T('treatments_pct')*f('treat'),2,40), hair=Math.round(svc/(1+tp/100)), treat=svc-hair;
+    const retail=Math.round(svc*T('retail_pct')/100*f('retail'));
+    const rebooked=Math.min(clients,Math.round(clients*T('rebooking_pct')/100*f('rebook')));
+    const reqNcr=Math.min(clients,Math.round(clients*T('request_pct')/100*f('req')));
+    const ncr=Math.min(Math.round(reqNcr*.45),Math.round(clients*(T('ncr')/T('clients'))*f('req')*1.1));
+    const avail=Math.round(190*wShare*pace), booked=Math.round(avail*cl(T('column_fill_pct')/100*f('fill'),.2,.98));
+    const colourVisits=A.colour_pct?Math.round(clients*cl(T('colour_pct')/100*f('colour'),.1,.95)):null;
+    const convN=Math.round(5+R()*9), convBack=Math.round(convN*cl(T('conversion_pct')/100*f('conv'),0,1));
+    const retN=Math.round(30+R()*55), retBack=Math.round(retN*cl(T('retention_pct')/100*f('ret'),0,1));
+    const revN=A.reputation?Math.round(R()*9*b.rev90*1.5):0;
+    const stars=A.reputation?cl(T('reputation')*(0.92+0.1*R()*b.rep),3.6,5):0;
+    const starSum=Math.round(revN*stars*10)/10;
+    const gr=A.google_reviews?Math.round(T('google_reviews')*wShare*pace*f('rev90')*0.9*(0.5+R())):null;
+    return {br,level,leave,pace,wShare,A,c:{svc,hair,treat,retail,clients,rebooked,reqNcr,ncr,booked,avail,visits:clients,colourVisits,convN,convBack,retN,retBack,revN,starSum,gr}};
+  });
+}
+
+/* ============ The 17 KPIs, in themed cards ============ */
+const TG=' Target: built from the aims of the levels in the team, cut for days away.';
+const TW=' Target: the same level aims, weighted the same way.';
+const sumK=(k,label,fmt,get,tip)=>({k,label,fmt,kind:'sum',get,tip:tip+TG});
+const rateK=(k,label,fmt,num,den,mult,tip,extra)=>Object.assign({k,label,fmt,kind:'rate',num,den,mult,tip:tip+TW},extra||{});
+const K={};
+[
+ sumK('total_revenue','Total revenue','aed',c=>c.svc,'Service sales this month from Phorest, before VAT. Retail is not included.'),
+ sumK('hair_services','Hair services','aed',c=>c.hair,'Service sales minus treatments, before VAT.'),
+ sumK('treatments','Treatments','aed',c=>c.treat,'Treatment sales this month, from the branch ledger, before VAT.'),
+ rateK('treatments_pct','Treatments %','pct',c=>c.treat,c=>c.hair,100,'All treatment sales divided by all hair services, times 100.'),
+ sumK('retail','Retail','aed',c=>c.retail,'Products sold this month from Phorest, before VAT.'),
+ rateK('retail_pct','Retail %','pct',c=>c.retail,c=>c.svc,100,'All retail divided by all service sales, times 100.'),
+ rateK('avg_bill','Average bill','aed',c=>c.svc,c=>c.clients,1,'All service sales divided by all clients seen.'),
+ rateK('rebooking_pct','Rebooking %','pct',c=>c.rebooked,c=>c.clients,100,'Clients who booked their next visit before leaving, as a share of all clients seen.'),
+ rateK('retention_pct','Retention %','pct',c=>c.retBack,c=>c.retN,100,'Of the returning clients seen 3 to 6 months ago, the share seen again in the last 3 months.'),
+ sumK('clients','Client numbers','num',c=>c.clients,'The clients seen this month, from the branch ledger.'),
+ sumK('ncr','New client requests','num',c=>c.ncr,'New clients who asked for someone by name, usually through a referral or socials.'),
+ rateK('request_pct','Request rate %','pct',c=>c.reqNcr,c=>c.clients,100,'Clients who asked for someone by name (requests plus new client requests) as a share of all clients seen.'),
+ rateK('conversion_pct','Conversion %','pct',c=>c.convBack,c=>c.convN,100,'Of the brand new clients whose first visit was 3 to 6 months ago, the share who came back within 12 weeks.'),
+ rateK('column_fill_pct','Column fill %','pct',c=>c.booked,c=>c.avail,100,'All booked hours as a share of all available hours, from Phorest. Days away are already out of the available hours.'),
+ rateK('colour_pct','Colour %','pct',c=>c.colourVisits,c=>c.visits,100,'The share of client visits that included a colour service.'),
+ rateK('reputation','Reputation score','rep',c=>c.starSum,c=>c.revN,1,'Average Google stars of the reviews in the last 90 days that name someone at the branch. Counts once there are at least 3.',{minDen:3}),
+ sumK('google_reviews','Google reviews','num',c=>c.gr,'Google reviews this month that name someone at the branch. Each review counts once.')
+].forEach(x=>K[x.k]=x);
+const CARDS=[
+ {id:'money',title:'Money',def:'What the chairs took.',keys:['total_revenue','hair_services','avg_bill']},
+ {id:'tr',title:'Treatments and retail',def:'The extras that lift the bill.',keys:['treatments','treatments_pct','retail','retail_pct']},
+ {id:'cl',title:'Clients',def:'Who came through the door.',keys:['clients','ncr']},
+ {id:'rb',title:'Rebooking and requests',def:'Whether they come back and ask for us.',keys:['rebooking_pct','retention_pct','request_pct','conversion_pct']},
+ {id:'ch',title:'Time in the chair',def:'How full the columns are.',keys:['column_fill_pct','colour_pct']},
+ {id:'rp',title:'Reputation',def:'What clients say about us.',keys:['reputation','google_reviews']}
+];
+const SHORT={total_revenue:'total revenue',hair_services:'hair services',treatments:'treatments',treatments_pct:'treatments %',retail:'retail',retail_pct:'retail %',avg_bill:'average bill',rebooking_pct:'rebooking',retention_pct:'retention',clients:'client numbers',ncr:'new client requests',request_pct:'requests',conversion_pct:'conversion',column_fill_pct:'column fill',colour_pct:'colour',reputation:'reputation',google_reviews:'Google reviews'};
+
+/* ============ Maths: one figure and one target for the whole branch ============ */
+const nf=new Intl.NumberFormat('en-GB',{maximumFractionDigits:0});
+function fmt(v,f){
+  if(v===null||v===undefined||Number.isNaN(v)) return 'n/a';
+  if(f==='aed') return 'AED '+nf.format(v);
+  if(f==='pct') return (Math.round(v*10)/10)+'%';
+  if(f==='rep') return (Math.round(v*10)/10).toFixed(1)+'★';
+  return nf.format(v);
+}
+const status=(v,t,fl)=>v>=t?'good':(v>=fl?'warn':'bad');
+function read(team,kp,mode){
+  const M=MODES[mode], mid=M.d<M.days;
+  if(kp.kind==='sum'){
+    const els=team.filter(s=>s.A[kp.k]&&kp.get(s.c)!=null); if(!els.length) return null;
+    let actual=0,judged=0,t=0,fl=0;
+    els.forEach(s=>{const a=kp.get(s.c),aim=s.A[kp.k],ab=kp.fmt==='aed';actual+=a;judged+=mid?a/s.pace:a;t+=prorateCut(aim[1],ab,s.wShare);fl+=prorateCut(aim[0]!=null?aim[0]:aim[1]*.85,ab,s.wShare)});
+    return {kp,actual,judged,t,fl,st:status(judged,t,fl),ratio:judged/t,pace:(mid&&actual>0&&judged>=t)?'on pace for '+fmt(judged,kp.fmt):''};
+  }
+  let N=0,D=0,wt=0,wf=0;
+  team.forEach(s=>{const aim=s.A[kp.k];if(!aim)return;const n=kp.num(s.c),d=kp.den(s.c);if(n==null||!(d>0))return;N+=n;D+=d;wt+=d*aim[1];wf+=d*(aim[0]!=null?aim[0]:aim[1]*.85)});
+  if(!(D>0)||(kp.minDen&&D<kp.minDen)) return null;
+  const v=kp.mult*N/D,t=wt/D,fl=wf/D;
+  return {kp,actual:v,judged:v,t,fl,st:status(v,t,fl),ratio:v/t,pace:''};
+}
+const cache={};
+const teamFor=(mode,br)=>{cache[mode]=cache[mode]||buildTeam(mode);return br==='ALL'?cache[mode]:cache[mode].filter(s=>s.br===br)};
+function branchScore(mode,br){
+  const team=teamFor(mode,br), rs={};
+  Object.keys(K).forEach(k=>{const r=read(team,K[k],mode);if(r)rs[k]=r});
+  const all=Object.values(rs);
+  return {rs,n:all.length,hit:all.filter(r=>r.st==='good').length,close:all.filter(r=>r.st==='warn').length,bad:all.filter(r=>r.st==='bad').length};
+}
+
+/* ============ Render ============ */
+const state={br:'SAA',mode:'sofar',sel:null};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const WORD={good:'At target',warn:'Close',bad:'Under target'};
+const tipLbl=(kp,cls)=>`<span class="kpi-lbl ${cls||''}" tabindex="0">${esc(kp.label)}<span class="kpi-i" aria-hidden="true">ⓘ</span><span class="kpi-tip" role="tooltip">${esc(kp.tip)}</span></span>`;
+const list=a=>a.length<=1?a.join(''):a.slice(0,-1).join(', ')+' and '+a[a.length-1];
+function deckLine(sc){
+  const rs=Object.values(sc.rs);
+  const top=rs.filter(r=>r.st==='good').sort((a,b)=>b.ratio-a.ratio).slice(0,2).map(r=>SHORT[r.kp.k]);
+  const low=rs.filter(r=>r.st!=='good').sort((a,b)=>a.ratio-b.ratio).slice(0,3).map(r=>SHORT[r.kp.k]);
+  if(!low.length) return 'Every number is at its aim. Lovely work, team.';
+  if(sc.hit<=4) return `A tougher stretch. Start with ${list(low.slice(0,2))}, which are furthest from their aims.`;
+  if(!top.length) return `Close on a few. ${cap(list(low))} have the furthest to go.`;
+  return `${cap(list(top))} ${top.length>1?'are':'is'} carrying it. ${cap(list(low))} ${low.length>1?'have':'has'} the furthest to go.`;
+}
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+function rowHtml(r){
+  const kp=r.kp, w=Math.max(3,Math.min(100,Math.round(r.ratio*100)));
+  return `<div class="sp" data-k="${kp.k}">
+    <div class="sp-top"><span class="sp-k">${tipLbl(kp)}</span><span class="sp-v tabular">${fmt(r.actual,kp.fmt)}<span class="dot ${r.st}" role="img" aria-label="${WORD[r.st].toLowerCase()}"></span></span></div>
+    <div class="sp-t tabular">Target ${fmt(r.t,kp.fmt)}${r.pace?' · '+r.pace:''}</div>
+    <div class="sp-track" aria-hidden="true"><span class="sp-fill ${r.st}" style="width:${w}%"></span></div>
+  </div>`;
+}
+function cardHtml(c,sc){
+  const rs=c.keys.map(k=>sc.rs[k]).filter(Boolean); if(!rs.length) return '';
+  const lead=rs[0], rest=rs.slice(1), hit=rs.filter(r=>r.st==='good').length;
+  return `<div class="metric st-${lead.st}">
+    <div class="m-top"><div class="m-k">${esc(c.title)}</div><div class="m-c tabular">${hit} of ${rs.length} at target</div></div>
+    <div class="m-def">${tipLbl(lead.kp)} · ${esc(c.def)}</div>
+    <div class="m-v tabular ${lead.st}">${fmt(lead.actual,lead.kp.fmt)}</div>
+    <div class="m-t tabular">Target ${fmt(lead.t,lead.kp.fmt)}${lead.pace?' · '+lead.pace:''}</div>
+    <span class="verdict st-${lead.st}">${WORD[lead.st]}</span>
+    ${rest.length?`<div class="m-split">${rest.map(rowHtml).join('')}</div>`:''}
+  </div>`;
+}
+function render(){
+  const M=MODES[state.mode], sc=branchScore(state.mode,state.br), nm=BR[state.br].name, mid=M.d<M.days;
+  document.getElementById('tabs').innerHTML=Object.keys(BR).map(k=>{const s=branchScore(state.mode,k);return `<button type="button" class="tab" data-br="${k}" aria-pressed="${k===state.br}" title="${esc(BR[k].name)}"><b>${k==='ALL'?'<i>All </i>UAE':k}</b><span class="tabular">${s.hit} of ${s.n}</span></button>`}).join('');
+  document.getElementById('moSeg').innerHTML=Object.keys(MODES).map(k=>`<button type="button" data-mo="${k}" class="${k===state.mode?'on':''}" aria-pressed="${k===state.mode}">${MODES[k].short}</button>`).join('');
+  document.getElementById('pnote').textContent=mid?`Data to ${M.dataTo}, money judged on pace for the month`:`Whole of September`;
+  const ratio=sc.hit/sc.n, tone=ratio>=.6?'good':(ratio>=.35?'warn':'bad');
+  // target strip: reached first, then close, then under
+  const order=Object.values(sc.rs).sort((a,b)=>({good:0,warn:1,bad:2}[a.st]-{good:0,warn:1,bad:2}[b.st])||b.ratio-a.ratio);
+  const strip=order.map(r=>`<span class="ht-cell ${r.st==='good'?'on':r.st==='warn'?'part':''}" role="button" tabindex="0" data-seg="${r.kp.k}" aria-label="${esc(r.kp.label)}: ${fmt(r.judged,r.kp.fmt)} of ${fmt(r.t,r.kp.fmt)}, ${WORD[r.st].toLowerCase()}"><span class="ht-bar"></span></span>`).join('');
+  document.getElementById('page').innerHTML=`
+   <section class="hero" aria-labelledby="h1">
+     <div>
+       <div class="kicker">Against its team's levels · ${esc(nm)} · ${esc(M.label)}</div>
+       <h1 id="h1">${state.br==='ALL'?'The UAE is':esc(nm)+' is'} at target on <em class="${tone}">${sc.hit} of ${sc.n}</em>.</h1>
+       <p class="deck">${esc(deckLine(sc))}</p>
+       <div class="hero-targets">
+         <div class="ht-k">${sc.hit} of ${sc.n} targets reached${sc.close?` · ${sc.close} close`:''}</div>
+         <div class="ht-seg" id="seg">${strip}</div>
+         <div class="ht-read" id="read" aria-live="polite">Tap or hover a bar to see which target it is.</div>
+       </div>
+     </div>
+     <div class="tri" aria-label="Summary">
+       <div class="g"><b class="tabular">${sc.hit}</b><span>At target</span></div>
+       <div class="w"><b class="tabular">${sc.close}</b><span>Close</span></div>
+       <div class="r"><b class="tabular">${sc.bad}</b><span>Under target</span></div>
+     </div>
+   </section>
+   <div class="eyebrow"><span class="bar"></span>The branch against its levels</div>
+   <div class="grid">${CARDS.map(c=>cardHtml(c,sc)).join('')}</div>
+   <p class="legend">Green is at or above the branch's target, amber is close, red is under. One figure for the branch, one target for the branch.</p>`;
+  window.__order=order;
+}
+function pick(cell){
+  const k=cell.dataset.seg, r=Object.values(branchScore(state.mode,state.br).rs).find(x=>x.kp.k===k), read=document.getElementById('read');
+  document.querySelectorAll('.ht-cell.sel').forEach(c=>c.classList.remove('sel')); cell.classList.add('sel');
+  read.innerHTML=`<b>${esc(r.kp.label)}</b>: ${fmt(r.judged,r.kp.fmt)} of ${fmt(r.t,r.kp.fmt)} · ${Math.round(r.ratio*100)}% · ${WORD[r.st].toLowerCase()}`;
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-br]'); if(b){state.br=b.dataset.br;render();return}
+  const m=e.target.closest('[data-mo]'); if(m){state.mode=m.dataset.mo;render();return}
+  const c=e.target.closest('[data-seg]'); if(c){pick(c)}
+});
+document.addEventListener('keydown',e=>{const c=e.target.closest&&e.target.closest('[data-seg]');if(c&&(e.key==='Enter'||e.key===' ')){e.preventDefault();pick(c)}});
+document.addEventListener('mouseover',e=>{const c=e.target.closest&&e.target.closest('[data-seg]');if(c)pick(c)});
+function fitTip(e){
+  const l=e.target.closest&&e.target.closest('.kpi-lbl'); if(!l) return;
+  const tip=l.querySelector('.kpi-tip'); tip.style.left='0px';
+  const over=tip.getBoundingClientRect().right-(document.documentElement.clientWidth-8);
+  if(over>0) tip.style.left=-over+'px';
+}
+document.addEventListener('mouseover',fitTip);document.addEventListener('focusin',fitTip);
+(function(){
+  const root=document.documentElement, btn=document.getElementById('themeBtn');
+  let saved=null;try{saved=localStorage.getItem('trs-theme')}catch(e){}
+  if(saved==='dark'||saved==='light')root.setAttribute('data-theme',saved);
+  const isDark=()=>root.getAttribute('data-theme')?root.getAttribute('data-theme')==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  const paint=()=>{btn.textContent=isDark()?'Light':'Dark'};
+  btn.onclick=()=>{const n=isDark()?'light':'dark';root.setAttribute('data-theme',n);try{localStorage.setItem('trs-theme',n)}catch(e){}paint()};
+  paint();
+})();
+render();
+</script>
+</body>
+</html>
