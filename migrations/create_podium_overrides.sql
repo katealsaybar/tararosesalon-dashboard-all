@@ -55,5 +55,7 @@ insert into public.podium_overrides (name_key, display_name, role, note, kind) v
  ('CORI PAUL',       'Cori Paul',       'Stylist',           'Left. Stylist, archived in Phorest. One booking, Al Quoz, 4 Feb 2025', 'left'),
  ('MARCELLA',         'Marcella Savicic','Stylist',           'Left. Stylist, archived in Phorest. Motor City and Al Quoz, to Dec 2025', 'left'),
  ('MARCELLA SAVICIC', 'Marcella Savicic','Stylist',           'Left. Stylist, archived in Phorest. Motor City and Al Quoz, to Dec 2025', 'left'),
+ ('OLIVER',          'Oliver Green',    'Barber',            'Left. Barber at Al Quoz, Dec 2025 to Jan 2026', 'left'),
+ ('OLIVER GREEN',    'Oliver Green',    'Barber',            'Left. Barber at Al Quoz, Dec 2025 to Jan 2026', 'left'),
  ('KERRYN',          'Kerryn',          'Stylist',           'Bahrain stylist, no staff card', 'role')
 on conflict (name_key) do nothing;
