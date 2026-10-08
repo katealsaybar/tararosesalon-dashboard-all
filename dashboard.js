@@ -4551,26 +4551,55 @@ async function renderDashboard() {
   // so each side is scaled against its OWN total: hair turns over roughly ten
   // times beauty's volume and a shared scale would flatten beauty to a hairline.
   const fnHair = s.hairTotalClients || 0, fnBeauty = s.beautyTotalClients || 0;
+  // New and NCR come from the same fields the NEW and NCR rows read, so the Unsplit row
+  // can never disagree with the rows above it.
+  const hb = Object.assign({}, s.hairBreakdown, { new: s.hairNewClients || 0, ncr: s.hairNCR || 0 });
+  const bb = Object.assign({}, s.beautyBreakdown, { new: s.beautyNewClients || 0, ncr: s.beautyNCR || 0 });
+  // Total is the branch ledger's own total column; Salon, Request, New and NCR are four
+  // other columns. Where a day's types do not add up to its total, the difference is
+  // Unsplit (Kate, 8 Oct 2026: KCA beauty, last month, 309 clients and 286 in a type).
+  const fnTypes = o => (o.salon || 0) + (o.req || 0) + (o.new || 0) + (o.ncr || 0);
+  const fnUnsH = Math.max(0, fnHair - fnTypes(hb)), fnUnsB = Math.max(0, fnBeauty - fnTypes(bb));
+  // The code is what shows; the name and meaning come on hover or tap (same words as the
+  // hover tips on Staff Dashboards).
   const FUNNEL = [
-    { k:'Total',    hair:fnHair,                                   beauty:fnBeauty },
-    { k:'Salon',    hair:(s.hairBreakdown && s.hairBreakdown.salon) || 0,     beauty:(s.beautyBreakdown && s.beautyBreakdown.salon) || 0 },
-    { k:'Request',  hair:(s.hairBreakdown && s.hairBreakdown.req) || 0,       beauty:(s.beautyBreakdown && s.beautyBreakdown.req) || 0 },
-    { k:'Rebooked', hair:s.hairRebookedCount || 0,                 beauty:(s.beautyBreakdown && s.beautyBreakdown.rebooked) || 0 },
-    { k:'New',      hair:s.hairNewClients || 0,                    beauty:s.beautyNewClients || 0 },
-    { k:'NCR',      hair:s.hairNCR || 0,                           beauty:s.beautyNCR || 0 },
+    { k:'TOT', name:'Total clients',      tip:'Every client seen in the period.',                                          hair:fnHair,            beauty:fnBeauty, tot:true },
+    { k:'SAL', name:'Salon client',       tip:'Returning client with no preference, so the salon booked her.',            hair:hb.salon || 0,     beauty:bb.salon || 0 },
+    { k:'REQ', name:'Request client',     tip:'Returning client who asked for her stylist by name.',                      hair:hb.req || 0,       beauty:bb.req || 0 },
+    { k:'REB', name:'Rebooked',           tip:'Booked her next visit before she left.',                                   hair:s.hairRebookedCount || 0, beauty:bb.rebooked || 0 },
+    { k:'NEW', name:'New client',         tip:'First visit, did not ask for anyone.',                                     hair:hb.new,    beauty:bb.new },
+    { k:'NCR', name:'New client request', tip:'New client who asked for her stylist by name.',                            hair:hb.ncr,    beauty:bb.ncr },
   ];
+  if (fnUnsH || fnUnsB) FUNNEL.push({ k:'UNS', name:'Unsplit', uns:true,
+    tip:'Counted in the total, but the ledger did not give them one of the four types (salon, request, new, new request).',
+    hair:fnUnsH, beauty:fnUnsB });
+  const fnPct = (n, t) => t ? (Math.round(n / t * 1000) / 10).toFixed(1) + '%' : '–';
+  const fnBarW = (n, t) => t ? Math.max(n ? 1.5 : 0, n / t * 100).toFixed(1) : 0;
   const funnelHtml = FUNNEL.map(r => `
-    <div class="fn-row">
-      <div class="fn-side l">
-        <span class="fn-n tabular">${num0(r.hair)}</span>
-        <span class="fn-bar" style="width:${fnHair ? Math.max(1.5, r.hair / fnHair * 100).toFixed(1) : 0}%;background:var(--hair);opacity:${r.k === 'Total' ? .45 : 1}"></span>
-      </div>
-      <div class="fn-c">${r.k}</div>
-      <div class="fn-side r">
-        <span class="fn-bar" style="width:${fnBeauty ? Math.max(1.5, r.beauty / fnBeauty * 100).toFixed(1) : 0}%;background:var(--beauty);opacity:${r.k === 'Total' ? .45 : 1}"></span>
-        <span class="fn-n tabular">${num0(r.beauty)}</span>
-      </div>
+    <div class="fn-grid fn-row${r.uns ? ' uns' : ''}">
+      <span class="fn-n l tabular">${num0(r.hair)}</span>
+      <div class="fn-lane l"><span class="fn-bar" style="width:${fnBarW(r.hair, fnHair)}%;min-width:${r.hair ? 2 : 0}px;background:var(--hair);opacity:${r.tot ? .45 : 1}"></span></div>
+      <span class="fn-pill l">${r.tot ? '100%' : fnPct(r.hair, fnHair)}</span>
+      <span class="fn-c" tabindex="0" aria-label="${escapeHtml(r.name)}"><span>${r.k}</span><span class="fn-tip" role="tooltip"><b>${escapeHtml(r.name)}</b>${escapeHtml(r.tip)}</span></span>
+      <span class="fn-pill r">${r.tot ? '100%' : fnPct(r.beauty, fnBeauty)}</span>
+      <div class="fn-lane r"><span class="fn-bar" style="width:${fnBarW(r.beauty, fnBeauty)}%;min-width:${r.beauty ? 2 : 0}px;background:var(--beauty);opacity:${r.tot ? .45 : 1}"></span></div>
+      <span class="fn-n r tabular">${num0(r.beauty)}</span>
     </div>`).join('');
+  // What the funnel cannot be read for at a glance: how many asked for their stylist by
+  // name, among all, among returning and among new clients.
+  const fnRet = (o, t) => fnPct((o.salon || 0) + (o.req || 0), t), fnNew = (o, t) => fnPct((o.new || 0) + (o.ncr || 0), t);
+  const fnRatio = (label, hn, hd, bn, bd) =>
+    `<span>${label}</span><span class="rv l">${fnPct(hn, hd)}</span><span class="rv r">${fnPct(bn, bd)}</span>`;
+  const fnRatiosHtml = `
+    <div class="fn-ratios">
+      <span class="rh" style="color:var(--muted2)">Ratio</span><span class="rh rv l" style="color:var(--hair)">Hair</span><span class="rh rv r" style="color:var(--beauty)">Beauty</span>
+      ${fnRatio('Request rate (request + NCR)', (hb.req || 0) + (hb.ncr || 0), fnHair, (bb.req || 0) + (bb.ncr || 0), fnBeauty)}
+      ${fnRatio('Returning who asked by name', hb.req || 0, (hb.salon || 0) + (hb.req || 0), bb.req || 0, (bb.salon || 0) + (bb.req || 0))}
+      ${fnRatio('New who asked by name', hb.ncr || 0, (hb.new || 0) + (hb.ncr || 0), bb.ncr || 0, (bb.new || 0) + (bb.ncr || 0))}
+    </div>`;
+  const fnSummary = hasBeauty
+    ? `${fnRet(hb, fnHair)} of hair clients and ${fnRet(bb, fnBeauty)} of beauty clients were returning; ${fnNew(hb, fnHair)} and ${fnNew(bb, fnBeauty)} were new.`
+    : `${fnRet(hb, fnHair)} of clients were returning; ${fnNew(hb, fnHair)} were new.`;
 
   // ── BRANCH PERFORMANCE, standing columns ─────────────────────────
   // Replaces the Chart.js bar chart that used to live here: the same four
@@ -4709,9 +4738,12 @@ ${hasBeauty ? `
   <div class="card${hasBeauty ? '' : ' hair-only'}">
     <div class="card-title">Client Funnel${hasBeauty ? ' · Hair vs Beauty' : ' · Hair'}</div>
     <div class="card-sub">${hasBeauty ? 'Every client type, mirrored down the middle' : 'Every client type. This branch runs hair only, so there is nothing to mirror.'}</div>
-    <div class="fn-head"><span class="l">Hair</span><span class="c">Type</span><span class="r">Beauty</span></div>
+    <div class="fn-wrap">
+    <div class="fn-grid fn-head"><span class="l">Hair</span><span class="c">${hasBeauty ? 'Type · % of side' : '% · Type'}</span><span class="r">Beauty</span></div>
     ${funnelHtml}
-    <div class="foot">Bars scaled against ${hasBeauty ? `each side's own total: ${num0(fnHair)} hair, ${num0(fnBeauty)} beauty` : `the ${num0(fnHair)} hair total`}. Request means the client asked for that stylist by name.</div>
+    <div class="foot">Bars and percentages are of ${hasBeauty ? `each side's own total: ${num0(fnHair)} hair, ${num0(fnBeauty)} beauty` : `the ${num0(fnHair)} hair total`}. ${fnSummary} Hover a code for its full name.</div>
+    ${fnRatiosHtml}
+    </div>
   </div>
   <div class="card">
     <div class="card-title">Branch Performance</div>

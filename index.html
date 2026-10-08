@@ -527,6 +527,16 @@ body.scoped #gsTrig, body.scoped #trs-ask{display:none!important}
   .mast-who{display:flex;align-items:center;gap:8px;flex-shrink:0;align-self:center}}
 /* Phones: the wrapper drops out of the layout so the old rules apply as before. */
 @media(max-width:760px){.mast-who{display:contents}}
+/* Kate, 8 Oct 2026: "too crowded when scrolling down". Once the page has moved, the pinned
+   header was two rows (the buttons, then Hello and Sign out wrapped under them), about 145px
+   of every screen, with the page's own pinned bar stacked below it. Pinned, it is one row:
+   Search steps down in width, and "Hello, Kate" goes (Sign out stays). Desktop only; phones
+   keep their own header. */
+@media(min-width:761px){
+  .topbar.stuck .mast-hello{display:none}
+  .topbar.stuck .mast-acts{flex-wrap:nowrap}
+  .topbar.stuck .gs-trig{width:210px}
+}
 .mast-rule{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:16px;
   padding:9px 0;border-top:1px solid var(--text);border-bottom:1px solid var(--border);
   font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
@@ -1256,28 +1266,75 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 /* ── PERFORMANCE OVERVIEW ─────────────────────────────────── */
 .perf2{display:grid;gap:12px}
 @media(min-width:1100px){.perf2{grid-template-columns:1fr 1fr}}
-/* mirrored funnel */
-.fn-head{display:grid;grid-template-columns:1fr 74px 1fr;gap:6px;align-items:center;margin-bottom:10px;
-  font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
-.fn-head .l{text-align:right;color:var(--hair)}
-.fn-head .r{color:var(--beauty)}
-.fn-head .c{text-align:center;color:var(--muted2);font-weight:500;letter-spacing:.08em}
-.fn-row{display:grid;grid-template-columns:1fr 74px 1fr;gap:6px;align-items:center;
-  padding:7px 0;border-bottom:1px solid var(--border2)}
-.fn-row:last-child{border-bottom:none}
-.fn-side{display:flex;align-items:center;gap:6px;min-width:0}
-.fn-side.l{justify-content:flex-end}
-.fn-bar{height:14px;border-radius:3px;min-width:2px;transition:width .5s var(--card-ease)}
-.fn-side.l .fn-bar{border-radius:3px 0 0 3px}
-.fn-side.r .fn-bar{border-radius:0 3px 3px 0}
-.fn-n{font-size:13.5px;font-weight:600;white-space:nowrap}
-.fn-c{text-align:center;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+/* mirrored funnel
+   Kate, 8 Oct 2026: every client type carries its share of that side's total, as a pill
+   either side of a three-letter code (hover or tap the code for the full name). Fixed
+   columns, so the counts, bars, pills and codes each line up down the card:
+   count | bar | pill | code | pill | bar | count. */
+.fn-grid{display:grid;grid-template-columns:38px minmax(0,1fr) 54px 40px 54px minmax(0,1fr) 38px;
+  column-gap:6px;align-items:center}
+.fn-head{margin-bottom:8px;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.fn-head .l{grid-column:1/3;text-align:right;color:var(--hair)}
+.fn-head .c{grid-column:3/6;text-align:center;color:var(--muted2);font-weight:500;letter-spacing:.08em}
+.fn-head .r{grid-column:6/8;color:var(--beauty)}
+.fn-row{height:36px}
+.fn-row.uns{margin-top:4px;border-top:1px dashed var(--border);height:40px}
+.fn-n{font-size:13.5px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.fn-n.l{text-align:right}
+.fn-lane{display:flex;align-items:center;height:22px;min-width:0}
+.fn-lane.l{justify-content:flex-end}
+.fn-bar{display:block;height:100%;border-radius:3px;min-width:2px;transition:width .5s var(--card-ease)}
+.fn-lane.l .fn-bar{border-radius:6px 2px 2px 6px}
+.fn-lane.r .fn-bar{border-radius:2px 6px 6px 2px}
+.fn-pill{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;text-align:center;
+  padding:3px 0;border-radius:999px}
+.fn-pill.l{background:color-mix(in srgb,var(--hair) 18%,transparent);color:var(--hair)}
+.fn-pill.r{background:color-mix(in srgb,var(--beauty) 18%,transparent);color:var(--beauty)}
+.fn-row.uns .fn-pill{background:var(--surface2);color:var(--muted)}
+.fn-row.uns .fn-bar{background:var(--muted2)!important}
+.fn-c{position:relative;text-align:center;font-size:11.5px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);cursor:help;outline:none}
+.fn-c > span:first-child{border-bottom:1px dotted var(--muted2)}
+.fn-tip{display:none;position:absolute;left:50%;top:125%;transform:translateX(-50%);z-index:20;width:200px;
+  padding:8px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12px;font-weight:400;
+  letter-spacing:0;text-transform:none;line-height:1.45;text-align:left;pointer-events:none}
+.fn-tip b{display:block;font-weight:600;margin-bottom:2px}
+.fn-c:hover .fn-tip,.fn-c:focus .fn-tip{display:block}
+.fn-ratios{display:grid;grid-template-columns:minmax(0,1fr) 64px 64px;gap:6px 10px;align-items:baseline;
+  font-size:13.5px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)}
+.fn-ratios .rh{font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.fn-ratios .rv{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
 /* Motor City runs hair only. A mirrored funnel with a dead right half reads as a
    broken chart rather than as an absent department, so the mirror folds away and
-   the card becomes a plain one-sided funnel. */
-.hair-only .fn-head,.hair-only .fn-row{grid-template-columns:1fr 74px}
-.hair-only .fn-head .r,.hair-only .fn-side.r{display:none}
-.hair-only .fn-c{text-align:left;padding-left:6px}
+   the card becomes a plain one-sided funnel: count | bar | pill | code. */
+.hair-only .fn-grid{grid-template-columns:38px minmax(0,1fr) 54px 40px}
+.hair-only .fn-head .l{grid-column:1/3}
+.hair-only .fn-head .c{grid-column:3/5}
+.hair-only .fn-head .r,.hair-only .fn-pill.r,.hair-only .fn-lane.r,.hair-only .fn-n.r{display:none}
+.hair-only .fn-ratios{grid-template-columns:minmax(0,1fr) 64px}
+.hair-only .fn-tip{left:auto;right:0;transform:none}
+.hair-only .fn-head .c{white-space:nowrap;letter-spacing:.04em}
+.hair-only .fn-ratios .r{display:none}
+/* Sized by the card's own width, not the screen's: the card is half a row beside Branch
+   Performance on a wide screen (with the sidebar open it can be under 400px) and the
+   whole width on a phone. */
+.fn-wrap{container-type:inline-size}
+@container (max-width:430px){
+  .fn-grid{grid-template-columns:30px minmax(0,1fr) 46px 34px 46px minmax(0,1fr) 30px;column-gap:4px}
+  .hair-only .fn-grid{grid-template-columns:30px minmax(0,1fr) 46px 34px}
+  .fn-n{font-size:12.5px}.fn-pill{font-size:11px}
+  .fn-head{font-size:11px;letter-spacing:.1em}
+  .fn-head .c{letter-spacing:.04em}
+}
+@container (max-width:320px){
+  .fn-grid{grid-template-columns:26px minmax(0,1fr) 40px 30px 40px minmax(0,1fr) 26px;column-gap:3px}
+  .hair-only .fn-grid{grid-template-columns:26px minmax(0,1fr) 40px 30px}
+  .fn-n{font-size:12px}.fn-pill{font-size:10.5px;padding:3px 0}
+  .fn-c{font-size:10.5px;letter-spacing:.03em}
+  .fn-head .c{font-size:0}
+  .fn-head .c::after{content:"%";font-size:11px}
+}
+}
 
 /* standing column chart, branch performance */
 .cols-plot{display:flex;align-items:flex-end;gap:10px;height:200px;position:relative;
@@ -1946,6 +2003,15 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .slv-top.stuck .slv-intro{margin:0 0 8px}
 .slv-top.stuck .slv-intro h2{font-size:22px;margin:0}
 .slv-top.stuck .slv-intro p{display:none}
+/* Pinned, the six levels are one slim row, not two rows of three, and the heading goes (the
+   header already names the page). Desktop only. */
+@media(min-width:761px){
+  .slv-top.stuck .slv-intro{display:none}
+  .slv-top.stuck .slv-ladder{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none}
+  .slv-top.stuck .slv-ladder::-webkit-scrollbar{display:none}
+  .slv-top.stuck .slv-ladder button{flex:0 0 auto;font-size:13px;padding:4px 12px 4px 4px;min-height:0}
+  .slv-top.stuck .slv-step{width:20px;height:20px;font-size:11px}
+}
 .slv-top .slv-ladder{margin:0}
 .slv-intro{margin:22px 0 14px}
 /* Brand serif (Kate, 29 Sep 2026): these asked for Cormorant Garamond, which the dashboard
@@ -4029,7 +4095,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261006ph"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261008s7"></script>
+<script src="dashboard.js?v=20261008s8"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
