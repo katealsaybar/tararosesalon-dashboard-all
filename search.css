@@ -70,3 +70,14 @@ body.gs-open{overflow:hidden}
   .gs-row:active{background:var(--surface2)}
   .gs-act{min-height:36px;font-size:12.5px;padding:0 14px;border-radius:18px}
 }
+
+/* Kate, 8 Oct 2026: "parang google lang". Enter on a search lists every match, grouped
+   by kind, in a wider panel; the short list says how many more there are. */
+.gs-panel.gs-full{width:720px}
+.gs-sum{padding:8px 12px 2px;font-size:13px;color:var(--muted)}
+.gs-more{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 2px;
+  padding:10px 12px;border-top:1px solid var(--border);font-size:13.5px;font-weight:600;color:var(--text);cursor:pointer}
+.gs-more kbd{font:inherit;font-size:11px;font-weight:500;border:1px solid var(--border);border-radius:5px;
+  padding:0 6px;color:var(--muted2);line-height:18px}
+@media(hover:hover){.gs-more:hover{background:var(--surface2);border-radius:8px}}
+@media(max-width:760px){.gs-more kbd{display:none}}

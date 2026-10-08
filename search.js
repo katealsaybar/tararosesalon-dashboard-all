@@ -39,11 +39,11 @@
     dashboard: 'home overview kpi sales revenue takings pulse summary',
     branchperf: 'branch staff table figures services retail',
     compare: 'compare versus vs side by side',
-    team: 'podium race ranking leaderboard top performer',
-    teamquad: 'staff quadrant treatment retail rebook rebooking takings',
-    staffperf: 'benchmarks money five kpi promotion',
-    staffweeks: 'staff quarterly performance quarter q1 q2 q3 q4 13 week thirteen weekly report emma',
-    stafflevels: 'levels promotion grade stylist benchmarks',
+    team: 'podium race ranking leaderboard top performer rebooking retention conversion',
+    teamquad: 'staff quadrant treatment retail rebook rebooking takings conversion retention',
+    staffperf: 'benchmarks money five kpi promotion rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail',
+    staffweeks: 'staff quarterly performance quarter q1 q2 q3 q4 13 week thirteen weekly report emma rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail',
+    stafflevels: 'levels promotion grade stylist benchmarks rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail',
     stylists: 'cards photos instagram profiles',
     orgchart: 'org chart structure hierarchy',
     ledgerFinancials: 'financial totals ledger cash card payments',
@@ -216,6 +216,14 @@
     showView('staffweeks', document.querySelector(`#sidebar .nav-sub[onclick*="'staffweeks'"]`));
   }
   function flash(el) {
+    // A frame does not have the dashboard's stylesheet: give it the same glow.
+    const d = el.ownerDocument;
+    if (d !== document && !d.getElementById('gsFlashCss')) {
+      const st = d.createElement('style');
+      st.id = 'gsFlashCss';
+      st.textContent = '.who-flash{animation:gsFlash 2.2s ease both}@keyframes gsFlash{0%,35%{box-shadow:0 0 0 3px var(--accent,#2dd4bf)}100%{box-shadow:0 0 0 0 transparent}}';
+      d.head.appendChild(st);
+    }
     el.classList.remove('who-flash');
     void el.offsetWidth;
     el.classList.add('who-flash');
@@ -228,6 +236,12 @@
   // findable. A table row is known by its first cell with words in it (so Top
   // Clients' rank number is skipped for the name beside it).
   const HEADS = 'h2, h3, h4, .card-title, .side-nav a, .hero-contents a, .oc-name, .who';
+  // Kate, 8 Oct 2026: "conversion" found nothing while Conversion % sat on screen.
+  // Metric names are column headings and KPI labels, which are not headings, and the
+  // Staff Dashboards page is a frame, which the page-level search never looked inside.
+  // These are read with leafText, so a label's hover tip is not part of its name.
+  const LABELS = 'th, label, .kpi-lbl, .metric-label, .r-label, .section-label, .ht-lbl, .bar-lbl';
+  const SCAN = 'h2, h3, h4, a, td, th, span, div, b, label';
   const hasWords = t => /[a-z]{2}/i.test(t);
   // A cell's own words first (Products' name, not the brand line under it), then
   // its first child with words in it.
@@ -237,6 +251,21 @@
     const t = [...el.querySelectorAll('*')].find(c => !c.children.length && hasWords(c.textContent));
     return (t || el).textContent.replace(/\s+/g, ' ').trim();
   };
+  // A page's own document, plus any same-origin frame on it (Staff Dashboards,
+  // Google Reviews, Wellness Voucher). A frame from another site, or one not loaded
+  // yet, is skipped: reading it throws, and there is nothing to read.
+  function viewRoots(view) {
+    const root = document.getElementById('view-' + view);
+    if (!root) return [];
+    const out = [{ root, frame: null }];
+    root.querySelectorAll('iframe').forEach(f => {
+      try {
+        const d = f.contentDocument;
+        if (d && d.body && d.body.children.length) out.push({ root: d.body, frame: f });
+      } catch (e) { /* another origin */ }
+    });
+    return out;
+  }
   function viewNames() {
     const m = {};
     document.querySelectorAll('#sidebar .nav-sub').forEach(n => {
@@ -248,43 +277,53 @@
   function contentItems() {
     const names = viewNames(), out = [], seen = new Set();
     ALL_VIEWS.forEach(view => {
-      const root = document.getElementById('view-' + view);
-      if (!root || !names[view]) return;
-      const add = (el, text, row) => {
-        // A section link ("Hair vs Beauty" in Organisation Pulse's contents) lands
-        // on the section it points at, not on the link.
-        const href = el.getAttribute && el.getAttribute('href');
-        const anchor = href && href[0] === '#' && href.length > 1 ? href.slice(1) : '';
-        if (!text || text.length > 80 || !hasWords(text)) return;
-        const k = view + '|' + text.toLowerCase();
-        if (seen.has(k)) return;
-        seen.add(k);
-        const snip = row ? row.textContent.replace(/\s+/g, ' ').replace(text, '').trim().slice(0, 60) : '';
-        out.push({ kind: 'content', view, id: 'content:' + k, t: text,
-          g: 'On ' + names[view], s: snip, words: names[view],
-          go: () => goText(view, text, null, anchor) });
-      };
-      root.querySelectorAll(HEADS).forEach(el => add(el, el.textContent.replace(/\s+/g, ' ').trim()));
-      root.querySelectorAll('tbody tr').forEach(tr => {
-        const cell = [...tr.cells].find(c => hasWords(c.textContent));
-        if (cell) add(cell, leafText(cell), tr);
+      if (!names[view]) return;
+      viewRoots(view).forEach(({ root, frame }) => {
+        const add = (el, text, row) => {
+          // A section link ("Hair vs Beauty" in Organisation Pulse's contents) lands
+          // on the section it points at, not on the link.
+          const href = el.getAttribute && el.getAttribute('href');
+          const anchor = !frame && href && href[0] === '#' && href.length > 1 ? href.slice(1) : '';
+          if (!text || text.length > 80 || !hasWords(text)) return;
+          const k = view + '|' + text.toLowerCase();
+          if (seen.has(k)) return;
+          seen.add(k);
+          let snip = '';
+          if (row) {
+            const val = row.querySelector && row.querySelector('.r-val');
+            snip = (val || row).textContent.replace(/\s+/g, ' ').replace(text, '').trim().slice(0, 60);
+          }
+          out.push({ kind: 'content', view, id: 'content:' + k, t: text,
+            g: 'On ' + names[view], s: snip, words: names[view],
+            go: () => goText(view, text, null, anchor) });
+        };
+        root.querySelectorAll(HEADS).forEach(el => add(el, el.textContent.replace(/\s+/g, ' ').trim()));
+        root.querySelectorAll(LABELS).forEach(el => add(el, leafText(el), el.closest('.row')));
+        root.querySelectorAll('tbody tr').forEach(tr => {
+          const cell = [...tr.cells].find(c => hasWords(c.textContent));
+          if (cell) add(cell, leafText(cell), tr);
+        });
       });
     });
     return out;
   }
 
-  // Open a page (if not already on it) and land on the first thing showing this text.
+  // Open a page (if not already on it) and land on the first thing showing this text,
+  // on the page itself or inside its frame.
   function findText(view, text) {
     const want = norm(text);
-    const root = document.getElementById('view-' + view);
-    if (!root) return null;
+    const roots = viewRoots(view);
+    if (!roots.length) return null;
     const own = el => norm(leafText(el)) === want || norm(el.textContent.replace(/\s+/g, ' ').trim()) === want;
-    const all = [...root.querySelectorAll('h2, h3, h4, a, td, span, div, b')]
-      .filter(el => own(el) && ![...el.children].some(c => norm(c.textContent.trim()) === want));
-    const hit = all.find(el => el.offsetParent);
-    if (hit) return hit.closest('tr') || hit;
+    const all = [];
+    roots.forEach(({ root, frame }) => root.querySelectorAll(SCAN).forEach(el => {
+      if (own(el) && ![...el.children].some(c => norm(c.textContent.trim()) === want)) all.push([el, frame]);
+    }));
+    const hit = all.find(([el]) => el.offsetParent);
+    // A KPI row in a frame is lit as a whole row, like a table row.
+    if (hit) return hit[1] ? (hit[0].closest('tr, .row') || hit[0]) : (hit[0].closest('tr') || hit[0]);
     // Only in a folded section: open it, and the next tick finds it.
-    all.forEach(el => {
+    all.forEach(([el]) => {
       const sec = el.closest('[id^="sec-"]');
       const k = sec && sec.id.slice(4);
       if (k && typeof sectionState !== 'undefined' && !sectionState[k] && typeof toggleSection === 'function') toggleSection(k);
@@ -292,6 +331,19 @@
       if (det) det.open = true;
     });
     return null;
+  }
+  // Scroll the dashboard's own page so the thing is under the masthead, whether it is
+  // on the page or inside a frame (the frame is sized to its content, so the dashboard
+  // page is the only scrollbar), and light it.
+  function landOn(el) {
+    const f = el.ownerDocument !== document && el.ownerDocument.defaultView && el.ownerDocument.defaultView.frameElement;
+    if (!f) { whoLand(el); flash(el); return; }
+    const masthead = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-cond-h')) || 104;
+    const bar = document.querySelector('.sc-bar, .tp-bar');
+    const top = f.getBoundingClientRect().top + scrollY + el.getBoundingClientRect().top
+      - masthead - (bar && bar.offsetParent ? bar.offsetHeight : 0) - 16;
+    scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    flash(el);
   }
   // Pages that fetch their rows can take a few seconds, so this waits up to 8s
   // (whoWaitFor gives up at 2.5s), then lands once.
@@ -308,7 +360,7 @@
     const t0 = Date.now();
     (function tick() {
       const el = (anchor && document.getElementById(anchor)) || findText(view, text);
-      if (el) { whoLand(el); flash(el); return; }
+      if (el) { landOn(el); return; }
       if (Date.now() - t0 > 8000) {
         whoNote(`“${text}” isn't on ${viewNames()[view] || 'that page'} for the branch and period picked.`);
         return;
@@ -489,6 +541,9 @@
 
   // ── THE PANEL ──
   let trig, scrim, panel, input, list, index = [], shown = [], cur = 0, lastFocus = null;
+  // full: Enter has been pressed on a search and the panel is showing every match, not
+  // the short list. picked: an arrow key has chosen a row, so Enter opens that row.
+  let full = false, picked = false, hitCount = 0;
 
   function mount() {
     const acts = document.querySelector('.mast-acts');
@@ -529,11 +584,12 @@
     input = panel.querySelector('.gs-in');
     list = panel.querySelector('.gs-list');
     const clear = panel.querySelector('.gs-clear');
-    input.addEventListener('input', () => { clear.hidden = !input.value; render(); });
-    clear.addEventListener('click', () => { input.value = ''; clear.hidden = true; render(); input.focus(); });
+    input.addEventListener('input', () => { clear.hidden = !input.value; full = false; picked = false; render(); });
+    clear.addEventListener('click', () => { input.value = ''; clear.hidden = true; full = false; picked = false; render(); input.focus(); });
     input.addEventListener('keydown', onKey);
 
     list.addEventListener('click', e => {
+      if (e.target.closest('.gs-more')) { showAll(); input.focus(); return; }
       const act = e.target.closest('.gs-act');
       const row = e.target.closest('.gs-row');
       if (!row) return;
@@ -563,6 +619,7 @@
     index = buildIndex();
     loadData();
     input.value = '';
+    full = false; picked = false;
     panel.querySelector('.gs-clear').hidden = true;
     scrim.hidden = false;
     panel.hidden = false;
@@ -599,7 +656,7 @@
   // tucked away) at the top.
   function place() {
     const phone = isPhone();
-    const w = phone ? innerWidth - 32 : Math.min(480, innerWidth - 32);
+    const w = phone ? innerWidth - 32 : Math.min(full ? 720 : 480, innerWidth - 32);
     const r = trig && trig.offsetParent ? trig.getBoundingClientRect() : null;
     let left, top;
     if (r && r.width && r.bottom > 0) {
@@ -614,38 +671,72 @@
     panel.style.top = top + 'px';
     const vh = window.visualViewport ? visualViewport.height : innerHeight;
     const head = panel.querySelector('.gs-head').offsetHeight || 48;
-    list.style.maxHeight = Math.max(160, Math.min(phone ? 9999 : 520, vh - top - head - 16)) + 'px';
+    list.style.maxHeight = Math.max(160, Math.min(phone || full ? 9999 : 520, vh - top - head - 16)) + 'px';
   }
 
-  // How many of each kind can make the list, so one kind never crowds out the rest.
+  // How many of each kind can make the short list, so one kind never crowds out the
+  // rest. The full results (Enter) lift the caps: a common word like "conversion" is on
+  // several pages and in several tables, and all of them are listed, like a search engine.
   const MAX = { page: 5, staff: 5, branch: 4, period: 3, service: 4, client: 4, product: 4, content: 5 };
   const ORDER = Object.keys(MAX);
+  const MAX_FULL = { page: 12, staff: 20, branch: 4, period: 4, service: 15, client: 15, product: 15, content: 40 };
+  const KIND_HEAD = { page: 'Pages', staff: 'Team', branch: 'Branches', period: 'Periods',
+    service: 'Services', client: 'Clients', product: 'Products', content: 'On the pages' };
+
+  function matches(q) {
+    // Page text that just repeats a service, client or product row is left to that row.
+    const dataNames = new Set(dataItems.map(x => norm(x.t)));
+    const pool = index.concat(dataItems, contentItems().filter(x => !dataNames.has(norm(x.t))));
+    let scored = pool.map(x => [x, score(x, q)]).filter(([, s]) => s > 0);
+    // Nothing close: loosen up and offer the nearest, rather than a dead end.
+    if (!scored.length) scored = pool.map(x => [x, score(x, q, true)]).filter(([, s]) => s > 0);
+    scored.sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind));
+    return scored.map(([x]) => x);
+  }
+  function capped(all, caps, total) {
+    const taken = {};
+    return all.filter(x => (taken[x.kind] = (taken[x.kind] || 0) + 1) <= caps[x.kind]).slice(0, total);
+  }
 
   // One list, best match first, like Team Home. Each row says where it lives in a
   // small line above its name. Nothing typed: what you opened last, or a hint.
+  // After Enter: every match, with a heading per kind, in a wider panel.
   function render() {
     const q = norm(input.value.trim());
-    let rows = [], head = '';
+    let rows = [], head = '', all = [];
     if (!q) {
+      full = false;
       const byId = new Map(index.map(x => [x.id, x]));
       rows = recentIds().map(id => byId.get(id)).filter(Boolean);
       if (rows.length) head = 'Recent';
     } else {
-      // Page text that just repeats a service, client or product row is left to that row.
-      const dataNames = new Set(dataItems.map(x => norm(x.t)));
-      const pool = index.concat(dataItems, contentItems().filter(x => !dataNames.has(norm(x.t))));
-      let scored = pool.map(x => [x, score(x, q)]).filter(([, s]) => s > 0);
-      // Nothing close: loosen up and offer the nearest, rather than a dead end.
-      if (!scored.length) scored = pool.map(x => [x, score(x, q, true)]).filter(([, s]) => s > 0);
-      scored.sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind));
-      const taken = {};
-      rows = scored.filter(([x]) => (taken[x.kind] = (taken[x.kind] || 0) + 1) <= MAX[x.kind])
-        .slice(0, 12).map(([x]) => x);
+      all = matches(q);
+      rows = full ? capped(all, MAX_FULL, 80) : capped(all, MAX, 12);
     }
+    hitCount = all.length;
+    panel.classList.toggle('gs-full', full);
+    place();
 
     shown = rows;
     let html = head ? `<div class="gs-grp" role="presentation">${esc(head)}</div>` : '';
-    html += rows.map((item, i) => rowHtml(item, i, q)).join('');
+    if (full && rows.length) {
+      html += `<div class="gs-sum" role="presentation">${rows.length} result${rows.length === 1 ? '' : 's'} for “${esc(input.value.trim())}”</div>`;
+    }
+    // In the full results rows are grouped by kind, so each kind is one block.
+    if (full) {
+      const order = [], by = {};
+      rows.forEach(x => { if (!by[x.kind]) { by[x.kind] = []; order.push(x.kind); } by[x.kind].push(x); });
+      shown = order.flatMap(k => by[k]);
+      html += shown.map((item, i) => (i === 0 || shown[i - 1].kind !== item.kind
+        ? `<div class="gs-grp" role="presentation">${KIND_HEAD[item.kind] || ''}</div>` : '') + rowHtml(item, i, q)).join('');
+    } else {
+      html += rows.map((item, i) => rowHtml(item, i, q)).join('');
+      // More than the short list shows: say so, and that Enter opens them.
+      const total = capped(all, MAX_FULL, 80).length;
+      if (q && total > rows.length) {
+        html += `<div class="gs-more" role="presentation">See all ${total} results <kbd>Enter</kbd></div>`;
+      }
+    }
     if (!q && !rows.length) html = '<div class="gs-empty">Type a name, a page, a branch, a service, a client or a product.</div>';
     else if (!rows.length) html = `<div class="gs-empty">Nothing matches “${esc(input.value.trim())}”.</div>`;
     list.innerHTML = html;
@@ -654,11 +745,19 @@
     paintCursor();
   }
 
+  // Enter on a search: every match, grouped. A single match just opens.
+  function showAll() {
+    if (!input.value.trim()) return;
+    full = true; picked = false;
+    render();
+    list.scrollTop = 0;
+  }
+
   // Team Home's row: where it lives, the name (matched letters marked), one line
   // more. A person's other jumps (stats, figures, 13 weeks) show on the top row
   // only, when she is clearly the one you were after.
   function rowHtml(item, i, q) {
-    const acts = item.acts && q && i === 0
+    const acts = item.acts && q && i === 0 && !full
       ? `<span class="gs-acts">${item.acts.slice(1).map(([l], a) => `<button type="button" class="gs-act" data-a="${a + 1}" tabindex="-1">${esc(l)}</button>`).join('')}</span>`
       : '';
     return `<div class="gs-row" role="option" id="gsOpt${i}" data-i="${i}">
@@ -680,11 +779,15 @@
       e.preventDefault();
       if (!shown.length) return;
       cur = (cur + (e.key === 'ArrowDown' ? 1 : -1) + shown.length) % shown.length;
+      picked = true;
       paintCursor();
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const item = shown[cur];
-      if (item) choose(item, item.go);
+      // Like a search engine: Enter on a typed search lists every match. An arrowed-to
+      // row, a recent pick, or the only match opens straight away.
+      if (input.value.trim() && !full && !picked && hitCount > 1) showAll();
+      else if (item) choose(item, item.go);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       close();
