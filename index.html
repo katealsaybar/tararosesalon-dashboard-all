@@ -1851,131 +1851,94 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   background:var(--text,#1c1b19);animation:blSlide 1.1s ease-in-out infinite}
 @keyframes blSlide{to{left:100%}}
 @media(prefers-reduced-motion:reduce){#bootLoader .bl-bar::after{animation:none;left:30%}}
+/* THE SIGN-IN SCREEN (Kate, 8 Oct 2026: "let's improve login UI"). It follows the page's
+   theme like the rest of the site and the search page (the tokens, not a card that is
+   always light), is centred without being clipped on a short or zoomed screen, has one
+   clear first move (Continue with Google) and a quieter second (email and password),
+   and puts the "what is this site" line and Privacy beneath the card. Class names are
+   the ones auth.js and gateMode() already use; the ids and the form are untouched. */
 #loginGate{
   position:fixed;inset:0;z-index:9999;
-  background:var(--bg);
-  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);color:var(--text);
+  display:flex;flex-direction:column;align-items:center;overflow-y:auto;
+  padding:28px 16px calc(20px + env(safe-area-inset-bottom));
   font-family:'Inter',sans-serif;
 }
-/* The card is always light, so its fields, links and messages take the light tokens
-   even when the page around it is dark (the theme is remembered since 28 Sep 2026,
-   so a dark sign-in screen is now the usual case for anyone who likes it dark). */
-.login-card{--bg:#FAF7F0;--surface:#fff;--surface2:#F4F1E9;--border:#E8E2D6;--border2:#F0ECE3;
-  --text:#1A1A1A;--muted:#565049;--muted2:#77706A;--accent:#1A1A1A;--accent-fg:#FBF7F0;
-  --good:#0F6E56;--good-bg:#E1F5EE;--warn:#BA7517;--warn-bg:#FAEEDA;--bad:#A32D2D;--bad-bg:#FCEBEB;color:#1A1A1A}
+.login-theme{position:fixed;top:14px;right:16px;z-index:2;appearance:none;cursor:pointer;border:1px solid var(--border);
+  background:var(--surface);color:var(--muted);border-radius:999px;padding:8px 16px;font:500 13px/1 'Inter',sans-serif}
+@media(hover:hover){.login-theme:hover{color:var(--text);border-color:var(--text)}}
 .login-card{
-  background:#FFFEFA;
-  border:none;
-  padding:40px 32px 34px;
-  width:100%;max-width:380px;
-  box-shadow:0 20px 50px -14px rgba(26,26,26,0.26),0 4px 12px -3px rgba(26,26,26,0.12);
-  display:flex;flex-direction:column;gap:16px;
-  position:relative;
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  width:100%;max-width:400px;margin:auto 0 0;padding:32px 30px 26px;
+  box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:14px;position:relative;
 }
-/* Torn receipt edges — same technique as .hero-receipt */
-.login-card::before,.login-card::after{
-  content:'';position:absolute;left:0;right:0;height:9px;
-  background:
-    linear-gradient(-45deg,transparent 6px,#FFFEFA 6px) 0 0/12px 12px repeat-x,
-    linear-gradient(45deg,transparent 6px,#FFFEFA 6px) 0 0/12px 12px repeat-x,
-    #C9BFAE;
-  filter:drop-shadow(0 1px 1.5px rgba(26,26,26,0.25));
-}
-.login-card::before{top:-8px}
-.login-card::after{bottom:-8px;transform:scaleY(-1)}
-.login-logo{
-  display:flex;flex-direction:column;align-items:center;gap:10px;
-}
-/* Same crop as the sidebar lockup (see THE SIDEBAR LOCKUP): rule + TARA ROSE from the
-   PNG, SALONS set as text. The card is always light, so the ink version, always. */
-/* Kate, 3 Oct 2026: smaller (was 230px wide, SALONS 14px), it was overpowering the card. */
-.login-lockup{display:flex;flex-direction:column;align-items:center;gap:7px;padding-top:4px}
-.login-lockup .mark{width:168px;aspect-ratio:2321/396}
-.login-word{font-size:11px;letter-spacing:.42em;text-indent:.42em;text-transform:uppercase;color:#1A1A1A}
-.login-logo-crop{
-  width:260px;height:82px;overflow:hidden;flex-shrink:0;
-}
-.login-logo-crop img{
-  width:100%;height:100%;object-fit:cover;object-position:center;
-}
-.login-brand{
-  font-family:'Inter',sans-serif;font-weight:700;font-size:22px;
-  letter-spacing:0.18em;text-transform:uppercase;color:var(--text);line-height:1;
-}
-.login-brand-sub{
-  font-size:13px;letter-spacing:0.26em;text-transform:uppercase;color:var(--muted);margin-top:3px;
-}
-.login-strip{
-  height:2px;width:80px;margin-top:5px;
-  background:linear-gradient(to right,var(--accent-mint),var(--accent-butter),var(--accent-lavender),var(--accent-coral));
-  border-radius:2px;
-}
-.login-dash-lbl{
-  font-family:'Playfair Display',serif;font-weight:500;
-  font-size:16px;letter-spacing:0.03em;text-transform:none;
-  color:#7C5CD4;margin-top:0;
-  display:inline-block;padding:3px 13px;border-radius:20px;
-  background:rgba(124,92,212,0.12);
-}
-.login-divider{height:0;border-top:1px dashed #b8b0a4;}
-.login-about{margin:2px 0 0;max-width:330px;text-align:center;font-size:13px;line-height:1.5;color:#565049}
+.login-logo{display:flex;flex-direction:column;align-items:center;gap:8px}
+/* The masthead's TARA ROSE (the mint rule above it) in ink or paper by theme, SALONS as text. */
+.login-lockup{display:flex;flex-direction:column;align-items:center;gap:7px}
+.login-lockup img{display:block;width:168px;height:auto;aspect-ratio:2321/396}
+.login-lg-dark{display:none!important}
+[data-theme="dark"] .login-lg-light{display:none!important}
+[data-theme="dark"] .login-lg-dark{display:block!important}
+.login-word{font-size:11px;letter-spacing:.42em;text-indent:.42em;text-transform:uppercase;color:var(--text)}
+.login-dash-lbl{margin-top:6px;font-size:11.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2)}
 .login-label{
-  font-size:14px;letter-spacing:0.1em;text-transform:uppercase;
-  color:var(--muted);
+  margin:4px 0 0;text-align:center;
+  font-family:'Playfair Display',serif;font-weight:500;font-size:24px;line-height:1.2;
+  letter-spacing:0;text-transform:none;color:var(--text);
 }
-.login-input-wrap{
-  position:relative;display:flex;align-items:center;
-}
+.login-input-wrap{position:relative;display:flex;align-items:center}
 .login-input{
-  width:100%;padding:10px 40px 10px 14px;
-  border:1px solid var(--border);border-radius:10px;
+  width:100%;height:46px;padding:0 42px 0 16px;
+  border:1px solid var(--border);border-radius:12px;
   background:var(--surface2);color:var(--text);
   font-family:'Inter',sans-serif;font-size:16px;
-  outline:none;transition:border-color .2s;
+  outline:none;transition:border-color .2s,box-shadow .2s;
 }
-.login-input:focus{border-color:var(--accent);}
+.login-input::placeholder{color:var(--muted2)}
+.login-input:focus{border-color:var(--text);box-shadow:0 0 0 3px rgba(153,246,228,.5)}
+.login-email{padding-right:14px}
 .login-eye{
   position:absolute;right:10px;
   background:none;border:none;cursor:pointer;
   color:var(--muted);padding:4px;display:flex;
   transition:color .2s;
 }
-@media(hover:hover){.login-eye:hover{color:var(--text);}}
-.login-error{
-  font-size:15px;color:var(--bad);min-height:16px;
-  display:none;
-}
-.login-error.visible{display:block;}
+@media(hover:hover){.login-eye:hover{color:var(--text)}}
+.login-error{display:none;font-size:14px;line-height:1.4;color:var(--bad);background:var(--bad-bg);padding:10px 12px;border-radius:10px}
+.login-error.visible{display:block}
+.login-info{display:none;font-size:14px;line-height:1.45;color:var(--text);background:var(--good-bg);padding:10px 12px;border-radius:10px}
+.login-info.visible{display:block}
 .login-btn{
-  padding:11px 0;border-radius:10px;
-  background:#FF9B9B;color:#2A2A2A;
+  height:46px;border-radius:12px;
+  background:var(--accent);color:var(--accent-fg);
   border:none;cursor:pointer;font-family:'Inter',sans-serif;
-  font-weight:700;font-size:16px;letter-spacing:0.08em;
-  transition:opacity .2s;
+  font-weight:600;font-size:15px;letter-spacing:.04em;
+  transition:opacity .2s,box-shadow .2s;
 }
-@media(hover:hover){.login-btn:hover{opacity:0.88;}}
-.login-btn:disabled{opacity:.55;cursor:default;}
+@media(hover:hover){.login-btn:hover{opacity:.9}}
+.login-btn:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(153,246,228,.6)}
+.login-btn:disabled{opacity:.55;cursor:default}
 .login-google{
-  display:flex;align-items:center;justify-content:center;gap:10px;
-  padding:10px 0;border-radius:10px;border:1px solid var(--border);
+  height:46px;display:flex;align-items:center;justify-content:center;gap:10px;
+  border-radius:12px;border:1px solid var(--border);
   background:#fff;color:#2A2A2A;cursor:pointer;
   font-family:'Inter',sans-serif;font-weight:600;font-size:15px;
-  transition:border-color .2s;
+  transition:border-color .2s,box-shadow .2s;
 }
-@media(hover:hover){.login-google:hover{border-color:#2A2A2A;}}
-.login-or{display:flex;align-items:center;gap:10px;color:var(--muted2);font-size:12px;letter-spacing:.14em;text-transform:uppercase;}
-.login-or::before,.login-or::after{content:'';flex:1;border-top:1px solid var(--border);}
-.login-email{padding-right:14px;}
-.login-info{font-size:14px;color:var(--text);line-height:1.45;display:none;}
-.login-info.visible{display:block;}
-.login-links{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;}
-.login-links a{color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer;}
-@media(hover:hover){.login-links a:hover{color:var(--text);}}
-.login-links:has(a:only-child){justify-content:center;}
-.login-footer{
-  font-size:13px;color:var(--muted2);text-align:center;
-  letter-spacing:0.1em;
-}
+@media(hover:hover){.login-google:hover{border-color:#2A2A2A;box-shadow:var(--shadow)}}
+.login-google:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(153,246,228,.6)}
+.login-or{display:flex;align-items:center;gap:10px;color:var(--muted2);font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+.login-or::before,.login-or::after{content:'';flex:1;border-top:1px solid var(--border)}
+.login-links{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px}
+.login-links a{color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+@media(hover:hover){.login-links a:hover{color:var(--text)}}
+.login-links:has(a:only-child){justify-content:center}
+/* Beneath the card: what the site is (Google's brand review reads this off the page), and Privacy. */
+.login-below{margin-bottom:auto;padding-top:18px;width:100%;max-width:400px;text-align:center}
+.login-about{margin:0 0 10px;font-size:12.5px;line-height:1.55;color:var(--muted)}
+.login-foot{font-size:12.5px;color:var(--muted2)}
+.login-foot a{color:var(--muted2);text-underline-offset:3px}
 
 /* The selectable copy of a stylist card's words, laid invisibly over the drawing
    of the page (see drawStylistCard in dashboard.js). The text is transparent, so
@@ -3300,7 +3263,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="team-performance.css?v=20261001quad">
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20261008sp2">
+<link rel="stylesheet" href="mobile.css?v=20261008lg1">
 <link rel="stylesheet" href="search.css?v=20261008s29">
 <link rel="stylesheet" href="client-mix.css?v=20261008cm3">
 <link rel="stylesheet" href="nav-style.css?v=20261006hub">
@@ -3330,11 +3293,25 @@ table.tp-cmp td.bad{color:var(--bad)}
      PASSWORD GATE
 ══════════════════════════════════════════════════ -->
 <div id="loginGate">
+  <button type="button" class="login-theme" id="loginTheme" onclick="gateTheme()"></button>
+  <script>
+    // Light and dark on the sign-in screen, the same setting (trs-theme) as the rest of the site.
+    function paintGateTheme(){ var b = document.getElementById('loginTheme');
+      if (b) b.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? 'Light mode' : 'Dark mode'; }
+    function gateTheme(){
+      var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('trs-theme', next); } catch (e) {}
+      paintGateTheme();
+    }
+    paintGateTheme();
+  </script>
   <div class="login-card">
     <div class="login-logo">
-      <!-- TARA ROSE SALONS, the sidebar's lockup in ink with the mint rule (assets/logo-ink-mint.png). -->
+      <!-- TARA ROSE SALONS: the masthead's pre-cut mark (rule + TARA ROSE) in ink or paper by theme, SALONS as text. -->
       <div class="login-lockup">
-        <div class="mark"><img id="loginLogoImg" src="assets/logo-ink-mint.png" alt="Tara Rose Salons"></div>
+        <img class="login-lg-light" src="assets/mast-ink.png" alt="Tara Rose Salons">
+        <img class="login-lg-dark" src="assets/mast-paper.png" alt="Tara Rose Salons">
         <div class="login-word">Salons</div>
       </div>
       <div class="login-dash-lbl" id="loginDashLbl">Internal Dashboard</div>
@@ -3342,13 +3319,10 @@ table.tp-cmp td.bad{color:var(--bad)}
         // The same card is Team Home's door (a plain address, or ?next=/hub/...), and the
         // landing for reset and invite email links (Kate, 3 Oct 2026).
         (function () { var n = new URLSearchParams(location.search).get('next') || '';
-          if (window.TRS_BARE_ROOT || n.indexOf('/hub/') === 0 || /type=(recovery|invite)/.test(window.TRS_AUTH_HASH || ''))
-            document.getElementById('loginDashLbl').textContent = 'Team Home'; })();
+          if (window.TRS_BARE_ROOT || n.indexOf('/hub/') === 0 || n.indexOf('/search/') === 0 || /type=(recovery|invite)/.test(window.TRS_AUTH_HASH || ''))
+            document.getElementById('loginDashLbl').textContent = 'Team sign-in'; })();
       </script>
-      <!-- Kate, 1 Oct 2026: says what the site is, for Google's brand review of the sign-in. -->
-      <p class="login-about">Where the Tara Rose Salons team in the UAE and Bahrain keeps its procedures, training and dashboards. Sign in with your work account.</p>
     </div>
-    <div class="login-divider"></div>
     <!-- Sign-in modes (see auth.js): signin · signup · forgot · reset · denied -->
     <div class="login-label" id="loginTitle">Sign in</div>
     <button class="login-google" id="loginGoogle" onclick="doGoogleLogin()">
@@ -3371,8 +3345,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <button type="submit" class="login-btn" id="loginBtn">Sign in</button>
     </form>
     <div class="login-links" id="loginLinks"></div>
-    <div style="text-align:center;font-size:12px;margin-top:-6px"><a href="/privacy/" style="color:var(--muted2)">Privacy</a></div>
     <!-- The "Ledger / Phorest" dates were here; since 1 Oct 2026 they show only after sign-in (the masthead). -->
+  </div>
+  <div class="login-below">
+    <!-- Kate, 1 Oct 2026: says what the site is, for Google's brand review of the sign-in. -->
+    <p class="login-about">Where the Tara Rose Salons team in the UAE and Bahrain keeps its procedures, training and dashboards. Sign in with your work account.</p>
+    <div class="login-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></div>
   </div>
 </div>
 
