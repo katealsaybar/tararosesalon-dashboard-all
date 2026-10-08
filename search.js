@@ -562,12 +562,12 @@
   const tokensOf = s => norm(s).match(/[a-z0-9%]+/g) || [];
   // How well a typed word lands on one word of the page: 3 the same word; 2 it starts with
   // what was typed, or is the plural / singular of it; 1 a keyboard slip (one letter off). Two letters or fewer have to be exact.
-  function tokMatch(t, k) {
+  function tokMatch(t, k, noSlip) {
     if (t === k) return 3;
     if (t.length < 3 || k.length < 3) return 0;
     if (k.startsWith(t)) return 2;
     if (k.length >= 4 && t.length - k.length <= 3 && t.startsWith(k)) return 2;
-    if (t.length >= 5 && k.length >= 5) {
+    if (!noSlip && t.length >= 5 && k.length >= 5) {
       const room = t.length >= 9 ? 2 : 1;
       if (Math.abs(t.length - k.length) <= 1 && dist(t, k) <= room) return 1;
     }
@@ -579,7 +579,7 @@
     const vars = [[term, 1]].concat((synOf[term] || []).map(w => [w, 0.6]));
     for (const [v, w] of vars) {
       for (const k of tk) {
-        const m = tokMatch(v, k) * w;
+        const m = tokMatch(v, k, w < 1) * w;
         if (m > best) best = m;
         if (best >= 3) return best;
       }
@@ -827,7 +827,8 @@
   // picked: an arrow key has chosen a row, so Enter opens that row. Without it, Enter
   // on a typed search opens the results page.
   let picked = false, serp, serpIn, serpKind = 'all', serpSeq = 0, serpTimer = 0, serpItems = [], serpAll = [], serpKb = [];
-  let serpQ = null, serpView = '', serpTips = false, serpAns = null;
+  let serpQ = null, serpView = '', serpTips = false, serpAns = null, serpPage = 0, serpText = '';
+  const PAGE = 10;
 
   function mount() {
     const acts = document.querySelector('.mast-acts');
@@ -1048,6 +1049,7 @@
     serp.setAttribute('aria-label', 'Search results');
     serp.innerHTML = `
       <div class="gs-serp-top">
+        <a class="gs-serp-logo" href="/hub/" aria-label="Team Home"><img alt="Tara Rose Salons"></a>
         <div class="gs-serp-bar">${ICON}
           <input class="gs-serp-in" type="search" autocomplete="off" autocapitalize="off" spellcheck="false"
             enterkeyhint="search" placeholder="${PLACEHOLDER}" aria-label="Search">
@@ -1085,6 +1087,7 @@
           <div class="gs-pchips"></div>
         </div>
         <div class="gs-serp-list"></div>
+        <div class="gs-pager"></div>
       </div>`;
     document.body.append(serp);
     serpIn = serp.querySelector('.gs-serp-in');
@@ -1096,7 +1099,10 @@
     serp.querySelector('.gs-serp-close').addEventListener('click', closeSerp);
     serp.addEventListener('click', e => {
       const ex = e.target.closest('.gs-ex');
-      if (ex) { serpIn.value = ex.dataset.q; serpKind = 'all'; serpView = ''; runSerp(); return; }
+      const rel = e.target.closest('.gs-rel');
+      if (ex || rel) { serpIn.value = (ex || rel).dataset.q; serpKind = 'all'; serpView = ''; runSerp(); serp.scrollTop = 0; return; }
+      const pg = e.target.closest('.gs-pg');
+      if (pg && pg.dataset.p) { serpPage = +pg.dataset.p; paintSerp(); serp.scrollTop = 0; return; }
       if (e.target.closest('.gs-tips-btn')) { serpTips = !serpTips; paintSerp(); return; }
       const ans = e.target.closest('.gs-ans-go');
       if (ans && serpAns) { openResult(serpAns, serpAns.go); return; }
@@ -1104,6 +1110,7 @@
       if (chip) {
         if (chip.dataset.v) serpView = serpView === chip.dataset.v ? '' : chip.dataset.v;
         else { serpKind = chip.dataset.k; serpView = ''; }
+        serpPage = 0;
         paintSerp();
         return;
       }
@@ -1127,6 +1134,9 @@
     document.body.classList.add('gs-open');
     serpKind = 'all';
     serpView = '';
+    serpPage = 0;
+    const logo = serp.querySelector('.gs-serp-logo img'), mast = document.getElementById('headerLogoImg');
+    if (logo) logo.src = (mast && mast.getAttribute('src')) || 'assets/mast-ink.png';
     serpIn.value = text;
     runSerp();
     serp.querySelector('.gs-serp-body').scrollTop = 0;
@@ -1145,7 +1155,7 @@
     hideBack();
     const text = serpIn.value.trim();
     if (!text) return;
-    const state = { text, kind: serpKind, view: serpView };
+    const state = { text, kind: serpKind, view: serpView, page: serpPage };
     backPill = document.createElement('div');
     backPill.className = 'gs-back';
     backPill.innerHTML = '<button type="button" class="gs-back-go"></button><button type="button" class="gs-back-x" aria-label="Dismiss">&times;</button>';
@@ -1153,7 +1163,7 @@
     backPill.querySelector('.gs-back-go').addEventListener('click', () => {
       hideBack();
       openSerp(state.text);
-      serpKind = state.kind; serpView = state.view;
+      serpKind = state.kind; serpView = state.view; serpPage = state.page;
       paintSerp();
     });
     backPill.querySelector('.gs-back-x').addEventListener('click', hideBack);
@@ -1173,6 +1183,7 @@
   function runSerp() {
     const text = serpIn.value.trim();
     const Q = serpQ = parseQuery(text);
+    if (text !== serpText) { serpText = text; serpPage = 0; }
     const seq = ++serpSeq;
     serpKb = [];
     serpAll = Q.has ? capped(matches(Q), MAX_SERP, 200) : [];
@@ -1230,7 +1241,10 @@
     const rows = ans ? inView.filter(x => x !== ans) : inView;
     // The click handler finds a row by position in serpItems (what is on screen). serpAll
     // stays the full set, so a chip can be undone: filtering must never shrink it.
-    serpItems = rows;
+    const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+    if (serpPage >= pages) serpPage = pages - 1;
+    const pageRows = rows.slice(serpPage * PAGE, serpPage * PAGE + PAGE);
+    serpItems = pageRows;
 
     serp.querySelector('.gs-chips').innerHTML = kinds.length > 1
       ? [['all', 'All', all.length]].concat(kinds.map(k => [k, KIND_HEAD[k], counts[k]])).map(([k, l, n]) =>
@@ -1263,14 +1277,75 @@
       ? `There is no page called “${esc(Q.onMiss)}”. Try <code>on:"staff dashboards"</code>.`
       : Q.vague ? 'Tell me what you are after, for example “where do I find conversion”.'
       : `Nothing matches “${esc(text)}”.${Q.words.length > 1 ? ' Try fewer words, or one that says the same thing.' : ' Check the spelling, or try a word that means the same.'}`;
-    serp.querySelector('.gs-serp-list').innerHTML = rows.length ? rows.map((x, i) => {
+    const cards = pageRows.map((x, i) => {
       const snip = x.snip || x.s || (x.kind === 'page' ? pageSnip(x, q) : '');
       const acts = x.acts ? `<span class="gs-acts">${x.acts.map(([l], a) => `<button type="button" class="gs-act" data-a="${a}">${esc(l)}</button>`).join('')}</span>` : '';
       const open = x.href ? `<a class="gs-r" data-i="${i}" href="${esc(x.href)}" target="_blank" rel="noopener">` : `<a class="gs-r" data-i="${i}" href="#">`;
       const more = x.more ? `<div class="gs-r-more">+${x.more} more line${x.more === 1 ? '' : 's'} in this section</div>` : '';
       return `<div class="gs-res">${open}<span class="gs-r-g">${esc(x.g || '')}</span><span class="gs-r-t">${highlight(x.t, Q.hl)}</span></a>`
         + (snip ? `<div class="gs-r-s">${highlight(snip, Q.hl)}</div>` : '') + more + acts + '</div>';
-    }).join('') : (ans ? '' : (Q.has || Q.vague || Q.onMiss ? `<div class="gs-empty">${empty}</div>` : ''));
+    });
+    // Related searches sit in the results, after the fifth, as on Google.
+    const rel = relatedHtml(Q, all, ans, vcount, names);
+    if (rel && serpPage === 0) cards.splice(Math.min(5, cards.length), 0, rel);
+    serp.querySelector('.gs-serp-list').innerHTML = rows.length ? cards.join('')
+      : (ans ? (rel || '') : (Q.has || Q.vague || Q.onMiss ? `<div class="gs-empty">${empty}</div>` : ''));
+    serp.querySelector('.gs-pager').innerHTML = pagerHtml(pages);
+  }
+
+  // "Related searches": what the results suggest searching next. The headings that the
+  // top results sit under, the other metrics when one is asked about, and the same
+  // search narrowed to each page it was found on.
+  const METRIC_SIBLINGS = ['Rebooking %', 'Retention %', 'Conversion %', 'Request rate %', 'Column fill %', 'Colour %'];
+  function relatedHtml(Q, all, ans, vcount, names) {
+    if (!Q.words.length || !all.length) return '';
+    const own = Q.words.join(' '), seen = new Set([norm(own), norm(Q.raw)]), out = [];
+    const add = (label, q) => {
+      const k = norm(q);
+      if (seen.has(k) || k.replace(/ %$/, '') === norm(own) || out.length >= 8) return;
+      seen.add(k);
+      out.push([label, q]);
+    };
+    const metric = ans || all.find(x => x.kind === 'metric');
+    if (metric) {
+      METRIC_SIBLINGS.filter(m => norm(m) !== norm(metric.t)).slice(0, 3).forEach(m => add(m, m));
+      if (!Q.question) add('what does ' + own + ' mean', 'what does ' + own + ' mean');
+    }
+    // The headings the top results sit under, most often named first.
+    const tally = new Map();
+    all.slice(0, 30).forEach(x => {
+      [x.kind === 'content' ? x.t : '', (x.g || '').split(' › ')[1] || ''].forEach(t => {
+        t = (t || '').trim();
+        if (t.length < 4 || t.length > 40 || t.split(/\s+/).length > 5 || /[.…]/.test(t)) return;
+        tally.set(t, (tally.get(t) || 0) + 1);
+      });
+    });
+    [...tally.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).forEach(([t]) => add(t, t));
+    Object.keys(vcount).sort((a, b) => vcount[b] - vcount[a]).slice(0, 3).forEach(v => {
+      if (names[v] && !Q.on) add(own + ' · ' + names[v], own + ' on:"' + names[v] + '"');
+    });
+    if (!out.length) return '';
+    return '<div class="gs-related"><div class="gs-related-h">Related searches</div><div class="gs-related-g">'
+      + out.map(([l, q]) => `<button type="button" class="gs-rel" data-q="${esc(q)}">${ICON}<span>${esc(l)}</span></button>`).join('')
+      + '</div></div>';
+  }
+
+  // The pager, as Google's: the brand's name stretched by one letter a page, the page you
+  // are on picked out, and numbers beneath.
+  function pagerHtml(pages) {
+    if (pages < 2) return '';
+    const n = Math.min(pages, 12);
+    const word = 'T' + Array.from({ length: n }, (_, i) => `<span class="${i === Math.min(serpPage, n - 1) ? 'on' : ''}">a</span>`).join('') + 'ra Rose';
+    const nums = [];
+    for (let p = 0; p < pages; p++) {
+      if (pages > 10 && p !== 0 && p !== pages - 1 && Math.abs(p - serpPage) > 2) { if (nums[nums.length - 1] !== '…') nums.push('…'); continue; }
+      nums.push(p);
+    }
+    const btn = (p, label, cls) => `<button type="button" class="gs-pg ${cls || ''}" data-p="${p}"${p === serpPage && !cls ? ' aria-current="page"' : ''}>${label}</button>`;
+    return `<div class="gs-wordmark" aria-hidden="true">${word}</div><nav class="gs-pages" aria-label="Pages of results">`
+      + (serpPage > 0 ? btn(serpPage - 1, '‹ Previous', 'gs-pg-n') : '')
+      + nums.map(p => p === '…' ? '<span class="gs-pg-dots">…</span>' : btn(p, p + 1, p === serpPage ? 'on' : '')).join('')
+      + (serpPage < pages - 1 ? btn(serpPage + 1, 'Next ›', 'gs-pg-n') : '') + '</nav>';
   }
 
   // Team Home's row: where it lives, the name (matched letters marked), one line

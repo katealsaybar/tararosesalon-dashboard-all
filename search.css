@@ -98,6 +98,8 @@ body.gs-open{overflow:hidden}
 .gs-back-go,.gs-back-x{border:0;background:transparent;color:inherit;font:inherit;cursor:pointer}
 .gs-back-go{font-size:13.5px;font-weight:600;padding:0 6px 0 18px;min-height:42px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gs-back-x{font-size:20px;line-height:1;padding:0 14px 0 8px;min-height:42px;opacity:.7}
+.gs-serp-logo{flex-shrink:0;display:block;line-height:0}
+.gs-serp-logo img{height:34px;width:auto;display:block}
 .gs-serp-close{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;
   font:inherit;font-size:13px;font-weight:600;padding:0 16px;min-height:40px;cursor:pointer}
 @media(hover:hover){.gs-serp-close:hover{border-color:var(--text)}}
@@ -159,4 +161,28 @@ body.gs-open{overflow:hidden}
   .gs-pchips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
   .gs-pchip,.gs-pl{flex-shrink:0;white-space:nowrap}
   .gs-sumrow{align-items:flex-start}
+}
+
+.gs-related{margin:18px 0 8px;padding:16px 18px 18px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.gs-related-h{font-size:17px;font-weight:600;color:var(--text);margin-bottom:12px}
+.gs-related-g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gs-rel{display:flex;align-items:center;justify-content:space-between;gap:10px;border:0;border-radius:10px;background:var(--bg);color:var(--text);
+  font:inherit;font-size:14.5px;text-align:left;padding:12px 14px;min-height:46px;cursor:pointer}
+.gs-rel svg{order:2;flex-shrink:0;color:var(--muted2)}
+.gs-rel span{min-width:0}
+@media(hover:hover){.gs-rel:hover{outline:1px solid var(--text)}}
+.gs-pager{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:28px;padding-top:8px}
+.gs-pager:empty{display:none}
+.gs-wordmark{font-family:'Playfair Display',serif;font-size:34px;font-weight:500;letter-spacing:.02em;color:var(--text);line-height:1.1;white-space:nowrap}
+.gs-wordmark span.on{color:var(--accent,#2dd4bf)}
+.gs-pages{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px}
+.gs-pg{border:0;background:transparent;color:var(--accent-lavender,#7c6cf0);font:inherit;font-size:15px;padding:6px 10px;min-width:34px;cursor:pointer;border-radius:8px}
+.gs-pg.on{color:var(--text);font-weight:700;cursor:default}
+.gs-pg-n{font-weight:600;padding:6px 12px}
+.gs-pg-dots{color:var(--muted2);padding:0 4px}
+@media(hover:hover){.gs-pg:not(.on):hover{background:var(--surface)}}
+@media(max-width:760px){
+  .gs-serp-logo{display:none}
+  .gs-related-g{grid-template-columns:1fr}
+  .gs-wordmark{font-size:28px}
 }
