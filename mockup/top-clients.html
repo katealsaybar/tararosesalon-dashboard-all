@@ -71,7 +71,9 @@ main{max-width:1100px;margin:0 auto;padding:10px 16px 56px}
 .grp{display:flex;flex-direction:column;gap:5px}
 .eyebrow{font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 .grp .eyebrow{margin-left:4px}
-.sub{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 0 4px;font-size:13px;color:var(--muted)}
+.sub{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0;font-size:13px;color:var(--muted)}
+/* Kate, 8 Oct 2026: a Custom range sits beside its own pills, never on a row of its own underneath. */
+.segrow{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap}
 .sub input,.sub select{padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
 .sub input[type=number]{width:64px}
 @media(max-width:760px){
@@ -376,17 +378,17 @@ const staffLine = (list, kind, n) => list.length ? st(list[0], kind) + (list.len
 function drawBar() {
   const seg = (key, opts) => `<div class="sc-seg" role="group">${opts.map(([k, l]) =>
     `<button type="button" data-a="set" data-k="${key}" data-v="${k}" class="${String(S[key]) === String(k) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  let subP = '', subL = '';
+  if (S.period === 'month') subP += `<div class="sub"><span>Month</span><select id="monthSel" aria-label="Month">${MONTHS.map((m, i) => `<option value="${i + 1}"${S.month === i + 1 ? ' selected' : ''}>${m} 2026</option>`).join('')}</select></div>`;
+  if (S.period === 'custom') subP += `<div class="sub"><span>Revenue from</span><input type="date" id="pf" value="${S.pfrom}" min="2026-01-01" max="${TODAY}" aria-label="From date"><span>to</span><input type="date" id="pt" value="${S.pto}" min="2026-01-01" max="${TODAY}" aria-label="To date"></div>`;
+  if (S.last === 'custom') subL += `<div class="sub"><span>Last seen between</span><input type="number" min="0" inputmode="numeric" id="lf" value="${S.lfrom}" aria-label="From days"><span>and</span><input type="number" min="0" inputmode="numeric" id="lt" value="${S.lto}" aria-label="To days"><span>days ago</span></div>`;
   document.getElementById('bar').innerHTML = `
     <div class="grp"><div class="eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(BKEYS.map(k => [k, k])))}</div>
-    <div class="grp"><div class="eyebrow">Period</div>${seg('period', [['this', 'This month'], ['last', 'Last month'], ['month', 'Month'], ['year', 'Year'], ['custom', 'Custom']])}</div>
+    <div class="grp"><div class="eyebrow">Period</div><div class="segrow">${seg('period', [['this', 'This month'], ['last', 'Last month'], ['month', 'Month'], ['year', 'Year'], ['custom', 'Custom']])}${subP}</div></div>
     <div class="grp half"><div class="eyebrow">Visits</div>${seg('seg', [['all', 'All'], ['3', '3+'], ['2', '2'], ['1', '1']])}</div>
     <div class="grp half"><div class="eyebrow">Spend (AED)</div>${seg('spend', [[0, 'Any'], [2000, '2k+'], [5000, '5k+'], [10000, '10k+']])}</div>
-    <div class="grp"><div class="eyebrow">Last seen</div>${seg('last', [['any', 'Any'], ['now', '30 days'], ['cool', '31 to 60'], ['slip', '60+'], ['custom', 'Custom']])}</div>`;
-  let sub = '';
-  if (S.period === 'month') sub += `<div class="sub"><span>Month</span><select id="monthSel" aria-label="Month">${MONTHS.map((m, i) => `<option value="${i + 1}"${S.month === i + 1 ? ' selected' : ''}>${m} 2026</option>`).join('')}</select></div>`;
-  if (S.period === 'custom') sub += `<div class="sub"><span>Revenue from</span><input type="date" id="pf" value="${S.pfrom}" min="2026-01-01" max="${TODAY}" aria-label="From date"><span>to</span><input type="date" id="pt" value="${S.pto}" min="2026-01-01" max="${TODAY}" aria-label="To date"></div>`;
-  if (S.last === 'custom') sub += `<div class="sub"><span>Last seen between</span><input type="number" min="0" inputmode="numeric" id="lf" value="${S.lfrom}" aria-label="From days"><span>and</span><input type="number" min="0" inputmode="numeric" id="lt" value="${S.lto}" aria-label="To days"><span>days ago</span></div>`;
-  document.getElementById('subrows').innerHTML = sub;
+    <div class="grp"><div class="eyebrow">Last seen</div><div class="segrow">${seg('last', [['any', 'Any'], ['now', '30 days'], ['cool', '31 to 60'], ['slip', '60+'], ['custom', 'Custom']])}${subL}</div></div>`;
+  document.getElementById('subrows').innerHTML = '';
   document.getElementById('topSeg').innerHTML = [10, 25, 50].map(v => `<button type="button" data-a="set" data-k="top" data-v="${v}" class="${S.top === v ? 'on' : ''}">${v}</button>`).join('');
 }
 
