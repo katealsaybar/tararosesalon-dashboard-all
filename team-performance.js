@@ -46,10 +46,10 @@ const tpPct  = n => (Math.round((Number(n) || 0) * 10) / 10) + '%';
 let tpDept = 'hair';
 let tpCompare = [];
 // Rank by: net take, or one of the weekly and monthly leagues from 2026 LEAGUES.xlsx
-// (Services, Retail, Treatment, Rebooking %, New Client Requests). Kate, 8 Oct 2026:
-// the Position grouping is gone. Reels and Google reviews are leagues in the sheet
-// too, but the dashboard holds no per-stylist count for them, so they are not here.
-// Remembered per browser.
+// (Services, Retail, Treatment, Rebooking %, New Client Requests, Instagram posts,
+// Google reviews). Kate, 8 Oct 2026: the Position grouping is gone. The last two come
+// from league_counts (migrations/create_league_counts.sql), the same per-person
+// figures Staff Benchmarks shows. Remembered per browser.
 const TP_PTS = n => (Math.round(Math.max(0, Number(n) || 0) * 10) / 10) + ' pts';
 const TP_LEAGUES = {
   net:       { label: 'Takings',             note: 'net salon take',        get: s => s.net || 0,         f: tpAed },
@@ -58,7 +58,40 @@ const TP_LEAGUES = {
   treatment: { label: 'Treatment',           note: 'treatment sales',       get: s => s.treatments || 0,  f: tpAed, hairOnly: true, ledger: true },
   rebook:    { label: 'Rebooking %',         note: 'rebooking %',           get: s => s.rebookPct || 0,   f: tpPct, gap: TP_PTS, ledger: true },
   ncr:       { label: 'New client requests', note: 'new client requests',   get: s => s.newClientReq || 0, f: n => tpNum(n) + ' NCR', ledger: true },
+  // Posts that tag @tararosesalon or list her as a collaborator (the sheet's "Instagram
+  // posts / Reels"), and Google reviews that name her. Per person, not per branch.
+  ig:        { label: 'Instagram posts / Reels', note: 'Instagram posts and Reels', get: s => s.igPosts || 0, f: n => tpNum(n) + (Math.round(n) === 1 ? ' post' : ' posts'), ledger: true, counts: true },
+  reviews:   { label: 'Google reviews',      note: 'Google reviews',        get: s => s.gReviews || 0,    f: n => tpNum(n) + (Math.round(n) === 1 ? ' review' : ' reviews'), ledger: true, counts: true },
 };
+// Instagram and review counts for the window on screen, fetched once per window.
+let tpCounts = null, tpCountsKey = '', tpCountsBad = false;
+async function tpLoadCounts() {
+  if (typeof dateFrom === 'undefined' || !dateFrom || !dateTo) return null;
+  const from = dateToIso(dateFrom), to = dateToIso(dateTo), key = from + '|' + to;
+  if (tpCounts && tpCountsKey === key) { tpCountsBad = false; return tpCounts; }
+  try {
+    const { data, error } = await sb.rpc('league_counts', { p_admin: typeof spfGet === 'function' ? spfGet() : null, p_from: from, p_to: to });
+    if (error || !Array.isArray(data)) throw error || new Error('no counts');
+    tpCounts = data; tpCountsKey = key; tpCountsBad = false;
+    return tpCounts;
+  } catch (e) {
+    console.warn('league_counts failed', e);
+    tpCounts = null; tpCountsKey = ''; tpCountsBad = true;
+    return null;
+  }
+}
+// Matched on the ledger spellings; where two people share a first name (MAY) the
+// branch decides.
+function tpApplyCounts(roster, counts) {
+  const by = {};
+  counts.forEach(c => (c.names || []).forEach(n => (by[tpMergeKey(n)] ||= []).push(c)));
+  roster.forEach(st => {
+    const hits = by[tpMergeKey(st.name)] || [];
+    const c = hits.length > 1 ? (hits.find(h => h.branch === st.branchCode) || hits[0]) : hits[0];
+    st.igPosts = c ? (c.social_feed || 0) : 0;
+    st.gReviews = c ? (c.google_reviews || 0) : 0;
+  });
+}
 let tpSort = 'net';
 try { const k = localStorage.getItem('tp-sort'); if (TP_LEAGUES[k]) tpSort = k; } catch (e) {}
 // The league actually in force: one that this bench or this view has no figures for
@@ -67,7 +100,7 @@ function tpLeagues() {
   const bh = typeof isBahrainView === 'function' && isBahrainView();
   return Object.keys(TP_LEAGUES).filter(k => !(TP_LEAGUES[k].hairOnly && tpDept === 'beauty') && !(TP_LEAGUES[k].ledger && bh));
 }
-function tpLeagueKey() { return tpLeagues().includes(tpSort) ? tpSort : 'net'; }
+function tpLeagueKey() { return tpLeagues().includes(tpSort) && !(TP_LEAGUES[tpSort].counts && tpCountsBad) ? tpSort : 'net'; }
 function tpLg() { return TP_LEAGUES[tpLeagueKey()]; }
 // The ladder, top first. Hair ladder is perf_benchmarks' level_order; beauty
 // roles follow. Roles come from staff-profiles.js; anyone without one goes last.
@@ -331,8 +364,13 @@ async function renderTeam() {
   // The emptiness test is the roster itself, not a weekly_data row count: on a
   // part-week window there are no weekly rows at all and the figures come from
   // the daily join, so counting weeks would call a full page of data empty.
+  // Instagram and review counts are fetched before anything is ranked on them; if the
+  // call fails the race falls back to Takings and says so.
+  if (part === 'race' && TP_LEAGUES[tpSort] && TP_LEAGUES[tpSort].counts && tpLeagues().includes(tpSort)) await tpLoadCounts();
+  else tpCountsBad = false;
   const lg = tpLg();
   let roster = tpRoster(tpDept);
+  if (lg.counts && tpCounts) tpApplyCounts(roster, tpCounts);
   // The race is re-ranked by the league picked; ties fall back to net take, which is
   // the order tpRoster already returns, and Array.sort is stable.
   if (part === 'race' && tpLeagueKey() !== 'net') roster = roster.slice().sort((a, b) => lg.get(b) - lg.get(a));
@@ -362,6 +400,7 @@ async function renderTeam() {
       ${part === 'race' ? `<select id="tpRankBy" aria-label="Rank by" onchange="tpSetSort(this.value)">
         ${tpLeagues().map(k => `<option value="${k}" ${k === tpLeagueKey() ? 'selected' : ''}>Rank by: ${TP_LEAGUES[k].label}</option>`).join('')}
       </select>` : ''}
+      ${tpCountsBad ? '<span class="tp-bar-n" style="color:var(--warn)">Instagram and review counts did not load, showing Takings.</span>' : ''}
       <span class="tp-bar-n">${branchLabel} · ${roster.length} ${roster.length === 1 ? 'person' : 'people'}</span>
       <span class="tp-bar-sp"></span>
       <span class="tp-bar-n">${part === 'quad' ? 'Tap a face' : 'Tap + on anyone'} to compare, up to ${TP_MAX_COMPARE}</span>
