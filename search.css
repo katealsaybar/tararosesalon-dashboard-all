@@ -94,14 +94,43 @@ body.gs-open{overflow:hidden}
   font:inherit;font-size:13px;font-weight:600;padding:0 16px;min-height:40px;cursor:pointer}
 @media(hover:hover){.gs-serp-close:hover{border-color:var(--text)}}
 .gs-serp-body{max-width:820px;margin:0 auto;padding:4px 24px 80px}
-.gs-chips{display:flex;flex-wrap:wrap;gap:8px;padding:6px 0 10px;border-bottom:1px solid var(--border)}
+.gs-filters{padding:6px 0 10px;border-bottom:1px solid var(--border)}
+.gs-filters[hidden]{display:none}
+.gs-chips,.gs-pchips{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.gs-chips:empty,.gs-pchips:empty{display:none}
+.gs-pchips{margin-top:8px}
+.gs-pl{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2);margin-right:2px}
+.gs-pchip{min-height:30px;font-size:12.5px}
 .gs-chip{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:999px;
   font:inherit;font-size:13px;padding:0 14px;min-height:34px;cursor:pointer}
 .gs-chip span{margin-left:4px;color:var(--muted2);font-size:12px}
 .gs-chip.on{background:var(--text);border-color:var(--text);color:var(--bg)}
 .gs-chip.on span{color:inherit;opacity:.7}
 @media(hover:hover){.gs-chip:not(.on):hover{color:var(--text);border-color:var(--text)}}
-.gs-serp-sum{padding:12px 0 4px;font-size:13px;color:var(--muted)}
+.gs-sumrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0 8px}
+.gs-serp-sum{font-size:13px;color:var(--muted);min-width:0}
+.gs-tips-btn{flex-shrink:0;border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:999px;
+  font:inherit;font-size:12.5px;padding:0 14px;min-height:32px;cursor:pointer}
+@media(hover:hover){.gs-tips-btn:hover{color:var(--text);border-color:var(--text)}}
+.gs-tips{margin:0 0 14px;padding:14px 18px 6px;border:1px solid var(--border);border-radius:14px;background:var(--surface);font-size:13.5px;line-height:1.55;color:var(--muted)}
+.gs-tips[hidden]{display:none}
+.gs-tips-h{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);margin-bottom:6px}
+.gs-tips ul{list-style:none;margin:0;padding:0}
+.gs-tips li{padding:7px 0;border-top:1px solid var(--border)}
+.gs-tips li:first-child{border-top:0}
+.gs-tips b{color:var(--text);font-weight:600}
+.gs-tips code{font:inherit;font-weight:600;color:var(--text)}
+.gs-tips kbd{font:inherit;font-size:11.5px;padding:1px 6px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text)}
+.gs-exs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.gs-ex{border:1px dashed var(--border);background:var(--bg);color:var(--text);border-radius:999px;font:inherit;font-size:12.5px;padding:3px 12px;cursor:pointer;text-align:left}
+@media(hover:hover){.gs-ex:hover{border-style:solid;border-color:var(--text)}}
+.gs-ans{margin:2px 0 14px;padding:16px 18px;border:1px solid var(--border);border-left:4px solid var(--accent,#2dd4bf);border-radius:12px;background:var(--surface)}
+.gs-ans[hidden]{display:none}
+.gs-ans-k{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2)}
+.gs-ans-t{margin-top:4px;font-size:21px;font-weight:600;color:var(--text)}
+.gs-ans-s{margin-top:6px;max-width:660px;font-size:15px;line-height:1.55;color:var(--muted)}
+.gs-ans-go{margin-top:12px;border:1px solid var(--text);background:var(--text);color:var(--bg);border-radius:999px;font:inherit;font-size:13px;padding:0 16px;min-height:36px;cursor:pointer}
+.gs-r-more{margin-top:4px;font-size:12.5px;color:var(--muted2)}
 .gs-res{padding:14px 0 6px}
 .gs-r{display:block;text-decoration:none;color:inherit}
 .gs-r-g{display:block;font-size:12.5px;color:var(--muted2);letter-spacing:.02em}
@@ -110,10 +139,14 @@ body.gs-open{overflow:hidden}
 .gs-r-t mark,.gs-r-s mark{background:#FDE9A8;color:inherit;border-radius:3px;padding:0 1px}
 [data-theme="dark"] .gs-r-t mark,[data-theme="dark"] .gs-r-s mark{background:rgba(238,243,199,.28)}
 .gs-r-s{margin-top:4px;max-width:680px;font-size:14.5px;line-height:1.55;color:var(--muted)}
-.gs-serp .gs-empty{padding:24px 0}
+.gs-serp .gs-empty{padding:24px 0;line-height:1.6}
+.gs-serp .gs-empty code{font:inherit;font-weight:600;color:var(--text)}
 @media(max-width:760px){
   .gs-serp-top{padding:12px 16px 8px;gap:10px}
   .gs-serp-body{padding:2px 16px 80px}
   .gs-more kbd{display:none}
   .gs-r-t{font-size:17px}
+  .gs-pchips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .gs-pchip,.gs-pl{flex-shrink:0;white-space:nowrap}
+  .gs-sumrow{align-items:flex-start}
 }

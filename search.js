@@ -19,6 +19,10 @@
 //
 // Kate, 29 Sep 2026, third pass: "anything that is inside this site is searchable".
 //
+// Kate, 8 Oct 2026: it reads questions, searches the text of every page (search-index.js,
+// built by scripts/build-search-index.py: rebuild it and bump search.js's stamp after
+// any change to page wording), and the results page carries a guide to refining.
+//
 // Kate, 29 Sep 2026, second pass: "jumera" found nothing, because Jumera is on
 // the Org Chart and not on Staff Cards. Everyone on ORG_CHART is in Team now, typos
 // are forgiven (one letter off, two on a long word), Abu Dhabi / Dubai / Mamsha
@@ -31,7 +35,8 @@
 
 (function () {
   const RECENT_KEY = 'trs-search-recent';
-  const PLACEHOLDER = 'Find a person, page or client';
+  const PLACEHOLDER = 'Find anything, or ask a question';
+  const SELF = document.currentScript ? document.currentScript.src : '';
   const ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
 
   // Words people type that are not in the page's own name.
@@ -213,8 +218,14 @@
 
     GLOSSARY.forEach(([label, def]) => items.push({
       kind: 'metric', id: 'metric:' + label, t: label, g: 'Metric · Staff Dashboards', s: def,
-      words: 'metric kpi measure benchmark',
+      words: 'metric kpi measure benchmark', view: 'staffperf',
       go: () => goText('staffperf', label),
+    }));
+
+    // Team Home's own sections, so "where is the induction" has an answer.
+    ftKb.forEach(([t, blurb, dept, href]) => items.push({
+      kind: 'kb', id: 'kbs:' + href, t, g: 'Team Home · ' + dept, s: blurb, href,
+      words: dept + ' team home', go: () => { location.href = href; },
     }));
 
     if (typeof periodPresets === 'function') {
@@ -374,9 +385,26 @@
     scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     flash(el);
   }
+  // A line from the page index may have values where the page's own code fills them in
+  // (marked with a gap), so it is found by its pieces: the smallest visible thing on the
+  // page whose text holds every piece.
+  function findLoose(view, text) {
+    const pieces = norm(text).split('…').map(p => p.replace(/\s+/g, ' ').trim()).filter(p => p.length >= 4);
+    if (!pieces.length) return null;
+    let best = null, bestLen = Infinity;
+    viewRoots(view).forEach(({ root, frame }) => root.querySelectorAll(SCAN).forEach(el => {
+      const raw = el.textContent;
+      if (raw.length > 900 || raw.length >= bestLen) return;
+      const t = norm(raw).replace(/\s+/g, ' ');
+      if (pieces.every(p => t.includes(p)) && el.offsetParent !== null) { best = [el, frame]; bestLen = raw.length; }
+    }));
+    if (!best) return null;
+    return best[1] ? (best[0].closest('tr, .row') || best[0]) : (best[0].closest('tr') || best[0]);
+  }
   // Pages that fetch their rows can take a few seconds, so this waits up to 8s
-  // (whoWaitFor gives up at 2.5s), then lands once.
-  function goText(view, text, prep, anchor) {
+  // (whoWaitFor gives up at 2.5s), then lands once. alts: other things to land on when
+  // the text itself is not drawn (the heading of its section).
+  function goText(view, text, prep, anchor, alts) {
     if (prep) prep(CURRENT_VIEW === view);
     whoShowView(view);
     // Organisation Pulse keeps its sections behind the cover until it is opened.
@@ -387,11 +415,19 @@
       if (typeof sizeTopbar === 'function') sizeTopbar();
     }
     const t0 = Date.now();
+    const look = t => findText(view, t) || findLoose(view, t);
     (function tick() {
-      const el = (anchor && document.getElementById(anchor)) || findText(view, text);
+      const el = (anchor && document.getElementById(anchor)) || look(text);
       if (el) { landOn(el); return; }
+      // The line itself is slow or not drawn: its section's heading is the next best place.
+      if (alts && alts.length && Date.now() - t0 > 2500) {
+        const alt = alts.map(look).find(Boolean);
+        if (alt) { landOn(alt); return; }
+      }
       if (Date.now() - t0 > 8000) {
-        whoNote(`“${text}” isn't on ${viewNames()[view] || 'that page'} for the branch and period picked.`);
+        whoNote(alts
+          ? `Opened ${viewNames()[view] || 'the page'}, but that line is not showing for the branch and period picked.`
+          : `“${text}” isn't on ${viewNames()[view] || 'that page'} for the branch and period picked.`);
         return;
       }
       setTimeout(tick, 120);
@@ -482,6 +518,208 @@
     refreshActiveView();
   }
 
+  // ── UNDERSTANDING WHAT WAS TYPED ──
+  // Kate, 8 Oct 2026: "search system isn't that robust, i said google right! every
+  // section, sub section that has 'conversion' in it must come out", "there has to be a
+  // guide on refining your search" and "be intuitive, like it can read questions like
+  // where do i find this". So a search is read in three steps:
+  //   1. Operators: "an exact phrase", -leave out, on:"a page" (the guide lists them).
+  //   2. A question is stripped to what it is about: "where do i find conversion",
+  //      "saan makikita yung rebooking" and "what does retention mean" all search for the
+  //      one word that matters. Filler words are ignored.
+  //   3. Every word has to land somewhere: as itself, as its plural, a letter off, or as
+  //      a word that means the same (convert for conversion, sales for revenue).
+  const LEAD = /^(?:hey|hi|hello|pls|please|plz|kindly|ok|okay|so|um|uhm|can you|could you|would you|help me|tell me|show me|take me to|bring me to|i want to|i wanna|i need to|i need|i'm looking for|im looking for|looking for|where can i|where do i|where should i|where would i|where is|where are|where's|wheres|where|how can i|how do i|how do we|how to|how is|how are|how does|how's|what is|what are|what's|whats|what does|what do|which page|which tab|which report|which section|which|is there|are there|do we have|do i have|can i|can we|how|what|saan ko|saan po|saan|nasaan|nasan|paano|pano|ano ang|ano yung|ano|pwede ba|pwede)\b[\s,:?-]*/i;
+  const GREET = /^(?:hey|hi|hello|pls|please|plz|kindly|ok|okay|so|um|uhm)\b/;
+  const STOP = new Set(('a an the my our your their his her this that these those it its to of for in on at by with from and or but ' +
+    'is are was were be been am do does did done i we you me us he she they them find see get show look check view tell know want need ' +
+    'there here can could would should will please pls plz thanks thank shit damn fuck hell stuff thing things something anything ' +
+    'lol haha hihe ba ang ng sa mga yung yun yan ito iyan ung ko mo po naman lang na pala kasi din rin nga pwede makikita makita ' +
+    'hanapin nasaan saan mean means meaning define definition calculated calculate explain explained about any some many much ' +
+    'page tab report section').split(' '));
+  // Words that mean the same thing here. A match through one of these counts for less.
+  const SYN = [
+    ['sales', 'revenue', 'takings', 'income', 'turnover'],
+    ['rebook', 'rebooking', 'rebooked', 'rebookings'],
+    ['retention', 'retain', 'retained'],
+    ['conversion', 'convert', 'converted', 'conversions'],
+    ['client', 'clients', 'customer', 'customers', 'guest', 'guests'],
+    ['stylist', 'stylists', 'hairdresser', 'therapist', 'staff'],
+    ['target', 'targets', 'goal', 'goals', 'aim', 'aims', 'quota'],
+    ['review', 'reviews', 'feedback', 'rating', 'ratings', 'stars'],
+    ['spend', 'spending', 'cost', 'costs', 'budget'],
+    ['price', 'prices', 'pricing'],
+    ['ads', 'advert', 'adverts', 'advertising', 'campaign', 'campaigns'],
+    ['payslip', 'payslips', 'payroll', 'salary', 'wage', 'wages'],
+    ['stock', 'inventory'],
+    ['lost', 'lapsed', 'inactive', 'churn'],
+    ['percent', 'percentage', 'pct'],
+    ['voucher', 'vouchers', 'giftcard'],
+  ];
+  const synOf = {};
+  SYN.forEach(g => g.forEach(w => { synOf[w] = (synOf[w] || []).concat(g.filter(x => x !== w)); }));
+
+  const tokensOf = s => norm(s).match(/[a-z0-9%]+/g) || [];
+  // How well a typed word lands on one word of the page: 3 the same word; 2 it starts with
+  // what was typed, or is the plural / singular of it; 1 a keyboard slip (one letter off). Two letters or fewer have to be exact.
+  function tokMatch(t, k) {
+    if (t === k) return 3;
+    if (t.length < 3 || k.length < 3) return 0;
+    if (k.startsWith(t)) return 2;
+    if (k.length >= 4 && t.length - k.length <= 3 && t.startsWith(k)) return 2;
+    if (t.length >= 5 && k.length >= 5) {
+      const room = t.length >= 9 ? 2 : 1;
+      if (Math.abs(t.length - k.length) <= 1 && dist(t, k) <= room) return 1;
+    }
+    return 0;
+  }
+  // Best landing of a typed word on any of a line's words, trying what it means the same as.
+  function bestTok(term, tk) {
+    let best = 0;
+    const vars = [[term, 1]].concat((synOf[term] || []).map(w => [w, 0.6]));
+    for (const [v, w] of vars) {
+      for (const k of tk) {
+        const m = tokMatch(v, k) * w;
+        if (m > best) best = m;
+        if (best >= 3) return best;
+      }
+    }
+    return best;
+  }
+
+  function pageByName(arg) {
+    const a = norm(arg).trim();
+    if (!a) return '';
+    const names = viewNames();
+    let best = '', rank = 9;
+    Object.keys(names).forEach(v => {
+      const n = norm(names[v]);
+      const r = n === a ? 0 : n.startsWith(a) ? 1 : n.split(/\s+/).some(w => w.startsWith(a)) ? 2 : n.includes(a) ? 3 : 9;
+      if (r < rank) { rank = r; best = v; }
+    });
+    return best;
+  }
+
+  function parseQuery(raw) {
+    let s = String(raw || '').slice(0, 200);
+    const Q = { raw: s.trim(), words: [], phrases: [], not: [], on: '', onName: '', onMiss: '', question: false, vague: false, hl: [], has: false };
+    s = s.replace(/(?:^|\s)on:(?:"([^"]*)"|(\S+))/gi, (m, a, b) => {
+      const arg = a || b || '';
+      const v = pageByName(arg);
+      if (v) { Q.on = v; Q.onName = viewNames()[v]; } else Q.onMiss = arg;
+      return ' ';
+    });
+    s = s.replace(/(?:^|\s)-"([^"]+)"/g, (m, p) => { const n = norm(p).trim(); if (n) Q.not.push(n); return ' '; });
+    s = s.replace(/(?:^|\s)-([^\s"-][^\s"]*)/g, (m, w) => { Q.not.push(norm(w)); return ' '; });
+    s = s.replace(/"([^"]+)"/g, (m, p) => { const n = norm(p).trim(); if (n) Q.phrases.push(n); return ' '; });
+    s = s.replace(/"/g, ' ');
+
+    let t = norm(s);
+    if (/\?/.test(t)) Q.question = true;
+    t = t.replace(/[?!]/g, ' ').replace(/\s+/g, ' ').trim();
+    for (let i = 0; i < 4; i++) {
+      const m = t.match(LEAD);
+      if (!m || !m[0].trim()) break;
+      if (!GREET.test(m[0])) Q.question = true;
+      t = t.slice(m[0].length);
+    }
+    const all = t.match(/[a-z0-9%]+/g) || [];
+    let kept = all.filter(w => !STOP.has(w));
+    if (!kept.length && !Q.phrases.length && !Q.on && Q.question) Q.vague = true;
+    else if (!kept.length && !Q.phrases.length && !Q.on) kept = all;
+    Q.words = [...new Set(kept)].slice(0, 8);
+    Q.hl = Q.words.concat(Q.phrases);
+    Q.has = !!(Q.words.length || Q.phrases.length || Q.on);
+    return Q;
+  }
+
+  // ── THE TEXT OF EVERY PAGE ──
+  // search-index.js is built from the page sources (scripts/build-search-index.py), so
+  // a sentence, a hover tip or a table heading is findable whether or not its page has
+  // been opened this session. Loaded the first time search opens.
+  let ft = null, ftKb = [], ftBusy = false;
+  function buildFt() {
+    const D = window.TRS_SEARCH_INDEX;
+    if (!D || ft) return;
+    ft = D.items.map(([view, sec, text, head]) => ({ view, sec, text, head: !!head, nt: norm(text), tk: tokensOf(text), st: tokensOf(sec) }));
+    ftKb = D.kb || [];
+  }
+  function loadFt() {
+    if (ft || ftBusy) return;
+    if (window.TRS_SEARCH_INDEX) { buildFt(); return; }
+    ftBusy = true;
+    const s = document.createElement('script');
+    const stamp = SELF.indexOf('?') >= 0 ? SELF.slice(SELF.indexOf('?')) : '';
+    s.src = new URL('search-index.js' + stamp, SELF || location.href).href;
+    s.onload = () => {
+      ftBusy = false;
+      buildFt();
+      if (panel) index = buildIndex();
+      if (panel && !panel.hidden && input.value.trim()) render();
+      if (serp && !serp.hidden && serpIn.value.trim()) runSerp();
+    };
+    s.onerror = () => { ftBusy = false; };
+    document.head.appendChild(s);
+  }
+
+  // Every line of every page that fits what was typed. Lines with all the words come
+  // first; when none has them all, the ones with some (so a question never dead-ends).
+  function ftSearch(Q) {
+    if (!ft) return [];
+    const out = [], need = Q.words.length;
+    for (const it of ft) {
+      if (Q.on && it.view !== Q.on) continue;
+      if (Q.not.length && Q.not.some(n => it.nt.includes(n))) continue;
+      if (Q.phrases.length && !Q.phrases.every(p => it.nt.includes(p))) continue;
+      let s = 0, hit = 0;
+      for (const w of Q.words) {
+        const m = bestTok(w, it.tk);
+        if (m) { hit++; s += m * 10; }
+      }
+      if (need && !hit) continue;
+      if (!need) s = Q.phrases.length ? 25 : (it.head ? 12 : 4);
+      else if (it.st.length && Q.words.some(w => bestTok(w, it.st))) s += 4;
+      if (it.head) s += 8;
+      s -= Math.min(6, it.tk.length / 15);
+      out.push({ it, s, full: !need || hit === need });
+    }
+    return out;
+  }
+  // The text around the first typed word, for a long line.
+  function around(text, terms) {
+    if (text.length <= 200) return text;
+    const n = norm(text);
+    let i = -1;
+    for (const w of terms) { const j = n.indexOf(w); if (j >= 0 && (i < 0 || j < i)) i = j; }
+    const from = Math.max(0, (i < 0 ? 0 : i) - 70);
+    return (from ? '…' : '') + text.slice(from, from + 200).trim() + (from + 200 < text.length ? '…' : '');
+  }
+  // One result per section of a page: its heading when the heading is the hit, otherwise
+  // the section with the line beneath it. +N says how many more lines say it.
+  function ftGroup(hits, Q) {
+    const names = viewNames(), groups = new Map();
+    hits.forEach(h => {
+      const key = h.it.view + '|' + (h.it.sec ? norm(h.it.sec) : '#' + h.it.nt);
+      const g = groups.get(key);
+      if (!g) groups.set(key, { best: h, n: 1 });
+      else { g.n++; if (h.s > g.best.s) g.best = h; }
+    });
+    return [...groups.values()].filter(g => names[g.best.it.view]).map(g => {
+      const b = g.best.it, page = names[b.view], sec = b.sec;
+      let t, snip, where = 'On ' + page;
+      if (b.head || (!sec && b.text.length <= 80)) { t = b.text; snip = ''; }
+      else if (sec) { t = sec; snip = b.text; }
+      else { t = page; snip = b.text; where = 'Mentioned on this page'; }
+      if (b.head && sec && norm(sec) !== b.nt) where += ' › ' + sec;
+      return {
+        kind: 'content', ft: true, view: b.view, id: 'ft:' + b.view + '|' + b.nt, t, g: where,
+        s: snip ? around(snip, Q.hl) : '', words: '', more: g.n - 1,
+        score: g.best.s * 1.5 + Math.min(3, g.n - 1) * 2,
+        go: () => goText(b.view, b.text, null, '', sec ? [sec] : []),
+      };
+    });
+  }
+
   // ── MATCHING ──
   // Name matches beat keyword matches; a word that starts with what you typed beats
   // one that merely contains it; initials ("dts" → Daily Target Sheet) are the last
@@ -490,7 +728,7 @@
     const t = norm(item.t), w = norm(item.words), s = norm((item.g || '') + ' ' + (item.s || ''));
     const tw = t.split(/[\s·,-]+/).filter(Boolean), ww = w.split(/\s+/).filter(Boolean);
     let total = 0;
-    for (const part of q.split(/\s+/).filter(Boolean)) {
+    const pb = (part, syn) => {
       let best = 0;
       if (t === part) best = 100;
       else if (t.startsWith(part)) best = 80;
@@ -500,8 +738,13 @@
       else if (s.includes(part)) best = 20;
       else if (part.length >= 2 && initials(t).startsWith(part)) best = 25;
       // Typos: "jumeira" for Jumera, "saadyat" for Saadiyat, "kaet" for Kate.
-      else if (part.length >= 3 && tw.some(x => near(part, x))) best = 35;
-      else if (loose && part.length >= 3 && ww.some(x => near(part, x))) best = 15;
+      else if (!syn && part.length >= 3 && tw.some(x => near(part, x))) best = 35;
+      else if (!syn && loose && part.length >= 3 && ww.some(x => near(part, x))) best = 15;
+      return best;
+    };
+    for (const part of q.split(/\s+/).filter(Boolean)) {
+      let best = pb(part);
+      if (!best && synOf[part]) best = 0.6 * Math.max(...synOf[part].map(v => pb(v, true)));
       if (!best) return 0;
       total += best;
     }
@@ -534,20 +777,31 @@
   }
   const initials = t => t.split(/[\s·-]+/).map(x => x[0] || '').join('');
 
-  function highlight(text, q) {
-    const parts = q.split(/\s+/).filter(Boolean);
+  // Marks the words of the text that the typed words landed on: the word itself, its
+  // plural, a near cousin or a synonym (so "revenue" lights up "sales"), and a phrase as
+  // written. terms is the list the parsed search kept.
+  function highlight(text, terms) {
+    const parts = (Array.isArray(terms) ? terms : String(terms || '').split(/\s+/)).filter(Boolean);
     if (!parts.length) return esc(text);
-    const n = norm(text);
     const marks = new Array(text.length).fill(false);
-    parts.forEach(p => {
-      let i = n.indexOf(p);
-      if (i < 0) return;
-      // Prefer a word start when there is one.
-      const re = new RegExp('(^|[\\s·-])' + p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-      const m = n.match(re);
-      if (m) i = m.index + m[1].length;
-      for (let k = i; k < i + p.length && k < text.length; k++) marks[k] = true;
-    });
+    const single = parts.filter(p => p.indexOf(' ') < 0), phrases = parts.filter(p => p.indexOf(' ') >= 0);
+    const seen = new Set();
+    const re = /[A-Za-z0-9À-ɏ%]+/g;
+    let m;
+    while ((m = re.exec(text))) {
+      const tk = norm(m[0]);
+      single.forEach(p => {
+        if (bestTok(p, [tk]) >= 1) { seen.add(p); for (let k = m.index; k < m.index + m[0].length; k++) marks[k] = true; }
+      });
+    }
+    // A fragment the word match missed (a hit in the middle of a word), and phrases.
+    const n = norm(text);
+    if (n.length === text.length) {
+      single.filter(p => !seen.has(p)).concat(phrases).forEach(p => {
+        const i = n.indexOf(p);
+        if (i >= 0) for (let k = i; k < i + p.length && k < text.length; k++) marks[k] = true;
+      });
+    }
     let out = '', open = false;
     for (let k = 0; k < text.length; k++) {
       if (marks[k] && !open) { out += '<mark>'; open = true; }
@@ -573,6 +827,7 @@
   // picked: an arrow key has chosen a row, so Enter opens that row. Without it, Enter
   // on a typed search opens the results page.
   let picked = false, serp, serpIn, serpKind = 'all', serpSeq = 0, serpTimer = 0, serpItems = [], serpAll = [], serpKb = [];
+  let serpQ = null, serpView = '', serpTips = false, serpAns = null;
 
   function mount() {
     const acts = document.querySelector('.mast-acts');
@@ -647,6 +902,7 @@
     if (gate && gate.style.display !== 'none') return;
     lastFocus = document.activeElement;
     index = buildIndex();
+    loadFt();
     loadData();
     input.value = '';
     picked = false;
@@ -706,19 +962,40 @@
 
   // How many of each kind can make the short list, so one kind never crowds out the
   // rest. The results page (Enter) has much roomier caps.
-  const MAX = { metric: 3, page: 5, staff: 5, branch: 4, period: 3, service: 4, client: 4, product: 4, content: 5 };
+  const MAX = { metric: 3, page: 5, staff: 5, branch: 4, period: 3, service: 4, client: 4, product: 4, content: 5, kb: 3 };
   const ORDER = Object.keys(MAX);
-  const MAX_SERP = { metric: 12, page: 14, staff: 25, branch: 5, period: 5, service: 20, client: 20, product: 20, content: 40, kb: 20 };
+  const MAX_SERP = { metric: 12, page: 14, staff: 25, branch: 5, period: 5, service: 20, client: 20, product: 20, content: 60, kb: 20 };
   const KIND_HEAD = { metric: 'Metrics', page: 'Pages', staff: 'Team', branch: 'Branches', period: 'Periods',
     service: 'Services', client: 'Clients', product: 'Products', content: 'On the pages', kb: 'Team Home' };
 
-  function matches(q) {
-    // Page text that just repeats a service, client, product or metric row is left to that row.
+  function matches(Q) {
+    if (!Q.has) return [];
+    const q = Q.words.join(' ');
+    // Lines of text from every page, grouped by section; page text that just repeats a
+    // service, client, product or metric row is left to that row.
+    const hits = ftSearch(Q);
+    const full = hits.filter(h => h.full);
+    const used = full.length ? full : hits;
+    const ftItems = ftGroup(used, Q);
+    const covered = new Set(used.map(h => h.it.view + '|' + h.it.nt));
     const dataNames = new Set(dataItems.concat(index.filter(x => x.kind === 'metric')).map(x => norm(x.t)));
-    const pool = index.concat(dataItems, contentItems().filter(x => !dataNames.has(norm(x.t))));
-    let scored = pool.map(x => [x, score(x, q)]).filter(([, s]) => s > 0);
-    // Nothing close: loosen up and offer the nearest, rather than a dead end.
-    if (!scored.length) scored = pool.map(x => [x, score(x, q, true)]).filter(([, s]) => s > 0);
+    let pool = index.concat(dataItems, contentItems().filter(x => !dataNames.has(norm(x.t)) && !covered.has(x.view + '|' + norm(x.t))));
+    if (Q.on) pool = pool.filter(x => x.view === Q.on);
+    if (Q.phrases.length || Q.not.length) {
+      pool = pool.filter(x => {
+        const h = norm([x.t, x.g, x.s, x.words].join(' '));
+        return Q.phrases.every(p => h.includes(p)) && !Q.not.some(n => h.includes(n));
+      });
+    }
+    let scored = [];
+    if (q) {
+      scored = pool.map(x => [x, score(x, q)]).filter(([, s]) => s > 0);
+      // Nothing close: loosen up and offer the nearest, rather than a dead end.
+      if (!scored.length && !ftItems.length) scored = pool.map(x => [x, score(x, q, true)]).filter(([, s]) => s > 0);
+    } else if (Q.phrases.length) {
+      scored = pool.map(x => [x, 20]);
+    }
+    scored = scored.concat(ftItems.map(x => [x, x.score]));
     scored.sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind));
     return scored.map(([x]) => x);
   }
@@ -731,21 +1008,25 @@
   // small line above its name. Nothing typed: what you opened last, or a hint. The last
   // row, as on a search engine, is the way to the full results page.
   function render() {
-    const q = norm(input.value.trim());
+    const raw = input.value.trim();
+    const Q = parseQuery(raw);
     let rows = [], head = '';
-    if (!q) {
+    if (!raw) {
       const byId = new Map(index.map(x => [x.id, x]));
       rows = recentIds().map(id => byId.get(id)).filter(Boolean);
       if (rows.length) head = 'Recent';
     } else {
-      rows = capped(matches(q), MAX, 12);
+      rows = capped(matches(Q), MAX, 12);
     }
 
     shown = rows;
     let html = head ? `<div class="gs-grp" role="presentation">${esc(head)}</div>` : '';
-    html += rows.map((item, i) => rowHtml(item, i, q)).join('');
-    if (q) html += `<div class="gs-more" role="presentation">See all results for “${esc(input.value.trim())}” <kbd>Enter</kbd></div>`;
-    if (!q && !rows.length) html = '<div class="gs-empty">Type a name, a page, a branch, a service, a client or a product.</div>';
+    html += rows.map((item, i) => rowHtml(item, i, Q.hl)).join('');
+    if (raw && !rows.length) {
+      html += `<div class="gs-empty">${Q.vague ? 'Tell me what you are after, for example “where do I find conversion”.' : 'Nothing yet. Press Enter for tips on narrowing it down.'}</div>`;
+    }
+    if (raw) html += `<div class="gs-more" role="presentation">See all results for “${esc(raw)}” <kbd>Enter</kbd></div>`;
+    if (!raw && !rows.length) html = '<div class="gs-empty">Type a name, a page, a branch, a service, a client or a product, or ask it: “where do I find rebooking”.</div>';
     list.innerHTML = html;
     list.hidden = false;
     cur = 0;
@@ -773,8 +1054,34 @@
         <button type="button" class="gs-serp-close">Close</button>
       </div>
       <div class="gs-serp-body">
-        <div class="gs-chips" role="tablist"></div>
-        <div class="gs-serp-sum"></div>
+        <div class="gs-sumrow">
+          <div class="gs-serp-sum" aria-live="polite"></div>
+          <button type="button" class="gs-tips-btn" aria-expanded="false">Search tips</button>
+        </div>
+        <div class="gs-tips" hidden>
+          <div class="gs-tips-h">Narrow it down</div>
+          <ul>
+            <li><b>Ask it the way you would say it.</b> The filler words are ignored and what is left is searched.
+              <span class="gs-exs"><button type="button" class="gs-ex" data-q="where do i find conversion">where do i find conversion</button>
+              <button type="button" class="gs-ex" data-q="saan makikita yung rebooking">saan makikita yung rebooking</button>
+              <button type="button" class="gs-ex" data-q="what does retention mean">what does retention mean</button></span></li>
+            <li><b>An exact phrase:</b> put it in quotes.
+              <span class="gs-exs"><button type="button" class="gs-ex" data-q="&quot;came back within 12 weeks&quot;">"came back within 12 weeks"</button></span></li>
+            <li><b>Leave a word out:</b> put a minus in front of it.
+              <span class="gs-exs"><button type="button" class="gs-ex" data-q="conversion -google">conversion -google</button></span></li>
+            <li><b>Look inside one page:</b> add <code>on:</code> and the page name. On its own it lists the whole page.
+              <span class="gs-exs"><button type="button" class="gs-ex" data-q="conversion on:&quot;staff dashboards&quot;">conversion on:"staff dashboards"</button>
+              <button type="button" class="gs-ex" data-q="on:&quot;google ads&quot;">on:"google ads"</button></span></li>
+            <li><b>The chips under the bar</b> narrow the results to one kind (Metrics, Pages, Team and so on) and to one page.</li>
+            <li><b>Clients, services and products</b> are read for the branch and period picked at the top of the dashboard. Widen those to widen the search.</li>
+            <li><b>Keys:</b> <kbd>/</kbd> or <kbd>Ctrl</kbd> <kbd>K</kbd> opens search from anywhere, <kbd>Enter</kbd> opens this page of results, <kbd>Esc</kbd> closes it.</li>
+          </ul>
+        </div>
+        <div class="gs-ans" hidden></div>
+        <div class="gs-filters">
+          <div class="gs-chips" role="tablist"></div>
+          <div class="gs-pchips"></div>
+        </div>
         <div class="gs-serp-list"></div>
       </div>`;
     document.body.append(serp);
@@ -786,8 +1093,18 @@
     });
     serp.querySelector('.gs-serp-close').addEventListener('click', closeSerp);
     serp.addEventListener('click', e => {
+      const ex = e.target.closest('.gs-ex');
+      if (ex) { serpIn.value = ex.dataset.q; serpKind = 'all'; serpView = ''; runSerp(); return; }
+      if (e.target.closest('.gs-tips-btn')) { serpTips = !serpTips; paintSerp(); return; }
+      const ans = e.target.closest('.gs-ans-go');
+      if (ans && serpAns) { openResult(serpAns, serpAns.go); return; }
       const chip = e.target.closest('.gs-chip');
-      if (chip) { serpKind = chip.dataset.k; paintSerp(); return; }
+      if (chip) {
+        if (chip.dataset.v) serpView = serpView === chip.dataset.v ? '' : chip.dataset.v;
+        else { serpKind = chip.dataset.k; serpView = ''; }
+        paintSerp();
+        return;
+      }
       const act = e.target.closest('.gs-act');
       const res = e.target.closest('.gs-res');
       if (!res) return;
@@ -807,6 +1124,7 @@
     serp.hidden = false;
     document.body.classList.add('gs-open');
     serpKind = 'all';
+    serpView = '';
     serpIn.value = text;
     runSerp();
     serp.querySelector('.gs-serp-body').scrollTop = 0;
@@ -828,19 +1146,21 @@
 
   function runSerp() {
     const text = serpIn.value.trim();
-    const q = norm(text);
+    const Q = serpQ = parseQuery(text);
     const seq = ++serpSeq;
     serpKb = [];
-    serpAll = q ? capped(matches(q), MAX_SERP, 150) : [];
+    serpAll = Q.has ? capped(matches(Q), MAX_SERP, 200) : [];
     paintSerp();
-    // Team Home's pages come back a moment later.
-    if (q.length >= 2 && typeof sb !== 'undefined') {
-      sb.rpc('kb_search', { q: text }).then(({ data, error }) => {
+    // Team Home's pages come back a moment later. They are searched for what the question
+    // is about, not the question.
+    const kbq = Q.words.concat(Q.phrases).join(' ');
+    if (kbq.length >= 2 && typeof sb !== 'undefined' && !Q.on) {
+      sb.rpc('kb_search', { q: kbq }).then(({ data, error }) => {
         if (seq !== serpSeq || error) return;
         serpKb = (data || []).map(r => ({
           kind: 'kb', id: 'kb:' + r.slug, t: r.title, g: 'Team Home · ' + (r.group_name || 'Page'),
           snip: r.snippet ? '…' + r.snippet + '…' : '', href: '/hub/kb.html?p=' + encodeURIComponent(r.slug),
-        }));
+        })).filter(x => !Q.not.some(n => norm(x.t + ' ' + x.snip).includes(n)));
         paintSerp();
       }, () => {});
     }
@@ -854,31 +1174,77 @@
   };
 
   function paintSerp() {
-    const text = serpIn.value.trim(), q = norm(text);
-    const all = serpAll.filter(x => x.kind !== 'kb').concat(serpKb);
-    // Local results lead; Team Home's pages follow. Chips narrow it to one kind.
+    const Q = serpQ || parseQuery(serpIn.value), text = serpIn.value.trim(), q = Q.words.join(' ');
+    const names = viewNames();
+    const all = serpAll.concat(serpKb);
+    // Local results lead; Team Home's pages follow. Chips narrow it to one kind, then to one page.
     const counts = {};
     all.forEach(x => { counts[x.kind] = (counts[x.kind] || 0) + 1; });
     const kinds = Object.keys(KIND_HEAD).filter(k => counts[k]);
     if (serpKind !== 'all' && !counts[serpKind]) serpKind = 'all';
+    const byKind = serpKind === 'all' ? all : all.filter(x => x.kind === serpKind);
+    const vcount = {};
+    byKind.forEach(x => { if (x.view && names[x.view]) vcount[x.view] = (vcount[x.view] || 0) + 1; });
+    const views = Object.keys(vcount).sort((a, b) => vcount[b] - vcount[a]);
+    if (serpView && !vcount[serpView]) serpView = '';
+    const inView = serpView ? byKind.filter(x => x.view === serpView) : byKind;
+
+    // A question about a metric ("what does conversion mean") gets its meaning first.
+    let ans = null;
+    if (Q.words.length && !serpView && serpKind === 'all' && (Q.question || /\b(mean|means|meaning|define|definition|calculated?|explain\w*)\b/.test(norm(Q.raw)))) {
+      ans = all.find(x => x.kind === 'metric' && Q.words.every(w => bestTok(w, tokensOf(x.t)) >= 2)) || null;
+    }
+    serpAns = ans;
+    const ansBox = serp.querySelector('.gs-ans');
+    ansBox.hidden = !ans;
+    ansBox.innerHTML = ans
+      ? `<div class="gs-ans-k">Quick answer</div><div class="gs-ans-t">${esc(ans.t)}</div><div class="gs-ans-s">${esc(ans.s)}</div>`
+        + `<button type="button" class="gs-ans-go">Show me on Staff Dashboards</button>`
+      : '';
+    const rows = ans ? inView.filter(x => x !== ans) : inView;
+    // The click handler finds a row by position in serpItems (what is on screen). serpAll
+    // stays the full set, so a chip can be undone: filtering must never shrink it.
+    serpItems = rows;
+
     serp.querySelector('.gs-chips').innerHTML = kinds.length > 1
       ? [['all', 'All', all.length]].concat(kinds.map(k => [k, KIND_HEAD[k], counts[k]])).map(([k, l, n]) =>
         `<button type="button" role="tab" class="gs-chip${k === serpKind ? ' on' : ''}" data-k="${k}" aria-selected="${k === serpKind}">${esc(l)} <span>${n}</span></button>`).join('')
       : '';
-    const rows = serpKind === 'all' ? all : all.filter(x => x.kind === serpKind);
-    // The click handler finds a row by position in serpItems (what is on screen). serpAll
-    // stays the full set, so a chip can be undone: filtering must never shrink it.
-    serpItems = rows;
-    serp.querySelector('.gs-serp-sum').textContent = !q ? '' : rows.length
-      ? `${rows.length} result${rows.length === 1 ? '' : 's'} for “${text}”`
+    serp.querySelector('.gs-pchips').innerHTML = views.length > 1
+      ? '<span class="gs-pl">On page</span>' + views.map(v =>
+        `<button type="button" class="gs-chip gs-pchip${v === serpView ? ' on' : ''}" data-v="${esc(v)}" aria-pressed="${v === serpView}">${esc(names[v])} <span>${vcount[v]}</span></button>`).join('')
       : '';
+    serp.querySelector('.gs-filters').hidden = !(kinds.length > 1 || views.length > 1);
+
+    const read = [];
+    if (Q.question && Q.words.length) read.push('looking for ' + Q.words.join(' '));
+    if (Q.on) read.push('only on ' + Q.onName);
+    if (Q.onMiss) read.push('no page called “' + Q.onMiss + '”');
+    if (Q.not.length) read.push('without ' + Q.not.join(', '));
+    const note = read.length ? ' · ' + read.join(' · ') : '';
+    const sum = serp.querySelector('.gs-serp-sum');
+    const n = rows.length + (ans ? 1 : 0);
+    sum.textContent = n ? `${n} result${n === 1 ? '' : 's'} for “${text}”${note}` : '';
+
+    // The guide opens by itself when the search finds nothing.
+    const showTips = serpTips || !(rows.length || ans);
+    const tips = serp.querySelector('.gs-tips'), tbtn = serp.querySelector('.gs-tips-btn');
+    tips.hidden = !showTips;
+    tbtn.setAttribute('aria-expanded', String(showTips));
+    tbtn.textContent = showTips && serpTips ? 'Hide tips' : 'Search tips';
+
+    const empty = Q.onMiss && !Q.words.length && !Q.phrases.length
+      ? `There is no page called “${esc(Q.onMiss)}”. Try <code>on:"staff dashboards"</code>.`
+      : Q.vague ? 'Tell me what you are after, for example “where do I find conversion”.'
+      : `Nothing matches “${esc(text)}”.${Q.words.length > 1 ? ' Try fewer words, or one that says the same thing.' : ' Check the spelling, or try a word that means the same.'}`;
     serp.querySelector('.gs-serp-list').innerHTML = rows.length ? rows.map((x, i) => {
       const snip = x.snip || x.s || (x.kind === 'page' ? pageSnip(x, q) : '');
       const acts = x.acts ? `<span class="gs-acts">${x.acts.map(([l], a) => `<button type="button" class="gs-act" data-a="${a}">${esc(l)}</button>`).join('')}</span>` : '';
       const open = x.href ? `<a class="gs-r" data-i="${i}" href="${esc(x.href)}" target="_blank" rel="noopener">` : `<a class="gs-r" data-i="${i}" href="#">`;
-      return `<div class="gs-res">${open}<span class="gs-r-g">${esc(x.g || '')}</span><span class="gs-r-t">${highlight(x.t, q)}</span></a>`
-        + (snip ? `<div class="gs-r-s">${highlight(snip, q)}</div>` : '') + acts + '</div>';
-    }).join('') : (q ? `<div class="gs-empty">Nothing matches “${esc(text)}”.</div>` : '');
+      const more = x.more ? `<div class="gs-r-more">+${x.more} more line${x.more === 1 ? '' : 's'} in this section</div>` : '';
+      return `<div class="gs-res">${open}<span class="gs-r-g">${esc(x.g || '')}</span><span class="gs-r-t">${highlight(x.t, Q.hl)}</span></a>`
+        + (snip ? `<div class="gs-r-s">${highlight(snip, Q.hl)}</div>` : '') + more + acts + '</div>';
+    }).join('') : (ans ? '' : (Q.has || Q.vague || Q.onMiss ? `<div class="gs-empty">${empty}</div>` : ''));
   }
 
   // Team Home's row: where it lives, the name (matched letters marked), one line
