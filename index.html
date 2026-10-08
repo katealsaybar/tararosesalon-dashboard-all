@@ -1951,8 +1951,13 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
    Times. Playfair Display is the TRS heading face (trs-brand-guardian) and is loaded. */
 .slv-intro h2{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;margin:0 0 6px;color:var(--text);letter-spacing:.005em}
 .slv-intro p{margin:0;max-width:640px;color:var(--muted);font-size:15px;line-height:1.5}
-.slv-ladder{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
-.slv-ladder button{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:14px;padding:8px 14px 8px 8px;
+/* Kate, 8 Oct 2026: six levels wrapped five and one, with Artistic Director alone on a second
+   row. An even grid instead: 3 by 2 normally, one row of six when the page is wide enough; phones keep
+   their swipeable row (the max-width:600px block below). */
+.slv-top{container-type:inline-size}
+.slv-ladder{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 16px}
+@container (min-width:1240px){.slv-ladder{grid-template-columns:repeat(6,minmax(0,1fr))}}
+.slv-ladder button{display:inline-flex;align-items:center;justify-content:flex-start;min-width:0;text-align:left;gap:8px;font:inherit;font-size:14px;padding:8px 14px 8px 8px;
   border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;min-height:40px}
 .slv-ladder button.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 .slv-step{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--surface2);color:var(--text);font-size:12px;font-weight:700}
@@ -2065,7 +2070,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
   .w13-branches{font-size:13px;line-height:1.6}.w13-br{display:block}.w13-br+.w13-br::before{content:none}}
 @media(max-width:600px){
   /* One swipeable row of pills instead of three wrapped rows. */
-  .slv-ladder{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  .slv-ladder{display:flex;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
   .slv-ladder::-webkit-scrollbar{display:none}
   .slv-ladder button{flex:0 0 auto;font-size:13px;padding:6px 12px 6px 6px}
   .slv-intro h2{font-size:26px}.slv-intro p{font-size:14px}
