@@ -26,7 +26,7 @@ from pathlib import Path
 import pymupdf
 
 PREFIX_BRANCH = {"al-quoz": "AQ", "khalifa-city": "KCA", "motor-city": "MC", "saadiyat": "SAA",
-                 "bahrain": "BAH"}  # separate Phorest business, --country bh (6 Oct 2026)
+                 "fratelli": "FRT", "bahrain": "BAH"}  # separate Phorest business, --country bh (6 Oct 2026)
 FILE_RE = re.compile(r"^(?P<prefix>[a-z-]+?)-staff-performance-tracker-(?P<date>\d{4}-\d{2}-\d{2})\.pdf$")
 
 # Header word -> field. On the rotated page a column is a y position; the header
