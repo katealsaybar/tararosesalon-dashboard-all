@@ -8,7 +8,7 @@
 --   service_catalog   one row per Phorest service: name key, name, Phorest category
 --                     (the four branches share one menu, 352 names, so one roster)
 --   service_families  which family each Phorest category belongs to
---                     (colour, treat, cut, nails, beauty, retail, other, skip)
+--                     (colour, treat, cut, nails, beauty, retail, extensions, consult, other, skip)
 --   item_classes()    every distinct sales item with its category and family: the catalog
 --                     first (the whole name, then the part after any " - ", so package and
 --                     combo lines follow their service; "(Treat) " is ignored), then name
@@ -33,7 +33,7 @@ create table if not exists public.service_catalog (
 );
 create table if not exists public.service_families (
   category text primary key,
-  family text not null check (family in ('colour','treat','cut','nails','beauty','retail','other','skip')),
+  family text not null check (family in ('colour','treat','cut','nails','beauty','retail','extensions','consult','other','skip')),
   updated_at timestamptz not null default now(),
   updated_by text
 );
@@ -102,7 +102,7 @@ as $$
           when m.li ~ 'colou?r ?lock' then 'COLOUR LOCKING TRT'
           when m.li ~ 'repair or hydrate|hydrate trt|caviar treatment|fibre clinix|oil treatment|express treatment' then 'REPAIR & HYDRATE TRT'
           when m.li ~ 'courier|fratelli.*package' then 'SKIP'
-          when m.li ~ 'keratin (bond|tip)|sticktip|nano (ext|bomb|stick)|clip-?in|hair extension keratin|\m(16|18|20|22|24) ?(["'']|inch|iches|@)|invisi|nano ?bond|nanobon|slim ?-?line|slime|\mtapes?\M|k-tip|flat tip|brond.?mbre|\mnano\M' then 'RETAIL PRODUCTS'
+          when m.li ~ 'keratin (bond|tip)|sticktip|nano (ext|bomb|stick)|clip-?in|hair extension keratin|\m(16|18|20|22|24) ?(["'']|inch|iches|@)|invisi|nano ?bond|nanobon|slim ?-?line|slime|\mtapes?\M|k-tip|flat tip|brond.?mbre|\mnano\M' then 'HAIR EXTENSIONS'
           when m.li ~ '^(nude pink|nude sugar|cranberry citrus|tea rose|tangerine pomegranate|rose|rose lime|pink juniper|cherry plum|guava blush|ruby grapefruit|peach melon)$' then 'RETAIL PRODUCTS'
           when m.li ~ '^refill -|cleanser|\mconditioner|shampoo|shower|cartridge|enhancer|enhance\M|leave-in|sealer|\msoap|\mrinse|affirmation|jelly mask|clarifying|\mcola\M|\moil\M|mask w/|hyaluronic|viart (elastic|shampoo|mask)|after ?care|remedy|split end|facial roller|facial brush|sonic|straightener|\mstyler\M|\mghd\M|oval brush|hydrator|activator|mousse|\mpdx\M|nano seal|stmnt|serum|gift bag|eau de|wax powder|brush|detangler|\mt\.t\.?\M|twss|cloud nine|\msocks?\M|roller|face-?lift pen|microneedle|microcurrent|hardener|pomade|\mspray|creme|\mcream|scrub|masque|essence|top ?coat|essie|developer|lightener|\mbag\M|greeting cards|immune|session label|^6% |parlux|\miron\M' then 'RETAIL PRODUCTS'
           when m.li ~ '^\(treat\) abc|\mabc |viart treat|philipps' then '1TREATMENTS - ABC'
@@ -334,7 +334,7 @@ begin
   select m.name into who from public.dashboard_me() m where m.level >= 4 limit 1;
   if who is null then raise exception 'Level 4 and above can change the service roster'; end if;
   if p_category is null or trim(p_category) = '' then raise exception 'No category'; end if;
-  if p_family not in ('colour','treat','cut','nails','beauty','retail','other','skip') then raise exception 'Unknown family %', p_family; end if;
+  if p_family not in ('colour','treat','cut','nails','beauty','retail','extensions','consult','other','skip') then raise exception 'Unknown family %', p_family; end if;
   insert into service_families (category, family, updated_at, updated_by) values (p_category, p_family, now(), who)
   on conflict (category) do update set family = excluded.family, updated_at = now(), updated_by = excluded.updated_by;
   return jsonb_build_object('category', p_category, 'family', p_family);
