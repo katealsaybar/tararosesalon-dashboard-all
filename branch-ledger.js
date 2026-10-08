@@ -468,8 +468,8 @@ function lgSection(id, dotColor, title, subtitle, bodyHtml) {
   return `
     <div class="support-section" id="sec-${id}" style="margin-bottom:14px">
       <div class="support-section-hdr" onclick="toggleSection('${id}')">
-        <div style="display:flex;align-items:center;gap:8px;min-width:0">
-          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0"></span>
+        <div style="display:flex;align-items:baseline;gap:8px;min-width:0">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0;align-self:center"></span>
           <span style="font-family:'Playfair Display',serif;font-style:italic;font-weight:600;font-size:18px;letter-spacing:0.02em;color:var(--text)">${title}</span>
           ${subtitle ? `<span style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${subtitle}</span>` : ''}
         </div>
