@@ -74,7 +74,7 @@ async function tpLoadCounts() {
   const from = dateToIso(dateFrom), to = dateToIso(dateTo), key = from + '|' + to;
   if (tpCounts && tpCountsKey === key) { tpCountsBad = false; return tpCounts; }
   try {
-    const { data, error } = await sb.rpc('league_counts', { p_admin: typeof spfGet === 'function' ? spfGet() : null, p_from: from, p_to: to });
+    const { data, error } = await sb.rpc('league_counts', { p_admin: await viewerKey(), p_from: from, p_to: to });
     if (error || !Array.isArray(data)) throw error || new Error('no counts');
     tpCounts = data; tpCountsKey = key; tpCountsBad = false;
     return tpCounts;
@@ -153,7 +153,7 @@ async function tpLoadOverrides() {
   if (Date.now() - tpOverridesAt < 60000) return;
   tpOverridesAt = Date.now();
   try {
-    const { data, error } = await sb.rpc('podium_overrides', { p_admin: typeof spfGet === 'function' ? spfGet() : null });
+    const { data, error } = await sb.rpc('podium_overrides', { p_admin: await viewerKey() });
     if (error || !Array.isArray(data)) throw error || new Error('no list');
     tpSetOverrides(data);
     try { localStorage.setItem('tp-overrides', JSON.stringify(data)); } catch (e) {}

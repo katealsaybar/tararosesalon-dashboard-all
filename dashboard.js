@@ -3665,6 +3665,19 @@ function warmDashboardWindows() {
   }
 }
 
+// The Staff Benchmarks viewer key (SPF_AUTO) is fetched at sign-in and only set after the first
+// loadData(), which is also when the first page draws. A page opened straight onto Organisation
+// Pulse or Podium Race therefore asked for its extra figures with no key and got nothing back
+// (Kate, 8 Oct 2026: "Could not load these just now"). This waits for it instead.
+async function viewerKey() {
+  let k = typeof spfGet === 'function' ? spfGet() : null;
+  if (k) return k;
+  try {
+    if (window.TRSAuth && TRSAuth.perfKey) { k = await TRSAuth.perfKey(); if (k && !window.SPF_AUTO) window.SPF_AUTO = k; }
+  } catch (e) {}
+  return k || null;
+}
+
 // ── ORGANISATION PULSE: MORE MEASURES ────────────────────────────
 // Kate, 8 Oct 2026: a stylist's "Holding your level" scores 19 measures and the benchmark
 // strip above carries 7 of them. These are the other 8, shown together without aims (the aims
@@ -3677,7 +3690,7 @@ let OPM_CACHE = { key: '', data: null };
 async function opmLoad() {
   const from = dateToIso(dateFrom), to = dateToIso(dateTo), key = from + '|' + to;
   if (OPM_CACHE.data && OPM_CACHE.key === key) return OPM_CACHE.data;
-  const { data, error } = await sb.rpc('org_pulse_extra', { p_admin: typeof spfGet === 'function' ? spfGet() : null, p_from: from, p_to: to });
+  const { data, error } = await sb.rpc('org_pulse_extra', { p_admin: await viewerKey(), p_from: from, p_to: to });
   if (error || !data) throw error || new Error('no data');
   OPM_CACHE = { key, data };
   return data;
