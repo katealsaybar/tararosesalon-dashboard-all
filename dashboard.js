@@ -4181,7 +4181,13 @@ async function renderDashboard() {
 
   // ── HERO: the cover ──────────────────────────────────────────────
   const phr = heroPeriodPhrasing();
-  const rangeLabel = (dateFrom && dateTo) ? `${shortD(dateFrom)} – ${shortD(dateTo)}` : 'this period';
+  // Kate, 9 Oct 2026: "walang years". With 2025 and 2026 both pickable, 1 Jan – 31 Dec says nothing.
+  // The year goes on the end, or on both ends when the window crosses a year.
+  const rangeLabel = (dateFrom && dateTo)
+    ? (dateFrom.getFullYear() === dateTo.getFullYear()
+        ? `${shortD(dateFrom)} – ${shortD(dateTo)} ${dateTo.getFullYear()}`
+        : `${shortD(dateFrom)} ${dateFrom.getFullYear()} – ${shortD(dateTo)} ${dateTo.getFullYear()}`)
+    : 'this period';
 
   const headlineEl   = document.getElementById('pulseHeadline');
   const deckEl       = document.getElementById('pulseDeck');
@@ -4533,6 +4539,10 @@ async function renderDashboard() {
     // three clips the overhang and the card falls back to a plain circle.
     const av = (prof && prof.photo)
       ? `<img class="av" src="assets/staff/${encodeURIComponent(prof.photo)}" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'">`
+      // Leavers have no cutout, only the card crop (photoFull). Kate, 9 Oct 2026:
+      // a stylist who has resigned still shows her face on the Wins she won.
+      : (prof && prof.photoFull)
+      ? `<img class="av av-full" src="${encodeURI(prof.photoFull)}" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'">`
       : `<div class="av-ph" title="Portrait to come"><b>${escapeHtml(initials(w.p.name))}</b></div>`;
     const name = (prof && prof.ig)
       ? `<a href="https://instagram.com/${encodeURIComponent(prof.ig)}" target="_blank" rel="noopener noreferrer" title="@${escapeHtml(prof.ig)} on Instagram">${nm}</a>`

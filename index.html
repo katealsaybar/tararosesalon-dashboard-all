@@ -1203,6 +1203,8 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
    transparent. So no border-radius, no background, no border here. Any of the
    three clips the overhang and the card falls back to a plain circle. */
 .av{height:62px;width:auto;flex-shrink:0;display:block}
+/* Card-crop photo for leavers (no cutout): same footprint as the placeholder. */
+.av.av-full{width:53px;height:62px;object-fit:cover;object-position:center top;border-radius:8px}
 /* Beauty has no shoot yet, so the placeholder rebuilds the same block by hand:
    same 53x50 footprint, same corner, bottom-aligned so it sits on the photos'
    baseline. It has no head to protrude, which is the honest tell. */
@@ -4090,7 +4092,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261008cb8"></script>
+<script src="dashboard.js?v=20261009pf1"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
