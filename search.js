@@ -1058,6 +1058,7 @@
         <button type="button" class="gs-serp-close" aria-label="Close the results and go back to the page you were on">&larr; Back</button>
       </div>
       <div class="gs-serp-body">
+        <div class="gs-fresh"></div>
         <div class="gs-sumrow">
           <div class="gs-serp-sum" aria-live="polite"></div>
           <button type="button" class="gs-tips-btn" aria-expanded="false">Search tips</button>
@@ -1217,7 +1218,22 @@
     return hit.length ? 'Covers ' + hit.slice(0, 6).join(', ') : '';
   };
 
+  // Kate, 8 Oct 2026: "add Last updated to the search page". The masthead's Ledger and
+  // Phorest dates sit behind the results page, so they are copied here (the numbers
+  // searched are only as fresh as those), with the date the page text was indexed.
+  function freshHtml() {
+    const mast = document.getElementById('mastFresh');
+    const bits = mast ? [...mast.children].filter(c => /Ledger|Phorest/.test(c.textContent)).map(c => c.outerHTML) : [];
+    const D = window.TRS_SEARCH_INDEX;
+    if (D && D.built) {
+      const d = new Date(D.built + 'T00:00:00');
+      bits.push(`<span title="Pages are searched from an index of their wording, rebuilt when a page's wording changes">Page text <b>${d.getDate()} ${d.toLocaleString('en-GB', { month: 'short' })}</b></span>`);
+    }
+    return bits.length ? '<span class="gs-fresh-k">Last updated</span>' + bits.join('') : '';
+  }
+
   function paintSerp() {
+    serp.querySelector('.gs-fresh').innerHTML = freshHtml();
     const Q = serpQ || parseQuery(serpIn.value), text = serpIn.value.trim(), q = Q.words.join(' ');
     const names = viewNames();
     const all = serpAll.concat(serpKb);

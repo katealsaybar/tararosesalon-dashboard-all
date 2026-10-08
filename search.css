@@ -186,3 +186,9 @@ body.gs-open{overflow:hidden}
   .gs-related-g{grid-template-columns:1fr}
   .gs-wordmark{font-size:28px}
 }
+
+.gs-fresh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;padding:10px 0 0;font-size:12.5px;color:var(--muted2)}
+.gs-fresh:empty{display:none}
+.gs-fresh b{color:var(--muted);font-weight:600}
+.gs-fresh-k{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase}
+.gs-fresh .stale,.gs-fresh .stale b{color:var(--bad,#d9644a)}
