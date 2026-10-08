@@ -90,6 +90,14 @@ body.gs-open{overflow:hidden}
 .gs-serp-bar svg{flex-shrink:0;color:var(--muted)}
 .gs-serp-in{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--text);font:inherit;font-size:16px;padding:0}
 .gs-serp-in::-webkit-search-cancel-button{display:none}
+.gs-serp-home{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;
+  font:inherit;font-size:14px;font-weight:600;padding:0 16px;min-height:42px;text-decoration:none;white-space:nowrap}
+@media(hover:hover){.gs-serp-home:hover{border-color:var(--text)}}
+.gs-back{position:fixed;left:16px;bottom:16px;z-index:303;display:flex;align-items:center;max-width:calc(100vw - 32px);
+  border:1px solid var(--text);background:var(--text);color:var(--bg);border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.gs-back-go,.gs-back-x{border:0;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.gs-back-go{font-size:13.5px;font-weight:600;padding:0 6px 0 18px;min-height:42px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-back-x{font-size:20px;line-height:1;padding:0 14px 0 8px;min-height:42px;opacity:.7}
 .gs-serp-close{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;
   font:inherit;font-size:13px;font-weight:600;padding:0 16px;min-height:40px;cursor:pointer}
 @media(hover:hover){.gs-serp-close:hover{border-color:var(--text)}}
@@ -145,6 +153,8 @@ body.gs-open{overflow:hidden}
   .gs-serp-top{padding:12px 16px 8px;gap:10px}
   .gs-serp-body{padding:2px 16px 80px}
   .gs-more kbd{display:none}
+  .gs-serp-home span{display:none}
+  .gs-serp-home{padding:0 13px}
   .gs-r-t{font-size:17px}
   .gs-pchips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
   .gs-pchip,.gs-pl{flex-shrink:0;white-space:nowrap}

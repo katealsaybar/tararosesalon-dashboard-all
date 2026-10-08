@@ -901,6 +901,7 @@
     const gate = document.getElementById('loginGate');
     if (gate && gate.style.display !== 'none') return;
     lastFocus = document.activeElement;
+    hideBack();
     index = buildIndex();
     loadFt();
     loadData();
@@ -1051,7 +1052,8 @@
           <input class="gs-serp-in" type="search" autocomplete="off" autocapitalize="off" spellcheck="false"
             enterkeyhint="search" placeholder="${PLACEHOLDER}" aria-label="Search">
         </div>
-        <button type="button" class="gs-serp-close">Close</button>
+        <a class="gs-serp-home" href="/hub/" aria-label="Team Home"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg><span>Team Home</span></a>
+        <button type="button" class="gs-serp-close" aria-label="Close the results and go back to the page you were on">&larr; Back</button>
       </div>
       <div class="gs-serp-body">
         <div class="gs-sumrow">
@@ -1136,8 +1138,32 @@
     document.body.classList.remove('gs-open');
     if (lastFocus && lastFocus.focus && document.contains(lastFocus)) lastFocus.focus({ preventScroll: true });
   }
+  // Kate, 8 Oct 2026: "no button for going back where you left". After a result is
+  // opened, a pill takes you back to the same results, filters and all.
+  let backPill = null;
+  function showBack() {
+    hideBack();
+    const text = serpIn.value.trim();
+    if (!text) return;
+    const state = { text, kind: serpKind, view: serpView };
+    backPill = document.createElement('div');
+    backPill.className = 'gs-back';
+    backPill.innerHTML = '<button type="button" class="gs-back-go"></button><button type="button" class="gs-back-x" aria-label="Dismiss">&times;</button>';
+    backPill.querySelector('.gs-back-go').textContent = '← Back to results for “' + (text.length > 28 ? text.slice(0, 27) + '…' : text) + '”';
+    backPill.querySelector('.gs-back-go').addEventListener('click', () => {
+      hideBack();
+      openSerp(state.text);
+      serpKind = state.kind; serpView = state.view;
+      paintSerp();
+    });
+    backPill.querySelector('.gs-back-x').addEventListener('click', hideBack);
+    document.body.append(backPill);
+  }
+  function hideBack() { if (backPill) { backPill.remove(); backPill = null; } }
+
   function openResult(item, fn) {
     remember(item.id);
+    showBack();
     serp.hidden = true;
     document.body.classList.remove('gs-open');
     if (typeof toggleNav === 'function' && document.body.classList.contains('nav-open') && isPhone()) toggleNav(false);

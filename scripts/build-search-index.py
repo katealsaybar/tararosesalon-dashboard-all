@@ -93,6 +93,8 @@ def uiish(t, plain=False):
         return False
     if t[0] == '[' or t.startswith('http'):
         return False
+    if re.search(r"(?i)^loading|didn.t load|try again|couldn.t (load|check)|something went wrong|not available yet", t):
+        return False                      # status and error lines say nothing about a page
     if re.search(r'[{};]|=>|&&|\|\||\\\\|https?://|^[#.@/]|\.(js|css|html|png|svg|json)\b', t):
         return False
     if re.search(r'\b(select|insert|update|delete)\b.*\b(from|into|set)\b', t, re.I):
