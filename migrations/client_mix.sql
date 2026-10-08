@@ -10,8 +10,10 @@
 --   service_families  which family each Phorest category belongs to
 --                     (colour, treat, cut, nails, beauty, retail, other, skip)
 --   item_classes()    every distinct sales item with its category and family: the catalog
---                     first, then name rules for retired names (the menu was renamed in
---                     Nov 2025), else UNMAPPED, which the page shows so nothing disappears
+--                     first (the whole name, then the part after any " - ", so package and
+--                     combo lines follow their service; "(Treat) " is ignored), then name
+--                     rules for retired names (the menu was renamed in Nov 2025) and
+--                     products, else UNMAPPED, which the page shows so nothing disappears
 --   client_mix_cards / client_mix_detail   the page's two reads, security invoker
 --   service_roster / service_set_family / service_catalog_replace   the roster tab
 --
@@ -73,60 +75,81 @@ as $$
   ),
   k as (
     select d.item, public.stl_item_kind(d.item) as kind,
-           public.stl_name_key(regexp_replace(d.item, '\s*\(Refund\)\s*$', '', 'i')) as nk,
+           regexp_replace(regexp_replace(d.item, '\s*\(Refund\)\s*$', '', 'i'), '^\(treat\)\s*', '', 'i') as nm,
            lower(d.item) as li
     from d
   ), m as (
-    select k.item, k.kind, c.category as cat_catalog,
-      case when k.kind = 'service' and c.category is null then
+    -- Phorest's list first: the whole name, then the part after any " - " (package and combo
+    -- lines read "Polish & Pamper (AED 350) - Manicure", "Mani & Pedi Combo - Pedicure"), the
+    -- longest such part first. "(Treat) " (a free one) is ignored.
+    select k.item, k.kind, k.li,
+           coalesce(c.category, sfx.category) as cat_catalog,
+           coalesce(c.service_name, sfx.service_name) as cat_name
+    from k
+    left join public.service_catalog c on c.name_key = public.stl_name_key(k.nm)
+    left join lateral (
+      select c2.category, c2.service_name
+      from generate_series(2, coalesce(array_length(string_to_array(k.nm, ' - '), 1), 1)) as i
+      join public.service_catalog c2
+        on c2.name_key = public.stl_name_key(array_to_string((string_to_array(k.nm, ' - '))[i:], ' - '))
+      where c.category is null and k.kind = 'service'
+      order by i limit 1
+    ) sfx on true
+  ), r as (
+    select m.*,
+      case when m.kind = 'service' and m.cat_catalog is null then
         case
-          when k.li ~ 'colou?r ?lock' then 'COLOUR LOCKING TRT'
-          when k.li ~ 'repair or hydrate|hydrate trt|caviar treatment|fibre clinix' then 'REPAIR & HYDRATE TRT'
-          when k.li ~ '^refill -|cleanser|\mconditioner|shampoo|shower|cartridge|enhancer|enhance\M|leave-in|sealer|\msoap|\mrinse|affirmation|jelly mask|clarifying|\mcola\M|\moil\M|mask w/|hyaluronic|viart (elastic|shampoo|mask)|after ?care|remedy|split end' then 'RETAIL PRODUCTS'
-          when k.li ~ '^\(treat\) abc|\mabc |viart treat|philipps' then '1TREATMENTS - ABC'
-          when k.li ~ 'fine hair' then 'FINE HAIR TRT'
-          when k.li ~ 'curly hair' then 'CURLY HAIR TRT'
-          when k.li ~ 'chelat|detox|mineral' then 'MINERAL BUILD-UP TRT'
-          when k.li ~ 'bond repair|olaplex|\mr-?2\M|r-?two' then 'BOND REPAIR TRT'
-          when k.li ~ 'scalp' then 'SCALP TRT'
-          when k.li ~ 'keratin|straighten|frizz' then 'KERATIN'
-          when k.li ~ 'beauty potion' then 'BEAUTY POTION TRT'
-          when k.li ~ 'blonde rev' then 'BLONDE REVIVAL TRT'
-          when k.li ~ 'balayage' then 'BALAYAGE'
-          when k.li ~ 'bleach' then 'BLEACHING'
-          when k.li ~ 'tint' then 'TINTING'
-          when k.li ~ 'lash lift|\mlvl\M|lamination' then 'LIFTING'
-          when k.li ~ 'lash' then 'LASH EXTENSION'
-          when k.li ~ 'nail ext|overlay|acrylic' then 'NAIL EXTENSION'
-          when k.li ~ 'thread' then 'THREADING'
-          when k.li ~ 'wax|brazil|hollywood|bikini|under ?arm' then 'WAXING'
-          when k.li ~ 'facial|hydermabrasion|hydrafacial|deep cleans|led light|anti-aging|skin tight|back cleans|^cleanse$' then 'FACIALS'
-          when k.li ~ 'massage' then 'MASSAGE'
-          when k.li ~ 'foil|highlight|face frame|bright|partial|\mfh\M|half head|3/4' then 'HIGHLIGHTS'
-          when k.li ~ 'toner|toning|gloss|rebalance' then 'TONING'
-          when k.li ~ 'colou?r|root|pigment|stretch|hairline' then 'COLOURING'
-          when k.li ~ 'extension|re-?fit|weft|tape ext|removal and re|put in|\mmaintenance' then 'HAIR EXTENSIONS'
-          when k.li ~ 'consult|hair plan' then 'Consultation'
-          when k.li ~ 'mani|pedi|polish|gelish|\mgel\M|biab|nail|callus|paraffin|french' then 'HANDS AND FEET'
-          when k.li ~ 'wash cut|cut and finish|haircut|cut only|fringe|restyle|\mcut\M|trim|fade|beard|shave' then 'CUTTING'
-          when k.li ~ 'blow[ -]?dry|blast|hair up|plait|hair wash|updo|styl' then 'STYLING'
+          when m.li ~ 'colou?r ?lock' then 'COLOUR LOCKING TRT'
+          when m.li ~ 'repair or hydrate|hydrate trt|caviar treatment|fibre clinix|oil treatment' then 'REPAIR & HYDRATE TRT'
+          when m.li ~ 'keratin (bond|tip)|sticktip|nano (ext|bomb|stick)|clip-?in|hair extension keratin' then 'HAIR EXTENSIONS'
+          when m.li ~ '^refill -|cleanser|\mconditioner|shampoo|shower|cartridge|enhancer|enhance\M|leave-in|sealer|\msoap|\mrinse|affirmation|jelly mask|clarifying|\mcola\M|\moil\M|mask w/|hyaluronic|viart (elastic|shampoo|mask)|after ?care|remedy|split end|facial roller|facial brush|sonic|straightener|\mstyler\M|\mghd\M|oval brush|hydrator|activator|mousse|\mpdx\M|nano seal|stmnt|serum|gift bag|eau de|wax powder' then 'RETAIL PRODUCTS'
+          when m.li ~ '^\(treat\) abc|\mabc |viart treat|philipps' then '1TREATMENTS - ABC'
+          when m.li ~ 'fine hair' then 'FINE HAIR TRT'
+          when m.li ~ 'curly hair' then 'CURLY HAIR TRT'
+          when m.li ~ 'chelat|detox|mineral' then 'MINERAL BUILD-UP TRT'
+          when m.li ~ 'bond repair|olaplex|\mr-?2\M|r-?two' then 'BOND REPAIR TRT'
+          when m.li ~ 'scalp' then 'SCALP TRT'
+          when m.li ~ 'keratin|straighten|frizz' then 'KERATIN'
+          when m.li ~ 'beauty potion' then 'BEAUTY POTION TRT'
+          when m.li ~ 'blonde rev' then 'BLONDE REVIVAL TRT'
+          when m.li ~ 'balayage' then 'BALAYAGE'
+          when m.li ~ 'bleach' then 'BLEACHING'
+          when m.li ~ 'tint' and m.li !~ 'highlight|foil|root tint' then 'TINTING'
+          when m.li ~ 'lash lift|\mlvl\M|lamination|lifting' then 'LIFTING'
+          when m.li ~ 'lash' then 'LASH EXTENSION'
+          when m.li ~ 'nail ext|overlay|acrylic|acrygel' then 'NAIL EXTENSION'
+          when m.li ~ 'thread' then 'THREADING'
+          when m.li ~ 'wax|brazil|hollywood|bikini|under ?arm' then 'WAXING'
+          when m.li ~ 'facial|hydermabrasion|hydrafacial|deep cleans|led light|anti-aging|skin tight|back cleans|^cleanse$' then 'FACIALS'
+          when m.li ~ 'massage' then 'MASSAGE'
+          when m.li ~ 'chameleon|pigments full nails|polish full colo' then 'HANDS AND FEET'
+          when m.li ~ 'foil|highlight|face frame|bright|partial|\mfh\M|half head|3/4' then 'HIGHLIGHTS'
+          when m.li ~ 'toner|toning|gloss|rebalance' then 'TONING'
+          when m.li ~ 'colou?r|root|pigment|stretch|hairline' then 'COLOURING'
+          when m.li ~ 'extension|re-?fit|weft|tape ext|removal and re|put in|\mmaintenance' then 'HAIR EXTENSIONS'
+          when m.li ~ 'consult|hair plan' then 'Consultation'
+          when m.li ~ 'mani|pedi|polish|gelish|\mgel\M|biab|nail|callus|paraffin|french' then 'HANDS AND FEET'
+          when m.li ~ 'wash cut|cut and finish|haircut|cut only|fringe|restyle|\mcut\M|trim|fade|beard|shave' then 'CUTTING'
+          when m.li ~ 'blow[ -]?dry|blast|hair up|plait|hair wash|updo|styl' then 'STYLING'
         end
       end as cat_rule
-    from k left join public.service_catalog c on c.name_key = k.nk
-  ), n as (
-    select m.item, m.kind,
-      case when m.kind in ('non_sale', 'voucher', 'prepaid') then 'SKIP'
-           when m.kind = 'product' then 'RETAIL PRODUCTS'
-           else coalesce(m.cat_catalog, m.cat_rule, 'UNMAPPED') end as category,
-      case when m.kind in ('non_sale', 'voucher', 'prepaid') then 'skip'
-           when m.kind = 'product' then 'product'
-           when m.cat_catalog is not null then 'phorest'
-           when m.cat_rule is not null then 'rule'
-           else 'none' end as via
     from m
+  ), n as (
+    select r.item, r.kind, r.cat_name,
+      case when r.kind in ('non_sale', 'voucher', 'prepaid') then 'SKIP'
+           when r.kind = 'product' then 'RETAIL PRODUCTS'
+           else coalesce(r.cat_catalog, r.cat_rule, 'UNMAPPED') end as category,
+      case when r.kind in ('non_sale', 'voucher', 'prepaid') then 'skip'
+           when r.kind = 'product' then 'product'
+           when r.cat_catalog is not null then 'phorest'
+           when r.cat_rule is not null then 'rule'
+           else 'none' end as via
+    from r
   )
   select n.item, n.kind, n.category, coalesce(f.family, 'unmapped'),
-         case when n.kind = 'product' then trim(n.item) else public.stl_item_stem(n.item) end, n.via
+         case when n.kind = 'product' then trim(n.item)
+              when n.cat_name is not null then public.stl_item_stem(n.cat_name)
+              else public.stl_item_stem(n.item) end, n.via
   from n left join public.service_families f on f.category = n.category
 $$;
 revoke all on function public.item_classes(text[]) from public, anon;
