@@ -125,20 +125,41 @@ const TP_ROLE_FIX = { 'TARA': 'Owner', 'TARA KIDD': 'Owner',
 // Photos for people with no staff card: the owner and Bahrain's managing director, both from the org chart.
 const TP_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'TARA KIDD': 'assets/org-chart/tara-rose-kidd.png',
   'DAISY': 'assets/org-chart/daisy-charlotte-cropper.png', 'DAISY CROPPER': 'assets/org-chart/daisy-charlotte-cropper.png' };
-// Kate, 8 Oct 2026: people the ledger or Phorest carries who are not on the floor, so they
-// do not belong in a race. Farwa is Bahrain's assistant, Shiela Avena is a salon
-// coordinator (org chart), and Nimi Firth was at Al Quoz for four days in Jan 2025 with six
-// clients and nobody recognises the name. Kaisha Balbuena is a receptionist (one Phorest
-// booking, Motor City, Nov 2025). Janice Gamit worked Al Quoz then Motor City Jan to Jul 2025:
-// 35 clients but AED 143 in sales, which is an assistant's pattern (Kate did not know her).
-// Keys are letters only, as tpMergeKey gives them.
-const TP_NOT_STYLISTS = new Set(['FARWA', 'SHIELA', 'SHIELA AVENA', 'NIMI', 'NIMI FIRTH',
-  'KAISHA', 'KAISHA BALBUENA', 'JANICE', 'JANICE GAMIT']);
-const tpRole = st => { const fix = TP_ROLE_FIX[tpMergeKey(st.name)]; if (fix) return fix;
+// Kate, 8 Oct 2026: people the ledger or Phorest carries who are not stylists on the floor
+// (receptionists, assistants, coordinators, a login called "Reception"), and leavers and
+// Bahrain staff with no staff card. The podium_overrides table in Supabase says what to do
+// with each (migrations/create_podium_overrides.sql), read through the podium_overrides RPC,
+// so Kate can change it without a deploy: kind 'hide' keeps them out of the race, 'left'
+// keeps them in, greyed, with the role, 'role' keeps them in with the role. Keys are capital
+// letters and spaces only (tpMergeKey, punctuation stripped). The last good list is kept in
+// localStorage so a failed fetch does not put the receptionists back on the podium.
+let TP_OVR = { hide: new Set(), left: new Set(), role: {} };
+function tpSetOverrides(rows) {
+  const o = { hide: new Set(), left: new Set(), role: {} };
+  rows.forEach(r => {
+    if (r.kind === 'hide') o.hide.add(r.key);
+    else { o.role[r.key] = r.role; if (r.kind === 'left') o.left.add(r.key); }
+  });
+  TP_OVR = o;
+}
+try { tpSetOverrides(JSON.parse(localStorage.getItem('tp-overrides') || '[]')); } catch (e) {}
+const tpOvrKey = name => tpMergeKey(name).replace(/[^A-Z ]/g, '').trim();
+let tpOverridesAt = 0;
+async function tpLoadOverrides() {
+  if (Date.now() - tpOverridesAt < 60000) return;
+  tpOverridesAt = Date.now();
+  try {
+    const { data, error } = await sb.rpc('podium_overrides', { p_admin: typeof spfGet === 'function' ? spfGet() : null });
+    if (error || !Array.isArray(data)) throw error || new Error('no list');
+    tpSetOverrides(data);
+    try { localStorage.setItem('tp-overrides', JSON.stringify(data)); } catch (e) {}
+  } catch (e) { console.warn('podium_overrides failed, using the last saved list', e); tpOverridesAt = 0; }
+}
+const tpRole = st => { const fix = TP_ROLE_FIX[tpMergeKey(st.name)] || TP_OVR.role[tpOvrKey(st.name)]; if (fix) return fix;
   const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.role) || 'No position set'; };
 // Someone who has left (resigned: true in staff-profiles.js) stays in the race for the
 // period she worked, greyed out so she is not read as a current stylist (Kate, 8 Oct 2026).
-const tpGone = st => { const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return p && p.resigned ? ' tp-gone' : ''; };
+const tpGone = st => { const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.resigned) || TP_OVR.left.has(tpOvrKey(st.name)) ? ' tp-gone' : ''; };
 const tpRoleRank = r => { const i = TP_LADDER.indexOf(r); return i < 0 ? TP_LADDER.length : i; };
 const TP_MAX_COMPARE = 3;
 const tpKey = st => st.mergeKey;
@@ -214,7 +235,7 @@ function tpRoster(dept) {
   const list = order.map(key => tpCombine(groups[key], key))
     .filter(st => (st.net || 0) > 0 || (st.total || 0) > 0)
     .filter(st => tpRole(st) !== 'Assistant')
-    .filter(st => !TP_NOT_STYLISTS.has(tpMergeKey(st.name).replace(/[^A-Z ]/g, '').trim()));
+    .filter(st => !TP_OVR.hide.has(tpOvrKey(st.name)));
   return list.sort((a, b) => (b.net || 0) - (a.net || 0));
 }
 
@@ -389,6 +410,7 @@ async function renderTeam() {
   if (part === 'race' && TP_LEAGUES[tpSort] && TP_LEAGUES[tpSort].counts && tpLeagues().includes(tpSort)) await tpLoadCounts();
   else tpCountsBad = false;
   const lg = tpLg();
+  await tpLoadOverrides();
   let roster = tpRoster(tpDept);
   if (lg.counts && tpCounts) tpApplyCounts(roster, tpCounts);
   // The race is re-ranked by the league picked; ties fall back to net take, which is

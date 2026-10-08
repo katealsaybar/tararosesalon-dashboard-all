@@ -278,6 +278,7 @@ const STAFF_SURNAMES = {
   'GALINA':    'Spierling',
   'GONCALO':   'de Almeida',
   'GRACE':     'Sarmiento',
+  'HARRIET':   'Shannon',     // Kate, 8 Oct 2026: archived in Phorest, was a stylist
   'HAZEL MAE': 'Marco',
   'HELEN':     'Lita',
   'HOLLY':     'Branchett',
@@ -369,6 +370,7 @@ const STAFF_SURNAMES = {
   // below. Was flagged unresolved above until now.
   'MARGIE':    'Sevilla',
   'NEEKA':     'Kainth',
+  'NIMI':      'Firth',        // Kate, 8 Oct 2026: left; Style Director, Al Quoz (archived in Phorest)
   'SHIELA':    'Avena',
   'SIMON':     'Faddoul',
   'SUNITHA':   'Dhakshinamurtht',
