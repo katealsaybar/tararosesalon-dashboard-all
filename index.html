@@ -4209,10 +4209,11 @@ function gateBusy(on){ document.getElementById('loginBtn').disabled = on; }
 
 // Only ?next= rides along to Google and back; anything else in the address stays behind.
 // Kate, 1 Oct 2026: signing in lands on Team Home, unless the link names a dashboard
+// (8 Oct 2026: it lands on the search page, /search/, first; Team Home is a button there)
 // page (?view=), which Google now carries through as ?next= so it isn't lost.
 function gateNextQuery(){
   const q = new URLSearchParams(location.search);
-  const next = q.get('next') || (q.has('view') ? location.pathname + location.search : '/hub/');
+  const next = q.get('next') || (q.has('view') ? location.pathname + location.search : '/search/');
   return '?next=' + encodeURIComponent(next);
 }
 
@@ -4284,7 +4285,7 @@ async function enterIfAllowed(fresh){
     // would otherwise bounce between here and Team Home.
     const kb = await sb.rpc('kb_access');
     if (!kb.error && kb.data && kb.data.level === 1) {
-      location.replace(safeNext && (safeNext.startsWith('/hub/') || safeNext.startsWith('/search/')) ? safeNext : '/hub/');
+      location.replace(safeNext && (safeNext.startsWith('/hub/') || safeNext.startsWith('/search/')) ? safeNext : '/search/');
       return;
     }
     const { data } = await sb.auth.getUser();
@@ -4294,7 +4295,7 @@ async function enterIfAllowed(fresh){
   }
   if (safeNext) { location.replace(safeNext); return; }
   // A bare visit, or a sign-in just now from a link that doesn't name a page.
-  if (window.TRS_BARE_ROOT || (fresh && !new URLSearchParams(location.search).has('view'))) { location.replace('/hub/'); return; }
+  if (window.TRS_BARE_ROOT || (fresh && !new URLSearchParams(location.search).has('view'))) { location.replace('/search/'); return; }
   history.replaceState(null, '', location.pathname + location.search);
   enterDashboard(role, meAsk);
 }
@@ -5103,4 +5104,5 @@ addEventListener('load', sizeTopbar);
 <script src="nav-stars.js?v=20261002a"></script>
 <script src="mobile.js?v=20261008sa"></script>
 <script src="search.js?v=20261008s29"></script>
+<script src="visits.js?v=20261008v1"></script>
 </body>
