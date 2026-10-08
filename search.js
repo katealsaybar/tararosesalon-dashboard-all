@@ -39,8 +39,8 @@
     dashboard: 'home overview kpi sales revenue takings pulse summary',
     branchperf: 'branch staff table figures services retail',
     compare: 'compare versus vs side by side',
-    team: 'podium race ranking leaderboard top performer rebooking retention conversion',
-    teamquad: 'staff quadrant treatment retail rebook rebooking takings conversion retention',
+    team: 'podium race ranking leaderboard top performer',
+    teamquad: 'staff quadrant treatment retail rebook rebooking takings',
     staffperf: 'benchmarks money five kpi promotion rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail',
     staffweeks: 'staff quarterly performance quarter q1 q2 q3 q4 13 week thirteen weekly report emma rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail',
     stafflevels: 'levels promotion grade stylist benchmarks rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail',
@@ -55,6 +55,29 @@
     products: 'products stock orders retail professional spend',
     reviews: 'google reviews ratings stars',
   };
+
+  // Kate, 8 Oct 2026: a metric is a result in its own right, with its meaning, whether or
+  // not Staff Dashboards has been opened this session. Same words as the hover tips in
+  // performance/performance.js (TIPS); change one, change the other.
+  const GLOSSARY = [
+    ['Total revenue', 'Your service sales this month from Phorest, before VAT. Retail is not included.'],
+    ['Hair services', 'Your service sales minus treatments, before VAT.'],
+    ['Treatments', 'Treatment sales on your clients this month, from the branch ledger, before VAT.'],
+    ['Treatments %', 'Treatments as a share of your hair services: treatments ÷ hair services × 100.'],
+    ['Retail', 'Products you sold this month, from Phorest, before VAT.'],
+    ['Retail %', 'Retail as a share of your service sales: retail ÷ total revenue × 100.'],
+    ['Average bill', 'Your service sales divided by your client numbers.'],
+    ['Rebooking %', 'The share of your clients who booked their next visit before they left.'],
+    ['Retention %', 'Of the returning clients you saw 3 to 6 months ago, the share you have seen again in the last 3 months.'],
+    ['Client numbers', 'The clients you saw this month, from the branch ledger.'],
+    ['New client requests', 'New clients who asked for you by name, usually through a referral or your socials.'],
+    ['Request rate %', 'Clients who asked for you (request clients plus new client requests) as a share of your client numbers.'],
+    ['Conversion %', 'Of the brand new clients whose first visit was with you 3 to 6 months ago, the share who came back within 12 weeks.'],
+    ['Column fill %', 'Your booked hours as a share of your available hours, from Phorest.'],
+    ['Colour %', 'The share of your client visits this month that included a colour service.'],
+    ['Reputation score', 'Average star rating of the Google reviews that name you or come from your clients, over the last 90 days. Counts once you have at least 3.'],
+    ['Google reviews', 'Google reviews this month that name you.'],
+  ];
 
   const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const esc = s => (typeof escapeHtml === 'function' ? escapeHtml(s)
@@ -187,6 +210,12 @@
         words: 'all every branches reset', go: () => setBranch(['all']),
       });
     }
+
+    GLOSSARY.forEach(([label, def]) => items.push({
+      kind: 'metric', id: 'metric:' + label, t: label, g: 'Metric · Staff Dashboards', s: def,
+      words: 'metric kpi measure benchmark',
+      go: () => goText('staffperf', label),
+    }));
 
     if (typeof periodPresets === 'function') {
       periodPresets().forEach(p => items.push({
@@ -541,9 +570,9 @@
 
   // ── THE PANEL ──
   let trig, scrim, panel, input, list, index = [], shown = [], cur = 0, lastFocus = null;
-  // full: Enter has been pressed on a search and the panel is showing every match, not
-  // the short list. picked: an arrow key has chosen a row, so Enter opens that row.
-  let full = false, picked = false, hitCount = 0;
+  // picked: an arrow key has chosen a row, so Enter opens that row. Without it, Enter
+  // on a typed search opens the results page.
+  let picked = false, serp, serpIn, serpKind = 'all', serpSeq = 0, serpTimer = 0, serpItems = [], serpKb = [];
 
   function mount() {
     const acts = document.querySelector('.mast-acts');
@@ -584,12 +613,12 @@
     input = panel.querySelector('.gs-in');
     list = panel.querySelector('.gs-list');
     const clear = panel.querySelector('.gs-clear');
-    input.addEventListener('input', () => { clear.hidden = !input.value; full = false; picked = false; render(); });
-    clear.addEventListener('click', () => { input.value = ''; clear.hidden = true; full = false; picked = false; render(); input.focus(); });
+    input.addEventListener('input', () => { clear.hidden = !input.value; picked = false; render(); });
+    clear.addEventListener('click', () => { input.value = ''; clear.hidden = true; picked = false; render(); input.focus(); });
     input.addEventListener('keydown', onKey);
 
     list.addEventListener('click', e => {
-      if (e.target.closest('.gs-more')) { showAll(); input.focus(); return; }
+      if (e.target.closest('.gs-more')) { openSerp(input.value.trim()); return; }
       const act = e.target.closest('.gs-act');
       const row = e.target.closest('.gs-row');
       if (!row) return;
@@ -603,6 +632,7 @@
       if (row && +row.dataset.i !== cur) { cur = +row.dataset.i; paintCursor(); }
     });
 
+    mountSerp();
     addEventListener('resize', () => { placeTrig(); if (!panel.hidden) place(); });
     // The phone keyboard shrinks the visible page: the list ends above it.
     if (window.visualViewport) visualViewport.addEventListener('resize', () => { if (!panel.hidden) place(); });
@@ -619,7 +649,7 @@
     index = buildIndex();
     loadData();
     input.value = '';
-    full = false; picked = false;
+    picked = false;
     panel.querySelector('.gs-clear').hidden = true;
     scrim.hidden = false;
     panel.hidden = false;
@@ -656,7 +686,7 @@
   // tucked away) at the top.
   function place() {
     const phone = isPhone();
-    const w = phone ? innerWidth - 32 : Math.min(full ? 720 : 480, innerWidth - 32);
+    const w = phone ? innerWidth - 32 : Math.min(480, innerWidth - 32);
     const r = trig && trig.offsetParent ? trig.getBoundingClientRect() : null;
     let left, top;
     if (r && r.width && r.bottom > 0) {
@@ -671,21 +701,20 @@
     panel.style.top = top + 'px';
     const vh = window.visualViewport ? visualViewport.height : innerHeight;
     const head = panel.querySelector('.gs-head').offsetHeight || 48;
-    list.style.maxHeight = Math.max(160, Math.min(phone || full ? 9999 : 520, vh - top - head - 16)) + 'px';
+    list.style.maxHeight = Math.max(160, Math.min(phone ? 9999 : 520, vh - top - head - 16)) + 'px';
   }
 
   // How many of each kind can make the short list, so one kind never crowds out the
-  // rest. The full results (Enter) lift the caps: a common word like "conversion" is on
-  // several pages and in several tables, and all of them are listed, like a search engine.
-  const MAX = { page: 5, staff: 5, branch: 4, period: 3, service: 4, client: 4, product: 4, content: 5 };
+  // rest. The results page (Enter) has much roomier caps.
+  const MAX = { metric: 3, page: 5, staff: 5, branch: 4, period: 3, service: 4, client: 4, product: 4, content: 5 };
   const ORDER = Object.keys(MAX);
-  const MAX_FULL = { page: 12, staff: 20, branch: 4, period: 4, service: 15, client: 15, product: 15, content: 40 };
-  const KIND_HEAD = { page: 'Pages', staff: 'Team', branch: 'Branches', period: 'Periods',
-    service: 'Services', client: 'Clients', product: 'Products', content: 'On the pages' };
+  const MAX_SERP = { metric: 12, page: 14, staff: 25, branch: 5, period: 5, service: 20, client: 20, product: 20, content: 40, kb: 20 };
+  const KIND_HEAD = { metric: 'Metrics', page: 'Pages', staff: 'Team', branch: 'Branches', period: 'Periods',
+    service: 'Services', client: 'Clients', product: 'Products', content: 'On the pages', kb: 'Team Home' };
 
   function matches(q) {
-    // Page text that just repeats a service, client or product row is left to that row.
-    const dataNames = new Set(dataItems.map(x => norm(x.t)));
+    // Page text that just repeats a service, client, product or metric row is left to that row.
+    const dataNames = new Set(dataItems.concat(index.filter(x => x.kind === 'metric')).map(x => norm(x.t)));
     const pool = index.concat(dataItems, contentItems().filter(x => !dataNames.has(norm(x.t))));
     let scored = pool.map(x => [x, score(x, q)]).filter(([, s]) => s > 0);
     // Nothing close: loosen up and offer the nearest, rather than a dead end.
@@ -695,69 +724,167 @@
   }
   function capped(all, caps, total) {
     const taken = {};
-    return all.filter(x => (taken[x.kind] = (taken[x.kind] || 0) + 1) <= caps[x.kind]).slice(0, total);
+    return all.filter(x => (taken[x.kind] = (taken[x.kind] || 0) + 1) <= (caps[x.kind] || 10)).slice(0, total);
   }
 
   // One list, best match first, like Team Home. Each row says where it lives in a
-  // small line above its name. Nothing typed: what you opened last, or a hint.
-  // After Enter: every match, with a heading per kind, in a wider panel.
+  // small line above its name. Nothing typed: what you opened last, or a hint. The last
+  // row, as on a search engine, is the way to the full results page.
   function render() {
     const q = norm(input.value.trim());
-    let rows = [], head = '', all = [];
+    let rows = [], head = '';
     if (!q) {
-      full = false;
       const byId = new Map(index.map(x => [x.id, x]));
       rows = recentIds().map(id => byId.get(id)).filter(Boolean);
       if (rows.length) head = 'Recent';
     } else {
-      all = matches(q);
-      rows = full ? capped(all, MAX_FULL, 80) : capped(all, MAX, 12);
+      rows = capped(matches(q), MAX, 12);
     }
-    hitCount = all.length;
-    panel.classList.toggle('gs-full', full);
-    place();
 
     shown = rows;
     let html = head ? `<div class="gs-grp" role="presentation">${esc(head)}</div>` : '';
-    if (full && rows.length) {
-      html += `<div class="gs-sum" role="presentation">${rows.length} result${rows.length === 1 ? '' : 's'} for “${esc(input.value.trim())}”</div>`;
-    }
-    // In the full results rows are grouped by kind, so each kind is one block.
-    if (full) {
-      const order = [], by = {};
-      rows.forEach(x => { if (!by[x.kind]) { by[x.kind] = []; order.push(x.kind); } by[x.kind].push(x); });
-      shown = order.flatMap(k => by[k]);
-      html += shown.map((item, i) => (i === 0 || shown[i - 1].kind !== item.kind
-        ? `<div class="gs-grp" role="presentation">${KIND_HEAD[item.kind] || ''}</div>` : '') + rowHtml(item, i, q)).join('');
-    } else {
-      html += rows.map((item, i) => rowHtml(item, i, q)).join('');
-      // More than the short list shows: say so, and that Enter opens them.
-      const total = capped(all, MAX_FULL, 80).length;
-      if (q && total > rows.length) {
-        html += `<div class="gs-more" role="presentation">See all ${total} results <kbd>Enter</kbd></div>`;
-      }
-    }
+    html += rows.map((item, i) => rowHtml(item, i, q)).join('');
+    if (q) html += `<div class="gs-more" role="presentation">See all results for “${esc(input.value.trim())}” <kbd>Enter</kbd></div>`;
     if (!q && !rows.length) html = '<div class="gs-empty">Type a name, a page, a branch, a service, a client or a product.</div>';
-    else if (!rows.length) html = `<div class="gs-empty">Nothing matches “${esc(input.value.trim())}”.</div>`;
     list.innerHTML = html;
     list.hidden = false;
     cur = 0;
     paintCursor();
   }
 
-  // Enter on a search: every match, grouped. A single match just opens.
-  function showAll() {
-    if (!input.value.trim()) return;
-    full = true; picked = false;
-    render();
-    list.scrollTop = 0;
+  // ── THE RESULTS PAGE ──
+  // Kate, 8 Oct 2026: "parang google lang". Enter on a search opens a page of results,
+  // not the dropdown again: each one a title, where it lives, and a line of text with the
+  // typed words marked. Everything the dropdown can find, plus the Team Home pages whose
+  // text mentions it (kb_search, the same search Team Home runs, as the signed-in person),
+  // with chips to narrow it to one kind.
+  function mountSerp() {
+    serp = document.createElement('div');
+    serp.className = 'gs-serp';
+    serp.hidden = true;
+    serp.setAttribute('role', 'dialog');
+    serp.setAttribute('aria-label', 'Search results');
+    serp.innerHTML = `
+      <div class="gs-serp-top">
+        <div class="gs-serp-bar">${ICON}
+          <input class="gs-serp-in" type="search" autocomplete="off" autocapitalize="off" spellcheck="false"
+            enterkeyhint="search" placeholder="${PLACEHOLDER}" aria-label="Search">
+        </div>
+        <button type="button" class="gs-serp-close">Close</button>
+      </div>
+      <div class="gs-serp-body">
+        <div class="gs-chips" role="tablist"></div>
+        <div class="gs-serp-sum"></div>
+        <div class="gs-serp-list"></div>
+      </div>`;
+    document.body.append(serp);
+    serpIn = serp.querySelector('.gs-serp-in');
+    serpIn.addEventListener('input', () => { clearTimeout(serpTimer); serpTimer = setTimeout(runSerp, 200); });
+    serpIn.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); clearTimeout(serpTimer); runSerp(); if (isPhone()) serpIn.blur(); }
+      else if (e.key === 'Escape') { e.preventDefault(); closeSerp(); }
+    });
+    serp.querySelector('.gs-serp-close').addEventListener('click', closeSerp);
+    serp.addEventListener('click', e => {
+      const chip = e.target.closest('.gs-chip');
+      if (chip) { serpKind = chip.dataset.k; paintSerp(); return; }
+      const act = e.target.closest('.gs-act');
+      const res = e.target.closest('.gs-res');
+      if (!res) return;
+      const item = serpItems[+res.querySelector('.gs-r').dataset.i];
+      if (!item) return;
+      if (item.kind === 'kb') return;           // a real link: opens Team Home in a new tab
+      e.preventDefault();
+      openResult(item, act ? item.acts[+act.dataset.a][1] : item.go);
+    });
+  }
+
+  function openSerp(text) {
+    if (!text || !serp) return;
+    // The dropdown steps aside; the page stays locked behind the results.
+    panel.hidden = true;
+    scrim.hidden = true;
+    serp.hidden = false;
+    document.body.classList.add('gs-open');
+    serpKind = 'all';
+    serpIn.value = text;
+    runSerp();
+    serp.querySelector('.gs-serp-body').scrollTop = 0;
+    serp.scrollTop = 0;
+  }
+  function closeSerp() {
+    if (!serp || serp.hidden) return;
+    serp.hidden = true;
+    document.body.classList.remove('gs-open');
+    if (lastFocus && lastFocus.focus && document.contains(lastFocus)) lastFocus.focus({ preventScroll: true });
+  }
+  function openResult(item, fn) {
+    remember(item.id);
+    serp.hidden = true;
+    document.body.classList.remove('gs-open');
+    if (typeof toggleNav === 'function' && document.body.classList.contains('nav-open') && isPhone()) toggleNav(false);
+    fn();
+  }
+
+  function runSerp() {
+    const text = serpIn.value.trim();
+    const q = norm(text);
+    const seq = ++serpSeq;
+    serpKb = [];
+    serpItems = q ? capped(matches(q), MAX_SERP, 150) : [];
+    paintSerp();
+    // Team Home's pages come back a moment later.
+    if (q.length >= 2 && typeof sb !== 'undefined') {
+      sb.rpc('kb_search', { q: text }).then(({ data, error }) => {
+        if (seq !== serpSeq || error) return;
+        serpKb = (data || []).map(r => ({
+          kind: 'kb', id: 'kb:' + r.slug, t: r.title, g: 'Team Home · ' + (r.group_name || 'Page'),
+          snip: r.snippet ? '…' + r.snippet + '…' : '', href: '/hub/kb.html?p=' + encodeURIComponent(r.slug),
+        }));
+        paintSerp();
+      }, () => {});
+    }
+  }
+
+  // What a page covers, as its line of text: only the typed words it is known by.
+  const pageSnip = (item, q) => {
+    const parts = q.split(/\s+/).filter(Boolean);
+    const hit = [...new Set((PAGE_WORDS[item.view] || '').split(/\s+/).filter(w => w.length > 1 && parts.some(p => norm(w).startsWith(p))))];
+    return hit.length ? 'Covers ' + hit.slice(0, 6).join(', ') : '';
+  };
+
+  function paintSerp() {
+    const text = serpIn.value.trim(), q = norm(text);
+    const all = serpItems.filter(x => x.kind !== 'kb').concat(serpKb);
+    // Local results lead; Team Home's pages follow. Chips narrow it to one kind.
+    const counts = {};
+    all.forEach(x => { counts[x.kind] = (counts[x.kind] || 0) + 1; });
+    const kinds = Object.keys(KIND_HEAD).filter(k => counts[k]);
+    if (serpKind !== 'all' && !counts[serpKind]) serpKind = 'all';
+    serp.querySelector('.gs-chips').innerHTML = kinds.length > 1
+      ? [['all', 'All', all.length]].concat(kinds.map(k => [k, KIND_HEAD[k], counts[k]])).map(([k, l, n]) =>
+        `<button type="button" role="tab" class="gs-chip${k === serpKind ? ' on' : ''}" data-k="${k}" aria-selected="${k === serpKind}">${esc(l)} <span>${n}</span></button>`).join('')
+      : '';
+    const rows = serpKind === 'all' ? all : all.filter(x => x.kind === serpKind);
+    // The click handler finds a row by position in serpItems; keep both in step.
+    serpItems = rows;
+    serp.querySelector('.gs-serp-sum').textContent = !q ? '' : rows.length
+      ? `${rows.length} result${rows.length === 1 ? '' : 's'} for “${text}”`
+      : '';
+    serp.querySelector('.gs-serp-list').innerHTML = rows.length ? rows.map((x, i) => {
+      const snip = x.snip || x.s || (x.kind === 'page' ? pageSnip(x, q) : '');
+      const acts = x.acts ? `<span class="gs-acts">${x.acts.map(([l], a) => `<button type="button" class="gs-act" data-a="${a}">${esc(l)}</button>`).join('')}</span>` : '';
+      const open = x.href ? `<a class="gs-r" data-i="${i}" href="${esc(x.href)}" target="_blank" rel="noopener">` : `<a class="gs-r" data-i="${i}" href="#">`;
+      return `<div class="gs-res">${open}<span class="gs-r-g">${esc(x.g || '')}</span><span class="gs-r-t">${highlight(x.t, q)}</span></a>`
+        + (snip ? `<div class="gs-r-s">${highlight(snip, q)}</div>` : '') + acts + '</div>';
+    }).join('') : (q ? `<div class="gs-empty">Nothing matches “${esc(text)}”.</div>` : '');
   }
 
   // Team Home's row: where it lives, the name (matched letters marked), one line
   // more. A person's other jumps (stats, figures, 13 weeks) show on the top row
   // only, when she is clearly the one you were after.
   function rowHtml(item, i, q) {
-    const acts = item.acts && q && i === 0 && !full
+    const acts = item.acts && q && i === 0
       ? `<span class="gs-acts">${item.acts.slice(1).map(([l], a) => `<button type="button" class="gs-act" data-a="${a + 1}" tabindex="-1">${esc(l)}</button>`).join('')}</span>`
       : '';
     return `<div class="gs-row" role="option" id="gsOpt${i}" data-i="${i}">
@@ -784,9 +911,9 @@
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const item = shown[cur];
-      // Like a search engine: Enter on a typed search lists every match. An arrowed-to
-      // row, a recent pick, or the only match opens straight away.
-      if (input.value.trim() && !full && !picked && hitCount > 1) showAll();
+      // Like a search engine: Enter on a typed search opens the results page. An arrowed-to
+      // row, or a recent pick with nothing typed, opens straight away.
+      if (input.value.trim() && !picked) openSerp(input.value.trim());
       else if (item) choose(item, item.go);
     } else if (e.key === 'Escape') {
       e.preventDefault();
@@ -805,8 +932,10 @@
   // / or Ctrl+K from anywhere, unless you are typing in a field already.
   document.addEventListener('keydown', e => {
     const typing = e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]');
+    if (e.key === 'Escape' && serp && !serp.hidden) { e.preventDefault(); closeSerp(); return; }
     if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
+      if (serp && !serp.hidden) { closeSerp(); return; }
       panel && !panel.hidden ? close() : open();
     } else if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
