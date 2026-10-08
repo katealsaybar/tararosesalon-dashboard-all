@@ -97,6 +97,13 @@ body.kb-wait .wrap{visibility:hidden}
 .kb-result mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 1px}
 .kb-empty{padding:14px 12px;color:var(--muted);font-size:14px}
 
+/* Kate, 8 Oct 2026: link to /search/, beside the page title on a desktop; the phone's is the first row of the account menu. */
+.kb-titlerow{display:flex;align-items:baseline;gap:14px;min-width:0}
+.kb-searchpage{flex-shrink:0;font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap}
+.kb-searchpage:hover,.kb-searchpage:focus-visible{color:var(--text);text-decoration:underline;outline:0}
+@media (min-width:761px){.kb-menu a.kb-menu-searchpage{display:none}}
+@media (max-width:760px){.kb-searchpage{display:none}}
+
 /* Account menu */
 .kb-account{position:relative;flex-shrink:0}
 .kb-account-btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px 0 6px;border-radius:999px;
