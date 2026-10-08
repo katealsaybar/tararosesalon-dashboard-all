@@ -104,8 +104,8 @@
         const photo = p.photo ? 'assets/staff/' + p.photo : (p.photoFull || '');
         items.push({
           kind: 'staff', id: 'staff:' + key, t: full, g: 'Team',
-          s: [p.role, p.resigned ? 'Former' : bName].filter(Boolean).join(' · '),
-          words: [p.role, bName, p.ig, p.resigned ? 'former resigned' : ''].join(' '),
+          s: [p.title || p.role, p.resigned ? 'Former' : bName].filter(Boolean).join(' · '),
+          words: [p.role, p.title, bName, p.ig, p.resigned ? 'former resigned' : ''].join(' '),
           photo, resigned: !!p.resigned,
           go: () => whoGoCard(key),
           acts: [

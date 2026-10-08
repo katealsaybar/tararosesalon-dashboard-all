@@ -156,7 +156,7 @@ async function tpLoadOverrides() {
   } catch (e) { console.warn('podium_overrides failed, using the last saved list', e); tpOverridesAt = 0; }
 }
 const tpRole = st => { const fix = TP_ROLE_FIX[tpMergeKey(st.name)] || TP_OVR.role[tpOvrKey(st.name)]; if (fix) return fix;
-  const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.role) || 'No position set'; };
+  const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && (p.title || p.role)) || 'No position set'; };
 // Someone who has left (resigned: true in staff-profiles.js) stays in the race for the
 // period she worked, greyed out so she is not read as a current stylist (Kate, 8 Oct 2026).
 const tpGone = st => { const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.resigned) || TP_OVR.left.has(tpOvrKey(st.name)) ? ' tp-gone' : ''; };

@@ -1818,12 +1818,12 @@ async function renderStylistCards() {
         : nameHtml + surname;
       return `
         <div class="sc-item"${cardId}${card ? ' data-has-card="1"' : ''}
-             title="${escapeHtml([s.name, s.last].filter(Boolean).join(' '))} · ${escapeHtml(s.role || '')}">
+             title="${escapeHtml([s.name, s.last].filter(Boolean).join(' '))} · ${escapeHtml(s.title || s.role || '')}">
           <div class="sc-head"${card ? ' onclick="toggleStylistCard(this)" aria-expanded="false"' : ''}>
             ${photo}
             <div class="sc-meta">
               <div class="sc-name${s.resigned ? ' is-resigned' : ''}">${whoName}</div>
-              <div class="sc-role" style="color:${colour}">${escapeHtml(s.role || '')}</div>
+              <div class="sc-role" style="color:${colour}">${escapeHtml(s.title || s.role || '')}</div>
               <div class="sc-handle">${handle}</div>
             </div>
             ${chevron}

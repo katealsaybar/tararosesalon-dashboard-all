@@ -94,7 +94,10 @@ const STAFF_PROFILES = {
   'LAILA':     { role: 'Assistant', branch: 'KCA' },
 
   // -- Mamsha Al Saadiyat --
-  'EMMA':      { photo: 'emma.png',      role: 'Style Director', branch: 'SAA',  ig: 'emmalou.williamson' },
+  // Kate, 8 Oct 2026: Emma and Ashleigh are educators now. `role` stays Style Director because
+  // the dashboard counts and groups by it; `title` is what is printed beside their name
+  // (org-chart.js has the same two titles).
+  'EMMA':      { photo: 'emma.png',      role: 'Style Director', title: 'Treatments & Retail Educator', branch: 'SAA',  ig: 'emmalou.williamson' },
   'JEIDA':     { photo: 'jeida.png',     role: 'Style Director', branch: 'SAA',  ig: 'jeida11' },
   'HOLLY':     { photo: 'holly.png',     role: 'Senior Stylist', branch: 'SAA',  ig: 'holly_the_hairdresser' },
   // Kate, 24 Sep 2026: resigned 9 Sep 2026. Was only on the Former Stylists grid
@@ -148,7 +151,7 @@ const STAFF_PROFILES = {
 
   // -- Motor City --
   'ALAN':      { photo: 'alan.png',      role: 'Style Director', branch: 'MC',   ig: 'alan_joseph_hair' },
-  'ASHLEIGH':  { photo: 'ashleigh.png',  role: 'Style Director', branch: 'MC',   ig: 'ashleighfairgrievehair' },
+  'ASHLEIGH':  { photo: 'ashleigh.png',  role: 'Style Director', title: 'Blondes & Extensions Educator', branch: 'MC',   ig: 'ashleighfairgrievehair' },
   'LUCY':      { photo: 'lucy.png',      role: 'Style Director', branch: 'MC',   ig: 'lucy.glow.hair' },
   'ELISE':     { photo: 'elise.png',     role: 'Senior Stylist', branch: 'MC',   ig: 'ehfhair' },
   'ROBYN':     { photo: 'robyn.png',     role: 'Senior Stylist', branch: 'MC',   ig: 'robynharthair' },
