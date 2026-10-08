@@ -1402,7 +1402,12 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
   padding:8px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12px;line-height:1.45;font-weight:400;
   letter-spacing:0;text-transform:none;white-space:normal;box-shadow:0 6px 20px rgba(0,0,0,.18)}
 .ih-lbl:hover .ih-tip,.ih-lbl:focus .ih-tip,.ih-lbl:focus-within .ih-tip{display:block}
-.opm-tile:nth-child(4n) .ih-tip,.metric:nth-child(3n) .ih-tip{left:auto;right:0}
+.metric .ih-lbl,.opm-tile .ih-lbl{position:static}
+.metric .ih-tip{left:14px;right:14px;top:48px;width:auto;max-width:none}
+.opm-tile{position:relative}
+.opm-tile .ih-tip{left:10px;right:10px;top:36px;width:auto;max-width:none}
+.m-sub .tabular{white-space:nowrap}
+.m-sub span:first-child{min-width:0}
 .att-ph{margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);font-size:12.5px;color:var(--muted)}
 .att-bars .bar-line{display:grid;grid-template-columns:64px 1fr 72px;gap:12px;align-items:center}
 .att-bars .bar-lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
