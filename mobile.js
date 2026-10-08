@@ -97,8 +97,8 @@
     const rg = rk === 'All time' ? 'All time' : /^Last \d+ days$/.test(rk) ? rk.replace('Last ', '') : rangeShort(f, t);
     // Kate, 1 Oct 2026: say when clients are counted through the door, so the pill
     // tells you the page is not on the usual Handled count.
-    const door = typeof CLIENT_BASIS !== 'undefined' && CLIENT_BASIS === 'door'
-      && typeof CLIENT_VIEWS !== 'undefined' && CLIENT_VIEWS.has(typeof CURRENT_VIEW !== 'undefined' ? CURRENT_VIEW : '');
+    // Kate, 8 Oct 2026: there is no Clients switch, so no "Per visit" tag on the summary.
+    const door = false;
     out.textContent = rg ? `${br} · ${rg}` : br;
     // Its own tag beside the summary, so it never gets cut off with the branch name.
     let tag = $('fSheetDoor');

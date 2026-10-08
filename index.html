@@ -1221,6 +1221,14 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
   color:var(--muted);margin-left:3px}
 .win-v{font-size:14.5px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
 .win-v b{color:var(--text);font-weight:600}
+/* Per visit / Per staff pill on the cards that count clients, and the second count under the figure. */
+.m-pill{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:999px;vertical-align:middle;
+  font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.card-title .m-pill{font-family:'Inter',sans-serif;font-style:normal;vertical-align:middle}
+.m-sub{display:flex;justify-content:space-between;gap:10px;margin-top:6px;padding-top:6px;
+  border-top:1px dashed var(--border);font-size:13.5px;color:var(--muted)}
+.cmp-muted td{color:var(--muted)}
 .tagb{display:inline-block;margin-top:8px;font-size:11px;font-weight:700;letter-spacing:.1em;
   text-transform:uppercase;padding:2px 8px;border-radius:20px;background:var(--surface2);color:var(--muted)}
 
@@ -4094,12 +4102,12 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261006ph"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261008s9"></script>
+<script src="dashboard.js?v=20261008sa"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20261008s6"></script>
-<script src="compare.js?v=20261007ncr"></script>
+<script src="compare.js?v=20261008sa"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20261005dots"></script>
@@ -5056,6 +5064,6 @@ addEventListener('load', sizeTopbar);
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
 <script src="nav-collapse.js?v=20260924a"></script>
 <script src="nav-stars.js?v=20261002a"></script>
-<script src="mobile.js?v=20261008rv"></script>
+<script src="mobile.js?v=20261008sa"></script>
 <script src="search.js?v=20261008s21"></script>
 </body>

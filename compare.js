@@ -234,12 +234,14 @@ function cmpMetrics() {
     { name: 'Retail',                   kind: 'aed', up: true, get: s => nz(s.retailTotal) },
     { group: 'Clients' },
     { name: 'Clients',                  sub: CLIENT_BASIS === 'door' ? 'through the door' : null, kind: 'n', up: true, get: s => nz(clientsOf(s)) },
+    { name: 'Handled by staff',         muted: true, kind: 'n', up: true, get: s => nz(s.totalClients) },
     { name: 'Hair clients',             kind: 'n', up: true, get: s => nz(s.hairTotalClients) },
     { name: 'Beauty clients',           kind: 'n', up: true, get: s => nz(s.beautyTotalClients) },
     { name: 'New clients',              kind: 'n', up: true, get: s => nz(s.newClientsTotal) },
     { name: 'Rebooked',                 kind: 'n', up: true, get: s => nz(s.totalRebooked) },
     { group: 'Averages' },
     { name: 'Avg bill',                 sub: CLIENT_BASIS === 'door' ? 'per client through the door' : null, kind: 'avg', up: true, get: s => nz(avgBillOf(s)) },
+    { name: 'Avg bill, per staff count', muted: true, kind: 'avg', up: true, get: s => nz(s.avgBill) },
     { name: 'Hair avg bill',            kind: 'avg', up: true, get: s => nz(s.hairAvgBill), target: () => TARGETS.hairAvgBill },
     { name: 'Beauty avg bill',          kind: 'avg', up: true, get: s => (s.beautyTotalClients ? nz(s.beautyAvgBill) : null), target: () => TARGETS.beautyAvgBill },
     { group: 'Benchmarks' },
@@ -356,7 +358,6 @@ function cmpControlsHtml() {
         <input type="checkbox" ${cmpState.per ? 'checked' : ''} ${unequal ? '' : 'disabled'} onchange="cmpSetPer(this.checked)">
         Per day <small>${unequal ? `off shows totals. The windows are different lengths (${daysBetween(cmpState.a.from, cmpState.a.to)} vs ${daysBetween(cmpState.b.from, cmpState.b.to)} days); tick to see a daily average instead` : 'both windows are the same length'}</small>
       </label>
-      ${cmpClientSeg()}
     </div>`;
 }
 
@@ -505,7 +506,7 @@ function cmpResultsHtml(sa, sb2) {
         }
       }
     }
-    rows.push(`<tr class="${m.lead ? 'lg-tot' : ''}">
+    rows.push(`<tr class="${m.lead ? 'lg-tot' : ''}${m.muted ? ' cmp-muted' : ''}">
       <td>${escapeHtml(m.name)}${m.sub ? ` <small class="cmp-sub">${escapeHtml(m.sub)}</small>` : ''}</td>
       <td class="r${hit(va, tA)}">${cmpFmt(m.kind, va, per)}${tgtNote(tA, va)}</td>
       <td class="r${hit(vb, tB)}">${cmpFmt(m.kind, vb, per)}${tgtNote(tB, vb)}</td>

@@ -670,16 +670,9 @@ function paintFilterChips() {
   pEl.innerHTML = chipRow(periodChips(shown).map(c => ({
     v: c.v, label: c.label, on: c.v === shown, disabled: onLedger })));
 
-  // Clients: handled or through the door. Only on the pages it changes.
-  const cRow = document.getElementById('clientRow'), cEl = document.getElementById('clientChips');
-  if (cRow && cEl) {
-    cRow.hidden = !CLIENT_VIEWS.has(CURRENT_VIEW);
-    const b = (v, label, title) => `<button type="button" class="chip seg-b" aria-pressed="${CLIENT_BASIS === v}" data-v="${v}" title="${title}">${label}</button>`;
-    cEl.innerHTML = `<span class="seg" role="group" aria-label="How clients are counted">`
-      + b('handled', 'Per staff', 'Ledgers: each staff member counts the clients she served')
-      + b('door', 'Per visit', 'Phorest: each client counted once a day, however many staff she saw')
-      + `</span>`;
-  }
+  // Clients: no switch any more (Kate, 8 Oct 2026); the row stays hidden.
+  const cRow = document.getElementById('clientRow');
+  if (cRow) cRow.hidden = true;
 
   // Currency: Bahrain only, on the pages that can convert it (Kate, 3 Oct 2026).
   const kRow = document.getElementById('curRow'), kEl = document.getElementById('curChips');
@@ -856,16 +849,6 @@ document.addEventListener('click', e => {
     setBahCur(chip.dataset.v);
     paintFilterChips();
     refreshActiveView();
-    return;
-  }
-
-  if (chip.closest('#clientChips')) {
-    if (chip.dataset.v === CLIENT_BASIS) return;
-    setClientBasis(chip.dataset.v);
-    paintFilterChips();
-    refreshActiveView();
-    const cv = document.getElementById('view-compare');
-    if (cv && cv.style.display !== 'none' && typeof renderCompare === 'function') renderCompare();
     return;
   }
 
@@ -3599,15 +3582,12 @@ function cachedRange(key, loader) {
 // takes in Bahrain stays on Handled and says so.
 const DOOR_BRANCHES = ['SAA', 'KCA', 'MC', 'AQ', 'FRT'];
 const CLIENT_VIEWS = new Set(['dashboard', 'branchperf', 'compare']);
-// Kate, 8 Oct 2026: Through the door is the default, so the Pulse receipt shows both counts
-// (clients through the door, and handled by staff beneath it) the moment it opens. Anyone
-// who has picked Handled before keeps it.
-let CLIENT_BASIS = 'door';
-try { if (localStorage.getItem('trs-clients') === 'handled') CLIENT_BASIS = 'handled'; } catch (e) {}
-function setClientBasis(v) {
-  CLIENT_BASIS = v === 'door' ? 'door' : 'handled';
-  try { localStorage.setItem('trs-clients', CLIENT_BASIS); } catch (e) {}
-}
+// Kate, 8 Oct 2026: no Clients switch. Every card counts clients through the door (Phorest)
+// and, where the handled count matters, says it beside it: the receipt, the Clients and
+// Avg bill cards and Comparison each carry both. CLIENT_BASIS is kept as a constant for
+// the code that reads it; setClientBasis does nothing now.
+const CLIENT_BASIS = 'door';
+function setClientBasis() {}
 // { SAA: n, KCA: n, ... } for one window, fetched once per window.
 function doorClientsByBranch(from, to) {
   return cachedRange(`door|${dateToIso(from)}|${dateToIso(to)}`, async () => {
@@ -4343,13 +4323,6 @@ async function renderDashboard() {
       <div class="r-row"><span class="r-label">Clients${doorOn(s) ? ' through the door' : ''}</span><span class="r-val tabular">${num0(clientsOf(s))}</span></div>
       ${doorOn(s) ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">handled by staff</span><span class="r-val tabular" style="opacity:.75">${num0(s.totalClients)}</span></div>` : ''}
       <div class="r-row"><span class="r-label">Avg bill</span><span class="r-val tabular">${num0(avgBillOf(s))}</span></div>
-      ${s.doorClients != null ? `<div class="r-cl" role="group" aria-label="How clients are counted">
-        <span class="r-cl-k">Client count</span>
-        <span class="r-cl-seg">${[['handled', 'Per staff'], ['door', 'Per visit']].map(([v, l]) =>
-          `<button type="button" aria-pressed="${CLIENT_BASIS === v}" onclick="pulseSetClients('${v}')">${l}</button>`).join('')}</span>
-        <span class="r-cl-n">${CLIENT_BASIS === 'door'
-          ? 'Each client once a day, however many staff she saw.'
-          : 'Each staff member counts her own clients, so a client seen by two counts twice. Targets use this.'}</span></div>` : ''}
       ${targetsBlock}
       <div class="r-rule"></div>
       <div class="r-foot">All money in ${CUR()}, takings before staff cost.</div>`;
@@ -4426,6 +4399,8 @@ async function renderDashboard() {
           ? 'Handled, not through the door: Phorest’s Sales Transactions have no count for this selection (Bahrain is not in them), so this is each staff member’s clients from the ledgers.'
           : 'Handled: each staff member counts the clients she served (ledgers), hair and beauty.',
       v: num0(clientsOf(s)), status: clientTrend.status,
+      pill: doorOn(s) ? 'Per visit' : null,
+      sub: doorOn(s) ? [['Handled by staff', num0(s.totalClients)]] : [],
       t: getClientTarget(sel.branch), verdict: clientTrend.verdict,
       splits: splitsOf([
         { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} clients`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
@@ -4433,6 +4408,8 @@ async function renderDashboard() {
       ]) },
     { k:'Avg bill', def: doorOn(s) ? 'Net take divided by clients through the door: what one visit is worth.' : 'Net take divided by clients: what one visit is worth.',
       v: aed0(avgBillOf(s)), status: avgBillStatus,
+      pill: doorOn(s) ? 'Per visit' : null,
+      sub: doorOn(s) ? [[`Per staff count (${num0(s.totalClients)})`, aed0(s.avgBill)]] : [],
       t: TARGETS.hairAvgBill == null ? 'No avg-bill target set for this branch yet'
         : `Hair target ${TARGETS.hairAvgBill} · Beauty target ${TARGETS.beautyAvgBill}${doorOn(s) ? ` · ${aed0(avgTarget)} a door client` : ''}`, verdict: avgBillVerdict,
       splits: splitsOf([
@@ -4695,10 +4672,11 @@ async function renderDashboard() {
 <div class="three">
   ${THREE.map(m => `
     <div class="metric st-${m.status}">
-      <div class="m-k">${m.k}</div>
+      <div class="m-k">${m.k}${m.pill ? `<span class="m-pill">${m.pill}</span>` : ''}</div>
       <div class="m-def">${m.def}</div>
       <div class="m-v tabular ${m.status === 'good' ? 'good' : m.status === 'warn' ? 'warn' : 'bad'}">${m.v}</div>
       <div class="m-t">${m.t}</div>
+      ${(m.sub || []).map(([k, v]) => `<div class="m-sub"><span>${k}</span><span class="tabular">${v}</span></div>`).join('')}
       ${m.splits.length ? `<div class="m-split">${m.splits.map(splitBar).join('')}</div>` : ''}
       <span class="verdict st-${m.status}">${m.verdict}</span>
     </div>`).join('')}
@@ -4754,7 +4732,7 @@ ${hasBeauty ? `
     </div>
   </div>
   <div class="card">
-    <div class="card-title">Branch Performance</div>
+    <div class="card-title">Branch Performance<span class="m-pill">${brDoor ? 'Per visit' : 'Per staff'}</span></div>
     <div class="card-sub">Net revenue by branch. The dashed line is the group average.${brDoor ? ' Visits are clients through the door, from Phorest.' : ''}</div>
     <div class="cols-plot">${colsPlot}</div>
     <div class="cols-x">${colsX}</div>
