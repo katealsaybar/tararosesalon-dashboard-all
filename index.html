@@ -502,6 +502,9 @@ body.orgchart-pop main#orgChartContent{max-width:none;padding:6px 14px 40px}
 .nav-home{display:flex;align-items:center;justify-content:center;gap:7px;margin:0 10px 14px;padding:8px 12px;border-radius:20px;
   background:var(--accent-mint);color:#1A1A1A;text-decoration:none;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
 @media(hover:hover){.nav-home:hover{box-shadow:0 0 0 1px #1A1A1A inset}}
+/* Kate, 8 Oct 2026: the way back to the search page (/search/), a quiet second row under Team Home. */
+.nav-home.nav-search{margin-top:-6px;background:transparent;color:var(--text);box-shadow:0 0 0 1px var(--border) inset}
+@media(hover:hover){.nav-home.nav-search:hover{box-shadow:0 0 0 1px var(--text) inset}}
 /* A scoped sign-in (Bahrain's team, TRS_SCOPE): no search or Ask box, both reach UAE data. */
 body.scoped #gsTrig, body.scoped #trs-ask{display:none!important}
 /* "Hello, Kate" beside the header buttons, from dashboard_users (Kate, 25 Sep 2026). */
@@ -3387,6 +3390,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   </div>
   <!-- Kate, 1 Oct 2026: Team Home sits right under the brand (it was at the bottom, by Log Out, and easy to miss). -->
   <a class="nav-home" href="/hub/"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Team Home</a>
+  <a class="nav-home nav-search" href="/search/"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search page</a>
 
   <!-- Kate, 6 Oct 2026: the sidebar uses Team Home's own groups, so the two read the
        same: Numbers, Targets (was Today), Content, People. Numbers is long, so it carries small

@@ -43,6 +43,8 @@
   /* Suggestions drop under the bar as Team Home's search results do (hub.css .kb-results). */
   .sr-sug{text-align:left;top:calc(100% + 10px)}
   .sr-sug .kb-result{cursor:pointer}
+  .sr-sug .sr-fix{color:var(--muted);font-size:14px;margin-bottom:2px}
+  .sr-sug .sr-fix b{color:var(--text)}
   .sr-sug .sr-all{color:var(--muted);font-size:14px;border-top:1px solid var(--border2);border-radius:0 0 8px 8px;margin-top:4px;padding-top:12px}
   .sr-go{display:flex;justify-content:center;gap:12px;margin-top:24px;flex-wrap:wrap}
   /* inline-flex, so the label sits in the middle of the button whatever the button's height */
@@ -270,15 +272,61 @@
   });
   local.forEach(function (x) { x.tw = words(x.t); x.bw = words(x.b); });
   function words(s) { return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').match(/[a-z0-9%]+/g) || []; }
-  function hasAll(q, ws) { return q.every(function (t) { return ws.some(function (w) { return w.indexOf(t) === 0; }); }); }
+  // Typos, by the dashboard search's own rules (search.js tokMatch): a word of four letters or
+  // fewer has to be exact; from five, a slip of one letter (two from nine) still lands, a swap of
+  // two neighbours counts as one, and the word may be half typed.
+  function dist(a, b) {
+    var d = [], i, j;
+    for (i = 0; i <= a.length; i++) d[i] = [i];
+    for (j = 1; j <= b.length; j++) d[0][j] = j;
+    for (i = 1; i <= a.length; i++) for (j = 1; j <= b.length; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+    return d[a.length][b.length];
+  }
+  function slip(t, w) {
+    if (t.length < 5 || w.length < 5) return 9;
+    var room = t.length >= 9 ? 2 : 1, best = 9;
+    [w, w.slice(0, t.length), w.slice(0, t.length + 1)].forEach(function (c) {
+      if (c.length >= 3 && Math.abs(c.length - t.length) <= room) best = Math.min(best, dist(t, c));
+    });
+    return best <= room ? best : 9;
+  }
+  // 3 when every typed word starts a word of the text, 2 when some only land by a slip, 0 when one does not land.
+  function fit(q, ws) {
+    var lvl = 3;
+    for (var i = 0; i < q.length; i++) {
+      var t = q[i];
+      if (ws.some(function (w) { return w.indexOf(t) === 0; })) continue;
+      if (ws.some(function (w) { return slip(t, w) < 9; })) { lvl = 2; continue; }
+      return 0;
+    }
+    return lvl;
+  }
   function localHits(q) {
     var out = [];
     local.forEach(function (x) {
-      var s = hasAll(q, x.tw) ? (words(x.t).join(' ').indexOf(q.join(' ')) === 0 ? 4 : 3) : hasAll(q, x.tw.concat(x.bw)) ? 1 : 0;
+      var t = fit(q, x.tw), s = 0;
+      if (t === 3) s = words(x.t).join(' ').indexOf(q.join(' ')) === 0 ? 5 : 4;
+      else if (t === 2) s = 3;
+      else { var b = fit(q, x.tw.concat(x.bw)); s = b === 3 ? 2 : b === 2 ? 1 : 0; }
       if (s) out.push({ x: x, s: s });
     });
     return out.sort(function (a, b) { return b.s - a.s; }).slice(0, 5).map(function (o) { return o.x; });
   }
+  // Every word Team Home's cards use, to put a mistyped word right before Team Home's pages are searched
+  // (kb_search matches the letters it is given, so a slip finds nothing there).
+  var vocab = {};
+  local.forEach(function (x) { x.tw.concat(x.bw).forEach(function (w) { if (w.length >= 5) vocab[w] = 1; }); });
+  var vocabList = Object.keys(vocab);
+  function fixWord(t) {
+    if (t.length < 5 || vocabList.some(function (w) { return w.indexOf(t) === 0; })) return t;
+    var best = t, bd = 9;
+    vocabList.forEach(function (w) { var d = slip(t, w); if (d < bd) { bd = d; best = w; } });
+    return best;
+  }
+  function fixQuery(q) { return q.map(fixWord); }
   function mark(text, q) {
     var out = esc(text);
     q.filter(function (w) { return w.length > 1; }).forEach(function (w) {
@@ -289,8 +337,10 @@
   var items = [], active = -1, seq = 0, timer = 0, kbHits = [], kbFor = '';
   function closeSug() { box.classList.remove('open'); box.innerHTML = ''; items = []; active = -1; input.setAttribute('aria-expanded', 'false'); }
   function paintSug(raw) {
-    var q = words(raw);
-    items = localHits(q).map(function (x) { return { t: x.t, h: x.h, g: x.g, s: x.b }; });
+    var q = words(raw), fixed = fixQuery(q), fix = fixed.join(' ') !== q.join(' ') ? fixed.join(' ') : '';
+    items = fix ? [{ fix: fix, t: 'Did you mean ' + fix + '?' }] : [];
+    items = items.concat(localHits(q).map(function (x) { return { t: x.t, h: x.h, g: x.g, s: x.b }; }));
+    q = q.concat(fixed);
     if (kbFor === raw) {
       var have = {}; items.forEach(function (i) { have[i.h] = 1; });
       kbHits.forEach(function (r) {
@@ -302,6 +352,7 @@
     }
     items.push({ all: true, t: 'See all results for “' + raw + '”' });
     box.innerHTML = items.map(function (it, i) {
+      if (it.fix) return '<a class="kb-result sr-fix' + (i === active ? ' active' : '') + '" role="option" href="#" data-i="' + i + '">Did you mean <b>' + esc(it.fix) + '</b>?</a>';
       if (it.all) return '<a class="kb-result sr-all' + (i === active ? ' active' : '') + '" role="option" href="#" data-i="' + i + '">' + esc(it.t) + '</a>';
       return '<a class="kb-result' + (i === active ? ' active' : '') + '" role="option" href="' + esc(it.h) + '" data-i="' + i + '">' +
         '<div class="kb-result-group">' + esc(it.g || '') + '</div>' +
@@ -325,8 +376,14 @@
     var mine = ++seq;
     timer = setTimeout(async function () {
       var r = await c.rpc('kb_search', { q: raw });
-      if (mine !== seq) return;                       // typed on since
       var rows = r.error ? [] : (r.data || []);
+      // Nothing for the words as typed: try them as Team Home's own words spell them.
+      var fixed = fixQuery(words(raw)).join(' ');
+      if (!rows.length && fixed && fixed !== words(raw).join(' ')) {
+        r = await c.rpc('kb_search', { q: fixed });
+        rows = r.error ? [] : (r.data || []);
+      }
+      if (mine !== seq) return;                       // typed on since
       if (KB.viewAs) rows = rows.filter(function (it) { return KB.allowed.indexOf(it.section) >= 0 && KB.shows(it.slug); });
       kbHits = rows.slice(0, 5); kbFor = raw;
       if (input.value.trim() === raw) paintSug(raw);
@@ -343,13 +400,20 @@
       if (active >= 0) box.querySelectorAll('.kb-result')[active].scrollIntoView({ block: 'nearest' });
     } else if (e.key === 'Enter' && active >= 0 && items[active] && !items[active].all) {
       e.preventDefault();
-      location.href = items[active].h;
+      if (items[active].fix) useFix(items[active].fix); else location.href = items[active].h;
     }
   });
   box.addEventListener('click', function (e) {
     var a = e.target.closest('.kb-result');
     if (a && a.classList.contains('sr-all')) { e.preventDefault(); submitQuery(); }
+    else if (a && a.classList.contains('sr-fix')) { e.preventDefault(); useFix(items[+a.dataset.i].fix); }
   });
+  // "Did you mean": the corrected words go into the bar and the suggestions are drawn again for them.
+  function useFix(text) {
+    input.value = text;
+    input.dispatchEvent(new Event('input'));
+    input.focus();
+  }
   box.addEventListener('mousedown', function (e) { e.preventDefault(); });   // keep the bar focused while choosing
   document.addEventListener('click', function (e) { if (!box.contains(e.target) && e.target !== input) closeSug(); });
 
