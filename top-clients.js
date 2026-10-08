@@ -16,14 +16,14 @@
 // lost_client_detail allows), and phone numbers come back for the owner login only,
 // because client_contacts' own policy decides that, not this file.
 const TC_STORE = 'trs-top-clients';
-const TC = { branch: 'all', period: 'year', month: '', pfrom: '', pto: '', seg: 'all', spend: 0,
+const TC = { branch: 'all', period: 'year', month: '', year: '', pfrom: '', pto: '', seg: 'all', spend: 0,
   last: 'any', lfrom: 61, lto: 120, top: 25, mode: 'rev', sortk: 'rev', sortdir: -1 };
 let tcQ = '', tcData = null, tcBoard = null, tcBoardErr = false, tcSeq = 0, tcStamp = 0, tcNumsOpen = false;
 const tcCache = {};
 
 const tcIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const tcToday = () => tcIso(new Date());
-const TC_FIRST = '2025-01-01';   // sales_transaction_lines starts here
+const TC_FIRST = '2021-08-01';   // sales_transaction_lines starts here (Aug 2021 at Khalifa City and Saadiyat)
 try {
   const s = JSON.parse(localStorage.getItem(TC_STORE) || '{}');
   for (const k of Object.keys(TC)) if (s[k] !== undefined && typeof s[k] === typeof TC[k]) TC[k] = s[k];
@@ -43,9 +43,14 @@ try { if (localStorage.getItem('trs-tc-board') === 'n') TC.mode = 'n'; } catch (
 
 // ── THE WINDOW ──────────────────────────────────────────────────────────────
 const tcMonthOf = iso => iso.slice(0, 7);
-function tcMonths() {   // newest first, back to Jan 2025
+function tcYears() {   // newest first, back to the first year with sales lines
+  const out = [];
+  for (let y = new Date().getFullYear(); y >= Number(TC_FIRST.slice(0, 4)); y--) out.push(String(y));
+  return out;
+}
+function tcMonths() {   // newest first, back to Aug 2021
   const out = [], now = new Date();
-  for (let y = now.getFullYear(), m = now.getMonth(); y > 2025 || (y === 2025 && m >= 0);) {
+  for (let y = now.getFullYear(), m = now.getMonth(); y > 2021 || (y === 2021 && m >= 7);) {
     out.push(`${y}-${String(m + 1).padStart(2, '0')}`);
     if (--m < 0) { m = 11; y--; }
   }
@@ -60,7 +65,7 @@ function tcRange() {
   else if (TC.period === 'last') { const p = new Date(y, now.getMonth() - 1, 1); const ym = tcMonthOf(tcIso(p)); a = ym + '-01'; b = lastDay(ym); }
   else if (TC.period === 'month') { const ym = /^\d{4}-\d{2}$/.test(TC.month) ? TC.month : tcMonthOf(today); a = ym + '-01'; b = lastDay(ym); }
   else if (TC.period === 'custom') { a = TC.pfrom || `${y}-01-01`; b = TC.pto || today; }
-  else { a = `${y}-01-01`; b = today; }
+  else { const yy = /^\d{4}$/.test(TC.year) ? Number(TC.year) : y; a = `${yy}-01-01`; b = yy === y ? today : `${yy}-12-31`; }
   if (a < TC_FIRST) a = TC_FIRST;
   if (b > today) b = today;
   if (b < a) b = a;
@@ -123,6 +128,8 @@ function tcShell(body) {
   const seg = (key, opts) => `<div class="sc-seg" role="group">${opts.map(([k, l]) =>
     `<button type="button" class="${String(TC[key]) === String(k) ? 'on' : ''}" onclick="tcSet('${key}', ${typeof k === 'number' ? k : `'${k}'`})">${l}</button>`).join('')}</div>`;
   let sub = '';
+  if (TC.period === 'year') sub += `<div class="lc-cust"><span>Year</span><select aria-label="Year" onchange="tcSet('year', this.value)">${tcYears().map(y =>
+    `<option value="${y}"${tcRange()[0].slice(0, 4) === y ? ' selected' : ''}>${y}</option>`).join('')}</select></div>`;
   if (TC.period === 'month') sub += `<div class="lc-cust"><span>Month</span><select aria-label="Month" onchange="tcSet('month', this.value)">${tcMonths().map(m =>
     `<option value="${m}"${tcRange()[0].slice(0, 7) === m ? ' selected' : ''}>${tcMonthLabel(m)}</option>`).join('')}</select></div>`;
   if (TC.period === 'custom') { const [a, b] = tcRange(); sub += `<div class="lc-cust"><span>Revenue from</span><input type="date" style="width:auto" value="${a}" min="${TC_FIRST}" max="${tcToday()}" aria-label="From date" onchange="tcSet('pfrom', this.value || '')"><span>to</span><input type="date" style="width:auto" value="${b}" min="${TC_FIRST}" max="${tcToday()}" aria-label="To date" onchange="tcSet('pto', this.value || '')"></div>`; }
@@ -133,7 +140,7 @@ function tcShell(body) {
       <p>Who spends the most, by branch, and when we last saw them. For reference and for knowing who to look after first.</p>
     </section>
     <div class="sc-bar w13-bar lc-bar tc-bar">
-      <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(Object.keys(LC_BRANCH).map(k => [k, k])))}</div>
+      <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(lcBranchKeys(tcRange()[1]).map(k => [k, k])))}</div>
       <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Period</div>${seg('period', TC_PERIODS)}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Visits</div>${seg('seg', [['all', 'All'], ['3', '3+'], ['2', '2'], ['1', '1']])}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Spend (AED)</div>${seg('spend', [[0, 'Any'], [2000, '2k+'], [5000, '5k+'], [10000, '10k+']])}</div>
@@ -147,6 +154,7 @@ function tcShell(body) {
 async function renderTopClients() {
   const el = document.getElementById('topClientsContent');
   if (!el) return;
+  if (TC.branch === 'FRT' && tcRange()[1] > LC_FRT_LAST) { TC.branch = 'all'; tcSave(); }   // Fratelli goes with windows past 22 May 2026
   if (Date.now() - tcStamp > 600000) { Object.keys(tcCache).forEach(k => delete tcCache[k]); tcStamp = Date.now(); }
   lcDetailCtx = { branch: () => tcBranchArg(), html: tcDetailHtml };
   const seq = ++tcSeq;
@@ -192,7 +200,7 @@ function tcPaint() {
     <section class="slv-card lc-board" id="tcBoard"></section>
     <section class="slv-card">
       <div class="slv-head" id="tcListHead">
-        <div><div class="slv-eyebrow">${TC.branch === 'all' ? 'All branches' : lcEsc(LC_BRANCH[TC.branch])}</div><h3>Top ${lcNum(rows.length)} client${rows.length === 1 ? '' : 's'} by revenue${TC.last !== 'any' ? ', last seen ' + (TC.last === 'custom' ? `${lcNum(tcAway()[0])} to ${lcNum(tcAway()[1])} days ago` : TC_LASTTXT[TC.last]) : ''}</h3></div>
+        <div><div class="slv-eyebrow">${TC.branch === 'all' ? 'All branches' : lcEsc(lcBranchName(TC.branch))}</div><h3>Top ${lcNum(rows.length)} client${rows.length === 1 ? '' : 's'} by revenue${TC.last !== 'any' ? ', last seen ' + (TC.last === 'custom' ? `${lcNum(tcAway()[0])} to ${lcNum(tcAway()[1])} days ago` : TC_LASTTXT[TC.last]) : ''}</h3></div>
         <p>${lcEsc(tcPeriodTxt())}</p>
       </div>
       <div class="w13-tiles lc-tiles">
@@ -210,7 +218,7 @@ function tcPaint() {
       </div>
       <div id="tcTable"></div>
     </section>
-    <p class="slv-muted">From Phorest's Sales Transactions, which starts in January 2025. Revenue is ex VAT; deposits and vouchers are left out. Visits are days she came in. Last seen is her newest visit at the branch picked (or at any branch on All), whatever the dates above, so the last day or two can lag. Usual stylist is whoever served most of her visits.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to your login only. The report doesn\'t say who opted out of marketing, so check consent in Phorest before anyone messages a client.' : ''}</p>`;
+    <p class="slv-muted">From Phorest's Sales Transactions, which starts in August 2021. Revenue is ex VAT; deposits and vouchers are left out. Visits are days she came in. Last seen is her newest visit at the branch picked (or at any branch on All), whatever the dates above, so the last day or two can lag. Usual stylist is whoever served most of her visits.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to your login only. The report doesn\'t say who opted out of marketing, so check consent in Phorest before anyone messages a client.' : ''}</p>`;
   tcPaintBoard();
   tcPaintTable();
 }
@@ -332,7 +340,7 @@ function tcDetailHtml(d, r) {
     <div class="tc-months">${cols.map((c, i) => `<div class="${i === 11 ? 'cur' : ''}" title="${c.l} ${c.m.slice(0, 4)}: AED ${lcNum(c.v)}"><i style="height:${Math.max(2, Math.round(100 * c.v / mx * .46))}px"></i>${c.l[0]}</div>`).join('')}</div>`;
   const others = ((d && d.branches) || []).filter(b => TC.branch === 'all' || b.branch !== TC.branch);
   const otherTxt = others.length && (TC.branch !== 'all' || others.length > 1)
-    ? `<p class="slv-note" style="margin-top:6px">${TC.branch === 'all' ? 'Came to ' : 'Also came to '}${others.map(b => `${lcEsc(LC_BRANCH[b.branch] || b.branch)} (${lcNum(b.visits)} visit${Number(b.visits) === 1 ? '' : 's'})`).join(', ')}</p>` : '';
+    ? `<p class="slv-note" style="margin-top:6px">${TC.branch === 'all' ? 'Came to ' : 'Also came to '}${others.map(b => `${lcEsc(lcBranchName(b.branch))} (${lcNum(b.visits)} visit${Number(b.visits) === 1 ? '' : 's'})`).join(', ')}</p>` : '';
   const person = lcTeam(r).hair[0] || lcTeam(r).beauty[0];
   const call = Number(r.days_since) >= 61
     ? `<div class="tc-call">Last seen ${lcNum(r.days_since)} days ago. Worth a call from ${person ? lcStylist(person) : 'her usual team'}, one person, this week.</div>` : '';

@@ -33,6 +33,11 @@ let lcSel = { branch: 'SAA', seg: 'regular', days: 90, cfrom: 0, cto: 60 };
 try { Object.assign(lcSel, JSON.parse(localStorage.getItem('trs-lost') || '{}')); } catch (e) {}
 
 const LC_BRANCH = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
+// Fratelli (Kate, 9 Oct 2026): a branch chip only for windows that end on or before its last day of sales,
+// 22 May 2026. It is not in LC_BRANCH on purpose, so the boards and Lost Clients keep their four branches.
+const LC_FRT_LAST = '2026-05-22';
+const lcBranchName = b => LC_BRANCH[b] || (b === 'FRT' ? 'Fratelli' : b);
+const lcBranchKeys = windowEnd => Object.keys(LC_BRANCH).concat(windowEnd && windowEnd <= LC_FRT_LAST ? ['FRT'] : []);
 // "All" (Kate, 7 Oct 2026) asks the server for every branch at once: the RPCs take a null branch.
 const lcBranchArg = () => lcSel.branch === 'all' ? null : lcSel.branch;
 // min/max visits per segment. Visits = days the client came in at that branch.

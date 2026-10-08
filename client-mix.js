@@ -18,19 +18,19 @@
 // Everyone signed in sees counts and names; only Level 2 and above can open a client (the same
 // lost_client_detail panel as Top Clients); only Level 4 and above can change the roster.
 const CM_STORE = 'trs-client-mix';
-const CM = { branch: 'all', period: 'last', month: '', pfrom: '', pto: '', mode: 'clients', fam: 'colour',
+const CM = { branch: 'all', period: 'last', month: '', year: '', pfrom: '', pto: '', mode: 'clients', fam: 'colour',
   cat: null, item: null, tri: {}, tab: 'mix' };
 let cmCards = null, cmDetail = null, cmRoster = null, cmSeqC = 0, cmSeqD = 0, cmShowN = 25, cmStamp = 0, cmBusy = false;
 const cmCache = {};
 let cmItemsAll = false;
-const CM_FIRST = '2025-01-01';   // sales_transaction_lines starts here
+const CM_FIRST = '2021-08-01';   // sales_transaction_lines starts here (Aug 2021 at Khalifa City and Saadiyat)
 const cmIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const cmToday = () => cmIso(new Date());
 try {
   const s = JSON.parse(localStorage.getItem(CM_STORE) || '{}');
-  for (const k of ['branch', 'period', 'month', 'pfrom', 'pto', 'mode', 'fam']) if (typeof s[k] === 'string') CM[k] = s[k];
+  for (const k of ['branch', 'period', 'month', 'year', 'pfrom', 'pto', 'mode', 'fam']) if (typeof s[k] === 'string') CM[k] = s[k];
 } catch (e) {}
-function cmSave() { try { localStorage.setItem(CM_STORE, JSON.stringify({ branch: CM.branch, period: CM.period, month: CM.month, pfrom: CM.pfrom, pto: CM.pto, mode: CM.mode, fam: CM.fam })); } catch (e) {} }
+function cmSave() { try { localStorage.setItem(CM_STORE, JSON.stringify({ branch: CM.branch, period: CM.period, month: CM.month, year: CM.year, pfrom: CM.pfrom, pto: CM.pto, mode: CM.mode, fam: CM.fam })); } catch (e) {} }
 
 const CM_PERIODS = [['this', 'This month'], ['last', 'Last month'], ['month', 'Month'], ['year', 'Year'], ['custom', 'Custom']];
 // Families: how the dashboard groups Phorest's categories. 'unmapped' is a Phorest category nobody
@@ -52,9 +52,14 @@ const cmCanEdit = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 4;
 const cmCanOpen = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2;
 
 // ── THE WINDOW ──────────────────────────────────────────────────────────────
-function cmMonths() {   // newest first, back to Jan 2025
+function cmYears() {   // newest first, back to the first year with sales lines
+  const out = [];
+  for (let y = new Date().getFullYear(); y >= Number(CM_FIRST.slice(0, 4)); y--) out.push(String(y));
+  return out;
+}
+function cmMonths() {   // newest first, back to Aug 2021
   const out = [], now = new Date();
-  for (let y = now.getFullYear(), m = now.getMonth(); y > 2025 || (y === 2025 && m >= 0);) {
+  for (let y = now.getFullYear(), m = now.getMonth(); y > 2021 || (y === 2021 && m >= 7);) {
     out.push(`${y}-${String(m + 1).padStart(2, '0')}`);
     if (--m < 0) { m = 11; y--; }
   }
@@ -69,7 +74,7 @@ function cmRange() {
   else if (CM.period === 'last') { const p = new Date(y, now.getMonth() - 1, 1); const ym = cmIso(p).slice(0, 7); a = ym + '-01'; b = lastDay(ym); }
   else if (CM.period === 'month') { const ym = /^\d{4}-\d{2}$/.test(CM.month) ? CM.month : today.slice(0, 7); a = ym + '-01'; b = lastDay(ym); }
   else if (CM.period === 'custom') { a = CM.pfrom || `${y}-01-01`; b = CM.pto || today; }
-  else { a = `${y}-01-01`; b = today; }
+  else { const yy = /^\d{4}$/.test(CM.year) ? Number(CM.year) : y; a = `${yy}-01-01`; b = yy === y ? today : `${yy}-12-31`; }
   if (a < CM_FIRST) a = CM_FIRST;
   if (b > today) b = today;
   if (b < a) b = a;
@@ -77,7 +82,7 @@ function cmRange() {
 }
 const cmPeriodTxt = () => { const r = cmRange(); return lcDayY(r[0]) + ' to ' + lcDayY(r[1]); };
 const cmBranchArg = () => CM.branch === 'all' ? null : CM.branch;
-const cmBranchTxt = () => CM.branch === 'all' ? 'All branches' : (LC_BRANCH[CM.branch] || CM.branch);
+const cmBranchTxt = () => CM.branch === 'all' ? 'All branches' : lcBranchName(CM.branch);
 function cmArgs(extra) {
   const [a, b] = cmRange();
   return Object.assign({ p_from: a, p_to: b, p_branch: cmBranchArg() }, extra || {});
@@ -105,7 +110,7 @@ function cmSet(k, v) {
   CM[k] = v;
   if (k === 'pfrom' && CM.pto && CM.pto < v) CM.pto = v;
   if (k === 'pto' && CM.pfrom && CM.pfrom > v) CM.pfrom = v;
-  if (k === 'branch' || k === 'period' || k === 'month' || k === 'pfrom' || k === 'pto') { CM.item = null; cmShowN = 25; }
+  if (k === 'branch' || k === 'period' || k === 'month' || k === 'year' || k === 'pfrom' || k === 'pto') { CM.item = null; cmShowN = 25; }
   cmSave();
   if (k === 'mode') { cmPaintCards(); cmPaintDetail(); return; }
   renderClientMix();
@@ -140,6 +145,8 @@ function cmShell() {
   const seg = (key, opts) => `<div class="sc-seg" role="group">${opts.map(([k, l]) =>
     `<button type="button" class="${String(CM[key]) === String(k) ? 'on' : ''}" onclick="cmSet('${key}','${k}')">${l}</button>`).join('')}</div>`;
   let sub = '';
+  if (CM.period === 'year') sub += `<div class="lc-cust"><span>Year</span><select aria-label="Year" onchange="cmSet('year', this.value)">${cmYears().map(y =>
+    `<option value="${y}"${cmRange()[0].slice(0, 4) === y ? ' selected' : ''}>${y}</option>`).join('')}</select></div>`;
   if (CM.period === 'month') sub += `<div class="lc-cust"><span>Month</span><select aria-label="Month" onchange="cmSet('month', this.value)">${cmMonths().map(m =>
     `<option value="${m}"${cmRange()[0].slice(0, 7) === m ? ' selected' : ''}>${cmMonthLabel(m)}</option>`).join('')}</select></div>`;
   if (CM.period === 'custom') { const [a, b] = cmRange(); sub += `<div class="lc-cust"><span>From</span><input type="date" style="width:auto" value="${a}" min="${CM_FIRST}" max="${cmToday()}" aria-label="From date" onchange="cmSet('pfrom', this.value)"><span>to</span><input type="date" style="width:auto" value="${b}" min="${CM_FIRST}" max="${cmToday()}" aria-label="To date" onchange="cmSet('pto', this.value)"></div>`; }
@@ -154,7 +161,7 @@ function cmShell() {
     </div>
     <div id="cmPageMix"${CM.tab === 'mix' ? '' : ' style="display:none"'}>
       <div class="sc-bar w13-bar lc-bar tc-bar cm-bar">
-        <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(Object.keys(LC_BRANCH).map(k => [k, k])))}</div>
+        <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(lcBranchKeys(cmRange()[1]).map(k => [k, k])))}</div>
         <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Period</div>${seg('period', CM_PERIODS)}</div>
         <div class="lc-grp"><div class="slv-eyebrow">Show</div>${seg('mode', [['clients', 'Clients'], ['units', 'Units']])}</div>
       </div>
@@ -169,7 +176,7 @@ function cmShell() {
           <button type="button" class="cm-pill" id="cmCopy" onclick="cmCopy()">Copy list for Sheets</button></div>
           <div id="cmList"></div></section>
       </div>
-      <p class="slv-muted cm-foot">From Phorest's Sales Transactions, which starts in January 2025. Each sale is sorted by Phorest's own service categories (see the Service roster tab). A client is counted once per family however many times she came. Units are sales lines; the second half of a keratin counts as the same treatment. Deposits, vouchers, refunds, prepaid courses and walk-ins are left out.</p>
+      <p class="slv-muted cm-foot">From Phorest's Sales Transactions, which starts in August 2021. Each sale is sorted by Phorest's own service categories (see the Service roster tab). A client is counted once per family however many times she came. Units are sales lines; the second half of a keratin counts as the same treatment. Deposits, vouchers, refunds, prepaid courses and walk-ins are left out.</p>
     </div>
     <div id="cmPageRoster"${CM.tab === 'roster' ? '' : ' style="display:none"'}><p class="slv-muted" style="margin-top:16px">Loading the roster…</p></div>`;
 }
@@ -178,6 +185,7 @@ function cmShell() {
 async function renderClientMix() {
   const el = document.getElementById('clientMixContent');
   if (!el) return;
+  if (CM.branch === 'FRT' && cmRange()[1] > LC_FRT_LAST) { CM.branch = 'all'; cmSave(); }   // Fratelli goes with windows past 22 May 2026
   if (Date.now() - cmStamp > 600000) { cmForget(); cmStamp = Date.now(); cmRoster = null; }
   lcDetailCtx = { branch: () => cmBranchArg(), html: d => lcDetailHtml(d, { allBranches: CM.branch === 'all' && ((d && d.branches) || []).length > 1 }) };
   el.innerHTML = cmShell();
@@ -296,7 +304,7 @@ function cmPaintList() {
       <td class="lc-l cm-bought">${tags(r, 10)}</td><td>${lcNum(r.units)}</td></tr>`).join('');
   const cards = shown.map((r, i) => `<li class="prd-card ${cls}"${click(i)}><div class="prd-body">
       <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}</span><span class="prd-spend">${lcNum(r.units)} unit${Number(r.units) === 1 ? '' : 's'}</span></div>
-      <div class="prd-meta">${lcEsc(LC_BRANCH[r.branch] || r.branch || '')} · ${lcNum(r.visits)} visit${Number(r.visits) === 1 ? '' : 's'}</div>
+      <div class="prd-meta">${lcEsc(r.branch ? lcBranchName(r.branch) : '')} · ${lcNum(r.visits)} visit${Number(r.visits) === 1 ? '' : 's'}</div>
       <div class="prd-meta" style="margin-top:4px">${tags(r, 6)}</div>
       ${open ? '<div class="lc-hint-m">Tap for her visits ›</div>' : ''}</div></li>`).join('');
   const more = rows.length > shown.length ? `<p style="margin:10px 0 0"><button type="button" class="cm-pill" onclick="cmMore()">Show ${Math.min(25, rows.length - shown.length)} more</button> <span class="slv-note">${lcNum(shown.length)} of ${lcNum(matched)}${matched > rows.length ? ' (the top ' + lcNum(rows.length) + ' are loaded)' : ''}</span></p>` : '';
@@ -353,7 +361,7 @@ function cmPaintRoster() {
       <p class="slv-note" style="font-size:14px;margin-top:6px;max-width:760px">Every service Phorest lists, with Phorest's own category. The four branches share one menu, so there is one roster. You only decide which <b>family</b> each category belongs to; sales never change, they are sorted by this list.</p>
       <div class="w13-tiles lc-tiles" style="margin-top:14px">
         <div class="w13-tile"><div class="slv-eyebrow">Services in the roster</div><div class="w13-val">${lcNum(r.catalog_count)}</div><div class="slv-note">refreshed ${lcEsc(upd)}</div></div>
-        <div class="w13-tile"><div class="slv-eyebrow">Matched by Phorest's list</div><div class="w13-val">${pct(lp)}%</div><div class="slv-note">${lcNum(lp)} sales lines since Jan 2025</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">Matched by Phorest's list</div><div class="w13-val">${pct(lp)}%</div><div class="slv-note">${lcNum(lp)} sales lines since Aug 2021</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Matched by name</div><div class="w13-val">${pct(lr)}%</div><div class="slv-note">retired names, ${lcNum(lr)} lines</div></div>
         <div class="w13-tile${ln ? ' warn' : ''}"><div class="slv-eyebrow">Not sorted</div><div class="w13-val">${pct(ln)}%</div><div class="slv-note">${lcNum(ln)} lines, shown below</div></div>
       </div>

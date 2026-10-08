@@ -61,6 +61,15 @@ const BH_BRANCHES = Object.keys(BRANCH_INFO).filter(b => BRANCH_INFO[b].country 
 // without its own change. The chip row and the URL read UAE_ACTIVE instead.
 const ACTIVE_BRANCHES = UAE_ACTIVE.slice();
 
+// Fratelli (Kate, 9 Oct 2026): its last day of sales was 22 May 2026. A Fratelli chip is offered
+// only while the window on screen ends on or before that day, in the UAE view, and goes again
+// (taking a Fratelli selection with it) the moment the window runs past it.
+const FRT_LAST_DAY = '2026-05-22';
+function frtOffered() {
+  return typeof dateFrom !== 'undefined' && !!dateFrom && !!dateTo && dateToIso(dateTo) <= FRT_LAST_DAY
+    && !isBahrainView() && !isGroupView();
+}
+
 // Tara Rose Salon Bahrain (branch BAH) is a separate Phorest business, trading in
 // BHD with 10% VAT, and its rows land in the same tables as the UAE branches. "All
 // Branches" has always meant "no branch filter at all", so the day BAH rows arrive
@@ -140,7 +149,9 @@ function toGroupCurrency(rows) {
   });
 }
 function syncCountry() {
-  const want = isBahrainView() ? BH_BRANCHES : isGroupView() ? UAE_ACTIVE.concat(BH_BRANCHES) : UAE_ACTIVE;
+  let want = isBahrainView() ? BH_BRANCHES : isGroupView() ? UAE_ACTIVE.concat(BH_BRANCHES) : UAE_ACTIVE;
+  // Fratelli is a live code only while it is picked (it closed on 22 May 2026).
+  if (!isBahrainView() && !isGroupView() && typeof sel !== 'undefined' && sel.branch.includes('FRT')) want = want.concat('FRT');
   if (ACTIVE_BRANCHES.join() !== want.join()) ACTIVE_BRANCHES.splice(0, ACTIVE_BRANCHES.length, ...want);
 }
 // The currency every money figure is printed in: BHD on the Bahrain view.
@@ -173,7 +184,7 @@ try {
   if (u === 'group') GROUP_MODE = true;   // sel.branch stays ['all']
   else if (u && u !== 'all') {
     const asked = u.split(',').map(x => x.trim().toUpperCase());
-    let picked = asked.filter(x => UAE_ACTIVE.includes(x));
+    let picked = asked.filter(x => UAE_ACTIVE.includes(x) || x === 'FRT');   // FRT is dropped again by paintFilterChips unless the window ends by 22 May 2026
     if (!picked.length) picked = asked.filter(x => BH_BRANCHES.includes(x));
     if (picked.length) { sel.branch = picked; pendingSel.branch = [...picked]; }
   }
@@ -387,9 +398,11 @@ const shortD = d => d ? `${d.getDate()} ${MON_SHORT[d.getMonth()]}` : '—';
 const longD  = d => d ? `${d.getDate()} ${MON_LONG[d.getMonth()]}` : '—';
 
 // The earliest window anyone can ask for. The Upload Portal backfill opened to
-// January 2025 (Kate, 3 Sep 2026); LG_FIRST_MONTH in branch-ledger.js is the
-// Ledgers pages' copy of the same floor.
-const PERIOD_FIRST_YEAR = 2025;
+// January 2025 (Kate, 3 Sep 2026) and the Phorest history from mid-2021 followed on
+// 9 Oct 2026, so the Month and Year pickers reach back to 2021. A year with nothing in
+// it for the branch picked simply reads empty. LG_FIRST_MONTH in branch-ledger.js is
+// the Ledgers pages' own floor and stays at January 2025 (the ledger sheets start there).
+const PERIOD_FIRST_YEAR = 2021;
 // Google Reviews comes from its own table, which goes back to 2015 (Kate, 8 Oct 2026),
 // so its Month and Year pickers start there. Also true while the address bar says
 // view=reviews, because period=year:2019 is read before the view is shown.
@@ -619,6 +632,12 @@ function paintFilterChips() {
   const pEl = document.getElementById('periodChips');
   if (!bEl || !pEl) return;
 
+  // Fratelli leaves the selection when the window runs past its last day (22 May 2026).
+  if (sel.branch.includes('FRT') && !frtOffered()) {
+    sel.branch = sel.branch.filter(b => b !== 'FRT');
+    if (!sel.branch.length) sel.branch = ['all'];
+    pendingSel.branch = [...sel.branch];
+  }
   syncCountry();
   const isAll = sel.branch.includes('all');
   // No "no data" greying here. branchesWithNoData() reads allData, which comes from
@@ -646,6 +665,7 @@ function paintFilterChips() {
         v: code, label: BRANCH_INFO[code].name,
         on: !isAll && sel.branch.includes(code),
       })),
+      ...(frtOffered() ? [{ v: 'FRT', label: BRANCH_INFO.FRT.name, on: !isAll && sel.branch.includes('FRT') }] : []),
       ...BH_BRANCHES.map(code => ({
         v: code, label: BRANCH_INFO[code].name,
         on: sel.branch.includes(code),

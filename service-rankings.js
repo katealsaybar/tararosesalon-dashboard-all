@@ -12,15 +12,15 @@
 // Own controls (branch, period, rank by), so the masthead filters are hidden here, as on Top Clients.
 // The old page (get_top_services, "Per Branch / Combined") stays in dashboard.js, unused.
 const SR_STORE = 'trs-service-rankings';
-const SR = { branch: 'all', period: 'last', month: '', pfrom: '', pto: '', fam: 'all', cat: null, rank: 'rev' };
+const SR = { branch: 'all', period: 'last', month: '', year: '', pfrom: '', pto: '', fam: 'all', cat: null, rank: 'rev' };
 let srData = null, srPrev = null, srSeq = 0, srShowN = 25, srOpen = null, srRows = [], srBusy = false;
 const srCache = {};
-const SR_FIRST = '2025-01-01';
+const SR_FIRST = '2021-08-01';
 try {
   const s = JSON.parse(localStorage.getItem(SR_STORE) || '{}');
-  for (const k of ['branch', 'period', 'month', 'pfrom', 'pto', 'rank', 'fam']) if (typeof s[k] === 'string') SR[k] = s[k];
+  for (const k of ['branch', 'period', 'month', 'year', 'pfrom', 'pto', 'rank', 'fam']) if (typeof s[k] === 'string') SR[k] = s[k];
 } catch (e) {}
-const srSave = () => { try { localStorage.setItem(SR_STORE, JSON.stringify({ branch: SR.branch, period: SR.period, month: SR.month, pfrom: SR.pfrom, pto: SR.pto, rank: SR.rank, fam: SR.fam })); } catch (e) {} };
+const srSave = () => { try { localStorage.setItem(SR_STORE, JSON.stringify({ branch: SR.branch, period: SR.period, month: SR.month, year: SR.year, pfrom: SR.pfrom, pto: SR.pto, rank: SR.rank, fam: SR.fam })); } catch (e) {} };
 const SR_PERIODS = [['this', 'This month'], ['last', 'Last month'], ['month', 'Month'], ['year', 'Year'], ['custom', 'Custom']];
 const SR_BR = ['SAA', 'KCA', 'MC', 'AQ'];
 
@@ -35,7 +35,7 @@ function srRange() {
   else if (SR.period === 'last') { const ym = srIso(new Date(y, now.getMonth() - 1, 1)).slice(0, 7); a = ym + '-01'; b = srLastDay(ym); }
   else if (SR.period === 'month') { const ym = /^\d{4}-\d{2}$/.test(SR.month) ? SR.month : today.slice(0, 7); a = ym + '-01'; b = srLastDay(ym); }
   else if (SR.period === 'custom') { a = SR.pfrom || `${y}-01-01`; b = SR.pto || today; }
-  else { a = `${y}-01-01`; b = today; }
+  else { const yy = /^\d{4}$/.test(SR.year) ? Number(SR.year) : y; a = `${yy}-01-01`; b = yy === y ? today : `${yy}-12-31`; }
   if (a < SR_FIRST) a = SR_FIRST;
   if (b > today) b = today;
   if (b < a) b = a;
@@ -68,7 +68,7 @@ function srPrevRange() {   // [from, to, label] or null when there is no data th
   return [pa, pb, label];
 }
 const srBranchArg = () => SR.branch === 'all' ? null : SR.branch;
-const srBranchTxt = () => SR.branch === 'all' ? 'All branches' : (LC_BRANCH[SR.branch] || SR.branch);
+const srBranchTxt = () => SR.branch === 'all' ? 'All branches' : lcBranchName(SR.branch);
 function srArgs(range) {
   return { p_from: range[0], p_to: range[1], p_pfrom: null, p_pto: null, p_branch: srBranchArg(),
     p_fam: SR.fam === 'all' ? null : SR.fam, p_cat: SR.cat, p_limit: 400 };
@@ -102,6 +102,8 @@ function srShell() {
   const seg = (key, opts) => `<div class="sc-seg" role="group">${opts.map(([k, l]) =>
     `<button type="button" class="${String(SR[key]) === String(k) ? 'on' : ''}" onclick="srSet('${key}','${k}')">${l}</button>`).join('')}</div>`;
   let sub = '';
+  if (SR.period === 'year') sub += `<div class="lc-cust"><span>Year</span><select aria-label="Year" onchange="srSet('year', this.value)">${cmYears().map(y =>
+    `<option value="${y}"${srRange()[0].slice(0, 4) === y ? ' selected' : ''}>${y}</option>`).join('')}</select></div>`;
   if (SR.period === 'month') sub += `<div class="lc-cust"><span>Month</span><select aria-label="Month" onchange="srSet('month', this.value)">${cmMonths().map(m =>
     `<option value="${m}"${srRange()[0].slice(0, 7) === m ? ' selected' : ''}>${cmMonthLabel(m)}</option>`).join('')}</select></div>`;
   if (SR.period === 'custom') { const [a, b] = srRange(); sub += `<div class="lc-cust"><span>From</span><input type="date" style="width:auto" value="${a}" min="${SR_FIRST}" max="${srToday()}" aria-label="From date" onchange="srSet('pfrom', this.value)"><span>to</span><input type="date" style="width:auto" value="${b}" min="${SR_FIRST}" max="${srToday()}" aria-label="To date" onchange="srSet('pto', this.value)"></div>`; }
@@ -111,7 +113,7 @@ function srShell() {
       <p>The services clients book most, by revenue or by units. Every size of a service is one row, and each service carries Phorest's own category. Click a row to see its sizes.</p>
     </section>
     <div class="sc-bar w13-bar lc-bar tc-bar cm-bar">
-      <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(SR_BR.map(k => [k, k])))}</div>
+      <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(SR_BR.concat(srRange()[1] <= LC_FRT_LAST ? ['FRT'] : []).map(k => [k, k])))}</div>
       <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Period</div>${seg('period', SR_PERIODS)}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Rank by</div>${seg('rank', [['rev', 'Revenue'], ['units', 'Units']])}</div>
     </div>
@@ -125,6 +127,7 @@ function srShell() {
 async function renderServiceRankings() {
   const el = document.getElementById('serviceRankingsContent');
   if (!el) return;
+  if (SR.branch === 'FRT' && srRange()[1] > LC_FRT_LAST) { SR.branch = 'all'; srSave(); }   // Fratelli goes with windows past 22 May 2026
   el.innerHTML = srShell();
   srData = null; srPrev = null;
   srLoad();
@@ -190,7 +193,7 @@ function srPaint() {
       </div>
       <div id="srTable" style="margin-top:14px"></div>
     </section>
-    <p class="slv-muted cm-foot">From Phorest's Sales Transactions, which starts in January 2025. Each sale is sorted by Phorest's own service category (the Service roster tab on Client Mix), so a service's sizes are one row. Revenue is ex VAT. Units are sales lines; the second half of a keratin counts as the same treatment. Retail is on Products; deposits, vouchers, refunds and prepaid courses are left out.</p>`;
+    <p class="slv-muted cm-foot">From Phorest's Sales Transactions, which starts in August 2021. Each sale is sorted by Phorest's own service category (the Service roster tab on Client Mix), so a service's sizes are one row. Revenue is ex VAT. Units are sales lines; the second half of a keratin counts as the same treatment. Retail is on Products; deposits, vouchers, refunds and prepaid courses are left out.</p>`;
   srPaintTable();
 }
 function srPaintTable() {

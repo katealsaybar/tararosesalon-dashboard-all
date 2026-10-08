@@ -27,7 +27,7 @@ const prdIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '
 function prdWindow() {
   // UAE only on "all", Group included: stock orders are costed in each country's own
   // currency and this page prints AED. Bahrain reads through its own chip.
-  const branches = (!sel.branch || sel.branch.includes('all')) ? UAE_ACTIVE.slice() : sel.branch.slice();
+  const branches = (!sel.branch || sel.branch.includes('all')) ? UAE_ACTIVE.slice() : sel.branch.filter(b => b !== 'FRT');   // Fratelli's stock orders were never loaded
   if (dateFrom && dateTo) return { branches, from: prdIso(dateFrom), to: prdIso(dateTo), ranged: true };
   // No range: the last 13 full weeks, Monday to Sunday, plus the week so far.
   const t = new Date(); t.setHours(0, 0, 0, 0);
@@ -39,6 +39,7 @@ async function renderProducts() {
   const el = document.getElementById('productsContent');
   if (!el) return;
   const w = prdWindow();
+  if (!w.branches.length) { el.innerHTML = '<p class="slv-muted">Fratelli\'s stock orders were never loaded, so Products has nothing for it.</p>'; return; }
   el.innerHTML = '<p class="slv-muted">Loading product spend…</p>';
   try {
     const [{ data, error }, sold] = await Promise.all([
@@ -148,11 +149,20 @@ function prdPaint(el) {
         ${d.unmatched.slice(0, 40).map(r => `<tr><td>${prdEsc(r.product)}</td><td>${prdEsc(PRD_BRANCH[r.branch] || r.branch)}</td><td>${prdNum(r.units)}</td></tr>`).join('')}
         </tbody></table></div></details>` : '';
 
+  // Kate, 9 Oct 2026: orders from 2021 to 2024 are in, priced at today's Stock List cost
+  // (Phorest keeps no cost history), so any window reaching before 2025 gets this notice.
+  const olderYears = w.from < '2025-01-01' ? `
+    <div style="margin:0 0 14px;padding:12px 14px;border:1px solid var(--border);border-left:3px solid var(--warn);border-radius:10px;background:var(--warn-bg)">
+      <div class="slv-eyebrow" style="color:var(--warn)">Older years are an estimate</div>
+      <p class="slv-muted" style="margin:4px 0 0">Orders before January 2025 are priced at today's Phorest Stock List cost, not what was paid at the time, and anything no longer on the Stock List has no cost and is left out of the totals. Spend here can read differently from the real invoices, and low where products were dropped. Units and arrival dates are real, so use units to compare years and the AED as a guide.</p>
+    </div>` : '';
+
   el.innerHTML = `
     <section class="slv-intro">
       <h2>Products</h2>
       <p>What we spend on stock, week by week, split into retail (to sell) and professional (used on clients). Counted the day the order arrived.</p>
     </section>
+    ${olderYears}
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Team">
         ${[['all', 'All'], ['Hair', 'Hair'], ['Beauty', 'Beauty']].map(([k, l]) =>
