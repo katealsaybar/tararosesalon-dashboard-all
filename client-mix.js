@@ -22,6 +22,7 @@ const CM = { branch: 'all', period: 'last', month: '', pfrom: '', pto: '', mode:
   cat: null, item: null, tri: {}, tab: 'mix' };
 let cmCards = null, cmDetail = null, cmRoster = null, cmSeqC = 0, cmSeqD = 0, cmShowN = 25, cmStamp = 0, cmBusy = false;
 const cmCache = {};
+let cmItemsAll = false;
 const CM_FIRST = '2025-01-01';   // sales_transaction_lines starts here
 const cmIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const cmToday = () => cmIso(new Date());
@@ -41,6 +42,8 @@ const CM_FAMS = [
   { k: 'nails', name: 'Nails', color: '#D9822B' },
   { k: 'beauty', name: 'Beauty', color: '#C2416A' },
   { k: 'retail', name: 'Retail', color: '#B7791F' },
+  { k: 'extensions', name: 'Hair extensions', color: '#A0522D' },
+  { k: 'consult', name: 'Consultations', color: '#5B6B8C' },
   { k: 'other', name: 'Other', color: '#7A7A7A' },
   { k: 'unmapped', name: 'Unmapped', color: '#999999' },
 ];
@@ -109,7 +112,7 @@ function cmSet(k, v) {
 }
 function cmPickFam(k) {
   if (k === 'unmapped') { cmTab('roster'); return; }
-  CM.fam = k; CM.cat = null; CM.item = null; CM.tri = {}; cmShowN = 25; cmSave();
+  CM.fam = k; CM.cat = null; CM.item = null; CM.tri = {}; cmShowN = 25; cmItemsAll = false; cmSave();
   cmPaintCards(); cmLoadDetail();
 }
 function cmTri(k) {
@@ -117,13 +120,14 @@ function cmTri(k) {
   if (!t) CM.tri[k] = 'with'; else if (t === 'with') CM.tri[k] = 'without'; else delete CM.tri[k];
   CM.item = null; cmShowN = 25; cmPaintNarrow(); cmLoadDetail();
 }
-function cmPickCat(c) { CM.cat = c || null; CM.item = null; cmShowN = 25; cmLoadDetail(); }
+function cmPickCat(c) { CM.cat = c || null; CM.item = null; cmShowN = 25; cmItemsAll = false; cmLoadDetail(); }
 function cmPickItem(i) {
   const it = cmDetail && cmDetail.items[i];
   if (!it) return;
   CM.item = CM.item === it.stem ? null : it.stem; cmShowN = 25; cmLoadDetail();
 }
 function cmMore() { cmShowN += 25; cmPaintList(); }
+function cmAllItems() { cmItemsAll = true; cmPaintItems(); }
 function cmTab(t) {
   CM.tab = t;
   document.getElementById('cmPageMix').style.display = t === 'mix' ? '' : 'none';
@@ -238,11 +242,11 @@ function cmPaintNarrow() {
   const box = document.getElementById('cmNarrow');
   if (!box || !cmCards) return;
   const others = CM_FAMS.filter(f => f.k !== CM.fam && f.k !== 'unmapped' && (cmCards.fams || []).some(x => x.family === f.k && x.clients > 0));
-  box.innerHTML = `<span class="slv-eyebrow">Narrow it down</span>` + others.map(f => {
+  box.innerHTML = `<span class="slv-eyebrow">Narrow it down</span><div class="cm-row">` + others.map(f => {
     const t = CM.tri[f.k] || '';
     const label = t === 'with' ? 'Also had ' + f.name : t === 'without' ? 'No ' + f.name : f.name;
     return `<button type="button" class="cm-chip ${t}" onclick="cmTri('${f.k}')">${lcEsc(label)}</button>`;
-  }).join('') + `<span class="slv-note">once = also had, twice = did not have</span>`;
+  }).join('') + `</div><span class="slv-note">once = also had, twice = did not have</span>`;
 }
 function cmPaintDetail() {
   cmShowBusy();
@@ -271,9 +275,10 @@ function cmPaintItems() {
   const items = (d.items || []).map((x, i) => Object.assign({ _i: i }, x)).sort((a, b) => b[key] - a[key] || b.clients - a.clients);
   const mx = Math.max(1, ...items.map(x => x[key]));
   const color = cmFam(CM.fam).color;
-  box.innerHTML = items.length ? `<div class="slv-wrap"><table class="slv-table cm-items"><thead><tr><th class="lc-l">Item</th><th>Clients</th><th>Units</th></tr></thead><tbody>${items.map(x =>
+  const shownItems = (cmItemsAll || !window.matchMedia('(max-width:760px)').matches) ? items : items.slice(0, 8);
+  box.innerHTML = items.length ? `<div class="slv-wrap"><table class="slv-table cm-items"><thead><tr><th class="lc-l">Item</th><th>Clients</th><th>Units</th></tr></thead><tbody>${shownItems.map(x =>
     `<tr class="cm-item${CM.item === x.stem ? ' sel' : ''}" onclick="cmPickItem(${x._i})"><td class="lc-l"><span class="tc-name">${lcEsc(x.stem)}</span><div class="cm-cell-cat">${lcEsc(x.category)}</div><div class="cm-bar1" style="--c:${color}"><i style="width:${Math.round(100 * x[key] / mx)}%"></i></div></td><td>${lcNum(x.clients)}</td><td>${lcNum(x.units)}</td></tr>`).join('')}</tbody></table></div>
-    <p class="slv-note" style="margin-top:8px">Click an item to list only the clients who had it.${(d.items || []).length >= 80 ? ' Showing the 80 most common.' : ''}</p>`
+    <p class="slv-note" style="margin-top:8px">Click an item to list only the clients who had it.${(d.items || []).length >= 80 ? ' Showing the 80 most common.' : ''}</p>${shownItems.length < items.length ? `<p style="margin:8px 0 0"><button type="button" class="cm-pill" onclick="cmAllItems()">Show all ${items.length} items</button></p>` : ''}`
     : '<p class="slv-muted">Nothing here for these filters.</p>';
 }
 function cmPaintList() {
@@ -362,9 +367,13 @@ function cmPaintRoster() {
     </section>` : ''}
     <section class="slv-card" style="margin-top:14px">
       <div class="slv-eyebrow">Phorest categories and their family</div>
-      <div class="slv-wrap"><table class="slv-table"><thead><tr><th class="lc-l">Phorest category</th><th>Services</th><th>Sales lines</th><th class="lc-l">Family</th></tr></thead><tbody>${cats.map(c =>
+      <div class="slv-wrap prd-desk"><table class="slv-table"><thead><tr><th class="lc-l">Phorest category</th><th>Services</th><th>Sales lines</th><th class="lc-l">Family</th></tr></thead><tbody>${cats.map(c =>
         `<tr class="${c.family === 'unmapped' ? 'cm-unm' : ''}"><td class="lc-l">${lcEsc(c.category)}${c.family === 'unmapped' ? ' <b>(new)</b>' : ''}</td><td>${lcNum(c.services)}</td><td>${lcNum(c.lines)}</td>
          <td class="lc-l"><select data-c="${lcEsc(c.category)}" onchange="cmSetFamily(this)"${edit ? '' : ' disabled'}>${famOpts(c.family)}</select></td></tr>`).join('')}</tbody></table></div>
+      <ol class="prd-cards">${cats.map(c => `<li class="prd-card${c.family === 'unmapped' ? ' cm-unm-card' : ''}"><div class="prd-body">
+        <div class="prd-top"><span class="prd-name">${lcEsc(c.category)}${c.family === 'unmapped' ? ' <b>(new)</b>' : ''}</span><span class="prd-spend">${lcNum(c.lines)} lines</span></div>
+        <div class="prd-meta">${lcNum(c.services)} service${Number(c.services) === 1 ? '' : 's'}</div>
+        <select class="cm-sel-m" data-c="${lcEsc(c.category)}" onchange="cmSetFamily(this)"${edit ? '' : ' disabled'}>${famOpts(c.family)}</select></div></li>`).join('')}</ol>
       ${edit ? '' : '<p class="slv-note" style="margin-top:8px">Only a Level 4 login can change these.</p>'}
     </section>
     <section class="slv-card" style="margin-top:14px">

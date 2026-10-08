@@ -47,3 +47,25 @@ tr.cm-unm td{background:var(--warn-bg)}
 .cm-foot{margin-top:18px;font-size:12.5px;max-width:860px}
 #cmPageRoster select{font:inherit;font-size:13px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:4px 8px}
 #cmPageRoster select:disabled{opacity:.7}
+
+/* Phones: swipeable rows for the chips and category pills, tighter cards, roster as cards. */
+.cm-row{display:flex;flex-wrap:wrap;gap:8px}
+.cm-sel-m{width:100%;margin-top:8px;min-height:40px}
+.cm-unm-card{background:var(--warn-bg)}
+@media(max-width:760px){
+  .cm-cards{gap:8px;margin-top:12px}
+  .cm-cat{padding:11px 12px}
+  .cm-n{font-size:28px}
+  .cm-k{font-size:12px}
+  .cm-narrow,.cm-pcats{display:block;margin-top:14px}
+  .cm-narrow>.slv-eyebrow,.cm-pcats>.slv-eyebrow{display:block;margin:0 0 6px 2px}
+  .cm-narrow>.slv-note{display:block;margin-top:4px}
+  .cm-row,.cm-seg{flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .cm-row::-webkit-scrollbar,.cm-seg::-webkit-scrollbar{display:none}
+  .cm-chip,.cm-seg button{flex:0 0 auto;white-space:nowrap}
+  .cm-chip{min-height:38px}
+  .cm-summary{font-size:14.5px;margin:12px 0}
+  .cm-pill{min-height:40px}
+  .cm-tag{white-space:normal}
+}
+@media(min-width:761px){.cm-sel-m{display:none}}
