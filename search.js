@@ -1049,7 +1049,7 @@
     serp.setAttribute('aria-label', 'Search results');
     serp.innerHTML = `
       <div class="gs-serp-top">
-        <a class="gs-serp-logo" href="/hub/" aria-label="Team Home"><img alt="Tara Rose Salons"></a>
+        <a class="gs-serp-logo" href="/hub/" aria-label="Tara Rose Salons, Team Home"><img alt=""><span class="gs-serp-word" aria-hidden="true">Salons</span></a>
         <div class="gs-serp-bar">${ICON}
           <input class="gs-serp-in" type="search" autocomplete="off" autocapitalize="off" spellcheck="false"
             enterkeyhint="search" placeholder="${PLACEHOLDER}" aria-label="Search">
