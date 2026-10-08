@@ -4026,9 +4026,13 @@ async function renderDashboard() {
   // standfirst, so it is computed once, before anything renders.
   let byBranch = {};
   try { byBranch = aggByBranch(); } catch(e) { /* the column chart tolerates an empty object */ }
-  // Kate, 1 Oct 2026: the column chart's "visits" per branch follow the Clients
-  // switch too. Same cached window as s.doorClients, so this is no extra fetch.
-  if (CLIENT_BASIS === 'door' && s.doorClients != null) {
+  // Kate, 1 Oct 2026: the column chart's "visits" per branch followed the Clients switch.
+  // Kate, 8 Oct 2026: Branch Performance is Phorest's clients through the door, always: the
+  // revenue is Phorest's, so the visits and the average bill beside it are too. Every
+  // branch gets its door count whatever the switch says; the switch still rules the
+  // Pulse's own Clients card and Comparison. Same cached window as s.doorClients, so this
+  // is at most one fetch.
+  {
     try {
       const m = await doorClientsByBranch(dateFrom, dateTo);
       Object.keys(byBranch).forEach(c => {
@@ -4612,9 +4616,10 @@ async function renderDashboard() {
     return { code, name: BRANCH_INFO[code].name, rev: bs.netTake, visits: bs.totalClients || 0, bs,
              color: dark ? BRANCH_INFO[code].color : BRANCH_INFO[code].colorLight };
   }).filter(Boolean).sort((a, b) => b.rev - a.rev);
-  // Door counts only when every column has one: four branches side by side on two
-  // different counts would rank them on the switch, not on the floor.
-  const brDoor = brCols.length > 0 && brCols.every(b => doorOn(b.bs));
+  // Door counts only when every column has one (Bahrain has none, so a window that takes
+  // it in falls back to handled for all of them): four branches side by side on two
+  // different counts would rank them on the source, not on the floor.
+  const brDoor = brCols.length > 0 && brCols.every(b => b.bs.doorClients != null);
   if (brDoor) brCols.forEach(b => { b.visits = b.bs.doorClients; });
   const brVisitWord = brDoor ? 'visits through the door' : 'visits';
   const brTotal = brCols.reduce((a, b) => a + b.rev, 0);
@@ -4747,7 +4752,7 @@ ${hasBeauty ? `
   </div>
   <div class="card">
     <div class="card-title">Branch Performance</div>
-    <div class="card-sub">Net revenue by branch. The dashed line is the group average.</div>
+    <div class="card-sub">Net revenue by branch. The dashed line is the group average.${brDoor ? ' Visits are clients through the door, from Phorest.' : ''}</div>
     <div class="cols-plot">${colsPlot}</div>
     <div class="cols-x">${colsX}</div>
     <div class="foot">${branchFoot}</div>
