@@ -1200,8 +1200,25 @@
           snip: r.snippet ? '…' + r.snippet + '…' : '', href: '/hub/kb.html?p=' + encodeURIComponent(r.slug),
         })).filter(x => !Q.not.some(n => norm(x.t + ' ' + x.snip).includes(n)));
         paintSerp();
+        // When each page was last updated, a moment later again (kb_search does not say).
+        const slugs = serpKb.map(x => x.id.slice(3));
+        if (!slugs.length) return;
+        sb.from('kb_pages').select('slug,updated_at').in('slug', slugs).then(({ data: rows, error: e2 }) => {
+          if (seq !== serpSeq || e2 || !rows) return;
+          const when = new Map(rows.map(r => [r.slug, r.updated_at]));
+          serpKb.forEach(x => { x.updated = when.get(x.id.slice(3)) || ''; });
+          paintSerp();
+        }, () => {});
       }, () => {});
     }
+  }
+
+  // "3 Oct", or "3 Oct 2025" when it is not this year.
+  function updatedLabel(iso) {
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    const m = d.toLocaleString('en-GB', { month: 'short' });
+    return d.getDate() + ' ' + m + (d.getFullYear() === new Date().getFullYear() ? '' : ' ' + d.getFullYear());
   }
 
   // Where a Team Home page lives: its section, then its group. Hair and Beauty each have an
@@ -1304,9 +1321,10 @@
       const snip = x.snip || x.s || (x.kind === 'page' ? pageSnip(x, q) : '');
       const acts = x.acts ? `<span class="gs-acts">${x.acts.map(([l], a) => `<button type="button" class="gs-act" data-a="${a}">${esc(l)}</button>`).join('')}</span>` : '';
       const open = x.href ? `<a class="gs-r" data-i="${i}" href="${esc(x.href)}" target="_blank" rel="noopener">` : `<a class="gs-r" data-i="${i}" href="#">`;
+      const upd = x.updated ? `<div class="gs-r-upd">Updated ${esc(updatedLabel(x.updated))}</div>` : '';
       const more = x.more ? `<div class="gs-r-more">+${x.more} more line${x.more === 1 ? '' : 's'} in this section</div>` : '';
       return `<div class="gs-res">${open}<span class="gs-r-g">${esc(x.g || '')}</span><span class="gs-r-t">${highlight(x.t, Q.hl)}</span></a>`
-        + (snip ? `<div class="gs-r-s">${highlight(snip, Q.hl)}</div>` : '') + more + acts + '</div>';
+        + (snip ? `<div class="gs-r-s">${highlight(snip, Q.hl)}</div>` : '') + upd + more + acts + '</div>';
     });
     // Related searches sit in the results, after the fifth, as on Google.
     const rel = relatedHtml(Q, all, ans, vcount, names);
