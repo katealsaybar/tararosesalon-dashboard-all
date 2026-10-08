@@ -320,9 +320,9 @@
      padding and gaps inside, and the gate scrolls (margin:auto keeps it centred) when a
      short or landscape screen can't fit the whole card. */
   #loginGate{padding:24px 16px;overflow-y:auto;align-items:flex-start}
-  .login-card{margin:auto 0 0;padding:28px 22px 24px;gap:13px}
+  .login-card{margin:auto 0 0;padding:0 4px;gap:13px}
   .login-logo{gap:8px}
-  .login-lockup img{width:148px}
+  .login-lockup img{width:160px}
   .login-word{font-size:10px}
   .login-dash-lbl{font-size:11px}
   #loginGoogle,#loginBtn{min-height:44px}
