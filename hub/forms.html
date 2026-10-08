@@ -46,7 +46,7 @@
   }
   // Kate, 8 Oct 2026: the booking and deposit policy documents sit in their own group. Not forms:
   // no fields to fill in, so View instead of Fill in; a row with an href is a link to the live client page.
-  var POLICY = 'Policies';
+  var POLICY = 'Policies & client pages';   // the group's name in kb_files.grp
   var cache = {};
   async function blobUrl(code) {
     if (cache[code]) return cache[code];
@@ -99,12 +99,12 @@
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       KB.titleIcon('hr-forms', 'HR Forms &amp; Waivers') +
-      '<p class="kb-meta">' + r.data.filter(function (f) { return f.grp !== POLICY; }).length + ' fillable A4 forms. Fill one in on screen and save it, or print it and fill it in by hand, then file the signed copy. The booking and deposit policy sits under Policies.</p>' +
+      '<p class="kb-meta">' + r.data.filter(function (f) { return f.grp !== POLICY; }).length + ' fillable A4 forms. Fill one in on screen and save it, or print it and fill it in by hand, then file the signed copy. The booking and deposit policy and the client pages sit under Policies &amp; client pages.</p>' +
       (nCheck ? '<p class="kb-legend"><span class="kb-flag" style="margin:0">To check</span>' + nCheck + ' forms have a question still being confirmed.' +
         '<button type="button" id="fmOnlyCheck" aria-pressed="' + only + '">' + (only ? 'Show all forms' : 'Show only these') + '</button></p>' : '') +
       '<div class="fm-switch" role="group" aria-label="Which forms">' + groups.map(function (g, i) {
         var n = only ? by[g].filter(flagged).length : by[g].length;
-        return '<button type="button" data-i="' + i + '" aria-pressed="' + (i === pick) + '"><b class="fm-full">' + esc(g) + '</b><b class="fm-short">' + esc(g.replace(/( client)? forms$/, '')) + '</b> <span>' + n + '</span></button>';
+        return '<button type="button" data-i="' + i + '" aria-pressed="' + (i === pick) + '"><b class="fm-full">' + esc(g) + '</b><b class="fm-short">' + esc(g === POLICY ? 'Policies' : g.replace(/( client)? forms$/, '')) + '</b> <span>' + n + '</span></button>';
       }).join('') + '</div>' +
       groups.map(function (g, i) {
         var list = only ? by[g].filter(flagged) : by[g];
