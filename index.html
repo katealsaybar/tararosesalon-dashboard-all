@@ -2849,6 +2849,15 @@ tr.lg-tot td:first-child{background:var(--surface2)}
   white-space:nowrap}
 @media(hover:hover){.lg-side .side-nav a:hover{border-color:var(--accent)}}
 .lg-side .side-nav a.on{border-color:var(--text)}
+/* Kate, 8 Oct 2026: below 1400px the rail is the row of chips, and it scrolled away with the page, so a
+   long page (Branch Performance, the Ledgers) had to be scrolled back up to move between sections. It
+   now stays pinned under the masthead, the same as the Stylist Cards and Podium Race bars. Phones keep the
+   plain row: a pinned row of chips would take a third of a phone screen. */
+@media(max-width:1399.98px) and (min-width:761px){
+  .lg-side{position:sticky;top:var(--topbar-cond-h,104px);z-index:40;background:var(--bg);
+    margin:0 -28px 6px;padding:9px 28px 0;border-bottom:1px solid var(--border2)}
+  .lg-side .side-nav{padding:0 0 9px}
+}
 @media(min-width:1400px){
   .lg-shell{display:grid;grid-template-columns:172px minmax(0,1fr);gap:46px;align-items:start}
   /* Level with the first section, and it stays there — the tables below run for
