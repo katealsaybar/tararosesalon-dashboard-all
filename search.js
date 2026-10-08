@@ -469,12 +469,12 @@
     const jobs = [
       sb.rpc('get_top_services', { p_year: w.year, p_branches: w.branches, p_from: w.from, p_to: w.to, p_limit: 100 })
         .then(({ data }) => (data || []).filter(r => r.service_name).map((r, i) => ({
-          kind: 'service', id: 'service:' + r.service_name, t: r.service_name,
+          kind: 'service', view: 'services', id: 'service:' + r.service_name, t: r.service_name,
           g: 'Service Rankings', s: `#${i + 1} · ${aed(r.total_revenue)}`, words: 'service treatment',
           go: () => goService(r.service_name, i + 1) }))),
       sb.rpc('get_top_clients', { p_year: w.year, p_branches: w.branches, p_from: w.from, p_to: w.to, p_limit: 25 })
         .then(({ data }) => (data || []).filter(r => r.client_name).map((r, i) => ({
-          kind: 'client', id: 'client:' + r.client_name, t: r.client_name,
+          kind: 'client', view: 'clients', id: 'client:' + r.client_name, t: r.client_name,
           g: 'Top Clients', s: `#${i + 1} by revenue${r.top_service ? ' · ' + r.top_service : ''}`, words: 'client',   // no AED here: this list is the masthead window, the page has its own period and ex VAT figure
           go: () => goText('clients', r.client_name, () => { if (typeof tcSearchFor === 'function') tcSearchFor(r.client_name); }) }))),
     ];
@@ -482,7 +482,7 @@
       const pw = prdWindow();
       jobs.push(sb.rpc('get_product_spend', { p_branches: pw.branches, p_from: pw.from, p_to: pw.to })
         .then(({ data }) => ((data && data.products) || []).map(p => ({
-          kind: 'product', id: 'product:' + p.product, t: p.product,
+          kind: 'product', view: 'products', id: 'product:' + p.product, t: p.product,
           g: 'Products', s: [p.brand, p.type, aed(p.spend)].filter(Boolean).join(' · '), words: 'product stock ' + (p.brand || ''),
           go: () => goText('products', p.product) }))));
     }
@@ -1217,6 +1217,7 @@
     loadSecDates();
     serpKb = [];
     serpAll = Q.has ? capped(matches(Q), MAX_SERP, 200) : [];
+    loadSyncDates(new Set(serpAll.map(x => x.view)));
     paintSerp();
     // Team Home's pages come back a moment later. They are searched for what the question
     // is about, not the question.
@@ -1257,6 +1258,57 @@
       });
       if (serp && !serp.hidden) paintSerp();
     }, () => { secBusy = false; });
+  }
+
+  // Kate, 8 Oct 2026: "add the data feed date to dashboard results". A dashboard page has no
+  // updated date of its own; what it shows is as fresh as the feed behind it. Ledger and
+  // Phorest are read off the masthead's own badge (the same dates, the same warning when
+  // stale); Google Ads, Website and Social each keep their own sync time, read from the
+  // report each page runs, in a one-day window, the first time a result of that page shows.
+  const FEEDS = {
+    dashboard: ['ledger', 'phorest'], branchperf: ['ledger', 'phorest'], compare: ['ledger', 'phorest'],
+    team: ['ledger', 'phorest'], teamquad: ['ledger', 'phorest'], staffperf: ['ledger', 'phorest'],
+    staffweeks: ['ledger', 'phorest'], stafflevels: ['ledger', 'phorest'],
+    ledgerFinancials: ['phorest'], ledgerTargets: ['ledger'], ledgerActuals: ['ledger'], ledgerStylist: ['ledger'],
+    services: ['phorest'], clients: ['phorest'], lostclients: ['phorest'], products: ['phorest'],
+    googleads: ['ads'], website: ['web'], social: ['social'],
+  };
+  const SYNC = { ads: ['Google Ads', 'google_ads_report'], web: ['Website', 'website_report'], social: ['Metricool', 'social_report'] };
+  const syncDates = {};
+  let syncBusy = {};
+  function loadSyncDates(views) {
+    if (typeof sb === 'undefined') return;
+    const today = new Date().toISOString().slice(0, 10);
+    Object.keys(SYNC).forEach(k => {
+      const view = { ads: 'googleads', web: 'website', social: 'social' }[k];
+      if (syncDates[k] !== undefined || syncBusy[k] || !views.has(view)) return;
+      syncBusy[k] = true;
+      sb.rpc(SYNC[k][1], { p_from: today, p_to: today }).then(({ data, error }) => {
+        syncBusy[k] = false;
+        syncDates[k] = !error && data && data.sync && data.sync.last_ok_at ? data.sync.last_ok_at : '';
+        if (serp && !serp.hidden) paintSerp();
+      }, () => { syncBusy[k] = false; syncDates[k] = ''; });
+    });
+  }
+  function feedHtml(view) {
+    const feeds = FEEDS[view];
+    if (!feeds) return '';
+    const mast = document.getElementById('mastFresh');
+    const bits = feeds.map(f => {
+      if (f === 'ledger' || f === 'phorest') {
+        const label = f === 'ledger' ? 'Ledger' : 'Phorest';
+        const span = mast && [...mast.children].find(c => c.textContent.trim().startsWith(label));
+        return span ? span.outerHTML : '';
+      }
+      const when = syncDates[f];
+      if (!when) return '';
+      const d = new Date(when);
+      if (isNaN(d)) return '';
+      const stale = Date.now() - d.getTime() > 36 * 3600e3;
+      const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      return `<span class="${stale ? 'stale' : ''}">${SYNC[f][0]} <b>${d.getDate()} ${d.toLocaleString('en-GB', { month: 'short' })}</b>, ${time}</span>`;
+    }).filter(Boolean);
+    return bits.length ? `<div class="gs-r-upd gs-r-feed" title="How fresh the numbers behind this page are">Data as of ${bits.join(' · ')}</div>` : '';
   }
 
   // "3 Oct", or "3 Oct 2025" when it is not this year.
@@ -1369,9 +1421,10 @@
       const open = x.href ? `<a class="gs-r" data-i="${i}" href="${esc(x.href)}" target="_blank" rel="noopener">` : `<a class="gs-r" data-i="${i}" href="#">`;
       const iso = x.updated || (x.sec && secDates ? secDates.get(x.sec) : '');
       const upd = iso ? `<div class="gs-r-upd"${x.sec ? ' title="When the newest page in this section was last changed"' : ''}>Updated ${esc(updatedLabel(iso))}</div>` : '';
+      const feed = !upd && x.view && x.kind !== 'kb' ? feedHtml(x.view) : '';
       const more = x.more ? `<div class="gs-r-more">+${x.more} more line${x.more === 1 ? '' : 's'} in this section</div>` : '';
       return `<div class="gs-res">${open}<span class="gs-r-g">${esc(x.g || '')}</span><span class="gs-r-t">${highlight(x.t, Q.hl)}</span></a>`
-        + (snip ? `<div class="gs-r-s">${highlight(snip, Q.hl)}</div>` : '') + upd + more + acts + '</div>';
+        + (snip ? `<div class="gs-r-s">${highlight(snip, Q.hl)}</div>` : '') + upd + feed + more + acts + '</div>';
     });
     // Related searches sit in the results, after the fifth, as on Google.
     const rel = relatedHtml(Q, all, ans, vcount, names);
