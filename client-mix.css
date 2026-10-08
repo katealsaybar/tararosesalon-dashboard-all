@@ -69,3 +69,28 @@ tr.cm-unm td{background:var(--warn-bg)}
   .cm-tag{white-space:normal}
 }
 @media(min-width:761px){.cm-sel-m{display:none}}
+
+/* Service Rankings (service-rankings.js) */
+.sr-t th,.sr-t td{white-space:nowrap}
+.sr-t td.lc-l{white-space:normal;min-width:180px}
+.sr-row{cursor:pointer}
+.sr-row.sr-on td{background:var(--surface2)}
+@media(hover:hover){.sr-t .sr-row:hover td{background:var(--surface2)}}
+.sr-n{font-family:'Playfair Display',serif;font-size:16px;font-weight:600}
+.sr-share{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.sr-share .cm-bar1{width:56px;margin:0}
+.sr-share span{min-width:40px;color:var(--muted);font-size:13px}
+.sr-d{font-weight:600;font-size:13px;color:var(--muted)}
+.sr-d.up{color:var(--good)}.sr-d.down{color:var(--bad)}.sr-d.new{font-weight:500;font-size:12px}
+.sr-det td{background:var(--surface2);padding:0}
+.sr-open{padding:12px 16px}
+.sr-sizes{list-style:none;margin:6px 0 0;padding:0}
+.sr-sizes li{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:3px 0;border-bottom:1px solid var(--border)}
+.sr-sizes li:last-child{border-bottom:0}
+.sr-sizes li span{min-width:0;overflow-wrap:anywhere}
+.sr-br{display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;margin-top:4px}
+.sr-br span{color:var(--muted)}.sr-br b{color:var(--text)}
+.prd-card.sr-row.sr-on{background:var(--surface2)}
+.prd-card.sr-row .sr-open{padding:10px 0 0}
+.sr-t th.lc-l,.sr-t td.lc-l{text-align:left}
+.sr-t th:first-child,.sr-t td:first-child{text-align:left;width:34px}

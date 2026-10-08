@@ -5184,6 +5184,8 @@ function _syncSvcYearRow() {
 }
 
 function initSvcView() {
+  // Service Rankings was rebuilt on 8 Oct 2026 (service-rankings.js, own controls).
+  if (typeof renderServiceRankings === 'function') { renderServiceRankings(); return; }
   if (!svcDropsReady) { svcDropsReady = true; _loadSvcYears(); }
   _syncSvcYearRow();
   loadAndRenderServices();
