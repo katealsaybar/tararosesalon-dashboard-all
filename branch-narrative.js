@@ -90,6 +90,10 @@ function bnFacts(g, targets) {
     if (!cur) return;
     put(`${p}_net_take`,        cur.netTake);
     put(`${p}_clients`,         clientsOf(cur));
+    // Which count _clients is: 1 through the door (Phorest), 0 per staff (ledgers). _new_clients,
+    // _ncr, _rebooked and _rebook_pct are always per staff, so the handled count is sent beside it.
+    put(`${p}_clients_through_door`, doorOn(cur) ? 1 : 0);
+    put(`${p}_clients_per_staff`,    cur.totalClients);
     put(`${p}_new_clients`,     cur.newClientsTotal);
     put(`${p}_ncr`,             cur.ncrTotal);
     put(`${p}_rebooked`,        cur.totalRebooked);
@@ -199,7 +203,7 @@ function bnFallback(g) {
         ? `Group net take is ${lgAed(gc.netTake)}, ${gt.pct > 0 ? 'up' : 'down'} ${Math.abs(gt.pct).toFixed(1)}% on the ${g.days} days before this window.`
         : `Group net take is ${lgAed(gc.netTake)}.`,
       gcl && gcl.pct != null
-        ? `Clients moved ${gcl.pct > 0 ? 'up' : 'down'} ${Math.abs(gcl.pct).toFixed(1)}% over the same two windows, on the same number of days.`
+        ? `Clients${doorOn(gc) ? ' through the door' : ' (per staff)'} moved ${gcl.pct > 0 ? 'up' : 'down'} ${Math.abs(gcl.pct).toFixed(1)}% over the same two windows, on the same number of days.`
         : '',
       allDown ? 'All four moved down together, which points at the season rather than at any one floor — read each branch below against the group, not against its own target alone.' : '',
       allUp ? 'All four moved up together, so the question below is which floor moved least.' : '',
@@ -259,8 +263,8 @@ function bnFallback(g) {
       // longer both claim the busiest floor. Kate, 1 Oct 2026.
       subject = topClients ? 'The busiest floor in the group' : 'The most new clients in the group';
       workBits = [[
-        topClients ? `${lgNum(clientsOf(cur))} clients${doorOn(cur) ? ' through the door' : ''}` : null,
-        topNew ? `${lgNum(cur.newClientsTotal)} new ones` : null,
+        topClients ? `${lgNum(clientsOf(cur))} clients${doorOn(cur) ? ' through the door' : ' (per staff)'}` : null,
+        topNew ? `${lgNum(cur.newClientsTotal)} new clients by staff` : null,
       ].filter(Boolean).join(' and ') + `, more than any other branch. New business is arriving; what happens next is the question below.`];
       workBits.push(bnAgainst(best));
     } else if (runnerUp) {
@@ -284,10 +288,10 @@ function bnFallback(g) {
       workBits.push(`It also leads the group on ${otherLeads.join(' and ')}.`);
     }
     if (bill && bill.dir === 'up' && bill.pct != null) {
-      workBits.push(`The average bill is up ${bill.pct.toFixed(1)}% on the previous window, so the money per client is moving the right way.`);
+      workBits.push(`The hair average bill (per staff count) is up ${bill.pct.toFixed(1)}% on the previous window, so the money per client is moving the right way.`);
     }
     if (cur.newClientsTotal && !topNew) {
-      workBits.push(`${lgNum(cur.newClientsTotal)} new clients this window.`);
+      workBits.push(`${lgNum(cur.newClientsTotal)} new clients this window, counted by staff.`);
     }
 
     // WATCH — the weakest benchmark, with the growth context around it.
@@ -298,11 +302,11 @@ function bnFallback(g) {
         : ''}.`,
     ];
     if (worst.id === 'rebook' && cur.totalClients) {
-      watchBits.push(`${lgNum(cur.totalRebooked)} of ${lgNum(cur.totalClients)} clients came back.`);
+      watchBits.push(`${lgNum(cur.totalRebooked)} clients rebooked, ${(cur.rebookPct || 0).toFixed(1)}% of the clients counted by staff.`);
     }
     let action = BN_ACTIONS[worst.id] || BN_ACTIONS.traffic;
     if (take && take.dir === 'down' && clients && clients.dir === 'down' && bill && bill.dir === 'up') {
-      watchBits.push(`Net take is down ${Math.abs(take.pct).toFixed(1)}% on a ${Math.abs(clients.pct).toFixed(1)}% fall in clients while the average bill rose — that is traffic, not pricing${
+      watchBits.push(`Net take is down ${Math.abs(take.pct).toFixed(1)}% on a ${Math.abs(clients.pct).toFixed(1)}% fall in clients${doorOn(cur) ? ' through the door' : ''} while the hair average bill rose — that is traffic, not pricing${
         allDown ? ', and every branch moved the same way' : ''}.`);
       // A traffic fall outranks a soft benchmark: there is no point coaching the
       // retail share of a client who is not in the chair.

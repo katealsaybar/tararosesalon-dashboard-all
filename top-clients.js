@@ -197,7 +197,7 @@ function tcPaint() {
       </div>
       <div class="w13-tiles lc-tiles">
         ${tile('Clients', lcNum(rows.length), matched > rows.length ? `top ${lcNum(rows.length)} of ${lcNum(matched)} who match` : 'who match these filters')}
-        ${tile('Combined revenue', 'AED ' + lcNum(rev), `ex VAT, ${share}% of ${TC.branch === 'all' ? 'all' : 'this branch\'s'} revenue`)}
+        ${tile('Combined revenue', 'AED ' + lcNum(rev), `ex VAT, ${share}% of ${TC.branch === 'all' ? 'all' : 'this branch’s'} named-client revenue (walk-ins and unnamed sales are not in it)`)}
         ${phones ? tile('With a phone number', lcNum(withNo), `${rows.length ? Math.round(100 * withNo / rows.length) : 0}% of the list`) : ''}
         ${who('Their stylist', th)}
         ${who('Their beautician', tb)}
@@ -247,12 +247,12 @@ function tcPaintBoard() {
     const go = b && k ? ` class="go" onclick="tcOpenCell('${b}','${k}')" role="button" tabindex="0"` : '';
     return `<td${go}><b>${lcNum(n)}</b><small>AED ${lcNum(r)}</small></td>`;
   };
-  const row = x => `<tr><th>${lcEsc(x.name)}</th>${TC_BUCKETS.map(u => cell(x.g[u.k].n, x.g[u.k].r, x.b, u.k)).join('')}${cell(x.n, x.r)}<td class="pct"><b>${x.total ? Math.round(100 * x.r / x.total) : 0}%</b><small>of branch revenue</small></td></tr>`;
+  const row = x => `<tr><th>${lcEsc(x.name)}</th>${TC_BUCKETS.map(u => cell(x.g[u.k].n, x.g[u.k].r, x.b, u.k)).join('')}${cell(x.n, x.r)}<td class="pct"><b>${x.total ? Math.round(100 * x.r / x.total) : 0}%</b><small>of named-client revenue</small></td></tr>`;
   el.innerHTML = `<div class="slv-head"><div><div class="slv-eyebrow">Every branch</div><h3>Top ${lcNum(TC.top)} at each salon, by when we last saw them</h3></div>
       <div class="sc-seg lc-mode" role="group" aria-label="Show">
         <button type="button" class="${rev ? 'on' : ''}" onclick="tcSetMode('rev')">Revenue</button>
         <button type="button" class="${rev ? '' : 'on'}" onclick="tcSetMode('n')">Clients</button></div></div>
-    <p class="slv-note" style="margin:0 0 12px">${lcEsc(tcPeriodTxt())}. ${T.g.slip.n ? `${lcNum(T.g.slip.n)} of these ${lcNum(T.n)} top clients have not been in for 60+ days.` : 'No top client is 60+ days away.'}</p>
+    <p class="slv-note" style="margin:0 0 12px">${lcEsc(tcPeriodTxt())}. ${T.g.slip.n ? `${lcNum(T.g.slip.n)} of these ${lcNum(T.n)} top clients have not been in for 60+ days (a client who is top at two salons counts at each).` : 'No top client is 60+ days away.'}</p>
     <div class="lc-chart" onmouseover="lcBoardRead(event)" onfocusin="lcBoardRead(event)" onmouseleave="lcBoardRead(null)">${B.map(bar).join('')}</div>
     <p class="lc-read" id="lcRead" aria-live="polite">Point at a bar, or tap it, to read it. Click to open that list.</p>
     <div class="lc-legend">${TC_BUCKETS.map(u => `<span><i style="background:${u.color}"></i>${u.label}</span>`).join('')}</div>

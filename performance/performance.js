@@ -390,14 +390,14 @@ const TIPS = {
   treatments_pct:  'Treatments as a share of your hair services: treatments ÷ hair services × 100. It can be on target while the AED is still short.',
   retail:          'Products you sold this month, from Phorest, before VAT.',
   retail_pct:      'Retail as a share of your service sales: retail ÷ total revenue × 100. It can be on target while the AED is still short.',
-  avg_bill:        'Your service sales divided by your client numbers.',
+  avg_bill:        'Your service sales from Phorest divided by your client numbers (the ledger’s count, or Phorest’s visits on the Phorest view).',
   rebooking_pct:   'The share of your clients who booked their next visit before they left.',
   retention_pct:   'Of the returning clients you saw 3 to 6 months ago, the share you have seen again in the last 3 months.',
-  clients:         'The clients you saw this month, from the branch ledger.',
+  clients:         'The clients you saw this month: the branch ledger’s count, or Phorest’s visits on the Phorest view.',
   // Your client numbers (Kate, 30 Sep 2026): the four columns the branch ledger splits your clients into.
-  req:             'Returning clients who booked with you by name. From the branch ledger.',
-  salon:           'Returning clients who had no preference, so the salon booked them with you. From the branch ledger.',
-  new_clients:     'Brand new clients on their first visit who did not ask for anyone, so the salon booked them with you. From the branch ledger.',
+  req:             'Returning clients who booked with you by name. From the branch ledger, or Phorest’s RQ count on the Phorest view.',
+  salon:           'Returning clients who had no preference, so the salon booked them with you. From the branch ledger; Phorest does not split this out.',
+  new_clients:     'Brand new clients on their first visit who did not ask for anyone, so the salon booked them with you. From the branch ledger, or Phorest’s own new-client count on the Phorest view.',
   ncr:             'New clients who asked for you by name, usually through a referral or your socials.',
   request_pct:     'Clients who asked for you (request clients plus new client requests) as a share of your client numbers.',
   conversion_pct:  'Of the brand new clients whose first visit was with you 3 to 6 months ago, the share who came back within 12 weeks.',
@@ -723,7 +723,7 @@ async function renderStylist() {
       <div class="card-head"><h2>The six numbers.</h2><div class="dept-seg chart-seg" id="srcSeg" role="group" aria-label="Where the client numbers come from"><button type="button" data-src="ledger"${SRC === 'ledger' ? ' class="on"' : ''}>Ledger</button><button type="button" data-src="phorest"${SRC === 'phorest' ? ' class="on"' : ''}>Phorest</button></div></div>
       <p class="sub">${SRC === 'phorest'
         ? 'Clients, requests, new clients, rebooking and average bill are Phorest’s own counts. Sales are from Phorest either way.'
-        : 'Clients, requests, new clients and rebooking are from the branch ledger reception fills in. Sales are from Phorest either way.'}</p>
+        : 'Clients, requests, new clients and rebooking are from the branch ledger reception fills in, counted per staff. Average bill is your Phorest sales divided by the ledger’s client count. Sales are from Phorest either way.'}</p>
       ${midMonth ? `<p class="sub">Money numbers are judged on pace for the full month, with data up to ${esc(dayLabel(n.data_to || n.last_date))}.</p>` : ''}
       ${started && !(share && share.off) ? `<p class="sub">You started on ${esc(dayLabel(n.start_date))}, so this month's totals are aimed at the ${started.left} days since.</p>` : ''}
       ${share && share.off ? `<p class="sub">${started ? `You started on ${esc(dayLabel(n.start_date))} and` : 'You'} were away ${(n.leave || []).map(x => x.from === x.to ? esc(dayLabel(x.from)) : `${esc(dayLabel(x.from))} to ${esc(dayLabel(x.to))}`).join(' and ')}, so this month's totals are aimed at the ${share.left} days you were here.</p>` : ''}
@@ -1022,7 +1022,7 @@ async function renderTeam() {
   app.innerHTML = `
     <section class="card hero">
       <div class="eyebrow">Your team · ${esc(monthLabel(d.month))}</div>
-      <p class="sub">Every number fills itself: sales from Phorest, client numbers counted once each from the ledgers. Tap a person to see their page${ROLE === 'viewer' ? '' : ' and leave a note'}.</p>
+      <p class="sub">Every number fills itself: sales from Phorest, client numbers per staff, from the ledgers (a client who saw two people counts for each). Tap a person to see their page${ROLE === 'viewer' ? '' : ' and leave a note'}.</p>
     </section>
     ${EMBED ? '' : `<div class="dept-seg" role="group" aria-label="Team">${['all', 'Hair', 'Beauty'].map(x =>
       `<button type="button" data-dept="${x}" class="${DEPT === x ? 'on' : ''}">${x === 'all' ? 'All' : x}</button>`).join('')}</div>`}

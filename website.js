@@ -135,7 +135,7 @@ function webPaint(el) {
       ${d.days.length ? `
       <div class="w13-tiles">
         <div class="w13-tile"><div class="slv-eyebrow">Visits</div><div class="w13-val">${webNum(visits)}</div><div class="slv-note">${webNum(visits / d.days.length)} a day</div></div>
-        <div class="w13-tile"><div class="slv-eyebrow">People</div><div class="w13-val">${webNum(people)}</div><div class="slv-note">${webPct(fresh, people)} first time on the site</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">People (added up day by day)</div><div class="w13-val">${webNum(people)}</div><div class="slv-note">${webPct(fresh, people)} first time on the site</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Stayed to look</div><div class="w13-val">${webPct(engaged, visits)}</div><div class="slv-note">10 seconds or 2 pages or more</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">From ads</div><div class="w13-val">${webPct(paid, visits)}</div><div class="slv-note">${webNum(paid)} visits from paid ads</div></div>
       </div>
@@ -190,7 +190,7 @@ function webPaint(el) {
 
 // What each chart draws: bars by quarter shade and a line, as on the Quarterly page.
 const WEB_SPEC = {
-  visits:  { bar: { key: 'sessions', label: 'Visits', fmt: v => webNum(v) }, line: { key: 'users', label: 'People', fmt: v => webNum(v) } },
+  visits:  { bar: { key: 'sessions', label: 'Visits', fmt: v => webNum(v) }, line: { key: 'users', label: 'People (daily total)', fmt: v => webNum(v) } },
   search:  { bar: { key: 'clicks', label: 'Clicks', fmt: v => webNum(v) }, line: { key: 'impressions', label: 'Times we showed up', fmt: v => webNum(v) } },
   channel: { bar: { key: 'sessions', label: 'Visits', fmt: v => webNum(v) }, line: { key: 'stayed', label: 'Stayed to look (%)', fmt: v => v === null ? '–' : Math.round(v) + '%' } },
   page:    { bar: { key: 'views', label: 'Views', fmt: v => webNum(v) } },

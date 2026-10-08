@@ -2120,6 +2120,10 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
      'salonClientTotal','requestClientTotal','hairServicesExcl'].forEach(k => { s[k] = null; });
   }
 
+  // The client count the ledger's own columns (rebooked, NCR) were written against. A
+  // roll-up over branches divides rebooked by this, not by totalClients, which on a
+  // window the ledger lags also carries Phorest-only visits that have no rebooking column.
+  s.ledgerTotalClients = s._phorestOnly ? 0 : (ledgerPart ? ledgerPart.summary.totalClients : s.totalClients);
   const { hairStaff, beautyStaff } = buildStaffArraysFromMaps(hairMap, beautyMap);
   return { summary: s, hairStaff, beautyStaff };
 }
@@ -2205,7 +2209,9 @@ function buildPhorestOnlyStaffMaps(phorestRows, ledgerDept) {
     const map = isBeauty ? beautyMap : hairMap;
     const key = staffMapKey(name);
     if (!map[key]) {
-      map[key] = { name, total: 0, newC: 0, rebooked: 0, req: 0, salon: 0, newClientReq: 0,
+      // ledgerClients 0: nothing here came through the ledger, so rebooking, NCR and
+      // retention are unknown for her, not 0% (buildStaffArraysFromMaps marks noLedger).
+      map[key] = { name, total: 0, ledgerClients: 0, newC: 0, rebooked: 0, req: 0, salon: 0, newClientReq: 0,
         hairSalesNet: 0, retail: 0, treatments: 0, beautySales: 0, courses: 0, treatmentUnits: 0, retailUnits: 0 };
     }
     const st = map[key];
@@ -2694,6 +2700,10 @@ function buildStaffArraysFromMaps(hairMap, beautyMap) {
   // a stylist's clients came through Phorest alone (see mergeStaffMaps) they are
   // read against the ledger's own client count, not the combined total.
   const ledgerBase = st => (st.ledgerClients != null) ? st.ledgerClients : st.total;
+  // No ledger rows at all for her (2025, Bahrain, or only Phorest-only days): the
+  // ledger's rates are unknown, not 0. The rates stay 0 for the code that sums them;
+  // noLedger tells the Podium Race, leagues and Quadrant to leave her off them.
+  const noLedgerOf = st => st.ledgerClients === 0;
   const hairStaff = Object.values(hairMap).map((st, i) => {
     const hReturning    = (st.req||0) + (st.salon||0);
     const hBase         = ledgerBase(st);
@@ -2704,6 +2714,7 @@ function buildStaffArraysFromMaps(hairMap, beautyMap) {
     const netSalonTake  = (st.hairSalesNet||0) + retail;
     return {
       ...st,
+      noLedger: noLedgerOf(st),
       retail,
       avgBill:          st.total ? st.hairSalesNet / st.total : 0,
       rebookPct:        hRebookPct,
@@ -2728,6 +2739,7 @@ function buildStaffArraysFromMaps(hairMap, beautyMap) {
     const netTake       = (st.beautySales||0) + retail;
     return {
       ...st,
+      noLedger: noLedgerOf(st),
       retail,
       avgBill:       st.total ? st.beautySales/st.total : 0,
       rebookPct:     bRebookPct,
@@ -3295,7 +3307,7 @@ const FN_LEDGER_ROWS = [
   { k: 'NCR', f: 'ncr',   name: 'New client request', tip: 'New client who asked for her stylist by name.' },
 ];
 const FN_PHOREST_ROWS = [
-  { k: 'TOT', f: 't',   name: 'Visits',             tip: 'Every visit Phorest recorded.', tot: true },
+  { k: 'TOT', f: 't',   name: 'Staff visits',       tip: 'Every visit Phorest recorded, counted per staff member: a client seen by two staff is two visits. It will not match the Clients card, which counts each client once a day.', tot: true },
   { k: 'SAL', f: 'salon', na: true, name: 'Salon client', tip: 'Not in Phorest: it does not split salon from request.' },
   { k: 'REQ', f: 'req', name: 'Request (RQ)',       tip: 'Visits where the client asked for her stylist: Phorest\u2019s RQ count.' },
   { k: 'REB', f: 'reb', name: 'Rebooked',           tip: 'Visits that rebooked before leaving, from Phorest\u2019s Staff Performance Tracker.' },
@@ -3395,334 +3407,6 @@ async function fnSetSrc(v) {
   if (v === 'phorest' && F.rebook === null) { await fnLoadRebook(F); fnPaint(); }
 }
 
-// Renders an inverted-pyramid client funnel split down the middle: hair on the
-// left, beauty on the right, each stage narrowing relative to that side's own
-// Total Clients so the two halves stay visually comparable even though hair
-// volume dwarfs beauty volume in raw counts.
-function buildClientFunnelHTML(s, dark) {
-  const hairTotal      = s.hairTotalClients || 0;
-  const beautyTotal    = s.beautyTotalClients || 0;
-  const hairNew        = s.hairNewClients || 0;
-  const beautyNew      = s.beautyNewClients || 0;
-  const hairRebooked   = s.hairRebookedCount || 0;
-  const beautyRebooked = s.beautyBreakdown?.rebooked || 0;
-  const hairSalon      = s.hairBreakdown?.salon || 0;
-  const beautySalon    = s.beautyBreakdown?.salon || 0;
-  const hairReq        = s.hairBreakdown?.req || 0;
-  const beautyReq      = s.beautyBreakdown?.req || 0;
-  const hairNCR         = s.hairNCR || 0;
-  const beautyNCR       = s.beautyNCR || 0;
-
-  const hairColor   = dark ? '#C4B5FD' : '#7C5CD4';
-  const beautyColor = dark ? '#99F6E4' : '#0F8A72';
-
-  // Ordered by hair-side magnitude (largest dataset) for a clean taper — these
-  // are independent booking-type breakdowns, not strict sequential funnel
-  // stages, so beauty isn't guaranteed to taper in the same order.
-  const stages = [
-    { label: 'Total Clients',  hair: hairTotal,    beauty: beautyTotal },
-    { label: 'Request Client', hair: hairReq,      beauty: beautyReq },
-    { label: 'Rebooked',       hair: hairRebooked, beauty: beautyRebooked },
-    { label: 'Salon Client',   hair: hairSalon,    beauty: beautySalon },
-    { label: 'New Clients',    hair: hairNew,      beauty: beautyNew },
-    { label: 'NCR (New Client Req)', hair: hairNCR, beauty: beautyNCR },
-  ];
-
-  // Bar fills keep the same brand --hair/--beauty tokens used everywhere else on the
-  // dashboard — swapping colors would break that consistency. Kate flagged the flat
-  // fills as too matingkad against the light-mode white card, so instead of recoloring
-  // we just soften them with a shadow (heavier in light mode, where there's no dark
-  // surface behind them to give depth for free).
-  const barShadow = dark ? '0 1px 4px rgba(0,0,0,0.35)' : '0 2px 6px rgba(26,26,26,0.18)';
-  const rows = stages.map(st => {
-    const hairPct   = hairTotal   ? Math.min(100, Math.max(st.hair   ? 8 : 0, (st.hair   / hairTotal)   * 100)) : 0;
-    const beautyPct = beautyTotal ? Math.min(100, Math.max(st.beauty ? 8 : 0, (st.beauty / beautyTotal) * 100)) : 0;
-    return `
-      <div style="display:flex;align-items:center;margin-bottom:12px">
-        <div style="flex:1;display:flex;justify-content:flex-end;align-items:center;gap:8px;min-width:0">
-          <span class="tabular" style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap">${st.hair.toLocaleString()}</span>
-          <div style="height:26px;width:${hairPct}%;background:${hairColor};border-radius:6px 2px 2px 6px;box-shadow:${barShadow};transition:width .6s ease"></div>
-        </div>
-        <div style="width:104px;flex-shrink:0;text-align:center;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-left:1px dashed var(--border);border-right:1px dashed var(--border);padding:0 6px">${st.label}</div>
-        <div style="flex:1;display:flex;justify-content:flex-start;align-items:center;gap:8px;min-width:0">
-          <div style="height:26px;width:${beautyPct}%;background:${beautyColor};border-radius:2px 6px 6px 2px;box-shadow:${barShadow};transition:width .6s ease"></div>
-          <span class="tabular" style="font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap">${st.beauty.toLocaleString()}</span>
-        </div>
-      </div>`;
-  }).join('');
-
-  return `
-    <div style="max-width:520px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-        <span style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${hairColor}">◂ Hair</span>
-        <span style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${beautyColor}">Beauty ▸</span>
-      </div>
-      ${rows}
-    </div>`;
-}
-
-// "This Week's Wins" — 3 auto-generated highlight callouts filling the blank space
-// below the Client Funnel + Branch Performance row (hero column runs shorter than
-// the receipt beside it). Top performer, biggest KPI move vs previous period, and
-// top branch (or top department when a single branch is selected). Kate, 2026-08-03.
-function buildWinsHTML(s, prevS, prevPeriodLabel, hairStaff, beautyStaff, branchLabel, byBranch, dark) {
-  const hairColor   = dark ? '#C4B5FD' : '#7C5CD4';
-  const beautyColor = dark ? '#99F6E4' : '#0F8A72';
-
-  // Some accent colors passed in here (branch pastels like Khalifa City's #FFD4D9) are
-  // meant for dots/backgrounds, not body text — coloring the eyebrow text directly made
-  // it unreadable on the light card. Keep the eyebrow in --muted (always readable) and
-  // use `color` only as a dot + left border accent, same convention as everywhere else
-  // brand colors show up on this dashboard.
-  // `profile` is an optional STAFF_PROFILES entry (staff-profiles.js): {photo, ig}.
-  // Both keys are optional and independent, so a stylist with no photo, no handle,
-  // or no profile at all renders exactly as this card always did. A photo that
-  // 404s hides itself via onerror rather than showing a broken-image icon.
-  const winCard = (eyebrow, color, title, sub, profile) => {
-    const p = profile || {};
-    const titleHtml = p.ig
-      ? `<a href="https://instagram.com/${encodeURIComponent(p.ig)}" target="_blank" rel="noopener noreferrer"
-            title="@${escapeHtml(p.ig)} on Instagram"
-            style="color:inherit;text-decoration:none;border-bottom:1px solid ${color}">${escapeHtml(title)}</a>`
-      : escapeHtml(title);
-    // The stylist-card look — head breaking out above a rounded colour block — is
-    // baked into the PNG itself: the block is the card's own accent panel, and the
-    // area above it is transparent. So no border-radius, background or border here;
-    // adding any would clip the very overhang that makes it read as the card.
-    const avatarHtml = p.photo
-      ? `<img src="assets/staff/${encodeURIComponent(p.photo)}" alt="" loading="lazy" decoding="async"
-             onerror="this.style.display='none'"
-             style="height:62px;width:auto;flex-shrink:0">`
-      : '';
-    return `
-    <div style="flex:1;min-width:200px;padding:14px 16px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid ${color}">
-      <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">
-        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></span>${eyebrow}
-      </div>
-      <div style="display:flex;align-items:center;gap:11px;margin-top:6px">
-        ${avatarHtml}
-        <div style="min-width:0">
-          <div style="font-family:'Playfair Display',serif;font-weight:600;font-size:18px;color:var(--text);line-height:1.3">${titleHtml}</div>
-          <div style="font-size:13.5px;color:var(--muted);margin-top:4px">${sub}</div>
-        </div>
-      </div>
-    </div>`;
-  };
-
-  // ── Top performer, one per department ──
-  // Hair and beauty used to share a single card, which meant beauty could never
-  // win it: hair turns over roughly ten times beauty's revenue, so the "top
-  // performer" was structurally always a hair stylist. Kate, 2026-08-12: beauty
-  // gets its own card, judged against its own team.
-  const poolFor = (staff, dept, color, revKey) =>
-    (staff||[])
-      .filter(st => st.name !== 'ASSISTANTS')
-      .map(st => ({ name: st.name, dept, color, revenue: st[revKey]||0, total: st.total||0, rebookPct: st.rebookPct||0 }))
-      .filter(p => p.revenue > 0)
-      .sort((a,b) => b.revenue - a.revenue);
-  const topOf = (pool, label) => {
-    const t = pool[0];
-    if (!t) return winCard(label, 'var(--muted)', 'No staff data for this period', 'Staff-level figures aren’t available for this date range.');
-    const prof = (typeof staffProfile === 'function') ? staffProfile(t.name) : null;
-    // Plain text, not a span: this title also doubles as the Instagram link text,
-    // which winCard() escapes whole rather than accepting markup.
-    const who = prof && prof.last ? `${t.name} ${prof.last}` : t.name;
-    return winCard(label, t.color, `${who} — ${t.dept}`,
-      `${fmtAED(t.revenue)} · ${t.total.toLocaleString()} clients · ${fmtPct(t.rebookPct)} rebooked`,
-      prof);
-  };
-  const performerCard = topOf(poolFor(hairStaff,   'Hair',   hairColor,   'hairSalesNet'), 'Top Performer · Hair');
-  const beautyCard    = topOf(poolFor(beautyStaff, 'Beauty', beautyColor, 'beautySales'),  'Top Performer · Beauty');
-
-  // ── Biggest KPI move vs previous period (percentage-point deltas, same units) ──
-  const moves = [
-    { label: 'Rebooking %', curr: s.rebookPct,    prev: prevS?.rebookPct,    color: '#0F6E56' },
-    { label: 'Treatment %', curr: s.treatmentPct,  prev: prevS?.treatmentPct,  color: '#BA7517' },
-    { label: 'Retail %',    curr: s.hairRetailPct, prev: prevS?.hairRetailPct, color: hairColor },
-  ].filter(m => m.prev != null).map(m => ({ ...m, delta: (m.curr||0) - m.prev }))
-   .sort((a,b) => b.delta - a.delta);
-  const bestMove = moves[0];
-  const improvementCard = (bestMove && bestMove.delta > 0)
-    ? winCard('Biggest Improvement', bestMove.color, `${bestMove.label} up ${bestMove.delta.toFixed(1)}pp`,
-        `${bestMove.prev.toFixed(1)}% → ${bestMove.curr.toFixed(1)}% vs ${prevPeriodLabel}`)
-    : winCard('Biggest Improvement', 'var(--muted)', 'Holding steady', `No tracked KPI moved up vs ${prevPeriodLabel}.`);
-
-  // ── Top branch (All Branches view) or top department (single-branch view) ──
-  let branchCard;
-  const branchEntries = sel.branch.includes('all') && byBranch
-    ? Object.keys(byBranch).map(code => ({ code, s: byBranch[code]?.summary })).filter(e => e.s && e.s.netTake > 0).sort((a,b) => b.s.netTake - a.s.netTake)
-    : [];
-  if (branchEntries.length) {
-    const b = branchEntries[0];
-    branchCard = winCard('Top Branch', BRANCH_INFO[b.code]?.color || '#FF9B9B', BRANCH_INFO[b.code]?.name || b.code,
-      `${fmtAED(b.s.netTake)} net revenue · ${fmtPct(b.s.rebookPct||0)} rebooking`);
-  } else {
-    const hairAhead = (s.hairRebookPct||0) >= (s.beautyRebookPct||0);
-    branchCard = winCard('Top Department', hairAhead ? hairColor : beautyColor, hairAhead ? 'Hair — Rebooking' : 'Beauty — Rebooking',
-      `${fmtPct(hairAhead ? (s.hairRebookPct||0) : (s.beautyRebookPct||0))} rebooking, ahead of ${hairAhead ? 'Beauty' : 'Hair'} this period`);
-  }
-
-  return `<div style="display:flex;gap:14px;flex-wrap:wrap">${performerCard}${beautyCard}${improvementCard}${branchCard}</div>`;
-}
-
-function buildCmpChart(byBranch, metric, dark, ttStyle, gc, tc, catFilter, canvasId) {
-  catFilter = catFilter || 'hb';
-  canvasId = canvasId || 'cmpChart';
-  // Resolve the actual summary key based on category filter where metrics split by Hair/Beauty/Hair & Beauty
-  const resolveKey = (m, cat) => {
-    if (m === 'avgBill')       return cat === 'hair' ? 'hairAvgBill'   : cat === 'beauty' ? 'beautyAvgBill'   : 'avgBill';
-    if (m === 'rebookPct')     return cat === 'hair' ? 'hairRebookPct' : cat === 'beauty' ? 'beautyRebookPct' : 'rebookPct';
-    if (m === 'ncrPct')        return cat === 'hair' ? 'hairNcrPct'    : cat === 'beauty' ? 'beautyNcrPct'    : 'ncrPct';
-    if (m === 'retailPct')     return 'hairRetailPct'; // combined-only field (legacy name), no hair/beauty split per-branch
-    return m; // netTake, totalClients, totalRebooked, treatmentPct — no split
-  };
-  const resolvedMetric = resolveKey(metric, catFilter);
-
-  const activeBranches = sel.branch.includes('all') ? ACTIVE_BRANCHES : sel.branch;
-  const entries = activeBranches.map(b => {
-    const d = byBranch[b];
-    const info = BRANCH_INFO[b];
-    // Light mode needs the darker `colorLight` variant — the flat dark-mode pastel
-    // reads as too matingkad/washed-out against the light cream card otherwise.
-    const barColor = dark ? (info?.color||'#ccc') : (info?.colorLight || info?.color || '#ccc');
-    return { branch: b, val: +(d ? d.summary[resolvedMetric]||0 : 0).toFixed(2), color: barColor, name: info?.name||b };
-  }).sort((a,b) => b.val - a.val);
-
-  const labels = entries.map(e => e.name);
-  const vals   = entries.map(e => e.val);
-  const colors = entries.map(e => e.color);
-  const nonZeroVals = vals.filter(v => v > 0);
-  const avg    = nonZeroVals.length ? nonZeroVals.reduce((a,b) => a+b, 0) / nonZeroVals.length : 0;
-  const catLabel = catFilter === 'hair' ? 'Hair' : catFilter === 'beauty' ? 'Beauty' : 'Hair & Beauty';
-  const metricLabels = {
-    netTake:       `Revenue (${CUR()})`,
-    totalClients:  'Total Clients',
-    totalRebooked: 'Rebooked Clients',
-    avgBill:       `${catLabel} Avg Bill (${CUR()})`,
-    rebookPct:     `${catLabel} Rebooking %`,
-    ncrPct:        `${catLabel} NCR %`,
-    treatmentPct:  'Treatment %',
-    retailPct:     'Retail %',
-  };
-  const lc = dark ? '#C4B5FD' : '#5C5557';
-
-  const canvasEl = document.getElementById(canvasId);
-  if (!canvasEl) return;
-  // Canvas fills don't support CSS box-shadow, so a soft drop shadow behind each bar
-  // (to take the edge off the light-mode color, same ask as the Client Funnel bars)
-  // needs its own tiny local plugin — only wraps dataset drawing, not axes/grid.
-  const barShadowPlugin = {
-    id: 'barShadow',
-    beforeDatasetsDraw(chart) {
-      chart.ctx.save();
-      chart.ctx.shadowColor = dark ? 'rgba(0,0,0,0.35)' : 'rgba(26,26,26,0.22)';
-      chart.ctx.shadowBlur = 6;
-      chart.ctx.shadowOffsetY = 3;
-    },
-    afterDatasetsDraw(chart) { chart.ctx.restore(); },
-  };
-  charts.cmp = new Chart(canvasEl, {
-    data: { labels, datasets: [
-      { type:'bar', label: metricLabels[metric]||metric, data: vals, backgroundColor: colors.map(c=>c+'cc'), borderColor: colors, borderWidth: 1.5, borderRadius: 8, barThickness: 28, yAxisID:'y' },
-      { type:'line', label:'── Average ' + (metricLabels[metric]||metric), data: vals.map(()=>+avg.toFixed(2)), borderColor: lc, backgroundColor:'transparent', borderWidth:2, borderDash:[6,4], pointRadius:5, pointBackgroundColor:lc, pointBorderColor:lc, tension:0, yAxisID:'y' }
-    ]},
-    options: { animation:{duration:500,easing:'easeInOutQuart'}, responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:true,labels:{color:tc,font:{family:'Inter',size:13},boxWidth:12,filter:(item)=>item.datasetIndex===1}},tooltip:ttStyle},
-      scales:{x:{ticks:{color:tc,font:{family:'Inter',size:13}},grid:{color:gc}},y:{ticks:{color:tc,font:{family:'Inter',size:13}},grid:{color:gc}}}
-    },
-    plugins: [barShadowPlugin],
-  });
-}
-
-
-// Per-day ledger+Phorest join, cached once per daily-range load so the trend chart
-// can show a real day-by-day series instead of one lump total for the whole range.
-function buildDailyTrendCache(dailyRows, branchStaffRows, phorestStaffRows) {
-  const dates = new Set();
-  (branchStaffRows||[]).forEach(r => dates.add(r.date));
-  (dailyRows||[]).forEach(r => dates.add(r.date));
-  (phorestStaffRows||[]).forEach(r => dates.add(r.date)); // Phorest-only ranges (2025) still get a trend line
-  // Kate, 2 Oct 2026: grouped by date once. Filtering all three lists again for every
-  // day was ~280 days x ~28k rows on Jan-to-today, about a second of the draw. Each
-  // day still gets its rows in the same order the filter gave them.
-  const byDate = rows => {
-    const m = new Map();
-    (rows||[]).forEach(r => { const a = m.get(r.date); if (a) a.push(r); else m.set(r.date, [r]); });
-    return m;
-  };
-  const bBy = byDate(branchStaffRows), pBy = byDate(phorestStaffRows), dBy = byDate(dailyRows);
-  return Array.from(dates).sort().map(date => {
-    const dayBranchRows  = bBy.get(date) || [];
-    const dayPhorestRows = pBy.get(date) || [];
-    const dayDailyRows   = dBy.get(date) || [];
-    const agg = aggDailyData(dayDailyRows, dayBranchRows, dayPhorestRows);
-    return { date, netTake: agg ? agg.summary.netTake||0 : 0, totalClients: agg ? agg.summary.totalClients||0 : 0 };
-  });
-}
-
-// Picks whichever cached source matches the active view (daily-range join, weekly_totals,
-// or the default weekly summary table) and returns one consistent {labels, revenue, clients} shape.
-function buildTrendSeries() {
-  if (window._cachedDailyTrend && window._cachedDailyTrend.length) {
-    const rows = window._cachedDailyTrend;
-    return {
-      labels:  rows.map(r => new Date(r.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'})),
-      revenue: rows.map(r => r.netTake),
-      clients: rows.map(r => r.totalClients),
-    };
-  }
-  if (window._cachedWeeklyTotals && window._cachedWeeklyTotals.length) {
-    const rows = sel.branch.includes('all') ? window._cachedWeeklyTotals : window._cachedWeeklyTotals.filter(r => sel.branch.includes(r.branch));
-    const byWeek = {};
-    rows.forEach(r => {
-      const key = r.week_start;
-      if (!byWeek[key]) byWeek[key] = { revenue: 0, clients: 0 };
-      byWeek[key].revenue += r.net_take || 0;
-      byWeek[key].clients += (r.hair_clients||0) + (r.beauty_clients||0);
-    });
-    const keys = Object.keys(byWeek).sort();
-    return {
-      labels:  keys.map(k => new Date(k).toLocaleDateString('en-GB',{day:'numeric',month:'short'})),
-      revenue: keys.map(k => byWeek[k].revenue),
-      clients: keys.map(k => byWeek[k].clients),
-    };
-  }
-  const rows = getFilteredData();
-  const byWeek = {};
-  rows.forEach(f => { (byWeek[f.week_label || 'Unknown'] = byWeek[f.week_label || 'Unknown'] || []).push(f.data); });
-  const sortedKeys = Object.keys(byWeek).sort((a,b) => {
-    const da = getWeekDatesFromLabel(a)?.start || 0;
-    const db = getWeekDatesFromLabel(b)?.start || 0;
-    return da - db;
-  });
-  return {
-    labels:  sortedKeys,
-    revenue: sortedKeys.map(k => { const agg = aggData(byWeek[k]); return agg ? agg.summary.netTake||0 : 0; }),
-    clients: sortedKeys.map(k => { const agg = aggData(byWeek[k]); return agg ? agg.summary.totalClients||0 : 0; }),
-  };
-}
-
-function buildTrendChart(dark, ttStyle, gc, tc) {
-  const { labels, revenue, clients } = buildTrendSeries();
-  charts.trend = new Chart(document.getElementById('trendChart'), {
-    data: {
-      labels,
-      datasets: [
-        { type:'line', label:`Net Revenue (${CUR()})`, data: revenue, borderColor:'#99F6E4', backgroundColor:'rgba(153,246,228,0.12)', borderWidth:2, pointRadius:3, pointBackgroundColor:'#99F6E4', tension:0.3, fill:true, yAxisID:'yRev' },
-        { type:'line', label:'Total Clients', data: clients, borderColor:'#C4B5FD', backgroundColor:'transparent', borderWidth:2, pointRadius:3, pointBackgroundColor:'#C4B5FD', tension:0.3, borderDash:[5,3], yAxisID:'yClients' },
-      ],
-    },
-    options: {
-      animation:{duration:500,easing:'easeInOutQuart'}, responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-      plugins:{ legend:{display:true,labels:{color:tc,font:{family:'DM Sans',size:13},boxWidth:12}}, tooltip:ttStyle },
-      scales:{
-        x:{ ticks:{color:tc,font:{family:'DM Sans',size:12}}, grid:{color:gc} },
-        yRev:{ position:'left', ticks:{color:tc,font:{family:'DM Sans',size:12}}, grid:{color:gc} },
-        yClients:{ position:'right', ticks:{color:tc,font:{family:'DM Sans',size:12}}, grid:{drawOnChartArea:false} },
-      }
-    }
-  });
-}
 
 // ── COLLAPSIBLE SECTIONS ─────────────────────────────────────
 
@@ -3945,7 +3629,7 @@ async function renderOrgPulseMore(s) {
     tile('Social workdays', sum(null, 'social_workdays'), num0, sum('Hair', 'social_workdays'), sum('Beauty', 'social_workdays'), { stack: true }),
   ].join('');
   el.innerHTML = `<div class="opm-grid">${tiles}</div>
-    <div class="foot">${isGroupView() ? 'UAE branches only. ' : ''}The big figure is hair and beauty together. Retention: clients seen 3 to 6 months ago who came back in the last 3. Conversion: new clients from the same window who came back within 12 weeks. Both look back 180 days${x.cache_asof ? ` to ${escapeHtml(x.cache_asof)}` : ''}, so they stay the same whatever period is on screen. Request rate: clients who asked for their stylist. Colour: visits with a colour service (hair only). Social posts: posts and collabs tagging the salon, added up over stylists; workdays: days a stylist worked and posted or shared a story. No aims here: they are set for each level on a stylist's own page.</div>`;
+    <div class="foot">${isGroupView() ? 'UAE branches only. ' : ''}The big figure is hair and beauty together. Retention: clients a stylist saw 3 to 6 months ago who came back to her in the last 3. Conversion: new clients whose first visit was with a stylist and who came back, to anyone, within 12 weeks. Both are counted per stylist, so a client who saw two stylists counts for each. Both look back 180 days${x.cache_asof ? ` to ${escapeHtml(x.cache_asof)}` : ''}, so they stay the same whatever period is on screen. Request rate: clients who asked for their stylist, per staff, out of the ledger's request, salon, new and NCR clients. Colour: visits with a colour service (hair only). Social posts: posts and collabs tagging the salon, added up over stylists; workdays: days a stylist worked and posted or shared a story. No aims here: they are set for each level on a stylist's own page.</div>`;
 }
 
 async function renderDashboard() {
@@ -4014,7 +3698,6 @@ async function renderDashboard() {
       }
       window._fnRows = { ledger: branchStaffRows, phorest: phorestStaffRows };   // after the branch filter
       d = aggDailyData(dailyRows, branchStaffRows, phorestStaffRows);
-            window._cachedDailyTrend = buildDailyTrendCache(dailyRows, branchStaffRows, phorestStaffRows);
     }
   } else {
     currentDailyRows = [];
@@ -4472,7 +4155,7 @@ async function renderDashboard() {
         ? `Hair is carrying ${whole}: ${aed0(hairNetSalonTake)} of the ${aed0(s.netTake)}, ${hairShare}% of everything that came in.`
         : `Hair brought in ${aed0(hairNetSalonTake)} of the ${aed0(s.netTake)}, ${hairShare}% of the take.`);
     if (s.beautyTotalClients) {
-      parts.push(`Beauty is ${beautyClientShare}% of the clients and ${beautyShare}% of the money.`);
+      parts.push(`Beauty is ${beautyClientShare}% of the clients counted by staff and ${beautyShare}% of the money.`);
     }
     if (worst) {
       // "isn't in the same conversation as the rest" is a claim about being the
@@ -4618,8 +4301,8 @@ async function renderDashboard() {
       sub: doorOn(s) ? [['Handled by staff', num0(s.totalClients)]] : [],
       t: getClientTarget(sel.branch), verdict: clientTrend.verdict,
       splits: splitsOf([
-        { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} clients`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
-        { k:'Beauty', val:s.beautyTotalClients, of:s.totalClients, txt:`${num0(s.beautyTotalClients)} clients`, extra:`${shareOf(s.beautyTotalClients, s.totalClients)}%`, color:'var(--beauty)' },
+        { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} by staff`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
+        { k:'Beauty', val:s.beautyTotalClients, of:s.totalClients, txt:`${num0(s.beautyTotalClients)} by staff`, extra:`${shareOf(s.beautyTotalClients, s.totalClients)}%`, color:'var(--beauty)' },
       ]) },
     { k:'Avg bill', def: doorOn(s) ? 'Net take divided by clients through the door: what one visit is worth.' : 'Net take divided by clients: what one visit is worth.',
       v: aed0(avgBillOf(s)), status: avgBillStatus,
@@ -4675,7 +4358,7 @@ async function renderDashboard() {
     ? (hairAvgOk ? 'Doing the lifting, and doing it above target.' : 'Doing the lifting, but not at the bill it should be.')
     : 'Carrying its share of the take.';
   const beautyHeading = hasBeauty
-    ? `${shareOf(s.beautyTotalClients, s.totalClients)}% of the clients, ${shareOf(beautyNetTakeDept, s.netTake)}% of the money.`
+    ? `${shareOf(s.beautyTotalClients, s.totalClients)}% of the clients counted by staff, ${shareOf(beautyNetTakeDept, s.netTake)}% of the money.`
     : 'No beauty team here.';
   // The templated glance copy reads every beauty figure as a miss against target,
   // so at a hair-only branch it says beauty is "lagging at 0.00%" — which is a
@@ -4698,12 +4381,12 @@ async function renderDashboard() {
     };
     const tBill = best(revKey), tAvg = best('avgBill', 10), tReq = best('req'), tNew = best('newC');
     return [
-      { k:'Top biller',       p:tBill, n:tBill[revKey] || 0,  v:`<b>${aed0(tBill[revKey] || 0)}</b> net take · ${num0(tBill.total)} visits` },
-      { k:'Highest avg bill', p:tAvg,  n:tAvg.avgBill  || 0,  v:`<b>${aed0(tAvg.avgBill || 0)}</b> avg · ${num0(tAvg.total)} visits` },
+      { k:'Top biller',       p:tBill, n:tBill[revKey] || 0,  v:`<b>${aed0(tBill[revKey] || 0)}</b> net take · ${num0(tBill.total)} clients` },
+      { k:'Highest avg bill', p:tAvg,  n:tAvg.avgBill  || 0,  v:`<b>${aed0(tAvg.avgBill || 0)}</b> avg · ${num0(tAvg.total)} clients` },
       // Kate, 1 Oct 2026: `req` is returning clients who asked for her by name, not
       // the tables' NCR column (new clients who did), so the card says which it is.
-      { k:'Requested by regulars', p:tReq, n:tReq.req || 0, v:`<b>${num0(tReq.req || 0)} requests</b> of ${num0(tReq.total)} visits` },
-      { k:'Most new clients', p:tNew,  n:tNew.newC     || 0,  v:`<b>${num0(tNew.newC || 0)} new</b> of ${num0(tNew.total)} visits` },
+      { k:'Requested by regulars', p:tReq, n:tReq.req || 0, v:`<b>${num0(tReq.req || 0)} requests</b> of ${num0(tReq.total)} clients` },
+      { k:'Most new clients', p:tNew,  n:tNew.newC     || 0,  v:`<b>${num0(tNew.newC || 0)} new</b> of ${num0(tNew.total)} clients` },
     ].filter(w => w.n > 0);   // no data, no card
   };
 
@@ -4874,7 +4557,7 @@ async function renderDashboard() {
     <div class="read-p">${glance.hair}</div>
     <div class="read-stats">
       ${statChip(hairShareOfTake + '%', 'of net take')}
-      ${statChip(num0(s.hairTotalClients), 'clients')}
+      ${statChip(num0(s.hairTotalClients), 'clients by staff')}
       ${statChip(aed0(s.hairAvgBill), 'avg bill')}
       ${statChip(shareOf((s.hairBreakdown && s.hairBreakdown.req) || 0, s.hairTotalClients) + '%', 'requested')}
     </div>
@@ -4886,7 +4569,7 @@ async function renderDashboard() {
     ${hasBeauty ? `
     <div class="read-stats">
       ${statChip(shareOf(beautyNetTakeDept, s.netTake) + '%', 'of net take')}
-      ${statChip(num0(s.beautyTotalClients), 'clients')}
+      ${statChip(num0(s.beautyTotalClients), 'clients by staff')}
       ${statChip(s.beautyAvgBill != null ? aed0(s.beautyAvgBill) : '—', 'avg bill')}
       ${statChip(shareOf((s.beautyBreakdown && s.beautyBreakdown.req) || 0, s.beautyTotalClients) + '%', 'requested')}
     </div>` : ''}
@@ -4961,7 +4644,7 @@ ${actionHtml}
 <details class="fine">
   <summary>How these figures are worked out</summary>
   <p><b>What net take means</b>. Everything the salon billed in the period: hair and beauty services, treatments and courses, plus retail, added together, before staff cost. Hair net take and beauty net take are each that department's own services plus its own retail, so the two add up to the total.</p>
-  <p><b>Sources</b>. Client counts, the hair and beauty split and treatments come from the branch ledger; revenue comes from Phorest, matched to the ledger by staff and day. Figures tagged <span style="font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle">LEDGER</span> on Branch Performance are hand-tallied and have no Phorest equivalent.</p>
+  <p><b>Sources</b>. The Clients and Avg bill headlines count each client once a day, through the door (Phorest Sales Transactions), with the per staff count from the ledgers beside them. The hair and beauty split, the funnel's ledger side, rebooking, NCR and treatments are per staff, from the branch ledger; revenue comes from Phorest, matched to the ledger by staff and day. Figures tagged <span style="font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:1px 5px;vertical-align:middle">LEDGER</span> on Branch Performance are hand-tallied and have no Phorest equivalent.</p>
 </details>
   `;
 
@@ -5506,8 +5189,7 @@ function initSvcView() {
   loadAndRenderServices();
 }
 
-// Top Clients was rebuilt on 7 Oct 2026 (top-clients.js, own controls); loadAndRenderClients
-// and _renderClients below are the old page and no longer have a place to draw.
+// Top Clients was rebuilt on 7 Oct 2026 (top-clients.js, own controls).
 function initCliView() {
   if (typeof renderTopClients === 'function') renderTopClients();
 }
@@ -5520,7 +5202,8 @@ function setSvcViewMode(mode) {
 }
 
 function onSvcFiltersChange() { _syncSvcYearRow(); loadAndRenderServices(); }
-function onCliFiltersChange() { _syncSvcYearRow(); loadAndRenderClients(); }
+// Top Clients draws itself (top-clients.js); the old page and its get_top_clients call are gone.
+function onCliFiltersChange() { _syncSvcYearRow(); }
 
 // Say which window came up empty, and where the data comes from. Since 28 Sep
 // 2026 both pages read the Sales Transactions feed (sales_transaction_lines,
@@ -5657,7 +5340,7 @@ function _rankCls(i) { return i===0?'gold':i===1?'silver':i===2?'bronze':''; }
 function _svcMList(rows, prev, pctOf) {
   return `<div class="svc-m">${rows.map((r,i) => {
     const rev = parseFloat(r.total_revenue||0), v = Number(r.visit_count)||0;
-    const bits = [`${v.toLocaleString()} visit${v===1?'':'s'}`, `Avg ${_svcAvg(r)}`];
+    const bits = [`${v.toLocaleString()} sold`, `Avg ${_svcAvg(r)}`];
     const d = _svcDelta(prev, r);
     return `<div class="svc-mrow"><span class="top3-rank ${_rankCls(i)}">${i+1}</span>
       <div class="svc-mname">${escapeHtml(r.service_name)||'—'}<small>${bits.join(' · ')}${d ? ' · ' + d : ''}</small></div>
@@ -5691,8 +5374,8 @@ function _renderSvcCombined(rows, branches, year, pFrom, pTo, note, prev) {
           <th class="sortable">Service</th>
           <th>Category</th>
           <th style="text-align:right">Revenue (AED)</th>
-          <th style="text-align:right">Visits</th>
-          <th style="text-align:right">Avg / visit</th>
+          <th style="text-align:right">Units sold</th>
+          <th style="text-align:right">Avg / unit</th>
           ${prev && prev.any ? `<th style="text-align:right" title="Revenue against ${escapeHtml(prev.label)}">vs ${escapeHtml(prev.label)}</th>` : ''}
           <th style="text-align:right">% of Top ${rows.length}</th>
         </tr></thead>
@@ -5775,83 +5458,3 @@ function _renderSvcPerBranch(results, year, pFrom, pTo, note, limit) {
 }
 
 // ── CLIENTS VIEW ─────────────────────────────────────────────
-
-async function loadAndRenderClients() {
-  const content = document.getElementById('cli-content');
-  if (!content) return;
-  content.innerHTML = '<div class="loading">Loading...</div>';
-
-  const { year, from: pFrom, to: pTo, branches, spansYears } = _svcWindow();
-
-  try {
-    const { data, error } = await sb.rpc('get_top_clients', {
-      p_year: year, p_branches: branches, p_from: pFrom, p_to: pTo, p_limit: 25
-    });
-    if (error) throw error;
-    _renderClients(data || [], branches, year, pFrom, pTo);
-    if (spansYears) _svcSpansYearsNote(content, year);
-  } catch(e) {
-    console.error(e);
-    content.innerHTML = _svcEmpty('client data');
-  }
-}
-
-function _renderClients(rows, branches, year, pFrom, pTo) {
-  const content = document.getElementById('cli-content');
-  if (!rows.length) { content.innerHTML = _svcEmpty('data'); return; }
-
-  const totalRev = rows.reduce((s,r) => s + parseFloat(r.total_revenue||0), 0);
-  const branchLabel = branches.length === 4 ? 'All Branches' : branches.map(b => BRANCH_INFO[b]?.name||b).join(' · ');
-  const avColors = ['#FFD4D9','#C4B5FD','#99F6E4','#FF9B9B','#EEF3C7','#FFB6C1','#B5EAD7','#FFDAC1'];
-
-  content.innerHTML = `
-    <div class="section-label" style="margin-top:16px">${branchLabel} — Top ${rows.length} Clients · ${year}</div>
-    <div class="card">
-      <div class="svc-bhead" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-        <div>
-          <div class="card-title">Top Clients by Revenue</div>
-          <div class="card-sub">${_isoD(pFrom)} to ${_isoD(pTo)}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Combined Revenue (Top ${rows.length})</div>
-          <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:600">AED ${_fmtAed(totalRev)}</div>
-        </div>
-      </div>
-      ${/* Phones (Kate, 2 Oct 2026): the same ranked list as Service Rankings. */''}
-      <div class="svc-m">${rows.map((r,i) => {
-        const v = Number(r.visit_count)||0;
-        const initials = (r.client_name||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
-        return `<div class="svc-mrow"><span class="top3-rank ${_rankCls(i)}">${i+1}</span>
-          <div class="svc-mname cli-mname"><span class="cli-av" style="background:${avColors[i % avColors.length]}">${escapeHtml(initials)}</span><div>${escapeHtml(r.client_name)||'—'}<small>${v.toLocaleString()} visit${v===1?'':'s'}${r.top_service ? ' · ' + escapeHtml(r.top_service) : ''}</small></div></div>
-          <b class="svc-mamt">${_fmtAed(r.total_revenue)}</b></div>`;
-      }).join('')}</div>
-      <table class="svc-t">
-        <thead><tr>
-          <th style="width:30px">#</th>
-          <th>Client</th>
-          <th style="text-align:right">Revenue (AED)</th>
-          <th style="text-align:right">Visits</th>
-          <th>Favourite Service</th>
-        </tr></thead>
-        <tbody>
-          ${rows.map((r,i) => {
-            const rev = parseFloat(r.total_revenue||0);
-            const initials = (r.client_name||'?').split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
-            const avColor = avColors[i % avColors.length];
-            return `<tr>
-              <td><span class="top3-rank ${_rankCls(i)}">${i+1}</span></td>
-              <td>
-                <div style="display:flex;align-items:center;gap:8px">
-                  <div style="width:26px;height:26px;border-radius:50%;background:${avColor};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#2D2E37;flex-shrink:0">${escapeHtml(initials)}</div>
-                  <span style="font-weight:500;font-size:14px">${escapeHtml(r.client_name)||'—'}</span>
-                </div>
-              </td>
-              <td style="text-align:right;font-family:'Playfair Display',serif;font-size:17px;font-weight:600">${_fmtAed(rev)}</td>
-              <td style="text-align:right;color:var(--muted)">${(r.visit_count||0).toLocaleString()}</td>
-              <td style="color:var(--muted);font-size:13px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(r.top_service)}">${escapeHtml(r.top_service)||'—'}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>`;
-}

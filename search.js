@@ -475,7 +475,7 @@
       sb.rpc('get_top_clients', { p_year: w.year, p_branches: w.branches, p_from: w.from, p_to: w.to, p_limit: 25 })
         .then(({ data }) => (data || []).filter(r => r.client_name).map((r, i) => ({
           kind: 'client', id: 'client:' + r.client_name, t: r.client_name,
-          g: 'Top Clients', s: `#${i + 1} · ${aed(r.total_revenue)}${r.top_service ? ' · ' + r.top_service : ''}`, words: 'client',
+          g: 'Top Clients', s: `#${i + 1} by revenue${r.top_service ? ' · ' + r.top_service : ''}`, words: 'client',   // no AED here: this list is the masthead window, the page has its own period and ex VAT figure
           go: () => goText('clients', r.client_name, () => { if (typeof tcSearchFor === 'function') tcSearchFor(r.client_name); }) }))),
     ];
     if (typeof prdWindow === 'function') {

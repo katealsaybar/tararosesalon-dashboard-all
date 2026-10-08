@@ -163,9 +163,9 @@ const W13_ROWS = [
   ['Hair services (AED)', n => w13Num(n.hair_services)],
   ['Treatments (AED)', n => w13Num(n.treatments)],
   ['Retail (AED)', n => w13Num(n.retail)],
-  ['Average bill (AED)', n => w13Ratio(n.total_revenue, n.clients, w13Num)],
+  ['Average bill (AED, Phorest sales per ledger client)', n => w13Ratio(n.total_revenue, n.clients, w13Num)],
   ['g', 'Clients'],
-  ['Clients', n => w13Num(n.clients)],
+  ['Clients (ledger)', n => w13Num(n.clients)],
   ['Salon clients', n => w13Num(n.salon)],
   ['Requests', n => w13Num(n.req)],
   ['New clients', n => w13Num(n.new_clients)],
@@ -328,7 +328,7 @@ async function renderStaffWeeks() {
         `<span class="w13-br"><b>${w13Esc(W13_BRANCH[x.branch] || x.branch)}</b> ${w13Aed(x.sales)} · ${w13Num(x.clients)} clients</span>`).join('')}<div class="slv-note">Every branch is counted in the totals below, including cover days away from ${w13Esc(W13_BRANCH[s.branch] || s.branch)}.</div></div>` : ''}
       <div class="w13-tiles">
         <div class="w13-tile"><div class="slv-eyebrow">Service sales (ex retail)</div><div class="w13-val">${w13Aed(tot.sales)}</div><div class="slv-note">${worked ? w13Aed(tot.sales / worked) + ' a week worked' : ''}</div></div>
-        <div class="w13-tile"><div class="slv-eyebrow">Clients</div><div class="w13-val">${w13Num(tot.clients)}</div><div class="slv-note">${tot.clients ? 'Average bill ' + w13Aed(tot.sales / tot.clients) : ''}</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">Clients (ledger)</div><div class="w13-val">${w13Num(tot.clients)}</div><div class="slv-note">${tot.clients ? 'Average bill ' + w13Aed(tot.sales / tot.clients) + ', Phorest sales per ledger client' : ''}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Rebooking</div><div class="w13-val">${tot.clients ? Math.round(100 * tot.rebooked / tot.clients) + '%' : '–'}</div><div class="slv-note">${tot.clients ? `${w13Num(tot.rebooked)} of ${w13Num(tot.clients)} clients rebooked` : ''}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Column fill</div><div class="w13-val">${totFill}</div><div class="slv-note">${tot.ah ? `${w13Num(tot.uh)} of ${w13Num(tot.ah)} hours booked` : ''}</div></div>
       </div>

@@ -202,7 +202,7 @@ function socOverviewHtml(T) {
       <div class="soc-plats">
         ${card('instagram', kv([
           ['Views', socNum(t['instagram.views'])],
-          ['People reached', socNum(t['instagram.reach'])],
+          ['Reach (added up day by day)', socNum(t['instagram.reach'])],
           ['Posted', count(ig, [['post', 'post'], ['reel', 'reel']])],
         ]))}
         ${card('tiktok', kv([
@@ -295,7 +295,7 @@ function socPlatformHtml(net, T) {
   if (net === 'instagram') tiles = tile(P.label, socNum(f.end) + socChg(f.chg)) +
     tile('Gained · lost', `${socNum(t['instagram.followers_gained'])} · ${socNum(t['instagram.followers_lost'])}`) +
     tile('Views', socNum(t['instagram.views']), perDay(t['instagram.views'])) +
-    tile('People reached', socNum(t['instagram.reach']), perDay(t['instagram.reach'])) +
+    tile('Reach (added up day by day)', socNum(t['instagram.reach']), perDay(t['instagram.reach'])) +
     tile('Engagement', socPct(eng(feed, 'reach')), 'of people reached liked, commented, shared or saved');
   if (net === 'tiktok') tiles = tile(P.label, socNum(f.end) + socChg(f.chg)) +
     tile('Video views', socNum(t['tiktok.video_views']), perDay(t['tiktok.video_views'])) +
@@ -351,7 +351,7 @@ function socPlatformHtml(net, T) {
       <div style="position:relative;height:240px"><canvas id="socFollow"></canvas></div>
       <div class="mk-chart-head">
         <div class="slv-eyebrow">Views ${socMode() === 'week' ? 'week by week' : 'day by day'}</div>
-        ${net === 'instagram' ? `<span class="soc-key"><span><i style="background:${cols[net]}"></i>Views</span><span><i style="background:${socRgba(socCols().instagram, .45)}"></i>People reached</span></span>` : ''}
+        ${net === 'instagram' ? `<span class="soc-key"><span><i style="background:${cols[net]}"></i>Views</span><span><i style="background:${socRgba(socCols().instagram, .45)}"></i>Reach</span></span>` : ''}
       </div>
       <div style="position:relative;height:240px"><canvas id="socViews"></canvas></div>
       ${viewsNote ? `<p class="slv-note">${viewsNote}</p>` : ''}
@@ -493,7 +493,7 @@ function socDrawPlatform(net) {
   ], true, true);
   socCharts.views = socBarChart(document.getElementById('socViews'), rows, [
     { label: 'Views', data: rows.map(r => r.views), backgroundColor: cols[net] },
-    ...(P.reach ? [{ type: 'line', label: 'People reached', data: rows.map(r => r.reach), borderColor: socRgba(cols[net], .55), backgroundColor: socRgba(cols[net], .55), borderWidth: 2, pointRadius: 0, tension: .3 }] : []),
+    ...(P.reach ? [{ type: 'line', label: 'Reach (added up day by day)', data: rows.map(r => r.reach), borderColor: socRgba(cols[net], .55), backgroundColor: socRgba(cols[net], .55), borderWidth: 2, pointRadius: 0, tension: .3 }] : []),
   ], false);
 }
 

@@ -179,7 +179,7 @@ function yearTab() {
       <p class="sub">Newest first${counted.length && wkAim ? '. ✓ means at or above your aim' : ''}.</p>
       <div class="tbl-wrap"><table class="tbl wk"><thead><tr><th>Week</th><th class="r">Sales</th><th class="r">Rebooked</th><th class="r">Retail</th></tr></thead>
         <tbody>${rows}</tbody></table></div>
-      <p class="sub wk-foot">Money in AED. Rebooked is clients who booked again, out of all your clients that week.</p>
+      <p class="sub wk-foot">Money in AED. Clients are the branch ledger's count, whichever source This month is showing. Rebooked is clients who booked again, out of all your clients that week.</p>
     </section>`;
 }
 

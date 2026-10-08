@@ -232,7 +232,7 @@ function cmPaintCards() {
   box.innerHTML = fams.map(f => {
     const d = by[f.k];
     const big = units ? d.units : d.clients, other = units ? `${lcNum(d.clients)} clients` : `${lcNum(d.units)} units`;
-    const sub = f.k === 'unmapped' ? 'needs a family in the roster' : `${other} · ${total ? Math.round(100 * d.clients / total) : 0}% of clients`;
+    const sub = f.k === 'unmapped' ? 'needs a family in the roster' : `${other} · ${total ? Math.round(100 * d.clients / total) : 0}% of clients in this view`;
     return `<button type="button" class="cm-cat${f.k === 'unmapped' ? ' un' : ''}${CM.fam === f.k ? ' on' : ''}" style="--c:${f.color}" onclick="cmPickFam('${f.k}')">
       <div class="cm-nm">${f.name}</div><div class="cm-n">${lcNum(big)}</div><div class="cm-k">${sub}</div></button>`;
   }).join('');

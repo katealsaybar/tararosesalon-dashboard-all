@@ -19,6 +19,9 @@
 // Only these keys are sent, and only when they are real numbers. A field the
 // current aggregation path didn't populate is left out rather than sent as 0 —
 // a zero reads as a fact and the model would write about it.
+// NOTE (Kate, 8 Oct 2026 sweep): totalClients, avgBill and every *TotalClients are PER STAFF
+// (ledgers), while the Pulse cards lead with clients through the door. This file is not wired
+// in. If it is, send clientsOf(s) / avgBillOf(s) as well and name which one is which.
 const PULSE_FACT_KEYS = [
   'netTake', 'totalClients', 'avgBill',
   'hairServicesIncl', 'hairSalesNet', 'hairTotalClients', 'hairAvgBill', 'hairRebookPct', 'hairNCR', 'hairNewClients',

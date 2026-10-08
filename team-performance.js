@@ -98,11 +98,23 @@ function tpApplyCounts(roster, counts) {
 }
 let tpSort = 'net';
 try { const k = localStorage.getItem('tp-sort'); if (TP_LEAGUES[k]) tpSort = k; } catch (e) {}
+// True when nobody on this bench has ledger rows (a 2025 window, Bahrain): the ledger's
+// rates are unknown for all of them, so the ledger leagues have nothing to rank.
+function tpBenchNoLedger() {
+  const r = tpRoster(tpDept);
+  return r.length > 0 && r.every(st => st.noLedger);
+}
+// Unknown for her, not 0%: Bahrain, or no ledger rows for her in this window.
+const tpNoLedger = st => (typeof isBahrainView === 'function' && isBahrainView()) || !!(st && st.noLedger);
 // The league actually in force: one that this bench or this view has no figures for
 // (Treatment on the beauty bench, anything off the ledger in Bahrain) falls back to net.
 function tpLeagues() {
   const bh = typeof isBahrainView === 'function' && isBahrainView();
-  return Object.keys(TP_LEAGUES).filter(k => !(TP_LEAGUES[k].hairOnly && tpDept === 'beauty') && !(TP_LEAGUES[k].ledger && bh));
+  const noLedger = bh || tpBenchNoLedger();
+  // Instagram and review counts are not ledger figures (they are flagged only because
+  // Bahrain has none), so a window without ledger rows keeps them.
+  return Object.keys(TP_LEAGUES).filter(k => !(TP_LEAGUES[k].hairOnly && tpDept === 'beauty')
+    && !(TP_LEAGUES[k].ledger && (TP_LEAGUES[k].counts ? bh : noLedger)));
 }
 function tpLeagueKey() { return tpLeagues().includes(tpSort) && !(TP_LEAGUES[tpSort].counts && tpCountsBad) ? tpSort : 'net'; }
 function tpLg() { return TP_LEAGUES[tpLeagueKey()]; }
@@ -257,6 +269,11 @@ function tpCombine(group, mergeKey) {
   const sum = k => group.reduce((a, r) => a + (Number(r[k]) || 0), 0);
   const total        = sum('total');
   const rebooked     = sum('rebooked');
+  // Rebooking, NCR and retention are read against the ledger's own client count, as
+  // on a single-branch card (ledgerBase in buildStaffArraysFromMaps), not against a
+  // total that also carries Phorest-only visits.
+  const ledgerBase   = group.every(r => r.ledgerClients != null) ? sum('ledgerClients') : total;
+  const noLedger     = group.every(r => r.noLedger);
   const treatments   = sum('treatments');
   const retail       = sum('retail');
   const hairSalesNet = sum('hairSalesNet');
@@ -279,10 +296,13 @@ function tpCombine(group, mergeKey) {
   return {
     ...first,
     mergeKey,
-    total, rebooked, newC: sum('newC'), newClientReq: sum('newClientReq'), req: sum('req'), salon: sum('salon'),
+    total, ledgerClients: ledgerBase, noLedger, rebooked, newC: sum('newC'), newClientReq: sum('newClientReq'), req: sum('req'), salon: sum('salon'),
     treatments, retail, hairSalesNet, beautySales, net, netSalonTake: net,
     avgBill:      total ? services / total : 0,
-    rebookPct:    total ? (rebooked / total * 100) : 0,
+    rebookPct:    ledgerBase ? (rebooked / ledgerBase * 100) : 0,
+    ncrPct:       ledgerBase ? (sum('newClientReq') / ledgerBase * 100) : 0,
+    retentionPct: ledgerBase ? ((sum('req') + sum('salon')) / ledgerBase * 100) : 0,
+    conversionPct: (sum('req') + sum('salon')) ? (rebooked / (sum('req') + sum('salon')) * 100) : 0,
     treatmentPct: hairSalesNet ? (treatments / hairSalesNet * 100) : 0,
     retailPct:    net ? (retail / net * 100) : 0,
     branchCode:   branches[0].code,
@@ -346,7 +366,7 @@ function tpBand(val, target) {
 function tpTargets(st) {
   // Rebooking and treatment come off the ledger, which Bahrain does not have yet:
   // leave them off rather than draw an empty ring that reads as 0%.
-  const ledger = !(typeof isBahrainView === 'function' && isBahrainView());
+  const ledger = !tpNoLedger(st);
   const out = ledger ? [{ l: 'Rebook', v: st.rebookPct, t: TARGETS.rebookPct, f: tpPct }] : [];
   if (!st.isBeauty && ledger) out.push({ l: 'Treat', v: st.treatmentPct, t: TARGETS.treatmentPct, f: tpPct });
   out.push({ l: 'Retail', v: st.retailPct, t: TARGETS.retailPct, f: tpPct });
@@ -555,7 +575,7 @@ function tpPodiumCard(st, i) {
     <div class="tp-role">${escapeHtml(tpRole(st))}</div>
     <div class="tp-branch">${tpBranchTag(st)}</div>
     <div class="tp-pod-v tabular">${tpLg().f(tpLg().get(st))}</div>
-    <div class="tp-pod-s tabular">${tpLeagueKey() === 'net' ? '' : tpAed(st.net) + ' take · '}${tpNum(st.total)} clients${(typeof isBahrainView === 'function' && isBahrainView()) ? '' : ` · ${tpNum(st.rebooked)} rebooked`}</div>
+    <div class="tp-pod-s tabular">${tpLeagueKey() === 'net' ? '' : tpAed(st.net) + ' take · '}${tpNum(st.total)} clients by staff${tpNoLedger(st) ? '' : ` · ${tpNum(st.rebooked)} rebooked`}</div>
     <div class="tp-rings">${tpRings(st)}</div>
   </div>`;
 }
@@ -590,7 +610,7 @@ function tpRaceRow(st, rank, lead) {
       <div class="tp-row-s">${tpRoleBranch(st)}</div>
     </div>
     ${tpBar(st, lead)}
-    ${(typeof isBahrainView === 'function' && isBahrainView()) ? '<div class="tp-rb tabular"><b>—</b>rebook</div>'
+    ${tpNoLedger(st) ? '<div class="tp-rb tabular"><b>—</b>rebook</div>'
       : `<div class="tp-rb tabular ${tpBand(st.rebookPct, TARGETS.rebookPct)}"><b>${tpPct(st.rebookPct)}</b>rebook${tpAim({ t: TARGETS.rebookPct, f: tpPct })}</div>`}
     ${tpAddBtn(st)}
   </div>`;
@@ -695,7 +715,7 @@ function tpQuadrant(roster) {
   const levelOk = tpDept === 'hair' && Object.keys(levels).length > 0 && !!months;
   const byLevel = tpQBasis === 'level' && levelOk;
   const addon = tpQMetric === 'addon' && tpDept === 'hair';
-  const all = roster.filter(st => tpRole(st) !== 'Owner');
+  const all = roster.filter(st => tpRole(st) !== 'Owner' && !st.noLedger);   // no ledger rows: no rebooking to place her by
   // Kate, 1 Oct 2026 (Comet TR3): the owner is left off on purpose, but silently,
   // so the bar read "38 people" over a chart of 37. She is named in the side list.
   const owners = roster.filter(st => tpRole(st) === 'Owner');
@@ -918,7 +938,7 @@ const TP_CMP_ROWS = [
   { label: 'Rebooked', fmt: tpNum, pick: st => st.rebooked || 0,
     bench: b => b.n ? b.rebooked / b.n : 0 },
   { label: 'Rebooking %', fmt: tpPct, target: () => TARGETS.rebookPct, pick: st => st.rebookPct,
-    bench: b => b.clients ? b.rebooked / b.clients * 100 : 0 },
+    bench: b => b.ledgerClients ? b.rebooked / b.ledgerClients * 100 : 0 },
   { label: 'Treatment AED', fmt: tpAed, hairOnly: true, pick: st => st.treatments || 0,
     bench: b => b.n ? b.treatments / b.n : 0 },
   { label: 'Treatment %', fmt: tpPct, hairOnly: true, target: () => TARGETS.treatmentPct,
@@ -935,10 +955,12 @@ const TP_CMP_ROWS = [
 // The bench's own totals, over whoever is on screen — the current department and
 // branch selection, the same roster the podium and floor are drawn from.
 function tpBench(roster) {
-  const b = { n: roster.length, net:0, clients:0, newC:0, rebooked:0, treatments:0, retail:0, services:0 };
+  const b = { n: roster.length, net:0, clients:0, ledgerClients:0, newC:0, rebooked:0, treatments:0, retail:0, services:0 };
   roster.forEach(st => {
     b.net       += st.net || 0;
     b.clients   += st.total || 0;
+    // Rebooking is read against the ledger's count, the same base her own % uses.
+    b.ledgerClients += (st.ledgerClients != null ? st.ledgerClients : st.total) || 0;
     b.newC      += (st.newC != null ? st.newC : st.newClients) || 0;
     b.rebooked  += st.rebooked || 0;
     b.treatments+= st.treatments || 0;

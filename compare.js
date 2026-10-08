@@ -214,6 +214,10 @@ async function cmpSummary(side) {
   return s;
 }
 
+// True when every side on screen has a through-the-door count; set per render in
+// renderCompare and read by the row labels below.
+let CMP_DOOR = true;
+
 // ── THE METRICS ─────────────────────────────────────────────
 // kind: 'aed' money total · 'n' count · 'avg' AED average · 'pct' a rate.
 // Totals and counts divide by days under Per day; averages and rates never do.
@@ -233,22 +237,22 @@ function cmpMetrics() {
     { name: 'Beauty services',          kind: 'aed', up: true, get: s => nz(s.beautyServicesTotal) },
     { name: 'Retail',                   kind: 'aed', up: true, get: s => nz(s.retailTotal) },
     { group: 'Clients' },
-    { name: 'Clients',                  sub: CLIENT_BASIS === 'door' ? 'through the door' : null, kind: 'n', up: true, get: s => nz(clientsOf(s)) },
-    { name: 'Handled by staff',         muted: true, kind: 'n', up: true, get: s => nz(s.totalClients) },
-    { name: 'Hair clients',             kind: 'n', up: true, get: s => nz(s.hairTotalClients) },
-    { name: 'Beauty clients',           kind: 'n', up: true, get: s => nz(s.beautyTotalClients) },
-    { name: 'New clients',              kind: 'n', up: true, get: s => nz(s.newClientsTotal) },
-    { name: 'Rebooked',                 kind: 'n', up: true, get: s => nz(s.totalRebooked) },
+    { name: 'Clients',                  sub: CMP_DOOR ? 'through the door (Phorest)' : 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(clientsOf(s)) },
+    ...(CMP_DOOR ? [{ name: 'Handled by staff', sub: 'ledgers', muted: true, kind: 'n', up: true, get: s => nz(s.totalClients) }] : []),
+    { name: 'Hair clients',             sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.hairTotalClients) },
+    { name: 'Beauty clients',           sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.beautyTotalClients) },
+    { name: 'New clients',              sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.newClientsTotal) },
+    { name: 'Rebooked',                 sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.totalRebooked) },
     { group: 'Averages' },
-    { name: 'Avg bill',                 sub: CLIENT_BASIS === 'door' ? 'per client through the door' : null, kind: 'avg', up: true, get: s => nz(avgBillOf(s)) },
-    { name: 'Avg bill, per staff count', muted: true, kind: 'avg', up: true, get: s => nz(s.avgBill) },
-    { name: 'Hair avg bill',            kind: 'avg', up: true, get: s => nz(s.hairAvgBill), target: () => TARGETS.hairAvgBill },
-    { name: 'Beauty avg bill',          kind: 'avg', up: true, get: s => (s.beautyTotalClients ? nz(s.beautyAvgBill) : null), target: () => TARGETS.beautyAvgBill },
+    { name: 'Avg bill',                 sub: CMP_DOOR ? 'per client through the door' : 'per staff count', kind: 'avg', up: true, get: s => nz(avgBillOf(s)) },
+    ...(CMP_DOOR ? [{ name: 'Avg bill, per staff count', muted: true, kind: 'avg', up: true, get: s => nz(s.avgBill) }] : []),
+    { name: 'Hair avg bill',            sub: 'per staff count', kind: 'avg', up: true, get: s => nz(s.hairAvgBill), target: () => TARGETS.hairAvgBill },
+    { name: 'Beauty avg bill',          sub: 'per staff count', kind: 'avg', up: true, get: s => (s.beautyTotalClients ? nz(s.beautyAvgBill) : null), target: () => TARGETS.beautyAvgBill },
     { group: 'Benchmarks' },
     // NCR is a count against a monthly unit target (Kate, 7 Oct 2026), prorated to the side's window.
-    { name: 'NCR',                      sub: 'hair + beauty', kind: 'n', up: true, noMover: true, get: s => nz(ncrCountOf(s)),
+    { name: 'NCR',                      sub: 'hair + beauty, per staff', kind: 'n', up: true, noMover: true, get: s => nz(ncrCountOf(s)),
       target: side => ncrTargetFor(cmpCodes(side.branch), side.from, side.to) },
-    { name: 'Rebooking %',              kind: 'pct', up: true, get: s => nz(s.rebookPct), target: side => CMP_POST_CUTOVER(side) ? 70 : 45 },
+    { name: 'Rebooking %',              sub: 'per staff (ledgers)', kind: 'pct', up: true, get: s => nz(s.rebookPct), target: side => CMP_POST_CUTOVER(side) ? 70 : 45 },
     { name: 'Treatment %',              sub: 'of hair revenue', kind: 'pct', up: true, get: hairTxPct, target: () => TARGETS.treatmentPct },
     { name: 'Retail %',                 sub: 'of services', kind: 'pct', up: true, get: retPct, target: () => TARGETS.retailPct },
     { name: 'Hair utilisation %',       kind: 'pct', up: true, get: s => nz(s.hairUtilPct),   target: () => TARGETS.hairUtilPct },
@@ -303,8 +307,15 @@ async function renderCompare() {
   const res = document.getElementById('cmpResults');
   if (!res) return;
   if (!sa && !sb2) { res.innerHTML = lgEmpty('No data on either side for these windows.'); return; }
+  // One basis for both sides. A side with no door count (Bahrain, or a window before
+  // Sales Transactions starts) cannot be set against one that has it, so both fall back
+  // to the per staff count and the page says so, instead of subtracting door from handled.
+  CMP_DOOR = [sa, sb2].filter(Boolean).every(x => x.doorClients != null);
+  const mixedBasis = !CMP_DOOR && [sa, sb2].some(x => x && x.doorClients != null);
+  if (!CMP_DOOR) [sa, sb2].forEach(x => { if (x) x.doorClients = null; });
   const out = cmpResultsHtml(sa, sb2);
-  res.innerHTML = cmpAnswerHtml(sa, sb2)
+  res.innerHTML = (mixedBasis ? '<p class="cmp-what">One side has no through-the-door count (Phorest Sales Transactions do not cover it, e.g. Bahrain), so both sides show clients per staff from the ledgers.</p>' : '')
+    + cmpAnswerHtml(sa, sb2)
     + `<div id="cmpVisual"${cmpState.mode === 'visual' ? '' : ' hidden'}>${cmpVisualHtml(sa, sb2)}</div>`
     + `<div id="cmpTable"${cmpState.mode === 'table' ? '' : ' hidden'}>${out.table}</div>`;
   cmpDrawCharts(sa, sb2);
@@ -360,24 +371,6 @@ function cmpControlsHtml() {
       </label>
     </div>`;
 }
-
-// Kate, 1 Oct 2026: this page hides the shared filter bar (it has its own two
-// windows), so the Clients switch from that bar was never on screen here. The same
-// switch, drawn on the page: one CLIENT_BASIS, remembered, shared with every page.
-function cmpClientSeg() {
-  const b = (v, label, title) => `<button type="button" class="chip seg-b" aria-pressed="${CLIENT_BASIS === v}" onclick="cmpSetClients('${v}')" title="${title}">${label}</button>`;
-  return `<div class="cmp-clients"><span class="f-lbl">Clients</span>
-    <span class="seg" role="group" aria-label="How clients are counted">`
-    + b('handled', 'Per staff', 'Ledgers: each staff member counts the clients she served')
-    + b('door', 'Per visit', 'Phorest: each client counted once a day, however many staff she saw')
-    + `</span></div>`;
-}
-function cmpSetClients(v) {
-  if (v === CLIENT_BASIS) return;
-  setClientBasis(v);
-  renderCompare();
-}
-
 
 function cmpSet(key, field, value) {
   const s = cmpState[key];
@@ -911,7 +904,7 @@ function cmpVisualHtml(sa, sb2) {
     <div class="cmp-two">
       ${cmpMirrorHtml('Money', 'Where the takings came from, in AED ex VAT.' + perTxt,
         ['Net take', 'Hair revenue', 'Hair treatments', 'Beauty services', 'Retail'], sa, sb2)}
-      ${cmpMirrorHtml('Clients', 'Who came through the door.' + perTxt,
+      ${cmpMirrorHtml('Clients', (CMP_DOOR ? 'Clients is through the door (Phorest); the rows under it are per staff (ledgers).' : 'Per staff, from the ledgers: a client seen by two staff counts twice.') + perTxt,
         ['Clients', 'Hair clients', 'Beauty clients', 'Rebooked', 'New clients'], sa, sb2)}
     </div>
     <div class="cmp-card cmp-trend">

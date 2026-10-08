@@ -246,7 +246,7 @@ function lgRollup(list) {
   const t = {
     servicesTotal:0, retailTotal:0, hairServicesIncl:0, hairRetailOnly:0, treatmentSales:0,
     beautyServicesTotal:0, hairTotalClients:0, beautyTotalClients:0,
-    totalClients:0, newClientsTotal:0, ncrTotal:0, totalRebooked:0, beautyRebookedCount:0,
+    totalClients:0, ledgerTotalClients:0, newClientsTotal:0, ncrTotal:0, totalRebooked:0, beautyRebookedCount:0,
     // Carried through the rollup so a multi-branch selection can still say how much of
     // its retail nobody was credited with — see the RETAIL note in dashboard.js.
     retailAttributed:0, retailUnattributed:0,
@@ -259,11 +259,15 @@ function lgRollup(list) {
     servicesUnattributed:0,
   };
   const keys = Object.keys(t);
-  (list || []).filter(Boolean).forEach(s => keys.forEach(k => { t[k] += Number(s[k]) || 0; }));
+  // ledgerTotalClients is the base the ledger's rebooked count was written against; a summary
+  // from a path that does not set it (weekly, daily_data) is all ledger, so it is totalClients.
+  (list || []).filter(Boolean).forEach(s => keys.forEach(k => {
+    t[k] += Number(k === 'ledgerTotalClients' && s[k] == null ? s.totalClients : s[k]) || 0;
+  }));
   t.hairRevenue      = t.hairServicesIncl;
   t.hairServicesExcl = t.hairServicesIncl - t.treatmentSales - t.hairCourses;
   t.servicesExclTotal = t.hairServicesExcl + t.beautyServicesTotal;
-  t.rebookPct     = t.totalClients       ? t.totalRebooked / t.totalClients * 100        : null;
+  t.rebookPct     = t.ledgerTotalClients ? t.totalRebooked / t.ledgerTotalClients * 100  : null;
   t.hairAvgBill   = t.hairTotalClients   ? t.hairServicesIncl / t.hairTotalClients       : null;
   t.beautyAvgBill = t.beautyTotalClients ? t.beautyServicesTotal / t.beautyTotalClients  : null;
   return t;
@@ -1234,7 +1238,7 @@ function bpGrowthCards(g, codes) {
         </div>
         ${bpSpark(g[code].spark)}
         <div class="bp-chips">
-          ${bpChip('Clients', clientsOf(c), lgNum, bpDelta(clientsOf(c), clientsPrevOf(c, p)))}
+          ${bpChip(doorOn(c) ? 'Clients per visit' : 'Clients per staff', clientsOf(c), lgNum, bpDelta(clientsOf(c), clientsPrevOf(c, p)))}
           ${bpChip('Hair avg bill', c.hairAvgBill, lgAed, bpDelta(c.hairAvgBill, p && p.hairAvgBill))}
           ${bpChip('Rebooking', lgPct(c.rebookPct), x => x,
             bpDelta(c.rebookPct, p && p.rebookPct), true)}
@@ -1436,11 +1440,11 @@ async function renderBranchPerformance() {
       lgTable([{label:'Metric'},{label:'Actual',align:'r'},{label:'Target',align:'r'},{label:'',align:'r',w:'150px'}], bmRows)) +
     lgSection('bpClients', 'var(--hair)', 'Clients', escapeHtml(lgBranchLabel()),
       `<div class="bp-chart"><canvas id="bpClientsChart"></canvas></div>
-       <div class="foot">New against returning, per branch, with the rebooked count on top of the bar it came from.</div>` +
+       <div class="foot">Clients here are counted per staff, from the ledgers: a client seen by two staff counts twice. New against returning, per branch, with the rebooked count beside the bar it came from.</div>` +
       lgTable(revCols, cliBody)) +
     lgSection('bpStaff', 'var(--beauty)', 'Staff performance', escapeHtml(lgRangeLabel()), staffHtml) +
     `<div class="fine">
-      <p><b>Where these come from</b>. Client counts, the department split and the treatment figure come from the branch ledger (<code>branch_staff_daily</code>); revenue comes from Phorest (<code>phorest_staff_daily</code>), matched to the ledger's staff and day. Rows tagged <span class="lg-tag">LEDGER</span> are hand-tallied and have no Phorest equivalent.</p>
+      <p><b>Where these come from</b>. Client counts here are per staff: the branch ledger (<code>branch_staff_daily</code>), so a client seen by two staff counts twice, and on days the ledger has not reached yet Phorest's visits per staff fill the Total Clients count (rebooking, NCR and the rest are read on ledger days only). The Clients chip and the Clients table row beside it say through the door when they count each client once a day from Phorest Sales Transactions. The department split and the treatment figure come from the same ledger; revenue comes from Phorest (<code>phorest_staff_daily</code>), matched to the ledger's staff and day. Rows tagged <span class="lg-tag">LEDGER</span> are hand-tallied and have no Phorest equivalent.</p>
       <p><b>Where the targets come from</b>. ${typeof lgTargetSourceLabel === 'function' ? lgTargetSourceLabel(lgMonth) : '<code>ledger-targets.js</code>'}. A month pasted into the Targets tab is read from Supabase, and the branch figures there are summed from the stylist rows themselves rather than taken from the salon-level line a coordinator writes under her table — the two disagree, and the rows are what a stylist was actually given. The five client-count targets cannot be summed from money and are typed in beside them off Emma's Monday sheet; where one is blank the row keeps its dash rather than showing a target of zero. Months still coming off the hand-keyed file take their revenue targets from that sheet's MTD pacing panel rather than its group roll-up, because only the panel's figures sum to their own branches.</p>
       <p><b>How growth is measured</b>. This window against the one immediately before it, at the same number of days, ending the day before this one starts — never against a calendar month, which would read a fortnight as a collapse. The window is capped at the last day the ledger has actually synced, so unsynced days are not counted as days that took nothing. Percentages are money and counts; rebooking moves in <b>points</b>, because a rise from 20% to 32% is 12 points and not 60%.</p>
     </div>`);
@@ -2710,7 +2714,7 @@ async function renderLedgerStylist() {
         ? (series[code].staff[sp.key] || []).map(rec => svcMap(rec, dept))
         : [];
 
-      const tot = { st:0, sa:0, tt:0, ta:0, rt:0, ra:0, c:0, n:0, ncr:0, rb:0, tu:0, ru:0 };
+      const tot = { st:0, sa:0, tt:0, ta:0, rt:0, ra:0, c:0, lc:0, n:0, ncr:0, rb:0, tu:0, ru:0 };
       staff.slice()
         .sort((a, b) => (b[dept === 'BEAUTY' ? 'beautySales' : 'hairSalesNet'] || 0)
                       - (a[dept === 'BEAUTY' ? 'beautySales' : 'hairSalesNet'] || 0))
@@ -2743,7 +2747,7 @@ async function renderLedgerStylist() {
 
           tot.sa += svcA; tot.ta += txA; tot.ra += retA;
           tot.st += svcT || 0; tot.tt += txT || 0; tot.rt += retT || 0;
-          tot.c += st.total || 0; tot.n += (st.newC != null ? st.newC : (st.newClients || 0));
+          tot.c += st.total || 0; tot.lc += (st.ledgerClients != null ? st.ledgerClients : st.total) || 0; tot.n += (st.newC != null ? st.newC : (st.newClients || 0));
           tot.ncr += st.newClientReq || 0; tot.rb += st.rebooked || 0;
           tot.tu += st.treatmentUnits || 0; tot.ru += st.retailUnits || 0;
 
@@ -2780,7 +2784,7 @@ async function renderLedgerStylist() {
         .concat(showTargets ? [tot.st ? lgDelta(tot.sa - tot.st, lgAed) : '—'] : [])
         .concat([
         lgNum(tot.c), lgNum(tot.n), lgNum(tot.ncr), lgNum(tot.rb),
-        lgPct(tot.c ? tot.rb / tot.c * 100 : null), lgAed(tot.c ? tot.sa / tot.c : 0)])
+        lgPct(tot.lc ? tot.rb / tot.lc * 100 : null), lgAed(tot.c ? tot.sa / tot.c : 0)])
         .concat(showTargets ? [tot.tt ? lgAed(tot.tt) : '—'] : [])
         .concat([
         dept === 'BEAUTY' ? '—' : lgAed(tot.ta),

@@ -649,7 +649,7 @@ function lgxSplitSum(n) {
      Services Total     Hair services (excl) + Beauty services
      Retail Total       Hair retail + Beauty retail
      Hair services      Hair revenue − treatments − courses
-     Rebooking %        Rebooked / Total Clients × 100
+     Rebooking %        Rebooked / Total Clients × 100 (per staff; on ledger-covered days only)
      Treatment %        Hair treatments / Hair revenue × 100
      Retail %           Hair retail / (Hair revenue + Hair retail) × 100
 
@@ -811,7 +811,7 @@ function lgxSheetActuals(series, ctx, code, name, peers) {
     ['Retail Total', 'Hair retail + Beauty retail, Phorest’s own branch products line, house account included.'],
     ['Hair services', 'Hair revenue less treatments less courses.'],
     ['Variance', 'MTD less Target. Negative is money still to find.'],
-    ['Rebooking %', 'Rebooked / Total Clients × 100.'],
+    ['Rebooking %', 'Rebooked / Total Clients × 100, per staff, on days the ledger covers.'],
     ['Treatment %', 'Hair treatments / Hair revenue × 100.'],
     ['Retail %', 'Hair retail / (Hair revenue + Hair retail) × 100.'],
   ];
