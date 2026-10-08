@@ -399,7 +399,7 @@
         '<span>Salons</span></a>' +
       '<div class="kb-titles"><span class="kb-eyebrow">Knowledge Base</span><div class="kb-titlerow"><h1>' + esc(h.dataset.title || 'Team Home') + '</h1>' +
         // Kate, 8 Oct 2026: the second front door, the plain search page. On the title's line on a
-        // desktop (the right side has no room); on a phone it is the account menu's first row.
+        // desktop (the right side has no room), under it on a phone.
         '<a class="kb-searchpage" href="/search/">Search page &rarr;</a></div></div>' +
       '<div class="kb-head-r"><div class="kb-search-wrap"><div class="kb-search">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
@@ -427,7 +427,6 @@
                   (o.v === cur ? ' class="on"' : '') + '>' + esc(o.label) + '</button>';
               }).join('') + '</div></div>';
           })() : '') +
-          '<a class="kb-menu-searchpage" href="/search/">Search page</a>' +
           (KB.allowed.indexOf('dashboards') >= 0 ? '<a href="/dashboard/">Open the dashboard</a>' : '') +
           (KB.myLink ? '<a href="' + esc(KB.myLink) + '">My numbers &amp; payslip</a>' : '') +
 
