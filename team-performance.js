@@ -60,6 +60,8 @@ const TP_LEAGUES = {
   services:  { label: 'Services',            note: 'service sales',         get: s => (s.isBeauty ? s.beautySales : s.hairSalesNet) || 0, f: tpAed },
   retail:    { label: 'Retail',              note: 'retail sales',          get: s => s.retail || 0,      f: tpAed },
   treatment: { label: 'Treatment',           note: 'treatment sales',       get: s => s.treatments || 0,  f: tpAed, hairOnly: true, ledger: true },
+  clients:   { label: 'Clients, per staff',   note: 'clients per staff (ledgers)', get: s => s.total || 0,     f: n => tpNum(n) + ' clients' },
+  phvisits:  { label: 'Visits, Phorest',     note: 'Phorest staff visits',  get: s => (s.ph && s.ph.t) || 0, f: n => tpNum(n) + ' visits' },
   rebook:    { label: 'Rebooking %',         note: 'rebooking %',           get: s => s.rebookPct || 0,   f: tpPct, gap: TP_PTS, ledger: true },
   ncr:       { label: 'New client requests', note: 'new client requests',   get: s => s.newClientReq || 0, f: n => tpNum(n) + ' NCR', ledger: true },
   // Posts that tag @tararosesalon or list her as a collaborator (the sheet's "Instagram
@@ -274,6 +276,11 @@ function tpCombine(group, mergeKey) {
   // total that also carries Phorest-only visits.
   const ledgerBase   = group.every(r => r.ledgerClients != null) ? sum('ledgerClients') : total;
   const noLedger     = group.every(r => r.noLedger);
+  // Her Phorest counts, summed over the same branches (null when Phorest has none for her).
+  const phRows = group.filter(r => r.ph);
+  const ph = phRows.length
+    ? phRows.reduce((a, r) => ({ t: a.t + r.ph.t, nw: a.nw + r.ph.nw, req: a.req + r.ph.req, svc: a.svc + r.ph.svc, retail: a.retail + r.ph.retail }),
+        { t: 0, nw: 0, req: 0, svc: 0, retail: 0 }) : null;
   const treatments   = sum('treatments');
   const retail       = sum('retail');
   const hairSalesNet = sum('hairSalesNet');
@@ -296,7 +303,7 @@ function tpCombine(group, mergeKey) {
   return {
     ...first,
     mergeKey,
-    total, ledgerClients: ledgerBase, noLedger, rebooked, newC: sum('newC'), newClientReq: sum('newClientReq'), req: sum('req'), salon: sum('salon'),
+    total, ledgerClients: ledgerBase, noLedger, ph, rebooked, newC: sum('newC'), newClientReq: sum('newClientReq'), req: sum('req'), salon: sum('salon'),
     treatments, retail, hairSalesNet, beautySales, net, netSalonTake: net,
     avgBill:      total ? services / total : 0,
     rebookPct:    ledgerBase ? (rebooked / ledgerBase * 100) : 0,
@@ -482,6 +489,7 @@ async function renderTeam() {
       </select>` : ''}
       ${tpCountsBad ? '<span class="tp-bar-n" style="color:var(--warn)">Instagram and review counts did not load, showing Takings.</span>' : ''}
       <span class="tp-bar-n">${branchLabel} · ${roster.length} ${roster.length === 1 ? 'person' : 'people'}</span>
+      ${typeof ihTip === 'function' ? ihTip('', 'Two counts of clients, side by side. Clients per staff is the ledgers’ count: a client seen by two staff counts for each, and rebooking, NCR and the aims are written on it. Phorest is the Staff Daily report per employee: visits, requests (RQ), new clients and her services; her Phorest avg bill is her services over her Phorest visits. Phorest figures need a daily window, so a full-week window shows none.') : ''}
       <span class="tp-bar-sp"></span>
       <span class="tp-bar-n">${part === 'quad' ? 'Tap a face' : 'Tap + on anyone'} to compare, up to ${TP_MAX_COMPARE}</span>
     </div>
@@ -559,6 +567,13 @@ function tpBar(st, lead, cls) {
   const w = lead ? Math.max(18, v / lead * 100) : 18;
   return `<div class="tp-trk ${cls || ''}"><div class="tp-fill tabular" style="width:${Math.min(100, w)}%;background:${st.branchColor}">${lg.f(v)}</div></div>`;
 }
+// Phorest's own count for her, beside the ledger's (Kate, 8 Oct 2026: both computations).
+// Visits are Phorest's Staff Daily per employee; the average bill is her Phorest services over them.
+function tpPhLine(st) {
+  if (!st.ph) return '<div class="tp-ph">Phorest: no figures for her in this window</div>';
+  const avg = st.ph.t ? ` · avg bill ${tpNum(st.ph.svc / st.ph.t)}` : '';
+  return `<div class="tp-ph tabular">Phorest: ${tpNum(st.ph.t)} visits${avg}</div>`;
+}
 function tpRoleBranch(st) {
   return `${escapeHtml(tpRole(st))} · ${(st.branches || [{ name: st.branchName }]).map(b => escapeHtml(b.name)).join(' + ')}`;
 }
@@ -576,6 +591,7 @@ function tpPodiumCard(st, i) {
     <div class="tp-branch">${tpBranchTag(st)}</div>
     <div class="tp-pod-v tabular">${tpLg().f(tpLg().get(st))}</div>
     <div class="tp-pod-s tabular">${tpLeagueKey() === 'net' ? '' : tpAed(st.net) + ' take · '}${tpNum(st.total)} clients by staff${tpNoLedger(st) ? '' : ` · ${tpNum(st.rebooked)} rebooked`}</div>
+    ${tpPhLine(st)}
     <div class="tp-rings">${tpRings(st)}</div>
   </div>`;
 }
@@ -591,6 +607,7 @@ function tpChaseRow(st, rank, ahead, lead) {
     <div class="tp-ch-who">
       <div class="tp-row-nm">${tpName(st)}</div>
       <div class="tp-row-s">${tpRoleBranch(st)}</div>
+      ${tpPhLine(st)}
       ${ahead ? `<div class="tp-gap tabular">${(lg.gap || lg.f)(gap)} behind ${escapeHtml(ahead.name)}</div>` : ''}
     </div>
     ${tpBar(st, lead, 'lg')}
@@ -608,6 +625,7 @@ function tpRaceRow(st, rank, lead) {
     <div class="tp-ch-who">
       <div class="tp-row-nm">${tpName(st)}</div>
       <div class="tp-row-s">${tpRoleBranch(st)}</div>
+      ${tpPhLine(st)}
     </div>
     ${tpBar(st, lead)}
     ${tpNoLedger(st) ? '<div class="tp-rb tabular"><b>—</b>rebook</div>'
@@ -931,10 +949,16 @@ function tpQHl(el, on) {
 const TP_CMP_ROWS = [
   { label: 'Net salon take', fmt: tpAed, pick: st => st.net,
     bench: b => b.n ? b.net / b.n : 0 },
-  { label: 'Clients', fmt: tpNum, pick: st => st.total || 0,
+  { label: 'Clients (ledger, per staff)', fmt: tpNum, pick: st => st.total || 0,
     bench: b => b.n ? b.clients / b.n : 0 },
-  { label: 'New clients', fmt: tpNum, pick: st => (st.newC != null ? st.newC : st.newClients) || 0,
+  { label: 'Staff visits (Phorest)', fmt: tpNum, pick: st => (st.ph && st.ph.t) || 0,
+    bench: b => b.n ? b.phT / b.n : 0 },
+  { label: 'New clients (ledger)', fmt: tpNum, pick: st => (st.newC != null ? st.newC : st.newClients) || 0,
     bench: b => b.n ? b.newC / b.n : 0 },
+  { label: 'New clients (Phorest)', fmt: tpNum, pick: st => (st.ph && st.ph.nw) || 0,
+    bench: b => b.n ? b.phNw / b.n : 0 },
+  { label: 'Requests, RQ (Phorest)', fmt: tpNum, pick: st => (st.ph && st.ph.req) || 0,
+    bench: b => b.n ? b.phReq / b.n : 0 },
   { label: 'Rebooked', fmt: tpNum, pick: st => st.rebooked || 0,
     bench: b => b.n ? b.rebooked / b.n : 0 },
   { label: 'Rebooking %', fmt: tpPct, target: () => TARGETS.rebookPct, pick: st => st.rebookPct,
@@ -950,15 +974,18 @@ const TP_CMP_ROWS = [
   { label: 'Avg bill', fmt: tpNum,
     target: dept => dept === 'beauty' ? TARGETS.beautyAvgBill : TARGETS.hairAvgBill,
     pick: st => st.avgBill, bench: b => b.clients ? b.services / b.clients : 0 },
+  { label: 'Avg bill (Phorest, per visit)', fmt: tpNum,
+    pick: st => (st.ph && st.ph.t) ? st.ph.svc / st.ph.t : 0, bench: b => b.phT ? b.phSvc / b.phT : 0 },
 ];
 
 // The bench's own totals, over whoever is on screen — the current department and
 // branch selection, the same roster the podium and floor are drawn from.
 function tpBench(roster) {
-  const b = { n: roster.length, net:0, clients:0, ledgerClients:0, newC:0, rebooked:0, treatments:0, retail:0, services:0 };
+  const b = { n: roster.length, phT:0, phNw:0, phReq:0, phSvc:0, net:0, clients:0, ledgerClients:0, newC:0, rebooked:0, treatments:0, retail:0, services:0 };
   roster.forEach(st => {
     b.net       += st.net || 0;
     b.clients   += st.total || 0;
+    if (st.ph) { b.phT += st.ph.t; b.phNw += st.ph.nw; b.phReq += st.ph.req; b.phSvc += st.ph.svc; }
     // Rebooking is read against the ledger's count, the same base her own % uses.
     b.ledgerClients += (st.ledgerClients != null ? st.ledgerClients : st.total) || 0;
     b.newC      += (st.newC != null ? st.newC : st.newClients) || 0;

@@ -2124,6 +2124,13 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
   s.ph = (phorestStaffRows && phorestStaffRows.length) ? fnPhorestCounts(phorestStaffRows, null, branchStaffRows) : null;
   s.ledgerTotalClients = s._phorestOnly ? 0 : (ledgerPart ? ledgerPart.summary.totalClients : s.totalClients);
   const { hairStaff, beautyStaff } = buildStaffArraysFromMaps(hairMap, beautyMap);
+  // Each stylist's own Phorest counts beside her ledger ones (st.ph). null where Phorest has
+  // nothing for her (a day the ledger has and Phorest does not, or a window with no Phorest rows).
+  if (phorestStaffRows && phorestStaffRows.length) {
+    const by = fnPhorestPerStaff(phorestStaffRows, branchStaffRows);
+    hairStaff.forEach(st => { st.ph = by['hair|' + staffMapKey(st.name)] || null; });
+    beautyStaff.forEach(st => { st.ph = by['beauty|' + staffMapKey(st.name)] || null; });
+  }
   return { summary: s, hairStaff, beautyStaff };
 }
 
@@ -3235,6 +3242,12 @@ function fnLedgerFromSummary(s) {
 // buildPhorestOnlyStaffMaps, so the funnel and the staff tables agree. null for the house
 // account and the assistants.
 function fnPhorestSide(employeeName, branch, ledgerDept, deptMap) {
+  const who = fnPhorestPerson(employeeName, branch, ledgerDept, deptMap);
+  return who ? who.side : null;
+}
+// The same rule, with the ledger-style name key as well, so a Phorest employee can be matched to
+// the stylist the staff tables and the Podium Race already show (Holly Branchett is HOLLY).
+function fnPhorestPerson(employeeName, branch, ledgerDept, deptMap) {
   const pk = cleanPhorestName(employeeName);
   if (!pk || LEDGER_NON_PERSON_NAMES.has(pk) || pk.indexOf('BUSINESS') === 0) return null;
   let name = pk.split(' ')[0];
@@ -3249,7 +3262,30 @@ function fnPhorestSide(employeeName, branch, ledgerDept, deptMap) {
     : deptMap[dk] ? deptMap[dk] === 'beauty'
     : (ledgerDept && ledgerDept[dk]) ? ledgerDept[dk] === 'beauty'
     : !!(prof && /Beauty|Nail|Therapist/i.test(prof.role || ''));
-  return beauty ? 'beauty' : 'hair';
+  return { side: beauty ? 'beauty' : 'hair', key: dk };
+}
+// Phorest's own counts for each stylist (visits, new clients, RQ, services, retail), keyed
+// 'hair|NAME' / 'beauty|NAME' on the staff map key, for the Podium Race and the staff tables to
+// print beside the ledger's (Kate, 8 Oct 2026). Built per branch, since aggDailyData is.
+function fnPhorestPerStaff(phRows, ledgerRows) {
+  const out = {};
+  const deptMap = (typeof buildStaffDeptMap === 'function') ? buildStaffDeptMap() : {};
+  const ledgerDept = {};
+  (ledgerRows || []).forEach(r => {
+    const dp = String(r.dept || '').trim().toLowerCase();
+    if (dp) ledgerDept[staffMapKey(r.staff_name)] = dp === 'beauty' ? 'beauty' : 'hair';
+  });
+  (phRows || []).forEach(r => {
+    if (r.is_total) return;
+    const who = fnPhorestPerson(r.employee_name, r.branch, ledgerDept, deptMap);
+    if (!who) return;
+    const k = who.side + '|' + who.key;
+    const o = out[k] || (out[k] = { t: 0, nw: 0, req: 0, svc: 0, retail: 0 });
+    o.t += Number(r.visits) || 0; o.nw += Number(r.new_clients) || 0; o.req += Number(r.rqs) || 0;
+    o.svc += (Number(r.services_ex_vat) || 0) + (Number(r.courses_ex_vat) || 0);
+    o.retail += Number(r.products_ex_vat) || 0;
+  });
+  return out;
 }
 // Phorest's visits, requests and new clients (and rebooked, once the tracker rows are in),
 // summed per side. rebooked is null until then, so it reads as unknown, not zero.
