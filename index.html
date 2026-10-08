@@ -4120,7 +4120,7 @@ const GATE_MODES = {
   // address can skip the password and keep using the Google button.
   welcome:{ title:'Welcome. Choose your password', btn:'Save password', google:false, email:false, pw:true,
             links:[['Skip, I’ll sign in with Google','skip']] },
-  denied: { title:'Not on the list yet', btn:'Sign out', google:false, email:false, pw:false, links:[] },
+  denied: { title:'Not on the list yet', btn:'Sign out', google:false, email:false, pw:false, links:[['Check again','skip']] },
 };
 
 function gateMode(mode, info){
@@ -4218,7 +4218,12 @@ async function doLogin(){
 async function enterIfAllowed(fresh){
   // Kate, 2 Oct 2026: her name and level asked for alongside the role, not after it.
   const meAsk = TRSAuth.me().catch(() => null);
-  const role = await TRSAuth.role();
+  // Kate, 8 Oct 2026: "kate@... isn't on the team list" for the owner, a minute after a clean
+  // Google sign-in. The server answered 200 to every call and she is on the list (owner, level 5), so
+  // dashboard_role() came back empty once without being refused: a silent null looks the same as
+  // "not on the list". So an empty answer is asked once more before it is believed.
+  let role = await TRSAuth.role();
+  if (!role) { await new Promise(r => setTimeout(r, 900)); role = await TRSAuth.role(); }
   const next = new URLSearchParams(location.search).get('next');
   const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : null;
   if (!role) {
