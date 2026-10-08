@@ -224,7 +224,7 @@
 
     // Team Home's own sections, so "where is the induction" has an answer.
     ftKb.forEach(([t, blurb, dept, href]) => items.push({
-      kind: 'kb', id: 'kbs:' + href, t, g: 'Team Home · ' + dept, s: blurb, href,
+      kind: 'kb', id: 'kbs:' + href, t, g: 'Team Home · ' + dept, s: blurb, href, sec: (href.match(/[?&]s=([^&]+)/) || [])[1] || '',
       words: dept + ' team home', go: () => { location.href = href; },
     }));
 
@@ -1186,6 +1186,7 @@
     const Q = serpQ = parseQuery(text);
     if (text !== serpText) { serpText = text; serpPage = 0; }
     const seq = ++serpSeq;
+    loadSecDates();
     serpKb = [];
     serpAll = Q.has ? capped(matches(Q), MAX_SERP, 200) : [];
     paintSerp();
@@ -1211,6 +1212,23 @@
         }, () => {});
       }, () => {});
     }
+  }
+
+  // A Team Home section is as new as its newest page. Read once, for every section.
+  let secDates = null, secBusy = false;
+  function loadSecDates() {
+    if (secDates || secBusy || typeof sb === 'undefined') return;
+    secBusy = true;
+    sb.from('kb_pages').select('section,updated_at').then(({ data, error }) => {
+      secBusy = false;
+      if (error || !data) return;
+      secDates = new Map();
+      data.forEach(r => {
+        const t = r.updated_at, cur = secDates.get(r.section);
+        if (t && (!cur || t > cur)) secDates.set(r.section, t);
+      });
+      if (serp && !serp.hidden) paintSerp();
+    }, () => { secBusy = false; });
   }
 
   // "3 Oct", or "3 Oct 2025" when it is not this year.
@@ -1321,7 +1339,8 @@
       const snip = x.snip || x.s || (x.kind === 'page' ? pageSnip(x, q) : '');
       const acts = x.acts ? `<span class="gs-acts">${x.acts.map(([l], a) => `<button type="button" class="gs-act" data-a="${a}">${esc(l)}</button>`).join('')}</span>` : '';
       const open = x.href ? `<a class="gs-r" data-i="${i}" href="${esc(x.href)}" target="_blank" rel="noopener">` : `<a class="gs-r" data-i="${i}" href="#">`;
-      const upd = x.updated ? `<div class="gs-r-upd">Updated ${esc(updatedLabel(x.updated))}</div>` : '';
+      const iso = x.updated || (x.sec && secDates ? secDates.get(x.sec) : '');
+      const upd = iso ? `<div class="gs-r-upd"${x.sec ? ' title="When the newest page in this section was last changed"' : ''}>Updated ${esc(updatedLabel(iso))}</div>` : '';
       const more = x.more ? `<div class="gs-r-more">+${x.more} more line${x.more === 1 ? '' : 's'} in this section</div>` : '';
       return `<div class="gs-res">${open}<span class="gs-r-g">${esc(x.g || '')}</span><span class="gs-r-t">${highlight(x.t, Q.hl)}</span></a>`
         + (snip ? `<div class="gs-r-s">${highlight(snip, Q.hl)}</div>` : '') + upd + more + acts + '</div>';
