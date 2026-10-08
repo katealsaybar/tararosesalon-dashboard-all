@@ -2541,7 +2541,7 @@ async function renderLedgerFinancials() {
   }
 
   host.innerHTML =
-    lgHeader('Ledgers · Financial Totals',
+    lgHeader('Financial Totals',
       `Phorest's Financial Totals Sales block, every branch at once, for ${escapeHtml(w.month.label)}. `
       + `The figure to check a branch's report against is <b>Total (Ex VAT)</b>.`,
       { applies: true, label: w.month.label, rangeLabel: `${shortD(w.month.from)} – ${shortD(w.month.to)}`,

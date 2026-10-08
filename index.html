@@ -3321,19 +3321,12 @@ table.tp-cmp td.bad{color:var(--bad)}
   <a class="nav-home" href="/hub/"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Team Home</a>
 
   <!-- Kate, 6 Oct 2026: the sidebar uses Team Home's own groups, so the two read the
-       same: Today, Numbers, Content, People. Numbers is long, so it carries small
+       same: Numbers, Targets (was Today), Content, People. Numbers is long, so it carries small
        subheads (Business, Team Performance, Clients, Sales & Stock) on the same rule;
        a subhead is a label, not a link. Who sees which page is set per page in
        enterDashboard() and applyScope(); tidyNav() then hides any subhead or group left
        with nothing open. Upload Data left the sidebar: it is Team Home's Upload Portal.
        Podium Race (navTeamRace) is still the Team Performance page. -->
-  <div class="nav-group">
-    <div class="nav-title">Today</div>
-    <div class="nav-sub" onclick="showView('ledgerTargets', this)">Daily Target Sheet</div>
-    <div class="nav-sub" onclick="showView('ledgerStylist', this)">Daily Stylist Target</div>
-    <div class="nav-sub" onclick="showView('ledgerActuals', this)">Actuals vs Targets</div>
-  </div>
-
   <div class="nav-group">
     <div class="nav-title">Numbers</div>
     <div class="nav-subhead">Business</div>
@@ -3354,6 +3347,13 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-subhead">Sales &amp; Stock</div>
     <div class="nav-sub" onclick="showView('services', this)">Service Rankings</div>
     <div class="nav-sub" onclick="showView('products', this)">Products</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-title">Targets</div>
+    <div class="nav-sub" onclick="showView('ledgerTargets', this)">Daily Target Sheet</div>
+    <div class="nav-sub" onclick="showView('ledgerStylist', this)">Daily Stylist Target</div>
+    <div class="nav-sub" onclick="showView('ledgerActuals', this)">Actuals vs Targets</div>
   </div>
 
   <!-- Google Ads and Website & Search: Level 3 and above. Wellness Voucher Performance
@@ -4021,11 +4021,11 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261006ph"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261008s5"></script>
+<script src="dashboard.js?v=20261008s6"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20261005dots"></script>
+<script src="branch-ledger.js?v=20261008s6"></script>
 <script src="compare.js?v=20261007ncr"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->

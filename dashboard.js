@@ -1297,7 +1297,7 @@ const VIEW_SECTION_LABELS = {
   social: 'Social',
   branchperf: 'Branch Performance',
   compare: 'Comparison',
-  ledgerFinancials: 'Ledgers · Financial Totals',
+  ledgerFinancials: 'Financial Totals',
   ledgerTargets: 'Ledgers · Daily Target Sheet',
   ledgerActuals: 'Ledgers · Actuals vs Targets',
   ledgerStylist: 'Ledgers · Daily Stylist Target',
