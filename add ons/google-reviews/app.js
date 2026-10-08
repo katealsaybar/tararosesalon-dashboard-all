@@ -33,12 +33,22 @@ function googleReviewUrl(r){
 const GBP_LOC = {"Khalifa City A, Abu Dhabi":"5307528376474579201","Saadiyat, Abu Dhabi":"1607584651014081566","Al Quoz, Dubai":"15851980431586936756","Motor City, Dubai":"1197765864514331563","District 2, Bahrain":"9531547727804411119"};
 const branchMapsUrl = r => MAPS_CID[r.branch] ? "https://www.google.com/maps?cid=" + BigInt(MAPS_CID[r.branch]).toString() + "&hl=en" : "";
 const branchGbpUrl = r => GBP_LOC[r.branch] ? `https://www.google.com/local/business/${GBP_LOC[r.branch]}/customers/reviews?knm=0&ih=lu&hl=en&dcs=1` : "";
-const REC = [["30","Last 30 days"],["90","Last 90 days"],["180","Last 6 months"],["365","Last 12 months"],["730","Last 2 years"],["all","All time"]];
 const ALL = [1,2,3,4,5];
-// Opens on the last 90 days (Kate, 1 Oct 2026): "All time" averaged years of
-// reviews and hid the recent trend. The official all-time totals stay in their table.
-const DEFAULT_REC = "90";
-const state = {branches:new Set(BRANCHES), stars:new Set(ALL), rec:DEFAULT_REC, withText:false, noReply:false, withPhotos:false, q:"", sort:"new", staff:""};
+const CODE_TO_BRANCH={KCA:"Khalifa City A, Abu Dhabi",SAA:"Saadiyat, Abu Dhabi",AQ:"Al Quoz, Dubai",MC:"Motor City, Dubai",BAH:"District 2, Bahrain"};
+// Branch and window are the dashboard's masthead bar (Kate, 8 Oct 2026): dashboard.js
+// postReviewsBranch sends them as trs-reviews-filter and applyFilter below takes them,
+// so this page keeps only what is specific to reviews (rating, staff, comments, search).
+// Until the first message arrives it reads the last 90 days (the 1 Oct 2026 default:
+// "All time" averaged years of reviews and hid the recent trend; the official all-time
+// totals stay in their own table). range.from null means all time.
+const state = {branches:new Set(BRANCHES), range:null, stars:new Set(ALL), withText:false, noReply:false, withPhotos:false, q:"", sort:"new", staff:""};
+const isoLocal = d => d.toLocaleDateString("en-CA");
+function curRange(){
+  if(state.range) return state.range;
+  const f=new Date(TODAY); f.setDate(f.getDate()-89);
+  return {from:isoLocal(f), to:isoLocal(TODAY), label:"Last 90 days"};
+}
+const inRange = d => { const r=curRange(); return (!r.from || d>=r.from) && d<=r.to; };
 
 // ── Staff named in reviews (Kate, 25 Sep 2026) ───────────────────────────
 // Who a review names is decided by staff_name_variants in Supabase: every
@@ -144,17 +154,11 @@ const days = d => (TODAY - new Date(d+"T00:00:00"))/864e5;
 const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const setEq = (a,b) => a.size===b.length && b.every(x=>a.has(x));
 
-function windowStart(rec){ if(rec==="all") return null; const d=new Date(TODAY); d.setDate(d.getDate()-(+rec)); return d.toISOString().slice(0,10); }
-function isComplete(rec, branches){
-  const ws = windowStart(rec);
-  return [...branches].every(b => META.cover[b]===null || (ws && ws >= META.cover[b]));
-}
-
 function baseFilter(skip){
   return R.filter(r =>
     (skip==="branch" || state.branches.has(r.branch)) &&
     (skip==="stars" || state.stars.has(r.stars)) &&
-    (skip==="rec" || state.rec==="all" || days(r.date) <= +state.rec) &&
+    (skip==="range" || inRange(r.date)) &&
     (!state.withText || r.comment) && (!state.noReply || !r.replied) && (!state.withPhotos || r.photos.length) &&
     (skip==="staff" || !state.staff || (state.staff==="__any" ? r.staff.length : r.staff.includes(state.staff))) &&
     (!state.q || (r.comment+" "+r.reviewer+" "+r.reply).toLowerCase().includes(state.q.toLowerCase())));
@@ -171,11 +175,6 @@ function toggle(set, all, v){
   set.add(v); return set;
 }
 function renderFilters(){
-  const fb=document.getElementById("fBranch"); fb.innerHTML="";
-  const pb=baseFilter("branch");
-  fb.appendChild(chip("All", state.branches.size===BRANCHES.length, pb.length, ()=>{state.branches=new Set(BRANCHES);render();}));
-  BRANCHES.forEach(b=>fb.appendChild(chip(SHORT[b], state.branches.has(b) && state.branches.size!==BRANCHES.length, pb.filter(r=>r.branch===b).length, ()=>{state.branches=toggle(state.branches,BRANCHES,b);render();})));
-
   const fs=document.getElementById("fStars"); fs.innerHTML="";
   const ps=baseFilter("stars");
   fs.appendChild(chip("All", setEq(state.stars,ALL), ps.length, ()=>{state.stars=new Set(ALL);render();}));
@@ -187,12 +186,6 @@ function renderFilters(){
     if(!single) state.stars=new Set([s]); else state.stars=toggle(state.stars,ALL,s);
     render();})));
 
-  const fr=document.getElementById("fRec"); fr.innerHTML="";
-  const pr=baseFilter("rec");
-  REC.forEach(([k,l])=>{
-    const full = isComplete(k, state.branches);
-    fr.appendChild(chip(l, state.rec===k, k==="all"?pr.length:pr.filter(r=>days(r.date)<=+k).length, ()=>{state.rec=k;render();}, "", l.replace(/^Last /,"")));
-  });
   const fst=document.getElementById("fStaff");
   if (fst) {
     const pst=baseFilter("staff"), cnt={};
@@ -209,19 +202,14 @@ function renderFilters(){
   renderSummary();
 }
 // The phone filter bar (Kate, 2 Oct 2026): what's on, as pills that clear on a tap.
-// The recency pill shows only when it isn't the 90-day default, which the count
-// line names anyway. Hidden above the phone band (index.html).
+// Branch and window are the masthead's now, so only the refine filters get pills; the
+// count line names the window. Hidden above the phone band (index.html).
 function renderSummary(){
   const F=baseFilter(), pills=[];
-  if(state.branches.size!==BRANCHES.length){
-    const b=BRANCHES.filter(x=>state.branches.has(x)).map(x=>SHORT[x]);
-    pills.push([b.length>2?b.length+" branches":b.join(", "), ()=>{state.branches=new Set(BRANCHES);}]);
-  }
   if(!setEq(state.stars,ALL)){
     const l=setEq(state.stars,[1,2,3])?"Complaints 1–3★":setEq(state.stars,[4,5])?"Positive 4–5★":ALL.filter(x=>state.stars.has(x)).map(x=>x+"★").join(", ");
     pills.push([l, ()=>{state.stars=new Set(ALL);}]);
   }
-  if(state.rec!==DEFAULT_REC) pills.push([REC.find(x=>x[0]===state.rec)[1], ()=>{state.rec=DEFAULT_REC;}]);
   if(state.staff){
     const s=STAFF.find(x=>x.key===state.staff);
     pills.push([state.staff==="__any"?"Names any staff":(s?s.label:state.staff), ()=>{state.staff="";}]);
@@ -237,7 +225,7 @@ function renderSummary(){
     b.onclick=()=>{clear();render();}; fp.appendChild(b);
   });
   document.getElementById("fBadge").textContent=pills.length||"";
-  const recLabel=REC.find(x=>x[0]===state.rec)[1];
+  const recLabel=curRange().label;
   document.getElementById("fCount").innerHTML=`<b>${F.length.toLocaleString("en-GB")}</b> review${F.length===1?"":"s"} · ${esc(recLabel)}`;
   document.getElementById("fDoneN").textContent=F.length.toLocaleString("en-GB");
 }
@@ -253,7 +241,7 @@ function renderKpis(F){
   const low=F.filter(r=>r.stars<=3).length, hi=F.length-low;
   const avg=F.length?(F.reduce((a,r)=>a+r.stars,0)/F.length).toFixed(2):"–";
   const replied=F.filter(r=>r.replied).length;
-  const recLabel = REC.find(x=>x[0]===state.rec)[1].toLowerCase();
+  const rl = curRange().label, recLabel = /^(Last|This|All)/.test(rl) ? rl.toLowerCase() : rl;
   const pct=n=>F.length?Math.round(n/F.length*100):0;
   document.getElementById("kpis").innerHTML=`
    <div class="kpi"><div class="l">Reviews shown</div><div class="v">${F.length}</div><div class="h">${recLabel}</div></div>
@@ -288,7 +276,8 @@ function renderBranches(){
     const low=rs.filter(r=>r.stars<=3).length;
     const row=document.createElement("div"); row.className="brow"; row.style.opacity=dim?.4:1;
     row.innerHTML=`<div class="bname" title="${b}">${SHORT[b]}</div><div class="bar">${ALL.map(seg).join("")}</div><div class="bval"><b>${n}</b> <small>${low} complaint${low===1?"":"s"}</small></div>`;
-    row.onclick=()=>{state.branches=new Set([b]);render();};
+    // A tap picks that branch on the dashboard's own bar.
+    row.onclick=()=>{ if(window.parent!==window) window.parent.postMessage({type:"trs-reviews-pickbranch",code:Object.keys(CODE_TO_BRANCH).find(c=>CODE_TO_BRANCH[c]===b)},"*"); };
     el.appendChild(row);
   });
 }
@@ -326,19 +315,31 @@ function renderStaffBoard(){
 }
 function renderTimeline(F){
   const tl=document.getElementById("tl"), lab=document.getElementById("tlab"); tl.innerHTML=""; lab.innerHTML="";
-  let buckets=[], keyOf, per;
-  if(state.rec!=="all" && +state.rec<=365){
-    per="month"; const cnt=Math.max(Math.ceil(+state.rec/30.4),3);
-    for(let i=cnt-1;i>=0;i--){const d=new Date(TODAY.getFullYear(),TODAY.getMonth()-i,1);buckets.push({k:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"),l:d.toLocaleString("en",{month:"short"})+" "+String(d.getFullYear()).slice(2)});}
-    keyOf=d=>d.slice(0,7);
+  // Bars follow the window: weeks up to about six weeks, months up to about two years,
+  // years beyond that (and for all time). Each bucket is an [a, b] pair of ISO dates.
+  const rg=curRange(), toD=new Date(rg.to+"T00:00:00");
+  const fromD=rg.from?new Date(rg.from+"T00:00:00"):new Date((F.length?Math.min(...F.map(r=>+r.date.slice(0,4))):toD.getFullYear())+"-01-01T00:00:00");
+  const span=(toD-fromD)/864e5+1;
+  let buckets=[], per;
+  const iso=d=>d.toLocaleDateString("en-CA");
+  if(rg.from && span<=45){
+    per="week";
+    for(let e=new Date(toD); e>=fromD; e.setDate(e.getDate()-7)){
+      const a=new Date(e); a.setDate(a.getDate()-6); if(a<fromD) a.setTime(fromD.getTime());
+      buckets.unshift({a:iso(a),b:iso(e),l:a.getDate()+" "+a.toLocaleString("en",{month:"short"})});
+    }
+  } else if(rg.from && span<=800){
+    per="month";
+    for(let d=new Date(fromD.getFullYear(),fromD.getMonth(),1); d<=toD; d.setMonth(d.getMonth()+1)){
+      const e=new Date(d.getFullYear(),d.getMonth()+1,0);
+      buckets.push({a:iso(d),b:iso(e),l:d.toLocaleString("en",{month:"short"})+" "+String(d.getFullYear()).slice(2)});
+    }
   } else {
-    per="year"; const ys=F.length?F.map(r=>+r.date.slice(0,4)):[TODAY.getFullYear()];
-    let y0=Math.min(...ys); if(state.rec==="730") y0=Math.min(y0,TODAY.getFullYear()-2);
-    for(let y=y0;y<=TODAY.getFullYear();y++) buckets.push({k:String(y),l:String(y)});
-    keyOf=d=>d.slice(0,4);
+    per="year";
+    for(let y=fromD.getFullYear();y<=toD.getFullYear();y++) buckets.push({a:y+"-01-01",b:y+"-12-31",l:String(y)});
   }
   document.getElementById("tlTitle").textContent="Over time · per "+per;
-  const counts=buckets.map(b=>ALL.map(s=>F.filter(r=>keyOf(r.date)===b.k&&r.stars===s).length));
+  const counts=buckets.map(b=>ALL.map(s=>F.filter(r=>r.date>=b.a&&r.date<=b.b&&r.stars===s).length));
   const max=Math.max(1,...counts.map(c=>c.reduce((a,x)=>a+x,0)));
   const tip=document.getElementById("tip");
   buckets.forEach((b,i)=>{
@@ -434,14 +435,21 @@ function loadOffline(){
 // Rows follow the Branch chips. Khalifa City A isn't connected in Metricool yet and
 // shows as such until it is.
 const GBP_CODE={KCA:"Khalifa City A, Abu Dhabi",SAA:"Saadiyat, Abu Dhabi",AQ:"Al Quoz, Dubai",MC:"Motor City, Dubai",BAH:"District 2, Bahrain"};
-let gbpDays=30; try{const v=+localStorage.getItem("trs-gbp-days"); if([7,30,90,365].includes(v)) gbpDays=v;}catch(e){}
+// 8 Oct 2026: it follows the masthead's window now (its own 7/30/90/This year switch is
+// gone). The window ends yesterday, Google being days behind, and runs back at most 12
+// months, which is also how far Metricool goes: All time and longer ranges are cut to that.
+let gbpCut=false;
 const gbpCache={};
 function gbpWindow(){
-  const t=new Date(new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Dubai"})+"T00:00:00"); t.setDate(t.getDate()-1);
-  const f=new Date(t); if(gbpDays===365) f.setMonth(0,1); else f.setDate(t.getDate()-gbpDays+1);
-  const iso=d=>d.toLocaleDateString("en-CA"); return {from:iso(f),to:iso(t)};
+  const r=curRange(), iso=d=>d.toLocaleDateString("en-CA");
+  const y=new Date(new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Dubai"})+"T00:00:00"); y.setDate(y.getDate()-1);
+  let to=r.to<iso(y)?r.to:iso(y), from=r.from||"0000-00-00";
+  const floor=new Date(y); floor.setDate(floor.getDate()-364);
+  gbpCut = from<iso(floor);
+  if(gbpCut) from=iso(floor);
+  if(to<from) to=from;
+  return {from,to};
 }
-function gbpSet(n){gbpDays=n; try{localStorage.setItem("trs-gbp-days",String(n));}catch(e){} renderGbp();}
 async function renderGbp(){
   const el=document.getElementById("gbp"); if(!el) return;
   const w=gbpWindow(), k=w.from+"|"+w.to;
@@ -464,9 +472,9 @@ async function renderGbp(){
   const s=d.sync, stale=!s||!s.last_ok_at||(Date.now()-new Date(s.last_ok_at).getTime())>36*3600e3;
   el.hidden=false;
   el.innerHTML=`<div class="gbp-hd"><div><div class="gbp-ey">Google Business Profile</div><h2>How people found each salon on Google</h2></div>
-    <div class="dseg" role="group" aria-label="Window">${[[7,"7 days"],[30,"30 days"],[90,"90 days"],[365,"This year"]].map(([n,l])=>`<button type="button" class="${gbpDays===n?"on":""}" onclick="gbpSet(${n})">${l}</button>`).join("")}</div></div>
+    <span class="gbp-tag">Follows the Branch and Period above</span></div>
     ${shown.length?`<div class="gbp-wrap"><table class="gbp-t"><thead><tr><th>Salon</th><th>Seen on Google</th><th>Calls</th><th>Directions</th><th>Website clicks</th><th class="gbp-sm">Calls per 100 views</th></tr></thead><tbody>${rows}${tot}</tbody></table></div>`:""}
-    <div class="gbp-note">"Seen on Google" is how many times the salon's profile showed in Search or Maps. ${fmtDate(w.from)} to ${fmtDate(last&&last<w.to?last:w.to)}${last&&last<w.to?", the last day Google has reported (it runs about three days late)":""}. From Metricool, updated nightly.${stale?` <span class="no">Paused${s&&s.last_error?": "+String(s.last_error).replace(/[<>&]/g,""):""}.</span>`:""}</div>`;
+    <div class="gbp-note">"Seen on Google" is how many times the salon's profile showed in Search or Maps. ${gbpCut?"Profile numbers go back 12 months at most. ":""}${fmtDate(w.from)} to ${fmtDate(last&&last<w.to?last:w.to)}${last&&last<w.to?", the last day Google has reported (it runs about three days late)":""}. From Metricool, updated nightly.${stale?` <span class="no">Paused${s&&s.last_error?": "+String(s.last_error).replace(/[<>&]/g,""):""}.</span>`:""}</div>`;
 }
 function render(){
   const F=baseFilter();
@@ -476,7 +484,7 @@ function render(){
 }
 document.getElementById("q").oninput=e=>{state.q=e.target.value;render();};
 document.getElementById("sort").onchange=e=>{state.sort=e.target.value;render();};
-document.getElementById("reset").onclick=()=>{Object.assign(state,{branches:new Set(BRANCHES),stars:new Set(ALL),rec:DEFAULT_REC,withText:false,noReply:false,withPhotos:false,q:"",staff:""});document.getElementById("q").value="";render();};
+document.getElementById("reset").onclick=()=>{Object.assign(state,{stars:new Set(ALL),withText:false,noReply:false,withPhotos:false,q:"",staff:""});document.getElementById("q").value="";render();};
 document.getElementById("reset2").onclick=()=>document.getElementById("reset").click();
 // Embedded in the dashboard: no own toggle and no own scrollbar. The dashboard's
 // sticky-header toggle sends the theme by postMessage (direct parent access is
@@ -491,29 +499,23 @@ if(window.parent!==window){
   window.addEventListener("message",e=>{
     if(e.source===window.parent&&e.data&&e.data.type==="trs-theme"){setTheme(e.data.theme==="dark"?"dark":"light");setTimeout(postH,50);}
     if(e.source===window.parent&&e.data&&e.data.type==="trs-reviews-scroll"){pin=+e.data.pin||0;placeFilters();}
-    if(e.source===window.parent&&e.data&&e.data.type==="trs-reviews-branch") seedBranch(e.data.codes);
+    if(e.source===window.parent&&e.data&&e.data.type==="trs-reviews-filter") applyFilter(e.data);
   });
   // The dashboard scrolls, not this frame, so position:sticky has nothing to stick
   // to. The dashboard sends how far this frame's top is under its header (pin), and
   // the filter bar is moved down by that much, stopping at the end of the list.
   // On a phone the closed bar follows too (Kate, 2 Oct 2026); the open panel holds
   // where it opened, so it can be scrolled through and doesn't jump to the top.
-  // The dashboard's branch, handed over when this page opens (dashboard.js
-  // postReviewsBranch). Applied only when it differs from the last one handed over,
-  // so a chip picked here survives a trip to another page and back. "all" is the
-  // page's own All. Kate, 1 Oct 2026.
-  const CODE_TO_BRANCH={KCA:"Khalifa City A, Abu Dhabi",SAA:"Saadiyat, Abu Dhabi",AQ:"Al Quoz, Dubai",MC:"Motor City, Dubai",BAH:"District 2, Bahrain"};
-  let lastSeed=null;
-  function seedBranch(codes){
-    const key=(codes||[]).join(",");
-    if(key===lastSeed) return;
-    lastSeed=key;
-    const picked=(codes||[]).map(c=>CODE_TO_BRANCH[c]).filter(Boolean);
-    state.branches=(!picked.length||(codes||[]).includes("all")) ? new Set(BRANCHES) : new Set(picked);
+  // The dashboard's Branch and Period bar (dashboard.js postReviewsBranch), sent on every
+  // change: the branch codes picked and the window (from null = all time). Kate, 8 Oct 2026.
+  function applyFilter(m){
+    const picked=(m.codes||[]).map(c=>CODE_TO_BRANCH[c]).filter(Boolean);
+    state.branches=picked.length ? new Set(picked) : new Set(BRANCHES);
+    if(m.to) state.range={from:m.from||null,to:m.to,label:m.label||""};
     if(META) render();
   }
   const fl=document.querySelector(".filters"), wide=matchMedia("(min-width:761px)");
-  let pin=0, lastY=0, fullH=0;
+  let pin=0, lastY=0;
   function placeFilters(){
     if(!fl) return;
     const list=document.getElementById("list"), held=!wide.matches && fl.classList.contains("open");
@@ -521,14 +523,9 @@ if(window.parent!==window){
     lastY=y;
     fl.style.transform = y ? `translateY(${Math.round(y)}px)` : "";
     fl.classList.toggle("pinned", y > 0);
-    // Desktop: pinned, the panel folds to its bar (.mini). Back at the top it unfolds
-    // and closes. The bottom margin makes up the height it gave away, so the page
-    // under it doesn't jump when it folds. Kate, 2 Oct 2026.
-    const mini = wide.matches && y > 0;
-    if(!mini && fl.classList.contains("mini") && wide.matches){ fl.classList.remove("open"); document.getElementById("fOpen").setAttribute("aria-expanded",false); }
-    if(!fl.classList.contains("mini")) fullH = fl.offsetHeight;
-    fl.classList.toggle("mini", mini);
-    fl.style.marginBottom = mini ? `${fullH - fl.offsetHeight + 18}px` : "";
+    // The panel is always the compact bar now (class "mini" in the markup): with Branch
+    // and Recency on the masthead only the refine rows are left, so it opens in place
+    // instead of unfolding when you scroll back to the top. Kate, 8 Oct 2026.
   }
   onFiltersToggle=placeFilters;
   function postH(){window.parent.postMessage({type:"trs-reviews-height",h:Math.ceil(document.body.getBoundingClientRect().height)},"*");placeFilters();}

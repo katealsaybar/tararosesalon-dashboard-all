@@ -126,6 +126,8 @@ table.ex tr.tot td{font-weight:700;border-bottom:none}
 .gbp-bar{height:5px;border-radius:3px;background:var(--surface2);margin-top:4px;max-width:180px;overflow:hidden}
 .gbp-bar b{display:block;height:100%;background:var(--rose)}
 .gbp-note{color:var(--faint);font-size:12px;margin-top:8px}
+/* Says what drives the table now that its own window switch is gone (Kate, 8 Oct 2026). */
+.gbp-tag{font-size:11.5px;color:var(--muted);border:1px dashed var(--border);border-radius:999px;padding:2px 10px;white-space:nowrap}
 .gbp-wrap{overflow-x:auto}
 @media (max-width:760px){.gbp-t .gbp-sm{display:none}}
 .empty{padding:40px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius)}
@@ -225,7 +227,6 @@ html.embedded .filters{position:static}
   .filters.open .fbody{display:grid;gap:16px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
   .fbody > .frow{display:block}
   .fbody .flabel{display:block;width:auto;margin-bottom:8px}
-  #fBranch,#fRec{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
   #fStars{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:6px}
   #fStars .chip{grid-column:span 6}
   #fStars .chip:first-child{grid-column:span 3}
@@ -257,25 +258,24 @@ html.embedded .filters{position:static}
 
 <div class="card gbp" id="gbp" hidden></div>
 
-<div class="filters" id="filters">
-  <!-- Phones only (Kate, 2 Oct 2026): the five rows took a whole screen, so they fold
-       behind this bar. It shows the count and what's on; tap a pill to clear it. -->
+<div class="filters mini" id="filters">
+  <!-- Refine (Kate, 8 Oct 2026): Branch and Period live on the dashboard's own bar now
+       (dashboard.js postReviewsBranch), so what is left folds behind this bar on every
+       screen. It shows the count and what's on; tap a pill to clear it. -->
   <div class="fbar">
-    <button type="button" class="fopen" id="fOpen" aria-expanded="false" aria-controls="fBody">Filters<span class="fbadge" id="fBadge"></span><span class="fcaret" aria-hidden="true"></span></button>
+    <button type="button" class="fopen" id="fOpen" aria-expanded="false" aria-controls="fBody">Refine<span class="fbadge" id="fBadge"></span><span class="fcaret" aria-hidden="true"></span></button>
     <span class="fcount" id="fCount"></span>
   </div>
   <div class="fpills" id="fPills"></div>
   <div class="fbody" id="fBody">
-  <div class="frow"><span class="flabel">Branch</span><div id="fBranch" class="frow"></div></div>
   <div class="frow"><span class="flabel">Rating</span><div id="fStars" class="frow"></div></div>
-  <div class="frow"><span class="flabel">Recency</span><div id="fRec" class="frow"></div></div>
   <div class="frow"><span class="flabel">Staff</span><select id="fStaff"></select></div>
   <div class="frow"><span class="flabel">More</span>
     <div class="frow" id="fMore"></div>
     <input class="search" id="q" placeholder="Search review text, reviewer, stylist name…">
-    <button class="reset" id="reset">Reset filters</button>
+    <button class="reset" id="reset">Reset refine</button>
   </div>
-  <div class="fdone"><button type="button" class="reset2" id="reset2">Reset all</button><button type="button" class="done" id="fDone">Show <span id="fDoneN"></span> reviews</button></div>
+  <div class="fdone"><button type="button" class="reset2" id="reset2">Reset</button><button type="button" class="done" id="fDone">Show <span id="fDoneN"></span> reviews</button></div>
   </div>
 </div>
 
@@ -326,6 +326,6 @@ html.embedded .filters{position:static}
 <script src="../../staff-profiles.js?v=20261002va"></script>
 <script src="../../auth.js?v=20260925d"></script>
 <script src="review-links.js?v=20260928a"></script>
-<script src="app.js?v=23"></script>
+<script src="app.js?v=24"></script>
 </body>
 </html>

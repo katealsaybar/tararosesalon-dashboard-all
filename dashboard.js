@@ -84,7 +84,7 @@ let GROUP_MODE = false;
 const GROUP_CUR = 'AED';
 function isGroupView() {
   return GROUP_MODE && typeof sel !== 'undefined' && sel.branch.includes('all')
-    && (typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW));
+    && (typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW) || CURRENT_VIEW === 'reviews');
 }
 // Kate, 3 Oct 2026: Bahrain can be read in AED as well as its own BHD, at the same
 // fixed rate, on the same four pages as the Group (the others keep BHD and hide the
@@ -254,15 +254,66 @@ window.addEventListener('message', e => {
   if (e.data.type === 'trs-reviews-height' && e.data.h > 0) f.style.height = e.data.h + 'px';
   if (e.data.type === 'trs-reviews-ready') { postReviewsScroll(); postReviewsBranch(); }
 });
-// Kate, 1 Oct 2026 (Comet GR3): the reviews page kept its own branch chips, so a
-// branch picked anywhere else on the dashboard did not follow you there. The page
-// does not take the filter bar (its chips include Bahrain and its own names), so
-// the branch is handed over as a starting point when the page opens; the chips
-// inside still change it. "All" leaves the page's own All, Bahrain included.
+// Kate, 8 Oct 2026: Google Reviews no longer has its own Branch, Recency and profile
+// window. It reads the masthead's Branch and Period bar like the other report pages
+// (the sticky bar, and the Filters sheet on a phone), and this hands the frame what is
+// picked: the branch codes (UAE Branches = the four, All = those and Bahrain) and the
+// window (from null = all time), with a label for the count line. The frame keeps only
+// what is specific to reviews (rating, staff, comments, search) behind its Refine bar.
+// Named postReviewsBranch since 1 Oct, when it only carried the branch.
 function postReviewsBranch() {
   const f = document.getElementById('reviewsFrame');
-  if (!f || !f.contentWindow || typeof sel === 'undefined') return;
-  f.contentWindow.postMessage({ type: 'trs-reviews-branch', codes: sel.branch.slice() }, '*');
+  if (!f || !f.contentWindow || typeof sel === 'undefined' || typeof dateFrom === 'undefined' || !dateFrom || !dateTo) return;
+  const codes = sel.branch.includes('all')
+    ? (GROUP_MODE ? [...UAE_ACTIVE, ...BH_BRANCHES] : UAE_ACTIVE.slice())
+    : sel.branch.slice();
+  const key = (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'reviews') ? activePeriodKey() : '';
+  const named = ['Last 30 days', 'Last 90 days', 'This month', 'Last month', 'All time'];
+  const label = named.includes(key) ? key
+    : (dateFrom.getFullYear() === dateTo.getFullYear()
+        ? `${longD(dateFrom)} – ${longD(dateTo)} ${dateTo.getFullYear()}`
+        : `${longD(dateFrom)} ${dateFrom.getFullYear()} – ${longD(dateTo)} ${dateTo.getFullYear()}`);
+  f.contentWindow.postMessage({ type: 'trs-reviews-filter', codes,
+    from: key === 'All time' ? null : dateToIso(dateFrom), to: dateToIso(dateTo), label }, '*');
+}
+// A tap on a branch's row inside the frame picks that branch up here.
+window.addEventListener('message', e => {
+  const f = document.getElementById('reviewsFrame');
+  if (!f || e.source !== f.contentWindow || !e.data || e.data.type !== 'trs-reviews-pickbranch') return;
+  const code = String(e.data.code || '');
+  if (!BRANCH_INFO[code] || (typeof TRS_SCOPE !== 'undefined' && TRS_SCOPE)) return;
+  GROUP_MODE = false;
+  sel.branch = [code]; pendingSel.branch = [code];
+  paintFilterChips();
+  refreshActiveView();
+});
+// Reviews opens on All branches and the last 90 days, which is what that page always
+// opened on, but only when the dashboard was still on its own defaults (UAE, this
+// month). Anything picked is kept. Leaving puts the defaults back, and only if they
+// were untouched, so the Pulse is not left reading 90 days. Called from showView,
+// before the page being left or entered is drawn.
+let REVIEWS_STASH = null;
+function reviewsViewSwitch(prev, next) {
+  if (prev === next) return;
+  if (prev === 'reviews' && REVIEWS_STASH) {
+    const st = REVIEWS_STASH; REVIEWS_STASH = null;
+    let changed = false;
+    if (st.group && GROUP_MODE && sel.branch.includes('all')) { GROUP_MODE = false; changed = true; }
+    if (st.range && activePeriodKey() === 'Last 90 days') { dateFrom = st.range.from; dateTo = st.range.to; periodPick = null; changed = true; }
+    if (changed) { paintFilterChips(); renderDashboard(); }
+  }
+  if (next === 'reviews') {
+    REVIEWS_STASH = {};
+    if (sel.branch.includes('all') && !GROUP_MODE) { GROUP_MODE = true; REVIEWS_STASH.group = true; }
+    reviewsDefaultRange();
+  }
+}
+// Split out because a link straight to ?view=reviews can open the page before the
+// default window exists; loadData() calls it again once it does.
+function reviewsDefaultRange() {
+  if (!REVIEWS_STASH || REVIEWS_STASH.range || !dateFrom || !dateTo || activePeriodKey() !== 'This month') return;
+  REVIEWS_STASH.range = { from: dateFrom, to: dateTo };
+  const r = reviewsPresets()[1]; dateFrom = r.from; dateTo = r.to; periodPick = null;
 }
 // Kate, 1 Oct 2026: the frame is as tall as its content, so the page here is what
 // scrolls and the frame's own sticky filter bar never stuck; 27 screens of reviews
@@ -345,9 +396,26 @@ let periodPick = null;
 function periodPresets() {
   const today = new Date(); today.setHours(0,0,0,0);
   const y = today.getFullYear(), m = today.getMonth();
-  return [
+  const base = [
     { k: 'This month',        from: new Date(y, m,   1), to: today },
     { k: 'Last month',        from: new Date(y, m-1, 1), to: new Date(y, m, 0) },
+  ];
+  // Google Reviews (Kate, 8 Oct 2026) reads this same Branch and Period bar, plus the
+  // rolling windows it always had: reviews arrive in a trickle, so "this month" alone
+  // is a thin slice. All time sits after Year in the chip row (periodChips).
+  if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'reviews') {
+    const r = reviewsPresets();
+    return [r[0], r[1], ...base, r[2]];
+  }
+  return base;
+}
+function reviewsPresets() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const back = n => new Date(today.getFullYear(), today.getMonth(), today.getDate() - n);
+  return [
+    { k: 'Last 30 days', from: back(29), to: today },
+    { k: 'Last 90 days', from: back(89), to: today },
+    { k: 'All time',     from: new Date(2000, 0, 1), to: today },
   ];
 }
 
@@ -445,6 +513,10 @@ function activePeriodKey() {
 const PERIOD_URL_KEYS = {
   'This month':        'this-month',
   'Last month':        'last-month',
+  // Google Reviews only (periodPresets adds them there).
+  'Last 30 days':      'last-30',
+  'Last 90 days':      'last-90',
+  'All time':          'all-time',
 };
 
 function periodParam() {
@@ -473,7 +545,7 @@ function applyPeriodParam() {
 
   const named = Object.keys(PERIOD_URL_KEYS).find(k => PERIOD_URL_KEYS[k] === u);
   if (named) {
-    const p = periodPresets().find(x => x.k === named);
+    const p = [...periodPresets(), ...reviewsPresets()].find(x => x.k === named);
     return p ? set(p.from, p.to) : false;
   }
 
@@ -507,10 +579,12 @@ function periodChips(shown) {
   const ty = new Date().getFullYear();
   const seed = dateFrom || new Date();
   const sy = seed.getFullYear();
+  const presets = periodPresets(), allTime = presets.find(p => p.k === 'All time');
   return [
-    ...periodPresets().map(p => ({ v: p.k, label: p.k })),
+    ...presets.filter(p => p !== allTime).map(p => ({ v: p.k, label: p.k })),
     { v: 'Month', label: shown === 'Month' ? `${MON_LONG[seed.getMonth()]} ${sy} \u25be` : 'Month \u25be' },
     { v: 'Year',  label: shown === 'Year'  ? `${sy}${sy === ty ? ' so far' : ''} \u25be` : 'Year \u25be' },
+    ...(allTime ? [{ v: allTime.k, label: allTime.k }] : []),
     { v: 'Custom', label: 'Custom' },
   ];
 }
@@ -542,7 +616,7 @@ function paintFilterChips() {
   if (scope) bEl.innerHTML = chipRow([{ v: scope, label: (BRANCH_INFO[scope] || {}).name || scope, on: true }]);
   else {
     const group = isGroupView();
-    const canGroup = typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW);
+    const canGroup = typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW) || CURRENT_VIEW === 'reviews';
     // "UAE Branches | All" is one two-way switch at the front of the row, so the
     // country scope reads apart from the single-branch chips. "All" is the Group,
     // UAE + Bahrain, and only appears on the pages that can show both. Kate, 30 Sep 2026.
@@ -663,7 +737,10 @@ function paintPeriodPickers(onLedger, active) {
 
   const today = new Date(); today.setHours(0,0,0,0);
   const ty = today.getFullYear();
-  const seed = dateFrom || new Date(ty, today.getMonth() - 1, 1);
+  // All time starts in 2000, which the Month and Year pickers cannot show: seed them
+  // from this month instead.
+  const seed = (dateFrom && dateFrom.getFullYear() >= PERIOD_FIRST_YEAR) ? dateFrom
+    : new Date(ty, today.getMonth() - (dateFrom ? 0 : 1), 1);
 
   const mSel = box('monthPickM'), mYr = box('monthPickY');
   if (mSel && mYr) {
@@ -1221,7 +1298,7 @@ const ALL_VIEWS = [
 // number: the reference pages (stylist cards) and the embedded iframes do not.
 const FILTERED_VIEWS = new Set([
   'dashboard','team','teamquad','branchperf','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
-  'services','clients','products',
+  'services','clients','products','reviews',
 ]);
 
 // Of those, the ones that take the Branch filter but fix the period to the ledger
@@ -1243,6 +1320,8 @@ let CURRENT_VIEW = 'dashboard';
 // renderDashboard() runs regardless of which page you are on, because it is what
 // repaints the filter chips and the masthead's branch/range line.
 function refreshActiveView() {
+  // Before the Pulse redraw, which takes a moment: the Reviews frame just follows.
+  postReviewsBranch();
   return renderDashboard().then(() => {
     const visible = v => {
       const n = document.getElementById('view-' + v);
@@ -4635,6 +4714,7 @@ async function loadData() {
     // render reads the window. Inside this branch and not after it, so taking an
     // update never re-seeds over a range picked since.
     applyPeriodParam();
+    if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'reviews') reviewsDefaultRange();
   }
   warmDashboardWindows();
   const { data, error } = await weeklyAsk;

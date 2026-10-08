@@ -92,7 +92,9 @@
       : `${sel.branch.length} branches`;
     const f = typeof dateFrom !== 'undefined' ? dateFrom : null;
     const t = typeof dateTo !== 'undefined' ? dateTo : null;
-    const rg = rangeShort(f, t);
+    // Google Reviews' rolling windows read as "90 days" and "All time", not as two dates.
+    const rk = (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'reviews' && typeof activePeriodKey === 'function') ? activePeriodKey() : '';
+    const rg = rk === 'All time' ? 'All time' : /^Last \d+ days$/.test(rk) ? rk.replace('Last ', '') : rangeShort(f, t);
     // Kate, 1 Oct 2026: say when clients are counted through the door, so the pill
     // tells you the page is not on the usual Handled count.
     const door = typeof CLIENT_BASIS !== 'undefined' && CLIENT_BASIS === 'door'

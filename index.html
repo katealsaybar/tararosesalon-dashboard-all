@@ -433,8 +433,9 @@ body.staffperf-chrome #mastRange{display:none}
 body.compare-chrome .mast-rule{display:none}
 body.orgchart-chrome .mast-rule,
 body.orgchart-chrome .filters-wrap{display:none}
-/* Kate, 24 Sep 2026: Google Reviews carries its own filters and pull date, so the
-   masthead's branch/range/freshness line describes nothing there. */
+/* Kate, 24 Sep 2026: Google Reviews carries its own pull date, so the masthead's
+   freshness line describes nothing there. Since 8 Oct 2026 it does read the Branch and
+   Period bar (reviews is in FILTERED_VIEWS), so only the rule goes, not the filters. */
 /* Stylist Levels (Kate, 28 Sep 2026): a reference page, no branch, period or feed dates.
    13-Week Report (29 Sep) sets its own window and stylist, so the same. */
 body.staffweeks-chrome .mast-rule,
@@ -442,7 +443,6 @@ body.staffweeks-chrome .filters-wrap,
 body.stafflevels-chrome .mast-rule,
 body.stafflevels-chrome .filters-wrap,
 body.reviews-chrome .mast-rule,
-body.reviews-chrome .filters-wrap,
 body.lostclients-chrome .mast-rule,
 body.lostclients-chrome .filters-wrap,
 body.googleads-chrome .mast-rule,
@@ -3933,7 +3933,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div id="view-reviews" style="display:none">
     <iframe 
       id="reviewsFrame" scrolling="no"
-      data-src="./add%20ons/google-reviews/index.html?v=23"
+      data-src="./add%20ons/google-reviews/index.html?v=24"
       style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;display:block;overflow:hidden;">
     </iframe>
   </div>
@@ -4001,7 +4001,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261006ph"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261007per"></script>
+<script src="dashboard.js?v=20261008rv"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4333,6 +4333,9 @@ function showView(view, el){
   if (TRS_LEVEL === 1 && view === 'wvperf') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (!(TRS_LEVEL >= 2) && view === 'lostclients') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (!(TRS_LEVEL >= 3) && (view === 'googleads' || view === 'website' || view === 'social')) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
+  // Reviews opens on All branches + 90 days unless something was already picked, and
+  // hands the defaults back on the way out. Before anything below reads the window.
+  if (typeof reviewsViewSwitch === 'function') reviewsViewSwitch(CURRENT_VIEW, view);
   ALL_VIEWS.forEach(v=>{
     const node=document.getElementById('view-'+v);
     if(node) node.style.display='none';
@@ -4960,6 +4963,6 @@ addEventListener('load', sizeTopbar);
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
 <script src="nav-collapse.js?v=20260924a"></script>
 <script src="nav-stars.js?v=20261002a"></script>
-<script src="mobile.js?v=20261003exvat"></script>
+<script src="mobile.js?v=20261008rv"></script>
 <script src="search.js?v=20261007ren"></script>
 </body>
