@@ -62,7 +62,8 @@
   .sr-tiles{margin-top:34px;width:100%;max-width:780px}
   .sr-tiles .kb-fvs{justify-content:center;margin:0}
   .sr-cap{margin:14px 0 0;font-size:12px;color:var(--muted2)}
-  .sr-theme{position:fixed;top:14px;right:16px;z-index:5;appearance:none;cursor:pointer;border:1px solid var(--border);background:var(--surface);
+  .sr-top{position:fixed;top:14px;right:16px;z-index:5;display:flex;gap:8px}
+  .sr-theme{appearance:none;cursor:pointer;border:1px solid var(--border);background:var(--surface);
     color:var(--muted);border-radius:999px;padding:8px 16px;font:500 13px/1 'Inter',system-ui,sans-serif}
   .sr-theme:hover{color:var(--text);border-color:var(--text)}
   @media (max-width:760px){
@@ -78,7 +79,7 @@
 </style>
 </head>
 <body class="sr-wait">
-<button type="button" class="sr-theme" id="srTheme"></button>
+<div class="sr-top"><button type="button" class="sr-theme" id="srTheme"></button><button type="button" class="sr-theme" id="srOut">Sign out</button></div>
 <main class="sr-main">
   <a class="kb-brand" href="/hub/" aria-label="Tara Rose Salons, Team Home">
     <img class="kb-logo-light" src="/assets/mast-ink.png" alt="Tara Rose">
@@ -149,6 +150,12 @@
     paintTheme();
   });
   paintTheme();
+
+  // Sign out, as Team Home and the dashboard have it (Kate, 8 Oct 2026: "walang logout button").
+  document.getElementById('srOut').addEventListener('click', async function () {
+    try { await c.auth.signOut(); } catch (e) { /* signed out or not, the door is the same */ }
+    location.replace('/');
+  });
 
   var esc = KB.esc;
   var secBy = {};
