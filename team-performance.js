@@ -44,6 +44,10 @@ const tpPct  = n => (Math.round((Number(n) || 0) * 10) / 10) + '%';
 // strings rather than objects: the objects are rebuilt on every filter change, so
 // holding one would pin a stylist's January figures into an August comparison.
 let tpDept = 'hair';
+// Kate, 8 Oct 2026: a switch to leave the people who have gone (resigned in staff-profiles.js, or
+// 'left' in podium_overrides) out of the race and the quadrant. Off by default; remembered per browser.
+let tpHideLeavers = false;
+try { tpHideLeavers = localStorage.getItem('tp-hide-leavers') === '1'; } catch (e) {}
 let tpCompare = [];
 // Rank by: net take, or one of the weekly and monthly leagues from 2026 LEAGUES.xlsx
 // (Services, Retail, Treatment, Rebooking %, New Client Requests, Instagram posts,
@@ -422,6 +426,7 @@ async function renderTeam() {
   const lg = tpLg();
   let roster = tpRoster(tpDept);
   if (lg.counts && tpCounts) tpApplyCounts(roster, tpCounts);
+  if (tpHideLeavers) roster = roster.filter(st => !tpGone(st));
   // The race is re-ranked by the league picked; ties fall back to net take, which is
   // the order tpRoster already returns, and Array.sort is stable.
   if (part === 'race' && tpLeagueKey() !== 'net') roster = roster.slice().sort((a, b) => lg.get(b) - lg.get(a));
@@ -447,6 +452,10 @@ async function renderTeam() {
       <div class="tp-seg">
         <button class="${tpDept === 'hair'   ? 'on' : ''}" onclick="tpSetDept('hair')">Hair</button>
         <button class="${tpDept === 'beauty' ? 'on' : ''}" onclick="tpSetDept('beauty')">Beauty</button>
+      </div>
+      <div class="tp-seg" role="group" aria-label="Leavers">
+        <button class="${tpHideLeavers ? '' : 'on'}" onclick="tpSetLeavers(false)" title="Include people who have left, greyed out">With leavers</button>
+        <button class="${tpHideLeavers ? 'on' : ''}" onclick="tpSetLeavers(true)" title="Only the current team">Current team</button>
       </div>
       ${part === 'race' ? `<select id="tpRankBy" aria-label="Rank by" onchange="tpSetSort(this.value)">
         ${tpLeagues().map(k => `<option value="${k}" ${k === tpLeagueKey() ? 'selected' : ''}>Rank by: ${TP_LEAGUES[k].label}</option>`).join('')}
@@ -994,6 +1003,14 @@ function tpSetSort(k) {
   if (tpSort === k) return;
   tpSort = k;
   try { localStorage.setItem('tp-sort', k); } catch (e) {}
+  renderTeam();
+}
+
+function tpSetLeavers(hide) {
+  if (tpHideLeavers === hide) return;
+  tpHideLeavers = hide;
+  try { localStorage.setItem('tp-hide-leavers', hide ? '1' : '0'); } catch (e) {}
+  tpCompare = [];
   renderTeam();
 }
 

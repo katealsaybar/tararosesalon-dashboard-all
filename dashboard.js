@@ -3665,6 +3665,80 @@ function warmDashboardWindows() {
   }
 }
 
+// ── ORGANISATION PULSE: MORE MEASURES ────────────────────────────
+// Kate, 8 Oct 2026: a stylist's "Holding your level" scores 19 measures and the benchmark
+// strip above carries 7 of them. These are the other 8, shown together without aims (the aims
+// are set per level, so an organisation total has nothing to be scored against). Request
+// rate is worked out here from the ledger the page already holds; the rest come from the
+// org_pulse_extra RPC (migrations/create_org_pulse_extra.sql), which covers the UAE branches
+// only, since Bahrain has no perf_staff rows yet. Retention and Conversion are cohort
+// figures over the last 180 days, so they do not move with the period; everything else does.
+let OPM_CACHE = { key: '', data: null };
+async function opmLoad() {
+  const from = dateToIso(dateFrom), to = dateToIso(dateTo), key = from + '|' + to;
+  if (OPM_CACHE.data && OPM_CACHE.key === key) return OPM_CACHE.data;
+  const { data, error } = await sb.rpc('org_pulse_extra', { p_admin: typeof spfGet === 'function' ? spfGet() : null, p_from: from, p_to: to });
+  if (error || !data) throw error || new Error('no data');
+  OPM_CACHE = { key, data };
+  return data;
+}
+async function renderOrgPulseMore(s) {
+  const el = document.getElementById('opMore');
+  if (!el) return;
+  const pct1 = v => (Math.round(v * 10) / 10) + '%';
+  const num0 = v => Math.round(v).toLocaleString('en-GB');
+  const cell = (v, f) => Number.isFinite(v) ? f(v) : '<span class="opm-na">–</span>';
+  const row = (name, sub, hair, beauty, comb, f) => `
+    <div class="opm-row">
+      <div class="opm-name">${name}<small>${sub}</small></div>
+      <div class="opm-v"><span>Hair</span>${cell(hair, f)}</div>
+      <div class="opm-v"><span>Beauty</span>${cell(beauty, f)}</div>
+      <div class="opm-v opm-all"><span>Combined</span>${cell(comb, f)}</div>
+    </div>`;
+  if (!dateFrom || !dateTo) { el.innerHTML = '<div class="foot">Pick a period to see these.</div>'; return; }
+  if (isBahrainView()) { el.innerHTML = '<div class="foot">Not available for Bahrain yet: these come from the stylist pages, which do not cover Bahrain.</div>'; return; }
+  let x;
+  try { x = await opmLoad(); }
+  catch (e) { console.warn('org_pulse_extra failed', e); el.innerHTML = '<div class="foot">Could not load these just now. Refresh to try again.</div>'; return; }
+  // The page may have moved on while the call was out.
+  if (el !== document.getElementById('opMore')) return;
+
+  const uae = ['AQ', 'KCA', 'MC', 'SAA'];
+  const codes = sel.branch.includes('all') ? uae : sel.branch.filter(b => uae.includes(b));
+  const staff = (x.staff || []).filter(r => codes.includes(r.branch));
+  const sum = (dept, k) => staff.filter(r => !dept || r.dept === dept).reduce((a, r) => a + (Number(r[k]) || 0), 0);
+  const rate = (n, d) => d > 0 ? n / d * 100 : NaN;
+  const D = ['Hair', 'Beauty'];
+
+  // Request rate: clients who asked for their stylist (requested, or new and asking) over all clients.
+  const bd = (b) => b ? { ask: (b.req || 0) + (b.ncr || 0), all: (b.req || 0) + (b.salon || 0) + (b.new || 0) + (b.ncr || 0) } : { ask: 0, all: 0 };
+  const hb = bd(s && s.hairBreakdown), bb = bd(s && s.beautyBreakdown);
+
+  const reviews = (x.reviews || []).filter(r => codes.includes(r.branch));
+  const rvN = reviews.reduce((a, r) => a + r.n_window, 0);
+  const n90 = reviews.reduce((a, r) => a + r.n90, 0), stars90 = reviews.reduce((a, r) => a + r.stars90, 0);
+  const stars = v => v.toFixed(1) + '★';
+
+  const group = isGroupView();
+  const rows = [
+    row('Retention %', 'seen 3 to 6 months ago, back in the last 3',
+      rate(sum('Hair', 'ret_back'), sum('Hair', 'ret_n')), rate(sum('Beauty', 'ret_back'), sum('Beauty', 'ret_n')), rate(sum(null, 'ret_back'), sum(null, 'ret_n')), pct1),
+    row('Request rate %', 'clients who asked for their stylist',
+      rate(hb.ask, hb.all), rate(bb.ask, bb.all), rate(hb.ask + bb.ask, hb.all + bb.all), pct1),
+    row('Conversion %', 'new 3 to 6 months ago, back within 12 weeks',
+      rate(sum('Hair', 'conv_back'), sum('Hair', 'conv_n')), rate(sum('Beauty', 'conv_back'), sum('Beauty', 'conv_n')), rate(sum(null, 'conv_back'), sum(null, 'conv_n')), pct1),
+    row('Colour %', 'visits with a colour service',
+      rate(sum('Hair', 'colour'), sum('Hair', 'visits')), NaN, rate(sum('Hair', 'colour'), sum('Hair', 'visits')), pct1),
+    row('Reputation', 'average Google stars, last 90 days', NaN, NaN, n90 >= 3 ? stars90 / n90 : NaN, stars),
+    row('Google reviews', 'posted at these branches in the period', NaN, NaN, rvN, num0),
+    row('Social posts (feed)', 'posts and collabs that tag the salon, all stylists',
+      sum('Hair', 'social_feed'), sum('Beauty', 'social_feed'), sum(null, 'social_feed'), num0),
+    row('Social posts (workdays)', 'stylist days worked with a post or story',
+      sum('Hair', 'social_workdays'), sum('Beauty', 'social_workdays'), sum(null, 'social_workdays'), num0),
+  ].join('');
+  el.innerHTML = rows + `<div class="foot">${group ? 'UAE branches only. ' : ''}Retention and Conversion look back 180 days${x.cache_asof ? ` to ${escapeHtml(x.cache_asof)}` : ''}, so they stay the same whatever period is on screen. Colour % counts hair visits only. Reputation needs at least 3 reviews. These have no aims here: the aims are set for each level on a stylist's own page.</div>`;
+}
+
 async function renderDashboard() {
   paintFilterChips();
   const main = document.getElementById('mainContent');
@@ -4650,6 +4724,13 @@ ${hasBeauty ? `
   <div id="attGood">${hitRows.length ? hitRows.map(r => attRow(r, '✓')).join('') : '<div class="foot">Nothing is at target yet this period.</div>'}</div>
 </div>
 
+<div class="eyebrow" id="s-more"><span class="bar"></span>More measures</div>
+<div class="card">
+  <div class="card-title">The rest of "Holding your level"</div>
+  <div class="card-sub">Every stylist is also read on these. Added up for the branches on screen, no aims.</div>
+  <div id="opMore"><div class="foot">Loading…</div></div>
+</div>
+
 <!-- ══ ONE ACTION ══ -->
 <div class="eyebrow" id="s-action"><span class="bar"></span>Do this</div>
 ${actionHtml}
@@ -4680,6 +4761,7 @@ ${actionHtml}
   // deliberately still called: the shared sectionState is what keeps a section
   // you collapsed over there collapsed when you come back to it.
   restoreSections();
+  renderOrgPulseMore(s);
 
   // The funnel and the branch columns are drawn in the template above, in the
   // page's own type, so there is no canvas left on this view to build or destroy.
