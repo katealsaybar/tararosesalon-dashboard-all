@@ -48,7 +48,8 @@ const state = {branches:new Set(BRANCHES), stars:new Set(ALL), rec:DEFAULT_REC, 
 // list Staff Cards uses, so leavers stay in for history.
 //   loose spellings match in any case ("nikki" = Nikki) at any UAE branch
 //   strict spellings (May, Grace, Shine, Robin...) match only capitalised and at
-//   the person's own branch
+//   the person's own branch; a strict spelling marked ci (Lyn, Lynn, Leen for Irlyn,
+//   8 Oct 2026) keeps the own-branch rule but matches in any case ("lyn" typed small)
 //   never the reviewer's own name; April / May not when they read as a month;
 //   not_after: never right after that word (the table's own exceptions)
 // People who aren't in staff-profiles.js (kept off Staff Cards on purpose) but
@@ -72,7 +73,7 @@ async function loadClientCredit(){
 }
 async function loadVariants(){
   try {
-    const res = await fetch(`${SUPA_URL}/rest/v1/staff_name_variants?select=staff_key,variant,strict,not_after,label,home_branch,photo,role`, {headers:authHeaders()});
+    const res = await fetch(`${SUPA_URL}/rest/v1/staff_name_variants?select=staff_key,variant,strict,ci,not_after,label,home_branch,photo,role`, {headers:authHeaders()});
     if (res.ok) VARIANTS = await res.json();
   } catch (e) { console.warn("staff_name_variants unreachable, matching on first names only", e); }
 }
@@ -84,11 +85,12 @@ function buildStaff(){
   const make = (k, p, label) => {
     const vs = by[k] || [{variant: label, strict: false}];   // offline: first name only
     const loose = vs.filter(v => !v.strict).map(v => v.variant).sort((a,b) => b.length - a.length);
-    const strict = vs.filter(v => v.strict).map(v => v.variant).sort((a,b) => b.length - a.length);
+    const strict = vs.filter(v => v.strict && !v.ci).map(v => v.variant).sort((a,b) => b.length - a.length);
+    const strictCi = vs.filter(v => v.strict && v.ci).map(v => v.variant).sort((a,b) => b.length - a.length);
     return {key:k, label, names: vs.map(v => v.variant), branch:BR_OF[p.branch] || null, role:p.role || "", resigned:!!p.resigned,
       photo: p.photoFull ? "../../" + encodeURI(p.photoFull) : p.photo ? "../../assets/staff/" + encodeURIComponent(p.photo) : null,
       notAfter: Object.fromEntries(vs.filter(v => v.not_after).map(v => [v.variant.toLowerCase(), new RegExp("(?<![\\p{L}])" + reEsc(v.not_after) + "\\s+$", "iu")])),
-      loose: wordRe(loose, "gi"), strict: wordRe(strict, "g")};
+      loose: wordRe(loose, "gi"), strict: wordRe(strict, "g"), strictCi: wordRe(strictCi, "gi")};
   };
   // People in the table with no profile: name row carries label / home_branch / photo.
   const extra = Object.entries(by).filter(([k]) => !STAFF_PROFILES[k]).map(([k, vs]) => {
@@ -112,7 +114,7 @@ function tagStaff(r){
     // A client signing off with her own name ("... Maria.") isn't naming a stylist.
     const own = s.names.find(n => wordRe([n], "i").test(r.reviewer || ""));
     const hits = [];
-    [[s.loose, true], [s.strict, r.branch === s.branch]].forEach(([re, ok]) => {
+    [[s.loose, true], [s.strict, r.branch === s.branch], [s.strictCi, r.branch === s.branch]].forEach(([re, ok]) => {
       if (!re || !ok) return;
       re.lastIndex = 0; let m;
       while ((m = re.exec(r.comment))) {
