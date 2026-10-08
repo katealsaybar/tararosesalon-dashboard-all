@@ -213,6 +213,9 @@ function tpRoster(dept) {
     }));
   });
 
+  // A spelling name-aliases.js folds into another (Cory into Cori, Lucia into Lucy) is shown
+  // under the one the card and Phorest use, not under whichever branch's row came first.
+  rows.forEach(r => { if (typeof canonicalStaffName === 'function') r.name = canonicalStaffName(r.name) || r.name; });
   rows.forEach(r => {
     const full = TP_SPLIT_FULL[tpMergeKey(r.name) + '|' + r.branchCode];
     if (full) r.name = full;

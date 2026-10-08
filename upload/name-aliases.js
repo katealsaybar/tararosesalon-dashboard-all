@@ -55,6 +55,11 @@ const STAFF_NAME_ALIASES = {
   // TAMMY is the card name; PHOREST_RECONCILE_ALIASES still maps TAMMY to
   // Phorest's "Tamryn Peter".
   'TAMRYN': 'TAMMY',
+  // Kate, 8 Oct 2026: one stylist, two Phorest profiles in Jan to Mar 2025: "Cory xx"
+  // (Senior Stylist, Khalifa City and a day each at Saadiyat and Al Quoz) and "Cori Paul"
+  // (Stylist, one Al Quoz booking on 4 Feb). Cori Paul is the Phorest spelling, so CORY
+  // folds into CORI. Archived in Phorest; greyed out on the Podium Race.
+  'CORY': 'CORI',
 };
 
 function canonicalStaffName(name){
