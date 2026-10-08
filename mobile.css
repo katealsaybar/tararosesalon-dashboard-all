@@ -421,7 +421,8 @@
   .lgx-bar{flex-wrap:wrap}
   .sc-handle{overflow-wrap:anywhere}
   /* HAIR / BEAUTY labels on the split bars had a 44px column, too narrow for BEAUTY. */
-  .sp{grid-template-columns:60px minmax(24px,1fr) auto 44px}
+  .sp{grid-template-columns:60px minmax(8px,1fr) auto minmax(34px,auto)}
+  @container (max-width:232px){.sp{grid-template-columns:60px minmax(8px,1fr) auto;grid-template-areas:"k t v" ". . x"}}
   .att-bars .bar-line{grid-template-columns:60px 1fr 72px}
   /* Long spaced-caps eyebrows: less tracking so they wrap into two lines, not six. */
   .section-label,.lg-head-k,.eyebrow,.sc-bar-t,.mast-sub{letter-spacing:.08em}

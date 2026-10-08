@@ -1225,13 +1225,18 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
    of the value, so "AED 1,787,752 92%" read as one number. Now the figure and
    its percentage each own a column, right-aligned, and the percentages line up
    down the card instead of floating wherever the value happened to end. */
-.sp{display:grid;grid-template-columns:44px minmax(24px,1fr) auto 44px;align-items:center;gap:0 12px}
-.sp-k{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.sp-track{height:6px;border-radius:4px;background:var(--border2);position:relative;overflow:hidden;min-width:26px}
+.sp{display:grid;grid-template-columns:58px minmax(8px,1fr) auto minmax(34px,auto);grid-template-areas:"k t v x";align-items:center;gap:0 8px}
+/* Kate, 8 Oct 2026 ("putol"): BEAUTY is 57px wide and sat in a 44px column, touching the bar, and on a narrow
+   card the percentages ran past the card edge. The label gets 58px, the gaps are tighter, and when the card is
+   under 232px of content the percentage drops to its own line under the figure instead of being cut. */
+.three .metric{container-type:inline-size}
+@container (max-width:232px){.sp{grid-template-columns:58px minmax(8px,1fr) auto;grid-template-areas:"k t v" ". . x"}}
+.sp-k{grid-area:k;font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.sp-track{height:6px;border-radius:4px;background:var(--border2);position:relative;overflow:hidden;min-width:8px;grid-area:t}
 .sp-fill{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
-.sp-v{font-size:13.5px;font-weight:600;white-space:nowrap;text-align:right}
+.sp-v{grid-area:v;font-size:13.5px;font-weight:600;white-space:nowrap;text-align:right}
 /* Share of total reads as supporting detail; a delta against target earns colour. */
-.sp-x{font-size:12.5px;font-weight:700;white-space:nowrap;text-align:right;color:var(--muted2)}
+.sp-x{grid-area:x;min-width:34px;font-size:12.5px;font-weight:700;white-space:nowrap;text-align:right;color:var(--muted2)}
 .sp-x.good{color:var(--good)}.sp-x.bad{color:var(--bad)}.sp-x.warn{color:var(--warn)}
 .verdict{display:inline-block;margin-top:13px;font-size:12px;font-weight:700;letter-spacing:.1em;
   text-transform:uppercase;padding:3px 10px;border-radius:20px}
@@ -3186,7 +3191,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="team-performance.css?v=20261001quad">
 <link rel="stylesheet" href="nav-collapse.css?v=20260925a">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20261006soc">
+<link rel="stylesheet" href="mobile.css?v=20261008sp">
 <link rel="stylesheet" href="search.css?v=20261006hub">
 <link rel="stylesheet" href="nav-style.css?v=20261006hub">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
