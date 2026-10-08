@@ -451,7 +451,7 @@ insert into perf_benchmarks (level, level_order, kpi, minimum, target) values
  ('Senior Stylist',4,'retail',6000,7800),('Senior Stylist',4,'retail_pct',12,12),
  ('Senior Stylist',4,'avg_bill',600,650),('Senior Stylist',4,'rebooking_pct',55,60),
  ('Senior Stylist',4,'retention_pct',55,60),('Senior Stylist',4,'clients',104,124),
- ('Senior Stylist',4,'ncr',16,12),('Senior Stylist',4,'request_pct',40,50),
+ ('Senior Stylist',4,'ncr',12,16),('Senior Stylist',4,'request_pct',40,50),
  ('Senior Stylist',4,'conversion_pct',40,50),('Senior Stylist',4,'column_fill_pct',80,85),
  ('Senior Stylist',4,'colour_pct',60,65),('Senior Stylist',4,'reputation',4.7,4.8),
  ('Senior Stylist',4,'google_reviews',10,12),('Senior Stylist',4,'social_feed',10,12),('Senior Stylist',4,'social_workdays',10,16),
