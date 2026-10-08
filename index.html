@@ -4265,7 +4265,7 @@ async function enterIfAllowed(fresh){
     // would otherwise bounce between here and Team Home.
     const kb = await sb.rpc('kb_access');
     if (!kb.error && kb.data && kb.data.level === 1) {
-      location.replace(safeNext && safeNext.startsWith('/hub/') ? safeNext : '/hub/');
+      location.replace(safeNext && (safeNext.startsWith('/hub/') || safeNext.startsWith('/search/')) ? safeNext : '/hub/');
       return;
     }
     const { data } = await sb.auth.getUser();
@@ -5083,5 +5083,5 @@ addEventListener('load', sizeTopbar);
 <script src="nav-collapse.js?v=20260924a"></script>
 <script src="nav-stars.js?v=20261002a"></script>
 <script src="mobile.js?v=20261008sa"></script>
-<script src="search.js?v=20261008cb1"></script>
+<script src="search.js?v=20261008s29"></script>
 </body>

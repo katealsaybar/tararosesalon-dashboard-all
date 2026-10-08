@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Search · Tara Rose Salons</title>
+<script>
+  // The dashboard's theme setting, before the first paint.
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Kate, 8 Oct 2026: the second front door. Team Home is the first (/hub/); this is the
+     plain search page, the way Google opens: the logo, one bar, nothing else. The tokens
+     and logo are Team Home's (hub.css); the search itself happens where the signed-in
+     person's access lives: the dashboard's results page for dashboard people (/?q=), Team
+     Home's own search for staff (/hub/?q=). -->
+<link rel="stylesheet" href="/hub/hub.css?v=20261006pgic">
+<style>
+  body{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+  body.sr-wait .sr-main{visibility:hidden}
+  .sr-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:32px 20px 12vh;text-align:center}
+  .sr-main .kb-brand img{width:min(260px,62vw)}
+  .sr-main .kb-brand span{font-size:13px;margin-top:2px}
+  .sr-hello{margin:28px 0 14px;font:400 15px/1.4 'Inter',system-ui,sans-serif;color:var(--muted)}
+  .sr-form{width:100%;max-width:620px}
+  .sr-bar{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);
+    border-radius:999px;padding:0 22px;height:56px;box-shadow:var(--shadow);
+    transition:box-shadow .2s var(--ease),border-color .2s var(--ease)}
+  .sr-bar:hover{box-shadow:var(--shadow-hover)}
+  .sr-bar:focus-within{border-color:var(--text);box-shadow:0 0 0 3px rgba(153,246,228,.45),var(--shadow-hover)}
+  .sr-bar svg{width:19px;height:19px;flex-shrink:0;color:var(--muted)}
+  .sr-bar input{flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:17px;color:var(--text)}
+  .sr-bar input::placeholder{color:var(--muted2)}
+  .sr-bar input::-webkit-search-cancel-button{display:none}
+  .sr-go{display:flex;justify-content:center;gap:12px;margin-top:24px;flex-wrap:wrap}
+  .sr-btn{appearance:none;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text);
+    border-radius:8px;padding:10px 20px;font:500 14px/1 'Inter',system-ui,sans-serif;text-decoration:none;
+    transition:border-color .15s var(--ease),box-shadow .15s var(--ease)}
+  .sr-btn:hover{border-color:var(--text);box-shadow:var(--shadow)}
+  .sr-btn:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(153,246,228,.6)}
+  .sr-hint{margin:22px 0 0;font-size:13px;color:var(--muted2)}
+  .sr-hint kbd{font:inherit;font-size:11px;border:1px solid var(--border);border-radius:4px;padding:1px 6px;background:var(--surface)}
+  .sr-foot{padding:18px 20px calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:13px;color:var(--muted2)}
+  .sr-foot a{margin:0 8px}
+  @media (max-width:560px){
+    .sr-bar{height:52px;padding:0 18px}
+    .sr-bar input{font-size:16px}
+    .sr-btn{flex:1}
+  }
+</style>
+</head>
+<body class="sr-wait">
+<main class="sr-main">
+  <a class="kb-brand" href="/hub/" aria-label="Tara Rose Salons, Team Home">
+    <img class="kb-logo-light" src="/assets/mast-ink.png" alt="Tara Rose">
+    <img class="kb-logo-dark" src="/assets/mast-paper.png" alt="Tara Rose">
+    <span>Salons</span>
+  </a>
+  <p class="sr-hello" id="srHello"></p>
+  <form class="sr-form" id="srForm" role="search" autocomplete="off">
+    <div class="sr-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" id="srIn" name="q" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"
+        placeholder="Find a treatment, policy or how-to" aria-label="Search">
+    </div>
+    <div class="sr-go">
+      <button type="submit" class="sr-btn">Search</button>
+      <a class="sr-btn" href="/hub/">Team Home</a>
+      <a class="sr-btn hide" id="srDash" href="/?view=dashboard">Dashboard</a>
+    </div>
+  </form>
+  <p class="sr-hint" id="srHint"></p>
+</main>
+<footer class="sr-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js?v=20261001kb"></script>
+<script>
+(async function () {
+  var back = '/?next=' + encodeURIComponent('/search/');
+  var c = TRSAuth.client();
+  var s = (await c.auth.getSession()).data.session;
+  if (!s) { location.replace(back); return; }
+  // On either list (dashboard_users, or Team Home's kb_access), as Team Home checks it.
+  var acc = await c.rpc('kb_access');
+  if (acc.error || !acc.data) { location.replace(back); return; }
+  var me = await TRSAuth.me().catch(function () { return null; });
+  var role = await TRSAuth.role().catch(function () { return null; });
+  // The dashboard's search reads the UAE; a Bahrain-scoped sign-in has none (search.js
+  // open()), so it searches Team Home like staff do.
+  var dash = !!role && !(me && me.scope);
+
+  var first = ((me && me.name) || '').split(/[\s(]/)[0];
+  if (!first) {
+    var n = await c.rpc('kb_me');
+    first = (!n.error && n.data || '').split(/[\s(]/)[0];
+  }
+  if (first) document.getElementById('srHello').textContent = 'Hello, ' + first;
+
+  var input = document.getElementById('srIn');
+  if (dash) {
+    input.placeholder = 'Find anything, or ask a question';
+    document.getElementById('srDash').classList.remove('hide');
+    document.getElementById('srHint').textContent = 'Staff, branches, pages, clients, services and Team Home. Ask it the way you would say it.';
+  } else {
+    document.getElementById('srHint').textContent = 'Treatments, policies and how-tos.';
+  }
+  document.body.classList.remove('sr-wait');
+  input.focus();
+
+  document.getElementById('srForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var q = input.value.trim().slice(0, 200);
+    if (!q) { input.focus(); return; }
+    location.href = (dash ? '/' : '/hub/') + '?q=' + encodeURIComponent(q);
+  });
+  // / jumps to the bar, as it does everywhere else on the site.
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '/' && document.activeElement !== input && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault(); input.focus();
+    }
+  });
+})();
+</script>
+</body>
+</html>

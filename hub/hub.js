@@ -508,5 +508,14 @@
       else if (e.key === 'Escape') { close(); input.blur(); }
     });
     document.addEventListener('click', function (e) { if (!box.contains(e.target) && e.target !== input) close(); });
+    // Kate, 8 Oct 2026: /search/, the plain search page, hands a staff member's question
+    // over as /hub/?q=..., so the bar opens with it already searched.
+    var pre = '';
+    try { pre = (new URLSearchParams(location.search).get('q') || '').trim().slice(0, 200); } catch (e) {}
+    if (pre) {
+      input.value = pre;
+      input.dispatchEvent(new Event('input'));
+      try { var u = new URL(location.href); u.searchParams.delete('q'); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch (e) {}
+    }
   }
 })();

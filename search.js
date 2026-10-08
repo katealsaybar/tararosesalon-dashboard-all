@@ -827,6 +827,7 @@
   // picked: an arrow key has chosen a row, so Enter opens that row. Without it, Enter
   // on a typed search opens the results page.
   let picked = false, serp, serpIn, serpKind = 'all', serpSeq = 0, serpTimer = 0, serpItems = [], serpAll = [], serpKb = [];
+  let dropKb = [], dropKbQ = '', dropKbSeq = 0, dropKbTimer = 0;
   let serpQ = null, serpView = '', serpTips = false, serpAns = null, serpPage = 0, serpText = '';
   const PAGE = 10;
 
@@ -1009,7 +1010,7 @@
   // One list, best match first, like Team Home. Each row says where it lives in a
   // small line above its name. Nothing typed: what you opened last, or a hint. The last
   // row, as on a search engine, is the way to the full results page.
-  function render() {
+  function render(keep) {
     const raw = input.value.trim();
     const Q = parseQuery(raw);
     let rows = [], head = '';
@@ -1019,6 +1020,10 @@
       if (rows.length) head = 'Recent';
     } else {
       rows = capped(matches(Q), MAX, 12);
+      // Team Home's pages, a moment later: the same kb_search the results page uses, three at most.
+      const kbq = Q.words.concat(Q.phrases).join(' ');
+      if (!keep) dropKbSoon(kbq, Q);
+      if (dropKbQ === kbq) rows = rows.concat(dropKb.slice(0, 3));
     }
 
     shown = rows;
@@ -1031,8 +1036,31 @@
     if (!raw && !rows.length) html = '<div class="gs-empty">Type a name, a page, a branch, a service, a client or a product, or ask it: “where do I find rebooking”.</div>';
     list.innerHTML = html;
     list.hidden = false;
-    cur = 0;
+    // A late Team Home answer repaints the list without sending the cursor back to the top.
+    cur = keep && cur < rows.length ? cur : 0;
     paintCursor();
+  }
+
+  // The dropdown's Team Home pages. Searched for what the question is about, not the question,
+  // and only once typing pauses. A stale answer (typed on, or panel closed) is dropped.
+  function dropKbSoon(kbq, Q) {
+    clearTimeout(dropKbTimer);
+    const seq = ++dropKbSeq;
+    if (kbq.length < 2 || typeof sb === 'undefined' || Q.on) { dropKb = []; dropKbQ = ''; return; }
+    if (dropKbQ !== kbq) { dropKb = []; dropKbQ = ''; }
+    else return;
+    dropKbTimer = setTimeout(() => {
+      sb.rpc('kb_search', { q: kbq }).then(({ data, error }) => {
+        if (seq !== dropKbSeq || error || !panel || panel.hidden) return;
+        dropKb = (data || []).map(r => ({
+          kind: 'kb', id: 'kb:' + r.slug, t: r.title, g: kbWhere(r),
+          s: r.snippet ? '…' + r.snippet + '…' : '', href: '/hub/kb.html?p=' + encodeURIComponent(r.slug),
+          go: () => { location.href = '/hub/kb.html?p=' + encodeURIComponent(r.slug); },
+        })).filter(x => !Q.not.some(n => norm(x.t + ' ' + x.s).includes(n)));
+        dropKbQ = kbq;
+        render(true);
+      }, () => {});
+    }, 250);
   }
 
   // ── THE RESULTS PAGE ──
@@ -1469,6 +1497,34 @@
     }
   });
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
-  else mount();
+  // Kate, 8 Oct 2026: /search/ is the second front door (the plain, Google-style page). It
+  // hands the question over as /?q=..., and this opens the results page on it as soon as
+  // the dashboard is in. Waits for the dashboard to be drawn (the sign-in card, then the
+  // scope and the menu for this person), gives up after 30 s, and takes ?q= out of the address.
+  function openFromUrl() {
+    let q = '';
+    try { q = (new URLSearchParams(location.search).get('q') || '').trim().slice(0, 200); } catch (e) {}
+    if (!q) return;
+    let tries = 0;
+    const timer = setInterval(() => {
+      if (++tries > 150) { clearInterval(timer); return; }
+      const wrap = document.getElementById('dashboardWrap');
+      if (!panel || !wrap || wrap.style.display !== 'block' || !document.querySelector('#sidebar .nav-sub')) return;
+      clearInterval(timer);
+      try {
+        const u = new URL(location.href);
+        u.searchParams.delete('q');
+        history.replaceState(null, '', u.pathname + u.search + u.hash);
+      } catch (e) {}
+      if (typeof TRS_SCOPE !== 'undefined' && TRS_SCOPE) return;   // Bahrain's team has no dashboard search
+      index = buildIndex();
+      loadFt();
+      loadData();
+      lastFocus = null;
+      openSerp(q);
+    }, 200);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { mount(); openFromUrl(); });
+  else { mount(); openFromUrl(); }
 })();
