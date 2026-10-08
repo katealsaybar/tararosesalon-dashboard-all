@@ -173,8 +173,8 @@ body.gs-open{overflow:hidden}
 @media(hover:hover){.gs-rel:hover{outline:1px solid var(--text)}}
 .gs-pager{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:28px;padding-top:8px}
 .gs-pager:empty{display:none}
-.gs-wordmark{font-family:'Playfair Display',serif;font-size:34px;font-weight:500;letter-spacing:.02em;color:var(--text);line-height:1.1;white-space:nowrap}
-.gs-wordmark span.on{color:var(--accent,#2dd4bf)}
+.gs-wordmark{position:relative;padding-top:12px;font-size:18px;font-weight:500;letter-spacing:.34em;text-indent:.34em;text-transform:uppercase;color:var(--text);line-height:1.1;white-space:nowrap}
+.gs-wordmark::before{content:'';position:absolute;top:0;left:50%;width:44px;height:2px;margin-left:-22px;background:var(--accent,#2dd4bf)}
 .gs-pages{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px}
 .gs-pg{border:0;background:transparent;color:var(--accent-lavender,#7c6cf0);font:inherit;font-size:15px;padding:6px 10px;min-width:34px;cursor:pointer;border-radius:8px}
 .gs-pg.on{color:var(--text);font-weight:700;cursor:default}
@@ -184,7 +184,7 @@ body.gs-open{overflow:hidden}
 @media(max-width:760px){
   .gs-serp-logo{display:none}
   .gs-related-g{grid-template-columns:1fr}
-  .gs-wordmark{font-size:28px}
+  .gs-wordmark{font-size:15px}
 }
 
 .gs-fresh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;padding:10px 0 0;font-size:12.5px;color:var(--muted2)}

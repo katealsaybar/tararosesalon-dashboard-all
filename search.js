@@ -1353,19 +1353,17 @@
       + '</div></div>';
   }
 
-  // The pager, as Google's: the brand's name stretched by one letter a page, the page you
-  // are on picked out, and numbers beneath.
+  // The pager, as Google's: the brand's name over the page numbers. (A first try stretched
+  // the name by a letter a page, "Taaara Rose"; it read as a typo, so it stays plain.)
   function pagerHtml(pages) {
     if (pages < 2) return '';
-    const n = Math.min(pages, 12);
-    const word = 'T' + Array.from({ length: n }, (_, i) => `<span class="${i === Math.min(serpPage, n - 1) ? 'on' : ''}">a</span>`).join('') + 'ra Rose';
     const nums = [];
     for (let p = 0; p < pages; p++) {
       if (pages > 10 && p !== 0 && p !== pages - 1 && Math.abs(p - serpPage) > 2) { if (nums[nums.length - 1] !== '…') nums.push('…'); continue; }
       nums.push(p);
     }
     const btn = (p, label, cls) => `<button type="button" class="gs-pg ${cls || ''}" data-p="${p}"${p === serpPage && !cls ? ' aria-current="page"' : ''}>${label}</button>`;
-    return `<div class="gs-wordmark" aria-hidden="true">${word}</div><nav class="gs-pages" aria-label="Pages of results">`
+    return `<div class="gs-wordmark" aria-hidden="true">Tara Rose</div><nav class="gs-pages" aria-label="Pages of results">`
       + (serpPage > 0 ? btn(serpPage - 1, '‹ Previous', 'gs-pg-n') : '')
       + nums.map(p => p === '…' ? '<span class="gs-pg-dots">…</span>' : btn(p, p + 1, p === serpPage ? 'on' : '')).join('')
       + (serpPage < pages - 1 ? btn(serpPage + 1, 'Next ›', 'gs-pg-n') : '') + '</nav>';
