@@ -3309,7 +3309,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
 <link rel="stylesheet" href="mobile.css?v=20261008sp">
 <link rel="stylesheet" href="search.css?v=20261008s29">
-<link rel="stylesheet" href="client-mix.css?v=20261008cm2">
+<link rel="stylesheet" href="client-mix.css?v=20261008cm3">
 <link rel="stylesheet" href="nav-style.css?v=20261006hub">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/pill-select.js?v=20261005tap"></script>
@@ -3959,6 +3959,12 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <!-- SERVICES -->
   <div id="view-services" style="display:none">
+    <!-- Service Rankings (Kate, 8 Oct 2026): rebuilt on the Client Mix footing, with its own
+         controls (the masthead filters are hidden here), from service_rankings over
+         sales_transaction_lines sorted by Phorest's categories. service-rankings.js draws it.
+         The old controls and #svc-content stay below, hidden and unused. -->
+    <main id="serviceRankingsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+    <div id="svc-old" style="display:none">
     <!-- Kate, 25 Sep 2026: this group is still being built. -->
     <!-- Branch and dates come from the masthead now, like every other page. What
          is left is what is genuinely this page's own: which year to load when no
@@ -3992,6 +3998,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main style="padding:10px 0 48px">
       <div id="svc-content"><div class="loading">Loading service data...</div></div>
     </main>
+    </div>
   </div>
 
   <!-- CLIENTS -->
@@ -4124,13 +4131,14 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="lost-clients.js?v=20261008cb2"></script>
 <script src="top-clients.js?v=20261008cb1"></script>
 <script src="client-mix.js?v=20261008cb1"></script>
+<script src="service-rankings.js?v=20261008sr1"></script>
 <script src="marketing-chart.js?v=20261006ph"></script>
 <script src="google-ads.js?v=20261006per"></script>
 <script src="website.js?v=20261008cb1"></script>
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261008cb3"></script>
+<script src="dashboard.js?v=20261008sr2"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4544,7 +4552,7 @@ function showView(view, el){
   document.body.classList.toggle('staffperf-chrome', view === 'staffperf');
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'clients' || view === 'clientmix');
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'clients' || view === 'clientmix' || view === 'services');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('website-chrome', view === 'website');
   document.body.classList.toggle('social-chrome', view === 'social');
