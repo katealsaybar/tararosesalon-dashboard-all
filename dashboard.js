@@ -23,8 +23,11 @@ const TARGETS = {
   // The avg-bill targets are AED amounts. Bahrain has none of its own yet, and a
   // peg-converted UAE figure would be a guess at Bahrain's pricing, so on the
   // Bahrain view they are unset and those rows drop out; the % targets hold.
-  get hairAvgBill()   { return (typeof isBahrainView === 'function' && (isBahrainView() || isGroupView())) ? null : 650; },
-  get beautyAvgBill() { return (typeof isBahrainView === 'function' && (isBahrainView() || isGroupView())) ? null : 200; },
+  // The UAE figures on their own: the Podium Race reads each person against theirs, so a
+  // UAE stylist keeps her aim on the UAE + Bahrain view (Kate, 8 Oct 2026).
+  hairAvgBillUAE: 650, beautyAvgBillUAE: 200,
+  get hairAvgBill()   { return (typeof isBahrainView === 'function' && (isBahrainView() || isGroupView())) ? null : this.hairAvgBillUAE; },
+  get beautyAvgBill() { return (typeof isBahrainView === 'function' && (isBahrainView() || isGroupView())) ? null : this.beautyAvgBillUAE; },
   retailPct: 12, hairUtilPct: 80, beautyUtilPct: 70,
   // Treatment stays at 20 (Coach Emma's figure all along); the 30 that came in with the
   // September cutover was reversed on 7 Oct 2026 (Kate). Rebooking keeps its cutover.

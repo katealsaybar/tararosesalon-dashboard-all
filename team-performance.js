@@ -119,8 +119,12 @@ const TP_ROLE_FIX = { 'TARA': 'Owner', 'TARA KIDD': 'Owner',
   // Oliver Green, barber at Al Quoz, Dec 2025 to Jan 2026 (Kate, 30 Sep 2026).
   'OLIVER': 'Barber', 'OLIVER GREEN': 'Barber',
   // May Manguiat, Saadiyat (TP_SPLIT_FULL below), is an assistant (Kate, 1 Oct 2026).
-  'MAY MANGUIAT': 'Assistant' };
-const TP_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'TARA KIDD': 'assets/org-chart/tara-rose-kidd.png' };
+  'MAY MANGUIAT': 'Assistant',
+  // Daisy Cropper, Managing Director of Tara Rose Bahrain: staff-profiles.js has no card for her.
+  'DAISY': 'Managing Director', 'DAISY CROPPER': 'Managing Director' };
+// Photos for people with no staff card: the owner and Bahrain's managing director, both from the org chart.
+const TP_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'TARA KIDD': 'assets/org-chart/tara-rose-kidd.png',
+  'DAISY': 'assets/org-chart/daisy-charlotte-cropper.png', 'DAISY CROPPER': 'assets/org-chart/daisy-charlotte-cropper.png' };
 const tpRole = st => { const fix = TP_ROLE_FIX[tpMergeKey(st.name)]; if (fix) return fix;
   const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.role) || 'No position set'; };
 const tpRoleRank = r => { const i = TP_LADDER.indexOf(r); return i < 0 ? TP_LADDER.length : i; };
@@ -305,7 +309,10 @@ function tpTargets(st) {
   const out = ledger ? [{ l: 'Rebook', v: st.rebookPct, t: TARGETS.rebookPct, f: tpPct }] : [];
   if (!st.isBeauty && ledger) out.push({ l: 'Treat', v: st.treatmentPct, t: TARGETS.treatmentPct, f: tpPct });
   out.push({ l: 'Retail', v: st.retailPct, t: TARGETS.retailPct, f: tpPct });
-  out.push({ l: 'Avg bill', v: st.avgBill, t: st.isBeauty ? TARGETS.beautyAvgBill : TARGETS.hairAvgBill, f: tpNum });
+  // Per person, not per view: on UAE + Bahrain the page-wide avg-bill target is unset, but a
+  // UAE stylist is still read against the UAE aim. Bahrain staff have none of their own yet.
+  const avgT = st.branchCode === 'BAH' ? null : (st.isBeauty ? TARGETS.beautyAvgBillUAE : TARGETS.hairAvgBillUAE);
+  out.push({ l: 'Avg bill', v: st.avgBill, t: avgT, f: tpNum });
   return out;
 }
 // Podium: a ring per target, filled to the share of target reached (capped at a
