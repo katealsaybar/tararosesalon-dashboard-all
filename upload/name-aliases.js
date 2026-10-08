@@ -60,6 +60,10 @@ const STAFF_NAME_ALIASES = {
   // (Stylist, one Al Quoz booking on 4 Feb). Cori Paul is the Phorest spelling, so CORY
   // folds into CORI. Archived in Phorest; greyed out on the Podium Race.
   'CORY': 'CORI',
+  // Kate, 8 Oct 2026: Tara is the owner across all four branches. The ledger writes her
+  // TARA at Khalifa City, Saadiyat and Al Quoz and TARA KIDD at Motor City, so the Podium
+  // Race showed her twice. TARA is the name the profile map and the photo fix key on.
+  'TARA KIDD': 'TARA',
 };
 
 function canonicalStaffName(name){
