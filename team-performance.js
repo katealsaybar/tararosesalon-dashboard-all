@@ -131,6 +131,11 @@ const TP_LADDER = ['Owner', 'Style Director', 'Senior Stylist', 'Stylist', 'Juni
 const TP_ROLE_FIX = { 'TARA': 'Owner', 'TARA KIDD': 'Owner',
   'CRISTINE': 'Assistant', 'CRISTINE BRACAMONTE': 'Assistant',
   'LHANG': 'Assistant', 'LHANG ANN': 'Assistant', 'MA. ERCELY': 'Assistant', 'MA.': 'Assistant',
+  // Kate, 9 Oct 2026: Jessa Padilla (KCA) and Kaisha Balbuena (MC) are reception, Shiela Avena (AQ) is the
+  // Salon Coordinator, Eden Domasin (AQ) and Liberty Caparas (SAA) are assistants.
+  'JESSA': 'Receptionist', 'JESSA PADILLA': 'Receptionist', 'KAISHA': 'Receptionist', 'KAISHA BALBUENA': 'Receptionist',
+  'SHIELA': 'Salon Coordinator', 'SHIELA AVENA': 'Salon Coordinator',
+  'EDEN': 'Assistant', 'EDEN DOMASIN': 'Assistant', 'LIBERTY': 'Assistant', 'LIBERTY CAPARAS': 'Assistant',
   // Kate, 30 Sep 2026: Phorest-only assistants, a few days each in 2026. Ara
   // Gonzales (KCA), Joyce Dy (SAA), Maan Solis (AQ, MC).
   'ARA': 'Assistant', 'JOYCE': 'Assistant', 'MAAN': 'Assistant',

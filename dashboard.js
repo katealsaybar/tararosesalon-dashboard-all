@@ -2586,8 +2586,9 @@ const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTAN
 // (Motor City) too: Phorest's "Ma. Ercely Vacal" reads as "MA." by its first word.
 // And Ara (KCA), Joyce (SAA), Maan (AQ, MC), Phorest-only assistants (30 Sep).
 // Kate, 9 Oct 2026: Liberty (Saadiyat) is an assistant and Jessa (Khalifa City A) is front desk, so neither
-// belongs in the stylist tables or the name-match flag; same treatment as Frances above.
-const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL', 'IVY', 'FRANCES', 'MARGIE', 'CRISTINE', 'LHANG', 'MA.', 'ARA', 'JOYCE', 'MAAN', 'LIBERTY', 'JESSA']);
+// belongs in the stylist tables or the name-match flag; same treatment as Frances above. Same day: Kaisha
+// (Motor City) is reception, Shiela (Al Quoz) a Salon Coordinator, Eden (Al Quoz) an assistant.
+const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL', 'IVY', 'FRANCES', 'MARGIE', 'CRISTINE', 'LHANG', 'MA.', 'ARA', 'JOYCE', 'MAAN', 'LIBERTY', 'JESSA', 'RECEPTION', 'KAISHA', 'SHIELA', 'EDEN']);
 
 // Kate, 24 Sep 2026: Apol and Marjorie were still showing on Branch Performance as
 // stylists/therapists. The set above only caught names typed into it, so anyone whose
@@ -2605,6 +2606,9 @@ function isLedgerAssistantName(rawUp) {
   const whole = String(rawUp || '').trim().toUpperCase();
   if (!whole) return false;
   if (isAssistantPart(whole.replace(/\s*\/\s*/g, '/'))) return true;
+  // Kate, 9 Oct 2026: a two-word name is read by its first word as well, the way Phorest's side already
+  // is ("MA. ERCELY" is MA., "LHANG ANN" is LHANG). Not for a slash name, which is checked per part below.
+  if (whole.indexOf('/') < 0 && whole.indexOf(' ') > 0 && isAssistantPart(whole.split(' ')[0])) return true;
   const parts = whole.split('/').map(s => s.trim()).filter(Boolean);
   return parts.length > 0 && parts.every(isAssistantPart);
 }
@@ -3345,7 +3349,11 @@ function staffGapFlags(codes) {
     if (isLedgerAssistantName(String(st.name || '').toUpperCase())) return;
     const k = staffMapKey(st.name);
     if (k === 'TARA') return;
-    if (st.ph && st.ph.t > 0 && st.ledgerClients === 0 && !ledKeys.has(k)) out.noLedger.push({ code, name: st.name, dept, n: st.ph.t });
+    // And no one who has no service revenue in Phorest: front desk, assistants and anyone not yet on a
+    // list show up as a few visits and AED 0 of services. Kate had given these roles several times, so the
+    // flag stops depending on a list of names for them (Kaisha, Shiela, Eden, 9 Oct 2026).
+    const earns = st.ph && (Number(st.ph.svc) || 0) >= 500;
+    if (st.ph && st.ph.t > 0 && st.ledgerClients === 0 && !ledKeys.has(k) && earns) out.noLedger.push({ code, name: st.name, dept, n: st.ph.t });
     else if (lc(st) > 0 && !(st.ph && st.ph.t > 0) && !phKeys.has(k)) out.noPhorest.push({ code, name: st.name, dept, n: lc(st) });
   }));
   return out;
@@ -4401,7 +4409,8 @@ async function renderDashboard() {
       <div class="r-row"><span class="r-label">Net take</span><span class="r-val tabular">${num0(s.netTake)}</span></div>
       <div class="r-row"><span class="r-label">Clients${doorOn(s) ? ' through the door' : ''}</span><span class="r-val tabular">${num0(clientsOf(s))}</span></div>
       ${doorOn(s) ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">per staff, ledgers (hand-typed)</span><span class="r-val tabular" style="opacity:.75">${num0(s.totalClients)}</span></div>` : ''}
-      <div class="r-row"><span class="r-label">Avg bill</span><span class="r-val tabular">${num0(avgBillOf(s))}</span></div>
+      <div class="r-row"><span class="r-label">Avg bill${doorOn(s) ? ' per staff' : ''}</span><span class="r-val tabular">${num0(s.avgBill)}</span></div>
+      ${doorOn(s) ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">per visit, through the door</span><span class="r-val tabular" style="opacity:.75">${num0(avgBillOf(s))}</span></div>` : ''}
       ${targetsBlock}
       <div class="r-rule"></div>
       <div class="r-foot">All money in ${CUR()}, takings before staff cost.</div>`;
@@ -4440,8 +4449,9 @@ async function renderDashboard() {
   // clients, so it is read against the same bar scaled the same way (target x
   // handled / door). The verdict is then exactly the Handled one; only the
   // figures change with the switch.
-  const avgTarget = (doorOn(s) && s.doorClients) ? blendedAvgTarget * (s.totalClients || 0) / s.doorClients : blendedAvgTarget;
-  const avgBand = TARGETS.hairAvgBill == null ? '' : band(avgBillOf(s), avgTarget);
+  // Kate, 9 Oct 2026: the card now leads with the per staff figure, so it is read against the
+  // per staff bar again (the door scaling of 1 Oct is gone with the door figure).
+  const avgBand = TARGETS.hairAvgBill == null ? '' : band(s.avgBill || 0, blendedAvgTarget);
   // OP4 second pass (Kate, 1 Oct 2026): a department short is a miss, so red.
   const avgBillStatus = (avgBand === 'good' && avgShort.length) ? 'bad' : avgBand;
   const avgBillVerdict = TARGETS.hairAvgBill == null ? 'No target yet'
@@ -4486,13 +4496,15 @@ async function renderDashboard() {
         { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} by staff`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
         { k:'Beauty', val:s.beautyTotalClients, of:s.totalClients, txt:`${num0(s.beautyTotalClients)} by staff`, extra:`${shareOf(s.beautyTotalClients, s.totalClients)}%`, color:'var(--beauty)' },
       ]) },
-    { k:'Avg bill', def: doorOn(s) ? 'Net take per client through the door.' : 'Net take per client.',
-      tip: doorOn(s) ? 'Net take divided by clients through the door: what one visit is worth. The per staff line divides by the ledgers\u2019 clients. Hair and Beauty are that side\u2019s services over that side\u2019s clients, per staff.' : 'Net take divided by clients: what one visit is worth.',
-      v: aed0(avgBillOf(s)), status: avgBillStatus,
-      pill: doorOn(s) ? 'Per visit' : null,
-      sub: (doorOn(s) ? [[`Per staff count, ledgers (${num0(s.totalClients)})`, aed0(s.avgBill)]] : []),
+    { k:'Avg bill', def: doorOn(s) ? 'Net take per client counted by staff (ledgers). Per visit, through the door, is below.' : 'Net take per client.',
+      tip: doorOn(s) ? 'Net take divided by the clients staff counted in the ledgers, which is what the targets are set against. The per visit line divides by clients through the door instead: what one visit is worth. Hair and Beauty are that side’s services over that side’s clients, per staff.' : 'Net take divided by clients: what one visit is worth.',
+      // Kate, 9 Oct 2026: per staff leads ("baliktad ka"), because the targets are per staff;
+      // per visit, through the door, is the snippet underneath.
+      v: aed0(s.avgBill), status: avgBillStatus,
+      pill: doorOn(s) ? 'Per staff' : null,
+      sub: (doorOn(s) ? [[`Per visit, through the door (${num0(s.doorClients)})`, aed0(avgBillOf(s))]] : []),
       t: TARGETS.hairAvgBill == null ? 'No avg-bill target set for this branch yet'
-        : `Hair target ${TARGETS.hairAvgBill} · Beauty target ${TARGETS.beautyAvgBill}${doorOn(s) ? ` · ${aed0(avgTarget)} a door client` : ''}`, verdict: avgBillVerdict,
+        : `Hair target ${TARGETS.hairAvgBill} · Beauty target ${TARGETS.beautyAvgBill}`, verdict: avgBillVerdict,
       splits: splitsOf([
         { k:'Hair', val:s.hairAvgBill, of:Math.max(s.hairAvgBill || 0, s.beautyAvgBill || 0, TARGETS.hairAvgBill || 0),
           txt:aed0(s.hairAvgBill),

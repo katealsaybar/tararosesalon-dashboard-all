@@ -177,6 +177,8 @@ const STAFF_PROFILES = {
   'GALINA':    { photo: 'galina.png',    role: 'Beauty Therapist', branch: 'AQ', ig: 'galina_spierling' },
   'IVY':       { role: 'Assistant', branch: 'AQ' },
   'LUNINGNING':{ role: 'Assistant', branch: 'AQ' },
+  // Kate, 9 Oct 2026: Eden Domasin is an assistant at Al Quoz.
+  'EDEN':      { role: 'Assistant', branch: 'AQ' },
   // Kate, 17 Sep 2026, confirmed off Phorest's Staff list: Marjorie Sevilla, an
   // Assistant, not a stylist — the all-zero ledger rows under her name are exactly
   // what an assistant's row looks like, not a misread.
