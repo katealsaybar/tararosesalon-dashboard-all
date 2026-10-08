@@ -3762,7 +3762,7 @@ async function renderOrgPulseMore(s) {
     const part = (lbl, v, cls, none, cn) => Number.isFinite(v) ? `<span class="${cls}">${lbl} ${f(v)}${cn ? `<small>${cn}</small>` : ''}</span>` : (none ? `<span class="opm-na">${lbl} ${none}</span>` : '');
     const split = (o.stack && Number.isFinite(hair) && Number.isFinite(beauty) && hair + beauty > 0)
       ? `<div class="opm-stack" title="Hair ${f(hair)}, Beauty ${f(beauty)}"><span style="width:${(hair / (hair + beauty) * 100).toFixed(1)}%;background:var(--hair)"></span><span style="width:${(beauty / (hair + beauty) * 100).toFixed(1)}%;background:var(--beauty)"></span></div>` : '';
-    return `<div class="opm-tile">
+    return `<div class="opm-tile${o.cnt ? ' opm-wide' : ''}">
       <div class="opm-k">${OPM_TIPS[name] ? ihTip(name, OPM_TIPS[name]) : name}</div>
       <div class="opm-big tabular">${Number.isFinite(comb) ? f(comb) : '<span class="opm-na">–</span>'}</div>
       ${c.comb ? `<div class="opm-cnt tabular">${c.comb}</div>` : ''}

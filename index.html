@@ -1386,6 +1386,18 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .opm-stack span{display:block;height:100%}
 .opm-na{color:var(--muted2);font-weight:400}
 @media(max-width:900px){.opm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* On a phone (Kate, 9 Oct 2026): the four percentage tiles take a full row, figure and count on the left, hair and
+   beauty on the right, and the Phorest line runs underneath; the four short tiles stay two across. */
+@media(max-width:760px){
+  .opm-grid{gap:10px}
+  .opm-tile{padding:12px 14px}
+  .opm-big{font-size:25px;margin-top:4px}
+  .opm-wide{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);column-gap:14px;align-items:start}
+  .opm-wide .opm-k,.opm-wide .opm-big,.opm-wide .opm-cnt{grid-column:1}
+  .opm-wide .opm-cnt{font-size:12px;line-height:1.35}
+  .opm-wide .opm-sp{grid-column:2;grid-row:1 / span 3;margin-top:0;flex-direction:column;flex-wrap:nowrap;justify-content:center;gap:8px;align-self:center}
+  .opm-wide .opm-ph{grid-column:1/-1;margin-top:6px;font-size:11.5px}
+}
 .att-row:last-child{border-bottom:none}
 .att-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .att-id{display:flex;align-items:baseline;gap:9px;min-width:0}
@@ -4101,7 +4113,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261009ac2"></script>
+<script src="dashboard.js?v=20261009op1"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
