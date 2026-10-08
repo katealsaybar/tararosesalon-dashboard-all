@@ -1240,7 +1240,6 @@ function bpGrowthCards(g, codes) {
         <div class="bp-chips">
           ${bpChip(doorOn(c) ? 'Clients, per visit (door)' : 'Clients, per staff (ledgers)', clientsOf(c), lgNum, bpDelta(clientsOf(c), clientsPrevOf(c, p)))}
           ${doorOn(c) ? bpChip('Per staff, ledgers', c.totalClients, lgNum, bpDelta(c.totalClients, p && p.totalClients)) : ''}
-          ${c.ph ? bpChip('Per staff, Phorest', c.ph.hair.t + c.ph.beauty.t, lgNum, bpDelta(c.ph.hair.t + c.ph.beauty.t, p && p.ph ? p.ph.hair.t + p.ph.beauty.t : null)) : ''}
           ${bpChip('Hair avg bill', c.hairAvgBill, lgAed, bpDelta(c.hairAvgBill, p && p.hairAvgBill))}
           ${bpChip('Rebooking', lgPct(c.rebookPct), x => x,
             bpDelta(c.rebookPct, p && p.rebookPct), true)}
@@ -1331,13 +1330,13 @@ async function renderBranchPerformance() {
     ['Hair New Clients',   null, s.hairNewClients],
     ['Hair NCR',           null, s.hairNCR],
     ['Hair Rebooked',      null, s.hairRebookedCount],
-    ...(s.ph ? [['Hair staff visits (Phorest)', null, s.ph.hair.t], ['Hair new clients (Phorest)', null, s.ph.hair.nw], ['Hair requests, RQ (Phorest)', null, s.ph.hair.req]] : []),
+    ...(s.ph ? [['Hair new clients (Phorest)', null, s.ph.hair.nw], ['Hair requests, RQ (Phorest)', null, s.ph.hair.req]] : []),
     { group: 'Beauty' },
     ['Beauty Total Clients', null, s.beautyTotalClients],
     ['Beauty New Clients',   null, s.beautyNewClients],
     ['Beauty NCR',           null, s.beautyNCR],
     ['Beauty Rebooked',      'beautyRebooked', s.beautyRebookedCount],
-    ...(s.ph && s.ph.beauty.t ? [['Beauty staff visits (Phorest)', null, s.ph.beauty.t], ['Beauty new clients (Phorest)', null, s.ph.beauty.nw], ['Beauty requests, RQ (Phorest)', null, s.ph.beauty.req]] : []),
+    ...(s.ph && s.ph.beauty.t ? [['Beauty new clients (Phorest)', null, s.ph.beauty.nw], ['Beauty requests, RQ (Phorest)', null, s.ph.beauty.req]] : []),
     { group: 'Combined' },
     ['Rebooked',      'rebooked',     s.totalRebooked],
     ['Total Clients', 'totalClients', s.totalClients],
@@ -1346,7 +1345,7 @@ async function renderBranchPerformance() {
     ...(doorOn(s) ? [['Clients through the door (Phorest)', null, s.doorClients]] : []),
     ['New Clients',   'newClients',   s.newClientsTotal],
     ['NCR',           'ncr',          s.ncrTotal],
-    ...(s.ph ? [['Staff visits (Phorest)', null, s.ph.hair.t + s.ph.beauty.t], ['New clients (Phorest)', null, s.ph.hair.nw + s.ph.beauty.nw], ['Requests, RQ (Phorest)', null, s.ph.hair.req + s.ph.beauty.req]] : []),
+    ...(s.ph ? [['New clients (Phorest)', null, s.ph.hair.nw + s.ph.beauty.nw], ['Requests, RQ (Phorest)', null, s.ph.hair.req + s.ph.beauty.req]] : []),
   ];
 
   const cliBody = clientRows.map(r => {

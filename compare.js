@@ -243,9 +243,6 @@ function cmpMetrics() {
     { name: 'Beauty clients',           sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.beautyTotalClients) },
     { name: 'New clients',              sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.newClientsTotal) },
     { name: 'Rebooked',                 sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.totalRebooked) },
-    { name: 'Staff visits',             sub: 'Phorest', muted: true, kind: 'n', up: true, get: s => s.ph ? nz(s.ph.hair.t + s.ph.beauty.t) : null },
-    { name: 'Hair staff visits',        sub: 'Phorest', muted: true, kind: 'n', up: true, get: s => s.ph ? nz(s.ph.hair.t) : null },
-    { name: 'Beauty staff visits',      sub: 'Phorest', muted: true, kind: 'n', up: true, get: s => s.ph && s.ph.beauty.t ? nz(s.ph.beauty.t) : null },
     { name: 'New clients, Phorest',     sub: 'Phorest’s own count', muted: true, kind: 'n', up: true, get: s => s.ph ? nz(s.ph.hair.nw + s.ph.beauty.nw) : null },
     { name: 'Requests (RQ)',            sub: 'Phorest', muted: true, kind: 'n', up: true, get: s => s.ph ? nz(s.ph.hair.req + s.ph.beauty.req) : null },
     { group: 'Averages' },
@@ -253,8 +250,6 @@ function cmpMetrics() {
     ...(CMP_DOOR ? [{ name: 'Avg bill, per staff count', muted: true, kind: 'avg', up: true, get: s => nz(s.avgBill) }] : []),
     { name: 'Hair avg bill',            sub: 'per staff count', kind: 'avg', up: true, get: s => nz(s.hairAvgBill), target: () => TARGETS.hairAvgBill },
     { name: 'Beauty avg bill',          sub: 'per staff count', kind: 'avg', up: true, get: s => (s.beautyTotalClients ? nz(s.beautyAvgBill) : null), target: () => TARGETS.beautyAvgBill },
-    { name: 'Hair avg bill, Phorest',   sub: 'per staff visit', muted: true, kind: 'avg', up: true, get: s => s.ph && s.ph.hair.t ? nz(s.ph.hair.svc / s.ph.hair.t) : null },
-    { name: 'Beauty avg bill, Phorest', sub: 'per staff visit', muted: true, kind: 'avg', up: true, get: s => s.ph && s.ph.beauty.t ? nz(s.ph.beauty.svc / s.ph.beauty.t) : null },
     { group: 'Benchmarks' },
     // NCR is a count against a monthly unit target (Kate, 7 Oct 2026), prorated to the side's window.
     { name: 'NCR',                      sub: 'hair + beauty, per staff', kind: 'n', up: true, noMover: true, get: s => nz(ncrCountOf(s)),

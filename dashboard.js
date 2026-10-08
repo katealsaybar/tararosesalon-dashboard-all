@@ -4081,14 +4081,14 @@ async function renderDashboard() {
     { name:'Beauty Avg Bill', sub:`target ${CUR()} ${TARGETS.beautyAvgBill}`,
       hair:null, beauty:s.beautyAvgBill, combined:s.beautyAvgBill, target:TARGETS.beautyAvgBill, fmt:aed0,
       hairNote:'counted under Hair Avg Bill',
-      ph: PH ? `Phorest: Beauty ${phAvgTxt('beauty')} per visit (${num0(PH.beauty.t)} staff visits)` : '' },
+      },
     { name:'Utilisation %',   sub:`hair ≥ ${TARGETS.hairUtilPct} · beauty ≥ ${TARGETS.beautyUtilPct}`,
       hair:s.hairUtilPct, beauty:s.beautyUtilPct, combined:s.utilPct,
       target:TARGETS.hairUtilPct, beautyTarget:TARGETS.beautyUtilPct, fmt:pct2 },
     { name:'Hair Avg Bill',   sub:`target ${CUR()} ${TARGETS.hairAvgBill}`,
       hair:s.hairAvgBill, beauty:null, combined:s.hairAvgBill, target:TARGETS.hairAvgBill, fmt:aed0,
       beautyNote:'counted under Beauty Avg Bill',
-      ph: PH ? `Phorest: Hair ${phAvgTxt('hair')} per visit (${num0(PH.hair.t)} staff visits)` : '' },
+      },
   ]
   // No data, no card. Utilisation is null whenever the period has no matching
   // roster hours, and a null scored against 80% would print as a catastrophic
@@ -4353,7 +4353,6 @@ async function renderDashboard() {
       <div class="r-row"><span class="r-label">Net take</span><span class="r-val tabular">${num0(s.netTake)}</span></div>
       <div class="r-row"><span class="r-label">Clients${doorOn(s) ? ' through the door' : ''}</span><span class="r-val tabular">${num0(clientsOf(s))}</span></div>
       ${doorOn(s) ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">per staff, ledgers (hand-typed)</span><span class="r-val tabular" style="opacity:.75">${num0(s.totalClients)}</span></div>` : ''}
-      ${PH ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">per staff, Phorest (system)</span><span class="r-val tabular" style="opacity:.75">${num0(phVisits)}</span></div>` : ''}
       <div class="r-row"><span class="r-label">Avg bill</span><span class="r-val tabular">${num0(avgBillOf(s))}</span></div>
       ${targetsBlock}
       <div class="r-rule"></div>
@@ -4425,29 +4424,25 @@ async function renderDashboard() {
         { k:'Hair',   val:hairNetSalonTake,  of:s.netTake, txt:aed0(hairNetSalonTake),  extra:`${shareOf(hairNetSalonTake, s.netTake)}%`,  color:'var(--hair)' },
         { k:'Beauty', val:beautyNetTakeDept, of:s.netTake, txt:aed0(beautyNetTakeDept), extra:`${shareOf(beautyNetTakeDept, s.netTake)}%`, color:'var(--beauty)' },
       ]) },
-    { k:'Clients', def: doorOn(s) ? 'Each client once a day, through the door (Phorest). The per staff counts, ledgers and Phorest, are below.' : 'Per staff, from the ledgers.',
+    { k:'Clients', def: doorOn(s) ? 'Each client once a day, through the door (Phorest). The per staff count, from the ledgers, is below.' : 'Per staff, from the ledgers.',
       tip: doorOn(s)
-        ? `Three counts, because a client can be counted three ways. THROUGH THE DOOR: each client once a day, however many staff she saw (Phorest Sales Transactions); a deposit, a balance payment or a voucher bought on its own is not a visit. PER STAFF, LEDGERS: what reception types into the ledger for each staff member (${num0(s.totalClients)}), so a client seen by two staff counts twice; the targets are written on it. PER STAFF, PHOREST: Phorest’s own count for each staff member, so a client seen by two staff counts twice there too, and it runs higher than the ledger because it counts every appointment, not only the ones reception typed in. The Hair and Beauty split is per staff.`
+        ? `Two counts, because a client can be counted two ways. THROUGH THE DOOR: each client once a day, however many staff she saw (Phorest Sales Transactions); a deposit, a balance payment or a voucher bought on its own is not a visit. PER STAFF, LEDGERS: what reception types into the ledger for each staff member (${num0(s.totalClients)}), so a client seen by two staff counts twice; the targets are written on it. The Hair and Beauty split is per staff.`
         : CLIENT_BASIS === 'door'
           ? 'Handled, not through the door: Phorest’s Sales Transactions have no count for this selection (Bahrain is not in them), so this is each staff member’s clients from the ledgers.'
           : 'Handled: each staff member counts the clients she served (ledgers), hair and beauty.',
       v: num0(clientsOf(s)), status: clientTrend.status,
       pill: doorOn(s) ? 'Per visit' : null,
-      sub: (doorOn(s) ? [['Per staff, ledgers (hand-typed)', num0(s.totalClients)]] : [])
-        .concat(PH ? [['Per staff, Phorest (system)', num0(phVisits)]] : []),
-      foot: PH ? [['Hair, per staff, Phorest', num0(PH.hair.t)], ['Beauty, per staff, Phorest', num0(PH.beauty.t)]] : [],
+      sub: (doorOn(s) ? [['Per staff, ledgers (hand-typed)', num0(s.totalClients)]] : []),
       t: getClientTarget(sel.branch), verdict: clientTrend.verdict,
       splits: splitsOf([
         { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} by staff`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
         { k:'Beauty', val:s.beautyTotalClients, of:s.totalClients, txt:`${num0(s.beautyTotalClients)} by staff`, extra:`${shareOf(s.beautyTotalClients, s.totalClients)}%`, color:'var(--beauty)' },
       ]) },
     { k:'Avg bill', def: doorOn(s) ? 'Net take per client through the door.' : 'Net take per client.',
-      tip: doorOn(s) ? 'Net take divided by clients through the door: what one visit is worth. The per staff count line divides by the ledgers’ clients, the Phorest line by Phorest’s staff visits. Hair and Beauty are that side’s services over that side’s clients, per staff.' : 'Net take divided by clients: what one visit is worth.',
+      tip: doorOn(s) ? 'Net take divided by clients through the door: what one visit is worth. The per staff line divides by the ledgers\u2019 clients. Hair and Beauty are that side\u2019s services over that side\u2019s clients, per staff.' : 'Net take divided by clients: what one visit is worth.',
       v: aed0(avgBillOf(s)), status: avgBillStatus,
       pill: doorOn(s) ? 'Per visit' : null,
-      sub: (doorOn(s) ? [[`Per staff count, ledgers (${num0(s.totalClients)})`, aed0(s.avgBill)]] : [])
-        .concat(PH && phVisits ? [[`Per staff visit, Phorest (${num0(phVisits)})`, aed0((s.netTake || 0) / phVisits)]] : []),
-      foot: PH ? [['Hair, Phorest', phAvgTxt('hair')], ['Beauty, Phorest', phAvgTxt('beauty')]] : [],
+      sub: (doorOn(s) ? [[`Per staff count, ledgers (${num0(s.totalClients)})`, aed0(s.avgBill)]] : []),
       t: TARGETS.hairAvgBill == null ? 'No avg-bill target set for this branch yet'
         : `Hair target ${TARGETS.hairAvgBill} · Beauty target ${TARGETS.beautyAvgBill}${doorOn(s) ? ` · ${aed0(avgTarget)} a door client` : ''}`, verdict: avgBillVerdict,
       splits: splitsOf([
