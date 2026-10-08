@@ -395,6 +395,11 @@ async function renderTeam() {
   const other = document.getElementById(part === 'quad' ? 'teamContent' : 'teamQuadContent');
   if (!host) return;
   if (other) other.innerHTML = '';
+  // The Instagram and review counts and the overrides list are separate calls from the
+  // dashboard's own data load, so they start now and run beside it instead of after it
+  // (Kate, 8 Oct 2026: the page took too long).
+  const wantCounts = part === 'race' && TP_LEAGUES[tpSort] && TP_LEAGUES[tpSort].counts && tpLeagues().includes(tpSort);
+  const early = Promise.all([wantCounts ? tpLoadCounts() : null, tpLoadOverrides()]);
   if (!window._lastDashState && typeof renderDashboard === 'function') {
     host.innerHTML = '<div class="loading">Loading data...</div>';
     await renderDashboard();
@@ -407,10 +412,11 @@ async function renderTeam() {
   // the daily join, so counting weeks would call a full page of data empty.
   // Instagram and review counts are fetched before anything is ranked on them; if the
   // call fails the race falls back to Takings and says so.
-  if (part === 'race' && TP_LEAGUES[tpSort] && TP_LEAGUES[tpSort].counts && tpLeagues().includes(tpSort)) await tpLoadCounts();
+  await early;
+  // A cache hit unless the early call had no period to ask about yet.
+  if (wantCounts) await tpLoadCounts();
   else tpCountsBad = false;
   const lg = tpLg();
-  await tpLoadOverrides();
   let roster = tpRoster(tpDept);
   if (lg.counts && tpCounts) tpApplyCounts(roster, tpCounts);
   // The race is re-ranked by the league picked; ties fall back to net take, which is

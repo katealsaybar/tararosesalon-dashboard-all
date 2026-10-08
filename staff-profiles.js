@@ -368,6 +368,7 @@ const STAFF_SURNAMES = {
   // Kate, 17 Sep 2026, off Phorest's own Staff list: not a misread ledger row after
   // all — Marjorie Sevilla, an Assistant at Al Quoz, same as the other assistants
   // below. Was flagged unresolved above until now.
+  'MARCELLA':  'Savicic',      // Kate, 8 Oct 2026: left; stylist, Motor City and Al Quoz (archived in Phorest)
   'MARGIE':    'Sevilla',
   'NEEKA':     'Kainth',
   'NIMI':      'Firth',        // Kate, 8 Oct 2026: left; Style Director, Al Quoz (archived in Phorest)
