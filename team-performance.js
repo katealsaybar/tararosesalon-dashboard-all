@@ -572,7 +572,10 @@ function tpBar(st, lead, cls) {
 function tpPhLine(st) {
   if (!st.ph) return '<div class="tp-ph">Phorest: no figures for her in this window</div>';
   const avg = st.ph.t ? ` · avg bill ${tpNum(st.ph.svc / st.ph.t)}` : '';
-  return `<div class="tp-ph tabular">Phorest: ${tpNum(st.ph.t)} visits${avg}</div>`;
+  // Visits in Phorest and no ledger rows at all: usually a different spelling of her name in the ledger.
+  const flag = (st.noLedger && st.ph.t > 0 && !(typeof isBahrainView === 'function' && isBahrainView()))
+    ? ' · <b title="Phorest has visits for her but the ledger has no rows. Check how her name is spelled in the ledger.">no ledger rows</b>' : '';
+  return `<div class="tp-ph tabular">Phorest: ${tpNum(st.ph.t)} visits${avg}${flag}</div>`;
 }
 function tpRoleBranch(st) {
   return `${escapeHtml(tpRole(st))} · ${(st.branches || [{ name: st.branchName }]).map(b => escapeHtml(b.name)).join(' + ')}`;

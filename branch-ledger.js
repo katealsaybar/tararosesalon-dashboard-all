@@ -1238,7 +1238,9 @@ function bpGrowthCards(g, codes) {
         </div>
         ${bpSpark(g[code].spark)}
         <div class="bp-chips">
-          ${bpChip(doorOn(c) ? 'Clients per visit' : 'Clients per staff', clientsOf(c), lgNum, bpDelta(clientsOf(c), clientsPrevOf(c, p)))}
+          ${bpChip(doorOn(c) ? 'Clients, per visit (door)' : 'Clients, per staff (ledgers)', clientsOf(c), lgNum, bpDelta(clientsOf(c), clientsPrevOf(c, p)))}
+          ${doorOn(c) ? bpChip('Per staff, ledgers', c.totalClients, lgNum, bpDelta(c.totalClients, p && p.totalClients)) : ''}
+          ${c.ph ? bpChip('Per staff, Phorest', c.ph.hair.t + c.ph.beauty.t, lgNum, bpDelta(c.ph.hair.t + c.ph.beauty.t, p && p.ph ? p.ph.hair.t + p.ph.beauty.t : null)) : ''}
           ${bpChip('Hair avg bill', c.hairAvgBill, lgAed, bpDelta(c.hairAvgBill, p && p.hairAvgBill))}
           ${bpChip('Rebooking', lgPct(c.rebookPct), x => x,
             bpDelta(c.rebookPct, p && p.rebookPct), true)}
@@ -1704,9 +1706,10 @@ function lgStaffTables(codes, ctx) {
     // New fell back to NCR on every row and the stylist totals summed New as 0.
     const hairCols = [
       {label:'Stylist'},{label:'Services excl. tx & courses',align:'r'},{label:'Treatments',align:'r'},
-      {label:'Retail',align:'r'},{label:'Net take',align:'r'},{label:'Clients',align:'r'},
+      {label:'Retail',align:'r'},{label:'Net take',align:'r'},{label:'Clients (ledger)',align:'r'},
       {label:'New',align:'r'},{label:'NCR',align:'r'},{label:'Rebooked',align:'r'},
       {label:'Rebook %',align:'r'},{label:'Avg bill',align:'r'},
+      {label:'Visits (Phorest)',align:'r'},{label:'Avg bill (Phorest)',align:'r'},
     ];
     // Kate, 24 Sep 2026: a leaver only shows on a window where she still has figures.
     // Resigned plus no clients and no take = gone from the table.
@@ -1719,13 +1722,14 @@ function lgStaffTables(codes, ctx) {
         lgAed(st.hairServicesExcl), lgAed(st.treatments), lgAed(st.retail), lgAed(st.netSalonTake),
         lgNum(st.total), lgNum(st.newC != null ? st.newC : st.newClients),
         lgNum(st.newClientReq), lgNum(st.rebooked), lgPct(st.rebookPct), lgAed(st.avgBill),
+        st.ph ? lgNum(st.ph.t) : '—', st.ph && st.ph.t ? lgAed(st.ph.svc / st.ph.t) : '—',
       ]);
 
     const beautyCols = [
       {label:'Therapist'},{label:'Services',align:'r'},{label:'Retail',align:'r'},
-      {label:'Net take',align:'r'},{label:'Clients',align:'r'},{label:'New',align:'r'},
+      {label:'Net take',align:'r'},{label:'Clients (ledger)',align:'r'},{label:'New',align:'r'},
       {label:'NCR',align:'r'},{label:'Rebooked',align:'r'},{label:'Rebook %',align:'r'},
-      {label:'Avg bill',align:'r'},
+      {label:'Avg bill',align:'r'},{label:'Visits (Phorest)',align:'r'},{label:'Avg bill (Phorest)',align:'r'},
     ];
     const beautyRows = (bd.beautyStaff || []).filter(keep)
       .slice().sort((a, b) => (b.netSalonTake || 0) - (a.netSalonTake || 0))
@@ -1734,6 +1738,7 @@ function lgStaffTables(codes, ctx) {
         lgAed(st.beautySales), lgAed(st.retail), lgAed(st.netSalonTake),
         lgNum(st.total), lgNum(st.newC != null ? st.newC : st.newClients),
         lgNum(st.newClientReq), lgNum(st.rebooked), lgPct(st.rebookPct), lgAed(st.avgBill),
+        st.ph ? lgNum(st.ph.t) : '—', st.ph && st.ph.t ? lgAed(st.ph.svc / st.ph.t) : '—',
       ]);
 
     return `
@@ -1745,7 +1750,9 @@ function lgStaffTables(codes, ctx) {
       </div>`;
   }).join('');
 
-  return blocks || lgEmpty('No staff figures for this window.');
+  // Names to match: Phorest has visits for someone the ledger has no rows for, or the other way round.
+  const gap = (typeof staffGapHtml === 'function') ? staffGapHtml(codes) : '';
+  return blocks ? gap + blocks : lgEmpty('No staff figures for this window.');
 }
 
 // First name and surname, set the way the stylist cards set them — the first name
@@ -1777,7 +1784,9 @@ function lgPersonNamePlain(name) {
 // target is monthly, so it is only shown when the window makes it meaningful.
 function lgStaffName(code, dept, st, ctx) {
   // Wrapped for the hover menu (staff-links.js): her card and her team stats, from this row.
-  const plain = lgPersonName(st.name);
+  // Phorest has visits for her and the ledger has no rows: say so on the row, not only in the note above.
+  const gapTag = (st.ph && st.ph.t > 0 && st.ledgerClients === 0) ? ' <span class="lg-inline" title="Phorest has visits for her but the ledger has no rows. Check how her name is spelled in the ledger.">no ledger rows</span>' : '';
+  const plain = lgPersonName(st.name) + gapTag;
   const name = (typeof staffWho === 'function')
     ? staffWho(st.name, plain, { dept: dept, branch: code }) : plain;
   if (!ctx.applies || typeof ledgerStaffTarget !== 'function') return name;

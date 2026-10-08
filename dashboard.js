@@ -3287,6 +3287,41 @@ function fnPhorestPerStaff(phRows, ledgerRows) {
   });
   return out;
 }
+// Staff Phorest has visits for and the ledger has no rows for (the usual cause is a different spelling,
+// Tamryn in Phorest and Tammy in the ledger), and the other way round. Until they are matched the per
+// staff counts, ledger and Phorest, cannot agree. Kate, 8 Oct 2026: flag them on the dashboard.
+// Only judged where there is enough ledger to judge by: a window the ledger has barely reached would
+// flag everyone, and a branch with no Phorest rows has nothing to compare.
+function staffGapFlags(codes) {
+  const by = (typeof aggByBranch === 'function') ? aggByBranch() : {};
+  const out = { noLedger: [], noPhorest: [] };
+  (codes && codes.length ? codes : ACTIVE_BRANCHES).forEach(code => {
+    const bd = by[code];
+    if (!bd || !bd.hairStaff) return;
+    const all = (bd.hairStaff || []).map(st => ({ st, dept: 'Hair' })).concat((bd.beautyStaff || []).map(st => ({ st, dept: 'Beauty' })));
+    const lc = st => (st.ledgerClients != null ? st.ledgerClients : (st.total || 0));
+    if (!all.some(x => x.st.ph) || all.filter(x => lc(x.st) > 0).length < 3) return;
+    all.forEach(({ st, dept }) => {
+      if (st.ph && st.ph.t > 0 && st.ledgerClients === 0) out.noLedger.push({ code, name: st.name, dept, n: st.ph.t });
+      else if (lc(st) > 0 && !(st.ph && st.ph.t > 0)) out.noPhorest.push({ code, name: st.name, dept, n: lc(st) });
+    });
+  });
+  return out;
+}
+function staffGapHtml(codes) {
+  const f = staffGapFlags(codes);
+  if (!f.noLedger.length && !f.noPhorest.length) return '';
+  const list = (arr, unit) => {
+    const shown = arr.slice(0, 6).map(x => `<b>${escapeHtml(String(x.name).toUpperCase())}</b> (${escapeHtml((BRANCH_INFO[x.code] || {}).name || x.code)}, ${Math.round(x.n).toLocaleString('en-GB')} ${unit})`).join(', ');
+    return shown + (arr.length > 6 ? ` and ${arr.length - 6} more` : '');
+  };
+  return `<div class="gap-flag" role="note">
+    <b>Names to match.</b>
+    ${f.noLedger.length ? `Phorest has visits but the ledger has no rows for ${list(f.noLedger, 'Phorest visits')}.` : ''}
+    ${f.noPhorest.length ? `The ledger has clients but Phorest has no visits for ${list(f.noPhorest, 'ledger clients')}.` : ''}
+    A different spelling in the ledger and in Phorest is the usual cause. Until it is matched, the per staff counts do not agree.
+  </div>`;
+}
 // Phorest's visits, requests and new clients (and rebooked, once the tracker rows are in),
 // summed per side. rebooked is null until then, so it reads as unknown, not zero.
 function fnPhorestCounts(phRows, rebookRows, ledgerRows) {
@@ -4654,6 +4689,7 @@ async function renderDashboard() {
     </div>`).join('')}
 </div>
 
+${staffGapHtml(sel.branch.includes('all') ? ACTIVE_BRANCHES : sel.branch)}
 <!-- ══ THE READ ══ -->
 <div class="eyebrow" id="s-read"><span class="bar"></span>What's going on · Hair vs Beauty</div>
 <div class="read">
