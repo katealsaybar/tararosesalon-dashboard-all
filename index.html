@@ -3440,6 +3440,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('dashboard', this)">Organisation Pulse</div>
     <div class="nav-sub" onclick="showView('branchperf', this)">Branch Performance</div>
     <div class="nav-sub" onclick="showView('compare', this)">Comparison</div>
+    <div class="nav-sub" onclick="showView('overyears', this)">Over the Years</div>
     <div class="nav-sub" onclick="showView('ledgerFinancials', this)">Financial Totals</div>
     <div class="nav-subhead">Team Performance</div>
     <div class="nav-sub" id="navTeamRace" onclick="showView('team', this)">Podium Race</div>
@@ -3677,6 +3678,13 @@ table.tp-cmp td.bad{color:var(--bad)}
        it is not one of FILTERED_VIEWS. Kate, 24 Sep 2026. -->
   <div id="view-compare" style="display:none">
     <main id="compareContent" style="padding:10px 0 48px"></main>
+  </div>
+
+  <!-- OVER THE YEARS (Kate, 9 Oct 2026): the business year on year from 2021, season by season, with Google
+       reviews and Instagram marked under construction. over-the-years.js draws it from over_the_years() and
+       over_the_years_ig() (migrations/over_the_years.sql). Own controls, so the masthead filters are hidden. -->
+  <div id="view-overyears" style="display:none">
+    <main id="overYearsContent" style="max-width:1100px;margin:0 auto;padding:10px clamp(14px,4vw,28px) 48px"></main>
   </div>
 
   <!-- LEDGERS: EMMA COACH'S VIEW — her sheet, as three pages.
@@ -4113,12 +4121,13 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261009op1"></script>
+<script src="dashboard.js?v=20261009oty1"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20261008cb8"></script>
 <script src="compare.js?v=20261008cb9"></script>
+<script src="over-the-years.js?v=20261009oty1"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20261008cb1"></script>
@@ -4533,7 +4542,7 @@ function showView(view, el){
   document.body.classList.toggle('staffperf-chrome', view === 'staffperf');
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'clients' || view === 'clientmix' || view === 'services');
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'clients' || view === 'clientmix' || view === 'services' || view === 'overyears');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('website-chrome', view === 'website');
   document.body.classList.toggle('social-chrome', view === 'social');
@@ -4564,6 +4573,7 @@ function showView(view, el){
   if (view === 'products') renderProducts();
   if (view === 'branchperf')    renderBranchPerformance();
   if (view === 'compare')       renderCompare();
+  if (view === 'overyears')     renderOverYears();
   if (view === 'ledgerFinancials') renderLedgerFinancials();
   if (view === 'ledgerTargets') renderLedgerTargets();
   if (view === 'ledgerActuals') renderLedgerActuals();

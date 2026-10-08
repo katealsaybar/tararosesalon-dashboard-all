@@ -1298,6 +1298,7 @@ const VIEW_SECTION_LABELS = {
   social: 'Social',
   branchperf: 'Branch Performance',
   compare: 'Comparison',
+  overyears: 'Over the Years',
   ledgerFinancials: 'Financial Totals',
   ledgerTargets: 'Ledgers · Daily Target Sheet',
   ledgerActuals: 'Ledgers · Actuals vs Targets',
@@ -1309,7 +1310,7 @@ const VIEW_SECTION_LABELS = {
 // used to hide an inline array that had drifted out of date — it still carried
 // 'khalifa' and 'saadiyat', which have not existed for months.
 const ALL_VIEWS = [
-  'dashboard','branchperf','compare','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
+  'dashboard','branchperf','compare','overyears','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
   'team','teamquad','staffperf','staffweeks','stafflevels','stylists','orgchart','services','clients','clientmix','lostclients','products','googleads','website','social','wvperf','reviews','calendar','giveaway','trk',
 ];
 
@@ -5271,6 +5272,7 @@ function redrawCurrentView() {
   else if (v === 'clients')            initCliView();
   else if (v === 'branchperf')         renderBranchPerformance();
   else if (v === 'compare')            renderCompare();
+  else if (v === 'overyears')          renderOverYears();
   else if (v === 'ledgerFinancials')   renderLedgerFinancials();
   else if (v === 'ledgerTargets')      renderLedgerTargets();
   else if (v === 'ledgerActuals')      renderLedgerActuals();
