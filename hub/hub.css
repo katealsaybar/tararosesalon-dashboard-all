@@ -226,6 +226,9 @@ body.kb-wait .wrap{visibility:hidden}
 .kb-legend button{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text);
   border-radius:999px;padding:4px 12px;cursor:pointer;margin-left:4px}
 .kb-legend button[aria-pressed="true"]{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+/* Kate, 8 Oct 2026: on a phone the legend wraps and the button keeps one line (it had squeezed to three). */
+.kb-legend{flex-wrap:wrap}
+.kb-legend button{flex:none;white-space:nowrap}
 .fm-note{display:block;font-size:12.5px;color:var(--warn);margin-top:4px;white-space:normal}
 
 .kb-note{display:flex;gap:10px;align-items:flex-start;background:var(--warn-bg);color:var(--text);
