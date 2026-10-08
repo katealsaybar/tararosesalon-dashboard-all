@@ -18,11 +18,11 @@
   // `live` is for sections that link out rather than holding pages (a section with
   // pages in kb_pages is live on its own).
   // Kate, 6 Oct 2026: grouped by what you came to do, not by department. One front door:
-  // the Targets, Numbers, Content and People rows that point into the dashboard are
+  // the Numbers, Targets, Content and People rows that point into the dashboard are
   // shortcuts (`via: 'dashboards'`), shown to whoever may open the dashboard and is at
   // `min` level or above. They hold no data; the dashboard and the database still
   // decide what each person can read.
-  KB.GROUPS = ['The Tara Rose Way', 'Me', 'Learn', 'Targets', 'Numbers', 'Content', 'People', 'Admin'];
+  KB.GROUPS = ['The Tara Rose Way', 'Me', 'Learn', 'Numbers', 'Targets', 'Content', 'People', 'Admin'];
   KB.SECTIONS = [
     // Kate, 5 Oct 2026: Tara's Full Loop handover site (kb_sections min_level 3).
     // 6 Oct 2026: its own group again, at the top, Level 3 and up.
