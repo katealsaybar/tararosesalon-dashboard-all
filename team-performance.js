@@ -128,8 +128,12 @@ const TP_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'TARA KIDD
 // Kate, 8 Oct 2026: people the ledger or Phorest carries who are not on the floor, so they
 // do not belong in a race. Farwa is Bahrain's assistant, Shiela Avena is a salon
 // coordinator (org chart), and Nimi Firth was at Al Quoz for four days in Jan 2025 with six
-// clients and nobody recognises the name. Keys are letters only, as tpMergeKey gives them.
-const TP_NOT_STYLISTS = new Set(['FARWA', 'SHIELA', 'SHIELA AVENA', 'NIMI', 'NIMI FIRTH']);
+// clients and nobody recognises the name. Kaisha Balbuena is a receptionist (one Phorest
+// booking, Motor City, Nov 2025). Janice Gamit worked Al Quoz then Motor City Jan to Jul 2025:
+// 35 clients but AED 143 in sales, which is an assistant's pattern (Kate did not know her).
+// Keys are letters only, as tpMergeKey gives them.
+const TP_NOT_STYLISTS = new Set(['FARWA', 'SHIELA', 'SHIELA AVENA', 'NIMI', 'NIMI FIRTH',
+  'KAISHA', 'KAISHA BALBUENA', 'JANICE', 'JANICE GAMIT']);
 const tpRole = st => { const fix = TP_ROLE_FIX[tpMergeKey(st.name)]; if (fix) return fix;
   const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null; return (p && p.role) || 'No position set'; };
 // Someone who has left (resigned: true in staff-profiles.js) stays in the race for the
