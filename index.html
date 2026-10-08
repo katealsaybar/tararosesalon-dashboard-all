@@ -2199,8 +2199,16 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 /* .lc-wrap's own thead rule comes later in this sheet, so these take two classes to win. */
 .lc-wrap.tc-wrap thead th{position:static;white-space:normal;line-height:1.3;overflow:visible;text-overflow:clip}
 .lc-wrap.tc-wrap .lc-thb{white-space:normal;text-align:inherit}
-.tc-c-rank{width:4%}.tc-c-client{width:17%}.tc-c-rev{width:10%}.tc-c-visits{width:7%}.tc-c-avg{width:9%}.tc-c-last{width:11%}
-.tc-c-stylist{width:14%}.tc-c-beauty{width:15%}.tc-c-phone{width:14%}
+.lc-wrap.tc-wrap .lc-thb{flex-wrap:wrap;max-width:100%;row-gap:0}
+.lc-wrap.tc-wrap thead th{padding-left:4px;padding-right:4px}
+/* Kate, 8 Oct 2026: with the menu open the card is narrow, and the date ran into the stylist column and the
+   Revenue and Visits heads into each other. .slv-table cells are nowrap, so the dates wrap here, and below
+   700px the table scrolls inside its card instead of overlapping. */
+.tc-wrap td{white-space:normal}
+.lc-wrap.tc-wrap{overflow-x:auto}
+.lc-wrap.tc-wrap > table{min-width:700px}
+.tc-c-rank{width:4%}.tc-c-client{width:16%}.tc-c-rev{width:11%}.tc-c-visits{width:8%}.tc-c-avg{width:9%}.tc-c-last{width:11%}
+.tc-c-stylist{width:14%}.tc-c-beauty{width:14%}.tc-c-phone{width:13%}
 /* Kate, 7 Oct 2026: with the menu open the table was too tight: stylist names cut with "...", the phone
    number ran past the card, every cell sat at a different height. Favourite service now sits under the
    name, the numbers may wrap, and cells align to the top. */
