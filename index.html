@@ -3298,6 +3298,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
 <link rel="stylesheet" href="mobile.css?v=20261008sp">
 <link rel="stylesheet" href="search.css?v=20261008s25">
+<link rel="stylesheet" href="client-mix.css?v=20261008cm1">
 <link rel="stylesheet" href="nav-style.css?v=20261006hub">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/pill-select.js?v=20261005tap"></script>
@@ -3427,6 +3428,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('stafflevels', this)">Stylist&rsquo;s Benchmarks</div>
     <div class="nav-subhead">Clients</div>
     <div class="nav-sub" onclick="showView('clients', this)">Top Clients</div>
+    <div class="nav-sub" onclick="showView('clientmix', this)">Client Mix</div>
     <div class="nav-sub" onclick="showView('lostclients', this)">Client’s Last Visit</div>
     <div class="nav-sub" onclick="showView('reviews', this)">Google Reviews</div>
     <div class="nav-subhead">Sales &amp; Stock</div>
@@ -3989,6 +3991,15 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="topClientsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- CLIENT MIX (Kate, 8 Oct 2026): how many different clients had colour, treatments, nails,
+       beauty or bought retail, how many units, and who they were. From client_mix_cards and
+       client_mix_detail over sales_transaction_lines, sorted by Phorest's own service categories
+       (service_catalog, migrations/client_mix.sql). client-mix.js draws it, with the Service
+       roster tab. Own controls, so the masthead filters are hidden, as on Top Clients. -->
+  <div id="view-clientmix" style="display:none">
+    <main id="clientMixContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <!-- LOST CLIENTS (Kate, 2 Oct 2026): regulars who stopped coming back, per branch,
        from lost_clients over sales_transaction_lines. lost-clients.js draws it. -->
   <div id="view-lostclients" style="display:none">
@@ -4101,13 +4112,14 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="products.js?v=20261005dots"></script>
 <script src="lost-clients.js?v=20261007lvall"></script>
 <script src="top-clients.js?v=20261007fit"></script>
+<script src="client-mix.js?v=20261008cm1"></script>
 <script src="marketing-chart.js?v=20261006ph"></script>
 <script src="google-ads.js?v=20261006per"></script>
 <script src="website.js?v=20261006per"></script>
 <script src="social.js?v=20261006ph"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261008sb"></script>
+<script src="dashboard.js?v=20261008sc"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4521,7 +4533,7 @@ function showView(view, el){
   document.body.classList.toggle('staffperf-chrome', view === 'staffperf');
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'clients');
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'clients' || view === 'clientmix');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('website-chrome', view === 'website');
   document.body.classList.toggle('social-chrome', view === 'social');
@@ -4544,6 +4556,7 @@ function showView(view, el){
   if (view === 'staffweeks') renderStaffWeeks();
   if (view === 'services') initSvcView();
   if (view === 'clients') initCliView();
+  if (view === 'clientmix') renderClientMix();
   if (view === 'lostclients') renderLostClients();
   if (view === 'googleads') renderGoogleAds();
   if (view === 'website') renderWebsite();

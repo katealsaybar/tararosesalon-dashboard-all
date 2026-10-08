@@ -1,0 +1,49 @@
+/* Client Mix (client-mix.js), Kate, 8 Oct 2026. Sits on Top Clients' and Client's Last Visit's
+   own classes (sc-seg, lc-bar, slv-card, slv-table, prd-cards, lc-row); only what they do not
+   cover is here. Colours are the dashboard's own tokens, so dark mode follows. */
+.cm-tabs{display:flex;gap:6px;margin:6px 0 0;border-bottom:1px solid var(--border)}
+.cm-tab{border:0;background:none;color:var(--muted);padding:9px 14px;font:inherit;font-size:14px;border-bottom:3px solid transparent;cursor:pointer}
+.cm-tab.on{color:var(--text);border-bottom-color:var(--text);font-weight:600}
+@media(hover:hover){.cm-tab:hover{color:var(--text)}}
+
+.cm-bar{margin-top:16px}
+.cm-cards{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:16px}
+.cm-cat{text-align:left;background:var(--surface);color:var(--text);border:1px solid var(--border);border-top:4px solid var(--c);border-radius:var(--radius-card);padding:14px;box-shadow:var(--shadow-card);font:inherit;cursor:pointer;min-width:0}
+.cm-cat.on{outline:2px solid var(--text);outline-offset:-2px}
+.cm-cat.un{border-style:dashed;border-top-style:solid}
+@media(hover:hover){.cm-cat:hover{box-shadow:var(--shadow-card-hover)}}
+.cm-nm{font-size:13px;font-weight:600}
+.cm-n{font-family:'Playfair Display',serif;font-size:34px;line-height:1.1;margin-top:4px}
+.cm-k{font-size:12.5px;color:var(--muted);line-height:1.4}
+
+.cm-narrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:16px 0 0}
+.cm-chip{border:1px dashed var(--border);background:transparent;color:var(--muted);border-radius:20px;font:inherit;font-size:13px;padding:4px 12px;min-height:32px;cursor:pointer}
+.cm-chip.with{border:1px solid var(--good);color:var(--good);font-weight:600}
+.cm-chip.without{border:1px solid var(--bad);color:var(--bad);font-weight:600;text-decoration:line-through}
+.cm-pcats{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:12px 0 0}
+.cm-seg{flex-wrap:wrap}
+.cm-seg button em{font-style:normal;opacity:.6;margin-left:4px;font-size:11.5px}
+.cm-summary{font-size:15px;margin:16px 0 14px}
+.cm-summary b{font-family:'Playfair Display',serif;font-size:20px;font-weight:600}
+
+.cm-two{display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:960px){.cm-two{grid-template-columns:5fr 7fr}}
+.cm-two .slv-card{min-width:0}
+.cm-tools{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.cm-pill{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:20px;font:inherit;font-size:13px;padding:5px 13px;min-height:34px;cursor:pointer}
+@media(hover:hover){.cm-pill:hover{color:var(--text);border-color:var(--text)}}
+.cm-busy{opacity:.45;transition:opacity .15s;pointer-events:none}
+
+.cm-items .cm-item{cursor:pointer}
+.cm-items .cm-item.sel td{background:var(--surface2)}
+@media(hover:hover){.cm-items .cm-item:hover td{background:var(--surface2)}}
+.cm-cell-cat{font-size:12px;color:var(--muted)}
+.cm-bar1{height:5px;border-radius:3px;background:var(--surface2);margin-top:4px;min-width:60px}
+.cm-bar1 i{display:block;height:100%;border-radius:3px;background:var(--c)}
+.cm-tag{display:inline-block;font-size:11.5px;border-radius:12px;padding:1px 8px;margin:1px 3px 1px 0;border:1px solid var(--c);color:var(--text);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:top}
+.cm-bought{min-width:200px}
+.cm-warn{background:var(--warn-bg);color:var(--text);border:1px solid var(--warn);border-radius:8px;padding:8px 12px;font-size:13.5px;margin-top:14px}
+tr.cm-unm td{background:var(--warn-bg)}
+.cm-foot{margin-top:18px;font-size:12.5px;max-width:860px}
+#cmPageRoster select{font:inherit;font-size:13px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:4px 8px}
+#cmPageRoster select:disabled{opacity:.7}
