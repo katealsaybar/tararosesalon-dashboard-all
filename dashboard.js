@@ -3714,6 +3714,12 @@ async function opmLoad() {
 // A little ⓘ that explains a figure on hover or tap, the same as on the Staff Dashboards, so
 // the page does not need a paragraph of definitions underneath (Kate, 8 Oct 2026). label may be
 // empty for an icon alone.
+// The "Do this" card is a checklist (Kate, 9 Oct 2026). A tick is kept in this browser only,
+// per action and per deadline week, so next week's action starts unticked.
+function actDone(key) { try { return localStorage.getItem('trs-act-' + key) === '1'; } catch (e) { return false; } }
+function actToggle(box) {
+  try { if (box.checked) localStorage.setItem('trs-act-' + box.dataset.k, '1'); else localStorage.removeItem('trs-act-' + box.dataset.k); } catch (e) {}
+}
 function ihTip(label, text) {
   return `<span class="ih-lbl" tabindex="0">${label}<span class="ih-i" aria-hidden="true">ⓘ</span><span class="ih-tip" role="tooltip">${escapeHtml(text)}</span></span>`;
 }
@@ -4704,10 +4710,20 @@ async function renderDashboard() {
     dte.setDate(dte.getDate() + ((8 - dte.getDay()) % 7 || 7));
     return `${MON_LONG[dte.getMonth()].slice(0, 3)} ${dte.getDate()}`;
   })();
+  // Once the period on screen has ended (last month, a past year) there is nothing left to do about it,
+  // so the card reads as what could have been done, with no deadline and no tick box (Kate, 9 Oct 2026).
+  const periodOver = !!(dateTo && dateToIso(dateTo) < dateToIso(new Date()));
+  const actTitle = periodOver ? 'What could have been done' : 'Do this';
+  const actNav = document.querySelector('a[href="#s-action"]');
+  if (actNav) actNav.textContent = actTitle;
+  const actItem = (text, key) => periodOver
+    ? `<ul class="act-list"><li class="act-item act-past"><span class="act-dot" aria-hidden="true">•</span><span><b>${text}</b><small>Owner Kate</small></span></li></ul>`
+    : `<ul class="act-list"><li><label class="act-item"><input type="checkbox" data-k="${escapeHtml(key)}" onchange="actToggle(this)"${actDone(key) ? ' checked' : ''}><span><b>${text}</b><small>Kate · by Monday ${nextMonday}</small></span></label></li></ul>`;
+  const worstName = worst ? escapeHtml(worst.name.replace(/\s*%$/, '')) : '';
   const actionHtml = worst ? `
     <div class="action">
-      <div class="tag">✦ Fix first</div>
-      <h2>${escapeHtml(worst.name.replace(/\s*%$/, ''))} at ${worst.fmt(worst.combined)}. ${
+      <div class="tag">✦ ${periodOver ? 'Should have been fixed first' : 'Fix first'}</div>
+      <h2>${worstName} at ${worst.fmt(worst.combined)}. ${
         alsoWorst
           ? `${escapeHtml(alsoWorst.name.replace(/\s*%$/, ''))} is the wider gap, but Treatment and Retail are the standing priority.`
           : lowRows.length > 1 ? 'Every other gap is small next to this one.' : 'It is the only gap left.'
@@ -4715,20 +4731,12 @@ async function renderDashboard() {
       <p class="why">Target ${tidyTarget(worst.fmt(worst.target))}. ${worst.att >= 1 && worst.short.length
         ? `${worst.fmt(worst.combined)} clears it combined, but ${worst.short.map(x => `${x.dept.toLowerCase()} is ${worst.fmt(x.v)} against ${worst.fmt(x.t)}`).join(' and ')}`
         : `${worst.fmt(worst.combined)} is ${Math.round(worst.att * 100)}% of the way there`}${Number.isFinite(worst.hair) && Number.isFinite(worst.beauty) ? `; hair ${worst.fmt(worst.hair)}, beauty ${worst.fmt(worst.beauty)}` : ''}.</p>
-      <div class="meta">
-        <div>Action<b>Audit how ${escapeHtml(worst.name.replace(/\s*%$/, ''))} is captured and coached at reception</b></div>
-        <div>Owner<b>Kate</b></div>
-        <div>Deadline<b>Monday ${nextMonday}</b></div>
-      </div>
+      ${actItem(periodOver ? `Audit how ${worstName} was captured and coached at reception` : `Audit how ${worstName} is captured and coached at reception`, 'fix-' + worstName.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + nextMonday.replace(/\s+/g, ''))}
     </div>` : `
     <div class="action">
-      <div class="tag">✦ Hold the line</div>
-      <h2>Every scored target is being hit. The job is keeping it there.</h2>
-      <div class="meta">
-        <div>Action<b>Write down what changed, before it is forgotten</b></div>
-        <div>Owner<b>Kate</b></div>
-        <div>Deadline<b>Monday ${nextMonday}</b></div>
-      </div>
+      <div class="tag">✦ ${periodOver ? 'What held' : 'Hold the line'}</div>
+      <h2>${periodOver ? 'Every scored target was hit. The job was keeping it there.' : 'Every scored target is being hit. The job is keeping it there.'}</h2>
+      ${actItem(periodOver ? 'Write down what changed, so it can be repeated' : 'Write down what changed, before it is forgotten', 'hold-' + nextMonday.replace(/\s+/g, ''))}
     </div>`;
 
   main.innerHTML = `
@@ -4825,7 +4833,7 @@ ${hasBeauty ? `
 </div>
 
 <!-- ══ ONE ACTION ══ -->
-<div class="eyebrow" id="s-action"><span class="bar"></span>Do this</div>
+<div class="eyebrow" id="s-action"><span class="bar"></span>${actTitle}</div>
 ${actionHtml}
 
 <!-- ══ WHERE THE FIGURES LIVE NOW ══
