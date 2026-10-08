@@ -695,7 +695,7 @@
       if (!g) groups.set(key, { best: h, n: 1 });
       else { g.n++; if (h.s > g.best.s) g.best = h; }
     });
-    return [...groups.values()].filter(g => names[g.best.it.view]).map(g => {
+    const made = [...groups.values()].filter(g => names[g.best.it.view]).map(g => {
       const b = g.best.it, page = names[b.view], sec = b.sec;
       let t, snip, where = 'On ' + page;
       if (b.head || (!sec && b.text.length <= 80)) { t = b.text; snip = ''; }
@@ -709,6 +709,18 @@
         go: () => goText(b.view, b.text, null, '', sec ? [sec] : []),
       };
     });
+    // Kate, 8 Oct 2026: "Your three paths at Tara Rose" came twice, once as the heading line and
+    // once as the section beneath it. Same page, same title: one result, the one with the text under it.
+    const merged = new Map();
+    made.forEach(r => {
+      const k = r.view + '|' + norm(r.t), m = merged.get(k);
+      if (!m) { merged.set(k, r); return; }
+      const keep = (r.s && !m.s) || (!!r.s === !!m.s && r.score > m.score) ? r : m, other = keep === r ? m : r;
+      keep.more += other.more + 1;
+      keep.score = Math.max(keep.score, other.score);
+      merged.set(k, keep);
+    });
+    return [...merged.values()];
   }
 
   // ── MATCHING ──
@@ -1299,7 +1311,8 @@
       const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       return `<span class="${stale ? 'stale' : ''}">${SYNC[f][0]} <b>${d.getDate()} ${d.toLocaleString('en-GB', { month: 'short' })}</b>, ${time}</span>`;
     }).filter(Boolean);
-    return bits.length ? `<div class="gs-r-upd gs-r-feed" title="How fresh the numbers behind this page are">Data as of ${bits.join(' · ')}</div>` : '';
+    const std = feeds.every(f => f === 'ledger' || f === 'phorest');
+    return bits.length ? `<div class="gs-r-upd gs-r-feed${std ? ' gs-r-feed-std' : ''}" title="How fresh the numbers behind this page are">Data as of ${bits.join(' · ')}</div>` : '';
   }
 
   // "3 Oct", or "3 Oct 2025" when it is not this year.
@@ -1333,7 +1346,7 @@
     const D = window.TRS_SEARCH_INDEX;
     if (D && D.built) {
       const d = new Date(D.built + 'T00:00:00');
-      bits.push(`<span title="Pages are searched from an index of their wording, rebuilt when a page's wording changes">Page text <b>${d.getDate()} ${d.toLocaleString('en-GB', { month: 'short' })}</b></span>`);
+      bits.push(`<span class="gs-fresh-pt" title="Pages are searched from an index of their wording, rebuilt when a page's wording changes">Page text <b>${d.getDate()} ${d.toLocaleString('en-GB', { month: 'short' })}</b></span>`);
     }
     return bits.length ? '<span class="gs-fresh-k">Last updated</span>' + bits.join('') : '';
   }
