@@ -3182,6 +3182,219 @@ function destroyCharts() {
   charts = {};
 }
 
+// ── CLIENT FUNNEL: LEDGER OR PHOREST ─────────────────────────────
+// Kate, 8 Oct 2026. The funnel on the Pulse can read two sources, and says which.
+//   Ledger   the branch ledger's own columns (branch_staff_daily_clean), nothing mixed in:
+//            salon + request + new + NCR is the total, and rebooked is counted inside them.
+//   Phorest  visits, requests (RQ), new clients and rebooked. Phorest has no salon or NCR,
+//            so those two rows read n/a. Rebooked comes from the Staff Performance Tracker
+//            (phorest_staff_rebooking), fetched the first time Phorest is shown.
+// The choice is remembered (trs-funnel-src). The Pulse's other client numbers are not
+// touched: they are through the door, with handled beside them.
+let FN_SRC = 'ledger';
+try { if (localStorage.getItem('trs-funnel-src') === 'phorest') FN_SRC = 'phorest'; } catch (e) {}
+
+const fnNum = v => Math.round(Number(v) || 0).toLocaleString('en-GB');
+const fnZero = () => ({ t: 0, salon: 0, req: 0, reb: 0, nw: 0, ncr: 0 });
+
+// The ledger rows, summed per side, leaving out the same label rows and assistants the
+// staff maps leave out.
+function fnLedgerCounts(rows) {
+  const out = { hair: fnZero(), beauty: fnZero() };
+  (rows || []).forEach(r => {
+    const up = String(r.staff_name || '').trim().toUpperCase();
+    if (LEDGER_NON_PERSON_NAMES.has(up) || isLedgerAssistantName(up)) return;
+    const o = String(r.dept || '').trim().toLowerCase() === 'beauty' ? out.beauty : out.hair;
+    o.t += Number(r.total) || 0;       o.salon += Number(r.salon) || 0;
+    o.req += Number(r.req) || 0;       o.reb += Number(r.rebooked) || 0;
+    o.nw += Number(r.new_client) || 0; o.ncr += Number(r.ncr) || 0;
+  });
+  return out;
+}
+// A window with no daily rows (the weekly path): the summary's own counts, as before.
+function fnLedgerFromSummary(s) {
+  const side = (t, bd, nw, ncr, reb) => ({ t: t || 0, salon: (bd && bd.salon) || 0, req: (bd && bd.req) || 0, reb: reb || 0, nw: nw || 0, ncr: ncr || 0 });
+  return {
+    hair: side(s.hairTotalClients, s.hairBreakdown, s.hairNewClients, s.hairNCR, s.hairRebookedCount),
+    beauty: side(s.beautyTotalClients, s.beautyBreakdown, s.beautyNewClients, s.beautyNCR, s.beautyBreakdown && s.beautyBreakdown.rebooked),
+  };
+}
+
+// Which side of the salon one of Phorest's staff names sits on: the same rule as
+// buildPhorestOnlyStaffMaps, so the funnel and the staff tables agree. null for the house
+// account and the assistants.
+function fnPhorestSide(employeeName, branch, ledgerDept, deptMap) {
+  const pk = cleanPhorestName(employeeName);
+  if (!pk || LEDGER_NON_PERSON_NAMES.has(pk) || pk.indexOf('BUSINESS') === 0) return null;
+  let name = pk.split(' ')[0];
+  for (const [ledger, ph] of Object.entries(PHOREST_RECONCILE_ALIASES)) {
+    if (pk === ph || pk.indexOf(ph + ' ') === 0) { name = ledger; break; }
+  }
+  if (isLedgerAssistantName(name)) return null;
+  const dk = staffMapKey(name);
+  const prof = (typeof STAFF_PROFILES !== 'undefined') ? STAFF_PROFILES[dk] : null;
+  const bhDept = (BRANCH_INFO[branch] && BRANCH_INFO[branch].country === 'BH') ? BH_STAFF_DEPT[dk] : null;
+  const beauty = bhDept ? bhDept === 'beauty'
+    : deptMap[dk] ? deptMap[dk] === 'beauty'
+    : (ledgerDept && ledgerDept[dk]) ? ledgerDept[dk] === 'beauty'
+    : !!(prof && /Beauty|Nail|Therapist/i.test(prof.role || ''));
+  return beauty ? 'beauty' : 'hair';
+}
+// Phorest's visits, requests and new clients (and rebooked, once the tracker rows are in),
+// summed per side. rebooked is null until then, so it reads as unknown, not zero.
+function fnPhorestCounts(phRows, rebookRows, ledgerRows) {
+  const z = () => ({ t: 0, req: 0, nw: 0, reb: rebookRows ? 0 : null });
+  const out = { hair: z(), beauty: z() };
+  const deptMap = (typeof buildStaffDeptMap === 'function') ? buildStaffDeptMap() : {};
+  const ledgerDept = {};
+  (ledgerRows || []).forEach(r => {
+    const dp = String(r.dept || '').trim().toLowerCase();
+    if (dp) ledgerDept[staffMapKey(r.staff_name)] = dp === 'beauty' ? 'beauty' : 'hair';
+  });
+  (phRows || []).forEach(r => {
+    if (r.is_total) return;
+    const side = fnPhorestSide(r.employee_name, r.branch, ledgerDept, deptMap);
+    if (!side) return;
+    const o = out[side];
+    o.t += Number(r.visits) || 0; o.req += Number(r.rqs) || 0; o.nw += Number(r.new_clients) || 0;
+  });
+  (rebookRows || []).forEach(r => {
+    const side = fnPhorestSide(r.employee_name, r.branch, ledgerDept, deptMap);
+    if (side) out[side].reb += Number(r.rebooked) || 0;
+  });
+  return out;
+}
+
+// The tracker rows for the window and branches on screen. A table the signed-in person
+// cannot read comes back as an error: rebooked then stays unknown, and the row says so.
+async function fnLoadRebook(F) {
+  if (F.rebook !== null) return;
+  const rows = window._fnRows;
+  if (!rows || !dateFrom || !dateTo) { F.rebook = false; return; }
+  try {
+    const fromStr = dateToIso(dateFrom), toStr = dateToIso(dateTo);
+    let list = await cachedRange(`rebook|${fromStr}|${toStr}`, async () => {
+      const r = await loadAllRows('phorest_staff_rebooking', fromStr, toStr);
+      return keepUae(r);
+    });
+    if (!sel.branch.includes('all')) list = list.filter(r => sel.branch.includes(r.branch));
+    // Nothing back is not zero rebooked: row security answers a table it will not show with an
+    // empty list, not an error. Unknown stays unknown.
+    if (!list.length) { F.rebook = false; return; }
+    F.rebook = list;
+    F.phorest = fnPhorestCounts(rows.phorest, list, rows.ledger);
+  } catch (e) { F.rebook = false; }
+}
+
+const FN_LEDGER_ROWS = [
+  { k: 'TOT', f: 't',     name: 'Total clients',      tip: 'Salon + request + new + NCR. Rebooked is counted inside these, not added on top.', tot: true },
+  { k: 'SAL', f: 'salon', name: 'Salon client',       tip: 'Returning client with no preference, so the salon booked her.' },
+  { k: 'REQ', f: 'req',   name: 'Request client',     tip: 'Returning client who asked for her stylist by name.' },
+  { k: 'REB', f: 'reb',   name: 'Rebooked',           tip: 'Booked her next visit before she left.' },
+  { k: 'NEW', f: 'nw',    name: 'New client',         tip: 'First visit, did not ask for anyone.' },
+  { k: 'NCR', f: 'ncr',   name: 'New client request', tip: 'New client who asked for her stylist by name.' },
+];
+const FN_PHOREST_ROWS = [
+  { k: 'TOT', f: 't',   name: 'Visits',             tip: 'Every visit Phorest recorded.', tot: true },
+  { k: 'SAL', f: 'salon', na: true, name: 'Salon client', tip: 'Not in Phorest: it does not split salon from request.' },
+  { k: 'REQ', f: 'req', name: 'Request (RQ)',       tip: 'Visits where the client asked for her stylist: Phorest\u2019s RQ count.' },
+  { k: 'REB', f: 'reb', name: 'Rebooked',           tip: 'Visits that rebooked before leaving, from Phorest\u2019s Staff Performance Tracker.' },
+  { k: 'NEW', f: 'nw',  name: 'New client',         tip: 'Phorest\u2019s own new-client count. It counts differently from the ledger, so it will not match.' },
+  { k: 'NCR', f: 'ncr', na: true, name: 'New client request', tip: 'Not in Phorest.' },
+];
+
+const fnPct = (n, t) => (t && n != null) ? (Math.round(n / t * 1000) / 10).toFixed(1) + '%' : '\u2013';
+const fnBarW = (n, t) => (t && n != null) ? Math.max(n ? 1.5 : 0, n / t * 100).toFixed(1) : 0;
+
+function fnSwitch(src) {
+  return `<span class="seg fn-seg" role="group" aria-label="Where the funnel's numbers come from">`
+    + [['ledger', 'Ledger', 'The branch ledger, per staff'], ['phorest', 'Phorest', 'Phorest\u2019s own visit, request and rebooking counts']]
+      .map(([v, l, t]) => `<button type="button" class="chip seg-b" aria-pressed="${src === v}" title="${t}" onclick="fnSetSrc('${v}')">${l}</button>`).join('')
+    + `</span>`;
+}
+
+// The funnel's rows, foot and ratios, for one source. Returns the card's sub-line and body.
+function fnBuildBody(F, src) {
+  const hasBeauty = F.hasBeauty, led = src === 'ledger' || !F.phorest;
+  const data = led ? F.ledger : F.phorest;
+  const H = data.hair, B = data.beauty;
+  let rows = (led ? FN_LEDGER_ROWS : FN_PHOREST_ROWS).slice();
+  if (led) {
+    // Total is the ledger's own total column; where a side's four types fall short of it, the
+    // gap shows as Unsplit. Ledger-only numbers normally add up, so this row rarely appears.
+    const types = o => o.salon + o.req + o.nw + o.ncr;
+    const uH = Math.max(0, H.t - types(H)), uB = Math.max(0, B.t - types(B));
+    if (uH || uB) { rows.push({ k: 'UNS', name: 'Unsplit', uns: true, tip: 'Counted in the total, but not given one of the four types (salon, request, new, new request).' }); H.uns = uH; B.uns = uB; }
+  }
+  const cell = (o, r) => r.uns ? o.uns : (r.na ? null : o[r.f]);
+  const body = rows.map(r => {
+    const hv = cell(H, r), bv = cell(B, r);
+    const pc = (v, t, side) => `<span class="fn-pill ${side}${v == null ? ' na' : ''}">${r.tot ? '100%' : (v == null ? (r.na ? 'n/a' : '\u2013') : fnPct(v, t))}</span>`;
+    const bar = (v, t, side, col) => `<div class="fn-lane ${side}"><span class="fn-bar" style="width:${fnBarW(v, t)}%;min-width:${v ? 2 : 0}px;background:var(${col});opacity:${r.tot ? .45 : 1}"></span></div>`;
+    return `
+    <div class="fn-grid fn-row${r.uns ? ' uns' : ''}${r.na ? ' na' : ''}">
+      <span class="fn-n l tabular">${hv == null ? '\u2013' : fnNum(hv)}</span>
+      ${bar(hv, H.t, 'l', '--hair')}
+      ${pc(hv, H.t, 'l')}
+      <span class="fn-c" tabindex="0" aria-label="${escapeHtml(r.name)}"><span>${r.k}</span><span class="fn-tip" role="tooltip"><b>${escapeHtml(r.name)}</b>${escapeHtml(r.tip)}</span></span>
+      ${pc(bv, B.t, 'r')}
+      ${bar(bv, B.t, 'r', '--beauty')}
+      <span class="fn-n r tabular">${bv == null ? '\u2013' : fnNum(bv)}</span>
+    </div>`;
+  }).join('');
+  const sum = (o, ks) => ks.reduce((a, k) => a + (o[k] || 0), 0);
+  const ratio = (label, hn, hd, bn, bd) =>
+    `<span>${label}</span><span class="rv l">${fnPct(hn, hd)}</span><span class="rv r">${fnPct(bn, bd)}</span>`;
+  let ratios, foot;
+  if (led) {
+    ratios = [
+      ratio('Request rate (request + NCR)', H.req + H.ncr, H.t, B.req + B.ncr, B.t),
+      ratio('Returning who asked by name', H.req, H.salon + H.req, B.req, B.salon + B.req),
+      ratio('New who asked by name', H.ncr, H.nw + H.ncr, B.ncr, B.nw + B.ncr)];
+    const ret = (o, t) => fnPct(o.salon + o.req, t), nw = (o, t) => fnPct(o.nw + o.ncr, t);
+    foot = `Percent is of ${hasBeauty ? `each side's own ledger total: ${fnNum(H.t)} hair, ${fnNum(B.t)} beauty` : `the ${fnNum(H.t)} hair ledger total`}. `
+      + (hasBeauty
+        ? `${ret(H, H.t)} of hair clients and ${ret(B, B.t)} of beauty clients were returning; ${nw(H, H.t)} and ${nw(B, B.t)} were new.`
+        : `${ret(H, H.t)} of clients were returning; ${nw(H, H.t)} were new.`)
+      + ' Hover a code for its full name.';
+  } else {
+    ratios = [
+      ratio('Request rate (requests / visits)', H.req, H.t, B.req, B.t),
+      ratio('Rebooking rate (rebooked / visits)', H.reb, H.t, B.reb, B.t),
+      ratio('New clients / visits', H.nw, H.t, B.nw, B.t)];
+    foot = `Percent is of ${hasBeauty ? `each side's Phorest visits: ${fnNum(H.t)} hair, ${fnNum(B.t)} beauty` : `the ${fnNum(H.t)} hair visits`}. `
+      + 'Salon and NCR are ledger-only, so they read n/a here. Phorest counts new clients differently from the ledger, so New will not match it.'
+      + (H.reb == null ? ' Rebooked is not available for this selection.' : '') + ' Hover a code for its full name.';
+  }
+  const head = `<div class="fn-grid fn-head"><span class="l">Hair</span><span class="c">${hasBeauty ? 'Type \u00b7 % of side' : '% \u00b7 Type'}</span><span class="r">Beauty</span></div>`;
+  const sub = led
+    ? (hasBeauty ? 'Every client type, mirrored down the middle. The branch ledger.' : 'Every client type from the branch ledger. This branch runs hair only, so there is nothing to mirror.')
+    : (hasBeauty ? 'Phorest\u2019s own visit, request and rebooking counts, mirrored down the middle.' : 'Phorest\u2019s own visit, request and rebooking counts. This branch runs hair only.');
+  return { sub, body: `${head}${body}<div class="foot">${foot}</div><div class="fn-ratios"><span class="rh" style="color:var(--muted2)">Ratio</span><span class="rh rv l" style="color:var(--hair)">Hair</span><span class="rh rv r" style="color:var(--beauty)">Beauty</span>${ratios.join('')}</div>` };
+}
+
+function fnPaint() {
+  const F = window._fn, wrap = document.getElementById('fnWrap');
+  if (!F || !wrap) return;
+  const p = fnBuildBody(F, F.src);
+  wrap.innerHTML = p.body;
+  const sub = document.getElementById('fnSub'); if (sub) sub.textContent = p.sub;
+  document.querySelectorAll('.fn-seg .seg-b').forEach(b => {
+    b.setAttribute('aria-pressed', String((b.textContent.trim() === 'Phorest' ? 'phorest' : 'ledger') === F.src));
+  });
+}
+async function fnSetSrc(v) {
+  const F = window._fn;
+  if (!F) return;
+  v = v === 'phorest' ? 'phorest' : 'ledger';
+  if (v === 'phorest' && !F.phorest) return;
+  FN_SRC = v;
+  try { localStorage.setItem('trs-funnel-src', v); } catch (e) {}
+  F.src = v;
+  fnPaint();                       // straight away, rebooked reads unknown until the tracker rows land
+  if (v === 'phorest' && F.rebook === null) { await fnLoadRebook(F); fnPaint(); }
+}
+
 // Renders an inverted-pyramid client funnel split down the middle: hair on the
 // left, beauty on the right, each stage narrowing relative to that side's own
 // Total Clients so the two halves stay visually comparable even though hair
@@ -3743,6 +3956,7 @@ async function renderDashboard() {
   // Which loader served this window, so the previous window is fetched the same
   // way and the two summaries are built by the same aggregator.
   let usedWeeklyPath = false;
+  window._fnRows = null;   // the funnel's own rows; set below on the daily path only
 
   // Kate, 2 Oct 2026: everything below used to be asked for one after another (this
   // window, utilisation, the previous window, targets, door clients now, door clients
@@ -3798,6 +4012,7 @@ async function renderDashboard() {
         main.innerHTML = '<div class="empty">No data found for this date range.</div>';
         return;
       }
+      window._fnRows = { ledger: branchStaffRows, phorest: phorestStaffRows };   // after the branch filter
       d = aggDailyData(dailyRows, branchStaffRows, phorestStaffRows);
             window._cachedDailyTrend = buildDailyTrendCache(dailyRows, branchStaffRows, phorestStaffRows);
     }
@@ -4531,59 +4746,27 @@ async function renderDashboard() {
   const winsBeauty = winnersFor(d.beautyStaff, 'netSalonTake').map(winCard).join('');
 
   // ── CLIENT FUNNEL ────────────────────────────────────────────────
-  // These are independent booking-type breakdowns, not strict sequential stages,
-  // so each side is scaled against its OWN total: hair turns over roughly ten
-  // times beauty's volume and a shared scale would flatten beauty to a hairline.
-  const fnHair = s.hairTotalClients || 0, fnBeauty = s.beautyTotalClients || 0;
-  // New and NCR come from the same fields the NEW and NCR rows read, so the Unsplit row
-  // can never disagree with the rows above it.
-  const hb = Object.assign({}, s.hairBreakdown, { new: s.hairNewClients || 0, ncr: s.hairNCR || 0 });
-  const bb = Object.assign({}, s.beautyBreakdown, { new: s.beautyNewClients || 0, ncr: s.beautyNCR || 0 });
-  // Total is the branch ledger's own total column; Salon, Request, New and NCR are four
-  // other columns. Where a day's types do not add up to its total, the difference is
-  // Unsplit (Kate, 8 Oct 2026: KCA beauty, last month, 309 clients and 286 in a type).
-  const fnTypes = o => (o.salon || 0) + (o.req || 0) + (o.new || 0) + (o.ncr || 0);
-  const fnUnsH = Math.max(0, fnHair - fnTypes(hb)), fnUnsB = Math.max(0, fnBeauty - fnTypes(bb));
-  // The code is what shows; the name and meaning come on hover or tap (same words as the
-  // hover tips on Staff Dashboards).
-  const FUNNEL = [
-    { k:'TOT', name:'Total clients',      tip:'Every client seen in the period.',                                          hair:fnHair,            beauty:fnBeauty, tot:true },
-    { k:'SAL', name:'Salon client',       tip:'Returning client with no preference, so the salon booked her.',            hair:hb.salon || 0,     beauty:bb.salon || 0 },
-    { k:'REQ', name:'Request client',     tip:'Returning client who asked for her stylist by name.',                      hair:hb.req || 0,       beauty:bb.req || 0 },
-    { k:'REB', name:'Rebooked',           tip:'Booked her next visit before she left.',                                   hair:s.hairRebookedCount || 0, beauty:bb.rebooked || 0 },
-    { k:'NEW', name:'New client',         tip:'First visit, did not ask for anyone.',                                     hair:hb.new,    beauty:bb.new },
-    { k:'NCR', name:'New client request', tip:'New client who asked for her stylist by name.',                            hair:hb.ncr,    beauty:bb.ncr },
-  ];
-  if (fnUnsH || fnUnsB) FUNNEL.push({ k:'UNS', name:'Unsplit', uns:true,
-    tip:'Counted in the total, but the ledger did not give them one of the four types (salon, request, new, new request).',
-    hair:fnUnsH, beauty:fnUnsB });
-  const fnPct = (n, t) => t ? (Math.round(n / t * 1000) / 10).toFixed(1) + '%' : '–';
-  const fnBarW = (n, t) => t ? Math.max(n ? 1.5 : 0, n / t * 100).toFixed(1) : 0;
-  const funnelHtml = FUNNEL.map(r => `
-    <div class="fn-grid fn-row${r.uns ? ' uns' : ''}">
-      <span class="fn-n l tabular">${num0(r.hair)}</span>
-      <div class="fn-lane l"><span class="fn-bar" style="width:${fnBarW(r.hair, fnHair)}%;min-width:${r.hair ? 2 : 0}px;background:var(--hair);opacity:${r.tot ? .45 : 1}"></span></div>
-      <span class="fn-pill l">${r.tot ? '100%' : fnPct(r.hair, fnHair)}</span>
-      <span class="fn-c" tabindex="0" aria-label="${escapeHtml(r.name)}"><span>${r.k}</span><span class="fn-tip" role="tooltip"><b>${escapeHtml(r.name)}</b>${escapeHtml(r.tip)}</span></span>
-      <span class="fn-pill r">${r.tot ? '100%' : fnPct(r.beauty, fnBeauty)}</span>
-      <div class="fn-lane r"><span class="fn-bar" style="width:${fnBarW(r.beauty, fnBeauty)}%;min-width:${r.beauty ? 2 : 0}px;background:var(--beauty);opacity:${r.tot ? .45 : 1}"></span></div>
-      <span class="fn-n r tabular">${num0(r.beauty)}</span>
-    </div>`).join('');
-  // What the funnel cannot be read for at a glance: how many asked for their stylist by
-  // name, among all, among returning and among new clients.
-  const fnRet = (o, t) => fnPct((o.salon || 0) + (o.req || 0), t), fnNew = (o, t) => fnPct((o.new || 0) + (o.ncr || 0), t);
-  const fnRatio = (label, hn, hd, bn, bd) =>
-    `<span>${label}</span><span class="rv l">${fnPct(hn, hd)}</span><span class="rv r">${fnPct(bn, bd)}</span>`;
-  const fnRatiosHtml = `
-    <div class="fn-ratios">
-      <span class="rh" style="color:var(--muted2)">Ratio</span><span class="rh rv l" style="color:var(--hair)">Hair</span><span class="rh rv r" style="color:var(--beauty)">Beauty</span>
-      ${fnRatio('Request rate (request + NCR)', (hb.req || 0) + (hb.ncr || 0), fnHair, (bb.req || 0) + (bb.ncr || 0), fnBeauty)}
-      ${fnRatio('Returning who asked by name', hb.req || 0, (hb.salon || 0) + (hb.req || 0), bb.req || 0, (bb.salon || 0) + (bb.req || 0))}
-      ${fnRatio('New who asked by name', hb.ncr || 0, (hb.new || 0) + (hb.ncr || 0), bb.ncr || 0, (bb.new || 0) + (bb.ncr || 0))}
-    </div>`;
-  const fnSummary = hasBeauty
-    ? `${fnRet(hb, fnHair)} of hair clients and ${fnRet(bb, fnBeauty)} of beauty clients were returning; ${fnNew(hb, fnHair)} and ${fnNew(bb, fnBeauty)} were new.`
-    : `${fnRet(hb, fnHair)} of clients were returning; ${fnNew(hb, fnHair)} were new.`;
+  // Kate, 8 Oct 2026: Ledger | Phorest switch (fnBuildBody and friends, above). Ledger is
+  // the branch ledger's own columns, nothing mixed in; Phorest is Phorest's visits,
+  // requests, rebooked and new clients. Each side is scaled against its OWN total: hair
+  // turns over roughly ten times beauty's volume and a shared scale would flatten beauty.
+  const fnRows = window._fnRows || null;
+  window._fn = {
+    hasBeauty,
+    ledger: fnRows ? fnLedgerCounts(fnRows.ledger) : fnLedgerFromSummary(s),
+    phorest: (fnRows && fnRows.phorest && fnRows.phorest.length) ? fnPhorestCounts(fnRows.phorest, null, fnRows.ledger) : null,
+    rebook: null,       // Staff Performance Tracker rows, fetched the first time Phorest is shown
+    src: FN_SRC,
+  };
+  {
+    const F = window._fn;
+    // A window the ledger has nothing for (Bahrain) reads Phorest, the only source there is.
+    if (F.phorest && !(F.ledger.hair.t + F.ledger.beauty.t)) F.src = 'phorest';
+    if (!F.phorest) F.src = 'ledger';
+  }
+  const fnParts = fnBuildBody(window._fn, window._fn.src);
+  const fnSwitchHtml = window._fn.phorest ? fnSwitch(window._fn.src) : '';
+  if (window._fn.src === 'phorest' && window._fn.phorest) setTimeout(() => fnLoadRebook(window._fn).then(fnPaint), 0);
 
   // ── BRANCH PERFORMANCE, standing columns ─────────────────────────
   // Replaces the Chart.js bar chart that used to live here: the same four
@@ -4722,14 +4905,9 @@ ${hasBeauty ? `
 <div class="eyebrow" id="s-perf"><span class="dot" style="background:var(--accent-lavender)"></span>${escapeHtml(branchLabel)} · Performance Overview</div>
 <div class="perf2">
   <div class="card${hasBeauty ? '' : ' hair-only'}">
-    <div class="card-title">Client Funnel${hasBeauty ? ' · Hair vs Beauty' : ' · Hair'}</div>
-    <div class="card-sub">${hasBeauty ? 'Every client type, mirrored down the middle' : 'Every client type. This branch runs hair only, so there is nothing to mirror.'}</div>
-    <div class="fn-wrap">
-    <div class="fn-grid fn-head"><span class="l">Hair</span><span class="c">${hasBeauty ? 'Type · % of side' : '% · Type'}</span><span class="r">Beauty</span></div>
-    ${funnelHtml}
-    <div class="foot">Bars and percentages are of ${hasBeauty ? `each side's own total: ${num0(fnHair)} hair, ${num0(fnBeauty)} beauty` : `the ${num0(fnHair)} hair total`}. ${fnSummary} Hover a code for its full name.</div>
-    ${fnRatiosHtml}
-    </div>
+    <div class="fn-top"><div class="card-title">Client Funnel${hasBeauty ? ' · Hair vs Beauty' : ' · Hair'}</div>${fnSwitchHtml}</div>
+    <div class="card-sub" id="fnSub">${fnParts.sub}</div>
+    <div class="fn-wrap" id="fnWrap">${fnParts.body}</div>
   </div>
   <div class="card">
     <div class="card-title">Branch Performance<span class="m-pill">${brDoor ? 'Per visit' : 'Per staff'}</span></div>
