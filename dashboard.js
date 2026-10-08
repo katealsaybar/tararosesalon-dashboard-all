@@ -2565,7 +2565,9 @@ const LEDGER_NON_PERSON_NAMES = new Set(['BUSINESS', 'AA', 'BB', 'CC', 'ASSISTAN
 // that fix is local to that page, so the ledger views never heard of it. Ma. Ercely
 // (Motor City) too: Phorest's "Ma. Ercely Vacal" reads as "MA." by its first word.
 // And Ara (KCA), Joyce (SAA), Maan (AQ, MC), Phorest-only assistants (30 Sep).
-const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL', 'IVY', 'FRANCES', 'MARGIE', 'CRISTINE', 'LHANG', 'MA.', 'ARA', 'JOYCE', 'MAAN']);
+// Kate, 9 Oct 2026: Liberty (Saadiyat) is an assistant and Jessa (Khalifa City A) is front desk, so neither
+// belongs in the stylist tables or the name-match flag; same treatment as Frances above.
+const LEDGER_ASSISTANT_NAMES = new Set(['CHONA', 'ESTHER', 'DORAH', 'PEARL', 'IVY', 'FRANCES', 'MARGIE', 'CRISTINE', 'LHANG', 'MA.', 'ARA', 'JOYCE', 'MAAN', 'LIBERTY', 'JESSA']);
 
 // Kate, 24 Sep 2026: Apol and Marjorie were still showing on Branch Performance as
 // stylists/therapists. The set above only caught names typed into it, so anyone whose
@@ -3295,17 +3297,37 @@ function fnPhorestPerStaff(phRows, ledgerRows) {
 function staffGapFlags(codes) {
   const by = (typeof aggByBranch === 'function') ? aggByBranch() : {};
   const out = { noLedger: [], noPhorest: [] };
+  const lc = st => (st.ledgerClients != null ? st.ledgerClients : (st.total || 0));
+  // Judged per person across every branch picked, not branch by branch (Kate, 9 Oct 2026). A hair
+  // stylist who covers a day at another branch (Blossom at Khalifa City, Olena at Saadiyat) has a name
+  // that matches fine; only a person missing from a whole feed is a name to match. Same reason a
+  // department slip (Xyrhy, 1 client typed under Beauty at Al Quoz) does not count.
+  const branches = [];
   (codes && codes.length ? codes : ACTIVE_BRANCHES).forEach(code => {
     const bd = by[code];
     if (!bd || !bd.hairStaff) return;
     const all = (bd.hairStaff || []).map(st => ({ st, dept: 'Hair' })).concat((bd.beautyStaff || []).map(st => ({ st, dept: 'Beauty' })));
-    const lc = st => (st.ledgerClients != null ? st.ledgerClients : (st.total || 0));
+    // Only judged where there is enough ledger to judge by, and a branch with no Phorest rows has
+    // nothing to compare.
     if (!all.some(x => x.st.ph) || all.filter(x => lc(x.st) > 0).length < 3) return;
-    all.forEach(({ st, dept }) => {
-      if (st.ph && st.ph.t > 0 && st.ledgerClients === 0) out.noLedger.push({ code, name: st.name, dept, n: st.ph.t });
-      else if (lc(st) > 0 && !(st.ph && st.ph.t > 0)) out.noPhorest.push({ code, name: st.name, dept, n: lc(st) });
-    });
+    branches.push({ code, all });
   });
+  const phKeys = new Set(), ledKeys = new Set();
+  branches.forEach(({ all }) => all.forEach(({ st }) => {
+    const k = staffMapKey(st.name);
+    if (st.ph && st.ph.t > 0) phKeys.add(k);
+    if (lc(st) > 0) ledKeys.add(k);
+  }));
+  branches.forEach(({ code, all }) => all.forEach(({ st, dept }) => {
+    // Not people the floor ledger tracks: assistants and front desk (Ma. Ercely, Liberty, Jessa; Phorest
+    // already leaves assistants out), and Tara (Kidd, Tara Rose Kidd), the owner, who floats across every
+    // branch, so a client on one feed only is her covering.
+    if (isLedgerAssistantName(String(st.name || '').toUpperCase())) return;
+    const k = staffMapKey(st.name);
+    if (k === 'TARA') return;
+    if (st.ph && st.ph.t > 0 && st.ledgerClients === 0 && !ledKeys.has(k)) out.noLedger.push({ code, name: st.name, dept, n: st.ph.t });
+    else if (lc(st) > 0 && !(st.ph && st.ph.t > 0) && !phKeys.has(k)) out.noPhorest.push({ code, name: st.name, dept, n: lc(st) });
+  }));
   return out;
 }
 function staffGapHtml(codes) {
