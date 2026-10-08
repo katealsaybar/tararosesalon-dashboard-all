@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Branch Performance mock-up · Tara Rose Salons</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Mock-up only. Fake stylists, fake numbers, no database calls.
+   Tokens are copied from the dashboard's index.html (light and dark). */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent-mint:#99F6E4;--accent-butter:#EEF3C7;--accent-lavender:#C4B5FD;--accent-coral:#FF9B9B;--accent-pink:#FFD4D9;
+  --radius-card:10px;--card-ease:cubic-bezier(.2,.7,.2,1);
+  --bg:#FAF7F0;--surface:#fff;--surface2:#F4F1E9;--border:#E8E2D6;--border2:#F0ECE3;
+  --text:#1A1A1A;--muted:#565049;--muted2:#77706A;--accent:#1A1A1A;--accent-fg:#FBF7F0;
+  --shadow-card:0 1px 2px rgba(26,26,26,.05),0 10px 28px -8px rgba(26,26,26,.10);
+  --good:#0F6E56;--good-bg:#E1F5EE;--warn:#BA7517;--warn-bg:#FAEEDA;--bad:#A32D2D;--bad-bg:#FCEBEB;
+  --none:#a09898;--hair:#7C5CD4;--beauty:#0F8A72;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;--border:rgba(250,248,243,.09);--border2:rgba(250,248,243,.05);
+    --text:#FAF8F3;--muted:rgba(250,248,243,.68);--muted2:rgba(250,248,243,.5);--accent:#FFD4D9;--accent-fg:#2D2E37;
+    --shadow-card:0 1px 2px rgba(0,0,0,.3),0 10px 28px -8px rgba(0,0,0,.35);
+    --good:#99F6E4;--good-bg:rgba(153,246,228,.12);--warn:#EEF3C7;--warn-bg:rgba(238,243,199,.12);--bad:#FF9B9B;--bad-bg:rgba(255,155,155,.12);
+    --none:rgba(250,248,243,.4);--hair:#C4B5FD;--beauty:#99F6E4;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;--border:rgba(250,248,243,.09);--border2:rgba(250,248,243,.05);
+  --text:#FAF8F3;--muted:rgba(250,248,243,.68);--muted2:rgba(250,248,243,.5);--accent:#FFD4D9;--accent-fg:#2D2E37;
+  --shadow-card:0 1px 2px rgba(0,0,0,.3),0 10px 28px -8px rgba(0,0,0,.35);
+  --good:#99F6E4;--good-bg:rgba(153,246,228,.12);--warn:#EEF3C7;--warn-bg:rgba(238,243,199,.12);--bad:#FF9B9B;--bad-bg:rgba(255,155,155,.12);
+  --none:rgba(250,248,243,.4);--hair:#C4B5FD;--beauty:#99F6E4;
+}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;font-size:15px;min-height:100vh}
+button{font:inherit;color:inherit}
+.tab{font-variant-numeric:tabular-nums}
+
+/* Mock-up banner (not part of the dashboard) */
+.mock{max-width:1240px;margin:12px auto 0;padding:0 16px}
+.mock-in{border:1px dashed var(--muted2);border-radius:12px;padding:10px 14px;font-size:13.5px;background:var(--surface2);display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:space-between}
+.mock b{font-weight:700}
+.mock .tag{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;background:var(--accent);color:var(--accent-fg);padding:3px 9px;border-radius:999px;white-space:nowrap}
+.mock p{flex:1 1 380px;color:var(--muted)}
+
+/* Faux dashboard frame */
+.frame{max-width:1240px;margin:12px 16px 24px;border:1px solid var(--border);border-radius:14px;background:var(--bg);box-shadow:var(--shadow-card)}
+@media(min-width:1272px){.frame{margin-left:auto;margin-right:auto}}
+.f-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;background:var(--surface);border-bottom:1px solid var(--border);border-radius:14px 14px 0 0}
+.f-word{font-weight:700;letter-spacing:.2em;text-transform:uppercase;font-size:14px}
+.f-word small{display:block;font-size:10px;letter-spacing:.36em;font-weight:400;color:var(--muted)}
+.f-sec{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.theme-btn{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:7px 13px;cursor:pointer;min-height:36px}
+.theme-btn:hover{color:var(--text);border-color:var(--text)}
+.f-body{display:grid;grid-template-columns:216px minmax(0,1fr)}
+.f-side{padding:16px 12px;border-right:1px solid var(--border);font-size:14px}
+.f-side .t{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);margin:12px 8px 4px}
+.f-side .t:first-child{margin-top:0}
+.f-side .n{padding:6px 10px;border-radius:8px;color:var(--muted)}
+.f-side .n.on{background:var(--accent);color:var(--accent-fg);font-weight:600}
+.f-main{padding:18px 22px 36px;min-width:0}
+@media(max-width:899px){.f-body{display:block}.f-side{display:none}.f-main{padding:16px 14px 28px}}
+.crumb{display:none;font-size:12px;color:var(--muted);margin-bottom:8px}
+@media(max-width:899px){.crumb{display:block}}
+
+.lg-head{padding:4px 0 16px;border-bottom:1px solid var(--border);margin-bottom:14px}
+.lg-head-k{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);margin-bottom:8px}
+.lg-head h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(24px,4.4vw,34px);line-height:1.1;letter-spacing:-.01em}
+.lg-stand{font-size:15px;color:var(--muted);margin-top:8px;max-width:64ch}
+
+/* The page's own filters (faux), sticky inside the frame */
+.f-filter{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:8px 0 10px;margin-bottom:10px;background:var(--bg)}
+.f-filter .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2)}
+.seg{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}
+.seg button{appearance:none;border:0;background:transparent;color:var(--muted);font-size:13px;font-weight:600;padding:7px 12px;border-radius:999px;cursor:pointer;min-height:34px;white-space:nowrap}
+.seg button small{font-size:11px;font-weight:500;opacity:.8;margin-left:4px}
+.seg button.on{background:var(--accent);color:var(--accent-fg)}
+.seg button:focus-visible,.theme-btn:focus-visible,.who:focus-visible,.sec-h:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+@media(max-width:560px){.seg button{padding:7px 9px;font-size:12.5px}.seg button small{display:block;margin:0;text-align:center}.f-filter .lbl{display:none}}
+
+/* Branch Performance sections (copy of lgSection) */
+.support-section{border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface);box-shadow:var(--shadow-card);margin-bottom:12px;overflow:visible}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;min-height:44px}
+.sec-h .l{display:flex;align-items:center;gap:8px;min-width:0}
+.sec-h .d{width:8px;height:8px;border-radius:50%;flex:none}
+.sec-h .ti{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:600;font-size:18px;letter-spacing:.02em}
+.sec-h .su{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sec-h .ar{color:var(--muted);flex:none}
+.support-section.stub{opacity:.55}
+.support-section.stub .ex{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);border:1px solid var(--border);border-radius:999px;padding:2px 8px;white-space:nowrap}
+.support-section.new{border:2px dashed var(--hair);position:relative}
+.support-section.new .badge{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;background:var(--hair);color:#fff;padding:2px 9px;border-radius:999px;white-space:nowrap}
+[data-theme="dark"] .support-section.new .badge{color:#1A1A1A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .support-section.new .badge{color:#1A1A1A}}
+.sec-body{padding:6px 10px 12px}
+@media(max-width:560px){.sec-body{padding:4px 6px 10px}.sec-h .su{display:none}}
+
+/* The branch card: same furniture as the stylist card (performance.css) */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px}
+@media(max-width:560px){.card{padding:14px 12px}}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;margin-bottom:4px}
+h2{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:23px;margin-bottom:4px;letter-spacing:.005em;line-height:1.2}
+.count{font-size:12.5px;font-weight:700;border-radius:999px;padding:5px 12px;background:var(--surface2);border:1px solid var(--border);white-space:nowrap}
+.score{font-size:14px;margin:6px 0 8px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:8px}
+.mix{font-size:13px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin:8px 0 10px}
+.mix b{font-weight:600}
+.tools{display:flex;justify-content:flex-end;margin:2px 0 6px}
+.linkbtn{appearance:none;background:none;border:0;color:var(--muted);font-size:12.5px;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px 2px;min-height:32px}
+.linkbtn:hover{color:var(--text)}
+.rows{display:flex;flex-direction:column;gap:6px}
+.row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;padding:9px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:14px}
+.row .r-val{font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;column-gap:8px;row-gap:2px;margin-left:auto;min-width:0;text-align:right}
+.row .r-tail{display:inline-flex;align-items:center;gap:8px}
+.row .r-val small{color:var(--muted);font-size:12.5px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--none);flex-shrink:0;display:inline-block}
+.dot.good{background:var(--good)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
+.row.unscored{opacity:.85;background:transparent;border-style:dashed}
+.legend{font-size:12px;color:var(--muted);margin-top:10px}
+.sub-t{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);margin:14px 2px 6px}
+
+/* Crew line under each row: who is at target */
+.r-crew{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:12.5px;color:var(--muted);padding-top:5px;border-top:1px solid var(--border2);margin-top:3px}
+.strip{display:inline-flex;flex-wrap:wrap;gap:3px;align-items:center;max-width:100%}
+.strip .dot{width:9px;height:9px}
+.strip.many{gap:2px}.strip.many .dot{width:7px;height:7px}
+.chip{font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 8px;background:var(--warn-bg);color:var(--warn);white-space:nowrap}
+.who{appearance:none;background:none;border:0;margin-left:auto;color:var(--text);font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;gap:5px;align-items:center;padding:5px 4px;min-height:32px}
+.who .ch{transition:transform .15s;display:inline-block}
+.row.open .who .ch{transform:rotate(180deg)}
+.r-panel{flex-basis:100%;display:none;font-size:13px;padding:8px 0 2px}
+.row.open .r-panel{display:block}
+.bh{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.bh b{font-weight:600}
+.mini{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.6fr) auto;gap:0 10px;font-variant-numeric:tabular-nums}
+.mini>div{padding:5px 0;border-top:1px solid var(--border2);min-width:0}
+.mini .h{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);border-top:0}
+.mini .lv{color:var(--muted);font-size:12px}
+.mini .rt{text-align:right}
+@media(max-width:560px){.mini{grid-template-columns:minmax(0,1fr) auto auto}.mini .lv{display:none}.mini .h.lv{display:none}}
+
+/* Tooltips (same as performance.css) */
+.kpi-lbl{position:relative;display:inline-flex;align-items:center;gap:5px;cursor:help;outline:none}
+.kpi-lbl:focus-visible{outline:2px solid var(--text);outline-offset:3px;border-radius:4px}
+.kpi-i{font-size:11px;color:var(--muted);line-height:1}
+.kpi-tip{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:30;width:max-content;max-width:min(320px,78vw);padding:8px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12px;line-height:1.45;font-weight:400;letter-spacing:0;text-transform:none;white-space:normal;box-shadow:0 6px 20px rgba(0,0,0,.18);text-align:left}
+.kpi-lbl:hover .kpi-tip,.kpi-lbl:focus .kpi-tip,.kpi-lbl:focus-within .kpi-tip{display:block}
+.kpi-tip b{font-weight:700}
+
+/* Notes below the frame */
+.notes{max-width:1240px;margin:0 auto 40px;padding:0 16px}
+.notes .card{margin-bottom:12px}
+.notes h3{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:19px;margin-bottom:6px}
+.notes table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0 4px}
+.notes th,.notes td{text-align:left;padding:6px 8px 6px 0;border-top:1px solid var(--border);vertical-align:top}
+.notes th{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);border-top:0}
+.notes p,.notes li{font-size:13.5px;margin-bottom:6px}
+.notes ul{padding-left:18px}
+.tbl{overflow-x:auto}
+</style>
+</head>
+<body>
+
+<div class="mock"><div class="mock-in">
+  <span class="tag">Mock-up</span>
+  <p><b>Fake stylists, fake numbers, no database.</b> Not wired into the dashboard. Suggested home: a new section straight under <b>Benchmarks</b> on Branch Performance, because Benchmarks only holds the five standing ratios, and this answers the same question for every level target before the Staff performance section that explains it.</p>
+</div></div>
+
+<div class="frame">
+  <div class="f-top">
+    <div>
+      <div class="f-word">Tara Rose<small>Salons</small></div>
+      <div class="f-sec">Branch Performance</div>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch between light and dark">Dark</button>
+  </div>
+  <div class="f-body">
+    <nav class="f-side" aria-label="Dashboard menu (illustration)">
+      <div class="t">Numbers</div>
+      <div class="t" style="margin-top:2px">Business</div>
+      <div class="n">Organisation Pulse</div>
+      <div class="n on">Branch Performance</div>
+      <div class="n">Comparison</div>
+      <div class="n">Financial Totals</div>
+      <div class="t">Team Performance</div>
+      <div class="n">Podium Race</div>
+      <div class="n">Staff Dashboards</div>
+      <div class="n">Stylist's Benchmarks</div>
+    </nav>
+    <main class="f-main">
+      <div class="crumb">Numbers › Business › Branch Performance</div>
+      <div class="lg-head">
+        <div class="lg-head-k">Branch Performance</div>
+        <h1>Branch Performance</h1>
+        <p class="lg-stand">The shape of the period: which branch is growing, where the money came from, how far through the target each one is, and which benchmarks are carrying it.</p>
+      </div>
+
+      <div class="f-filter" role="group" aria-label="Page filters (illustration of the dashboard's own)">
+        <span class="lbl">Branch</span>
+        <div class="seg" id="brSeg" role="group" aria-label="Branch"></div>
+        <span class="lbl">Period</span>
+        <div class="seg" id="moSeg" role="group" aria-label="Period"></div>
+      </div>
+
+      <div class="support-section stub"><div class="sec-h"><div class="l"><span class="d" style="background:var(--good)"></span><span class="ti">Growth</span><span class="su">existing section</span></div><span class="ex">Today's page</span></div></div>
+      <div class="support-section stub"><div class="sec-h"><div class="l"><span class="d" style="background:var(--beauty)"></span><span class="ti">The read</span></div><span class="ex">Today's page</span></div></div>
+      <div class="support-section stub"><div class="sec-h"><div class="l"><span class="d" style="background:#FFD4D9"></span><span class="ti">Revenue mix</span></div><span class="ex">Today's page</span></div></div>
+      <div class="support-section stub"><div class="sec-h"><div class="l"><span class="d" style="background:#C4B5FD"></span><span class="ti">Against target</span></div><span class="ex">Today's page</span></div></div>
+      <div class="support-section stub"><div class="sec-h"><div class="l"><span class="d" style="background:#99F6E4"></span><span class="ti">Benchmarks</span><span class="su">five ratios against standing targets</span></div><span class="ex">Today's page</span></div></div>
+
+      <div class="support-section new" id="sec-levels">
+        <div class="sec-h" role="heading" aria-level="2"><div class="l"><span class="d" style="background:var(--hair)"></span><span class="ti">Against the levels</span><span class="su" id="secSub"></span></div><span class="badge">New</span></div>
+        <div class="sec-body" id="host"></div>
+      </div>
+
+      <div class="support-section stub"><div class="sec-h"><div class="l"><span class="d" style="background:var(--hair)"></span><span class="ti">Clients</span></div><span class="ex">Today's page</span></div></div>
+      <div class="support-section stub"><div class="sec-h"><div class="l"><span class="d" style="background:var(--beauty)"></span><span class="ti">Staff performance</span></div><span class="ex">Today's page</span></div></div>
+    </main>
+  </div>
+</div>
+
+<div class="notes" id="notes"></div>
+
+<script>
+/* ============ Fake data. Targets are the real level aims from perf_benchmarks (min, aim). ============ */
+const LV = {
+ 'Blow-Dry Specialist':{total_revenue:[null,18000],hair_services:[10000,15000],treatments:[2000,3000],treatments_pct:[null,20],retail:[1120,2500],retail_pct:[null,12],avg_bill:[220,220],rebooking_pct:[20,30],retention_pct:[20,30],clients:[45,80],ncr:[4,4],request_pct:[20,20],conversion_pct:[20,30],column_fill_pct:[30,50],reputation:[null,4.5]},
+ 'Junior Stylist':{total_revenue:[18000,33600],hair_services:[15000,28000],treatments:[3000,5600],treatments_pct:[20,20],retail:[2500,4000],retail_pct:[12,12],avg_bill:[220,400],rebooking_pct:[30,30],retention_pct:[30,30],clients:[81,84],ncr:[4,12],request_pct:[20,30],conversion_pct:[30,35],column_fill_pct:[50,75],colour_pct:[40,55],reputation:[4.5,4.6]},
+ 'Stylist':{total_revenue:[44000,60000],hair_services:[40000,50000],treatments:[4000,10000],treatments_pct:[null,20],retail:[4000,6000],retail_pct:[null,12],avg_bill:[500,575],rebooking_pct:[30,55],retention_pct:[30,55],clients:[88,104],ncr:[8,16],request_pct:[40,40],conversion_pct:[30,40],column_fill_pct:[50,80],colour_pct:[60,60],reputation:[3,4.7],google_reviews:[8,12],social_feed:[8,12],social_workdays:[8,16]},
+ 'Senior Stylist':{total_revenue:[60000,78000],hair_services:[50000,65000],treatments:[10000,13000],treatments_pct:[20,20],retail:[6000,7800],retail_pct:[12,12],avg_bill:[600,650],rebooking_pct:[55,60],retention_pct:[55,60],clients:[104,124],ncr:[16,12],request_pct:[40,50],conversion_pct:[40,50],column_fill_pct:[80,85],colour_pct:[60,65],reputation:[4.7,4.8],google_reviews:[10,12],social_feed:[10,12],social_workdays:[10,16]},
+ 'Style Director':{total_revenue:[78000,93600],hair_services:[65000,78000],treatments:[13000,15600],treatments_pct:[20,20],retail:[7800,11232],retail_pct:[12,12],avg_bill:[695,795],rebooking_pct:[60,70],retention_pct:[60,70],clients:[124,130],ncr:[12,12],request_pct:[50,60],conversion_pct:[50,50],column_fill_pct:[85,90],colour_pct:[65,70],reputation:[4.8,4.9],google_reviews:[10,12],social_feed:[10,12],social_workdays:[12,16]},
+ 'Artistic Director':{total_revenue:[93600,114000],hair_services:[78000,95000],treatments:[15600,19000],treatments_pct:[20,20],retail:[11232,13680],retail_pct:[12,12],avg_bill:[700,800],rebooking_pct:[70,80],retention_pct:[70,80],clients:[130,140],ncr:[12,12],request_pct:[60,80],conversion_pct:[50,60],column_fill_pct:[90,95],colour_pct:[70,75],reputation:[4.9,5.0],google_reviews:[10,12],social_feed:[10,12],social_workdays:[12,16]}
+};
+const LVL_ORDER = ['Artistic Director','Style Director','Senior Stylist','Stylist','Junior Stylist','Blow-Dry Specialist'];
+const LVL_PLURAL = {'Artistic Director':['Artistic Director','Artistic Directors'],'Style Director':['Style Director','Style Directors'],'Senior Stylist':['Senior','Seniors'],'Stylist':['Stylist','Stylists'],'Junior Stylist':['Junior','Juniors'],'Blow-Dry Specialist':['Blow-Dry Specialist','Blow-Dry Specialists']};
+
+const BR = {
+  SAA:{name:'Saadiyat'}, KCA:{name:'Khalifa City A'}, MC:{name:'Motor City'}, AQ:{name:'Al Quoz'}, ALL:{name:'All UAE'}
+};
+// name, branch, level, days away, has handle, strength q
+const ROSTER = [
+ ['Amara','SAA','Artistic Director',0,1,1.08],['Delphine','SAA','Style Director',0,1,1.06],['Odalys','SAA','Style Director',6,1,.92],
+ ['Thessaly','SAA','Senior Stylist',0,1,1.02],['Marguerite','SAA','Senior Stylist',0,0,.86],['Ottoline','SAA','Stylist',12,1,.8],
+ ['Philippa','SAA','Stylist',0,1,1.04],['Rosalind','SAA','Junior Stylist',0,1,.97],['Saskia','SAA','Junior Stylist',3,0,.7],
+ ['Cordelia','KCA','Style Director',0,1,.95],['Fenella','KCA','Senior Stylist',0,1,.9],['Imogen','KCA','Senior Stylist',0,1,.82],
+ ['Juniper','KCA','Senior Stylist',5,0,.76],['Linnea','KCA','Stylist',0,1,.98],['Perpetua','KCA','Stylist',0,1,.84],
+ ['Seraphina','KCA','Junior Stylist',0,1,1.02],['Tabitha','KCA','Blow-Dry Specialist',0,1,.9],
+ ['Una','MC','Style Director',0,1,1.12],['Verity','MC','Senior Stylist',0,1,1.05],['Winnie','MC','Senior Stylist',0,1,1.0],
+ ['Xanthe','MC','Stylist',4,1,1.06],['Yvette','MC','Stylist',0,0,.94],['Zinnia','MC','Junior Stylist',0,1,1.1],['Ludmila','MC','Junior Stylist',0,1,.88],
+ ['Ione','AQ','Style Director',0,1,.8],['Bronwen','AQ','Senior Stylist',0,1,.78],['Calista','AQ','Stylist',9,0,.7],
+ ['Dorothea','AQ','Stylist',0,1,.86],['Ffion','AQ','Junior Stylist',0,1,.82],['Gwendolen','AQ','Junior Stylist',0,0,.62]
+];
+// branch lean per KPI group (fake): >1 means the branch tends to beat its aim here
+const BIAS = {
+  SAA:{rev:1.02,bill:1.03,treat:.9,retail:.9,rebook:.94,req:1,fill:1,colour:1,rep:1,ret:.97,conv:1,rev90:.9},
+  KCA:{rev:.98,bill:.99,treat:.98,retail:.88,rebook:.96,req:.98,fill:.96,colour:.99,rep:.99,ret:.95,conv:.94,rev90:.7},
+  MC:{rev:1.04,bill:1.04,treat:1.1,retail:1.05,rebook:1.04,req:1.05,fill:1.02,colour:1.03,rep:1.01,ret:1.03,conv:1.05,rev90:1},
+  AQ:{rev:.92,bill:.95,treat:.9,retail:.8,rebook:.9,req:.92,fill:.9,colour:.93,rep:.98,ret:.9,conv:.88,rev90:.6}
+};
+// tuned so the four branches land at believable, different places (fake)
+const Q_ADD = {SAA:.06,KCA:.12,MC:-.04,AQ:.27};
+ROSTER.forEach(r=>{r[5]=+(r[5]+Q_ADD[r[1]]).toFixed(3)});
+function rng(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+const MODES = {
+  sofar:{label:'October so far', short:'So far', days:31, d:7, dataTo:'7 Oct', seed:11},
+  full: {label:'September, full month', short:'September', days:30, d:30, dataTo:'30 Sep', seed:23}
+};
+const prorateCut = (v,isAed,f)=> v==null?v:(isAed?Math.round(v*f/100)*100:Math.max(v>0?1:0,Math.round(v*f)));
+
+function buildStylists(mode){
+  const M = MODES[mode];
+  return ROSTER.map((r,i)=>{
+    const [name,br,level,leave,handle,q] = r, A = LV[level], b = BIAS[br];
+    const R = rng(M.seed*1000+i*7919);
+    const j = ()=>0.9+0.2*R();
+    const wShare = (M.days-leave)/M.days;
+    const elapsedOff = Math.min(leave,Math.round(leave*M.d/M.days));
+    const pace = Math.min(1,(M.d-elapsedOff)/(M.days-leave));
+    const T = (k,which=1)=>A[k]?A[k][which]:null;
+    const cl = (v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+    const f = g=>cl(q*b[g]*j(),.35,1.3);
+    const clientsFull = T('clients')*wShare*f('rev');
+    const clients = Math.max(1,Math.round(clientsFull*pace*(0.97+0.06*R())));
+    const bill = T('avg_bill')*f('bill');
+    const svc = Math.round(clients*bill);
+    const tp = cl(T('treatments_pct')*f('treat'),2,40);
+    const hair = Math.round(svc/(1+tp/100)), treat = svc-hair;
+    const retail = Math.round(svc*T('retail_pct')/100*f('retail'));
+    const rebooked = Math.min(clients,Math.round(clients*T('rebooking_pct')/100*f('rebook')));
+    const reqNcr = Math.min(clients,Math.round(clients*T('request_pct')/100*f('req')));
+    const ncr = Math.min(Math.round(reqNcr*.45),Math.round(clients*(T('ncr')/T('clients'))*f('req')*1.1));
+    const req = reqNcr-ncr;
+    const avail = Math.round(190*wShare*pace);
+    const booked = Math.round(avail*cl(T('column_fill_pct')/100*f('fill'),.2,.98));
+    const colourVisits = A.colour_pct?Math.round(clients*cl(T('colour_pct')/100*f('colour'),.1,.95)):null;
+    const convN = Math.round(5+R()*9), convBack = Math.round(convN*cl(T('conversion_pct')/100*f('conv'),0,1));
+    const retN = Math.round(30+R()*55), retBack = Math.round(retN*cl(T('retention_pct')/100*f('ret'),0,1));
+    const revN = A.reputation?Math.round(R()*9*b.rev90*1.5):0;
+    const stars = A.reputation?cl(T('reputation')*(0.92+0.1*R()*b.rep),3.6,5):0;
+    const starSum = Math.round(revN*stars*10)/10;
+    const gr = A.google_reviews?Math.round(T('google_reviews')*wShare*pace*f('rev90')*0.9*(0.5+R())):null;
+    const feed = (A.social_feed&&handle)?Math.round(T('social_feed')*wShare*pace*cl(q*(0.4+0.8*R()),.2,1.3)):null;
+    const wd = (A.social_workdays&&handle)?Math.round(T('social_workdays')*wShare*pace*cl(q*(0.4+0.8*R()),.2,1.3)):null;
+    return {name,br,level,leave,handle,pace,wShare,A,
+      c:{svc,hair,treat,retail,clients,rebooked,reqNcr,ncr,req,booked,avail,visits:clients,colourVisits,convN,convBack,retN,retBack,revN,starSum,gr,feed,wd}};
+  });
+}
+
+/* ============ KPI definitions: 17 scored + 2 shown, not scored ============ */
+const sumK=(k,label,fmt,get,tip)=>({k,label,fmt,kind:'sum',get,tip});
+const rateK=(k,label,fmt,num,den,mult,tip,extra)=>Object.assign({k,label,fmt,kind:'rate',num,den,mult,tip},extra||{});
+const KP = [
+ sumK('total_revenue','Total revenue','aed',c=>c.svc,'The branch\'s service sales this month from Phorest, before VAT: every hair stylist\'s total added together. Retail is not included.<br><b>Aim:</b> each stylist\'s aim for their own level, added up, cut for days away.'),
+ sumK('hair_services','Hair services','aed',c=>c.hair,'Service sales minus treatments, before VAT, all hair stylists added together.<br><b>Aim:</b> each stylist\'s aim added up, cut for days away.'),
+ sumK('treatments','Treatments','aed',c=>c.treat,'Treatment sales on the team\'s clients, from the branch ledger, before VAT, added together.<br><b>Aim:</b> each stylist\'s aim added up, cut for days away.'),
+ rateK('treatments_pct','Treatments %','pct',c=>c.treat,c=>c.hair,100,'All treatment sales ÷ all hair services × 100. Not an average of each stylist\'s percentage, so a busy stylist counts for more than a quiet one.<br><b>Aim:</b> each stylist\'s aim, weighted by their hair services.'),
+ sumK('retail','Retail','aed',c=>c.retail,'Products the team sold this month from Phorest, before VAT, added together.<br><b>Aim:</b> each stylist\'s aim added up, cut for days away.'),
+ rateK('retail_pct','Retail %','pct',c=>c.retail,c=>c.svc,100,'All retail ÷ all service sales × 100.<br><b>Aim:</b> each stylist\'s aim, weighted by their service sales.'),
+ rateK('avg_bill','Average bill','aed',c=>c.svc,c=>c.clients,1,'All service sales ÷ all clients seen. Not an average of each stylist\'s average.<br><b>Aim:</b> each stylist\'s aim, weighted by their clients.'),
+ rateK('rebooking_pct','Rebooking %','pct',c=>c.rebooked,c=>c.clients,100,'Clients who booked their next visit before they left ÷ all clients seen.<br><b>Aim:</b> each stylist\'s aim, weighted by their clients.'),
+ rateK('retention_pct','Retention %','pct',c=>c.retBack,c=>c.retN,100,'Of the returning clients the team saw 3 to 6 months ago, the share seen again by the same stylist in the last 3 months. Every stylist\'s group is pooled, so bigger groups count for more.<br><b>Aim:</b> weighted by group size.'),
+ sumK('clients','Client numbers','num',c=>c.clients,'The clients the team saw this month, from the branch ledger, added together.<br><b>Aim:</b> each stylist\'s aim added up, cut for days away.'),
+ sumK('ncr','New client requests','num',c=>c.ncr,'New clients who asked for a stylist by name, added together.<br><b>Aim:</b> each stylist\'s aim added up, cut for days away.'),
+ rateK('request_pct','Request rate %','pct',c=>c.reqNcr,c=>c.clients,100,'Clients who asked for their stylist (requests plus new client requests) ÷ all clients seen.<br><b>Aim:</b> each stylist\'s aim, weighted by their clients.'),
+ rateK('conversion_pct','Conversion %','pct',c=>c.convBack,c=>c.convN,100,'Of the brand new clients whose first visit was with the team 3 to 6 months ago, the share who came back within 12 weeks. Everyone\'s new clients are pooled.<br><b>Aim:</b> weighted by number of new clients.'),
+ rateK('column_fill_pct','Column fill %','pct',c=>c.booked,c=>c.avail,100,'All booked hours ÷ all available hours, from Phorest. Days away are already out of the available hours.<br><b>Aim:</b> each stylist\'s aim, weighted by their available hours.'),
+ rateK('colour_pct','Colour %','pct',c=>c.colourVisits,c=>c.visits,100,'Visits that included a colour service ÷ all visits. Blow-Dry Specialists have no colour aim, so they are left out of this row.<br><b>Aim:</b> weighted by visits.'),
+ rateK('reputation','Reputation score','rep',c=>c.starSum,c=>c.revN,1,'Average Google stars of the reviews in the last 90 days that name a stylist at the branch. Each review counts once. Counts once there are at least 3.<br><b>Aim:</b> each stylist\'s aim, weighted by their number of reviews.',{minDen:3}),
+ sumK('google_reviews','Google reviews','num',c=>c.gr,'Google reviews this month that name a stylist at the branch. Each review counts once, even if it names two people.<br><b>Aim:</b> each stylist\'s aim (8 to 12) added up. That is a high bar for a branch, so read this one with care.')
+];
+const KP_EXTRA = [
+ sumK('social_feed','Social posts (feed)','num',c=>c.feed,'Posts tagging @tararosesalon from the team\'s own handles, plus salon posts they collaborate on. A collab counts once for each collaborator, as on their own pages.'),
+ sumK('social_workdays','Social posts (workdays)','num',c=>c.wd,'Days worked on which a stylist posted, collaborated or mentioned the salon in a story.')
+];
+
+/* ============ Maths ============ */
+const nf = new Intl.NumberFormat('en-GB',{maximumFractionDigits:0});
+function fmt(v,f){
+  if(v===null||v===undefined||Number.isNaN(v)) return 'n/a';
+  if(f==='aed') return 'AED '+nf.format(v);
+  if(f==='pct') return (Math.round(v*10)/10)+'%';
+  if(f==='rep') return (Math.round(v*10)/10).toFixed(1)+'★';
+  return nf.format(v);
+}
+function status(v,t,floor){
+  if(v==null||t==null) return '';
+  if(v>=t) return 'good';
+  return v>=floor?'warn':'bad';
+}
+const aimOf=(s,k)=>s.A[k]||null;
+const val=(kp,c,mode)=>{
+  const n=kp.num?kp.num(c):kp.get(c), d=kp.den?kp.den(c):1;
+  return {n,d};
+};
+// A stylist's own reading of one KPI (the stylist card's rules).
+function styRead(s,kp,mode){
+  const aim=aimOf(s,kp.k); if(!aim) return null;
+  const isAed=kp.fmt==='aed';
+  if(kp.kind==='sum'){
+    const a=kp.get(s.c); if(a==null) return null;
+    const judged=a/(MODES[mode].d<MODES[mode].days?s.pace:1);
+    const t=prorateCut(aim[1],isAed,s.wShare), fl=prorateCut(aim[0]!=null?aim[0]:aim[1]*.85,isAed,s.wShare);
+    return {s,actual:a,judged,t,fl,st:status(judged,t,fl),ratio:t?judged/t:null};
+  }
+  const {n,d}=val(kp,s.c); if(!(d>0)) return null;
+  if(kp.minDen && d<kp.minDen) return null;
+  const v=kp.mult*n/d, t=aim[1], fl=aim[0]!=null?aim[0]:t*.85;
+  return {s,actual:v,judged:v,t,fl,st:status(v,t,fl),ratio:v/t};
+}
+// The branch's reading of one KPI from a list of stylists.
+function branchRead(list,kp,mode){
+  const M=MODES[mode], mid=M.d<M.days;
+  const own=list.map(s=>styRead(s,kp,mode)).filter(Boolean);
+  let actual,judged,t,fl,has=true,pool=0;
+  if(kp.kind==='sum'){
+    const els=list.filter(s=>aimOf(s,kp.k)&&kp.get(s.c)!=null);
+    if(!els.length) return {kp,has:false,own};
+    const rs=els.map(s=>styRead(s,kp,mode));
+    actual=rs.reduce((x,r)=>x+r.actual,0); judged=rs.reduce((x,r)=>x+r.judged,0);
+    t=rs.reduce((x,r)=>x+r.t,0); fl=rs.reduce((x,r)=>x+r.fl,0); pool=els.length;
+  }else{
+    const els=list.filter(s=>aimOf(s,kp.k)&&val(kp,s.c).d>0);
+    if(!els.length) return {kp,has:false,own};
+    let N=0,D=0,wt=0,wf=0;
+    els.forEach(s=>{const {n,d}=val(kp,s.c),a=aimOf(s,kp.k);N+=n;D+=d;wt+=d*a[1];wf+=d*(a[0]!=null?a[0]:a[1]*.85)});
+    if(kp.minDen&&D<kp.minDen) return {kp,has:false,own,need:D};
+    actual=judged=kp.mult*N/D; t=wt/D; fl=wf/D; pool=els.length;
+  }
+  const st=status(judged,t,fl);
+  const sorted=own.slice().sort((a,b)=>a.ratio-b.ratio);
+  const hit=own.filter(r=>r.st==='good').length;
+  return {kp,has:true,actual,judged,t,fl,st,own,sorted,hit,of:own.length,mid};
+}
+const paceNote=r=>(r.kp.kind==='sum'&&r.mid&&r.actual>0&&r.judged>=r.t)?'on pace for '+fmt(r.judged,r.kp.fmt):'';
+
+/* ============ Render ============ */
+const state={br:'SAA',mode:'sofar',open:new Set()};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cache={};
+const stylistsFor=(mode,br)=>{
+  cache[mode]=cache[mode]||buildStylists(mode);
+  return br==='ALL'?cache[mode]:cache[mode].filter(s=>s.br===br);
+};
+function score(list,mode){
+  const rs=KP.map(kp=>branchRead(list,kp,mode));
+  const scored=rs.filter(r=>r.has);
+  return {rs,scored,hit:scored.filter(r=>r.st==='good').length,close:scored.filter(r=>r.st==='warn').length,bad:scored.filter(r=>r.st==='bad').length};
+}
+const tipLbl=(kp)=>`<span class="kpi-lbl" tabindex="0">${esc(kp.label)}<span class="kpi-i" aria-hidden="true">ⓘ</span><span class="kpi-tip" role="tooltip">${kp.tip}</span></span>`;
+
+function crewLine(r){
+  const open=state.open.has(r.kp.k);
+  const dots=r.sorted.slice().reverse().map(x=>`<span class="dot ${x.st}" title="${esc(x.s.name)}: ${Math.round(x.ratio*100)}% of aim"></span>`).join('');
+  const carried=(r.st==='good'&&r.of>=3&&r.hit/r.of<0.5)?'<span class="chip">Held up by a few</span>':'';
+  const lo=r.sorted[0], hi=r.sorted[r.sorted.length-1];
+  const pc=x=>Math.round(x.ratio*100)+'% of aim';
+  const show=x=>`${fmt(x.judged,r.kp.fmt)} against ${fmt(x.t,r.kp.fmt)}`;
+  const panel=r.of>=2?`<div class="bh"><div><b>Furthest behind:</b> ${esc(lo.s.name)}, ${pc(lo)} (${show(lo)})</div><div><b>Furthest ahead:</b> ${esc(hi.s.name)}, ${pc(hi)} (${show(hi)})</div></div>
+    <div class="mini" role="table" aria-label="Every stylist on ${esc(r.kp.label)}">
+      <div class="h">Stylist</div><div class="h lv">Level</div><div class="h rt">Now / aim</div>
+      ${r.sorted.map(x=>`<div>${esc(x.s.name)}${x.s.leave?' <span class="lv">(away '+x.s.leave+'d)</span>':''}</div><div class="lv">${esc(x.s.level)}</div><div class="rt">${fmt(x.judged,r.kp.fmt)} / ${fmt(x.t,r.kp.fmt)} <span class="dot ${x.st}" aria-hidden="true"></span></div>`).join('')}
+    </div>`:'';
+  return `<div class="r-crew"><span class="strip${r.of>14?' many':''}" aria-hidden="true">${dots}</span><span>${r.hit} of ${r.of} ${r.of===1?'stylist':'stylists'} at target</span>${carried}
+    ${r.of>=2?`<button class="who" type="button" data-who="${r.kp.k}" aria-expanded="${open}">Who <span class="ch" aria-hidden="true">⌄</span></button>`:''}</div>
+    <div class="r-panel">${panel}</div>`;
+}
+function rowHtml(r){
+  const kp=r.kp, open=state.open.has(kp.k);
+  if(!r.has) return `<div class="row">${tipLbl(kp)}<span class="r-val"><small>Needs 3 Google reviews in 90 days, has ${r.need||0}</small></span></div>`;
+  const pn=paceNote(r);
+  return `<div class="row${open?' open':''}" data-k="${kp.k}">${tipLbl(kp)}<span class="r-val">${fmt(r.actual,kp.fmt)} <span class="r-tail"><small>/ ${fmt(r.t,kp.fmt)}${pn?' · '+pn:''}</small><span class="dot ${r.st}" role="img" aria-label="${r.st==='good'?'at target':r.st==='warn'?'close to target':'under target'}"></span></span></span>${crewLine(r)}</div>`;
+}
+function extraRow(kp,list,mode){
+  const r=branchRead(list,kp,mode);
+  if(!r.has) return '';
+  const withH=list.filter(s=>s.handle&&aimOf(s,kp.k)).length, all=list.filter(s=>aimOf(s,kp.k)).length;
+  return `<div class="row unscored">${tipLbl(kp)}<span class="r-val">${fmt(r.actual,kp.fmt)} <span class="r-tail"><small>/ ${fmt(r.t,kp.fmt)} · ${r.hit} of ${r.of} at target</small></span></span><div class="r-crew" style="border-top:0;padding-top:0;margin-top:0">Counts only the ${withH} of ${all} stylists with an Instagram handle on file.</div></div>`;
+}
+function mixLine(list){
+  const cnt={};list.forEach(s=>cnt[s.level]=(cnt[s.level]||0)+1);
+  const parts=LVL_ORDER.filter(l=>cnt[l]).map(l=>`${cnt[l]} ${LVL_PLURAL[l][cnt[l]===1?0:1]}`);
+  const away=list.reduce((x,s)=>x+s.leave,0);
+  return `<div class="mix"><b>Built from ${list.length} hair stylists:</b> ${parts.join(' · ')}.${away?` Aims are cut for ${away} days away across the team.`:''} Beauty is not in this yet: it has no level aims.</div>`;
+}
+function render(){
+  const M=MODES[state.mode], list=stylistsFor(state.mode,state.br), sc=score(list,state.mode);
+  const nm=BR[state.br].name, isAll=state.br==='ALL';
+  document.getElementById('secSub').textContent=nm+' · '+M.label;
+  // filters
+  const br=document.getElementById('brSeg');
+  br.innerHTML=Object.keys(BR).map(k=>{const s=score(stylistsFor(state.mode,k),state.mode);return `<button type="button" data-br="${k}" class="${k===state.br?'on':''}" title="${esc(BR[k].name)}: ${s.hit} of ${s.scored.length} at target" aria-pressed="${k===state.br}">${k==='ALL'?'UAE':k}<small>${s.hit}/${s.scored.length}</small></button>`}).join('');
+  document.getElementById('moSeg').innerHTML=Object.keys(MODES).map(k=>`<button type="button" data-mo="${k}" class="${k===state.mode?'on':''}" aria-pressed="${k===state.mode}">${MODES[k].short}</button>`).join('');
+  const mid=M.d<M.days;
+  const score_=`${isAll?'The UAE is':esc(nm)+' is'} at or above target on <strong>${sc.hit} of ${sc.scored.length}</strong>.${sc.close?` ${sc.close} ${sc.close===1?'is':'are'} close`:''}${sc.close&&sc.bad?',':''}${sc.bad?` ${sc.close?'':''}${sc.bad} ${sc.bad===1?'is':'are'} behind`:''}${(sc.close||sc.bad)?'.':''}`;
+  const unscored=KP_EXTRA.map(kp=>extraRow(kp,list,state.mode)).join('');
+  document.getElementById('host').innerHTML=`
+   <section class="card" aria-labelledby="h2lv">
+     <div class="eyebrow">${isAll?'All four branches':'The branch · '+esc(nm)} · ${esc(M.label)}</div>
+     <div class="card-head"><h2 id="h2lv">${isAll?'The UAE':esc(nm)} against its team's levels</h2><span class="count tab">${sc.hit} of ${sc.scored.length} at target</span></div>
+     <p class="score">${score_}</p>
+     <p class="sub">Each aim is what the team's own levels ask for, added up stylist by stylist, so a branch with more Juniors is asked for less than one with more Style Directors.</p>
+     ${mid?`<p class="sub">Money numbers are judged on pace for the full month, with data up to ${M.dataTo}.</p>`:''}
+     ${mixLine(list)}
+     <div class="tools"><button class="linkbtn" type="button" id="allWho">${state.open.size>=KP.length-1?'Hide everyone':'Show who on every row'}</button></div>
+     <div class="rows">${sc.rs.map(rowHtml).join('')}</div>
+     <div class="sub-t">Tracked, not in the score</div>
+     <div class="rows">${unscored}</div>
+     <p class="legend">Green means at or above the branch's aim, amber means close, red means under. The dots under each row are the stylists, one each: green at their own aim, amber close, red under.</p>
+   </section>`;
+}
+function renderNotes(){
+  document.getElementById('notes').innerHTML=`
+  <div class="card"><h3>How a branch adds up (for the team to check)</h3>
+   <p><b>At target, for a branch:</b> the branch's rolled-up figure is at or above the branch's aim. The aim is every stylist's own level aim, added up (or weighted, for rates), cut for days away. Amber is at or above the sum of the minimums (85% of the aim where a level has no minimum). The score counts KPIs, so it reads "9 of 17" like the stylist card.</p>
+   <p><b>Second lens, on every row:</b> how many stylists are at their own aim, and who is furthest behind and ahead. A row that is green while fewer than half the stylists are at target says "Held up by a few".</p>
+   <div class="tbl"><table><tr><th>Group</th><th>KPIs</th><th>Rule</th></tr>
+    <tr><td>Money and counts</td><td>Total revenue, Hair services, Treatments, Retail, Client numbers, New client requests, Google reviews</td><td>Add up each stylist's actual and each stylist's aim. Mid-month, project each stylist on their own pace first, then add.</td></tr>
+    <tr><td>Rates</td><td>Treatments %, Retail %, Average bill, Rebooking %, Retention %, Request rate, Conversion %, Column fill %, Colour %, Reputation</td><td>Pool the parts (never average the percentages). Aim is each stylist's aim weighted by the same parts: hair services, service sales, clients, group size, new clients, available hours, visits, reviews.</td></tr>
+    <tr><td>Not in the score</td><td>Social posts (feed), Social posts (workdays)</td><td>Only stylists with a handle on file can count, and a collab post counts once per collaborator. A branch total would say who has a handle, not how the branch is doing. Shown for information.</td></tr>
+   </table></div>
+   <p><b>Like for like:</b> a stylist only counts in a row if their level has an aim for it. Juniors have no review or social aims, Blow-Dry Specialists no colour aim, so they never pull a total up against an aim that was never set for them. Hair team only for now.</p>
+  </div>`;
+}
+
+/* ============ Events ============ */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-br]'); if(b){state.br=b.dataset.br;render();return}
+  const m=e.target.closest('[data-mo]'); if(m){state.mode=m.dataset.mo;render();return}
+  const w=e.target.closest('[data-who]'); if(w){const k=w.dataset.who;state.open.has(k)?state.open.delete(k):state.open.add(k);render();const el=document.querySelector(`[data-who="${k}"]`);if(el)el.focus({preventScroll:true});return}
+  if(e.target.id==='allWho'){if(state.open.size>=KP.length-1)state.open.clear();else KP.forEach(kp=>state.open.add(kp.k));render();return}
+});
+function fitTip(e){
+  const l=e.target.closest&&e.target.closest('.kpi-lbl'); if(!l) return;
+  const tip=l.querySelector('.kpi-tip'); tip.style.left='0px';
+  const over=tip.getBoundingClientRect().right-(document.documentElement.clientWidth-8);
+  if(over>0) tip.style.left=-over+'px';
+}
+document.addEventListener('mouseover',fitTip);document.addEventListener('focusin',fitTip);
+
+/* Theme: follows the system, the button overrides it for this visit */
+(function(){
+  const root=document.documentElement, btn=document.getElementById('themeBtn');
+  const sysDark=()=>matchMedia('(prefers-color-scheme: dark)').matches;
+  let saved=null;try{saved=localStorage.getItem('trs-theme')}catch(e){}
+  if(saved==='dark'||saved==='light')root.setAttribute('data-theme',saved);
+  const isDark=()=>root.getAttribute('data-theme')?root.getAttribute('data-theme')==='dark':sysDark();
+  const paint=()=>{btn.textContent=isDark()?'Light':'Dark'};
+  btn.onclick=()=>{const n=isDark()?'light':'dark';root.setAttribute('data-theme',n);try{localStorage.setItem('trs-theme',n)}catch(e){}paint()};
+  paint();
+})();
+render();renderNotes();
+</script>
+</body>
+</html>
