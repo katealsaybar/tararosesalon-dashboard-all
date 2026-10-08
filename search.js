@@ -572,7 +572,7 @@
   let trig, scrim, panel, input, list, index = [], shown = [], cur = 0, lastFocus = null;
   // picked: an arrow key has chosen a row, so Enter opens that row. Without it, Enter
   // on a typed search opens the results page.
-  let picked = false, serp, serpIn, serpKind = 'all', serpSeq = 0, serpTimer = 0, serpItems = [], serpKb = [];
+  let picked = false, serp, serpIn, serpKind = 'all', serpSeq = 0, serpTimer = 0, serpItems = [], serpAll = [], serpKb = [];
 
   function mount() {
     const acts = document.querySelector('.mast-acts');
@@ -831,7 +831,7 @@
     const q = norm(text);
     const seq = ++serpSeq;
     serpKb = [];
-    serpItems = q ? capped(matches(q), MAX_SERP, 150) : [];
+    serpAll = q ? capped(matches(q), MAX_SERP, 150) : [];
     paintSerp();
     // Team Home's pages come back a moment later.
     if (q.length >= 2 && typeof sb !== 'undefined') {
@@ -855,7 +855,7 @@
 
   function paintSerp() {
     const text = serpIn.value.trim(), q = norm(text);
-    const all = serpItems.filter(x => x.kind !== 'kb').concat(serpKb);
+    const all = serpAll.filter(x => x.kind !== 'kb').concat(serpKb);
     // Local results lead; Team Home's pages follow. Chips narrow it to one kind.
     const counts = {};
     all.forEach(x => { counts[x.kind] = (counts[x.kind] || 0) + 1; });
@@ -866,7 +866,8 @@
         `<button type="button" role="tab" class="gs-chip${k === serpKind ? ' on' : ''}" data-k="${k}" aria-selected="${k === serpKind}">${esc(l)} <span>${n}</span></button>`).join('')
       : '';
     const rows = serpKind === 'all' ? all : all.filter(x => x.kind === serpKind);
-    // The click handler finds a row by position in serpItems; keep both in step.
+    // The click handler finds a row by position in serpItems (what is on screen). serpAll
+    // stays the full set, so a chip can be undone: filtering must never shrink it.
     serpItems = rows;
     serp.querySelector('.gs-serp-sum').textContent = !q ? '' : rows.length
       ? `${rows.length} result${rows.length === 1 ? '' : 's'} for “${text}”`
