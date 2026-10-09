@@ -1487,8 +1487,6 @@ details.fine[open] summary{margin-bottom:10px}
   padding:7px 14px;font:inherit;font-size:13.5px;cursor:pointer}
 @media(hover:hover){.cmp-chip:hover{color:var(--text)}}
 .cmp-chip.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
-.cmp-chip-note{cursor:default;opacity:.55}
-.cmp-chip-note.on{opacity:1}
 .cmp-sides{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;align-items:center;margin-bottom:12px}
 .cmp-side{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
 .cmp-side-k{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);display:flex;align-items:center;gap:8px}
@@ -4140,7 +4138,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20261009bp1"></script>
-<script src="compare.js?v=20261008cb9"></script>
+<script src="compare.js?v=20261009cmp1"></script>
 <script src="over-the-years.js?v=20261009oty2"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->

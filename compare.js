@@ -386,7 +386,7 @@ function cmpControlsHtml() {
   const P = cmpPresets();
   const chips = Object.entries(P).map(([k, p]) =>
     `<button type="button" class="cmp-chip${cmpState.preset === k ? ' on' : ''}" onclick="cmpApplyPreset('${k}')" title="${escapeHtml(p.hint)}">${escapeHtml(p.label)}</button>`
-  ).join('') + `<span class="cmp-chip cmp-chip-note${cmpState.preset === 'custom' ? ' on' : ''}">Custom</span>`;
+  ).join('') + `<button type="button" class="cmp-chip${cmpState.preset === 'custom' ? ' on' : ''}" onclick="cmpPickCustom()" title="Keep the windows as they are and set your own dates">Custom</button>`;
 
   const maxIso = cmpIso(cmpToday());
   const side = (key, label, s) => `
@@ -426,6 +426,18 @@ function cmpControlsHtml() {
         Per day <small>${unequal ? `off shows totals. The windows are different lengths (${daysBetween(cmpState.a.from, cmpState.a.to)} vs ${daysBetween(cmpState.b.from, cmpState.b.to)} days); tick to see a daily average instead` : 'both windows are the same length'}</small>
       </label>
     </div>`;
+}
+
+// Kate, 9 Oct 2026: the Custom chip was a label that only lit up after a date was edited, so clicking it did
+// nothing. It is a button now: it keeps the two windows as they are, marks the pick as custom, opens the
+// date fields (they fold on a phone) and puts the cursor in A's From date.
+function cmpPickCustom() {
+  cmpState.preset = 'custom';
+  cmpEditOpen = true;
+  cmpSave();
+  renderCompare();
+  const el = document.querySelector('.cmp-side-a input[type="date"]');
+  if (el) { try { el.focus({ preventScroll: false }); } catch (e) {} }
 }
 
 function cmpSet(key, field, value) {
