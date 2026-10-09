@@ -89,8 +89,8 @@ async function renderLostLists(host) {
 
 function llPick(id) {
   llClosePop();
-  llSel.list = id; llSel.off = []; llSel.area = 'all'; llPage = 1; llQuery = ''; llSave();
-  llHost.querySelectorAll('.ll-card').forEach(b => { const on = b.dataset.id === id; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+  llSel.list = id; llSel.off = []; llSel.area = 'all'; llSel.also = []; llPage = 1; llQuery = ''; llSave();
+  llHost.querySelectorAll('.ll-card').forEach(b => b.classList.toggle('on', b.dataset.id === id));
   llBusy = true; llPaintPanel();
   llFetch(id).then(() => { llBusy = false; llPaint(); }, e => { console.error(e); llBusy = false; llErr = 'That list did not load. Try again.'; llPaint(); });
 }
@@ -102,6 +102,11 @@ function llToggleSt(s) {
   if (i >= 0) llSel.off.splice(i, 1); else llSel.off.push(s);
   llRefresh();
 }
+function llToggleAlso(g) {
+  const a = (llSel.also || []).slice(), i = a.indexOf(g);
+  if (i >= 0) a.splice(i, 1); else a.push(g);
+  llSel.also = a; llRefresh();
+}
 function llSendReady() { llSel.off = LL_ST_ORDER.filter(s => s !== 'act' && s !== 'r18'); llRefresh(); }
 function llAllSt() { llSel.off = []; llRefresh(); }
 
@@ -111,6 +116,7 @@ function llFiltered() {
   let out = rows.filter(r => !llSel.off.includes(r.wa)
     && (llSel.area === 'all' || r.area === llSel.area)
     && !(llSel.hideSent && r.messaged)
+    && (llSel.also || []).every(g => (r.also_on || []).includes(g))
     && (!q || (r.client_name + ' ' + (r.stylist || '') + ' ' + (r.also_saw || '')).toLowerCase().includes(q)));
   const by = { recent: (a, b) => (a.days_since - b.days_since), oldest: (a, b) => (b.days_since - a.days_since),
     name: (a, b) => a.client_name.localeCompare(b.client_name) }[llSel.sort] || null;
@@ -150,6 +156,14 @@ function llFillPop() {
     const counts = {}; all.forEach(r => { counts[r.wa] = (counts[r.wa] || 0) + 1; });
     h = '<div class="ll-pt">Show</div>' + LL_ST_ORDER.filter(s => counts[s]).map(s => opt(!llSel.off.includes(s), lcEsc(LL_ST[s][1]), `llToggleSt('${s}')`, lcNum(counts[s]))).join('')
       + '<div class="ll-pf"><button type="button" class="lc-more" onclick="llSendReady()">Send-ready only</button><button type="button" class="lc-more" onclick="llAllSt()">All</button></div>';
+  } else if (llPopFor === 'groups') {
+    // Kate, 9 Oct 2026: the groups are chosen in this heading, not on the cards. Show group opens another list; Also in
+    // narrows this one to the clients who are in those groups too (every group ticked), for the ones in more than one.
+    const lists = ((llSum || {}).lists) || {}, also = llSel.also || [];
+    h = '<div class="ll-pt">Show group</div>' + LL_LISTS.map(l => opt(l.id === llSel.list, lcEsc(llName(l)), `llPick('${l.id}')`, lcNum((lists[l.id] || {}).n || 0))).join('')
+      + '<div class="ll-pt">Also in</div>' + LL_LISTS.filter(l => l.id !== llSel.list).map(l => opt(also.includes(l.id), 'Group ' + l.id, `llToggleAlso('${l.id}')`, lcNum(all.filter(r => (r.also_on || []).includes(l.id)).length))).join('')
+      + '<div class="ll-pf"><button type="button" class="lc-more" onclick="llSel.also=[];llRefresh()">Clear</button></div>'
+      + '<div class="ll-pt ll-pn">Also in shows the clients on this list who are in every group ticked.</div>';
   } else if (llPopFor === 'msg') {
     h = opt(llSel.hideSent, 'Hide anyone already messaged', `llSet('hideSent',${!llSel.hideSent})`)
       + '<div class="ll-pt ll-pn">Messaged = respond.io shows a message was sent to the number since the groups were handed over, in any group.</div>';
@@ -191,9 +205,8 @@ function llCard(l) {
   const wa = S.wa || {}, n = S.n || 0;
   const ready = (wa.act || 0) + (wa.r18 || 0), unsure = (wa.noreply || 0) + (wa.unchecked || 0), none = (wa.text || 0) + (wa.nonum || 0) + (wa.blocked || 0);
   const pct = n ? Math.round(100 * ready / n) : 0;
-  // Kate, 9 Oct 2026: the tab row under the cards is gone, so the cards pick the list (they only reported before).
-  return `<div class="ll-card${l.id === llSel.list ? ' on' : ''}" data-id="${l.id}" role="button" tabindex="0" aria-pressed="${l.id === llSel.list}"
-      title="Show Group ${l.id}" onclick="llPick('${l.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();llPick('${l.id}')}">
+  // Hover only, not clickable (Kate, 9 Oct 2026): the group is picked in the In groups column heading. The ring marks the open one.
+  return `<div class="ll-card${l.id === llSel.list ? ' on' : ''}" data-id="${l.id}">
       <div class="ll-g">Group ${l.id}</div><div class="ll-t">${lcEsc(l.t)}</div><div class="ll-n">${lcNum(n)}</div>
       <div class="ll-d">${lcEsc(l.d)}</div>
       <div class="ll-ch">${lcEsc(l.ch)}${l.id === '3' ? `<br>Dubai ${lcNum(S.dubai)} · Abu Dhabi ${lcNum(S.abu_dhabi)}` : ''}</div>
@@ -282,7 +295,7 @@ function llPaintTable() {
   const cols = ['Client', 'Last visit', 'Last smoothing', 'Last colouring', 'Last service', 'Usual team'].concat(ph ? ['Phone'] : [], ['WhatsApp', 'Also on', 'Messaged']);
   const th = (label, k, marked) => k ? `<th><button type="button" class="ll-thb${marked ? ' on' : ''}" onclick="llMenu(event,'${k}')" aria-haspopup="dialog" title="Filter or sort">${lcEsc(label)} <span aria-hidden="true">▾</span></button></th>` : `<th>${lcEsc(label)}</th>`;
   const heads = th('Client', 'client', llSel.area !== 'all') + th('Last visit', 'last', llSel.sort === 'oldest') + th('Last smoothing') + th('Last colouring') + th('Last service') + th('Usual team')
-    + (ph ? th('Phone') : '') + th('WhatsApp', 'wa', llSel.off.length > 0) + th('In groups') + th('Messaged', 'msg', llSel.hideSent);
+    + (ph ? th('Phone') : '') + th('WhatsApp', 'wa', llSel.off.length > 0) + th('In groups', 'groups', (llSel.also || []).length > 0) + th('Messaged', 'msg', llSel.hideSent);
   // Usual team: her usual stylist and usual beautician, one line each (the row panel has everyone else).
   const team = r => { const t = lcTeam(r); const w = [t.hair[0], t.beauty[0]].filter(Boolean); return w.length ? w.map(n => `<div>${lcStylist(n)}</div>`).join('') : '<span class="slv-muted">–</span>'; };
   const tr = shown.map((r, i) => `<tr class="lc-row" title="Click to see what she came in for, what she took home and who looked after her" onclick="lcToggleDetail(event,${i})">
