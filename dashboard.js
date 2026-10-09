@@ -1343,6 +1343,9 @@ const FILTERED_VIEWS = new Set([
 const LEDGER_VIEWS = new Set(['ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist']);
 
 let CURRENT_VIEW = 'dashboard';
+// Set when a filter changed while a page that does not use the Pulse's numbers (Google Reviews) was open, so the Pulse
+// redraw was skipped; showView() runs it when the next page that needs it opens.
+let PULSE_STALE = false;
 
 // Re-render whatever is actually on screen after a filter change.
 //
@@ -1357,6 +1360,18 @@ let CURRENT_VIEW = 'dashboard';
 function refreshActiveView() {
   // Before the Pulse redraw, which takes a moment: the Reviews frame just follows.
   postReviewsBranch();
+  // Kate, 9 Oct 2026: "di mapindot, nag llag" on Google Reviews. Every Branch or Period change ran the whole Pulse redraw
+  // behind the page (a daily range, targets for every month of it, door counts: about 14 requests and a full aggregate) for
+  // numbers that page never shows, and the chips could not be used until it finished. Reviews reads the filters itself in
+  // its frame, which was just told, so here only the chips and the address bar are repainted; the Pulse waits (PULSE_STALE)
+  // until a page that needs it is opened.
+  if (CURRENT_VIEW === 'reviews') {
+    PULSE_STALE = true;
+    paintFilterChips();
+    if (typeof spy === 'function') spy();
+    return Promise.resolve();
+  }
+  PULSE_STALE = false;
   return renderDashboard().then(() => {
     const visible = v => {
       const n = document.getElementById('view-' + v);

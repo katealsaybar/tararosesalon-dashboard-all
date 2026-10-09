@@ -4154,7 +4154,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20260903a"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261009per1"></script>
+<script src="dashboard.js?v=20261009per2"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4615,6 +4615,8 @@ function showView(view, el){
   if (view === 'ledgerActuals') renderLedgerActuals();
   if (view === 'ledgerStylist') renderLedgerStylist();
   CURRENT_VIEW = view;
+  // A filter changed while Google Reviews was open and the Pulse redraw was skipped (refreshActiveView): catch up now.
+  if (PULSE_STALE && view !== 'reviews' && typeof refreshActiveView === 'function') { PULSE_STALE = false; refreshActiveView(); }
   // After CURRENT_VIEW, not before: the Period chips grey out on the Ledgers pages
   // and paintFilterChips() reads CURRENT_VIEW to know. Without this the chips only
   // caught up on the next filter change. Cheap — it paints chips, not data.

@@ -108,6 +108,10 @@ function buildStaff(){
     return {key:k, label, names: vs.map(v => v.variant), branch:BR_OF[p.branch] || null, also:(ALSO_BRANCH[k] || []).map(b => BR_OF[b]), role:p.role || "", resigned:!!p.resigned,
       photo: p.photoFull ? "../../" + encodeURI(p.photoFull) : p.photo ? "../../assets/staff/" + encodeURIComponent(p.photo) : null,
       notAfter: Object.fromEntries(vs.filter(v => v.not_after).map(v => [v.variant.toLowerCase(), new RegExp("(?<![\\p{L}])" + reEsc(v.not_after) + "\\s+$", "iu")])),
+      // Kate, 9 Oct 2026: the reviewer-name check ("... Maria." is not naming a stylist) is a regex per spelling; building
+      // them once here, not once per review per person, took tagging all 2,500 reviews from about a second to a few
+      // hundred milliseconds, and it is only worked out when a name is actually found in the text.
+      ownRes: vs.map(v => ({n: v.variant, re: wordRe([v.variant], "i")})),
       loose: wordRe(loose, "gi"), strict: wordRe(strict, "g"), strictCi: wordRe(strictCi, "gi")};
   };
   // People in the table with no profile: name row carries label / home_branch / photo.
@@ -140,13 +144,14 @@ function tagStaffAuto(r){
     // Bahrain reviews only count for someone whose home is Bahrain.
     if (bahrain && s.branch !== r.branch) return;
     // A client signing off with her own name ("... Maria.") isn't naming a stylist.
-    const own = s.names.find(n => wordRe([n], "i").test(r.reviewer || ""));
+    let own;
     const hits = [];
     [[s.loose, true], [s.strict, atBranch(s, r)], [s.strictCi, atBranch(s, r)]].forEach(([re, ok]) => {
       if (!re || !ok) return;
       re.lastIndex = 0; let m;
       while ((m = re.exec(r.comment))) {
         const w = m[1];
+        if (own === undefined) own = (s.ownRes.find(o => o.re.test(r.reviewer || "")) || {}).n || null;
         if (own && own.toLowerCase() === w.toLowerCase()) continue;
         const na = s.notAfter[w.toLowerCase()];
         if (na && na.test(r.comment.slice(Math.max(0, m.index - 20), m.index))) continue;
