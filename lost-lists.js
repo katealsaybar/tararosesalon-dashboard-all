@@ -30,7 +30,6 @@ const LL_ST = {
   blocked:   ['ll-num', 'Blocked', 'Blocked in respond.io'],
 };
 const LL_ST_ORDER = ['act', 'r18', 'noreply', 'unchecked', 'text', 'nonum', 'blocked'];
-const LL_BAR = ['act', 'r18', 'noreply', 'text', 'nonum'];   // what the card bars draw, in this order
 const LL_LISTS = [
   { id: '1', t: '1 Smoothing, lost', d: 'Lost 6+ months, had smoothing May 2025 to May 2026', ch: 'WhatsApp + text', svc: 'Last smoothing',
     def: '<b>In:</b> no visit of any kind since 9 Apr 2026, and a smoothing (keratin or Supreme Straighten) between May 2025 and May 2026. <b>Out:</b> anyone with a booking.' },
@@ -118,22 +117,30 @@ function llPaint() {
       ${chip(F.bookings_pulled ? `Bookings pulled <b>${lcEsc(llDay(F.bookings_pulled))}</b>${bkOld > 2 ? ` (${bkOld} days old, a booked client may look lost; run /daily-reports)` : ''}` : 'Bookings <b>not loaded</b>', !F.bookings_pulled || bkOld > 2)}
     </div>
     <div class="ll-cards">${LL_LISTS.map(l => llCard(l)).join('')}</div>
-    <div class="ll-legend">${LL_BAR.map(s => `<span class="${LL_ST[s][0]}">${LL_ST[s][1]}</span>`).join('')}</div>
+    <p class="ll-explain"><b>Ready on WhatsApp</b> = wrote to one of our numbers in the last 18 months. <b>No reply seen</b> = in respond.io, but no reply in their last 50 messages. <b>Text only</b> = not in respond.io; <b>no number</b> = nothing usable in Phorest.</p>
     ${held ? `<p class="slv-note">${lcNum(held)} more are already booked and are kept off every list.</p>` : ''}
     <section class="slv-card ll-panel" id="llPanel"></section>`;
   llPaintPanel();
 }
 
+// A card says its numbers in words (no colour to decode): how many are ready on WhatsApp, how many are
+// contacts with no reply seen, how many are text only or have no number, and one plain bar for the
+// ready share.
 function llCard(l) {
   const S = ((llSum.lists || {})[l.id]) || { n: 0, wa: {} };
-  const wa = S.wa || {};
-  const tot = Object.values(wa).reduce((a, b) => a + b, 0) || 1;
-  const seg = s => (s === 'noreply' ? (wa.noreply || 0) + (wa.unchecked || 0) : s === 'nonum' ? (wa.nonum || 0) + (wa.blocked || 0) : (wa[s] || 0));
+  const wa = S.wa || {}, n = S.n || 0;
+  const ready = (wa.act || 0) + (wa.r18 || 0), unsure = (wa.noreply || 0) + (wa.unchecked || 0), none = (wa.text || 0) + (wa.nonum || 0) + (wa.blocked || 0);
+  const pct = n ? Math.round(100 * ready / n) : 0;
   return `<button type="button" class="ll-card${l.id === llSel.list ? ' on' : ''}" data-id="${l.id}" onclick="llPick('${l.id}')">
-      <div class="ll-t">${lcEsc(l.t)}</div><div class="ll-n">${lcNum(S.n)}</div>
+      <div class="ll-t">${lcEsc(l.t)}</div><div class="ll-n">${lcNum(n)}</div>
       <div class="ll-d">${lcEsc(l.d)}</div>
-      <div class="ll-ch">${lcEsc(l.ch)}${l.id === '3' ? ` · Dubai ${lcNum(S.dubai)} / Abu Dhabi ${lcNum(S.abu_dhabi)}` : ''}</div>
-      <div class="ll-bar">${LL_BAR.map(s => `<i class="${LL_ST[s][0]}" style="width:${100 * seg(s) / tot}%" title="${lcEsc(LL_ST[s][1])}: ${lcNum(seg(s))}"></i>`).join('')}</div>
+      <div class="ll-ch">${lcEsc(l.ch)}${l.id === '3' ? `<br>Dubai ${lcNum(S.dubai)} · Abu Dhabi ${lcNum(S.abu_dhabi)}` : ''}</div>
+      <dl class="ll-mix">
+        <div><dt>Ready on WhatsApp</dt><dd>${lcNum(ready)} <span>${pct}%</span></dd></div>
+        <div><dt>No reply seen</dt><dd>${lcNum(unsure)}</dd></div>
+        <div><dt>Text only or no number</dt><dd>${lcNum(none)}</dd></div>
+      </dl>
+      <div class="ll-bar" role="img" aria-label="${pct}% ready on WhatsApp"><i style="width:${pct}%"></i></div>
     </button>`;
 }
 

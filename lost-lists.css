@@ -68,3 +68,17 @@
 .ll-tools .ll-sel{min-height:34px;padding:5px 10px;font-size:13px}
 .ll-tools .ll-hide{font-size:12.5px}
 @media(max-width:760px){.ll-tools .ll-search{flex:1 1 100%;max-width:none}.ll-tools .tglr{flex:1}}
+
+/* Cards: content stacks from the top and the numbers line up from card to card. */
+.ll-card{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:0}
+.ll-d{min-height:52px}
+.ll-ch{min-height:56px;margin-bottom:8px}
+.ll-mix{margin:0 0 8px;display:grid;gap:3px;font-size:12.5px}
+.ll-mix > div{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.ll-mix dt{color:var(--muted)}
+.ll-mix dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ll-mix dd span{font-weight:400;color:var(--muted);margin-left:3px}
+.ll-bar{margin-top:auto}
+.ll-bar i{background:var(--good)}
+.ll-explain{font-size:12.5px;color:var(--muted);margin:10px 0 6px;max-width:900px;line-height:1.5}
+.ll-explain b{color:var(--text);font-weight:600}
