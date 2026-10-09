@@ -220,13 +220,13 @@ function otyTiles(rows) {
 }
 // Kate, 9 Oct 2026: "it's too big" on a desktop. The charts were drawn on a 360 unit phone canvas and then
 // stretched to the page, so at 1000px wide the type was 3x and the chart taller than the screen. Now the canvas
-// is as wide as the page (up to 820 units) and a little taller, so the type stays near its true size and the
-// bars have room. Under 560px, a phone, it is the 360 unit canvas as before.
+// is as wide as the page (up to 820 units) and flatter (78% of the phone height, about 290px on screen at
+// full width), so the type stays near its true size and a chart plus its legend fits one screen. Under 560px, a phone, it is the 360 unit canvas as before.
 function otyCanvas(h) {
   const host = document.getElementById('overYearsContent');
   const w = Math.min(1100, (host && host.clientWidth) || window.innerWidth) - 30;
   const W = w >= 560 ? Math.min(Math.round(w), 820) : 360;
-  return { W, H: W > 360 ? Math.round(h * 1.15) : h, bmax: W > 360 ? 64 : 30 };
+  return { W, H: W > 360 ? Math.round(h * .78) : h, bmax: W > 360 ? 64 : 30 };
 }
 function otyChartBlock(rows) {
   const { years, sets } = otyD, set = sets[OTY.b], n = years.length;
