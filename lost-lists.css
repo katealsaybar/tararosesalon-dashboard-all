@@ -82,3 +82,14 @@
 .ll-bar i{background:var(--good)}
 .ll-explain{font-size:12.5px;color:var(--muted);margin:10px 0 6px;max-width:900px;line-height:1.5}
 .ll-explain b{color:var(--text);font-weight:600}
+
+/* Cards, second pass (Kate, 9 Oct 2026, her screenshot at 125% zoom): as many cards per row as fit
+   (never narrower than 200px), the title and number at the top, and the three counts and the bar
+   pinned to the bottom, so they line up from card to card however the description wraps. */
+.ll-cards{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.ll-d,.ll-ch{min-height:0}
+.ll-ch{margin-bottom:12px}
+.ll-bot{margin-top:auto}
+.ll-mix dd span{display:none}
+.ll-bar{margin-top:6px}
+.ll-pct{font-size:12px;color:var(--muted);margin-top:4px}

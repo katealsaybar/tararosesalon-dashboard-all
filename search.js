@@ -1273,7 +1273,7 @@
     team: ['ledger', 'phorest'], teamquad: ['ledger', 'phorest'], staffperf: ['ledger', 'phorest'],
     staffweeks: ['ledger', 'phorest'], stafflevels: ['ledger', 'phorest'],
     ledgerFinancials: ['phorest'], ledgerTargets: ['ledger'], ledgerActuals: ['ledger'], ledgerStylist: ['ledger'],
-    services: ['phorest'], clients: ['phorest'], lostclients: ['phorest'], products: ['phorest'],
+    services: ['phorest'], clients: ['phorest'], lostclients: ['phorest'], lostlists: ['phorest'], products: ['phorest'],
     googleads: ['ads'], website: ['web'], social: ['social'],
   };
   const SYNC = { ads: ['Google Ads', 'google_ads_report'], web: ['Website', 'website_report'], social: ['Metricool', 'social_report'] };

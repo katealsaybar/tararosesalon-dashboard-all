@@ -1291,7 +1291,7 @@ function heroPeriodPhrasing() {
 const VIEW_SECTION_LABELS = {
   dashboard: 'Organisation Pulse', team: 'Podium Race', teamquad: 'Staff Quadrant', staffperf: 'Staff Dashboards', stafflevels: 'Stylist’s Benchmarks', staffweeks: 'Staff’s 13 Week', stylists: 'Staff Cards',
   orgchart: 'Org Chart',
-  services: 'Service Rankings', clients: 'Top Clients', clientmix: 'Client Mix', lostclients: 'Client’s Last Visit', products: 'Products', reviews: 'Google Reviews',
+  services: 'Service Rankings', clients: 'Top Clients', clientmix: 'Client Mix', lostclients: 'Client’s Last Visit', lostlists: 'Lost Clients', products: 'Products', reviews: 'Google Reviews',
   wvperf: 'Wellness Voucher Performance',
   googleads: 'Google Ads',
   website: 'Website & Search',
@@ -1311,7 +1311,7 @@ const VIEW_SECTION_LABELS = {
 // 'khalifa' and 'saadiyat', which have not existed for months.
 const ALL_VIEWS = [
   'dashboard','branchperf','compare','overyears','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
-  'team','teamquad','staffperf','staffweeks','stafflevels','stylists','orgchart','services','clients','clientmix','lostclients','products','googleads','website','social','wvperf','reviews','calendar','giveaway','trk',
+  'team','teamquad','staffperf','staffweeks','stafflevels','stylists','orgchart','services','clients','clientmix','lostclients','lostlists','products','googleads','website','social','wvperf','reviews','calendar','giveaway','trk',
 ];
 
 // Which pages read the shared branch + period filters. Everything that shows a

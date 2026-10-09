@@ -16,8 +16,8 @@
 // handed over). So a client messaged on any list, from respond.io, stays off the others by itself.
 // Only messages sent through respond.io are seen; a text sent from another system is not.
 //
-// Sits inside Client's Last Visit (lost-clients.js draws the tab bar and calls
-// renderLostLists). Borrows that page's row panel (lcToggleDetail), staff links (lcTeam,
+// Its own page, Lost Clients (index.html view 'lostlists', ?view=lost-clients), apart from Client's Last Visit
+// (Kate, 9 Oct 2026: they are different jobs). renderLostListsPage draws it. Borrows Client's Last Visit's row panel (lcToggleDetail), staff links (lcTeam,
 // lcStylist), phone cell (lcPhone), pager look and the XLSX writer (lgx*), so a client opens
 // the same way and the files look the same.
 const LL_ST = {
@@ -57,6 +57,15 @@ async function llFetch(id) {
   const { data, error } = await sb.rpc('lost_lists', { p_list: id });
   if (error || !Array.isArray(data)) throw error || new Error('no data');
   return (llRows[id] = data);
+}
+
+// The page: its heading, then the lists.
+function renderLostListsPage() {
+  const el = document.getElementById('lostListsContent');
+  if (!el || !(typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2)) return;
+  el.innerHTML = `<section class="slv-intro"><h2>Lost Clients</h2>
+    <p>Coach Emma's outreach lists: who is lost, who is ready on WhatsApp and who is text only.</p></section><div id="llHost"></div>`;
+  renderLostLists(document.getElementById('llHost'));
 }
 
 async function renderLostLists(host) {
@@ -135,12 +144,15 @@ function llCard(l) {
       <div class="ll-t">${lcEsc(l.t)}</div><div class="ll-n">${lcNum(n)}</div>
       <div class="ll-d">${lcEsc(l.d)}</div>
       <div class="ll-ch">${lcEsc(l.ch)}${l.id === '3' ? `<br>Dubai ${lcNum(S.dubai)} · Abu Dhabi ${lcNum(S.abu_dhabi)}` : ''}</div>
-      <dl class="ll-mix">
-        <div><dt>Ready on WhatsApp</dt><dd>${lcNum(ready)} <span>${pct}%</span></dd></div>
-        <div><dt>No reply seen</dt><dd>${lcNum(unsure)}</dd></div>
-        <div><dt>Text only or no number</dt><dd>${lcNum(none)}</dd></div>
-      </dl>
-      <div class="ll-bar" role="img" aria-label="${pct}% ready on WhatsApp"><i style="width:${pct}%"></i></div>
+      <div class="ll-bot">
+        <dl class="ll-mix">
+          <div><dt>Ready on WhatsApp</dt><dd>${lcNum(ready)}</dd></div>
+          <div><dt>No reply seen</dt><dd>${lcNum(unsure)}</dd></div>
+          <div><dt>Text only or no number</dt><dd>${lcNum(none)}</dd></div>
+        </dl>
+        <div class="ll-bar" role="img" aria-label="${pct}% ready on WhatsApp"><i style="width:${pct}%"></i></div>
+        <div class="ll-pct">${pct}% ready on WhatsApp</div>
+      </div>
     </button>`;
 }
 
