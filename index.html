@@ -3053,6 +3053,12 @@ table.lg thead.lg-float tr:last-child th{box-shadow:0 8px 10px -8px rgba(0,0,0,.
 /* Resigned staff in grey, like their faded cards; and the name lifts a little under the
    pointer or a finger, so it reads as something to press (Kate, 2 Oct 2026). */
 .lc-st-gone{color:var(--muted)!important;font-weight:500}.who:has(.lc-st-gone){color:var(--muted)!important}
+/* Kate, 9 Oct 2026: someone who has left stays in her own family, greyed: hair a grey violet, beauty a grey pink (it was
+   one neutral grey for both, so a resigned stylist and a resigned beautician read the same). Deeper on the light sidebar. */
+:root{--gone-hair:#7B7296;--gone-beauty:#96747F}
+[data-theme="dark"]{--gone-hair:#A69FBD;--gone-beauty:#C2A6AB}
+.lc-st-gone.lc-st-hair,.who:has(.lc-st-gone.lc-st-hair){color:var(--gone-hair)!important}
+.lc-st-gone.lc-st-beauty,.who:has(.lc-st-gone.lc-st-beauty){color:var(--gone-beauty)!important}
 .who:has(.lc-st){display:inline-block;transition:transform .15s ease,border-color .15s}
 @media(hover:hover){.who:has(.lc-st):hover{transform:translateY(-2px)}}
 .who:has(.lc-st):active,.who.who-on:has(.lc-st){transform:translateY(-2px)}
@@ -3064,7 +3070,9 @@ table.lg thead.lg-float tr:last-child th{box-shadow:0 8px 10px -8px rgba(0,0,0,.
   padding:8px 10px;border:0;border-radius:7px;background:transparent;color:var(--text);
   text-align:left;cursor:pointer;font:inherit}
 .who-opt:focus-visible{background:var(--surface2);outline:none}@media(hover:hover){.who-opt:hover{background:var(--surface2);outline:none}}
-.who-opt.off{cursor:default;opacity:.55}
+.who-opt.off{cursor:not-allowed;opacity:1;background:rgba(127,127,127,.16)}
+/* Kate, 9 Oct 2026: a colleague with no Staff Cards card gets a grey Staff card box, not a faintly dimmed one. */
+.who-opt.off .who-opt-t{color:var(--muted2);font-weight:500}.who-opt.off .who-opt-s{color:var(--muted2);font-style:italic}
 .who-opt-t{font-size:13px;font-weight:600;letter-spacing:.01em}
 .who-opt-s{font-size:11px;color:var(--muted);letter-spacing:.02em}
 .who-flash{animation:whoFlash 2.2s var(--card-ease,ease) both}
