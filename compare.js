@@ -980,8 +980,15 @@ function cmpVisualHtml(sa, sb2) {
         ['Clients', 'Handled by staff', 'Hair clients', 'Beauty clients', 'Request clients', 'Salon clients', 'New clients', 'Rebooked'], sa, sb2)}
     </div>
     <div class="cmp-two">
-      ${cmpMirrorHtml('Averages', (CMP_DOOR ? 'Avg bill is per client through the door; the rows under it are per staff (ledgers).' : 'Per staff, from the ledgers.') + ' In AED, ex VAT.',
-        ['Avg bill', 'Avg bill, per staff count', 'Hair avg bill', 'Beauty avg bill'], sa, sb2)}
+      ${CMP_DOOR
+        // Kate, 9 Oct 2026: two cards, one per basis, instead of one card mixing them. Per staff first, the
+        // way the Pulse leads, because the targets are written on it; per visit is the through-the-door bill.
+        ? cmpMirrorHtml('Averages, per staff', 'Net take over the clients staff counted (ledgers). In AED, ex VAT.',
+            ['Avg bill, per staff count', 'Hair avg bill', 'Beauty avg bill'], sa, sb2)
+          + cmpMirrorHtml('Averages, per visit', 'Net take over each client once a day, through the door (Phorest). In AED, ex VAT.',
+            ['Avg bill'], sa, sb2)
+        : cmpMirrorHtml('Averages, per staff', 'Per staff, from the ledgers. In AED, ex VAT.',
+            ['Avg bill', 'Hair avg bill', 'Beauty avg bill'], sa, sb2)}
     </div>
     <div class="cmp-card cmp-trend">
       <div class="cmp-h">Performance over time</div>
