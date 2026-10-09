@@ -60,6 +60,15 @@
 .lc-wrap.ll-wrap th,.lc-wrap.ll-wrap td{text-align:left;vertical-align:top;white-space:normal;overflow-wrap:normal;padding:9px 7px}
 .lc-wrap.ll-wrap thead th{position:sticky;top:var(--topbar-cond-h,104px);z-index:5;background:var(--surface);box-shadow:0 1px 0 var(--border);white-space:nowrap}
 .ll-wrap td.ll-nw,.ll-wrap td .ll-nw{white-space:nowrap}
+/* Kate, 9 Oct 2026: four service columns (smoothing, colour, toner, services) took the table from 8 to 11 columns,
+   1240px in a 1000px card. Tighter cells, headings that wrap, a WhatsApp pill that wraps and shorter stylist names
+   bring it back to the card's width (measured on the live page at 1536px: table 1003px, card 1003px). */
+.lc-wrap.ll-wrap th,.lc-wrap.ll-wrap td{padding:9px 4px}
+.lc-wrap.ll-wrap thead th{white-space:normal;vertical-align:bottom;line-height:1.25}
+.lc-wrap.ll-wrap td:first-child{min-width:125px}
+.ll-wrap .ll-pill{white-space:normal;line-height:1.25;display:inline-block;max-width:125px}
+.ll-wrap td.ll-team .who{max-width:115px}
+.ll-wrap td.ll-svcs{font-size:12.5px;line-height:1.4;min-width:80px;max-width:120px;overflow-wrap:break-word}
 .lc-wrap.ll-wrap td:first-child{min-width:150px}
 .lc-wrap.ll-wrap td.ll-ph,.lc-wrap.ll-wrap td.ll-ph a,.lc-wrap.ll-wrap td .lc-ph a{white-space:nowrap}
 .ll-wrap td.ll-team > div{margin-bottom:3px;white-space:nowrap}
