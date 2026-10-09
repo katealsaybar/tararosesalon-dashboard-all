@@ -1,6 +1,6 @@
 // Lost Clients, To message and Templates tabs (Kate, 9 Oct 2026). The five groups overlap (group 4 is everyone), so this is the
 // one running list built from them: every client who can be messaged, ONE message each, first match wins:
-// groups 1 or 2 -> smoothing, group 3 -> colour, group 5 -> other services, group 4 only -> everyone else.
+// group 3 -> colour (with the 25% off offer to 31 October 2026, Kate 9 Oct), then groups 1 or 2 -> smoothing, group 5 -> other services, group 4 only -> everyone else.
 // The list and its message types come from lost_queue() (migrations/lost_queue.sql); the wording of the eight messages is in
 // lost_templates, edited from the Templates tab. Level 3 and above (it shows phone numbers).
 //
@@ -25,11 +25,11 @@ const LQ_STOP = " If you'd rather not hear from us, just reply STOP.";
 const LQ_DEFAULTS = {
   wa_smoothing_lost: "Hi {first_name}, this is Tara Rose Salons {branch}. Your last smoothing[ with {stylist}] was back in {month}, and smoothing works best when it's kept on rhythm. If you'd like, we'll start with a proper look at your hair and tell you honestly what it needs. No pressure to book anything. Shall we find you a time that suits?",
   wa_smoothing_still: "Hi {first_name}, this is Tara Rose Salons {branch}. Lovely to have you in with us recently. We noticed your last smoothing was back in {month}. If it's on your mind, {stylist|our team} can look at your hair at your next visit and tell you honestly where it's at. Shall we plan a little time for it at your next visit?",
-  wa_colour: "Hi {first_name}, this is Tara Rose Salons {branch}. We were thinking of you. Your last colour[ with {stylist}] was in {month}, and colour looks its best when it's kept on rhythm between visits. Whenever you're ready, we'll start with a proper look at your hair and an honest plan. Would you like us to find you a time[ with {stylist}]?",
+  wa_colour: "Hi {first_name}, this is Tara Rose Salons {branch}. We were thinking of you. Your last colour[ with {stylist}] was in {month}, and we'd love to welcome you back with 25% off your next colour until 31 October, and an introduction to our new stylists. Would you like us to find you a time?",
   wa_other: "Hi {first_name}, this is Tara Rose Salons {branch}. It's been a little while since we saw you and we'd love to have you back. We see you, and we'd like to pick up[ with {stylist}] where you left off. Tell us what's been on your mind with your hair and we'll find you the right time. Is there a day that suits?",
   wa_catchall: "Hi {first_name}, this is Tara Rose Salons {branch}. It's been a little while since we saw you and we'd love to have you back. Tell us what's been on your mind with your hair and we'll find you the right time. Is there a day that suits?",
   sms_smoothing: "Hi {first_name}, Tara Rose {branch} here. It's been a while since your last smoothing. Want us to find you a time? Reply STOP to opt out.",
-  sms_colour: "Hi {first_name}, Tara Rose {branch} here. We'd love to see you again for your colour. Want us to find you a time? Reply STOP to opt out.",
+  sms_colour: "Hi {first_name}, Tara Rose {branch} here. Enjoy 25% off your next colour until 31 October and meet our new stylists. Reply to book. Reply STOP to opt out.",
   sms_other: "Hi {first_name}, Tara Rose {branch} here. It's been a while and we'd love to have you back. Want us to find you a time? Reply STOP to opt out.",
 };
 const LQ_TOKENS = ['{first_name}', '{branch}', '{stylist}', '{month}'];
