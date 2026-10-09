@@ -8,8 +8,8 @@ const SUPA_KEY = "sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO";
 // The dashboard's sign-in session (auth.js, 25 Sep 2026); the public key alone can't read these once Phase B is on.
 const authHeaders = () => (window.TRSAuth ? TRSAuth.headers() : {apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY});
 let R = [], META, TODAY, SYNC = null;
-const BRANCHES = ["Khalifa City A, Abu Dhabi","Saadiyat, Abu Dhabi","Al Quoz, Dubai","Motor City, Dubai","District 2, Bahrain"];
-const SHORT = {"Khalifa City A, Abu Dhabi":"Khalifa City A","Saadiyat, Abu Dhabi":"Saadiyat","Al Quoz, Dubai":"Al Quoz","Motor City, Dubai":"Motor City","District 2, Bahrain":"Bahrain"};
+const BRANCHES = ["Khalifa City A, Abu Dhabi","Saadiyat, Abu Dhabi","Al Quoz, Dubai","Motor City, Dubai","District 2, Bahrain","Fratelli Barbershop, Al Quoz"];
+const SHORT = {"Khalifa City A, Abu Dhabi":"Khalifa City A","Saadiyat, Abu Dhabi":"Saadiyat","Al Quoz, Dubai":"Al Quoz","Motor City, Dubai":"Motor City","District 2, Bahrain":"Bahrain","Fratelli Barbershop, Al Quoz":"Fratelli"};
 // Each review's own public Google link (Kate, 28 Sep 2026): the exact URL Google's
 // Share button gives, rebuilt from the Maps review id and the branch's Maps CID.
 // Opens that one review for anyone, signed in or not; the Business Profile link
@@ -34,7 +34,9 @@ const GBP_LOC = {"Khalifa City A, Abu Dhabi":"5307528376474579201","Saadiyat, Ab
 const branchMapsUrl = r => MAPS_CID[r.branch] ? "https://www.google.com/maps?cid=" + BigInt(MAPS_CID[r.branch]).toString() + "&hl=en" : "";
 const branchGbpUrl = r => GBP_LOC[r.branch] ? `https://www.google.com/local/business/${GBP_LOC[r.branch]}/customers/reviews?knm=0&ih=lu&hl=en&dcs=1` : "";
 const ALL = [1,2,3,4,5];
-const CODE_TO_BRANCH={KCA:"Khalifa City A, Abu Dhabi",SAA:"Saadiyat, Abu Dhabi",AQ:"Al Quoz, Dubai",MC:"Motor City, Dubai",BAH:"District 2, Bahrain"};
+const CODE_TO_BRANCH={KCA:"Khalifa City A, Abu Dhabi",SAA:"Saadiyat, Abu Dhabi",AQ:"Al Quoz, Dubai",MC:"Motor City, Dubai",BAH:"District 2, Bahrain",FRT:"Fratelli Barbershop, Al Quoz"};
+// Fratelli Barbershop (closed; Kate, 9 Oct 2026) has no chip on the dashboard's bar, so it joins
+// only when the bar is on every branch: all five codes picked.
 // Branch and window are the dashboard's masthead bar (Kate, 8 Oct 2026): dashboard.js
 // postReviewsBranch sends them as trs-reviews-filter and applyFilter below takes them,
 // so this page keeps only what is specific to reviews (rating, staff, comments, search).
@@ -131,6 +133,8 @@ function tagStaffAuto(r){
   r.staff = []; r.hits = []; r.viaClient = false;
   if (!r.comment) { if (r.id && CLIENT_CREDIT[r.id]) { r.staff = [...new Set(CLIENT_CREDIT[r.id])]; r.viaClient = true; } return; }
   r.staff = [];
+  // Fratelli's barbers aren't TRS staff: a "Billy" or "Mihaela" there is never one of ours.
+  if (r.branch === CODE_TO_BRANCH.FRT) { r.staff = []; return; }
   const bahrain = r.branch === "District 2, Bahrain";
   STAFF.forEach(s => {
     // Bahrain reviews only count for someone whose home is Bahrain.
@@ -273,12 +277,13 @@ function renderExact(){
   const cell=(b,s)=>{const v=E[b][String(s)]; if(v!==null) return `<td>${v.toLocaleString()}</td>`;
     if(s===3) return `<td class="q" title="At least 12; Google caps results at 50">12+</td>`;
     return `<td class="q" title="Google doesn't expose this split for Khalifa City A">–</td>`;};
-  let rows=BRANCHES.map(b=>{
+  const BR=BRANCHES.filter(b=>T[b]>0);
+  let rows=BR.map(b=>{
     const low=[1,2,3].reduce((a,s)=>a+(E[b][s]===null&&s===3?12:(E[b][s]||0)),0);
     const lowTxt = E[b]["3"]===null? low+"+" : low;
     return `<tr><td>${SHORT[b]}</td>${ALL.map(s=>cell(b,s)).join("")}<td><b>${T[b].toLocaleString()}</b></td><td>${META.avg[b].toFixed(2)}★</td><td>${lowTxt} <span style="color:var(--faint)">(${(low/T[b]*100).toFixed(1)}%${E[b]["3"]===null?"+":""})</span></td></tr>`;}).join("");
-  const sum=s=>BRANCHES.reduce((a,b)=>a+(E[b][String(s)]===null&&s===3?12:(E[b][String(s)]||0)),0);
-  const tot=BRANCHES.reduce((a,b)=>a+T[b],0);
+  const sum=s=>BR.reduce((a,b)=>a+(E[b][String(s)]===null&&s===3?12:(E[b][String(s)]||0)),0);
+  const tot=BR.reduce((a,b)=>a+T[b],0);
   const lowAll=[1,2,3].reduce((a,s)=>a+sum(s),0);
   rows+=`<tr class="tot"><td>All branches</td><td>${sum(1)}</td><td>${sum(2)}</td><td>${sum(3)}</td><td>${sum(4)}</td><td>${sum(5).toLocaleString()}</td><td>${tot.toLocaleString()}</td><td></td><td>${lowAll} (${(lowAll/tot*100).toFixed(1)}%)</td></tr>`;
   document.getElementById("exact").innerHTML=`<div style="overflow-x:auto"><table class="ex" style="min-width:620px"><thead><tr><th>Branch</th><th>1★</th><th>2★</th><th>3★</th><th>4★</th><th>5★</th><th>Total</th><th>Avg</th><th>1–3★ share</th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -450,10 +455,10 @@ function renderNote(){
   if(!SYNC){ el.innerHTML=`<b>⚠ Offline copy: ${n} Google reviews as of 24 Sep 2026.</b> The live table couldn't be reached, so anything newer, and any reply posted since, is missing here.`; return; }
   const when=new Date(SYNC.last).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"Asia/Dubai"});
   // Which salons Metricool keeps current (Kate, 6 Oct 2026): any with a matched review.
-  const live=BRANCHES.filter(b=>SYNC.live.has(b)), off=BRANCHES.filter(b=>!SYNC.live.has(b)).map(b=>SHORT[b]);
+  const live=BRANCHES.filter(b=>SYNC.live.has(b)), off=BRANCHES.filter(b=>!SYNC.live.has(b)&&b!==CODE_TO_BRANCH.FRT).map(b=>SHORT[b]);
   el.innerHTML = !live.length
-    ? `<b>✓ All ${n} Google reviews</b> across the 5 branches, from the 24 Sep 2026 pull. Older reviews use Google Maps' approximate dates ("a year ago").`
-    : `<b>✓ All ${n} Google reviews</b> across the 5 branches. New reviews and replies come in nightly through Metricool, last ${when}.${off.length?` ${off.join(", ")} ${off.length>1?"are":"is"} still as of the 24 Sep 2026 pull, until connected in Metricool.`:""} Older reviews use Google Maps' approximate dates ("a year ago").`;
+    ? `<b>✓ All ${n} Google reviews</b> across the 5 branches (plus closed Fratelli Barbershop), from the 24 Sep 2026 pull. Older reviews use Google Maps' approximate dates ("a year ago").`
+    : `<b>✓ All ${n} Google reviews</b> across the 5 branches (plus closed Fratelli Barbershop). New reviews and replies come in nightly through Metricool, last ${when}.${off.length?` ${off.join(", ")} ${off.length>1?"are":"is"} still as of the 24 Sep 2026 pull, until connected in Metricool.`:""} Older reviews use Google Maps' approximate dates ("a year ago").`;
 }
 async function loadLive(){
   // photos: what the client attached on Google, read off Business Profile (google_review_photos, Kate, 5 Oct 2026).
@@ -510,7 +515,7 @@ async function renderGbp(){
   let d; try{d=await gbpCache[k];}catch(e){console.warn("Google profile strip:",e); el.hidden=true; return;}
   const num=v=>v==null?"–":Math.round(+v).toLocaleString("en-GB");
   const by={}; (d.branches||[]).forEach(b=>{if(GBP_CODE[b.branch]) by[GBP_CODE[b.branch]]=b;});
-  const shown=BRANCHES.filter(b=>state.branches.has(b)), have=shown.filter(b=>by[b]&&by[b].seen!=null);
+  const shown=BRANCHES.filter(b=>state.branches.has(b)&&Object.values(GBP_CODE).includes(b)), have=shown.filter(b=>by[b]&&by[b].seen!=null);
   const mx=Math.max(1,...have.map(b=>+by[b].seen)), sum=f=>have.reduce((a,b)=>a+(+by[b][f]||0),0);
   const rows=shown.map(b=>{const r=by[b];
     if(!r) return `<tr class="na"><td>${SHORT[b]}</td><td colspan="5" style="text-align:left">Not connected in Metricool yet</td></tr>`;
@@ -559,6 +564,7 @@ if(window.parent!==window){
   // change: the branch codes picked and the window (from null = all time). Kate, 8 Oct 2026.
   function applyFilter(m){
     const picked=(m.codes||[]).map(c=>CODE_TO_BRANCH[c]).filter(Boolean);
+    if(["KCA","SAA","AQ","MC","BAH"].every(c=>(m.codes||[]).includes(c))) picked.push(CODE_TO_BRANCH.FRT);
     state.branches=picked.length ? new Set(picked) : new Set(BRANCHES);
     if(m.to) state.range={from:m.from||null,to:m.to,label:m.label||""};
     if(META) render();
