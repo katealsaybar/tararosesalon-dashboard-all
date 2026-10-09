@@ -44,6 +44,20 @@ aside.sidebar .nav-group .nav-subhead{padding:14px 0 4px 13px;border-left:2px so
   font-size:12.5px;font-weight:600;letter-spacing:.02em;color:var(--muted2)}
 aside.sidebar .nav-group .nav-title+.nav-subhead{padding-top:4px}
 
+/* Kate, 9 Oct 2026: a colour per subhead (nav-collapse.js numbers them 0 to 3 in order, so a fifth wraps round).
+   The label, the rule beside it and the rule beside its pages take it; the open page still lights in ink. Brand
+   palette: lavender, mint, blush and butter in dark mode, deeper versions of the same on the light sidebar. */
+aside.sidebar{--sh0:#7C5CD4;--sh1:#0F8A72;--sh2:#C2456B;--sh3:#BA7517}
+[data-theme="dark"] aside.sidebar{--sh0:#C4B5FD;--sh1:#99F6E4;--sh2:#FFD4D9;--sh3:#EEF3C7}
+aside.sidebar [data-tone="0"]{--tone:var(--sh0)}
+aside.sidebar [data-tone="1"]{--tone:var(--sh1)}
+aside.sidebar [data-tone="2"]{--tone:var(--sh2)}
+aside.sidebar [data-tone="3"]{--tone:var(--sh3)}
+aside.sidebar .nav-group .nav-subhead[data-tone]{color:var(--tone);border-left-color:var(--tone);font-weight:700}
+aside.sidebar .nav-group .nav-sub[data-tone]{border-left-color:color-mix(in srgb,var(--tone) 40%,var(--border))}
+aside.sidebar .nav-group .nav-sub.active[data-tone]{border-left-color:var(--text)}
+@media(hover:hover){aside.sidebar .nav-group .nav-subhead[data-tone]:hover{filter:brightness(1.15)}}
+
 /* The foot: Dark mode and Log out, plain. */
 aside.sidebar .nav-out{padding-top:14px}
 aside.sidebar .nav-out .nav-sub{padding:7px 0;border:0;border-radius:0;font-size:14.5px;letter-spacing:0;
@@ -59,4 +73,5 @@ aside.sidebar .nav-phone .nt-light{display:none}
 @media(max-width:760px),(hover:none) and (max-height:480px){
   aside.sidebar{padding-left:22px;padding-right:22px}
   aside.sidebar .nav-group .nav-sub,aside.sidebar .nav-out .nav-sub{min-height:46px}
+  aside.sidebar .nav-group .nav-subhead.nav-sh{min-height:44px}
 }

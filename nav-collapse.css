@@ -19,3 +19,11 @@
   transform:rotate(45deg) translateY(-2px);transition:transform .2s}
 .nav-sub.kids-folded .nav-kids-btn::before{transform:rotate(-45deg)}
 .nav-sub.nav-kid-hidden{display:none}
+
+/* Numbers' subheads fold their pages (Kate, 9 Oct 2026). */
+.nav-subhead.nav-sh{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;user-select:none}
+.nav-subhead.nav-sh::after{content:'';flex-shrink:0;width:6px;height:6px;margin-right:4px;border-right:2px solid currentColor;
+  border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .2s;opacity:.7}
+.nav-subhead.nav-sh.sh-folded::after{transform:rotate(-45deg)}
+.nav-subhead.nav-sh:focus-visible{outline:2px solid var(--accent-lavender);outline-offset:2px}
+.nav-group .nav-sub.nav-sh-hidden{display:none!important}

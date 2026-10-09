@@ -49,6 +49,38 @@
     title.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
   });
 
+  // ── Subheads inside a section (Numbers: Business, Team Performance, Clients, Sales & Stock) ──
+  // Kate, 9 Oct 2026: "diff color pls, should also be collapsible". Each subhead folds the pages up to the next
+  // subhead, remembered with the rest, and takes a tone (0 to 3, in the order they appear) that nav-style.css
+  // colours: the label, the rule beside it and the rule beside its pages, so the groups read apart at a glance.
+  aside.querySelectorAll('.nav-subhead').forEach((head, hi) => {
+    const kids = [];
+    for (let n = head.nextElementSibling; n && !n.classList.contains('nav-subhead'); n = n.nextElementSibling) kids.push(n);
+    const tone = String(hi % 4);
+    head.dataset.tone = tone;
+    kids.forEach(k => { k.dataset.tone = tone; });
+    const id = 'h:' + head.textContent.trim();
+    head.classList.add('nav-sh');
+    head.setAttribute('role', 'button');
+    head.setAttribute('tabindex', '0');
+    const set = open => {
+      kids.forEach(k => k.classList.toggle('nav-sh-hidden', !open));
+      head.classList.toggle('sh-folded', !open);
+      head.setAttribute('aria-expanded', String(open));
+    };
+    set(!folded[id]);
+    const toggle = () => {
+      const open = head.classList.contains('sh-folded');
+      set(open);
+      if (open) delete folded[id]; else folded[id] = 1;
+      save();
+    };
+    head.addEventListener('click', e => { e.stopPropagation(); toggle(); });
+    head.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+    head._navSubSet = open => { set(open); if (open) { delete folded[id]; save(); } };
+    kids.forEach(k => { k._navSubhead = head; });
+  });
+
   // ── Parent items (a .nav-sub with .lvl2 items straight after it) ──
   aside.querySelectorAll('.nav-sub:not(.lvl2):not(.lvl3):not(.lvl4)').forEach(parent => {
     const kids = [];
@@ -89,6 +121,8 @@
     if (group && group.classList.contains('folded') && title) title.click();
     const p = act._navParent;
     if (p && p.classList.contains('kids-folded') && p._navKidsSet) p._navKidsSet(true);
+    const sh = act._navSubhead || (p && p._navSubhead);
+    if (sh && sh.classList.contains('sh-folded') && sh._navSubSet) sh._navSubSet(true);
   }
   if (typeof window.showView === 'function') {
     const orig = window.showView;
