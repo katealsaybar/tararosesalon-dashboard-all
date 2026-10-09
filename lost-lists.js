@@ -277,13 +277,22 @@ async function llCopy() {
 }
 function llLines() {
   const L = llList(), rows = llFiltered(), ph = llPhones();
-  const head = ['Client', 'Area', 'Last branch', 'Last visit', 'Days since', L.svc, 'Usual stylist', 'Also saw'].concat(ph ? ['Phone', 'Numbers matched'] : [],
-    ['WhatsApp status', 'Last wrote to us', 'Last we messaged', 'Also on lists', 'Messaged since the lists were handed over']);
-  const svc = r => L.id === '1' || L.id === '2' ? (r.last_keratin || '') : L.id === '3' ? ((r.last_colour || r.last_toner || '') + (r.toner_only ? ' (toner only)' : '')) : llCats(r.cats);
-  const lines = rows.map(r => [r.client_name, r.area, LC_BRANCH[r.branch] || r.branch, r.last_visit, r.days_since, svc(r) + (r.still ? ' (still visiting)' : ''),
-    r.stylist || '', r.also_saw || ''].concat(ph ? [r.mobile || '', r.n_numbers] : [],
-    [(LL_ST[r.wa] || [])[1] || r.wa, r.last_in || '', r.last_out || '', (r.also_on || []).join(', '), r.messaged ? 'Yes' : '']));
-  return { head, lines };
+  const since = llSum && llSum.fresh && llSum.fresh.campaign_from ? ' ' + llDay(llSum.fresh.campaign_from) : '';
+  // The service column: a date on lists 1 to 3 (kept as a date, not mixed with words), the services on 4 and 5.
+  const dated = L.id === '1' || L.id === '2' || L.id === '3';
+  const svc = r => L.id === '1' || L.id === '2' ? (r.last_keratin || '') : L.id === '3' ? (r.last_colour || r.last_toner || '') : llCats(r.cats);
+  const type = L.id === '2' ? ['Type', r => r.still ? 'Still visiting' : 'Lost']
+    : L.id === '3' ? ['Colour type', r => r.toner_only ? 'Toner only' : 'Colour, highlights, balayage or bleach'] : null;
+  const head = ['Client', 'Area', 'Last branch', 'Last visit', 'Days since', L.svc].concat(type ? [type[0]] : [],
+    ['Usual stylist', 'Usual beautician', 'Also saw'], ph ? ['Phone', 'Numbers matched'] : [],
+    ['WhatsApp status', 'Last wrote to us', 'Last we messaged', 'Also on other lists', 'Messaged since' + since]);
+  const lines = rows.map(r => {
+    const t = lcTeam(r);
+    return [r.client_name, r.area, LC_BRANCH[r.branch] || r.branch, r.last_visit, r.days_since, svc(r)].concat(type ? [type[1](r)] : [],
+      [t.hair[0] || '', t.beauty[0] || '', t.hair.slice(1).concat(t.beauty.slice(1)).join(', ')], ph ? [r.mobile || '', r.n_numbers] : [],
+      [(LL_ST[r.wa] || [])[1] || r.wa, r.last_in || '', r.last_out || '', (r.also_on || []).filter(x => x !== L.id).sort().join(', '), r.messaged ? 'Yes' : '']);
+  });
+  return { head, lines, dated };
 }
 function llSaveFile(kind) {
   if (typeof lgxBuild !== 'function') return;
@@ -292,7 +301,7 @@ function llSaveFile(kind) {
   const cols = head.map(h => ({ label: h, fmt: nums.has(h) ? 'num' : 'text' }));
   const pi = head.indexOf('Phone');
   const out = kind === 'csv' && pi >= 0 ? lines.map(l => l.map((v, j) => j === pi && v ? `="${v}"` : v)) : lines;   // as lost-clients.js: Excel would show 9.72E+11
-  const built = lgxBuild({ sheets: [{ name: 'List ' + llSel.list, blocks: [{ cols, rows: out.map(l => ({ cells: l })) }] }] });
+  const built = lgxBuild({ sheets: [{ name: llList().t.replace(/,/g, '').slice(0, 31), blocks: [{ cols, rows: out.map(l => ({ cells: l })) }] }] });
   const name = ['lost-clients-list', llSel.list, llSel.area !== 'all' ? llSel.area.toLowerCase().replace(' ', '-') : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
