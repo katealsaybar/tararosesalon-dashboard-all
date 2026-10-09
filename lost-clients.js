@@ -29,6 +29,13 @@
 // Own controls (branch, who, gone for), so the masthead filters are hidden on this
 // page. Borrows the Products page's card, tile and table styles (slv-*, w13-*).
 let lcAll = null, lcRows = null, lcPage = 1, lcQuery = '', lcSide = '';
+// Two tabs (Kate, 9 Oct 2026): Campaign lists (Emma's five outreach lists, lost-lists.js) and
+// Lost clients (the board and list below, as before). The page opens on the lists.
+let lcTab = 'lists';
+try { lcTab = localStorage.getItem('trs-lost-tab') === 'clients' ? 'clients' : 'lists'; } catch (e) {}
+function lcSetTab(t) { lcTab = t; try { localStorage.setItem('trs-lost-tab', t); } catch (e) {} renderLostClients(); }
+const lcTabs = () => `<div class="cm-tabs" role="tablist">${[['lists', 'Campaign lists'], ['clients', 'Lost clients']].map(([k, l]) =>
+  `<button type="button" role="tab" class="cm-tab${lcTab === k ? ' on' : ''}" aria-selected="${lcTab === k}" onclick="lcSetTab('${k}')">${l}</button>`).join('')}</div>`;
 let lcSel = { branch: 'SAA', seg: 'regular', days: 90, cfrom: 0, cto: 60 };
 try { Object.assign(lcSel, JSON.parse(localStorage.getItem('trs-lost') || '{}')); } catch (e) {}
 
@@ -105,6 +112,12 @@ async function renderLostClients() {
   const el = document.getElementById('lostClientsContent');
   if (!el) return;
   lcDetailCtx = null;
+  if (lcTab === 'lists' && typeof renderLostLists === 'function' && typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2) {
+    el.innerHTML = `<section class="slv-intro"><h2>Client’s Last Visit</h2>
+      <p>Coach Emma's outreach lists: who is lost, who is ready on WhatsApp and who is text only.</p></section>${lcTabs()}<div id="llHost"></div>`;
+    renderLostLists(document.getElementById('llHost'));
+    return;
+  }
   el.innerHTML = lcShell('<p class="slv-muted">Loading clients…</p>');
   const listP = lcFetchList(); lcListP = null;   // used once; a later pick asks again
   lcFetchSummary();
@@ -128,6 +141,7 @@ function lcShell(body) {
       <h2>Client’s Last Visit</h2>
       <p>Clients who used to come in and haven't been back, by branch, highest spend first. For reference and outreach planning.</p>
     </section>
+    ${lcTabs()}
     <div class="sc-bar w13-bar lc-bar">
       <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(Object.keys(LC_BRANCH).map(k => [k, k])))}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Visits</div>${seg('seg', Object.entries(LC_SEG).map(([k, s]) => [k, s.short]))}</div>
