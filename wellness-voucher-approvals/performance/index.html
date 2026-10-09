@@ -202,7 +202,6 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="../auth/supabase-client.js"></script>
-<script src="../shared/signin-gate.js?v=20261001"></script>
 <script>
 (function(){
 /* Same target as voucher-log/index.html (CAMPAIGN_TARGET_AED / CAMPAIGN_TARGET_DATE). Change
@@ -258,7 +257,28 @@ var DATA = null;
 function load(){
   var d = window.TRS && window.TRS.db;
   el('state').style.display = ''; el('state').textContent = 'Loading the voucher log…';
-  // Only the columns the report uses. No client_name, no client_contact.
+  if (!d){ failLoad({ message: 'The voucher database could not be reached. Reload the page.' }); return Promise.resolve(); }
+  // voucher_perf_data() (sql voucher_performance_open.sql) hands back live vouchers with only
+  // the columns the report uses, and their redemptions. No client_name, no client_contact, and
+  // it needs no sign-in, so anyone who can open the dashboard sees the report straight away.
+  return d.rpc('voucher_perf_data').then(function(res){
+    if (res.error) throw res.error;
+    var live = (res.data && res.data.vouchers) || [], ids = {};
+    live.forEach(function(r){ ids[r.id] = r; });
+    DATA = { live: live, reds: (res.data && res.data.redemptions) || [], byId: ids, at: new Date() };
+    render();
+  }).catch(function(err){
+    // Function not installed yet: a signed-in browser can still read the tables directly.
+    if (window.TRS && window.TRS.session) return loadFromTables(d);
+    failLoad(err);
+  });
+}
+function failLoad(err){
+  el('report').style.display = 'none'; el('state').style.display = '';
+  el('state').innerHTML = 'Could not read the voucher log. <span class="cap">' + esc(err.message || err) + '</span>';
+  tellHeight();
+}
+function loadFromTables(d){
   return d.from('voucher_log')
     .select('id,branch,tier,paid_aed,credit_aed,redeemed_aed,remaining_aed,payment_method,purchase_date,main_expires_on,friends_so_far,referral_earned,is_voided,is_archived')
     .limit(2000)
@@ -274,11 +294,7 @@ function load(){
           render();
         });
     })
-    .catch(function(err){
-      el('report').style.display = 'none'; el('state').style.display = '';
-      el('state').innerHTML = 'Could not read the voucher log. <span class="cap">' + esc(err.message || err) + '</span>';
-      tellHeight();
-    });
+    .catch(failLoad);
 }
 
 /* ---------- render ---------- */
@@ -530,6 +546,12 @@ function xNow(){
 function exportXlsx(){
   var btn = el('exportxlsx'), d = window.TRS && window.TRS.db;
   if (!d || typeof XLSX === 'undefined'){ alert('The export could not load. Reload the page and try again.'); return; }
+  // The report itself is open; the export carries client names, so only that asks who you are.
+  if (!window.TRS.session){
+    window.open(window.TRS.loginUrl(), '_blank', 'noopener');
+    alert('Save as xlsx includes client names, so it needs the voucher sign-in. A sign-in tab has opened. Once you are signed in, press Save as xlsx again.');
+    return;
+  }
   btn.disabled = true; btn.textContent = 'Preparing…';
   Promise.all([
     d.from('voucher_log').select('*').limit(2000),
@@ -589,12 +611,8 @@ function exportXlsx(){
 }
 el('exportxlsx').onclick = exportXlsx;
 
-/* ---------- start: sign in first, same gate as the log ---------- */
-if (window.TRSGate){
-  window.TRSGate.require('This report reads the voucher log, which holds client records').then(load);
-} else {
-  el('state').textContent = 'Could not load the sign-in check. Reload the page.';
-}
+/* ---------- start: no sign-in, the report reads aggregates only ---------- */
+if (window.TRS && window.TRS.ready) window.TRS.ready.then(load); else load();
 })();
 </script>
 </body>
