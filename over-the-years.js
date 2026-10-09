@@ -218,9 +218,19 @@ function otyTiles(rows) {
     <div class="oty-card oty-tile"><div class="k">${cy - 1} · 1 Jan – ${c}</div><div class="v">${otyM(prev)}</div><div class="s">${otySetName(OTY.b)}</div>${otyChg(otyPct(prev2, prev))}<div class="s" style="margin-top:6px">on the same days of ${cy - 2}</div></div>
   </div>`;
 }
+// Kate, 9 Oct 2026: "it's too big" on a desktop. The charts were drawn on a 360 unit phone canvas and then
+// stretched to the page, so at 1000px wide the type was 3x and the chart taller than the screen. Now the canvas
+// is as wide as the page (up to 820 units) and a little taller, so the type stays near its true size and the
+// bars have room. Under 560px, a phone, it is the 360 unit canvas as before.
+function otyCanvas(h) {
+  const host = document.getElementById('overYearsContent');
+  const w = Math.min(1100, (host && host.clientWidth) || window.innerWidth) - 30;
+  const W = w >= 560 ? Math.min(Math.round(w), 820) : 360;
+  return { W, H: W > 360 ? Math.round(h * 1.15) : h, bmax: W > 360 ? 64 : 30 };
+}
 function otyChartBlock(rows) {
   const { years, sets } = otyD, set = sets[OTY.b], n = years.length;
-  const W = 360, H = 300, L = 38, R = 38, T = 26, B = 30, bw = (W - L - R) / n, bar = Math.min(30, bw * .62);
+  const { W, H, bmax } = otyCanvas(300), L = 38, R = 38, T = 26, B = 30, bw = (W - L - R) / n, bar = Math.min(bmax, bw * .62);
   const maxNet = Math.max(...rows.map(r => r.net), 1) * 1.12, yb = v => T + (H - T - B) * (1 - v / maxNet);
   const vals = rows.map(r => OTY.line === 'growth' ? r.growth : OTY.line === 'avg' ? r.avg : r.stf);
   const nums = vals.filter((v, i) => v != null && (v !== 0 || OTY.line === 'growth'));
@@ -320,7 +330,7 @@ function otyReviews() {
     return { y, i, n: c, stars, per, partial: !same && y === curYear };
   });
   if (!rows.some(r => r.n)) return `<div class="oty-eb"><i style="background:var(--warn)"></i>Reputation · Google reviews <span class="oty-uc">(UNDER CONSTRUCTION)</span></div><div class="oty-card oty-flag"><div class="oty-note">No Google reviews are held for ${otySetName(OTY.b)}.</div></div>`;
-  const W = 360, H = 260, L = 34, R = 36, T = 24, B = 28, bw = (W - L - R) / n, bar = Math.min(30, bw * .62);
+  const { W, H, bmax } = otyCanvas(260), L = 34, R = 36, T = 24, B = 28, bw = (W - L - R) / n, bar = Math.min(bmax, bw * .62);
   const maxN = Math.max(250, Math.ceil(Math.max(...rows.map(r => r.n), 1) * 1.08 / 250) * 250), yb = v => T + (H - T - B) * (1 - v / maxN);
   const lo = 4.4, hi = 5.0, yl = v => T + (H - T - B) * (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo));
   let g = '';
@@ -356,7 +366,7 @@ function otyInstagram() {
   const val = (r, k) => (r.m < (st[k] || '0000') ? null : r[k]);
   const own = ms.map(r => val(r, 'own')), col = ms.map(r => val(r, 'collab')), tag = ms.map(r => val(r, 'tags'));
   if (OTY.ig == null || OTY.ig >= n) OTY.ig = Math.max(0, n - 2);
-  const W = 360, H = 270, L = 32, R = 30, T = 22, B = 34, bw = (W - L - R) / n, bar = Math.max(5, bw * .62);
+  const { W, H } = otyCanvas(270), L = 32, R = 30, T = 22, B = 34, bw = (W - L - R) / n, bar = Math.max(5, bw * .62);
   const maxT = Math.max(130, Math.ceil(Math.max(...tag.filter(v => v != null), 1) * 1.1 / 10) * 10), maxP = Math.max(30, Math.ceil(Math.max(...own.concat(col).filter(v => v != null), 1) * 1.1 / 10) * 10);
   const yb = v => T + (H - T - B) * (1 - v / maxT), yp = v => T + (H - T - B) * (1 - v / maxP);
   let g = `<rect x="${L + bw * OTY.ig}" y="${T - 6}" width="${bw}" height="${H - T - B + 6}" fill="var(--accent)" opacity=".12" rx="3"/>`;
