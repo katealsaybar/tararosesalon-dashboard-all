@@ -215,9 +215,12 @@ const llCats = c => String(c || '').split(', ').filter(Boolean).map(x => x.toLow
 // she had in the window, so a client in groups 1, 3 and 4 shows all of it on whichever list you are looking at.
 const llDash = '<span class="slv-muted">–</span>';
 const llDateCell = d => d ? lcEsc(llDayS(d)) : llDash;
+// Kate, 9 Oct 2026: "toner is under colour". One colouring date: the later of her last colour (colouring, highlights,
+// balayage, bleach) and her last toner, so a client who only had a toner still shows when.
+const llColourDate = r => [r.last_colour, r.last_toner].filter(Boolean).sort().pop() || '';
 // The phone card has no columns, so the same four become one line of what she has: Smoothing 12 Jul · Colour 3 Aug ...
 function llSvcLine(r) {
-  const bits = [['Smoothing', r.last_keratin], ['Colour', r.last_colour], ['Toner', r.last_toner]].filter(x => x[1]).map(x => `${x[0]} ${lcEsc(llDayS(x[1]))}`);
+  const bits = [['Smoothing', r.last_keratin], ['Colouring', llColourDate(r)]].filter(x => x[1]).map(x => `${x[0]} ${lcEsc(llDayS(x[1]))}`);
   const cats = llCats(r.cats);
   return bits.concat(cats ? [lcEsc(cats)] : []).join(' · ') || '–';
 }
@@ -274,9 +277,9 @@ function llPaintTable() {
   const cnt = document.getElementById('llCount');
   if (cnt) cnt.textContent = `${lcNum(rows.length)} shown of ${lcNum(all.length)}${ready ? ` · ${lcNum(ready)} ready on WhatsApp` : ''}${sentN ? ` · ${lcNum(sentN)} already messaged` : ''}`;
   const two = r => r.n_numbers > 1 ? ' <span class="lc-2nums" tabindex="0" title="This name matches more than one client in Phorest, so the number may be someone else\'s. Check before you send.">2 numbers?</span>' : '';
-  const cols = ['Client', 'Last visit', 'Last smoothing', 'Last colour', 'Last toner', 'Services', 'Usual team'].concat(ph ? ['Phone'] : [], ['WhatsApp', 'Also on', 'Messaged']);
+  const cols = ['Client', 'Last visit', 'Last smoothing', 'Last colouring', 'Services', 'Usual team'].concat(ph ? ['Phone'] : [], ['WhatsApp', 'Also on', 'Messaged']);
   const th = (label, k, marked) => k ? `<th><button type="button" class="ll-thb${marked ? ' on' : ''}" onclick="llMenu(event,'${k}')" aria-haspopup="dialog" title="Filter or sort">${lcEsc(label)} <span aria-hidden="true">▾</span></button></th>` : `<th>${lcEsc(label)}</th>`;
-  const heads = th('Client', 'client', llSel.area !== 'all') + th('Last visit', 'last', llSel.sort === 'oldest') + th('Last smoothing') + th('Last colour') + th('Last toner') + th('Services') + th('Usual team')
+  const heads = th('Client', 'client', llSel.area !== 'all') + th('Last visit', 'last', llSel.sort === 'oldest') + th('Last smoothing') + th('Last colouring') + th('Services') + th('Usual team')
     + (ph ? th('Phone') : '') + th('WhatsApp', 'wa', llSel.off.length > 0) + th('In groups') + th('Messaged', 'msg', llSel.hideSent);
   // Usual team: her usual stylist and usual beautician, one line each (the row panel has everyone else).
   const team = r => { const t = lcTeam(r); const w = [t.hair[0], t.beauty[0]].filter(Boolean); return w.length ? w.map(n => `<div>${lcStylist(n)}</div>`).join('') : '<span class="slv-muted">–</span>'; };
@@ -284,8 +287,7 @@ function llPaintTable() {
       <td>${lcEsc(r.client_name)}${two(r)}<div class="slv-note">${lcEsc(LC_BRANCH[r.branch] || r.branch)} · ${lcEsc(r.area)}</div><span class="lc-hint" aria-hidden="true">See her visits ›</span></td>
       <td class="ll-nw">${lcEsc(llDayS(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days</div></td>
       <td class="ll-nw">${llDateCell(r.last_keratin)}${r.still ? '<div><span class="ll-tag">Still visiting</span></div>' : ''}</td>
-      <td class="ll-nw">${llDateCell(r.last_colour)}</td>
-      <td class="ll-nw">${llDateCell(r.last_toner)}</td>
+      <td class="ll-nw">${llDateCell(llColourDate(r))}${r.toner_only ? '<div><span class="ll-tag" title="Toner only, no colouring in the window">Toner only</span></div>' : ''}</td>
       <td class="ll-svcs">${llCats(r.cats) ? `<div class="ll-clamp" title="${lcEsc(llCats(r.cats))}">${lcEsc(llCats(r.cats))}</div>` : llDash}</td>
       <td class="lc-stc ll-team">${team(r)}</td>
       ${ph ? `<td class="ll-ph">${lcPhone(r)}</td>` : ''}
@@ -330,11 +332,11 @@ async function llCopy() {
 function llLines() {
   const L = llList(), rows = llFiltered(), ph = llPhones();
   const since = llSum && llSum.fresh && llSum.fresh.campaign_from ? ' ' + llDay(llSum.fresh.campaign_from) : '';
-  // The four service columns, as on screen: three dates (kept as dates, not mixed with words) and the services.
-  const svc = r => [r.last_keratin || '', r.last_colour || '', r.last_toner || '', llCats(r.cats)];
+  // The service columns, as on screen: two dates (kept as dates, not mixed with words) and the services.
+  const svc = r => [r.last_keratin || '', llColourDate(r), llCats(r.cats)];
   const type = L.id === '2' ? ['Type', r => r.still ? 'Still visiting' : 'Lost']
     : L.id === '3' ? ['Colour type', r => r.toner_only ? 'Toner only' : 'Colour, highlights, balayage or bleach'] : null;
-  const head = ['Client', 'Area', 'Last branch', 'Last visit', 'Days since', 'Last smoothing', 'Last colour', 'Last toner', 'Services'].concat(type ? [type[0]] : [],
+  const head = ['Client', 'Area', 'Last branch', 'Last visit', 'Days since', 'Last smoothing', 'Last colouring', 'Services'].concat(type ? [type[0]] : [],
     ['Usual stylist', 'Usual beautician', 'Also saw'], ph ? ['Phone', 'Numbers matched'] : [],
     ['WhatsApp status', 'Last wrote to us', 'Last we messaged', 'Also in other groups', 'Messaged since' + since]);
   const lines = rows.map(r => {
@@ -352,7 +354,7 @@ function llSaveFile(kind) {
   const cols = head.map(h => ({ label: h, fmt: nums.has(h) ? 'num' : 'text' }));
   const pi = head.indexOf('Phone');
   const out = kind === 'csv' && pi >= 0 ? lines.map(l => l.map((v, j) => j === pi && v ? `="${v}"` : v)) : lines;   // as lost-clients.js: Excel would show 9.72E+11
-  const built = lgxBuild({ sheets: [{ name: ('Group ' + llList().id + ' ' + llList().t.replace(/,/g, '')).slice(0, 31), blocks: [{ cols, rows: out.map(l => ({ cells: l })) }] }] });
+  const built = lgxBuild({ sheets: [{ name: ('Group ' + llList().id + ' - ' + llList().t).slice(0, 31)   /* the app's "Group 1: Smoothing, lost"; Excel does not allow a colon in a sheet name, so a dash */, blocks: [{ cols, rows: out.map(l => ({ cells: l })) }] }] });
   const name = ['lost-clients-list', llSel.list, llSel.area !== 'all' ? llSel.area.toLowerCase().replace(' ', '-') : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
