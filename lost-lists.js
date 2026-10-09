@@ -72,8 +72,11 @@ function renderLostListsPage() {
   const el = document.getElementById('lostListsContent');
   if (!el || !(typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2)) return;
   el.innerHTML = `<section class="slv-intro"><h2>Lost Clients</h2>
-    <p>Coach Emma's outreach lists: who is lost, who is ready on WhatsApp and who is text only.</p></section><div id="llHost"></div>`;
+    <p>Coach Emma's outreach lists: who is lost, who is ready on WhatsApp and who is text only.</p></section>
+    ${typeof lqTabsHtml === 'function' ? lqTabsHtml() : ''}<div id="llHost"></div><div id="lqHost" hidden></div>`;
   renderLostLists(document.getElementById('llHost'));
+  // Level 3+ also gets the To message and Templates tabs (lost-queue.js); this opens the one she left on.
+  if (typeof lqAfterRender === 'function') lqAfterRender();
 }
 
 async function renderLostLists(host) {
