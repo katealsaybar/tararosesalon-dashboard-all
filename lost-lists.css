@@ -1,0 +1,52 @@
+/* Lost Clients, campaign lists (lost-lists.js), Kate, 9 Oct 2026. Sits on Client's Last Visit's own
+   classes (slv-card, sc-seg, lc-row, lc-pager, prd-cards, tglr) and Client Mix's tab bar; only what
+   they do not cover is here. Colours are the dashboard's own tokens, so dark mode follows. */
+:root,[data-theme="light"]{--ll-blue:#1F5C99;--ll-blue-bg:#E4EEF8;--ll-blue-bar:#4B83BF;--ll-gold-bar:#C99A2E}
+[data-theme="dark"]{--ll-blue:#9CC8F5;--ll-blue-bg:rgba(156,200,245,.14);--ll-blue-bar:#6FA3DA;--ll-gold-bar:#E3B955}
+
+.ll-fresh{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 12px}
+.ll-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:999px;padding:4px 12px;font-size:12.5px}
+.ll-chip b{color:var(--text);font-weight:600}
+.ll-chip.warn{background:var(--warn-bg);border-color:transparent;color:var(--text)}
+
+.ll-cards{display:grid;gap:10px;grid-template-columns:repeat(5,1fr)}
+@media(max-width:1100px){.ll-cards{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.ll-cards{grid-template-columns:1fr 1fr;gap:8px}}
+@media(max-width:430px){.ll-cards{grid-template-columns:1fr}}
+.ll-card{text-align:left;background:var(--surface);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-card);padding:12px 13px;font:inherit;cursor:pointer;box-shadow:var(--shadow-card)}
+.ll-card.on{border-color:var(--text);outline:1px solid var(--text);outline-offset:-3px}
+@media(hover:hover){.ll-card:hover{box-shadow:var(--shadow-card-hover)}}
+.ll-t{font-size:13px;font-weight:600}
+.ll-n{font-family:'Playfair Display',serif;font-size:30px;line-height:1.1;margin:2px 0}
+.ll-d{font-size:12.5px;color:var(--muted);line-height:1.35;min-height:34px}
+.ll-ch{font-size:12px;color:var(--muted);margin-top:4px}
+.ll-bar{display:flex;height:7px;border-radius:4px;overflow:hidden;background:var(--surface2);margin-top:9px}
+.ll-bar i{display:block;height:100%}
+.ll-bar i.ll-act,.ll-legend .ll-act::before{background:var(--good)}
+.ll-bar i.ll-18,.ll-legend .ll-18::before{background:var(--ll-gold-bar)}
+.ll-bar i.ll-no,.ll-legend .ll-no::before{background:var(--muted2)}
+.ll-bar i.ll-txt,.ll-legend .ll-txt::before{background:var(--ll-blue-bar)}
+.ll-bar i.ll-num,.ll-legend .ll-num::before{background:var(--bad)}
+.ll-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin:10px 0 6px}
+.ll-legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+.ll-panel{margin-top:14px}
+.ll-def{background:var(--surface2);border-radius:10px;padding:10px 13px;font-size:13px;margin:8px 0 12px;line-height:1.5}
+.ll-filters{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.ll-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ll-fchip{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:999px;padding:4px 11px;font:inherit;font-size:12.5px;min-height:30px;cursor:pointer}
+.ll-fchip em{font-style:normal;opacity:.65;margin-left:3px;font-size:11.5px}
+.ll-fchip.on{border-color:transparent;font-weight:600}
+.ll-fchip.on.ll-act,.ll-pill.ll-act{background:var(--good-bg);color:var(--good)}
+.ll-fchip.on.ll-18,.ll-pill.ll-18{background:var(--warn-bg);color:var(--warn)}
+.ll-fchip.on.ll-no,.ll-pill.ll-no{background:var(--surface2);color:var(--muted)}
+.ll-fchip.on.ll-txt,.ll-pill.ll-txt{background:var(--ll-blue-bg);color:var(--ll-blue)}
+.ll-fchip.on.ll-num,.ll-pill.ll-num{background:var(--bad-bg);color:var(--bad)}
+.ll-pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:500;white-space:nowrap}
+.ll-tag{display:inline-block;border:1px solid var(--border);border-radius:6px;padding:0 6px;font-size:11.5px;color:var(--muted);margin:0 3px 2px 0;white-space:nowrap}
+.ll-tag.sent{border-color:var(--good);color:var(--good)}
+.ll-sel{font:inherit;font-size:13px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 10px}
+.ll-hide{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.ll-mark{font-size:12px;padding:3px 10px}
+.ll-foot{margin-top:14px;font-size:12.5px;max-width:860px}
+@media(max-width:760px){.ll-filters{display:block}.ll-chips{margin-top:8px}}
