@@ -49,6 +49,8 @@ let llHost = null, llSum = null, llRows = {}, llErr = '', llPage = 1, llQuery = 
 const llSave = () => { try { localStorage.setItem('trs-lost-lists', JSON.stringify(llSel)); } catch (e) {} };
 const llPhones = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
 const llList = () => LL_LISTS.find(l => l.id === llSel.list) || LL_LISTS[0];
+// Short date for the table (no year in this year), the full one for chips, cards and files.
+const llDayS = d => { if (!d) return ''; const x = new Date(String(d).slice(0, 10) + 'T00:00:00'); return x.toLocaleDateString('en-GB', x.getFullYear() === new Date().getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: '2-digit' }); };
 const llDay = d => d ? lcDayY(String(d).slice(0, 10)) : '';
 const llDaysOld = d => d ? Math.floor((Date.now() - new Date(String(d).slice(0, 10) + 'T00:00:00').getTime()) / 864e5) : null;
 
@@ -158,8 +160,8 @@ function llCard(l) {
 
 const llCats = c => String(c || '').split(', ').filter(Boolean).map(x => x.toLowerCase().replace(/\b\w/g, m => m.toUpperCase()).replace(/ Trt$/i, '')).join(', ');
 function llSvc(r, id) {
-  if (id === '1' || id === '2') return (r.last_keratin ? llDay(r.last_keratin) : '–') + (r.still ? ' <span class="ll-tag">Still visiting</span>' : '');
-  if (id === '3') return (llDay(r.last_colour || r.last_toner) || '–') + (r.toner_only ? ' <span class="ll-tag">Toner only</span>' : '');
+  if (id === '1' || id === '2') return (r.last_keratin ? llDayS(r.last_keratin) : '–') + (r.still ? ' <span class="ll-tag">Still visiting</span>' : '');
+  if (id === '3') return (llDayS(r.last_colour || r.last_toner) || '–') + (r.toner_only ? ' <span class="ll-tag">Toner only</span>' : '');
   return lcEsc(llCats(r.cats)) || '<span class="slv-muted">–</span>';
 }
 function llAlso(r) {
@@ -168,14 +170,14 @@ function llAlso(r) {
 }
 function llStatus(r) {
   const s = LL_ST[r.wa] || LL_ST.text;
-  const note = r.last_in ? `last reply ${lcEsc(llDay(r.last_in))}` : '';
+  const note = r.last_in ? `replied ${lcEsc(llDayS(r.last_in))}` : '';
   return `<span class="ll-pill ${s[0]}" title="${lcEsc(s[2])}">${lcEsc(s[1])}</span>${note ? `<div class="slv-note">${note}</div>` : ''}`;
 }
 // Messaged, from respond.io: the last message we sent that number. Green once it is on or after the
 // campaign start, grey (the date only) when it is older.
 function llSentCell(r) {
-  if (r.messaged) return `<span class="ll-tag sent" title="A message was sent to this number through respond.io since the lists were handed over">Messaged ${lcEsc(llDay(r.last_out))}</span>`;
-  return r.last_out ? `<span class="slv-note">last ${lcEsc(llDay(r.last_out))}</span>` : '<span class="slv-muted">–</span>';
+  if (r.messaged) return `<span class="ll-tag sent" title="A message was sent to this number through respond.io since the lists were handed over">Messaged ${lcEsc(llDayS(r.last_out))}</span>`;
+  return r.last_out ? `<span class="slv-note">last ${lcEsc(llDayS(r.last_out))}</span>` : '<span class="slv-muted">–</span>';
 }
 
 function llPaintPanel() {
@@ -231,8 +233,8 @@ function llPaintTable() {
   const team = r => { const t = lcTeam(r); const w = [t.hair[0], t.beauty[0]].filter(Boolean); return w.length ? w.map(n => `<div>${lcStylist(n)}</div>`).join('') : '<span class="slv-muted">–</span>'; };
   const tr = shown.map((r, i) => `<tr class="lc-row" title="Click to see what she came in for, what she took home and who looked after her" onclick="lcToggleDetail(event,${i})">
       <td>${lcEsc(r.client_name)}${two(r)}<div class="slv-note">${lcEsc(LC_BRANCH[r.branch] || r.branch)} · ${lcEsc(r.area)}</div><span class="lc-hint" aria-hidden="true">See her visits ›</span></td>
-      <td>${lcEsc(llDay(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days ago</div></td>
-      <td>${llSvc(r, L.id)}</td>
+      <td class="ll-nw">${lcEsc(llDayS(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days</div></td>
+      <td${'123'.includes(L.id) ? ' class="ll-nw"' : ''}>${llSvc(r, L.id)}</td>
       <td class="lc-stc ll-team">${team(r)}</td>
       ${ph ? `<td class="ll-ph">${lcPhone(r)}</td>` : ''}
       <td>${llStatus(r)}</td><td>${llAlso(r)}</td><td>${llSentCell(r)}</td></tr>`).join('');

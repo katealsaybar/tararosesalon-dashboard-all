@@ -52,13 +52,15 @@
 @media(max-width:760px){.ll-filters{display:block}.ll-chips{margin-top:8px}}
 
 /* The table: eight columns that size themselves (Client's Last Visit's table is fixed-width columns
-   by percentage, which cannot hold a phone number beside a status pill), scrolling sideways on a
-   narrow window instead of overlapping. */
-.lc-wrap.ll-wrap{overflow-x:auto}
-.lc-wrap.ll-wrap > table{table-layout:auto;min-width:960px}
-.lc-wrap.ll-wrap th,.lc-wrap.ll-wrap td{text-align:left;vertical-align:top;white-space:normal;overflow-wrap:normal;padding:10px 10px}
-.lc-wrap.ll-wrap thead th{position:static;white-space:nowrap}
-.lc-wrap.ll-wrap td:first-child{min-width:170px}
+   by percentage, which cannot hold a phone number beside a status pill). No sideways scroll box: a
+   scroll box takes the sticky header away from the page, and the header has to stay under the top bar
+   while the list scrolls (Kate, 9 Oct 2026). Dates are short and do not wrap so eight columns fit. */
+.lc-wrap.ll-wrap{overflow:visible}
+.lc-wrap.ll-wrap > table{table-layout:auto;width:100%;min-width:0;font-size:13.5px}
+.lc-wrap.ll-wrap th,.lc-wrap.ll-wrap td{text-align:left;vertical-align:top;white-space:normal;overflow-wrap:normal;padding:9px 7px}
+.lc-wrap.ll-wrap thead th{position:sticky;top:var(--topbar-cond-h,104px);z-index:5;background:var(--surface);box-shadow:0 1px 0 var(--border);white-space:nowrap}
+.ll-wrap td.ll-nw,.ll-wrap td .ll-nw{white-space:nowrap}
+.lc-wrap.ll-wrap td:first-child{min-width:150px}
 .lc-wrap.ll-wrap td.ll-ph,.lc-wrap.ll-wrap td.ll-ph a,.lc-wrap.ll-wrap td .lc-ph a{white-space:nowrap}
 .ll-wrap td.ll-team > div{margin-bottom:3px;white-space:nowrap}
 .ll-wrap td.ll-team .who{display:inline-block;width:auto;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
