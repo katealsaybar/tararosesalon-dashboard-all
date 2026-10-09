@@ -90,7 +90,7 @@ async function renderLostLists(host) {
 function llPick(id) {
   llClosePop();
   llSel.list = id; llSel.off = []; llSel.area = 'all'; llPage = 1; llQuery = ''; llSave();
-  llHost.querySelectorAll('.ll-card').forEach(b => b.classList.toggle('on', b.dataset.id === id));
+  llHost.querySelectorAll('.ll-card').forEach(b => { const on = b.dataset.id === id; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   llBusy = true; llPaintPanel();
   llFetch(id).then(() => { llBusy = false; llPaint(); }, e => { console.error(e); llBusy = false; llErr = 'That list did not load. Try again.'; llPaint(); });
 }
@@ -191,7 +191,9 @@ function llCard(l) {
   const wa = S.wa || {}, n = S.n || 0;
   const ready = (wa.act || 0) + (wa.r18 || 0), unsure = (wa.noreply || 0) + (wa.unchecked || 0), none = (wa.text || 0) + (wa.nonum || 0) + (wa.blocked || 0);
   const pct = n ? Math.round(100 * ready / n) : 0;
-  return `<div class="ll-card${l.id === llSel.list ? ' on' : ''}" data-id="${l.id}">
+  // Kate, 9 Oct 2026: the tab row under the cards is gone, so the cards pick the list (they only reported before).
+  return `<div class="ll-card${l.id === llSel.list ? ' on' : ''}" data-id="${l.id}" role="button" tabindex="0" aria-pressed="${l.id === llSel.list}"
+      title="Show Group ${l.id}" onclick="llPick('${l.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();llPick('${l.id}')}">
       <div class="ll-g">Group ${l.id}</div><div class="ll-t">${lcEsc(l.t)}</div><div class="ll-n">${lcNum(n)}</div>
       <div class="ll-d">${lcEsc(l.d)}</div>
       <div class="ll-ch">${lcEsc(l.ch)}${l.id === '3' ? `<br>Dubai ${lcNum(S.dubai)} · Abu Dhabi ${lcNum(S.abu_dhabi)}` : ''}</div>
@@ -229,22 +231,13 @@ function llSentCell(r) {
   return r.last_out ? `<span class="slv-note">last ${lcEsc(llDayS(r.last_out))}</span>` : '<span class="slv-muted">–</span>';
 }
 
-// The lists are picked on these tabs (the cards above only report); area, sort, status and the
-// hide-messaged switch are on the table's headings.
-function llTabs() {
-  return `<div class="cm-tabs ll-tabs" role="tablist">${LL_LISTS.map(l => {
-    const n = (((llSum || {}).lists || {})[l.id] || {}).n || 0;
-    return `<button type="button" role="tab" class="cm-tab${l.id === llSel.list ? ' on' : ''}" aria-selected="${l.id === llSel.list}" onclick="llPick('${l.id}')">${lcEsc(llName(l))} <em>${lcNum(n)}</em></button>`;
-  }).join('')}</div>`;
-}
 function llPaintPanel() {
   const box = document.getElementById('llPanel');
   if (!box) return;
   const L = llList();
-  if (llBusy) { box.innerHTML = `${llTabs()}<div class="slv-head"><div><div class="slv-eyebrow">${lcEsc(L.ch)}</div><h3>${lcEsc(llName(L))}</h3></div></div><p class="slv-muted">Loading…</p>`; return; }
+  if (llBusy) { box.innerHTML = `<div class="slv-head"><div><div class="slv-eyebrow">${lcEsc(L.ch)}</div><h3>${lcEsc(llName(L))}</h3></div></div><p class="slv-muted">Loading…</p>`; return; }
   const ph = llPhones();
   box.innerHTML = `
-    ${llTabs()}
     <div class="slv-head">
       <div><div class="slv-eyebrow">${lcEsc(L.ch)}</div><h3>${lcEsc(llName(L))}</h3><p id="llCount"></p></div>
     </div>
@@ -278,7 +271,7 @@ function llPaintTable() {
   const cols = ['Client', 'Last visit', L.svc, 'Usual team'].concat(ph ? ['Phone'] : [], ['WhatsApp', 'Also on', 'Messaged']);
   const th = (label, k, marked) => k ? `<th><button type="button" class="ll-thb${marked ? ' on' : ''}" onclick="llMenu(event,'${k}')" aria-haspopup="dialog" title="Filter or sort">${lcEsc(label)} <span aria-hidden="true">▾</span></button></th>` : `<th>${lcEsc(label)}</th>`;
   const heads = th('Client', 'client', llSel.area !== 'all') + th('Last visit', 'last', llSel.sort === 'oldest') + th(L.svc) + th('Usual team')
-    + (ph ? th('Phone') : '') + th('WhatsApp', 'wa', llSel.off.length > 0) + th('Also in group') + th('Messaged', 'msg', llSel.hideSent);
+    + (ph ? th('Phone') : '') + th('WhatsApp', 'wa', llSel.off.length > 0) + th('In groups') + th('Messaged', 'msg', llSel.hideSent);
   // Usual team: her usual stylist and usual beautician, one line each (the row panel has everyone else).
   const team = r => { const t = lcTeam(r); const w = [t.hair[0], t.beauty[0]].filter(Boolean); return w.length ? w.map(n => `<div>${lcStylist(n)}</div>`).join('') : '<span class="slv-muted">–</span>'; };
   const tr = shown.map((r, i) => `<tr class="lc-row" title="Click to see what she came in for, what she took home and who looked after her" onclick="lcToggleDetail(event,${i})">
