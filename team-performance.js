@@ -216,7 +216,25 @@ const TP_SPLIT_FULL = { 'MAY|SAA': 'MAY MANGUIAT' };
 // branch_staff_daily/phorest_staff_daily join for part-weeks, weekly_data
 // otherwise. Rolling our own read weekly_data only, which is why this page went
 // blank for August while every other page had figures.
+// Kate, 9 Oct 2026: a full-year Podium Race took over a minute. tpLeagues() -> tpBenchNoLedger() asks for
+// the roster every time anything wants to know which leagues apply, and that is dozens of times in one draw
+// (86 on a 2023 window, timed in Chrome); each call re-aggregated all four branches (aggDailyData x4), which was
+// ~50 s of the wait. The roster is now built once for a given set of inputs and reused. The inputs are the
+// things it is built from, compared by reference or value, so any new load or change of window, branch,
+// overrides or bench builds it again.
+let TP_ROSTER_MEMO = { dept: null, inputs: null, out: null };
+function tpRosterInputs(dept) {
+  return [dept, sel.branch.join(), dateFrom ? dateToIso(dateFrom) : '', dateTo ? dateToIso(dateTo) : '',
+    ACTIVE_BRANCHES.join(), TP_OVR, window._cachedDailyJoin, window._cachedWeeklyTotals, allData];
+}
 function tpRoster(dept) {
+  const inputs = tpRosterInputs(dept), m = TP_ROSTER_MEMO;
+  if (m.out && m.inputs && m.inputs.length === inputs.length && m.inputs.every((v, i) => v === inputs[i])) return m.out;
+  const out = tpRosterBuild(dept);
+  TP_ROSTER_MEMO = { dept, inputs, out };
+  return out;
+}
+function tpRosterBuild(dept) {
   const byBranch = (typeof aggByBranch === 'function') ? aggByBranch() : {};
   const branches = sel.branch.includes('all') ? ACTIVE_BRANCHES : sel.branch;
   const rows = [];
