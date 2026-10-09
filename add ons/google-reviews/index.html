@@ -45,6 +45,10 @@ h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;m
 .chip.on{background:var(--rose);border-color:var(--rose);color:var(--on-accent);font-weight:600}
 .board-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .board-hd h2{margin:0}
+.board-tools{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+.card.collapsed .board-hd{margin-bottom:0}
+.card.collapsed #staffDept{display:none}
+.card.collapsed #staffBody{display:none}
 .dseg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}
 .dseg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13.5px;font-weight:600;padding:6px 14px;border-radius:999px;cursor:pointer}
 @media(hover:hover){.dseg button:hover:not(.on){color:var(--text)}}
@@ -80,7 +84,7 @@ h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;m
 .listhead{display:flex;justify-content:space-between;align-items:center;margin:6px 0 10px}
 .listhead h2{font-size:15px;margin:0}
 /* Ten a page (Kate, 9 Oct 2026). scroll-margin keeps the list head clear of the dashboard's sticky header and the pinned Refine bar after a page change. */
-.listhead{scroll-margin-top:230px}
+.listhead{scroll-margin-top:200px}
 .pager{display:flex;flex-direction:column;align-items:center;gap:10px;margin:18px 0 6px}
 .pg-info{font-size:13px;color:var(--muted)}
 .pg-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
@@ -188,6 +192,12 @@ html.embedded .filters{position:static}
   .filters.mini:not(.open) .fbody{display:none}
   .filters.mini.open .fpills{display:none}
   .filters.mini.open .fbody{display:grid;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+  /* Kate, 9 Oct 2026: too big for a sticky bar. Closed, the Refine button, the count and the
+     filter pills share one row (they wrapped onto a second, so two filters made it ~125px
+     tall); it only wraps when there are many pills. Open, it is the grid above. */
+  .filters.mini:not(.open){display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:7px 14px}
+  .filters.mini:not(.open) .fpills:not(:empty){margin-top:0}
+  .filters.mini .fopen{padding:4px 14px}
 }
 /* Phones (Kate, 25 Sep 2026). Framed in the dashboard, whose page already has a
    side gutter, so the frame's own goes. Bars and staff rows stack: name and count
@@ -314,12 +324,18 @@ html.embedded .filters{position:static}
   </div>
 </div>
 
-<div class="card" style="margin-bottom:18px">
-  <!-- Kate, 25 Sep 2026: All / Hair / Beauty, the same switch as Staff Benchmarks. -->
+<div class="card" id="staffCard" style="margin-bottom:18px">
+  <!-- Kate, 25 Sep 2026: All / Hair / Beauty, the same switch as Staff Benchmarks.
+       9 Oct 2026: Hide / Show on the card, remembered in this browser (too much space to scroll past). -->
   <div class="board-hd"><h2>Staff named in reviews · filtered reviews</h2>
-    <div class="dseg" id="staffDept" role="group" aria-label="Team"><button type="button" data-d="all" class="on" aria-pressed="true">All</button><button type="button" data-d="hair" aria-pressed="false">Hair</button><button type="button" data-d="beauty" aria-pressed="false">Beauty</button></div></div>
+    <div class="board-tools">
+      <div class="dseg" id="staffDept" role="group" aria-label="Team"><button type="button" data-d="all" class="on" aria-pressed="true">All</button><button type="button" data-d="hair" aria-pressed="false">Hair</button><button type="button" data-d="beauty" aria-pressed="false">Beauty</button></div>
+      <button type="button" class="chip" id="staffToggle" aria-expanded="true" aria-controls="staffBody">Hide</button>
+    </div></div>
+  <div id="staffBody">
   <div class="legend"><span><i style="background:var(--s1)"></i>1★</span><span><i style="background:var(--s2)"></i>2★</span><span><i style="background:var(--s3)"></i>3★</span><span><i style="background:var(--s4)"></i>4★</span><span><i style="background:var(--s5)"></i>5★</span><span style="margin-left:auto">Tap a name to see their reviews</span></div>
   <div id="staffBoard"></div>
+  </div>
 </div>
 
 <div class="listhead">
@@ -340,6 +356,6 @@ html.embedded .filters{position:static}
 <script src="../../auth.js?v=20260925d"></script>
 <script src="review-links.js?v=20260928a"></script>
 <script src="/assets/pill-select.js?v=20261005tap"></script>
-<script src="app.js?v=27"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>

@@ -298,6 +298,17 @@ document.getElementById("staffDept")?.addEventListener("click",e=>{
   b.parentElement.querySelectorAll("button").forEach(x=>{const on=x===b; x.classList.toggle("on",on); x.setAttribute("aria-pressed",String(on));});
   renderStaffBoard();
 });
+// Hide / Show the whole card (Kate, 9 Oct 2026), remembered in this browser. Storage can be
+// blocked (private window, frame sandbox), so every read and write is wrapped.
+(function(){
+  const card=document.getElementById("staffCard"), btn=document.getElementById("staffToggle"); if(!card||!btn) return;
+  const KEY="trs-reviews-staff-open";
+  const set=(open,save)=>{ card.classList.toggle("collapsed",!open); btn.textContent=open?"Hide":"Show"; btn.setAttribute("aria-expanded",String(open));
+    if(save){ try{ localStorage.setItem(KEY,open?"1":"0"); }catch(e){} } };
+  let open=true; try{ if(localStorage.getItem(KEY)==="0") open=false; }catch(e){}
+  set(open,false);
+  btn.onclick=()=>set(card.classList.contains("collapsed"),true);
+})();
 function renderStaffBoard(){
   const el=document.getElementById("staffBoard"); if(!el) return;
   const F=baseFilter("staff"), rows={};
