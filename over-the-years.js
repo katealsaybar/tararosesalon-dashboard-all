@@ -78,6 +78,20 @@ function otyCss() {
   .oty svg text.tl{fill:var(--warn)}
   .oty .oty-read{margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:13px;color:var(--muted);line-height:1.55}
   .oty .oty-read b{color:var(--text)}
+  .oty .oty-rh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .oty .oty-rh b{font-family:'Playfair Display',serif;font-weight:500;font-size:24px;color:var(--text)}
+  .oty .oty-rh span{font-size:13px;color:var(--muted)}
+  .oty .oty-rt{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr))}
+  .oty .oty-rs{padding:11px 13px;border-radius:8px;background:var(--surface);border:1px solid var(--border)}
+  .oty .oty-rs .k{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+  .oty .oty-rs .v{font-size:24px;font-weight:600;margin:5px 0 3px;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--text)}
+  .oty .oty-rs .s{font-size:12px;color:var(--muted);line-height:1.4}
+  .oty .oty-rb{display:grid;gap:10px 18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+  .oty .oty-rbr .m{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;margin-bottom:5px}
+  .oty .oty-rbr .m span{color:var(--text);font-variant-numeric:tabular-nums}
+  .oty .oty-rbr .m em{font-style:normal;color:var(--muted2);margin-left:4px}
+  .oty .oty-rbr .tr{height:5px;border-radius:3px;background:var(--border)}
+  .oty .oty-rbr .tr i{display:block;height:100%;border-radius:3px}
   .oty .oty-ro{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 12px;margin-top:6px}
   .oty table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;table-layout:fixed}
   .oty th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);text-align:right;padding:6px 4px;font-weight:700}
@@ -266,7 +280,22 @@ function otyChartBlock(rows) {
     + `<span><i class="ln" style="background:var(--warn)"></i>${lineName}</span>`;
   const r = rows[sel], lab = OTY.basis === 'same' || r.partial ? `1 Jan – ${otyCutLabel()}` : 'full year';
   const split = r.per.filter(p => p.v).map(p => `<span><b style="color:${OTY_COL[p.b]}">${OTY_NAME[p.b]}</b> ${otyM(p.v)}</span>`).join('');
-  const readout = `<b>${r.y}</b> · ${lab}<div class="oty-ro"><span>Net take <b>${otyM(r.net)}</b></span><span>Clients, per staff <b>${otyNum(r.stf)}</b></span><span>Avg bill, per staff <b>${r.avg ? otyAed(r.avg) : '·'}</b></span><span>Growth ${otyTxt(r.growth)}</span><span style="opacity:.8">Per visit: ${r.avgV ? otyAed(r.avgV) : '·'} over ${otyNum(r.vis)} visits</span></div>${set.length > 1 ? `<div class="oty-ro">${split}</div>` : ''}`;
+  // Kate, 9 Oct 2026: "make info here easy to read". The readout under the chart was a heading line and a
+  // pile of plain lines in two columns. It is now the year as a heading, four figure tiles (value big, label
+  // small, the per visit figure under the avg bill), and one row per branch with its share of the take.
+  const gTxt = r.growth == null ? '·' : otyTxt(r.growth);
+  const tile = (k, v, s) => `<div class="oty-rs"><div class="k">${k}</div><div class="v">${v}</div>${s ? `<div class="s">${s}</div>` : ''}</div>`;
+  const branchRow = p => { const sh = r.net ? p.v / r.net * 100 : 0;
+    return `<div class="oty-rbr"><div class="m"><b style="color:${OTY_COL[p.b]}">${OTY_NAME[p.b]}</b><span>${otyM(p.v)} <em>${Math.round(sh)}%</em></span></div>
+      <div class="tr"><i style="width:${Math.max(2, sh).toFixed(1)}%;background:${OTY_COL[p.b]}"></i></div></div>`; };
+  const readout = `<div class="oty-rh"><b>${r.y}</b><span>${lab}</span></div>
+    <div class="oty-rt">
+      ${tile('Net take', otyM(r.net), '')}
+      ${tile('Clients · per staff', otyNum(r.stf), '')}
+      ${tile('Avg bill · per staff', r.avg ? otyAed(r.avg) : '·', r.avgV ? `Per visit ${otyAed(r.avgV)} · ${otyNum(r.vis)} visits` : '')}
+      ${tile('Growth', gTxt, r.y > otyD.years[0] ? `vs ${r.y - 1}` : '')}
+    </div>
+    ${set.length > 1 ? `<div class="oty-rb">${r.per.filter(p => p.v).map(branchRow).join('')}</div>` : ''}`;
   const pills = [['growth', 'Growth vs last year'], ['avg', 'Average bill per staff'], ['stf', 'Clients per staff']]
     .map(([k, l]) => `<button class="oty-pill" aria-pressed="${OTY.line === k}" onclick="otySet('line','${k}')">Line: ${l}</button>`).join('');
   return `<div class="oty-eb"><i style="background:var(--hair)"></i>Net take by year, with the line on top</div>
