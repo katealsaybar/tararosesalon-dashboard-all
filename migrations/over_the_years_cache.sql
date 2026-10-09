@@ -8,7 +8,7 @@
 --
 -- The table follows the branch scope like the tables it summarises (a branch login reads only its own branch).
 -- oty_refresh() runs as its owner and is not callable by the app roles. The numbers are as old as the last refresh
--- (at most an hour), which is fine for a six-year view; "same days" still ends on the last day takings were in.
+-- (at most an hour), which is fine for a six-year view; Fratelli (closed 22 May 2026) is in the table so the page can offer it as a chip; "same days" still ends on the last day takings were in.
 
 create table if not exists public.oty_year_branch (
   y int not null, b text not null,
@@ -37,15 +37,15 @@ begin
   m as (select extract(year from f.date)::int y, f.branch b, round(sum(f.sales_net)) net,
                round(sum(f.sales_net) filter (where f.date <= c.c)) net_y, count(distinct f.date)::int days
         from public.financial_totals f join c on c.y = extract(year from f.date)::int
-        where f.branch in ('SAA','KCA','MC','AQ') and f.date >= '2021-01-01' group by 1, 2),
+        where f.branch in ('SAA','KCA','MC','AQ','FRT') and f.date >= '2021-01-01' group by 1, 2),
   v as (select extract(year from l.date)::int y, l.branch b, count(distinct l.sale_id)::int vis,
                count(distinct l.sale_id) filter (where l.date <= c.c)::int vis_y
         from public.sales_transaction_lines l join c on c.y = extract(year from l.date)::int
-        where l.branch in ('SAA','KCA','MC','AQ') and l.date >= '2021-01-01' group by 1, 2),
+        where l.branch in ('SAA','KCA','MC','AQ','FRT') and l.date >= '2021-01-01' group by 1, 2),
   s as (select extract(year from p.date)::int y, p.branch b, sum(p.visits)::int stf,
                (sum(p.visits) filter (where p.date <= c.c))::int stf_y
         from public.phorest_staff_daily p join c on c.y = extract(year from p.date)::int
-        where not p.is_total and p.branch in ('SAA','KCA','MC','AQ') and p.date >= '2021-01-01' group by 1, 2),
+        where not p.is_total and p.branch in ('SAA','KCA','MC','AQ','FRT') and p.date >= '2021-01-01' group by 1, 2),
   r as (select extract(year from g.review_date)::int y, g.b, count(*)::int rev_n, round(avg(g.stars)::numeric, 2) rev_st,
                (count(*) filter (where g.review_date <= c.c))::int rev_n_y,
                round((avg(g.stars) filter (where g.review_date <= c.c))::numeric, 2) rev_st_y

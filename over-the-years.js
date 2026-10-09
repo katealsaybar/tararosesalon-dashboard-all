@@ -13,7 +13,9 @@
 //    every earlier year. Full years is the other switch, with the current year marked partial.
 //  - Average bill is per staff, the Pulse's default; per visit through the door is the snippet.
 //  - Branches arrive over time (Motor City Nov 2022, Al Quoz Sep 2023), so the totals jump when they appear;
-//    Like for like (Saadiyat + Khalifa City A) is the trend. Fratelli and Bahrain are not on this page.
+//    Like for like (Saadiyat + Khalifa City A) is the trend. Bahrain is not on this page. Fratelli (closed 22 May
+//    2026) is an opt-in chip, as in the dashboard's pickers: out of "All four", in under "Fratelli (closed)" and
+//    "All + Fratelli" (Kate, 9 Oct 2026).
 //  - Google reviews and Instagram are marked (UNDER CONSTRUCTION): the review sync is still by hand while the
 //    Google approval is pending, and Instagram only exists from 2025.
 const OTY_STORE = 'trs-over-years';
@@ -24,9 +26,10 @@ try {
 } catch (e) {}
 function otySave() { try { localStorage.setItem(OTY_STORE, JSON.stringify({ b: OTY.b, basis: OTY.basis, line: OTY.line })); } catch (e) {} }
 
-const OTY_BR = ['SAA', 'KCA', 'MC', 'AQ'];
-const OTY_NAME = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
-const OTY_COL = { SAA: '#C4B5FD', KCA: '#FFD4D9', MC: '#99F6E4', AQ: '#FF9B9B' };
+const OTY_BR = ['SAA', 'KCA', 'MC', 'AQ', 'FRT'];
+const OTY_NAME = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', FRT: 'Fratelli' };
+const OTY_COL = { SAA: '#C4B5FD', KCA: '#FFD4D9', MC: '#99F6E4', AQ: '#FF9B9B', FRT: '#EEF3C7' };
+const OTY_ORDER = ['ALL', 'LFL', 'SAA', 'KCA', 'MC', 'AQ', 'ALLF', 'FRT'];
 let otyRaw = null, otyIgRaw = null, otyD = null, otyBusy = false, otyErr = '', otyIgErr = '', otyIgLoaded = false;
 
 const otyEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -118,12 +121,14 @@ function otyBuild(raw, ig) {
   (raw.reviews || []).forEach(r => { const o = br(r.b), i = idx(r.y); if (i < 0) return;
     o.rev.n[i] = +r.n || 0; o.rev.s[i] = +r.st || 0; o.rev.ny[i] = +r.n_y || 0; o.rev.sy[i] = +r.st_y || 0; });
   const present = OTY_BR.filter(b => D[b]);
-  const sets = { ALL: present };
+  const open = present.filter(b => b !== 'FRT');
+  const sets = { ALL: open };
   if (present.includes('SAA') && present.includes('KCA')) sets.LFL = ['SAA', 'KCA'];
   present.forEach(b => { sets[b] = [b]; });
+  if (present.includes('FRT') && open.length) sets.ALLF = present.slice();
   return { years, D, present, sets, cut: raw.cut, curYear: new Date(raw.cut + 'T00:00:00').getFullYear(), ig };
 }
-const otySetName = k => k === 'ALL' ? 'All four branches' : k === 'LFL' ? 'Saadiyat + Khalifa City A' : OTY_NAME[k] || k;
+const otySetName = k => k === 'ALL' ? 'All four branches' : k === 'LFL' ? 'Saadiyat + Khalifa City A' : k === 'ALLF' ? 'All four + Fratelli' : k === 'FRT' ? 'Fratelli (closed 22 May 2026)' : OTY_NAME[k] || k;
 const otyCutLabel = () => otyDay(otyD.cut);
 
 async function otyLoad(force) {
@@ -193,8 +198,9 @@ function otyDraw() {
   </div>`;
 }
 function otyControls() {
-  const keys = Object.keys(otyD.sets);
-  const bp = keys.map(k => `<button class="oty-pill" aria-pressed="${k === OTY.b}" onclick="otySet('b','${k}')">${k === 'ALL' ? 'All four' : k === 'LFL' ? 'Like for like' : OTY_NAME[k]}</button>`).join('');
+  const keys = OTY_ORDER.filter(k => otyD.sets[k]);
+  const lab = k => k === 'ALL' ? 'All four' : k === 'LFL' ? 'Like for like' : k === 'ALLF' ? 'All + Fratelli' : k === 'FRT' ? 'Fratelli (closed)' : OTY_NAME[k];
+  const bp = keys.map(k => `<button class="oty-pill" aria-pressed="${k === OTY.b}" onclick="otySet('b','${k}')">${lab(k)}</button>`).join('');
   return `<div class="oty-lab">Branches</div><div class="oty-pills">${bp}</div>
     <div class="oty-lab">Compare on</div><div class="oty-pills">
       <button class="oty-pill" aria-pressed="${OTY.basis === 'same'}" onclick="otySet('basis','same')">Same days (1 Jan – ${otyCutLabel()})</button>
@@ -313,6 +319,7 @@ function otyReviews() {
     const c = per.reduce((a, p) => a + p.v, 0), stars = c ? per.reduce((a, p) => a + p.v * p.s, 0) / c : 0;
     return { y, i, n: c, stars, per, partial: !same && y === curYear };
   });
+  if (!rows.some(r => r.n)) return `<div class="oty-eb"><i style="background:var(--warn)"></i>Reputation · Google reviews <span class="oty-uc">(UNDER CONSTRUCTION)</span></div><div class="oty-card oty-flag"><div class="oty-note">No Google reviews are held for ${otySetName(OTY.b)}.</div></div>`;
   const W = 360, H = 260, L = 34, R = 36, T = 24, B = 28, bw = (W - L - R) / n, bar = Math.min(30, bw * .62);
   const maxN = Math.max(250, Math.ceil(Math.max(...rows.map(r => r.n), 1) * 1.08 / 250) * 250), yb = v => T + (H - T - B) * (1 - v / maxN);
   const lo = 4.4, hi = 5.0, yl = v => T + (H - T - B) * (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo));
@@ -396,6 +403,7 @@ function otyNotes() {
     <div class="oty-card oty-note">
       <p><b>Seasons, not calendar months.</b> Ramadan and Eid move about 11 days earlier every year, so month against month compares different seasons.</p>
       <p><b>Branches arrive over time.</b> Motor City's data starts Nov 2022 and Al Quoz's Sep 2023, so the all-branches total jumps when they appear. Like for like (Saadiyat + Khalifa City A) is the trend.</p>
+      <p><b>Fratelli</b> closed on 22 May 2026. It is out of All four, as everywhere on the dashboard, and has its own chip, and All + Fratelli puts it back in for the years it traded.</p>
       <p><b>Same days first.</b> The year in progress is set against the same dates in every earlier year. Switch to Full years to see whole years, with this one marked as partial.</p>
       <p><b>Slightly different from the Pulse.</b> These are Phorest's own financial totals. The Pulse's net take is built from the ledgers, so the two differ by about 1%.</p>
     </div>`;
