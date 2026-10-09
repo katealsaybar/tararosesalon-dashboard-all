@@ -2894,6 +2894,20 @@ tr.lg-tot td:first-child{background:var(--surface2)}
   .lg-side .side-nav a.on{border-left-color:var(--text)}
 }
 
+/* Kate, 9 Oct 2026: Branch Performance carries the rail in the gutter from 1100px, the Pulse's own
+   breakpoint, instead of 1400px. A browser zoomed to 125-150% is 1100-1400px wide and was getting the row
+   of chips, which is hard to move around a page this long. Same rules as the 1400px block above, scoped
+   to .lg-shell-wide, and above 1400px it needs nothing extra. */
+@media(min-width:1100px) and (max-width:1399.98px){
+  .lg-shell-wide{display:grid;grid-template-columns:172px minmax(0,1fr);gap:40px;align-items:start}
+  .lg-shell-wide .lg-side{position:sticky;top:118px;z-index:auto;background:none;margin:0;padding:0;border:0}
+  .lg-shell-wide .lg-side .side-nav{display:block;padding:0}
+  .lg-shell-wide .lg-side .side-k{display:block;padding:0 0 9px;border-bottom:1px solid var(--text)}
+  .lg-shell-wide .lg-side .side-nav a{display:block;padding:8px 0 8px 13px;
+    border:0;border-left:2px solid var(--border2);border-radius:0;white-space:normal}
+  .lg-shell-wide .lg-side .side-nav a.on{border-left-color:var(--text)}
+}
+
 /* ── GROWTH CARDS ─────────────────────────────────────────────
    One per branch, ordered by take. The branch's colour arrives as two inline
    custom properties — the pastel for dark, the darkened one for light — because a
@@ -4125,7 +4139,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20261008cb8"></script>
+<script src="branch-ledger.js?v=20261009bp1"></script>
 <script src="compare.js?v=20261008cb9"></script>
 <script src="over-the-years.js?v=20261009oty2"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's

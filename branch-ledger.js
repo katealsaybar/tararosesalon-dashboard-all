@@ -532,8 +532,8 @@ function lgRail(items) {
 // Rail in the gutter, page beside it. The header, the note and the Split chips
 // stay full width above this — they describe the whole page, so indenting them
 // into the document column would leave the rail floating beside nothing.
-function lgShell(railItems, bodyHtml) {
-  return `<div class="lg-shell">${lgRail(railItems)}<div class="lg-doc">${bodyHtml}</div></div>`;
+function lgShell(railItems, bodyHtml, extraCls) {
+  return `<div class="lg-shell${extraCls ? ' ' + extraCls : ''}">${lgRail(railItems)}<div class="lg-doc">${bodyHtml}</div></div>`;
 }
 
 // What a rail entry points at: a collapsible section if there is one, otherwise an
@@ -1451,7 +1451,10 @@ async function renderBranchPerformance() {
       <p><b>Where these come from</b>. Client counts here are per staff: the branch ledger (<code>branch_staff_daily</code>), so a client seen by two staff counts twice, and on days the ledger has not reached yet Phorest's visits per staff fill the Total Clients count (rebooking, NCR and the rest are read on ledger days only). The Clients chip and the Clients table row beside it say through the door when they count each client once a day from Phorest Sales Transactions. The department split and the treatment figure come from the same ledger; revenue comes from Phorest (<code>phorest_staff_daily</code>), matched to the ledger's staff and day. Rows tagged <span class="lg-tag">LEDGER</span> are hand-tallied and have no Phorest equivalent.</p>
       <p><b>Where the targets come from</b>. ${typeof lgTargetSourceLabel === 'function' ? lgTargetSourceLabel(lgMonth) : '<code>ledger-targets.js</code>'}. A month pasted into the Targets tab is read from Supabase, and the branch figures there are summed from the stylist rows themselves rather than taken from the salon-level line a coordinator writes under her table — the two disagree, and the rows are what a stylist was actually given. The five client-count targets cannot be summed from money and are typed in beside them off Emma's Monday sheet; where one is blank the row keeps its dash rather than showing a target of zero. Months still coming off the hand-keyed file take their revenue targets from that sheet's MTD pacing panel rather than its group roll-up, because only the panel's figures sum to their own branches.</p>
       <p><b>How growth is measured</b>. This window against the one immediately before it, at the same number of days, ending the day before this one starts — never against a calendar month, which would read a fortnight as a collapse. The window is capped at the last day the ledger has actually synced, so unsynced days are not counted as days that took nothing. Percentages are money and counts; rebooking moves in <b>points</b>, because a rise from 20% to 32% is 12 points and not 60%.</p>
-    </div>`);
+    </div>`,
+    // Kate, 9 Oct 2026: the rail in the gutter from 1100px like the Pulse's, not 1400px, so a zoomed browser
+    // keeps the section list beside the page instead of a row of chips at the top.
+    'lg-shell-wide');
 
   ['bpGrowth','bpRead','bpMix','bpPace','bpBench','bpClients','bpStaff']
     .forEach(id => { if (!(id in sectionState)) sectionState[id] = true; });
