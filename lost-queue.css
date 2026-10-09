@@ -1,0 +1,38 @@
+/* Lost Clients, To message and Templates tabs (lost-queue.js), Kate, 9 Oct 2026. Sits on lost-lists.css and the dashboard's tokens,
+   so dark mode follows; only what they do not cover is here. */
+.lq-tabs{margin:14px 0 4px;flex-wrap:wrap}
+.lq-refresh{cursor:pointer;font:inherit;font-size:12.5px}
+.lq-stat.on{border-color:var(--text);outline:1px solid var(--text);outline-offset:-3px}
+.lq-held{cursor:default}
+.lq-stats{margin-bottom:4px}
+@media(max-width:1100px){.lq-stats{grid-template-columns:repeat(2,1fr)}}
+.lq-batch{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.lq-prog{flex:1;min-width:150px;height:8px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.lq-prog i{display:block;height:100%;background:var(--good)}
+.lq-tools{margin-top:4px}
+.lq-auto{margin:8px 0 2px;font-size:13px;color:var(--muted)}
+.lq-type{color:var(--text);font-weight:600}
+.lq-st{margin-top:4px}
+.lq-msgtd{min-width:260px;max-width:420px}
+.lq-msg{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;cursor:help}
+.lq-msg:hover{-webkit-line-clamp:unset}
+.lq-msg-m{margin-top:6px;-webkit-line-clamp:3}
+.lq-long{color:var(--warn)}
+.lq-acttd{min-width:190px}
+.lq-acts{display:flex;gap:6px;flex-wrap:wrap}
+.lq-pri{background:var(--text);color:var(--surface);border-color:var(--text)}
+.lq-sent{color:var(--good);font-weight:600;font-size:13px}
+.lq-rep{background:var(--good-bg);color:var(--good);border-radius:8px;padding:5px 10px;font-size:13px;font-weight:600;display:inline-block}
+.lq-tplgrid{display:grid;grid-template-columns:290px 1fr;gap:14px;margin-top:12px;align-items:start}
+@media(max-width:860px){.lq-tplgrid{grid-template-columns:1fr}}
+.lq-tpllist{display:flex;flex-direction:column;gap:6px}
+.lq-tli{text-align:left;border:1.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:10px;padding:9px 12px;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:1px}
+.lq-tli.on{border-color:var(--text);outline:1px solid var(--text);outline-offset:-3px}
+.lq-tn{font-weight:600;font-size:14px}
+.lq-toks{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.lq-tok{cursor:pointer;background:var(--surface);font:12px ui-monospace,Consolas,monospace;color:var(--text);padding:2px 8px}
+.lq-ta{width:100%;box-sizing:border-box;min-height:150px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:10px;padding:12px;font:14px/1.55 inherit;resize:vertical}
+.lq-edrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.lq-bubble{background:#DCF8C6;color:#111;border-radius:12px 12px 12px 2px;padding:10px 13px;font-size:14px;line-height:1.5;max-width:460px;white-space:pre-wrap}
+[data-theme="dark"] .lq-bubble{background:#1F3A2C;color:#E7F5EC}
+.lq-ed button:disabled{opacity:.45;cursor:default}
