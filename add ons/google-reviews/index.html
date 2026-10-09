@@ -23,6 +23,10 @@
   --s1:#FF9B9B;--s2:#FFC29B;--s3:#EEF3C7;--s4:#C4B5FD;--s5:#99F6E4;--ok:#99F6E4;
   --shadow:0 1px 2px rgba(0,0,0,0.3),0 10px 28px -8px rgba(0,0,0,0.35);
 }
+/* Kate, 9 Oct 2026: "brand aligned po pls ang dropdown". The shared pill menu (assets/pill-select.js) reads --accent
+   and --accent-fg; this page calls its accent --rose and --on-accent, so say so, or the chosen option comes out dark
+   on dark in dark mode. */
+:root,[data-theme="light"],[data-theme="dark"]{--accent:var(--rose);--accent-fg:var(--on-accent)}
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
 .wrap{max-width:1180px;margin:0 auto;padding:28px 24px 60px}
@@ -236,6 +240,7 @@ html.embedded .filters{position:static}
   .fbody .chip{border-radius:10px;flex-direction:column;justify-content:center;gap:0;padding:6px 4px;text-align:center;line-height:1.2;min-width:0;padding-left:2px;padding-right:2px}
   .fbody .chip .n{font-size:12px}
   #fStaff{width:100%;min-height:44px}
+  .frow .ps{display:flex;width:100%}   /* the pill menu fills the row, as the plain select did */
   #fMore{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
   #fMore .chip{border-radius:10px;padding:6px 10px}
   .fbody .search{display:block;width:100%;min-width:0;margin-top:8px;min-height:44px}
@@ -326,6 +331,7 @@ html.embedded .filters{position:static}
 <script src="../../staff-profiles.js?v=20261002va"></script>
 <script src="../../auth.js?v=20260925d"></script>
 <script src="review-links.js?v=20260928a"></script>
-<script src="app.js?v=25"></script>
+<script src="/assets/pill-select.js?v=20261005tap"></script>
+<script src="app.js?v=26"></script>
 </body>
 </html>
