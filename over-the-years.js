@@ -98,7 +98,7 @@ function otyCss() {
   .oty td{padding:9px 4px;border-top:1px solid var(--border);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .oty th:first-child,.oty td:first-child{text-align:left;width:15%}
   .oty td.m{color:var(--muted)}
-  .oty .oty-sg{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+  .oty .oty-sg{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}  /* the column count is set inline by otySeasonCols() */
   .oty .oty-sn .h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
   .oty .oty-sn .nm{font-weight:600;font-size:14.5px}
   .oty .oty-sn .dt{font-size:11.5px;color:var(--muted2);margin:4px 0 12px;line-height:1.45}
@@ -317,6 +317,15 @@ function otyTable(rows) {
     <div class="oty-card"><table>${h}</table><p class="oty-note" style="margin:10px 0 0">Clients and Avg bill are per staff, the same default as the Pulse. Per visit, through the door, is in the readout above.</p></div>`;
 }
 
+// Kate, 9 Oct 2026: "ipag kasya mo para 4 na silang magkakatabi". The auto-fit grid wrapped three to a row and left the
+// fourth season alone underneath. The column count is now the biggest one that divides the cards evenly and still
+// leaves each about 200px, so four seasons sit in a row on a desktop, two by two on a narrower page and one on a phone.
+function otySeasonCols(n) {
+  const host = document.getElementById('overYearsContent');
+  const w = Math.min(1100, (host && host.clientWidth) || window.innerWidth);
+  for (let c = n; c > 1; c--) if (n % c === 0 && (w - 10 * (c - 1)) / c >= 200) return c;
+  return 1;
+}
 // ── SEASONS ──────────────────────────────────────────────────────────────
 function otySeasons() {
   const { years, cut } = otyD, ss = (otyRaw.seasons || []);
@@ -346,7 +355,7 @@ function otySeasons() {
   }).join('');
   const lfl = otyD.present.includes('SAA') && otyD.present.includes('KCA');
   return `<div class="oty-eb"><i style="background:var(--hair)"></i>Season on season · Saadiyat + Khalifa City A, per open day</div>
-    <div class="oty-sg">${cards}</div>
+    <div class="oty-sg" style="grid-template-columns:repeat(${otySeasonCols(names.length)},minmax(0,1fr))">${cards}</div>
     <p class="oty-note" style="margin:10px 2px 0">${lfl ? '' : 'Your login sees one branch, so these seasons are empty. '}Only Saadiyat and Khalifa City A are in these, because they are the two branches with data in every year. Per open day, because the seasons run different lengths. Bars are net take per day. The season list is one table (oty_seasons); the four here are a placeholder until Emma sets the real ones.</p>`;
 }
 
