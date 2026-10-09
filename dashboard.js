@@ -5173,15 +5173,20 @@ function watchChanges(from, to) {
     const a = from[f.key], b = to[f.key];
     if (!a || !b) return;
     const bits = [];
+    // Kate, 9 Oct 2026: "we're syncing old data, so instead of new data, older data has landed?" Rows added while
+    // the newest date stays where it was are days from before what is on screen (a backfill), not newer days.
+    const older = f.stamp !== 'uploaded_at' && b.stamp === a.stamp && b.count > a.count;
     if (b.stamp !== a.stamp) {
       const now = watchStampLabel(b.stamp), was = watchStampLabel(a.stamp);
       if (now && was)  bits.push(`now through <b>${now}</b>, was ${was}`);
       else if (now)    bits.push(`first rows in, <b>${now}</b>`);
     }
     const d = b.count - a.count;
-    if (d > 0)      bits.push(`<b>${d.toLocaleString()}</b> new ${d === 1 ? 'row' : 'rows'}`);
+    if (d > 0)      bits.push(older
+      ? `<b>${d.toLocaleString()}</b> earlier ${d === 1 ? 'row' : 'rows'} filled in, newest date still ${watchStampLabel(b.stamp) || 'the same'}`
+      : `<b>${d.toLocaleString()}</b> new ${d === 1 ? 'row' : 'rows'}`);
     else if (d < 0) bits.push(`<b>${(-d).toLocaleString()}</b> ${-d === 1 ? 'row' : 'rows'} removed`);
-    if (bits.length) out.push({ label:f.label, affects:f.affects, text:bits.join(' · ') });
+    if (bits.length) out.push({ label:f.label, affects:f.affects, text:bits.join(' · '), older });
   });
   return out;
 }
@@ -5193,8 +5198,12 @@ function renderUpdateNotice(changes) {
   const drawn = watchDrawnAt
     ? watchDrawnAt.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })
     : null;
+  // Only earlier days filled in (a backfill): say older, not newer. Anything newer in the mix keeps "Newer".
+  const allOlder = changes.every(c => c.older);
+  const pill = box.querySelector('.upd-pill');
+  if (pill) pill.textContent = allOlder ? 'Older data filled in. See what changed' : 'Newer data. See what changed';
   full.innerHTML = `
-    <div class="upd-eye">Newer data has landed</div>
+    <div class="upd-eye">${allOlder ? 'Older data has landed' : 'Newer data has landed'}</div>
     <p class="upd-lead">Nothing on this page has moved. These figures are the ones
       that were up when you opened it — take the update when you are ready.</p>
     <ul class="upd-list">

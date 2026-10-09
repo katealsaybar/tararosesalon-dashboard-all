@@ -85,6 +85,8 @@ function otyCss() {
   .oty .oty-rs{padding:11px 13px;border-radius:8px;background:var(--surface);border:1px solid var(--border)}
   .oty .oty-rs .k{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
   .oty .oty-rs .v{font-size:24px;font-weight:600;margin:5px 0 3px;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--text)}
+  .oty .ih-tip{text-transform:none;letter-spacing:0;font-weight:400;font-size:12px;line-height:1.45;white-space:normal;text-align:left}
+  .oty .oty-rs:nth-child(n+3) .ih-tip{left:auto;right:0}
   .oty .oty-rs .s{font-size:12px;color:var(--muted);line-height:1.4}
   .oty .oty-rb{display:grid;gap:10px 18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
   .oty .oty-rbr .m{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;margin-bottom:5px}
@@ -193,6 +195,30 @@ function otyRows() {
   });
 }
 
+// A smooth path through points [[x, y], ...] (monotone cubic, Fritsch-Carlson): it passes through every point and
+// never overshoots between two of them, so a month at 0 does not dip below the axis and a peak stays the peak.
+function otyCurve(pts) {
+  const n = pts.length, f = v => v.toFixed(1);
+  if (!n) return '';
+  if (n === 1) return `M${f(pts[0][0])} ${f(pts[0][1])}`;
+  const dx = [], m = [];
+  for (let k = 0; k < n - 1; k++) { dx[k] = pts[k + 1][0] - pts[k][0]; m[k] = (pts[k + 1][1] - pts[k][1]) / (dx[k] || 1); }
+  const tg = [m[0]];
+  for (let k = 1; k < n - 1; k++) tg[k] = m[k - 1] * m[k] <= 0 ? 0 : (m[k - 1] + m[k]) / 2;
+  tg[n - 1] = m[n - 2];
+  for (let k = 0; k < n - 1; k++) {
+    if (m[k] === 0) { tg[k] = 0; tg[k + 1] = 0; continue; }
+    const a = tg[k] / m[k], b = tg[k + 1] / m[k], s = a * a + b * b;
+    if (s > 9) { const u = 3 / Math.sqrt(s); tg[k] = u * a * m[k]; tg[k + 1] = u * b * m[k]; }
+  }
+  let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+  for (let k = 0; k < n - 1; k++) {
+    const h = dx[k] / 3;
+    d += ` C${f(pts[k][0] + h)} ${f(pts[k][1] + tg[k] * h)} ${f(pts[k + 1][0] - h)} ${f(pts[k + 1][1] - tg[k + 1] * h)} ${f(pts[k + 1][0])} ${f(pts[k + 1][1])}`;
+  }
+  return d;
+}
+
 // ── DRAW ─────────────────────────────────────────────────────────────────
 function otyDraw() {
   const host = document.getElementById('overYearsContent');
@@ -247,6 +273,10 @@ function otyCanvas(h) {
   const W = w >= 560 ? Math.min(Math.round(w), 820) : 360;
   return { W, H: W > 360 ? Math.round(h * .78) : h, bmax: W > 360 ? 64 : 30 };
 }
+// Kate, 9 Oct 2026: per visit leads on this page, with a small hover note on why (the 2021 to 2024 ledgers are
+// not fully attached, so the per staff counts for those years are incomplete).
+const OTY_WHY = 'Per visit counts each client once a day, through the door. Per staff counts a client once for each staff who served her, and the 2021 to 2024 per staff figures are not complete yet, so per visit leads on this page.';
+const otyWhy = label => typeof ihTip === 'function' ? ihTip(label, OTY_WHY) : label;
 function otyChartBlock(rows) {
   const { years, sets } = otyD, set = sets[OTY.b], n = years.length;
   const { W, H, bmax } = otyCanvas(300), L = 38, R = 38, T = 26, B = 30, bw = (W - L - R) / n, bar = Math.min(bmax, bw * .62);
@@ -301,32 +331,31 @@ function otyChartBlock(rows) {
   const readout = `<div class="oty-rh"><b>${r.y}</b><span>${lab}</span></div>
     <div class="oty-rt">
       ${tile('Net take', otyM(r.net), '')}
-      ${tile('Clients · per staff', otyNum(r.stf), r.vis ? `Per visit ${otyNum(r.vis)}` : '')}
-      ${tile('Avg bill · per staff', r.avg ? otyAed(r.avg) : '·', r.avgV ? `Per visit ${otyAed(r.avgV)} · ${otyNum(r.vis)} visits` : '')}
+      ${tile(otyWhy('Clients · per visit'), r.vis ? otyNum(r.vis) : '·', r.stf ? `Per staff ${otyNum(r.stf)}` : '')}
+      ${tile(otyWhy('Avg bill · per visit'), r.avgV ? otyAed(r.avgV) : '·', r.avg ? `Per staff ${otyAed(r.avg)}` : '')}
       ${tile('Growth', gTxt, r.y > otyD.years[0] ? `vs ${r.y - 1}` : '')}
     </div>
     ${set.length > 1 ? `<div class="oty-rb">${r.per.filter(p => p.v).map(branchRow).join('')}</div>` : ''}`;
   const pills = '<span class="oty-lab" style="margin:0 2px 0 0;align-self:center">Line</span>'
-    + [['growth', 'Growth vs last year'], ['avg', 'Avg bill · per staff'], ['avgV', 'Avg bill · per visit'], ['stf', 'Clients · per staff'], ['vis', 'Clients · per visit']]
+    + [['growth', 'Growth vs last year'], ['avgV', 'Avg bill · per visit'], ['avg', 'Avg bill · per staff'], ['vis', 'Clients · per visit'], ['stf', 'Clients · per staff']]
     .map(([k, l]) => `<button class="oty-pill" aria-pressed="${LN === k}" onclick="otySet('line','${k}')">${l}</button>`).join('');
   return `<div class="oty-eb"><i style="background:var(--hair)"></i>Net take by year, with the line on top</div>
     <div class="oty-card"><div class="oty-pills" style="margin-bottom:12px">${pills}</div><div class="oty-legend">${legend}</div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Net take by year, as bars, with a line" onpointerdown="otyTapChart(event,${n},${L},${R},${W})">${g}</svg>
     <div class="oty-read">${readout}</div></div>
-    <p class="oty-note" style="margin:10px 2px 0">${OTY.basis === 'full' ? `* ${otyD.curYear} is 1 Jan to ${otyCutLabel()} only, shown faded. ` : `Every bar is 1 Jan to ${otyCutLabel()} of that year. `}The line reads on the right-hand scale. Growth over 100% is a year new branches opened in, so it is left off the line. Tap a year.</p>
-    <p class="oty-note" style="margin:6px 2px 0;color:var(--warn)">Per staff counts a client once for each staff who served her; per visit counts each client once a day. The ledgers for 2021 to 2024 are not fully attached yet, so the per staff figures for those years are incomplete.</p>`;
+    <p class="oty-note" style="margin:10px 2px 0">${OTY.basis === 'full' ? `* ${otyD.curYear} is 1 Jan to ${otyCutLabel()} only, shown faded. ` : `Every bar is 1 Jan to ${otyCutLabel()} of that year. `}The line reads on the right-hand scale. Growth over 100% is a year new branches opened in, so it is left off the line. Tap a year.</p>`;
 }
 function otyTapChart(ev, n, L, R, W) {
   const r = ev.currentTarget.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W, bw = (W - L - R) / n;
   otyPick(Math.max(0, Math.min(n - 1, Math.floor((px - L) / bw))));
 }
 function otyTable(rows) {
-  let h = '<tr><th>Year</th><th>Net take</th><th>Clients per staff</th><th>Clients per visit</th><th>Avg bill per staff</th><th>Avg bill per visit</th><th>Growth</th></tr>';
+  let h = '<tr><th>Year</th><th>Net take</th><th>Clients per visit</th><th>Clients per staff</th><th>Avg bill per visit</th><th>Avg bill per staff</th><th>Growth</th></tr>';
   rows.slice().reverse().forEach(r => {
-    h += `<tr><td>${r.y}${r.partial ? '*' : ''}</td><td>${otyM(r.net)}</td><td class="m">${otyNum(r.stf)}</td><td class="m">${r.vis ? otyNum(r.vis) : '·'}</td><td class="m">${r.avg ? Math.round(r.avg) : '·'}</td><td class="m">${r.avgV ? Math.round(r.avgV) : '·'}</td><td class="${r.growth == null ? 'm' : r.growth > 0 ? 'oty-up' : 'oty-dn'}">${r.growth == null ? (r.big ? 'new' : '·') : (r.growth > 0 ? '+' : '') + r.growth.toFixed(1) + '%'}</td></tr>`;
+    h += `<tr><td>${r.y}${r.partial ? '*' : ''}</td><td>${otyM(r.net)}</td><td class="m">${r.vis ? otyNum(r.vis) : '·'}</td><td class="m">${otyNum(r.stf)}</td><td class="m">${r.avgV ? Math.round(r.avgV) : '·'}</td><td class="m">${r.avg ? Math.round(r.avg) : '·'}</td><td class="${r.growth == null ? 'm' : r.growth > 0 ? 'oty-up' : 'oty-dn'}">${r.growth == null ? (r.big ? 'new' : '·') : (r.growth > 0 ? '+' : '') + r.growth.toFixed(1) + '%'}</td></tr>`;
   });
-  return `<div class="oty-eb"><i style="background:var(--warn)"></i>The years, side by side</div>
-    <div class="oty-card"><table>${h}</table><p class="oty-note" style="margin:10px 0 0">The 2021 to 2024 per staff figures are incomplete until the ledgers are attached.</p></div>`;
+  return `<div class="oty-eb"><i style="background:var(--warn)"></i>${otyWhy('The years, side by side')}</div>
+    <div class="oty-card"><table>${h}</table></div>`;
 }
 
 // Kate, 9 Oct 2026: "ipag kasya mo para 4 na silang magkakatabi". The auto-fit grid wrapped three to a row and left the
@@ -451,7 +480,13 @@ function otyInstagram() {
     if (i % 3 === 0 || i === n - 1) g += `<text x="${cx}" y="${H - 18}" text-anchor="middle" font-size="9">${OTY_MON[mo][0]}</text>`;
     if (r.m.endsWith('-01') || i === 0) g += `<text class="tv" x="${cx}" y="${H - 6}" font-size="9.5">${r.m.slice(0, 4)}</text>`;
   });
-  const line = (arr, col, w) => { let d = '', pen = false; arr.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + (L + bw * i + bw / 2).toFixed(1) + ' ' + yp(v).toFixed(1) + ' '; pen = true; }); return `<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linejoin="round"/>`; };
+  // Kate, 9 Oct 2026: "smoothen the lines". Each unbroken run of months is a smooth curve through its points
+  // (otyCurve) instead of straight segments; a gap in the data still breaks the line.
+  const line = (arr, col, w) => {
+    const runs = []; let cur = null;
+    arr.forEach((v, i) => { if (v == null) { cur = null; return; } if (!cur) runs.push(cur = []); cur.push([L + bw * i + bw / 2, yp(v)]); });
+    return `<path d="${runs.map(otyCurve).join(' ')}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
+  };
   g += line(own, 'var(--warn)', 2.4) + line(col, 'var(--good)', 2.2);
   const sel = OTY.ig, f = v => v == null ? '<span style="opacity:.6">not captured</span>' : `<b>${v}</b>`;
   const mn = OTY_MON[+ms[sel].m.slice(5) - 1] + ' ' + ms[sel].m.slice(0, 4);
