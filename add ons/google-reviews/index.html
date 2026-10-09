@@ -79,6 +79,14 @@ h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:30px;m
 .tip{position:fixed;pointer-events:none;background:var(--text);color:var(--bg);box-shadow:var(--shadow);font-size:12px;padding:6px 8px;border-radius:6px;display:none;z-index:20}
 .listhead{display:flex;justify-content:space-between;align-items:center;margin:6px 0 10px}
 .listhead h2{font-size:15px;margin:0}
+/* Ten a page (Kate, 9 Oct 2026). scroll-margin keeps the list head clear of the dashboard's sticky header and the pinned Refine bar after a page change. */
+.listhead{scroll-margin-top:230px}
+.pager{display:flex;flex-direction:column;align-items:center;gap:10px;margin:18px 0 6px}
+.pg-info{font-size:13px;color:var(--muted)}
+.pg-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.pg-btns .chip{min-width:38px;justify-content:center}
+.pg-btns .chip[disabled]{opacity:.4;cursor:default;pointer-events:none}
+.pg-gap{align-self:center;color:var(--faint);padding:0 2px}
 select{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:5px 8px;font:inherit;font-size:13px}
 .rev{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;border-left:3px solid var(--border)}
 .rev.s1{border-left-color:var(--s1)}.rev.s2{border-left-color:var(--s2)}.rev.s3{border-left-color:var(--s3)}.rev.s4{border-left-color:var(--s4)}.rev.s5{border-left-color:var(--s5)}
@@ -332,6 +340,6 @@ html.embedded .filters{position:static}
 <script src="../../auth.js?v=20260925d"></script>
 <script src="review-links.js?v=20260928a"></script>
 <script src="/assets/pill-select.js?v=20261005tap"></script>
-<script src="app.js?v=26"></script>
+<script src="app.js?v=27"></script>
 </body>
 </html>

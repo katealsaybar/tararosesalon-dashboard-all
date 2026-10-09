@@ -361,13 +361,23 @@ function fmtDate(d){return new Date(d+"T00:00:00").toLocaleDateString("en-GB",{d
 // when the live table is out of reach, so an offline copy from 24 Sep printed
 // "1d ago" on 1 Oct. TODAY still anchors the recency filters. Kate, 1 Oct 2026.
 function ago(d){const now=new Date(new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Dubai"})+"T00:00:00"); const n=Math.round((now-new Date(d+"T00:00:00"))/864e5); if(n<1)return "today"; if(n<60)return n+"d ago"; if(n<730)return Math.round(n/30.4)+"mo ago"; return Math.round(n/365)+"y ago";}
-let LIMIT=60;
+// Ten reviews a page, with a pager under the list (Kate, 9 Oct 2026: one long scroll was too much).
+// Any filter, sort or window change goes back to page 1 (render() below).
+const PAGE_SIZE=10;
+let PAGE=0;
+// Page numbers to show: first, last, and two either side of the current one, with … for gaps.
+function pageNums(cur,total){
+  const keep=new Set([0,total-1,cur-2,cur-1,cur,cur+1,cur+2].filter(p=>p>=0&&p<total)), out=[]; let prev=-1;
+  [...keep].sort((a,b)=>a-b).forEach(p=>{ if(p-prev>1) out.push("…"); out.push(p); prev=p; });
+  return out;
+}
 function renderList(F){
   const L=[...F].sort((a,b)=> state.sort==="new"? b.date.localeCompare(a.date) : state.sort==="old"? a.date.localeCompare(b.date) : state.sort==="low"? a.stars-b.stars || b.date.localeCompare(a.date) : b.stars-a.stars || b.date.localeCompare(a.date));
   document.getElementById("listTitle").textContent=`Reviews (${L.length})`;
   const el=document.getElementById("list");
   if(!L.length){el.innerHTML=`<div class="empty">No reviews match these filters.</div>`;return;}
-  el.innerHTML=L.slice(0,LIMIT).map((r,i)=>{
+  const pages=Math.ceil(L.length/PAGE_SIZE); PAGE=Math.min(Math.max(PAGE,0),pages-1);
+  el.innerHTML=L.slice(PAGE*PAGE_SIZE,(PAGE+1)*PAGE_SIZE).map((r,i)=>{
     const st="<b>"+"★".repeat(r.stars)+"</b><em>"+"★".repeat(5-r.stars)+"</em>";
     const long=r.comment.length>380;
     return `<div class="rev s${r.stars}">
@@ -379,8 +389,18 @@ function renderList(F){
       ${r.photos.length?`<div class="rphotos">${r.photos.map((u,k)=>`<button type="button" class="rph" data-u="${esc(u)}" aria-label="Photo ${k+1} of ${r.photos.length} from ${esc(r.reviewer||"the client")}"><img src="${esc(u)}=w240-h240-p" alt="" loading="lazy"></button>`).join("")}</div>`:""}
       ${r.replied?`<details class="reply"><summary><b>Our reply</b></summary><div style="white-space:pre-wrap;margin-top:6px">${esc(r.reply)}</div></details>`:""}
       ${(()=>{const g=googleReviewUrl(r)||branchMapsUrl(r),u=r.url||branchGbpUrl(r);return g||u?`<div class="links">${g?`<a class="gbp" href="${g}" target="_blank" rel="noopener">View on Google ↗</a>`:""}${u?`<a class="gbp" href="${u}" target="_blank" rel="noopener">Reply in Business Profile →</a>`:""}</div>`:"";})()}
-    </div>`;}).join("") + (L.length>LIMIT?`<div style="text-align:center;margin-top:12px"><button class="chip" id="moreBtn">Show ${Math.min(60,L.length-LIMIT)} more of ${L.length-LIMIT} remaining</button></div>`:"");
-  const mb=document.getElementById("moreBtn"); if(mb) mb.onclick=()=>{LIMIT+=60;renderList(F);};
+    </div>`;}).join("") + (pages>1?`<nav class="pager" aria-label="Review pages">
+      <div class="pg-info">Showing ${PAGE*PAGE_SIZE+1}–${Math.min((PAGE+1)*PAGE_SIZE,L.length)} of ${L.length}</div>
+      <div class="pg-btns">
+        <button type="button" class="chip" data-p="${PAGE-1}"${PAGE?"":" disabled"}>‹ Prev</button>
+        ${pageNums(PAGE,pages).map(p=>p==="…"?`<span class="pg-gap">…</span>`:`<button type="button" class="chip${p===PAGE?" on":""}" data-p="${p}"${p===PAGE?' aria-current="page"':""} aria-label="Page ${p+1}">${p+1}</button>`).join("")}
+        <button type="button" class="chip" data-p="${PAGE+1}"${PAGE<pages-1?"":" disabled"}>Next ›</button>
+      </div></nav>`:"");
+  el.querySelectorAll(".pager [data-p]").forEach(b=>b.onclick=()=>{
+    PAGE=+b.dataset.p; renderList(F);
+    // Back to the top of the list; embedded, this scrolls the dashboard (the frame has no scrollbar of its own).
+    document.querySelector(".listhead").scrollIntoView({block:"start"});
+  });
   el.querySelectorAll(".stag").forEach(b=>b.onclick=()=>{state.staff=b.dataset.k;render();window.scrollTo(0,0);});
   el.querySelectorAll(".rph").forEach(b=>b.onclick=()=>openPhoto(b));
 }
@@ -482,7 +502,7 @@ async function renderGbp(){
 }
 function render(){
   const F=baseFilter();
-  LIMIT=60;
+  PAGE=0;
   renderGbp();
   renderFilters(); renderKpis(F); renderNote(); renderBranches(); renderStaffBoard(); renderTimeline(F); renderList(F);
 }
