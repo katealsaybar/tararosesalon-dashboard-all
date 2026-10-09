@@ -101,6 +101,16 @@ function otyCss() {
   .oty th:first-child,.oty td:first-child{text-align:left;width:13%}
   .oty td.m{color:var(--muted)}
   .oty .oty-sg{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}  /* the column count is set inline by otySeasonCols() */
+  /* Kate, 9 Oct 2026: "dapat pantay yung bottom ng each graph". Ramadan's dates wrap to three lines and its chip drops
+     under the title, so its bars started lower than the other cards'. Each card now spans six rows of the shared grid
+     (title, dates, bars, years, caption, part-season note) through subgrid, so a row is as tall as the tallest card's
+     and every bar baseline sits level. Browsers without subgrid keep the old stacked cards. */
+  @supports (grid-template-rows: subgrid) {
+    .oty .oty-sg{row-gap:0}
+    .oty .oty-sn{display:grid;grid-row:span 6;grid-template-rows:subgrid;row-gap:0;margin-bottom:10px}
+    .oty .oty-sn .h{align-self:start}
+    .oty .oty-sn .oty-cols{align-self:end}
+  }
   .oty .oty-sn .h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
   .oty .oty-sn .nm{font-weight:600;font-size:14.5px}
   .oty .oty-sn .dt{font-size:11.5px;color:var(--muted2);margin:4px 0 12px;line-height:1.45}
