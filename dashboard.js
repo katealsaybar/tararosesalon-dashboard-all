@@ -320,6 +320,14 @@ function reviewsViewSwitch(prev, next) {
       dateFrom = back.from; dateTo = back.to; periodPick = null; changed = true;
     }
     if (changed) { paintFilterChips(); renderDashboard(); }
+  } else if (next !== 'reviews' && dateFrom && dateFrom.getFullYear() < PERIOD_FIRST_YEAR) {
+    // Kate, 9 Oct 2026: "1 January 2000 - 9 October 2026" on Branch Performance, with a growth card reading 9779 days
+    // against the 9779 before. All time (1 Jan 2000) is a Reviews-only window, and it rode along to another page whenever
+    // the Reviews stash was not there to put things back (a reload, a saved link, the browser's Back button). No page
+    // but Reviews has data before 2021, so a window that starts earlier goes back to this month.
+    const t = new Date(); t.setHours(0,0,0,0);
+    dateFrom = new Date(t.getFullYear(), t.getMonth(), 1); dateTo = t; periodPick = null;
+    paintFilterChips(); renderDashboard();
   }
   if (next === 'reviews') {
     REVIEWS_STASH = {};
@@ -574,6 +582,9 @@ function applyPeriodParam() {
 
   const named = Object.keys(PERIOD_URL_KEYS).find(k => PERIOD_URL_KEYS[k] === u);
   if (named) {
+    // All time, Last 30 and Last 90 are Reviews-only windows: on any other page the name means nothing (and All time
+    // starts in 2000), so the default window stays (Kate, 9 Oct 2026).
+    if (named === 'All time' && periodFirstYear() !== 2015) return false;
     const p = [...periodPresets(), ...reviewsPresets()].find(x => x.k === named);
     return p ? set(p.from, p.to) : false;
   }
@@ -596,7 +607,11 @@ function applyPeriodParam() {
 
   m = /^(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})$/.exec(u);
   if (m) {
-    const f = isoToDate(m[1]), t = isoToDate(m[2]);
+    let f = isoToDate(m[1]); const t = isoToDate(m[2]);
+    // A link or a saved window that starts before the first year there is data for (period=2000-01-01..) is read from
+    // that year instead, so it cannot show 1 January 2000 and a growth window of 9779 days.
+    const floor = new Date(periodFirstYear(), 0, 1);
+    if (f && f < floor) f = floor;
     if (f && t && t >= f) return set(f, t);
   }
   return false;
