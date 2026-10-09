@@ -50,3 +50,21 @@
 .ll-mark{font-size:12px;padding:3px 10px}
 .ll-foot{margin-top:14px;font-size:12.5px;max-width:860px}
 @media(max-width:760px){.ll-filters{display:block}.ll-chips{margin-top:8px}}
+
+/* The table: eight columns that size themselves (Client's Last Visit's table is fixed-width columns
+   by percentage, which cannot hold a phone number beside a status pill), scrolling sideways on a
+   narrow window instead of overlapping. */
+.lc-wrap.ll-wrap{overflow-x:auto}
+.lc-wrap.ll-wrap > table{table-layout:auto;min-width:960px}
+.lc-wrap.ll-wrap th,.lc-wrap.ll-wrap td{text-align:left;vertical-align:top;white-space:normal;overflow-wrap:normal;padding:10px 10px}
+.lc-wrap.ll-wrap thead th{position:static;white-space:nowrap}
+.lc-wrap.ll-wrap td:first-child{min-width:170px}
+.lc-wrap.ll-wrap td.ll-ph,.lc-wrap.ll-wrap td.ll-ph a,.lc-wrap.ll-wrap td .lc-ph a{white-space:nowrap}
+.ll-wrap td.ll-team > div{margin-bottom:3px;white-space:nowrap}
+.ll-wrap td.ll-team .who{display:inline-block;width:auto;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+.ll-wrap .ll-tag{margin-bottom:3px}
+.ll-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0 8px}
+.ll-tools .ll-search{flex:1 1 220px;max-width:300px;min-height:34px;padding:5px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font:inherit;font-size:13px}
+.ll-tools .ll-sel{min-height:34px;padding:5px 10px;font-size:13px}
+.ll-tools .ll-hide{font-size:12.5px}
+@media(max-width:760px){.ll-tools .ll-search{flex:1 1 100%;max-width:none}.ll-tools .tglr{flex:1}}
