@@ -286,7 +286,7 @@ function llPaintTable() {
       <td class="ll-nw">${llDateCell(r.last_keratin)}${r.still ? '<div><span class="ll-tag">Still visiting</span></div>' : ''}</td>
       <td class="ll-nw">${llDateCell(r.last_colour)}</td>
       <td class="ll-nw">${llDateCell(r.last_toner)}</td>
-      <td class="ll-svcs">${lcEsc(llCats(r.cats)) || llDash}</td>
+      <td class="ll-svcs">${llCats(r.cats) ? `<div class="ll-clamp" title="${lcEsc(llCats(r.cats))}">${lcEsc(llCats(r.cats))}</div>` : llDash}</td>
       <td class="lc-stc ll-team">${team(r)}</td>
       ${ph ? `<td class="ll-ph">${lcPhone(r)}</td>` : ''}
       <td>${llStatus(r)}</td><td>${llAlso(r)}</td><td>${llSentCell(r)}</td></tr>`).join('');

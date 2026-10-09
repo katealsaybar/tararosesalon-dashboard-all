@@ -51,25 +51,24 @@
 .ll-foot{margin-top:14px;font-size:12.5px;max-width:860px}
 @media(max-width:760px){.ll-filters{display:block}.ll-chips{margin-top:8px}}
 
-/* The table: eight columns that size themselves (Client's Last Visit's table is fixed-width columns
-   by percentage, which cannot hold a phone number beside a status pill). No sideways scroll box: a
-   scroll box takes the sticky header away from the page, and the header has to stay under the top bar
-   while the list scrolls (Kate, 9 Oct 2026). Dates are short and do not wrap so eight columns fit. */
-.lc-wrap.ll-wrap{overflow:visible}
-.lc-wrap.ll-wrap > table{table-layout:auto;width:100%;min-width:0;font-size:13.5px}
-.lc-wrap.ll-wrap th,.lc-wrap.ll-wrap td{text-align:left;vertical-align:top;white-space:normal;overflow-wrap:normal;padding:9px 7px}
-.lc-wrap.ll-wrap thead th{position:sticky;top:var(--topbar-cond-h,104px);z-index:5;background:var(--surface);box-shadow:0 1px 0 var(--border);white-space:nowrap}
+/* The table: eleven columns that size themselves (Client's Last Visit's table is fixed-width columns by percentage,
+   which cannot hold a phone number beside a status pill). Kate, 9 Oct 2026: "freeze the Client column so it scrolls to the
+   far right properly". It is a scroll box now, both ways: the Client column is frozen at the left and the headings stay at the
+   top of the box. The box is as tall as the screen under the top bar, so the headings still stay in view while the list
+   scrolls (a scroll box cannot use the page's sticky header, so it keeps its own). */
+.lc-wrap.ll-wrap{overflow:auto;max-height:calc(100vh - var(--topbar-cond-h,104px) - 28px);overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:var(--muted2) transparent}
+.lc-wrap.ll-wrap > table{table-layout:auto;width:100%;min-width:max-content;font-size:13.5px}
+.lc-wrap.ll-wrap th,.lc-wrap.ll-wrap td{text-align:left;vertical-align:top;white-space:normal;overflow-wrap:normal;padding:9px 8px}
+.lc-wrap.ll-wrap thead th{position:sticky;top:0;z-index:5;background:var(--surface);box-shadow:0 1px 0 var(--border);white-space:nowrap}
 .ll-wrap td.ll-nw,.ll-wrap td .ll-nw{white-space:nowrap}
-/* Kate, 9 Oct 2026: four service columns (smoothing, colour, toner, services) took the table from 8 to 11 columns,
-   1240px in a 1000px card. Tighter cells, headings that wrap, a WhatsApp pill that wraps and shorter stylist names
-   bring it back to the card's width (measured on the live page at 1536px: table 1003px, card 1003px). */
-.lc-wrap.ll-wrap th,.lc-wrap.ll-wrap td{padding:9px 4px}
-.lc-wrap.ll-wrap thead th{white-space:normal;vertical-align:bottom;line-height:1.25}
-.lc-wrap.ll-wrap td:first-child{min-width:125px}
-.ll-wrap .ll-pill{white-space:normal;line-height:1.25;display:inline-block;max-width:125px}
-.ll-wrap td.ll-team .who{max-width:115px}
-.ll-wrap td.ll-svcs{font-size:12.5px;line-height:1.4;min-width:80px;max-width:120px;overflow-wrap:break-word}
-.lc-wrap.ll-wrap td:first-child{min-width:150px}
+/* Frozen first column. The colspan row (a client's opened detail) is left alone. */
+.lc-wrap.ll-wrap th:first-child,.lc-wrap.ll-wrap td:first-child:not([colspan]){position:sticky;left:0;z-index:3;background:var(--surface);box-shadow:1px 0 0 var(--border)}
+.lc-wrap.ll-wrap thead th:first-child{z-index:6}
+.lc-wrap.ll-wrap tr.lc-open td:first-child:not([colspan]){background:var(--surface2)}
+.lc-wrap.ll-wrap td:first-child{min-width:170px}
+/* Services: three lines at most, the rest on hover (a client can have a dozen), so one row never runs down the screen. */
+.ll-wrap td.ll-svcs{min-width:190px}
+.ll-clamp{width:190px;font-size:12.5px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .lc-wrap.ll-wrap td.ll-ph,.lc-wrap.ll-wrap td.ll-ph a,.lc-wrap.ll-wrap td .lc-ph a{white-space:nowrap}
 .ll-wrap td.ll-team > div{margin-bottom:3px;white-space:nowrap}
 .ll-wrap td.ll-team .who{display:inline-block;width:auto;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
