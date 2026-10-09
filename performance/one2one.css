@@ -68,6 +68,7 @@
 .o2o-g2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .o2o-g3{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media (max-width:760px){.o2o-g2,.o2o-g3{grid-template-columns:minmax(0,1fr)}}
+.o2o-rp{margin-top:4px}.o2o-rp .o2o-pills{margin:2px 0 6px}.o2o-rpnote{margin:0 0 6px;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--o2o-new)}
 .o2o-fl{display:flex;flex-direction:column;gap:4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .o2o-fl input,.o2o-fl select,.o2o-fl textarea,.o2o-tbl input,.o2o-tbl select{font:inherit;font-size:14px;letter-spacing:0;text-transform:none;font-weight:400;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;width:100%;min-height:0;margin:0}
 .o2o-fl textarea{min-height:64px;resize:vertical}

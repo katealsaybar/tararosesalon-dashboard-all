@@ -611,13 +611,64 @@ function btns(key) {
 const mgrName = key => (rec(key) && rec(key).signed_by) || L.d.editor || L.d.who;
 const people = k => { const st = L.d.staff; return `<label class="o2o-fl">Team member<input value="${esc(st.name)}" disabled></label><label class="o2o-fl">Role<input value="${esc(st.role)}" disabled></label><label class="o2o-fl">Branch<input value="${esc(st.branch)}" disabled></label><label class="o2o-fl">Manager<input value="${esc(mgrName(k.key))}" disabled></label>`; };
 
+// Review period (Kate, 9 Oct 2026): four quick choices. 13 weeks is the standard window (to the last Sunday of the
+// data, left to the database, so period_from and period_to stay empty); 1 month runs from the same day last month to
+// the latest day of data; Months takes whole calendar months (From month to To month); Custom is any From and To.
+// The choice is kept in the record (period_mode, period_m1, period_m2) and the dates it works out to are what the
+// figures use (period_from, period_to).
+const RP_MODES = [['w13', '13 weeks'], ['m1', '1 month'], ['months', 'Months'], ['custom', 'Custom']];
+const rpMode = k => { const m = String(fv(k, 'period_mode') || ''); return RP_MODES.some(x => x[0] === m) ? m : (fv(k, 'period_from') ? 'custom' : 'w13'); };
+const rpEnd = () => ((L.d.numbers || {}).data_through || todayISO()).slice(0, 10);
+const rpMonths = () => {
+  const t = rpEnd(); let y = Number(t.slice(0, 4)), m = Number(t.slice(5, 7)); const out = [];
+  for (let i = 0; i < 13; i++) { out.push(`${y}-${String(m).padStart(2, '0')}`); m--; if (!m) { m = 12; y--; } }
+  return out;
+};
+const rpMonthLabel = ym => `${MON[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
+function rpDates(mode, m1, m2) {
+  const end = rpEnd(), iso = d => d.toISOString().slice(0, 10);
+  if (mode === 'm1') { const e = new Date(end + 'T00:00:00Z'); return [iso(new Date(Date.UTC(e.getUTCFullYear(), e.getUTCMonth() - 1, e.getUTCDate() + 1))), end]; }
+  if (mode === 'months') {
+    const y = Number(m2.slice(0, 4)), m = Number(m2.slice(5, 7)), last = iso(new Date(Date.UTC(y, m, 0)));
+    return [m1 + '-01', last < end ? last : end];
+  }
+  return ['', ''];
+}
+function periodBlock(k, snap) {
+  const mode = rpMode(k), dd = dis(k), hid = (p, v) => `<input type="hidden" data-p="${p}" value="${esc(v || '')}">`;
+  const pills = RP_MODES.map(([m, l]) => `<button type="button" class="o2o-pill ${m === mode ? 'on' : ''}" data-act="rp" data-kind="${k.key}" data-mode="${m}"${dd}>${l}</button>`).join('');
+  const ms = rpMonths(), a = fv(k, 'period_m1') || ms[1] || ms[0], b = fv(k, 'period_m2') || a;
+  const sel = (n, cur, lb) => `<select data-rpm="${n}" aria-label="${lb}"${dd}>${ms.map(x => `<option value="${x}"${x === cur ? ' selected' : ''}>${rpMonthLabel(x)}</option>`).join('')}</select>`;
+  let body = '';
+  if (mode === 'custom') body = `<div class="o2o-g3"><label class="o2o-fl">From${fDate(k, 'period_from', snap.from)}</label><label class="o2o-fl">To${fDate(k, 'period_to', snap.to)}</label></div>`;
+  else body = (mode === 'months' ? `<div class="o2o-g3"><label class="o2o-fl">From month${sel('1', a, 'From month')}</label><label class="o2o-fl">To month${sel('2', b, 'To month')}</label></div>` : '')
+    + hid('period_from', fv(k, 'period_from')) + hid('period_to', fv(k, 'period_to'))
+    + `<p class="o2o-rpnote">${snap.from ? `${esc(spanOf(snap))}: ${esc(dMid(snap.from))} to ${esc(dMid(snap.to))}` : ''}</p>`;
+  return `<div class="o2o-fl o2o-rp"><span>Review period</span><div class="o2o-pills">${pills}</div>${hid('period_mode', mode)}${mode === 'months' ? hid('period_m1', a) + hid('period_m2', b) : ''}${body}</div>`;
+}
+async function applyRp(key, mode, m1, m2) {
+  if (locked(key)) return;
+  const snap = snapOf('monthly'), ms = rpMonths();
+  if (mode === 'months') { m1 = m1 || ms[1] || ms[0]; m2 = m2 || m1; if (m1 > m2) { setSave(key, 'The From month has to be on or before the To month.'); return; } }
+  const c = gather(key, true), [f, t] = rpDates(mode, m1, m2);
+  Object.assign(c, { period_mode: mode, period_from: f, period_to: t, period_m1: mode === 'months' ? m1 : '', period_m2: mode === 'months' ? m2 : '' });
+  if (mode === 'custom') { c.period_from = c.period_from || snap.from || ''; c.period_to = c.period_to || snap.to || ''; }
+  L.content[key] = c; redrawCard(key);
+  await save(key);
+  if (mode !== 'custom') await reload();
+}
+function onRpMonth(sel) {
+  const card = sel.closest('[data-kind]'); if (!card) return;
+  applyRp(card.dataset.kind, 'months', card.querySelector('select[data-rpm="1"]').value, card.querySelector('select[data-rpm="2"]').value);
+}
+
 function monthlyBody(k) {
   const snap = snapOf('monthly'), st = L.d.staff;
   const prevN = rowsOf(k, 'prev_actions', 1), actN = rowsOf(k, 'actions', 3);
   const rowsHtml = (arr, n, cells) => Array.from({ length: n }, (_, i) => `<tr>${cells(i)}</tr>`).join('');
   return `
   <div class="o2o-g3">${people(k)}<label class="o2o-fl">Meeting date${fDate(k, 'meeting_date')}</label></div>
-  <div class="o2o-g3"><label class="o2o-fl">Review period, from${fDate(k, 'period_from', snap.from)}</label><label class="o2o-fl">Review period, to${fDate(k, 'period_to', snap.to)}</label></div>
+  ${periodBlock(k, snap)}
 
   <div class="o2o-sec">01 Wins and highlights</div>
   ${fTa(k, 'wins', 'What has gone well since we last met: achievements, progress and kind words from clients or colleagues', 3)}
@@ -726,7 +777,7 @@ function drawLeader() {
   if (!L.wired) {
     L.slot.addEventListener('click', onLeaderClick);
     L.slot.addEventListener('input', onLeaderInput);
-    L.slot.addEventListener('change', e => { onDate(e); onLeaderInput(e); });
+    L.slot.addEventListener('change', e => { if (e.target.matches && e.target.matches('select[data-rpm]')) { onRpMonth(e.target); return; } onDate(e); onLeaderInput(e); });
     L.wired = true;
   }
 }
@@ -794,6 +845,7 @@ async function onLeaderClick(e) {
   if (a === 'hz') { L.hz = b.dataset.v; const card = b.closest('.o2o-card'); card.querySelectorAll('.o2o-pill').forEach(p => p.classList.toggle('on', p === b)); card.querySelectorAll('[data-hz]').forEach(g => { g.hidden = g.dataset.hz !== L.hz; }); }
   else if (a === 'addrow') { if (locked(key)) return; L.content[key] = gather(key, true); const arr = b.dataset.arr; L.content[key][arr] = (L.content[key][arr] || []).concat([{}]); redrawCard(key); }
   else if (a === 'savenow') { await save(key); }
+  else if (a === 'rp') { await applyRp(key, b.dataset.mode); }
   else if (a === 'newcheck') {
     if (ro()) return;
     await flushAll();
