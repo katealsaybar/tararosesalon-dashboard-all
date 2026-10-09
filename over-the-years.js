@@ -96,7 +96,7 @@ function otyCss() {
   .oty table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;table-layout:fixed}
   .oty th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);text-align:right;padding:6px 4px;font-weight:700}
   .oty td{padding:9px 4px;border-top:1px solid var(--border);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .oty th:first-child,.oty td:first-child{text-align:left;width:15%}
+  .oty th:first-child,.oty td:first-child{text-align:left;width:13%}
   .oty td.m{color:var(--muted)}
   .oty .oty-sg{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}  /* the column count is set inline by otySeasonCols() */
   .oty .oty-sn .h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
@@ -104,6 +104,11 @@ function otyCss() {
   .oty .oty-sn .dt{font-size:11.5px;color:var(--muted2);margin:4px 0 12px;line-height:1.45}
   .oty .oty-cols{display:grid;gap:6px;align-items:end;height:118px}
   .oty .oty-col{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:4px}
+  .oty .oty-col{cursor:pointer;outline:none}
+  .oty .oty-col.sel .b,.oty .oty-col:focus-visible .b{opacity:1;box-shadow:0 0 0 2px var(--text)}
+  @media(hover:hover){.oty .oty-col:hover .b{opacity:1}}
+  .oty .oty-tip{margin-top:10px;min-height:2.9em;font-size:12px;line-height:1.45;color:var(--muted2)}
+  .oty .oty-tip.on{color:var(--text)}
   .oty .oty-col .vl{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
   .oty .oty-col .b{width:100%;border-radius:4px 4px 0 0;background:var(--hair);opacity:.7}
   .oty .oty-col.last .b{background:var(--accent);opacity:1}
@@ -246,13 +251,17 @@ function otyChartBlock(rows) {
   const { years, sets } = otyD, set = sets[OTY.b], n = years.length;
   const { W, H, bmax } = otyCanvas(300), L = 38, R = 38, T = 26, B = 30, bw = (W - L - R) / n, bar = Math.min(bmax, bw * .62);
   const maxNet = Math.max(...rows.map(r => r.net), 1) * 1.12, yb = v => T + (H - T - B) * (1 - v / maxNet);
-  const vals = rows.map(r => OTY.line === 'growth' ? r.growth : OTY.line === 'avg' ? r.avg : r.stf);
-  const nums = vals.filter((v, i) => v != null && (v !== 0 || OTY.line === 'growth'));
+  // Kate, 9 Oct 2026: the 2021 to 2024 ledgers are not fully attached yet, so the line has to say which count it
+  // is: per staff (a client counts once for each staff who served her) or per visit (each client once a day).
+  const LINES = { growth: r => r.growth, avg: r => r.avg, avgV: r => r.avgV, stf: r => r.stf, vis: r => r.vis };
+  const LN = LINES[OTY.line] ? OTY.line : 'growth', isAvg = LN === 'avg' || LN === 'avgV';
+  const vals = rows.map(LINES[LN]);
+  const nums = vals.filter((v, i) => v != null && (v !== 0 || LN === 'growth'));
   let lo, hi;
-  if (OTY.line === 'growth') { lo = Math.min(-10, ...nums); hi = Math.max(10, ...nums); lo = Math.floor(lo / 10) * 10; hi = Math.ceil(hi / 10) * 10; }
+  if (LN === 'growth') { lo = Math.min(-10, ...nums); hi = Math.max(10, ...nums); lo = Math.floor(lo / 10) * 10; hi = Math.ceil(hi / 10) * 10; }
   else { lo = Math.min(...(nums.length ? nums : [0])) * .85; hi = Math.max(...(nums.length ? nums : [1])) * 1.08; }
   const yl = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
-  const fmtL = v => OTY.line === 'growth' ? (v > 0 ? '+' : '') + Math.round(v) + '%' : OTY.line === 'avg' ? Math.round(v) : v >= 1000 ? (v / 1000).toFixed(0) + 'k' : Math.round(v);
+  const fmtL = v => LN === 'growth' ? (v > 0 ? '+' : '') + Math.round(v) + '%' : isAvg ? Math.round(v) : v >= 1000 ? (v / 1000).toFixed(0) + 'k' : Math.round(v);
   const sel = OTY.sel;
   let g = `<rect x="${L + bw * sel}" y="${T - 6}" width="${bw}" height="${H - T - B + 6}" fill="var(--accent)" opacity=".1" rx="4"/>`;
   for (let k = 0; k <= 4; k++) {
@@ -261,7 +270,7 @@ function otyChartBlock(rows) {
     const lv = lo + (hi - lo) * k / 4;
     g += `<text class="tl" x="${W - R + 6}" y="${yl(lv) + 3.5}" font-size="9.5">${fmtL(lv)}</text>`;
   }
-  if (OTY.line === 'growth' && lo < 0) g += `<line x1="${L}" x2="${W - R}" y1="${yl(0)}" y2="${yl(0)}" stroke="var(--warn)" stroke-opacity=".4" stroke-dasharray="3 3"/>`;
+  if (LN === 'growth' && lo < 0) g += `<line x1="${L}" x2="${W - R}" y1="${yl(0)}" y2="${yl(0)}" stroke="var(--warn)" stroke-opacity=".4" stroke-dasharray="3 3"/>`;
   rows.forEach((r, i) => {
     const cx = L + bw * i + bw / 2, x0 = cx - bar / 2; let acc = 0;
     r.per.forEach(p => {
@@ -272,10 +281,11 @@ function otyChartBlock(rows) {
     g += `<text class="tv" x="${cx}" y="${yb(r.net) - 5}" text-anchor="middle" font-size="9.5">${r.net ? otyMs(r.net) : '·'}</text>`;
     g += `<text x="${cx}" y="${H - 10}" text-anchor="middle" font-size="10.5" style="${i === sel ? 'fill:var(--accent);font-weight:700' : ''}">${r.y}${r.partial ? '*' : ''}</text>`;
   });
-  const pts = rows.map((r, i) => ({ i, v: vals[i] })).filter(p => p.v != null && (p.v !== 0 || OTY.line === 'growth'));
+  const pts = rows.map((r, i) => ({ i, v: vals[i] })).filter(p => p.v != null && (p.v !== 0 || LN === 'growth'));
   if (pts.length) g += `<path d="${pts.map((p, k) => (k ? 'L' : 'M') + (L + bw * p.i + bw / 2).toFixed(1) + ' ' + yl(p.v).toFixed(1)).join(' ')}" fill="none" stroke="var(--warn)" stroke-width="2.4" stroke-linejoin="round"/>`;
   pts.forEach(p => g += `<circle cx="${L + bw * p.i + bw / 2}" cy="${yl(p.v)}" r="${p.i === sel ? 5 : 3.5}" fill="${p.i === sel ? 'var(--bg)' : 'var(--warn)'}" stroke="var(--warn)" stroke-width="2"/>`);
-  const lineName = OTY.line === 'growth' ? 'Growth vs the year before (same days)' : OTY.line === 'avg' ? 'Average bill per staff (AED)' : 'Clients counted by staff';
+  const lineName = { growth: 'Growth vs the year before (same days)', avg: 'Average bill per staff (AED)', avgV: 'Average bill per visit (AED)',
+    stf: 'Clients per staff', vis: 'Clients per visit' }[LN];
   const legend = (set.length > 1 ? set.map(b => `<span><i style="background:${OTY_COL[b]}"></i>${OTY_NAME[b]}</span>`).join('') : `<span><i style="background:var(--hair)"></i>${OTY_NAME[set[0]]}</span>`)
     + `<span><i class="ln" style="background:var(--warn)"></i>${lineName}</span>`;
   const r = rows[sel], lab = OTY.basis === 'same' || r.partial ? `1 Jan – ${otyCutLabel()}` : 'full year';
@@ -291,30 +301,32 @@ function otyChartBlock(rows) {
   const readout = `<div class="oty-rh"><b>${r.y}</b><span>${lab}</span></div>
     <div class="oty-rt">
       ${tile('Net take', otyM(r.net), '')}
-      ${tile('Clients · per staff', otyNum(r.stf), '')}
+      ${tile('Clients · per staff', otyNum(r.stf), r.vis ? `Per visit ${otyNum(r.vis)}` : '')}
       ${tile('Avg bill · per staff', r.avg ? otyAed(r.avg) : '·', r.avgV ? `Per visit ${otyAed(r.avgV)} · ${otyNum(r.vis)} visits` : '')}
       ${tile('Growth', gTxt, r.y > otyD.years[0] ? `vs ${r.y - 1}` : '')}
     </div>
     ${set.length > 1 ? `<div class="oty-rb">${r.per.filter(p => p.v).map(branchRow).join('')}</div>` : ''}`;
-  const pills = [['growth', 'Growth vs last year'], ['avg', 'Average bill per staff'], ['stf', 'Clients per staff']]
-    .map(([k, l]) => `<button class="oty-pill" aria-pressed="${OTY.line === k}" onclick="otySet('line','${k}')">Line: ${l}</button>`).join('');
+  const pills = '<span class="oty-lab" style="margin:0 2px 0 0;align-self:center">Line</span>'
+    + [['growth', 'Growth vs last year'], ['avg', 'Avg bill · per staff'], ['avgV', 'Avg bill · per visit'], ['stf', 'Clients · per staff'], ['vis', 'Clients · per visit']]
+    .map(([k, l]) => `<button class="oty-pill" aria-pressed="${LN === k}" onclick="otySet('line','${k}')">${l}</button>`).join('');
   return `<div class="oty-eb"><i style="background:var(--hair)"></i>Net take by year, with the line on top</div>
     <div class="oty-card"><div class="oty-pills" style="margin-bottom:12px">${pills}</div><div class="oty-legend">${legend}</div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Net take by year, as bars, with a line" onpointerdown="otyTapChart(event,${n},${L},${R},${W})">${g}</svg>
     <div class="oty-read">${readout}</div></div>
-    <p class="oty-note" style="margin:10px 2px 0">${OTY.basis === 'full' ? `* ${otyD.curYear} is 1 Jan to ${otyCutLabel()} only, shown faded. ` : `Every bar is 1 Jan to ${otyCutLabel()} of that year. `}The line reads on the right-hand scale. Growth over 100% is a year new branches opened in, so it is left off the line. Tap a year.</p>`;
+    <p class="oty-note" style="margin:10px 2px 0">${OTY.basis === 'full' ? `* ${otyD.curYear} is 1 Jan to ${otyCutLabel()} only, shown faded. ` : `Every bar is 1 Jan to ${otyCutLabel()} of that year. `}The line reads on the right-hand scale. Growth over 100% is a year new branches opened in, so it is left off the line. Tap a year.</p>
+    <p class="oty-note" style="margin:6px 2px 0;color:var(--warn)">Per staff counts a client once for each staff who served her; per visit counts each client once a day. The ledgers for 2021 to 2024 are not fully attached yet, so the per staff figures for those years are incomplete.</p>`;
 }
 function otyTapChart(ev, n, L, R, W) {
   const r = ev.currentTarget.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W, bw = (W - L - R) / n;
   otyPick(Math.max(0, Math.min(n - 1, Math.floor((px - L) / bw))));
 }
 function otyTable(rows) {
-  let h = '<tr><th>Year</th><th>Net take</th><th>Clients</th><th>Avg bill</th><th>Growth</th></tr>';
+  let h = '<tr><th>Year</th><th>Net take</th><th>Clients per staff</th><th>Clients per visit</th><th>Avg bill per staff</th><th>Avg bill per visit</th><th>Growth</th></tr>';
   rows.slice().reverse().forEach(r => {
-    h += `<tr><td>${r.y}${r.partial ? '*' : ''}</td><td>${otyM(r.net)}</td><td class="m">${otyNum(r.stf)}</td><td class="m">${r.avg ? Math.round(r.avg) : '·'}</td><td class="${r.growth == null ? 'm' : r.growth > 0 ? 'oty-up' : 'oty-dn'}">${r.growth == null ? (r.big ? 'new' : '·') : (r.growth > 0 ? '+' : '') + r.growth.toFixed(1) + '%'}</td></tr>`;
+    h += `<tr><td>${r.y}${r.partial ? '*' : ''}</td><td>${otyM(r.net)}</td><td class="m">${otyNum(r.stf)}</td><td class="m">${r.vis ? otyNum(r.vis) : '·'}</td><td class="m">${r.avg ? Math.round(r.avg) : '·'}</td><td class="m">${r.avgV ? Math.round(r.avgV) : '·'}</td><td class="${r.growth == null ? 'm' : r.growth > 0 ? 'oty-up' : 'oty-dn'}">${r.growth == null ? (r.big ? 'new' : '·') : (r.growth > 0 ? '+' : '') + r.growth.toFixed(1) + '%'}</td></tr>`;
   });
   return `<div class="oty-eb"><i style="background:var(--warn)"></i>The years, side by side</div>
-    <div class="oty-card"><table>${h}</table><p class="oty-note" style="margin:10px 0 0">Clients and Avg bill are per staff, the same default as the Pulse. Per visit, through the door, is in the readout above.</p></div>`;
+    <div class="oty-card"><table>${h}</table><p class="oty-note" style="margin:10px 0 0">The 2021 to 2024 per staff figures are incomplete until the ledgers are attached.</p></div>`;
 }
 
 // Kate, 9 Oct 2026: "ipag kasya mo para 4 na silang magkakatabi". The auto-fit grid wrapped three to a row and left the
@@ -326,6 +338,13 @@ function otySeasonCols(n) {
   for (let c = n; c > 1; c--) if (n % c === 0 && (w - 10 * (c - 1)) / c >= 200) return c;
   return 1;
 }
+function otyTip(el) {
+  const card = el.closest('.oty-sn'); if (!card) return;
+  const box = card.querySelector('.oty-tip'); if (box) { box.textContent = el.dataset.tip || ''; box.classList.add('on'); }
+  card.querySelectorAll('.oty-col.sel').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
 // ── SEASONS ──────────────────────────────────────────────────────────────
 function otySeasons() {
   const { years, cut } = otyD, ss = (otyRaw.seasons || []);
@@ -341,9 +360,23 @@ function otySeasons() {
     const total = rl ? Math.round((new Date(rl.end_date) - new Date(rl.start_date)) / 864e5) + 1 : 0;
     const last = vals[vals.length - 1], prev = vals[vals.length - 2];
     const head = last == null ? `<span class="oty-chg flat">${rl && rl.start_date > cut ? 'not started' : 'n/a'}</span>` : otyChg(otyPct(prev, last));
+    // Kate, 9 Oct 2026: every column says the exact dates its season ran that year (Ramadan moves about eleven
+    // days a year, so "1 Mar to 30 Mar" is not the same window in 2025 and 2026). Hover on a desktop, tap on a phone:
+    // otyTip() writes the line into the card's caption, so it needs no tooltip layer.
+    const yrFmt = iso => `${otyDay(iso)} ${iso.slice(0, 4)}`;
+    const tipOf = (y, v) => {
+      const r = by(y);
+      if (!r || !r.start_date) return `${y} · no dates held for this season`;
+      const a = r.start_date, b = r.end_date;
+      const range = a.slice(0, 4) === b.slice(0, 4) ? `${otyDay(a)} – ${yrFmt(b)}` : `${yrFmt(a)} – ${yrFmt(b)}`;
+      const len = Math.round((new Date(b) - new Date(a)) / 864e5) + 1;
+      const state = a > cut ? 'not started' : b > cut ? `${r.days} of ${len} days so far` : `${len} days`;
+      return `${y} · ${range} · ${state}${v == null ? '' : ` · ${(v / 1000).toFixed(1)}k per open day`}`;
+    };
+    const colAttr = (y, v) => `tabindex="0" role="button" data-tip="${otyEsc(tipOf(y, v))}" onmouseenter="otyTip(this)" onfocus="otyTip(this)" onclick="otyTip(this)"`;
     const cols = vals.map((v, i) => v == null
-      ? `<div class="oty-col"><span class="vl">·</span><div class="b none" style="height:3px"></div></div>`
-      : `<div class="oty-col ${i === vals.length - 1 ? 'last' : ''}"><span class="vl">${(v / 1000).toFixed(1)}k</span><div class="b ${part && i === vals.length - 1 ? 'part' : ''}" style="height:${Math.max(4, v / mx * 84)}px"></div></div>`).join('');
+      ? `<div class="oty-col" ${colAttr(years[i], v)}><span class="vl">·</span><div class="b none" style="height:3px"></div></div>`
+      : `<div class="oty-col ${i === vals.length - 1 ? 'last' : ''}" ${colAttr(years[i], v)}><span class="vl">${(v / 1000).toFixed(1)}k</span><div class="b ${part && i === vals.length - 1 ? 'part' : ''}" style="height:${Math.max(4, v / mx * 84)}px"></div></div>`).join('');
     const starts = rows.slice().sort((a, b) => a.y - b.y);
     const same = starts.every(r => r.start_date.slice(5) === starts[0].start_date.slice(5) && r.end_date.slice(5) === starts[0].end_date.slice(5));
     const dt = same ? `${otyDay(starts[0].start_date)} to ${otyDay(starts[0].end_date)}, every year`
@@ -351,7 +384,8 @@ function otySeasons() {
     const note = part ? `<div class="oty-note" style="margin-top:8px;color:var(--warn)">Part season, ${rl.days} of ${total} days so far. Firms up when it closes.</div>` : '';
     return `<div class="oty-card oty-sn"><div class="h"><span class="nm">${otyEsc(nm)}</span>${head}</div><div class="dt">${otyEsc(dt)}</div>
       <div class="oty-cols" style="grid-template-columns:repeat(${years.length},minmax(0,1fr))">${cols}</div>
-      <div class="oty-yrs" style="grid-template-columns:repeat(${years.length},minmax(0,1fr))">${years.map(y => `<span>${String(y).slice(2)}</span>`).join('')}</div>${note}</div>`;
+      <div class="oty-yrs" style="grid-template-columns:repeat(${years.length},minmax(0,1fr))">${years.map(y => `<span>${String(y).slice(2)}</span>`).join('')}</div>
+      <div class="oty-tip" aria-live="polite">Hover or tap a column for the exact dates.</div>${note}</div>`;
   }).join('');
   const lfl = otyD.present.includes('SAA') && otyD.present.includes('KCA');
   return `<div class="oty-eb"><i style="background:var(--hair)"></i>Season on season · Saadiyat + Khalifa City A, per open day</div>
