@@ -4467,7 +4467,9 @@ async function renderDashboard() {
     : avgBillStatus === 'warn' ? 'Nearly' : 'Below target';
 
   const netTrend    = trendOf(s.netTake,      prevS ? prevS.netTake      : null);
-  const clientTrend = trendOf(clientsOf(s), clientsPrevOf(s, prevS));
+  // Kate, 9 Oct 2026: the Clients card leads with the per staff count, like Avg bill, because the
+  // targets are written on it; through the door is the snippet underneath.
+  const clientTrend = trendOf(s.totalClients, prevS ? prevS.totalClients : null);
 
   const splitBar = sp => `
     <div class="sp">
@@ -4489,15 +4491,15 @@ async function renderDashboard() {
         { k:'Hair',   val:hairNetSalonTake,  of:s.netTake, txt:aed0(hairNetSalonTake),  extra:`${shareOf(hairNetSalonTake, s.netTake)}%`,  color:'var(--hair)' },
         { k:'Beauty', val:beautyNetTakeDept, of:s.netTake, txt:aed0(beautyNetTakeDept), extra:`${shareOf(beautyNetTakeDept, s.netTake)}%`, color:'var(--beauty)' },
       ]) },
-    { k:'Clients', def: doorOn(s) ? 'Each client once a day, through the door (Phorest). The per staff count, from the ledgers, is below.' : 'Per staff, from the ledgers.',
+    { k:'Clients', def: doorOn(s) ? 'Clients counted by staff (ledgers). Each client once a day, through the door, is below.' : 'Per staff, from the ledgers.',
       tip: doorOn(s)
         ? `Two counts, because a client can be counted two ways. THROUGH THE DOOR: each client once a day, however many staff she saw (Phorest Sales Transactions); a deposit, a balance payment or a voucher bought on its own is not a visit. PER STAFF, LEDGERS: what reception types into the ledger for each staff member (${num0(s.totalClients)}), so a client seen by two staff counts twice; the targets are written on it. The Hair and Beauty split is per staff.`
         : CLIENT_BASIS === 'door'
           ? 'Handled, not through the door: Phorest’s Sales Transactions have no count for this selection (Bahrain is not in them), so this is each staff member’s clients from the ledgers.'
           : 'Handled: each staff member counts the clients she served (ledgers), hair and beauty.',
-      v: num0(clientsOf(s)), status: clientTrend.status,
-      pill: doorOn(s) ? 'Per visit' : null,
-      sub: (doorOn(s) ? [['Per staff, ledgers (hand-typed)', num0(s.totalClients)]] : []),
+      v: num0(s.totalClients), status: clientTrend.status,
+      pill: doorOn(s) ? 'Per staff' : null,
+      sub: (doorOn(s) ? [['Per visit, through the door', num0(clientsOf(s))]] : []),
       t: getClientTarget(sel.branch), verdict: clientTrend.verdict,
       splits: splitsOf([
         { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} by staff`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
@@ -4768,7 +4770,7 @@ ${staffGapHtml(sel.branch.includes('all') ? ACTIVE_BRANCHES : sel.branch)}
     <div class="read-stats">
       ${statChip(hairShareOfTake + '%', 'of net take')}
       ${statChip(num0(s.hairTotalClients), 'clients by staff')}
-      ${statChip(aed0(s.hairAvgBill), 'avg bill')}
+      ${statChip(aed0(s.hairAvgBill), 'avg bill per staff')}
       ${statChip(shareOf((s.hairBreakdown && s.hairBreakdown.req) || 0, s.hairTotalClients) + '%', 'requested')}
     </div>
   </div>
@@ -4780,7 +4782,7 @@ ${staffGapHtml(sel.branch.includes('all') ? ACTIVE_BRANCHES : sel.branch)}
     <div class="read-stats">
       ${statChip(shareOf(beautyNetTakeDept, s.netTake) + '%', 'of net take')}
       ${statChip(num0(s.beautyTotalClients), 'clients by staff')}
-      ${statChip(s.beautyAvgBill != null ? aed0(s.beautyAvgBill) : '—', 'avg bill')}
+      ${statChip(s.beautyAvgBill != null ? aed0(s.beautyAvgBill) : '—', 'avg bill per staff')}
       ${statChip(shareOf((s.beautyBreakdown && s.beautyBreakdown.req) || 0, s.beautyTotalClients) + '%', 'requested')}
     </div>` : ''}
   </div>
