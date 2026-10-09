@@ -71,6 +71,12 @@ const BR_OF = {KCA:"Khalifa City A, Abu Dhabi", SAA:"Saadiyat, Abu Dhabi", MC:"M
 const MONTH_BEFORE = /(?:\b(?:in|on|of|since|last|this|next|early|late|mid|from|until|till|during|by)\s+)$/i;
 const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const wordRe = (list, flags) => list.length ? new RegExp("(?<![\\p{L}])(" + list.map(reEsc).join("|") + ")(?![\\p{L}])", flags + "u") : null;
+// Kate, 9 Oct 2026: a strict first name (Hazel, Grace...) only counts at the person's own branch, because the same first
+// name at another branch is often someone else (a 2020 Saadiyat "Hazel" was the receptionist). When someone worked at a
+// second branch for a stretch, the extra branch is listed here: Hazel Mae Marco was at Al Quoz from Oct 2023 to Dec 2025,
+// then back at Khalifa City A, so "Hazel was super amazing" on an Al Quoz review in 2025 is hers.
+const ALSO_BRANCH = {"HAZEL MAE": ["AQ"]};
+const atBranch = (s, r) => r.branch === s.branch || (s.also || []).includes(r.branch);
 let STAFF = [], VARIANTS = null;
 // Reviews that name nobody but came from a client of that stylist within 14 days
 // of a visit (google_review_client_credit view, built from the sales lines).
@@ -97,7 +103,7 @@ function buildStaff(){
     const loose = vs.filter(v => !v.strict).map(v => v.variant).sort((a,b) => b.length - a.length);
     const strict = vs.filter(v => v.strict && !v.ci).map(v => v.variant).sort((a,b) => b.length - a.length);
     const strictCi = vs.filter(v => v.strict && v.ci).map(v => v.variant).sort((a,b) => b.length - a.length);
-    return {key:k, label, names: vs.map(v => v.variant), branch:BR_OF[p.branch] || null, role:p.role || "", resigned:!!p.resigned,
+    return {key:k, label, names: vs.map(v => v.variant), branch:BR_OF[p.branch] || null, also:(ALSO_BRANCH[k] || []).map(b => BR_OF[b]), role:p.role || "", resigned:!!p.resigned,
       photo: p.photoFull ? "../../" + encodeURI(p.photoFull) : p.photo ? "../../assets/staff/" + encodeURIComponent(p.photo) : null,
       notAfter: Object.fromEntries(vs.filter(v => v.not_after).map(v => [v.variant.toLowerCase(), new RegExp("(?<![\\p{L}])" + reEsc(v.not_after) + "\\s+$", "iu")])),
       loose: wordRe(loose, "gi"), strict: wordRe(strict, "g"), strictCi: wordRe(strictCi, "gi")};
@@ -112,8 +118,16 @@ function buildStaff(){
     return make(k, p, label);
   }), ...extra].filter(s => { const id = s.photo || s.key; if (seen.has(id)) return false; seen.add(id); return true; });
 }
-// Which staff a review names, and where, so the text can highlight them.
+// Which staff a review names, and where, so the text can highlight them. Then, Kate 9 Oct 2026: whoever is tagged by hand
+// (google_reviews.staff_manual: a review that names nobody but is plainly one stylist's, her photo shows him) is added;
+// r.named keeps what the text itself named, so the tag can say which is which.
 function tagStaff(r){
+  tagStaffAuto(r);
+  r.named = r.viaClient ? [] : r.staff.slice();
+  const man = (r.manual || []).filter(k => staffBy(k));
+  if (man.length) { r.staff = [...new Set([...r.named, ...man])]; r.viaClient = false; }
+}
+function tagStaffAuto(r){
   r.staff = []; r.hits = []; r.viaClient = false;
   if (!r.comment) { if (r.id && CLIENT_CREDIT[r.id]) { r.staff = [...new Set(CLIENT_CREDIT[r.id])]; r.viaClient = true; } return; }
   r.staff = [];
@@ -124,7 +138,7 @@ function tagStaff(r){
     // A client signing off with her own name ("... Maria.") isn't naming a stylist.
     const own = s.names.find(n => wordRe([n], "i").test(r.reviewer || ""));
     const hits = [];
-    [[s.loose, true], [s.strict, r.branch === s.branch], [s.strictCi, r.branch === s.branch]].forEach(([re, ok]) => {
+    [[s.loose, true], [s.strict, atBranch(s, r)], [s.strictCi, atBranch(s, r)]].forEach(([re, ok]) => {
       if (!re || !ok) return;
       re.lastIndex = 0; let m;
       while ((m = re.exec(r.comment))) {
@@ -157,7 +171,7 @@ const setEq = (a,b) => a.size===b.length && b.every(x=>a.has(x));
 // Kate, 9 Oct 2026: a written review whose text names no stylist the tagger recognised: no name at all, or a name
 // spelled a way the list does not know (Irlyn and the like), so it sits untagged. A review credited to the stylist
 // who served the reviewer just before (viaClient) still counts, because its own words named nobody.
-const noStaffNamed = r => !!r.comment && !(r.hits && r.hits.length);
+const noStaffNamed = r => !!r.comment && !(r.hits && r.hits.length) && !(r.manual && r.manual.length);
 function baseFilter(skip){
   return R.filter(r =>
     (skip==="branch" || state.branches.has(r.branch)) &&
@@ -394,7 +408,7 @@ function renderList(F){
     return `<div class="rev s${r.stars}">
       <div class="rtop"><span class="stars">${st}</span><span class="who">${esc(r.reviewer||"Anonymous")}</span><span class="tag">${SHORT[r.branch]}</span>
       ${r.replied?'<span class="tag ok">Replied</span>':'<span class="tag no">No reply</span>'}
-      ${r.staff.map(k=>{const s=staffBy(k);return s?`<button class="stag${r.viaClient?" via":""}" data-k="${esc(k)}" title="${r.viaClient?"Not named, but this reviewer was their client in the 14 days before":"Named in the review"}">${s.photo?`<img src="${s.photo}" alt="">`:""}${esc(s.label)}${r.viaClient?" · client":""}</button>`:"";}).join("")}
+      ${r.staff.map(k=>{const s=staffBy(k), hand=!r.viaClient&&(r.manual||[]).includes(k)&&!(r.named||[]).includes(k);return s?`<button class="stag${r.viaClient||hand?" via":""}" data-k="${esc(k)}" title="${r.viaClient?"Not named, but this reviewer was their client in the 14 days before":hand?"Tagged by hand: not named in the text":"Named in the review"}">${s.photo?`<img src="${s.photo}" alt="">`:""}${esc(s.label)}${r.viaClient?" · client":hand?" · tagged":""}</button>`:"";}).join("")}
       <span class="date" title="${r.approx?'Approximate date from Google Maps'+(r.when?' ("'+esc(r.when)+'" when it was read)':''):r.date}">${r.approx?(r.date?fmtDate(r.date)+' · '+ago(r.date)+' · approx.':esc((r.when||'').replace(/^Edited /,'edited '))+' · approx.'):fmtDate(r.date)+' · '+ago(r.date)}</span></div>
       ${r.comment?`<div class="rtext${long?" clamp":""}" id="t${i}">${markNames(r)}</div>${long?`<button class="more" onclick="document.getElementById('t${i}').classList.toggle('clamp');this.textContent=this.textContent==='Show more'?'Show less':'Show more'">Show more</button>`:""}`:`<div class="rtext none">Rating only, no written comment</div>`}
       ${r.photos.length?`<div class="rphotos">${r.photos.map((u,k)=>`<button type="button" class="rph" data-u="${esc(u)}" aria-label="Photo ${k+1} of ${r.photos.length} from ${esc(r.reviewer||"the client")}"><img src="${esc(u)}=w240-h240-p" alt="" loading="lazy"></button>`).join("")}</div>`:""}
@@ -443,14 +457,14 @@ function renderNote(){
 }
 async function loadLive(){
   // photos: what the client attached on Google, read off Business Profile (google_review_photos, Kate, 5 Oct 2026).
-  const rows=[], cols="review_id,branch,stars,reviewer,comment,review_date,date_approx,when_text,replied,reply,url,source,synced_at,photos,gbp_name";
+  const rows=[], cols="review_id,branch,stars,reviewer,comment,review_date,date_approx,when_text,replied,reply,url,source,synced_at,photos,gbp_name,staff_manual";
   for(let from=0;;from+=1000){
     const res=await fetch(`${SUPA_URL}/rest/v1/google_reviews?select=${cols}&order=review_date.desc,review_id`,{headers:{...authHeaders(),Range:`${from}-${from+999}`}});
     if(!res.ok) throw new Error("google_reviews "+res.status);
     const page=await res.json(); rows.push(...page); if(page.length<1000) break;
   }
   if(!rows.length) throw new Error("google_reviews is empty");
-  R=rows.map(r=>({id:r.review_id,branch:r.branch,stars:r.stars,reviewer:r.reviewer,date:r.review_date,comment:r.comment||"",replied:r.replied,reply:r.reply||"",url:r.url,approx:r.date_approx,when:r.when_text,photos:r.photos||[]}));
+  R=rows.map(r=>({id:r.review_id,branch:r.branch,stars:r.stars,reviewer:r.reviewer,date:r.review_date,comment:r.comment||"",replied:r.replied,reply:r.reply||"",url:r.url,approx:r.date_approx,when:r.when_text,photos:r.photos||[],manual:r.staff_manual||[]}));
   SYNC={last:rows.reduce((m,r)=>r.synced_at>m?r.synced_at:m,""),seedOnly:rows.every(r=>r.source==="seed"),live:new Set(rows.filter(r=>r.gbp_name).map(r=>r.branch))};
   const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Dubai"});
   const totals={},exact={},avg={},cover={};
