@@ -96,7 +96,7 @@ function monthly(rec, staff, P) {
     top('HR FORM · HR-10', 'One-to-One Meeting Form', 'With stylist priorities checklist'),
     sec('Details'),
     grid3([['Team member', staff.name], ['Role', staff.role], ['Branch', staff.branch]]),
-    grid3([['Manager', mgr], ['Meeting date', P.dMid(c.meeting_date)], ['Review period (13 weeks)', win]]),
+    grid3([['Manager', mgr], ['Meeting date', P.dMid(c.meeting_date)], ['Review period', win]]),
     small(P.fillLine(rec, snap, c.meeting_date, rec.status === 'draft')),
     sec('01  Wins and highlights'), field('What has gone well since we last met: achievements, progress and kind words from clients or colleagues', c.wins),
     sec('02  Actions from our last meeting'), table(['Previous action', 'Progress and outcome', 'Status'], prev, ['*', '*', 70]),

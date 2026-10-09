@@ -130,7 +130,13 @@ function setP(o, p, v) {
   ks.slice(0, -1).forEach((k, i) => { if (o[k] == null) o[k] = /^\d+$/.test(ks[i + 1]) ? [] : {}; o = o[k]; });
   o[ks[ks.length - 1]] = v;
 }
-const winLine = snap => snap && snap.from ? `13 weeks, ${dShort(snap.from)} to ${dShort(snap.to)}` : '';
+// How long the window is, in words: 13 weeks, 4 weeks, or 30 days (the leader can pick any From and To).
+const spanOf = snap => {
+  if (!snap || !snap.from || !snap.to) return '13 weeks';
+  const n = Math.round((new Date(snap.to + 'T00:00:00') - new Date(snap.from + 'T00:00:00')) / 864e5) + 1;
+  return n % 7 === 0 ? `${n / 7} week${n === 7 ? '' : 's'}` : `${n} days`;
+};
+const winLine = snap => snap && snap.from ? `${spanOf(snap)}, ${dShort(snap.from)} to ${dShort(snap.to)}` : '';
 
 // The shared 13-week table, for a stylist's page.
 function numbersRows(snap, notes) {
@@ -153,8 +159,8 @@ function fillLine(r, snap, meeting, draft) {
   let t = bits.length ? bits.join(', ') + '. ' : '';
   if (snap && snap.from) {
     const srcs = `Sales come from Phorest, clients and rebooking from the branch ledger${snap.client_through ? `, and client history runs to ${dShort(snap.client_through)}` : ''}.`;
-    t += draft ? `Figures are live: the 13 weeks to ${dShort(snap.to)}. ${srcs} They freeze when it is signed.`
-      : `Figures are the 13 weeks to ${dShort(snap.to)}. ${srcs} They were frozen when it was signed, so today's numbers may differ.`;
+    t += draft ? `Figures are live: the ${spanOf(snap)} to ${dShort(snap.to)}. ${srcs} They freeze when it is signed.`
+      : `Figures are the ${spanOf(snap)} to ${dShort(snap.to)}. ${srcs} They were frozen when it was signed, so today's numbers may differ.`;
   }
   return t;
 }
@@ -270,7 +276,7 @@ function meMonth() {
   if (has(c.wins)) bits.push(`<section class="card"><div class="eyebrow">Wins and highlights</div><p class="o2o-text">${br(c.wins)}</p></section>`);
   if (prev.length) bits.push(`<section class="card"><div class="eyebrow">Actions from last time</div><div class="rows">${prev.map(a =>
     `<div class="row"><span style="flex:1 1 200px">${esc(a.action)}</span><span class="r-val"><span class="o2o-chip ${a.status === 'Done' ? 'good' : 'warn'}">${esc(a.status || 'Ongoing')}</span></span>${has(a.progress) ? `<span class="r-note">${esc(a.progress)}</span>` : ''}</div>`).join('')}</div></section>`);
-  if (snap.rows) bits.push(`<section class="card"><div class="eyebrow">Your 13 weeks</div><p class="sub">${esc(winLine(snap))}. Worked out from your own numbers; your leader's notes sit under each line.${snap.off_days > 0 ? ` You were away ${snap.off_days} days in this window, so your aims are adjusted to match.` : ''}</p><div class="rows">${numbersRows(snap, c.notes13)}</div>
+  if (snap.rows) bits.push(`<section class="card"><div class="eyebrow">Your ${spanOf(snap)}</div><p class="sub">${esc(winLine(snap))}. Worked out from your own numbers; your leader's notes sit under each line.${snap.off_days > 0 ? ` You were away ${snap.off_days} days in this window, so your aims are adjusted to match.` : ''}</p><div class="rows">${numbersRows(snap, c.notes13)}</div>
     <p class="legend">Green means at or above your aim, amber means close, red means still to reach.</p></section>`);
   if (has(c.opportunities) || has(c.social_grow) || has(c.social_help)) bits.push(`<section class="card">
     ${has(c.opportunities) ? `<div class="eyebrow">Performance notes</div><p class="o2o-text">${br(c.opportunities)}</p>` : ''}
@@ -525,8 +531,8 @@ const rowsOf = (k, arr, min) => Math.max(min, (getP(k.c, arr) || []).length);
 // mistake for dd/mm or mm/dd (Kate, 7 Oct 2026). The real value is a hidden ISO date.
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const rng = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
-function fDate(k, p) {
-  const v = String(fv(k, p) || '').slice(0, 10), parts = v ? v.split('-').map(Number) : [0, 0, 0];
+function fDate(k, p, dflt) {
+  const v = String(fv(k, p) || dflt || '').slice(0, 10), parts = v ? v.split('-').map(Number) : [0, 0, 0];
   const y = parts[0], m = parts[1], d = parts[2], yr = new Date().getFullYear(), years = rng(yr - 1, yr + 3);
   if (y && !years.includes(y)) years.push(y);
   const opts = (arr, sel, f) => arr.map(x => `<option value="${x}"${x === sel ? ' selected' : ''}>${f ? f(x) : x}</option>`).join('');
@@ -570,7 +576,7 @@ function chip(key) {
   if (r.status === 'signed') return `<span class="o2o-chip warn">Waiting for ${esc(first(L.d.staff.name))}</span>`;
   return `<span class="o2o-chip good">Filed</span>`;
 }
-function snapOf(key) { return isSigned(key) && rec(key).snapshot ? rec(key).snapshot : L.d.numbers; }
+function snapOf(key) { return isSigned(key) && rec(key).snapshot ? rec(key).snapshot : key === 'monthly' && L.d.numbers_m ? L.d.numbers_m : L.d.numbers; }
 // When it was filled in and what the figures are, on every card, so a signed copy is never read as today's numbers.
 function fillNote(key) {
   const r = rec(key), c = L.content[key] || {};
@@ -609,7 +615,8 @@ function monthlyBody(k) {
   const prevN = rowsOf(k, 'prev_actions', 1), actN = rowsOf(k, 'actions', 3);
   const rowsHtml = (arr, n, cells) => Array.from({ length: n }, (_, i) => `<tr>${cells(i)}</tr>`).join('');
   return `
-  <div class="o2o-g3">${people(k)}<label class="o2o-fl">Meeting date${fDate(k, 'meeting_date')}</label><label class="o2o-fl">Review period (13 weeks)<input value="${esc(snap.from ? dShort(snap.from) + ' to ' + dShort(snap.to) : '')}" disabled></label></div>
+  <div class="o2o-g3">${people(k)}<label class="o2o-fl">Meeting date${fDate(k, 'meeting_date')}</label></div>
+  <div class="o2o-g3"><label class="o2o-fl">Review period, from${fDate(k, 'period_from', snap.from)}</label><label class="o2o-fl">Review period, to${fDate(k, 'period_to', snap.to)}</label></div>
 
   <div class="o2o-sec">01 Wins and highlights</div>
   ${fTa(k, 'wins', 'What has gone well since we last met: achievements, progress and kind words from clients or colleagues', 3)}
@@ -770,6 +777,15 @@ function onLeaderInput(e) {
   }
   setSave(key, 'Unsaved changes…');
   clearTimeout(L.timers[key]); L.timers[key] = setTimeout(() => save(key), 1500);
+  // A new Review period means new figures: save, then fetch them (once both dates make sense).
+  if (/^period_(from|to)$/.test(e.target.dataset.p)) {
+    clearTimeout(L.pTimer);
+    L.pTimer = setTimeout(() => {
+      const c = gather(key);
+      if (c.period_from && c.period_to && c.period_from <= c.period_to) reload();
+      else if (c.period_from && c.period_to) setSave(key, 'The From date has to be on or before the To date.');
+    }, 400);
+  }
 }
 async function onLeaderClick(e) {
   const b = e.target.closest('[data-act]'); if (!b) return;
