@@ -158,3 +158,9 @@
 .ll-pf{display:flex;gap:12px;padding:4px 8px 4px 30px}
 
 .ll-g{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin-bottom:2px}
+/* Kate, 9 Oct 2026: "too long". The heading block above the cards is tighter on this page, so the cards come up the screen. */
+#lostListsContent .slv-intro{margin:6px 0 2px}
+#lostListsContent .slv-intro h2{font-size:24px;margin:0 0 2px}
+#lostListsContent .slv-intro p{font-size:14px;line-height:1.4}
+#lostListsContent .lq-tabs{margin:8px 0 0}
+#lostListsContent .ll-fresh{margin:8px 0 8px}
