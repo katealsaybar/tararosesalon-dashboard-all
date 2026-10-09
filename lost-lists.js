@@ -177,9 +177,9 @@ function llPaintPanel() {
       <div class="ll-chips"><span class="slv-note">WhatsApp status</span>${chipHtml}
         <button type="button" class="lc-more" onclick="llSendReady()">Send-ready only</button><button type="button" class="lc-more" onclick="llAllSt()">All</button></div>
     </div>
-    <div class="lc-tools" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0 8px">
+    <div class="lc-tools ll-tools">
       <input type="search" id="llSearch" placeholder="Search name or stylist" value="${lcEsc(llQuery)}" oninput="llQuery=this.value;llPage=1;llPaintTable()"
-        style="flex:1;min-width:180px;max-width:300px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit">
+        class="ll-search">
       <select class="ll-sel" onchange="llSet('sort',this.value)" aria-label="Sort"><option value="recent"${llSel.sort === 'recent' ? ' selected' : ''}>Lost most recently first</option><option value="oldest"${llSel.sort === 'oldest' ? ' selected' : ''}>Lost longest first</option><option value="name"${llSel.sort === 'name' ? ' selected' : ''}>Name A to Z</option></select>
       <label class="slv-note ll-hide" title="A client messaged on any list stays off the others, so nobody is messaged twice"><input type="checkbox"${llSel.hideSent ? ' checked' : ''} onchange="llSet('hideSent',this.checked)"> Hide anyone already messaged</label>
       <span style="flex:1"></span>
@@ -206,14 +206,15 @@ function llPaintTable() {
   const cnt = document.getElementById('llCount');
   if (cnt) cnt.textContent = `${lcNum(rows.length)} shown of ${lcNum(all.length)}${ready ? ` · ${lcNum(ready)} ready on WhatsApp` : ''}${sentN ? ` · ${lcNum(sentN)} already messaged` : ''}`;
   const two = r => r.n_numbers > 1 ? ' <span class="lc-2nums" tabindex="0" title="This name matches more than one client in Phorest, so the number may be someone else\'s. Check before you send.">2 numbers?</span>' : '';
-  const cols = ['Client', 'Branch', 'Last visit', L.svc, 'Usual stylist', 'Usual beautician'].concat(ph ? ['Phone'] : [], ['WhatsApp', 'Also on', 'Messaged']);
+  const cols = ['Client', 'Last visit', L.svc, 'Usual team'].concat(ph ? ['Phone'] : [], ['WhatsApp', 'Also on', 'Messaged']);
+  // Usual team: her usual stylist and usual beautician, one line each (the row panel has everyone else).
+  const team = r => { const t = lcTeam(r); const w = [t.hair[0], t.beauty[0]].filter(Boolean); return w.length ? w.map(n => `<div>${lcStylist(n)}</div>`).join('') : '<span class="slv-muted">–</span>'; };
   const tr = shown.map((r, i) => `<tr class="lc-row" title="Click to see what she came in for, what she took home and who looked after her" onclick="lcToggleDetail(event,${i})">
-      <td>${lcEsc(r.client_name)}${two(r)}<span class="lc-hint" aria-hidden="true">See her visits ›</span></td>
-      <td>${lcEsc(LC_BRANCH[r.branch] || r.branch)}<div class="slv-note">${lcEsc(r.area)}</div></td>
+      <td>${lcEsc(r.client_name)}${two(r)}<div class="slv-note">${lcEsc(LC_BRANCH[r.branch] || r.branch)} · ${lcEsc(r.area)}</div><span class="lc-hint" aria-hidden="true">See her visits ›</span></td>
       <td>${lcEsc(llDay(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days ago</div></td>
       <td>${llSvc(r, L.id)}</td>
-      <td class="lc-stc">${lcTeamCell(lcTeam(r).hair)}</td><td class="lc-stc">${lcTeamCell(lcTeam(r).beauty)}</td>
-      ${ph ? `<td>${lcPhone(r)}</td>` : ''}
+      <td class="lc-stc ll-team">${team(r)}</td>
+      ${ph ? `<td class="ll-ph">${lcPhone(r)}</td>` : ''}
       <td>${llStatus(r)}</td><td>${llAlso(r)}</td><td>${llSentCell(r, i)}</td></tr>`).join('');
   const cards = shown.map((r, i) => `<li class="prd-card lc-row" onclick="lcToggleDetail(event,${i})"><div class="prd-body">
       <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${two(r)}</span><span>${llStatus(r)}</span></div>
@@ -225,7 +226,7 @@ function llPaintTable() {
   const box = document.getElementById('llTable');
   if (!box) return;
   const from = (llPage - 1) * per + 1;
-  box.innerHTML = `<div class="slv-wrap prd-desk lc-wrap"><table class="slv-table"><thead><tr>${cols.map(c => `<th>${lcEsc(c)}</th>`).join('')}</tr></thead>
+  box.innerHTML = `<div class="slv-wrap prd-desk lc-wrap ll-wrap"><table class="slv-table"><thead><tr>${cols.map(c => `<th>${lcEsc(c)}</th>`).join('')}</tr></thead>
       <tbody>${tr || `<tr><td colspan="${cols.length}" class="slv-muted">No one on this list matches those filters.</td></tr>`}</tbody></table></div>
       <ol class="prd-cards">${cards || '<li class="slv-muted">No one on this list matches those filters.</li>'}</ol>
       ${rows.length ? `<div class="lc-pager">
