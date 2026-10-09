@@ -135,8 +135,9 @@
    lists are picked on the cards, the filters sit on the table headings. */
 :root,[data-theme="light"]{--ll-glow:rgba(15,110,86,.26);--ll-glow-line:rgba(15,110,86,.45)}
 [data-theme="dark"]{--ll-glow:rgba(153,246,228,.28);--ll-glow-line:rgba(153,246,228,.5)}
-.ll-card{cursor:default;transition:transform .18s var(--card-ease,ease),box-shadow .18s var(--card-ease,ease),border-color .18s}
+.ll-card{cursor:pointer;transition:transform .18s var(--card-ease,ease),box-shadow .18s var(--card-ease,ease),border-color .18s}
 @media(hover:hover){.ll-card:hover{transform:translateY(-3px);border-color:var(--ll-glow-line);box-shadow:var(--shadow-card-hover),0 0 0 1px var(--ll-glow-line),0 0 24px -2px var(--ll-glow)}}
+.ll-card:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 .ll-card:active{transform:translateY(-1px);border-color:var(--ll-glow-line);box-shadow:var(--shadow-card-hover),0 0 0 1px var(--ll-glow-line),0 0 24px -2px var(--ll-glow)}
 @media(prefers-reduced-motion:reduce){.ll-card{transition:none}.ll-card:hover,.ll-card:active{transform:none}}
 

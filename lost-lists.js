@@ -97,7 +97,7 @@ async function renderLostLists(host) {
 function llPick(id) {
   llClosePop();
   llSel.list = id; llSel.off = ['nonum']; llSel.area = 'all'; llSel.also = []; llPage = 1; llQuery = ''; llSave();
-  llHost.querySelectorAll('.ll-card').forEach(b => b.classList.toggle('on', b.dataset.id === id));
+  llHost.querySelectorAll('.ll-card').forEach(b => { const on = b.dataset.id === id; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   llBusy = true; llPaintPanel();
   llFetch(id).then(() => { llBusy = false; llPaint(); }, e => { console.error(e); llBusy = false; llErr = 'That list did not load. Try again.'; llPaint(); });
 }
@@ -214,8 +214,9 @@ function llCard(l) {
   const wa = S.wa || {}, n = S.n || 0;
   const ready = (wa.act || 0) + (wa.r18 || 0), unsure = (wa.noreply || 0) + (wa.unchecked || 0), none = (wa.text || 0) + (wa.nonum || 0) + (wa.blocked || 0);
   const pct = n ? Math.round(100 * ready / n) : 0;
-  // Hover only, not clickable (Kate, 9 Oct 2026): the group is picked in the In groups column heading. The ring marks the open one.
-  return `<div class="ll-card${l.id === llSel.list ? ' on' : ''}" data-id="${l.id}">
+  // Kate, 9 Oct 2026: the cards pick the list again (click or Enter), as well as the Show group menu in the In groups heading. The ring marks the open one.
+  return `<div class="ll-card${l.id === llSel.list ? ' on' : ''}" data-id="${l.id}" role="button" tabindex="0" aria-pressed="${l.id === llSel.list}"
+      title="Show Group ${l.id}" onclick="llPick('${l.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();llPick('${l.id}')}">
       <div class="ll-g">Group ${l.id}</div><div class="ll-t">${lcEsc(l.t)}</div><div class="ll-n">${lcNum(n)}</div>
       <div class="ll-d">${lcEsc(l.d)}</div>
       <div class="ll-ch">${lcEsc(l.ch)}${l.id === '3' ? `<br>Dubai ${lcNum(S.dubai)} · Abu Dhabi ${lcNum(S.abu_dhabi)}` : ''}</div>
