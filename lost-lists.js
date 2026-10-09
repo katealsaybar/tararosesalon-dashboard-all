@@ -8,9 +8,13 @@
 //
 // Who sees what: Level 2 and above open the tab (the page's own rule); phone numbers are
 // Level 3 and above (Kate, 9 Oct 2026), the server leaves them out for Level 2 and the Phone
-// column and Copy numbers are not drawn. "Mark sent" (lost_mark_sent) records that someone
-// messaged a client for a list, so a client already messaged, on any list, is hidden next
-// time and nobody gets two messages.
+// column and Copy numbers are not drawn.
+//
+// "Messaged" is not a tick (Kate, 9 Oct 2026: a tick would be manual all over again). The nightly
+// respond.io check already keeps the last message we sent each number, and a client counts as
+// messaged when that is on or after lost_lists_config.campaign_from (the day the lists were
+// handed over). So a client messaged on any list, from respond.io, stays off the others by itself.
+// Only messages sent through respond.io are seen; a text sent from another system is not.
 //
 // Sits inside Client's Last Visit (lost-clients.js draws the tab bar and calls
 // renderLostLists). Borrows that page's row panel (lcToggleDetail), staff links (lcTeam,
@@ -40,7 +44,7 @@ const LL_LISTS = [
     def: '<b>In:</b> lost clients who had a cut, treatment, beauty, nails or extensions between May 2025 and May 2026 and <b>no</b> hair colour or toner. <b>Out:</b> anyone with a booking; visits that were only retail.' },
 ];
 const LL_PER = [10, 20, 50, 100];
-let llSel = { list: '1', area: 'all', off: [], hideSent: true, per: 20, sort: 'recent' };
+let llSel = { list: '1', area: 'all', off: [], hideSent: true, per: 20, sort: 'recent' };   // hideSent: hide anyone messaged since the campaign start
 try { Object.assign(llSel, JSON.parse(localStorage.getItem('trs-lost-lists') || '{}')); } catch (e) {}
 let llHost = null, llSum = null, llRows = {}, llErr = '', llPage = 1, llQuery = '', llShown = [], llBusy = false;
 const llSave = () => { try { localStorage.setItem('trs-lost-lists', JSON.stringify(llSel)); } catch (e) {} };
@@ -87,12 +91,11 @@ function llSendReady() { llSel.off = LL_ST_ORDER.filter(s => s !== 'act' && s !=
 function llAllSt() { llSel.off = []; llPage = 1; llSave(); llPaintPanel(); }
 
 // What the filters leave of the list on screen.
-const llSentAny = r => (r.sent_all || []).length > 0;
 function llFiltered() {
   const rows = llRows[llSel.list] || [], q = llQuery.trim().toLowerCase();
   let out = rows.filter(r => !llSel.off.includes(r.wa)
     && (llSel.area === 'all' || r.area === llSel.area)
-    && !(llSel.hideSent && llSentAny(r))
+    && !(llSel.hideSent && r.messaged)
     && (!q || (r.client_name + ' ' + (r.stylist || '') + ' ' + (r.also_saw || '')).toLowerCase().includes(q)));
   const by = { recent: (a, b) => (a.days_since - b.days_since), oldest: (a, b) => (b.days_since - a.days_since),
     name: (a, b) => a.client_name.localeCompare(b.client_name) }[llSel.sort] || null;
@@ -141,9 +144,7 @@ function llSvc(r, id) {
   return lcEsc(llCats(r.cats)) || '<span class="slv-muted">–</span>';
 }
 function llAlso(r) {
-  const sent = Object.fromEntries((r.sent_all || []).map(s => [s.l, s]));
-  const tags = (r.also_on || []).filter(x => x !== llSel.list).map(x => sent[x]
-    ? `<span class="ll-tag sent" title="Already messaged on list ${x}, ${lcEsc(llDay(sent[x].on))}">${x} ✓</span>` : `<span class="ll-tag" title="Also on list ${x}">${x}</span>`);
+  const tags = (r.also_on || []).filter(x => x !== llSel.list).map(x => `<span class="ll-tag" title="Also on list ${x}">${x}</span>`);
   return tags.join('') || '<span class="slv-muted">–</span>';
 }
 function llStatus(r) {
@@ -151,10 +152,11 @@ function llStatus(r) {
   const note = r.last_in ? `last reply ${lcEsc(llDay(r.last_in))}` : '';
   return `<span class="ll-pill ${s[0]}" title="${lcEsc(s[2])}">${lcEsc(s[1])}</span>${note ? `<div class="slv-note">${note}</div>` : ''}`;
 }
-function llSentCell(r, i) {
-  if (r.sent_on) return `<span class="ll-tag sent" title="Marked sent by ${lcEsc(r.sent_by || '')}">Sent ${lcEsc(llDay(r.sent_on))}</span> <button type="button" class="lc-more" onclick="llUnmarkRow(${i})">Undo</button>`;
-  const other = (r.sent_all || []).filter(s => s.l !== llSel.list);
-  return (other.length ? `<span class="slv-note">Sent on list ${other.map(s => s.l).join(', ')}</span><br>` : '') + `<button type="button" class="tglr lc-btn ll-mark" onclick="llMarkRow(${i})">Mark sent</button>`;
+// Messaged, from respond.io: the last message we sent that number. Green once it is on or after the
+// campaign start, grey (the date only) when it is older.
+function llSentCell(r) {
+  if (r.messaged) return `<span class="ll-tag sent" title="A message was sent to this number through respond.io since the lists were handed over">Messaged ${lcEsc(llDay(r.last_out))}</span>`;
+  return r.last_out ? `<span class="slv-note">last ${lcEsc(llDay(r.last_out))}</span>` : '<span class="slv-muted">–</span>';
 }
 
 function llPaintPanel() {
@@ -181,16 +183,15 @@ function llPaintPanel() {
       <input type="search" id="llSearch" placeholder="Search name or stylist" value="${lcEsc(llQuery)}" oninput="llQuery=this.value;llPage=1;llPaintTable()"
         class="ll-search">
       <select class="ll-sel" onchange="llSet('sort',this.value)" aria-label="Sort"><option value="recent"${llSel.sort === 'recent' ? ' selected' : ''}>Lost most recently first</option><option value="oldest"${llSel.sort === 'oldest' ? ' selected' : ''}>Lost longest first</option><option value="name"${llSel.sort === 'name' ? ' selected' : ''}>Name A to Z</option></select>
-      <label class="slv-note ll-hide" title="A client messaged on any list stays off the others, so nobody is messaged twice"><input type="checkbox"${llSel.hideSent ? ' checked' : ''} onchange="llSet('hideSent',this.checked)"> Hide anyone already messaged</label>
+      <label class="slv-note ll-hide" title="Hides anyone respond.io shows a message was sent to since the lists were handed over, on any list, so nobody is messaged twice"><input type="checkbox"${llSel.hideSent ? ' checked' : ''} onchange="llSet('hideSent',this.checked)"> Hide anyone already messaged</label>
       <span style="flex:1"></span>
       ${ph ? '<button type="button" class="tglr lc-btn" onclick="llCopy()" title="Copy the numbers of the clients shown">Copy numbers</button>' : ''}
       <button type="button" class="tglr lc-btn" onclick="llSaveFile('xlsx')" title="Download what is shown as Excel">XLSX</button>
       <button type="button" class="tglr lc-btn" onclick="llSaveFile('csv')" title="Download what is shown as CSV">CSV</button>
-      <button type="button" class="tglr lc-btn" onclick="llMarkAll()" title="After you have messaged everyone shown">Mark all shown as sent</button>
       <span id="llNote" class="slv-note" style="display:inline"></span>
     </div>
     <div id="llTable"></div>
-    <p class="slv-muted ll-foot">Lost means no visit of any kind for 6 months, at any branch. WhatsApp status is checked in respond.io every night. ${ph ? '' : 'Phone numbers are for Level 3 and above. '}Clients with a booking are kept off the lists, and the booking list is only as fresh as the last time it was pulled.</p>`;
+    <p class="slv-muted ll-foot">Lost means no visit of any kind for 6 months, at any branch. WhatsApp status and Messaged come from respond.io, checked every night (a text sent from another system is not seen). ${ph ? '' : 'Phone numbers are for Level 3 and above. '}Clients with a booking are kept off the lists, and the booking list is only as fresh as the last time it was pulled.</p>`;
   llPaintTable();
 }
 
@@ -202,7 +203,7 @@ function llPaintTable() {
   llPage = Math.min(Math.max(1, llPage), pages);
   const shown = rows.slice((llPage - 1) * per, llPage * per);
   llShown = shown; lcShown = shown;
-  const ready = rows.filter(r => r.wa === 'act' || r.wa === 'r18').length, sentN = all.filter(llSentAny).length;
+  const ready = rows.filter(r => r.wa === 'act' || r.wa === 'r18').length, sentN = all.filter(r => r.messaged).length;
   const cnt = document.getElementById('llCount');
   if (cnt) cnt.textContent = `${lcNum(rows.length)} shown of ${lcNum(all.length)}${ready ? ` · ${lcNum(ready)} ready on WhatsApp` : ''}${sentN ? ` · ${lcNum(sentN)} already messaged` : ''}`;
   const two = r => r.n_numbers > 1 ? ' <span class="lc-2nums" tabindex="0" title="This name matches more than one client in Phorest, so the number may be someone else\'s. Check before you send.">2 numbers?</span>' : '';
@@ -215,13 +216,13 @@ function llPaintTable() {
       <td>${llSvc(r, L.id)}</td>
       <td class="lc-stc ll-team">${team(r)}</td>
       ${ph ? `<td class="ll-ph">${lcPhone(r)}</td>` : ''}
-      <td>${llStatus(r)}</td><td>${llAlso(r)}</td><td>${llSentCell(r, i)}</td></tr>`).join('');
+      <td>${llStatus(r)}</td><td>${llAlso(r)}</td><td>${llSentCell(r)}</td></tr>`).join('');
   const cards = shown.map((r, i) => `<li class="prd-card lc-row" onclick="lcToggleDetail(event,${i})"><div class="prd-body">
       <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${two(r)}</span><span>${llStatus(r)}</span></div>
       <div class="prd-meta">${lcEsc(LC_BRANCH[r.branch] || r.branch)} · last ${lcEsc(llDay(r.last_visit))} (${lcNum(r.days_since)} days) · ${llSvc(r, L.id)}</div>
       ${['hair', 'beauty'].map(t => { const l = lcTeam(r)[t]; return l.length ? `<div class="prd-meta lc-also-line">${t === 'hair' ? 'Stylist' : 'Beautician'} ${lcStylist(l[0])}</div>` : ''; }).join('')}
       ${ph && r.mobile ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
-      <div class="prd-meta" style="margin-top:4px">Also on ${llAlso(r)} · ${llSentCell(r, i)}</div>
+      <div class="prd-meta" style="margin-top:4px">Also on ${llAlso(r)} · ${llSentCell(r)}</div>
       <div class="lc-hint-m">Tap for her visits ›</div></div></li>`).join('');
   const box = document.getElementById('llTable');
   if (!box) return;
@@ -241,34 +242,7 @@ function llGo(d) {
   if (box && box.getBoundingClientRect().top < 0) scrollTo({ top: scrollY + box.getBoundingClientRect().top - 180 });
 }
 
-// ── MARK SENT ──────────────────────────────────────────────────────────────
 function llNote(t) { const n = document.getElementById('llNote'); if (n) n.textContent = t; }
-async function llMarkKeys(rows, undo) {
-  const keys = rows.map(r => r.client_key), id = llSel.list;
-  const stamp = r => {
-    r.sent_all = (r.sent_all || []).filter(s => s.l !== id);
-    if (undo) { r.sent_on = null; r.sent_by = null; return; }
-    const on = new Date().toISOString().slice(0, 10);
-    r.sent_on = on; r.sent_by = 'you'; r.sent_all.push({ l: id, on, by: 'you' });
-  };
-  const before = rows.map(r => [r.sent_on, r.sent_by, r.sent_all]);
-  rows.forEach(stamp); llPaintPanel();
-  const { error } = await sb.rpc(undo ? 'lost_unmark_sent' : 'lost_mark_sent', { p_keys: keys, p_list: id });
-  if (error) {
-    console.error(error);
-    rows.forEach((r, i) => { [r.sent_on, r.sent_by, r.sent_all] = before[i]; });
-    llPaintPanel(); llNote('That did not save. Try again.'); return;
-  }
-  llNote(undo ? `Undid ${lcNum(keys.length)}` : `Marked ${lcNum(keys.length)} as sent`);
-}
-function llMarkRow(i) { const r = llShown[i]; if (r) llMarkKeys([r], false); }
-function llUnmarkRow(i) { const r = llShown[i]; if (r) llMarkKeys([r], true); }
-function llMarkAll() {
-  const rows = llFiltered().filter(r => !r.sent_on);
-  if (!rows.length) { llNote('Nothing to mark'); return; }
-  if (!confirm(`Mark ${rows.length} client${rows.length === 1 ? '' : 's'} as sent for ${llList().t.replace(/\s+/g, ' ')}?\n\nDo this after you have messaged them. They stay off every list until you undo it.`)) return;
-  llMarkKeys(rows, false);
-}
 
 // ── COPY AND FILES ─────────────────────────────────────────────────────────
 // Copy numbers: the first number of every client shown, except a name that matches more than
@@ -283,11 +257,11 @@ async function llCopy() {
 function llLines() {
   const L = llList(), rows = llFiltered(), ph = llPhones();
   const head = ['Client', 'Area', 'Last branch', 'Last visit', 'Days since', L.svc, 'Usual stylist', 'Also saw'].concat(ph ? ['Phone', 'Numbers matched'] : [],
-    ['WhatsApp status', 'Last wrote to us', 'Last we messaged', 'Also on lists', 'Messaged on this list']);
+    ['WhatsApp status', 'Last wrote to us', 'Last we messaged', 'Also on lists', 'Messaged since the lists were handed over']);
   const svc = r => L.id === '1' || L.id === '2' ? (r.last_keratin || '') : L.id === '3' ? ((r.last_colour || r.last_toner || '') + (r.toner_only ? ' (toner only)' : '')) : llCats(r.cats);
   const lines = rows.map(r => [r.client_name, r.area, LC_BRANCH[r.branch] || r.branch, r.last_visit, r.days_since, svc(r) + (r.still ? ' (still visiting)' : ''),
     r.stylist || '', r.also_saw || ''].concat(ph ? [r.mobile || '', r.n_numbers] : [],
-    [(LL_ST[r.wa] || [])[1] || r.wa, r.last_in || '', r.last_out || '', (r.also_on || []).join(', '), r.sent_on || '']));
+    [(LL_ST[r.wa] || [])[1] || r.wa, r.last_in || '', r.last_out || '', (r.also_on || []).join(', '), r.messaged ? 'Yes' : '']));
   return { head, lines };
 }
 function llSaveFile(kind) {
