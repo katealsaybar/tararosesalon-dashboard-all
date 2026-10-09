@@ -550,7 +550,13 @@
   const synOf = {};
   SYN.forEach(g => g.forEach(w => { synOf[w] = (synOf[w] || []).concat(g.filter(x => x !== w)); }));
 
-  const tokensOf = s => norm(s).match(/[a-z0-9%]+/g) || [];
+  // Kate, 9 Oct 2026: she typed 1on1 and got nothing, because the page says 1-to-1. However the
+  // meeting is spelled (1on1, 1 on 1, 1:1, one to one, one2one, HR-10) it is one word to the
+  // search, 1to1, on both sides; the goals form (HR-09, PPF) is goals.
+  const canon = t => t
+    .replace(/\b(?:1\s*[-:]?\s*(?:to|on|2)\s*[-:]?\s*1|one\s*[-:]?\s*(?:to|on|2)\s*[-:]?\s*one|1\s*:\s*1|hr[\s-]?10)\b/g, '1to1')
+    .replace(/\b(?:hr[\s-]?0?9|ppf)\b/g, 'goals');
+  const tokensOf = s => canon(norm(s)).match(/[a-z0-9%]+/g) || [];
   // How well a typed word lands on one word of the page: 3 the same word; 2 it starts with
   // what was typed, or is the plural / singular of it; 1 a keyboard slip (one letter off). Two letters or fewer have to be exact.
   function tokMatch(t, k, noSlip) {
@@ -605,7 +611,7 @@
     s = s.replace(/"([^"]+)"/g, (m, p) => { const n = norm(p).trim(); if (n) Q.phrases.push(n); return ' '; });
     s = s.replace(/"/g, ' ');
 
-    let t = norm(s);
+    let t = canon(norm(s));
     if (/\?/.test(t)) Q.question = true;
     t = t.replace(/[?!]/g, ' ').replace(/\s+/g, ' ').trim();
     for (let i = 0; i < 4; i++) {
