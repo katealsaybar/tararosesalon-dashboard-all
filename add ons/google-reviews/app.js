@@ -154,13 +154,17 @@ const days = d => (TODAY - new Date(d+"T00:00:00"))/864e5;
 const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const setEq = (a,b) => a.size===b.length && b.every(x=>a.has(x));
 
+// Kate, 9 Oct 2026: a written review whose text names no stylist the tagger recognised: no name at all, or a name
+// spelled a way the list does not know (Irlyn and the like), so it sits untagged. A review credited to the stylist
+// who served the reviewer just before (viaClient) still counts, because its own words named nobody.
+const noStaffNamed = r => !!r.comment && !(r.hits && r.hits.length);
 function baseFilter(skip){
   return R.filter(r =>
     (skip==="branch" || state.branches.has(r.branch)) &&
     (skip==="stars" || state.stars.has(r.stars)) &&
     (skip==="range" || inRange(r.date)) &&
     (!state.withText || r.comment) && (!state.noReply || !r.replied) && (!state.withPhotos || r.photos.length) &&
-    (skip==="staff" || !state.staff || (state.staff==="__any" ? r.staff.length : r.staff.includes(state.staff))) &&
+    (skip==="staff" || !state.staff || (state.staff==="__any" ? r.staff.length : state.staff==="__none" ? noStaffNamed(r) : r.staff.includes(state.staff))) &&
     (!state.q || (r.comment+" "+r.reviewer+" "+r.reply).toLowerCase().includes(state.q.toLowerCase())));
 }
 // short: the phone panel's label (index.html swaps it in under the phone band).
@@ -190,9 +194,9 @@ function renderFilters(){
   if (fst) {
     const pst=baseFilter("staff"), cnt={};
     pst.forEach(r=>r.staff.forEach(k=>cnt[k]=(cnt[k]||0)+1));
-    const any=pst.filter(r=>r.staff.length).length;
+    const any=pst.filter(r=>r.staff.length).length, none=pst.filter(noStaffNamed).length;
     const opts=STAFF.filter(s=>cnt[s.key]||s.key===state.staff).sort((a,b)=>(cnt[b.key]||0)-(cnt[a.key]||0)||a.label.localeCompare(b.label));
-    fst.innerHTML=`<option value="">All reviews</option><option value="__any"${state.staff==="__any"?" selected":""}>Names any staff (${any})</option>`+
+    fst.innerHTML=`<option value="">All reviews</option><option value="__any"${state.staff==="__any"?" selected":""}>Names any staff (${any})</option><option value="__none"${state.staff==="__none"?" selected":""}>Written, no staff named (${none})</option>`+
       opts.map(s=>`<option value="${esc(s.key)}"${s.key===state.staff?" selected":""}>${esc(s.label)}${s.resigned?" (former)":""} · ${cnt[s.key]||0}</option>`).join("");
   }
   const fm=document.getElementById("fMore"); fm.innerHTML="";
@@ -212,7 +216,7 @@ function renderSummary(){
   }
   if(state.staff){
     const s=STAFF.find(x=>x.key===state.staff);
-    pills.push([state.staff==="__any"?"Names any staff":(s?s.label:state.staff), ()=>{state.staff="";}]);
+    pills.push([state.staff==="__any"?"Names any staff":state.staff==="__none"?"Written, no staff named":(s?s.label:state.staff), ()=>{state.staff="";}]);
   }
   if(state.withText) pills.push(["With comment", ()=>{state.withText=false;}]);
   if(state.noReply) pills.push(["No reply yet", ()=>{state.noReply=false;}]);
