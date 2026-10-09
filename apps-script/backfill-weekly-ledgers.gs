@@ -1344,6 +1344,17 @@ function parseDay_(values, dateStr, tab, notes) {
     Object.keys(srByCol).forEach(c => { tally[srByCol[c]] = (tally[srByCol[c]] || 0) + 1; });
     let commonSr = -1, best = 0;
     Object.keys(tally).forEach(r => { if (tally[r] > best) { best = tally[r]; commonSr = Number(r); } });
+    // A whole section with no "Type | Count" row at all, so no block can anchor and the section used to be
+    // skipped without a word. KCA's WEDNESDAY tab has lost the Beauty section's header row (row 72) while the
+    // Request / Salon / New rows under it are filled in, which dropped the Beauty team's Wednesday every week of
+    // 2024, 2025 and 2026 (Kate, 9 Oct 2026). With no anchor, the first "Request" label in the section is one.
+    let sectionFallback = false;
+    if (commonSr < 0) {
+      for (let r = h + 1; r < secEnd && commonSr < 0; r++) {
+        for (let c = 0; c < ncols; c += 4) { if (low(r, c) === 'request') { commonSr = r; sectionFallback = true; break; } }
+      }
+      if (sectionFallback) notes.push(`WARN ${tab} ${dateStr}: the section at row ${h + 1} has no "Type | Count" row, read from its first Request row ${commonSr + 1}`);
+    }
 
     for (let c = 0; c < ncols; c += 4) {
       const name = str_(cell(namesRow, c));
@@ -1355,7 +1366,7 @@ function parseDay_(values, dateStr, tab, notes) {
       let sr = (c in srByCol) ? srByCol[c] : -1;
       if (sr < 0 && commonSr >= 0 && blockHasLabels_(low, commonSr, c, secEnd)) {
         sr = commonSr;
-        notes.push(`WARN ${tab} ${dateStr}: ${name} has no "Type | Count" cell, read from row ${sr + 1} like the rest of the section`);
+        if (!sectionFallback) notes.push(`WARN ${tab} ${dateStr}: ${name} has no "Type | Count" cell, read from row ${sr + 1} like the rest of the section`);
       }
       if (sr < 0) continue;
       claimed[sr] = true;
