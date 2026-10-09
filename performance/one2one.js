@@ -136,6 +136,7 @@ const spanOf = snap => {
   const n = Math.round((new Date(snap.to + 'T00:00:00') - new Date(snap.from + 'T00:00:00')) / 864e5) + 1;
   return n % 7 === 0 ? `${n / 7} week${n === 7 ? '' : 's'}` : `${n} days`;
 };
+const spanAdj = snap => spanOf(snap).replace(/s$/, '').replace(' ', '-');
 const winLine = snap => snap && snap.from ? `${spanOf(snap)}, ${dShort(snap.from)} to ${dShort(snap.to)}` : '';
 
 // The shared 13-week table, for a stylist's page.
@@ -263,7 +264,7 @@ function meHead(r, kind, noPdf) {
 
 function meMonth() {
   const all = recs('monthly').map((r, i) => Object.assign(r, { _i: i }));
-  if (!all.length) return `<div class="o2o-empty">Your first 1-to-1 will appear here once your leader has written it up and signed it. It will show what went well, your 13 weeks in numbers, what you agreed, and the next steps.</div>`;
+  if (!all.length) return `<div class="o2o-empty">Your first 1-to-1 will appear here once your leader has written it up and signed it. It will show what went well, your numbers, what you agreed, and the next steps.</div>`;
   const r = all[Math.min(ME.sel, all.length - 1)], c = r.content || {}, snap = r.snapshot || {};
   const cc = ckCounts(c), todo = [];
   CHECK.forEach((g, i) => g[1].forEach((t, j) => { if (!(c.check && c.check[i] && c.check[i][j])) todo.push(t); }));
@@ -288,7 +289,7 @@ function meMonth() {
     <p class="sub">things you are consistently showing. The rest are the next focus, not a mark against you.</p>
     <div class="o2o-sid">${CHECK.map((g, i) => `<span>0${i + 1} ${esc(g[0])}</span><b>${cc.per[i]} of ${g[1].length}</b><div class="o2o-meter"><i style="width:${cc.per[i] / g[1].length * 100}%"></i></div>`).join('')}</div>
     ${todo.length ? `<details class="o2o-more"><summary><span>What is still to work on</span><span class="hint">${todo.length} ${todo.length === 1 ? 'item' : 'items'}</span></summary><ul class="o2o-chk">${todo.map(t => `<li><i>&#9675;</i><span>${esc(t)}</span></li>`).join('')}</ul></details>` : ''}</section>`);
-  if (pri.length || has(c.support)) bits.push(`<section class="card">${pri.length ? `<div class="eyebrow">Our priorities for the next 13 weeks</div><ol class="o2o-text" style="padding-left:20px">${pri.map(p => `<li>${esc(p.replace(/^\d+[.)]\s*/, ''))}</li>`).join('')}</ol>` : ''}
+  if (pri.length || has(c.support)) bits.push(`<section class="card">${pri.length ? `<div class="eyebrow">Our priorities for the next ${spanOf(snap)}</div><ol class="o2o-text" style="padding-left:20px">${pri.map(p => `<li>${esc(p.replace(/^\d+[.)]\s*/, ''))}</li>`).join('')}</ol>` : ''}
     ${has(c.support) ? `<div class="eyebrow" style="margin-top:14px">Training or support that would help</div><p class="o2o-text">${br(c.support)}</p>` : ''}</section>`);
   if (all.length > 1) bits.push(`<details class="o2o-more"><summary><span>Earlier 1-to-1s</span><span class="hint">${all.length - 1}</span></summary><div class="rows">${all.map((x, i) => i === ME.sel ? '' :
     `<button class="row" type="button" data-act="sel" data-i="${i}" style="font:inherit;color:inherit;cursor:pointer;text-align:left;width:100%"><span>${esc(dMid((x.content || {}).meeting_date) || mLong(x.period))}</span><span class="r-val"><small>${esc(first(x.signed_by))}</small></span></button>`).join('')}</div></details>`);
@@ -626,9 +627,9 @@ function monthlyBody(k) {
   ${rowsHtml('prev_actions', prevN, i => `<td>${fIn(k, `prev_actions.${i}.action`)}</td><td>${fIn(k, `prev_actions.${i}.progress`)}</td><td style="width:120px">${fSel(k, `prev_actions.${i}.status`, ['Ongoing', 'Done'])}</td>`)}</table></div>
   ${k.lock ? '' : `<button class="btn o2o-ghost" type="button" data-act="addrow" data-kind="monthly" data-arr="prev_actions" style="margin-top:6px">Add a row</button>`}
 
-  <div class="o2o-sec">03 Business revenue, 13-week review</div>
+  <div class="o2o-sec">03 Business revenue, ${spanAdj(snap)} review</div>
   <p class="o2o-lock"><span class="o2o-autoh">Auto</span> figures come from ${esc(first(st.name))}'s numbers and the aims for their level${snap.off_days > 0 ? `, adjusted for the ${snap.off_days} days away` : ''}. Only the notes are typed.${k.lock ? '' : ' They update until you sign.'}</p>
-  <div class="o2o-wrap"><table class="o2o-tbl ed"><tr><th>Metric</th><th>13-week actual</th><th>Target</th><th></th><th>Notes and trends</th></tr>
+  <div class="o2o-wrap"><table class="o2o-tbl ed"><tr><th>Metric</th><th>${spanAdj(snap)} actual</th><th>Target</th><th></th><th>Notes and trends</th></tr>
   ${NUM_ROWS.map(([key, label]) => { const r = numRow(snap, key); return `<tr><td style="padding-top:11px">${label}</td><td class="o2o-auto">${esc(r.a)}</td><td class="o2o-auto">${esc(r.t || '·')}</td><td style="padding-top:12px"><i class="dot ${r.st}"></i></td><td style="min-width:230px">${fIn(k, `notes13.${key}`)}</td></tr>`; }).join('')}</table></div>
   <div style="margin-top:12px">${fTa(k, 'opportunities', 'Performance notes', 2)}</div>
 
@@ -644,7 +645,7 @@ function monthlyBody(k) {
   <div class="o2o-sec">Stylist priorities checklist <span class="o2o-save" data-ckt style="letter-spacing:0;text-transform:none;font-weight:500">${ckCounts(k.c).y} of ${ckCounts(k.c).t} ticked</span></div>
   ${CHECK.map((g, i) => `<details class="o2o-more" data-ckg="${i}"><summary><span>0${i + 1} ${esc(g[0])}</span><span class="hint" data-cks>${ckCounts(k.c).per[i]} of ${g[1].length}</span></summary>
     ${g[1].map((t, j) => `<label class="o2o-ck"><input type="checkbox" data-p="check.${i}.${j}"${getP(k.c, `check.${i}.${j}`) ? ' checked' : ''}${dis(k)}><span>${esc(t)}</span></label>`).join('')}</details>`).join('')}
-  <div class="o2o-g2" style="margin-top:12px">${fTa(k, 'priorities', 'Our priorities for the next 13 weeks', 4)}${fTa(k, 'support', 'Training or management support that would help', 4)}</div>`;
+  <div class="o2o-g2" style="margin-top:12px">${fTa(k, 'priorities', `Our priorities for the next ${spanOf(snap)}`, 4)}${fTa(k, 'support', 'Training or management support that would help', 4)}</div>`;
 }
 
 const priTable = (k, n) => `<div class="o2o-wrap"><table class="o2o-tbl ed"><tr><th>Action</th><th>Led by</th><th>Support needed</th><th>Due date</th></tr>

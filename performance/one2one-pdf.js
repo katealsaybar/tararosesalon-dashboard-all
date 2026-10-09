@@ -85,6 +85,14 @@ function checkBlock(ch, staff, P) {
     { columns: [img(ch.staff_sig, staff.name), img(ch.manager_sig, ch.signed_by || '')], columnGap: 16, margin: [0, 6, 0, 0] }], unbreakable: true };
 }
 
+// How long the review window is, in words (13 weeks, 4 weeks, 30 days), and as an adjective (13-week, 30-day).
+function spanOf(snap) {
+  if (!snap || !snap.from || !snap.to) return '13 weeks';
+  const n = Math.round((new Date(snap.to + 'T00:00:00') - new Date(snap.from + 'T00:00:00')) / 864e5) + 1;
+  return n % 7 === 0 ? `${n / 7} week${n === 7 ? '' : 's'}` : `${n} days`;
+}
+const spanAdj = snap => spanOf(snap).replace(/s$/, '').replace(' ', '-');
+
 function monthly(rec, staff, P) {
   const c = rec.content || {}, snap = rec.snapshot || {}, mgr = rec.signed_by || rec.manager || '';
   const win = snap.from ? `${P.dShort(snap.from)} to ${P.dShort(snap.to)} ${new Date(snap.to + 'T00:00:00').getFullYear()}` : '';
@@ -100,8 +108,8 @@ function monthly(rec, staff, P) {
     small(P.fillLine(rec, snap, c.meeting_date, rec.status === 'draft')),
     sec('01  Wins and highlights'), field('What has gone well since we last met: achievements, progress and kind words from clients or colleagues', c.wins),
     sec('02  Actions from our last meeting'), table(['Previous action', 'Progress and outcome', 'Status'], prev, ['*', '*', 70]),
-    sec('03  Business revenue, 13-week review'), small('Worked out from the stylist\'s own numbers' + (snap.off_days > 0 ? `, with aims adjusted for ${snap.off_days} days away.` : '.')),
-    table(['Metric', '13-week actual', 'Target', 'Notes and trends'], numRows, [105, 115, 85, '*']),
+    sec('03  Business revenue, ' + spanAdj(snap) + ' review'), small('Worked out from the stylist\'s own numbers' + (snap.off_days > 0 ? `, with aims adjusted for ${snap.off_days} days away.` : '.')),
+    table(['Metric', spanAdj(snap) + ' actual', 'Target', 'Notes and trends'], numRows, [105, 115, 85, '*']),
     field('Performance notes', c.opportunities),
     sec('04  Social media / personal brand marketing notes'), val(c.social_grow),
     sec('05  Agreed actions'), table(['Action or next step', 'Owner', 'Due date', 'Success measure'], acts, ['*', 70, 70, '*']),
@@ -112,7 +120,7 @@ function monthly(rec, staff, P) {
     small('Reviewed together. Ticked when consistently shown; the rest are the next focus.'),
     ...P.CHECK.map((g, i) => [sec(`0${i + 1}  ${g[0]}`), table(['Item', 'Shown'], g[1].map((x, j) => [x, (c.check && c.check[i] && c.check[i][j])
         ? { text: 'Consistently', fontSize: 8.5, color: C.good, bold: true } : { text: 'Next focus', fontSize: 8.5, color: C.soft }]), ['*', 70])]),
-    sec('Our priorities for the next 13 weeks'), val(c.priorities), field('Training or management support that would help', c.support), sigBlock(rec, staff));
+    sec('Our priorities for the next ' + spanOf(snap)), val(c.priorities), field('Training or management support that would help', c.support), sigBlock(rec, staff));
   return Object.assign(frame('HR-10', 'v1 · Oct 2026', rec.status === 'draft'), { content: body });
 }
 
