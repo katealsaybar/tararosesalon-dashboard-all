@@ -43,8 +43,12 @@ const LL_LISTS = [
     def: '<b>In:</b> lost clients who had a cut, treatment, beauty, nails or extensions between May 2025 and May 2026 and <b>no</b> hair colour or toner. <b>Out:</b> anyone with a booking; visits that were only retail.' },
 ];
 const LL_PER = [10, 20, 50, 100];
-let llSel = { list: '1', area: 'all', off: [], hideSent: true, per: 20, sort: 'recent' };   // hideSent: hide anyone messaged since the campaign start
+let llSel = { list: '1', area: 'all', off: ['nonum'], hideSent: true, per: 20, sort: 'recent' };   // hideSent: hide anyone messaged since the campaign start
 try { Object.assign(llSel, JSON.parse(localStorage.getItem('trs-lost-lists') || '{}')); } catch (e) {}
+// Kate, 9 Oct 2026: "default exclude those with no number, what is the point". A client with no usable number cannot be
+// messaged, so the WhatsApp heading starts with No number unticked (tick it to see them). Once for a browser that
+// already saved a choice, so the new default reaches it too.
+if (!llSel.nonumHidden) { llSel.nonumHidden = 1; if (!(llSel.off || []).includes('nonum')) llSel.off = (llSel.off || []).concat('nonum'); try { localStorage.setItem('trs-lost-lists', JSON.stringify(llSel)); } catch (e) {} }
 let llHost = null, llSum = null, llRows = {}, llErr = '', llPage = 1, llQuery = '', llShown = [], llBusy = false;
 const llSave = () => { try { localStorage.setItem('trs-lost-lists', JSON.stringify(llSel)); } catch (e) {} };
 const llPhones = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
@@ -89,7 +93,7 @@ async function renderLostLists(host) {
 
 function llPick(id) {
   llClosePop();
-  llSel.list = id; llSel.off = []; llSel.area = 'all'; llSel.also = []; llPage = 1; llQuery = ''; llSave();
+  llSel.list = id; llSel.off = ['nonum']; llSel.area = 'all'; llSel.also = []; llPage = 1; llQuery = ''; llSave();
   llHost.querySelectorAll('.ll-card').forEach(b => b.classList.toggle('on', b.dataset.id === id));
   llBusy = true; llPaintPanel();
   llFetch(id).then(() => { llBusy = false; llPaint(); }, e => { console.error(e); llBusy = false; llErr = 'That list did not load. Try again.'; llPaint(); });
@@ -111,12 +115,14 @@ function llSendReady() { llSel.off = LL_ST_ORDER.filter(s => s !== 'act' && s !=
 function llAllSt() { llSel.off = []; llRefresh(); }
 
 // What the filters leave of the list on screen.
-function llFiltered() {
-  const rows = llRows[llSel.list] || [], q = llQuery.trim().toLowerCase();
+// id: which group (the open one by default). `full` is false for the all-groups download, which keeps the Area, WhatsApp
+// and Messaged filters but not the search box or Also in, which belong to the group on screen.
+function llFiltered(id, full = true) {
+  const rows = llRows[id || llSel.list] || [], q = full ? llQuery.trim().toLowerCase() : '';
   let out = rows.filter(r => !llSel.off.includes(r.wa)
     && (llSel.area === 'all' || r.area === llSel.area)
     && !(llSel.hideSent && r.messaged)
-    && (llSel.also || []).every(g => (r.also_on || []).includes(g))
+    && (!full || (llSel.also || []).every(g => (r.also_on || []).includes(g)))
     && (!q || (r.client_name + ' ' + (r.stylist || '') + ' ' + (r.also_saw || '')).toLowerCase().includes(q)));
   const by = { recent: (a, b) => (a.days_since - b.days_since), oldest: (a, b) => (b.days_since - a.days_since),
     name: (a, b) => a.client_name.localeCompare(b.client_name) }[llSel.sort] || null;
@@ -272,6 +278,7 @@ function llPaintPanel() {
       <span style="flex:1"></span>
       ${ph ? '<button type="button" class="tglr lc-btn" onclick="llCopy()" title="Copy the numbers of the clients shown">Copy numbers</button>' : ''}
       <button type="button" class="tglr lc-btn" onclick="llSaveFile('xlsx')" title="Download what is shown as Excel">XLSX</button>
+      <button type="button" class="tglr lc-btn" onclick="llSaveAll()" title="One Excel file with a sheet for each of the five groups, with this table's Area, WhatsApp and Messaged filters">XLSX · all groups</button>
       <button type="button" class="tglr lc-btn" onclick="llSaveFile('csv')" title="Download what is shown as CSV">CSV</button>
       <span id="llNote" class="slv-note" style="display:inline"></span>
     </div>
@@ -344,8 +351,8 @@ async function llCopy() {
   catch (e) { llNote('The browser would not copy. Use the file instead.'); return; }
   llNote(`Copied ${lcNum(ok.length)} numbers${rows.length > ok.length ? `, left out ${lcNum(rows.length - ok.length)} names that match more than one client` : ''}`);
 }
-function llLines() {
-  const L = llList(), rows = llFiltered(), ph = llPhones();
+function llLines(id, rows) {
+  const L = (id && LL_LISTS.find(l => l.id === id)) || llList(); rows = rows || llFiltered(); const ph = llPhones();
   const since = llSum && llSum.fresh && llSum.fresh.campaign_from ? ' ' + llDay(llSum.fresh.campaign_from) : '';
   // The three service dates, as on screen (kept as dates, not mixed with words): smoothing, colouring, any service.
   const svc = r => [r.last_keratin || '', llColourDate(r), llServiceDate(r)];
@@ -361,6 +368,23 @@ function llLines() {
       [(LL_ST[r.wa] || [])[1] || r.wa, r.last_in || '', r.last_out || '', (r.also_on || []).filter(x => x !== L.id).sort().join(', '), r.messaged ? 'Yes' : '']);
   });
   return { head, lines };
+}
+// Kate, 9 Oct 2026: "an option to download xlsx for all groups, separated by each sheet". One workbook, a sheet per
+// group, each built like the single-group file. It fetches the groups not yet loaded (group 4 is the big one).
+async function llSaveAll() {
+  if (typeof lgxBuild !== 'function') return;
+  llNote('Getting all five groups…');
+  try { await Promise.all(LL_LISTS.map(l => llFetch(l.id))); } catch (e) { console.error(e); llNote('A group did not load. Try again.'); return; }
+  const nums = new Set(['Days since', 'Numbers matched']);
+  let total = 0;
+  const sheets = LL_LISTS.map(l => {
+    const { head, lines } = llLines(l.id, llFiltered(l.id, false));
+    total += lines.length;
+    return { name: ('Group ' + l.id + ' - ' + l.t).slice(0, 31), blocks: [{ cols: head.map(h => ({ label: h, fmt: nums.has(h) ? 'num' : 'text' })), rows: lines.map(x => ({ cells: x })) }] };
+  });
+  const name = ['lost-clients-all-groups', llSel.area !== 'all' ? llSel.area.toLowerCase().replace(' ', '-') : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
+  lgxSave(lgxXlsxBlob(lgxBuild({ sheets })), name + '.xlsx');
+  llNote(`Saved ${lcNum(total)} rows on ${sheets.length} sheets`);
 }
 function llSaveFile(kind) {
   if (typeof lgxBuild !== 'function') return;
