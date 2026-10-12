@@ -377,9 +377,7 @@ function llPaintPanel() {
         class="ll-search">
       <span style="flex:1"></span>
       <span class="ll-btns">
-      <button type="button" class="tglr lc-btn" onclick="lrfMenu(event)" title="An Excel file of a branch's lost clients with Take out? and Note columns to fill in, then upload it back">Review file</button>
-      <button type="button" class="tglr lc-btn" onclick="lrfPick()" title="Upload a filled-in review file: you see what changes before anything does">Upload review file</button>
-      <input type="file" id="lrfFile" accept=".xlsx,.csv" hidden onchange="lrfOnFile(this)">
+      <button type="button" class="tglr lc-btn" onclick="lrfMenu(event)" title="Take clients out of the blast on a branch's Google Sheet, with a note. Reception can use it too. Changes come back here within about 15 minutes">Open in Google Sheets</button>
       ${ph ? '<button type="button" class="tglr lc-btn" onclick="llCopy()" title="Copy the numbers of the clients shown">Copy numbers</button>' : ''}
       <button type="button" class="tglr lc-btn" onclick="llSaveFile('xlsx')" title="Download what is shown as Excel, with each client's visits">XLSX</button>
       <button type="button" class="tglr lc-btn" onclick="llSaveAll()" title="One Excel file with a sheet for each of the five groups, with this table's Area, WhatsApp and Messaged filters">XLSX · all groups</button>
@@ -387,7 +385,6 @@ function llPaintPanel() {
       </span>
       <span id="llNote" class="slv-note" style="display:inline"></span>
     </div>
-    <div id="lrfPanel"></div>
     <div id="llTable"></div>
     <p class="slv-muted ll-foot">Lost means no visit of any kind for 6 months, at any branch. WhatsApp status and Messaged come from respond.io, checked every night (a text sent from another system is not seen). ${ph ? '' : 'Phone numbers are for Level 3 and above. '}Next appointment is from Phorest's Staff Appointments, pulled six times a day, up to 3 months ahead; a client with a booking, or taken out on her row, is left out of Copy numbers, the files and To message, and the list is only as fresh as the last pull. Click Client, In blast, Last visit, Next appointment, WhatsApp or Messaged to filter or sort.</p>`;
   llPaintTable();
