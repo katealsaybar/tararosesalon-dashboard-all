@@ -1,6 +1,6 @@
 /* Lost Clients, To message and Templates tabs (lost-queue.js), Kate, 9 Oct 2026. Sits on lost-lists.css and the dashboard's tokens,
    so dark mode follows; only what they do not cover is here. */
-.lq-tabs{margin:14px 0 4px;flex-wrap:wrap}
+.lq-tabs{display:flex;width:fit-content;max-width:100%;margin:14px 0 4px;flex-wrap:wrap}
 .lq-refresh{cursor:pointer;font:inherit;font-size:12.5px}
 .lq-stat.on{border-color:var(--text);outline:1px solid var(--text);outline-offset:-3px}
 .lq-held{cursor:default}
