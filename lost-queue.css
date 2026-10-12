@@ -38,3 +38,7 @@
 .lq-bubble{background:#DCF8C6;color:#111;border-radius:12px 12px 12px 2px;padding:10px 13px;font-size:14px;line-height:1.5;max-width:460px;white-space:pre-wrap}
 [data-theme="dark"] .lq-bubble{background:#1F3A2C;color:#E7F5EC}
 .lq-ed button:disabled{opacity:.45;cursor:default}
+
+/* The file buttons stay side by side (Kate, 12 Oct 2026: XLSX and CSV had split across two lines). */
+.lq-btns{display:inline-flex;gap:8px;flex-wrap:nowrap}
+.lq-btns .tglr{white-space:nowrap}

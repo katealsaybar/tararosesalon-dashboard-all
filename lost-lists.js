@@ -376,6 +376,7 @@ function llPaintPanel() {
       <input type="search" id="llSearch" placeholder="Search name or stylist" value="${lcEsc(llQuery)}" oninput="llQuery=this.value;llPage=1;llPaintTable()"
         class="ll-search">
       <span style="flex:1"></span>
+      <span class="ll-btns">
       <button type="button" class="tglr lc-btn" onclick="lrfMenu(event)" title="An Excel file of a branch's lost clients with Take out? and Note columns to fill in, then upload it back">Review file</button>
       <button type="button" class="tglr lc-btn" onclick="lrfPick()" title="Upload a filled-in review file: you see what changes before anything does">Upload review file</button>
       <input type="file" id="lrfFile" accept=".xlsx,.csv" hidden onchange="lrfOnFile(this)">
@@ -383,6 +384,7 @@ function llPaintPanel() {
       <button type="button" class="tglr lc-btn" onclick="llSaveFile('xlsx')" title="Download what is shown as Excel, with each client's visits">XLSX</button>
       <button type="button" class="tglr lc-btn" onclick="llSaveAll()" title="One Excel file with a sheet for each of the five groups, with this table's Area, WhatsApp and Messaged filters">XLSX · all groups</button>
       <button type="button" class="tglr lc-btn" onclick="llSaveFile('csv')" title="Download what is shown as CSV">CSV</button>
+      </span>
       <span id="llNote" class="slv-note" style="display:inline"></span>
     </div>
     <div id="lrfPanel"></div>

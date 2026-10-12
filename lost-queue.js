@@ -209,10 +209,15 @@ function lqPaint() {
         <select class="ll-sel" aria-label="Order" onchange="lqSet('sort',this.value)">${[['best', 'Best first'], ['oldest', 'Lost longest first'], ['name', 'Name A to Z']].map(([k, l]) => `<option value="${k}"${lqSel.sort === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
         <input type="search" class="ll-search" id="lqSearch" placeholder="Search name or stylist" value="${lcEsc(lqQuery)}" oninput="lqQuery=this.value;lqPage=1;lqPaintTable()">
         <span style="flex:1"></span>
-        <button type="button" class="tglr lc-btn" onclick="lqSaveFile('xlsx')" title="Download what is shown, with the message for each">XLSX</button>
-        <button type="button" class="tglr lc-btn" onclick="lqSaveFile('csv')" title="Download what is shown, with the message for each">CSV</button>
+        <span class="lq-btns">
+          <button type="button" class="tglr lc-btn" onclick="lqSaveFile('xlsx')" title="Download what is shown, with the message for each">XLSX</button>
+          <button type="button" class="tglr lc-btn" onclick="lqSaveFile('csv')" title="Download what is shown, with the message for each">CSV</button>
+          <button type="button" class="tglr lc-btn" onclick="lqUpPick()" title="Upload the file back after you filled in Sent? or Take out?: you see what changes before anything does">Upload</button>
+          <input type="file" id="lqUpFile" accept=".xlsx,.csv" hidden onchange="lqUpOnFile(this)">
+        </span>
         <span id="lqNote" class="slv-note" style="display:inline"></span>
       </div>
+      <div id="lqUpPanel"></div>
       <p id="lqCount" class="slv-note"></p>
       <div id="lqTable"></div>
       <p class="slv-muted ll-foot">One message per client, first match wins: smoothing, then colour, then other services, then everyone else. Someone in several groups appears once.
@@ -341,17 +346,91 @@ async function lqCopy(i) {
 function lqSaveFile(kind) {
   if (typeof lgxBuild !== 'function') return;
   const rows = lqFiltered();
-  const head = ['Client', 'Phone', 'Channel', 'Message type', 'WhatsApp status', 'Branch', 'Usual stylist', 'Groups', 'Message', 'Notes'];
+  const head = ['Client', 'Phone', 'Channel', 'Message type', 'WhatsApp status', 'Branch', 'Usual stylist', 'Groups', 'Message', 'Notes', 'Sent?', 'Take out?', 'Note', 'Client key (do not change)'];
   const lines = rows.map(r => [r.client_name, r._phone || r.mobile || '', r._ch === 'sms' ? 'Text' : 'WhatsApp', LQ_TYPES[r.qtype][0], (LL_ST[r.wa] || [])[1] || r.wa,
     LC_BRANCH[r.branch] || r.branch, r._sty, (r.also_on || []).join(', '), lqMessage(r),
-    [r._oddName ? 'check first name' : '', r.n_numbers > 1 ? '2+ numbers in Phorest' : '', r._dupNames.length ? 'same number as ' + r._dupNames.join(', ') : ''].filter(Boolean).join('; ')]);
+    [r._oddName ? 'check first name' : '', r.n_numbers > 1 ? '2+ numbers in Phorest' : '', r._dupNames.length ? 'same number as ' + r._dupNames.join(', ') : ''].filter(Boolean).join('; '),
+    r.messaged ? 'Yes' : '', '', '', r.client_key]);
   const pi = head.indexOf('Phone');
   const out = kind === 'csv' ? lines.map(l => l.map((v, j) => j === pi && v ? `="${v}"` : v)) : lines;   // as lost-lists.js: Excel would show 9.72E+11
   const built = lgxBuild({ sheets: [{ name: 'To message', blocks: [{ cols: head.map(h => ({ label: h, fmt: 'text' })), rows: out.map(l => ({ cells: l })) }] }] });
-  const name = ['lost-clients-to-message', lqSel.view, new Date().toISOString().slice(0, 10)].join('-');
+  // The name says what is in it (Kate, 12 Oct 2026: she downloaded Al Quoz and the file did not say so).
+  const slug = t => String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const name = ['lost-clients-to-message', { send: 'to-send', sent: 'sent', reply: 'replied' }[lqSel.view] || lqSel.view,
+    lqSel.br !== 'all' ? slug(LC_BRANCH[lqSel.br] || lqSel.br) : '', lqSel.ch !== 'all' ? (lqSel.ch === 'sms' ? 'text' : 'whatsapp') : '',
+    lqSel.ty !== 'all' ? slug(LQ_TYPES[lqSel.ty][0]) : '', lqSel.st !== 'all' ? slug((LL_ST[lqSel.st] || [])[1] || lqSel.st) : '',
+    lqSel.sty !== 'all' ? (lqSel.sty === 'named' ? 'stylist-named' : 'no-stylist') : '', lqSel.ph !== 'all' ? 'one-number' : '',
+    lqQuery.trim() ? 'search' : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
   lqNote(`Saved ${lcNum(lines.length)} rows as ${kind.toUpperCase()}`);
+}
+
+// ── UPLOAD (Kate, 12 Oct 2026: "an upload button to keep updating the sheet") ──────────────────────
+// The file from XLSX or CSV comes back with Sent? (Yes = she was messaged outside this page, e.g. a respond.io broadcast) and
+// Take out? (one of the five reasons) and Note filled in. A preview first, then Apply: Sent? goes to lost_queue_mark (the same as the
+// Mark sent button), Take out? to lost_exclude_bulk (the same as the groups page). A client not on the list any more is skipped.
+let lqUpPlan = null;
+function lqUpPick() { const f = document.getElementById('lqUpFile'); if (f) { f.value = ''; f.click(); } }
+async function lqUpOnFile(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const box = document.getElementById('lqUpPanel');
+  if (box) box.innerHTML = '<p class="slv-muted">Reading the file…</p>';
+  try {
+    const grid = await lrfGrid(file);
+    const hi = grid.findIndex(r => (r || []).some(c => /^client key/i.test(String(c || '').trim())));
+    if (hi < 0) throw new Error('no key column');
+    const H = grid[hi].map(c => String(c || '').trim().toLowerCase());
+    const ci = { key: H.findIndex(h => h.startsWith('client key')), sent: H.findIndex(h => h.startsWith('sent')), out: H.findIndex(h => h.startsWith('take out')), note: H.findIndex(h => h === 'note'), name: H.indexOf('client') };
+    const byKey = new Map(lqRows.map(r => [r.client_key, r]));
+    const canon = new Map(LL_REASONS.map(x => [x.toLowerCase(), x]));
+    const yes = v => /^(y|yes|sent|x|1|true)$/i.test(String(v || '').trim());
+    const mark = [], out = [], unknown = [], gone = [];
+    let seen = 0;
+    grid.slice(hi + 1).forEach(r => {
+      const key = String((r || [])[ci.key] || '').trim();
+      if (!key) return;
+      seen++;
+      const row = byKey.get(key), name = String((ci.name >= 0 && r[ci.name]) || (row && row.client_name) || key).trim();
+      if (!row) { gone.push(name); return; }
+      const raw = ci.out >= 0 ? String(r[ci.out] || '').trim() : '';
+      if (raw) {
+        const reason = canon.get(raw.toLowerCase());
+        if (!reason) unknown.push({ name, raw }); else out.push({ row, name, k: key, r: reason, n: ci.note >= 0 ? String(r[ci.note] || '').trim().slice(0, 200) : '' });
+        return;   // taken out wins over Sent?
+      }
+      if (ci.sent >= 0 && yes(r[ci.sent]) && !row.messaged) mark.push({ row, name });
+    });
+    lqUpPlan = { mark, out };
+    const names = (l, n = 12) => l.slice(0, n).map(x => lcEsc(x.name)).join(', ') + (l.length > n ? `, and ${lcNum(l.length - n)} more` : '');
+    const total = mark.length + out.length;
+    box.innerHTML = `<div class="lrf-box"><div><b>${lcEsc(file.name)}</b>: ${lcNum(seen)} rows read.</div><ul class="lrf-list">
+      <li><b>${lcNum(mark.length)}</b> marked as sent${mark.length ? ': ' + names(mark) : ''}</li>
+      <li><b>${lcNum(out.length)}</b> taken out of the blast${out.length ? ': ' + names(out) : ''}</li>
+      ${unknown.length ? `<li class="lrf-warn"><b>${lcNum(unknown.length)}</b> have a reason that is not on the list, so they are left as they are: ${unknown.slice(0, 8).map(x => lcEsc(x.name) + ' ("' + lcEsc(x.raw) + '")').join(', ')}</li>` : ''}
+      ${gone.length ? `<li class="lrf-warn"><b>${lcNum(gone.length)}</b> are no longer on this list (messaged, booked, or taken out already), so they are skipped</li>` : ''}</ul>
+      <div class="lrf-act"><button type="button" class="tglr lc-btn" onclick="lqUpApply()"${total ? '' : ' disabled'}>${total ? 'Apply ' + lcNum(total) + ' change' + (total === 1 ? '' : 's') : 'Nothing to change'}</button>
+      <button type="button" class="tglr lc-btn" onclick="lqUpCancel()">Cancel</button></div></div>`;
+  } catch (e) {
+    console.error(e); lqUpPlan = null;
+    if (box) box.innerHTML = '<p class="slv-note">That file could not be read. Use a file downloaded from this page (XLSX or CSV), with its Client key column.</p>';
+  }
+}
+function lqUpCancel() { lqUpPlan = null; const b = document.getElementById('lqUpPanel'); if (b) b.innerHTML = ''; }
+async function lqUpApply() {
+  if (!lqUpPlan) return;
+  const { mark, out } = lqUpPlan, box = document.getElementById('lqUpPanel');
+  if (mark.length + out.length > 300 && !confirm(`Apply ${mark.length + out.length} changes at once?`)) return;
+  if (box) box.innerHTML = '<p class="slv-muted">Saving…</p>';
+  let err = null;
+  if (mark.length) { const r = await sb.rpc('lost_queue_mark', { p_keys: mark.flatMap(x => [x.row.client_key].concat(x.row._dupKeys)) }); err = err || r.error; }
+  if (out.length) { const r = await sb.rpc('lost_exclude_bulk', { p_items: out.map(x => ({ k: x.k, r: x.r, n: x.n || null })), p_clear: [] }); err = err || r.error; }
+  lqUpPlan = null;
+  if (err) { console.error(err); if (box) box.innerHTML = '<p class="slv-note">Part of that did not save. Reload the list to see what did, then upload again.</p>'; await lqRenderQueue(true); return; }
+  await lqRenderQueue(true);
+  const b2 = document.getElementById('lqUpPanel');
+  if (b2) b2.innerHTML = `<p class="slv-note">Saved: ${lcNum(mark.length)} marked as sent, ${lcNum(out.length)} taken out.</p>`;
 }
 
 // ── TEMPLATES ────────────────────────────────────────────────────────────────────────────────

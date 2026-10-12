@@ -184,3 +184,6 @@
 .lrf-list li{margin:3px 0}
 .lrf-warn{color:var(--muted)}
 .lrf-act{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.ll-btns{display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ll-btns .tglr{white-space:nowrap}

@@ -169,6 +169,12 @@ function lrfReadCsv(text) {
   return rows;
 }
 
+// A file's first sheet as rows of strings, whichever of .xlsx or .csv it is (lost-queue.js reads its upload with this too).
+async function lrfGrid(file) {
+  const buf = await file.arrayBuffer();
+  return /\.csv$/i.test(file.name) ? lrfReadCsv(new TextDecoder().decode(buf)) : await lrfReadXlsx(buf);
+}
+
 function lrfPick() { const f = document.getElementById('lrfFile'); if (f) { f.value = ''; f.click(); } }
 
 async function lrfOnFile(input) {
