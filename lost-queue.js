@@ -34,7 +34,7 @@ const LQ_DEFAULTS = {
 };
 const LQ_TOKENS = ['{first_name}', '{branch}', '{stylist}', '{month}'];
 
-let lqSel = { tab: 'groups', view: 'send', ch: 'all', ty: 'all', br: 'all', sort: 'best', per: 20, mark: true, batch: 50 };
+let lqSel = { tab: 'groups', view: 'send', ch: 'all', ty: 'all', br: 'all', st: 'all', sty: 'all', ph: 'all', sort: 'best', per: 20, mark: true, batch: 50 };
 try { Object.assign(lqSel, JSON.parse(localStorage.getItem('trs-lost-queue') || '{}')); } catch (e) {}
 const lqSave = () => { try { localStorage.setItem('trs-lost-queue', JSON.stringify(lqSel)); } catch (e) {} };
 let lqData = null, lqRows = [], lqTpl = null, lqLoadedAt = 0, lqQuery = '', lqPage = 1, lqShown = [], lqBusy = false, lqErr = '', lqTplKey = 'wa_smoothing', lqTplSample = 0;
@@ -164,6 +164,9 @@ function lqFiltered(view) {
   const q = lqQuery.trim().toLowerCase();
   let out = lqRows.filter(r => lqView(r) === (view || lqSel.view)
     && (lqSel.ch === 'all' || r._ch === lqSel.ch) && (lqSel.ty === 'all' || r.qtype === lqSel.ty) && (lqSel.br === 'all' || r.branch === lqSel.br)
+    && (lqSel.st === 'all' || r.wa === lqSel.st)
+    && (lqSel.sty === 'all' || (lqSel.sty === 'named' ? !!r._sty : !r._sty))
+    && (lqSel.ph === 'all' || r.n_numbers <= 1)
     && (!q || (r.client_name + ' ' + (r._sty || '') + ' ' + (r.stylist || '')).toLowerCase().includes(q)));
   if (lqSel.sort === 'name') out = out.slice().sort((a, b) => a.client_name.localeCompare(b.client_name));
   else if (lqSel.sort === 'oldest') out = out.slice().sort((a, b) => b.days_since - a.days_since);
@@ -219,6 +222,35 @@ function lqPaint() {
   lqPaintTable();
 }
 function lqSet(k, v) { lqSel[k] = v; lqPage = 1; lqSave(); lqPaint(); }
+// Heading menus (Kate, 12 Oct 2026: "the headers should be filterable"): the same menus as the five groups' table, opened by
+// lost-lists.js's llMenu with a q- key. A choice repaints the table and the controls above it and keeps the menu open.
+function lqMenuSet(k, v) { lqSet(k, v); llFillPop(); }
+function lqFillPop(key) {
+  const rows = lqBase();
+  const opt = (on, label, fn, n) => `<button type="button" class="ll-opt${on ? ' on' : ''}" onclick="${fn}"><span class="ll-tick" aria-hidden="true">${on ? '✓' : ''}</span>${label}${n != null ? ` <em>${lcNum(n)}</em>` : ''}</button>`;
+  const pick = (k, v, label, n) => opt(lqSel[k] === v, label, `lqMenuSet('${k}','${v}')`, n);
+  const cnt = f => rows.filter(f).length;
+  if (key === 'q-client') {
+    const brs = [...new Set(lqRows.map(r => r.branch))].sort();
+    return '<div class="ll-pt">Branch</div>' + pick('br', 'all', 'All branches', rows.length) + brs.map(b => pick('br', b, lcEsc(LC_BRANCH[b] || b), cnt(r => r.branch === b))).join('')
+      + '<div class="ll-pt">Sort</div>' + [['best', 'Best first'], ['oldest', 'Lost longest first'], ['name', 'Name A to Z']].map(([v, l]) => pick('sort', v, l)).join('');
+  }
+  if (key === 'q-message') {
+    return '<div class="ll-pt">Message</div>' + pick('ty', 'all', 'All messages', rows.length) + LQ_TYPE_ORDER.map(k => pick('ty', k, lcEsc(LQ_TYPES[k][0]), cnt(r => r.qtype === k))).join('');
+  }
+  if (key === 'q-channel') {
+    return '<div class="ll-pt">Channel</div>' + pick('ch', 'all', 'Both', rows.length) + pick('ch', 'whatsapp', 'WhatsApp', cnt(r => r._ch === 'whatsapp')) + pick('ch', 'sms', 'Text', cnt(r => r._ch === 'sms'))
+      + '<div class="ll-pt">WhatsApp status</div>' + pick('st', 'all', 'Any status') + LL_ST_ORDER.filter(s => cnt(r => r.wa === s)).map(s => pick('st', s, lcEsc(LL_ST[s][1]), cnt(r => r.wa === s))).join('');
+  }
+  if (key === 'q-stylist') {
+    return '<div class="ll-pt">Usual stylist</div>' + pick('sty', 'all', 'Everyone', rows.length) + pick('sty', 'named', 'Named in the message', cnt(r => !!r._sty)) + pick('sty', 'none', 'No stylist named', cnt(r => !r._sty));
+  }
+  if (key === 'q-phone') {
+    return '<div class="ll-pt">Phone</div>' + pick('ph', 'all', 'All', rows.length) + pick('ph', 'single', 'Hide names with more than one number', cnt(r => r.n_numbers <= 1))
+      + '<div class="ll-pt ll-pn">A name that matches more than one client in Phorest may carry someone else\'s number.</div>';
+  }
+  return '';
+}
 
 function lqPaintTable() {
   const box = document.getElementById('lqTable');
@@ -263,7 +295,11 @@ function lqPaintTable() {
       <div class="lq-msg lq-msg-m">${lcEsc(lqMessage(r))}</div>
       <div style="margin-top:8px">${act(r, i)}</div></div></li>`).join('');
   const from = (lqPage - 1) * per + 1;
-  box.innerHTML = `<div class="slv-wrap prd-desk lc-wrap ll-wrap"><table class="slv-table"><thead><tr><th>Client</th><th>Message</th><th>Channel</th><th>Usual stylist</th><th>Phone</th><th>What she gets</th><th></th></tr></thead>
+  const th = (label, k, marked) => `<th><button type="button" class="ll-thb${marked ? ' on' : ''}" onclick="llMenu(event,'${k}')" aria-haspopup="dialog" title="Filter or sort">${lcEsc(label)} <span aria-hidden="true">▾</span></button></th>`;
+  const heads = th('Client', 'q-client', lqSel.br !== 'all' || lqSel.sort !== 'best') + th('Message', 'q-message', lqSel.ty !== 'all')
+    + th('Channel', 'q-channel', lqSel.ch !== 'all' || lqSel.st !== 'all') + th('Usual stylist', 'q-stylist', lqSel.sty !== 'all')
+    + th('Phone', 'q-phone', lqSel.ph !== 'all') + '<th>What she gets</th><th></th>';
+  box.innerHTML = `<div class="slv-wrap prd-desk lc-wrap ll-wrap"><table class="slv-table"><thead><tr>${heads}</tr></thead>
       <tbody>${tr || `<tr><td colspan="7" class="slv-muted">${view === 'send' ? 'Nobody left to send to with these filters.' : 'Nobody here yet.'}</td></tr>`}</tbody></table></div>
       <ol class="prd-cards">${cards || '<li class="slv-muted">Nobody here with these filters.</li>'}</ol>
       ${rows.length ? `<div class="lc-pager">

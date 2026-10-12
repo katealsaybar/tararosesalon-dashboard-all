@@ -170,6 +170,8 @@ function llMenu(ev, k) {
 function llFillPop() {
   const pop = document.getElementById('llPop');
   if (!pop || !llPopFor) return;
+  // To message (lost-queue.js) has headings with menus too: its keys start with q-.
+  if (String(llPopFor).indexOf('q-') === 0 && typeof lqFillPop === 'function') { pop.innerHTML = lqFillPop(llPopFor); return; }
   const all = llRows[llSel.list] || [];
   const opt = (on, label, fn, n) => `<button type="button" class="ll-opt${on ? ' on' : ''}" onclick="${fn}"><span class="ll-tick" aria-hidden="true">${on ? '✓' : ''}</span>${label}${n != null ? ` <em>${n}</em>` : ''}</button>`;
   let h = '';
