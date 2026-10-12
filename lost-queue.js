@@ -34,7 +34,7 @@ const LQ_DEFAULTS = {
 };
 const LQ_TOKENS = ['{first_name}', '{branch}', '{stylist}', '{month}'];
 
-let lqSel = { tab: 'groups', view: 'send', ch: 'all', ty: 'all', br: 'all', st: 'all', sty: 'all', ph: 'all', sort: 'best', per: 20, mark: true, batch: 50 };
+let lqSel = { tab: 'groups', view: 'send', ch: 'all', ty: 'all', br: 'all', st: 'all', sty: 'all', ph: 'all', sort: 'best', per: 20, batch: 50 };
 try { Object.assign(lqSel, JSON.parse(localStorage.getItem('trs-lost-queue') || '{}')); } catch (e) {}
 const lqSave = () => { try { localStorage.setItem('trs-lost-queue', JSON.stringify(lqSel)); } catch (e) {} };
 let lqData = null, lqRows = [], lqTpl = null, lqLoadedAt = 0, lqQuery = '', lqPage = 1, lqShown = [], lqBusy = false, lqErr = '', lqTplKey = 'wa_smoothing', lqTplSample = 0;
@@ -213,7 +213,6 @@ function lqPaint() {
         <button type="button" class="tglr lc-btn" onclick="lqSaveFile('csv')" title="Download what is shown, with the message for each">CSV</button>
         <span id="lqNote" class="slv-note" style="display:inline"></span>
       </div>
-      <label class="ll-hide lq-auto"><input type="checkbox" ${lqSel.mark ? 'checked' : ''} onchange="lqSel.mark=this.checked;lqSave()"> Mark a client as sent when I open WhatsApp or copy her message</label>
       <p id="lqCount" class="slv-note"></p>
       <div id="lqTable"></div>
       <p class="slv-muted ll-foot">One message per client, first match wins: smoothing, then colour, then other services, then everyone else. Someone in several groups appears once.
@@ -332,14 +331,12 @@ function lqOpen(i) {
   if (!r || !r._phone) return;
   const digits = r._phone.replace(/\D/g, '');
   window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(lqMessage(r)), '_blank', 'noopener');
-  if (lqSel.mark) lqMark([r]);
 }
 async function lqCopy(i) {
   const r = lqShown[i];
   if (!r) return;
   try { await navigator.clipboard.writeText(lqMessage(r)); } catch (e) { lqNote('The browser would not copy. Use the file instead.'); return; }
   lqNote(`Copied the message for ${r.client_name}`);
-  if (lqSel.mark) lqMark([r]);
 }
 function lqSaveFile(kind) {
   if (typeof lgxBuild !== 'function') return;
