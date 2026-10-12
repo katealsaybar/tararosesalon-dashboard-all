@@ -107,6 +107,7 @@ function lqPrep(rows) {
     r._sty = lqStylist(r);
     r._ch = r.wa === 'text' ? 'sms' : 'whatsapp';
     r.qtype = LQ_KIND[r.qtype] || r.qtype || 'due';
+    r.also_on = [...new Set((r.also_on || []).map(x => x === '1' ? '2' : x))];   // groups 1 and 2 are one group now
     r._phone = r.n_numbers === 1 && r.mobile ? String(r.mobile).split(' / ')[0] : '';
     r._dup = false; r._dupKeys = []; r._dupNames = [];
   });

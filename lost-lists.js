@@ -31,11 +31,12 @@ const LL_ST = {
 };
 const LL_ST_ORDER = ['act', 'r18', 'noreply', 'unchecked', 'text', 'nonum', 'blocked'];
 const LL_LISTS = [
-  { id: '1', t: 'Smoothing, lost', d: 'Lost 6+ months, had smoothing May 2025 to May 2026', ch: 'WhatsApp + text', svc: 'Last smoothing',
-    def: '<b>In:</b> no visit of any kind since 9 Apr 2026, and a smoothing (keratin or Supreme Straighten) between May 2025 and May 2026. <b>Booked:</b> a client with a booking stays on the table with the date, and is left out of Copy numbers, files and To message.' },
-  { id: '2', t: 'Smoothing, not back', d: 'Last smoothing 6+ months ago', ch: 'WhatsApp + text', svc: 'Last smoothing',
-    def: '<b>In:</b> everyone in group 1, plus clients who still come in for other services but have not had smoothing since. "Still visiting" tells them apart. <b>Booked:</b> a client with a booking stays on the table with the date, and is left out of Copy numbers, files and To message.' },
-  { id: '3', t: 'Colour', d: 'Lost 6+ months, hair colour or toner in the window', ch: 'Text (25% off) + WhatsApp', svc: 'Last colour',
+  // Kate, 12 Oct 2026 (the coordinators' Zoom: "pwede naman sag-isahin"): groups 1 and 2 are one. Group 2 already held everyone in group 1
+  // (lost with a smoothing in the window) plus the clients who still visit for other services, so it is the list; group 1's own card is gone.
+  // The other groups keep their numbers, so what the coordinators and Coach Emma were told about 3, 4 and 5 still holds.
+  { id: '2', label: 'Groups 1 and 2', t: 'Smoothing', d: 'Last smoothing 6+ months ago, lost or still visiting', ch: 'WhatsApp + text', svc: 'Last smoothing',
+    def: '<b>In:</b> clients whose last smoothing (keratin or Supreme Straighten) was 6+ months ago: the ones who have not visited at all for 6+ months and had a smoothing between May 2025 and May 2026 (these were group 1), and the ones who still come in for other services but have not had smoothing since ("Still visiting" tells them apart). <b>Booked, recent visit:</b> a client with a booking, or who came in within the last 6 weeks, stays on the table and is left out of To message.' },
+  { id: '3', t: 'Colour', d: 'Lost 6+ months, hair colour or toner in the window', ch: 'WhatsApp + text', svc: 'Last colour',
     def: '<b>In:</b> lost clients with colouring, highlights, balayage, bleach or toner (tagged "Toner only") between May 2025 and May 2026. Use the area switch for Dubai (Motor City, Al Quoz) or Abu Dhabi (Saadiyat, Khalifa City A). <b>Booked:</b> a client with a booking stays on the table with the date, and is left out of Copy numbers, files and To message.' },
   { id: '4', t: 'All 6m+, WhatsApp', d: 'Everyone due, WhatsApp only', ch: 'WhatsApp only', svc: 'Services in window',
     def: '<b>In:</b> every lost client who is a respond.io contact, from visits since Jan 2025. <b>Out:</b> text-only, no number. <b>Booked:</b> stays on the table with the date, left out of Copy numbers, files and To message. Clients who last came before 2025 are not in yet.' },
@@ -43,8 +44,9 @@ const LL_LISTS = [
     def: '<b>In:</b> lost clients who had a cut, treatment, beauty, nails or extensions between May 2025 and May 2026 and <b>no</b> hair colour or toner. <b>Booked:</b> stays on the table with the date, left out of Copy numbers, files and To message. <b>Out:</b> visits that were only retail.' },
 ];
 const LL_PER = [10, 20, 50, 100];
-let llSel = { list: '1', area: 'all', off: ['nonum'], hideSent: true, hideBooked: false, blast: 'all', per: 20, sort: 'recent' };   // hideSent: hide anyone messaged since the campaign start
+let llSel = { list: '2', area: 'all', off: ['nonum'], hideSent: true, hideBooked: false, blast: 'all', per: 20, sort: 'recent' };   // hideSent: hide anyone messaged since the campaign start
 try { Object.assign(llSel, JSON.parse(localStorage.getItem('trs-lost-lists') || '{}')); } catch (e) {}
+if (llSel.list === '1' || !['2', '3', '4', '5'].includes(llSel.list)) llSel.list = '2';   // group 1 was folded into group 2
 // Kate, 9 Oct 2026: "default exclude those with no number, what is the point". A client with no usable number cannot be
 // messaged, so the WhatsApp heading starts with No number unticked (tick it to see them). Once for a browser that
 // already saved a choice, so the new default reaches it too.
@@ -53,7 +55,8 @@ let llHost = null, llSum = null, llRows = {}, llErr = '', llPage = 1, llQuery = 
 const llSave = () => { try { localStorage.setItem('trs-lost-lists', JSON.stringify(llSel)); } catch (e) {} };
 const llPhones = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
 // "Group 1: Smoothing, lost": the number is the group's name everywhere (Kate, 9 Oct 2026), so nobody has to guess what a bare 1 to 5 means.
-const llName = l => `Group ${l.id}: ${l.t}`;
+const llLabel = l => l.label || 'Group ' + l.id;
+const llName = l => `${llLabel(l)}: ${l.t}`;
 const llList = () => LL_LISTS.find(l => l.id === llSel.list) || LL_LISTS[0];
 // Short date for the table (no year in this year), the full one for chips, cards and files.
 const llDayS = d => { if (!d) return ''; const x = new Date(String(d).slice(0, 10) + 'T00:00:00'); return x.toLocaleDateString('en-GB', x.getFullYear() === new Date().getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: '2-digit' }); };
@@ -192,7 +195,7 @@ function llFillPop() {
     // narrows this one to the clients who are in those groups too (every group ticked), for the ones in more than one.
     const lists = ((llSum || {}).lists) || {}, also = llSel.also || [];
     h = '<div class="ll-pt">Show group</div>' + LL_LISTS.map(l => opt(l.id === llSel.list, lcEsc(llName(l)), `llPick('${l.id}')`, lcNum((lists[l.id] || {}).n || 0))).join('')
-      + '<div class="ll-pt">Also in</div>' + LL_LISTS.filter(l => l.id !== llSel.list).map(l => opt(also.includes(l.id), 'Group ' + l.id, `llToggleAlso('${l.id}')`, lcNum(all.filter(r => (r.also_on || []).includes(l.id)).length))).join('')
+      + '<div class="ll-pt">Also in</div>' + LL_LISTS.filter(l => l.id !== llSel.list).map(l => opt(also.includes(l.id), llLabel(l), `llToggleAlso('${l.id}')`, lcNum(all.filter(r => (r.also_on || []).includes(l.id)).length))).join('')
       + '<div class="ll-pf"><button type="button" class="lc-more" onclick="llSel.also=[];llRefresh()">Clear</button></div>'
       + '<div class="ll-pt ll-pn">Also in shows the clients on this list who are in every group ticked.</div>';
   } else if (llPopFor === 'blast') {
@@ -315,8 +318,8 @@ function llCard(l) {
   const pct = n ? Math.round(100 * ready / n) : 0;
   // Kate, 9 Oct 2026: the cards pick the list again (click or Enter), as well as the Show group menu in the In groups heading. The ring marks the open one.
   return `<div class="ll-card${l.id === llSel.list ? ' on' : ''}" data-id="${l.id}" role="button" tabindex="0" aria-pressed="${l.id === llSel.list}"
-      title="Show Group ${l.id}" onclick="llPick('${l.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();llPick('${l.id}')}">
-      <div class="ll-g">Group ${l.id}</div><div class="ll-t">${lcEsc(l.t)}</div><div class="ll-n">${lcNum(n)}</div>
+      title="Show ${llLabel(l)}" onclick="llPick('${l.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();llPick('${l.id}')}">
+      <div class="ll-g">${llLabel(l)}</div><div class="ll-t">${lcEsc(l.t)}</div><div class="ll-n">${lcNum(n)}</div>
       <div class="ll-d">${lcEsc(l.d)}</div>
       <div class="ll-ch">${lcEsc(l.ch)}${l.id === '3' ? `<br>Dubai ${lcNum(S.dubai)} · Abu Dhabi ${lcNum(S.abu_dhabi)}` : ''}</div>
       <div class="ll-bot">
@@ -349,7 +352,7 @@ function llSvcLine(r) {
     .map(x => `${x[0]} ${lcEsc(llDayS(x[1]))}`).join(' · ') || '–';
 }
 function llAlso(r) {
-  const tags = (r.also_on || []).filter(x => x !== llSel.list).map(x => `<span class="ll-tag" title="Also in group ${x}">${x}</span>`);
+  const tags = [...new Set((r.also_on || []).map(x => x === '1' ? '2' : x))].filter(x => x !== llSel.list).map(x => `<span class="ll-tag" title="Also in ${x === '2' ? 'groups 1 and 2' : 'group ' + x}">${x === '2' ? '1+2' : x}</span>`);
   return tags.join('') || '<span class="slv-muted">–</span>';
 }
 function llStatus(r) {
@@ -471,7 +474,7 @@ function llLines(id, rows) {
     const t = lcTeam(r);
     return [r.client_name, r.area, LC_BRANCH[r.branch] || r.branch, r.last_visit, r.days_since].concat(svc(r), type ? [type[1](r)] : [],
       [t.hair[0] || '', t.beauty[0] || '', t.hair.slice(1).concat(t.beauty.slice(1)).join(', ')], ph ? [r.mobile || '', r.n_numbers] : [],
-      [(LL_ST[r.wa] || [])[1] || r.wa, r.last_in || '', r.last_out || '', (r.also_on || []).filter(x => x !== L.id).sort().join(', '), r.messaged ? 'Yes' : '']);
+      [(LL_ST[r.wa] || [])[1] || r.wa, r.last_in || '', r.last_out || '', [...new Set((r.also_on || []).map(x => x === '1' ? '2' : x))].filter(x => x !== L.id).sort().join(', '), r.messaged ? 'Yes' : '']);
   });
   return { head, lines, rows };
 }
@@ -516,7 +519,7 @@ async function llSaveAll() {
   const sheets = LL_LISTS.map((l, li) => {
     const { head, lines } = parts[li];
     total += lines.length;
-    return { name: ('Group ' + l.id + ' - ' + l.t).slice(0, 31), blocks: [{ cols: head.map(h => ({ label: h, fmt: nums.has(h) ? 'num' : 'text' })), rows: lines.map(x => ({ cells: x })) }] };
+    return { name: (llLabel(l) + ' - ' + l.t).slice(0, 31), blocks: [{ cols: head.map(h => ({ label: h, fmt: nums.has(h) ? 'num' : 'text' })), rows: lines.map(x => ({ cells: x })) }] };
   });
   const name = ['lost-clients-all-groups', llSel.area !== 'all' ? llSel.area.toLowerCase().replace(' ', '-') : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
   lgxSave(lgxXlsxBlob(lgxBuild({ sheets })), name + '.xlsx');
@@ -532,7 +535,7 @@ async function llSaveFile(kind) {
   const cols = head.map(h => ({ label: h, fmt: nums.has(h) ? 'num' : 'text' }));
   const pi = head.indexOf('Phone');
   const out = kind === 'csv' && pi >= 0 ? lines.map(l => l.map((v, j) => j === pi && v ? `="${v}"` : v)) : lines;   // as lost-clients.js: Excel would show 9.72E+11
-  const built = lgxBuild({ sheets: [{ name: ('Group ' + llList().id + ' - ' + llList().t).slice(0, 31)   /* the app's "Group 1: Smoothing, lost"; Excel does not allow a colon in a sheet name, so a dash */, blocks: [{ cols, rows: out.map(l => ({ cells: l })) }] }] });
+  const built = lgxBuild({ sheets: [{ name: (llLabel(llList()) + ' - ' + llList().t).slice(0, 31)   /* the app's "Group 1: Smoothing, lost"; Excel does not allow a colon in a sheet name, so a dash */, blocks: [{ cols, rows: out.map(l => ({ cells: l })) }] }] });
   const name = ['lost-clients-list', llSel.list, llSel.area !== 'all' ? llSel.area.toLowerCase().replace(' ', '-') : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
