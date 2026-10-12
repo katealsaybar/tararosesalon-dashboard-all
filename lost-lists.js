@@ -32,18 +32,18 @@ const LL_ST = {
 const LL_ST_ORDER = ['act', 'r18', 'noreply', 'unchecked', 'text', 'nonum', 'blocked'];
 const LL_LISTS = [
   { id: '1', t: 'Smoothing, lost', d: 'Lost 6+ months, had smoothing May 2025 to May 2026', ch: 'WhatsApp + text', svc: 'Last smoothing',
-    def: '<b>In:</b> no visit of any kind since 9 Apr 2026, and a smoothing (keratin or Supreme Straighten) between May 2025 and May 2026. <b>Out:</b> anyone with a booking.' },
-  { id: '2', t: 'Smoothing, not back', d: 'Last smoothing 6+ months ago, no booking', ch: 'WhatsApp + text', svc: 'Last smoothing',
-    def: '<b>In:</b> everyone in group 1, plus clients who still come in for other services but have not had smoothing since. "Still visiting" tells them apart. <b>Out:</b> anyone with a booking.' },
+    def: '<b>In:</b> no visit of any kind since 9 Apr 2026, and a smoothing (keratin or Supreme Straighten) between May 2025 and May 2026. <b>Booked:</b> a client with a booking stays on the table with the date, and is left out of Copy numbers, files and To message.' },
+  { id: '2', t: 'Smoothing, not back', d: 'Last smoothing 6+ months ago', ch: 'WhatsApp + text', svc: 'Last smoothing',
+    def: '<b>In:</b> everyone in group 1, plus clients who still come in for other services but have not had smoothing since. "Still visiting" tells them apart. <b>Booked:</b> a client with a booking stays on the table with the date, and is left out of Copy numbers, files and To message.' },
   { id: '3', t: 'Colour', d: 'Lost 6+ months, hair colour or toner in the window', ch: 'Text (25% off) + WhatsApp', svc: 'Last colour',
-    def: '<b>In:</b> lost clients with colouring, highlights, balayage, bleach or toner (tagged "Toner only") between May 2025 and May 2026. Use the area switch for Dubai (Motor City, Al Quoz) or Abu Dhabi (Saadiyat, Khalifa City A). <b>Out:</b> anyone with a booking.' },
+    def: '<b>In:</b> lost clients with colouring, highlights, balayage, bleach or toner (tagged "Toner only") between May 2025 and May 2026. Use the area switch for Dubai (Motor City, Al Quoz) or Abu Dhabi (Saadiyat, Khalifa City A). <b>Booked:</b> a client with a booking stays on the table with the date, and is left out of Copy numbers, files and To message.' },
   { id: '4', t: 'All 6m+, WhatsApp', d: 'Everyone due, WhatsApp only', ch: 'WhatsApp only', svc: 'Services in window',
-    def: '<b>In:</b> every lost client who is a respond.io contact and has no booking, from visits since Jan 2025. <b>Out:</b> text-only, no number, booked. Clients who last came before 2025 are not in yet.' },
+    def: '<b>In:</b> every lost client who is a respond.io contact, from visits since Jan 2025. <b>Out:</b> text-only, no number. <b>Booked:</b> stays on the table with the date, left out of Copy numbers, files and To message. Clients who last came before 2025 are not in yet.' },
   { id: '5', t: 'Other services', d: 'Lost 6+ months, no hair colour', ch: 'WhatsApp + text', svc: 'Services in window',
-    def: '<b>In:</b> lost clients who had a cut, treatment, beauty, nails or extensions between May 2025 and May 2026 and <b>no</b> hair colour or toner. <b>Out:</b> anyone with a booking; visits that were only retail.' },
+    def: '<b>In:</b> lost clients who had a cut, treatment, beauty, nails or extensions between May 2025 and May 2026 and <b>no</b> hair colour or toner. <b>Booked:</b> stays on the table with the date, left out of Copy numbers, files and To message. <b>Out:</b> visits that were only retail.' },
 ];
 const LL_PER = [10, 20, 50, 100];
-let llSel = { list: '1', area: 'all', off: ['nonum'], hideSent: true, per: 20, sort: 'recent' };   // hideSent: hide anyone messaged since the campaign start
+let llSel = { list: '1', area: 'all', off: ['nonum'], hideSent: true, hideBooked: false, per: 20, sort: 'recent' };   // hideSent: hide anyone messaged since the campaign start
 try { Object.assign(llSel, JSON.parse(localStorage.getItem('trs-lost-lists') || '{}')); } catch (e) {}
 // Kate, 9 Oct 2026: "default exclude those with no number, what is the point". A client with no usable number cannot be
 // messaged, so the WhatsApp heading starts with No number unticked (tick it to see them). Once for a browser that
@@ -58,6 +58,16 @@ const llList = () => LL_LISTS.find(l => l.id === llSel.list) || LL_LISTS[0];
 // Short date for the table (no year in this year), the full one for chips, cards and files.
 const llDayS = d => { if (!d) return ''; const x = new Date(String(d).slice(0, 10) + 'T00:00:00'); return x.toLocaleDateString('en-GB', x.getFullYear() === new Date().getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: '2-digit' }); };
 const llDay = d => d ? lcDayY(String(d).slice(0, 10)) : '';
+// Kate, 12 Oct 2026: a client with a booking stays on her group, with the date of her next appointment, so nobody has to
+// wonder where she went. She is never in Copy numbers, the files or To message: those take only clients without one.
+// booked_on is her next booking from today (client_bookings, pulled up to 90 days ahead, so never more than 3 months away).
+const llBooked = r => !!r.booked_on;
+const llDaysTo = d => d ? Math.round((new Date(String(d).slice(0, 10) + 'T00:00:00').getTime() - new Date(new Date().toDateString()).getTime()) / 864e5) : null;
+function llNextCell(r) {
+  if (!r.booked_on) return llDash;
+  const n = llDaysTo(r.booked_on);
+  return `${lcEsc(llDayS(r.booked_on))}<div class="slv-note">${n <= 0 ? 'today' : n === 1 ? 'tomorrow' : 'in ' + lcNum(n) + ' days'}</div>`;
+}
 const llDaysOld = d => d ? Math.floor((Date.now() - new Date(String(d).slice(0, 10) + 'T00:00:00').getTime()) / 864e5) : null;
 
 async function llFetch(id) {
@@ -125,6 +135,7 @@ function llFiltered(id, full = true) {
   let out = rows.filter(r => !llSel.off.includes(r.wa)
     && (llSel.area === 'all' || r.area === llSel.area)
     && !(llSel.hideSent && r.messaged)
+    && !(llSel.hideBooked && llBooked(r))
     && (!full || (llSel.also || []).every(g => (r.also_on || []).includes(g)))
     && (!q || (r.client_name + ' ' + (r.stylist || '') + ' ' + (r.also_saw || '')).toLowerCase().includes(q)));
   const by = { recent: (a, b) => (a.days_since - b.days_since), oldest: (a, b) => (b.days_since - a.days_since),
@@ -173,6 +184,10 @@ function llFillPop() {
       + '<div class="ll-pt">Also in</div>' + LL_LISTS.filter(l => l.id !== llSel.list).map(l => opt(also.includes(l.id), 'Group ' + l.id, `llToggleAlso('${l.id}')`, lcNum(all.filter(r => (r.also_on || []).includes(l.id)).length))).join('')
       + '<div class="ll-pf"><button type="button" class="lc-more" onclick="llSel.also=[];llRefresh()">Clear</button></div>'
       + '<div class="ll-pt ll-pn">Also in shows the clients on this list who are in every group ticked.</div>';
+  } else if (llPopFor === 'next') {
+    const nb = all.filter(llBooked).length;
+    h = opt(!llSel.hideBooked, 'Show clients who are booked', `llSet('hideBooked',${!llSel.hideBooked})`, lcNum(nb))
+      + '<div class="ll-pt ll-pn">Booked clients are never in Copy numbers, the files or To message.</div>';
   } else if (llPopFor === 'msg') {
     h = opt(llSel.hideSent, 'Hide anyone already messaged', `llSet('hideSent',${!llSel.hideSent})`)
       + '<div class="ll-pt ll-pn">Messaged = respond.io shows a message was sent to the number since the groups were handed over, in any group.</div>';
@@ -201,7 +216,7 @@ function llPaint() {
     </div>
     <div class="ll-cards">${LL_LISTS.map(l => llCard(l)).join('')}</div>
     <p class="ll-explain"><b>Ready on WhatsApp</b> = wrote to one of our numbers in the last 18 months. <b>No reply seen</b> = in respond.io, but no reply in their last 50 messages. <b>Text only</b> = not in respond.io; <b>no number</b> = nothing usable in Phorest.</p>
-    ${held ? `<p class="slv-note">${lcNum(held)} more are already booked and are kept off every group.</p>` : ''}
+    ${held ? `<p class="slv-note">${lcNum(held)} lost clients already have a booking. They stay on their groups with the date of their next appointment, and are left out of Copy numbers, the files and To message.</p>` : ''}
     <section class="slv-card ll-panel" id="llPanel"></section>`;
   llPaintPanel();
 }
@@ -287,7 +302,7 @@ function llPaintPanel() {
       <span id="llNote" class="slv-note" style="display:inline"></span>
     </div>
     <div id="llTable"></div>
-    <p class="slv-muted ll-foot">Lost means no visit of any kind for 6 months, at any branch. WhatsApp status and Messaged come from respond.io, checked every night (a text sent from another system is not seen). ${ph ? '' : 'Phone numbers are for Level 3 and above. '}Clients with a booking are kept off the lists, and the booking list is only as fresh as the last time it was pulled. Click Client, Last visit, WhatsApp or Messaged to filter or sort.</p>`;
+    <p class="slv-muted ll-foot">Lost means no visit of any kind for 6 months, at any branch. WhatsApp status and Messaged come from respond.io, checked every night (a text sent from another system is not seen). ${ph ? '' : 'Phone numbers are for Level 3 and above. '}Next appointment is from Phorest's Staff Appointments, pulled six times a day, up to 3 months ahead; a client with a booking is left out of Copy numbers, the files and To message, and the list is only as fresh as the last pull. Click Client, Last visit, Next appointment, WhatsApp or Messaged to filter or sort.</p>`;
   llPaintTable();
 }
 
@@ -299,13 +314,13 @@ function llPaintTable() {
   llPage = Math.min(Math.max(1, llPage), pages);
   const shown = rows.slice((llPage - 1) * per, llPage * per);
   llShown = shown; lcShown = shown;
-  const ready = rows.filter(r => r.wa === 'act' || r.wa === 'r18').length, sentN = all.filter(r => r.messaged).length;
+  const ready = rows.filter(r => !llBooked(r) && (r.wa === 'act' || r.wa === 'r18')).length, sentN = all.filter(r => r.messaged).length, bookedN = all.filter(llBooked).length;
   const cnt = document.getElementById('llCount');
-  if (cnt) cnt.textContent = `${lcNum(rows.length)} shown of ${lcNum(all.length)}${ready ? ` · ${lcNum(ready)} ready on WhatsApp` : ''}${sentN ? ` · ${lcNum(sentN)} already messaged` : ''}`;
+  if (cnt) cnt.textContent = `${lcNum(rows.length)} shown of ${lcNum(all.length)}${ready ? ` · ${lcNum(ready)} ready on WhatsApp` : ''}${sentN ? ` · ${lcNum(sentN)} already messaged` : ''}${bookedN ? ` · ${lcNum(bookedN)} booked` : ''}`;
   const two = r => r.n_numbers > 1 ? ' <span class="lc-2nums" tabindex="0" title="This name matches more than one client in Phorest, so the number may be someone else\'s. Check before you send.">2 numbers?</span>' : '';
-  const cols = ['Client', 'Last visit', 'Last smoothing', 'Last colouring', 'Last service', 'Usual team'].concat(ph ? ['Phone'] : [], ['WhatsApp', 'Also on', 'Messaged']);
+  const cols = ['Client', 'Last visit', 'Last smoothing', 'Last colouring', 'Last service', 'Next appointment', 'Usual team'].concat(ph ? ['Phone'] : [], ['WhatsApp', 'Also on', 'Messaged']);
   const th = (label, k, marked) => k ? `<th><button type="button" class="ll-thb${marked ? ' on' : ''}" onclick="llMenu(event,'${k}')" aria-haspopup="dialog" title="Filter or sort">${lcEsc(label)} <span aria-hidden="true">▾</span></button></th>` : `<th>${lcEsc(label)}</th>`;
-  const heads = th('Client', 'client', llSel.area !== 'all') + th('Last visit', 'last', llSel.sort === 'oldest') + th('Last smoothing') + th('Last colouring') + th('Last service') + th('Usual team')
+  const heads = th('Client', 'client', llSel.area !== 'all') + th('Last visit', 'last', llSel.sort === 'oldest') + th('Last smoothing') + th('Last colouring') + th('Last service') + th('Next appointment', 'next', llSel.hideBooked) + th('Usual team')
     + (ph ? th('Phone') : '') + th('WhatsApp', 'wa', llSel.off.length > 0) + th('In groups', 'groups', (llSel.also || []).length > 0) + th('Messaged', 'msg', llSel.hideSent);
   // Usual team: her usual stylist and usual beautician, one line each (the row panel has everyone else).
   const team = r => { const t = lcTeam(r); const w = [t.hair[0], t.beauty[0]].filter(Boolean); return w.length ? w.map(n => `<div>${lcStylist(n)}</div>`).join('') : '<span class="slv-muted">–</span>'; };
@@ -315,12 +330,14 @@ function llPaintTable() {
       <td class="ll-nw">${llDateCell(r.last_keratin)}${r.still ? '<div><span class="ll-tag">Still visiting</span></div>' : ''}</td>
       <td class="ll-nw">${llDateCell(llColourDate(r))}${r.toner_only ? '<div><span class="ll-tag" title="Toner only, no colouring in the window">Toner only</span></div>' : ''}</td>
       <td class="ll-nw">${llDateCell(llServiceDate(r))}</td>
+      <td class="ll-nw">${llNextCell(r)}</td>
       <td class="lc-stc ll-team">${team(r)}</td>
       ${ph ? `<td class="ll-ph">${lcPhone(r)}</td>` : ''}
       <td>${llStatus(r)}</td><td>${llAlso(r)}</td><td>${llSentCell(r)}</td></tr>`).join('');
   const cards = shown.map((r, i) => `<li class="prd-card lc-row" onclick="lcToggleDetail(event,${i})"><div class="prd-body">
       <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${two(r)}</span><span>${llStatus(r)}</span></div>
       <div class="prd-meta">${lcEsc(LC_BRANCH[r.branch] || r.branch)} · last ${lcEsc(llDay(r.last_visit))} (${lcNum(r.days_since)} days) · ${llSvcLine(r)}</div>
+      ${r.booked_on ? `<div class="prd-meta lc-also-line"><span class="ll-tag">Booked</span> Next appointment ${lcEsc(llDay(r.booked_on))}</div>` : ''}
       ${['hair', 'beauty'].map(t => { const l = lcTeam(r)[t]; return l.length ? `<div class="prd-meta lc-also-line">${t === 'hair' ? 'Stylist' : 'Beautician'} ${lcStylist(l[0])}</div>` : ''; }).join('')}
       ${ph && r.mobile ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
       <div class="prd-meta" style="margin-top:4px">Also on ${llAlso(r)} · ${llSentCell(r)}</div>
@@ -349,14 +366,14 @@ function llNote(t) { const n = document.getElementById('llNote'); if (n) n.textC
 // Copy numbers: the first number of every client shown, except a name that matches more than
 // one client in Phorest (the number may be someone else's); those are counted, not copied.
 async function llCopy() {
-  const rows = llFiltered().filter(r => r.mobile);
+  const rows = llFiltered().filter(r => r.mobile && !llBooked(r));
   const ok = rows.filter(r => r.n_numbers === 1);
   try { await navigator.clipboard.writeText(ok.map(r => r.mobile).join('\n')); }
   catch (e) { llNote('The browser would not copy. Use the file instead.'); return; }
   llNote(`Copied ${lcNum(ok.length)} numbers${rows.length > ok.length ? `, left out ${lcNum(rows.length - ok.length)} names that match more than one client` : ''}`);
 }
 function llLines(id, rows) {
-  const L = (id && LL_LISTS.find(l => l.id === id)) || llList(); rows = rows || llFiltered(); const ph = llPhones();
+  const L = (id && LL_LISTS.find(l => l.id === id)) || llList(); rows = (rows || llFiltered()).filter(r => !llBooked(r)); const ph = llPhones();
   const since = llSum && llSum.fresh && llSum.fresh.campaign_from ? ' ' + llDay(llSum.fresh.campaign_from) : '';
   // The three service dates, as on screen (kept as dates, not mixed with words): smoothing, colouring, any service.
   const svc = r => [r.last_keratin || '', llColourDate(r), llServiceDate(r)];

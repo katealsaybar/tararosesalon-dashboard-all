@@ -37,7 +37,7 @@ FILE_VIEWS = {
     'social.js': 'social', 'products.js': 'products', 'org-chart.js': 'orgchart',
     'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels',
     'top-clients.js': 'clients',
-    'lost-clients.js': 'lostclients', 'pulse-narrative.js': 'dashboard',
+    'lost-clients.js': 'lostclients', 'lost-lists.js': 'lostlists', 'lost-queue.js': 'lostlists', 'pulse-narrative.js': 'dashboard',
     'branch-narrative.js': 'branchperf', 'ledger-targets.js': 'ledgerTargets',
 }
 # The Staff Dashboards frame is a page of its own with its own scripts.

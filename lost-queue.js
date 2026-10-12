@@ -191,7 +191,7 @@ function lqPaint() {
       ${stat('send', 'To send', 'one message each, best first')}
       ${stat('sent', 'Sent', 'waiting for a reply')}
       ${stat('reply', 'Replied', 'someone needs to answer')}
-      <div class="ll-card lq-held" title="Booked clients are kept off every group"><div class="ll-t">Left out</div><div class="ll-n">${lcNum(held + (sk.nonum || 0) + (sk.blocked || 0) + (sk.unchecked || 0))}</div>
+      <div class="ll-card lq-held" title="Booked clients are kept off To message"><div class="ll-t">Left out</div><div class="ll-n">${lcNum(held + (sk.nonum || 0) + (sk.blocked || 0) + (sk.unchecked || 0))}</div>
         <div class="ll-d">${lcNum(held)} booked · ${lcNum(sk.nonum || 0)} no number${sk.blocked ? ` · ${lcNum(sk.blocked)} blocked` : ''}${sk.unchecked ? ` · ${lcNum(sk.unchecked)} not checked yet` : ''}</div></div>
     </div>
     <section class="slv-card ll-panel">
