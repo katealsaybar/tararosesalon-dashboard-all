@@ -378,10 +378,6 @@ function llPaintPanel() {
       <span style="flex:1"></span>
       <span class="ll-btns">
       <button type="button" class="tglr lc-btn" onclick="lrfMenu(event)" title="Take clients out of the blast on a branch's Google Sheet, with a note. Reception can use it too. Changes come back here within about 15 minutes">Open in Google Sheets</button>
-      ${ph ? '<button type="button" class="tglr lc-btn" onclick="llCopy()" title="Copy the numbers of the clients shown">Copy numbers</button>' : ''}
-      <button type="button" class="tglr lc-btn" onclick="llSaveFile('xlsx')" title="Download what is shown as Excel, with each client's visits">XLSX</button>
-      <button type="button" class="tglr lc-btn" onclick="llSaveAll()" title="One Excel file with a sheet for each of the five groups, with this table's Area, WhatsApp and Messaged filters">XLSX · all groups</button>
-      <button type="button" class="tglr lc-btn" onclick="llSaveFile('csv')" title="Download what is shown as CSV">CSV</button>
       </span>
       <span id="llNote" class="slv-note" style="display:inline"></span>
     </div>
