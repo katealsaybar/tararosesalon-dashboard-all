@@ -67,7 +67,9 @@ const llBooked = r => !!r.booked_on;
 // lost_excluded in migrations/lost_review.sql) is out of every group, like a booked one: not in Copy numbers, the files or To message.
 const LL_REASONS = ['Visiting regularly', 'Stylist knows her', 'Do not contact', 'Wrong number', 'Other'];
 const llOut = r => !!r.excluded;
-const llGone = r => llBooked(r) || llOut(r);
+// Kate, 12 Oct 2026: a client who came in within the last 6 weeks (lost_lists_config.recent_days, sent as r.recent) is not messaged either:
+// she is not due. She stays on the table, labelled Recent visit (migrations/lost_recent_visit.sql).
+const llGone = r => llBooked(r) || llOut(r) || !!r.recent;
 const llDaysTo = d => d ? Math.round((new Date(String(d).slice(0, 10) + 'T00:00:00').getTime() - new Date(new Date().toDateString()).getTime()) / 864e5) : null;
 function llNextCell(r) {
   if (!r.booked_on) return llDash;
@@ -195,7 +197,7 @@ function llFillPop() {
       + '<div class="ll-pt ll-pn">Also in shows the clients on this list who are in every group ticked.</div>';
   } else if (llPopFor === 'blast') {
     const nIn = all.filter(r => !llGone(r)).length, nOut = all.length - nIn;
-    h = '<div class="ll-pt">Show</div>' + [['all', 'Everyone', all.length], ['in', 'Still in the blast', nIn], ['out', 'Taken out or booked', nOut]].map(([v, l, n]) => opt(llSel.blast === v, l, `llSet('blast','${v}')`, lcNum(n))).join('')
+    h = '<div class="ll-pt">Show</div>' + [['all', 'Everyone', all.length], ['in', 'Still in the blast', nIn], ['out', 'Taken out, booked or recent', nOut]].map(([v, l, n]) => opt(llSel.blast === v, l, `llSet('blast','${v}')`, lcNum(n))).join('')
       + '<div class="ll-pt ll-pn">Take a client out on her row. She is out of every group, and of To message, Copy numbers and the files.</div>';
   } else if (String(llPopFor).indexOf('blast:') === 0) {
     const bi = +String(llPopFor).slice(6), r = llShown[bi];
@@ -255,6 +257,7 @@ async function llReloadSum() {
 }
 function llBlastCell(r, i) {
   if (r.booked_on) return '<span class="ll-tag" title="She has a booking, so she is not messaged">Booked</span>';
+  if (r.recent) return '<span class="ll-tag" title="She came in within the last 6 weeks, so she is not due and is not messaged">Recent visit</span>';
   if (r.excluded) return `<button type="button" class="ll-blast out" onclick="llMenu(event,'blast:${i}')" aria-haspopup="dialog" title="Click to put her back or change the reason">Out: ${lcEsc(r.excluded)}</button>`
     + `<div class="slv-note">${lcEsc(r.excluded_by || '')}${r.excluded_at ? ' · ' + lcEsc(llDayS(r.excluded_at)) : ''}</div>`
     + (r.excluded_note ? `<div class="slv-note ll-bnote" title="${lcEsc(r.excluded_note)}">${lcEsc(r.excluded_note)}</div>` : '');
@@ -382,7 +385,7 @@ function llPaintPanel() {
       <span id="llNote" class="slv-note" style="display:inline"></span>
     </div>
     <div id="llTable"></div>
-    <p class="slv-muted ll-foot">Lost means no visit of any kind for 6 months, at any branch. WhatsApp status and Messaged come from respond.io, checked every night (a text sent from another system is not seen). ${ph ? '' : 'Phone numbers are for Level 3 and above. '}Next appointment is from Phorest's Staff Appointments, pulled six times a day, up to 3 months ahead; a client with a booking, or taken out on her row, is left out of Copy numbers, the files and To message, and the list is only as fresh as the last pull. Click Client, In blast, Last visit, Next appointment, WhatsApp or Messaged to filter or sort.</p>`;
+    <p class="slv-muted ll-foot">Lost means no visit of any kind for 6 months, at any branch. WhatsApp status and Messaged come from respond.io, checked every night (a text sent from another system is not seen). ${ph ? '' : 'Phone numbers are for Level 3 and above. '}Next appointment is from Phorest's Staff Appointments, pulled six times a day, up to 3 months ahead; a client with a booking, who came in within the last 6 weeks, or who was taken out on her row, is left out of To message, and the list is only as fresh as the last pull. Click Client, In blast, Last visit, Next appointment, WhatsApp or Messaged to filter or sort.</p>`;
   llPaintTable();
 }
 
@@ -394,9 +397,9 @@ function llPaintTable() {
   llPage = Math.min(Math.max(1, llPage), pages);
   const shown = rows.slice((llPage - 1) * per, llPage * per);
   llShown = shown; lcShown = shown;
-  const ready = rows.filter(r => !llGone(r) && (r.wa === 'act' || r.wa === 'r18')).length, sentN = all.filter(r => r.messaged).length, bookedN = all.filter(llBooked).length, outN = all.filter(r => llOut(r) && !llBooked(r)).length;
+  const ready = rows.filter(r => !llGone(r) && (r.wa === 'act' || r.wa === 'r18')).length, sentN = all.filter(r => r.messaged).length, bookedN = all.filter(llBooked).length, recentN = all.filter(r => r.recent && !llBooked(r)).length, outN = all.filter(r => llOut(r) && !llBooked(r) && !r.recent).length;
   const cnt = document.getElementById('llCount');
-  if (cnt) cnt.textContent = `${lcNum(rows.length)} shown of ${lcNum(all.length)}${ready ? ` · ${lcNum(ready)} ready on WhatsApp` : ''}${sentN ? ` · ${lcNum(sentN)} already messaged` : ''}${bookedN ? ` · ${lcNum(bookedN)} booked` : ''}${outN ? ` · ${lcNum(outN)} taken out` : ''}`;
+  if (cnt) cnt.textContent = `${lcNum(rows.length)} shown of ${lcNum(all.length)}${ready ? ` · ${lcNum(ready)} ready on WhatsApp` : ''}${sentN ? ` · ${lcNum(sentN)} already messaged` : ''}${bookedN ? ` · ${lcNum(bookedN)} booked` : ''}${recentN ? ` · ${lcNum(recentN)} recent visit` : ''}${outN ? ` · ${lcNum(outN)} taken out` : ''}`;
   const two = r => r.n_numbers > 1 ? ' <span class="lc-2nums" tabindex="0" title="This name matches more than one client in Phorest, so the number may be someone else\'s. Check before you send.">2 numbers?</span>' : '';
   const cols = ['Client', 'In blast', 'Last visit', 'Last smoothing', 'Last colouring', 'Last service', 'Next appointment', 'Usual team'].concat(ph ? ['Phone'] : [], ['WhatsApp', 'Also on', 'Messaged']);
   const th = (label, k, marked) => k ? `<th><button type="button" class="ll-thb${marked ? ' on' : ''}" onclick="llMenu(event,'${k}')" aria-haspopup="dialog" title="Filter or sort">${lcEsc(label)} <span aria-hidden="true">▾</span></button></th>` : `<th>${lcEsc(label)}</th>`;

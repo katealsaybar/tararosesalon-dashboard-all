@@ -178,7 +178,7 @@ function lqPaint() {
   if (!host) return;
   const n = v => lqRows.filter(r => lqView(r) === v).length;
   const sk = (lqData && lqData.skipped) || {}, held = (lqData && lqData.held) || 0;
-  const taken = (lqData && lqData.excluded) || 0, reviewed = Object.keys((lqData && lqData.review) || {}).length;
+  const recentN = (lqData && lqData.recent) || 0, taken = (lqData && lqData.excluded) || 0, reviewed = Object.keys((lqData && lqData.review) || {}).length;
   const today = lqToday(), doneToday = lqRows.filter(r => r.messaged && String(r.sent_on || '').slice(0, 10) === today).length;
   const pct = Math.min(100, Math.round(100 * doneToday / lqSel.batch));
   const stat = (v, t, d) => `<button type="button" class="ll-card lq-stat${lqSel.view === v ? ' on' : ''}" onclick="lqSet('view','${v}')"><div class="ll-t">${t}</div><div class="ll-n">${lcNum(n(v))}</div><div class="ll-d">${d}</div></button>`;
@@ -195,8 +195,8 @@ function lqPaint() {
       ${stat('send', 'To send', 'one message each, best first')}
       ${stat('sent', 'Sent', 'waiting for a reply')}
       ${stat('reply', 'Replied', 'someone needs to answer')}
-      <div class="ll-card lq-held" title="Booked clients, and clients the coordinators took out, are kept off To message"><div class="ll-t">Left out</div><div class="ll-n">${lcNum(held + taken + (sk.nonum || 0) + (sk.blocked || 0) + (sk.unchecked || 0))}</div>
-        <div class="ll-d">${lcNum(held)} booked · ${lcNum(taken)} taken out · ${lcNum(sk.nonum || 0)} no number${sk.blocked ? ` · ${lcNum(sk.blocked)} blocked` : ''}${sk.unchecked ? ` · ${lcNum(sk.unchecked)} not checked yet` : ''}</div></div>
+      <div class="ll-card lq-held" title="Booked clients, clients who came in within the last 6 weeks, and clients the coordinators took out are kept off To message"><div class="ll-t">Left out</div><div class="ll-n">${lcNum(held + recentN + taken + (sk.nonum || 0) + (sk.blocked || 0) + (sk.unchecked || 0))}</div>
+        <div class="ll-d">${lcNum(held)} booked · ${lcNum(recentN)} came in lately · ${lcNum(taken)} taken out · ${lcNum(sk.nonum || 0)} no number${sk.blocked ? ` · ${lcNum(sk.blocked)} blocked` : ''}${sk.unchecked ? ` · ${lcNum(sk.unchecked)} not checked yet` : ''}</div></div>
     </div>
     <section class="slv-card ll-panel">
       <div class="lq-batch"><div><b>Today's batch</b><div class="slv-note">Best first: WhatsApp active, smoothing, then colour.</div></div>
@@ -218,7 +218,7 @@ function lqPaint() {
       <p id="lqCount" class="slv-note"></p>
       <div id="lqTable"></div>
       <p class="slv-muted ll-foot">One message per client, first match wins: smoothing, then colour, then other services, then everyone else. Someone in several groups appears once.
-      Sent comes from respond.io (it only sees messages sent through it); a text, or WhatsApp opened from here, is marked by the button. A client with a booking leaves the list on her own. Two clients on one number get one message.</p>
+      Sent comes from respond.io (it only sees messages sent through it); a text, or WhatsApp opened from here, is marked by the button. A client with a booking, or who came in within the last 6 weeks, leaves the list on her own. Two clients on one number get one message.</p>
     </section>`;
   lqPaintTable();
 }
