@@ -50,6 +50,7 @@ function lqTabsHtml() {
 function lqShowTab(t) {
   if (!lqAllowed()) t = 'groups';
   lqSel.tab = t; lqSave();
+  if (typeof trSyncUrl === 'function') trSyncUrl(null);   // the address names the tab: ?view=lost-clients&tab=templates
   document.querySelectorAll('.lq-tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
   const g = document.getElementById('llHost'), q = document.getElementById('lqHost');
   if (g) g.hidden = t !== 'groups';
@@ -57,7 +58,17 @@ function lqShowTab(t) {
   if (t === 'queue') lqRenderQueue(); else if (t === 'tpl') lqRenderTpl();
 }
 // Called once renderLostListsPage has drawn the page: open the tab the person left on.
-function lqAfterRender() { if (lqAllowed() && lqSel.tab && lqSel.tab !== 'groups') lqShowTab(lqSel.tab); else lqShowTab('groups'); }
+// The address bar names the tab (Kate, 12 Oct 2026): ?view=lost-clients&tab=templates. Slugs: groups, to-message, templates.
+const LQ_SLUG = { groups: 'groups', queue: 'to-message', tpl: 'templates' };
+function lqUrlParts() { return lqAllowed() && LQ_SLUG[lqSel.tab] ? ['tab=' + LQ_SLUG[lqSel.tab]] : []; }
+function lqTabFromUrl() {
+  try { const s = new URLSearchParams(location.search).get('tab'); return Object.keys(LQ_SLUG).find(k => LQ_SLUG[k] === s) || ''; } catch (e) { return ''; }
+}
+function lqAfterRender() {
+  // A link that names its tab wins over the one she left on; a bare link opens the remembered one.
+  const t = lqAllowed() ? (lqTabFromUrl() || lqSel.tab) : 'groups';
+  lqShowTab(t && LQ_SLUG[t] ? t : 'groups');
+}
 
 // ── DATA ─────────────────────────────────────────────────────────────────────────────────────
 async function lqLoad(force) {

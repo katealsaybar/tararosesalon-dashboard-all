@@ -4144,7 +4144,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="products.js?v=20261009pd1"></script>
 <script src="lost-clients.js?v=20261009ll8"></script>
 <script src="lost-lists.js?v=20261009ll17"></script>
-<script src="lost-queue.js?v=20261009lq3"></script>
+<script src="lost-queue.js?v=20261012lq4"></script>
 <script src="top-clients.js?v=20261009fr1"></script>
 <script src="client-mix.js?v=20261009fr1"></script>
 <script src="service-rankings.js?v=20261009fr1"></script>
@@ -4985,6 +4985,8 @@ function trSyncUrl(sectionId){
   // 13-Week Report: which stylist is open, and the year when it is not the latest
   // (Kate, 29 Sep 2026). staff-weeks.js builds these.
   if (CURRENT_VIEW === 'staffweeks' && typeof w13UrlParts === 'function') parts.push(...w13UrlParts());
+  // Lost Clients: which tab (groups, to-message, templates), Level 3+ only (lost-queue.js).
+  if (CURRENT_VIEW === 'lostlists' && typeof lqUrlParts === 'function') parts.push(...lqUrlParts());
   const q = parts.length ? '?' + parts.join('&') : '';
   const slug = location.pathname + q + (sectionId ? '#' + sectionId : '');
   if (slug === TR_URL_SLUG) return;
