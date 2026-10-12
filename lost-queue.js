@@ -514,10 +514,10 @@ function lqSendBarHtml() {
   if (!i) return '';
   const lvl5 = typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;
   const kill = lvl5 ? `<button type="button" class="tglr lc-btn" onclick="lqSendToggle()" title="The kill switch. Off stops everything that has not gone yet.">${i.enabled ? 'Switch sending off' : 'Switch sending on'}</button>` : '';
-  const test = i.test_ready ? `<span class="lq-testbox"><select class="ll-sel" id="lqTestTpl" aria-label="Template to test">${(i.templates || []).filter(t => t.approved).map(t => `<option value="${t.key}">${lcEsc(t.respond_name)}</option>`).join('') || '<option value="">No approved template yet</option>'}</select>
+  const test = i.test_ready && lvl5 ? `<span class="lq-testbox"><select class="ll-sel" id="lqTestTpl" aria-label="Template to test">${(i.templates || []).filter(t => t.approved).map(t => `<option value="${t.key}">${lcEsc(t.respond_name)}</option>`).join('') || '<option value="">No approved template yet</option>'}</select>
       <button type="button" class="tglr lc-btn" onclick="lqSendTest()">Send a test to my number</button></span>` : '';
   if (!i.enabled) {
-    if (!lvl5 && !i.test_ready) return '';
+    if (!lvl5) return '';
     return `<div class="lq-sendbar off"><div><b>Sending from here is off</b><div class="slv-note">${lvl5 ? 'Switch it on when the templates are approved and a test has gone through.' : 'Kate switches it on once the templates are approved.'} Open in WhatsApp and Mark sent still work.</div></div>
       <span style="flex:1"></span>${test}${kill}</div>`;
   }

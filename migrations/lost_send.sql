@@ -450,3 +450,12 @@ revoke all on function public.lost_send_render(text, text[]), public.lost_send_l
   public.lost_send_tag_done(bigint, text), public.lost_send_add_optout(text, text) from public, anon, authenticated;
 grant execute on function public.lost_send_info(), public.lost_send_jobs_get(), public.lost_send_enqueue(jsonb), public.lost_send_cancel(bigint[]),
   public.lost_send_retry(bigint[]), public.lost_send_test(text, jsonb), public.lost_send_test_get(bigint), public.lost_send_config_set(jsonb) to authenticated;
+
+-- Record of what was run live on 12 Oct 2026 after the templates were approved in Meta (all 9 on Saadiyat's WABA and on the shared Motor City / Khalifa City A / Al Quoz WABA):
+--   update public.lost_send_templates set approved = true;
+--   update public.lost_send_config set test_phone = '<Kate''s number>';      -- test sends only; set by hand
+--   select cron.schedule('lost-send-worker', '* 6-15 * * *', $$ select net.http_post(
+--     url := 'https://gvijxenafoowajqktqvd.supabase.co/functions/v1/lost-send-worker',
+--     headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer <the project anon key, as the other nightly jobs use>'),
+--     body := '{}'::jsonb, timeout_milliseconds := 60000); $$);          -- 06:00-15:59 UTC = 10:00-19:59 Dubai
+-- Sending stays OFF (lost_send_config.enabled = false) until Kate switches it on from the To message bar.
