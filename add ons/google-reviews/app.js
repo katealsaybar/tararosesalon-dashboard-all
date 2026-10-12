@@ -43,7 +43,8 @@ const CODE_TO_BRANCH={KCA:"Khalifa City A, Abu Dhabi",SAA:"Saadiyat, Abu Dhabi",
 // Until the first message arrives it reads the last 90 days (the 1 Oct 2026 default:
 // "All time" averaged years of reviews and hid the recent trend; the official all-time
 // totals stay in their own table). range.from null means all time.
-const state = {branches:new Set(BRANCHES), range:null, stars:new Set(ALL), withText:false, noReply:false, withPhotos:false, q:"", sort:"new", staff:""};
+const state = {branches:new Set(BRANCHES), range:null, stars:new Set(ALL), withText:true, noReply:false, withPhotos:false, q:"", sort:"new", staff:""};
+// With written comment only is on unless switched off (Kate, 12 Oct 2026: always wanted).
 // The Refine filters (rating, staff, comment, no reply, photos, search, sort) are kept per browser
 // (Kate, 12 Oct 2026: a hard refresh wiped them). The Branch and Period bar is the dashboard's and
 // keeps itself in the address bar. Reset clears this too.
@@ -51,7 +52,7 @@ const REFINE_KEY="trs-reviews-refine";
 function saveRefine(){
   try{
     const d={stars:[...state.stars],withText:state.withText,noReply:state.noReply,withPhotos:state.withPhotos,q:state.q,sort:state.sort,staff:state.staff};
-    const plain=setEq(state.stars,ALL)&&!d.withText&&!d.noReply&&!d.withPhotos&&!d.q&&!d.staff&&d.sort==="new";
+    const plain=setEq(state.stars,ALL)&&d.withText&&!d.noReply&&!d.withPhotos&&!d.q&&!d.staff&&d.sort==="new";
     if(plain) localStorage.removeItem(REFINE_KEY); else localStorage.setItem(REFINE_KEY,JSON.stringify(d));
   }catch(e){}
 }
@@ -59,7 +60,7 @@ function saveRefine(){
   try{
     const d=JSON.parse(localStorage.getItem(REFINE_KEY)||"null"); if(!d) return;
     const st=(d.stars||[]).filter(x=>ALL.includes(x)); if(st.length) state.stars=new Set(st);
-    state.withText=!!d.withText; state.noReply=!!d.noReply; state.withPhotos=!!d.withPhotos;
+    state.withText=d.withText!==false; state.noReply=!!d.noReply; state.withPhotos=!!d.withPhotos;
     state.q=String(d.q||""); state.staff=String(d.staff||"");
     if(["new","old","high","low"].includes(d.sort)) state.sort=d.sort;
     document.getElementById("q").value=state.q;
@@ -566,7 +567,7 @@ function render(){
 }
 document.getElementById("q").oninput=e=>{state.q=e.target.value;render();};
 document.getElementById("sort").onchange=e=>{state.sort=e.target.value;render();};
-document.getElementById("reset").onclick=()=>{Object.assign(state,{stars:new Set(ALL),withText:false,noReply:false,withPhotos:false,q:"",staff:""});document.getElementById("q").value="";render();};
+document.getElementById("reset").onclick=()=>{Object.assign(state,{stars:new Set(ALL),withText:true,noReply:false,withPhotos:false,q:"",staff:""});document.getElementById("q").value="";render();};
 document.getElementById("reset2").onclick=()=>document.getElementById("reset").click();
 // Embedded in the dashboard: no own toggle and no own scrollbar. The dashboard's
 // sticky-header toggle sends the theme by postMessage (direct parent access is
