@@ -42,11 +42,14 @@ const LL_LISTS = [
     def: '<b>In:</b> every lost client who is a respond.io contact, from visits since Jan 2025. <b>Out:</b> text-only, no number. <b>Booked:</b> stays on the table with the date, left out of Copy numbers, files and To message. Clients who last came before 2025 are not in yet.' },
   { id: '5', t: 'Other services', d: 'Lost 6+ months, no hair colour', ch: 'WhatsApp + text', svc: 'Services in window',
     def: '<b>In:</b> lost clients who had a cut, treatment, beauty, nails or extensions between May 2025 and May 2026 and <b>no</b> hair colour or toner. <b>Booked:</b> stays on the table with the date, left out of Copy numbers, files and To message. <b>Out:</b> visits that were only retail.' },
+  // Kate, 12 Oct 2026: clients who came in for a consultation and have not booked: not in the blast (a consultation counts as a visit), so a group of their own.
+  { id: 'c', label: 'Group 6', t: 'Consultation follow-up', d: 'Consultation in the last 30 days, no booking since', ch: 'For reception to call or message, not in the blast', svc: 'Consultation',
+    def: '<b>In:</b> clients who came in for a consultation in the last 30 days and bought nothing that day, have not been back since, and have no booking. They are <b>not</b> in the blast and not in the other groups: a consultation counts as a visit. Reception marks <b>Contacted</b> once she has been called or messaged.' },
 ];
 const LL_PER = [10, 20, 50, 100];
 let llSel = { list: '2', area: 'all', off: ['nonum'], hideSent: true, hideBooked: false, blast: 'all', per: 20, sort: 'recent' };   // hideSent: hide anyone messaged since the campaign start
 try { Object.assign(llSel, JSON.parse(localStorage.getItem('trs-lost-lists') || '{}')); } catch (e) {}
-if (llSel.list === '1' || !['2', '3', '4', '5'].includes(llSel.list)) llSel.list = '2';   // group 1 was folded into group 2
+if (llSel.list === '1' || !['2', '3', '4', '5', 'c'].includes(llSel.list)) llSel.list = '2';   // group 1 was folded into group 2
 // Kate, 9 Oct 2026: "default exclude those with no number, what is the point". A client with no usable number cannot be
 // messaged, so the WhatsApp heading starts with No number unticked (tick it to see them). Once for a browser that
 // already saved a choice, so the new default reaches it too.
@@ -82,6 +85,7 @@ function llNextCell(r) {
 const llDaysOld = d => d ? Math.floor((Date.now() - new Date(String(d).slice(0, 10) + 'T00:00:00').getTime()) / 864e5) : null;
 
 async function llFetch(id) {
+  if (id === 'c') return lcnFetch();          // Group 6 comes from lost_consults(), lost-consults.js
   if (llRows[id]) return llRows[id];
   const { data, error } = await sb.rpc('lost_lists', { p_list: id });
   if (error || !Array.isArray(data)) throw error || new Error('no data');
@@ -195,7 +199,7 @@ function llFillPop() {
     // narrows this one to the clients who are in those groups too (every group ticked), for the ones in more than one.
     const lists = ((llSum || {}).lists) || {}, also = llSel.also || [];
     h = '<div class="ll-pt">Show group</div>' + LL_LISTS.map(l => opt(l.id === llSel.list, lcEsc(llName(l)), `llPick('${l.id}')`, lcNum((lists[l.id] || {}).n || 0))).join('')
-      + '<div class="ll-pt">Also in</div>' + LL_LISTS.filter(l => l.id !== llSel.list).map(l => opt(also.includes(l.id), llLabel(l), `llToggleAlso('${l.id}')`, lcNum(all.filter(r => (r.also_on || []).includes(l.id)).length))).join('')
+      + '<div class="ll-pt">Also in</div>' + LL_LISTS.filter(l => l.id !== llSel.list && l.id !== 'c').map(l => opt(also.includes(l.id), llLabel(l), `llToggleAlso('${l.id}')`, lcNum(all.filter(r => (r.also_on || []).includes(l.id)).length))).join('')
       + '<div class="ll-pf"><button type="button" class="lc-more" onclick="llSel.also=[];llRefresh()">Clear</button></div>'
       + '<div class="ll-pt ll-pn">Also in shows the clients on this list who are in every group ticked.</div>';
   } else if (llPopFor === 'blast') {
@@ -306,12 +310,14 @@ function llPaint() {
     ${held ? `<p class="slv-note">${lcNum(held)} lost clients already have a booking. They stay on their groups with the date of their next appointment, and are left out of Copy numbers, the files and To message.</p>` : ''}
     <section class="slv-card ll-panel" id="llPanel"></section>`;
   llPaintPanel();
+  if (!llRows.c) lcnFetch().then(() => { const c = document.querySelector('#llHost .ll-cards'); if (c) c.innerHTML = LL_LISTS.map(l => llCard(l)).join(''); }, e => console.error(e));
 }
 
 // A card says its numbers in words (no colour to decode): how many are ready on WhatsApp, how many are
 // contacts with no reply seen, how many are text only or have no number, and one plain bar for the
 // ready share.
 function llCard(l) {
+  if (l.id === 'c') return lcnCardHtml(l);
   const S = ((llSum.lists || {})[l.id]) || { n: 0, wa: {} };
   const wa = S.wa || {}, n = S.n || 0;
   const ready = (wa.act || 0) + (wa.r18 || 0), unsure = (wa.noreply || 0) + (wa.unchecked || 0), none = (wa.text || 0) + (wa.nonum || 0) + (wa.blocked || 0);
@@ -371,6 +377,7 @@ function llPaintPanel() {
   const box = document.getElementById('llPanel');
   if (!box) return;
   const L = llList();
+  if (L.id === 'c' && !llBusy) { lcnPaintPanel(); return; }
   if (llBusy) { box.innerHTML = `<div class="slv-head"><div><div class="slv-eyebrow">${lcEsc(L.ch)}</div><h3>${lcEsc(llName(L))}</h3></div></div><p class="slv-muted">Loading…</p>`; return; }
   const ph = llPhones();
   box.innerHTML = `
