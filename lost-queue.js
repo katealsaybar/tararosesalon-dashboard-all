@@ -37,6 +37,7 @@ const LQ_TOKENS = ['{first_name}', '{branch}', '{stylist}', '{month}'];
 let lqSel = { tab: 'groups', view: 'send', ch: 'all', ty: 'all', br: 'all', st: 'all', sty: 'all', ph: 'all', sort: 'best', per: 20, batch: 50 };
 try { Object.assign(lqSel, JSON.parse(localStorage.getItem('trs-lost-queue') || '{}')); } catch (e) {}
 const lqSave = () => { try { localStorage.setItem('trs-lost-queue', JSON.stringify(lqSel)); } catch (e) {} };
+let lqSnd = { info: null, jobs: {}, poll: null, test: null };   // sending from the site (migrations/lost_send.sql), see SENDING FROM THE SITE below
 let lqData = null, lqRows = [], lqTpl = null, lqLoadedAt = 0, lqQuery = '', lqPage = 1, lqShown = [], lqBusy = false, lqErr = '', lqTplKey = 'wa_smoothing', lqTplSample = 0;
 const lqToday = () => new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD on this computer's clock
 
@@ -77,6 +78,7 @@ async function lqLoad(force) {
   if (q.error || !q.data || !Array.isArray(q.data.rows)) throw q.error || new Error('no queue');
   if (t.error || !Array.isArray(t.data)) throw t.error || new Error('no templates');
   lqData = q.data; lqTpl = t.data; lqLoadedAt = Date.now();
+  await lqSendLoad();   // never throws: without it the page works as before (Open in WhatsApp, Mark sent)
   lqPrep(lqData.rows);
 }
 // A client's name as she would say it: no brackets or stray dots, "SARA" -> "Sara".
@@ -110,6 +112,7 @@ function lqPrep(rows) {
     r.also_on = [...new Set((r.also_on || []).map(x => x === '1' ? '2' : x))];   // groups 1 and 2 are one group now
     r._phone = r.n_numbers === 1 && r.mobile ? String(r.mobile).split(' / ')[0] : '';
     r._dup = false; r._dupKeys = []; r._dupNames = [];
+    r._job = lqSnd.jobs[r.client_key] || null;
   });
   // One phone, one message: two clients on the same number (a mother and daughter) get the message once.
   rows.slice().sort((a, b) => (a.days_since - b.days_since)).forEach(r => {
@@ -159,7 +162,9 @@ async function lqRenderQueue(force) {
   lqPaint();
 }
 const lqIsReplied = r => r.messaged && r.replied;
-function lqView(r) { return lqIsReplied(r) ? 'reply' : r.messaged ? 'sent' : 'send'; }
+// A message waiting to go, going, failed or skipped sits in its own view (Sending) until it is sent; a cancelled one is back in To send.
+const LQ_OUT = ['queued', 'sending', 'failed', 'skipped'];
+function lqView(r) { return lqIsReplied(r) ? 'reply' : r.messaged ? 'sent' : (r._job && LQ_OUT.includes(r._job.status)) ? 'out' : 'send'; }
 function lqBase() { return lqRows.filter(r => lqView(r) === lqSel.view); }
 function lqFiltered(view) {
   const q = lqQuery.trim().toLowerCase();
@@ -194,6 +199,7 @@ function lqPaint() {
     </div>
     <div class="ll-cards lq-stats">
       ${stat('send', 'To send', 'one message each, best first')}
+      ${lqSnd.info && (lqSnd.info.enabled || n('out')) ? stat('out', 'Sending', lqOutLine()) : ''}
       ${stat('sent', 'Sent', 'waiting for a reply')}
       ${stat('reply', 'Replied', 'someone needs to answer')}
       <div class="ll-card lq-held" title="Booked clients, clients who came in within the last 6 weeks, and clients the coordinators took out are kept off To message"><div class="ll-t">Left out</div><div class="ll-n">${lcNum(held + recentN + taken + (sk.nonum || 0) + (sk.blocked || 0) + (sk.unchecked || 0))}</div>
@@ -203,6 +209,7 @@ function lqPaint() {
       <div class="lq-batch"><div><b>Today's batch</b><div class="slv-note">Best first: WhatsApp active, smoothing, then colour.</div></div>
         <div class="lq-prog" role="img" aria-label="${doneToday} of ${lqSel.batch} sent today"><i style="width:${pct}%"></i></div>
         <div><b>${lcNum(doneToday)}</b> of <select class="ll-sel" onchange="lqSet('batch',+this.value)">${[25, 50, 100, 200].map(v => `<option${v === lqSel.batch ? ' selected' : ''}>${v}</option>`).join('')}</select> sent today</div></div>
+      ${lqSendBarHtml()}
       <div class="lc-tools ll-tools lq-tools">
         <div class="sc-seg" role="group" aria-label="Channel">${[['all', 'All'], ['whatsapp', 'WhatsApp'], ['sms', 'Text']].map(([k, l]) => `<button type="button" class="${lqSel.ch === k ? 'on' : ''}" onclick="lqSet('ch','${k}')">${l} ${lcNum(chN(k))}</button>`).join('')}</div>
         <select class="ll-sel" aria-label="Message" onchange="lqSet('ty',this.value)"><option value="all">All messages</option>${LQ_TYPE_ORDER.map(k => `<option value="${k}"${lqSel.ty === k ? ' selected' : ''}>${lcEsc(LQ_TYPES[k][0])}</option>`).join('')}</select>
@@ -269,15 +276,17 @@ function lqPaintTable() {
   const flags = r => (r._oddName ? ' <span class="ll-tag" title="Her name has brackets or odd characters, so the greeting may read oddly">check name</span>' : '')
     + (r._dupNames.length ? ` <span class="ll-tag" title="Same number: ${lcEsc(r._dupNames.join(', '))}">+ ${lcEsc(r._dupNames.join(', '))}</span>` : '');
   const chan = r => `<span class="ll-pill ${r._ch === 'sms' ? 'll-txt' : 'll-act'}">${r._ch === 'sms' ? 'Text' : 'WhatsApp'}</span>`;
-  const msgCell = (r, i) => { const m = lqMessage(r); return `<div class="lq-msg" title="${lcEsc(m)}">${lcEsc(m)}</div>${r._ch === 'sms' ? `<div class="slv-note${m.length > 160 ? ' lq-long' : ''}">${m.length} characters${m.length > 160 ? ', more than one text' : ''}</div>` : ''}`; };
+  const msgCell = (r, i) => { const m = lqShownText(r); return `<div class="lq-msg" title="${lcEsc(m)}">${lcEsc(m)}</div>${r._ch === 'sms' ? `<div class="slv-note${m.length > 160 ? ' lq-long' : ''}">${m.length} characters${m.length > 160 ? ', more than one text' : ''}</div>` : ''}`; };
   const act = (r, i) => {
+    if (view === 'out') return lqOutAct(r, i);
     if (view === 'send') {
+      const site = lqCanSend(r) ? `<button type="button" class="tglr lc-btn lq-pri" onclick="lqSendRows([${i}])" title="Send it now through respond.io, from ${lcEsc(LQ_SHORT[r.branch] || r.branch)}'s number">Send</button>` : '';
       const wa = r._ch === 'whatsapp' && r._phone
-        ? `<button type="button" class="tglr lc-btn lq-pri" onclick="lqOpen(${i})">Open in WhatsApp</button><button type="button" class="tglr lc-btn" onclick="lqCopy(${i})">Copy message</button>`
+        ? `<button type="button" class="tglr lc-btn${site ? '' : ' lq-pri'}" onclick="lqOpen(${i})">Open in WhatsApp</button><button type="button" class="tglr lc-btn" onclick="lqCopy(${i})">Copy message</button>`
         : `<button type="button" class="tglr lc-btn lq-pri" onclick="lqCopy(${i})">${r._ch === 'sms' ? 'Copy text' : 'Copy message'}</button>`;
-      return `<div class="lq-acts">${wa}<button type="button" class="tglr lc-btn" onclick="lqMarkOne(${i})" title="I sent this one">Mark sent</button></div>`;
+      return `<div class="lq-acts">${site}${wa}<button type="button" class="tglr lc-btn" onclick="lqMarkOne(${i})" title="I sent this one">Mark sent</button></div>`;
     }
-    const by = r.sent_by === 'respond.io' ? 'via respond.io' : `marked by ${lcEsc(r.sent_by || 'someone')}`;
+    const by = r.sent_by === 'respond.io' ? 'via respond.io' : /^site:/.test(r.sent_by || '') ? `sent here by ${lcEsc(r.sent_by.slice(5))}` : `marked by ${lcEsc(r.sent_by || 'someone')}`;
     const when = `Sent ${lcEsc(llDayS(r.sent_on))} <span class="slv-note">${by}</span>`;
     if (view === 'reply') return `<div class="lq-rep">Replied ${lcEsc(llDayS(r.last_in))}</div><div class="slv-note">${when}. Answer in respond.io.</div>`;
     return `<div class="lq-sent">${when}</div>${r.by_mark ? `<button type="button" class="tglr lc-btn" onclick="lqUnmark(${i})">Undo</button>` : ''}`;
@@ -294,7 +303,7 @@ function lqPaintTable() {
       <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${two(r)}</span><span>${chan(r)}</span></div>
       <div class="prd-meta">${lcEsc(LC_BRANCH[r.branch] || r.branch)} · ${lcEsc(LQ_TYPES[r.qtype][0])} · ${llStatus(r)}</div>
       <div class="prd-meta" style="margin-top:4px">${lcPhone(r)}${r._sty ? ' · ' + lcEsc(r._sty) : ''}</div>
-      <div class="lq-msg lq-msg-m">${lcEsc(lqMessage(r))}</div>
+      <div class="lq-msg lq-msg-m">${lcEsc(lqShownText(r))}</div>
       <div style="margin-top:8px">${act(r, i)}</div></div></li>`).join('');
   const from = (lqPage - 1) * per + 1;
   const th = (label, k, marked) => `<th><button type="button" class="ll-thb${marked ? ' on' : ''}" onclick="llMenu(event,'${k}')" aria-haspopup="dialog" title="Filter or sort">${lcEsc(label)} <span aria-hidden="true">▾</span></button></th>`;
@@ -302,7 +311,7 @@ function lqPaintTable() {
     + th('Channel', 'q-channel', lqSel.ch !== 'all' || lqSel.st !== 'all') + th('Usual stylist', 'q-stylist', lqSel.sty !== 'all')
     + th('Phone', 'q-phone', lqSel.ph !== 'all') + '<th>What she gets</th><th></th>';
   box.innerHTML = `<div class="slv-wrap prd-desk lc-wrap ll-wrap"><table class="slv-table"><thead><tr>${heads}</tr></thead>
-      <tbody>${tr || `<tr><td colspan="7" class="slv-muted">${view === 'send' ? 'Nobody left to send to with these filters.' : 'Nobody here yet.'}</td></tr>`}</tbody></table></div>
+      <tbody>${tr || `<tr><td colspan="7" class="slv-muted">${view === 'send' ? 'Nobody left to send to with these filters.' : view === 'out' ? 'Nothing queued, failed or skipped.' : 'Nobody here yet.'}</td></tr>`}</tbody></table></div>
       <ol class="prd-cards">${cards || '<li class="slv-muted">Nobody here with these filters.</li>'}</ol>
       ${rows.length ? `<div class="lc-pager">
         <div class="lc-pg-size"><span class="slv-note">Show</span><div class="sc-seg" role="group" aria-label="Rows per page">${LL_PER.map(v => `<button type="button" class="${v === per ? 'on' : ''}" onclick="lqSel.per=${v};lqPage=1;lqSave();lqPaintTable()">${v}</button>`).join('')}</div></div>
@@ -333,12 +342,12 @@ function lqOpen(i) {
   const r = lqShown[i];
   if (!r || !r._phone) return;
   const digits = r._phone.replace(/\D/g, '');
-  window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(lqMessage(r)), '_blank', 'noopener');
+  window.open('https://wa.me/' + digits + '?text=' + encodeURIComponent(lqShownText(r)), '_blank', 'noopener');
 }
 async function lqCopy(i) {
   const r = lqShown[i];
   if (!r) return;
-  try { await navigator.clipboard.writeText(lqMessage(r)); } catch (e) { lqNote('The browser would not copy. Use the file instead.'); return; }
+  try { await navigator.clipboard.writeText(lqShownText(r)); } catch (e) { lqNote('The browser would not copy. Use the file instead.'); return; }
   lqNote(`Copied the message for ${r.client_name}`);
 }
 function lqSaveFile(kind) {
@@ -353,7 +362,7 @@ function lqSaveFile(kind) {
   const built = lgxBuild({ sheets: [{ name: 'To message', blocks: [{ cols: head.map(h => ({ label: h, fmt: 'text' })), rows: out.map(l => ({ cells: l })) }] }] });
   // The name says what is in it (Kate, 12 Oct 2026: she downloaded Al Quoz and the file did not say so).
   const slug = t => String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  const name = ['lost-clients-to-message', { send: 'to-send', sent: 'sent', reply: 'replied' }[lqSel.view] || lqSel.view,
+  const name = ['lost-clients-to-message', { send: 'to-send', out: 'sending', sent: 'sent', reply: 'replied' }[lqSel.view] || lqSel.view,
     lqSel.br !== 'all' ? slug(LC_BRANCH[lqSel.br] || lqSel.br) : '', lqSel.ch !== 'all' ? (lqSel.ch === 'sms' ? 'text' : 'whatsapp') : '',
     lqSel.ty !== 'all' ? slug(LQ_TYPES[lqSel.ty][0]) : '', lqSel.st !== 'all' ? slug((LL_ST[lqSel.st] || [])[1] || lqSel.st) : '',
     lqSel.sty !== 'all' ? (lqSel.sty === 'named' ? 'stylist-named' : 'no-stylist') : '', lqSel.ph !== 'all' ? 'one-number' : '',
@@ -405,7 +414,7 @@ function lqPaintTpl() {
         <p class="slv-note" id="lqUpd">${t.updated_by ? `Last changed ${lcEsc(llDayS(t.updated_at))} by ${lcEsc(t.updated_by)}.` : 'Original wording, checked against the brand rules on 9 Oct 2026.'}</p>
         <p class="ll-def">${sms
           ? 'A text is one message up to 160 characters, so keep it short. The approved wording has no opt-out line. Where texts are sent from (and the sender name) is set up outside this page.'
-          : 'WhatsApp only lets us start a chat with someone who has not written in the last 24 hours using a message Meta has approved, so a changed wording has to be approved in respond.io before it is sent there. Added automatically: for "Replied 12 to 18 months ago" the opening becomes "it\'s been a while since we last chatted, this is ...", and for "No reply seen" the message ends with "' + lcEsc(LQ_STOP.trim()) + '"'}</p>
+          : 'WhatsApp only lets us start a chat with someone who has not written in the last 24 hours using a message Meta has approved, so a changed wording has to be approved in respond.io before it is sent there. Added automatically: for "Replied 12 to 18 months ago" the opening becomes "it\'s been a while since we last chatted, this is ...", and for "No reply seen" the message ends with "' + lcEsc(LQ_STOP.trim()) + '"' + (lqSendOn() ? '. <b>Sending from this site uses the approved Meta wording, so editing it here does not change what goes out through Send.</b>' : '')}</p>
       </section>
     </div>`;
   lqFillWho();
@@ -449,4 +458,198 @@ async function lqSaveTpl() {
   if (t) { t.body = ta.value.trim(); t.updated_at = new Date().toISOString(); t.updated_by = 'you'; }
   if (u) u.textContent = 'Saved. The To message list uses it now. Run new wording through /brand-review before a big send.';
   lqPreview();
+}
+
+// ── SENDING FROM THE SITE (Kate, 12 Oct 2026) ────────────────────────────────────────────────
+// Phase 1, WhatsApp only: the page queues messages (lost_send_enqueue), the lost-send-worker edge function sends each through respond.io from the
+// client's own branch number using a Meta-approved template, then tags the contact in respond.io. See migrations/lost_send.sql.
+// Everything here is switched on by lost_send_config.enabled (Level 5 flips it from the bar below, or in the database). Off, or if the tables are
+// not there, the page behaves exactly as before: Open in WhatsApp, Copy message, Mark sent.
+async function lqSendLoad() {
+  try {
+    const [i, j] = await Promise.all([sb.rpc('lost_send_info'), sb.rpc('lost_send_jobs_get')]);
+    if (i.error || !i.data || j.error || !Array.isArray(j.data)) throw i.error || j.error || new Error('no send info');
+    lqSnd.info = i.data;
+    lqSnd.jobs = {};
+    j.data.forEach(x => { lqSnd.jobs[x.client_key] = x; });
+  } catch (e) { lqSnd.info = null; lqSnd.jobs = {}; }
+}
+function lqRelink() { lqRows.forEach(r => { r._job = lqSnd.jobs[r.client_key] || null; }); }
+const lqSendOn = () => !!(lqSnd.info && lqSnd.info.enabled);
+function lqTkey(r) { return r.qtype + (r.wa === 'r18' ? '_gap' : r.wa === 'noreply' ? '_stop' : ''); }
+const lqSendTpl = r => lqSnd.info && (lqSnd.info.templates || []).find(t => t.key === lqTkey(r));
+// The values for {{1}}, {{2}}... in the template's order; a client with no usual stylist reads "our team".
+function lqSendVars(r) { const v = lqVars(r); v.stylist = v.stylist || 'our team'; return v; }
+function lqSendParams(t, r) {
+  const v = lqSendVars(r), i = lqSnd.info;
+  return t.vars.map(k => k === 'offer_pct' ? (t.qtype === 'colour' ? i.offer_colour : i.offer_smoothing) : k === 'offer_until' ? i.offer_until : String(v[k] || '').trim());
+}
+function lqSendText(r) {
+  const t = lqSendTpl(r);
+  if (!t) return '';
+  const p = lqSendParams(t, r);
+  return t.body.replace(/\{\{(\d+)\}\}/g, (m, n) => p[n - 1] != null ? p[n - 1] : m);
+}
+// What a WhatsApp client is told. With sending on and the template approved it is the approved wording (what respond.io sends, and what Open in
+// WhatsApp opens); otherwise the Templates tab wording, as before.
+function lqShownText(r) {
+  if (r._ch === 'whatsapp' && lqSendOn()) { const t = lqSendTpl(r); if (t && t.approved && lqSendParams(t, r).every(Boolean)) return lqSendText(r); }
+  return lqMessage(r);
+}
+function lqCanSend(r) {
+  if (!lqSendOn() || r._ch !== 'whatsapp' || !r._phone || (r._job && r._job.status !== 'cancelled') || r.messaged) return false;
+  const t = lqSendTpl(r);
+  return !!(t && t.approved && lqSendParams(t, r).every(Boolean));
+}
+const lqRoom = () => lqSnd.info ? Math.max(0, lqSnd.info.daily_cap - lqSnd.info.used_today) : 0;
+const lqHour = h => String(h).padStart(2, '0') + ':00';
+function lqOutLine() {
+  const c = s => Object.values(lqSnd.jobs).filter(j => j.status === s).length;
+  const bits = [[c('queued') + c('sending'), 'waiting'], [c('failed'), 'failed'], [c('skipped'), 'skipped']].filter(b => b[0]).map(b => `${lcNum(b[0])} ${b[1]}`);
+  return bits.length ? bits.join(' · ') : 'queued, failed and skipped';
+}
+
+function lqSendBarHtml() {
+  const i = lqSnd.info;
+  if (!i) return '';
+  const lvl5 = typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;
+  const kill = lvl5 ? `<button type="button" class="tglr lc-btn" onclick="lqSendToggle()" title="The kill switch. Off stops everything that has not gone yet.">${i.enabled ? 'Switch sending off' : 'Switch sending on'}</button>` : '';
+  const test = i.test_ready ? `<span class="lq-testbox"><select class="ll-sel" id="lqTestTpl" aria-label="Template to test">${(i.templates || []).filter(t => t.approved).map(t => `<option value="${t.key}">${lcEsc(t.respond_name)}</option>`).join('') || '<option value="">No approved template yet</option>'}</select>
+      <button type="button" class="tglr lc-btn" onclick="lqSendTest()">Send a test to my number</button></span>` : '';
+  if (!i.enabled) {
+    if (!lvl5 && !i.test_ready) return '';
+    return `<div class="lq-sendbar off"><div><b>Sending from here is off</b><div class="slv-note">${lvl5 ? 'Switch it on when the templates are approved and a test has gone through.' : 'Kate switches it on once the templates are approved.'} Open in WhatsApp and Mark sent still work.</div></div>
+      <span style="flex:1"></span>${test}${kill}</div>`;
+  }
+  const rows = lqSendable();
+  const waiting = lqFiltered('send').filter(r => r._ch === 'whatsapp' && r._phone && !r._job && !lqCanSend(r)).length;
+  const inWin = i.dubai_hour >= i.hour_from && i.dubai_hour < i.hour_to;
+  return `<div class="lq-sendbar"><div><b>Send through respond.io</b>
+      <div class="slv-note">${lcNum(rows.length)} ready in this view${waiting ? ` · ${lcNum(waiting)} waiting on a template Meta has not approved yet, or a missing name or date` : ''}.
+        Today ${lcNum(i.used_today)} of ${lcNum(i.daily_cap)} queued or sent. Goes out ${lcNum(i.per_run)} a minute, ${lcEsc(lqHour(i.hour_from))} to ${lcEsc(lqHour(i.hour_to))} Dubai time${inWin ? '' : ', so it waits until then'}.</div></div>
+      <span style="flex:1"></span>${test}
+      <button type="button" class="tglr lc-btn lq-pri" onclick="lqSendReview()"${rows.length && lqRoom() ? '' : ' disabled'}>Review and send ${lcNum(Math.min(rows.length, lqRoom()))}…</button>${kill}</div>`;
+}
+// The rows a bulk send would take: what the filters show in To send, in the order shown, up to what the daily cap has left.
+function lqSendable() { return lqFiltered('send').filter(lqCanSend); }
+
+function lqModalOpen(html) {
+  lqModalClose();
+  const d = document.createElement('div');
+  d.className = 'lqm-back'; d.id = 'lqModal';
+  d.innerHTML = `<div class="lqm slv-card" role="dialog" aria-modal="true">${html}</div>`;
+  d.addEventListener('click', e => { if (e.target === d) lqModalClose(); });
+  document.body.appendChild(d);
+  document.addEventListener('keydown', lqModalKey);
+}
+function lqModalKey(e) { if (e.key === 'Escape') lqModalClose(); }
+function lqModalClose() { const d = document.getElementById('lqModal'); if (d) d.remove(); document.removeEventListener('keydown', lqModalKey); }
+
+let lqPending = [];
+function lqSendReview() {
+  const rows = lqSendable().slice(0, lqRoom());
+  if (rows.length) lqSendRowsReview(rows);
+}
+function lqSendRows(idx) {
+  const rows = idx.map(i => lqShown[i]).filter(r => r && lqCanSend(r));
+  if (rows.length) lqSendRowsReview(rows);
+}
+function lqSendRowsReview(rows) {
+  lqPending = rows;
+  const i = lqSnd.info, by = {};
+  rows.forEach(r => { const k = lqTkey(r); by[k] = (by[k] || 0) + 1; });
+  const inWin = i.dubai_hour >= i.hour_from && i.dubai_hour < i.hour_to;
+  const sample = rows[0];
+  lqModalOpen(`<h3>Send ${lcNum(rows.length)} message${rows.length === 1 ? '' : 's'} through respond.io?</h3>
+    <table class="slv-table lqm-tbl"><tbody>${Object.keys(by).map(k => { const t = i.templates.find(x => x.key === k); return `<tr><td>${lcEsc(t.respond_name)}</td><td class="lqm-n">${lcNum(by[k])}</td></tr>`; }).join('')}</tbody></table>
+    <p class="slv-note">Example, for ${lcEsc(sample._first)} at ${lcEsc(LC_BRANCH[sample.branch] || sample.branch)}:</p>
+    <div class="lq-bubble lqm-ex">${lcEsc(lqSendText(sample))}</div>
+    <ul class="lqm-list">
+      <li>Each goes from that client's own branch WhatsApp number, as an approved template.</li>
+      <li>${lcNum(i.per_run)} a minute, ${lcEsc(lqHour(i.hour_from))} to ${lcEsc(lqHour(i.hour_to))} Dubai time${inWin ? '' : '. It is outside that window now, so they wait in Sending until it opens'}. You can cancel any that have not gone yet.</li>
+      <li>Each client is tagged in respond.io: <b>${lcEsc(i.campaign_tag)}</b> and <b>lost-msg-smoothing</b>, <b>lost-msg-colour</b> or <b>lost-msg-due</b>.</li>
+      <li>A client who has written STOP, is blocked, or is not a respond.io contact is skipped and shown in Sending.</li></ul>
+    <div class="lqm-btns"><button type="button" class="tglr lc-btn" onclick="lqModalClose()">Cancel</button>
+      <button type="button" class="tglr lc-btn lq-pri" id="lqmGo" onclick="lqSendGo()">Queue ${lcNum(rows.length)}</button></div>`);
+}
+async function lqSendGo() {
+  const rows = lqPending, b = document.getElementById('lqmGo');
+  if (!rows.length) return;
+  if (b) { b.disabled = true; b.textContent = 'Queueing…'; }
+  const items = rows.map(r => ({ client_key: r.client_key, phone: r._phone, branch: r.branch, tkey: lqTkey(r), dups: r._dupKeys, vars: lqSendVars(r) }));
+  const { data, error } = await sb.rpc('lost_send_enqueue', { p_items: items });
+  lqModalClose();
+  lqPending = [];
+  if (error) { console.error(error); lqNote(/switched off/i.test(error.message || '') ? 'Sending is switched off.' : 'That did not queue. Try again.'); await lqSendLoad(); lqRelink(); lqPaint(); return; }
+  const sk = (data && data.skipped) || [], why = {};
+  sk.forEach(x => { why[x.reason] = (why[x.reason] || 0) + 1; });
+  const msg = `Queued ${lcNum(data.queued)}${sk.length ? `. Not queued: ${Object.keys(why).map(k => `${why[k]} ${k}`).join(', ')}` : ''}`;
+  await lqSendLoad(); lqRelink(); lqPaint();
+  lqNote(msg);
+  lqKick();
+  lqPoll();
+}
+// Ask the worker to start now instead of waiting for the next minute. Failing to reach it is harmless: the cron picks the queue up.
+function lqKick() { try { sb.functions.invoke('lost-send-worker', { body: {} }).then(() => {}, () => {}); } catch (e) {} }
+function lqPoll() {
+  clearTimeout(lqSnd.poll);
+  if (lqSel.tab !== 'queue') return;
+  if (!Object.values(lqSnd.jobs).some(j => j.status === 'queued' || j.status === 'sending')) return;
+  lqSnd.poll = setTimeout(async () => {
+    const before = Object.values(lqSnd.jobs).filter(j => j.status === 'sent').length;
+    await lqSendLoad();
+    const after = Object.values(lqSnd.jobs).filter(j => j.status === 'sent').length;
+    if (after > before) await lqRenderQueue(true);   // something went: the Sent view has changed too
+    else { lqRelink(); if (lqSel.tab === 'queue') lqPaint(); }
+    lqPoll();
+  }, 15000);
+}
+function lqOutAct(r, i) {
+  const j = r._job || {};
+  if (j.status === 'queued') return `<div class="lq-q">Queued${j.requested_by ? ` by ${lcEsc(j.requested_by)}` : ''}</div><div class="lq-acts"><button type="button" class="tglr lc-btn" onclick="lqCancel(${i})">Cancel</button></div>`;
+  if (j.status === 'sending') return '<div class="lq-q">Sending…</div>';
+  if (j.status === 'skipped') return `<div class="lq-skip">Skipped</div><div class="slv-note">${lcEsc(j.error || '')}</div>`;
+  const wa = r._ch === 'whatsapp' && r._phone ? `<button type="button" class="tglr lc-btn" onclick="lqOpen(${i})">Open in WhatsApp</button>` : '';
+  return `<div class="lq-fail">Did not send</div><div class="slv-note">${lcEsc(j.error || '')}</div>
+    <div class="lq-acts"><button type="button" class="tglr lc-btn lq-pri" onclick="lqRetry(${i})">Retry</button>${wa}<button type="button" class="tglr lc-btn" onclick="lqMarkOne(${i})" title="I sent this one">Mark sent</button></div>`;
+}
+async function lqCancel(i) {
+  const r = lqShown[i];
+  if (!r || !r._job) return;
+  const { error } = await sb.rpc('lost_send_cancel', { p_ids: [r._job.id] });
+  if (error) { console.error(error); lqNote('That did not cancel. Try again.'); return; }
+  await lqSendLoad(); lqRelink(); lqPaint();
+}
+async function lqRetry(i) {
+  const r = lqShown[i];
+  if (!r || !r._job) return;
+  const { data, error } = await sb.rpc('lost_send_retry', { p_ids: [r._job.id] });
+  if (error || !data) { if (error) console.error(error); lqNote('That did not retry. It may already be queued or sent.'); return; }
+  await lqSendLoad(); lqRelink(); lqPaint(); lqKick(); lqPoll();
+}
+async function lqSendToggle() {
+  const on = !lqSendOn();
+  if (on && !confirm('Switch sending on? Anyone at Level 3 and above can then queue messages to clients.')) return;
+  const { data, error } = await sb.rpc('lost_send_config_set', { p_patch: { enabled: on } });
+  if (error) { console.error(error); lqNote('That did not change. Level 5 only.'); return; }
+  lqSnd.info = data; lqPaint();
+}
+// A test goes to the number set as lost_send_config.test_phone, through the same worker and template, and is tagged lost-send-test.
+async function lqSendTest() {
+  const sel = document.getElementById('lqTestTpl'), key = sel && sel.value;
+  if (!key) { lqNote('No template is approved yet.'); return; }
+  const t = lqSnd.info.templates.find(x => x.key === key);
+  lqNote('Sending the test…');
+  const { data: id, error } = await sb.rpc('lost_send_test', { p_tkey: key, p_vars: { first_name: 'Kate', branch: 'Saadiyat', stylist: 'Nikki', month: 'August 2026' } });
+  if (error) { console.error(error); lqNote(`The test did not queue: ${error.message || 'try again'}`); return; }
+  lqKick();
+  for (let n = 0; n < 24; n++) {
+    await new Promise(r => setTimeout(r, 2500));
+    const { data } = await sb.rpc('lost_send_test_get', { p_id: id });
+    if (!data) continue;
+    if (data.status === 'sent' && (data.tagged || data.tag_err)) { lqNote(`Test ${t.respond_name} sent.${data.tagged ? ' Contact tagged in respond.io.' : ` The tag did not go on: ${data.tag_err}`}`); return; }
+    if (data.status === 'failed' || data.status === 'skipped') { lqNote(`Test did not send: ${data.error || data.status}`); return; }
+    if (data.status === 'sent' && n > 6) { lqNote(`Test ${t.respond_name} sent. The tag is still going on.`); return; }
+  }
+  lqNote('The test is still in the queue. It goes on the next run (the worker runs every minute).');
 }
