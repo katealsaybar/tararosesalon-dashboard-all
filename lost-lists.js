@@ -198,10 +198,11 @@ function llFillPop() {
   } else if (String(llPopFor).indexOf('blast:') === 0) {
     const bi = +String(llPopFor).slice(6), r = llShown[bi];
     if (!r) { pop.remove(); return; }
+    const noteIn = `<div class="ll-pt">Note, if it helps the team</div><input id="llNoteIn" class="ll-search ll-notein" maxlength="200" placeholder="Why (optional)" value="${lcEsc(r.excluded_note || '')}" onclick="event.stopPropagation()">`;
     h = r.excluded
       ? `<div class="ll-pt">Out: ${lcEsc(r.excluded)}</div>` + opt(false, 'Put back in the blast', `llBlastPut(${bi})`)
-        + '<div class="ll-pt">Change the reason</div>' + LL_REASONS.map(x => opt(x === r.excluded, lcEsc(x), `llBlastTake(${bi},'${x}')`)).join('')
-      : '<div class="ll-pt">Take her out because</div>' + LL_REASONS.map(x => opt(false, lcEsc(x), `llBlastTake(${bi},'${x}')`)).join('');
+        + noteIn + '<div class="ll-pt">Change the reason</div>' + LL_REASONS.map(x => opt(x === r.excluded, lcEsc(x), `llBlastTake(${bi},'${x}')`)).join('')
+      : noteIn + '<div class="ll-pt">Take her out because</div>' + LL_REASONS.map(x => opt(false, lcEsc(x), `llBlastTake(${bi},'${x}')`)).join('');
   } else if (llPopFor === 'next') {
     const nb = all.filter(llBooked).length;
     h = opt(!llSel.hideBooked, 'Show clients who are booked', `llSet('hideBooked',${!llSel.hideBooked})`, lcNum(nb))
@@ -219,19 +220,21 @@ window.addEventListener('scroll', () => { if (llPopFor) llClosePop(); }, { passi
 
 // The In blast switch on a row. Taking her out or putting her back is one call (lost_exclude / lost_include, Level 2 and
 // above); every row of hers in every group already loaded is updated at once, then the cards are refetched.
-function llSetOut(key, reason) {
+function llSetOut(key, reason, note) {
   Object.keys(llRows).forEach(id => (llRows[id] || []).forEach(x => {
     if (x.client_key !== key) return;
-    x.excluded = reason || null; x.excluded_by = reason ? 'you' : null; x.excluded_at = reason ? new Date().toISOString() : null;
+    x.excluded = reason || null; x.excluded_note = reason && note ? note : null;
+    x.excluded_by = reason ? 'you' : null; x.excluded_at = reason ? new Date().toISOString() : null;
   }));
 }
 async function llBlastCall(i, reason) {
   const r = llShown[i];
   if (!r) return;
+  const ni = document.getElementById('llNoteIn'), note = reason && ni ? ni.value.trim().slice(0, 200) : '';
   llClosePop();
-  const { error } = reason ? await sb.rpc('lost_exclude', { p_keys: [r.client_key], p_reason: reason }) : await sb.rpc('lost_include', { p_keys: [r.client_key] });
+  const { error } = reason ? await sb.rpc('lost_exclude', { p_keys: [r.client_key], p_reason: reason, p_note: note || null }) : await sb.rpc('lost_include', { p_keys: [r.client_key] });
   if (error) { console.error(error); llNote('That did not save. Try again.'); return; }
-  llSetOut(r.client_key, reason);
+  llSetOut(r.client_key, reason, note);
   llPaintTable();
   llNote(reason ? `${r.client_name} is out of the blast` : `${r.client_name} is back in`);
   llReloadSum();
@@ -251,7 +254,8 @@ async function llReloadSum() {
 function llBlastCell(r, i) {
   if (r.booked_on) return '<span class="ll-tag" title="She has a booking, so she is not messaged">Booked</span>';
   if (r.excluded) return `<button type="button" class="ll-blast out" onclick="llMenu(event,'blast:${i}')" aria-haspopup="dialog" title="Click to put her back or change the reason">Out: ${lcEsc(r.excluded)}</button>`
-    + `<div class="slv-note">${lcEsc(r.excluded_by || '')}${r.excluded_at ? ' · ' + lcEsc(llDayS(r.excluded_at)) : ''}</div>`;
+    + `<div class="slv-note">${lcEsc(r.excluded_by || '')}${r.excluded_at ? ' · ' + lcEsc(llDayS(r.excluded_at)) : ''}</div>`
+    + (r.excluded_note ? `<div class="slv-note ll-bnote" title="${lcEsc(r.excluded_note)}">${lcEsc(r.excluded_note)}</div>` : '');
   return `<button type="button" class="ll-blast in" onclick="llMenu(event,'blast:${i}')" aria-haspopup="dialog" title="In the blast. Click to take her out">✓ In</button>`;
 }
 // Branch review: each coordinator marks her branch reviewed once she has taken out who should not be messaged.
@@ -370,12 +374,16 @@ function llPaintPanel() {
       <input type="search" id="llSearch" placeholder="Search name or stylist" value="${lcEsc(llQuery)}" oninput="llQuery=this.value;llPage=1;llPaintTable()"
         class="ll-search">
       <span style="flex:1"></span>
+      <button type="button" class="tglr lc-btn" onclick="lrfMenu(event)" title="An Excel file of a branch's lost clients with Take out? and Note columns to fill in, then upload it back">Review file</button>
+      <button type="button" class="tglr lc-btn" onclick="lrfPick()" title="Upload a filled-in review file: you see what changes before anything does">Upload review file</button>
+      <input type="file" id="lrfFile" accept=".xlsx,.csv" hidden onchange="lrfOnFile(this)">
       ${ph ? '<button type="button" class="tglr lc-btn" onclick="llCopy()" title="Copy the numbers of the clients shown">Copy numbers</button>' : ''}
       <button type="button" class="tglr lc-btn" onclick="llSaveFile('xlsx')" title="Download what is shown as Excel, with each client's visits">XLSX</button>
       <button type="button" class="tglr lc-btn" onclick="llSaveAll()" title="One Excel file with a sheet for each of the five groups, with this table's Area, WhatsApp and Messaged filters">XLSX · all groups</button>
       <button type="button" class="tglr lc-btn" onclick="llSaveFile('csv')" title="Download what is shown as CSV">CSV</button>
       <span id="llNote" class="slv-note" style="display:inline"></span>
     </div>
+    <div id="lrfPanel"></div>
     <div id="llTable"></div>
     <p class="slv-muted ll-foot">Lost means no visit of any kind for 6 months, at any branch. WhatsApp status and Messaged come from respond.io, checked every night (a text sent from another system is not seen). ${ph ? '' : 'Phone numbers are for Level 3 and above. '}Next appointment is from Phorest's Staff Appointments, pulled six times a day, up to 3 months ahead; a client with a booking, or taken out on her row, is left out of Copy numbers, the files and To message, and the list is only as fresh as the last pull. Click Client, In blast, Last visit, Next appointment, WhatsApp or Messaged to filter or sort.</p>`;
   llPaintTable();

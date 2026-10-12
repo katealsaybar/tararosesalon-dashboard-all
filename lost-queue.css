@@ -21,6 +21,8 @@
 .lq-acttd{min-width:190px}
 .lq-acts{display:flex;gap:6px;flex-wrap:wrap}
 .lq-pri{background:var(--text);color:var(--surface);border-color:var(--text)}
+/* .tglr.lc-btn (index.html) sets color:var(--text), which beat .lq-pri and left light text on a light pill in dark mode: Open in WhatsApp, Copy and Save had no readable label (Kate, 12 Oct 2026). */
+.tglr.lc-btn.lq-pri,.tglr.lc-btn.lq-pri:hover{background:var(--text);color:var(--surface);border-color:var(--text)}
 .lq-sent{color:var(--good);font-weight:600;font-size:13px}
 .lq-rep{background:var(--good-bg);color:var(--good);border-radius:8px;padding:5px 10px;font-size:13px;font-weight:600;display:inline-block}
 .lq-tplgrid{display:grid;grid-template-columns:290px 1fr;gap:14px;margin-top:12px;align-items:start}

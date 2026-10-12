@@ -1,7 +1,7 @@
 // Lost Clients, To message and Templates tabs (Kate, 9 Oct 2026). The five groups overlap (group 4 is everyone), so this is the
 // one running list built from them: every client who can be messaged, ONE message each, first match wins:
 // group 3 -> colour (with the welcome-back rate offer to 31 October 2026, Kate 9 Oct), then groups 1 or 2 -> smoothing, group 5 -> other services, group 4 only -> everyone else.
-// The list and its message types come from lost_queue() (migrations/lost_queue.sql); the wording of the eight messages is in
+// The list and its message types come from lost_queue() (migrations/lost_queue.sql); the wording of the six messages (three, each as WhatsApp and text) is in
 // lost_templates, edited from the Templates tab. Level 3 and above (it shows phone numbers).
 //
 // Sent is read from respond.io (the last message we sent that number, on or after lost_lists_config.campaign_from) and, for a
@@ -10,34 +10,34 @@
 //
 // Borrows lost-lists.js (llStatus pills, LL_ST, LL_PER) and lost-clients.js (lcEsc, lcNum, lcPhone, lcTeam, lcProfileKey,
 // LC_BRANCH) and the XLSX writer (lgx*), so it needs to be loaded after both.
+// Kate, 12 Oct 2026: three messages, each as WhatsApp and as a text (Coach Emma's pre-approved set): Smoothing, Colour and Due.
+// lost_queue() still sorts clients into its five kinds; lqPrep folds them into these three (the two smoothing kinds are Smoothing;
+// other services and everyone else are Due).
 const LQ_TYPES = {
-  smoothing_lost:  ['Smoothing, lost', 'Groups 1 and 2'],
-  smoothing_still: ['Smoothing, still visiting', 'Group 2'],
-  colour:          ['Colour', 'Group 3'],
-  other:           ['Other services', 'Group 5'],
-  catchall:        ['Everyone else', 'Group 4 only'],
+  smoothing: ['Smoothing', 'Groups 1 and 2'],
+  colour:    ['Colour', 'Group 3'],
+  due:       ['Due', 'Everyone else'],
 };
-const LQ_TYPE_ORDER = ['smoothing_lost', 'smoothing_still', 'colour', 'other', 'catchall'];
+const LQ_TYPE_ORDER = ['smoothing', 'colour', 'due'];
+const LQ_KIND = { smoothing_lost: 'smoothing', smoothing_still: 'smoothing', colour: 'colour', other: 'due', catchall: 'due' };
 const LQ_WA_ORDER = { act: 0, r18: 1, noreply: 2, text: 3 };
 const LQ_SHORT = { SAA: 'Saadiyat', KCA: 'Khalifa City', MC: 'Motor City', AQ: 'Al Quoz' };   // how a client is told the branch (not "Khalifa City A")
 const LQ_STOP = " If you'd rather not hear from us, just reply STOP.";
 // The wording the Templates tab resets to (the same as the rows seeded in migrations/lost_queue.sql).
 const LQ_DEFAULTS = {
-  wa_smoothing_lost: "Hi {first_name}, it's Tara Rose {branch}. You've been on our minds.\n\nYour last smoothing[ with {stylist}] was back in {month}, and smoothing softens over time. We'd love to see how your hair is feeling now, and we'll tell you honestly what it needs, even if the answer is \"not yet\".\n\nBecause we've missed you, your next smoothing is 30% off until 31 October.\n\nShall we find you a time? 🤍",
-  wa_smoothing_still: "Hi {first_name}, this is Tara Rose Salons {branch}. Lovely to have you in with us recently. We noticed your last smoothing was back in {month}. If it's on your mind, {stylist|our team} can look at your hair at your next visit and tell you honestly where it's at. Shall we plan a little time for it at your next visit?",
+  wa_smoothing: "Hi {first_name}, it's Tara Rose {branch}. You've been on our minds.\n\nYour last smoothing[ with {stylist}] was back in {month}, and smoothing softens over time. We'd love to see how your hair is feeling now, and we'll tell you honestly what it needs, even if the answer is \"not yet\".\n\nBecause we've missed you, your next smoothing is 30% off until 31 October.\n\nShall we find you a time? 🤍",
   wa_colour: "Hi {first_name}, it's Tara Rose {branch}. You've been on our minds.\n\nYour last colour[ with {stylist}] was in {month}, and a lot can change in a few months. Hair grows, tones soften, and sometimes you just fancy something different.\n\nWe'd also like to introduce you to our new stylists. We'll start by looking at your hair together and build a plan around you.\n\nAs a welcome back, your next colour is 20% off until 31 October.\n\nShall we find you a time[ with {stylist}]? 🤍",
-  wa_other: "Hi {first_name}, it's Tara Rose {branch}. We've missed you.\n\nIt's been a little while since we saw you[ with {stylist}]. Tell us what's been on your mind, whether that's a fresh cut, a colour refresh or a catch-up, and we'll find a time that suits you.\n\nWe'd love to have you back in the chair. 🤍",
-  wa_catchall: "Hi {first_name}, it's Tara Rose {branch}. We've missed you.\n\nIt's been a little while since we saw you[ with {stylist}]. Tell us what's been on your mind, whether that's a fresh cut, a colour refresh or a catch-up, and we'll find a time that suits you.\n\nWe'd love to have you back in the chair. 🤍",
+  wa_due: "Hi {first_name}, it's Tara Rose {branch}. We've missed you.\n\nIt's been a little while since we saw you[ with {stylist}]. Tell us what's been on your mind, whether that's a fresh cut, a colour refresh or a catch-up, and we'll find a time that suits you.\n\nWe'd love to have you back in the chair. 🤍",
   sms_smoothing: "Hi {first_name}, it's Tara Rose {branch}. We've missed you. Your last smoothing[ with {stylist}] was back in {month}, and until 31 October you can have 30% off your next one. We'll look at your hair first and tell you honestly what it needs. Shall we find you a time?",
   sms_colour: "Hi {first_name}, it's Tara Rose {branch}. We've been thinking of you. Your last colour[ with {stylist}] was in {month}, and until 31 October you can have 20% off your next one, plus a chance to meet our new stylists. Shall we find you a time[ with {stylist}]?",
-  sms_other: "Hi {first_name}, it's Tara Rose {branch}. We've missed you. It's been a little while and we think you're due a visit[ with {stylist}]. Tell us what you'd like to do with your hair and we'll find the right time.",
+  sms_due: "Hi {first_name}, it's Tara Rose {branch}. We've missed you. It's been a little while and we think you're due a visit[ with {stylist}]. Tell us what you'd like to do with your hair and we'll find the right time.",
 };
 const LQ_TOKENS = ['{first_name}', '{branch}', '{stylist}', '{month}'];
 
 let lqSel = { tab: 'groups', view: 'send', ch: 'all', ty: 'all', br: 'all', sort: 'best', per: 20, mark: true, batch: 50 };
 try { Object.assign(lqSel, JSON.parse(localStorage.getItem('trs-lost-queue') || '{}')); } catch (e) {}
 const lqSave = () => { try { localStorage.setItem('trs-lost-queue', JSON.stringify(lqSel)); } catch (e) {} };
-let lqData = null, lqRows = [], lqTpl = null, lqLoadedAt = 0, lqQuery = '', lqPage = 1, lqShown = [], lqBusy = false, lqErr = '', lqTplKey = 'wa_smoothing_lost', lqTplSample = 0;
+let lqData = null, lqRows = [], lqTpl = null, lqLoadedAt = 0, lqQuery = '', lqPage = 1, lqShown = [], lqBusy = false, lqErr = '', lqTplKey = 'wa_smoothing', lqTplSample = 0;
 const lqToday = () => new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD on this computer's clock
 
 // ── TABS (drawn by renderLostListsPage in lost-lists.js) ─────────────────────────────────────
@@ -106,6 +106,7 @@ function lqPrep(rows) {
     r._first = nm.f; r._oddName = nm.odd;
     r._sty = lqStylist(r);
     r._ch = r.wa === 'text' ? 'sms' : 'whatsapp';
+    r.qtype = LQ_KIND[r.qtype] || r.qtype || 'due';
     r._phone = r.n_numbers === 1 && r.mobile ? String(r.mobile).split(' / ')[0] : '';
     r._dup = false; r._dupKeys = []; r._dupNames = [];
   });
@@ -122,9 +123,7 @@ function lqPrep(rows) {
 // ── THE MESSAGE ──────────────────────────────────────────────────────────────────────────────
 const lqMonth = d => d ? new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : '';
 function lqTplKeyFor(r) {
-  const t = r.qtype;
-  if (r._ch === 'sms') return t.startsWith('smoothing') ? 'sms_smoothing' : t === 'colour' ? 'sms_colour' : 'sms_other';
-  return { smoothing_lost: 'wa_smoothing_lost', smoothing_still: 'wa_smoothing_still', colour: 'wa_colour', other: 'wa_other', catchall: 'wa_catchall' }[t];
+  return (r._ch === 'sms' ? 'sms_' : 'wa_') + r.qtype;
 }
 const lqBody = key => ((lqTpl || []).find(t => t.key === key) || {}).body || LQ_DEFAULTS[key] || '';
 // [ with {stylist}] disappears when that token is empty; {stylist|our team} falls back to the words after the bar.
@@ -141,7 +140,7 @@ function lqVars(r) {
 function lqMessage(r, bodyOverride) {
   let m = lqFill(bodyOverride || lqBody(lqTplKeyFor(r)), lqVars(r));
   if (r._ch === 'whatsapp') {
-    if (r.wa === 'r18' && r.qtype !== 'smoothing_still') m = m.replace(', this is ', ", it's been a while since we last chatted, this is ");
+    if (r.wa === 'r18') m = m.replace(', this is ', ", it's been a while since we last chatted, this is ");
     if (r.wa === 'noreply') m += LQ_STOP;
   }
   return m;
@@ -333,12 +332,11 @@ async function lqRenderTpl(force) {
   if (lqErr) { host.innerHTML = `<p class="slv-muted">${lcEsc(lqErr)}</p>`; return; }
   lqPaintTpl();
 }
-function lqTplType(key) { return { wa_smoothing_lost: 'smoothing_lost', wa_smoothing_still: 'smoothing_still', wa_colour: 'colour', wa_other: 'other', wa_catchall: 'catchall', sms_smoothing: 'smoothing_lost', sms_colour: 'colour', sms_other: 'other' }[key]; }
+function lqTplType(key) { return key.replace(/^(wa|sms)_/, ''); }
 // Real clients the preview can use: the first few on the list that get this template.
 function lqSamples(key) {
   const t = lqTplType(key), ch = key.startsWith('sms') ? 'sms' : 'whatsapp';
-  const ok = r => (r._ch === ch) && (key === 'sms_smoothing' || key === 'wa_smoothing_lost' ? r.qtype.startsWith('smoothing') && (key === 'sms_smoothing' || r.qtype === 'smoothing_lost')
-    : key === 'sms_other' ? (r.qtype === 'other' || r.qtype === 'catchall') : r.qtype === t);
+  const ok = r => (r._ch === ch) && r.qtype === t;
   const all = lqRows.filter(ok);
   // some with a stylist and some without, so both shapes of the message show
   return all.filter(r => r._sty).slice(0, 4).concat(all.filter(r => !r._sty).slice(0, 2));
@@ -364,7 +362,7 @@ function lqPaintTpl() {
         <div class="lq-bubble" id="lqPrev"></div>
         <p class="slv-note" id="lqUpd">${t.updated_by ? `Last changed ${lcEsc(llDayS(t.updated_at))} by ${lcEsc(t.updated_by)}.` : 'Original wording, checked against the brand rules on 9 Oct 2026.'}</p>
         <p class="ll-def">${sms
-          ? 'A text is one message up to 160 characters, so keep it short. It always carries the opt-out line. Where texts are sent from (and the sender name) is set up outside this page.'
+          ? 'A text is one message up to 160 characters, so keep it short. The approved wording has no opt-out line. Where texts are sent from (and the sender name) is set up outside this page.'
           : 'WhatsApp only lets us start a chat with someone who has not written in the last 24 hours using a message Meta has approved, so a changed wording has to be approved in respond.io before it is sent there. Added automatically: for "Replied 12 to 18 months ago" the opening becomes "it\'s been a while since we last chatted, this is ...", and for "No reply seen" the message ends with "' + lcEsc(LQ_STOP.trim()) + '"'}</p>
       </section>
     </div>`;

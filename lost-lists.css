@@ -175,3 +175,12 @@
 .ll-blast.in{background:var(--good-bg);color:var(--good)}
 .ll-blast.out{background:var(--bad-bg);color:var(--bad)}
 .ll-blast:hover{border-color:var(--border)}
+
+/* Note on a taken-out client, and the review file upload preview (Kate, 12 Oct 2026). */
+.ll-bnote{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ll-notein{width:100%;box-sizing:border-box;margin:2px 0 6px;min-height:32px}
+.lrf-box{border:1px solid var(--border);background:var(--surface2);border-radius:10px;padding:12px 14px;margin:10px 0;font-size:13.5px}
+.lrf-list{margin:8px 0 10px;padding-left:18px}
+.lrf-list li{margin:3px 0}
+.lrf-warn{color:var(--muted)}
+.lrf-act{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
