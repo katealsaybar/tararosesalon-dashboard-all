@@ -307,6 +307,7 @@ window.addEventListener('message', e => {
 let REVIEWS_STASH = null;
 function reviewsViewSwitch(prev, next) {
   if (prev === next) return;
+  if (prev === 'reviews') REVIEWS_KEEP_MONTH = false;
   if (prev === 'reviews' && REVIEWS_STASH) {
     const st = REVIEWS_STASH; REVIEWS_STASH = null;
     let changed = false;
@@ -337,8 +338,10 @@ function reviewsViewSwitch(prev, next) {
 }
 // Split out because a link straight to ?view=reviews can open the page before the
 // default window exists; loadData() calls it again once it does.
+let REVIEWS_KEEP_MONTH = false;
 function reviewsDefaultRange() {
   if (!REVIEWS_STASH || REVIEWS_STASH.range || !dateFrom || !dateTo || activePeriodKey() !== 'This month') return;
+  if (REVIEWS_KEEP_MONTH) { REVIEWS_KEEP_MONTH = false; REVIEWS_STASH.range = { from: dateFrom, to: dateTo }; return; }
   REVIEWS_STASH.range = { from: dateFrom, to: dateTo };
   const r = reviewsPresets()[1]; dateFrom = r.from; dateTo = r.to; periodPick = null;
 }
@@ -561,7 +564,9 @@ function periodParam() {
   const k = activePeriodKey();
   // The boot's own window. A bare URL already means it, so writing it would put a
   // parameter on every clean path for nothing — same rule as branch=all.
-  if (k === 'This month') return null;
+  // Google Reviews opens on the last 90 days when it is still on this month, so there this month
+  // has to be written down or a refresh turns a picked This month into Last 90 days (Kate, 12 Oct 2026).
+  if (k === 'This month') return (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'reviews') ? 'this-month' : null;
   if (PERIOD_URL_KEYS[k]) return PERIOD_URL_KEYS[k];
   if (k === 'Year')  return 'year:' + dateFrom.getFullYear();
   if (k === 'Month') return `month:${dateFrom.getFullYear()}-${String(dateFrom.getMonth()+1).padStart(2,'0')}`;
@@ -586,6 +591,9 @@ function applyPeriodParam() {
     // starts in 2000), so the default window stays (Kate, 9 Oct 2026).
     if (named === 'All time' && periodFirstYear() !== 2015) return false;
     const p = [...periodPresets(), ...reviewsPresets()].find(x => x.k === named);
+    // A this-month on the Reviews page was picked on purpose (periodParam only writes it there):
+    // reviewsDefaultRange must not swap it for the 90 days.
+    if (named === 'This month' && periodFirstYear() === 2015) REVIEWS_KEEP_MONTH = true;
     return p ? set(p.from, p.to) : false;
   }
 

@@ -44,6 +44,28 @@ const CODE_TO_BRANCH={KCA:"Khalifa City A, Abu Dhabi",SAA:"Saadiyat, Abu Dhabi",
 // "All time" averaged years of reviews and hid the recent trend; the official all-time
 // totals stay in their own table). range.from null means all time.
 const state = {branches:new Set(BRANCHES), range:null, stars:new Set(ALL), withText:false, noReply:false, withPhotos:false, q:"", sort:"new", staff:""};
+// The Refine filters (rating, staff, comment, no reply, photos, search, sort) are kept per browser
+// (Kate, 12 Oct 2026: a hard refresh wiped them). The Branch and Period bar is the dashboard's and
+// keeps itself in the address bar. Reset clears this too.
+const REFINE_KEY="trs-reviews-refine";
+function saveRefine(){
+  try{
+    const d={stars:[...state.stars],withText:state.withText,noReply:state.noReply,withPhotos:state.withPhotos,q:state.q,sort:state.sort,staff:state.staff};
+    const plain=setEq(state.stars,ALL)&&!d.withText&&!d.noReply&&!d.withPhotos&&!d.q&&!d.staff&&d.sort==="new";
+    if(plain) localStorage.removeItem(REFINE_KEY); else localStorage.setItem(REFINE_KEY,JSON.stringify(d));
+  }catch(e){}
+}
+(function restoreRefine(){
+  try{
+    const d=JSON.parse(localStorage.getItem(REFINE_KEY)||"null"); if(!d) return;
+    const st=(d.stars||[]).filter(x=>ALL.includes(x)); if(st.length) state.stars=new Set(st);
+    state.withText=!!d.withText; state.noReply=!!d.noReply; state.withPhotos=!!d.withPhotos;
+    state.q=String(d.q||""); state.staff=String(d.staff||"");
+    if(["new","old","high","low"].includes(d.sort)) state.sort=d.sort;
+    document.getElementById("q").value=state.q;
+    const so=document.getElementById("sort"); if(so&&state.sort) so.value=state.sort;
+  }catch(e){}
+})();
 const isoLocal = d => d.toLocaleDateString("en-CA");
 function curRange(){
   if(state.range) return state.range;
@@ -538,6 +560,7 @@ async function renderGbp(){
 function render(){
   const F=baseFilter();
   PAGE=0;
+  saveRefine();
   renderGbp();
   renderFilters(); renderKpis(F); renderNote(); renderBranches(); renderStaffBoard(); renderTimeline(F); renderList(F);
 }
@@ -594,5 +617,5 @@ if(window.parent!==window){
 }
 loadLive().catch(e=>{console.warn("Google reviews: live load failed, using the 24 Sep copy.",e);return loadOffline();})
   .then(()=>Promise.all([loadVariants(), loadClientCredit()]))
-  .then(()=>{TODAY=new Date(META.generated+"T00:00:00");buildStaff();R.forEach(tagStaff);renderExact();render();});
+  .then(()=>{TODAY=new Date(META.generated+"T00:00:00");buildStaff();if(state.staff&&state.staff!=="__any"&&state.staff!=="__none"&&!STAFF.some(x=>x.key===state.staff)) state.staff="";R.forEach(tagStaff);renderExact();render();});
 document.getElementById("fStaff").onchange=e=>{state.staff=e.target.value;render();};
