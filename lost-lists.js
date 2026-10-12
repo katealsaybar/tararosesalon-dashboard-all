@@ -371,7 +371,7 @@ function llPaintPanel() {
         class="ll-search">
       <span style="flex:1"></span>
       ${ph ? '<button type="button" class="tglr lc-btn" onclick="llCopy()" title="Copy the numbers of the clients shown">Copy numbers</button>' : ''}
-      <button type="button" class="tglr lc-btn" onclick="llSaveFile('xlsx')" title="Download what is shown as Excel">XLSX</button>
+      <button type="button" class="tglr lc-btn" onclick="llSaveFile('xlsx')" title="Download what is shown as Excel, with each client's visits">XLSX</button>
       <button type="button" class="tglr lc-btn" onclick="llSaveAll()" title="One Excel file with a sheet for each of the five groups, with this table's Area, WhatsApp and Messaged filters">XLSX · all groups</button>
       <button type="button" class="tglr lc-btn" onclick="llSaveFile('csv')" title="Download what is shown as CSV">CSV</button>
       <span id="llNote" class="slv-note" style="display:inline"></span>
@@ -465,7 +465,33 @@ function llLines(id, rows) {
       [t.hair[0] || '', t.beauty[0] || '', t.hair.slice(1).concat(t.beauty.slice(1)).join(', ')], ph ? [r.mobile || '', r.n_numbers] : [],
       [(LL_ST[r.wa] || [])[1] || r.wa, r.last_in || '', r.last_out || '', (r.also_on || []).filter(x => x !== L.id).sort().join(', '), r.messaged ? 'Yes' : '']);
   });
-  return { head, lines };
+  return { head, lines, rows };
+}
+// Kate, 12 Oct 2026: "it must show" her visits in the file, as the panel a click opens does. lost_clients_visits_bulk
+// (migrations/lost_clients_visits_bulk.sql) gives each client's visit count since Jan 2025 and her latest 10 visits (date,
+// branch, services, AED, who), 400 clients a call, three calls side by side; kept by name so a second save is instant.
+const llVisCache = {};
+async function llFetchVisits(names) {
+  const need = [...new Set(names.filter(n => !(n in llVisCache)))];
+  const chunks = [];
+  for (let i = 0; i < need.length; i += 400) chunks.push(need.slice(i, i + 400));
+  let next = 0;
+  const worker = async () => {
+    while (next < chunks.length) {
+      const part = chunks[next++];
+      const { data, error } = await sb.rpc('lost_clients_visits_bulk', { p_clients: part });
+      if (error) throw error;
+      part.forEach(n => { llVisCache[n] = null; });
+      (data || []).forEach(d => { llVisCache[d.client_name] = d; });
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+}
+async function llAddVisits(parts) {
+  await llFetchVisits(parts.rows.map(r => r.client_name));
+  parts.head.push('Visits since Jan 2025', 'Recent visits (latest 10)');
+  parts.rows.forEach((r, i) => { const d = llVisCache[r.client_name] || {}; parts.lines[i].push(Number(d.visits) || 0, d.recent || ''); });
+  return parts;
 }
 // Kate, 9 Oct 2026: "an option to download xlsx for all groups, separated by each sheet". One workbook, a sheet per
 // group, each built like the single-group file. It fetches the groups not yet loaded (group 4 is the big one).
@@ -473,10 +499,14 @@ async function llSaveAll() {
   if (typeof lgxBuild !== 'function') return;
   llNote('Getting all five groups…');
   try { await Promise.all(LL_LISTS.map(l => llFetch(l.id))); } catch (e) { console.error(e); llNote('A group did not load. Try again.'); return; }
-  const nums = new Set(['Days since', 'Numbers matched']);
+  const nums = new Set(['Days since', 'Numbers matched', 'Visits since Jan 2025']);
   let total = 0;
-  const sheets = LL_LISTS.map(l => {
-    const { head, lines } = llLines(l.id, llFiltered(l.id, false));
+  const parts = LL_LISTS.map(l => llLines(l.id, llFiltered(l.id, false)));
+  llNote(`Adding her visits to ${lcNum(parts.reduce((n, p) => n + p.rows.length, 0))} rows…`);
+  try { await llFetchVisits(parts.flatMap(p => p.rows.map(r => r.client_name))); await Promise.all(parts.map(p => llAddVisits(p))); }
+  catch (e) { console.error(e); llNote('Her visits did not load, so the file was not saved. Try again.'); return; }
+  const sheets = LL_LISTS.map((l, li) => {
+    const { head, lines } = parts[li];
     total += lines.length;
     return { name: ('Group ' + l.id + ' - ' + l.t).slice(0, 31), blocks: [{ cols: head.map(h => ({ label: h, fmt: nums.has(h) ? 'num' : 'text' })), rows: lines.map(x => ({ cells: x })) }] };
   });
@@ -484,10 +514,13 @@ async function llSaveAll() {
   lgxSave(lgxXlsxBlob(lgxBuild({ sheets })), name + '.xlsx');
   llNote(`Saved ${lcNum(total)} rows on ${sheets.length} sheets`);
 }
-function llSaveFile(kind) {
+async function llSaveFile(kind) {
   if (typeof lgxBuild !== 'function') return;
-  const { head, lines } = llLines();
-  const nums = new Set(['Days since', 'Numbers matched']);
+  const parts = llLines();
+  llNote(`Adding her visits to ${lcNum(parts.rows.length)} rows…`);
+  try { await llAddVisits(parts); } catch (e) { console.error(e); llNote('Her visits did not load, so the file was not saved. Try again.'); return; }
+  const { head, lines } = parts;
+  const nums = new Set(['Days since', 'Numbers matched', 'Visits since Jan 2025']);
   const cols = head.map(h => ({ label: h, fmt: nums.has(h) ? 'num' : 'text' }));
   const pi = head.indexOf('Phone');
   const out = kind === 'csv' && pi >= 0 ? lines.map(l => l.map((v, j) => j === pi && v ? `="${v}"` : v)) : lines;   // as lost-clients.js: Excel would show 9.72E+11
