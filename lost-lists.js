@@ -28,8 +28,9 @@ const LL_ST = {
   text:      ['ll-txt', 'Text only', 'Not a contact in respond.io, so a text message'],
   nonum:     ['ll-num', 'No number', 'No usable phone number in Phorest'],
   blocked:   ['ll-num', 'Blocked', 'Blocked in respond.io'],
+  optout:    ['ll-num', 'Opted out', 'Asked not to be messaged on WhatsApp (stop, do not disturb, not interested) since her last visit'],
 };
-const LL_ST_ORDER = ['act', 'r18', 'noreply', 'unchecked', 'text', 'nonum', 'blocked'];
+const LL_ST_ORDER = ['act', 'r18', 'noreply', 'unchecked', 'text', 'nonum', 'blocked', 'optout'];
 const LL_LISTS = [
   // Kate, 12 Oct 2026 (the coordinators' Zoom: "pwede naman sag-isahin"): groups 1 and 2 are one. Group 2 already held everyone in group 1
   // (lost with a smoothing in the window) plus the clients who still visit for other services, so it is the list; group 1's own card is gone.
@@ -320,7 +321,7 @@ function llCard(l) {
   if (l.id === 'c') return lcnCardHtml(l);
   const S = ((llSum.lists || {})[l.id]) || { n: 0, wa: {} };
   const wa = S.wa || {}, n = S.n || 0;
-  const ready = (wa.act || 0) + (wa.r18 || 0), unsure = (wa.noreply || 0) + (wa.unchecked || 0), none = (wa.text || 0) + (wa.nonum || 0) + (wa.blocked || 0);
+  const ready = (wa.act || 0) + (wa.r18 || 0), unsure = (wa.noreply || 0) + (wa.unchecked || 0), none = (wa.text || 0) + (wa.nonum || 0) + (wa.blocked || 0) + (wa.optout || 0);
   const pct = n ? Math.round(100 * ready / n) : 0;
   // Kate, 9 Oct 2026: the cards pick the list again (click or Enter), as well as the Show group menu in the In groups heading. The ring marks the open one.
   return `<div class="ll-card${l.id === llSel.list ? ' on' : ''}" data-id="${l.id}" role="button" tabindex="0" aria-pressed="${l.id === llSel.list}"

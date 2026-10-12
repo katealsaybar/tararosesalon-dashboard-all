@@ -202,8 +202,8 @@ function lqPaint() {
       ${lqSnd.info && (lqSnd.info.enabled || n('out')) ? stat('out', 'Sending', lqOutLine()) : ''}
       ${stat('sent', 'Sent', 'waiting for a reply')}
       ${stat('reply', 'Replied', 'someone needs to answer')}
-      <div class="ll-card lq-held" title="Booked clients, clients who came in within the last 6 weeks, and clients the coordinators took out are kept off To message"><div class="ll-t">Left out</div><div class="ll-n">${lcNum(held + recentN + taken + (sk.nonum || 0) + (sk.blocked || 0) + (sk.unchecked || 0))}</div>
-        <div class="ll-d">${lcNum(held)} booked · ${lcNum(recentN)} came in lately · ${lcNum(taken)} taken out · ${lcNum(sk.nonum || 0)} no number${sk.blocked ? ` · ${lcNum(sk.blocked)} blocked` : ''}${sk.unchecked ? ` · ${lcNum(sk.unchecked)} not checked yet` : ''}</div></div>
+      <div class="ll-card lq-held" title="Booked clients, clients who came in within the last 6 weeks, and clients the coordinators took out are kept off To message"><div class="ll-t">Left out</div><div class="ll-n">${lcNum(held + recentN + taken + (sk.nonum || 0) + (sk.blocked || 0) + (sk.optout || 0) + (sk.unchecked || 0))}</div>
+        <div class="ll-d">${lcNum(held)} booked · ${lcNum(recentN)} came in lately · ${lcNum(taken)} taken out · ${lcNum(sk.nonum || 0)} no number${sk.blocked ? ` · ${lcNum(sk.blocked)} blocked` : ''}${sk.optout ? ` · ${lcNum(sk.optout)} opted out` : ''}${sk.unchecked ? ` · ${lcNum(sk.unchecked)} not checked yet` : ''}</div></div>
     </div>
     <section class="slv-card ll-panel">
       <div class="lq-batch"><div><b>Today's batch</b><div class="slv-note">Best first: WhatsApp active, smoothing, then colour.</div></div>
