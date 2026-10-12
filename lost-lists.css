@@ -164,3 +164,14 @@
 #lostListsContent .slv-intro p{font-size:14px;line-height:1.4}
 #lostListsContent .lq-tabs{margin:8px 0 0}
 #lostListsContent .ll-fresh{margin:8px 0 8px}
+
+/* In blast switch and the branch review strip (Kate, 12 Oct 2026, the coordinators' review). */
+.ll-chip.ok{background:var(--good-bg);border-color:transparent;color:var(--text)}
+.ll-review{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin:10px 0 14px}
+.ll-rv-h{flex:1 0 100%}
+.ll-rv-btn{font:inherit;font-size:11.5px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:1px 10px;cursor:pointer}
+.ll-rv-btn:hover{background:var(--surface2)}
+.ll-blast{font:inherit;font-size:12px;font-weight:500;border-radius:999px;padding:2px 10px;cursor:pointer;white-space:nowrap;border:1px solid transparent}
+.ll-blast.in{background:var(--good-bg);color:var(--good)}
+.ll-blast.out{background:var(--bad-bg);color:var(--bad)}
+.ll-blast:hover{border-color:var(--border)}
