@@ -1,6 +1,6 @@
 // Lost Clients, To message and Templates tabs (Kate, 9 Oct 2026). The five groups overlap (group 4 is everyone), so this is the
 // one running list built from them: every client who can be messaged, ONE message each, first match wins:
-// group 3 -> colour (with the welcome-back rate offer to 31 October 2026, Kate 9 Oct), then groups 1 or 2 -> smoothing, group 5 -> other services, group 4 only -> everyone else.
+// group 3 -> colour (with the welcome-back rate offer, no end date, Kate 13 Oct), then groups 1 or 2 -> smoothing, group 5 -> other services, group 4 only -> everyone else.
 // The list and its message types come from lost_queue() (migrations/lost_queue.sql); the wording of the six messages (three, each as WhatsApp and text) is in
 // lost_templates, edited from the Templates tab. Level 3 and above (it shows phone numbers).
 //
@@ -25,11 +25,11 @@ const LQ_SHORT = { SAA: 'Saadiyat', KCA: 'Khalifa City', MC: 'Motor City', AQ: '
 const LQ_STOP = " If you'd rather not hear from us, just reply STOP.";
 // The wording the Templates tab resets to (the same as the rows seeded in migrations/lost_queue.sql).
 const LQ_DEFAULTS = {
-  wa_smoothing: "Hi {first_name}, it's Tara Rose {branch}. You've been on our minds.\n\nYour last smoothing[ with {stylist}] was back in {month}, and smoothing softens over time. We'd love to see how your hair is feeling now, and we'll tell you honestly what it needs, even if the answer is \"not yet\".\n\nBecause we've missed you, your next smoothing is 30% off until 31 October.\n\nShall we find you a time? 🤍",
-  wa_colour: "Hi {first_name}, it's Tara Rose {branch}. You've been on our minds.\n\nYour last colour was in {month}, and a lot can change in a few months. Hair grows, tones soften, and sometimes you just fancy something different.\n\nWe'd also like to introduce you to our new stylists. We'll start by looking at your hair together and build a plan around you.\n\nAs a welcome back, your next colour is 20% off until 31 October.\n\nShall we find you a time? 🤍",
+  wa_smoothing: "Hi {first_name}, it's Tara Rose {branch}. You've been on our minds.\n\nYour last smoothing[ with {stylist}] was back in {month}, and smoothing softens over time. We'd love to see how your hair is feeling now, and we'll tell you honestly what it needs, even if the answer is \"not yet\".\n\nBecause we've missed you, your next smoothing is 30% off.\n\nShall we find you a time? 🤍",
+  wa_colour: "Hi {first_name}, it's Tara Rose {branch}. You've been on our minds.\n\nYour last colour was in {month}, and a lot can change in a few months. Hair grows, tones soften, and sometimes you just fancy something different.\n\nWe'd also like to introduce you to our new stylists. We'll start by looking at your hair together and build a plan around you.\n\nAs a welcome back, your next colour is 20% off.\n\nShall we find you a time? 🤍",
   wa_due: "Hi {first_name}, it's Tara Rose {branch}. We've missed you.\n\nIt's been a little while since we saw you[ with {stylist}]. Tell us what's been on your mind, whether that's a fresh cut, a colour refresh or a catch-up, and we'll find a time that suits you.\n\nWe'd love to have you back in the chair. 🤍",
-  sms_smoothing: "Hi {first_name}, it's Tara Rose {branch}. We've missed you. Your last smoothing[ with {stylist}] was back in {month}, and until 31 October you can have 30% off your next one. We'll look at your hair first and tell you honestly what it needs. Shall we find you a time?",
-  sms_colour: "Hi {first_name}, it's Tara Rose {branch}. We've been thinking of you. Your last colour was in {month}, and until 31 October you can have 20% off your next one, plus a chance to meet our new stylists. Shall we find you a time?",
+  sms_smoothing: "Hi {first_name}, it's Tara Rose {branch}. We've missed you. Your last smoothing[ with {stylist}] was back in {month}, and you can have 30% off your next one. We'll look at your hair first and tell you honestly what it needs. Shall we find you a time?",
+  sms_colour: "Hi {first_name}, it's Tara Rose {branch}. We've been thinking of you. Your last colour was in {month}, and you can have 20% off your next one, plus a chance to meet our new stylists. Shall we find you a time?",
   sms_due: "Hi {first_name}, it's Tara Rose {branch}. We've missed you. It's been a little while and we think you're due a visit[ with {stylist}]. Tell us what you'd like to do with your hair and we'll find the right time.",
 };
 const LQ_TOKENS = ['{first_name}', '{branch}', '{stylist}', '{month}'];
