@@ -2,6 +2,8 @@
    cookie of our own beyond the two stores below, so nothing here needs consent.
    TEMPLATE: swap __FORM_ENDPOINT__ for the GHL inbound webhook. Inert until set. */
 (function(){
+  /* Salon numbers from each Google Business Profile, checked 13 Oct 2026. Motor City's is a landline, so it calls. */
+  var SALON_LINKS='<a href="https://wa.me/971502811494" target="_blank" rel="noopener">Khalifa City A</a>, <a href="https://wa.me/971501968720" target="_blank" rel="noopener">Mamsha Al Saadiyat</a>, <a href="https://wa.me/971556245520" target="_blank" rel="noopener">Al Quoz</a>, or <a href="tel:+97144572309">call Motor City</a>';
   var FORM_ENDPOINT="__FORM_ENDPOINT__";
   var f=document.querySelector('#book form'); if(!f) return;
   var q=new URLSearchParams(location.search);
@@ -88,7 +90,7 @@
     var t=document.createElement('div'); t.className='form-thanks';
     t.innerHTML = FORM_ENDPOINT.indexOf('__FORM_ENDPOINT__')===-1
       ? '<h3>Thank you. We have you.</h3><p>We will come back to you on WhatsApp with a time. Your reference is '+ref+'.</p>'
-      : '<h3>This is a preview, so nothing was sent.</h3><p>To book now, <a href="https://wa.me/971556245520?text=Hi%20Tara%20Rose%2C%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener">message us on WhatsApp</a>.</p>';
+      : '<h3>This is a preview, so nothing was sent.</h3><p>To book now, message your salon on WhatsApp: '+SALON_LINKS+'.</p>';
     f.parentNode.replaceChild(t,f); t.scrollIntoView({behavior:'smooth'});
   });
 })();
