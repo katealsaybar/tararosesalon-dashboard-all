@@ -156,6 +156,7 @@ function dpCss() {
   .dpf .dp-wc{border-radius:8px;min-height:46px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;font-variant-numeric:tabular-nums}
   .dpf .dp-wc.best{outline:2px solid var(--text);outline-offset:-2px}
   .dpf .dp-wc.slow{outline:2px dashed var(--text);outline-offset:-2px}
+  .dpf .dp-col{fill:transparent}.dpf .dp-col:hover{fill:rgba(128,128,128,.14)}
   .dpf .dp-hit .xh{opacity:0}.dpf .dp-hit:hover .xh{opacity:1}
   .dpf .dp-err{background:var(--bad-bg);color:var(--bad);border-radius:8px;padding:10px 14px;margin:12px 0}
   .dp-tip{position:fixed;pointer-events:none;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.18);z-index:9999;display:none;min-width:150px;font-family:Inter,sans-serif}
@@ -381,24 +382,33 @@ function dpPctScale(vals) {
   for (let t = Math.floor(lo / step) * step + step; t <= hi; t += step) ticks.push(t);
   return { lo, hi, ticks };
 }
+// How far a ratio is from its target, in its own units: points for a rate, AED for a bill.
+function dpDiff(M, c) {
+  const d = Math.abs(c.v - c.t);
+  return (M.fmt === dpPctF || M.fmt === dpPct1) ? Math.round(d) + ' pts' : M.fmt(d);
+}
 function dpSpark(code, idxs, mk) {
-  const W = 220, H = 44, raw = !!DP_M[mk].notarget;
-  const vals = idxs.map(i => { const c = dpCell(mk, code, i); return c.state === 'ok' ? (raw ? c.v : c.p) : null; });
+  const W = 220, H = 44, M = DP_M[mk], units = !!M.notarget || M.kind === 'ratio';
+  const cells = idxs.map(i => dpCell(mk, code, i));
+  const vals = cells.map(c => c.state === 'ok' ? (units ? c.v : c.p) : null);
   const ok = vals.filter(v => v != null);
   if (!ok.length) return '';
-  const sc = raw ? null : dpPctScale(ok);
-  const lo = raw ? 0 : sc.lo, hi = raw ? (Math.max(...ok) * 1.15 || 1) : sc.hi;
+  const tgt = M.notarget ? null : (cells.filter(c => c.state === 'ok' && c.t != null).map(c => c.t).slice(-1)[0] ?? null);
+  const sc = units ? null : dpPctScale(ok);
+  const lo = units ? 0 : sc.lo, hi = units ? (Math.max(...ok, tgt || 0) * 1.15 || 1) : sc.hi;
   const x = k => 2 + k * (W - 4) / Math.max(1, idxs.length - 1);
   const y = p => H - 2 - (Math.min(Math.max(p, lo), hi) - lo) / (hi - lo) * (H - 4);
   const segs = []; let cur = [];
   vals.forEach((v, k) => { if (v != null) cur.push([x(k), y(v)]); else { if (cur.length) segs.push(cur); cur = []; } });
   if (cur.length) segs.push(cur);
-  const last = segs[segs.length - 1], lp = last[last.length - 1], t = y(100);
+  const last = segs[segs.length - 1], lp = last[last.length - 1];
+  const refY = units ? (tgt != null ? y(tgt) : null) : y(100);
   return `<svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${dpEsc(dpName(code))} trend">
-    ${raw ? '' : `<line x1="0" x2="${W}" y1="${t}" y2="${t}" stroke="var(--border)" stroke-dasharray="3 3"/>`}
+    ${refY != null ? `<line x1="0" x2="${W}" y1="${refY}" y2="${refY}" stroke="var(--border)" stroke-dasharray="3 3"/>` : ''}
     ${segs.map(sg => sg.length > 1 ? `<path d="${dpCurve(sg)}" fill="none" stroke="${dpCol(code)}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : '').join('')}
     <circle cx="${lp[0]}" cy="${lp[1]}" r="4" fill="${dpCol(code)}" stroke="var(--surface)" stroke-width="2"/></svg>`;
 }
+
 // Which branches are showing. null means All. Clicking a branch while All is on isolates it; after that each click
 // adds or takes one off (never the last), and All puts them all back. Kate, 13 Oct 2026: "toggle however many
 // branches we'd like, ALL toggle included".
@@ -423,41 +433,58 @@ function dpTiles(win, idxs) {
     for (let k = idxs.length - 1; k >= 0; k--) if (dpCell(mk, code, idxs[k]).state === 'ok') { li = idxs[k]; break; }
     if (li < 0) return `<div class="dp-tile">${head}<div class="big" style="color:var(--muted2)">—</div><div class="dp-sub">No figures in this window yet</div></div>`;
     const c = dpCell(mk, code, li), [cls, txt, ic] = dpStatus(c.p);
+    const ratio = M.kind === 'ratio' && !M.notarget && c.t != null;
+    const chip = ratio ? (Math.abs(c.v - c.t) < 1e-9 ? 'On target' : `${dpDiff(M, c)} ${c.v >= c.t ? 'above' : 'below'} target`)
+      : `${c.p != null ? Math.round(c.p) + '% \u00B7 ' : ''}${txt}`;
     const lastIdx = idxs[idxs.length - 1];
     const shut = dpCell(mk, code, lastIdx).state !== 'ok';
     return `<div class="dp-tile">${head}<div class="big">${M.fmt(c.v)}</div>
       <div class="dp-sub">${shut ? (dpCell(mk, code, lastIdx).state === 'closed' ? 'Closed ' + dpDayLabel(DPD.days[lastIdx]) + ' · last open ' : 'Latest figures ') : ''}${dpDayLabel(DPD.days[li])}${c.t ? ' · target ' + M.fmt(c.t) : ''}</div>
-      <span class="dp-chip ${cls}">${ic} ${c.p != null ? Math.round(c.p) + '% · ' : ''}${txt}</span>
+      <span class="dp-chip ${cls}">${ic} ${chip}</span>
       <div style="margin-top:8px;max-width:260px">${dpSpark(code, idxs, mk)}</div></div>`;
   }).join('');
 }
 
 // ── CHART A: every branch on one scale ─────────────────────
-// % of target, or the plain values when the measure has no target at all (NCR %), where the axis starts at 0.
+// Money and counts: % of target, so 100% is the day's target. A ratio, or a measure with no target at all (NCR %):
+// the figure itself, the axis from 0, and for a ratio the target as a dashed line at its real value.
 function dpChartA(host, idxs) {
-  const mk = DP.measure, M = DP_M[mk], W = dpW(host), n = idxs.length, raw = !!M.notarget;
+  const mk = DP.measure, M = DP_M[mk], W = dpW(host), n = idxs.length, raw = !!M.notarget, units = raw || M.kind === 'ratio';
   const H = Math.round(Math.min(340, Math.max(230, W * .34))), m = { l: 42, r: 46, t: 10, b: 26 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const val = c => (raw ? c.v : c.p);
+  const val = c => (units ? c.v : c.p);
   const okc = (code, i) => { const c = dpCell(mk, code, i); return c.state === 'ok' && val(c) != null ? c : null; };
   const tracked = dpSel().filter(c => idxs.some(i => okc(c, i)));
+  // the branches share one benchmark, so a ratio's target is the mean of the shown branches that day
+  const tgt = idxs.map(i => {
+    if (!units || raw) return null;
+    const ts = tracked.map(c => dpCell(mk, c, i)).filter(z => z.state === 'ok' && z.t != null).map(z => z.t);
+    return ts.length ? ts.reduce((a, b) => a + b, 0) / ts.length : null;
+  });
+  const tv = tgt.filter(v => v != null);
   let lo = 40, hi = 140, ticks = [60, 80, 100, 120, 140], tfmt = v => v + '%';
-  if (raw && tracked.length) {
-    const mx = Math.max(1e-9, ...tracked.flatMap(c => idxs.map(i => okc(c, i)).filter(Boolean).map(z => z.v)));
-    const nice = dpNice(mx * 1.1);
+  if (units && tracked.length) {
+    const all = tracked.flatMap(c => idxs.map(i => okc(c, i)).filter(Boolean).map(z => z.v)).concat(tv);
+    const mx = Math.max(1e-9, ...all), nice = dpNice(mx * 1.1), pctFmt = M.fmt === dpPctF || M.fmt === dpPct1;
     lo = 0; hi = Math.ceil(mx * 1.1 / nice) * nice; ticks = [];
     for (let v = 0; v <= hi + 1e-9; v += nice) ticks.push(v);
+    if (pctFmt && mx <= 95) { hi = 100; ticks = [20, 40, 60, 80, 100]; }
     tfmt = v => dpAxis(mk, v, hi);
-  } else if (!raw) {
+  } else if (!units) {
     const sc = dpPctScale(tracked.flatMap(c => idxs.map(i => okc(c, i)).filter(Boolean).map(z => z.p)));
     lo = sc.lo; hi = sc.hi; ticks = sc.ticks;
   }
   const x = k => m.l + (n === 1 ? iw / 2 : k * iw / (n - 1)), y = p => m.t + ih - (Math.min(Math.max(p, lo), hi) - lo) / (hi - lo) * ih;
   let g = '';
   ticks.forEach(v => {
-    const ref = !raw && v === 100;
+    const ref = !units && v === 100;
     g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border)"${ref ? ' stroke-dasharray="5 4" stroke-width="1.5"' : ''}/><text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${tfmt(v)}</text>`;
   });
+  // a ratio's target, as the dashed line it is
+  if (tv.length) {
+    const d = tgt.map((t, k) => t == null ? null : [x(k), y(t)]).filter(Boolean).map((q, k) => (k ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' ');
+    g += `<path d="${d}" fill="none" stroke="var(--muted2)" stroke-dasharray="5 4" stroke-width="1.5"/>`;
+  }
   const step = Math.max(1, Math.ceil(n / (W < 520 ? 7 : 14)));
   idxs.forEach((i, k) => { if (k % step === 0) g += `<text x="${x(k)}" y="${H - 6}" text-anchor="middle">${DPD.days[i].getDate()} ${DP_DOW[DPD.days[i].getDay()][0]}</text>`; });
   const ends = [];
@@ -479,18 +506,21 @@ function dpChartA(host, idxs) {
   idxs.forEach((i, k) => {
     const tip = `<b>${dpDayLabel(DPD.days[i])}</b>` + dpSel().map(code => {
       const c = dpCell(mk, code, i);
-      const v = c.state !== 'ok' ? dpWhy(c.state) : M.fmt(c.v) + (raw ? '' : (c.p != null ? ' \u00B7 ' + Math.round(c.p) + '%' : ' \u00B7 no target'));
+      const v = c.state !== 'ok' ? dpWhy(c.state) : M.fmt(c.v) + (units ? '' : (c.p != null ? ' \u00B7 ' + Math.round(c.p) + '%' : ' \u00B7 no target'));
       return `<div class="r"><span><span class="dot" style="background:${dpCol(code)}"></span> ${code}</span><span>${v}</span></div>`;
-    }).join('');
+    }).join('') + (tgt[k] != null ? `<div class="r"><span>Target</span><span>${M.fmt(tgt[k])}</span></div>` : '');
     g += `<g class="dp-hit"><line class="xh" x1="${x(k)}" x2="${x(k)}" y1="${m.t}" y2="${m.t + ih}" stroke="var(--muted2)"/><rect x="${x(k) - cw / 2}" y="${m.t}" width="${cw}" height="${ih}" fill="transparent" data-tip="${dpEsc(tip)}"/></g>`;
   });
-  const legend = tracked.map(c => `<span><i class="dot" style="background:${dpCol(c)}"></i>${dpEsc(dpName(c))}</span>`).join('')
-    + (raw ? '' : '<span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--muted2)" stroke-dasharray="5 4" stroke-width="1.5"/></svg>Daily target (100%)</span>')
+  const steady = tv.length && (Math.max(...tv) - Math.min(...tv)) <= Math.max(...tv) * .01;
+  const tLegend = units
+    ? (tv.length ? `<span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--muted2)" stroke-dasharray="5 4" stroke-width="1.5"/></svg>${dpEsc(steady ? 'Target ' + M.fmt(tv[tv.length - 1]) : 'Daily target (' + M.fmt(tv[tv.length - 1]) + ' now)')}</span>` : '')
+    : '<span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--muted2)" stroke-dasharray="5 4" stroke-width="1.5"/></svg>Daily target (100%)</span>';
+  const legend = tracked.map(c => `<span><i class="dot" style="background:${dpCol(c)}"></i>${dpEsc(dpName(c))}</span>`).join('') + tLegend
     + (tracked.length < dpSel().length ? '<span>A branch with no line has no target set, or is not tracked, for this measure</span>' : '');
-  const cellTxt = c => (c.state !== 'ok' ? dpWhy(c.state) : (raw ? M.fmt(c.v) : (c.p != null ? Math.round(c.p) + '%' : M.fmt(c.v))));
+  const cellTxt = c => (c.state !== 'ok' ? dpWhy(c.state) : (units ? M.fmt(c.v) : (c.p != null ? Math.round(c.p) + '%' : M.fmt(c.v))));
   const table = `<div class="dp-scroll"><table class="dp-tbl"><tr><th>Day</th>${dpSel().map(c => `<th>${c}</th>`).join('')}</tr>${idxs.map(i => `<tr><td>${dpDayLabel(DPD.days[i])}</td>${dpSel().map(code => `<td>${cellTxt(dpCell(mk, code, i))}</td>`).join('')}</tr>`).join('')}</table></div>`;
   if (!tracked.length) return `<p class="dp-why" style="margin:20px 0">No branch has a target set for ${dpEsc(M.noun)} in this window, so there is nothing to put on one scale. The branch tiles above still show the figures.</p>`;
-  return `<div class="dp-legend">${legend}</div><svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily ${dpEsc(M.noun)}${raw ? '' : ' as a percentage of target'}, by branch">${g}</svg><details><summary>View as table</summary>${table}</details>`;
+  return `<div class="dp-legend">${legend}</div><svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily ${dpEsc(M.noun)}${units ? '' : ' as a percentage of target'}, by branch">${g}</svg><details><summary>View as table</summary>${table}</details>`;
 }
 
 // ── CHART B: one branch, bars + 7-day average + target ──────
@@ -532,13 +562,16 @@ function dpChartB(host, idxs, codes) {
   let g = '';
   for (let v = 0; v <= mx + 1e-9; v += nice) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border)"/><text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${dpAxis(mk, v, mx)}</text>`;
   const step = Math.max(1, Math.ceil(n / (W < 520 ? 7 : 16)));
+  const tips = [];
   cells.forEach((c, k) => {
     const cx = m.l + bw * k + bw / 2, date = DPD.days[idxs[k]];
+    if (c.state !== 'ok') tips[k] = `<b>${dpDayLabel(date)}</b><div>${dpWhy(c.state)}</div>`;
     if (c.state === 'ok') {
       const below = c.t != null && c.v < c.t, yy = y(c.v), r = Math.min(4, bwid / 2);
       const parts = multi ? codes.map(b => { const z = dpCell(mk, b, idxs[k]); return `<div class="r"><span><span class="dot" style="background:${dpCol(b)}"></span> ${b}</span><span>${z.state === 'ok' ? M.fmt(z.v) : dpWhy(z.state)}</span></div>`; }).join('') : '';
-      const tip = `<b>${dpDayLabel(date)}</b><div class="r"><span>${multi ? 'Combined' : M.label}</span><span>${M.fmt(c.v)}</span></div>${ma[k] != null ? `<div class="r"><span>7-day average</span><span>${M.fmt(ma[k])}</span></div>` : ''}${c.t ? `<div class="r"><span>Target</span><span>${M.fmt(c.t)}</span></div><div class="r"><span>vs target</span><span>${Math.round(c.p)}%</span></div>` : '<div class="r"><span>Target</span><span>not set</span></div>'}${parts}`;
-      g += `<path d="M${cx - bwid / 2} ${m.t + ih} V${yy + r} Q${cx - bwid / 2} ${yy} ${cx - bwid / 2 + r} ${yy} H${cx + bwid / 2 - r} Q${cx + bwid / 2} ${yy} ${cx + bwid / 2} ${yy + r} V${m.t + ih} Z" style="fill:${color}" opacity="${below ? .45 : 1}" data-tip="${dpEsc(tip)}"/>`;
+      const tip = `<b>${dpDayLabel(date)}</b><div class="r"><span>${multi ? 'Combined' : M.label}</span><span>${M.fmt(c.v)}</span></div>${ma[k] != null ? `<div class="r"><span>7-day average</span><span>${M.fmt(ma[k])}</span></div>` : ''}${c.t ? `<div class="r"><span>Target</span><span>${M.fmt(c.t)}</span></div><div class="r"><span>vs target</span><span>${M.kind === 'ratio' ? dpDiff(M, c) + (c.v >= c.t ? ' above' : ' below') : Math.round(c.p) + '%'}</span></div>` : '<div class="r"><span>Target</span><span>not set</span></div>'}${parts}`;
+      tips[k] = tip;
+      g += `<path d="M${cx - bwid / 2} ${m.t + ih} V${yy + r} Q${cx - bwid / 2} ${yy} ${cx - bwid / 2 + r} ${yy} H${cx + bwid / 2 - r} Q${cx + bwid / 2} ${yy} ${cx + bwid / 2} ${yy + r} V${m.t + ih} Z" style="fill:${color}" opacity="${below ? .45 : 1}"/>`;
     } else if (c.state === 'closed') g += `<text x="${cx}" y="${m.t + ih - 6}" text-anchor="middle" font-size="10">${bw > 38 ? 'Closed' : '\u00D7'}</text>`;
     if (k % step === 0) g += `<text x="${cx}" y="${H - 6}" text-anchor="middle">${date.getDate()} ${DP_DOW[date.getDay()][0]}</text>`;
   });
@@ -553,6 +586,7 @@ function dpChartB(host, idxs, codes) {
     const d = dpCurve(pts), l = pts[pts.length - 1];
     g += `<path d="${d}" fill="none" stroke="var(--surface)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/><path d="${d}" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${l[0]}" cy="${l[1]}" r="4.5" fill="var(--text)" stroke="var(--surface)" stroke-width="2"/>`;
   }
+  g += cells.map((c, k) => tips[k] ? `<rect class="dp-col" x="${m.l + bw * k}" y="${m.t}" width="${bw}" height="${ih}" data-tip="${dpEsc(tips[k])}"/>` : '').join('');
   const open = cells.filter(c => c.state === 'ok'), withT = open.filter(c => c.t != null), hit = withT.filter(c => c.v >= c.t).length;
   // who the combined bars leave out, and why, so a total is never quietly short
   const left = !multi ? [] : codes.map(b => (M.beauty && DPD.hairOnly[b]) ? `${b} (no Beauty team)` : (!M.notarget && !idxs.some(i => { const z = dpCell(mk, b, i); return z.state === 'ok' && z.t != null; })) ? `${b} (no target set)` : null).filter(Boolean);
@@ -572,6 +606,7 @@ const DP_BIN_NAMES = ['Under 80%', '80\u201394%', '95\u2013105%', '106\u2013120%
 const dpBin = p => p < 80 ? 0 : p < 95 ? 1 : p <= 105 ? 2 : p <= 120 ? 3 : 4;
 const dpBinBg = i => `var(--dv-${DP_BIN_KEYS[i]})`;
 const dpBinInk = i => `var(--dv-${DP_BIN_KEYS[i]}-t)`;
+const dpPlain = (M, v) => M.fmt(v).replace(/^AED\s*/, '').replace('%', '');
 const dpShade = r => `color-mix(in srgb, var(--dv-p2) ${Math.round(14 + 46 * r)}%, transparent)`;   // size, for a measure with no target
 function dpBinKey(raw) {
   return (raw ? '<span><i style="background:' + dpShade(.1) + '"></i>Lower</span><span><i style="background:' + dpShade(.5) + '"></i>Middle</span><span><i style="background:' + dpShade(1) + '"></i>Higher</span>'
@@ -593,11 +628,11 @@ function dpHeat(host, idxs) {
     g += `<text class="tv" x="0" y="${4 + r * ch + ch / 2 + 4}">${code}</text>`;
     idxs.forEach((i, k) => {
       const c = dpCell(mk, code, i), x = xs[k], yy = 4 + r * ch;
-      const tip = `<b>${dpEsc(dpName(code))}</b><div>${dpDayLabel(DPD.days[i])}</div>` + (c.state !== 'ok' ? `<div>${dpWhy(c.state)}</div>` : `<div class="r"><span>${M.fmt(c.v)}</span><span>${raw ? '' : (c.p != null ? Math.round(c.p) + '% of target' : 'no target')}</span></div>`);
+      const tip = `<b>${dpEsc(dpName(code))}</b><div>${dpDayLabel(DPD.days[i])}</div>` + (c.state !== 'ok' ? `<div>${dpWhy(c.state)}</div>` : `<div class="r"><span>${M.fmt(c.v)}</span><span>${raw ? '' : (c.p != null ? (M.kind === 'ratio' ? 'target ' + M.fmt(c.t) : Math.round(c.p) + '% of target') : 'no target')}</span></div>`);
       let fill = 'var(--surface2)', ink = 'var(--muted2)', label = '';
       if (c.state === 'ok') {
         if (raw) { fill = dpShade(mx ? c.v / mx : 0); ink = 'var(--text)'; label = M.fmt(c.v).replace('%', ''); }
-        else if (c.p != null) { const b = dpBin(c.p); fill = dpBinBg(b); ink = dpBinInk(b); label = String(Math.round(c.p)); }
+        else if (c.p != null) { const b = dpBin(c.p); fill = dpBinBg(b); ink = dpBinInk(b); label = M.kind === 'ratio' ? dpPlain(M, c.v) : String(Math.round(c.p)); }
       }
       g += `<rect x="${x + 1}" y="${yy + 1}" width="${cw - 2}" height="${ch - 2}" rx="6" style="fill:${fill}" data-tip="${dpEsc(tip)}"/>`;
       if (nums && label) g += `<text x="${x + cw / 2}" y="${yy + ch / 2 + 4}" text-anchor="middle" style="fill:${ink};font-size:11.5px;font-weight:600;pointer-events:none">${label}</text>`;
@@ -617,30 +652,35 @@ function dpHeat(host, idxs) {
 
 // ── WEEKDAY PATTERN ─────────────────────────────────────────
 // A grid, not 28 bars: one row per branch, one square per weekday, the average in it, the best day outlined and
-// the slowest dashed. Same colours as the heatmap, so one key reads both.
+// the slowest dashed. Same colours as the heatmap, so one key reads both. A ratio shows its own average (45%), coloured
+// by how that sits against the target.
 function dpWeekday(host) {
-  const mk = DP.measure, M = DP_M[mk], codes = dpSel(), raw = !!M.notarget, days = DPD.days.length;
-  const avg = codes.map(code => {
+  const mk = DP.measure, M = DP_M[mk], codes = dpSel(), raw = !!M.notarget, units = raw || M.kind === 'ratio', days = DPD.days.length;
+  const mean = a => (a.length ? a.reduce((t, v) => t + v, 0) / a.length : null);
+  const gather = (code, pick) => {
     const a = Array.from({ length: 7 }, () => []);
-    for (let i = 0; i < days; i++) { const c = dpCell(mk, code, i); const v = c.state === 'ok' ? (raw ? c.v : c.p) : null; if (v != null) a[DPD.days[i].getDay()].push(v); }
-    return a.map(x => x.length ? x.reduce((s, v) => s + v, 0) / x.length : null);
-  });
-  if (!avg.some(a => a.some(v => v != null))) return { html: '<p class="dp-why" style="margin:20px 0">No target to read the weekdays against for this measure.</p>', legend: '', days };
-  const order = [1, 2, 3, 4, 5, 6, 0], mx = raw ? Math.max(...avg.flat().filter(v => v != null)) : 0;
-  const fmtv = v => (raw ? M.fmt(v) : Math.round(v) + '%');
+    for (let i = 0; i < days; i++) { const c = dpCell(mk, code, i); if (c.state === 'ok') { const v = pick(c); if (v != null) a[DPD.days[i].getDay()].push(v); } }
+    return a.map(mean);
+  };
+  const avgP = codes.map(code => gather(code, c => c.p)), avgV = codes.map(code => gather(code, c => c.v));
+  const score = raw ? avgV : avgP;
+  if (!score.some(a => a.some(v => v != null))) return { html: '<p class="dp-why" style="margin:20px 0">No target to read the weekdays against for this measure.</p>', legend: '', days };
+  const order = [1, 2, 3, 4, 5, 6, 0], mx = raw ? Math.max(...avgV.flat().filter(v => v != null)) : 0;
+  const txtOf = (bi, d) => (units ? M.fmt(avgV[bi][d]) : Math.round(avgP[bi][d]) + '%');
   const head = '<span></span>' + order.map(d => `<div class="dp-wh">${DP_DOW[d]}</div>`).join('');
   const lines = [];
   const rows = codes.map((code, bi) => {
-    const vals = order.map(d => avg[bi][d]), okv = vals.filter(v => v != null);
+    const vals = order.map(d => score[bi][d]), okv = vals.filter(v => v != null);
     const hi = okv.length > 1 ? Math.max(...okv) : null, lo = okv.length > 1 ? Math.min(...okv) : null, spread = hi !== lo;
-    if (okv.length > 1 && spread) lines.push(`<div class="dp-sub"><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span><b style="color:var(--text)">${code}</b> best ${DP_DOW[order[vals.indexOf(hi)]]} (${fmtv(hi)}), slowest ${DP_DOW[order[vals.indexOf(lo)]]} (${fmtv(lo)})</div>`);
+    if (okv.length > 1 && spread) lines.push(`<div class="dp-sub"><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span><b style="color:var(--text)">${code}</b> best ${DP_DOW[order[vals.indexOf(hi)]]} (${txtOf(bi, order[vals.indexOf(hi)])}), slowest ${DP_DOW[order[vals.indexOf(lo)]]} (${txtOf(bi, order[vals.indexOf(lo)])})</div>`);
     const cells = vals.map((v, k) => {
-      const tip = `<b>${dpEsc(dpName(code))} \u00B7 ${DP_DOW[order[k]]}</b><div>${v == null ? 'No figures' : fmtv(v) + (raw ? ' on average' : ' of target on average')}</div>`;
+      const d = order[k];
+      const tip = `<b>${dpEsc(dpName(code))} \u00B7 ${DP_DOW[d]}</b><div>${v == null ? 'No figures' : txtOf(bi, d) + (raw ? ' on average' : (units ? ` on average (${Math.round(avgP[bi][d])}% of target)` : ' of target on average'))}</div>`;
       if (v == null) return `<div class="dp-wc" style="background:var(--surface2);color:var(--muted2)" data-tip="${dpEsc(tip)}">\u2013</div>`;
       let bg, ink;
-      if (raw) { bg = dpShade(mx ? v / mx : 0); ink = 'var(--text)'; } else { const b = dpBin(v); bg = dpBinBg(b); ink = dpBinInk(b); }
+      if (raw) { bg = dpShade(mx ? v / mx : 0); ink = 'var(--text)'; } else { const b = dpBin(avgP[bi][d]); bg = dpBinBg(b); ink = dpBinInk(b); }
       const cls = spread ? (v === hi ? ' best' : v === lo ? ' slow' : '') : '';
-      return `<div class="dp-wc${cls}" style="background:${bg};color:${ink}" data-tip="${dpEsc(tip)}">${fmtv(v)}</div>`;
+      return `<div class="dp-wc${cls}" style="background:${bg};color:${ink}" data-tip="${dpEsc(tip)}">${txtOf(bi, d)}</div>`;
     }).join('');
     return `<div class="dp-wl"><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span>${code}</div>${cells}`;
   }).join('');
@@ -765,7 +805,7 @@ function dpDraw(host, win) {
     <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}</p>
     <section class="dp-tiles" id="dpTiles" aria-label="Latest open day per branch">${dpTiles(win, idxs)}</section>
     <div class="dp-card"><h2>${M.notarget ? `Daily ${dpEsc(M.noun)}, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}` : `Daily ${dpEsc(M.noun)} against target, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}`}</h2>
-      <p class="dp-why">${M.notarget ? 'Every branch on one scale, in plain values. This measure has no target, so nothing is graded. Gaps are closed days or days with no figures.' : "Every branch on one scale: 100% means the day's target was met. Gaps are closed days or days with no figures."}</p><div id="dpA"></div></div>
+      <p class="dp-why">${M.notarget ? 'Every branch on one scale, in plain values. This measure has no target, so nothing is graded. Gaps are closed days or days with no figures.' : (M.kind === 'ratio' ? "Every branch on one scale, in the measure's own units, with the target as the dashed line. Gaps are closed days or days with no figures." : "Every branch on one scale: 100% means the day's target was met. Gaps are closed days or days with no figures.")}</p><div id="dpA"></div></div>
     <div class="dp-card"><div class="dp-head"><div><h2 id="dpBT"></h2><p class="dp-why" id="dpBW"></p></div><span class="dp-pills" id="dpBP" role="group" aria-label="Branches">${dpPickPills()}</span></div>
       <div class="dp-legend" id="dpBL"></div><div id="dpB"></div></div>
     <div class="dp-card"><div class="dp-head"><div><h2 id="dpRT"></h2>
@@ -773,7 +813,7 @@ function dpDraw(host, win) {
       <span class="dp-pills" id="dpRP" role="group" aria-label="Branches">${dpPickPills()}</span></div>
       ${dpRadarCustom()}
       <div class="dp-legend" id="dpRL"></div><div class="dp-sw"><div id="dpR"></div><div class="dp-swl" id="dpRS"></div></div></div>
-    <div class="dp-card"><h2>${M.notarget ? 'Which days were big or small?' : 'Which days were weak?'}</h2><p class="dp-why">${M.notarget ? 'Each square is a branch on a day, darker for a higher figure. This measure has no target, so nothing is graded.' : 'Each square is a branch on a day, with its % of target in it. Blue beat the target, red fell short, grey is on target. A small gap marks each new week.'}</p><div id="dpC"></div></div>
+    <div class="dp-card"><h2>${M.notarget ? 'Which days were big or small?' : 'Which days were weak?'}</h2><p class="dp-why">${M.notarget ? 'Each square is a branch on a day, darker for a higher figure. This measure has no target, so nothing is graded.' : (M.kind === 'ratio' ? "Each square is a branch on a day, with that day's figure in it. The colour is how it did against the target: blue beat it, red fell short, grey is on target. A small gap marks each new week." : 'Each square is a branch on a day, with its % of target in it. Blue beat the target, red fell short, grey is on target. A small gap marks each new week.')}</p><div id="dpC"></div></div>
     <div class="dp-card"><h2>Best and slowest weekday</h2><p class="dp-why" id="dpDW"></p><div id="dpD"></div></div>
     <div class="dp-card"><h2>How to read this page</h2>
       <p class="dp-note"><b>The daily target</b> is the month's target divided by the branch's trading days in that month. It is flat, so a Saturday and a Sunday carry the same target; the weekday chart is where the difference shows. Ratios (rebooking, treatment, retail, average bills) read the same benchmark every day. Utilisation reads hair 80 and beauty 70, weighted by the hours available.</p>
