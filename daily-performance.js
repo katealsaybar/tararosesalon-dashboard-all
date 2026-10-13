@@ -823,7 +823,7 @@ function dpDraw(host, win) {
       ${dpRadarCustom(idxs, dpSel())}
       <div class="dp-legend" id="dpRL"></div><div class="dp-sw"><div id="dpR"></div><div class="dp-swl" id="dpRS"></div></div></div>
     <div class="dp-card"><h2>${M.notarget ? 'Which days were big or small?' : 'Which days were weak?'}</h2><p class="dp-why">${M.notarget ? 'Each square is a branch on a day, darker for a higher figure. This measure has no target, so nothing is graded.' : (M.kind === 'ratio' ? "Each square is a branch on a day, with that day's figure in it. The colour is how it did against the target: blue beat it, red fell short, grey is on target. A small gap marks each new week." : 'Each square is a branch on a day, with its % of target in it. Blue beat the target, red fell short, grey is on target. A small gap marks each new week.')}</p><div id="dpC"></div></div>
-    <div class="dp-card"><h2>Best and slowest weekday</h2><p class="dp-why" id="dpDW"></p><div id="dpD"></div></div>
+    <div class="dp-card"><h2>Best and slowest weekday: ${dpEsc(M.label)}</h2><p class="dp-why" id="dpDW"></p><div id="dpD"></div></div>
     <div class="dp-card"><h2>How to read this page</h2>
       <p class="dp-note"><b>The daily target</b> is the month's target divided by the branch's trading days in that month. It is flat, so a Saturday and a Sunday carry the same target; the weekday chart is where the difference shows. Ratios (rebooking, treatment, retail, average bills) read the same benchmark every day. Utilisation reads hair 80 and beauty 70, weighted by the hours available.</p>
       <p class="dp-note"><b>Closed days</b> come from the closed-days rules and table, so Al Quoz on a Sunday or Monday is shut, not a zero. A measure with no target set (total and new clients, until somebody keys them in the Upload Portal) shows its figures with no grade. <b>NCR</b> is New Client Requests, a count against the Pulse's monthly NCR target; NCR % is the same count as a share of the day's clients, the way the Pulse's Client Funnel prints it, and has no target.</p>
@@ -840,7 +840,9 @@ function dpDraw(host, win) {
   el('dpRT').textContent = r.title; fill('dpRL', r.legend); fill('dpR', r.html); fill('dpRS', r.list);
   fill('dpC', dpHeat(el('dpC'), idxs));
   const wk = dpWeekday(el('dpD'));
-  el('dpDW').textContent = `Average ${M.notarget ? 'figure' : '% of daily target'} by weekday, over the ${wk.days} days loaded. This is the one that tells you where to put your team.`;
+  el('dpDW').textContent = (M.notarget ? `Average ${M.noun} for each weekday, over the ${wk.days} days loaded. This measure has no target, so nothing is graded.`
+    : M.kind === 'ratio' ? `Average ${M.noun} for each weekday, over the ${wk.days} days loaded. The colour is how it did against its target.`
+    : `Average ${M.noun} for each weekday, as a % of that day's target, over the ${wk.days} days loaded.`) + ' This is the one that tells you where to put your team.';
   fill('dpD', wk.html);
   if (had) window.scrollTo({ top: sy, left: 0, behavior: 'instant' });
   dpWire(host);
