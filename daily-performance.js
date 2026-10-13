@@ -759,7 +759,7 @@ const dpPeriods = [['mtd', 'Month to date'], ['last7', 'Last 7 days'], ['last30'
 function dpControls(win) {
   const mpanel = DP_GROUPS.map(([g, ks]) => `<div class="dp-row"><span class="dp-lab">${g}</span><span class="dp-pills">${ks.map(k => `<button type="button" class="dp-pill" data-m="${k}" aria-pressed="${k === DP.measure}">${DP_M[k].label}</button>`).join('')}</span></div>`).join('');
   const per = `<div class="dp-row"><span class="dp-lab">Period</span><span class="dp-pills">${dpPeriods.map(([k, l]) => `<button type="button" class="dp-pill" data-p="${k}" aria-pressed="${k === DP.period}">${l}</button>`).join('')}</span>
-    ${DP.period === 'custom' ? `<span class="dp-row" style="gap:6px"><input type="date" class="dp-date" id="dpFrom" value="${dpEsc(DP.from || dpYmd(win.from))}" max="${dpYmd(win.yest)}"> to <input type="date" class="dp-date" id="dpTo" value="${dpEsc(DP.to || dpYmd(win.to))}" max="${dpYmd(win.yest)}"></span>` : ''}</div>`;
+    ${DP.period === 'custom' ? `<span class="dp-row" style="gap:6px"><input type="date" class="dp-date" id="dpFrom" value="${dpEsc(DP.from || dpYmd(win.from))}" max="${dpYmd(win.yest)}"> to <input type="date" class="dp-date" id="dpTo" value="${dpEsc(DP.to || dpYmd(win.to))}" max="${dpYmd(win.yest)}"><button type="button" class="dp-pill" id="dpApply">Apply</button><span class="dp-sub" id="dpDateMsg"></span></span>` : ''}</div>`;
   return `<div class="dp-panel" role="group" aria-label="Measure">${mpanel}</div><div class="dp-panel" role="group" aria-label="Branch and period"><div class="dp-row"><span class="dp-lab">Branch</span><span class="dp-pills">${dpPickPills()}</span></div>${per}</div>`;
 }
 // All, then each branch. While All is on only All shows pressed: it says "everything", and the first branch you
@@ -888,8 +888,16 @@ function dpWire(host) {
   if (rn) rn.onclick = () => dpRedraw(host, rn, '#dpRadarNone', () => { DP.radar = []; dpRadarOpen = true; dpSave(); });
   const f = root.querySelector('#dpFrom'), t = root.querySelector('#dpTo');
   if (f && t) {
-    const go = async () => { if (f.value && t.value) { DP.from = f.value; DP.to = t.value; dpSave(); await renderDailyPerf(); } };
-    f.onchange = go; t.onchange = go;
+    // Typing a date fires a change at every half-finished value, so nothing is drawn until Apply (or Enter).
+    const ap = root.querySelector('#dpApply'), msg = root.querySelector('#dpDateMsg');
+    const go = async () => {
+      if (!f.value || !t.value) { if (msg) msg.textContent = 'Pick both dates.'; return; }
+      if (f.value > t.value) { if (msg) msg.textContent = 'The start is after the end.'; return; }
+      DP.from = f.value; DP.to = t.value; dpSave(); await renderDailyPerf();
+    };
+    const pending = () => { const d = f.value !== (DP.from || '') || t.value !== (DP.to || ''); if (ap) ap.setAttribute('aria-pressed', d ? 'true' : 'false'); if (msg) msg.textContent = ''; };
+    if (ap) ap.onclick = go;
+    [f, t].forEach(x => { x.oninput = pending; x.onchange = pending; x.onkeydown = e => { if (e.key === 'Enter') go(); }; });
   }
 }
 
