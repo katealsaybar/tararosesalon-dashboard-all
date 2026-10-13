@@ -34,7 +34,7 @@ const LQ_DEFAULTS = {
 };
 const LQ_TOKENS = ['{first_name}', '{branch}', '{stylist}', '{month}'];
 
-let lqSel = { tab: 'groups', view: 'send', ch: 'all', ty: 'all', br: 'all', st: 'all', sty: 'all', ph: 'all', sort: 'best', per: 20, batch: 50 };
+let lqSel = { tab: 'groups', view: 'send', area: 'wa', wv: 0, smsCap: 100, ch: 'all', ty: 'all', br: 'all', st: 'all', sty: 'all', ph: 'all', sort: 'best', per: 20, batch: 50 };
 try { Object.assign(lqSel, JSON.parse(localStorage.getItem('trs-lost-queue') || '{}')); } catch (e) {}
 const lqSave = () => { try { localStorage.setItem('trs-lost-queue', JSON.stringify(lqSel)); } catch (e) {} };
 let lqSnd = { info: null, jobs: {}, poll: null, test: null };   // sending from the site (migrations/lost_send.sql), see SENDING FROM THE SITE below
@@ -79,6 +79,7 @@ async function lqLoad(force) {
   if (t.error || !Array.isArray(t.data)) throw t.error || new Error('no templates');
   lqData = q.data; lqTpl = t.data; lqLoadedAt = Date.now();
   await lqSendLoad();   // never throws: without it the page works as before (Open in WhatsApp, Mark sent)
+  if (typeof lqwLoad === 'function') await lqwLoad();   // the waves (lost-waves.js); never throws, without them the page is the single list
   lqPrep(lqData.rows);
 }
 // A client's name as she would say it: no brackets or stray dots, "SARA" -> "Sara".
@@ -165,11 +166,11 @@ const lqIsReplied = r => r.messaged && r.replied;
 // A message waiting to go, going, failed or skipped sits in its own view (Sending) until it is sent; a cancelled one is back in To send.
 const LQ_OUT = ['queued', 'sending', 'failed', 'skipped'];
 function lqView(r) { return lqIsReplied(r) ? 'reply' : r.messaged ? 'sent' : (r._job && LQ_OUT.includes(r._job.status)) ? 'out' : 'send'; }
-function lqBase() { return lqRows.filter(r => lqView(r) === lqSel.view); }
+function lqBase() { return lqRows.filter(r => lqView(r) === lqSel.view && (typeof lqwOn !== 'function' || !lqwOn() || r._ch === lqSel.ch)); }
 function lqFiltered(view) {
   const q = lqQuery.trim().toLowerCase();
   let out = lqRows.filter(r => lqView(r) === (view || lqSel.view)
-    && (lqSel.ch === 'all' || r._ch === lqSel.ch) && (lqSel.ty === 'all' || r.qtype === lqSel.ty) && (lqSel.br === 'all' || r.branch === lqSel.br)
+    && (lqSel.ch === 'all' || r._ch === lqSel.ch) && (typeof lqwOn !== 'function' || !lqwOn() || lqwKeep(r, view || lqSel.view)) && (lqSel.ty === 'all' || r.qtype === lqSel.ty) && (lqSel.br === 'all' || r.branch === lqSel.br)
     && (lqSel.st === 'all' || r.wa === lqSel.st)
     && (lqSel.sty === 'all' || (lqSel.sty === 'named' ? !!r._sty : !r._sty))
     && (lqSel.ph === 'all' || r.n_numbers <= 1)
@@ -182,6 +183,7 @@ function lqFiltered(view) {
 function lqPaint() {
   const host = document.getElementById('lqHost');
   if (!host) return;
+  if (typeof lqwOn === 'function' && lqwOn()) return lqwPaint(host);   // WhatsApp and Text areas, the waves (lost-waves.js)
   const n = v => lqRows.filter(r => lqView(r) === v).length;
   const sk = (lqData && lqData.skipped) || {}, held = (lqData && lqData.held) || 0;
   const recentN = (lqData && lqData.recent) || 0, taken = (lqData && lqData.excluded) || 0, reviewed = Object.keys((lqData && lqData.review) || {}).length;
@@ -279,6 +281,7 @@ function lqPaintTable() {
   const msgCell = (r, i) => { const m = lqShownText(r); return `<div class="lq-msg" title="${lcEsc(m)}">${lcEsc(m)}</div>${r._ch === 'sms' ? `<div class="slv-note${m.length > 160 ? ' lq-long' : ''}">${m.length} characters${m.length > 160 ? ', more than one text' : ''}</div>` : ''}`; };
   const act = (r, i) => {
     if (view === 'out') return lqOutAct(r, i);
+    if (view === 'send' && typeof lqwOn === 'function' && lqwOn() && r._ch === 'whatsapp' && !lqwCanWave(r)) return '<span class="slv-note">Its wave is not open</span>';
     if (view === 'send') {
       const site = lqCanSend(r) ? `<button type="button" class="tglr lc-btn lq-pri" onclick="lqSendRows([${i}])" title="Send it now through respond.io, from ${lcEsc(LQ_SHORT[r.branch] || r.branch)}'s number">Send</button>` : '';
       const wa = r._ch === 'whatsapp' && r._phone
@@ -308,7 +311,7 @@ function lqPaintTable() {
   const from = (lqPage - 1) * per + 1;
   const th = (label, k, marked) => `<th><button type="button" class="ll-thb${marked ? ' on' : ''}" onclick="llMenu(event,'${k}')" aria-haspopup="dialog" title="Filter or sort">${lcEsc(label)} <span aria-hidden="true">▾</span></button></th>`;
   const heads = th('Client', 'q-client', lqSel.br !== 'all' || lqSel.sort !== 'best') + th('Message', 'q-message', lqSel.ty !== 'all')
-    + th('Channel', 'q-channel', lqSel.ch !== 'all' || lqSel.st !== 'all') + th('Usual stylist', 'q-stylist', lqSel.sty !== 'all')
+    + (typeof lqwOn === 'function' && lqwOn() ? '<th>Channel</th>' : th('Channel', 'q-channel', lqSel.ch !== 'all' || lqSel.st !== 'all')) + th('Usual stylist', 'q-stylist', lqSel.sty !== 'all')
     + th('Phone', 'q-phone', lqSel.ph !== 'all') + '<th>What she gets</th><th></th>';
   box.innerHTML = `<div class="slv-wrap prd-desk lc-wrap ll-wrap"><table class="slv-table"><thead><tr>${heads}</tr></thead>
       <tbody>${tr || `<tr><td colspan="7" class="slv-muted">${view === 'send' ? 'Nobody left to send to with these filters.' : view === 'out' ? 'Nothing queued, failed or skipped.' : 'Nobody here yet.'}</td></tr>`}</tbody></table></div>
@@ -497,11 +500,12 @@ function lqShownText(r) {
   return lqMessage(r);
 }
 function lqCanSend(r) {
+  if (typeof lqwOn === 'function' && lqwOn() && r._ch === 'whatsapp' && !lqwCanWave(r)) return false;   // its wave is not open (lost-waves.js)
   if (!lqSendOn() || r._ch !== 'whatsapp' || !r._phone || (r._job && r._job.status !== 'cancelled') || r.messaged) return false;
   const t = lqSendTpl(r);
   return !!(t && t.approved && lqSendParams(t, r).every(Boolean));
 }
-const lqRoom = () => lqSnd.info ? Math.max(0, lqSnd.info.daily_cap - lqSnd.info.used_today) : 0;
+const lqRoom = () => typeof lqwOn === 'function' && lqwOn() ? lqwRoom() : lqSnd.info ? Math.max(0, lqSnd.info.daily_cap - lqSnd.info.used_today) : 0;
 const lqHour = h => String(h).padStart(2, '0') + ':00';
 function lqOutLine() {
   const c = s => Object.values(lqSnd.jobs).filter(j => j.status === s).length;
@@ -576,7 +580,7 @@ async function lqSendGo() {
   const rows = lqPending, b = document.getElementById('lqmGo');
   if (!rows.length) return;
   if (b) { b.disabled = true; b.textContent = 'Queueing…'; }
-  const items = rows.map(r => ({ client_key: r.client_key, phone: r._phone, branch: r.branch, tkey: lqTkey(r), dups: r._dupKeys, vars: lqSendVars(r) }));
+  const items = rows.map(r => ({ client_key: r.client_key, phone: r._phone, branch: r.branch, tkey: lqTkey(r), dups: r._dupKeys, vars: lqSendVars(r), wave: typeof lqwSendWave === 'function' ? lqwSendWave(r) : 0 }));
   const { data, error } = await sb.rpc('lost_send_enqueue', { p_items: items });
   lqModalClose();
   lqPending = [];
