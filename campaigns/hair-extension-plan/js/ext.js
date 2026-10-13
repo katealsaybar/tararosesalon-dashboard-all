@@ -24,7 +24,7 @@
       if(FORM_ENDPOINT.indexOf("__FORM_ENDPOINT__")===-1){ try{ fetch(FORM_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)}); }catch(err){} }
       var t=document.createElement('div'); t.className='form-thanks';
       t.innerHTML = FORM_ENDPOINT.indexOf('__FORM_ENDPOINT__')===-1
-        ? '<h3>Thank you. We have you.</h3><p>Our team will reply within one working day.</p>'
+        ? '<h3>Thank you. We have you.</h3><p>Our team will reply during salon hours, 9am to 8pm.</p>'
         : '<h3>This is a preview, so nothing was sent.</h3><p>To reserve now, email <a href="mailto:info@tararosesalon.com">info@tararosesalon.com</a>.</p>';
       t.setAttribute('role','status'); t.tabIndex=-1;
       f.parentNode.replaceChild(t,f); t.focus({preventScroll:true});
