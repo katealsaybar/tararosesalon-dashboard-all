@@ -11,6 +11,19 @@
     g.addEventListener('click',function(){ var cb=document.getElementById('c-gift'); if(cb){ cb.checked=true; cb.dispatchEvent(new Event('change',{bubbles:true})); } });
   });
 
+  /* Gift: ask for her name and a note only when the gift box is ticked, and clear them if it is unticked. */
+  (function(){
+    var cb=document.getElementById('c-gift'), box=document.getElementById('gift-fields');
+    var gn=document.getElementById('gift_name'), gt=document.getElementById('gift_note');
+    if(!cb||!box||!gn) return;
+    var sync=function(){
+      box.style.display=cb.checked?'':'none';
+      gn.required=cb.checked;
+      if(!cb.checked){ gn.value=''; if(gt) gt.value=''; }
+    };
+    cb.addEventListener('change',sync); sync();
+  })();
+
   var FORM_ENDPOINT="__FORM_ENDPOINT__";
   var f=document.querySelector('main form')||document.querySelector('form');
   if(f){
