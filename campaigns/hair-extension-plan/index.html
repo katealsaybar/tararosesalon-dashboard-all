@@ -22,6 +22,18 @@
 {"@context": "https://schema.org", "@graph": [{"@type": "Service", "name": "The Hair Extension Plan", "serviceType": "Prepaid hair extension maintenance plan", "provider": {"@type": "Organization", "name": "Tara Rose Salon", "url": "https://www.tararosesalon.com"}, "areaServed": [{"@type": "City", "name": "Dubai"}, {"@type": "City", "name": "Abu Dhabi"}], "termsOfService": "https://www.tararosesalon.com/en/ae/terms-and-conditions/", "offers": [{"@type": "Offer", "name": "Maintain Essentials", "price": "1500", "priceCurrency": "AED"}, {"@type": "Offer", "name": "Maintain Plus", "price": "3000", "priceCurrency": "AED"}, {"@type": "Offer", "name": "New Hair and Maintain Bundle", "priceSpecification": {"@type": "PriceSpecification", "minPrice": "3300", "priceCurrency": "AED"}}]}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does the plan cover new hair?", "acceptedAnswer": {"@type": "Answer", "text": "Only the New Hair and Maintain Bundle does. It includes your full application in your chosen method, plus a 12-month Maintenance Bundle credit of AED 1,500. Maintain Essentials and Maintain Plus are for extensions you already wear."}}, {"@type": "Question", "name": "Does the credit cover my move-up appointment?", "acceptedAnswer": {"@type": "Answer", "text": "No. Your move-up is booked and paid as it is today. The plan covers everything around it that keeps the blend looking new."}}, {"@type": "Question", "name": "Can I split the payment?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Maintain Plus splits into 4 interest-free payments of AED 750, and the New Hair and Maintain Bundle into 4 payments, from AED 825 each, with Tabby. The credit, the bonus and the gifts stay exactly the same. Maintain Essentials is cash or card only."}}, {"@type": "Question", "name": "Can I give it as a gift?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. The plan is issued in her name, ready to book, with a note from you."}}]}]}
 </script>
 <style>
+.vs-methods{display:block !important}
+.vs-mlabel{display:block;margin-bottom:10px}
+.vs-mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vs-mgrid span{display:block;background:var(--cream,#f1ece3);border:1px solid var(--hair);border-radius:10px;padding:10px 12px}
+.vs-mgrid em{display:block;font-style:normal;font-size:12.5px;line-height:1.3;color:var(--ink-soft)}
+.vs-mgrid b{display:block;margin-top:2px;font-size:15px;line-height:1.3;color:var(--ink)}
+.vgrid{align-items:stretch !important}
+.vgrid .vstack{height:auto}
+.vgrid .vstack .vs-cta{margin-top:auto}
+.vgrid .vstack .vs-list{margin-bottom:22px}
+/* the base css pads cards 2 and 3 at the bottom (58px, 146px) to even out the old, much shorter cards; with equal-height cards that is dead space under the buttons */
+.vgrid .vstack:nth-child(n){padding-bottom:26px}
 .slot{background-color:#e7dfd2;background-size:cover;background-position:center;background-repeat:no-repeat;border-radius:12px;overflow:hidden}
 .slot--tier{aspect-ratio:3/2;margin:0 0 18px}
 .sci div.mu-row{grid-template-columns:104px 1fr;gap:20px;align-items:center}
@@ -130,19 +142,21 @@
         <div class="slot slot--tier" role="img" aria-label="Photo placeholder: New Hair and Maintain Bundle" style="background-image:url(assets/img/tier-bundle.jpg),url(assets/img/slots/tier-bundle.svg)"></div>
         <span class="vs-name">New Hair and Maintain Bundle</span>
         <span class="vs-note">New hair, and the year that keeps it</span>
-        <p class="vs-scope"><b>One decision.</b> Your full new-hair application in your chosen method, plus a 12-month Maintenance Bundle. No Maintenance Bonus on the bundle.</p>
+        <p class="vs-scope"><b>One decision.</b> Your full new-hair application in your chosen method, plus a 12-month Maintenance Bundle credit. No Maintenance Bonus on the bundle.</p>
         <ul class="vs-list">
-          <li><span>You pay</span><b>From AED 3,300</b></li>
-          <li><span>Tape-In</span><b>From AED 3,700</b></li>
-          <li><span>Nano Rings</span><b>From AED 4,300</b></li>
-          <li><span>Beaded or Sewn Weft</span><b>From AED 3,300</b></li>
-          <li><span>Keratin and Fusion</span><b>At your Mapping</b></li>
-          <li><span>New hair, full application</span><b>Included</b></li>
-          <li class="vs-sum"><span>12-month Maintenance Bundle credit</span><b>AED 1,500</b></li>
+          <li class="vs-methods"><span class="vs-mlabel">You pay, from</span>
+            <span class="vs-mgrid">
+              <span><em>Tape-In</em><b>AED 3,700</b></span>
+              <span><em>Nano Rings</em><b>AED 4,300</b></span>
+              <span><em>Beaded or Sewn Weft</em><b>AED 3,300</b></span>
+              <span><em>Keratin and Fusion</em><b>At your Mapping</b></span>
+            </span>
+          </li>
+          <li class="vs-sum"><span>12-month credit</span><b>AED 1,500</b></li>
           <li><span>Confidence Mapping and your 8-Step Hair Plan</span><b>Free</b></li>
           <li><span>Priority last-minute booking slots</span><b>Included</b></li>
           <li><span>Yours to use for</span><b>12 months</b></li>
-          <li class="vs-tabby"><span>Or 4 interest-free payments with Tabby</span><b>4 &times; from AED 825</b></li>
+          <li class="vs-tabby"><span>Or Tabby, 4 payments</span><b>4 &times; from AED 825</b></li>
         </ul>
         <a class="pill pill--accent vs-cta" href="#reserve" data-pick="bundle" data-cta="stack-bundle">Reserve the Bundle</a>
       </div>
