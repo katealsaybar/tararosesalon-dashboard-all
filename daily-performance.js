@@ -149,6 +149,7 @@ function dpCss() {
   .dpf .dp-cust{margin:8px 0 2px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--surface2)}
   .dpf .dp-cust summary{font-weight:600;color:var(--text)}
   .dpf .dp-cg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:8px}
+  .dpf .dp-chk.dp-off{opacity:.55}
   .dpf .dp-chk{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--text);cursor:pointer;white-space:nowrap}
   .dpf .dp-wk{display:grid;grid-template-columns:48px repeat(7,minmax(0,1fr));gap:5px;align-items:stretch}
   .dpf .dp-wh{font-size:12px;font-weight:600;color:var(--muted2);text-align:center;padding-bottom:2px}
@@ -779,12 +780,16 @@ async function renderDailyPerf() {
 }
 
 // The radar's Customise panel: tick the measures to draw, ten by default, Tick all, Untick all or Back to the default ten; under three ticked there is no shape and it says so.
-function dpRadarCustom() {
+// A measure with no target at a chosen branch draws nothing there, so it is greyed with the branch named.
+function dpNoTarget(mk, idxs, codes) {
+  return codes.filter(code => !idxs.some(i => { const c = dpCell(mk, code, i); return c.state === 'ok' && c.p != null; }));
+}
+function dpRadarCustom(idxs, codes) {
   const on = new Set(dpRadarSel().map(x => x[0]));
   const label = Object.fromEntries(DP_RADAR_ALL);
   const groups = DP_GROUPS.map(([g, ks]) => {
     const items = ks.filter(k => label[k]);
-    return items.length ? `<div class="dp-cg"><span class="dp-lab">${g}</span>${items.map(k => `<label class="dp-chk"><input type="checkbox" data-r="${k}"${on.has(k) ? ' checked' : ''}> ${dpEsc(label[k])}</label>`).join('')}</div>` : '';
+    return items.length ? `<div class="dp-cg"><span class="dp-lab">${g}</span>${items.map(k => { const no = dpNoTarget(k, idxs, codes); return `<label class="dp-chk${no.length ? ' dp-off' : ''}"${no.length ? ` title="No target set at ${dpEsc(no.join(', '))}, so this draws nothing there."` : ''}><input type="checkbox" data-r="${k}"${on.has(k) ? ' checked' : ''}> ${dpEsc(label[k])}${no.length ? ` <span class="dp-sub">(no target at ${dpEsc(no.join(', '))})</span>` : ''}</label>`; }).join('')}</div>` : '';
   }).join('');
   return `<details class="dp-cust" id="dpCust"${dpRadarOpen ? ' open' : ''}><summary>Customise measures (${on.size} ticked)</summary>${groups}
     <div class="dp-row" style="margin-top:8px"><button type="button" class="dp-pill" id="dpRadarAll">Tick all</button><button type="button" class="dp-pill" id="dpRadarNone">Untick all</button><button type="button" class="dp-pill" id="dpRadarReset">Back to the default ten</button><span class="dp-sub" id="dpRadarMsg">${on.size < 3 ? 'Tick at least three to draw a shape.' : ''}</span></div></details>`;
@@ -811,7 +816,7 @@ function dpDraw(host, win) {
     <div class="dp-card"><div class="dp-head"><div><h2 id="dpRT"></h2>
       <p class="dp-why">Every ticked measure as % of its target, over this window. Outside the dashed ring is a strength, inside it is a weakness. This card ignores the Measure picker on purpose, it shows the ticked measures all at once, and leaves off any with no target set at the branch.</p></div>
       <span class="dp-pills" id="dpRP" role="group" aria-label="Branches">${dpPickPills()}</span></div>
-      ${dpRadarCustom()}
+      ${dpRadarCustom(idxs, dpSel())}
       <div class="dp-legend" id="dpRL"></div><div class="dp-sw"><div id="dpR"></div><div class="dp-swl" id="dpRS"></div></div></div>
     <div class="dp-card"><h2>${M.notarget ? 'Which days were big or small?' : 'Which days were weak?'}</h2><p class="dp-why">${M.notarget ? 'Each square is a branch on a day, darker for a higher figure. This measure has no target, so nothing is graded.' : (M.kind === 'ratio' ? "Each square is a branch on a day, with that day's figure in it. The colour is how it did against the target: blue beat it, red fell short, grey is on target. A small gap marks each new week." : 'Each square is a branch on a day, with its % of target in it. Blue beat the target, red fell short, grey is on target. A small gap marks each new week.')}</p><div id="dpC"></div></div>
     <div class="dp-card"><h2>Best and slowest weekday</h2><p class="dp-why" id="dpDW"></p><div id="dpD"></div></div>
