@@ -9,8 +9,8 @@
 // drift from the artwork, and the artwork is what the client sees.
 //
 // It is also the roster of who has a card at all - dashboard.js shows the embed only
-// for a name that appears here. Its 44 keys are exactly the 44 files in
-// assets/stylist-cards/, which are exactly the 44 people in staff-profiles.js.
+// for a name that appears here. Its 45 keys are exactly the 45 files in
+// assets/stylist-cards/. Vicki's card joined on 2026-10-13 (a single-page update).
 // The beauty team joined on 2026-09-03, with a deck of their own; until then they
 // were in staff-profiles with no card, which is why that file says every field is
 // optional.
@@ -793,6 +793,28 @@ const STYLIST_CARDS = {
   "inMyChair": "Put the day down. I'll go gently, and I won't rush you.",
   "review": "Grace is truly exceptional. Her hands are incredibly soft and gentle, at some point I didn't even realize she was applying the strip. After trying other technicians elsewhere, I can confidently say I only want to book with her.",
   "reviewBy": "Tahane"
+ },
+ "VICKI": {
+  "role": "Stylist",
+  "quote": "To make you feel truly heard, cared for, confident and beautiful in your hair.",
+  "bio": "I have been in the industry for 13 years, born and raised in South Africa. I love making my clients feel seen and transforming not only their hair but their confidence as well. Most clients would describe me as a warm, out the box thinker, passionate about people and hair.",
+  "specialises": [
+   "Hair colour corrections",
+   "All cutting techniques (long and short)",
+   "Blonding (highlights and balayage)",
+   "Funky, fashion colours"
+  ],
+  "bestFor": "Clients who want beautiful, healthy, personalised hair and a stylist they can trust to achieve their hair goals.",
+  "vibe": [
+   "Welcoming",
+   "Trustworthy",
+   "Empowering"
+  ],
+  "loveMeIf": "You want a stylist who genuinely listens, takes the time to understand your hair goals, and cares just as much about the health of your hair as the final result.",
+  "mattersMost": "That my clients feel safe and confident in my chair, while leaving with hair they love and the knowledge to look after it between appointments.",
+  "inMyChair": "Relax, ask questions, be completely honest about your hair history and know that you're in a judgement-free space where we'll work together to create the best result for you and your hair.",
+  "review": "Amazing service at the Saadiyat Branch! Vicki Taylor did a fantastic job styling my hair and made sure every detail was perfect. I absolutely loved the result! The entire team was so warm, welcoming and friendly. Such a lovely experience from start to finish.",
+  "reviewBy": "Trinisha Naidoo"
  },
  "MIMI": {
   "role": "Senior Beauty Therapist",
