@@ -225,6 +225,9 @@ function otyCss() {
   .oty .mo-dpp{font-weight:700;font-size:12px;padding:4px 8px;border-radius:999px;white-space:nowrap}
   .oty .mo-dpp.up{color:var(--good);background:var(--good-bg)}.oty .mo-dpp.dn{color:var(--bad);background:var(--bad-bg)}.oty .mo-dpp.fl{color:var(--muted);background:var(--surface2)}
   .oty .mo-pr .bars{height:170px;display:flex;align-items:flex-end;gap:3px;width:100%;justify-content:center}
+  .oty #otyMoDetail{scroll-margin:140px 0 20px}
+  .oty .mo-pr.hit{cursor:pointer;border-radius:8px;transition:background .12s}
+  .oty .mo-pr.hit:hover,.oty .mo-pr.hit.on{background:var(--surface2)}
   .oty .mo-b{flex:1 1 0;max-width:22px;border-radius:4px 4px 0 0}
   .oty .mo-b.live{background-image:repeating-linear-gradient(135deg,rgba(45,46,55,.62) 0 4px,transparent 4px 9px)}
   .oty .mo-pr .m{margin-top:6px;font-size:11px;color:var(--muted2)}
@@ -914,7 +917,7 @@ function otyMonths() {
       <div class="mo-scroll"><div class="mo-hm">${g}</div></div>
       <div class="mo-legend">${legend}</div>
     </div>
-    <div class="oty-card" style="margin-top:12px">${otyMoDetail(X, S, sel)}</div>
+    <div class="oty-card" id="otyMoDetail" style="margin-top:12px">${otyMoDetail(X, S, sel)}</div>
     ${otyMoLines(X, S)}
     ${otyMoPairs(X)}
     ${otyMoStands(X, S)}
@@ -927,7 +930,11 @@ function otyMonths() {
     </div>`;
 }
 function otyMoSet(k, v) { OTY[k] = v; otySave(); otyDraw(); }
-function otyMoSel(y, m) { OTY.mmsel = { y, m }; otyDraw(); }
+// the detail sits under the grid and its legend, below the fold on most screens, so a tap brings it into view
+function otyMoSel(y, m) {
+  OTY.mmsel = { y, m }; otyDraw();
+  const d = document.getElementById('otyMoDetail'); if (d && d.scrollIntoView) d.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
 function otyMoYr(y) {
   const s = new Set(OTY.myrs || otyD.years);
   if (s.has(y)) s.delete(y); else s.add(y);
@@ -956,6 +963,24 @@ function otyMoDetail(X, S, sel) {
     </div>`;
 }
 
+// a smooth curve through the points (monotone cubic, so it never overshoots a peak or dips below a low that is not in the data)
+function otySmoothPath(p) {
+  const n = p.length, f = v => v.toFixed(1); if (!n) return '';
+  if (n < 3) return p.map((q, i) => (i ? 'L' : 'M') + f(q[0]) + ' ' + f(q[1])).join(' ');
+  const dx = [], sl = [], t = [];
+  for (let i = 0; i < n - 1; i++) { dx[i] = p[i + 1][0] - p[i][0]; sl[i] = (p[i + 1][1] - p[i][1]) / dx[i]; }
+  t[0] = sl[0]; t[n - 1] = sl[n - 2];
+  for (let i = 1; i < n - 1; i++) t[i] = sl[i - 1] * sl[i] <= 0 ? 0 : (sl[i - 1] + sl[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (sl[i] === 0) { t[i] = 0; t[i + 1] = 0; continue; }
+    const a = t[i] / sl[i], b = t[i + 1] / sl[i], h = Math.hypot(a, b);
+    if (h > 3) { t[i] = 3 * a / h * sl[i]; t[i + 1] = 3 * b / h * sl[i]; }
+  }
+  let d = 'M' + f(p[0][0]) + ' ' + f(p[0][1]);
+  for (let i = 0; i < n - 1; i++) d += ` C${f(p[i][0] + dx[i] / 3)} ${f(p[i][1] + t[i] * dx[i] / 3)} ${f(p[i + 1][0] - dx[i] / 3)} ${f(p[i + 1][1] - t[i + 1] * dx[i] / 3)} ${f(p[i + 1][0])} ${f(p[i + 1][1])}`;
+  return d;
+}
+
 // one line per year on the same axis
 function otyMoLines(X, S) {
   const years = X.years, shown = new Set(OTY.myrs || years), W = 900, H = 330, L = 44, Rr = 14, T = 16, B = 30;
@@ -967,7 +992,7 @@ function otyMoLines(X, S) {
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Monthly shape by year" onmousemove="otyMoLineTip(event)">`;
   for (let t = ymin; t <= ymax; t += 20) s += `<line x1="${L}" x2="${W - Rr}" y1="${Yp(t)}" y2="${Yp(t)}" stroke="${t === 100 ? 'var(--muted2)' : 'var(--border)'}" ${t === 100 ? 'stroke-dasharray="4 4"' : ''}/><text x="${L - 8}" y="${Yp(t) + 4}" text-anchor="end" font-size="11">${t}</text>`;
   OTY_MON.forEach((m, i) => { s += `<text x="${Xp(i)}" y="${H - 8}" text-anchor="middle" font-size="11.5">${m}</text>`; });
-  const path = pts => pts.map((p, i) => (i ? 'L' : 'M') + Xp(p[0]).toFixed(1) + ' ' + Yp(p[1]).toFixed(1)).join(' ');
+  const path = pts => otySmoothPath(pts.map(p => [Xp(p[0]), Yp(p[1])]));
   for (const y of years) {
     if (!shown.has(y) || !S.idx[y]) continue;
     const pts = S.idx[y].map((x, m) => x != null && otyMoState(X.M, y, m) === 'done' ? [m, x] : null).filter(Boolean);
@@ -1004,8 +1029,8 @@ function otyMoPairs(X) {
   const cols = rows.map(r => {
     if (!r.k || r.k.none) return `<div class="mo-pr"><div class="dp">${r.c && r.c.state === 'ahead' ? '' : '<span class="mo-dpp fl">·</span>'}</div><div class="bars"></div><div class="m">${OTY_MON[r.m]}</div></div>`;
     const k = r.k, cl = k.big || Math.abs(k.pct) < .5 ? 'fl' : k.pct > 0 ? 'up' : 'dn';
-    return `<div class="mo-pr"><div class="dp"><span class="mo-dpp ${cl}">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%'}</span></div>
-      <div class="bars"><div class="mo-b ${live(r) ? 'live' : ''}" data-by="${y}" data-bm="${r.m}" style="height:${Math.max(2, k.prevW / mx * 100)}%;background-color:var(--hair)"></div><div class="mo-b ${live(r) ? 'live' : ''}" data-by="${y}" data-bm="${r.m}" style="height:${Math.max(2, k.cur / mx * 100)}%;background-color:var(--good)"></div></div>
+    return `<div class="mo-pr hit" data-by="${y}" data-bm="${r.m}"><div class="dp"><span class="mo-dpp ${cl}">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%'}</span></div>
+      <div class="bars"><div class="mo-b ${live(r) ? 'live' : ''}" data-bw="p" style="height:${Math.max(2, k.prevW / mx * 100)}%;background-color:var(--hair)"></div><div class="mo-b ${live(r) ? 'live' : ''}" data-bw="c" style="height:${Math.max(2, k.cur / mx * 100)}%;background-color:var(--good)"></div></div>
       <div class="m">${OTY_MON[r.m]}${otyRamIn(y, r.m) >= 10 ? ' ☾' : ''}</div></div>`;
   }).join('');
   return `<div class="oty-eb" style="margin-top:26px"><i style="background:var(--hair)"></i>Year against the year before, month by month</div>
@@ -1057,8 +1082,11 @@ function otyMoTipFor(el, ev) {
   const X = otyMoCtx();
   if (el.dataset.by) {
     const y = +el.dataset.by, m = +el.dataset.bm, k = X.cmp(y, m), c = X.cell(y, m); if (!k || k.none) return;
-    otyMoTipBox(el, ev, `<div class="h"><b>${OTY_MON[m]} ${y}</b></div><div class="v">${X.fv(k.cur)} <small>${y}${c.state === 'live' ? `, ${c.days} open days so far` : ''}</small></div>
-      <div>${y - 1}: <b>${X.fv(k.prevW)}</b>${c.state === 'live' ? ' (same open days)' : ''}</div><div>${X.fd(k.diff)} · <b class="${k.pct >= 0 ? 'oty-up' : 'oty-dn'}">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(1) + '%'}</b></div>${X.llf(y, m) ? '<div style="margin-top:4px">Ramadan and Eid fell differently, so not like for like.</div>' : ''}`);
+    const bar = ev.target.closest && ev.target.closest('.mo-b'), hot = bar ? bar.dataset.bw : '', live = c.state === 'live', pre = X.met === 'net' ? 'AED ' : '';
+    const row = (yy, v, col, w, note) => `<div style="display:flex;justify-content:space-between;gap:14px;${hot && hot !== w ? 'opacity:.6;' : ''}"><span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;background:${col}"></i>${yy}${note}</span><b>${pre}${X.fv(v)}</b></div>`;
+    otyMoTipBox(el, ev, `<div class="h"><b>${OTY_MON[m]}</b><span>${live ? `${c.days} open days so far` : 'same open days in each year'}</span></div>
+      ${row(y, k.cur, 'var(--good)', 'c', '')}${row(y - 1, k.prevW, 'var(--hair)', 'p', '')}
+      <div style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border)">${X.fd(k.diff)} · <b class="${k.pct >= 0 ? 'oty-up' : 'oty-dn'}">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(1) + '%'}</b></div>${X.llf(y, m) ? '<div style="margin-top:4px">Ramadan and Eid fell differently, so not like for like.</div>' : ''}`);
     return;
   }
   const y = +el.dataset.y, m = +el.dataset.m, c = X.cell(y, m); if (!c) return;
@@ -1071,8 +1099,15 @@ function otyMoTipFor(el, ev) {
 if (!window.__otyMoBound) {
   window.__otyMoBound = true;
   document.addEventListener('mousemove', e => {
-    const t = e.target && e.target.closest && e.target.closest('#overYearsContent .mo-c[data-y],#overYearsContent .mo-b[data-by]');
+    const t = e.target && e.target.closest && e.target.closest('#overYearsContent .mo-c[data-y],#overYearsContent .mo-pr[data-by]');
     if (t) { try { otyMoTipFor(t, e); } catch (x) { otyMoTipOff(); } } else if (!(e.target.closest && e.target.closest('[data-lm]'))) otyMoTipOff();
+  });
+  // a phone has no hover: tap a month pair to read it, tap anywhere else to close
+  document.addEventListener('click', e => {
+    document.querySelectorAll('#overYearsContent .mo-pr.on').forEach(n => n.classList.remove('on'));
+    const t = e.target && e.target.closest && e.target.closest('#overYearsContent .mo-pr[data-by]');
+    if (!t) { if (!(e.target.closest && e.target.closest('.mo-c[data-y]'))) otyMoTipOff(); return; }
+    t.classList.add('on'); try { otyMoTipFor(t, e); } catch (x) { otyMoTipOff(); }
   });
 }
 
