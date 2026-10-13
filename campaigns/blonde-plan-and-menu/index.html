@@ -33,6 +33,27 @@
 .mlist i{font-style:normal;font-weight:600;white-space:nowrap;color:var(--accent-text)}
 .mlist span{display:block;margin-top:3px;font-family:var(--fb);font-size:14px;font-weight:300;line-height:1.5;color:var(--ink-soft)}
 .draft-bar{background:#1c1b18;color:#99f6e4;text-align:center;font:600 11.5px/1.4 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;padding:8px 14px}
+.hero-hr{background:#161512 url(assets/img/hero-blonde-wide.jpg) 100% 0/cover no-repeat}
+.hero-hr::before{content:"";position:absolute;inset:0;opacity:1;background:linear-gradient(100deg,rgba(22,21,18,.9) 0%,rgba(22,21,18,.6) 40%,rgba(22,21,18,0) 62%)}
+@media (min-width:900px){
+  .hero-hr{padding:112px 0 104px !important}
+  .hero-hr .inner{margin-left:0;max-width:540px;text-align:left}
+  .hero-hr .inner .pill-tag,.hero-hr .lede{text-align:left;margin-left:0;margin-right:0}
+  .hero-hr .inner .cta-row{justify-content:flex-start}
+}
+@media (max-width:899px){
+  .hero-hr{background:#161512 url(assets/img/hero-blonde-wide.jpg) 100% 0/auto 330px no-repeat;padding-top:300px !important}
+  .hero-hr::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 190px,#161512 330px)}
+}
+@media (min-width:600px) and (max-width:899px){
+  .hero-hr{background-size:auto 440px;background-position:100% 0;padding-top:470px !important}
+  .hero-hr::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 300px,#161512 440px)}
+}
+/* lane cards: the price box and button sit at the bottom of every card, so the three line up */
+.lane-cards .door .door-prices{margin-top:auto}
+/* the "It is not you" band is text only now, so it can be tighter */
+#environment{padding-block:72px}
+#environment .sec-head{margin-bottom:0}
 </style>
 <meta name="geo.region" content="AE">
 <script type="application/ld+json">
@@ -57,7 +78,7 @@
 
 <main id="main">
 
-<section class="hero-c" style="background-image:linear-gradient(100deg,rgba(20,19,17,.74) 0%,rgba(20,19,17,.58) 46%,rgba(20,19,17,.24) 100%),url(assets/img/env-sun.jpg);background-size:cover;background-position:center 40%">
+<section class="hero-c hero-hr">
   <div class="wrap">
     <div class="inner">
       <span class="pill-tag"><span class="dot"></span>We set the Blonde Standard</span>
@@ -83,7 +104,7 @@
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">The plan</span>
-      <h2>Visit 1 creates the result. Visit 2 protects it. <em>Visit 3 keeps it on track.</em></h2>
+      <h2>Visit&nbsp;1 creates the result. Visit&nbsp;2 protects it. <em>Visit&nbsp;3 keeps it on track.</em></h2>
     </div>
     <div class="timeline timeline--three">
       <div class="tstep"><span class="wk">One &middot; Create</span><b>The blonde itself</b><p>Core blonde, with bond protection at every stage.</p></div>
