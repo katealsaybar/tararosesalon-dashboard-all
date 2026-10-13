@@ -163,6 +163,15 @@ function dpCss() {
   .dpf .dp-wc.slow{outline:2px dashed var(--text);outline-offset:-2px}
   .dpf .dp-col{fill:transparent}.dpf .dp-col:hover{fill:rgba(128,128,128,.14)}
   .dpf .dp-hit .xh{opacity:0}.dpf .dp-hit:hover .xh{opacity:1}
+  .dpf{--dp-bar-h:96px}
+  .dpf .dp-bar{position:sticky;top:var(--topbar-cond-h,104px);z-index:40;background:var(--bg);margin:0 0 10px;padding:8px 0 6px;border-bottom:1px solid var(--border);display:grid;gap:6px}
+  .dpf .dp-bar-row{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+  .dpf .dp-bf{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .dpf .dp-bar .dp-lab{min-width:0}
+  .dpf .dp-jump{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:12.5px;color:var(--muted)}
+  .dpf .dp-jump button{appearance:none;border:1px solid var(--border);background:var(--surface);color:var(--text);font:500 12.5px Inter,sans-serif;padding:2px 10px;border-radius:14px;cursor:pointer;white-space:nowrap}
+  .dpf .dp-jt{scroll-margin-top:calc(var(--topbar-cond-h,104px) + var(--dp-bar-h) + 8px)}
+  .dpf .dp-showing{white-space:nowrap}
   .dpf .dp-tag{display:inline-block;font-size:11.5px;font-weight:600;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1px 8px;margin:4px 0 2px}
   .dpf .dp-tag:empty{display:none}
   .dpf .dp-per{margin-top:6px;color:var(--text)}
@@ -171,7 +180,8 @@ function dpCss() {
   .dp-tip{position:fixed;pointer-events:none;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.18);z-index:9999;display:none;min-width:150px;font-family:Inter,sans-serif}
   .dp-tip b{display:block;margin-bottom:3px}.dp-tip .r{display:flex;justify-content:space-between;gap:14px}
   @media(max-width:900px){.dpf .dp-two{grid-template-columns:1fr}.dpf .dp-sw{grid-template-columns:1fr}}
-  @media(max-width:560px){.dpf .dp-lab{min-width:100%}}`;
+  @media(max-width:560px){.dpf .dp-lab{min-width:100%}}
+  @media(max-width:760px){.dpf .dp-bar{padding:6px 0 4px;gap:4px}.dpf .dp-jump{display:none}.dpf .dp-bar-row{gap:4px 10px}.dpf .dp-bf{flex:1 1 auto}.dpf .dp-bf .ps,.dpf .dp-bf select{max-width:100%}.dpf .dp-showing{white-space:normal}}`;
   document.head.appendChild(st);
 }
 
@@ -778,18 +788,26 @@ function dpRadar(host, idxs, codes) {
 
 // ── PAGE ────────────────────────────────────────────────────
 const dpPeriods = [['mtd', 'Month to date'], ['last7', 'Last 7 days'], ['last30', 'Last 30 days'], ['lastmonth', 'Last month'], ['custom', 'Custom']];
+// One sticky bar (13 Oct 2026, Comet and code audits): Measure, Branch and Period live here and nowhere else, so the
+// cards just follow it. Measure and Period are menus because 17 pills would not fit in a slim bar; Branch stays pills.
+const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardA', 'Trend'], ['dpCardB', 'Bars'], ['dpCardR', 'Strengths'], ['dpCardC', 'Weak days'], ['dpCardD', 'Weekdays'], ['dpHow', 'How to read']];
+const dpShowing = () => { const sel = dpSel(); return 'Branches: ' + (sel.length === DPD.codes.length ? 'all' : sel.join(' + ')) + ', set in the bar at the top'; };
 function dpControls(win) {
-  const mpanel = DP_GROUPS.map(([g, ks]) => `<div class="dp-row"><span class="dp-lab">${g}</span><span class="dp-pills">${ks.map(k => `<button type="button" class="dp-pill" data-m="${k}"${DP_M[k].help ? ` title="${dpEsc(DP_M[k].help)}"` : ''} aria-pressed="${k === DP.measure}">${DP_M[k].label}</button>`).join('')}</span></div>`).join('');
-  const per = `<div class="dp-row"><span class="dp-lab">Period</span><span class="dp-pills">${dpPeriods.map(([k, l]) => `<button type="button" class="dp-pill" data-p="${k}" aria-pressed="${k === DP.period}">${l}</button>`).join('')}</span>
-    ${DP.period === 'custom' ? `<span class="dp-row" style="gap:6px"><input type="date" class="dp-date" id="dpFrom" value="${dpEsc(DP.from || dpYmd(win.from))}" max="${dpYmd(win.yest)}"> to <input type="date" class="dp-date" id="dpTo" value="${dpEsc(DP.to || dpYmd(win.to))}" max="${dpYmd(win.yest)}"><button type="button" class="dp-pill" id="dpApply">Apply</button><span class="dp-sub"><b style="color:var(--text)">${dpEsc(dpDayLabel(win.from))} to ${dpEsc(dpDayLabel(win.to))}</b></span><span class="dp-sub" id="dpDateMsg"></span></span>` : ''}</div>`;
-  return `<div class="dp-panel" role="group" aria-label="Measure">${mpanel}</div><div class="dp-panel" role="group" aria-label="Branch and period"><div class="dp-row"><span class="dp-lab">Branch</span><span class="dp-pills">${dpPickPills()}</span></div>${per}</div>${dpDefault() ? '' : '<p class="dp-note" style="margin:0 0 8px">Your choices are saved on this device for next time. <button type="button" class="dp-linkbtn" id="dpReset">Reset to the defaults</button></p>'}`;
+  const mopts = DP_GROUPS.map(([g, ks]) => `<optgroup label="${g}">${ks.map(k => `<option value="${k}"${k === DP.measure ? ' selected' : ''}>${dpEsc(DP_M[k].label)}</option>`).join('')}</optgroup>`).join('');
+  const popts = dpPeriods.map(([k, l]) => `<option value="${k}"${k === DP.period ? ' selected' : ''}>${l}</option>`).join('');
+  const custom = DP.period === 'custom' ? `<span class="dp-bf" style="gap:6px"><input type="date" class="dp-date" id="dpFrom" aria-label="From" value="${dpEsc(DP.from || dpYmd(win.from))}" max="${dpYmd(win.yest)}"> to <input type="date" class="dp-date" id="dpTo" aria-label="To" value="${dpEsc(DP.to || dpYmd(win.to))}" max="${dpYmd(win.yest)}"><button type="button" class="dp-pill" id="dpApply">Apply</button><span class="dp-sub"><b style="color:var(--text)">${dpEsc(dpDayLabel(win.from))} to ${dpEsc(dpDayLabel(win.to))}</b></span><span class="dp-sub" id="dpDateMsg"></span></span>` : '';
+  return `<div class="dp-bar" id="dpBar" role="group" aria-label="Measure, branches and period"><div class="dp-bar-row">
+    <label class="dp-bf"><span class="dp-lab">Measure</span><select id="dpSelM" aria-label="Measure">${mopts}</select></label>
+    <span class="dp-bf"><span class="dp-lab">Branch</span><span class="dp-pills">${dpPickPills()}</span></span>
+    <label class="dp-bf"><span class="dp-lab">Period</span><select id="dpSelP" aria-label="Period">${popts}</select></label>${custom}</div>
+    <div class="dp-jump"><span>Jump to</span>${DP_JUMPS.map(([id, l]) => `<button type="button" data-jump="${id}">${l}</button>`).join('')}</div></div>${dpDefault() ? '' : '<p class="dp-note" style="margin:0 0 8px">Your choices are saved on this device for next time. <button type="button" class="dp-linkbtn" id="dpReset">Reset to the defaults</button></p>'}`;
 }
 // All, then each branch. While All is on only All shows pressed: it says "everything", and the first branch you
 // press narrows to it.
 const dpDefault = () => DP.measure === 'sales' && DP.period === 'mtd' && !DP.branches && !DP.radar;
 function dpPickPills() {
   const sel = dpSel(), allOn = sel.length === DPD.codes.length;
-  return `<button type="button" class="dp-pill" data-b="ALL" title="All branches" aria-pressed="${allOn}">All</button>` + DPD.codes.map(c => `<button type="button" class="dp-pill" data-b="${c}" title="${dpEsc(dpName(c))}" aria-pressed="${!allOn && sel.includes(c)}"><span class="dot" style="background:${dpCol(c)}"></span>${c}</button>`).join('');
+  return `<button type="button" class="dp-pill" data-b="ALL" title="All branches" aria-pressed="${allOn}">All</button>` + DPD.codes.map(c => `<button type="button" class="dp-pill" data-b="${c}" title="${dpEsc(dpName(c))}: click to add or take off, double-click to show this branch only" aria-pressed="${!allOn && sel.includes(c)}"><span class="dot" style="background:${dpCol(c)}"></span>${c}</button>`).join('');
 }
 
 async function renderDailyPerf() {
@@ -834,20 +852,20 @@ function dpDraw(host, win) {
     <h1>Daily Performance</h1>
     <p class="dp-deck">How each branch did, day by day, against its daily target. Read the tiles for the latest day and the period total, the lines for the trend, the heatmap for the weak days. NCR, daily target and the other terms are explained under <button type="button" class="dp-linkbtn" data-jump="dpHow">How to read this page</button>.</p>
     ${dpControls(win)}
-    <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}</p>
-    <section class="dp-tiles" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs)}</section>
-    <div class="dp-card"><h2>${M.notarget ? `Daily ${dpEsc(M.noun)}, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}` : `Daily ${dpEsc(M.noun)} against target, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}`}</h2>
+    <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}${M.help ? ' · <b>' + dpEsc(M.label) + '</b>: ' + dpEsc(M.help) : ''}</p>
+    <section class="dp-tiles dp-jt" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs)}</section>
+    <div class="dp-card dp-jt" id="dpCardA"><h2>${M.notarget ? `Daily ${dpEsc(M.noun)}, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}` : `Daily ${dpEsc(M.noun)} against target, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}`}</h2>
       <p class="dp-why">${M.notarget ? 'Every branch on one scale, in plain values. This measure has no target, so nothing is graded. Gaps are closed days or days with no figures.' : (M.kind === 'ratio' ? "Every branch on one scale, in the measure's own units, with the target as the dashed line. Gaps are closed days or days with no figures." : "Every branch on one scale: 100% means the day's target was met. Gaps are closed days or days with no figures.")}</p><div id="dpA"></div></div>
-    <div class="dp-card"><div class="dp-head"><div><h2 id="dpBT"></h2><p class="dp-why" id="dpBW"></p></div><span class="dp-pills" id="dpBP" role="group" aria-label="Branches shown, bars card">${dpPickPills()}</span></div>
+    <div class="dp-card dp-jt" id="dpCardB"><div class="dp-head"><div><h2 id="dpBT"></h2><p class="dp-why" id="dpBW"></p></div><span class="dp-sub dp-showing">${dpShowing()}</span></div>
       <div class="dp-legend" id="dpBL"></div><div id="dpB"></div></div>
-    <div class="dp-card"><div class="dp-head"><div><h2 id="dpRT"></h2><span class="dp-tag">Measure picker does not apply</span>
-      <p class="dp-why">Every ticked measure as % of its target, over this window. Outside the dashed ring is a strength, inside it is a weakness. This card ignores the Measure picker on purpose, it shows the ticked measures all at once, and leaves off any with no target set at the branch.</p></div>
-      <span class="dp-pills" id="dpRP" role="group" aria-label="Branches shown, radar card">${dpPickPills()}</span></div>
+    <div class="dp-card dp-jt" id="dpCardR"><div class="dp-head"><div><h2 id="dpRT"></h2><span class="dp-tag">Measure does not apply</span>
+      <p class="dp-why">Every ticked measure as % of its target, over this window. Outside the dashed ring is a strength, inside it is a weakness. This card ignores the Measure menu on purpose, it shows the ticked measures all at once, and leaves off any with no target set at the branch.</p></div>
+      <span class="dp-sub dp-showing">${dpShowing()}</span></div>
       ${dpRadarCustom(idxs, dpSel())}
       <div class="dp-legend" id="dpRL"></div><div class="dp-sw"><div id="dpR"></div><div class="dp-swl" id="dpRS"></div></div></div>
-    <div class="dp-card"><h2>${M.notarget ? 'Which days were big or small' : 'Which days were weak'}: ${dpEsc(M.label)}</h2><p class="dp-why">${M.notarget ? `Each square is a branch on a day, with that day's ${dpEsc(M.noun)} in it${M.fmt === dpPct1 ? ', as a %' : ''}, darker for a higher figure. This measure has no target, so nothing is graded.` : `Each square is a branch on a day, with ${dpEsc(M.noun)} as a % of its target in it (100 means the target was met). Hover a square for the figure itself. Blue beat the target, red fell short, grey is on target. A small gap marks each new week.`}</p><div id="dpC"></div></div>
-    <div class="dp-card"><h2>Best and slowest weekday: ${dpEsc(M.label)}</h2><span class="dp-tag" id="dpDTag"></span><p class="dp-why" id="dpDW"></p><div id="dpD"></div></div>
-    <div class="dp-card" id="dpHow"><h2>How to read this page</h2>
+    <div class="dp-card dp-jt" id="dpCardC"><h2>${M.notarget ? 'Which days were big or small' : 'Which days were weak'}: ${dpEsc(M.label)}</h2><p class="dp-why">${M.notarget ? `Each square is a branch on a day, with that day's ${dpEsc(M.noun)} in it${M.fmt === dpPct1 ? ', as a %' : ''}, darker for a higher figure. This measure has no target, so nothing is graded.` : `Each square is a branch on a day, with ${dpEsc(M.noun)} as a % of its target in it (100 means the target was met). Hover a square for the figure itself. Blue beat the target, red fell short, grey is on target. A small gap marks each new week.`}</p><div id="dpC"></div></div>
+    <div class="dp-card dp-jt" id="dpCardD"><h2>Best and slowest weekday: ${dpEsc(M.label)}</h2><span class="dp-tag" id="dpDTag"></span><p class="dp-why" id="dpDW"></p><div id="dpD"></div></div>
+    <div class="dp-card dp-jt" id="dpHow"><h2>How to read this page</h2>
       <p class="dp-note"><b>The daily target</b> is the month's target divided by the branch's trading days in that month. It is flat, so a Saturday and a Sunday carry the same target; the weekday chart is where the difference shows. Ratios (rebooking, treatment, retail, average bills) read the same benchmark every day. Utilisation reads hair 80 and beauty 70, weighted by the hours available.</p>
       <p class="dp-note"><b>% of target</b> is a figure divided by its target, so 100% means the target was met and 80% means a fifth short. The heatmap and the weekday grid always show it when a target exists; hover a square for the figure itself. <b>Points</b> is the gap between two percentages, for example rebooking at 61% against 70% is 9 points below.</p>
       <p class="dp-note"><b>Closed days</b> come from the closed-days rules and table, so Al Quoz on a Sunday or Monday is shut, not a zero. A measure with no target set (total and new clients, until somebody keys them in the Upload Portal) shows its figures with no grade. <b>NCR</b> is New Client Requests, a count against the Pulse's monthly NCR target; NCR % is the same count as a share of the day's clients, the way the Pulse's Client Funnel prints it, and has no target.</p>
@@ -870,6 +888,8 @@ function dpDraw(host, win) {
   fill('dpD', wk.html);
   el('dpDTag').textContent = `${wk.days} days loaded \u00B7 Period does not apply`;
   if (had) window.scrollTo({ top: sy, left: 0, behavior: 'instant' });
+  const bar = root.querySelector('.dp-bar');
+  if (bar) root.style.setProperty('--dp-bar-h', bar.offsetHeight + 'px');
   dpWire(host);
 }
 
@@ -878,30 +898,42 @@ function dpDraw(host, win) {
 // control you pressed lands somewhere else and the page seems to run down. Note where the control sat on screen,
 // redraw, find the same control in the new page and scroll by however far it moved.
 function dpRedraw(host, el, sel, change) {
-  const blocks = r => [...r.querySelectorAll('.dp-panel, .dp-card')];
   const root = host.querySelector('.dpf');
-  const i = root ? blocks(root).indexOf(el.closest('.dp-panel, .dp-card')) : -1;
-  const top = el.getBoundingClientRect().top;
+  const inCard = !!el.closest('.dp-card');
+  const blocks = r => [...r.querySelectorAll('.dp-tiles, .dp-card')];
+  let i = -1, top = 0;
+  if (root && inCard) { i = blocks(root).indexOf(el.closest('.dp-card')); top = el.getBoundingClientRect().top; }
+  else if (root) {
+    // from the bar: hold the first card that is on screen under it
+    const bar = root.querySelector('.dp-bar'), floor = bar ? bar.getBoundingClientRect().bottom : 0;
+    const bl = blocks(root); i = bl.findIndex(b => b.getBoundingClientRect().bottom > floor + 4);
+    if (i >= 0) top = bl[i].getBoundingClientRect().top;
+  }
   change();
   dpDraw(host);
-  const nroot = host.querySelector('.dpf'), blk = nroot && i >= 0 ? blocks(nroot)[i] : null;
-  const nel = blk && blk.querySelector(sel);
+  const nroot = host.querySelector('.dpf');
+  if (!nroot || i < 0) return;
+  const blk = blocks(nroot)[i], nel = inCard ? (blk && blk.querySelector(sel)) : blk;
   if (!nel) return;
   const d = nel.getBoundingClientRect().top - top;
   if (Math.abs(d) > 0.5) window.scrollBy({ top: d, left: 0, behavior: 'instant' });
-  nel.focus({ preventScroll: true });
+  if (inCard || el.tagName === 'BUTTON') { const f = nroot.querySelector(inCard ? sel : '[data-b="' + (el.dataset ? el.dataset.b : '') + '"]'); if (f) f.focus({ preventScroll: true }); }
 }
 
 function dpWire(host) {
   const root = host.querySelector('.dpf'); if (!root) return;
   dpBindTips(root);
-  root.querySelectorAll('[data-m]').forEach(b => b.onclick = () => dpRedraw(host, b, `[data-m="${b.dataset.m}"]`, () => { DP.measure = b.dataset.m; dpSave(); }));
-  root.querySelectorAll('[data-p]').forEach(b => b.onclick = async () => {
-    DP.period = b.dataset.p;
+  const sm = root.querySelector('#dpSelM'), sp = root.querySelector('#dpSelP');
+  if (sm) sm.onchange = () => dpRedraw(host, sm, '#dpSelM', () => { DP.measure = sm.value; dpSave(); });
+  if (sp) sp.onchange = async () => {
+    DP.period = sp.value;
     if (DP.period === 'custom' && (!DP.from || !DP.to)) { const w = dpWindow(); DP.from = dpYmd(w.from); DP.to = dpYmd(w.to); }
     dpSave(); await renderDailyPerf();
+  };
+  root.querySelectorAll('[data-b]').forEach(b => {
+    b.onclick = () => dpRedraw(host, b, `[data-b="${b.dataset.b}"]`, () => { dpToggleBranch(b.dataset.b); dpSave(); });
+    if (b.dataset.b !== 'ALL') b.ondblclick = () => dpRedraw(host, b, `[data-b="${b.dataset.b}"]`, () => { DP.branches = [b.dataset.b]; dpSave(); });
   });
-  root.querySelectorAll('[data-b]').forEach(b => b.onclick = () => dpRedraw(host, b, `[data-b="${b.dataset.b}"]`, () => { dpToggleBranch(b.dataset.b); dpSave(); }));
   root.querySelectorAll('[data-jump]').forEach(b => b.onclick = () => { const t = root.querySelector('#' + b.dataset.jump); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   const rs = root.querySelector('#dpReset');
   if (rs) rs.onclick = async () => { Object.assign(DP, { measure: 'sales', period: 'mtd', from: '', to: '', branches: null, radar: null }); dpRadarOpen = false; dpSave(); await renderDailyPerf(); };

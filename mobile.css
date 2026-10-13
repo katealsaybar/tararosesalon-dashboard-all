@@ -36,6 +36,9 @@
      tucked they park at the very top instead. */
   .slv-top{transition:top 220ms var(--card-ease),padding .15s}
   body:has(.topbar.tb-hide) .slv-top{top:env(safe-area-inset-top)}
+  /* Daily Performance's controls bar parks the same way (13 Oct 2026). */
+  .dpf .dp-bar{transition:top 220ms var(--card-ease)}
+  body:has(.topbar.tb-hide) .dpf .dp-bar{top:env(safe-area-inset-top)}
 
   /* Buttons. Dark mode moves into the drawer; Hide filters becomes the sheet. */
   .mast-acts,body.ledger-chrome .mast-acts{display:flex;flex-wrap:nowrap;gap:8px;flex-shrink:1;min-width:0}
