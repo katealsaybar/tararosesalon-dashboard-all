@@ -908,14 +908,12 @@ function otyMonths() {
   return `${head}
     <p class="oty-deck" style="font-size:clamp(14px,3.4vw,16px)">Does every year have the same shape? Six years on one grid, with growth taken out, so the months can be compared.</p>
     <div class="oty-card" style="margin-top:12px">
-      <div class="oty-lab" style="margin-top:0">Where</div><div class="oty-pills">${regs.map(k => pill('mreg', k, otyMoName(k))).join('')}${regs.length && brs.length ? '<span class="oty-sep"></span>' : ''}${brs.map(b => pill('mreg', b, OTY_NAME[b])).join('')}</div>
+      <div class="oty-chead"><b>${title}</b><span>${otyEsc(sub)}</span></div>
+      <div class="oty-lab" style="margin-top:14px">Where</div><div class="oty-pills">${regs.map(k => pill('mreg', k, otyMoName(k))).join('')}${regs.length && brs.length ? '<span class="oty-sep"></span>' : ''}${brs.map(b => pill('mreg', b, OTY_NAME[b])).join('')}</div>
       <div class="oty-lab">Measure</div><div class="oty-pills">${['net', 'clients', 'bill'].map(k => pill('mmet', k, otyMoMetName[k])).join('')}</div>
       <div class="oty-lab">Index set against</div><div class="oty-pills">${bases.map(([k, l]) => pill('mbase', k, l)).join('')}</div>
       <div class="oty-hint">${baseHint}</div>
-    </div>
-    <div class="oty-card" style="margin-top:12px">
-      <div class="oty-chead"><b>${title}</b><span>${otyEsc(sub)}</span></div>
-      <div class="oty-pills" style="margin-bottom:14px">${[['index', 'Shape (index)'], ['chg', 'Change on last year'], ['act', 'Actual']].map(([k, l]) => pill('mview', k, l)).join('')}</div>
+      <div class="oty-pills" style="margin:18px 0 14px">${[['index', 'Shape (index)'], ['chg', 'Change on last year'], ['act', 'Actual']].map(([k, l]) => pill('mview', k, l)).join('')}</div>
       <div class="mo-scroll"><div class="mo-hm">${g}</div></div>
       <div class="mo-legend">${legend}</div>
     </div>
