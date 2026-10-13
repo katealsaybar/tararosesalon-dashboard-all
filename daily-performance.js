@@ -778,7 +778,7 @@ async function renderDailyPerf() {
   dpDraw(host, win);
 }
 
-// The radar's Customise panel: tick the measures to draw, ten by default, never fewer than three.
+// The radar's Customise panel: tick the measures to draw, ten by default, Tick all, Untick all or Back to the default ten; under three ticked there is no shape and it says so.
 function dpRadarCustom() {
   const on = new Set(dpRadarSel().map(x => x[0]));
   const label = Object.fromEntries(DP_RADAR_ALL);
@@ -787,7 +787,7 @@ function dpRadarCustom() {
     return items.length ? `<div class="dp-cg"><span class="dp-lab">${g}</span>${items.map(k => `<label class="dp-chk"><input type="checkbox" data-r="${k}"${on.has(k) ? ' checked' : ''}> ${dpEsc(label[k])}</label>`).join('')}</div>` : '';
   }).join('');
   return `<details class="dp-cust" id="dpCust"${dpRadarOpen ? ' open' : ''}><summary>Customise measures (${on.size} ticked)</summary>${groups}
-    <div class="dp-row" style="margin-top:8px"><button type="button" class="dp-pill" id="dpRadarReset">Back to the default ten</button><span class="dp-sub" id="dpRadarMsg"></span></div></details>`;
+    <div class="dp-row" style="margin-top:8px"><button type="button" class="dp-pill" id="dpRadarAll">Tick all</button><button type="button" class="dp-pill" id="dpRadarNone">Untick all</button><button type="button" class="dp-pill" id="dpRadarReset">Back to the default ten</button><span class="dp-sub" id="dpRadarMsg">${on.size < 3 ? 'Tick at least three to draw a shape.' : ''}</span></div></details>`;
 }
 
 function dpDraw(host, win) {
@@ -870,11 +870,13 @@ function dpWire(host) {
   if (cust) cust.addEventListener('toggle', () => { dpRadarOpen = cust.open; });
   root.querySelectorAll('[data-r]').forEach(cb => cb.onchange = () => {
     const next = DP_RADAR_ALL.map(x => x[0]).filter(k => { const b = root.querySelector(`[data-r="${k}"]`); return b && b.checked; });
-    if (next.length < 3) { cb.checked = true; const m = root.querySelector('#dpRadarMsg'); if (m) m.textContent = 'Keep at least three ticked, or there is no shape to draw.'; return; }
     dpRedraw(host, cb, `[data-r="${cb.dataset.r}"]`, () => { DP.radar = next; dpRadarOpen = true; dpSave(); });
   });
   const rr = root.querySelector('#dpRadarReset');
   if (rr) rr.onclick = () => dpRedraw(host, rr, '#dpRadarReset', () => { DP.radar = null; dpRadarOpen = true; dpSave(); });
+  const ra = root.querySelector('#dpRadarAll'), rn = root.querySelector('#dpRadarNone');
+  if (ra) ra.onclick = () => dpRedraw(host, ra, '#dpRadarAll', () => { DP.radar = DP_RADAR_ALL.map(x => x[0]); dpRadarOpen = true; dpSave(); });
+  if (rn) rn.onclick = () => dpRedraw(host, rn, '#dpRadarNone', () => { DP.radar = []; dpRadarOpen = true; dpSave(); });
   const f = root.querySelector('#dpFrom'), t = root.querySelector('#dpTo');
   if (f && t) {
     const go = async () => { if (f.value && t.value) { DP.from = f.value; DP.to = t.value; dpSave(); await renderDailyPerf(); } };
