@@ -43,7 +43,7 @@ const dpPctF  = v => Math.round(v) + '%';
 const dpPct1  = v => (Math.round(v * 10) / 10) + '%';
 const DP_GROUPS = [
   ['Revenue',    ['sales', 'services', 'retail', 'hair', 'beauty', 'treat']],
-  ['Clients',    ['clients', 'newc', 'ncr', 'ncrp']],
+  ['Clients',    ['clients', 'newc', 'ncr', 'ncrp', 'rebookn']],
   ['Benchmarks', ['rebook', 'treatp', 'retailp', 'hairbill', 'beautybill']],
   ['Capacity',   ['util']],
 ];
@@ -62,6 +62,9 @@ const DP_M = {
   // it is drawn as plain values, not graded.
   ncr:      { label: 'NCR',             noun: 'NCR (new client requests)', kind: 'vol', fmt: dpCount(''),       tgtFn: (code, month) => (typeof ncrMonthlyTarget === 'function' ? ncrMonthlyTarget(code, month) : dpMonthTarget(month, code, ['ncr'])), pick: s => s.ncrTotal },
   ncrp:     { label: 'NCR %',           noun: 'NCR as a share of clients', kind: 'ratio', fmt: dpPct1, notarget: true, pick: s => (s.totalClients ? (s.ncrTotal || 0) / s.totalClients * 100 : null) },
+  // The count behind Rebooking %: clients the stylists rebooked that day. The 70% benchmark is a share, not a number
+  // of clients, so the count has no target of its own and is drawn as plain values, not graded.
+  rebookn:  { label: 'Rebooked clients', noun: 'clients rebooked',     kind: 'vol',   fmt: dpCount('rebooked'), notarget: true, pick: s => (s.rebookPct != null ? s.totalRebooked : null) },
   rebook:   { label: 'Rebooking %',     noun: 'rebooking %',          kind: 'ratio', fmt: dpPctF, bm: 'rebookPct',    pick: s => (s.rebookPct != null ? s.rebookPct : s.hairRebookPct) },
   treatp:   { label: 'Treatment %',     noun: 'treatment %',          kind: 'ratio', fmt: dpPctF, bm: 'treatmentPct', pick: s => (s.treatmentSales == null || !(s.hairServicesIncl || 0)) ? null : s.treatmentSales / s.hairServicesIncl * 100 },
   retailp:  { label: 'Retail %',        noun: 'retail %',             kind: 'ratio', fmt: dpPctF, bm: 'retailPct',    pick: s => { const n = (s.hairServicesIncl || 0) + (s.hairRetailOnly || 0); return n ? (s.hairRetailOnly || 0) / n * 100 : null; } },
@@ -792,6 +795,7 @@ function dpRadarCustom(idxs, codes) {
     return items.length ? `<div class="dp-cg"><span class="dp-lab">${g}</span>${items.map(k => { const no = dpNoTarget(k, idxs, codes); return `<label class="dp-chk${no.length ? ' dp-off' : ''}"${no.length ? ` title="No target set at ${dpEsc(no.join(', '))}, so this draws nothing there."` : ''}><input type="checkbox" data-r="${k}"${on.has(k) ? ' checked' : ''}> ${dpEsc(label[k])}${no.length ? ` <span class="dp-sub">(no target at ${dpEsc(no.join(', '))})</span>` : ''}</label>`; }).join('')}</div>` : '';
   }).join('');
   return `<details class="dp-cust" id="dpCust"${dpRadarOpen ? ' open' : ''}><summary>Customise measures (${on.size} ticked)</summary>${groups}
+    <p class="dp-sub" style="margin:6px 0 0">Only measures with a target can sit on the shape. Rebooking % is the share of clients rebooked, against its 70% target; the number of clients rebooked (Rebooked clients, no target) is under Measure, Clients, at the top.</p>
     <div class="dp-row" style="margin-top:8px"><button type="button" class="dp-pill" id="dpRadarAll">Tick all</button><button type="button" class="dp-pill" id="dpRadarNone">Untick all</button><button type="button" class="dp-pill" id="dpRadarReset">Back to the default ten</button><span class="dp-sub" id="dpRadarMsg">${on.size < 3 ? 'Tick at least three to draw a shape.' : ''}</span></div></details>`;
 }
 
