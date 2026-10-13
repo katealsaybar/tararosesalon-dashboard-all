@@ -72,7 +72,7 @@ const DP_M = {
 // The radar: every measure that has a target, the ten that say most about a branch's shape ticked by default.
 // Kate, 13 Oct 2026: that ten is the default, and any of them can be taken off or the rest put on (Customise).
 const DP_RADAR_ALL = [['sales', 'Total sales'], ['services', 'Services'], ['retail', 'Retail'], ['hair', 'Hair revenue'], ['beauty', 'Beauty'],
-  ['treat', 'Treatments'], ['clients', 'Clients'], ['newc', 'New clients'], ['ncr', 'NCR'], ['rebook', 'Rebooking'], ['treatp', 'Treatment %'],
+  ['treat', 'Treatments'], ['clients', 'Clients'], ['newc', 'New clients'], ['ncr', 'NCR'], ['rebook', 'Rebooking %'], ['treatp', 'Treatment %'],
   ['retailp', 'Retail %'], ['hairbill', 'Hair avg bill'], ['beautybill', 'Beauty avg bill'], ['util', 'Utilisation']];
 const DP_RADAR_DEFAULT = ['sales', 'retail', 'treat', 'clients', 'newc', 'ncr', 'rebook', 'retailp', 'hairbill', 'util'];
 function dpRadarSel() {
