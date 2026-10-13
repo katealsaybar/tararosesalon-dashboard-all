@@ -106,6 +106,7 @@ const ROOTS_BY_YEAR = {
     KCA: '1PgFPdqNj4MvhH3_UGHLNUXbJNUkO9jeZ', // KHALIFA / Weekly Ledgers          (.xlsx)
     MC:  '1_TwQQEGftcv1swY9aDU6IjlaM36XTwlz', // MOTOR CITY / Week End- 2024
     AQ:  '1-yH6OuW8oy0xwC9cYae9ye2Aja6klP_F', // AL QUOZ / TRS / WEEK END
+    FRT: '1cvsQNpXGWU6Hl3Fu_xkiRZYedsVVZvq9', // AL QUOZ / FRATELLI / WEEKEND (Phorest FRT from 1 Apr 2024)
   },
   // 2023 has no LEDGERS layer: the branch folders sit straight under the year
   // (1ZhjnCrThWUy5Tvx2SJNANhChk8mqpLwh), each with its own weekly folder. Al Quoz starts late Sep 2023
@@ -431,6 +432,33 @@ function backfillRetryFailed() {
     if (r[0] === 'FAILED') { q.getRange(i + 2, 6, 1, 5).clearContent(); n++; }
   });
   Logger.log(`Reset ${n} FAILED rows. Resuming.`);
+  backfillContinue();
+}
+
+/**
+ * One-off, 1 Oct 2026: re-reads only the KCA files holding the 51 days a blank second MIMI/GRACE
+ * header zeroed out (see pushRows_), now that a blank repeat can no longer win. Every other row
+ * in the queue, and its fixed?/fix notes columns, is left alone. Run once after pasting.
+ */
+function backfillRerunKcaMimiGrace() {
+  const DATES = ('2026-01-25,2026-02-19,2026-02-23,2026-05-26,2026-05-29,2026-05-30,2026-06-02,' +
+    '2026-06-05,2026-06-09,2026-06-12,2026-06-16,2026-06-19,2026-06-23,2026-06-26,2026-06-27,' +
+    '2026-06-30,2026-07-03,2026-07-04,2026-07-07,2026-07-10,2026-07-11,2026-07-24,2026-07-25,' +
+    '2026-07-28,2026-07-31,2026-08-01,2026-08-04,2026-08-07,2026-08-08,2026-08-11,2026-08-14,' +
+    '2026-08-15,2026-08-18,2026-08-21,2026-08-22,2026-08-25,2026-08-28,2026-08-29,2026-09-01,' +
+    '2026-09-04,2026-09-05,2026-09-08,2026-09-11,2026-09-12,2026-09-15,2026-09-18,2026-09-19,' +
+    '2026-09-22,2026-09-25,2026-09-26,2026-09-29').split(',');
+  const q = getLog_(false).getSheetByName(QUEUE_TAB);
+  const last = q.getLastRow();
+  if (last < 2) return;
+  const rows = q.getRange(2, 1, last - 1, 7).getValues(); // id, name, path, branch, mime, status, dates
+  let n = 0;
+  rows.forEach((r, i) => {
+    if (r[3] !== 'KCA' || r[5] !== 'OK') return;
+    const dates = String(r[6]);
+    if (DATES.some(d => dates.indexOf(d) >= 0)) { q.getRange(i + 2, 6, 1, 5).clearContent(); n++; }
+  });
+  Logger.log(`Re-queued ${n} KCA file(s) holding the zeroed MIMI/GRACE days. Resuming.`);
   backfillContinue();
 }
 
@@ -1066,7 +1094,7 @@ function processFile_(entry, opts) {
     // a week with rows in it is left exactly as it is and the file is HELD for a person, so a
     // mistyped name can never delete a real week. A file with no figures at all is EMPTY below.
     let copiedShift = 0;
-    if (wk && monday && !opts.shiftDays && !opts.rescue && monday !== wk.from) {
+    if (wk && monday && !opts.shiftDays && !opts.rescue && !opts.keepTabDates && monday !== wk.from) {
       const diff = isoDiff_(wk.from, monday);
       if (diff % 7 === 0) {
         const taken = [];
@@ -1367,7 +1395,27 @@ function parseDay_(values, dateStr, tab, notes) {
       if (sectionFallback) notes.push(`WARN ${tab} ${dateStr}: the section at row ${h + 1} has no "Type | Count" row, read from its first Request row ${commonSr + 1}`);
     }
 
+    // Right-hand blocks can sit whole rows lower than the left ones (MC's VIRGINIA column runs 5
+    // rows down), so the next section's header on the LEFT arrives before this block's own
+    // Total Retail row and used to cut it off: her treatment and treatment qty read as 0 every
+    // day (Kate, 29 Sep 2026). A block with its own header here ends at its own next header,
+    // and a block whose header only comes a few rows later belongs to that later section.
+    const isHdr = (r, c) => low(r, c) === 'client' && low(r, c + 1) === 'type';
+    const nextH = k + 1 < H.length ? H[k + 1] : nrows;
+    const afterNextH = k + 2 < H.length ? H[k + 2] : nrows;
+
     for (let c = 0; c < ncols; c += 4) {
+      let colEnd = secEnd;
+      if (isHdr(h, c)) {
+        for (let r = h + 1; r <= afterNextH && r < nrows; r++) {
+          if (isHdr(r, c)) { if (r > nextH) colEnd = r - 1; break; }
+        }
+      } else {
+        let later = false;
+        for (let r = h + 1; r < nextH && r < nrows; r++) if (isHdr(r, c)) { later = true; break; }
+        if (later) continue;
+      }
+
       const name = str_(cell(namesRow, c));
       // Blank column, a spreadsheet error, or one of the template's own words sitting where a
       // name should be. All three mean "not a staff block", and none of them is a judgement about
@@ -1382,8 +1430,8 @@ function parseDay_(values, dateStr, tab, notes) {
       if (sr < 0) continue;
       claimed[sr] = true;
 
-      let end = secEnd;
-      for (let r = sr; r < secEnd; r++) {
+      let end = colEnd;
+      for (let r = sr; r < colEnd; r++) {
         if (str_(cell(r, c)).toUpperCase().indexOf('GRAND TOTAL') === 0) { end = r + 1; break; }
       }
 
@@ -1877,6 +1925,11 @@ function pushRows_(branchCode, rows) {
   // it twice (BUSINESS beside business), so it is added up too (Kate, 7 Sep 2026). Every other
   // name keeps the old behaviour: a name repeated in one day tab is a mistake in the tab, and
   // doubling it would invent visits (Kate, 4 Sep 2026).
+  // But an EMPTY repeat never wins over a filled one. KCA's day tabs carry a second, blank MIMI and
+  // GRACE header further along the same row (TUESDAY AC58/AG58), so "last one wins" let the blank
+  // copy wipe the real column: Jho had filled 29 Sep in, and it reached Supabase as zeros. Since
+  // May that cost Mimi 46 days and Grace 17 (Kate, 1 Oct 2026). A blank row is kept only when it is
+  // the only reading of that name.
   const deduped = new Map();
   rows.forEach(function (r) {
     const key = `${r.date}|${r.dept}|${r.staff_name}`;
@@ -1889,6 +1942,7 @@ function pushRows_(branchCode, rows) {
       seen.treatment_aed = Math.round(seen.treatment_aed * 100) / 100;
       return;
     }
+    if (seen && figures_(r) === ZERO_FIGURES) return;
     deduped.set(key, r);
   });
   const uniqueRows = [...deduped.values()];
@@ -2091,8 +2145,397 @@ function normalizeStaffName_(name) {
   return NAME_FIXES[trimmed.toUpperCase()] || trimmed;
 }
 
+/**
+ * One-off, 9 Oct 2026: KCA "OCT WEEK 1 (30-OCT 6) UPDATED" is HELD because its name says the week of
+ * 28 Oct (already filled by another file) while its day tabs are dated 30 Sep to 6 Oct, the exact
+ * seven days Khalifa was missing. Reads it with keepTabDates (skips the HELD name check), dry run
+ * first, and pushes only if the dry run is exactly 2024-09-30 to 2024-10-06. Updates its QUEUE row.
+ * Needs YEAR = 2024.
+ */
+function pushHeldKca2024() {
+  const ID = '1wEVgrr9-rq5zQ5DelD5CxAIzj0j3TJ8M';
+  const q = getLog_(false).getSheetByName(QUEUE_TAB);
+  const data = q.getRange(2, 1, q.getLastRow() - 1, 5).getValues();
+  const i = data.findIndex(r => r[0] === ID);
+  if (i < 0) throw new Error('queue row for the HELD KCA file not found');
+  const entry = { id: data[i][0], name: data[i][1], path: data[i][2], branch: data[i][3], mime: data[i][4] };
+  const dry = processFile_(entry, { keepTabDates: true, dryRun: true });
+  Logger.log('DRY RUN ' + dry.status + ': ' + dry.rows + ' rows on ' + dry.dates.join(' ') + '\n' + (dry.note || ''));
+  if (dry.status !== 'READ' || dry.dates.length !== 7 || dry.dates[0] !== '2024-09-30' || dry.dates[6] !== '2024-10-06') {
+    Logger.log('NOT pushed: the dry run is not the 30 Sep to 6 Oct week.');
+    return;
+  }
+  const res = processFile_(entry, { keepTabDates: true });
+  q.getRange(i + 2, 6, 1, 5).setValues([[res.status, res.dates.join(' '), res.rows,
+    'pushed on its own tab dates (30 Sep to 6 Oct) with keepTabDates, 9 Oct 2026 | ' + (res.note || ''), new Date()]]);
+  Logger.log('PUSHED ' + res.status + ': ' + res.rows + ' rows on ' + res.dates.join(' '));
+}
 
-// -- One-off, 13 Oct 2026: KCA 2023 weeks 30 Oct - 5 Nov and 27 Nov - 3 Dec --------------------
+
+/**
+ * Read-only, 9 Oct 2026: for the Fratelli 2024 weeks two files claim, logs what each file holds per
+ * date (staff rows, clients, treatment AED and who has figures) so the right one can be picked
+ * against Phorest. Dry run only, nothing is pushed. Needs YEAR = 2024.
+ */
+function inspectFrt2024A() {
+  inspectFrt_([
+    ['16WySQCDvCMxnN7zkRm59gAW-EDTPR0ar', 'JUNE WK1 (Jun 3-9)'],
+    ['1lWUy623EgQfFH8s8MZdvhs7CCwkvziFN', 'JUNE WK2 (Jun 10-16)'],
+    ['1CiSKUALJvEXAWhfAf7FuEzfnkCzbvrzu', 'JUNE WK3 (Jun 17-23)'],
+    ['1edxNeViJ4VzxUCjzb_a0VEim17QWdPyQ', 'JUNE WK4 (Jun 24-30)'],
+    ['1iUVQbHRgcmZwUDLGAmhGGrw7SuHw_yf7', 'SEPT WK1 (Sep 2-8) xlsx'],
+    ['162u3_jbpPTND4m-fmEcIycoR_vxU_X2NfBqGnZ1U3iI', 'OCT folder WK1 (Sept 2-8) sheet']
+  ]);
+}
+function inspectFrt2024B() {
+  inspectFrt_([
+    ['1dyHKWPZVSQYv8d1kTCpc_DD3fCNC-vT9', 'JULY WK1 (named Jun 1-7)'],
+    ['1ocCYqx0MACg2HhItSeaz0Z3c9LEVyloK', 'JULY WK2 (named Jun 8-14)'],
+    ['16MM7fEvuwyITgpnbqjJaPlesEP5SWL9q', 'JULY WK3 (named Jun 15-21)'],
+    ['1Qme2in0LApkJbQmRF3vTQJjGwCd_9M-0', 'JULY WK4 (named Jun 22-28)'],
+    ['1JSv0tQ1mDVvPE8Tjq4EOW5RMkcXcBkrk', 'JULY WK5 (named Jun 29 - Aug 4)']
+  ]);
+}
+function inspectFrt_(list) {
+  list.forEach(function (p) {
+    let f;
+    try { f = DriveApp.getFileById(p[0]); } catch (e) { Logger.log(p[1] + ' CANNOT OPEN ' + e.message); return; }
+    const entry = { id: p[0], name: f.getName(), branch: 'FRT', mime: f.getMimeType(), path: '' };
+    let res;
+    try { res = processFile_(entry, { dryRun: true, keepTabDates: true }); }
+    catch (e) { Logger.log(p[1] + ' FAILED ' + e.message); return; }
+    const by = {};
+    (res.parsed || []).forEach(function (r) {
+      const d = by[r.date] = by[r.date] || { n: 0, tot: 0, aed: 0, names: [] };
+      d.n++; d.tot += Number(r.total) || 0; d.aed += Number(r.treatment_aed) || 0;
+      if ((Number(r.total) || 0) > 0 || (Number(r.treatment_aed) || 0) > 0) d.names.push(r.staff_name + ':' + (r.total || 0));
+    });
+    Logger.log('== ' + p[1] + ' [' + res.status + '] ' + res.rows + ' rows');
+    Object.keys(by).sort().forEach(function (k) {
+      Logger.log(k + ' n' + by[k].n + ' cl' + by[k].tot + ' aed' + Math.round(by[k].aed) + ' | ' + by[k].names.join(','));
+    });
+  });
+}
+
+
+/**
+ * One-off, 9 Oct 2026: Fratelli's JULY folder holds five weekly files named "WK 1 (JUNE 1 - JUNE 7)" ...
+ * "WK 5 (JUNE 29 - AUG 4)" whose day tabs are really 1 Jul to 4 Aug 2024 (checked against Phorest: 3 to 6
+ * Jul visits 11, 5, 15, 4 match the tabs, not what was stored). The name-based shift had moved them onto
+ * June dates, where the real June files won, so July never got its own figures. Each file is read with
+ * keepTabDates, dry run first, and pushed only if it is exactly the expected Monday to Sunday. Updates
+ * each QUEUE row. Also marks the misfiled Motor City "WK 1 (Sept 2-8)" sheet in Fratelli's OCTOBER
+ * folder as SKIPPED. Needs YEAR = 2024.
+ */
+function pushFrtJuly2024() {
+  const FILES = [
+    ['1dyHKWPZVSQYv8d1kTCpc_DD3fCNC-vT9', '2024-07-01'],
+    ['1ocCYqx0MACg2HhItSeaz0Z3c9LEVyloK', '2024-07-08'],
+    ['16MM7fEvuwyITgpnbqjJaPlesEP5SWL9q', '2024-07-15'],
+    ['1Qme2in0LApkJbQmRF3vTQJjGwCd_9M-0', '2024-07-22'],
+    ['1JSv0tQ1mDVvPE8Tjq4EOW5RMkcXcBkrk', '2024-07-29']
+  ];
+  const q = getLog_(false).getSheetByName(QUEUE_TAB);
+  const data = q.getRange(2, 1, q.getLastRow() - 1, 5).getValues();
+  FILES.forEach(function (pair) {
+    const i = data.findIndex(function (r) { return r[0] === pair[0]; });
+    if (i < 0) { Logger.log(pair[0] + ': queue row not found, skipped'); return; }
+    const entry = { id: data[i][0], name: data[i][1], path: data[i][2], branch: data[i][3], mime: data[i][4] };
+    const dry = processFile_(entry, { keepTabDates: true, dryRun: true });
+    const ok = dry.status === 'READ' && dry.dates.length === 7 && dry.dates[0] === pair[1];
+    Logger.log(entry.name + ' dry run ' + dry.status + ' ' + dry.rows + ' rows ' + dry.dates[0] + ' to ' + dry.dates[dry.dates.length - 1] + (ok ? ' OK' : ' NOT the expected week, not pushed'));
+    if (!ok) return;
+    const res = processFile_(entry, { keepTabDates: true });
+    q.getRange(i + 2, 6, 1, 5).setValues([[res.status, res.dates.join(' '), res.rows,
+      'pushed on its own tab dates with keepTabDates, 9 Oct 2026 (the file name says June, the tabs are July) | ' + (res.note || ''), new Date()]]);
+    Logger.log('  PUSHED ' + res.status + ' ' + res.rows + ' rows');
+  });
+  const MISFILED = '162u3_jbpPTND4m-fmEcIycoR_vxU_X2NfBqGnZ1U3iI';
+  const j = data.findIndex(function (r) { return r[0] === MISFILED; });
+  if (j >= 0) {
+    q.getRange(j + 2, 6, 1, 5).setValues([['SKIPPED', '', 0,
+      'Motor City sheet (ELISE, ASHLEIGH, ROBYN, VENUS, ALAN) misfiled in Fratelli OCTOBER; the real FRT week is the SEPTEMBER folder file, 9 Oct 2026', new Date()]]);
+    Logger.log('Marked the misfiled Sept 2-8 sheet SKIPPED');
+  }
+}
+
+
+/**
+ * Read-only, 9 Oct 2026: KCA 1 and 2 Nov 2024 read 0 clients against 64 and 30 Phorest visits. Logs what the
+ * Wednesday to Sunday tabs of OCT WEEK 5 (28-NOV 3) and DECEMBER WEEK 4 (whose Wed to Sun still carry the
+ * Oct dates it was copied with) really hold, and the Drive revisions of OCT WEEK 5. Pushes nothing.
+ */
+function inspectKcaNov() {
+  [['1geIZjRyqKMy1t8FadejLv63qBOkgXrFc', 'OCT WEEK 5'], ['13mptuyV2qafJDFNEzCBeivr9-5vi86to', 'DEC WEEK 4']].forEach(function (p) {
+    let tempId = null;
+    try {
+      tempId = convertXlsx_(p[0], p[1]);
+      const ss = SpreadsheetApp.openById(tempId);
+      ['WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'].forEach(function (tab) {
+        const sh = ss.getSheetByName(tab);
+        if (!sh) { Logger.log(p[1] + ' ' + tab + ' missing'); return; }
+        const v = sh.getDataRange().getValues();
+        let ne = 0, sum = 0;
+        v.forEach(function (r, ri) { if (ri === 0) return; r.forEach(function (c) { if (c !== '' && c !== null) { ne++; if (typeof c === 'number') sum += c; } }); });
+        Logger.log(p[1] + ' ' + tab + ' A1=' + String(v[0][0]).slice(0, 28) + ' dims ' + v.length + 'x' + v[0].length + ' nonEmpty ' + ne + ' numSum ' + Math.round(sum));
+      });
+    } catch (e) { Logger.log(p[1] + ' FAILED ' + e.message); }
+    finally { if (tempId) { try { DriveApp.getFileById(tempId).setTrashed(true); } catch (e) { /* ignore */ } } }
+  });
+  const r = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/1geIZjRyqKMy1t8FadejLv63qBOkgXrFc/revisions?fields=revisions(id,modifiedTime,lastModifyingUser(emailAddress),size)',
+    { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+  Logger.log('REVISIONS ' + r.getResponseCode() + ' ' + r.getContentText().replace(/\s+/g, ' ').slice(0, 1800));
+}
+
+
+/**
+ * Read-only, 9 Oct 2026: SAA 22 to 24 Nov 2024 and KCA 29 to 31 Jul 2024 read 0 clients while Phorest shows busy
+ * days. Logs how many numbers each suspect day tab really holds (zero numbers = never filled in).
+ */
+function inspectGaps2024() {
+  [
+    ['1flV8Nzwqejk1bu5h7UqlrI41YwwL3is81gYBe1IhEfk', 'SAA WEEK 3 (18-24 Nov)', ['THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']],
+    ['1Fu97vIqRX2xB4BWM38319rGtHco3fEpv', 'KCA JULY WEEK 5 (29 Jul-3 Aug)', ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY']],
+    ['1VXiJbcT7MijGca158-ezanqA2YWW3zDbTt5NUy5GM9s', 'AQ WK 1 (1-7 Apr)', ['TUESDAY', 'WEDNESDAY', 'THURSDAY']]
+  ].forEach(function (p) {
+    let tempId = null;
+    try {
+      const f = DriveApp.getFileById(p[0]);
+      let ssId = p[0];
+      if (f.getMimeType() === XLSX_MIME) { tempId = convertXlsx_(p[0], p[1]); ssId = tempId; }
+      const ss = SpreadsheetApp.openById(ssId);
+      p[2].forEach(function (tab) {
+        const sh = ss.getSheetByName(tab);
+        if (!sh) { Logger.log(p[1] + ' ' + tab + ' missing'); return; }
+        const v = sh.getDataRange().getValues();
+        let ne = 0, sum = 0;
+        v.forEach(function (r, ri) { if (ri === 0) return; r.forEach(function (c) { if (c !== '' && c !== null) { ne++; if (typeof c === 'number') sum += c; } }); });
+        Logger.log(p[1] + ' ' + tab + ' A1=' + String(v[0][0]).slice(0, 28) + ' nonEmpty ' + ne + ' numSum ' + Math.round(sum));
+      });
+    } catch (e) { Logger.log(p[1] + ' FAILED ' + e.message); }
+    finally { if (tempId) { try { DriveApp.getFileById(tempId).setTrashed(true); } catch (e) { /* ignore */ } } }
+  });
+}
+
+
+/**
+ * Read-only, 9 Oct 2026: KCA ledgers carry no Beauty section on Wednesdays in 2024, 2025 and 2026. Finds the Beauty
+ * names (DINA, STELLA, ARNALYN, GRACE) on the TUESDAY, WEDNESDAY and THURSDAY tabs of KCA OCT WEEK 5 and logs
+ * where they sit and what numbers are near them. Pushes nothing.
+ */
+function inspectKcaWed() {
+  let tempId = null;
+  try {
+    tempId = convertXlsx_('1geIZjRyqKMy1t8FadejLv63qBOkgXrFc', 'KCA OCT WEEK 5');
+    const ss = SpreadsheetApp.openById(tempId);
+    ['TUESDAY', 'WEDNESDAY', 'THURSDAY'].forEach(function (tab) {
+      const sh = ss.getSheetByName(tab);
+      const v = sh.getDataRange().getValues();
+      const hits = [];
+      let beautyLabel = '';
+      v.forEach(function (row, r) {
+        row.forEach(function (c, ci) {
+          const s = String(c).trim().toUpperCase();
+          if (s === 'BEAUTY' || s === 'BEAUTY TEAM' || s.indexOf('BEAUTY') === 0) beautyLabel += ' [' + (r + 1) + ',' + (ci + 1) + ']=' + s.slice(0, 20);
+          if (s === 'DINA' || s === 'STELLA' || s === 'ARNALYN' || s === 'GRACE') {
+            let near = 0;
+            for (let rr = r + 1; rr < Math.min(v.length, r + 12); rr++) { for (let cc = ci; cc < Math.min(row.length, ci + 4); cc++) { if (typeof v[rr][cc] === 'number') near += v[rr][cc]; } }
+            hits.push(s + '@' + (r + 1) + ',' + (ci + 1) + ' nearNum ' + Math.round(near));
+          }
+        });
+      });
+      Logger.log(tab + ' rows ' + v.length + ' | beauty labels:' + (beautyLabel || ' none') + ' | ' + (hits.join(' ; ') || 'no beauty names'));
+    });
+  } catch (e) { Logger.log('FAILED ' + e.message); }
+  finally { if (tempId) { try { DriveApp.getFileById(tempId).setTrashed(true); } catch (e) { /* ignore */ } } }
+}
+
+
+/**
+ * Read-only, 9 Oct 2026: runs the real parseDay_ on the TUESDAY, WEDNESDAY and THURSDAY tabs of KCA OCT WEEK 5 and
+ * logs the section header rows it finds, who it reads under Hair and Beauty, and its notes. Pushes nothing.
+ */
+function inspectKcaWed2() {
+  let tempId = null;
+  try {
+    tempId = convertXlsx_('1geIZjRyqKMy1t8FadejLv63qBOkgXrFc', 'KCA OCT WEEK 5');
+    const ss = SpreadsheetApp.openById(tempId);
+    [['TUESDAY', '2024-10-29'], ['WEDNESDAY', '2024-10-30'], ['THURSDAY', '2024-10-31']].forEach(function (p) {
+      const sh = ss.getSheetByName(p[0]);
+      const lastRow = Math.min(sh.getLastRow(), MAX_ROWS_READ);
+      const values = sh.getRange(1, 1, lastRow, sh.getLastColumn()).getValues();
+      const hdr = [];
+      values.forEach(function (row, r) {
+        for (let c = 0; c < row.length; c += 4) {
+          if (str_(row[c]).toLowerCase() === 'client' && str_(row[c + 1]).toLowerCase() === 'type') { hdr.push(r + 1); break; }
+        }
+      });
+      const tc = [];
+      values.forEach(function (row, r) { if (str_(row[0]).toLowerCase() === 'type' && str_(row[1]).toLowerCase() === 'count') tc.push(r + 1); });
+      const notes = [];
+      const rows = parseDay_(values, p[1], p[0], notes);
+      const hair = rows.filter(function (r) { return r.dept === 'Hair'; });
+      const beauty = rows.filter(function (r) { return r.dept === 'Beauty'; });
+      Logger.log(p[0] + ' lastRow ' + lastRow + ' | header rows: ' + (hdr.join(',') || 'none') + ' | TypeCount rows col A: ' + (tc.join(',') || 'none') +
+        ' | parsed Hair ' + hair.length + ' (clients ' + hair.reduce(function (a, r) { return a + r.total; }, 0) + '), Beauty ' + beauty.length +
+        ' (clients ' + beauty.reduce(function (a, r) { return a + r.total; }, 0) + ')');
+      Logger.log('   beauty names: ' + beauty.map(function (r) { return r.staff_name + ':' + r.total; }).join(', '));
+      Logger.log('   notes: ' + (notes.join(' | ').slice(0, 400) || 'none'));
+      hdr.forEach(function (h) {
+        const names = [];
+        for (let c = 0; c < values[0].length; c += 4) names.push(str_(values[h - 2][c]).slice(0, 12));
+        Logger.log('   names above header row ' + h + ': ' + names.join(' / '));
+      });
+    });
+  } catch (e) { Logger.log('FAILED ' + e.message); }
+  finally { if (tempId) { try { DriveApp.getFileById(tempId).setTrashed(true); } catch (e) { /* ignore */ } } }
+}
+
+
+/**
+ * Read-only, 9 Oct 2026: shows rows 56 to 90 of the WEDNESDAY and THURSDAY tabs of KCA OCT WEEK 5, first 12 columns,
+ * non-empty cells only, to see whether the Wednesday Beauty summary has labels and numbers without its Type | Count row.
+ */
+function inspectKcaWed3() {
+  let tempId = null;
+  try {
+    tempId = convertXlsx_('1geIZjRyqKMy1t8FadejLv63qBOkgXrFc', 'KCA OCT WEEK 5');
+    const ss = SpreadsheetApp.openById(tempId);
+    ['WEDNESDAY', 'THURSDAY'].forEach(function (tab) {
+      const v = ss.getSheetByName(tab).getRange(56, 1, 40, 12).getValues();
+      v.forEach(function (row, i) {
+        const cells = [];
+        row.forEach(function (c, ci) { if (c !== '' && c !== null) cells.push(String.fromCharCode(65 + ci) + ':' + String(c).slice(0, 14)); });
+        if (cells.length) Logger.log(tab.slice(0, 3) + ' r' + (56 + i) + ' ' + cells.join(' '));
+      });
+    });
+  } catch (e) { Logger.log('FAILED ' + e.message); }
+  finally { if (tempId) { try { DriveApp.getFileById(tempId).setTrashed(true); } catch (e) { /* ignore */ } } }
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// KCA WEDNESDAY BEAUTY: put back the Beauty rows the old parser dropped (9 Oct 2026)
+// ══════════════════════════════════════════════════════════════════════════════════════════
+//
+// KCA's WEDNESDAY tab has no "Type | Count" row for the Beauty section, so every Wednesday of 2024, 2025 and 2026 was
+// pushed with Hair only. parseDay_ now reads that section from its first Request row. This re-reads those Wednesday
+// tabs and adds ONLY Beauty rows, ONLY on dates that have no Beauty row yet: Hair rows, other days and the 2024
+// days filled in from Phorest are never touched. Progress is on the "WEDFIX" tab of the log sheet; the run goes in
+// slices like backfillStart. Start it with fixKcaWedStart(); stop it with fixKcaWedStop().
+
+const WEDFIX_TAB = 'WEDFIX';
+
+function fixKcaWedStart() {
+  const log = getLog_(false);
+  let tab = log.getSheetByName(WEDFIX_TAB);
+  if (tab) tab.clear(); else tab = log.insertSheet(WEDFIX_TAB);
+  tab.appendRow(['year', 'wednesday', 'files', 'status', 'beauty_rows', 'note', 'finished_at']);
+  const byDate = {};
+  [2024, 2025, 2026].forEach(function (y) {
+    const q = log.getSheetByName(String(y));
+    if (!q || q.getLastRow() < 2) return;
+    q.getRange(2, 1, q.getLastRow() - 1, 7).getValues().forEach(function (r) {
+      if (r[3] !== 'KCA' || r[5] !== 'OK') return;
+      const ds = (r[6] instanceof Date) ? [Utilities.formatDate(r[6], Session.getScriptTimeZone(), 'yyyy-MM-dd')] : String(r[6]).split(/\s+/);
+      ds.forEach(function (d) {
+        if (!/^\d{4}-\d\d-\d\d$/.test(d) || isoDayIndex_(d) !== 2) return;
+        (byDate[d] = byDate[d] || { y: y, files: [] }).files.push([r[0], r[1], r[4]]);
+      });
+    });
+  });
+  const dates = Object.keys(byDate).sort();
+  if (!dates.length) { Logger.log('WEDFIX: nothing to do'); return; }
+  const jobs = dates.map(function (d) { return [byDate[d].y, d, JSON.stringify(byDate[d].files), '', '', '', '']; });
+  tab.getRange(2, 2, jobs.length, 1).setNumberFormat('@');
+  tab.getRange(2, 1, jobs.length, 7).setValues(jobs);
+  Logger.log('WEDFIX: ' + jobs.length + ' KCA Wednesdays queued. Log tab: ' + WEDFIX_TAB);
+  fixKcaWedContinue();
+}
+
+function fixKcaWedContinue() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) { wedfixArm_(); return; }
+  try {
+    const started = Date.now();
+    const tab = getLog_(false).getSheetByName(WEDFIX_TAB);
+    if (!tab || tab.getLastRow() < 2) { wedfixDisarm_(); return; }
+    const data = tab.getRange(2, 1, tab.getLastRow() - 1, 7).getValues();
+    let pending = 0, done = 0;
+    for (let i = 0; i < data.length; i++) {
+      if (data[i][3]) continue;
+      pending++;
+      if (Date.now() - started > TIME_BUDGET_MS) continue;
+      let res;
+      try { res = wedfixOne_(data[i]); }
+      catch (e) { res = { status: 'FAILED', n: 0, note: String(e && e.message || e).slice(0, 300) }; }
+      tab.getRange(i + 2, 4, 1, 4).setValues([[res.status, res.n, res.note, new Date()]]);
+      SpreadsheetApp.flush();
+      pending--; done++;
+    }
+    if (pending > 0) { wedfixArm_(); Logger.log('WEDFIX slice: ' + done + ' done, ' + pending + ' pending'); }
+    else { wedfixDisarm_(); Logger.log('WEDFIX finished. See the ' + WEDFIX_TAB + ' tab.'); }
+  } finally { lock.releaseLock(); }
+}
+
+function fixKcaWedStop() { wedfixDisarm_(); Logger.log('WEDFIX stopped. Pending rows stay pending.'); }
+
+function wedfixArm_() { wedfixDisarm_(); ScriptApp.newTrigger('fixKcaWedContinue').timeBased().after(60 * 1000).create(); }
+function wedfixDisarm_() {
+  ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'fixKcaWedContinue'; })
+    .forEach(function (t) { ScriptApp.deleteTrigger(t); });
+}
+
+function wedfixOne_(row) {
+  const date = (row[1] instanceof Date) ? Utilities.formatDate(row[1], Session.getScriptTimeZone(), 'yyyy-MM-dd') : String(row[1]);
+  const files = JSON.parse(row[2]);
+  const chk = UrlFetchApp.fetch(SUPA_URL + '/rest/v1/branch_staff_daily?select=date&branch=eq.KCA&dept=eq.Beauty&date=eq.' + date + '&limit=1',
+    { headers: supaHeaders_(), muteHttpExceptions: true });
+  if (chk.getResponseCode() >= 300) throw new Error('check failed ' + chk.getResponseCode());
+  if (JSON.parse(chk.getContentText()).length) return { status: 'SKIP', n: 0, note: 'already has Beauty rows' };
+
+  // Two files can claim one date (a copied template carries the old dates): the one with figures wins.
+  let best = null;
+  files.forEach(function (f) {
+    let tempId = null;
+    try {
+      let ssId = f[0];
+      if (f[2] === XLSX_MIME) { tempId = convertXlsx_(f[0], f[1]); ssId = tempId; }
+      const sh = SpreadsheetApp.openById(ssId).getSheets().filter(function (s) { return s.getName().trim().toUpperCase() === 'WEDNESDAY'; })[0];
+      if (!sh) return;
+      const lastRow = Math.min(sh.getLastRow(), MAX_ROWS_READ);
+      const values = sh.getRange(1, 1, lastRow, sh.getLastColumn()).getValues();
+      const rows = parseDay_(values, date, 'WEDNESDAY', []).filter(function (r) { return r.dept === 'Beauty'; });
+      const act = rows.reduce(function (a, r) {
+        return a + r.total + r.req + r.salon + r.new_client + r.rebooked + r.retail_unit_qty + r.treatments_unit_qty + Math.abs(r.treatment_aed);
+      }, 0);
+      if (!best || act > best.act) best = { act: act, rows: rows, file: f[1] };
+    } finally { if (tempId) { try { DriveApp.getFileById(tempId).setTrashed(true); } catch (e) { /* ignore */ } } }
+  });
+  if (!best || !best.rows.length) return { status: 'NO BEAUTY', n: 0, note: 'no Beauty section read' };
+  if (best.act === 0) return { status: 'EMPTY', n: 0, note: 'Beauty section read but every figure is zero, nothing added (' + best.file + ')' };
+
+  const seen = new Map();
+  best.rows.forEach(function (r) {
+    const prev = seen.get(r.staff_name);
+    if (prev && (r.staff_name === 'ASSISTANTS' || r.staff_name === 'BUSINESS')) {
+      ['ncr', 'req', 'salon', 'new_client', 'rebooked', 'total', 'treatment_aed', 'retail_unit_qty', 'treatments_unit_qty'].forEach(function (k) { prev[k] = (Number(prev[k]) || 0) + (Number(r[k]) || 0); });
+      return;
+    }
+    if (prev && figures_(r) === ZERO_FIGURES) return;
+    seen.set(r.staff_name, Object.assign({ branch: 'KCA' }, r));
+  });
+  const out = Array.from(seen.values());
+  const resp = UrlFetchApp.fetch(SUPA_URL + '/rest/v1/branch_staff_daily?on_conflict=branch,date,dept,staff_name', {
+    method: 'post', contentType: 'application/json',
+    headers: Object.assign({ Prefer: 'resolution=merge-duplicates,return=minimal' }, supaHeaders_()),
+    payload: JSON.stringify(out), muteHttpExceptions: true });
+  if (resp.getResponseCode() >= 300) throw new Error('push failed ' + resp.getResponseCode() + ' ' + resp.getContentText().slice(0, 150));
+  return { status: 'ADDED', n: out.length, note: 'from ' + best.file };
+}
+
+
+// ── One-off, 13 Oct 2026: KCA 2023 weeks 30 Oct - 5 Nov and 27 Nov - 3 Dec ────────────────────
 // Both files' day tabs carry template A1 dates (week of 9 Jan / 6 Mar 2023). The first pass dated
 // them by the file name but only one tab of each went through; rescueStrayTabs() then worked out
 // its targets from the stale A1s and held the rest. Here every tab is dated from the name's Monday.
