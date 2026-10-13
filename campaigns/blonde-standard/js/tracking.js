@@ -87,7 +87,9 @@
       try{ fetch(FORM_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)}); }catch(err){}
     }
     var t=document.createElement('div'); t.className='form-thanks';
-    t.innerHTML='<h3>Thank you. We have you.</h3><p>We will come back to you on WhatsApp with a time. Your reference is '+ref+'.</p>';
+    t.innerHTML = FORM_ENDPOINT.indexOf('__FORM_ENDPOINT__')===-1
+      ? '<h3>Thank you. We have you.</h3><p>We will come back to you on WhatsApp with a time. Your reference is '+ref+'.</p>'
+      : '<h3>This is a preview, so nothing was sent.</h3><p>To book now, <a href="https://wa.me/971556245520?text=Hi%20Tara%20Rose%2C%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener">message us on WhatsApp</a>.</p>';
     f.parentNode.replaceChild(t,f); t.scrollIntoView({behavior:'smooth'});
   });
 })();
