@@ -397,7 +397,7 @@ function dpBindTips(host) {
 function dpStatus(p) {
   if (p == null) return ['na', 'No target set', '–'];
   if (p >= 100) return ['good', 'On target', '✓'];
-  if (p >= 90) return ['warn', 'Close', '▲'];
+  if (p >= 80) return ['warn', 'Close', '▲'];   // the same lines as sc() in dashboard.js: 100 good, 80 close, under 80 bad
   return ['bad', 'Below target', '▼'];
 }
 const dpCol = c => `var(--c-${c})`;
@@ -693,8 +693,8 @@ function dpChartB(host, idxs, codes) {
 // Kate, 13 Oct 2026: "too crowded to interpret". So: full width, a square big enough to carry its own number,
 // a small gap between weeks, the date and weekday under every column, and an ink colour chosen per square.
 const DP_BIN_KEYS = ['n2', 'n1', '0', 'p1', 'p2'];
-const DP_BIN_NAMES = ['Under 80%', '80\u201394%', '95\u2013105%', '106\u2013120%', 'Over 120%'];
-const dpBin = p => p < 80 ? 0 : p < 95 ? 1 : p <= 105 ? 2 : p <= 120 ? 3 : 4;
+const DP_BIN_NAMES = ['Under 80% (below target)', '80\u201399% (close)', '100\u2013109% (on target)', '110\u2013129%', '130% and over'];
+const dpBin = p => p < 80 ? 0 : p < 100 ? 1 : p < 110 ? 2 : p < 130 ? 3 : 4;
 const dpBinBg = i => `var(--dv-${DP_BIN_KEYS[i]})`;
 const dpBinInk = i => `var(--dv-${DP_BIN_KEYS[i]}-t)`;
 const dpShade = r => `color-mix(in srgb, var(--dv-p2) ${Math.round(14 + 46 * r)}%, transparent)`;   // size, for a measure with no target
@@ -829,7 +829,7 @@ function dpRadar(host, idxs, codes) {
   if (!multi) {
     const sorted = axes.map(k => ({ ...mineAll[0][k], lab: sel[k][1] })).sort((a, b) => b.p - a.p);
     const strong = sorted.filter(v => Math.round(v.p) >= 100).slice(0, 3), weak = sorted.slice().reverse().filter(v => Math.round(v.p) < 100).slice(0, 3);
-    list = `<h3>Strengths</h3>${strong.length ? strong.map(v => row(v, 'good', '\u2713')).join('') : '<div class="dp-sub">Nothing above target yet</div>'}<h3>Weaknesses</h3>${weak.length ? weak.map(v => row(v, Math.round(v.p) >= 90 ? 'warn' : 'bad', Math.round(v.p) >= 90 ? '\u25B2' : '\u25BC')).join('') : '<div class="dp-sub">Every measure is on target</div>'}`;
+    list = `<h3>Strengths</h3>${strong.length ? strong.map(v => row(v, 'good', '\u2713')).join('') : '<div class="dp-sub">Nothing above target yet</div>'}<h3>Weaknesses</h3>${weak.length ? weak.map(v => row(v, Math.round(v.p) >= 80 ? 'warn' : 'bad', Math.round(v.p) >= 80 ? '\u25B2' : '\u25BC')).join('') : '<div class="dp-sub">Every measure is on target</div>'}`;
   } else {
     list = '<h3>Each branch at a glance</h3>' + codes.map((code, bi) => {
       const arr = axes.map(k => ({ ...mineAll[bi][k], lab: sel[k][1] })).sort((a, b) => b.p - a.p), top = arr[0], low = arr[arr.length - 1];
@@ -922,7 +922,7 @@ function dpDraw(host, win) {
       <span class="dp-sub dp-showing">${dpShowing()}</span></div>
       ${dpRadarCustom(idxs, dpSel())}
       <div class="dp-legend" id="dpRL"></div><div class="dp-sw"><div id="dpR"></div><div class="dp-swl" id="dpRS"></div></div></div>
-    <div class="dp-card dp-jt" id="dpCardC"><h2>${M.notarget ? 'Which days were big or small' : 'Which days were weak'}: ${dpEsc(M.label)}</h2><p class="dp-why">${M.notarget ? `Each square is a branch on a day, with that day's ${dpEsc(M.noun)} in it${M.fmt === dpPct1 ? ', as a %' : ''}, darker for a higher figure. This measure has no target, so nothing is graded.` : `Each square is a branch on a day, with ${dpEsc(M.noun)} as a % of its target in it (100 means the target was met). Hover a square for the figure itself. Blue beat the target, red fell short, grey is on target. A small gap marks each new week.`}</p><div id="dpC"></div></div>
+    <div class="dp-card dp-jt" id="dpCardC"><h2>${M.notarget ? 'Which days were big or small' : 'Which days were weak'}: ${dpEsc(M.label)}</h2><p class="dp-why">${M.notarget ? `Each square is a branch on a day, with that day's ${dpEsc(M.noun)} in it${M.fmt === dpPct1 ? ', as a %' : ''}, darker for a higher figure. This measure has no target, so nothing is graded.` : `Each square is a branch on a day, with ${dpEsc(M.noun)} as a % of its target in it (100 means the target was met). Hover a square for the figure itself. Red is under 80% (below target), light red 80 to 99% (close), grey 100 to 109% (on target), blue 110% or more. The same lines as the tile chips and the Pulse. A small gap marks each new week.`}</p><div id="dpC"></div></div>
     <div class="dp-card dp-jt" id="dpCardD"><h2>Best and slowest weekday: ${dpEsc(M.label)}</h2><span class="dp-tag" id="dpDTag"></span><p class="dp-why" id="dpDW"></p><div id="dpD"></div></div>
     <div class="dp-card dp-jt" id="dpHow"><h2>How to read this page</h2>
       <p class="dp-why">Short answers. Skim the bold words.</p>
@@ -937,7 +937,7 @@ function dpDraw(host, win) {
       </div>
       <h3 class="dp-hg">What you will see</h3>
       <div class="dp-how">
-        <div class="dp-hw"><b>Colours</b><span>How the day did against its target.</span><span class="dp-sw3"><span><i style="background:var(--dv-p2)"></i>Beat it</span><span><i style="background:var(--dv-0)"></i>On target</span><span><i style="background:var(--dv-n2)"></i>Fell short</span></span></div>
+        <div class="dp-hw"><b>Colours</b><span>The % of target. The same lines as the tile chips and the Pulse: under 80% is below target, 80 to 99% is close, 100% and over is on target.</span><span class="dp-sw3"><span><i style="background:var(--dv-n2)"></i>Under 80%</span><span><i style="background:var(--dv-n1)"></i>80 to 99%</span><span><i style="background:var(--dv-0)"></i>100 to 109%</span><span><i style="background:var(--dv-p1)"></i>110% +</span></span></div>
         <div class="dp-hw"><b>Closed day</b><span>Shown as closed, not as zero. Al Quoz is shut on Sunday and Monday.</span></div>
         <div class="dp-hw"><b>No grade</b><span>Total clients and New clients show their figures with no colour until someone keys a target in the Upload Portal.</span></div>
         <div class="dp-hw"><b>Motor City</b><span>Hair only, so the Beauty measures skip it.</span></div>
