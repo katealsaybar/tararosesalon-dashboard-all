@@ -152,6 +152,7 @@ async function lqwReopen(n) {
   if (await lqwSet(n, 'reopen')) lqPaint();
 }
 function lqwPick(n) { lqSel.wv = n; lqPage = 1; lqSave(); lqPaint(); }
+const LQW_SMS_PARKED = true;   // Text (SMS) is parked 13 Oct 2026: WhatsApp goes first, the text clients wait (no gateway, no reply path)
 function lqwArea(a) { lqSel.area = a === 'sms' ? 'sms' : 'wa'; lqSel.ch = lqSel.area === 'sms' ? 'sms' : 'whatsapp'; lqSel.view = 'send'; lqPage = 1; lqSave(); lqPaint(); }
 async function lqwCap(v) {
   if (!lqwLevel(5)) return;
@@ -318,7 +319,9 @@ function lqwPaint(host) {
     </div>
     <div class="sc-seg lqw-area" role="tablist" aria-label="Sending area">
       <button type="button" role="tab" class="${sms ? '' : 'on'}" onclick="lqwArea('wa')"><b>WhatsApp</b> <span class="slv-note">${lcNum(cnt('wa'))} clients · through respond.io, from each branch's number</span></button>
-      <button type="button" role="tab" class="${sms ? 'on' : ''}" onclick="lqwArea('sms')"><b>Text (SMS)</b> <span class="slv-note">${lcNum(cnt('sms'))} clients · copied, sent by hand, marked sent</span></button></div>
+      <button type="button" role="tab" class="${sms ? 'on' : ''}" onclick="lqwArea('sms')"><b>Text (SMS)</b> <span class="slv-note">${lcNum(cnt('sms'))} clients · ${LQW_SMS_PARKED ? 'parked for now' : 'copied, sent by hand, marked sent'}</span></button></div>
+    ${sms && LQW_SMS_PARKED ? `<div class="lqw-status"><div class="lqw-lab">Text status</div><div class="lqw-line">Parked for now. WhatsApp goes first, so these ${lcNum(cnt('sms'))} clients are not on the list to send. The site cannot send texts and a text cannot be answered. They stay here, nothing is lost, and nobody needs to text them yet.</div></div>` : ''}
+    ${sms && LQW_SMS_PARKED ? '' : `
     ${sms ? `<div class="lqw-status"><div class="lqw-lab">Text status</div><div class="lqw-line">The site does not send texts. Copy the text, send it, then mark it sent here. Offer message first, then Due.</div></div>` : lqwStatusBar()}
     <div class="ll-cards lq-stats">
       ${stat('send', 'To send', sms ? 'one text each, best first' : 'one message each, best first')}
@@ -348,6 +351,6 @@ function lqwPaint(host) {
       <div id="lqTable"></div>
       <p class="slv-muted ll-foot">One message per client, first match wins: smoothing, then colour, then other services, then everyone else. Someone in several groups appears once.
       Sent comes from respond.io (it only sees messages sent through it); a text, or WhatsApp opened from here, is marked by the button. A client with a booking, or who came in within the last 6 weeks, leaves the list on her own. Two clients on one number get one message.</p>
-    </section>`;
+    </section>`}`;
   lqPaintTable();
 }
