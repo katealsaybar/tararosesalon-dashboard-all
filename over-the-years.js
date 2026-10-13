@@ -5,6 +5,8 @@
 //                        per open day, Google review counts and stars. Security invoker, so a branch-scoped
 //                        login only reads its own branch.
 //   over_the_years_ig()  Instagram by month. Level 3 and above, as the Social page.
+//   over_the_years_months()  net takings, open days and clients per staff by branch, year and month (oty_month_branch,
+//                        refreshed hourly), for the month by month section. Security invoker, branch scope follows.
 //
 // Rules the page follows (Kate and Emma Coach):
 //  - Seasons, not calendar months: Ramadan and Eid drift about 11 days earlier every year, so each season is set
@@ -19,13 +21,14 @@
 //  - Google reviews and Instagram are marked (UNDER CONSTRUCTION): the review sync is still by hand while the
 //    Google approval is pending, and Instagram only exists from 2025.
 const OTY_STORE = 'trs-over-years';
-const OTY = { b: 'ALL', basis: 'same', line: 'growth', sel: null, ig: null, sreg: 'AD', syrs: null };
+const OTY = { b: 'ALL', basis: 'same', line: 'growth', sel: null, ig: null, sreg: 'AD', syrs: null,
+  mreg: 'AD', mmet: 'net', mbase: 'same', mview: 'index', mpy: null, mmsel: null, myrs: null };
 try {
   const s = JSON.parse(localStorage.getItem(OTY_STORE) || '{}');
-  for (const k of ['b', 'basis', 'line', 'sreg']) if (typeof s[k] === 'string') OTY[k] = s[k];
+  for (const k of ['b', 'basis', 'line', 'sreg', 'mreg', 'mmet', 'mbase', 'mview']) if (typeof s[k] === 'string') OTY[k] = s[k];
   if (Array.isArray(s.syrs)) OTY.syrs = s.syrs.map(Number).filter(Boolean);
 } catch (e) {}
-function otySave() { try { localStorage.setItem(OTY_STORE, JSON.stringify({ b: OTY.b, basis: OTY.basis, line: OTY.line, sreg: OTY.sreg, syrs: OTY.syrs })); } catch (e) {} }
+function otySave() { try { localStorage.setItem(OTY_STORE, JSON.stringify({ b: OTY.b, basis: OTY.basis, line: OTY.line, sreg: OTY.sreg, syrs: OTY.syrs, mreg: OTY.mreg, mmet: OTY.mmet, mbase: OTY.mbase, mview: OTY.mview })); } catch (e) {} }
 
 const OTY_BR = ['SAA', 'KCA', 'MC', 'AQ', 'FRT'];
 const OTY_NAME = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', FRT: 'Fratelli' };
@@ -173,6 +176,53 @@ function otyCss() {
   .oty-stt .v{font-size:20px;font-weight:700;color:var(--text);margin:6px 0 2px;font-variant-numeric:tabular-nums}
   .oty-stt .v small{font-size:11.5px;font-weight:500;color:var(--muted)}
   .oty-stt b{color:var(--text)}.oty-stt .oty-up{color:var(--good)}.oty-stt .oty-dn{color:var(--bad)}
+  .oty .mo-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .oty .mo-hm{min-width:700px;display:grid;grid-template-columns:44px repeat(12,minmax(0,1fr)) 46px 46px;gap:4px;align-items:stretch}
+  .oty .mo-hm .h{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);text-align:center;padding:4px 0}
+  .oty .mo-hm .yr{display:flex;align-items:center;font-size:13px;font-weight:700;color:var(--text)}
+  .oty .mo-c{position:relative;height:46px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer;background:var(--surface2);border:1.5px solid transparent;user-select:none;padding:0;color:var(--text);font-family:inherit}
+  .oty .mo-c:hover{border-color:var(--muted2)}
+  .oty .mo-c.sel{border-color:var(--text);box-shadow:0 0 0 1px var(--text)}
+  .oty .mo-c.live{background-image:repeating-linear-gradient(135deg,rgba(45,46,55,.55) 0 4px,transparent 4px 9px)}
+  .oty .mo-c.none{background:transparent;border:1px dashed var(--border);color:var(--muted2);cursor:default;font-weight:500;font-size:11px}
+  .oty .mo-c.part{background:transparent;border:1px dashed var(--muted2);color:var(--muted2);cursor:default;font-weight:500;font-size:11px}
+  .oty .mo-c.ahead{background:transparent;border:1px solid var(--border);cursor:default}
+  .oty .mo-c.llf{border:1.5px dashed var(--warn)}
+  .oty .mo-c.llf.sel{border:1.5px solid var(--text)}
+  .oty .mo-c .moon{position:absolute;top:2px;right:4px;font-size:10px;line-height:1;opacity:.85}
+  .oty .mo-c.pk::after,.oty .mo-c.lo::after{content:'';position:absolute;left:6px;bottom:4px;width:5px;height:5px;border-radius:50%}
+  .oty .mo-c.pk::after{background:var(--text)}.oty .mo-c.lo::after{box-shadow:inset 0 0 0 1.5px var(--text)}
+  .oty .mo-hm .pl{display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:var(--muted)}
+  .oty .mo-hm .rowmsg{grid-column:2 / span 14;display:flex;align-items:center;font-size:12px;color:var(--muted2);border:1px dashed var(--border);border-radius:7px;padding:0 12px;min-height:46px;line-height:1.35}
+  .oty .mo-hm .avg{height:36px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:default}
+  .oty .mo-hm .spr{height:30px;background:transparent;border:0;color:var(--muted2);font-size:11.5px;cursor:default}
+  .oty .mo-hm .sec{grid-column:1 / -1;height:1px;background:var(--border);margin:6px 0}
+  .oty .mo-hm .sl{display:flex;align-items:center;font-size:11px;color:var(--muted2);font-weight:600}
+  .oty .mo-legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--muted);margin:14px 0 0;align-items:center}
+  .oty .mo-legend .sw{display:inline-flex;align-items:center;gap:7px}
+  .oty .mo-legend .box{width:16px;height:12px;border-radius:3px;display:inline-block}
+  .oty .mo-scale{display:inline-flex;align-items:center;gap:6px}
+  .oty .mo-scale .bar{width:120px;height:10px;border-radius:5px;background:linear-gradient(90deg,color-mix(in srgb,var(--bad) 55%,transparent),var(--surface2),color-mix(in srgb,var(--good) 55%,transparent))}
+  .oty .mo-dt{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:10px;margin-top:12px}
+  .oty .mo-dt>div{padding:11px 13px;border-radius:8px;background:var(--bg);border:1px solid var(--border)}
+  .oty .mo-dt .k{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+  .oty .mo-dt .v{font-size:23px;font-weight:600;margin:5px 0 3px;font-variant-numeric:tabular-nums}
+  .oty .mo-dt .v small{font-size:13px;font-weight:500;color:var(--muted)}
+  .oty .mo-dt .s{font-size:12px;color:var(--muted);line-height:1.4}
+  .oty .mo-lane{display:grid;grid-template-columns:44px 1fr;gap:4px 8px;align-items:center;margin-top:12px}
+  .oty .mo-lane .ly{font-size:11px;color:var(--muted2);text-align:right}
+  .oty .mo-lane .lt{position:relative;height:9px;border-radius:5px;background:var(--surface2)}
+  .oty .mo-lane .lt i{position:absolute;top:0;bottom:0;border-radius:5px}
+  .oty .mo-lane .lm{display:grid;grid-template-columns:repeat(12,1fr);font-size:10.5px;color:var(--muted2);text-align:center;margin-top:2px}
+  .oty .mo-pairs{min-width:600px;display:grid;grid-template-columns:repeat(12,1fr);gap:0 6px}
+  .oty .mo-pr{display:flex;flex-direction:column;align-items:center}
+  .oty .mo-pr .dp{height:30px;display:flex;align-items:center;justify-content:center}
+  .oty .mo-dpp{font-weight:700;font-size:12px;padding:4px 8px;border-radius:999px;white-space:nowrap}
+  .oty .mo-dpp.up{color:var(--good);background:var(--good-bg)}.oty .mo-dpp.dn{color:var(--bad);background:var(--bad-bg)}.oty .mo-dpp.fl{color:var(--muted);background:var(--surface2)}
+  .oty .mo-pr .bars{height:170px;display:flex;align-items:flex-end;gap:3px;width:100%;justify-content:center}
+  .oty .mo-b{flex:1 1 0;max-width:22px;border-radius:4px 4px 0 0}
+  .oty .mo-b.live{background-image:repeating-linear-gradient(135deg,rgba(45,46,55,.62) 0 4px,transparent 4px 9px)}
+  .oty .mo-pr .m{margin-top:6px;font-size:11px;color:var(--muted2)}
   `;
   document.head.appendChild(st);
 }
@@ -218,6 +268,15 @@ async function otyLoad(force) {
       otyIgRaw = r.data;
     } catch (e) { otyIgErr = (e && e.message) || 'Could not load Instagram.'; }
     otyIgLoaded = true;
+  }
+  // Kate, 13 Oct 2026: the month by month section reads its own small feed (oty_month_branch), loaded for every level.
+  if (otyRaw && (!otyMoLoaded || force)) {
+    try {
+      const r = await sb.rpc('over_the_years_months');
+      if (r.error) throw r.error;
+      otyMoRaw = r.data; otyMoErr = '';
+    } catch (e) { otyMoErr = (e && e.message) || 'Could not load month by month.'; }
+    otyMoLoaded = true;
   }
   otyBusy = false;
   if (otyRaw) otyD = otyBuild(otyRaw, otyIgRaw);
@@ -282,7 +341,7 @@ function otyDraw() {
   // header, the switches and the tiles stay full width above it; the rail starts at the chart. A rail entry points
   // at the section's id, and a section with nothing to show (the seasons, before the data arrives) has no entry.
   const parts = [['oty-net', 'Net take by year', otyChartBlock(rows)], ['oty-years', 'The years, side by side', otyTable(rows)],
-    ['oty-seasons', 'Season on season', otySeasons()], ['oty-reviews', 'Google reviews', otyReviews()], ['oty-ig', 'Instagram', otyInstagram()],
+    ['oty-seasons', 'Season on season', otySeasons()], ['oty-months', 'Month by month', otyMonths()], ['oty-reviews', 'Google reviews', otyReviews()], ['oty-ig', 'Instagram', otyInstagram()],
     ['oty-cov', 'What each year has behind it', otyCoverage()], ['oty-how', 'How to read this page', otyNotes()]].filter(x => x[2]);
   const body = parts.map(([id, , html]) => `<section id="${id}" class="oty-sec">${html}</section>`).join('');
   const shell = typeof lgRail === 'function'
@@ -671,6 +730,347 @@ if (!window.__otySeasonBound) {
   addEventListener('resize', otySeasonPlace);
 }
 
+// ── MONTH BY MONTH ───────────────────────────────────────────────────────
+// Kate, 13 Oct 2026, for Coach Emma: the revenue pattern across the months is not the same every year, and she wants to
+// see that across all the years. Mocked up in Downloads/month-by-month-mockup.html. The numbers come from
+// over_the_years_months() (oty_month_branch: net takings, open days and clients per staff, a row per branch, year and
+// month), added up here into a region (Abu Dhabi, Dubai, all four) or one branch.
+//  - Shape view: each month's takings per open day set against that year's own average month (100 = an average month).
+//    Every year is measured against itself, so growth drops out and what is left is the shape. Peak, low, an average row
+//    and a spread row (how far apart the years are in that month) sit with it.
+//  - Index base: "same" is Jan to the last finished month, in every year (the default), "full" is all twelve for finished
+//    years. A year needs 5+ finished base months, every one with figures for every branch in the region, or its row says
+//    why not. Saadiyat and Khalifa City A only started trading in Jul 2021 (May and Jun 2021 are 4 and 6 launch days),
+//    so 2021 has no shape of its own and shows in the Change and Actual views from July.
+//  - A finished month with under 10 open days counts as not trading yet, so a launch stub cannot skew a year's average.
+//  - Change view: a month against the same month a year earlier, per open day, so a month in progress reads against
+//    the same number of open days. A dashed edge means Ramadan and Eid fell differently than the year before.
+//  - Ramadan and Eid come from oty_seasons (the season named Ramadan), so when Emma resets the season list the marks
+//    follow. A month with 10+ days of it gets a crescent.
+let otyMoRaw = null, otyMoErr = '', otyMoLoaded = false, otyMoM = null, otyMoMemo = {};
+const OTY_MO_REG = { AD: ['SAA', 'KCA'], DXB: ['MC', 'AQ'] };
+const OTY_MO_PAL = ['#99F6E4', '#C4B5FD', '#FFD4D9', '#EEF3C7', '#FF9B9B', '#9aa3c7'];
+const otyMoCol = y => OTY_MO_PAL[(otyD.curYear - y) % OTY_MO_PAL.length];
+const otyMoName = k => k === 'AD' ? 'Abu Dhabi' : k === 'DXB' ? 'Dubai' : k === 'ALL' ? 'All four' : OTY_NAME[k];
+const otyMoMetName = { net: 'Net take', clients: 'Clients per staff', bill: 'Average bill per staff' };
+const otyMoDim = (y, m) => new Date(y, m + 1, 0).getDate();
+const otyMoSign = n => n > 0 ? '+' : n < 0 ? '−' : '';
+
+function otyMoModel() {
+  if (otyMoM && otyMoM.raw === otyMoRaw) return otyMoM;
+  const MO = {};
+  (otyMoRaw.months || []).forEach(r => { const by = MO[r.b] || (MO[r.b] = {}), ym = by[r.y] || (by[r.y] = []); ym[r.m - 1] = r; });
+  const have = Object.keys(MO), regions = {};
+  for (const k of Object.keys(OTY_MO_REG)) { const bs = OTY_MO_REG[k].filter(b => have.includes(b)); if (bs.length > 1) regions[k] = bs; }
+  const open = OTY_BR.filter(b => b !== 'FRT' && have.includes(b));
+  if (open.length > 1) regions.ALL = open;
+  open.forEach(b => { regions[b] = [b]; });
+  otyMoMemo = {};
+  return (otyMoM = { raw: otyMoRaw, MO, regions, cut: new Date(otyD.cut + 'T00:00:00') });
+}
+const otyMoState = (M, y, m) => new Date(y, m, 1) > M.cut ? 'ahead' : new Date(y, m, otyMoDim(y, m)) > M.cut ? 'live' : 'done';
+// one month in one year for a region: a figure, or why there is none (no takings held, or only some branches traded)
+function otyMoCell(M, reg, y, m) {
+  const state = otyMoState(M, y, m); if (state === 'ahead') return { state, y, m };
+  const bs = M.regions[reg], rs = bs.map(b => M.MO[b] && M.MO[b][y] && M.MO[b][y][m]).filter(r => r && +r.net > 0 && (state === 'live' || +r.days >= 10));
+  const c = { state, y, m, open: rs.length, of: bs.length, dim: otyMoDim(y, m) };
+  if (!rs.length) return c;
+  c.days = Math.max(...rs.map(r => +r.days));
+  if (reg === 'ALL' || rs.length === bs.length) {
+    c.tot = rs.reduce((t, r) => t + +r.net, 0);
+    if (rs.every(r => +r.stf > 0)) { c.stf = rs.reduce((t, r) => t + +r.stf, 0); c.avg = c.tot / c.stf; }
+  }
+  return c;
+}
+const otyMoCells = (M, reg) => otyMoMemo['c' + reg] || (otyMoMemo['c' + reg] = otyD.years.map(y => Array.from({ length: 12 }, (_, m) => otyMoCell(M, reg, y, m))));
+// Ramadan and Eid, from the season list: the days of it that fall in a month
+function otyRam(y) { const r = (otyRaw.seasons || []).find(s => /ramadan/i.test(s.season) && s.y === y); return r ? [new Date(r.start_date + 'T00:00:00'), new Date(r.end_date + 'T00:00:00')] : null; }
+function otyRamIn(y, m) {
+  const r = otyRam(y); if (!r) return 0;
+  const lo = Math.max(r[0], new Date(y, m, 1)), hi = Math.min(r[1], new Date(y, m, otyMoDim(y, m)));
+  return hi >= lo ? Math.round((hi - lo) / 864e5) + 1 : 0;
+}
+
+// everything the section needs for the current switches, in one place
+function otyMoCtx() {
+  const M = otyMoModel(), keys = Object.keys(M.regions);
+  if (!M.regions[OTY.mreg]) OTY.mreg = M.regions.AD ? 'AD' : keys[0];
+  const reg = OTY.mreg, met = OTY.mmet, years = otyD.years, curYear = otyD.curYear, X = { M, reg, met, years, curYear, keys };
+  X.cell = (y, m) => { const row = otyMoCells(M, reg)[years.indexOf(y)]; return row ? row[m] : null; };
+  X.val = c => met === 'net' ? c.tot : met === 'clients' ? c.stf : c.avg;
+  X.ok = c => !!c && c.state !== 'ahead' && X.val(c) != null;
+  X.pd = c => met === 'bill' ? c.avg : X.val(c) / c.days;
+  X.fv = v => met === 'net' ? (v >= 1e6 ? (v / 1e6).toFixed(2) + 'M' : Math.round(v / 1e3) + 'k') : otyNum(v);
+  X.fd = v => otyMoSign(v) + X.fv(Math.abs(v));
+  X.doneN = [...Array(12).keys()].filter(m => otyMoState(M, curYear, m) === 'done').length;
+  X.baseMonths = y => OTY.mbase === 'full' ? [...Array(12).keys()].filter(m => otyMoState(M, y, m) === 'done') : [...Array(X.doneN).keys()];
+  X.baseLabel = b => b === 'full' ? 'Full year' : `Jan to ${OTY_MON[Math.max(X.doneN - 1, 0)]}`;
+  X.idx = y => {
+    const k = ['i', reg, met, OTY.mbase, y].join('|'); if (k in otyMoMemo) return otyMoMemo[k];
+    const B = X.baseMonths(y); let out = null;
+    if (B.length >= 5 && B.every(m => X.ok(X.cell(y, m)))) {
+      const avg = B.reduce((t, m) => t + X.pd(X.cell(y, m)), 0) / B.length;
+      out = Array.from({ length: 12 }, (_, m) => { const c = X.cell(y, m); return X.ok(c) ? X.pd(c) / avg * 100 : null; });
+    }
+    return (otyMoMemo[k] = out);
+  };
+  X.why = y => {
+    const B = X.baseMonths(y), miss = B.filter(m => !X.ok(X.cell(y, m))), held = [...Array(12).keys()].filter(m => X.ok(X.cell(y, m)));
+    if (B.length < 5) return `Too few finished months to draw a shape for ${y}.`;
+    if (!held.length) return `No takings held for ${y} here.`;
+    if (held[0] > 0 && miss.includes(0)) return `Takings are held from ${OTY_MON[held[0]]} ${y}${reg !== 'ALL' && M.regions[reg].length > 1 ? ' with every branch open' : ''}, so ${y} has no full ${X.baseLabel(OTY.mbase)} to set against its own average. It shows in the Change and Actual views.`;
+    return `${y} cannot be set against its own average here: no figures for ${miss.map(m => OTY_MON[m]).slice(0, 3).join(', ')}${miss.length > 3 ? ' and more' : ''}.`;
+  };
+  X.cmp = (y, m) => {
+    const c = X.cell(y, m), p = y > years[0] ? X.cell(y - 1, m) : null;
+    if (!X.ok(c)) return null; if (!X.ok(p)) return { none: true };
+    const cur = X.val(c), prevW = met === 'bill' ? X.val(p) : X.val(p) / p.days * c.days, pct = (cur / prevW - 1) * 100;
+    return { cur, prevW, pct, diff: cur - prevW, big: Math.abs(pct) > 100 };
+  };
+  X.llf = (y, m) => y > years[0] && Math.abs(otyRamIn(y, m) - otyRamIn(y - 1, m)) >= 10;
+  X.stats = () => {
+    const idx = {}; years.forEach(y => { idx[y] = X.idx(y); });
+    const avg = [], spr = [];
+    for (let m = 0; m < 12; m++) {
+      const xs = years.map(y => idx[y] && otyMoState(M, y, m) === 'done' ? idx[y][m] : null).filter(x => x != null);
+      avg[m] = xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null; spr[m] = xs.length > 1 ? Math.max(...xs) - Math.min(...xs) : null;
+    }
+    const peak = {}, low = {};
+    years.forEach(y => { const ix = idx[y]; if (!ix) return; let mx = -1e9, mn = 1e9; ix.forEach((x, m) => { if (x == null || otyMoState(M, y, m) !== 'done') return; if (x > mx) { mx = x; peak[y] = m; } if (x < mn) { mn = x; low[y] = m; } }); });
+    return { idx, avg, spr, peak, low };
+  };
+  return X;
+}
+const otyMoHeat = (v, span) => `color-mix(in srgb, var(${v >= 0 ? '--good' : '--bad'}) ${Math.round((Math.min(Math.abs(v) / span, 1) * .52 + .06) * 100)}%, transparent)`;
+const otyMoOrd = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : n % 10 > 3 ? 0 : n % 10] || 'th');
+
+function otyMonths() {
+  const head = `<div class="oty-eb"><i style="background:var(--hair)"></i>Month by month · the shape of each year</div>`;
+  if (!otyMoRaw) return otyMoErr ? `${head}<div class="oty-card oty-flag"><div class="oty-note">${otyEsc(otyMoErr)}</div></div>` : '';
+  if (!(otyMoRaw.months || []).length) return '';
+  const X = otyMoCtx(); if (!X.keys.length) return '';
+  const S = X.stats(), years = X.years, curYear = X.curYear, v = OTY.mview;
+  const pill = (key, k, l) => `<button class="oty-pill" aria-pressed="${OTY[key] === k}" onclick="otyMoSet('${key}','${k}')">${l}</button>`;
+  const regs = ['AD', 'DXB', 'ALL'].filter(k => X.M.regions[k]), brs = OTY_BR.filter(b => X.M.regions[b] && b !== 'FRT');
+  const bases = [['same', `${X.baseLabel('same')}, same months every year`], ['full', 'Full year']];
+  const baseHint = OTY.mbase === 'same' ? `Every year is set against its own average of ${X.baseLabel('same')}, the months ${curYear} has finished, so all the years are on the same base. A year without all of those months says so instead.`
+    : `Finished years are set against all twelve months, ${curYear} against the ${X.doneN} it has, so ${curYear} is not strictly like for like in this view.`;
+  const mname = otyMoMetName[X.met];
+  const sub = `${X.M.regions[X.reg].map(b => OTY_NAME[b]).join(' + ')} · ${v === 'index' ? '100 = an average month of that year' : 'tap a month for the detail'}`;
+  const title = v === 'index' ? `${mname}, month by month · shape of each year` : v === 'chg' ? `${mname}, each month against the same month a year earlier` : `${mname}, each month`;
+
+  // the grid
+  const sel = OTY.mmsel && years.includes(OTY.mmsel.y) ? OTY.mmsel : (OTY.mmsel = { y: curYear, m: Math.max(X.doneN - 1, 0) });
+  let g = '<div class="h"></div>' + OTY_MON.map(m => `<div class="h">${m}</div>`).join('') + `<div class="h">${v === 'index' ? 'Peak' : ''}</div><div class="h">${v === 'index' ? 'Low' : ''}</div>`;
+  for (const y of years.slice().reverse()) {
+    const ix = S.idx[y];
+    g += `<div class="yr">${y}</div>`;
+    if (v === 'index' && !ix) { g += `<div class="rowmsg">${otyEsc(X.why(y))}</div>`; continue; }
+    for (let m = 0; m < 12; m++) {
+      const c = X.cell(y, m), st = c.state, moon = otyRamIn(y, m) >= 10 ? '<span class="moon">☾</span>' : '';
+      if (st === 'ahead') { g += '<div class="mo-c ahead"></div>'; continue; }
+      if (c.tot == null || !X.ok(c)) {
+        const msg = !c.open ? 'No takings held for this month.' : c.tot == null ? `Only ${c.open} of ${c.of} branches traded it, so it is left out.` : 'No per-staff figure held for this month.';
+        g += `<div class="mo-c ${c.open ? 'part' : 'none'}" data-y="${y}" data-m="${m}">${c.open && c.tot == null ? c.open + '/' + c.of : '·'}</div>`; continue;
+      }
+      let txt = '', bg = '', cls = 'mo-c' + (st === 'live' ? ' live' : '') + (sel.y === y && sel.m === m ? ' sel' : '');
+      const x = ix && ix[m];
+      if (v === 'index') { txt = Math.round(x); bg = otyMoHeat(x - 100, 35); if (S.peak[y] === m) cls += ' pk'; if (S.low[y] === m) cls += ' lo'; }
+      else if (v === 'act') { txt = X.fv(X.val(c)); bg = x != null ? otyMoHeat(x - 100, 35) : ''; }
+      else {
+        const k = X.cmp(y, m);
+        if (k.none) { g += `<div class="mo-c none">·</div>`; continue; }
+        txt = k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%'; bg = k.big ? '' : otyMoHeat(k.pct, 25); if (X.llf(y, m)) cls += ' llf';
+      }
+      g += `<button class="${cls}" style="background-color:${bg}" data-y="${y}" data-m="${m}" onclick="otyMoSel(${y},${m})">${txt}${moon}</button>`;
+    }
+    g += `<div class="pl">${v === 'index' && S.peak[y] != null ? OTY_MON[S.peak[y]] : ''}</div><div class="pl">${v === 'index' && S.low[y] != null ? OTY_MON[S.low[y]] : ''}</div>`;
+  }
+  if (v === 'index') {
+    g += '<div class="sec"></div><div class="sl">Avg</div>' + S.avg.map(a => `<div class="mo-c avg">${a == null ? '' : Math.round(a)}</div>`).join('') + '<div></div><div></div>';
+    g += '<div class="sl">Spread</div>' + S.spr.map(a => `<div class="mo-c spr">${a == null ? '' : Math.round(a) + ' pts'}</div>`).join('') + '<div></div><div></div>';
+  }
+  const hasRam = !!otyRam(curYear);
+  const legend = v === 'chg'
+    ? `<span class="mo-scale">weaker<span class="bar"></span>stronger</span>${hasRam ? '<span class="sw">☾ Ramadan and Eid in the month</span><span class="sw"><span class="box" style="border:1.5px dashed var(--warn)"></span>Ramadan and Eid fell differently than last year, so not like for like</span>' : ''}`
+    : `<span class="mo-scale">below average<span class="bar"></span>above average</span>${hasRam ? '<span class="sw">☾ Ramadan and Eid in the month (10+ days)</span>' : ''}${v === 'index' ? '<span class="sw">● strongest month ○ weakest month</span>' : ''}<span class="sw"><span class="box" style="background-image:repeating-linear-gradient(135deg,rgba(45,46,55,.55) 0 4px,transparent 4px 9px);background-color:var(--surface2)"></span>Month still running</span>`;
+
+  return `${head}
+    <p class="oty-deck" style="font-size:clamp(14px,3.4vw,16px)">Does every year have the same shape? Six years on one grid, with growth taken out, so the months can be compared.</p>
+    <div class="oty-card" style="margin-top:12px">
+      <div class="oty-lab" style="margin-top:0">Where</div><div class="oty-pills">${regs.map(k => pill('mreg', k, otyMoName(k))).join('')}${regs.length && brs.length ? '<span class="oty-sep"></span>' : ''}${brs.map(b => pill('mreg', b, OTY_NAME[b])).join('')}</div>
+      <div class="oty-lab">Measure</div><div class="oty-pills">${['net', 'clients', 'bill'].map(k => pill('mmet', k, otyMoMetName[k])).join('')}</div>
+      <div class="oty-lab">Index set against</div><div class="oty-pills">${bases.map(([k, l]) => pill('mbase', k, l)).join('')}</div>
+      <div class="oty-hint">${baseHint}</div>
+    </div>
+    <div class="oty-card" style="margin-top:12px">
+      <div class="oty-chead"><b>${title}</b><span>${otyEsc(sub)}</span></div>
+      <div class="oty-pills" style="margin-bottom:14px">${[['index', 'Shape (index)'], ['chg', 'Change on last year'], ['act', 'Actual']].map(([k, l]) => pill('mview', k, l)).join('')}</div>
+      <div class="mo-scroll"><div class="mo-hm">${g}</div></div>
+      <div class="mo-legend">${legend}</div>
+    </div>
+    <div class="oty-card" style="margin-top:12px">${otyMoDetail(X, S, sel)}</div>
+    ${otyMoLines(X, S)}
+    ${otyMoPairs(X)}
+    ${otyMoStands(X, S)}
+    <div class="oty-card oty-note" style="margin-top:12px">
+      <p><b>How to read the grid.</b> Each cell is that month's takings per open day, set against the average month of the same year (100 = an average month). 120 is a month 20% stronger than that year's average, 85 is 15% weaker. Every year is measured against itself, so growth drops out and what is left is the shape.</p>
+      <p><b>Per open day,</b> so a 28-day February and a 31-day March, or a branch that shuts on some days, are fair against each other, as on the season chart.</p>
+      <p><b>Striped cells</b> are the month still running. They are left out of every average, and the Change view reads them against the same number of open days last year.</p>
+      <p><b>Growth inside a year</b> tilts the shape a little: a year that grows all the way through reads low in January and high in December. That is real, so it stays in. A single branch or one region is the cleanest read. All four is bent by branches opening part-way through the years.</p>
+      <p><b>Figures from Phorest's daily totals,</b> refreshed hourly. Net take is net of VAT; clients and average bill are per staff, the page's default.</p>
+    </div>`;
+}
+function otyMoSet(k, v) { OTY[k] = v; otySave(); otyDraw(); }
+function otyMoSel(y, m) { OTY.mmsel = { y, m }; otyDraw(); }
+function otyMoYr(y) {
+  const s = new Set(OTY.myrs || otyD.years);
+  if (s.has(y)) s.delete(y); else s.add(y);
+  OTY.myrs = s; otyDraw();
+}
+function otyMoYrs(mode) { OTY.myrs = mode === 'none' ? new Set() : null; otyDraw(); }
+function otyMoPy(y) { OTY.mpy = y; otyDraw(); }
+
+// tap a month: its figure, how it sits in its own year, and how it sits against the other years
+function otyMoDetail(X, S, sel) {
+  const { y, m } = sel, c = X.cell(y, m);
+  if (!c || !X.ok(c)) return '<div class="oty-note">Tap a month in the grid.</div>';
+  const ix = S.idx[y], k = X.cmp(y, m), rd = otyRamIn(y, m), rp = y > X.years[0] ? otyRamIn(y - 1, m) : 0, p = y > X.years[0] ? X.cell(y - 1, m) : null, live = c.state === 'live';
+  const done = mm => otyMoState(X.M, y, mm) === 'done', ixs = ix ? ix.map((x, i) => [x, i]).filter(a => a[0] != null && done(a[1])) : [];
+  const rank = ix && done(m) ? ixs.slice().sort((a, b) => b[0] - a[0]).findIndex(a => a[1] === m) + 1 : null;
+  const others = X.years.filter(o => o !== y).map(o => { const r = X.idx(o); return r && otyMoState(X.M, o, m) === 'done' ? r[m] : null; }).filter(x => x != null);
+  const oavg = others.length ? others.reduce((a, b) => a + b, 0) / others.length : null;
+  const pc = k && !k.none ? `<span class="oty-chg ${k.big ? 'flat' : Math.abs(k.pct) < .5 ? 'flat' : k.pct > 0 ? 'up' : 'dn'}" style="margin:0">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(1) + '%'}</span>` : '';
+  const ram = rd || rp ? `${rd} of ${c.dim} days in ${y}${p ? `, ${rp} of ${p.dim} in ${y - 1}` : ''}${p && Math.abs(rd - rp) >= 10 ? '. Not like for like, read it with the shape view.' : ''}` : 'Not touched in either year';
+  return `<div class="oty-rh"><b>${OTY_MON[m]} ${y}</b><span>${live ? `1 to ${c.days} open days, against the same number of open days in ${y - 1}` : y > X.years[0] ? `against ${OTY_MON[m]} ${y - 1}` : 'first year held'}</span>${pc}</div>
+    <div class="mo-dt">
+      <div><div class="k">${otyMoMetName[X.met]}</div><div class="v">${X.met === 'net' ? 'AED ' : ''}${X.fv(X.val(c))}</div><div class="s">${k && !k.none ? `${X.fd(k.diff)} on the same open days of ${y - 1}` : 'No year before to set against'}</div></div>
+      <div><div class="k">Shape index</div><div class="v">${ix && ix[m] != null ? Math.round(ix[m]) : '·'}</div><div class="s">${rank ? `${otyMoOrd(rank)} strongest of ${ixs.length} finished months in ${y}` : ix ? 'Month still running' : 'Not enough months for a shape'}</div></div>
+      <div><div class="k">Same month, other years</div><div class="v">${oavg != null ? Math.round(oavg) : '·'}</div><div class="s">${oavg != null && ix && ix[m] != null ? `${y} is ${Math.abs(ix[m] - oavg).toFixed(0)} pts ${ix[m] >= oavg ? 'above' : 'below'} the average of the other years` : 'Average index across the other years'}</div></div>
+      <div><div class="k">Ramadan and Eid</div><div class="v">${rd} <small>of ${c.dim} days</small></div><div class="s">${ram}</div></div>
+    </div>`;
+}
+
+// one line per year on the same axis
+function otyMoLines(X, S) {
+  const years = X.years, shown = new Set(OTY.myrs || years), W = 900, H = 330, L = 44, Rr = 14, T = 16, B = 30;
+  const all = years.filter(y => shown.has(y) && S.idx[y]).flatMap(y => S.idx[y].filter((x, m) => x != null && otyMoState(X.M, y, m) === 'done'));
+  if (!all.length && !S.avg.some(a => a != null)) return '';
+  const lo = Math.min(...all, ...S.avg.filter(a => a != null), 100), hi = Math.max(...all, ...S.avg.filter(a => a != null), 100);
+  const ymin = Math.floor((lo - 4) / 20) * 20, ymax = Math.ceil((hi + 4) / 20) * 20;
+  const Xp = m => L + (W - L - Rr) * (m + .5) / 12, Yp = vv => T + (H - T - B) * (1 - (vv - ymin) / (ymax - ymin));
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Monthly shape by year" onmousemove="otyMoLineTip(event)">`;
+  for (let t = ymin; t <= ymax; t += 20) s += `<line x1="${L}" x2="${W - Rr}" y1="${Yp(t)}" y2="${Yp(t)}" stroke="${t === 100 ? 'var(--muted2)' : 'var(--border)'}" ${t === 100 ? 'stroke-dasharray="4 4"' : ''}/><text x="${L - 8}" y="${Yp(t) + 4}" text-anchor="end" font-size="11">${t}</text>`;
+  OTY_MON.forEach((m, i) => { s += `<text x="${Xp(i)}" y="${H - 8}" text-anchor="middle" font-size="11.5">${m}</text>`; });
+  const path = pts => pts.map((p, i) => (i ? 'L' : 'M') + Xp(p[0]).toFixed(1) + ' ' + Yp(p[1]).toFixed(1)).join(' ');
+  for (const y of years) {
+    if (!shown.has(y) || !S.idx[y]) continue;
+    const pts = S.idx[y].map((x, m) => x != null && otyMoState(X.M, y, m) === 'done' ? [m, x] : null).filter(Boolean);
+    s += `<path d="${path(pts)}" fill="none" stroke="${otyMoCol(y)}" stroke-width="${y === X.curYear ? 3 : 2}" stroke-linejoin="round"/>` + pts.map(p => `<circle cx="${Xp(p[0])}" cy="${Yp(p[1])}" r="${y === X.curYear ? 3.6 : 2.6}" fill="${otyMoCol(y)}"/>`).join('');
+  }
+  const ap = S.avg.map((a, m) => a != null ? [m, a] : null).filter(Boolean);
+  if (ap.length) s += `<path d="${path(ap)}" fill="none" stroke="var(--text)" stroke-width="2.4" stroke-dasharray="7 5" opacity=".9"/>`;
+  s += `<text x="${W - Rr}" y="${T - 4}" text-anchor="end" font-size="11" style="fill:var(--text)">- - -  average of the years</text>`;
+  for (let m = 0; m < 12; m++) s += `<rect x="${Xp(m) - (W - L - Rr) / 24}" y="${T}" width="${(W - L - Rr) / 12}" height="${H - T - B}" fill="transparent" data-lm="${m}"/>`;
+  s += '</svg>';
+  const chips = years.map(y => `<button class="oty-chip" aria-pressed="${shown.has(y)}" onclick="otyMoYr(${y})"><i style="background:${otyMoCol(y)}"></i>${y}</button>`).join('')
+    + '<span class="oty-sep"></span><button class="oty-pill" aria-pressed="false" onclick="otyMoYrs(\'none\')">Average only</button><button class="oty-pill" aria-pressed="false" onclick="otyMoYrs(\'all\')">All years</button>';
+  let lane = '';
+  if (otyRam(X.curYear)) {
+    for (const y of years.slice().reverse()) {
+      const r = otyRam(y); if (!shown.has(y) || !r) continue;
+      const j = new Date(y, 0, 1), len = (new Date(y + 1, 0, 1) - j) / 864e5, pos = d => (d - j) / 864e5 / len * 100;
+      lane += `<div class="ly">${y}</div><div class="lt"><i style="left:${pos(r[0])}%;width:${pos(r[1]) - pos(r[0]) + .3}%;background:${otyMoCol(y)}"></i></div>`;
+    }
+    if (lane) lane = `<div class="mo-lane">${lane}<div></div><div class="lm">${OTY_MON.map(m => `<span>${m}</span>`).join('')}</div></div>
+      <div class="oty-hint">The bars under the chart show where Ramadan and Eid fell in each year. They move about 11 days earlier every year, which is the main reason the dip and the Eid lift keep changing month.</div>`;
+  }
+  return `<div class="oty-eb" style="margin-top:26px"><i style="background:var(--hair)"></i>The shapes on top of each other</div>
+    <div class="oty-card"><div class="oty-chead"><b>One line per year</b><span>Hover a month to read every year in it</span></div>
+      <div class="oty-pills" style="margin-bottom:12px">${chips}</div>${s}${lane}</div>`;
+}
+
+// each month this year against the same month the year before
+function otyMoPairs(X) {
+  const years = X.years, y = OTY.mpy && years.includes(OTY.mpy) && OTY.mpy > years[0] ? OTY.mpy : X.curYear;
+  const rows = [...Array(12).keys()].map(m => ({ m, c: X.cell(y, m), k: X.cmp(y, m) })), live = r => r.c && r.c.state === 'live';
+  const vals = rows.flatMap(r => r.k && !r.k.none ? [r.k.cur, r.k.prevW] : []), mx = Math.max(...vals, 1);
+  const pills = years.slice(1).map(yy => `<button class="oty-pill" aria-pressed="${yy === y}" onclick="otyMoPy(${yy})">${yy} on ${yy - 1}</button>`).join('');
+  const cols = rows.map(r => {
+    if (!r.k || r.k.none) return `<div class="mo-pr"><div class="dp">${r.c && r.c.state === 'ahead' ? '' : '<span class="mo-dpp fl">·</span>'}</div><div class="bars"></div><div class="m">${OTY_MON[r.m]}</div></div>`;
+    const k = r.k, cl = k.big || Math.abs(k.pct) < .5 ? 'fl' : k.pct > 0 ? 'up' : 'dn';
+    return `<div class="mo-pr"><div class="dp"><span class="mo-dpp ${cl}">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%'}</span></div>
+      <div class="bars"><div class="mo-b ${live(r) ? 'live' : ''}" data-by="${y}" data-bm="${r.m}" style="height:${Math.max(2, k.prevW / mx * 100)}%;background-color:var(--hair)"></div><div class="mo-b ${live(r) ? 'live' : ''}" data-by="${y}" data-bm="${r.m}" style="height:${Math.max(2, k.cur / mx * 100)}%;background-color:var(--good)"></div></div>
+      <div class="m">${OTY_MON[r.m]}${otyRamIn(y, r.m) >= 10 ? ' ☾' : ''}</div></div>`;
+  }).join('');
+  return `<div class="oty-eb" style="margin-top:26px"><i style="background:var(--hair)"></i>Year against the year before, month by month</div>
+    <div class="oty-card"><div class="oty-chead"><b>${y} against ${y - 1}</b><span>${otyMoMetName[X.met]} · same open days in each month</span></div>
+      <div class="oty-pills" style="margin-bottom:14px">${pills}</div>
+      <div class="mo-scroll"><div class="mo-pairs">${cols}</div></div>
+      <div class="mo-legend"><span class="sw"><i class="box" style="background:var(--hair)"></i>${y - 1}</span><span class="sw"><i class="box" style="background:var(--good)"></i>${y}</span><span class="sw">The pill is the month against the same month a year earlier</span></div></div>`;
+}
+
+// what the grid says, worked out from the grid
+function otyMoStands(X, S) {
+  const label = (y, m) => `${y} ${OTY_MON[m]}${y === X.curYear ? ' (so far)' : ''}`;
+  const ys = X.years.filter(y => S.idx[y] && S.low[y] != null);
+  if (ys.length < 2) return '';
+  const ok = S.spr.map((s, m) => [s, m]).filter(a => a[0] != null), wide = ok.slice().sort((a, b) => b[0] - a[0]).slice(0, 2), tight = ok.slice().sort((a, b) => a[0] - b[0]).slice(0, 2);
+  const rIn = [], rOut = [];
+  ys.forEach(y => S.idx[y].forEach((x, m) => { if (x != null && otyMoState(X.M, y, m) === 'done') (otyRamIn(y, m) >= 10 ? rIn : rOut).push(x); }));
+  const mean = a => a.reduce((t, x) => t + x, 0) / a.length;
+  const sp = a => `${OTY_MON[a[1]]} (${Math.round(a[0])} pts apart)`;
+  return `<div class="oty-eb" style="margin-top:26px"><i style="background:var(--warn)"></i>What stands out</div>
+    <div class="oty-card oty-flag oty-note"><p><b>The weakest and strongest months.</b> Lowest month by year: ${ys.map(y => label(y, S.low[y])).join(', ')}. Strongest: ${ys.map(y => label(y, S.peak[y])).join(', ')}.</p>
+      <p><b>Steadiest and most unsteady months.</b> ${tight.map(sp).join(' and ')} behave much the same every year. ${wide.map(sp).join(' and ')} are the ones that change most.</p>
+      ${rIn.length && rOut.length ? `<p><b>Ramadan and Eid.</b> A month with 10 or more days of it averages ${Math.round(mean(rIn))} on the index, against ${Math.round(mean(rOut))} for the rest. As the dates move earlier each year the dip lands in a different month, which is most of why the monthly pattern does not repeat.</p>` : ''}</div>`;
+}
+
+// hover tips: the grid cells, the bar pairs and the line chart columns (one floating box, delegated like the seasons)
+function otyMoTipBox(el, ev, html) {
+  let tt = document.getElementById('otyMoTip');
+  if (!tt) { tt = document.createElement('div'); tt.id = 'otyMoTip'; tt.className = 'oty-stt'; document.body.appendChild(tt); }
+  tt.innerHTML = html; tt.classList.add('on');
+  const w = tt.offsetWidth, h = tt.offsetHeight;
+  let x = Math.max(8, Math.min(innerWidth - w - 8, ev.clientX + 14)), yy = ev.clientY + 16; if (yy + h > innerHeight - 8) yy = ev.clientY - h - 14;
+  tt.style.left = x + 'px'; tt.style.top = Math.max(8, yy) + 'px';
+}
+function otyMoTipOff() { const tt = document.getElementById('otyMoTip'); if (tt) tt.classList.remove('on'); }
+function otyMoLineTip(ev) {
+  const r = ev.target.closest && ev.target.closest('[data-lm]'); if (!r) { otyMoTipOff(); return; }
+  const m = +r.dataset.lm, X = otyMoCtx(), S = X.stats(), shown = new Set(OTY.myrs || X.years);
+  let t = `<div class="h"><b>${OTY_MON[m]}</b></div>`;
+  for (const y of X.years.slice().reverse()) {
+    if (!shown.has(y)) continue;
+    const x = S.idx[y] && otyMoState(X.M, y, m) === 'done' ? S.idx[y][m] : null;
+    t += `<div style="display:flex;justify-content:space-between;gap:12px"><span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;background:${otyMoCol(y)}"></i>${y}${otyRamIn(y, m) >= 10 ? ' ☾' : ''}</span><b>${x == null ? '·' : Math.round(x)}</b></div>`;
+  }
+  if (S.avg[m] != null) t += `<div style="display:flex;justify-content:space-between;margin-top:4px;padding-top:4px;border-top:1px solid var(--border)"><span>Average</span><b>${Math.round(S.avg[m])}</b></div>`;
+  otyMoTipBox(r, ev, t);
+}
+function otyMoTipFor(el, ev) {
+  const X = otyMoCtx();
+  if (el.dataset.by) {
+    const y = +el.dataset.by, m = +el.dataset.bm, k = X.cmp(y, m), c = X.cell(y, m); if (!k || k.none) return;
+    otyMoTipBox(el, ev, `<div class="h"><b>${OTY_MON[m]} ${y}</b></div><div class="v">${X.fv(k.cur)} <small>${y}${c.state === 'live' ? `, ${c.days} open days so far` : ''}</small></div>
+      <div>${y - 1}: <b>${X.fv(k.prevW)}</b>${c.state === 'live' ? ' (same open days)' : ''}</div><div>${X.fd(k.diff)} · <b class="${k.pct >= 0 ? 'oty-up' : 'oty-dn'}">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(1) + '%'}</b></div>${X.llf(y, m) ? '<div style="margin-top:4px">Ramadan and Eid fell differently, so not like for like.</div>' : ''}`);
+    return;
+  }
+  const y = +el.dataset.y, m = +el.dataset.m, c = X.cell(y, m); if (!c) return;
+  if (!X.ok(c)) { otyMoTipBox(el, ev, `<div class="h"><b>${OTY_MON[m]} ${y}</b></div><div>${!c.open ? 'No takings held for this month.' : c.tot == null ? `Only ${c.open} of ${c.of} branches traded it, so it is left out.` : 'No per-staff figure held for this month.'}</div>`); return; }
+  const ix = X.idx(y), k = X.cmp(y, m), rd = otyRamIn(y, m);
+  otyMoTipBox(el, ev, `<div class="h"><i style="background:${otyMoCol(y)}"></i><b>${OTY_MON[m]} ${y}</b><span>${otyEsc(otyMoName(X.reg))}</span></div><div class="v">${X.met === 'net' ? 'AED ' : ''}${X.fv(X.val(c))}</div>
+    <div>${ix && ix[m] != null ? `Shape index <b>${Math.round(ix[m])}</b>` : 'No shape for this year'}${c.state === 'live' ? ` · ${c.days} open days so far` : ''}</div>
+    ${k && !k.none ? `<div>vs ${y - 1}: <b class="${k.pct >= 0 ? 'oty-up' : 'oty-dn'}">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(1) + '%'}</b></div>` : ''}${rd ? `<div>Ramadan and Eid: ${rd} of ${c.dim} days</div>` : ''}`);
+}
+if (!window.__otyMoBound) {
+  window.__otyMoBound = true;
+  document.addEventListener('mousemove', e => {
+    const t = e.target && e.target.closest && e.target.closest('#overYearsContent .mo-c[data-y],#overYearsContent .mo-b[data-by]');
+    if (t) { try { otyMoTipFor(t, e); } catch (x) { otyMoTipOff(); } } else if (!(e.target.closest && e.target.closest('[data-lm]'))) otyMoTipOff();
+  });
+}
+
 // ── GOOGLE REVIEWS (UNDER CONSTRUCTION) ──────────────────────────────────
 function otyReviews() {
   const { years, D, sets, curYear } = otyD, set = sets[OTY.b], same = OTY.basis === 'same', n = years.length;
@@ -783,7 +1183,7 @@ function otyCoverage() {
 function otyNotes() {
   return `<div class="oty-eb"><i style="background:var(--accent)"></i>How to read this page</div>
     <div class="oty-card oty-note">
-      <p><b>Seasons, not calendar months.</b> Ramadan and Eid move about 11 days earlier every year, so month against month compares different seasons.</p>
+      <p><b>Seasons, not calendar months.</b> Ramadan and Eid move about 11 days earlier every year, so month against month compares different seasons. The month by month section is there so Coach Emma can see the shape of each year anyway, and it marks every month Ramadan and Eid touched.</p>
       <p><b>Branches arrive over time.</b> Motor City's data starts Nov 2022 and Al Quoz's Sep 2023, so the all-branches total jumps when they appear. Like for like (Saadiyat + Khalifa City A) is the trend.</p>
       <p><b>Fratelli</b> closed on 22 May 2026. It is out of All four, as everywhere on the dashboard, and has its own chip, and All + Fratelli puts it back in for the years it traded.</p>
       <p><b>Same days first.</b> The year in progress is set against the same dates in every earlier year. Switch to Full years to see whole years, with this one marked as partial.</p>
