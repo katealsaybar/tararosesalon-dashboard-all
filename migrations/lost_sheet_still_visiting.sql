@@ -3,7 +3,8 @@
 -- ones who still come in for other services but have had no smoothing in 6+ months. Shiela (Motor City) asked why "still
 -- visiting" clients are on a lost-clients sheet.
 --
---   lost_sheet_rows()   gains still_smoothing: true for a client on the Smoothing list (f2) whose last visit is inside lost_days.
+--   lost_sheet_rows()   gains still_smoothing: true for a client on the Smoothing list (f2) whose last visit is inside lost_days,
+--                       and last_smoothing: the date of her last keratin / Supreme Straighten, for the sheets' Last smoothing column (M).
 --
 -- Additive: one new key in each row. Patches the live definition in place, like lost_multi_numbers.sql.
 
@@ -18,6 +19,15 @@ begin
     d := replace(d, '''recent'', (c.last_visit >= current_date - rd),',
                     '''recent'', (c.last_visit >= current_date - rd),' || chr(10) ||
                     '      ''still_smoothing'', (c.f2 and c.last_visit >= current_date - (select l.lost_days from lost_lists_config l where l.id = 1)),');
+    execute d;
+  end if;
+
+  d := pg_get_functiondef('public.lost_sheet_rows(uuid,text)'::regprocedure);
+  if d not like '%last_smoothing%' then
+    if position('''still_smoothing'', (' in d) = 0 then
+      raise exception 'lost_sheet_rows(uuid,text) is not the shape this migration expects';
+    end if;
+    d := replace(d, '''still_smoothing'', (', '''last_smoothing'', c.last_keratin, ''still_smoothing'', (');
     execute d;
   end if;
 end
