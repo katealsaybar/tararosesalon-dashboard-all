@@ -134,10 +134,10 @@ function otyCss() {
   .oty .oty-groups{position:relative;display:grid}
   .oty .oty-grp{padding:0 10px;display:flex;flex-direction:column}
   .oty .oty-grp+.oty-grp{border-left:1px dashed var(--border)}
-  .oty .oty-delta{height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center}
-  .oty .oty-dp{font-weight:700;font-size:clamp(13px,1.8vw,16px);padding:5px 12px;border-radius:999px;white-space:nowrap}
+  .oty .oty-delta{height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center}
+  .oty .oty-dp{font-weight:600;font-size:clamp(11px,1.2vw,12.5px);padding:3px 10px;border-radius:999px;white-space:nowrap}
   .oty .oty-dp.up{color:var(--good);background:var(--good-bg)}.oty .oty-dp.dn{color:var(--bad);background:var(--bad-bg)}.oty .oty-dp.flat{color:var(--muted);background:var(--surface2)}
-  .oty .oty-delta small{font-size:11px;color:var(--muted2);line-height:1.25}
+  .oty .oty-delta small{font-size:10.5px;color:var(--muted2);line-height:1.25}
   .oty .oty-bars{display:flex;align-items:flex-end;justify-content:center;gap:clamp(2px,.6vw,7px);height:var(--H)}
   .oty .oty-bar{flex:1 1 0;max-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;cursor:pointer;outline:none;position:relative}
   .oty .oty-bar .vl{font-size:clamp(8px,.85vw,10.5px);color:var(--muted);font-variant-numeric:tabular-nums;margin-bottom:4px;white-space:nowrap}
@@ -950,7 +950,7 @@ function otyMoDetail(X, S, sel) {
   return `<div class="oty-rh"><b>${OTY_MON[m]} ${y}</b><span>${live ? `1 to ${c.days} open days, against the same number of open days in ${y - 1}` : y > X.years[0] ? `against ${OTY_MON[m]} ${y - 1}` : 'first year held'}</span>${pc}</div>
     <div class="mo-dt">
       <div><div class="k">${otyMoMetName[X.met]}</div><div class="v">${X.met === 'net' ? 'AED ' : ''}${X.fv(X.val(c))}</div><div class="s">${k && !k.none ? `${X.fd(k.diff)} on the same open days of ${y - 1}` : 'No year before to set against'}</div></div>
-      <div><div class="k">Shape index</div><div class="v">${ix && ix[m] != null ? Math.round(ix[m]) : '·'}</div><div class="s">${rank ? `${otyMoOrd(rank)} strongest of ${ixs.length} finished months in ${y}` : ix ? 'Month still running' : 'Not enough months for a shape'}</div></div>
+      <div><div class="k">Index · 100 = average month</div><div class="v">${ix && ix[m] != null ? Math.round(ix[m]) : '·'}</div><div class="s">${rank ? `${otyMoOrd(rank)} strongest of ${ixs.length} finished months in ${y}` : ix ? 'Month still running' : 'Not enough months for a shape'}</div></div>
       <div><div class="k">Same month, other years</div><div class="v">${oavg != null ? Math.round(oavg) : '·'}</div><div class="s">${oavg != null && ix && ix[m] != null ? `${y} is ${Math.abs(ix[m] - oavg).toFixed(0)} pts ${ix[m] >= oavg ? 'above' : 'below'} the average of the other years` : 'Average index across the other years'}</div></div>
       <div><div class="k">Ramadan and Eid</div><div class="v">${rd} <small>of ${c.dim} days</small></div><div class="s">${ram}</div></div>
     </div>`;
@@ -1065,7 +1065,7 @@ function otyMoTipFor(el, ev) {
   if (!X.ok(c)) { otyMoTipBox(el, ev, `<div class="h"><b>${OTY_MON[m]} ${y}</b></div><div>${!c.open ? 'No takings held for this month.' : c.tot == null ? `Only ${c.open} of ${c.of} branches traded it, so it is left out.` : 'No per-staff figure held for this month.'}</div>`); return; }
   const ix = X.idx(y), k = X.cmp(y, m), rd = otyRamIn(y, m);
   otyMoTipBox(el, ev, `<div class="h"><i style="background:${otyMoCol(y)}"></i><b>${OTY_MON[m]} ${y}</b><span>${otyEsc(otyMoName(X.reg))}</span></div><div class="v">${X.met === 'net' ? 'AED ' : ''}${X.fv(X.val(c))}</div>
-    <div>${ix && ix[m] != null ? `Shape index <b>${Math.round(ix[m])}</b>` : 'No shape for this year'}${c.state === 'live' ? ` · ${c.days} open days so far` : ''}</div>
+    <div>${ix && ix[m] != null ? `Index <b>${Math.round(ix[m])}</b> (100 = this year's average month)` : 'No shape for this year'}${c.state === 'live' ? ` · ${c.days} open days so far` : ''}</div>
     ${k && !k.none ? `<div>vs ${y - 1}: <b class="${k.pct >= 0 ? 'oty-up' : 'oty-dn'}">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(1) + '%'}</b></div>` : ''}${rd ? `<div>Ramadan and Eid: ${rd} of ${c.dim} days</div>` : ''}`);
 }
 if (!window.__otyMoBound) {
