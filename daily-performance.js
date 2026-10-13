@@ -22,10 +22,12 @@
 // Years. Colours follow the branch, as everywhere on the dashboard (BRANCH_INFO).
 
 const DP_STORE = 'trs-daily-perf';
-const DP = { measure: 'sales', period: 'mtd', from: '', to: '', pick: 'SAA' };
+const DP = { measure: 'sales', period: 'mtd', from: '', to: '', pick: 'SAA', radar: null };
+let dpRadarOpen = false;
 try {
   const s = JSON.parse(localStorage.getItem(DP_STORE) || '{}');
   for (const k of ['measure', 'period', 'from', 'to', 'pick']) if (typeof s[k] === 'string') DP[k] = s[k];
+  if (Array.isArray(s.radar)) DP.radar = s.radar.filter(x => typeof x === 'string');
 } catch (e) { /* private mode: the defaults are fine */ }
 function dpSave() { try { localStorage.setItem(DP_STORE, JSON.stringify(DP)); } catch (e) { /* ignore */ } }
 
@@ -35,11 +37,12 @@ let DPD = null, dpBusy = false, dpErr = '', dpMemo = new Map();
 // `monthly` is the key list ledgerBranchTarget() would read (negative keys are subtracted), `bm` a benchmark
 // ratio. `kind` says whether weekday pace matters (vol) or not (ratio). `beauty` measures skip a hair-only branch.
 const dpMoney = v => 'AED ' + Math.round(v).toLocaleString('en-GB');
-const dpCount = u => v => Math.round(v).toLocaleString('en-GB') + (u ? ' ' + u : '');
+const dpCount = u => v => { const r = (Math.abs(v) < 10 && Math.round(v) !== v) ? Math.round(v * 10) / 10 : Math.round(v); return r.toLocaleString('en-GB') + (u ? ' ' + u : ''); };
 const dpPctF  = v => Math.round(v) + '%';
+const dpPct1  = v => (Math.round(v * 10) / 10) + '%';
 const DP_GROUPS = [
   ['Revenue',    ['sales', 'services', 'retail', 'hair', 'beauty', 'treat']],
-  ['Clients',    ['clients', 'newc', 'ncr']],
+  ['Clients',    ['clients', 'newc', 'ncr', 'ncrp']],
   ['Benchmarks', ['rebook', 'treatp', 'retailp', 'hairbill', 'beautybill']],
   ['Capacity',   ['util']],
 ];
@@ -52,7 +55,12 @@ const DP_M = {
   treat:    { label: 'Treatments',      noun: 'treatment revenue',    kind: 'vol',   fmt: dpMoney, monthly: () => ['hairTreatment'], pick: s => s.treatmentSales },
   clients:  { label: 'Total clients',   noun: 'clients served',       kind: 'vol',   fmt: dpCount('clients'), monthly: () => ['totalClients'], pick: s => s.totalClients },
   newc:     { label: 'New clients',     noun: 'new clients',          kind: 'vol',   fmt: dpCount('new'),     monthly: () => ['newClients'],   pick: s => s.newClientsTotal },
-  ncr:      { label: 'NCR',             noun: 'NCR',                  kind: 'vol',   fmt: dpCount(''),        monthly: () => ['ncr'],          pick: s => s.ncrTotal },
+  // NCR is New Client Requests: a COUNT with its own monthly target (the Pulse's 18 / 18 / 17 / 17 unless the
+  // Monthly Targets tab holds one, ncrMonthlyTarget() in dashboard.js), and its share of the day's clients, which
+  // is how the Client Funnel on the Pulse prints it. The share has no target (20% was never reachable, 7 Oct), so
+  // it is drawn as plain values, not graded.
+  ncr:      { label: 'NCR',             noun: 'NCR (new client requests)', kind: 'vol', fmt: dpCount(''),       tgtFn: (code, month) => (typeof ncrMonthlyTarget === 'function' ? ncrMonthlyTarget(code, month) : dpMonthTarget(month, code, ['ncr'])), pick: s => s.ncrTotal },
+  ncrp:     { label: 'NCR %',           noun: 'NCR as a share of clients', kind: 'ratio', fmt: dpPct1, notarget: true, pick: s => (s.totalClients ? (s.ncrTotal || 0) / s.totalClients * 100 : null) },
   rebook:   { label: 'Rebooking %',     noun: 'rebooking %',          kind: 'ratio', fmt: dpPctF, bm: 'rebookPct',    pick: s => (s.rebookPct != null ? s.rebookPct : s.hairRebookPct) },
   treatp:   { label: 'Treatment %',     noun: 'treatment %',          kind: 'ratio', fmt: dpPctF, bm: 'treatmentPct', pick: s => (s.treatmentSales == null || !(s.hairServicesIncl || 0)) ? null : s.treatmentSales / s.hairServicesIncl * 100 },
   retailp:  { label: 'Retail %',        noun: 'retail %',             kind: 'ratio', fmt: dpPctF, bm: 'retailPct',    pick: s => { const n = (s.hairServicesIncl || 0) + (s.hairRetailOnly || 0); return n ? (s.hairRetailOnly || 0) / n * 100 : null; } },
@@ -60,9 +68,17 @@ const DP_M = {
   beautybill: { label: 'Beauty avg bill', noun: 'beauty average bill', kind: 'ratio', fmt: dpMoney, bm: 'beautyAvgBill', pick: s => s.beautyAvgBill, beauty: true },
   util:     { label: 'Utilisation',     noun: 'utilisation',          kind: 'ratio', fmt: dpPctF, util: true },
 };
-// The radar's ten: the ones that say the most about a branch's shape.
-const DP_RADAR = [['sales', 'Total sales'], ['retail', 'Retail'], ['treat', 'Treatments'], ['clients', 'Clients'], ['newc', 'New clients'],
-  ['rebook', 'Rebooking'], ['retailp', 'Retail %'], ['hairbill', 'Hair avg bill'], ['ncr', 'NCR'], ['util', 'Utilisation']];
+// The radar: every measure that has a target, the ten that say most about a branch's shape ticked by default.
+// Kate, 13 Oct 2026: that ten is the default, and any of them can be taken off or the rest put on (Customise).
+const DP_RADAR_ALL = [['sales', 'Total sales'], ['services', 'Services'], ['retail', 'Retail'], ['hair', 'Hair revenue'], ['beauty', 'Beauty'],
+  ['treat', 'Treatments'], ['clients', 'Clients'], ['newc', 'New clients'], ['ncr', 'NCR'], ['rebook', 'Rebooking'], ['treatp', 'Treatment %'],
+  ['retailp', 'Retail %'], ['hairbill', 'Hair avg bill'], ['beautybill', 'Beauty avg bill'], ['util', 'Utilisation']];
+const DP_RADAR_DEFAULT = ['sales', 'retail', 'treat', 'clients', 'newc', 'ncr', 'rebook', 'retailp', 'hairbill', 'util'];
+function dpRadarSel() {
+  const ok = new Set(DP_RADAR_ALL.map(x => x[0]));
+  const pick = (Array.isArray(DP.radar) ? DP.radar : DP_RADAR_DEFAULT).filter(k => ok.has(k));
+  return DP_RADAR_ALL.filter(x => pick.includes(x[0]));
+}
 
 const DP_DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const dpEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -129,6 +145,10 @@ function dpCss() {
   .dpf .dp-scroll{overflow-x:auto}
   .dpf .dp-note{font-size:12.5px;color:var(--muted2);line-height:1.55;margin:6px 0 0}
   .dpf .dp-note b{color:var(--text)}
+  .dpf .dp-cust{margin:8px 0 2px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--surface2)}
+  .dpf .dp-cust summary{font-weight:600;color:var(--text)}
+  .dpf .dp-cg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:8px}
+  .dpf .dp-chk{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--text);cursor:pointer;white-space:nowrap}
   .dpf .dp-hit .xh{opacity:0}.dpf .dp-hit:hover .xh{opacity:1}
   .dpf .dp-err{background:var(--bad-bg);color:var(--bad);border-radius:8px;padding:10px 14px;margin:12px 0}
   .dp-tip{position:fixed;pointer-events:none;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.18);z-index:9999;display:none;min-width:150px;font-family:Inter,sans-serif}
@@ -270,9 +290,10 @@ function dpCell(mk, code, i) {
       if (trading) { const x = M.pick(s); v = x == null || !isFinite(x) ? null : Number(x); }
     }
     if (!M.util) {
-      if (M.bm) t = dpBenchmark(M.bm, date);
+      if (M.notarget) t = null;
+      else if (M.bm) t = dpBenchmark(M.bm, date);
       else {
-        const month = dpYmd(date).slice(0, 7), mt = dpMonthTarget(month, code, M.monthly()), td = dpTradingDays(month, code);
+        const month = dpYmd(date).slice(0, 7), mt = M.tgtFn ? M.tgtFn(code, month) : dpMonthTarget(month, code, M.monthly()), td = dpTradingDays(month, code);
         t = mt && td ? mt / td : null;
       }
     }
@@ -322,21 +343,31 @@ const dpCol = c => `var(--c-${c})`;
 const dpW = host => Math.max(300, Math.round((host && host.clientWidth) || 700));
 
 // ── TILES ───────────────────────────────────────────────────
+function dpPctScale(vals) {
+  const v = vals.filter(x => x != null && isFinite(x));
+  const mx = Math.max(140, ...v), mn = Math.min(40, ...v);
+  const hi = Math.min(400, Math.ceil(mx / 20) * 20), lo = Math.max(0, Math.floor(mn / 20) * 20);
+  const step = (hi - lo) <= 140 ? 20 : (hi - lo) <= 260 ? 50 : 100;   // all divide 100, so the target line always has a tick
+  const ticks = [];
+  for (let t = Math.floor(lo / step) * step + step; t <= hi; t += step) ticks.push(t);
+  return { lo, hi, ticks };
+}
 function dpSpark(code, idxs, mk) {
-  const W = 220, H = 44, max = 140, min = 40;
+  const W = 220, H = 44, raw = !!DP_M[mk].notarget;
+  const vals = idxs.map(i => { const c = dpCell(mk, code, i); return c.state === 'ok' ? (raw ? c.v : c.p) : null; });
+  const ok = vals.filter(v => v != null);
+  if (!ok.length) return '';
+  const sc = raw ? null : dpPctScale(ok);
+  const lo = raw ? 0 : sc.lo, hi = raw ? (Math.max(...ok) * 1.15 || 1) : sc.hi;
   const x = k => 2 + k * (W - 4) / Math.max(1, idxs.length - 1);
-  const y = p => H - 2 - (Math.min(Math.max(p, min), max) - min) / (max - min) * (H - 4);
+  const y = p => H - 2 - (Math.min(Math.max(p, lo), hi) - lo) / (hi - lo) * (H - 4);
   const segs = []; let cur = [];
-  idxs.forEach((i, k) => {
-    const c = dpCell(mk, code, i);
-    if (c.state === 'ok' && c.p != null) cur.push([x(k), y(c.p)]); else { if (cur.length) segs.push(cur); cur = []; }
-  });
+  vals.forEach((v, k) => { if (v != null) cur.push([x(k), y(v)]); else { if (cur.length) segs.push(cur); cur = []; } });
   if (cur.length) segs.push(cur);
-  if (!segs.length) return '';
   const last = segs[segs.length - 1], lp = last[last.length - 1], t = y(100);
-  return `<svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${dpEsc(dpName(code))} trend against target">
-    <line x1="0" x2="${W}" y1="${t}" y2="${t}" stroke="var(--border)" stroke-dasharray="3 3"/>
-    ${segs.map(s => s.length > 1 ? `<polyline fill="none" stroke="${dpCol(code)}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${s.map(q => q.join(',')).join(' ')}"/>` : '').join('')}
+  return `<svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${dpEsc(dpName(code))} trend">
+    ${raw ? '' : `<line x1="0" x2="${W}" y1="${t}" y2="${t}" stroke="var(--border)" stroke-dasharray="3 3"/>`}
+    ${segs.map(sg => sg.length > 1 ? `<polyline fill="none" stroke="${dpCol(code)}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${sg.map(q => q.join(',')).join(' ')}"/>` : '').join('')}
     <circle cx="${lp[0]}" cy="${lp[1]}" r="4" fill="${dpCol(code)}" stroke="var(--surface)" stroke-width="2"/></svg>`;
 }
 function dpTiles(win, idxs) {
@@ -357,23 +388,38 @@ function dpTiles(win, idxs) {
   }).join('');
 }
 
-// ── CHART A: every branch on one scale, % of target ─────────
+// ── CHART A: every branch on one scale ─────────────────────
+// % of target, or the plain values when the measure has no target at all (NCR %), where the axis starts at 0.
 function dpChartA(host, idxs) {
-  const mk = DP.measure, M = DP_M[mk], W = dpW(host), n = idxs.length;
+  const mk = DP.measure, M = DP_M[mk], W = dpW(host), n = idxs.length, raw = !!M.notarget;
   const H = Math.round(Math.min(340, Math.max(230, W * .34))), m = { l: 42, r: 46, t: 10, b: 26 };
-  const iw = W - m.l - m.r, ih = H - m.t - m.b, min = 40, max = 140;
-  const x = k => m.l + (n === 1 ? iw / 2 : k * iw / (n - 1)), y = p => m.t + ih - (Math.min(Math.max(p, min), max) - min) / (max - min) * ih;
-  const tracked = DPD.codes.filter(c => idxs.some(i => dpCell(mk, c, i).p != null));
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const val = c => (raw ? c.v : c.p);
+  const okc = (code, i) => { const c = dpCell(mk, code, i); return c.state === 'ok' && val(c) != null ? c : null; };
+  const tracked = DPD.codes.filter(c => idxs.some(i => okc(c, i)));
+  let lo = 40, hi = 140, ticks = [60, 80, 100, 120, 140], tfmt = v => v + '%';
+  if (raw && tracked.length) {
+    const mx = Math.max(1e-9, ...tracked.flatMap(c => idxs.map(i => okc(c, i)).filter(Boolean).map(z => z.v)));
+    const nice = dpNice(mx * 1.1);
+    lo = 0; hi = Math.ceil(mx * 1.1 / nice) * nice; ticks = [];
+    for (let v = 0; v <= hi + 1e-9; v += nice) ticks.push(v);
+    tfmt = v => dpAxis(mk, v, hi);
+  } else if (!raw) {
+    const sc = dpPctScale(tracked.flatMap(c => idxs.map(i => okc(c, i)).filter(Boolean).map(z => z.p)));
+    lo = sc.lo; hi = sc.hi; ticks = sc.ticks;
+  }
+  const x = k => m.l + (n === 1 ? iw / 2 : k * iw / (n - 1)), y = p => m.t + ih - (Math.min(Math.max(p, lo), hi) - lo) / (hi - lo) * ih;
   let g = '';
-  [60, 80, 100, 120, 140].forEach(v => {
-    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border)"${v === 100 ? ' stroke-dasharray="5 4" stroke-width="1.5"' : ''}/><text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v}%</text>`;
+  ticks.forEach(v => {
+    const ref = !raw && v === 100;
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border)"${ref ? ' stroke-dasharray="5 4" stroke-width="1.5"' : ''}/><text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${tfmt(v)}</text>`;
   });
   const step = Math.max(1, Math.ceil(n / (W < 520 ? 7 : 14)));
   idxs.forEach((i, k) => { if (k % step === 0) g += `<text x="${x(k)}" y="${H - 6}" text-anchor="middle">${DPD.days[i].getDate()} ${DP_DOW[DPD.days[i].getDay()][0]}</text>`; });
   const ends = [];
   tracked.forEach(code => {
     const runs = []; let cur = [];
-    idxs.forEach((i, k) => { const c = dpCell(mk, code, i); if (c.state === 'ok' && c.p != null) cur.push([x(k), y(c.p), c.p]); else { if (cur.length) runs.push(cur); cur = []; } });
+    idxs.forEach((i, k) => { const c = okc(code, i); if (c) cur.push([x(k), y(val(c))]); else { if (cur.length) runs.push(cur); cur = []; } });
     if (cur.length) runs.push(cur);
     runs.forEach(r => {
       if (r.length > 1) g += `<path d="${r.map((q, k) => (k ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' ')}" fill="none" stroke="${dpCol(code)}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
@@ -389,17 +435,18 @@ function dpChartA(host, idxs) {
   idxs.forEach((i, k) => {
     const tip = `<b>${dpDayLabel(DPD.days[i])}</b>` + DPD.codes.map(code => {
       const c = dpCell(mk, code, i);
-      const val = c.state !== 'ok' ? dpWhy(c.state) : M.fmt(c.v) + (c.p != null ? ' · ' + Math.round(c.p) + '%' : ' · no target');
-      return `<div class="r"><span><span class="dot" style="background:${dpCol(code)}"></span> ${code}</span><span>${val}</span></div>`;
+      const v = c.state !== 'ok' ? dpWhy(c.state) : M.fmt(c.v) + (raw ? '' : (c.p != null ? ' \u00B7 ' + Math.round(c.p) + '%' : ' \u00B7 no target'));
+      return `<div class="r"><span><span class="dot" style="background:${dpCol(code)}"></span> ${code}</span><span>${v}</span></div>`;
     }).join('');
     g += `<g class="dp-hit"><line class="xh" x1="${x(k)}" x2="${x(k)}" y1="${m.t}" y2="${m.t + ih}" stroke="var(--muted2)"/><rect x="${x(k) - cw / 2}" y="${m.t}" width="${cw}" height="${ih}" fill="transparent" data-tip="${dpEsc(tip)}"/></g>`;
   });
   const legend = tracked.map(c => `<span><i class="dot" style="background:${dpCol(c)}"></i>${dpEsc(dpName(c))}</span>`).join('')
-    + '<span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--muted2)" stroke-dasharray="5 4" stroke-width="1.5"/></svg>Daily target (100%)</span>'
+    + (raw ? '' : '<span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--muted2)" stroke-dasharray="5 4" stroke-width="1.5"/></svg>Daily target (100%)</span>')
     + (tracked.length < DPD.codes.length ? '<span>A branch with no line has no target set, or is not tracked, for this measure</span>' : '');
-  const table = `<div class="dp-scroll"><table class="dp-tbl"><tr><th>Day</th>${DPD.codes.map(c => `<th>${c}</th>`).join('')}</tr>${idxs.map(i => `<tr><td>${dpDayLabel(DPD.days[i])}</td>${DPD.codes.map(code => { const c = dpCell(mk, code, i); return `<td>${c.state !== 'ok' ? dpWhy(c.state) : (c.p != null ? Math.round(c.p) + '%' : M.fmt(c.v))}</td>`; }).join('')}</tr>`).join('')}</table></div>`;
+  const cellTxt = c => (c.state !== 'ok' ? dpWhy(c.state) : (raw ? M.fmt(c.v) : (c.p != null ? Math.round(c.p) + '%' : M.fmt(c.v))));
+  const table = `<div class="dp-scroll"><table class="dp-tbl"><tr><th>Day</th>${DPD.codes.map(c => `<th>${c}</th>`).join('')}</tr>${idxs.map(i => `<tr><td>${dpDayLabel(DPD.days[i])}</td>${DPD.codes.map(code => `<td>${cellTxt(dpCell(mk, code, i))}</td>`).join('')}</tr>`).join('')}</table></div>`;
   if (!tracked.length) return `<p class="dp-why" style="margin:20px 0">No branch has a target set for ${dpEsc(M.noun)} in this window, so there is nothing to put on one scale. The branch tiles above still show the figures.</p>`;
-  return `<div class="dp-legend">${legend}</div><svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily ${dpEsc(M.noun)} as a percentage of target, by branch">${g}</svg><details><summary>View as table</summary>${table}</details>`;
+  return `<div class="dp-legend">${legend}</div><svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily ${dpEsc(M.noun)}${raw ? '' : ' as a percentage of target'}, by branch">${g}</svg><details><summary>View as table</summary>${table}</details>`;
 }
 
 // ── CHART B: one branch, bars + 7-day average + target ──────
@@ -408,7 +455,7 @@ function dpNice(raw) {
   return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e;
 }
 function dpAxis(mk, v, mx) {
-  if (mk === 'util' || DP_M[mk].fmt === dpPctF) return Math.round(v) + '%';
+  if (DP_M[mk].fmt === dpPctF || DP_M[mk].fmt === dpPct1) return (Math.round(v * 10) / 10) + '%';
   if (DP_M[mk].fmt === dpMoney && mx >= 2500) return (v / 1000).toFixed(mx < 6000 ? 1 : 0).replace('.0', '') + 'k';
   return Math.round(v);
 }
@@ -446,8 +493,8 @@ function dpChartB(host, idxs, code) {
     g += `<path d="${d}" fill="none" stroke="var(--surface)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/><path d="${d}" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${l[0]}" cy="${l[1]}" r="4.5" fill="var(--text)" stroke="var(--surface)" stroke-width="2"/>`;
   }
   const open = cells.filter(c => c.state === 'ok'), withT = open.filter(c => c.t != null), hit = withT.filter(c => c.v >= c.t).length;
-  const why = `Bars are each day, the line smooths it so one big or small day does not fool you. Pale bars fell short. ${withT.length ? `${hit} of ${withT.length} open days on target.` : 'No target is set for this measure here, so the bars are not graded.'}`;
-  const legend = `<span><i class="dot" style="background:${dpCol(code)};border-radius:3px"></i>Daily actual</span><span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--text)" stroke-width="2.5"/></svg>7-day average</span><span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--muted2)" stroke-dasharray="5 4" stroke-width="1.5"/></svg>Daily target</span>`;
+  const why = `Bars are each day, the line smooths it so one big or small day does not fool you. ${withT.length ? `Pale bars fell short. ${hit} of ${withT.length} open days on target.` : 'No target is set for this measure here, so the bars are not graded.'}`;
+  const legend = `<span><i class="dot" style="background:${dpCol(code)};border-radius:3px"></i>Daily actual</span><span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--text)" stroke-width="2.5"/></svg>7-day average</span>${withT.length ? '<span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--muted2)" stroke-dasharray="5 4" stroke-width="1.5"/></svg>Daily target</span>' : ''}`;
   if (!open.length) return { html: '<p class="dp-why" style="margin:24px 0">No figures for this branch in the window yet.</p>', why: '', legend: '' };
   return { html: `<svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${dpEsc(dpName(code))} daily ${dpEsc(M.noun)} with 7-day average">${g}</svg>`, why, legend };
 }
@@ -455,58 +502,78 @@ function dpChartB(host, idxs, code) {
 // ── HEATMAP: branch by day ──────────────────────────────────
 const dpBin = p => p < 80 ? '--dv-n2' : p < 95 ? '--dv-n1' : p <= 105 ? '--dv-0' : p <= 120 ? '--dv-p1' : '--dv-p2';
 function dpHeat(host, idxs) {
-  const mk = DP.measure, M = DP_M[mk], codes = DPD.codes, n = idxs.length, W = dpW(host);
+  const mk = DP.measure, M = DP_M[mk], codes = DPD.codes, n = idxs.length, W = dpW(host), raw = !!M.notarget;
   const lm = 38, ch = 34, cw = Math.max(9, (W - lm) / n), H = 4 + ch * codes.length + 22, SW = lm + cw * n;
+  let mx = 0;
+  if (raw) codes.forEach(code => idxs.forEach(i => { const c = dpCell(mk, code, i); if (c.state === 'ok' && c.v > mx) mx = c.v; }));
   let g = '';
   codes.forEach((code, r) => {
     g += `<text class="tv" x="0" y="${4 + r * ch + ch / 2 + 4}">${code}</text>`;
     idxs.forEach((i, k) => {
       const c = dpCell(mk, code, i), x = lm + k * cw, yy = 4 + r * ch;
-      const tip = `<b>${dpEsc(dpName(code))}</b><div>${dpDayLabel(DPD.days[i])}</div>` + (c.state !== 'ok' ? `<div>${dpWhy(c.state)}</div>` : `<div class="r"><span>${M.fmt(c.v)}</span><span>${c.p != null ? Math.round(c.p) + '% of target' : 'no target'}</span></div>`);
-      const fill = c.state !== 'ok' || c.p == null ? 'var(--surface2)' : `var(${dpBin(c.p)})`;
-      g += `<rect x="${x + 1}" y="${yy + 1}" width="${cw - 2}" height="${ch - 2}" rx="4" fill="${fill}" data-tip="${dpEsc(tip)}"/>`;
+      const tip = `<b>${dpEsc(dpName(code))}</b><div>${dpDayLabel(DPD.days[i])}</div>` + (c.state !== 'ok' ? `<div>${dpWhy(c.state)}</div>` : `<div class="r"><span>${M.fmt(c.v)}</span><span>${raw ? '' : (c.p != null ? Math.round(c.p) + '% of target' : 'no target')}</span></div>`);
+      let fill = 'var(--surface2)', op = '';
+      if (c.state === 'ok') {
+        if (raw) { fill = 'var(--dv-p2)'; op = ` fill-opacity="${(.14 + .86 * (mx ? c.v / mx : 0)).toFixed(2)}"`; }
+        else if (c.p != null) fill = `var(${dpBin(c.p)})`;
+      }
+      g += `<rect x="${x + 1}" y="${yy + 1}" width="${cw - 2}" height="${ch - 2}" rx="4" fill="${fill}"${op} data-tip="${dpEsc(tip)}"/>`;
       if (c.state === 'closed' || c.state === 'na') g += `<path d="M${x + 4} ${yy + ch - 5} L${x + cw - 4} ${yy + 5}" stroke="var(--muted2)" stroke-width="1" pointer-events="none"/>`;
     });
   });
   const step = Math.max(1, Math.ceil(n / Math.floor((W - lm) / 28)));
   idxs.forEach((i, k) => { if (k % step === 0) g += `<text x="${lm + k * cw + cw / 2}" y="${H - 6}" text-anchor="middle">${DPD.days[i].getDate()}</text>`; });
-  const key = [['--dv-n2', 'Under 80%'], ['--dv-n1', '80–94%'], ['--dv-0', '95–105%'], ['--dv-p1', '106–120%'], ['--dv-p2', 'Over 120%']].map(([v, t]) => `<span><i style="background:var(${v})"></i>${t}</span>`).join('') + '<span><i style="background:var(--surface2);border:1px solid var(--border)"></i>Closed, no target or not tracked</span>';
-  const table = `<div class="dp-scroll"><table class="dp-tbl"><tr><th>Day</th>${codes.map(c => `<th>${c}</th>`).join('')}</tr>${idxs.map(i => `<tr><td>${dpDayLabel(DPD.days[i])}</td>${codes.map(code => { const c = dpCell(mk, code, i); return `<td>${c.state !== 'ok' ? dpWhy(c.state) : (c.p != null ? Math.round(c.p) + '%' : '—')}</td>`; }).join('')}</tr>`).join('')}</table></div>`;
-  return `<div class="dp-scroll"><svg class="dp-svg" style="min-width:${Math.round(SW)}px" viewBox="0 0 ${Math.round(SW)} ${H}" role="img" aria-label="Branch by day, percentage of target">${g}</svg></div><div class="dp-key">${key}</div><details><summary>View as table</summary>${table}</details>`;
+  const shut = '<span><i style="background:var(--surface2);border:1px solid var(--border)"></i>Closed, no figures or not tracked</span>';
+  const key = raw
+    ? '<span><i style="background:var(--dv-p2);opacity:.2"></i>Lower</span><span><i style="background:var(--dv-p2);opacity:.55"></i>Middle</span><span><i style="background:var(--dv-p2)"></i>Higher</span>' + shut
+    : [['--dv-n2', 'Under 80%'], ['--dv-n1', '80\u201394%'], ['--dv-0', '95\u2013105%'], ['--dv-p1', '106\u2013120%'], ['--dv-p2', 'Over 120%']].map(([v, t]) => `<span><i style="background:var(${v})"></i>${t}</span>`).join('') + '<span><i style="background:var(--surface2);border:1px solid var(--border)"></i>Closed, no target or not tracked</span>';
+  const cellTxt = c => (c.state !== 'ok' ? dpWhy(c.state) : (raw ? M.fmt(c.v) : (c.p != null ? Math.round(c.p) + '%' : '\u2014')));
+  const table = `<div class="dp-scroll"><table class="dp-tbl"><tr><th>Day</th>${codes.map(c => `<th>${c}</th>`).join('')}</tr>${idxs.map(i => `<tr><td>${dpDayLabel(DPD.days[i])}</td>${codes.map(code => `<td>${cellTxt(dpCell(mk, code, i))}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  return `<div class="dp-scroll"><svg class="dp-svg" style="min-width:${Math.round(SW)}px" viewBox="0 0 ${Math.round(SW)} ${H}" role="img" aria-label="Branch by day">${g}</svg></div><div class="dp-key">${key}</div><details><summary>View as table</summary>${table}</details>`;
 }
 
 // ── WEEKDAY PATTERN ─────────────────────────────────────────
 function dpWeekday(host) {
-  const mk = DP.measure, W = dpW(host), codes = DPD.codes;
+  const mk = DP.measure, M = DP_M[mk], W = dpW(host), codes = DPD.codes, raw = !!M.notarget;
   const days = DPD.days.length;
   const avg = codes.map(code => {
     const a = Array.from({ length: 7 }, () => []);
-    for (let i = 0; i < days; i++) { const c = dpCell(mk, code, i); if (c.state === 'ok' && c.p != null) a[DPD.days[i].getDay()].push(c.p); }
+    for (let i = 0; i < days; i++) { const c = dpCell(mk, code, i); const v = c.state === 'ok' ? (raw ? c.v : c.p) : null; if (v != null) a[DPD.days[i].getDay()].push(v); }
     return a.map(x => x.length ? x.reduce((s, v) => s + v, 0) / x.length : null);
   });
   if (!avg.some(a => a.some(v => v != null))) return { html: '<p class="dp-why" style="margin:20px 0">No target to read the weekdays against for this measure.</p>', legend: '', days };
-  const H = Math.round(Math.min(280, Math.max(210, W * .5))), m = { l: 38, r: 6, t: 8, b: 24 }, iw = W - m.l - m.r, ih = H - m.t - m.b, min = 40, max = 140;
-  const y = p => m.t + ih - (Math.min(Math.max(p, min), max) - min) / (max - min) * ih, gw = iw / 7, bw = Math.min(14, gw / (codes.length + 1.2));
+  let lo = 40, hi = 140, ticks = [60, 80, 100, 120, 140], tfmt = v => v + '%';
+  if (raw) {
+    const mx = Math.max(1e-9, ...avg.flat().filter(v => v != null)), nice = dpNice(mx * 1.1);
+    lo = 0; hi = Math.ceil(mx * 1.1 / nice) * nice; ticks = [];
+    for (let v = 0; v <= hi + 1e-9; v += nice) ticks.push(v);
+    tfmt = v => dpAxis(mk, v, hi);
+  } else {
+    const sc = dpPctScale(avg.flat());
+    lo = sc.lo; hi = sc.hi; ticks = sc.ticks;
+  }
+  const H = Math.round(Math.min(280, Math.max(210, W * .5))), m = { l: 38, r: 6, t: 8, b: 24 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const y = p => m.t + ih - (Math.min(Math.max(p, lo), hi) - lo) / (hi - lo) * ih, gw = iw / 7, bw = Math.min(14, gw / (codes.length + 1.2));
   let g = '';
-  [60, 80, 100, 120, 140].forEach(v => { g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border)"${v === 100 ? ' stroke-dasharray="5 4"' : ''}/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}%</text>`; });
+  ticks.forEach(v => { g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border)"${!raw && v === 100 ? ' stroke-dasharray="5 4"' : ''}/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${tfmt(v)}</text>`; });
   [1, 2, 3, 4, 5, 6, 0].forEach((d, oi) => {
     const gx = m.l + oi * gw + gw / 2;
     g += `<text x="${gx}" y="${H - 6}" text-anchor="middle">${DP_DOW[d]}</text>`;
     codes.forEach((code, bi) => {
       const p = avg[bi][d]; if (p == null) return;
       const x = gx + (bi - (codes.length - 1) / 2) * (bw + 2) - bw / 2, yy = y(p), r = Math.min(3, bw / 2);
-      const tip = `<b>${dpEsc(dpName(code))} · ${DP_DOW[d]}</b><div>${Math.round(p)}% of target on average</div>`;
+      const tip = `<b>${dpEsc(dpName(code))} \u00B7 ${DP_DOW[d]}</b><div>${raw ? M.fmt(p) + ' on average' : Math.round(p) + '% of target on average'}</div>`;
       g += `<path d="M${x} ${m.t + ih} V${yy + r} Q${x} ${yy} ${x + r} ${yy} H${x + bw - r} Q${x + bw} ${yy} ${x + bw} ${yy + r} V${m.t + ih} Z" fill="${dpCol(code)}" data-tip="${dpEsc(tip)}"/>`;
     });
   });
-  return { html: `<svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Average percentage of target by weekday">${g}</svg>`, legend: codes.map(c => `<span><i class="dot" style="background:${dpCol(c)}"></i>${c}</span>`).join(''), days };
+  return { html: `<svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Average by weekday">${g}</svg>`, legend: codes.map(c => `<span><i class="dot" style="background:${dpCol(c)}"></i>${c}</span>`).join(''), days };
 }
 
 // ── RADAR: strengths and weaknesses ─────────────────────────
 // Every radar measure as the mean of the window's daily % of target, per branch. A measure with no target
 // at a branch is left off that branch's radar rather than drawn at zero.
 function dpRadarVals(code, idxs) {
-  return DP_RADAR.map(([mk, lab]) => {
+  return dpRadarSel().map(([mk, lab]) => {
     const cs = idxs.map(i => dpCell(mk, code, i)).filter(c => c.state === 'ok' && c.p != null);
     if (!cs.length) return null;
     const p = cs.reduce((s, c) => s + c.p, 0) / cs.length, avg = cs.reduce((s, c) => s + c.v, 0) / cs.length, t = cs.reduce((s, c) => s + c.t, 0) / cs.length;
@@ -516,9 +583,9 @@ function dpRadarVals(code, idxs) {
 function dpRadar(host, idxs, code) {
   const W = Math.max(300, Math.min(dpW(host), 520)), H = Math.round(W * .94), cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 64, max = 130;
   const mine = dpRadarVals(code, idxs), all = DPD.codes.map(c => dpRadarVals(c, idxs));
-  const axes = DP_RADAR.map((_, k) => k).filter(k => mine[k]);
+  const axes = mine.map((_, k) => k).filter(k => mine[k]);
   const n = axes.length;
-  if (n < 3) return { html: '<p class="dp-why" style="margin:20px 0">Not enough measures with a target at this branch to draw the shape. Set client targets in the Upload Portal and more axes appear.</p>', list: '', legend: '' };
+  if (n < 3) return { html: '<p class="dp-why" style="margin:20px 0">Fewer than three of the ticked measures have a target at this branch, so there is no shape to draw. Tick more under Customise, or set client targets in the Upload Portal.</p>', list: '', legend: '' };
   const ang = i => -Math.PI / 2 + i * 2 * Math.PI / n;
   const pt = (i, p) => [cx + Math.cos(ang(i)) * R * Math.min(p, max) / max, cy + Math.sin(ang(i)) * R * Math.min(p, max) / max];
   const poly = arr => arr.map((p, i) => pt(i, p).join(',')).join(' ');
@@ -568,6 +635,18 @@ async function renderDailyPerf() {
   dpDraw(host, win);
 }
 
+// The radar's Customise panel: tick the measures to draw, ten by default, never fewer than three.
+function dpRadarCustom() {
+  const on = new Set(dpRadarSel().map(x => x[0]));
+  const label = Object.fromEntries(DP_RADAR_ALL);
+  const groups = DP_GROUPS.map(([g, ks]) => {
+    const items = ks.filter(k => label[k]);
+    return items.length ? `<div class="dp-cg"><span class="dp-lab">${g}</span>${items.map(k => `<label class="dp-chk"><input type="checkbox" data-r="${k}"${on.has(k) ? ' checked' : ''}> ${dpEsc(label[k])}</label>`).join('')}</div>` : '';
+  }).join('');
+  return `<details class="dp-cust" id="dpCust"${dpRadarOpen ? ' open' : ''}><summary>Customise measures (${on.size} ticked)</summary>${groups}
+    <div class="dp-row" style="margin-top:8px"><button type="button" class="dp-pill" id="dpRadarReset">Back to the default ten</button><span class="dp-sub" id="dpRadarMsg"></span></div></details>`;
+}
+
 function dpDraw(host, win) {
   win = win || dpWindow();
   const idxs = dpIdx(win), mk = DP.measure, M = DP_M[mk];
@@ -580,21 +659,22 @@ function dpDraw(host, win) {
     ${dpControls(win)}
     <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}</p>
     <section class="dp-tiles" id="dpTiles" aria-label="Latest open day per branch">${dpTiles(win, idxs)}</section>
-    <div class="dp-card"><h2>Daily ${dpEsc(M.noun)} against target, all branches</h2>
-      <p class="dp-why">Every branch on one scale: 100% means the day's target was met. Gaps are closed days or days with no figures.</p><div id="dpA"></div></div>
+    <div class="dp-card"><h2>${M.notarget ? `Daily ${dpEsc(M.noun)}, all branches` : `Daily ${dpEsc(M.noun)} against target, all branches`}</h2>
+      <p class="dp-why">${M.notarget ? 'Every branch on one scale, in plain values. This measure has no target, so nothing is graded. Gaps are closed days or days with no figures.' : "Every branch on one scale: 100% means the day's target was met. Gaps are closed days or days with no figures."}</p><div id="dpA"></div></div>
     <div class="dp-card"><div class="dp-head"><div><h2 id="dpBT"></h2><p class="dp-why" id="dpBW"></p></div><span class="dp-pills" id="dpBP" role="group" aria-label="Branch">${dpPickPills()}</span></div>
       <div class="dp-legend" id="dpBL"></div><div id="dpB"></div></div>
     <div class="dp-card"><div class="dp-head"><div><h2 id="dpRT"></h2>
-      <p class="dp-why">Every measure as % of its target, over this window. Outside the dashed ring is a strength, inside it is a weakness. This card ignores the Measure picker on purpose, it shows all ten at once, and leaves off any measure with no target set at the branch.</p></div>
+      <p class="dp-why">Every ticked measure as % of its target, over this window. Outside the dashed ring is a strength, inside it is a weakness. This card ignores the Measure picker on purpose, it shows the ticked measures all at once, and leaves off any with no target set at the branch.</p></div>
       <span class="dp-pills" id="dpRP" role="group" aria-label="Branch">${dpPickPills()}</span></div>
+      ${dpRadarCustom()}
       <div class="dp-legend" id="dpRL"></div><div class="dp-sw"><div id="dpR"></div><div class="dp-swl" id="dpRS"></div></div></div>
     <div class="dp-two">
-      <div class="dp-card"><h2>Which days were weak?</h2><p class="dp-why">Each square is a branch on a day. Blue beat the target, red fell short, grey is on target.</p><div id="dpC"></div></div>
+      <div class="dp-card"><h2>${M.notarget ? 'Which days were big or small?' : 'Which days were weak?'}</h2><p class="dp-why">${M.notarget ? 'Each square is a branch on a day, darker for a higher figure. This measure has no target, so nothing is graded.' : 'Each square is a branch on a day. Blue beat the target, red fell short, grey is on target.'}</p><div id="dpC"></div></div>
       <div class="dp-card"><h2>Best and slowest weekday</h2><p class="dp-why" id="dpDW"></p><div class="dp-legend" id="dpDL"></div><div id="dpD"></div></div>
     </div>
     <div class="dp-card"><h2>How to read this page</h2>
       <p class="dp-note"><b>The daily target</b> is the month's target divided by the branch's trading days in that month. It is flat, so a Saturday and a Sunday carry the same target; the weekday chart is where the difference shows. Ratios (rebooking, treatment, retail, average bills) read the same benchmark every day. Utilisation reads hair 80 and beauty 70, weighted by the hours available.</p>
-      <p class="dp-note"><b>Closed days</b> come from the closed-days rules and table, so Al Quoz on a Sunday or Monday is shut, not a zero. A measure with no target set (the client counts, until somebody keys them in the Upload Portal) shows its figures with no grade.</p>
+      <p class="dp-note"><b>Closed days</b> come from the closed-days rules and table, so Al Quoz on a Sunday or Monday is shut, not a zero. A measure with no target set (total and new clients, until somebody keys them in the Upload Portal) shows its figures with no grade. <b>NCR</b> is New Client Requests, a count against the Pulse's monthly NCR target; NCR % is the same count as a share of the day's clients, the way the Pulse's Client Funnel prints it, and has no target.</p>
       <p class="dp-note"><b>The figures</b> are the Ledgers' own, by day, ex VAT, the same ones the Daily Target Sheet adds up. The window ends yesterday. Motor City is hair only, so the Beauty measures skip it. UAE branches only for now.</p></div>
   </div>`;
   const root = host.querySelector('.dpf');
@@ -607,7 +687,7 @@ function dpDraw(host, win) {
   el('dpRT').textContent = `${dpName(DP.pick)}: strengths and weaknesses`; fill('dpRL', r.legend); fill('dpR', r.html); fill('dpRS', r.list);
   fill('dpC', dpHeat(el('dpC'), idxs));
   const wk = dpWeekday(el('dpD'));
-  el('dpDW').textContent = `Average % of daily target by weekday, over the ${wk.days} days loaded. This is the one that tells you where to put your team.`;
+  el('dpDW').textContent = `Average ${M.notarget ? 'figure' : '% of daily target'} by weekday, over the ${wk.days} days loaded. This is the one that tells you where to put your team.`;
   fill('dpDL', wk.legend); fill('dpD', wk.html);
   dpWire(host);
 }
@@ -622,6 +702,15 @@ function dpWire(host) {
     dpSave(); await renderDailyPerf();
   });
   root.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { DP.pick = b.dataset.b; dpSave(); dpDraw(host); });
+  const cust = root.querySelector('#dpCust');
+  if (cust) cust.addEventListener('toggle', () => { dpRadarOpen = cust.open; });
+  root.querySelectorAll('[data-r]').forEach(cb => cb.onchange = () => {
+    const next = DP_RADAR_ALL.map(x => x[0]).filter(k => { const b = root.querySelector(`[data-r="${k}"]`); return b && b.checked; });
+    if (next.length < 3) { cb.checked = true; const m = root.querySelector('#dpRadarMsg'); if (m) m.textContent = 'Keep at least three ticked, or there is no shape to draw.'; return; }
+    DP.radar = next; dpRadarOpen = true; dpSave(); dpDraw(host);
+  });
+  const rr = root.querySelector('#dpRadarReset');
+  if (rr) rr.onclick = () => { DP.radar = null; dpRadarOpen = true; dpSave(); dpDraw(host); };
   const f = root.querySelector('#dpFrom'), t = root.querySelector('#dpTo');
   if (f && t) {
     const go = async () => { if (f.value && t.value) { DP.from = f.value; DP.to = t.value; dpSave(); await renderDailyPerf(); } };
