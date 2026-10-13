@@ -106,7 +106,9 @@ function numRow(snap, key) {
   if (key === 'ret') {
     const r = R.retention_pct || {}, c = R.conversion_pct || {};
     const sr = statusOf(r.a, r.t, r.mn), sc = statusOf(c.a, c.t, c.mn);
-    return { a: `${pct(r.a)} kept · ${pct(c.a)} of new came back`, t: r.t != null ? `${pct(r.t)} · ${pct(c.t)}` : '',
+    // A stylist with no retention or conversion figure yet (a new joiner) gets a single dot, not "· kept · · of new came back".
+    const aBits = [r.a != null && `${pct(r.a)} kept`, c.a != null && `${pct(c.a)} of new came back`].filter(Boolean);
+    return { a: aBits.length ? aBits.join(' · ') : '·', t: r.t != null || c.t != null ? `${pct(r.t)} · ${pct(c.t)}` : '',
       st: [sr, sc].includes('bad') ? 'bad' : [sr, sc].includes('warn') ? 'warn' : (sr || sc) };
   }
   const r = R[key] || {};
@@ -239,12 +241,13 @@ function sigPanel(slot, o) {
 // ════════════════════════════════════════════════════════════
 //  The stylist's own tab
 // ════════════════════════════════════════════════════════════
-const ME = { tab: 'month', sel: 0, hz: 'm6', el: null, ctx: null, wired: false, g: null };
+const ME = { tab: 'month', sel: 0, hz: 'm6', el: null, ctx: null, wired: false, g: null, p: null };
 
 function me(el, ctx) {
-  // A goals edit still waiting for its autosave goes out before the page is rebuilt from the database.
+  // A goals edit (or her part of the 1-to-1) still waiting for its autosave goes out before the page is rebuilt from the database.
   if (ME.g && ME.g.timer) meSave();
-  ME.el = el; ME.ctx = ctx; ME.g = null;
+  if (ME.p && ME.p.timer) prepSave();
+  ME.el = el; ME.ctx = ctx; ME.g = null; ME.p = null;
   if (!ME.wired) { el.addEventListener('click', onMeClick); el.addEventListener('input', onMeInput); ME.wired = true; }
   drawMe();
 }
@@ -262,16 +265,53 @@ function meHead(r, kind, noPdf) {
     <p class="legend">Signing shows you have read it, like your signature on the paper form. You can add your handwritten signature and a comment, and your PDF is saved at that moment.</p><div data-sigslot></div>`;
 }
 
+// ── Her part of the next 1-to-1 (Coach Emma, 7 Oct 2026): written before the meeting, then sent to Emma, whose form fills from it.
+// A private draft while she writes (perf_one2one_prep_save, autosaved); Send to Emma (perf_one2one_prep_submit) lets the leaders read it,
+// and she can keep editing until this month's 1-to-1 is signed.
+const prepMonth = () => todayISO().slice(0, 7) + '-01';
+const prepRec = () => recs('prep').find(r => String(r.period).slice(0, 10) === prepMonth()) || null;
+const prepLocked = () => recs('monthly').some(r => String(r.period).slice(0, 10) === prepMonth() && !r.updating && ['signed', 'filed'].includes(r.status));
+const prepLastActions = () => { const l = recs('monthly')[0]; return ((l && l.content && l.content.actions) || []).filter(a => has(a.action)); };
+function pStatus(txt) { const e = ME.el && ME.el.querySelector('[data-psave]'); if (e) e.textContent = txt; }
+async function prepSave() {
+  const p = ME.p; if (!p) return false;
+  clearTimeout(p.timer); p.timer = null;
+  pStatus('Saving…');
+  try {
+    const r = await call('perf_one2one_prep_save', { p_token: ME.ctx.token, p_period: p.per, p_content: p.content });
+    if (r === 'ok') { pStatus('Saved ' + stamp(new Date())); return true; }
+    pStatus(r === 'locked' ? 'This 1-to-1 is already signed.' : 'Could not save (' + r + ').');
+  } catch (e) { pStatus('Could not save. Check the connection; it will try again as you type.'); }
+  return false;
+}
+function prepCard() {
+  if (prepLocked()) return '';
+  const r = prepRec(), acts = prepLastActions();
+  if (!ME.p) {
+    const c = (r && r.content) || {};
+    ME.p = { per: prepMonth(), timer: null, content: { wins: c.wins || '', social: c.social || '', prev: acts.map((a, i) => ({ progress: ((c.prev || [])[i] || {}).progress || '' })) } };
+  }
+  const v = p => { const x = getP(ME.p.content, p); return x == null ? '' : x; };
+  const sent = r && r.status === 'submitted';
+  return `<section class="card hero o2o-card-new" data-prep><div class="eyebrow">Before your next 1-to-1</div><h2>Your part</h2>
+    <p class="sub" style="margin-bottom:0">Write a few lines before you and Emma meet: what has gone well, how your last actions are going, and how you would like to grow your social media and personal brand. It saves as you type, and nobody else can read it until you press Send to Emma.</p>
+    <p style="margin-top:10px">${sent ? `<span class="o2o-chip good">Sent to Emma</span> <span class="o2o-done">on ${esc(stamp(r.submitted_at))}. You can still add to it until the 1-to-1 is signed, and press Send again.</span>` : `<span class="o2o-chip">Draft, only you can see this</span>`}</p>
+    <label class="o2o-fl">What has gone well since we last met: achievements, progress and kind words from clients or colleagues<textarea rows="3" data-pp="wins">${esc(v('wins'))}</textarea></label>
+    ${acts.length ? acts.map((a, i) => `<label class="o2o-fl">Your progress on: ${esc(a.action)}<textarea rows="2" data-pp="prev.${i}.progress">${esc(v(`prev.${i}.progress`))}</textarea></label>`).join('') : ''}
+    <label class="o2o-fl">Social media / personal brand marketing notes: how would you like to grow your visibility, and what help would be useful?<textarea rows="3" data-pp="social">${esc(v('social'))}</textarea></label>
+    <div class="o2o-btns" style="margin-top:10px"><button class="btn o2o-new" type="button" data-act="psend">Send to Emma</button><span class="o2o-save" data-psave>${r && r.updated_at ? 'Saved ' + esc(stamp(r.updated_at)) : 'Not saved yet. It saves by itself as you type.'}</span></div></section>`;
+}
+
 function meMonth() {
   const all = recs('monthly').map((r, i) => Object.assign(r, { _i: i }));
-  if (!all.length) return `<div class="o2o-empty">Your first 1-to-1 will appear here once your leader has written it up and signed it. It will show what went well, your numbers, what you agreed, and the next steps.</div>`;
+  if (!all.length) return prepCard() + `<div class="o2o-empty">Your first 1-to-1 will appear here once your leader has written it up and signed it. It will show what went well, your numbers, what you agreed, and the next steps.</div>`;
   const r = all[Math.min(ME.sel, all.length - 1)], c = r.content || {}, snap = r.snapshot || {};
   const cc = ckCounts(c), todo = [];
   CHECK.forEach((g, i) => g[1].forEach((t, j) => { if (!(c.check && c.check[i] && c.check[i][j])) todo.push(t); }));
   const prev = (c.prev_actions || []).filter(a => has(a.action));
   const acts = (c.actions || []).filter(a => has(a.action));
   const pri = String(c.priorities || '').split('\n').map(x => x.trim()).filter(Boolean);
-  const bits = [];
+  const bits = [prepCard()];
   bits.push(`<section class="card hero o2o-card-new"><div class="eyebrow">1-to-1</div><h2>Your 1-to-1 with ${esc(first(r.signed_by) || 'your leader')}</h2>
     <p class="sub" style="margin-bottom:0">${esc(dMid(c.meeting_date))}${snap.from ? ' · looking back at ' + esc(winLine(snap)) : ''}</p><p class="o2o-fill">${esc(fillLine(r, snap, c.meeting_date, false))}</p><p class="o2o-fill">${esc(PRIV_NOTE)}</p>${meHead(r, 'monthly')}</section>`);
   if (has(c.wins)) bits.push(`<section class="card"><div class="eyebrow">Wins and highlights</div><p class="o2o-text">${br(c.wins)}</p></section>`);
@@ -289,7 +329,7 @@ function meMonth() {
     <p class="sub">things you are consistently showing. The rest are the next focus, not a mark against you.</p>
     <div class="o2o-sid">${CHECK.map((g, i) => `<span>0${i + 1} ${esc(g[0])}</span><b>${cc.per[i]} of ${g[1].length}</b><div class="o2o-meter"><i style="width:${cc.per[i] / g[1].length * 100}%"></i></div>`).join('')}</div>
     ${todo.length ? `<details class="o2o-more"><summary><span>What is still to work on</span><span class="hint">${todo.length} ${todo.length === 1 ? 'item' : 'items'}</span></summary><ul class="o2o-chk">${todo.map(t => `<li><i>&#9675;</i><span>${esc(t)}</span></li>`).join('')}</ul></details>` : ''}</section>`);
-  if (pri.length || has(c.support)) bits.push(`<section class="card">${pri.length ? `<div class="eyebrow">Our priorities for the next ${spanOf(snap)}</div><ol class="o2o-text" style="padding-left:20px">${pri.map(p => `<li>${esc(p.replace(/^\d+[.)]\s*/, ''))}</li>`).join('')}</ol>` : ''}
+  if (pri.length || has(c.support)) bits.push(`<section class="card">${pri.length ? `<div class="eyebrow">Our priorities for the next 3 months</div><ol class="o2o-text" style="padding-left:20px">${pri.map(p => `<li>${esc(p.replace(/^\d+[.)]\s*/, ''))}</li>`).join('')}</ol>` : ''}
     ${has(c.support) ? `<div class="eyebrow" style="margin-top:14px">Training or support that would help</div><p class="o2o-text">${br(c.support)}</p>` : ''}</section>`);
   if (all.length > 1) bits.push(`<details class="o2o-more"><summary><span>Earlier 1-to-1s</span><span class="hint">${all.length - 1}</span></summary><div class="rows">${all.map((x, i) => i === ME.sel ? '' :
     `<button class="row" type="button" data-act="sel" data-i="${i}" style="font:inherit;color:inherit;cursor:pointer;text-align:left;width:100%"><span>${esc(dMid((x.content || {}).meeting_date) || mLong(x.period))}</span><span class="r-val"><small>${esc(first(x.signed_by))}</small></span></button>`).join('')}</div></details>`);
@@ -312,7 +352,14 @@ async function meSave() {
   return false;
 }
 function onMeInput(e) {
-  const t = e.target; if (!ME.g || !t.matches || !t.matches('[data-gp]')) return;
+  const t = e.target;
+  if (ME.p && t.matches && t.matches('[data-pp]')) {
+    setP(ME.p.content, t.dataset.pp, t.value);
+    pStatus('Unsaved changes…');
+    clearTimeout(ME.p.timer); ME.p.timer = setTimeout(prepSave, 1500);
+    return;
+  }
+  if (!ME.g || !t.matches || !t.matches('[data-gp]')) return;
   setP(ME.g.content, t.dataset.gp, t.value);
   gStatus('Unsaved changes…');
   clearTimeout(ME.g.timer); ME.g.timer = setTimeout(meSave, 1500);
@@ -370,7 +417,7 @@ function meGoalsDone(r) {
     <div class="o2o-wrap"><table class="o2o-tbl"><tr><th>Measure</th><th class="r">Now</th><th class="r">6 m</th><th class="r">1 yr</th><th class="r">3 yrs</th></tr>
     ${MILE.map(([k, l, how, w]) => { const v = (c.mile || {})[k] || {}; return `<tr><td>${l}</td><td class="r"><b>${esc(nowOf(snap, k, how, w))}</b></td><td class="r">${esc(v.m6 || '·')}</td><td class="r">${esc(v.y1 || '·')}</td><td class="r">${esc(v.y3 || '·')}</td></tr>`; }).join('')}</table></div></section>`);
   const pri = (c.priorities || []).filter(a => has(a.action));
-  if (pri.length) bits.push(`<section class="card"><div class="eyebrow">Our agreed priorities, next 13 weeks</div>${pri.map(a =>
+  if (pri.length) bits.push(`<section class="card"><div class="eyebrow">Our agreed priorities, next 3 months</div>${pri.map(a =>
     `<div class="o2o-act"><span class="k">${esc(a.led || '')} leads${has(a.due) ? ' · due ' + esc(dShort(a.due) || a.due) : ''}</span>${esc(a.action)}${has(a.support) ? `<small>Support: ${esc(a.support)}</small>` : ''}</div>`).join('')}</section>`);
   const checks = recs('check').map((x, n) => Object.assign(x, { _i: n }));
   bits.push(`<section class="card"><div class="eyebrow">13-week checks</div>${checks.length ? '<p class="sub" style="margin:0">Each check is signed on its own. The newest is first.</p>'
@@ -404,6 +451,18 @@ async function onMeClick(e) {
     ME.hz = b.dataset.v;
     if (ME.g) { ME.el.querySelectorAll('.o2o-pill[data-act="hz"]').forEach(p => p.classList.toggle('on', p === b)); ME.el.querySelectorAll('[data-hz]').forEach(g => { g.hidden = g.dataset.hz !== ME.hz; }); }
     else drawMe();
+  }
+  else if (a === 'psend') {
+    const c = ME.p && ME.p.content;
+    if (!c || !(has(c.wins) || has(c.social) || (c.prev || []).some(x => x && has(x.progress)))) { alert('Write a line or two first, then send it.'); return; }
+    b.disabled = true;
+    try {
+      if (!(await prepSave())) return;
+      const res = await call('perf_one2one_prep_submit', { p_token: ME.ctx.token, p_period: ME.p.per });
+      if (res !== 'ok') { alert('Could not send: ' + res); return; }
+      ME.p = null; await ME.ctx.reload();
+    } catch (err) { alert('Could not send. Check the connection and try again.'); }
+    finally { b.disabled = false; }
   }
   else if (a === 'gsubmit') {
     const any = HZ.some(([h]) => KINDS.some(([k]) => has(getP(ME.g.content, `goals.${h}.${k}.goal`))));
@@ -482,13 +541,30 @@ const checkKeys = () => {
 };
 const allKeys = () => ['monthly', 'goals'].concat(checkKeys());
 
+// The stylist's own part of the 1-to-1 (wins, progress on the last actions, social media notes), once it has been
+// sent: it fills the boxes that are still empty on Emma's form, never one Emma has already written in.
+function prepFill(c) {
+  const p = L.d.prep, pc = p && p.status === 'submitted' ? p.content || {} : null;
+  if (!pc) return c;
+  if (!has(c.wins) && has(pc.wins)) c.wins = pc.wins;
+  if (!has(c.social_grow) && has(pc.social)) c.social_grow = pc.social;
+  (pc.prev || []).forEach((x, i) => { const a = (c.prev_actions || [])[i]; if (a && !has(a.progress) && x && has(x.progress)) a.progress = x.progress; });
+  return c;
+}
+function prepBanner() {
+  const p = L.d.prep, name = esc(first(L.d.staff.name));
+  if (!p) return '';
+  return p.status === 'submitted'
+    ? `<p class="o2o-lock"><span class="o2o-autoh">From ${name}</span> Sent on ${esc(stamp(p.submitted_at || p.updated_at))}. What has gone well, progress on the last actions and social media notes have filled the empty boxes below; edit them as you need.</p>`
+    : `<p class="o2o-lock">${name} has started but not yet sent the pre-meeting part. It will appear here once sent.</p>`;
+}
 function initial(key) {
   const r = rec(key);
-  if (r && r.content && Object.keys(r.content).length) return JSON.parse(JSON.stringify(r.content));
+  if (r && r.content && Object.keys(r.content).length) { const c = JSON.parse(JSON.stringify(r.content)); return key === 'monthly' && !isSigned(key) ? prepFill(c) : c; }
   const t = todayISO();
   if (key === 'monthly') {
     const prev = (L.d.previous && L.d.previous.content && L.d.previous.content.actions) || [];
-    return { meeting_date: t, prev_actions: prev.filter(a => has(a.action)).map(a => ({ action: a.action, progress: '', status: 'Ongoing' })) };
+    return prepFill({ meeting_date: t, prev_actions: prev.filter(a => has(a.action)).map(a => ({ action: a.action, progress: '', status: 'Ongoing' })) });
   }
   if (key === 'goals') return { meeting_date: t, next_review: plus(t, 91) };
   return { meeting_date: t, priorities: [] };
@@ -664,10 +740,11 @@ function onRpMonth(sel) {
 
 function monthlyBody(k) {
   const snap = snapOf('monthly'), st = L.d.staff;
-  const prevN = rowsOf(k, 'prev_actions', 1), actN = rowsOf(k, 'actions', 3);
+  const prevN = rowsOf(k, 'prev_actions', 1), actN = rowsOf(k, 'actions', 4);
   const rowsHtml = (arr, n, cells) => Array.from({ length: n }, (_, i) => `<tr>${cells(i)}</tr>`).join('');
   return `
   <div class="o2o-g3">${people(k)}<label class="o2o-fl">Meeting date${fDate(k, 'meeting_date')}</label></div>
+  ${k.lock ? '' : prepBanner()}
   ${periodBlock(k, snap)}
 
   <div class="o2o-sec">01 Wins and highlights</div>
@@ -696,7 +773,7 @@ function monthlyBody(k) {
   <div class="o2o-sec">Stylist priorities checklist <span class="o2o-save" data-ckt style="letter-spacing:0;text-transform:none;font-weight:500">${ckCounts(k.c).y} of ${ckCounts(k.c).t} ticked</span></div>
   ${CHECK.map((g, i) => `<details class="o2o-more" data-ckg="${i}"><summary><span>0${i + 1} ${esc(g[0])}</span><span class="hint" data-cks>${ckCounts(k.c).per[i]} of ${g[1].length}</span></summary>
     ${g[1].map((t, j) => `<label class="o2o-ck"><input type="checkbox" data-p="check.${i}.${j}"${getP(k.c, `check.${i}.${j}`) ? ' checked' : ''}${dis(k)}><span>${esc(t)}</span></label>`).join('')}</details>`).join('')}
-  <div class="o2o-g2" style="margin-top:12px">${fTa(k, 'priorities', `Our priorities for the next ${spanOf(snap)}`, 4)}${fTa(k, 'support', 'Training or management support that would help', 4)}</div>`;
+  <div class="o2o-g2" style="margin-top:12px">${fTa(k, 'priorities', 'Our priorities for the next 3 months', 4)}${fTa(k, 'support', 'Training or management support that would help', 4)}</div>`;
 }
 
 const priTable = (k, n) => `<div class="o2o-wrap"><table class="o2o-tbl ed"><tr><th>Action</th><th>Led by</th><th>Support needed</th><th>Due date</th></tr>
@@ -718,7 +795,7 @@ function goalsBody(k) {
   <div class="o2o-wrap"><table class="o2o-tbl ed"><tr><th>Measure</th><th>Current 13-week</th><th>6 months</th><th>1 year</th><th>3 years</th></tr>
   ${MILE.map(([key, label, how, w]) => `<tr><td style="padding-top:11px">${label}</td><td class="o2o-auto">${esc(nowOf(snap, key, how, w))}</td><td>${fIn(k, `mile.${key}.m6`)}</td><td>${fIn(k, `mile.${key}.y1`)}</td><td>${fIn(k, `mile.${key}.y3`)}</td></tr>`).join('')}</table></div>
 
-  ${(getP(k.c, 'priorities') || []).some(a => has(a.action)) ? `<div class="o2o-sec">Our agreed priorities, next 13 weeks</div>${priTable(k, rowsOf(k, 'priorities', 3))}` : ''}
+  ${(getP(k.c, 'priorities') || []).some(a => has(a.action)) ? `<div class="o2o-sec">Our agreed priorities, next 3 months</div>${priTable(k, rowsOf(k, 'priorities', 3))}` : ''}
   ${legacy.length ? `<div class="o2o-sec">Earlier follow-up notes</div>${legacy.map(f => `<p class="o2o-text">${has(f.date) ? `<b>${esc(dMid(f.date))}</b><br>` : ''}${br(f.progress || '')}${has(f.change) ? `<br><i>Next:</i> ${br(f.change)}` : ''}</p>`).join('')}` : ''}`;
 }
 
@@ -727,7 +804,7 @@ function checkBody(k) {
   <div class="o2o-g3">${people(k)}<label class="o2o-fl">Check date${fDate(k, 'meeting_date')}</label></div>
   <div class="o2o-sec">13-week follow-up</div>
   <div class="o2o-g2">${fTa(k, 'progress', 'What progress has been made, and what have we learned?', 4)}${fTa(k, 'change', 'What should change or be prioritised next?', 4)}</div>
-  <div class="o2o-sec">Our agreed priorities, next 13 weeks</div>
+  <div class="o2o-sec">Our agreed priorities, next 3 months</div>
   ${priTable(k, rowsOf(k, 'priorities', 3))}`;
 }
 

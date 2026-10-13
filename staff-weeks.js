@@ -294,26 +294,31 @@ async function renderStaffWeeks() {
                 uh: sum('booked_hours'), ah: sum('available_hours') };
   const worked = weeks.filter(w => w.numbers.total_revenue > 0 || w.numbers.clients > 0).length;
 
-  // The table runs across (Kate, 7 Oct 2026): a column a week, Weeks 1 to 52 with no quarters, the
-  // year's total beside the labels, and a row for every figure perf_core gives a week. The year
-  // column is worked out from the same sums as a week, so a ratio is a ratio of totals.
+  // The table runs down (Kate, 13 Oct 2026: Coach Emma could not read the 7 Oct version, a column a week, and
+  // asked for it the other way round, like the 13-week table before it): a row a week, Weeks 1 to 52 with no
+  // quarters, then the year's total and the week still being traded, and a column for every figure perf_core
+  // gives a week, grouped Sales, Clients, Rebooking, Column and Reviews. The total row is worked out from the
+  // same sums as a week, so a ratio is a ratio of totals.
   const yr = Object.fromEntries(W13_SUMS.map(k => [k, weeks.reduce((x, w) => x + (Number(w.numbers[k]) || 0), 0)]));
   const totFill = tot.ah > 0 ? Math.round(100 * tot.uh / tot.ah) + '%' : '–';
-  const cols = weeks.length + (curWk ? 1 : 0) + 2;
-  const head = weeks.map(w => {
+  const figs = W13_ROWS.filter(r => r[0] !== 'g');
+  const groups = [];
+  W13_ROWS.forEach(r => { if (r[0] === 'g') groups.push([r[1], 0]); else groups[groups.length - 1][1]++; });
+  const figHead = l => l.replace(/ \(.*\)$/, '');
+  const head = `<tr class="w13-gh"><th></th>${groups.map(g => `<th colspan="${g[1]}">${w13Esc(g[0])}</th>`).join('')}</tr>
+    <tr><th>Week</th>${figs.map(r => `<th title="${w13Esc(r[0])}">${w13Esc(figHead(r[0]))}</th>`).join('')}</tr>`;
+  const cells = n => figs.map(r => `<td>${r[1](n)}</td>`).join('');
+  const rows = weeks.map(w => {
     const n = w.numbers, off = !(n.total_revenue > 0 || n.clients > 0);
     const why = !off ? '' : w13NoData(d.staff.branch, String(w.week_start).slice(0, 10)) ? 'not uploaded yet' : (w13Cov ? 'leave or days off' : '');
-    return `<th class="${off ? 'w13-off' : ''}"><b>${w13Wk(w.week_no)}</b><span>${w13Esc(w13Range(w.week_start))}</span>${why ? `<span>${why}</span>` : ''}</th>`;
-  }).join('') + (curWk ? `<th class="w13-cur"><b>${w13Wk(curWk.week_no)}</b><span>so far</span><span>${curWk.week_start === d.data_through ? w13Esc(w13Day(d.data_through)) : `${w13Esc(w13Day(curWk.week_start))} – ${w13Esc(w13Day(d.data_through))}`}</span></th>` : '');
-  const body = W13_ROWS.map(r => {
-    if (r[0] === 'g') return `<tr class="slv-g"><th colspan="${cols}"><span>${r[1]}</span></th></tr>`;
-    const cell = (n, cls) => `<td${cls ? ` class="${cls}"` : ''}>${r[1](n)}</td>`;
-    return `<tr><td>${r[0]}</td>${cell(yr, 'w13-yr')}${weeks.map(w => cell(w.numbers, !(w.numbers.total_revenue > 0 || w.numbers.clients > 0) ? 'w13-off' : '')).join('')}${curWk ? cell(curWk.numbers, 'w13-cur') : ''}</tr>`;
+    return `<tr class="w13-wk${off ? ' w13-off' : ''}"><td><b>${w13Wk(w.week_no)}</b><div class="slv-note">${w13Esc(w13Range(w.week_start))}${why ? ' · ' + why : ''}</div></td>${cells(n)}</tr>`;
   }).join('');
+  const totRow = `<tr class="w13-tot"><td>${w13Esc(`${d.year} · Weeks 1–${weeks.length ? weeks[weeks.length - 1].week_no : 0}`)}</td>${cells(yr)}</tr>`;
+  const curRow = curWk ? `<tr class="w13-cur"><td><b>${w13Wk(curWk.week_no)}</b><div class="slv-note">so far · ${curWk.week_start === d.data_through ? w13Esc(w13Day(d.data_through)) : `${w13Esc(w13Day(curWk.week_start))} – ${w13Esc(w13Day(d.data_through))}`}</div></td>${cells(curWk.numbers)}</tr>` : '';
   el.innerHTML = `
     <section class="slv-intro">
       <h2>Staff&rsquo;s 13 Week</h2>
-      <p>Weeks 1 to 52, Monday to Sunday from the first week of January, one column a week, with the year's total beside the labels. Sales sit at the top, then clients, rebooking and column fill. Only complete weeks count in the total; the week still being traded shows on the end as "so far". Service sales are before VAT, retail not included.</p>
+      <p>Weeks 1 to 52, Monday to Sunday from the first week of January, one row a week, with the year's total under the last week. The columns run sales, clients, rebooking and column fill. Only complete weeks count in the total; the week still being traded shows on the end as "so far". Service sales are before VAT, retail not included.</p>
     </section>
     <div class="sc-bar w13-bar" style="margin-bottom:14px">
       <button type="button" class="sc-btn" onclick="w13Set(null)">← ${w13Dept === 'Hair' ? 'Hair team' : w13Dept === 'Beauty' ? 'Beauty team' : 'All staff'}</button>
@@ -344,16 +349,16 @@ async function renderStaffWeeks() {
       </div>
       <div class="w13-zoom" id="w13Zoom"></div>
       <div style="position:relative;height:320px;margin-top:14px"><canvas id="w13Canvas"></canvas></div>
-      <div class="slv-wrap w13-across-wrap" id="w13Wrap" style="margin-top:14px"><table class="slv-table w13-table w13-across">
-        <thead><tr><th>Figure</th><th class="w13-yr">${w13Esc(`${d.year} · Weeks 1–${weeks.length ? weeks[weeks.length - 1].week_no : 0}`)}</th>${head}</tr></thead>
-        <tbody>${body}</tbody>
+      <div class="slv-wrap w13-down-wrap" id="w13Wrap" style="margin-top:14px"><table class="slv-table w13-table w13-down">
+        <thead>${head}</thead>
+        <tbody>${rows}${totRow}${curRow}</tbody>
       </table></div>
       <p class="slv-muted">Sales to ${w13Esc(w13Day(d.data_through))}. The totals are the complete weeks only; the week still being traded joins them once Sunday closes. Weeks with no clients stay in as zeros so the gaps show (leave, days off, or a week not uploaded yet).</p>
     </section>`;
   if (typeof spfDD === 'function') spfDD(document.getElementById('w13Year'));
-  // The latest weeks are the ones read first; the labels and the year stay put on the left.
+  // The latest weeks are the ones read first: open at the bottom, with the headings and the Week column pinned.
   const wrap = document.getElementById('w13Wrap');
-  if (wrap) wrap.scrollLeft = wrap.scrollWidth;
+  if (wrap) wrap.scrollTop = wrap.scrollHeight;
   w13Draw();
 }
 

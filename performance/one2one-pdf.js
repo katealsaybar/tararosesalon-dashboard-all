@@ -120,7 +120,7 @@ function monthly(rec, staff, P) {
     small('Reviewed together. Ticked when consistently shown; the rest are the next focus.'),
     ...P.CHECK.map((g, i) => [sec(`0${i + 1}  ${g[0]}`), table(['Item', 'Shown'], g[1].map((x, j) => [x, (c.check && c.check[i] && c.check[i][j])
         ? { text: 'Consistently', fontSize: 8.5, color: C.good, bold: true } : { text: 'Next focus', fontSize: 8.5, color: C.soft }]), ['*', 70])]),
-    sec('Our priorities for the next ' + spanOf(snap)), val(c.priorities), field('Training or management support that would help', c.support), sigBlock(rec, staff));
+    sec('Our priorities for the next 3 months'), val(c.priorities), field('Training or management support that would help', c.support), sigBlock(rec, staff));
   return Object.assign(frame('HR-10', 'v1 · Oct 2026', rec.status === 'draft'), { content: body });
 }
 
@@ -141,7 +141,7 @@ function goals(rec, staff, P) {
       ...P.KINDS.map(([k, kl], n) => [{ text: `0${n + 1}  ${kl} goal`, bold: true, fontSize: 10.5, margin: [0, 8, 0, 0] }, ...P.QS.map(([qk, ql], qi) => field(`${qi + 1}. ${ql}`, ((c.goals || {})[h] || {})[k] && c.goals[h][k][qk]))])]),
     sec('Business performance · 13-week review'), small('Current figures are worked out from the stylist\'s own numbers. The milestones are the ones agreed together.'),
     table(['Measure', 'Current 13-week', '6 months', '1 year', '3 years'], mile, ['*', 80, 60, 60, 60]),
-    ...(pri.length ? [sec('Our agreed priorities · next 13 weeks'), table(['Action', 'Led by', 'Support needed', 'Due date'], pri, ['*', 70, '*', 70])] : []),
+    ...(pri.length ? [sec('Our agreed priorities · next 3 months'), table(['Action', 'Led by', 'Support needed', 'Due date'], pri, ['*', 70, '*', 70])] : []),
     sec('13-week follow-up'),
     ...(fol.length ? fol.map(f => [field('Earlier note' + (has(f.date) ? ` (${P.dMid(f.date)})` : ''), f.progress), field('What should change or be prioritised next?', f.change)]) : []),
     ...(checks.length ? checks.map(ch => checkBlock(ch, staff, P)) : (fol.length ? [] : [small('No 13-week check has been signed yet. Each check is signed on its own.')])),

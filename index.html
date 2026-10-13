@@ -2096,20 +2096,20 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 /* 13W4: an outlined stub is a week not uploaded yet; the dotted line is her level's weekly aim. */
 .w13-spark rect.nd{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:2 1.5;vector-effect:non-scaling-stroke}
 .w13-spark line.aim{stroke:var(--text);stroke-width:1;stroke-dasharray:3 2;opacity:.55;vector-effect:non-scaling-stroke}
-/* Staff's 13 Week table across (Kate, 7 Oct 2026): a column a week, the labels and the year pinned on the left. */
-.w13-across{width:auto;min-width:100%;border-collapse:separate;border-spacing:0}
-.w13-across th,.w13-across td{text-align:right;white-space:nowrap}
-.w13-across thead th{vertical-align:bottom;line-height:1.35;color:var(--text);font-weight:400}
-.w13-across thead th b{display:block;font-weight:600}
-.w13-across thead th span{display:block;font-size:11.5px;color:var(--muted);font-weight:500}
-.w13-across th:first-child,.w13-across td:first-child{box-sizing:border-box;width:170px;min-width:170px;max-width:170px;white-space:normal;text-align:left;position:sticky;left:0;z-index:2;background:var(--surface)}
-.w13-across th.w13-yr,.w13-across td.w13-yr{position:sticky;left:170px;z-index:2;background:var(--surface2);font-weight:700;border-right:1px solid var(--border);box-sizing:border-box;width:116px;min-width:116px}
-.w13-across tr.slv-g th{position:static;text-align:left;background:none;padding:0;border-bottom:0;width:auto;min-width:0;max-width:none}
-.w13-across tr.slv-g th>span{position:sticky;left:0;display:inline-block;padding:18px 10px 6px}
-.w13-across td.w13-off,.w13-across th.w13-off{color:var(--muted)}
-.w13-across thead th.w13-cur,.w13-across td.w13-cur{border-left:1px dashed var(--border);color:var(--muted)}
-.w13-across thead th.w13-cur b{color:var(--text)}
-@media(max-width:700px){.w13-across th:first-child,.w13-across td:first-child{width:128px;min-width:128px;max-width:128px}.w13-across th.w13-yr,.w13-across td.w13-yr{position:static;width:96px;min-width:96px}}
+/* Staff's 13 Week table down (Kate, 13 Oct 2026): a row a week, a column a figure; the headings stay at the top and the Week column on the left while it scrolls. */
+.w13-down-wrap{max-height:72vh;overflow:auto}
+.w13-down{width:auto;min-width:100%;border-collapse:separate;border-spacing:0}
+.w13-down th,.w13-down td{text-align:right;white-space:nowrap}
+.w13-down thead th{position:sticky;top:0;z-index:3;background:var(--surface);vertical-align:bottom;line-height:1.35;color:var(--text);font-weight:600}
+.w13-down thead tr.w13-gh th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;border-left:1px solid var(--border);padding-bottom:2px}
+.w13-down thead tr:nth-child(2) th{top:26px}
+.w13-down th:first-child,.w13-down td:first-child{box-sizing:border-box;width:150px;min-width:150px;white-space:normal;text-align:left;position:sticky;left:0;z-index:2;background:var(--surface)}
+.w13-down thead th:first-child{z-index:4}
+.w13-down tr.w13-wk.w13-off td{color:var(--muted)}
+.w13-down tr.w13-tot td{font-weight:700;background:var(--surface2);border-top:1px solid var(--border)}
+.w13-down tr.w13-cur td{border-top:1px dashed var(--border);color:var(--muted)}
+.w13-down tr.w13-cur td b{color:var(--text)}
+@media(max-width:700px){.w13-down th:first-child,.w13-down td:first-child{width:112px;min-width:112px}}
 .slv-table tr.w13-cur td{border-top:1px dashed var(--border);color:var(--muted)}
 .slv-table tr.w13-cur td b{color:var(--text)}
 .w13-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 4px}
@@ -4147,7 +4147,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="ledger-targets-db.js?v=20261006act"></script>
 <script src="staff-profiles.js?v=20261009rl1"></script>
 <script src="stylist-levels.js?v=20261005dots"></script>
-<script src="staff-weeks.js?v=20261008cb1"></script>
+<script src="staff-weeks.js?v=20261013a"></script>
 <script src="products.js?v=20261009pd1"></script>
 <script src="lost-clients.js?v=20261009ll8"></script>
 <script src="lost-lists.js?v=20261012ll29"></script>
