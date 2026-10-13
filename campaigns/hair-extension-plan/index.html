@@ -22,6 +22,15 @@
 {"@context": "https://schema.org", "@graph": [{"@type": "Service", "name": "The Hair Extension Plan", "serviceType": "Prepaid hair extension maintenance plan", "provider": {"@type": "Organization", "name": "Tara Rose Salon", "url": "https://www.tararosesalon.com"}, "areaServed": [{"@type": "City", "name": "Dubai"}, {"@type": "City", "name": "Abu Dhabi"}], "termsOfService": "https://www.tararosesalon.com/en/ae/terms-and-conditions/", "offers": [{"@type": "Offer", "name": "Maintain Essentials", "price": "1500", "priceCurrency": "AED"}, {"@type": "Offer", "name": "Maintain Plus", "price": "3000", "priceCurrency": "AED"}, {"@type": "Offer", "name": "New Hair and Maintain Bundle", "priceSpecification": {"@type": "PriceSpecification", "minPrice": "3300", "priceCurrency": "AED"}}]}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does the plan cover new hair?", "acceptedAnswer": {"@type": "Answer", "text": "Only the New Hair and Maintain Bundle does. It includes your full application in your chosen method, plus a 12-month Maintenance Bundle credit of AED 1,500. Maintain Essentials and Maintain Plus are for extensions you already wear."}}, {"@type": "Question", "name": "Does the credit cover my move-up appointment?", "acceptedAnswer": {"@type": "Answer", "text": "No. Your move-up is booked and paid as it is today. The plan covers everything around it that keeps the blend looking new."}}, {"@type": "Question", "name": "Can I split the payment?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Maintain Plus splits into 4 interest-free payments of AED 750, and the New Hair and Maintain Bundle into 4 payments, from AED 825 each, with Tabby. The credit, the bonus and the gifts stay exactly the same. Maintain Essentials is cash or card only."}}, {"@type": "Question", "name": "Can I give it as a gift?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. The plan is issued in her name, ready to book, with a note from you."}}]}]}
 </script>
 <style>
+.slot{background-color:#e7dfd2;background-size:cover;background-position:center;background-repeat:no-repeat;border-radius:12px;overflow:hidden}
+.slot--tier{aspect-ratio:3/2;margin:0 0 18px}
+.sci div.mu-row{grid-template-columns:104px 1fr;gap:20px;align-items:center}
+.mu-row .slot{width:104px;aspect-ratio:1/1;border-radius:10px}
+.sci div.mu-row .slot{display:block;padding:0;border-top:0;border-bottom:0}
+.mu-t{display:block}
+.mu-t b{display:block;margin-bottom:2px}
+.mu-t em{display:block;font-style:normal}
+@media(max-width:560px){.sci div.mu-row{grid-template-columns:84px 1fr;gap:14px}.mu-row .slot{width:84px}}
 .hero-hr{background:#161512 url(assets/img/hero-extensions.jpg) 0% 40%/118% auto no-repeat}
 .hero-hr::before{content:"";position:absolute;inset:0;opacity:1;background:linear-gradient(100deg,rgba(20,19,17,.95) 0%,rgba(20,19,17,.84) 44%,rgba(20,19,17,.3) 66%,rgba(20,19,17,0) 100%)}
 @media (min-width:900px){
@@ -87,6 +96,7 @@
     </div>
     <div class="vgrid">
       <div class="vstack">
+        <div class="slot slot--tier" role="img" aria-label="Photo placeholder: Maintain Essentials" style="background-image:url(assets/img/tier-essentials.jpg),url(assets/img/slots/tier-essentials.svg)"></div>
         <span class="vs-name">Maintain Essentials</span>
         <span class="vs-note">Keep it fresh</span>
         <p class="vs-scope"><b>Spends on your maintenance.</b> Cuts, blow-dries, toning, treatments, scalp scrubs, head and neck massage. Not new hair, not your move-up.</p>
@@ -101,6 +111,7 @@
         <a class="pill pill--accent vs-cta" href="#reserve" data-pick="essentials" data-cta="stack-essentials">Reserve Essentials</a>
       </div>
       <div class="vstack vstack--hero">
+        <div class="slot slot--tier" role="img" aria-label="Photo placeholder: Maintain Plus" style="background-image:url(assets/img/tier-plus.jpg),url(assets/img/slots/tier-plus.svg)"></div>
         <span class="vs-name">Maintain Plus</span>
         <span class="vs-note">Our recommendation &middot; nine months, cared for</span>
         <p class="vs-scope"><b>Spends on your maintenance.</b> The same services, across nine months. Not new hair, not your move-up.</p>
@@ -116,6 +127,7 @@
         <a class="pill pill--accent vs-cta" href="#reserve" data-pick="plus" data-cta="stack-plus">Reserve Plus</a>
       </div>
       <div class="vstack">
+        <div class="slot slot--tier" role="img" aria-label="Photo placeholder: New Hair and Maintain Bundle" style="background-image:url(assets/img/tier-bundle.jpg),url(assets/img/slots/tier-bundle.svg)"></div>
         <span class="vs-name">New Hair and Maintain Bundle</span>
         <span class="vs-note">New hair, and the year that keeps it</span>
         <p class="vs-scope"><b>One decision.</b> Your full new-hair application in your chosen method, plus a 12-month Maintenance Bundle. No Maintenance Bonus on the bundle.</p>
@@ -153,11 +165,11 @@
       <div class="rblock"><span class="rnum">05</span><h3>The Tara Rose Truth</h3><p class="rtruth" style="text-align:left;margin:0;max-width:none">The rhythm is what makes the extensions last.</p></div>
     </div>
     <div class="sci" style="margin-top:34px">
-      <div><b>Tape-In</b><span>Move-up every 6 to 8 weeks<span style="display:block;margin-top:6px;font-weight:600;color:var(--ink)">AED 450 for 1 pack, AED 1,050 for 4</span></span></div>
-      <div><b>Nano Rings</b><span>Move-up every 8 to 10 weeks<span style="display:block;margin-top:6px;font-weight:600;color:var(--ink)">AED 500 per hour</span></span></div>
-      <div><b>Beaded Weft</b><span>Move-up every 8 to 10 weeks<span style="display:block;margin-top:6px;font-weight:600;color:var(--ink)">AED 350 for 1 row, AED 550 for 3</span></span></div>
-      <div><b>Sewn Weft</b><span>Tighten every 6 to 8 weeks<span style="display:block;margin-top:6px;font-weight:600;color:var(--ink)">AED 350 for 1 row, AED 550 for 3</span></span></div>
-      <div><b>Keratin and Fusion</b><span>Move-up every 10 to 12 weeks<span style="display:block;margin-top:6px;font-weight:600;color:var(--ink)">AED 500 per hour</span></span></div>
+      <div class="mu-row"><div class="slot" role="img" aria-label="Photo placeholder: Tape-In" style="background-image:url(assets/img/method-tape-in.jpg),url(assets/img/slots/method-tape-in.svg)"></div><span class="mu-t"><b>Tape-In</b><em>Move-up every 6 to 8 weeks</em><em style="margin-top:6px;font-weight:600">AED 450 for 1 pack, AED 1,050 for 4</em></span></div>
+      <div class="mu-row"><div class="slot" role="img" aria-label="Photo placeholder: Nano Rings" style="background-image:url(assets/img/method-nano-rings.jpg),url(assets/img/slots/method-nano-rings.svg)"></div><span class="mu-t"><b>Nano Rings</b><em>Move-up every 8 to 10 weeks</em><em style="margin-top:6px;font-weight:600">AED 500 per hour</em></span></div>
+      <div class="mu-row"><div class="slot" role="img" aria-label="Photo placeholder: Beaded Weft" style="background-image:url(assets/img/method-beaded-weft.jpg),url(assets/img/slots/method-beaded-weft.svg)"></div><span class="mu-t"><b>Beaded Weft</b><em>Move-up every 8 to 10 weeks</em><em style="margin-top:6px;font-weight:600">AED 350 for 1 row, AED 550 for 3</em></span></div>
+      <div class="mu-row"><div class="slot" role="img" aria-label="Photo placeholder: Sewn Weft" style="background-image:url(assets/img/method-sewn-weft.jpg),url(assets/img/slots/method-sewn-weft.svg)"></div><span class="mu-t"><b>Sewn Weft</b><em>Tighten every 6 to 8 weeks</em><em style="margin-top:6px;font-weight:600">AED 350 for 1 row, AED 550 for 3</em></span></div>
+      <div class="mu-row"><div class="slot" role="img" aria-label="Photo placeholder: Keratin and Fusion" style="background-image:url(assets/img/method-keratin-fusion.jpg),url(assets/img/slots/method-keratin-fusion.svg)"></div><span class="mu-t"><b>Keratin and Fusion</b><em>Move-up every 10 to 12 weeks</em><em style="margin-top:6px;font-weight:600">AED 500 per hour</em></span></div>
     </div>
     <p style="max-width:62ch;margin:22px auto 0;text-align:center;color:var(--ink-soft);font-size:15.5px;line-height:1.6">Move-ups are booked and paid separately, and your stylist confirms the packs, rows or hours at your Confidence Mapping. Every install and move-up sits inside your 8-Step Hair Plan: your method, how fast your hair grows and your scalp, written down with your stylist before the chair.</p>
   </div>

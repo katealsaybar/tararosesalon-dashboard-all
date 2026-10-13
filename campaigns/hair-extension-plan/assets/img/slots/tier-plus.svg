@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" preserveAspectRatio="xMidYMid slice">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#efe9de"/><stop offset="1" stop-color="#e2d9c8"/></linearGradient></defs>
+<rect width="1200" height="800" fill="url(#g)"/>
+<rect x="32" y="32" width="1136" height="736" rx="40" fill="none" stroke="#2D2E37" stroke-opacity=".28" stroke-width="2" stroke-dasharray="10 8"/>
+<g transform="translate(544.0,260.0)" fill="none" stroke="#2D2E37" stroke-opacity=".55" stroke-width="7" stroke-linejoin="round">
+<rect x="0" y="24.64" width="112" height="80.64" rx="11.200000000000001"/><path d="M33.6 24.64 l11.200000000000001 -17.92 h22.400000000000002 l11.200000000000001 17.92"/><circle cx="56.0" cy="64.96" r="22.400000000000002"/></g>
+<text x="600.0" y="422.4" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="50" fill="#2D2E37">Photo: Maintain Plus</text>
+<text x="600.0" y="497.4" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="34" fill="#2D2E37" fill-opacity=".7">name it tier-plus.jpg</text>
+<text x="600.0" y="551.8" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="34" fill="#2D2E37" fill-opacity=".7">1200 x 800</text>
+</svg>
