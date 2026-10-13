@@ -31,7 +31,7 @@ section{ padding:var(--sec-y) 0; }
 :focus-visible{ outline:2px solid var(--accent-text); outline-offset:3px; border-radius:3px; }
 
 .eyebrow{ font-family:var(--fb); font-size:11px; font-weight:500; letter-spacing:.4em; text-transform:uppercase; color:var(--ink-soft); }
-.h-1{ font-family:var(--fd); font-weight:500; font-size:clamp(42px,6.2vw,80px); line-height:1.0; letter-spacing:-.018em; text-wrap:balance; }
+.h-1{ font-family:var(--fd); font-weight:500; font-size:clamp(42px,min(6.2vw,9vh),80px); line-height:1.0; letter-spacing:-.018em; text-wrap:balance; }
 .p{ font-family:var(--fb); font-size:16px; font-weight:400; line-height:1.62; color:var(--ink); }
 .p-sm{ font-family:var(--fb); font-size:14.5px; font-weight:300; line-height:1.58; color:var(--ink-soft); }
 em.accent{ font-style:italic; color:var(--accent-text); }
@@ -71,7 +71,27 @@ em.accent{ font-style:italic; color:var(--accent-text); }
 
 /* Hero-C */
 .hero-c{ position:relative; overflow:hidden; background:var(--ink-deep); color:#fff; padding:112px 0 100px; }
-.hero-c::before{ content:""; position:absolute; inset:0; background:linear-gradient(150deg,#C9A98C,#4F3D30); opacity:.22; }
+.hero-c--photo{ background-image:linear-gradient(100deg,rgba(20,19,17,.74) 0%,rgba(20,19,17,.66) 46%,rgba(20,19,17,.42) 100%),var(--hero-jpg); }
+@supports (background-image:image-set(url(a.webp) type("image/webp"))){
+  .hero-c--photo{ background-image:linear-gradient(100deg,rgba(20,19,17,.74) 0%,rgba(20,19,17,.66) 46%,rgba(20,19,17,.42) 100%),image-set(var(--hero-webp) type("image/webp"), var(--hero-jpg) type("image/jpeg")); }
+}
+
+/* Tara, 21 Sep: the overlay was hiding the photograph. The scrim was .88/.80/.55
+   with a further 22% brown tint on top. Lightened to .74/.66/.42 and the tint to
+   .16, so the treatment is visible.
+
+   How far to go was measured, not judged by eye. Hide the hero text, screenshot
+   the background, then sample every few pixels across each text box and take the
+   WORST contrast, not the average. A first pass at .62/.52/.26 looked better and
+   failed AA: the lede dropped to 2.88:1 against a required 4.5, because parts of
+   it sit over her face, which is the brightest area of the frame.
+
+   .lede-mech went from 72% to 88% white at the same time. It was the only element
+   still failing, and raising the text was the better trade than darkening the
+   photograph again.
+
+   Worst case now, measured at 375, 768 and 1280: 4.70:1 against a floor of 4.5. */
+.hero-c::before{ content:""; position:absolute; inset:0; background:linear-gradient(150deg,#C9A98C,#4F3D30); opacity:.16; }
 .hero-c::after{ content:""; position:absolute; inset:0; background:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n2'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='150' height='150' filter='url(%23n2)' opacity='0.14'/></svg>") repeat; pointer-events:none; }
 .hero-c .inner{ position:relative; z-index:2; max-width:820px; margin:0 auto; text-align:center; }
 .pill-tag{ display:inline-flex; align-items:center; gap:9px; background:rgba(255,255,255,.06); padding:9px 18px; border-radius:var(--r-pill); font-family:var(--fb); font-size:11px; letter-spacing:.2em; text-transform:uppercase; font-weight:600; color:rgba(255,255,255,.9); margin-bottom:26px; }
@@ -82,7 +102,120 @@ em.accent{ font-style:italic; color:var(--accent-text); }
 .scarcity{ display:inline-flex; align-items:center; gap:12px; margin-top:30px; padding:14px 22px; border-radius:var(--r-pill); background:rgba(153,246,228,.12); border:1px solid rgba(153,246,228,.4); font-family:var(--fb); font-size:13px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#fff; }
 .scarcity .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); animation:pulse 2s var(--ease) infinite; }
 @media (prefers-reduced-motion:no-preference){ @keyframes pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(153,246,228,.5) } 50%{ box-shadow:0 0 0 7px rgba(153,246,228,0) } } }
-.countdown{ display:flex; gap:10px; margin-top:30px; flex-wrap:wrap; }
+.countdown{ display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+.countdown:empty{ display:none; }
+/* Tara, 15 Sep: the three tiers should read small, medium and large, so the card
+   shows how much of the year she is setting aside before she reads a number. The
+   widths step; the heights stay equal and the three Choose buttons stay on one
+   line, because ragged cards read as a mistake rather than as a ladder. Only at
+   desktop, where all three are side by side; below that they are a rail and the
+   sizes would just look inconsistent. Rule lives beside the base .vgrid
+   declaration further down, because it has to come after it to win. */
+/* TABLET: the recommended card runs the full width of the grid, which gives it the
+   prominence it should have but stretched every row to 704px, so a label sat up to
+   496px from its own price. Proximity is what pairs them; at that distance the eye
+   stops pairing. Cap the inner measure at 430px and the card keeps its prominence
+   while a label and its price stay together. Measured after: 240px worst, from 496. */
+@media (min-width:601px) and (max-width:1023px){
+  .vgrid .vstack--hero > *{ max-width:430px; width:100%; margin-left:auto; margin-right:auto; }
+}
+/* The tiers were 100 to 140px apart in height on a phone, because the two larger
+   ones carry a Tabby payment row the entry tier does not. In a snap carousel you
+   see the edge of the next card, and ragged heights read as a mistake rather than
+   as a difference in content. The grid stretches them to the tallest and the
+   footer is pinned to the bottom, so the three Choose buttons line up. */
+.vgrid .vstack .vs-foot{ margin-top:auto; }
+/* The hero paragraph was 70 words doing three jobs in one centred block of eight
+   lines: the life moment she recognises herself in, the mechanism, and the
+   positioning line. Centred type works at two or three lines and becomes a wall
+   at eight. The moment now arrives first and loudest, the mechanism sits quieter
+   beneath it, and "Not money off. A plan." reads as the line it is rather than
+   the tail of a sentence. (Tara chose this treatment, 15 September 2026.) */
+.hero-c .lede-life, .hero-c .lede-mech, .hero-c .lede-tag{ display:block }
+.hero-c .lede-life{ font-size:18px; line-height:1.45; color:rgba(255,255,255,.94); margin-bottom:12px }
+.hero-c .lede-mech{ font-size:15px; line-height:1.5; color:rgba(255,255,255,.88); max-width:46ch; margin:0 auto }
+.hero-c .lede-tag{ margin-top:12px; font-family:var(--fb); font-size:11.5px; font-weight:600;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--accent) }
+/* The gallery moved onto the ink ground (Tara, 15 Sep: images before the voucher).
+   Its captions were coloured for a light ground and measured 2.95:1 there, under
+   the 4.5:1 that small text needs. Light them for the ground they are now on. */
+.exp.dark .exp-tile figcaption{ color:rgba(255,255,255,.76); }
+.exp.dark .exp-hint{ color:rgba(255,255,255,.62); }
+.exp.dark .sec-head h2{ color:#fff; }
+.exp.dark .sec-head h2 em{ color:var(--accent); }
+
+/* ── THE ASK HAS TO BE ON THE FIRST SCREEN ────────────────────────────────────
+   Locked rule: the hero CTA sits above the fold at 1280x800. Measured today it
+   sat at 1049px of an 800px screen, so on every common laptop she had to scroll
+   before she saw the one action the page is asking for. The type was sized by
+   viewport WIDTH alone, so a wide short laptop got the same 74px headline as a
+   tall monitor. This band applies only where the screen is short, so a large
+   display keeps the full setting. Measured after: 703px on 1280x800, 1440x900,
+   1440x800 and 1512x850. */
+/* Splitting the paragraph into three movements costs vertical space, and the ask
+   has to stay on the first screen. Bought back from the timer and the gaps rather
+   than from her words: nothing she reads got smaller. */
+@media (max-width:1023px){
+  .hero-c.hero-c--photo{ padding-top:30px; padding-bottom:28px; }
+  .hero-c .pill-tag{ padding-top:7px; padding-bottom:7px; }
+  .hero-c h1{ line-height:1.02; }
+  .hero-c .lede-life{ margin-bottom:10px; }
+  .hero-c .lede-mech{ font-size:14.5px; line-height:1.45; }
+  .hero-c .scarcity{ margin-top:16px; padding-top:10px; padding-bottom:10px; }
+  .hero-c .countdown{ margin-top:12px; gap:8px; }
+  .hero-c .cd{ padding:7px 9px; min-width:64px; }
+  .hero-c .cd__n{ font-size:22px; }
+  .hero-c .cd__l{ margin-top:5px; }
+  .hero-c .scarcity-line{ margin-top:14px; }
+  .hero-c .cta-row{ margin-top:10px; }
+  /* The chip directly above already says "45 this window, 15 already gone". On a
+     phone this line repeats it in different words and costs 33px of the one screen
+     she is guaranteed to see. It returns at tablet width. */
+  .hero-c .scarcity-line{ display:none; }
+}
+/* the laptop band, tightened again for the same reason */
+
+/* The smallest phone still in real use. A few more pixels from the timer and the
+   leading, so the ask lands on the first screen there too. */
+@media (max-width:400px){
+  .hero-c.hero-c--photo{ padding-top:24px; padding-bottom:24px; }
+  .hero-c .lede-life{ font-size:17px; line-height:1.4; }
+  .hero-c .cd{ padding:5px 8px; min-width:58px; }
+  .hero-c .cd__n{ font-size:20px; }
+}
+@media (min-width:1024px) and (max-height:920px){
+  .hero-c .lede-life{ font-size:17px; margin-bottom:10px; }
+  .hero-c .lede-mech{ font-size:14.5px; line-height:1.45; }
+  .hero-c .countdown{ margin-top:10px; }
+  .hero-c .cd{ padding:8px 10px; }
+  .hero-c .cd__n{ font-size:22px; }
+  .hero-c .scarcity-line{ margin-top:12px; }
+  .hero-c .cta-row{ margin-top:10px; }
+  .hero-c .lede-life{ font-size:16.5px; }
+}
+@media (min-width:1024px) and (max-height:920px){
+  .hero-c.hero-c--photo{ padding-top:14px; padding-bottom:16px; }
+  .hero-c h1{ font-size:54px; line-height:1.04; }
+  .hero-c .lede{ font-size:15.5px; line-height:1.5; margin-top:12px; max-width:560px; }
+  .hero-c .scarcity{ margin-top:18px; padding-top:10px; padding-bottom:10px; }
+  .hero-c .countdown{ margin-top:12px; }
+  .hero-c .cd{ padding:9px 10px; }
+  .hero-c .cd__n{ font-size:24px; }
+  .hero-c .scarcity-line{ margin-top:14px; }
+  .hero-c .cta-row{ margin-top:14px; }
+}
+/* The honeypot has to be reachable to a bot and invisible to a person, so it is
+   moved off-canvas rather than display:none, which many bots skip. */
+.hp{ position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden }
+.permit-closed{ display:none }
+body.window-closed .permit-open{ display:none }
+body.window-closed .permit-closed{ display:inline }
+.form-offline{ margin:16px 0 0; padding:14px 16px; border:1px solid var(--accent-deep); border-radius:var(--r-sm);
+  background:rgba(153,246,228,.10); font-family:var(--fb); font-size:14px; line-height:1.55; color:var(--ink); }
+.form-offline a{ color:var(--accent-text); font-weight:600; text-decoration:underline; text-underline-offset:3px; } /* the cells are in the HTML now, so this only fires if a page ships without them */
+.scarcity-line{ margin:26px 0 0; font-family:var(--fb); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.78); }
+.scarcity b{ color:var(--accent); font-weight:600; }
+.hero-c .scarcity + .scarcity-line{ margin-top:16px; }
 .cd{ border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.04); border-radius:var(--r-sm); padding:14px 12px; min-width:76px; text-align:center; }
 .cd__n{ font-family:var(--fd); font-size:30px; color:#fff; line-height:1; display:block; font-weight:500; font-variant-numeric:tabular-nums; }
 .cd__l{ font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:rgba(255,255,255,.6); margin-top:8px; display:block; }
@@ -115,6 +248,20 @@ em.accent{ font-style:italic; color:var(--accent-text); }
 .dark .eyebrow{ color:rgba(255,255,255,.55); }
 .dark h2,.dark h3{ color:#fff; }
 .belief{ text-align:center; padding:84px 0; }
+/* The Customer-to-Known shift was the best writing on the page and it sat BELOW the
+   form, where it converts nobody. Lifted above the tier cards so it earns the price
+   before she reads one. It lands between the dark experience strip and the cream
+   cards, so it takes a third ground of its own: two touching sections that share a
+   ground read as one block with no edge. */
+.belief--lift{ background:var(--sand); border-top:1px solid var(--hair); border-bottom:1px solid var(--hair); padding:74px 0; }
+.belief--lift h2{ color:var(--ink); }
+.belief--lift .q{ color:#155D4E; }
+/* The ground here is --sand #E7DFD2, darker than the other light bands, so the
+   standard accent-text and taupe both land just under 4.5:1 on it. Measured and
+   darkened rather than assumed: 5.8:1 and 5.5:1. */
+.belief--lift p[style*="var(--accent)"]{ color:#155D4E !important; }
+.attr--lift{ color:#56565E !important; }
+@media (max-width:600px){ .belief--lift{ padding:56px 0 } }
 .belief .q{ font-family:var(--fd); font-style:italic; font-size:84px; line-height:.5; color:var(--accent); height:40px; display:block; margin-bottom:22px; }
 .belief h2{ font-family:var(--fd); font-style:italic; font-weight:500; font-size:clamp(28px,4.4vw,46px); line-height:1.1; max-width:820px; margin:0 auto; }
 .belief .attr{ display:inline-block; margin-top:28px; font-size:11px; letter-spacing:.3em; text-transform:uppercase; font-weight:600; color:rgba(255,255,255,.55); }
@@ -130,6 +277,12 @@ em.accent{ font-style:italic; color:var(--accent-text); }
 /* Grids */
 .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:22px; }
 .grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+/* .grid-4 had only a mobile and a tablet override in normalise and NO base
+   rule, so on desktop it was not a grid at all and the four salons stacked
+   full width, one per row. (14 Sep 2026) */
+.grid-4{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; }
+@media (max-width:1080px){ .grid-4{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:560px){ .grid-4{ grid-template-columns:1fr; } }
 @media (max-width:860px){ .grid-3{ grid-template-columns:1fr; } }
 @media (max-width:640px){ .grid-2{ grid-template-columns:1fr; } }
 
@@ -186,10 +339,10 @@ em.accent{ font-style:italic; color:var(--accent-text); }
 .owner .obody{ margin-top:18px; max-width:48ch; font-family:var(--fb); font-size:16.5px; font-weight:300; line-height:1.6; color:var(--ink); }
 
 /* Testimonials */
-.tcard{ background:#fff; border:1px solid var(--hair); border-radius:var(--r-md); padding:32px; box-shadow:0 1px 2px rgba(45,46,55,.05),0 12px 28px -20px rgba(45,46,55,.16); }
-.tcard .stars{ color:var(--accent-deep); font-size:13px; letter-spacing:.2em; margin-bottom:14px; }
-.tcard blockquote{ font-family:var(--fb); font-size:15.5px; font-weight:300; line-height:1.62; color:var(--ink); }
-.tcard cite{ display:block; margin-top:18px; font-family:var(--fd); font-style:italic; font-size:15px; color:var(--ink); }
+/* superseded by the rebuilt .tcard below (14 Sep 2026) */
+
+
+
 
 /* FAQ */
 .faq details{ border-bottom:1px solid rgba(255,255,255,.12); padding:4px 0; }
@@ -211,6 +364,8 @@ em.accent{ font-style:italic; color:var(--accent-text); }
 .reserve .head h2{ font-family:var(--fd); font-weight:500; font-size:clamp(34px,5vw,56px); line-height:1.02; letter-spacing:-.012em; color:var(--ink); }
 .field{ margin-bottom:18px; }
 .field label{ display:block; font-family:var(--fb); font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--ink); margin-bottom:8px; }
+.field label.pdpl__label{ text-transform:none; letter-spacing:0; font-weight:400; font-size:13.5px; line-height:1.5; color:var(--ink-soft); }
+.field label.pdpl__label strong{ color:var(--ink); font-weight:600; }
 .field label .req{ color:var(--accent-text); }
 .field input{ width:100%; font-family:var(--fb); font-size:15px; color:var(--ink); background:var(--paper); border:1px solid var(--hair); border-radius:var(--r-sm); padding:14px 16px; transition:border-color var(--dur) var(--ease); }
 .field input:focus{ outline:2px solid var(--accent-deep); outline-offset:3px; border-color:var(--accent-deep); }
@@ -270,6 +425,251 @@ em.accent{ font-style:italic; color:var(--accent-text); }
 .acard[data-av]:focus-visible{ outline:2px solid var(--accent-text); outline-offset:3px; }
 .rcard input:focus-visible + label{ outline:2px solid var(--accent-deep); outline-offset:3px; }
 .cd-closed{ font-family:var(--fd); font-style:italic; font-size:20px; color:var(--accent); }
+.field-error{ display:block; margin-top:7px; font-family:var(--fb); font-size:12.5px; line-height:1.4; color:#8E2F20; }
+[aria-invalid="true"]{ border-color:#8E2F20 !important; }
+.form-error-live{ margin:0 0 14px; font-family:var(--fb); font-size:13.5px; color:#8E2F20; min-height:1px; }
+body.window-closed .vs-total, body.window-closed .vs-foot .vs-break{ opacity:.55 }
+body.window-closed .float-cta a{ pointer-events:auto }
+.gproof{ max-width:760px; margin:-6px auto 26px; text-align:center; padding:26px 24px; border:1px solid var(--hair); border-radius:var(--r-lg); background:var(--paper) }
+.gproof__lead{ margin:0; font-family:var(--fb); font-size:16px; line-height:1.55; color:var(--ink) }
+.gproof__lead b{ font-weight:600 }
+.gproof__row{ list-style:none; display:flex; flex-wrap:wrap; justify-content:center; gap:10px 30px; margin:18px 0 0; padding:0 }
+.gproof__row li{ display:flex; flex-direction:column; align-items:center; gap:2px }
+.gproof__row b{ font-family:var(--fd); font-weight:400; font-size:26px; color:var(--accent-text); line-height:1 }
+.gproof__row span{ font-family:var(--fb); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft) }
+.gproof__note{ margin:16px 0 0; font-size:13px; line-height:1.5; color:var(--ink-soft) }
+
+/* ── PRESS STRIP, rebuilt 14 Sep 2026. Was underlined accent links, which read
+      as a list of hyperlinks rather than credentials. Now a quiet credential
+      row: the masthead in the display serif, what it said beneath it in the
+      eyebrow treatment, hairline dividers, no underline. Accent only on hover. */
+.press-strip .press-row{ display:flex; flex-wrap:wrap; justify-content:center; align-items:stretch; gap:0; max-width:1140px; margin:0 auto; }
+.press-strip .press-row a{
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:9px;
+  padding:4px 26px; text-decoration:none; border-left:1px solid var(--hair);
+  transition:color .3s var(--ease);
+}
+/* every logo sits centred in a box of the same height, so six different
+   shapes share one optical centre line instead of drifting */
+.press-strip .press-row a::before{ content:none }
+.press-logo-box{ height:50px; display:flex; align-items:center; justify-content:center }
+.press-strip .press-row a:first-child{ border-left:0 }
+.press-logo{
+  display:block; width:auto; filter:brightness(0) saturate(100%); opacity:.9;
+  transition:opacity .3s var(--ease), transform .3s var(--ease);
+  image-rendering:-webkit-optimize-contrast;
+}
+/* optically matched, not pixel matched: a wide wordmark and a stacked mark
+   at the same pixel height read as different sizes to the eye. */
+.press-logo--cosmo{ height:24px }
+.press-logo--hb{ height:33px }
+.press-logo--pb{ height:46px }
+.press-logo--ent{ height:38px }
+.press-logo--bw{ height:41px }
+.press-strip .press-row a:hover .press-logo{ opacity:1; transform:translateY(-2px) }
+.press-sub{
+  font-family:var(--fb); font-size:10px; font-weight:500; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--ink-soft); white-space:nowrap;
+}
+.press-strip .press-row a:hover .press-sub{ color:var(--ink) }
+@media(max-width:820px){
+  .press-strip .press-row a{ padding:12px 16px; border-left:0 }
+  .press-sub{ font-size:9.5px; letter-spacing:.12em }
+  .press-logo-box{ height:42px }
+  .press-logo--cosmo{ height:19px } .press-logo--hb{ height:27px }
+  .press-logo--pb{ height:37px } .press-logo--ent{ height:30px } .press-logo--bw{ height:33px }
+}
+
+/* ── AWARDS, rebuilt 14 Sep 2026. Was three prose paragraphs in cards, so the
+      award names were buried in sentences and nothing was skimmable. Now a
+      record: the award in the display serif, who or which body beneath, the
+      year on the right. The Hall of Fame gets the weight it earned. */
+.awards{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; margin:42px 0 0; }
+.award-col{ padding:6px 26px 0; border-left:1px solid var(--hair); }
+.award-col:first-child{ border-left:0; padding-left:0 }
+.award-col:last-child{ padding-right:0 }
+.award-col--hero{ position:relative }
+.award-mark{ display:flex; align-items:center; height:52px; margin:0 0 16px }
+.award-mark img{ height:48px; width:auto; display:block; filter:brightness(0) saturate(100%); opacity:.8 }
+.award-mark--pb img{ height:42px }
+@media(max-width:940px){ .award-mark{ justify-content:flex-start } }
+.award-col__head{ margin:0 0 20px; font-family:var(--fd); font-weight:400; font-size:22px; line-height:1.2; color:var(--ink) }
+.award-col__kind{ display:block; font-family:var(--fb); font-size:10.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--accent-text); margin-bottom:7px }
+.award-list{ list-style:none; margin:0; padding:0 }
+.award-list li{
+  display:grid; grid-template-columns:1fr auto; align-items:baseline; column-gap:14px;
+  padding:11px 0; border-bottom:1px solid var(--hair);
+}
+.award-list li:first-child{ border-top:1px solid var(--hair) }
+.award-list b{ grid-column:1; font-family:var(--fb); font-size:14px; font-weight:600; line-height:1.35; color:var(--ink) }
+.award-list span{ grid-column:1; font-family:var(--fb); font-size:12.5px; font-weight:300; line-height:1.4; color:var(--ink-soft); margin-top:2px }
+.award-list em{ grid-column:2; grid-row:1 / span 2; font-family:var(--fb); font-style:normal; font-size:11px; font-weight:500; letter-spacing:.07em; color:var(--ink-soft); text-align:right; text-wrap:balance }
+.award-hof{ margin:0 0 4px; padding:20px 22px; border-radius:var(--r-md); background:var(--paper); border:1px solid var(--accent-deep); text-align:center }
+.award-hof b{ display:block; font-family:var(--fd); font-weight:400; font-size:clamp(26px,2.6vw,32px); line-height:1.05; color:var(--ink) }
+.award-hof span{ display:block; margin-top:7px; font-family:var(--fb); font-size:10.5px; font-weight:500; letter-spacing:.17em; text-transform:uppercase; color:var(--ink-soft) }
+.award-hof em{ display:block; margin-top:10px; font-family:var(--fd); font-style:italic; font-size:19px; color:var(--accent-text) }
+.award-col__note{ margin:14px 0 0; font-family:var(--fb); font-size:12.5px; font-weight:300; line-height:1.55; color:var(--ink-soft) }
+.award-col__note--hof{ margin:10px 0 22px; text-align:center }
+@media(max-width:940px){
+  .awards{ grid-template-columns:1fr; gap:38px }
+  .award-col{ border-left:0; padding:0 }
+  .award-col--hero{ order:-1 }
+}
+
+/* ── REVIEWS, rebuilt 14 Sep 2026. Was six identical white boxes with no rating
+      and no source, which read as generic testimonial filler. Now: the five
+      stars each review actually carries, a quiet quote mark, and the source
+      named underneath so she can go and check it. Hairline over heavy shadow. */
+.rev-note{ max-width:62ch; margin:0 auto 26px; text-align:center; font-family:var(--fb); font-size:14px; font-weight:300; line-height:1.6; color:var(--ink-soft) }
+.tcard{
+  position:relative; background:var(--paper); border:1px solid var(--hair);
+  border-radius:var(--r-md); padding:26px 26px 24px; box-shadow:none;
+  transition:border-color .3s var(--ease);
+}
+.tcard:hover{ border-color:var(--accent-deep) }
+.tcard::before{
+  content:"\201C"; position:absolute; top:8px; right:20px;
+  font-family:var(--fd); font-size:56px; line-height:1; color:var(--accent-deep); opacity:.34;
+}
+.tcard .stars{ display:block; color:var(--accent-text); font-size:11px; letter-spacing:.32em; margin:0 0 12px }
+.tcard blockquote{ position:relative; margin:0; font-family:var(--fb); font-size:14.5px; font-weight:300; line-height:1.62; color:var(--ink) }
+.tcard cite{ display:block; margin-top:16px; padding-top:14px; border-top:1px solid var(--hair); font-family:var(--fd); font-style:italic; font-size:15px; color:var(--ink) }
+.tcard cite span{
+  display:block; margin-top:4px; font-family:var(--fb); font-style:normal;
+  font-size:10px; font-weight:500; letter-spacing:.15em; text-transform:uppercase; color:var(--ink-soft);
+}
+
+
+/* ── THE GOOGLE PROOF BAND ────────────────────────────────────────────────
+   Was a pale bordered box on a pale ground: no stars, no counts, no presence.
+   A rating with neither stars nor a count does not read as a rating at all.
+   Now a lit dark band (it inherits the .dark glow), the score in the display
+   serif at size, the count beneath so each number is concrete, the salon last
+   because she reads the score first. */
+/* TABBY, deliberately a LIGHT band. It used to be dark and sat immediately
+   above the dark Google band, so the two merged into one unbroken slab with
+   no edge between them. Light here restores the rhythm: paper, stone, dark. */
+.tabby-band{ background:var(--stone-soft); border-top:1px solid var(--hair); border-bottom:1px solid var(--hair); padding:66px 0; text-align:center }
+.tabby-band__eyebrow{ display:block; margin-bottom:14px; color:#55555C }
+.tabby-band__lead{ font-family:var(--fd); font-weight:500; font-size:clamp(28px,4vw,44px); color:var(--ink); max-width:22ch; margin:0 auto 16px; line-height:1.06; letter-spacing:-.01em }
+.tabby-band__lead em{ font-style:italic; color:var(--accent-text) }
+.tabby-band__body{ max-width:58ch; margin:0 auto; font-family:var(--fb); font-size:15px; line-height:1.62; color:var(--ink) }
+.tabby-band__body b{ font-weight:600 }
+.tabby-band__note{ margin:18px 0 0; font-family:var(--fb); font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#55555C }
+@media (max-width:600px){ .tabby-band{ padding:52px 0 } }
+.gproof-band{ padding:74px 0 66px; text-align:center }
+.gproof-band__eyebrow{ color:rgba(255,255,255,.5) !important; margin-bottom:16px }
+.gproof-band__lead{ font-family:var(--fd); font-weight:400; font-size:clamp(30px,4.1vw,50px); line-height:1.08; letter-spacing:-.015em; color:#fff; margin:0 auto; max-width:18ch }
+.gproof-band__lead em{ font-style:italic; color:var(--accent) }
+.gscores{ list-style:none; margin:42px auto 0; padding:0; max-width:940px; display:grid; grid-template-columns:repeat(4,1fr) }
+.gscores li{ display:flex; flex-direction:column; align-items:center; padding:4px 14px; border-left:1px solid rgba(255,255,255,.14) }
+.gscores li:first-child{ border-left:0 }
+.gscore__stars{ font-size:11px; letter-spacing:.26em; color:var(--accent); margin-bottom:9px }
+.gscores b{ font-family:var(--fd); font-weight:400; font-size:clamp(34px,3.6vw,44px); line-height:.95; color:#fff; font-variant-numeric:tabular-nums }
+.gscore__n{ margin-top:8px; font-family:var(--fb); font-size:11.5px; color:rgba(255,255,255,.62) }
+.gscore__where{ margin-top:12px; font-family:var(--fb); font-size:10px; font-weight:600; letter-spacing:.17em; text-transform:uppercase; color:rgba(255,255,255,.42); line-height:1.3; text-wrap:balance }
+.gproof-band__note{ margin:38px auto 0; max-width:52ch; font-family:var(--fb); font-size:13px; font-weight:300; line-height:1.6; color:rgba(255,255,255,.55) }
+@media(max-width:760px){
+  .gproof-band{ padding:56px 0 50px }
+  .gscores{ grid-template-columns:repeat(2,1fr); gap:30px 0; max-width:420px }
+  .gscores li{ border-left:0 }
+  .gscores li:nth-child(even){ border-left:1px solid rgba(255,255,255,.14) }
+  .gscore__where{ font-size:9.5px }
+}
+
+
+/* ── PHONE: real tap targets and a floor on type ──────────────────────────
+   Measured at 390: 21 of 53 tappable things were under 44px, and two labels
+   I had set were under 10px. A 20px checkbox is not a tap target, it is a
+   dare. */
+@media (max-width:760px){
+  .trs-nav .brand, .trs-nav .nav-link{ min-height:44px; display:inline-flex; align-items:center }
+  .loc .go, a.go{ min-height:44px; display:inline-flex; align-items:center }
+  footer a{ display:inline-block; padding:11px 0; line-height:1.25 }
+  /* the secondary hero CTA was 26px, and it is the gift exit */
+  .cta-row .nav-link{ min-height:44px; display:inline-flex; align-items:center }
+  /* the checkbox itself stays 20px for looks; the label carries the hit area */
+  .pdpl__row{ position:relative; min-height:44px; display:flex; align-items:flex-start; gap:12px }
+  .pdpl__row .pdpl__checkbox{ width:22px; height:22px; margin-top:11px; flex:0 0 22px }
+  .pdpl__label{ min-height:44px; display:flex; align-items:center; padding:6px 0 }
+  /* two labels I had set below the 10px floor */
+  .press-sub{ font-size:10px !important; letter-spacing:.12em }
+  .gscore__where{ font-size:10.5px }
+}
+
+
+/* ── EDGES ────────────────────────────────────────────────────────────────
+   Cream and paper differ by six points of luminance, so section changes were
+   invisible and the page read as one long scroll. A hairline at every light
+   boundary makes each transition legible without adding weight. Dark bands
+   need no rule, the tone change is the edge. */
+main > section{ border-top:1px solid var(--hair) }
+main > section.dark, main > section.hero-c{ border-top:0 }
+main > section.dark + section{ border-top:0 }
+
+/* ── THE ONE RULE BAND ────────────────────────────────────────────────────
+   A breath between the price and the reassurance, and the sentence the team
+   says at the desk. Sand ground so it separates from both neighbours. */
+.rule-band{ padding:62px 0; text-align:center }
+.rule-band__line{
+  margin:0; font-family:var(--fd); font-weight:400;
+  font-size:clamp(24px,3.2vw,38px); line-height:1.3; color:#fff;
+}
+.rule-band__line em{ font-style:italic; color:var(--accent) }
+.rule-band__line + .rule-band__line{ margin-top:2px }
+
+/* ── THE FOUNDER LETTER, boxed as a letter ────────────────────────────────
+   It was body copy on a ground, which is why a 1,374px block read as a wall.
+   A panel with a rule and a hanging quote mark makes it an object. */
+.founder .wrap > *{ position:relative }
+.founder-panel{
+  max-width:760px; margin:0 auto; padding:44px 46px;
+  background:var(--paper); border:1px solid var(--hair); border-radius:var(--r-lg);
+  box-shadow:0 1px 2px rgba(45,46,55,.04), 0 22px 48px -34px rgba(45,46,55,.22);
+}
+/* her paragraphs had no spacing, so the letter ran together as one block */
+.founder-panel p{ margin:0 0 17px }
+.founder-panel p:last-of-type{ margin-bottom:0 }
+.founder-panel figure + div p:first-child{ font-size:17px; color:var(--ink) }
+@media(max-width:700px){ .founder-panel{ padding:30px 24px } .rule-band{ padding:42px 0 } }
+
+
+/* ── THE THREE EXITS ──────────────────────────────────────────────────────
+   Accent rule on top of each, the number in the accent, and a lift on hover.
+   The accent stays a line and a label, never a fill, so the call to action
+   is still the only filled accent object on the page. */
+.inc.exit{ position:relative; border-top:2px solid var(--accent-deep); overflow:hidden; transition:transform .3s var(--ease), border-color .3s var(--ease), box-shadow .3s var(--ease) }
+.inc.exit:hover{ transform:translateY(-2px); border-top-color:var(--accent-text); box-shadow:0 1px 2px rgba(45,46,55,.05), 0 20px 40px -26px rgba(45,46,55,.3) }
+.inc.exit .plabel{ color:var(--accent-text); font-family:var(--fd); font-style:italic; font-size:22px; letter-spacing:0 }
+.inc.exit h3{ margin-top:6px }
+
+/* ── THE PLANNING PHOTO ───────────────────────────────────────────────────
+   The only real photograph in the system that was not already on the page,
+   and it shows the thing this section describes: the plan being written
+   down with her. Wide crop so it reads as a band, not a card. */
+.plan-shot{ margin:0 auto 34px; max-width:1000px }
+.plan-shot img{
+  display:block; width:100%; aspect-ratio:21/9; object-fit:cover; object-position:50% 34%;
+  border-radius:var(--r-lg); background:var(--stone);
+}
+.plan-shot figcaption{
+  margin-top:12px; text-align:center; font-family:var(--fb); font-size:12px;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft);
+}
+@media(max-width:700px){ .plan-shot img{ aspect-ratio:4/3 } .plan-shot{ margin-bottom:26px } }
+
+/* ── TERMS AS A TOGGLE ────────────────────────────────────────────────────
+   360 words sitting open under the price was a wall. Still on the page and
+   still indexable, just folded until she wants it. */
+.terms{ max-width:66ch; margin:30px auto 0; border:1px solid var(--hair); border-radius:var(--r-md); background:var(--paper) }
+.terms summary{ list-style:none; cursor:pointer; padding:15px 22px; display:flex; align-items:center; justify-content:space-between; gap:14px; font-family:var(--fb); font-size:12.5px; font-weight:500; letter-spacing:.04em; color:var(--ink) }
+.terms summary::-webkit-details-marker{ display:none }
+.terms summary::after{ content:"+"; font-family:var(--fb); font-size:17px; line-height:1; color:var(--accent-text); transition:transform .3s var(--ease) }
+.terms[open] summary::after{ content:"\2212" }
+.terms summary:hover{ color:var(--accent-text) }
+.terms__body{ padding:0 22px 20px; font-family:var(--fb); font-size:11.5px; font-weight:300; line-height:1.72; color:var(--ink-soft); text-align:left; border-top:1px solid var(--hair); padding-top:16px }
+.terms__body a{ color:inherit }
+
 .form-thanks{ text-align:center; padding:44px 0; }
 .form-thanks h3{ font-family:var(--fd); font-weight:500; font-size:clamp(26px,3.4vw,34px); color:var(--ink); }
 .form-thanks p{ font-family:var(--fb); font-size:15px; font-weight:300; color:var(--ink-soft); margin-top:10px; }
@@ -280,8 +680,74 @@ em.accent{ font-style:italic; color:var(--accent-text); }
 .foot .row{flex-wrap:wrap}
 
 /* ── Offer stack (ported from the Bahrain founding page, Tabby instead of FLOOSS) ── */
-.vgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:38px 0 0;align-items:start}
+.vgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:38px 0 0;align-items:stretch}
+/* The ladder, stepped. Small, medium, large, left to right. See the note above. */
+/* Tara, 21 Sep: EQUAL WIDTHS, stepped emphasis. The columns were 0.84 / 1 / 1.16,
+   then briefly 0.72 / 1.04 / 1.24, to make the entry tier read as the small one.
+   Stepping the COLUMN is the wrong instrument and the render proved it: at 224px
+   "Paid in full, by secure link" clipped mid-word and the entry Choose button
+   wrapped to two lines while its neighbours stayed on one. A narrower column does
+   not say "smaller offer", it says "cramped card".
+
+   The laws say hierarchy comes from size, spacing and contrast, and that column
+   widths should be consistent rather than arbitrary. So the grid is equal thirds
+   and the ladder is carried by the thing that actually differs between the tiers:
+   what each one is worth. The value figure steps 30 / 38 / 44px, left to right.
+
+   Two signals, two jobs, deliberately kept apart:
+     the LADDER      = the value figure's type scale, smallest to largest
+     the RECOMMENDED = the accent border, the lift and the label, on Season of You
+   Fighting one signal with the other is what made this hard the first time. */
+/* THE STEP. Two-stage, because one ratio cannot serve both widths: at 1024 a
+   0.72 entry card is 224px, and "Paid in full, by secure link" clipped mid-word
+   against the card edge. The gentler step below 1280, the steeper one above it.
+   The entry card never goes under 261px at any width, which is the measured
+   floor for its longest row. */
+/* Tara, 21 Sep: SAME WIDTH, STEPPED LENGTH. The columns are equal thirds and the
+   cards grow downward, shortest for Dip Your Toes, taller for Season of You,
+   tallest for All-In VIP Year. Tops align so the three tier names sit on one
+   line; the bottoms step, so the ladder is the length of the card.
+
+   Two things had to be released for this to work at all. The grid was
+   align-items:stretch and the card was height:100%, which together forced all
+   three to the tallest one. That is why every earlier attempt could only move
+   the width.
+
+   The step is forced rather than left to the content, because the natural
+   heights do not order reliably: at 941px card two is naturally 48px TALLER
+   than card three. Padding guarantees the order at every width.
+
+   Scoped to 1024 and up, not 941. Between 601 and 1023 normalise.css runs a
+   deliberate tablet layout: two columns, with the recommendation spanning the
+   full row first. Starting at 941 fought that and left the third card wrapping
+   onto its own row. The three-column desktop begins at 1024, so the step does. */
+@media (min-width:1024px){
+  .vgrid{ grid-template-columns:repeat(3,minmax(0,1fr)); align-items:start }
+  .vgrid .vstack{ height:auto }
+  .vgrid .vstack:nth-child(2){ padding-bottom:58px }
+  .vgrid .vstack:nth-child(3){ padding-bottom:146px }
+}
+/* All three Choose buttons must sit on one line. The narrowed entry card cannot
+   hold "Choose Dip Your Toes" at 13px, and one button wrapping while its two
+   neighbours do not reads as a mistake rather than as a ladder. Tightened on all
+   three, because three buttons in three sizes is the same fault in a new hat. */
+@media (min-width:941px){
+  .vgrid .vs-cta{ font-size:11.5px; letter-spacing:.06em; padding-left:16px;
+                  padding-right:16px; white-space:nowrap }
+}
+.vgrid .vstack:nth-child(1) .vs-total{ font-size:30px }
+.vgrid .vstack:nth-child(2) .vs-total{ font-size:38px }
+.vgrid .vstack:nth-child(3) .vs-total{ font-size:44px }
+.vgrid .vstack:nth-child(1) .vs-name{ font-size:21px }
+.vgrid .vstack:nth-child(3) .vs-name{ font-size:25px }
+/* Prices sit in a right-aligned column down each card, so the digits have to line
+   up. Proportional figures make a 1 narrower than a 4 and the column reads ragged. */
+.vgrid .vs-total, .vgrid .vs-break b, .vgrid .vs-row b{ font-variant-numeric:tabular-nums }
 @media(max-width:940px){.vgrid{grid-template-columns:1fr;max-width:460px;margin-inline:auto}}
+/* Tara, 15 Sep: the cards read in size order on a phone, smallest first, not with
+   the recommendation pulled to the front. The order:-1 that put Season of You first
+   is removed here; the elevation and the "our recommendation" label still mark it. */
+@media (max-width:640px){ .vgrid .vstack--hero{ order:0 } .vgrid .vstack{ scroll-snap-align:center; scroll-snap-stop:always } .vgrid{ scroll-snap-type:x mandatory } }
 .vstack{background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-md);padding:26px 22px;display:flex;flex-direction:column;height:100%}
 .vstack.vstack--hero{position:relative;border:1px solid var(--accent);box-shadow:0 22px 46px -18px rgba(61,140,127,.42),inset 0 1px 0 rgba(255,255,255,.72)}
 .vstack.vstack--hero::before{content:"";position:absolute;top:-1px;left:-1px;right:-1px;height:4px;background:var(--accent);border-radius:var(--r-md) var(--r-md) 0 0}
@@ -295,6 +761,47 @@ em.accent{ font-style:italic; color:var(--accent-text); }
 .vs-list li b{flex-shrink:0;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .vs-list li b.add{color:var(--accent-text)}
 .vs-sum{border-bottom:1px solid var(--ink)!important;padding-top:11px!important}
+.vs-left{display:inline-block;align-self:flex-start;width:-moz-fit-content;width:fit-content;margin-top:8px;font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text);background:rgba(153,246,228,.18);padding:5px 10px;border-radius:999px}
+.loc-tags{display:block;margin:4px 0 8px;font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
+.vs-block{margin-top:18px}
+.scarcity{ background:transparent !important; border:1px solid rgba(153,246,228,.55); }
+.vs-left{ background:transparent; border:1px solid var(--accent-text); }
+.vs-list--meta{ margin-top:14px }
+.vs-list li b:empty{ display:none }
+.stack-head{ margin:46px auto 18px; text-align:center; max-width:640px }
+.stack-h{ font-family:var(--fd); font-weight:400; font-size:clamp(22px,2.4vw,30px); margin:6px 0 0; letter-spacing:-.01em }
+.stack-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch }
+.stack{ width:100%; min-width:680px; border-collapse:collapse; table-layout:fixed; font-size:13.5px; line-height:1.45; color:var(--ink-soft) }
+.stack col.c0{ width:34% } .stack col.c1,.stack col.c2,.stack col.c3{ width:22% }
+.stack th{ font-family:var(--fd); font-weight:400; font-size:17px; color:var(--ink); text-align:right; padding:10px 12px; border-bottom:1px solid var(--ink) }
+.stack th:first-child{ text-align:left }
+.stack td{ padding:11px 12px; border-bottom:1px solid var(--hair); vertical-align:top; text-align:right; color:var(--ink) }
+.stack td:first-child{ text-align:left; color:var(--ink-soft) }
+.stack td small{ display:block; color:var(--ink-soft); font-size:12px; margin-top:2px }
+.stack td.span{ text-align:center; color:var(--accent-text); font-weight:600 }
+.stack tfoot td{ color:var(--ink) }
+.stack tfoot tr.total td{ font-family:var(--fd); font-size:20px; border-bottom:0; padding-top:14px }
+.stack tfoot tr.total td:first-child{ font-family:var(--fb); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent-text); vertical-align:middle }
+@media (max-width:640px){
+  .vs-cta{ font-size:11px; letter-spacing:.1em; white-space:nowrap }
+  .stack{ min-width:0; table-layout:auto }
+  .stack thead{ display:none }
+  .stack, .stack tbody, .stack tfoot, .stack tr, .stack td, .stack colgroup, .stack col{ display:block; width:auto }
+  .stack tr{ padding:12px 0; border-bottom:1px solid var(--hair) }
+  .stack td{ border:0; padding:3px 0; text-align:left }
+  .stack td:first-child{ font-weight:600; color:var(--ink); padding-bottom:6px }
+  .stack td[data-t]::before{ content:attr(data-t) " · "; color:var(--ink-soft); font-weight:400 }
+  .stack td[data-t="Every tier"]::before{ content:"" }
+  .stack td.span{ text-align:left }
+  .stack td small{ display:inline; margin-left:6px }
+  .stack tfoot tr.total td{ font-size:18px; padding-top:4px }
+  .stack tfoot tr.total td:first-child{ font-size:11px; padding-top:8px }
+}
+
+
+.vs-block h3{margin:0;padding-bottom:7px;border-bottom:1px solid var(--ink);font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink)}
+.vs-block .vs-list{margin-top:0}
+.vs-block .vs-list li:last-child{border-bottom:0}
 .vs-sum span{font-weight:500;color:var(--ink)}
 .vs-sum b{font-family:var(--fd);font-size:19px}
 .vs-tabby{border-bottom:none!important;color:var(--accent-text)!important;font-weight:500}
@@ -307,7 +814,9 @@ em.accent{ font-style:italic; color:var(--accent-text); }
 .vs-total span{display:block;font-family:var(--fb);font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);margin-top:7px}
 .vs-pay b{color:var(--ink);font-weight:600}
 .vs-cta{margin-top:18px;width:100%}
-.vs-legal{margin:26px auto 0;max-width:72ch;font-size:12.5px;line-height:1.65;color:var(--ink-soft);text-align:center}
+/* 360 words of terms, centred, is a wall. Left-aligned on a 66ch measure,
+   set inside a quiet panel so it reads as the small print it is. */
+/* superseded 14 Sep: the terms are now a toggle, see .terms below */
 .exits{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:780px;margin:38px auto 0}
 .xcard{position:relative;display:flex;flex-direction:column;gap:11px;padding:26px 22px 22px;background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-md);text-decoration:none;color:var(--ink);overflow:hidden;transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease),border-color var(--dur) var(--ease);box-shadow:0 1px 2px rgba(45,46,55,.05)}
 .xcard::before{content:"";position:absolute;left:0;top:0;height:3px;width:100%;background:linear-gradient(90deg,var(--accent),var(--accent-deep));transform:scaleX(0);transform-origin:left;transition:transform var(--dur) var(--ease)}
@@ -322,78 +831,17 @@ em.accent{ font-style:italic; color:var(--accent-text); }
 .xcard:hover .xgo i{transform:translateX(4px)}
 @media(prefers-reduced-motion:reduce){.xcard,.xcard::before,.xcard .xgo i{transition:none}}
 @media(max-width:720px){.exits{grid-template-columns:1fr;max-width:420px}}
-.float-cta{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(22px);z-index:70;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .3s var(--ease),transform .3s var(--ease),visibility 0s .3s}
-.float-cta.show{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0);transition-delay:0s}
-.float-cta .pill{white-space:nowrap}
-body.float-on .trs-nav .nav__cta{opacity:0;pointer-events:none;transition:opacity .3s var(--ease)}
+.float-cta{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(22px);z-index:70;opacity:0;pointer-events:none;transition:opacity .3s var(--ease),transform .3s var(--ease)}
+.float-cta.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
 .float-cta .pill{box-shadow:0 14px 36px -10px rgba(45,46,55,.55)}
+/* The label wrapped to three lines on a phone. A floating CTA that wraps reads as
+   broken rather than as an offer, so it stays on one line and the type gives way. */
+.float-cta .pill{white-space:nowrap}
+@media(max-width:420px){ .float-cta .pill{ font-size:12px; letter-spacing:.05em;
+                                           padding-left:20px; padding-right:20px } }
 @media(prefers-reduced-motion:reduce){.float-cta{transition:opacity .2s var(--ease)}}
 .stack-anchor{max-width:60ch;margin:14px auto 0;color:var(--ink-soft)}
 @media(max-width:900px){.shift-grid{grid-template-columns:1fr 1fr!important}}@media(max-width:520px){.shift-grid{grid-template-columns:1fr!important}}
-
-/* ── Extensions Voucher, page-only components (methods · rhythm · science · myths) ── */
-.mgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-top:8px}
-.mgrid>*{min-width:0}
-@media(max-width:1000px){.mgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){.mgrid{grid-template-columns:1fr}}
-.mcard{background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-md);padding:24px 20px;box-shadow:inset 0 1px 0 rgba(255,255,255,.72),0 1px 2px rgba(45,46,55,.05)}
-.mcard .mlbl{display:block;font-family:var(--fb);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-text);margin-bottom:12px}
-.mcard h3{font-family:var(--fd);font-weight:500;font-size:22px;line-height:1.1;color:var(--ink);margin:0}
-.mcard .mint{display:block;margin:8px 0 12px;font-family:var(--fb);font-size:12.5px;font-weight:600;letter-spacing:.04em;color:var(--accent-text)}
-.mcard p{font-family:var(--fb);font-size:14px;font-weight:300;line-height:1.58;color:var(--ink-soft);margin:0}
-.rblocks{max-width:68ch;margin:0 auto}
-.rblock{padding:26px 0;border-top:1px solid var(--hair)}
-.rblock:last-child{border-bottom:1px solid var(--hair)}
-.rblock .rnum{font-family:var(--fd);font-style:italic;font-size:22px;color:var(--accent-text);display:block;margin-bottom:6px}
-.rblock h3{font-family:var(--fd);font-weight:500;font-size:24px;line-height:1.15;color:var(--ink);margin:0 0 10px}
-.rblock p{font-family:var(--fb);font-size:16px;font-weight:300;line-height:1.66;color:var(--ink);margin:0}
-.rblock p+p{margin-top:10px}
-.rtruth{margin:26px auto 0;max-width:52ch;text-align:center;font-family:var(--fd);font-style:italic;font-size:clamp(20px,3vw,26px);line-height:1.35;color:var(--ink)}
-.sci{max-width:68ch;margin:0 auto}
-.sci div{display:grid;grid-template-columns:160px 1fr;gap:16px;padding:16px 0;border-top:1px solid var(--hair);font-family:var(--fb);font-size:15px;font-weight:300;line-height:1.62;color:var(--ink)}
-.sci div:last-child{border-bottom:1px solid var(--hair)}
-.sci b{font-family:var(--fd);font-weight:500;font-size:18px;line-height:1.3;color:var(--ink)}
-@media(max-width:560px){.sci div{grid-template-columns:1fr;gap:4px}}
-.myths{max-width:68ch;margin:0 auto}
-.myth-row{padding:18px 0;border-top:1px solid var(--hair)}
-.myth-row:last-child{border-bottom:1px solid var(--hair)}
-.myth-row .myth{font-family:var(--fb);font-size:15px;font-weight:300;line-height:1.55;color:var(--ink-soft);margin:0 0 8px}
-.myth-row .fact{font-family:var(--fd);font-weight:500;font-size:18px;line-height:1.45;color:var(--ink);margin:0}
-.signs{max-width:68ch;margin:26px auto 0;background:var(--stone-soft);border-radius:var(--r-md);padding:22px 24px;font-family:var(--fb);font-size:14.5px;font-weight:300;line-height:1.62;color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.72)}
-.signs b{display:block;font-size:10.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-text);margin-bottom:8px}
-
-/* ── The specialist rail (placeholders until Tara names them) ── */
-.sp-rail{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:2px 0 16px;scrollbar-width:none}
-.sp-rail::-webkit-scrollbar{display:none}
-.sp-card{flex:0 0 auto;width:min(78vw,300px);scroll-snap-align:start;background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-md);padding:16px 16px 20px;box-shadow:inset 0 1px 0 rgba(255,255,255,.72),0 1px 2px rgba(45,46,55,.05);display:flex;flex-direction:column}
-.sp-card img{aspect-ratio:4/5;width:100%;height:auto;object-fit:cover;object-position:center 30%;border-radius:6px;display:block;background:var(--stone)}
-.sp-card .sp-city{display:block;margin-top:16px;font-family:var(--fb);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-text)}
-.sp-card h3{font-family:var(--fd);font-weight:500;font-size:21px;line-height:1.15;color:var(--ink);margin:6px 0 2px}
-.sp-card .sp-role{font-family:var(--fb);font-size:12.5px;font-weight:500;color:var(--ink-soft);margin:0}
-.sp-card .sp-salon{font-family:var(--fb);font-size:13px;font-weight:300;line-height:1.5;color:var(--ink);margin:10px 0 0;padding-top:10px;border-top:1px solid var(--hair)}
-.sp-card .sp-bio{font-family:var(--fb);font-size:13.5px;font-weight:300;line-height:1.55;color:var(--ink-soft);margin:10px 0 0;flex:1}
-.sp-card .sp-go{display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-text);text-decoration:none}
-@media(min-width:900px){.sp-rail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;overflow:visible;padding-bottom:0}.sp-card{width:auto}}
-@media(min-width:1180px){.sp-rail{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.mcard img{aspect-ratio:4/3;width:100%;height:auto;object-fit:cover;border-radius:6px;display:block;background:var(--stone-soft);margin-bottom:14px}
-
-/* ── Gate pass, 3 Sep: focus rings (the shared token is a self-reference), contrast, tap targets, phone CTAs, tablet order, legal, totals ── */
-.pill:focus-visible,.btn:focus-visible,.vs-cta:focus-visible,.trs-nav .nav__cta:focus-visible,.faq summary:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #256A5B;outline-offset:3px;box-shadow:none}
-.dark a:focus-visible,.dark .pill:focus-visible,.dark summary:focus-visible,.hero-c .pill:focus-visible,.hero-c a:focus-visible{outline-color:#99F6E4}
-.myth-row .myth,.exp-tile figcaption,.mcard p,.sp-card .sp-role,.sp-card .sp-bio,.p-lg,.stack-anchor{color:#65656C}
-.hero-c .nav-link,.sp-card .sp-go{display:inline-flex;align-items:center;min-height:44px}
-.foot p a{display:inline-block;padding:8px 0}
-.hero-c .lede{max-width:52ch}
-@media(max-width:640px){.scarcity{font-size:10.5px;letter-spacing:.08em;padding:11px 16px}.vgrid .vs-cta{white-space:nowrap;font-size:11px;letter-spacing:.08em;padding-inline:14px}}
-@media(min-width:601px) and (max-width:1023px){.vgrid .vstack--hero{order:-1}}
-div.vs-legal,div.vs-legal p{font-size:12.5px;letter-spacing:0;text-transform:none;text-align:left;line-height:1.6;color:#65656C;font-family:var(--fb);font-weight:300}
-div.vs-legal{max-width:72ch;margin:26px auto 0}
-div.vs-legal p{margin:0}
-.vs-legal details{margin-top:8px}.vs-legal summary{cursor:pointer;font-weight:600;color:var(--ink)}
-.vs-total small{display:block;font-family:var(--fb);font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#65656C;margin-bottom:8px}
-.exp-rail:focus-visible{outline:2px solid #256A5B;outline-offset:4px}
-@media(min-width:900px){.exp-rail{scrollbar-width:thin}}
-.phone-wrap{grid-template-columns:132px 1fr}
 
 /* TRS design system: tokens.json + normalise.css, comments stripped at build */
 
@@ -1863,3 +2311,86 @@ border-color: rgba(255,255,255,.14);
 }
 img{ height:auto; }
 
+
+
+/* ---- extension-plan-only rules (classes the voucher page does not use) ---- */
+body.float-on .trs-nav .nav__cta{opacity:0;pointer-events:none;transition:opacity .3s var(--ease)}
+/* ── Extensions Voucher, page-only components (methods · rhythm · science · myths) ── */
+.mgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-top:8px}
+.mgrid>*{min-width:0}
+@media(max-width:1000px){.mgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.mgrid{grid-template-columns:1fr}}
+.mcard{background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-md);padding:24px 20px;box-shadow:inset 0 1px 0 rgba(255,255,255,.72),0 1px 2px rgba(45,46,55,.05)}
+.mcard .mlbl{display:block;font-family:var(--fb);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-text);margin-bottom:12px}
+.mcard h3{font-family:var(--fd);font-weight:500;font-size:22px;line-height:1.1;color:var(--ink);margin:0}
+.mcard .mint{display:block;margin:8px 0 12px;font-family:var(--fb);font-size:12.5px;font-weight:600;letter-spacing:.04em;color:var(--accent-text)}
+.mcard p{font-family:var(--fb);font-size:14px;font-weight:300;line-height:1.58;color:var(--ink-soft);margin:0}
+.rblocks{max-width:68ch;margin:0 auto}
+.rblock{padding:26px 0;border-top:1px solid var(--hair)}
+.rblock:last-child{border-bottom:1px solid var(--hair)}
+.rblock .rnum{font-family:var(--fd);font-style:italic;font-size:22px;color:var(--accent-text);display:block;margin-bottom:6px}
+.rblock h3{font-family:var(--fd);font-weight:500;font-size:24px;line-height:1.15;color:var(--ink);margin:0 0 10px}
+.rblock p{font-family:var(--fb);font-size:16px;font-weight:300;line-height:1.66;color:var(--ink);margin:0}
+.rblock p+p{margin-top:10px}
+.rtruth{margin:26px auto 0;max-width:52ch;text-align:center;font-family:var(--fd);font-style:italic;font-size:clamp(20px,3vw,26px);line-height:1.35;color:var(--ink)}
+.sci{max-width:68ch;margin:0 auto}
+.sci div{display:grid;grid-template-columns:160px 1fr;gap:16px;padding:16px 0;border-top:1px solid var(--hair);font-family:var(--fb);font-size:15px;font-weight:300;line-height:1.62;color:var(--ink)}
+.sci div:last-child{border-bottom:1px solid var(--hair)}
+.sci b{font-family:var(--fd);font-weight:500;font-size:18px;line-height:1.3;color:var(--ink)}
+@media(max-width:560px){.sci div{grid-template-columns:1fr;gap:4px}}
+.myths{max-width:68ch;margin:0 auto}
+.myth-row{padding:18px 0;border-top:1px solid var(--hair)}
+.myth-row:last-child{border-bottom:1px solid var(--hair)}
+.myth-row .myth{font-family:var(--fb);font-size:15px;font-weight:300;line-height:1.55;color:var(--ink-soft);margin:0 0 8px}
+.myth-row .fact{font-family:var(--fd);font-weight:500;font-size:18px;line-height:1.45;color:var(--ink);margin:0}
+.signs{max-width:68ch;margin:26px auto 0;background:var(--stone-soft);border-radius:var(--r-md);padding:22px 24px;font-family:var(--fb);font-size:14.5px;font-weight:300;line-height:1.62;color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.72)}
+.signs b{display:block;font-size:10.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-text);margin-bottom:8px}
+/* ── The specialist rail (placeholders until Tara names them) ── */
+.sp-rail{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:2px 0 16px;scrollbar-width:none}
+.sp-rail::-webkit-scrollbar{display:none}
+.sp-card{flex:0 0 auto;width:min(78vw,300px);scroll-snap-align:start;background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-md);padding:16px 16px 20px;box-shadow:inset 0 1px 0 rgba(255,255,255,.72),0 1px 2px rgba(45,46,55,.05);display:flex;flex-direction:column}
+.sp-card img{aspect-ratio:4/5;width:100%;height:auto;object-fit:cover;object-position:center 30%;border-radius:6px;display:block;background:var(--stone)}
+.sp-card .sp-city{display:block;margin-top:16px;font-family:var(--fb);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-text)}
+.sp-card h3{font-family:var(--fd);font-weight:500;font-size:21px;line-height:1.15;color:var(--ink);margin:6px 0 2px}
+.sp-card .sp-role{font-family:var(--fb);font-size:12.5px;font-weight:500;color:var(--ink-soft);margin:0}
+.sp-card .sp-salon{font-family:var(--fb);font-size:13px;font-weight:300;line-height:1.5;color:var(--ink);margin:10px 0 0;padding-top:10px;border-top:1px solid var(--hair)}
+.sp-card .sp-bio{font-family:var(--fb);font-size:13.5px;font-weight:300;line-height:1.55;color:var(--ink-soft);margin:10px 0 0;flex:1}
+.sp-card .sp-go{display:inline-flex;align-items:center;gap:6px;margin-top:14px;font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-text);text-decoration:none}
+@media(min-width:900px){.sp-rail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;overflow:visible;padding-bottom:0}.sp-card{width:auto}}
+@media(min-width:1180px){.sp-rail{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.mcard img{aspect-ratio:4/3;width:100%;height:auto;object-fit:cover;border-radius:6px;display:block;background:var(--stone-soft);margin-bottom:14px}
+.myth-row .myth,.exp-tile figcaption,.mcard p,.sp-card .sp-role,.sp-card .sp-bio,.p-lg,.stack-anchor{color:#65656C}
+.hero-c .nav-link,.sp-card .sp-go{display:inline-flex;align-items:center;min-height:44px}
+
+
+
+/* WV Landing Page Call outs doc, 24 Sep 2026. Kept as one late block so each fix
+   is easy to find and undo, instead of edited into the layered rules above. */
+/* The TARA ROSE wordmark is Inter, not Playfair (nav and footer). */
+.trs-nav .brand__wm, .foot .brand__wm{ font-family:var(--fb) !important; font-weight:400 }
+/* Countdown sat flush left inside a centred hero, on phone and desktop. */
+.countdown{ justify-content:center }
+/* Location cards had no inner padding, so the text touched the border. */
+.grid-4 .loc{ padding:24px 22px 22px 24px }
+.loc .wa{ display:inline-block; margin-top:2px; color:inherit; text-decoration:underline; text-underline-offset:3px; text-decoration-color:var(--accent-text) }
+/* "By secure link, or four with Tabby" ran out of the card on a phone. */
+.vs-list--meta li b{ flex-shrink:1; min-width:0; text-align:right }
+.vs-list--meta li.vs-tabby b{ flex-shrink:0; white-space:nowrap }
+/* .vs-left{display:inline-block} was beating [hidden], so the chips showed even when switched off. */
+.vs-left[hidden]{ display:none }
+/* Two rules stacked above the footer small print: the link grid's bottom border and this one's top border. Keep one. */
+.foot__legal{ border-top:0; margin-top:0 }
+/* The footer grid had three columns for four blocks, so Connect dropped to a row of its own. */
+@media (min-width:1024px){ .foot .row{ grid-template-columns:1.4fr 1fr 1fr 1fr; gap:40px } }
+@media (min-width:781px) and (max-width:1023px){ .foot .row{ grid-template-columns:1fr 1fr } }
+/* (optional) / (required) floated far right of the checkbox text; they now sit under it. */
+.pdpl__label{ display:block !important }
+.pdpl__group{ align-items:flex-start !important }
+.pdpl__label > span{ display:block; margin-top:3px; font-size:12px }
+/* FAQ answers stopped at 62ch on desktop; they now run to the toggle's inner edge. */
+.faq .ans{ max-width:none; padding-right:42px }
+/* Linktree joins the icon row the other networks already have. */
+.soc--linktree{ display:inline-flex; align-items:center; gap:9px }
+.soc--linktree::before{ content:""; flex:0 0 auto; width:15px; height:15px; background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13.7 5.9 17.5 2l2.2 2.3-4 3.8h5.6v3.2h-5.6l4 3.9-2.2 2.2-5.4-5.4-5.4 5.4-2.2-2.2 4-3.9H2.8V8.1h5.6l-4-3.8L6.6 2l3.8 3.9V0h3.3zM10.4 16.1h3.3V24h-3.3z'/></svg>") center/contain no-repeat; mask:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13.7 5.9 17.5 2l2.2 2.3-4 3.8h5.6v3.2h-5.6l4 3.9-2.2 2.2-5.4-5.4-5.4 5.4-2.2-2.2 4-3.9H2.8V8.1h5.6l-4-3.8L6.6 2l3.8 3.9V0h3.3zM10.4 16.1h3.3V24h-3.3z'/></svg>") center/contain no-repeat }
+@media (max-width:600px){ .faq .ans{ padding-right:0 } }
