@@ -837,25 +837,44 @@ function dpDraw(host, win) {
   dpWire(host);
 }
 
+// Redraw without moving what you are looking at. The tiles, lines and bars above the radar change height with the
+// branch and measure choice (one branch is one tile, not four), so putting the old scrollY back is not enough: the
+// control you pressed lands somewhere else and the page seems to run down. Note where the control sat on screen,
+// redraw, find the same control in the new page and scroll by however far it moved.
+function dpRedraw(host, el, sel, change) {
+  const blocks = r => [...r.querySelectorAll('.dp-panel, .dp-card')];
+  const root = host.querySelector('.dpf');
+  const i = root ? blocks(root).indexOf(el.closest('.dp-panel, .dp-card')) : -1;
+  const top = el.getBoundingClientRect().top;
+  change();
+  dpDraw(host);
+  const nroot = host.querySelector('.dpf'), blk = nroot && i >= 0 ? blocks(nroot)[i] : null;
+  const nel = blk && blk.querySelector(sel);
+  if (!nel) return;
+  const d = nel.getBoundingClientRect().top - top;
+  if (Math.abs(d) > 0.5) window.scrollBy({ top: d, left: 0, behavior: 'instant' });
+  nel.focus({ preventScroll: true });
+}
+
 function dpWire(host) {
   const root = host.querySelector('.dpf'); if (!root) return;
   dpBindTips(root);
-  root.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { DP.measure = b.dataset.m; dpSave(); dpDraw(host); });
+  root.querySelectorAll('[data-m]').forEach(b => b.onclick = () => dpRedraw(host, b, `[data-m="${b.dataset.m}"]`, () => { DP.measure = b.dataset.m; dpSave(); }));
   root.querySelectorAll('[data-p]').forEach(b => b.onclick = async () => {
     DP.period = b.dataset.p;
     if (DP.period === 'custom' && (!DP.from || !DP.to)) { const w = dpWindow(); DP.from = dpYmd(w.from); DP.to = dpYmd(w.to); }
     dpSave(); await renderDailyPerf();
   });
-  root.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { dpToggleBranch(b.dataset.b); dpSave(); dpDraw(host); });
+  root.querySelectorAll('[data-b]').forEach(b => b.onclick = () => dpRedraw(host, b, `[data-b="${b.dataset.b}"]`, () => { dpToggleBranch(b.dataset.b); dpSave(); }));
   const cust = root.querySelector('#dpCust');
   if (cust) cust.addEventListener('toggle', () => { dpRadarOpen = cust.open; });
   root.querySelectorAll('[data-r]').forEach(cb => cb.onchange = () => {
     const next = DP_RADAR_ALL.map(x => x[0]).filter(k => { const b = root.querySelector(`[data-r="${k}"]`); return b && b.checked; });
     if (next.length < 3) { cb.checked = true; const m = root.querySelector('#dpRadarMsg'); if (m) m.textContent = 'Keep at least three ticked, or there is no shape to draw.'; return; }
-    DP.radar = next; dpRadarOpen = true; dpSave(); dpDraw(host);
+    dpRedraw(host, cb, `[data-r="${cb.dataset.r}"]`, () => { DP.radar = next; dpRadarOpen = true; dpSave(); });
   });
   const rr = root.querySelector('#dpRadarReset');
-  if (rr) rr.onclick = () => { DP.radar = null; dpRadarOpen = true; dpSave(); dpDraw(host); };
+  if (rr) rr.onclick = () => dpRedraw(host, rr, '#dpRadarReset', () => { DP.radar = null; dpRadarOpen = true; dpSave(); });
   const f = root.querySelector('#dpFrom'), t = root.querySelector('#dpTo');
   if (f && t) {
     const go = async () => { if (f.value && t.value) { DP.from = f.value; DP.to = t.value; dpSave(); await renderDailyPerf(); } };
