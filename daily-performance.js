@@ -71,7 +71,7 @@ const DP_M = {
   // The count behind Rebooking %: clients the stylists rebooked that day. The 70% benchmark is a share, not a number
   // of clients, so the count has no target of its own and is drawn as plain values, not graded.
   rebookn:  { help: 'The number of clients rebooked that day. The 70% target is for Rebooking %, not this count.', label: 'Rebooked clients', noun: 'clients rebooked',     kind: 'vol',   fmt: dpCount('rebooked'), notarget: true, pick: s => (s.rebookPct != null && s.totalClients ? s.totalRebooked : null) },
-  rebook:   { help: 'The share of clients rebooked before they left, against the rebooking target.', label: 'Rebooking %',     noun: 'rebooking %',          kind: 'ratio', fmt: dpPctF, bm: 'rebookPct',    pick: s => (s.totalClients ? (s.rebookPct != null ? s.rebookPct : s.hairRebookPct) : null) },
+  rebook:   { help: 'The share of clients rebooked before they left, against the rebooking target.', label: 'Rebooking %',     noun: 'rebooking %',          kind: 'ratio', fmt: dpPctF, bm: 'rebookPct', milestone: 45,    pick: s => (s.totalClients ? (s.rebookPct != null ? s.rebookPct : s.hairRebookPct) : null) },
   treatp:   { label: 'Treatment %',     noun: 'treatment %',          kind: 'ratio', fmt: dpPctF, bm: 'treatmentPct', pick: s => (s.treatmentSales == null || !(s.hairServicesIncl || 0)) ? null : s.treatmentSales / s.hairServicesIncl * 100 },
   retailp:  { label: 'Retail %',        noun: 'retail %',             kind: 'ratio', fmt: dpPctF, bm: 'retailPct',    pick: s => { const n = (s.hairServicesIncl || 0) + (s.hairRetailOnly || 0); return n ? (s.hairRetailOnly || 0) / n * 100 : null; } },
   hairbill: { label: 'Hair avg bill',   noun: 'hair average bill',    kind: 'ratio', fmt: dpMoney, bm: 'hairAvgBill',  pick: s => s.hairAvgBill },
@@ -395,12 +395,16 @@ function dpBindTips(host) {
 }
 
 // ── STATUS ──────────────────────────────────────────────────
-function dpStatus(p) {
-  if (p == null) return ['na', 'No target set', '–'];
-  if (p >= 110) return ['good', 'Ahead of target', '✓'];
-  if (p >= 100) return ['on', 'On target', '✓'];
-  if (p >= 80) return ['warn', 'Close', '▲'];   // the same lines as sc() in dashboard.js: 100 good, 80 close, under 80 bad
-  return ['bad', 'Below target', '▼'];
+// Where yellow starts, in % of target: the dashboard's own 80 (sc() in dashboard.js), or for a measure with a first goal
+// below its target (rebooking: 45 of 70) the first goal.
+const dpLoP = (mk, t) => { const m = DP_M[mk].milestone; return m && t != null && t > m ? m / t * 100 : 80; };
+function dpStatus(p, lo = 80) {
+  if (p == null) return ['na', 'No target set', '\u2013'];
+  const ms = lo !== 80;
+  if (p >= 110) return ['good', 'Ahead of target', '\u2713'];
+  if (p >= 100) return ['on', 'On target', '\u2713'];
+  if (p >= lo) return ['warn', ms ? 'Past the first goal' : 'Close', '\u25B2'];
+  return ['bad', ms ? 'Below the first goal' : 'Below target', '\u25BC'];
 }
 const dpCol = c => `var(--c-${c})`;
 const dpW = host => Math.max(300, Math.round((host && host.clientWidth) || 700));
@@ -490,7 +494,7 @@ function dpWeakest(idxs, codes) {
   return codes.map(code => {
     let worst = null;
     idxs.forEach(i => {
-      const ps = keys.map(mk => ({ mk, c: dpCell(mk, code, i) })).filter(x => x.c.state === 'ok' && x.c.p != null).map(x => ({ mk: x.mk, p: x.c.p }));
+      const ps = keys.map(mk => ({ mk, c: dpCell(mk, code, i) })).filter(x => x.c.state === 'ok' && x.c.p != null).map(x => ({ mk: x.mk, p: x.c.p, v: x.c.v }));
       if (ps.length < 3) return;
       const score = ps.reduce((a, x) => a + Math.min(x.p, 150), 0) / ps.length;
       if (!worst || score < worst.score) worst = { i, score, ps };
@@ -498,7 +502,7 @@ function dpWeakest(idxs, codes) {
     const head = `<b><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span>${dpEsc(dpName(code))}</b>`;
     if (!worst) return `<div class="dp-swr"><div>${head}<div class="dp-sub">Not enough figures with a target in this window.</div></div></div>`;
     const sc = Math.round(worst.score), [cls, , ic] = dpStatus(sc);
-    const hit = worst.ps.slice().sort((a, b) => a.p - b.p).filter(x => x.p < 100).slice(0, 3).map(x => `${DP_M[x.mk].label} ${Math.round(x.p)}%`).join(', ');
+    const hit = worst.ps.slice().sort((a, b) => a.p - b.p).filter(x => x.p < 100).slice(0, 3).map(x => (DP_M[x.mk].kind === 'ratio' ? `${DP_M[x.mk].label} ${DP_M[x.mk].fmt(x.v)}` : `${DP_M[x.mk].label} ${Math.round(x.p)}% of target`)).join(', ');
     return `<div class="dp-swr"><div>${head}<div class="dp-sub">${dpDayLabel(DPD.days[worst.i])} \u00B7 hardest hit: ${dpEsc(hit || 'nothing below target')} \u00B7 across ${worst.ps.length} measures</div></div><span class="dp-chip ${cls}">${ic} ${sc}%</span></div>`;
   }).join('');
 }
@@ -524,9 +528,9 @@ function dpTiles(win, idxs) {
     let li = -1;
     for (let k = idxs.length - 1; k >= 0; k--) if (dpCell(mk, code, idxs[k]).state === 'ok') { li = idxs[k]; break; }
     if (li < 0) return `<div class="dp-tile">${head}<div class="big" style="color:var(--muted2)">—</div><div class="dp-sub">No figures in this window yet</div></div>`;
-    const c = dpCell(mk, code, li), [cls, txt, ic] = dpStatus(c.p);
+    const c = dpCell(mk, code, li), [cls, txt, ic] = dpStatus(c.p, dpLoP(mk, c.t));
     const ratio = M.kind === 'ratio' && !M.notarget && c.t != null;
-    const chip = ratio ? (Math.abs(c.v - c.t) < 1e-9 ? 'On target' : `${dpDiff(M, c)} ${c.v >= c.t ? 'above' : 'below'} target`)
+    const chip = ratio ? (Math.abs(c.v - c.t) < 1e-9 ? 'On target' : `${dpDiff(M, c)} ${c.v >= c.t ? 'above' : 'below'} target${cls === 'warn' && c.t > (M.milestone || Infinity) ? ' \u00B7 past the ' + M.fmt(M.milestone) + ' first goal' : ''}`)
       : `${c.p != null ? Math.round(c.p) + '% \u00B7 ' : ''}${txt}`;
     const lastIdx = idxs[idxs.length - 1];
     const shut = dpCell(mk, code, lastIdx).state !== 'ok';
@@ -695,14 +699,33 @@ function dpChartB(host, idxs, codes) {
 // Kate, 13 Oct 2026: "too crowded to interpret". So: full width, a square big enough to carry its own number,
 // a small gap between weeks, the date and weekday under every column, and an ink colour chosen per square.
 const DP_BIN_KEYS = ['n2', 'y', 'p2', 'g'];
-const DP_BIN_NAMES = ['Under 80% (below target)', '80\u201399% (close)', '100\u2013109% (on target)', '110% and over (ahead)'];
-const dpBin = p => p < 80 ? 0 : p < 100 ? 1 : p < 110 ? 2 : 3;
+const DP_BIN_NAMES = ['Under 80% of target (below)', '80\u201399% (close)', '100\u2013109% (on target)', '110% and over (ahead)'];
+const dpBin = (p, lo = 80) => p < lo ? 0 : p < 100 ? 1 : p < 110 ? 2 : 3;
 const dpBinBg = i => `var(--dv-${DP_BIN_KEYS[i]})`;
 const dpBinInk = i => `var(--dv-${DP_BIN_KEYS[i]}-t)`;
 const dpShade = r => `color-mix(in srgb, var(--dv-p2) ${Math.round(14 + 46 * r)}%, transparent)`;   // size, for a measure with no target
-function dpBinKey(raw) {
+const dpPlain = (M, v) => M.fmt(v).replace(/^AED\s*/, '').replace('%', '');
+// The target a rate was read against on the latest day any chosen branch has one, so a key can say it in real figures.
+function dpRepT(mk, codes, idxs) {
+  for (let k = idxs.length - 1; k >= 0; k--) {
+    const ts = codes.map(code => dpCell(mk, code, idxs[k])).filter(c => c.state === 'ok' && c.t != null).map(c => c.t);
+    if (ts.length) return ts.reduce((a, b) => a + b, 0) / ts.length;
+  }
+  return null;
+}
+function dpRatioCaption(M, t) {
+  const ms = M.milestone && t != null && t > M.milestone;
+  return `Each square is a branch on a day, with that day's ${M.noun} in it. The colour compares it with the target, and the key under the squares gives each colour in real figures.` + (ms ? ` The goal is ${M.fmt(t)}, and ${M.fmt(M.milestone)} is the first goal: a day past it shows yellow, not red.` : '') + ' A small gap marks each new week.';
+}
+function dpBinKey(raw, mk, tRep) {
+  const M = DP_M[mk];
+  let names = DP_BIN_NAMES;
+  if (!raw && M.kind === 'ratio' && tRep) {
+    const ms = !!(M.milestone && tRep > M.milestone), lo = ms ? M.milestone : tRep * .8, hi = tRep * 1.1, f = M.fmt;
+    names = [`Under ${f(lo)} (${ms ? 'below the first goal' : 'below target'})`, `${f(lo)} to under ${f(tRep)} (${ms ? 'past the first goal, heading to ' + f(tRep) : 'close'})`, `${f(tRep)} to under ${f(hi)} (on target)`, `${f(hi)} and over (ahead)`];
+  }
   return (raw ? '<span><i style="background:' + dpShade(.1) + '"></i>Lower</span><span><i style="background:' + dpShade(.5) + '"></i>Middle</span><span><i style="background:' + dpShade(1) + '"></i>Higher</span>'
-    : DP_BIN_NAMES.map((t, i) => `<span><i style="background:${dpBinBg(i)}"></i>${t}</span>`).join(''))
+    : names.map((t, i) => `<span><i style="background:${dpBinBg(i)}"></i>${t}</span>`).join(''))
     + '<span><i style="background:var(--surface2);border:1px solid var(--border)"></i>Closed, no figures or not tracked</span>';
 }
 function dpHeat(host, idxs) {
@@ -723,7 +746,7 @@ function dpHeat(host, idxs) {
       let fill = 'var(--surface2)', ink = 'var(--muted2)', label = '';
       if (c.state === 'ok') {
         if (raw) { fill = dpShade(mx ? c.v / mx : 0); ink = 'var(--text)'; label = M.fmt(c.v).replace('%', ''); }
-        else if (c.p != null) { const b = dpBin(c.p); fill = dpBinBg(b); ink = dpBinInk(b); label = String(Math.round(c.p)); }
+        else if (c.p != null) { const b = dpBin(c.p, dpLoP(mk, c.t)); fill = dpBinBg(b); ink = dpBinInk(b); label = M.kind === 'ratio' ? dpPlain(M, c.v) : String(Math.round(c.p)); }
       }
       g += `<rect x="${x + 1}" y="${yy + 1}" width="${cw - 2}" height="${ch - 2}" rx="6" style="fill:${fill}" data-tip="${dpEsc(tip)}"/>`;
       if (nums && label) g += `<text x="${x + cw / 2}" y="${yy + ch / 2 + 4}" text-anchor="middle" style="fill:${ink};font-size:11.5px;font-weight:600;pointer-events:none">${label}</text>`;
@@ -738,7 +761,7 @@ function dpHeat(host, idxs) {
   });
   const cellTxt = c => (c.state !== 'ok' ? dpWhy(c.state) : (raw ? M.fmt(c.v) : (c.p != null ? Math.round(c.p) + '%' : '\u2014')));
   const table = `<div class="dp-scroll"><table class="dp-tbl"><tr><th>Day</th>${codes.map(c => `<th>${c}</th>`).join('')}</tr>${idxs.map(i => `<tr><td>${dpDayLabel(DPD.days[i])}</td>${codes.map(code => `<td>${cellTxt(dpCell(mk, code, i))}</td>`).join('')}</tr>`).join('')}</table></div>`;
-  return `<div class="dp-hm"><div class="dp-hml" style="width:${LBL}px">${codes.map(c => `<div style="height:${ch}px">${c}</div>`).join('')}</div><div class="dp-scroll"><svg class="dp-svg" style="min-width:${SW}px" viewBox="0 0 ${SW} ${H}" role="img" aria-label="Branch by day">${g}</svg></div></div><div class="dp-key">${dpBinKey(raw)}</div><details><summary>View as table</summary>${table}</details>`;
+  return `<div class="dp-hm"><div class="dp-hml" style="width:${LBL}px">${codes.map(c => `<div style="height:${ch}px">${c}</div>`).join('')}</div><div class="dp-scroll"><svg class="dp-svg" style="min-width:${SW}px" viewBox="0 0 ${SW} ${H}" role="img" aria-label="Branch by day">${g}</svg></div></div><div class="dp-key">${dpBinKey(raw, mk, dpRepT(mk, codes, idxs))}</div><details><summary>View as table</summary>${table}</details>`;
 }
 
 // ── WEEKDAY PATTERN ─────────────────────────────────────────
@@ -753,12 +776,12 @@ function dpWeekday(host) {
     for (let i = 0; i < days; i++) { const c = dpCell(mk, code, i); if (c.state === 'ok') { const v = pick(c); if (v != null) a[DPD.days[i].getDay()].push(v); } }
     return a.map(mean);
   };
-  const avgP = codes.map(code => gather(code, c => c.p)), avgV = codes.map(code => gather(code, c => c.v));
+  const avgP = codes.map(code => gather(code, c => c.p)), avgV = codes.map(code => gather(code, c => c.v)), avgT = codes.map(code => gather(code, c => c.t));
   const score = raw ? avgV : avgP;
   if (!score.some(a => a.some(v => v != null))) return { html: '<p class="dp-why" style="margin:20px 0">No target to read the weekdays against for this measure.</p>', legend: '', days };
   const order = [1, 2, 3, 4, 5, 6, 0], mx = raw ? Math.max(...avgV.flat().filter(v => v != null)) : 0;
   const ratio = units && !raw, txtOf = (bi, d) => ((raw || ratio) ? M.fmt(avgV[bi][d]) : Math.round(avgP[bi][d]) + '%'), sfx = raw || ratio ? '' : ' of target';
-  const lineOf = (bi, d) => txtOf(bi, d) + (ratio ? `, ${Math.round(avgP[bi][d])}% of target` : sfx);
+  const lineOf = (bi, d) => txtOf(bi, d) + sfx;
   const head = '<span></span>' + order.map(d => `<div class="dp-wh">${DP_DOW[d]}</div>`).join('');
   const lines = [];
   const rows = codes.map((code, bi) => {
@@ -770,13 +793,13 @@ function dpWeekday(host) {
       const tip = `<b>${dpEsc(dpName(code))} \u00B7 ${DP_DOW[d]}</b><div>${v == null ? 'No figures' : raw ? M.fmt(avgV[bi][d]) + ' on average' : (units ? `${M.fmt(avgV[bi][d])} on average, ${Math.round(avgP[bi][d])}% of target` : Math.round(avgP[bi][d]) + '% of target on average')}</div>`;
       if (v == null) return `<div class="dp-wc" style="background:var(--surface2);color:var(--muted2)" data-tip="${dpEsc(tip)}">\u2013</div>`;
       let bg, ink;
-      if (raw) { bg = dpShade(mx ? v / mx : 0); ink = 'var(--text)'; } else { const b = dpBin(avgP[bi][d]); bg = dpBinBg(b); ink = dpBinInk(b); }
+      if (raw) { bg = dpShade(mx ? v / mx : 0); ink = 'var(--text)'; } else { const b = dpBin(avgP[bi][d], dpLoP(mk, avgT[bi][d])); bg = dpBinBg(b); ink = dpBinInk(b); }
       const cls = spread ? (v === hi ? ' best' : v === lo ? ' slow' : '') : '';
-      return `<div class="dp-wc${cls}" style="background:${bg};color:${ink}" data-tip="${dpEsc(tip)}">${txtOf(bi, d)}${ratio ? `<small>${Math.round(avgP[bi][d])}% of target</small>` : ''}</div>`;
+      return `<div class="dp-wc${cls}" style="background:${bg};color:${ink}" data-tip="${dpEsc(tip)}">${txtOf(bi, d)}</div>`;
     }).join('');
     return `<div class="dp-wl"><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span>${code}</div>${cells}`;
   }).join('');
-  const legend = `<div class="dp-key">${dpBinKey(raw)}<span><i style="background:transparent;border:2px solid var(--text)"></i>Best day</span><span><i style="background:transparent;border:2px dashed var(--text)"></i>Slowest day</span></div>`;
+  const legend = `<div class="dp-key">${dpBinKey(raw, mk, dpRepT(mk, codes, DPD.days.map((_, i) => i)))}<span><i style="background:transparent;border:2px solid var(--text)"></i>Best day</span><span><i style="background:transparent;border:2px dashed var(--text)"></i>Slowest day</span></div>`;
   return { html: `<div class="dp-wk">${head}${rows}</div>${legend}<div style="margin-top:10px">${lines.join('')}</div>`, legend: '', days };
 }
 
@@ -831,7 +854,7 @@ function dpRadar(host, idxs, codes) {
   if (!multi) {
     const sorted = axes.map(k => ({ ...mineAll[0][k], lab: sel[k][1] })).sort((a, b) => b.p - a.p);
     const strong = sorted.filter(v => Math.round(v.p) >= 100).slice(0, 3), weak = sorted.slice().reverse().filter(v => Math.round(v.p) < 100).slice(0, 3);
-    list = `<h3>Strengths</h3>${strong.length ? strong.map(v => row(v, Math.round(v.p) >= 110 ? 'good' : 'on', '\u2713')).join('') : '<div class="dp-sub">Nothing above target yet</div>'}<h3>Weaknesses</h3>${weak.length ? weak.map(v => row(v, Math.round(v.p) >= 80 ? 'warn' : 'bad', Math.round(v.p) >= 80 ? '\u25B2' : '\u25BC')).join('') : '<div class="dp-sub">Every measure is on target</div>'}`;
+    list = `<h3>Strengths</h3>${strong.length ? strong.map(v => row(v, Math.round(v.p) >= 110 ? 'good' : 'on', '\u2713')).join('') : '<div class="dp-sub">Nothing above target yet</div>'}<h3>Weaknesses</h3>${weak.length ? weak.map(v => row(v, Math.round(v.p) >= dpLoP(v.mk, v.t) ? 'warn' : 'bad', Math.round(v.p) >= dpLoP(v.mk, v.t) ? '\u25B2' : '\u25BC')).join('') : '<div class="dp-sub">Every measure is on target</div>'}`;
   } else {
     list = '<h3>Each branch at a glance</h3>' + codes.map((code, bi) => {
       const arr = axes.map(k => ({ ...mineAll[bi][k], lab: sel[k][1] })).sort((a, b) => b.p - a.p), top = arr[0], low = arr[arr.length - 1];
@@ -924,7 +947,7 @@ function dpDraw(host, win) {
       <span class="dp-sub dp-showing">${dpShowing()}</span></div>
       ${dpRadarCustom(idxs, dpSel())}
       <div class="dp-legend" id="dpRL"></div><div class="dp-sw"><div id="dpR"></div><div class="dp-swl" id="dpRS"></div></div></div>
-    <div class="dp-card dp-jt" id="dpCardC"><h2>${M.notarget ? 'Which days were big or small' : 'Which days were weak'}: ${dpEsc(M.label)}</h2><p class="dp-why">${M.notarget ? `Each square is a branch on a day, with that day's ${dpEsc(M.noun)} in it${M.fmt === dpPct1 ? ', as a %' : ''}, darker for a higher figure. This measure has no target, so nothing is graded.` : `Each square is a branch on a day, with ${dpEsc(M.noun)} as a % of its target in it (100 means the target was met). Hover a square for the figure itself. Red is under 80% (below target), yellow 80 to 99% (close), blue 100 to 109% (on target), green 110% or more. The same lines as the tile chips and the Pulse. A small gap marks each new week.`}</p><div id="dpC"></div></div>
+    <div class="dp-card dp-jt" id="dpCardC"><h2>${M.notarget ? 'Which days were big or small' : 'Which days were weak'}: ${dpEsc(M.label)}</h2><p class="dp-why">${M.notarget ? `Each square is a branch on a day, with that day's ${dpEsc(M.noun)} in it${M.fmt === dpPct1 ? ', as a %' : ''}, darker for a higher figure. This measure has no target, so nothing is graded.` : (M.kind === 'ratio' ? dpEsc(dpRatioCaption(M, dpRepT(DP.measure, dpSel(), idxs))) : `Each square is a branch on a day, with ${dpEsc(M.noun)} as a % of its target in it (100 means the target was met). Hover a square for the figure itself. Red is under 80% (below target), yellow 80 to 99% (close), blue 100 to 109% (on target), green 110% or more. The same lines as the tile chips and the Pulse. A small gap marks each new week.`)}</p><div id="dpC"></div></div>
     <div class="dp-card dp-jt" id="dpCardD"><h2>Best and slowest weekday: ${dpEsc(M.label)}</h2><span class="dp-tag" id="dpDTag"></span><p class="dp-why" id="dpDW"></p><div id="dpD"></div></div>
     <div class="dp-card dp-jt" id="dpHow"><h2>How to read this page</h2>
       <p class="dp-why">Short answers. Skim the bold words.</p>
@@ -939,11 +962,12 @@ function dpDraw(host, win) {
       </div>
       <h3 class="dp-hg">What you will see</h3>
       <div class="dp-how">
-        <div class="dp-hw"><b>Colours</b><span>The % of target. The same lines as the tile chips and the Pulse: under 80% is below target, 80 to 99% is close, 100% and over is on target.</span><span class="dp-sw3"><span><i style="background:var(--dv-n2)"></i>Under 80%</span><span><i style="background:var(--dv-y)"></i>80 to 99%</span><span><i style="background:var(--dv-p2)"></i>100 to 109%</span><span><i style="background:var(--dv-g)"></i>110% +</span></span></div>
+        <div class="dp-hw"><b>Colours</b><span>Each colour is a band against the target. Money and counts: under 80% of target, 80 to 99%, 100 to 109%, 110% and over. Rates and bills: the key under the chart gives the real figures.</span><span class="dp-sw3"><span><i style="background:var(--dv-n2)"></i>Under 80%</span><span><i style="background:var(--dv-y)"></i>80 to 99%</span><span><i style="background:var(--dv-p2)"></i>100 to 109%</span><span><i style="background:var(--dv-g)"></i>110% +</span></span></div>
+        ${dpBenchmark('rebookPct', win.to) > DP_M.rebook.milestone ? `<div class="dp-hw"><b>Rebooking: goal and first goal</b><span>The goal is ${DP_M.rebook.fmt(dpBenchmark('rebookPct', win.to))}. ${DP_M.rebook.fmt(DP_M.rebook.milestone)} is the first goal, so a branch past it shows yellow, not red.</span></div>` : ''}
         <div class="dp-hw"><b>Closed day</b><span>Shown as closed, not as zero. Al Quoz is shut on Sunday and Monday.</span></div>
         <div class="dp-hw"><b>No grade</b><span>Total clients and New clients show their figures with no colour until someone keys a target in the Upload Portal.</span></div>
         <div class="dp-hw"><b>Motor City</b><span>Hair only, so the Beauty measures skip it.</span></div>
-        <div class="dp-hw"><b>Hover a square</b><span>The heatmap and weekday grid show % of target. Hover to see the real figure.</span></div>
+        <div class="dp-hw"><b>Hover a square</b><span>See that day's figure, its target and its % of target.</span></div>
       </div>
       <h3 class="dp-hg">Where the figures come from</h3>
       <div class="dp-how">
@@ -967,7 +991,7 @@ function dpDraw(host, win) {
   if (hs && hs.scrollWidth > hs.clientWidth) hs.scrollLeft = hs.scrollWidth;   // a long window opens on the latest day
   const wk = dpWeekday(el('dpD'));
   el('dpDW').textContent = (M.notarget ? `Average ${M.noun} for each weekday, over the ${wk.days} days loaded. This measure has no target, so nothing is graded.`
-    : M.kind === 'ratio' ? `Average ${M.noun} for each weekday: the figure big, its % of target small underneath. The colour follows the % of target, over the ${wk.days} days loaded.`
+    : M.kind === 'ratio' ? `Average ${M.noun} for each weekday, over the ${wk.days} days loaded. The key under the grid gives each colour in real figures.`
     : `Average ${M.noun} for each weekday, as a % of that day's target, over the ${wk.days} days loaded.`) + ' This is the one that tells you where to put your team.';
   fill('dpD', wk.html);
   el('dpDTag').textContent = `${wk.days} days loaded \u00B7 Period does not apply`;
