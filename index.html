@@ -3322,7 +3322,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="team-performance.css?v=20261001quad">
 <link rel="stylesheet" href="nav-collapse.css?v=20261009sh1">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20261013dp14">
+<link rel="stylesheet" href="mobile.css?v=20261013dp15">
 <link rel="stylesheet" href="search.css?v=20261008s31">
 <link rel="stylesheet" href="client-mix.css?v=20261008cm3">
 <link rel="stylesheet" href="lost-lists.css?v=20261012ll21">
@@ -4171,7 +4171,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="branch-ledger.js?v=20261009bp1"></script>
 <script src="compare.js?v=20261009cmp2"></script>
 <script src="over-the-years.js?v=20261009oty9"></script>
-<script src="daily-performance.js?v=20261013dp14"></script>
+<script src="daily-performance.js?v=20261013dp15"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20261008cb1"></script>
@@ -4997,6 +4997,8 @@ function trSyncUrl(sectionId){
   // 13-Week Report: which stylist is open, and the year when it is not the latest
   // (Kate, 29 Sep 2026). staff-weeks.js builds these.
   if (CURRENT_VIEW === 'staffweeks' && typeof w13UrlParts === 'function') parts.push(...w13UrlParts());
+  // Daily Performance: measure, branches, period (daily-performance.js), only what differs from the defaults.
+  if (CURRENT_VIEW === 'dailyperf' && typeof dpUrlParts === 'function') parts.push(...dpUrlParts());
   // Lost Clients: which tab (groups, to-message, templates), Level 3+ only (lost-queue.js).
   if (CURRENT_VIEW === 'lostlists' && typeof lqUrlParts === 'function') parts.push(...lqUrlParts());
   const q = parts.length ? '?' + parts.join('&') : '';
@@ -5145,6 +5147,6 @@ addEventListener('load', sizeTopbar);
 <script src="nav-collapse.js?v=20261009sh1"></script>
 <script src="nav-stars.js?v=20261002a"></script>
 <script src="mobile.js?v=20261008sa"></script>
-<script src="search.js?v=20261013dp14"></script>
+<script src="search.js?v=20261013dp15"></script>
 <script src="visits.js?v=20261008v1"></script>
 </body>

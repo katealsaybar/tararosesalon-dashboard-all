@@ -22,15 +22,21 @@
 // Years. Colours follow the branch, as everywhere on the dashboard (BRANCH_INFO).
 
 const DP_STORE = 'trs-daily-perf';
-const DP = { measure: 'sales', period: 'mtd', from: '', to: '', pick: 'SAA', radar: null, branches: null };
+const DP = { measure: 'sales', period: 'mtd', from: '', to: '', radar: null, branches: null, barMin: false };
 let dpRadarOpen = false;
 try {
   const s = JSON.parse(localStorage.getItem(DP_STORE) || '{}');
-  for (const k of ['measure', 'period', 'from', 'to', 'pick']) if (typeof s[k] === 'string') DP[k] = s[k];
+  for (const k of ['measure', 'period', 'from', 'to']) if (typeof s[k] === 'string') DP[k] = s[k];
+  if (typeof s.barMin === 'boolean') DP.barMin = s.barMin;
   if (Array.isArray(s.radar)) DP.radar = s.radar.filter(x => typeof x === 'string');
   if (Array.isArray(s.branches)) DP.branches = s.branches.filter(x => typeof x === 'string');
 } catch (e) { /* private mode: the defaults are fine */ }
-function dpSave() { try { localStorage.setItem(DP_STORE, JSON.stringify(DP)); } catch (e) { /* ignore */ } }
+// A saved Custom range reopens stale (the tiles stop being "yesterday"), so it is not restored; a link that names one is.
+if (DP.period === 'custom') { DP.period = 'mtd'; DP.from = ''; DP.to = ''; }
+function dpSave() {
+  try { localStorage.setItem(DP_STORE, JSON.stringify(DP)); } catch (e) { /* ignore */ }
+  if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'dailyperf' && typeof trSyncUrl === 'function') trSyncUrl(null);   // the address follows the choices
+}
 
 let DPD = null, dpBusy = false, dpErr = '', dpMemo = new Map();
 
@@ -158,13 +164,26 @@ function dpCss() {
   .dpf .dp-wk{display:grid;grid-template-columns:48px repeat(7,minmax(0,1fr));gap:5px;align-items:stretch}
   .dpf .dp-wh{font-size:12px;font-weight:600;color:var(--muted2);text-align:center;padding-bottom:2px}
   .dpf .dp-wl{display:flex;align-items:center;font-weight:600;font-size:13px}
-  .dpf .dp-wc{border-radius:8px;min-height:46px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;font-variant-numeric:tabular-nums}
+  .dpf .dp-wc small{display:block;font-size:11px;font-weight:500;opacity:.9;margin-top:1px}
+  .dpf .dp-wc{border-radius:8px;min-height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:600;font-size:14px;font-variant-numeric:tabular-nums}
   .dpf .dp-wc.best{outline:2px solid var(--text);outline-offset:-2px}
   .dpf .dp-wc.slow{outline:2px dashed var(--text);outline-offset:-2px}
   .dpf .dp-col{fill:transparent}.dpf .dp-col:hover{fill:rgba(128,128,128,.14)}
   .dpf .dp-hit .xh{opacity:0}.dpf .dp-hit:hover .xh{opacity:1}
   .dpf{--dp-bar-h:96px}
   .dpf .dp-bar{position:sticky;top:var(--topbar-cond-h,104px);z-index:40;background:var(--bg);margin:0 0 10px;padding:8px 0 6px;border-bottom:1px solid var(--border);display:grid;gap:6px}
+  .dpf .dp-bar{font-size:13px}
+  .dpf .dp-bar .dp-lab{font-size:10px;letter-spacing:.1em}
+  .dpf .dp-bar .dp-pill{font-size:13px;padding:4px 11px}
+  .dpf .dp-bar .ps-btn{font-size:13px;padding:5px 12px}
+  .dpf .dp-bar .dp-date{font-size:13px;padding:4px 8px}
+  .dpf .dp-bar .dp-jump{font-size:12px}
+  .dpf .dp-bar .dp-jump button{font-size:12px;padding:1px 9px}
+  .dpf .dp-bar-body{display:grid;gap:6px}
+  .dpf .dp-bar-min{display:none;align-items:center;justify-content:space-between;gap:10px}
+  .dpf .dp-bar.dp-min .dp-bar-min{display:flex}
+  .dpf .dp-bar.dp-min .dp-bar-body{display:none}
+  .dpf .dp-bar-sum{font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .dpf .dp-bar-row{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
   .dpf .dp-bf{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
   .dpf .dp-bar .dp-lab{min-width:0}
@@ -172,6 +191,17 @@ function dpCss() {
   .dpf .dp-jump button{appearance:none;border:1px solid var(--border);background:var(--surface);color:var(--text);font:500 12.5px Inter,sans-serif;padding:2px 10px;border-radius:14px;cursor:pointer;white-space:nowrap}
   .dpf .dp-jt{scroll-margin-top:calc(var(--topbar-cond-h,104px) + var(--dp-bar-h) + 8px)}
   .dpf .dp-showing{white-space:nowrap}
+  .dpf .dp-hm{display:flex;align-items:flex-start}
+  .dpf .dp-hml{flex:none;padding-top:4px;font-size:12px;font-weight:600;color:var(--text)}
+  .dpf .dp-hml div{display:flex;align-items:center}
+  .dpf .dp-hm .dp-scroll{flex:1 1 auto;min-width:0}
+  .dpf .dp-hg{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted2);margin:18px 0 8px}
+  .dpf .dp-how{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+  .dpf .dp-hw{background:var(--surface2);border-radius:10px;padding:12px 14px}
+  .dpf .dp-hw b{display:block;font-size:15.5px;color:var(--text);margin-bottom:3px}
+  .dpf .dp-hw span{display:block;font-size:14.5px;line-height:1.55;color:var(--text)}
+  .dpf .dp-hw .dp-sw3{display:flex;gap:6px 14px;flex-wrap:wrap;margin-top:6px;font-size:13.5px}
+  .dpf .dp-hw .dp-sw3 i{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:5px;vertical-align:-3px}
   .dpf .dp-tag{display:inline-block;font-size:11.5px;font-weight:600;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1px 8px;margin:4px 0 2px}
   .dpf .dp-tag:empty{display:none}
   .dpf .dp-per{margin-top:6px;color:var(--text)}
@@ -181,7 +211,8 @@ function dpCss() {
   .dp-tip b{display:block;margin-bottom:3px}.dp-tip .r{display:flex;justify-content:space-between;gap:14px}
   @media(max-width:900px){.dpf .dp-two{grid-template-columns:1fr}.dpf .dp-sw{grid-template-columns:1fr}}
   @media(max-width:560px){.dpf .dp-lab{min-width:100%}}
-  @media(max-width:760px){.dpf .dp-bar{padding:6px 0 4px;gap:4px}.dpf .dp-jump{display:none}.dpf .dp-bar-row{gap:4px 10px}.dpf .dp-bf{flex:1 1 auto}.dpf .dp-bf .ps,.dpf .dp-bf select{max-width:100%}.dpf .dp-showing{white-space:normal}}`;
+  @media(max-width:560px){.dpf .dp-wk{grid-template-columns:34px repeat(7,minmax(0,1fr));gap:3px}.dpf .dp-wc{font-size:11.5px;min-height:40px;line-height:1.1;text-align:center;letter-spacing:-.02em}.dpf .dp-wl{font-size:12px}.dpf .dp-wh{font-size:11px}}
+  @media(max-width:760px){.dpf .dp-bar{padding:6px 0 4px;gap:4px}.dpf .dp-jump{display:none}.dpf .dp-bar .dp-lab{display:none}.dpf .dp-bar-row{gap:4px 10px}.dpf .dp-bf{flex:1 1 auto}.dpf .dp-bf .ps,.dpf .dp-bf select{max-width:100%}.dpf .dp-showing{white-space:normal}}`;
   document.head.appendChild(st);
 }
 
@@ -190,6 +221,7 @@ function dpCss() {
 function dpWindow() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const yest = dpAdd(today, -1);
+  const oldest = dpAdd(today, -90);
   const first = new Date(today.getFullYear(), today.getMonth(), 1);
   const prevFirst = new Date(today.getFullYear(), today.getMonth() - 1, 1);
   let from, to, note = '';
@@ -200,12 +232,13 @@ function dpWindow() {
     from = dpParse(DP.from); to = dpParse(DP.to);
     if (to > yest) to = yest;
     if (from > to) from = to;
-    if ((to - from) / 864e5 > 61) { from = dpAdd(to, -61); note = 'Custom is capped at 62 days, so the chart stays readable.'; }
+    if (from < oldest) { from = oldest; note = 'Custom goes back 90 days at most, so this starts on ' + dpDayLabel(oldest) + '.'; }
+    if (to < from) to = from;
   } else {
     from = first; to = yest;
     if (to < from) { from = prevFirst; to = new Date(today.getFullYear(), today.getMonth(), 0); note = 'It is the 1st, so this shows last month.'; }
   }
-  return { from, to, yest, note };
+  return { from, to, yest, note, oldest };
 }
 
 // ── LOAD ────────────────────────────────────────────────────
@@ -446,6 +479,27 @@ function dpToggleBranch(code) {
 // What the whole window came to for one branch: a count or money is added up (against the target of the same days),
 // a rate or a bill is averaged, the same convention the combined bars use. Added 13 Oct 2026 after the Comet audit:
 // a tile showed one day only, so "Saadiyat against Al Quoz over 7 days" could not be answered.
+// The one day that hurt most, per branch, whatever the Measure menu says: each day is scored as the average % of target
+// over every measure that has a target there (a day needs at least three, each capped at 150 so one huge figure cannot
+// hide a bad day), then the lowest day and the measures that dragged it down. Added 13 Oct 2026: finding the weak day
+// "on any measure" took 17 passes through the menu.
+function dpWeakest(idxs, codes) {
+  const keys = Object.keys(DP_M).filter(k => !DP_M[k].notarget);
+  return codes.map(code => {
+    let worst = null;
+    idxs.forEach(i => {
+      const ps = keys.map(mk => ({ mk, c: dpCell(mk, code, i) })).filter(x => x.c.state === 'ok' && x.c.p != null).map(x => ({ mk: x.mk, p: x.c.p }));
+      if (ps.length < 3) return;
+      const score = ps.reduce((a, x) => a + Math.min(x.p, 150), 0) / ps.length;
+      if (!worst || score < worst.score) worst = { i, score, ps };
+    });
+    const head = `<b><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span>${dpEsc(dpName(code))}</b>`;
+    if (!worst) return `<div class="dp-swr"><div>${head}<div class="dp-sub">Not enough figures with a target in this window.</div></div></div>`;
+    const sc = Math.round(worst.score), [cls, , ic] = dpStatus(sc);
+    const hit = worst.ps.slice().sort((a, b) => a.p - b.p).filter(x => x.p < 100).slice(0, 3).map(x => `${DP_M[x.mk].label} ${Math.round(x.p)}%`).join(', ');
+    return `<div class="dp-swr"><div>${head}<div class="dp-sub">${dpDayLabel(DPD.days[worst.i])} \u00B7 hardest hit: ${dpEsc(hit || 'nothing below target')} \u00B7 across ${worst.ps.length} measures</div></div><span class="dp-chip ${cls}">${ic} ${sc}%</span></div>`;
+  }).join('');
+}
 function dpPeriodLine(mk, code, idxs) {
   const M = DP_M[mk], cs = idxs.map(i => dpCell(mk, code, i)).filter(c => c.state === 'ok');
   if (!cs.length) return '';
@@ -651,9 +705,9 @@ function dpBinKey(raw) {
 }
 function dpHeat(host, idxs) {
   const mk = DP.measure, M = DP_M[mk], codes = dpSel(), n = idxs.length, W = dpW(host), raw = !!M.notarget;
-  const lm = 40, ch = 40, gap = 6, minCw = 24;
+  const lm = 0, LBL = 44, ch = 40, gap = 6, minCw = 24;
   const mondays = idxs.filter((i, k) => k > 0 && DPD.days[i].getDay() === 1).length;
-  const cw = Math.max(minCw, (W - lm - mondays * gap) / n);
+  const cw = Math.max(minCw, (W - LBL - mondays * gap) / n);
   const xs = []; let off = 0;
   idxs.forEach((i, k) => { if (k > 0 && DPD.days[i].getDay() === 1) off += gap; xs.push(lm + k * cw + off); });
   const SW = Math.round(lm + n * cw + off), H = 4 + ch * codes.length + 40, nums = cw >= 24;
@@ -661,7 +715,6 @@ function dpHeat(host, idxs) {
   if (raw) codes.forEach(code => idxs.forEach(i => { const c = dpCell(mk, code, i); if (c.state === 'ok' && c.v > mx) mx = c.v; }));
   let g = '';
   codes.forEach((code, r) => {
-    g += `<text class="tv" x="0" y="${4 + r * ch + ch / 2 + 4}">${code}</text>`;
     idxs.forEach((i, k) => {
       const c = dpCell(mk, code, i), x = xs[k], yy = 4 + r * ch;
       const tip = `<b>${dpEsc(dpName(code))}</b><div>${dpDayLabel(DPD.days[i])}</div>` + (c.state !== 'ok' ? `<div>${dpWhy(c.state)}</div>` : `<div class="r"><span>${M.fmt(c.v)}</span><span>${raw ? '' : (c.p != null ? Math.round(c.p) + '% of target' + (M.kind === 'ratio' ? ' (target ' + M.fmt(c.t) + ')' : '') : 'no target')}</span></div>`);
@@ -675,7 +728,7 @@ function dpHeat(host, idxs) {
       if (c.state === 'closed' || c.state === 'na') g += `<path d="M${x + 5} ${yy + ch - 6} L${x + cw - 5} ${yy + 6}" stroke="var(--muted2)" stroke-width="1" pointer-events="none"/>`;
     });
   });
-  const yb = 4 + ch * codes.length + 15, step = Math.max(1, Math.ceil(n / Math.floor((W - lm) / 28)));
+  const yb = 4 + ch * codes.length + 15, step = Math.max(1, Math.ceil(n / Math.floor((W - LBL) / 28)));
   idxs.forEach((i, k) => {
     if (!nums && k % step !== 0) return;
     const d = DPD.days[i], cx = xs[k] + cw / 2;
@@ -683,7 +736,7 @@ function dpHeat(host, idxs) {
   });
   const cellTxt = c => (c.state !== 'ok' ? dpWhy(c.state) : (raw ? M.fmt(c.v) : (c.p != null ? Math.round(c.p) + '%' : '\u2014')));
   const table = `<div class="dp-scroll"><table class="dp-tbl"><tr><th>Day</th>${codes.map(c => `<th>${c}</th>`).join('')}</tr>${idxs.map(i => `<tr><td>${dpDayLabel(DPD.days[i])}</td>${codes.map(code => `<td>${cellTxt(dpCell(mk, code, i))}</td>`).join('')}</tr>`).join('')}</table></div>`;
-  return `<div class="dp-scroll"><svg class="dp-svg" style="min-width:${SW}px" viewBox="0 0 ${SW} ${H}" role="img" aria-label="Branch by day">${g}</svg></div><div class="dp-key">${dpBinKey(raw)}</div><details><summary>View as table</summary>${table}</details>`;
+  return `<div class="dp-hm"><div class="dp-hml" style="width:${LBL}px">${codes.map(c => `<div style="height:${ch}px">${c}</div>`).join('')}</div><div class="dp-scroll"><svg class="dp-svg" style="min-width:${SW}px" viewBox="0 0 ${SW} ${H}" role="img" aria-label="Branch by day">${g}</svg></div></div><div class="dp-key">${dpBinKey(raw)}</div><details><summary>View as table</summary>${table}</details>`;
 }
 
 // ── WEEKDAY PATTERN ─────────────────────────────────────────
@@ -702,13 +755,14 @@ function dpWeekday(host) {
   const score = raw ? avgV : avgP;
   if (!score.some(a => a.some(v => v != null))) return { html: '<p class="dp-why" style="margin:20px 0">No target to read the weekdays against for this measure.</p>', legend: '', days };
   const order = [1, 2, 3, 4, 5, 6, 0], mx = raw ? Math.max(...avgV.flat().filter(v => v != null)) : 0;
-  const txtOf = (bi, d) => (raw ? M.fmt(avgV[bi][d]) : Math.round(avgP[bi][d]) + '%'), sfx = raw ? '' : ' of target';
+  const ratio = units && !raw, txtOf = (bi, d) => ((raw || ratio) ? M.fmt(avgV[bi][d]) : Math.round(avgP[bi][d]) + '%'), sfx = raw || ratio ? '' : ' of target';
+  const lineOf = (bi, d) => txtOf(bi, d) + (ratio ? `, ${Math.round(avgP[bi][d])}% of target` : sfx);
   const head = '<span></span>' + order.map(d => `<div class="dp-wh">${DP_DOW[d]}</div>`).join('');
   const lines = [];
   const rows = codes.map((code, bi) => {
     const vals = order.map(d => score[bi][d]), okv = vals.filter(v => v != null);
     const hi = okv.length > 1 ? Math.max(...okv) : null, lo = okv.length > 1 ? Math.min(...okv) : null, spread = hi !== lo;
-    if (okv.length > 1 && spread) lines.push(`<div class="dp-sub"><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span><b style="color:var(--text)">${code}</b> best ${DP_DOW[order[vals.indexOf(hi)]]} (${txtOf(bi, order[vals.indexOf(hi)])}${sfx}), slowest ${DP_DOW[order[vals.indexOf(lo)]]} (${txtOf(bi, order[vals.indexOf(lo)])}${sfx})</div>`);
+    if (okv.length > 1 && spread) lines.push(`<div class="dp-sub"><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span><b style="color:var(--text)">${code}</b> best ${DP_DOW[order[vals.indexOf(hi)]]} (${lineOf(bi, order[vals.indexOf(hi)])}), slowest ${DP_DOW[order[vals.indexOf(lo)]]} (${lineOf(bi, order[vals.indexOf(lo)])})</div>`);
     const cells = vals.map((v, k) => {
       const d = order[k];
       const tip = `<b>${dpEsc(dpName(code))} \u00B7 ${DP_DOW[d]}</b><div>${v == null ? 'No figures' : raw ? M.fmt(avgV[bi][d]) + ' on average' : (units ? `${M.fmt(avgV[bi][d])} on average, ${Math.round(avgP[bi][d])}% of target` : Math.round(avgP[bi][d]) + '% of target on average')}</div>`;
@@ -716,7 +770,7 @@ function dpWeekday(host) {
       let bg, ink;
       if (raw) { bg = dpShade(mx ? v / mx : 0); ink = 'var(--text)'; } else { const b = dpBin(avgP[bi][d]); bg = dpBinBg(b); ink = dpBinInk(b); }
       const cls = spread ? (v === hi ? ' best' : v === lo ? ' slow' : '') : '';
-      return `<div class="dp-wc${cls}" style="background:${bg};color:${ink}" data-tip="${dpEsc(tip)}">${txtOf(bi, d)}</div>`;
+      return `<div class="dp-wc${cls}" style="background:${bg};color:${ink}" data-tip="${dpEsc(tip)}">${txtOf(bi, d)}${ratio ? `<small>${Math.round(avgP[bi][d])}% of target</small>` : ''}</div>`;
     }).join('');
     return `<div class="dp-wl"><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span>${code}</div>${cells}`;
   }).join('');
@@ -743,7 +797,7 @@ function dpRadar(host, idxs, codes) {
   const dropped = sel.map((x, k) => (axes.includes(k) ? null : x[1])).filter(Boolean);
   const title = multi ? `${codes.length === DPD.codes.length ? 'All branches' : codes.join(' + ')}: strengths and weaknesses side by side` : `${dpName(codes[0])}: strengths and weaknesses`;
   const n = axes.length;
-  if (n < 3) return { title, html: '<p class="dp-why" style="margin:20px 0">Fewer than three of the ticked measures have a target at every selected branch, so there is no shape to draw. Tick more under Customise, take a branch off, or set client targets in the Upload Portal.</p>', list: '', legend: '' };
+  if (n < 3) return { title, html: `<p class="dp-why" style="margin:20px 0">${sel.length < 3 ? 'Tick at least three measures under Customise to draw a shape.' : 'Fewer than three of the ticked measures have a target at every selected branch, so there is no shape to draw. Tick more under Customise, take a branch off, or set client targets in the Upload Portal.'}</p>`, list: '', legend: '' };
   const ang = i => -Math.PI / 2 + i * 2 * Math.PI / n;
   const pt = (i, p) => [cx + Math.cos(ang(i)) * R * Math.min(p, max) / max, cy + Math.sin(ang(i)) * R * Math.min(p, max) / max];
   const poly = arr => arr.map((p, i) => pt(i, p).join(',')).join(' ');
@@ -790,17 +844,21 @@ function dpRadar(host, idxs, codes) {
 const dpPeriods = [['mtd', 'Month to date'], ['last7', 'Last 7 days'], ['last30', 'Last 30 days'], ['lastmonth', 'Last month'], ['custom', 'Custom']];
 // One sticky bar (13 Oct 2026, Comet and code audits): Measure, Branch and Period live here and nowhere else, so the
 // cards just follow it. Measure and Period are menus because 17 pills would not fit in a slim bar; Branch stays pills.
-const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardA', 'Trend'], ['dpCardB', 'Bars'], ['dpCardR', 'Strengths'], ['dpCardC', 'Weak days'], ['dpCardD', 'Weekdays'], ['dpHow', 'How to read']];
+const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardW', 'Weakest day'], ['dpCardA', 'Trend'], ['dpCardB', 'Bars'], ['dpCardR', 'Strengths'], ['dpCardC', 'Weak days'], ['dpCardD', 'Weekdays'], ['dpHow', 'How to read']];
 const dpShowing = () => { const sel = dpSel(); return 'Branches: ' + (sel.length === DPD.codes.length ? 'all' : sel.join(' + ')) + ', set in the bar at the top'; };
+function dpBarSummary(win) {
+  const sel = dpSel(), per = DP.period === 'custom' ? dpDayLabel(win.from) + ' to ' + dpDayLabel(win.to) : (dpPeriods.find(x => x[0] === DP.period) || [0, ''])[1];
+  return DP_M[DP.measure].label + ' \u00B7 ' + (sel.length === DPD.codes.length ? 'All branches' : sel.join(' + ')) + ' \u00B7 ' + per;
+}
 function dpControls(win) {
   const mopts = DP_GROUPS.map(([g, ks]) => `<optgroup label="${g}">${ks.map(k => `<option value="${k}"${k === DP.measure ? ' selected' : ''}>${dpEsc(DP_M[k].label)}</option>`).join('')}</optgroup>`).join('');
   const popts = dpPeriods.map(([k, l]) => `<option value="${k}"${k === DP.period ? ' selected' : ''}>${l}</option>`).join('');
-  const custom = DP.period === 'custom' ? `<span class="dp-bf" style="gap:6px"><input type="date" class="dp-date" id="dpFrom" aria-label="From" value="${dpEsc(DP.from || dpYmd(win.from))}" max="${dpYmd(win.yest)}"> to <input type="date" class="dp-date" id="dpTo" aria-label="To" value="${dpEsc(DP.to || dpYmd(win.to))}" max="${dpYmd(win.yest)}"><button type="button" class="dp-pill" id="dpApply">Apply</button><span class="dp-sub"><b style="color:var(--text)">${dpEsc(dpDayLabel(win.from))} to ${dpEsc(dpDayLabel(win.to))}</b></span><span class="dp-sub" id="dpDateMsg"></span></span>` : '';
-  return `<div class="dp-bar" id="dpBar" role="group" aria-label="Measure, branches and period"><div class="dp-bar-row">
+  const custom = DP.period === 'custom' ? `<span class="dp-bf" style="gap:6px"><input type="date" class="dp-date" id="dpFrom" aria-label="From" value="${dpEsc(DP.from || dpYmd(win.from))}" min="${dpYmd(win.oldest)}" max="${dpYmd(win.yest)}"> to <input type="date" class="dp-date" id="dpTo" aria-label="To" value="${dpEsc(DP.to || dpYmd(win.to))}" min="${dpYmd(win.oldest)}" max="${dpYmd(win.yest)}"><button type="button" class="dp-pill" id="dpApply">Apply</button><span class="dp-sub"><b style="color:var(--text)">${dpEsc(dpDayLabel(win.from))} to ${dpEsc(dpDayLabel(win.to))}</b>${win.note ? ' (90-day limit)' : ''}</span><span class="dp-sub">Up to 90 days back, to ${dpEsc(dpDayLabel(win.yest))}</span><span class="dp-sub" id="dpDateMsg"></span></span>` : '';
+  return `<div class="dp-bar${DP.barMin ? ' dp-min' : ''}" id="dpBar" role="group" aria-label="Measure, branches and period"><div class="dp-bar-min"><span class="dp-bar-sum">${dpEsc(dpBarSummary(win))}</span><button type="button" class="dp-pill dp-bar-tg" data-bartg="1">Show controls \u25BE</button></div><div class="dp-bar-body"><div class="dp-bar-row">
     <label class="dp-bf"><span class="dp-lab">Measure</span><select id="dpSelM" aria-label="Measure">${mopts}</select></label>
     <span class="dp-bf"><span class="dp-lab">Branch</span><span class="dp-pills">${dpPickPills()}</span></span>
-    <label class="dp-bf"><span class="dp-lab">Period</span><select id="dpSelP" aria-label="Period">${popts}</select></label>${custom}</div>
-    <div class="dp-jump"><span>Jump to</span>${DP_JUMPS.map(([id, l]) => `<button type="button" data-jump="${id}">${l}</button>`).join('')}</div></div>${dpDefault() ? '' : '<p class="dp-note" style="margin:0 0 8px">Your choices are saved on this device for next time. <button type="button" class="dp-linkbtn" id="dpReset">Reset to the defaults</button></p>'}`;
+    <label class="dp-bf"><span class="dp-lab">Period</span><select id="dpSelP" aria-label="Period">${popts}</select></label>${custom}<button type="button" class="dp-pill dp-bar-tg" data-bartg="1" style="margin-left:auto">Hide \u25B4</button></div>
+    <div class="dp-jump"><span>Jump to</span>${DP_JUMPS.map(([id, l]) => `<button type="button" data-jump="${id}">${l}</button>`).join('')}</div></div></div>${dpDefault() ? '' : '<p class="dp-note" style="margin:0 0 8px">Your choices are saved on this device for next time. <button type="button" class="dp-linkbtn" id="dpReset">Reset to the defaults</button></p>'}`;
 }
 // All, then each branch. While All is on only All shows pressed: it says "everything", and the first branch you
 // press narrows to it.
@@ -854,6 +912,7 @@ function dpDraw(host, win) {
     ${dpControls(win)}
     <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}${M.help ? ' · <b>' + dpEsc(M.label) + '</b>: ' + dpEsc(M.help) : ''}</p>
     <section class="dp-tiles dp-jt" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs)}</section>
+    <div class="dp-card dp-jt" id="dpCardW"><h2>Weakest day per branch</h2><span class="dp-tag">Measure does not apply</span><p class="dp-why">The day in this period that fell furthest below its targets. A day is scored as the average % of target across every measure that has a target (at least three), so the Measure menu does not change it. Closed days and days with no figures are skipped.</p><div id="dpW"></div></div>
     <div class="dp-card dp-jt" id="dpCardA"><h2>${M.notarget ? `Daily ${dpEsc(M.noun)}, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}` : `Daily ${dpEsc(M.noun)} against target, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}`}</h2>
       <p class="dp-why">${M.notarget ? 'Every branch on one scale, in plain values. This measure has no target, so nothing is graded. Gaps are closed days or days with no figures.' : (M.kind === 'ratio' ? "Every branch on one scale, in the measure's own units, with the target as the dashed line. Gaps are closed days or days with no figures." : "Every branch on one scale: 100% means the day's target was met. Gaps are closed days or days with no figures.")}</p><div id="dpA"></div></div>
     <div class="dp-card dp-jt" id="dpCardB"><div class="dp-head"><div><h2 id="dpBT"></h2><p class="dp-why" id="dpBW"></p></div><span class="dp-sub dp-showing">${dpShowing()}</span></div>
@@ -866,24 +925,47 @@ function dpDraw(host, win) {
     <div class="dp-card dp-jt" id="dpCardC"><h2>${M.notarget ? 'Which days were big or small' : 'Which days were weak'}: ${dpEsc(M.label)}</h2><p class="dp-why">${M.notarget ? `Each square is a branch on a day, with that day's ${dpEsc(M.noun)} in it${M.fmt === dpPct1 ? ', as a %' : ''}, darker for a higher figure. This measure has no target, so nothing is graded.` : `Each square is a branch on a day, with ${dpEsc(M.noun)} as a % of its target in it (100 means the target was met). Hover a square for the figure itself. Blue beat the target, red fell short, grey is on target. A small gap marks each new week.`}</p><div id="dpC"></div></div>
     <div class="dp-card dp-jt" id="dpCardD"><h2>Best and slowest weekday: ${dpEsc(M.label)}</h2><span class="dp-tag" id="dpDTag"></span><p class="dp-why" id="dpDW"></p><div id="dpD"></div></div>
     <div class="dp-card dp-jt" id="dpHow"><h2>How to read this page</h2>
-      <p class="dp-note"><b>The daily target</b> is the month's target divided by the branch's trading days in that month. It is flat, so a Saturday and a Sunday carry the same target; the weekday chart is where the difference shows. Ratios (rebooking, treatment, retail, average bills) read the same benchmark every day. Utilisation reads hair 80 and beauty 70, weighted by the hours available.</p>
-      <p class="dp-note"><b>% of target</b> is a figure divided by its target, so 100% means the target was met and 80% means a fifth short. The heatmap and the weekday grid always show it when a target exists; hover a square for the figure itself. <b>Points</b> is the gap between two percentages, for example rebooking at 61% against 70% is 9 points below.</p>
-      <p class="dp-note"><b>Closed days</b> come from the closed-days rules and table, so Al Quoz on a Sunday or Monday is shut, not a zero. A measure with no target set (total and new clients, until somebody keys them in the Upload Portal) shows its figures with no grade. <b>NCR</b> is New Client Requests, a count against the Pulse's monthly NCR target; NCR % is the same count as a share of the day's clients, the way the Pulse's Client Funnel prints it, and has no target.</p>
-      <p class="dp-note"><b>The figures</b> are the Ledgers' own, by day, ex VAT, the same ones the Daily Target Sheet adds up. The window ends yesterday. Motor City is hair only, so the Beauty measures skip it. UAE branches only for now.</p></div>
+      <p class="dp-why">Short answers. Skim the bold words.</p>
+      <h3 class="dp-hg">The numbers</h3>
+      <div class="dp-how">
+        <div class="dp-hw"><b>% of target</b><span>The figure divided by its target. 100% means the target was met. 80% means a fifth short.</span></div>
+        <div class="dp-hw"><b>Points</b><span>The gap between two percentages. Rebooking at 61% against 70% is 9 points below.</span></div>
+        <div class="dp-hw"><b>Daily target</b><span>The month's target shared evenly across the branch's trading days. A Saturday and a Sunday carry the same target.</span></div>
+        <div class="dp-hw"><b>Rebooking, treatment %, retail %, average bills</b><span>Each day is read against the same benchmark. Utilisation: hair 80%, beauty 70%.</span></div>
+        <div class="dp-hw"><b>NCR</b><span>New Client Requests. A count, against the Pulse's monthly NCR target.</span></div>
+        <div class="dp-hw"><b>NCR %</b><span>NCR as a share of the day's clients. It has no target, so nothing is graded.</span></div>
+      </div>
+      <h3 class="dp-hg">What you will see</h3>
+      <div class="dp-how">
+        <div class="dp-hw"><b>Colours</b><span>How the day did against its target.</span><span class="dp-sw3"><span><i style="background:var(--dv-p2)"></i>Beat it</span><span><i style="background:var(--dv-0)"></i>On target</span><span><i style="background:var(--dv-n2)"></i>Fell short</span></span></div>
+        <div class="dp-hw"><b>Closed day</b><span>Shown as closed, not as zero. Al Quoz is shut on Sunday and Monday.</span></div>
+        <div class="dp-hw"><b>No grade</b><span>Total clients and New clients show their figures with no colour until someone keys a target in the Upload Portal.</span></div>
+        <div class="dp-hw"><b>Motor City</b><span>Hair only, so the Beauty measures skip it.</span></div>
+        <div class="dp-hw"><b>Hover a square</b><span>The heatmap and weekday grid show % of target. Hover to see the real figure.</span></div>
+      </div>
+      <h3 class="dp-hg">Where the figures come from</h3>
+      <div class="dp-how">
+        <div class="dp-hw"><b>The Ledgers</b><span>By day, ex VAT. The same figures the Daily Target Sheet adds up.</span></div>
+        <div class="dp-hw"><b>Up to yesterday</b><span>Today is only half a day, so the window ends yesterday. UAE branches only for now.</span></div>
+      </div>
+    </div>
   </div>`;
   const root = host.querySelector('.dpf');
   const fill = (id, html) => { const e = root.querySelector('#' + id); if (e) e.innerHTML = html; };
   const el = id => root.querySelector('#' + id);
   fill('dpA', dpChartA(el('dpA'), idxs));
   const sel = dpSel();
+  fill('dpW', dpWeakest(idxs, sel));
   const b = dpChartB(el('dpB'), idxs, sel);
   el('dpBT').textContent = b.title; el('dpBW').textContent = b.why; fill('dpBL', b.legend); fill('dpB', b.html);
   const r = dpRadar(el('dpR'), idxs, sel);
   el('dpRT').textContent = r.title; fill('dpRL', r.legend); fill('dpR', r.html); fill('dpRS', r.list);
   fill('dpC', dpHeat(el('dpC'), idxs));
+  const hs = el('dpC').querySelector('.dp-scroll');
+  if (hs && hs.scrollWidth > hs.clientWidth) hs.scrollLeft = hs.scrollWidth;   // a long window opens on the latest day
   const wk = dpWeekday(el('dpD'));
   el('dpDW').textContent = (M.notarget ? `Average ${M.noun} for each weekday, over the ${wk.days} days loaded. This measure has no target, so nothing is graded.`
-    : M.kind === 'ratio' ? `Average ${M.noun} for each weekday, as a % of its target, over the ${wk.days} days loaded. Hover a square for the figure itself.`
+    : M.kind === 'ratio' ? `Average ${M.noun} for each weekday: the figure big, its % of target small underneath. The colour follows the % of target, over the ${wk.days} days loaded.`
     : `Average ${M.noun} for each weekday, as a % of that day's target, over the ${wk.days} days loaded.`) + ' This is the one that tells you where to put your team.';
   fill('dpD', wk.html);
   el('dpDTag').textContent = `${wk.days} days loaded \u00B7 Period does not apply`;
@@ -923,6 +1005,14 @@ function dpRedraw(host, el, sel, change) {
 function dpWire(host) {
   const root = host.querySelector('.dpf'); if (!root) return;
   dpBindTips(root);
+  root.querySelectorAll('[data-bartg]').forEach(b => b.onclick = () => {
+    const bar = root.querySelector('#dpBar'); if (!bar) return;
+    DP.barMin = !bar.classList.contains('dp-min');
+    bar.classList.toggle('dp-min', DP.barMin);
+    root.style.setProperty('--dp-bar-h', bar.offsetHeight + 'px');
+    dpSave();
+    const f = bar.querySelector(DP.barMin ? '.dp-bar-min .dp-bar-tg' : '.dp-bar-body .dp-bar-tg'); if (f) f.focus({ preventScroll: true });
+  });
   const sm = root.querySelector('#dpSelM'), sp = root.querySelector('#dpSelP');
   if (sm) sm.onchange = () => dpRedraw(host, sm, '#dpSelM', () => { DP.measure = sm.value; dpSave(); });
   if (sp) sp.onchange = async () => {
@@ -972,3 +1062,28 @@ window.addEventListener('resize', () => {
     if (host && v && v.style.display !== 'none' && DPD) dpDraw(host);
   }, 150);
 });
+
+// The address carries the choices (Kate, 13 Oct 2026): ?view=dailyperf&measure=rebook&branches=MC&window=last7. Only
+// what differs from the defaults is written, so a bare ?view=dailyperf still means the default page. A link beats
+// whatever this browser remembered. trSyncUrl() in index.html calls dpUrlParts().
+function dpUrlParts() {
+  const parts = [];
+  if (DP.measure !== 'sales') parts.push('measure=' + DP.measure);
+  if (DP.branches && DP.branches.length) parts.push('branches=' + DP.branches.join(','));
+  if (DP.period !== 'mtd') parts.push('window=' + DP.period);
+  if (DP.period === 'custom' && DP.from && DP.to) parts.push('from=' + DP.from, 'to=' + DP.to);
+  return parts;
+}
+(function dpReadUrl() {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get('view') !== 'dailyperf') return;
+    const m = q.get('measure'); if (m && DP_M[m]) DP.measure = m;
+    const b = (q.get('branches') || '').split(',').map(x => x.trim().toUpperCase()).filter(x => ['SAA', 'KCA', 'MC', 'AQ'].includes(x));
+    if (b.length) DP.branches = b;
+    const w = q.get('window'); if (w && dpPeriods.some(x => x[0] === w)) DP.period = w;
+    const f = q.get('from'), t = q.get('to');
+    if (DP.period === 'custom' && /^\d{4}-\d{2}-\d{2}$/.test(f || '') && /^\d{4}-\d{2}-\d{2}$/.test(t || '')) { DP.from = f; DP.to = t; }
+    else if (DP.period === 'custom') DP.period = 'mtd';
+  } catch (e) { /* no address to read */ }
+})();
