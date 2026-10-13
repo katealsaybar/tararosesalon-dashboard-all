@@ -128,6 +128,7 @@ function dpCss() {
   .dpf .dp-tile .big{font-size:28px;font-weight:700;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
   .dpf .dp-sub{font-size:13px;color:var(--muted);line-height:1.4}
   .dpf .dp-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;border-radius:10px;padding:1px 8px;margin-top:6px}
+  .dpf .dp-chip.on{background:color-mix(in srgb,var(--dv-p2) 20%,transparent);color:var(--dv-p2)}
   .dpf .dp-chip.good{background:var(--good-bg);color:var(--good)}.dpf .dp-chip.warn{background:var(--warn-bg);color:var(--warn)}.dpf .dp-chip.bad{background:var(--bad-bg);color:var(--bad)}.dpf .dp-chip.na{background:var(--surface2);color:var(--muted)}
   .dpf .dp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card,10px);box-shadow:var(--shadow-card,none);padding:16px 18px;margin-bottom:16px}
   .dpf .dp-card h2{font-size:17px;margin:0;font-weight:700}
@@ -396,7 +397,8 @@ function dpBindTips(host) {
 // ── STATUS ──────────────────────────────────────────────────
 function dpStatus(p) {
   if (p == null) return ['na', 'No target set', '–'];
-  if (p >= 100) return ['good', 'On target', '✓'];
+  if (p >= 110) return ['good', 'Ahead of target', '✓'];
+  if (p >= 100) return ['on', 'On target', '✓'];
   if (p >= 80) return ['warn', 'Close', '▲'];   // the same lines as sc() in dashboard.js: 100 good, 80 close, under 80 bad
   return ['bad', 'Below target', '▼'];
 }
@@ -829,7 +831,7 @@ function dpRadar(host, idxs, codes) {
   if (!multi) {
     const sorted = axes.map(k => ({ ...mineAll[0][k], lab: sel[k][1] })).sort((a, b) => b.p - a.p);
     const strong = sorted.filter(v => Math.round(v.p) >= 100).slice(0, 3), weak = sorted.slice().reverse().filter(v => Math.round(v.p) < 100).slice(0, 3);
-    list = `<h3>Strengths</h3>${strong.length ? strong.map(v => row(v, 'good', '\u2713')).join('') : '<div class="dp-sub">Nothing above target yet</div>'}<h3>Weaknesses</h3>${weak.length ? weak.map(v => row(v, Math.round(v.p) >= 80 ? 'warn' : 'bad', Math.round(v.p) >= 80 ? '\u25B2' : '\u25BC')).join('') : '<div class="dp-sub">Every measure is on target</div>'}`;
+    list = `<h3>Strengths</h3>${strong.length ? strong.map(v => row(v, Math.round(v.p) >= 110 ? 'good' : 'on', '\u2713')).join('') : '<div class="dp-sub">Nothing above target yet</div>'}<h3>Weaknesses</h3>${weak.length ? weak.map(v => row(v, Math.round(v.p) >= 80 ? 'warn' : 'bad', Math.round(v.p) >= 80 ? '\u25B2' : '\u25BC')).join('') : '<div class="dp-sub">Every measure is on target</div>'}`;
   } else {
     list = '<h3>Each branch at a glance</h3>' + codes.map((code, bi) => {
       const arr = axes.map(k => ({ ...mineAll[bi][k], lab: sel[k][1] })).sort((a, b) => b.p - a.p), top = arr[0], low = arr[arr.length - 1];
