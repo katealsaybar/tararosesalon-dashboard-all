@@ -107,9 +107,20 @@ const ROOTS_BY_YEAR = {
     MC:  '1_TwQQEGftcv1swY9aDU6IjlaM36XTwlz', // MOTOR CITY / Week End- 2024
     AQ:  '1-yH6OuW8oy0xwC9cYae9ye2Aja6klP_F', // AL QUOZ / TRS / WEEK END
   },
-  // 2023, 2022, 2021, 2020 live under "LEDGERS YEARS" (1H85v53VWgpeNvmDdL45Ldfe3kdQSX6_g):
-  // 2023 1ZhjnCrThWUy5Tvx2SJNANhChk8mqpLwh, 2022 1M7Gosj_bjMN_Qm9_A1ek0JkeSld3xwC0,
-  // 2021 1bPWn3GerJfgairpV8Oh4MZDeBqCLcpil, 2020 1hWAFE1j3yctdIuxoazbLZ-lgvMEidA36.
+  // 2023 has no LEDGERS layer: the branch folders sit straight under the year
+  // (1ZhjnCrThWUy5Tvx2SJNANhChk8mqpLwh), each with its own weekly folder. Al Quoz starts late Sep 2023
+  // (only WK 4, 25 Sep - 1 Oct, in September). FRT Oct folder is empty, Nov and Dec are xlsx.
+  // Run 13 Oct 2026. Phorest FRT has no 2023, so FRT 2023 cannot be checked and is near empty.
+  2023: {
+    SAA: '1N7TUtgmqU50Nsyx_6oGSklKLZNSFUKdk', // SAADIYAT / 2023 - WEEK END
+    KCA: '1ifEZCpaR5FjEyaFFFiAmRFZV6vyai4TC', // KHALIFA / WEEKLY LEDGERS 2023
+    MC:  '1yorP4OyGnUD5fG2fdM5tBMxu4su_dWfb', // MOTOR CITY / 2023 - WEEK END
+    AQ:  '1iYeWjPJpcL2QY2EP27KwAsDZZ2MczN0l', // AL QUOZ / WEEK END
+    FRT: '1624aW56V-_gvEx9Msg3SDWxkfdslByHs', // AL QUOZ / FRATELLI - ledgers
+  },
+  // 2022, 2021, 2020 live under "LEDGERS YEARS" (1H85v53VWgpeNvmDdL45Ldfe3kdQSX6_g):
+  // 2022 1M7Gosj_bjMN_Qm9_A1ek0JkeSld3xwC0, 2021 1bPWn3GerJfgairpV8Oh4MZDeBqCLcpil,
+  // 2020 1hWAFE1j3yctdIuxoazbLZ-lgvMEidA36.
   // List each year's LEDGERS subfolder and add the four branch folders here before running it.
 };
 
@@ -2078,4 +2089,54 @@ function normalizeStaffName_(name) {
   const trimmed = str_(name);
   if (isSharedColumn_(trimmed)) return 'ASSISTANTS';
   return NAME_FIXES[trimmed.toUpperCase()] || trimmed;
+}
+
+
+// -- One-off, 13 Oct 2026: KCA 2023 weeks 30 Oct - 5 Nov and 27 Nov - 3 Dec --------------------
+// Both files' day tabs carry template A1 dates (week of 9 Jan / 6 Mar 2023). The first pass dated
+// them by the file name but only one tab of each went through; rescueStrayTabs() then worked out
+// its targets from the stale A1s and held the rest. Here every tab is dated from the name's Monday.
+// pushKcaWeeks2023Dry() reads and logs only; pushKcaWeeks2023() pushes. Re-running is harmless.
+function pushKcaWeeks2023Dry() { return kcaWeeks2023_(true); }
+function pushKcaWeeks2023() { return kcaWeeks2023_(false); }
+function kcaWeeks2023_(dry) {
+  const FILES = [
+    { id: '1q9fcdxzXxy4wGlePeFx_weYntLkO0Q8X', monday: '2023-10-30' },
+    { id: '1akn37djAhAegmd_xOwgJfgTXHB2TRXMZ', monday: '2023-11-27' },
+  ];
+  FILES.forEach(function (f) {
+    const tempId = convertXlsx_(f.id, 'kca2023 ' + f.monday);
+    try {
+      const ss = SpreadsheetApp.openById(tempId);
+      const all = [];
+      ss.getSheets().forEach(function (sheet) {
+        const tab = sheet.getName().trim().toUpperCase();
+        const idx = DAY_TABS.indexOf(tab);
+        if (idx === -1) return;
+        const lastRow = Math.min(sheet.getLastRow(), MAX_ROWS_READ);
+        const lastCol = sheet.getLastColumn();
+        if (lastRow < 5 || lastCol < 4) return;
+        const values = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+        const date = isoAdd_(f.monday, idx);
+        const notes = [];
+        const rows = parseDay_(values, date, tab, notes);
+        const clients = rows.reduce(function (s, r) { return s + (Number(r.total) || 0); }, 0);
+        const aed = rows.reduce(function (s, r) { return s + (Number(r.treatment_aed) || 0); }, 0);
+        const allZero = rows.every(function (r) { return figures_(r) === ZERO_FIGURES; });
+        Logger.log(f.monday + ' ' + tab + ' -> ' + date + ': rows ' + rows.length + ', clients ' + clients +
+                   ', treatment AED ' + Math.round(aed) + (allZero ? ', ALL ZERO (not pushed)' : '') +
+                   (notes.length ? ' | ' + notes.join(' | ').slice(0, 160) : ''));
+        if (rows.length && !allZero) {
+          all.push.apply(all, rows.map(function (r) { return Object.assign({ branch: 'KCA' }, r); }));
+        }
+      });
+      if (!dry && all.length) {
+        Logger.log(f.monday + ' week: pushed ' + pushRows_('KCA', all) + ' rows');
+      } else {
+        Logger.log(f.monday + ' week: ' + all.length + ' rows ready' + (dry ? ' (dry run, nothing pushed)' : ''));
+      }
+    } finally {
+      try { DriveApp.getFileById(tempId).setTrashed(true); } catch (e) { /* ignore */ }
+    }
+  });
 }
