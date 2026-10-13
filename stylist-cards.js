@@ -9,8 +9,8 @@
 // drift from the artwork, and the artwork is what the client sees.
 //
 // It is also the roster of who has a card at all - dashboard.js shows the embed only
-// for a name that appears here. Its 45 keys are exactly the 45 files in
-// assets/stylist-cards/. Vicki's card joined on 2026-10-13 (a single-page update).
+// for a name that appears here. Its 46 keys are exactly the 46 files in
+// assets/stylist-cards/. Vicki's and Andrea's cards joined on 2026-10-13 (single-page updates).
 // The beauty team joined on 2026-09-03, with a deck of their own; until then they
 // were in staff-profiles with no card, which is why that file says every field is
 // optional.
@@ -793,6 +793,26 @@ const STYLIST_CARDS = {
   "inMyChair": "Put the day down. I'll go gently, and I won't rush you.",
   "review": "Grace is truly exceptional. Her hands are incredibly soft and gentle, at some point I didn't even realize she was applying the strip. After trying other technicians elsewhere, I can confidently say I only want to book with her.",
   "reviewBy": "Tahane"
+ },
+ "ANDREA": {
+  "role": "Stylist",
+  "quote": "Crazy colors, bouncy blowouts and boy talk that never ends.",
+  "bio": "Slowly beginning to believe myself a little more. Originally from Bombay, India with over 6 years of experience, and now beautifying hair in Dubai!",
+  "specialises": [
+   "Cuts, colours (especially crazy colours & blondes)",
+   "Bouncy blowouts"
+  ],
+  "bestFor": "Customised home care routine Customising haircuts and colours around your lifestyle and the way u maintain it",
+  "vibe": [
+   "Enthusiastic",
+   "Empathetic",
+   "Funny"
+  ],
+  "loveMeIf": "You want gorgeous hair, bold transformations & conversations you'll probably never forget.",
+  "mattersMost": "Nothing makes me happier than beautiful hair and a client leaving feeling like their absolute best self.",
+  "inMyChair": "Good hair, honest advice, the right products; and always making sure you still feel like YOU.",
+  "review": "Had a balayage done at Tara Rose today and a huge shoutout to Andy! She absolutely killed it! From the consultation to helping me choose the perfect shade to suit me, she was amazing throughout the whole process. You can really tell she knows exactly what she's doing and genuinely cares about getting the best result. Absolutely in love with my new look! Thank you so much, Andy! Highly recommend Tara Rose",
+  "reviewBy": "Neha George"
  },
  "VICKI": {
   "role": "Stylist",
