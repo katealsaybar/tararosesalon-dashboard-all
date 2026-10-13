@@ -48,7 +48,7 @@ function otyCss() {
   if (document.getElementById('otyCss')) return;
   const st = document.createElement('style'); st.id = 'otyCss';
   st.textContent = `
-  .oty{--o-gut:0px;width:100%;max-width:1100px;margin:0 auto;color:var(--text)}
+  .oty{--o-gut:0px;width:100%;max-width:1320px;margin:0 auto;color:var(--text)}
   .oty *{box-sizing:border-box;min-width:0}
   .oty h1{font-family:'Playfair Display',serif;font-weight:500;font-size:clamp(28px,8vw,48px);line-height:1.06;margin:18px 0 8px}
   .oty h1 em{font-weight:400;color:var(--hair)}
@@ -273,19 +273,24 @@ function otyDraw() {
   if (OTY.sel == null || OTY.sel >= otyD.years.length) OTY.sel = otyD.years.length - 1;
   if (!otyD.sets[OTY.b]) OTY.b = 'ALL';
   const rows = otyRows();
+  // Kate, 13 Oct 2026: the mini side nav, the same rail as Organisation Pulse and Branch Performance (lgRail in
+  // branch-ledger.js, lit by spy() in index.html): in the gutter from 1100px, a pinned row of chips below that. The
+  // header, the switches and the tiles stay full width above it; the rail starts at the chart. A rail entry points
+  // at the section's id, and a section with nothing to show (the seasons, before the data arrives) has no entry.
+  const parts = [['oty-net', 'Net take by year', otyChartBlock(rows)], ['oty-years', 'The years, side by side', otyTable(rows)],
+    ['oty-seasons', 'Season on season', otySeasons()], ['oty-reviews', 'Google reviews', otyReviews()], ['oty-ig', 'Instagram', otyInstagram()],
+    ['oty-cov', 'What each year has behind it', otyCoverage()], ['oty-how', 'How to read this page', otyNotes()]].filter(x => x[2]);
+  const body = parts.map(([id, , html]) => `<section id="${id}" class="oty-sec">${html}</section>`).join('');
+  const shell = typeof lgRail === 'function'
+    ? `<div class="lg-shell lg-shell-wide">${lgRail(parts.map(([id, label]) => [id, label]))}<div class="lg-doc">${body}</div></div>`
+    : body;
   host.innerHTML = `<div class="oty">
     <div class="oty-eb"><i style="background:var(--accent)"></i>Numbers · Business · Over the years</div>
     <h1>${otyD.years.length} years, <em>season by season.</em></h1>
     <p class="oty-deck">Where the business has grown, which branch carried it, and how this year's seasons sit against the years before.</p>
     ${otyControls()}
     ${otyTiles(rows)}
-    ${otyChartBlock(rows)}
-    ${otyTable(rows)}
-    ${otySeasons()}
-    ${otyReviews()}
-    ${otyInstagram()}
-    ${otyCoverage()}
-    ${otyNotes()}
+    ${shell}
   </div>`;
   otySeasonPlace();
 }
@@ -579,8 +584,10 @@ function otySeasonChart(key, M, shown, H) {
     return `<div class="oty-grp"><div class="oty-delta">${pill}<small>${small}</small></div><div class="oty-bars" style="--H:${H}px">${bars}</div></div>`;
   }).join('');
   const yrRow = M.names.map(() => `<div><div class="oty-yl">${yrs.map(y => `<span class="${y === curYear ? 'cur' : ''}">${yrs.length > 6 ? String(y).slice(2) : y}</span>`).join('')}</div></div>`).join('');
+  // a season whose dates change year to year (Ramadan and Eid) says so; the exact dates are on each bar
+  const moves = nm => { const rs = (otyRaw.seasons || []).filter(r => r.season === nm); return rs.some(r => r.start_date.slice(5) !== rs[0].start_date.slice(5) || r.end_date.slice(5) !== rs[0].end_date.slice(5)); };
   const names = M.names.map((nm, i) => { const s = seasons[i], r = s.cur;
-    return `<div><b><i style="background:${OTY_SEASON_COL[i % 4]}"></i>${otyEsc(nm)}</b><span class="${s.state === 'live' ? 'live' : ''}">${r ? `${otyDay(r.start_date)} to ${otyDay(r.end_date)}${s.state === 'live' ? ' · running' : ''}` : ''}</span></div>`; }).join('');
+    return `<div><b><i style="background:${OTY_SEASON_COL[i % 4]}"></i>${otyEsc(nm)}</b><span class="${s.state === 'live' ? 'live' : ''}">${r ? `${otyDay(r.start_date)} to ${otyDay(r.end_date)}${s.state === 'live' ? ' · running' : moves(nm) ? ' · moves each year' : ''}` : ''}</span></div>`; }).join('');
   const n = M.names.length;
   return `<div class="oty-card" style="margin-top:12px"><div class="oty-chead"><b>${otyEsc(title)}</b><span>${bs.map(b => OTY_NAME[b]).join(' + ')} · per open day</span></div>
     <div class="oty-plot" data-plot><div class="oty-grid">${grid}</div><div class="oty-groups" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${groups}</div>
