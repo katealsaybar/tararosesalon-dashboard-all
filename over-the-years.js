@@ -132,7 +132,7 @@ function otyCss() {
   .oty .oty-delta small{font-size:11px;color:var(--muted2);line-height:1.25}
   .oty .oty-bars{display:flex;align-items:flex-end;justify-content:center;gap:clamp(2px,.6vw,7px);height:var(--H)}
   .oty .oty-bar{flex:1 1 0;max-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;cursor:pointer;outline:none;position:relative}
-  .oty .oty-bar .vl{font-size:clamp(8.5px,1.05vw,11px);color:var(--muted);font-variant-numeric:tabular-nums;margin-bottom:4px;white-space:nowrap}
+  .oty .oty-bar .vl{font-size:clamp(8px,.85vw,10.5px);color:var(--muted);font-variant-numeric:tabular-nums;margin-bottom:4px;white-space:nowrap}
   .oty .oty-bar .b{width:100%;border-radius:5px 5px 0 0;transition:filter .12s}
   .oty .oty-bar:hover .b,.oty .oty-bar:focus-visible .b,.oty .oty-bar.sel .b{filter:brightness(1.15);box-shadow:0 0 0 2px var(--text)}
   .oty .oty-bar.cur .vl{color:var(--text);font-weight:700}
@@ -529,7 +529,7 @@ function otySeasons() {
   const yrChips = years.map(y => `<button class="oty-chip" aria-pressed="${shown.has(y)}" onclick="otySeasonYear(${y})"><i style="background:${otyAge(y)}"></i>${y}</button>`).join('');
   const hint = isLast5 ? `Showing ${last5[0]} to ${curYear}. Tap a year to add or remove it, or pick All years for the full range.`
     : isAll ? `Showing every year from ${years[0]}.` : `Showing ${ys.join(', ')}. Tap a year to add or remove it.`;
-  const charts = OTY.sreg === 'BOTH' ? otySeasonChart('AD', M, shown, 230) + otySeasonChart('DXB', M, shown, 230) : otySeasonChart(OTY.sreg, M, shown, 300);
+  const charts = OTY.sreg === 'BOTH' ? otySeasonChart('AD', M, shown, 165) + otySeasonChart('DXB', M, shown, 165) : otySeasonChart(OTY.sreg, M, shown, 210);
   const dxb = OTY.sreg === 'DXB' || OTY.sreg === 'BOTH';
   const running = M.build(OTY.sreg === 'BOTH' ? 'AD' : OTY.sreg).find(s => s.state === 'live');
   const notes = (running ? `<p><b>${otyEsc(running.nm)} is still running</b> (${running.cur.days} of ${otySLen(running.cur)} days), so its ${curYear} bar is striped. The pill compares those ${running.cur.days} days with the same days of ${curYear - 1}, not with all of last year's season, so it is a fair read and can still move before the season closes.</p>` : '')
