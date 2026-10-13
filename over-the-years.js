@@ -562,7 +562,7 @@ function otySeasonCal(M) {
   const bands = M.names.map((nm, i) => {
     const r = cal.find(x => x.season === nm && x.y === curYear); if (!r) return '';
     const x = pos(r.start_date), w = pos(r.end_date) - x + 100 / 365, live = r.start_date <= cut && r.end_date > cut;
-    return `<div class="oty-band ${live ? 'live' : ''}" style="left:${x}%;width:${w}%;background:${OTY_SEASON_COL[i % 4]}">${w > 16 ? otyEsc(nm) : w > 6 ? otyEsc(nm.split(' ')[0]) : ''}</div>`;
+    return `<div class="oty-band ${live ? 'live' : ''}" tabindex="0" data-band="${otyEsc(nm)}" style="left:${x}%;width:${w}%;background:${OTY_SEASON_COL[i % 4]}">${w > 16 ? otyEsc(nm) : w > 6 ? otyEsc(nm.split(' ')[0]) : ''}</div>`;
   }).join('');
   return `<div class="oty-card oty-cal" style="margin-top:12px"><div class="oty-trackw"><div class="oty-track">${bands}</div><div class="oty-today" tabindex="0" aria-label="We're here, ${otyDay(cut)}" style="left:${pos(cut)}%"><span>We're here · ${otyDay(cut)}</span></div></div>
     <div class="oty-months">${OTY_MON.map(m => `<span>${m}</span>`).join('')}</div>
@@ -635,6 +635,25 @@ function otySeasonTip(el, ev) {
   tt.style.left = x + 'px'; tt.style.top = yy + 'px';
   document.querySelectorAll('.oty-bar.sel').forEach(b => b.classList.remove('sel')); el.classList.add('sel');
 }
+// hover or tap a season on the calendar strip: its name and the dates it runs this year
+function otyBandTip(el, ev) {
+  const nm = el.dataset.band, curYear = otyD.curYear, cut = otyD.cut;
+  const cal = (otyRaw.seasons || []).filter(r => r.season === nm), r = cal.find(x => x.y === curYear); if (!r) return;
+  const idx = [...new Set((otyRaw.seasons || []).slice().sort((a, b) => a.sort - b.sort).map(x => x.season))].indexOf(nm);
+  const L = otySLen(r), live = r.start_date <= cut && r.end_date > cut, ahead = r.start_date > cut;
+  const moves = cal.some(x => x.start_date.slice(5) !== cal[0].start_date.slice(5) || x.end_date.slice(5) !== cal[0].end_date.slice(5));
+  let tt = document.getElementById('otySeasonTip');
+  if (!tt) { tt = document.createElement('div'); tt.id = 'otySeasonTip'; tt.className = 'oty-stt'; document.body.appendChild(tt); }
+  const days = Math.round((new Date(cut) - new Date(r.start_date)) / 864e5) + 1;
+  tt.innerHTML = `<div class="h"><i style="background:${OTY_SEASON_COL[idx % 4]}"></i><b>${otyEsc(nm)}</b><span>${curYear}</span></div>
+    <div class="v" style="font-size:15px">${otyFullDay(r.start_date)} to ${otyFullDay(r.end_date)}</div>
+    <div>${L} days${live ? ` · running, ${days} so far` : ahead ? ' · not started' : ''}</div>${moves ? '<div style="margin-top:4px">Moves about 11 days earlier each year.</div>' : ''}`;
+  tt.classList.add('on');
+  const w = tt.offsetWidth, h = tt.offsetHeight, bx = el.getBoundingClientRect();
+  let x = (ev && ev.clientX ? ev.clientX : bx.left + bx.width / 2) - w / 2; x = Math.max(8, Math.min(innerWidth - w - 8, x));
+  let yy = bx.top - h - 10; if (yy < 8) yy = bx.bottom + 10;
+  tt.style.left = x + 'px'; tt.style.top = yy + 'px';
+}
 function otySeasonTipOff() {
   const tt = document.getElementById('otySeasonTip'); if (tt) tt.classList.remove('on');
   document.querySelectorAll('.oty-bar.sel').forEach(b => b.classList.remove('sel'));
@@ -642,11 +661,13 @@ function otySeasonTipOff() {
 if (!window.__otySeasonBound) {
   window.__otySeasonBound = true;
   const bar = e => e.target && e.target.closest && e.target.closest('.oty-bar');
-  document.addEventListener('mouseover', e => { const b = bar(e); if (b) otySeasonTip(b, e); });
-  document.addEventListener('mousemove', e => { const b = bar(e); if (b) otySeasonTip(b, e); });
-  document.addEventListener('mouseout', e => { if (bar(e) && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.oty-bar'))) otySeasonTipOff(); });
-  document.addEventListener('focusin', e => { const b = bar(e); if (b) otySeasonTip(b); });
-  document.addEventListener('click', e => { const b = bar(e); if (b) otySeasonTip(b, e); else otySeasonTipOff(); });
+  const band = e => e.target && e.target.closest && e.target.closest('.oty-band');
+  const show = e => { const b = bar(e), d = band(e); if (b) otySeasonTip(b, e); else if (d) otyBandTip(d, e); };
+  document.addEventListener('mouseover', show);
+  document.addEventListener('mousemove', show);
+  document.addEventListener('mouseout', e => { const sel = '.oty-bar,.oty-band'; if (e.target.closest && e.target.closest(sel) && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(sel))) otySeasonTipOff(); });
+  document.addEventListener('focusin', e => { const b = bar(e), d = band(e); if (b) otySeasonTip(b); else if (d) otyBandTip(d); });
+  document.addEventListener('click', e => { if (bar(e) || band(e)) show(e); else otySeasonTipOff(); });
   addEventListener('resize', otySeasonPlace);
 }
 
