@@ -119,3 +119,26 @@
 .lqw-no{color:var(--warn);font-weight:700}
 .lqw-ph{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin:0 0 10px}
 .lqw-slice{margin:0}
+
+/* To message, calmer type (Kate, 13 Oct 2026: "fonts too big, readable but not so in your face"). The table was already 12px, but the
+   dropdown pills drew at page size (the pill button inherits, the 12px sat on the hidden select), the stat numbers were 30px, the
+   pace and wave numbers 20-22px, and the wave headings, status line and area tabs were all 15-16px. Everything here steps down to
+   sit with the 12px table: page text 12-13px, headings 14px, big numbers 18-24px. Scoped to #lostListsContent, so no other page moves. */
+#lostListsContent .ps-btn{font-size:12.5px;padding:5px 12px;min-height:32px}
+#lostListsContent .lq-stats .ll-n{font-size:24px}
+#lostListsContent .lqw-area button{font-size:13px;padding:10px 14px}
+#lostListsContent .lqw-status{padding:12px 14px}
+#lostListsContent .lqw-lab{font-size:11px}
+#lostListsContent .lqw-line{font-size:13px;margin-bottom:10px}
+#lostListsContent .lqw-pace{padding:14px 16px}
+#lostListsContent .lqw-pace .lqw-row > b{font-size:14px}
+#lostListsContent .lqw-big b{font-size:18px}
+#lostListsContent .lqw-h{font-size:15px}
+#lostListsContent .lqw-wh{font-size:13px;padding:11px 14px}
+#lostListsContent .lqw-num{width:30px;height:30px;font-size:13px}
+#lostListsContent .lqw-cnt b,#lostListsContent .lqw-res b{font-size:17px}
+#lostListsContent .lqw-ph b{font-size:14px}
+#lostListsContent .lqw-chk{font-size:12.5px}
+#lostListsContent .lqw-dot{width:26px;height:26px;font-size:12px}
+#lostListsContent .lqw-step::before{top:12px}
+#lostListsContent .lq-sendbar{font-size:12.5px}
