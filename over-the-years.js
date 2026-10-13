@@ -151,7 +151,11 @@ function otyCss() {
   .oty .oty-track{position:relative;height:40px;border-radius:8px;background:var(--surface2);overflow:hidden}
   .oty .oty-band{position:absolute;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:#2D2E37;white-space:nowrap;overflow:hidden}
   .oty .oty-band.live{justify-content:flex-start;padding-left:8px}
-  .oty .oty-today{position:absolute;top:0;bottom:0;width:2px;background:var(--text);z-index:2}
+  .oty .oty-trackw{position:relative}
+  .oty .oty-today{position:absolute;top:-6px;bottom:-6px;width:2px;margin-left:-1px;background:var(--text);z-index:2;outline:none}
+  .oty .oty-today::before{content:'';position:absolute;top:0;bottom:0;left:-10px;right:-10px}
+  .oty .oty-today span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:6px;white-space:nowrap;padding:5px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--muted2);font-size:12px;font-weight:600;color:var(--text);box-shadow:0 6px 18px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .12s}
+  .oty .oty-today:hover span,.oty .oty-today:focus span{opacity:1}
   .oty .oty-months{display:grid;grid-template-columns:repeat(12,1fr);margin-top:6px;font-size:10.5px;color:var(--muted2);text-align:center}
   .oty .oty-cov{display:grid;gap:4px;align-items:center;font-size:10.5px;color:var(--muted2)}
   .oty .oty-cov .c{height:16px;border-radius:3px;background:var(--surface2)}
@@ -560,7 +564,7 @@ function otySeasonCal(M) {
     const x = pos(r.start_date), w = pos(r.end_date) - x + 100 / 365, live = r.start_date <= cut && r.end_date > cut;
     return `<div class="oty-band ${live ? 'live' : ''}" style="left:${x}%;width:${w}%;background:${OTY_SEASON_COL[i % 4]}">${w > 16 ? otyEsc(nm) : w > 6 ? otyEsc(nm.split(' ')[0]) : ''}</div>`;
   }).join('');
-  return `<div class="oty-card oty-cal" style="margin-top:12px"><div class="oty-track">${bands}<div class="oty-today" style="left:${pos(cut)}%"></div></div>
+  return `<div class="oty-card oty-cal" style="margin-top:12px"><div class="oty-trackw"><div class="oty-track">${bands}</div><div class="oty-today" tabindex="0" aria-label="We're here, ${otyDay(cut)}" style="left:${pos(cut)}%"><span>We're here · ${otyDay(cut)}</span></div></div>
     <div class="oty-months">${OTY_MON.map(m => `<span>${m}</span>`).join('')}</div>
     <p class="oty-note" style="margin:10px 0 0">${curYear} laid out by season. The white line is the last day of takings (${otyDay(cut)}). The gap between Ramadan and summer is not part of any season.</p></div>`;
 }
@@ -712,6 +716,10 @@ function otyInstagram() {
     return `<path d="${runs.map(otyCurve).join(' ')}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
   };
   g += line(own, 'var(--warn)', 2.4) + line(col, 'var(--good)', 2.2);
+  // Kate, 13 Oct 2026: "no clear nodes". The lines are smoothed, so each month's real value gets a small dot; the
+  // selected month's are a little bigger. A month before a feed started has no value, so no dot.
+  const dots = (arr, c) => arr.map((v, i) => v == null ? '' : `<circle cx="${(L + bw * i + bw / 2).toFixed(1)}" cy="${yp(v).toFixed(1)}" r="${i === OTY.ig ? 4.4 : 2.8}" fill="${c}" stroke="var(--surface)" stroke-width="1.2"/>`).join('');
+  g += dots(own, 'var(--warn)') + dots(col, 'var(--good)');
   // Kate, 13 Oct 2026: hover (or tap) a month for all three figures; the column is invisible and sits on top.
   const nc = v => v == null ? '<span style="opacity:.6">not captured</span>' : `<b>${v}</b>`;
   ms.forEach((r, i) => { g += `<rect class="hit" x="${L + bw * i}" y="${T - 6}" width="${bw}" height="${H - T - B + 6}" fill="transparent"${otyTTh(`<div class="h"><b>${OTY_MON[+r.m.slice(5) - 1]} ${r.m.slice(0, 4)}</b></div><div class="s">Client tags ${nc(tag[i])}</div><div class="s">Our posts and reels ${nc(own[i])}</div><div class="s">Collab posts ${nc(col[i])}</div>`)}/>`; });
