@@ -33,7 +33,7 @@ OUT = ROOT / 'search-index.js'
 
 # One page script, one page. A file that draws several pages is handled below.
 FILE_VIEWS = {
-    'compare.js': 'compare', 'google-ads.js': 'googleads', 'website.js': 'website',
+    'compare.js': 'compare', 'daily-performance.js': 'dailyperf', 'google-ads.js': 'googleads', 'website.js': 'website',
     'social.js': 'social', 'products.js': 'products', 'org-chart.js': 'orgchart',
     'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels',
     'top-clients.js': 'clients',

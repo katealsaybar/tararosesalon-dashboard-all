@@ -43,6 +43,7 @@
   const PAGE_WORDS = {
     dashboard: 'home overview kpi sales revenue takings pulse summary',
     branchperf: 'branch staff table figures services retail',
+    dailyperf: 'daily day by day per branch graph chart radar heatmap weekday strengths weaknesses sales clients utilisation rebooking target',
     compare: 'compare versus vs side by side',
     team: 'podium race ranking leaderboard top performer',
     teamquad: 'staff quadrant treatment retail rebook rebooking takings',
@@ -1275,7 +1276,7 @@
   // stale); Google Ads, Website and Social each keep their own sync time, read from the
   // report each page runs, in a one-day window, the first time a result of that page shows.
   const FEEDS = {
-    dashboard: ['ledger', 'phorest'], branchperf: ['ledger', 'phorest'], compare: ['ledger', 'phorest'],
+    dashboard: ['ledger', 'phorest'], branchperf: ['ledger', 'phorest'], dailyperf: ['ledger', 'phorest'], compare: ['ledger', 'phorest'],
     team: ['ledger', 'phorest'], teamquad: ['ledger', 'phorest'], staffperf: ['ledger', 'phorest'],
     staffweeks: ['ledger', 'phorest'], stafflevels: ['ledger', 'phorest'],
     ledgerFinancials: ['phorest'], ledgerTargets: ['ledger'], ledgerActuals: ['ledger'], ledgerStylist: ['ledger'],
