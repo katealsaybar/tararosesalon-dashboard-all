@@ -1,0 +1,630 @@
+/* the-hair-rhythm.css. The Hair Rhythm By Tara Rose.
+   Built to Layer 5, The Landing Page Handover. Only the blocks the voucher page
+   did not already have: the Hero-B split, the three entry cards, the availability
+   band, the select/textarea form fields, and the mobile sticky bar. Everything
+   else reuses page-beauty-voucher.css and trs-core.css so a token change there
+   still reaches this page. */
+
+/* ------------------------------------------------------------------- HERO-B
+   Split image and text, not the voucher's full-bleed overlay. Layer 5 E: the
+   fluid clamp scales on the short axis too, because a width-only clamp pushes
+   the CTA below the fold on a 1280x800 laptop. */
+.hero-b{ background:var(--paper); padding:0; overflow:hidden; }
+.hero-b .split{
+  display:grid; grid-template-columns:1fr 1fr; align-items:stretch;
+  gap:clamp(20px,3.4vw,48px);
+  min-height:min(78vh,720px);
+  max-width:var(--maxw); margin-inline:auto; padding-inline:var(--pad-x);
+}
+.hero-b .htext{
+  display:flex; flex-direction:column; justify-content:center;
+  padding:clamp(28px,5vw,56px) 0;
+  max-width:none;
+}
+/* The campaign label. Under The Hair Rhythm the label names the same idea the H1
+   ends on, so at the previous 22px it pre-announced the reveal and the H1 read as
+   an echo. The label steps back to a quiet mark and the H1 keeps the reveal.
+   Emma's 25 Aug "bigger" instruction applied to the old name selling the tier;
+   if she wants this one large again it is one line here. */
+.hero-b .campaign-label{
+  display:block; margin-bottom:16px;
+  font-family:var(--fb); font-weight:600; text-transform:uppercase;
+  font-size:clamp(12.5px,3vw,14px); letter-spacing:.2em; line-height:1.4;
+  color:var(--accent-text);
+}
+.hero-b .h-1{
+  font-family:var(--fd); font-weight:400; color:var(--ink);
+  font-size:clamp(30px, min(4.6vw, 5.6vh), 52px);
+  line-height:1.06; letter-spacing:-.015em; margin:0; text-wrap:balance;
+}
+.hero-b .lede{
+  margin:18px 0 0; max-width:46ch;
+  font-family:var(--fb); font-size:clamp(16px,1.2vw,18.5px); font-weight:300;
+  line-height:1.62; color:var(--ink-soft);
+}
+.hero-b .cta-row{ margin-top:28px; }
+.hero-b .himg{
+  background:var(--stone-soft) center/cover no-repeat;
+  min-height:340px; border-radius:var(--r-md);
+}
+@media(max-width:833px){
+  .hero-b .split{ grid-template-columns:1fr; min-height:0; gap:0; }
+  /* The image stays above the text below the split, but it is a band, not a panel.
+     Height is capped against the VIEWPORT, not derived from the width: an
+     aspect-ratio plus max-height shrinks the width instead of the height and
+     leaves dead space beside the image. Capping height against vh is also what
+     keeps the pill above the fold on a short screen, which is the real
+     requirement in Layer 5 E. */
+  .hero-b .himg{
+    order:-1; width:100%; min-height:0;
+    height:clamp(150px, 26vh, 250px); aspect-ratio:auto; margin-top:20px;
+  }
+  /* Centred below the split point, matching every section head under it.
+     Kate, 25 Aug, from the phone. Desktop keeps the left-set split. */
+  .hero-b .htext{ padding-top:22px; text-align:center; align-items:center; }
+  .hero-b .lede{ font-size:16px; margin-inline:auto; }
+  .hero-b .cta-row{ display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .hero-b .cta-row{ margin-top:20px; }
+}
+
+/* ------------------------------------------------- THE THREE ENTRY POINTS (#start)
+   Layer 5 D: near-rectangular cards, one filled pill each, and min-width:0 on the
+   children so long lines cannot blow the grid out. */
+.doors{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:18px; margin-top:36px;
+}
+.doors > *{ min-width:0; }
+.door{
+  display:flex; flex-direction:column;
+  background:var(--paper); border:1px solid var(--hair); border-radius:var(--r-md);
+  padding:26px 26px 24px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 14px 34px -24px rgba(45,46,55,.32);
+}
+.door h3{
+  font-family:var(--fd); font-weight:700;
+  font-size:clamp(20px,1.9vw,24px); line-height:1.22; color:var(--ink); margin:0;
+}
+.door p{
+  margin:14px 0 0; font-family:var(--fb); font-size:15.5px; font-weight:300;
+  line-height:1.62; color:var(--ink-soft);
+}
+.door .from{
+  display:block; margin:20px 0 0;
+  font-size:12.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.door .from b{
+  display:block; margin-top:6px; font-family:var(--fd); font-weight:500;
+  font-size:26px; letter-spacing:0; text-transform:none; color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.door .pill{ margin-top:22px; align-self:flex-start; }
+.doors-unsure{
+  margin:30px auto 0; max-width:62ch; text-align:center;
+  font-family:var(--fb); font-size:16.5px; line-height:1.62; color:var(--ink);
+}
+.doors-unsure em{ font-family:var(--fd); font-style:italic; }
+.doors-unsure a{ color:#3aa892; }
+.doors-menu{
+  margin:22px 0 0; text-align:center;
+  font-size:13px; letter-spacing:.02em; color:var(--ink-soft);
+}
+.doors-menu a{ color:#3aa892; text-decoration:underline; }
+
+/* -------------------------------------------------------------- AVAILABILITY
+   The only urgency on the page, and it carries no number until Ops supplies a
+   real one. No countdown, no fabricated close date. */
+.avail{
+  max-width:64ch; margin:0 auto; text-align:center;
+  font-family:var(--fb); font-size:17px; font-weight:300; line-height:1.68; color:var(--ink-soft);
+}
+.avail b{ color:var(--ink); font-weight:500; }
+
+/* -------------------------------------------------------- FORM, extra controls
+   page-beauty-voucher.css styles .field input only. The Hair Rhythm form also
+   uses selects and a textarea. The 16px floor is inherited from trs-core.css. */
+.field select,
+.field textarea{
+  width:100%; font-family:var(--fb); font-size:16px; color:var(--ink);
+  background:var(--paper); border:1px solid var(--hair); border-radius:var(--r-sm);
+  padding:14px 16px; transition:border-color var(--dur) var(--ease);
+}
+.field textarea{ resize:vertical; min-height:96px; line-height:1.6; }
+.field select:focus,
+.field textarea:focus{ outline:2px solid var(--accent-deep); outline-offset:3px; border-color:var(--accent-deep); }
+.field .help{
+  margin:8px 0 0; font-family:var(--fb); font-size:13.5px; font-weight:300;
+  letter-spacing:0; text-transform:none; color:var(--ink-soft);
+}
+.field--hidden{ display:none; }
+
+/* Tap-target floor. Layer 5 E: 44x44 minimum on anything tappable, and a button's
+   height is the source of truth, never its vertical padding. */
+.door .pill, .doors-unsure a, .doors-menu a{ min-height:44px; }
+.doors-unsure a, .doors-menu a{ display:inline-block; padding:11px 0; }
+
+/* Checkbox hit area extends to the full label, Layer 5 E. The box itself is 20px
+   by design, so the label carries the 44px target. */
+.pdpl__group{ align-items:center; }
+.pdpl__label{ padding:11px 0; }
+
+/* The wordmark is set in Inter, not Playfair. Kate, 21 Aug 2026.
+   Weight drops to 400 with the switch: Inter 500 at this tracking reads heavier
+   than the Playfair 500 it replaces, and the wordmark should not out-weigh the H1. */
+.trs-nav .brand__wm{ font-family:var(--fb); font-weight:400; }
+.foot .brand__wm{ font-family:var(--fb); font-weight:400; }
+
+/* ------------------------------------------------------------- THE HOUR, photo rail
+   Three portraits under the five steps. The only landscape assets in the library are
+   the building and a meeting shot, so the rail is portrait at three-up and switches to
+   a single landscape crop on a phone rather than stacking three tall images. */
+.hour-rail{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:34px 0 6px;
+}
+.hour-rail figure{ margin:0; }
+.hour-rail img{
+  width:100%; height:auto; aspect-ratio:3/4; object-fit:cover; display:block;
+  border-radius:var(--r-md); background:var(--stone-soft);
+}
+/* Kate, 26 Aug: the middle consult photo showed April, who is a stylist now, not a
+   junior. A dimensioned placeholder holds the slot until the right junior shot exists.
+   It sizes exactly like the images beside it, so the rail's rhythm does not change. */
+.ph-slot{
+  width:100%; height:auto; aspect-ratio:3/4; position:relative; text-align:center;
+  border:1.5px dashed var(--hair); border-radius:var(--r-md); background:var(--stone-soft);
+}
+/* The label is absolute so its lines can never stretch the box past the
+   aspect ratio the real photographs beside it follow. */
+.ph-slot span{
+  position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center;
+  font-family:var(--fb); font-size:13px; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-soft); line-height:1.7; padding:0 18px;
+}
+.ph-slot span b{ display:block; font-size:17px; letter-spacing:.08em; }
+@media(max-width:559px){
+  .ph-slot{ aspect-ratio:4/5; }
+}
+.hour-rail figcaption{
+  margin-top:11px; text-align:center;
+  font-size:12.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-soft);
+}
+@media(max-width:559px){
+  .hour-rail{ grid-template-columns:1fr; gap:20px; }
+  /* 16/10 here used to drive a landscape band through a portrait photograph, which
+     beheaded whoever was standing up. 4/5 shows 94% of the card instead. */
+  .hour-rail img{ aspect-ratio:4/5; }
+}
+
+.menu-head{ font-family:var(--fd); font-size:clamp(21px,2.6vw,26px); font-weight:500; text-align:center; margin:38px 0 6px; color:var(--ink); }
+.menu-lede{ max-width:56ch; margin:0 auto 20px; text-align:center; font-size:16px; line-height:1.6; color:var(--ink-soft); }
+.menu-note{ max-width:62ch; margin:30px auto 0; text-align:center; font-size:15.5px; line-height:1.65; color:var(--ink-soft); }
+
+/* ------------------------------------------------------------- READING SIZE
+   25 Aug: the body copy was a step too small next to a 52px headline. Raised one
+   step throughout. These four live in trs-blocks.css, which is the shared design
+   system and must not be forked, so they are overridden here for this page only. */
+.tcard blockquote{ font-size:16.5px; }
+.tcard cite{ font-size:16px; }
+.tstep b{ font-size:17px; }
+.faq .ans{ font-size:18px; }
+/* Kate, 26 Aug: the FAQ was a second dark band running straight into the dark
+   footer. It steps into the light so the footer is the only dark at the bottom. */
+.faq--light details{ border-bottom-color:var(--hair); }
+.faq--light details:first-of-type{ border-top-color:var(--hair); }
+.faq--light summary{ color:var(--ink); }
+.faq--light .ans{ color:var(--ink-soft); }
+.faq--light .chev::before, .faq--light .chev::after{ background:var(--ink); }
+/* Kate, 26 Aug: on a wide screen the answers ran a narrow 62ch column against a
+   full-width question row. They now justify and run the full row, flush with the
+   plus sign's edge. Phones keep the ragged right, where justify would leave rivers. */
+@media(min-width:700px){
+  .faq .ans{ max-width:none; text-align:justify; }
+}
+/* Kate, 26 Aug: the four review cards ran ragged on desktop because the quotes
+   differ in length. Both rows share one height and the attribution pins to the
+   card's bottom edge. Phones stack the cards, so nothing changes there. */
+@media(min-width:560px){
+  #reviews .grid-2{ grid-auto-rows:1fr; }
+  #reviews .tcard{ display:flex; flex-direction:column; }
+  #reviews .tcard cite{ margin-top:auto; padding-top:18px; }
+}
+
+/* --------------------------------------------------------------- LABEL SIZE
+   25 Aug: every small-caps label was set at 10 to 12px, which reads as fine print
+   rather than as structure. Up one step, with letter-spacing eased slightly so the
+   wider glyphs do not add a line on a phone. .eyebrow, .tstep, the form labels and
+   the consent line live in the shared sheets, so they are overridden here. */
+.eyebrow{ font-size:12.5px; letter-spacing:.3em; }
+.tstep .wk{ font-size:11.5px; }
+.field label{ font-size:13px; }
+.radio-legend{ font-size:13px; }
+.trust .row>span{ font-size:12.5px; }
+.pay-trust__lbl{ font-size:12px; }
+.reserve .consent{ font-size:14px; }
+.trs-nav .nav-link{ font-size:12.5px; }
+.tcard .stars{ font-size:14px; }
+
+
+/* =====================================================================
+   PASS 2, 25 Aug 2026. Emma's review: the reframe band, the offer nav, the
+   menu grouped by rhythm marker, the proof grid and more black.
+   ===================================================================== */
+
+/* ---------------------------------------------------------- THE REFRAME BAND
+   Sits directly under the hero and above the offer nav, so it is the first thing
+   read after the headline and it costs the offerings almost no vertical space.
+   One capitalised line plus one supporting line. No CTA, no image, no third line. */
+.reframe{ padding:clamp(26px,4vw,44px) 0; }
+.reframe__claim{
+  margin:0; text-align:center; color:#fff;
+  font-family:var(--fd); font-weight:500; text-transform:uppercase;
+  font-size:clamp(19px,3.6vw,34px); line-height:1.14; letter-spacing:.08em;
+  text-wrap:balance;
+}
+.reframe__sub{
+  margin:14px auto 0; max-width:62ch; text-align:center;
+  font-family:var(--fb); font-size:clamp(15px,1.5vw,16.5px); font-weight:400;
+  line-height:1.6; color:rgba(255,255,255,.82);
+}
+
+/* -------------------------------------------------------------- THE OFFER NAV
+   Emma: "the offerings need to be way higher" and "if you click on it, it scrolls
+   down to where it is". Horizontal scroll chips on a phone, never a wrapped grid. */
+/* Sticky, and only for as long as the menu lasts. `.menu-zone` wraps this bar and
+   #start, so it is the sticky containing block: the bar docks under the brand nav on
+   the way down, drops back into the flow at the top, and scrolls away with the menu
+   rather than following her into the form and the FAQ. Kate, 25 Aug. */
+.menu-zone{ position:relative; }
+.offer-nav__sentinel{ height:0; }
+.offer-nav{
+  background:var(--cream); border-bottom:1px solid var(--hair);
+  padding:10px 0; position:sticky; top:var(--nav-h,75px); z-index:50;
+  transition:box-shadow .28s var(--ease);
+}
+.offer-nav.stuck{ box-shadow:0 14px 28px -22px rgba(45,46,55,.55); }
+@media(prefers-reduced-motion:reduce){ .offer-nav{ transition:none; } }
+/* Every chip visible, no horizontal slide, and bolder. Emma, 25 Aug: "needs to be
+   bolder and not slide across, all shown." The row wraps instead of scrolling, so on
+   a phone the six chips sit in two centred rows. */
+.offer-nav .wrap{ display:flex; align-items:center; justify-content:center; gap:14px; }
+.offer-nav__lbl{
+  flex:0 0 auto; font-family:var(--fb); font-size:11.5px; font-weight:600;
+  letter-spacing:.24em; text-transform:uppercase; color:var(--ink-soft);
+}
+/* Emma, 26 Aug, second thoughts on the fold: the chips must be visible the moment
+   the bar appears, so the toggle is gone and the grid always shows. */
+.offer-nav__row{
+  display:flex; flex-wrap:wrap; justify-content:center; gap:8px;
+  list-style:none; margin:0; padding:0;
+}
+.ochip{
+  display:inline-flex; align-items:center; min-height:44px; padding:0 18px;
+  border-radius:var(--r-pill); background:var(--paper); border:1.5px solid var(--ink);
+  font-family:var(--fb); font-size:12.5px; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink); white-space:nowrap; text-decoration:none;
+  transition:background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.ochip:hover, .ochip:focus-visible{ background:var(--ink); color:var(--paper); }
+/* The scroll-spy marks the group on screen. Same invert as hover, held. */
+.ochip.active{ background:var(--ink); color:var(--paper); }
+@media(max-width:767px){
+  /* Kate, 25 Aug: the free wrap docked as a ragged 2/3/1 honeycomb and read as
+     clutter. A 3x2 grid instead: six equal chips, two even rows, one block.
+     Emma, 26 Aug: the label must say "Pick your services" on a phone too, so it
+     sits centred on its own line above the grid instead of giving the line back. */
+  .offer-nav .wrap{ flex-direction:column; gap:7px; }
+  .offer-nav__row{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:100%; }
+  .ochip{
+    width:100%; justify-content:center; min-height:36px; padding:0 4px;
+    font-size:10.5px; letter-spacing:.04em;
+  }
+}
+
+/* ------------------------------------------------------- THE RHYTHM MARKERS
+   The organising device. Each marker is the eyebrow above one or two service
+   groups, never a replacement for the service name: a woman scanning for
+   "keratin" has to find the word keratin, not reason about a stage of a cycle. */
+/* Full-bleed black bands. 100vw includes the scrollbar, so on desktop the pull
+   overshoots by half a scrollbar each side. body's overflow-x goes from the core
+   sheet's hidden to clip: it propagates to the viewport the same way, but clip
+   forbids the 8px programmatic scroll hidden still allows, and on html it would
+   break position:sticky, which is why it sits here. */
+body{ overflow-x:clip; }
+.rband{
+  margin:72px calc(50% - 50vw) 0; padding:44px var(--pad-x) 48px;
+  background:var(--ink-deep); color:#fff; text-align:center;
+}
+.mgroup + .rband, .blonde-band + .rband{ margin-top:76px; }
+.rband__eyebrow{
+  display:block; font-family:var(--fb); font-size:12px; font-weight:600;
+  letter-spacing:.28em; text-transform:uppercase; color:var(--accent);
+  margin-bottom:14px;
+}
+.rband__h{
+  margin:0 auto; max-width:20ch; font-family:var(--fd); font-weight:700;
+  font-size:clamp(27px,4vw,40px); line-height:1.1; color:#fff; text-wrap:balance;
+}
+.rband__p{
+  margin:14px auto 0; max-width:56ch;
+  font-family:var(--fb); font-size:16px; font-weight:400; line-height:1.62;
+  color:rgba(255,255,255,.82);
+}
+
+/* --------------------------------------------------------------- THE GROUPS */
+.mgroup{ scroll-margin-top:var(--sticky-h,156px); margin-top:40px; }
+.mintro{ max-width:62ch; margin:0 auto; text-align:center; }
+/* Emma circled this tag: "the black will help to tell a story of the where are you
+   vibe." It goes ink, matching the marker bands, so the pillar layer reads as part
+   of the same black story rather than as fine print. */
+.pillar{
+  display:inline-block; margin-bottom:14px; padding:7px 16px;
+  border-radius:var(--r-pill); background:var(--ink-deep);
+  font-family:var(--fb); font-size:11.5px; font-weight:600; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--accent);
+}
+.mgroup .menu-head{ margin:0; font-weight:700; font-size:clamp(24px,3.2vw,31px); }
+.mline{
+  margin:14px auto 0; max-width:24ch;
+  font-family:var(--fd); font-weight:500;
+  font-size:clamp(20px,2.6vw,27px); line-height:1.24; color:var(--ink);
+}
+/* Kate, 25 Aug: the intro block read too small and too tight. One size up, wider
+   gaps, and HOW YOU LEAVE gets a hairline and real space so it reads as its own
+   beat rather than a caption stuck to the paragraph above. */
+.mfeel, .mbelief{
+  margin:22px auto 0; max-width:58ch;
+  font-family:var(--fb); font-size:16.5px; font-weight:300; line-height:1.7; color:var(--ink-soft);
+}
+.mbelief{ color:var(--ink); }
+.mleave{
+  margin:30px auto 0; max-width:56ch; padding-top:22px; border-top:1px solid var(--hair);
+  font-family:var(--fb); font-size:16.5px; font-weight:300; line-height:1.65; color:var(--ink);
+}
+.mleave span{
+  display:block; margin-bottom:9px;
+  font-size:12px; font-weight:600; letter-spacing:.26em; text-transform:uppercase;
+  color:var(--accent-text);
+}
+.mgroup .doors{ margin-top:30px; }
+.mgroup .menu-note{ margin-top:22px; }
+
+/* One photograph per service group, between the intro copy and the doors, so each
+   group shows the appointment before it prices it. Landscape band on desktop; a
+   phone gets a taller crop so the faces stay in frame. object-position is set
+   per image inline where the faces sit above centre. */
+.mphoto{ margin:32px auto 0; max-width:880px; }
+.mphoto img{
+  width:100%; height:auto; aspect-ratio:16/9; object-fit:cover;
+  display:block; border-radius:var(--r-md); background:var(--stone-soft);
+}
+@media(max-width:559px){
+  .mphoto{ margin-top:26px; }
+  .mphoto img{ aspect-ratio:4/3; }
+}
+/* A service-photo slot waiting on its photograph runs the same band shape the
+   real image will take, so the group's rhythm is already right. */
+.mphoto .ph-slot{ aspect-ratio:16/9; }
+@media(max-width:559px){
+  .mphoto .ph-slot{ aspect-ratio:4/3; }
+}
+/* Kate, 26 Aug: a full photo-shaped empty box read as clutter on a phone. Below
+   560px every placeholder collapses to a slim note band; the label flows in the
+   box again so the content sets the height. Desktop keeps the true photo shape. */
+@media(max-width:559px){
+  .ph-slot, .mphoto .ph-slot{ aspect-ratio:auto; }
+  .ph-slot span{ position:static; display:block; padding:18px 16px; letter-spacing:.1em; line-height:1.6; }
+  .ph-slot span b{ display:inline; margin-left:6px; font-size:13px; letter-spacing:.1em; }
+}
+
+
+/* The Tone Reset carries the campaign's whole argument, so it gets the most space. */
+.mgroup--feature{
+  background:var(--stone-soft); border:1px solid var(--hair); border-radius:var(--r-md);
+  padding:clamp(24px,4vw,44px) clamp(20px,3vw,36px);
+}
+.mgroup--feature .doors{ grid-template-columns:minmax(0,640px); justify-content:center; }
+.mgroup--feature .door{ background:var(--paper); }
+
+/* --------------------------------------------------------------- THE CARDS
+   Feeling before facts, and the "from" price stays on the face of the card at all
+   times. Only the four-band breakdown collapses: a card whose price you cannot see
+   without tapping has failed the brief. */
+.door__inc{ list-style:none; margin:16px 0 0; padding:0; display:grid; gap:9px; }
+.door__inc li{
+  display:flex; gap:11px; align-items:flex-start;
+  font-family:var(--fb); font-size:14.5px; font-weight:300; line-height:1.5; color:var(--ink);
+}
+.door__inc li .tk{ flex:0 0 13px; width:13px; height:2px; background:var(--accent-deep); margin-top:10px; }
+.plist{ list-style:none; margin:18px 0 0; padding:0; display:grid; gap:0; }
+.plist li{
+  display:flex; justify-content:space-between; align-items:baseline; gap:14px;
+  padding:9px 0; border-bottom:1px solid var(--hair);
+  font-family:var(--fb); font-size:15px; font-weight:300; color:var(--ink-soft);
+}
+.plist li:first-child{ border-top:1px solid var(--hair); }
+.plist li b{
+  font-weight:500; color:var(--ink); white-space:nowrap; font-variant-numeric:tabular-nums;
+}
+.door .from{ margin-top:auto; padding-top:22px; }
+.door .from b{ font-size:clamp(28px,3.2vw,33px); }
+/* Two-band price table: both length bands side by side, replacing the
+   duplicated list-plus-disclosure pattern the 31 Aug review found confusing. */
+.ptable{ width:100%; margin:18px 0 0; border-collapse:collapse; }
+.ptable th{
+  padding:0 0 9px 14px; text-align:right; vertical-align:bottom;
+  font-family:var(--fb); font-size:11.5px; font-weight:600; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--accent-text);
+}
+.ptable th:first-child{ text-align:left; padding-left:0; }
+.ptable td{
+  padding:9px 0 9px 14px; border-top:1px solid var(--hair); text-align:right;
+  font-family:var(--fb); font-size:15px; font-weight:300; line-height:1.45; color:var(--ink-soft);
+}
+.ptable td:first-child{ text-align:left; padding-left:0; }
+.ptable th:not(:first-child), .ptable td:not(:first-child){ width:1%; white-space:nowrap; padding-left:26px; }
+.ptable th.ses, .ptable td.ses{ text-align:center; }
+.ptable td.ses{ font-weight:500; color:var(--ink); font-variant-numeric:tabular-nums; }
+.ptable td b{ font-weight:500; color:var(--ink); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.ptable__note{
+  margin:12px 0 0; font-family:var(--fb); font-size:13.5px; font-weight:300;
+  line-height:1.5; color:var(--ink-soft);
+}
+.bands{ margin-top:14px; border-top:1px solid var(--hair); }
+.bands > summary{
+  display:flex; align-items:center; min-height:44px; cursor:pointer; list-style:none;
+  font-family:var(--fb); font-size:12.5px; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent-text);
+}
+.bands > summary::-webkit-details-marker{ display:none; }
+.bands > summary::after{ content:"\203A"; margin-left:9px; transform:rotate(90deg); transition:transform var(--dur) var(--ease); }
+.bands[open] > summary::after{ transform:rotate(-90deg); }
+.bands ul{ list-style:none; margin:0 0 14px; padding:0; display:grid; gap:0; }
+.bands li{
+  display:flex; justify-content:space-between; align-items:baseline; gap:14px;
+  padding:8px 0; border-top:1px solid var(--hair);
+  font-family:var(--fb); font-size:14.5px; font-weight:300; color:var(--ink-soft);
+}
+.bands li b{ font-weight:500; color:var(--ink); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.door__where{
+  margin:20px 0 0; padding-top:16px; border-top:1px solid var(--hair);
+  font-family:var(--fb); font-size:14.5px; font-weight:300; line-height:1.55; color:var(--ink-soft);
+}
+.door__where span{
+  display:block; margin-bottom:5px;
+  font-size:10.5px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--accent-text);
+}
+
+/* -------------------------------------------------------------- THE PROSE BLOCK
+   Replaces five copies of the same inline style. On a dark ground the weight goes
+   to 400 and the body colour lifts, because this page is read on a phone outdoors. */
+.prose{ max-width:62ch; margin:0 auto; }
+.prose p{
+  margin:0 0 22px; font-family:var(--fb); font-size:17px; font-weight:300;
+  line-height:1.7; color:var(--ink-soft);
+}
+.prose p:last-child{ margin-bottom:0; }
+.prose .prose__anchor{
+  font-family:var(--fd); font-size:22px; line-height:1.4; color:var(--ink);
+  text-align:center;
+}
+.prose .prose__last{ color:var(--ink); }
+.dark .prose p{ font-weight:400; color:rgba(255,255,255,.82); }
+.dark .prose .prose__anchor,
+.dark .prose .prose__last{ color:#fff; font-weight:400; }
+.dark .stack-anchor{ color:rgba(255,255,255,.82); font-weight:400; }
+.dark .faq .ans, .dark .avail{ font-weight:400; }
+
+/* --------------------------------------------------------------- CAPS HEADING
+   Emma: "it needs to say junior stylist, and it needs to be bigger... in capitals."
+   Caps read larger than sentence case at the same size, so the clamp is a step down
+   from .sec-head h2 and still lands as the dominant heading on the page. */
+.h2-caps{
+  text-transform:uppercase; letter-spacing:.005em;
+  font-size:clamp(28px,4.4vw,50px) !important; line-height:1.06;
+}
+.proof{ gap:18px; }
+.proof .inc h3{ font-size:21px; }
+.proof .inc p{ margin:10px 0 0; font-family:var(--fb); font-size:15.5px; font-weight:300; line-height:1.6; color:var(--ink-soft); }
+
+/* ------------------------------------------------------- THE PROMISE, on black
+   Same words, locked. Only the ground changed. */
+.promise-band{ padding:52px 0; scroll-margin-top:94px; }
+.promise-band__lbl{
+  margin:0 0 16px; font-family:var(--fb); font-size:11.5px; font-weight:600;
+  letter-spacing:.26em; text-transform:uppercase; color:var(--accent);
+}
+.promise-band__body{
+  margin:0 auto; max-width:52ch;
+  font-family:var(--fd); font-size:clamp(20px,3vw,26px);
+  line-height:1.4; color:#fff;
+}
+
+/* ------------------------------------------------------------------- MOBILE
+   The phone is the primary screen. Checked at 375 and 390 first, then widened. */
+@media(max-width:640px){
+  .rband{ margin-top:48px; padding-top:26px; }
+  .mgroup + .rband{ margin-top:52px; }
+  .mgroup{ margin-top:30px; }
+  .mgroup .doors{ margin-top:24px; }
+  .door{ padding:22px 20px 20px; }
+  .mgroup--feature{ padding:22px 16px; }
+  .plist li, .bands li{ font-size:14.5px; }
+  .ptable td{ font-size:13.5px; }
+  .ptable th{ font-size:10px; letter-spacing:.09em; }
+  .ptable th:not(:first-child){ white-space:normal; }
+  .ptable th:not(:first-child), .ptable td:not(:first-child){ padding-left:8px; }
+  .ptable td:first-child{ min-width:0; }
+  /* four length columns on a phone: the AED prefix lives in the card's from-price,
+     the cells keep bare numbers so the table stays inside the card */
+  .ptable .cur{ display:none; }
+  .menu-note, .doors-unsure{ font-size:15px; }
+}
+
+
+/* --------------------------------------------------------- STICKY ANCHOR OFFSETS
+   Two rules, because two different amounts of chrome cover the target. Inside the
+   menu the offer nav is docked under the brand nav, so a chip has to clear both.
+   Below the menu the bar has scrolled away with its container and only the brand
+   nav is in the way. */
+#start{ scroll-margin-top:var(--sticky-h,156px); }
+.promise-band, .reserve, .faq{ scroll-margin-top:calc(var(--nav-h,75px) + 16px); }
+
+
+/* ------------------------------------------------------------ THE BLONDE BAND
+   Emma, 25 Aug: "this is good, it needs to go higher, at the top of the colour
+   part." It sits inside the menu, after the Tone Reset it sells and before the
+   colour marker, full-bleed cream so it reads as its own section. */
+.blonde-band{
+  margin:72px calc(50% - 50vw) 0; padding:64px var(--pad-x);
+  background:var(--cream);
+}
+.blonde-band__inner{ max-width:var(--maxw); margin:0 auto; }
+.blonde-band .sec-head{ margin-bottom:34px; }
+/* The shared .timeline is a five-column grid, sized for the five-step In-the-chair
+   sequence. The blonde rhythm has four steps, so the empty fifth track showed as a
+   grey block. Four columns here; the shared sheet stays untouched. */
+.blonde-band .timeline{ grid-template-columns:repeat(4,1fr); }
+@media (max-width:760px){ .blonde-band .timeline{ grid-template-columns:1fr 1fr; } }
+@media (max-width:440px){ .blonde-band .timeline{ grid-template-columns:1fr; } }
+@media(max-width:640px){
+  .rband{ margin-top:52px; padding:34px var(--pad-x) 38px; }
+  .mgroup + .rband, .blonde-band + .rband{ margin-top:56px; }
+  .blonde-band{ margin-top:52px; padding:44px var(--pad-x); }
+}
+
+/* Kate, 26 Aug: two more dark moves against the vanilla. In-the-chair goes ink,
+   its white timeline cards carrying the contrast, and the press strip turns ink
+   and sits below the awards, so the back half of the page alternates properly. */
+#hour .hour-rail figcaption{ color:rgba(255,255,255,.72); }
+#hour .timeline{ background:rgba(255,255,255,.16); }
+.press-strip--dark{ background:var(--ink-deep); border-bottom:0; }
+.press-strip--dark .press-eyebrow{ color:var(--accent); }
+.press-strip--dark .press-row a{ color:rgba(255,255,255,.85); text-decoration-color:rgba(255,255,255,.4); }
+.press-strip--dark .press-row a:hover{ color:#fff; text-decoration-color:#fff; }
+
+/* ------------------------------------------------------------ THE RHYTHM STRIP
+   Dawn's ask, 28 Aug 2026, approved by Kate in part: the rhythm readable in
+   one glance near the top, in the page's own week-card language rather than
+   icons. The strip is the tstep timeline itself, condensed: four white cells,
+   marker and week name only, inside the dark rhythm section, replacing the
+   prose paragraph that listed the same four appointments in sentences. Kate's
+   first look at a floating-text version on a wide screen killed it the same
+   day; the white cells carry the contrast the way they already do in the
+   In-the-chair and blonde-band timelines. Cells go 2x2 then single column on
+   a phone, same breaks as the blonde band's four-step grid. */
+.timeline--strip{
+  grid-template-columns:repeat(4,1fr);
+  max-width:900px; margin:0 auto 30px;
+  background:rgba(255,255,255,.16);
+}
+@media (max-width:760px){ .timeline--strip{ grid-template-columns:1fr 1fr; } }
+@media (max-width:440px){ .timeline--strip{ grid-template-columns:1fr; } }
+
+/* -------------------------------------------------------------- PHONE PREFIX
+   Kate, 28 Aug: the shared sheet's 96px prefix column truncated the selected
+   country to "+971 . U". The column now sizes to the select's own width, the
+   option labels use the short country names, and the number field keeps the
+   rest of the row. .phone-wrap lives in trs-blocks.css, overridden here. */
+.phone-wrap{ grid-template-columns:auto 1fr; }

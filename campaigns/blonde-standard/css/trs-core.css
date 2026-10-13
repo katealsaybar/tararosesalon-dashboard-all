@@ -1,0 +1,2135 @@
+
+/* ── TRS DESIGN SYSTEM (build-injected: tokens.json + normalise.css) ── */
+/* GENERATED from _content/tokens.json by gen-tokens.py - do not hand-edit.
+   Swap tokens.json to re-skin the system, or to make it a different salon. */
+:root{
+  --primary: #2D2E37;
+  --on-primary: #FAF8F4;
+  --accent: #99F6E4;
+  --accent-deep: #7DE6D2;
+  --accent-text: #1C7563;
+  --accent-dark: #256A5B;
+  --on-accent: #0E2A25;
+  --canvas: #FAF8F4;
+  --canvas-dark: #1C1B18;
+  --surface: #F1ECE3;
+  --surface-soft: #EFEBE3;
+  --sand: #E7DFD2;
+  --ink: #2D2E37;
+  --ink-deep: #1C1B18;
+  --on-dark: #FFFFFF;
+  --taupe: #7C756A;
+  --taupe-soft: #9A9287;
+  --hairline: rgba(45,46,55,.12);
+  --pillar-lime: #EEF3C7;
+  --pillar-lavender: #C4B5FD;
+  --pillar-coral: #FF9B9B;
+  --accent-lift: #8FF0DC;
+  --accent-mid: #7CE8D2;
+  --accent-drop: #62DCC4;
+  --accent-lift-h: #9CF4E4;
+  --accent-mid-h: #89ECDA;
+  --accent-drop-h: #70E2CC;
+  --disabled: #E4E1DA;
+  --ghost-top: #FFFFFF;
+  --ghost-bottom: #F5F2EC;
+  --scrim: rgba(28,27,24,.5);
+  --sh-rim-light: inset 0 1px 0 rgba(255,255,255,.72), inset 0 -1px 0 rgba(28,26,22,.05);
+  --sh-rim-dark: inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.22);
+  --sh-subtle-sm: 0 1px 2px rgba(28,26,22,.04);
+  --sh-subtle-md: 0 2px 6px -2px rgba(28,26,22,.06);
+  --sh-subtle-lg: 0 6px 16px -6px rgba(28,26,22,.08);
+  --sh-subtle-xl: 0 12px 32px -12px rgba(28,26,22,.10);
+  --sh-regular-sm: 0 1px 2px rgba(28,26,22,.06), 0 1px 1px rgba(28,26,22,.04);
+  --sh-regular-md: 0 2px 4px rgba(28,26,22,.05), 0 6px 14px -6px rgba(28,26,22,.10);
+  --sh-regular-lg: 0 2px 4px rgba(28,26,22,.05), 0 14px 30px -12px rgba(28,26,22,.14);
+  --sh-regular-xl: 0 4px 8px rgba(28,26,22,.05), 0 26px 54px -20px rgba(28,26,22,.18);
+  --sh-strong-sm: 0 1px 2px rgba(28,26,22,.10), 0 2px 4px rgba(28,26,22,.08);
+  --sh-strong-md: 0 2px 4px rgba(28,26,22,.10), 0 10px 20px -8px rgba(28,26,22,.18);
+  --sh-strong-lg: 0 3px 6px rgba(28,26,22,.10), 0 20px 40px -14px rgba(28,26,22,.24);
+  --sh-strong-xl: 0 4px 10px rgba(28,26,22,.12), 0 34px 66px -22px rgba(28,26,22,.30);
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 100px;
+  --r-full: 999px;
+  --sp-xxs: 2px;
+  --sp-xs: 6px;
+  --sp-sm: 8px;
+  --sp-md: 12px;
+  --sp-lg: 16px;
+  --sp-xl: 20px;
+  --sp-xxl: 24px;
+  --sp-xxxl: 36px;
+  --sp-section: 96px;
+  --sp-section-md: 72px;
+  --sp-section-sm: 52px;
+  --fs-display: clamp(46px,7.6vw,104px);
+  --fs-heading-xl: clamp(42px,6.4vw,74px);
+  --fs-heading-lg: clamp(31px,4.4vw,52px);
+  --fs-heading-md: clamp(26px,3.6vw,40px);
+  --fs-heading-sm: clamp(20px,2.6vw,26px);
+  --fs-lede: clamp(16px,1.7vw,18.5px);
+  --fs-body: 16px;
+  --fs-body-sm: 14.5px;
+  --fs-link: 13px;
+  --fs-eyebrow: 11.5px;
+  --fs-caption: 11px;
+  --ff-display: "Playfair Display", Georgia, serif;
+  --ff-heading: "Playfair Display", Georgia, serif;
+  --ff-body: Inter, system-ui, sans-serif;
+  --ff-eyebrow: Inter, system-ui, sans-serif;
+  --ff-caption: Inter, system-ui, sans-serif;
+
+  /* ── SEMANTIC BRIDGE. Zero literals. Components read only these. ── */
+  --color-canvas:            var(--canvas);
+  --color-canvas-soft:       var(--surface);
+  --color-surface:           var(--surface);
+  --color-surface-elevated:  var(--surface-soft);
+  --color-foreground:        var(--ink);
+  --color-foreground-muted:  var(--taupe);
+  --color-foreground-soft:   var(--taupe-soft);
+  --color-on-primary:        var(--on-primary);
+  --color-border:            var(--hairline);
+  --color-accent:            var(--accent);
+  --color-accent-text:       var(--accent-text);
+  --color-accent-strong:     var(--accent-dark);
+  --color-on-accent:         var(--on-accent);
+  --color-disabled:          var(--disabled);
+  --color-scrim:             var(--scrim);
+
+  /* Legacy aliases - the hand-written CSS still speaks these. */
+  --paper:      var(--canvas);
+  --cream:      var(--surface);
+  --stone-soft: var(--surface-soft);
+  --ink-soft:   var(--taupe);
+  --hair:       var(--hairline);
+  --fd:         var(--ff-display);
+  --fb:         var(--ff-body);
+}
+
+/* ═══════════ TRS NORMALISE v1 ═══════════════════════════════════════
+   Appended last inside each page's <style>, so it wins on source order
+   at equal specificity. Touches nothing skin-specific: no grounds, no
+   --lr, no .lr-arc, no media art. Those stay per-page.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* 1 · Token backfill. A no-op on the 67 pages that already carry tokens;
+       gives the 11 hand-built pages the same vocabulary. */
+:root{
+  --maxw:1180px; --maxw-prose:760px; --pad-x:26px; --sec-y:96px;
+  --r-lg:22px; --r-md:16px; --r-sm:14px; --r-pill:100px;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --dur-fast:.15s; --dur:.3s; --dur-slow:.7s;
+  --stone-soft:var(--surface-soft);
+  --accent-dark:var(--accent-dark);
+
+  --fs-h3:clamp(26px,3.6vw,40px);
+  --fs-h4:clamp(28px,4.4vw,48px);
+  --fs-h5:clamp(22px,3vw,30px);
+  --fs-h6:clamp(20px,2.6vw,26px);
+
+  /* Elevation. --sh-rgb is the one knob a skin may re-declare, which is how
+     brunette keeps warm shadows and blonde keeps cool ones. */
+  --sh-rgb:45,46,55;
+  --sh-cta-rgb:61,140,127;
+  --sh-btn:        0 1px 2px rgba(var(--sh-rgb),.10), 0 6px 16px -8px rgba(var(--sh-rgb),.16);
+  --sh-btn-hover:  0 2px 6px rgba(var(--sh-rgb),.12), 0 16px 30px -12px rgba(var(--sh-rgb),.42);
+  --sh-cta:        0 1px 2px rgba(var(--sh-cta-rgb),.16), 0 6px 18px -8px rgba(var(--sh-cta-rgb),.32);
+  --sh-cta-hover:  0 2px 6px rgba(var(--sh-cta-rgb),.18), 0 18px 34px -12px rgba(var(--sh-cta-rgb),.50);
+  --sh-card:       0 1px 3px rgba(var(--sh-rgb),.05), 0 14px 34px -22px rgba(var(--sh-rgb),.18);
+  --sh-card-hover: 0 3px 8px rgba(var(--sh-rgb),.06), 0 26px 50px -24px rgba(var(--sh-rgb),.26);
+  --sh-media:      0 1px 2px rgba(var(--sh-rgb),.04), 0 18px 44px -28px rgba(var(--sh-rgb),.14);
+  --sh-hero:       0 2px 6px rgba(var(--sh-rgb),.10), 0 24px 48px -24px rgba(var(--sh-rgb),.45);
+  --sh-nav:        0 8px 30px -18px rgba(var(--sh-rgb),.28);
+}
+@media (max-width:900px){ :root{ --sec-y:64px } }
+@media (max-width:600px){ :root{ --sec-y:48px; --pad-x:20px } }
+
+/* 2 · One button system: primary (ink) · CTA (turquoise) · secondary (ghost) */
+.btn,.pill{
+  display:inline-flex; align-items:center; justify-content:center; gap:10px;
+  font-family:var(--fb); font-size:13px; font-weight:500; letter-spacing:.04em;
+  padding:14px 26px; border-radius:var(--r-pill);
+  border:1.5px solid transparent;   /* keeps solid and ghost the same height side by side */
+  cursor:pointer; text-decoration:none;
+  background:var(--ink); color:var(--paper); box-shadow:var(--sh-btn);
+  transition:transform var(--dur) var(--ease), background var(--dur) var(--ease),
+             border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.btn:hover,.pill:hover{ transform:translateY(-2px); background:#3B3C47; box-shadow:var(--sh-btn-hover); }
+.btn:active,.pill:active{ transform:translateY(0); }
+
+.btn--accent,.pill--accent{ background:var(--accent); color:var(--ink); box-shadow:var(--sh-cta); }
+.btn--accent:hover,.pill--accent:hover{ background:var(--accent-deep); box-shadow:var(--sh-cta-hover); }
+
+/* The ghost button was inheriting .btn:hover's charcoal fill (0,2,0 beats 0,1,0)
+   while keeping charcoal text, so the label disappeared on hover at ~1.1:1. */
+.btn--ghost,.pill--ghost{ background:transparent; color:var(--ink); border-color:var(--hair); box-shadow:none; }
+.btn--ghost:hover,.pill--ghost:hover{
+  background:var(--stone-soft); color:var(--ink);
+  border-color:var(--ink-soft); box-shadow:none; transform:translateY(-2px);
+}
+.btn--ghost.on-dark,.pill--ghost.on-dark{ color:#FFF; border-color:rgba(255,255,255,.24); }
+.btn--ghost.on-dark:hover,.pill--ghost.on-dark:hover{ background:rgba(255,255,255,.08); color:#FFF; border-color:#FFF; }
+.btn .arr,.pill .arr{ transition:transform var(--dur) var(--ease); }
+.btn:hover .arr,.pill:hover .arr{ transform:translateX(4px); }
+
+/* 3 · Spacing. max-width is deliberately not forced, so the legal pages keep
+       their 760px prose measure. */
+.wrap{ margin-inline:auto; padding-inline:var(--pad-x); }
+section{ padding-block:var(--sec-y); }
+
+/* 4 · Type */
+.h-1{ font-family:var(--fd); font-weight:500; font-size:clamp(42px,6.4vw,74px);
+      line-height:1.02; letter-spacing:-.012em; text-wrap:balance; }
+.h-2,.sec-head h2{ font-family:var(--fd); font-weight:500; font-size:clamp(31px,4.4vw,52px);
+      line-height:1.05; letter-spacing:-.012em; text-wrap:balance; }
+.belief h2{ font-size:var(--fs-h4); }
+.eyebrow{ font-family:var(--fb); font-size:11px; font-weight:500;
+          letter-spacing:.4em; text-transform:uppercase; }
+body{ font-weight:400; line-height:1.62; }
+
+/* 5 · Shadows. Collapses 19 one-off values onto the ladder. */
+.bcard,.tier,.tcard,.tcard-x,.loc,.pkg,.lcard,.gcard,.acard,
+.visit-card,.stage,.rhythm,.path,.col,.item,.card{ box-shadow:var(--sh-card); }
+.bcard:hover,.tier:hover,.tcard-x:hover,.pkg:hover,
+.gcard:hover,.path:hover,.route:hover{ box-shadow:var(--sh-card-hover); }
+.media,.feature-band,.look-band,.rcard-l{ box-shadow:var(--sh-media); }
+.bcard--hero,.path--hero,.rstart,.rcmp--on,.menu-line{ box-shadow:var(--sh-hero); }
+.trs-nav.scrolled{ box-shadow:var(--sh-nav); }
+
+/* 6 · Focus. The old ring was turquoise on paper at 1.39:1, which fails WCAG 2.4.11.
+       Dark outline carries light grounds; the turquoise halo carries dark ones. */
+:focus-visible{
+  outline:2px solid var(--accent-dark); outline-offset:2px;
+  box-shadow:0 0 0 4px rgba(153,246,228,.45); border-radius:3px;
+}
+
+/* 7 · Guards. `clip` never creates a scroll container, so the sticky nav survives. */
+body{ overflow-x:clip }
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important;
+                        transition-duration:.01ms !important; scroll-behavior:auto !important; }
+}
+
+/* 8 · The Full Loop. One component, one knob. */
+.loopring{ margin:8px auto 10px; }
+.lr-amb,.lr-main,.lr-n circle{ stroke:var(--lr,var(--accent-deep)); }
+.lr-n text{ fill:var(--lr,var(--accent-deep)); }
+.lr-mark{ color:var(--lr,var(--accent-deep)); }
+
+
+/* ═══════════ TRS ELEVATION v2 ═══════════════════════════════════════════
+   Refinement pass, informed by the Planhat design-language analysis. Planhat
+   is structurally the same brand as TRS: an expressive serif over quiet Inter,
+   a light canvas chaptered by near-black sections, editorial and photo-led.
+   Nothing here changes the palette, the fonts, or the pill CTA. Five moves:
+     1. one accent, one job          4. warmer neutrals
+     2. hairlines over shadow        5. a real phone layout
+     3. scale carries hierarchy
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* Warm the support neutral. #74747B is a COOL grey and it makes everything it
+     touches read a little cheap. Planhat: "Don't use cool greys; the neutral
+     support palette is warm (taupe)." Same lightness, warm hue. */
+  --taupe:var(--taupe);
+  --taupe-soft:var(--taupe-soft);
+
+  /* Boxes. 22px is a soft, appy radius. Editorial brands sit near-rectangular,
+     which is what reads expensive. The PILL stays - that is TRS, and it is the
+     one shape allowed to be round. */
+  --r-lg:16px; --r-md:12px; --r-sm:10px;
+
+  /* Depth comes from the colour-block rhythm, not from stacked shadows. One real
+     shadow (the CTA), one whisper (cards), one lift (hover). */
+  --sh-card:       0 1px 2px rgba(var(--sh-rgb),.04);
+  --sh-card-hover: 0 1px 2px rgba(var(--sh-rgb),.05), 0 14px 32px -18px rgba(var(--sh-rgb),.20);
+  --sh-media:      0 1px 2px rgba(var(--sh-rgb),.05), 0 20px 44px -30px rgba(var(--sh-rgb),.18);
+  --sh-hero:       0 1px 2px rgba(var(--sh-rgb),.06), 0 24px 50px -28px rgba(var(--sh-rgb),.28);
+}
+
+/* ── 1 · ONE ACCENT, ONE JOB ───────────────────────────────────────────────
+   Turquoise was doing six jobs: eyebrows, ticks, small labels, links, outlines
+   AND the CTA. When everything is the accent, nothing is. Planhat has NO
+   chromatic UI accent at all - its one non-neutral colour lives only in the
+   atmosphere. TRS keeps turquoise, but it now means ACTION.
+   Kept turquoise: the CTA, the italic payoff in a headline, the Loop ring,
+   the featured-card outline, the focus ring.
+   Now neutral: eyebrows, section labels, micro-labels, list markers. */
+   REVISED (Tara, 14 Jul): the first pass stripped turquoise off the label layer
+   and it went austere. The discipline is right for PROSE - body copy in a warm
+   taupe is what reads expensive. But the label layer is where the brand lives,
+   and it keeps its colour. So: turquoise on the structure, warm neutral on the
+   words, and the CTA still wins because it is the only FILLED turquoise thing. */
+
+/* The label layer KEEPS its turquoise. Eyebrows, section labels, tick markers,
+   micro-caps and the numerals are brand signature, not noise. */
+.eyebrow,
+.eyebrow-label,
+.cnote, .alabel, .vs-note, .soc-grp,
+.go, .stepgo, .learn, .teach .go{
+  color:var(--accent-text);
+}
+.cred .cnum{ color:var(--accent-text) }
+/* Turquoise micro-labels on DARK grounds need the bright value; --accent-text (deep) is a light-ground colour and reads too dark on the ink footer / dark sections. */
+.foot h4, .foot h3, .foot .eyebrow, .foot .eyebrow-label, .foot .soc-grp, .foot .cnote, .foot .alabel, .foot .go,
+.dark .cnote, .dark .alabel, .dark .vs-note, .dark .go, .dark .soc-grp,
+.closing .cnote, .closing .go{ color:var(--accent-deep); }
+
+/* Prose goes warm neutral. This is the actual elevation - a cool grey body copy
+   is what was making it read cheap. */
+.p, .p-sm, .p-lg, .sub, .lede, .body,
+.cred p, .teach p, .flowstep p, .step p,
+.vs-list li, .receives li, .circle p{
+  color:var(--taupe);
+}
+.vs-list li b, .receives li strong{ color:var(--ink) }
+
+/* Tick markers, rules and list bullets stay turquoise - they are the brand's
+   punctuation. */
+.tk, .tick, .brand__tick, .dot{ background:var(--accent) }
+.receives li::before{ background:var(--accent) }
+.sec-head .eyebrow::after{ background:var(--accent) }
+
+/* ── 2 · HAIRLINES OVER SHADOW ─────────────────────────────────────────────
+   "Don't give cards heavy borders; rely on the surface fill against the canvas
+   for separation, with a hairline only where a rule is needed." Cards sit as
+   quiet fills with one hairline. The lift happens on hover, not at rest. */
+.bcard,.tier,.tcard,.tcard-x,.loc,.pkg,.lcard,.gcard,.acard,.card,
+.visit-card,.stage,.rhythm,.path,.col,.item,.inc,.cred,.teach,.circle,.vstack{
+  box-shadow:var(--sh-card);
+  border-color:var(--hair);
+}
+.bcard:hover,.tier:hover,.tcard-x:hover,.pkg:hover,
+.gcard:hover,.path:hover,.route:hover,.teach:hover,.circle:hover{
+  box-shadow:var(--sh-card-hover);
+}
+
+/* ── 3 · SCALE CARRIES HIERARCHY ───────────────────────────────────────────
+   "Hierarchy is driven by the serif/sans split and by dramatic size jumps, not
+   by colour or weight. The serif stays at a single Regular weight and lets
+   sheer scale do the work." Playfair at 500 is doing work that size should do.
+   Drop the display weights to 400 and let them get big and quiet. */
+.h-display{ font-weight:400; letter-spacing:-.03em; line-height:1.0 }
+.h-1{ font-weight:400; letter-spacing:-.022em; line-height:1.03 }
+.h-2, .sec-head h2{ font-weight:400; letter-spacing:-.016em }
+
+/* Eyebrows: uppercase, quiet, and they introduce rather than compete. */
+.eyebrow{ font-size:11.5px; font-weight:600; letter-spacing:.2em }
+
+/* Big numerals are a signature, not a caption. Let the number BE the graphic. */
+.cred .cnum{ font-size:clamp(52px,6vw,76px); font-weight:400; line-height:.9; color:var(--ink) }
+.vs-total{ font-weight:400; letter-spacing:-.015em }
+
+/* Body: 16 / 1.5, the editorial default. */
+.p, .body{ font-size:16px; line-height:1.55 }
+
+/* ── 4 · LIGHT THE DARK SECTIONS ───────────────────────────────────────────
+   This is Planhat's signature move: "smouldering near-black sections lit by a
+   warm gradient... it reads like dark silk catching firelight. Purely
+   atmospheric - background only, never on a button, card, or text."
+   TRS dark panels are flat ink-deep, which is the flattest thing on the site.
+   A warm wash from one corner and a whisper of turquoise from the other gives
+   them depth for free. The GROUND stays ink - this is a glow inside it, not a
+   new ground, so the colour doctrine holds. */
+.dark, .belief, .promise, .closing, section.dark{ position:relative; isolation:isolate }
+.dark::before, .belief::before, .promise::before, .closing::before{
+  content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(115% 85% at 86% 10%, rgba(201,169,140,.18), transparent 58%),
+    radial-gradient(100% 90% at 6% 88%, rgba(125,230,210,.20), transparent 60%),
+    radial-gradient(70% 60% at 50% 108%, rgba(153,246,228,.10), transparent 65%);
+}
+.dark > *, .belief > *, .promise > *, .closing > *{ position:relative }
+
+/* ── 5 · PHONE vs DESKTOP ──────────────────────────────────────────────────
+   The type scale was tuned for desktop and merely shrunk on phones. Display
+   type needs to step down HARD, sections need to breathe less, grids stack,
+   and every tap target needs to be a real one. */
+@media (max-width:900px){
+  :root{ --sec-y:64px; --pad-x:22px }
+  .vgrid, .grid-3, .grid-4, .circles, .flow-strip--4{ grid-template-columns:1fr }
+  .split{ grid-template-columns:1fr; gap:28px }
+  .split .media{ order:-1; min-height:280px }        /* the picture leads on a phone */
+}
+@media (max-width:640px){
+  :root{ --sec-y:52px; --pad-x:20px }
+  .h-display{ font-size:clamp(34px,10vw,46px); line-height:1.04; letter-spacing:-.022em }
+  .h-display br{ display:none }
+  .h-1{ font-size:clamp(31px,8.6vw,42px); line-height:1.08 }
+  .h-2, .sec-head h2{ font-size:clamp(25px,6.6vw,32px); line-height:1.14 }
+  .lede, .p-lg{ font-size:16px; line-height:1.58 }
+  .eyebrow{ font-size:10.5px; letter-spacing:.16em }
+
+  /* Buttons go full-width and stack. A 48% pill next to another 48% pill is
+     unreadable and untappable. */
+  .cta-row{ flex-direction:column; align-items:stretch; gap:10px }
+  .cta-row .pill, .cta-row .btn{ width:100%; min-height:52px; font-size:14px }
+  .textlink{ text-align:center; padding:6px 0 }
+
+  /* Real tap targets - but only for actual controls. A min-height on an inline
+     link inside a paragraph would turn it into a 44px block and wreck the text. */
+  button, select, input, .pill, .btn, .nav__links a, .soc, .go, .stepgo{ min-height:44px }
+  .nav__links a, .foot a{ display:inline-flex; align-items:center }
+  .vs-list li{ padding:11px 0 }
+  .cred .cnum{ font-size:clamp(44px,13vw,58px) }
+
+  /* Cards lose their outer margin so they use the full width of a small screen. */
+  .vstack, .inc, .cred, .teach{ padding:22px 18px }
+}
+
+/* ── BUTTONS, refined ──────────────────────────────────────────────────────
+   The pill stays (it is TRS), but Planhat's proportions are better: tighter
+   type, more optical padding, and the label does the work. */
+.btn, .pill{
+  font-size:12.5px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+  padding:15px 30px;
+}
+.btn--accent, .pill--accent{ box-shadow:0 1px 2px rgba(var(--sh-cta-rgb),.16), 0 6px 18px -8px rgba(var(--sh-cta-rgb),.32) }
+.btn--accent:hover, .pill--accent:hover{ box-shadow:0 2px 6px rgba(var(--sh-cta-rgb),.18), 0 18px 34px -12px rgba(var(--sh-cta-rgb),.5) }
+/* On a dark ground the primary action goes light-on-dark, which is the highest
+   contrast a CTA can have. Turquoise stays for the light grounds. */
+.dark .pill--accent, .closing .pill--accent, .hero-c .pill--accent{
+  background:var(--accent); color:var(--ink);
+}
+
+/* ── Specificity fixes ────────────────────────────────────────────────────
+   Per-page rules like `.hero-c .h-display` (0,2,0) out-specify a bare class
+   (0,1,0), so the display weight and the button proportions were not landing. */
+.hero-a .h-display, .hero-c .h-display, .hero-b .h-display,
+.hero-a .h-1, .hero-c .h-1{ font-weight:400 }
+
+/* The CTA. Bigger, quieter type, more optical room. The nav pill keeps its own
+   compact size - a nav button should not shout. */
+.wrap .cta-row .pill, .wrap .cta-row .btn,
+.vs-cta, .reserve .pill--accent{
+  font-size:12.5px; font-weight:600; letter-spacing:.09em;
+  text-transform:uppercase; padding:16px 32px;
+}
+.trs-nav .nav__cta{ padding:11px 20px; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em }
+
+/* The eyebrow is the label the eye hits first on every section, and per-page
+   rules were still painting it grey. It is a brand signature - it stays turquoise.
+   (Its cousins on dark grounds use the lighter turquoise so they stay legible.) */
+.wrap .eyebrow, .sec-head .eyebrow, span.eyebrow{ color:var(--accent-text) }
+.dark .eyebrow, .belief .eyebrow, .hero-c .eyebrow, .closing .eyebrow,
+.dark .vs-note, .dark .cnote{ color:var(--accent) }
+.hero-c .pill-tag, .dark .pill-tag{ color:var(--accent) }
+
+/* The 11 / 4 / 1 numerals are the loudest proof on the page. They are a graphic,
+   not a caption - turquoise, big, and quiet in weight. (An earlier rule in this
+   file painted them ink at equal specificity, so this has to come after it.) */
+.credspine .cred .cnum{ color:var(--accent-text); font-weight:400 }
+
+/* ═══════════ PHONE, PROPERLY ════════════════════════════════════════════
+   The mobile layout was reading as generic: everything wrapped in a soft
+   rounded container, centred, evenly spaced. That pill-everywhere look is
+   the tell. On a phone the brand should read EDITORIAL - rules, not blobs.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width:640px){
+
+  /* The nav CTA was a three-line turquoise blob eating the corner of the screen.
+     A nav button is a wayfinder, not the hero. Short label, one line, no wrap. */
+  .trs-nav .nav__cta{
+    min-height:44px; padding:0 16px; display:inline-flex; align-items:center; font-size:10.5px; letter-spacing:.1em;
+    white-space:nowrap; border-radius:var(--r-pill);
+  }
+  .trs-nav .nav__cta .arr{ display:none }
+  .navrow{ gap:10px }
+
+  /* Eyebrows lose the pill. A letterspaced cap with a hairline above it is what
+     a magazine does - it introduces without shouting, and it costs no chrome. */
+  .hero-c .pill-tag, .hero-a .pill-tag, .pill-tag, .badge-line, .badge-pill{
+    display:block; background:none; border:none; padding:0;
+    border-top:1px solid rgba(255,255,255,.22); padding-top:12px;
+    border-radius:0; font-size:10.5px; letter-spacing:.2em; line-height:1.5;
+    text-align:left; white-space:normal;
+  }
+  .hero-c .pill-tag .dot, .hero-a .pill-tag .dot, .badge-line .dot{ display:none }
+
+  /* The scarcity line was a two-line rounded blob. Make it a rule-bounded row -
+     the numbers ARE the design, they do not need a container. */
+  .hero-c .scarcity, .scarcity{
+    display:block; background:none; border:none; border-radius:0;
+    border-top:1px solid rgba(255,255,255,.16);
+    border-bottom:1px solid rgba(255,255,255,.16);
+    padding:13px 0; margin:26px 0 0; text-align:left;
+    font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; line-height:1.6;
+  }
+  .hero-c .scarcity .dot, .scarcity .dot{ display:none }
+
+  /* The hero was top-heavy with dead space above a headline that then had to
+     shout. Give the type the room instead. */
+  .hero-c, .hero-a{ padding:78px 0 64px }
+  .hero-c .inner, .hero-a .wrap{ text-align:left }
+  .h-display{ letter-spacing:-.028em }
+  .hero-c .lede, .hero-a .lede{ font-size:15.5px; line-height:1.62; margin-top:20px }
+
+  /* Cards square up a little. 12px on a 350px-wide card still reads soft; 10px
+     with a real hairline reads considered. */
+  .vstack, .inc, .cred, .teach, .circle{ border-radius:10px }
+}
+
+/* ═══════════ PHONE: ONE SECTION, ONE SCREEN ════════════════════════════
+   Measured on a 390x844 phone, the value stack ran 3.5 screens tall, Tara's
+   letter 1.8, the proof 1.7. That is not a page, it is a scroll. A section
+   should land as one idea you can take in, then move on.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width:640px){
+
+  /* THE VALUE STACK, 3.5 screens -> 1. Three cards stacked vertically is a wall.
+     Side by side on a swipe is how a phone actually wants to compare things -
+     and comparing is the entire job of this section. */
+  .vgrid{
+    display:grid; grid-auto-flow:column; grid-auto-columns:82%;
+    grid-template-columns:none; gap:12px;
+    overflow-x:auto; overscroll-behavior-x:contain;
+    scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch;
+    touch-action:pan-x pan-y; overscroll-behavior-x:contain; overscroll-behavior-y:auto;
+    margin-inline:calc(var(--pad-x) * -1);
+    padding:4px var(--pad-x) 16px;
+    scrollbar-width:none;
+  }
+  .vgrid::-webkit-scrollbar{ display:none }
+  .vstack{ scroll-snap-align:center; height:auto }
+  /* No ::after end-spacer here: in a grid-auto-flow:column track it inherits
+     grid-auto-columns:82% and becomes a phantom empty card after Platinum.
+     The container's right padding gives the trailing space instead. */
+
+  /* Long-form text. Centred paragraphs of 16px/1.62 are what made it read
+     endless. Editorial long-form is LEFT-aligned, a touch smaller, tighter. */
+  .founder .fbody, .owner, .belief .belief-body,
+  .founder .fbody p, .owner .obody, .belief .belief-body p{
+    text-align:left;
+  }
+  .founder .fbody p, .owner .obody, .belief .belief-body p,
+  .p, .p-lg, .lede, .sub, .body{
+    font-size:15px; line-height:1.55;
+  }
+  .founder .fbody p, .owner .obody{ margin-bottom:12px }
+  .belief .belief-body{ margin-inline:0; max-width:none }
+
+  /* Section rhythm. Tighter vertical, so a section is a chapter, not a journey. */
+  section{ padding-block:44px }
+  .sec-head{ margin-bottom:22px }
+  .sec-head .p-lg{ font-size:15px }
+
+  /* MORE DEFINITION. The mobile view was soft everywhere - soft type, soft
+     cards, soft rules. Definition comes from contrast: a heavier headline
+     against lighter body, a real hairline, and less rounding. */
+  .h-2, .sec-head h2{ font-size:clamp(26px,7vw,34px); line-height:1.1; letter-spacing:-.02em }
+  h3{ letter-spacing:-.01em }
+  .vstack, .inc, .cred, .teach, .circle{ border-radius:8px; border-color:rgba(45,46,55,.16) }
+  .vs-list li{ border-bottom-color:rgba(45,46,55,.12) }
+  .vs-sum{ border-bottom-width:1px!important }
+  .vs-total{ font-size:24px }
+
+  /* Attributions and eyebrows sit on a rule, not floating. */
+  .attr{ display:block; margin-top:16px; padding-top:12px; border-top:1px solid var(--hair);
+         font-size:10.5px; letter-spacing:.18em; text-transform:uppercase }
+}
+
+/* ═══════════ THE BUTTON, MADE EXPENSIVE ════════════════════════════════
+   The CTA was a flat swatch of bright mint with a soft glow behind it. Flat
+   fills and coloured glows are what read cheap. Expensive buttons behave like
+   MATERIAL: a fill with a little depth in it, a real edge, a shadow that sits
+   the object on the page rather than making it float, and type that is small,
+   confident and widely spaced. The pill shape stays - that is TRS.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.btn--accent, .pill--accent, .vs-cta{
+  /* Depth in the fill. A whisper of a gradient reads as a surface catching
+     light, not as a colour swatch. */
+  background:linear-gradient(178deg, #A8F8E8 0%, #99F6E4 46%, #86EFDA 100%);
+  color:#12312B;                                  /* deep teal-ink, not flat charcoal */
+  border:1px solid rgba(24,90,78,.28);            /* a real edge, the thing flat buttons lack */
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),          /* top highlight - the material tell */
+    inset 0 -1px 0 rgba(24,90,78,.10),            /* a hair of weight at the bottom */
+    0 1px 1px rgba(24,90,78,.10),
+    0 6px 14px -8px rgba(24,90,78,.30);           /* sits ON the page, does not float above it */
+
+  font-size:11.5px; font-weight:600;
+  letter-spacing:.16em; text-transform:uppercase;
+  padding:17px 34px;
+  transition:transform .32s var(--ease), box-shadow .32s var(--ease),
+             background .32s var(--ease), border-color .32s var(--ease);
+}
+.btn--accent:hover, .pill--accent:hover, .vs-cta:hover{
+  background:linear-gradient(178deg, #B4FAEC 0%, #A3F8E9 46%, #90F2DF 100%);
+  border-color:rgba(24,90,78,.40);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.65),
+    inset 0 -1px 0 rgba(24,90,78,.12),
+    0 1px 1px rgba(24,90,78,.10),
+    0 12px 24px -10px rgba(24,90,78,.36);
+  transform:translateY(-1px);                     /* 1px, not 2. Restraint is the point. */
+}
+.btn--accent:active, .pill--accent:active, .vs-cta:active{
+  transform:translateY(0);
+  box-shadow:inset 0 2px 4px rgba(24,90,78,.20), 0 1px 1px rgba(24,90,78,.10);
+}
+.btn--accent .arr, .pill--accent .arr{ opacity:.6; transition:transform .32s var(--ease), opacity .32s var(--ease) }
+.btn--accent:hover .arr, .pill--accent:hover .arr{ opacity:1; transform:translateX(3px) }
+
+/* The dark-ink button gets the same treatment, inverted. */
+.btn, .pill{
+  border:1px solid rgba(255,255,255,.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 1px 1px rgba(var(--sh-rgb),.14),
+    0 6px 14px -8px rgba(var(--sh-rgb),.34);
+  letter-spacing:.16em; font-size:11.5px; padding:17px 34px;
+}
+
+/* The secondary. Expensive secondaries are a hairline and nothing else - no
+   fill, no shadow. The restraint is what makes the primary look valuable. */
+.btn--ghost, .pill--ghost{
+  background:none; border:1px solid rgba(45,46,55,.28); box-shadow:none;
+  color:var(--ink); letter-spacing:.16em;
+}
+.btn--ghost:hover, .pill--ghost:hover{
+  background:none; border-color:var(--ink); box-shadow:none; transform:translateY(-1px);
+}
+.btn--ghost.on-dark, .pill--ghost.on-dark{ border-color:rgba(255,255,255,.30); color:#fff }
+.btn--ghost.on-dark:hover, .pill--ghost.on-dark:hover{ border-color:#fff; background:rgba(255,255,255,.06) }
+
+/* The nav pill stays small and quiet. A nav button that shouts is a cheap tell. */
+.trs-nav .nav__cta{
+  padding:11px 20px; font-size:10.5px; letter-spacing:.14em;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 1px 2px rgba(24,90,78,.14);
+}
+@media (max-width:640px){
+  .cta-row .pill, .cta-row .btn{ padding:18px 26px; font-size:11.5px; letter-spacing:.14em }
+}
+
+/* ═══════════ TYPOGRAPHY, ELEVATED ══════════════════════════════════════
+   Three things were wrong. The attribution line was rendering in Playfair
+   ITALIC CAPS with wide tracking, which is close to unreadable and looks like
+   a wedding invitation. Names are not display type. And the type had no real
+   rhythm - everything sat at one grey weight.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Attributions are QUIET. Inter, small, letterspaced, never the serif and
+   never italic. The name should whisper under the words it belongs to. */
+.attr, .owner .attr, .founder .attr, .belief .attr, span.attr, .vs-legal{
+  font-family:var(--fb)!important;
+  font-style:normal!important;
+  font-weight:500;
+  font-size:11px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--taupe);
+}
+.dark .attr, .belief .attr{ color:rgba(255,255,255,.55) }
+
+/* A real type rhythm. The headline is the serif; the lede is a size up from
+   body and a shade darker; body is quiet. Contrast is what reads considered. */
+.lede, .sec-head .p-lg{
+  font-size:clamp(16px,1.7vw,18.5px); line-height:1.6;
+  color:var(--ink-soft); font-weight:300;
+}
+.founder .fbody p:first-child, .owner .obody:first-of-type{
+  font-size:clamp(17px,1.8vw,19px); line-height:1.55; color:var(--ink);
+}
+/* Optical refinements that separate a designed page from a typed one. */
+h1, h2, h3, .h-1, .h-2, .h-display{
+  font-feature-settings:"kern" 1, "liga" 1; text-rendering:optimizeLegibility;
+}
+.vs-list li b, .vs-total, .cred .cnum{ font-variant-numeric:tabular-nums lining-nums }
+p{ hanging-punctuation:first last }
+
+/* ── The trust chips were a staggered stack of pale pills. A row of rules,
+      not a pile of blobs. ─────────────────────────────────────────────────── */
+.safety .wrap{ display:flex; flex-wrap:wrap; justify-content:center; gap:0 }
+.safety .chip, .safety > .wrap > span, .safety li{
+  background:none!important; border:none!important; border-radius:0!important;
+  padding:0 22px!important; margin:6px 0!important;
+  border-left:1px solid var(--hair)!important;
+  font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--taupe);
+}
+.safety .chip:first-child, .safety > .wrap > span:first-child{ border-left:none!important }
+
+/* ── THE BUTTON, with real weight. The mint was too pale and it sat flat. ─── */
+.btn--accent, .pill--accent, .vs-cta, .trs-nav .nav__cta{
+  background:linear-gradient(178deg, var(--accent-lift) 0%, var(--accent-mid) 52%, var(--accent-drop) 100%);
+  color:var(--on-accent);
+  border:1px solid rgba(14,42,37,.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.42),
+    0 1px 2px rgba(14,42,37,.14),
+    0 10px 22px -10px rgba(14,42,37,.38);
+}
+.btn--accent:hover, .pill--accent:hover, .vs-cta:hover, .trs-nav .nav__cta:hover{
+  background:linear-gradient(178deg, var(--accent-lift-h) 0%, var(--accent-mid-h) 52%, var(--accent-drop-h) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.5),
+    0 1px 2px rgba(14,42,37,.14),
+    0 16px 30px -12px rgba(14,42,37,.44);
+}
+
+/* ═══════════ LONG-FORM: DEFINITION BETWEEN PARAGRAPHS ═══════════════════
+   Tara's letter, Daisy's story and the belief all read as one grey slab. The
+   paragraphs were touching, all one weight, all one colour, at a measure too
+   wide to track. Definition comes from three things: air between the blocks,
+   a lead paragraph that carries more weight than the ones after it, and a
+   measure short enough that the eye finds the next line without hunting.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.founder .fbody, .owner, .belief .belief-body{ max-width:64ch }
+
+.founder .fbody p, .owner .obody, .belief .belief-body p{
+  margin:0 0 22px;
+  font-size:16.5px; line-height:1.68;
+  max-width:62ch;                       /* a real measure. Long lines lose the eye. */
+}
+.founder .fbody p:last-child, .owner .obody:last-of-type{ margin-bottom:0 }
+
+/* The lead paragraph carries the weight. Everything after it steps back - that
+   step IS the definition. */
+.founder .fbody p:first-child,
+.owner .obody:first-of-type,
+.belief .belief-body p:first-child{
+  font-size:19px; line-height:1.55; font-weight:400;
+  color:var(--ink);
+  padding-bottom:22px; margin-bottom:22px;
+  border-bottom:1px solid var(--hair);   /* one rule, under the lead. Not between every line. */
+}
+.belief .belief-body p:first-child{ color:#fff; border-bottom-color:rgba(255,255,255,.16) }
+.dark .obody:first-of-type, .dark .fbody p:first-child{ color:#fff }
+
+/* The closing line of a story is a beat, not another paragraph. */
+.belief .belief-body p:last-child{
+  font-family:var(--fd); font-style:italic; font-size:21px; line-height:1.45;
+  color:var(--accent); margin-top:4px;
+}
+
+@media (max-width:640px){
+  .founder .fbody p, .owner .obody, .belief .belief-body p{
+    font-size:15.5px; line-height:1.62; margin-bottom:20px; max-width:none;
+  }
+  .founder .fbody p:first-child, .owner .obody:first-of-type, .belief .belief-body p:first-child{
+    font-size:17.5px; line-height:1.5; padding-bottom:18px; margin-bottom:18px;
+  }
+  .belief .belief-body p:last-child{ font-size:18.5px }
+}
+
+/* An earlier rule in this file (`.hero-c .pill--accent{background:var(--accent)}`)
+   was flattening the CTA back to a single pale swatch at higher specificity - which
+   is exactly why the buttons looked washed out. The material fill has to win. */
+.hero-c .pill--accent, .dark .pill--accent, .closing .pill--accent,
+.hero-a .pill--accent, .reserve .pill--accent, .wrap .cta-row .pill--accent,
+.vgrid .vs-cta, .trs-nav .nav__cta{
+  background-image:linear-gradient(178deg, var(--accent-lift) 0%, var(--accent-mid) 52%, var(--accent-drop) 100%);
+  background-color:var(--accent-mid);
+  color:var(--on-accent);
+  border:1px solid rgba(14,42,37,.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.42),
+    0 1px 2px rgba(14,42,37,.16),
+    0 12px 26px -10px rgba(14,42,37,.42);
+}
+.hero-c .pill--accent:hover, .dark .pill--accent:hover, .closing .pill--accent:hover,
+.hero-a .pill--accent:hover, .reserve .pill--accent:hover, .wrap .cta-row .pill--accent:hover,
+.vgrid .vs-cta:hover, .trs-nav .nav__cta:hover{
+  background-image:linear-gradient(178deg, var(--accent-lift-h) 0%, var(--accent-mid-h) 52%, var(--accent-drop-h) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.52),
+    0 1px 2px rgba(14,42,37,.16),
+    0 18px 34px -12px rgba(14,42,37,.48);
+}
+
+/* ═══════════ THE SHADOW + ELEVATION SYSTEM ═════════════════════════════
+   Taken from the UI-kit's own system rather than invented:
+     · a shadow MATRIX - subtle / regular / strong  ×  sm / md / lg / xl
+     · the INNER GLOW - a 1px lit rim on the top edge of a surface. This is
+       the single technique that separates a card that looks printed-on from
+       a card that looks like an object. The kit demonstrates it side by side:
+       without it the edge is dead, with it the surface catches light.
+     · the kit's real breakpoints: 600 and 1280 are the SWITCH points, with a
+       genuine tablet band at 768-1024 that I had been ignoring entirely.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* Warm-tinted, because a pure-black shadow on a warm paper reads muddy. */
+  --sh-h:28,26,22;
+
+  --sh-subtle-sm: 0 1px 2px rgba(var(--sh-h),.04);
+  --sh-subtle-md: 0 2px 6px -2px rgba(var(--sh-h),.06);
+  --sh-subtle-lg: 0 6px 16px -6px rgba(var(--sh-h),.08);
+  --sh-subtle-xl: 0 12px 32px -12px rgba(var(--sh-h),.10);
+
+  --sh-reg-sm: 0 1px 2px rgba(var(--sh-h),.06), 0 1px 1px rgba(var(--sh-h),.04);
+  --sh-reg-md: 0 2px 4px rgba(var(--sh-h),.05), 0 6px 14px -6px rgba(var(--sh-h),.10);
+  --sh-reg-lg: 0 2px 4px rgba(var(--sh-h),.05), 0 14px 30px -12px rgba(var(--sh-h),.14);
+  --sh-reg-xl: 0 4px 8px rgba(var(--sh-h),.05), 0 26px 54px -20px rgba(var(--sh-h),.18);
+
+  --sh-strong-sm: 0 1px 2px rgba(var(--sh-h),.10), 0 2px 4px rgba(var(--sh-h),.08);
+  --sh-strong-md: 0 2px 4px rgba(var(--sh-h),.10), 0 10px 20px -8px rgba(var(--sh-h),.18);
+  --sh-strong-lg: 0 3px 6px rgba(var(--sh-h),.10), 0 20px 40px -14px rgba(var(--sh-h),.24);
+  --sh-strong-xl: 0 4px 10px rgba(var(--sh-h),.12), 0 34px 66px -22px rgba(var(--sh-h),.30);
+
+  /* THE INNER GLOW. A lit top rim and a whisper of weight at the base. */
+  --rim-light: inset 0 1px 0 rgba(255,255,255,.72), inset 0 -1px 0 rgba(var(--sh-h),.05);
+  --rim-dark:  inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.22);
+}
+
+/* Cards on the light canvas: a lit rim + a subtle shadow. The rim is what makes
+   them read as objects rather than as fills. */
+.vstack, .inc, .cred, .teach, .circle, .bcard, .tier, .tcard, .tcard-x,
+.loc, .pkg, .lcard, .gcard, .acard, .card, .visit-card, .stage, .rhythm,
+.path, .col, .item, .receives{
+  box-shadow: var(--rim-light), var(--sh-subtle-md);
+}
+.vstack:hover, .cred:hover, .teach:hover, .circle:hover, .bcard:hover,
+.tier:hover, .tcard-x:hover, .pkg:hover, .gcard:hover, .path:hover, .route:hover{
+  box-shadow: var(--rim-light), var(--sh-reg-lg);
+}
+/* The featured card earns real elevation. That elevation IS the recommendation. */
+.vstack--hero, .bcard--hero, .path--hero, .circle--mid{
+  box-shadow: var(--rim-light), var(--sh-strong-lg);
+}
+
+/* Surfaces on the dark grounds get the dark rim, so their top edge catches the
+   same light rather than dissolving into the panel. */
+.dark .acard, .dark .inc, .dark .card, .dark .stage, .belief .inc,
+.dark .tcard, .dark .route{
+  box-shadow: var(--rim-dark), 0 18px 40px -20px rgba(0,0,0,.5);
+}
+
+/* The nav lifts off the page as you scroll, not before. */
+.trs-nav.scrolled{ box-shadow: var(--sh-reg-md) }
+
+/* Media panels sit heavier - they are the only thing on the page allowed to. */
+.media, .feature-band, .look-band{ box-shadow: var(--sh-reg-xl) }
+
+/* ── The kit's real breakpoints. 600 and 1280 are the switch points, and there
+      is a genuine tablet band at 768-1024 that the build had no answer for. ─── */
+@media (min-width:601px) and (max-width:1023px){
+  :root{ --sec-y:72px; --pad-x:32px }
+  .vgrid, .grid-3, .circles{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+  .vgrid{ display:grid; overflow:visible }        /* no carousel on a tablet */
+  .grid-4, .flow-strip--4{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+  .vstack--hero{ grid-column:span 2 }             /* the recommendation gets the full row */
+  .split{ grid-template-columns:1fr; gap:32px }
+  .h-display{ font-size:clamp(48px,7.4vw,72px) }
+}
+@media (min-width:1024px) and (max-width:1279px){
+  :root{ --pad-x:32px }
+  .vgrid, .grid-3{ gap:14px }
+}
+
+/* ═══════════ PHOTOGRAPHY ════════════════════════════════════════════════
+   The first real photographs on the site. Framed the way the design language
+   asks for: near-rectangular, a lit rim, and a caption that reads as editorial
+   rather than as alt text. Never a rounded blob.
+   ═══════════════════════════════════════════════════════════════════════ */
+.ph-frame{ margin:0; position:relative }
+.ph-frame .ph{
+  display:block; width:100%; height:100%; object-fit:cover;
+  border-radius:var(--r-md);
+  box-shadow: var(--rim-light), var(--sh-reg-xl);
+  aspect-ratio:4/3;
+}
+.ph-frame--tall .ph{ aspect-ratio:4/5 }
+.ph-frame--wide .ph{ aspect-ratio:16/9; border-radius:var(--r-lg) }
+.ph-frame figcaption{
+  margin-top:12px; font-family:var(--fb); font-size:11px; font-weight:500;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--taupe);
+}
+.photoband{ padding-block:0 }
+.photoband .ph-frame--wide .ph{ aspect-ratio:21/9 }
+@media(max-width:640px){
+  .ph-frame .ph{ aspect-ratio:4/5 }
+  .photoband .ph-frame--wide .ph{ aspect-ratio:4/3 }
+  .ph-frame figcaption{ text-align:center; font-size:10px }
+}
+
+/* ═══════════ THE NEUTRAL BUTTONS ═══════════════════════════════════════
+   The ghost/secondary was a bare hairline with nothing in it - next to a
+   material primary it read as unfinished rather than as restrained. Give it a
+   surface of its own: a soft warm fill, a lit rim, a real edge. It should look
+   like the quieter of two good options, not like a link in a box.
+   ═══════════════════════════════════════════════════════════════════════ */
+.btn--ghost, .pill--ghost, .btn:not(.btn--accent):not(.btn--ghost), .pill:not(.pill--accent):not(.pill--ghost){
+  background-image:linear-gradient(178deg, #FFFFFF 0%, var(--ghost-bottom) 100%);
+  background-color:var(--ghost-bottom);
+  color:var(--ink);
+  border:1px solid rgba(45,46,55,.16);
+  box-shadow: var(--rim-light), var(--sh-subtle-md);
+}
+.btn--ghost:hover, .pill--ghost:hover,
+.btn:not(.btn--accent):not(.btn--ghost):hover, .pill:not(.pill--accent):not(.pill--ghost):hover{
+  background-image:linear-gradient(178deg, #FFFFFF 0%, var(--surface-soft) 100%);
+  border-color:rgba(45,46,55,.32);
+  box-shadow: var(--rim-light), var(--sh-reg-md);
+  transform:translateY(-1px);
+}
+/* On the dark grounds it inverts: a smoked-glass surface, not a bare outline. */
+.btn--ghost.on-dark, .pill--ghost.on-dark, .dark .btn--ghost, .dark .pill--ghost,
+.closing .btn--ghost, .closing .pill--ghost{
+  background-image:none;
+  background-color:rgba(255,255,255,.07);
+  color:#fff; border:1px solid rgba(255,255,255,.22);
+  box-shadow: var(--rim-dark);
+  backdrop-filter:blur(6px);
+}
+.btn--ghost.on-dark:hover, .pill--ghost.on-dark:hover, .dark .pill--ghost:hover,
+.closing .pill--ghost:hover{
+  background-color:rgba(255,255,255,.13);
+  border-color:rgba(255,255,255,.42);
+}
+
+/* ═══════════ SYMBOLS ═══════════════════════════════════════════════════
+   The ticks, dots, arrows and bullets were inconsistent - some filled circles,
+   some dashes, some at different sizes. One symbol language.
+   ═══════════════════════════════════════════════════════════════════════ */
+.tk, .tick, .brand__tick{
+  width:14px; height:14px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(178deg, var(--accent-lift), var(--accent-drop));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 1px 2px rgba(14,42,37,.18);
+  position:relative;
+}
+.tk::after, .tick::after{
+  content:""; position:absolute; left:4.6px; top:2.6px;
+  width:3px; height:6px; border:solid var(--on-accent); border-width:0 1.6px 1.6px 0;
+  transform:rotate(45deg);
+}
+.dot{
+  width:6px; height:6px; border-radius:50%;
+  background:linear-gradient(178deg, var(--accent-lift), var(--accent-drop));
+  box-shadow:0 0 0 3px rgba(153,246,228,.18);
+}
+.arr{ display:inline-block; transition:transform .32s var(--ease) }
+.go::after, .stepgo::after, .learn::after{ content:"" }
+.receives li::before, .vs-list li::marker{ color:var(--accent-text) }
+
+/* ═══════════ PHONE: THE TITLES, CENTRED AND HIGH-END ════════════════════
+   Titles centre on a phone, with the eyebrow above and a fine rule beneath -
+   the way a title page in a book is set. The BODY stays left-aligned, because
+   centred long-form is where readability dies. Centre the titles, not the text.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width:640px){
+
+  .sec-head, .sec-head.center{ text-align:center }
+  .hero-c .inner, .hero-a .wrap{ text-align:center }
+
+  h1, h2, .h-1, .h-2, .h-display, .sec-head h2, .founder h2, .owner h3, .belief h2{
+    text-align:center;
+    text-wrap:balance;
+    margin-inline:auto;
+    max-width:16ch;                       /* forces a considered break, not a ragged one */
+  }
+  .h-display{ max-width:13ch }
+  .belief h2{ max-width:15ch }
+
+  /* The eyebrow sits above the title, centred, on its own line, with air. */
+  .eyebrow, .pill-tag, .badge-pill{
+    display:block; text-align:center; border-top:none; padding-top:0;
+    margin:0 auto 16px; letter-spacing:.24em; font-size:10px;
+  }
+  /* A hairline under the title. This is the single most "printed" gesture there
+     is, and it costs nothing. */
+  .sec-head h2::after, .hero-c h1::after, .hero-a h1::after,
+  .founder h2::after, .owner h3::after{
+    content:""; display:block; width:44px; height:1px; margin:20px auto 0;
+    background:linear-gradient(90deg, transparent, var(--accent-text), transparent);
+  }
+  .hero-c h1::after, .belief h2::after{
+    background:linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  /* The lede sits centred under the rule, then the long-form goes left. */
+  .hero-c .lede, .hero-a .lede, .sec-head .p-lg{
+    text-align:center; margin-inline:auto; max-width:38ch;
+  }
+  .founder .fbody, .owner, .belief .belief-body{ text-align:left }
+  .founder .fbody p, .owner .obody, .belief .belief-body p{ text-align:left }
+
+  /* The scarcity rule row centres with the rest. */
+  .hero-c .scarcity, .scarcity{ text-align:center }
+  .attr{ text-align:center }
+}
+
+/* `.hero-c .pill-tag` (0,2,0) from the earlier phone block was still forcing the
+   eyebrow left. The centred setting has to match its specificity. */
+@media (max-width:640px){
+  .hero-c .pill-tag, .hero-a .pill-tag, .hero-c .eyebrow, .hero-a .eyebrow,
+  .sec-head .eyebrow, .founder .badge-pill, .owner .badge-pill{
+    text-align:center; display:block; margin-inline:auto;
+  }
+  .hero-c .scarcity{ text-align:center }
+}
+
+/* ═══════════ THE HERO PHOTOGRAPH ═══════════════════════════════════════
+   The photograph sits BEHIND the invitation, not beside it. It is scrimmed hard
+   enough that the type is never fighting it - the image sets the room, the words
+   do the work. The atmospheric wash still sits on top, so the hero keeps its
+   depth rather than becoming a flat photo with text dumped on it.
+   ═══════════════════════════════════════════════════════════════════════ */
+.hero-c--photo, .hero-a--photo{ position:relative; isolation:isolate; overflow:hidden }
+
+.hero-c--photo::after, .hero-a--photo::after{
+  content:""; position:absolute; inset:0; z-index:-2;
+  background-image:var(--hero-img);
+  background-size:cover;
+  background-position:var(--hero-pos, 72% center);     /* per-hero focal point; default holds the faces */
+  transform:scale(1.02);
+  filter:grayscale(.22) contrast(1.02);
+}
+/* The scrim. Heavier where the type sits, lighter where the faces are, so the
+   image is still legible as a photograph rather than a texture. */
+.hero-c--photo::before, .hero-a--photo::before{
+  content:""; position:absolute; inset:0; z-index:-1;
+  background:
+    linear-gradient(100deg, rgba(28,26,22,.94) 0%, rgba(28,26,22,.86) 42%, rgba(28,26,22,.55) 72%, rgba(28,26,22,.40) 100%),
+    radial-gradient(90% 80% at 8% 92%, rgba(125,230,210,.16), transparent 62%);
+}
+.hero-c--photo > *, .hero-a--photo > *{ position:relative; z-index:1 }
+
+/* The light-ground home hero has to invert: its type is ink, so the scrim goes
+   pale rather than dark. */
+.hero-a--photo{ color:#fff }
+.hero-a--photo .h-display, .hero-a--photo h1{ color:#fff }
+.hero-a--photo .lede, .hero-a--photo .sub{ color:rgba(255,255,255,.82) }
+.hero-a--photo .eyebrow, .hero-a--photo .pill-tag{ color:var(--accent) }
+.hero-a--photo .textlink{ color:#fff; text-decoration-color:rgba(255,255,255,.4) }
+
+@media (max-width:640px){
+  .hero-c--photo::after, .hero-a--photo::after{ background-position:var(--hero-pos-m, var(--hero-pos, 78% center)) }
+  .hero-c--photo::before, .hero-a--photo::before{
+    background:
+      linear-gradient(180deg, rgba(28,26,22,.80) 0%, rgba(28,26,22,.90) 45%, rgba(28,26,22,.96) 100%),
+      radial-gradient(80% 60% at 50% 100%, rgba(125,230,210,.14), transparent 60%);
+  }
+}
+
+/* ═══════════ HERO PHOTOGRAPH - the composition fix ═════════════════════
+   The first attempt failed for a real reason: the photo is a bright white salon,
+   so a soft scrim left white type sitting on white walls, and the headline ran
+   straight across both faces. A photo hero only works if the type has a side and
+   the faces have a side. So: the words hold the left, the women hold the right,
+   and the scrim is heavy where the type is and clears where the faces are.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.hero-c--photo, .hero-a--photo{ padding:120px 0 110px }
+.hero-c--photo .inner, .hero-a--photo .wrap > *{ max-width:none }
+.hero-c--photo .inner{ max-width:600px }              /* the words keep the left half */
+.hero-c--photo .lede, .hero-a--photo .lede{ max-width:46ch }
+
+.hero-c--photo::after, .hero-a--photo::after{
+  background-position:78% center;                     /* the faces sit right of the type */
+  filter:grayscale(.30) contrast(1.06) brightness(.82);
+}
+/* A real scrim. Near-opaque under the words, clearing to a veil over the faces,
+   with the ground colour coming back at the bottom so the section still closes. */
+.hero-c--photo::before, .hero-a--photo::before{
+  background:
+    linear-gradient(96deg,
+      rgba(24,22,19,.97) 0%,
+      rgba(24,22,19,.95) 34%,
+      rgba(24,22,19,.78) 52%,
+      rgba(24,22,19,.42) 70%,
+      rgba(24,22,19,.30) 100%),
+    linear-gradient(180deg, rgba(24,22,19,.55) 0%, transparent 28%, transparent 72%, rgba(24,22,19,.72) 100%),
+    radial-gradient(70% 70% at 4% 96%, rgba(125,230,210,.14), transparent 62%);
+}
+
+/* Widescreen: give the photograph more room, it can carry it. */
+@media (min-width:1400px){
+  .hero-c--photo .inner{ max-width:640px }
+  .hero-c--photo::after, .hero-a--photo::after{ background-position:74% center }
+}
+
+/* Tablet: the faces crop out of frame at this width, so hold them tighter and
+   lift the scrim, or it just reads as a dark box. */
+@media (min-width:641px) and (max-width:1023px){
+  .hero-c--photo .inner{ max-width:100% }
+  .hero-c--photo::after, .hero-a--photo::after{ background-position:70% center }
+  .hero-c--photo::before, .hero-a--photo::before{
+    background:
+      linear-gradient(180deg, rgba(24,22,19,.72) 0%, rgba(24,22,19,.88) 48%, rgba(24,22,19,.96) 100%),
+      radial-gradient(70% 60% at 50% 100%, rgba(125,230,210,.12), transparent 62%);
+  }
+}
+
+/* Phone: the photo becomes a band at the top with the words beneath it, rather
+   than a background the type has to survive. */
+@media (max-width:640px){
+  .hero-c--photo, .hero-a--photo{ padding:66px 0 56px }
+  .hero-c--photo::after, .hero-a--photo::after{
+    background-position:64% 22%;
+    background-size:cover;
+    filter:grayscale(.30) contrast(1.05) brightness(.7);
+  }
+  .hero-c--photo::before, .hero-a--photo::before{
+    background:
+      linear-gradient(180deg, rgba(24,22,19,.55) 0%, rgba(24,22,19,.82) 34%, rgba(24,22,19,.95) 58%, rgba(24,22,19,.98) 100%),
+      radial-gradient(80% 50% at 50% 100%, rgba(125,230,210,.12), transparent 62%);
+  }
+  .hero-c--photo .inner{ max-width:100% }
+}
+
+/* The hero photograph is the consultation shot: the client at the left of frame,
+   Daisy at the right, listening. So the type has to hold the LEFT and the crop
+   has to keep Daisy in the right third. */
+.hero-c--photo::after{ background-position:88% center }
+@media (min-width:1400px){ .hero-c--photo::after{ background-position:84% center } }
+@media (max-width:640px){ .hero-c--photo::after{ background-position:72% 18% } }
+
+/* ═══════════ UI PASS - the breakages found at real device widths ═══════════
+   Audited at 320 / 390 / 430 / 768 / 834 / 1024 / 1280 / 1440 / 1920.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* FORM CONTROLS. The country select was rendering 19px tall at EVERY width -
+   effectively untappable, and it is on ten forms. Inputs and selects need to be
+   the same physical object as the buttons beside them. */
+input[type=text], input[type=tel], input[type=email], input[type=number],
+select, textarea{
+  min-height:52px; padding:14px 16px;
+  font-family:var(--fb); font-size:15.5px; line-height:1.3;
+  color:var(--ink); background:#fff;
+  border:1px solid rgba(45,46,55,.20); border-radius:var(--r-sm);
+  box-shadow:inset 0 1px 2px rgba(28,26,22,.05);
+  appearance:none; -webkit-appearance:none;
+  transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+select{
+  padding-right:38px;
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237C756A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 14px center;
+}
+input:focus, select:focus, textarea:focus{
+  border-color:var(--accent-text);
+  box-shadow:inset 0 1px 2px rgba(28,26,22,.04), 0 0 0 3px rgba(153,246,228,.30);
+  outline:none;
+}
+input::placeholder, textarea::placeholder{ color:var(--taupe-soft) }
+/* The dial-code select sits next to the number; give it just enough room. */
+.field-row, .form-row{ display:flex; gap:10px; align-items:stretch }
+.field-row select[name=cc]{ flex:0 0 auto; max-width:150px }
+.field-row input[name=whatsapp]{ flex:1 1 auto; min-width:0 }
+input[type=checkbox]{ min-height:0; padding:0 }
+
+/* NAV CONTROLS. The burger was 32px and the close 18px - both under the 44px
+   floor, and the close was practically invisible on an iPad. */
+.nav__burger, .nav__close{
+  min-width:44px; min-height:44px;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:none; border:none; border-radius:var(--r-sm);
+  box-shadow:none; padding:0;
+}
+.nav__burger:hover, .nav__close:hover{ background:rgba(45,46,55,.05); box-shadow:none }
+.nav__close{ font-size:0 }
+.nav__close::before{
+  content:""; width:18px; height:18px; display:block;
+  background:currentColor;
+  -webkit-mask:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M2 2l14 14M16 2L2 16' stroke='%23000' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M2 2l14 14M16 2L2 16' stroke='%23000' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+/* The carousel must never let the PAGE scroll sideways, only itself. */
+.vgrid{ max-width:100vw }
+body{ overflow-x:clip }
+
+/* ═══════════ PHOTOGRAPHY - FOCAL POINTS ════════════════════════════════
+   Every crop was centred, which is the one thing you must never do with a
+   portrait: a face sits in the UPPER third, so a centred crop takes the top
+   of the head off. Each image gets the focal point its subject actually needs.
+   ═══════════════════════════════════════════════════════════════════════ */
+.ph-frame .ph{ object-position:50% 22% }          /* faces live high in frame */
+.ph-frame--tall .ph{ object-position:50% 18% }    /* Daisy's portrait - head clear */
+.ph-frame--wide .ph{ object-position:60% 34% }    /* the consultation, both women in */
+
+/* On a phone the frames go taller, so the head needs even more room above it. */
+@media (max-width:640px){
+  .ph-frame .ph{ object-position:52% 16% }
+  .ph-frame--tall .ph{ object-position:50% 14% }
+  .photoband .ph-frame--wide .ph{ object-position:66% 30% }
+}
+
+/* The last short tap target: the nav pill at 41px. Three pixels, but it is the
+   most-tapped thing on the page. */
+.trs-nav .nav__cta{ min-height:44px; padding:13px 20px }
+
+/* The consent rows were flex items with no min-width, so on a narrow screen the
+   label could not shrink - it got squeezed to 75px and pushed off the right edge,
+   which made the whole Voucher page scroll sideways. A flex child will not shrink
+   below its content unless you tell it it may. */
+.pdpl, .pdpl__group, .field, .field-row, .form-row, .consent, .consent-row{
+  min-width:0;
+}
+.pdpl__group{
+  display:flex; align-items:flex-start; gap:10px;
+  flex-wrap:nowrap; width:100%;
+}
+.pdpl__group .pdpl__checkbox{ flex:0 0 20px }
+.pdpl__group .pdpl__label{
+  flex:1 1 auto; min-width:0;
+  overflow-wrap:anywhere; hyphens:auto;
+}
+.pdpl__label strong{ overflow-wrap:anywhere }
+
+/* Belt and braces: nothing on any page may make the document scroll sideways. */
+img, svg, video, table, pre{ max-width:100% }
+
+/* ═══════════ CHECKBOXES + RADIOS ═══════════════════════════════════════
+   The Confidence Mapping quiz - the free door, and the softest entry in the
+   whole funnel - was running on bare 13px native browser controls. On a phone
+   they are close to untappable, and they look like a form from 2004.
+   The whole row becomes the target, not the 13px box.
+   ═══════════════════════════════════════════════════════════════════════ */
+input[type=checkbox], input[type=radio]{
+  appearance:none; -webkit-appearance:none;
+  flex:0 0 auto; width:22px; height:22px; min-height:22px; margin:0;
+  border:1.5px solid rgba(45,46,55,.30);
+  background:#fff;
+  box-shadow:inset 0 1px 2px rgba(28,26,22,.05);
+  cursor:pointer; position:relative;
+  transition:border-color .18s var(--ease), background .18s var(--ease), box-shadow .18s var(--ease);
+}
+input[type=checkbox]{ border-radius:6px }
+input[type=radio]{ border-radius:50% }
+
+input[type=checkbox]:hover, input[type=radio]:hover{ border-color:var(--accent-text) }
+
+input[type=checkbox]:checked, input[type=radio]:checked{
+  background-image:linear-gradient(178deg, var(--accent-lift), var(--accent-drop));
+  border-color:rgba(14,42,37,.30);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 1px 2px rgba(14,42,37,.18);
+}
+input[type=checkbox]:checked::after{
+  content:""; position:absolute; left:7.5px; top:3.5px;
+  width:5px; height:10px;
+  border:solid var(--on-accent); border-width:0 2px 2px 0;
+  transform:rotate(45deg);
+}
+input[type=radio]:checked::after{
+  content:""; position:absolute; inset:5px;
+  border-radius:50%; background:var(--on-accent);
+}
+input[type=checkbox]:focus-visible, input[type=radio]:focus-visible{
+  outline:2px solid var(--accent-dark); outline-offset:2px;
+}
+
+/* The label is the tap target, not the box. This is the single biggest usability
+   win on a quiz - you tap the answer, not a 22px square beside it. */
+label:has(input[type=checkbox]), label:has(input[type=radio]),
+.opt, .qopt, .choice{
+  display:flex; align-items:flex-start; gap:12px;
+  min-height:52px; padding:13px 16px;
+  border:1px solid var(--hair); border-radius:var(--r-sm);
+  background:var(--paper);
+  box-shadow:var(--rim-light), var(--sh-subtle-sm);
+  cursor:pointer; font-size:15px; line-height:1.45;
+  transition:border-color .18s var(--ease), background .18s var(--ease), box-shadow .18s var(--ease);
+}
+label:has(input[type=checkbox]):hover, label:has(input[type=radio]):hover,
+.opt:hover, .qopt:hover{
+  border-color:var(--accent-text);
+  box-shadow:var(--rim-light), var(--sh-reg-sm);
+}
+label:has(input:checked){
+  border-color:var(--accent-text);
+  background:linear-gradient(178deg, #FFFFFF, #F2FCF9);
+  box-shadow:var(--rim-light), 0 0 0 1px rgba(58,168,146,.28), var(--sh-reg-sm);
+}
+/* The consent rows keep their plain layout - they are fine print, not answers. */
+.pdpl__group{ min-height:0; padding:0; border:none; background:none; box-shadow:none }
+.pdpl__group:hover{ border:none; box-shadow:none }
+
+/* ═══════════ BUTTON: THE FULL STATE MODEL + SIZE SCALE ═════════════════
+   The UI kit specs every button in FOUR states - default, hover, active and
+   INACTIVE - and at a size scale. The build had default and hover only. The
+   missing one matters: with no disabled state, the reserve button looks alive
+   before consent is ticked, so she taps a dead button and nothing happens.
+   Machine-readable source of truth: _content/tokens.json.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── STATES ─────────────────────────────────────────────────────────────── */
+.pill:active, .btn:active, .vs-cta:active{
+  transform:translateY(0);
+  box-shadow:inset 0 2px 5px rgba(14,42,37,.22), 0 1px 1px rgba(14,42,37,.10);
+}
+
+.pill:disabled, .btn:disabled, .pill[aria-disabled=true], .btn[aria-disabled=true],
+button:disabled, .pill--inactive, .btn--inactive{
+  background-image:none !important;
+  background-color:var(--disabled) !important;
+  color:var(--taupe-soft) !important;
+  border-color:rgba(45,46,55,.10) !important;
+  box-shadow:none !important;
+  transform:none !important;
+  cursor:not-allowed;
+  pointer-events:auto;             /* still hoverable, so the tooltip can explain why */
+}
+.pill:disabled:hover, .btn:disabled:hover, button:disabled:hover{
+  background-color:var(--disabled) !important; transform:none !important; box-shadow:none !important;
+}
+
+/* Working state, for the moment the form is posting. */
+.pill.is-busy, .btn.is-busy{ color:transparent !important; pointer-events:none; position:relative }
+.pill.is-busy::after, .btn.is-busy::after{
+  content:""; position:absolute; inset:0; margin:auto;
+  width:18px; height:18px; border-radius:50%;
+  border:2px solid rgba(14,42,37,.25); border-top-color:var(--on-accent);
+  animation:trs-spin .7s linear infinite;
+}
+@keyframes trs-spin{ to{ transform:rotate(360deg) } }
+@media (prefers-reduced-motion:reduce){ .pill.is-busy::after{ animation:none } }
+
+/* ── SIZE SCALE ─────────────────────────────────────────────────────────── */
+.pill--sm, .btn--sm{ padding:11px 20px; font-size:10.5px; min-height:44px; letter-spacing:.12em }
+.pill--md, .btn--md{ padding:16px 32px; font-size:12.5px; min-height:52px }
+.pill--lg, .btn--lg{ padding:19px 40px; font-size:13.5px; min-height:60px; letter-spacing:.18em }
+
+/* The disabled fill was still reading turquoise: the accent's background-color was
+   set at higher specificity than :disabled. A dead button must LOOK dead. */
+.reserve .pill--accent:disabled, .wrap .cta-row .pill--accent:disabled,
+.hero-c .pill--accent:disabled, .dark .pill--accent:disabled,
+.vgrid .vs-cta:disabled, .trs-nav .nav__cta:disabled,
+button.pill:disabled, button.btn:disabled{
+  background-color:var(--disabled) !important;
+  background-image:none !important;
+  color:var(--taupe-soft) !important;
+  border-color:rgba(45,46,55,.10) !important;
+  box-shadow:none !important;
+}
+
+/* ═══════════ MINED FROM THE KITS - the engineering fixes ═══════════════
+   These are not taste. They are bugs the kits already solved.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* 1 · iOS AUTO-ZOOM. Any input under 16px makes Safari zoom the whole page on
+       focus, which throws the layout and feels broken. Mine were 15.5px. */
+input, select, textarea{ font-size:16px }
+
+/* 2 · THE BUTTON LAW. Height is the single source of truth for the vertical box;
+       horizontal padding controls width only. Vertical padding + an inherited
+       line-height > 1 is what pushes descenders past a fixed height. */
+.pill, .btn, .vs-cta, button.pill, button.btn{
+  line-height:1;
+  padding-block:0;
+  height:52px;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.pill--sm, .btn--sm, .trs-nav .nav__cta{ height:44px; padding:0 20px }
+.pill--lg, .btn--lg{ height:60px; padding:0 40px }
+.pill, .btn{ padding-inline:32px }
+@media(max-width:640px){ .cta-row .pill, .cta-row .btn{ height:54px; padding-inline:24px } }
+
+/* 3 · THE GRID BLOWOUT. One line. A grid child with long content will otherwise
+       refuse to shrink and force the whole page sideways. */
+.vgrid > *, .grid-3 > *, .grid-4 > *, .circles > *, .split > *,
+.flow-strip > *, .cta-row > *{ min-width:0 }
+
+/* 4 · THE FOCUS HALO. A spacer ring the colour of the canvas, then the accent.
+       No alpha, so it survives on top of a photograph - which the old alpha ring
+       did not. And focus IS action, so it is allowed to be turquoise. */
+:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 2px var(--color-canvas), 0 0 0 4px var(--color-accent-strong);
+  border-radius:4px;
+}
+.dark :focus-visible, .hero-c :focus-visible, .closing :focus-visible, .belief :focus-visible{
+  box-shadow:0 0 0 2px var(--ink-deep), 0 0 0 4px var(--color-accent);
+}
+
+/* 5 · THE WARM SCRIM. A black scrim on a warm-neutral page goes grey-green and
+       kills the paper. */
+.scrim, .modal__scrim, .drawer__scrim{ background:var(--color-scrim) }
+
+/* 6 · THE POLARITY FLIP. The plan you want chosen is always the INVERSE of the
+       page - an ink card on paper, a paper card on ink. It needs no colour to be
+       the one thing that does not belong. This is stronger than an outline. */
+/* The recommended card stays LIGHT. A solid ink fill was too heavy and fought the
+   page. It earns its place with an accent edge, a warm lift and real elevation. */
+.vstack--hero{
+  background:linear-gradient(178deg, var(--canvas) 0%, #F4FBF9 100%);
+  border-color:var(--color-accent);
+  outline:2px solid var(--color-accent); outline-offset:-2px;
+  box-shadow:var(--sh-rim-light), var(--sh-strong-lg);
+}
+
+/* 7 · Zero-media-query card grids. auto-fit + minmax does what three breakpoints
+       were doing by hand. */
+.grid-auto{ display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:16px }
+
+/* 8 · The lit-surface placeholder. A three-stop same-family gradient - introduces
+       no new colour, but a flat tile reads as light falling across paper. */
+.media, .ph-frame .ph:not([src]){
+  background-image:linear-gradient(135deg, var(--color-canvas-soft) 0%, var(--color-canvas) 50%, var(--color-canvas-soft) 100%);
+}
+
+/* ═══════════ THE 5-BLOCK RHYTHM AS REAL HEADINGS ═══════════════════════
+   The education lessons wrapped their five block headings in <span class="eyebrow">,
+   which tells a crawler "this is decoration". The blogs used <h2> for the same
+   blocks. So 24 pages of genuinely quotable, mechanism-level answers had exactly
+   two H2s and were structurally invisible to AI.
+   They are now real H2s. This styles them to look exactly as they did - an
+   eyebrow to the eye, a heading to a machine.
+   ═══════════════════════════════════════════════════════════════════════ */
+h2.bh{
+  font-family:var(--ff-body);
+  font-size:11.5px; font-weight:600;
+  letter-spacing:.2em; text-transform:uppercase;
+  line-height:1.3;
+  color:var(--color-accent-text);
+  margin:0 0 10px;
+}
+h2.bh[style*="--accent"], h2.bh[style*="accent"]{ color:var(--color-accent-text) }
+.dark h2.bh, .belief h2.bh{ color:var(--color-accent) }
+h2.bh::after{ content:none }   /* the phone hairline rule is for real titles, not these */
+
+/* The AI answer box. An extractor takes the first substantive paragraph after the
+   H1 - which on these pages was the empathy hook, not the answer. */
+.answer{
+  margin:22px 0 30px; padding:20px 22px;
+  background:var(--color-canvas-soft);
+  border-left:2px solid var(--color-accent);
+  border-radius:0 var(--r-sm) var(--r-sm) 0;
+  font-size:16px; line-height:1.6; color:var(--color-foreground);
+}
+.answer strong{ font-weight:600 }
+
+/* ═══════════ THE MIXED-PREFIX BUTTON BUG ═══════════════════════════════
+   Some CTAs carry `class="pill btn--accent"` - a pill base with a btn modifier.
+   The ghost rule matches `.pill:not(.pill--accent)`, so those buttons were being
+   painted CREAM instead of turquoise. On Confidence Mapping the nav CTA - the
+   whole point of the page - was rendering as a neutral button.
+   The accent must win on EITHER prefix.
+   ═══════════════════════════════════════════════════════════════════════ */
+.pill.btn--accent, .btn.pill--accent,
+.pill--accent, .btn--accent{
+  background-image:linear-gradient(178deg, var(--accent-lift) 0%, var(--accent-mid) 52%, var(--accent-drop) 100%)!important;
+  background-color:var(--accent-mid)!important;
+  color:var(--on-accent)!important;
+  border:1px solid rgba(14,42,37,.22)!important;
+  box-shadow:var(--sh-rim-light), 0 1px 2px rgba(14,42,37,.16), 0 12px 26px -10px rgba(14,42,37,.42)!important;
+}
+.pill.btn--accent:hover, .btn.pill--accent:hover, .pill--accent:hover, .btn--accent:hover{
+  background-image:linear-gradient(178deg, var(--accent-lift-h) 0%, var(--accent-mid-h) 52%, var(--accent-drop-h) 100%)!important;
+}
+/* …but a DISABLED accent button must still look dead. */
+.pill--accent:disabled, .btn--accent:disabled, .pill.btn--accent:disabled,
+button.pill--accent:disabled, button.btn--accent:disabled{
+  background-image:none!important; background-color:var(--disabled)!important;
+  color:var(--taupe-soft)!important; border-color:rgba(45,46,55,.10)!important;
+  box-shadow:none!important;
+}
+
+/* ═══════════ THE FREE DOOR - make the one action unmissable ════════════
+   Confidence Mapping is the softest, cheapest entry in the whole funnel and its
+   CTA was the quietest thing on the page. It earns a bigger button, a halo, and
+   a line that says what it costs (nothing).
+   ═══════════════════════════════════════════════════════════════════════ */
+.hero-a .cta-row .pill--accent, .hero-a .cta-row .btn--accent{
+  height:62px; padding:0 42px; font-size:13.5px; letter-spacing:.18em;
+}
+.hero-a .cta-row .pill--accent::after{
+  content:""; position:absolute; inset:-6px; border-radius:inherit; z-index:-1;
+  background:radial-gradient(closest-side, rgba(153,246,228,.42), transparent 78%);
+  opacity:0; transition:opacity .4s var(--ease);
+}
+.hero-a .cta-row .pill--accent{ position:relative; isolation:isolate }
+.hero-a .cta-row .pill--accent:hover::after{ opacity:1 }
+/* The free-door micro. She should never have to wonder what it costs. */
+.cta-free{
+  display:block; margin-top:12px;
+  font-size:11.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--color-accent-text);
+}
+@media(max-width:640px){
+  .hero-a .cta-row .pill--accent, .hero-a .cta-row .btn--accent{ height:58px; font-size:12.5px; letter-spacing:.14em }
+}
+
+/* ═══════════ CONFIDENCE MAPPING - THE FREE DOOR ════════════════════════
+   It is the softest entry in the whole funnel and it was reading like an
+   afterthought: a huge dead gap under the hero, a nav pill wrapping to three
+   lines, and the trust chips floating with nothing holding them.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* The nav CTA was wrapping "START YOUR MAP" onto three lines. */
+.trs-nav .nav__cta{ white-space:nowrap; padding:0 18px }
+
+/* The hero had ~150px of dead air between the micro-line and the chips. Close it,
+   and let the headline and the button own the space instead. */
+.hero-a{ padding:96px 0 72px }
+.hero-a .lede{ margin-top:20px }
+.hero-a .cta-row{ margin-top:34px }
+.hero-a .cta-free, .hero-a .micro{ margin-top:14px }
+
+/* The trust strip: a rule-bounded row, not four floating ticks. */
+.safety{ padding-block:0 }
+.safety .wrap{
+  display:flex; flex-wrap:wrap; justify-content:center; align-items:center;
+  gap:0; padding-block:20px;
+  border-top:1px solid var(--color-border);
+}
+.safety .chip, .safety > .wrap > span{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:0 26px!important; margin:6px 0!important;
+  border-left:1px solid var(--color-border)!important;
+  font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--color-foreground-muted);
+}
+.safety .chip:first-child, .safety > .wrap > span:first-child{ border-left:none!important }
+@media(max-width:640px){
+  .safety .chip, .safety > .wrap > span{ padding:0 14px!important; font-size:9.5px; letter-spacing:.12em }
+}
+
+/* The quiz itself. It is the product on this page, so it should look like an object
+   on the table, not like a form embedded in a paragraph. */
+.quiz .qcard, .quiz .stage, .quiz form{
+  background:var(--color-canvas);
+  border:1px solid var(--color-border);
+  border-radius:var(--r-lg);
+  box-shadow:var(--sh-rim-light), var(--sh-regular-lg);
+  padding:36px 32px;
+}
+@media(max-width:640px){ .quiz .qcard, .quiz .stage, .quiz form{ padding:26px 20px } }
+
+/* The progress bar reads as progress, not as decoration. */
+.quiz .bar, .quiz .track{ height:3px; background:var(--color-border); border-radius:100px; overflow:hidden }
+.quiz .fill{ height:100%; background:linear-gradient(90deg, var(--accent-mid), var(--accent-lift));
+             border-radius:100px; transition:width .5s var(--ease) }
+.quiz .pct{ font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+            color:var(--color-accent-text) }
+
+/* THE DARK PULL-QUOTE - one component, both pages.
+   The band is dark, the type is the image. A photograph behind it competes with
+   the sentence, which is the one thing that has to land. Tara ruled this on sight. */
+.pull{ position:relative; isolation:isolate }
+.pull .q{
+  display:block; font-family:var(--ff-display); font-style:italic;
+  font-size:64px; line-height:.6; color:var(--accent);
+  margin-bottom:18px;
+}
+.pull h2, .pull .h-2{
+  font-family:var(--ff-display); font-weight:400; font-style:italic;
+  font-size:clamp(26px,4.4vw,38px); line-height:1.28; color:#fff;
+  max-width:19ch; margin:0 auto; text-wrap:balance;
+}
+.pull .attr{
+  display:block; margin-top:26px;
+  font-family:var(--ff-body); font-size:11px; font-weight:500;
+  letter-spacing:.34em; text-transform:uppercase;
+  color:rgba(255,255,255,.52);
+}
+
+/* ── THE 16px FLOOR. NON-NEGOTIABLE. ──────────────────────────────────────────
+   iOS Safari zooms the entire page when you focus a field whose font-size is under
+   16px. The page lurches, she loses her place, and on a phone it reads as "the site
+   is broken" - this is the "it moves around" Tara reported.
+
+   Ten forms were sitting at 15.5px (inputs) and 15px (the country select), including
+   the one that takes 500 BHD. Bare `input{}` in this file loses to a per-page
+   `.reserve input{}` on specificity, which is why the earlier fix never landed.
+
+   !important is correct here and nowhere else: this is a usability FLOOR, not a
+   style preference. No page skin may drop a field below the zoom threshold. */
+input, select, textarea, input[type="text"], input[type="email"], input[type="tel"]{
+  font-size: 16px !important;
+}
+
+/* ── THE NAV READS BRAND-FIRST, NOT CTA-FIRST ────────────────────────────────
+   The markup puts the Reserve pill before the wordmark, so in the 1fr/auto/1fr grid
+   the turquoise button was landing in the far-LEFT cell - ahead of Tara's own name.
+   A page that opens by asking is a page that has not introduced itself yet. The brand
+   leads, the CTA closes. Fixed with `order` so no page's markup has to change.
+
+   SCOPED to the funnel nav only. There are TWO navs: the funnel pages carry three
+   direct children (cta · brand · link); the site pages carry a full menu in zones
+   (.nav__zone-l · brand · .nav__zone-r) and are already correct. My first pass
+   reordered BOTH and shoved the wordmark 32px off the right edge of seven site
+   pages. :has(> .nav__cta) matches only the three-item nav. */
+.navrow:has(> .nav__cta):has(> .nav-link) > .nav-link{ order:1; justify-self:start }
+.navrow:has(> .nav__cta):has(> .nav-link) > .brand   { order:2 }
+.navrow:has(> .nav__cta):has(> .nav-link) > .nav__cta{ order:3; justify-self:end }
+
+/* ── THE HERO MUST FIT THE FOLD ON A LAPTOP ──────────────────────────────────
+   The display type scaled on WIDTH only (10vw), so a wide-but-short laptop screen
+   got a 104px headline - and the hero ran 1115px tall inside a 900px window. The
+   body copy was sliced mid-sentence and the Reserve button sat BELOW the fold: the
+   first thing she saw had no way to act on it. A 13" screen was 309px over.
+
+   The fix scales the headline against the SHORT axis too, and tightens the hero's
+   vertical rhythm on short screens. Phone and iPad already fit; they are untouched. */
+@media (min-width:1024px){
+  .hero-c .h-display, .hero-a .h-display{
+    font-size: clamp(56px, min(6.4vw, 11.2vh), 96px);
+  }
+}
+@media (min-width:1024px) and (max-height:920px){
+  .hero-c{ padding-block: 64px 56px }
+  .hero-c .h-display, .hero-a .h-display{
+    font-size: clamp(48px, min(5.4vw, 9.2vh), 74px);
+  }
+  .hero-c .lede{ margin-top:18px; font-size:16.5px; line-height:1.55 }
+  .hero-c .hero-note{ margin-top:12px }
+  .hero-c .cta-row{ margin-top:22px }
+}
+/* A 13" MacBook is 1280x800 - the most common laptop she and her team will open this
+   on. It was still 71px over, which is exactly enough to hide the Reserve button. */
+@media (min-width:1024px) and (max-height:840px){
+  .hero-c{ padding-block: 48px 44px }
+  .hero-c .h-display, .hero-a .h-display{
+    font-size: clamp(44px, min(4.8vw, 8.4vh), 64px);
+  }
+  .hero-c .lede{ margin-top:16px; font-size:16px; line-height:1.5 }
+  .hero-c .hero-note{ margin-top:10px; font-size:12.5px }
+  .hero-c .cta-row{ margin-top:20px }
+}
+
+/* ── THE SITE NAV MUST FIT ITS OWN WRAP ──────────────────────────────────────
+   The Bahrain nav carries six links (two of them long - "Confidence Mapping",
+   "The Founding 45") plus a 253px CTA: 1236px of content inside a wrap that is
+   capped at 1180px. It never fitted. At 1440 the centring margin absorbs the
+   overspill so you cannot see it; at 1280 - a 13" MacBook - the margin runs out
+   and the nav pushes the whole page sideways by 32px.
+
+   Grid children default to min-width:auto, so the 1fr columns refuse to shrink
+   below their content. min-width:0 lets the grid do its job, and the tightened
+   nav metrics buy back the ~56px the row was short. Below 1025px the burger takes
+   over and none of this applies. */
+@media (min-width:1025px){
+  /* A nav bar is not a column of prose. Capping it at the 1180px reading measure is
+     what starved it - give it the room the bar actually has. Content stays at 1180. */
+  .trs-nav .wrap.navrow{ max-width:min(1420px, 100% - 48px) }
+  .navrow > *{ min-width:0 }
+  /* THE SITE NAV GOES BRAND-LEFT ON DESKTOP.
+     The centred wordmark cannot coexist with six long links and a CTA: the left grid
+     column offers 496px and the link run needs 670px, so the links were printing
+     straight over "TARA ROSE / BAHRAIN" at every desktop width. Tightening bought back
+     60px of the 234px needed - the geometry simply does not close.
+
+     So the full-menu nav reads brand → links → CTA, which is the standard for a nav
+     this size and loses nothing. The FUNNEL nav is only three items and still fits
+     perfectly centred, so it keeps the centred wordmark signature. */
+  .navrow:has(> .nav__zone-l){ grid-template-columns:auto 1fr auto; column-gap:32px }
+  /* The brand <a> carries 33px of horizontal padding - a 148px wordmark in a 239px
+     box. Centred, that padding was invisible slack; brand-left, it was eating the
+     gutter and squeezing the link run back over the type. */
+  .navrow:has(> .nav__zone-l) > .brand      { order:1; justify-self:start;
+                                              padding-left:0; padding-right:0 }
+  .navrow:has(> .nav__zone-l) > .nav__zone-l{ order:2; justify-self:end }
+  .navrow:has(> .nav__zone-l) > .nav__zone-r{ order:3; justify-self:end }
+  .nav__links{ gap:15px }
+  .nav__links a{ font-size:11.8px; letter-spacing:.09em; white-space:nowrap }
+  .nav__zone-r{ gap:14px }
+  .nav__zone-r .pill{ font-size:10px; padding:0 14px; white-space:nowrap }
+  /* The burger was display:flex at EVERY width - it was sitting next to the full link
+     list on desktop the whole time. It belongs to the mobile menu only. */
+  .nav__burger{ display:none !important }
+}
+
+/* ── THE WORDMARK IS ONE MARK, AND IT LIVES HERE ─────────────────────────────
+   Two logos were live. Sixty-one pages carried the real one - a turquoise bar tick
+   above letterspaced Playfair TARA ROSE with the market beneath. Eleven carried a
+   different mark: an italic title-case "Tara Rose" with a round dot. Among them were
+   Daisy's story and the page a woman sees the moment after she pays.
+
+   The markup is now identical everywhere and the styling lives in the system, so a
+   page cannot quietly invent its own logo again. */
+.trs-nav{
+  position:sticky; top:0; z-index:60;
+  background:color-mix(in srgb, var(--canvas) 88%, transparent);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--hairline);
+  transition:box-shadow .4s var(--ease), background .4s var(--ease);
+}
+.trs-nav .brand{
+  display:inline-flex; flex-direction:column; align-items:center;
+  text-decoration:none; font-style:normal; line-height:1;
+}
+.trs-nav .brand__tick{
+  width:34px; height:2px; border-radius:0;
+  background:var(--accent-dark, var(--accent)); margin:0 0 8px;
+}
+.trs-nav .brand__wm{
+  font-family:var(--ff-display); font-weight:500; font-style:normal;
+  font-size:19px; letter-spacing:.3em; color:var(--ink);
+  white-space:nowrap;
+}
+.trs-nav .brand small{
+  display:block; margin-top:5px;
+  font-family:var(--ff-body); font-style:normal; font-weight:500;
+  font-size:9.5px; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--taupe); white-space:nowrap;
+}
+
+/* ── DAISY'S BLOCK MUST CENTRE ON DESKTOP ────────────────────────────────────
+   `.owner{max-width:64ch}` is a rule for the TEXT body. But `.owner--stacked` is the
+   whole SECTION, so the cap squeezed the entire Daisy block to 646px AND - with no
+   auto margin on the section - pinned it hard against the left edge, leaving the right
+   two-thirds of the page empty. Free the section; its inner `.wrap` (820px, margin
+   auto) then centres it the way every other section centres. */
+.owner--stacked{ max-width:none }
+.owner--stacked > .wrap{ margin-inline:auto }
+
+/* ── THE FUNNEL NAV MUST NOT DRIFT ON A PHONE ────────────────────────────────
+   The funnel nav is a 3-column grid: secondary link · brand · Reserve pill. On a
+   phone the "Main Website" link is hidden, but its 1fr column still reserves space,
+   squeezing the 181px pill into a ~101px slot - so the pill ran 9px off the right
+   edge. That 9px is the "screen still moving on the phone". Collapse to two columns
+   (brand + pill) below 560px so the pill gets its natural width and nothing spills. */
+@media (max-width:560px){
+  .navrow:has(> .nav__cta):has(> .nav-link){ grid-template-columns:1fr auto; column-gap:12px }
+  .navrow:has(> .nav__cta):has(> .nav-link) > .nav-link{ display:none }
+  .navrow:has(> .nav__cta):has(> .nav-link) > .brand{ justify-self:start }
+  .navrow:has(> .nav__cta):has(> .nav-link) > .nav__cta{ justify-self:end }
+  /* Even in two columns, the wide-letterspaced wordmark (148px) + a nowrap pill
+     ("Reserve Your Voucher", 220px) overrun 390px. Tighten both so the row fits any
+     phone with room - the wordmark keeps its character at 16px, the pill stays one
+     tappable line. */
+  .navrow:has(> .nav__cta):has(> .nav-link) > .brand .brand__wm{ font-size:16px; letter-spacing:.2em }
+  .navrow:has(> .nav__cta):has(> .nav-link) > .nav__cta{ font-size:10px; padding-inline:13px; letter-spacing:.06em }
+}
+
+/* ── DAISY'S PORTRAIT MUST NOT CLIP HER HEAD ─────────────────────────────────
+   The photo is a tall portrait (1200×1800) and the desktop frame was 5/4 landscape
+   with object-position 50% 20% - cropping ~73px straight off the crown. A 4/5 frame
+   matches the source and a 15% top-bias keeps her whole head with air above it.
+   Injected last, so it overrides the page's inline crop. */
+.owner--stacked .ph-frame--tall .ph{ aspect-ratio:4 / 5; object-position:50% 15% }
+
+/* ── STRUCTURE-B NAV (Confidence Mapping · Contact) MUST NOT OVERLAP ──────────
+   These two page types use a different nav: a `1fr auto 1fr` grid with the six-link
+   menu in the LEFT column and the wordmark centred in the middle. The link run needs
+   ~670px; the 1fr column gives ~546 - so the links overran into the centre column and
+   printed straight over "TARA ROSE / BAHRAIN". Same bug as the site nav, different
+   markup, so the earlier `:has(> .nav__zone-l)` fix never reached it.
+
+   Bring it onto the same brand-LEFT layout as every other desktop nav: brand → links →
+   CTA, so the wordmark is consistent across the whole site and nothing overlaps. */
+@media (min-width:1025px){
+  .navrow:has(> .nav-links){ grid-template-columns:auto 1fr auto; column-gap:30px }
+  .navrow:has(> .nav-links) > .brand{ order:1; justify-self:start; padding-inline:0 }
+  .navrow:has(> .nav-links) > .nav-links{ order:2; justify-self:start }
+  .navrow:has(> .nav-links) > .nav__cta{ order:3; justify-self:end }
+}
+
+/* ── ONE LOGO POSITION: LEFT, EVERYWHERE ON TABLET + DESKTOP ─────────────────
+   The wordmark was jumping between centre and left from page to page - centred on the
+   funnel pages and the tablet menu nav, left on everything else. A logo that moves as
+   you browse reads as three different sites. Pin it LEFT on every ≥768 layout. (Phone
+   keeps the burger-nav's own arrangement; the bug Tara flagged is tablet + desktop.) */
+
+/* Funnel nav (Founding · Voucher): was brand-CENTRED on desktop, brand-left on phone -
+   inconsistent even within one page. Flex it brand-left, Main Website + Reserve right. */
+@media (min-width:561px){
+  .navrow:has(> .nav__cta):has(> .nav-link){ display:flex; align-items:center; gap:24px }
+  .navrow:has(> .nav__cta):has(> .nav-link) > .brand{ order:1; margin-right:auto; justify-self:start }
+  .navrow:has(> .nav__cta):has(> .nav-link) > .nav-link{ order:2 }
+  .navrow:has(> .nav__cta):has(> .nav-link) > .nav__cta{ order:3 }
+}
+
+/* Site menu nav on TABLET (768–1024): was burger-left + wordmark-CENTRED. Standard
+   premium pattern is wordmark-left, burger-right - and it matches the desktop layout. */
+@media (min-width:768px) and (max-width:1024px){
+  .navrow:has(> .nav__zone-l){ grid-template-columns:auto 1fr; column-gap:16px }
+  .navrow:has(> .nav__zone-l) > .brand{ order:1; justify-self:start; padding-inline:0 }
+  .navrow:has(> .nav__zone-l) > .nav__zone-l{ order:2; justify-self:end }
+  .navrow:has(> .nav__zone-l) > .nav__zone-r{ display:none }
+}
+
+/* Skip-to-content link - offscreen until focused (keyboard + screen-reader users). */
+.skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--ink);color:#fff;
+  padding:12px 20px;border-radius:0 0 10px 0;font-family:var(--ff-body);font-size:14px;font-weight:500}
+.skip:focus{left:0}
+
+/* ── THE CONFIDENCE MAP - the free mini-report from her answers ───────────────
+   Each pain she checked becomes a card: the problem named, the blame released, what
+   helps, where it sits in the Full Loop, and a link to the lesson that explains it.
+   Given free on screen; the email below unlocks the full Journal. */
+.mini-map{ margin:30px 0 8px }
+.mini-map .mm-head{ margin:0 0 16px }
+.mini-map .rk{ font-family:var(--ff-body); font-weight:500; font-size:11px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--taupe) }
+.mm-card{ background:var(--surface); border:1px solid var(--hairline); border-radius:14px;
+  padding:22px 24px; margin:0 0 14px; box-shadow:inset 0 1px 0 rgba(255,255,255,.6) }
+.mm-top{ display:flex; align-items:baseline; justify-content:space-between; gap:14px; margin:0 0 10px }
+.mm-top h4{ font-family:var(--ff-display); font-weight:500; font-size:20px; line-height:1.2;
+  color:var(--ink); margin:0 }
+.mm-loop{ flex:none; font-family:var(--ff-body); font-weight:500; font-size:10px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent-dark, var(--accent-text)); border:1px solid var(--accent);
+  border-radius:100px; padding:3px 11px; white-space:nowrap }
+.mm-why{ font-size:15.5px; line-height:1.6; color:var(--taupe); margin:0 0 12px }
+.mm-fix{ font-size:15px; line-height:1.55; color:var(--ink); margin:0 0 14px }
+.mm-fix span{ font-family:var(--ff-body); font-weight:600; font-size:11px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--accent-text); margin-right:6px }
+.mm-read{ display:inline-block; font-family:var(--ff-body); font-weight:500; font-size:13.5px;
+  letter-spacing:.02em; color:var(--accent-text); text-decoration:none;
+  border-bottom:1px solid var(--accent) }
+.mm-read:hover{ border-bottom-color:var(--accent-dark, var(--accent-text)) }
+.mm-note{ background:var(--surface-soft, var(--surface)); border-left:3px solid var(--accent);
+  border-radius:0 12px 12px 0; padding:16px 20px; margin:18px 0 0; font-size:15.5px;
+  line-height:1.55; color:var(--ink); font-style:italic; font-family:var(--ff-display) }
+
+/* ── QUIZ: the layer sub-headings + the whole-woman notes ────────────────────
+   The problem picker is grouped by education layer (Condition · Colour · Shape).
+   The report closes with life/wellness notes drawn from her answers. */
+.qgroup-head{ font-family:var(--ff-body); font-weight:600; font-size:11px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--accent-text); margin:22px 0 10px }
+.qgroup-head:first-of-type{ margin-top:6px }
+.mm-notes{ margin:22px 0 0; display:grid; gap:12px }
+.mm-note-read{ display:inline-block; margin-top:4px; font-family:var(--ff-body); font-weight:500;
+  font-size:13px; color:var(--accent-text); text-decoration:none; border-bottom:1px solid var(--accent) }
+.ghost-btn{ background:none; border:0; font-family:var(--ff-body); font-weight:500; font-size:14px;
+  color:var(--taupe); cursor:pointer; padding:8px 4px }
+.ghost-btn:hover{ color:var(--ink) }
+.qbtns{ display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:30px }
+.opts.scale{ display:flex; flex-wrap:wrap; gap:8px }
+.opts.scale .opt{ flex:1 1 auto }
+
+/* ── QUIZ REPORT: the Full Loop + 8-Step journey block ───────────────────────
+   Shown on every map so the plan is explicit, not a brief overview: read by the
+   8-Step Hair Plan, built and held through Create → Protect → Keep on Track. */
+.loop-block{ margin:30px 0 6px; padding:26px 26px 28px; background:var(--ink-deep); color:#F3F1EB;
+  border-radius:16px; position:relative; overflow:hidden }
+.loop-block::after{ content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(70% 80% at 85% 10%, rgba(125,230,210,.14), transparent 60%) }
+.loop-block .rk{ color:var(--accent-deep, var(--accent)); position:relative }
+.loop-block .loop-lead{ margin:12px 0 22px; font-size:16px; line-height:1.6; color:rgba(243,241,235,.82);
+  max-width:60ch; position:relative }
+.loop-block .loop-lead strong{ color:#fff; font-weight:600 }
+.loop-3{ display:grid; gap:14px; grid-template-columns:1fr; position:relative }
+@media(min-width:640px){ .loop-3{ grid-template-columns:repeat(3,1fr) } }
+.loop-3 .lp{ background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:18px 18px 20px }
+.loop-3 .lp-n{ font-family:var(--ff-body); font-weight:600; font-size:10.5px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--accent-deep, var(--accent)) }
+.loop-3 .lp h4{ font-family:var(--ff-display); font-weight:500; font-size:18px; color:#fff; margin:8px 0 6px; line-height:1.2 }
+.loop-3 .lp p{ font-size:14px; line-height:1.55; color:rgba(243,241,235,.72); margin:0 }
+
+/* ── THE MAP TOP: five pillars a professional reads (research-grounded) ───────
+   Hair · Scalp · Environment · Rhythm · Wellbeing - each filled from her answers.
+   Sits above the route card, so the map reads as a whole-woman diagnosis first. */
+.map-pillars{ margin:8px 0 28px }
+.map-pillars .rk{ display:block; font-family:var(--ff-body); font-weight:500; font-size:11px;
+  letter-spacing:.2em; text-transform:uppercase; color:var(--taupe); margin:0 0 16px }
+.map-pillars .mp{ display:grid; grid-template-columns:132px 1fr; gap:18px; align-items:baseline;
+  padding:15px 0; border-top:1px solid var(--hairline) }
+.map-pillars .mp:last-child{ border-bottom:1px solid var(--hairline) }
+.map-pillars .mp-h{ display:flex; flex-direction:column; gap:2px }
+.map-pillars .mp-n{ font-family:var(--ff-display); font-weight:500; font-size:19px; color:var(--ink); line-height:1.1 }
+.map-pillars .mp-s{ font-family:var(--ff-body); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-text) }
+.map-pillars .mp p{ margin:0; font-size:15.5px; line-height:1.55; color:var(--taupe) }
+@media(max-width:520px){
+  .map-pillars .mp{ grid-template-columns:1fr; gap:6px }
+  .map-pillars .mp-h{ flex-direction:row; align-items:baseline; gap:10px }
+}
+
+/* ── QUIZ REPORT: treatments + home-care recommendations, mapped from answers ─ */
+.recs{ margin:26px 0 0 }
+.rec-block{ margin:0 0 22px }
+.rec-block .rk{ display:block; font-family:var(--ff-body); font-weight:500; font-size:11px;
+  letter-spacing:.2em; text-transform:uppercase; color:var(--taupe); margin:0 0 14px }
+.rec-list{ display:grid; gap:10px }
+.rec-row{ background:var(--surface); border:1px solid var(--hairline); border-radius:12px; padding:16px 18px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6) }
+.rec-row h4{ font-family:var(--ff-display); font-weight:500; font-size:17px; color:var(--ink); margin:0 0 4px; line-height:1.15 }
+.rec-row p{ margin:0; font-size:14.5px; line-height:1.5; color:var(--taupe) }
+.hc-card{ background:var(--surface); border:1px solid var(--hairline); border-left:3px solid var(--accent);
+  border-radius:0 12px 12px 0; padding:18px 20px }
+.hc-card h4{ font-family:var(--ff-display); font-weight:500; font-size:20px; color:var(--ink); margin:0 0 6px; line-height:1.15 }
+.hc-card p{ margin:0; font-size:15px; line-height:1.55; color:var(--taupe) }
+.rec-link{ display:inline-block; margin:12px 0 0; font-family:var(--ff-body); font-weight:500; font-size:13.5px;
+  color:var(--accent-text); text-decoration:none; border-bottom:1px solid var(--accent) }
+
+/* ── QUIZ: the maintenance vs transformation framing line ─────────────────── */
+.goal-band{ margin:18px 0 0 }
+.goal-band .goal-line{ margin:0; padding:16px 20px; background:var(--surface-soft, var(--surface));
+  border:1px solid var(--hairline); border-radius:12px; font-family:var(--ff-display); font-style:italic;
+  font-size:17px; line-height:1.45; color:var(--ink); text-align:center }
+.goal-band:empty{ display:none }
+
+/* ── QUIZ: consultation-required note (transformations, keratin, henna, extensions) ── */
+.consult-req{ margin:12px 0 0; padding:16px 18px; background:var(--ink-deep); color:#F3F1EB;
+  border-radius:12px; font-size:14.5px; line-height:1.55 }
+.consult-req span{ display:block; font-family:var(--ff-body); font-weight:600; font-size:11px;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--accent-deep, var(--accent)); margin:0 0 6px }
+
+/* ── QUIZ: the map disclaimer - suggestion not diagnosis, health is the GP's ── */
+.map-disclaimer{ margin:26px 0 0; padding:0 4px; font-size:13px; line-height:1.55; color:var(--taupe-soft);
+  text-align:center; max-width:56ch; margin-left:auto; margin-right:auto }
+
+/* ── FOUNDING: the payment-method choice (Gold/Platinum) + the link-sent next steps ── */
+.pay-method{ display:block }
+.pay-method[hidden]{ display:none }
+.pay-method .pay-q{ display:block; font-family:var(--ff-body); font-weight:600; font-size:13px;
+  letter-spacing:.02em; color:var(--ink); margin:0 0 10px }
+.pay-opt{ display:flex; align-items:flex-start; gap:12px; padding:14px 16px; margin:0 0 10px;
+  background:var(--surface); border:1px solid var(--hairline); border-radius:12px; cursor:pointer;
+  font-size:14.5px; line-height:1.5; color:var(--taupe) }
+.pay-opt:has(input:checked){ border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent) }
+.pay-opt strong{ color:var(--ink); font-weight:600 }
+.pay-opt input{ position:absolute; opacity:0; width:0; height:0 }
+.pay-opt .cbx{ flex:none; width:20px; height:20px; margin-top:1px; border-radius:50%;
+  border:1.5px solid var(--hairline-strong, var(--hairline)); position:relative }
+.pay-opt input:checked + .cbx{ border-color:var(--accent-dark, var(--accent-text)) }
+.pay-opt input:checked + .cbx::after{ content:""; position:absolute; inset:4px; border-radius:50%;
+  background:var(--accent-dark, var(--accent-text)) }
+.pay-opt input:focus-visible + .cbx{ outline:2px solid var(--accent-text); outline-offset:2px }
+.next-steps{ margin:14px 0 0; padding:0 0 0 22px; display:grid; gap:9px }
+.next-steps li{ font-size:15.5px; line-height:1.55; color:var(--taupe) }
+.form-thanks .fine{ margin:16px 0 0; font-size:13.5px; line-height:1.55; color:var(--taupe-soft) }
+
+/* ── THE CONFIDENCE MAP: one moment, on the brand's dark belief band ─────────────
+   The map was card-soup giving the whole consultation away. Now it is one moment:
+   the belief-shift line (her problem named, blame released) on the dark band, one
+   quiet direction, then the invite. The plan/treatments/home-care move to the Journal. */
+.map-turn{ position:relative; isolation:isolate; overflow:hidden; text-align:center;
+  background:var(--ink-deep); color:#F3F1EB; border-radius:18px; padding:46px 38px 48px; margin:6px 0 0 }
+.map-turn::after{ content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  background:radial-gradient(78% 70% at 20% 82%, rgba(125,230,210,.16), transparent 62%),
+             radial-gradient(70% 60% at 88% 8%, rgba(125,230,210,.08), transparent 60%) }
+.map-turn .eyebrow{ color:var(--accent-deep, var(--accent)); display:block; margin:0 0 18px }
+.map-turn .turn-q{ display:block; font-family:var(--ff-display); font-style:italic; font-size:56px;
+  line-height:.5; color:var(--accent-deep, var(--accent)); margin:0 0 14px }
+.map-turn .turn-line{ font-family:var(--ff-display); font-weight:500; font-style:italic;
+  font-size:clamp(24px,4.2vw,34px); line-height:1.32; color:#fff; margin:0 auto; max-width:22ch;
+  text-wrap:balance }
+.r-start{ text-align:center; margin:24px 0 0; font-family:var(--ff-body); font-size:16px;
+  color:var(--taupe); letter-spacing:.01em }
+.r-start strong{ font-family:var(--ff-display); font-style:italic; font-weight:500; font-size:19px;
+  color:var(--ink) }
+
+.r-read{ text-align:center; margin:10px 0 0 }
+.r-read a{ font-family:var(--ff-body); font-weight:500; font-size:13.5px; color:var(--accent-text);
+  text-decoration:none; border-bottom:1px solid var(--accent) }
+
+/* ── TRUST STRIP: one clean check per chip (the .tk badge collided into a mess) ── */
+.safety .wrap{ gap:0 }
+.safety .snet, .safety .chip{ gap:10px !important; color:var(--ink) !important }
+.safety .snet .tk, .safety .chip .tk{
+  width:16px; height:16px; min-width:16px; border-radius:50%;
+  background:var(--accent) !important; background-image:none !important; box-shadow:none !important;
+  position:relative; flex:none;
+}
+.safety .snet .tk::after, .safety .chip .tk::after{
+  content:""; position:absolute; left:5.5px; top:3.6px; width:3px; height:6.5px;
+  border:solid var(--ink) !important; border-width:0 1.7px 1.7px 0 !important;
+  transform:rotate(45deg); background:none !important;
+}
+.safety .snet .tk::before, .safety .chip .tk::before{ content:none !important }
+
+/* ── CONFIDENCE MAP RESULT: the "where you'd begin" card + Loop teaser (elevated to match the site) ── */
+.map-begin{ max-width:640px; margin:22px auto 0; padding:34px 34px 30px; text-align:center;
+  background:var(--surface, #FAF8F4); border:1px solid var(--hair, rgba(45,46,55,.11)); border-radius:16px;
+  box-shadow:var(--sh-rim-light), var(--sh-card-hover); }
+.map-begin > .eyebrow{ display:block; color:var(--accent-text); margin:0 0 15px }
+.begin-route{ margin:0; font-family:var(--ff-display); font-weight:500; font-size:clamp(25px,4.3vw,34px);
+  line-height:1.14; letter-spacing:-.01em; color:var(--ink); text-wrap:balance; }
+.begin-goal{ margin:13px auto 0; max-width:44ch; font-family:var(--ff-body); font-size:15px; line-height:1.6;
+  color:var(--taupe, #7C756A); }
+.begin-goal:empty, .begin-goal[hidden]{ display:none }
+/* Loop teaser - echoes the site Full Loop (Create -> Protect -> Keep on Track), Visit 1 lit */
+.map-loop{ display:flex; align-items:flex-start; justify-content:center; gap:0; max-width:430px;
+  margin:28px auto 0; }
+.ml-node{ position:relative; flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.ml-node::before{ content:""; position:absolute; top:34px; left:-50%; width:100%; height:2px;
+  background:var(--hair, rgba(45,46,55,.14)); z-index:0; }
+.ml-node:first-child::before{ display:none }
+.ml-visit{ font-family:var(--ff-body); font-weight:600; font-size:9.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--taupe-soft, #9a938a); }
+.ml-dot{ position:relative; z-index:1; width:14px; height:14px; border-radius:50%;
+  background:var(--surface, #FAF8F4); border:2px solid var(--hair, rgba(45,46,55,.22)); }
+.ml-node.is-start .ml-visit{ color:var(--accent-text) }
+.ml-node.is-start .ml-dot{ background:var(--accent); border-color:var(--accent-deep, var(--accent));
+  box-shadow:0 0 0 4px rgba(153,246,228,.22); }
+.ml-lab{ font-family:var(--ff-body); font-weight:600; font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--taupe, #7C756A); line-height:1.25; }
+.ml-node.is-start .ml-lab{ color:var(--ink) }
+.begin-note{ margin:18px auto 0; max-width:42ch; font-family:var(--ff-body); font-size:13px; line-height:1.55;
+  color:var(--taupe-soft, #9a938a); }
+.map-begin .r-read{ margin-top:16px }
+#r-consult:empty{ display:none }
+#r-consult{ margin-top:16px; text-align:left }
+@media(max-width:520px){
+  .map-begin{ padding:28px 22px 26px }
+  .ml-lab{ font-size:10px; letter-spacing:.03em }
+  .ml-node::before{ top:32px }
+}
+
+/* ==== CONFIDENCE JOURNAL (the emailed personalised deliverable) ==================== */
+.jr-open{ text-align:center; padding:clamp(48px,7vw,86px) 0 clamp(30px,4vw,44px); }
+.jr-open .wrap{ max-width:760px; margin-inline:auto; }
+.jr-open .eyebrow{ display:block; color:var(--accent-text); margin-bottom:18px }
+.jr-title{ margin:0; font-family:var(--ff-display); font-weight:500; font-size:clamp(34px,6vw,60px);
+  line-height:1.04; letter-spacing:-.014em; color:var(--ink); text-wrap:balance; }
+.jr-turnband{ position:relative; margin:26px auto 0; max-width:660px; padding:30px 30px 32px;
+  background:var(--ink-deep, #1C1B18); border-radius:18px; overflow:hidden; isolation:isolate; }
+.jr-turnband::after{ content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  background:radial-gradient(120% 90% at 15% 0%, rgba(153,246,228,.14), transparent 60%),
+             radial-gradient(120% 90% at 100% 100%, rgba(196,181,253,.10), transparent 55%); }
+.jr-quote{ display:block; font-family:var(--ff-display); font-style:italic; font-size:46px; line-height:.5;
+  color:var(--accent-deep, var(--accent)); margin-bottom:12px }
+.jr-turn{ margin:0; font-family:var(--ff-display); font-weight:500; font-style:italic;
+  font-size:clamp(19px,2.7vw,26px); line-height:1.32; color:#F4F1EB; text-wrap:balance }
+.jr-intro{ margin:24px auto 0; max-width:58ch; font-family:var(--ff-body); font-size:16px; line-height:1.66; color:var(--taupe, #7C756A) }
+
+.jr-sec{ padding:clamp(34px,5vw,60px) 0; border-top:1px solid var(--hair, rgba(45,46,55,.10)); }
+.jr-sec .wrap{ max-width:900px; margin-inline:auto; }
+.jr-sec .eyebrow{ display:block; color:var(--accent-text); text-align:center; margin-bottom:12px }
+.jr-h2{ margin:0 0 30px; text-align:center; font-family:var(--ff-display); font-weight:500;
+  font-size:clamp(24px,3.6vw,36px); line-height:1.08; letter-spacing:-.01em; color:var(--ink); text-wrap:balance }
+.jr-note{ margin:22px auto 0; max-width:56ch; text-align:center; font-family:var(--ff-body); font-size:13.5px;
+  line-height:1.6; color:var(--taupe-soft, #9a938a) }
+
+/* five reads */
+.jr-reads{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+.jr-read{ padding:22px 22px; background:var(--surface, #FAF8F4); border:1px solid var(--hair, rgba(45,46,55,.11));
+  border-radius:14px; box-shadow:var(--sh-rim-light), var(--sh-card); }
+.jr-read-h{ display:flex; align-items:baseline; gap:10px; margin-bottom:8px }
+.jr-read-n{ font-family:var(--ff-display); font-weight:500; font-size:19px; color:var(--ink) }
+.jr-read-s{ font-family:var(--ff-body); font-weight:600; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-text) }
+.jr-read p{ margin:0; font-family:var(--ff-body); font-size:14.5px; line-height:1.58; color:var(--taupe, #7C756A) }
+.jr-read:nth-child(5){ grid-column:1 / -1 }
+
+/* plan */
+.jr-route{ margin:0; text-align:center; font-family:var(--ff-display); font-weight:500;
+  font-size:clamp(26px,4.2vw,38px); line-height:1.1; color:var(--ink); text-wrap:balance }
+.jr-belief{ margin:12px auto 26px; max-width:44ch; text-align:center; font-family:var(--ff-display);
+  font-style:italic; font-size:clamp(16px,2vw,19px); line-height:1.4; color:var(--taupe, #7C756A) }
+.jr-steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px }
+.jr-step{ padding:22px 20px; background:var(--surface, #FAF8F4); border:1px solid var(--hair, rgba(45,46,55,.11));
+  border-radius:14px; box-shadow:var(--sh-rim-light), var(--sh-card) }
+.jr-step-tag{ display:inline-block; font-family:var(--ff-body); font-weight:600; font-size:10px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent-text); margin-bottom:10px }
+.jr-step h4{ margin:0 0 6px; font-family:var(--ff-display); font-weight:500; font-size:18px; color:var(--ink) }
+.jr-step p{ margin:0; font-family:var(--ff-body); font-size:13.5px; line-height:1.55; color:var(--taupe, #7C756A) }
+#j-consult{ max-width:640px; margin:22px auto 0 }
+.jr-readmore#j-read{ margin:16px auto 0; text-align:center }
+#j-read a{ font-family:var(--ff-body); font-weight:500; font-size:13.5px; color:var(--accent-text) }
+
+/* treatments */
+.jr-treats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px }
+.jr-treat{ padding:20px 20px; background:var(--surface, #FAF8F4); border:1px solid var(--hair, rgba(45,46,55,.11));
+  border-radius:14px; box-shadow:var(--sh-rim-light), var(--sh-card) }
+.jr-treat h4{ margin:0 0 6px; font-family:var(--ff-display); font-weight:500; font-size:18px; color:var(--ink) }
+.jr-treat p{ margin:0; font-family:var(--ff-body); font-size:13.5px; line-height:1.55; color:var(--taupe, #7C756A) }
+
+/* home care - plain-language lead + the 3-rung ladder with her rung marked */
+.jr-lead{ margin:0 auto 24px; max-width:56ch; text-align:center; font-family:var(--ff-body); font-size:15px; line-height:1.62; color:var(--taupe, #7C756A) }
+.jr-hcladder{ display:flex; flex-direction:column; gap:12px; max-width:560px; margin:0 auto }
+.jr-hcrow{ position:relative; padding:20px 22px; background:var(--surface, #FAF8F4); border:1px solid var(--hair, rgba(45,46,55,.11));
+  border-radius:14px; box-shadow:var(--sh-rim-light), var(--sh-card); opacity:.72 }
+.jr-hcrow h4{ margin:0 0 5px; font-family:var(--ff-display); font-weight:500; font-size:19px; color:var(--ink) }
+.jr-hcrow p{ margin:0; font-family:var(--ff-body); font-size:13.5px; line-height:1.55; color:var(--taupe, #7C756A) }
+.jr-hcrow.is-mine{ opacity:1; background:var(--ink-deep, #1C1B18); border-color:var(--ink-deep, #1C1B18);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), var(--sh-hero) }
+.jr-hcrow.is-mine h4{ color:#F4F1EB }
+.jr-hcrow.is-mine p{ color:rgba(244,241,235,.82) }
+.jr-hcrow .jr-hc-tag{ display:inline-block; font-family:var(--ff-body); font-weight:600; font-size:10px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--accent-deep, var(--accent)); margin-bottom:9px }
+
+/* home care - the polarity flip (ink card) */
+.jr-hc{ max-width:520px; margin:0 auto; padding:28px 28px; text-align:center; background:var(--ink-deep, #1C1B18);
+  border-radius:16px; box-shadow:inset 0 1px 0 rgba(255,255,255,.10), var(--sh-hero) }
+.jr-hc-tag{ display:inline-block; font-family:var(--ff-body); font-weight:600; font-size:10px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--accent-deep, var(--accent)); margin-bottom:12px }
+.jr-hc h4{ margin:0 0 8px; font-family:var(--ff-display); font-weight:500; font-size:26px; color:#F4F1EB }
+.jr-hc p{ margin:0 auto; max-width:42ch; font-family:var(--ff-body); font-size:14.5px; line-height:1.6; color:rgba(244,241,235,.82) }
+
+/* rhythm - the Loop visits */
+.jr-visits{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px }
+.jr-visit{ position:relative; padding:24px 20px; background:var(--surface, #FAF8F4); border:1px solid var(--hair, rgba(45,46,55,.11));
+  border-radius:14px; box-shadow:var(--sh-rim-light), var(--sh-card) }
+.jr-visit.is-start{ border-color:var(--accent-deep, var(--accent)); box-shadow:var(--sh-rim-light), var(--sh-card), 0 0 0 1px var(--accent-deep, var(--accent)) }
+.jr-visit-n{ display:inline-block; font-family:var(--ff-body); font-weight:600; font-size:10px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--taupe-soft, #9a938a); margin-bottom:10px }
+.jr-visit.is-start .jr-visit-n{ color:var(--accent-text) }
+.jr-visit h4{ margin:0 0 6px; font-family:var(--ff-display); font-weight:500; font-size:19px; color:var(--ink) }
+.jr-visit p{ margin:0; font-family:var(--ff-body); font-size:13.5px; line-height:1.55; color:var(--taupe, #7C756A) }
+
+/* promise + book */
+.jr-sec--promise{ text-align:center }
+.jr-promise{ margin:0 auto; max-width:52ch; font-family:var(--ff-display); font-weight:500; font-style:italic;
+  font-size:clamp(19px,2.6vw,25px); line-height:1.36; color:var(--ink); text-wrap:balance }
+.jr-cta{ margin:28px 0 0 }
+.jr-signoff{ margin:26px 0 0; font-family:var(--ff-display); font-style:italic; font-size:16px; color:var(--taupe, #7C756A) }
+
+/* no-data fallback: hide personalised sections, keep opening + promise */
+body.jr-nodata .jr-sec--reads, body.jr-nodata .jr-sec--plan, body.jr-nodata .jr-sec--treats,
+body.jr-nodata .jr-sec--home, body.jr-nodata .jr-sec--rhythm{ display:none }
+
+@media(max-width:720px){
+  .jr-reads{ grid-template-columns:1fr }
+  .jr-read:nth-child(5){ grid-column:auto }
+  .jr-steps, .jr-visits{ grid-template-columns:1fr }
+}
+
+/* Confidence Mapping hero: the two women behind the map (Tara 16 Jul) */
+.hero-a .hero-portrait{ margin:42px auto 0; max-width:470px; }
+.hero-a .hero-portrait img{ width:100%; height:auto; aspect-ratio:16/10; object-fit:cover; object-position:50% 26%; border-radius:var(--r-lg,22px); box-shadow:0 20px 48px -22px rgba(45,46,55,.5); }
+.hero-a .hero-portrait figcaption{ margin-top:12px; font-family:var(--ff-body); font-size:12.5px; letter-spacing:.04em; color:var(--ink-soft); text-align:center; }
+@media(max-width:560px){ .hero-a .hero-portrait{ margin-top:32px; } .hero-a .hero-portrait img{ aspect-ratio:4/3; } }
+
+/* Confidence Mapping: per-stage purpose line - tells the story, so a longer quiz feels guided not endless (Tara 16 Jul) */
+.quiz .qstep .q-why{ margin:10px 0 26px; max-width:48ch; font-family:var(--ff-body); font-size:15px; line-height:1.55; color:var(--ink-soft); }
+@media(max-width:560px){ .quiz .qstep .q-why{ font-size:14.5px; margin:8px 0 22px; } }
+
+/* Confidence Mapping: accessible inline validation message (WCAG 3.3.1) */
+.qerr{ margin:8px 0 0; font-family:var(--ff-body); font-size:13.5px; font-weight:500; color:var(--err, #C9685F); }
+.qgroup[aria-invalid="true"] > .qlabel{ color:var(--err, #C9685F); }
+
+/* CTA alignment: centre section CTAs; split-hero + nav CTAs stay left (Tara 16 Jul) */
+.cta-row{ justify-content:center; }
+[class*="hero"] .cta-row, .navrow .cta-row, .trs-nav .cta-row, header .cta-row{ justify-content:flex-start; }
+
+/* Full Loop ring: the top node's label was overlapping node 1 - give it clearance (Tara 16 Jul) */
+.loopring{ margin-top:66px; }
+.lr-lab.n1{ transform:translateX(-50%) translateY(-48px); }
+@media(max-width:560px){ .loopring{ margin-top:58px; } .lr-lab.n1{ transform:translateX(-50%) translateY(-42px); } }
+
+/* Trust bar: a clean turquoise check instead of a stray dash (Tara 16 Jul) - matches the quiz strip */
+.trust .tick-i{ width:13px; height:13px; background:none !important; position:relative; display:inline-block; vertical-align:-2px; margin-right:4px; }
+.trust .tick-i::after{ content:""; position:absolute; left:3px; top:1px; width:4px; height:8px; border:solid var(--accent-deep); border-width:0 2px 2px 0; transform:rotate(45deg); }
+
+/* Menu depth: warm panels + a feature image per family (Tara 16 Jul) */
+.menu-fam, .menu-block{ background:var(--surface-soft, #F4F0E9); border:1px solid var(--hair); border-radius:20px; padding:34px 36px 36px; box-shadow:var(--sh-rim-light), var(--sh-card); margin-top:30px; }
+.menu-feat{ width:100%; aspect-ratio:16/4.4; border-radius:13px; overflow:hidden; margin:0 0 26px; position:relative; box-shadow:var(--sh-rim-light); }
+@media(max-width:640px){ .menu-fam, .menu-block{ padding:24px 22px 28px; border-radius:16px; } .menu-feat{ aspect-ratio:16/7; margin-bottom:22px; } }
+
+/* Cut menu: panel depth on the flat ruled list + feature image (Tara 16 Jul) */
+.menu-list{ background:var(--surface-soft, #F4F0E9); border:1px solid var(--hair); border-radius:20px; padding:34px 40px 26px; box-shadow:var(--sh-rim-light), var(--sh-card); }
+@media(max-width:640px){ .menu-list{ padding:24px 22px 18px; border-radius:16px; } }
+
+/* Confidence Promise band - refined (Tara 16 Jul): tighter column, balanced breaks, gallery air, hairline-flanked label */
+.promise-band{ padding-block:clamp(50px,6vw,74px); }
+.promise-band .inner{ max-width:660px; }
+.promise-band .eyebrow{ color:var(--accent-text); }
+.promise-band .q{ font-size:clamp(22px,2.5vw,29px) !important; line-height:1.4 !important; letter-spacing:-.003em; margin-top:26px !important; text-wrap:balance; }
+.promise-band .lbl{ display:inline-flex !important; align-items:center; gap:15px; margin-top:30px !important; font-size:10px !important; letter-spacing:.34em !important; color:var(--accent-text) !important; }
+.promise-band .lbl::before, .promise-band .lbl::after{ content:""; width:26px; height:1px; background:var(--accent-deep); opacity:.55; }
+
+/* Press 'as featured in' strip (founding page) - Tara 16 Jul */
+.press-strip{ background:var(--paper); padding:36px 0; border-bottom:1px solid var(--hair); text-align:center; }
+.press-eyebrow{ font-family:var(--ff-body); font-size:13px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--accent-text); margin:0 0 18px; }
+.press-row{ display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:10px 26px; }
+.press-row a{ font-family:var(--ff-body); font-size:14px; font-weight:500; letter-spacing:.01em; color:var(--accent-text); text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px; text-decoration-color:rgba(58,168,146,.55); white-space:nowrap; transition:color .25s, text-decoration-color .25s; }
+.press-row a:hover{ color:var(--ink); text-decoration-color:var(--ink); }
+@media(max-width:560px){ .press-row a{ font-size:13px; } .press-row{ gap:9px 18px; } }
+
+/* Any social link whose handle is not set (token fell back to ) is hidden, so an
+   unset profile never ships as a dead link. It reappears the moment a real URL is set. */
+.soc[href=]{ display:none !important; }
+
+/* Footer social links: monochrome platform glyphs, keyed on the URL so no markup
+   changes are needed and the icon inherits the link colour. Scoped per platform so
+   a link with no matching glyph (podcast placeholders) never shows an empty square. */
+.soc[href*="instagram"], .soc[href*="facebook"], .soc[href*="linkedin"], .soc[href*="youtube"], .soc[href*="tiktok"], .soc[href*="spotify"]{ display:inline-flex; align-items:center; gap:9px; }
+.soc[href*="instagram"]::before, .soc[href*="facebook"]::before, .soc[href*="linkedin"]::before, .soc[href*="youtube"]::before, .soc[href*="tiktok"]::before, .soc[href*="spotify"]::before{ content:""; flex:0 0 auto; width:15px; height:15px; background:currentColor; -webkit-mask:center/contain no-repeat; mask:center/contain no-repeat; }
+.soc[href*="instagram"]::before{ -webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z'/></svg>"); mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z'/></svg>"); }
+.soc[href*="facebook"]::before{ -webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z'/></svg>"); mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z'/></svg>"); }
+.soc[href*="linkedin"]::before{ -webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z'/></svg>"); mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z'/></svg>"); }
+.soc[href*="youtube"]::before{ -webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z'/></svg>"); mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z'/></svg>"); }
+.soc[href*="tiktok"]::before{ -webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z'/></svg>"); mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z'/></svg>"); }
+.soc[href*="spotify"]::before{ -webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z'/></svg>"); mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z'/></svg>"); }
+.press-quote{ margin:22px auto 0; max-width:44ch; font-family:var(--ff-display); font-style:italic; font-size:18px; line-height:1.42; color:var(--ink); }
+.press-quote span{ display:block; margin-top:9px; font-family:var(--ff-body); font-style:normal; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft); }
+
