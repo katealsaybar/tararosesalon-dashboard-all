@@ -11,7 +11,7 @@
 // pilot and the half cap for Wave 4 are held by this page; "the wave is open" is also checked in lost_send_enqueue. The daily cap, the send
 // window and the kill switch are the ones in lost_send_config (lost-queue.js).
 const LQW = [
-  { n: 1, name: 'Pilot', factor: 1, cls: 2, who: 'The best 50 clients of the active group: offer message first, then Due, most recent first' },
+  { n: 1, name: 'Pilot', factor: 1, cls: 2, who: 'The best 50 clients of the active group whose message can go out now: offer message first, then Due, most recent first' },
   { n: 2, name: 'Active on WhatsApp', factor: 1, cls: 2, who: 'Wrote to one of our numbers in the last 12 months. Offer message first, then Due' },
   { n: 3, name: 'Replied 12 to 18 months ago', factor: 1, cls: 3, who: 'Last wrote to us 12 to 18 months ago. Offer message first, then Due. The message carries the STOP line' },
   { n: 4, name: 'No reply seen', factor: 0.5, cls: 4, who: 'In respond.io, no reply in their last 50 messages. The coldest group: STOP line, and half the daily cap' },
@@ -55,7 +55,14 @@ function lqwCanWave(r) {
   if (!w) return false;
   return w === 1 ? lqwKeys.has(r.client_key) : !(lqwClass(r) === 2 && lqwKeys.has(r.client_key));
 }
-const lqwOrder = (a, b) => (LQ_TYPE_ORDER.indexOf(a.qtype) - LQ_TYPE_ORDER.indexOf(b.qtype)) || (a.days_since - b.days_since);
+// Can its template go out now (approved, every variable filled)? Offer templates cannot until the versions without an end date are approved in Meta,
+// so until then the pilot and each wave start with the clients whose message can actually be sent.
+function lqwTplOk(r) {
+  if (!lqSnd.info) return 0;
+  const t = lqSendTpl(r);
+  return t && t.approved && lqSendParams(t, r).every(Boolean) ? 1 : 0;
+}
+const lqwOrder = (a, b) => (lqwTplOk(b) - lqwTplOk(a)) || (LQ_TYPE_ORDER.indexOf(a.qtype) - LQ_TYPE_ORDER.indexOf(b.qtype)) || (a.days_since - b.days_since);
 
 // What each wave holds, from the rows on the page. Called before every paint.
 function lqwCompute() {
