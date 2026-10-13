@@ -129,9 +129,15 @@ const ROOTS_BY_YEAR = {
     SAA: '1QIFS53NE_yS78ghmg3xbtJKiQDUMjPFr', // SAADIYAT / DAILY WEEKLY
     MC:  '1nkUcqz-0pKK7uzGbbCnZFNxRvkCzX6Db', // MOTOR CITY / DAILY/WEEKLY LEDGERS (December only)
   },
-  // 2021 and 2020 live under "LEDGERS YEARS" (1H85v53VWgpeNvmDdL45Ldfe3kdQSX6_g):
-  // 2021 1bPWn3GerJfgairpV8Oh4MZDeBqCLcpil, 2020 1hWAFE1j3yctdIuxoazbLZ-lgvMEidA36.
-  // List each year's subfolder and add the branch folders here before running it.
+  // 2021 (13 Oct 2026): LEDGERS YEARS / 2021 (1bPWn3GerJfgairpV8Oh4MZDeBqCLcpil). Month folders hold a HAIR and a
+  // BEAUTY subfolder with one weekly file each (see SPLIT_YEARS), weeks run Sunday to Saturday, 3 Jan to 25 Dec.
+  // Phorest has KCA and SAA from 1 May 2021 only. MARASY (1jGE6xprl3Y9XYJPc-nYDxDfCaGmv0Jr5 / Weekly Ledgers
+  // 1JPy0gtGJs9hD1wUjO5tKy9Qu0kVPe-L8) opens for Kate but has no branch code yet and no Phorest, so it is left out.
+  2021: {
+    KCA: '1TJYhRCClEfl9bWiealURO3REycxrXTXa', // KHALIFA / Weekend Ledgers   (.xlsx)
+    SAA: '1H-56GYSTqc0dVQOvyqjscUIlV_KLR78i', // SAADIYAT / Weekly Ledgers   (.xlsx)
+  },
+  // 2020 lives under "LEDGERS YEARS" too (1H85v53VWgpeNvmDdL45Ldfe3kdQSX6_g): 1hWAFE1j3yctdIuxoazbLZ-lgvMEidA36.
 };
 
 const ROOTS = ROOTS_BY_YEAR[YEAR];
@@ -154,6 +160,58 @@ const PLACEHOLDERS = ['AA', 'BB', 'CC', 'DD', 'EE', 'XX', 'AAA', 'BBB', 'CCC', '
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const TIME_BUDGET_MS = 4 * 60 * 1000; // stop picking up new files after this; a trigger continues
 const MAX_ROWS_READ = 160;             // day tabs put everything that matters above row ~140
+
+// 2021 ONLY (13 Oct 2026). Every switch below is off for any other YEAR, so 2022 to 2026 behave exactly as before.
+// In 2021 Hair and Beauty are separate files (a HAIR and a BEAUTY subfolder in each month folder), each with ONE
+// section and no A1 dates, and the week runs SUNDAY to SATURDAY ("OCT 3-9") where every later year runs Monday to
+// Sunday. So in SPLIT_YEARS: the file's dept comes from its folder, a push only replaces its own dept's rows, two
+// files for one week are told apart by dept, and a week starts on its Sunday (the variable `monday` in processFile_
+// then holds the week's first day, and the SUNDAY tab is that day, not the last one).
+const SPLIT_YEARS = [2021];
+function splitYear_() { return SPLIT_YEARS.indexOf(YEAR) !== -1; }
+
+// 'Hair' or 'Beauty' from the last folder in the file's path, '' when it is neither.
+function deptOfPath_(path) {
+  const last = String(path).split('/').pop().trim().toUpperCase();
+  return last === 'HAIR' ? 'Hair' : last === 'BEAUTY' ? 'Beauty' : '';
+}
+
+// Days from the week's first day: Monday 0 ... Sunday 6, or in a split year Sunday 0 ... Saturday 6.
+function dayOffset_(tab) {
+  const i = DAY_TABS.indexOf(tab);
+  return splitYear_() ? (i + 1) % 7 : i;
+}
+
+// The key two files must share to be "the same branch-day": branch|date, plus the dept in a split year so a
+// HAIR file and a BEAUTY file for one week are not taken for duplicates of each other.
+function dayKey_(branch, date, dept) {
+  return branch + '|' + date + (splitYear_() ? '|' + String(dept || '').toUpperCase() : '');
+}
+function claimKey_(branch, date, path) { return dayKey_(branch, date, deptOfPath_(path)); }
+
+// First day of the week a date is in: its Monday, or in a split year its Sunday.
+function weekStartOf_(iso) {
+  return splitYear_() ? isoAdd_(iso, -isoParts_(iso).getDay()) : mondayOf_(iso);
+}
+
+// Day tab name, upper case. In a split year KCA's February and March tabs carry the date ("SUNDAY 07", "Sunday 7th",
+// "SATURDAY 13TH") and every such file was skipped whole (13 Oct 2026), so the weekday word alone is taken.
+function dayTabName_(name) {
+  const up = String(name).trim().toUpperCase();
+  if (!splitYear_() || DAY_TABS.indexOf(up) !== -1) return up;
+  const m = up.match(/^(MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\s*\d{1,2}\s*(ST|ND|RD|TH)?\s*$/);
+  return m ? m[1] : up;
+}
+
+// File names that carry no usable week, mapped to the Sunday their week starts on. SAA's May HAIR files are
+// "WEEK 1 (APRIL 2 - 8)" (the template's old name, the file was made on 2 May and sits in the May folder) and
+// three called just "WEEK n"; their BEAUTY twins say May 2, 9, 16, 23.
+const WEEK_OVERRIDES_2021 = {
+  'HAIR WEEK 1 (APRIL 2 - 8).xlsx': '2021-05-02',
+  'HAIR WEEK 2.xlsx': '2021-05-09',
+  'HAIR WEEK 3.xlsx': '2021-05-16',
+  'HAIR WEEK 4.xlsx': '2021-05-23',
+};
 
 // Same list as sync-all-branches.gs, plus the ASSISTANTS misspelling seen in 2026 data.
 const NAME_FIXES = {
@@ -409,7 +467,7 @@ function backfillReport() {
       if (status in stats) stats[status]++;
       stats.rows += Number(rows) || 0;
       String(dates || '').split(' ').filter(Boolean).forEach(d => {
-        const k = `${branch}|${d}`;
+        const k = claimKey_(branch, d, path);
         (seen[k] = seen[k] || []).push(`${path} / ${name}`);
       });
     });
@@ -617,7 +675,7 @@ function resolveDuplicates() {
   data.forEach(function (r, i) {
     if (r[5] !== 'OK') return;
     String(r[6] || '').split(' ').filter(String).forEach(function (d) {
-      const k = r[3] + '|' + d;
+      const k = claimKey_(r[3], d, r[2]);
       (byDate[k] = byDate[k] || []).push(i);
     });
   });
@@ -705,7 +763,8 @@ function resolveCopiedWeeks() {
   data.forEach(function (r, i) {
     if (r[5] !== 'OK') return;
     String(r[6] || '').split(' ').filter(String).forEach(function (d) {
-      (byDate[r[3] + '|' + d] = byDate[r[3] + '|' + d] || []).push(i);
+      const k = claimKey_(r[3], d, r[2]);
+      (byDate[k] = byDate[k] || []).push(i);
     });
   });
   const stored = {};   // branch|date|dept|staff → that row's figures
@@ -713,7 +772,7 @@ function resolveCopiedWeeks() {
   supaAll_('branch_staff_daily',
            'branch,date,dept,staff_name,ncr,req,salon,new_client,rebooked,total,treatment_aed,retail_unit_qty,treatments_unit_qty')
     .forEach(function (r) {
-      hasDay[r.branch + '|' + r.date] = true;
+      hasDay[dayKey_(r.branch, r.date, r.dept)] = true;
       stored[r.branch + '|' + r.date + '|' + r.dept + '|' + r.staff_name] = figures_(r);
     });
 
@@ -729,8 +788,8 @@ function resolveCopiedWeeks() {
     // 1. nothing it pushed is inside the week its name claims
     if (pushed.some(function (d) { return d >= wk.from && d <= wk.to; })) return;
 
-    const fileMonday = mondayOf_(pushed[0]);
-    const nameMonday = mondayOf_(wk.from);
+    const fileMonday = weekStartOf_(pushed[0]);
+    const nameMonday = weekStartOf_(wk.from);
     const shift = isoDiff_(nameMonday, fileMonday);
     if (!shift || shift % 7 !== 0) return;   // not a clean week apart; leave that to a person
 
@@ -738,7 +797,7 @@ function resolveCopiedWeeks() {
     const emptyDays = [];
     for (let n = 0; n < 7; n++) {
       const d = isoAdd_(nameMonday, n);
-      if (d >= wk.from && d <= wk.to && !hasDay[branch + '|' + d]) emptyDays.push(d);
+      if (d >= wk.from && d <= wk.to && !hasDay[claimKey_(branch, d, r[2])]) emptyDays.push(d);
     }
     if (emptyDays.length < 7) {
       if (emptyDays.length) {
@@ -750,7 +809,7 @@ function resolveCopiedWeeks() {
 
     // 3. everything it pushed is already held by a file whose name covers it
     const safeToMove = pushed.every(function (d) {
-      return (byDate[branch + '|' + d] || []).some(function (j) {
+      return (byDate[claimKey_(branch, d, r[2])] || []).some(function (j) {
         if (j === i) return false;
         const w2 = weekFromName_(data[j][1], data[j][2]);
         return w2 && d >= w2.from && d <= w2.to;
@@ -794,7 +853,7 @@ function resolveCopiedWeeks() {
     }
     moved.push([branch, r[2] + ' / ' + r[1], pushed[0] + ' → ' + pushed[pushed.length - 1],
                 res.dates.join(' '), res.rows]);
-    res.dates.forEach(function (d) { hasDay[branch + '|' + d] = true; });
+    res.dates.forEach(function (d) { hasDay[claimKey_(branch, d, r[2])] = true; });
     q.getRange(i + 2, 6, 1, 5).setValues([[res.status, res.dates.join(' '), res.rows,
       (res.note ? res.note + ' | ' : '') + 'moved ' + (shift / 7) + ' week(s) onto the dates its own file name claims',
       new Date()]]);
@@ -888,9 +947,10 @@ function rescueStrayTabs() {
 }
 
 // What branch_staff_daily holds for one branch-day: dept|staff -> figures_ string. Empty when nothing.
-function storedDay_(branch, date) {
+function storedDay_(branch, date, dept) {
   const url = SUPA_URL + '/rest/v1/branch_staff_daily?select=dept,staff_name,ncr,req,salon,new_client,rebooked,total,' +
-              'treatment_aed,retail_unit_qty,treatments_unit_qty&branch=eq.' + encodeURIComponent(branch) + '&date=eq.' + date;
+              'treatment_aed,retail_unit_qty,treatments_unit_qty&branch=eq.' + encodeURIComponent(branch) + '&date=eq.' + date +
+              (splitYear_() && dept ? '&dept=eq.' + dept : '');
   const resp = UrlFetchApp.fetch(url, { headers: supaHeaders_(), muteHttpExceptions: true });
   if (resp.getResponseCode() >= 300) {
     throw new Error('read of ' + branch + ' ' + date + ' failed (' + resp.getResponseCode() + '): ' + resp.getContentText().slice(0, 200));
@@ -931,6 +991,7 @@ function isoDiff_(a, b) { return Math.round((isoParts_(a) - isoParts_(b)) / 8640
 // gives only numbers. Tested against all 226 of the 2025 file names: 149 of the 150 that carry
 // data were read, the one exception being a file literally named "WEEK 1()".
 function weekFromName_(name, path) {
+  if (splitYear_()) return weekFromName2021_(name, path);
   const base = String(name).replace(/\.(xlsx|xls)$/i, '');
   const brackets = base.match(/\(([^)]*)\)/g);
   if (!brackets || !brackets.length) return null;
@@ -979,6 +1040,68 @@ function weekFromName_(name, path) {
   // "WEEK 1 (JUNE 30-JULY 5)" runs to the 6th. The week is the one whose Monday is nearest the
   // first day the name gives, so `from` is always a Monday from here on (Kate, 7 Sep 2026).
   const idx = (from.getDay() + 6) % 7;
+  from.setDate(from.getDate() - (idx <= 3 ? idx : idx - 7));
+  const to = new Date(from.getTime());
+  to.setDate(to.getDate() + 6);
+  const tz = Session.getScriptTimeZone();
+  return { from: fmt_(from, tz), to: fmt_(to, tz) };
+}
+
+// 2021 version of weekFromName_: {from, to} is the Sunday-to-Saturday week the name claims. It differs from the
+// general one in four ways. The week is the one whose SUNDAY is nearest the first day the name gives. A trailing
+// "(1)" "(2)" "(3)" and a "(... conflicted copy ...)" are not the week (they read as the 1st, 2nd, 3rd and as the
+// 22nd). A bracket that is missing or unclosed ("WK 4 AUG 22-28)", "WK 1 JULY 4-10") is read from after "WK n".
+// And the month is the one written next to the first day on either side ("29 AUG - 4 SEP" filed under September
+// is 29 August, "31ST OCT - 6TH NOV" is 31 October), else the folder's. A few names carry no week at all and
+// come from WEEK_OVERRIDES_2021.
+function weekFromName2021_(name, path) {
+  const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const monthOf = function (t) {
+    if (!t || String(t).length < 3) return null;
+    const m = MONTHS.indexOf(String(t).toUpperCase().slice(0, 3));
+    return m >= 0 ? m + 1 : null;
+  };
+
+  let from = null;
+  const fix = WEEK_OVERRIDES_2021[String(name).trim()];
+  if (fix) {
+    from = isoParts_(fix);
+  } else {
+    const base = String(name).replace(/(\.(xlsx|xls))+\s*$/i, '')
+      .replace(/\([^)]*conflicted copy[^)]*\)/ig, '')
+      .replace(/\(\s*\d\s*\)/g, '');
+    const brackets = base.match(/\(([^)]*)\)/g);
+    let inside = brackets && brackets.length ? brackets[brackets.length - 1].replace(/[()]/g, '') : '';
+    if (!inside.trim()) {
+      const m = base.match(/(?:WK|WEEK)\s*\d+\s*(.*)$/i);
+      inside = m ? m[1] : '';
+    }
+    const toks = inside.match(/[A-Za-z]+|\d+/g) || [];
+    let di = -1, day = null;
+    for (let i = 0; i < toks.length; i++) {
+      if (/^\d+$/.test(toks[i]) && Number(toks[i]) >= 1 && Number(toks[i]) <= 31) { day = Number(toks[i]); di = i; break; }
+    }
+    if (day === null) return null;
+    let month = monthOf(toks[di - 1]);
+    if (month === null) {
+      for (let j = di + 1; j <= di + 2 && j < toks.length; j++) {
+        if (/^(ST|ND|RD|TH)$/i.test(toks[j])) continue;
+        month = monthOf(toks[j]);
+        break;
+      }
+    }
+    if (month === null) {
+      const segs = String(path).split('/').map(function (x) { return x.trim(); }).reverse();
+      for (let k = 0; k < segs.length && month === null; k++) {
+        (segs[k].match(/[A-Za-z]+/g) || []).forEach(function (t) { if (month === null) month = monthOf(t); });
+      }
+    }
+    if (month === null) return null;
+    from = new Date(YEAR, month - 1, day);
+    if (isNaN(from)) return null;
+  }
+  // a typed first day is a day or two off now and then; the week is the one whose Sunday is nearest
+  const idx = from.getDay();
   from.setDate(from.getDate() - (idx <= 3 ? idx : idx - 7));
   const to = new Date(from.getTime());
   to.setDate(to.getDate() + 6);
@@ -1043,6 +1166,8 @@ function processFile_(entry, opts) {
   }
 
   let tempId = null;
+  // split years only: the dept this file is about, from its folder (see SPLIT_YEARS)
+  const forceDept = splitYear_() ? deptOfPath_(entry.path) : '';
   try {
     let ssId = entry.id;
     if (entry.mime === XLSX_MIME) {
@@ -1071,7 +1196,7 @@ function processFile_(entry, opts) {
     // including 35 Sundays, which is Motor City's missing Sundays (Kate, 4 Sep 2026).
     const days = [];
     ss.getSheets().forEach(sheet => {
-      const tab = sheet.getName().trim().toUpperCase();
+      const tab = dayTabName_(sheet.getName());
       if (DAY_TABS.indexOf(tab) === -1) return;
       const lastRow = Math.min(sheet.getLastRow(), MAX_ROWS_READ);
       const lastCol = sheet.getLastColumn();
@@ -1086,7 +1211,7 @@ function processFile_(entry, opts) {
     // and the month from its folder, and the date is snapped back to that week's Monday. Every
     // tab still has to land on the weekday its own name claims, so a name that turns out to
     // describe a different week is skipped loudly instead of saved wrongly (Kate, 4 Sep 2026).
-    const wk = weekFromName_(entry.name, entry.path);   // its `from` is a Monday
+    const wk = weekFromName_(entry.name, entry.path);   // its `from` is a Monday (a Sunday in a split year)
     let monday = weekMonday_(days, notes, wk ? wk.from : null);
     if (!monday && wk) {
       monday = wk.from;
@@ -1109,7 +1234,7 @@ function processFile_(entry, opts) {
         const taken = [];
         for (let n = 0; n < 7; n++) {
           const d = isoAdd_(wk.from, n);
-          if (Object.keys(storedDay_(entry.branch, d)).length) taken.push(d);
+          if (Object.keys(storedDay_(entry.branch, d, forceDept)).length) taken.push(d);
         }
         if (taken.length) {
           notes.push(`HELD: the day tabs sit on the week of ${monday} while the name says ${wk.from}; ` +
@@ -1131,7 +1256,7 @@ function processFile_(entry, opts) {
       let derived = false;
       if (unfilled) {
         if (!monday) { notes.push(`${tab}: no date in A1 and the week could not be worked out, skipped`); return; }
-        dateStr = isoAdd_(monday, DAY_TABS.indexOf(tab));
+        dateStr = isoAdd_(monday, dayOffset_(tab));
         derived = true;
       }
       let weekday = isoWeekday_(dateStr);
@@ -1141,7 +1266,7 @@ function processFile_(entry, opts) {
       // for. Outside it: the tab is a stray, settled below.
       if (weekday !== tab && monday && isoWithinWeek_(dateStr, monday)) {
         const was = dateStr;
-        dateStr = isoAdd_(monday, DAY_TABS.indexOf(tab));
+        dateStr = isoAdd_(monday, dayOffset_(tab));
         weekday = isoWeekday_(dateStr);
         notes.push(`${tab}: A1 said ${was}, a ${weekday === tab ? 'shifted' : 'wrong'} day inside this week, corrected to ${dateStr}`);
       }
@@ -1158,20 +1283,20 @@ function processFile_(entry, opts) {
       if (opts.rescue && !stray) return;
       if (stray) {
         if (!monday) { notes.push(`WARN ${tab}: A1 says ${dateStr} which is a ${weekday} — stale copy? skipped`); return; }
-        const target = isoAdd_(monday, DAY_TABS.indexOf(tab) + (opts.rescueShift || 0));
+        const target = isoAdd_(monday, dayOffset_(tab) + (opts.rescueShift || 0));
         if (!opts.rescue) {
           notes.push(`STRAY ${tab}: A1 says ${dateStr}, a ${weekday} outside this file's week; tried on ${target} after the run`);
           return;
         }
         const hold = function (why) { held.push({ tab: tab, a1: dateStr, date: target, why: why }); };
         if (Number(target.slice(0, 4)) !== YEAR) { hold(`${target} is outside ${YEAR}`); return; }
-        const rows = parseDay_(day.values, target, tab, notes);
+        const rows = parseDay_(day.values, target, tab, notes, forceDept);
         if (!rows.length) { hold('no staff rows'); return; }
-        const there = storedDay_(entry.branch, target);
+        const there = storedDay_(entry.branch, target, forceDept);
         const nThere = Object.keys(there).length;
         if (nThere) { hold(`${target} already holds ${nThere} rows from another file`); return; }
         if (weekday === tab) {
-          const was = storedDay_(entry.branch, dateStr);
+          const was = storedDay_(entry.branch, dateStr, forceDept);
           if (!Object.keys(was).length) { hold(`nothing stored on ${dateStr} to compare with`); return; }
           const differs = rows.some(function (row) { return was[row.dept + '|' + row.staff_name] !== figures_(row); });
           if (!differs) { hold(`same figures as ${dateStr}, an unfilled copy`); return; }
@@ -1198,7 +1323,7 @@ function processFile_(entry, opts) {
       }
 
       if (derived) notes.push(`${tab}: A1 was blank, dated ${dateStr} from the rest of the week`);
-      const rows = parseDay_(day.values, dateStr, tab, notes);
+      const rows = parseDay_(day.values, dateStr, tab, notes, forceDept);
       if (!rows.length) { notes.push(`${tab} ${dateStr}: no staff rows`); return; }
       dates.push(dateStr);
       allRows.push(...rows.map(r => Object.assign({ branch: entry.branch }, r)));
@@ -1326,7 +1451,7 @@ function weekMonday_(days, notes, nameMonday) {
     const iso = day.iso;
     if (!iso || Number(iso.slice(0, 4)) !== YEAR) return;
     if (isoWeekday_(iso) !== day.tab) return;
-    const m = isoAdd_(iso, -DAY_TABS.indexOf(day.tab));
+    const m = isoAdd_(iso, -dayOffset_(day.tab));
     seen[m] = (seen[m] || 0) + 1;
   });
   const keys = Object.keys(seen);
@@ -1355,7 +1480,7 @@ function blockHasLabels_(low, sr, c, secEnd) {
   return false;
 }
 
-function parseDay_(values, dateStr, tab, notes) {
+function parseDay_(values, dateStr, tab, notes, forceDept) {
   const nrows = values.length;
   const ncols = values[0].length;
   const cell = (r, c) => (r >= 0 && r < nrows && c >= 0 && c < ncols) ? values[r][c] : '';
@@ -1373,7 +1498,8 @@ function parseDay_(values, dateStr, tab, notes) {
   const rows = [];
   const claimed = {};
   H.forEach((h, k) => {
-    const dept = k === 0 ? 'Hair' : 'Beauty';
+    // forceDept (split years): a file with one section is that dept's, wherever the section sits
+    const dept = (forceDept && H.length === 1) ? forceDept : (k === 0 ? 'Hair' : 'Beauty');
     const namesRow = h - 1;
     const secEnd = k + 1 < H.length ? H[k + 1] - 1 : nrows;
 
@@ -1489,7 +1615,8 @@ function parseDay_(values, dateStr, tab, notes) {
   }
   if (orphans.length) notes.push(`WARN ${tab} ${dateStr}: summary block at row ${orphans.join(',')} has no "Client" header above it — those staff were NOT read`);
 
-  return rows;
+  // a split year's file only ever writes its own dept, whatever else its template carries
+  return forceDept ? rows.filter(function (r) { return r.dept === forceDept; }) : rows;
 }
 
 
@@ -1959,11 +2086,13 @@ function pushRows_(branchCode, rows) {
 
   const headers = { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` };
   const datesCovered = [...new Set(uniqueRows.map(r => r.date))];
+  // split years: a HAIR file must not wipe the BEAUTY rows of the same day, so the delete names the depts it carries
+  const deptFilter = splitYear_() ? `&dept=in.(${[...new Set(uniqueRows.map(r => r.dept))].join(',')})` : '';
   const DATE_CHUNK = 50;
   for (let i = 0; i < datesCovered.length; i += DATE_CHUNK) {
     const chunk = datesCovered.slice(i, i + DATE_CHUNK);
     const del = UrlFetchApp.fetch(
-      `${SUPA_URL}/rest/v1/branch_staff_daily?branch=eq.${encodeURIComponent(branchCode)}&date=in.(${chunk.join(',')})`,
+      `${SUPA_URL}/rest/v1/branch_staff_daily?branch=eq.${encodeURIComponent(branchCode)}&date=in.(${chunk.join(',')})${deptFilter}`,
       { method: 'delete', headers: Object.assign({ Prefer: 'return=minimal' }, headers), muteHttpExceptions: true }
     );
     if (del.getResponseCode() >= 300) throw new Error(`Supabase delete failed (${del.getResponseCode()}): ${del.getContentText()}`);
@@ -2674,4 +2803,26 @@ function fix2022b() {
   } catch (e) { out.push('ERR ' + e.message); }
   finally { if (tempId) { try { DriveApp.getFileById(tempId).setTrashed(true); } catch (e2) { /* ignore */ } } }
   Logger.log('PUSH fix2022b\n' + out.join('\n'));
+}
+
+/** 13 Oct 2026: re-reads the KCA 2021 February files and March BEAUTY WK 2 (date-named day tabs). Dry run reads and logs only; the other pushes. YEAR must be 2021. */
+function fix2021TabsDry() { fix2021Tabs_(true); }
+function fix2021Tabs() { fix2021Tabs_(false); }
+function fix2021Tabs_(dry) {
+  const all = [];
+  const root = DriveApp.getFolderById(ROOTS.KCA);
+  walk_(root, root.getName(), 'KCA', all);
+  const pick = all.filter(function (e) {
+    return e.path.indexOf('2 FEB') >= 0 || (e.path.indexOf('3 MARCH') >= 0 && e.path.indexOf('BEAUTY') >= 0 && e.name.toUpperCase().indexOf('WK 2') >= 0);
+  });
+  Logger.log('FIX picked ' + pick.length + (dry ? ' (dry)' : ''));
+  pick.forEach(function (e) {
+    try {
+      const res = processFile_(e, dry ? { dryRun: true } : {});
+      const by = {};
+      (res.parsed || []).forEach(function (r) { by[r.date] = (by[r.date] || 0) + r.total; });
+      Logger.log('FIX ' + deptOfPath_(e.path) + ' ' + e.name.slice(0, 38) + ' | ' + res.status + ' | rows ' + res.rows + ' | ' + Object.keys(by).sort().map(function (d) { return d.slice(5) + ':' + by[d]; }).join(' '));
+    } catch (err) { Logger.log('FIX FAILED ' + e.name.slice(0, 40) + ' ' + String(err.message).slice(0, 150)); }
+  });
+  Logger.log('FIX done');
 }
