@@ -2646,3 +2646,32 @@ function fix2022_(dry) {
   });
   Logger.log((dry ? 'DRY ' : 'PUSH ') + 'fix2022\n' + out.join('\n'));
 }
+
+// One-off, 13 Oct 2026 (second part of fix2022): SAA 31 Jan and 1 Feb from the newer *WK 1 copy (saved 27 Feb 2022,
+// the OLD copy 7 Feb). 31 Jan treatment AED 2848 -> 2186, clients 41 and 34 unchanged. Same date check as fix2022.
+function fix2022b() {
+  const name = '*WK 1 (JAN.31 - FEB. 06).xlsx';
+  const want = { MONDAY: '2022-01-31', TUESDAY: '2022-02-01' };
+  let tempId = null; const out = [];
+  try {
+    tempId = convertXlsx_('1u087pOi2al9FEzuybOV-NhTIhxCANoiQ', name);
+    const ss = SpreadsheetApp.openById(tempId);
+    const tz = ss.getSpreadsheetTimeZone();
+    const all = [];
+    ss.getSheets().forEach(function (sheet) {
+      const tab = sheet.getName().trim().toUpperCase();
+      if (!want[tab]) return;
+      const lastRow = Math.min(sheet.getLastRow(), MAX_ROWS_READ);
+      const values = sheet.getRange(1, 1, lastRow, sheet.getLastColumn()).getValues();
+      const iso = cellIso_(values[0][0], tz);
+      if (iso !== want[tab]) { out.push(tab + ': A1 says ' + iso + ', expected ' + want[tab] + ', SKIPPED'); return; }
+      const rows = parseDay_(values, want[tab], tab, []);
+      let cl = 0, aed = 0; rows.forEach(function (r) { cl += (r.total || 0); aed += (r.treatment_aed || 0); });
+      out.push('SAA ' + want[tab] + ' ' + tab + ': ' + rows.length + ' rows, clients ' + cl + ', treatment ' + Math.round(aed));
+      rows.forEach(function (r) { all.push(Object.assign({ branch: 'SAA' }, r)); });
+    });
+    if (all.length) out.push('PUSHED ' + pushRows_('SAA', all) + ' rows');
+  } catch (e) { out.push('ERR ' + e.message); }
+  finally { if (tempId) { try { DriveApp.getFileById(tempId).setTrashed(true); } catch (e2) { /* ignore */ } } }
+  Logger.log('PUSH fix2022b\n' + out.join('\n'));
+}
