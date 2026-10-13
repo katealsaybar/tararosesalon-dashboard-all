@@ -497,11 +497,17 @@ function nudge(data) {
   const gl = recs.find(r => r.kind === 'goals'), needGoals = !gl || gl.status === 'draft';
   const latest = monthly[0], nm = latest && latest.content && latest.content.next_meeting;
   const upcoming = nm && String(nm).slice(0, 10) >= todayISO() ? String(nm).slice(0, 10) : null;
-  if (!waiting.length && !upcoming && !needGoals) return null;
+  // Her part of this month's 1-to-1, until it has been sent or the 1-to-1 is signed.
+  const thisMonth = todayISO().slice(0, 7) + '-01';
+  const prepNow = recs.find(r => r.kind === 'prep' && String(r.period).slice(0, 10) === thisMonth);
+  const monthSigned = monthly.some(r => String(r.period).slice(0, 10) === thisMonth && !r.updating && ['signed', 'filed'].includes(r.status));
+  const needPrep = !monthSigned && (!prepNow || prepNow.status !== 'submitted');
+  if (!waiting.length && !upcoming && !needGoals && !needPrep) return null;
   const who = first((waiting[0] || latest || {}).signed_by) || 'your leader';
   const lines = [];
   waiting.forEach(r => lines.push(`<p class="o2o-text">Your ${r.kind === 'monthly' ? '1-to-1' : r.kind === 'check' ? '13-week check' : 'goals'} with ${esc(first(r.signed_by) || 'your leader')} is ready. Read it through, then sign to acknowledge when you are ready.</p>`));
   if (needGoals) lines.push(`<p class="o2o-text">Your yearly goals are yours to write. Take your time: nobody else can read them until you submit.</p>`);
+  if (needPrep) lines.push(`<p class="o2o-text">Before your next 1-to-1, write your part: what has gone well, how your last actions are going, and your social media notes. Nobody else can read it until you send it to Emma.</p>`);
   let cal = '';
   if (upcoming) {
     const d = day(upcoming), nx = new Date(d); nx.setDate(nx.getDate() + 1);
@@ -513,8 +519,9 @@ function nudge(data) {
     lines.push(`<p class="o2o-text">Your next 1-to-1: <b>${esc(dFull(upcoming))}</b></p>`);
     cal = `<a class="btn small o2o-ghost" download="1-to-1 ${esc(upcoming)}.ics" href="data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}">Add to calendar</a>`;
   }
-  const key = waiting.map(r => r.kind + r.period + r.status).join(',') + '|' + (upcoming || '') + '|' + (needGoals ? 'g' : '');
+  const key = waiting.map(r => r.kind + r.period + r.status).join(',') + '|' + (upcoming || '') + '|' + (needGoals ? 'g' : '') + '|' + (needPrep ? 'p' : '');
   const open = (waiting.length ? `<button class="btn small" type="button" onclick="PerfTabs.go('one')">Open My 1-to-1</button>` : '')
+    + (needPrep ? `<button class="btn small" type="button" onclick="PerfO2O.showMonth();PerfTabs.go('one')">Write my part</button>` : '')
     + (needGoals ? `<button class="btn small" type="button" onclick="PerfO2O.showGoals();PerfTabs.go('one')">Write my goals</button>` : '');
   return { key, html: `<section class="card o2o-nudge" data-h="${esc(key)}"><div class="eyebrow">1-to-1</div>${lines.join('')}<div class="o2o-btns" style="margin-top:10px">${open}${cal}</div></section>` };
 }
@@ -966,5 +973,5 @@ async function pdf(kind, record, staff, btn) {
   if (btn) { btn.disabled = false; btn.textContent = txt; }
 }
 
-window.PerfO2O = { showGoals: () => { ME.tab = 'goals'; ME.sel = 0; }, me, leader, nudge, fillLine, CHECK, QS, KINDS, HZ, NUM_ROWS, MILE, numRow, nowOf, ckCounts, dFull, dMid, dShort, mLong, stamp, first, has };
+window.PerfO2O = { showGoals: () => { ME.tab = 'goals'; ME.sel = 0; }, showMonth: () => { ME.tab = 'month'; ME.sel = 0; }, me, leader, nudge, fillLine, CHECK, QS, KINDS, HZ, NUM_ROWS, MILE, numRow, nowOf, ckCounts, dFull, dMid, dShort, mLong, stamp, first, has };
 })();
