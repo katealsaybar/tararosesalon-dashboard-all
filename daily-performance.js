@@ -111,8 +111,8 @@ function dpCss() {
   .dpf{${light};--dv-n2:#e34948;--dv-n2-t:#fff;--dv-n1:#f2a3a2;--dv-n1-t:#1A1A1A;--dv-0:#ECE8DF;--dv-0-t:#1A1A1A;--dv-p1:#9ec5f4;--dv-p1-t:#1A1A1A;--dv-p2:#256abf;--dv-p2-t:#fff;width:100%;max-width:1180px;margin:0 auto;color:var(--text)}
   [data-theme="dark"] .dpf{${dark};--dv-n2:#e66767;--dv-n2-t:#1A1A1A;--dv-n1:#8f4a49;--dv-n1-t:#fff;--dv-0:#4a4a46;--dv-0-t:#f4f1ea;--dv-p1:#3a6aa8;--dv-p1-t:#fff;--dv-p2:#6da7ec;--dv-p2-t:#1A1A1A}
   .dpf *{box-sizing:border-box;min-width:0}
-  .dpf h1{font-family:'Playfair Display',serif;font-weight:500;font-size:clamp(28px,6vw,44px);line-height:1.08;margin:18px 0 8px}
-  .dpf .dp-deck{font-family:'Playfair Display',serif;font-style:italic;color:var(--muted);font-size:clamp(15px,3.6vw,18px);margin:0 0 16px;line-height:1.4;max-width:70ch}
+  .dpf h1{font-family:'Playfair Display',serif;font-weight:500;font-size:clamp(22px,4.2vw,30px);line-height:1.1;margin:10px 0 4px}
+  .dpf .dp-deck{font-family:'Playfair Display',serif;font-style:italic;color:var(--muted);font-size:clamp(13px,3vw,14.5px);margin:0 0 10px;line-height:1.4;max-width:80ch}
   .dpf .dp-lab{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);min-width:88px}
   .dpf .dp-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card,10px);padding:10px 14px;margin-bottom:10px;display:grid;gap:8px}
   .dpf .dp-row{display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center}
@@ -908,7 +908,7 @@ function dpDraw(host, win) {
   const range = `${dpDayLabel(win.from)} to ${dpDayLabel(win.to)}`;
   host.innerHTML = `<div class="dpf">
     <h1>Daily Performance</h1>
-    <p class="dp-deck">How each branch did, day by day, against its daily target. Read the tiles for the latest day and the period total, the lines for the trend, the heatmap for the weak days. NCR, daily target and the other terms are explained under <button type="button" class="dp-linkbtn" data-jump="dpHow">How to read this page</button>.</p>
+    <p class="dp-deck">How each branch did, day by day, against its daily target. Unsure of a term? <button type="button" class="dp-linkbtn" data-jump="dpHow">How to read this page</button>.</p>
     ${dpControls(win)}
     <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}${M.help ? ' · <b>' + dpEsc(M.label) + '</b>: ' + dpEsc(M.help) : ''}</p>
     <section class="dp-tiles dp-jt" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs)}</section>
