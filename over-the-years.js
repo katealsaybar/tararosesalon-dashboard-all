@@ -107,7 +107,12 @@ function otyCss() {
   .oty .oty-rbr .m span{color:var(--text);font-variant-numeric:tabular-nums}
   .oty .oty-rbr .m em{font-style:normal;color:var(--muted2);margin-left:4px}
   .oty .oty-rbr .tr{height:5px;border-radius:3px;background:var(--border)}
-  .oty .oty-rbr .tr i{display:block;height:100%;border-radius:3px}
+  .oty .oty-rbr .tr i{display:block;height:100%;border-radius:3px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text) 22%,transparent)}
+  /* Kate, 13 Oct 2026: the branch names were drawn in the branch's pastel, unreadable on the light theme. The name is
+     now in the text colour with the pastel as a dot, and the pastel dots, bars and legend swatches get a faint edge so
+     the pale ones (Fratelli's yellow) still show on white. */
+  .oty .oty-bdot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:-1px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text) 22%,transparent)}
+  .oty .oty-legend i{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text) 22%,transparent)}
   .oty .oty-ro{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 12px;margin-top:6px}
   .oty table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;table-layout:fixed}
   .oty th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);text-align:right;padding:6px 4px;font-weight:700}
@@ -448,14 +453,14 @@ function otyChartBlock(rows) {
   const legend = (set.length > 1 ? set.map(b => `<span><i style="background:${OTY_COL[b]}"></i>${OTY_NAME[b]}</span>`).join('') : `<span><i style="background:var(--hair)"></i>${OTY_NAME[set[0]]}</span>`)
     + `<span><i class="ln" style="background:var(--warn)"></i>${lineName}</span>`;
   const r = rows[sel], lab = OTY.basis === 'same' || r.partial ? `1 Jan – ${otyCutLabel()}` : 'full year';
-  const split = r.per.filter(p => p.v).map(p => `<span><b style="color:${OTY_COL[p.b]}">${OTY_NAME[p.b]}</b> ${otyM(p.v)}</span>`).join('');
+  const split = r.per.filter(p => p.v).map(p => `<span><i class="oty-bdot" style="background:${OTY_COL[p.b]}"></i><b>${OTY_NAME[p.b]}</b> ${otyM(p.v)}</span>`).join('');
   // Kate, 9 Oct 2026: "make info here easy to read". The readout under the chart was a heading line and a
   // pile of plain lines in two columns. It is now the year as a heading, four figure tiles (value big, label
   // small, the per visit figure under the avg bill), and one row per branch with its share of the take.
   const gTxt = r.growth == null ? '·' : otyTxt(r.growth);
   const tile = (k, v, s) => `<div class="oty-rs"><div class="k">${k}</div><div class="v">${v}</div>${s ? `<div class="s">${s}</div>` : ''}</div>`;
   const branchRow = p => { const sh = r.net ? p.v / r.net * 100 : 0;
-    return `<div class="oty-rbr"><div class="m"><b style="color:${OTY_COL[p.b]}">${OTY_NAME[p.b]}</b><span>${otyM(p.v)} <em>${Math.round(sh)}%</em></span></div>
+    return `<div class="oty-rbr"><div class="m"><b><i class="oty-bdot" style="background:${OTY_COL[p.b]}"></i>${OTY_NAME[p.b]}</b><span>${otyM(p.v)} <em>${Math.round(sh)}%</em></span></div>
       <div class="tr"><i style="width:${Math.max(2, sh).toFixed(1)}%;background:${OTY_COL[p.b]}"></i></div></div>`; };
   const readout = `<div class="oty-rh"><b>${r.y}</b><span>${lab}</span></div>
     <div class="oty-rt">
