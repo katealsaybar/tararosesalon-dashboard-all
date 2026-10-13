@@ -21,6 +21,24 @@
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@graph": [{"@type": "Service", "name": "The Hair Extension Plan", "serviceType": "Prepaid hair extension maintenance plan", "provider": {"@type": "Organization", "name": "Tara Rose Salon", "url": "https://www.tararosesalon.com"}, "areaServed": [{"@type": "City", "name": "Dubai"}, {"@type": "City", "name": "Abu Dhabi"}], "termsOfService": "https://www.tararosesalon.com/en/ae/legal/terms", "offers": [{"@type": "Offer", "name": "Maintain Essentials", "price": "1500", "priceCurrency": "AED"}, {"@type": "Offer", "name": "Maintain Plus", "price": "3000", "priceCurrency": "AED"}, {"@type": "Offer", "name": "New Hair and Maintain Bundle", "price": "6000", "priceCurrency": "AED"}]}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does the plan cover new hair?", "acceptedAnswer": {"@type": "Answer", "text": "Only the New Hair and Maintain Bundle does. It includes your full application in your chosen method, plus a 12-month Maintenance Bundle credit of AED 1,500. Maintain Essentials and Maintain Plus are for extensions you already wear."}}, {"@type": "Question", "name": "Does the credit cover my move-up appointment?", "acceptedAnswer": {"@type": "Answer", "text": "No. Your move-up is booked and paid as it is today. The plan covers everything around it that keeps the blend looking new."}}, {"@type": "Question", "name": "Can I split the payment?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Maintain Plus splits into 4 interest-free payments of AED 750, and the New Hair and Maintain Bundle into 4 of AED 1,500, with Tabby. The credit, the bonus and the gifts stay exactly the same. Maintain Essentials is cash or card only."}}, {"@type": "Question", "name": "Can I give it as a gift?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. The plan is issued in her name, ready to book, with a note from you."}}]}]}
 </script>
+<style>
+.hero-hr{background:#161512 url(assets/img/hero-extensions.jpg) 0% 40%/118% auto no-repeat}
+.hero-hr::before{content:"";position:absolute;inset:0;opacity:1;background:linear-gradient(100deg,rgba(20,19,17,.95) 0%,rgba(20,19,17,.84) 44%,rgba(20,19,17,.3) 66%,rgba(20,19,17,0) 100%)}
+@media (min-width:900px){
+  .hero-hr{padding:112px 0 104px !important}
+  .hero-hr .inner{margin-left:0;max-width:540px;text-align:left}
+  .hero-hr .inner .pill-tag,.hero-hr .lede{text-align:left;margin-left:0;margin-right:0}
+  .hero-hr .inner .cta-row{justify-content:flex-start}
+}
+@media (max-width:899px){
+  .hero-hr{background:#161512 url(assets/img/hero-extensions.jpg) 72% 0/auto 330px no-repeat;padding-top:300px !important}
+  .hero-hr::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 190px,#161512 330px)}
+}
+@media (min-width:600px) and (max-width:899px){
+  .hero-hr{background-size:100% auto;background-position:50% 0;padding-top:470px !important}
+  .hero-hr::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 52%,#161512 calc(100vw * .6667))}
+}
+</style>
 </head>
 <body data-campaign="extensions-voucher" data-market="uae" data-stage="capture">
 <a href="#main" class="skip">Skip to content</a>
@@ -39,7 +57,7 @@
 
 <main id="main">
 
-<section class="hero-c" style="background-image:linear-gradient(100deg,rgba(20,19,17,.74) 0%,rgba(20,19,17,.58) 46%,rgba(20,19,17,.24) 100%),url(assets/img/exp-floor.jpg);background-size:cover;background-position:center 32%">
+<section class="hero-c hero-hr">
   <div class="wrap">
     <div class="inner">
       <span class="pill-tag"><span class="dot"></span>The Hair Extension Plan &middot; Abu Dhabi and Dubai</span>
