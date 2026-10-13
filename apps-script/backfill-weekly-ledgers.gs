@@ -119,10 +119,19 @@ const ROOTS_BY_YEAR = {
     AQ:  '1iYeWjPJpcL2QY2EP27KwAsDZZ2MczN0l', // AL QUOZ / WEEK END
     FRT: '1624aW56V-_gvEx9Msg3SDWxkfdslByHs', // AL QUOZ / FRATELLI - ledgers
   },
-  // 2022, 2021, 2020 live under "LEDGERS YEARS" (1H85v53VWgpeNvmDdL45Ldfe3kdQSX6_g):
-  // 2022 1M7Gosj_bjMN_Qm9_A1ek0JkeSld3xwC0, 2021 1bPWn3GerJfgairpV8Oh4MZDeBqCLcpil,
-  // 2020 1hWAFE1j3yctdIuxoazbLZ-lgvMEidA36.
-  // List each year's LEDGERS subfolder and add the four branch folders here before running it.
+  // 2022 (13 Oct 2026): LEDGERS YEARS / 2022. The layout differs from 2023: each branch folder holds
+  // DAILY WEEKLY with month folders (KCA and SAA, .xlsx and Google Sheets mixed; SAA also keeps OLD and
+  // HAIR & BEAUTY copies and a DAIL TEMPLATE sheet), and MC has only DECEMBER (Phorest MC from Nov 2022,
+  // trading from Dec). MARASY (1htyCC9XjIevn4uUHzy8Itdm22stM8O8C) is a real former branch but its files
+  // are locked to Kate until accounts grants access, so it is left out; run it later as a second pass.
+  2022: {
+    KCA: '1L9I6IEoACV3IOQEGgJuHaPDiBeLNI2nz', // KHALIFA / DAILY WEEKLY
+    SAA: '1QIFS53NE_yS78ghmg3xbtJKiQDUMjPFr', // SAADIYAT / DAILY WEEKLY
+    MC:  '1nkUcqz-0pKK7uzGbbCnZFNxRvkCzX6Db', // MOTOR CITY / DAILY/WEEKLY LEDGERS (December only)
+  },
+  // 2021 and 2020 live under "LEDGERS YEARS" (1H85v53VWgpeNvmDdL45Ldfe3kdQSX6_g):
+  // 2021 1bPWn3GerJfgairpV8Oh4MZDeBqCLcpil, 2020 1hWAFE1j3yctdIuxoazbLZ-lgvMEidA36.
+  // List each year's subfolder and add the branch folders here before running it.
 };
 
 const ROOTS = ROOTS_BY_YEAR[YEAR];
@@ -2582,4 +2591,58 @@ function kcaWeeks2023_(dry) {
       try { DriveApp.getFileById(tempId).setTrashed(true); } catch (e) { /* ignore */ }
     }
   });
+}
+
+
+// ── One-off, 13 Oct 2026: 2022 days where the wrong or no file was read ──────────────────────
+// KCA 17-22 Jan and SAA 2-6 Feb held the half-filled OLD copies (resolveDuplicates preferred the OLD
+// file whose name happened to cover the week); KCA 22-28 Aug ("WEEK 4 (Aug 29- Aug 28)") and SAA 29 Aug -
+// 4 Sep ("WK 1 (29TH - 4TH SEPT)") were HELD because the name pointed at the wrong week; 2 Jan sits in
+// the SUNDAY tab of the two Week 0 files, whose other tabs are 2021. Every tab is checked against the
+// date it should carry before anything is pushed. fix2022Dry() reads only; fix2022() pushes.
+// Results (Phorest visits vs ledger clients): KCA Jan 70 -> 88%, Aug 65 -> 89%; SAA Feb 78 -> 88%,
+// Aug 77 -> 85%, Sep 79 -> 88%. Not pushed on purpose (to recheck): SAA 31 Jan treatment AED differs
+// between the *WK 1 and OLD copies, KCA 22 Jan Nikki 238 AED sits only in the OLD copy.
+function fix2022Dry() { return fix2022_(true); }
+function fix2022() { return fix2022_(false); }
+function fix2022_(dry) {
+  const W = function (start) { const o = {}; DAY_TABS.forEach(function (t, i) { o[t] = isoAdd_(start, i); }); return o; };
+  const PLAN = [
+    ['KCA', 'NEW WEEK 3 (JAN 17-23).xlsx', '1UTHEvgS-SfYuxv4D-grP1_YgqV_jjJPj', true, { MONDAY: '2022-01-17', TUESDAY: '2022-01-18', WEDNESDAY: '2022-01-19', THURSDAY: '2022-01-20', SATURDAY: '2022-01-22' }],
+    ['SAA', '*WK 1 (JAN.31 - FEB. 06).xlsx', '1u087pOi2al9FEzuybOV-NhTIhxCANoiQ', true, { WEDNESDAY: '2022-02-02', THURSDAY: '2022-02-03', FRIDAY: '2022-02-04', SATURDAY: '2022-02-05', SUNDAY: '2022-02-06' }],
+    ['KCA', 'Week 0 - (Jan 2).xlsx', '1PkuolCENBMJfVTNy6et2Pe4Nl5Igt59g', true, { SUNDAY: '2022-01-02' }],
+    ['SAA', '*WEEK 0 (JAN. 2).xlsx', '1KCy2Gypn2Jyy2YkrNdBg_MoJ2T5Hpr3t', true, { SUNDAY: '2022-01-02' }],
+    ['KCA', 'WEEK 4 (Aug 29- Aug 28).xlsx', '1JRTnuqdrLugUfRfp-nk8TYGqcklkKMJs', true, W('2022-08-22')],
+    ['SAA', 'WK 1 (29TH - 4TH SEPT)', '11zETeNCf_21jfsQish0a53HAhq3CDavUbYjsPktrS60', false, W('2022-08-29')],
+  ];
+  const out = [];
+  PLAN.forEach(function (p) {
+    let tempId = null;
+    try {
+      let id = p[2];
+      if (p[3]) { tempId = convertXlsx_(id, p[1]); id = tempId; }
+      const ss = SpreadsheetApp.openById(id);
+      const tz = ss.getSpreadsheetTimeZone();
+      const all = [];
+      ss.getSheets().forEach(function (sheet) {
+        const tab = sheet.getName().trim().toUpperCase();
+        const want = p[4][tab];
+        if (!want) return;
+        const lastRow = Math.min(sheet.getLastRow(), MAX_ROWS_READ);
+        const values = sheet.getRange(1, 1, lastRow, sheet.getLastColumn()).getValues();
+        const iso = cellIso_(values[0][0], tz);
+        if (iso !== want) { out.push(p[0] + ' ' + p[1] + ' ' + tab + ': A1 says ' + iso + ', expected ' + want + ', SKIPPED'); return; }
+        const rows = parseDay_(values, want, tab, []);
+        const live = rows.filter(function (r) { return figures_(r) !== ZERO_FIGURES; });
+        let cl = 0, aed = 0; rows.forEach(function (r) { cl += (r.total || 0); aed += (r.treatment_aed || 0); });
+        if (!live.length) { out.push(p[0] + ' ' + want + ' ' + tab + ': every figure zero, SKIPPED'); return; }
+        out.push(p[0] + ' ' + want + ' ' + tab + ': ' + rows.length + ' rows, clients ' + cl + ', treatment ' + Math.round(aed));
+        rows.forEach(function (r) { all.push(Object.assign({ branch: p[0] }, r)); });
+      });
+      if (!dry && all.length) { const n = pushRows_(p[0], all); out.push('   PUSHED ' + n + ' rows for ' + p[0] + ' from ' + p[1]); }
+      else out.push('   ' + (dry ? 'dry run, ' : '') + all.length + ' rows ready for ' + p[0] + ' from ' + p[1]);
+    } catch (e) { out.push('ERR ' + p[1] + ': ' + e.message); }
+    finally { if (tempId) { try { DriveApp.getFileById(tempId).setTrashed(true); } catch (e2) { /* ignore */ } } }
+  });
+  Logger.log((dry ? 'DRY ' : 'PUSH ') + 'fix2022\n' + out.join('\n'));
 }
