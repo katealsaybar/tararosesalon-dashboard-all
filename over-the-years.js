@@ -761,6 +761,8 @@ const OTY_MO_PAL = ['#99F6E4', '#C4B5FD', '#FFD4D9', '#EEF3C7', '#FF9B9B', '#9aa
 const otyMoCol = y => OTY_MO_PAL[(otyD.curYear - y) % OTY_MO_PAL.length];
 const otyMoName = k => k === 'AD' ? 'Abu Dhabi' : k === 'DXB' ? 'Dubai' : k === 'ALL' ? 'All four' : OTY_NAME[k];
 const otyMoMetName = { net: 'Net take', clients: 'Clients per staff', bill: 'Average bill per staff' };
+// the stat behind the index numbers, in words (the index is X.pd: per open day, except the average bill)
+const otyMoStatLine = X => X.met === 'bill' ? 'Average bill per staff' : `${otyMoMetName[X.met]} per open day`;
 const otyMoDim = (y, m) => new Date(y, m + 1, 0).getDate();
 const otyMoSign = n => n > 0 ? '+' : n < 0 ? '−' : '';
 
@@ -1016,7 +1018,7 @@ function otyMoLines(X, S) {
       <div class="oty-hint">The bars under the chart show where Ramadan and Eid fell in each year. They move about 11 days earlier every year, which is the main reason the dip and the Eid lift keep changing month.</div>`;
   }
   return `<div class="oty-eb" style="margin-top:26px"><i style="background:var(--hair)"></i>The shapes on top of each other</div>
-    <div class="oty-card"><div class="oty-chead"><b>One line per year</b><span>Hover a month to read every year in it</span></div>
+    <div class="oty-card"><div class="oty-chead"><b>One line per year</b><span>How strong each month is, ${otyMoStatLine(X).toLowerCase()}. 100 is a normal month for that year, so 117 means 17% above normal and 90 means 10% below. Hover a month to read every year</span></div>
       <div class="oty-pills" style="margin-bottom:12px">${chips}</div>${s}${lane}</div>`;
 }
 
@@ -1069,13 +1071,14 @@ function otyMoTipOff() { const tt = document.getElementById('otyMoTip'); if (tt)
 function otyMoLineTip(ev) {
   const r = ev.target.closest && ev.target.closest('[data-lm]'); if (!r) { otyMoTipOff(); return; }
   const m = +r.dataset.lm, X = otyMoCtx(), S = X.stats(), shown = new Set(OTY.myrs || X.years);
-  let t = `<div class="h"><b>${OTY_MON[m]}</b></div>`;
+  const gap = x => { const d = Math.round(x) - 100; return d === 0 ? 'a normal month' : `${Math.abs(d)}% ${d > 0 ? 'above' : 'below'} normal`; };
+  let t = `<div class="h"><b>${OTY_MON[m]}</b><span>${otyMoStatLine(X)}. 100 = a normal month for that year</span></div>`;
   for (const y of X.years.slice().reverse()) {
     if (!shown.has(y)) continue;
     const x = S.idx[y] && otyMoState(X.M, y, m) === 'done' ? S.idx[y][m] : null;
-    t += `<div style="display:flex;justify-content:space-between;gap:12px"><span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;background:${otyMoCol(y)}"></i>${y}${otyRamIn(y, m) >= 10 ? ' ☾' : ''}</span><b>${x == null ? '·' : Math.round(x)}</b></div>`;
+    t += `<div style="display:flex;justify-content:space-between;gap:12px"><span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;background:${otyMoCol(y)}"></i>${y}${otyRamIn(y, m) >= 10 ? ' ☾' : ''}</span><span>${x == null ? 'no shape' : `<b>${Math.round(x)}</b> <small style="color:var(--muted2)">${gap(x)}</small>`}</span></div>`;
   }
-  if (S.avg[m] != null) t += `<div style="display:flex;justify-content:space-between;margin-top:4px;padding-top:4px;border-top:1px solid var(--border)"><span>Average</span><b>${Math.round(S.avg[m])}</b></div>`;
+  if (S.avg[m] != null) t += `<div style="display:flex;justify-content:space-between;gap:12px;margin-top:4px;padding-top:4px;border-top:1px solid var(--border)"><span>Average of the years</span><span><b>${Math.round(S.avg[m])}</b> <small style="color:var(--muted2)">${gap(S.avg[m])}</small></span></div>`;
   otyMoTipBox(r, ev, t);
 }
 function otyMoTipFor(el, ev) {
