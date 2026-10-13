@@ -2,8 +2,8 @@
    cookie of our own beyond the two stores below, so nothing here needs consent.
    TEMPLATE: swap __FORM_ENDPOINT__ for the GHL inbound webhook. Inert until set. */
 (function(){
-  /* Salon numbers from each Google Business Profile, checked 13 Oct 2026. Motor City's is a landline, so it calls. */
-  var SALON_LINKS='<a href="https://wa.me/971502811494" target="_blank" rel="noopener">Khalifa City A</a>, <a href="https://wa.me/971501968720" target="_blank" rel="noopener">Mamsha Al Saadiyat</a>, <a href="https://wa.me/971556245520" target="_blank" rel="noopener">Al Quoz</a>, or <a href="tel:+97144572309">call Motor City</a>';
+  /* Salon numbers from each Google Business Profile, checked 13 Oct 2026. Motor City's WhatsApp is the 52 496 0903 line (Kate, 13 Oct 2026); its GBP shows the landline. */
+  var SALON_LINKS='<a href="https://wa.me/971502811494" target="_blank" rel="noopener">Khalifa City A</a>, <a href="https://wa.me/971501968720" target="_blank" rel="noopener">Mamsha Al Saadiyat</a>, <a href="https://wa.me/971556245520" target="_blank" rel="noopener">Al Quoz</a>, or <a href="https://wa.me/971524960903" target="_blank" rel="noopener">Motor City</a>';
   var FORM_ENDPOINT="__FORM_ENDPOINT__";
   var f=document.querySelector('#book form'); if(!f) return;
   var q=new URLSearchParams(location.search);
