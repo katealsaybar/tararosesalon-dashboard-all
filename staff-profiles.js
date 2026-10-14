@@ -276,6 +276,9 @@ const STAFF_PROFILES = {
   'VENUS':    { photoFull: 'stylist/photos/MC/venus solomon.png', role: 'Stylist', branch: 'MC', resigned: true },
   // Oliver: Barber at Al Quoz, Dec 2025 to Jan 2026.
   'OLIVER':   { photoFull: 'stylist/photos/AQ/oliver green.png', role: 'Barber', branch: 'AQ', resigned: true },
+  // Aboudi: Al Quoz Sep 2023 to Mar 2024 (136 daily rows). Title is Phorest's own category (3 Style Director,
+  // DXB) off the 14 Oct 2026 roster export; the 9 Oct variants note said Stylist. Male placeholder, no ig.
+  'ABOUDI':   { photoFull: 'stylist/photos/AQ/aboudi chatila.png', role: 'Style Director', branch: 'AQ', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
