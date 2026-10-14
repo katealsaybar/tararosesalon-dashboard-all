@@ -27,7 +27,7 @@ const prdIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '
 function prdWindow() {
   // UAE only on "all", Group included: stock orders are costed in each country's own
   // currency and this page prints AED. Bahrain reads through its own chip.
-  const branches = (!sel.branch || sel.branch.includes('all')) ? UAE_ACTIVE.slice() : sel.branch.filter(b => !CLOSED_BRANCHES[b]);   // Fratelli's and Marasy's stock orders were never loaded
+  const branches = (!sel.branch || sel.branch.includes('all')) ? UAE_ACTIVE.slice() : sel.branch.filter(b => !CLOSED_BRANCHES[b]);   // Fratelli's stock orders were never loaded; Marasy's are (MRY, 14 Oct 2026) but closed branches stay off this page
   if (dateFrom && dateTo) return { branches, from: prdIso(dateFrom), to: prdIso(dateTo), ranged: true };
   // No range: the last 13 full weeks, Monday to Sunday, plus the week so far.
   const t = new Date(); t.setHours(0, 0, 0, 0);
@@ -39,7 +39,7 @@ async function renderProducts() {
   const el = document.getElementById('productsContent');
   if (!el) return;
   const w = prdWindow();
-  if (!w.branches.length) { el.innerHTML = '<p class="slv-muted">Fratelli\'s and Marasy\'s stock orders were never loaded, so Products has nothing for them.</p>'; return; }
+  if (!w.branches.length) { el.innerHTML = '<p class="slv-muted">Fratelli\'s stock orders were never loaded, so Products has nothing for it. Marasy\'s (July 2021 to December 2022) are loaded, but Products only shows branches that are open. Their cost is Phorest\'s Stock List cost as of 14 Oct 2026, not what was paid at the time, so the AED reads differently from the real invoices and anything no longer on the Stock List has no cost. Units and arrival dates are real.</p>'; return; }
   el.innerHTML = '<p class="slv-muted">Loading product spend…</p>';
   try {
     const [{ data, error }, sold] = await Promise.all([
