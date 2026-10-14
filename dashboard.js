@@ -714,7 +714,8 @@ function paintFilterChips() {
   // against an arbitrary date range. So the Period chips go dead there and say so,
   // rather than being live controls that change nothing. The Branch chips still
   // work: it is only the period those pages fix. Kate, 2026-08-14.
-  const onLedger = LEDGER_VIEWS.has(CURRENT_VIEW) || CURRENT_VIEW === 'overyears';   // Over the Years: Period greyed, the page compares years itself
+  const realLedger = LEDGER_VIEWS.has(CURRENT_VIEW), onYears = CURRENT_VIEW === 'overyears';
+  const onLedger = realLedger || onYears;   // a fixed period: the Period chips are greyed. Over the Years compares years itself
   if (onLedger) periodPick = null;
   const active = activePeriodKey();
   // While a picker is open its own chip stays the live one, even when the window
@@ -742,9 +743,12 @@ function paintFilterChips() {
   const note = document.getElementById('filterNote');
   if (note) {
     note.hidden = !onLedger;
-    if (onLedger) note.textContent =
+    if (realLedger) note.textContent =
       'The Ledgers pages read the ledger month — last month’s actuals against this month’s target, month to date. '
       + 'Use Split on the page for MTD, weekly or daily columns. Branch still filters.';
+    else if (onYears) note.textContent =
+      'Over the Years sets every year against the others, so the Period does not apply here. Branch still filters: pick one or several, '
+      + 'and the closed ones (Fratelli, Marasy) are always on offer.';
   }
 
   const fromInp = document.getElementById('dateRangeFrom');
@@ -772,9 +776,10 @@ function paintFilterChips() {
   // The Ledgers pages read their own Month picker, not the period, so the rule
   // names that month instead of a range the tables underneath are not showing.
   // Kate, 1 Oct 2026: it said "1 September – 1 October" over an August ledger.
-  if (mr && onLedger && typeof lgMonth === 'string' && typeof lgMonthLabel === 'function') {
+  if (mr && realLedger && typeof lgMonth === 'string' && typeof lgMonthLabel === 'function') {
     mr.textContent = `${lgMonthLabel(lgMonth)} · ledger month`;
   }
+  if (mr && onYears) mr.textContent = (typeof otyD !== 'undefined' && otyD && otyD.years.length) ? `${otyD.years[0]} – ${otyD.curYear}` : 'Every year';
 }
 
 // -- THE THREE PICKERS UNDER THE CHIPS -----------------------
