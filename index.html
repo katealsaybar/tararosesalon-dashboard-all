@@ -13,6 +13,12 @@
   try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- Kate, 14 Oct 2026: open the connections the page needs anyway while the HTML is still being read. -->
+<link rel="preconnect" href="https://gvijxenafoowajqktqvd.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Kate, 1 Oct 2026: the signed-out page is Team Home's door and matches the Google sign-in app name;
      enterDashboard() retitles it once the dashboard opens. -->
 <title>Team Home · Tara Rose Salons</title>
@@ -82,7 +88,7 @@ window.trsParam = function (k) {
 <!-- Phone browser chrome in the page's own paper and ink (Kate, 25 Sep 2026). -->
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="ask-widget.css?v=20260925a">
@@ -4162,7 +4168,6 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=20261014sn2"></script>
 <script src="stylist-levels.js?v=20261005dots"></script>
 <script src="staff-weeks.js?v=20261013a"></script>
-<script src="products.js?v=20261014cb2"></script>
 <script src="lost-clients.js?v=20261014mry1"></script>
 <script src="lost-lists.js?v=20261012ll29"></script>
 <script src="lost-consults.js?v=20261012lc1"></script>
@@ -4172,20 +4177,75 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="top-clients.js?v=20261014mry1"></script>
 <script src="client-mix.js?v=20261014mry1"></script>
 <script src="service-rankings.js?v=20261014mry1"></script>
-<script src="marketing-chart.js?v=20261006ph"></script>
-<script src="google-ads.js?v=20261006per"></script>
-<script src="website.js?v=20261008cb1"></script>
-<script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20261014d"></script>
 <script src="org-chart.js?v=20260925d"></script>
+<!-- Kate, 14 Oct 2026: page scripts that only run when their page is opened load after the sign-in
+     screen instead of before it (about 390 KB less to download and parse first). Each group's entry
+     functions (renderX) are stand-ins here: the first call fetches the group's files, runs them in
+     order, then calls the real function. Everything else in these files is only reached once the page
+     is open, or is already behind a typeof guard (cmpRedrawForTheme, prdWindow, dpUrlParts...). A few
+     seconds after load the groups are fetched anyway, in the background, so opening a page rarely waits.
+     Bump a stamp here, on the file's line below, not in a script tag. Add a page by listing its files
+     and its renderX entry. Do NOT list a file here that another eager file calls at load time. -->
+<script>
+(function () {
+  var LAZY = {
+    oty: { files: ['over-the-years.js?v=20261014oty33'],       fns: ['renderOverYears'] },
+    compare: { files: ['compare.js?v=20261014cmp3'],       fns: ['renderCompare'] },
+    dailyperf: { files: ['daily-performance.js?v=20261013dp20'],       fns: ['renderDailyPerf'] },
+    marketing: { files: ['marketing-chart.js?v=20261006ph', 'google-ads.js?v=20261006per', 'website.js?v=20261008cb1', 'social.js?v=20261008cb1'],
+      fns: ['renderGoogleAds', 'renderWebsite', 'renderSocial'] },
+    products: { files: ['products.js?v=20261014cb2'],       fns: ['renderProducts'] },
+  };
+  var loaded = {};
+  function loadGroup(name) {
+    if (loaded[name]) return loaded[name];
+    var files = LAZY[name].files;
+    loaded[name] = new Promise(function (resolve, reject) {
+      var left = files.length;
+      files.forEach(function (f) {
+        var s = document.createElement('script');
+        s.async = false;            // keeps the listed order
+        s.src = f;
+        s.onload = function () { if (--left === 0) resolve(); };
+        s.onerror = function () { delete loaded[name]; reject(new Error('Could not load ' + f)); };
+        document.head.appendChild(s);
+      });
+    });
+    return loaded[name];
+  }
+  Object.keys(LAZY).forEach(function (name) {
+    LAZY[name].fns.forEach(function (fn) {
+      var stub = function () {
+        var self = this, args = arguments;
+        return loadGroup(name).then(function () {
+          var real = window[fn];
+          if (real && real !== stub) return real.apply(self, args);
+        }).catch(function (e) { console.error(e); });
+      };
+      window[fn] = stub;
+    });
+  });
+  // Quiet preload: one group at a time, after the page has had its first go.
+  function preload() {
+    var names = Object.keys(LAZY), i = 0;
+    (function next() {
+      if (i >= names.length) return;
+      loadGroup(names[i++]).then(function () { setTimeout(next, 300); }, function () {});
+    })();
+  }
+  window.addEventListener('load', function () {
+    var c = navigator.connection;
+    if (c && (c.saveData || /2g/.test(c.effectiveType || ''))) return;
+    setTimeout(function () { (window.requestIdleCallback || setTimeout)(preload); }, 3000);
+  });
+})();
+</script>
 <script src="dashboard.js?v=20261014sn3"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20261014mry1"></script>
-<script src="compare.js?v=20261014cmp3"></script>
-<script src="over-the-years.js?v=20261014oty33"></script>
-<script src="daily-performance.js?v=20261013dp20"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20261008cb1"></script>
