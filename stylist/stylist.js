@@ -74,6 +74,7 @@ const STYLIST_SURNAMES = {
   "Marcella":  "Savicic",
   "Demian":    "Rakic",
   "Catrin":    "Birkby",
+  "Reshel":    "Tagayuna",
   "Callum":    "Standenmay",   // Phorest says Standemay; Kate, 14 Oct 2026: both are Standenmay
   "Shine":     "Castillo",
   // Additional stylists from Phorest TSV 31 May 2026
@@ -219,6 +220,7 @@ const STYLIST_PHOTOS = {
   "Demian":    "other/demian rakic.png",    // left May 2026, Barber at Fratelli — Kate, 14 Oct 2026
   "Emin":      "AQ/emin salamovic.png",     // left Oct 2024, Stylist at AQ — Kate, 14 Oct 2026
   "Catrin":    "MC/catrin birkby.png",      // left Feb 2023, Senior Stylist at MC — Kate, 14 Oct 2026
+  "Reshel":    "SAA/reshel tagayuna.png",   // left 2023, Junior Stylist at SAA — Kate, 14 Oct 2026
   "Cori":      "MC/cori paul.png",    // left, Stylist at Motor City (archived in Phorest) — Kate, 14 Oct 2026
 };
 
@@ -262,6 +264,7 @@ const STYLIST_IG = {
   "Demian":     "https://www.instagram.com/barber.demian/",
   "Emin":       "https://www.instagram.com/hairdoctoremin/",
   "Catrin":     "https://www.instagram.com/catrinhair.dxb/",
+  "Reshel":     "https://www.instagram.com/reshelwijesinghe/",
   "Marcella":   "https://www.instagram.com/marcellastyleshairdxb/",
   // 2nd batch cards, Sep 2026. Helen and Mevil have no handle on their cards —
   // genuinely none (Kate, 1 Sep 2026), not missing data.
@@ -290,7 +293,7 @@ const STYLIST_IG = {
 // if she comes back (see Hazel Mae, who left this list when her 2nd-batch card and
 // STAFF_PROFILES entry came back, Sep 2026). Keys match STYLIST_PHOTOS spelling.
 const STYLIST_RESIGNED = new Set([
-  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin",
+  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel",
 ]);
 function isResignedStylist(cleanName) {
   return STYLIST_RESIGNED.has(cleanName);

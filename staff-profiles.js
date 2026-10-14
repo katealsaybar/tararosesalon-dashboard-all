@@ -261,6 +261,9 @@ const STAFF_PROFILES = {
   // Kate, 14 Oct 2026: Senior Stylist, Motor City Dec 2022 to Feb 2023 (one Khalifa City A day in Sep 2022),
   // archived in Phorest. Known on reviews as Triny. Photo is her own black-and-white headshot, 375x435.
   'CATRIN':   { photoFull: 'stylist/photos/MC/catrin birkby.png', role: 'Senior Stylist', branch: 'MC', ig: 'catrinhair.dxb', resigned: true },
+  // Kate, 14 Oct 2026: Junior Stylist, mainly Saadiyat Mar 2021 to May 2023 (666 daily rows), Khalifa City A
+  // Jan to Sep 2022, archived in Phorest. Photo is her own black-and-white headshot, 375x435.
+  'RESHEL':   { photoFull: 'stylist/photos/SAA/reshel tagayuna.png', role: 'Junior Stylist', branch: 'SAA', ig: 'reshelwijesinghe', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
