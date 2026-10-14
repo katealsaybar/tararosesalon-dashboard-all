@@ -92,7 +92,8 @@
   const isPhone = () => matchMedia('(max-width:760px)').matches;
   // Where each branch is, in the words people use for it.
   const BRANCH_WORDS = { SAA: 'abu dhabi ad mamsha saadiyat', KCA: 'abu dhabi ad khalifa kca',
-    MC: 'dubai dxb motor', AQ: 'dubai dxb quoz' };
+    MC: 'dubai dxb motor', AQ: 'dubai dxb quoz',
+    FRT: 'fratelli barber barbershop closed former', MRY: 'marasy marasi abu dhabi al bateen closed former' };
 
   // ── THE INDEX ──
   // Rebuilt on every open: cheap, and it picks up the roster once it has loaded
@@ -209,6 +210,17 @@
           kind: 'branch', id: 'branch:' + code, t: b.name, g: 'Branch', s: 'Show this branch only',
           words: code + ' branch salon ' + (BRANCH_WORDS[code] || ''), colour: b.colorLight || b.color,
           go: () => setBranch([code]),
+        });
+      });
+      // Closed branches (Kate, 14 Oct 2026): Fratelli and Marasy are searchable too. Picking one shows that branch and, when the
+      // window on screen does not touch its open days, sets the Period to the year it last traded in (the chip would drop at once
+      // otherwise). CLOSED_BRANCHES is in dashboard.js.
+      if (typeof CLOSED_BRANCHES !== 'undefined') Object.keys(CLOSED_BRANCHES).forEach(code => {
+        const b = BRANCH_INFO[code];
+        items.push({
+          kind: 'branch', id: 'branch:' + code, t: b.name, g: 'Branch · closed', s: 'Show this branch, for the dates it was open',
+          words: code + ' branch salon ' + (BRANCH_WORDS[code] || ''), colour: b.colorLight || b.color,
+          go: () => setClosedBranch(code),
         });
       });
       items.push({
@@ -496,6 +508,19 @@
     toFilteredView();
     sel.branch = list;
     pendingSel.branch = [...list];
+    paintFilterChips();
+    refreshActiveView();
+  }
+  function setClosedBranch(code) {
+    const c = CLOSED_BRANCHES[code];
+    toFilteredView();
+    const touches = dateFrom && dateTo && dateToIso(dateFrom) <= c.last && dateToIso(dateTo) >= c.first;
+    if (!touches) {
+      if (typeof LEDGER_VIEWS !== 'undefined' && LEDGER_VIEWS.has(CURRENT_VIEW)) showView('dashboard', document.querySelector(`#sidebar .nav-sub[onclick*="'dashboard'"]`));
+      periodPick = null;
+      dateFrom = new Date(c.last.slice(0, 4) + '-01-01T00:00:00'); dateTo = new Date(c.last + 'T00:00:00');
+    }
+    sel.branch = [code]; pendingSel.branch = [code];
     paintFilterChips();
     refreshActiveView();
   }

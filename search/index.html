@@ -170,13 +170,13 @@
     teamquad: 'Staff Quadrant', staffperf: 'Staff Dashboards', staffweeks: 'Staff’s 13 Week Report', stafflevels: 'Stylist’s Benchmarks',
     stylists: 'Staff Cards', orgchart: 'Org Chart', products: 'Products', ledgerFinancials: 'Financial Totals',
     ledgerTargets: 'Daily Target Sheet', ledgerActuals: 'Actuals vs Targets', ledgerStylist: 'Daily Stylist Target',
-    services: 'Service Rankings', clients: 'Top Clients', lostclients: 'Client’s Last Visit', lostlists: 'Lost Clients', wvperf: 'Wellness Voucher Performance',
-    reviews: 'Google Reviews', googleads: 'Google Ads', website: 'Website & Search' };
+    services: 'Service Rankings', clients: 'Top Clients', clientmix: 'Client Mix', overyears: 'Over the Years', lostclients: 'Client’s Last Visit', lostlists: 'Lost Clients', wvperf: 'Wellness Voucher Performance',
+    reviews: 'Google Reviews', googleads: 'Google Ads', website: 'Website & Search', social: 'Social' };
   // The level each dashboard page asks for, as the dashboard hides them (the dashboard still refuses the rest).
-  var DASH_MIN = { lostclients: 2, lostlists: 2, wvperf: 2, googleads: 3, website: 3 };
+  var DASH_MIN = { lostclients: 2, lostlists: 2, wvperf: 2, googleads: 3, website: 3, social: 3 };
   var DASH_IC = { lostclients: 'lost-clients', lostlists: 'lost-clients', ledgerTargets: 'today', ledgerStylist: 'today', ledgerActuals: 'today',
     orgchart: 'people', stylists: 'access', team: 'access', teamquad: 'access', staffperf: 'access', staffweeks: 'access',
-    stafflevels: 'access', googleads: 'marketing', website: 'dashboards', wvperf: 'campaigns' };
+    stafflevels: 'access', googleads: 'marketing', website: 'dashboards', social: 'marketing', wvperf: 'campaigns' };
   function dashIcon(v) { return KB.icon(DASH_IC[v] || 'dashboards', 'var(--accent-lavender)'); }
   function initials(t) {
     return t.replace(/&/g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase();
