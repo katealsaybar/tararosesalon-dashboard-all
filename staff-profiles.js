@@ -251,6 +251,10 @@ const STAFF_PROFILES = {
   // Kate, 14 Oct 2026: Motor City stylist Sep to Dec 2025 (91 daily rows), 7 Al Quoz cover
   // rows, archived in Phorest. Headshot is her own cleaned-up one, 375x435.
   'MARCELLA': { photoFull: 'stylist/photos/MC/marcella savicic.png', role: 'Stylist', branch: 'MC', ig: 'marcellastyleshairdxb', resigned: true },
+  // Kate, 14 Oct 2026: Fratelli barber, Oct 2025 to May 2026 (185 daily rows, archived in Phorest). Branch is
+  // 'other' like Stuart and Goncalo: Fratelli is closed and the Team Roster has no FRT group. Photo converted
+  // to black and white off his colour headshot, 375x435.
+  'DEMIAN':   { photoFull: 'stylist/photos/other/demian rakic.png', role: 'Barber', branch: 'other', ig: 'barber.demian', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
@@ -290,6 +294,7 @@ const STAFF_SURNAMES = {
   'CHONA':     'Manlapaz',
   'DAISY':     'Cropper',
   'DANIKA':    'Ogrady',
+  'DEMIAN':    'Rakic',
   'DORAH':     'Namayanja',
   'EDS':       'Asuncion',
   'ELISE':     'Ford',
