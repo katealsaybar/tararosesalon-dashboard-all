@@ -311,6 +311,11 @@ const STAFF_PROFILES = {
   'DINA':     { photoFull: 'stylist/photos/KCA/dina paycao.png', role: 'Beauty Team Member', branch: 'KCA', ig: 'beautybydina_bp', resigned: true },
   // Joanne: Saadiyat, 714 beauty rows Jan 2021 to Dec 2022 (Motor City Dec 2022 to Dec 2023).
   'JOANNE':   { photoFull: 'stylist/photos/SAA/joanne pungilan.png', role: 'Beauty Team Member', branch: 'SAA', ig: 'pamperedbyjoanne', resigned: true },
+  // Rita: former beautician (Beautician in Phorest, archived), Khalifa City A, 715 beauty rows Jan 2021 to Dec 2022.
+  // Black-and-white headshot, 375x435, in the grey beauty uniform she wears in her own feature in the Feb 2022
+  // ROSES magazine (Drive: magazines > 2022); IG is her own studio account. Spelled Aryal everywhere (Kate first
+  // typed Ayral).
+  'RITA':     { photoFull: 'stylist/photos/KCA/rita aryal.png', role: 'Beauty Team Member', branch: 'KCA', ig: 'radream_beautybrandstudio', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
