@@ -248,6 +248,9 @@ const STAFF_PROFILES = {
   // Jul to Sep 2023 first). Photos are her own cleaned-up headshots, 375x435.
   'PAUL':     { photoFull: 'stylist/photos/AQ/paul standenmay.png', role: 'Stylist', branch: 'AQ', ig: 'paulstandenmay.colour', resigned: true },
   'CALLUM':   { photoFull: 'stylist/photos/AQ/callum standenmay.png', role: 'Stylist', branch: 'AQ', ig: 'callumstandenmay', resigned: true },
+  // Kate, 14 Oct 2026: Motor City stylist Sep to Dec 2025 (91 daily rows), 7 Al Quoz cover
+  // rows, archived in Phorest. Headshot is her own cleaned-up one, 375x435.
+  'MARCELLA': { photoFull: 'stylist/photos/MC/marcella savicic.png', role: 'Stylist', branch: 'MC', ig: 'marcellastyleshairdxb', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
