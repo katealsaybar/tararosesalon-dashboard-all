@@ -302,8 +302,9 @@ const STAFF_PROFILES = {
   'CECILLE':  { photoFull: 'stylist/photos/KCA/cecille castilio.png', role: 'Beauty Team Member', branch: 'KCA', resigned: true },
   // Maricel: Saadiyat, 1,027 daily rows May 2021 to Jun 2025 (also Khalifa City A, Marasy and Fratelli).
   'MARICEL':  { photoFull: 'stylist/photos/SAA/maricel sape.png', role: 'Beauty Team Member', branch: 'SAA', resigned: true },
-  // Melliza: Khalifa City A, 911 daily rows Oct 2021 to May 2024 (Marasy before that).
-  'MELLIZA':  { photoFull: 'stylist/photos/KCA/melliza ancajas.png', role: 'Beauty Team Member', branch: 'KCA', resigned: true },
+  // Melliza: Khalifa City A, 911 daily rows Oct 2021 to May 2024 (Marasy before that). Had a template until Kate sent
+  // her real headshot (grey beauty uniform) and her Instagram, 14 Oct 2026.
+  'MELLIZA':  { photoFull: 'stylist/photos/KCA/melliza ancajas.png', role: 'Beauty Team Member', branch: 'KCA', ig: 'beautybymelliza', resigned: true },
   // Kate, 14 Oct 2026: Dina and Joanne are former beauticians WITH a client-facing Instagram and a real headshot
   // (black and white, 375x435; Dina's made in ChatGPT from a selfie, in the grey beauty uniform). Same
   // 'Beauty Team Member' label, so they land in Former Beauty Team beside Rovina, Roja and Stella.

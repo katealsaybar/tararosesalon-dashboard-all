@@ -300,6 +300,7 @@ const STYLIST_IG = {
   "Dina":       "https://www.instagram.com/beautybydina_bp/",
   "Joanne":     "https://www.instagram.com/pamperedbyjoanne/",
   "Rita":       "https://www.instagram.com/radream_beautybrandstudio/",
+  "Melliza":    "https://www.instagram.com/beautybymelliza/",
   "Marcella":   "https://www.instagram.com/marcellastyleshairdxb/",
   // 2nd batch cards, Sep 2026. Helen and Mevil have no handle on their cards —
   // genuinely none (Kate, 1 Sep 2026), not missing data.
