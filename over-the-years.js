@@ -30,10 +30,16 @@ try {
 } catch (e) {}
 function otySave() { try { localStorage.setItem(OTY_STORE, JSON.stringify({ b: OTY.b, basis: OTY.basis, line: OTY.line, sreg: OTY.sreg, syrs: OTY.syrs, mreg: OTY.mreg, mmet: OTY.mmet, mbase: OTY.mbase, mview: OTY.mview })); } catch (e) {} }
 
-const OTY_BR = ['SAA', 'KCA', 'MC', 'AQ', 'FRT'];
-const OTY_NAME = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', FRT: 'Fratelli' };
-const OTY_COL = { SAA: '#C4B5FD', KCA: '#FFD4D9', MC: '#99F6E4', AQ: '#FF9B9B', FRT: '#EEF3C7' };
-const OTY_ORDER = ['ALL', 'LFL', 'SAA', 'KCA', 'MC', 'AQ', 'ALLF', 'FRT'];
+// Kate, 14 Oct 2026: Marasy (MRY), a former branch with Phorest daily totals and per-staff counts from 1 Jul 2021 to 24 Dec
+// 2022 (the real closing date is unproven, so it is "data to", not "closed"). It has its own chip and is never part of All
+// four, Like for like or All + Fratelli. Its chip always reads whole years, since "same days of this year" means nothing for it.
+const OTY_BR = ['SAA', 'KCA', 'MC', 'AQ', 'FRT', 'MRY'];
+const OTY_NAME = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', FRT: 'Fratelli', MRY: 'Marasy' };
+const OTY_COL = { SAA: '#C4B5FD', KCA: '#FFD4D9', MC: '#99F6E4', AQ: '#FF9B9B', FRT: '#EEF3C7', MRY: '#A5D8FF' };
+const OTY_ORDER = ['ALL', 'LFL', 'SAA', 'KCA', 'MC', 'AQ', 'ALLF', 'FRT', 'MRY'];
+const OTY_HIST = ['FRT', 'MRY'];   // branches that are not open now, so out of All four
+const otyHist = () => OTY.b === 'MRY';
+const otySame = () => OTY.basis === 'same' && !otyHist();
 let otyRaw = null, otyIgRaw = null, otyD = null, otyBusy = false, otyErr = '', otyIgErr = '', otyIgLoaded = false;
 
 const otyEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -250,14 +256,14 @@ function otyBuild(raw, ig) {
   (raw.reviews || []).forEach(r => { const o = br(r.b), i = idx(r.y); if (i < 0) return;
     o.rev.n[i] = +r.n || 0; o.rev.s[i] = +r.st || 0; o.rev.ny[i] = +r.n_y || 0; o.rev.sy[i] = +r.st_y || 0; });
   const present = OTY_BR.filter(b => D[b]);
-  const open = present.filter(b => b !== 'FRT');
+  const open = present.filter(b => !OTY_HIST.includes(b));
   const sets = { ALL: open };
   if (present.includes('SAA') && present.includes('KCA')) sets.LFL = ['SAA', 'KCA'];
   present.forEach(b => { sets[b] = [b]; });
-  if (present.includes('FRT') && open.length) sets.ALLF = present.slice();
+  if (present.includes('FRT') && open.length) sets.ALLF = present.filter(b => b !== 'MRY');
   return { years, D, present, sets, cut: raw.cut, curYear: new Date(raw.cut + 'T00:00:00').getFullYear(), ig };
 }
-const otySetName = k => k === 'ALL' ? 'All four branches' : k === 'LFL' ? 'Saadiyat + Khalifa City A' : k === 'ALLF' ? 'All four + Fratelli' : k === 'FRT' ? 'Fratelli (closed 22 May 2026)' : OTY_NAME[k] || k;
+const otySetName = k => k === 'ALL' ? 'All four branches' : k === 'LFL' ? 'Saadiyat + Khalifa City A' : k === 'ALLF' ? 'All four + Fratelli' : k === 'FRT' ? 'Fratelli (closed 22 May 2026)' : k === 'MRY' ? 'Marasy (Phorest data to 24 Dec 2022)' : OTY_NAME[k] || k;
 const otyCutLabel = () => otyDay(otyD.cut);
 
 async function otyLoad(force) {
@@ -301,14 +307,14 @@ function otySum(set, key, which, i) {
 }
 function otyRows() {
   const { years, D, sets, curYear } = otyD;
-  const set = sets[OTY.b] || sets.ALL, same = OTY.basis === 'same';
+  const set = sets[OTY.b] || sets.ALL, same = otySame();
   return years.map((y, i) => {
-    const w = same ? 'ytd' : 'full', partial = !same && y === curYear;
+    const w = same ? 'ytd' : 'full', partial = !same && !otyHist() && y === curYear;
     const net = otySum(set, 'net', w, i), vis = otySum(set, 'vis', w, i), stf = otySum(set, 'stf', w, i);
     // Growth follows the toggle: whole year on whole year, except the year in progress, which can only be read on the same days.
     const gw = same || partial ? 'ytd' : 'full';
     const netY = otySum(set, 'net', gw, i), netP = i ? otySum(set, 'net', gw, i - 1) : 0;
-    const g = otyPct(netP, netY), big = g != null && Math.abs(g) > 100;
+    const g = otyHist() ? null : otyPct(netP, netY), big = g != null && Math.abs(g) > 100;   // Marasy: 2021 starts in July, so no growth
     return { y, i, net, vis, stf, avg: stf ? net / stf : 0, avgV: vis ? net / vis : 0, growth: big ? null : g, big, partial,
       per: set.map(b => ({ b, v: D[b].net[w][i] || 0 })) };
   });
@@ -371,7 +377,7 @@ function otyDraw() {
 }
 function otyControls() {
   const keys = OTY_ORDER.filter(k => otyD.sets[k]);
-  const lab = k => k === 'ALL' ? 'All four' : k === 'LFL' ? 'Like for like' : k === 'ALLF' ? 'All + Fratelli' : k === 'FRT' ? 'Fratelli (closed)' : OTY_NAME[k];
+  const lab = k => k === 'ALL' ? 'All four' : k === 'LFL' ? 'Like for like' : k === 'ALLF' ? 'All + Fratelli' : k === 'FRT' ? 'Fratelli (closed)' : k === 'MRY' ? 'Marasy (data to Dec 2022)' : OTY_NAME[k];
   const bp = keys.map(k => `<button class="oty-pill" aria-pressed="${k === OTY.b}" onclick="otySet('b','${k}')">${lab(k)}</button>`).join('');
   return `<div class="oty-lab">Branches</div><div class="oty-pills">${bp}</div>
     <div class="oty-lab">Compare on</div><div class="oty-pills">
@@ -386,6 +392,13 @@ function otyTiles(rows) {
   const n = rows.length, set = otyD.sets[OTY.b], cy = otyD.curYear, c = otyCutLabel();
   const sumW = (w, i) => i >= 0 ? otySum(set, 'net', w, i) : 0;
   const tile = (cls, k, v, p, vs) => `<div class="oty-card oty-tile ${cls}"><div class="k">${k}</div><div class="v">${otyM(v)}</div><div class="s">${otySetName(OTY.b)}</div>${otyChg(p)}<div class="s" style="margin-top:6px">${vs}</div></div>`;
+  // Marasy: its two years of data, whole, each marked as the part-year it is. No growth: 2021 starts in July.
+  if (otyHist()) {
+    const Dm = otyD.D.MRY, ys = otyD.years, held = ys.map((y, i) => [y, Dm.net.full[i]]).filter(a => a[1] > 0).slice(-2).reverse();
+    const part = y => y === 2021 ? 'from 1 Jul' : y === 2022 ? 'to 24 Dec' : 'Phorest data';
+    return `<div class="oty-tiles">${held.map(([y, v], k) => tile(k ? '' : 'now', `${y} · ${part(y)}`, v, null, 'part year, so not set against the other')).join('')}</div>
+    <p class="oty-note" style="margin:10px 2px 0">Marasy's Phorest data runs 1 Jul 2021 to 24 Dec 2022. Both years are part-years, so there is no growth figure, and the real closing date is not confirmed.</p>`;
+  }
   if (OTY.basis === 'full') {
     const a = n - 2, b = n - 3, c2 = n - 4, ys = otyD.years;
     const va = sumW('full', a), vb = sumW('full', b), vc = sumW('full', c2);
@@ -444,7 +457,7 @@ function otyChartBlock(rows) {
     r.per.forEach(p => {
       if (!p.v) return;
       const h = (H - T - B) * p.v / maxNet, y = yb(acc + p.v); acc += p.v;
-      g += `<rect class="seg" x="${x0}" y="${y}" width="${bar}" height="${h}" fill="${set.length === 1 ? 'var(--hair)' : OTY_COL[p.b]}" opacity="${r.partial ? .5 : .92}" ${r.partial ? 'stroke="var(--text)" stroke-opacity=".6" stroke-dasharray="3 2"' : ''}${otyTT(p.b, r.y, otyM(p.v) + ' net take', r.net ? p.v / r.net * 100 : 0, `of the ${otyM(r.net)} ${r.y}${r.partial ? '*' : ''} total`, OTY.basis === 'same' || r.partial ? `1 Jan – ${otyCutLabel()}` : 'full year')}/>`;
+      g += `<rect class="seg" x="${x0}" y="${y}" width="${bar}" height="${h}" fill="${set.length === 1 ? 'var(--hair)' : OTY_COL[p.b]}" opacity="${r.partial ? .5 : .92}" ${r.partial ? 'stroke="var(--text)" stroke-opacity=".6" stroke-dasharray="3 2"' : ''}${otyTT(p.b, r.y, otyM(p.v) + ' net take', r.net ? p.v / r.net * 100 : 0, `of the ${otyM(r.net)} ${r.y}${r.partial ? '*' : ''} total`, otySame() || r.partial ? `1 Jan – ${otyCutLabel()}` : otyHist() ? 'Phorest data held' : 'full year')}/>`;
     });
     g += `<text class="tv" x="${cx}" y="${yb(r.net) - 5}" text-anchor="middle" font-size="9.5">${r.net ? otyMs(r.net) : '·'}</text>`;
     g += `<text x="${cx}" y="${H - 10}" text-anchor="middle" font-size="10.5" style="${i === sel ? 'fill:var(--accent);font-weight:700' : ''}">${r.y}${r.partial ? '*' : ''}</text>`;
@@ -452,14 +465,14 @@ function otyChartBlock(rows) {
   const pts = rows.map((r, i) => ({ i, v: vals[i] })).filter(p => p.v != null && (p.v !== 0 || LN === 'growth'));
   if (pts.length) g += `<path d="${pts.map((p, k) => (k ? 'L' : 'M') + (L + bw * p.i + bw / 2).toFixed(1) + ' ' + yl(p.v).toFixed(1)).join(' ')}" fill="none" stroke="var(--warn)" stroke-width="2.4" stroke-linejoin="round"/>`;
   pts.forEach(p => g += `<circle cx="${L + bw * p.i + bw / 2}" cy="${yl(p.v)}" r="${p.i === sel ? 5 : 3.5}" fill="${p.i === sel ? 'var(--bg)' : 'var(--warn)'}" stroke="var(--warn)" stroke-width="2"/>`);
-  const lineName = { growth: OTY.basis === 'full' ? `Growth vs the year before (full years, ${otyD.curYear} on the same days)` : 'Growth vs the year before (same days)', avg: 'Average bill per staff (AED)', avgV: 'Average bill per visit (AED)',
+  const lineName = { growth: otyHist() ? 'Growth vs the year before (part years)' : OTY.basis === 'full' ? `Growth vs the year before (full years, ${otyD.curYear} on the same days)` : 'Growth vs the year before (same days)', avg: 'Average bill per staff (AED)', avgV: 'Average bill per visit (AED)',
     stf: 'Clients per staff', vis: 'Clients per visit' }[LN];
   // Kate, 13 Oct 2026: the points are hoverable (and tappable) too: a bigger invisible circle on each one says what it is.
   const fv = v => LN === 'growth' ? (v > 0 ? '+' : '') + v.toFixed(1) + '%' : isAvg ? otyAed(v) : otyNum(v);
   pts.forEach(p => g += `<circle class="hit" cx="${L + bw * p.i + bw / 2}" cy="${yl(p.v)}" r="11" fill="transparent"${otyTTh(`<div class="h"><b>${rows[p.i].y}${rows[p.i].partial ? '*' : ''}</b></div><div class="v">${fv(p.v)}</div><div class="s">${lineName}</div><div class="s">Net take <b>${otyM(rows[p.i].net)}</b></div>`)}/>`);
   const legend = (set.length > 1 ? set.map(b => `<span><i style="background:${OTY_COL[b]}"></i>${OTY_NAME[b]}</span>`).join('') : `<span><i style="background:var(--hair)"></i>${OTY_NAME[set[0]]}</span>`)
     + `<span><i class="ln" style="background:var(--warn)"></i>${lineName}</span>`;
-  const r = rows[sel], lab = OTY.basis === 'same' || r.partial ? `1 Jan – ${otyCutLabel()}` : 'full year';
+  const r = rows[sel], lab = otySame() || r.partial ? `1 Jan – ${otyCutLabel()}` : otyHist() ? (r.y === 2021 ? 'from 1 Jul 2021' : r.y === 2022 ? 'to 24 Dec 2022' : 'no Phorest data') : 'full year';
   const split = r.per.filter(p => p.v).map(p => `<span><i class="oty-bdot" style="background:${OTY_COL[p.b]}"></i><b>${OTY_NAME[p.b]}</b> ${otyM(p.v)}</span>`).join('');
   // Kate, 9 Oct 2026: "make info here easy to read". The readout under the chart was a heading line and a
   // pile of plain lines in two columns. It is now the year as a heading, four figure tiles (value big, label
@@ -484,7 +497,7 @@ function otyChartBlock(rows) {
     <div class="oty-card"><div class="oty-pills" style="margin-bottom:12px">${pills}</div><div class="oty-legend">${legend}</div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Net take by year, as bars, with a line" onpointerdown="otyTapChart(event,${n},${L},${R},${W})">${g}</svg>
     <div class="oty-read">${readout}</div></div>
-    <p class="oty-note" style="margin:10px 2px 0">${OTY.basis === 'full' ? `* ${otyD.curYear} is 1 Jan to ${otyCutLabel()} only, shown faded. ` : `Every bar is 1 Jan to ${otyCutLabel()} of that year. `}The line reads on the right-hand scale. Growth over 100% is a year new branches opened in, so it is left off the line. Tap a year.</p>`;
+    <p class="oty-note" style="margin:10px 2px 0">${otyHist() ? 'Marasy has Phorest data from 1 Jul 2021 to 24 Dec 2022 only, so both bars are part-years. ' : OTY.basis === 'full' ? `* ${otyD.curYear} is 1 Jan to ${otyCutLabel()} only, shown faded. ` : `Every bar is 1 Jan to ${otyCutLabel()} of that year. `}The line reads on the right-hand scale. Growth over 100% is a year new branches opened in, so it is left off the line. Tap a year.</p>`;
 }
 // Kate, 13 Oct 2026: "when i hover, lalabas dapat kung anong branch yan and values associated". Each stacked segment
 // carries its branch, year, figure and share as data attributes; otyHov() writes them into the card's one floating box.
@@ -547,10 +560,10 @@ function otySeasonModel() {
   const { years, cut, present, curYear } = otyD;
   const cal = (otyRaw.seasons || []), br = (otyRaw.season_br || []);
   const names = [...new Set(cal.slice().sort((a, b) => a.sort - b.sort).map(r => r.season))];
-  const vis = b => present.includes(b) && b !== 'FRT';
+  const vis = b => present.includes(b) && !OTY_HIST.includes(b);
   const regions = {};   // only the branches this login can see
   for (const k of Object.keys(OTY_REGION)) { const bs = OTY_REGION[k].filter(vis); if (bs.length) regions[k] = bs; }
-  OTY_BR.filter(b => b !== 'FRT' && vis(b)).forEach(b => { regions[b] = [b]; });
+  OTY_BR.filter(b => vis(b)).forEach(b => { regions[b] = [b]; });
   const dates = (nm, y) => cal.find(r => r.season === nm && r.y === y);
   const row = (b, nm, y) => br.find(r => r.b === b && r.season === nm && r.y === y && +r.tot > 0);
   // one season in one year for a set of branches: a bar, or why there is none
@@ -776,7 +789,7 @@ function otyMoModel() {
   (otyMoRaw.months || []).forEach(r => { const by = MO[r.b] || (MO[r.b] = {}), ym = by[r.y] || (by[r.y] = []); ym[r.m - 1] = r; });
   const have = Object.keys(MO), regions = {};
   for (const k of Object.keys(OTY_MO_REG)) { const bs = OTY_MO_REG[k].filter(b => have.includes(b)); if (bs.length > 1) regions[k] = bs; }
-  const open = OTY_BR.filter(b => b !== 'FRT' && have.includes(b));
+  const open = OTY_BR.filter(b => !OTY_HIST.includes(b) && have.includes(b));
   if (open.length > 1) regions.ALL = open;
   open.forEach(b => { regions[b] = [b]; });
   otyMoMemo = {};
@@ -879,7 +892,7 @@ function otyMonths() {
   const X = otyMoCtx(); if (!X.keys.length) return '';
   const S = X.stats(), years = X.years, curYear = X.curYear, v = OTY.mview;
   const pill = (key, k, l) => `<button class="oty-pill" aria-pressed="${OTY[key] === k}" onclick="otyMoSet('${key}','${k}')">${l}</button>`;
-  const regs = ['AD', 'DXB', 'ALL'].filter(k => X.M.regions[k]), brs = OTY_BR.filter(b => X.M.regions[b] && b !== 'FRT');
+  const regs = ['AD', 'DXB', 'ALL'].filter(k => X.M.regions[k]), brs = OTY_BR.filter(b => X.M.regions[b] && !OTY_HIST.includes(b));
   const bases = [['same', `${X.baseLabel('same')}, same months every year`], ['full', 'Full year']];
   const baseHint = OTY.mbase === 'same' ? `Every year is set against its own average of ${X.baseLabel('same')}, the months ${curYear} has finished, so all the years are on the same base. A year without all of those months says so instead.`
     : `Finished years are set against all twelve months, ${curYear} against the ${X.doneN} it has, so ${curYear} is not strictly like for like in this view.`;
@@ -1243,7 +1256,7 @@ function otyCoverage() {
   // Kate, 13 Oct 2026: the Ledgers row was hardcoded to 2025 on, so it stayed grey after 2022 to 2024 were backfilled.
   // Now the ledger days held (over_the_years().ledger, from branch_staff_daily) against the days Phorest has, open
   // branches only: green from 85% of the days, yellow when there is some, grey when there is none.
-  const open = present.filter(b => b !== 'FRT'), led = otyRaw.ledger || [];
+  const open = present.filter(b => !OTY_HIST.includes(b)), led = otyRaw.ledger || [];
   const ledg = years.map(y => {
     const rs = led.filter(r => r.y === y && open.includes(r.b)), l = rs.reduce((t, r) => t + (+r.led || 0), 0), d = rs.reduce((t, r) => t + (+r.days || 0), 0);
     return !l ? 0 : d && l / d >= .85 ? 1 : 2;
@@ -1264,6 +1277,7 @@ function otyNotes() {
       <p><b>Seasons, not calendar months.</b> Ramadan and Eid move about 11 days earlier every year, so month against month compares different seasons. The month by month section is there so Coach Emma can see the shape of each year anyway, and it marks every month Ramadan and Eid touched.</p>
       <p><b>Branches arrive over time.</b> Motor City's data starts Nov 2022 and Al Quoz's Sep 2023, so the all-branches total jumps when they appear. Like for like (Saadiyat + Khalifa City A) is the trend.</p>
       <p><b>Fratelli</b> closed on 22 May 2026. It is out of All four, as everywhere on the dashboard, and has its own chip, and All + Fratelli puts it back in for the years it traded.</p>
+      <p><b>Marasy</b> is a former branch. Its Phorest data runs 1 Jul 2021 to 24 Dec 2022, so it has its own chip and is not in All four, Like for like or All + Fratelli. Both its years are part-years, and its closing date is not confirmed, so it says "data to" and not "closed".</p>
       <p><b>Same days first.</b> The year in progress is set against the same dates in every earlier year. Switch to Full years to see whole years, with this one marked as partial.</p>
       <p><b>Slightly different from the Pulse.</b> These are Phorest's own financial totals. The Pulse's net take is built from the ledgers, so the two differ by about 1%.</p>
     </div>`;
