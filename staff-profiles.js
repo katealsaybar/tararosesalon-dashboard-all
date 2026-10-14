@@ -280,9 +280,11 @@ const STAFF_PROFILES = {
   // Aboudi: Al Quoz Sep 2023 to Mar 2024 (136 daily rows). Title is Phorest's own category (3 Style Director,
   // DXB) off the 14 Oct 2026 roster export; the 9 Oct variants note said Stylist. Male placeholder, no ig.
   'ABOUDI':   { photoFull: 'stylist/photos/AQ/aboudi chatila.png', role: 'Style Director', branch: 'AQ', resigned: true },
-  // Jaime: Khalifa City A Stylist, Jun 2022 to Aug 2024 on the roster export (two daily ledger rows, Feb 2023).
-  // Female placeholder: Kate was not sure ('ata'), so swap the file if that is wrong. No ig.
-  'JAIME':    { photoFull: 'stylist/photos/KCA/jaime petzer.png', role: 'Stylist', branch: 'KCA', resigned: true },
+  // Jaime: Khalifa City A Stylist, Jun 2022 to Aug 2024 on the roster export (Phorest has her as Jaime Petzer).
+  // Kate, 14 Oct 2026: real headshot and IG jetaime__hair, under the name Jaime Booth. The ledger has only one
+  // Jaime/Jaimie/Jamie (KCA, Jun 2022 to Feb 2023, 240 daily rows) and the roster has no Booth, so this is taken as
+  // the same person and the surname is Booth here; if Booth turns out to be someone else, restore Petzer and the template.
+  'JAIME':    { photoFull: 'stylist/photos/KCA/jaime booth.png', role: 'Stylist', branch: 'KCA', ig: 'jetaime__hair', resigned: true },
   // Josh: Stylist on the roster export, Al Quoz (archived 17 Mar 2026). His ledger rows are mostly Fratelli
   // (44 days, Nov 2023 to Jan 2024) with 6 at Al Quoz; branch follows the roster because the Team Roster
   // has no FRT group. Male placeholder, no ig.
@@ -504,7 +506,7 @@ const STAFF_SURNAMES = {
   'HAFEZ':     'Abou Hwijj',
   'HARSHA':    'Weerasinghe',
   'JACKIE':    'Anog',
-  'JAIME':     'Petzer',
+  'JAIME':     'Booth',
   'JANE':      'Astrande',
   'JANICE':    'Gamit',
   'JAYA':      'Wagle',
@@ -550,8 +552,8 @@ const STAFF_SURNAMES = {
   // for her (Saadiyat, 2021).
   'MANDIKA':   'Dyola',
   'CHERINE':   'Baghdadi',
-  'JAIMIE':    'Petzer',
-  'JAMIE':     'Petzer',
+  'JAIMIE':    'Booth',
+  'JAMIE':     'Booth',
   'MIKAELA':   'Solomei',
   'SHILAH':    'Mandal',
   'NEOMI':     'Mallari',

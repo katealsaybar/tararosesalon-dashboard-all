@@ -77,7 +77,7 @@ const STYLIST_SURNAMES = {
   "Reshel":    "Tagayuna",
   "Zoe":       "Hogkinson",
   "Aboudi":    "Chatila",
-  "Jaime":     "Petzer",
+  "Jaime":     "Booth",       // Phorest has Petzer; Kate, 14 Oct 2026: Jaime Booth
   "Josh":      "Thomas",
   "Cecille":   "Castilio",
   "Dina":      "Paycao",
@@ -244,7 +244,7 @@ const STYLIST_PHOTOS = {
   "Venus":     "MC/venus solomon.png",
   "Oliver":    "AQ/oliver green.png",
   "Aboudi":    "AQ/aboudi chatila.png",
-  "Jaime":     "KCA/jaime petzer.png",
+  "Jaime":     "KCA/jaime booth.png",
   "Josh":      "AQ/josh thomas.png",
   "Dina":      "KCA/dina paycao.png",       // former beautician — Kate, 14 Oct 2026
   "Joanne":    "SAA/joanne pungilan.png",
@@ -309,6 +309,7 @@ const STYLIST_IG = {
   "Melliza":    "https://www.instagram.com/beautybymelliza/",
   "Jackie":     "https://www.instagram.com/nailsbyjackie.08/",
   "Karina":     "https://www.instagram.com/karapuzzo/",
+  "Jaime":      "https://www.instagram.com/jetaime__hair/",
   "Lorena":     "https://www.instagram.com/workdonebylorena/",
   "Marcella":   "https://www.instagram.com/marcellastyleshairdxb/",
   // 2nd batch cards, Sep 2026. Helen and Mevil have no handle on their cards —
