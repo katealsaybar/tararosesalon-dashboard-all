@@ -317,6 +317,10 @@ const STAFF_PROFILES = {
   // ROSES magazine (Drive: magazines > 2022); IG is her own studio account. Spelled Aryal everywhere (Kate first
   // typed Ayral).
   'RITA':     { photoFull: 'stylist/photos/KCA/rita aryal.png', role: 'Beauty Team Member', branch: 'KCA', ig: 'radream_beautybrandstudio', resigned: true },
+  // Kate, 14 Oct 2026: Jackie, former beautician (Beautician in Phorest, archived), IG nailsbyjackie.08 (nails).
+  // The ledger only has Marasy (506 beauty rows Jan 2021 to May 2022), which is closed and has no Team Roster
+  // group, so branch is Saadiyat, her other Phorest record (Aug 2021 to Mar 2026). Black-and-white headshot, 375x435.
+  'JACKIE':   { photoFull: 'stylist/photos/SAA/jackie anog.png', role: 'Beauty Team Member', branch: 'SAA', ig: 'nailsbyjackie.08', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────

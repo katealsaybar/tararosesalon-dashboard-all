@@ -82,6 +82,7 @@ const STYLIST_SURNAMES = {
   "Cecille":   "Castilio",
   "Dina":      "Paycao",
   "Rita":      "Aryal",
+  "Jackie":    "Anog",
   "Joanne":    "Pungilan",
   "Maricel":   "Sape",
   "Melliza":   "Ancajas",
@@ -246,6 +247,7 @@ const STYLIST_PHOTOS = {
   "Dina":      "KCA/dina paycao.png",       // former beautician — Kate, 14 Oct 2026
   "Joanne":    "SAA/joanne pungilan.png",
   "Rita":      "KCA/rita aryal.png",
+  "Jackie":    "SAA/jackie anog.png",
   "Cecille":   "KCA/cecille castilio.png",   // blank placeholder, former beautician — Kate, 14 Oct 2026
   "Maricel":   "SAA/maricel sape.png",
   "Melliza":   "KCA/melliza ancajas.png",
@@ -301,6 +303,7 @@ const STYLIST_IG = {
   "Joanne":     "https://www.instagram.com/pamperedbyjoanne/",
   "Rita":       "https://www.instagram.com/radream_beautybrandstudio/",
   "Melliza":    "https://www.instagram.com/beautybymelliza/",
+  "Jackie":     "https://www.instagram.com/nailsbyjackie.08/",
   "Marcella":   "https://www.instagram.com/marcellastyleshairdxb/",
   // 2nd batch cards, Sep 2026. Helen and Mevil have no handle on their cards —
   // genuinely none (Kate, 1 Sep 2026), not missing data.
@@ -329,7 +332,7 @@ const STYLIST_IG = {
 // if she comes back (see Hazel Mae, who left this list when her 2nd-batch card and
 // STAFF_PROFILES entry came back, Sep 2026). Keys match STYLIST_PHOTOS spelling.
 const STYLIST_RESIGNED = new Set([
-  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi", "Jaime", "Josh", "Michelle", "Mihaela", "Cecille", "Maricel", "Melliza", "Dina", "Joanne", "Rita",
+  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi", "Jaime", "Josh", "Michelle", "Mihaela", "Cecille", "Maricel", "Melliza", "Dina", "Joanne", "Rita", "Jackie",
 ]);
 function isResignedStylist(cleanName) {
   return STYLIST_RESIGNED.has(cleanName);
