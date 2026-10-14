@@ -239,6 +239,9 @@ function otyCss() {
   .oty .mo-hm .rowmsg{grid-column:2 / span 14;display:flex;align-items:center;font-size:12px;color:var(--muted2);border:1px dashed var(--border);border-radius:7px;padding:0 12px;min-height:46px;line-height:1.35}
   .oty .mo-hm .tot{background:transparent;border:1px solid var(--muted2);cursor:default;font-weight:700}
   .oty .mo-hm .tot.none{border:1px dashed var(--border);font-weight:500}
+  .oty .mo-hm button.tot{cursor:pointer;color:var(--text);font-family:inherit;font-size:13px}
+  .oty .mo-hm button.tot:hover{border-color:var(--text)}
+  .oty .mo-hm button.tot.sel{border-color:var(--text);box-shadow:0 0 0 1px var(--text)}
   .oty .mo-hm .avg{height:36px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:default}
   .oty .mo-hm .spr{height:30px;background:transparent;border:0;color:var(--muted2);font-size:11.5px;cursor:default}
   .oty .mo-hm .sec{grid-column:1 / -1;height:1px;background:var(--border);margin:6px 0}
@@ -962,7 +965,7 @@ function otyMonths() {
   const baseHint = OTY.mbase === 'same' ? `Every year is set against its own average of ${X.baseLabel('same')}, the months ${curYear} has finished, so all the years are on the same base. A year without all of those months says so instead.`
     : `Finished years are set against all twelve months, ${curYear} against the ${X.doneN} it has, so ${curYear} is not strictly like for like in this view.`;
   const mname = otyMoMetName[X.met];
-  const sub = `${X.M.regions[X.reg].map(b => OTY_NAME[b]).join(' + ')} · ${v === 'index' ? '100 = an average month of that year' : 'tap a month for the detail'}`;
+  const sub = `${X.M.regions[X.reg].map(b => OTY_NAME[b]).join(' + ')} · ${v === 'index' ? '100 = an average month of that year' : 'tap a month or a total for the detail'}`;
   const title = v === 'index' ? `${mname}, month by month · shape of each year` : v === 'chg' ? `${mname}, each month against the same month a year earlier` : `${mname}, each month`;
 
   // the grid
@@ -973,11 +976,11 @@ function otyMonths() {
     const lab = y === curYear ? `Jan to ${OTY_MON[Math.max(X.doneN - 1, 0)]} ${y}` : `Full year ${y}`;
     if (v === 'chg') {
       const k = X.totChg(y);
-      return k ? `<div class="mo-c tot" style="grid-column:span 2;background-color:${k.big ? '' : otyMoHeat(k.pct, 25)}" title="${lab}, against the same months of ${y - 1}">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%'}</div>`
+      return k ? `<button class="mo-c tot${sel.y === y && sel.m == null ? ' sel' : ''}" style="grid-column:span 2;background-color:${k.big ? '' : otyMoHeat(k.pct, 25)}" title="${lab}, against the same months of ${y - 1}. Tap for the detail" onclick="otyMoYear(${y})">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%'}</button>`
         : '<div class="mo-c none tot" style="grid-column:span 2" title="Not every month has a figure to set against last year">·</div>';
     }
     const t = X.tot(y);
-    return t != null ? `<div class="mo-c tot" style="grid-column:span 2" title="${lab}">${X.fv(t)}</div>`
+    return t != null ? `<button class="mo-c tot${sel.y === y && sel.m == null ? ' sel' : ''}" style="grid-column:span 2" title="${lab}. Tap for the detail" onclick="otyMoYear(${y})">${X.fv(t)}</button>`
       : '<div class="mo-c none tot" style="grid-column:span 2" title="Not every month has a figure, so there is no total">·</div>';
   };
   for (const y of years.slice().reverse()) {
@@ -1051,6 +1054,11 @@ function otyMoSel(y, m) {
   OTY.mmsel = { y, m }; otyDraw();
   const d = document.getElementById('otyMoDetail'); if (d && d.scrollIntoView) d.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
+// a year's Total is clickable too: sel.m is null and the detail below the grid reads the whole year
+function otyMoYear(y) {
+  OTY.mmsel = { y, m: null }; otyDraw();
+  const d = document.getElementById('otyMoDetail'); if (d && d.scrollIntoView) d.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
 function otyMoYr(y) {
   const s = new Set(OTY.myrs || otyD.years);
   if (s.has(y)) s.delete(y); else s.add(y);
@@ -1060,7 +1068,24 @@ function otyMoYrs(mode) { OTY.myrs = mode === 'none' ? new Set() : null; otyDraw
 function otyMoPy(y) { OTY.mpy = y; otyDraw(); }
 
 // tap a month: its figure, how it sits in its own year, and how it sits against the other years
+// tap a year's Total: the whole year's figure, against the same months of the year before, and its strongest and weakest month
+function otyMoYearDetail(X, y) {
+  const B = X.mths(y), t = X.tot(y), cur = y === X.curYear, last = B.length ? OTY_MON[B[B.length - 1]] : '', lab = cur ? `Jan to ${last} ${y}` : `Full year ${y}`;
+  if (t == null) return `<div class="oty-rh"><b>${lab}</b></div><div class="oty-note">Not every month of ${y} has a figure here, so there is no total.</div>`;
+  const k = X.totChg(y), pre = X.met === 'net' ? 'AED ' : '';
+  const pc = k ? `<span class="oty-chg ${k.big || Math.abs(k.pct) < .5 ? 'flat' : k.pct > 0 ? 'up' : 'dn'}" style="margin:0">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(1) + '%'}</span>` : '';
+  const ranked = B.map(m => [m, X.val(X.cell(y, m))]).sort((a, b) => b[1] - a[1]), hi = ranked[0], lo = ranked[ranked.length - 1];
+  const vs = k ? `${X.fd(k.diff)} on the same months of ${y - 1}` : y > X.years[0] ? `Not like for like with ${y - 1}, so no comparison` : 'No year before to set against';
+  return `<div class="oty-rh"><b>${lab}</b><span>${y > X.years[0] && k ? `against the same months of ${y - 1}` : 'the finished months of the year, added up'}</span>${pc}</div>
+    <div class="mo-dt">
+      <div><div class="k">${otyMoMetName[X.met]}</div><div class="v">${pre}${X.fv(t)}</div><div class="s">${vs}</div></div>
+      <div><div class="k">Months counted</div><div class="v">${B.length} <small>of 12</small></div><div class="s">${cur ? `${OTY_MON[B[0]]} to ${last}, the months ${y} has finished` : 'Every month of the year'}</div></div>
+      <div><div class="k">Strongest month</div><div class="v">${OTY_MON[hi[0]]}</div><div class="s">${pre}${X.fv(hi[1])}</div></div>
+      <div><div class="k">Weakest month</div><div class="v">${OTY_MON[lo[0]]}</div><div class="s">${pre}${X.fv(lo[1])}</div></div>
+    </div>`;
+}
 function otyMoDetail(X, S, sel) {
+  if (sel.m == null) return otyMoYearDetail(X, sel.y);
   const { y, m } = sel, c = X.cell(y, m);
   if (!c || !X.ok(c)) return '<div class="oty-note">Tap a month in the grid.</div>';
   const ix = S.idx[y], k = X.cmp(y, m), rd = otyRamIn(y, m), rp = y > X.years[0] ? otyRamIn(y - 1, m) : 0, p = y > X.years[0] ? X.cell(y - 1, m) : null, live = c.state === 'live';
