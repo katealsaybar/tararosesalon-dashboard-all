@@ -84,6 +84,10 @@
       blurb: 'Who is who, and who reports to whom.' },
     { key: 'people-cards', via: 'dashboards', min: 1, ic: 'access', dept: 'People', title: 'Staff Cards', href: '/?view=stylists', rule: 'var(--accent-mint)',
       blurb: 'Every stylist and therapist, with photo and level.' },
+    // Kate, 14 Oct 2026: one link per stylist and beautician to her card on the promo page, by branch and
+    // department, for the call centre (kb_sections 'card-links', migrations/kb_card_links.sql).
+    { key: 'card-links', dept: 'People', title: 'Staff Card Links', href: '/hub/card-links', live: true, rule: 'var(--accent-mint)',
+      blurb: 'A link for every stylist and beautician’s card, by branch, ready to paste into WhatsApp.' },
     // Kate, 3 Oct 2026: who can sign in, for Level 3 and up (kb_sections.min_level 3), view only.
     { key: 'access', dept: 'People', title: 'Staff Roster & Access', href: '/hub/roster', live: true, rule: 'var(--accent-mint)',
       blurb: 'Everyone who can sign in: their level, team and when they were last in.' },
@@ -178,6 +182,7 @@
   ICONS['pg-scissors'] = ICONS['hair-sop']; ICONS['pg-cap'] = CAP; ICONS['pg-chat'] = ICONS.suggestions;
   ICONS['pg-trend'] = ICONS['my-numbers']; ICONS['pg-book'] = ICONS['full-loop']; ICONS['pg-cal'] = ICONS.marketing;
   ICONS['pg-doc'] = ICONS['hr-forms'];
+  ICONS['card-links'] = ICONS['pg-card'];
   // First match on "title | chapter" wins, so the specific kinds come first. Checked
   // against all 234 pages on 6 Oct 2026: every page gets one; the section's icon is the
   // fallback for a page that matches nothing.
