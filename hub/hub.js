@@ -109,6 +109,7 @@
     { v: '3', label: 'Level 3 · Executives & Marketing' },
     { v: '2', label: 'Level 2 · Leadership' },
     { v: '1|Front Desk', label: 'Level 1 · Team, Front Desk' },
+    { v: '1|Call Centre', label: 'Level 1 · Team, Call Centre' },
     { v: '1|Hair', label: 'Level 1 · Team, Hair' },
     { v: '1|Beauty', label: 'Level 1 · Team, Beauty' }
   ];
