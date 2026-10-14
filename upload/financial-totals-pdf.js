@@ -296,7 +296,8 @@ function ftIsClosed(row){
 let ftPdfQueue = [];
 
 const FT_BACKFILL_START = '2025-01-01';        // mirrors SP_BACKFILL_START
-const FT_BRANCH_END = { FRT: '2026-05-22' };   // Fratelli closed; same date the other feeds use
+const FT_BRANCH_START = { MRY: '2021-07-01' }; // Marasy's own range, mirrors SP_BRANCHES
+const FT_BRANCH_END = { FRT: '2026-05-22', MRY: '2022-12-24' };   // Fratelli closed, Marasy's data ends; same dates the other feeds use
 const FT_PAGE_SIZE = 1000;
 
 // Phorest's own exported filenames don't match our branch labels 1:1, so the
@@ -430,7 +431,7 @@ async function refreshFinProgress(){
   spProgBeginBatch();
   let html = '';
   for (const code of BRANCH_KEYS){
-    const days = spGetBackfillDays(FT_BACKFILL_START, FT_BRANCH_END[code]);
+    const days = spGetBackfillDays(FT_BRANCH_START[code] || FT_BACKFILL_START, FT_BRANCH_END[code]);
     html += spRenderBackfillStrips(BRANCHES[code].name, days, covered, d => `${code}|${spIsoDate(d)}`);
   }
   host.innerHTML = html;

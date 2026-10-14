@@ -13,6 +13,9 @@ const SP_BRANCHES = [
   { code: 'MC',  label: 'Motor City' },
   { code: 'AQ',  label: 'Al Quoz' },
   { code: 'FRT', label: 'Fratelli', end: '2026-05-22' },
+  // Marasy (Kate, 14 Oct 2026): Phorest data only runs 1 Jul 2021 to 24 Dec 2022, so it gets its own range like Fratelli
+  // rather than 2025 onwards, which would paint it as one long gap.
+  { code: 'MRY', label: 'Marasy', start: '2021-07-01', end: '2022-12-24' },
 ];
 // Opened to 2025 so last year's Phorest PDFs land in the same backfill grid.
 // Browse defaults to THIS MONTH, not 1 Jan: the year is ~7,900 rows to fetch and
@@ -62,7 +65,7 @@ function spSplitBlocks(lines){
 // match), but a DIFFERENT branch's marker showing up in the header is reliable
 // evidence of a mixed-up paste box or misnamed PDF — that's what let three days
 // of Saadiyat and Motor City reports swap places silently on 10 Aug 2026.
-const SP_BRANCH_MARKERS = { SAA: 'branch 2', KCA: 'llc-spc', MC: 'motor city', AQ: 'al quoz', FRT: 'fratelli' };
+const SP_BRANCH_MARKERS = { SAA: 'branch 2', KCA: 'llc-spc', MC: 'motor city', AQ: 'al quoz', FRT: 'fratelli', MRY: 'branch 1' };   // Marasy's header reads "... Branch 1" (Saadiyat's is "Branch 2")
 
 function spDetectMarkerBranch(text){
   const t = (text || '').toLowerCase();

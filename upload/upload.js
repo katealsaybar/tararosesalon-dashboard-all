@@ -8,10 +8,13 @@ const BRANCHES = {
   MC: { name:'Motor City',   sub:'MC',          color:'#99F6E4' },
   AQ: { name:'Al Quoz',      sub:'AQ',          color:'#FF9B9B' },
   FRT:{ name:'Fratelli',     sub:'Barber Shop', color:'#EEF3C7' },
+  // Kate, 14 Oct 2026: Marasy, a former branch. Historical only, like Fratelli: its Phorest reports run 1 Jul 2021 to
+  // 24 Dec 2022 (the closing date itself is unproven, so the label says what the data covers, not "closed").
+  MRY:{ name:'Marasy',       sub:'Phorest data to 24 Dec 2022', color:'#A5D8FF' },
 };
 const BRANCH_KEYS = Object.keys(BRANCHES);
 const BRANCH_DETECT = {
-  KCA:['kca','khalifa'], SAA:['saa','saadiyat'], MC:['mc','motor'], AQ:['aq','ladies','quoz'], FRT:['frt','fratelli','barber'],
+  KCA:['kca','khalifa'], SAA:['saa','saadiyat'], MC:['mc','motor'], AQ:['aq','ladies','quoz'], FRT:['frt','fratelli','barber'], MRY:['mry','marasy'],
 };
 const DAY_SHEETS = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'];
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];

@@ -385,7 +385,8 @@ function initUtilPdfDrop(){
 // a single date column.
 
 const UTIL_BACKFILL_START = '2025-01-01'; // mirrors SP_BACKFILL_START, opened to 2025 (Kate, 2026-09-03)
-const UTIL_BRANCH_END = { FRT: '2026-05-22' }; // mirrors SP_BRANCHES' Fratelli end date
+const UTIL_BRANCH_START = { MRY: '2021-07-01' }; // Marasy's own range, mirrors SP_BRANCHES
+const UTIL_BRANCH_END = { FRT: '2026-05-22', MRY: '2022-12-24' }; // mirrors SP_BRANCHES' Fratelli and Marasy end dates
 
 function utilCoveredDaySet(rows){
   const covered = new Set();
@@ -432,7 +433,7 @@ async function refreshUtilProgress(){
   spProgBeginBatch();
   let html = '';
   for (const code of BRANCH_KEYS){
-    const days = spGetBackfillDays(UTIL_BACKFILL_START, UTIL_BRANCH_END[code]);
+    const days = spGetBackfillDays(UTIL_BRANCH_START[code] || UTIL_BACKFILL_START, UTIL_BRANCH_END[code]);
     html += spRenderBackfillStrips(BRANCHES[code].name, days, covered, d => `${code}|${spIsoDate(d)}`);
   }
   host.innerHTML = html;
