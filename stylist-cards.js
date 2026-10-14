@@ -9,8 +9,8 @@
 // drift from the artwork, and the artwork is what the client sees.
 //
 // It is also the roster of who has a card at all - dashboard.js shows the embed only
-// for a name that appears here. Its 46 keys are exactly the 46 files in
-// assets/stylist-cards/. Vicki's and Andrea's cards joined on 2026-10-13 (single-page updates).
+// for a name that appears here. Its 47 keys are exactly the 47 files in
+// assets/stylist-cards/. Vicki's, Andrea's and Simon's cards joined on 2026-10-13/14 (single-page updates).
 // The beauty team joined on 2026-09-03, with a deck of their own; until then they
 // were in staff-profiles with no card, which is why that file says every field is
 // optional.
@@ -793,6 +793,27 @@ const STYLIST_CARDS = {
   "inMyChair": "Put the day down. I'll go gently, and I won't rush you.",
   "review": "Grace is truly exceptional. Her hands are incredibly soft and gentle, at some point I didn't even realize she was applying the strip. After trying other technicians elsewhere, I can confidently say I only want to book with her.",
   "reviewBy": "Tahane"
+ },
+ "SIMON": {
+  "role": "Senior Stylist",
+  "quote": "Great hair starts with understanding you, your style, and what makes you feel confident.",
+  "bio": "I'm a Syrian hairstylist with 23 years of experience in the hair industry and have been living in the UAE since 2006. I'm passionate about creating beautiful, personalised looks that suit each clients personality and style. I combine creativity, precision, and efficiency to deliver beautiful results while paying attention to every detail. Outside the salon, I'm a busy dad enjoying life with my twins.",
+  "specialises": [
+   "Blonde transformations",
+   "Balayage",
+   "Hair extensions"
+  ],
+  "bestFor": "Clients who want an experienced hairstylist who understands their needs, offers personalised advice, and delivers beautiful results with creativity, precision, and attention to detail.",
+  "vibe": [
+   "Creative",
+   "Precise",
+   "Quick"
+  ],
+  "loveMeIf": "You want honest advice and a look that really suits you.",
+  "mattersMost": "You leaving the salon feeling confident.",
+  "inMyChair": "Relax, I'll work out the best way to get your look.",
+  "review": "WOW WOW WOW! All the 5 star reviews are 100% justified. I chose this salon and saw Semon after reading ENDLESS reviews online. I considered a lot of salons and none had reviews that compared. Then on the day of the appointment, Semon was incredible. I had an all over colour, cut and extensions. I wasn't entirely sure what colour or style I wanted, he helped me pick something that matched my features and desired look. He was patient yet decisive when I needed it! Usually an appointment like this takes NO LESS than 5 hours he was done in 3 (including the consult). I was pleasantly shocked! Most importantly, I love my hair. And am so glad to have found my new salon and stylist Semon in Dubai!!",
+  "reviewBy": "C Pior"
  },
  "ANDREA": {
   "role": "Stylist",
