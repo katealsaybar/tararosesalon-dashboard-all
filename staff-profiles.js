@@ -318,6 +318,9 @@ const STAFF_PROFILES = {
   // Black-and-white headshot, 375x435, in the grey beauty uniform she wears in her own feature in the Feb 2022
   // ROSES magazine (Drive: magazines > 2022); IG is her own studio account. Spelled Aryal everywhere (Kate first
   // typed Ayral).
+  // Emmalyn: former beautician, Motor City (377 days Nov 2022 to 24 Dec 2025; Saadiyat Oct 2022 to May 2023, a little
+  // Marasy and Khalifa City A in late 2022). Same black-and-white headshot card as the others (375x435); IG @emmalyn_trs.
+  'EMMALYN':  { photoFull: 'stylist/photos/MC/emmalyn daza.png', role: 'Beauty Team Member', branch: 'MC', ig: 'emmalyn_trs', resigned: true },
   'RITA':     { photoFull: 'stylist/photos/KCA/rita aryal.png', role: 'Beauty Team Member', branch: 'KCA', ig: 'radream_beautybrandstudio', resigned: true },
   // Kate, 14 Oct 2026: Jackie, former beautician (Beautician in Phorest, archived), IG nailsbyjackie.08 (nails).
   // The ledger only has Marasy (506 beauty rows Jan 2021 to May 2022), which is closed and has no Team Roster
