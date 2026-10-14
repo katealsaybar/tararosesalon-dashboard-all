@@ -164,7 +164,11 @@ function otyCss() {
   .oty .oty-bars{display:flex;align-items:flex-end;justify-content:center;gap:clamp(2px,.6vw,7px);height:var(--H)}
   .oty .oty-bar{flex:1 1 0;max-width:46px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;cursor:pointer;outline:none;position:relative}
   .oty .oty-bar .vl{font-size:clamp(8px,.85vw,10.5px);color:var(--muted);font-variant-numeric:tabular-nums;margin-bottom:4px;white-space:nowrap}
-  .oty .oty-bar .b{width:100%;border-radius:5px 5px 0 0;transition:filter .12s}
+  .oty .oty-bar .b{width:100%;border-radius:5px 5px 0 0;transition:filter .12s;position:relative}
+  .oty .mo-hm .mo-c.mry{box-shadow:inset 0 -3px 0 #A5D8FF}
+  .oty .mo-hm .mo-c.brk{outline:2px dashed #3f8fd2;outline-offset:-3px}
+  .oty .oty-bar .b .mseg{position:absolute;left:0;right:0;top:0;background:#A5D8FF;border-radius:5px 5px 0 0;min-height:3px}
+  .oty .oty-mdot{display:inline-block;width:9px;height:9px;border-radius:2px;background:#A5D8FF;margin-right:5px;vertical-align:-1px}
   .oty .oty-bar:hover .b,.oty .oty-bar:focus-visible .b,.oty .oty-bar.sel .b{filter:brightness(1.15);box-shadow:0 0 0 2px var(--text)}
   .oty .oty-bar.cur .vl{color:var(--text);font-weight:700}
   .oty .oty-bar.part .b{background-image:repeating-linear-gradient(135deg,rgba(45,46,55,.62) 0 4px,transparent 4px 9px)}
@@ -558,17 +562,21 @@ function otyTable(rows) {
 //    gets a bar when every branch of the region traded it: one branch against two is not like for like, so it says
 //    "1 of 2 open" instead (Dubai before Al Quoz opened in Sep 2023).
 //  - A season still running is set against the same days of last year (tot_w, days_w), not all of last year's season.
-const OTY_REGION = { AD: ['SAA', 'KCA'], DXB: ['MC', 'AQ'] };
-const OTY_REGION_NAME = { AD: 'Abu Dhabi', DXB: 'Dubai' };
+// Kate, 14 Oct 2026: Marasy in season on season. Abu Dhabi stays Saadiyat + Khalifa City A (the like-for-like line). "Abu Dhabi + Marasy" (the Saadiyat, Khalifa City A and Marasy chips ticked together) adds Marasy for the seasons it traded (2021 and 2022) and nothing from 2023, so a bar that loses a branch is marked, not
+// read as a fall; Marasy's share is the sky-blue segment on the bar. The Marasy chip alone shows its two years. In any mix
+// that includes Marasy it is the optional branch, so it never makes a season "1 of 3 open".
+const OTY_REGION = { AD: ['SAA', 'KCA'], ADM: ['SAA', 'KCA', 'MRY'], DXB: ['MC', 'AQ'] };
+const OTY_REGION_NAME = { AD: 'Abu Dhabi', ADM: 'Abu Dhabi + Marasy', DXB: 'Dubai' };
+const OTY_REGION_OPT = { ADM: ['MRY'] };
 // Kate, 14 Oct 2026: the Season on season and Month by month sections no longer have their own Where pills. They follow the
 // Branch chips at the top of the page: UAE Branches = the four open salons together (Abu Dhabi and Dubai side by side on the
 // season chart), one chip = that salon, a pair that is exactly Abu Dhabi or Dubai = that region, any other mix = those added
-// together. They cover the four open salons only (the monthly feed has no closed branches), so Fratelli or Marasy on their own
-// say so instead.
+// together. They cover the four open salons; Marasy joins them only when it is ticked (alone, or with Saadiyat + Khalifa City A for
+// Abu Dhabi + Marasy, or as the optional extra in any other mix), and Fratelli on its own says so instead.
 function otyOpenCodes(have) {
   const all = typeof sel === 'undefined' || !sel.branch || sel.branch.includes('all');
   const pick = all ? have.slice() : OTY_BR.filter(b => sel.branch.includes(b) && have.includes(b));
-  return { all, codes: pick.filter(b => !OTY_HIST.includes(b)) };
+  return { all, codes: pick.filter(b => b !== 'FRT' && (!all || !OTY_HIST.includes(b))) };   // ticked Marasy stays in; UAE Branches means the four open salons
 }
 function otyRegionKey(M, codes, all, allKey) {
   if (!codes.length) return null;
@@ -578,9 +586,10 @@ function otyRegionKey(M, codes, all, allKey) {
   if (codes.length === 1 && M.regions[codes[0]]) return codes[0];
   const key = 'SEL:' + codes.join('+');
   M.regions[key] = codes.slice(); OTY_REGION_NAME[key] = codes.map(b => OTY_NAME[b]).join(' + ');
+  OTY_REGION_OPT[key] = codes.includes('MRY') && codes.length > 1 ? ['MRY'] : [];   // Marasy is the optional branch in any mix
   return key;
 }
-const otyOpenOnly = title => `<div class="oty-eb"><i style="background:var(--hair)"></i>${title}</div><div class="oty-card oty-flag oty-note">This section covers the four open salons. Pick one of them, or UAE Branches, at the top of the page.</div>`;
+const otyOpenOnly = title => `<div class="oty-eb"><i style="background:var(--hair)"></i>${title}</div><div class="oty-card oty-flag oty-note">This section covers the four open salons and Marasy. Pick one of them, or UAE Branches, at the top of the page.</div>`;
 const OTY_SEASON_COL = ['#FFD4D9', '#EEF3C7', '#C4B5FD', '#99F6E4'];
 const OTY_AGE = ['#99F6E4', '#C4B5FD', '#9a94c4', '#807cab', '#6d6a95', '#5d5a80'];
 const otyAge = y => OTY_AGE[Math.min(otyD.curYear - y, OTY_AGE.length - 1)];
@@ -594,34 +603,38 @@ function otySeasonModel() {
   const { years, cut, present, curYear } = otyD;
   const cal = (otyRaw.seasons || []), br = (otyRaw.season_br || []);
   const names = [...new Set(cal.slice().sort((a, b) => a.sort - b.sort).map(r => r.season))];
-  const vis = b => present.includes(b) && !OTY_HIST.includes(b);
+  const vis = (b, k) => present.includes(b) && (!OTY_HIST.includes(b) || (OTY_REGION_OPT[k] || []).includes(b));
   const regions = {};   // only the branches this login can see
-  for (const k of Object.keys(OTY_REGION)) { const bs = OTY_REGION[k].filter(vis); if (bs.length) regions[k] = bs; }
+  for (const k of Object.keys(OTY_REGION)) { const bs = OTY_REGION[k].filter(b => vis(b, k)); if (bs.length && (k !== 'ADM' || (bs.includes('MRY') && bs.length > 1))) regions[k] = bs; }
   OTY_BR.filter(b => vis(b)).forEach(b => { regions[b] = [b]; });
+  if (present.includes('MRY')) regions.MRY = ['MRY'];
   const dates = (nm, y) => cal.find(r => r.season === nm && r.y === y);
   const row = (b, nm, y) => br.find(r => r.b === b && r.season === nm && r.y === y && +r.tot > 0);
   // one season in one year for a set of branches: a bar, or why there is none
-  const cell = (bs, nm, y, win) => {
+  const cell = (bs, nm, y, win, opt = []) => {
     const d = dates(nm, y); if (!d) return null;
-    const rs = bs.map(b => row(b, nm, y)).filter(Boolean);
-    const out = { y, start_date: d.start_date, end_date: d.end_date, open: rs.length, of: bs.length, per: null, tot: null, days: 0 };
-    if (!rs.length) return out;
-    const days = Math.max(...rs.map(r => +r.days)), tot = rs.reduce((t, r) => t + +r.tot, 0);
-    if (rs.length === bs.length) { out.per = tot / days; out.tot = tot; out.days = days; }
-    else { out.partPer = tot / days; }
+    const need = bs.filter(b => !opt.includes(b)), main = need.map(b => row(b, nm, y)).filter(Boolean), mry = opt.includes('MRY') ? row('MRY', nm, y) : null;
+    const out = { y, start_date: d.start_date, end_date: d.end_date, open: main.length, of: need.length, per: null, tot: null, days: 0 };
+    if (!main.length) return out;
+    const days = Math.max(...main.map(r => +r.days)), tot = main.reduce((t, r) => t + +r.tot, 0);
+    if (main.length === need.length) {
+      out.per = tot / days; out.tot = tot; out.days = days;
+      if (mry) { out.mryPer = +mry.tot / +mry.days; out.mryDays = +mry.days; out.per += out.mryPer; out.tot += +mry.tot; }   // Marasy added per its own open days
+    } else { out.partPer = tot / days; }
     if (win) {   // the same days as the running season, in this year
-      const w = bs.map(b => row(b, nm, y)).filter(r => r && +r.days_w > 0);
-      if (w.length === bs.length) out.perW = w.reduce((t, r) => t + +r.tot_w, 0) / Math.max(...w.map(r => +r.days_w));
+      const w = need.map(b => row(b, nm, y)).filter(r => r && +r.days_w > 0);
+      if (w.length === need.length) out.perW = w.reduce((t, r) => t + +r.tot_w, 0) / Math.max(...w.map(r => +r.days_w));
     }
     return out;
   };
   const state = c => c.start_date > cut ? 'ahead' : c.end_date > cut ? 'live' : 'done';
   const build = key => {
-    const bs = regions[key];
+    const bs = regions[key], opt = OTY_REGION_OPT[key] || [], hist = key === 'MRY';
     return names.map(nm => {
-      const cells = years.map(y => cell(bs, nm, y, true)).filter(Boolean);
-      const cur = cells.find(c => c.y === curYear), prev = cells.find(c => c.y === curYear - 1);
-      const s = cur ? state(cur) : 'ahead';
+      let cells = years.map(y => cell(bs, nm, y, true, opt)).filter(Boolean);
+      if (hist) cells = cells.filter(c => c.per != null);   // Marasy: only the years it traded; its last year stands in for "this year"
+      const cur = hist ? cells[cells.length - 1] : cells.find(c => c.y === curYear), prev = cells.find(c => c.y === (cur ? cur.y : curYear) - 1);
+      const s = hist ? 'done' : cur ? state(cur) : 'ahead';
       const base = s === 'live' ? (prev && prev.perW) : (prev && prev.per);
       return { nm, cells, cur, state: s, chg: cur && cur.per != null && base ? (cur.per - base) / base * 100 : null, base };
     });
@@ -644,13 +657,15 @@ function otySeasons() {
   const last5 = years.slice(-5), isLast5 = shown.size === last5.length && last5.every(y => shown.has(y)), isAll = shown.size === years.length;
 
   const yrChips = years.map(y => `<button class="oty-chip" aria-pressed="${shown.has(y)}" onclick="otySeasonYear(${y})"><i style="background:${otyAge(y)}"></i>${y}</button>`).join('');
-  const hint = isLast5 ? `Showing ${last5[0]} to ${curYear}. Tap a year to add or remove it, or pick All years for the full range.`
+  const hint = OTY.sreg === 'MRY' ? 'Marasy traded 2021 and 2022 only, so those are the years shown; the year chips do not apply to it.' : isLast5 ? `Showing ${last5[0]} to ${curYear}. Tap a year to add or remove it, or pick All years for the full range.`
     : isAll ? `Showing every year from ${years[0]}.` : `Showing ${ys.join(', ')}. Tap a year to add or remove it.`;
   const charts = OTY.sreg === 'BOTH' ? otySeasonChart('AD', M, shown, 165) + otySeasonChart('DXB', M, shown, 165) : otySeasonChart(OTY.sreg, M, shown, 210);
   const dxb = OTY.sreg === 'DXB' || OTY.sreg === 'BOTH';
   const running = M.build(OTY.sreg === 'BOTH' ? 'AD' : OTY.sreg).find(s => s.state === 'live');
   const notes = (running ? `<p><b>${otyEsc(running.nm)} is still running</b> (${running.cur.days} of ${otySLen(running.cur)} days), so its ${curYear} bar is striped. The pill compares those ${running.cur.days} days with the same days of ${curYear - 1}, not with all of last year's season, so it is a fair read and can still move before the season closes.</p>` : '')
     + (dxb ? `<p><b>Dubai starts later.</b> Al Quoz opened in Sep 2023, so Autumn 2023 is the first season with both Dubai branches. A season where only some branches traded is marked "1 of 2 open" and left out of the bars, because one branch against two is not like for like.</p>` : '')
+    + ((OTY_REGION_OPT[OTY.sreg] || []).length ? `<p><b>Marasy is in this view</b> (Marasy ticked with other branches at the top of the page): it is added to the bars for 2021 and 2022 (the sky-blue part of the bar is Marasy's share, per its own open days). Its Phorest data stops on 24 Dec 2022, so from 2023 the bars are the other branches only: a step down at 2023 is Marasy leaving, not trade falling. The pill above each season compares this year with last year, where Marasy is not in either.</p>` : '')
+    + (OTY.sreg === 'MRY' ? `<p><b>Marasy</b> has Phorest data from 1 Jul 2021 to 24 Dec 2022. Summer 2021 is only July and August, so its bar is a part-season (the tip says how many days are held). The pill sets 2022 against 2021.</p>` : '')
     + `<p>Per open day, because the seasons run different lengths. The season list is one table (oty_seasons); the four here are a placeholder until Emma sets the real ones.</p>`;
   return `<div class="oty-eb"><i style="background:var(--hair)"></i>Season on season · per open day</div>
     <p class="oty-deck" style="font-size:clamp(14px,3.4vw,16px)">How each season is doing against the same season last year. Mint is this year, lavender last year.</p>
@@ -687,24 +702,26 @@ function otySeasonCal(M) {
 }
 
 function otySeasonChart(key, M, shown, H) {
-  const { years, curYear, cut } = otyD, seasons = M.build(key), yrs = years.filter(y => shown.has(y));
+  const { years, curYear, cut } = otyD, seasons = M.build(key), hist = key === 'MRY';
+  const yrs = hist ? years.filter(y => seasons.some(s => s.cells.some(c => c.y === y))) : years.filter(y => shown.has(y)), topY = hist ? yrs[yrs.length - 1] : curYear;
   const bs = M.regions[key], title = OTY_REGION_NAME[key] || OTY_NAME[key];
-  const vals = seasons.flatMap(s => s.cells.filter(c => shown.has(c.y) && c.per != null).map(c => c.per));
+  const vals = seasons.flatMap(s => s.cells.filter(c => (hist || shown.has(c.y)) && c.per != null).map(c => c.per));
   const raw = Math.max(...vals, 1) * 1.1, step = [1000, 2000, 2500, 5000, 10000, 20000, 50000].find(s => raw / s <= 5) || 50000;
   const MAXV = Math.max(step * 2, Math.ceil(raw / step) * step);
   const grid = Array.from({ length: MAXV / step + 1 }, (_, i) => i * step).map(v => `<div class="oty-gl" style="bottom:${v / MAXV * H}px"><span>${v ? (v / 1000) + 'k' : '0'}</span></div>`).join('');
   const groups = seasons.map(s => {
     const pill = s.chg == null ? `<span class="oty-dp flat">${s.state === 'ahead' ? 'not started' : 'n/a'}</span>`
       : `<span class="oty-dp ${Math.abs(s.chg) < .5 ? 'flat' : s.chg > 0 ? 'up' : 'dn'}">${s.chg > 0 ? '+' : ''}${s.chg.toFixed(1)}%</span>`;
-    const small = s.state === 'live' ? `${curYear} so far, vs same days of ${curYear - 1}` : s.state === 'ahead' ? 'opens ' + otyDay(s.cur.start_date) : `${curYear} vs ${curYear - 1}`;
-    const bars = s.cells.filter(c => shown.has(c.y)).map(c => {
-      const none = c.per == null, isCur = c.y === curYear, live = isCur && s.state === 'live';
+    const cy = hist && s.cur ? s.cur.y : curYear;
+    const small = s.state === 'live' ? `${curYear} so far, vs same days of ${curYear - 1}` : s.state === 'ahead' ? 'opens ' + otyDay(s.cur.start_date) : `${cy} vs ${cy - 1}`;
+    const bars = s.cells.filter(c => hist || shown.has(c.y)).map(c => {
+      const none = c.per == null, isCur = c.y === topY, live = isCur && s.state === 'live';
       const lab = none ? (c.open ? `${c.open} of ${c.of} open` : (c.start_date <= cut ? 'no data' : '')) : otyK(c.per);
-      return `<div class="oty-bar ${isCur ? 'cur' : ''} ${none ? 'void' : ''} ${live ? 'part' : ''}" tabindex="0" data-k="${key}" data-s="${otyEsc(s.nm)}" data-y="${c.y}"><span class="vl">${lab}</span><div class="b" style="height:${none ? 3 : Math.max(4, c.per / MAXV * H)}px;background:${otyAge(c.y)}"></div></div>`;
+      return `<div class="oty-bar ${isCur ? 'cur' : ''} ${none ? 'void' : ''} ${live ? 'part' : ''}" tabindex="0" data-k="${key}" data-s="${otyEsc(s.nm)}" data-y="${c.y}"><span class="vl">${lab}</span><div class="b" style="height:${none ? 3 : Math.max(4, c.per / MAXV * H)}px;background:${otyAge(c.y)}">${c.mryPer && !none ? `<i class="mseg" style="height:${(c.mryPer / c.per * 100).toFixed(1)}%"></i>` : ''}</div></div>`;
     }).join('');
     return `<div class="oty-grp"><div class="oty-delta">${pill}<small>${small}</small></div><div class="oty-bars" style="--H:${H}px">${bars}</div></div>`;
   }).join('');
-  const yrRow = M.names.map(() => `<div><div class="oty-yl">${yrs.map(y => `<span class="${y === curYear ? 'cur' : ''}">${yrs.length > 6 ? String(y).slice(2) : y}</span>`).join('')}</div></div>`).join('');
+  const yrRow = M.names.map(() => `<div><div class="oty-yl">${yrs.map(y => `<span class="${y === topY ? 'cur' : ''}">${yrs.length > 6 ? String(y).slice(2) : y}</span>`).join('')}</div></div>`).join('');
   // a season whose dates change year to year (Ramadan and Eid) says so; the exact dates are on each bar
   const moves = nm => { const rs = (otyRaw.seasons || []).filter(r => r.season === nm); return rs.some(r => r.start_date.slice(5) !== rs[0].start_date.slice(5) || r.end_date.slice(5) !== rs[0].end_date.slice(5)); };
   const names = M.names.map((nm, i) => { const s = seasons[i], r = s.cur;
@@ -740,10 +757,14 @@ function otySeasonTip(el, ev) {
     body = `<div class="v" style="font-size:14px">${c.start_date > cut ? 'Not started yet' : 'Not shown'}</div><div>${dates}</div>${why ? `<div style="margin-top:4px">${why}</div>` : ''}`;
   } else {
     const pr = cells.cells.find(x => x.y === y - 1), dd = pr && pr.per ? (c.per - pr.per) / pr.per * 100 : null;
+    const swap = (OTY_REGION_OPT[key] || []).length > 0 && pr && pr.per && !!c.mryPer !== !!pr.mryPer;   // Marasy is in one of the two years and not the other
     const chgTxt = (v, lab) => `<div>${lab}: <b class="${v >= 0 ? 'oty-up' : 'oty-dn'}">${v > 0 ? '+' : ''}${v.toFixed(1)}%</b></div>`;
+    const held = st === 'done' && c.days < L - 2;   // a part-season: the data starts or ends inside it (Marasy's Summer 2021)
     body = `<div class="v">${otyAed(c.per)} <small>per open day</small></div><div>${dates}</div>
-      <div>${st === 'live' ? `${c.days} of ${L} days so far` : `${L} days`} · season total <b>${(c.tot / 1e6).toFixed(2)}M</b>${st === 'live' ? ' so far' : ''}</div>
-      ${st === 'live' && y === curYear && cells.chg != null ? chgTxt(cells.chg, `vs the same ${c.days} days of ${y - 1}`) : dd == null ? '' : chgTxt(dd, `vs ${y - 1}`)}`;
+      <div>${st === 'live' ? `${c.days} of ${L} days so far` : held ? `${c.days} of ${L} days held` : `${L} days`} · season total <b>${(c.tot / 1e6).toFixed(2)}M</b>${st === 'live' ? ' so far' : ''}</div>
+      ${c.mryPer ? `<div><i class="oty-mdot"></i>Marasy is <b>${otyAed(c.mryPer)}</b> of that per open day (${c.mryDays} open days)</div>` : ''}
+      ${swap ? `<div style="margin-top:4px">Not like for like with ${y - 1}: Marasy is ${c.mryPer ? 'in this year and not in ' + (y - 1) : 'out from ' + y + ' (its data ends 24 Dec 2022)'}.</div>`
+        : st === 'live' && y === curYear && cells.chg != null ? chgTxt(cells.chg, `vs the same ${c.days} days of ${y - 1}`) : dd == null ? '' : chgTxt(dd, `vs ${y - 1}`)}`;
   }
   tt.innerHTML = head + body; tt.classList.add('on');
   const w = tt.offsetWidth, h = tt.offsetHeight, bx = el.getBoundingClientRect();
@@ -806,10 +827,13 @@ if (!window.__otySeasonBound) {
 //  - Ramadan and Eid come from oty_seasons (the season named Ramadan), so when Emma resets the season list the marks
 //    follow. A month with 10+ days of it gets a crescent.
 let otyMoRaw = null, otyMoErr = '', otyMoLoaded = false, otyMoM = null, otyMoMemo = {};
-const OTY_MO_REG = { AD: ['SAA', 'KCA'], DXB: ['MC', 'AQ'] };
+// Kate, 14 Oct 2026: Marasy in Month by month, same middle ground as season on season. "Abu Dhabi" stays Saadiyat + Khalifa City A.
+// "Abu Dhabi + Marasy" adds it for the months it traded (Jul 2021 to Dec 2022); in 2023 and after it is Saadiyat + Khalifa City A,
+// and a month where Marasy is in one year and not the other is marked, not read as a fall. "Marasy" alone shows its own two years.
+const OTY_MO_REG = { AD: ['SAA', 'KCA'], ADM: ['SAA', 'KCA', 'MRY'], DXB: ['MC', 'AQ'] };
 const OTY_MO_PAL = ['#99F6E4', '#C4B5FD', '#FFD4D9', '#EEF3C7', '#FF9B9B', '#9aa3c7'];
 const otyMoCol = y => OTY_MO_PAL[(otyD.curYear - y) % OTY_MO_PAL.length];
-const otyMoName = k => k === 'AD' ? 'Abu Dhabi' : k === 'DXB' ? 'Dubai' : k === 'ALL' ? 'All four' : OTY_NAME[k];
+const otyMoName = k => k === 'AD' ? 'Abu Dhabi' : k === 'ADM' ? 'Abu Dhabi + Marasy' : k === 'DXB' ? 'Dubai' : k === 'ALL' ? 'All four' : OTY_NAME[k];
 const otyMoMetName = { net: 'Net take', clients: 'Clients per staff', bill: 'Average bill per staff' };
 // the stat behind the index numbers, in words (the index is X.pd: per open day, except the average bill)
 const otyMoStatLine = X => X.met === 'bill' ? 'Average bill per staff' : `${otyMoMetName[X.met]} per open day`;
@@ -821,10 +845,11 @@ function otyMoModel() {
   const MO = {};
   (otyMoRaw.months || []).forEach(r => { const by = MO[r.b] || (MO[r.b] = {}), ym = by[r.y] || (by[r.y] = []); ym[r.m - 1] = r; });
   const have = Object.keys(MO), regions = {};
-  for (const k of Object.keys(OTY_MO_REG)) { const bs = OTY_MO_REG[k].filter(b => have.includes(b)); if (bs.length > 1) regions[k] = bs; }
+  for (const k of Object.keys(OTY_MO_REG)) { const bs = OTY_MO_REG[k].filter(b => have.includes(b)); if (bs.length > 1 && (k !== 'ADM' || bs.includes('MRY'))) regions[k] = bs; }
   const open = OTY_BR.filter(b => !OTY_HIST.includes(b) && have.includes(b));
   if (open.length > 1) regions.ALL = open;
   open.forEach(b => { regions[b] = [b]; });
+  if (have.includes('MRY')) regions.MRY = ['MRY'];
   otyMoMemo = {};
   return (otyMoM = { raw: otyMoRaw, MO, regions, cut: new Date(otyD.cut + 'T00:00:00') });
 }
@@ -832,11 +857,13 @@ const otyMoState = (M, y, m) => new Date(y, m, 1) > M.cut ? 'ahead' : new Date(y
 // one month in one year for a region: a figure, or why there is none (no takings held, or only some branches traded)
 function otyMoCell(M, reg, y, m) {
   const state = otyMoState(M, y, m); if (state === 'ahead') return { state, y, m };
-  const bs = M.regions[reg], rs = bs.map(b => M.MO[b] && M.MO[b][y] && M.MO[b][y][m]).filter(r => r && +r.net > 0 && (state === 'live' || +r.days >= 10));
-  const c = { state, y, m, open: rs.length, of: bs.length, dim: otyMoDim(y, m) };
+  const bs = M.regions[reg], opt = OTY_REGION_OPT[reg] || [], need = bs.filter(b => !opt.includes(b));
+  const rows = bs.map(b => [b, M.MO[b] && M.MO[b][y] && M.MO[b][y][m]]).filter(([, r]) => r && +r.net > 0 && (state === 'live' || +r.days >= 10));
+  const rs = rows.map(x => x[1]), got = rows.filter(([b]) => need.includes(b)).length;
+  const c = { state, y, m, open: got, of: need.length, dim: otyMoDim(y, m), mry: rows.some(([b]) => opt.includes(b)) };   // mry: Marasy is in this month's figure
   if (!rs.length) return c;
   c.days = Math.max(...rs.map(r => +r.days));
-  if (reg === 'ALL' || rs.length === bs.length) {
+  if (reg === 'ALL' || got === need.length) {
     c.tot = rs.reduce((t, r) => t + +r.net, 0);
     if (rs.every(r => +r.stf > 0)) { c.stf = rs.reduce((t, r) => t + +r.stf, 0); c.avg = c.tot / c.stf; }
   }
@@ -856,8 +883,10 @@ function otyMoCtx() {
   const M = otyMoModel(), keys = Object.keys(M.regions);
   const w = otyOpenCodes(Object.keys(M.MO)), mk = otyRegionKey(M, w.codes, w.all, M.regions.ALL ? 'ALL' : keys[0]);
   OTY.mreg = mk || (M.regions.AD ? 'AD' : keys[0]);
-  const reg = OTY.mreg, met = OTY.mmet, years = otyD.years, curYear = otyD.curYear, X = { M, reg, met, years, curYear, keys };
-  X.cell = (y, m) => { const row = otyMoCells(M, reg)[years.indexOf(y)]; return row ? row[m] : null; };
+  const all = otyD.years, reg = OTY.mreg, met = OTY.mmet;
+  const years = reg === 'MRY' ? all.filter(y => M.MO.MRY && M.MO.MRY[y]) : all, curYear = reg === 'MRY' ? years[years.length - 1] : otyD.curYear;   // Marasy alone: its own years, its last year standing in for "this year"
+  const X = { M, reg, met, years, curYear, keys };
+  X.cell = (y, m) => { const row = otyMoCells(M, reg)[all.indexOf(y)]; return row ? row[m] : null; };
   X.val = c => met === 'net' ? c.tot : met === 'clients' ? c.stf : c.avg;
   X.ok = c => !!c && c.state !== 'ahead' && X.val(c) != null;
   X.pd = c => met === 'bill' ? c.avg : X.val(c) / c.days;
@@ -886,7 +915,7 @@ function otyMoCtx() {
     const c = X.cell(y, m), p = y > years[0] ? X.cell(y - 1, m) : null;
     if (!X.ok(c)) return null; if (!X.ok(p)) return { none: true };
     const cur = X.val(c), prevW = met === 'bill' ? X.val(p) : X.val(p) / p.days * c.days, pct = (cur / prevW - 1) * 100;
-    return { cur, prevW, pct, diff: cur - prevW, big: Math.abs(pct) > 100 };
+    return { cur, prevW, pct, diff: cur - prevW, big: Math.abs(pct) > 100, brk: (OTY_REGION_OPT[reg] || []).length > 0 && !!c.mry !== !!p.mry };   // brk: Marasy is in one of the two months and not the other
   };
   // Kate, 14 Oct 2026: a Total at the end of each year's row (Actual and Change views). A year's total is the sum of its
   // finished months and only shows when every one of them has a figure, so a year with months left out says so ('·')
@@ -898,7 +927,7 @@ function otyMoCtx() {
   X.totChg = y => {
     if (y <= years[0] || X.tot(y) == null) return null;
     const B = X.mths(y), ks = B.map(m => X.cmp(y, m));
-    if (!ks.every(k => k && !k.none)) return null;
+    if (!ks.every(k => k && !k.none) || ks.some(k => k.brk)) return null;
     const cur = met === 'bill' ? X.sumOf(y, B) : ks.reduce((a, k) => a + k.cur, 0), prevW = met === 'bill' ? X.sumOf(y - 1, B) : ks.reduce((a, k) => a + k.prevW, 0), pct = (cur / prevW - 1) * 100;
     return { cur, prevW, pct, diff: cur - prevW, big: Math.abs(pct) > 100 };
   };
@@ -960,14 +989,14 @@ function otyMonths() {
         const msg = !c.open ? 'No takings held for this month.' : c.tot == null ? `Only ${c.open} of ${c.of} branches traded it, so it is left out.` : 'No per-staff figure held for this month.';
         g += `<div class="mo-c ${c.open ? 'part' : 'none'}" data-y="${y}" data-m="${m}">${c.open && c.tot == null ? c.open + '/' + c.of : '·'}</div>`; continue;
       }
-      let txt = '', bg = '', cls = 'mo-c' + (st === 'live' ? ' live' : '') + (sel.y === y && sel.m === m ? ' sel' : '');
+      let txt = '', bg = '', cls = 'mo-c' + (st === 'live' ? ' live' : '') + (sel.y === y && sel.m === m ? ' sel' : '') + (c.mry ? ' mry' : '');
       const x = ix && ix[m];
       if (v === 'index') { txt = Math.round(x); bg = otyMoHeat(x - 100, 35); if (S.peak[y] === m) cls += ' pk'; if (S.low[y] === m) cls += ' lo'; }
       else if (v === 'act') { txt = X.fv(X.val(c)); bg = x != null ? otyMoHeat(x - 100, 35) : ''; }
       else {
         const k = X.cmp(y, m);
         if (k.none) { g += `<div class="mo-c none">·</div>`; continue; }
-        txt = k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%'; bg = k.big ? '' : otyMoHeat(k.pct, 25); if (X.llf(y, m)) cls += ' llf';
+        txt = k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%'; bg = k.big ? '' : otyMoHeat(k.pct, 25); if (X.llf(y, m)) cls += ' llf'; if (k.brk) cls += ' brk';
       }
       g += `<button class="${cls}" style="background-color:${bg}" data-y="${y}" data-m="${m}" onclick="otyMoSel(${y},${m})">${txt}${moon}</button>`;
     }
@@ -995,7 +1024,7 @@ function otyMonths() {
       <div class="oty-hint">${baseHint}</div>
       <div class="oty-pills" style="margin:18px 0 14px">${[['index', 'Shape (index)'], ['chg', 'Change on last year'], ['act', 'Actual']].map(([k, l]) => pill('mview', k, l)).join('')}</div>
       <div class="mo-scroll"><div class="mo-hm">${g}</div></div>
-      <div class="mo-legend">${legend}</div>
+      <div class="mo-legend">${legend}${(OTY_REGION_OPT[X.reg] || []).length ? '<span class="sw"><span class="box" style="border-bottom:3px solid #A5D8FF"></span>Marasy is in the figure</span><span class="sw"><span class="box" style="border:2px dashed #3f8fd2"></span>Marasy is in one of the two months and not the other: not like for like</span>' : ''}</div>
     </div>
     <div class="oty-card" id="otyMoDetail" style="margin-top:12px">${otyMoDetail(X, S, sel)}</div>`;
   const notes = `
@@ -1005,6 +1034,7 @@ function otyMonths() {
       <p><b>Striped cells</b> are the month still running. They are left out of every average, and the Change view reads them against the same number of open days last year.</p>
       <p><b>Growth inside a year</b> tilts the shape a little: a year that grows all the way through reads low in January and high in December. That is real, so it stays in. A single branch or one region is the cleanest read. All four is bent by branches opening part-way through the years.</p>
       <p><b>Totals</b> (Actual and Change views) add up the year's finished months, and only show when every one of them has a figure. ${curYear} is Jan to ${OTY_MON[Math.max(X.doneN - 1, 0)]}, set against the same months of ${curYear - 1} in the Change view.</p>
+      <p><b>Marasy</b> has Phorest data from 1 Jul 2021 to 24 Dec 2022 (the real closing date is not confirmed). Ticking <b>Saadiyat, Khalifa City A and Marasy</b> together (Abu Dhabi + Marasy, or Marasy with any other branches) adds it for those months only, so from 2023 the figure is the other branches alone. Shape (index) is fair across that change, because every year is set against its own average; Actual and Change are not, and the cells that cross it are marked with a dashed sky-blue edge, with no year total. The <b>Marasy</b> chip alone shows its own two years; 2021 has no shape because it starts in July.</p>
       <p><b>Figures from Phorest's daily totals,</b> refreshed hourly. Net take is net of VAT; clients and average bill are per staff, the page's default.</p>
     </div>`;
   // [id, rail label, html] per sub-section; otyDraw() turns each into its own section. The notes ride with the last one.
