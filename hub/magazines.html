@@ -67,8 +67,10 @@
     if (!f) return;
     var open = btn.dataset.act === 'open';
     var tab = open ? window.open('', '_blank') : null;   // opened on the click, so it isn't blocked
-    var was = btn.textContent;
-    btn.disabled = true; btn.textContent = 'Loading…';
+    // A cover button holds the cover picture, so it only dims; the text buttons say Loading….
+    var cover = btn.classList.contains('mg-cover'), was = btn.textContent;
+    btn.disabled = true;
+    if (cover) btn.style.opacity = '.55'; else btn.textContent = 'Loading…';
     try {
       var u = await blobUrl(f);
       if (tab) tab.location.href = u;
@@ -81,7 +83,8 @@
       if (tab) tab.close();
       alert('That issue couldn’t be loaded. Try again, or tell Kate.');
     }
-    btn.disabled = false; btn.textContent = was;
+    btn.disabled = false;
+    if (cover) btn.style.opacity = ''; else btn.textContent = was;
   }
 
   KB.ready.then(async function () {
