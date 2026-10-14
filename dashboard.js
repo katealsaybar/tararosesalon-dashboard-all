@@ -1502,7 +1502,8 @@ function refreshActiveView() {
 // (indexOf -1), so new roles must be added here or they float above Style Director:
 // Kim's "Senior Nail Technician" did exactly that for as long as this list still
 // said "Nail Art Expert", which is what her card called her one batch earlier.
-const STYLIST_ROLE_ORDER = ['Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist',
+// Creative Director first (14 Oct 2026: Callum and Paul Standenmay, Phorest's own category).
+const STYLIST_ROLE_ORDER = ['Creative Director', 'Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist',
   'Blow-Dry Specialist', 'Senior Beauty Therapist', 'Beauty Therapist',
   'Senior Nail Technician', 'Nail Technician', 'Assistant'];
 

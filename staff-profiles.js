@@ -243,11 +243,12 @@ const STAFF_PROFILES = {
   'NIMI':     { photoFull: 'stylist/photos/AQ/nimi firth.png', role: 'Style Director', branch: 'AQ', ig: 'nimistyles', resigned: true },
   // Kate, 14 Oct 2026: Motor City stylist, archived in Phorest (ledger rows from Mar 2024,
   // last hours worked 4 Feb 2025). Listed as "Cori Paul" on the dashboards; IG handle is corypaulhair.
-  'CORI':     { photoFull: 'stylist/photos/MC/cori paul.png', role: 'Stylist', branch: 'MC', ig: 'corypaulhair', resigned: true },
-  // Kate, 14 Oct 2026: brothers, both Al Quoz stylists (Jul 2023 to 1 Mar 2024, Motor City
-  // Jul to Sep 2023 first). Photos are her own cleaned-up headshots, 375x435.
-  'PAUL':     { photoFull: 'stylist/photos/AQ/paul standenmay.png', role: 'Stylist', branch: 'AQ', ig: 'paulstandenmay.colour', resigned: true },
-  'CALLUM':   { photoFull: 'stylist/photos/AQ/callum standenmay.png', role: 'Stylist', branch: 'AQ', ig: 'callumstandenmay', resigned: true },
+  'CORI':     { photoFull: 'stylist/photos/MC/cori paul.png', role: 'Senior Stylist', branch: 'MC', ig: 'corypaulhair', resigned: true },
+  // Kate, 14 Oct 2026: brothers, both Al Quoz (Jul 2023 to 1 Mar 2024, Motor City Jul to Sep 2023
+  // first). Title is Creative Director, Phorest's own category off the 14 Oct 2026 roster export (Kate:
+  // follow the roster). Photos are her own cleaned-up headshots, 375x435.
+  'PAUL':     { photoFull: 'stylist/photos/AQ/paul standenmay.png', role: 'Creative Director', branch: 'AQ', ig: 'paulstandenmay.colour', resigned: true },
+  'CALLUM':   { photoFull: 'stylist/photos/AQ/callum standenmay.png', role: 'Creative Director', branch: 'AQ', ig: 'callumstandenmay', resigned: true },
   // Kate, 14 Oct 2026: Motor City stylist Sep to Dec 2025 (91 daily rows), 7 Al Quoz cover
   // rows, archived in Phorest. Headshot is her own cleaned-up one, 375x435.
   'MARCELLA': { photoFull: 'stylist/photos/MC/marcella savicic.png', role: 'Stylist', branch: 'MC', ig: 'marcellastyleshairdxb', resigned: true },
@@ -257,7 +258,7 @@ const STAFF_PROFILES = {
   'DEMIAN':   { photoFull: 'stylist/photos/other/demian rakic.png', role: 'Barber', branch: 'other', ig: 'barber.demian', resigned: true },
   // Kate, 14 Oct 2026: Al Quoz stylist Mar to Sep 2024 (186 daily rows), also Motor City from Jul 2024 and
   // a week at Fratelli; archived in Phorest. Photo is his own black-and-white headshot, 375x435.
-  'EMIN':     { photoFull: 'stylist/photos/AQ/emin salamovic.png', role: 'Stylist', branch: 'AQ', ig: 'hairdoctoremin', resigned: true },
+  'EMIN':     { photoFull: 'stylist/photos/AQ/emin salamovic.png', role: 'Senior Stylist', branch: 'AQ', ig: 'hairdoctoremin', resigned: true },
   // Kate, 14 Oct 2026: Senior Stylist, Motor City Dec 2022 to Feb 2023 (one Khalifa City A day in Sep 2022),
   // archived in Phorest. Known on reviews as Triny. Photo is her own black-and-white headshot, 375x435.
   'CATRIN':   { photoFull: 'stylist/photos/MC/catrin birkby.png', role: 'Senior Stylist', branch: 'MC', ig: 'catrinhair.dxb', resigned: true },
@@ -272,13 +273,20 @@ const STAFF_PROFILES = {
   'ZOE':      { photoFull: 'stylist/photos/AQ/zoe hogkinson.png', role: 'Stylist', branch: 'AQ', resigned: true },
   // Harriet: Saadiyat Mar to Jun 2025 (one Khalifa City A day), archived in Phorest.
   'HARRIET':  { photoFull: 'stylist/photos/SAA/harriet shannon.png', role: 'Stylist', branch: 'SAA', resigned: true },
-  // Venus: Motor City Nov 2022 to Jan 2025 (683 daily rows).
-  'VENUS':    { photoFull: 'stylist/photos/MC/venus solomon.png', role: 'Stylist', branch: 'MC', resigned: true },
+  // Venus: Motor City Nov 2022 to Jan 2025 (683 daily rows). Junior Stylist per the roster export.
+  'VENUS':    { photoFull: 'stylist/photos/MC/venus solomon.png', role: 'Junior Stylist', branch: 'MC', resigned: true },
   // Oliver: Barber at Al Quoz, Dec 2025 to Jan 2026.
   'OLIVER':   { photoFull: 'stylist/photos/AQ/oliver green.png', role: 'Barber', branch: 'AQ', resigned: true },
   // Aboudi: Al Quoz Sep 2023 to Mar 2024 (136 daily rows). Title is Phorest's own category (3 Style Director,
   // DXB) off the 14 Oct 2026 roster export; the 9 Oct variants note said Stylist. Male placeholder, no ig.
   'ABOUDI':   { photoFull: 'stylist/photos/AQ/aboudi chatila.png', role: 'Style Director', branch: 'AQ', resigned: true },
+  // Jaime: Khalifa City A Stylist, Jun 2022 to Aug 2024 on the roster export (two daily ledger rows, Feb 2023).
+  // Female placeholder: Kate was not sure ('ata'), so swap the file if that is wrong. No ig.
+  'JAIME':    { photoFull: 'stylist/photos/KCA/jaime petzer.png', role: 'Stylist', branch: 'KCA', resigned: true },
+  // Josh: Stylist on the roster export, Al Quoz (archived 17 Mar 2026). His ledger rows are mostly Fratelli
+  // (44 days, Nov 2023 to Jan 2024) with 6 at Al Quoz; branch follows the roster because the Team Roster
+  // has no FRT group. Male placeholder, no ig.
+  'JOSH':     { photoFull: 'stylist/photos/AQ/josh thomas.png', role: 'Stylist', branch: 'AQ', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────

@@ -77,6 +77,8 @@ const STYLIST_SURNAMES = {
   "Reshel":    "Tagayuna",
   "Zoe":       "Hogkinson",
   "Aboudi":    "Chatila",
+  "Jaime":     "Petzer",
+  "Josh":      "Thomas",
   "Harriet":   "Shannon",
   "Venus":     "Solomon",
   "Callum":    "Standenmay",   // Phorest says Standemay; Kate, 14 Oct 2026: both are Standenmay
@@ -231,6 +233,8 @@ const STYLIST_PHOTOS = {
   "Venus":     "MC/venus solomon.png",
   "Oliver":    "AQ/oliver green.png",
   "Aboudi":    "AQ/aboudi chatila.png",
+  "Jaime":     "KCA/jaime petzer.png",
+  "Josh":      "AQ/josh thomas.png",
   "Cori":      "MC/cori paul.png",    // left, Stylist at Motor City (archived in Phorest) — Kate, 14 Oct 2026
 };
 
@@ -303,7 +307,7 @@ const STYLIST_IG = {
 // if she comes back (see Hazel Mae, who left this list when her 2nd-batch card and
 // STAFF_PROFILES entry came back, Sep 2026). Keys match STYLIST_PHOTOS spelling.
 const STYLIST_RESIGNED = new Set([
-  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi",
+  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi", "Jaime", "Josh",
 ]);
 function isResignedStylist(cleanName) {
   return STYLIST_RESIGNED.has(cleanName);

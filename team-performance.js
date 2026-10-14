@@ -122,7 +122,7 @@ function tpLeagueKey() { return tpLeagues().includes(tpSort) && !(TP_LEAGUES[tpS
 function tpLg() { return TP_LEAGUES[tpLeagueKey()]; }
 // The ladder, top first. Hair ladder is perf_benchmarks' level_order; beauty
 // roles follow. Roles come from staff-profiles.js; anyone without one goes last.
-const TP_LADDER = ['Owner', 'Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist', 'Blow-Dry Specialist', 'Barber',
+const TP_LADDER = ['Owner', 'Creative Director', 'Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist', 'Blow-Dry Specialist', 'Barber',
   'Senior Beauty Therapist', 'Senior Nail Technician', 'Beauty Therapist', 'Nail Technician', 'Beauty Team Member', 'Assistant'];
 // Kate, 25 Sep 2026: people on this page that staff-profiles.js does not place
 // (it also drives Staff Cards, where these four are not meant to appear). Keyed by
