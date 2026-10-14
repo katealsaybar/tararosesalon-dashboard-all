@@ -820,10 +820,11 @@ const STYLIST_CARDS = {
   "quote": "Crazy colors, bouncy blowouts and boy talk that never ends.",
   "bio": "Slowly beginning to believe myself a little more. Originally from Bombay, India with over 6 years of experience, and now beautifying hair in Dubai!",
   "specialises": [
-   "Cuts, colours (especially crazy colours & blondes)",
+   "Cuts, colours (especially crazy colours!)",
+   "Brunettes",
    "Bouncy blowouts"
   ],
-  "bestFor": "Customised home care routine Customising haircuts and colours around your lifestyle and the way u maintain it",
+  "bestFor": "a personalised home care routine Customised haircuts and colours around your lifestyle with the way you maintain it",
   "vibe": [
    "Enthusiastic",
    "Empathetic",
