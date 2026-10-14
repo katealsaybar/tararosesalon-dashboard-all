@@ -35,7 +35,7 @@ let ssCapWarning = false;
 // (Kate, 2026-09-04).
 const SS_BACKFILL_START = '2025-01-01';
 // Marasy (Kate, 14 Oct 2026): its ledger files run from Jan 2021 (Phorest only from Jul 2021) to 24 Dec 2022.
-const SS_BRANCH_START = { FRT: '2026-01-01', MRY: '2021-01-01' };
+const SS_BRANCH_START = { FRT: '2026-01-01', MRY: '2021-01-01', BAH: '2026-08-09' };   // Bahrain opened 9 Aug 2026
 const SS_BRANCH_END   = { FRT: '2026-05-22', MRY: '2022-12-24' };
 
 async function refreshSheetSyncProgress(){

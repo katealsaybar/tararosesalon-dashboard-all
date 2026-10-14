@@ -11,10 +11,13 @@ const BRANCHES = {
   // Kate, 14 Oct 2026: Marasy, a former branch. Historical only, like Fratelli: its Phorest reports run 1 Jul 2021 to
   // 24 Dec 2022 (the closing date itself is unproven, so the label says what the data covers, not "closed").
   MRY:{ name:'Marasy',       sub:'Phorest data to 24 Dec 2022', color:'#A5D8FF' },
+  // Kate, 14 Oct 2026: Bahrain (own Phorest business, account 115218, opened 9 Aug 2026, BHD, 10% VAT). It was missing from every
+  // tab. Shown for progress and Today strips; its reports load through the daily Bahrain run (own layout), so the save paths refuse it.
+  BAH:{ name:'Bahrain',      sub:'BHD, from 9 Aug 2026', color:'#FDE68A' },
 };
 const BRANCH_KEYS = Object.keys(BRANCHES);
 const BRANCH_DETECT = {
-  KCA:['kca','khalifa'], SAA:['saa','saadiyat'], MC:['mc','motor'], AQ:['aq','ladies','quoz'], FRT:['frt','fratelli','barber'], MRY:['mry','marasy'],
+  KCA:['kca','khalifa'], SAA:['saa','saadiyat'], MC:['mc','motor'], AQ:['aq','ladies','quoz'], FRT:['frt','fratelli','barber'], MRY:['mry','marasy'], BAH:['bah','bahrain'],
 };
 const DAY_SHEETS = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'];
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -802,6 +805,7 @@ async function uploadAllWeekly() {
   if (!weekLabel) { alert('Please enter a week label.'); return; }
   const toUpload = BRANCH_KEYS.filter(k => Array.isArray(fileSlots[k]) ? fileSlots[k].length > 0 : !!fileSlots[k]);
   if (!toUpload.length) { alert('Please add at least one XLSX file.'); return; }
+  if (toUpload.includes('BAH')) { alert('Bahrain ledgers are not loaded here (BHD, 10% VAT, its own template). Take the Bahrain file out and upload again.'); return; }
   document.getElementById('uploadWeeklyBtn').disabled = true;
   document.getElementById('uploadWeeklyBtn').textContent = 'Uploading...';
   const prog = document.getElementById('uploadProgress');
@@ -949,6 +953,7 @@ function extractWeekendTotals(wb, branchCode, dailyRows) {
 async function uploadAllDaily() {
   const toUpload = BRANCH_KEYS.filter(k => Array.isArray(fileSlotsDaily[k]) ? fileSlotsDaily[k].length > 0 : !!fileSlotsDaily[k]);
   if (!toUpload.length) { alert('Please add at least one XLSX file.'); return; }
+  if (toUpload.includes('BAH')) { alert('Bahrain ledgers are not loaded here (BHD, 10% VAT, its own template). Take the Bahrain file out and upload again.'); return; }
   const btn = document.getElementById('uploadDailyBtn');
   btn.disabled=true; btn.textContent='Uploading...';
   const prog = document.getElementById('uploadProgressDaily');

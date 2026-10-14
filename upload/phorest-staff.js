@@ -16,6 +16,8 @@ const SP_BRANCHES = [
   // Marasy (Kate, 14 Oct 2026): Phorest data only runs 1 Jul 2021 to 24 Dec 2022, so it gets its own range like Fratelli
   // rather than 2025 onwards, which would paint it as one long gap.
   { code: 'MRY', label: 'Marasy', start: '2021-07-01', end: '2022-12-24' },
+  // Bahrain (Kate, 14 Oct 2026): opened 9 Aug 2026, so the grids start there, not at 2025.
+  { code: 'BAH', label: 'Bahrain', start: '2026-08-09' },
 ];
 // Opened to 2025 so last year's Phorest PDFs land in the same backfill grid.
 // Browse defaults to THIS MONTH, not 1 Jan: the year is ~7,900 rows to fetch and
@@ -87,6 +89,9 @@ function spBranchLabel(code){
 }
 
 function spGuardBranchMismatch(headerText, branchCode){
+  // Bahrain's reports are BHD at 10% VAT with their own columns (no sale Id, Debit/Credit/Tap/BP), which these UAE parsers
+  // would misread. They load through the daily Bahrain run, so refuse here rather than save wrong numbers (Kate, 14 Oct 2026).
+  if (branchCode === 'BAH') throw new Error('Bahrain loads through the daily Bahrain run (BHD, its own layout), not this box. Skipped, nothing saved.');
   const markerBranch = spDetectMarkerBranch(headerText);
   if (markerBranch && branchCode && markerBranch !== branchCode){
     throw new Error(`This report's header says ${spBranchLabel(markerBranch)} but it is about to be saved as ${spBranchLabel(branchCode)} — wrong box or misnamed file. Skipped, nothing saved.`);

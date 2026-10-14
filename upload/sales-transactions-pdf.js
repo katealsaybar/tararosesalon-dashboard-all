@@ -360,7 +360,7 @@ function stxParseRows(rows, branchCode){
 let stxPdfQueue = [];
 
 const STX_BACKFILL_START = '2025-01-01';       // mirrors FT_BACKFILL_START
-const STX_BRANCH_START = { MRY: '2021-07-01' }; // Marasy's own range, mirrors SP_BRANCHES
+const STX_BRANCH_START = { MRY: '2021-07-01', BAH: '2026-08-09' }; // Marasy's own range, mirrors SP_BRANCHES
 const STX_BRANCH_END = { FRT: '2026-05-22', MRY: '2022-12-24' };  // Fratelli closed, Marasy's data ends; same dates the other feeds use
 const STX_PAGE_SIZE = 1000;
 
