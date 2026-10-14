@@ -286,14 +286,14 @@ const STAFF_PROFILES = {
   // the same person and the surname is Booth here; if Booth turns out to be someone else, restore Petzer and the template.
   // Nicole: former Saadiyat stylist (217 days May 2022 to Jan 2023, Motor City Nov 2022 to Feb 2023, a week at Marasy),
   // joined Saadiyat per the Jun-Jul 2022 ROSES feature (Dublin, over 7 years in hair). Kate, 14 Oct 2026: headshot and
-  // IG nicolesullivanhair, spelled Sullivan (the magazine does too; Phorest has O'sullivan). Role 'Stylist' is a default,
-  // the feature gives no title.
+  // IG nicolesullivanhair, spelled Sullivan (the magazine does too; Phorest has O'sullivan). Role is her Phorest category,
+  // 4 Stylist (TRS-staff-roster-all-branches-14Oct2026.xlsx).
   'NICOLE':   { photoFull: 'stylist/photos/SAA/nicole sullivan.png', role: 'Stylist', branch: 'SAA', ig: 'nicolesullivanhair', resigned: true },
   // Sahra: former Saadiyat stylist (182 days Aug 2022 to Feb 2023, then Motor City Feb to Jul 2023, 134 days; the ledger
   // has one week as SARAH in Aug 2022). Jun-Jul 2022 ROSES feature: joined Saadiyat, London, qualified over 10 years ago and
-  // restarting her career with Tara Rose. Kate, 14 Oct 2026: headshot and IG hairbyssg. Role 'Stylist' is a default,
-  // the feature gives no title.
-  'SAHRA':    { photoFull: 'stylist/photos/SAA/sahra sayed.png', role: 'Stylist', branch: 'SAA', ig: 'hairbyssg', resigned: true },
+  // restarting her career with Tara Rose. Kate, 14 Oct 2026: headshot and IG hairbyssg. Role is her Phorest category,
+  // 1 Junior Stylist (TRS-staff-roster-all-branches-14Oct2026.xlsx, archived at all three branches).
+  'SAHRA':    { photoFull: 'stylist/photos/SAA/sahra sayed.png', role: 'Junior Stylist', branch: 'SAA', ig: 'hairbyssg', resigned: true },
   'JAIME':    { photoFull: 'stylist/photos/KCA/jaime booth.png', role: 'Stylist', branch: 'KCA', ig: 'jetaime__hair', resigned: true },
   // Josh: Stylist on the roster export, Al Quoz (archived 17 Mar 2026). His ledger rows are mostly Fratelli
   // (44 days, Nov 2023 to Jan 2024) with 6 at Al Quoz; branch follows the roster because the Team Roster
@@ -330,9 +330,10 @@ const STAFF_PROFILES = {
   // Black-and-white headshot, 375x435, in the grey beauty uniform she wears in her own feature in the Feb 2022
   // ROSES magazine (Drive: magazines > 2022); IG is her own studio account. Spelled Aryal everywhere (Kate first
   // typed Ayral).
-  // Emmalyn: former beautician, Motor City (377 days Nov 2022 to 24 Dec 2025; Saadiyat Oct 2022 to May 2023, a little
-  // Marasy and Khalifa City A in late 2022). Same black-and-white headshot card as the others (375x435); IG @emmalyn_trs.
-  'EMMALYN':  { photoFull: 'stylist/photos/MC/emmalyn daza.png', role: 'Beauty Team Member', branch: 'MC', ig: 'emmalyn_trs', resigned: true },
+  // Emmalyn: Receptionist in Phorest (TRS-staff-roster-all-branches-14Oct2026.xlsx: added Sep 2021 at Saadiyat, archived
+  // at Motor City 7 Oct 2026). Her 'beauty' rows in the ledgers come from the template roster's Beauty slot, not from
+  // her Phorest position. Same black-and-white headshot card as the others (375x435); IG @emmalyn_trs.
+  'EMMALYN':  { photoFull: 'stylist/photos/MC/emmalyn daza.png', role: 'Receptionist', branch: 'MC', ig: 'emmalyn_trs', resigned: true },
   'RITA':     { photoFull: 'stylist/photos/KCA/rita aryal.png', role: 'Beauty Team Member', branch: 'KCA', ig: 'radream_beautybrandstudio', resigned: true },
   // Kate, 14 Oct 2026: Jackie, former beautician (Beautician in Phorest, archived), IG nailsbyjackie.08 (nails).
   // The ledger only has Marasy (506 beauty rows Jan 2021 to May 2022), which is closed and has no Team Roster
