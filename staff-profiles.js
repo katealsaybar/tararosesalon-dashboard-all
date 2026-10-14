@@ -284,6 +284,11 @@ const STAFF_PROFILES = {
   // Kate, 14 Oct 2026: real headshot and IG jetaime__hair, under the name Jaime Booth. The ledger has only one
   // Jaime/Jaimie/Jamie (KCA, Jun 2022 to Feb 2023, 240 daily rows) and the roster has no Booth, so this is taken as
   // the same person and the surname is Booth here; if Booth turns out to be someone else, restore Petzer and the template.
+  // Nicole: former Saadiyat stylist (217 days May 2022 to Jan 2023, Motor City Nov 2022 to Feb 2023, a week at Marasy),
+  // joined Saadiyat per the Jun-Jul 2022 ROSES feature (Dublin, over 7 years in hair). Kate, 14 Oct 2026: headshot and
+  // IG nicolesullivanhair, spelled Sullivan (the magazine does too; Phorest has O'sullivan). Role 'Stylist' is a default,
+  // the feature gives no title.
+  'NICOLE':   { photoFull: 'stylist/photos/SAA/nicole sullivan.png', role: 'Stylist', branch: 'SAA', ig: 'nicolesullivanhair', resigned: true },
   'JAIME':    { photoFull: 'stylist/photos/KCA/jaime booth.png', role: 'Stylist', branch: 'KCA', ig: 'jetaime__hair', resigned: true },
   // Josh: Stylist on the roster export, Al Quoz (archived 17 Mar 2026). His ledger rows are mostly Fratelli
   // (44 days, Nov 2023 to Jan 2024) with 6 at Al Quoz; branch follows the roster because the Team Roster
@@ -532,7 +537,7 @@ const STAFF_SURNAMES = {
   'MELLIZA':   'Ancajas',
   'MICHELLE':  'Alinea',
   'MIHAELA':   'Solomei',
-  'NICOLE':    'O\'sullivan',
+  'NICOLE':    'Sullivan',     // Kate, 14 Oct 2026: Sullivan (Phorest has O'sullivan), as in the Jun-Jul 2022 ROSES feature
   'NOEMI':     'Mallari',
   'PAUL':      'Standenmay',
   'RESHEL':    'Tagayuna',
