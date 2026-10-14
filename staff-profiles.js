@@ -258,6 +258,9 @@ const STAFF_PROFILES = {
   // Kate, 14 Oct 2026: Al Quoz stylist Mar to Sep 2024 (186 daily rows), also Motor City from Jul 2024 and
   // a week at Fratelli; archived in Phorest. Photo is his own black-and-white headshot, 375x435.
   'EMIN':     { photoFull: 'stylist/photos/AQ/emin salamovic.png', role: 'Stylist', branch: 'AQ', ig: 'hairdoctoremin', resigned: true },
+  // Kate, 14 Oct 2026: Senior Stylist, Motor City Dec 2022 to Feb 2023 (one Khalifa City A day in Sep 2022),
+  // archived in Phorest. Known on reviews as Triny. Photo is her own black-and-white headshot, 375x435.
+  'CATRIN':   { photoFull: 'stylist/photos/MC/catrin birkby.png', role: 'Senior Stylist', branch: 'MC', ig: 'catrinhair.dxb', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
