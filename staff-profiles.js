@@ -294,6 +294,16 @@ const STAFF_PROFILES = {
   'MICHELLE': { photoFull: 'stylist/photos/SAA/michelle alinea.png', role: 'Assistant', branch: 'SAA', ig: 'alinea.michelle', resigned: true },
   // Mihaela: Stylist at Al Quoz on the roster export (added 2 Oct 2023, archived 17 Mar 2026); ledger Oct 2023 to Mar 2024.
   'MIHAELA':  { photoFull: 'stylist/photos/AQ/mihaela solomei.png', role: 'Stylist', branch: 'AQ', ig: 'dare.to_hair', resigned: true },
+  // Kate, 14 Oct 2026: three former beauticians with no photo and no client-facing Instagram yet, so each
+  // carries the blank female line-art template (own file each, for the photo-path dedupe) and no `ig`. Role is
+  // 'Beauty Team Member', the former-team label Rovina, Roja and Stella use, so they land in Former Beauty Team
+  // (Phorest category: Beautician). Branch off the ledger's busiest one.
+  // Cecille: Khalifa City A, 694 daily rows Sep 2021 to Sep 2023 (a little Marasy and Saadiyat in 2022).
+  'CECILLE':  { photoFull: 'stylist/photos/KCA/cecille castilio.png', role: 'Beauty Team Member', branch: 'KCA', resigned: true },
+  // Maricel: Saadiyat, 1,027 daily rows May 2021 to Jun 2025 (also Khalifa City A, Marasy and Fratelli).
+  'MARICEL':  { photoFull: 'stylist/photos/SAA/maricel sape.png', role: 'Beauty Team Member', branch: 'SAA', resigned: true },
+  // Melliza: Khalifa City A, 911 daily rows Oct 2021 to May 2024 (Marasy before that).
+  'MELLIZA':  { photoFull: 'stylist/photos/KCA/melliza ancajas.png', role: 'Beauty Team Member', branch: 'KCA', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
