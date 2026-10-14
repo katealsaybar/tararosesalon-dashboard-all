@@ -33,7 +33,8 @@
 <!-- ROSES Magazine (Kate, 14 Oct 2026): the 2022 issues. The PDFs and covers live in the private
      Storage bucket kb-magazines (migrations/kb_magazines.sql), readable only by those who may open
      the magazines section (Level 2 and up); kb_files carries the paths. Nothing of them is in this
-     repo, which is public. Each click asks for a short-lived signed link. -->
+     repo, which is public. Covers use short-lived signed links; an issue is downloaded signed in and opened as a
+     blob of this page, so the address bar stays on this domain. -->
 <div class="wrap">
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
   <main id="kbMain"><p class="kb-msg">Loading…</p></main>
@@ -51,8 +52,16 @@
     main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
   }
   function size(b) { return b ? (b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.round(b / 1024) + ' KB') : ''; }
-  var BUCKET = 'kb-magazines', LINK_SECS = 3600, issues = [];
+  var BUCKET = 'kb-magazines', LINK_SECS = 3600, issues = [], blobs = {};
 
+  // Kate, 14 Oct 2026: "naka supabase pa rin eh". The issue is fetched here, signed in, and opened as a
+  // blob of this page, so the address bar says trk-salon-os.com (like HR Forms) and not supabase.co.
+  async function blobUrl(f) {
+    if (blobs[f.code]) return blobs[f.code];
+    var r = await KB.client.storage.from(BUCKET).download(f.path);
+    if (r.error || !r.data) throw new Error('not found');
+    return (blobs[f.code] = URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' })));
+  }
   async function act(btn) {
     var f = issues.filter(function (x) { return x.code === btn.dataset.code; })[0];
     if (!f) return;
@@ -61,12 +70,11 @@
     var was = btn.textContent;
     btn.disabled = true; btn.textContent = 'Loading…';
     try {
-      var r = await KB.client.storage.from(BUCKET).createSignedUrl(f.path, LINK_SECS, open ? undefined : { download: f.filename });
-      if (r.error || !r.data) throw new Error('no link');
-      if (tab) tab.location.href = r.data.signedUrl;
+      var u = await blobUrl(f);
+      if (tab) tab.location.href = u;
       else {
         var a = document.createElement('a');
-        a.href = r.data.signedUrl; a.download = f.filename;
+        a.href = u; a.download = f.filename;
         document.body.appendChild(a); a.click(); a.remove();
       }
     } catch (e) {
@@ -87,7 +95,7 @@
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       KB.titleIcon('magazines', 'ROSES Magazine') +
-      '<p class="kb-meta">' + issues.length + ' issues. Read one in your browser or download it. These are the 2022 issues, so prices and offers in them are from then.</p>' +
+      '<p class="kb-meta">' + issues.length + ' issues, ' + groups[groups.length - 1] + ' to ' + groups[0] + '. Read one in your browser or download it. Prices and offers in them are from when each issue came out.</p>' +
       groups.map(function (g) {
         return '<section class="kb-dept"><h2 class="kb-dept-h">' + esc(g) + '</h2><div style="padding:6px 20px 4px"><div class="mg-grid">' +
           by[g].map(function (f) {

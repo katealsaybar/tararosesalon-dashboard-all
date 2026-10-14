@@ -31,3 +31,9 @@ create policy kb_magazines_read on storage.objects for select to authenticated
 --   RM-02 Feb (07) 18 pp · RM-01 Jan (06) 18 pp
 -- To add an issue: compress the PDF (images to about 150 dpi), upload it and a 527x682 cover to the
 -- bucket (temporary anon insert policy on storage.objects, dropped right after), insert a kb_files row.
+
+-- 14 Oct 2026, later: 15 issues now. Added 2021 (Sep to Dec, issues 02-05) and 2023 (Jan-Feb, Mar-Apr, May-Jun; the print files
+-- had crop marks, cropped to the trim box). Newest group first: sort 1-3 = 2023, 10-80 = 2022, 100-130 = 2021. PDF titles in
+-- the file metadata are "ROSES Magazine, <months> <year>" (the old file names showed in the browser tab). The page opens an
+-- issue as a blob after a signed-in download, not by sending the browser to the supabase.co signed link. Codes for the new rows:
+-- RM-2023-0506, RM-2023-0304, RM-2023-0102, RM-2021-12, RM-2021-11, RM-2021-10, RM-2021-09. Bucket limit 30 MB (largest is 18 MB).
