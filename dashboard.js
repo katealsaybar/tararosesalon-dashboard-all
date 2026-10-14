@@ -163,8 +163,14 @@ function toGroupCurrency(rows) {
 }
 function syncCountry() {
   let want = isBahrainView() ? BH_BRANCHES : isGroupView() ? UAE_ACTIVE.concat(BH_BRANCHES) : UAE_ACTIVE;
-  // A closed branch (Fratelli, Marasy) is a live code only while it is picked.
-  if (!isBahrainView() && !isGroupView() && typeof sel !== 'undefined') want = want.concat(Object.keys(CLOSED_BRANCHES).filter(c => sel.branch.includes(c)));
+  // A closed branch (Fratelli, Marasy) is a live code while it is picked, and, on All Branches, whenever the window on screen touches
+  // its open days (Kate, 14 Oct 2026: "add MRY sa org pulse, everywhere applicable"). The totals already counted its rows; now
+  // every branch list, card and chart on the page names it too, so the parts add up to the total. The Ledgers pages read one
+  // ledger month, not the window, so there it is only live when picked.
+  if (!isBahrainView() && !isGroupView() && typeof sel !== 'undefined') {
+    const all = sel.branch.includes('all') && !(typeof LEDGER_VIEWS !== 'undefined' && LEDGER_VIEWS.has(CURRENT_VIEW));
+    want = want.concat(Object.keys(CLOSED_BRANCHES).filter(c => sel.branch.includes(c) || (all && closedOffered(c))));
+  }
   if (ACTIVE_BRANCHES.join() !== want.join()) ACTIVE_BRANCHES.splice(0, ACTIVE_BRANCHES.length, ...want);
 }
 // The currency every money figure is printed in: BHD on the Bahrain view.
