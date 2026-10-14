@@ -221,7 +221,7 @@ function whoGoCard(key) {
   const b = staffCardBranch(key);
   if (b && typeof isBahrainView === 'function' && typeof sel !== 'undefined') {
     const bah = BH_BRANCHES.includes(b);
-    if (bah !== isBahrainView() && (bah || !['other', 'other-beauty'].includes(b))) {
+    if (bah !== isBahrainView() && (bah || !['other', 'other-beauty', 'other-front-desk'].includes(b))) {
       if (typeof GROUP_MODE !== 'undefined') GROUP_MODE = false;
       sel.branch = bah ? [b] : ['all'];
       if (typeof pendingSel !== 'undefined') pendingSel.branch = [...sel.branch];

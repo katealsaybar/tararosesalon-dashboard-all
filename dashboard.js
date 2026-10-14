@@ -1807,13 +1807,17 @@ function stylistBranchGroups(bothCountries) {
   // role (role containing "Beauty" or "Nail") now lands in its own 'other-beauty'
   // bucket, rendered as "Former Beauty Team" right after "Former Stylists" instead
   // of being mixed into the hair team's former-staff grid.
+  // Kate, 14 Oct 2026: "Former Front Desk group" — a resigned receptionist or coordinator (role containing
+  // "Receptionist", "Front Desk" or "Coordinator", e.g. Emmalyn Daza) lands in its own 'other-front-desk' bucket,
+  // rendered as "Former Front Desk" after "Former Beauty Team", instead of under Former Stylists.
   const byBranch = new Map();
   people.forEach(([name, p]) => {
     const override = STAFF_STATUS_OVERRIDES && STAFF_STATUS_OVERRIDES.has(name)
       ? !!STAFF_STATUS_OVERRIDES.get(name) : p.resigned;
     let b;
     if (override) {
-      b = /Beauty|Nail/i.test(p.role || '') ? 'other-beauty' : 'other';
+      b = /Beauty|Nail/i.test(p.role || '') ? 'other-beauty'
+        : /Receptionist|Front Desk|Coordinator/i.test(p.role || '') ? 'other-front-desk' : 'other';
     } else {
       b = p.branch || 'other';
     }
@@ -1829,7 +1833,7 @@ function stylistBranchGroups(bothCountries) {
   });
 
   const order = bothCountries ? UAE_ACTIVE.concat(BH_BRANCHES) : ACTIVE_BRANCHES;
-  return [...order, 'other', 'other-beauty'].filter(b => byBranch.has(b)).map(b => ({
+  return [...order, 'other', 'other-beauty', 'other-front-desk'].filter(b => byBranch.has(b)).map(b => ({
     branch: b,
     colour: BRANCH_INFO[b]?.colorLight || BRANCH_INFO[b]?.color || 'var(--muted)',
     // Kate, 19 Sep 2026: "instead of 'other', say 'Former Stylists'" — the rail's
@@ -1837,7 +1841,7 @@ function stylistBranchGroups(bothCountries) {
     // BRANCH_INFO entry. Matches the section heading below it, which special-cases
     // the same string. 'other-beauty' gets the same treatment, 21 Sep 2026.
     label: BRANCH_INFO[b]?.name
-      || (b === 'other' ? 'Former Stylists' : b === 'other-beauty' ? 'Former Beauty Team' : b),
+      || (b === 'other' ? 'Former Stylists' : b === 'other-beauty' ? 'Former Beauty Team' : b === 'other-front-desk' ? 'Former Front Desk' : b),
     list: byBranch.get(b).sort((x, y) => {
       const d = STYLIST_ROLE_ORDER.indexOf(x.role) - STYLIST_ROLE_ORDER.indexOf(y.role);
       return d !== 0 ? d : x.name.localeCompare(y.name);
