@@ -43,7 +43,7 @@ const CODE_TO_BRANCH={KCA:"Khalifa City A, Abu Dhabi",SAA:"Saadiyat, Abu Dhabi",
 // Until the first message arrives it reads the last 90 days (the 1 Oct 2026 default:
 // "All time" averaged years of reviews and hid the recent trend; the official all-time
 // totals stay in their own table). range.from null means all time.
-const state = {branches:new Set(BRANCHES), range:null, stars:new Set(ALL), withText:true, noReply:false, withPhotos:false, q:"", sort:"new", staff:""};
+const state = {mry:false, branches:new Set(BRANCHES), range:null, stars:new Set(ALL), withText:true, noReply:false, withPhotos:false, q:"", sort:"new", staff:""};
 // With written comment only is on unless switched off (Kate, 12 Oct 2026: always wanted).
 // The Refine filters (rating, staff, comment, no reply, photos, search, sort) are kept per browser
 // (Kate, 12 Oct 2026: a hard refresh wiped them). The Branch and Period bar is the dashboard's and
@@ -478,15 +478,21 @@ function openPhoto(btn){
     box.style.cssText=`position:absolute;inset:auto 0 auto 0;top:${top}px;height:${Math.max(240,bot-top)}px`;}
   document.addEventListener("keydown",key); show(); document.body.appendChild(box); box.querySelector(".lb-x").focus({preventScroll:true});
 }
+// Marasy (Kate, 14 Oct 2026): a former branch whose Google reviews nobody can reach.
+function mryNote(){
+  return ` <b>Marasy</b> (a former branch) is not here: there is no access to its Google profile, and Phorest holds none either.`
+    + (state.mry ? (state.branches.size ? ` <b>⚠ Marasy is picked on the bar above, but it has no reviews to show, so what is listed is the other branches picked.</b>` : ` <b>⚠ Marasy is picked on the bar above, and it has no reviews to show.</b>`) : "");
+}
 function renderNote(){
   const n=R.length.toLocaleString(), el=document.getElementById("note");
-  if(!SYNC){ el.innerHTML=`<b>⚠ Offline copy: ${n} Google reviews as of 24 Sep 2026.</b> The live table couldn't be reached, so anything newer, and any reply posted since, is missing here.`; return; }
+  if(!SYNC){ el.innerHTML=`<b>⚠ Offline copy: ${n} Google reviews as of 24 Sep 2026.</b> The live table couldn't be reached, so anything newer, and any reply posted since, is missing here.`+mryNote(); return; }
   const when=new Date(SYNC.last).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"Asia/Dubai"});
   // Which salons Metricool keeps current (Kate, 6 Oct 2026): any with a matched review.
   const live=BRANCHES.filter(b=>SYNC.live.has(b)), off=BRANCHES.filter(b=>!SYNC.live.has(b)&&b!==CODE_TO_BRANCH.FRT).map(b=>SHORT[b]);
   el.innerHTML = !live.length
     ? `<b>✓ All ${n} Google reviews</b> across the 5 branches (plus closed Fratelli Barbershop), from the 24 Sep 2026 pull. Older reviews use Google Maps' approximate dates ("a year ago").`
     : `<b>✓ All ${n} Google reviews</b> across the 5 branches (plus closed Fratelli Barbershop). New reviews and replies come in nightly through Metricool, last ${when}.${off.length?` ${off.join(", ")} ${off.length>1?"are":"is"} still as of the 24 Sep 2026 pull, until connected in Metricool.`:""} Older reviews use Google Maps' approximate dates ("a year ago").`;
+  el.innerHTML += mryNote();
 }
 async function loadLive(){
   // photos: what the client attached on Google, read off Business Profile (google_review_photos, Kate, 5 Oct 2026).
@@ -594,7 +600,9 @@ if(window.parent!==window){
   function applyFilter(m){
     const picked=(m.codes||[]).map(c=>CODE_TO_BRANCH[c]).filter(Boolean);
     if(["KCA","SAA","AQ","MC","BAH"].every(c=>(m.codes||[]).includes(c))) picked.push(CODE_TO_BRANCH.FRT);
-    state.branches=picked.length ? new Set(picked) : new Set(BRANCHES);
+    // Marasy has no reviews here (Kate, 14 Oct 2026): picked alone it shows nothing, rather than falling back to every branch.
+    state.mry=(m.codes||[]).includes("MRY");
+    state.branches=picked.length ? new Set(picked) : (state.mry ? new Set() : new Set(BRANCHES));
     if(m.to) state.range={from:m.from||null,to:m.to,label:m.label||""};
     if(META) render();
   }

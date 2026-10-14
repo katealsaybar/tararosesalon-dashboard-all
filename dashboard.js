@@ -2275,6 +2275,11 @@ function mergeStaffMaps(ledgerMap, phorestMap) {
 // nails, brows and massage. Checked before any UAE source, for BAH rows only.
 const BH_STAFF_DEPT = { DAISY: 'hair', KERRYN: 'hair', FARWA: 'hair', CHARLENE: 'beauty', SIMI: 'beauty' };
 
+// Kate, 14 Oct 2026 ("catrin birkby beh"): the staff tables fold Phorest's names to the ledger's first-name convention
+// (Catrin Birkby is CATRIN), so a stylist with no profile, like Marasy's, lost her surname on the Wins cards. The full
+// Phorest name is kept here by that same key, filled in as the Phorest rows are read, and the cards read it back.
+const PHOREST_FULL_NAMES = {};
+const titleCaseName = t => String(t || '').toLowerCase().replace(/(^|[\s'’-])([a-z])/g, (m, a, b) => a + b.toUpperCase());
 function buildPhorestOnlyStaffMaps(phorestRows, ledgerDept) {
   const branchTotals = { services: 0, courses: 0, products: 0, days: 0 };
   const deptMap = (typeof buildStaffDeptMap === 'function') ? buildStaffDeptMap() : {};
@@ -2296,6 +2301,7 @@ function buildPhorestOnlyStaffMaps(phorestRows, ledgerDept) {
     if (!pk || LEDGER_NON_PERSON_NAMES.has(pk) || pk.indexOf('BUSINESS') === 0) return;
     const name = ledgerNameFor(pk);
     if (isLedgerAssistantName(name)) return;
+    if (pk.indexOf(' ') > 0) PHOREST_FULL_NAMES[staffMapKey(name)] = pk;
     // No weekly_data history for her (Sunitha, Kate 24 Sep 2026): fall back to the
     // profile's role, so a beauty therapist does not default into Hair.
     const prof = (typeof STAFF_PROFILES !== 'undefined') ? STAFF_PROFILES[staffMapKey(name)] : null;
@@ -3355,6 +3361,7 @@ function fnPhorestPerson(employeeName, branch, ledgerDept, deptMap) {
   }
   if (isLedgerAssistantName(name)) return null;
   const dk = staffMapKey(name);
+  if (pk.indexOf(' ') > 0) PHOREST_FULL_NAMES[dk] = pk;
   const prof = (typeof STAFF_PROFILES !== 'undefined') ? STAFF_PROFILES[dk] : null;
   const bhDept = (BRANCH_INFO[branch] && BRANCH_INFO[branch].country === 'BH') ? BH_STAFF_DEPT[dk] : null;
   const beauty = bhDept ? bhDept === 'beauty'
@@ -4682,12 +4689,17 @@ async function renderDashboard() {
     const name = (prof && prof.ig)
       ? `<a href="https://instagram.com/${encodeURIComponent(prof.ig)}" target="_blank" rel="noopener noreferrer" title="@${escapeHtml(prof.ig)} on Instagram">${nm}</a>`
       : nm;
-    // Outside the Instagram link, same convention as the stylist cards' sc-last.
-    const surname = prof && prof.last ? ` <span class="win-last">${escapeHtml(prof.last)}</span>` : '';
+    // Outside the Instagram link, same convention as the stylist cards' sc-last. No profile: the rest of her Phorest name.
+    const phFull = !prof ? PHOREST_FULL_NAMES[staffMapKey(w.p.name)] : null;
+    const surname = prof && prof.last ? ` <span class="win-last">${escapeHtml(prof.last)}</span>`
+      : (phFull && phFull.indexOf(' ') > 0 ? ` <span class="win-last">${escapeHtml(titleCaseName(phFull.slice(phFull.indexOf(' ') + 1)))}</span>` : '');
     // The branch comes from the profile or not at all. Falling back to the current
     // filter label printed "All Branches" under every beauty therapist, which reads
     // as a claim that they work at all four. No profile, no tag.
-    const tag = (prof && prof.branch)
+    // A closed branch picked on its own (Marasy 2022): every figure on the card was earned there, whatever branch she works at today.
+    const soloClosed = (typeof sel !== 'undefined' && sel.branch.length === 1 && CLOSED_BRANCHES[sel.branch[0]]) ? sel.branch[0] : null;
+    const tag = soloClosed ? BRANCH_INFO[soloClosed].name
+      : (prof && prof.branch)
       ? [prof.branch, ...(prof.alsoAt || [])]
           .map(c => BRANCH_INFO[c] ? BRANCH_INFO[c].name : c).join(' · ') : null;
     return `

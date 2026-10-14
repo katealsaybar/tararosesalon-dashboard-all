@@ -39,6 +39,8 @@ const OTY_BR = ['SAA', 'KCA', 'MC', 'AQ', 'FRT', 'MRY'];
 const OTY_NAME = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', FRT: 'Fratelli', MRY: 'Marasy' };
 const OTY_COL = { SAA: '#C4B5FD', KCA: '#FFD4D9', MC: '#99F6E4', AQ: '#FF9B9B', FRT: '#EEF3C7', MRY: '#A5D8FF' };
 const OTY_ORDER = ['ALL', 'LFL', 'SAA', 'KCA', 'MC', 'AQ', 'ALLF', 'FRT', 'MRY'];
+// Kate, 14 Oct 2026: nobody can reach Marasy's Google reviews (no access to its Google profile) and Phorest holds none either.
+const OTY_MRY_REV = "Marasy's Google reviews are not available: there is no access to its Google profile, and Phorest holds none either.";
 const OTY_HIST = ['FRT', 'MRY'];   // branches that are not open now, so out of All four
 // Kate, 14 Oct 2026: "gamitin na lang natin yung global sticky filters, nakakalito". The page's own Branches pills are gone;
 // the branch comes from the masthead Branch chips (sel.branch), like the Pulse. UAE Branches = every branch with figures,
@@ -1234,7 +1236,7 @@ function otyReviews() {
     const c = per.reduce((a, p) => a + p.v, 0), stars = c ? per.reduce((a, p) => a + p.v * p.s, 0) / c : 0;
     return { y, i, n: c, stars, per, partial: !same && y === curYear };
   });
-  if (!rows.some(r => r.n)) return `<div class="oty-eb"><i style="background:var(--warn)"></i>Reputation · Google reviews <span class="oty-uc">(UNDER CONSTRUCTION)</span></div><div class="oty-card oty-flag"><div class="oty-note">No Google reviews are held for ${otySetLabel(set)}.</div></div>`;
+  if (!rows.some(r => r.n)) return `<div class="oty-eb"><i style="background:var(--warn)"></i>Reputation · Google reviews <span class="oty-uc">(UNDER CONSTRUCTION)</span></div><div class="oty-card oty-flag"><div class="oty-note">No Google reviews are held for ${otySetLabel(set)}.${set.includes('MRY') ? ' ' + otyEsc(OTY_MRY_REV) : ''}</div></div>`;
   const { W, H, bmax } = otyCanvas(260), L = 34, R = 36, T = 24, B = 28, bw = (W - L - R) / n, bar = Math.min(bmax, bw * .62);
   const maxN = Math.max(250, Math.ceil(Math.max(...rows.map(r => r.n), 1) * 1.08 / 250) * 250), yb = v => T + (H - T - B) * (1 - v / maxN);
   const lo = 4.4, hi = 5.0, yl = v => T + (H - T - B) * (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo));
@@ -1259,7 +1261,7 @@ function otyReviews() {
     <div class="oty-card"><div class="oty-legend">${legend}</div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Google reviews by year, bars, with average stars as a line">${g}</svg>
     <div class="oty-read"><b>${otyD.curYear}</b> · ${same ? `1 Jan – ${otyCutLabel()}` : 'so far'}<div class="oty-ro"><span>Reviews <b>${a.n}</b></span><span>Average <b>${a.stars ? a.stars.toFixed(2) : '·'} stars</b></span><span>${otyD.curYear - 1}, same days <b>${n25}</b></span><span>${otyD.curYear - 1} average <b>${s25 ? s25.toFixed(2) : '·'}</b></span></div></div></div>
-    <div class="oty-card oty-flag" style="margin-top:10px"><div class="oty-note"><p><b>Check before reading ${d == null ? 'it' : d.toFixed(0) + '%'} as a drop.</b> ${n26} reviews so far in ${otyD.curYear} against ${n25} on the same days of ${otyD.curYear - 1}. A fall that steep may be the review sync, not the salons: new reviews are still pulled by hand while the Google approval is pending, and older dates are approximate ("2 years ago"), so the years are solid and the days are not.</p><p><b>The stars</b> are a review-weighted average of every review in the window, so a branch with more reviews counts for more.</p></div></div>`;
+    <div class="oty-card oty-flag" style="margin-top:10px"><div class="oty-note"><p><b>Check before reading ${d == null ? 'it' : d.toFixed(0) + '%'} as a drop.</b> ${n26} reviews so far in ${otyD.curYear} against ${n25} on the same days of ${otyD.curYear - 1}. A fall that steep may be the review sync, not the salons: new reviews are still pulled by hand while the Google approval is pending, and older dates are approximate ("2 years ago"), so the years are solid and the days are not.</p><p><b>The stars</b> are a review-weighted average of every review in the window, so a branch with more reviews counts for more.</p>${set.includes('MRY') ? `<p><b>Marasy is not in these figures.</b> ${otyEsc(OTY_MRY_REV)}</p>` : ''}</div></div>`;
 }
 
 // ── INSTAGRAM (UNDER CONSTRUCTION) ───────────────────────────────────────
@@ -1333,7 +1335,7 @@ function otyCoverage() {
   return `<div class="oty-eb"><i style="background:var(--good)"></i>What each year has behind it</div>
     <div class="oty-card"><div class="oty-cov" style="grid-template-columns:${tpl}"><span></span>${years.map(y => `<span style="text-align:center">${String(y).slice(2)}</span>`).join('')}
     ${rows.map(([l, a]) => `<span class="l">${l}</span>${a.map(c => `<span class="c ${c === 2 ? 'part' : c ? 'ok' : ''}"></span>`).join('')}`).join('')}</div>
-    <p class="oty-note" style="margin:12px 0 0">Green is complete. Yellow is there but with a caveat: Google review dates are approximate before 2026, Instagram only exists from 2025 and builds up through the year, and a ledger year is yellow when it holds under 85% of the days Phorest does. Net take, per-staff clients, average bill and visits go back to 2021, from Phorest. Hair against beauty, rebooking, requests and per-staff counts need the ledger, which ${ledFrom ? `starts in ${ledFrom}` : 'is not in yet'}, so those measures would show a dash before then.</p></div>`;
+    <p class="oty-note" style="margin:12px 0 0">Green is complete. Yellow is there but with a caveat: Google review dates are approximate before 2026, Instagram only exists from 2025 and builds up through the year, and a ledger year is yellow when it holds under 85% of the days Phorest does. Net take, per-staff clients, average bill and visits go back to 2021, from Phorest. Hair against beauty, rebooking, requests and per-staff counts need the ledger, which ${ledFrom ? `starts in ${ledFrom}` : 'is not in yet'}, so those measures would show a dash before then. ${otyEsc(OTY_MRY_REV)}</p></div>`;
 }
 function otyNotes() {
   return `<div class="oty-eb"><i style="background:var(--accent)"></i>How to read this page</div>
