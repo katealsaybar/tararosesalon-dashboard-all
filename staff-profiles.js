@@ -241,6 +241,9 @@ const STAFF_PROFILES = {
   // Kate, 14 Oct 2026: Style Director at Al Quoz, Nov 2023 to Jan 2025 (Motor City
   // briefly), archived in Phorest. Photo from her own Canva headshot, 375x435.
   'NIMI':     { photoFull: 'stylist/photos/AQ/nimi firth.png', role: 'Style Director', branch: 'AQ', ig: 'nimistyles', resigned: true },
+  // Kate, 14 Oct 2026: Motor City stylist, archived in Phorest (ledger rows from Mar 2024,
+  // last hours worked 4 Feb 2025). Listed as "Cori Paul" on the dashboards; IG handle is corypaulhair.
+  'CORI':     { photoFull: 'stylist/photos/MC/cori paul.png', role: 'Stylist', branch: 'MC', ig: 'corypaulhair', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
