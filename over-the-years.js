@@ -32,7 +32,9 @@ function otySave() { try { localStorage.setItem(OTY_STORE, JSON.stringify({ b: O
 
 // Kate, 14 Oct 2026: Marasy (MRY), a former branch with Phorest daily totals and per-staff counts from 1 Jul 2021 to 24 Dec
 // 2022 (the real closing date is unproven, so it is "data to", not "closed"). It has its own chip and is never part of All
-// four, Like for like or All + Fratelli. Its chip always reads whole years, since "same days of this year" means nothing for it.
+// four or Like for like, but it is in All + closed (with Fratelli), so the group's whole history adds up. Its own chip always reads
+// whole years, since "same days of this year" means nothing for it. Marasy has no sales lines, so per-visit figures drop out of any
+// year it is part of rather than dividing its takings by visits it does not have.
 const OTY_BR = ['SAA', 'KCA', 'MC', 'AQ', 'FRT', 'MRY'];
 const OTY_NAME = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', FRT: 'Fratelli', MRY: 'Marasy' };
 const OTY_COL = { SAA: '#C4B5FD', KCA: '#FFD4D9', MC: '#99F6E4', AQ: '#FF9B9B', FRT: '#EEF3C7', MRY: '#A5D8FF' };
@@ -260,10 +262,10 @@ function otyBuild(raw, ig) {
   const sets = { ALL: open };
   if (present.includes('SAA') && present.includes('KCA')) sets.LFL = ['SAA', 'KCA'];
   present.forEach(b => { sets[b] = [b]; });
-  if (present.includes('FRT') && open.length) sets.ALLF = present.filter(b => b !== 'MRY');
+  if (present.some(b => OTY_HIST.includes(b)) && open.length) sets.ALLF = present.slice();
   return { years, D, present, sets, cut: raw.cut, curYear: new Date(raw.cut + 'T00:00:00').getFullYear(), ig };
 }
-const otySetName = k => k === 'ALL' ? 'All four branches' : k === 'LFL' ? 'Saadiyat + Khalifa City A' : k === 'ALLF' ? 'All four + Fratelli' : k === 'FRT' ? 'Fratelli (closed 22 May 2026)' : k === 'MRY' ? 'Marasy (Phorest data to 24 Dec 2022)' : OTY_NAME[k] || k;
+const otySetName = k => k === 'ALL' ? 'All four branches' : k === 'LFL' ? 'Saadiyat + Khalifa City A' : k === 'ALLF' ? 'All four + Fratelli + Marasy' : k === 'FRT' ? 'Fratelli (closed 22 May 2026)' : k === 'MRY' ? 'Marasy (Phorest data to 24 Dec 2022)' : OTY_NAME[k] || k;
 const otyCutLabel = () => otyDay(otyD.cut);
 
 async function otyLoad(force) {
@@ -310,7 +312,8 @@ function otyRows() {
   const set = sets[OTY.b] || sets.ALL, same = otySame();
   return years.map((y, i) => {
     const w = same ? 'ytd' : 'full', partial = !same && !otyHist() && y === curYear;
-    const net = otySum(set, 'net', w, i), vis = otySum(set, 'vis', w, i), stf = otySum(set, 'stf', w, i);
+    const net = otySum(set, 'net', w, i), stf = otySum(set, 'stf', w, i);
+    const vis = set.includes('MRY') && D.MRY.net[w][i] > 0 ? 0 : otySum(set, 'vis', w, i);   // Marasy has no sales lines
     // Growth follows the toggle: whole year on whole year, except the year in progress, which can only be read on the same days.
     const gw = same || partial ? 'ytd' : 'full';
     const netY = otySum(set, 'net', gw, i), netP = i ? otySum(set, 'net', gw, i - 1) : 0;
@@ -377,7 +380,7 @@ function otyDraw() {
 }
 function otyControls() {
   const keys = OTY_ORDER.filter(k => otyD.sets[k]);
-  const lab = k => k === 'ALL' ? 'All four' : k === 'LFL' ? 'Like for like' : k === 'ALLF' ? 'All + Fratelli' : k === 'FRT' ? 'Fratelli (closed)' : k === 'MRY' ? 'Marasy (data to Dec 2022)' : OTY_NAME[k];
+  const lab = k => k === 'ALL' ? 'All four' : k === 'LFL' ? 'Like for like' : k === 'ALLF' ? 'All + closed' : k === 'FRT' ? 'Fratelli (closed)' : k === 'MRY' ? 'Marasy (data to Dec 2022)' : OTY_NAME[k];
   const bp = keys.map(k => `<button class="oty-pill" aria-pressed="${k === OTY.b}" onclick="otySet('b','${k}')">${lab(k)}</button>`).join('');
   return `<div class="oty-lab">Branches</div><div class="oty-pills">${bp}</div>
     <div class="oty-lab">Compare on</div><div class="oty-pills">
@@ -1276,8 +1279,8 @@ function otyNotes() {
     <div class="oty-card oty-note">
       <p><b>Seasons, not calendar months.</b> Ramadan and Eid move about 11 days earlier every year, so month against month compares different seasons. The month by month section is there so Coach Emma can see the shape of each year anyway, and it marks every month Ramadan and Eid touched.</p>
       <p><b>Branches arrive over time.</b> Motor City's data starts Nov 2022 and Al Quoz's Sep 2023, so the all-branches total jumps when they appear. Like for like (Saadiyat + Khalifa City A) is the trend.</p>
-      <p><b>Fratelli</b> closed on 22 May 2026. It is out of All four, as everywhere on the dashboard, and has its own chip, and All + Fratelli puts it back in for the years it traded.</p>
-      <p><b>Marasy</b> is a former branch. Its Phorest data runs 1 Jul 2021 to 24 Dec 2022, so it has its own chip and is not in All four, Like for like or All + Fratelli. Both its years are part-years, and its closing date is not confirmed, so it says "data to" and not "closed".</p>
+      <p><b>Fratelli</b> closed on 22 May 2026. It is out of All four, as everywhere on the dashboard, and has its own chip, and All + closed puts it back in for the years it traded.</p>
+      <p><b>Marasy</b> is a former branch. Its Phorest data runs 1 Jul 2021 to 24 Dec 2022, so it has its own chip and is in All + closed, not in All four or Like for like. Both its years are part-years (2021 starts in July), and its closing date is not confirmed, so it says "data to" and not "closed". It has no sales lines, so clients and average bill per visit show a dot for 2021 and 2022 in All + closed.</p>
       <p><b>Same days first.</b> The year in progress is set against the same dates in every earlier year. Switch to Full years to see whole years, with this one marked as partial.</p>
       <p><b>Slightly different from the Pulse.</b> These are Phorest's own financial totals. The Pulse's net take is built from the ledgers, so the two differ by about 1%.</p>
     </div>`;

@@ -44,6 +44,9 @@ const BRANCH_INFO = {
   MC:  { name: 'Motor City',   color: '#99F6E4', colorLight: '#0F8A72' },
   AQ:  { name: 'Al Quoz',      color: '#FF9B9B', colorLight: '#A32D2D' },
   FRT: { name: 'Fratelli',     color: '#EEF3C7', colorLight: '#BA7517' },
+  // Marasy (Kate, 14 Oct 2026): a former branch, Phorest data 1 Jul 2021 to 24 Dec 2022 (its closing date is unproven,
+  // so the chip just says Marasy). Treated exactly like Fratelli: see CLOSED_BRANCHES.
+  MRY: { name: 'Marasy',       color: '#A5D8FF', colorLight: '#2B7BB9' },
   // Tara Rose Salon Bahrain: its own Phorest business, BHD, 10% VAT. country 'BH'
   // keeps it out of every UAE list below; it is shown only as its own selection.
   BAH: { name: 'Bahrain',      color: '#FDE68A', colorLight: '#B45309', country: 'BH' },
@@ -53,7 +56,14 @@ const BRANCH_INFO = {
 // BRANCH_INFO so old records (still tagged branch=FRT) resolve a name/color, but every
 // "All Branches" expansion below uses ACTIVE_BRANCHES instead so it stops appearing in
 // dropdowns, the hero branch list, branch charts, and freshness checks. Kate, 2026-08-04.
-const UAE_ACTIVE = Object.keys(BRANCH_INFO).filter(b => b !== 'FRT' && BRANCH_INFO[b].country !== 'BH');
+// Closed branches (Kate, 14 Oct 2026). A chip for one is offered whenever the window on screen touches any of its open
+// days, last day included, so 2026 so far still has Fratelli (it traded until 22 May) and 2022 has Marasy, and a year it
+// had not opened in has neither. While the window touches them their rows count in the figures, as Fratelli's always did.
+const CLOSED_BRANCHES = {
+  FRT: { first: '2023-11-06', last: '2026-05-22' },   // first = its first ledger day; Phorest starts 1 Apr 2024
+  MRY: { first: '2021-07-01', last: '2022-12-24' },
+};
+const UAE_ACTIVE = Object.keys(BRANCH_INFO).filter(b => !CLOSED_BRANCHES[b] && BRANCH_INFO[b].country !== 'BH');
 const BH_BRANCHES = Object.keys(BRANCH_INFO).filter(b => BRANCH_INFO[b].country === 'BH');
 // The live branches of whichever country is on screen: the four UAE branches, or
 // Bahrain alone once its chip is picked. Mutated in place by syncCountry() (never
@@ -61,12 +71,13 @@ const BH_BRANCHES = Object.keys(BRANCH_INFO).filter(b => BRANCH_INFO[b].country 
 // without its own change. The chip row and the URL read UAE_ACTIVE instead.
 const ACTIVE_BRANCHES = UAE_ACTIVE.slice();
 
-// Fratelli (Kate, 9 Oct 2026): its last day of sales was 22 May 2026. A Fratelli chip is offered
-// only while the window on screen ends on or before that day, in the UAE view, and goes again
-// (taking a Fratelli selection with it) the moment the window runs past it.
-const FRT_LAST_DAY = '2026-05-22';
-function frtOffered() {
-  return typeof dateFrom !== 'undefined' && !!dateFrom && !!dateTo && dateToIso(dateTo) <= FRT_LAST_DAY
+// Fratelli (Kate, 9 Oct 2026), now every closed branch (14 Oct 2026): offered while the window on screen overlaps its
+// open days, in the UAE view. The 9 Oct rule offered Fratelli only when the window ENDED by 22 May 2026, so "2026 so far"
+// lost it although it traded for five months of it, and 2022 offered it before it existed.
+function closedOffered(code) {
+  const c = CLOSED_BRANCHES[code];
+  return !!c && typeof dateFrom !== 'undefined' && !!dateFrom && !!dateTo
+    && dateToIso(dateFrom) <= c.last && dateToIso(dateTo) >= c.first
     && !isBahrainView() && !isGroupView();
 }
 
@@ -150,8 +161,8 @@ function toGroupCurrency(rows) {
 }
 function syncCountry() {
   let want = isBahrainView() ? BH_BRANCHES : isGroupView() ? UAE_ACTIVE.concat(BH_BRANCHES) : UAE_ACTIVE;
-  // Fratelli is a live code only while it is picked (it closed on 22 May 2026).
-  if (!isBahrainView() && !isGroupView() && typeof sel !== 'undefined' && sel.branch.includes('FRT')) want = want.concat('FRT');
+  // A closed branch (Fratelli, Marasy) is a live code only while it is picked.
+  if (!isBahrainView() && !isGroupView() && typeof sel !== 'undefined') want = want.concat(Object.keys(CLOSED_BRANCHES).filter(c => sel.branch.includes(c)));
   if (ACTIVE_BRANCHES.join() !== want.join()) ACTIVE_BRANCHES.splice(0, ACTIVE_BRANCHES.length, ...want);
 }
 // The currency every money figure is printed in: BHD on the Bahrain view.
@@ -184,7 +195,7 @@ try {
   if (u === 'group') GROUP_MODE = true;   // sel.branch stays ['all']
   else if (u && u !== 'all') {
     const asked = u.split(',').map(x => x.trim().toUpperCase());
-    let picked = asked.filter(x => UAE_ACTIVE.includes(x) || x === 'FRT');   // FRT is dropped again by paintFilterChips unless the window ends by 22 May 2026
+    let picked = asked.filter(x => UAE_ACTIVE.includes(x) || CLOSED_BRANCHES[x]);   // a closed branch is dropped again by paintFilterChips unless the window touches its open days
     if (!picked.length) picked = asked.filter(x => BH_BRANCHES.includes(x));
     if (picked.length) { sel.branch = picked; pendingSel.branch = [...picked]; }
   }
@@ -655,9 +666,9 @@ function paintFilterChips() {
   const pEl = document.getElementById('periodChips');
   if (!bEl || !pEl) return;
 
-  // Fratelli leaves the selection when the window runs past its last day (22 May 2026).
-  if (sel.branch.includes('FRT') && !frtOffered()) {
-    sel.branch = sel.branch.filter(b => b !== 'FRT');
+  // A closed branch leaves the selection when the window no longer touches its open days.
+  if (sel.branch.some(b => CLOSED_BRANCHES[b] && !closedOffered(b))) {
+    sel.branch = sel.branch.filter(b => !CLOSED_BRANCHES[b] || closedOffered(b));
     if (!sel.branch.length) sel.branch = ['all'];
     pendingSel.branch = [...sel.branch];
   }
@@ -688,7 +699,7 @@ function paintFilterChips() {
         v: code, label: BRANCH_INFO[code].name,
         on: !isAll && sel.branch.includes(code),
       })),
-      ...(frtOffered() ? [{ v: 'FRT', label: BRANCH_INFO.FRT.name, on: !isAll && sel.branch.includes('FRT') }] : []),
+      ...Object.keys(CLOSED_BRANCHES).filter(closedOffered).map(code => ({ v: code, label: BRANCH_INFO[code].name, on: !isAll && sel.branch.includes(code) })),
       ...BH_BRANCHES.map(code => ({
         v: code, label: BRANCH_INFO[code].name,
         on: sel.branch.includes(code),
@@ -3653,7 +3664,7 @@ function cachedRange(key, loader) {
 // has no department), every staff table, and the Ledgers pages, whose targets are
 // written in ledger counts. Sales Transactions has no Bahrain, so a window that
 // takes in Bahrain stays on Handled and says so.
-const DOOR_BRANCHES = ['SAA', 'KCA', 'MC', 'AQ', 'FRT'];
+const DOOR_BRANCHES = ['SAA', 'KCA', 'MC', 'AQ', 'FRT', 'MRY'];   // Marasy has no sales lines, so it adds 0 clients
 const CLIENT_VIEWS = new Set(['dashboard', 'branchperf', 'compare']);
 // Kate, 8 Oct 2026: no Clients switch. Every card counts clients through the door (Phorest)
 // and, where the handled count matters, says it beside it: the receipt, the Clients and
