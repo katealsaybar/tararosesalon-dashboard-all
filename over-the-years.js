@@ -92,10 +92,14 @@ function otyCss() {
   .oty .oty-pill[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
   /* Kate, 14 Oct 2026: "6 containers, scrollable from left to right like an album, kasi 2025 at 2024 lang to". One tile for every year
      that has figures, newest first, in a row that scrolls sideways and snaps. About three and a bit show on a laptop (the fourth
-     peeks, so it reads as scrollable), one and a bit on a phone. Tapping a tile picks that year in the chart below. */
+     peeks, so it reads as scrollable), one and a bit on a phone. Tapping a tile picks that year in the chart below.
+     Kate, 14 Oct 2026: "too wide containers" on a big screen, where a third of the row is about 490px for one short number. From 1280px
+     up a tile is a sixth of the row, never under 190px, so all six years sit in one row on a wide screen (the page is at most 1320px
+     wide, so about 210px each) and the row only scrolls when the screen is too narrow for that. */
   .oty .oty-tiles{display:flex;gap:10px;margin-top:18px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 10px;
     -webkit-overflow-scrolling:touch;scrollbar-width:thin;overscroll-behavior-x:contain}
   .oty .oty-tiles .oty-tile{flex:0 0 calc((100% - 20px) / 3.25);min-width:210px;scroll-snap-align:start;cursor:pointer;user-select:none}
+  @media(min-width:1280px){.oty .oty-tiles .oty-tile{flex-basis:max(190px,calc((100% - 50px) / 6));min-width:190px}}
   @media(max-width:700px){.oty .oty-tiles .oty-tile{flex-basis:76%;min-width:0}}
   .oty .oty-tiles:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:12px}
   .oty .oty-tiles .oty-tile:hover{border-color:var(--muted2)}
