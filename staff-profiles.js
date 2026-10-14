@@ -244,6 +244,10 @@ const STAFF_PROFILES = {
   // Kate, 14 Oct 2026: Motor City stylist, archived in Phorest (ledger rows from Mar 2024,
   // last hours worked 4 Feb 2025). Listed as "Cori Paul" on the dashboards; IG handle is corypaulhair.
   'CORI':     { photoFull: 'stylist/photos/MC/cori paul.png', role: 'Stylist', branch: 'MC', ig: 'corypaulhair', resigned: true },
+  // Kate, 14 Oct 2026: brothers, both Al Quoz stylists (Jul 2023 to 1 Mar 2024, Motor City
+  // Jul to Sep 2023 first). Photos are her own cleaned-up headshots, 375x435.
+  'PAUL':     { photoFull: 'stylist/photos/AQ/paul standenmay.png', role: 'Stylist', branch: 'AQ', ig: 'paulstandenmay.colour', resigned: true },
+  'CALLUM':   { photoFull: 'stylist/photos/AQ/callum standenmay.png', role: 'Stylist', branch: 'AQ', ig: 'callumstandenmay', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
@@ -398,13 +402,14 @@ const STAFF_SURNAMES = {
   // surname at source (Lhang Ann, Xavrina, the Bahrain team), MARY (Mary Joy Galos is
   // MJ; a second Mary Gale Carolasan is on file), CHARLENE (Payne at Motor City, no
   // surname for the Bahrain one) and anyone with fewer than 20 Phorest rows.
-  // CALLUM is Standemay and PAUL is Standenmay in Phorest itself; kept as written there.
+  // Phorest has CALLUM as Standemay, but both brothers are really Standenmay (Kate,
+  // 14 Oct 2026), so CALLUM is spelled Standenmay here too.
   'ABBY':      'Peñaflor',
   'ABOUDI':    'Chatila',
   'ALEX':      'Duncan',
   'ANNA':      'Ahaponova',
   'BILLY':     'Gray',
-  'CALLUM':    'Standemay',
+  'CALLUM':    'Standenmay',
   'CATRIN':    'Birkby',
   'CECILLE':   'Castilio',
   'DINA':      'Paycao',

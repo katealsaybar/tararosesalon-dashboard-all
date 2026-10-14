@@ -70,6 +70,8 @@ const STYLIST_SURNAMES = {
   "Mj":        "Galos",   // cleanName() title-cases the ledger's MJ, so the lookup key is "Mj"
   "Roja":      "Pudtado",
   "Nimi":      "Firth",
+  "Paul":      "Standenmay",
+  "Callum":    "Standenmay",   // Phorest says Standemay; Kate, 14 Oct 2026: both are Standenmay
   "Shine":     "Castillo",
   // Additional stylists from Phorest TSV 31 May 2026
   "Tamryn":        "Peter",
@@ -208,6 +210,8 @@ const STYLIST_PHOTOS = {
   "Toni":      "KCA/toni brits.png",
   "Sophie":    "KCA/sophie harrison.jpg",
   "Nimi":      "AQ/nimi firth.png",   // left Jan 2025, Style Director at AQ — Kate, 14 Oct 2026
+  "Paul":      "AQ/paul standenmay.png",     // left Mar 2024, Stylist at AQ — Kate, 14 Oct 2026
+  "Callum":    "AQ/callum standenmay.png",   // left Mar 2024, Stylist at AQ — Kate, 14 Oct 2026
   "Cori":      "MC/cori paul.png",    // left, Stylist at Motor City (archived in Phorest) — Kate, 14 Oct 2026
 };
 
@@ -246,6 +250,8 @@ const STYLIST_IG = {
   "Sophie":     "https://www.instagram.com/sophiepatriciahair/",
   "Nimi":       "https://www.instagram.com/nimistyles/",
   "Cori":       "https://www.instagram.com/corypaulhair/",
+  "Paul":       "https://www.instagram.com/paulstandenmay.colour/",
+  "Callum":     "https://www.instagram.com/callumstandenmay/",
   // 2nd batch cards, Sep 2026. Helen and Mevil have no handle on their cards —
   // genuinely none (Kate, 1 Sep 2026), not missing data.
   "Clarissa":   "https://www.instagram.com/hairbyclarissa",
@@ -273,7 +279,7 @@ const STYLIST_IG = {
 // if she comes back (see Hazel Mae, who left this list when her 2nd-batch card and
 // STAFF_PROFILES entry came back, Sep 2026). Keys match STYLIST_PHOTOS spelling.
 const STYLIST_RESIGNED = new Set([
-  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori",
+  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum",
 ]);
 function isResignedStylist(cleanName) {
   return STYLIST_RESIGNED.has(cleanName);
