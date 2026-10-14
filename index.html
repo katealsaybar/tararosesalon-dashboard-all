@@ -2907,6 +2907,12 @@ tr.lg-tot td:first-child{background:var(--surface2)}
   .lg-shell-wide .lg-side .side-nav a.on{border-left-color:var(--text)}
 }
 
+/* Google Reviews' rail: the frame sits in .rv-doc, and an empty anchor per section is placed over it (drawReviewsRail). */
+.rv-doc{position:relative}
+.rv-anchor{position:absolute;left:0;width:0;height:0;pointer-events:none}
+.rv-shell.rv-norail{display:block}
+.rv-shell.rv-norail .lg-side{display:none}
+
 /* ── GROWTH CARDS ─────────────────────────────────────────────
    One per branch, ordered by take. The branch's colour arrives as two inline
    custom properties — the pastel for dark, the darkened one for light — because a
@@ -4087,11 +4093,19 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <!-- REVIEWS -->
   <div id="view-reviews" style="display:none">
-    <iframe 
-      id="reviewsFrame" scrolling="no"
-      data-src="./add%20ons/google-reviews/index.html?v=34"
-      style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;display:block;overflow:hidden;">
-    </iframe>
+    <!-- Kate, 14 Oct 2026: the "On this page" rail, same markup as the Pulse's and Over the Years'. The frame reports where its
+         sections are (dashboard.js drawReviewsRail) and an empty anchor sits at each one over the frame, so lgJump() and spy()
+         work on it as they do on any other page. No sections yet: no rail, the frame takes the full width. -->
+    <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="rvShell">
+      <aside class="lg-side" id="rvSide"><nav class="side-nav" aria-label="On this page"><div class="side-k">On this page</div></nav></aside>
+      <div class="lg-doc rv-doc" id="rvDoc">
+        <iframe 
+          id="reviewsFrame" scrolling="no"
+          data-src="./add%20ons/google-reviews/index.html?v=35"
+          style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;display:block;overflow:hidden;">
+        </iframe>
+      </div>
+    </div>
   </div>
 
   <!-- CALENDAR -->
@@ -4164,7 +4178,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20261014d"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261014sn2"></script>
+<script src="dashboard.js?v=20261014sn3"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->

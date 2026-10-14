@@ -423,6 +423,9 @@ function ago(d){const now=new Date(new Date().toLocaleDateString("en-CA",{timeZo
 // Any filter, sort or window change goes back to page 1 (render() below).
 const PAGE_SIZE=10;
 let PAGE=0;
+// Moves the page by dy so something that shifted in the layout stays under the reader. Standalone it is a plain scroll;
+// embedded the dashboard is what scrolls, so the frame asks it to (reassigned in the embedded block below).
+let holdScroll=dy=>{ if(dy) window.scrollBy({top:dy,behavior:"instant"}); };
 // Page numbers to show: first, last, and two either side of the current one, with … for gaps.
 function pageNums(cur,total){
   const keep=new Set([0,total-1,cur-2,cur-1,cur,cur+1,cur+2].filter(p=>p>=0&&p<total)), out=[]; let prev=-1;
@@ -455,9 +458,12 @@ function renderList(F){
         <button type="button" class="chip" data-p="${PAGE+1}"${PAGE<pages-1?"":" disabled"}>Next ›</button>
       </div></nav>`:"");
   el.querySelectorAll(".pager [data-p]").forEach(b=>b.onclick=()=>{
+    // Kate, 14 Oct 2026: a page number used to throw you back to the top of the list. Now you stay put: the pager
+    // lands where it was under your finger, so 2, 3, 4 can be pressed one after the other without scrolling down again.
+    const y0=b.getBoundingClientRect().top+window.scrollY;
     PAGE=+b.dataset.p; renderList(F);
-    // Back to the top of the list; embedded, this scrolls the dashboard (the frame has no scrollbar of its own).
-    document.querySelector(".listhead").scrollIntoView({block:"start"});
+    const nb=document.querySelector(`.pager [data-p="${PAGE}"]`);
+    if(nb) holdScroll(Math.round(nb.getBoundingClientRect().top+window.scrollY-y0));
   });
   el.querySelectorAll(".stag").forEach(b=>b.onclick=()=>{state.staff=b.dataset.k;render();window.scrollTo(0,0);});
   el.querySelectorAll(".rph").forEach(b=>b.onclick=()=>openPhoto(b));
@@ -620,7 +626,19 @@ if(window.parent!==window){
     // instead of unfolding when you scroll back to the top. Kate, 8 Oct 2026.
   }
   onFiltersToggle=placeFilters;
-  function postH(){window.parent.postMessage({type:"trs-reviews-height",h:Math.ceil(document.body.getBoundingClientRect().height)},"*");placeFilters();}
+  // Kate, 14 Oct 2026: the "On this page" rail. The dashboard draws it (like the Pulse's and Over the Years'), but only this
+  // page knows where its sections are, so it reports them: id, label and top inside the frame. Hidden ones are left out.
+  const RAIL=[["gbp","Google profile","#gbp"],["kpis","The headline numbers","#kpis"],["stars","Star breakdown",()=>document.getElementById("exact").closest(".card")],
+    ["branches","By branch and over time",".grid2"],["staff","Staff named","#staffCard"],["list","The reviews",".listhead"]];
+  function railItems(){
+    return RAIL.map(([id,label,at])=>{
+      const e=typeof at==="function"?at():document.querySelector(at);
+      if(!e||e.hidden||!e.offsetParent&&e.getClientRects().length===0) return null;
+      return {id:"rv-"+id,label,top:Math.round(e.getBoundingClientRect().top+window.scrollY)};
+    }).filter(Boolean);
+  }
+  function postH(){window.parent.postMessage({type:"trs-reviews-height",h:Math.ceil(document.body.getBoundingClientRect().height)},"*");window.parent.postMessage({type:"trs-reviews-sections",items:railItems()},"*");placeFilters();}
+  holdScroll=dy=>{ if(!dy) return; postH(); window.parent.postMessage({type:"trs-reviews-scrollby",dy},"*"); };
   new ResizeObserver(postH).observe(document.body);
   window.parent.postMessage({type:"trs-reviews-ready"},"*");
 }

@@ -284,7 +284,33 @@ window.addEventListener('message', e => {
   if (e.data.type === 'trs-reviews-ready') postReviewsTheme();
   if (e.data.type === 'trs-reviews-height' && e.data.h > 0) f.style.height = e.data.h + 'px';
   if (e.data.type === 'trs-reviews-ready') { postReviewsScroll(); postReviewsBranch(); }
+  if (e.data.type === 'trs-reviews-sections') drawReviewsRail(e.data.items);
+  // Kate, 14 Oct 2026: a page number in the frame keeps the pager under your finger. The frame says how far the layout moved;
+  // it is the dashboard that scrolls, and at once, not smoothly (the page has smooth scrolling on).
+  if (e.data.type === 'trs-reviews-scrollby' && isFinite(+e.data.dy) && +e.data.dy) window.scrollBy({ top: +e.data.dy, behavior: 'instant' });
 });
+// Kate, 14 Oct 2026: the "On this page" rail for Google Reviews. The frame reports its sections (id, label, top inside the
+// frame) on every height change; the nav is rebuilt only when the list itself changes, so a link is never swapped under a
+// click, and each section gets an empty anchor over the frame at its top, which is all lgJump() and spy() need.
+function drawReviewsRail(items) {
+  const doc = document.getElementById('rvDoc'), side = document.getElementById('rvSide'), shell = document.getElementById('rvShell');
+  if (!doc || !side || !shell) return;
+  items = Array.isArray(items) ? items.filter(i => i && /^rv-[a-z]+$/.test(i.id) && isFinite(+i.top)) : [];
+  shell.classList.toggle('rv-norail', items.length < 2);
+  const nav = side.querySelector('.side-nav'), sig = items.map(i => i.id + '|' + i.label).join(';');
+  if (nav && nav.dataset.sig !== sig) {
+    nav.dataset.sig = sig;
+    nav.innerHTML = '<div class="side-k">On this page</div>' + items.map(i =>
+      `<a href="#${i.id}" onclick="lgJump(event,'${i.id}')">${escapeHtml(i.label)}</a>`).join('');
+  }
+  doc.querySelectorAll('.rv-anchor').forEach(a => { if (!items.some(i => i.id === a.id)) a.remove(); });
+  items.forEach(i => {
+    let a = document.getElementById(i.id);
+    if (!a) { a = document.createElement('i'); a.id = i.id; a.className = 'rv-anchor'; doc.appendChild(a); }
+    a.style.top = Math.round(+i.top) + 'px';
+  });
+  if (typeof spy === 'function') spy();
+}
 // Kate, 8 Oct 2026: Google Reviews no longer has its own Branch, Recency and profile
 // window. It reads the masthead's Branch and Period bar like the other report pages
 // (the sticky bar, and the Filters sheet on a phone), and this hands the frame what is
@@ -372,7 +398,10 @@ function postReviewsScroll() {
   const f = document.getElementById('reviewsFrame');
   if (!f || !f.contentWindow || !f.offsetParent) return;
   const tb = document.querySelector('.topbar');
-  const under = tb ? Math.max(0, tb.getBoundingClientRect().bottom) : 0;
+  let under = tb ? Math.max(0, tb.getBoundingClientRect().bottom) : 0;
+  // Below the rail's gutter widths it lies down into a row of chips pinned under the masthead; the frame's Refine bar has to clear it.
+  const rs = document.getElementById('rvSide'), sh = document.getElementById('rvShell');
+  if (rs && sh && !sh.classList.contains('rv-norail') && getComputedStyle(sh).display !== 'grid') under = Math.max(under, rs.getBoundingClientRect().bottom);
   f.contentWindow.postMessage({ type: 'trs-reviews-scroll', pin: Math.max(0, under - f.getBoundingClientRect().top) }, '*');
 }
 addEventListener('scroll', postReviewsScroll, { passive: true });
