@@ -199,6 +199,8 @@ function otyCss() {
   .oty .mo-c.pk::after{background:var(--text)}.oty .mo-c.lo::after{box-shadow:inset 0 0 0 1.5px var(--text)}
   .oty .mo-hm .pl{display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:var(--muted)}
   .oty .mo-hm .rowmsg{grid-column:2 / span 14;display:flex;align-items:center;font-size:12px;color:var(--muted2);border:1px dashed var(--border);border-radius:7px;padding:0 12px;min-height:46px;line-height:1.35}
+  .oty .mo-hm .tot{background:transparent;border:1px solid var(--muted2);cursor:default;font-weight:700}
+  .oty .mo-hm .tot.none{border:1px dashed var(--border);font-weight:500}
   .oty .mo-hm .avg{height:36px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:default}
   .oty .mo-hm .spr{height:30px;background:transparent;border:0;color:var(--muted2);font-size:11.5px;cursor:default}
   .oty .mo-hm .sec{grid-column:1 / -1;height:1px;background:var(--border);margin:6px 0}
@@ -350,7 +352,9 @@ function otyDraw() {
   // at the section's id, and a section with nothing to show (the seasons, before the data arrives) has no entry.
   const parts = [['oty-net', 'Net take by year', otyChartBlock(rows)], ['oty-years', 'The years, side by side', otyTable(rows)],
     ['oty-seasons', 'Season on season', otySeasons()], ['oty-months', 'Month by month', otyMonths()], ['oty-reviews', 'Google reviews', otyReviews()], ['oty-ig', 'Instagram', otyInstagram()],
-    ['oty-cov', 'What each year has behind it', otyCoverage()], ['oty-how', 'How to read this page', otyNotes()]].filter(x => x[2]);
+    ['oty-cov', 'What each year has behind it', otyCoverage()], ['oty-how', 'How to read this page', otyNotes()]].filter(x => x[2])
+    // Kate, 14 Oct 2026: a section that returns a list of [id, label, html] is several sub-sections, each with its own id and rail entry
+    .flatMap(x => Array.isArray(x[2]) ? x[2] : [x]);
   const body = parts.map(([id, , html]) => `<section id="${id}" class="oty-sec">${html}</section>`).join('');
   const shell = typeof lgRail === 'function'
     ? `<div class="lg-shell lg-shell-wide">${lgRail(parts.map(([id, label]) => [id, label]))}<div class="lg-doc">${body}</div></div>`
@@ -837,6 +841,20 @@ function otyMoCtx() {
     const cur = X.val(c), prevW = met === 'bill' ? X.val(p) : X.val(p) / p.days * c.days, pct = (cur / prevW - 1) * 100;
     return { cur, prevW, pct, diff: cur - prevW, big: Math.abs(pct) > 100 };
   };
+  // Kate, 14 Oct 2026: a Total at the end of each year's row (Actual and Change views). A year's total is the sum of its
+  // finished months and only shows when every one of them has a figure, so a year with months left out says so ('·')
+  // instead of printing a short total. The current year is Jan to the last finished month, set against the same months
+  // of the year before in the Change view, so it is like for like.
+  X.mths = y => [...Array(12).keys()].filter(m => otyMoState(M, y, m) === 'done');
+  X.sumOf = (y, B) => { const cs = B.map(m => X.cell(y, m)), t = cs.reduce((a, c) => a + (c.tot || 0), 0), s = cs.reduce((a, c) => a + (c.stf || 0), 0); return met === 'net' ? t : met === 'clients' ? s : t / s; };
+  X.tot = y => { const B = X.mths(y); return B.length && B.every(m => X.ok(X.cell(y, m))) ? X.sumOf(y, B) : null; };
+  X.totChg = y => {
+    if (y <= years[0] || X.tot(y) == null) return null;
+    const B = X.mths(y), ks = B.map(m => X.cmp(y, m));
+    if (!ks.every(k => k && !k.none)) return null;
+    const cur = met === 'bill' ? X.sumOf(y, B) : ks.reduce((a, k) => a + k.cur, 0), prevW = met === 'bill' ? X.sumOf(y - 1, B) : ks.reduce((a, k) => a + k.prevW, 0), pct = (cur / prevW - 1) * 100;
+    return { cur, prevW, pct, diff: cur - prevW, big: Math.abs(pct) > 100 };
+  };
   X.llf = (y, m) => y > years[0] && Math.abs(otyRamIn(y, m) - otyRamIn(y - 1, m)) >= 10;
   X.stats = () => {
     const idx = {}; years.forEach(y => { idx[y] = X.idx(y); });
@@ -871,7 +889,19 @@ function otyMonths() {
 
   // the grid
   const sel = OTY.mmsel && years.includes(OTY.mmsel.y) ? OTY.mmsel : (OTY.mmsel = { y: curYear, m: Math.max(X.doneN - 1, 0) });
-  let g = '<div class="h"></div>' + OTY_MON.map(m => `<div class="h">${m}</div>`).join('') + `<div class="h">${v === 'index' ? 'Peak' : ''}</div><div class="h">${v === 'index' ? 'Low' : ''}</div>`;
+  let g = '<div class="h"></div>' + OTY_MON.map(m => `<div class="h">${m}</div>`).join('') + (v === 'index' ? '<div class="h">Peak</div><div class="h">Low</div>' : '<div class="h" style="grid-column:span 2">Total</div>');
+  // the year's total, in the two columns Peak and Low use in the Shape view
+  const totCell = y => {
+    const lab = y === curYear ? `Jan to ${OTY_MON[Math.max(X.doneN - 1, 0)]} ${y}` : `Full year ${y}`;
+    if (v === 'chg') {
+      const k = X.totChg(y);
+      return k ? `<div class="mo-c tot" style="grid-column:span 2;background-color:${k.big ? '' : otyMoHeat(k.pct, 25)}" title="${lab}, against the same months of ${y - 1}">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%'}</div>`
+        : '<div class="mo-c none tot" style="grid-column:span 2" title="Not every month has a figure to set against last year">·</div>';
+    }
+    const t = X.tot(y);
+    return t != null ? `<div class="mo-c tot" style="grid-column:span 2" title="${lab}">${X.fv(t)}</div>`
+      : '<div class="mo-c none tot" style="grid-column:span 2" title="Not every month has a figure, so there is no total">·</div>';
+  };
   for (const y of years.slice().reverse()) {
     const ix = S.idx[y];
     g += `<div class="yr">${y}</div>`;
@@ -894,18 +924,21 @@ function otyMonths() {
       }
       g += `<button class="${cls}" style="background-color:${bg}" data-y="${y}" data-m="${m}" onclick="otyMoSel(${y},${m})">${txt}${moon}</button>`;
     }
-    g += `<div class="pl">${v === 'index' && S.peak[y] != null ? OTY_MON[S.peak[y]] : ''}</div><div class="pl">${v === 'index' && S.low[y] != null ? OTY_MON[S.low[y]] : ''}</div>`;
+    g += v === 'index' ? `<div class="pl">${S.peak[y] != null ? OTY_MON[S.peak[y]] : ''}</div><div class="pl">${S.low[y] != null ? OTY_MON[S.low[y]] : ''}</div>` : totCell(y);
   }
   if (v === 'index') {
     g += '<div class="sec"></div><div class="sl">Avg</div>' + S.avg.map(a => `<div class="mo-c avg">${a == null ? '' : Math.round(a)}</div>`).join('') + '<div></div><div></div>';
     g += '<div class="sl">Spread</div>' + S.spr.map(a => `<div class="mo-c spr">${a == null ? '' : Math.round(a) + ' pts'}</div>`).join('') + '<div></div><div></div>';
   }
   const hasRam = !!otyRam(curYear);
-  const legend = v === 'chg'
+  const totNote = v === 'index' ? '' : `<span class="sw">Total is the year's finished months (${curYear}: Jan to ${OTY_MON[Math.max(X.doneN - 1, 0)]})${v === 'chg' ? ', against the same months a year earlier' : ''}. A dot means a month is missing, so there is no total</span>`;
+  const legend = totNote + (v === 'chg'
     ? `<span class="mo-scale">weaker<span class="bar"></span>stronger</span>${hasRam ? '<span class="sw">☾ Ramadan and Eid in the month</span><span class="sw"><span class="box" style="border:1.5px dashed var(--warn)"></span>Ramadan and Eid fell differently than last year, so not like for like</span>' : ''}`
-    : `<span class="mo-scale">below average<span class="bar"></span>above average</span>${hasRam ? '<span class="sw">☾ Ramadan and Eid in the month (10+ days)</span>' : ''}${v === 'index' ? '<span class="sw">● strongest month ○ weakest month</span>' : ''}<span class="sw"><span class="box" style="background-image:repeating-linear-gradient(135deg,rgba(45,46,55,.55) 0 4px,transparent 4px 9px);background-color:var(--surface2)"></span>Month still running</span>`;
+    : `<span class="mo-scale">below average<span class="bar"></span>above average</span>${hasRam ? '<span class="sw">☾ Ramadan and Eid in the month (10+ days)</span>' : ''}${v === 'index' ? '<span class="sw">● strongest month ○ weakest month</span>' : ''}<span class="sw"><span class="box" style="background-image:repeating-linear-gradient(135deg,rgba(45,46,55,.55) 0 4px,transparent 4px 9px);background-color:var(--surface2)"></span>Month still running</span>`);
 
-  return `${head}
+  // Kate, 14 Oct 2026: each sub-section is its own section with its own id, so the rail lists it and the address bar
+  // follows it (#oty-months-shapes, #oty-months-pairs, #oty-months-stands) instead of staying on #oty-months all the way down.
+  const grid = `${head}
     <p class="oty-deck" style="font-size:clamp(14px,3.4vw,16px)">Does every year have the same shape? Six years on one grid, with growth taken out, so the months can be compared.</p>
     <div class="oty-card" style="margin-top:12px">
       <div class="oty-chead"><b>${title}</b><span>${otyEsc(sub)}</span></div>
@@ -917,17 +950,21 @@ function otyMonths() {
       <div class="mo-scroll"><div class="mo-hm">${g}</div></div>
       <div class="mo-legend">${legend}</div>
     </div>
-    <div class="oty-card" id="otyMoDetail" style="margin-top:12px">${otyMoDetail(X, S, sel)}</div>
-    ${otyMoLines(X, S)}
-    ${otyMoPairs(X)}
-    ${otyMoStands(X, S)}
+    <div class="oty-card" id="otyMoDetail" style="margin-top:12px">${otyMoDetail(X, S, sel)}</div>`;
+  const notes = `
     <div class="oty-card oty-note" style="margin-top:12px">
       <p><b>How to read the grid.</b> Each cell is that month's takings per open day, set against the average month of the same year (100 = an average month). 120 is a month 20% stronger than that year's average, 85 is 15% weaker. Every year is measured against itself, so growth drops out and what is left is the shape.</p>
       <p><b>Per open day,</b> so a 28-day February and a 31-day March, or a branch that shuts on some days, are fair against each other, as on the season chart.</p>
       <p><b>Striped cells</b> are the month still running. They are left out of every average, and the Change view reads them against the same number of open days last year.</p>
       <p><b>Growth inside a year</b> tilts the shape a little: a year that grows all the way through reads low in January and high in December. That is real, so it stays in. A single branch or one region is the cleanest read. All four is bent by branches opening part-way through the years.</p>
+      <p><b>Totals</b> (Actual and Change views) add up the year's finished months, and only show when every one of them has a figure. ${curYear} is Jan to ${OTY_MON[Math.max(X.doneN - 1, 0)]}, set against the same months of ${curYear - 1} in the Change view.</p>
       <p><b>Figures from Phorest's daily totals,</b> refreshed hourly. Net take is net of VAT; clients and average bill are per staff, the page's default.</p>
     </div>`;
+  // [id, rail label, html] per sub-section; otyDraw() turns each into its own section. The notes ride with the last one.
+  const subs = [['oty-months', 'Month by month', grid], ['oty-months-shapes', 'The shapes on top of each other', otyMoLines(X, S)],
+    ['oty-months-pairs', 'Year against the year before', otyMoPairs(X)], ['oty-months-stands', 'What stands out', otyMoStands(X, S)]].filter(s => s[2]);
+  subs[subs.length - 1][2] += notes;
+  return subs;
 }
 function otyMoSet(k, v) { OTY[k] = v; otySave(); otyDraw(); }
 // the detail sits under the grid and its legend, below the fold on most screens, so a tap brings it into view
