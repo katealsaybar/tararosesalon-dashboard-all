@@ -258,6 +258,7 @@ const STYLIST_PHOTOS = {
   "Jackie":    "SAA/jackie anog.png",
   "Karina":    "KCA/karina kazarian.png",
   "Lorena":    "SAA/lorena factor.png",
+  "Neeka":     "SAA/neeka kainth.png",     // left 2024, Style Director — Kate, 14 Oct 2026
   "Cecille":   "KCA/cecille castillo.png",   // former beautician; real photo — Kate, 14 Oct 2026
   "Maricel":   "SAA/maricel sape.png",
   "Melliza":   "KCA/melliza ancajas.png",
@@ -349,7 +350,7 @@ const STYLIST_IG = {
 // if she comes back (see Hazel Mae, who left this list when her 2nd-batch card and
 // STAFF_PROFILES entry came back, Sep 2026). Keys match STYLIST_PHOTOS spelling.
 const STYLIST_RESIGNED = new Set([
-  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi", "Jaime", "Josh", "Michelle", "Mihaela", "Cecille", "Maricel", "Melliza", "Dina", "Joanne", "Rita", "Emmalyn", "Nicole", "Sahra", "Jackie", "Karina", "Lorena",
+  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi", "Jaime", "Josh", "Michelle", "Mihaela", "Cecille", "Maricel", "Melliza", "Dina", "Joanne", "Rita", "Emmalyn", "Nicole", "Sahra", "Jackie", "Karina", "Lorena", "Neeka",
 ]);
 function isResignedStylist(cleanName) {
   return STYLIST_RESIGNED.has(cleanName);
