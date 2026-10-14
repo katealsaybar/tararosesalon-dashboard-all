@@ -264,6 +264,18 @@ const STAFF_PROFILES = {
   // Kate, 14 Oct 2026: Junior Stylist, mainly Saadiyat Mar 2021 to May 2023 (666 daily rows), Khalifa City A
   // Jan to Sep 2022, archived in Phorest. Photo is her own black-and-white headshot, 375x435.
   'RESHEL':   { photoFull: 'stylist/photos/SAA/reshel tagayuna.png', role: 'Junior Stylist', branch: 'SAA', ig: 'reshelwijesinghe', resigned: true },
+  // Kate, 14 Oct 2026: former team with no photo and no client-facing Instagram yet, so each carries the
+  // blank line-art template (female or male) as a placeholder and no `ig`. One file per person on purpose:
+  // renderStylistCards and the Team Roster dedupe on the photo path, so a shared placeholder would collapse
+  // them into one card. Replace the file (same name) when a real headshot comes.
+  // Zoe: Al Quoz Sep 2024 to Jan 2025 (KCA early 2021); role and branch not confirmed, so Stylist/AQ is a default.
+  'ZOE':      { photoFull: 'stylist/photos/AQ/zoe hogkinson.png', role: 'Stylist', branch: 'AQ', resigned: true },
+  // Harriet: Saadiyat Mar to Jun 2025 (one Khalifa City A day), archived in Phorest.
+  'HARRIET':  { photoFull: 'stylist/photos/SAA/harriet shannon.png', role: 'Stylist', branch: 'SAA', resigned: true },
+  // Venus: Motor City Nov 2022 to Jan 2025 (683 daily rows).
+  'VENUS':    { photoFull: 'stylist/photos/MC/venus solomon.png', role: 'Stylist', branch: 'MC', resigned: true },
+  // Oliver: Barber at Al Quoz, Dec 2025 to Jan 2026.
+  'OLIVER':   { photoFull: 'stylist/photos/AQ/oliver green.png', role: 'Barber', branch: 'AQ', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
