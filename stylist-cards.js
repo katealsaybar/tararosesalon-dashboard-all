@@ -9,8 +9,8 @@
 // drift from the artwork, and the artwork is what the client sees.
 //
 // It is also the roster of who has a card at all - dashboard.js shows the embed only
-// for a name that appears here. Its 47 keys are exactly the 47 files in
-// assets/stylist-cards/. Vicki's, Andrea's and Simon's cards joined on 2026-10-13/14 (single-page updates).
+// for a name that appears here. Its 48 keys are exactly the 48 files in
+// assets/stylist-cards/. Vicki's, Andrea's, Simon's and Virginija's cards joined on 2026-10-13/14 (single-page updates).
 // The beauty team joined on 2026-09-03, with a deck of their own; until then they
 // were in staff-profiles with no card, which is why that file says every field is
 // optional.
@@ -834,6 +834,28 @@ const STYLIST_CARDS = {
   "inMyChair": "Good hair, honest advice, the right products; and always making sure you still feel like YOU.",
   "review": "Had a balayage done at Tara Rose today and a huge shoutout to Andy! She absolutely killed it! From the consultation to helping me choose the perfect shade to suit me, she was amazing throughout the whole process. You can really tell she knows exactly what she's doing and genuinely cares about getting the best result. Absolutely in love with my new look! Thank you so much, Andy! Highly recommend Tara Rose",
   "reviewBy": "Neha George"
+ },
+ "VIRGINIJA": {
+  "role": "Stylist",
+  "quote": "To leave you feeling beautiful, truly listened to, and cared for - inside and out.",
+  "bio": "Originally from Lithuania, I spent 20 years living and working in the UK, building my experience and passion for hairdressing. I specialise in beautiful blondes, seamless balayage and soft, flowing layers that enhance each woman's natural beauty and lifestyle. I'm passionate about healthy hair, personalised results and helping women feel confident in themselves. Clients appreciate my warm, supportive approach and the care I put into making every appointment feel personal.",
+  "specialises": [
+   "Beautiful blondes and dimensional highlights",
+   "Seamless balayage",
+   "Soft, effortless layers and personalised cutting",
+   "Healthy hair and natural-looking results"
+  ],
+  "bestFor": "Clients should book me when they want beautiful, effortlessly wearable hair and an appointment where they feel understood, relaxed and completely cared for.",
+  "vibe": [
+   "Warm",
+   "Mindful",
+   "Supportive"
+  ],
+  "loveMeIf": "You love beautiful hair, appreciate a personal touch and believe that feeling good about yourself is just as important as looking good.",
+  "mattersMost": "Creating healthy, beautiful hair while making every woman feel heard, valued and confident in her own skin.",
+  "inMyChair": "Relax, be yourself, feel listened to and enjoy a little time just for you - leaving with hair you love and a lighter feeling inside.",
+  "review": "From the moment I met her, I knew I had found my hairstylist. Virginija is not only incredibly talented and professional, but also such a warm, kind and lovely person. Spending a few hours with her chatting and laughing honestly felt like therapy - I left feeling refreshed, happy and completely pampered! And the hair?! My blonde is back, fresh, beautiful and exactly what I wanted, and the cut is absolutely gorgeous. I'm so happy with the result! Virginija, thank you for such a wonderful experience. You are amazing at what you do, and I'm already looking forward to my next visit. Definitely found my new favourite hairstylist!",
+  "reviewBy": "JP"
  },
  "VICKI": {
   "role": "Stylist",
