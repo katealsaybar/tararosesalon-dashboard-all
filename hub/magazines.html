@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ROSES Magazine · Team Home</title>
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=20261008su">
+<style>
+  .mg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:20px;margin:0 0 24px}
+  .mg-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .mg-cover{display:block;width:100%;aspect-ratio:8.5/11;padding:0;border:0;background:var(--surface2);cursor:pointer;position:relative}
+  .mg-cover img{display:block;width:100%;height:100%;object-fit:cover}
+  .mg-cover:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
+  .mg-body{display:flex;flex-direction:column;gap:6px;padding:14px 16px 16px;flex:1}
+  .mg-body h3{margin:0;font-family:'Playfair Display',serif;font-weight:500;font-size:18px;line-height:1.25}
+  .mg-sub{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);font-weight:600}
+  .mg-blurb{font-size:13.5px;line-height:1.5;color:var(--muted);margin:0 0 8px;flex:1}
+  .mg-meta{font-size:12.5px;color:var(--muted2)}
+  .mg-acts{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+</head>
+<body class="kb-wait">
+<!-- ROSES Magazine (Kate, 14 Oct 2026): the 2022 issues. The PDFs and covers live in the private
+     Storage bucket kb-magazines (migrations/kb_magazines.sql), readable only by those who may open
+     the magazines section (Level 2 and up); kb_files carries the paths. Nothing of them is in this
+     repo, which is public. Each click asks for a short-lived signed link. -->
+<div class="wrap">
+  <header class="kb-head" id="kbHead" data-title="Team Home"></header>
+  <main id="kbMain"><p class="kb-msg">Loading…</p></main>
+  <footer class="kb-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js?v=20261001kb"></script>
+<script src="/hub/hub.js?v=20261014mg"></script>
+<script src="/visits.js?v=20261008v1"></script>
+<script>
+(function () {
+  var main = document.getElementById('kbMain'), esc = KB.esc;
+  if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
+  function notFound() {
+    main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
+  }
+  function size(b) { return b ? (b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.round(b / 1024) + ' KB') : ''; }
+  var BUCKET = 'kb-magazines', LINK_SECS = 3600, issues = [];
+
+  async function act(btn) {
+    var f = issues.filter(function (x) { return x.code === btn.dataset.code; })[0];
+    if (!f) return;
+    var open = btn.dataset.act === 'open';
+    var tab = open ? window.open('', '_blank') : null;   // opened on the click, so it isn't blocked
+    var was = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Loading…';
+    try {
+      var r = await KB.client.storage.from(BUCKET).createSignedUrl(f.path, LINK_SECS, open ? undefined : { download: f.filename });
+      if (r.error || !r.data) throw new Error('no link');
+      if (tab) tab.location.href = r.data.signedUrl;
+      else {
+        var a = document.createElement('a');
+        a.href = r.data.signedUrl; a.download = f.filename;
+        document.body.appendChild(a); a.click(); a.remove();
+      }
+    } catch (e) {
+      if (tab) tab.close();
+      alert('That issue couldn’t be loaded. Try again, or tell Kate.');
+    }
+    btn.disabled = false; btn.textContent = was;
+  }
+
+  KB.ready.then(async function () {
+    if (KB.allowed.indexOf('magazines') < 0) { notFound(); return; }   // also "View as" below Level 2
+    var r = await KB.client.from('kb_files').select('code,grp,title,subtitle,blurb,filename,pages,bytes,sort,path,cover')
+      .eq('section', 'magazines').order('sort');
+    if (r.error || !r.data || !r.data.length) { notFound(); return; }
+    issues = r.data;
+    var groups = [], by = {};
+    issues.forEach(function (f) { if (!by[f.grp]) { by[f.grp] = []; groups.push(f.grp); } by[f.grp].push(f); });
+    main.innerHTML =
+      '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
+      KB.titleIcon('magazines', 'ROSES Magazine') +
+      '<p class="kb-meta">' + issues.length + ' issues. Read one in your browser or download it. These are the 2022 issues, so prices and offers in them are from then.</p>' +
+      groups.map(function (g) {
+        return '<section class="kb-dept"><h2 class="kb-dept-h">' + esc(g) + '</h2><div style="padding:6px 20px 4px"><div class="mg-grid">' +
+          by[g].map(function (f) {
+            return '<article class="mg-card">' +
+              '<button type="button" class="mg-cover" data-act="open" data-code="' + esc(f.code) + '" aria-label="Read ' + esc(f.title) + '"><img alt="" data-cover="' + esc(f.cover || '') + '"></button>' +
+              '<div class="mg-body"><h3>' + esc(f.title) + '</h3>' +
+              (f.subtitle ? '<span class="mg-sub">' + esc(f.subtitle) + '</span>' : '') +
+              '<p class="mg-blurb">' + esc(f.blurb || '') + '</p>' +
+              '<span class="mg-meta">' + (f.pages || '') + ' pages · ' + size(f.bytes) + '</span>' +
+              '<div class="mg-acts"><button type="button" class="fm-btn" data-act="open" data-code="' + esc(f.code) + '">Read</button>' +
+              '<button type="button" class="fm-btn fm-dl" data-act="dl" data-code="' + esc(f.code) + '">Download</button></div></div></article>';
+          }).join('') + '</div></div></section>';
+      }).join('');
+    main.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-act]');
+      if (b) act(b);
+    });
+    // Covers: one batch of signed links; a failed one just leaves the grey card.
+    var imgs = Array.prototype.slice.call(main.querySelectorAll('img[data-cover]')).filter(function (i) { return i.dataset.cover; });
+    var paths = imgs.map(function (i) { return i.dataset.cover; });
+    var s = await KB.client.storage.from(BUCKET).createSignedUrls(paths, LINK_SECS);
+    if (s.data) s.data.forEach(function (x) {
+      imgs.forEach(function (im) { if (x.signedUrl && im.dataset.cover === x.path) im.src = x.signedUrl; });
+    });
+  });
+})();
+</script>
+</body>
+</html>
