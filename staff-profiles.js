@@ -161,8 +161,9 @@ const STAFF_PROFILES = {
   // New joiner, confirmed Motor City off the 17 Sep Phorest export ("Virginija
   // Lisauskaite", 2 visits that day, MC). Card photo added 21 Sep 2026.
   // Emma, 1 Oct 2026: she works between Saadiyat and Motor City, so she is shown
-  // at Saadiyat too.
-  'VIRGINIJA': { photo: 'virginija.png', role: 'Stylist', branch: 'MC', alsoAt: ['SAA'], ig: 'hair_by_virginia_dxb' },
+  // at Saadiyat too. Emma, 14 Oct 2026: she has moved to Saadiyat for good, so
+  // Saadiyat is her branch now and Motor City is dropped.
+  'VIRGINIJA': { photo: 'virginija.png', role: 'Stylist', branch: 'SAA', ig: 'hair_by_virginia_dxb' },
   'ERCELY':    { role: 'Assistant', branch: 'MC' },
 
   // -- Al Quoz --
