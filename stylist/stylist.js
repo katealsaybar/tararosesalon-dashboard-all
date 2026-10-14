@@ -78,6 +78,7 @@ const STYLIST_SURNAMES = {
   "Zoe":       "Hogkinson",
   "Aboudi":    "Chatila",
   "Nicole":    "Sullivan",    // Phorest has O'sullivan; Kate, 14 Oct 2026: Sullivan
+  "Sahra":     "Sayed",
   "Jaime":     "Booth",       // Phorest has Petzer; Kate, 14 Oct 2026: Jaime Booth
   "Josh":      "Thomas",
   "Cecille":   "Castilio",
@@ -247,6 +248,7 @@ const STYLIST_PHOTOS = {
   "Oliver":    "AQ/oliver green.png",
   "Aboudi":    "AQ/aboudi chatila.png",
   "Nicole":    "SAA/nicole sullivan.png",   // former stylist, Saadiyat — Kate, 14 Oct 2026
+  "Sahra":     "SAA/sahra sayed.png",       // former stylist, Saadiyat — Kate, 14 Oct 2026
   "Jaime":     "KCA/jaime booth.png",
   "Josh":      "AQ/josh thomas.png",
   "Dina":      "KCA/dina paycao.png",       // former beautician — Kate, 14 Oct 2026
@@ -315,6 +317,7 @@ const STYLIST_IG = {
   "Jackie":     "https://www.instagram.com/nailsbyjackie.08/",
   "Karina":     "https://www.instagram.com/karapuzzo/",
   "Nicole":     "https://www.instagram.com/nicolesullivanhair/",
+  "Sahra":      "https://www.instagram.com/hairbyssg/",
   "Jaime":      "https://www.instagram.com/jetaime__hair/",
   "Lorena":     "https://www.instagram.com/workdonebylorena/",
   "Marcella":   "https://www.instagram.com/marcellastyleshairdxb/",
@@ -345,7 +348,7 @@ const STYLIST_IG = {
 // if she comes back (see Hazel Mae, who left this list when her 2nd-batch card and
 // STAFF_PROFILES entry came back, Sep 2026). Keys match STYLIST_PHOTOS spelling.
 const STYLIST_RESIGNED = new Set([
-  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi", "Jaime", "Josh", "Michelle", "Mihaela", "Cecille", "Maricel", "Melliza", "Dina", "Joanne", "Rita", "Emmalyn", "Nicole", "Jackie", "Karina", "Lorena",
+  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi", "Jaime", "Josh", "Michelle", "Mihaela", "Cecille", "Maricel", "Melliza", "Dina", "Joanne", "Rita", "Emmalyn", "Nicole", "Sahra", "Jackie", "Karina", "Lorena",
 ]);
 function isResignedStylist(cleanName) {
   return STYLIST_RESIGNED.has(cleanName);

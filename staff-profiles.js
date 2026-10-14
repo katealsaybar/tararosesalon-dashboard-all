@@ -289,6 +289,11 @@ const STAFF_PROFILES = {
   // IG nicolesullivanhair, spelled Sullivan (the magazine does too; Phorest has O'sullivan). Role 'Stylist' is a default,
   // the feature gives no title.
   'NICOLE':   { photoFull: 'stylist/photos/SAA/nicole sullivan.png', role: 'Stylist', branch: 'SAA', ig: 'nicolesullivanhair', resigned: true },
+  // Sahra: former Saadiyat stylist (182 days Aug 2022 to Feb 2023, then Motor City Feb to Jul 2023, 134 days; the ledger
+  // has one week as SARAH in Aug 2022). Jun-Jul 2022 ROSES feature: joined Saadiyat, London, qualified over 10 years ago and
+  // restarting her career with Tara Rose. Kate, 14 Oct 2026: headshot and IG hairbyssg. Role 'Stylist' is a default,
+  // the feature gives no title.
+  'SAHRA':    { photoFull: 'stylist/photos/SAA/sahra sayed.png', role: 'Stylist', branch: 'SAA', ig: 'hairbyssg', resigned: true },
   'JAIME':    { photoFull: 'stylist/photos/KCA/jaime booth.png', role: 'Stylist', branch: 'KCA', ig: 'jetaime__hair', resigned: true },
   // Josh: Stylist on the roster export, Al Quoz (archived 17 Mar 2026). His ledger rows are mostly Fratelli
   // (44 days, Nov 2023 to Jan 2024) with 6 at Al Quoz; branch follows the roster because the Team Roster
