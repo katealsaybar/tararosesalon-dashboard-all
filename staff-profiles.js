@@ -287,6 +287,13 @@ const STAFF_PROFILES = {
   // (44 days, Nov 2023 to Jan 2024) with 6 at Al Quoz; branch follows the roster because the Team Roster
   // has no FRT group. Male placeholder, no ig.
   'JOSH':     { photoFull: 'stylist/photos/AQ/josh thomas.png', role: 'Stylist', branch: 'AQ', resigned: true },
+  // Kate, 14 Oct 2026: Michelle was an Assistant (roster export: archived at Saadiyat, Khalifa City A and
+  // Marasy); ledger mostly Saadiyat, 315 daily rows May 2022 to Jun 2023. Not the shared 'MYRA/MICHELLE'
+  // assistants cell above: that key is a ledger cell, this is her own card. Her photo came in the same two-image
+  // message as Mihaela's, matched by the order the two names were sent in.
+  'MICHELLE': { photoFull: 'stylist/photos/SAA/michelle alinea.png', role: 'Assistant', branch: 'SAA', ig: 'alinea.michelle', resigned: true },
+  // Mihaela: Stylist at Al Quoz on the roster export (added 2 Oct 2023, archived 17 Mar 2026); ledger Oct 2023 to Mar 2024.
+  'MIHAELA':  { photoFull: 'stylist/photos/AQ/mihaela solomei.png', role: 'Stylist', branch: 'AQ', ig: 'dare.to_hair', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
