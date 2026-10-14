@@ -317,8 +317,7 @@ const STAFF_PROFILES = {
   // Maricel: Saadiyat, 1,027 daily rows May 2021 to Jun 2025 (also Khalifa City A, Marasy and Fratelli).
   // Kate, 14 Oct 2026: real headshot (from her Roses magazine intro, a stray mouse cursor on the uniform removed) and
   // IG maricel_rebato. She signs herself Maricel Rebato (the magazine, her IG, and her 7 May 2025 resignation email,
-  // last day 18 May 2025) while Phorest, the ledger and this dashboard have Sape; which is the current surname is not
-  // settled, so the display surname stays Sape for now.
+  // last day 18 May 2025) while Phorest and the ledger have Sape. Kate, 14 Oct 2026: display both, Rebato-Sape.
   'MARICEL':  { photoFull: 'stylist/photos/SAA/maricel sape.png', role: 'Beauty Team Member', branch: 'SAA', ig: 'maricel_rebato', resigned: true },
   // Melliza: Khalifa City A, 911 daily rows Oct 2021 to May 2024 (Marasy before that). Had a template until Kate sent
   // her real headshot (grey beauty uniform) and her Instagram, 14 Oct 2026.
@@ -543,7 +542,7 @@ const STAFF_SURNAMES = {
   'LOUISE':    'Williams',
   'LUCIE':     'Rogers',
   'MARIA':     'Lascanu',
-  'MARICEL':   'Sape',
+  'MARICEL':   'Rebato-Sape',   // Kate, 14 Oct 2026: she signs Rebato, Phorest has Sape
   'MARISSA':   'Dizon',
   'MELCA':     'Reynolds',
   'MELLIZA':   'Ancajas',

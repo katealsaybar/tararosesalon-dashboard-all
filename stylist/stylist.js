@@ -89,7 +89,7 @@ const STYLIST_SURNAMES = {
   "Karina":    "Kazarian",
   "Lorena":    "Factor",
   "Joanne":    "Pungilan",
-  "Maricel":   "Sape",
+  "Maricel":   "Rebato-Sape",   // she signs Rebato, Phorest has Sape; Kate, 14 Oct 2026
   "Melliza":   "Ancajas",
   "Michelle":  "Alinea",
   "Mihaela":   "Solomei",
