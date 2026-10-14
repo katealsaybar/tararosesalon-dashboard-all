@@ -255,6 +255,9 @@ const STAFF_PROFILES = {
   // 'other' like Stuart and Goncalo: Fratelli is closed and the Team Roster has no FRT group. Photo converted
   // to black and white off his colour headshot, 375x435.
   'DEMIAN':   { photoFull: 'stylist/photos/other/demian rakic.png', role: 'Barber', branch: 'other', ig: 'barber.demian', resigned: true },
+  // Kate, 14 Oct 2026: Al Quoz stylist Mar to Sep 2024 (186 daily rows), also Motor City from Jul 2024 and
+  // a week at Fratelli; archived in Phorest. Photo is his own black-and-white headshot, 375x435.
+  'EMIN':     { photoFull: 'stylist/photos/AQ/emin salamovic.png', role: 'Stylist', branch: 'AQ', ig: 'hairdoctoremin', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
@@ -374,7 +377,7 @@ const STAFF_SURNAMES = {
   'CRISTINE':  'Bracamonte',
   'EDEN':      'Domasin',
   'ELENA':     'Bacabac',
-  'EMIN':      'Salamovic',
+  'EMIN':      'Salamović',    // Phorest has Salamovic; Kate, 14 Oct 2026
   'ERCELY':    'Vacal',
   'ESTHER':    'Gabutin',
   'HAZEL':     'Alcala',
