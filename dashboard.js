@@ -352,6 +352,16 @@ window.addEventListener('message', e => {
 let REVIEWS_STASH = null;
 function reviewsViewSwitch(prev, next) {
   if (prev === next) return;
+  // Podium Race's All time (1 Jan 2021 to today) is a window only that pair has: on any other page it would be a
+  // 2021-to-now custom range with nothing before it to compare against, so the month goes back.
+  const teamPair = v => v === 'team' || v === 'teamquad';
+  if (teamPair(prev) && !teamPair(next) && dateFrom && dateTo) {
+    const t = new Date(); t.setHours(0,0,0,0);
+    if (isRange(teamAllTime(t))) {
+      dateFrom = new Date(t.getFullYear(), t.getMonth(), 1); dateTo = t; periodPick = null;
+      paintFilterChips(); renderDashboard();
+    }
+  }
   if (prev === 'reviews') REVIEWS_KEEP_MONTH = false;
   if (prev === 'reviews' && REVIEWS_STASH) {
     const st = REVIEWS_STASH; REVIEWS_STASH = null;
@@ -495,8 +505,17 @@ function periodPresets() {
     const r = reviewsPresets();
     return [r[0], r[1], ...base, r[2]];
   }
+  // Podium Race and Staff Quadrant (Kate, 14 Oct 2026): an All time chip after Year, from the first year
+  // there is data for. It is only a window on these two pages; leaving them puts the month back
+  // (reviewsViewSwitch), the way Reviews' own All time is put back.
+  if (isTeamPage()) return [...base, teamAllTime(today)];
   return base;
 }
+// The Podium Race pair. applyPeriodParam reads the address bar itself, because it runs before CURRENT_VIEW moves.
+function isTeamPage() {
+  return typeof CURRENT_VIEW === 'string' && (CURRENT_VIEW === 'team' || CURRENT_VIEW === 'teamquad');
+}
+const teamAllTime = today => ({ k: 'All time', from: new Date(PERIOD_FIRST_YEAR, 0, 1), to: today });
 function reviewsPresets() {
   const today = new Date(); today.setHours(0,0,0,0);
   const back = n => new Date(today.getFullYear(), today.getMonth(), today.getDate() - n);
@@ -637,7 +656,15 @@ function applyPeriodParam() {
   if (named) {
     // All time, Last 30 and Last 90 are Reviews-only windows: on any other page the name means nothing (and All time
     // starts in 2000), so the default window stays (Kate, 9 Oct 2026).
-    if (named === 'All time' && periodFirstYear() !== 2015) return false;
+    if (named === 'All time' && periodFirstYear() !== 2015) {
+      // Podium Race and Staff Quadrant have their own All time (1 Jan 2021 on). CURRENT_VIEW is still the default
+      // while this runs, so the address bar says which page the link is for.
+      let uv = ''; try { uv = new URLSearchParams(location.search).get('view') || ''; } catch (e) {}
+      if (uv !== 'team' && uv !== 'teamquad') return false;
+      const t = new Date(); t.setHours(0,0,0,0);
+      const a = teamAllTime(t);
+      return set(a.from, a.to);
+    }
     const p = [...periodPresets(), ...reviewsPresets()].find(x => x.k === named);
     // A this-month on the Reviews page was picked on purpose (periodParam only writes it there):
     // reviewsDefaultRange must not swap it for the 90 days.
