@@ -325,6 +325,10 @@ const STAFF_PROFILES = {
   // 549 daily rows May 2022 to Nov 2023), IG karapuzzo. Her headshot is black and white, 375x435; the same photo ran
   // in her Roses magazine intro (Branch joined: Khalifa City A, Russia, 10 years in hair).
   'KARINA':   { photoFull: 'stylist/photos/KCA/karina kazarian.png', role: 'Stylist', branch: 'KCA', ig: 'karapuzzo', resigned: true },
+  // Kate, 14 Oct 2026: Lorena, former Junior Stylist (roster export: Saadiyat and Khalifa City A, archived Mar and
+  // Jul 2026). Ledger: Saadiyat 252 daily rows Feb to Nov 2022, Khalifa City A 30 rows. IG workdonebylorena.
+  // Black-and-white headshot, 375x435.
+  'LORENA':   { photoFull: 'stylist/photos/SAA/lorena factor.png', role: 'Junior Stylist', branch: 'SAA', ig: 'workdonebylorena', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
