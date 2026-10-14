@@ -3320,7 +3320,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 
 </style>
 <link rel="stylesheet" href="team-performance.css?v=20261001quad">
-<link rel="stylesheet" href="nav-collapse.css?v=20261009sh1">
+<link rel="stylesheet" href="nav-collapse.css?v=20261014glide">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
 <link rel="stylesheet" href="mobile.css?v=20261013dp15">
 <link rel="stylesheet" href="search.css?v=20261008s31">
@@ -4164,13 +4164,13 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20261014d"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261014cb1"></script>
+<script src="dashboard.js?v=20261014cb2"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20261009bp1"></script>
 <script src="compare.js?v=20261009cmp2"></script>
-<script src="over-the-years.js?v=20261014oty25"></script>
+<script src="over-the-years.js?v=20261014oty27"></script>
 <script src="daily-performance.js?v=20261013dp20"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
@@ -4588,7 +4588,7 @@ function showView(view, el){
   document.body.classList.toggle('staffperf-chrome', view === 'staffperf');
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'clients' || view === 'clientmix' || view === 'services' || view === 'overyears' || view === 'dailyperf');
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'clients' || view === 'clientmix' || view === 'services' || view === 'dailyperf');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('website-chrome', view === 'website');
   document.body.classList.toggle('social-chrome', view === 'social');
@@ -4628,7 +4628,7 @@ function showView(view, el){
   if (view === 'ledgerStylist') renderLedgerStylist();
   CURRENT_VIEW = view;
   // A filter changed while Google Reviews was open and the Pulse redraw was skipped (refreshActiveView): catch up now.
-  if (PULSE_STALE && view !== 'reviews' && typeof refreshActiveView === 'function') { PULSE_STALE = false; refreshActiveView(); }
+  if (PULSE_STALE && view !== 'reviews' && view !== 'overyears' && typeof refreshActiveView === 'function') { PULSE_STALE = false; refreshActiveView(); }
   // After CURRENT_VIEW, not before: the Period chips grey out on the Ledgers pages
   // and paintFilterChips() reads CURRENT_VIEW to know. Without this the chips only
   // caught up on the next filter change. Cheap — it paints chips, not data.
@@ -4976,7 +4976,7 @@ function trSyncUrl(sectionId){
   // ledger month instead, which month= below already carries, and their Period
   // chips are greyed out. periodParam() returns null for the boot's own window.
   if (typeof FILTERED_VIEWS !== 'undefined' && FILTERED_VIEWS.has(CURRENT_VIEW)
-      && typeof LEDGER_VIEWS !== 'undefined' && !LEDGER_VIEWS.has(CURRENT_VIEW)
+      && typeof LEDGER_VIEWS !== 'undefined' && !LEDGER_VIEWS.has(CURRENT_VIEW) && CURRENT_VIEW !== 'overyears'
       && typeof periodParam === 'function') {
     const per = periodParam();
     if (per) parts.push('period=' + per);
@@ -5144,7 +5144,7 @@ addEventListener('load', sizeTopbar);
 
 </script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
-<script src="nav-collapse.js?v=20261009sh1"></script>
+<script src="nav-collapse.js?v=20261014glide2"></script>
 <script src="nav-stars.js?v=20261002a"></script>
 <script src="mobile.js?v=20261008sa"></script>
 <script src="search.js?v=20261013dp20"></script>

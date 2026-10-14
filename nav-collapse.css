@@ -6,7 +6,7 @@
 .nav-title.nav-fold::after{content:'';flex-shrink:0;width:7px;height:7px;margin-right:4px;
   border-right:2px solid currentColor;border-bottom:2px solid currentColor;
   transform:rotate(45deg) translateY(-2px);transition:transform .2s;opacity:.7}
-.nav-group.folded>.nav-title.nav-fold::after{transform:rotate(-45deg)}
+.nav-group.folded>.nav-title.nav-fold::after,.nav-group.folding>.nav-title.nav-fold::after{transform:rotate(-45deg)}
 .nav-group.folded>:not(.nav-title){display:none}
 .nav-group.folded>.nav-title{margin-bottom:0}
 

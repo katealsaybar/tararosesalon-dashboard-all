@@ -33,14 +33,29 @@ function otySave() { try { localStorage.setItem(OTY_STORE, JSON.stringify({ b: O
 // Kate, 14 Oct 2026: Marasy (MRY), a former branch with Phorest daily totals and per-staff counts from 1 Jul 2021 to 24 Dec
 // 2022 (the real closing date is unproven, so it is "data to", not "closed"). It has its own chip and is never part of All
 // four or Like for like, but it is in All + closed (with Fratelli), so the group's whole history adds up. Its own chip always reads
-// whole years, since "same days of this year" means nothing for it. Marasy has no sales lines, so per-visit figures drop out of any
-// year it is part of rather than dividing its takings by visits it does not have.
+// whole years, since "same days of this year" means nothing for it. Marasy's sales lines only start on 17 Aug 2021, so per-visit
+// figures drop out of 2021 when it is part of the set, rather than dividing a part-year of visits into the whole year's takings.
 const OTY_BR = ['SAA', 'KCA', 'MC', 'AQ', 'FRT', 'MRY'];
 const OTY_NAME = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', FRT: 'Fratelli', MRY: 'Marasy' };
 const OTY_COL = { SAA: '#C4B5FD', KCA: '#FFD4D9', MC: '#99F6E4', AQ: '#FF9B9B', FRT: '#EEF3C7', MRY: '#A5D8FF' };
 const OTY_ORDER = ['ALL', 'LFL', 'SAA', 'KCA', 'MC', 'AQ', 'ALLF', 'FRT', 'MRY'];
 const OTY_HIST = ['FRT', 'MRY'];   // branches that are not open now, so out of All four
-const otyHist = () => OTY.b === 'MRY';
+// Kate, 14 Oct 2026: "gamitin na lang natin yung global sticky filters, nakakalito". The page's own Branches pills are gone;
+// the branch comes from the masthead Branch chips (sel.branch), like the Pulse. UAE Branches = every branch with figures,
+// closed ones included for the years they traded; one chip = that branch; several chips = those added together. The masthead
+// Period chips are greyed here (the page sets years against years itself), and the closed-branch chips always show.
+function otyCodes() {
+  const have = otyD ? otyD.present : [];
+  const all = typeof sel === 'undefined' || !sel.branch || sel.branch.includes('all');
+  const picked = all ? [] : OTY_BR.filter(b => sel.branch.includes(b) && have.includes(b));
+  return picked.length ? picked : have.slice();
+}
+const otySetLabel = set => {
+  const have = otyD ? otyD.present : [];
+  if (set.length === have.length) return set.some(b => OTY_HIST.includes(b)) ? 'All four + Fratelli + Marasy' : 'All four branches';
+  return set.map(b => OTY_NAME[b]).join(' + ');
+};
+const otyHist = () => { const c = otyCodes(); return c.length === 1 && c[0] === 'MRY'; };
 const otySame = () => OTY.basis === 'same' && !otyHist();
 let otyRaw = null, otyIgRaw = null, otyD = null, otyBusy = false, otyErr = '', otyIgErr = '', otyIgLoaded = false;
 
@@ -309,11 +324,11 @@ function otySum(set, key, which, i) {
 }
 function otyRows() {
   const { years, D, sets, curYear } = otyD;
-  const set = sets[OTY.b] || sets.ALL, same = otySame();
+  const set = otyCodes(), same = otySame();
   return years.map((y, i) => {
     const w = same ? 'ytd' : 'full', partial = !same && !otyHist() && y === curYear;
     const net = otySum(set, 'net', w, i), stf = otySum(set, 'stf', w, i);
-    const vis = set.includes('MRY') && D.MRY.net[w][i] > 0 ? 0 : otySum(set, 'vis', w, i);   // Marasy has no sales lines
+    const vis = set.includes('MRY') && D.MRY.net[w][i] > 0 && y < 2022 ? 0 : otySum(set, 'vis', w, i);   // Marasy's sales lines start 17 Aug 2021, so 2021 per-visit figures are left out
     // Growth follows the toggle: whole year on whole year, except the year in progress, which can only be read on the same days.
     const gw = same || partial ? 'ytd' : 'full';
     const netY = otySum(set, 'net', gw, i), netP = i ? otySum(set, 'net', gw, i - 1) : 0;
@@ -353,7 +368,6 @@ function otyDraw() {
   if (!host) return;
   if (!otyD) { host.innerHTML = `<div class="oty oty-load">${otyEsc(otyErr || 'No data yet.')}</div>`; return; }
   if (OTY.sel == null || OTY.sel >= otyD.years.length) OTY.sel = otyD.years.length - 1;
-  if (!otyD.sets[OTY.b]) OTY.b = 'ALL';
   const rows = otyRows();
   // Kate, 13 Oct 2026: the mini side nav, the same rail as Organisation Pulse and Branch Performance (lgRail in
   // branch-ledger.js, lit by spy() in index.html): in the gutter from 1100px, a pinned row of chips below that. The
@@ -379,11 +393,7 @@ function otyDraw() {
   otySeasonPlace();
 }
 function otyControls() {
-  const keys = OTY_ORDER.filter(k => otyD.sets[k]);
-  const lab = k => k === 'ALL' ? 'All four' : k === 'LFL' ? 'Like for like' : k === 'ALLF' ? 'All + closed' : k === 'FRT' ? 'Fratelli (closed)' : k === 'MRY' ? 'Marasy (data to Dec 2022)' : OTY_NAME[k];
-  const bp = keys.map(k => `<button class="oty-pill" aria-pressed="${k === OTY.b}" onclick="otySet('b','${k}')">${lab(k)}</button>`).join('');
-  return `<div class="oty-lab">Branches</div><div class="oty-pills">${bp}</div>
-    <div class="oty-lab">Compare on</div><div class="oty-pills">
+  return `<div class="oty-lab">Compare on</div><div class="oty-pills">
       <button class="oty-pill" aria-pressed="${OTY.basis === 'same'}" onclick="otySet('basis','same')">Same days (1 Jan – ${otyCutLabel()})</button>
       <button class="oty-pill" aria-pressed="${OTY.basis === 'full'}" onclick="otySet('basis','full')">Full years</button></div>`;
 }
@@ -392,9 +402,9 @@ function otyPick(i) { OTY.sel = i; otyDraw(); }
 // Kate, 13 Oct 2026: the tiles ignored the Compare on switch (Full years still said "1 Jan – 12 Oct" and "same days").
 // Full years now shows the last two whole years, each against the whole year before it, and says where this year stands.
 function otyTiles(rows) {
-  const n = rows.length, set = otyD.sets[OTY.b], cy = otyD.curYear, c = otyCutLabel();
+  const n = rows.length, set = otyCodes(), cy = otyD.curYear, c = otyCutLabel();
   const sumW = (w, i) => i >= 0 ? otySum(set, 'net', w, i) : 0;
-  const tile = (cls, k, v, p, vs) => `<div class="oty-card oty-tile ${cls}"><div class="k">${k}</div><div class="v">${otyM(v)}</div><div class="s">${otySetName(OTY.b)}</div>${otyChg(p)}<div class="s" style="margin-top:6px">${vs}</div></div>`;
+  const tile = (cls, k, v, p, vs) => `<div class="oty-card oty-tile ${cls}"><div class="k">${k}</div><div class="v">${otyM(v)}</div><div class="s">${otySetLabel(set)}</div>${otyChg(p)}<div class="s" style="margin-top:6px">${vs}</div></div>`;
   // Marasy: its two years of data, whole, each marked as the part-year it is. No growth: 2021 starts in July.
   if (otyHist()) {
     const Dm = otyD.D.MRY, ys = otyD.years, held = ys.map((y, i) => [y, Dm.net.full[i]]).filter(a => a[1] > 0).slice(-2).reverse();
@@ -432,7 +442,7 @@ function otyCanvas(h) {
 const OTY_WHY = 'Per visit counts each client once a day, through the door. Per staff counts a client once for each staff who served her, and the 2021 to 2024 per staff figures are not complete yet, so per visit leads on this page.';
 const otyWhy = label => typeof ihTip === 'function' ? ihTip(label, OTY_WHY) : label;
 function otyChartBlock(rows) {
-  const { years, sets } = otyD, set = sets[OTY.b], n = years.length;
+  const { years } = otyD, set = otyCodes(), n = years.length;
   const { W, H, bmax } = otyCanvas(300), L = 38, R = 38, T = 26, B = 30, bw = (W - L - R) / n, bar = Math.min(bmax, bw * .62);
   const maxNet = Math.max(...rows.map(r => r.net), 1) * 1.12, yb = v => T + (H - T - B) * (1 - v / maxNet);
   // Kate, 9 Oct 2026: the 2021 to 2024 ledgers are not fully attached yet, so the line has to say which count it
@@ -1167,13 +1177,13 @@ if (!window.__otyMoBound) {
 
 // ── GOOGLE REVIEWS (UNDER CONSTRUCTION) ──────────────────────────────────
 function otyReviews() {
-  const { years, D, sets, curYear } = otyD, set = sets[OTY.b], same = OTY.basis === 'same', n = years.length;
+  const { years, D, sets, curYear } = otyD, set = otyCodes(), same = OTY.basis === 'same', n = years.length;
   const rows = years.map((y, i) => {
     const per = set.map(b => ({ b, v: (same ? D[b].rev.ny : D[b].rev.n)[i] || 0, s: (same ? D[b].rev.sy : D[b].rev.s)[i] || 0 }));
     const c = per.reduce((a, p) => a + p.v, 0), stars = c ? per.reduce((a, p) => a + p.v * p.s, 0) / c : 0;
     return { y, i, n: c, stars, per, partial: !same && y === curYear };
   });
-  if (!rows.some(r => r.n)) return `<div class="oty-eb"><i style="background:var(--warn)"></i>Reputation · Google reviews <span class="oty-uc">(UNDER CONSTRUCTION)</span></div><div class="oty-card oty-flag"><div class="oty-note">No Google reviews are held for ${otySetName(OTY.b)}.</div></div>`;
+  if (!rows.some(r => r.n)) return `<div class="oty-eb"><i style="background:var(--warn)"></i>Reputation · Google reviews <span class="oty-uc">(UNDER CONSTRUCTION)</span></div><div class="oty-card oty-flag"><div class="oty-note">No Google reviews are held for ${otySetLabel(set)}.</div></div>`;
   const { W, H, bmax } = otyCanvas(260), L = 34, R = 36, T = 24, B = 28, bw = (W - L - R) / n, bar = Math.min(bmax, bw * .62);
   const maxN = Math.max(250, Math.ceil(Math.max(...rows.map(r => r.n), 1) * 1.08 / 250) * 250), yb = v => T + (H - T - B) * (1 - v / maxN);
   const lo = 4.4, hi = 5.0, yl = v => T + (H - T - B) * (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo));
@@ -1280,7 +1290,7 @@ function otyNotes() {
       <p><b>Seasons, not calendar months.</b> Ramadan and Eid move about 11 days earlier every year, so month against month compares different seasons. The month by month section is there so Coach Emma can see the shape of each year anyway, and it marks every month Ramadan and Eid touched.</p>
       <p><b>Branches arrive over time.</b> Motor City's data starts Nov 2022 and Al Quoz's Sep 2023, so the all-branches total jumps when they appear. Like for like (Saadiyat + Khalifa City A) is the trend.</p>
       <p><b>Fratelli</b> closed on 22 May 2026. It is out of All four, as everywhere on the dashboard, and has its own chip, and All + closed puts it back in for the years it traded.</p>
-      <p><b>Marasy</b> is a former branch. Its Phorest data runs 1 Jul 2021 to 24 Dec 2022, so it has its own chip and is in All + closed, not in All four or Like for like. Both its years are part-years (2021 starts in July), and its closing date is not confirmed, so it says "data to" and not "closed". It has no sales lines, so clients and average bill per visit show a dot for 2021 and 2022 in All + closed.</p>
+      <p><b>Marasy</b> is a former branch. Its Phorest data runs 1 Jul 2021 to 24 Dec 2022, so it has its own chip and is in All + closed, not in All four or Like for like. Both its years are part-years (2021 starts in July), and its closing date is not confirmed, so it says "data to" and not "closed". Its sales lines start on 17 Aug 2021, so clients and average bill per visit show a dot for 2021 wherever Marasy is counted.</p>
       <p><b>Same days first.</b> The year in progress is set against the same dates in every earlier year. Switch to Full years to see whole years, with this one marked as partial.</p>
       <p><b>Slightly different from the Pulse.</b> These are Phorest's own financial totals. The Pulse's net take is built from the ledgers, so the two differ by about 1%.</p>
     </div>`;

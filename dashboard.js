@@ -76,6 +76,8 @@ const ACTIVE_BRANCHES = UAE_ACTIVE.slice();
 // lost it although it traded for five months of it, and 2022 offered it before it existed.
 function closedOffered(code) {
   const c = CLOSED_BRANCHES[code];
+  // Over the Years sets years against years, so every closed branch is always on offer there (its Period chips are greyed).
+  if (c && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'overyears') return !isBahrainView() && !isGroupView();
   return !!c && typeof dateFrom !== 'undefined' && !!dateFrom && !!dateTo
     && dateToIso(dateFrom) <= c.last && dateToIso(dateTo) >= c.first
     && !isBahrainView() && !isGroupView();
@@ -712,7 +714,7 @@ function paintFilterChips() {
   // against an arbitrary date range. So the Period chips go dead there and say so,
   // rather than being live controls that change nothing. The Branch chips still
   // work: it is only the period those pages fix. Kate, 2026-08-14.
-  const onLedger = LEDGER_VIEWS.has(CURRENT_VIEW);
+  const onLedger = LEDGER_VIEWS.has(CURRENT_VIEW) || CURRENT_VIEW === 'overyears';   // Over the Years: Period greyed, the page compares years itself
   if (onLedger) periodPick = null;
   const active = activePeriodKey();
   // While a picker is open its own chip stays the live one, even when the window
@@ -1353,7 +1355,7 @@ const ALL_VIEWS = [
 // number: the reference pages (stylist cards) and the embedded iframes do not.
 const FILTERED_VIEWS = new Set([
   'dashboard','team','teamquad','branchperf','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
-  'services','clients','products','reviews',
+  'services','clients','products','reviews','overyears',
 ]);
 
 // Of those, the ones that take the Branch filter but fix the period to the ledger
@@ -1388,6 +1390,14 @@ function refreshActiveView() {
   if (CURRENT_VIEW === 'reviews') {
     PULSE_STALE = true;
     paintFilterChips();
+    if (typeof spy === 'function') spy();
+    return Promise.resolve();
+  }
+  // Over the Years reads only the Branch chips (through sel.branch), so like Reviews it skips the Pulse redraw.
+  if (CURRENT_VIEW === 'overyears') {
+    PULSE_STALE = true;
+    paintFilterChips();
+    renderOverYears();
     if (typeof spy === 'function') spy();
     return Promise.resolve();
   }

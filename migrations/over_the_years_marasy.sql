@@ -1,6 +1,7 @@
 -- Kate, 14 Oct 2026: Marasy (MRY) on Over the Years. oty_refresh() now takes MRY into the year summary alongside the
 -- four salons and Fratelli. Marasy's Phorest financial totals (543 days, 30 Jun 2021 to 24 Dec 2022) and staff daily
--- (539 days) were pushed the same day. It has no sales lines, reviews or ledger days, so those columns stay null for it.
+-- (539 days) were pushed the same day; its sales lines (486 days, 17 Aug 2021 to 24 Dec 2022) followed, so visits count too.
+-- It has no reviews or ledger days, so those columns stay null for it.
 -- oty_month_refresh() is untouched: the month grid stays the four open salons. Applied to gvijxenafoowajqktqvd.
 CREATE OR REPLACE FUNCTION public.oty_refresh()
  RETURNS void
@@ -24,7 +25,7 @@ begin
   v as (select extract(year from l.date)::int y, l.branch b, count(distinct l.sale_id)::int vis,
                count(distinct l.sale_id) filter (where l.date <= c.c)::int vis_y
         from public.sales_transaction_lines l join c on c.y = extract(year from l.date)::int
-        where l.branch in ('SAA','KCA','MC','AQ','FRT') and l.date >= '2021-01-01' group by 1, 2),
+        where l.branch in ('SAA','KCA','MC','AQ','FRT','MRY') and l.date >= '2021-01-01' group by 1, 2),
   s as (select extract(year from p.date)::int y, p.branch b, sum(p.visits)::int stf,
                (sum(p.visits) filter (where p.date <= c.c))::int stf_y
         from public.phorest_staff_daily p join c on c.y = extract(year from p.date)::int
