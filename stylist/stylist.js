@@ -314,6 +314,7 @@ const STYLIST_IG = {
   "Rita":       "https://www.instagram.com/radream_beautybrandstudio/",
   "Emmalyn":    "https://www.instagram.com/emmalyn_trs/",
   "Melliza":    "https://www.instagram.com/beautybymelliza/",
+  "Maricel":    "https://www.instagram.com/maricel_rebato/",
   "Jackie":     "https://www.instagram.com/nailsbyjackie.08/",
   "Karina":     "https://www.instagram.com/karapuzzo/",
   "Nicole":     "https://www.instagram.com/nicolesullivanhair/",
