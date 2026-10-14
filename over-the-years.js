@@ -88,7 +88,16 @@ function otyCss() {
   .oty .oty-pills{display:flex;flex-wrap:wrap;gap:8px}
   .oty .oty-pill{appearance:none;border:1px solid var(--border);background:transparent;color:var(--muted);font:600 13px Inter,sans-serif;padding:9px 13px;border-radius:999px;cursor:pointer;white-space:nowrap}
   .oty .oty-pill[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
-  .oty .oty-tiles{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:18px}
+  /* Kate, 14 Oct 2026: "6 containers, scrollable from left to right like an album, kasi 2025 at 2024 lang to". One tile for every year
+     that has figures, newest first, in a row that scrolls sideways and snaps. About three and a bit show on a laptop (the fourth
+     peeks, so it reads as scrollable), one and a bit on a phone. Tapping a tile picks that year in the chart below. */
+  .oty .oty-tiles{display:flex;gap:10px;margin-top:18px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 10px;
+    -webkit-overflow-scrolling:touch;scrollbar-width:thin;overscroll-behavior-x:contain}
+  .oty .oty-tiles .oty-tile{flex:0 0 calc((100% - 20px) / 3.25);min-width:210px;scroll-snap-align:start;cursor:pointer;user-select:none}
+  @media(max-width:700px){.oty .oty-tiles .oty-tile{flex-basis:76%;min-width:0}}
+  .oty .oty-tiles:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:12px}
+  .oty .oty-tiles .oty-tile:hover{border-color:var(--muted2)}
+  .oty .oty-tiles .oty-tile.sel{border-color:var(--accent)}
   .oty .oty-tile .k{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
   .oty .oty-tile .v{font-size:clamp(19px,5.6vw,30px);font-weight:600;margin:6px 0 2px;font-variant-numeric:tabular-nums;white-space:nowrap}
   .oty .oty-tile .s{font-size:12px;color:var(--muted);line-height:1.4}
@@ -386,6 +395,7 @@ function otyDraw() {
   const shell = typeof lgRail === 'function'
     ? `<div class="lg-shell lg-shell-wide">${lgRail(parts.map(([id, label]) => [id, label]))}<div class="lg-doc">${body}</div></div>`
     : body;
+  const prevTiles = host.querySelector('.oty-tiles'), tileX = prevTiles ? prevTiles.scrollLeft : 0;
   host.innerHTML = `<div class="oty">
     <div class="oty-eb"><i style="background:var(--accent)"></i>Numbers · Business · Over the years</div>
     <h1>${otyD.years.length} years, <em>season by season.</em></h1>
@@ -395,6 +405,7 @@ function otyDraw() {
     ${shell}
   </div>`;
   otySeasonPlace();
+  const nowTiles = host.querySelector('.oty-tiles'); if (nowTiles && tileX) nowTiles.scrollLeft = tileX;
 }
 function otyControls() {
   return `<div class="oty-lab">Compare on</div><div class="oty-pills">
@@ -406,30 +417,19 @@ function otyPick(i) { OTY.sel = i; otyDraw(); }
 // Kate, 13 Oct 2026: the tiles ignored the Compare on switch (Full years still said "1 Jan – 12 Oct" and "same days").
 // Full years now shows the last two whole years, each against the whole year before it, and says where this year stands.
 function otyTiles(rows) {
-  const n = rows.length, set = otyCodes(), cy = otyD.curYear, c = otyCutLabel();
-  const sumW = (w, i) => i >= 0 ? otySum(set, 'net', w, i) : 0;
-  const tile = (cls, k, v, p, vs) => `<div class="oty-card oty-tile ${cls}"><div class="k">${k}</div><div class="v">${otyM(v)}</div><div class="s">${otySetLabel(set)}</div>${otyChg(p)}<div class="s" style="margin-top:6px">${vs}</div></div>`;
-  // Marasy: its two years of data, whole, each marked as the part-year it is. No growth: 2021 starts in July.
-  if (otyHist()) {
-    const Dm = otyD.D.MRY, ys = otyD.years, held = ys.map((y, i) => [y, Dm.net.full[i]]).filter(a => a[1] > 0).slice(-2).reverse();
-    const part = y => y === 2021 ? 'from 1 Jul' : y === 2022 ? 'to 24 Dec' : 'Phorest data';
-    return `<div class="oty-tiles">${held.map(([y, v], k) => tile(k ? '' : 'now', `${y} · ${part(y)}`, v, null, 'part year, so not set against the other')).join('')}</div>
-    <p class="oty-note" style="margin:10px 2px 0">Marasy's Phorest data runs 1 Jul 2021 to 24 Dec 2022. Both years are part-years, so there is no growth figure, and the real closing date is not confirmed.</p>`;
-  }
-  if (OTY.basis === 'full') {
-    const a = n - 2, b = n - 3, c2 = n - 4, ys = otyD.years;
-    const va = sumW('full', a), vb = sumW('full', b), vc = sumW('full', c2);
-    return `<div class="oty-tiles">
-      ${tile('now', `${ys[a]} · full year`, va, otyPct(vb, va), `on the full year ${ys[b]}`)}
-      ${tile('', `${ys[b]} · full year`, vb, c2 >= 0 ? otyPct(vc, vb) : null, c2 >= 0 ? `on the full year ${ys[c2]}` : '')}
-    </div>
-    <p class="oty-note" style="margin:10px 2px 0">${cy} is part-way, so it is not set against a whole year: ${otyM(sumW('ytd', n - 1))} from 1 Jan to ${c}.</p>`;
-  }
-  const cur = sumW('ytd', n - 1), prev = sumW('ytd', n - 2), prev2 = sumW('ytd', n - 3);
-  return `<div class="oty-tiles">
-    ${tile('now', `${cy} · 1 Jan – ${c}`, cur, otyPct(prev, cur), `on the same days of ${cy - 1}`)}
-    ${tile('', `${cy - 1} · 1 Jan – ${c}`, prev, otyPct(prev2, prev), `on the same days of ${cy - 2}`)}
-  </div>`;
+  const { years, curYear: cy } = otyD, set = otyCodes(), c = otyCutLabel(), hist = otyHist(), same = otySame();
+  // One tile per year the selection has figures for, newest first. rows already follow the basis (same days or full years,
+  // the year in progress always on the same days) and carry the growth on the year before.
+  const part = y => y === 2021 ? 'from 1 Jul' : y === 2022 ? 'to 24 Dec' : 'Phorest data';
+  const label = r => hist ? part(r.y) : (r.partial || same) ? `1 Jan – ${c}` : 'full year';
+  const vs = r => hist ? 'part year, so not set against the other' : r.y === years[0] ? '' : (r.partial || same) ? `on the same days of ${r.y - 1}` : `on the full year ${r.y - 1}`;
+  const chg = r => r.big ? '<span class="oty-chg flat">new</span>' : otyChg(r.growth);
+  const tiles = rows.filter(r => r.net > 0).slice().reverse().map(r => `<div class="oty-card oty-tile${OTY.sel === r.i ? ' sel' : ''}" role="button" tabindex="0" aria-pressed="${OTY.sel === r.i}" onclick="otyPick(${r.i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();otyPick(${r.i})}">
+      <div class="k">${r.y} · ${label(r)}</div><div class="v">${otyM(r.net)}</div><div class="s">${otySetLabel(set)}</div>${hist ? '' : chg(r)}<div class="s" style="margin-top:6px">${vs(r)}</div></div>`).join('');
+  const note = hist ? `Marasy's Phorest data runs 1 Jul 2021 to 24 Dec 2022. Both years are part-years, so there is no growth figure, and the real closing date is not confirmed.`
+    : `One tile for every year. Scroll sideways for the rest, and tap one to read it in the chart below. ${cy} is part-way, so it is always set against the same days of ${cy - 1}.`;
+  return `<div class="oty-tiles" tabindex="0" role="group" aria-label="Net take for each year, scroll sideways">${tiles}</div>
+    <p class="oty-note" style="margin:6px 2px 0">${note}</p>`;
 }
 // Kate, 9 Oct 2026: "it's too big" on a desktop. The charts were drawn on a 360 unit phone canvas and then
 // stretched to the page, so at 1000px wide the type was 3x and the chart taller than the screen. Now the canvas
