@@ -4691,7 +4691,10 @@ async function renderDashboard() {
       : nm;
     // Outside the Instagram link, same convention as the stylist cards' sc-last. No profile: the rest of her Phorest name.
     const phFull = !prof ? PHOREST_FULL_NAMES[staffMapKey(w.p.name)] : null;
+    // No card, no profile (2022 and 2023 winners like Maricel, Dina, Paul): the surname map still knows her.
+    const mapLast = (typeof staffSurname === 'function') ? staffSurname(w.p.name) : null;
     const surname = prof && prof.last ? ` <span class="win-last">${escapeHtml(prof.last)}</span>`
+      : mapLast ? ` <span class="win-last">${escapeHtml(mapLast)}</span>`
       : (phFull && phFull.indexOf(' ') > 0 ? ` <span class="win-last">${escapeHtml(titleCaseName(phFull.slice(phFull.indexOf(' ') + 1)))}</span>` : '');
     // The branch comes from the profile or not at all. Falling back to the current
     // filter label printed "All Branches" under every beauty therapist, which reads
