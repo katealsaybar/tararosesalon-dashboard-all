@@ -1,7 +1,7 @@
 -- Team Home: Magazines (Kate, 14 Oct 2026). /hub/magazines holds the 2022 ROSES magazine
 -- issues (8 PDFs, compressed to 5-12 MB each from Tara's Drive "magazines" folder). The PDFs
 -- are too big for a bytea column, so they sit in a private Storage bucket and kb_files carries
--- the paths; the page asks for a signed link on each click. Level 2 and up open it (same rule
+-- the paths; the page asks for a signed link on each click. Level 2 and up open it (all staff since kb_magazines_all_staff.sql; same rule
 -- as hr-forms): kb_can_read('magazines') gates both the kb_files row and the bucket objects.
 -- Nothing of the files is in this repo (public). Already applied to Supabase. The files went
 -- in through a short-lived anon insert policy on the bucket, dropped right after.
