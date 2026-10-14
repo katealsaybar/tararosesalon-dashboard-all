@@ -140,7 +140,7 @@ function tcShell(body) {
       <p>Who spends the most, by branch, and when we last saw them. For reference and for knowing who to look after first.</p>
     </section>
     <div class="sc-bar w13-bar lc-bar tc-bar">
-      <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(lcBranchKeys(tcRange()[1]).map(k => [k, k])))}</div>
+      <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(lcBranchKeys(tcRange()).map(k => [k, k])))}</div>
       <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Period</div>${seg('period', TC_PERIODS)}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Visits</div>${seg('seg', [['all', 'All'], ['3', '3+'], ['2', '2'], ['1', '1']])}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Spend (AED)</div>${seg('spend', [[0, 'Any'], [2000, '2k+'], [5000, '5k+'], [10000, '10k+']])}</div>
@@ -154,7 +154,7 @@ function tcShell(body) {
 async function renderTopClients() {
   const el = document.getElementById('topClientsContent');
   if (!el) return;
-  if (TC.branch === 'FRT' && tcRange()[1] > LC_FRT_LAST) { TC.branch = 'all'; tcSave(); }   // Fratelli goes with windows past 22 May 2026
+  if (TC.branch !== 'all' && !lcBranchKeys(tcRange()).includes(TC.branch)) { TC.branch = 'all'; tcSave(); }   // a closed branch goes when the window no longer touches its open days
   if (Date.now() - tcStamp > 600000) { Object.keys(tcCache).forEach(k => delete tcCache[k]); tcStamp = Date.now(); }
   lcDetailCtx = { branch: () => tcBranchArg(), html: tcDetailHtml };
   const seq = ++tcSeq;

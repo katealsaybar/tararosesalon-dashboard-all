@@ -675,6 +675,7 @@ function paintFilterChips() {
     pendingSel.branch = [...sel.branch];
   }
   syncCountry();
+  if (typeof lgClampMonth === 'function') lgClampMonth();   // the Financial Totals month goes back to this month when Marasy is dropped
   const isAll = sel.branch.includes('all');
   // No "no data" greying here. branchesWithNoData() reads allData, which comes from
   // weekly_data — a table that stopped filling at the end of May 2026 — so on any

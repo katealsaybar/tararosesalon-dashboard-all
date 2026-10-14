@@ -33,11 +33,15 @@ let lcSel = { branch: 'SAA', seg: 'regular', days: 90, cfrom: 0, cto: 60 };
 try { Object.assign(lcSel, JSON.parse(localStorage.getItem('trs-lost') || '{}')); } catch (e) {}
 
 const LC_BRANCH = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
-// Fratelli (Kate, 9 Oct 2026): a branch chip only for windows that end on or before its last day of sales,
-// 22 May 2026. It is not in LC_BRANCH on purpose, so the boards and Lost Clients keep their four branches.
-const LC_FRT_LAST = '2026-05-22';
-const lcBranchName = b => LC_BRANCH[b] || (b === 'FRT' ? 'Fratelli' : b);
-const lcBranchKeys = windowEnd => Object.keys(LC_BRANCH).concat(windowEnd && windowEnd <= LC_FRT_LAST ? ['FRT'] : []);
+// Closed branches (Fratelli 9 Oct 2026, Marasy 14 Oct 2026): a branch chip on the boards (Top Clients, Client Mix, Service
+// Rankings) whenever the window touches any of the branch's open days, last day included, the same rule as the masthead chips
+// (CLOSED_BRANCHES in dashboard.js). They are not in LC_BRANCH on purpose, so Lost Clients and its lists keep their four
+// branches: nobody who last visited Marasy in 2022 can end up in an outreach list.
+const LC_CLOSED = { FRT: { first: '2023-11-06', last: '2026-05-22' }, MRY: { first: '2021-07-01', last: '2022-12-24' } };
+const LC_FRT_LAST = LC_CLOSED.FRT.last;
+const lcBranchName = b => LC_BRANCH[b] || (typeof BRANCH_INFO !== 'undefined' && BRANCH_INFO[b] ? BRANCH_INFO[b].name : b);
+// range = [from, to] as ISO dates
+const lcBranchKeys = range => Object.keys(LC_BRANCH).concat(range ? Object.keys(LC_CLOSED).filter(c => range[0] <= LC_CLOSED[c].last && range[1] >= LC_CLOSED[c].first) : []);
 // "All" (Kate, 7 Oct 2026) asks the server for every branch at once: the RPCs take a null branch.
 const lcBranchArg = () => lcSel.branch === 'all' ? null : lcSel.branch;
 // min/max visits per segment. Visits = days the client came in at that branch.

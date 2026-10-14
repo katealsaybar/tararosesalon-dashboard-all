@@ -599,11 +599,21 @@ const lgYmd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}
    selected one. Nothing on the pages needs to know.
    ────────────────────────────────────────────────────────────── */
 const LG_FIRST_MONTH = '2025-01';   // where the Phorest backfill starts (opened to 2025 on 3 Sep 2026)
+// Marasy (Kate, 14 Oct 2026): its Phorest Financial Totals run from Jul 2021, so the Month picker reaches back that far while
+// the Marasy chip is picked, and drops back to this month when it is not.
+const LG_MARASY_FIRST = '2021-07';
+const lgFirstMonth = () => (typeof sel !== 'undefined' && sel.branch && sel.branch.includes('MRY')) ? LG_MARASY_FIRST : LG_FIRST_MONTH;
+function lgClampMonth() {
+  if (lgMonth && lgMonth < lgFirstMonth()) {
+    lgMonth = lgThisMonth(); window._lgSeries = null;
+    try { localStorage.setItem('lgMonth', lgMonth); } catch (e) { /* ignore */ }
+  }
+}
 
 let lgMonth = (typeof LEDGER_TARGETS !== 'undefined' && LEDGER_TARGETS) ? LEDGER_TARGETS.month : null;
 try {
   const m = localStorage.getItem('lgMonth');
-  if (m && /^\d{4}-\d{2}$/.test(m) && m >= LG_FIRST_MONTH && m <= lgThisMonth()) lgMonth = m;
+  if (m && /^\d{4}-\d{2}$/.test(m) && m >= LG_MARASY_FIRST && m <= lgThisMonth()) lgMonth = m;
 } catch (e) { /* private mode — the target sheet's own month is a fine default */ }
 // A month= in the address bar beats the remembered one, same as split= does, and
 // against the same window: a link can only point at a month there is data for.
@@ -612,7 +622,7 @@ try {
 // Kate, 4 Sep 2026.
 try {
   const u = new URLSearchParams(location.search).get('month');
-  if (u && /^\d{4}-\d{2}$/.test(u) && u >= LG_FIRST_MONTH && u <= lgThisMonth()) lgMonth = u;
+  if (u && /^\d{4}-\d{2}$/.test(u) && u >= LG_MARASY_FIRST && u <= lgThisMonth()) lgMonth = u;
 } catch (e) { /* no URL to read — the stored month stands */ }
 
 function lgThisMonth() {
@@ -657,7 +667,7 @@ function lgBranchTargetSet(key, codes) {
 // Every month with figures, newest first — the picker's options.
 function lgMonthOptions() {
   const out = [];
-  const [fy, fm] = LG_FIRST_MONTH.split('-').map(Number);
+  const [fy, fm] = lgFirstMonth().split('-').map(Number);
   const now = new Date();
   for (let d = new Date(now.getFullYear(), now.getMonth(), 1);
        d >= new Date(fy, fm - 1, 1);
@@ -697,7 +707,7 @@ function lgSetMonth(m) {
 // disabled rather than hidden, so the list keeps its shape from year to year.
 function lgMonthRow() {
   const [cy, cm] = (lgMonth || lgThisMonth()).split('-').map(Number);
-  const [fy, fm] = LG_FIRST_MONTH.split('-').map(Number);
+  const [fy, fm] = lgFirstMonth().split('-').map(Number);
   const [ty, tm] = lgThisMonth().split('-').map(Number);
   const monthOpts = HERO_MONTH_NAMES.map((name, i) => {
     const m = i + 1;
@@ -729,7 +739,7 @@ function lgPickMonth(el) {
   const yEl = row && row.querySelector('.lg-month-sel[data-part="y"]');
   if (!mEl || !yEl) return;
   let y = Number(yEl.value), m = Number(mEl.value);
-  const [fy, fm] = LG_FIRST_MONTH.split('-').map(Number);
+  const [fy, fm] = lgFirstMonth().split('-').map(Number);
   const [ty, tm] = lgThisMonth().split('-').map(Number);
   if (y === fy && m < fm) m = fm;
   if (y === ty && m > tm) m = tm;

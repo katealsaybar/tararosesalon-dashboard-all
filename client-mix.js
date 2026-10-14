@@ -161,7 +161,7 @@ function cmShell() {
     </div>
     <div id="cmPageMix"${CM.tab === 'mix' ? '' : ' style="display:none"'}>
       <div class="sc-bar w13-bar lc-bar tc-bar cm-bar">
-        <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(lcBranchKeys(cmRange()[1]).map(k => [k, k])))}</div>
+        <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(lcBranchKeys(cmRange()).map(k => [k, k])))}</div>
         <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Period</div>${seg('period', CM_PERIODS)}</div>
         <div class="lc-grp"><div class="slv-eyebrow">Show</div>${seg('mode', [['clients', 'Clients'], ['units', 'Units']])}</div>
       </div>
@@ -185,7 +185,7 @@ function cmShell() {
 async function renderClientMix() {
   const el = document.getElementById('clientMixContent');
   if (!el) return;
-  if (CM.branch === 'FRT' && cmRange()[1] > LC_FRT_LAST) { CM.branch = 'all'; cmSave(); }   // Fratelli goes with windows past 22 May 2026
+  if (CM.branch !== 'all' && !lcBranchKeys(cmRange()).includes(CM.branch)) { CM.branch = 'all'; cmSave(); }   // a closed branch goes when the window no longer touches its open days
   if (Date.now() - cmStamp > 600000) { cmForget(); cmStamp = Date.now(); cmRoster = null; }
   lcDetailCtx = { branch: () => cmBranchArg(), html: d => lcDetailHtml(d, { allBranches: CM.branch === 'all' && ((d && d.branches) || []).length > 1 }) };
   el.innerHTML = cmShell();

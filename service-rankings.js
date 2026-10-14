@@ -113,7 +113,7 @@ function srShell() {
       <p>The services clients book most, by revenue or by units. Every size of a service is one row, and each service carries Phorest's own category. Click a row to see its sizes.</p>
     </section>
     <div class="sc-bar w13-bar lc-bar tc-bar cm-bar">
-      <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(SR_BR.concat(srRange()[1] <= LC_FRT_LAST ? ['FRT'] : []).map(k => [k, k])))}</div>
+      <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(lcBranchKeys(srRange()).map(k => [k, k])))}</div>
       <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Period</div>${seg('period', SR_PERIODS)}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Rank by</div>${seg('rank', [['rev', 'Revenue'], ['units', 'Units']])}</div>
     </div>
@@ -127,7 +127,7 @@ function srShell() {
 async function renderServiceRankings() {
   const el = document.getElementById('serviceRankingsContent');
   if (!el) return;
-  if (SR.branch === 'FRT' && srRange()[1] > LC_FRT_LAST) { SR.branch = 'all'; srSave(); }   // Fratelli goes with windows past 22 May 2026
+  if (SR.branch !== 'all' && !lcBranchKeys(srRange()).includes(SR.branch)) { SR.branch = 'all'; srSave(); }   // a closed branch goes when the window no longer touches its open days
   el.innerHTML = srShell();
   srData = null; srPrev = null;
   srLoad();
