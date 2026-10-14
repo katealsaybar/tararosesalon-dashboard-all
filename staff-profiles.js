@@ -448,6 +448,23 @@ const STAFF_SURNAMES = {
   'STRAWBERRY':'Alcomendas',
   'VENUS':     'Solomon',
   'ZOE':       'Hogkinson',
+
+  // Kate, 14 Oct 2026, second pass: every name the branch ledgers carry, checked against
+  // this map. These are the misspellings and one-offs the ledgers wrote for someone who
+  // is already here, same branch and the dates running on from hers (Cherine, Jan-Aug
+  // 2021 then Sherine from Sep 2021, both KCA hair). Surname only: the figures stay under
+  // the ledger's own spelling, nothing is merged. Mandika's is off Phorest's single row
+  // for her (Saadiyat, 2021).
+  'MANDIKA':   'Dyola',
+  'CHERINE':   'Baghdadi',
+  'JAIMIE':    'Petzer',
+  'JAMIE':     'Petzer',
+  'MIKAELA':   'Solomei',
+  'SHILAH':    'Mandal',
+  'NEOMI':     'Mallari',
+  'NOIME':     'Mallari',
+  'ROBINA':    'Jordan',
+  'MAVE':      'Miraflor',
 };
 
 // The surname on its own, canonical name in and Title Case out, or null when we do
