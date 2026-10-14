@@ -311,7 +311,9 @@ const STAFF_PROFILES = {
   // 'Beauty Team Member', the former-team label Rovina, Roja and Stella use, so they land in Former Beauty Team
   // (Phorest category: Beautician). Branch off the ledger's busiest one.
   // Cecille: Khalifa City A, 694 daily rows Sep 2021 to Sep 2023 (a little Marasy and Saadiyat in 2022).
-  'CECILLE':  { photoFull: 'stylist/photos/KCA/cecille castilio.png', role: 'Beauty Team Member', branch: 'KCA', resigned: true },
+  // Kate, 14 Oct 2026: real headshot (grey beauty uniform), replacing the blank placeholder; her surname is Castillo
+  // (Phorest has Castilio). No Instagram given.
+  'CECILLE':  { photoFull: 'stylist/photos/KCA/cecille castillo.png', role: 'Beauty Team Member', branch: 'KCA', resigned: true },
   // Maricel: Saadiyat, 1,027 daily rows May 2021 to Jun 2025 (also Khalifa City A, Marasy and Fratelli).
   'MARICEL':  { photoFull: 'stylist/photos/SAA/maricel sape.png', role: 'Beauty Team Member', branch: 'SAA', resigned: true },
   // Melliza: Khalifa City A, 911 daily rows Oct 2021 to May 2024 (Marasy before that). Had a template until Kate sent
@@ -508,7 +510,7 @@ const STAFF_SURNAMES = {
   'BILLY':     'Gray',
   'CALLUM':    'Standenmay',
   'CATRIN':    'Birkby',
-  'CECILLE':   'Castilio',
+  'CECILLE':   'Castillo',     // Kate, 14 Oct 2026: Castillo (Phorest has Castilio)
   'DINA':      'Paycao',
   'ELLIESA':   'Purisima',
   'ELOISA':    'Purisima',

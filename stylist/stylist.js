@@ -81,7 +81,7 @@ const STYLIST_SURNAMES = {
   "Sahra":     "Sayed",
   "Jaime":     "Booth",       // Phorest has Petzer; Kate, 14 Oct 2026: Jaime Booth
   "Josh":      "Thomas",
-  "Cecille":   "Castilio",
+  "Cecille":   "Castillo",    // Phorest has Castilio; Kate, 14 Oct 2026: Castillo
   "Dina":      "Paycao",
   "Rita":      "Aryal",
   "Emmalyn":   "Daza",
@@ -258,7 +258,7 @@ const STYLIST_PHOTOS = {
   "Jackie":    "SAA/jackie anog.png",
   "Karina":    "KCA/karina kazarian.png",
   "Lorena":    "SAA/lorena factor.png",
-  "Cecille":   "KCA/cecille castilio.png",   // blank placeholder, former beautician — Kate, 14 Oct 2026
+  "Cecille":   "KCA/cecille castillo.png",   // former beautician; real photo — Kate, 14 Oct 2026
   "Maricel":   "SAA/maricel sape.png",
   "Melliza":   "KCA/melliza ancajas.png",
   "Michelle":  "SAA/michelle alinea.png",   // left 2023, Assistant at SAA — Kate, 14 Oct 2026
