@@ -46,6 +46,13 @@ function cmpDataEnd() {
 // A side's branch is 'all', one code, or several joined by commas ('SAA,KCA').
 // Kate, 24 Sep 2026: pick any mix of branches, not just one or All.
 const cmpCodes = branch => (!branch || branch === 'all') ? null : branch.split(',').filter(Boolean);
+// Closed branches (Kate, 14 Oct 2026): each side offers Fratelli or Marasy when ITS OWN window touches the branch's open days,
+// last day included (CLOSED_BRANCHES in dashboard.js), so side A can be Marasy in 2022 against side B Saadiyat in 2022.
+const cmpClosedFor = key => {
+  const s = cmpState[key];
+  return (s && s.from && s.to) ? Object.keys(CLOSED_BRANCHES).filter(c => cmpIso(s.from) <= CLOSED_BRANCHES[c].last && cmpIso(s.to) >= CLOSED_BRANCHES[c].first) : [];
+};
+const cmpOffered = key => UAE_ACTIVE.concat(cmpClosedFor(key));
 const cmpBranchName = branch => {
   const codes = cmpCodes(branch);
   if (!codes) return 'All Branches';
@@ -224,7 +231,7 @@ async function cmpSummary(side) {
   if (!d) return null;
   const s = d.summary;
   // For the Clients switch in the filter bar (Kate, 1 Oct 2026).
-  s.doorClients = await doorClientsFor(from, to, codes || ACTIVE_BRANCHES);
+  s.doorClients = await doorClientsFor(from, to, codes || scopeCodes());   // 'All' reads every branch whose rows are in (closed ones too), the same as the rows above
 
   // Utilisation, the same hours-weighted read as the Pulse. A nice-to-have: a
   // failed fetch leaves the rows blank rather than the page broken.
@@ -335,6 +342,13 @@ async function renderCompare() {
     try { window._freshness = { phorestInfo: await getLatestCompleteDate('phorest_staff_daily') }; } catch (e) {}
   }
   if (!cmpState.a || !cmpState.b) cmpRestore();
+  // A closed branch ticked on a side leaves it when that side's window no longer touches the branch's open days.
+  ['a', 'b'].forEach(k => {
+    const keep = cmpCodes(cmpState[k].branch);
+    if (!keep || !keep.some(c => CLOSED_BRANCHES[c])) return;
+    const off = cmpOffered(k), k2 = keep.filter(c => off.includes(c));
+    cmpState[k].branch = k2.length ? k2.join(',') : 'all';
+  });
   const seq = ++cmpSeq;
 
   // Controls paint first and stay put; only the results area shows Loading.
@@ -466,7 +480,7 @@ function cmpPickerHtml(key, branch) {
       </button>
       <div class="cmp-bp-drop" role="listbox" aria-multiselectable="true">
         ${row('all', 'All Branches', !codes)}
-        ${ACTIVE_BRANCHES.map(c => row(c, BRANCH_INFO[c]?.name || c, !!codes && codes.includes(c),
+        ${cmpOffered(key).map(c => row(c, BRANCH_INFO[c]?.name || c, !!codes && codes.includes(c),
           `<i class="cmp-bp-dot" style="background:${BRANCH_INFO[c]?.color || 'var(--muted2)'}"></i>`)).join('')}
         <div class="cmp-bp-foot"><button type="button" onclick="cmpPickClose('${key}')">Done</button></div>
       </div>
@@ -487,9 +501,10 @@ function cmpPickToggle(key, v) {
   else if (!codes) codes = [v];
   else if (codes.includes(v)) codes = codes.filter(c => c !== v);
   else codes = [...codes, v];
-  // Nothing ticked, or every branch ticked, both mean All Branches.
-  if (codes && (!codes.length || ACTIVE_BRANCHES.every(c => codes.includes(c)))) codes = null;
-  const branch = codes ? ACTIVE_BRANCHES.filter(c => codes.includes(c)).join(',') : 'all';
+  // Nothing ticked, or every branch on offer ticked, both mean All Branches.
+  const offered = cmpOffered(key);
+  if (codes && (!codes.length || offered.every(c => codes.includes(c)))) codes = null;
+  const branch = codes ? offered.filter(c => codes.includes(c)).join(',') : 'all';
   el.dataset.branch = branch;
   el.querySelectorAll('.cmp-bp-opt').forEach(o =>
     o.classList.toggle('on', o.dataset.v === 'all' ? !codes : !!codes && codes.includes(o.dataset.v)));
@@ -1078,8 +1093,8 @@ function cmpDrawCharts(sa, sb2) {
   };
   // Only the branches either side picked, so a two-branch pick is not padded
   // out with empty bars for the other two.
-  const picked = new Set([].concat(cmpCodes(A.branch) || ACTIVE_BRANCHES, cmpCodes(B.branch) || ACTIVE_BRANCHES));
-  const codes = ACTIVE_BRANCHES.filter(c => picked.has(c));
+  const picked = new Set([].concat(cmpCodes(A.branch) || cmpOffered('a'), cmpCodes(B.branch) || cmpOffered('b')));
+  const codes = UAE_BRANCHES.filter(c => picked.has(c));
   const va = codes.map(c => sc('aed', cut(sa, c), dA));
   const vb = codes.map(c => sc('aed', cut(sb2, c), dB));
   const labels = codes.map((c, i) => {

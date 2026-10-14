@@ -560,6 +560,27 @@ function otyTable(rows) {
 //  - A season still running is set against the same days of last year (tot_w, days_w), not all of last year's season.
 const OTY_REGION = { AD: ['SAA', 'KCA'], DXB: ['MC', 'AQ'] };
 const OTY_REGION_NAME = { AD: 'Abu Dhabi', DXB: 'Dubai' };
+// Kate, 14 Oct 2026: the Season on season and Month by month sections no longer have their own Where pills. They follow the
+// Branch chips at the top of the page: UAE Branches = the four open salons together (Abu Dhabi and Dubai side by side on the
+// season chart), one chip = that salon, a pair that is exactly Abu Dhabi or Dubai = that region, any other mix = those added
+// together. They cover the four open salons only (the monthly feed has no closed branches), so Fratelli or Marasy on their own
+// say so instead.
+function otyOpenCodes(have) {
+  const all = typeof sel === 'undefined' || !sel.branch || sel.branch.includes('all');
+  const pick = all ? have.slice() : OTY_BR.filter(b => sel.branch.includes(b) && have.includes(b));
+  return { all, codes: pick.filter(b => !OTY_HIST.includes(b)) };
+}
+function otyRegionKey(M, codes, all, allKey) {
+  if (!codes.length) return null;
+  if (all) return allKey;
+  const same = (a, b) => a.length === b.length && a.every(x => b.includes(x));
+  for (const k of Object.keys(OTY_REGION)) if (M.regions[k] && same(codes, M.regions[k])) return k;
+  if (codes.length === 1 && M.regions[codes[0]]) return codes[0];
+  const key = 'SEL:' + codes.join('+');
+  M.regions[key] = codes.slice(); OTY_REGION_NAME[key] = codes.map(b => OTY_NAME[b]).join(' + ');
+  return key;
+}
+const otyOpenOnly = title => `<div class="oty-eb"><i style="background:var(--hair)"></i>${title}</div><div class="oty-card oty-flag oty-note">This section covers the four open salons. Pick one of them, or UAE Branches, at the top of the page.</div>`;
 const OTY_SEASON_COL = ['#FFD4D9', '#EEF3C7', '#C4B5FD', '#99F6E4'];
 const OTY_AGE = ['#99F6E4', '#C4B5FD', '#9a94c4', '#807cab', '#6d6a95', '#5d5a80'];
 const otyAge = y => OTY_AGE[Math.min(otyD.curYear - y, OTY_AGE.length - 1)];
@@ -613,16 +634,15 @@ function otySeasons() {
   if (!(otyRaw.seasons || []).length || !(otyRaw.season_br || []).length) return '';
   const M = otySeasonModel(), keys = Object.keys(M.regions);
   if (!keys.length) return '';
-  if (!M.regions[OTY.sreg] && OTY.sreg !== 'BOTH') OTY.sreg = M.regions.AD ? 'AD' : keys[0];
-  if (OTY.sreg === 'BOTH' && !(M.regions.AD && M.regions.DXB)) OTY.sreg = keys[0];
+  const w = otyOpenCodes(otyD.present);
+  const skey = otyRegionKey(M, w.codes, w.all, (M.regions.AD && M.regions.DXB) ? 'BOTH' : keys[0]);
+  if (!skey) return otyOpenOnly('Season on season · per open day');
+  OTY.sreg = skey;
   let ys = (OTY.syrs || []).filter(y => years.includes(y));
   if (!ys.length) ys = years.slice(-5);
   OTY.syrs = ys; const shown = new Set(ys);
   const last5 = years.slice(-5), isLast5 = shown.size === last5.length && last5.every(y => shown.has(y)), isAll = shown.size === years.length;
 
-  const regPills = [['AD', 'Abu Dhabi'], ['DXB', 'Dubai']].filter(([k]) => M.regions[k]).concat(M.regions.AD && M.regions.DXB ? [['BOTH', 'Side by side']] : [])
-    .map(([k, l]) => `<button class="oty-pill" aria-pressed="${OTY.sreg === k}" onclick="otySeasonSet('sreg','${k}')">${l}</button>`).join('');
-  const brPills = OTY_BR.filter(b => M.regions[b]).map(b => `<button class="oty-pill" aria-pressed="${OTY.sreg === b}" onclick="otySeasonSet('sreg','${b}')">${OTY_NAME[b]}</button>`).join('');
   const yrChips = years.map(y => `<button class="oty-chip" aria-pressed="${shown.has(y)}" onclick="otySeasonYear(${y})"><i style="background:${otyAge(y)}"></i>${y}</button>`).join('');
   const hint = isLast5 ? `Showing ${last5[0]} to ${curYear}. Tap a year to add or remove it, or pick All years for the full range.`
     : isAll ? `Showing every year from ${years[0]}.` : `Showing ${ys.join(', ')}. Tap a year to add or remove it.`;
@@ -636,7 +656,7 @@ function otySeasons() {
     <p class="oty-deck" style="font-size:clamp(14px,3.4vw,16px)">How each season is doing against the same season last year. Mint is this year, lavender last year.</p>
     ${otySeasonCal(M)}
     <div class="oty-card" style="margin-top:12px">
-      <div class="oty-lab" style="margin-top:0">Where</div><div class="oty-pills">${regPills}${regPills && brPills ? '<span class="oty-sep"></span>' : ''}${brPills}</div>
+      <div class="oty-hint" style="margin:0 0 4px">Follows the Branch filter at the top of the page.</div>
       <div class="oty-lab">Years shown</div><div class="oty-pills"><button class="oty-pill" aria-pressed="${isLast5}" onclick="otySeasonYears('last5')">Last 5 years</button><button class="oty-pill" aria-pressed="${isAll}" onclick="otySeasonYears('all')">All years</button><span class="oty-sep"></span>${yrChips}</div>
       <div class="oty-hint">${hint}</div>
     </div>
@@ -834,7 +854,8 @@ function otyRamIn(y, m) {
 // everything the section needs for the current switches, in one place
 function otyMoCtx() {
   const M = otyMoModel(), keys = Object.keys(M.regions);
-  if (!M.regions[OTY.mreg]) OTY.mreg = M.regions.AD ? 'AD' : keys[0];
+  const w = otyOpenCodes(Object.keys(M.MO)), mk = otyRegionKey(M, w.codes, w.all, M.regions.ALL ? 'ALL' : keys[0]);
+  OTY.mreg = mk || (M.regions.AD ? 'AD' : keys[0]);
   const reg = OTY.mreg, met = OTY.mmet, years = otyD.years, curYear = otyD.curYear, X = { M, reg, met, years, curYear, keys };
   X.cell = (y, m) => { const row = otyMoCells(M, reg)[years.indexOf(y)]; return row ? row[m] : null; };
   X.val = c => met === 'net' ? c.tot : met === 'clients' ? c.stf : c.avg;
@@ -902,10 +923,10 @@ function otyMonths() {
   const head = `<div class="oty-eb"><i style="background:var(--hair)"></i>Month by month · the shape of each year</div>`;
   if (!otyMoRaw) return otyMoErr ? `${head}<div class="oty-card oty-flag"><div class="oty-note">${otyEsc(otyMoErr)}</div></div>` : '';
   if (!(otyMoRaw.months || []).length) return '';
+  if (!otyOpenCodes(Object.keys(otyMoModel().MO)).codes.length) return otyOpenOnly('Month by month · the shape of each year');
   const X = otyMoCtx(); if (!X.keys.length) return '';
   const S = X.stats(), years = X.years, curYear = X.curYear, v = OTY.mview;
   const pill = (key, k, l) => `<button class="oty-pill" aria-pressed="${OTY[key] === k}" onclick="otyMoSet('${key}','${k}')">${l}</button>`;
-  const regs = ['AD', 'DXB', 'ALL'].filter(k => X.M.regions[k]), brs = OTY_BR.filter(b => X.M.regions[b] && !OTY_HIST.includes(b));
   const bases = [['same', `${X.baseLabel('same')}, same months every year`], ['full', 'Full year']];
   const baseHint = OTY.mbase === 'same' ? `Every year is set against its own average of ${X.baseLabel('same')}, the months ${curYear} has finished, so all the years are on the same base. A year without all of those months says so instead.`
     : `Finished years are set against all twelve months, ${curYear} against the ${X.doneN} it has, so ${curYear} is not strictly like for like in this view.`;
@@ -968,7 +989,7 @@ function otyMonths() {
     <p class="oty-deck" style="font-size:clamp(14px,3.4vw,16px)">Does every year have the same shape? Six years on one grid, with growth taken out, so the months can be compared.</p>
     <div class="oty-card" style="margin-top:12px">
       <div class="oty-chead"><b>${title}</b><span>${otyEsc(sub)}</span></div>
-      <div class="oty-lab" style="margin-top:14px">Where</div><div class="oty-pills">${regs.map(k => pill('mreg', k, otyMoName(k))).join('')}${regs.length && brs.length ? '<span class="oty-sep"></span>' : ''}${brs.map(b => pill('mreg', b, OTY_NAME[b])).join('')}</div>
+      <div class="oty-hint" style="margin:10px 0 0">Follows the Branch filter at the top of the page.</div>
       <div class="oty-lab">Measure</div><div class="oty-pills">${['net', 'clients', 'bill'].map(k => pill('mmet', k, otyMoMetName[k])).join('')}</div>
       <div class="oty-lab">Index set against</div><div class="oty-pills">${bases.map(([k, l]) => pill('mbase', k, l)).join('')}</div>
       <div class="oty-hint">${baseHint}</div>
