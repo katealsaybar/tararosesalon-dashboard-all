@@ -238,6 +238,9 @@ const STAFF_PROFILES = {
   // to 23 Jan 2026. The KCA ledger keeps an all-zero STELLA row after that, which is
   // the template, not shifts.
   'STELLA':   { photoFull: 'stylist/photos/KCA/stella mendes.png', role: 'Beauty Team Member', branch: 'KCA', ig: 'beautybystellamendes', resigned: true },
+  // Kate, 14 Oct 2026: Style Director at Al Quoz, Nov 2023 to Jan 2025 (Motor City
+  // briefly), archived in Phorest. Photo from her own Canva headshot, 375x435.
+  'NIMI':     { photoFull: 'stylist/photos/AQ/nimi firth.png', role: 'Style Director', branch: 'AQ', ig: 'nimistyles', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
