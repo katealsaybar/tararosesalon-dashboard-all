@@ -284,7 +284,7 @@ const STAFF_PROFILES = {
   'FAYE':    { photoFull: 'stylist/photos/KCA/faye madi.png', role: 'Junior Stylist', branch: 'KCA', blank: true, resigned: true },
   'HAFEZ':   { photoFull: 'stylist/photos/other/hafez abou hwijj.png', role: 'Barber', branch: 'other', blank: true, resigned: true },
   'JANE':    { photoFull: 'stylist/photos/MC/jane astrande.png', role: 'Junior Stylist', branch: 'MC', blank: true, resigned: true },
-  'KELSEY':  { photoFull: 'stylist/photos/SAA/kelsey lewis.png', role: 'Stylist', branch: 'SAA', blank: true, resigned: true },
+  'KELSEY':  { photoFull: 'stylist/photos/SAA/kelsey lewis.png', role: 'Stylist', branch: 'SAA', ig: 'kelseylewis_hair', blank: true, resigned: true },
   'KELSIE':  { photoFull: 'stylist/photos/KCA/kelsie lally.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'LOUISE':  { photoFull: 'stylist/photos/KCA/louise williams.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'LUCIE':   { photoFull: 'stylist/photos/SAA/lucie rogers.png', role: 'Stylist', branch: 'SAA', blank: true, resigned: true },
@@ -607,6 +607,7 @@ const STAFF_SURNAMES = {
   // for her (Saadiyat, 2021).
   'MANDIKA':   'Dyola',
   'CHERINE':   'Baghdadi',
+  'CHARLENE':  'Payne',   // Kate, 15 Oct 2026: Charlene Payne, Motor City stylist (Phorest); the Bahrain Charlene has no surname
   'JAIMIE':    'Booth',
   'JAMIE':     'Booth',
   'MIKAELA':   'Solomei',

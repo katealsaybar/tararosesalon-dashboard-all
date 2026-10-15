@@ -341,6 +341,7 @@ const STYLIST_IG = {
   "Catrin":     "https://www.instagram.com/catrinhair.dxb/",
   "Reshel":     "https://www.instagram.com/reshelwijesinghe/",
   "Gabby":      "https://www.instagram.com/zuzu_hair_/",   // from her Sept 2023 business card; Kate, 15 Oct 2026
+  "Kelsey":     "https://www.instagram.com/kelseylewis_hair/",   // ROSES "meet our newest staff" and a photo credit; Kate, 15 Oct 2026
   "Rhi":        "https://www.instagram.com/hairbyrhiabudhabi/",   // Rhi George (Phorest) = Rhi Hurley (ROSES, Jan 2022 and Jan 2023 features); Kate, 15 Oct 2026
   "Michelle":   "https://www.instagram.com/alinea.michelle/",
   "Mihaela":    "https://www.instagram.com/dare.to_hair/",

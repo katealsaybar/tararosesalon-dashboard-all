@@ -144,7 +144,9 @@ const TP_ROLE_FIX = { 'TARA': 'Owner', 'TARA KIDD': 'Owner',
   // May Manguiat, Saadiyat (TP_SPLIT_FULL below), is an assistant (Kate, 1 Oct 2026).
   'MAY MANGUIAT': 'Assistant',
   // Daisy Cropper, Managing Director of Tara Rose Bahrain: staff-profiles.js has no card for her.
-  'DAISY': 'Managing Director', 'DAISY CROPPER': 'Managing Director' };
+  'DAISY': 'Managing Director', 'DAISY CROPPER': 'Managing Director',
+  // Kate, 15 Oct 2026: Jho Cairel is a Salon Coordinator, not a stylist; if she did any work it was as an assistant.
+  'JHO': 'Assistant', 'JHO CAIREL': 'Assistant' };
 // Photos for people with no staff card: the owner and Bahrain's managing director, both from the org chart.
 const TP_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'TARA KIDD': 'assets/org-chart/tara-rose-kidd.png',
   'DAISY': 'assets/org-chart/daisy-charlotte-cropper.png', 'DAISY CROPPER': 'assets/org-chart/daisy-charlotte-cropper.png' };
