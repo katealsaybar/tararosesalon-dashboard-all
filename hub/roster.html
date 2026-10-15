@@ -41,7 +41,10 @@
 .rs-tbl.rs-lvl{--rs-grid:200px minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.3fr) 132px 124px}
 .rs-rm{white-space:nowrap}
 .rs-emrow{display:flex;align-items:center;gap:8px;min-width:0}
-.rs-emt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+/* Kate, 15 Oct 2026: click an email to copy it; the whole address shows (wraps), not cut off. */
+.rs-contact .rs-emt{min-width:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;cursor:pointer}
+.rs-contact .rs-emt:hover{text-decoration:underline dotted;text-underline-offset:3px}
+.rs-contact .rs-emt.copied{color:#2E7D5B;text-decoration:none}
 .rs-chg{flex:none;font:inherit;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted2);cursor:pointer}
 .rs-chg:hover{border-color:var(--text);color:var(--text)}
 .rs-chg:disabled{cursor:default;opacity:.6}
@@ -129,7 +132,7 @@
     el.innerHTML = list.length ? '<section class="kb-group"><h2>Access revoked <span class="rs-n">' + list.length + '</span></h2><ul class="kb-list rs-list">' +
       list.map(function (r) {
         return '<li><div class="rs-who"><div class="rs-id"><b>' + esc(r.name) + '</b><span class="rs-pos">' + esc(r.note || '') + '</span></div></div>' +
-          '<div class="rs-contact"><span>' + esc(r.email) + '</span></div>' +
+          '<div class="rs-contact"><span class="rs-emt" data-copy="' + esc(r.email) + '" title="Click to copy">' + esc(r.email) + '</span></div>' +
           '<div class="rs-when"><span>Revoked ' + esc(day(r.blocked_at)) + '</span>' +
           '<button type="button" class="rs-send rs-undo" data-email="' + esc(r.email) + '">Allow again</button></div></li>';
       }).join('') + '</ul></section>' : '';
@@ -195,7 +198,7 @@
               (p.photo ? '<img src="' + esc(p.photo) + '" alt="" loading="lazy" onerror="this.remove()">' : '') + '</span>' +
             '<div class="rs-id"><b>' + esc(p.name) + '</b></div></div>' +
             '<div class="rs-jt" title="' + esc(p.position || '') + '">' + esc(p.position || '') + '</div>' +
-            '<div class="rs-contact"><span class="rs-emrow"><span class="rs-emt" title="' + esc(p.email) + '">' + esc(p.email) + '</span>' +
+            '<div class="rs-contact"><span class="rs-emrow"><span class="rs-emt" data-copy="' + esc(p.email) + '" title="Click to copy">' + esc(p.email) + '</span>' +
               (byLevel && p.level < 5 ? '<button type="button" class="rs-chg" data-email="' + esc(p.email) + '" aria-label="Change email for ' + esc(p.name) + '">Change</button>' : '') +
               '</span><span class="rs-where">' + esc(where(p)) + '</span></div>' +
             '<div class="rs-when' + (p.last_sign_in ? '' : ' never') + '">' + signIn + '</div>' +
@@ -368,6 +371,26 @@
         await reload();
       });
     }
+    // Click an email to copy it. Works for everyone who can see the roster.
+    main.addEventListener('click', function (e) {
+      var t = e.target.closest('.rs-emt');
+      if (!t || !t.dataset.copy) return;
+      var txt = t.dataset.copy;
+      function done() {
+        var was = t.textContent;
+        t.classList.add('copied'); t.textContent = 'Copied ✓';
+        setTimeout(function () { t.classList.remove('copied'); t.textContent = was; }, 1100);
+      }
+      function fallback() {
+        var ta = document.createElement('textarea');
+        ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch (err) {}
+        ta.remove();
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, fallback);
+      else fallback();
+    });
     document.getElementById('rsClear').addEventListener('click', function () {
       f = { q: '', team: '', branch: '', seen: '', level: '' };
       document.getElementById('rsFilter').value = '';
