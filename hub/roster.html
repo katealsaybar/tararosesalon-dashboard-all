@@ -31,6 +31,9 @@
 .rs-form input,.rs-form select,.rs-lv{font:inherit;font-size:14px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text)}
 .rs-form .rs-hint{flex:1 1 100%;font-size:12px;color:var(--muted2);margin:0}
 .rs-lv{font-size:12.5px;padding:4px 8px}
+.rs-rm{font:inherit;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted2);cursor:pointer}
+.rs-rm:hover{border-color:#B3261E;color:#B3261E}
+.rs-rm:disabled{cursor:default;opacity:.6}
 </style>
 </head>
 <body class="kb-wait">
@@ -80,7 +83,8 @@
     return '<select class="rs-lv" data-email="' + esc(p.email) + '" aria-label="Level for ' + esc(p.name) + '">' +
       [2, 3, 4].map(function (l) {
         return '<option value="' + l + '"' + (l === p.level ? ' selected' : '') + '>Level ' + l + ' · ' + esc(KB.LEVELS[l] || '') + '</option>';
-      }).join('') + '</select>';
+      }).join('') + '</select>' +
+      '<button type="button" class="rs-rm" data-email="' + esc(p.email) + '">Remove</button>';
   }
   function inviteBits(p) {
     if (!canInvite(p)) return '';
@@ -155,7 +159,7 @@
       KB.titleIcon('access', 'Staff Roster &amp; Access') +
       '<p class="kb-meta">' + data.people.length + ' people can sign in' +
         (byLevel ? ': ' + (data.people.length - staff) + ' on the dashboard list and ' + staff + ' in the team' : '') +
-        (byLevel ? '. You can add people and change their level here.' : '. View only; changes go through Kate.') + '</p>' +
+        (byLevel ? '. You can add people, change their level and remove them here.' : '. View only; changes go through Kate.') + '</p>' +
       (byLevel ? '<div class="rs-add"><button type="button" class="rs-addbtn" id="rsAddBtn">Add person</button>' +
         '<form class="rs-form" id="rsForm" autocomplete="off">' +
           '<label>Full name<input type="text" id="rsName" required></label>' +
@@ -240,6 +244,18 @@
         form.reset(); form.classList.remove('open');
         await reload();
         alert(name + ' is on the list at Level ' + level + '. The invite email goes out in a few seconds.');
+      });
+      // Remove (kb_remove_user): takes them off the dashboard list; a copy is kept in
+      // dashboard_users_removed in case it needs undoing.
+      document.getElementById('rsList').addEventListener('click', async function (e) {
+        var b = e.target.closest('.rs-rm');
+        if (!b || b.disabled) return;
+        var email = b.dataset.email, who = data.people.find(function (p) { return p.email === email; });
+        if (!confirm('Remove ' + (who ? who.name : email) + ' (' + email + ') from the dashboard list? They will lose access to the dashboard and Team Home.')) return;
+        b.disabled = true; b.textContent = 'Removing…';
+        var s = await KB.client.rpc('kb_remove_user', { p_email: email });
+        if (s.error) { b.disabled = false; b.textContent = 'Remove'; alert('Not removed: ' + s.error.message); return; }
+        await reload();
       });
       document.getElementById('rsList').addEventListener('change', async function (e) {
         var sel = e.target.closest('.rs-lv');
