@@ -327,7 +327,7 @@ const STAFF_PROFILES = {
   // Aboudi: Al Quoz Sep 2023 to Mar 2024 (136 daily rows). Title is Phorest's own category (3 Style Director,
   // DXB) off the 14 Oct 2026 roster export; the 9 Oct variants note said Stylist. Male placeholder, no ig.
   // Kate, 15 Oct 2026: found his IG, aboudi.shatila (Karisma Hairstyle, Beirut). Phorest spells him Chatila, the IG says Shatila; the card keeps Phorest's spelling.
-  'ABOUDI':   { photoFull: 'stylist/photos/AQ/aboudi chatila.png', blank: true, role: 'Style Director', branch: 'AQ', ig: 'aboudi.shatila', resigned: true },
+  'ABOUDI':   { photoFull: 'stylist/photos/AQ/aboudi chatila.png', role: 'Style Director', branch: 'AQ', ig: 'aboudi.shatila', resigned: true },
   // Jaime: Khalifa City A Stylist, Jun 2022 to Aug 2024 on the roster export (Phorest has her as Jaime Petzer).
   // Kate, 14 Oct 2026: real headshot and IG jetaime__hair, under the name Jaime Booth. The ledger has only one
   // Jaime/Jaimie/Jamie (KCA, Jun 2022 to Feb 2023, 240 daily rows) and the roster has no Booth, so this is taken as

@@ -288,7 +288,7 @@ const STYLIST_PHOTOS = {
   "Harriet":   "SAA/harriet shannon.png",
   "Venus":     "MC/venus solomon.png",
   "Oliver":    "AQ/oliver green.png",
-  "Aboudi":    "AQ/aboudi chatila.png",
+  "Aboudi":    "AQ/aboudi chatila.png",   // real B&W headshot — Kate, 15 Oct 2026
   "Nicole":    "SAA/nicole sullivan.png",   // former stylist, Saadiyat — Kate, 14 Oct 2026
   "Sahra":     "SAA/sahra sayed.png",       // former stylist, Saadiyat — Kate, 14 Oct 2026
   "Jaime":     "KCA/jaime booth.png",
