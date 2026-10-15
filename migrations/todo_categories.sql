@@ -12,8 +12,8 @@
 --   lost         Lost Clients: review sheet not signed off, failed sends, high-value clients near the lost line.
 --   campaign     Wellness Voucher deadline (31 Oct). The voucher sales themselves live in the voucher pack's
 --                own database, so there is nothing to measure here yet.
---   supply       Orders not arrived after 3 weeks; fast movers not reordered when usual. Order history only:
---                there is no stock-on-hand table yet.
+--   supply       Orders not arrived after 3 weeks; products out or under a week of cover from real shelf counts
+--                (stock_levels, todo_supply_low.sql, 15 Oct 2026). The fast-movers-overdue guess is retired.
 --   suggestions  Team Home suggestions still marked new.
 --   branch       A branch behind the month's open-day pace against its services target.
 --   data         Missing daily reports and syncs that stopped. Level 5.
