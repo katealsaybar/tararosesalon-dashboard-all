@@ -339,7 +339,10 @@ function backfillStart(opts) {
     const i = rowOf[e.id];
     if (i === undefined) { fresh.push(e); return; }
     const finished = data[i][9] instanceof Date ? data[i][9].getTime() : 0;
-    if (!data[i][5] || e.updated > finished) {
+    // A FAILED row is read again every night too: a network blip while pushing (SAA WEEK 2, 14 Oct
+    // 2026, "Address unavailable") left it FAILED with a finished_at newer than the file, so it was
+    // never picked up again until someone re-saved the file (Kate, 15 Oct 2026).
+    if (!data[i][5] || data[i][5] === 'FAILED' || e.updated > finished) {
       // status, dates, rows, note, finished_at back to blank; the triage columns stay
       q.getRange(i + 2, 6, 1, 5).clearContent();
       reset++;

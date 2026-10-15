@@ -9,13 +9,17 @@
 const WV_BANDS = { 1: '10k+', 2: '8k to 10k', 3: '6k to 8k', 4: '5k to 6k', 5: '4k to 5k' };
 const WV_BR = { SAA: 'Saadiyat', KCA: 'Khalifa City A', AQ: 'Al Quoz', MC: 'Motor City' };
 const WV_PER = [10, 20, 50, 100];
-let wvSel = { wave: 'all', branch: 'all', per: 20 };
+let wvSel = { wave: 'all', branch: 'all', msg: 'all', per: 20 };
 try { Object.assign(wvSel, JSON.parse(localStorage.getItem('trs-wv-blast') || '{}')); } catch (e) {}
 let wvRows = null, wvErr = '', wvPage = 1, wvQuery = '', wvShown = [];
 const wvSave = () => { try { localStorage.setItem('trs-wv-blast', JSON.stringify(wvSel)); } catch (e) {} };
 const wvOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
 const wvIsNew = r => !!(r.listed_on && String(r.listed_on) > '2026-10-08');   // added at a refresh after the first build
 const wvWave = r => wvIsNew(r) ? 'new' : String(r.wave);
+const wvInWave = (r, w) => w === 'new' ? wvIsNew(r) : String(r.wave) === w;   // the new clients sit in their spend-band wave too
+// The message test (15 Oct 2026): each wave and branch split half and half. A = the short message (image, Tell me more / Reserve mine), B = the long one.
+const wvArm = r => r.test_arm === 'short' ? 'A' : r.test_arm === 'long' ? 'B' : '';
+const wvArmName = a => a === 'A' ? 'A: short message' : a === 'B' ? 'B: long message' : '';
 const wvDay = d => { if (!d) return ''; const x = new Date(String(d).slice(0, 10) + 'T00:00:00'); return x.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: x.getFullYear() === new Date().getFullYear() ? undefined : '2-digit' }); };
 const wvDayY = d => d ? new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 const wvWhy = r => String(r.status || '').replace(/^No: /, '');
@@ -39,17 +43,19 @@ const wvOut = () => (wvRows || []).filter(r => !r.can_message);
 function wvFiltered() {
   const q = wvQuery.trim().toLowerCase(), qd = q.replace(/\D/g, '');
   let rows = wvSel.wave === 'out' ? wvOut() : wvCan();
-  if (wvSel.wave !== 'all' && wvSel.wave !== 'out') rows = rows.filter(r => wvWave(r) === wvSel.wave);
+  if (wvSel.wave !== 'all' && wvSel.wave !== 'out') rows = rows.filter(r => wvInWave(r, wvSel.wave));
+  if (wvSel.msg !== 'all' && wvSel.wave !== 'out') rows = rows.filter(r => wvArm(r) === wvSel.msg);
   if (wvSel.branch !== 'all') rows = rows.filter(r => r.branch === wvSel.branch);
   if (q) rows = rows.filter(r => r.client.toLowerCase().includes(q) || (qd.length >= 3 && String(r.phone || '').replace(/\D/g, '').includes(qd)));
   return rows;
 }
 
 function wvCard(key, title, desc) {
-  const rows = key === 'out' ? wvOut() : wvCan().filter(r => key === 'all' || wvWave(r) === key);
+  const rows = key === 'out' ? wvOut() : wvCan().filter(r => key === 'all' || wvInWave(r, key));
+  const ab = key === 'out' ? '' : `<div class="ll-ch">A ${rows.filter(r => wvArm(r) === 'A').length} · B ${rows.filter(r => wvArm(r) === 'B').length}</div>`;
   const by = ['SAA', 'KCA', 'AQ'].map(b => `${b} ${rows.filter(r => r.branch === b).length}`).join(' · ');
   return `<button type="button" class="ll-card${wvSel.wave === key ? ' on' : ''}" onclick="wvSet('wave','${key}')">
-    <div class="ll-t">${lcEsc(title)}</div><div class="ll-n">${lcNum(rows.length)}</div><div class="ll-d">${desc}</div><div class="ll-ch">${by}</div></button>`;
+    <div class="ll-t">${lcEsc(title)}</div><div class="ll-n">${lcNum(rows.length)}</div><div class="ll-d">${desc}</div><div class="ll-ch">${by}</div>${ab}</button>`;
 }
 
 function wvPaint() {
@@ -61,17 +67,18 @@ function wvPaint() {
   const when = all.reduce((m, r) => r.refreshed_on > m ? r.refreshed_on : m, '');
   const newN = wvCan().filter(wvIsNew).length;
   const chip = (txt, warn) => `<span class="ll-chip${warn ? ' warn' : ''}">${txt}</span>`;
-  const cards = [1, 2, 3, 4, 5].map(n => wvCard(String(n), 'Wave ' + n, WV_BANDS[n] + ' spenders, tagged wv-blast-wave-' + n))
-    .concat([wvCard('new', 'New since 8 Oct', 'Qualify now, tagged in GHL by spend band'), wvCard('out', 'Removed', 'Were on the 8 Oct list, no longer qualify')]).join('');
-  host.innerHTML = `<div class="ll-fresh">${chip('List refreshed <b>' + lcEsc(wvDayY(when)) + '</b>')}${chip('First built <b>8 Oct 2026</b>')}${newN ? chip('<b>' + lcNum(newN) + '</b> added since 8 Oct') : ''}</div>
+  const cards = [1, 2, 3, 4, 5].map(n => wvCard(String(n), 'Wave ' + n, WV_BANDS[n] + ' spenders, tags wv-blast-wave-' + n + 'a / ' + n + 'b'))
+    .concat([wvCard('new', 'New since 8 Oct', 'Added 15 Oct, already inside their wave'), wvCard('out', 'Removed', 'Were on the 8 Oct list, no longer qualify')]).join('');
+  host.innerHTML = `<div class="ll-fresh">${chip('List refreshed <b>' + lcEsc(wvDayY(when)) + '</b>')}${chip('First built <b>8 Oct 2026</b>')}${newN ? chip('<b>' + lcNum(newN) + '</b> added since 8 Oct') : ''}${wvCan().some(r => wvArm(r)) ? chip('Message test: <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'A').length) + '</b> short (A) · <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'B').length) + '</b> long (B)') : ''}</div>
     <div class="ll-cards wv-cards">${wvCard('all', 'Everyone on the list', 'Can be messaged on WhatsApp now')}${cards}</div>
     <div class="ll-panel">
       <div class="ll-def"><b>${lcEsc(wvWaveName(wvSel.wave))}:</b> ${wvSel.wave === 'out' ? 'Clients on the 8 Oct list who no longer qualify, with the reason. Nobody here is in the list above.'
         : wvSel.wave === 'new' ? 'Clients who now qualify and were not on the 8 Oct list. Each carries the wave tag for her spend band in GHL (added 15 Oct).'
         : wvSel.wave === 'all' ? 'Every client who can be messaged: 2026 spend AED 4,000+ (net, ex VAT), visited in the last 90 days, one clear number, no Wellness Voucher bought yet, and she wrote to one of our branch WhatsApp numbers in the last 12 months (not blocked, not unsubscribed).'
-        : 'Spend band ' + lcEsc(WV_BANDS[wvSel.wave] || '') + '. The wave is the tag put on her in GHL on 9 Oct 2026, so the waves go out in the order they were tagged.'}</div>
+        : 'Spend band ' + lcEsc(WV_BANDS[wvSel.wave] || '') + '. The wave is the tag put on her in GHL (wv-blast-wave-N), so the waves go out in order. Each wave is split half and half by branch: <b>a</b> gets the short message, <b>b</b> the long one with the plans written out.'}</div>
       <div class="ll-filters">
         <div class="ll-chips"><span class="slv-note">Branch</span>${['all', 'SAA', 'KCA', 'AQ'].map(b => `<button type="button" class="ll-fchip${wvSel.branch === b ? ' on ll-act' : ''}" onclick="wvSet('branch','${b}')">${b === 'all' ? 'All' : lcEsc(WV_BR[b])}</button>`).join('')}</div>
+        <div class="ll-chips"><span class="slv-note">Message</span>${[['all', 'Both'], ['A', 'A short'], ['B', 'B long']].map(([k, l]) => `<button type="button" class="ll-fchip${wvSel.msg === k ? ' on ll-act' : ''}" onclick="wvSet('msg','${k}')">${l}</button>`).join('')}</div>
         <input id="wvSearch" class="ll-sel" type="search" placeholder="Search name or number" value="${lcEsc(wvQuery)}" oninput="wvQuery=this.value;wvPage=1;wvPaintTable()" style="min-width:210px">
         <button type="button" class="tglr lc-btn" onclick="wvCopy()" title="Copy the numbers shown, one per line">Copy numbers</button>
         <button type="button" class="tglr lc-btn" onclick="wvSaveFile('xlsx')">XLSX</button>
@@ -100,11 +107,13 @@ function wvPaintTable() {
   const box = document.getElementById('wvTable');
   if (!box) return;
   const out = wvSel.wave === 'out';
-  const waveCell = r => r.wave ? `<span class="ll-tag">Wave ${r.wave}</span>${wvIsNew(r) ? ' <span class="ll-tag" title="Added after 8 Oct">New</span>' : ''}` : '<span class="slv-muted">–</span>';
-  const cols = ['Client', 'Wave', '2026 spend', 'Last visit', 'Last wrote to us', 'Phone', 'Status'];
+  const waveCell = r => r.wave ? `<span class="ll-tag">Wave ${lcEsc(r.sub_wave || r.wave)}</span>${wvIsNew(r) ? ' <span class="ll-tag" title="Added after 8 Oct">New</span>' : ''}` : '<span class="slv-muted">–</span>';
+  const armCell = r => wvArm(r) ? `<span class="ll-tag" title="${lcEsc(wvArmName(wvArm(r)))}">${lcEsc(wvArmName(wvArm(r)))}</span>` : '<span class="slv-muted">–</span>';
+  const cols = ['Client', 'Wave', 'Message', '2026 spend', 'Last visit', 'Last wrote to us', 'Phone', 'Status'];
   const tr = shown.map(r => `<tr>
       <td>${lcEsc(r.client)}<div class="slv-note">${lcEsc(WV_BR[r.branch] || r.branch)}</div></td>
       <td class="ll-nw">${waveCell(r)}</td>
+      <td class="ll-nw">${armCell(r)}</td>
       <td class="ll-nw">${lcNum(Math.round(r.spend))}<div class="slv-note">${r.band ? lcEsc(WV_BANDS[r.band]) : ''}</div></td>
       <td class="ll-nw">${lcEsc(wvDay(r.last_visit))}</td>
       <td class="ll-nw">${r.last_wrote ? lcEsc(wvDay(r.last_wrote)) + `<div class="slv-note">to ${lcEsc(r.wrote_to || '')}</div>` : '<span class="slv-muted">–</span>'}</td>
@@ -112,7 +121,7 @@ function wvPaintTable() {
       <td>${wvPill(r)}</td></tr>`).join('');
   const cards = shown.map(r => `<li class="prd-card"><div class="prd-body">
       <div class="prd-top"><span class="prd-name">${lcEsc(r.client)}</span><span>${wvPill(r)}</span></div>
-      <div class="prd-meta">${lcEsc(WV_BR[r.branch] || r.branch)} · ${r.wave ? 'Wave ' + r.wave : ''}${wvIsNew(r) ? ' (new)' : ''} · AED ${lcNum(Math.round(r.spend))}</div>
+      <div class="prd-meta">${lcEsc(WV_BR[r.branch] || r.branch)} · ${r.wave ? 'Wave ' + lcEsc(r.sub_wave || r.wave) : ''}${wvArm(r) ? ' · ' + lcEsc(wvArmName(wvArm(r))) : ''}${wvIsNew(r) ? ' (new)' : ''} · AED ${lcNum(Math.round(r.spend))}</div>
       <div class="prd-meta">Last visit ${lcEsc(wvDay(r.last_visit))}${r.last_wrote ? ' · wrote to us ' + lcEsc(wvDay(r.last_wrote)) : ''}</div>
       ${r.phone ? `<div class="prd-meta" style="margin-top:4px"><a href="tel:${lcEsc(r.phone)}" style="color:inherit">${lcEsc(r.phone)}</a></div>` : ''}</div></li>`).join('');
   const from = (wvPage - 1) * per + 1;
@@ -139,14 +148,14 @@ async function wvCopy() {
 function wvSaveFile(kind) {
   if (typeof lgxBuild !== 'function') return;
   const rows = wvFiltered();
-  const head = ['Client', 'Branch', 'Wave (GHL tag)', 'Spend band', '2026 spend (AED)', 'Last visit', 'Phone', 'Last wrote to us', 'Wrote to', 'Status', 'On the list since'];
+  const head = ['Client', 'Branch', 'Wave (GHL tag)', 'Message (test)', 'Spend band', '2026 spend (AED)', 'Last visit', 'Phone', 'Last wrote to us', 'Wrote to', 'Status', 'On the list since'];
   const num = new Set(['2026 spend (AED)']);
-  const lines = rows.map(r => [r.client, WV_BR[r.branch] || r.branch, r.wave ? 'wv-blast-wave-' + r.wave : 'Not tagged yet', r.band ? WV_BANDS[r.band] : '', Math.round(r.spend), r.last_visit || '',
+  const lines = rows.map(r => [r.client, WV_BR[r.branch] || r.branch, r.sub_wave ? 'wv-blast-wave-' + r.sub_wave : r.wave ? 'wv-blast-wave-' + r.wave : 'Not tagged', wvArmName(wvArm(r)), r.band ? WV_BANDS[r.band] : '', Math.round(r.spend), r.last_visit || '',
     r.phone || '', r.last_wrote || '', r.wrote_to || '', r.can_message ? 'Can message' : wvWhy(r), r.listed_on || '']);
   const pi = head.indexOf('Phone');
   const out = kind === 'csv' ? lines.map(l => l.map((v, j) => j === pi && v ? `="${v}"` : v)) : lines;   // as lost-lists.js: Excel would show 9.72E+11
   const built = lgxBuild({ sheets: [{ name: 'Wellness Voucher blast', blocks: [{ cols: head.map(h => ({ label: h, fmt: num.has(h) ? 'num' : 'text' })), rows: out.map(l => ({ cells: l })) }] }] });
-  const name = ['wellness-voucher-blast', wvSel.wave === 'all' ? '' : wvSel.wave === 'out' ? 'removed' : wvSel.wave === 'new' ? 'new' : 'wave-' + wvSel.wave, wvSel.branch !== 'all' ? wvSel.branch.toLowerCase() : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
+  const name = ['wellness-voucher-blast', wvSel.wave === 'all' ? '' : wvSel.wave === 'out' ? 'removed' : wvSel.wave === 'new' ? 'new' : 'wave-' + wvSel.wave, wvSel.msg !== 'all' ? 'msg-' + wvSel.msg.toLowerCase() : '', wvSel.branch !== 'all' ? wvSel.branch.toLowerCase() : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
   wvNote(`Saved ${lcNum(lines.length)} rows as ${kind.toUpperCase()}`);
