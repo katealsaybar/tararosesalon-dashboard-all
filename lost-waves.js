@@ -3,7 +3,7 @@
 //
 // Two separate sending areas: WhatsApp (respond.io, from each branch's own number, Meta's rules) and Text (SMS: copied, sent by hand, marked sent).
 // WhatsApp goes out in four waves by how warm the client is, one open at a time, so Meta does not flag the numbers:
-//   Wave 1  pilot, the first 50 of the active group (offer message first, then Due, most recent first)
+//   Wave 1  pilot, the 50 of the active group who wrote to us most recently
 //   Wave 2  wrote to one of our numbers in the last 12 months (queue wa = act), the rest of that group after the pilot
 //   Wave 3  last wrote 12 to 18 months ago (r18), STOP line
 //   Wave 4  in respond.io, no reply seen (noreply), the Due message only, STOP line, half the daily cap
@@ -11,7 +11,7 @@
 // pilot and the half cap for Wave 4 are held by this page; "the wave is open" is also checked in lost_send_enqueue. The daily cap, the send
 // window and the kill switch are the ones in lost_send_config (lost-queue.js).
 const LQW = [
-  { n: 1, name: 'Pilot', factor: 1, cls: 2, who: 'The best 50 clients of the active group whose message can go out now: offer message first, then Due, most recent first. Half get the standard message (1a), half the story message (1b)' },
+  { n: 1, name: 'Pilot', factor: 1, cls: 2, who: 'A small test group: the 50 clients of the active group who wrote to one of our numbers most recently, whose message can go out now. Half get the standard message (1a), half the story message (1b)' },
   { n: 2, name: 'Active on WhatsApp', factor: 1, cls: 2, who: 'Wrote to one of our numbers in the last 12 months. Offer message first, then Due' },
   { n: 3, name: 'Replied 12 to 18 months ago', factor: 1, cls: 3, who: 'Last wrote to us 12 to 18 months ago. Offer message first, then Due. The message carries the STOP line' },
   { n: 4, name: 'No reply seen', factor: 0.5, cls: 4, who: 'In respond.io, no reply in their last 50 messages. The coldest group: the Due message only, with the STOP line, and half the daily cap' },
@@ -85,7 +85,9 @@ function lqwCompute() {
   // The pilot is the 50 clients this page sends in Wave 1. A client already messaged by hand before (respond.io shows an earlier outgoing message) is
   // not part of it and does not use up one of its 50 places.
   const sentHere = r => !!(r._job && ['queued', 'sending', 'sent'].includes(r._job.status));
-  const usedAct = act.filter(sentHere), unusedAct = act.filter(r => !lqwUsed(r));
+  // Wave 1 is the clients who wrote to us most recently (Coach Emma's plan, 15 Oct 2026), whatever their message type, so the pilot is a real mix.
+  const byRecent = (a, b) => String(b.last_in || '').localeCompare(String(a.last_in || '')) || (a.days_since - b.days_since);
+  const usedAct = act.filter(sentHere).sort(byRecent), unusedAct = act.filter(r => !lqwUsed(r)).sort(byRecent);
   const psize = Math.min(LQW_PILOT, act.length);
   // Once Wave 1 is finished only the clients it actually messaged are the pilot; the rest of the group belongs to Wave 2.
   const pilot = lqwIsClosed(1) ? usedAct.slice(0, psize) : usedAct.slice(0, psize).concat(unusedAct.slice(0, psize - Math.min(psize, usedAct.length)));
