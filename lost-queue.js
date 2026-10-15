@@ -296,7 +296,7 @@ function lqPaintTable() {
   };
   const tr = shown.map((r, i) => `<tr>
       <td>${lcEsc(r.client_name)}${two(r)}${flags(r)}<div class="slv-note">${lcEsc(LC_BRANCH[r.branch] || r.branch)} · ${lcEsc(r.area)}</div></td>
-      <td><span class="ll-tag lq-type">${lcEsc(LQ_TYPES[r.qtype][0])}</span><div class="slv-note">${lcEsc(LQ_TYPES[r.qtype][1])}${(r.also_on || []).length > 1 ? ` · in ${r.also_on.length} groups` : ''}</div></td>
+      <td><span class="ll-tag lq-type">${lcEsc(LQ_TYPES[r.qtype][0])}</span>${typeof lqwArmTag === 'function' ? lqwArmTag(r) : ''}<div class="slv-note">${lcEsc(LQ_TYPES[r.qtype][1])}${(r.also_on || []).length > 1 ? ` · in ${r.also_on.length} groups` : ''}</div></td>
       <td>${chan(r)}<div class="lq-st">${llStatus(r)}</div></td>
       <td class="ll-team">${lcTeam(r).hair[0] ? lcStylist(lcTeam(r).hair[0]) : '<span class="slv-muted">none</span>'}${lcTeam(r).hair[0] && !r._sty ? '<div class="slv-note" title="Left, or no Staff Card, so the message does not name her">not named</div>' : ''}</td>
       <td class="ll-ph">${lcPhone(r)}</td>
@@ -479,7 +479,10 @@ async function lqSendLoad() {
 }
 function lqRelink() { lqRows.forEach(r => { r._job = lqSnd.jobs[r.client_key] || null; }); }
 const lqSendOn = () => !!(lqSnd.info && lqSnd.info.enabled);
-function lqTkey(r) { return r.qtype + (r.wa === 'r18' ? '_gap' : r.wa === 'noreply' ? '_stop' : ''); }
+// Clients who wrote to us in the last 12 months (waves 1 and 2) get the wording with no end date (15 Oct 2026, the v2 templates); the pilot is half and
+// half: 1a the standard v2 message, 1b the story message (lost-waves.js, lqwArm). Waves 3 and 4 still use the older gap and stop templates.
+function lqTkeyBase(r) { return r.wa === 'act' ? r.qtype + '_v2' : r.qtype + (r.wa === 'r18' ? '_gap' : r.wa === 'noreply' ? '_stop' : ''); }
+function lqTkey(r) { return r.wa === 'act' && typeof lqwArm === 'function' && lqwArm(r) === 'b' ? r.qtype + '_story' : lqTkeyBase(r); }
 const lqSendTpl = r => lqSnd.info && (lqSnd.info.templates || []).find(t => t.key === lqTkey(r));
 // The values for {{1}}, {{2}}... in the template's order; a client with no usual stylist reads "our team".
 function lqSendVars(r) { const v = lqVars(r); v.stylist = v.stylist || 'our team'; return v; }

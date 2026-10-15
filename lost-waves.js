@@ -11,7 +11,7 @@
 // pilot and the half cap for Wave 4 are held by this page; "the wave is open" is also checked in lost_send_enqueue. The daily cap, the send
 // window and the kill switch are the ones in lost_send_config (lost-queue.js).
 const LQW = [
-  { n: 1, name: 'Pilot', factor: 1, cls: 2, who: 'The best 50 clients of the active group whose message can go out now: offer message first, then Due, most recent first' },
+  { n: 1, name: 'Pilot', factor: 1, cls: 2, who: 'The best 50 clients of the active group whose message can go out now: offer message first, then Due, most recent first. Half get the standard message (1a), half the story message (1b)' },
   { n: 2, name: 'Active on WhatsApp', factor: 1, cls: 2, who: 'Wrote to one of our numbers in the last 12 months. Offer message first, then Due' },
   { n: 3, name: 'Replied 12 to 18 months ago', factor: 1, cls: 3, who: 'Last wrote to us 12 to 18 months ago. Offer message first, then Due. The message carries the STOP line' },
   { n: 4, name: 'No reply seen', factor: 0.5, cls: 4, who: 'In respond.io, no reply in their last 50 messages. The coldest group: STOP line, and half the daily cap' },
@@ -20,7 +20,7 @@ const LQW_PILOT = 50;
 const LQW_STOP_LIMIT = 0.02, LQW_FAIL_LIMIT = 0.05;   // suggested limits, shown in the gate and asked to confirm past, not hard stops
 const LQW_BR = ['SAA', 'KCA', 'MC', 'AQ'];
 const LQW_BRC = { SAA: '#7C5CD4', KCA: '#1F8A70', MC: '#C2874A', AQ: '#C2416A' };
-let lqWaves = {}, lqwOk = false, lqwKeys = new Set(), lqwSt = {};
+let lqWaves = {}, lqwOk = false, lqwKeys = new Set(), lqwSt = {}, lqwPilot = new Set();
 const lqwOn = () => lqwOk;
 const lqwLevel = n => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= n;
 
@@ -42,6 +42,14 @@ function lqwStatus(n) {
   return n === 1 || lqwIsClosed(n - 1) ? 'ready' : 'planned';
 }
 const lqwClass = r => r.wa === 'act' ? 2 : r.wa === 'r18' ? 3 : r.wa === 'noreply' ? 4 : 0;
+// The pilot is a message test (15 Oct 2026): 1a gets the standard message, 1b the story message, split by a fixed hash of the client key so a client
+// keeps her arm whatever else changes. Everyone outside the pilot is 'a' (the standard message).
+function lqwArm(r) {
+  if (!lqwPilot.has(r.client_key)) return 'a';
+  let h = 0; for (const c of String(r.client_key)) h = (h * 31 + c.charCodeAt(0)) | 0;
+  return (h & 2) ? 'b' : 'a';
+}
+const lqwArmTag = r => lqwPilot.has(r.client_key) ? ` <span class="ll-tag" title="${lqwArm(r) === 'b' ? 'Story message' : 'Standard message'}">1${lqwArm(r)}</span>` : '';
 const lqwUsed = r => !!(r.messaged || (r._job && (r._job.status === 'queued' || r._job.status === 'sending')));
 // The wave a message would go out in right now (0 when its wave is not open).
 function lqwSendWave(r) {
@@ -59,7 +67,7 @@ function lqwCanWave(r) {
 // so until then the pilot and each wave start with the clients whose message can actually be sent.
 function lqwTplOk(r) {
   if (!lqSnd.info) return 0;
-  const t = lqSendTpl(r);
+  const t = lqSnd.info.templates.find(x => x.key === lqTkeyBase(r));
   return t && t.approved && lqSendParams(t, r).every(Boolean) ? 1 : 0;
 }
 const lqwOrder = (a, b) => (lqwTplOk(b) - lqwTplOk(a)) || (LQ_TYPE_ORDER.indexOf(a.qtype) - LQ_TYPE_ORDER.indexOf(b.qtype)) || (a.days_since - b.days_since);
@@ -75,6 +83,7 @@ function lqwCompute() {
   // Once Wave 1 is finished only the clients it actually messaged are the pilot; the rest of the group belongs to Wave 2.
   const pilot = lqwIsClosed(1) ? usedAct.slice(0, psize) : usedAct.slice(0, psize).concat(unusedAct.slice(0, psize - Math.min(psize, usedAct.length)));
   const pilotSet = new Set(pilot.map(r => r.client_key));
+  lqwPilot = pilotSet;
   const rest2 = act.filter(r => !pilotSet.has(r.client_key));
   // Until Wave 1 is finished the pilot's unsent clients are the only ones Wave 1 may send; once it is finished they join Wave 2.
   lqwKeys = new Set(lqwIsClosed(1) ? [] : pilot.filter(r => !lqwUsed(r)).map(r => r.client_key));
@@ -85,7 +94,8 @@ function lqwCompute() {
     const br = {}; LQW_BR.forEach(b => { br[b] = rs.filter(r => r.branch === b).length; });
     out[w.n] = { n: w.n, rows: rs, size: rs.length, used, left: rs.length - used, br,
       failed: rs.filter(r => r._job && r._job.status === 'failed').length,
-      replied: rs.filter(r => r.messaged && r.replied).length, sent: rs.filter(r => r.messaged).length };
+      replied: rs.filter(r => r.messaged && r.replied).length, sent: rs.filter(r => r.messaged).length,
+      arm: w.n === 1 ? { a: rs.filter(r => lqwArm(r) === 'a').length, b: rs.filter(r => lqwArm(r) === 'b').length } : null };
   });
   lqwSt = out;
   return out;
@@ -285,7 +295,7 @@ function lqwWavesHtml() {
     const s = lqwSt[w.n], st = lqwStatus(w.n), label = { done: 'Done', open: 'Sending', ready: 'Ready', planned: 'Planned' }[st];
     return `<div class="lqw-wave ${st}${w.n === cur ? ' cur' : ''}"><button type="button" class="lqw-wh" onclick="lqwPick(${w.n})">
       <span class="lqw-num">${st === 'done' ? '✓' : w.n}</span>
-      <span class="lqw-wt"><b>Wave ${w.n}: ${lcEsc(w.name)}</b> <span class="lqw-pill ${st}">${label}</span><span class="slv-note">${lcEsc(w.who)}</span></span>
+      <span class="lqw-wt"><b>Wave ${w.n}: ${lcEsc(w.name)}</b> <span class="lqw-pill ${st}">${label}</span><span class="slv-note">${lcEsc(w.who)}</span>${s.arm ? `<span class="slv-note">Message test: 1a standard ${lcNum(s.arm.a)} · 1b story ${lcNum(s.arm.b)}</span>` : ''}</span>
       <span class="lqw-cnt"><b>${lcNum(s.size)}</b><span class="slv-note">${s.used ? `${lcNum(s.used)} messaged` : 'clients'}</span></span>${lqwBranchBar(s.br)}</button>
       ${w.n === cur ? lqwBody(w.n) : ''}</div>`;
   }).join('');

@@ -1,0 +1,6 @@
+-- Lost Clients v2 and story templates (Kate, 15 Oct 2026). Applied live. All six are approved in Meta on both WABAs (Saadiyat 340071 and the shared one
+-- via Khalifa City A 354400): tr_lost_{smoothing,colour,due}_v2 (the final wording, no end date) and tr_lost_{smoothing,colour,due}_story (the playful
+-- versions for the pilot's 1b arm). The page picks them in lost-queue.js (lqTkey) and lost-waves.js (lqwArm). The text lives in the database
+-- (select key, body from lost_send_templates); variant stays '' because its check only allows '', gap and stop.
+-- Keys: smoothing_v2, colour_v2, due_v2, smoothing_story, colour_story, due_story. vars: v2 smoothing and colour take first_name, branch, month;
+-- v2 due and every story take first_name, branch.
