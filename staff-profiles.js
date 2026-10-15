@@ -278,11 +278,11 @@ const STAFF_PROFILES = {
   // Harriet xx, Ranya x, Xavrina X (placeholder surnames), Kara and Anna Ahaponova (2 and 12 days, AED 0), Cristina Cucos (no ledger),
   // Tara 1 and 2 (the owner's accounts), and the Robyn, Ruth, Tegan, Ibrahim, Rachel records, which share a first name with someone current.
   'ALEX':    { photoFull: 'stylist/photos/KCA/alex duncan.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
-  'BILLY':   { photoFull: 'stylist/photos/other/billy gray.png', role: 'Stylist', branch: 'other', blank: true, resigned: true },
+  'BILLY':   { photoFull: 'stylist/photos/other/billy gray.png', role: 'Barber', branch: 'other', blank: true, resigned: true },
   'CHARLENE':{ photoFull: 'stylist/photos/MC/charlene payne.png', role: 'Stylist', branch: 'MC', blank: true, resigned: true },
   'DENISE':  { photoFull: 'stylist/photos/KCA/denise.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'FAYE':    { photoFull: 'stylist/photos/KCA/faye madi.png', role: 'Junior Stylist', branch: 'KCA', blank: true, resigned: true },
-  'HAFEZ':   { photoFull: 'stylist/photos/other/hafez abou hwijj.png', role: 'Stylist', branch: 'other', blank: true, resigned: true },
+  'HAFEZ':   { photoFull: 'stylist/photos/other/hafez abou hwijj.png', role: 'Barber', branch: 'other', blank: true, resigned: true },
   'JANE':    { photoFull: 'stylist/photos/MC/jane astrande.png', role: 'Junior Stylist', branch: 'MC', blank: true, resigned: true },
   'KELSEY':  { photoFull: 'stylist/photos/SAA/kelsey lewis.png', role: 'Stylist', branch: 'SAA', blank: true, resigned: true },
   'KELSIE':  { photoFull: 'stylist/photos/KCA/kelsie lally.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
