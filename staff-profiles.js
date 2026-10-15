@@ -265,6 +265,9 @@ const STAFF_PROFILES = {
   // Kate, 14 Oct 2026: Junior Stylist, mainly Saadiyat Mar 2021 to May 2023 (666 daily rows), Khalifa City A
   // Jan to Sep 2022, archived in Phorest. Photo is her own black-and-white headshot, 375x435.
   'RESHEL':   { photoFull: 'stylist/photos/SAA/reshel tagayuna.png', role: 'Junior Stylist', branch: 'SAA', ig: 'reshelwijesinghe', resigned: true },
+  // Kate, 15 Oct 2026: Rhi George in Phorest (Style Director, Saadiyat from Apr 2021, Khalifa City A from Jun 2023; her ledger
+  // rows run Jan 2021 to Jul 2023, nothing from 2025) is Rhi Hurley in ROSES Magazine, where she is Artistic Director by Jan 2023.
+  'RHI':      { photoFull: 'stylist/photos/SAA/rhi george.png', role: 'Style Director', branch: 'SAA', ig: 'hairbyrhiabudhabi', resigned: true },
   // Kate, 14 Oct 2026: former team with no photo and no client-facing Instagram yet, so each carries the
   // blank line-art template (female or male) as a placeholder and no `ig`. One file per person on purpose:
   // renderStylistCards and the Team Roster dedupe on the photo path, so a shared placeholder would collapse
