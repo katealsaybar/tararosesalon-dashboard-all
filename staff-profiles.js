@@ -279,8 +279,14 @@ const STAFF_PROFILES = {
   // Tara 1 and 2 (the owner's accounts), and the Robyn, Ruth, Tegan, Ibrahim, Rachel records, which share a first name with someone current.
   'ALEX':    { photoFull: 'stylist/photos/KCA/alex duncan.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'BILLY':   { photoFull: 'stylist/photos/other/billy gray.png', role: 'Barber', branch: 'other', blank: true, resigned: true },
-  'CHARLENE':{ photoFull: 'stylist/photos/MC/charlene payne.png', role: 'Stylist', branch: 'MC', blank: true, resigned: true },
-  'DENISE':  { photoFull: 'stylist/photos/KCA/denise.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
+  // Kate, 15 Oct 2026: Tara Rose Bahrain's team members with no surname in Phorest ("." at source), placeholders on her say-so (she
+  // does not want placeholders for other surnameless people). Kerryn, Stylist, IG hair_by_kerryn; Farwa, Assistant (blow-dries and
+  // styling); Simi and Charlene, Beauticians (nails, brows, massage). The Bahrain Charlene is not Charlene Payne, the Motor City stylist
+  // of Oct 2023 to May 2024 whom the ledger also writes CHARLENE, so Payne has no card and no surname here and her Podium row is split off (TP_SPLIT_FULL).
+  'KERRYN':  { photoFull: 'stylist/photos/BAH/kerryn.png', role: 'Stylist', branch: 'BAH', ig: 'hair_by_kerryn', blank: true },
+  'FARWA':   { photoFull: 'stylist/photos/BAH/farwa.png', role: 'Assistant', branch: 'BAH', blank: true },
+  'SIMI':    { photoFull: 'stylist/photos/BAH/simi.png', role: 'Beauty Therapist', branch: 'BAH', blank: true },
+  'CHARLENE':{ photoFull: 'stylist/photos/BAH/charlene.png', role: 'Beauty Therapist', branch: 'BAH', blank: true },
   'FAYE':    { photoFull: 'stylist/photos/KCA/faye madi.png', role: 'Junior Stylist', branch: 'KCA', blank: true, resigned: true },
   'HAFEZ':   { photoFull: 'stylist/photos/other/hafez abou hwijj.png', role: 'Barber', branch: 'other', blank: true, resigned: true },
   'JANE':    { photoFull: 'stylist/photos/MC/jane astrande.png', role: 'Junior Stylist', branch: 'MC', blank: true, resigned: true },
@@ -288,7 +294,6 @@ const STAFF_PROFILES = {
   'KELSIE':  { photoFull: 'stylist/photos/KCA/kelsie lally.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'LOUISE':  { photoFull: 'stylist/photos/KCA/louise williams.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'LUCIE':   { photoFull: 'stylist/photos/SAA/lucie rogers.png', role: 'Stylist', branch: 'SAA', blank: true, resigned: true },
-  'NATALEAH':{ photoFull: 'stylist/photos/SAA/nataleah.png', role: 'Stylist', branch: 'SAA', blank: true, resigned: true },
   'SHIAN':   { photoFull: 'stylist/photos/KCA/shian davidson.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'LINA':     { photoFull: 'stylist/photos/AQ/lina waled.png', role: 'Stylist', branch: 'AQ', blank: true, resigned: true },
   'SHERINE':  { photoFull: 'stylist/photos/KCA/sherine baghdadi.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
@@ -607,7 +612,6 @@ const STAFF_SURNAMES = {
   // for her (Saadiyat, 2021).
   'MANDIKA':   'Dyola',
   'CHERINE':   'Baghdadi',
-  'CHARLENE':  'Payne',   // Kate, 15 Oct 2026: Charlene Payne, Motor City stylist (Phorest); the Bahrain Charlene has no surname
   'JAIMIE':    'Booth',
   'JAMIE':     'Booth',
   'MIKAELA':   'Solomei',
@@ -626,6 +630,8 @@ const STAFF_SURNAMES = {
 // Hurley, in ROSES Magazine from Oct 2021 to May-Jun 2023 (Kate's call: same person; Phorest has no Hurley).
 const STAFF_ALSO_KNOWN = {
   'RHI': 'Rhi Hurley Rhiane Hurley hurley roses magazine',
+  // Kate, 15 Oct 2026: Kelsey Kent is Kelsey Lewis.
+  'KELSEY': 'Kelsey Kent kent',
 };
 
 function staffSurname(name) {

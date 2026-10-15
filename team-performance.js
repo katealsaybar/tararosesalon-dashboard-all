@@ -205,7 +205,8 @@ const TP_SPLIT_NAMES = new Set(['MAY']);
 // profile, so Saadiyat's May printed as "May Fernandez · Junior Stylist" with
 // Khalifa City May's photo and read as a duplicate (Comet, 1 Oct 2026). The row
 // away from the profile's branch takes her full name, which matches no profile.
-const TP_SPLIT_FULL = { 'MAY|SAA': 'MAY MANGUIAT' };
+// Kate, 15 Oct 2026: Charlene Payne (Motor City stylist, Oct 2023 to May 2024) is not Bahrain's Charlene, who has the CHARLENE profile.
+const TP_SPLIT_FULL = { 'MAY|SAA': 'MAY MANGUIAT', 'CHARLENE|MC': 'CHARLENE PAYNE' };
 
 // One card per stylist, kahit ilang branch niya na-cover sa window — Kate, 17
 // Sep 2026. Rows come in per branch (staff work cover shifts, Chalani is a

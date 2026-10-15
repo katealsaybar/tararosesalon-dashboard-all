@@ -80,7 +80,6 @@ const STYLIST_SURNAMES = {
   "Lina":      "Waled",
   "Alex":    "Duncan",
   "Billy":   "Gray",
-  "Charlene":"Payne",
   "Faye":    "Madi",
   "Hafez":   "Abou Hwijj",
   "Jane":    "Astrande",
@@ -258,8 +257,10 @@ const STYLIST_PHOTOS = {
   "Reshel":    "SAA/reshel tagayuna.png",   // left 2023, Junior Stylist at SAA — Kate, 14 Oct 2026
   "Alex":    "KCA/alex duncan.png",   // placeholder, no photo or IG; KCA Sep 2021 to May 2022 — Kate, 15 Oct 2026
   "Billy":   "other/billy gray.png",   // placeholder, no photo or IG; Fratelli, Mar 2024 to Sep 2025 — Kate, 15 Oct 2026
-  "Charlene":"MC/charlene payne.png",   // placeholder, no photo or IG; MC Oct 2023 to May 2024 — Kate, 15 Oct 2026
-  "Denise":  "KCA/denise.png",   // placeholder, no photo or IG; KCA Mar to May 2022 — Kate, 15 Oct 2026
+  "Charlene":"BAH/charlene.png",   // Bahrain beautician placeholder, no surname at source — Kate, 15 Oct 2026
+  "Kerryn":  "BAH/kerryn.png",
+  "Farwa":   "BAH/farwa.png",
+  "Simi":    "BAH/simi.png",
   "Faye":    "KCA/faye madi.png",   // placeholder, no photo or IG; Marasy Jan 2021 to May 2022, then KCA — Kate, 15 Oct 2026
   "Hafez":   "other/hafez abou hwijj.png",   // placeholder, no photo or IG; Fratelli and AQ, Nov 2023 to Jan 2025 — Kate, 15 Oct 2026
   "Jane":    "MC/jane astrande.png",   // placeholder, no photo or IG; MC and AQ, Nov 2022 to Nov 2024 — Kate, 15 Oct 2026
@@ -267,7 +268,6 @@ const STYLIST_PHOTOS = {
   "Kelsie":  "KCA/kelsie lally.png",   // placeholder, no photo or IG; Marasy Sep to Dec 2022 — Kate, 15 Oct 2026
   "Louise":  "KCA/louise williams.png",   // placeholder, no photo or IG; KCA Nov 2021 to Sep 2022 — Kate, 15 Oct 2026
   "Lucie":   "SAA/lucie rogers.png",   // placeholder, no photo or IG; Saadiyat and Marasy, Jan to Oct 2021 — Kate, 15 Oct 2026
-  "Nataleah":"SAA/nataleah.png",   // placeholder, no photo or IG; SAA May to Jul 2021 — Kate, 15 Oct 2026
   "Shian":   "KCA/shian davidson.png",   // placeholder, no photo or IG; KCA Feb 2024, 12 days — Kate, 15 Oct 2026
   "Lina":      "AQ/lina waled.png",   // placeholder, no photo or IG found; Stylist, AQ Feb to Sep 2024 (also SAA, MC) — Kate, 15 Oct 2026
   "Sherine":   "KCA/sherine baghdadi.png",   // placeholder, no photo or IG found; Stylist, KCA Sep 2021 to May 2022 — Kate, 15 Oct 2026
@@ -342,6 +342,7 @@ const STYLIST_IG = {
   "Reshel":     "https://www.instagram.com/reshelwijesinghe/",
   "Gabby":      "https://www.instagram.com/zuzu_hair_/",   // from her Sept 2023 business card; Kate, 15 Oct 2026
   "Kelsey":     "https://www.instagram.com/kelseylewis_hair/",   // ROSES "meet our newest staff" and a photo credit; Kate, 15 Oct 2026
+  "Kerryn":     "https://www.instagram.com/hair_by_kerryn/",   // Bahrain stylist; Kate, 15 Oct 2026
   "Rhi":        "https://www.instagram.com/hairbyrhiabudhabi/",   // Rhi George (Phorest) = Rhi Hurley (ROSES, Jan 2022 and Jan 2023 features); Kate, 15 Oct 2026
   "Michelle":   "https://www.instagram.com/alinea.michelle/",
   "Mihaela":    "https://www.instagram.com/dare.to_hair/",
@@ -385,7 +386,7 @@ const STYLIST_IG = {
 // if she comes back (see Hazel Mae, who left this list when her 2nd-batch card and
 // STAFF_PROFILES entry came back, Sep 2026). Keys match STYLIST_PHOTOS spelling.
 const STYLIST_RESIGNED = new Set([
-  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Rhi", "Gabby", "Lina", "Sherine", "Alex", "Billy", "Charlene", "Denise", "Faye", "Hafez", "Jane", "Kelsey", "Kelsie", "Louise", "Lucie", "Nataleah", "Shian", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi", "Jaime", "Josh", "Michelle", "Mihaela", "Cecille", "Maricel", "Melliza", "Dina", "Joanne", "Rita", "Emmalyn", "Nicole", "Sahra", "Jackie", "Karina", "Lorena", "Neeka",
+  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Rhi", "Gabby", "Lina", "Sherine", "Alex", "Billy", "Faye", "Hafez", "Jane", "Kelsey", "Kelsie", "Louise", "Lucie", "Shian", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi", "Jaime", "Josh", "Michelle", "Mihaela", "Cecille", "Maricel", "Melliza", "Dina", "Joanne", "Rita", "Emmalyn", "Nicole", "Sahra", "Jackie", "Karina", "Lorena", "Neeka",
 ]);
 function isResignedStylist(cleanName) {
   return STYLIST_RESIGNED.has(cleanName);
