@@ -35,6 +35,36 @@
 .rs-rm:hover{border-color:#B3261E;color:#B3261E}
 .rs-rm:disabled{cursor:default;opacity:.6}
 #rsRevoked{margin-top:28px}
+/* Kate, 15 Oct 2026: columns under a sticky header row. --rs-top is the Team Home header's
+   height, set in the page script. Phones keep the stacked cards (no header row). */
+.rs-tbl{--rs-top:96px;--rs-grid:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.3fr) 132px}
+.rs-tbl.rs-lvl{--rs-grid:200px minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.3fr) 132px 124px}
+.rs-rm{white-space:nowrap}
+.rs-emrow{display:flex;align-items:center;gap:8px;min-width:0}
+.rs-emt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.rs-chg{flex:none;font:inherit;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted2);cursor:pointer}
+.rs-chg:hover{border-color:var(--text);color:var(--text)}
+.rs-chg:disabled{cursor:default;opacity:.6}
+.rs-cols{display:none}
+.rs-lvt{font-size:13px;color:var(--muted)}
+.rs-jt{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs-jt:empty{display:none}
+@media (min-width:761px){
+  .rs-tbl .rs-cols{display:grid;grid-template-columns:var(--rs-grid);gap:0 14px;position:sticky;top:var(--rs-top);z-index:15;
+    background:var(--bg);padding:10px 18px;margin:0 0 12px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted2);font-weight:600;box-shadow:0 1px 0 var(--border)}
+  .rs-tbl #rsList .rs-list li{grid-template-columns:var(--rs-grid);gap:4px 14px}
+  .rs-tbl #rsList .rs-when{text-align:left;align-items:flex-start}
+  .rs-tbl .rs-lv{width:100%}
+}
+@media (max-width:760px){
+  .rs-tbl #rsList .rs-list li{grid-template-areas:"who when" "jt jt" "contact contact"}
+  .rs-tbl.rs-lvl #rsList .rs-list li{grid-template-areas:"who when" "jt jt" "contact contact" "lv act"}
+  .rs-tbl.rs-lvl #rsList .rs-lvc{grid-area:lv}
+  .rs-tbl.rs-lvl #rsList .rs-act{grid-area:act;justify-self:end}
+  .rs-tbl #rsList .rs-jt{grid-area:jt;padding-left:50px}
+  .rs-tbl #rsList .rs-when{align-items:flex-end}
+}
 </style>
 </head>
 <body class="kb-wait">
@@ -153,11 +183,23 @@
           // Kate, 3 Oct 2026: their photo (org chart or staff card, from kb_positions);
           // initials when there is none yet, or if the picture fails to load.
           var ini = (p.name.match(/[A-Za-z]+/g) || ['?']).map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
-          return '<li><div class="rs-who"><span class="rs-av" aria-hidden="true">' + esc(ini) +
+          // Kate, 15 Oct 2026: one column per thing, under a sticky header row: Level, Name,
+          // Job title, Email, Sign-in (the invite button replaces "Never signed in"), and
+          // Revoke on the right. Level and Revoke are Level 5 only.
+          var lvCell = byLevel ? '<div class="rs-lvc">' + (canSetLevel(p) ? levelBits(p) :
+            '<span class="rs-lvt">Level ' + p.level + ' · ' + esc(KB.LEVELS[p.level] || '') + '</span>') + '</div>' : '';
+          var signIn = p.last_sign_in ? '<span>' + esc(when(p.last_sign_in)) + '</span>' :
+            (canInvite(p) ? inviteBits(p) : '<span>Never signed in</span>');
+          return '<li>' + lvCell +
+            '<div class="rs-who"><span class="rs-av" aria-hidden="true">' + esc(ini) +
               (p.photo ? '<img src="' + esc(p.photo) + '" alt="" loading="lazy" onerror="this.remove()">' : '') + '</span>' +
-            '<div class="rs-id"><b>' + esc(p.name) + '</b><span class="rs-pos">' + esc(p.position || '') + '</span></div></div>' +
-            '<div class="rs-contact"><span>' + esc(p.email) + '</span><span class="rs-where">' + esc(where(p)) + '</span></div>' +
-            '<div class="rs-when' + (p.last_sign_in ? '' : ' never') + '"><span>' + esc(when(p.last_sign_in)) + '</span>' + levelBits(p) + inviteBits(p) + revokeBits(p) + '</div></li>';
+            '<div class="rs-id"><b>' + esc(p.name) + '</b></div></div>' +
+            '<div class="rs-jt" title="' + esc(p.position || '') + '">' + esc(p.position || '') + '</div>' +
+            '<div class="rs-contact"><span class="rs-emrow"><span class="rs-emt" title="' + esc(p.email) + '">' + esc(p.email) + '</span>' +
+              (byLevel && p.level < 5 ? '<button type="button" class="rs-chg" data-email="' + esc(p.email) + '" aria-label="Change email for ' + esc(p.name) + '">Change</button>' : '') +
+              '</span><span class="rs-where">' + esc(where(p)) + '</span></div>' +
+            '<div class="rs-when' + (p.last_sign_in ? '' : ' never') + '">' + signIn + '</div>' +
+            (byLevel ? '<div class="rs-act">' + revokeBits(p) + '</div>' : '') + '</li>';
         }).join('') + '</ul></section>';
     }).join('') : '<p class="kb-msg">Nobody matches those filters.</p>';
     drawRevoked();
@@ -178,7 +220,7 @@
       KB.titleIcon('access', 'Staff Roster &amp; Access') +
       '<p class="kb-meta">' + data.people.length + ' people can sign in' +
         (byLevel ? ': ' + (data.people.length - staff) + ' on the dashboard list and ' + staff + ' in the team' : '') +
-        (byLevel ? '. You can add people, change their level and revoke access here.' : '. View only; changes go through Kate.') + '</p>' +
+        (byLevel ? '. You can add people, change their level or email, and revoke access here.' : '. View only; changes go through Kate.') + '</p>' +
       (byLevel ? '<div class="rs-add"><button type="button" class="rs-addbtn" id="rsAddBtn">Add person</button>' +
         '<form class="rs-form" id="rsForm" autocomplete="off">' +
           '<label>Full name<input type="text" id="rsName" required></label>' +
@@ -202,7 +244,15 @@
         '</div>' +
       '</div>' +
       '<div class="rs-status"><span id="rsCount"></span><button type="button" id="rsClear" hidden>Clear filters</button></div>' +
-      '<div id="rsList"></div><div id="rsRevoked"></div>';
+      '<div class="rs-tbl' + (byLevel ? ' rs-lvl' : '') + '" id="rsTbl">' +
+        '<div class="rs-cols" aria-hidden="true">' + (byLevel ? '<span>Level</span>' : '') +
+          '<span>Name</span><span>Job title</span><span>Email</span><span>Sign-in</span>' + (byLevel ? '<span></span>' : '') + '</div>' +
+        '<div id="rsList"></div></div><div id="rsRevoked"></div>';
+    // The sticky column header sits just under the Team Home header, whatever its height.
+    var head = document.getElementById('kbHead'), tbl = document.getElementById('rsTbl');
+    function setTop() { if (head && tbl) tbl.style.setProperty('--rs-top', Math.round(head.getBoundingClientRect().height) + 'px'); }
+    setTop(); window.addEventListener('resize', setTop);
+    if (window.ResizeObserver && head) new ResizeObserver(setTop).observe(head);
     draw();
     document.getElementById('rsFilter').addEventListener('input', function (e) { f.q = e.target.value; draw(); });
     // Kate, 3 Oct 2026: the site's own pill menus, not the browser's dropdowns.
@@ -277,6 +327,23 @@
         b.disabled = true; b.textContent = 'Revoking…';
         var s = await KB.client.rpc('kb_revoke_access', { p_email: email, p_note: note });
         if (s.error) { b.disabled = false; b.textContent = 'Revoke access'; alert('Not revoked: ' + s.error.message); return; }
+        await reload();
+      });
+      // Change email (kb_change_email): updates it everywhere the person is stored, ends the
+      // old sign-in account, and invites a dashboard-list person at the new address.
+      document.getElementById('rsList').addEventListener('click', async function (e) {
+        var b = e.target.closest('.rs-chg');
+        if (!b || b.disabled) return;
+        var old = b.dataset.email, who = data.people.find(function (p) { return p.email === old; });
+        var next = prompt('New email for ' + (who ? who.name : old) + ':', old);
+        if (next === null) return;
+        next = next.trim().toLowerCase();
+        if (!next || next === old) return;
+        if (!confirm('Change ' + (who ? who.name : old) + ' from ' + old + ' to ' + next + '?\n\nTheir old sign-in stops working. ' +
+            (who && who.team === 'Management & Office' ? 'They are emailed an invite at the new address.' : 'They sign in with the new address.'))) return;
+        b.disabled = true; b.textContent = 'Saving…';
+        var s = await KB.client.rpc('kb_change_email', { p_old: old, p_new: next });
+        if (s.error) { b.disabled = false; b.textContent = 'Change'; alert('Not changed: ' + s.error.message); return; }
         await reload();
       });
       document.getElementById('rsRevoked').addEventListener('click', async function (e) {
