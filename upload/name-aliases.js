@@ -64,6 +64,38 @@ const STAFF_NAME_ALIASES = {
   // TARA at Khalifa City, Saadiyat and Al Quoz and TARA KIDD at Motor City, so the Podium
   // Race showed her twice. TARA is the name the profile map and the photo fix key on.
   'TARA KIDD': 'TARA',
+  // Kate, 15 Oct 2026: "reconcile names" off the Podium Race, where one person showed under two or three
+  // spellings. Each is the ledger's own typo or short form for someone already on the page, same branch and
+  // the dates running on from hers (14 Oct's surname-only pass left them separate; this folds the figures
+  // too). Left alone on purpose, not clear enough to merge: Dina (hair), Kat, Anne, Nikka, Allan, Sarah.
+  // Jaime Booth: the ledger wrote her JAIMIE (Jun to Dec 2022) and JAMIE (Jan to Feb 2023), KCA.
+  'JAIMIE': 'JAIME',
+  'JAMIE': 'JAIME',
+  // Sherine Baghdadi: CHERINE Jan to Aug 2021 (KCA, Marasy), SHERINE from Sep 2021; Phorest has one Sherine.
+  'CHERINE': 'SHERINE',
+  // Mevil Miraflor (Blow-Dry Specialist): MEVEL one KCA day, MAVE KCA Jun to Sep 2022.
+  'MEVEL': 'MEVIL',
+  'MAVE': 'MEVIL',
+  // Mihaela Solomei (Al Quoz): MIKAELA Nov 2023 to Mar 2024.
+  'MIKAELA': 'MIHAELA',
+  // Areanne Miranda (Al Quoz): AREAANE and ARREANE.
+  'AREAANE': 'AREANNE',
+  'ARREANE': 'AREANNE',
+  // Ashleigh Fairgrieve: AHLEIGH and AHSLEIGH, Motor City, Jan to Feb 2023, as she started (30 Jan 2023).
+  'AHLEIGH': 'ASHLEIGH',
+  'AHSLEIGH': 'ASHLEIGH',
+  // Clarissa Destacamento: CLARISA and CLARRISA, Motor City, Sep to Oct 2023, the week before she starts as CLARISSA.
+  'CLARISA': 'CLARISSA',
+  'CLARRISA': 'CLARISSA',
+  // Xyrhy Unisa: XYRYH, Motor City, Aug 2024 (XYHRY is mapped above).
+  'XYRYH': 'XYRHY',
+  // One-day typos: RITCHEL (Motor City) is Richel Modilla, SAMATHA (Motor City) is Samantha Ahmad, LORI (KCA) is Lorie.
+  'RITCHEL': 'RICHEL',
+  'SAMATHA': 'SAMANTHA',
+  'LORI': 'LORIE',
+  // Lizanie Jacobsz: LIZ (KCA, 15 to 29 Sep 2024) runs straight into LIZANIE from 30 Sep; LIZANNE is two Saadiyat days in Nov 2024.
+  'LIZ': 'LIZANIE',
+  'LIZANNE': 'LIZANIE',
 };
 
 function canonicalStaffName(name){
