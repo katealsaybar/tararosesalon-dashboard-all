@@ -305,7 +305,7 @@ const STAFF_PROFILES = {
   // Kate, 15 Oct 2026, "possibly her": Kara . (Al Quoz, Phorest Style Director - DXB, added 20 Mar 2024, two ledger days) is Kara Francis, hair IG kara__haircare_.
   'KARA':    { photoFull: 'stylist/photos/AQ/kara francis.png', role: 'Style Director', branch: 'AQ', ig: 'kara__haircare_', blank: true, resigned: true },
   // Kate, 15 Oct 2026, "possibly her": Denise . (KCA and Saadiyat Stylist, ledger KCA Mar to May 2022) is Denise Muc; the only IG Kate has is her personal one.
-  'DENISE':  { photoFull: 'stylist/photos/KCA/denise muc.png', role: 'Stylist', branch: 'KCA', ig: 'denise_muc_abudhabi', blank: true, resigned: true },
+  'DENISE':  { photoFull: 'stylist/photos/KCA/denise muc.png', role: 'Stylist', branch: 'KCA', ig: 'denise_muc_abudhabi', resigned: true },
   'LINA':     { photoFull: 'stylist/photos/AQ/lina waled.png', role: 'Stylist', branch: 'AQ', blank: true, resigned: true },
   'SHERINE':  { photoFull: 'stylist/photos/KCA/sherine baghdadi.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'GABBY':    { photoFull: 'stylist/photos/SAA/gabby nemeth.png', role: 'Stylist', branch: 'SAA', ig: 'zuzu_hair_', resigned: true },
