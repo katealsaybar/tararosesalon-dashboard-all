@@ -14,7 +14,8 @@ try { Object.assign(wvSel, JSON.parse(localStorage.getItem('trs-wv-blast') || '{
 let wvRows = null, wvErr = '', wvPage = 1, wvQuery = '', wvShown = [];
 const wvSave = () => { try { localStorage.setItem('trs-wv-blast', JSON.stringify(wvSel)); } catch (e) {} };
 const wvOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
-const wvWave = r => r.wave ? String(r.wave) : 'new';
+const wvIsNew = r => !!(r.listed_on && String(r.listed_on) > '2026-10-08');   // added at a refresh after the first build
+const wvWave = r => wvIsNew(r) ? 'new' : String(r.wave);
 const wvDay = d => { if (!d) return ''; const x = new Date(String(d).slice(0, 10) + 'T00:00:00'); return x.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: x.getFullYear() === new Date().getFullYear() ? undefined : '2-digit' }); };
 const wvDayY = d => d ? new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 const wvWhy = r => String(r.status || '').replace(/^No: /, '');
@@ -58,15 +59,15 @@ function wvPaint() {
   const all = wvRows || [];
   if (!all.length) { host.innerHTML = '<p class="slv-muted">No list has been built yet.</p>'; return; }
   const when = all.reduce((m, r) => r.refreshed_on > m ? r.refreshed_on : m, '');
-  const newN = wvCan().filter(r => !r.wave).length;
+  const newN = wvCan().filter(wvIsNew).length;
   const chip = (txt, warn) => `<span class="ll-chip${warn ? ' warn' : ''}">${txt}</span>`;
   const cards = [1, 2, 3, 4, 5].map(n => wvCard(String(n), 'Wave ' + n, WV_BANDS[n] + ' spenders, tagged wv-blast-wave-' + n))
-    .concat([wvCard('new', 'New since 8 Oct', 'Qualify now, <b>not tagged in GHL yet</b>'), wvCard('out', 'Removed', 'Were on the 8 Oct list, no longer qualify')]).join('');
-  host.innerHTML = `<div class="ll-fresh">${chip('List refreshed <b>' + lcEsc(wvDayY(when)) + '</b>')}${chip('First built <b>8 Oct 2026</b>')}${newN ? chip('<b>' + lcNum(newN) + '</b> new clients not tagged in GHL yet', true) : ''}</div>
+    .concat([wvCard('new', 'New since 8 Oct', 'Qualify now, tagged in GHL by spend band'), wvCard('out', 'Removed', 'Were on the 8 Oct list, no longer qualify')]).join('');
+  host.innerHTML = `<div class="ll-fresh">${chip('List refreshed <b>' + lcEsc(wvDayY(when)) + '</b>')}${chip('First built <b>8 Oct 2026</b>')}${newN ? chip('<b>' + lcNum(newN) + '</b> added since 8 Oct') : ''}</div>
     <div class="ll-cards wv-cards">${wvCard('all', 'Everyone on the list', 'Can be messaged on WhatsApp now')}${cards}</div>
     <div class="ll-panel">
       <div class="ll-def"><b>${lcEsc(wvWaveName(wvSel.wave))}:</b> ${wvSel.wave === 'out' ? 'Clients on the 8 Oct list who no longer qualify, with the reason. Nobody here is in the list above.'
-        : wvSel.wave === 'new' ? 'Clients who now qualify and were not on the 8 Oct list. They have no wave tag in GHL yet.'
+        : wvSel.wave === 'new' ? 'Clients who now qualify and were not on the 8 Oct list. Each carries the wave tag for her spend band in GHL (added 15 Oct).'
         : wvSel.wave === 'all' ? 'Every client who can be messaged: 2026 spend AED 4,000+ (net, ex VAT), visited in the last 90 days, one clear number, no Wellness Voucher bought yet, and she wrote to one of our branch WhatsApp numbers in the last 12 months (not blocked, not unsubscribed).'
         : 'Spend band ' + lcEsc(WV_BANDS[wvSel.wave] || '') + '. The wave is the tag put on her in GHL on 9 Oct 2026, so the waves go out in the order they were tagged.'}</div>
       <div class="ll-filters">
@@ -99,7 +100,7 @@ function wvPaintTable() {
   const box = document.getElementById('wvTable');
   if (!box) return;
   const out = wvSel.wave === 'out';
-  const waveCell = r => r.wave ? `<span class="ll-tag">Wave ${r.wave}</span>` : '<span class="ll-tag" title="Not tagged in GHL yet">New</span>';
+  const waveCell = r => r.wave ? `<span class="ll-tag">Wave ${r.wave}</span>${wvIsNew(r) ? ' <span class="ll-tag" title="Added after 8 Oct">New</span>' : ''}` : '<span class="slv-muted">–</span>';
   const cols = ['Client', 'Wave', '2026 spend', 'Last visit', 'Last wrote to us', 'Phone', 'Status'];
   const tr = shown.map(r => `<tr>
       <td>${lcEsc(r.client)}<div class="slv-note">${lcEsc(WV_BR[r.branch] || r.branch)}</div></td>
@@ -111,7 +112,7 @@ function wvPaintTable() {
       <td>${wvPill(r)}</td></tr>`).join('');
   const cards = shown.map(r => `<li class="prd-card"><div class="prd-body">
       <div class="prd-top"><span class="prd-name">${lcEsc(r.client)}</span><span>${wvPill(r)}</span></div>
-      <div class="prd-meta">${lcEsc(WV_BR[r.branch] || r.branch)} · ${r.wave ? 'Wave ' + r.wave : 'New, not tagged yet'} · AED ${lcNum(Math.round(r.spend))}</div>
+      <div class="prd-meta">${lcEsc(WV_BR[r.branch] || r.branch)} · ${r.wave ? 'Wave ' + r.wave : ''}${wvIsNew(r) ? ' (new)' : ''} · AED ${lcNum(Math.round(r.spend))}</div>
       <div class="prd-meta">Last visit ${lcEsc(wvDay(r.last_visit))}${r.last_wrote ? ' · wrote to us ' + lcEsc(wvDay(r.last_wrote)) : ''}</div>
       ${r.phone ? `<div class="prd-meta" style="margin-top:4px"><a href="tel:${lcEsc(r.phone)}" style="color:inherit">${lcEsc(r.phone)}</a></div>` : ''}</div></li>`).join('');
   const from = (wvPage - 1) * per + 1;
