@@ -872,7 +872,7 @@ function dpRadar(host, idxs, codes) {
 // ── PAGE ────────────────────────────────────────────────────
 // The bar holds the Measure and nothing else (15 Oct 2026): Branch and Period are the masthead's own filters, so there is one
 // of each on the dashboard. On a phone they are the Filters button in the header.
-const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardW', 'Weakest day'], ['dpCardA', 'Trend'], ['dpCardB', 'Bars'], ['dpCardR', 'Strengths'], ['dpCardC', 'Weak days'], ['dpCardD', 'Weekdays'], ['dpHow', 'How to read']];
+const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardG', 'Growth'], ['dpCardW', 'Weakest day'], ['dpCardA', 'Trend'], ['dpCardB', 'Bars'], ['dpCardR', 'Strengths'], ['dpCardC', 'Weak days'], ['dpCardD', 'Weekdays'], ['dpHow', 'How to read']];
 const dpShowing = () => { const sel = dpSel(); return 'Branches: ' + (sel.length === DPD.codes.length ? 'all' : sel.join(' + ')) + ', set in the filters at the top'; };
 function dpControls(win) {
   const mopts = DP_GROUPS.map(([g, ks]) => `<optgroup label="${g}">${ks.map(k => `<option value="${k}"${k === DP.measure ? ' selected' : ''}>${dpEsc(DP_M[k].label)}</option>`).join('')}</optgroup>`).join('');
@@ -925,6 +925,7 @@ function dpDraw(host, win) {
     ${dpControls(win)}
     <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}${dpOffPage() ? ' · Bahrain is not on this page yet, so the UAE branches show' : ''}${M.help ? ' · <b>' + dpEsc(M.label) + '</b>: ' + dpEsc(M.help) : ''}</p>
     <section class="dp-tiles dp-jt" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs)}</section>
+    ${typeof daGrowthCard === 'function' ? daGrowthCard(win) : ''}
     <div class="dp-card dp-jt" id="dpCardW"><h2>Weakest day per branch</h2><span class="dp-tag">Measure does not apply</span><p class="dp-why">The day in this period that fell furthest below its targets. A day is scored as the average % of target across every measure that has a target (at least three), so the Measure menu does not change it. Closed days and days with no figures are skipped.</p><div id="dpW"></div></div>
     <div class="dp-card dp-jt" id="dpCardA"><h2>${M.notarget ? `Daily ${dpEsc(M.noun)}, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}` : `Daily ${dpEsc(M.noun)} against target, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}`}</h2>
       <p class="dp-why">${M.notarget ? 'Every branch on one scale, in plain values. This measure has no target, so nothing is graded. Gaps are closed days or days with no figures.' : (M.kind === 'ratio' ? "Every branch on one scale, in the measure's own units, with the target as the dashed line. Gaps are closed days or days with no figures." : "Every branch on one scale: 100% means the day's target was met. Gaps are closed days or days with no figures.")}</p><div id="dpA"></div></div>
@@ -952,6 +953,7 @@ function dpDraw(host, win) {
       <div class="dp-how">
         <div class="dp-hw"><b>Colours</b><span>Each colour is a band against the target. Money and counts: under 80% of target, 80 to 99%, 100 to 109%, 110% and over. Rates and bills: the key under the chart gives the real figures.</span><span class="dp-sw3"><span><i style="background:var(--dv-n2)"></i>Under 80%</span><span><i style="background:var(--dv-y)"></i>80 to 99%</span><span><i style="background:var(--dv-p2)"></i>100 to 109%</span><span><i style="background:var(--dv-g)"></i>110% +</span></span></div>
         ${dpBenchmark('rebookPct', win.to) > DP_M.rebook.milestone ? `<div class="dp-hw"><b>Rebooking: goal and first goal</b><span>The goal is ${DP_M.rebook.fmt(dpBenchmark('rebookPct', win.to))}. ${DP_M.rebook.fmt(DP_M.rebook.milestone)} is the first goal, so a branch past it shows yellow, not red.</span></div>` : ''}
+        <div class="dp-hw"><b>Growth</b><span>This period against the one before it: the same number of days, ending the day before this period starts. It stops at the last day the ledger has synced, so unsynced days never count as days that took nothing.</span></div>
         <div class="dp-hw"><b>Closed day</b><span>Shown as closed, not as zero. Al Quoz is shut on Sunday and Monday.</span></div>
         <div class="dp-hw"><b>No grade</b><span>Total clients and New clients show their figures with no colour until someone keys a target in the Upload Portal.</span></div>
         <div class="dp-hw"><b>Motor City</b><span>Hair only, so the Beauty measures skip it.</span></div>
