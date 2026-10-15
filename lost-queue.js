@@ -281,7 +281,7 @@ function lqPaintTable() {
   const msgCell = (r, i) => { const m = lqShownText(r); return `<div class="lq-msg" title="${lcEsc(m)}">${lcEsc(m)}</div>${r._ch === 'sms' ? `<div class="slv-note${m.length > 160 ? ' lq-long' : ''}">${m.length} characters${m.length > 160 ? ', more than one text' : ''}</div>` : ''}`; };
   const act = (r, i) => {
     if (view === 'out') return lqOutAct(r, i);
-    if (view === 'send' && typeof lqwOn === 'function' && lqwOn() && r._ch === 'whatsapp' && !lqwCanWave(r)) return '<span class="slv-note">Its wave is not open</span>';
+    if (view === 'send' && typeof lqwOn === 'function' && lqwOn() && r._ch === 'whatsapp' && !lqwCanWave(r)) return `<span class="slv-note">${typeof lqwHeld === 'function' && lqwHeld(r) ? 'Held back for now' : 'Its wave is not open'}</span>`;
     if (view === 'send') {
       const site = lqCanSend(r) ? `<button type="button" class="tglr lc-btn lq-pri" onclick="lqSendRows([${i}])" title="Send it now through respond.io, from ${lcEsc(LQ_SHORT[r.branch] || r.branch)}'s number">Send</button>` : '';
       const wa = r._ch === 'whatsapp' && r._phone
@@ -480,8 +480,9 @@ async function lqSendLoad() {
 function lqRelink() { lqRows.forEach(r => { r._job = lqSnd.jobs[r.client_key] || null; }); }
 const lqSendOn = () => !!(lqSnd.info && lqSnd.info.enabled);
 // Clients who wrote to us in the last 12 months (waves 1 and 2) get the wording with no end date (15 Oct 2026, the v2 templates); the pilot is half and
-// half: 1a the standard v2 message, 1b the story message (lost-waves.js, lqwArm). Waves 3 and 4 still use the older gap and stop templates.
-function lqTkeyBase(r) { return r.wa === 'act' ? r.qtype + '_v2' : r.qtype + (r.wa === 'r18' ? '_gap' : r.wa === 'noreply' ? '_stop' : ''); }
+// half: 1a the standard v2 message, 1b the story message (lost-waves.js, lqwArm).
+// Waves 3 and 4 (15 Oct 2026): the same wording plus the STOP line (the _v2_stop templates); Wave 4, the coldest group, is the Due message only, no offer.
+function lqTkeyBase(r) { return r.wa === 'act' ? r.qtype + '_v2' : r.wa === 'r18' ? r.qtype + '_v2_stop' : r.wa === 'noreply' ? 'due_v2_stop' : r.qtype; }
 function lqTkey(r) { return r.wa === 'act' && typeof lqwArm === 'function' && lqwArm(r) === 'b' ? r.qtype + '_story' : lqTkeyBase(r); }
 const lqSendTpl = r => lqSnd.info && (lqSnd.info.templates || []).find(t => t.key === lqTkey(r));
 // The values for {{1}}, {{2}}... in the template's order; a client with no usual stylist reads "our team".
