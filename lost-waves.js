@@ -44,8 +44,8 @@ function lqwStatus(n) {
 const lqwClass = r => r.wa === 'act' ? 2 : r.wa === 'r18' ? 3 : r.wa === 'noreply' ? 4 : 0;
 // The pilot is a message test (15 Oct 2026): 1a gets the standard message, 1b the story message, split by a fixed hash of the client key so a client
 // keeps her arm whatever else changes. Everyone outside the pilot is 'a' (the standard message).
-// 1b (the story messages) is held back until Tara has agreed to the longer wording (15 Oct 2026): only 1a, the standard message, can go. Set to false to release 1b.
-const LQW_HOLD_1B = true;
+// 1b (the story messages) was held back until the longer wording was agreed; Kate released it the same evening (15 Oct 2026). Set to true to hold it again.
+const LQW_HOLD_1B = false;
 const lqwHeld = r => LQW_HOLD_1B && lqwClass(r) === 2 && lqwPilot.has(r.client_key) && lqwArm(r) === 'b';
 function lqwArm(r) {
   if (!lqwPilot.has(r.client_key)) return 'a';
