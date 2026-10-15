@@ -45,18 +45,6 @@
 .rs-chg{flex:none;font:inherit;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted2);cursor:pointer}
 .rs-chg:hover{border-color:var(--text);color:var(--text)}
 .rs-chg:disabled{cursor:default;opacity:.6}
-/* Kate, 15 Oct 2026: the dashboard's round TOP button, for the long roster. Shows once you
-   are a screen down. */
-.rs-top{position:fixed;right:22px;bottom:22px;z-index:95;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-  width:58px;height:58px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);
-  font:inherit;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);
-  opacity:0;pointer-events:none;transform:translateY(10px);transition:opacity 220ms ease,transform 220ms ease,color 150ms,border-color 150ms}
-.rs-top.on{opacity:1;pointer-events:auto;transform:none}
-.rs-top-k{font-size:10.5px;font-weight:700;letter-spacing:.16em;margin-right:-.16em;line-height:1}
-.rs-top-a{font-size:19px;line-height:1}
-@media(hover:hover){.rs-top:hover{color:var(--text);border-color:var(--text)}}
-@media(max-width:720px){.rs-top{right:14px;bottom:14px;width:52px;height:52px}}
-@media print{.rs-top{display:none!important}}
 .rs-cols{display:none}
 .rs-lvt{font-size:13px;color:var(--muted)}
 .rs-jt{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -93,7 +81,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261014mg"></script>
+<script src="/hub/hub.js?v=20261015top"></script>
 <script src="/visits.js?v=20261008v1"></script>
 <script>
 (function () {
@@ -260,13 +248,6 @@
         '<div class="rs-cols" aria-hidden="true">' + (byLevel ? '<span>Level</span>' : '') +
           '<span>Name</span><span>Job title</span><span>Email</span><span>Sign-in</span>' + (byLevel ? '<span></span>' : '') + '</div>' +
         '<div id="rsList"></div></div><div id="rsRevoked"></div>';
-    // Back to top, once you are a screen down.
-    var topBtn = document.createElement('button');
-    topBtn.type = 'button'; topBtn.className = 'rs-top'; topBtn.setAttribute('aria-label', 'Back to top');
-    topBtn.innerHTML = '<span class="rs-top-k">TOP</span><span class="rs-top-a" aria-hidden="true">↑</span>';
-    topBtn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
-    document.body.appendChild(topBtn);
-    window.addEventListener('scroll', function () { topBtn.classList.toggle('on', window.scrollY > window.innerHeight * 0.9); }, { passive: true });
     // The sticky column header sits just under the Team Home header, whatever its height.
     var head = document.getElementById('kbHead'), tbl = document.getElementById('rsTbl');
     function setTop() { if (head && tbl) tbl.style.setProperty('--rs-top', Math.round(head.getBoundingClientRect().height) + 'px'); }

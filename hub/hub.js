@@ -532,3 +532,33 @@
     }
   }
 })();
+
+// Kate, 15 Oct 2026: the dashboard's round TOP button on every Team Home page. Shows once
+// you are a screen down, bottom right, and scrolls smoothly to the top. Its own style is
+// injected here so it works on every page that loads this file, with or without hub.css.
+(function () {
+  if (window.top !== window.self) return;   // not inside a frame
+  try {
+    var st = document.createElement('style');
+    st.textContent =
+      '.kb-top{position:fixed;right:22px;bottom:22px;z-index:95;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;' +
+      'width:58px;height:58px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--muted);' +
+      'font:inherit;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);opacity:0;pointer-events:none;transform:translateY(10px);' +
+      'transition:opacity 220ms ease,transform 220ms ease,color 150ms,border-color 150ms}' +
+      '.kb-top.on{opacity:1;pointer-events:auto;transform:none}' +
+      '.kb-top-k{font-size:10.5px;font-weight:700;letter-spacing:.16em;margin-right:-.16em;line-height:1}' +
+      '.kb-top-a{font-size:19px;line-height:1}' +
+      '@media(hover:hover){.kb-top:hover{color:var(--text);border-color:var(--text)}}' +
+      '@media(max-width:720px){.kb-top{right:14px;bottom:14px;width:52px;height:52px}}' +
+      '@media print{.kb-top{display:none!important}}';
+    document.head.appendChild(st);
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'kb-top'; b.setAttribute('aria-label', 'Back to top');
+    b.innerHTML = '<span class="kb-top-k">TOP</span><span class="kb-top-a" aria-hidden="true">↑</span>';
+    b.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    document.body.appendChild(b);
+    var show = function () { b.classList.toggle('on', window.scrollY > window.innerHeight * 0.9); };
+    window.addEventListener('scroll', show, { passive: true });
+    show();
+  } catch (e) {}
+})();
