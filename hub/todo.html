@@ -16,29 +16,98 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/hub/hub.css?v=20261008su">
 <style>
-  .td-pri{flex:none;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--border);color:var(--muted);margin-right:4px}
-  .td-pri.p1{background:var(--warn);border-color:var(--warn);color:var(--bg)}
-  .td-pri.p2{border-color:var(--warn);color:var(--text)}
-  .td-tag{font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid var(--border);color:var(--muted);margin-left:8px;white-space:nowrap}
-  .td-acts select{font:inherit;font-size:13px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 10px;min-height:36px}
-  .td-top{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 20px}
-  .td-top .fm-switch{margin:0}
-  .td-sub{font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:18px 0 4px}
-  .td-done summary{cursor:pointer;color:var(--muted);font-size:14px;margin:24px 0 8px}
-  .td-row.gone{opacity:.65}
+  /* Calm view (Kate, 15 Oct 2026): one thing at a time. A single "Start here" card, two quiet "Up next"
+     lines, and everything else folded into category tiles. Pastel pills carry the priority. */
+  .td main { max-width: 660px; }
+  .td-hello { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 4px 0 6px; }
+  .td-dots { display: flex; gap: 8px; }
+  .td-dot { width: 26px; height: 8px; border-radius: 99px; background: var(--border); transition: background .25s; }
+  .td-dot.on { background: var(--beauty); }
+  .td-count { font-size: 15px; color: var(--muted); }
+  .td-count b { color: var(--text); font-weight: 600; }
+  .td-sel { margin-left: auto; font: inherit; font-size: 13px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px; min-height: 38px; }
+  .td-label { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 30px 0 10px; }
+  .td-focus { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 26px 24px 22px; box-shadow: var(--shadow); }
+  .td-focus.pulse { animation: tdpop .35s ease; }
+  @keyframes tdpop { 0% { transform: scale(.985); } 60% { transform: scale(1.008); } 100% { transform: scale(1); } }
+  .td-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .td-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 4px 10px; border-radius: 99px; color: #1A1A1A; }
+  .td-pill i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .td-p1 { background: var(--accent-coral); } .td-p2 { background: var(--accent-butter); } .td-p3 { background: var(--accent-mint); }
+  .td-tag { font-size: 13px; color: var(--muted); }
+  .td-focus h2 { font-family: 'Playfair Display', Georgia, serif; font-weight: 600; font-size: 30px; line-height: 1.18; margin: 14px 0 8px; text-wrap: balance; }
+  .td-why { font-size: 17px; margin: 0 0 14px; max-width: 52ch; }
+  .td-time { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; color: var(--muted); }
+  .td-time svg { width: 16px; height: 16px; }
+  .td-acts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+  .td-btn { border-radius: 14px; padding: 13px 20px; min-height: 50px; font-weight: 600; font-size: 16px; border: 1.5px solid var(--border); background: transparent; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+  .td-btn.go { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+  .td-btn.ok { border-color: var(--text); }
+  .td-btn.later { border-color: transparent; color: var(--muted); font-weight: 500; }
+  .td-btn:disabled { opacity: .6; cursor: wait; }
+  details.td-more { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+  details.td-more summary { cursor: pointer; font-size: 14px; color: var(--muted); list-style: none; }
+  details.td-more summary::-webkit-details-marker { display: none; }
+  details.td-more summary::before { content: "+"; display: inline-block; width: 18px; font-weight: 700; }
+  details.td-more[open] summary::before { content: "\2212"; }
+  details.td-more ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: 15px; }
+  details.td-more li { margin: 5px 0; }
+  details.td-more li b { color: var(--text); font-weight: 600; }
+  .td-done { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 28px 24px; box-shadow: var(--shadow); }
+  .td-done h2 { font-family: 'Playfair Display', Georgia, serif; font-size: 28px; margin: 0 0 6px; }
+  .td-done p { margin: 0 0 16px; color: var(--muted); }
+  .td-check { width: 44px; height: 44px; border-radius: 50%; background: var(--accent-mint); color: #1A1A1A; display: grid; place-items: center; margin-bottom: 14px; }
+  .td-check svg { width: 24px; height: 24px; }
+  .td-next { display: flex; flex-direction: column; gap: 8px; }
+  .td-nrow { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: transparent; text-align: left; width: 100%; cursor: pointer; }
+  .td-nrow:hover { background: var(--surface); }
+  .td-nrow .t { flex: 1; min-width: 0; font-weight: 500; }
+  .td-nrow .m { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .td-sd { width: 10px; height: 10px; border-radius: 50%; flex: none; border: 1px solid rgba(0,0,0,.18); }
+  .td-sd.p1 { background: var(--accent-coral); } .td-sd.p2 { background: var(--accent-butter); } .td-sd.p3 { background: var(--accent-mint); }
+  .td-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .td-tile { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 14px 16px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; text-align: left; min-height: 78px; cursor: pointer; }
+  .td-tile[aria-expanded="true"] { border-color: var(--text); }
+  .td-tile .n { font-weight: 600; font-size: 15px; }
+  .td-tile .c { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+  .td-tile.zero { opacity: .55; }
+  .td-panel { margin-top: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 6px 16px 12px; }
+  .td-panel h3 { font-family: 'Playfair Display', Georgia, serif; font-size: 20px; margin: 14px 0 2px; }
+  .td-sub { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 14px 0 2px; }
+  .td-prow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); }
+  .td-panel h3 + .td-prow, .td-sub + .td-prow { border-top: 0; }
+  .td-prow .tx { flex: 1; min-width: 0; }
+  .td-prow .tx b { font-weight: 600; display: block; }
+  .td-prow .tx span { color: var(--muted); font-size: 14px; display: block; }
+  .td-mini { border: 1px solid var(--border); background: transparent; border-radius: 10px; padding: 8px 12px; font-size: 14px; font-weight: 600; min-height: 38px; cursor: pointer; }
+  .td-quiet { margin-top: 28px; font-size: 14px; color: var(--muted); }
+  .td-quiet button { background: none; border: 0; color: var(--muted); text-decoration: underline; padding: 6px 0; font-size: 14px; cursor: pointer; }
+  .td-gone summary { cursor: pointer; font-size: 14px; color: var(--muted); margin-top: 10px; }
+  .td-gone ul { margin: 8px 0 0; padding-left: 18px; font-size: 14px; color: var(--muted); }
+  .td-toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--text); color: var(--bg); padding: 12px 18px; border-radius: 12px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: calc(100vw - 32px); }
+  .td-toast.show { opacity: 1; transform: translate(-50%, 0); }
+  @media (max-width: 480px) {
+    .td-focus { padding: 22px 18px 18px; }
+    .td-focus h2 { font-size: 26px; }
+    .td-btn { flex: 1 1 auto; }
+    .td-btn.later { flex-basis: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) { .td-focus.pulse { animation: none; } .td-dot, .td-toast { transition: none; } }
 </style>
 </head>
 <body class="kb-wait">
 <!-- To do (Kate, 15 Oct 2026): the list todo_refresh() and todo_refresh_staff() build from the dashboards'
-     own tables (migrations/todo_items.sql, todo_categories.sql). Level 2 and up open the page; each
-     category's own level (todo_categories.min_level) and a login's branch scope decide which rows the
-     database returns, so this file filters nothing for access. Nothing is typed in here; an item closes
-     by itself when the data stops matching, and Done and Snooze are the only things this page writes. -->
-<div class="wrap">
+     own tables (migrations/todo_items.sql, todo_categories.sql, todo_supply_low.sql). Level 2 and up open
+     the page; each category's own level (todo_categories.min_level) and a login's branch scope decide
+     which rows the database returns, so this file filters nothing for access. Nothing is typed in here.
+     The page folds rows that belong together (one KPI across branches, one rule across branches) into a
+     single card, brings up five a day, and writes only Done and Not today (todo_items.status). -->
+<div class="wrap td">
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
   <main id="kbMain"><p class="kb-msg">Loading…</p></main>
   <footer class="kb-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
 </div>
+<div class="td-toast" id="tdToast" role="status" aria-live="polite"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
 <script src="/hub/hub.js?v=20261015todo"></script>
@@ -47,9 +116,14 @@
 (function () {
   var main = document.getElementById('kbMain'), esc = KB.esc;
   if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
-  var BRANCHES = [['', 'All'], ['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz'], ['BAH', 'Bahrain']];
+  var GOAL = 5;
+  var BRANCHES = [['', 'All branches'], ['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz'], ['BAH', 'Bahrain']];
   var PRI = { 1: 'High', 2: 'Mid', 3: 'Low' };
-  var items = [], cats = [], pick = '', view = 'cat', msg = '';
+  // About how long each kind of item takes, in minutes.
+  var MINS = { ads_stale: 10, ads_cpa: 15, ads_zero: 10, ledger: 10, sync: 10, pace: 10, kpi: 15, review: 5, ig_post: 10, ig_reach: 15, ig_followers: 10,
+    seo_clicks: 15, seo_impr: 15, seo_sessions: 15, seo_position: 10, lost_sign: 5, lost_failed: 10, lastvisit: 25, wv_deadline: 10,
+    supply_late: 5, supply_low: 20, supply_reorder: 20, suggest: 10 };
+  var items = [], cats = [], pick = '', msg = '', focusMore = false, pinned = '', openCat = '';
   function notFound() {
     main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
   }
@@ -57,133 +131,200 @@
   function dubai(offset) {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(new Date(Date.now() + (offset || 0) * 86400000));
   }
-  function nice(iso) {
-    var p = String(iso).split('-'); if (p.length < 3) return iso;
-    return +p[2] + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+p[1] - 1];
-  }
   function isOpen(i) { return i.status === 'open' || (i.status === 'snoozed' && i.snoozed_until && i.snoozed_until <= dubai(0)); }
-  function catTitle(key) { var c = cats.filter(function (x) { return x.key === key; })[0]; return c ? c.title : key; }
-  function branchName(code) { var b = BRANCHES.filter(function (x) { return x[0] && x[0] === code; })[0]; return b ? b[1] : ''; }
-  function byPriority(a, b) {
-    return a.severity - b.severity || (a.first_seen < b.first_seen ? -1 : a.first_seen > b.first_seen ? 1 : 0) ||
-      (a.title < b.title ? -1 : 1);
-  }
-  function row(i, mode, showCat) {
-    var href = i.link && i.link.charAt(0) === '/' ? i.link : '';
-    var acts = '';
-    if (mode === 'open') {
-      acts = (href ? '<a class="fm-btn" style="display:inline-flex;align-items:center;text-decoration:none" href="' + esc(href) + '">Open</a>' : '') +
-        '<button type="button" class="fm-btn fm-dl" data-act="done" data-k="' + esc(i.key) + '">Done</button>' +
-        '<select data-act="snooze" data-k="' + esc(i.key) + '" aria-label="Snooze"><option value="">Snooze…</option>' +
-        '<option value="1">Tomorrow</option><option value="3">3 days</option><option value="7">Next week</option></select>';
-    } else if (mode === 'snoozed' || i.status === 'done') {
-      acts = '<button type="button" class="fm-btn" data-act="open" data-k="' + esc(i.key) + '">' + (mode === 'snoozed' ? 'Bring back' : 'Reopen') + '</button>';
-    }
-    var sub = mode === 'snoozed' ? 'Back on ' + nice(i.snoozed_until) + '. ' : i.status === 'closed' ? 'Cleared by itself. ' : i.status === 'done' ? 'Done. ' : '';
-    return '<div class="kb-row fm-row td-row' + (mode === 'gone' ? ' gone' : '') + '">' +
-      (mode === 'open' ? '<span class="td-pri p' + i.severity + '">' + PRI[i.severity] + '</span>' : '') +
-      '<span class="kb-row-tx"><b>' + esc(i.title) + (i.branch && branchName(i.branch) ? '<span class="td-tag">' + esc(branchName(i.branch)) + '</span>' : '') +
-      (showCat ? '<span class="td-tag">' + esc(catTitle(i.category)) + '</span>' : '') + '</b><span>' + esc(sub + (i.detail || '')) + '</span></span>' +
-      '<span class="fm-acts td-acts">' + acts + '</span></div>';
-  }
-  function section(title, list, showCat) {
-    return '<section class="kb-dept"><h2 class="kb-dept-h">' + esc(title) + ' <span class="kb-meta">' + list.length + '</span></h2>' +
-      list.map(function (i) { return row(i, 'open', showCat); }).join('') + '</section>';
-  }
-  // A category with sub-groups (Staff stats, one per KPI): sub-groups with the most urgent item first.
-  function categoryBlock(c, list) {
-    var subs = {}, order = [];
-    list.forEach(function (i) { var k = i.sub || ''; if (!subs[k]) { subs[k] = []; order.push(k); } subs[k].push(i); });
-    if (order.length === 1 && order[0] === '') return section(c.title, list, false);
-    order.sort(function (a, b) {
-      var ma = Math.min.apply(null, subs[a].map(function (i) { return i.severity; })), mb = Math.min.apply(null, subs[b].map(function (i) { return i.severity; }));
-      return ma - mb || (a < b ? -1 : 1);
+  function catOf(k) { return cats.filter(function (c) { return c.key === k; })[0] || { key: k, title: k, sort: 99 }; }
+  function bname(code) { var b = BRANCHES.filter(function (x) { return x[0] && x[0] === code; })[0]; return b ? b[1] : ''; }
+  function list(a) { return a.length < 3 ? a.join(' and ') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
+  function cut(s, n) { s = String(s || ''); return s.length > n ? s.slice(0, n - 1).replace(/\s+\S*$/, '') + '…' : s; }
+  function lead(i) { var m = /^(\d+)/.exec(i.title); return m ? +m[1] : 0; }
+  function scopeOk(i) { return !pick || !i.branch || i.branch === pick; }
+
+  // Rows that belong together become one card: one KPI across its branches, one rule across branches.
+  function groups(rows) {
+    var by = {}, order = [];
+    rows.forEach(function (i) {
+      var gk = i.rule + '|' + (i.sub || '');
+      if (!by[gk]) { by[gk] = []; order.push(gk); }
+      by[gk].push(i);
     });
-    return '<section class="kb-dept"><h2 class="kb-dept-h">' + esc(c.title) + ' <span class="kb-meta">' + list.length + '</span></h2>' +
-      order.map(function (k) {
-        return (k ? '<h3 class="td-sub">' + esc(k) + '</h3>' : '') + subs[k].map(function (i) { return row(i, 'open', false); }).join('');
-      }).join('') + '</section>';
+    return order.map(function (gk) {
+      var l = by[gk], f = l[0], n = l.length, br = [];
+      l.forEach(function (i) { var b = bname(i.branch); if (b && br.indexOf(b) < 0) br.push(b); });
+      var g = { gk: gk, rule: f.rule, cat: f.category, sub: f.sub || '', items: l, keys: l.map(function (i) { return i.key; }),
+        pri: Math.min.apply(null, l.map(function (i) { return i.severity; })), mins: MINS[f.rule] || 10,
+        link: (l.filter(function (i) { return i.link && i.link.charAt(0) === '/'; })[0] || {}).link || '' };
+      if (n === 1) {
+        g.title = f.title; g.why = cut(f.detail, 150); g.lines = String(f.detail || '').length > 150 ? [[null, f.detail]] : [];
+      } else {
+        var T = {
+          kpi: [(f.sub || 'This number') + ' is low at ' + br.length + ' branches', br.length ? list(br) + '.' : ''],
+          lost_sign: ['Get ' + n + ' Lost Clients lists signed off', list(br) + ' have been waiting since the campaign started.'],
+          lastvisit: ['Win back high-value clients before they count as lost', l.reduce(function (s, i) { return s + lead(i); }, 0) + ' clients who spent AED 5,000 or more are 4 to 6 months away.'],
+          supply_low: ['Restock: ' + br.length + ' branches have products out or low', l.reduce(function (s, i) { return s + lead(i); }, 0) + ' products are out or under a week of cover.'],
+          supply_late: ['Chase late orders at ' + br.length + ' branches', list(br) + '.'],
+          supply_reorder: ['Check what needs reordering', l.reduce(function (s, i) { return s + lead(i); }, 0) + ' fast sellers have gone longer than usual without an order.'],
+          pace: [br.length + ' branches are behind target', list(br) + '.'],
+          review: [n + ' Google reviews are waiting for a reply', list(br) + '.'],
+          ledger: ['Reports are missing for ' + n + ' days', 'Run the daily reports for those dates.'],
+          sync: [n + ' syncs need a look', 'They have stopped or are failing.'],
+          ads_zero: [n + ' Google Ads campaigns spent with no conversions', 'Over the last 7 days of data.']
+        }[f.rule] || [n + ' ' + catOf(f.category).title + ' items', br.length ? list(br) + '.' : ''];
+        g.title = T[0]; g.why = T[1];
+        g.lines = l.map(function (i) { return [i.title, i.detail]; });
+      }
+      return g;
+    });
   }
-  function paint() {
-    var scoped = items.filter(function (i) { return !pick || !i.branch || i.branch === pick; });
-    var open = scoped.filter(isOpen).sort(byPriority);
-    var snoozed = scoped.filter(function (i) { return i.status === 'snoozed' && !isOpen(i); }).sort(byPriority);
-    var weekAgo = dubai(-7);
-    var gone = scoped.filter(function (i) { return i.status === 'done' || (i.status === 'closed' && i.closed_at && i.closed_at.slice(0, 10) >= weekAgo); });
-    var body = '';
-    if (!open.length) body += '<p class="kb-msg">Nothing to do right now.</p>';
-    else if (view === 'pri') {
-      [1, 2, 3].forEach(function (p) {
-        var l = open.filter(function (i) { return i.severity === p; });
-        if (l.length) body += section(PRI[p] + ' priority', l, true);
-      });
-    } else {
-      cats.forEach(function (c) {
-        var l = open.filter(function (i) { return i.category === c.key; });
-        if (l.length) body += categoryBlock(c, l);
-      });
+  // The order things come up: the best card from each category first, then the next best, and so on,
+  // so five staff numbers never crowd out everything else.
+  function ranked(gs) {
+    var by = {};
+    gs.forEach(function (g) { (by[g.cat] = by[g.cat] || []).push(g); });
+    Object.keys(by).forEach(function (k) { by[k].sort(function (a, b) { return a.pri - b.pri; }); });
+    var out = [], round = 0, more = true;
+    while (more) {
+      more = false;
+      var pass = [];
+      cats.forEach(function (c) { if (by[c.key] && by[c.key][round]) { pass.push(by[c.key][round]); more = true; } });
+      pass.sort(function (a, b) { return a.pri - b.pri; });
+      out = out.concat(pass);
+      round++;
     }
-    body += snoozed.length ? '<section class="kb-dept"><h2 class="kb-dept-h">Snoozed <span class="kb-meta">' + snoozed.length + '</span></h2>' +
-      snoozed.map(function (i) { return row(i, 'snoozed', true); }).join('') + '</section>' : '';
-    body += gone.length ? '<details class="td-done"><summary>Done and cleared this week (' + gone.length + ')</summary>' +
-      gone.map(function (i) { return row(i, 'gone', true); }).join('') + '</details>' : '';
-    // Branch tabs only for branches that have an item, plus the one picked.
-    var shownB = BRANCHES.filter(function (b) { return !b[0] || b[0] === pick || items.some(function (i) { return i.branch === b[0]; }); });
-    main.innerHTML =
-      '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
-      KB.titleIcon('todo', 'To do') +
-      '<p class="kb-meta">Built from the dashboards. Most items refresh every hour, staff stats once a day. An item clears itself when the numbers say it is sorted; tick Done for what you have handled, or snooze it.</p>' +
-      '<div class="td-top"><div class="fm-switch" role="group" aria-label="How to group">' +
-        '<button type="button" data-v="cat" aria-pressed="' + (view === 'cat') + '"><b>By category</b></button>' +
-        '<button type="button" data-v="pri" aria-pressed="' + (view === 'pri') + '"><b>By priority</b></button></div>' +
-      '<div class="fm-switch" role="group" aria-label="Which branch">' + shownB.map(function (b) {
-        var n = items.filter(function (i) { return isOpen(i) && (!b[0] || !i.branch || i.branch === b[0]); }).length;
-        return '<button type="button" data-b="' + b[0] + '" aria-pressed="' + (b[0] === pick) + '"><b>' + esc(b[1]) + '</b><span>' + n + '</span></button>';
-      }).join('') + '</div><button type="button" class="fm-btn" id="tdRefresh">Refresh now</button><span class="kb-meta" id="tdMsg">' + esc(msg) + '</span></div>' +
-      body;
+    var at = out.findIndex(function (g) { return g.gk === pinned; });
+    if (at > 0) out.unshift(out.splice(at, 1)[0]);
+    return out;
   }
+  function doneKey() { return 'trs-todo-done-' + dubai(0); }
+  function doneCount() { try { return +localStorage.getItem(doneKey()) || 0; } catch (e) { return 0; } }
+  function bump() { try { localStorage.setItem(doneKey(), String(doneCount() + 1)); } catch (e) {} }
+
+  function clock() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'; }
+  function tick() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 12.5l4.5 4.5L19 7.5"/></svg>'; }
+  function pill(p) { return '<span class="td-pill td-p' + p + '"><i></i>' + PRI[p] + '</span>'; }
+  function toast(m) {
+    var t = document.getElementById('tdToast'); t.textContent = m; t.classList.add('show');
+    clearTimeout(toast.h); toast.h = setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+
+  function paint() {
+    var scoped = items.filter(scopeOk);
+    var open = groups(scoped.filter(isOpen));
+    var q = ranked(open), d = doneCount(), f = q[0];
+    var goal = Math.max(GOAL, d);
+    var html = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' + KB.titleIcon('todo', 'To do') +
+      '<div class="td-hello"><div class="td-dots" aria-hidden="true">' +
+      Array.from({ length: goal }, function (_, k) { return '<span class="td-dot' + (k < d ? ' on' : '') + '"></span>'; }).join('') + '</div>' +
+      '<div class="td-count">' + (d >= goal && d >= GOAL ? '<b>' + d + ' done.</b> That is your five for today.' : '<b>' + d + ' of ' + goal + '</b> for today') + '</div>' +
+      '<select class="td-sel" id="tdBranch" aria-label="Which branch">' + BRANCHES.filter(function (b) { return !b[0] || b[0] === pick || items.some(function (i) { return i.branch === b[0]; }); })
+        .map(function (b) { return '<option value="' + b[0] + '"' + (b[0] === pick ? ' selected' : '') + '>' + esc(b[1]) + '</option>'; }).join('') + '</select></div>';
+
+    if (d >= GOAL || !f) {
+      html += '<div class="td-label">Start here</div><div class="td-done"><div class="td-check">' + tick() + '</div><h2>' + (f ? 'That is five. Nice work.' : 'All clear.') + '</h2><p>' +
+        (f ? q.length + ' more waiting, none of them needed today.' : 'Nothing needs a person right now.') + '</p>' +
+        (f ? '<button type="button" class="td-btn ok" id="tdAgain">Pull one forward</button>' : '') + '</div>';
+    } else {
+      html += '<div class="td-label">Start here</div><article class="td-focus" id="tdFocus"><div class="td-meta">' + pill(f.pri) + '<span class="td-tag">' + esc(catOf(f.cat).title) + '</span></div>' +
+        '<h2>' + esc(f.title) + '</h2>' + (f.why ? '<p class="td-why">' + esc(f.why) + '</p>' : '') +
+        '<span class="td-time">' + clock() + 'About ' + f.mins + ' minutes</span>' +
+        '<div class="td-acts">' + (f.link ? '<a class="td-btn go" href="' + esc(f.link) + '">Open it</a>' : '') +
+        '<button type="button" class="td-btn ok" data-act="done">Done</button><button type="button" class="td-btn later" data-act="later">Not today</button></div>' +
+        (f.lines.length ? '<details class="td-more"' + (focusMore ? ' open' : '') + ' id="tdMore"><summary>Show the numbers</summary><ul>' +
+          f.lines.map(function (l) { return '<li>' + (l[0] ? '<b>' + esc(l[0]) + '</b> ' : '') + esc(l[1] || '') + '</li>'; }).join('') + '</ul></details>' : '') + '</article>';
+      var nx = q.slice(1, 3);
+      if (nx.length) html += '<div class="td-label">Up next</div><div class="td-next">' + nx.map(function (g) {
+        return '<button type="button" class="td-nrow" data-pull="' + esc(g.gk) + '"><span class="td-sd p' + g.pri + '"></span><span class="t">' + esc(g.title) + '</span><span class="m">' + g.mins + ' min</span></button>';
+      }).join('') + '</div>';
+    }
+
+    html += '<div class="td-label">Everything else</div><div class="td-tiles">' + cats.map(function (c) {
+      var l = open.filter(function (g) { return g.cat === c.key; });
+      var top = l.length ? Math.min.apply(null, l.map(function (g) { return g.pri; })) : 0;
+      return '<button type="button" class="td-tile' + (l.length ? '' : ' zero') + '" data-cat="' + c.key + '" aria-expanded="' + (openCat === c.key) + '"><span class="n">' + esc(c.title) +
+        '</span><span class="c">' + (top ? '<span class="td-sd p' + top + '"></span>' : '') + (l.length ? l.length + (l.length === 1 ? ' thing' : ' things') : 'Nothing') + '</span></button>';
+    }).join('') + '</div>';
+    if (openCat) {
+      var pl = open.filter(function (g) { return g.cat === openCat; }).sort(function (a, b) { return a.pri - b.pri; });
+      html += '<div class="td-panel"><h3>' + esc(catOf(openCat).title) + '</h3>' + (pl.length ? '' : '<p class="td-tag" style="padding:8px 0">Nothing here. Good.</p>');
+      pl.forEach(function (g) {
+        html += '<div class="td-prow"><span class="td-sd p' + g.pri + '" title="' + PRI[g.pri] + '"></span><div class="tx"><b>' + esc(g.title) + '</b>' + (g.why ? '<span>' + esc(g.why) + '</span>' : '') + '</div>' +
+          (g.link ? '<a class="td-mini" style="text-decoration:none;display:inline-flex;align-items:center" href="' + esc(g.link) + '">Open</a>' : '') +
+          '<button type="button" class="td-mini" data-cdone="' + esc(g.gk) + '">Done</button></div>';
+      });
+      html += '</div>';
+    }
+
+    var parked = groups(scoped.filter(function (i) { return i.status === 'snoozed' && !isOpen(i); })).length;
+    var weekAgo = dubai(-7);
+    var gone = scoped.filter(function (i) { return i.status === 'closed' && i.closed_at && i.closed_at.slice(0, 10) >= weekAgo; });
+    html += '<p class="td-quiet">' + (parked ? parked + ' set aside until tomorrow. <button type="button" data-act="back">Bring them back</button><br>' : '') +
+      'Most things refresh every hour, staff numbers once a day. <button type="button" id="tdRefresh">Refresh now</button> <span id="tdMsg">' + esc(msg) + '</span></p>' +
+      (gone.length ? '<details class="td-gone"><summary>Sorted by themselves this week (' + gone.length + ')</summary><ul>' +
+        gone.slice(0, 12).map(function (i) { return '<li>' + esc(i.title) + '</li>'; }).join('') + '</ul></details>' : '');
+    main.innerHTML = html;
+  }
+
   async function load() {
     var r = await KB.client.from('todo_items').select('*');
     if (r.error) { msg = 'Could not load: ' + r.error.message; paint(); return; }
     items = r.data || [];
     paint();
   }
-  async function setStatus(key, patch) {
-    var r = await KB.client.from('todo_items').update(patch).eq('key', key);
-    if (r.error) { msg = 'Could not save: ' + r.error.message; paint(); return; }
+  async function setStatus(keys, patch) {
+    var r = await KB.client.from('todo_items').update(patch).in('key', keys);
+    if (r.error) { msg = 'Could not save: ' + r.error.message; paint(); return false; }
     msg = '';
     await load();
+    return true;
   }
+  function groupByGk(gk) {
+    return groups(items.filter(scopeOk).filter(isOpen)).filter(function (g) { return g.gk === gk; })[0];
+  }
+
   KB.ready.then(async function () {
     if (KB.allowed.indexOf('todo') < 0) { notFound(); return; }
-    try { pick = localStorage.getItem('trs-todo-branch') || ''; view = localStorage.getItem('trs-todo-view') === 'pri' ? 'pri' : 'cat'; } catch (e) {}
+    try { pick = localStorage.getItem('trs-todo-branch') || ''; } catch (e) {}
     if (!BRANCHES.some(function (b) { return b[0] === pick; })) pick = '';
     var cr = await KB.client.from('todo_categories').select('key,title,sort').order('sort');
-    cats = (cr.data || []);
+    cats = cr.data || [];
     main.addEventListener('click', async function (e) {
-      var s = e.target.closest('.fm-switch button');
-      if (s) {
-        if (s.dataset.v) { view = s.dataset.v; try { localStorage.setItem('trs-todo-view', view); } catch (err) {} }
-        else { pick = s.dataset.b; try { localStorage.setItem('trs-todo-branch', pick); } catch (err) {} }
-        paint(); return;
+      var b = e.target.closest('button'); if (!b) return;
+      var q = ranked(groups(items.filter(scopeOk).filter(isOpen))), f = q[0];
+      if (b.dataset.act === 'done' && f) {
+        b.disabled = true;
+        if (await setStatus(f.keys, { status: 'done' })) { bump(); focusMore = false; paint(); var el = document.getElementById('tdFocus'); if (el) el.classList.add('pulse'); toast('Done. ' + doneCount() + ' for today.'); }
+        return;
       }
-      if (e.target.closest('#tdRefresh')) {
-        var btn = e.target.closest('#tdRefresh'); btn.disabled = true; btn.textContent = 'Refreshing…';
+      if (b.dataset.act === 'later' && f) {
+        b.disabled = true;
+        if (await setStatus(f.keys, { status: 'snoozed', snoozed_until: dubai(1) })) { focusMore = false; toast('Set aside until tomorrow.'); }
+        return;
+      }
+      if (b.dataset.act === 'back') {
+        var keys = items.filter(function (i) { return i.status === 'snoozed'; }).map(function (i) { return i.key; });
+        if (keys.length) await setStatus(keys, { status: 'open' });
+        return;
+      }
+      if (b.id === 'tdAgain') { GOAL += 1; paint(); return; }
+      if (b.dataset.pull) { pinned = b.dataset.pull; focusMore = false; paint(); return; }
+      if (b.dataset.cdone) {
+        var g = groupByGk(b.dataset.cdone);
+        if (g && await setStatus(g.keys, { status: 'done' })) { bump(); paint(); toast('Done.'); }
+        return;
+      }
+      if (b.dataset.cat) { openCat = openCat === b.dataset.cat ? '' : b.dataset.cat; paint(); return; }
+      if (b.id === 'tdRefresh') {
+        b.disabled = true; b.textContent = 'Refreshing…';
         var r = await KB.client.rpc('todo_refresh_now');
         msg = r.error ? 'Could not refresh: ' + r.error.message : 'Refreshed.';
         await load();
-        return;
       }
-      var b = e.target.closest('[data-act]');
-      if (!b || b.tagName === 'SELECT') return;
-      if (b.dataset.act === 'done') setStatus(b.dataset.k, { status: 'done' });
-      else if (b.dataset.act === 'open') setStatus(b.dataset.k, { status: 'open' });
     });
     main.addEventListener('change', function (e) {
-      var sel = e.target.closest('select[data-act="snooze"]');
-      if (!sel || !sel.value) return;
-      setStatus(sel.dataset.k, { status: 'snoozed', snoozed_until: dubai(+sel.value) });
+      if (e.target.id !== 'tdBranch') return;
+      pick = e.target.value; try { localStorage.setItem('trs-todo-branch', pick); } catch (err) {}
+      paint();
     });
+    main.addEventListener('toggle', function (e) { if (e.target.id === 'tdMore') focusMore = e.target.open; }, true);
     load();
   });
 })();
