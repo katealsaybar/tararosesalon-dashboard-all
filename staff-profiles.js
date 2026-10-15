@@ -591,6 +591,13 @@ const STAFF_SURNAMES = {
 // The surname on its own, canonical name in and Title Case out, or null when we do
 // not know it. Everything that prints a name goes through this rather than reading
 // the map, so aliases (Lucia → Lucy, Edz → Eds) resolve in one place.
+// Kate, 15 Oct 2026: other names a person is printed under, so Search finds her either way. Rhi George
+// (Phorest, Style Director, Saadiyat 2021 then Khalifa City A 2023) is Rhi Hurley, also spelt Rhiane
+// Hurley, in ROSES Magazine from Oct 2021 to May-Jun 2023 (Kate's call: same person; Phorest has no Hurley).
+const STAFF_ALSO_KNOWN = {
+  'RHI': 'Rhi Hurley Rhiane Hurley hurley roses magazine',
+};
+
 function staffSurname(name) {
   if (!name) return null;
   const canon = (typeof canonicalStaffName === 'function') ? canonicalStaffName(name) : name;

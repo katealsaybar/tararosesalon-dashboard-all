@@ -202,6 +202,14 @@
         seen.push({ key, last, words, item });
       });
     }
+    // Kate, 15 Oct 2026: a name someone is printed under elsewhere (Rhi Hurley in ROSES) finds the same row.
+    if (typeof STAFF_ALSO_KNOWN !== 'undefined') {
+      Object.keys(STAFF_ALSO_KNOWN).forEach(name => {
+        const key = typeof staffLinkKey === 'function' ? staffLinkKey(name) : name;
+        const it = items.find(x => x.kind === 'staff' && x.id === 'staff:' + key);
+        if (it) it.words += ' ' + STAFF_ALSO_KNOWN[name];
+      });
+    }
 
     if (typeof ACTIVE_BRANCHES !== 'undefined') {
       ACTIVE_BRANCHES.forEach(code => {

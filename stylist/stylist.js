@@ -308,6 +308,7 @@ const STYLIST_IG = {
   "Emin":       "https://www.instagram.com/hairdoctoremin/",
   "Catrin":     "https://www.instagram.com/catrinhair.dxb/",
   "Reshel":     "https://www.instagram.com/reshelwijesinghe/",
+  "Rhi":        "https://www.instagram.com/hairbyrhiabudhabi/",   // Rhi George (Phorest) = Rhi Hurley (ROSES, Jan 2022 and Jan 2023 features); Kate, 15 Oct 2026
   "Michelle":   "https://www.instagram.com/alinea.michelle/",
   "Mihaela":    "https://www.instagram.com/dare.to_hair/",
   "Dina":       "https://www.instagram.com/beautybydina_bp/",
