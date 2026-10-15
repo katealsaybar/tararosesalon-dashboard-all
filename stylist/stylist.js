@@ -354,6 +354,7 @@ const STYLIST_IG = {
   "Kelsey":     "https://www.instagram.com/kelseylewis_hair/",   // ROSES "meet our newest staff" and a photo credit; Kate, 15 Oct 2026
   "Kerryn":     "https://www.instagram.com/hair_by_kerryn/",   // Bahrain stylist; Kate, 15 Oct 2026
   "Denise":     "https://www.instagram.com/denise_muc_abudhabi/",   // her personal account, the only one Kate has
+  "Aboudi":     "https://www.instagram.com/aboudi.shatila/",
   "Kara":       "https://www.instagram.com/kara__haircare_/",
   "Nataleah":   "https://www.instagram.com/hairbynats19/",
   "Rany":       "https://www.instagram.com/rannyhairstyle/",
