@@ -273,6 +273,23 @@ const STAFF_PROFILES = {
   // all checked), so each carries the blank line-art template (own file each for the photo-path dedupe) and blank: true. Lina: Phorest Stylist
   // at Saadiyat (Nov 2023), Al Quoz (Feb 2024) and Motor City (Apr 2024); ledger Dec 2023 to Sep 2024, most rows AQ. Sherine: Phorest Stylist,
   // KCA; ledger 26 Sep 2021 to 15 May 2022, notice given May 2022. Neither has ledger rows from 2025; added on Kate's say-so.
+  // Kate, 15 Oct 2026: "complete the former stylist list". Every hair-role person Phorest has archived (all branches) who was not on the
+  // grid yet and has real ledger days under a name no current staff shares: placeholders, blank: true, no IG. Left out on purpose: Cory xx,
+  // Harriet xx, Ranya x, Xavrina X (placeholder surnames), Kara and Anna Ahaponova (2 and 12 days, AED 0), Cristina Cucos (no ledger),
+  // Tara 1 and 2 (the owner's accounts), and the Robyn, Ruth, Tegan, Ibrahim, Rachel records, which share a first name with someone current.
+  'ALEX':    { photoFull: 'stylist/photos/KCA/alex duncan.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
+  'BILLY':   { photoFull: 'stylist/photos/other/billy gray.png', role: 'Stylist', branch: 'other', blank: true, resigned: true },
+  'CHARLENE':{ photoFull: 'stylist/photos/MC/charlene payne.png', role: 'Stylist', branch: 'MC', blank: true, resigned: true },
+  'DENISE':  { photoFull: 'stylist/photos/KCA/denise.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
+  'FAYE':    { photoFull: 'stylist/photos/KCA/faye madi.png', role: 'Junior Stylist', branch: 'KCA', blank: true, resigned: true },
+  'HAFEZ':   { photoFull: 'stylist/photos/other/hafez abou hwijj.png', role: 'Stylist', branch: 'other', blank: true, resigned: true },
+  'JANE':    { photoFull: 'stylist/photos/MC/jane astrande.png', role: 'Junior Stylist', branch: 'MC', blank: true, resigned: true },
+  'KELSEY':  { photoFull: 'stylist/photos/SAA/kelsey lewis.png', role: 'Stylist', branch: 'SAA', blank: true, resigned: true },
+  'KELSIE':  { photoFull: 'stylist/photos/KCA/kelsie lally.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
+  'LOUISE':  { photoFull: 'stylist/photos/KCA/louise williams.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
+  'LUCIE':   { photoFull: 'stylist/photos/SAA/lucie rogers.png', role: 'Stylist', branch: 'SAA', blank: true, resigned: true },
+  'NATALEAH':{ photoFull: 'stylist/photos/SAA/nataleah.png', role: 'Stylist', branch: 'SAA', blank: true, resigned: true },
+  'SHIAN':   { photoFull: 'stylist/photos/KCA/shian davidson.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'LINA':     { photoFull: 'stylist/photos/AQ/lina waled.png', role: 'Stylist', branch: 'AQ', blank: true, resigned: true },
   'SHERINE':  { photoFull: 'stylist/photos/KCA/sherine baghdadi.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'GABBY':    { photoFull: 'stylist/photos/SAA/gabby nemeth.png', role: 'Stylist', branch: 'SAA', ig: 'zuzu_hair_', resigned: true },
