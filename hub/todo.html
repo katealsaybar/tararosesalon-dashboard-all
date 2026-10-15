@@ -16,21 +16,24 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/hub/hub.css?v=20261008su">
 <style>
-  .td-sev{flex:none;width:10px;height:10px;border-radius:50%;background:var(--warn);margin-right:2px}
-  .td-sev.n{background:var(--border)}
+  .td-pri{flex:none;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--border);color:var(--muted);margin-right:4px}
+  .td-pri.p1{background:var(--warn);border-color:var(--warn);color:var(--bg)}
+  .td-pri.p2{border-color:var(--warn);color:var(--text)}
   .td-tag{font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid var(--border);color:var(--muted);margin-left:8px;white-space:nowrap}
   .td-acts select{font:inherit;font-size:13px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 10px;min-height:36px}
   .td-top{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 20px}
   .td-top .fm-switch{margin:0}
+  .td-sub{font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:18px 0 4px}
   .td-done summary{cursor:pointer;color:var(--muted);font-size:14px;margin:24px 0 8px}
   .td-row.gone{opacity:.65}
 </style>
 </head>
 <body class="kb-wait">
-<!-- To do (Kate, 15 Oct 2026): the list todo_refresh() builds from the dashboards' own tables
-     (migrations/todo_items.sql). Level 5 only: kb_sections 'todo' has min_level 5. Nothing is typed in
-     here; an item closes by itself when the data stops matching, and Done / Snooze are the only
-     things this page writes. -->
+<!-- To do (Kate, 15 Oct 2026): the list todo_refresh() and todo_refresh_staff() build from the dashboards'
+     own tables (migrations/todo_items.sql, todo_categories.sql). Level 2 and up open the page; each
+     category's own level (todo_categories.min_level) and a login's branch scope decide which rows the
+     database returns, so this file filters nothing for access. Nothing is typed in here; an item closes
+     by itself when the data stops matching, and Done and Snooze are the only things this page writes. -->
 <div class="wrap">
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
   <main id="kbMain"><p class="kb-msg">Loading…</p></main>
@@ -44,26 +47,28 @@
 (function () {
   var main = document.getElementById('kbMain'), esc = KB.esc;
   if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
-  var BRANCHES = [['', 'All'], ['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz']];
-  var items = [], pick = '', msg = '';
+  var BRANCHES = [['', 'All'], ['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz'], ['BAH', 'Bahrain']];
+  var PRI = { 1: 'High', 2: 'Mid', 3: 'Low' };
+  var items = [], cats = [], pick = '', view = 'cat', msg = '';
   function notFound() {
     main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
   }
   // Dubai dates, as the refresh uses.
   function dubai(offset) {
-    var d = new Date(Date.now() + (offset || 0) * 86400000);
-    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(d);
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(new Date(Date.now() + (offset || 0) * 86400000));
   }
   function nice(iso) {
     var p = String(iso).split('-'); if (p.length < 3) return iso;
     return +p[2] + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+p[1] - 1];
   }
   function isOpen(i) { return i.status === 'open' || (i.status === 'snoozed' && i.snoozed_until && i.snoozed_until <= dubai(0)); }
-  function branchTag(i) {
-    var b = BRANCHES.filter(function (x) { return x[0] && x[0] === i.branch; })[0];
-    return b ? '<span class="td-tag">' + esc(b[1]) + '</span>' : '';
+  function catTitle(key) { var c = cats.filter(function (x) { return x.key === key; })[0]; return c ? c.title : key; }
+  function branchName(code) { var b = BRANCHES.filter(function (x) { return x[0] && x[0] === code; })[0]; return b ? b[1] : ''; }
+  function byPriority(a, b) {
+    return a.severity - b.severity || (a.first_seen < b.first_seen ? -1 : a.first_seen > b.first_seen ? 1 : 0) ||
+      (a.title < b.title ? -1 : 1);
   }
-  function row(i, mode) {
+  function row(i, mode, showCat) {
     var href = i.link && i.link.charAt(0) === '/' ? i.link : '';
     var acts = '';
     if (mode === 'open') {
@@ -71,41 +76,74 @@
         '<button type="button" class="fm-btn fm-dl" data-act="done" data-k="' + esc(i.key) + '">Done</button>' +
         '<select data-act="snooze" data-k="' + esc(i.key) + '" aria-label="Snooze"><option value="">Snooze…</option>' +
         '<option value="1">Tomorrow</option><option value="3">3 days</option><option value="7">Next week</option></select>';
-    } else if (mode === 'snoozed') {
-      acts = '<button type="button" class="fm-btn" data-act="open" data-k="' + esc(i.key) + '">Bring back</button>';
-    } else if (i.status === 'done') {
-      acts = '<button type="button" class="fm-btn" data-act="open" data-k="' + esc(i.key) + '">Reopen</button>';
+    } else if (mode === 'snoozed' || i.status === 'done') {
+      acts = '<button type="button" class="fm-btn" data-act="open" data-k="' + esc(i.key) + '">' + (mode === 'snoozed' ? 'Bring back' : 'Reopen') + '</button>';
     }
     var sub = mode === 'snoozed' ? 'Back on ' + nice(i.snoozed_until) + '. ' : i.status === 'closed' ? 'Cleared by itself. ' : i.status === 'done' ? 'Done. ' : '';
     return '<div class="kb-row fm-row td-row' + (mode === 'gone' ? ' gone' : '') + '">' +
-      (mode === 'open' ? '<span class="td-sev' + (i.severity === 1 ? '' : ' n') + '" title="' + (i.severity === 1 ? 'Urgent' : 'Normal') + '"></span>' : '') +
-      '<span class="kb-row-tx"><b>' + esc(i.title) + branchTag(i) + '</b><span>' + esc(sub + (i.detail || '')) + '</span></span>' +
+      (mode === 'open' ? '<span class="td-pri p' + i.severity + '">' + PRI[i.severity] + '</span>' : '') +
+      '<span class="kb-row-tx"><b>' + esc(i.title) + (i.branch && branchName(i.branch) ? '<span class="td-tag">' + esc(branchName(i.branch)) + '</span>' : '') +
+      (showCat ? '<span class="td-tag">' + esc(catTitle(i.category)) + '</span>' : '') + '</b><span>' + esc(sub + (i.detail || '')) + '</span></span>' +
       '<span class="fm-acts td-acts">' + acts + '</span></div>';
   }
+  function section(title, list, showCat) {
+    return '<section class="kb-dept"><h2 class="kb-dept-h">' + esc(title) + ' <span class="kb-meta">' + list.length + '</span></h2>' +
+      list.map(function (i) { return row(i, 'open', showCat); }).join('') + '</section>';
+  }
+  // A category with sub-groups (Staff stats, one per KPI): sub-groups with the most urgent item first.
+  function categoryBlock(c, list) {
+    var subs = {}, order = [];
+    list.forEach(function (i) { var k = i.sub || ''; if (!subs[k]) { subs[k] = []; order.push(k); } subs[k].push(i); });
+    if (order.length === 1 && order[0] === '') return section(c.title, list, false);
+    order.sort(function (a, b) {
+      var ma = Math.min.apply(null, subs[a].map(function (i) { return i.severity; })), mb = Math.min.apply(null, subs[b].map(function (i) { return i.severity; }));
+      return ma - mb || (a < b ? -1 : 1);
+    });
+    return '<section class="kb-dept"><h2 class="kb-dept-h">' + esc(c.title) + ' <span class="kb-meta">' + list.length + '</span></h2>' +
+      order.map(function (k) {
+        return (k ? '<h3 class="td-sub">' + esc(k) + '</h3>' : '') + subs[k].map(function (i) { return row(i, 'open', false); }).join('');
+      }).join('') + '</section>';
+  }
   function paint() {
-    // Items with no branch (a missing report, a sync) belong to every branch tab.
     var scoped = items.filter(function (i) { return !pick || !i.branch || i.branch === pick; });
-    var open = scoped.filter(isOpen).sort(function (a, b) { return a.severity - b.severity || (a.first_seen < b.first_seen ? -1 : 1); });
-    var snoozed = scoped.filter(function (i) { return i.status === 'snoozed' && !isOpen(i); });
+    var open = scoped.filter(isOpen).sort(byPriority);
+    var snoozed = scoped.filter(function (i) { return i.status === 'snoozed' && !isOpen(i); }).sort(byPriority);
     var weekAgo = dubai(-7);
     var gone = scoped.filter(function (i) { return i.status === 'done' || (i.status === 'closed' && i.closed_at && i.closed_at.slice(0, 10) >= weekAgo); });
-    var urgent = open.filter(function (i) { return i.severity === 1; }), rest = open.filter(function (i) { return i.severity !== 1; });
+    var body = '';
+    if (!open.length) body += '<p class="kb-msg">Nothing to do right now.</p>';
+    else if (view === 'pri') {
+      [1, 2, 3].forEach(function (p) {
+        var l = open.filter(function (i) { return i.severity === p; });
+        if (l.length) body += section(PRI[p] + ' priority', l, true);
+      });
+    } else {
+      cats.forEach(function (c) {
+        var l = open.filter(function (i) { return i.category === c.key; });
+        if (l.length) body += categoryBlock(c, l);
+      });
+    }
+    body += snoozed.length ? '<section class="kb-dept"><h2 class="kb-dept-h">Snoozed <span class="kb-meta">' + snoozed.length + '</span></h2>' +
+      snoozed.map(function (i) { return row(i, 'snoozed', true); }).join('') + '</section>' : '';
+    body += gone.length ? '<details class="td-done"><summary>Done and cleared this week (' + gone.length + ')</summary>' +
+      gone.map(function (i) { return row(i, 'gone', true); }).join('') + '</details>' : '';
+    // Branch tabs only for branches that have an item, plus the one picked.
+    var shownB = BRANCHES.filter(function (b) { return !b[0] || b[0] === pick || items.some(function (i) { return i.branch === b[0]; }); });
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       KB.titleIcon('todo', 'To do') +
-      '<p class="kb-meta">Built from the dashboards, refreshed every hour. An item clears itself when the numbers say it is sorted; tick Done for what you have handled, or snooze it.</p>' +
-      '<div class="td-top"><div class="fm-switch" role="group" aria-label="Which branch">' + BRANCHES.map(function (b) {
+      '<p class="kb-meta">Built from the dashboards. Most items refresh every hour, staff stats once a day. An item clears itself when the numbers say it is sorted; tick Done for what you have handled, or snooze it.</p>' +
+      '<div class="td-top"><div class="fm-switch" role="group" aria-label="How to group">' +
+        '<button type="button" data-v="cat" aria-pressed="' + (view === 'cat') + '"><b>By category</b></button>' +
+        '<button type="button" data-v="pri" aria-pressed="' + (view === 'pri') + '"><b>By priority</b></button></div>' +
+      '<div class="fm-switch" role="group" aria-label="Which branch">' + shownB.map(function (b) {
         var n = items.filter(function (i) { return isOpen(i) && (!b[0] || !i.branch || i.branch === b[0]); }).length;
         return '<button type="button" data-b="' + b[0] + '" aria-pressed="' + (b[0] === pick) + '"><b>' + esc(b[1]) + '</b><span>' + n + '</span></button>';
       }).join('') + '</div><button type="button" class="fm-btn" id="tdRefresh">Refresh now</button><span class="kb-meta" id="tdMsg">' + esc(msg) + '</span></div>' +
-      (open.length ? '' : '<p class="kb-msg">Nothing to do right now.</p>') +
-      (urgent.length ? '<section class="kb-dept"><h2 class="kb-dept-h">Urgent</h2>' + urgent.map(function (i) { return row(i, 'open'); }).join('') + '</section>' : '') +
-      (rest.length ? '<section class="kb-dept"><h2 class="kb-dept-h">To do</h2>' + rest.map(function (i) { return row(i, 'open'); }).join('') + '</section>' : '') +
-      (snoozed.length ? '<section class="kb-dept"><h2 class="kb-dept-h">Snoozed</h2>' + snoozed.map(function (i) { return row(i, 'snoozed'); }).join('') + '</section>' : '') +
-      (gone.length ? '<details class="td-done"><summary>Done and cleared this week (' + gone.length + ')</summary>' + gone.map(function (i) { return row(i, 'gone'); }).join('') + '</details>' : '');
+      body;
   }
   async function load() {
-    var r = await KB.client.from('todo_items').select('*').order('first_seen', { ascending: true });
+    var r = await KB.client.from('todo_items').select('*');
     if (r.error) { msg = 'Could not load: ' + r.error.message; paint(); return; }
     items = r.data || [];
     paint();
@@ -116,13 +154,19 @@
     msg = '';
     await load();
   }
-  KB.ready.then(function () {
+  KB.ready.then(async function () {
     if (KB.allowed.indexOf('todo') < 0) { notFound(); return; }
-    try { pick = localStorage.getItem('trs-todo-branch') || ''; } catch (e) {}
+    try { pick = localStorage.getItem('trs-todo-branch') || ''; view = localStorage.getItem('trs-todo-view') === 'pri' ? 'pri' : 'cat'; } catch (e) {}
     if (!BRANCHES.some(function (b) { return b[0] === pick; })) pick = '';
+    var cr = await KB.client.from('todo_categories').select('key,title,sort').order('sort');
+    cats = (cr.data || []);
     main.addEventListener('click', async function (e) {
       var s = e.target.closest('.fm-switch button');
-      if (s) { pick = s.dataset.b; try { localStorage.setItem('trs-todo-branch', pick); } catch (err) {} paint(); return; }
+      if (s) {
+        if (s.dataset.v) { view = s.dataset.v; try { localStorage.setItem('trs-todo-view', view); } catch (err) {} }
+        else { pick = s.dataset.b; try { localStorage.setItem('trs-todo-branch', pick); } catch (err) {} }
+        paint(); return;
+      }
       if (e.target.closest('#tdRefresh')) {
         var btn = e.target.closest('#tdRefresh'); btn.disabled = true; btn.textContent = 'Refreshing…';
         var r = await KB.client.rpc('todo_refresh_now');
