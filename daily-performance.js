@@ -18,21 +18,17 @@
 // benchmark every day; utilisation reads hair 80 and beauty 70, weighted by the hours available.
 // A client count nobody keyed a target for is shown with no target, never against zero.
 //
-// Own controls (Measure, Period with Custom From and To), so the masthead filters are hidden, like Over the
-// Years. Colours follow the branch, as everywhere on the dashboard (BRANCH_INFO).
+// Branch and Period are the masthead's universal filters (Kate, 15 Oct 2026: follow them, like every other page);
+// the only control on the page is the Measure menu. Colours follow the branch, as everywhere on the dashboard (BRANCH_INFO).
 
 const DP_STORE = 'trs-daily-perf';
-const DP = { measure: 'sales', period: 'mtd', from: '', to: '', radar: null, branches: null, barMin: false };
+const DP = { measure: 'sales', radar: null };
 let dpRadarOpen = false;
 try {
   const s = JSON.parse(localStorage.getItem(DP_STORE) || '{}');
-  for (const k of ['measure', 'period', 'from', 'to']) if (typeof s[k] === 'string') DP[k] = s[k];
-  if (typeof s.barMin === 'boolean') DP.barMin = s.barMin;
+  if (typeof s.measure === 'string') DP.measure = s.measure;
   if (Array.isArray(s.radar)) DP.radar = s.radar.filter(x => typeof x === 'string');
-  if (Array.isArray(s.branches)) DP.branches = s.branches.filter(x => typeof x === 'string');
 } catch (e) { /* private mode: the defaults are fine */ }
-// A saved Custom range reopens stale (the tiles stop being "yesterday"), so it is not restored; a link that names one is.
-if (DP.period === 'custom') { DP.period = 'mtd'; DP.from = ''; DP.to = ''; }
 function dpSave() {
   try { localStorage.setItem(DP_STORE, JSON.stringify(DP)); } catch (e) { /* ignore */ }
   if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'dailyperf' && typeof trSyncUrl === 'function') trSyncUrl(null);   // the address follows the choices
@@ -85,6 +81,10 @@ const DP_RADAR_ALL = ['sales', 'services', 'retail', 'hair', 'beauty', 'treat', 
 // 13 Oct 2026 (Comet audit): Total clients and New clients have no target keyed, so they cannot be drawn and the
 // "ten" showed eight. Every default now has a target; they are still in Customise for when targets are keyed.
 const DP_RADAR_DEFAULT = ['sales', 'retail', 'treat', 'hair', 'ncr', 'rebook', 'treatp', 'retailp', 'hairbill', 'util'];
+// Short names for the radar's axes, so the shape gets the room (Kate, 15 Oct 2026: the words around it were too long).
+// The full name is in the hover tip (a tap on a phone) and in the key under the chart.
+const DP_SHORT = { sales: 'Sales', services: 'Svcs', retail: 'Retail', hair: 'Hair', beauty: 'Beauty', treat: 'Treat', clients: 'Clients',
+  newc: 'New', ncr: 'NCR', rebook: 'RBK %', treatp: 'TRT %', retailp: 'RTL %', hairbill: 'HAB', beautybill: 'BAB', util: 'UTL' };
 function dpRadarSel() {
   const ok = new Set(DP_RADAR_ALL.map(x => x[0]));
   const pick = (Array.isArray(DP.radar) ? DP.radar : DP_RADAR_DEFAULT).filter(k => ok.has(k));
@@ -146,7 +146,10 @@ function dpCss() {
   .dpf .dp-swl h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin:0 0 4px;font-weight:600}
   .dpf .dp-swl h3:not(:first-child){margin-top:18px}
   .dpf .dp-swr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border2)}
-  .dpf .dp-swr .dp-chip{margin-top:0;white-space:nowrap}
+  .dpf .dp-swr .dp-chip{margin-top:0;white-space:nowrap;flex:none}
+  .dpf .dp-swr > div{min-width:0}
+  .dpf .dp-rkey{margin:6px 0 0;line-height:1.6}
+  .dpf .dp-rkey b{color:var(--text)}
   .dpf .dp-key{display:flex;gap:4px 14px;align-items:center;font-size:12px;color:var(--muted);flex-wrap:wrap;margin-top:8px}
   .dpf .dp-key i{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:5px;vertical-align:-3px}
   .dpf details{margin-top:8px;font-size:13px;color:var(--muted)}
@@ -180,11 +183,6 @@ function dpCss() {
   .dpf .dp-bar .dp-date{font-size:13px;padding:4px 8px}
   .dpf .dp-bar .dp-jump{font-size:12px}
   .dpf .dp-bar .dp-jump button{font-size:12px;padding:1px 9px}
-  .dpf .dp-bar-body{display:grid;gap:6px}
-  .dpf .dp-bar-min{display:none;align-items:center;justify-content:space-between;gap:10px}
-  .dpf .dp-bar.dp-min .dp-bar-min{display:flex}
-  .dpf .dp-bar.dp-min .dp-bar-body{display:none}
-  .dpf .dp-bar-sum{font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .dpf .dp-bar-row{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
   .dpf .dp-bf{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
   .dpf .dp-bar .dp-lab{min-width:0}
@@ -219,26 +217,24 @@ function dpCss() {
 
 // ── THE WINDOW ──────────────────────────────────────────────
 // Ends yesterday: today is half a day. On the 1st there is no month to date yet, so it shows last month.
+// The window is the masthead's Period filter, cut to what this page can show: up to yesterday (today is half a day) and
+// 90 days back (what dpLoad fetches).
 function dpWindow() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const yest = dpAdd(today, -1);
   const oldest = dpAdd(today, -90);
-  const first = new Date(today.getFullYear(), today.getMonth(), 1);
   const prevFirst = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-  let from, to, note = '';
-  if (DP.period === 'last7') { to = yest; from = dpAdd(yest, -6); }
-  else if (DP.period === 'last30') { to = yest; from = dpAdd(yest, -29); }
-  else if (DP.period === 'lastmonth') { from = prevFirst; to = new Date(today.getFullYear(), today.getMonth(), 0); }
-  else if (DP.period === 'custom' && DP.from && DP.to) {
-    from = dpParse(DP.from); to = dpParse(DP.to);
-    if (to > yest) to = yest;
-    if (from > to) from = to;
-    if (from < oldest) { from = oldest; note = 'Custom goes back 90 days at most, so this starts on ' + dpDayLabel(oldest) + '.'; }
-    if (to < from) to = from;
-  } else {
-    from = first; to = yest;
-    if (to < from) { from = prevFirst; to = new Date(today.getFullYear(), today.getMonth(), 0); note = 'It is the 1st, so this shows last month.'; }
+  const day = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+  let from = typeof dateFrom !== 'undefined' && dateFrom ? day(dateFrom) : new Date(today.getFullYear(), today.getMonth(), 1);
+  let to = typeof dateTo !== 'undefined' && dateTo ? day(dateTo) : yest;
+  let note = '';
+  if (to > yest) to = yest;
+  if (to < from) {
+    if (from.getDate() === 1) { from = prevFirst; to = new Date(today.getFullYear(), today.getMonth(), 0); note = 'It is the 1st, so this shows last month.'; }
+    else from = to;
   }
+  if (to < oldest) { from = oldest; to = yest; note = 'This page goes back 90 days at most, so it shows the last 90 days.'; }
+  else if (from < oldest) { from = oldest; note = 'This page goes back 90 days at most, so it starts on ' + dpDayLabel(oldest) + '.'; }
   return { from, to, yest, note, oldest };
 }
 
@@ -470,17 +466,16 @@ function dpSpark(code, idxs, mk) {
 // Which branches are showing. null means All. Clicking a branch while All is on isolates it; after that each click
 // adds or takes one off (never the last), and All puts them all back. Kate, 13 Oct 2026: "toggle however many
 // branches we'd like, ALL toggle included".
+// The branches are the masthead's Branch filter (the global `sel`); a branch this page does not carry (Bahrain) is left out,
+// and if nothing is left it shows all four.
 function dpSel() {
-  const all = DPD.codes, pick = all.filter(c => !DP.branches || DP.branches.includes(c));
+  const all = DPD.codes, g = (typeof sel !== 'undefined' && sel && sel.branch) ? sel.branch : ['all'];
+  const pick = g.includes('all') ? all : all.filter(c => g.includes(c));
   return pick.length ? pick : all;
 }
-function dpToggleBranch(code) {
-  const all = DPD.codes, cur = dpSel();
-  if (code === 'ALL') DP.branches = null;
-  else if (cur.length === all.length) DP.branches = [code];
-  else if (cur.includes(code)) { const next = cur.filter(c => c !== code); DP.branches = next.length ? next : cur; }
-  else DP.branches = all.filter(c => cur.includes(c) || c === code);
-  if (DP.branches && DP.branches.length === all.length) DP.branches = null;
+function dpOffPage() {
+  const g = (typeof sel !== 'undefined' && sel && sel.branch) ? sel.branch : ['all'];
+  return g.some(c => c !== 'all' && !['SAA', 'KCA', 'MC', 'AQ'].includes(c));
 }
 // What the whole window came to for one branch: a count or money is added up (against the target of the same days),
 // a rate or a bill is averaged, the same convention the combined bars use. Added 13 Oct 2026 after the Comet audit:
@@ -494,7 +489,7 @@ function dpWeakest(idxs, codes) {
   return codes.map(code => {
     let worst = null;
     idxs.forEach(i => {
-      const ps = keys.map(mk => ({ mk, c: dpCell(mk, code, i) })).filter(x => x.c.state === 'ok' && x.c.p != null).map(x => ({ mk: x.mk, p: x.c.p, v: x.c.v }));
+      const ps = keys.map(mk => ({ mk, c: dpCell(mk, code, i) })).filter(x => x.c.state === 'ok' && x.c.p != null).map(x => ({ mk: x.mk, p: x.c.p, v: x.c.v, t: x.c.t }));
       if (ps.length < 3) return;
       const score = ps.reduce((a, x) => a + Math.min(x.p, 150), 0) / ps.length;
       if (!worst || score < worst.score) worst = { i, score, ps };
@@ -502,14 +497,20 @@ function dpWeakest(idxs, codes) {
     const head = `<b><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span>${dpEsc(dpName(code))}</b>`;
     if (!worst) return `<div class="dp-swr"><div>${head}<div class="dp-sub">Not enough figures with a target in this window.</div></div></div>`;
     const sc = Math.round(worst.score), [cls, , ic] = dpStatus(sc);
-    const hit = worst.ps.slice().sort((a, b) => a.p - b.p).filter(x => x.p < 100).slice(0, 3).map(x => (DP_M[x.mk].kind === 'ratio' ? `${DP_M[x.mk].label} ${DP_M[x.mk].fmt(x.v)}` : `${DP_M[x.mk].label} ${Math.round(x.p)}% of target`)).join(', ');
-    return `<div class="dp-swr"><div>${head}<div class="dp-sub">${dpDayLabel(DPD.days[worst.i])} \u00B7 hardest hit: ${dpEsc(hit || 'nothing below target')} \u00B7 across ${worst.ps.length} measures</div></div><span class="dp-chip ${cls}">${ic} ${sc}%</span></div>`;
+    const hit = worst.ps.slice().sort((a, b) => a.p - b.p).filter(x => x.p < 100).slice(0, 3).map(x => (DP_M[x.mk].kind === 'ratio' ? `${DP_M[x.mk].label}: ${DP_M[x.mk].fmt(x.v)} against ${x.t != null ? DP_M[x.mk].fmt(x.t) : 'its target'}` : `${DP_M[x.mk].label}: ${Math.round(x.p)}% of target`)).join('; ');
+    return `<div class="dp-swr"><div>${head}<div class="dp-sub"><b style="color:var(--text)">${dpDayLabel(DPD.days[worst.i])}</b></div><div class="dp-sub">Hardest hit: ${dpEsc(hit || 'nothing below target')}</div><div class="dp-sub">Day score is the average of ${worst.ps.length} measures</div></div><span class="dp-chip ${cls}" title="Day score: the average % of target across ${worst.ps.length} measures">${ic} ${sc}%</span></div>`;
   }).join('');
+}
+function dpPeriodName(idxs) {
+  const k = typeof activePeriodKey === 'function' ? activePeriodKey() : '';
+  if (k === 'This month') return 'Month to date';
+  if (k && !['Custom', 'Year', 'Month'].includes(k)) return k;
+  return idxs.length ? dpDayLabel(DPD.days[idxs[0]]) + ' to ' + dpDayLabel(DPD.days[idxs[idxs.length - 1]]) : 'This window';
 }
 function dpPeriodLine(mk, code, idxs) {
   const M = DP_M[mk], cs = idxs.map(i => dpCell(mk, code, i)).filter(c => c.state === 'ok');
   if (!cs.length) return '';
-  const n = cs.length, both = cs.filter(c => c.t != null), name = (dpPeriods.find(x => x[0] === DP.period) || [0, 'This window'])[1];
+  const n = cs.length, both = cs.filter(c => c.t != null), name = dpPeriodName(idxs);
   let body;
   if (M.kind === 'vol') {
     const pct = both.length ? both.reduce((a, c) => a + c.v, 0) / both.reduce((a, c) => a + c.t, 0) * 100 : null;
@@ -815,7 +816,7 @@ function dpRadarVals(code, idxs) {
   });
 }
 function dpRadar(host, idxs, codes) {
-  const W = Math.max(300, Math.min(dpW(host), 520)), H = Math.round(W * .94), cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 64, max = 130;
+  const W = Math.max(300, Math.min(dpW(host), 520)), H = Math.round(W * .98), cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 46, max = 130;
   const multi = codes.length > 1, sel = dpRadarSel();
   const mineAll = codes.map(code => dpRadarVals(code, idxs));
   const axes = sel.map((_, k) => k).filter(k => mineAll.every(a => a[k]));
@@ -838,9 +839,10 @@ function dpRadar(host, idxs, codes) {
   });
   axes.forEach((k, i) => {
     const c = Math.cos(ang(i)), sn = Math.sin(ang(i)), lab = sel[k][1];
-    const lx = cx + c * (R + 14), ly = cy + sn * (R + 14) + (sn < -.5 ? -2 : sn > .5 ? 10 : 4);
-    const weak = mineAll.some(a => a[k].p < 100);
-    g += `<text class="${weak ? 'tv' : ''}" x="${lx}" y="${ly}" text-anchor="${c > .3 ? 'start' : c < -.3 ? 'end' : 'middle'}" style="${weak ? '' : 'fill:var(--text)'}">${dpEsc(lab)}</text>`;
+    const lx = cx + c * (R + 10), ly = cy + sn * (R + 10) + (sn < -.5 ? -2 : sn > .5 ? 10 : 4);
+    const weak = mineAll.some(a => a[k].p < 100), mk0 = sel[k][0], help = DP_M[mk0].help;
+    const ltip = `<b>${dpEsc(lab)}</b>` + (help ? `<div class="r"><span>${dpEsc(help)}</span></div>` : '');
+    g += `<text class="${weak ? 'tv' : ''}" x="${lx}" y="${ly}" text-anchor="${c > .3 ? 'start' : c < -.3 ? 'end' : 'middle'}" style="cursor:help;${weak ? '' : 'fill:var(--text)'}" data-tip="${dpEsc(ltip)}">${dpEsc(DP_SHORT[mk0] || lab)}<title>${dpEsc(lab)}</title></text>`;
     codes.forEach((code, bi) => {
       const v = mineAll[bi][k], q = pt(i, v.p);
       const tip = `<b>${dpEsc(lab)}</b><div class="r"><span>${dpEsc(code)}, window average</span><span>${DP_M[v.mk].fmt(v.avg)}</span></div><div class="r"><span>Target</span><span>${DP_M[v.mk].fmt(v.t)}</span></div><div class="r"><span>vs target</span><span>${Math.round(v.p)}%</span></div><div class="r"><span>All-branch average</span><span>${Math.round(grp[i])}%</span></div>`;
@@ -862,36 +864,23 @@ function dpRadar(host, idxs, codes) {
     }).join('');
   }
   if (dropped.length) list += `<div class="dp-sub" style="margin-top:12px">Left off the shape: ${dpEsc(dropped.join(', '))} (no target set at ${multi ? 'one of these branches' : 'this branch'}).</div>`;
-  return { title, html: `<svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${dpEsc(title)}">${g}</svg>`, list, legend };
+  const keyBits = axes.map(k => sel[k]).filter(([mk0, full]) => DP_SHORT[mk0] && DP_SHORT[mk0] !== full).map(([mk0, full]) => `<b>${dpEsc(DP_SHORT[mk0])}</b> ${dpEsc(full)}`);
+  const key = keyBits.length ? `<p class="dp-sub dp-rkey">Hover or tap a label for its full name. ${keyBits.join(' \u00B7 ')}</p>` : '';
+  return { title, html: `<svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${dpEsc(title)}">${g}</svg>${key}`, list, legend };
 }
 
 // ── PAGE ────────────────────────────────────────────────────
-const dpPeriods = [['mtd', 'Month to date'], ['last7', 'Last 7 days'], ['last30', 'Last 30 days'], ['lastmonth', 'Last month'], ['custom', 'Custom']];
-// One sticky bar (13 Oct 2026, Comet and code audits): Measure, Branch and Period live here and nowhere else, so the
-// cards just follow it. Measure and Period are menus because 17 pills would not fit in a slim bar; Branch stays pills.
+// The bar holds the Measure and nothing else (15 Oct 2026): Branch and Period are the masthead's own filters, so there is one
+// of each on the dashboard. On a phone they are the Filters button in the header.
 const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardW', 'Weakest day'], ['dpCardA', 'Trend'], ['dpCardB', 'Bars'], ['dpCardR', 'Strengths'], ['dpCardC', 'Weak days'], ['dpCardD', 'Weekdays'], ['dpHow', 'How to read']];
-const dpShowing = () => { const sel = dpSel(); return 'Branches: ' + (sel.length === DPD.codes.length ? 'all' : sel.join(' + ')) + ', set in the bar at the top'; };
-function dpBarSummary(win) {
-  const sel = dpSel(), per = DP.period === 'custom' ? dpDayLabel(win.from) + ' to ' + dpDayLabel(win.to) : (dpPeriods.find(x => x[0] === DP.period) || [0, ''])[1];
-  return DP_M[DP.measure].label + ' \u00B7 ' + (sel.length === DPD.codes.length ? 'All branches' : sel.join(' + ')) + ' \u00B7 ' + per;
-}
+const dpShowing = () => { const sel = dpSel(); return 'Branches: ' + (sel.length === DPD.codes.length ? 'all' : sel.join(' + ')) + ', set in the filters at the top'; };
 function dpControls(win) {
   const mopts = DP_GROUPS.map(([g, ks]) => `<optgroup label="${g}">${ks.map(k => `<option value="${k}"${k === DP.measure ? ' selected' : ''}>${dpEsc(DP_M[k].label)}</option>`).join('')}</optgroup>`).join('');
-  const popts = dpPeriods.map(([k, l]) => `<option value="${k}"${k === DP.period ? ' selected' : ''}>${l}</option>`).join('');
-  const custom = DP.period === 'custom' ? `<span class="dp-bf" style="gap:6px"><input type="date" class="dp-date" id="dpFrom" aria-label="From" value="${dpEsc(DP.from || dpYmd(win.from))}" min="${dpYmd(win.oldest)}" max="${dpYmd(win.yest)}"> to <input type="date" class="dp-date" id="dpTo" aria-label="To" value="${dpEsc(DP.to || dpYmd(win.to))}" min="${dpYmd(win.oldest)}" max="${dpYmd(win.yest)}"><button type="button" class="dp-pill" id="dpApply">Apply</button><span class="dp-sub"><b style="color:var(--text)">${dpEsc(dpDayLabel(win.from))} to ${dpEsc(dpDayLabel(win.to))}</b>${win.note ? ' (90-day limit)' : ''}</span><span class="dp-sub">Up to 90 days back, to ${dpEsc(dpDayLabel(win.yest))}</span><span class="dp-sub" id="dpDateMsg"></span></span>` : '';
-  return `<div class="dp-bar${DP.barMin ? ' dp-min' : ''}" id="dpBar" role="group" aria-label="Measure, branches and period"><div class="dp-bar-min"><span class="dp-bar-sum">${dpEsc(dpBarSummary(win))}</span><button type="button" class="dp-pill dp-bar-tg" data-bartg="1">Show controls \u25BE</button></div><div class="dp-bar-body"><div class="dp-bar-row">
-    <label class="dp-bf"><span class="dp-lab">Measure</span><select id="dpSelM" aria-label="Measure">${mopts}</select></label>
-    <span class="dp-bf"><span class="dp-lab">Branch</span><span class="dp-pills">${dpPickPills()}</span></span>
-    <label class="dp-bf"><span class="dp-lab">Period</span><select id="dpSelP" aria-label="Period">${popts}</select></label>${custom}<button type="button" class="dp-pill dp-bar-tg" data-bartg="1" style="margin-left:auto">Hide \u25B4</button></div>
-    <div class="dp-jump"><span>Jump to</span>${DP_JUMPS.map(([id, l]) => `<button type="button" data-jump="${id}">${l}</button>`).join('')}</div></div></div>${dpDefault() ? '' : '<p class="dp-note" style="margin:0 0 8px">Your choices are saved on this device for next time. <button type="button" class="dp-linkbtn" id="dpReset">Reset to the defaults</button></p>'}`;
+  return `<div class="dp-bar" id="dpBar" role="group" aria-label="Measure"><div class="dp-bar-row">
+    <label class="dp-bf"><span class="dp-lab">Measure</span><select id="dpSelM" aria-label="Measure">${mopts}</select></label></div>
+    <div class="dp-jump"><span>Jump to</span>${DP_JUMPS.map(([id, l]) => `<button type="button" data-jump="${id}">${l}</button>`).join('')}</div></div>${dpDefault() ? '' : '<p class="dp-note" style="margin:0 0 8px">Your choices are saved on this device for next time. <button type="button" class="dp-linkbtn" id="dpReset">Reset to the defaults</button></p>'}`;
 }
-// All, then each branch. While All is on only All shows pressed: it says "everything", and the first branch you
-// press narrows to it.
-const dpDefault = () => DP.measure === 'sales' && DP.period === 'mtd' && !DP.branches && !DP.radar;
-function dpPickPills() {
-  const sel = dpSel(), allOn = sel.length === DPD.codes.length;
-  return `<button type="button" class="dp-pill" data-b="ALL" title="All branches" aria-pressed="${allOn}">All</button>` + DPD.codes.map(c => `<button type="button" class="dp-pill" data-b="${c}" title="${dpEsc(dpName(c))}: click to add or take off, double-click to show this branch only" aria-pressed="${!allOn && sel.includes(c)}"><span class="dot" style="background:${dpCol(c)}"></span>${c}</button>`).join('');
-}
+const dpDefault = () => DP.measure === 'sales' && !DP.radar;
 
 async function renderDailyPerf() {
   const host = document.getElementById('dailyPerfContent');
@@ -928,14 +917,13 @@ function dpDraw(host, win) {
   const sy = window.scrollY, had = !!host.querySelector('.dpf');
   win = win || dpWindow();
   const idxs = dpIdx(win), mk = DP.measure, M = DP_M[mk];
-  if (DP.branches) { DP.branches = DP.branches.filter(c => DPD.codes.includes(c)); if (!DP.branches.length || DP.branches.length === DPD.codes.length) DP.branches = null; }
   if (!idxs.length) { host.innerHTML = `<div class="dpf"><h1>Daily Performance</h1>${dpControls(win)}<div class="dp-err">No days in this window yet.</div></div>`; dpWire(host); return; }
   const range = `${dpDayLabel(win.from)} to ${dpDayLabel(win.to)}`;
   host.innerHTML = `<div class="dpf">
     <h1>Daily Performance</h1>
     <p class="dp-deck">How each branch did, day by day, against its daily target. Unsure of a term? <button type="button" class="dp-linkbtn" data-jump="dpHow">How to read this page</button>.</p>
     ${dpControls(win)}
-    <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}${M.help ? ' · <b>' + dpEsc(M.label) + '</b>: ' + dpEsc(M.help) : ''}</p>
+    <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}${dpOffPage() ? ' · Bahrain is not on this page yet, so the UAE branches show' : ''}${M.help ? ' · <b>' + dpEsc(M.label) + '</b>: ' + dpEsc(M.help) : ''}</p>
     <section class="dp-tiles dp-jt" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs)}</section>
     <div class="dp-card dp-jt" id="dpCardW"><h2>Weakest day per branch</h2><span class="dp-tag">Measure does not apply</span><p class="dp-why">The day in this period that fell furthest below its targets. A day is scored as the average % of target across every measure that has a target (at least three), so the Measure menu does not change it. Closed days and days with no figures are skipped.</p><div id="dpW"></div></div>
     <div class="dp-card dp-jt" id="dpCardA"><h2>${M.notarget ? `Daily ${dpEsc(M.noun)}, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}` : `Daily ${dpEsc(M.noun)} against target, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}`}</h2>
@@ -1031,28 +1019,11 @@ function dpRedraw(host, el, sel, change) {
 function dpWire(host) {
   const root = host.querySelector('.dpf'); if (!root) return;
   dpBindTips(root);
-  root.querySelectorAll('[data-bartg]').forEach(b => b.onclick = () => {
-    const bar = root.querySelector('#dpBar'); if (!bar) return;
-    DP.barMin = !bar.classList.contains('dp-min');
-    bar.classList.toggle('dp-min', DP.barMin);
-    root.style.setProperty('--dp-bar-h', bar.offsetHeight + 'px');
-    dpSave();
-    const f = bar.querySelector(DP.barMin ? '.dp-bar-min .dp-bar-tg' : '.dp-bar-body .dp-bar-tg'); if (f) f.focus({ preventScroll: true });
-  });
-  const sm = root.querySelector('#dpSelM'), sp = root.querySelector('#dpSelP');
+  const sm = root.querySelector('#dpSelM');
   if (sm) sm.onchange = () => dpRedraw(host, sm, '#dpSelM', () => { DP.measure = sm.value; dpSave(); });
-  if (sp) sp.onchange = async () => {
-    DP.period = sp.value;
-    if (DP.period === 'custom' && (!DP.from || !DP.to)) { const w = dpWindow(); DP.from = dpYmd(w.from); DP.to = dpYmd(w.to); }
-    dpSave(); await renderDailyPerf();
-  };
-  root.querySelectorAll('[data-b]').forEach(b => {
-    b.onclick = () => dpRedraw(host, b, `[data-b="${b.dataset.b}"]`, () => { dpToggleBranch(b.dataset.b); dpSave(); });
-    if (b.dataset.b !== 'ALL') b.ondblclick = () => dpRedraw(host, b, `[data-b="${b.dataset.b}"]`, () => { DP.branches = [b.dataset.b]; dpSave(); });
-  });
   root.querySelectorAll('[data-jump]').forEach(b => b.onclick = () => { const t = root.querySelector('#' + b.dataset.jump); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   const rs = root.querySelector('#dpReset');
-  if (rs) rs.onclick = async () => { Object.assign(DP, { measure: 'sales', period: 'mtd', from: '', to: '', branches: null, radar: null }); dpRadarOpen = false; dpSave(); await renderDailyPerf(); };
+  if (rs) rs.onclick = async () => { Object.assign(DP, { measure: 'sales', radar: null }); dpRadarOpen = false; dpSave(); await renderDailyPerf(); };
   const cust = root.querySelector('#dpCust');
   if (cust) cust.addEventListener('toggle', () => { dpRadarOpen = cust.open; });
   root.querySelectorAll('[data-r]').forEach(cb => cb.onchange = () => {
@@ -1064,19 +1035,6 @@ function dpWire(host) {
   const ra = root.querySelector('#dpRadarAll'), rn = root.querySelector('#dpRadarNone');
   if (ra) ra.onclick = () => dpRedraw(host, ra, '#dpRadarAll', () => { DP.radar = DP_RADAR_ALL.map(x => x[0]); dpRadarOpen = true; dpSave(); });
   if (rn) rn.onclick = () => dpRedraw(host, rn, '#dpRadarNone', () => { DP.radar = []; dpRadarOpen = true; dpSave(); });
-  const f = root.querySelector('#dpFrom'), t = root.querySelector('#dpTo');
-  if (f && t) {
-    // Typing a date fires a change at every half-finished value, so nothing is drawn until Apply (or Enter).
-    const ap = root.querySelector('#dpApply'), msg = root.querySelector('#dpDateMsg');
-    const go = async () => {
-      if (!f.value || !t.value) { if (msg) msg.textContent = 'Pick both dates.'; return; }
-      if (f.value > t.value) { if (msg) msg.textContent = 'The start is after the end.'; return; }
-      DP.from = f.value; DP.to = t.value; dpSave(); await renderDailyPerf();
-    };
-    const pending = () => { const d = f.value !== (DP.from || '') || t.value !== (DP.to || ''); if (ap) ap.setAttribute('aria-pressed', d ? 'true' : 'false'); if (msg) msg.textContent = ''; };
-    if (ap) ap.onclick = go;
-    [f, t].forEach(x => { x.oninput = pending; x.onchange = pending; x.onkeydown = e => { if (e.key === 'Enter') go(); }; });
-  }
 }
 
 // A resize redraws the charts to the new width; no refetch.
@@ -1095,21 +1053,12 @@ window.addEventListener('resize', () => {
 function dpUrlParts() {
   const parts = [];
   if (DP.measure !== 'sales') parts.push('measure=' + DP.measure);
-  if (DP.branches && DP.branches.length) parts.push('branches=' + DP.branches.join(','));
-  if (DP.period !== 'mtd') parts.push('window=' + DP.period);
-  if (DP.period === 'custom' && DP.from && DP.to) parts.push('from=' + DP.from, 'to=' + DP.to);
-  return parts;
+  return parts;   // the branches and the period ride in the address as every filtered page's do (trSyncUrl)
 }
 (function dpReadUrl() {
   try {
     const q = new URLSearchParams(location.search);
     if (q.get('view') !== 'dailyperf') return;
     const m = q.get('measure'); if (m && DP_M[m]) DP.measure = m;
-    const b = (q.get('branches') || '').split(',').map(x => x.trim().toUpperCase()).filter(x => ['SAA', 'KCA', 'MC', 'AQ'].includes(x));
-    if (b.length) DP.branches = b;
-    const w = q.get('window'); if (w && dpPeriods.some(x => x[0] === w)) DP.period = w;
-    const f = q.get('from'), t = q.get('to');
-    if (DP.period === 'custom' && /^\d{4}-\d{2}-\d{2}$/.test(f || '') && /^\d{4}-\d{2}-\d{2}$/.test(t || '')) { DP.from = f; DP.to = t; }
-    else if (DP.period === 'custom') DP.period = 'mtd';
   } catch (e) { /* no address to read */ }
 })();

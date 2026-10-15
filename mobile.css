@@ -39,10 +39,10 @@
   /* Daily Performance's controls bar parks the same way (13 Oct 2026). */
   .dpf .dp-bar{transition:top 220ms var(--card-ease)}
   body:has(.topbar.tb-hide) .dpf .dp-bar{top:env(safe-area-inset-top)}
-  /* Tap targets: 44px on the page, 38px inside the sticky bar so it stays slim (Kate asked for it smaller, 13 Oct 2026). */
+  /* Tap targets: 44px on the page and in the sticky bar (it holds one menu now, so it stays slim anyway). */
   .dpf .dp-pill,.dpf .dp-chk,.dpf .dp-date{min-height:44px}
   .dpf .dp-date{font-size:16px}
-  .dpf .dp-bar .dp-pill,.dpf .dp-bar .ps-btn,.dpf .dp-bar .dp-date{min-height:38px}
+  .dpf .dp-bar .ps-btn{min-height:44px}   /* the bar holds the Measure menu alone now (15 Oct 2026), so it is a full tap */
 
   /* Buttons. Dark mode moves into the drawer; Hide filters becomes the sheet. */
   .mast-acts,body.ledger-chrome .mast-acts{display:flex;flex-wrap:nowrap;gap:8px;flex-shrink:1;min-width:0}

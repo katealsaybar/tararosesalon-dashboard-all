@@ -51,6 +51,10 @@
   .lqw-leg,.lqw-res span,#lostListsContent .lqw-lab,
   :root .dpf .dp-tag,:root .dpf .dp-wc small,:root .dpf .dp-wh{font-size:12px}
   :root .slv-guide th{font-size:12px}
+  /* Daily Performance (Kate, 15 Oct 2026): no container round each card on a phone, it read tighter and tighter. The margins
+     stay as they were; a hairline now separates one section from the next. */
+  :root .dpf .dp-card,:root .dpf .dp-tile{background:none;border:0;border-radius:0;box-shadow:none;padding-left:0;padding-right:0}
+  :root .dpf .dp-card,:root .dpf .dp-tile{border-top:1px solid var(--border);padding-top:16px}
   /* The charts' own labels (heat-map cells, day letters) were 10.5 to 11.5px. */
   :root .dpf svg text{font-size:12px!important}
 }

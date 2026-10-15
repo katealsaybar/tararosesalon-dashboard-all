@@ -1423,7 +1423,7 @@ const ALL_VIEWS = [
 // number: the reference pages (stylist cards) and the embedded iframes do not.
 const FILTERED_VIEWS = new Set([
   'dashboard','team','teamquad','branchperf','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
-  'services','clients','products','reviews','overyears',
+  'services','clients','products','reviews','overyears','dailyperf',
 ]);
 
 // Of those, the ones that take the Branch filter but fix the period to the ledger
@@ -1477,6 +1477,7 @@ function refreshActiveView() {
     };
     if (visible('team') || visible('teamquad')) renderTeam();
     if (visible('branchperf'))    renderBranchPerformance();
+    if (visible('dailyperf'))      renderDailyPerf();   // follows the masthead's Branch and Period (15 Oct 2026); Measure is its own
     if (visible('ledgerFinancials')) renderLedgerFinancials();
     if (visible('ledgerTargets')) renderLedgerTargets();
     if (visible('ledgerActuals')) renderLedgerActuals();
