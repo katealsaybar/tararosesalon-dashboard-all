@@ -300,6 +300,8 @@ const STAFF_PROFILES = {
   // ledger rows) is Rany Altahesh, hair IG rannyhairstyle, so RANYA folds into RANY (name-aliases.js). Placeholders, personal accounts not used.
   'NATALEAH':{ photoFull: 'stylist/photos/SAA/nataleah brandy.png', role: 'Stylist', branch: 'SAA', ig: 'hairbynats19', blank: true, resigned: true },
   'RANY':    { photoFull: 'stylist/photos/KCA/rany altahesh.png', role: 'Stylist', branch: 'KCA', ig: 'rannyhairstyle', blank: true, resigned: true },
+  // Kate, 15 Oct 2026, "possibly her": Kara . (Al Quoz, Phorest Style Director - DXB, added 20 Mar 2024, two ledger days) is Kara Francis, hair IG kara__haircare_.
+  'KARA':    { photoFull: 'stylist/photos/AQ/kara francis.png', role: 'Style Director', branch: 'AQ', ig: 'kara__haircare_', blank: true, resigned: true },
   'LINA':     { photoFull: 'stylist/photos/AQ/lina waled.png', role: 'Stylist', branch: 'AQ', blank: true, resigned: true },
   'SHERINE':  { photoFull: 'stylist/photos/KCA/sherine baghdadi.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'GABBY':    { photoFull: 'stylist/photos/SAA/gabby nemeth.png', role: 'Stylist', branch: 'SAA', ig: 'zuzu_hair_', resigned: true },
@@ -620,6 +622,7 @@ const STAFF_SURNAMES = {
   'NATALEAH':  'Brandy',     // Kate, 15 Oct 2026, "probably her"
   'RANY':      'Altahesh',   // Kate, 15 Oct 2026, "probably him"; Phorest has him as Ranya x
   'XAVRINA':   'Traya',      // Kate, 15 Oct 2026: Xavrina Traya, off the HR staff list (Saadiyat, joined 4 Oct 2024; listed there as Manicurist, Phorest has her Junior Stylist)
+  'KARA':      'Francis',    // Kate, 15 Oct 2026, "possibly her"
   'ABIGAIL':   'Yanga',      // Kate, 15 Oct 2026: Abigail Yanga, Phorest "Staff", possibly an assistant
   'JAIMIE':    'Booth',
   'JAMIE':     'Booth',
