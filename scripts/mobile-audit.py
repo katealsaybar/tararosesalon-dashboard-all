@@ -37,7 +37,11 @@ OUT = Path(__file__).resolve().parent.parent / 'mobile-audit'
 
 VIEWS = ['dashboard', 'dashboard-open', 'branchperf', 'compare', 'team', 'staffperf',
          'stylists', 'orgchart', 'ledgerFinancials', 'ledgerTargets', 'ledgerActuals',
-         'ledgerStylist', 'services', 'clients', 'reviews']
+         'ledgerStylist', 'services', 'clients', 'reviews',
+         # added 15 Oct 2026: every view built since the 25 Sep audit
+         'clientmix', 'dailyperf', 'googleads', 'lostclients', 'lostlists', 'overyears',
+         'products', 'social', 'stafflevels', 'staffweeks', 'teamquad', 'website',
+         'wvblast', 'wvperf']
 SIZES = [(320, 640), (375, 667), (390, 844), (430, 932), (844, 390), (1440, 900)]
 if os.environ.get('AUDIT_SIZES'):
     SIZES = [tuple(map(int, x.split('x'))) for x in os.environ['AUDIT_SIZES'].split(',')]

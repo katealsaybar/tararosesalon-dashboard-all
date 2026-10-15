@@ -1,0 +1,60 @@
+/* ══════════════════════════════════════════════════════════════
+   PHONE LAYER, LATE (Kate, 15 Oct 2026)
+   mobile.css is loaded before the page stylesheets that came after it
+   (client-mix.css, lost-lists.css, lost-queue.css, wv-blast.css), so on a tie
+   those win. The phone rules for those pages live here, loaded after them.
+   Same band and same rule as mobile.css: everything sits inside the phone
+   query, so desktop (above 760px) is untouched.
+
+   Re-audit of 15 Oct 2026 (every view at 375px, live data) found: Lost Clients
+   scrolling sideways, controls under 44px on the pages built since 25 Sep, and
+   labels under 12px. Left alone on purpose: the 36px Marketing pills and the
+   38px Daily Performance bar pills (Kate asked for them slim, 6 and 13 Oct), the
+   Pulse target strip's 40px segments (3 Oct), the proportional bar segments and
+   the dots on the Staff Quadrant (their width is the data), and the TARA ROSE
+   lockup type.
+   ══════════════════════════════════════════════════════════════ */
+@media(max-width:760px),(hover:none) and (max-height:480px){
+
+  /* ===== TAP TARGETS ===== */
+  /* Lost Clients and Clients: every filter group takes a full row (Visits and Days
+     away shared one, so six buttons were squeezed to 29px and the page ran 15px
+     wider than the screen), and each button is at least 44px wide. */
+  .lc-grp{flex:1 1 100%}
+  .lc-bar .sc-seg button{min-width:44px}
+  .lc-nums > summary,:root .dpf details > summary{display:flex;align-items:center;min-height:44px}
+
+  /* Lost Clients' lists (and the Wellness Voucher blast, which shares them). */
+  .ll-fchip{min-height:44px;min-width:44px;padding:0 12px}
+  .tglr,.tglr.signout,.tglr.lc-btn,.ll-tools .tglr,.ll-tools .tglr.lc-btn,.ll-filters .tglr{min-height:44px}
+  .ll-tools .ll-search{min-height:44px;font-size:16px}
+  /* Small marks keep their look; an invisible 44px area goes round them. */
+  .ll-rv-btn,.lc-more,:root .dpf .dp-linkbtn{position:relative}
+  .ll-rv-btn::after,.lc-more::after,:root .dpf .dp-linkbtn::after{content:'';position:absolute;inset:-13px -6px}
+
+  /* Client Mix and Service Rankings. */
+  .cm-tab,.cm-chip,.cm-pill,#srCopy,#cmCopy{min-height:44px}
+
+  /* Stylist Levels' pills, Marketing's table rows, the Staff Quadrant's key. */
+  .slv-ladder button{min-height:44px}
+  .mk-row > td{height:44px}
+  .tp-q-chip{min-height:44px}
+
+  /* ===== TYPE FLOOR: 12px ===== */
+  .slv-eyebrow,.ih-i,.cmp-f-sub,.lg-inline,.lg-last,
+  .tglr,.tglr.signout,
+  .cm-seg button em,.cm-tag,
+  .ll-fchip,.ll-fchip em,.ll-tag,.ll-d,.ll-ch,.ll-mix,.ll-pct,.ll-chip,.ll-explain,.ll-foot,
+  .ll-tools .ll-hide,.lc-wrap.ll-wrap thead th,.ll-wrap .slv-note,.ll-wrap .lc-others,.ll-pill,
+  .ll-wrap .lc-2nums,.ll-wrap .lc-hint,.ll-wrap .lc-more,.ll-thb span,.ll-pt,.ll-pn,.ll-opt em,
+  .ll-g,.ll-rv-btn,
+  .lqw-leg,.lqw-res span,#lostListsContent .lqw-lab,
+  :root .dpf .dp-tag,:root .dpf .dp-wc small,:root .dpf .dp-wh{font-size:12px}
+  :root .slv-guide th{font-size:12px}
+  /* The charts' own labels (heat-map cells, day letters) were 10.5 to 11.5px. */
+  :root .dpf svg text{font-size:12px!important}
+}
+/* Daily Performance injects its own sheet after this one, so these carry :root to win. */
+@media(max-width:560px){
+  :root .dpf .dp-wc,:root .dpf .dp-wh{font-size:12px}
+}

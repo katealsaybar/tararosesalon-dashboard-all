@@ -130,7 +130,7 @@
   .fsheet .chip[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
   /* The UAE | All switch takes its own full-width row, two equal halves, above the branch pills. */
   .fsheet .seg{display:flex;flex:1 0 100%;padding:3px;gap:3px;background:var(--surface)}
-  .fsheet .seg .seg-b{flex:1;min-height:42px;border:0;border-radius:999px;background:none;color:var(--muted2);font-size:15px}
+  .fsheet .seg .seg-b{flex:1;min-height:44px;border:0;border-radius:999px;background:none;color:var(--muted2);font-size:15px}
   .fsheet .seg .seg-b[aria-pressed="true"]{background:var(--text);color:var(--bg)}
   .fsheet .f-dates{margin-left:0;gap:8px;align-items:center}
   .fsheet .f-dates input,.fsheet .f-dates select,.fsheet .f-dates .lg-month-sel{font-size:16px;min-height:44px}
@@ -429,7 +429,7 @@
      a phone; the card loses most of its padding so the chart gets the width, and the
      two switches sit one above the other, each button an equal half. */
   .tp-q-plot{padding:8px 4px}
-  .tp-q-ax,.tp-q-ttl,.tp-q-tgt-l{font-size:11px}
+  .tp-q-ax,.tp-q-ttl,.tp-q-tgt-l{font-size:12px}
   .tp-q-segs{gap:8px}
   .tp-q-segs .tp-seg{display:flex;flex:1 1 100%}
   .tp-q-segs .tp-seg button{flex:1 1 0;line-height:1.2}
