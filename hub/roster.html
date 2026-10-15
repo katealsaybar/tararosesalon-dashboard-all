@@ -34,6 +34,7 @@
 .rs-rm{font:inherit;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted2);cursor:pointer}
 .rs-rm:hover{border-color:#B3261E;color:#B3261E}
 .rs-rm:disabled{cursor:default;opacity:.6}
+#rsRevoked{margin-top:28px}
 </style>
 </head>
 <body class="kb-wait">
@@ -83,8 +84,25 @@
     return '<select class="rs-lv" data-email="' + esc(p.email) + '" aria-label="Level for ' + esc(p.name) + '">' +
       [2, 3, 4].map(function (l) {
         return '<option value="' + l + '"' + (l === p.level ? ' selected' : '') + '>Level ' + l + ' · ' + esc(KB.LEVELS[l] || '') + '</option>';
-      }).join('') + '</select>' +
-      '<button type="button" class="rs-rm" data-email="' + esc(p.email) + '">Remove</button>';
+      }).join('') + '</select>';
+  }
+  // Kate, 15 Oct 2026: Revoke access on every row except the owner's, at any level or
+  // position, for people who have left. kb_revoke_access() in the database.
+  function revokeBits(p) {
+    if (!byLevel || !(p.level >= 1 && p.level <= 4)) return '';
+    return '<button type="button" class="rs-rm" data-email="' + esc(p.email) + '">Revoke access</button>';
+  }
+  function drawRevoked() {
+    var el = document.getElementById('rsRevoked');
+    if (!el) return;
+    var list = data.revoked || [];
+    el.innerHTML = list.length ? '<section class="kb-group"><h2>Access revoked <span class="rs-n">' + list.length + '</span></h2><ul class="kb-list rs-list">' +
+      list.map(function (r) {
+        return '<li><div class="rs-who"><div class="rs-id"><b>' + esc(r.name) + '</b><span class="rs-pos">' + esc(r.note || '') + '</span></div></div>' +
+          '<div class="rs-contact"><span>' + esc(r.email) + '</span></div>' +
+          '<div class="rs-when"><span>Revoked ' + esc(day(r.blocked_at)) + '</span>' +
+          '<button type="button" class="rs-send rs-undo" data-email="' + esc(r.email) + '">Allow again</button></div></li>';
+      }).join('') + '</ul></section>' : '';
   }
   function inviteBits(p) {
     if (!canInvite(p)) return '';
@@ -139,9 +157,10 @@
               (p.photo ? '<img src="' + esc(p.photo) + '" alt="" loading="lazy" onerror="this.remove()">' : '') + '</span>' +
             '<div class="rs-id"><b>' + esc(p.name) + '</b><span class="rs-pos">' + esc(p.position || '') + '</span></div></div>' +
             '<div class="rs-contact"><span>' + esc(p.email) + '</span><span class="rs-where">' + esc(where(p)) + '</span></div>' +
-            '<div class="rs-when' + (p.last_sign_in ? '' : ' never') + '"><span>' + esc(when(p.last_sign_in)) + '</span>' + levelBits(p) + inviteBits(p) + '</div></li>';
+            '<div class="rs-when' + (p.last_sign_in ? '' : ' never') + '"><span>' + esc(when(p.last_sign_in)) + '</span>' + levelBits(p) + inviteBits(p) + revokeBits(p) + '</div></li>';
         }).join('') + '</ul></section>';
     }).join('') : '<p class="kb-msg">Nobody matches those filters.</p>';
+    drawRevoked();
   }
 
   KB.ready.then(async function () {
@@ -159,7 +178,7 @@
       KB.titleIcon('access', 'Staff Roster &amp; Access') +
       '<p class="kb-meta">' + data.people.length + ' people can sign in' +
         (byLevel ? ': ' + (data.people.length - staff) + ' on the dashboard list and ' + staff + ' in the team' : '') +
-        (byLevel ? '. You can add people, change their level and remove them here.' : '. View only; changes go through Kate.') + '</p>' +
+        (byLevel ? '. You can add people, change their level and revoke access here.' : '. View only; changes go through Kate.') + '</p>' +
       (byLevel ? '<div class="rs-add"><button type="button" class="rs-addbtn" id="rsAddBtn">Add person</button>' +
         '<form class="rs-form" id="rsForm" autocomplete="off">' +
           '<label>Full name<input type="text" id="rsName" required></label>' +
@@ -183,7 +202,7 @@
         '</div>' +
       '</div>' +
       '<div class="rs-status"><span id="rsCount"></span><button type="button" id="rsClear" hidden>Clear filters</button></div>' +
-      '<div id="rsList"></div>';
+      '<div id="rsList"></div><div id="rsRevoked"></div>';
     draw();
     document.getElementById('rsFilter').addEventListener('input', function (e) { f.q = e.target.value; draw(); });
     // Kate, 3 Oct 2026: the site's own pill menus, not the browser's dropdowns.
@@ -245,16 +264,29 @@
         await reload();
         alert(name + ' is on the list at Level ' + level + '. The invite email goes out in a few seconds.');
       });
-      // Remove (kb_remove_user): takes them off the dashboard list; a copy is kept in
-      // dashboard_users_removed in case it needs undoing.
+      // Revoke access (kb_revoke_access): shuts the person out altogether, any level or
+      // position: off the dashboard list (a copy is kept), onto the block list, sign-in
+      // account deleted. "Allow again" (kb_restore_access) lifts the block.
       document.getElementById('rsList').addEventListener('click', async function (e) {
         var b = e.target.closest('.rs-rm');
         if (!b || b.disabled) return;
         var email = b.dataset.email, who = data.people.find(function (p) { return p.email === email; });
-        if (!confirm('Remove ' + (who ? who.name : email) + ' (' + email + ') from the dashboard list? They will lose access to the dashboard and Team Home.')) return;
-        b.disabled = true; b.textContent = 'Removing…';
-        var s = await KB.client.rpc('kb_remove_user', { p_email: email });
-        if (s.error) { b.disabled = false; b.textContent = 'Remove'; alert('Not removed: ' + s.error.message); return; }
+        if (!confirm('Revoke ALL access for ' + (who ? who.name : email) + ' (' + email + ')? They are signed out and can no longer open the dashboard or Team Home.')) return;
+        var note = prompt('Note for your records (optional), e.g. "Resigned 15 Oct":', 'Resigned');
+        if (note === null) return;
+        b.disabled = true; b.textContent = 'Revoking…';
+        var s = await KB.client.rpc('kb_revoke_access', { p_email: email, p_note: note });
+        if (s.error) { b.disabled = false; b.textContent = 'Revoke access'; alert('Not revoked: ' + s.error.message); return; }
+        await reload();
+      });
+      document.getElementById('rsRevoked').addEventListener('click', async function (e) {
+        var b = e.target.closest('.rs-undo');
+        if (!b || b.disabled) return;
+        var r = (data.revoked || []).find(function (x) { return x.email === b.dataset.email; });
+        if (!confirm('Allow ' + (r ? r.name : b.dataset.email) + ' back in? Staff regain their Team Home access straight away; a dashboard-list person has to be added again with Add person.')) return;
+        b.disabled = true; b.textContent = 'Working…';
+        var s = await KB.client.rpc('kb_restore_access', { p_email: b.dataset.email });
+        if (s.error) { b.disabled = false; b.textContent = 'Allow again'; alert('Not changed: ' + s.error.message); return; }
         await reload();
       });
       document.getElementById('rsList').addEventListener('change', async function (e) {
