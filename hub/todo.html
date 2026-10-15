@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>To do · Team Home</title>
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=20261008su">
+<style>
+  .td-sev{flex:none;width:10px;height:10px;border-radius:50%;background:var(--warn);margin-right:2px}
+  .td-sev.n{background:var(--border)}
+  .td-tag{font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid var(--border);color:var(--muted);margin-left:8px;white-space:nowrap}
+  .td-acts select{font:inherit;font-size:13px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 10px;min-height:36px}
+  .td-top{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 20px}
+  .td-top .fm-switch{margin:0}
+  .td-done summary{cursor:pointer;color:var(--muted);font-size:14px;margin:24px 0 8px}
+  .td-row.gone{opacity:.65}
+</style>
+</head>
+<body class="kb-wait">
+<!-- To do (Kate, 15 Oct 2026): the list todo_refresh() builds from the dashboards' own tables
+     (migrations/todo_items.sql). Level 5 only: kb_sections 'todo' has min_level 5. Nothing is typed in
+     here; an item closes by itself when the data stops matching, and Done / Snooze are the only
+     things this page writes. -->
+<div class="wrap">
+  <header class="kb-head" id="kbHead" data-title="Team Home"></header>
+  <main id="kbMain"><p class="kb-msg">Loading…</p></main>
+  <footer class="kb-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js?v=20261001kb"></script>
+<script src="/hub/hub.js?v=20261015todo"></script>
+<script src="/visits.js?v=20261008v1"></script>
+<script>
+(function () {
+  var main = document.getElementById('kbMain'), esc = KB.esc;
+  if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
+  var BRANCHES = [['', 'All'], ['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz']];
+  var items = [], pick = '', msg = '';
+  function notFound() {
+    main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
+  }
+  // Dubai dates, as the refresh uses.
+  function dubai(offset) {
+    var d = new Date(Date.now() + (offset || 0) * 86400000);
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(d);
+  }
+  function nice(iso) {
+    var p = String(iso).split('-'); if (p.length < 3) return iso;
+    return +p[2] + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+p[1] - 1];
+  }
+  function isOpen(i) { return i.status === 'open' || (i.status === 'snoozed' && i.snoozed_until && i.snoozed_until <= dubai(0)); }
+  function branchTag(i) {
+    var b = BRANCHES.filter(function (x) { return x[0] && x[0] === i.branch; })[0];
+    return b ? '<span class="td-tag">' + esc(b[1]) + '</span>' : '';
+  }
+  function row(i, mode) {
+    var href = i.link && i.link.charAt(0) === '/' ? i.link : '';
+    var acts = '';
+    if (mode === 'open') {
+      acts = (href ? '<a class="fm-btn" style="display:inline-flex;align-items:center;text-decoration:none" href="' + esc(href) + '">Open</a>' : '') +
+        '<button type="button" class="fm-btn fm-dl" data-act="done" data-k="' + esc(i.key) + '">Done</button>' +
+        '<select data-act="snooze" data-k="' + esc(i.key) + '" aria-label="Snooze"><option value="">Snooze…</option>' +
+        '<option value="1">Tomorrow</option><option value="3">3 days</option><option value="7">Next week</option></select>';
+    } else if (mode === 'snoozed') {
+      acts = '<button type="button" class="fm-btn" data-act="open" data-k="' + esc(i.key) + '">Bring back</button>';
+    } else if (i.status === 'done') {
+      acts = '<button type="button" class="fm-btn" data-act="open" data-k="' + esc(i.key) + '">Reopen</button>';
+    }
+    var sub = mode === 'snoozed' ? 'Back on ' + nice(i.snoozed_until) + '. ' : i.status === 'closed' ? 'Cleared by itself. ' : i.status === 'done' ? 'Done. ' : '';
+    return '<div class="kb-row fm-row td-row' + (mode === 'gone' ? ' gone' : '') + '">' +
+      (mode === 'open' ? '<span class="td-sev' + (i.severity === 1 ? '' : ' n') + '" title="' + (i.severity === 1 ? 'Urgent' : 'Normal') + '"></span>' : '') +
+      '<span class="kb-row-tx"><b>' + esc(i.title) + branchTag(i) + '</b><span>' + esc(sub + (i.detail || '')) + '</span></span>' +
+      '<span class="fm-acts td-acts">' + acts + '</span></div>';
+  }
+  function paint() {
+    // Items with no branch (a missing report, a sync) belong to every branch tab.
+    var scoped = items.filter(function (i) { return !pick || !i.branch || i.branch === pick; });
+    var open = scoped.filter(isOpen).sort(function (a, b) { return a.severity - b.severity || (a.first_seen < b.first_seen ? -1 : 1); });
+    var snoozed = scoped.filter(function (i) { return i.status === 'snoozed' && !isOpen(i); });
+    var weekAgo = dubai(-7);
+    var gone = scoped.filter(function (i) { return i.status === 'done' || (i.status === 'closed' && i.closed_at && i.closed_at.slice(0, 10) >= weekAgo); });
+    var urgent = open.filter(function (i) { return i.severity === 1; }), rest = open.filter(function (i) { return i.severity !== 1; });
+    main.innerHTML =
+      '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
+      KB.titleIcon('todo', 'To do') +
+      '<p class="kb-meta">Built from the dashboards, refreshed every hour. An item clears itself when the numbers say it is sorted; tick Done for what you have handled, or snooze it.</p>' +
+      '<div class="td-top"><div class="fm-switch" role="group" aria-label="Which branch">' + BRANCHES.map(function (b) {
+        var n = items.filter(function (i) { return isOpen(i) && (!b[0] || !i.branch || i.branch === b[0]); }).length;
+        return '<button type="button" data-b="' + b[0] + '" aria-pressed="' + (b[0] === pick) + '"><b>' + esc(b[1]) + '</b><span>' + n + '</span></button>';
+      }).join('') + '</div><button type="button" class="fm-btn" id="tdRefresh">Refresh now</button><span class="kb-meta" id="tdMsg">' + esc(msg) + '</span></div>' +
+      (open.length ? '' : '<p class="kb-msg">Nothing to do right now.</p>') +
+      (urgent.length ? '<section class="kb-dept"><h2 class="kb-dept-h">Urgent</h2>' + urgent.map(function (i) { return row(i, 'open'); }).join('') + '</section>' : '') +
+      (rest.length ? '<section class="kb-dept"><h2 class="kb-dept-h">To do</h2>' + rest.map(function (i) { return row(i, 'open'); }).join('') + '</section>' : '') +
+      (snoozed.length ? '<section class="kb-dept"><h2 class="kb-dept-h">Snoozed</h2>' + snoozed.map(function (i) { return row(i, 'snoozed'); }).join('') + '</section>' : '') +
+      (gone.length ? '<details class="td-done"><summary>Done and cleared this week (' + gone.length + ')</summary>' + gone.map(function (i) { return row(i, 'gone'); }).join('') + '</details>' : '');
+  }
+  async function load() {
+    var r = await KB.client.from('todo_items').select('*').order('first_seen', { ascending: true });
+    if (r.error) { msg = 'Could not load: ' + r.error.message; paint(); return; }
+    items = r.data || [];
+    paint();
+  }
+  async function setStatus(key, patch) {
+    var r = await KB.client.from('todo_items').update(patch).eq('key', key);
+    if (r.error) { msg = 'Could not save: ' + r.error.message; paint(); return; }
+    msg = '';
+    await load();
+  }
+  KB.ready.then(function () {
+    if (KB.allowed.indexOf('todo') < 0) { notFound(); return; }
+    try { pick = localStorage.getItem('trs-todo-branch') || ''; } catch (e) {}
+    if (!BRANCHES.some(function (b) { return b[0] === pick; })) pick = '';
+    main.addEventListener('click', async function (e) {
+      var s = e.target.closest('.fm-switch button');
+      if (s) { pick = s.dataset.b; try { localStorage.setItem('trs-todo-branch', pick); } catch (err) {} paint(); return; }
+      if (e.target.closest('#tdRefresh')) {
+        var btn = e.target.closest('#tdRefresh'); btn.disabled = true; btn.textContent = 'Refreshing…';
+        var r = await KB.client.rpc('todo_refresh_now');
+        msg = r.error ? 'Could not refresh: ' + r.error.message : 'Refreshed.';
+        await load();
+        return;
+      }
+      var b = e.target.closest('[data-act]');
+      if (!b || b.tagName === 'SELECT') return;
+      if (b.dataset.act === 'done') setStatus(b.dataset.k, { status: 'done' });
+      else if (b.dataset.act === 'open') setStatus(b.dataset.k, { status: 'open' });
+    });
+    main.addEventListener('change', function (e) {
+      var sel = e.target.closest('select[data-act="snooze"]');
+      if (!sel || !sel.value) return;
+      setStatus(sel.dataset.k, { status: 'snoozed', snoozed_until: dubai(+sel.value) });
+    });
+    load();
+  });
+})();
+</script>
+</body>
+</html>

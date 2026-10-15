@@ -30,7 +30,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=20261001kb"></script>
-<script src="/hub/hub.js?v=20261015top"></script>
+<script src="/hub/hub.js?v=20261015todo"></script>
 <script src="/visits.js?v=20261008v1"></script>
 <script>
 KB.ready.then(async function () {
@@ -55,6 +55,15 @@ KB.ready.then(async function () {
   if (KB.allowed.indexOf('hr-forms') >= 0) {
     var hf = await KB.client.from('kb_files').select('code,note').eq('section', 'hr-forms');
     (hf.data || []).forEach(function (x) { if (toCheck(x.note)) checks['hr-forms'] = (checks['hr-forms'] || 0) + 1; });
+  }
+
+  // Kate, 15 Oct 2026: how many items the To do list has open (Level 5 only; the table's policy
+  // returns nothing to anyone else). Snoozed items count again from their date.
+  var todoOpen = 0;
+  if (KB.allowed.indexOf('todo') >= 0) {
+    var tr = await KB.client.from('todo_items').select('status,snoozed_until');
+    var tday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(new Date());
+    (tr.data || []).forEach(function (x) { if (x.status === 'open' || (x.status === 'snoozed' && x.snoozed_until <= tday)) todoOpen++; });
   }
 
   // Only what kb_access() opened to this person; the database refuses the rest anyway.
@@ -125,6 +134,7 @@ KB.ready.then(async function () {
     var k = KB.level >= 2 ? checks[s.key] || 0 : 0;   // Level 1 reads the notes on the pages, without the counts
     return '<div class="kb-row">' + icon(s) + text +
       (k ? '<a class="kb-check" href="' + esc(s.href ? s.href + '?check=1' : '/hub/kb.html?s=' + s.key + '&check=1') + '" title="Pages with something still being confirmed">' + k + ' to check</a>' : '') +
+      (s.key === 'todo' && todoOpen ? '<a class="kb-check" href="/hub/todo" title="Open items on your to do list">' + todoOpen + ' open</a>' : '') +
       (n && !s.href ? '<span class="kb-row-n">' + n + ' pages</span>' : '') +
       KB.starBtn(s.key, s.title) + '<span class="kb-go" aria-hidden="true">›</span></div>';
   }

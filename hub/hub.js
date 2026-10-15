@@ -51,6 +51,10 @@
     { key: 'call-centre-induction', dept: 'Learn', title: 'Call Centre Induction & Onboarding', rule: 'var(--accent-butter)',
       blurb: 'The induction programme for the call centre team.' },
 
+    // Kate, 15 Oct 2026: the automated to-do list (hub/todo.html, migrations/todo_items.sql). Level 5 only
+    // (kb_sections 'todo' min_level 5), so it shows for Kate alone.
+    { key: 'todo', dept: 'Targets', title: 'To do', href: '/hub/todo', live: true, rule: 'var(--accent-coral)',
+      blurb: 'What the dashboards say needs a person today, refreshed every hour.' },
     { key: 'today-targets', via: 'dashboards', min: 1, ic: 'today', dept: 'Targets', title: 'Daily Target Sheet', href: '/?view=ledgerTargets', rule: 'var(--accent-coral)',
       blurb: 'Each branch against today’s target.' },
     { key: 'today-stylist', via: 'dashboards', min: 1, ic: 'today', dept: 'Targets', title: 'Daily Stylist Target', href: '/?view=ledgerStylist', rule: 'var(--accent-coral)',
@@ -188,6 +192,7 @@
   ICONS['pg-trend'] = ICONS['my-numbers']; ICONS['pg-book'] = ICONS['full-loop']; ICONS['pg-cal'] = ICONS.marketing;
   ICONS['pg-doc'] = ICONS['hr-forms'];
   ICONS['card-links'] = ICONS['pg-card'];
+  ICONS['todo'] = ICONS['pg-check'];
   // First match on "title | chapter" wins, so the specific kinds come first. Checked
   // against all 234 pages on 6 Oct 2026: every page gets one; the section's icon is the
   // fallback for a page that matches nothing.
