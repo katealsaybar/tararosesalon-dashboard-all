@@ -241,7 +241,13 @@ function tpRosterBuild(dept) {
   branches.forEach(code => {
     const bd = byBranch[code];
     if (!bd) return;
-    const staff = dept === 'beauty' ? bd.beautyStaff : bd.hairStaff;
+    // Kate, 15 Oct 2026: Dina Paycao (Beauty Team Member) was on the Hair bench because the ledger had her figures
+    // in its hair list. The bench follows her role in staff-profiles.js: a beauty or nail role is always Beauty,
+    // wherever the ledger filed her; everyone else stays on the side the ledger put her.
+    const side = (st, from) => /Beauty|Nail/i.test(tpRole({ name: st.name }) || '') ? 'beauty' : from;
+    const staff = [].concat((bd.hairStaff || []).map(st => ({ st, from: 'hair' })), (bd.beautyStaff || []).map(st => ({ st, from: 'beauty' })))
+      .filter(x => side(x.st, x.from) === dept)
+      .map(x => (dept === 'beauty' && x.from === 'hair') ? { ...x.st, beautySales: x.st.beautySales || x.st.hairSalesNet || 0 } : x.st);
     staff.forEach(st => rows.push({
       ...st,
       isBeauty:    dept === 'beauty',
