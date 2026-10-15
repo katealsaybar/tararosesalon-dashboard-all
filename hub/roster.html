@@ -22,6 +22,15 @@
 .rs-send{font:inherit;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
 .rs-send:hover{border-color:var(--text)}
 .rs-send:disabled{cursor:default;opacity:.6;border-color:var(--border)}
+/* Kate, 15 Oct 2026: Add person and Change level, Level 5 only. */
+.rs-add{margin:14px 0 6px}
+.rs-addbtn{font:inherit;font-size:13px;font-weight:600;padding:8px 16px;border-radius:999px;border:1px solid var(--text);background:var(--text);color:var(--bg);cursor:pointer}
+.rs-form{display:none;margin-top:12px;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface);gap:10px;flex-wrap:wrap;align-items:flex-end}
+.rs-form.open{display:flex}
+.rs-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted2);flex:1 1 180px}
+.rs-form input,.rs-form select,.rs-lv{font:inherit;font-size:14px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text)}
+.rs-form .rs-hint{flex:1 1 100%;font-size:12px;color:var(--muted2);margin:0}
+.rs-lv{font-size:12.5px;padding:4px 8px}
 </style>
 </head>
 <body class="kb-wait">
@@ -63,6 +72,16 @@
   // anyone on the dashboard list who has never signed in. Resends too, if they
   // were invited before and never accepted.
   function canInvite(p) { return byLevel && p.team === 'Management & Office' && !p.last_sign_in; }
+  // Kate, 15 Oct 2026: Level 5 can change a dashboard-list person's level (2 to 4); the
+  // owner row and Level 1 staff have no dropdown. The database refuses anything else.
+  function canSetLevel(p) { return byLevel && p.team === 'Management & Office' && p.level >= 2 && p.level <= 4; }
+  function levelBits(p) {
+    if (!canSetLevel(p)) return '';
+    return '<select class="rs-lv" data-email="' + esc(p.email) + '" aria-label="Level for ' + esc(p.name) + '">' +
+      [2, 3, 4].map(function (l) {
+        return '<option value="' + l + '"' + (l === p.level ? ' selected' : '') + '>Level ' + l + ' · ' + esc(KB.LEVELS[l] || '') + '</option>';
+      }).join('') + '</select>';
+  }
   function inviteBits(p) {
     if (!canInvite(p)) return '';
     return (p.invited ? '<span class="rs-inv">Invited ' + esc(day(p.invited)) + '</span>' : '') +
@@ -116,7 +135,7 @@
               (p.photo ? '<img src="' + esc(p.photo) + '" alt="" loading="lazy" onerror="this.remove()">' : '') + '</span>' +
             '<div class="rs-id"><b>' + esc(p.name) + '</b><span class="rs-pos">' + esc(p.position || '') + '</span></div></div>' +
             '<div class="rs-contact"><span>' + esc(p.email) + '</span><span class="rs-where">' + esc(where(p)) + '</span></div>' +
-            '<div class="rs-when' + (p.last_sign_in ? '' : ' never') + '"><span>' + esc(when(p.last_sign_in)) + '</span>' + inviteBits(p) + '</div></li>';
+            '<div class="rs-when' + (p.last_sign_in ? '' : ' never') + '"><span>' + esc(when(p.last_sign_in)) + '</span>' + levelBits(p) + inviteBits(p) + '</div></li>';
         }).join('') + '</ul></section>';
     }).join('') : '<p class="kb-msg">Nobody matches those filters.</p>';
   }
@@ -136,7 +155,18 @@
       KB.titleIcon('access', 'Staff Roster &amp; Access') +
       '<p class="kb-meta">' + data.people.length + ' people can sign in' +
         (byLevel ? ': ' + (data.people.length - staff) + ' on the dashboard list and ' + staff + ' in the team' : '') +
-        '. View only; changes go through Kate.</p>' +
+        (byLevel ? '. You can add people and change their level here.' : '. View only; changes go through Kate.') + '</p>' +
+      (byLevel ? '<div class="rs-add"><button type="button" class="rs-addbtn" id="rsAddBtn">Add person</button>' +
+        '<form class="rs-form" id="rsForm" autocomplete="off">' +
+          '<label>Full name<input type="text" id="rsName" required></label>' +
+          '<label>Email<input type="email" id="rsEmail" required></label>' +
+          '<label>Level<select id="rsLevel">' + [2, 3, 4].map(function (l) {
+            return '<option value="' + l + '">Level ' + l + ' · ' + esc(KB.LEVELS[l] || '') + '</option>';
+          }).join('') + '</select></label>' +
+          '<label>Region<select id="rsScope"><option value="">All branches</option><option value="BAH">Bahrain only</option></select></label>' +
+          '<button type="submit" class="rs-addbtn" id="rsAddGo">Add and send invite</button>' +
+          '<p class="rs-hint">They get the Team Home invite email straight away. Level 5 is not set here.</p>' +
+        '</form></div>' : '') +
       (data.staff_open ? '' : '<div class="kb-note">Team Home isn’t open to the salon team yet, so they can’t sign in until it is.</div>') +
       '<div class="rs-bar">' +
         '<div class="kb-search rs-filter"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
@@ -186,6 +216,43 @@
       }
       b.textContent = 'Sent, not confirmed yet';
     });
+    // Kate, 15 Oct 2026: Add person (kb_add_user) and Change level (kb_set_user_level),
+    // migrations/kb_roster_manage.sql. Level 5 only, checked again in the database.
+    async function reload() {
+      var r = await KB.client.rpc('kb_roster');
+      if (r.data) { data = r.data; draw(); }
+    }
+    if (byLevel) {
+      var form = document.getElementById('rsForm');
+      document.getElementById('rsAddBtn').addEventListener('click', function () {
+        form.classList.toggle('open');
+        if (form.classList.contains('open')) document.getElementById('rsName').focus();
+      });
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var name = document.getElementById('rsName').value.trim(), email = document.getElementById('rsEmail').value.trim().toLowerCase();
+        var level = parseInt(document.getElementById('rsLevel').value, 10), scope = document.getElementById('rsScope').value || null;
+        if (!confirm('Add ' + name + ' (' + email + ') at Level ' + level + (scope ? ', Bahrain only' : '') + ' and email them the invite?')) return;
+        var go = document.getElementById('rsAddGo'); go.disabled = true; go.textContent = 'Adding…';
+        var s = await KB.client.rpc('kb_add_user', { p_email: email, p_name: name, p_level: level, p_scope: scope });
+        go.disabled = false; go.textContent = 'Add and send invite';
+        if (s.error) { alert('Not added: ' + s.error.message); return; }
+        form.reset(); form.classList.remove('open');
+        await reload();
+        alert(name + ' is on the list at Level ' + level + '. The invite email goes out in a few seconds.');
+      });
+      document.getElementById('rsList').addEventListener('change', async function (e) {
+        var sel = e.target.closest('.rs-lv');
+        if (!sel) return;
+        var email = sel.dataset.email, who = data.people.find(function (p) { return p.email === email; });
+        var lv = parseInt(sel.value, 10);
+        if (!confirm('Change ' + (who ? who.name : email) + ' to Level ' + lv + '?')) { if (who) sel.value = who.level; return; }
+        sel.disabled = true;
+        var s = await KB.client.rpc('kb_set_user_level', { p_email: email, p_level: lv });
+        if (s.error) { alert('Not changed: ' + s.error.message); if (who) sel.value = who.level; sel.disabled = false; return; }
+        await reload();
+      });
+    }
     document.getElementById('rsClear').addEventListener('click', function () {
       f = { q: '', team: '', branch: '', seen: '', level: '' };
       document.getElementById('rsFilter').value = '';
