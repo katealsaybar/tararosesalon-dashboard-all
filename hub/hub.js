@@ -51,9 +51,9 @@
     { key: 'call-centre-induction', dept: 'Learn', title: 'Call Centre Induction & Onboarding', rule: 'var(--accent-butter)',
       blurb: 'The induction programme for the call centre team.' },
 
-    // Kate, 15 Oct 2026: the automated to-do list (hub/todo.html, migrations/todo_items.sql). Level 5 only
-    // (kb_sections 'todo' min_level 5), so it shows for Kate alone.
-    { key: 'todo', dept: 'Targets', title: 'To do', href: '/hub/todo', live: true, rule: 'var(--accent-coral)',
+    // Kate, 15 Oct 2026: the automated to-do list, a page of the dashboard (view=todo, todo.js,
+    // migrations/todo_items.sql). Level 2 and up (kb_sections 'todo'); each category has its own level.
+    { key: 'todo', dept: 'Targets', title: 'To do', href: '/?view=todo', live: true, rule: 'var(--accent-coral)',
       blurb: 'What the dashboards say needs a person today, refreshed every hour.' },
     { key: 'today-targets', via: 'dashboards', min: 1, ic: 'today', dept: 'Targets', title: 'Daily Target Sheet', href: '/?view=ledgerTargets', rule: 'var(--accent-coral)',
       blurb: 'Each branch against today’s target.' },

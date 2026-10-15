@@ -1,0 +1,86 @@
+/* To do (Kate, 15 Oct 2026), the calm view: one thing at a time. A single "Start here" card, two quiet
+   "Up next" lines, and everything else folded into category tiles. Pastel pills carry the priority.
+   Used by todo.js on the dashboard's To do page and on Team Home's /hub/todo. It only uses the tokens the
+   dashboard and hub.css share (--surface, --border, --text, --muted, --accent, --accent-fg, --beauty,
+   --shadow and the four --accent-* pastels), so it follows light and dark with both. The host sets the width. */
+.td { font-size: 16px; line-height: 1.55; color: var(--text); }
+.td button, .td select { font: inherit; color: inherit; }
+.td-h1 { font-family: 'Playfair Display', Georgia, serif; font-weight: 500; font-size: 34px; line-height: 1.1; margin: 0 0 14px; letter-spacing: -.01em; }
+.td-hello { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 4px 0 6px; }
+.td-dots { display: flex; gap: 8px; }
+.td-dot { width: 26px; height: 8px; border-radius: 99px; background: var(--border); transition: background .25s; }
+.td-dot.on { background: var(--beauty); }
+.td-count { font-size: 15px; color: var(--muted); }
+.td-count b { color: var(--text); font-weight: 600; }
+.td-sel { margin-left: auto; font-size: 13px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px; min-height: 38px; }
+.td-filtered { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+.td-filtered button { background: none; border: 0; padding: 4px 0; color: var(--text); text-decoration: underline; cursor: pointer; font-size: 14px; }
+.td-warn { margin: 0 0 16px; padding: 12px 14px; border-radius: 12px; background: var(--warn-bg, rgba(238, 243, 199, .12)); color: var(--text); border: 1px solid var(--warn, var(--border)); font-size: 14px; }
+.td-label { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 30px 0 10px; }
+.td-focus { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 26px 24px 22px; box-shadow: var(--shadow); }
+.td-focus.pulse { animation: tdpop .35s ease; }
+@keyframes tdpop { 0% { transform: scale(.985); } 60% { transform: scale(1.008); } 100% { transform: scale(1); } }
+.td-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.td-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 4px 10px; border-radius: 99px; color: #1A1A1A; }
+.td-pill i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.td-p1 { background: var(--accent-coral); } .td-p2 { background: var(--accent-butter); } .td-p3 { background: var(--accent-mint); }
+.td-tag { font-size: 13px; color: var(--muted); }
+.td-focus h2 { font-family: 'Playfair Display', Georgia, serif; font-weight: 600; font-size: 30px; line-height: 1.18; margin: 14px 0 8px; text-wrap: balance; }
+.td-why { font-size: 17px; margin: 0 0 14px; max-width: 52ch; }
+.td-time { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; color: var(--muted); }
+.td-time svg { width: 16px; height: 16px; }
+.td-acts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.td-btn { border-radius: 14px; padding: 13px 20px; min-height: 50px; font-weight: 600; font-size: 16px; border: 1.5px solid var(--border); background: transparent; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.td-btn.go { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.td-btn.ok { border-color: var(--text); }
+.td-btn.later { border-color: transparent; color: var(--muted); font-weight: 500; }
+.td-btn:disabled { opacity: .6; cursor: wait; }
+details.td-more { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+details.td-more summary { cursor: pointer; font-size: 14px; color: var(--muted); list-style: none; }
+details.td-more summary::-webkit-details-marker { display: none; }
+details.td-more summary::before { content: "+"; display: inline-block; width: 18px; font-weight: 700; }
+details.td-more[open] summary::before { content: "\2212"; }
+details.td-more ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: 15px; }
+details.td-more li { margin: 5px 0; }
+details.td-more li b { color: var(--text); font-weight: 600; }
+.td-done { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 28px 24px; box-shadow: var(--shadow); }
+.td-done h2 { font-family: 'Playfair Display', Georgia, serif; font-size: 28px; margin: 0 0 6px; }
+.td-done p { margin: 0 0 16px; color: var(--muted); }
+.td-check { width: 44px; height: 44px; border-radius: 50%; background: var(--accent-mint); color: #1A1A1A; display: grid; place-items: center; margin-bottom: 14px; }
+.td-check svg { width: 24px; height: 24px; }
+.td-next { display: flex; flex-direction: column; gap: 8px; }
+.td-nrow { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: transparent; text-align: left; width: 100%; cursor: pointer; }
+.td-nrow:hover { background: var(--surface); }
+.td-nrow .t { flex: 1; min-width: 0; font-weight: 500; }
+.td-nrow .m { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.td-sd { width: 10px; height: 10px; border-radius: 50%; flex: none; border: 1px solid rgba(0, 0, 0, .18); }
+.td-sd.p1 { background: var(--accent-coral); } .td-sd.p2 { background: var(--accent-butter); } .td-sd.p3 { background: var(--accent-mint); }
+.td-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.td-tile { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 14px 16px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; text-align: left; min-height: 78px; cursor: pointer; }
+.td-tile[aria-expanded="true"] { border-color: var(--text); }
+.td-tile .n { font-weight: 600; font-size: 15px; }
+.td-tile .c { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.td-tile.zero { opacity: .55; }
+.td-panel { margin-top: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 6px 16px 12px; }
+.td-panel h3 { font-family: 'Playfair Display', Georgia, serif; font-size: 20px; margin: 14px 0 2px; }
+.td-prow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); }
+.td-panel h3 + .td-prow { border-top: 0; }
+.td-prow .tx { flex: 1; min-width: 0; }
+.td-prow .tx b { font-weight: 600; display: block; }
+.td-prow .tx span { color: var(--muted); font-size: 14px; display: block; }
+.td-mini { border: 1px solid var(--border); background: transparent; border-radius: 10px; padding: 8px 12px; font-size: 14px; font-weight: 600; min-height: 38px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; color: var(--text); }
+.td-quiet { margin-top: 28px; font-size: 14px; color: var(--muted); }
+.td-quiet button { background: none; border: 0; color: var(--muted); text-decoration: underline; padding: 6px 0; font-size: 14px; cursor: pointer; }
+.td-gone summary { cursor: pointer; font-size: 14px; color: var(--muted); margin-top: 10px; }
+.td-gone ul { margin: 8px 0 0; padding-left: 18px; font-size: 14px; color: var(--muted); }
+.td-toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--text); color: var(--bg); padding: 12px 18px; border-radius: 12px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: calc(100vw - 32px); z-index: 50; }
+.td-toast.show { opacity: 1; transform: translate(-50%, 0); }
+.td-toast.act { pointer-events: auto; }
+.td-toast button { margin-left: 10px; background: none; border: 0; color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 4px 2px; }
+@media (max-width: 480px) {
+  .td-focus { padding: 22px 18px 18px; }
+  .td-focus h2 { font-size: 26px; }
+  .td-btn { flex: 1 1 auto; }
+  .td-btn.later { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .td-focus.pulse { animation: none; } .td-dot, .td-toast { transition: none; } }

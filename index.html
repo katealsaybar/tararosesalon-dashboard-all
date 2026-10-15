@@ -451,7 +451,9 @@ body.googleads-chrome .filters-wrap,
 body.website-chrome .mast-rule,
 body.website-chrome .filters-wrap,
 body.social-chrome .mast-rule,
-body.social-chrome .filters-wrap{display:none}
+body.social-chrome .filters-wrap,
+body.todo-chrome .mast-rule,
+body.todo-chrome .filters-wrap{display:none}
 /* Wellness Voucher Performance: the frame is content-height, so only a few px sit
    between the report and the footer instead of the page's usual 96px. */
 body.wvperf-chrome .wrap{padding-bottom:12px}
@@ -3362,6 +3364,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="search.css?v=20261008s31">
 <link rel="stylesheet" href="client-mix.css?v=20261008cm3">
 <link rel="stylesheet" href="lost-lists.css?v=20261012ll21">
+<link rel="stylesheet" href="todo.css?v=20261015td1">
 <link rel="stylesheet" href="lost-queue.css?v=20261013lq10">
 <link rel="stylesheet" href="wv-blast.css?v=20261015wb1">
 <link rel="stylesheet" href="nav-style.css?v=20261009sh1">
@@ -3523,6 +3526,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <div class="nav-group">
     <div class="nav-title">Targets</div>
+    <!-- To do (Kate, 15 Oct 2026): Level 2 and above, from todo_items; todo.js draws it. -->
+    <div class="nav-sub" onclick="showView('todo', this)">To do</div>
     <div class="nav-sub" onclick="showView('ledgerTargets', this)">Daily Target Sheet</div>
     <div class="nav-sub" onclick="showView('ledgerStylist', this)">Daily Stylist Target</div>
     <div class="nav-sub" onclick="showView('ledgerActuals', this)">Actuals vs Targets</div>
@@ -4107,6 +4112,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="socialContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- TO DO (Kate, 15 Oct 2026): what the dashboards say needs a person, from todo_items
+       (migrations/todo_items.sql, todo_categories.sql). todo.js draws it, one thing at a time. -->
+  <div id="view-todo" style="display:none">
+    <main id="todoContent" style="max-width:700px;margin:0 auto;padding:10px 28px 64px"></main>
+  </div>
+
   <!-- PRODUCTS (Kate, 28-29 Sep 2026): stock spend per week, retail vs
        professional, from stock_order_lines via get_product_spend. products.js
        draws it. -->
@@ -4215,9 +4226,10 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="google-ads.js?v=20261006per"></script>
 <script src="website.js?v=20261008cb1"></script>
 <script src="social.js?v=20261008cb1"></script>
+<script src="todo.js?v=20261015td1"></script>
 <script src="stylist-cards.js?v=20261014d"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261015blankwv"></script>
+<script src="dashboard.js?v=20261015td1"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4466,6 +4478,8 @@ async function enterDashboard(role, meAsk){
   if (!(TRS_LEVEL >= 3)) hideNav('wvblast');
   // Marketing (Kate, 6 Oct 2026): Level 3 and above. google_ads_report and website_report refuse the rest too.
   if (!(TRS_LEVEL >= 3)) { hideNav('googleads'); hideNav('website'); hideNav('social'); }
+  // To do (Kate, 15 Oct 2026): Level 2 and above. todo_items refuses the rest too.
+  if (!(TRS_LEVEL >= 2)) hideNav('todo');
   tidyNav();
   {
     const first = ((me && me.name) || '').split(/[\s(]/)[0].replace(/[<>&"]/g, '');
@@ -4555,11 +4569,19 @@ sb.auth.onAuthStateChange((event) => {
   await enterIfAllowed();
 })();
 
+// To do (Kate, 15 Oct 2026): todo.js draws it from todo_items. The table's own policy decides which
+// categories and branches each level and login can read.
+function renderTodo(){
+  const el = document.getElementById('todoContent');
+  if (el && window.TodoPage) TodoPage.mount(el, sb, { head: '<h1 class="td-h1">To do</h1>' });
+}
+
 // ── VIEW SWITCHER
 function showView(view, el){
   if (TRS_SCOPE && !SCOPE_VIEWS.has(view)) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (TRS_LEVEL === 1 && view === 'wvperf') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (!(TRS_LEVEL >= 2) && (view === 'lostclients' || view === 'lostlists')) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
+  if (!(TRS_LEVEL >= 2) && view === 'todo') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (!(TRS_LEVEL >= 3) && view === 'wvblast') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (!(TRS_LEVEL >= 3) && (view === 'googleads' || view === 'website' || view === 'social')) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   // Reviews opens on All branches + 90 days unless something was already picked, and
@@ -4648,6 +4670,7 @@ function showView(view, el){
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('website-chrome', view === 'website');
   document.body.classList.toggle('social-chrome', view === 'social');
+  document.body.classList.toggle('todo-chrome', view === 'todo');
   // Popped-out standalone window (ocOpenNewWindow() sets ocFit=1): no sidebar
   // nav to open and no card border round the tree, just the chart, edge to
   // edge — this window's whole reason to exist is projecting/sharing/printing
@@ -4674,6 +4697,7 @@ function showView(view, el){
   if (view === 'googleads') renderGoogleAds();
   if (view === 'website') renderWebsite();
   if (view === 'social') renderSocial();
+  if (view === 'todo') renderTodo();
   if (view === 'products') renderProducts();
   if (view === 'branchperf')    renderBranchPerformance();
   if (view === 'compare')       renderCompare();
