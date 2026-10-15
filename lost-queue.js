@@ -172,6 +172,7 @@ function lqFiltered(view) {
   let out = lqRows.filter(r => lqView(r) === (view || lqSel.view)
     && (lqSel.ch === 'all' || r._ch === lqSel.ch) && (typeof lqwOn !== 'function' || !lqwOn() || lqwKeep(r, view || lqSel.view)) && (lqSel.ty === 'all' || r.qtype === lqSel.ty) && (lqSel.br === 'all' || r.branch === lqSel.br)
     && (lqSel.st === 'all' || r.wa === lqSel.st)
+    && (typeof lqwArmKeep !== 'function' || lqwArmKeep(r, view || lqSel.view))
     && (lqSel.sty === 'all' || (lqSel.sty === 'named' ? !!r._sty : !r._sty))
     && (lqSel.ph === 'all' || r.n_numbers <= 1)
     && (!q || (r.client_name + ' ' + (r._sty || '') + ' ' + (r.stylist || '')).toLowerCase().includes(q)));
@@ -215,6 +216,7 @@ function lqPaint() {
       <div class="lc-tools ll-tools lq-tools">
         <div class="sc-seg" role="group" aria-label="Channel">${[['all', 'All'], ['whatsapp', 'WhatsApp'], ['sms', 'Text']].map(([k, l]) => `<button type="button" class="${lqSel.ch === k ? 'on' : ''}" onclick="lqSet('ch','${k}')">${l} ${lcNum(chN(k))}</button>`).join('')}</div>
         <select class="ll-sel" aria-label="Message" onchange="lqSet('ty',this.value)"><option value="all">All messages</option>${LQ_TYPE_ORDER.map(k => `<option value="${k}"${lqSel.ty === k ? ' selected' : ''}>${lcEsc(LQ_TYPES[k][0])}</option>`).join('')}</select>
+        ${typeof lqwArmSelect === 'function' ? lqwArmSelect() : ''}
         <select class="ll-sel" aria-label="Branch" onchange="lqSet('br',this.value)"><option value="all">All branches</option>${brs.map(b => `<option value="${b}"${lqSel.br === b ? ' selected' : ''}>${lcEsc(LC_BRANCH[b] || b)}</option>`).join('')}</select>
         <select class="ll-sel" aria-label="Order" onchange="lqSet('sort',this.value)">${[['best', 'Best first'], ['oldest', 'Lost longest first'], ['name', 'Name A to Z']].map(([k, l]) => `<option value="${k}"${lqSel.sort === k ? ' selected' : ''}>${l}</option>`).join('')}</select>
         <input type="search" class="ll-search" id="lqSearch" placeholder="Search name or stylist" value="${lcEsc(lqQuery)}" oninput="lqQuery=this.value;lqPage=1;lqPaintTable()">

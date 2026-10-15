@@ -200,6 +200,18 @@ function lqwBranchBar(br) {
   return `<div class="lqw-brw"><div class="lqw-brs">${LQW_BR.map(b => `<i style="width:${100 * (br[b] || 0) / tot}%;background:${LQW_BRC[b]}" title="${lcEsc(LC_BRANCH[b] || b)} ${lcNum(br[b] || 0)}"></i>`).join('')}</div>
     <div class="lqw-leg">${LQW_BR.map(b => `<span style="--c:${LQW_BRC[b]}">${b} ${lcNum(br[b] || 0)}</span>`).join('')}</div></div>`;
 }
+// The 1a / 1b choice in the filter row of the To send list (Kate, 15 Oct 2026): only while Wave 1 is the wave on screen, and it only narrows the pilot,
+// so Review and send takes exactly the arm chosen. 'all' shows both.
+function lqwArmKeep(r, view) {
+  const a = lqSel.arm || 'all';
+  if (a === 'all' || view !== 'send' || !lqwOk || lqwCurrent() !== 1 || lqSel.area === 'sms') return true;
+  return lqwPilot.has(r.client_key) && lqwArm(r) === a;
+}
+function lqwArmSelect() {
+  if (!lqwOk || lqwCurrent() !== 1 || lqSel.area === 'sms') return '';
+  const a = lqSel.arm || 'all';
+  return `<select class="ll-sel" aria-label="Message version" onchange="lqSet('arm',this.value)">${[['all', '1a and 1b'], ['a', '1a standard'], ['b', '1b story']].map(([k, l]) => `<option value="${k}"${a === k ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
+}
 // One button per arm of the pilot (Kate, 15 Oct 2026): Send 1a and Send 1b take every client of that arm who can go now, whatever filter is on screen, up to
 // what the day has left, and open the usual review. 1b has none while it is held.
 function lqwArmRows(a) { return ((lqwSt[1] || { rows: [] }).rows).filter(r => lqwArm(r) === a && lqCanSend(r)); }
