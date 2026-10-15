@@ -93,10 +93,10 @@ function upViewOnly() {
   sb.from = t => { const q = from(t); ['insert', 'upsert', 'update', 'delete'].forEach(m => q[m] = refuse); return q; };
 }
 </script>
-<script src="name-aliases.js?v=20261015names"></script>
+<script src="name-aliases.js?v=20261015xnr"></script>
 <!-- staff-profiles.js wants canonicalStaffName() from name-aliases.js above it,
      same load order the dashboard itself uses (its own comment says so). -->
-<script src="../staff-profiles.js?v=20261015kelsey"></script>
+<script src="../staff-profiles.js?v=20261015xnr"></script>
 <script src="phorest-staff.js?v=20261014bah"></script>
 <script src="phorest-pdf.js?v=2"></script>
 <script src="utilisation-pdf.js?v=20261014bah"></script>

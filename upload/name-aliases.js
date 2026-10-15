@@ -96,6 +96,8 @@ const STAFF_NAME_ALIASES = {
   // Lizanie Jacobsz: LIZ (KCA, 15 to 29 Sep 2024) runs straight into LIZANIE from 30 Sep; LIZANNE is two Saadiyat days in Nov 2024.
   'LIZ': 'LIZANIE',
   'LIZANNE': 'LIZANIE',
+  // Kate, 15 Oct 2026: Phorest has Rany Altahesh as "Ranya x".
+  'RANYA': 'RANY',
 };
 
 function canonicalStaffName(name){
