@@ -302,6 +302,8 @@ const STAFF_PROFILES = {
   'RANY':    { photoFull: 'stylist/photos/KCA/rany altahesh.png', role: 'Stylist', branch: 'KCA', ig: 'rannyhairstyle', blank: true, resigned: true },
   // Kate, 15 Oct 2026, "possibly her": Kara . (Al Quoz, Phorest Style Director - DXB, added 20 Mar 2024, two ledger days) is Kara Francis, hair IG kara__haircare_.
   'KARA':    { photoFull: 'stylist/photos/AQ/kara francis.png', role: 'Style Director', branch: 'AQ', ig: 'kara__haircare_', blank: true, resigned: true },
+  // Kate, 15 Oct 2026, "possibly her": Denise . (KCA and Saadiyat Stylist, ledger KCA Mar to May 2022) is Denise Muc; the only IG Kate has is her personal one.
+  'DENISE':  { photoFull: 'stylist/photos/KCA/denise muc.png', role: 'Stylist', branch: 'KCA', ig: 'denise_muc_abudhabi', blank: true, resigned: true },
   'LINA':     { photoFull: 'stylist/photos/AQ/lina waled.png', role: 'Stylist', branch: 'AQ', blank: true, resigned: true },
   'SHERINE':  { photoFull: 'stylist/photos/KCA/sherine baghdadi.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'GABBY':    { photoFull: 'stylist/photos/SAA/gabby nemeth.png', role: 'Stylist', branch: 'SAA', ig: 'zuzu_hair_', resigned: true },
@@ -622,6 +624,7 @@ const STAFF_SURNAMES = {
   'NATALEAH':  'Brandy',     // Kate, 15 Oct 2026, "probably her"
   'RANY':      'Altahesh',   // Kate, 15 Oct 2026, "probably him"; Phorest has him as Ranya x
   'XAVRINA':   'Traya',      // Kate, 15 Oct 2026: Xavrina Traya, off the HR staff list (Saadiyat, joined 4 Oct 2024; listed there as Manicurist, Phorest has her Junior Stylist)
+  'DENISE':    'Muc',        // Kate, 15 Oct 2026, "possibly her"
   'KARA':      'Francis',    // Kate, 15 Oct 2026, "possibly her"
   'ABIGAIL':   'Yanga',      // Kate, 15 Oct 2026: Abigail Yanga, Phorest "Staff", possibly an assistant
   'JAIMIE':    'Booth',
