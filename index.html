@@ -2558,6 +2558,15 @@ button.soc-plat:focus-visible{outline:2px solid var(--accent);outline-offset:2px
    in staff-profiles.js (STAFF_PROFILES) for who this applies to. */
 .sc-photo.is-resigned{filter:grayscale(1)}
 .sc-name.is-resigned{color:var(--muted)}
+/* Kate, 15 Oct 2026: the six line-art placeholders come in two backgrounds, mint (the file itself, dark mode)
+   and soft yellow-green (name.light.png, light mode). Every place the photo shows is an <img> of the mint file, so
+   light mode swaps its picture here instead of in each renderer. */
+[data-theme="light"] img[src$="zoe%20hogkinson.png"]{content:url("stylist/photos/AQ/zoe%20hogkinson.light.png")}
+[data-theme="light"] img[src$="venus%20solomon.png"]{content:url("stylist/photos/MC/venus%20solomon.light.png")}
+[data-theme="light"] img[src$="harriet%20shannon.png"]{content:url("stylist/photos/SAA/harriet%20shannon.light.png")}
+[data-theme="light"] img[src$="oliver%20green.png"]{content:url("stylist/photos/AQ/oliver%20green.light.png")}
+[data-theme="light"] img[src$="aboudi%20chatila.png"]{content:url("stylist/photos/AQ/aboudi%20chatila.light.png")}
+[data-theme="light"] img[src$="josh%20thomas.png"]{content:url("stylist/photos/AQ/josh%20thomas.light.png")}
 
 /* LIST: one line each, the whole team in one scan. */
 .mode-list .sc-head{padding:9px 13px;gap:11px}
