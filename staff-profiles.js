@@ -147,7 +147,9 @@ const STAFF_PROFILES = {
   // A leaver, let go when the staff was reduced (Christine, 4 Sep 2026). Stays here on
   // purpose: the tables list whoever had sales in the window you are looking at, and her
   // 22 days run Jan to May 2025.
-  'XAVRINA':   { role: 'Assistant', branch: 'SAA' },
+  // Kate, 15 Oct 2026: Xavrina Traya, Saadiyat, archived in Phorest 17 Sep 2026. Phorest has her as a Junior Stylist (hair washes, plaits, blow-dries, head massages,
+  // AED 7,085 in services, Jan 2025 to May 2026); the HR staff list says Manicurist, which her Phorest sales do not show. Former, placeholder, no IG.
+  'XAVRINA':   { photoFull: 'stylist/photos/SAA/xavrina traya.png', role: 'Junior Stylist', branch: 'SAA', blank: true, resigned: true },
 
   // -- Motor City --
   'ALAN':      { photo: 'alan.png',      role: 'Style Director', branch: 'MC',   ig: 'alan_joseph_hair' },

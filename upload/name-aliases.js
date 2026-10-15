@@ -98,6 +98,14 @@ const STAFF_NAME_ALIASES = {
   'LIZANNE': 'LIZANIE',
   // Kate, 15 Oct 2026: Phorest has Rany Altahesh as "Ranya x".
   'RANYA': 'RANY',
+  // Kate, 15 Oct 2026: more ledger spellings of people already on the page. CAT (Marasy, May to Dec 2022) is Catrin Birkby; ALLAN and ALLAN JOSEPH
+  // (Al Quoz) are Alan Joseph Russell; ABIGAEL (Saadiyat 2021) is Abigail Yanga; EMALYN is Emmalyn; MELIZZA is Melliza.
+  'CAT': 'CATRIN',
+  'ALLAN': 'ALAN',
+  'ALLAN JOSEPH': 'ALAN',
+  'ABIGAEL': 'ABIGAIL',
+  'EMALYN': 'EMMALYN',
+  'MELIZZA': 'MELLIZA',
 };
 
 function canonicalStaffName(name){

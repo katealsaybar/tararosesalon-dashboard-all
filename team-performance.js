@@ -291,6 +291,8 @@ function tpRosterBuild(dept) {
   const list = order.map(key => tpCombine(groups[key], key))
     .filter(st => (st.net || 0) > 0 || (st.total || 0) > 0)
     .filter(st => tpRole(st) !== 'Assistant')
+    // Kate, 15 Oct 2026: ABCR, BWR, KMR and OR are 2026 Khalifa City ledger codes (draft names), not people.
+    .filter(st => !['ABCR', 'BWR', 'KMR', 'OR'].includes(tpMergeKey(st.name)))
     .filter(st => !TP_OVR.hide.has(tpOvrKey(st.name)));
   return list.sort((a, b) => (b.net || 0) - (a.net || 0));
 }
