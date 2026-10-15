@@ -3345,6 +3345,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="client-mix.css?v=20261008cm3">
 <link rel="stylesheet" href="lost-lists.css?v=20261012ll21">
 <link rel="stylesheet" href="lost-queue.css?v=20261013lq10">
+<link rel="stylesheet" href="wv-blast.css?v=20261015wb1">
 <link rel="stylesheet" href="nav-style.css?v=20261009sh1">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/pill-select.js?v=20261005tap"></script>
@@ -3495,6 +3496,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('clientmix', this)">Client Mix</div>
     <div class="nav-sub" onclick="showView('lostclients', this)">Client’s Last Visit</div>
     <div class="nav-sub" onclick="showView('lostlists', this)">Lost Clients</div>
+    <div class="nav-sub" onclick="showView('wvblast', this)">Wellness Voucher Blast</div>
     <div class="nav-sub" onclick="showView('reviews', this)">Google Reviews</div>
     <div class="nav-subhead">Sales &amp; Stock</div>
     <div class="nav-sub" onclick="showView('services', this)">Service Rankings</div>
@@ -4063,6 +4065,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="lostListsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- WELLNESS VOUCHER BLAST (Kate, 15 Oct 2026): the 3rd blast list by wave, beside Lost Clients. wv_blast
+       (migrations/wv_blast.sql). Level 3 and above, names and numbers. wv-blast.js draws it. -->
+  <div id="view-wvblast" style="display:none">
+    <main id="wvBlastContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <!-- GOOGLE ADS (Kate, 6 Oct 2026): spend, clicks and Google's conversions by salon
        and campaign, from google_ads_report over google_ads_daily. google-ads.js draws it. -->
   <div id="view-googleads" style="display:none">
@@ -4181,6 +4189,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="lost-review-file.js?v=20261012rf3"></script>
 <script src="lost-queue.js?v=20261013lq21"></script>
 <script src="lost-waves.js?v=20261013lw3"></script>
+<script src="wv-blast.js?v=20261015wb1"></script>
 <script src="top-clients.js?v=20261014mry1"></script>
 <script src="client-mix.js?v=20261014mry1"></script>
 <script src="service-rankings.js?v=20261014mry1"></script>
@@ -4190,7 +4199,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20261014d"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261015blank"></script>
+<script src="dashboard.js?v=20261015blankwv"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4435,6 +4444,8 @@ async function enterDashboard(role, meAsk){
     const ll = document.querySelector(`#sidebar .nav-sub[onclick*="showView('lostlists'"]`);
     if (ll) ll.style.display = 'none';
   }
+  // Wellness Voucher Blast (Kate, 15 Oct 2026): Level 3 and above (client names and numbers). wv_blast_get refuses the rest too.
+  if (!(TRS_LEVEL >= 3)) hideNav('wvblast');
   // Marketing (Kate, 6 Oct 2026): Level 3 and above. google_ads_report and website_report refuse the rest too.
   if (!(TRS_LEVEL >= 3)) { hideNav('googleads'); hideNav('website'); hideNav('social'); }
   tidyNav();
@@ -4531,6 +4542,7 @@ function showView(view, el){
   if (TRS_SCOPE && !SCOPE_VIEWS.has(view)) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (TRS_LEVEL === 1 && view === 'wvperf') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (!(TRS_LEVEL >= 2) && (view === 'lostclients' || view === 'lostlists')) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
+  if (!(TRS_LEVEL >= 3) && view === 'wvblast') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (!(TRS_LEVEL >= 3) && (view === 'googleads' || view === 'website' || view === 'social')) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   // Reviews opens on All branches + 90 days unless something was already picked, and
   // hands the defaults back on the way out. Before anything below reads the window.
@@ -4614,7 +4626,7 @@ function showView(view, el){
   document.body.classList.toggle('staffperf-chrome', view === 'staffperf');
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'clients' || view === 'clientmix' || view === 'services' || view === 'dailyperf');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'clients' || view === 'clientmix' || view === 'services' || view === 'dailyperf');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('website-chrome', view === 'website');
   document.body.classList.toggle('social-chrome', view === 'social');
@@ -4640,6 +4652,7 @@ function showView(view, el){
   if (view === 'clientmix') renderClientMix();
   if (view === 'lostclients') renderLostClients();
   if (view === 'lostlists') renderLostListsPage();
+  if (view === 'wvblast') renderWvBlast();
   if (view === 'googleads') renderGoogleAds();
   if (view === 'website') renderWebsite();
   if (view === 'social') renderSocial();

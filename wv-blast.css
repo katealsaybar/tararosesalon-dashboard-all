@@ -1,0 +1,6 @@
+/* Wellness Voucher Blast (wv-blast.js), Kate, 15 Oct 2026. Sits on Lost Clients' classes (ll-cards, ll-card, slv-*, lc-pager); only
+   the card grid differs: eight cards, four across (Lost Clients has five). */
+.ll-cards.wv-cards{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1100px){.ll-cards.wv-cards{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.ll-cards.wv-cards{grid-template-columns:1fr 1fr;gap:8px}}
+@media(max-width:430px){.ll-cards.wv-cards{grid-template-columns:1fr}}
