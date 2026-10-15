@@ -269,6 +269,12 @@ const STAFF_PROFILES = {
   // rows run Jan 2021 to Jul 2023, nothing from 2025) is Rhi Hurley in ROSES Magazine, where she is Artistic Director by Jan 2023.
   // Kate, 15 Oct 2026: Gabriella (Gabby) Nemeth, Stylist (Phorest), Saadiyat: ledger rows Jun 2023 to May 2024 (one Khalifa City A day),
   // none from 2025, added on Kate's say-so. IG zuzu_hair_ is off her Sept 2023 business card. Her card spells it Ne'meth; display stays Nemeth.
+  // Kate, 15 Oct 2026: Lina Waled and Sherine Baghdadi, former Stylists with no photo and no IG found (Phorest, ledger, ROSES, Gmail, Drive
+  // all checked), so each carries the blank line-art template (own file each for the photo-path dedupe) and blank: true. Lina: Phorest Stylist
+  // at Saadiyat (Nov 2023), Al Quoz (Feb 2024) and Motor City (Apr 2024); ledger Dec 2023 to Sep 2024, most rows AQ. Sherine: Phorest Stylist,
+  // KCA; ledger 26 Sep 2021 to 15 May 2022, notice given May 2022. Neither has ledger rows from 2025; added on Kate's say-so.
+  'LINA':     { photoFull: 'stylist/photos/AQ/lina waled.png', role: 'Stylist', branch: 'AQ', blank: true, resigned: true },
+  'SHERINE':  { photoFull: 'stylist/photos/KCA/sherine baghdadi.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'GABBY':    { photoFull: 'stylist/photos/SAA/gabby nemeth.png', role: 'Stylist', branch: 'SAA', ig: 'zuzu_hair_', resigned: true },
   'RHI':      { photoFull: 'stylist/photos/SAA/rhi george.png', role: 'Style Director', branch: 'SAA', ig: 'hairbyrhiabudhabi', resigned: true },
   // Kate, 14 Oct 2026: former team with no photo and no client-facing Instagram yet, so each carries the
