@@ -200,6 +200,21 @@ function lqwBranchBar(br) {
   return `<div class="lqw-brw"><div class="lqw-brs">${LQW_BR.map(b => `<i style="width:${100 * (br[b] || 0) / tot}%;background:${LQW_BRC[b]}" title="${lcEsc(LC_BRANCH[b] || b)} ${lcNum(br[b] || 0)}"></i>`).join('')}</div>
     <div class="lqw-leg">${LQW_BR.map(b => `<span style="--c:${LQW_BRC[b]}">${b} ${lcNum(br[b] || 0)}</span>`).join('')}</div></div>`;
 }
+// One button per arm of the pilot (Kate, 15 Oct 2026): Send 1a and Send 1b take every client of that arm who can go now, whatever filter is on screen, up to
+// what the day has left, and open the usual review. 1b has none while it is held.
+function lqwArmRows(a) { return ((lqwSt[1] || { rows: [] }).rows).filter(r => lqwArm(r) === a && lqCanSend(r)); }
+function lqwSendArm(a) {
+  const i = lqSnd.info;
+  if (!i) return;
+  const rows = lqwArmRows(a).slice(0, Math.max(0, i.daily_cap - i.used_today));
+  if (rows.length) lqSendRowsReview(rows);
+}
+function lqwArmButtons() {
+  if (!lqwIsOpen(1) || !lqSendOn()) return '';
+  const rA = lqwArmRows('a').length, rB = lqwArmRows('b').length;
+  return `<div class="lqw-row" style="margin:10px 0 2px"><button type="button" class="tglr lc-btn lq-pri" onclick="lqwSendArm('a')"${rA ? '' : ' disabled'}>Send 1a standard (${lcNum(rA)})…</button>
+    <button type="button" class="tglr lc-btn" onclick="lqwSendArm('b')"${rB ? '' : ' disabled'}>${LQW_HOLD_1B ? '1b story: held back' : `Send 1b story (${lcNum(rB)})…`}</button></div>`;
+}
 // Each wave split by message and branch (Kate, 15 Oct 2026): one row per message (Wave 1 also per arm, 1a standard and 1b story), one column per branch.
 // Each cell is the clients still to send of the clients in the wave; the total column says how many of the wave have gone.
 function lqwBreakdownHtml(n) {
@@ -216,7 +231,7 @@ function lqwBreakdownHtml(n) {
     lines.push(`<tr><td>${lbl}</td>${LQW_BR.map(b => `<td>${cell(b)}</td>`).join('')}<td><b>${lcNum(rs.length)}</b><span class="slv-note"> · ${lcNum(sent)} gone</span></td></tr>`);
   }));
   return `<div class="lqw-bd"><div class="slv-note">Still to send, of the clients in this wave, by message and branch</div>
-    <table class="slv-table lqw-tbl"><thead><tr><th>Message</th>${LQW_BR.map(b => `<th>${lcEsc(LC_BRANCH[b] || b)}</th>`).join('')}<th>Wave</th></tr></thead><tbody>${lines.join('')}</tbody></table></div>`;
+    <table class="slv-table lqw-tbl"><thead><tr><th>Message</th>${LQW_BR.map(b => `<th>${lcEsc(LC_BRANCH[b] || b)}</th>`).join('')}<th>Wave</th></tr></thead><tbody>${lines.join('')}</tbody></table>${n === 1 ? lqwArmButtons() : ''}</div>`;
 }
 // Days each unfinished wave needs at the daily cap, one after the other, each on a fresh sending day (Monday to Friday).
 function lqwPlan() {
