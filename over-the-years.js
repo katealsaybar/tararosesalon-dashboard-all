@@ -108,6 +108,26 @@ function otyCss() {
   .oty .oty-tile .v{font-size:clamp(19px,5.6vw,30px);font-weight:600;margin:6px 0 2px;font-variant-numeric:tabular-nums;white-space:nowrap}
   .oty .oty-tile .s{font-size:12px;color:var(--muted);line-height:1.4}
   .oty .oty-tile.now{border-color:var(--accent)}
+  .oty .oty-rows,.oty .oty-m,.oty .oty-jumpm{display:none}
+  @media(max-width:760px),(hover:none) and (max-height:480px){
+    .oty .oty-tiles,.oty .oty-d,.oty .lg-side{display:none}
+    .oty .oty-m{display:inline}
+    .oty .oty-rows{display:block;margin-top:14px}
+    .oty .oty-rcap{margin:0 0 2px;font-size:13px;color:var(--muted)}
+    .oty .oty-rh,.oty .oty-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:14px;align-items:center}
+    .oty .oty-rh{font-size:12px;color:var(--muted);padding:8px 0 6px;border-bottom:1px solid var(--border)}
+    .oty .oty-rh span:not(:first-child){text-align:right}
+    .oty .oty-row{min-height:52px;padding:0 8px;margin:0 -8px;border-bottom:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .oty .oty-row.sel{background:color-mix(in srgb,var(--accent) 14%,transparent);border-radius:8px}
+    .oty .oty-row .y b{display:block;font-size:16px;font-weight:600;line-height:1.2}
+    .oty .oty-row .y small,.oty .oty-row .g small{display:block;font-size:12px;color:var(--muted);line-height:1.3}
+    .oty .oty-row .v{font-size:16px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .oty .oty-row .g{text-align:right;min-width:56px}
+    .oty .oty-row .g .oty-chg{margin-top:0;font-size:12.5px}
+    .oty .oty-jumpm{display:block;margin:14px 0 4px}
+    .oty .oty-jumpm span{display:block;font-size:12px;color:var(--muted);margin:0 0 4px}
+    .oty .oty-jumpm select{width:100%;min-height:44px}
+  }
   .oty .oty-chg{display:inline-block;font-weight:700;font-size:12.5px;padding:3px 9px;border-radius:999px;margin-top:6px;white-space:nowrap}
   .oty .oty-chg.up{color:var(--good);background:var(--good-bg)}.oty .oty-chg.dn{color:var(--bad);background:var(--bad-bg)}.oty .oty-chg.flat{color:var(--muted);background:var(--surface2)}
   .oty .oty-up{color:var(--good)}.oty .oty-dn{color:var(--bad)}
@@ -411,6 +431,7 @@ function otyDraw() {
     <p class="oty-deck">Where the business has grown, which branch carried it, and how this year's seasons sit against the years before.</p>
     ${otyControls()}
     ${otyTiles(rows)}
+    ${otyJumpMenu(parts)}
     ${shell}
   </div>`;
   otySeasonPlace();
@@ -421,6 +442,11 @@ function otyControls() {
       <button class="oty-pill" aria-pressed="${OTY.basis === 'same'}" onclick="otySet('basis','same')">Same days (1 Jan – ${otyCutLabel()})</button>
       <button class="oty-pill" aria-pressed="${OTY.basis === 'full'}" onclick="otySet('basis','full')">Full years</button></div>`;
 }
+// On a phone the rail's chips wrapped into five rows; this is the same list as one menu (the rail is hidden there).
+function otyJumpMenu(parts) {
+  return `<label class="oty-jumpm"><span>On this page</span><select aria-label="On this page" onchange="otyJump(this)"><option value="">Jump to a section</option>${parts.map(([id, label]) => `<option value="${id}">${otyEsc(label)}</option>`).join('')}</select></label>`;
+}
+function otyJump(sel) { if (sel.value && typeof lgJump === 'function') lgJump(null, sel.value); }
 function otySet(k, v) { OTY[k] = v; otySave(); otyDraw(); }
 function otyPick(i) { OTY.sel = i; otyDraw(); }
 // Kate, 13 Oct 2026: the tiles ignored the Compare on switch (Full years still said "1 Jan – 12 Oct" and "same days").
@@ -435,9 +461,15 @@ function otyTiles(rows) {
   const chg = r => r.big ? '<span class="oty-chg flat">new</span>' : otyChg(r.growth);
   const tiles = rows.filter(r => r.net > 0).slice().reverse().map(r => `<div class="oty-card oty-tile${OTY.sel === r.i ? ' sel' : ''}" role="button" tabindex="0" aria-pressed="${OTY.sel === r.i}" onclick="otyPick(${r.i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();otyPick(${r.i})}">
       <div class="k">${r.y} · ${label(r)}</div><div class="v">${otyM(r.net)}</div><div class="s">${otySetLabel(set)}</div>${hist ? '' : chg(r)}<div class="s" style="margin-top:6px">${vs(r)}</div></div>`).join('');
+  // A phone gets one row per year instead of the sideways tiles (Kate, 15 Oct 2026: no containers, no album scrolling); the
+  // CSS shows one or the other. Same figures, same tap.
+  const rowOf = r => `<div class="oty-row${OTY.sel === r.i ? ' sel' : ''}" role="button" tabindex="0" aria-pressed="${OTY.sel === r.i}" onclick="otyPick(${r.i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();otyPick(${r.i})}"><span class="y"><b>${r.y}</b><small>${label(r)}</small></span><span class="v">${otyM(r.net)}</span><span class="g">${hist ? '' : (chg(r) || '<small>first year</small>')}</span></div>`;
+  const rowsHtml = rows.filter(r => r.net > 0).slice().reverse().map(rowOf).join('');
+  const list = `<div class="oty-rows" role="group" aria-label="Net take for each year"><p class="oty-rcap">${otySetLabel(set)}</p><div class="oty-rh"><span>Year</span><span>Net take</span><span>${hist ? '' : 'vs year before'}</span></div>${rowsHtml}</div>`;
+  const tail = `${cy} is part-way, so it is always set against the same days of ${cy - 1}.`;
   const note = hist ? `Marasy's Phorest data runs 1 Jul 2021 to 24 Dec 2022. Both years are part-years, so there is no growth figure, and the real closing date is not confirmed.`
-    : `One tile for every year. Scroll sideways for the rest, and tap one to read it in the chart below. ${cy} is part-way, so it is always set against the same days of ${cy - 1}.`;
-  return `<div class="oty-tiles" tabindex="0" role="group" aria-label="Net take for each year, scroll sideways">${tiles}</div>
+    : `<span class="oty-d">One tile for every year. Scroll sideways for the rest, and tap one to read it in the chart below. </span><span class="oty-m">Tap a year to read it in the chart below. </span>${tail}`;
+  return `<div class="oty-tiles" tabindex="0" role="group" aria-label="Net take for each year, scroll sideways">${tiles}</div>${list}
     <p class="oty-note" style="margin:6px 2px 0">${note}</p>`;
 }
 // Kate, 9 Oct 2026: "it's too big" on a desktop. The charts were drawn on a 360 unit phone canvas and then
