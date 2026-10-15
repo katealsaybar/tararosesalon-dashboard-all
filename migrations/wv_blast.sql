@@ -87,3 +87,8 @@ revoke all on function public.wv_blast_get() from public, anon;
 grant execute on function public.wv_blast_get() to authenticated;
 grant execute on function public.wv_blast_candidates(uuid, date), public.wv_blast_pull(uuid), public.wv_blast_push(uuid, jsonb) to anon, authenticated;
 alter function public.wv_blast_candidates(uuid, date) set statement_timeout = '90s';  -- the anon role's 8s limit was too short for the sales scan
+
+-- 15 Oct 2026, message test (Kate: "half and half, short vs long"): each wave and branch split 50/50. test_arm = 'short' (the image template
+-- with Tell me more / Reserve mine) or 'long' (the plans written out); sub_wave = wave + a (short) or b (long), the GHL tag wv-blast-wave-1a ... 5b.
+-- Assigned once in SQL (rows ordered by spend inside wave + branch, alternating, so each half has the same mix); a refresh leaves them alone and new rows start blank.
+alter table public.wv_blast add column if not exists test_arm text, add column if not exists sub_wave text;
