@@ -142,3 +142,4 @@
 #lostListsContent .lqw-dot{width:26px;height:26px;font-size:12px}
 #lostListsContent .lqw-step::before{top:12px}
 #lostListsContent .lq-sendbar{font-size:12.5px}
+.lqw-bd{margin:10px 0 4px;padding:0 4px}.lqw-bd .lqw-tbl td,.lqw-bd .lqw-tbl th{white-space:nowrap}

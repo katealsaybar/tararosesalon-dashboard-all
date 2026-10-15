@@ -191,6 +191,24 @@ function lqwBranchBar(br) {
   return `<div class="lqw-brw"><div class="lqw-brs">${LQW_BR.map(b => `<i style="width:${100 * (br[b] || 0) / tot}%;background:${LQW_BRC[b]}" title="${lcEsc(LC_BRANCH[b] || b)} ${lcNum(br[b] || 0)}"></i>`).join('')}</div>
     <div class="lqw-leg">${LQW_BR.map(b => `<span style="--c:${LQW_BRC[b]}">${b} ${lcNum(br[b] || 0)}</span>`).join('')}</div></div>`;
 }
+// Each wave split by message and branch (Kate, 15 Oct 2026): one row per message (Wave 1 also per arm, 1a standard and 1b story), one column per branch.
+// Each cell is the clients still to send of the clients in the wave; the total column says how many of the wave have gone.
+function lqwBreakdownHtml(n) {
+  const s = lqwSt[n];
+  if (!s || !s.rows.length) return '';
+  const arms = n === 1 ? ['a', 'b'] : [''];
+  const lines = [];
+  LQ_TYPE_ORDER.forEach(t => arms.forEach(a => {
+    const rs = s.rows.filter(r => r.qtype === t && (a === '' || lqwArm(r) === a));
+    if (!rs.length) return;
+    const cell = b => { const x = rs.filter(r => r.branch === b), left = x.filter(r => !lqwUsed(r)).length; return x.length ? `${lcNum(left)}<span class="slv-note"> of ${lcNum(x.length)}</span>` : '<span class="slv-muted">0</span>'; };
+    const sent = rs.filter(lqwUsed).length;
+    const lbl = `${lcEsc(LQ_TYPES[t][0])}${a ? ` <span class="ll-tag">${n}${a}</span> <span class="slv-note">${a === 'b' ? 'story' : 'standard'}</span>` : ''}`;
+    lines.push(`<tr><td>${lbl}</td>${LQW_BR.map(b => `<td>${cell(b)}</td>`).join('')}<td><b>${lcNum(rs.length)}</b><span class="slv-note"> · ${lcNum(sent)} gone</span></td></tr>`);
+  }));
+  return `<div class="lqw-bd"><div class="slv-note">Still to send, of the clients in this wave, by message and branch</div>
+    <table class="slv-table lqw-tbl"><thead><tr><th>Message</th>${LQW_BR.map(b => `<th>${lcEsc(LC_BRANCH[b] || b)}</th>`).join('')}<th>Wave</th></tr></thead><tbody>${lines.join('')}</tbody></table></div>`;
+}
 // Days each unfinished wave needs at the daily cap, one after the other, each on a fresh sending day (Monday to Friday).
 function lqwPlan() {
   const cap = lqSnd.info ? lqSnd.info.daily_cap : 50;
@@ -297,7 +315,7 @@ function lqwWavesHtml() {
       <span class="lqw-num">${st === 'done' ? '✓' : w.n}</span>
       <span class="lqw-wt"><b>Wave ${w.n}: ${lcEsc(w.name)}</b> <span class="lqw-pill ${st}">${label}</span><span class="slv-note">${lcEsc(w.who)}</span>${s.arm ? `<span class="slv-note">Message test: 1a standard ${lcNum(s.arm.a)} · 1b story ${lcNum(s.arm.b)}</span>` : ''}</span>
       <span class="lqw-cnt"><b>${lcNum(s.size)}</b><span class="slv-note">${s.used ? `${lcNum(s.used)} messaged` : 'clients'}</span></span>${lqwBranchBar(s.br)}</button>
-      ${w.n === cur ? lqwBody(w.n) : ''}</div>`;
+      ${w.n === cur ? lqwBreakdownHtml(w.n) + lqwBody(w.n) : ''}</div>`;
   }).join('');
 }
 
