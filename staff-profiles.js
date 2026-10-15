@@ -269,17 +269,19 @@ const STAFF_PROFILES = {
   // blank line-art template (female or male) as a placeholder and no `ig`. One file per person on purpose:
   // renderStylistCards and the Team Roster dedupe on the photo path, so a shared placeholder would collapse
   // them into one card. Replace the file (same name) when a real headshot comes.
+  // Kate, 15 Oct 2026: `blank: true` marks the line-art template placeholder (the 6 files below), which keeps its own
+  // colour on the Former cards instead of going black and white like a real photo. Drop the flag when a headshot replaces the file.
   // Zoe: Al Quoz Sep 2024 to Jan 2025 (KCA early 2021); role and branch not confirmed, so Stylist/AQ is a default.
-  'ZOE':      { photoFull: 'stylist/photos/AQ/zoe hogkinson.png', role: 'Stylist', branch: 'AQ', resigned: true },
+  'ZOE':      { photoFull: 'stylist/photos/AQ/zoe hogkinson.png', blank: true, role: 'Stylist', branch: 'AQ', resigned: true },
   // Harriet: Saadiyat Mar to Jun 2025 (one Khalifa City A day), archived in Phorest.
-  'HARRIET':  { photoFull: 'stylist/photos/SAA/harriet shannon.png', role: 'Stylist', branch: 'SAA', resigned: true },
+  'HARRIET':  { photoFull: 'stylist/photos/SAA/harriet shannon.png', blank: true, role: 'Stylist', branch: 'SAA', resigned: true },
   // Venus: Motor City Nov 2022 to Jan 2025 (683 daily rows). Junior Stylist per the roster export.
-  'VENUS':    { photoFull: 'stylist/photos/MC/venus solomon.png', role: 'Junior Stylist', branch: 'MC', resigned: true },
+  'VENUS':    { photoFull: 'stylist/photos/MC/venus solomon.png', blank: true, role: 'Junior Stylist', branch: 'MC', resigned: true },
   // Oliver: Barber at Al Quoz, Dec 2025 to Jan 2026.
-  'OLIVER':   { photoFull: 'stylist/photos/AQ/oliver green.png', role: 'Barber', branch: 'AQ', resigned: true },
+  'OLIVER':   { photoFull: 'stylist/photos/AQ/oliver green.png', blank: true, role: 'Barber', branch: 'AQ', resigned: true },
   // Aboudi: Al Quoz Sep 2023 to Mar 2024 (136 daily rows). Title is Phorest's own category (3 Style Director,
   // DXB) off the 14 Oct 2026 roster export; the 9 Oct variants note said Stylist. Male placeholder, no ig.
-  'ABOUDI':   { photoFull: 'stylist/photos/AQ/aboudi chatila.png', role: 'Style Director', branch: 'AQ', resigned: true },
+  'ABOUDI':   { photoFull: 'stylist/photos/AQ/aboudi chatila.png', blank: true, role: 'Style Director', branch: 'AQ', resigned: true },
   // Jaime: Khalifa City A Stylist, Jun 2022 to Aug 2024 on the roster export (Phorest has her as Jaime Petzer).
   // Kate, 14 Oct 2026: real headshot and IG jetaime__hair, under the name Jaime Booth. The ledger has only one
   // Jaime/Jaimie/Jamie (KCA, Jun 2022 to Feb 2023, 240 daily rows) and the roster has no Booth, so this is taken as
@@ -298,7 +300,7 @@ const STAFF_PROFILES = {
   // Josh: Stylist on the roster export, Al Quoz (archived 17 Mar 2026). His ledger rows are mostly Fratelli
   // (44 days, Nov 2023 to Jan 2024) with 6 at Al Quoz; branch follows the roster because the Team Roster
   // has no FRT group. Male placeholder, no ig.
-  'JOSH':     { photoFull: 'stylist/photos/AQ/josh thomas.png', role: 'Stylist', branch: 'AQ', resigned: true },
+  'JOSH':     { photoFull: 'stylist/photos/AQ/josh thomas.png', blank: true, role: 'Stylist', branch: 'AQ', resigned: true },
   // Kate, 14 Oct 2026: Michelle was an Assistant (roster export: archived at Saadiyat, Khalifa City A and
   // Marasy); ledger mostly Saadiyat, 315 daily rows May 2022 to Jun 2023. Not the shared 'MYRA/MICHELLE'
   // assistants cell above: that key is a ledger cell, this is her own card. Her photo came in the same two-image

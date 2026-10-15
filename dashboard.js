@@ -1930,7 +1930,7 @@ async function renderStylistCards() {
       // outside assets/staff/) — encodeURI, not encodeURIComponent, so its slashes
       // survive; plain `photo` stays relative to assets/staff/ as before.
       const photo = s.photoFull
-        ? `<img class="sc-photo${s.resigned ? ' is-resigned' : ''}" src="${encodeURI(s.photoFull)}" alt="" loading="lazy" decoding="async"
+        ? `<img class="sc-photo${s.resigned && !s.blank ? ' is-resigned' : ''}" src="${encodeURI(s.photoFull)}" alt="" loading="lazy" decoding="async"
                onerror="this.style.display='none'">`
         : s.photo
         ? `<img class="sc-photo${s.resigned ? ' is-resigned' : ''}" src="assets/staff/${encodeURIComponent(s.photo)}" alt="" loading="lazy" decoding="async"
