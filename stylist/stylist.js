@@ -76,6 +76,7 @@ const STYLIST_SURNAMES = {
   "Catrin":    "Birkby",
   "Reshel":    "Tagayuna",
   "Rhi":       "George",
+  "Gabby":     "Nemeth",
   "Zoe":       "Hogkinson",
   "Aboudi":    "Chatila",
   "Nicole":    "Sullivan",    // Phorest has O'sullivan; Kate, 14 Oct 2026: Sullivan
@@ -242,6 +243,7 @@ const STYLIST_PHOTOS = {
   "Emin":      "AQ/emin salamovic.png",     // left Oct 2024, Stylist at AQ — Kate, 14 Oct 2026
   "Catrin":    "MC/catrin birkby.png",      // left Feb 2023, Senior Stylist at MC — Kate, 14 Oct 2026
   "Reshel":    "SAA/reshel tagayuna.png",   // left 2023, Junior Stylist at SAA — Kate, 14 Oct 2026
+  "Gabby":     "SAA/gabby nemeth.png",   // Stylist at SAA Jun 2023 to May 2024 (ledger), Phorest archived 2026 — Kate, 15 Oct 2026
   "Rhi":       "SAA/rhi george.png",   // Style Director at SAA (Phorest), ledger Jan 2021 to Jul 2023; Rhi Hurley in ROSES — Kate, 15 Oct 2026
   // Blank line-art placeholders, no client-facing IG yet — Kate, 14 Oct 2026. Same files as staff-profiles.js.
   "Zoe":       "AQ/zoe hogkinson.png",
@@ -310,6 +312,7 @@ const STYLIST_IG = {
   "Emin":       "https://www.instagram.com/hairdoctoremin/",
   "Catrin":     "https://www.instagram.com/catrinhair.dxb/",
   "Reshel":     "https://www.instagram.com/reshelwijesinghe/",
+  "Gabby":      "https://www.instagram.com/zuzu_hair_/",   // from her Sept 2023 business card; Kate, 15 Oct 2026
   "Rhi":        "https://www.instagram.com/hairbyrhiabudhabi/",   // Rhi George (Phorest) = Rhi Hurley (ROSES, Jan 2022 and Jan 2023 features); Kate, 15 Oct 2026
   "Michelle":   "https://www.instagram.com/alinea.michelle/",
   "Mihaela":    "https://www.instagram.com/dare.to_hair/",
@@ -353,7 +356,7 @@ const STYLIST_IG = {
 // if she comes back (see Hazel Mae, who left this list when her 2nd-batch card and
 // STAFF_PROFILES entry came back, Sep 2026). Keys match STYLIST_PHOTOS spelling.
 const STYLIST_RESIGNED = new Set([
-  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Rhi", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi", "Jaime", "Josh", "Michelle", "Mihaela", "Cecille", "Maricel", "Melliza", "Dina", "Joanne", "Rita", "Emmalyn", "Nicole", "Sahra", "Jackie", "Karina", "Lorena", "Neeka",
+  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Rhi", "Gabby", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi", "Jaime", "Josh", "Michelle", "Mihaela", "Cecille", "Maricel", "Melliza", "Dina", "Joanne", "Rita", "Emmalyn", "Nicole", "Sahra", "Jackie", "Karina", "Lorena", "Neeka",
 ]);
 function isResignedStylist(cleanName) {
   return STYLIST_RESIGNED.has(cleanName);
