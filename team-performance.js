@@ -149,7 +149,7 @@ const TP_ROLE_FIX = { 'TARA': 'Owner', 'TARA KIDD': 'Owner',
   'JHO': 'Assistant', 'JHO CAIREL': 'Assistant',
   // Kate, 15 Oct 2026: assistants, not stylists or beauticians, so not on the race: Lorie (KCA, Saadiyat), Arlene (Motor City),
   // Farwa (Bahrain), and Abigail Yanga (Saadiyat, possibly an assistant).
-  'LORIE': 'Assistant', 'ARLENE': 'Assistant', 'FARWA': 'Assistant', 'ABIGAIL': 'Assistant', 'ABIGAIL YANGA': 'Assistant' };
+  'LORIE': 'Assistant', 'ARLENE': 'Assistant', 'NICOLA': 'Assistant', 'FARWA': 'Assistant', 'ABIGAIL': 'Assistant', 'ABIGAIL YANGA': 'Assistant' };
 // Photos for people with no staff card: the owner and Bahrain's managing director, both from the org chart.
 const TP_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'TARA KIDD': 'assets/org-chart/tara-rose-kidd.png',
   'DAISY': 'assets/org-chart/daisy-charlotte-cropper.png', 'DAISY CROPPER': 'assets/org-chart/daisy-charlotte-cropper.png' };
