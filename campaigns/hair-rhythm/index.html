@@ -35,6 +35,13 @@
   .door .ptable th{font-size:9px;letter-spacing:.05em}
   .door .ptable .svcalt{font-size:11px}
 }
+.ogroup{margin-top:46px;scroll-margin-top:96px}.ogroup:first-of-type{margin-top:34px}
+.ogroup h3{font-family:var(--fd);font-weight:500;font-size:clamp(26px,3.4vw,32px);text-align:center;margin:0;color:var(--ink)}
+.ogroup .who{max-width:56ch;margin:8px auto 0;text-align:center;font-family:var(--fb);font-size:16px;font-weight:300;line-height:1.55;color:var(--ink-soft)}
+.ogroup .doors{margin-top:22px}
+.ochips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:22px auto 0;max-width:720px}
+.ochips a{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border:1px solid var(--hair);border-radius:999px;background:var(--paper);font-family:var(--fb);font-size:12.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text);text-decoration:none}
+.ochips a:hover{border-color:var(--accent-text)}
 .short-note{max-width:60ch;margin:28px auto 0;text-align:center;font-family:var(--fb);font-size:15px;font-weight:300;line-height:1.6;color:var(--ink-soft)}
 .hero-hr{background:#161512 url(assets/img/hero-junior.jpg) 0% 36%/112% auto no-repeat}
 .hero-hr::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,rgba(20,19,17,.9) 0%,rgba(20,19,17,.72) 36%,rgba(20,19,17,.08) 62%,rgba(20,19,17,0) 100%);opacity:1}
@@ -90,41 +97,16 @@
   </div>
 </section>
 
-<section id="fit" style="background:var(--cream);">
-  <div class="wrap">
-    <div class="sec-head center">
-      <span class="eyebrow">Is this for you?</span>
-      <h2>If any of these sound like you, <em>yes.</em></h2>
-    </div>
-    <div class="fit">
-      <div class="inc"><p>Your colour has gone warm or flat.</p></div>
-      <div class="inc"><p>Your hair feels tired, dry or frizzy.</p></div>
-      <div class="inc"><p>You want to feel polished more than once every few weeks.</p></div>
-    </div>
-  </div>
-</section>
-
-<section class="dark" id="rhythm">
-  <div class="wrap">
-    <div class="sec-head center">
-      <span class="eyebrow">The rhythm</span>
-      <h2>The result lives in <em>the weeks in between.</em></h2>
-    </div>
-    <div class="timeline timeline--strip">
-      <div class="tstep"><span class="wk">Week 1</span><b>Colour day</b></div>
-      <div class="tstep"><span class="wk">Week 4 to 5</span><b>The Tone Reset</b></div>
-      <div class="tstep"><span class="wk">Week 8</span><b>A treatment or a blow-dry</b></div>
-      <div class="tstep"><span class="wk">Week 10</span><b>Colour again</b></div>
-    </div>
-  </div>
-</section>
-
 <section id="start" class="menu-sec" style="background:var(--paper);">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">What is on offer</span>
       <h2>Pick the one that sounds like <em>you.</em></h2>
+      <nav class="ochips" aria-label="Offers"><a href="#o-colour">Colour maintenance</a><a href="#o-blowdry">Blow-dry packages</a><a href="#o-treatment">Treatments</a><a href="#o-trim">Trim</a></nav>
     </div>
+    <div class="ogroup" id="o-colour">
+      <h3>Colour maintenance</h3>
+      <p class="who">For you if your colour has gone warm or flat, or has started to grow out.</p>
     <div class="doors">
     <article class="door">
       <h3>The Tone Reset</h3>
@@ -134,52 +116,6 @@
       <details class="bands"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 200</b></li><li><span>Medium</span><b>AED 255</b></li><li><span>Long / Thick</span><b>AED 310</b></li><li><span>Extra Long</span><b>AED 405</b></li></ul></details>
       <p class="door__where"><span>When</span> Week four to five after colour.</p>
       <a class="pill pill--accent" href="#book" data-svc="toner">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>Treatment and Blow-dry</h3>
-      <p>One appointment that treats your hair or scalp and finishes it. Your stylist prescribes the treatment that suits your hair.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Strength, Colour Longevity, Hydration &amp; Frizz or Scalp Health</li><li><span class="tk"></span>Worked through your 8-Step Hair Plan</li><li><span class="tk"></span>A blow-dry to finish</li></ul>
-      <span class="from">From<b>AED 205</b></span>
-      <details class="bands"><summary>Prices by treatment and length</summary><table class="ptable"><thead><tr><th scope="col">Treatment</th><th scope="col">Short / Fine</th><th scope="col">Medium</th><th scope="col">Long / Thick</th><th scope="col">Extra Long</th></tr></thead><tbody><tr><td>Strength<span class="svcalt">Repair</span></td><td><b><span class="cur">AED </span>205</b></td><td><b><span class="cur">AED </span>245</b></td><td><b><span class="cur">AED </span>280</b></td><td><b><span class="cur">AED </span>320</b></td></tr><tr><td>Colour Longevity<span class="svcalt">Colour Lock</span></td><td><b><span class="cur">AED </span>245</b></td><td><b><span class="cur">AED </span>260</b></td><td><b><span class="cur">AED </span>270</b></td><td><b><span class="cur">AED </span>280</b></td></tr><tr><td>Hydration &amp; Frizz<span class="svcalt">Restore Edit</span></td><td><b><span class="cur">AED </span>285</b></td><td><b><span class="cur">AED </span>325</b></td><td><b><span class="cur">AED </span>360</b></td><td><b><span class="cur">AED </span>400</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, vegan</span></td><td><b><span class="cur">AED </span>205</b></td><td><b><span class="cur">AED </span>220</b></td><td><b><span class="cur">AED </span>230</b></td><td><b><span class="cur">AED </span>240</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, caviar</span></td><td><b><span class="cur">AED </span>245</b></td><td><b><span class="cur">AED </span>260</b></td><td><b><span class="cur">AED </span>270</b></td><td><b><span class="cur">AED </span>280</b></td></tr></tbody></table><p class="ptable__note">Every price includes the blow-dry to finish.</p></details>
-      <p class="door__where"><span>When</span> Monthly, between colour visits.</p>
-      <a class="pill pill--accent" href="#book" data-svc="treatment">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>Treatment Courses</h3>
-      <p>Three or five sessions, prepaid, with the same stylist tracking the result at every visit.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Three or five sessions, one payment</li><li><span class="tk"></span>The same stylist tracking your result</li><li><span class="tk"></span>Your stylist will say so if one session is all you need</li></ul>
-      <span class="from">Three from<b>AED 585</b></span>
-      <span class="from">Five from<b>AED 975</b></span>
-      <details class="bands"><summary>Prices by course and length</summary><table class="ptable"><thead><tr><th scope="col">Course</th><th scope="col" class="ses">Sessions</th><th scope="col">Short / Fine</th><th scope="col">Medium</th><th scope="col">Long / Thick</th><th scope="col">Extra Long</th></tr></thead><tbody><tr><td>Strength<span class="svcalt">Repair</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>585</b></td><td><b><span class="cur">AED </span>700</b></td><td><b><span class="cur">AED </span>800</b></td><td><b><span class="cur">AED </span>915</b></td></tr><tr><td>Strength<span class="svcalt">Repair</span></td><td class="ses">5</td><td><b><span class="cur">AED </span>975</b></td><td><b><span class="cur">AED </span>1,165</b></td><td><b><span class="cur">AED </span>1,335</b></td><td><b><span class="cur">AED </span>1,520</b></td></tr><tr><td>Colour Longevity<span class="svcalt">Colour Lock</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>700</b></td><td><b><span class="cur">AED </span>735</b></td><td><b><span class="cur">AED </span>765</b></td><td><b><span class="cur">AED </span>800</b></td></tr><tr><td>Hydration &amp; Frizz<span class="svcalt">Restore Edit</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>810</b></td><td><b><span class="cur">AED </span>925</b></td><td><b><span class="cur">AED </span>1,025</b></td><td><b><span class="cur">AED </span>1,140</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, vegan</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>585</b></td><td><b><span class="cur">AED </span>620</b></td><td><b><span class="cur">AED </span>655</b></td><td><b><span class="cur">AED </span>690</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, caviar</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>700</b></td><td><b><span class="cur">AED </span>735</b></td><td><b><span class="cur">AED </span>765</b></td><td><b><span class="cur">AED </span>800</b></td></tr></tbody></table><p class="ptable__note">One payment covers every session in the course.</p></details>
-      <p class="door__where"><span>When</span> Every three weeks.</p>
-      <a class="pill pill--accent" href="#book" data-svc="course">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>The Blow-dry Edit</h3>
-      <p>Three blow-dries, prepaid, so the week starts the way you want it to rather than the way it happens to.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Three blow-dries</li><li><span class="tk"></span>Booked as you need them</li><li><span class="tk"></span>The same stylist each time if you would like her</li></ul>
-      <span class="from">Three from<b>AED 264</b></span>
-      <details class="bands"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 264</b></li><li><span>Medium</span><b>AED 300</b></li><li><span>Long / Thick</span><b>AED 336</b></li><li><span>Extra Long</span><b>AED 372</b></li></ul></details>
-      <p class="door__where"><span>When</span> Every week, or every other week, across the weeks between colour visits.</p>
-      <a class="pill pill--accent" href="#book" data-svc="bundle">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>The Blow-dry Series</h3>
-      <p>Five blow-dries, prepaid, for when a blow-dry stops being occasional and becomes your routine.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Five blow-dries</li><li><span class="tk"></span>Booked as you need them</li><li><span class="tk"></span>The same stylist each time if you would like her</li></ul>
-      <span class="from">Five from<b>AED 415</b></span>
-      <details class="bands"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 415</b></li><li><span>Medium</span><b>AED 470</b></li><li><span>Long / Thick</span><b>AED 525</b></li><li><span>Extra Long</span><b>AED 585</b></li></ul></details>
-      <p class="door__where"><span>When</span> Weekly, across a month and a bit.</p>
-      <a class="pill pill--accent" href="#book" data-svc="bundle">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>Four Weeks of Blow-dries</h3>
-      <p>Two blow-dries a week across four weeks, booked in advance.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Eight blow-dries across four weeks</li><li><span class="tk"></span>Two a week</li><li><span class="tk"></span>Slots held in advance</li></ul>
-      <span class="from">Four weeks, short or fine hair<b>AED 660</b></span>
-      
-      <p class="door__where"><span>When</span> A month of blow-dries already in the diary.</p>
-      <a class="pill pill--accent" href="#book" data-svc="bundle">Book this <span class="arr">&rarr;</span></a>
     </article>
     <article class="door">
       <h3>The Root Refresh</h3>
@@ -208,6 +144,70 @@
       <p class="door__where"><span>When</span> Whenever the front grows out before the rest.</p>
       <a class="pill pill--accent" href="#book" data-svc="colour">Book this <span class="arr">&rarr;</span></a>
     </article>
+    </div>
+    </div>
+    <div class="ogroup" id="o-blowdry">
+      <h3>Blow-dry packages</h3>
+      <p class="who">For you if you want to feel polished more than once every few weeks.</p>
+    <div class="doors">
+    <article class="door">
+      <h3>The Blow-dry Edit</h3>
+      <p>Three blow-dries, prepaid, so the week starts the way you want it to rather than the way it happens to.</p>
+      <ul class="door__inc"><li><span class="tk"></span>Three blow-dries</li><li><span class="tk"></span>Booked as you need them</li><li><span class="tk"></span>The same stylist each time if you would like her</li></ul>
+      <span class="from">Three from<b>AED 264</b></span>
+      <details class="bands"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 264</b></li><li><span>Medium</span><b>AED 300</b></li><li><span>Long / Thick</span><b>AED 336</b></li><li><span>Extra Long</span><b>AED 372</b></li></ul></details>
+      <p class="door__where"><span>When</span> Every week, or every other week, across the weeks between colour visits.</p>
+      <a class="pill pill--accent" href="#book" data-svc="bundle">Book this <span class="arr">&rarr;</span></a>
+    </article>
+    <article class="door">
+      <h3>The Blow-dry Series</h3>
+      <p>Five blow-dries, prepaid, for when a blow-dry stops being occasional and becomes your routine.</p>
+      <ul class="door__inc"><li><span class="tk"></span>Five blow-dries</li><li><span class="tk"></span>Booked as you need them</li><li><span class="tk"></span>The same stylist each time if you would like her</li></ul>
+      <span class="from">Five from<b>AED 415</b></span>
+      <details class="bands"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 415</b></li><li><span>Medium</span><b>AED 470</b></li><li><span>Long / Thick</span><b>AED 525</b></li><li><span>Extra Long</span><b>AED 585</b></li></ul></details>
+      <p class="door__where"><span>When</span> Weekly, across a month and a bit.</p>
+      <a class="pill pill--accent" href="#book" data-svc="bundle">Book this <span class="arr">&rarr;</span></a>
+    </article>
+    <article class="door">
+      <h3>Four Weeks of Blow-dries</h3>
+      <p>Two blow-dries a week across four weeks, booked in advance.</p>
+      <ul class="door__inc"><li><span class="tk"></span>Eight blow-dries across four weeks</li><li><span class="tk"></span>Two a week</li><li><span class="tk"></span>Slots held in advance</li></ul>
+      <span class="from">Four weeks, short or fine hair<b>AED 660</b></span>
+      
+      <p class="door__where"><span>When</span> A month of blow-dries already in the diary.</p>
+      <a class="pill pill--accent" href="#book" data-svc="bundle">Book this <span class="arr">&rarr;</span></a>
+    </article>
+    </div>
+    </div>
+    <div class="ogroup" id="o-treatment">
+      <h3>Treatments</h3>
+      <p class="who">For you if your hair feels tired, dry or frizzy.</p>
+    <div class="doors">
+    <article class="door">
+      <h3>Treatment and Blow-dry</h3>
+      <p>One appointment that treats your hair or scalp and finishes it. Your stylist prescribes the treatment that suits your hair.</p>
+      <ul class="door__inc"><li><span class="tk"></span>Strength, Colour Longevity, Hydration &amp; Frizz or Scalp Health</li><li><span class="tk"></span>Worked through your 8-Step Hair Plan</li><li><span class="tk"></span>A blow-dry to finish</li></ul>
+      <span class="from">From<b>AED 205</b></span>
+      <details class="bands"><summary>Prices by treatment and length</summary><table class="ptable"><thead><tr><th scope="col">Treatment</th><th scope="col">Short / Fine</th><th scope="col">Medium</th><th scope="col">Long / Thick</th><th scope="col">Extra Long</th></tr></thead><tbody><tr><td>Strength<span class="svcalt">Repair</span></td><td><b><span class="cur">AED </span>205</b></td><td><b><span class="cur">AED </span>245</b></td><td><b><span class="cur">AED </span>280</b></td><td><b><span class="cur">AED </span>320</b></td></tr><tr><td>Colour Longevity<span class="svcalt">Colour Lock</span></td><td><b><span class="cur">AED </span>245</b></td><td><b><span class="cur">AED </span>260</b></td><td><b><span class="cur">AED </span>270</b></td><td><b><span class="cur">AED </span>280</b></td></tr><tr><td>Hydration &amp; Frizz<span class="svcalt">Restore Edit</span></td><td><b><span class="cur">AED </span>285</b></td><td><b><span class="cur">AED </span>325</b></td><td><b><span class="cur">AED </span>360</b></td><td><b><span class="cur">AED </span>400</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, vegan</span></td><td><b><span class="cur">AED </span>205</b></td><td><b><span class="cur">AED </span>220</b></td><td><b><span class="cur">AED </span>230</b></td><td><b><span class="cur">AED </span>240</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, caviar</span></td><td><b><span class="cur">AED </span>245</b></td><td><b><span class="cur">AED </span>260</b></td><td><b><span class="cur">AED </span>270</b></td><td><b><span class="cur">AED </span>280</b></td></tr></tbody></table><p class="ptable__note">Every price includes the blow-dry to finish.</p></details>
+      <p class="door__where"><span>When</span> Monthly, between colour visits.</p>
+      <a class="pill pill--accent" href="#book" data-svc="treatment">Book this <span class="arr">&rarr;</span></a>
+    </article>
+    <article class="door">
+      <h3>Treatment Courses</h3>
+      <p>Three or five sessions, prepaid, with the same stylist tracking the result at every visit.</p>
+      <ul class="door__inc"><li><span class="tk"></span>Three or five sessions, one payment</li><li><span class="tk"></span>The same stylist tracking your result</li><li><span class="tk"></span>Your stylist will say so if one session is all you need</li></ul>
+      <span class="from">Three from<b>AED 585</b></span>
+      <span class="from">Five from<b>AED 975</b></span>
+      <details class="bands"><summary>Prices by course and length</summary><table class="ptable"><thead><tr><th scope="col">Course</th><th scope="col" class="ses">Sessions</th><th scope="col">Short / Fine</th><th scope="col">Medium</th><th scope="col">Long / Thick</th><th scope="col">Extra Long</th></tr></thead><tbody><tr><td>Strength<span class="svcalt">Repair</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>585</b></td><td><b><span class="cur">AED </span>700</b></td><td><b><span class="cur">AED </span>800</b></td><td><b><span class="cur">AED </span>915</b></td></tr><tr><td>Strength<span class="svcalt">Repair</span></td><td class="ses">5</td><td><b><span class="cur">AED </span>975</b></td><td><b><span class="cur">AED </span>1,165</b></td><td><b><span class="cur">AED </span>1,335</b></td><td><b><span class="cur">AED </span>1,520</b></td></tr><tr><td>Colour Longevity<span class="svcalt">Colour Lock</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>700</b></td><td><b><span class="cur">AED </span>735</b></td><td><b><span class="cur">AED </span>765</b></td><td><b><span class="cur">AED </span>800</b></td></tr><tr><td>Hydration &amp; Frizz<span class="svcalt">Restore Edit</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>810</b></td><td><b><span class="cur">AED </span>925</b></td><td><b><span class="cur">AED </span>1,025</b></td><td><b><span class="cur">AED </span>1,140</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, vegan</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>585</b></td><td><b><span class="cur">AED </span>620</b></td><td><b><span class="cur">AED </span>655</b></td><td><b><span class="cur">AED </span>690</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, caviar</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>700</b></td><td><b><span class="cur">AED </span>735</b></td><td><b><span class="cur">AED </span>765</b></td><td><b><span class="cur">AED </span>800</b></td></tr></tbody></table><p class="ptable__note">One payment covers every session in the course.</p></details>
+      <p class="door__where"><span>When</span> Every three weeks.</p>
+      <a class="pill pill--accent" href="#book" data-svc="course">Book this <span class="arr">&rarr;</span></a>
+    </article>
+    </div>
+    </div>
+    <div class="ogroup" id="o-trim">
+      <h3>Trim</h3>
+      <p class="who">For you if your cut has lost its shape.</p>
+    <div class="doors">
     <article class="door">
       <h3>The Maintenance Trim</h3>
       <p>A reshape that keeps your frame, finished before you leave.</p>
@@ -218,7 +218,37 @@
       <a class="pill pill--accent" href="#book" data-svc="trim">Book this <span class="arr">&rarr;</span></a>
     </article>
     </div>
+    </div>
     <p class="short-note">Every price shown is a starting price for short or fine hair. Where a card has a prices-by-length list, open it for yours. Your salon confirms your price before anything is booked, not at the till.</p>
+  </div>
+</section>
+
+<section id="fit" style="background:var(--cream);">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="eyebrow">Is this for you?</span>
+      <h2>If any of these sound like you, <em>yes.</em></h2>
+    </div>
+    <div class="fit">
+      <div class="inc"><p>Your colour has gone warm or flat.</p></div>
+      <div class="inc"><p>Your hair feels tired, dry or frizzy.</p></div>
+      <div class="inc"><p>You want to feel polished more than once every few weeks.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="dark" id="rhythm">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="eyebrow">The rhythm</span>
+      <h2>The result lives in <em>the weeks in between.</em></h2>
+    </div>
+    <div class="timeline timeline--strip">
+      <div class="tstep"><span class="wk">Week 1</span><b>Colour day</b></div>
+      <div class="tstep"><span class="wk">Week 4 to 5</span><b>The Tone Reset</b></div>
+      <div class="tstep"><span class="wk">Week 8</span><b>A treatment or a blow-dry</b></div>
+      <div class="tstep"><span class="wk">Week 10</span><b>Colour again</b></div>
+    </div>
   </div>
 </section>
 
