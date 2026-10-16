@@ -187,26 +187,18 @@
 .terms-list{margin:0;padding-left:20px;display:grid;gap:12px;font-family:var(--fb);font-size:15px;font-weight:300;line-height:1.6;color:var(--ink-soft)}
 .terms-list b{font-weight:600;color:var(--ink)}
 
-/* dark hero, full width: text left, photo fades into the dark ground on the right */
+/* dark hero across the full width, portrait card on the right */
 .hero-hr.hero-photo-right{background:#161512 !important;padding:0 !important;overflow:hidden}
 .hero-hr.hero-photo-right::before{display:none !important}
-.hero-hr.hero-photo-right .wrap{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);align-items:stretch;gap:0;min-height:540px}
-.hero-hr.hero-photo-right .inner{margin:0;max-width:560px;text-align:left;padding:72px 0;align-self:center}
+.hero-hr.hero-photo-right .wrap{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.8fr);align-items:center;gap:56px;padding-block:56px}
+.hero-hr.hero-photo-right .inner{margin:0;max-width:560px;text-align:left}
 .hero-photo-right .cta-row{justify-content:flex-start}
-.hero-photo-right .hero-photo{margin:0;min-width:0;position:relative}
-.hero-photo-right .hero-photo img{display:block;width:100%;height:100%;min-height:540px;max-height:none;aspect-ratio:auto;object-fit:cover;object-position:70% 12%;border-radius:0;background:#161512;
-  -webkit-mask-image:linear-gradient(to right,transparent 0,#000 18%);mask-image:linear-gradient(to right,transparent 0,#000 18%)}
-@media (min-width:861px){
-  .hero-hr.hero-photo-right{background:#161512 url(../assets/img/hero-blonde-portrait.jpg) right center/auto 100% no-repeat !important}
-  .hero-hr.hero-photo-right .wrap{grid-template-columns:minmax(0,1fr)}
-  .hero-photo-right .hero-photo{display:none}
-}
+.hero-photo-right .hero-photo{margin:0;min-width:0}
+.hero-photo-right .hero-photo img{display:block;width:100%;max-width:440px;margin-left:auto;height:auto;aspect-ratio:4/5;object-fit:cover;object-position:50% 20%;border-radius:var(--r-md);box-shadow:0 34px 60px -34px rgba(0,0,0,.75)}
 @media (max-width:860px){
-  .hero-hr.hero-photo-right .wrap{grid-template-columns:minmax(0,1fr);min-height:0}
+  .hero-hr.hero-photo-right .wrap{grid-template-columns:minmax(0,1fr);gap:22px;padding-block:24px 40px}
   .hero-photo-right .hero-photo{order:-1}
-  .hero-photo-right .hero-photo img{height:340px;min-height:0;object-position:45% 8%;
-    -webkit-mask-image:linear-gradient(to bottom,#000 55%,transparent 100%);mask-image:linear-gradient(to bottom,#000 55%,transparent 100%)}
-  .hero-hr.hero-photo-right .inner{padding:8px 0 44px;max-width:none}
+  .hero-photo-right .hero-photo img{max-width:none;aspect-ratio:4/3;object-position:50% 18%}
 }
 /* plan rows carry a small photo on the left */
 #o-plans .obody{max-width:980px}
