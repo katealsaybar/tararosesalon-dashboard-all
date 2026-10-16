@@ -33,8 +33,12 @@ function otySave() { try { localStorage.setItem(OTY_STORE, JSON.stringify({ b: O
 // Kate, 14 Oct 2026: Marasy (MRY), a former branch with Phorest daily totals and per-staff counts from 1 Jul 2021 to 24 Dec
 // 2022 (the real closing date is unproven, so it is "data to", not "closed"). It has its own chip and is never part of All
 // four or Like for like, but it is in All + closed (with Fratelli), so the group's whole history adds up. Its own chip always reads
-// whole years, since "same days of this year" means nothing for it. Marasy's sales lines only start on 17 Aug 2021, so per-visit
-// figures drop out of 2021 when it is part of the set, rather than dividing a part-year of visits into the whole year's takings.
+// whole years, since "same days of this year" means nothing for it.
+// Kate, 16 Oct 2026: Saadiyat and Khalifa City A traded from 1 Jul 2021, but their sales lines (the visits) in the database only start
+// on 23 Aug (SAA) and 10 Aug (KCA), so 2021 visits are 5 to 8 weeks short of the takings. Dividing the whole takings by part of the
+// visits overstates the bill, so 2021 per-visit is left out whenever either is in the set. Marasy's lines run from 1 Jul 2021, so it
+// is fine on its own. Take a branch out of OTY_VIS_GAP_2021 once its Jul and Aug 2021 sales lines are backfilled.
+const OTY_VIS_GAP_2021 = ['SAA', 'KCA'];
 const OTY_BR = ['SAA', 'KCA', 'MC', 'AQ', 'FRT', 'MRY'];
 const OTY_NAME = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', FRT: 'Fratelli', MRY: 'Marasy' };
 const OTY_COL = { SAA: '#C4B5FD', KCA: '#FFD4D9', MC: '#99F6E4', AQ: '#FF9B9B', FRT: '#EEF3C7', MRY: '#A5D8FF' };
@@ -114,7 +118,9 @@ function otyCss() {
   .oty .oty-sg{appearance:none;border:0;background:transparent;color:var(--muted);font:600 13px Inter,sans-serif;padding:9px 16px;border-radius:999px;cursor:pointer;white-space:nowrap;min-height:40px}
   .oty .oty-sg[aria-pressed=true]{background:var(--accent);color:var(--accent-fg)}
   .oty .oty-sg .s{display:none}
-  .oty .oty-sp,.oty .mo-swipe,.oty .oty-sm{display:none}
+  .oty .oty-sp,.oty .mo-swipe{display:none}
+  .oty .oty-sm{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:0 32px;margin-top:6px}
+  .oty .oty-sm .oty-hint{grid-column:1 / -1;margin:0 0 6px}
   .oty .sm-blk{padding:12px 0;border-top:1px solid var(--border)}
   .oty .sm-blk:first-of-type{border-top:0}
   .oty .sm-t{font-size:15px;font-weight:700;margin:0 0 6px}.oty .sm-t small{font-size:11.5px;font-weight:500;color:var(--muted2)}
@@ -127,16 +133,16 @@ function otyCss() {
   .oty .sm-m{position:absolute;left:0;right:0;top:calc(var(--SH) + 4px);text-align:center;font-style:normal;font-size:10.5px;color:var(--muted2)}
   .oty .sm-r{display:block;font-size:10px;line-height:1;color:var(--text)}
   .oty .st-yrs{display:grid;gap:8px 14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}
-  .oty .st-y{display:flex;align-items:center;gap:8px}
-  .oty .st-y b{width:44px;font-size:14px;font-variant-numeric:tabular-nums}
-  .oty .st-c{font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .oty .st-y{display:grid;grid-template-columns:50px minmax(0,1fr) minmax(0,1fr);align-items:center;gap:8px}
+  .oty .st-y b{font-size:14px;font-variant-numeric:tabular-nums}
+  .oty .st-c{font-size:13px;font-weight:700;padding:7px 10px;border-radius:999px;white-space:nowrap;text-align:center}
   .oty .st-c.hi{color:var(--good);background:var(--good-bg)}.oty .st-c.lo{color:var(--bad);background:var(--bad-bg)}
   .oty .st-spr{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;align-items:end}
   .oty .st-b{display:flex;flex-direction:column;align-items:center;gap:3px}
-  .oty .st-b em{font-style:normal;font-size:10.5px;font-weight:700;color:var(--text);min-height:13px;font-variant-numeric:tabular-nums}
-  .oty .st-t{width:100%;height:96px;display:flex;align-items:flex-end}
-  .oty .st-t div{width:100%;border-radius:4px 4px 0 0;background:var(--border)}
-  .oty .st-b.ok .st-t div{background:var(--good)}.oty .st-b.wd .st-t div{background:var(--warn)}
+  .oty .st-t{width:100%;height:112px;padding-top:18px;box-sizing:border-box;display:flex;align-items:flex-end}
+  .oty .st-f{position:relative;width:100%;border-radius:4px 4px 0 0;background:var(--border)}
+  .oty .st-f em{position:absolute;left:-6px;right:-6px;bottom:100%;margin-bottom:3px;text-align:center;font-style:normal;font-size:11px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;line-height:1}
+  .oty .st-b.ok .st-f{background:var(--good)}.oty .st-b.wd .st-f{background:var(--warn)}
   .oty .st-b i{font-style:normal;font-size:10px;color:var(--muted2)}
   .oty .st-k{display:inline-block;width:10px;height:10px;border-radius:3px;margin:0 5px 0 0;vertical-align:-1px}
   .oty .st-k+.st-k,.oty .oty-hint .st-k:not(:first-child){margin-left:12px}
@@ -192,7 +198,7 @@ function otyCss() {
     .oty .mo-hm button.mo-c:active,.oty .mo-pr.hit:active{filter:brightness(1.25)}
     .oty .mo-pr.hit{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text) 18%,transparent)}
     .oty .mo-hm .yr{position:sticky;left:0;z-index:2;background:var(--surface)}
-    .oty .oty-plot,.oty .oty-lines,.oty .oty-hov{display:none}
+    .oty .oty-plot,.oty .oty-lines{display:none}
     .oty .oty-sm{display:block;margin-top:10px}
     .oty .oty-card .oty-cov{grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:4px}
     .oty .oty-card .oty-cov .cx{display:none}
@@ -470,7 +476,7 @@ function otyRows() {
   return years.map((y, i) => {
     const w = same ? 'ytd' : 'full', partial = !same && !otyHist() && y === curYear;
     const net = otySum(set, 'net', w, i), stf = otySum(set, 'stf', w, i);
-    const vis = set.includes('MRY') && D.MRY.net[w][i] > 0 && y < 2022 ? 0 : otySum(set, 'vis', w, i);   // Marasy's sales lines start 17 Aug 2021, so 2021 per-visit figures are left out
+    const vis = y === 2021 && set.some(b => OTY_VIS_GAP_2021.includes(b)) ? 0 : otySum(set, 'vis', w, i);   // 2021 visits are part-year for SAA and KCA, see OTY_VIS_GAP_2021
     // Growth follows the toggle: whole year on whole year, except the year in progress, which can only be read on the same days.
     const gw = same || partial ? 'ytd' : 'full';
     const netY = otySum(set, 'net', gw, i), netP = i ? otySum(set, 'net', gw, i - 1) : 0;
@@ -1330,7 +1336,7 @@ function otyMoLines(X, S) {
     return `<div class="sm-blk"><div class="sm-t">${title}</div><div class="sm-g" style="--SH:${SH}px;--base:${((ymax - 100) / rng * SH).toFixed(1)}px">${cols}</div></div>`;
   };
   const smYears = years.filter(y => shown.has(y) && S.idx[y]).reverse();
-  const sm = `<div class="oty-sm"><div class="oty-hint" style="margin:0 0 6px">${otyMoStatLine(X)}. 100 is a normal month for that year. &#9790; Ramadan or Eid in the month. Tick the years at the top of the page.</div>`
+  const sm = `<div class="oty-sm"><div class="oty-hint">&#9790; Ramadan or Eid in the month. Tick the years at the top of the page.</div>`
     + smYears.map(y => mini(`${y}${y === X.curYear ? ' <small>so far</small>' : ''}`, S.idx[y].map((x, m) => x != null && otyMoState(X.M, y, m) === 'done' ? x : null), y)).join('')
     + (S.avg.some(a => a != null) ? mini('Average of the years', S.avg.map(a => a == null ? null : a), 0) : '') + '</div>';
   let lane = '';
@@ -1344,8 +1350,9 @@ function otyMoLines(X, S) {
       <div class="oty-hint">The bars under the chart show where Ramadan and Eid fell in each year. They move about 11 days earlier every year, which is the main reason the dip and the Eid lift keep changing month.</div>`;
   }
   return `<div class="oty-eb" style="margin-top:26px"><i style="background:var(--hair)"></i>The shape of each year</div>
-    <div class="oty-card"><div class="oty-chead"><b>Each year's shape</b><span class="oty-hov">How strong each month is, ${otyMoStatLine(X).toLowerCase()}. 100 is a normal month for that year, so 117 means 17% above normal and 90 means 10% below. <span class="oty-hov">Hover a month to read every year</span></div>
-      <div class="oty-lines"><div style="margin:10px 0 12px">${chips}<div class="oty-hint" style="margin:6px 0 0">Tick the years at the top of the page.</div></div>${s}${lane}</div>${sm}</div>`;
+    <div class="oty-card"><div class="oty-chead"><b>Each year's shape</b><span>${otyMoStatLine(X)}. 100 is a normal month for that year, so 117 means 17% above normal and 90 means 10% below.</span></div>
+      ${sm}
+      <details class="oty-lines oty-how" style="margin-top:14px"><summary>All the years on one line chart</summary><div style="margin:10px 0 12px">${chips}</div>${s}${lane}</details></div>`;
 }
 
 // each month this year against the same month the year before
@@ -1383,9 +1390,9 @@ function otyMoStands(X, S) {
   // per month for how much the years disagree, and two numbers for Ramadan and Eid.
   const tightM = new Set(tight.map(a => a[1])), wideM = new Set(wide.map(a => a[1])), mxS = Math.max(...ok.map(a => a[0]), 1);
   const sprBars = OTY_MON.map((mn, m) => { const v = S.spr[m];
-    if (v == null) return `<div class="st-b"><em></em><div class="st-t"></div><i>${mn}</i></div>`;
+    if (v == null) return `<div class="st-b"><div class="st-t"></div><i>${mn}</i></div>`;
     const cls = tightM.has(m) ? 'ok' : wideM.has(m) ? 'wd' : '';
-    return `<div class="st-b ${cls}"><em>${cls ? Math.round(v) : ''}</em><div class="st-t"><div style="height:${Math.max(4, v / mxS * 100)}%"></div></div><i>${mn}</i></div>`; }).join('');
+    return `<div class="st-b ${cls}"><div class="st-t"><div class="st-f" style="height:${Math.max(4, v / mxS * 100)}%">${cls ? `<em>${Math.round(v)}</em>` : ''}</div></div><i>${mn}</i></div>`; }).join('');
   const yrChips = ys.slice().reverse().map(y => `<div class="st-y"><b>${y}${y === X.curYear ? '*' : ''}</b><span class="st-c hi">&#9650; ${OTY_MON[S.peak[y]]}</span><span class="st-c lo">&#9660; ${OTY_MON[S.low[y]]}</span></div>`).join('');
   return `<div class="oty-eb" style="margin-top:26px"><i style="background:var(--warn)"></i>What stands out</div>
     <div class="oty-card oty-flag">
@@ -1394,9 +1401,7 @@ function otyMoStands(X, S) {
       <div class="oty-lab">How far the years disagree, by month</div>
       <div class="st-spr">${sprBars}</div>
       <div class="oty-hint"><span class="st-k ok"></span>Steadiest <span class="st-k wd"></span>Changes most (points apart)</div>
-      ${rIn.length && rOut.length ? `<div class="oty-lab">Ramadan and Eid</div>
-      <div class="oty-rt" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="oty-rs"><div class="k">Months with them</div><div class="v">${Math.round(mean(rIn))}</div></div><div class="oty-rs"><div class="k">Other months</div><div class="v">${Math.round(mean(rOut))}</div></div></div>
-      <div class="oty-hint">Average index (100 = a normal month). The dates move about 11 days earlier each year, so the dip lands in a different month.</div>` : ''}</div>`;
+      ${rIn.length ? `<div class="oty-hint" style="margin-top:14px">&#9790; Ramadan and Eid move about 11 days earlier every year, so the dip lands in a different month each time.</div>` : ''}</div>`;
 }
 
 // hover tips: the grid cells, the bar pairs and the line chart columns (one floating box, delegated like the seasons)
@@ -1556,7 +1561,7 @@ function otyCoverage() {
     return !l ? 0 : d && l / d >= .85 ? 1 : 2;
   });
   const ledFrom = years.find((y, i) => ledg[i]);
-  const rows = [['Phorest daily totals', has('net')], ['Phorest sales lines', has('vis')], ['Phorest per staff', has('stf')],
+  const rows = [['Phorest daily totals', has('net')], ['Phorest sales lines', has('vis').map((v, i) => v && years[i] === 2021 && OTY_VIS_GAP_2021.some(b => present.includes(b)) ? 2 : v)], ['Phorest per staff', has('stf')],
     ['Ledgers (hair, beauty)', ledg], ['Google reviews (year only)', years.map(y => present.some(b => (otyD.D[b].rev.n[years.indexOf(y)] || 0) > 0) ? 2 : 0)],
     ['Instagram posts, collabs, tags', years.map(y => y >= 2025 ? 2 : 0)]];
   return `<div class="oty-eb"><i style="background:var(--good)"></i>What each year has behind it</div>
@@ -1564,7 +1569,7 @@ function otyCoverage() {
     ${rows.map(([l, a]) => `<span class="l">${l}</span>${a.map(c => `<span class="c ${c === 2 ? 'part' : c ? 'ok' : ''}"></span>`).join('')}`).join('')}</div>
     <div class="oty-hint" style="margin:12px 0 0"><span class="st-k ok"></span>Complete <span class="st-k cv"></span>There, with a caveat <span class="st-k no"></span>Not there</div>
     <details class="oty-note oty-how" style="margin-top:10px"><summary>What the caveats are</summary><ul>
-      <li><b>Phorest</b> totals, sales lines and per-staff counts go back to 2021.</li>
+      <li><b>Phorest</b> totals, sales lines and per-staff counts go back to 2021. The exception is visits: Saadiyat and Khalifa City A sales lines start in August 2021, so their 2021 per-visit figures are left out.</li>
       <li><b>Ledgers</b> (hair against beauty, rebooking, requests, per-staff counts) ${ledFrom ? `start in ${ledFrom}` : 'are not in yet'}; a year is yellow under 85% of Phorest's days.</li>
       <li><b>Google reviews:</b> dates are approximate before 2026. ${otyEsc(OTY_MRY_REV)}</li>
       <li><b>Instagram</b> only exists from 2025 and builds up through the year.</li></ul></details></div>`;
@@ -1575,7 +1580,7 @@ function otyNotes() {
       <p><b>Seasons, not calendar months.</b> Ramadan and Eid move about 11 days earlier every year, so month against month compares different seasons. The month by month section is there so Coach Emma can see the shape of each year anyway, and it marks every month Ramadan and Eid touched.</p>
       <p><b>Branches arrive over time.</b> Motor City's data starts Nov 2022 and Al Quoz's Sep 2023, so the all-branches total jumps when they appear. Like for like (Saadiyat + Khalifa City A) is the trend.</p>
       <p><b>Fratelli</b> closed on 22 May 2026. It is out of All four, as everywhere on the dashboard, and has its own chip, and All + closed puts it back in for the years it traded.</p>
-      <p><b>Marasy</b> is a former branch. Its Phorest data runs 1 Jul 2021 to 24 Dec 2022, so it has its own chip and is in All + closed, not in All four or Like for like. Both its years are part-years (2021 starts in July), and its closing date is not confirmed, so it says "data to" and not "closed". Its sales lines start on 17 Aug 2021, so clients and average bill per visit show a dot for 2021 wherever Marasy is counted.</p>
+      <p><b>Marasy</b> is a former branch. Its Phorest data runs 1 Jul 2021 to 24 Dec 2022, so it has its own chip and is in All + closed, not in All four or Like for like. Both its years are part-years (2021 starts in July), and its closing date is not confirmed, so it says "data to" and not "closed". Its sales lines run from 1 Jul 2021, so its own 2021 per-visit figures are real; mixed with Saadiyat or Khalifa City A they show a dot, because those two start in August.</p>
       <p><b>Same days first.</b> The year in progress is set against the same dates in every earlier year. Switch to Full years to see whole years, with this one marked as partial.</p>
       <p><b>Slightly different from the Pulse.</b> These are Phorest's own financial totals. The Pulse's net take is built from the ledgers, so the two differ by about 1%.</p>
     </details>`;
