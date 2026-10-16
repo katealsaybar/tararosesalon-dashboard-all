@@ -212,8 +212,7 @@ function lqbShowMsg(key) {
     const body = t.body.replace(/\{\{(\d+)\}\}/g, (m, n) => { const v = t.vars[n - 1]; return sample[v] != null ? sample[v] : m; });
     return `<div class="lqb-mt"><div class="lqb-mh"><b>${lcEsc(LQB_MSG_NAME[t.qtype] || t.qtype)}</b> <span class="slv-note">${lcEsc(t.respond_name)}</span>
         <span class="ll-pill ${t.approved ? 'll-act' : 'll-num'}">${t.approved ? 'Approved by Meta' : 'Not approved yet'}</span></div>
-      <div class="lq-bubble">${lcEsc(body).replace(/
-/g, '<br>')}${t.footer ? `<div class="slv-note" style="margin-top:8px">${lcEsc(t.footer)}</div>` : ''}</div></div>`;
+      <div class="lq-bubble">${lcEsc(body).replace(/\n/g, '<br>')}${t.footer ? `<div class="slv-note" style="margin-top:8px">${lcEsc(t.footer)}</div>` : ''}</div></div>`;
   }).join('');
   lqModalOpen(`<h3>${lcEsc((g || {}).label || 'Wave')}: what it sends</h3>
     <p class="slv-note">An example for a client called Sara at Saadiyat. The name, branch and month change for each client; the rest is the approved wording.</p>${cards}
