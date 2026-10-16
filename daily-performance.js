@@ -484,29 +484,41 @@ function dpOffPage() {
 // What the whole window came to for one branch: a count or money is added up (against the target of the same days),
 // a rate or a bill is averaged, the same convention the combined bars use. Added 13 Oct 2026 after the Comet audit:
 // a tile showed one day only, so "Saadiyat against Al Quoz over 7 days" could not be answered.
-// The one day that hurt most, per branch, whatever the Measure menu says: each day is scored as the average % of target
-// over every measure that has a target there (a day needs at least three, each capped at 150 so one huge figure cannot
-// hide a bad day), then the lowest day and the measures that dragged it down. Added 13 Oct 2026: finding the weak day
-// "on any measure" took 17 passes through the menu.
+// The weakest day per branch for the measure picked in the Measure menu (Kate, 16 Oct 2026: it has to follow the menu): the day
+// that fell furthest below its target, as a % of the day's target; a measure or branch with no target shows the lowest figure
+// instead and says so. It first scored every day across all the measures at once, which left the Measure menu unable to answer
+// "which was my worst Retail day". The other measures that were low the same day ride underneath.
 // A date as a small calendar leaf: month on an ink band, the day number big, the weekday under it (Kate, 16 Oct 2026, for the
 // Weakest day rows). Ink and cream come from the dashboard's own tokens, so the band is ink on light and the theme's accent on
 // dark. The full date is the label for a screen reader.
 const dpCalendar = d => `<span class="dp-cal" role="img" aria-label="${dpEsc(dpDayLabel(d))}"><span class="dp-cal-m">${MON_SHORT[d.getMonth()]}</span><span class="dp-cal-d">${d.getDate()}</span><span class="dp-cal-w">${DP_DOW[d.getDay()]}</span></span>`;
 function dpWeakest(idxs, codes) {
-  const keys = Object.keys(DP_M).filter(k => !DP_M[k].notarget);
+  const mk = DP.measure, M = DP_M[mk], others = Object.keys(DP_M).filter(k => k !== mk && !DP_M[k].notarget);
   return codes.map(code => {
+    const head = `<b><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span>${dpEsc(dpName(code))}</b>`;
+    if (M.beauty && DPD.hairOnly[code]) return `<div class="dp-swr"><div>${head}<div class="dp-sub">No Beauty team at this branch.</div></div></div>`;
     let worst = null;
     idxs.forEach(i => {
-      const ps = keys.map(mk => ({ mk, c: dpCell(mk, code, i) })).filter(x => x.c.state === 'ok' && x.c.p != null).map(x => ({ mk: x.mk, p: x.c.p, v: x.c.v, t: x.c.t }));
-      if (ps.length < 3) return;
-      const score = ps.reduce((a, x) => a + Math.min(x.p, 150), 0) / ps.length;
-      if (!worst || score < worst.score) worst = { i, score, ps };
+      const c = dpCell(mk, code, i);
+      if (c.state !== 'ok' || c.v == null) return;
+      const key = (!M.notarget && c.p != null) ? c.p : c.v;
+      if (!worst || key < worst.key) worst = { i, key, c };
     });
-    const head = `<b><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span>${dpEsc(dpName(code))}</b>`;
-    if (!worst) return `<div class="dp-swr"><div>${head}<div class="dp-sub">Not enough figures with a target in this window.</div></div></div>`;
-    const sc = Math.round(worst.score), [cls, , ic] = dpStatus(sc);
-    const hit = worst.ps.slice().sort((a, b) => a.p - b.p).filter(x => x.p < 100).slice(0, 3).map(x => (DP_M[x.mk].kind === 'ratio' ? `${DP_M[x.mk].label}: ${DP_M[x.mk].fmt(x.v)} against ${x.t != null ? DP_M[x.mk].fmt(x.t) : 'its target'}` : `${DP_M[x.mk].label}: ${Math.round(x.p)}% of target`)).join('; ');
-    return `<div class="dp-swr"><div>${head}<div class="dp-sub">Hardest hit: ${dpEsc(hit || 'nothing below target')}</div><div class="dp-sub">Day score is the average of ${worst.ps.length} measures</div></div><div class="dp-swr-r">${dpCalendar(DPD.days[worst.i])}<span class="dp-chip ${cls}" title="Day score: the average % of target across ${worst.ps.length} measures">${ic} ${sc}%</span></div></div>`;
+    if (!worst) return `<div class="dp-swr"><div>${head}<div class="dp-sub">No ${dpEsc(M.label)} figures in this window.</div></div></div>`;
+    const c = worst.c, hasT = !M.notarget && c.p != null && c.t != null;
+    // The other measures that were low that same day, worst first.
+    const ps = others.map(k => ({ k, c: dpCell(k, code, worst.i) })).filter(x => x.c.state === 'ok' && x.c.p != null && x.c.p < 100).sort((a, b) => a.c.p - b.c.p).slice(0, 3);
+    const also = ps.map(x => (DP_M[x.k].kind === 'ratio' ? `${DP_M[x.k].label}: ${DP_M[x.k].fmt(x.c.v)} against ${x.c.t != null ? DP_M[x.k].fmt(x.c.t) : 'its target'}` : `${DP_M[x.k].label}: ${Math.round(x.c.p)}% of target`)).join('; ');
+    let line, chip;
+    if (hasT) {
+      const [cls, , ic] = dpStatus(c.p, dpLoP(mk, c.t));
+      line = `${dpEsc(M.label)}: ${M.fmt(c.v)} against ${M.kind === 'ratio' ? '' : 'a daily target of '}${M.fmt(c.t)}`;
+      chip = `<span class="dp-chip ${cls}" title="${dpEsc(M.label)} against its target that day">${ic} ${M.kind === 'ratio' ? dpEsc(M.fmt(c.v)) : Math.round(c.p) + '%'}</span>`;
+    } else {
+      line = `${dpEsc(M.label)}: ${M.fmt(c.v)}. No target is set, so this is simply the lowest day.`;
+      chip = `<span class="dp-chip na">– No target</span>`;
+    }
+    return `<div class="dp-swr"><div>${head}<div class="dp-sub">${line}</div>${also ? `<div class="dp-sub">Also low that day: ${dpEsc(also)}</div>` : ''}</div><div class="dp-swr-r">${dpCalendar(DPD.days[worst.i])}${chip}</div></div>`;
   }).join('');
 }
 function dpPeriodName(idxs) {
@@ -942,7 +954,7 @@ function dpDraw(host, win) {
     <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}${dpOffPage() ? ' · Bahrain is not on this page yet, so the UAE branches show' : ''}${M.help ? ' · <b>' + dpEsc(M.label) + '</b>: ' + dpEsc(M.help) : ''}</p>
     <section class="dp-tiles dp-jt" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs)}</section>
     <div class="lg-shell lg-shell-wide">${dpRail()}<div class="lg-doc">
-    <div class="dp-card dp-jt" id="dpCardW"><h2>Weakest day per branch</h2><span class="dp-tag">Measure does not apply</span><p class="dp-why">The day in this period that fell furthest below its targets. A day is scored as the average % of target across every measure that has a target (at least three), so the Measure menu does not change it. Closed days and days with no figures are skipped.</p><div id="dpW"></div></div>
+    <div class="dp-card dp-jt" id="dpCardW"><h2>Weakest day per branch: ${dpEsc(M.label)}</h2><p class="dp-why">${M.notarget ? `The day in this period with the lowest ${dpEsc(M.noun)}. This measure has no target, so nothing is graded.` : `The day in this period when ${dpEsc(M.noun)} fell furthest below its target, for each branch. Closed days and days with no figures are skipped.`}</p><div id="dpW"></div></div>
     <div class="dp-card dp-jt" id="dpCardA"><h2>${M.notarget ? `Daily ${dpEsc(M.noun)}, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}` : `Daily ${dpEsc(M.noun)} against target, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}`}</h2>
       <p class="dp-why">${M.notarget ? 'Every branch on one scale, in plain values. This measure has no target, so nothing is graded. Gaps are closed days or days with no figures.' : (M.kind === 'ratio' ? "Every branch on one scale, in the measure's own units, with the target as the dashed line. Gaps are closed days or days with no figures." : "Every branch on one scale: 100% means the day's target was met. Gaps are closed days or days with no figures.")}</p><div id="dpA"></div></div>
     <div class="dp-card dp-jt" id="dpCardB"><div class="dp-head"><div><h2 id="dpBT"></h2><p class="dp-why" id="dpBW"></p></div><span class="dp-sub dp-showing">${dpShowing()}</span></div>
