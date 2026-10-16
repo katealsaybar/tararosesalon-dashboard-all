@@ -181,3 +181,7 @@
 .lqm .lqb-mt{margin:12px 0}
 .lqm .lqb-mh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:4px}
 .lqm .lqb-mt .lq-bubble{white-space:normal}
+
+/* Terms and conditions (Kate, 16 Oct 2026): fifth rail entry, the welcome-back terms PDF inline. */
+#lostListsContent .lq-terms-frame{display:block;width:100%;height:78vh;min-height:520px;border:1px solid var(--border);border-radius:12px;background:var(--surface2)}
+#lostListsContent .lq-terms-open{font-weight:600}

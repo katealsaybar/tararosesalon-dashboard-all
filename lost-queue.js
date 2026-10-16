@@ -48,7 +48,7 @@ function lqAllowed() { return typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3
 // Kate, 16 Oct 2026: the tabs became the "On this page" rail the Organisation Pulse has (same .side-nav markup, in the gutter above 1100px and a
 // row of chips below it), with a fourth entry, Performance report. A rail entry opens a tab instead of scrolling, so spy() in index.html leaves
 // this rail alone (data-tabs) and lqShowTab lights the entry. Level 3 and above; Level 2 sees the groups with no rail.
-const LQ_TABS = [['groups', 'The five groups'], ['queue', 'To message'], ['tpl', 'Templates'], ['perf', 'Performance report']];
+const LQ_TABS = [['groups', 'The five groups'], ['queue', 'To message'], ['tpl', 'Templates'], ['perf', 'Performance report'], ['terms', 'Terms and conditions']];
 function lqRailHtml() {
   if (!lqAllowed()) return '';
   return `<aside class="lg-side"><nav class="side-nav" data-tabs="1" aria-label="On this page"><div class="side-k">On this page</div>${LQ_TABS
@@ -62,11 +62,21 @@ function lqShowTab(t) {
   const g = document.getElementById('llHost'), q = document.getElementById('lqHost');
   if (g) g.hidden = t !== 'groups';
   if (q) q.hidden = t === 'groups';
-  if (t === 'queue') lqRenderQueue(); else if (t === 'tpl') lqRenderTpl(); else if (t === 'perf' && typeof lrRenderPerf === 'function') lrRenderPerf();
+  if (t === 'queue') lqRenderQueue(); else if (t === 'tpl') lqRenderTpl(); else if (t === 'perf' && typeof lrRenderPerf === 'function') lrRenderPerf(); else if (t === 'terms') lqRenderTerms();
+}
+// Terms and conditions (Kate, 16 Oct 2026): the welcome-back rate terms PDF, fifth rail entry, shown inline with an Open link for a bigger view.
+const LQ_TERMS_PDF = 'assets/lost-clients-welcome-back-terms.pdf';
+function lqRenderTerms() {
+  const host = document.getElementById('lqHost');
+  if (!host || lqSel.tab !== 'terms') return;
+  host.innerHTML = `<div class="lr-sec"><h3>Welcome-back rate: Terms &amp; Conditions</h3>
+    <p class="slv-muted">The terms that go with the welcome-back rate in the Lost Clients message. Tell a client who asks, or open the PDF to read it with her.</p>
+    <p><a class="lq-terms-open" href="${LQ_TERMS_PDF}" target="_blank" rel="noopener">Open the PDF in a new tab</a></p>
+    <iframe class="lq-terms-frame" src="${LQ_TERMS_PDF}#view=FitH" title="Welcome-back rate Terms and Conditions"></iframe></div>`;
 }
 // Called once renderLostListsPage has drawn the page: open the tab the person left on.
 // The address bar names the tab (Kate, 12 Oct 2026): ?view=lost-clients&tab=templates. Slugs: groups, to-message, templates.
-const LQ_SLUG = { groups: 'groups', queue: 'to-message', tpl: 'templates', perf: 'performance' };
+const LQ_SLUG = { groups: 'groups', queue: 'to-message', tpl: 'templates', perf: 'performance', terms: 'terms-and-conditions' };
 function lqUrlParts() { return lqAllowed() && LQ_SLUG[lqSel.tab] ? ['tab=' + LQ_SLUG[lqSel.tab]] : []; }
 function lqTabFromUrl() {
   try { const s = new URLSearchParams(location.search).get('tab'); return Object.keys(LQ_SLUG).find(k => LQ_SLUG[k] === s) || ''; } catch (e) { return ''; }
