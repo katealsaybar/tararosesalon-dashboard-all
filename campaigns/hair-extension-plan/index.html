@@ -84,6 +84,18 @@
 @media(max-width:560px){
   .ogroup .orows .door .from + .from{grid-row:auto;margin-top:6px}
 }
+#o-methods .obody{grid-template-columns:minmax(0,1fr);max-width:760px}
+#o-methods .door{grid-template-columns:120px minmax(0,1fr) auto;column-gap:20px}
+#o-methods .door>*{grid-column:2}
+#o-methods .door>.mthumb{grid-column:1;grid-row:1 / span 4;width:120px;height:120px;aspect-ratio:1/1;border-radius:12px}
+#o-methods .door .from{grid-column:3;grid-row:1 / span 2}
+@media(max-width:560px){
+  #o-methods .door{grid-template-columns:84px minmax(0,1fr)}
+  #o-methods .door>.mthumb{width:84px;height:84px;grid-row:1 / span 2}
+  #o-methods .door>*{grid-column:2}
+  #o-methods .door>.mthumb{grid-column:1}
+  #o-methods .door .from{grid-column:2;grid-row:auto}
+}
 </style>
 </head>
 <body data-campaign="extensions-voucher" data-market="uae" data-stage="capture">
@@ -164,13 +176,13 @@
         </div>
       </div>
     </div>
-    <div class="ogroup" id="o-methods">
+    <div class="ogroup ogroup--wide" id="o-methods">
       <h3>Methods</h3>
       <p class="who">For you if you want to know what keeping your method looks like: when the move-up is due, and what it costs.</p>
       <div class="obody">
-        <div class="omedia"><figure class="mphoto mphoto--s"><img src="assets/img/method-nano-rings.jpg" alt="Close-up of a nano ring row at the root" loading="lazy" decoding="async" width="1200" height="800" style="object-position:center 40%"></figure></div>
         <div class="doors orows">
     <article class="door">
+      <div class="slot mthumb" role="img" aria-label="Photo: Tape-In" style="background-image:url(assets/img/method-tape-in.jpg),url(assets/img/slots/method-tape-in.svg)"></div>
       <h3>Tape-In</h3>
       <p>Move-up appointment, booked and paid separately.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 450 for 1 pack</li><li><span class="tk"></span>AED 1,050 for 4 packs</li></ul>
@@ -179,6 +191,7 @@
       <p class="door__where"><span>When</span> Every 6 to 8 weeks.</p>
     </article>
     <article class="door">
+      <div class="slot mthumb" role="img" aria-label="Photo: Nano Rings" style="background-image:url(assets/img/method-nano-rings.jpg),url(assets/img/slots/method-nano-rings.svg)"></div>
       <h3>Nano Rings</h3>
       <p>Move-up appointment, booked and paid separately.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 500 per hour</li></ul>
@@ -187,6 +200,7 @@
       <p class="door__where"><span>When</span> Every 8 to 10 weeks.</p>
     </article>
     <article class="door">
+      <div class="slot mthumb" role="img" aria-label="Photo: Beaded Weft" style="background-image:url(assets/img/method-beaded-weft.jpg),url(assets/img/slots/method-beaded-weft.svg)"></div>
       <h3>Beaded Weft</h3>
       <p>Move-up appointment, booked and paid separately.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 450 for 1 row</li><li><span class="tk"></span>AED 850 for 3 rows</li></ul>
@@ -195,6 +209,7 @@
       <p class="door__where"><span>When</span> Every 8 to 10 weeks.</p>
     </article>
     <article class="door">
+      <div class="slot mthumb" role="img" aria-label="Photo: Sewn Weft" style="background-image:url(assets/img/method-sewn-weft.jpg),url(assets/img/slots/method-sewn-weft.svg)"></div>
       <h3>Sewn Weft</h3>
       <p>Tightening appointment, booked and paid separately.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 450 for 1 row</li><li><span class="tk"></span>AED 850 for 3 rows</li></ul>
@@ -203,6 +218,7 @@
       <p class="door__where"><span>When</span> Every 6 to 8 weeks.</p>
     </article>
     <article class="door">
+      <div class="slot mthumb" role="img" aria-label="Photo: Keratin and Fusion" style="background-image:url(assets/img/method-keratin-fusion.jpg),url(assets/img/slots/method-keratin-fusion.svg)"></div>
       <h3>Keratin and Fusion</h3>
       <p>Move-up appointment, booked and paid separately.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 500 per hour</li></ul>
