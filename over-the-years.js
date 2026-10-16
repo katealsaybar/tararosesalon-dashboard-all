@@ -114,7 +114,7 @@ function otyCss() {
     .oty .oty-m{display:inline}
     .oty .oty-rows{display:block;margin-top:14px}
     .oty .oty-rcap{margin:0 0 2px;font-size:13px;color:var(--muted)}
-    .oty .oty-rh,.oty .oty-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:14px;align-items:center}
+    .oty .oty-rh,.oty .oty-row{display:grid;grid-template-columns:minmax(0,1fr) 76px 92px;column-gap:10px;align-items:center}   /* fixed columns, so the header sits over the figures */
     .oty .oty-rh{font-size:12px;color:var(--muted);padding:8px 0 6px;border-bottom:1px solid var(--border)}
     .oty .oty-rh span:not(:first-child){text-align:right}
     .oty .oty-row{min-height:52px;padding:0 8px;margin:0 -8px;border-bottom:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -122,7 +122,7 @@ function otyCss() {
     .oty .oty-row .y b{display:block;font-size:16px;font-weight:600;line-height:1.2}
     .oty .oty-row .y small,.oty .oty-row .g small{display:block;font-size:12px;color:var(--muted);line-height:1.3}
     .oty .oty-row .v{font-size:16px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-    .oty .oty-row .g{text-align:right;min-width:56px}
+    .oty .oty-row .g{text-align:right}
     .oty .oty-row .g .oty-chg{margin-top:0;font-size:12.5px}
     .oty .oty-jumpm{display:block;margin:14px 0 4px}
     .oty .oty-jumpm span{display:block;font-size:12px;color:var(--muted);margin:0 0 4px}
