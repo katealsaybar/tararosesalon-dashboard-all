@@ -14,6 +14,7 @@ try { Object.assign(wvSel, JSON.parse(localStorage.getItem('trs-wv-blast') || '{
 let wvRows = null, wvErr = '', wvPage = 1, wvQuery = '', wvShown = [];
 const wvSave = () => { try { localStorage.setItem('trs-wv-blast', JSON.stringify(wvSel)); } catch (e) {} };
 const wvOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
+const wvOk5 = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;   // sending waves from this page is Level 5 (Kate) only
 const wvIsNew = r => !!(r.listed_on && String(r.listed_on) > '2026-10-08');   // added at a refresh after the first build
 const wvWave = r => wvIsNew(r) ? 'new' : String(r.wave);
 const wvInWave = (r, w) => w === 'new' ? wvIsNew(r) : String(r.wave) === w;   // the new clients sit in their spend-band wave too
@@ -69,7 +70,7 @@ function wvPaint() {
   const chip = (txt, warn) => `<span class="ll-chip${warn ? ' warn' : ''}">${txt}</span>`;
   const cards = [1, 2, 3, 4, 5].map(n => wvCard(String(n), 'Wave ' + n, WV_BANDS[n] + ' spenders, tags wv-blast-wave-' + n + 'a / ' + n + 'b'))
     .concat([wvCard('new', 'New since 8 Oct', 'Added 15 Oct, already inside their wave'), wvCard('out', 'Removed', 'Were on the 8 Oct list, no longer qualify')]).join('');
-  host.innerHTML = `<div class="ll-fresh">${chip('List refreshed <b>' + lcEsc(wvDayY(when)) + '</b>')}${chip('First built <b>8 Oct 2026</b>')}${newN ? chip('<b>' + lcNum(newN) + '</b> added since 8 Oct') : ''}${wvCan().some(r => wvArm(r)) ? chip('Message test: <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'A').length) + '</b> short (A) · <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'B').length) + '</b> long (B)') : ''}</div>
+  host.innerHTML = `${wvOk5() ? '<div id="wvSendBox"></div>' : ''}<div class="ll-fresh">${chip('List refreshed <b>' + lcEsc(wvDayY(when)) + '</b>')}${chip('First built <b>8 Oct 2026</b>')}${newN ? chip('<b>' + lcNum(newN) + '</b> added since 8 Oct') : ''}${wvCan().some(r => wvArm(r)) ? chip('Message test: <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'A').length) + '</b> short (A) · <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'B').length) + '</b> long (B)') : ''}</div>
     <div class="ll-cards wv-cards">${wvCard('all', 'Everyone on the list', 'Can be messaged on WhatsApp now')}${cards}</div>
     <div class="ll-panel">
       <div class="ll-def"><b>${lcEsc(wvWaveName(wvSel.wave))}:</b> ${wvSel.wave === 'out' ? 'Clients on the 8 Oct list who no longer qualify, with the reason. Nobody here is in the list above.'
@@ -90,6 +91,7 @@ function wvPaint() {
       <p class="slv-muted ll-foot">Built from Phorest sales (2026 spend AED 4,000+ net of VAT, last visit within 90 days of 14 Oct) and respond.io (she wrote to one of our branch WhatsApp numbers in the last 12 months). Phorest marketing opt-in is not checked. A client who bought a Wellness Voucher is left out. The list is refreshed by hand, so it is only as fresh as the date above.</p>
     </div>`;
   wvPaintTable();
+  if (wvOk5()) { if (wvSnd) wvSendPaint(); else wvSendLoad(); }
 }
 
 function wvPill(r) {
@@ -159,4 +161,95 @@ function wvSaveFile(kind) {
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
   wvNote(`Saved ${lcNum(lines.length)} rows as ${kind.toUpperCase()}`);
+}
+
+// ── SEND A WAVE (Level 5, Kate, 16 Oct 2026) ───────────────────────────────────────────────────────────────
+// Queues a sub-wave (wv_send_enqueue); the edge function wv-send-worker then adds GHL's go tag to each client (wv-send-short for 1a..5a, wv-send-long
+// for 1b..5b), which fires GHL's "WV blast - Send (tag go)" workflow. migrations/wv_send.sql. The switch (wv_send_config.enabled) is the kill switch:
+// off, nothing is claimed. Sends only inside the Dubai window (10:00 to 19:00 by default). A hand send in GHL still works; waves 1a to 2b are
+// recorded as sent already.
+let wvSnd = null, wvSndMsg = '', wvSndBusy = false;
+const wvSndWin = i => i && i.dubai_hour >= i.hour_from && i.dubai_hour < i.hour_to;
+async function wvSendLoad() {
+  try {
+    const { data, error } = await sb.rpc('wv_send_info');
+    if (error || !data) throw error || new Error('no info');
+    wvSnd = data;
+  } catch (e) { console.error(e); wvSnd = null; wvSndMsg = 'The send panel did not load. Refresh to try again.'; }
+  wvSendPaint();
+}
+function wvSendPaint() {
+  const box = document.getElementById('wvSendBox');
+  if (!box) return;
+  if (!wvSnd) { box.innerHTML = `<div class="ll-panel wv-send"><p class="slv-muted">${lcEsc(wvSndMsg || 'Loading…')}</p></div>`; return; }
+  const i = wvSnd, on = !!i.enabled, win = wvSndWin(i);
+  const rows = (i.waves || []).map(w => {
+    const total = Number(w.clients) || 0, sent = Number(w.sent) || 0, wait = Number(w.waiting) || 0, bad = Number(w.failed) || 0, skip = Number(w.skipped) || 0, canc = Number(w.cancelled) || 0;
+    const msg = w.sub_wave.endsWith('a') ? 'Short' : 'Long';
+    let st = '<span class="slv-muted">Not sent</span>';
+    if (wait) st = `<b>Sending</b>: ${lcNum(sent)} done, ${lcNum(wait)} waiting`;
+    else if (sent || bad || skip || canc) st = `Sent <b>${lcNum(sent)}</b> of ${lcNum(total)}`;
+    const extra = [bad ? `<span class="ll-pill ll-num" title="Failed: check them in GHL before trying again">${lcNum(bad)} failed</span>` : '', skip ? `<span class="ll-pill ll-num" title="Skipped by a safety check, see the log">${lcNum(skip)} skipped</span>` : '', canc ? `<span class="ll-pill ll-num">${lcNum(canc)} stopped</span>` : ''].filter(Boolean).join(' ');
+    const left = Math.max(0, total - sent - wait - bad - skip);
+    let act = '';
+    if (wait) act = `<button type="button" class="tglr lc-btn" onclick="wvSendRun()"${wvSndBusy ? ' disabled' : ''}>Run now</button> <button type="button" class="tglr lc-btn" onclick="wvSendStop('${w.sub_wave}')">Stop</button>`;
+    else if (left > 0) act = `<button type="button" class="tglr lc-btn wv-go" onclick="wvSendGo('${w.sub_wave}')"${wvSndBusy ? ' disabled' : ''}>${sent ? 'Send the rest' : 'Send wave ' + w.sub_wave}</button>`;
+    else if (sent) act = '<span class="slv-muted">Done</span>';
+    return `<tr><td class="ll-nw"><b>Wave ${lcEsc(w.sub_wave)}</b></td><td class="ll-nw">${msg}</td><td class="ll-nw">${lcNum(total)}</td><td>${st} ${extra}</td><td class="ll-nw">${act}</td></tr>`;
+  }).join('');
+  const recent = (i.recent || []).map(r => `<tr><td class="ll-nw">${lcEsc(r.sub_wave)}</td><td>${lcEsc(r.client)}<div class="slv-note">${lcEsc(WV_BR[r.branch] || r.branch)}</div></td><td class="ll-nw">${lcEsc(r.status)}</td><td>${lcEsc(r.error || '')}</td><td class="ll-nw">${r.done_at ? lcEsc(new Date(r.done_at).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : 'waiting'}</td></tr>`).join('');
+  box.innerHTML = `<div class="ll-panel wv-send">
+    <div class="wv-send-h"><div><b>Send a wave from here</b> <span class="slv-note">Level 5 only</span></div>
+      <button type="button" class="tglr lc-btn wv-sw ${on ? 'on' : 'off'}" onclick="wvSendSwitch(${on ? 'false' : 'true'})" title="The kill switch. Off: nothing is sent, even what is already queued.">Sending is ${on ? 'ON' : 'OFF'} · turn ${on ? 'off' : 'on'}</button></div>
+    <p class="slv-muted wv-send-p">Each client gets the GHL go tag, which makes GHL send her WhatsApp message and add her to the Wellness Voucher pipeline (Received Blast Campaign). a = short message, b = long message. Sends only between ${i.hour_from}:00 and ${i.hour_to}:00 Dubai${win ? '' : ' <b>(outside that window now)</b>'}. Sent messages cannot be called back; <b>Stop</b> cancels only the ones still waiting.</p>
+    <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div id="wvSendNote" class="slv-note" style="margin-top:6px">${lcEsc(wvSndMsg)}</div>
+    <details class="wv-log"><summary>Recent activity (last 40)</summary>
+      <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Client</th><th>Status</th><th>Note</th><th>When</th></tr></thead>
+      <tbody>${recent || '<tr><td colspan="5" class="slv-muted">Nothing has been sent from this page yet.</td></tr>'}</tbody></table></div></details></div>`;
+}
+function wvSendSay(t) { wvSndMsg = t; const n = document.getElementById('wvSendNote'); if (n) n.textContent = t; }
+async function wvSendSwitch(on) {
+  if (on && !confirm('Turn sending ON?\n\nWaves you queue will start going to real clients. You can turn it off again at any time; that stops everything still waiting.')) return;
+  const { data, error } = await sb.rpc('wv_send_config_set', { p_patch: { enabled: on } });
+  if (error) { wvSendSay('Could not change the switch: ' + (error.message || error)); return; }
+  wvSnd = data; wvSndMsg = on ? 'Sending is ON.' : 'Sending is OFF. Nothing more will go.'; wvSendPaint();
+}
+async function wvSendGo(sub) {
+  const w = (wvSnd?.waves || []).find(x => x.sub_wave === sub);
+  if (!w) return;
+  if (!wvSnd.enabled) { wvSendSay('Turn sending ON first (top right of this panel).'); return; }
+  if (!wvSndWin(wvSnd)) { wvSendSay(`It is outside the send window (${wvSnd.hour_from}:00 to ${wvSnd.hour_to}:00 Dubai). Try again then.`); return; }
+  const msg = sub.endsWith('a') ? 'the SHORT message' : 'the LONG message';
+  if (!confirm(`Send wave ${sub} now?\n\nUp to ${w.clients} clients get ${msg} on WhatsApp from GHL, and go into the Wellness Voucher pipeline.\nSent messages cannot be called back.`)) return;
+  wvSndBusy = true; wvSendPaint(); wvSendSay(`Queueing wave ${sub}…`);
+  const { data, error } = await sb.rpc('wv_send_enqueue', { p_sub: sub });
+  if (error) { wvSndBusy = false; wvSendSay('Could not queue it: ' + (error.message || error)); await wvSendLoad(); return; }
+  wvSendSay(`Queued ${data?.queued ?? 0} for wave ${sub}. Sending…`);
+  await wvSendRun();
+}
+// Calls the worker until nothing is waiting, the switch goes off or the window closes. If the page is closed first, what is left stays queued and
+// "Run now" picks it up.
+async function wvSendRun() {
+  wvSndBusy = true;
+  try {
+    for (let k = 0; k < 40; k++) {
+      const { data: r, error } = await sb.functions.invoke('wv-send-worker', { body: {} });
+      if (error) { wvSendSay('The sender did not answer. Press Run now to try again.'); break; }
+      await wvSendLoad();
+      const waiting = (wvSnd?.waves || []).reduce((s, w) => s + (Number(w.waiting) || 0), 0);
+      if (!waiting || !wvSnd?.enabled || !wvSndWin(wvSnd)) {
+        wvSendSay(!waiting ? 'All sent.' : !wvSnd?.enabled ? 'Sending is off, so the rest is waiting.' : 'The send window is closed, so the rest is waiting.');
+        break;
+      }
+      if (!r || !r.claimed) await new Promise(res => setTimeout(res, 3000));
+    }
+  } catch (e) { console.error(e); wvSendSay('Something went wrong. Check the activity log, then press Run now.'); }
+  wvSndBusy = false; wvSendPaint();
+}
+async function wvSendStop(sub) {
+  if (!confirm(`Stop wave ${sub}?\n\nEveryone still waiting is cancelled. Anyone already tagged has been sent and cannot be called back.`)) return;
+  const { data, error } = await sb.rpc('wv_send_stop', { p_sub: sub });
+  if (error) { wvSendSay('Could not stop it: ' + (error.message || error)); return; }
+  await wvSendLoad(); wvSendSay(`Stopped wave ${sub}: ${data?.cancelled ?? 0} cancelled.`);
 }
