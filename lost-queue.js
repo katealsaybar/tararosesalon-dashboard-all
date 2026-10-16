@@ -307,20 +307,20 @@ function lqPaintTable() {
       <td class="ll-team">${lcTeam(r).hair[0] ? lcStylist(lcTeam(r).hair[0]) : '<span class="slv-muted">none</span>'}${lcTeam(r).hair[0] && !r._sty ? '<div class="slv-note" title="Left, or no Staff Card, so the message does not name her">not named</div>' : ''}</td>
       <td class="ll-ph">${lcPhone(r)}</td>
       <td class="lq-msgtd">${msgCell(r, i)}</td>
-      <td class="lq-acttd">${act(r, i)}</td></tr>`).join('');
+      ${view === 'out' ? `<td class="ll-nw">${lqOutAt(r, i)}</td>` : ''}<td class="lq-acttd">${act(r, i)}</td></tr>`).join('');
   const cards = shown.map((r, i) => `<li class="prd-card"><div class="prd-body">
       <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${two(r)}</span><span>${chan(r)}</span></div>
       <div class="prd-meta">${lcEsc(LC_BRANCH[r.branch] || r.branch)} · ${lcEsc(LQ_TYPES[r.qtype][0])} · ${llStatus(r)}</div>
       <div class="prd-meta" style="margin-top:4px">${lcPhone(r)}${r._sty ? ' · ' + lcEsc(r._sty) : ''}</div>
       <div class="lq-msg lq-msg-m">${lcEsc(lqShownText(r))}</div>
-      <div style="margin-top:8px">${act(r, i)}</div></div></li>`).join('');
+      ${view === 'out' && r._job && r._job.status === 'queued' ? `<div style="margin-top:6px">${lqOutAt(r, i)}</div>` : ''}<div style="margin-top:8px">${act(r, i)}</div></div></li>`).join('');
   const from = (lqPage - 1) * per + 1;
   const th = (label, k, marked) => `<th><button type="button" class="ll-thb${marked ? ' on' : ''}" onclick="llMenu(event,'${k}')" aria-haspopup="dialog" title="Filter or sort">${lcEsc(label)} <span aria-hidden="true">▾</span></button></th>`;
   const heads = th('Client', 'q-client', lqSel.br !== 'all' || lqSel.sort !== 'best') + th('Message', 'q-message', lqSel.ty !== 'all')
     + (typeof lqwOn === 'function' && lqwOn() ? '<th>Channel</th>' : th('Channel', 'q-channel', lqSel.ch !== 'all' || lqSel.st !== 'all')) + th('Usual stylist', 'q-stylist', lqSel.sty !== 'all')
-    + th('Phone', 'q-phone', lqSel.ph !== 'all') + '<th>What she gets</th><th></th>';
-  box.innerHTML = `<div class="slv-wrap prd-desk lc-wrap ll-wrap"><table class="slv-table"><thead><tr>${heads}</tr></thead>
-      <tbody>${tr || `<tr><td colspan="7" class="slv-muted">${view === 'send' ? 'Nobody left to send to with these filters.' : view === 'out' ? 'Nothing queued, failed or skipped.' : 'Nobody here yet.'}</td></tr>`}</tbody></table></div>
+    + th('Phone', 'q-phone', lqSel.ph !== 'all') + '<th>What she gets</th>' + (view === 'out' ? '<th>Send at</th>' : '') + '<th></th>';
+  box.innerHTML = `${view === 'out' ? lqTriageHtml() : ''}<div class="slv-wrap prd-desk lc-wrap ll-wrap"><table class="slv-table"><thead><tr>${heads}</tr></thead>
+      <tbody>${tr || `<tr><td colspan="${view === 'out' ? 8 : 7}" class="slv-muted">${view === 'send' ? 'Nobody left to send to with these filters.' : view === 'out' ? 'Nothing queued, failed or skipped.' : 'Nobody here yet.'}</td></tr>`}</tbody></table></div>
       <ol class="prd-cards">${cards || '<li class="slv-muted">Nobody here with these filters.</li>'}</ol>
       ${rows.length ? `<div class="lc-pager">
         <div class="lc-pg-size"><span class="slv-note">Show</span><div class="sc-seg" role="group" aria-label="Rows per page">${LL_PER.map(v => `<button type="button" class="${v === per ? 'on' : ''}" onclick="lqSel.per=${v};lqPage=1;lqSave();lqPaintTable()">${v}</button>`).join('')}</div></div>
@@ -479,6 +479,7 @@ async function lqSendLoad() {
     const [i, j] = await Promise.all([sb.rpc('lost_send_info'), sb.rpc('lost_send_jobs_get')]);
     if (i.error || !i.data || j.error || !Array.isArray(j.data)) throw i.error || j.error || new Error('no send info');
     lqSnd.info = i.data;
+    lqSnd.skew = i.data.server_now ? Date.parse(i.data.server_now) - Date.now() : 0;
     lqSnd.jobs = {};
     j.data.forEach(x => { lqSnd.jobs[x.client_key] = x; });
   } catch (e) { lqSnd.info = null; lqSnd.jobs = {}; }
@@ -560,47 +561,67 @@ function lqModalKey(e) { if (e.key === 'Escape') lqModalClose(); }
 function lqModalClose() { const d = document.getElementById('lqModal'); if (d) d.remove(); document.removeEventListener('keydown', lqModalKey); }
 
 let lqPending = [];
+// The review dialog (16 Oct 2026): what goes, plus WHEN: as soon as the window allows or at a set time, how many, and a pace ("B at a time every M
+// minutes"). send-schedule.js draws the When form and the database spreads the run times (migrations/send_schedule*.sql). roomNow is how many may
+// still go today (the wave's share of the daily cap); a later day gets a fresh day's cap, so a batch can be scheduled even when today's is used up.
 function lqSendReview() {
-  const rows = lqSendable().slice(0, lqRoom());
-  if (rows.length) lqSendRowsReview(rows);
+  const rows = lqSendable();
+  if (rows.length) lqSendRowsReview(rows, lqRoom());
 }
 function lqSendRows(idx) {
   const rows = idx.map(i => lqShown[i]).filter(r => r && lqCanSend(r));
-  if (rows.length) lqSendRowsReview(rows);
+  if (rows.length) lqSendRowsReview(rows, lqRoom());
 }
-function lqSendRowsReview(rows) {
+function lqSendRowsReview(rows, roomNow, preset) {
   lqPending = rows;
-  const i = lqSnd.info, by = {};
-  rows.forEach(r => { const k = lqTkey(r); by[k] = (by[k] || 0) + 1; });
+  const i = lqSnd.info;
+  if (roomNow == null) roomNow = lqRoom();
+  const maxNow = Math.min(rows.length, Math.max(0, roomNow)), maxAll = Math.min(rows.length, Math.max(0, roomNow) + (Number(i.used_today) || 0));
   const inWin = i.dubai_hour >= i.hour_from && i.dubai_hour < i.hour_to;
   const sample = rows[0];
-  lqModalOpen(`<h3>Send ${lcNum(rows.length)} message${rows.length === 1 ? '' : 's'} through respond.io?</h3>
-    <table class="slv-table lqm-tbl"><tbody>${Object.keys(by).map(k => { const t = i.templates.find(x => x.key === k); return `<tr><td>${lcEsc(t.respond_name)}</td><td class="lqm-n">${lcNum(by[k])}</td></tr>`; }).join('')}</tbody></table>
+  lqModalOpen(`<h3 id="lqmH">Send ${lcNum(maxNow || maxAll)} message${(maxNow || maxAll) === 1 ? '' : 's'} through respond.io?</h3>
+    <div id="lqmSum"></div>
     <p class="slv-note">Example, for ${lcEsc(sample._first)} at ${lcEsc(LC_BRANCH[sample.branch] || sample.branch)}:</p>
     <div class="lq-bubble lqm-ex">${lcEsc(lqSendText(sample))}</div>
+    ${i.enabled ? '' : '<p class="ss-plan ss-bad">Sending is OFF, so nothing goes until it is switched on.</p>'}
+    ${ssWhenHtml('lqs', { max: Math.max(1, maxAll), maxNow, from: i.hour_from, to: i.hour_to, nowOk: maxNow > 0, onChange: lqSendSummary })}
     <ul class="lqm-list">
       <li>Each goes from that client's own branch WhatsApp number, as an approved template.</li>
-      <li>${i.slot_cap ? `${lcNum(i.slot_cap)} every ${lcNum(i.slot_minutes)} minutes` : `${lcNum(i.per_run)} a minute`}, ${lcEsc(lqHour(i.hour_from))} to ${lcEsc(lqHour(i.hour_to))} Dubai time${inWin ? '' : '. It is outside that window now, so they wait in Sending until it opens'}. You can cancel any that have not gone yet.</li>
+      <li>It sends itself at its time, even with this page closed${i.slot_cap ? `, and never more than ${lcNum(i.slot_cap)} every ${lcNum(i.slot_minutes)} minutes` : ''}, ${lcEsc(lqHour(i.hour_from))} to ${lcEsc(lqHour(i.hour_to))} Dubai time${inWin ? '' : ' (closed right now, so "as soon as" waits until it opens)'}. You can cancel or move any that have not gone yet.</li>
       <li>Each client is tagged in respond.io: <b>${lcEsc(i.campaign_tag)}</b> and <b>lost-msg-smoothing</b>, <b>lost-msg-colour</b> or <b>lost-msg-due</b>.</li>
       <li>A client who has written STOP, is blocked, or is not a respond.io contact is skipped and shown in Sending.</li></ul>
     <div class="lqm-btns"><button type="button" class="tglr lc-btn" onclick="lqModalClose()">Cancel</button>
-      <button type="button" class="tglr lc-btn lq-pri" id="lqmGo" onclick="lqSendGo()">Queue ${lcNum(rows.length)}</button></div>`);
+      <button type="button" class="tglr lc-btn lq-pri" id="lqmGo" onclick="lqSendGo()">Queue</button></div>`);
+  if (preset === 'at' || maxNow < 1) { const el = document.querySelector('input[name=lqsMode][value=at]'); if (el) el.checked = true; }
+  ssUpdate('lqs');
+}
+// Called by the When form on every change: the button and the per-template counts follow how many she chose.
+function lqSendSummary(r) {
+  const go = document.getElementById('lqmGo'), sum = document.getElementById('lqmSum'), h = document.getElementById('lqmH'), i = lqSnd.info;
+  if (go) { go.disabled = !!r.error; if (!r.error) go.textContent = `${r.at || r.every ? 'Schedule' : 'Queue'} ${lcNum(r.count)}`; }
+  if (!sum || !i || r.error) return;
+  const by = {};
+  lqPending.slice(0, r.count).forEach(x => { const k = lqTkey(x); by[k] = (by[k] || 0) + 1; });
+  sum.innerHTML = `<table class="slv-table lqm-tbl"><tbody>${Object.keys(by).map(k => { const t = i.templates.find(x => x.key === k); return `<tr><td>${lcEsc(t ? t.respond_name : k)}</td><td class="lqm-n">${lcNum(by[k])}</td></tr>`; }).join('')}</tbody></table>`;
+  if (h) h.textContent = `${r.at || r.every ? 'Schedule' : 'Send'} ${lcNum(r.count)} message${r.count === 1 ? '' : 's'} through respond.io?`;
 }
 async function lqSendGo() {
-  const rows = lqPending, b = document.getElementById('lqmGo');
-  if (!rows.length) return;
+  const r = ssWhenRead('lqs'), b = document.getElementById('lqmGo');
+  if (r.error || !lqPending.length) { ssUpdate('lqs'); return; }
+  const rows = lqPending.slice(0, r.limit);
   if (b) { b.disabled = true; b.textContent = 'Queueing…'; }
-  const items = rows.map(r => ({ client_key: r.client_key, phone: r._phone, branch: r.branch, tkey: lqTkey(r), dups: r._dupKeys, vars: lqSendVars(r), wave: typeof lqwSendWave === 'function' ? lqwSendWave(r) : 0 }));
-  const { data, error } = await sb.rpc('lost_send_enqueue', { p_items: items });
+  const items = rows.map(x => ({ client_key: x.client_key, phone: x._phone, branch: x.branch, tkey: lqTkey(x), dups: x._dupKeys, vars: lqSendVars(x), wave: typeof lqwSendWave === 'function' ? lqwSendWave(x) : 0 }));
+  const { data, error } = await sb.rpc('lost_send_enqueue', { p_items: items, p_at: r.at, p_batch: r.batch, p_every: r.every });
   lqModalClose();
   lqPending = [];
-  if (error) { console.error(error); lqNote(/switched off/i.test(error.message || '') ? 'Sending is switched off.' : 'That did not queue. Try again.'); await lqSendLoad(); lqRelink(); lqPaint(); return; }
+  if (error) { console.error(error); lqNote(/switched off/i.test(error.message || '') ? 'Sending is switched off.' : 'That did not queue: ' + (error.message || 'try again') + '.'); await lqSendLoad(); lqRelink(); lqPaint(); return; }
   const sk = (data && data.skipped) || [], why = {};
   sk.forEach(x => { why[x.reason] = (why[x.reason] || 0) + 1; });
-  const msg = `Queued ${lcNum(data.queued)}${sk.length ? `. Not queued: ${Object.keys(why).map(k => `${why[k]} ${k}`).join(', ')}` : ''}`;
+  const timing = (r.at || r.every) && data.first_at ? `. First ${ssFmt(data.first_at)}${data.last_at && data.last_at !== data.first_at ? `, last ${ssFmt(data.last_at)}` : ''}. It sends itself` : '';
+  const msg = `Queued ${lcNum(data.queued)}${timing}${sk.length ? `. Not queued: ${Object.keys(why).map(k => `${why[k]} ${k}`).join(', ')}` : ''}`;
   await lqSendLoad(); lqRelink(); lqPaint();
   lqNote(msg);
-  lqKick();
+  if (!r.at) lqKick();
   lqPoll();
 }
 // Ask the worker to start now instead of waiting for the next minute. Failing to reach it is harmless: the cron picks the queue up.
@@ -608,7 +629,9 @@ function lqKick() { try { sb.functions.invoke('lost-send-worker', { body: {} }).
 function lqPoll() {
   clearTimeout(lqSnd.poll);
   if (lqSel.tab !== 'queue') return;
-  if (!Object.values(lqSnd.jobs).some(j => j.status === 'queued' || j.status === 'sending')) return;
+  const live = Object.values(lqSnd.jobs).filter(j => j.status === 'queued' || j.status === 'sending');
+  if (!live.length) return;
+  const due = live.some(j => j.status === 'sending' || !j.next_try_at || Date.parse(j.next_try_at) <= lqNowMs() + 1000);
   lqSnd.poll = setTimeout(async () => {
     const before = Object.values(lqSnd.jobs).filter(j => j.status === 'sent').length;
     await lqSendLoad();
@@ -616,16 +639,120 @@ function lqPoll() {
     if (after > before) await lqRenderQueue(true);   // something went: the Sent view has changed too
     else { lqRelink(); if (lqSel.tab === 'queue') lqPaint(); }
     lqPoll();
-  }, 15000);
+  }, due ? 15000 : 60000);
+}
+// The database's clock, so "due" and "scheduled" do not depend on the laptop's.
+const lqNowMs = () => Date.now() + (lqSnd.skew || 0);
+// A queued message the person gave a time to (scheduled_for) and that is not due yet.
+const lqIsSched = j => !!(j && j.status === 'queued' && j.scheduled_for && j.next_try_at && Date.parse(j.next_try_at) > lqNowMs() + 1000);
+// The Send at column of the Sending view.
+function lqOutAt(r, i) {
+  const j = r._job || {};
+  if (j.status === 'queued') {
+    if (j.scheduled_for) return `<div class="ss-cell"><span><b>${lcEsc(ssFmt(j.next_try_at || j.scheduled_for))}</b></span>${lqIsSched(j) ? '' : '<span class="slv-note">due now</span>'}<button type="button" class="tglr lc-btn" onclick="lqChangeTime(${i})">Change time</button></div>`;
+    return j.next_try_at && Date.parse(j.next_try_at) > lqNowMs() + 60000 ? `<span class="slv-note">Retry ${lcEsc(ssFmt(j.next_try_at))}</span>` : '<span class="slv-note">Next minute</span>';
+  }
+  if (j.status === 'sent' && j.sent_at) return `<span class="slv-note">Sent ${lcEsc(ssFmt(j.sent_at))}</span>`;
+  return '<span class="slv-muted">–</span>';
 }
 function lqOutAct(r, i) {
   const j = r._job || {};
-  if (j.status === 'queued') return `<div class="lq-q">Queued${j.requested_by ? ` by ${lcEsc(j.requested_by)}` : ''}</div><div class="lq-acts"><button type="button" class="tglr lc-btn" onclick="lqCancel(${i})">Cancel</button></div>`;
+  if (j.status === 'queued') return `<div class="lq-q">${j.scheduled_for ? 'Scheduled' : 'Queued'}${j.requested_by ? ` by ${lcEsc(j.requested_by)}` : ''}</div><div class="lq-acts"><button type="button" class="tglr lc-btn" onclick="lqCancel(${i})">Cancel</button></div>`;
   if (j.status === 'sending') return '<div class="lq-q">Sending…</div>';
   if (j.status === 'skipped') return `<div class="lq-skip">Skipped</div><div class="slv-note">${lcEsc(j.error || '')}</div>`;
   const wa = r._ch === 'whatsapp' && r._phone ? `<button type="button" class="tglr lc-btn" onclick="lqOpen(${i})">Open in WhatsApp</button>` : '';
   return `<div class="lq-fail">Did not send</div><div class="slv-note">${lcEsc(j.error || '')}</div>
     <div class="lq-acts"><button type="button" class="tglr lc-btn lq-pri" onclick="lqRetry(${i})">Retry</button>${wa}<button type="button" class="tglr lc-btn" onclick="lqMarkOne(${i})" title="I sent this one">Mark sent</button></div>`;
+}
+
+// ── CHANGE THE TIME OF WHAT IS SCHEDULED ───────────────────────────────────────────────────────────────────
+// One message, or everything scheduled (kept in its current order), moved to a new time and pace.
+let lqChg = null;
+function lqChgOpen(ids, one) {
+  const i = lqSnd.info;
+  if (!i || !ids.length) return;
+  lqChg = { ids, one: one || null };
+  lqModalOpen(`<h3>Change the time</h3>
+    <p class="slv-note">${lcNum(ids.length)} scheduled message${ids.length === 1 ? '' : 's'}${one ? '. Move this one, or all of them to a new time and pace.' : ' move to the new time and pace.'}</p>
+    ${ssWhenHtml('lqs', { max: ids.length, maxNow: ids.length, from: i.hour_from, to: i.hour_to, nowOk: true, onChange: r => { const g = document.querySelectorAll('.lqm-btns .lq-pri, .lqm-btns [data-one]'); g.forEach(b => { b.disabled = !!r.error; }); } })}
+    <div class="lqm-btns"><button type="button" class="tglr lc-btn" onclick="lqModalClose()">Cancel</button>
+      ${one ? '<button type="button" class="tglr lc-btn" data-one="1" onclick="lqChgGo(false)">Move this one</button>' : ''}
+      <button type="button" class="tglr lc-btn lq-pri" onclick="lqChgGo(true)">${one ? `Move all ${lcNum(ids.length)}` : 'Change time'}</button></div>`);
+  const n = document.getElementById('lqsN'); if (n) n.disabled = true;   // it is always all of them
+  const at = document.querySelector('input[name=lqsMode][value=at]'); if (at) at.checked = true;   // changing the time: start from the set-time option
+  ssUpdate('lqs');
+}
+function lqSchedIds(rows) {   // ids of the scheduled messages, in the order they are due
+  return (rows ? rows.map(r => r._job).filter(Boolean) : Object.values(lqSnd.jobs)).filter(j => j.status === 'queued' && j.scheduled_for)
+    .sort((a, b) => Date.parse(a.next_try_at) - Date.parse(b.next_try_at) || a.id - b.id).map(j => j.id);
+}
+function lqChangeTime(i) {
+  const r = lqShown[i];
+  if (!r || !r._job) return;
+  lqChgOpen(lqSchedIds(), r._job.id);
+}
+async function lqChgGo(all) {
+  const r = ssWhenRead('lqs');
+  if (r.error || !lqChg) { ssUpdate('lqs'); return; }
+  const ids = all ? lqChg.ids : [lqChg.one];
+  const { data, error } = await sb.rpc('lost_send_reschedule', { p_ids: ids, p_at: r.at, p_batch: all ? r.batch : null, p_every: all ? r.every : null });
+  lqModalClose();
+  if (error) { console.error(error); lqNote('That did not change: ' + (error.message || 'try again') + '.'); return; }
+  await lqSendLoad(); lqRelink(); lqPaint();
+  lqNote(`Moved ${lcNum(data || 0)}. ${r.at ? `First ${ssFmt(r.first)}${r.last !== r.first ? `, last ${ssFmt(r.last)}` : ''}.` : 'They go as soon as the window allows.'}`);
+  if (!r.at) lqKick();
+  lqPoll();
+}
+
+// ── FAILED-SEND TRIAGE (send-schedule.js draws it; the database sorts each error: send_error_class) ───────────────
+const lqFailedJobs = cls => Object.values(lqSnd.jobs).filter(j => j.status === 'failed' && (j.error_class || 'check') === cls);
+const lqRowOf = j => lqRows.find(r => r.client_key === j.client_key);
+function lqTriageHtml() {
+  const rows = Object.values(lqSnd.jobs).filter(j => j.status === 'failed').map(j => ({ id: j.id, cls: j.error_class || 'check', error: j.error }));
+  return ssTriageHtml(rows, { retry: 'lqTriRetry', copy: 'lqTriCopy', mark: 'lqTriMark', open: 'lqTriOpen',
+    checkTitle: 'Check respond.io first',
+    checkSay: 'The connection dropped or respond.io answered with an error while sending, so the message may already have gone. Look in respond.io: mark the ones that went as sent, retry only the ones that did not.',
+    stopSay: 'These fail the same way every time (not a respond.io contact yet, a refused or odd number). Open them in WhatsApp and write by hand, then mark them sent.' });
+}
+function lqTriRetry(cls) {
+  const jobs = lqFailedJobs(cls), i = lqSnd.info;
+  if (!jobs.length || !i) return;
+  lqChg = { retry: true, ids: jobs.map(j => j.id) };
+  lqModalOpen(`<h3>Retry ${lcNum(jobs.length)} failed message${jobs.length === 1 ? '' : 's'}?</h3>
+    ${cls === 'check' ? '<p class="ss-plan ss-bad">These may already have gone. Retry only if you looked in respond.io and they did not, or the client will get the message twice.</p>'
+      : '<p class="slv-note">Nothing went out for these, so queueing them again cannot message anyone twice. A client who is already queued or sent is left out.</p>'}
+    ${i.enabled ? '' : '<p class="ss-plan ss-bad">Sending is OFF, so nothing goes until it is switched on.</p>'}
+    ${ssWhenHtml('lqs', { max: jobs.length, maxNow: jobs.length, from: i.hour_from, to: i.hour_to, nowOk: true, onChange: r => { const b = document.getElementById('lqtGo'); if (b) b.disabled = !!r.error; } })}
+    <div class="lqm-btns"><button type="button" class="tglr lc-btn" onclick="lqModalClose()">Cancel</button>
+      <button type="button" class="tglr lc-btn lq-pri" id="lqtGo" onclick="lqTriGo()">Retry</button></div>`);
+  ssUpdate('lqs');
+}
+async function lqTriGo() {
+  const r = ssWhenRead('lqs');
+  if (r.error || !lqChg || !lqChg.retry) { ssUpdate('lqs'); return; }
+  const { data, error } = await sb.rpc('lost_send_retry', { p_ids: lqChg.ids.slice(0, r.limit), p_at: r.at, p_batch: r.batch, p_every: r.every });
+  lqModalClose();
+  if (error) { console.error(error); lqNote('That did not retry: ' + (error.message || 'try again') + '.'); return; }
+  await lqSendLoad(); lqRelink(); lqPaint();
+  lqNote(`Retrying ${lcNum(data || 0)}${(data || 0) < Math.min(r.limit, lqChg.ids.length) ? ' (the others are already queued or sent)' : ''}. ${r.at ? `First ${ssFmt(r.first)}.` : ''}`);
+  if (!r.at) lqKick();
+  lqPoll();
+}
+function lqTriMark(cls) {
+  const rows = lqFailedJobs(cls).map(lqRowOf).filter(r => r && !r.messaged);
+  if (!rows.length) return;
+  if (!confirm(`Mark ${rows.length} client${rows.length === 1 ? '' : 's'} as sent?\n\nOnly do this if you checked and the message went (or you wrote to them yourself).`)) return;
+  lqMark(rows);
+}
+function lqTriOpen(cls) {
+  const r = lqFailedJobs(cls).map(lqRowOf).find(x => x && x._phone);
+  if (!r) { lqNote('No number to open.'); return; }
+  window.open('https://wa.me/' + r._phone.replace(/\D/g, '') + '?text=' + encodeURIComponent(lqShownText(r)), '_blank', 'noopener');
+}
+async function lqTriCopy(cls) {
+  const nums = [...new Set(lqFailedJobs(cls).map(lqRowOf).map(r => r && r._phone).filter(Boolean))];
+  try { await navigator.clipboard.writeText(nums.join('\n')); lqNote(`Copied ${lcNum(nums.length)} numbers`); }
+  catch (e) { lqNote('The browser would not copy.'); }
 }
 async function lqCancel(i) {
   const r = lqShown[i];

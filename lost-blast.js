@@ -47,25 +47,29 @@ function lqbRow(g) {
   const st = lqwStatus(g.n), s = lqbStat(g), i = lqSnd.info, lvl4 = lqwLevel(4);
   let status = '<span class="slv-muted">Not open yet</span>';
   if (st === 'open' || st === 'done') {
-    if (s.waiting) status = `<b>Sending</b>: ${lcNum(s.sent)} done, ${lcNum(s.waiting)} waiting`;
+    const q = g.rows.filter(r => !r.messaged && lqbJobIs(r, 'queued')).map(r => r._job), schedN = q.filter(lqIsSched).length;
+    if (s.waiting) status = `<b>${schedN && schedN === s.waiting ? 'Scheduled' : 'Sending'}</b>: ${lcNum(s.sent)} done, ${lcNum(s.waiting)} waiting`;
     else if (s.sent) status = `Sent <b>${lcNum(s.sent)}</b> of ${lcNum(s.total)}`;
     else status = '<span class="slv-muted">Not sent</span>';
   } else if (st === 'ready') status = '<span class="slv-muted">Ready, not open</span>';
   const pills = [s.failed ? `<span class="ll-pill ll-num" title="Failed: see the Sending view below, or the send log">${lcNum(s.failed)} failed</span>` : '',
     s.skipped ? `<span class="ll-pill ll-num" title="Skipped by a safety check (STOP, blocked, not a contact)">${lcNum(s.skipped)} skipped</span>` : ''].join(' ');
-  let act = '';
+  let act = '', at = '<span class="slv-muted">–</span>';
   if (st === 'open') {
+    const sch = g.rows.map(r => r._job).filter(j => j && j.status === 'queued' && j.scheduled_for).sort((a, b) => Date.parse(a.next_try_at) - Date.parse(b.next_try_at));
+    if (sch.length) at = `<div class="ss-cell"><span>${lqIsSched(sch[0]) ? 'Next' : 'Due'} <b>${lcEsc(ssFmt(sch[0].next_try_at))}</b></span>${sch.length > 1 && sch[sch.length - 1].next_try_at !== sch[0].next_try_at ? `<span class="slv-note">Last ${lcEsc(ssFmt(sch[sch.length - 1].next_try_at))}</span>` : ''}<button type="button" class="tglr lc-btn" onclick="lqbChange('${g.k}')">Change time</button></div>`;
+    else if (s.ready.length && i && !s.waiting) at = `<button type="button" class="tglr lc-btn lq-pri" onclick="lqbSend('${g.k}','at')">Schedule…</button>`;
     if (s.waiting) act = `<button type="button" class="tglr lc-btn" onclick="lqbStop('${g.k}')">Stop</button>`;
     else if (s.ready.length && i) {
       const room = Math.min(s.ready.length, lqbRoom(g.n));
       act = room ? `<button type="button" class="tglr lc-btn wv-go" onclick="lqbSend('${g.k}')">${s.sent ? 'Send the rest' : 'Send ' + lcEsc(g.label)} (${lcNum(room)})</button>`
-        : '<span class="slv-muted">Today\'s cap is used</span>';
+        : '<span class="slv-muted">Today\'s cap is used. Schedule it for another day.</span>';
     } else if (g.n === 1 && g.k === '1b' && LQW_HOLD_1B) act = '<span class="slv-muted">Held back</span>';
     else act = s.sent ? '<span class="slv-muted">Nothing left to send</span>' : '<span class="slv-muted">Nothing ready</span>';
   } else if (st === 'ready') act = lvl4 && g.k !== '1b' ? `<button type="button" class="tglr lc-btn wv-go" onclick="lqwOpen(${g.n})">Open ${g.n === 1 ? 'Wave 1' : lcEsc(g.label)}</button>` : g.k === '1b' ? '<span class="slv-muted">Opens with 1a</span>' : '<span class="slv-muted">Level 4 opens it</span>';
   else if (st === 'done') act = '<span class="slv-muted">Done</span>';
   else act = `<span class="slv-muted">After Wave ${g.n - 1}</span>`;
-  return `<tr><td class="ll-nw"><b>${lcEsc(g.label)}</b></td><td class="ll-nw">${lcEsc(g.msg)}</td><td class="ll-nw">${lcNum(s.total)}</td><td>${status} ${pills}</td><td class="ll-nw">${act}</td></tr>`;
+  return `<tr><td class="ll-nw"><b>${lcEsc(g.label)}</b></td><td class="ll-nw">${lcEsc(g.msg)}</td><td class="ll-nw">${lcNum(s.total)}</td><td>${status} ${pills}</td><td class="ll-nw">${at}</td><td class="ll-nw">${act}</td></tr>`;
 }
 // The wave whose checks matter next: the first one that is ready to open, else the one after the open wave.
 function lqbNextGate() {
@@ -91,7 +95,7 @@ function lqbSendPanel() {
     <div class="wv-send-h"><div><b>Send from here</b> <span class="slv-note">Level 4 opens a wave · Level 5 switches sending and sets the pace</span></div>${sw}</div>
     <p class="slv-muted wv-send-p">Each message goes through respond.io from that client's own branch number, as an approved template. It sends only between ${lcEsc(lqHour(i.hour_from))} and ${lcEsc(lqHour(i.hour_to))} Dubai${win ? '' : ' <b>(closed right now, so it waits)</b>'}, ${pace}.
       Today <b>${lcNum(i.sent_today || 0)}</b> sent${waiting ? `, <b>${lcNum(waiting)}</b> waiting` : ''}, up to ${lcNum(i.daily_cap)} a day. A client who wrote STOP, is blocked, or is not a respond.io contact is skipped.</p>
-    <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th></th></tr></thead><tbody>${lqbGroups().map(lqbRow).join('')}</tbody></table></div>
+    <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th>Send at</th><th></th></tr></thead><tbody>${lqbGroups().map(lqbRow).join('')}</tbody></table></div>
     <div id="lqNote" class="slv-note" style="margin-top:6px"></div>
     <details class="wv-log"><summary>Pace and test</summary><div class="lqb-pace"><label class="slv-note">Daily cap ${capSel}</label> <label class="slv-note">Every ${lcNum(i.slot_minutes || 30)} minutes ${slotSel}</label> ${test}
       <p class="slv-note">Meta limits how many new people each branch number can message in 24 hours and rates each number's quality, which this page cannot see. Check it in Meta Business Manager before opening the next wave. Wave 4 goes at half the daily cap because those clients are the likeliest to block or report.</p></div></details>
@@ -153,11 +157,19 @@ function lqbPaint(host) {
 }
 
 // ── actions ──────────────────────────────────────────────────────────────────────────────────
-function lqbSend(key) {
+function lqbSend(key, preset) {
   const g = lqbGroups().find(x => x.k === key);
   if (!g) return;
-  const rows = g.rows.filter(lqCanSend).sort(lqbOrder).slice(0, lqbRoom(g.n));
-  if (rows.length) lqSendRowsReview(rows);
+  // All the ready clients, best first: the dialog caps "now" at what today still has and a later day at a fresh day's cap (16 Oct 2026, scheduling).
+  const rows = g.rows.filter(lqCanSend).sort(lqbOrder);
+  if (rows.length) lqSendRowsReview(rows, lqbRoom(g.n), preset);
+}
+// Change the time of everything scheduled in this wave (lost-queue.js lqChgOpen).
+function lqbChange(key) {
+  const g = lqbGroups().find(x => x.k === key);
+  if (!g) return;
+  const ids = lqSchedIds(g.rows);
+  if (ids.length) lqChgOpen(ids);
 }
 // Cancel everything of this wave that is still waiting (queued, not yet sent). What has gone cannot be called back.
 async function lqbStop(key) {

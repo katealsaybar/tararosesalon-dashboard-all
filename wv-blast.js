@@ -168,13 +168,20 @@ function wvSaveFile(kind) {
 // for 1b..5b), which fires GHL's "WV blast - Send (tag go)" workflow. migrations/wv_send.sql. The switch (wv_send_config.enabled) is the kill switch:
 // off, nothing is claimed. Sends only inside the Dubai window (10:00 to 19:00 by default). A hand send in GHL still works; waves 1a to 2b are
 // recorded as sent already.
-let wvSnd = null, wvSndMsg = '', wvSndBusy = false, wvSndTimer = 0;
+// Scheduling (16 Oct 2026, migrations/send_schedule*.sql, send-schedule.js): each queued client carries the time she may go (run_at). The Send at column
+// sets it for a whole wave: a set time, how many (top spenders first), and "B at a time every M minutes". A cron (wv-send-worker, every minute inside
+// the window) sends them when they are due, so the page can be closed. Failed sends are sorted into retry / will fail again below the table.
+let wvSnd = null, wvSndMsg = '', wvSndBusy = false, wvSndTimer = 0, wvSkew = 0, wvSchedCtx = null;
 const wvSndWin = i => i && i.dubai_hour >= i.hour_from && i.dubai_hour < i.hour_to;
+const wvNow = () => Date.now() + wvSkew;   // the database's clock, so "due" does not depend on the laptop's
+const wvIsSched = w => Number(w.waiting) > 0 && !!w.next_run_at && Date.parse(w.next_run_at) > wvNow() + 1000;
+const wvIsDue = w => Number(w.waiting) > 0 && !wvIsSched(w);
 async function wvSendLoad() {
   try {
     const { data, error } = await sb.rpc('wv_send_info');
     if (error || !data) throw error || new Error('no info');
     wvSnd = data;
+    if (data.server_now) wvSkew = Date.parse(data.server_now) - Date.now();
   } catch (e) { console.error(e); wvSnd = null; wvSndMsg = 'The send panel did not load. Refresh to try again.'; }
   wvSendPaint();
 }
@@ -184,50 +191,60 @@ function wvSendPaint() {
   const logOpen = !!box.querySelector('.wv-log[open]');   // keep the activity log open across repaints
   if (!wvSnd) { box.innerHTML = `<div class="ll-panel wv-send"><p class="slv-muted">${lcEsc(wvSndMsg || 'Loading…')}</p></div>`; return; }
   const i = wvSnd, on = !!i.enabled, win = wvSndWin(i);
+  const dt = ts => ts ? lcEsc(new Date(ts).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : '<span class="slv-muted">–</span>';
   const rows = (i.waves || []).map(w => {
     const total = Number(w.clients) || 0, sent = Number(w.sent) || 0, wait = Number(w.waiting) || 0, bad = Number(w.failed) || 0, skip = Number(w.skipped) || 0, canc = Number(w.cancelled) || 0;
-    const msg = w.sub_wave.endsWith('a') ? 'Short' : 'Long';
+    const msg = w.sub_wave.endsWith('a') ? 'Short' : 'Long', sched = wvIsSched(w);
     let st = '<span class="slv-muted">Not sent</span>';
-    if (wait) st = `<span class="wv-ring" role="status" aria-label="Sending"></span> <b>Sending</b>: ${lcNum(sent)} done, ${lcNum(wait)} waiting`;
+    if (wait && sched) st = `<b>Scheduled</b>: ${lcNum(sent)} done, ${lcNum(wait)} waiting`;
+    else if (wait) st = `<span class="wv-ring" role="status" aria-label="Sending"></span> <b>Sending</b>: ${lcNum(sent)} done, ${lcNum(wait)} waiting`;
     else if (sent || bad || skip || canc) st = `Sent <b>${lcNum(sent)}</b> of ${lcNum(total)}`;
-    const extra = [bad ? `<span class="ll-pill ll-num" title="Failed: check them in GHL before trying again">${lcNum(bad)} failed</span>` : '', skip ? `<span class="ll-pill ll-num" title="Skipped by a safety check, see the log">${lcNum(skip)} skipped</span>` : '', canc ? `<span class="ll-pill ll-num">${lcNum(canc)} stopped</span>` : ''].filter(Boolean).join(' ');
+    const extra = [bad ? `<span class="ll-pill ll-num" title="Failed: sorted under Failed sends below">${lcNum(bad)} failed</span>` : '', skip ? `<span class="ll-pill ll-num" title="Skipped by a safety check, see the log">${lcNum(skip)} skipped</span>` : '', canc ? `<span class="ll-pill ll-num">${lcNum(canc)} stopped</span>` : ''].filter(Boolean).join(' ');
     const left = Math.max(0, total - sent - wait - bad - skip);
-    let act = '';
-    if (wait) act = `<button type="button" class="tglr lc-btn" onclick="wvSendRun()"${wvSndBusy ? ' disabled' : ''}>Run now</button> <button type="button" class="tglr lc-btn" onclick="wvSendStop('${w.sub_wave}')">Stop</button>`;
-    else if (left > 0) act = `<button type="button" class="tglr lc-btn wv-go" onclick="wvSendGo('${w.sub_wave}')"${wvSndBusy ? ' disabled' : ''}>${sent ? 'Send the rest' : 'Send wave ' + w.sub_wave}</button>`;
-    else if (sent) act = '<span class="slv-muted">Done</span>';
+    let act = '', at = '<span class="slv-muted">–</span>';
+    if (wait) {
+      act = `${sched ? `<button type="button" class="tglr lc-btn" onclick="wvSendBring('${w.sub_wave}')"${wvSndBusy ? ' disabled' : ''}>Send now</button>` : `<button type="button" class="tglr lc-btn" onclick="wvSendRun()"${wvSndBusy ? ' disabled' : ''}>Run now</button>`} <button type="button" class="tglr lc-btn" onclick="wvSendStop('${w.sub_wave}')">Stop</button>`;
+      at = `<div class="ss-cell">${w.next_run_at ? `<span>${sched ? 'Next' : 'Due'} <b>${lcEsc(ssFmt(w.next_run_at))}</b></span>` : ''}${w.last_run_at && w.last_run_at !== w.next_run_at ? `<span class="slv-note">Last ${lcEsc(ssFmt(w.last_run_at))}</span>` : ''}<button type="button" class="tglr lc-btn" onclick="wvSchedOpen('${w.sub_wave}','move')">Change time</button></div>`;
+    } else if (left > 0) {
+      act = `<button type="button" class="tglr lc-btn wv-go" onclick="wvSendGo('${w.sub_wave}')"${wvSndBusy ? ' disabled' : ''}>${sent ? 'Send the rest' : 'Send wave ' + w.sub_wave}</button>`;
+      at = `<button type="button" class="tglr lc-btn lq-pri" onclick="wvSchedOpen('${w.sub_wave}','new')"${wvSndBusy ? ' disabled' : ''}>Schedule…</button>`;
+    } else if (sent) act = '<span class="slv-muted">Done</span>';
     // Launched = when it was queued; Finished = the last one done, once nothing is waiting. Waves 1a to 2b were sent by hand in GHL: their time is
     // the first client's enrolment time in GHL's Send workflow history (right to the minute, the wave took under a minute).
-    const dt = ts => ts ? lcEsc(new Date(ts).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : '<span class="slv-muted">–</span>';
-    return `<tr><td class="ll-nw"><b>Wave ${lcEsc(w.sub_wave)}</b></td><td class="ll-nw">${msg}</td><td class="ll-nw">${lcNum(total)}</td><td>${st} ${extra}</td><td class="ll-nw">${dt(w.launched_at)}</td><td class="ll-nw">${wait ? '<span class="slv-muted">in progress</span>' : dt(w.finished_at)}</td><td class="ll-nw">${act}</td></tr>`;
+    return `<tr><td class="ll-nw"><b>Wave ${lcEsc(w.sub_wave)}</b></td><td class="ll-nw">${msg}</td><td class="ll-nw">${lcNum(total)}</td><td>${st} ${extra}</td><td class="ll-nw">${at}</td><td class="ll-nw">${dt(w.launched_at)}</td><td class="ll-nw">${wait ? '<span class="slv-muted">in progress</span>' : dt(w.finished_at)}</td><td class="ll-nw">${act}</td></tr>`;
   }).join('');
-  const recent = (i.recent || []).map(r => `<tr><td class="ll-nw">${lcEsc(r.sub_wave)}</td><td>${lcEsc(r.client)}<div class="slv-note">${lcEsc(WV_BR[r.branch] || r.branch)}</div></td><td class="ll-nw">${lcEsc(r.status)}</td><td>${lcEsc(r.error || '')}</td><td class="ll-nw">${r.done_at ? lcEsc(new Date(r.done_at).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : 'waiting'}</td></tr>`).join('');
+  const recent = (i.recent || []).map(r => `<tr><td class="ll-nw">${lcEsc(r.sub_wave)}</td><td>${lcEsc(r.client)}<div class="slv-note">${lcEsc(WV_BR[r.branch] || r.branch)}</div></td><td class="ll-nw">${lcEsc(r.status)}</td><td>${lcEsc(r.error || '')}</td><td class="ll-nw">${r.done_at ? dt(r.done_at) : 'waiting'}</td></tr>`).join('');
+  const tri = ssTriageHtml((i.failed || []).map(f => ({ id: f.id, cls: f.cls, error: f.error })), { retry: 'wvTriRetry', copy: 'wvTriCopy',
+    stopSay: 'These fail the same way every time (no contact with that number in GHL, or GHL refused). Fix the contact in GHL, or message her by hand.' });
   box.innerHTML = `<div class="ll-panel wv-send">
     <div class="wv-send-h"><div><b>Send a wave from here</b> <span class="slv-note">Level 5 only</span></div>
       <button type="button" class="tglr lc-btn wv-sw ${on ? 'on' : 'off'}" onclick="wvSendSwitch(${on ? 'false' : 'true'})" title="The kill switch. Off: nothing is sent, even what is already queued.">Sending is ${on ? 'ON' : 'OFF'} · turn ${on ? 'off' : 'on'}</button></div>
-    <p class="slv-muted wv-send-p">Each client gets the GHL go tag, which makes GHL send her WhatsApp message and add her to the Wellness Voucher pipeline (Received Blast Campaign). a = short message, b = long message. Sends only between ${i.hour_from}:00 and ${i.hour_to}:00 Dubai${win ? '' : ' <b>(outside that window now)</b>'}. Sent messages cannot be called back; <b>Stop</b> cancels only the ones still waiting.</p>
-    <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th>Launched</th><th>Finished</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="slv-muted wv-send-p">Each client gets the GHL go tag, which makes GHL send her WhatsApp message and add her to the Wellness Voucher pipeline (Received Blast Campaign). a = short message, b = long message. Sends only between ${i.hour_from}:00 and ${i.hour_to}:00 Dubai${win ? '' : ' <b>(outside that window now)</b>'}. <b>Schedule…</b> picks the day and time, how many, and a pace (for example 40 every 30 minutes); it then sends itself, so you can close this page${on ? '' : ', but only while Sending is ON'}. Sent messages cannot be called back; <b>Stop</b> cancels only the ones still waiting.</p>
+    <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th>Send at</th><th>Launched</th><th>Finished</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
     <div id="wvSendNote" class="slv-note" style="margin-top:6px">${lcEsc(wvSndMsg)}</div>
+    ${tri}
     <details class="wv-log"><summary>Recent activity (last 40)</summary>
       <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Client</th><th>Status</th><th>Note</th><th>When</th></tr></thead>
       <tbody>${recent || '<tr><td colspan="5" class="slv-muted">Nothing has been sent from this page yet.</td></tr>'}</tbody></table></div></details></div>`;
   if (logOpen) { const d = box.querySelector('.wv-log'); if (d) d.open = true; }
-  // While a wave is sending, look again every 6 seconds so the numbers and the ring keep up, even if another tab is doing the sending.
+  // While a wave is going out, look again every 6 seconds so the numbers and the ring keep up, even if another tab (or the cron) is doing the sending.
+  // Waves only waiting for their time need a look once in a while.
   clearTimeout(wvSndTimer);
-  if ((i.waves || []).some(w => Number(w.waiting) > 0) && !wvSndBusy) wvSndTimer = setTimeout(() => { if (document.getElementById('wvSendBox')) wvSendLoad(); }, 6000);
+  const ws = i.waves || [];
+  if (ws.some(w => Number(w.waiting) > 0) && !wvSndBusy) wvSndTimer = setTimeout(() => { if (document.getElementById('wvSendBox')) wvSendLoad(); }, ws.some(wvIsDue) ? 6000 : 30000);
 }
 function wvSendSay(t) { wvSndMsg = t; const n = document.getElementById('wvSendNote'); if (n) n.textContent = t; }
 async function wvSendSwitch(on) {
-  if (on && !confirm('Turn sending ON?\n\nWaves you queue will start going to real clients. You can turn it off again at any time; that stops everything still waiting.')) return;
+  if (on && !confirm('Turn sending ON?\n\nWaves you queue, or have scheduled, will go to real clients at their time. You can turn it off again at any time; that stops everything still waiting.')) return;
   const { data, error } = await sb.rpc('wv_send_config_set', { p_patch: { enabled: on } });
   if (error) { wvSendSay('Could not change the switch: ' + (error.message || error)); return; }
-  wvSnd = data; wvSndMsg = on ? 'Sending is ON.' : 'Sending is OFF. Nothing more will go.'; wvSendPaint();
+  wvSnd = data; wvSndMsg = on ? 'Sending is ON.' : 'Sending is OFF. Nothing more will go.'; await wvSendLoad();
 }
 async function wvSendGo(sub) {
   const w = (wvSnd?.waves || []).find(x => x.sub_wave === sub);
   if (!w) return;
   if (!wvSnd.enabled) { wvSendSay('Turn sending ON first (top right of this panel).'); return; }
-  if (!wvSndWin(wvSnd)) { wvSendSay(`It is outside the send window (${wvSnd.hour_from}:00 to ${wvSnd.hour_to}:00 Dubai). Try again then.`); return; }
+  if (!wvSndWin(wvSnd)) { wvSendSay(`It is outside the send window (${wvSnd.hour_from}:00 to ${wvSnd.hour_to}:00 Dubai). Use Schedule… to pick when it goes.`); return; }
   const msg = sub.endsWith('a') ? 'the SHORT message' : 'the LONG message';
   if (!confirm(`Send wave ${sub} now?\n\nUp to ${w.clients} clients get ${msg} on WhatsApp from GHL, and go into the Wellness Voucher pipeline.\nSent messages cannot be called back.`)) return;
   wvSndBusy = true; wvSendPaint(); wvSendSay(`Queueing wave ${sub}…`);
@@ -236,8 +253,8 @@ async function wvSendGo(sub) {
   wvSendSay(`Queued ${data?.queued ?? 0} for wave ${sub}. Sending…`);
   await wvSendRun();
 }
-// Calls the worker until nothing is waiting, the switch goes off or the window closes. If the page is closed first, what is left stays queued and
-// "Run now" picks it up.
+// Calls the worker until nothing is due, the switch goes off or the window closes. If the page is closed first, what is left stays queued and the
+// cron (every minute inside the window) carries on.
 async function wvSendRun() {
   wvSndBusy = true;
   try {
@@ -245,9 +262,9 @@ async function wvSendRun() {
       const { data: r, error } = await sb.functions.invoke('wv-send-worker', { body: {} });
       if (error) { wvSendSay('The sender did not answer. Press Run now to try again.'); break; }
       await wvSendLoad();
-      const waiting = (wvSnd?.waves || []).reduce((s, w) => s + (Number(w.waiting) || 0), 0);
-      if (!waiting || !wvSnd?.enabled || !wvSndWin(wvSnd)) {
-        wvSendSay(!waiting ? 'All sent.' : !wvSnd?.enabled ? 'Sending is off, so the rest is waiting.' : 'The send window is closed, so the rest is waiting.');
+      const waves = wvSnd?.waves || [], due = waves.filter(wvIsDue).reduce((s, w) => s + (Number(w.waiting) || 0), 0), later = waves.some(wvIsSched);
+      if (!due || !wvSnd?.enabled || !wvSndWin(wvSnd)) {
+        wvSendSay(!due ? (later ? 'Sent what was due. The rest goes at its scheduled time.' : 'All sent.') : !wvSnd?.enabled ? 'Sending is off, so the rest is waiting.' : 'The send window is closed, so the rest is waiting.');
         break;
       }
       if (!r || !r.claimed) await new Promise(res => setTimeout(res, 3000));
@@ -260,4 +277,75 @@ async function wvSendStop(sub) {
   const { data, error } = await sb.rpc('wv_send_stop', { p_sub: sub });
   if (error) { wvSendSay('Could not stop it: ' + (error.message || error)); return; }
   await wvSendLoad(); wvSendSay(`Stopped wave ${sub}: ${data?.cancelled ?? 0} cancelled.`);
+}
+// Bring a scheduled wave forward: everyone waiting becomes due now (the window and the switch still apply).
+async function wvSendBring(sub) {
+  const w = (wvSnd?.waves || []).find(x => x.sub_wave === sub);
+  if (!w) return;
+  if (!confirm(`Send the ${w.waiting} still waiting in wave ${sub} now, instead of at their scheduled time?\nSent messages cannot be called back.`)) return;
+  const { data, error } = await sb.rpc('wv_send_reschedule', { p_sub: sub, p_at: null });
+  if (error) { wvSendSay('Could not change the time: ' + (error.message || error)); return; }
+  await wvSendLoad();
+  if (wvSnd?.enabled && wvSndWin(wvSnd)) { wvSendSay(`Wave ${sub}: ${data?.moved ?? 0} moved to now. Sending…`); await wvSendRun(); }
+  else wvSendSay(`Wave ${sub}: ${data?.moved ?? 0} moved to now. ${wvSnd?.enabled ? 'They go when the send window opens.' : 'Sending is OFF, so nothing goes until you turn it ON.'}`);
+}
+
+// ── SCHEDULE, CHANGE TIME, RETRY (one dialog: when, how many, what pace) ───────────────────────────────────────
+function wvSchedForm(max, nowOk) {
+  const i = wvSnd;
+  return `${i.enabled ? '' : '<p class="ss-plan ss-bad">Sending is OFF. Nothing goes until you turn it ON at the top of this panel.</p>'}
+    ${ssWhenHtml('wvs', { max, maxNow: max, from: i.hour_from, to: i.hour_to, nowOk, onChange: r => { const b = document.getElementById('wvsGo'); if (b) b.disabled = !!r.error; } })}`;
+}
+function wvSchedOpen(sub, mode) {
+  const w = (wvSnd?.waves || []).find(x => x.sub_wave === sub);
+  if (!w || !wvSnd) return;
+  const total = Number(w.clients) || 0, sent = Number(w.sent) || 0, wait = Number(w.waiting) || 0, bad = Number(w.failed) || 0, skip = Number(w.skipped) || 0;
+  const move = mode === 'move', left = Math.max(0, total - sent - wait - bad - skip), max = move ? wait : left;
+  if (max < 1) { wvSendSay('Nobody left in this wave.'); return; }
+  wvSchedCtx = { sub, move };
+  const msg = sub.endsWith('a') ? 'the SHORT message' : 'the LONG message';
+  ssModalOpen(`<h3>${move ? 'Change the time of' : 'Schedule'} wave ${lcEsc(sub)}</h3>
+    <p class="slv-note">${move ? `All ${lcNum(wait)} still waiting are moved to the new time and pace.` : `Up to ${lcNum(left)} clients can go, biggest spenders first. Each gets ${msg} on WhatsApp from GHL and goes into the Wellness Voucher pipeline.`}</p>
+    ${wvSchedForm(max, true)}
+    <ul class="lqm-list"><li>It sends itself at that time, even with this page closed. Times outside ${wvSnd.hour_from}:00 to ${wvSnd.hour_to}:00 Dubai wait for the window to open.</li>
+      <li>Stop cancels the ones that have not gone. A message that has gone cannot be called back.</li></ul>
+    <div class="lqm-btns"><button type="button" class="tglr lc-btn" onclick="ssModalClose()">Cancel</button>
+      <button type="button" class="tglr lc-btn lq-pri" id="wvsGo" onclick="wvSchedGo()">${move ? 'Change time' : 'Schedule'}</button></div>`);
+  if (move) { const n = document.getElementById('wvsN'); if (n) n.disabled = true; const at = document.querySelector('input[name=wvsMode][value=at]'); if (at) at.checked = true; }
+  ssUpdate('wvs');
+}
+async function wvSchedGo() {
+  const c = wvSchedCtx, r = ssWhenRead('wvs');
+  if (!c || r.error) { ssUpdate('wvs'); return; }
+  const b = document.getElementById('wvsGo');
+  if (b) { b.disabled = true; b.textContent = 'Working…'; }
+  const pace = { p_batch: r.batch, p_every: r.every };
+  const res = c.retry ? await sb.rpc('wv_send_retry', { p_ids: c.ids.slice(0, r.limit), p_at: r.at, ...pace })
+    : c.move ? await sb.rpc('wv_send_reschedule', { p_sub: c.sub, p_at: r.at, ...pace })
+    : await sb.rpc('wv_send_enqueue', { p_sub: c.sub, p_at: r.at, p_limit: r.limit, ...pace });
+  ssModalClose();
+  if (res.error) { console.error(res.error); await wvSendLoad(); wvSendSay('Did not go through: ' + (res.error.message || res.error)); return; }
+  const d = res.data || {};
+  await wvSendLoad();
+  const n = c.move ? d.moved : d.queued, first = d.first_at || r.first, last = d.last_at || r.last;
+  wvSendSay(`${c.retry ? 'Retrying' : 'Wave ' + c.sub + ':'} ${lcNum(n ?? 0)} ${c.move ? 'moved' : 'queued'}. First ${ssFmt(first)}${last && last !== first ? `, last ${ssFmt(last)}` : ''}. ${wvSnd?.enabled ? 'It sends itself, you can close this page.' : 'Sending is OFF, so nothing goes until you turn it ON.'}`);
+  if (!c.move && !r.at && wvSnd?.enabled && wvSndWin(wvSnd)) wvSendRun();   // as soon as: do not wait for the next minute of the cron
+}
+// ── failed-send triage (send-schedule.js draws it) ─────────────────────────────────────────────────────────────
+const wvTriRows = cls => (wvSnd?.failed || []).filter(f => f.cls === cls);
+function wvTriRetry(cls) {
+  const rows = wvTriRows(cls);
+  if (!rows.length || !wvSnd) return;
+  wvSchedCtx = { retry: true, ids: rows.map(f => f.id) };
+  ssModalOpen(`<h3>Retry ${lcNum(rows.length)} failed send${rows.length === 1 ? '' : 's'}?</h3>
+    <p class="slv-note">Each one is looked up in GHL again first. Anyone who already has a go tag is skipped, so nobody is messaged twice. Choose when they go and at what pace.</p>
+    ${wvSchedForm(rows.length, true)}
+    <div class="lqm-btns"><button type="button" class="tglr lc-btn" onclick="ssModalClose()">Cancel</button>
+      <button type="button" class="tglr lc-btn lq-pri" id="wvsGo" onclick="wvSchedGo()">Retry</button></div>`);
+  ssUpdate('wvs');
+}
+async function wvTriCopy(cls) {
+  const nums = [...new Set(wvTriRows(cls).map(f => f.phone).filter(Boolean))];
+  try { await navigator.clipboard.writeText(nums.join('\n')); wvSendSay(`Copied ${lcNum(nums.length)} numbers.`); }
+  catch (e) { wvSendSay('The browser would not copy.'); }
 }

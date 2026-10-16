@@ -1,0 +1,24 @@
+/* Scheduled sends: the When form, the Send at column and the failed-send triage (Kate, 16 Oct 2026). send-schedule.js, migrations/send_schedule*.sql. */
+.ss-when{display:flex;flex-direction:column;gap:8px;margin:10px 0;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}
+.ss-opt{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px}
+.ss-row{display:flex;gap:8px 16px;flex-wrap:wrap;align-items:center;font-size:13.5px}
+.ss-row label{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ss-num{width:78px;min-width:0}
+.ss-at{min-width:190px}
+.ss-plan{line-height:1.5}
+.ss-plan.ss-bad{color:var(--bad)}
+.ss-cell{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.ss-cell .slv-note{margin:0}
+.ss-when-t{font-weight:600;font-size:13px}
+.ss-tri{margin:12px 0;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}
+.ss-tri-top{margin-bottom:8px}
+.ss-tri-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.ss-tri-card{border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--surface)}
+.ss-tri-card.ss-retry{border-left:4px solid #2f7d4f}
+.ss-tri-card.ss-check{border-left:4px solid #c98a1b}
+.ss-tri-card.ss-stop{border-left:4px solid #b3342d}
+.ss-tri-h{display:flex;gap:8px;align-items:center}
+.ss-why{margin:6px 0;padding-left:18px;font-size:12.5px;color:var(--muted);line-height:1.45}
+.ss-btns{display:flex;gap:6px;flex-wrap:wrap}
+.ss-modal .ss-when{margin:12px 0}
+@media(max-width:640px){.ss-at{min-width:0;width:100%}.ss-tri-grid{grid-template-columns:1fr}}
