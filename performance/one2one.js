@@ -529,7 +529,7 @@ function nudge(data) {
 // ════════════════════════════════════════════════════════════
 //  Leaders, in Staff Benchmarks
 // ════════════════════════════════════════════════════════════
-const L = { d: null, ctx: null, slot: null, view: 'numbers', tok: null, hz: 'm6', content: {}, timers: {}, wired: false, newChecks: [] };
+const L = { d: null, ctx: null, slot: null, view: 'numbers', tok: null, hz: 'm6', content: {}, timers: {}, wired: false, newChecks: [], fx: { notes: [], unmatched: [] } };
 const appEl = () => document.getElementById('app');
 // A card's key: 'monthly', 'goals' or 'check:YYYY-MM-01' (a 13-week check of the goals, signed on its own).
 const kindOf = key => key.split(':')[0];
@@ -586,7 +586,7 @@ async function leader(slot, ctx) {
   let d = null;
   try { d = await call('perf_one2one_get', { p_admin: ctx.admin, p_token: ctx.token, p_month: ctx.month + '-01' }); } catch (e) {}
   if (!d) { slot.innerHTML = ''; if (ctx.bar) ctx.bar.innerHTML = ''; return; }
-  L.d = d; initAll();
+  L.d = d; initAll(); await fxLoad();
   L.wired = false; drawLeader();
   if (ctx.bar) ctx.bar.onclick = e => { const b = e.target.closest('[data-act="view"]'); if (b) setView(b.dataset.v); };
 }
@@ -855,8 +855,88 @@ function applyView() {
   drawBar();
 }
 function setView(v) { L.view = v; applyView(); window.scrollTo(0, 0); }
+// ── Fathom notes (Kate, 16 Oct 2026) ─────────────────────────────────────
+// Coach Emma records her 1-to-1s on Fathom; supabase/functions/fathom-webhook files each finished meeting against the
+// stylist (by the email on the invite). Here the leader sees the summary and action items beside the form, and the
+// editor can add the action items to Agreed actions. The notes are NOT part of the 1-to-1 record: the stylist's link and
+// the PDF never carry them, only what is added to Agreed actions does. Never the transcript.
+async function fxLoad() {
+  L.fx = { notes: [], unmatched: [] };
+  try { const r = await call('perf_o2o_fathom_list', { p_admin: L.ctx.admin, p_token: L.ctx.token }); if (r) L.fx = { notes: r.notes || [], unmatched: r.unmatched || [] }; } catch (e) {}
+}
+// Fathom's summary is markdown: headings, bullets, **bold** and links. Escaped first, so only these few shapes become tags.
+function fxMd(s) {
+  const inline = t => esc(t).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  let out = '', list = false;
+  String(s || '').split(/\r?\n/).forEach(line => {
+    const li = line.match(/^\s*[-*]\s+(.*)$/), h = line.match(/^\s*#{1,6}\s+(.*)$/);
+    if (li) { if (!list) { out += '<ul>'; list = true; } out += `<li>${inline(li[1])}</li>`; return; }
+    if (list) { out += '</ul>'; list = false; }
+    if (h) out += `<p class="o2o-fx-h">${inline(h[1])}</p>`;
+    else if (line.trim()) out += `<p>${inline(line)}</p>`;
+  });
+  return out + (list ? '</ul>' : '');
+}
+function fxNote(n, i) {
+  const items = n.action_items || [], used = n.status === 'used';
+  const canAdd = !ro() && !locked('monthly') && items.length && !used;
+  return `<details class="o2o-more o2o-fx-note"${i === 0 && !used ? ' open' : ''}><summary><span>${esc(stamp(n.started_at))} · ${esc(n.title || 'Meeting')}</span><span class="hint">${used ? 'Added to the 1-to-1' : 'New'}</span></summary>
+    <div class="o2o-fx-body">
+      ${has(n.summary) ? fxMd(n.summary) : '<p class="o2o-who">Fathom has not sent a summary for this meeting.</p>'}
+      ${items.length ? `<p class="o2o-fx-h">Action items</p><ul class="o2o-fx-ai">${items.map(a => `<li>${esc(a.text)}${has(a.assignee) ? ` <span class="o2o-save">(${esc(a.assignee)})</span>` : ''}</li>`).join('')}</ul>` : ''}
+      <div class="o2o-btns" style="margin-top:10px">
+        ${canAdd ? `<button class="btn" type="button" data-act="fx-add" data-id="${n.id}">Add action items to this 1-to-1</button>` : ''}
+        ${has(n.share_url || n.url) ? `<a class="btn o2o-ghost" href="${esc(n.share_url || n.url)}" target="_blank" rel="noopener">Open in Fathom</a>` : ''}
+        ${ro() ? '' : used ? `<button class="btn o2o-ghost" type="button" data-act="fx-undo" data-id="${n.id}">Mark as new</button>` : `<button class="btn o2o-ghost" type="button" data-act="fx-dismiss" data-id="${n.id}">Dismiss</button>`}
+        ${items.length && !used && !ro() && locked('monthly') ? `<span class="o2o-save">Reopen the 1-to-1 to add these.</span>` : ''}
+      </div></div></details>`;
+}
+function fxHTML() {
+  const { notes, unmatched } = L.fx, name = first(L.d.staff.name), show = ro() ? [] : unmatched;
+  if (!notes.length && !show.length && ro()) return '';
+  const body = notes.length ? notes.map(fxNote).join('')
+    : `<p class="o2o-who">Nothing from Fathom yet. After a recorded 1-to-1 with ${esc(name)}, the summary and action items appear here. ${esc(name)}'s email has to be on the meeting invite.</p>`;
+  const un = show.length ? `<div class="o2o-sec">Fathom meetings not matched to anyone</div>
+    ${show.map(u => `<div class="o2o-fx-un"><span><b>${esc(u.title || 'Meeting')}</b> <span class="o2o-save">${esc(stamp(u.started_at))}${(u.invitees || []).length ? ' · ' + esc((u.invitees || []).map(x => x.name || x.email).join(', ')) : ''}</span></span>
+      <button class="btn o2o-ghost" type="button" data-act="fx-claim" data-id="${u.id}">This is ${esc(name)}'s</button></div>`).join('')}` : '';
+  return `<section class="card o2o-card" data-fathom data-view="monthly"${L.view === 'monthly' ? '' : ' hidden'}>
+    <div class="o2o-fold"><span class="o2o-ft"><div class="eyebrow">From Fathom</div><h2>Meeting notes with ${esc(name)}</h2></span>${notes.some(n => n.status === 'new') ? '<span class="o2o-chip new">New</span>' : ''}</div>
+    <div class="o2o-body"><p class="o2o-who">Only leaders see these. They are not part of the signed 1-to-1 or its PDF, and ${esc(name)} does not see them.</p>${body}${un}</div></section>`;
+}
+function redrawFx() {
+  const old = L.slot.querySelector('[data-fathom]'), t = document.createElement('div'); t.innerHTML = fxHTML();
+  if (old) { if (t.firstElementChild) old.replaceWith(t.firstElementChild); else old.remove(); }
+  else if (t.firstElementChild) L.slot.prepend(t.firstElementChild);
+}
+async function fxAct(act, id) {
+  const n = L.fx.notes.find(x => x.id === id), tok = { p_admin: L.ctx.admin, p_token: L.ctx.token, p_id: id };
+  try {
+    if (act === 'fx-claim') {
+      const r = await call('perf_o2o_fathom_assign', tok);
+      if (r !== 'ok') alert(r === 'gone' ? 'That meeting has already been matched.' : 'Only ' + (L.d.editor || 'the editor') + ' can do this.');
+      await fxLoad(); redrawFx(); return;
+    }
+    if (act === 'fx-add') {
+      if (!n || locked('monthly')) return;
+      const c = gather('monthly', true), rows = (c.actions || []).slice(), me = first(L.d.staff.name), ed = L.d.editor || L.d.who;
+      const owner = a => { const f = first(a); return !f ? '' : f.toLowerCase() === me.toLowerCase() ? me : f.toLowerCase() === first(ed).toLowerCase() ? ed : ''; };
+      (n.action_items || []).filter(a => !a.done).forEach(a => {
+        const row = { action: a.text, owner: owner(a.assignee) };
+        const empty = rows.findIndex(r => !r || !has(r.action));
+        if (empty >= 0) rows[empty] = Object.assign({}, rows[empty], row); else rows.push(row);
+      });
+      c.actions = rows; L.content.monthly = c; redrawCard('monthly');
+      if (!(await save('monthly'))) return;     // not saved: leave the note as new, the rows stay on screen
+    }
+    const r = await call('perf_o2o_fathom_mark', Object.assign({ p_status: act === 'fx-add' ? 'used' : act === 'fx-dismiss' ? 'dismissed' : 'new' }, tok));
+    if (r !== 'ok') alert('Could not update the note (' + r + ').');
+    await fxLoad(); redrawFx();
+  } catch (e) { alert('Could not do that. Check the connection and try again.'); }
+}
+
 function drawLeader() {
-  L.slot.innerHTML = cardHTML('monthly') + cardHTML('goals') + checksHTML();
+  L.slot.innerHTML = fxHTML() + cardHTML('monthly') + cardHTML('goals') + checksHTML();
   applyView();
   if (!L.wired) {
     L.slot.addEventListener('click', onLeaderClick);
@@ -926,6 +1006,7 @@ function onLeaderInput(e) {
 async function onLeaderClick(e) {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act, key = b.dataset.kind;
+  if (a === 'fx-add' || a === 'fx-dismiss' || a === 'fx-undo' || a === 'fx-claim') { if (!ro()) await fxAct(a, Number(b.dataset.id)); return; }
   if (a === 'hz') { L.hz = b.dataset.v; const card = b.closest('.o2o-card'); card.querySelectorAll('.o2o-pill').forEach(p => p.classList.toggle('on', p === b)); card.querySelectorAll('[data-hz]').forEach(g => { g.hidden = g.dataset.hz !== L.hz; }); }
   else if (a === 'addrow') { if (locked(key)) return; L.content[key] = gather(key, true); const arr = b.dataset.arr; L.content[key][arr] = (L.content[key][arr] || []).concat([{}]); redrawCard(key); }
   else if (a === 'savenow') { await save(key); }

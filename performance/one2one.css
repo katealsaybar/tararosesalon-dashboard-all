@@ -133,3 +133,10 @@
 [data-view][hidden]{display:none!important}
 .o2o-checks .o2o-card{margin-top:14px}
 .o2o-date select[data-dp="y"]{flex-basis:84px}.o2o-date select[data-dp="m"]{flex-basis:78px}
+/* Fathom meeting notes beside the 1-to-1 (16 Oct 2026) */
+.o2o-fx-body{padding:2px 4px 6px;font-size:14px;line-height:1.5}
+.o2o-fx-body p{margin:0 0 8px}
+.o2o-fx-body ul{margin:0 0 8px;padding-left:20px}
+.o2o-fx-body li{margin-bottom:3px}
+.o2o-fx-h{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:12px 0 4px!important}
+.o2o-fx-un{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--border)}
