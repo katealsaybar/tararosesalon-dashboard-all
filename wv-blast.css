@@ -12,3 +12,6 @@
 .wv-sw.off{background:#b3342d;color:#fff;border-color:#b3342d}
 .wv-go{font-weight:600}
 .wv-log{margin-top:10px}.wv-log summary{cursor:pointer;font-size:13px}
+.wv-ring{display:inline-block;width:12px;height:12px;vertical-align:-1px;border:2px solid var(--accent,#7aa7ff);border-top-color:transparent;border-radius:50%;animation:wvspin .8s linear infinite}
+@keyframes wvspin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.wv-ring{animation-duration:2.4s}}
