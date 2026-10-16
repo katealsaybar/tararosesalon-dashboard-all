@@ -88,7 +88,9 @@ async function sendOne(sb: ReturnType<typeof createClient>, j: Job): Promise<'se
         for (const it of (mj.items || mj.data || [])) {
           if (it.traffic !== 'incoming') continue;
           const txt = String(it.message?.text ?? it.text ?? '').trim();
-          if (/^(stop|unsubscribe|opt ?out|cancel)\b/i.test(txt)) {
+          // Whole message only. "CANCEL" is the appointment reminder's quick-reply button (cancel a booking), not an opt-out:
+          // 16 Oct 2026 it wrongly skipped 7 wave 1 clients and put them on the opt-out list.
+          if (/^(stop|unsubscribe|opt[ -]?out|dnd)\s*[.!]*$/i.test(txt)) {
             await sb.rpc('lost_send_add_optout', { p_phone: j.phone, p_reason: 'Wrote STOP in respond.io' });
             await finish('skipped', 'She wrote STOP, so she is on the opt-out list', { p_contact_id: contact.id });
             return 'skipped';
