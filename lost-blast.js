@@ -68,7 +68,12 @@ function lqbRow(g) {
     else act = s.sent ? '<span class="slv-muted">Nothing left to send</span>' : '<span class="slv-muted">Nothing ready</span>';
   } else if (st === 'ready') act = lvl4 && g.k !== '1b' ? `<button type="button" class="tglr lc-btn wv-go" onclick="lqwOpen(${g.n})">Open ${g.n === 1 ? 'Wave 1' : lcEsc(g.label)}</button>` : g.k === '1b' ? '<span class="slv-muted">Opens with 1a</span>' : '<span class="slv-muted">Level 4 opens it</span>';
   else if (st === 'done') act = '<span class="slv-muted">Done</span>';
-  else act = `<span class="slv-muted">After Wave ${g.n - 1}</span>`;
+  else {
+    // The wave before is open and nothing of it is still waiting: this button finishes it and opens this one (lqwOpen asks the usual questions first).
+    const prevOpen = g.n > 1 && lqwIsOpen(g.n - 1) && !(lqwSt[g.n - 1] ? lqwSt[g.n - 1].rows : []).some(r => !r.messaged && lqbJobIs(r, 'queued', 'sending'));
+    act = prevOpen && lvl4 ? `<button type="button" class="tglr lc-btn wv-go" onclick="lqwOpen(${g.n})" title="Finishes Wave ${g.n - 1} and opens Wave ${g.n}. It asks you to confirm first.">Finish Wave ${g.n - 1}, open ${lcEsc(g.label)}</button>`
+      : prevOpen ? '<span class="slv-muted">Level 4 opens it</span>' : `<span class="slv-muted">After Wave ${g.n - 1}</span>`;
+  }
   return `<tr><td class="ll-nw"><b>${lcEsc(g.label)}</b></td><td class="ll-nw"><a href="#" class="lqb-msg" onclick="event.preventDefault();lqbShowMsg('${g.k}')" title="Read the message">${lcEsc(g.msg)}</a></td><td class="ll-nw">${lcNum(s.total)}</td><td>${status} ${pills}</td><td class="ll-nw">${at}</td><td class="ll-nw">${act}</td></tr>`;
 }
 // The wave whose checks matter next: the first one that is ready to open, else the one after the open wave.
