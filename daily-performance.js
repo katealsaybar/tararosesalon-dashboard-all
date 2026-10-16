@@ -176,7 +176,12 @@ function dpCss() {
   .dpf .dp-sw{display:grid;grid-template-columns:minmax(280px,1.1fr) 1fr;gap:24px;align-items:center}
   .dpf .dp-swl h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin:0 0 4px;font-weight:600}
   .dpf .dp-swl h3:not(:first-child){margin-top:18px}
-  .dpf .dp-swr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border2)}
+  .dpf .dp-swr{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 10px;padding:7px 0;border-bottom:1px solid var(--border2)}
+  .dpf .dp-swr > div:first-child{flex:1 1 130px}
+  .dpf .dp-pl{flex:1 0 100%;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+  .dpf .dp-pll{font-size:11.5px;color:var(--muted);margin-right:2px}
+  .dpf .dp-pi{font-size:11.5px;font-weight:600;border-radius:10px;padding:1px 8px;white-space:nowrap}
+  .dpf .dp-pi.good{background:var(--good-bg);color:var(--good)}.dpf .dp-pi.bad{background:var(--bad-bg);color:var(--bad)}
   .dpf .dp-swr .dp-chip{margin-top:0;white-space:nowrap;flex:none}
   .dpf .dp-swr-r{display:grid;grid-template-columns:58px 96px;align-items:center;gap:12px;flex:none}
   .dpf .dp-swr-r .dp-chip{justify-self:end}
@@ -279,7 +284,10 @@ async function dpLoad(win) {
   const codes = dpCodes(win);
   // A recent window also loads the 13 weeks behind it, so the weekday chart has more than one or two of each day.
   const recent = win.to >= dpAdd(win.yest, -14);
-  const loadFrom = recent ? new Date(Math.min(win.from, dpAdd(win.yest, -90))) : win.from;
+  let loadFrom = recent ? new Date(Math.min(win.from, dpAdd(win.yest, -90))) : win.from;
+  // A window of 100 to 600 days is read against the same dates a year earlier (dpGrowth), so that year comes in too.
+  const wn = Math.round((win.to - win.from) / 864e5) + 1, py = dpYearsBack(win.from, 1);
+  if (wn > 100 && wn < 600 && py >= new Date(PERIOD_FIRST_YEAR, 0, 1)) loadFrom = new Date(Math.min(loadFrom, py));
   const loadTo = recent ? new Date(Math.max(win.to, win.yest)) : win.to;
   const key = dpYmd(loadFrom) + '|' + dpYmd(loadTo) + '|' + codes.join(',');
   if (DPD && DPD.key === key) return DPD;
@@ -609,17 +617,18 @@ function dpWeakest(idxs, codes, best) {
     const c = worst.c, hasT = !M.notarget && c.p != null && c.t != null;
     // The other measures that were low that same day, worst first.
     const ps = others.map(k => ({ k, c: dpCell(k, code, worst.i) })).filter(x => x.c.state === 'ok' && x.c.p != null && (best ? x.c.p >= 100 : x.c.p < 100)).sort((a, b) => best ? b.c.p - a.c.p : a.c.p - b.c.p).slice(0, 3);
-    const also = ps.map(x => (DP_M[x.k].kind === 'ratio' ? `${DP_M[x.k].label}: ${DP_M[x.k].fmt(x.c.v)} against ${x.c.t != null ? DP_M[x.k].fmt(x.c.t) : 'its target'}` : `${DP_M[x.k].label}: ${Math.round(x.c.p)}% of target`)).join('; ');
+    // Kate, 16 Oct 2026: on a phone the "also low that day" sentence ran to five lines, so each is a small pill (a rate or a bill: figure and target, money or count: % of target).
+    const also = ps.map(x => `<span class="dp-pi ${best ? 'good' : 'bad'}">${dpEsc(DP_M[x.k].label)} ${DP_M[x.k].kind === 'ratio' ? dpEsc(DP_M[x.k].fmt(x.c.v)) + (x.c.t != null ? ' vs ' + dpEsc(DP_M[x.k].fmt(x.c.t)) : '') : Math.round(x.c.p) + '%'}</span>`).join('');
     let line, chip;
     if (hasT) {
       const [cls, , ic] = M.util ? dpUtilStatus(c.v) : dpStatus(c.p, dpLoP(mk, c.t));
       line = M.util ? `${dpEsc(M.label)}: ${M.fmt(c.v)}, ${dpEsc(utilBandNote(c.v).toLowerCase())}` : `${dpEsc(M.label)}: ${M.fmt(c.v)} against ${M.kind === 'ratio' ? '' : 'a daily target of '}${M.fmt(c.t)}`;
       chip = `<span class="dp-chip ${cls}" title="${dpEsc(M.label)} against its target that day">${ic} ${M.kind === 'ratio' ? dpEsc(M.fmt(c.v)) : Math.round(c.p) + '%'}</span>`;
     } else {
-      line = `${dpEsc(M.label)}: ${M.fmt(c.v)}. No target is set, so this is simply the ${best ? 'highest' : 'lowest'} day.`;
+      line = `${dpEsc(M.label)}: ${M.fmt(c.v)}`;   // the card's own line already says no target is set
       chip = `<span class="dp-chip na">– No target</span>`;
     }
-    return `<div class="dp-swr"><div>${head}<div class="dp-sub">${line}</div>${also ? `<div class="dp-sub">Also ${best ? 'strong' : 'low'} that day: ${dpEsc(also)}</div>` : ''}</div><div class="dp-swr-r">${dpCalendar(DPD.days[worst.i])}${chip}</div></div>`;
+    return `<div class="dp-swr"><div>${head}<div class="dp-sub">${line}</div></div><div class="dp-swr-r">${dpCalendar(DPD.days[worst.i])}${chip}</div>${also ? `<div class="dp-pl"><span class="dp-pll">Also ${best ? 'strong' : 'low'} that day</span>${also}</div>` : ''}</div>`;
   }).join('');
 }
 function dpPeriodName(idxs) {
@@ -643,11 +652,67 @@ function dpPeriodLine(mk, code, idxs) {
   }
   return `<div class="dp-sub dp-per"><b>${dpEsc(name)}</b>: ${body} (${n} open day${n === 1 ? '' : 's'})</div>`;
 }
-function dpTiles(win, idxs) {
+// ── TILES FOR A LONG WINDOW (a Year, All time, over 100 days) ──
+// Kate, 16 Oct 2026: the latest day as the big number, with a daily squiggle under it, says nothing about a year. So the tile gives the
+// window's total (a rate or a bill: its average), the daily average, the target if one is keyed, whether it grew or fell, and the
+// weekly or monthly line. Growth is against the same dates a year earlier (100 to 600 days), or the latest 12 months against the 12 before
+// (600 days and more, up to the branch's last open day), and only when that earlier stretch has at least 60% as many open days.
+const dpRangeLbl = d => `${d.getDate()} ${MON_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+const dpYearsBack = (d, n) => new Date(d.getFullYear() - n, d.getMonth(), d.getDate());
+function dpTotals(mk, code, ids) {
+  const M = DP_M[mk], cs = ids.map(i => dpCell(mk, code, i)).filter(c => c.state === 'ok');
+  if (!cs.length) return null;
+  const n = cs.length, sum = cs.reduce((a, c) => a + c.v, 0), both = cs.filter(c => c.t != null);
+  const vt = both.reduce((a, c) => a + c.v, 0), tt = both.reduce((a, c) => a + c.t, 0);
+  return { n, v: M.kind === 'vol' ? sum : sum / n, pct: M.kind === 'vol' && both.length && tt > 0 ? vt / tt * 100 : null, t: M.kind === 'ratio' && both.length ? tt / both.length : null };
+}
+function dpGrowth(mk, code, win, idxs) {
+  const M = DP_M[mk];
+  let cur, prev, label;
+  if (idxs.length >= 600) {
+    let end = -1;
+    for (let k = idxs.length - 1; k >= 0; k--) if (dpCell(mk, code, idxs[k]).state === 'ok') { end = k; break; }
+    if (end < 729) return { none: 'Less than two years of figures, so no like-for-like growth.' };
+    cur = idxs.slice(end - 364, end + 1); prev = idxs.slice(end - 729, end - 364);
+    label = `Latest 12 months (to ${dpRangeLbl(DPD.days[idxs[end]])}) against the 12 months before.`;
+  } else {
+    const pf = dpYearsBack(win.from, 1), pt = dpYearsBack(win.to, 1);
+    if (pf < new Date(PERIOD_FIRST_YEAR, 0, 1)) return { none: 'No earlier year to compare with.' };
+    cur = idxs; prev = [];
+    DPD.days.forEach((d, i) => { if (d >= pf && d <= pt) prev.push(i); });
+    label = `Against ${dpRangeLbl(pf)} to ${dpRangeLbl(pt)}.`;
+  }
+  const a = dpTotals(mk, code, cur), b = dpTotals(mk, code, prev);
+  if (!a) return null;
+  if (!b || b.n < a.n * .6 || !(b.v > 0)) return { none: 'Not enough open days a year earlier to compare.' };
+  const pts = M.fmt === dpPctF || M.fmt === dpPct1, d = a.v - b.v, rel = d / b.v * 100, ch = pts ? d : rel;
+  const flat = Math.abs(ch) < (pts ? .5 : 1);
+  const text = flat ? 'Flat' : pts ? `${Math.abs(Math.round(d * 10) / 10)} points ${d > 0 ? 'up' : 'down'}` : `${Math.abs(Math.round(rel))}% ${rel > 0 ? 'up' : 'down'}`;
+  return { cls: flat ? 'na' : ch > 0 ? 'good' : 'bad', ic: flat ? '–' : ch > 0 ? '▲' : '▼', text, label };
+}
+function dpLongTile(code, win, idxs, cidx, head) {
+  const mk = DP.measure, M = DP_M[mk], t = dpTotals(mk, code, idxs), vol = M.kind === 'vol';
+  if (!t) return `<div class="dp-tile">${head}<div class="big" style="color:var(--muted2)">—</div><div class="dp-sub">No figures in this window</div></div>`;
+  let tchip = '';
+  if (M.util) { const [cls, txt, ic] = dpUtilStatus(t.v); tchip = `<span class="dp-chip ${cls}">${ic} ${dpEsc(txt)}</span>`; }
+  else if (vol && t.pct != null) { const [cls, txt, ic] = dpStatus(t.pct, dpLoP(mk, null)); tchip = `<span class="dp-chip ${cls}">${ic} ${Math.round(t.pct)}% of target · ${txt}</span>`; }
+  else if (!vol && t.t != null) { const [cls, , ic] = dpStatus(t.v / t.t * 100, dpLoP(mk, t.t)); tchip = Math.abs(t.v - t.t) < 1e-9 ? `<span class="dp-chip on">On target</span>` : `<span class="dp-chip ${cls}">${ic} ${dpDiff(M, { v: t.v, t: t.t })} ${t.v >= t.t ? 'above' : 'below'} target</span>`; }
+  else tchip = '<span class="dp-chip na">– No target set</span>';
+  const g = dpGrowth(mk, code, win, idxs);
+  const gnote = !g ? '' : g.none ? `<div class="dp-sub" style="margin-top:6px">${dpEsc(g.none)}</div>` : `<div class="dp-sub">${dpEsc(g.label)}</div>`;
+  const gchip = g && !g.none ? `<span class="dp-chip ${g.cls}" style="margin-left:6px">${g.ic} ${dpEsc(g.text)}</span>` : '';
+  return `<div class="dp-tile">${head}<div class="big">${M.fmt(t.v)}</div>
+    <div class="dp-sub"><b style="color:var(--text)">${dpEsc(M.label)}</b> · ${vol ? 'total' : 'average'}, ${dpRangeLbl(win.from)} to ${dpRangeLbl(win.to)}</div>
+    <div class="dp-sub">${t.n} open day${t.n === 1 ? '' : 's'}${vol ? ' · ' + M.fmt(t.v / t.n) + ' a day on average' : ''}</div>
+    <div>${tchip}${gchip}</div>${gnote}
+    <div style="margin-top:8px;max-width:260px">${dpSpark(code, cidx, mk)}</div></div>`;
+}
+function dpTiles(win, idxs, cidx) {
   const mk = DP.measure, M = DP_M[mk];
   return dpSel().map(code => {
     const head = `<div class="nm"><span class="dot" style="background:${dpCol(code)}"></span>${dpEsc(dpName(code))}</div>`;
     if (M.beauty && DPD.hairOnly[code]) return `<div class="dp-tile">${head}<div class="big" style="color:var(--muted2)">n/a</div><div class="dp-sub">No Beauty team at this branch</div><span class="dp-chip na">– Not tracked</span></div>`;
+    if (dpUnit !== 'day') return dpLongTile(code, win, idxs, cidx, head);
     let li = -1;
     for (let k = idxs.length - 1; k >= 0; k--) if (dpCell(mk, code, idxs[k]).state === 'ok') { li = idxs[k]; break; }
     if (li < 0) return `<div class="dp-tile">${head}<div class="big" style="color:var(--muted2)">—</div><div class="dp-sub">No figures in this window yet</div></div>`;
@@ -1034,7 +1099,7 @@ function dpDraw(host, win) {
     <p class="dp-deck">How each branch did, day by day, against its daily target. Unsure of a term? <button type="button" class="dp-linkbtn" data-jump="dpHow">How to read this page</button>.</p>
     ${dpControls(win)}
     <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}${dpUnit === 'day' ? '' : ' · ' + dpEsc('the Trend, Bars and Day by day cards draw one point per ' + U[1] + ', each the total of its open days against the total of their targets (a rate or a bill: the average)')}${dpOffPage() ? ' · Bahrain is not on this page yet, so the UAE branches show' : ''}${M.help ? ' · <b>' + dpEsc(M.label) + '</b>: ' + dpEsc(M.help) : ''}</p>
-    <section class="dp-tiles dp-jt" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs)}</section>
+    <section class="dp-tiles dp-jt" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs, cidx)}</section>
     <div class="lg-shell lg-shell-wide">${dpRail()}<div class="lg-doc">
     <div class="dp-card dp-jt" id="dpCardW"><h2>Weakest day per branch: ${dpEsc(M.label)}</h2><p class="dp-why">${rawAll ? `The day in this period with the lowest ${dpEsc(M.noun)}. ${noT}, so nothing is graded.` : `The day in this period when ${dpEsc(M.noun)} fell furthest below its target, for each branch. Closed days and days with no figures are skipped.`}</p><div id="dpW"></div></div>
     <div class="dp-card dp-jt" id="dpCardBest"><h2>Strongest day per branch: ${dpEsc(M.label)}</h2><p class="dp-why">${rawAll ? `The day in this period with the highest ${dpEsc(M.noun)}. ${noT}, so nothing is graded.` : `The day in this period when ${dpEsc(M.noun)} went furthest above its target, for each branch. Closed days and days with no figures are skipped.`}</p><div id="dpBest"></div></div>
