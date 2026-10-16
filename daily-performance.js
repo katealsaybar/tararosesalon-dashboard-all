@@ -76,15 +76,20 @@ const DP_M = {
 };
 // The radar: every measure that has a target, the ten that say most about a branch's shape ticked by default.
 // Kate, 13 Oct 2026: that ten is the default, and any of them can be taken off or the rest put on (Customise).
-const DP_RADAR_ALL = ['sales', 'services', 'retail', 'hair', 'beauty', 'treat', 'clients', 'newc', 'ncr', 'rebook', 'treatp',
-  'retailp', 'hairbill', 'beautybill', 'util'].map(k => [k, DP_M[k].label]);
+// Kate, 16 Oct 2026: the AED figure and its percentage sit side by side round the shape (Retail AED then Retail %,
+// Treat AED then Treat %), so the order here is the order round the circle.
+const DP_RADAR_ALL = ['sales', 'services', 'hair', 'hairbill', 'beauty', 'beautybill', 'retail', 'retailp', 'treat', 'treatp',
+  'clients', 'newc', 'ncr', 'rebook', 'util'].map(k => [k, DP_M[k].label]);
 // 13 Oct 2026 (Comet audit): Total clients and New clients have no target keyed, so they cannot be drawn and the
 // "ten" showed eight. Every default now has a target; they are still in Customise for when targets are keyed.
 const DP_RADAR_DEFAULT = ['sales', 'retail', 'treat', 'hair', 'ncr', 'rebook', 'treatp', 'retailp', 'hairbill', 'util'];
 // Short names for the radar's axes, so the shape gets the room (Kate, 15 Oct 2026: the words around it were too long).
 // The full name is in the hover tip (a tap on a phone) and in the key under the chart.
+// Each axis label is two lines, the short name and its unit, so Retail AED and Retail % read as a pair.
 const DP_SHORT = { sales: 'Sales', services: 'Svcs', retail: 'Retail', hair: 'Hair', beauty: 'Beauty', treat: 'Treat', clients: 'Clients',
-  newc: 'New', ncr: 'NCR', rebook: 'RBK %', treatp: 'TRT %', retailp: 'RTL %', hairbill: 'HAB', beautybill: 'BAB', util: 'UTL' };
+  newc: 'New', ncr: 'NCR', rebook: 'RBK', treatp: 'Treat', retailp: 'Retail', hairbill: 'HAB', beautybill: 'BAB', util: 'UTL' };
+const DP_UNIT = { sales: 'AED', services: 'AED', retail: 'AED', hair: 'AED', beauty: 'AED', treat: 'AED', clients: 'count',
+  newc: 'count', ncr: 'count', rebook: '%', treatp: '%', retailp: '%', hairbill: 'AED', beautybill: 'AED', util: '%' };
 function dpRadarSel() {
   const ok = new Set(DP_RADAR_ALL.map(x => x[0]));
   const pick = (Array.isArray(DP.radar) ? DP.radar : DP_RADAR_DEFAULT).filter(k => ok.has(k));
@@ -860,7 +865,7 @@ function dpRadarVals(code, idxs) {
   });
 }
 function dpRadar(host, idxs, codes) {
-  const W = Math.max(300, Math.min(dpW(host), 520)), H = Math.round(W * .98), cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 46, max = 130;
+  const W = Math.max(300, Math.min(dpW(host), 520)), H = Math.round(W * .98), cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 54, max = 130;
   const multi = codes.length > 1, sel = dpRadarSel();
   const mineAll = codes.map(code => dpRadarVals(code, idxs));
   const axes = sel.map((_, k) => k).filter(k => mineAll.every(a => a[k]));
@@ -883,10 +888,11 @@ function dpRadar(host, idxs, codes) {
   });
   axes.forEach((k, i) => {
     const c = Math.cos(ang(i)), sn = Math.sin(ang(i)), lab = sel[k][1];
-    const lx = cx + c * (R + 10), ly = cy + sn * (R + 10) + (sn < -.5 ? -2 : sn > .5 ? 10 : 4);
+    const lx = cx + c * (R + 10), ly = cy + sn * (R + 10) + (sn < -.5 ? -17 : sn > .5 ? 10 : -2);
     const weak = mineAll.some(a => a[k].p < 100), mk0 = sel[k][0], help = DP_M[mk0].help;
     const ltip = `<b>${dpEsc(lab)}</b>` + (help ? `<div class="r"><span>${dpEsc(help)}</span></div>` : '');
-    g += `<text class="${weak ? 'tv' : ''}" x="${lx}" y="${ly}" text-anchor="${c > .3 ? 'start' : c < -.3 ? 'end' : 'middle'}" style="cursor:help;${weak ? '' : 'fill:var(--text)'}" data-tip="${dpEsc(ltip)}">${dpEsc(DP_SHORT[mk0] || lab)}<title>${dpEsc(lab)}</title></text>`;
+    const unit = DP_UNIT[mk0] ? `<tspan x="${lx}" dy="12">${dpEsc(DP_UNIT[mk0])}</tspan>` : '';
+    g += `<text class="${weak ? 'tv' : ''}" x="${lx}" y="${ly}" text-anchor="${c > .3 ? 'start' : c < -.3 ? 'end' : 'middle'}" style="cursor:help;${weak ? '' : 'fill:var(--text)'}" data-tip="${dpEsc(ltip)}">${dpEsc(DP_SHORT[mk0] || lab)}${unit}<title>${dpEsc(lab)}</title></text>`;
     codes.forEach((code, bi) => {
       const v = mineAll[bi][k], q = pt(i, v.p);
       const tip = `<b>${dpEsc(lab)}</b><div class="r"><span>${dpEsc(code)}, window average</span><span>${DP_M[v.mk].fmt(v.avg)}</span></div><div class="r"><span>Target</span><span>${DP_M[v.mk].fmt(v.t)}</span></div><div class="r"><span>vs target</span><span>${Math.round(v.p)}%</span></div><div class="r"><span>All-branch average</span><span>${Math.round(grp[i])}%</span></div>`;
@@ -908,7 +914,7 @@ function dpRadar(host, idxs, codes) {
     }).join('');
   }
   if (dropped.length) list += `<div class="dp-sub" style="margin-top:12px">Left off the shape: ${dpEsc(dropped.join(', '))} (no target set at ${multi ? 'one of these branches' : 'this branch'}).</div>`;
-  const keyBits = axes.map(k => sel[k]).filter(([mk0, full]) => DP_SHORT[mk0] && DP_SHORT[mk0] !== full).map(([mk0, full]) => `<b>${dpEsc(DP_SHORT[mk0])}</b> ${dpEsc(full)}`);
+  const keyBits = axes.map(k => sel[k]).filter(([mk0, full]) => DP_SHORT[mk0] && DP_SHORT[mk0] !== full && `${DP_SHORT[mk0]} ${DP_UNIT[mk0] || ''}`.trim() !== full).map(([mk0, full]) => `<b>${dpEsc(DP_SHORT[mk0])}${DP_UNIT[mk0] ? ' ' + dpEsc(DP_UNIT[mk0]) : ''}</b> ${dpEsc(full)}`);
   const key = keyBits.length ? `<p class="dp-sub dp-rkey">Hover or tap a label for its full name. ${keyBits.join(' \u00B7 ')}</p>` : '';
   return { title, html: `<svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${dpEsc(title)}">${g}</svg>${key}`, list, legend };
 }
