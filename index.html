@@ -1875,6 +1875,9 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 #bootLoader .mark{width:190px;max-width:52vw;aspect-ratio:2321/396}
 #bootLoader .bl-word{font:500 12.5px/1 'Inter',sans-serif;letter-spacing:.4em;text-indent:.4em;text-transform:uppercase;color:var(--text,#1c1b19);opacity:.85}
 #bootLoader .bl-t{font:500 12px/1 'Inter',sans-serif;letter-spacing:.24em;text-transform:uppercase;color:var(--muted,#8a8378)}
+#bootLoader .bl-fact{max-width:min(380px,82vw);min-height:3.2em;text-align:center;font:italic 400 15px/1.5 'Playfair Display',Georgia,serif;color:var(--muted,#8a8378);opacity:0;transition:opacity .22s ease;margin-top:4px}
+#bootLoader .bl-fact.on{opacity:1}
+@media(prefers-reduced-motion:reduce){#bootLoader .bl-fact{transition:none}}
 #bootLoader .bl-bar{width:140px;height:2px;border-radius:2px;background:var(--border,#e6dfd3);overflow:hidden;position:relative}
 #bootLoader .bl-bar::after{content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;border-radius:2px;
   background:var(--text,#1c1b19);animation:blSlide 1.1s ease-in-out infinite}
@@ -3402,7 +3405,9 @@ table.tp-cmp td.bad{color:var(--bad)}
   </div>
   <div class="bl-bar" aria-hidden="true"></div>
   <div class="bl-t">Loading your dashboard</div>
+  <div class="bl-fact" id="blFact" aria-live="off"></div>
 </div>
+<script src="loading-facts.js?v=20261016lf1"></script>
 <script>
   // Dark theme picks the light-on-dark logo before anything paints.
   (function(){ try { var th = document.documentElement.getAttribute('data-theme');
@@ -5233,6 +5238,6 @@ addEventListener('load', sizeTopbar);
 <script src="nav-collapse.js?v=20261014glide2"></script>
 <script src="nav-stars.js?v=20261002a"></script>
 <script src="mobile.js?v=20261008sa"></script>
-<script src="search.js?v=20261016ret1"></script>
+<script src="search.js?v=20261016sg1"></script>
 <script src="visits.js?v=20261008v1"></script>
 </body>

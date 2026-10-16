@@ -428,6 +428,16 @@
   function goText(view, text, prep, anchor, alts) {
     if (prep) prep(CURRENT_VIEW === view);
     whoShowView(view);
+    // Kate, 16 Oct 2026: a result must land on the page it names. If another page opened
+    // (a renamed or redirected view, a page this sign-in may not open), say so on the page
+    // and in the console instead of landing quietly in the wrong place.
+    setTimeout(() => {
+      if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW && CURRENT_VIEW !== view) {
+        const n = viewNames();
+        console.warn('[search] asked for ' + view + ', landed on ' + CURRENT_VIEW);
+        whoNote('Search meant ' + (n[view] || view) + ', but ' + (n[CURRENT_VIEW] || CURRENT_VIEW) + ' opened.');
+      }
+    }, 600);
     // Organisation Pulse keeps its sections behind the cover until it is opened.
     if (view === 'dashboard' && !document.body.classList.contains('revealed')) {
       document.body.classList.add('revealed');
@@ -679,18 +689,27 @@
     if (ft || ftBusy) return;
     if (window.TRS_SEARCH_INDEX) { buildFt(); return; }
     ftBusy = true;
-    const s = document.createElement('script');
-    const stamp = SELF.indexOf('?') >= 0 ? SELF.slice(SELF.indexOf('?')) : '';
-    s.src = new URL('search-index.js' + stamp, SELF || location.href).href;
-    s.onload = () => {
+    // Kate, 16 Oct 2026: the index is checked against the server every time search opens
+    // (no-cache revalidates: a 304 when nothing changed, the new file the minute a page's
+    // wording is pushed), so it never waits on a ?v= stamp being bumped by hand.
+    const done = () => {
       ftBusy = false;
       buildFt();
       if (panel) index = buildIndex();
       if (panel && !panel.hidden && input.value.trim()) render();
       if (serp && !serp.hidden && serpIn.value.trim()) runSerp();
     };
-    s.onerror = () => { ftBusy = false; };
-    document.head.appendChild(s);
+    const url = new URL('search-index.js', SELF || location.href).href;
+    fetch(url, { cache: 'no-cache' })
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(src => {
+        const s = document.createElement('script');
+        s.src = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+        s.onload = () => { URL.revokeObjectURL(s.src); done(); };
+        s.onerror = () => { ftBusy = false; };
+        document.head.appendChild(s);
+      })
+      .catch(() => { ftBusy = false; });
   }
 
   // Every line of every page that fits what was typed. Lines with all the words come

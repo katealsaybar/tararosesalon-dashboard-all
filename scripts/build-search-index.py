@@ -19,8 +19,25 @@ search-index.js in index.html:
     python scripts/build-search-index.py
 
 Nothing here is read at run time except the output. The output is data only.
+
+Kept honest (Kate, 16 Oct 2026: "i want to prevent the same thing from happening"):
+the page a line belongs to is decided here, by hand, so this file also checks itself.
+
+    python scripts/build-search-index.py --check     exit 1 if the committed index is stale
+                                                     or any guard below fails; writes nothing
+
+  1. Every script has a home: FILE_VIEWS (a page), SPECIAL (split by function) or
+     NOT_PAGES (draws no page text). A new .js file that is none of them fails the
+     build, so a page can never be added without deciding where its text is searched.
+  2. PAGE_ANCHORS: a line that only one page has must be indexed under that page and
+     under no other. Two pages with near-identical names (Client's Last Visit and Lost
+     Clients, Podium Race and Staff Quadrant) can no longer swap without a failure.
+  3. Every page in the sidebar has text in the index (or is on NO_TEXT_OK, with a reason).
+  4. The index records a hash of everything it was built from (src). --check recomputes it,
+     so an index that is behind the pages, or behind this file, is caught before a push.
 """
 import bisect
+import hashlib
 import html
 import json
 import re
@@ -42,6 +59,57 @@ FILE_VIEWS = {
     'lost-consults.js': 'lostlists', 'lost-waves.js': 'lostlists', 'lost-review-file.js': 'lostlists',
     'lost-clients.js': 'lostclients', 'lost-lists.js': 'lostlists', 'lost-queue.js': 'lostlists', 'pulse-narrative.js': 'dashboard',
     'branch-narrative.js': 'branchperf', 'ledger-targets.js': 'ledgerTargets',
+    # Added 16 Oct 2026 by the guard: these four drew page text that was not indexed at all.
+    'wv-blast.js': 'wvblast', 'lost-blast.js': 'lostlists', 'lost-report.js': 'lostlists',
+    'send-schedule.js': 'lostlists',   # shared by Lost Clients and Wellness Voucher Blast; the page that sends most
+}
+# Scripts that draw one page from several functions, handled in main().
+SPECIAL = {'dashboard.js', 'branch-ledger.js', 'team-performance.js'}
+# Scripts that draw no page text of their own, and why. A new script has to land in
+# FILE_VIEWS, SPECIAL or here, or the build fails.
+NOT_PAGES = {
+    'auth.js': 'sign-in helpers', 'mobile.js': 'phone layer', 'nav-collapse.js': 'sidebar behaviour',
+    'nav-stars.js': 'stars beside sidebar links', 'search.js': 'the search itself',
+    'search-index.js': 'the output of this file', 'visits.js': 'remembers what was opened',
+    'ask-widget.js': 'the Ask box, one widget on every page', 'staff-links.js': 'the name hover menu',
+    'staff-profiles.js': 'staff card data; people are found through the Team results',
+    'stylist-cards.js': 'staff card words; people are found through the Team results',
+    'ledger-export.js': 'spreadsheet export of the ledger pages', 'ledger-targets-db.js': 'target data loader',
+    'marketing-chart.js': 'chart drawing shared by Google Ads and Website',
+    'fix-blank-rows.js': 'one-off Node repair script, not a page',
+    'loading-facts.js': 'the lines on the loading screen',
+}
+# A page in the sidebar that may have no text in the index, and why.
+NO_TEXT_OK = {
+    'wvperf': 'an iframe of the Wellness Voucher pages, searched there',
+    'stylists': 'Staff Cards: the people are found through the Team results',
+    'reviews': 'drawn inside the Google Reviews frame; Team and Content results cover it (see audit part on search coverage)',
+}
+# A line only one page has: it must be indexed under that page and under no other (whole line,
+# not a part of one). These are the pages whose names or subjects are close to another page's.
+PAGE_ANCHORS = {
+    'dashboard': ['The headline three'],
+    'dailyperf': ['Each branch at a glance'],
+    'compare': ['Two windows, side by side'],
+    'overyears': ['All the years on one line chart'],
+    'ledgerFinancials': ['Report vs dashboard'],
+    'ledgerTargets': ['Benchmarks by branch'],
+    'ledgerActuals': ['Total (Ex VAT)'],
+    'team': ['Clients, per staff'],
+    'teamquad': ['Treatment against retail'],
+    'staffweeks': ['sales (bars) and clients (line)'],
+    'stafflevels': ['At this level'],
+    'clients': ['Not back in 60+ days'],
+    'clientmix': ['Narrow it down'],
+    'lostclients': ['Regulars (3+ visits)', 'Days away'],
+    'lostlists': ['The WhatsApp waves', 'Still to contact'],
+    'services': ['Sizes and names behind this row'],
+    'wvblast': ['Everyone on the list'],
+    'products': ['Retail stock bought against retail sold'],
+    'googleads': ['Every campaign that ran'],
+    'website': ['Where visits came from'],
+    'social': ['From social to the website'],
+    'orgchart': ['Tara Rose Group'],
 }
 # The Staff Dashboards frame is a page of its own with its own scripts.
 FRAME_VIEWS = {'performance/index.html': 'staffperf'}
@@ -303,9 +371,61 @@ def fn_starts(src):
 def view_names():
     names = {}
     idx = (ROOT / 'index.html').read_text(encoding='utf-8')
-    for m in re.finditer(r"showView\('([^']+)'[^>]*>([^<]+)<", idx):
+    for m in re.finditer(r"""<div class="nav-sub"[^>]*onclick="showView\('([^']+)'[^>]*>([^<]+)<""", idx):
         names.setdefault(m.group(1), clean(m.group(2)))
     return names
+
+
+def source_files():
+    """Everything the index is built from. Edit any of them and src_hash() changes."""
+    files = {'index.html', 'hub/hub.js', 'scripts/build-search-index.py'}
+    files.update(FILE_VIEWS)
+    files.update(SPECIAL)
+    files.update(FRAME_VIEWS)
+    return sorted(files)
+
+
+def src_hash():
+    h = hashlib.sha256()
+    for rel in source_files():
+        h.update(rel.encode())
+        h.update((ROOT / rel).read_bytes().replace(bytes([13, 10]), bytes([10])))   # same on Windows and Linux
+    return h.hexdigest()[:16]
+
+
+def script_problems():
+    out = []
+    for p in sorted(ROOT.glob('*.js')):
+        n = p.name
+        if n not in FILE_VIEWS and n not in SPECIAL and n not in NOT_PAGES:
+            out.append(f'{n} has no home: add it to FILE_VIEWS (the page it draws), SPECIAL or NOT_PAGES in scripts/build-search-index.py')
+    for n in list(FILE_VIEWS) + sorted(SPECIAL):
+        if not (ROOT / n).exists():
+            out.append(f'{n} is named in scripts/build-search-index.py but is not in the repo')
+    return out
+
+
+def guard_problems(items, names, containers):
+    out = script_problems()
+    by_line, count = {}, {}
+    for view, sec, text, head in items:
+        by_line.setdefault(text.lower(), set()).add(view)
+        count[view] = count.get(view, 0) + 1
+    for view, phrases in PAGE_ANCHORS.items():
+        for ph in phrases:
+            views = by_line.get(trim(clean(ph)).lower(), set())
+            if view not in views:
+                out.append(f'anchor "{ph}" should be indexed under {view}, but is under: {", ".join(sorted(views)) or "nowhere"}')
+            elif len(views) > 1:
+                out.append(f'anchor "{ph}" belongs only to {view}, but is also indexed under: {", ".join(sorted(views - {view}))}')
+    for view, label in names.items():
+        if view == 'branchperf':
+            continue
+        if view not in containers:
+            out.append(f'{label} ({view}) is in the sidebar but index.html has no <div id="view-{view}">')
+        if not count.get(view) and view not in NO_TEXT_OK:
+            out.append(f'{label} ({view}) is in the sidebar but has no text in the index')
+    return out
 
 
 class Index:
@@ -356,6 +476,8 @@ def scan_js_file(ix, rel, pick_view, src=None):
 
 
 def main():
+    check = '--check' in sys.argv
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
     names = view_names()
     ix = Index()
 
@@ -416,7 +538,28 @@ def main():
     ix.items = [it for it in ix.items if it[0] != 'branchperf']
     for it in ix.items:
         it[0] = it[0] if it[0] in names else it[0]
-    data = {'built': __import__('datetime').date.today().isoformat(), 'items': ix.items, 'kb': kb}
+    data = {'built': __import__('datetime').date.today().isoformat(), 'src': src_hash(), 'items': ix.items, 'kb': kb}
+    containers = set(re.findall(r'<div id="view-([A-Za-z]+)"', idx))
+    problems = guard_problems(ix.items, names, containers)
+    if check:
+        try:
+            m = re.search(r'"src":"([0-9a-f]+)"', OUT.read_text(encoding='utf-8'))
+        except FileNotFoundError:
+            m = None
+        if not m or m.group(1) != data['src']:
+            problems.append('search-index.js is behind the pages it is built from: run  python scripts/build-search-index.py  and commit it')
+        if problems:
+            print(f'SEARCH CHECK FAILED ({len(problems)}):')
+            for pr in problems:
+                print('  - ' + pr)
+            sys.exit(1)
+        print(f'search check ok: index current (src {data["src"]}), {len(ix.items)} lines, {len(PAGE_ANCHORS)} pages anchored')
+        return
+    if problems:
+        print(f'NOT WRITTEN, fix these first ({len(problems)}):')
+        for pr in problems:
+            print('  - ' + pr)
+        sys.exit(1)
     OUT.write_text('/* Built by scripts/build-search-index.py. Do not edit by hand. */\n'
                    'window.TRS_SEARCH_INDEX=' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';\n',
                    encoding='utf-8')
@@ -426,8 +569,8 @@ def main():
     print(f'{len(ix.items)} lines, {len(kb)} Team Home sections, {OUT.stat().st_size // 1024} KB')
     for v, c in sorted(per.items(), key=lambda x: -x[1]):
         print(f'  {v:18s} {c}')
-    if len(sys.argv) > 1:
-        q = sys.argv[1].lower()
+    if args:
+        q = args[0].lower()
         for v, s, t, h in ix.items:
             if q in t.lower():
                 print(f'[{v}] {s[:40]!r} :: {t[:110]}')
