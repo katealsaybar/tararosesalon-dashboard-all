@@ -42,6 +42,7 @@
 .door .ptable th:not(:first-child),.door .ptable td:not(:first-child){padding-left:10px}
 .door .ptable td,.door .ptable td b{font-size:13.5px}
 .door .ptable th{font-size:10px;letter-spacing:.06em;white-space:normal}
+.cardphoto{margin:0 0 18px}.cardphoto img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;border-radius:var(--r-md);background:var(--stone-soft)}
 .door .bands{overflow-x:auto}
 #o-treatment .doors{grid-template-columns:repeat(auto-fit,minmax(280px,580px))}
 .ochips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:22px auto 0;max-width:720px}
@@ -112,7 +113,8 @@
     <div class="ogroup" id="o-colour">
       <h3>Colour maintenance</h3>
       <p class="who">For you if your colour has gone warm or flat, or has started to grow out.</p>
-    <div class="doors">
+    <figure class="mphoto" style="max-width:760px"><img src="assets/img/menu-tone-reset.jpg" alt="A straightener gliding through freshly toned copper hair" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 40%"></figure>
+        <div class="doors">
     <article class="door">
       <h3>The Tone Reset</h3>
       <p>Toner and a blow-dry, thirty to forty-five minutes. It resets your tone before the warmth comes back.</p>
@@ -154,7 +156,8 @@
     <div class="ogroup" id="o-blowdry">
       <h3>Blow-dry packages</h3>
       <p class="who">For you if you want to feel polished more than once every few weeks.</p>
-    <div class="doors">
+    <figure class="mphoto" style="max-width:760px"><img src="assets/img/menu-blowdry.jpg" alt="A junior stylist mid blow-dry, round brush in one hand and dryer in the other, her client relaxed in the chair" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 30%"></figure>
+        <div class="doors">
     <article class="door">
       <h3>The Blow-dry Edit</h3>
       <p>Three blow-dries, prepaid, so the week starts the way you want it to rather than the way it happens to.</p>
@@ -189,6 +192,7 @@
       <p class="who">For you if your hair feels tired, dry or frizzy.</p>
     <div class="doors">
     <article class="door">
+      <figure class="cardphoto"><img src="assets/img/menu-treatment-blowdry.jpg" alt="A junior stylist blow-drying her client&rsquo;s freshly treated hair smooth" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 30%"></figure>
       <h3>Treatment and Blow-dry</h3>
       <p>One appointment that treats your hair or scalp and finishes it. Your stylist prescribes the treatment that suits your hair.</p>
       <ul class="door__inc"><li><span class="tk"></span>Strength, Colour Longevity, Hydration &amp; Frizz or Scalp Health</li><li><span class="tk"></span>Worked through your 8-Step Hair Plan</li><li><span class="tk"></span>A blow-dry to finish</li></ul>
@@ -198,6 +202,7 @@
       <a class="pill pill--accent" href="#book" data-svc="treatment">Book this <span class="arr">&rarr;</span></a>
     </article>
     <article class="door">
+      <figure class="cardphoto"><img src="assets/img/menu-treatment-course.jpg" alt="A junior stylist at the basin, treatment in hand, talking her client through it" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 30%"></figure>
       <h3>Treatment Courses</h3>
       <p>Three or five sessions, prepaid, with the same stylist tracking the result at every visit.</p>
       <ul class="door__inc"><li><span class="tk"></span>Three or five sessions, one payment</li><li><span class="tk"></span>The same stylist tracking your result</li><li><span class="tk"></span>Your stylist will say so if one session is all you need</li></ul>
