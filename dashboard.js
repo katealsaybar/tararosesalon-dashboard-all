@@ -790,6 +790,10 @@ function paintFilterChips() {
   const shown = onLedger ? null : (periodPick || active);
   pEl.innerHTML = chipRow(periodChips(shown).map(c => ({
     v: c.v, label: c.label, on: c.v === shown, disabled: onLedger })));
+  // Over the Years has no Period (it sets years against years itself), so that row is where its years are ticked. Kate, 16 Oct 2026.
+  const pLbl = document.getElementById('periodLbl');
+  if (pLbl) pLbl.textContent = onYears ? 'Years' : 'Period';
+  if (onYears && typeof otyYearChips === 'function' && typeof otyD !== 'undefined' && otyD) pEl.innerHTML = otyYearChips();
 
   // Clients: no switch any more (Kate, 8 Oct 2026); the row stays hidden.
   const cRow = document.getElementById('clientRow');
@@ -813,7 +817,7 @@ function paintFilterChips() {
       'The Ledgers pages read the ledger month — last month’s actuals against this month’s target, month to date. '
       + 'Use Split on the page for MTD, weekly or daily columns. Branch still filters.';
     else if (onYears) note.textContent =
-      'Over the Years sets every year against the others, so the Period does not apply here. Branch still filters: pick one or several, '
+      'Tick the years to compare; the Period does not apply here. Branch still filters: pick one or several, '
       + 'and the closed ones (Fratelli, Marasy) are always on offer.';
   }
 
@@ -845,7 +849,7 @@ function paintFilterChips() {
   if (mr && realLedger && typeof lgMonth === 'string' && typeof lgMonthLabel === 'function') {
     mr.textContent = `${lgMonthLabel(lgMonth)} · ledger month`;
   }
-  if (mr && onYears) mr.textContent = (typeof otyD !== 'undefined' && otyD && otyD.years.length) ? `${otyD.years[0]} – ${otyD.curYear}` : 'Every year';
+  if (mr && onYears) mr.textContent = (typeof otyD !== 'undefined' && otyD && otyD.years.length) ? (typeof otySelLabel === 'function' ? otySelLabel() : `${otyD.years[0]} – ${otyD.curYear}`) : 'Every year';
 }
 
 // -- THE THREE PICKERS UNDER THE CHIPS -----------------------
@@ -950,6 +954,11 @@ document.addEventListener('input', e => {
 document.addEventListener('click', e => {
   const chip = e.target.closest('.chip');
   if (!chip || chip.disabled) return;
+
+  if (chip.dataset.yr && chip.closest('#periodChips')) {   // Over the Years: a year tick
+    if (typeof otyToggleYear === 'function') otyToggleYear(+chip.dataset.yr);
+    return;
+  }
 
   if (chip.closest('#branchChips')) {
     if (typeof TRS_SCOPE !== 'undefined' && TRS_SCOPE) return;   // one branch, nothing to change
