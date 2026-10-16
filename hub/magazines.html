@@ -27,6 +27,11 @@
   .mg-blurb{font-size:13.5px;line-height:1.5;color:var(--muted);margin:0 0 8px;flex:1}
   .mg-meta{font-size:12.5px;color:var(--muted2)}
   .mg-acts{display:flex;gap:8px;flex-wrap:wrap}
+  .mg-tools{display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center;margin:0 0 18px}
+  .mg-switch{display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:3px;gap:3px;background:var(--surface);margin:0}
+  .mg-switch button{font:inherit;font-size:13px;border:0;border-radius:999px;padding:5px 14px;min-height:32px;background:transparent;color:var(--muted);cursor:pointer}
+  .mg-switch button[aria-pressed="true"]{background:var(--text);color:var(--bg);font-weight:600}
+  @media (max-width:760px){.mg-switch button{min-height:36px}}
 </style>
 </head>
 <body class="kb-wait">
@@ -95,34 +100,74 @@
     issues = r.data;
     var groups = [], by = {};
     issues.forEach(function (f) { if (!by[f.grp]) { by[f.grp] = []; groups.push(f.grp); } by[f.grp].push(f); });
+    var covers = {};   // cover path -> signed link, so a re-sort does not ask again
+    // Kate, 16 Oct 2026: By year (a section per year) or By issue (one list), newest or oldest first.
+    // The choice is remembered on this device.
+    var view = 'year', order = 'new';
+    try {
+      view = localStorage.getItem('mg-view') === 'issue' ? 'issue' : 'year';
+      order = localStorage.getItem('mg-order') === 'old' ? 'old' : 'new';
+    } catch (e) {}
+    function card(f) {
+      return '<article class="mg-card">' +
+        '<button type="button" class="mg-cover" data-act="open" data-code="' + esc(f.code) + '" aria-label="Read ' + esc(f.title) + '"><img alt="" data-cover="' + esc(f.cover || '') + '"></button>' +
+        '<div class="mg-body"><h3>' + esc(f.title) + '</h3>' +
+        (f.subtitle ? '<span class="mg-sub">' + esc(f.subtitle) + '</span>' : '') +
+        '<p class="mg-blurb">' + esc(f.blurb || '') + '</p>' +
+        '<span class="mg-meta">' + (f.pages || '') + ' pages · ' + size(f.bytes) + '</span>' +
+        '<div class="mg-acts"><button type="button" class="fm-btn" data-act="open" data-code="' + esc(f.code) + '">Read</button>' +
+        '<button type="button" class="fm-btn fm-dl" data-act="dl" data-code="' + esc(f.code) + '">Download</button></div></div></article>';
+    }
+    function section(h, list) {
+      return '<section class="kb-dept"><h2 class="kb-dept-h">' + esc(h) + '</h2><div style="padding:6px 20px 4px"><div class="mg-grid">' +
+        list.map(card).join('') + '</div></div></section>';
+    }
+    function sw(label, key, cur, opts) {
+      return '<div class="mg-switch" role="group" aria-label="' + label + '">' + opts.map(function (o) {
+        return '<button type="button" data-set="' + key + '" data-val="' + o[0] + '" aria-pressed="' + (cur === o[0]) + '">' + o[1] + '</button>';
+      }).join('') + '</div>';
+    }
+    function paintCovers() {
+      main.querySelectorAll('img[data-cover]').forEach(function (im) {
+        var u = covers[im.dataset.cover];
+        if (u) im.src = u;
+      });
+    }
+    function render() {
+      var flip = order === 'old';
+      // issues arrive newest first (sort), so oldest first is the reverse
+      var gs = flip ? groups.slice().reverse() : groups;
+      var list = flip ? issues.slice().reverse() : issues;
+      document.getElementById('mgTools').innerHTML =
+        sw('Group the issues', 'view', view, [['year', 'By year'], ['issue', 'By issue']]) +
+        sw('Order', 'order', order, [['new', 'Newest first'], ['old', 'Oldest first']]);
+      document.getElementById('mgList').innerHTML = view === 'year'
+        ? gs.map(function (g) { return section(g, flip ? by[g].slice().reverse() : by[g]); }).join('')
+        : section('All issues', list);
+      paintCovers();
+    }
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       KB.titleIcon('magazines', 'ROSES Magazine') +
       '<p class="kb-meta">' + issues.length + ' issues, ' + groups[groups.length - 1] + ' to ' + groups[0] + '. Read one in your browser or download it. Prices and offers in them are from when each issue came out.</p>' +
-      groups.map(function (g) {
-        return '<section class="kb-dept"><h2 class="kb-dept-h">' + esc(g) + '</h2><div style="padding:6px 20px 4px"><div class="mg-grid">' +
-          by[g].map(function (f) {
-            return '<article class="mg-card">' +
-              '<button type="button" class="mg-cover" data-act="open" data-code="' + esc(f.code) + '" aria-label="Read ' + esc(f.title) + '"><img alt="" data-cover="' + esc(f.cover || '') + '"></button>' +
-              '<div class="mg-body"><h3>' + esc(f.title) + '</h3>' +
-              (f.subtitle ? '<span class="mg-sub">' + esc(f.subtitle) + '</span>' : '') +
-              '<p class="mg-blurb">' + esc(f.blurb || '') + '</p>' +
-              '<span class="mg-meta">' + (f.pages || '') + ' pages · ' + size(f.bytes) + '</span>' +
-              '<div class="mg-acts"><button type="button" class="fm-btn" data-act="open" data-code="' + esc(f.code) + '">Read</button>' +
-              '<button type="button" class="fm-btn fm-dl" data-act="dl" data-code="' + esc(f.code) + '">Download</button></div></div></article>';
-          }).join('') + '</div></div></section>';
-      }).join('');
+      '<div class="mg-tools" id="mgTools"></div><div id="mgList"></div>';
+    render();
     main.addEventListener('click', function (e) {
+      var t = e.target.closest('[data-set]');
+      if (t) {
+        if (t.dataset.set === 'view') view = t.dataset.val; else order = t.dataset.val;
+        try { localStorage.setItem('mg-' + t.dataset.set, t.dataset.val); } catch (x) {}
+        render();
+        return;
+      }
       var b = e.target.closest('[data-act]');
       if (b) act(b);
     });
     // Covers: one batch of signed links; a failed one just leaves the grey card.
-    var imgs = Array.prototype.slice.call(main.querySelectorAll('img[data-cover]')).filter(function (i) { return i.dataset.cover; });
-    var paths = imgs.map(function (i) { return i.dataset.cover; });
+    var paths = issues.map(function (f) { return f.cover; }).filter(Boolean);
     var s = await KB.client.storage.from(BUCKET).createSignedUrls(paths, LINK_SECS);
-    if (s.data) s.data.forEach(function (x) {
-      imgs.forEach(function (im) { if (x.signedUrl && im.dataset.cover === x.path) im.src = x.signedUrl; });
-    });
+    if (s.data) s.data.forEach(function (x) { if (x.signedUrl) covers[x.path] = x.signedUrl; });
+    paintCovers();
   });
 })();
 </script>
