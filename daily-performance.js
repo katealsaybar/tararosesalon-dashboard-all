@@ -655,7 +655,9 @@ function dpChartB(host, idxs, codes) {
   const mk = DP.measure, M = DP_M[mk], W = dpW(host), n = idxs.length, multi = codes.length > 1, code = codes[0];
   const name = multi ? (codes.length === DPD.codes.length ? 'All branches' : codes.join(' + ')) : dpName(code);
   const title = multi ? `${name}, combined: daily ${M.noun} and 7-day average` : `${name}: daily ${M.noun} and 7-day average`;
-  const color = multi ? 'var(--muted2)' : dpCol(code);
+  // Several branches added together are not one branch, so they take the brand accent (ink on light, blush on dark) rather than a
+  // grey; one branch keeps its own colour (Kate, 16 Oct 2026: the grey was not brand aligned).
+  const color = multi ? 'var(--accent)' : dpCol(code);
   if (!multi && M.beauty && DPD.hairOnly[code]) return { title, html: `<p class="dp-why" style="margin:24px 0">${dpEsc(dpName(code))} has no Beauty team, so there is nothing to show for ${dpEsc(M.noun)}. Pick another branch.</p>`, why: 'Not tracked at this branch.', legend: '' };
   const cells = idxs.map(i => multi ? dpCombine(mk, codes, i) : dpCell(mk, code, i));
   const vals = cells.map(c => c.state === 'ok' ? c.v : null);
