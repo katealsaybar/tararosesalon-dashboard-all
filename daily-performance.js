@@ -147,6 +147,11 @@ function dpCss() {
   .dpf .dp-swl h3:not(:first-child){margin-top:18px}
   .dpf .dp-swr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border2)}
   .dpf .dp-swr .dp-chip{margin-top:0;white-space:nowrap;flex:none}
+  .dpf .dp-swr-r{display:flex;align-items:center;gap:12px;flex:none}
+  .dpf .dp-cal{display:inline-flex;flex-direction:column;align-items:stretch;width:58px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:9px;overflow:hidden;box-shadow:var(--shadow-card,none);flex:none}
+  .dpf .dp-cal-m{background:var(--accent);color:var(--accent-fg);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;line-height:1;padding:5px 0 4px}
+  .dpf .dp-cal-d{font-size:25px;font-weight:700;line-height:1.05;padding-top:3px;color:var(--text);font-variant-numeric:tabular-nums}
+  .dpf .dp-cal-w{font-size:11.5px;font-weight:500;color:var(--muted);line-height:1.2;padding:0 0 5px}
   .dpf .dp-swr > div{min-width:0}
   .dpf .dp-rkey{margin:6px 0 0;line-height:1.6}
   .dpf .dp-rkey b{color:var(--text)}
@@ -483,6 +488,10 @@ function dpOffPage() {
 // over every measure that has a target there (a day needs at least three, each capped at 150 so one huge figure cannot
 // hide a bad day), then the lowest day and the measures that dragged it down. Added 13 Oct 2026: finding the weak day
 // "on any measure" took 17 passes through the menu.
+// A date as a small calendar leaf: month on an ink band, the day number big, the weekday under it (Kate, 16 Oct 2026, for the
+// Weakest day rows). Ink and cream come from the dashboard's own tokens, so the band is ink on light and the theme's accent on
+// dark. The full date is the label for a screen reader.
+const dpCalendar = d => `<span class="dp-cal" role="img" aria-label="${dpEsc(dpDayLabel(d))}"><span class="dp-cal-m">${MON_SHORT[d.getMonth()]}</span><span class="dp-cal-d">${d.getDate()}</span><span class="dp-cal-w">${DP_DOW[d.getDay()]}</span></span>`;
 function dpWeakest(idxs, codes) {
   const keys = Object.keys(DP_M).filter(k => !DP_M[k].notarget);
   return codes.map(code => {
@@ -497,7 +506,7 @@ function dpWeakest(idxs, codes) {
     if (!worst) return `<div class="dp-swr"><div>${head}<div class="dp-sub">Not enough figures with a target in this window.</div></div></div>`;
     const sc = Math.round(worst.score), [cls, , ic] = dpStatus(sc);
     const hit = worst.ps.slice().sort((a, b) => a.p - b.p).filter(x => x.p < 100).slice(0, 3).map(x => (DP_M[x.mk].kind === 'ratio' ? `${DP_M[x.mk].label}: ${DP_M[x.mk].fmt(x.v)} against ${x.t != null ? DP_M[x.mk].fmt(x.t) : 'its target'}` : `${DP_M[x.mk].label}: ${Math.round(x.p)}% of target`)).join('; ');
-    return `<div class="dp-swr"><div>${head}<div class="dp-sub"><b style="color:var(--text)">${dpDayLabel(DPD.days[worst.i])}</b></div><div class="dp-sub">Hardest hit: ${dpEsc(hit || 'nothing below target')}</div><div class="dp-sub">Day score is the average of ${worst.ps.length} measures</div></div><span class="dp-chip ${cls}" title="Day score: the average % of target across ${worst.ps.length} measures">${ic} ${sc}%</span></div>`;
+    return `<div class="dp-swr"><div>${head}<div class="dp-sub">Hardest hit: ${dpEsc(hit || 'nothing below target')}</div><div class="dp-sub">Day score is the average of ${worst.ps.length} measures</div></div><div class="dp-swr-r">${dpCalendar(DPD.days[worst.i])}<span class="dp-chip ${cls}" title="Day score: the average % of target across ${worst.ps.length} measures">${ic} ${sc}%</span></div></div>`;
   }).join('');
 }
 function dpPeriodName(idxs) {
@@ -871,7 +880,7 @@ function dpRadar(host, idxs, codes) {
 // ── PAGE ────────────────────────────────────────────────────
 // The bar holds the Measure and nothing else (15 Oct 2026): Branch and Period are the masthead's own filters, so there is one
 // of each on the dashboard. On a phone they are the Filters button in the header.
-const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardG', 'Growth'], ['dpCardW', 'Weakest day'], ['dpCardA', 'Trend'], ['dpCardB', 'Bars'], ['dpCardR', 'Strengths'], ['dpCardC', 'Weak days'], ['dpCardD', 'Weekdays'], ['dpCardM', 'Mix'], ['dpCardCl', 'Clients'], ['dpCardS', 'Staff'], ['dpHow', 'How to read']];
+const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardW', 'Weakest day'], ['dpCardA', 'Trend'], ['dpCardB', 'Bars'], ['dpCardR', 'Strengths'], ['dpCardC', 'Weak days'], ['dpCardD', 'Weekdays'], ['dpCardM', 'Mix'], ['dpCardCl', 'Clients'], ['dpCardS', 'Staff'], ['dpHow', 'How to read']];
 // The mini side nav (Kate, 16 Oct 2026, instead of the Jump to chips in the sticky bar): the same rail as Organisation Pulse and
 // Branch Performance (lgRail in branch-ledger.js, lit by spy() in index.html). In the gutter from 1100px, a plain row of chips
 // below that, none on a phone. The tiles stay full width above it, so the rail starts at the first card. Each entry scrolls with
@@ -931,7 +940,6 @@ function dpDraw(host, win) {
     <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}${dpOffPage() ? ' · Bahrain is not on this page yet, so the UAE branches show' : ''}${M.help ? ' · <b>' + dpEsc(M.label) + '</b>: ' + dpEsc(M.help) : ''}</p>
     <section class="dp-tiles dp-jt" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs)}</section>
     <div class="lg-shell lg-shell-wide">${dpRail()}<div class="lg-doc">
-    ${typeof daGrowthCard === 'function' ? daGrowthCard(win) : ''}
     <div class="dp-card dp-jt" id="dpCardW"><h2>Weakest day per branch</h2><span class="dp-tag">Measure does not apply</span><p class="dp-why">The day in this period that fell furthest below its targets. A day is scored as the average % of target across every measure that has a target (at least three), so the Measure menu does not change it. Closed days and days with no figures are skipped.</p><div id="dpW"></div></div>
     <div class="dp-card dp-jt" id="dpCardA"><h2>${M.notarget ? `Daily ${dpEsc(M.noun)}, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}` : `Daily ${dpEsc(M.noun)} against target, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}`}</h2>
       <p class="dp-why">${M.notarget ? 'Every branch on one scale, in plain values. This measure has no target, so nothing is graded. Gaps are closed days or days with no figures.' : (M.kind === 'ratio' ? "Every branch on one scale, in the measure's own units, with the target as the dashed line. Gaps are closed days or days with no figures." : "Every branch on one scale: 100% means the day's target was met. Gaps are closed days or days with no figures.")}</p><div id="dpA"></div></div>
@@ -960,7 +968,6 @@ function dpDraw(host, win) {
       <div class="dp-how">
         <div class="dp-hw"><b>Colours</b><span>Each colour is a band against the target. Money and counts: under 80% of target, 80 to 99%, 100 to 109%, 110% and over. Rates and bills: the key under the chart gives the real figures.</span><span class="dp-sw3"><span><i style="background:var(--dv-n2)"></i>Under 80%</span><span><i style="background:var(--dv-y)"></i>80 to 99%</span><span><i style="background:var(--dv-p2)"></i>100 to 109%</span><span><i style="background:var(--dv-g)"></i>110% +</span></span></div>
         ${dpBenchmark('rebookPct', win.to) > DP_M.rebook.milestone ? `<div class="dp-hw"><b>Rebooking: goal and first goal</b><span>The goal is ${DP_M.rebook.fmt(dpBenchmark('rebookPct', win.to))}. ${DP_M.rebook.fmt(DP_M.rebook.milestone)} is the first goal, so a branch past it shows yellow, not red.</span></div>` : ''}
-        <div class="dp-hw"><b>Growth</b><span>This period against the one before it: the same number of days, ending the day before this period starts. It stops at the last day the ledger has synced, so unsynced days never count as days that took nothing.</span></div>
         <div class="dp-hw"><b>Revenue mix, Clients, Staff performance</b><span>Three cards under the Weekdays card that answer a different question from the Measure menu: where the money came from, who came in (new or returning, hair or beauty), and which stylist carried it. Open Show the figures for every line. They follow the filters at the top, not the Measure menu.</span></div>
         <div class="dp-hw"><b>Closed day</b><span>Shown as closed, not as zero. Al Quoz is shut on Sunday and Monday.</span></div>
         <div class="dp-hw"><b>No grade</b><span>Total clients and New clients show their figures with no colour until someone keys a target in the Upload Portal.</span></div>
