@@ -56,6 +56,11 @@ aside.sidebar [data-tone="3"]{--tone:var(--sh3)}
 aside.sidebar .nav-group .nav-subhead[data-tone]{color:var(--tone);border-left-color:var(--tone);font-weight:700}
 aside.sidebar .nav-group .nav-sub[data-tone]{border-left-color:color-mix(in srgb,var(--tone) 40%,var(--border))}
 aside.sidebar .nav-group .nav-sub.active[data-tone]{border-left-color:var(--text)}
+/* Kate, 16 Oct 2026: "when you select a section, di halata". The open page is a filled row now, tinted with its group's colour,
+   with a thicker rule on the left, so it reads as "you are here" at a glance (a bold white word alone was easy to miss). */
+aside.sidebar .nav-group .nav-sub.active{background:color-mix(in srgb,var(--tone,var(--text)) 20%,transparent);font-weight:700;
+  border-left-width:4px;padding-left:11px;border-radius:0 10px 10px 0}
+aside.sidebar .nav-group .nav-sub.active[data-tone]{border-left-color:var(--tone)}
 @media(hover:hover){aside.sidebar .nav-group .nav-subhead[data-tone]:hover{filter:brightness(1.15)}}
 
 /* The foot: Dark mode and Log out, plain. */

@@ -114,7 +114,18 @@ function otyCss() {
   .oty .oty-sg{appearance:none;border:0;background:transparent;color:var(--muted);font:600 13px Inter,sans-serif;padding:9px 16px;border-radius:999px;cursor:pointer;white-space:nowrap;min-height:40px}
   .oty .oty-sg[aria-pressed=true]{background:var(--accent);color:var(--accent-fg)}
   .oty .oty-sg .s{display:none}
-  .oty .oty-sp,.oty .mo-swipe{display:none}
+  .oty .oty-sp,.oty .mo-swipe,.oty .oty-sm{display:none}
+  .oty .sm-blk{padding:12px 0;border-top:1px solid var(--border)}
+  .oty .sm-blk:first-of-type{border-top:0}
+  .oty .sm-t{font-size:15px;font-weight:700;margin:0 0 6px}.oty .sm-t small{font-size:11.5px;font-weight:500;color:var(--muted2)}
+  .oty .sm-g{position:relative;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px}
+  .oty .sm-g::before{content:'';position:absolute;left:0;right:0;top:var(--base);border-top:1px dashed var(--muted2);pointer-events:none}
+  .oty .sm-c{position:relative;height:calc(var(--SH) + 20px)}
+  .oty .sm-b{position:absolute;left:12%;right:12%;border-radius:3px}
+  .oty .sm-b.up{background:var(--good)}.oty .sm-b.dn{background:var(--bad)}
+  .oty .sm-v{position:absolute;left:-4px;right:-4px;text-align:center;font-style:normal;font-size:10.5px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;line-height:12px;white-space:nowrap}
+  .oty .sm-m{position:absolute;left:0;right:0;top:calc(var(--SH) + 4px);text-align:center;font-style:normal;font-size:10.5px;color:var(--muted2)}
+  .oty .sm-r{display:block;font-size:10px;line-height:1;color:var(--text)}
   .oty .st-yrs{display:grid;gap:8px 14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}
   .oty .st-y{display:flex;align-items:center;gap:8px}
   .oty .st-y b{width:44px;font-size:14px;font-variant-numeric:tabular-nums}
@@ -181,7 +192,8 @@ function otyCss() {
     .oty .mo-hm button.mo-c:active,.oty .mo-pr.hit:active{filter:brightness(1.25)}
     .oty .mo-pr.hit{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text) 18%,transparent)}
     .oty .mo-hm .yr{position:sticky;left:0;z-index:2;background:var(--surface)}
-    .oty .oty-plot{display:none}
+    .oty .oty-plot,.oty .oty-lines,.oty .oty-hov{display:none}
+    .oty .oty-sm{display:block;margin-top:10px}
     .oty .oty-card .oty-cov{grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:4px}
     .oty .oty-card .oty-cov .cx{display:none}
     .oty .oty-card .oty-cov .l{grid-column:1 / -1;font-size:13px;color:var(--text);margin-top:10px}
@@ -1209,7 +1221,7 @@ function otyMonths() {
       </ul>
     </details>`;
   // [id, rail label, html] per sub-section; otyDraw() turns each into its own section. The notes ride with the last one.
-  const subs = [['oty-months', 'Month by month', grid], ['oty-months-shapes', 'The shapes on top of each other', otyMoLines(X, S)],
+  const subs = [['oty-months', 'Month by month', grid], ['oty-months-shapes', 'The shape of each year', otyMoLines(X, S)],
     ['oty-months-pairs', 'Year against the year before', otyMoPairs(X)], ['oty-months-stands', 'What stands out', otyMoStands(X, S)]].filter(s => s[2]);
   subs[subs.length - 1][2] += notes;
   return subs;
@@ -1304,6 +1316,23 @@ function otyMoLines(X, S) {
   for (let m = 0; m < 12; m++) s += `<rect x="${Xp(m) - (W - L - Rr) / 24}" y="${T}" width="${(W - L - Rr) / 12}" height="${H - T - B}" fill="transparent" data-lm="${m}"/>`;
   s += '</svg>';
   const chips = `<div class="oty-legend" style="margin:0">${years.filter(y => shown.has(y)).map(y => `<span><i style="background:${otyMoCol(y)}"></i>${y}</span>`).join('')}</div>`;
+  // Kate, 16 Oct 2026: six lines on one 340px chart cannot be read. On a phone each year is its own small bar chart, all on the
+  // same scale, bars up from 100 (a normal month) in green and down in red, the figure on every bar and a moon under a month
+  // Ramadan or Eid touched. Newest first, then the average of the years. The line chart stays for wider screens.
+  const rng = ymax - ymin, SH = 104;
+  const mini = (title, vals, y) => {
+    const cols = vals.map((v, m) => {
+      const mo = `<i class="sm-m">${OTY_MON[m][0]}${y && otyRamIn(y, m) >= 10 ? '<span class="sm-r">&#9790;</span>' : ''}</i>`;
+      if (v == null) return `<div class="sm-c"><em class="sm-v" style="top:${((ymax - 100) / rng * SH - 6).toFixed(1)}px">·</em>${mo}</div>`;
+      const top = (ymax - Math.max(v, 100)) / rng * SH, h = Math.max(2, Math.abs(v - 100) / rng * SH), up = v >= 100;
+      return `<div class="sm-c"><div class="sm-b ${up ? 'up' : 'dn'}" style="top:${top.toFixed(1)}px;height:${h.toFixed(1)}px"></div><em class="sm-v" style="top:${(up ? top - 13 : top + h + 1).toFixed(1)}px">${Math.round(v)}</em>${mo}</div>`;
+    }).join('');
+    return `<div class="sm-blk"><div class="sm-t">${title}</div><div class="sm-g" style="--SH:${SH}px;--base:${((ymax - 100) / rng * SH).toFixed(1)}px">${cols}</div></div>`;
+  };
+  const smYears = years.filter(y => shown.has(y) && S.idx[y]).reverse();
+  const sm = `<div class="oty-sm"><div class="oty-hint" style="margin:0 0 6px">${otyMoStatLine(X)}. 100 is a normal month for that year. &#9790; Ramadan or Eid in the month. Tick the years at the top of the page.</div>`
+    + smYears.map(y => mini(`${y}${y === X.curYear ? ' <small>so far</small>' : ''}`, S.idx[y].map((x, m) => x != null && otyMoState(X.M, y, m) === 'done' ? x : null), y)).join('')
+    + (S.avg.some(a => a != null) ? mini('Average of the years', S.avg.map(a => a == null ? null : a), 0) : '') + '</div>';
   let lane = '';
   if (otyRam(X.curYear)) {
     for (const y of years.slice().reverse()) {
@@ -1314,9 +1343,9 @@ function otyMoLines(X, S) {
     if (lane) lane = `<div class="mo-lane">${lane}<div></div><div class="lm">${OTY_MON.map(m => `<span>${m}</span>`).join('')}</div></div>
       <div class="oty-hint">The bars under the chart show where Ramadan and Eid fell in each year. They move about 11 days earlier every year, which is the main reason the dip and the Eid lift keep changing month.</div>`;
   }
-  return `<div class="oty-eb" style="margin-top:26px"><i style="background:var(--hair)"></i>The shapes on top of each other</div>
-    <div class="oty-card"><div class="oty-chead"><b>One line per year</b><span>How strong each month is, ${otyMoStatLine(X).toLowerCase()}. 100 is a normal month for that year, so 117 means 17% above normal and 90 means 10% below. Hover a month to read every year</span></div>
-      <div style="margin:10px 0 12px">${chips}<div class="oty-hint" style="margin:6px 0 0">Tick the years at the top of the page.</div></div>${s}${lane}</div>`;
+  return `<div class="oty-eb" style="margin-top:26px"><i style="background:var(--hair)"></i>The shape of each year</div>
+    <div class="oty-card"><div class="oty-chead"><b>Each year's shape</b><span class="oty-hov">How strong each month is, ${otyMoStatLine(X).toLowerCase()}. 100 is a normal month for that year, so 117 means 17% above normal and 90 means 10% below. <span class="oty-hov">Hover a month to read every year</span></div>
+      <div class="oty-lines"><div style="margin:10px 0 12px">${chips}<div class="oty-hint" style="margin:6px 0 0">Tick the years at the top of the page.</div></div>${s}${lane}</div>${sm}</div>`;
 }
 
 // each month this year against the same month the year before
