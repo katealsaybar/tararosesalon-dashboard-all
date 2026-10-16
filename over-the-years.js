@@ -34,11 +34,12 @@ function otySave() { try { localStorage.setItem(OTY_STORE, JSON.stringify({ b: O
 // 2022 (the real closing date is unproven, so it is "data to", not "closed"). It has its own chip and is never part of All
 // four or Like for like, but it is in All + closed (with Fratelli), so the group's whole history adds up. Its own chip always reads
 // whole years, since "same days of this year" means nothing for it.
-// Kate, 16 Oct 2026: Saadiyat and Khalifa City A traded from 1 Jul 2021, but their sales lines (the visits) in the database only start
-// on 23 Aug (SAA) and 10 Aug (KCA), so 2021 visits are 5 to 8 weeks short of the takings. Dividing the whole takings by part of the
-// visits overstates the bill, so 2021 per-visit is left out whenever either is in the set. Marasy's lines run from 1 Jul 2021, so it
-// is fine on its own. Take a branch out of OTY_VIS_GAP_2021 once its Jul and Aug 2021 sales lines are backfilled.
-const OTY_VIS_GAP_2021 = ['SAA', 'KCA'];
+// Kate, 16 Oct 2026: for a few hours 2021 per-visit was left out whenever Saadiyat or Khalifa City A was in the set, because their
+// sales lines (the visits) only started on 23 Aug and 10 Aug 2021 though they traded from 1 Jul. The Phorest PDFs for the earlier days
+// were on disk but the parser needed a 4-digit sale id (July's are 1 to 3 digits), so those days failed their check and were skipped.
+// Fixed and backfilled the same day (every 2021 trading day now has lines), so the list is empty. If a branch's year ever comes up
+// short of lines again, put its code here and its per-visit figures for that year are left out rather than overstated.
+const OTY_VIS_GAP_2021 = [];
 const OTY_BR = ['SAA', 'KCA', 'MC', 'AQ', 'FRT', 'MRY'];
 const OTY_NAME = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', FRT: 'Fratelli', MRY: 'Marasy' };
 const OTY_COL = { SAA: '#C4B5FD', KCA: '#FFD4D9', MC: '#99F6E4', AQ: '#FF9B9B', FRT: '#EEF3C7', MRY: '#A5D8FF' };
@@ -1569,7 +1570,7 @@ function otyCoverage() {
     ${rows.map(([l, a]) => `<span class="l">${l}</span>${a.map(c => `<span class="c ${c === 2 ? 'part' : c ? 'ok' : ''}"></span>`).join('')}`).join('')}</div>
     <div class="oty-hint" style="margin:12px 0 0"><span class="st-k ok"></span>Complete <span class="st-k cv"></span>There, with a caveat <span class="st-k no"></span>Not there</div>
     <details class="oty-note oty-how" style="margin-top:10px"><summary>What the caveats are</summary><ul>
-      <li><b>Phorest</b> totals, sales lines and per-staff counts go back to 2021. The exception is visits: Saadiyat and Khalifa City A sales lines start in August 2021, so their 2021 per-visit figures are left out.</li>
+      <li><b>Phorest</b> totals, sales lines and per-staff counts go back to 2021.</li>
       <li><b>Ledgers</b> (hair against beauty, rebooking, requests, per-staff counts) ${ledFrom ? `start in ${ledFrom}` : 'are not in yet'}; a year is yellow under 85% of Phorest's days.</li>
       <li><b>Google reviews:</b> dates are approximate before 2026. ${otyEsc(OTY_MRY_REV)}</li>
       <li><b>Instagram</b> only exists from 2025 and builds up through the year.</li></ul></details></div>`;
@@ -1580,7 +1581,7 @@ function otyNotes() {
       <p><b>Seasons, not calendar months.</b> Ramadan and Eid move about 11 days earlier every year, so month against month compares different seasons. The month by month section is there so Coach Emma can see the shape of each year anyway, and it marks every month Ramadan and Eid touched.</p>
       <p><b>Branches arrive over time.</b> Motor City's data starts Nov 2022 and Al Quoz's Sep 2023, so the all-branches total jumps when they appear. Like for like (Saadiyat + Khalifa City A) is the trend.</p>
       <p><b>Fratelli</b> closed on 22 May 2026. It is out of All four, as everywhere on the dashboard, and has its own chip, and All + closed puts it back in for the years it traded.</p>
-      <p><b>Marasy</b> is a former branch. Its Phorest data runs 1 Jul 2021 to 24 Dec 2022, so it has its own chip and is in All + closed, not in All four or Like for like. Both its years are part-years (2021 starts in July), and its closing date is not confirmed, so it says "data to" and not "closed". Its sales lines run from 1 Jul 2021, so its own 2021 per-visit figures are real; mixed with Saadiyat or Khalifa City A they show a dot, because those two start in August.</p>
+      <p><b>Marasy</b> is a former branch. Its Phorest data runs 1 Jul 2021 to 24 Dec 2022, so it has its own chip and is in All + closed, not in All four or Like for like. Both its years are part-years (2021 starts in July), and its closing date is not confirmed, so it says "data to" and not "closed". Its sales lines run from 1 Jul 2021, like Saadiyat's and Khalifa City A's.</p>
       <p><b>Same days first.</b> The year in progress is set against the same dates in every earlier year. Switch to Full years to see whole years, with this one marked as partial.</p>
       <p><b>Slightly different from the Pulse.</b> These are Phorest's own financial totals. The Pulse's net take is built from the ledgers, so the two differ by about 1%.</p>
     </details>`;
