@@ -78,7 +78,7 @@ function whoMenu() {
 function whoSurface(span) {
   const view = span.closest('[id^="view-"]');
   const id = view ? view.id.slice(5) : '';
-  return id === 'stylists' ? 'card' : id === 'team' ? 'stats' : (id === 'branchperf' || id === 'dailyperf') ? 'row' : '';
+  return id === 'stylists' ? 'card' : id === 'team' ? 'stats' : id === 'dailyperf' ? 'row' : '';
 }
 
 function whoShow(span) {
@@ -92,7 +92,7 @@ function whoShow(span) {
   const items = [
     ['card', 'Staff card', hasCard ? 'Staff Cards' : 'No card yet', `whoGoCard('${key}')`],
     ['stats', 'Staff stats', 'Team Performance', `whoGoStats('${key}','${dept}','${branch}')`],
-    ['row', 'Branch figures', 'Branch Performance · Staff', `whoGoRow('${key}','${branch}')`],
+    ['row', 'Branch figures', 'Daily Performance · Staff', `whoGoRow('${key}','${branch}')`],
   ].filter(it => it[0] !== here);
   menu.innerHTML = items.map(([k, label, sub, go]) => {
     const off = k === 'card' && !hasCard;
@@ -169,7 +169,7 @@ addEventListener('resize', whoHide);
 function whoLand(el) {
   const masthead = parseFloat(getComputedStyle(document.documentElement)
     .getPropertyValue('--topbar-cond-h')) || 104;
-  const bar = document.querySelector('.sc-bar, .tp-bar');
+  const bar = document.querySelector('.sc-bar, .tp-bar, .dp-bar');
   const top = el.getBoundingClientRect().top + window.scrollY
     - masthead - (bar && bar.offsetParent ? bar.offsetHeight : 0) - 16;
   window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
@@ -246,10 +246,15 @@ function whoGoStats(key, dept, branch) {
 }
 
 function whoGoRow(key, branch) {
-  whoShowView('branchperf');
-  if (typeof sectionState !== 'undefined' && !sectionState.bpStaff
-      && document.getElementById('sec-bpStaff') && typeof toggleSection === 'function') toggleSection('bpStaff');
-  const find = () => document.querySelector(`#view-branchperf .who[data-who="${key}"]`);
-  whoWaitFor(find, el => whoLand(el.closest('tr') || el),
+  // Daily Performance's Staff card (Branch Performance is part of it now, 16 Oct 2026). The card is ranked by the Measure and a
+  // hair-only or beauty-only measure leaves one department's table out, so go back to Total sales, which shows both; then open the
+  // branch's panel (only the first is open) and land on her row.
+  const shown = (() => { const n = document.getElementById('view-dailyperf'); return !!(n && n.style.display !== 'none'); })();
+  const changed = typeof DP !== 'undefined' && DP.measure !== 'sales';
+  if (changed) { DP.measure = 'sales'; try { if (typeof dpSave === 'function') dpSave(); } catch (e) { /* the page is fine without it */ } }
+  whoShowView('dailyperf');
+  if (shown && changed && typeof renderDailyPerf === 'function') renderDailyPerf();
+  const find = () => document.querySelector(`#view-dailyperf #daStaff .who[data-who="${key}"]`);
+  whoWaitFor(find, el => { const d = el.closest('details'); if (d) d.open = true; whoLand(el.closest('tr') || el); },
     () => whoNote(key + ' is not in the selected branch or period.'));
 }

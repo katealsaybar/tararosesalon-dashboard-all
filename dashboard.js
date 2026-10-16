@@ -5094,8 +5094,8 @@ ${actionHtml}
 <div class="eyebrow" id="s-detail"><span class="bar"></span>The detail</div>
 <div class="card">
   <div class="card-title">Every figure behind this read</div>
-  <div class="card-sub">Revenue, clients and benchmarks, each against its ledger target — plus the full staff tables.</div>
-  <a class="r-cta" href="#" onclick="showView('branchperf', document.querySelector('[onclick*=&quot;branchperf&quot;]'));return false">Open Branch Performance <span aria-hidden="true">→</span></a>
+  <div class="card-sub">Day by day against each target, where the money came from, who came in, and the full staff tables.</div>
+  <a class="r-cta" href="#" onclick="showView('dailyperf', document.querySelector('[onclick*=&quot;dailyperf&quot;]'));return false">Open Daily Performance <span aria-hidden="true">→</span></a>
 </div>
 
 <!-- Kate, 1 Oct 2026: the notes fold into a dropdown (nobody reads them unasked), and

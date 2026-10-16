@@ -35,7 +35,7 @@ if os.environ.get('AUDIT_ROOT'):
     ROOT = Path(os.environ['AUDIT_ROOT']).resolve()
 OUT = Path(__file__).resolve().parent.parent / 'mobile-audit'
 
-VIEWS = ['dashboard', 'dashboard-open', 'branchperf', 'compare', 'team', 'staffperf',
+VIEWS = ['dashboard', 'dashboard-open', 'dailyperf', 'compare', 'team', 'staffperf',
          'stylists', 'orgchart', 'ledgerFinancials', 'ledgerTargets', 'ledgerActuals',
          'ledgerStylist', 'services', 'clients', 'reviews',
          # added 15 Oct 2026: every view built since the 25 Sep audit

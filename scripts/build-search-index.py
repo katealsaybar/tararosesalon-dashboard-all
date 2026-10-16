@@ -412,6 +412,8 @@ def main():
             continue
         kb.append([clean(title.replace("\\'", "'")), clean(blurb.replace("\\'", "'")), dept, href])
 
+    # Branch Performance is part of Daily Performance (16 Oct 2026): nothing is indexed under the page that is gone.
+    ix.items = [it for it in ix.items if it[0] != 'branchperf']
     for it in ix.items:
         it[0] = it[0] if it[0] in names else it[0]
     data = {'built': __import__('datetime').date.today().isoformat(), 'items': ix.items, 'kb': kb}
