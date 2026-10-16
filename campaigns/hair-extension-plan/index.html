@@ -96,6 +96,17 @@
   #o-methods .door>.mthumb{grid-column:1}
   #o-methods .door .from{grid-column:2;grid-row:auto}
 }
+#o-plans .obody{grid-template-columns:minmax(0,1fr);max-width:1040px}
+#o-plans .door{grid-template-columns:260px minmax(0,1fr) auto;column-gap:26px;padding:26px 0}
+#o-plans .door>*{grid-column:2}
+#o-plans .door>.pthumb{grid-column:1;grid-row:1 / span 7;width:260px;height:auto;aspect-ratio:3/2;object-fit:cover;border-radius:12px;display:block;align-self:start}
+#o-plans .door .from{grid-column:3}
+#o-plans .door .pill{grid-column:3}
+@media(max-width:860px){
+  #o-plans .door{grid-template-columns:minmax(0,1fr);column-gap:0}
+  #o-plans .door>*,#o-plans .door .from,#o-plans .door .pill{grid-column:1}
+  #o-plans .door>.pthumb{width:100%;grid-row:auto;aspect-ratio:16/9;margin-bottom:14px}
+}
 </style>
 </head>
 <body data-campaign="extensions-voucher" data-market="uae" data-stage="capture">
@@ -142,9 +153,9 @@
       <h3>Plans</h3>
       <p class="who">For you if you already wear extensions and want them kept looking new, or you are ready for new hair and a plan that keeps it.</p>
       <div class="obody">
-        <div class="omedia"><div class="mphotos"><figure class="mphoto mphoto--s"><img src="assets/img/tier-essentials.jpg" alt="The back of a client&rsquo;s head during an extension install, sections held in clips with the weft track sewn at the root" loading="lazy" decoding="async" width="1200" height="800" style="object-position:center 40%"></figure><figure class="mphoto mphoto--s"><img src="assets/img/tier-plus.jpg" alt="A stylist&rsquo;s hands threading a weft at the root, close up" loading="lazy" decoding="async" width="1200" height="800" style="object-position:center 40%"></figure><figure class="mphoto mphoto--s"><img src="assets/img/tier-bundle.jpg" alt="A new extension install in progress, seen from behind" loading="lazy" decoding="async" width="1200" height="800" style="object-position:center 40%"></figure></div></div>
         <div class="doors orows">
     <article class="door">
+      <img class="pthumb" src="assets/img/tier-essentials.jpg" alt="The back of a client&rsquo;s head during an extension install, sections held in clips with the weft track sewn at the root" loading="lazy" decoding="async" width="1200" height="800">
       <h3>Maintain Essentials</h3>
       <p>Keep it fresh. Spends on your maintenance: cuts, blow-dries, toning, treatments, scalp scrubs and head and neck massage. Not new hair, not your move-up.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 200 Maintenance Bonus added on top</li><li><span class="tk"></span>Confidence Mapping and your 8-Step Hair Plan, free</li><li><span class="tk"></span>Cash or card</li></ul>
@@ -155,6 +166,7 @@
       <a class="pill pill--accent" href="#reserve" data-pick="essentials" data-cta="stack-essentials">Reserve Essentials <span class="arr">&rarr;</span></a>
     </article>
     <article class="door">
+      <img class="pthumb" src="assets/img/tier-plus.jpg" alt="A stylist&rsquo;s hands threading a weft at the root, close up" loading="lazy" decoding="async" width="1200" height="800">
       <h3>Maintain Plus</h3>
       <p>Our recommendation. The same services across nine months, cared for. Not new hair, not your move-up.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 500 Maintenance Bonus added on top</li><li><span class="tk"></span>Confidence Mapping and your 8-Step Hair Plan, free</li><li><span class="tk"></span>Priority last-minute booking slots</li><li><span class="tk"></span>Or 4 interest-free payments of AED 750 with Tabby</li></ul>
@@ -165,6 +177,7 @@
       <a class="pill pill--accent" href="#reserve" data-pick="plus" data-cta="stack-plus">Reserve Plus <span class="arr">&rarr;</span></a>
     </article>
     <article class="door">
+      <img class="pthumb" src="assets/img/tier-bundle.jpg" alt="A new extension install in progress, seen from behind" loading="lazy" decoding="async" width="1200" height="800">
       <h3>New Hair and Maintain Bundle</h3>
       <p>One decision. Your full new-hair application in your chosen method, plus a 12-month Maintenance Bundle credit. No Maintenance Bonus on the bundle.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 1,500 credit to spend over 12 months</li><li><span class="tk"></span>Confidence Mapping and your 8-Step Hair Plan, free</li><li><span class="tk"></span>Priority last-minute booking slots</li><li><span class="tk"></span>Or Tabby, 4 payments, from AED 825 each</li></ul>
