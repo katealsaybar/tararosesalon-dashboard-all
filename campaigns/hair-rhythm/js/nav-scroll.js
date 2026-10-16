@@ -31,10 +31,14 @@
   var spy=function(){
     if(!zone||!SPY.length) return;
     var offset=nav.offsetHeight+(bar?bar.offsetHeight:0)+24;
+    /* A group counts as "on screen" once its heading has risen into the top 40% of the
+       window below the sticky bars, so the chip changes when she is reading the new group,
+       not only when its heading touches the bars. */
+    var lead=offset+Math.round(window.innerHeight*0.4);
     var current=null;
     if(zone.getBoundingClientRect().bottom>offset){
       for(var i=0;i<SPY.length;i++){
-        if(SPY[i].getBoundingClientRect().top<=offset) current=SPY[i].id;
+        if(SPY[i].getBoundingClientRect().top<=lead) current=SPY[i].id;
       }
     }
     if(current===lastSpy) return;
