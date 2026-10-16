@@ -1549,7 +1549,7 @@ function bpDrawCharts(codes, ctx) {
     data: { labels: names, datasets: [
       { label: 'Hair services',      data: pull(d => d.hairServicesExcl),    backgroundColor: '#C4B5FD' },
       { label: 'Treatments',         data: pull(d => d.treatmentSales),      backgroundColor: '#99F6E4' },
-      { label: 'Hair courses',       data: pull(d => d.hairCourses),         backgroundColor: '#BFDBFE' },
+      { label: 'Hair courses',       data: pull(d => d.hairCourses),         backgroundColor: '#FDBA74' },
       { label: 'Beauty services',    data: pull(d => d.beautyServicesTotal), backgroundColor: '#FFD4D9' },
       { label: 'Retail',             data: pull(d => d.retailTotal),         backgroundColor: '#EEF3C7' },
     ].map(ds => Object.assign(ds, { borderWidth: 0, borderRadius: 3 })) },

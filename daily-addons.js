@@ -112,7 +112,7 @@ const DA_LINES = {
   beautyRetailUnits: ['# beauty retail sold', null, s => s.beautyRetailUnits, 1],
 };
 const DA_PART = {
-  hairEx: ['Hair services', '#C4B5FD', s => s.hairServicesExcl], treat: ['Treatments', '#99F6E4', s => s.treatmentSales], courses: ['Hair courses', '#BFDBFE', s => s.hairCourses],
+  hairEx: ['Hair services', '#C4B5FD', s => s.hairServicesExcl], treat: ['Treatments', '#99F6E4', s => s.treatmentSales], courses: ['Hair courses', '#FDBA74', s => s.hairCourses],
   beauty: ['Beauty services', '#FFD4D9', s => s.beautyServicesTotal], retail: ['Retail', '#EEF3C7', s => s.retailTotal],
   hairRetail: ['Hair retail', '#C4B5FD', s => s.hairRetailOnly], beautyRetail: ['Beauty retail', '#FFD4D9', s => s.beautyRetailOnly],
 };
