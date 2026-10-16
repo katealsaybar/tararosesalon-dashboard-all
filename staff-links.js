@@ -78,7 +78,7 @@ function whoMenu() {
 function whoSurface(span) {
   const view = span.closest('[id^="view-"]');
   const id = view ? view.id.slice(5) : '';
-  return id === 'stylists' ? 'card' : id === 'team' ? 'stats' : id === 'branchperf' ? 'row' : '';
+  return id === 'stylists' ? 'card' : id === 'team' ? 'stats' : (id === 'branchperf' || id === 'dailyperf') ? 'row' : '';
 }
 
 function whoShow(span) {
