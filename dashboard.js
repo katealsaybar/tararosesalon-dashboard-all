@@ -28,7 +28,10 @@ const TARGETS = {
   hairAvgBillUAE: 650, beautyAvgBillUAE: 200,
   get hairAvgBill()   { return (typeof isBahrainView === 'function' && (isBahrainView() || isGroupView())) ? null : this.hairAvgBillUAE; },
   get beautyAvgBill() { return (typeof isBahrainView === 'function' && (isBahrainView() || isGroupView())) ? null : this.beautyAvgBillUAE; },
-  retailPct: 12, hairUtilPct: 80, beautyUtilPct: 70,
+  // Kate, 16 Oct 2026: 85% booked and busy is the sweet spot for both teams (it was hair 80, beauty 70). Over 100%
+  // is clients turned away and under 60% is revenue left on the table, so a bigger figure is not a better one:
+  // see UTIL_BAND and utilBand() beside aggregateUtilisation.
+  retailPct: 12, hairUtilPct: 85, beautyUtilPct: 85,
   // Treatment stays at 20 (Coach Emma's figure all along); the 30 that came in with the
   // September cutover was reversed on 7 Oct 2026 (Kate). Rebooking keeps its cutover.
   treatmentPct: 20,
@@ -3025,13 +3028,50 @@ function buildStaffDeptMap(ledgerRows) {
 // The roster for a utilisation window: the ledger rows already loaded for the
 // page when there are some, otherwise the last 60 days of the ledger up to the
 // window's end (the weekly path and the no-dates view load none).
+//
+// Kate, 16 Oct 2026: utilisation is about the people who take clients, the hair team, the beauty team and the
+// assistants on shift that day, and nobody else. Guessing a department off a first name let a Saadiyat
+// assistant ("May", matched to a Khalifa City stylist) and two weekly_data names (Chona, Dorah) into the hair
+// numbers with booked hours and no available hours, and let archived leavers' empty rota days sit in the
+// denominator. The team now comes from the Phorest position in phorest_staff_roster, per branch and name; the
+// ledger map below only answers for a name the roster has not met yet (a new starter before the next pull).
+let _utilRosterP = null;
+function loadUtilRoster() {
+  if (!_utilRosterP) {
+    _utilRosterP = (async () => {
+      const PAGE = 1000, out = {};
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await sb.from('phorest_staff_roster').select('branch,staff_name,position_clean,pulled_on')
+          .order('pulled_on', { ascending: true }).order('id', { ascending: true }).range(from, from + PAGE - 1);
+        if (error) throw error;
+        (data || []).forEach(r => { out[r.branch + '|' + String(r.staff_name || '').trim().toUpperCase()] = utilTeamOfPosition(r.position_clean); });
+        if (!data || data.length < PAGE) break;
+      }
+      if (!Object.keys(out).length) _utilRosterP = null;   // an empty answer (not signed in yet) is not kept
+      return out;
+    })().catch(e => { _utilRosterP = null; return {}; });   // a failed read is tried again next time, and the ledger map answers meanwhile
+  }
+  return _utilRosterP;
+}
+
+// Phorest's own position, as the team it counts in. Receptionist, Head Coordinator, Office/Admin, Owner, Consultant,
+// Staff and BUSINESS are not on a rota that takes clients, so they return null and never reach a utilisation figure.
+function utilTeamOfPosition(pos) {
+  const p = String(pos || '').toLowerCase();
+  if (p.indexOf('beautician') >= 0) return 'beauty';
+  if (p.indexOf('assistant') >= 0) return 'assistant';
+  if (p.indexOf('stylist') >= 0 || p.indexOf('style director') >= 0) return 'hair';
+  return null;
+}
+
 async function loadUtilDeptMap(ledgerRows, to) {
   let rows = ledgerRows;
   if (!rows || !rows.length) {
     const end = to || new Date();
     rows = await loadBranchStaffDailyRange(new Date(end.getTime() - 60 * 864e5), end);
   }
-  return buildStaffDeptMap(rows);
+  const [roster] = await Promise.all([loadUtilRoster()]);
+  return { roster, ledger: buildStaffDeptMap(rows) };
 }
 
 function utilDeptFor(staffName, deptMap) {
@@ -3064,7 +3104,7 @@ async function loadUtilisationForFilter(from, to, branches) {
   if (countErr || !count) return [];
   const pages = await Promise.all(
     Array.from({ length: Math.ceil(count / PAGE) }, (_, i) =>
-      base(sb.from('staff_utilisation').select('staff_name,branch,available_hours,utilisation_hours,date_from,date_to'))
+      base(sb.from('staff_utilisation').select('staff_name,branch,available_hours,utilisation_hours,date_from,date_to,is_archived'))
         .order('id', { ascending: true })
         .range(i * PAGE, i * PAGE + PAGE - 1)
     )
@@ -3074,9 +3114,20 @@ async function loadUtilisationForFilter(from, to, branches) {
 
 // Hours-weighted, not a naive average of per-row percentages — mirrors
 // utilAggregateByStaff's own math in upload/utilisation-pdf.js.
+//
+// Kate, 16 Oct 2026. A row is on the team that day when Phorest gave the person available hours that day, and a
+// leaver (archived) with no booked time is not: her rota was left running after she went, and 15 Sep to 15 Oct
+// that alone was 756 available hours at Al Quoz and 800 at Motor City sitting in the denominator. Booked hours on
+// a day with no available hours (Phorest writes a flat 9 for a few Motor City juniors) are not capacity either, so
+// they are left out of the top as well. Assistants are counted apart (assistantShifts, assistantHours) and never
+// reach the percentage: Phorest books a whole shift against them, so they read ~100% whatever the day was.
+// deptMap is { roster, ledger } from loadUtilDeptMap; a bare ledger map (the old shape) still works.
 function aggregateUtilisation(rows, deptMap) {
   let hairHours = 0, hairAvail = 0, beautyHours = 0, beautyAvail = 0;
+  let assistantShifts = 0, assistantHours = 0;
   const unmatched = new Set();
+  const roster = (deptMap && deptMap.roster) || {};
+  const ledger = (deptMap && deptMap.ledger) || (deptMap && !deptMap.roster ? deptMap : {});
   // One answer per branch + name, not per row (Kate, 2 Oct 2026): Jan to today is ~20k
   // rows but only a few hundred people, and the name match below is the slow part.
   const seen = new Map();
@@ -3084,19 +3135,55 @@ function aggregateUtilisation(rows, deptMap) {
     const key = r.branch + '|' + r.staff_name;
     let dept = seen.get(key);
     if (dept === undefined) {
-      // Bahrain has no ledger to give a name its side, so its own list answers (BH_STAFF_DEPT).
-      const bh = (BRANCH_INFO[r.branch] && BRANCH_INFO[r.branch].country === 'BH')
-        ? BH_STAFF_DEPT[cleanPhorestName(r.staff_name || '').split(' ')[0]] : null;
-      dept = bh || utilDeptFor(r.staff_name, deptMap);
+      const rk = r.branch + '|' + String(r.staff_name || '').trim().toUpperCase();
+      if (Object.prototype.hasOwnProperty.call(roster, rk)) dept = roster[rk];   // null = on the roster, not a team that takes clients
+      else {
+        // Not in the roster yet (a new starter): the ledger's hair or beauty answers. Bahrain has no
+        // ledger to give a name its side, so its own list answers (BH_STAFF_DEPT).
+        const bh = (BRANCH_INFO[r.branch] && BRANCH_INFO[r.branch].country === 'BH')
+          ? BH_STAFF_DEPT[cleanPhorestName(r.staff_name || '').split(' ')[0]] : null;
+        dept = bh || utilDeptFor(r.staff_name, ledger);
+        if (!dept) unmatched.add(r.staff_name);
+      }
       seen.set(key, dept);
     }
+    if (!dept) return;
     const avail = Number(r.available_hours) || 0;
     const used  = Number(r.utilisation_hours) || 0;
+    if (!(avail > 0)) return;                        // not on the rota that day
+    if (r.is_archived && !(used > 0)) return;        // a leaver's empty rota day
     if (dept === 'hair')        { hairHours += used; hairAvail += avail; }
     else if (dept === 'beauty') { beautyHours += used; beautyAvail += avail; }
-    else unmatched.add(r.staff_name);
+    else if (dept === 'assistant') { assistantShifts++; assistantHours += avail; }
   });
-  return { hairHours, hairAvail, beautyHours, beautyAvail, unmatched };
+  return { hairHours, hairAvail, beautyHours, beautyAvail, assistantShifts, assistantHours, unmatched };
+}
+
+// Kate, 16 Oct 2026: 85% booked and busy is the target. 60 to 84 is amber (room to fill), under 60 is red (revenue
+// left on the table), over 100 is red too (clients turned away). A bigger number is not a better one here.
+const UTIL_BAND = { target: 85, low: 60, high: 100 };
+// 'on' = 85 to 100, 'warn' = 60 to under 85, 'bad' = under 60 or over 100. null in, null out.
+function utilBand(v) {
+  if (v == null || !isFinite(v)) return null;
+  const x = Math.round(v * 100) / 100;
+  if (x > UTIL_BAND.high || x < UTIL_BAND.low) return 'bad';
+  return x >= UTIL_BAND.target ? 'on' : 'warn';
+}
+// A 0 to 1 "share of target" for a band measure, so it can be ranked beside the others: anywhere from 85 to 100 is a
+// full 1.0, below 85 it is the share of 85, and past 100 it falls again (104% booked scores 0.82) because more is
+// not better there.
+function utilScore(v) {
+  if (v == null || !isFinite(v)) return 0;
+  return v <= UTIL_BAND.high ? Math.min(1, v / UTIL_BAND.target) : UTIL_BAND.target / v;
+}
+// The class the cards paint: good, warn or bad (utilBand's 'on' is the Daily Performance word for good).
+function utilBandClass(v) { const b = utilBand(v); return b === 'on' ? 'good' : b; }
+function utilBandNote(v) {
+  const b = utilBand(v);
+  if (b === 'on') return 'On target';
+  if (b === 'warn') return 'Room to book more';
+  if (b === 'bad') return v > UTIL_BAND.high ? 'Over capacity, clients turned away' : 'Under 60%, revenue left on the table';
+  return '';
 }
 
 // ── WEEK RANGE HELPERS ───────────────────────────────────────
@@ -4059,7 +4146,9 @@ async function renderDashboard() {
     s.utilHours = combinedHours;
     s.utilAvailHours = combinedAvail;
     s.utilPct = combinedAvail ? (combinedHours / combinedAvail * 100) : null;
-    if (utilAgg.unmatched.size) console.warn('Utilisation: staff name(s) not found in any ledger hair/beauty roster —', [...utilAgg.unmatched]);
+    s.assistantShifts = utilAgg.assistantShifts;
+    s.assistantHours  = utilAgg.assistantHours;
+    if (utilAgg.unmatched.size) console.warn('Utilisation: staff name(s) not in the Phorest roster or the ledger hair/beauty roster —', [...utilAgg.unmatched]);
   } catch(e) { /* utilisation is a nice-to-have — don't break the page */ }
 
   // ── PREVIOUS PERIOD ──────────────────────────────────────────────
@@ -4280,9 +4369,12 @@ async function renderDashboard() {
       hair:null, beauty:s.beautyAvgBill, combined:s.beautyAvgBill, target:TARGETS.beautyAvgBill, fmt:aed0,
       hairNote:'counted under Hair Avg Bill',
       },
-    { name:'Utilisation %',   sub:`hair ≥ ${TARGETS.hairUtilPct} · beauty ≥ ${TARGETS.beautyUtilPct}`,
+    // Kate, 16 Oct 2026: a band, not a floor. 85 to 100 is on target, 60 to 84 amber, under 60 or over 100 red
+    // (see utilBand). Hair and beauty teams only; the assistants on shift are a line of their own, never scored.
+    { name:'Utilisation %',   sub:`target ${UTIL_BAND.target}% · red under ${UTIL_BAND.low} or over ${UTIL_BAND.high}`, isUtil:true,
       hair:s.hairUtilPct, beauty:s.beautyUtilPct, combined:s.utilPct,
-      target:TARGETS.hairUtilPct, beautyTarget:TARGETS.beautyUtilPct, fmt:pct2 },
+      target:TARGETS.hairUtilPct, beautyTarget:TARGETS.beautyUtilPct, fmt:pct2,
+      ph: s.assistantShifts ? `Assistants on shift: ${num0(s.assistantShifts)} shift${s.assistantShifts === 1 ? '' : 's'}, ${num0(s.assistantHours)} h on the rota. Not scored: Phorest books a whole shift against them.` : '' },
     { name:'Hair Avg Bill',   sub:`target ${CUR()} ${TARGETS.hairAvgBill}`,
       hair:s.hairAvgBill, beauty:null, combined:s.hairAvgBill, target:TARGETS.hairAvgBill, fmt:aed0,
       beautyNote:'counted under Beauty Avg Bill',
@@ -4301,21 +4393,23 @@ async function renderDashboard() {
   }));
   const benchRows = benchAll
   .filter(r => !noSales && Number.isFinite(r.combined) && r.target != null)   // no target (Bahrain avg bills): not scored
-  .map(r => ({ ...r, att: r.target ? r.combined / r.target : 0,
+  .map(r => ({ ...r,
+    // Utilisation is read against a band, so its "share of target" falls again past 100%: 104% booked scores 82, not 122.
+    att: r.isUtil ? utilScore(r.combined) : (r.target ? r.combined / r.target : 0),
     // Kate, 1 Oct 2026 (Comet OP4): a row was "on target" off the combined figure
     // while one department sat under its own bar (Utilisation on the hair 80%
     // with beauty short of its own, say). Since the second pass the row counts as
     // a miss (see `met` below).
     short: r.splitless ? [] : [['Hair', r.hair, r.target], ['Beauty', r.beauty, Number.isFinite(r.beautyTarget) ? r.beautyTarget : r.target]]
-      .filter(([, v, t]) => Number.isFinite(v) && Number.isFinite(t) && v < t)
+      .filter(([, v, t]) => Number.isFinite(v) && Number.isFinite(t) && (r.isUtil ? utilBand(v) !== 'on' : v < t))
       .map(([d, v, t]) => ({ dept: d, v, t })) }))
   // Kate, 1 Oct 2026, OP4 second pass: a department under its own bar is a miss,
   // not a flagged hit. `met` is what "x of y hit" counts; `gap` is how far the row
   // really is (the shorter department's share of its bar, when that is lower than
   // the combined figure), and is what Below target and Fix first sort on. `att`
   // stays the combined figure for the chips that print it.
-  .map(r => ({ ...r, met: r.att >= 1 && !r.short.length,
-    gap: r.short.length ? Math.min(r.att, ...r.short.map(x => x.v / x.t)) : r.att }));
+  .map(r => ({ ...r, met: r.isUtil ? (utilBand(r.combined) === 'on' && !r.short.length) : (r.att >= 1 && !r.short.length),
+    gap: r.short.length ? Math.min(r.att, ...r.short.map(x => r.isUtil ? utilScore(x.v) : x.v / x.t)) : r.att }));
   // Kate, 30 Sep 2026: on Bahrain (and the Group) the strip keeps every benchmark,
   // greyed with the reason, instead of shrinking to the one or two that can be
   // scored: rebooking, NCR and treatment wait on Bahrain's ledger, the avg bills on
@@ -4343,7 +4437,7 @@ async function renderDashboard() {
     const vals = [r.hair, r.beauty, r.combined, r.target, r.beautyTarget].filter(Number.isFinite);
     const max  = (Math.max(...vals) * 1.15) || 1;
     const part = r.att >= 1 && r.short && r.short.length;   // hit overall, a department short (OP4)
-    const st   = part ? 'warn' : band(r.combined, r.target);
+    const st   = part ? 'warn' : (r.isUtil ? (utilBandClass(r.combined) || 'bad') : band(r.combined, r.target));
     const line = (lbl, val, color, tgt, tickLbl) => !Number.isFinite(val) ? '' : `
       <div class="bar-line">
         <span class="bar-lbl">${lbl}</span>
@@ -4364,7 +4458,9 @@ async function renderDashboard() {
           </div>
           <div class="att-side">
             <div class="att-big tabular ${st}">${r.fmt(r.combined)}</div>
-            <div class="att-chip chip-${st}">${Math.round(r.att * 100)}% of target${part ? ` · ${r.short.map(x => x.dept).join(' and ')} short` : ''}</div>
+            <div class="att-chip chip-${st}">${r.isUtil
+              ? `${utilBandNote(r.combined)}${part ? ` · ${r.short.map(x => `${x.dept} ${x.v > UTIL_BAND.high ? 'over' : 'off'}`).join(' and ')}` : ''}`
+              : `${Math.round(r.att * 100)}% of target${part ? ` · ${r.short.map(x => x.dept).join(' and ')} short` : ''}`}</div>
           </div>
         </div>
         <div class="att-bars">
@@ -4437,8 +4533,8 @@ async function renderDashboard() {
           const pct = Math.round(r.att * 100);
           const part = r.att >= 1 && r.short && r.short.length;
           return `<span class="ht-cell${r.met ? ' on' : ''}${part ? ' part' : ''}"${tap}
-            title="${escapeHtml(r.name.replace(/\s*%$/, ''))}: ${r.fmt(r.combined)} of ${r.fmt(r.target)} · ${pct}%${part
-              ? ' · ' + r.short.map(x => `${x.dept} ${r.fmt(x.v)} of ${r.fmt(x.t)}`).join(', ') : ''}">
+            title="${escapeHtml(r.name.replace(/\s*%$/, ''))}: ${r.isUtil ? `${r.fmt(r.combined)} · ${utilBandNote(r.combined)} (85 to 100 is on target)` : `${r.fmt(r.combined)} of ${r.fmt(r.target)} · ${pct}%`}${part
+              ? ' · ' + r.short.map(x => `${x.dept} ${r.fmt(x.v)}${r.isUtil ? '' : ` of ${r.fmt(x.t)}`}`).join(', ') : ''}">
             <span class="ht-bar"></span>
             ${withLabels ? `<span class="ht-lbl">${escapeHtml(r.name.replace(/\s*%$/, '').replace(/ Avg Bill$/, ' bill'))}</span>` : ''}
           </span>`;
@@ -4529,7 +4625,7 @@ async function renderDashboard() {
   if (receiptEl) {
     const rTRow = r =>
       `<div class="r-t ${r.met ? 'hit' : 'low'}"><span class="n">${r.name}</span>` +
-      `<span class="v tabular">${Math.round(r.att * 100)}%</span></div>`;
+      `<span class="v tabular">${r.isUtil ? Math.round(r.combined) : Math.round(r.att * 100)}%</span></div>`;
     const targetsBlock = benchRows.length ? `
       <div class="r-rule"></div>
       <div class="r-sec"><span>Targets</span><span>${hitRows.length} of ${benchRows.length} hit</span></div>
@@ -4880,7 +4976,9 @@ async function renderDashboard() {
           ? `${escapeHtml(alsoWorst.name.replace(/\s*%$/, ''))} is the wider gap, but Treatment and Retail are the standing priority.`
           : lowRows.length > 1 ? 'Every other gap is small next to this one.' : 'It is the only gap left.'
       }</h2>
-      <p class="why">Target ${tidyTarget(worst.fmt(worst.target))}. ${worst.att >= 1 && worst.short.length
+      <p class="why">Target ${tidyTarget(worst.fmt(worst.target))}${worst.isUtil ? ', and over 100% turns clients away' : ''}. ${worst.isUtil
+        ? `${worst.fmt(worst.combined)}: ${utilBandNote(worst.combined).toLowerCase()}`
+        : worst.att >= 1 && worst.short.length
         ? `${worst.fmt(worst.combined)} clears it combined, but ${worst.short.map(x => `${x.dept.toLowerCase()} is ${worst.fmt(x.v)} against ${worst.fmt(x.t)}`).join(' and ')}`
         : `${worst.fmt(worst.combined)} is ${Math.round(worst.att * 100)}% of the way there`}${Number.isFinite(worst.hair) && Number.isFinite(worst.beauty) ? `; hair ${worst.fmt(worst.hair)}, beauty ${worst.fmt(worst.beauty)}` : ''}.</p>
       ${actItem(periodOver ? `Audit how ${worstName} was captured and coached at reception` : `Audit how ${worstName} is captured and coached at reception`, 'fix-' + worstName.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + nextMonday.replace(/\s+/g, ''))}

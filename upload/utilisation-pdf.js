@@ -483,8 +483,45 @@ function resetUtilFilter(){
   document.getElementById('utilResultCount').textContent = '';
 }
 
+// Kate, 16 Oct 2026: the TOTAL row summed everyone on the report, receptionists and head coordinators included
+// (over 30 days they booked 3,902 hours against 1,645 available), so it never agreed with the dashboard. Each row now
+// carries its Phorest team (from phorest_staff_roster) and TOTAL counts the hair and beauty teams only, on the same
+// rule the dashboard uses: the person has available hours that day, and a leaver (archived) with nothing booked is
+// not on the rota. Assistants and the rest stay in the table, filterable by Team, but out of the percentage.
+let utilRosterMap = null;
+async function utilLoadRoster(){
+  if (utilRosterMap) return utilRosterMap;
+  const map = {};
+  try {
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE){
+      const { data, error } = await sb.from('phorest_staff_roster').select('branch,staff_name,position_clean')
+        .order('pulled_on',{ascending:true}).order('id',{ascending:true}).range(from, from + PAGE - 1);
+      if (error) throw error;
+      (data || []).forEach(r => { map[r.branch + '|' + String(r.staff_name || '').trim().toUpperCase()] = utilTeamLabel(r.position_clean); });
+      if (!data || data.length < PAGE) break;
+    }
+    utilRosterMap = map;
+  } catch (e) { /* no roster: every row reads Not in roster and TOTAL falls back to blank rather than a wrong sum */ }
+  return map;
+}
+function utilTeamLabel(pos){
+  const p = String(pos || '').toLowerCase();
+  if (p.includes('beautician')) return 'Beauty';
+  if (p.includes('assistant')) return 'Assistant';
+  if (p.includes('stylist') || p.includes('style director')) return 'Hair';
+  return 'Other';
+}
+// A row the TOTAL counts: hair or beauty team, on the rota that day, not a leaver's empty day.
+function utilCountsInTotal(r){
+  if (r.team !== 'Hair' && r.team !== 'Beauty') return false;
+  if (!(Number(r.available_hours) > 0)) return false;
+  if (r.is_archived && !(Number(r.utilisation_hours) > 0)) return false;
+  return true;
+}
+
 const UTIL_COLS = [
-  ['Branch','branch'],['Date From','date_from'],['Date To','date_to'],['Staff','staff_name'],
+  ['Branch','branch'],['Date From','date_from'],['Date To','date_to'],['Staff','staff_name'],['Team','team'],
   ['Available Hrs','available_hours'],['Utilised Hrs','utilisation_hours'],['Utilisation %','utilisation_percent'],
   ['Services Rev/Hr','services_rev_per_hour'],['Products Rev/Hr','products_rev_per_hour'],
   ['Total Rev/Hr','total_rev_per_hour'],['3x Wages','wages_3x_ratio'],['Archived','is_archived']
@@ -530,7 +567,7 @@ function utilAggregateByStaff(rows){
   }
   const out = [];
   for (const rs of groups.values()){
-    const agg = { branch: groupByBranch ? rs[0].branch : 'ALL', staff_name: rs[0].staff_name, is_archived: rs[0].is_archived };
+    const agg = { branch: groupByBranch ? rs[0].branch : 'ALL', staff_name: rs[0].staff_name, team: rs[0].team, is_archived: rs[0].is_archived };
     for (const f of UTIL_SUM_FIELDS) agg[f] = 0;
     for (const r of rs) for (const f of UTIL_SUM_FIELDS) agg[f] += (typeof r[f] === 'number' ? r[f] : 0);
     agg.utilisation_percent = agg.available_hours ? (agg.utilisation_hours / agg.available_hours) * 100 : 0;
@@ -547,7 +584,7 @@ function utilAggregateByStaff(rows){
 // Grand total across every row currently on screen (post filter/aggregate),
 // pinned as the first table row.
 function utilGrandTotal(rows){
-  const t = { branch:'', date_from:'', date_to:'', staff_name:'TOTAL', is_archived:'' };
+  const t = { branch:'', date_from:'', date_to:'', staff_name:'TOTAL (hair + beauty)', team:'', is_archived:'' };
   for (const f of UTIL_SUM_FIELDS) t[f] = 0;
   for (const r of rows) for (const f of UTIL_SUM_FIELDS) t[f] += (typeof r[f] === 'number' ? r[f] : 0);
   t.utilisation_percent = t.available_hours ? (t.utilisation_hours / t.available_hours) * 100 : 0;
@@ -765,7 +802,9 @@ function utilRenderTable(){
       `</span></th>`;
   }).join('') + '</tr></thead><tbody>';
 
-  const grandTotal = utilGrandTotal(displayRows);
+  // From the raw filtered rows, not displayRows: in Summary mode a person's days are already added together, and
+  // the "on the rota that day" rule has to be read one day at a time.
+  const grandTotal = utilGrandTotal(filteredData.filter(utilCountsInTotal));
   html += '<tr class="is-total">' + visibleCols.map(c => `<td>${utilFmt(grandTotal[c[1]], c[1])}</td>`).join('') + '</tr>';
 
   orderedKeys.forEach((key, gi) => {
@@ -824,9 +863,12 @@ async function runUtilFilter(){
   if (failed){ host.innerHTML = `<div style="padding:16px;font-size:14px;color:var(--bad)">Query failed: ${failed.error.message}</div>`; return; }
   const all = results.flatMap(r => r.data || []);
 
+  const roster = await utilLoadRoster();
   utilCapWarning = all.length >= UTIL_ROW_LIMIT;
   utilLastData = all.slice(0, UTIL_ROW_LIMIT)
-    .map(row => ({...row, staff_name: canonicalStaffName(row.staff_name)}));
+    .map(row => ({...row,
+      team: roster[row.branch + '|' + String(row.staff_name || '').trim().toUpperCase()] || 'Not in roster',   // read before canonicalStaffName renames her
+      staff_name: canonicalStaffName(row.staff_name)}));
   utilColFilters = {};
   utilShowAllRows = false;
   utilRenderTable();

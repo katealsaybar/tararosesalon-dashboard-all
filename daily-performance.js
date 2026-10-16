@@ -15,7 +15,7 @@
 // monthly target divided by the branch's trading days in that month (days not shut by LG_CLOSED_DAYS or the
 // closed_days table). Flat, so a Saturday and a Sunday carry the same target; the weekday chart is the one
 // that shows the difference. Ratios (rebooking %, treatment %, retail %, average bills) read the same
-// benchmark every day; utilisation reads hair 80 and beauty 70, weighted by the hours available.
+// benchmark every day; utilisation is a band around 85 (on target 85 to 100, red under 60 or over 100), hair and beauty teams only, weighted by the hours available.
 // A client count nobody keyed a target for is shown with no target, never against zero.
 //
 // Branch and Period are the masthead's universal filters (Kate, 15 Oct 2026: follow them, like every other page);
@@ -72,7 +72,7 @@ const DP_M = {
   retailp:  { label: 'Retail %',        noun: 'retail %',             kind: 'ratio', fmt: dpPctF, bm: 'retailPct',    pick: s => { const n = (s.hairServicesIncl || 0) + (s.hairRetailOnly || 0); return n ? (s.hairRetailOnly || 0) / n * 100 : null; } },
   hairbill: { label: 'Hair avg bill',   noun: 'hair average bill',    kind: 'ratio', fmt: dpMoney, bm: 'hairAvgBill',  pick: s => s.hairAvgBill },
   beautybill: { label: 'Beauty avg bill', noun: 'beauty average bill', kind: 'ratio', fmt: dpMoney, bm: 'beautyAvgBill', pick: s => s.beautyAvgBill, beauty: true },
-  util:     { help: 'Booked hours as a share of the hours available. Hair target 80%, beauty 70%.', label: 'Utilisation',     noun: 'utilisation',          kind: 'ratio', fmt: dpPctF, util: true },
+  util:     { help: 'Booked hours as a share of the hours available, hair and beauty teams only. Target 85%: 85 to 100 is on target, 60 to 84 amber, under 60 or over 100 red. Assistants on shift are listed but never scored.', label: 'Utilisation',     noun: 'utilisation',          kind: 'ratio', fmt: dpPctF, util: true },
 };
 // The radar: every measure that has a target, the ten that say most about a branch's shape ticked by default.
 // Kate, 13 Oct 2026: that ten is the default, and any of them can be taken off or the rest put on (Customise).
@@ -332,7 +332,7 @@ function dpCell(mk, code, i) {
   if (M.beauty && D.hairOnly[code]) out = { state: 'na' };
   else if (c.closed[i]) out = { state: 'closed' };
   else {
-    let v = null, t = null;
+    let v = null, t = null, asst = null;
     if (M.util) {
       const u = c.util[i];
       if (u) {
@@ -340,6 +340,7 @@ function dpCell(mk, code, i) {
         if (avail > 0) {
           v = (u.hairHours + u.beautyHours) / avail * 100;
           t = (u.hairAvail * TARGETS.hairUtilPct + u.beautyAvail * TARGETS.beautyUtilPct) / avail;
+          asst = { shifts: u.assistantShifts || 0, hours: u.assistantHours || 0 };   // on the rota, never in the percentage
         }
       }
     } else if (c.sum[i]) {
@@ -356,7 +357,8 @@ function dpCell(mk, code, i) {
       }
     }
     if (v == null) out = { state: c.closed[i] ? 'closed' : 'nodata' };
-    else out = { state: 'ok', v, t: t || null, p: t ? v / t * 100 : null };
+    // Utilisation is a band (85 to 100 is on target, over 100 is as bad as under 60), so its score is utilScore, not v / t.
+    else out = { state: 'ok', v, t: t || null, p: t ? (M.util ? utilScore(v) * 100 : v / t * 100) : null, asst };
   }
   dpMemo.set(key, out);
   return out;
@@ -402,6 +404,12 @@ function dpStatus(p, lo = 80) {
   if (p >= lo) return ['warn', ms ? 'Past the first goal' : 'Close', '\u25B2'];
   return ['bad', ms ? 'Below the first goal' : 'Below target', '\u25BC'];
 }
+// Utilisation reads against a band, not a floor (Kate, 16 Oct 2026): 85 to 100 on target, 60 to 84 amber, under 60 or over 100 red.
+function dpUtilStatus(v) {
+  const b = utilBand(v);
+  return b === 'on' ? ['on', 'On target', '✓'] : b === 'warn' ? ['warn', utilBandNote(v), '▲'] : ['bad', utilBandNote(v), '▼'];
+}
+const dpUtilBin = v => { const b = utilBand(v); return b === 'on' ? 2 : b === 'warn' ? 1 : 0; };
 const dpCol = c => `var(--c-${c})`;
 const dpW = host => Math.max(300, Math.round((host && host.clientWidth) || 700));
 
@@ -517,7 +525,8 @@ function dpPeriodLine(mk, code, idxs) {
     body = M.fmt(cs.reduce((a, c) => a + c.v, 0)) + (pct != null ? ' \u00B7 ' + Math.round(pct) + '% of target' : '');
   } else {
     const avg = cs.reduce((a, c) => a + c.v, 0) / n, t = both.length ? both.reduce((a, c) => a + c.t, 0) / both.length : null;
-    body = 'average ' + M.fmt(avg) + (t != null ? ' \u00B7 ' + (Math.abs(avg - t) < 1e-9 ? 'on target' : dpDiff(M, { v: avg, t }) + ' ' + (avg >= t ? 'above' : 'below') + ' target') : '');
+    body = 'average ' + M.fmt(avg) + (M.util ? ' \u00B7 ' + utilBandNote(avg).toLowerCase()
+      : t != null ? ' \u00B7 ' + (Math.abs(avg - t) < 1e-9 ? 'on target' : dpDiff(M, { v: avg, t }) + ' ' + (avg >= t ? 'above' : 'below') + ' target') : '');
   }
   return `<div class="dp-sub dp-per"><b>${dpEsc(name)}</b>: ${body} (${n} open day${n === 1 ? '' : 's'})</div>`;
 }
@@ -529,15 +538,16 @@ function dpTiles(win, idxs) {
     let li = -1;
     for (let k = idxs.length - 1; k >= 0; k--) if (dpCell(mk, code, idxs[k]).state === 'ok') { li = idxs[k]; break; }
     if (li < 0) return `<div class="dp-tile">${head}<div class="big" style="color:var(--muted2)">—</div><div class="dp-sub">No figures in this window yet</div></div>`;
-    const c = dpCell(mk, code, li), [cls, txt, ic] = dpStatus(c.p, dpLoP(mk, c.t));
+    const c = dpCell(mk, code, li), [cls, txt, ic] = M.util ? dpUtilStatus(c.v) : dpStatus(c.p, dpLoP(mk, c.t));
     const ratio = M.kind === 'ratio' && !M.notarget && c.t != null;
-    const chip = ratio ? (Math.abs(c.v - c.t) < 1e-9 ? 'On target' : `${dpDiff(M, c)} ${c.v >= c.t ? 'above' : 'below'} target${cls === 'warn' && c.t > (M.milestone || Infinity) ? ' \u00B7 past the ' + M.fmt(M.milestone) + ' first goal' : ''}`)
+    const chip = M.util ? txt : ratio ? (Math.abs(c.v - c.t) < 1e-9 ? 'On target' : `${dpDiff(M, c)} ${c.v >= c.t ? 'above' : 'below'} target${cls === 'warn' && c.t > (M.milestone || Infinity) ? ' \u00B7 past the ' + M.fmt(M.milestone) + ' first goal' : ''}`)
       : `${c.p != null ? Math.round(c.p) + '% \u00B7 ' : ''}${txt}`;
     const lastIdx = idxs[idxs.length - 1];
     const shut = dpCell(mk, code, lastIdx).state !== 'ok';
     return `<div class="dp-tile">${head}<div class="big">${M.fmt(c.v)}</div>
       <div class="dp-sub"><b style="color:var(--text)">${dpEsc(M.label)}</b> · ${shut ? (dpCell(mk, code, lastIdx).state === 'closed' ? 'Closed ' + dpDayLabel(DPD.days[lastIdx]) + ' · last open ' : 'Latest figures ') : ''}${dpDayLabel(DPD.days[li])}${c.t ? (M.kind === 'ratio' ? ' · target ' : ' · daily target ') + M.fmt(c.t) : ''}</div>
       <span class="dp-chip ${cls}">${ic} ${chip}</span>
+      ${M.util && c.asst && c.asst.shifts ? `<div class="dp-sub">Assistants on shift: ${c.asst.shifts} (${Math.round(c.asst.hours)} h on the rota), not in the percentage</div>` : ''}
       ${dpPeriodLine(mk, code, idxs)}
       <div style="margin-top:8px;max-width:260px">${dpSpark(code, idxs, mk)}</div></div>`;
   }).join('');
@@ -721,7 +731,9 @@ function dpRatioCaption(M, t) {
 function dpBinKey(raw, mk, tRep) {
   const M = DP_M[mk];
   let names = DP_BIN_NAMES;
-  if (!raw && M.kind === 'ratio' && tRep) {
+  if (M.util) {
+    names = ['Under 60% (revenue left on the table) or over 100% (clients turned away)', '60–84% (room to book more)', '85–100% (on target)'];
+  } else if (!raw && M.kind === 'ratio' && tRep) {
     const ms = !!(M.milestone && tRep > M.milestone), lo = ms ? M.milestone : tRep * .8, hi = tRep * 1.1, f = M.fmt;
     names = [`Under ${f(lo)} (${ms ? 'below the first goal' : 'below target'})`, `${f(lo)} to under ${f(tRep)} (${ms ? 'past the first goal, heading to ' + f(tRep) : 'close'})`, `${f(tRep)} to under ${f(hi)} (on target)`, `${f(hi)} and over (ahead)`];
   }
@@ -743,11 +755,11 @@ function dpHeat(host, idxs) {
   codes.forEach((code, r) => {
     idxs.forEach((i, k) => {
       const c = dpCell(mk, code, i), x = xs[k], yy = 4 + r * ch;
-      const tip = `<b>${dpEsc(dpName(code))}</b><div>${dpDayLabel(DPD.days[i])}</div>` + (c.state !== 'ok' ? `<div>${dpWhy(c.state)}</div>` : `<div class="r"><span>${M.fmt(c.v)}</span><span>${raw ? '' : (c.p != null ? Math.round(c.p) + '% of target' + (M.kind === 'ratio' ? ' (target ' + M.fmt(c.t) + ')' : '') : 'no target')}</span></div>`);
+      const tip = `<b>${dpEsc(dpName(code))}</b><div>${dpDayLabel(DPD.days[i])}</div>` + (c.state !== 'ok' ? `<div>${dpWhy(c.state)}</div>` : `<div class="r"><span>${M.fmt(c.v)}</span><span>${raw ? '' : M.util ? utilBandNote(c.v) : (c.p != null ? Math.round(c.p) + '% of target' + (M.kind === 'ratio' ? ' (target ' + M.fmt(c.t) + ')' : '') : 'no target')}</span></div>`);
       let fill = 'var(--surface2)', ink = 'var(--muted2)', label = '';
       if (c.state === 'ok') {
         if (raw) { fill = dpShade(mx ? c.v / mx : 0); ink = 'var(--text)'; label = M.fmt(c.v).replace('%', ''); }
-        else if (c.p != null) { const b = dpBin(c.p, dpLoP(mk, c.t)); fill = dpBinBg(b); ink = dpBinInk(b); label = M.kind === 'ratio' ? dpPlain(M, c.v) : String(Math.round(c.p)); }
+        else if (c.p != null) { const b = M.util ? dpUtilBin(c.v) : dpBin(c.p, dpLoP(mk, c.t)); fill = dpBinBg(b); ink = dpBinInk(b); label = M.kind === 'ratio' ? dpPlain(M, c.v) : String(Math.round(c.p)); }
       }
       g += `<rect x="${x + 1}" y="${yy + 1}" width="${cw - 2}" height="${ch - 2}" rx="6" style="fill:${fill}" data-tip="${dpEsc(tip)}"/>`;
       if (nums && label) g += `<text x="${x + cw / 2}" y="${yy + ch / 2 + 4}" text-anchor="middle" style="fill:${ink};font-size:11.5px;font-weight:600;pointer-events:none">${label}</text>`;
@@ -791,10 +803,10 @@ function dpWeekday(host) {
     if (okv.length > 1 && spread) lines.push(`<div class="dp-sub"><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span><b style="color:var(--text)">${code}</b> best ${DP_DOW[order[vals.indexOf(hi)]]} (${lineOf(bi, order[vals.indexOf(hi)])}), slowest ${DP_DOW[order[vals.indexOf(lo)]]} (${lineOf(bi, order[vals.indexOf(lo)])})</div>`);
     const cells = vals.map((v, k) => {
       const d = order[k];
-      const tip = `<b>${dpEsc(dpName(code))} \u00B7 ${DP_DOW[d]}</b><div>${v == null ? 'No figures' : raw ? M.fmt(avgV[bi][d]) + ' on average' : (units ? `${M.fmt(avgV[bi][d])} on average, ${Math.round(avgP[bi][d])}% of target` : Math.round(avgP[bi][d]) + '% of target on average')}</div>`;
+      const tip = `<b>${dpEsc(dpName(code))} \u00B7 ${DP_DOW[d]}</b><div>${v == null ? 'No figures' : raw ? M.fmt(avgV[bi][d]) + ' on average' : M.util ? `${M.fmt(avgV[bi][d])} on average, ${utilBandNote(avgV[bi][d]).toLowerCase()}` : (units ? `${M.fmt(avgV[bi][d])} on average, ${Math.round(avgP[bi][d])}% of target` : Math.round(avgP[bi][d]) + '% of target on average')}</div>`;
       if (v == null) return `<div class="dp-wc" style="background:var(--surface2);color:var(--muted2)" data-tip="${dpEsc(tip)}">\u2013</div>`;
       let bg, ink;
-      if (raw) { bg = dpShade(mx ? v / mx : 0); ink = 'var(--text)'; } else { const b = dpBin(avgP[bi][d], dpLoP(mk, avgT[bi][d])); bg = dpBinBg(b); ink = dpBinInk(b); }
+      if (raw) { bg = dpShade(mx ? v / mx : 0); ink = 'var(--text)'; } else { const b = M.util ? dpUtilBin(avgV[bi][d]) : dpBin(avgP[bi][d], dpLoP(mk, avgT[bi][d])); bg = dpBinBg(b); ink = dpBinInk(b); }
       const cls = spread ? (v === hi ? ' best' : v === lo ? ' slow' : '') : '';
       return `<div class="dp-wc${cls}" style="background:${bg};color:${ink}" data-tip="${dpEsc(tip)}">${txtOf(bi, d)}</div>`;
     }).join('');
@@ -856,7 +868,7 @@ function dpRadar(host, idxs, codes) {
   if (!multi) {
     const sorted = axes.map(k => ({ ...mineAll[0][k], lab: sel[k][1] })).sort((a, b) => b.p - a.p);
     const strong = sorted.filter(v => Math.round(v.p) >= 100).slice(0, 3), weak = sorted.slice().reverse().filter(v => Math.round(v.p) < 100).slice(0, 3);
-    list = `<h3>Strengths</h3>${strong.length ? strong.map(v => row(v, Math.round(v.p) >= 110 ? 'good' : 'on', '\u2713')).join('') : '<div class="dp-sub">Nothing above target yet</div>'}<h3>Weaknesses</h3>${weak.length ? weak.map(v => row(v, Math.round(v.p) >= dpLoP(v.mk, v.t) ? 'warn' : 'bad', Math.round(v.p) >= dpLoP(v.mk, v.t) ? '\u25B2' : '\u25BC')).join('') : '<div class="dp-sub">Every measure is on target</div>'}`;
+    list = `<h3>Strengths</h3>${strong.length ? strong.map(v => row(v, Math.round(v.p) >= 110 ? 'good' : 'on', '\u2713')).join('') : '<div class="dp-sub">Nothing above target yet</div>'}<h3>Weaknesses</h3>${weak.length ? weak.map(v => { const lo = v.mk === 'util' ? UTIL_BAND.low / UTIL_BAND.target * 100 : dpLoP(v.mk, v.t); return row(v, Math.round(v.p) >= lo ? 'warn' : 'bad', Math.round(v.p) >= lo ? '\u25B2' : '\u25BC'); }).join('') : '<div class="dp-sub">Every measure is on target</div>'}`;
   } else {
     list = '<h3>Each branch at a glance</h3>' + codes.map((code, bi) => {
       const arr = axes.map(k => ({ ...mineAll[bi][k], lab: sel[k][1] })).sort((a, b) => b.p - a.p), top = arr[0], low = arr[arr.length - 1];
@@ -945,7 +957,7 @@ function dpDraw(host, win) {
         <div class="dp-hw"><b>% of target</b><span>The figure divided by its target. 100% means the target was met. 80% means a fifth short.</span></div>
         <div class="dp-hw"><b>Points</b><span>The gap between two percentages. Rebooking at 61% against 70% is 9 points below.</span></div>
         <div class="dp-hw"><b>Daily target</b><span>The month's target shared evenly across the branch's trading days. A Saturday and a Sunday carry the same target.</span></div>
-        <div class="dp-hw"><b>Rebooking, treatment %, retail %, average bills</b><span>Each day is read against the same benchmark. Utilisation: hair 80%, beauty 70%.</span></div>
+        <div class="dp-hw"><b>Rebooking, treatment %, retail %, average bills</b><span>Each day is read against the same benchmark. Utilisation is read as a band: 85 to 100% is on target, 60 to 84% amber, under 60% or over 100% red (hair and beauty teams only).</span></div>
         <div class="dp-hw"><b>NCR</b><span>New Client Requests. A count, against the Pulse's monthly NCR target.</span></div>
         <div class="dp-hw"><b>NCR %</b><span>NCR as a share of the day's clients. It has no target, so nothing is graded.</span></div>
       </div>

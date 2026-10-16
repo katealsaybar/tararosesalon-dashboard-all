@@ -311,8 +311,10 @@ function cmpMetrics() {
     { name: 'Request rate',             sub: 'asked for her stylist, per staff', kind: 'pct', up: true, get: reqRate },
     { name: 'Treatment %',              sub: 'of hair revenue', kind: 'pct', up: true, get: hairTxPct, target: () => TARGETS.treatmentPct },
     { name: 'Retail %',                 sub: 'of services', kind: 'pct', up: true, get: retPct, target: () => TARGETS.retailPct },
-    { name: 'Hair utilisation %',       kind: 'pct', up: true, get: s => nz(s.hairUtilPct),   target: () => TARGETS.hairUtilPct },
-    { name: 'Beauty utilisation %',     kind: 'pct', up: true, get: s => nz(s.beautyUtilPct), target: () => TARGETS.beautyUtilPct },
+    // Kate, 16 Oct 2026: a band, not a floor. 85 to 100 hits, and past 100 is clients turned away, so "better" is
+    // closer to the band (isUtil), not simply higher. Hair and beauty teams only; assistants are not in it.
+    { name: 'Hair utilisation %',       sub: 'target 85, red over 100', kind: 'pct', up: true, isUtil: true, get: s => nz(s.hairUtilPct),   target: () => TARGETS.hairUtilPct },
+    { name: 'Beauty utilisation %',     sub: 'target 85, red over 100', kind: 'pct', up: true, isUtil: true, get: s => nz(s.beautyUtilPct), target: () => TARGETS.beautyUtilPct },
     { group: 'More measures' },
     { name: 'Colour %',                 sub: 'hair visits with colour', kind: 'pct', up: true, get: s => s.opx ? nz(s.opx.colour) : null },
     { name: 'Reputation',               sub: '90 days to the end of the window', kind: 'star', up: true, get: s => s.opx ? nz(s.opx.stars) : null },
@@ -557,14 +559,14 @@ function cmpResultsHtml(sa, sb2) {
     // A count target is for the whole window, so Per day divides it like the figure.
     const tScale = (t, days) => (t != null && per && m.kind === 'n') ? t / days : t;
     const tA = m.target ? tScale(m.target(A), daysA) : null, tB = m.target ? tScale(m.target(B), daysB) : null;
-    const hit = (v, t) => (v == null || t == null) ? '' : (v >= t ? ' cmp-hit' : ' cmp-miss');
+    const hit = (v, t) => (v == null || t == null) ? '' : (cmpHits(m, v, t) ? ' cmp-hit' : ' cmp-miss');
     const tgtNote = (t, v) => (t == null || v == null) ? '' :
       `<small class="cmp-tgt">${m.kind === 'pct' ? t + '%' : m.kind === 'n' ? cmpFmt('n', t, t < 10) : 'AED ' + t}</small>`;
 
     let dAbs = '', dRel = '', cls = 'flat', bar = '';
     if (va != null && vb != null) {
       const diff = vb - va;
-      const good = m.up ? diff > 0 : diff < 0;
+      const good = m.isUtil ? utilScore(vb) > utilScore(va) : (m.up ? diff > 0 : diff < 0);
       const eps = m.kind === 'pct' ? 0.005 : 0.5;
       cls = Math.abs(diff) < eps ? 'flat' : (good ? 'up' : 'down');
       const sign = diff > 0 ? '+' : diff < 0 ? '−' : '';
@@ -663,10 +665,14 @@ function cmpScaler() {
   return { per, dA, dB, sc: (kind, v, days) => (v == null) ? null : (per && (kind === 'aed' || kind === 'n') ? v / days : v) };
 }
 
+// A metric hit its target: at or over it, except utilisation, which is on target only inside the 85 to 100 band.
+const cmpHits = (m, v, t) => m.isUtil ? utilBand(v) === 'on' : v >= t;
+
 function cmpDeltaChip(va, vb, kind, up) {
   if (va == null || vb == null) return '<span class="cmp-chip-d flat">no comparison</span>';
   const diff = vb - va;
-  const good = up ? diff > 0 : diff < 0;
+  // up === 'band' (utilisation): better is closer to the 85 to 100 band, not just higher.
+  const good = up === 'band' ? utilScore(vb) > utilScore(va) : (up ? diff > 0 : diff < 0);
   const flat = kind === 'pct' ? Math.abs(diff) < 0.05 : (va ? Math.abs(diff / va) < 0.0005 : diff === 0);
   const cls = flat ? 'flat' : (good ? 'up' : 'down');
   const arrow = flat ? '→' : diff > 0 ? '↑' : '↓';
@@ -793,7 +799,7 @@ function cmpMirrorHtml(title, what, names, sa, sb2) {
           </div>
           <div class="cmp-f-mid">
             <span class="cmp-f-n">${escapeHtml(r.m.name)}${r.m.sub ? `<small class="cmp-f-sub">${escapeHtml(r.m.sub)}</small>` : ''}</span>
-            ${cmpDeltaChip(r.va, r.vb, r.m.kind, r.m.up)}
+            ${cmpDeltaChip(r.va, r.vb, r.m.kind, r.m.isUtil ? 'band' : r.m.up)}
           </div>
           <div class="cmp-f-side r">
             <span class="cmp-f-bar b" style="width:${w(r.vb).toFixed(1)}%"></span>
@@ -840,7 +846,7 @@ function cmpTrendChipsHtml(sa, sb2) {
     // The dot is B against its own target, so the row of chips doubles as a
     // scorecard: you can see which ones are red before clicking any of them.
     const tB = m.target ? m.target(B) : null;
-    const dot = (tB == null || vb == null) ? '' : `<i class="${vb >= tB ? 'hit' : 'miss'}"></i>`;
+    const dot = (tB == null || vb == null) ? '' : `<i class="${cmpHits(m, vb, tB) ? 'hit' : 'miss'}"></i>`;
     return `<button type="button" class="cmp-tchip${cmpState.trend === t.key ? ' on' : ''}" data-trend="${t.key}" onclick="cmpSetTrend('${t.key}')">${dot}${escapeHtml(t.label)}</button>`;
   }).join('');
 }
@@ -853,7 +859,7 @@ function cmpTrendStripHtml(sa, sb2) {
   const fmt = v => v == null ? '—' : (m.kind === 'pct' ? v.toFixed(2) + '%' : m.kind === 'n' ? cmpFmt('n', v, false) : 'AED ' + cmpFmt(m.kind === 'avg' ? 'avg' : 'aed', v));
   const tA = m.target ? m.target(A) : null, tB = m.target ? m.target(B) : null;
   const tf = x => m.kind === 'pct' ? x + '%' : m.kind === 'n' ? cmpFmt('n', x, x < 10) : 'AED ' + x;
-  const res = (v, tt) => (tt == null || v == null) ? '' : `<span class="cmp-res ${v >= tt ? 'hit' : 'miss'}">${v >= tt ? 'Hit' : 'Below'} ${tf(tt)}</span>`;
+  const res = (v, tt) => (tt == null || v == null) ? '' : `<span class="cmp-res ${cmpHits(m, v, tt) ? 'hit' : 'miss'}">${cmpHits(m, v, tt) ? 'Hit' : (m.isUtil && v > UTIL_BAND.high ? 'Over capacity, past 100%' : 'Below')} ${m.isUtil && v > UTIL_BAND.high ? '' : tf(tt)}</span>`;
   const stat = (lbl, cls, v, tt) => `
     <div class="cmp-stat">
       <span class="cmp-stat-k"><i class="${cls}"></i>${lbl}</span>
@@ -861,7 +867,7 @@ function cmpTrendStripHtml(sa, sb2) {
       ${res(v, tt)}
     </div>`;
   return `${stat('A', 'a', va, tA)}${stat('B', 'b', vb, tB)}
-    <div class="cmp-stat"><span class="cmp-stat-k">Change</span>${cmpDeltaChip(va, vb, m.kind, m.up)}</div>`;
+    <div class="cmp-stat"><span class="cmp-stat-k">Change</span>${cmpDeltaChip(va, vb, m.kind, m.isUtil ? 'band' : m.up)}</div>`;
 }
 
 function cmpTrendWhat() {
