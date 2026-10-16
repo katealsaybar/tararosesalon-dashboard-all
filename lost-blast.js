@@ -34,13 +34,9 @@ function lqbStat(g) {
     failed: rs.filter(r => !r.messaged && lqbJobIs(r, 'failed')).length, skipped: rs.filter(r => !r.messaged && lqbJobIs(r, 'skipped')).length,
     ready: rs.filter(lqCanSend) };
 }
-// What the day still has for wave n: the daily cap (half of it in Wave 4) less what has been queued or sent today.
-function lqbRoom(n) {
-  const i = lqSnd.info;
-  if (!i) return 0;
-  const w = LQW[n - 1];
-  return Math.max(0, Math.min(i.daily_cap, Math.round(i.daily_cap * w.factor)) - i.used_today);
-}
+// What the day still has for wave n (see lqwDayRoom in lost-waves.js): the daily cap less what has been queued or sent today, and Wave 4 also
+// stays inside half the cap counting only its own sends.
+function lqbRoom(n) { return lqwDayRoom(n); }
 const lqbOrder = (a, b) => (LQ_WA_ORDER[a.wa] - LQ_WA_ORDER[b.wa]) || (LQ_TYPE_ORDER.indexOf(a.qtype) - LQ_TYPE_ORDER.indexOf(b.qtype)) || (a.days_since - b.days_since);
 
 function lqbRow(g) {

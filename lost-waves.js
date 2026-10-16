@@ -133,14 +133,34 @@ function lqwKeep(r, view) {
   if (n === 2) return c === 2 && !(!lqwIsClosed(1) && lqwKeys.has(r.client_key));
   return c === n;
 }
-// How many may still go out today in the wave on screen: the daily cap (half of it in Wave 4) less what has gone, and the pilot's own 50.
+// What wave n's own clients have used today: queued for today or sent today (Dubai day). Wave 4's half cap counts only these (Kate, 16 Oct 2026),
+// so what Waves 1 to 3 sent earlier does not use up Wave 4's half; the whole daily cap still counts everything.
+function lqwOwnToday(n) {
+  const s = lqwSt[n];
+  if (!s) return 0;
+  const today = ssDayKey(Date.now());
+  return s.rows.filter(r => {
+    const j = r._job;
+    if (!j || !['queued', 'sending', 'sent'].includes(j.status)) return false;
+    const t = j.status === 'queued' ? (j.next_try_at || j.requested_at) : (j.sent_at || j.requested_at);
+    return !!t && ssDayKey(t) === today;
+  }).length;
+}
+// What the day still has for wave n: the whole daily cap less everything sent or queued today; and in a wave with a factor (Wave 4 = half) never
+// more than that share of the cap less the wave's own sends.
+function lqwDayRoom(n) {
+  const i = lqSnd.info;
+  if (!i) return 0;
+  const w = LQW[n - 1], whole = i.daily_cap - i.used_today;
+  return Math.max(0, w.factor < 1 ? Math.min(whole, Math.round(i.daily_cap * w.factor) - lqwOwnToday(n)) : Math.min(i.daily_cap, Math.round(i.daily_cap * w.factor)) - i.used_today);
+}
+// How many may still go out today in the wave on screen: lqwDayRoom, and the pilot's own 50.
 function lqwRoom() {
   const i = lqSnd.info;
   if (!i) return 0;
   const n = lqwCurrent();
   if (lqwStatus(n) !== 'open') return 0;
-  const w = LQW[n - 1];
-  const day = Math.max(0, Math.min(i.daily_cap, Math.round(i.daily_cap * w.factor)) - i.used_today);
+  const day = lqwDayRoom(n);
   return n === 1 ? Math.min(day, ((lqwSt[1] || { rows: [] }).rows).filter(r => !lqwUsed(r) && !lqwHeld(r)).length) : day;
 }
 
