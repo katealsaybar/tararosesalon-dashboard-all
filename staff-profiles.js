@@ -152,7 +152,8 @@ const STAFF_PROFILES = {
   'XAVRINA':   { photoFull: 'stylist/photos/SAA/xavrina traya.png', role: 'Junior Stylist', branch: 'SAA', blank: true, resigned: true },
 
   // -- Motor City --
-  'ALAN':      { photo: 'alan.png',      role: 'Style Director', branch: 'MC',   ig: 'alan_joseph_hair' },
+  // Kate, 16 Oct 2026: Alan Joseph Russell resigned. Last day with sales 14 Oct 2026 (Phorest and ledger agree).
+  'ALAN':      { photo: 'alan.png',      role: 'Style Director', branch: 'MC',   ig: 'alan_joseph_hair', resigned: true },
   'ASHLEIGH':  { photo: 'ashleigh.png',  role: 'Style Director', title: 'Blondes & Extensions Educator', branch: 'MC',   ig: 'ashleighfairgrievehair' },
   'LUCY':      { photo: 'lucy.png',      role: 'Style Director', branch: 'MC',   ig: 'lucy.glow.hair' },
   'ELISE':     { photo: 'elise.png',     role: 'Senior Stylist', branch: 'MC',   ig: 'ehfhair' },

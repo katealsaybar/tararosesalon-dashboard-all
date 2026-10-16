@@ -401,7 +401,7 @@ const STYLIST_IG = {
 // if she comes back (see Hazel Mae, who left this list when her 2nd-batch card and
 // STAFF_PROFILES entry came back, Sep 2026). Keys match STYLIST_PHOTOS spelling.
 const STYLIST_RESIGNED = new Set([
-  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Rhi", "Gabby", "Lina", "Sherine", "Xavrina", "Denise", "Kara", "Nataleah", "Rany", "Alex", "Billy", "Faye", "Hafez", "Jane", "Kelsey", "Kelsie", "Louise", "Lucie", "Shian", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi", "Jaime", "Josh", "Michelle", "Mihaela", "Cecille", "Maricel", "Melliza", "Dina", "Joanne", "Rita", "Emmalyn", "Nicole", "Sahra", "Jackie", "Karina", "Lorena", "Neeka",
+  "Samantha", "Stuart", "Goncalo", "Sophie", "Toni", "Zandri", "Danika", "Nimi", "Cori", "Paul", "Callum", "Marcella", "Demian", "Emin", "Catrin", "Reshel", "Rhi", "Gabby", "Lina", "Sherine", "Xavrina", "Denise", "Kara", "Nataleah", "Rany", "Alex", "Billy", "Faye", "Hafez", "Jane", "Kelsey", "Kelsie", "Louise", "Lucie", "Shian", "Zoe", "Harriet", "Venus", "Oliver", "Aboudi", "Jaime", "Josh", "Michelle", "Mihaela", "Cecille", "Maricel", "Melliza", "Dina", "Joanne", "Rita", "Emmalyn", "Nicole", "Sahra", "Jackie", "Karina", "Lorena", "Neeka", "Alan",
 ]);
 function isResignedStylist(cleanName) {
   return STYLIST_RESIGNED.has(cleanName);
