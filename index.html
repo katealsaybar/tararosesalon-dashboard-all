@@ -4219,14 +4219,14 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="branch-ledger.js?v=20261014mry1"></script>
 <script src="compare.js?v=20261016util"></script>
 <script src="over-the-years.js?v=20261016oty35"></script>
-<script src="daily-performance.js?v=20261016util"></script>
-<script src="daily-addons.js?v=20261015da1"></script>
+<script src="daily-performance.js?v=20261016da8"></script>
+<script src="daily-addons.js?v=20261016da7"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20261008cb1"></script>
 <script src="team-performance.js?v=20261015r3n"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
-<script src="staff-links.js?v=20261014frontdesk"></script>
+<script src="staff-links.js?v=20261016da2"></script>
 <script src="pulse-narrative.js?v=20261008cb1"></script>
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
 <script src="branch-narrative.js?v=20261008cb1"></script>
@@ -4640,7 +4640,7 @@ function showView(view, el){
   document.body.classList.toggle('staffperf-chrome', view === 'staffperf');
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'clients' || view === 'clientmix' || view === 'services' || view === 'dailyperf');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'clients' || view === 'clientmix' || view === 'services');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('website-chrome', view === 'website');
   document.body.classList.toggle('social-chrome', view === 'social');
@@ -5098,7 +5098,10 @@ function spy(){
   const SECS = NAV.map(a => { const k = a.getAttribute('href').slice(1);
     return document.getElementById(k) || document.getElementById('sec-' + k); });
   let live = 0;
-  SECS.forEach((s,i) => { if(s && s.getBoundingClientRect().top <= 132) live = i; });
+  // Daily Performance pins a Measure bar under the masthead, so its cards land lower than the others' and the reading line
+  // drops by the bar's height (Kate, 16 Oct 2026, with its mini side nav).
+  const DPB = VIEW ? VIEW.querySelector('.dp-bar') : null, LINE = 132 + (DPB ? DPB.offsetHeight : 0);
+  SECS.forEach((s,i) => { if(s && s.getBoundingClientRect().top <= LINE) live = i; });
   // The last heading sits above the fine print, so at full scroll its top never
   // reaches the reading line and "Do this" could never light up. At the bottom of
   // the page the bottom section is the one you are on, so say so.
@@ -5202,6 +5205,6 @@ addEventListener('load', sizeTopbar);
 <script src="nav-collapse.js?v=20261014glide2"></script>
 <script src="nav-stars.js?v=20261002a"></script>
 <script src="mobile.js?v=20261008sa"></script>
-<script src="search.js?v=20261015da1"></script>
+<script src="search.js?v=20261016da8"></script>
 <script src="visits.js?v=20261008v1"></script>
 </body>
