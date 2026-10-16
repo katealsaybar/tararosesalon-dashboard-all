@@ -837,46 +837,6 @@ function dpHeat(host, idxs) {
   return `<div class="dp-hm"><div class="dp-hml" style="width:${LBL}px">${codes.map(c => `<div style="height:${ch}px">${c}</div>`).join('')}</div><div class="dp-scroll"><svg class="dp-svg" style="min-width:${SW}px" viewBox="0 0 ${SW} ${H}" role="img" aria-label="Branch by day">${g}</svg></div></div><div class="dp-key">${dpBinKey(raw, mk, dpRepT(mk, codes, idxs))}</div><details><summary>View as table</summary>${table}</details>`;
 }
 
-// ── WEEKDAY PATTERN ─────────────────────────────────────────
-// A grid, not 28 bars: one row per branch, one square per weekday, the average in it, the best day outlined and
-// the slowest dashed. Same colours as the heatmap, so one key reads both. A ratio shows its own average (45%), coloured
-// by how that sits against the target.
-function dpWeekday(host) {
-  const mk = DP.measure, M = DP_M[mk], codes = dpSel(), raw = dpRawFor(mk, codes), units = raw || M.kind === 'ratio', days = DPD.days.length;
-  const mean = a => (a.length ? a.reduce((t, v) => t + v, 0) / a.length : null);
-  const gather = (code, pick) => {
-    const a = Array.from({ length: 7 }, () => []);
-    for (let i = 0; i < days; i++) { const c = dpCell(mk, code, i); if (c.state === 'ok') { const v = pick(c); if (v != null) a[DPD.days[i].getDay()].push(v); } }
-    return a.map(mean);
-  };
-  const avgP = codes.map(code => gather(code, c => c.p)), avgV = codes.map(code => gather(code, c => c.v)), avgT = codes.map(code => gather(code, c => c.t));
-  const score = raw ? avgV : avgP;
-  if (!score.some(a => a.some(v => v != null))) return { html: '<p class="dp-why" style="margin:20px 0">No target to read the weekdays against for this measure.</p>', legend: '', days };
-  const order = [1, 2, 3, 4, 5, 6, 0], mx = raw ? Math.max(...avgV.flat().filter(v => v != null)) : 0;
-  const ratio = units && !raw, txtOf = (bi, d) => ((raw || ratio) ? M.fmt(avgV[bi][d]) : Math.round(avgP[bi][d]) + '%'), sfx = raw || ratio ? '' : ' of target';
-  const lineOf = (bi, d) => txtOf(bi, d) + sfx;
-  const head = '<span></span>' + order.map(d => `<div class="dp-wh">${DP_DOW[d]}</div>`).join('');
-  const lines = [];
-  const rows = codes.map((code, bi) => {
-    const vals = order.map(d => score[bi][d]), okv = vals.filter(v => v != null);
-    const hi = okv.length > 1 ? Math.max(...okv) : null, lo = okv.length > 1 ? Math.min(...okv) : null, spread = hi !== lo;
-    if (okv.length > 1 && spread) lines.push(`<div class="dp-sub"><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span><b style="color:var(--text)">${code}</b> best ${DP_DOW[order[vals.indexOf(hi)]]} (${lineOf(bi, order[vals.indexOf(hi)])}), slowest ${DP_DOW[order[vals.indexOf(lo)]]} (${lineOf(bi, order[vals.indexOf(lo)])})</div>`);
-    const cells = vals.map((v, k) => {
-      const d = order[k];
-      const tip = `<b>${dpEsc(dpName(code))} \u00B7 ${DP_DOW[d]}</b><div>${v == null ? 'No figures' : raw ? M.fmt(avgV[bi][d]) + ' on average' : M.util ? `${M.fmt(avgV[bi][d])} on average, ${utilBandNote(avgV[bi][d]).toLowerCase()}` : (units ? `${M.fmt(avgV[bi][d])} on average, ${Math.round(avgP[bi][d])}% of target` : Math.round(avgP[bi][d]) + '% of target on average')}</div>`;
-      if (v == null && !raw && avgV[bi][d] != null) return `<div class="dp-wc" style="background:var(--surface2);color:var(--text)" data-tip="${dpEsc(`<b>${dpEsc(dpName(code))} · ${DP_DOW[d]}</b><div>${M.fmt(avgV[bi][d])} on average. No target is set here, so it is not graded.</div>`)}">${M.fmt(avgV[bi][d])}</div>`;
-      if (v == null) return `<div class="dp-wc" style="background:var(--surface2);color:var(--muted2)" data-tip="${dpEsc(tip)}">\u2013</div>`;
-      let bg, ink;
-      if (raw) { bg = dpShade(mx ? v / mx : 0); ink = 'var(--text)'; } else { const b = M.util ? dpUtilBin(avgV[bi][d]) : dpBin(avgP[bi][d], dpLoP(mk, avgT[bi][d])); bg = dpBinBg(b); ink = dpBinInk(b); }
-      const cls = spread ? (v === hi ? ' best' : v === lo ? ' slow' : '') : '';
-      return `<div class="dp-wc${cls}" style="background:${bg};color:${ink}" data-tip="${dpEsc(tip)}">${txtOf(bi, d)}</div>`;
-    }).join('');
-    return `<div class="dp-wl"><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span>${code}</div>${cells}`;
-  }).join('');
-  const legend = `<div class="dp-key">${dpBinKey(raw, mk, dpRepT(mk, codes, DPD.days.map((_, i) => i)))}<span><i style="background:transparent;border:2px solid var(--text)"></i>Best day</span><span><i style="background:transparent;border:2px dashed var(--text)"></i>Slowest day</span></div>`;
-  return { html: `<div class="dp-wk">${head}${rows}</div>${legend}<div style="margin-top:10px">${lines.join('')}</div>`, legend: '', days };
-}
-
 // ── RADAR: strengths and weaknesses ─────────────────────────
 // Every radar measure as the mean of the window's daily % of target, per branch. A measure with no target
 // at a branch is left off that branch's radar rather than drawn at zero.
@@ -946,7 +906,7 @@ function dpRadar(host, idxs, codes) {
 // ── PAGE ────────────────────────────────────────────────────
 // The bar holds the Measure and nothing else (15 Oct 2026): Branch and Period are the masthead's own filters, so there is one
 // of each on the dashboard. On a phone they are the Filters button in the header.
-const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardW', 'Weakest day'], ['dpCardBest', 'Strongest day'], ['dpCardA', 'Trend'], ['dpCardB', 'Bars'], ['dpCardR', 'Strengths'], ['dpCardC', 'Weak days'], ['dpCardD', 'Weekdays'], ['dpCardM', 'Mix'], ['dpCardCl', 'Clients'], ['dpCardS', 'Staff'], ['dpHow', 'How to read']];
+const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardW', 'Weakest day'], ['dpCardBest', 'Strongest day'], ['dpCardA', 'Trend'], ['dpCardB', 'Bars'], ['dpCardR', 'Strengths'], ['dpCardC', 'Day by day'], ['dpCardM', 'Mix'], ['dpCardCl', 'Clients'], ['dpCardS', 'Staff'], ['dpHow', 'How to read']];
 // The mini side nav (Kate, 16 Oct 2026, instead of the Jump to chips in the sticky bar): the same rail as Organisation Pulse and
 // Branch Performance (lgRail in branch-ledger.js, lit by spy() in index.html). In the gutter from 1100px, a plain row of chips
 // below that, none on a phone. The tiles stay full width above it, so the rail starts at the first card. Each entry scrolls with
@@ -1020,8 +980,7 @@ function dpDraw(host, win) {
       <span class="dp-sub dp-showing">${dpShowing()}</span></div>
       ${dpRadarCustom(idxs, dpSel())}
       <div class="dp-legend" id="dpRL"></div><div class="dp-sw"><div id="dpR"></div><div class="dp-swl" id="dpRS"></div></div></div>
-    <div class="dp-card dp-jt" id="dpCardC"><h2>${rawAll ? 'Which days were big or small' : 'Which days were weak'}: ${dpEsc(M.label)}</h2><p class="dp-why">${rawAll ? `Each square is a branch on a day, with that day's ${dpEsc(M.noun)} in it${M.fmt === dpPct1 ? ', as a %' : ''}, darker for a higher figure. ${noT}, so nothing is graded.` : (M.kind === 'ratio' ? dpEsc(dpRatioCaption(M, dpRepT(DP.measure, dpSel(), idxs))) : `Each square is a branch on a day, with ${dpEsc(M.noun)} as a % of its target in it (100 means the target was met). Hover a square for the figure itself. Red is under 80% (below target), yellow 80 to 99% (close), blue 100 to 109% (on target), green 110% or more. The same lines as the tile chips and the Pulse. A small gap marks each new week.`)}</p><div id="dpC"></div></div>
-    <div class="dp-card dp-jt" id="dpCardD"><h2>Best and slowest weekday: ${dpEsc(M.label)}</h2><span class="dp-tag" id="dpDTag"></span><p class="dp-why" id="dpDW"></p><div id="dpD"></div></div>
+    <div class="dp-card dp-jt" id="dpCardC"><h2>Day by day: ${dpEsc(M.label)}</h2><p class="dp-why">${rawAll ? `Each square is a branch on a day, with that day's ${dpEsc(M.noun)} in it${M.fmt === dpPct1 ? ', as a %' : ''}, darker for a higher figure. ${noT}, so nothing is graded.` : (M.kind === 'ratio' ? dpEsc(dpRatioCaption(M, dpRepT(DP.measure, dpSel(), idxs))) : `Each square is a branch on a day, with ${dpEsc(M.noun)} as a % of its target in it (100 means the target was met). Hover a square for the figure itself. Red is under 80% (below target), yellow 80 to 99% (close), blue 100 to 109% (on target), green 110% or more. The same lines as the tile chips and the Pulse. A small gap marks each new week.`)}</p><div id="dpC"></div></div>
     ${typeof daMoreCards === 'function' ? daMoreCards(win, idxs) : ''}
     <div class="dp-card dp-jt" id="dpHow"><h2>How to read this page</h2>
       <p class="dp-why">Short answers. Skim the bold words.</p>
@@ -1038,7 +997,7 @@ function dpDraw(host, win) {
       <div class="dp-how">
         <div class="dp-hw"><b>Colours</b><span>Each colour is a band against the target. Money and counts: under 80% of target, 80 to 99%, 100 to 109%, 110% and over. Rates and bills: the key under the chart gives the real figures.</span><span class="dp-sw3"><span><i style="background:var(--dv-n2)"></i>Under 80%</span><span><i style="background:var(--dv-y)"></i>80 to 99%</span><span><i style="background:var(--dv-p2)"></i>100 to 109%</span><span><i style="background:var(--dv-g)"></i>110% +</span></span></div>
         ${dpBenchmark('rebookPct', win.to) > DP_M.rebook.milestone ? `<div class="dp-hw"><b>Rebooking: goal and first goal</b><span>The goal is ${DP_M.rebook.fmt(dpBenchmark('rebookPct', win.to))}. ${DP_M.rebook.fmt(DP_M.rebook.milestone)} is the first goal, so a branch past it shows yellow, not red.</span></div>` : ''}
-        <div class="dp-hw"><b>Revenue mix, Clients, Staff performance</b><span>Three cards under the Weekdays card that follow the Measure menu. Revenue mix shows what a money measure is made of (Total sales, Services, Retail, Hair revenue, Beauty services, Treatments) and is only there for those. Clients is there for the client measures and Rebooking %. Staff performance is always there, ranked by the measure with its column marked. Only the Strengths and weaknesses shape ignores the menu.</span></div>
+        <div class="dp-hw"><b>Revenue mix, Clients, Staff performance</b><span>Three cards under the Day by day card that follow the Measure menu. Revenue mix shows what a money measure is made of (Total sales, Services, Retail, Hair services, Beauty services, Treatments) and is only there for those. Clients is there for the client measures and Rebooking %. Staff performance is always there, ranked by the measure with its column marked. Only the Strengths and weaknesses shape ignores the menu.</span></div>
         <div class="dp-hw"><b>Closed day</b><span>Shown as closed, not as zero. Al Quoz is shut on Sunday and Monday.</span></div>
         <div class="dp-hw"><b>No grade</b><span>Total clients and New clients show their figures with no colour until someone keys a target in the Upload Portal.</span></div>
         <div class="dp-hw"><b>Motor City</b><span>Hair only, so the Beauty measures skip it.</span></div>
@@ -1066,12 +1025,6 @@ function dpDraw(host, win) {
   fill('dpC', dpHeat(el('dpC'), idxs));
   const hs = el('dpC').querySelector('.dp-scroll');
   if (hs && hs.scrollWidth > hs.clientWidth) hs.scrollLeft = hs.scrollWidth;   // a long window opens on the latest day
-  const wk = dpWeekday(el('dpD'));
-  el('dpDW').textContent = (rawAll ? `Average ${M.noun} for each weekday, over the ${wk.days} days loaded. ${noT}, so nothing is graded.`
-    : M.kind === 'ratio' ? `Average ${M.noun} for each weekday, over the ${wk.days} days loaded. The key under the grid gives each colour in real figures.`
-    : `Average ${M.noun} for each weekday, as a % of that day's target, over the ${wk.days} days loaded.`) + ' This is the one that tells you where to put your team.';
-  fill('dpD', wk.html);
-  el('dpDTag').textContent = `${wk.days} days loaded \u00B7 Period does not apply`;
   if (had) window.scrollTo({ top: sy, left: 0, behavior: 'instant' });
   const bar = root.querySelector('.dp-bar');
   if (bar) root.style.setProperty('--dp-bar-h', bar.offsetHeight + 'px');
