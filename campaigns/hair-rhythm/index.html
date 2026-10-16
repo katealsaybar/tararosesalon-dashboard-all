@@ -25,7 +25,7 @@
 .door .from--quote b{font-size:19px;line-height:1.25}
 .fit{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:960px;margin:34px auto 0}
 @media (max-width:760px){.fit{grid-template-columns:1fr}}
-.fit .inc{padding:26px 24px;text-align:center}
+.fit .inc{padding:26px 24px;text-align:center;display:flex;align-items:center;justify-content:center;min-height:150px}
 .fit .inc p{margin:0;font-family:var(--fd);font-size:20px;line-height:1.35;color:var(--ink)}
 .svcalt{display:block;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.4;color:var(--taupe-soft);margin-top:2px}
 .door .bands .ptable{margin-top:4px}
@@ -43,11 +43,122 @@
 .door .ptable td,.door .ptable td b{font-size:13.5px}
 .door .ptable th{font-size:10px;letter-spacing:.06em;white-space:normal}
 .cardphoto{margin:0 0 18px}.cardphoto img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;border-radius:var(--r-md);background:var(--stone-soft)}
-.door .bands{overflow-x:auto}
+/* tighter, quieter scale so the page reads premium rather than poster-sized */
+#start{padding-block:68px !important}
+#start .sec-head h2{font-size:clamp(30px,3.4vw,40px);line-height:1.15}
+#fit,#rhythm,#reframe{padding-block:60px !important}
+#fit .sec-head h2,#rhythm .sec-head h2{font-size:clamp(26px,3vw,34px)}
+.ogroup{margin-top:40px}
+.ogroup h3{font-size:clamp(22px,2.4vw,26px)}
+.ogroup .who{font-size:15px;margin-top:6px}
+.ogroup .mphoto{max-width:620px;margin-top:20px}
+.ogroup .mphoto img{aspect-ratio:21/9}
+.ochips{margin-top:18px}
+.ochips a{min-height:40px;padding:0 16px;font-size:11.5px}
+.ogroup .doors{gap:16px;margin-top:20px;grid-template-columns:repeat(auto-fit,minmax(260px,340px))}
+#o-treatment .doors{grid-template-columns:repeat(auto-fit,minmax(260px,540px))}
+.ogroup .door{padding:22px 22px 20px}
+.ogroup .door h3{font-size:21px;margin:0 0 8px;text-align:left}
+.ogroup .door>p:not(.door__where){font-size:14.5px;line-height:1.55}
+.ogroup .door__inc{margin-top:12px;gap:6px}
+.ogroup .door__inc li{font-size:13.5px}
+.ogroup .door .from{padding-top:16px;font-size:10.5px}
+.ogroup .door .from b{font-size:24px}
+.ogroup .door__where{margin-top:14px;padding-top:12px;font-size:13.5px}
+.ogroup .door .pill{margin-top:16px}
+.ogroup .bands>summary{min-height:38px;font-size:11.5px}
+.cardphoto img{aspect-ratio:16/9}
+.door .bands .ptable{display:block;overflow-x:auto;max-width:100%}
 #o-treatment .doors{grid-template-columns:repeat(auto-fit,minmax(280px,580px))}
 .ochips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:22px auto 0;max-width:720px}
 .ochips a{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border:1px solid var(--hair);border-radius:999px;background:var(--paper);font-family:var(--fb);font-size:12.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text);text-decoration:none}
 .ochips a:hover{border-color:var(--accent-text)}
+
+/* menu-style rows: photo beside a list of offers, so each group reads at a glance */
+.ogroup{margin-top:52px}
+.ogroup>h3{font-size:clamp(22px,2.3vw,27px)}
+.obody{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:40px;align-items:start;max-width:1040px;margin:24px auto 0}
+.omedia{position:sticky;top:104px}
+.omedia .mphoto{margin:0;max-width:none}
+.omedia .mphoto img{aspect-ratio:4/3;width:100%;height:auto;object-fit:cover;border-radius:var(--r-md);display:block}
+.mphotos{display:grid;gap:14px}
+.mphoto--s{margin:0}
+.ogroup .doors.orows{display:block;margin:0;max-width:none}
+.ogroup .orows .door{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:28px;row-gap:0;align-items:start;padding:20px 0;background:none;border:0;border-top:1px solid var(--hair);border-radius:0;box-shadow:none}
+.ogroup .orows .door:first-child{border-top:0;padding-top:0}
+.ogroup .orows .door>*{grid-column:1;min-width:0}
+.ogroup .orows .door h3{font-size:20px;line-height:1.25;margin:0 0 4px;text-align:left}
+.ogroup .orows .door>p:not(.door__where){font-size:14.5px;line-height:1.55;margin:0}
+.ogroup .orows .door__inc{display:flex;flex-wrap:wrap;gap:4px 16px;margin:10px 0 0}
+.ogroup .orows .door__inc li{font-size:13px}
+.ogroup .orows .door .from{grid-column:2;grid-row:1 / span 2;align-self:start;text-align:right;padding:0;margin:0;font-size:10px;white-space:nowrap}
+.ogroup .orows .door .from + .from{grid-row:2 / span 1;margin-top:34px}
+.ogroup .orows .door .from b{font-size:22px;display:block}
+.ogroup .orows .door .from--quote b{font-size:13px;white-space:normal}
+.ogroup .orows .door .bands{grid-column:1 / -1;margin-top:10px}
+.ogroup .orows .door .bands>summary{min-height:34px}
+.ogroup .orows .door__where span{display:inline;margin-right:8px}
+.ogroup .orows .door__where{grid-column:1;border:0;margin:10px 0 0;padding:0;font-size:13px}
+.ogroup .orows .door .pill{grid-column:2;grid-row:3 / span 3;align-self:start;justify-self:end;margin:6px 0 0;padding-inline:18px;min-height:40px;font-size:10px}
+@media (max-width:860px){
+  .obody{grid-template-columns:1fr;gap:20px}
+  .omedia{position:static}
+  .omedia .mphoto img{aspect-ratio:16/9}
+  .mphotos{grid-template-columns:1fr 1fr}
+}
+@media (max-width:560px){
+  .ogroup .orows .door{grid-template-columns:1fr}
+  .ogroup .orows .door>*,.ogroup .orows .door .from,.ogroup .orows .door .pill{grid-column:1;grid-row:auto;text-align:left;justify-self:start}
+  .ogroup .orows .door .from{margin-top:12px}
+  .ogroup .orows .door .from b{display:inline;margin-left:6px}
+  .mphotos{grid-template-columns:1fr}
+}
+
+.offer-nav{padding:8px 0}
+.ochip{min-height:38px;padding:0 16px;border:1px solid var(--hair);font-size:11.5px;letter-spacing:.1em}
+.ochip:hover,.ochip:focus-visible,.ochip.active{border-color:var(--ink)}
+.ogroup{scroll-margin-top:calc(var(--sticky-h,150px) + 12px)}
+@media(max-width:767px){.offer-nav__row{grid-template-columns:repeat(2,1fr)}.ochip{min-height:34px;font-size:10.5px}}
+
+/* phone hardening: nothing may force the page wider than a 320px screen */
+.obody,.omedia,.ogroup,.orows,.orows .door{min-width:0}
+.obody{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+.ochip{white-space:normal;text-align:center;line-height:1.15;min-width:0;justify-content:center}
+.offer-nav__row>li{min-width:0}
+@media(max-width:860px){.obody{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px){.ogroup .orows .door{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:480px){
+  .trs-nav .nav-link{display:none}
+  .trs-nav .navrow{grid-template-columns:1fr auto 1fr}
+  .trs-nav .nav__cta{padding-inline:14px;font-size:9.5px;letter-spacing:.06em;white-space:nowrap}
+  .trs-nav .brand{padding:0 6px}
+  .trs-nav .brand__wm{font-size:15px;letter-spacing:.18em}
+  .hero-hr .cta-row .nav-link{display:inline-block}
+  .ochip{font-size:10px;letter-spacing:.04em;padding:0 8px;min-height:34px}
+  .ogroup .orows .door .from b{font-size:20px}
+  .door .ptable td,.door .ptable td b{font-size:12px}
+  .door .ptable th{font-size:8.5px}
+  .door .ptable th:not(:first-child),.door .ptable td:not(:first-child){padding-left:4px}
+}
+@media(max-width:380px){
+  .trs-nav .nav__cta{padding-inline:10px;font-size:8.5px;letter-spacing:.04em;min-height:38px}
+  .trs-nav .brand__wm{font-size:13px;letter-spacing:.14em}
+  .trs-nav .brand small{font-size:8px}
+  .trs-nav .brand{padding:0 4px}
+}
+@media(max-width:560px){.ogroup .orows .door .from{white-space:normal}}
+@media(max-width:380px){
+  .trs-nav .navrow{padding-inline:12px}
+  .trs-nav .nav__cta{padding-inline:8px;font-size:8px;letter-spacing:.03em}
+  .trs-nav .brand__wm{font-size:12px;letter-spacing:.12em}
+}
+@media(max-width:767px){
+  .offer-nav{padding:6px 0}
+  .offer-nav__row{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+  .ochip{min-height:34px;padding:0 2px;font-size:10px;letter-spacing:.02em}
+}
+@media(max-width:340px){.ochip{font-size:8.5px;letter-spacing:0}}
+@media(max-width:560px){.ogroup .orows .door__inc{flex-direction:column;gap:6px}}
 .short-note{max-width:60ch;margin:28px auto 0;text-align:center;font-family:var(--fb);font-size:15px;font-weight:300;line-height:1.6;color:var(--ink-soft)}
 .hero-hr{background:#161512 url(assets/img/hero-junior.jpg) 0% 36%/112% auto no-repeat}
 .hero-hr::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,rgba(20,19,17,.9) 0%,rgba(20,19,17,.72) 36%,rgba(20,19,17,.08) 62%,rgba(20,19,17,0) 100%);opacity:1}
@@ -108,56 +219,33 @@
     <div class="sec-head center">
       <span class="eyebrow">What is on offer</span>
       <h2>Pick the one that sounds like <em>you.</em></h2>
-      <nav class="ochips" aria-label="Offers"><a href="#o-colour">Colour maintenance</a><a href="#o-blowdry">Blow-dry packages</a><a href="#o-treatment">Treatments</a><a href="#o-trim">Trim</a></nav>
     </div>
-    <div class="ogroup" id="o-colour">
-      <h3>Colour maintenance</h3>
-      <p class="who">For you if your colour has gone warm or flat, or has started to grow out.</p>
-    <figure class="mphoto" style="max-width:760px"><img src="assets/img/menu-tone-reset.jpg" alt="A straightener gliding through freshly toned copper hair" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 40%"></figure>
-        <div class="doors">
+  </div>
+  <div class="offer-nav" aria-label="Jump to a group"><div class="wrap"><ul class="offer-nav__row"><li><a class="ochip" href="#o-trim">Trim</a></li><li><a class="ochip" href="#o-blowdry">Blow-dry</a></li><li><a class="ochip" href="#o-treatment">Treatments</a></li><li><a class="ochip" href="#o-colour">Colour</a></li></ul></div></div>
+  <div class="wrap menu-zone">
+    <div class="ogroup" id="o-trim">
+      <h3>Trim</h3>
+      <p class="who">For you if your cut has lost its shape.</p>
+    <div class="obody">
+      <div class="omedia"><figure class="mphoto"><img src="assets/img/menu-trim-finish.jpg" alt="A stylist finishing her client&rsquo;s freshly shaped copper waves with a light spray, seen from behind" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 25%"></figure></div>
+      <div class="doors orows">
     <article class="door">
-      <h3>The Tone Reset</h3>
-      <p>Toner and a blow-dry, thirty to forty-five minutes. It resets your tone before the warmth comes back.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Toner, matched to your colour</li><li><span class="tk"></span>A blow-dry to finish</li><li><span class="tk"></span>Thirty to forty-five minutes</li></ul>
+      <h3>The Maintenance Trim</h3>
+      <p>A reshape that keeps your frame, finished before you leave.</p>
+      <ul class="door__inc"><li><span class="tk"></span>A reshape that keeps your frame</li><li><span class="tk"></span>Finished to leave</li></ul>
       <span class="from">From<b>AED 200</b></span>
-      <details class="bands"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 200</b></li><li><span>Medium</span><b>AED 255</b></li><li><span>Long / Thick</span><b>AED 310</b></li><li><span>Extra Long</span><b>AED 405</b></li></ul></details>
-      <p class="door__where"><span>When</span> Week four to five after colour.</p>
-      <a class="pill pill--accent" href="#book" data-svc="toner">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>The Root Refresh</h3>
-      <p>A line of regrowth at your parting, and the rest of your colour still looking good.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Root colour matched to your base</li><li><span class="tk"></span>A blow-dry to finish</li><li><span class="tk"></span>Blonde or brunette</li></ul>
-      <span class="from from--quote">Priced by your length<b>Confirmed before you book</b></span>
-      
-      <p class="door__where"><span>When</span> Week six to eight after colour.</p>
-      <a class="pill pill--accent" href="#book" data-svc="colour">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>The Brightening Refresh</h3>
-      <p>Your parting and hairline look darker than the rest. Partial foils where the grow-out shows first.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Partial foils where it shows first</li><li><span class="tk"></span>A blow-dry to finish</li><li><span class="tk"></span>Blonde</li></ul>
-      <span class="from from--quote">Priced by your length<b>Confirmed before you book</b></span>
-      
-      <p class="door__where"><span>When</span> Between your full highlight or balayage visits.</p>
-      <a class="pill pill--accent" href="#book" data-svc="colour">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>The Face Frame</h3>
-      <p>The brightness around your face has dropped before the rest. Colour placed softly around your hairline.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Colour placed around your hairline</li><li><span class="tk"></span>A blow-dry to finish</li><li><span class="tk"></span>Blonde or brunette</li></ul>
-      <span class="from from--quote">Priced for you<b>Confirmed before you book</b></span>
-      
-      <p class="door__where"><span>When</span> Whenever the front grows out before the rest.</p>
-      <a class="pill pill--accent" href="#book" data-svc="colour">Book this <span class="arr">&rarr;</span></a>
+      <p class="door__where"><span>When</span> Every six to eight weeks.</p>
+      <a class="pill pill--accent" href="#book" data-svc="trim">Book this <span class="arr">&rarr;</span></a>
     </article>
     </div>
+      </div>
     </div>
     <div class="ogroup" id="o-blowdry">
       <h3>Blow-dry packages</h3>
       <p class="who">For you if you want to feel polished more than once every few weeks.</p>
-    <figure class="mphoto" style="max-width:760px"><img src="assets/img/menu-blowdry.jpg" alt="A junior stylist mid blow-dry, round brush in one hand and dryer in the other, her client relaxed in the chair" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 30%"></figure>
-        <div class="doors">
+    <div class="obody">
+      <div class="omedia"><figure class="mphoto"><img src="assets/img/menu-blowdry.jpg" alt="A junior stylist mid blow-dry, round brush in one hand and dryer in the other, her client relaxed in the chair" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 30%"></figure></div>
+      <div class="doors orows">
     <article class="door">
       <h3>The Blow-dry Edit</h3>
       <p>Three blow-dries, prepaid, so the week starts the way you want it to rather than the way it happens to.</p>
@@ -186,13 +274,16 @@
       <a class="pill pill--accent" href="#book" data-svc="bundle">Book this <span class="arr">&rarr;</span></a>
     </article>
     </div>
+      </div>
     </div>
     <div class="ogroup" id="o-treatment">
       <h3>Treatments</h3>
       <p class="who">For you if your hair feels tired, dry or frizzy.</p>
-    <div class="doors">
+    <div class="obody">
+      <div class="omedia"><div class="mphotos"><figure class="mphoto mphoto--s"><img src="assets/img/menu-treatment-blowdry.jpg" alt="A junior stylist blow-drying her client&rsquo;s freshly treated hair smooth" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 30%"></figure><figure class="mphoto mphoto--s"><img src="assets/img/menu-treatment-course.jpg" alt="A junior stylist at the basin, treatment in hand, talking her client through it" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 30%"></figure></div>
+      </div>
+      <div class="doors orows">
     <article class="door">
-      <figure class="cardphoto"><img src="assets/img/menu-treatment-blowdry.jpg" alt="A junior stylist blow-drying her client&rsquo;s freshly treated hair smooth" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 30%"></figure>
       <h3>Treatment and Blow-dry</h3>
       <p>One appointment that treats your hair or scalp and finishes it. Your stylist prescribes the treatment that suits your hair.</p>
       <ul class="door__inc"><li><span class="tk"></span>Strength, Colour Longevity, Hydration &amp; Frizz or Scalp Health</li><li><span class="tk"></span>Worked through your 8-Step Hair Plan</li><li><span class="tk"></span>A blow-dry to finish</li></ul>
@@ -202,7 +293,6 @@
       <a class="pill pill--accent" href="#book" data-svc="treatment">Book this <span class="arr">&rarr;</span></a>
     </article>
     <article class="door">
-      <figure class="cardphoto"><img src="assets/img/menu-treatment-course.jpg" alt="A junior stylist at the basin, treatment in hand, talking her client through it" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 30%"></figure>
       <h3>Treatment Courses</h3>
       <p>Three or five sessions, prepaid, with the same stylist tracking the result at every visit.</p>
       <ul class="door__inc"><li><span class="tk"></span>Three or five sessions, one payment</li><li><span class="tk"></span>The same stylist tracking your result</li><li><span class="tk"></span>Your stylist will say so if one session is all you need</li></ul>
@@ -213,22 +303,50 @@
       <a class="pill pill--accent" href="#book" data-svc="course">Book this <span class="arr">&rarr;</span></a>
     </article>
     </div>
+      </div>
     </div>
-    <div class="ogroup" id="o-trim">
-      <h3>Trim</h3>
-      <p class="who">For you if your cut has lost its shape.</p>
-    <figure class="mphoto" style="max-width:560px"><img src="assets/img/menu-trim-finish.jpg" alt="A stylist finishing her client&rsquo;s freshly shaped copper waves with a light spray, seen from behind" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 25%"></figure>
-        <div class="doors">
+    <div class="ogroup" id="o-colour">
+      <h3>Colour maintenance</h3>
+      <p class="who">For you if your colour has gone warm or flat, or has started to grow out.</p>
+    <div class="obody">
+      <div class="omedia"><figure class="mphoto"><img src="assets/img/menu-tone-reset.jpg" alt="A straightener gliding through freshly toned copper hair" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 40%"></figure></div>
+      <div class="doors orows">
     <article class="door">
-      <h3>The Maintenance Trim</h3>
-      <p>A reshape that keeps your frame, finished before you leave.</p>
-      <ul class="door__inc"><li><span class="tk"></span>A reshape that keeps your frame</li><li><span class="tk"></span>Finished to leave</li></ul>
-      <span class="from from--quote">Priced by your salon<b>Confirmed before you book</b></span>
+      <h3>The Tone Reset</h3>
+      <p>Toner and a blow-dry, thirty to forty-five minutes. It resets your tone before the warmth comes back.</p>
+      <ul class="door__inc"><li><span class="tk"></span>Toner, matched to your colour</li><li><span class="tk"></span>A blow-dry to finish</li><li><span class="tk"></span>Thirty to forty-five minutes</li></ul>
+      <span class="from">From<b>AED 200</b></span>
+      <details class="bands"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 200</b></li><li><span>Medium</span><b>AED 255</b></li><li><span>Long / Thick</span><b>AED 310</b></li><li><span>Extra Long</span><b>AED 405</b></li></ul></details>
+      <p class="door__where"><span>When</span> Week four to five after colour.</p>
+      <a class="pill pill--accent" href="#book" data-svc="toner">Book this <span class="arr">&rarr;</span></a>
+    </article>
+    <article class="door">
+      <h3>The Root Refresh</h3>
+      <p>A line of regrowth at your parting, and the rest of your colour still looking good.</p>
+      <ul class="door__inc"><li><span class="tk"></span>Root colour matched to your base</li><li><span class="tk"></span>A blow-dry to finish</li><li><span class="tk"></span>Blonde or brunette</li></ul>
+      <span class="from">From<b>AED 305</b></span>
+      <details class="bands"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 305</b></li><li><span>Medium</span><b>AED 330</b></li><li><span>Long / Thick</span><b>AED 370</b></li><li><span>Extra Long</span><b>AED 465</b></li></ul></details><p class="door__where"><span>When</span> Week six to eight after colour.</p>
+      <a class="pill pill--accent" href="#book" data-svc="colour">Book this <span class="arr">&rarr;</span></a>
+    </article>
+    <article class="door">
+      <h3>The Brightening Refresh</h3>
+      <p>Your parting and hairline look darker than the rest. Partial foils where the grow-out shows first.</p>
+      <ul class="door__inc"><li><span class="tk"></span>Partial foils where it shows first</li><li><span class="tk"></span>A blow-dry to finish</li><li><span class="tk"></span>Blonde</li></ul>
+      <span class="from">From<b>AED 365</b></span>
+      <details class="bands"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 365</b></li><li><span>Medium</span><b>AED 390</b></li><li><span>Long / Thick</span><b>AED 420</b></li><li><span>Extra Long</span><b>AED 520</b></li></ul></details><p class="door__where"><span>When</span> Between your full highlight or balayage visits.</p>
+      <a class="pill pill--accent" href="#book" data-svc="colour">Book this <span class="arr">&rarr;</span></a>
+    </article>
+    <article class="door">
+      <h3>The Face Frame</h3>
+      <p>The brightness around your face has dropped before the rest. Colour placed softly around your hairline.</p>
+      <ul class="door__inc"><li><span class="tk"></span>Colour placed around your hairline</li><li><span class="tk"></span>A blow-dry to finish</li><li><span class="tk"></span>Blonde or brunette</li></ul>
+      <span class="from">Starting price<b>AED 260</b></span>
       
-      <p class="door__where"><span>When</span> Every six to eight weeks.</p>
-      <a class="pill pill--accent" href="#book" data-svc="trim">Book this <span class="arr">&rarr;</span></a>
+      <p class="door__where"><span>When</span> Whenever the front grows out before the rest.</p>
+      <a class="pill pill--accent" href="#book" data-svc="colour">Book this <span class="arr">&rarr;</span></a>
     </article>
     </div>
+      </div>
     </div>
     <p class="short-note">Every price shown is a starting price for short or fine hair. Where a card has a prices-by-length list, open it for yours. Your salon confirms your price before anything is booked, not at the till.</p>
   </div>
@@ -470,7 +588,7 @@
   </div>
 </footer>
 
-<script src="js/nav-scroll.js" defer></script>
+<script src="js/nav-scroll.js?v=2" defer></script>
 
 <script src="js/form-prefill.js" defer></script>
 
