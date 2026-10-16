@@ -373,6 +373,14 @@ function dpIdx(win) {
   DPD.days.forEach((d, i) => { if (d >= win.from && d <= win.to) out.push(i); });
   return out;
 }
+// A measure that normally has a target but has none keyed at any branch picked (Total clients and New clients, until someone keys
+// one in the Upload Portal) cannot be graded, so it is drawn the way a measure with no target at all is: plain figures, shaded by
+// size, nothing coloured red or green. Kate, 16 Oct 2026, from "No target to read the weekdays against" on Total clients.
+function dpRawFor(mk, codes) {
+  const M = DP_M[mk];
+  if (M.notarget) return true;
+  return !codes.some(code => DPD.days.some((_, i) => { const c = dpCell(mk, code, i); return c.state === 'ok' && c.p != null; }));
+}
 
 // ── TOOLTIP (delegated: any element with data-tip) ──────────
 let dpTipEl = null;
@@ -446,7 +454,7 @@ function dpDiff(M, c) {
   return (M.fmt === dpPctF || M.fmt === dpPct1) ? Math.round(d) + ' points' : M.fmt(d);
 }
 function dpSpark(code, idxs, mk) {
-  const W = 220, H = 44, M = DP_M[mk], units = !!M.notarget || M.kind === 'ratio';
+  const W = 220, H = 44, M = DP_M[mk], units = dpRawFor(mk, [code]) || M.kind === 'ratio';
   const cells = idxs.map(i => dpCell(mk, code, i));
   const vals = cells.map(c => c.state === 'ok' ? (units ? c.v : c.p) : null);
   const ok = vals.filter(v => v != null);
@@ -567,7 +575,7 @@ function dpTiles(win, idxs) {
 // Money and counts: % of target, so 100% is the day's target. A ratio, or a measure with no target at all (NCR %):
 // the figure itself, the axis from 0, and for a ratio the target as a dashed line at its real value.
 function dpChartA(host, idxs) {
-  const mk = DP.measure, M = DP_M[mk], W = dpW(host), n = idxs.length, raw = !!M.notarget, units = raw || M.kind === 'ratio';
+  const mk = DP.measure, M = DP_M[mk], W = dpW(host), n = idxs.length, raw = dpRawFor(mk, dpSel()), units = raw || M.kind === 'ratio';
   const H = Math.round(Math.min(340, Math.max(230, W * .34))), m = { l: 42, r: 46, t: 10, b: 26 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
   const val = c => (units ? c.v : c.p);
@@ -752,7 +760,7 @@ function dpBinKey(raw, mk, tRep) {
     + '<span><i style="background:var(--surface2);border:1px solid var(--border)"></i>Closed, no figures or not tracked</span>';
 }
 function dpHeat(host, idxs) {
-  const mk = DP.measure, M = DP_M[mk], codes = dpSel(), n = idxs.length, W = dpW(host), raw = !!M.notarget;
+  const mk = DP.measure, M = DP_M[mk], codes = dpSel(), n = idxs.length, W = dpW(host), raw = dpRawFor(mk, codes);
   const lm = 0, LBL = 44, ch = 40, gap = 6, minCw = 24;
   const mondays = idxs.filter((i, k) => k > 0 && DPD.days[i].getDay() === 1).length;
   const cw = Math.max(minCw, (W - LBL - mondays * gap) / n);
@@ -770,6 +778,7 @@ function dpHeat(host, idxs) {
       if (c.state === 'ok') {
         if (raw) { fill = dpShade(mx ? c.v / mx : 0); ink = 'var(--text)'; label = M.fmt(c.v).replace('%', ''); }
         else if (c.p != null) { const b = dpBin(c.p, dpLoP(mk, c.t)); fill = dpBinBg(b); ink = dpBinInk(b); label = M.kind === 'ratio' ? dpPlain(M, c.v) : String(Math.round(c.p)); }
+        else { ink = 'var(--text)'; label = M.fmt(c.v).replace('%', ''); }
       }
       g += `<rect x="${x + 1}" y="${yy + 1}" width="${cw - 2}" height="${ch - 2}" rx="6" style="fill:${fill}" data-tip="${dpEsc(tip)}"/>`;
       if (nums && label) g += `<text x="${x + cw / 2}" y="${yy + ch / 2 + 4}" text-anchor="middle" style="fill:${ink};font-size:11.5px;font-weight:600;pointer-events:none">${label}</text>`;
@@ -792,7 +801,7 @@ function dpHeat(host, idxs) {
 // the slowest dashed. Same colours as the heatmap, so one key reads both. A ratio shows its own average (45%), coloured
 // by how that sits against the target.
 function dpWeekday(host) {
-  const mk = DP.measure, M = DP_M[mk], codes = dpSel(), raw = !!M.notarget, units = raw || M.kind === 'ratio', days = DPD.days.length;
+  const mk = DP.measure, M = DP_M[mk], codes = dpSel(), raw = dpRawFor(mk, codes), units = raw || M.kind === 'ratio', days = DPD.days.length;
   const mean = a => (a.length ? a.reduce((t, v) => t + v, 0) / a.length : null);
   const gather = (code, pick) => {
     const a = Array.from({ length: 7 }, () => []);
@@ -814,6 +823,7 @@ function dpWeekday(host) {
     const cells = vals.map((v, k) => {
       const d = order[k];
       const tip = `<b>${dpEsc(dpName(code))} \u00B7 ${DP_DOW[d]}</b><div>${v == null ? 'No figures' : raw ? M.fmt(avgV[bi][d]) + ' on average' : (units ? `${M.fmt(avgV[bi][d])} on average, ${Math.round(avgP[bi][d])}% of target` : Math.round(avgP[bi][d]) + '% of target on average')}</div>`;
+      if (v == null && !raw && avgV[bi][d] != null) return `<div class="dp-wc" style="background:var(--surface2);color:var(--text)" data-tip="${dpEsc(`<b>${dpEsc(dpName(code))} · ${DP_DOW[d]}</b><div>${M.fmt(avgV[bi][d])} on average. No target is set here, so it is not graded.</div>`)}">${M.fmt(avgV[bi][d])}</div>`;
       if (v == null) return `<div class="dp-wc" style="background:var(--surface2);color:var(--muted2)" data-tip="${dpEsc(tip)}">\u2013</div>`;
       let bg, ink;
       if (raw) { bg = dpShade(mx ? v / mx : 0); ink = 'var(--text)'; } else { const b = dpBin(avgP[bi][d], dpLoP(mk, avgT[bi][d])); bg = dpBinBg(b); ink = dpBinInk(b); }
@@ -947,6 +957,7 @@ function dpDraw(host, win) {
   const idxs = dpIdx(win), mk = DP.measure, M = DP_M[mk];
   if (!idxs.length) { host.innerHTML = `<div class="dpf"><h1>Daily Performance</h1>${dpControls(win)}<div class="dp-err">No days in this window yet.</div></div>`; dpWire(host); return; }
   const range = `${dpDayLabel(win.from)} to ${dpDayLabel(win.to)}`;
+  const rawAll = dpRawFor(mk, dpSel()), noT = M.notarget ? 'This measure has no target' : 'No target is set for this measure at the branches picked';
   host.innerHTML = `<div class="dpf">
     <h1>Daily Performance</h1>
     <p class="dp-deck">How each branch did, day by day, against its daily target. Unsure of a term? <button type="button" class="dp-linkbtn" data-jump="dpHow">How to read this page</button>.</p>
@@ -954,9 +965,9 @@ function dpDraw(host, win) {
     <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}${dpOffPage() ? ' · Bahrain is not on this page yet, so the UAE branches show' : ''}${M.help ? ' · <b>' + dpEsc(M.label) + '</b>: ' + dpEsc(M.help) : ''}</p>
     <section class="dp-tiles dp-jt" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs)}</section>
     <div class="lg-shell lg-shell-wide">${dpRail()}<div class="lg-doc">
-    <div class="dp-card dp-jt" id="dpCardW"><h2>Weakest day per branch: ${dpEsc(M.label)}</h2><p class="dp-why">${M.notarget ? `The day in this period with the lowest ${dpEsc(M.noun)}. This measure has no target, so nothing is graded.` : `The day in this period when ${dpEsc(M.noun)} fell furthest below its target, for each branch. Closed days and days with no figures are skipped.`}</p><div id="dpW"></div></div>
-    <div class="dp-card dp-jt" id="dpCardA"><h2>${M.notarget ? `Daily ${dpEsc(M.noun)}, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}` : `Daily ${dpEsc(M.noun)} against target, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}`}</h2>
-      <p class="dp-why">${M.notarget ? 'Every branch on one scale, in plain values. This measure has no target, so nothing is graded. Gaps are closed days or days with no figures.' : (M.kind === 'ratio' ? "Every branch on one scale, in the measure's own units, with the target as the dashed line. Gaps are closed days or days with no figures." : "Every branch on one scale: 100% means the day's target was met. Gaps are closed days or days with no figures.")}</p><div id="dpA"></div></div>
+    <div class="dp-card dp-jt" id="dpCardW"><h2>Weakest day per branch: ${dpEsc(M.label)}</h2><p class="dp-why">${rawAll ? `The day in this period with the lowest ${dpEsc(M.noun)}. ${noT}, so nothing is graded.` : `The day in this period when ${dpEsc(M.noun)} fell furthest below its target, for each branch. Closed days and days with no figures are skipped.`}</p><div id="dpW"></div></div>
+    <div class="dp-card dp-jt" id="dpCardA"><h2>${rawAll ? `Daily ${dpEsc(M.noun)}, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}` : `Daily ${dpEsc(M.noun)} against target, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}`}</h2>
+      <p class="dp-why">${rawAll ? `Every branch on one scale, in plain values. ${noT}, so nothing is graded. Gaps are closed days or days with no figures.` : (M.kind === 'ratio' ? "Every branch on one scale, in the measure's own units, with the target as the dashed line. Gaps are closed days or days with no figures." : "Every branch on one scale: 100% means the day's target was met. Gaps are closed days or days with no figures.")}</p><div id="dpA"></div></div>
     <div class="dp-card dp-jt" id="dpCardB"><div class="dp-head"><div><h2 id="dpBT"></h2><p class="dp-why" id="dpBW"></p></div><span class="dp-sub dp-showing">${dpShowing()}</span></div>
       <div class="dp-legend" id="dpBL"></div><div id="dpB"></div></div>
     <div class="dp-card dp-jt" id="dpCardR"><div class="dp-head"><div><h2 id="dpRT"></h2><span class="dp-tag">Measure does not apply</span>
@@ -964,7 +975,7 @@ function dpDraw(host, win) {
       <span class="dp-sub dp-showing">${dpShowing()}</span></div>
       ${dpRadarCustom(idxs, dpSel())}
       <div class="dp-legend" id="dpRL"></div><div class="dp-sw"><div id="dpR"></div><div class="dp-swl" id="dpRS"></div></div></div>
-    <div class="dp-card dp-jt" id="dpCardC"><h2>${M.notarget ? 'Which days were big or small' : 'Which days were weak'}: ${dpEsc(M.label)}</h2><p class="dp-why">${M.notarget ? `Each square is a branch on a day, with that day's ${dpEsc(M.noun)} in it${M.fmt === dpPct1 ? ', as a %' : ''}, darker for a higher figure. This measure has no target, so nothing is graded.` : (M.kind === 'ratio' ? dpEsc(dpRatioCaption(M, dpRepT(DP.measure, dpSel(), idxs))) : `Each square is a branch on a day, with ${dpEsc(M.noun)} as a % of its target in it (100 means the target was met). Hover a square for the figure itself. Red is under 80% (below target), yellow 80 to 99% (close), blue 100 to 109% (on target), green 110% or more. The same lines as the tile chips and the Pulse. A small gap marks each new week.`)}</p><div id="dpC"></div></div>
+    <div class="dp-card dp-jt" id="dpCardC"><h2>${rawAll ? 'Which days were big or small' : 'Which days were weak'}: ${dpEsc(M.label)}</h2><p class="dp-why">${rawAll ? `Each square is a branch on a day, with that day's ${dpEsc(M.noun)} in it${M.fmt === dpPct1 ? ', as a %' : ''}, darker for a higher figure. ${noT}, so nothing is graded.` : (M.kind === 'ratio' ? dpEsc(dpRatioCaption(M, dpRepT(DP.measure, dpSel(), idxs))) : `Each square is a branch on a day, with ${dpEsc(M.noun)} as a % of its target in it (100 means the target was met). Hover a square for the figure itself. Red is under 80% (below target), yellow 80 to 99% (close), blue 100 to 109% (on target), green 110% or more. The same lines as the tile chips and the Pulse. A small gap marks each new week.`)}</p><div id="dpC"></div></div>
     <div class="dp-card dp-jt" id="dpCardD"><h2>Best and slowest weekday: ${dpEsc(M.label)}</h2><span class="dp-tag" id="dpDTag"></span><p class="dp-why" id="dpDW"></p><div id="dpD"></div></div>
     ${typeof daMoreCards === 'function' ? daMoreCards(win, idxs) : ''}
     <div class="dp-card dp-jt" id="dpHow"><h2>How to read this page</h2>
@@ -1010,7 +1021,7 @@ function dpDraw(host, win) {
   const hs = el('dpC').querySelector('.dp-scroll');
   if (hs && hs.scrollWidth > hs.clientWidth) hs.scrollLeft = hs.scrollWidth;   // a long window opens on the latest day
   const wk = dpWeekday(el('dpD'));
-  el('dpDW').textContent = (M.notarget ? `Average ${M.noun} for each weekday, over the ${wk.days} days loaded. This measure has no target, so nothing is graded.`
+  el('dpDW').textContent = (rawAll ? `Average ${M.noun} for each weekday, over the ${wk.days} days loaded. ${noT}, so nothing is graded.`
     : M.kind === 'ratio' ? `Average ${M.noun} for each weekday, over the ${wk.days} days loaded. The key under the grid gives each colour in real figures.`
     : `Average ${M.noun} for each weekday, as a % of that day's target, over the ${wk.days} days loaded.`) + ' This is the one that tells you where to put your team.';
   fill('dpD', wk.html);
