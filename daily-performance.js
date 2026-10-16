@@ -22,11 +22,12 @@
 // the only control on the page is the Measure menu. Colours follow the branch, as everywhere on the dashboard (BRANCH_INFO).
 
 const DP_STORE = 'trs-daily-perf';
-const DP = { measure: 'sales', radar: null };
+const DP = { measure: 'sales', dept: 'all', radar: null };
 let dpRadarOpen = false;
 try {
   const s = JSON.parse(localStorage.getItem(DP_STORE) || '{}');
   if (typeof s.measure === 'string') DP.measure = s.measure;
+  if (s.dept === 'hair' || s.dept === 'beauty') DP.dept = s.dept;
   if (Array.isArray(s.radar)) DP.radar = s.radar.filter(x => typeof x === 'string');
 } catch (e) { /* private mode: the defaults are fine */ }
 function dpSave() {
@@ -49,12 +50,33 @@ const DP_GROUPS = [
   ['Benchmarks', ['rebook', 'treatp', 'retailp', 'hairbill', 'beautybill']],
   ['Capacity',   ['util']],
 ];
+// The Measure menu by department (Kate, 16 Oct 2026). All is the salon as a whole; Hair and Beauty show only that team's own measures.
+// DP_GROUPS stays the full list the radar's Customise panel reads.
+const DP_MENU = {
+  all:    [['Revenue', ['sales', 'services', 'retail', 'treat']], ['Clients', ['clients', 'newc', 'ncr', 'ncrp', 'rebookn']], ['Benchmarks', ['rebook', 'treatp', 'retailp']], ['Capacity', ['util']]],
+  hair:   [['Revenue', ['hair', 'hairretail', 'treat']], ['Clients', ['hairclients']], ['Benchmarks', ['treatp', 'retailp', 'hairbill']]],
+  beauty: [['Revenue', ['beauty', 'beautyretail']], ['Clients', ['beautyclients']], ['Benchmarks', ['beautybill']]],
+};
+const DP_DEPT_DEFAULT = { all: 'sales', hair: 'hair', beauty: 'beauty' };
+const dpMenuKeys = d => DP_MENU[d].flatMap(g => g[1]);
+// A link or a remembered measure that is not in the chosen department's menu moves to the department that has it (measure=hair opens Hair).
+function dpFitDept() {
+  if (dpMenuKeys(DP.dept).includes(DP.measure)) return;
+  const d = ['all', 'hair', 'beauty'].find(x => dpMenuKeys(x).includes(DP.measure));
+  if (d) DP.dept = d; else { DP.dept = 'all'; DP.measure = 'sales'; }
+}
 const DP_M = {
   sales:    { label: 'Total sales',     noun: 'total sales',          kind: 'vol',   fmt: dpMoney, monthly: () => LG_TOTAL_TARGET,    pick: s => lgTotalRevenue(s) },
   services: { label: 'Services',        noun: 'services revenue',     kind: 'vol',   fmt: dpMoney, monthly: () => LG_SERVICES_TARGET, pick: s => lgServicesTotal(s) },
   retail:   { label: 'Retail',          noun: 'retail revenue',       kind: 'vol',   fmt: dpMoney, monthly: () => ['retailTotal'],   pick: s => s.retailTotal },
-  hair:     { label: 'Hair revenue',    noun: 'hair revenue',         kind: 'vol',   fmt: dpMoney, monthly: () => ['hairRevenue'],   pick: s => s.hairServicesIncl },
+  hair:     { label: 'Hair services',   noun: 'hair services',        kind: 'vol',   fmt: dpMoney, monthly: () => ['hairRevenue'],   pick: s => s.hairServicesIncl },
   beauty:   { label: 'Beauty services', noun: 'beauty services',      kind: 'vol',   fmt: dpMoney, monthly: () => ['beautyServices'], pick: s => s.beautyServicesTotal, beauty: true },
+  // Kate, 16 Oct 2026: Hair and Beauty get their own retail and client counts, and the Department toggle (DP_MENU) shows only that team's measures.
+  // Beauty retail and the two client counts have no monthly target keyed, so they are plain values, not graded.
+  hairretail:    { label: 'Hair retail',     noun: 'hair retail',     kind: 'vol', fmt: dpMoney, monthly: () => ['hairRetail'], pick: s => s.hairRetailOnly },
+  beautyretail:  { label: 'Beauty retail',   noun: 'beauty retail',   kind: 'vol', fmt: dpMoney, notarget: true, pick: s => s.beautyRetailOnly, beauty: true },
+  hairclients:   { label: 'Hair clients',    noun: 'hair clients',    kind: 'vol', fmt: dpCount('clients'), notarget: true, pick: s => s.hairTotalClients },
+  beautyclients: { label: 'Beauty clients',  noun: 'beauty clients',  kind: 'vol', fmt: dpCount('clients'), notarget: true, pick: s => s.beautyTotalClients, beauty: true },
   treat:    { label: 'Treatments',      noun: 'treatment revenue',    kind: 'vol',   fmt: dpMoney, monthly: () => ['hairTreatment'], pick: s => s.treatmentSales },
   clients:  { label: 'Total clients',   noun: 'clients served',       kind: 'vol',   fmt: dpCount('clients'), monthly: () => ['totalClients'], pick: s => s.totalClients },
   newc:     { label: 'New clients',     noun: 'new clients',          kind: 'vol',   fmt: dpCount('new'),     monthly: () => ['newClients'],   pick: s => s.newClientsTotal },
@@ -152,7 +174,8 @@ function dpCss() {
   .dpf .dp-swl h3:not(:first-child){margin-top:18px}
   .dpf .dp-swr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border2)}
   .dpf .dp-swr .dp-chip{margin-top:0;white-space:nowrap;flex:none}
-  .dpf .dp-swr-r{display:flex;align-items:center;gap:12px;flex:none}
+  .dpf .dp-swr-r{display:grid;grid-template-columns:58px 96px;align-items:center;gap:12px;flex:none}
+  .dpf .dp-swr-r .dp-chip{justify-self:end}
   .dpf .dp-cal{display:inline-flex;flex-direction:column;align-items:stretch;width:58px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:9px;overflow:hidden;box-shadow:var(--shadow-card,none);flex:none}
   .dpf .dp-cal-m{background:var(--accent);color:var(--accent-fg);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;line-height:1;padding:5px 0 4px}
   .dpf .dp-cal-d{font-size:25px;font-weight:700;line-height:1.05;padding-top:3px;color:var(--text);font-variant-numeric:tabular-nums}
@@ -513,7 +536,8 @@ function dpOffPage() {
 // Weakest day rows). Ink and cream come from the dashboard's own tokens, so the band is ink on light and the theme's accent on
 // dark. The full date is the label for a screen reader.
 const dpCalendar = d => `<span class="dp-cal" role="img" aria-label="${dpEsc(dpDayLabel(d))}"><span class="dp-cal-m">${MON_SHORT[d.getMonth()]}</span><span class="dp-cal-d">${d.getDate()}</span><span class="dp-cal-w">${DP_DOW[d.getDay()]}</span></span>`;
-function dpWeakest(idxs, codes) {
+// Kate, 16 Oct 2026: the same card, read the other way round for the Strongest day (best = true): the highest figure, or the one furthest above its target.
+function dpWeakest(idxs, codes, best) {
   const mk = DP.measure, M = DP_M[mk], others = Object.keys(DP_M).filter(k => k !== mk && !DP_M[k].notarget);
   return codes.map(code => {
     const head = `<b><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span>${dpEsc(dpName(code))}</b>`;
@@ -523,12 +547,12 @@ function dpWeakest(idxs, codes) {
       const c = dpCell(mk, code, i);
       if (c.state !== 'ok' || c.v == null) return;
       const key = (!M.notarget && c.p != null) ? c.p : c.v;
-      if (!worst || key < worst.key) worst = { i, key, c };
+      if (!worst || (best ? key > worst.key : key < worst.key)) worst = { i, key, c };
     });
     if (!worst) return `<div class="dp-swr"><div>${head}<div class="dp-sub">No ${dpEsc(M.label)} figures in this window.</div></div></div>`;
     const c = worst.c, hasT = !M.notarget && c.p != null && c.t != null;
     // The other measures that were low that same day, worst first.
-    const ps = others.map(k => ({ k, c: dpCell(k, code, worst.i) })).filter(x => x.c.state === 'ok' && x.c.p != null && x.c.p < 100).sort((a, b) => a.c.p - b.c.p).slice(0, 3);
+    const ps = others.map(k => ({ k, c: dpCell(k, code, worst.i) })).filter(x => x.c.state === 'ok' && x.c.p != null && (best ? x.c.p >= 100 : x.c.p < 100)).sort((a, b) => best ? b.c.p - a.c.p : a.c.p - b.c.p).slice(0, 3);
     const also = ps.map(x => (DP_M[x.k].kind === 'ratio' ? `${DP_M[x.k].label}: ${DP_M[x.k].fmt(x.c.v)} against ${x.c.t != null ? DP_M[x.k].fmt(x.c.t) : 'its target'}` : `${DP_M[x.k].label}: ${Math.round(x.c.p)}% of target`)).join('; ');
     let line, chip;
     if (hasT) {
@@ -536,10 +560,10 @@ function dpWeakest(idxs, codes) {
       line = M.util ? `${dpEsc(M.label)}: ${M.fmt(c.v)}, ${dpEsc(utilBandNote(c.v).toLowerCase())}` : `${dpEsc(M.label)}: ${M.fmt(c.v)} against ${M.kind === 'ratio' ? '' : 'a daily target of '}${M.fmt(c.t)}`;
       chip = `<span class="dp-chip ${cls}" title="${dpEsc(M.label)} against its target that day">${ic} ${M.kind === 'ratio' ? dpEsc(M.fmt(c.v)) : Math.round(c.p) + '%'}</span>`;
     } else {
-      line = `${dpEsc(M.label)}: ${M.fmt(c.v)}. No target is set, so this is simply the lowest day.`;
+      line = `${dpEsc(M.label)}: ${M.fmt(c.v)}. No target is set, so this is simply the ${best ? 'highest' : 'lowest'} day.`;
       chip = `<span class="dp-chip na">– No target</span>`;
     }
-    return `<div class="dp-swr"><div>${head}<div class="dp-sub">${line}</div>${also ? `<div class="dp-sub">Also low that day: ${dpEsc(also)}</div>` : ''}</div><div class="dp-swr-r">${dpCalendar(DPD.days[worst.i])}${chip}</div></div>`;
+    return `<div class="dp-swr"><div>${head}<div class="dp-sub">${line}</div>${also ? `<div class="dp-sub">Also ${best ? 'strong' : 'low'} that day: ${dpEsc(also)}</div>` : ''}</div><div class="dp-swr-r">${dpCalendar(DPD.days[worst.i])}${chip}</div></div>`;
   }).join('');
 }
 function dpPeriodName(idxs) {
@@ -922,7 +946,7 @@ function dpRadar(host, idxs, codes) {
 // ── PAGE ────────────────────────────────────────────────────
 // The bar holds the Measure and nothing else (15 Oct 2026): Branch and Period are the masthead's own filters, so there is one
 // of each on the dashboard. On a phone they are the Filters button in the header.
-const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardW', 'Weakest day'], ['dpCardA', 'Trend'], ['dpCardB', 'Bars'], ['dpCardR', 'Strengths'], ['dpCardC', 'Weak days'], ['dpCardD', 'Weekdays'], ['dpCardM', 'Mix'], ['dpCardCl', 'Clients'], ['dpCardS', 'Staff'], ['dpHow', 'How to read']];
+const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardW', 'Weakest day'], ['dpCardBest', 'Strongest day'], ['dpCardA', 'Trend'], ['dpCardB', 'Bars'], ['dpCardR', 'Strengths'], ['dpCardC', 'Weak days'], ['dpCardD', 'Weekdays'], ['dpCardM', 'Mix'], ['dpCardCl', 'Clients'], ['dpCardS', 'Staff'], ['dpHow', 'How to read']];
 // The mini side nav (Kate, 16 Oct 2026, instead of the Jump to chips in the sticky bar): the same rail as Organisation Pulse and
 // Branch Performance (lgRail in branch-ledger.js, lit by spy() in index.html). In the gutter from 1100px, a plain row of chips
 // below that, none on a phone. The tiles stay full width above it, so the rail starts at the first card. Each entry scrolls with
@@ -932,16 +956,18 @@ const dpRail = () => typeof lgRail === 'function'
   : '';
 const dpShowing = () => { const sel = dpSel(); return 'Branches: ' + (sel.length === DPD.codes.length ? 'all' : sel.join(' + ')) + ', set in the filters at the top'; };
 function dpControls(win) {
-  const mopts = DP_GROUPS.map(([g, ks]) => `<optgroup label="${g}">${ks.map(k => `<option value="${k}"${k === DP.measure ? ' selected' : ''}>${dpEsc(DP_M[k].label)}</option>`).join('')}</optgroup>`).join('');
+  const mopts = DP_MENU[DP.dept].map(([g, ks]) => `<optgroup label="${g}">${ks.map(k => `<option value="${k}"${k === DP.measure ? ' selected' : ''}>${dpEsc(DP_M[k].label)}</option>`).join('')}</optgroup>`).join('');
   return `<div class="dp-bar" id="dpBar" role="group" aria-label="Measure"><div class="dp-bar-row">
+    <div class="dp-bf"><span class="dp-lab">Team</span><span class="dp-pills" id="dpDept" role="group" aria-label="Department">${[['all', 'All'], ['hair', 'Hair'], ['beauty', 'Beauty']].map(([k, l]) => `<button type="button" class="dp-pill" data-dept="${k}" aria-pressed="${DP.dept === k}">${l}</button>`).join('')}</span></div>
     <label class="dp-bf"><span class="dp-lab">Measure</span><select id="dpSelM" aria-label="Measure">${mopts}</select></label></div></div>${dpDefault() ? '' : '<p class="dp-note" style="margin:0 0 8px">Your choices are saved on this device for next time. <button type="button" class="dp-linkbtn" id="dpReset">Reset to the defaults</button></p>'}`;
 }
-const dpDefault = () => DP.measure === 'sales' && !DP.radar;
+const dpDefault = () => DP.measure === 'sales' && DP.dept === 'all' && !DP.radar;
 
 async function renderDailyPerf() {
   const host = document.getElementById('dailyPerfContent');
   if (!host || dpBusy) return;
   dpCss();
+  dpFitDept();
   const win = dpWindow();
   if (!host.querySelector('.dpf')) host.innerHTML = '<div class="dpf"><div class="loading">Loading data...</div></div>';
   dpBusy = true; dpErr = '';
@@ -984,6 +1010,7 @@ function dpDraw(host, win) {
     <section class="dp-tiles dp-jt" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs)}</section>
     <div class="lg-shell lg-shell-wide">${dpRail()}<div class="lg-doc">
     <div class="dp-card dp-jt" id="dpCardW"><h2>Weakest day per branch: ${dpEsc(M.label)}</h2><p class="dp-why">${rawAll ? `The day in this period with the lowest ${dpEsc(M.noun)}. ${noT}, so nothing is graded.` : `The day in this period when ${dpEsc(M.noun)} fell furthest below its target, for each branch. Closed days and days with no figures are skipped.`}</p><div id="dpW"></div></div>
+    <div class="dp-card dp-jt" id="dpCardBest"><h2>Strongest day per branch: ${dpEsc(M.label)}</h2><p class="dp-why">${rawAll ? `The day in this period with the highest ${dpEsc(M.noun)}. ${noT}, so nothing is graded.` : `The day in this period when ${dpEsc(M.noun)} went furthest above its target, for each branch. Closed days and days with no figures are skipped.`}</p><div id="dpBest"></div></div>
     <div class="dp-card dp-jt" id="dpCardA"><h2>${rawAll ? `Daily ${dpEsc(M.noun)}, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}` : `Daily ${dpEsc(M.noun)} against target, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}`}</h2>
       <p class="dp-why">${rawAll ? `Every branch on one scale, in plain values. ${noT}, so nothing is graded. Gaps are closed days or days with no figures.` : (M.kind === 'ratio' ? "Every branch on one scale, in the measure's own units, with the target as the dashed line. Gaps are closed days or days with no figures." : "Every branch on one scale: 100% means the day's target was met. Gaps are closed days or days with no figures.")}</p><div id="dpA"></div></div>
     <div class="dp-card dp-jt" id="dpCardB"><div class="dp-head"><div><h2 id="dpBT"></h2><p class="dp-why" id="dpBW"></p></div><span class="dp-sub dp-showing">${dpShowing()}</span></div>
@@ -1031,6 +1058,7 @@ function dpDraw(host, win) {
   fill('dpA', dpChartA(el('dpA'), idxs));
   const sel = dpSel();
   fill('dpW', dpWeakest(idxs, sel));
+  fill('dpBest', dpWeakest(idxs, sel, true));
   const b = dpChartB(el('dpB'), idxs, sel);
   el('dpBT').textContent = b.title; el('dpBW').textContent = b.why; fill('dpBL', b.legend); fill('dpB', b.html);
   const r = dpRadar(el('dpR'), idxs, sel);
@@ -1080,11 +1108,15 @@ function dpRedraw(host, el, sel, change) {
 function dpWire(host) {
   const root = host.querySelector('.dpf'); if (!root) return;
   dpBindTips(root);
+  root.querySelectorAll('#dpDept [data-dept]').forEach(b => b.onclick = () => {
+    if (DP.dept === b.dataset.dept) return;
+    dpRedraw(host, b, '#dpDept [data-dept="' + b.dataset.dept + '"]', () => { DP.dept = b.dataset.dept; if (!dpMenuKeys(DP.dept).includes(DP.measure)) DP.measure = DP_DEPT_DEFAULT[DP.dept]; dpSave(); });
+  });
   const sm = root.querySelector('#dpSelM');
   if (sm) sm.onchange = () => dpRedraw(host, sm, '#dpSelM', () => { DP.measure = sm.value; dpSave(); });
   root.querySelectorAll('[data-jump]').forEach(b => b.onclick = () => { const t = root.querySelector('#' + b.dataset.jump); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   const rs = root.querySelector('#dpReset');
-  if (rs) rs.onclick = async () => { Object.assign(DP, { measure: 'sales', radar: null }); dpRadarOpen = false; dpSave(); await renderDailyPerf(); };
+  if (rs) rs.onclick = async () => { Object.assign(DP, { measure: 'sales', dept: 'all', radar: null }); dpRadarOpen = false; dpSave(); await renderDailyPerf(); };
   const cust = root.querySelector('#dpCust');
   if (cust) cust.addEventListener('toggle', () => { dpRadarOpen = cust.open; });
   root.querySelectorAll('[data-r]').forEach(cb => cb.onchange = () => {
@@ -1114,6 +1146,7 @@ window.addEventListener('resize', () => {
 function dpUrlParts() {
   const parts = [];
   if (DP.measure !== 'sales') parts.push('measure=' + DP.measure);
+  if (DP.dept !== 'all') parts.push('dept=' + DP.dept);
   return parts;   // the branches and the period ride in the address as every filtered page's do (trSyncUrl)
 }
 (function dpReadUrl() {
@@ -1121,5 +1154,7 @@ function dpUrlParts() {
     const q = new URLSearchParams(location.search);
     if (q.get('view') !== 'dailyperf') return;
     const m = q.get('measure'); if (m && DP_M[m]) DP.measure = m;
+    const dd = q.get('dept'); if (dd === 'hair' || dd === 'beauty' || dd === 'all') DP.dept = dd;
+    dpFitDept();
   } catch (e) { /* no address to read */ }
 })();
