@@ -48,7 +48,11 @@ async function daLoadWindow(win) {
   const key = daKey(win);
   if (daData && daData.key === key) return daData;
   const codes = DPD ? DPD.codes : dpCodes();
-  const [rowsB, rowsP] = await Promise.all([loadBranchStaffDailyRange(win.from, win.to), loadPhorestStaffDailyRange(win.from, win.to)]);
+  // The page's own load already holds these rows (a long window is tens of thousands of them), so cut them from it when it covers the window.
+  const f = dpYmd(win.from), t = dpYmd(win.to), inWin = r => { const d = String(r.date).slice(0, 10); return d >= f && d <= t; };
+  const held = DPD && DPD.rowsB && DPD.from <= f && DPD.to >= t;
+  const [rowsB, rowsP] = held ? [DPD.rowsB.filter(inWin), DPD.rowsP.filter(inWin)]
+    : await Promise.all([loadBranchStaffDailyRange(win.from, win.to), loadPhorestStaffDailyRange(win.from, win.to)]);
   const byCode = {};
   let any = false;
   codes.forEach(code => {

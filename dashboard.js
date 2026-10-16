@@ -357,7 +357,7 @@ function reviewsViewSwitch(prev, next) {
   if (prev === next) return;
   // Podium Race's All time (1 Jan 2021 to today) is a window only that pair has: on any other page it would be a
   // 2021-to-now custom range with nothing before it to compare against, so the month goes back.
-  const teamPair = v => v === 'team' || v === 'teamquad';
+  const teamPair = v => v === 'team' || v === 'teamquad' || v === 'dailyperf';   // Daily Performance has its own All time too (16 Oct 2026)
   if (teamPair(prev) && !teamPair(next) && dateFrom && dateTo) {
     const t = new Date(); t.setHours(0,0,0,0);
     if (isRange(teamAllTime(t))) {
@@ -511,12 +511,16 @@ function periodPresets() {
   // Podium Race and Staff Quadrant (Kate, 14 Oct 2026): an All time chip after Year, from the first year
   // there is data for. It is only a window on these two pages; leaving them puts the month back
   // (reviewsViewSwitch), the way Reviews' own All time is put back.
-  if (isTeamPage()) return [...base, teamAllTime(today)];
+  // Daily Performance has it too (Kate, 16 Oct 2026), for Marasy and the years before this one.
+  if (isTeamPage() || isDailyPerfPage()) return [...base, teamAllTime(today)];
   return base;
 }
 // The Podium Race pair. applyPeriodParam reads the address bar itself, because it runs before CURRENT_VIEW moves.
 function isTeamPage() {
   return typeof CURRENT_VIEW === 'string' && (CURRENT_VIEW === 'team' || CURRENT_VIEW === 'teamquad');
+}
+function isDailyPerfPage() {
+  return typeof CURRENT_VIEW === 'string' && CURRENT_VIEW === 'dailyperf';
 }
 const teamAllTime = today => ({ k: 'All time', from: new Date(PERIOD_FIRST_YEAR, 0, 1), to: today });
 function reviewsPresets() {
@@ -663,7 +667,7 @@ function applyPeriodParam() {
       // Podium Race and Staff Quadrant have their own All time (1 Jan 2021 on). CURRENT_VIEW is still the default
       // while this runs, so the address bar says which page the link is for.
       let uv = ''; try { uv = new URLSearchParams(location.search).get('view') || ''; } catch (e) {}
-      if (uv !== 'team' && uv !== 'teamquad') return false;
+      if (uv !== 'team' && uv !== 'teamquad' && uv !== 'dailyperf') return false;
       const t = new Date(); t.setHours(0,0,0,0);
       const a = teamAllTime(t);
       return set(a.from, a.to);
