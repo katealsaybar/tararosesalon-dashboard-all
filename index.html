@@ -3362,7 +3362,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="search.css?v=20261008s31">
 <link rel="stylesheet" href="client-mix.css?v=20261008cm3">
 <link rel="stylesheet" href="lost-lists.css?v=20261012ll21">
-<link rel="stylesheet" href="lost-queue.css?v=20261015lq11">
+<link rel="stylesheet" href="lost-queue.css?v=20261016lq12">
 <link rel="stylesheet" href="wv-blast.css?v=20261015wb1">
 <link rel="stylesheet" href="mobile-late.css?v=20261015ml1">   <!-- phone rules for the pages whose sheets load after mobile.css -->
 <link rel="stylesheet" href="nav-style.css?v=20261009sh1">
@@ -4081,7 +4081,7 @@ table.tp-cmp td.bad{color:var(--bad)}
        status from respond.io, its own page apart from Client's Last Visit. lost_lists over
        lost_lists_base (migrations/lost_lists.sql). lost-lists.js draws it. -->
   <div id="view-lostlists" style="display:none">
-    <main id="lostListsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+    <main id="lostListsContent" style="max-width:1360px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
   <!-- WELLNESS VOUCHER BLAST (Kate, 15 Oct 2026): the 3rd blast list by wave, beside Lost Clients. wv_blast
@@ -4195,11 +4195,12 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-weeks.js?v=20261013a"></script>
 <script src="products.js?v=20261014cb2"></script>
 <script src="lost-clients.js?v=20261014mry1"></script>
-<script src="lost-lists.js?v=20261012ll29"></script>
+<script src="lost-lists.js?v=20261016ll30"></script>
 <script src="lost-consults.js?v=20261012lc1"></script>
 <script src="lost-review-file.js?v=20261012rf3"></script>
-<script src="lost-queue.js?v=20261015lq24"></script>
+<script src="lost-queue.js?v=20261016lq25"></script>
 <script src="lost-waves.js?v=20261015lw11"></script>
+<script src="lost-report.js?v=20261016lr1"></script>
 <script src="wv-blast.js?v=20261015wb3"></script>
 <script src="top-clients.js?v=20261014mry1"></script>
 <script src="client-mix.js?v=20261014mry1"></script>
@@ -5081,6 +5082,8 @@ function spy(){
   const VIEW = document.getElementById('view-' + CURRENT_VIEW);
   const NAV = VIEW ? [...VIEW.querySelectorAll('.side-nav a')] : [];
   if (!NAV.length){ trSyncUrl(null); return; }
+  // A rail whose entries open tabs rather than scroll to sections (Lost Clients, 16 Oct 2026) lights its own entry in lqShowTab.
+  if (NAV[0].closest('[data-tabs]')){ trSyncUrl(null); return; }
   // Closed cover: the Pulse's sections are out of the layout, so their rects are all
   // zero and any reading below this would light up the wrong link. Its own condition,
   // not every page's — .revealed is the Pulse's state and no other page has it.

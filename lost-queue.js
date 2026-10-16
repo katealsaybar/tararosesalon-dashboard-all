@@ -43,24 +43,28 @@ const lqToday = () => new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD on
 
 // ── TABS (drawn by renderLostListsPage in lost-lists.js) ─────────────────────────────────────
 function lqAllowed() { return typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3; }
-function lqTabsHtml() {
+// Kate, 16 Oct 2026: the tabs became the "On this page" rail the Organisation Pulse has (same .side-nav markup, in the gutter above 1100px and a
+// row of chips below it), with a fourth entry, Performance report. A rail entry opens a tab instead of scrolling, so spy() in index.html leaves
+// this rail alone (data-tabs) and lqShowTab lights the entry. Level 3 and above; Level 2 sees the groups with no rail.
+const LQ_TABS = [['groups', 'The five groups'], ['queue', 'To message'], ['tpl', 'Templates'], ['perf', 'Performance report']];
+function lqRailHtml() {
   if (!lqAllowed()) return '';
-  return `<div class="sc-seg lq-tabs" role="tablist" aria-label="Lost Clients">${[['groups', 'The five groups'], ['queue', 'To message'], ['tpl', 'Templates']]
-    .map(([k, l]) => `<button type="button" role="tab" data-t="${k}" class="${lqSel.tab === k ? 'on' : ''}" onclick="lqShowTab('${k}')">${l}</button>`).join('')}</div>`;
+  return `<aside class="lg-side"><nav class="side-nav" data-tabs="1" aria-label="On this page"><div class="side-k">On this page</div>${LQ_TABS
+    .map(([k, l]) => `<a href="#lost-${k}" data-t="${k}" class="${lqSel.tab === k ? 'on' : ''}" onclick="event.preventDefault();lqShowTab('${k}')">${l}</a>`).join('')}</nav></aside>`;
 }
 function lqShowTab(t) {
   if (!lqAllowed()) t = 'groups';
   lqSel.tab = t; lqSave();
   if (typeof trSyncUrl === 'function') trSyncUrl(null);   // the address names the tab: ?view=lost-clients&tab=templates
-  document.querySelectorAll('.lq-tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  document.querySelectorAll('#lostListsContent .side-nav a[data-t]').forEach(a => a.classList.toggle('on', a.dataset.t === t));
   const g = document.getElementById('llHost'), q = document.getElementById('lqHost');
   if (g) g.hidden = t !== 'groups';
   if (q) q.hidden = t === 'groups';
-  if (t === 'queue') lqRenderQueue(); else if (t === 'tpl') lqRenderTpl();
+  if (t === 'queue') lqRenderQueue(); else if (t === 'tpl') lqRenderTpl(); else if (t === 'perf' && typeof lrRenderPerf === 'function') lrRenderPerf();
 }
 // Called once renderLostListsPage has drawn the page: open the tab the person left on.
 // The address bar names the tab (Kate, 12 Oct 2026): ?view=lost-clients&tab=templates. Slugs: groups, to-message, templates.
-const LQ_SLUG = { groups: 'groups', queue: 'to-message', tpl: 'templates' };
+const LQ_SLUG = { groups: 'groups', queue: 'to-message', tpl: 'templates', perf: 'performance' };
 function lqUrlParts() { return lqAllowed() && LQ_SLUG[lqSel.tab] ? ['tab=' + LQ_SLUG[lqSel.tab]] : []; }
 function lqTabFromUrl() {
   try { const s = new URLSearchParams(location.search).get('tab'); return Object.keys(LQ_SLUG).find(k => LQ_SLUG[k] === s) || ''; } catch (e) { return ''; }

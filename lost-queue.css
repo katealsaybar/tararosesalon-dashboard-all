@@ -143,3 +143,31 @@
 #lostListsContent .lqw-step::before{top:12px}
 #lostListsContent .lq-sendbar{font-size:12.5px}
 .lqw-bd{margin:10px 0 4px;padding:0 4px}.lqw-bd .lqw-tbl td,.lqw-bd .lqw-tbl th{white-space:nowrap}
+
+/* Performance report (Kate, 16 Oct 2026): lost-report.js, drawn into #lqHost by the fourth rail entry. */
+#lostListsContent .lr-sec{margin:24px 0 8px}
+#lostListsContent .lr-sec h3{font-family:'Playfair Display',serif;font-size:21px;font-weight:600;margin:0 0 10px}
+#lostListsContent .lr-cards{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+#lostListsContent .lr-card{cursor:default}
+#lostListsContent .lr-card.lr-warn{border-color:var(--bad)}
+#lostListsContent .lr-bad{color:var(--bad)}
+#lostListsContent .lr-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#lostListsContent .lr-tbl td.lr-when{font-size:12.5px;color:var(--muted)}
+#lostListsContent .lr-logt th,#lostListsContent .lr-logt td{text-align:left;white-space:normal}
+#lostListsContent .lr-logt td:first-child{min-width:130px}
+#lostListsContent .lr-row{cursor:pointer}
+@media(hover:hover){#lostListsContent .lr-row:hover td{background:var(--surface2)}}
+#lostListsContent .lr-row.open td{background:var(--surface2)}
+#lostListsContent .lr-text td{background:var(--surface2);white-space:normal;padding:4px 10px 14px}
+#lostListsContent .lr-text .lq-bubble{max-width:560px;margin:6px 0}
+#lostListsContent .lr-t{color:var(--muted);font-variant-numeric:tabular-nums}
+#lostListsContent .lr-day{margin:0 0 16px}
+#lostListsContent .lr-dayh{margin:0 0 4px}
+#lostListsContent .lr-slot{display:grid;grid-template-columns:52px minmax(0,1fr) 48px;align-items:center;gap:10px;padding:2px 0;font-size:13px;font-variant-numeric:tabular-nums}
+#lostListsContent .lr-bar{height:10px;border-radius:5px;background:var(--border2);overflow:hidden}
+#lostListsContent .lr-bar i{display:block;height:100%;background:var(--accent);border-radius:5px}
+#lostListsContent .lr-sn{text-align:right;font-weight:600}
+#lostListsContent .lr-pager{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px 0 4px}
+#lostListsContent .lr-pager .tglr{min-height:44px}
+#lostListsContent .lr-pager .tglr[disabled]{opacity:.4;cursor:default}
+@media(max-width:760px){#lostListsContent .lr-slot{grid-template-columns:44px minmax(0,1fr) 40px;gap:8px}#lostListsContent .lr-sec h3{font-size:19px}}
