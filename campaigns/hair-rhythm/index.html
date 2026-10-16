@@ -38,7 +38,12 @@
 .ogroup{margin-top:46px;scroll-margin-top:96px}.ogroup:first-of-type{margin-top:34px}
 .ogroup h3{font-family:var(--fd);font-weight:500;font-size:clamp(26px,3.4vw,32px);text-align:center;margin:0;color:var(--ink)}
 .ogroup .who{max-width:56ch;margin:8px auto 0;text-align:center;font-family:var(--fb);font-size:16px;font-weight:300;line-height:1.55;color:var(--ink-soft)}
-.ogroup .doors{margin-top:22px}
+.ogroup .doors{margin-top:22px;grid-template-columns:repeat(auto-fit,minmax(280px,380px));justify-content:center;align-items:start}
+.door .ptable th:not(:first-child),.door .ptable td:not(:first-child){padding-left:10px}
+.door .ptable td,.door .ptable td b{font-size:13.5px}
+.door .ptable th{font-size:10px;letter-spacing:.06em;white-space:normal}
+.door .bands{overflow-x:auto}
+#o-treatment .doors{grid-template-columns:repeat(auto-fit,minmax(280px,580px))}
 .ochips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:22px auto 0;max-width:720px}
 .ochips a{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border:1px solid var(--hair);border-radius:999px;background:var(--paper);font-family:var(--fb);font-size:12.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text);text-decoration:none}
 .ochips a:hover{border-color:var(--accent-text)}
