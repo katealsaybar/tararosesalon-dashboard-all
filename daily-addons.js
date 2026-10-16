@@ -32,7 +32,6 @@ function daCss() {
   .dpf .da-chip:first-of-type{margin-top:8px}
   .dpf .da-chip .da-k{color:var(--muted)}
   .dpf .da-chip b{font-variant-numeric:tabular-nums}
-  .dpf .da-win{font-size:13px;color:var(--muted);margin:0 0 10px;line-height:1.45}
   .dpf .da-stack{display:grid;grid-template-columns:120px 1fr auto;gap:10px;align-items:center;padding:6px 0;font-size:14px}
   .dpf .da-stack .trk{display:flex;height:24px;border-radius:6px;overflow:hidden}
   .dpf .da-stack .trk i{display:block;height:100%}
@@ -142,8 +141,6 @@ function daGrowthInner(g, codes) {
   const rows = codes.filter(c => g.byCode[c] && g.byCode[c].cur).sort((a, b) => (g.byCode[b].cur.netTake || 0) - (g.byCode[a].cur.netTake || 0));
   if (!rows.length) return '<p class="dp-sub">No figures for the branches picked in this window.</p>';
   const ord = ['1st', '2nd', '3rd', '4th'];
-  const win = `<p class="da-win"><b>${dpEsc(dpDayLabel(g.cur.from))} to ${dpEsc(dpDayLabel(g.cur.to))}</b> against <b>${dpEsc(dpDayLabel(g.prev.from))} to ${dpEsc(dpDayLabel(g.prev.to))}</b>, ${g.days} days each, like for like.`
-    + (g.trimmed ? `<span class="da-trim">The ledger has synced to ${dpEsc(dpDayLabel(g.cur.to))}, so the window stops there rather than counting unsynced days as days that took nothing.</span>` : '') + '</p>';
   const cards = rows.map((code, i) => {
     const c = g.byCode[code].cur, p = g.byCode[code].prev;
     const take = daDelta(c.netTake, p && p.netTake);
@@ -158,7 +155,16 @@ function daGrowthInner(g, codes) {
       ${daChip('Hair avg bill', dpMoney(c.hairAvgBill || 0), daDelta(c.hairAvgBill, p && p.hairAvgBill))}
       ${daChip('Rebooking', Math.round(c.rebookPct || 0) + '%', daDelta(c.rebookPct, p && p.rebookPct), true)}</div>`;
   }).join('');
-  return win + `<div class="da-grid">${cards}</div>`;
+  return `<div class="da-grid">${cards}</div>`;
+}
+
+// The card's intro line. Once the figures are in it names the two windows, so the dates sit in the sentence that says what
+// the card is, not on a line of their own under the title (Kate, 16 Oct 2026).
+function daGrowthWhy(g) {
+  const tail = ' The ledger’s own figures, so it matches the Ledgers and the Daily Target Sheet.';
+  if (!g || g.none) return 'Is each branch moving? This period’s net take against the same number of days just before it, with clients, hair average bill and rebooking beside it.' + tail;
+  return `Is each branch moving? Net take for <b>${dpEsc(dpDayLabel(g.cur.from))} to ${dpEsc(dpDayLabel(g.cur.to))}</b> against <b>${dpEsc(dpDayLabel(g.prev.from))} to ${dpEsc(dpDayLabel(g.prev.to))}</b>, the same ${g.days} days just before it, with clients, hair average bill and rebooking beside it.${tail}`
+    + (g.trimmed ? `<span class="da-trim">The ledger has synced to ${dpEsc(dpDayLabel(g.cur.to))}, so the period stops there rather than counting unsynced days as days that took nothing.</span>` : '');
 }
 
 // The card dpDraw drops in after the tiles. It paints from the cache when it has this window, and otherwise says Loading and
@@ -174,7 +180,7 @@ function daGrowthCard(win) {
     });
   }
   return `<div class="dp-card dp-jt" id="dpCardG"><div class="dp-head"><div><h2>Growth: this period against the one before</h2>
-    <p class="dp-why">Is each branch moving? This period's net take against the same number of days just before it, with clients, hair average bill and rebooking beside it. The ledger's own figures, so it matches the Ledgers and the Daily Target Sheet.</p></div>
+    <p class="dp-why" id="daGrowthWhy">${daGrowthWhy(cached ? daGrowthData : null)}</p></div>
     <span class="dp-tag">Measure does not apply</span></div>
     <div id="daGrowth">${cached ? daGrowthInner(daGrowthData, dpSel()) : '<div class="loading">Loading growth...</div>'}</div></div>`;
 }
@@ -318,6 +324,7 @@ function daMoreCards(win, idxs) {
 }
 function daFillAll(g) {
   const codes = dpSel(), idxs = dpIdx(dpWindow());
+  const why = document.getElementById('daGrowthWhy'); if (why) why.innerHTML = daGrowthWhy(g);
   [['daGrowth', () => daGrowthInner(g, codes)], ['daMix', () => daMixInner(g, codes, idxs)], ['daCli', () => daCliInner(g, codes, idxs)], ['daStaff', () => daStaffInner(g, codes)]].forEach(([id, fn]) => {
     const host = document.getElementById(id);
     if (host) { host.innerHTML = fn(); if (typeof lgWatchScroll === 'function') lgWatchScroll(host); }

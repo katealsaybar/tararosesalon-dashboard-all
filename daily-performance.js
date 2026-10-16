@@ -181,13 +181,12 @@ function dpCss() {
   .dpf .dp-bar .dp-pill{font-size:13px;padding:4px 11px}
   .dpf .dp-bar .ps-btn{font-size:13px;padding:5px 12px}
   .dpf .dp-bar .dp-date{font-size:13px;padding:4px 8px}
-  .dpf .dp-bar .dp-jump{font-size:12px}
-  .dpf .dp-bar .dp-jump button{font-size:12px;padding:1px 9px}
   .dpf .dp-bar-row{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
   .dpf .dp-bf{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
   .dpf .dp-bar .dp-lab{min-width:0}
-  .dpf .dp-jump{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:12.5px;color:var(--muted)}
-  .dpf .dp-jump button{appearance:none;border:1px solid var(--border);background:var(--surface);color:var(--text);font:500 12.5px Inter,sans-serif;padding:2px 10px;border-radius:14px;cursor:pointer;white-space:nowrap}
+  .dpf .lg-shell .lg-side{top:calc(var(--topbar-cond-h,104px) + var(--dp-bar-h,56px) + 14px)}
+  @media(max-width:1099.98px){.dpf .lg-shell .lg-side{position:static;margin:0 0 8px;padding:0;border:0;background:none}}
+  @media(max-width:760px){.dpf .lg-side{display:none}}
   .dpf .dp-jt{scroll-margin-top:calc(var(--topbar-cond-h,104px) + var(--dp-bar-h) + 8px)}
   .dpf .dp-showing{white-space:nowrap}
   .dpf .dp-hm{display:flex;align-items:flex-start}
@@ -211,7 +210,7 @@ function dpCss() {
   @media(max-width:900px){.dpf .dp-two{grid-template-columns:1fr}.dpf .dp-sw{grid-template-columns:1fr}}
   @media(max-width:560px){.dpf .dp-lab{min-width:100%}}
   @media(max-width:560px){.dpf .dp-wk{grid-template-columns:34px repeat(7,minmax(0,1fr));gap:3px}.dpf .dp-wc{font-size:11.5px;min-height:40px;line-height:1.1;text-align:center;letter-spacing:-.02em}.dpf .dp-wl{font-size:12px}.dpf .dp-wh{font-size:11px}}
-  @media(max-width:760px){.dpf .dp-bar{padding:6px 0 4px;gap:4px}.dpf .dp-jump{display:none}.dpf .dp-bar .dp-lab{display:none}.dpf .dp-bar-row{gap:4px 10px}.dpf .dp-bf{flex:1 1 auto}.dpf .dp-bf .ps,.dpf .dp-bf select{max-width:100%}.dpf .dp-showing{white-space:normal}}`;
+  @media(max-width:760px){.dpf .dp-bar{padding:6px 0 4px;gap:4px}.dpf .dp-bar .dp-lab{display:none}.dpf .dp-bar-row{gap:4px 10px}.dpf .dp-bf{flex:1 1 auto}.dpf .dp-bf .ps,.dpf .dp-bf select{max-width:100%}.dpf .dp-showing{white-space:normal}}`;
   document.head.appendChild(st);
 }
 
@@ -873,12 +872,18 @@ function dpRadar(host, idxs, codes) {
 // The bar holds the Measure and nothing else (15 Oct 2026): Branch and Period are the masthead's own filters, so there is one
 // of each on the dashboard. On a phone they are the Filters button in the header.
 const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardG', 'Growth'], ['dpCardW', 'Weakest day'], ['dpCardA', 'Trend'], ['dpCardB', 'Bars'], ['dpCardR', 'Strengths'], ['dpCardC', 'Weak days'], ['dpCardD', 'Weekdays'], ['dpCardM', 'Mix'], ['dpCardCl', 'Clients'], ['dpCardS', 'Staff'], ['dpHow', 'How to read']];
+// The mini side nav (Kate, 16 Oct 2026, instead of the Jump to chips in the sticky bar): the same rail as Organisation Pulse and
+// Branch Performance (lgRail in branch-ledger.js, lit by spy() in index.html). In the gutter from 1100px, a plain row of chips
+// below that, none on a phone. The tiles stay full width above it, so the rail starts at the first card. Each entry scrolls with
+// scrollIntoView so the card lands under the masthead and the Measure bar (dp-jt carries the scroll margin).
+const dpRail = () => typeof lgRail === 'function'
+  ? lgRail(DP_JUMPS.filter(j => j[0] !== 'dpTiles').map(([id, l]) => [id, l, `event.preventDefault();document.getElementById('${id}').scrollIntoView({behavior:'smooth',block:'start'})`]))
+  : '';
 const dpShowing = () => { const sel = dpSel(); return 'Branches: ' + (sel.length === DPD.codes.length ? 'all' : sel.join(' + ')) + ', set in the filters at the top'; };
 function dpControls(win) {
   const mopts = DP_GROUPS.map(([g, ks]) => `<optgroup label="${g}">${ks.map(k => `<option value="${k}"${k === DP.measure ? ' selected' : ''}>${dpEsc(DP_M[k].label)}</option>`).join('')}</optgroup>`).join('');
   return `<div class="dp-bar" id="dpBar" role="group" aria-label="Measure"><div class="dp-bar-row">
-    <label class="dp-bf"><span class="dp-lab">Measure</span><select id="dpSelM" aria-label="Measure">${mopts}</select></label></div>
-    <div class="dp-jump"><span>Jump to</span>${DP_JUMPS.map(([id, l]) => `<button type="button" data-jump="${id}">${l}</button>`).join('')}</div></div>${dpDefault() ? '' : '<p class="dp-note" style="margin:0 0 8px">Your choices are saved on this device for next time. <button type="button" class="dp-linkbtn" id="dpReset">Reset to the defaults</button></p>'}`;
+    <label class="dp-bf"><span class="dp-lab">Measure</span><select id="dpSelM" aria-label="Measure">${mopts}</select></label></div></div>${dpDefault() ? '' : '<p class="dp-note" style="margin:0 0 8px">Your choices are saved on this device for next time. <button type="button" class="dp-linkbtn" id="dpReset">Reset to the defaults</button></p>'}`;
 }
 const dpDefault = () => DP.measure === 'sales' && !DP.radar;
 
@@ -925,6 +930,7 @@ function dpDraw(host, win) {
     ${dpControls(win)}
     <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}${dpOffPage() ? ' · Bahrain is not on this page yet, so the UAE branches show' : ''}${M.help ? ' · <b>' + dpEsc(M.label) + '</b>: ' + dpEsc(M.help) : ''}</p>
     <section class="dp-tiles dp-jt" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs)}</section>
+    <div class="lg-shell lg-shell-wide">${dpRail()}<div class="lg-doc">
     ${typeof daGrowthCard === 'function' ? daGrowthCard(win) : ''}
     <div class="dp-card dp-jt" id="dpCardW"><h2>Weakest day per branch</h2><span class="dp-tag">Measure does not apply</span><p class="dp-why">The day in this period that fell furthest below its targets. A day is scored as the average % of target across every measure that has a target (at least three), so the Measure menu does not change it. Closed days and days with no figures are skipped.</p><div id="dpW"></div></div>
     <div class="dp-card dp-jt" id="dpCardA"><h2>${M.notarget ? `Daily ${dpEsc(M.noun)}, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}` : `Daily ${dpEsc(M.noun)} against target, ${dpSel().length === DPD.codes.length ? 'all branches' : dpSel().join(' + ')}`}</h2>
@@ -967,6 +973,7 @@ function dpDraw(host, win) {
         <div class="dp-hw"><b>Up to yesterday</b><span>Today is only half a day, so the window ends yesterday. UAE branches only for now.</span></div>
       </div>
     </div>
+    </div></div>
   </div>`;
   const root = host.querySelector('.dpf');
   const fill = (id, html) => { const e = root.querySelector('#' + id); if (e) e.innerHTML = html; };

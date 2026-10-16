@@ -4218,8 +4218,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="branch-ledger.js?v=20261014mry1"></script>
 <script src="compare.js?v=20261014cmp3"></script>
 <script src="over-the-years.js?v=20261016oty35"></script>
-<script src="daily-performance.js?v=20261016da2"></script>
-<script src="daily-addons.js?v=20261016da2"></script>
+<script src="daily-performance.js?v=20261016da3"></script>
+<script src="daily-addons.js?v=20261016da3"></script>
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20261008cb1"></script>
@@ -5097,7 +5097,10 @@ function spy(){
   const SECS = NAV.map(a => { const k = a.getAttribute('href').slice(1);
     return document.getElementById(k) || document.getElementById('sec-' + k); });
   let live = 0;
-  SECS.forEach((s,i) => { if(s && s.getBoundingClientRect().top <= 132) live = i; });
+  // Daily Performance pins a Measure bar under the masthead, so its cards land lower than the others' and the reading line
+  // drops by the bar's height (Kate, 16 Oct 2026, with its mini side nav).
+  const DPB = VIEW ? VIEW.querySelector('.dp-bar') : null, LINE = 132 + (DPB ? DPB.offsetHeight : 0);
+  SECS.forEach((s,i) => { if(s && s.getBoundingClientRect().top <= LINE) live = i; });
   // The last heading sits above the fine print, so at full scroll its top never
   // reaches the reading line and "Do this" could never light up. At the bottom of
   // the page the bottom section is the one you are on, so say so.
@@ -5201,6 +5204,6 @@ addEventListener('load', sizeTopbar);
 <script src="nav-collapse.js?v=20261014glide2"></script>
 <script src="nav-stars.js?v=20261002a"></script>
 <script src="mobile.js?v=20261008sa"></script>
-<script src="search.js?v=20261016da2"></script>
+<script src="search.js?v=20261016da3"></script>
 <script src="visits.js?v=20261008v1"></script>
 </body>
