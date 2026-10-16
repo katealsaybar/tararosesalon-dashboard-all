@@ -39,6 +39,16 @@ function lqbStat(g) {
 function lqbRoom(n) { return lqwDayRoom(n); }
 const lqbOrder = (a, b) => (LQ_WA_ORDER[a.wa] - LQ_WA_ORDER[b.wa]) || (LQ_TYPE_ORDER.indexOf(a.qtype) - LQ_TYPE_ORDER.indexOf(b.qtype)) || (a.days_since - b.days_since);
 
+// Who set the schedule for a wave (Kate, 16 Oct 2026): scheduled_by on the jobs that are still waiting, else on the ones that went. Several names: the
+// person who set most of it, plus how many others.
+function lqbSetBy(g) {
+  const js = g.rows.map(r => r._job).filter(j => j && !j.is_test && (j.status === 'queued' || j.status === 'sent'));
+  const q = js.filter(j => j.status === 'queued'), src = q.length ? q : js, n = {};
+  src.forEach(j => { const w = j.scheduled_by || j.requested_by; if (w) n[w] = (n[w] || 0) + 1; });
+  const names = Object.keys(n).sort((a, b) => n[b] - n[a]);
+  if (!names.length) return '<span class="slv-muted">–</span>';
+  return `<span title="${lcEsc(names.map(w => w + ' ' + lcNum(n[w])).join(', '))}">${lcEsc(names[0])}${names.length > 1 ? ` <span class="slv-note">+${names.length - 1}</span>` : ''}</span>`;
+}
 function lqbRow(g) {
   const st = lqwStatus(g.n), s = lqbStat(g), i = lqSnd.info, lvl4 = lqwLevel(4);
   let status = '<span class="slv-muted">Not open yet</span>';
@@ -70,7 +80,7 @@ function lqbRow(g) {
     act = prevOpen && lvl4 ? `<button type="button" class="tglr lc-btn wv-go" onclick="lqwOpen(${g.n})" title="Finishes Wave ${g.n - 1} and opens Wave ${g.n}. It asks you to confirm first.">Finish Wave ${g.n - 1}, open ${lcEsc(g.label)}</button>`
       : prevOpen ? '<span class="slv-muted">Level 4 opens it</span>' : `<span class="slv-muted">After Wave ${g.n - 1}</span>`;
   }
-  return `<tr><td class="ll-nw"><b>${lcEsc(g.label)}</b></td><td class="ll-nw"><a href="#" class="lqb-msg" onclick="event.preventDefault();lqbShowMsg('${g.k}')" title="Read the message">${lcEsc(g.msg)}</a></td><td class="ll-nw">${lcNum(s.total)}</td><td>${status} ${pills}</td><td class="ll-nw">${at}</td><td class="ll-nw">${act}</td></tr>`;
+  return `<tr><td class="ll-nw"><b>${lcEsc(g.label)}</b></td><td class="ll-nw"><a href="#" class="lqb-msg" onclick="event.preventDefault();lqbShowMsg('${g.k}')" title="Read the message">${lcEsc(g.msg)}</a></td><td class="ll-nw">${lcNum(s.total)}</td><td>${status} ${pills}</td><td class="ll-nw">${at}</td><td class="ll-nw">${lqbSetBy(g)}</td><td class="ll-nw">${act}</td></tr>`;
 }
 // The wave whose checks matter next: the first one that is ready to open, else the one after the open wave.
 function lqbNextGate() {
@@ -96,7 +106,7 @@ function lqbSendPanel() {
     <div class="wv-send-h"><div><b>Send from here</b> <span class="slv-note">Level 4 opens a wave · Level 5 switches sending and sets the pace</span></div>${sw}</div>
     <p class="slv-muted wv-send-p">Each message goes through respond.io from that client's own branch number, as an approved template. It sends only between ${lcEsc(lqHour(i.hour_from))} and ${lcEsc(lqHour(i.hour_to))} Dubai${win ? '' : ' <b>(closed right now, so it waits)</b>'}, ${pace}.
       Today <b>${lcNum(i.sent_today || 0)}</b> sent${waiting ? `, <b>${lcNum(waiting)}</b> waiting` : ''}, up to ${lcNum(i.daily_cap)} a day. A client who wrote STOP, is blocked, or is not a respond.io contact is skipped.</p>
-    <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th>Send at</th><th></th></tr></thead><tbody>${lqbGroups().map(lqbRow).join('')}</tbody></table></div>
+    <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th>Send at</th><th>Set by</th><th></th></tr></thead><tbody>${lqbGroups().map(lqbRow).join('')}</tbody></table></div>
     <div id="lqNote" class="slv-note" style="margin-top:6px"></div>
     <details class="wv-log"><summary>Pace and test</summary><div class="lqb-pace"><label class="slv-note">Daily cap ${capSel}</label> <label class="slv-note">Every ${lcNum(i.slot_minutes || 30)} minutes ${slotSel}</label> ${test}
       <p class="slv-note">Meta limits how many new people each branch number can message in 24 hours and rates each number's quality, which this page cannot see. Check it in Meta Business Manager before opening the next wave. Wave 4 goes at half the daily cap because those clients are the likeliest to block or report.</p></div></details>
