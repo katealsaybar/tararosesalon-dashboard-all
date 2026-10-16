@@ -196,8 +196,9 @@ function wvSendPaint() {
     if (wait) act = `<button type="button" class="tglr lc-btn" onclick="wvSendRun()"${wvSndBusy ? ' disabled' : ''}>Run now</button> <button type="button" class="tglr lc-btn" onclick="wvSendStop('${w.sub_wave}')">Stop</button>`;
     else if (left > 0) act = `<button type="button" class="tglr lc-btn wv-go" onclick="wvSendGo('${w.sub_wave}')"${wvSndBusy ? ' disabled' : ''}>${sent ? 'Send the rest' : 'Send wave ' + w.sub_wave}</button>`;
     else if (sent) act = '<span class="slv-muted">Done</span>';
-    // Launched = when it was queued; Finished = the last one done, once nothing is waiting. Waves sent by hand in GHL show the day only.
-    const dt = ts => ts ? lcEsc(new Date(ts).toLocaleString('en-GB', w.by_hand ? { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short' } : { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : '<span class="slv-muted">–</span>';
+    // Launched = when it was queued; Finished = the last one done, once nothing is waiting. Waves 1a to 2b were sent by hand in GHL: their time is
+    // the first client's enrolment time in GHL's Send workflow history (right to the minute, the wave took under a minute).
+    const dt = ts => ts ? lcEsc(new Date(ts).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : '<span class="slv-muted">–</span>';
     return `<tr><td class="ll-nw"><b>Wave ${lcEsc(w.sub_wave)}</b></td><td class="ll-nw">${msg}</td><td class="ll-nw">${lcNum(total)}</td><td>${st} ${extra}</td><td class="ll-nw">${dt(w.launched_at)}</td><td class="ll-nw">${wait ? '<span class="slv-muted">in progress</span>' : dt(w.finished_at)}</td><td class="ll-nw">${act}</td></tr>`;
   }).join('');
   const recent = (i.recent || []).map(r => `<tr><td class="ll-nw">${lcEsc(r.sub_wave)}</td><td>${lcEsc(r.client)}<div class="slv-note">${lcEsc(WV_BR[r.branch] || r.branch)}</div></td><td class="ll-nw">${lcEsc(r.status)}</td><td>${lcEsc(r.error || '')}</td><td class="ll-nw">${r.done_at ? lcEsc(new Date(r.done_at).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : 'waiting'}</td></tr>`).join('');

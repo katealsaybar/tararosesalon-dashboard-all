@@ -2,7 +2,7 @@
 --   launched_at = when the first job of the wave was queued
 --   finished_at = the last done time, once nothing is waiting (null while it is still going)
 --   by_hand     = true when every job was a wave sent by hand in GHL before the site button (the page then shows the day only)
--- The waves sent by hand have no queue time of their own, so their queue time is set to the time recorded for them (the day is right, the time is approximate).
+-- The waves sent by hand have no queue time of their own, so their queue time is set to the time recorded for them (set 16 Oct from the first client's enrolment time in GHL's Send workflow history: 1a 15 Oct 17:25, 1b 15 Oct 17:44, 2a 16 Oct 10:16, 2b 16 Oct 10:19).
 update public.wv_send_jobs set requested_at = done_at where note = 'before the site button' and done_at is not null;
 
 -- wv_send_info() is replaced with the three extra fields in 'waves'; everything else in it is as in wv_send.sql:
