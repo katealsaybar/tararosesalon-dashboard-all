@@ -37,6 +37,8 @@ const LQ_TOKENS = ['{first_name}', '{branch}', '{stylist}', '{month}'];
 let lqSel = { tab: 'groups', view: 'send', area: 'wa', wv: 0, smsCap: 100, ch: 'all', ty: 'all', br: 'all', st: 'all', sty: 'all', ph: 'all', sort: 'best', per: 20, batch: 50 };
 try { Object.assign(lqSel, JSON.parse(localStorage.getItem('trs-lost-queue') || '{}')); } catch (e) {}
 const lqSave = () => { try { localStorage.setItem('trs-lost-queue', JSON.stringify(lqSel)); } catch (e) {} };
+let lqOptSet = new Set();   // digits of the numbers on lost_send_optout, from lost_send_info
+const lqOptedOut = r => lqOptSet.size > 0 && lqOptSet.has(String(r._phone || '').replace(/\D/g, ''));
 let lqSnd = { info: null, jobs: {}, poll: null, test: null };   // sending from the site (migrations/lost_send.sql), see SENDING FROM THE SITE below
 let lqData = null, lqRows = [], lqTpl = null, lqLoadedAt = 0, lqQuery = '', lqPage = 1, lqShown = [], lqBusy = false, lqErr = '', lqTplKey = 'wa_smoothing', lqTplSample = 0;
 const lqToday = () => new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD on this computer's clock
@@ -126,7 +128,9 @@ function lqPrep(rows) {
     if (first) { r._dup = true; first._dupKeys.push(r.client_key); first._dupNames.push(r.client_name); }
     else seenPhone[r._phone] = r;
   });
-  lqRows = rows.filter(r => !r._dup);
+  // Clients on the send opt-out list (lost_send_optout: replied STOP or not interested to an earlier blast, or reception said do not contact) are never sent to,
+  // even when she has visited since. They are left off this list so a wave does not show them as "ready" and then refuse them (16 Oct 2026: 22 in Wave 2).
+  lqRows = rows.filter(r => !r._dup && !lqOptedOut(r));
 }
 
 // ── THE MESSAGE ──────────────────────────────────────────────────────────────────────────────
@@ -479,6 +483,7 @@ async function lqSendLoad() {
     const [i, j] = await Promise.all([sb.rpc('lost_send_info'), sb.rpc('lost_send_jobs_get')]);
     if (i.error || !i.data || j.error || !Array.isArray(j.data)) throw i.error || j.error || new Error('no send info');
     lqSnd.info = i.data;
+    lqOptSet = new Set(i.data.optouts || []);
     lqSnd.skew = i.data.server_now ? Date.parse(i.data.server_now) - Date.now() : 0;
     lqSnd.jobs = {};
     j.data.forEach(x => { lqSnd.jobs[x.client_key] = x; });

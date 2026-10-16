@@ -1,0 +1,6 @@
+-- Lost Clients (Kate, 16 Oct 2026): lost_send_info() also returns 'optouts', the digits of every number on lost_send_optout (Level 3+, same as the rest of it),
+-- so the To message page can leave those clients off its lists. Applied live 16 Oct 2026. It replaces the version in lost_send_pace.sql; the only difference
+-- is the 'optouts' line:
+--     'optouts', (select coalesce(jsonb_agg(regexp_replace(o.phone, '\D', '', 'g')), '[]'::jsonb) from lost_send_optout o),
+-- Why: 22 Wave 2 clients had replied STOP or not interested to an earlier blast and visited since. lost_send_enqueue refuses them (opted out) but the page counted
+-- them as ready, so "Send the rest (22)" did nothing. Now lost-queue.js (lqOptedOut) drops them from lqRows.
