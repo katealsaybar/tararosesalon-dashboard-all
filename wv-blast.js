@@ -168,7 +168,7 @@ function wvSaveFile(kind) {
 // for 1b..5b), which fires GHL's "WV blast - Send (tag go)" workflow. migrations/wv_send.sql. The switch (wv_send_config.enabled) is the kill switch:
 // off, nothing is claimed. Sends only inside the Dubai window (10:00 to 19:00 by default). A hand send in GHL still works; waves 1a to 2b are
 // recorded as sent already.
-let wvSnd = null, wvSndMsg = '', wvSndBusy = false;
+let wvSnd = null, wvSndMsg = '', wvSndBusy = false, wvSndTimer = 0;
 const wvSndWin = i => i && i.dubai_hour >= i.hour_from && i.dubai_hour < i.hour_to;
 async function wvSendLoad() {
   try {
@@ -181,13 +181,14 @@ async function wvSendLoad() {
 function wvSendPaint() {
   const box = document.getElementById('wvSendBox');
   if (!box) return;
+  const logOpen = !!box.querySelector('.wv-log[open]');   // keep the activity log open across repaints
   if (!wvSnd) { box.innerHTML = `<div class="ll-panel wv-send"><p class="slv-muted">${lcEsc(wvSndMsg || 'Loading…')}</p></div>`; return; }
   const i = wvSnd, on = !!i.enabled, win = wvSndWin(i);
   const rows = (i.waves || []).map(w => {
     const total = Number(w.clients) || 0, sent = Number(w.sent) || 0, wait = Number(w.waiting) || 0, bad = Number(w.failed) || 0, skip = Number(w.skipped) || 0, canc = Number(w.cancelled) || 0;
     const msg = w.sub_wave.endsWith('a') ? 'Short' : 'Long';
     let st = '<span class="slv-muted">Not sent</span>';
-    if (wait) st = `<b>Sending</b>: ${lcNum(sent)} done, ${lcNum(wait)} waiting`;
+    if (wait) st = `<span class="wv-ring" role="status" aria-label="Sending"></span> <b>Sending</b>: ${lcNum(sent)} done, ${lcNum(wait)} waiting`;
     else if (sent || bad || skip || canc) st = `Sent <b>${lcNum(sent)}</b> of ${lcNum(total)}`;
     const extra = [bad ? `<span class="ll-pill ll-num" title="Failed: check them in GHL before trying again">${lcNum(bad)} failed</span>` : '', skip ? `<span class="ll-pill ll-num" title="Skipped by a safety check, see the log">${lcNum(skip)} skipped</span>` : '', canc ? `<span class="ll-pill ll-num">${lcNum(canc)} stopped</span>` : ''].filter(Boolean).join(' ');
     const left = Math.max(0, total - sent - wait - bad - skip);
@@ -195,18 +196,25 @@ function wvSendPaint() {
     if (wait) act = `<button type="button" class="tglr lc-btn" onclick="wvSendRun()"${wvSndBusy ? ' disabled' : ''}>Run now</button> <button type="button" class="tglr lc-btn" onclick="wvSendStop('${w.sub_wave}')">Stop</button>`;
     else if (left > 0) act = `<button type="button" class="tglr lc-btn wv-go" onclick="wvSendGo('${w.sub_wave}')"${wvSndBusy ? ' disabled' : ''}>${sent ? 'Send the rest' : 'Send wave ' + w.sub_wave}</button>`;
     else if (sent) act = '<span class="slv-muted">Done</span>';
-    return `<tr><td class="ll-nw"><b>Wave ${lcEsc(w.sub_wave)}</b></td><td class="ll-nw">${msg}</td><td class="ll-nw">${lcNum(total)}</td><td>${st} ${extra}</td><td class="ll-nw">${act}</td></tr>`;
+    // Launched = when it was queued; Finished = the last one done, once nothing is waiting. Waves 1a to 2b were sent by hand in GHL: their time is
+    // the first client's enrolment time in GHL's Send workflow history (right to the minute, the wave took under a minute).
+    const dt = ts => ts ? lcEsc(new Date(ts).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : '<span class="slv-muted">–</span>';
+    return `<tr><td class="ll-nw"><b>Wave ${lcEsc(w.sub_wave)}</b></td><td class="ll-nw">${msg}</td><td class="ll-nw">${lcNum(total)}</td><td>${st} ${extra}</td><td class="ll-nw">${dt(w.launched_at)}</td><td class="ll-nw">${wait ? '<span class="slv-muted">in progress</span>' : dt(w.finished_at)}</td><td class="ll-nw">${act}</td></tr>`;
   }).join('');
   const recent = (i.recent || []).map(r => `<tr><td class="ll-nw">${lcEsc(r.sub_wave)}</td><td>${lcEsc(r.client)}<div class="slv-note">${lcEsc(WV_BR[r.branch] || r.branch)}</div></td><td class="ll-nw">${lcEsc(r.status)}</td><td>${lcEsc(r.error || '')}</td><td class="ll-nw">${r.done_at ? lcEsc(new Date(r.done_at).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : 'waiting'}</td></tr>`).join('');
   box.innerHTML = `<div class="ll-panel wv-send">
     <div class="wv-send-h"><div><b>Send a wave from here</b> <span class="slv-note">Level 5 only</span></div>
       <button type="button" class="tglr lc-btn wv-sw ${on ? 'on' : 'off'}" onclick="wvSendSwitch(${on ? 'false' : 'true'})" title="The kill switch. Off: nothing is sent, even what is already queued.">Sending is ${on ? 'ON' : 'OFF'} · turn ${on ? 'off' : 'on'}</button></div>
     <p class="slv-muted wv-send-p">Each client gets the GHL go tag, which makes GHL send her WhatsApp message and add her to the Wellness Voucher pipeline (Received Blast Campaign). a = short message, b = long message. Sends only between ${i.hour_from}:00 and ${i.hour_to}:00 Dubai${win ? '' : ' <b>(outside that window now)</b>'}. Sent messages cannot be called back; <b>Stop</b> cancels only the ones still waiting.</p>
-    <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th>Launched</th><th>Finished</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
     <div id="wvSendNote" class="slv-note" style="margin-top:6px">${lcEsc(wvSndMsg)}</div>
     <details class="wv-log"><summary>Recent activity (last 40)</summary>
       <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Client</th><th>Status</th><th>Note</th><th>When</th></tr></thead>
       <tbody>${recent || '<tr><td colspan="5" class="slv-muted">Nothing has been sent from this page yet.</td></tr>'}</tbody></table></div></details></div>`;
+  if (logOpen) { const d = box.querySelector('.wv-log'); if (d) d.open = true; }
+  // While a wave is sending, look again every 6 seconds so the numbers and the ring keep up, even if another tab is doing the sending.
+  clearTimeout(wvSndTimer);
+  if ((i.waves || []).some(w => Number(w.waiting) > 0) && !wvSndBusy) wvSndTimer = setTimeout(() => { if (document.getElementById('wvSendBox')) wvSendLoad(); }, 6000);
 }
 function wvSendSay(t) { wvSndMsg = t; const n = document.getElementById('wvSendNote'); if (n) n.textContent = t; }
 async function wvSendSwitch(on) {

@@ -360,6 +360,7 @@ function lqwPaint(host) {
   if (lqSel.area !== 'sms') lqSel.area = 'wa';
   lqSel.ch = lqSel.area === 'sms' ? 'sms' : 'whatsapp';
   const sms = lqSel.area === 'sms';
+  if (!sms && typeof lqbPaint === 'function') return lqbPaint(host);   // WhatsApp is drawn like the Wellness Voucher blast (lost-blast.js, 16 Oct 2026)
   const areaRows = lqRows.filter(r => sms ? r._ch === 'sms' : r._ch === 'whatsapp');
   const n = v => areaRows.filter(r => lqView(r) === v).length;
   const sk = (lqData && lqData.skipped) || {}, held = (lqData && lqData.held) || 0;

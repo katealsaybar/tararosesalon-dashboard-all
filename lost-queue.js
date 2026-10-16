@@ -540,7 +540,7 @@ function lqSendBarHtml() {
   const inWin = i.dubai_hour >= i.hour_from && i.dubai_hour < i.hour_to;
   return `<div class="lq-sendbar"><div><b>Send through respond.io</b>
       <div class="slv-note">${lcNum(rows.length)} ready in this view${waiting ? ` · ${lcNum(waiting)} waiting on a template Meta has not approved yet, or a missing name or date` : ''}.
-        Today ${lcNum(i.used_today)} of ${lcNum(i.daily_cap)} queued or sent. Goes out ${lcNum(i.per_run)} a minute, ${lcEsc(lqHour(i.hour_from))} to ${lcEsc(lqHour(i.hour_to))} Dubai time${inWin ? '' : ', so it waits until then'}.</div></div>
+        Today ${lcNum(i.used_today)} of ${lcNum(i.daily_cap)} queued or sent. Goes out ${i.slot_cap ? `${lcNum(i.slot_cap)} every ${lcNum(i.slot_minutes)} minutes` : `${lcNum(i.per_run)} a minute`}, ${lcEsc(lqHour(i.hour_from))} to ${lcEsc(lqHour(i.hour_to))} Dubai time${inWin ? '' : ', so it waits until then'}.</div></div>
       <span style="flex:1"></span>${test}
       <button type="button" class="tglr lc-btn lq-pri" onclick="lqSendReview()"${rows.length && lqRoom() ? '' : ' disabled'}>Review and send ${lcNum(Math.min(rows.length, lqRoom()))}…</button>${kill}</div>`;
 }
@@ -580,7 +580,7 @@ function lqSendRowsReview(rows) {
     <div class="lq-bubble lqm-ex">${lcEsc(lqSendText(sample))}</div>
     <ul class="lqm-list">
       <li>Each goes from that client's own branch WhatsApp number, as an approved template.</li>
-      <li>${lcNum(i.per_run)} a minute, ${lcEsc(lqHour(i.hour_from))} to ${lcEsc(lqHour(i.hour_to))} Dubai time${inWin ? '' : '. It is outside that window now, so they wait in Sending until it opens'}. You can cancel any that have not gone yet.</li>
+      <li>${i.slot_cap ? `${lcNum(i.slot_cap)} every ${lcNum(i.slot_minutes)} minutes` : `${lcNum(i.per_run)} a minute`}, ${lcEsc(lqHour(i.hour_from))} to ${lcEsc(lqHour(i.hour_to))} Dubai time${inWin ? '' : '. It is outside that window now, so they wait in Sending until it opens'}. You can cancel any that have not gone yet.</li>
       <li>Each client is tagged in respond.io: <b>${lcEsc(i.campaign_tag)}</b> and <b>lost-msg-smoothing</b>, <b>lost-msg-colour</b> or <b>lost-msg-due</b>.</li>
       <li>A client who has written STOP, is blocked, or is not a respond.io contact is skipped and shown in Sending.</li></ul>
     <div class="lqm-btns"><button type="button" class="tglr lc-btn" onclick="lqModalClose()">Cancel</button>

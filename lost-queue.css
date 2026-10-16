@@ -171,3 +171,8 @@
 #lostListsContent .lr-pager .tglr{min-height:44px}
 #lostListsContent .lr-pager .tglr[disabled]{opacity:.4;cursor:default}
 @media(max-width:760px){#lostListsContent .lr-slot{grid-template-columns:44px minmax(0,1fr) 40px;gap:8px}#lostListsContent .lr-sec h3{font-size:19px}}
+/* To message in the Wellness Voucher blast's layout (Kate, 16 Oct 2026): lost-blast.js. */
+#lostListsContent .lqb-pace{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:8px 0 2px}
+#lostListsContent .lqb-pace p{flex:1 1 100%;margin:4px 0 0}
+#lostListsContent .lqb-left{margin:8px 2px 14px}
+#lostListsContent .wv-cards{margin-top:2px}
