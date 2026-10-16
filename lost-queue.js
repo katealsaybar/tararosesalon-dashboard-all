@@ -582,6 +582,8 @@ function lqSendRowsReview(rows, roomNow, preset) {
   const i = lqSnd.info;
   if (roomNow == null) roomNow = lqRoom();
   const maxNow = Math.min(rows.length, Math.max(0, roomNow)), maxAll = Math.min(rows.length, Math.max(0, roomNow) + (Number(i.used_today) || 0));
+  lqSplit = false; lqCtx = { maxNow, maxAll };
+  const brs = lqBranches();
   const inWin = i.dubai_hour >= i.hour_from && i.dubai_hour < i.hour_to;
   const sample = rows[0];
   lqModalOpen(`<h3 id="lqmH">Send ${lcNum(maxNow || maxAll)} message${(maxNow || maxAll) === 1 ? '' : 's'} through respond.io?</h3>
@@ -589,7 +591,9 @@ function lqSendRowsReview(rows, roomNow, preset) {
     <p class="slv-note">Example, for ${lcEsc(sample._first)} at ${lcEsc(LC_BRANCH[sample.branch] || sample.branch)}:</p>
     <div class="lq-bubble lqm-ex">${lcEsc(lqSendText(sample))}</div>
     ${i.enabled ? '' : '<p class="ss-plan ss-bad">Sending is OFF, so nothing goes until it is switched on.</p>'}
-    ${ssWhenHtml('lqs', { max: Math.max(1, maxAll), maxNow, from: i.hour_from, to: i.hour_to, nowOk: maxNow > 0, onChange: lqSendSummary })}
+    ${brs.length > 1 ? `<div class="ss-opt lqm-split"><label><input type="radio" name="lqsSplit" value="all" checked onchange="lqSplitSet(false)"> Same for every branch</label>
+      <label><input type="radio" name="lqsSplit" value="each" onchange="lqSplitSet(true)"> Each branch on its own time</label></div>` : ''}
+    <div id="lqmWhen">${lqWhenAll()}</div>
     <ul class="lqm-list">
       <li>Each goes from that client's own branch WhatsApp number, as an approved template.</li>
       <li>It sends itself at its time, even with this page closed${i.slot_cap ? `, and never more than ${lcNum(i.slot_cap)} every ${lcNum(i.slot_minutes)} minutes` : ''}, ${lcEsc(lqHour(i.hour_from))} to ${lcEsc(lqHour(i.hour_to))} Dubai time${inWin ? '' : ' (closed right now, so "as soon as" waits until it opens)'}. You can cancel or move any that have not gone yet.</li>
@@ -600,33 +604,99 @@ function lqSendRowsReview(rows, roomNow, preset) {
   if (preset === 'at' || maxNow < 1) { const el = document.querySelector('input[name=lqsMode][value=at]'); if (el) el.checked = true; }
   ssUpdate('lqs');
 }
+// One When form for the whole send, or (Kate, 16 Oct 2026) one per branch so each branch can have its own day, time and pace. The per-branch form
+// is the same ssWhenHtml under the prefix lqs_<BRANCH>; Queue then calls lost_send_enqueue once per branch (the database already counts the daily
+// cap per day across calls, so no migration is needed).
+let lqSplit = false, lqCtx = { maxNow: 0, maxAll: 0 };
+const lqBranches = () => ['SAA', 'KCA', 'MC', 'AQ'].filter(b => lqPending.some(r => r.branch === b));
+const lqBrRows = b => lqPending.filter(r => r.branch === b);
+function lqWhenAll() {
+  const i = lqSnd.info;
+  return ssWhenHtml('lqs', { max: Math.max(1, lqCtx.maxAll), maxNow: lqCtx.maxNow, from: i.hour_from, to: i.hour_to, nowOk: lqCtx.maxNow > 0, onChange: lqSendSummary });
+}
+function lqWhenEach() {
+  const i = lqSnd.info;
+  return `<p class="slv-note">The daily limit is shared, so branches that go today can only send what is left of it between them.</p>` + lqBranches().map(b => {
+    const n = lqBrRows(b).length;
+    return `<div class="lqm-br"><label class="ss-opt"><input type="checkbox" id="lqsb_${b}" checked onchange="lqEachSummary()"> <b>${lcEsc(LC_BRANCH[b] || b)}</b> <span class="slv-note">${lcNum(n)} client${n === 1 ? '' : 's'}</span></label>
+      ${ssWhenHtml('lqs_' + b, { max: n, maxNow: Math.min(n, lqCtx.maxNow), from: i.hour_from, to: i.hour_to, nowOk: lqCtx.maxNow > 0, onChange: lqEachSummary })}</div>`;
+  }).join('');
+}
+function lqSplitSet(on) {
+  lqSplit = !!on;
+  const w = document.getElementById('lqmWhen'), go = document.getElementById('lqmGo');
+  if (!w) return;
+  w.innerHTML = on ? lqWhenEach() : lqWhenAll();
+  if (on) lqBranches().forEach(b => ssUpdate('lqs_' + b)); else ssUpdate('lqs');
+  if (go && !on) go.disabled = false;
+}
+// What each ticked branch has chosen: [{b, rows, r}]. A branch with no valid choice has r.error.
+function lqEachPicks() {
+  return lqBranches().filter(b => { const c = document.getElementById('lqsb_' + b); return c && c.checked; }).map(b => {
+    const r = ssWhenRead('lqs_' + b);
+    return { b, r, rows: r.error ? [] : lqBrRows(b).slice(0, r.limit) };
+  });
+}
+function lqEachSummary() {
+  const go = document.getElementById('lqmGo'), picks = lqEachPicks();
+  const bad = picks.some(x => x.r.error), n = picks.reduce((a, x) => a + x.rows.length, 0);
+  if (go) { go.disabled = bad || !picks.length; go.textContent = `${picks.some(x => x.r.at || x.r.every) ? 'Schedule' : 'Queue'} ${lcNum(n)}`; }
+  lqTemplateTable(picks.flatMap(x => x.rows));
+  const h = document.getElementById('lqmH'); if (h) h.textContent = `Queue ${lcNum(n)} message${n === 1 ? '' : 's'} through respond.io?`;
+}
+function lqTemplateTable(list) {
+  const sum = document.getElementById('lqmSum'), i = lqSnd.info;
+  if (!sum || !i) return;
+  const by = {};
+  list.forEach(x => { const k = lqTkey(x); by[k] = (by[k] || 0) + 1; });
+  sum.innerHTML = `<table class="slv-table lqm-tbl"><tbody>${Object.keys(by).map(k => { const t = i.templates.find(x => x.key === k); return `<tr><td>${lcEsc(t ? t.respond_name : k)}</td><td class="lqm-n">${lcNum(by[k])}</td></tr>`; }).join('')}</tbody></table>`;
+}
 // Called by the When form on every change: the button and the per-template counts follow how many she chose.
 function lqSendSummary(r) {
   const go = document.getElementById('lqmGo'), sum = document.getElementById('lqmSum'), h = document.getElementById('lqmH'), i = lqSnd.info;
   if (go) { go.disabled = !!r.error; if (!r.error) go.textContent = `${r.at || r.every ? 'Schedule' : 'Queue'} ${lcNum(r.count)}`; }
   if (!sum || !i || r.error) return;
-  const by = {};
-  lqPending.slice(0, r.count).forEach(x => { const k = lqTkey(x); by[k] = (by[k] || 0) + 1; });
-  sum.innerHTML = `<table class="slv-table lqm-tbl"><tbody>${Object.keys(by).map(k => { const t = i.templates.find(x => x.key === k); return `<tr><td>${lcEsc(t ? t.respond_name : k)}</td><td class="lqm-n">${lcNum(by[k])}</td></tr>`; }).join('')}</tbody></table>`;
+  lqTemplateTable(lqPending.slice(0, r.count));
   if (h) h.textContent = `${r.at || r.every ? 'Schedule' : 'Send'} ${lcNum(r.count)} message${r.count === 1 ? '' : 's'} through respond.io?`;
 }
+const lqItem = x => ({ client_key: x.client_key, phone: x._phone, branch: x.branch, tkey: lqTkey(x), dups: x._dupKeys, vars: lqSendVars(x), wave: typeof lqwSendWave === 'function' ? lqwSendWave(x) : 0 });
 async function lqSendGo() {
-  const r = ssWhenRead('lqs'), b = document.getElementById('lqmGo');
-  if (r.error || !lqPending.length) { ssUpdate('lqs'); return; }
-  const rows = lqPending.slice(0, r.limit);
+  const b = document.getElementById('lqmGo');
+  // One run per group: everyone together, or one run per ticked branch with its own time and pace.
+  let runs;
+  if (lqSplit) {
+    const picks = lqEachPicks();
+    if (!picks.length || picks.some(x => x.r.error)) { lqEachSummary(); return; }
+    runs = picks.map(x => ({ name: LC_BRANCH[x.b] || x.b, r: x.r, rows: x.rows }));
+  } else {
+    const r = ssWhenRead('lqs');
+    if (r.error || !lqPending.length) { ssUpdate('lqs'); return; }
+    runs = [{ name: '', r, rows: lqPending.slice(0, r.limit) }];
+  }
   if (b) { b.disabled = true; b.textContent = 'Queueing…'; }
-  const items = rows.map(x => ({ client_key: x.client_key, phone: x._phone, branch: x.branch, tkey: lqTkey(x), dups: x._dupKeys, vars: lqSendVars(x), wave: typeof lqwSendWave === 'function' ? lqwSendWave(x) : 0 }));
-  const { data, error } = await sb.rpc('lost_send_enqueue', { p_items: items, p_at: r.at, p_batch: r.batch, p_every: r.every });
+  const out = [];
+  let failed = null;
+  for (const run of runs) {
+    const { data, error } = await sb.rpc('lost_send_enqueue', { p_items: run.rows.map(lqItem), p_at: run.r.at, p_batch: run.r.batch, p_every: run.r.every });
+    if (error) { console.error(error); failed = { run, error }; break; }
+    out.push({ run, data });
+  }
   lqModalClose();
   lqPending = [];
-  if (error) { console.error(error); lqNote(/switched off/i.test(error.message || '') ? 'Sending is switched off.' : 'That did not queue: ' + (error.message || 'try again') + '.'); await lqSendLoad(); lqRelink(); lqPaint(); return; }
-  const sk = (data && data.skipped) || [], why = {};
-  sk.forEach(x => { why[x.reason] = (why[x.reason] || 0) + 1; });
-  const timing = (r.at || r.every) && data.first_at ? `. First ${ssFmt(data.first_at)}${data.last_at && data.last_at !== data.first_at ? `, last ${ssFmt(data.last_at)}` : ''}. It sends itself` : '';
-  const msg = `Queued ${lcNum(data.queued)}${timing}${sk.length ? `. Not queued: ${Object.keys(why).map(k => `${why[k]} ${k}`).join(', ')}` : ''}`;
+  const timing = (run, data) => (run.r.at || run.r.every) && data.first_at ? `first ${ssFmt(data.first_at)}${data.last_at && data.last_at !== data.first_at ? `, last ${ssFmt(data.last_at)}` : ''}` : 'now';
+  const parts = out.map(({ run, data }) => {
+    const sk = (data && data.skipped) || [], why = {};
+    sk.forEach(x => { why[x.reason] = (why[x.reason] || 0) + 1; });
+    return `${run.name ? run.name + ' ' : ''}${lcNum(data.queued)} (${timing(run, data)})${sk.length ? `, not queued: ${Object.keys(why).map(k => `${why[k]} ${k}`).join(', ')}` : ''}`;
+  });
+  let msg = parts.length ? `Queued ${parts.join('. ')}. ${runs.some(x => x.r.at || x.r.every) ? 'It sends itself' : ''}`.trim() : '';
+  if (failed) {
+    const em = failed.error.message || 'try again';
+    msg += `${msg ? ' ' : ''}${/switched off/i.test(em) ? 'Sending is switched off.' : `${failed.run.name ? failed.run.name + ' did not queue: ' : 'That did not queue: '}${em}.`}${out.length ? ' The branches above it did queue.' : ''}`;
+  }
   await lqSendLoad(); lqRelink(); lqPaint();
   lqNote(msg);
-  if (!r.at) lqKick();
+  if (out.some(({ run }) => !run.r.at)) lqKick();
   lqPoll();
 }
 // Ask the worker to start now instead of waiting for the next minute. Failing to reach it is harmless: the cron picks the queue up.
