@@ -653,16 +653,24 @@ function dpChartA(host, idxs) {
   const step = Math.max(1, Math.ceil(n / (W < 520 ? 7 : 14)));
   idxs.forEach((i, k) => { if (k % step === 0) g += `<text x="${x(k)}" y="${H - 6}" text-anchor="middle">${DPD.days[i].getDate()} ${DP_DOW[DPD.days[i].getDay()][0]}</text>`; });
   const ends = [];
+  // Kate, 16 Oct 2026: each branch's line also has a soft area under it (like a layered area chart), so the days a branch covers show as a block
+  // and a closed day is a gap in it. The areas go down first so every line stays on top.
+  let ga = '', gl = '';
+  const base = m.t + ih;
   tracked.forEach(code => {
     const runs = []; let cur = [];
     idxs.forEach((i, k) => { const c = okc(code, i); if (c) cur.push([x(k), y(val(c))]); else { if (cur.length) runs.push(cur); cur = []; } });
     if (cur.length) runs.push(cur);
     runs.forEach(r => {
-      if (r.length > 1) g += `<path d="${dpCurve(r)}" fill="none" stroke="${dpCol(code)}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-      r.forEach(q => { g += `<circle cx="${q[0]}" cy="${q[1]}" r="3" fill="${dpCol(code)}" stroke="var(--surface)" stroke-width="1.5"/>`; });
+      if (r.length > 1) {
+        ga += `<path d="${dpCurve(r)} L${r[r.length - 1][0].toFixed(1)} ${base} L${r[0][0].toFixed(1)} ${base} Z" fill="${dpCol(code)}" fill-opacity=".16" stroke="none"/>`;
+        gl += `<path d="${dpCurve(r)}" fill="none" stroke="${dpCol(code)}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      }
+      r.forEach(q => { gl += `<circle cx="${q[0]}" cy="${q[1]}" r="3" fill="${dpCol(code)}" stroke="var(--surface)" stroke-width="1.5"/>`; });
     });
     if (runs.length) { const l = runs[runs.length - 1]; ends.push({ code, y: l[l.length - 1][1] }); }
   });
+  g += ga + gl;
   ends.sort((a, b) => a.y - b.y);
   for (let k = 1; k < ends.length; k++) if (ends[k].y - ends[k - 1].y < 14) ends[k].y = ends[k - 1].y + 14;
   ends.forEach(e => { g += `<text class="tv" x="${W - m.r + 4}" y="${e.y + 4}">${e.code}</text>`; });
