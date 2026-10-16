@@ -176,3 +176,8 @@
 #lostListsContent .lqb-pace p{flex:1 1 100%;margin:4px 0 0}
 #lostListsContent .lqb-left{margin:8px 2px 14px}
 #lostListsContent .wv-cards{margin-top:2px}
+#lostListsContent a.lqb-msg{color:inherit;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;cursor:pointer}
+@media(hover:hover){#lostListsContent a.lqb-msg:hover{text-decoration-style:solid}}
+.lqm .lqb-mt{margin:12px 0}
+.lqm .lqb-mh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:4px}
+.lqm .lqb-mt .lq-bubble{white-space:normal}

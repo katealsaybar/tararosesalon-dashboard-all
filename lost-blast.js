@@ -69,7 +69,7 @@ function lqbRow(g) {
   } else if (st === 'ready') act = lvl4 && g.k !== '1b' ? `<button type="button" class="tglr lc-btn wv-go" onclick="lqwOpen(${g.n})">Open ${g.n === 1 ? 'Wave 1' : lcEsc(g.label)}</button>` : g.k === '1b' ? '<span class="slv-muted">Opens with 1a</span>' : '<span class="slv-muted">Level 4 opens it</span>';
   else if (st === 'done') act = '<span class="slv-muted">Done</span>';
   else act = `<span class="slv-muted">After Wave ${g.n - 1}</span>`;
-  return `<tr><td class="ll-nw"><b>${lcEsc(g.label)}</b></td><td class="ll-nw">${lcEsc(g.msg)}</td><td class="ll-nw">${lcNum(s.total)}</td><td>${status} ${pills}</td><td class="ll-nw">${at}</td><td class="ll-nw">${act}</td></tr>`;
+  return `<tr><td class="ll-nw"><b>${lcEsc(g.label)}</b></td><td class="ll-nw"><a href="#" class="lqb-msg" onclick="event.preventDefault();lqbShowMsg('${g.k}')" title="Read the message">${lcEsc(g.msg)}</a></td><td class="ll-nw">${lcNum(s.total)}</td><td>${status} ${pills}</td><td class="ll-nw">${at}</td><td class="ll-nw">${act}</td></tr>`;
 }
 // The wave whose checks matter next: the first one that is ready to open, else the one after the open wave.
 function lqbNextGate() {
@@ -192,4 +192,30 @@ async function lqbCopy() {
   const nums = [...new Set(lqFiltered().map(r => r._phone).filter(Boolean))];
   try { await navigator.clipboard.writeText(nums.join('\n')); } catch (e) { lqNote('The browser would not copy. Use the file instead.'); return; }
   lqNote(`Copied ${lcNum(nums.length)} numbers`);
+}
+
+// ── the messages themselves (Kate, 16 Oct 2026: the Message column is a link) ───────────────────────────────────────────────────
+// Click a wave's Message to read what it sends: each template with a sample client filled in, the STOP line where there is one, its Meta name and
+// whether Meta has approved it yet. Which templates a wave uses is lqTkeyBase / lqTkey in lost-queue.js.
+const LQB_MSGS = {
+  '1a': ['colour_v2', 'smoothing_v2', 'due_v2'], '1b': ['colour_story', 'smoothing_story', 'due_story'], '2': ['colour_v2', 'smoothing_v2', 'due_v2'],
+  '3': ['colour_v2_stop', 'smoothing_v2_stop', 'due_v2_stop'], '4': ['due_v2_stop'],
+};
+const LQB_MSG_NAME = { colour: 'Colour', smoothing: 'Smoothing', due: 'Due' };
+function lqbShowMsg(key) {
+  const i = lqSnd.info;
+  if (!i) return;
+  const sample = { first_name: 'Sara', branch: 'Saadiyat', month: 'August 2026', stylist: 'our team', offer_pct: '', offer_until: '' };
+  const g = lqbGroups().find(x => x.k === key), cards = (LQB_MSGS[key] || []).map(k => {
+    const t = (i.templates || []).find(x => x.key === k);
+    if (!t) return `<div class="slv-note">${lcEsc(k)}: this template is not set up yet.</div>`;
+    const body = t.body.replace(/\{\{(\d+)\}\}/g, (m, n) => { const v = t.vars[n - 1]; return sample[v] != null ? sample[v] : m; });
+    return `<div class="lqb-mt"><div class="lqb-mh"><b>${lcEsc(LQB_MSG_NAME[t.qtype] || t.qtype)}</b> <span class="slv-note">${lcEsc(t.respond_name)}</span>
+        <span class="ll-pill ${t.approved ? 'll-act' : 'll-num'}">${t.approved ? 'Approved by Meta' : 'Not approved yet'}</span></div>
+      <div class="lq-bubble">${lcEsc(body).replace(/
+/g, '<br>')}${t.footer ? `<div class="slv-note" style="margin-top:8px">${lcEsc(t.footer)}</div>` : ''}</div></div>`;
+  }).join('');
+  lqModalOpen(`<h3>${lcEsc((g || {}).label || 'Wave')}: what it sends</h3>
+    <p class="slv-note">An example for a client called Sara at Saadiyat. The name, branch and month change for each client; the rest is the approved wording.</p>${cards}
+    <div class="lqm-btns"><button type="button" class="tglr lc-btn" onclick="lqModalClose()">Close</button></div>`);
 }
