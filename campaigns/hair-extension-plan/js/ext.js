@@ -4,7 +4,7 @@
   var nav=document.querySelector('.trs-nav');
   if(nav){ var os=function(){ nav.classList.toggle('scrolled', window.scrollY>14); }; window.addEventListener('scroll',os,{passive:true}); os(); }
 
-  document.querySelectorAll('.vs-cta[data-pick]').forEach(function(c){
+  document.querySelectorAll('[data-pick]').forEach(function(c){
     c.addEventListener('click',function(){ var sel=document.getElementById('plan'); if(sel){ sel.value=c.getAttribute('data-pick'); sel.dispatchEvent(new Event('change',{bubbles:true})); } });
   });
   document.querySelectorAll('[data-gift]').forEach(function(g){
