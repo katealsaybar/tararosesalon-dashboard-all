@@ -235,7 +235,7 @@
 .ogroup .orows .door>*{grid-column:1;min-width:0}
 .ogroup .orows .door h3{font-size:20px;line-height:1.25;margin:0 0 4px;text-align:left}
 .ogroup .orows .door>p:not(.door__where){font-size:14.5px;line-height:1.55;margin:0}
-.ogroup .orows .door__inc{display:flex;flex-wrap:wrap;gap:4px 16px;margin:10px 0 0}
+.ogroup .orows .door__inc{display:flex;flex-direction:column;flex-wrap:nowrap;gap:6px;margin:12px 0 0}
 .ogroup .orows .door__inc li{font-size:13px}
 .ogroup .orows .door .from{grid-column:2;grid-row:1 / span 2;align-self:start;text-align:right;padding:0;margin:0;font-size:10px;white-space:nowrap}
 .ogroup .orows .door .from + .from{grid-row:2 / span 1;margin-top:34px}
