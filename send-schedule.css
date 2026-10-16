@@ -22,3 +22,6 @@
 .ss-btns{display:flex;gap:6px;flex-wrap:wrap}
 .ss-modal .ss-when{margin:12px 0}
 @media(max-width:640px){.ss-at{min-width:0;width:100%}.ss-tri-grid{grid-template-columns:1fr}}
+.lqm-split{gap:16px;margin:8px 0}
+.lqm-br{margin:8px 0;padding-top:6px;border-top:1px solid var(--border)}
+.lqm-br .ss-when{margin:6px 0 4px}

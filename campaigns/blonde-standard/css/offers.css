@@ -138,6 +138,38 @@
   .hero-photo{order:-1}
   .hero-photo img{aspect-ratio:4/3;max-height:none;object-position:50% 14%}
 }
+
+/* prices by length, open by default: four compact cells in a row */
+.bands--len ul{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 10px}
+.bands--len li{display:block;border-top:0;padding:8px 0 6px}
+.bands--len li span{display:block;font-size:11.5px;letter-spacing:.04em;color:var(--ink-soft)}
+.bands--len li b{display:block;font-size:15px;margin-top:2px}
+.bands__plan{margin-top:6px;border-top:1px solid var(--ink) !important}
+.bands__plan span,.bands__plan b{color:var(--ink);font-weight:600}
+@media (max-width:560px){.bands--len ul{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}}
+
+/* plan table: visits by length, open by default */
+.ogroup .orows .door--plan{grid-template-rows:auto auto 1fr auto}
+.ogroup .orows .door--plan .rowphoto{grid-row:1 / span 4}
+.ogroup .orows .door--plan .from{grid-column:3;grid-row:1}
+.ogroup .orows .door--plan .pill{grid-column:3;grid-row:2 / span 2;margin-top:6px}
+.ogroup .orows .door--plan .bands{grid-column:2 / -1;grid-row:4;margin-top:8px}
+.bands--plan .ptable{display:table;width:100%;margin:2px 0 0;overflow:visible;border-collapse:collapse}
+.bands--plan .ptable th,.bands--plan .ptable td{font-size:13.5px}
+.bands--plan .ptable thead th{font-size:10px;letter-spacing:.05em;white-space:normal;text-align:right;padding-left:8px}
+.bands--plan .ptable tbody th{text-align:left;font-weight:600;letter-spacing:0;text-transform:none;font-size:14px;color:var(--ink);padding:8px 0;border-top:1px solid var(--hair);vertical-align:top}
+.bands--plan .ptable td{text-align:right;padding:8px 0 8px 8px;border-top:1px solid var(--hair);font-variant-numeric:tabular-nums;color:var(--ink-soft);white-space:nowrap}
+.bands--plan .svcalt{display:block;font-weight:300;font-size:11.5px;color:var(--ink-soft);line-height:1.3}
+.bands--plan .ptable__plan th,.bands--plan .ptable__plan td{border-top:1px solid var(--ink);color:var(--ink);font-weight:700}
+.bands--plan .ptable__plan td{font-size:15px}
+@media (max-width:640px){
+  .ogroup .orows .door--plan{grid-template-rows:none}
+  .ogroup .orows .door--plan .from,.ogroup .orows .door--plan .pill,.ogroup .orows .door--plan .bands{grid-row:auto;grid-column:1}
+  .bands--plan .ptable th,.bands--plan .ptable td{font-size:12.5px}
+  .bands--plan .ptable thead th{font-size:8.5px;padding-left:4px}
+  .bands--plan .ptable td{padding-left:4px}
+  .bands--plan .ptable tbody th{font-size:12.5px}
+}
 /* plan rows carry a small photo on the left */
 #o-plans .obody{max-width:980px}
 .ogroup .orows .door--plan{grid-template-columns:220px minmax(0,1fr) auto;column-gap:32px;padding:26px 0;grid-template-rows:auto auto auto 1fr}
