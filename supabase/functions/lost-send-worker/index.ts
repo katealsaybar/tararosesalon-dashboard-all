@@ -66,6 +66,20 @@ async function tagContact(contactId: number, tags: string[]): Promise<string | n
   return `tag ${r.status} ${await errText(r)}`;
 }
 
+// Has this contact written STOP (or UNSUBSCRIBE, OPT OUT, DND, the whole message) in her last 20 incoming messages?
+async function hasStop(contactId: number): Promise<boolean> {
+  const m = await rio('GET', `/contact/id:${contactId}/message/list?limit=20`);
+  if (!m.ok) return false;
+  const mj = await m.json();
+  for (const it of (mj.items || mj.data || [])) {
+    if (it.traffic !== 'incoming') continue;
+    const txt = String(it.message?.text ?? it.text ?? '').trim();
+    // Whole message only. "CANCEL" is the appointment reminder's quick-reply button (cancel a booking), not an opt-out.
+    if (/^(stop|unsubscribe|opt[ -]?out|dnd)\s*[.!]*$/i.test(txt)) return true;
+  }
+  return false;
+}
+
 // One job. Returns what happened, for the counts.
 async function sendOne(sb: ReturnType<typeof createClient>, j: Job): Promise<'sent' | 'retry' | 'failed' | 'skipped'> {
   const finish = (status: string, error: string | null, extra: Record<string, unknown> = {}) =>
@@ -81,33 +95,39 @@ async function sendOne(sb: ReturnType<typeof createClient>, j: Job): Promise<'se
     if (contact.isBlocked) { await finish('skipped', 'Blocked in respond.io', { p_contact_id: contact.id }); return 'skipped'; }
 
     // 2. Has she told us to stop? (her last few incoming messages)
-    if (!j.is_test) {
-      const m = await rio('GET', `/contact/id:${contact.id}/message/list?limit=20`);
-      if (m.ok) {
-        const mj = await m.json();
-        for (const it of (mj.items || mj.data || [])) {
-          if (it.traffic !== 'incoming') continue;
-          const txt = String(it.message?.text ?? it.text ?? '').trim();
-          // Whole message only. "CANCEL" is the appointment reminder's quick-reply button (cancel a booking), not an opt-out:
-          // 16 Oct 2026 it wrongly skipped 7 wave 1 clients and put them on the opt-out list.
-          if (/^(stop|unsubscribe|opt[ -]?out|dnd)\s*[.!]*$/i.test(txt)) {
-            await sb.rpc('lost_send_add_optout', { p_phone: j.phone, p_reason: 'Wrote STOP in respond.io' });
-            await finish('skipped', 'She wrote STOP, so she is on the opt-out list', { p_contact_id: contact.id });
-            return 'skipped';
-          }
-        }
-      }
+    if (!j.is_test && await hasStop(contact.id)) {
+      await sb.rpc('lost_send_add_optout', { p_phone: j.phone, p_reason: 'Wrote STOP in respond.io' });
+      await finish('skipped', 'She wrote STOP, so she is on the opt-out list', { p_contact_id: contact.id });
+      return 'skipped';
     }
 
     // 3. Send.
     posting = true;
-    const s = await rio('POST', `/contact/id:${contact.id}/message`, buildPayload(j));
+    let cid = contact.id;
+    let s = await rio('POST', `/contact/id:${cid}/message`, buildPayload(j));
+    // Two contacts can hold one number (16 Oct 2026: Alice McGrath, an old contact from the Al Quoz chat and a newer one from the Saadiyat chat). The phone
+    // lookup finds one, the channel has the other, and respond.io answers 400 "already connected to a contact" with the id of the one it means. Send to
+    // that one instead (after the same STOP check on it), so the message still goes from the right branch number to the same phone.
+    if (s.status === 400) {
+      const txt = await errText(s);
+      const m = /already connected to a contact.*?"contactId":\s*(\d+)/.exec(txt);
+      if (m && Number(m[1]) !== cid) {
+        cid = Number(m[1]);
+        if (!j.is_test && await hasStop(cid)) {
+          posting = false;
+          await sb.rpc('lost_send_add_optout', { p_phone: j.phone, p_reason: 'Wrote STOP in respond.io' });
+          await finish('skipped', 'She wrote STOP, so she is on the opt-out list', { p_contact_id: cid });
+          return 'skipped';
+        }
+        s = await rio('POST', `/contact/id:${cid}/message`, buildPayload(j));
+      } else { posting = false; await finish('failed', `respond.io 400: ${txt}`, { p_contact_id: contact.id }); return 'failed'; }
+    }
     posting = false;
     if (s.status === 429 || s.status >= 500) { await finish('queued', `send ${s.status} ${await errText(s)}`); return 'retry'; }
-    if (!s.ok) { await finish('failed', `respond.io ${s.status}: ${await errText(s)}`, { p_contact_id: contact.id }); return 'failed'; }
+    if (!s.ok) { await finish('failed', `respond.io ${s.status}: ${await errText(s)}`, { p_contact_id: cid }); return 'failed'; }
     let mid: string | null = null;
     try { const sj = await s.json(); mid = String(sj.messageId ?? sj.id ?? '') || null; } catch (_) { /* a body is not needed */ }
-    await finish('sent', null, { p_message_id: mid, p_contact_id: contact.id });
+    await finish('sent', null, { p_message_id: mid, p_contact_id: cid });
     return 'sent';
   } catch (e) {
     // Network trouble. Before the send call it is safe to try again. During it we cannot know whether the message went, so it is marked failed
