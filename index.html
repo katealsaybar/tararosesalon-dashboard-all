@@ -2935,6 +2935,29 @@ tr.lg-tot td:first-child{background:var(--surface2)}
   .lg-shell-wide .lg-side .side-nav a.on{border-left-color:var(--text)}
 }
 
+/* Kate, 14 Oct 2026: the main navigation steps the page right by its own width (200px from 1100px up), so with it open every
+   rail above was deciding on a window 200px wider than the page it sits in, and squeezed the document beside it (Google Reviews, Branch
+   Performance and the Pulse at 1100 to 1300px, which is a browser at 125 to 150%). While the nav is open a gutter now waits for 200px
+   more window, and until then the rail is the row of chips. The Pulse has no row below its own breakpoint, so it simply has no rail. */
+@media(min-width:1100px) and (max-width:1299.98px){
+  body.nav-open.revealed .shell{display:block}
+  body.nav-open .side{display:none}
+  body.nav-open .lg-shell-wide{display:block}
+  body.nav-open .lg-shell-wide .lg-side{position:sticky;top:var(--topbar-cond-h,104px);z-index:40;background:var(--bg);margin:0 -28px 6px;padding:9px 28px 0;border-bottom:1px solid var(--border2)}
+  body.nav-open .lg-shell-wide .lg-side .side-nav{display:flex;padding:0 0 9px}
+  body.nav-open .lg-shell-wide .lg-side .side-k{display:block;padding:0 4px 0 0;border:0}
+  body.nav-open .lg-shell-wide .lg-side .side-nav a{display:block;padding:4px 11px;border:1px solid var(--border);border-left:1px solid var(--border);border-radius:999px;white-space:nowrap}
+  body.nav-open .lg-shell-wide .lg-side .side-nav a.on{border-color:var(--text)}
+}
+@media(min-width:1400px) and (max-width:1599.98px){
+  body.nav-open .lg-shell:not(.lg-shell-wide){display:block}
+  body.nav-open .lg-shell:not(.lg-shell-wide) .lg-side{position:sticky;top:var(--topbar-cond-h,104px);z-index:40;background:var(--bg);margin:0 -28px 6px;padding:9px 28px 0;border-bottom:1px solid var(--border2)}
+  body.nav-open .lg-shell:not(.lg-shell-wide) .lg-side .side-nav{display:flex;padding:0 0 9px}
+  body.nav-open .lg-shell:not(.lg-shell-wide) .lg-side .side-k{display:block;padding:0 4px 0 0;border:0}
+  body.nav-open .lg-shell:not(.lg-shell-wide) .lg-side .side-nav a{display:block;padding:4px 11px;border:1px solid var(--border);border-left:1px solid var(--border);border-radius:999px;white-space:nowrap}
+  body.nav-open .lg-shell:not(.lg-shell-wide) .lg-side .side-nav a.on{border-color:var(--text)}
+}
+
 /* Google Reviews' rail: the frame sits in .rv-doc, and an empty anchor per section is placed over it (drawReviewsRail). */
 .rv-doc{position:relative}
 .rv-anchor{position:absolute;left:0;width:0;height:0;pointer-events:none}
@@ -4141,7 +4164,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       <div class="lg-doc rv-doc" id="rvDoc">
         <iframe 
           id="reviewsFrame" scrolling="no"
-          data-src="./add%20ons/google-reviews/index.html?v=35"
+          data-src="./add%20ons/google-reviews/index.html?v=36"
           style="width:100%;height:calc(100vh - 120px);border:none;border-radius:12px;display:block;overflow:hidden;">
         </iframe>
       </div>
@@ -4196,13 +4219,13 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-weeks.js?v=20261013a"></script>
 <script src="products.js?v=20261014cb2"></script>
 <script src="lost-clients.js?v=20261014mry1"></script>
-<script src="lost-lists.js?v=20261016ll30"></script>
+<script src="lost-lists.js?v=20261016ll31"></script>
 <script src="lost-consults.js?v=20261012lc1"></script>
 <script src="lost-review-file.js?v=20261012rf3"></script>
 <script src="send-schedule.js?v=20261016ss1"></script>
-<script src="lost-queue.js?v=20261016lq28"></script>
-<script src="lost-waves.js?v=20261016lw13"></script>
-<script src="lost-blast.js?v=20261016ob2"></script>
+<script src="lost-queue.js?v=20261016lq29"></script>
+<script src="lost-waves.js?v=20261016lw14"></script>
+<script src="lost-blast.js?v=20261016ob3"></script>
 <script src="lost-report.js?v=20261016lr1"></script>
 <script src="wv-blast.js?v=20261016ss1"></script>
 <script src="top-clients.js?v=20261014mry1"></script>

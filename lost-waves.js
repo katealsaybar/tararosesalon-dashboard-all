@@ -398,7 +398,7 @@ function lqwPaint(host) {
   host.innerHTML = `
     <div class="ll-fresh">
       <span class="ll-chip">Sent is read from <b>respond.io</b> every night</span>
-      <span class="ll-chip">Campaign started <b>${lcEsc(llDay(lqData.campaign_from))}</b></span>
+      <span class="ll-chip">Campaign started <b>${lcEsc(llDay(LL_CAMPAIGN_STARTED))}</b></span>
       <span class="ll-chip${reviewed < 4 ? ' warn' : ' ok'}" title="Coordinators mark their branch reviewed on the Lost Clients groups tab">Branches reviewed <b>${reviewed} of 4</b></span>
       <button type="button" class="ll-chip lq-refresh" onclick="lqRenderQueue(true)" title="Fetch the list again">Refresh</button>
     </div>

@@ -65,6 +65,8 @@ const llList = () => LL_LISTS.find(l => l.id === llSel.list) || LL_LISTS[0];
 // Short date for the table (no year in this year), the full one for chips, cards and files.
 const llDayS = d => { if (!d) return ''; const x = new Date(String(d).slice(0, 10) + 'T00:00:00'); return x.toLocaleDateString('en-GB', x.getFullYear() === new Date().getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: '2-digit' }); };
 const llDay = d => d ? lcDayY(String(d).slice(0, 10)) : '';
+// The day the site sent the first campaign message (Kate, 16 Oct 2026). Label only: what counts as messaged still starts at lost_lists_config.campaign_from.
+const LL_CAMPAIGN_STARTED = '2026-10-15';
 // Kate, 12 Oct 2026: a client with a booking stays on her group, with the date of her next appointment, so nobody has to
 // wonder where she went. She is never in Copy numbers, the files or To message: those take only clients without one.
 // booked_on is her next booking from today (client_bookings, pulled up to 90 days ahead, so never more than 3 months away).
