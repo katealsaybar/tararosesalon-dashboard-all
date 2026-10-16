@@ -900,7 +900,7 @@ const DP_JUMPS = [['dpTiles', 'Tiles'], ['dpCardW', 'Weakest day'], ['dpCardA', 
 // below that, none on a phone. The tiles stay full width above it, so the rail starts at the first card. Each entry scrolls with
 // scrollIntoView so the card lands under the masthead and the Measure bar (dp-jt carries the scroll margin).
 const dpRail = () => typeof lgRail === 'function'
-  ? lgRail(DP_JUMPS.filter(j => j[0] !== 'dpTiles').map(([id, l]) => [id, l, `event.preventDefault();document.getElementById('${id}').scrollIntoView({behavior:'smooth',block:'start'})`]))
+  ? lgRail(DP_JUMPS.filter(j => j[0] !== 'dpTiles' && (j[0] !== 'dpCardM' || typeof daShowsMix !== 'function' || daShowsMix()) && (j[0] !== 'dpCardCl' || typeof daShowsClients !== 'function' || daShowsClients())).map(([id, l]) => [id, l, `event.preventDefault();document.getElementById('${id}').scrollIntoView({behavior:'smooth',block:'start'})`]))
   : '';
 const dpShowing = () => { const sel = dpSel(); return 'Branches: ' + (sel.length === DPD.codes.length ? 'all' : sel.join(' + ')) + ', set in the filters at the top'; };
 function dpControls(win) {
@@ -982,7 +982,7 @@ function dpDraw(host, win) {
       <div class="dp-how">
         <div class="dp-hw"><b>Colours</b><span>Each colour is a band against the target. Money and counts: under 80% of target, 80 to 99%, 100 to 109%, 110% and over. Rates and bills: the key under the chart gives the real figures.</span><span class="dp-sw3"><span><i style="background:var(--dv-n2)"></i>Under 80%</span><span><i style="background:var(--dv-y)"></i>80 to 99%</span><span><i style="background:var(--dv-p2)"></i>100 to 109%</span><span><i style="background:var(--dv-g)"></i>110% +</span></span></div>
         ${dpBenchmark('rebookPct', win.to) > DP_M.rebook.milestone ? `<div class="dp-hw"><b>Rebooking: goal and first goal</b><span>The goal is ${DP_M.rebook.fmt(dpBenchmark('rebookPct', win.to))}. ${DP_M.rebook.fmt(DP_M.rebook.milestone)} is the first goal, so a branch past it shows yellow, not red.</span></div>` : ''}
-        <div class="dp-hw"><b>Revenue mix, Clients, Staff performance</b><span>Three cards under the Weekdays card that answer a different question from the Measure menu: where the money came from, who came in (new or returning, hair or beauty), and which stylist carried it. Open Show the figures for every line. They follow the filters at the top, not the Measure menu.</span></div>
+        <div class="dp-hw"><b>Revenue mix, Clients, Staff performance</b><span>Three cards under the Weekdays card that follow the Measure menu. Revenue mix shows what a money measure is made of (Total sales, Services, Retail, Hair revenue, Beauty services, Treatments) and is only there for those. Clients is there for the client measures and Rebooking %. Staff performance is always there, ranked by the measure with its column marked. Only the Strengths and weaknesses shape ignores the menu.</span></div>
         <div class="dp-hw"><b>Closed day</b><span>Shown as closed, not as zero. Al Quoz is shut on Sunday and Monday.</span></div>
         <div class="dp-hw"><b>No grade</b><span>Total clients and New clients show their figures with no colour until someone keys a target in the Upload Portal.</span></div>
         <div class="dp-hw"><b>Motor City</b><span>Hair only, so the Beauty measures skip it.</span></div>
