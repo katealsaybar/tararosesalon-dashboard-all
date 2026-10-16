@@ -204,9 +204,14 @@ function dpCss() {
   .dpf .dp-note b{color:var(--text)}
   .dpf .dp-cust{margin:8px 0 2px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--surface2)}
   .dpf .dp-cust summary{font-weight:600;color:var(--text)}
-  .dpf .dp-cg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:8px}
-  .dpf .dp-chk.dp-off{opacity:.55}
-  .dpf .dp-chk{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--text);cursor:pointer;white-space:nowrap}
+  .dpf .dp-cg{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
+  .dpf .dp-cg .dp-lab{flex:1 0 100%;min-width:0}
+  .dpf .dp-chk{position:relative;display:inline-flex;align-items:center;font:500 13px Inter,sans-serif;color:var(--text);cursor:pointer;white-space:nowrap;border:1px solid var(--border);background:var(--surface);border-radius:18px;padding:5px 12px}
+  .dpf .dp-chk input{position:absolute;opacity:0;width:100%;height:100%;inset:0;margin:0;cursor:pointer}
+  .dpf .dp-chk:has(input:checked){background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+  .dpf .dp-chk:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+  .dpf .dp-chk.dp-off{border-style:dashed;color:var(--muted)}
+  .dpf .dp-chk.dp-off:has(input:checked){background:color-mix(in srgb,var(--accent) 45%,var(--surface));color:var(--text);border-color:var(--accent)}
   .dpf .dp-wk{display:grid;grid-template-columns:48px repeat(7,minmax(0,1fr));gap:5px;align-items:stretch}
   .dpf .dp-wh{font-size:12px;font-weight:600;color:var(--muted2);text-align:center;padding-bottom:2px}
   .dpf .dp-wl{display:flex;align-items:center;font-weight:600;font-size:13px}
@@ -979,25 +984,51 @@ function dpRadarVals(code, idxs) {
     return { mk, lab, p, avg, t };
   });
 }
-function dpRadar(host, idxs, codes) {
+// With no target keyed (a past year, Marasy, Fratelli) there is no % of target, but the shape should still draw once three measures are ticked
+// (Kate, 16 Oct 2026). Then each measure is read against the average of the branches in the window (100 = that average), and the ring says so.
+// A branch with fewer than three measures graded (Fratelli among the four in 2026) is left off a shape that is graded for the others instead of emptying it.
+function dpRadarPeerVals(idxs) {
+  const sel = dpRadarSel(), out = {}, avg = {};
+  DPD.codes.forEach(code => {
+    avg[code] = sel.map(([mk]) => {
+      const cs = idxs.map(i => dpCell(mk, code, i)).filter(c => c.state === 'ok');
+      return cs.length ? cs.reduce((a, c) => a + c.v, 0) / cs.length : null;
+    });
+  });
+  const mean = sel.map((_, k) => { const v = DPD.codes.map(c => avg[c][k]).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; });
+  DPD.codes.forEach(code => { out[code] = sel.map(([mk, lab], k) => (avg[code][k] == null || !(mean[k] > 0)) ? null : { mk, lab, p: avg[code][k] / mean[k] * 100, avg: avg[code][k], t: mean[k] }); });
+  return out;
+}
+function dpRadarPlan(idxs, codesIn) {
+  const sel = dpRadarSel();
+  let codes = codesIn, left = [], mineAll = codesIn.map(c => dpRadarVals(c, idxs));
+  const graded = codesIn.filter((c, bi) => mineAll[bi].filter(Boolean).length >= 3);   // a branch with fewer than three graded measures cannot make a shape
+  if (graded.length && graded.length < codesIn.length) { left = codesIn.filter(c => !graded.includes(c)); codes = graded; mineAll = graded.map(c => dpRadarVals(c, idxs)); }
+  let axes = sel.map((_, k) => k).filter(k => mineAll.every(a => a[k])), peer = false, pv = null;
+  if (axes.length < 3 && sel.length >= 3) {
+    pv = dpRadarPeerVals(idxs);
+    const m2 = codesIn.map(c => pv[c]), a2 = sel.map((_, k) => k).filter(k => m2.every(a => a[k]));
+    if (a2.length >= 3) { peer = true; codes = codesIn; left = []; mineAll = m2; axes = a2; }
+  }
+  return { sel, codes, mineAll, axes, left, peer, pv };
+}
+function dpRadar(host, idxs, codesIn) {
   const W = Math.max(300, Math.min(dpW(host), 520)), H = Math.round(W * .98), cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 54, max = 130;
-  const multi = codes.length > 1, sel = dpRadarSel();
-  const mineAll = codes.map(code => dpRadarVals(code, idxs));
-  const axes = sel.map((_, k) => k).filter(k => mineAll.every(a => a[k]));
+  const { sel, codes, mineAll, axes, left, peer, pv } = dpRadarPlan(idxs, codesIn), multi = codes.length > 1;
   const dropped = sel.map((x, k) => (axes.includes(k) ? null : x[1])).filter(Boolean);
   const title = multi ? `${codes.length === DPD.codes.length ? 'All branches' : codes.join(' + ')}: strengths and weaknesses side by side` : `${dpName(codes[0])}: strengths and weaknesses`;
   const n = axes.length;
-  if (n < 3) return { title, html: `<p class="dp-why" style="margin:20px 0">${sel.length < 3 ? 'Tick at least three measures under Customise to draw a shape.' : 'Fewer than three of the ticked measures have a target at every selected branch, so there is no shape to draw. Tick more under Customise, take a branch off, or set client targets in the Upload Portal.'}</p>`, list: '', legend: '' };
+  if (n < 3) return { title, html: `<p class="dp-why" style="margin:20px 0">${sel.length < 3 ? 'Tick at least three measures under Customise to draw a shape.' : 'Fewer than three of the ticked measures have figures at every selected branch, so there is no shape to draw. Tick more under Customise or take a branch off.'}</p>`, list: '', legend: '' };
   const ang = i => -Math.PI / 2 + i * 2 * Math.PI / n;
   const pt = (i, p) => [cx + Math.cos(ang(i)) * R * Math.min(p, max) / max, cy + Math.sin(ang(i)) * R * Math.min(p, max) / max];
   const poly = arr => arr.map((p, i) => pt(i, p).join(',')).join(' ');
-  const all = DPD.codes.map(c => dpRadarVals(c, idxs));
+  const all = peer ? DPD.codes.map(c => pv[c]) : DPD.codes.map(c => dpRadarVals(c, idxs));
   const grp = axes.map(k => { const v = all.map(a => a[k]).filter(Boolean); return v.length ? v.reduce((t, x) => t + x.p, 0) / v.length : 100; });
   let g = '';
   [50, 130].forEach(v => { g += `<polygon points="${poly(axes.map(() => v))}" fill="none" stroke="var(--border)"/>`; });
   axes.forEach((k, i) => { const q = pt(i, max); g += `<line x1="${cx}" y1="${cy}" x2="${q[0]}" y2="${q[1]}" stroke="var(--border)"/>`; });
-  g += `<polygon points="${poly(axes.map(() => 100))}" fill="none" stroke="var(--muted2)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${cx + 4}" y="${pt(0, 100)[1] - 4}">100%</text>`;
-  g += `<polygon points="${poly(grp)}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="2 3"/>`;
+  g += `<polygon points="${poly(axes.map(() => 100))}" fill="none" stroke="var(--muted2)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${cx + 4}" y="${pt(0, 100)[1] - 4}">${peer ? 'avg' : '100%'}</text>`;
+  if (!peer) g += `<polygon points="${poly(grp)}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="2 3"/>`;
   codes.forEach((code, bi) => {
     g += `<polygon points="${poly(axes.map(k => mineAll[bi][k].p))}" fill="${dpCol(code)}" fill-opacity="${multi ? .1 : .2}" stroke="${dpCol(code)}" stroke-width="2" stroke-linejoin="round"/>`;
   });
@@ -1010,28 +1041,31 @@ function dpRadar(host, idxs, codes) {
     g += `<text class="${weak ? 'tv' : ''}" x="${lx}" y="${ly}" text-anchor="${c > .3 ? 'start' : c < -.3 ? 'end' : 'middle'}" style="cursor:help;${weak ? '' : 'fill:var(--text)'}" data-tip="${dpEsc(ltip)}">${dpEsc(DP_SHORT[mk0] || lab)}${unit}<title>${dpEsc(lab)}</title></text>`;
     codes.forEach((code, bi) => {
       const v = mineAll[bi][k], q = pt(i, v.p);
-      const tip = `<b>${dpEsc(lab)}</b><div class="r"><span>${dpEsc(code)}, window average</span><span>${DP_M[v.mk].fmt(v.avg)}</span></div><div class="r"><span>Target</span><span>${DP_M[v.mk].fmt(v.t)}</span></div><div class="r"><span>vs target</span><span>${Math.round(v.p)}%</span></div><div class="r"><span>All-branch average</span><span>${Math.round(grp[i])}%</span></div>`;
+      const tip = `<b>${dpEsc(lab)}</b><div class="r"><span>${dpEsc(code)}, window average</span><span>${DP_M[v.mk].fmt(v.avg)}</span></div>${peer ? `<div class="r"><span>All-branch average</span><span>${DP_M[v.mk].fmt(v.t)}</span></div><div class="r"><span>vs the average</span><span>${Math.round(v.p)}%</span></div>` : `<div class="r"><span>Target</span><span>${DP_M[v.mk].fmt(v.t)}</span></div><div class="r"><span>vs target</span><span>${Math.round(v.p)}%</span></div><div class="r"><span>All-branch average</span><span>${Math.round(grp[i])}%</span></div>`}`;
       g += `<circle cx="${q[0]}" cy="${q[1]}" r="${multi ? 3.5 : 4.5}" fill="${dpCol(code)}" stroke="var(--surface)" stroke-width="2"/><circle cx="${q[0]}" cy="${q[1]}" r="${multi ? 10 : 14}" fill="transparent" data-tip="${dpEsc(tip)}"/>`;
     });
   });
   const legend = codes.map(c => `<span><i class="dot" style="background:${dpCol(c)}"></i>${dpEsc(dpName(c))}</span>`).join('')
-    + '<span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--muted)" stroke-dasharray="2 3" stroke-width="1.5"/></svg>All-branch average</span><span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--muted2)" stroke-dasharray="5 4" stroke-width="1.5"/></svg>Target (100%)</span>';
-  const row = (v, cls, ic) => `<div class="dp-swr"><div><b>${dpEsc(v.lab)}</b><div class="dp-sub">${DP_M[v.mk].fmt(v.avg)} a day against ${DP_M[v.mk].fmt(v.t)}</div></div><span class="dp-chip ${cls}">${ic} ${Math.round(v.p)}%</span></div>`;
+    + (peer ? '<span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--muted2)" stroke-dasharray="5 4" stroke-width="1.5"/></svg>Average of the branches (100)</span>'
+      : '<span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--muted)" stroke-dasharray="2 3" stroke-width="1.5"/></svg>All-branch average</span><span><svg viewBox="0 0 22 8"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--muted2)" stroke-dasharray="5 4" stroke-width="1.5"/></svg>Target (100%)</span>');
+  const row = (v, cls, ic) => `<div class="dp-swr"><div><b>${dpEsc(v.lab)}</b><div class="dp-sub">${DP_M[v.mk].fmt(v.avg)} a day against ${DP_M[v.mk].fmt(v.t)}${peer ? ' for the branches on average' : ''}</div></div><span class="dp-chip ${cls}">${ic} ${Math.round(v.p)}%</span></div>`;
   let list;
   if (!multi) {
     const sorted = axes.map(k => ({ ...mineAll[0][k], lab: sel[k][1] })).sort((a, b) => b.p - a.p);
     const strong = sorted.filter(v => Math.round(v.p) >= 100).slice(0, 3), weak = sorted.slice().reverse().filter(v => Math.round(v.p) < 100).slice(0, 3);
-    list = `<h3>Strengths</h3>${strong.length ? strong.map(v => row(v, Math.round(v.p) >= 110 ? 'good' : 'on', '\u2713')).join('') : '<div class="dp-sub">Nothing above target yet</div>'}<h3>Weaknesses</h3>${weak.length ? weak.map(v => { const lo = v.mk === 'util' ? UTIL_BAND.low / UTIL_BAND.target * 100 : dpLoP(v.mk, v.t); return row(v, Math.round(v.p) >= lo ? 'warn' : 'bad', Math.round(v.p) >= lo ? '\u25B2' : '\u25BC'); }).join('') : '<div class="dp-sub">Every measure is on target</div>'}`;
+    list = `<h3>Strengths</h3>${strong.length ? strong.map(v => row(v, Math.round(v.p) >= 110 ? 'good' : 'on', '\u2713')).join('') : '<div class="dp-sub">Nothing above target yet</div>'}<h3>Weaknesses</h3>${weak.length ? weak.map(v => { const lo = peer ? 80 : v.mk === 'util' ? UTIL_BAND.low / UTIL_BAND.target * 100 : dpLoP(v.mk, v.t); return row(v, Math.round(v.p) >= lo ? 'warn' : 'bad', Math.round(v.p) >= lo ? '\u25B2' : '\u25BC'); }).join('') : '<div class="dp-sub">Every measure is on target</div>'}`;
   } else {
     list = '<h3>Each branch at a glance</h3>' + codes.map((code, bi) => {
       const arr = axes.map(k => ({ ...mineAll[bi][k], lab: sel[k][1] })).sort((a, b) => b.p - a.p), top = arr[0], low = arr[arr.length - 1];
       return `<div class="dp-swr"><div><b><span class="dot" style="background:${dpCol(code)};margin-right:6px"></span>${dpEsc(dpName(code))}</b><div class="dp-sub">Strongest: ${dpEsc(top.lab)} ${Math.round(top.p)}% \u00B7 Weakest: ${dpEsc(low.lab)} ${Math.round(low.p)}%</div></div></div>`;
     }).join('');
   }
-  if (dropped.length) list += `<div class="dp-sub" style="margin-top:12px">Left off the shape: ${dpEsc(dropped.join(', '))} (no target set at ${multi ? 'one of these branches' : 'this branch'}).</div>`;
+  if (dropped.length) list += `<div class="dp-sub" style="margin-top:12px">Left off the shape: ${dpEsc(dropped.join(', '))} (${peer ? 'no figures' : 'no target set'} at ${multi ? 'one of these branches' : 'this branch'}).</div>`;
+  if (left.length) list += `<div class="dp-sub" style="margin-top:12px">Left off the shape: ${dpEsc(left.map(dpName).join(', '))} (no targets were ever set there).</div>`;
   const keyBits = axes.map(k => sel[k]).filter(([mk0, full]) => DP_SHORT[mk0] && DP_SHORT[mk0] !== full && `${DP_SHORT[mk0]} ${DP_UNIT[mk0] || ''}`.trim() !== full).map(([mk0, full]) => `<b>${dpEsc(DP_SHORT[mk0])}${DP_UNIT[mk0] ? ' ' + dpEsc(DP_UNIT[mk0]) : ''}</b> ${dpEsc(full)}`);
   const key = keyBits.length ? `<p class="dp-sub dp-rkey">Hover or tap a label for its full name. ${keyBits.join(' \u00B7 ')}</p>` : '';
-  return { title, html: `<svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${dpEsc(title)}">${g}</svg>${key}`, list, legend };
+  const peerNote = peer ? '<p class="dp-sub" style="margin:0 0 6px">No targets are set in this window, so each measure is read against the average of the branches instead: the dashed ring is that average (100), outside it is above average, inside it is below.</p>' : '';
+  return { title, html: `${peerNote}<svg class="dp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${dpEsc(title)}">${g}</svg>${key}`, list, legend };
 }
 
 // ── PAGE ────────────────────────────────────────────────────
@@ -1074,14 +1108,15 @@ function dpNoTarget(mk, idxs, codes) {
   return codes.filter(code => !idxs.some(i => { const c = dpCell(mk, code, i); return c.state === 'ok' && c.p != null; }));
 }
 function dpRadarCustom(idxs, codes) {
+  const peerMode = dpRadarPlan(idxs, codes).peer;
   const on = new Set(dpRadarSel().map(x => x[0]));
   const label = Object.fromEntries(DP_RADAR_ALL);
   const groups = DP_GROUPS.map(([g, ks]) => {
     const items = ks.filter(k => label[k]);
-    return items.length ? `<div class="dp-cg"><span class="dp-lab">${g}</span>${items.map(k => { const no = dpNoTarget(k, idxs, codes); return `<label class="dp-chk${no.length ? ' dp-off' : ''}"${no.length ? ` title="No target set at ${dpEsc(no.join(', '))}, so this draws nothing there."` : ''}><input type="checkbox" data-r="${k}"${on.has(k) ? ' checked' : ''}> ${dpEsc(label[k])}${no.length ? ` <span class="dp-sub">(no target at ${dpEsc(no.join(', '))})</span>` : ''}</label>`; }).join('')}</div>` : '';
+    return items.length ? `<div class="dp-cg"><span class="dp-lab">${g}</span>${items.map(k => { const no = peerMode ? [] : dpNoTarget(k, idxs, codes); return `<label class="dp-chk${no.length ? ' dp-off' : ''}"${no.length ? ` title="No target set at ${dpEsc(no.join(', '))}, so this draws nothing there."` : ''}><input type="checkbox" data-r="${k}"${on.has(k) ? ' checked' : ''} aria-label="${dpEsc(label[k])}${no.length ? ', no target at ' + dpEsc(no.join(', ')) : ''}">${dpEsc(label[k])}</label>`; }).join('')}</div>` : '';
   }).join('');
   return `<details class="dp-cust" id="dpCust"${dpRadarOpen ? ' open' : ''}><summary>Customise measures (${on.size} ticked)</summary>${groups}
-    <p class="dp-sub" style="margin:6px 0 0">Only measures with a target can sit on the shape. Rebooking % is the share of clients rebooked, against its 70% target; the number of clients rebooked (Rebooked clients, no target) is under Measure, Clients, at the top.</p>
+    <p class="dp-sub" style="margin:10px 0 0">${peerMode ? 'No targets are set in this window, so any measure can sit on the shape: each is read against the average of the branches.' : '<b>Dashed pill</b>: no target is set for it at one or more of the branches picked, so it draws nothing for them. Only measures with a target can sit on the shape.'} Rebooking % is the share of clients rebooked, against its 70% target; the number of clients rebooked (Rebooked clients, no target) is under Measure, Clients, at the top.</p>
     <div class="dp-row" style="margin-top:8px"><button type="button" class="dp-pill" id="dpRadarAll">Tick all</button><button type="button" class="dp-pill" id="dpRadarNone">Untick all</button><button type="button" class="dp-pill" id="dpRadarReset">Back to the default ten</button><span class="dp-sub" id="dpRadarMsg">${on.size < 3 ? 'Tick at least three to draw a shape.' : ''}</span></div></details>`;
 }
 
