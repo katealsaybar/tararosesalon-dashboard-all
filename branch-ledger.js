@@ -77,11 +77,19 @@ function lgDoneBar(pct) {
 // the ledger month is still running, "On pace for" sits beside it: where the month
 // lands if the rest of it goes at the rate so far (% done ÷ share of the month
 // gone, counted to the last day with figures). A closed month has no pace column.
+// A day in the ledger month, held back to the last day of data when that falls in the same month.
+function lgCapAtDataEnd(d) {
+  const e = (typeof dataEnd === 'function') ? dataEnd() : null;
+  return (e && e < d && e.getFullYear() === d.getFullYear() && e.getMonth() === d.getMonth()) ? e : d;
+}
 function lgPaceFrac(series) {
   const w = series && series.windows;
   const last = w && w.days && w.days.length ? w.days[w.days.length - 1].to : null;
   if (!last) return null;
-  const d = last instanceof Date ? last : new Date(last);
+  let d = last instanceof Date ? last : new Date(last);
+  // Audit 17 Oct 2026 (P5-01): the ledger runs on to 18 Oct but revenue stops where Phorest does, so the
+  // share of the month gone is counted to the last day of data. Saadiyat read 118% on pace; 15 days say 141%.
+  d = lgCapAtDataEnd(d);
   const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
   const frac = d.getDate() / dim;
   return frac < 1 ? frac : null;
@@ -338,7 +346,8 @@ function lgIsMonthEnd(d) {
 // case — the window still cannot disagree with itself the way the filter's can.
 function lgLedgerContext(series) {
   const w = series.windows;
-  const through = w.days.length ? w.days[w.days.length - 1].to : null;
+  const throughRaw = w.days.length ? w.days[w.days.length - 1].to : null;
+  const through = throughRaw ? lgCapAtDataEnd(throughRaw instanceof Date ? throughRaw : new Date(throughRaw)) : null;
   if (!lgTargetsApply()) {
     const sheetMonth = (typeof LEDGER_TARGETS !== 'undefined' && LEDGER_TARGETS)
       ? lgMonthLabel(LEDGER_TARGETS.month) : null;
@@ -610,7 +619,9 @@ function lgClampMonth() {
   }
 }
 
-let lgMonth = (typeof LEDGER_TARGETS !== 'undefined' && LEDGER_TARGETS) ? LEDGER_TARGETS.month : null;
+// Audit 17 Oct 2026 (P5-08): a first visit opened on the typed August file, two months stale. It opens on this month now;
+// the target sheet's month is only the fallback when no month can be worked out.
+let lgMonth = lgThisMonth() || ((typeof LEDGER_TARGETS !== 'undefined' && LEDGER_TARGETS) ? LEDGER_TARGETS.month : null);
 try {
   const m = localStorage.getItem('lgMonth');
   if (m && /^\d{4}-\d{2}$/.test(m) && m >= LG_MARASY_FIRST && m <= lgThisMonth()) lgMonth = m;

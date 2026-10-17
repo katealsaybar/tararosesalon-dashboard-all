@@ -498,7 +498,7 @@ function periodPresets() {
   const today = new Date(); today.setHours(0,0,0,0);
   const y = today.getFullYear(), m = today.getMonth();
   const base = [
-    { k: 'This month',        from: new Date(y, m,   1), to: today },
+    { k: 'This month',        from: new Date(y, m,   1), to: clampData(today, new Date(y, m, 1)) },
     { k: 'Last month',        from: new Date(y, m-1, 1), to: new Date(y, m, 0) },
   ];
   // Google Reviews (Kate, 8 Oct 2026) reads this same Branch and Period bar, plus the
@@ -537,8 +537,43 @@ function reviewsPresets() {
 // happened: September 2026 asked for on the 3rd is 1 to 3 September, and the
 // masthead says so instead of promising a month of data that is not there.
 const clampToday = d => { const t = new Date(); t.setHours(0,0,0,0); return d > t ? t : d; };
-const monthRange = (y, m) => ({ from: new Date(y, m, 1), to: clampToday(new Date(y, m+1, 0)) });
-const yearRange  = y      => ({ from: new Date(y, 0, 1), to: clampToday(new Date(y, 11, 31)) });
+
+// ── THE LAST DAY OF DATA ─────────────────────────────────────────
+// Audit 17 Oct 2026 (P2-01, P2-02, P2-03, P5-01). Phorest, which carries the revenue, runs a day or
+// two behind the ledger and behind the clock, so a window that ended "today" counted clients for days
+// whose revenue had not landed: Al Quoz read AED 470 an average bill against the true 587, and
+// "down 28.1% on September" set 15 days of takings against 17. One answer for the whole site now:
+// the last day EVERY UAE branch has a Phorest total row (the same rule as the masthead chip and
+// Comparison's cmpDataEnd). A window that would end after it ends on it instead, unless that would
+// leave the window empty (the 1st of a month, before the first sync), when today stands as before.
+let DATA_END = null;
+function dataEnd() {
+  const t = new Date(); t.setHours(0,0,0,0);
+  return (DATA_END && DATA_END < t) ? DATA_END : t;
+}
+// Where a window that starts on `from` and would end on `d` really ends.
+// Google Reviews runs on its own feed (the Google table, not Phorest), so its windows still end today.
+const clampData = (d, from) => {
+  if (periodFirstYear() === 2015) return clampToday(d);
+  const e = dataEnd(); return (from && e >= from && d > e) ? e : clampToday(d);
+};
+// One tiny request per branch (newest total row), run beside weekly_data, so the first window can use it.
+// Four reads of one row each; any failure or a slow answer leaves DATA_END as it was and today stands.
+async function loadDataEnd() {
+  try {
+    const ask = Promise.all(UAE_ACTIVE.map(b => sb.from('phorest_staff_daily').select('date')
+      .eq('branch', b).eq('is_total', true).order('date', { ascending: false }).limit(1)));
+    const res = await Promise.race([ask, new Promise(r => setTimeout(() => r(null), 3000))]);
+    if (!res) return;
+    const dates = res.map(r => r && r.data && r.data[0] && r.data[0].date).filter(Boolean);
+    if (dates.length !== UAE_ACTIVE.length) return;       // a branch with no row at all: do not guess
+    dates.sort();
+    const d = isoToDate(dates[0]);
+    if (d) DATA_END = d;
+  } catch (e) { /* today stands */ }
+}
+const monthRange = (y, m) => { const from = new Date(y, m, 1); return { from, to: clampData(new Date(y, m+1, 0), from) }; };
+const yearRange  = y      => { const from = new Date(y, 0, 1);  return { from, to: clampData(new Date(y, 11, 31), from) }; };
 
 const sameDay = (a, b) => !!a && !!b && dateToIso(a) === dateToIso(b);
 const isRange = r => sameDay(r.from, dateFrom) && sameDay(r.to, dateTo);
@@ -2112,7 +2147,7 @@ async function setDefaultRange() {
   const today = new Date(); today.setHours(0,0,0,0);
   // Kate, 7 Oct 2026: the default is This month; the Last month + this window is gone.
   const from = new Date(today.getFullYear(), today.getMonth(), 1);
-  const to = today;
+  const to = clampData(today, from);
   dateFrom = from;
   dateTo   = to;
   const fromInput = document.getElementById('dateRangeFrom');
@@ -5168,18 +5203,32 @@ async function loadData() {
   RANGE_CACHE.clear();
   // .then() sends it now; a Supabase query only goes out once something awaits it.
   const weeklyAsk = sb.from('weekly_data').select('*').order('uploaded_at', { ascending:true }).then(r => r);
+  // The last day of data (audit 17 Oct, P2-01). Asked now, awaited before the default window is set.
+  const endAsk = loadDataEnd();
+  const oldDataEnd = DATA_END;
   // Only seed the default (Jan 1 → today) range on first load — loadData() runs
   // again every time someone takes an update, and re-applying the default there
   // would wipe out any custom range they had picked (Kate, 2026-08-03).
   // Kate, 2 Oct 2026: seeded before weekly_data comes back rather than after (the
   // range never read it), so the window's own data starts loading alongside it.
   if (!dateFrom || !dateTo) {
+    await endAsk;
     await setDefaultRange();
     // Then let a period= in the address bar replace that default, before the first
     // render reads the window. Inside this branch and not after it, so taking an
     // update never re-seeds over a range picked since.
     applyPeriodParam();
     if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'reviews') reviewsDefaultRange();
+  }
+  else {
+    // Taking an update: a window that ended on the old last day of data moves on to the new one.
+    await endAsk;
+    if (oldDataEnd && DATA_END && DATA_END > oldDataEnd && dateTo && sameDay(dateTo, oldDataEnd)
+        && DATA_END.getMonth() === dateTo.getMonth() && DATA_END.getFullYear() === dateTo.getFullYear()) {
+      dateTo = DATA_END;
+      const toInput = document.getElementById('dateRangeTo');
+      if (toInput) toInput.value = dateToIso(dateTo);
+    }
   }
   warmDashboardWindows();
   const { data, error } = await weeklyAsk;
