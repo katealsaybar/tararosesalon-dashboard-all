@@ -67,11 +67,14 @@ function srPrevRange() {   // [from, to, label] or null when there is no data th
   if (pa < SR_FIRST) return null;
   return [pa, pb, label];
 }
+// Audit 17 Oct 2026 (P5-06): 400 was the whole list on a short window and a silent cut on a long one, while the Services sold
+// tile read 400. 1000 covers a year of the menu, and the tile says so when even that is hit.
+const SR_LIMIT = 1000;
 const srBranchArg = () => SR.branch === 'all' ? null : SR.branch;
 const srBranchTxt = () => SR.branch === 'all' ? 'All branches' : lcBranchName(SR.branch);
 function srArgs(range) {
   return { p_from: range[0], p_to: range[1], p_pfrom: null, p_pto: null, p_branch: srBranchArg(),
-    p_fam: SR.fam === 'all' ? null : SR.fam, p_cat: SR.cat, p_limit: 400 };
+    p_fam: SR.fam === 'all' ? null : SR.fam, p_cat: SR.cat, p_limit: SR_LIMIT };
 }
 function srCall(args) {
   const key = JSON.stringify(args);
@@ -188,7 +191,7 @@ function srPaint() {
       <div class="w13-tiles lc-tiles">
         ${tile('Revenue, ex VAT', srAed(tr), vs(tr, pr))}
         ${tile('Units', lcNum(tu), vs(tu, pu))}
-        ${tile('Services sold', lcNum((d.rows || []).length), 'different services in this window')}
+        ${tile('Services sold', lcNum((d.rows || []).length) + ((d.rows || []).length >= SR_LIMIT ? '+' : ''), (d.rows || []).length >= SR_LIMIT ? 'different services; the list shows the top ' + lcNum(SR_LIMIT) + ' by revenue' : 'different services in this window')}
         ${tile('Clients', lcNum(d.total_clients), 'different people, any of these services')}
       </div>
       <div id="srTable" style="margin-top:14px"></div>

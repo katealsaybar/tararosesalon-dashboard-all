@@ -2847,12 +2847,17 @@ function buildLedgerPhorestStaffMaps(branchRows, phorestRows) {
     });
   });
 
+  // Audit 17 Oct 2026 (P2-09): a person on two ledger rows the same day (a hair row and a beauty row) was handed
+  // the same Phorest revenue twice, which put the 2023 Pulse 0.11% above Phorest's own total. Phorest has one row
+  // per person per day, so it is credited to the first ledger row that matches it and to no other.
+  const usedPhorest = new Set();
   function matchRevenue(branch, date, staffName) {
     const list = phorestByBranchDate[branch + '|' + date];
     if (!list) return null;
     const key = ledgerNameKey(staffName);
-    const matches = list.filter(p => p.key === key || p.key.indexOf(key + ' ') === 0);
+    const matches = list.filter(p => !usedPhorest.has(p) && (p.key === key || p.key.indexOf(key + ' ') === 0));
     if (!matches.length) return null;
+    matches.forEach(p => usedPhorest.add(p));
     return matches.reduce((acc, m) => ({
       services: acc.services + m.services,
       courses:  acc.courses  + m.courses,

@@ -54,6 +54,7 @@ let tpCompare = [];
 // Google reviews). Kate, 8 Oct 2026: the Position grouping is gone. The last two come
 // from league_counts (migrations/create_league_counts.sql), the same per-person
 // figures Staff Benchmarks shows. Remembered per browser.
+const TP_REBOOK_MIN = 20;
 const TP_PTS = n => (Math.round(Math.max(0, Number(n) || 0) * 10) / 10) + ' pts';
 const TP_LEAGUES = {
   net:       { label: 'Takings',             note: 'net salon take',        get: s => s.net || 0,         f: tpAed },
@@ -62,7 +63,7 @@ const TP_LEAGUES = {
   treatment: { label: 'Treatment',           note: 'treatment sales',       get: s => s.treatments || 0,  f: tpAed, hairOnly: true, ledger: true },
   clients:   { label: 'Clients, per staff',   note: 'clients per staff (ledgers)', get: s => s.total || 0,     f: n => tpNum(n) + ' clients' },
   phvisits:  { label: 'Visits, Phorest',     note: 'Phorest staff visits',  get: s => (s.ph && s.ph.t) || 0, f: n => tpNum(n) + ' visits' },
-  rebook:    { label: 'Rebooking %',         note: 'rebooking %',           get: s => s.rebookPct || 0,   f: tpPct, gap: TP_PTS, ledger: true },
+  rebook:    { label: 'Rebooking %',         note: 'rebooking %',           floor: 'people with under 20 clients rank after the rest', get: s => s.rebookPct || 0,   f: tpPct, gap: TP_PTS, ledger: true },
   ncr:       { label: 'New client requests', note: 'new client requests',   get: s => s.newClientReq || 0, f: n => tpNum(n) + ' NCR', ledger: true },
   // Posts that tag @tararosesalon or list her as a collaborator (the sheet's "Instagram
   // posts / Reels"), and Google reviews that name her. Per person, not per branch.
@@ -493,7 +494,10 @@ async function renderTeam() {
   if (tpHideLeavers) roster = roster.filter(st => !tpGone(st));
   // The race is re-ranked by the league picked; ties fall back to net take, which is
   // the order tpRoster already returns, and Array.sort is stable.
-  if (part === 'race' && tpLeagueKey() !== 'net') roster = roster.slice().sort((a, b) => lg.get(b) - lg.get(a));
+  // Audit 17 Oct 2026 (P3-07): one client at 100% put a stylist first on Rebooking %, ahead of people with 100 clients. Under
+  // TP_REBOOK_MIN clients she still shows, but ranks after everyone with enough.
+  const tpThin = s => (tpLeagueKey() === 'rebook' && (s.total || 0) < TP_REBOOK_MIN) ? 1 : 0;
+  if (part === 'race' && tpLeagueKey() !== 'net') roster = roster.slice().sort((a, b) => (tpThin(a) - tpThin(b)) || (lg.get(b) - lg.get(a)));
   const branchLabel = sel.branch.includes('all')
     ? allLabel()
     : sel.branch.map(b => (BRANCH_INFO[b] || {}).name || b).join(', ');
@@ -533,7 +537,7 @@ async function renderTeam() {
     ${!roster.length ? '<div class="empty">Nobody on this bench in the selected period.</div>'
       : part === 'quad' ? (tpQuadrant(roster) || '<div class="empty">The chart needs at least four people on this bench.</div>') : `
       <div class="section-label">Leading this period
-        <span class="tp-sec-n">by ${lg.note}</span></div>
+        <span class="tp-sec-n">by ${lg.note}${lg.floor ? ' (' + lg.floor + ')' : ''}</span></div>
       <div class="tp-podium">${podium.map(tpPodiumCard).join('')}</div>
 
       ${chase.length ? `

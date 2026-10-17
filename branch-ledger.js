@@ -2731,6 +2731,9 @@ async function renderLedgerStylist() {
   // are built, so the banner above the table says how many dashes to expect and whose.
   // Keyed by person, not row: someone who took clients at two branches is one person.
   const people = new Set(), noTarget = new Map();
+  // Audit 17 Oct 2026 (P5-03): the Totals row adds every stylist's actual but only the targets that were found, so its
+  // variance reads kinder than the rows above it. The services actual with no target is counted here and named in the banner.
+  const noTgtActual = { aed: 0, n: 0 };
   let awayRows = 0;
   codes.forEach(code => {
     const bd = series[code] && series[code].staff.mtd;
@@ -2780,6 +2783,7 @@ async function renderLedgerStylist() {
             noTarget.get(k).at.push(escapeHtml(info.name));
           }
 
+          if (showTargets && !tg && svcA) { noTgtActual.aed += svcA; noTgtActual.n++; }
           tot.sa += svcA; tot.ta += txA; tot.ra += retA;
           tot.st += svcT || 0; tot.tt += txT || 0; tot.rt += retT || 0;
           tot.c += st.total || 0; tot.lc += (st.ledgerClients != null ? st.ledgerClients : st.total) || 0; tot.n += (st.newC != null ? st.newC : (st.newClients || 0));
@@ -2837,11 +2841,14 @@ async function renderLedgerStylist() {
   const missList = [...noTarget.values()].map(x => `${x.who} (${x.at.join(', ')})`).join(', ');
   const awayNote = awayRows
     ? ` ${nMiss ? 'Another' : ''} ${awayRows} ${awayRows === 1 ? 'row is' : 'rows are'} somebody working away from the branch her target is written at; ${awayRows === 1 ? 'it says' : 'each says'} where.` : '';
+  const noTgtNote = (showTargets && noTgtActual.aed)
+    ? ` The Totals row counts the ${lgAed(noTgtActual.aed)} sold by ${noTgtActual.n === 1 ? 'one person' : noTgtActual.n + ' people'} with no target here as actual with no target against it, so its variance reads better than the rows above it.`
+    : '';
   const banner = !(showTargets && (nMiss || awayRows)) ? '' : `<div class="lg-warn">`
     + (nMiss
       ? `<strong>${nMiss} of ${people.size} people here ${nMiss === 1 ? 'has' : 'have'} no target for ${escapeHtml(series.windows.month.label)}</strong>, so ${nMiss === 1 ? 'her row reads' : 'their rows read'} a dash, not a miss: ${missList}.`
       : `<strong>Everyone here has a target for ${escapeHtml(series.windows.month.label)}.</strong>`)
-    + awayNote + `</div>`;
+    + awayNote + noTgtNote + `</div>`;
 
   host.innerHTML =
     lgHeader('Ledgers · Daily Stylist Target',

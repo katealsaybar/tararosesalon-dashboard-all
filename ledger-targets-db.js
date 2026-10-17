@@ -59,6 +59,8 @@ function lgDbStylistTarget(r){
 // month -> { branch: {CODE: {metrics}}, staff: {CODE:{HAIR:{},BEAUTY:{}}}, staffCount, branches }
 // A month that has been fetched and holds nothing is cached as null, so an empty
 // month is asked for once rather than on every render.
+// A target keyed under one spelling, read under the other (the ledger name and Phorest's name for the same person).
+const LG_TARGET_NAME_ALIASES = { VIRGINIA: 'VIRGINIJA', VIRGINIJA: 'VIRGINIA' };
 const LG_DB_TARGETS = {};
 const lgDbInflight = {};
 
@@ -134,11 +136,17 @@ async function lgLoadDbTargets(month){
         const d = String(r.dept).toUpperCase() === 'BEAUTY' ? 'BEAUTY' : 'HAIR';
         // Same shape ledgerStaffTarget() has always returned, so every caller and
         // every export column is untouched.
-        dept[d][String(r.staff_name).toUpperCase()] = {
+        const tgtRow = {
           services:  lgDbStylistTarget(r),
           treatment: Number(r.treatment_target) || 0,
           retail:    Number(r.retail_target)    || 0,
         };
+        const nm = String(r.staff_name).toUpperCase();
+        dept[d][nm] = tgtRow;
+        // Audit 17 Oct 2026 (P5-02): Virginija's October targets were keyed VIRGINIA, so the page, which reads her as
+        // VIRGINIJA, found no target. Both spellings now find it, and a real VIRGINIJA row still wins.
+        const alias = LG_TARGET_NAME_ALIASES[nm];
+        if (alias && !dept[d][alias]) dept[d][alias] = tgtRow;
       });
       out.staff[code] = dept;
     });
