@@ -3956,6 +3956,14 @@ function warmDashboardWindows() {
   const pw = previousWindow(dateFrom, dateTo);
   if (pw) warm(pw.from, pw.to);
   loadClientTargets().catch(() => {});
+  // Audit 17 Oct 2026 (P2-05): the Pulse's extras (More measures, Phorest rebooking, the utilisation roster) were only asked for after
+  // the first render, 2 s behind the headline. Asked here, they share the same caches, so the render finds them already on the way.
+  if (typeof TRS_SCOPE === 'undefined' || !TRS_SCOPE) {
+    opmLoad().catch(() => {});
+    loadUtilRoster();
+    const rf = dateToIso(dateFrom), rt = dateToIso(dateTo);
+    cachedRange(`rebook|${rf}|${rt}`, async () => keepUae(await loadAllRows('phorest_staff_rebooking', rf, rt))).catch(() => {});
+  }
   const doorCodes = sel.branch.includes('all') ? scopeCodes() : sel.branch;
   if (doorCodes.every(c => DOOR_BRANCHES.includes(c))) {
     doorClientsByBranch(dateFrom, dateTo).catch(() => {});
@@ -3985,13 +3993,22 @@ async function viewerKey() {
 // only, since Bahrain has no perf_staff rows yet. Retention and Conversion are cohort
 // figures over the last 180 days, so they do not move with the period; everything else does.
 let OPM_CACHE = { key: '', data: null };
+// The call in flight, so the warm-up in warmDashboardWindows() and the card that draws the numbers share one request.
+let OPM_INFLIGHT = { key: '', p: null };
 async function opmLoad() {
   const from = dateToIso(dateFrom), to = dateToIso(dateTo), key = from + '|' + to;
   if (OPM_CACHE.data && OPM_CACHE.key === key) return OPM_CACHE.data;
-  const { data, error } = await sb.rpc('org_pulse_extra', { p_admin: await viewerKey(), p_from: from, p_to: to });
-  if (error || !data) throw error || new Error('no data');
-  OPM_CACHE = { key, data };
-  return data;
+  if (OPM_INFLIGHT.p && OPM_INFLIGHT.key === key) return OPM_INFLIGHT.p;
+  const p = (async () => {
+    const { data, error } = await sb.rpc('org_pulse_extra', { p_admin: await viewerKey(), p_from: from, p_to: to });
+    if (error || !data) throw error || new Error('no data');
+    OPM_CACHE = { key, data };
+    return data;
+  })();
+  OPM_INFLIGHT = { key, p };
+  const clear = () => { if (OPM_INFLIGHT.p === p) OPM_INFLIGHT = { key: '', p: null }; };
+  p.then(clear, clear);
+  return p;
 }
 // A little ⓘ that explains a figure on hover or tap, the same as on the Staff Dashboards, so
 // the page does not need a paragraph of definitions underneath (Kate, 8 Oct 2026). label may be

@@ -83,7 +83,7 @@ window.trsParam = function (k) {
 <!-- Phone browser chrome in the page's own paper and ink (Kate, 25 Sep 2026). -->
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="ask-widget.css?v=20260925a">
@@ -1877,6 +1877,10 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 #bootLoader .bl-t{font:500 12px/1 'Inter',sans-serif;letter-spacing:.24em;text-transform:uppercase;color:var(--muted,#8a8378)}
 #bootLoader .bl-fact{max-width:min(380px,82vw);min-height:3.2em;text-align:center;font:italic 400 15px/1.5 'Playfair Display',Georgia,serif;color:var(--muted,#8a8378);opacity:0;transition:opacity .22s ease;margin-top:4px}
 #bootLoader .bl-fact.on{opacity:1}
+/* Slow-load line (audit 17 Oct 2026, P1-02): after 15 s the loader says so and offers a retry, instead of vanishing at 25 s on a half-drawn page. */
+#bootLoader .bl-slow{display:none;flex-direction:column;align-items:center;gap:12px;max-width:min(380px,82vw);text-align:center;font:500 14px/1.5 'Inter',sans-serif;color:var(--text,#1c1b19)}
+#bootLoader .bl-slow.on{display:flex}
+#bootLoader .bl-slow button{appearance:none;cursor:pointer;min-height:44px;padding:0 22px;border-radius:999px;border:1px solid var(--border,#e6dfd3);background:var(--surface,#fff);color:var(--text,#1c1b19);font:500 14px/1 'Inter',sans-serif}
 @media(prefers-reduced-motion:reduce){#bootLoader .bl-fact{transition:none}}
 #bootLoader .bl-bar{width:140px;height:2px;border-radius:2px;background:var(--border,#e6dfd3);overflow:hidden;position:relative}
 #bootLoader .bl-bar::after{content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;border-radius:2px;
@@ -3406,6 +3410,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div class="bl-bar" aria-hidden="true"></div>
   <div class="bl-t">Loading your dashboard</div>
   <div class="bl-fact" id="blFact" aria-live="off"></div>
+  <div class="bl-slow" id="blSlow" role="alert"><span>Still loading. The connection looks slow.</span><button type="button" onclick="location.reload()">Try again</button></div>
 </div>
 <script src="loading-facts.js?v=20261016lf1"></script>
 <script>
@@ -3415,7 +3420,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     if (dark) document.getElementById('bootLogo').src = 'assets/5.png'; } catch (e) {} })();
   window.trsBootDone = function(){ var b = document.getElementById('bootLoader'); if (!b || b.classList.contains('out')) return;
     b.classList.add('out'); setTimeout(function(){ b.remove(); }, 350); };
-  setTimeout(window.trsBootDone, 25000);   // never strand anyone behind it
+  // Audit 17 Oct 2026 (P1-02): the old 25 s fail-safe lifted the loader whether or not the page had data, and a person read the
+  // empty page as "no data". At 15 s it now says the load is slow and offers Try again; the loader still lifts at 60 s so nobody is
+  // trapped behind it for good.
+  setTimeout(function(){ var s = document.getElementById('blSlow'), b = document.getElementById('bootLoader');
+    if (s && b && !b.classList.contains('out')) s.classList.add('on'); }, 15000);
+  setTimeout(window.trsBootDone, 60000);   // never strand anyone behind it
 </script>
 
 <!-- ══════════════════════════════════════════════════
@@ -4242,7 +4252,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20261014d"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261017bb1"></script>
+<script src="dashboard.js?v=20261017d1"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4523,7 +4533,10 @@ async function enterDashboard(role, meAsk){
   }
   startFreshnessWatch();
   const params = new URLSearchParams(window.location.search);
-  const activeView = params.get('view') || 'dashboard';
+  // Audit 17 Oct 2026 (P1-03): a ?view= with a quote mark in it threw inside querySelector and left the loader up for 25 s with no page.
+  // A page name is letters, digits, hyphen and underscore; anything else opens the Pulse.
+  const viewParam = params.get('view') || 'dashboard';
+  const activeView = /^[A-Za-z0-9_-]{1,40}$/.test(viewParam) ? viewParam : 'dashboard';
   const btn = document.querySelector(`[onclick*="${activeView}"]`);
   // Already open early: leave Lost Clients as drawn; a page picked meanwhile redraws with the data.
   if (!earlyView) showView(activeView, btn || null);
