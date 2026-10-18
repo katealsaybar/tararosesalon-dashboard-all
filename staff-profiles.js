@@ -391,6 +391,7 @@ const STAFF_PROFILES = {
   // The ledger only has Marasy (506 beauty rows Jan 2021 to May 2022), which is closed and has no Team Roster
   // group, so branch is Saadiyat, her other Phorest record (Aug 2021 to Mar 2026). Black-and-white headshot, 375x435.
   'JACKIE':   { photoFull: 'stylist/photos/SAA/jackie anog.png', role: 'Beauty Team Member', branch: 'SAA', ig: 'nailsbyjackie.08', resigned: true },
+  'JAYA':     { photoFull: 'stylist/photos/SAA/jaya wagle.png', role: 'Beauty Team Member', branch: 'SAA', ig: 'hairnbeautybyjaya', resigned: true },
   // Kate, 14 Oct 2026: Karina, former Stylist at Khalifa City A (roster export: added 11 May 2022, archived Aug 2024;
   // 549 daily rows May 2022 to Nov 2023), IG karapuzzo. Her headshot is black and white, 375x435; the same photo ran
   // in her Roses magazine intro (Branch joined: Khalifa City A, Russia, 10 years in hair).
