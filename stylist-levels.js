@@ -187,6 +187,7 @@ async function renderStylistLevels() {
     <section class="slv-intro">
       <h2>How you move up.</h2>
       <p>Every level has a minimum that holds it and an aim to work towards. To move on to the next level, reach that level's aims. Pick a level to see the numbers.</p>
+    <p class="slv-note">Dashboard sign-ins are for coordinators, management, marketing and accounts. Hair and beauty staff use My Numbers, so this page is not open to them.</p>
     </section>
     <div class="slv-ladder" role="tablist" aria-label="Level">
       ${levels.map((l, j) => `<button type="button" role="tab" aria-selected="${j === i}" class="${j === i ? 'on' : ''}" onclick="slvSet('${slvEsc(l.level)}')"><span class="slv-step">${j + 1}</span>${slvEsc(l.level)}</button>`).join('')}

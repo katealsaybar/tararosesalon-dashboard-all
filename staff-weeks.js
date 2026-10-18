@@ -357,6 +357,7 @@ async function renderStaffWeeks() {
     <section class="slv-intro">
       <h2>Staff&rsquo;s 13 Week</h2>
       <p>Weeks 1 to 52, Monday to Sunday from the first week of January, one row a week, with the year's total under the last week. The columns run sales, clients, rebooking and column fill. Only complete weeks count in the total; the week still being traded shows on the end as "so far". Service sales are before VAT, retail not included.</p>
+    <p class="slv-note">Dashboard sign-ins are for coordinators, management, marketing and accounts. Hair and beauty staff use My Numbers, so this page is not open to them.</p>
     </section>
     <div class="sc-bar w13-bar" style="margin-bottom:14px">
       <button type="button" class="sc-btn" onclick="w13Set(null)">← ${w13Dept === 'Hair' ? 'Hair team' : w13Dept === 'Beauty' ? 'Beauty team' : 'All staff'}</button>
@@ -430,6 +431,7 @@ async function w13RenderTeam(el) {
     <section class="slv-intro">
       <h2>Staff&rsquo;s 13 Week</h2>
       <p>Everyone's ${t.year} so far, week by week from the first week of January: ${w13Esc(w13Day(t.from))} to ${w13Esc(w13Day(t.to))}. The small bars are her sales, one a week${t.current_week_no ? `, with Week ${t.current_week_no} so far as the paler one on the end` : ''}. Tap anyone for her full year, week by week.</p>
+    <p class="slv-note">Dashboard sign-ins are for coordinators, management, marketing and accounts. Hair and beauty staff use My Numbers, so this page is not open to them.</p>
     </section>
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Team">

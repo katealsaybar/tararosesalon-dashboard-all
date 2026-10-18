@@ -3468,14 +3468,14 @@ table.tp-cmp td.bad{color:var(--bad)}
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['compare.js?v=b8350980'],
       mk:  ['marketing-chart.js?v=7aaefb35', 'google-ads.js?v=e67ce0e7', 'website.js?v=55a9e0a5', 'social.js?v=4c3d3645'],
-      wk:  ['team-performance.js?v=d403f86f', 'staff-weeks.js?v=e29bca44'],
-      lv:  ['stylist-levels.js?v=13afdff1'],
+      wk:  ['team-performance.js?v=277bb469', 'staff-weeks.js?v=e0c1f939'],
+      lv:  ['stylist-levels.js?v=cf577214'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['products.js?v=d1961633'],
       sc:  ['stylist-cards.js?v=fe5a89a4'],
       oc:  ['org-chart.js?v=37a5bbdf'],
-      tp:  ['team-performance.js?v=d403f86f']
+      tp:  ['team-performance.js?v=277bb469']
     };
     var V = {};   // view -> group, from pages.js (lazy)
     TRS_PAGES.forEach(function(p){ if (p.lazy) V[p.id] = p.lazy; });
@@ -3931,6 +3931,7 @@ table.tp-cmp td.bad{color:var(--bad)}
           <button type="button" data-dept="Beauty" onclick="spfSetDept('Beauty')">Beauty</button>
         </div>
       </div>
+      <p class="slv-note" id="spfNote" style="display:none;margin:8px 0 0">Dashboard sign-ins are for coordinators, management, marketing and accounts. Hair and beauty staff use My Numbers, so this page is not open to them.</p>
       <iframe id="spfFrame" title="Staff Dashboards" style="display:none;width:100%;min-height:400px;border:0;background:transparent"></iframe>
       <div id="spfKeyReset" style="display:none;text-align:right;font-size:12px;opacity:.6;margin-top:6px">
         <a href="#" onclick="spfForgetKey();return false" style="color:inherit">Use a different team key</a>
@@ -4096,6 +4097,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     document.getElementById('spfKeyReset').style.display = (key && (spfStored() || !window.SPF_AUTO)) ? '' : 'none';
     document.getElementById('spfKeyReset').querySelector('a').textContent = spfStored() ? 'Back to the view-only key' : 'Leader? Use your team key';
     document.getElementById('spfBar').style.display = key ? '' : 'none';
+    { const nt = document.getElementById('spfNote'); if (nt) nt.style.display = key ? '' : 'none'; }
     spfPaintDept();
     spfBuildMonths();
     spfPaintSort();
