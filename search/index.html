@@ -78,17 +78,6 @@
     .sr-tiles .sr-cap{grid-column:1 / -1;text-align:center}
   }
   .sr-gh{margin:0 0 10px;text-align:center;font:600 11px/1 'Inter',system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2)}
-  /* Recently updated: the Team Home pages edited last, one quiet card under the bar (the suggestions drop over it). */
-  .sr-recent{margin-top:24px;width:100%;max-width:600px;text-align:left;background:var(--surface);border:1px solid var(--border);
-    border-radius:16px;box-shadow:var(--shadow);overflow:hidden;padding-bottom:6px}
-  .sr-recent h2{margin:0;padding:14px 18px 6px;font:600 11.5px/1 'Inter',system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2)}
-  .sr-rec-row{display:flex;align-items:center;gap:14px;min-height:48px;padding:8px 18px;text-decoration:none;color:var(--text)}
-  .sr-rec-row:hover,.sr-rec-row:focus-visible{background:var(--surface2);outline:0}
-  .sr-rec-txt{flex:1;min-width:0}
-  .sr-rec-t,.sr-rec-w{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .sr-rec-t{font-weight:600;font-size:14.5px}
-  .sr-rec-w{font-size:12.5px;color:var(--muted);margin-top:1px}
-  .sr-rec-d{flex:none;font-size:12.5px;color:var(--muted2)}
   /* Recently updated and What's new: two quiet cards under the bar (the suggestions drop over them). */
   .sr-recent{margin-top:24px;width:100%;max-width:600px;text-align:left;background:var(--surface);border:1px solid var(--border);
     border-radius:16px;box-shadow:var(--shadow);overflow:hidden;padding-bottom:6px}
@@ -148,10 +137,9 @@
     </div>
   </form>
   <p class="sr-hint" id="srHint"></p>
+  <nav class="sr-tiles hide" id="srTiles" aria-label="Your shortcuts"><div class="sr-grp" id="srFavGrp"><h2 class="sr-gh">Favourites</h2><div class="kb-fvs" id="srFavRow"></div><p class="sr-cap" id="srFavHint" hidden>Star a page on Team Home or in the dashboard, and it will wait here.</p></div><div class="sr-grp" id="srOftenGrp"><h2 class="sr-gh">Frequently visited</h2><div class="kb-fvs" id="srOftenRow"></div></div><p class="sr-cap" id="srCap"></p></nav>
   <section class="sr-recent hide" id="srRecent" aria-labelledby="srRecentH"><h2 id="srRecentH">Recently updated</h2><div id="srRecentRows"></div></section>
   <section class="sr-recent sr-news hide" id="srNews" aria-labelledby="srNewsH"><h2 id="srNewsH">What's new</h2><div id="srNewsRows"></div><button type="button" class="sr-rec-more hide" id="srNewsMore">See all</button></section>
-  <section class="sr-recent hide" id="srRecent" aria-labelledby="srRecentH"><h2 id="srRecentH">Recently updated</h2><div id="srRecentRows"></div></section>
-  <nav class="sr-tiles hide" id="srTiles" aria-label="Your shortcuts"><div class="sr-grp" id="srFavGrp"><h2 class="sr-gh">Favourites</h2><div class="kb-fvs" id="srFavRow"></div><p class="sr-cap" id="srFavHint" hidden>Star a page on Team Home or in the dashboard, and it will wait here.</p></div><div class="sr-grp" id="srOftenGrp"><h2 class="sr-gh">Frequently visited</h2><div class="kb-fvs" id="srOftenRow"></div></div><p class="sr-cap" id="srCap"></p></nav>
 </main>
 <footer class="sr-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
@@ -310,48 +298,6 @@
     document.getElementById('srOftenGrp').hidden = !oftenT.length;
     document.getElementById('srCap').textContent = oftenT.length ? '' : (favT.length ? 'The pages you open most will wait here too.' : '');
     nav.classList.remove('hide');
-  })();
-
-  // ── Recently updated, 18 Oct 2026: the five Team Home pages edited last. Drawn after the bar,
-  // never waited for; no rows or any error and the card simply stays hidden.
-  // Only pages really edited after they were made count (version above 1), and a day on which
-  // more than RECENT_BULK pages were touched is a bulk import or tidy-up, not an edit, so it is
-  // left out (5 Oct 2026 touched 112 pages at once). The body is never read: it carries photos.
-  (async function () {
-    var RECENT_FETCH = 60, RECENT_BULK = 8, RECENT_SHOW = 5;
-    try {
-      var r = await c.from('kb_pages').select('slug,section,group_name,title,updated_at')
-        .gt('version', 1).order('updated_at', { ascending: false }).limit(RECENT_FETCH);
-      var rows = r.error ? [] : (r.data || []);
-      if (!rows.length) return;
-      function dayKey(p) { return new Date(p.updated_at).toDateString(); }
-      // A full fetch may have cut the oldest day in half, so that day's count is not known: leave it out.
-      if (rows.length >= RECENT_FETCH) { var cut = dayKey(rows[rows.length - 1]); rows = rows.filter(function (p) { return dayKey(p) !== cut; }); }
-      var perDay = {};
-      rows.forEach(function (p) { perDay[dayKey(p)] = (perDay[dayKey(p)] || 0) + 1; });
-      rows = rows.filter(function (p) {
-        return perDay[dayKey(p)] <= RECENT_BULK && KB.allowed.indexOf(p.section) >= 0 && KB.shows(p.slug);
-      }).slice(0, RECENT_SHOW);
-      if (!rows.length) return;
-      var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      var today = new Date(); today.setHours(0, 0, 0, 0);
-      function when(iso) {
-        var d = new Date(iso), day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        var ago = Math.round((today - day) / 86400000);
-        if (ago <= 0) return 'Today';
-        if (ago === 1) return 'Yesterday';
-        return day.getDate() + ' ' + MONTHS[day.getMonth()];
-      }
-      document.getElementById('srRecentRows').innerHTML = rows.map(function (p) {
-        var sec = secBy[p.section];
-        var where = (sec ? sec.title : '') + (sec && p.group_name ? ' › ' : '') + (p.group_name || '');
-        return '<a class="sr-rec-row" href="/hub/kb.html?p=' + encodeURIComponent(p.slug) + '">' +
-          '<span class="sr-rec-txt"><span class="sr-rec-t">' + esc(p.title) + '</span>' +
-          (where ? '<span class="sr-rec-w">' + esc(where) + '</span>' : '') + '</span>' +
-          '<span class="sr-rec-d">' + when(p.updated_at) + '</span></a>';
-      }).join('');
-      document.getElementById('srRecent').classList.remove('hide');
-    } catch (e) { /* nothing to show; the page works without it */ }
   })();
 
   // "Today", "Yesterday", then "17 Oct", for the two cards below.
