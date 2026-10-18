@@ -89,6 +89,7 @@ const STYLIST_SURNAMES = {
   "Hafez":   "Abou Hwijj",
   "Jane":    "Astrande",
   "Kelsey":  "Lewis",
+  "Kerryn":  "Green",   // Kate, 18 Oct 2026, from her IG (Bahrain)
   "Kelsie":  "Lally",
   "Louise":  "Williams",
   "Lucie":   "Rogers",

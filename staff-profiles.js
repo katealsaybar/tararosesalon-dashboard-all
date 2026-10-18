@@ -590,6 +590,7 @@ const STAFF_SURNAMES = {
   'KARINA':    'Kazarian',
   'KATHY':     'Garcia',
   'KELSEY':    'Lewis',
+  'KERRYN':    'Green',      // Kate, 18 Oct 2026, from her IG (Bahrain)
   'KELSIE':    'Lally',
   'LINA':      'Waled',
   'LORENA':    'Factor',
