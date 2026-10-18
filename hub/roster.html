@@ -64,6 +64,17 @@
   .rs-tbl .rs-lv{width:100%}
 }
 @media (max-width:760px){
+  /* The folds (audit 18 Oct 2026, P7-09): a group is one tappable row with its count; the people sit under it as the stacked cards they were. */
+  .rs-fold{border-top:1px solid var(--border);margin:0}
+  .rs-fold > summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:52px;cursor:pointer}
+  .rs-fold > summary::-webkit-details-marker{display:none}
+  .rs-fold > summary h2{margin:0;font-size:17px}
+  .rs-fold > summary::after{content:'+';font-size:22px;line-height:1;color:var(--muted)}
+  .rs-fold[open] > summary::after{content:'\2013'}
+  /* Tap targets: the copy-an-email text, Change, Send invite, Revoke and the level menu were 12 to 32px high. */
+  .rs-contact .rs-emt{display:inline-flex;align-items:center;min-height:44px}
+  .rs-chg,.rs-send,.rs-rm,.rs-lv,.rs-undo{min-height:44px;padding-left:14px;padding-right:14px}
+  .rs-chg{font-size:12.5px}
   .rs-tbl #rsList .rs-list li{grid-template-areas:"who when" "jt ll" "contact contact"}
   .rs-tbl.rs-lvl #rsList .rs-list li{grid-template-areas:"who when" "jt ll" "contact contact" "lv act"}
   .rs-tbl #rsList .rs-ll{grid-area:ll;align-items:flex-end;text-align:right}
@@ -167,6 +178,9 @@
   // filter); everyone else, and Kate on "View as", sees it by team with no level
   // anywhere. kb_roster() leaves the level out for anyone below 5, so it isn't only hidden.
   var data = null, byLevel = false, f = { q: '', team: '', branch: '', seen: '', level: '' };
+  // Audit 18 Oct 2026 (P7-09): on a phone the page was 85 rows, 14,388px tall. There each group (team, or level for Level 5) is a fold that
+  // opens on a tap and says how many are in it; a search or a filter opens them all, and a group you opened stays open when the list redraws.
+  var PHONE = matchMedia('(max-width:760px)'), openG = {};
   function opts(label, list) {
     return '<option value="">' + esc(label) + '</option>' + list.map(function (o) {
       return '<option value="' + esc(o[0]) + '">' + esc(o[1]) + '</option>';
@@ -191,10 +205,12 @@
     });
     if (!byLevel) groups.sort(function (a, b) { return TEAMS.indexOf(a) - TEAMS.indexOf(b); });
     var filtered = people.length !== data.people.length;
+    var fold = PHONE.matches, narrowed = !!(f.q.trim() || f.team || f.branch || f.seen || f.level);
     document.getElementById('rsCount').textContent = filtered ? 'Showing ' + people.length + ' of ' + data.people.length : '';
     document.getElementById('rsClear').hidden = !filtered;
     document.getElementById('rsList').innerHTML = groups.length ? groups.map(function (g) {
-      return '<section class="kb-group"><h2>' + esc(g) + ' <span class="rs-n">' + by[g].length + '</span></h2><ul class="kb-list rs-list">' +
+      var title = esc(g) + ' <span class="rs-n">' + by[g].length + '</span>';
+      var body = '<ul class="kb-list rs-list">' +
         by[g].map(function (p) {
           // Kate, 3 Oct 2026: their photo (org chart or staff card, from kb_positions);
           // initials when there is none yet, or if the picture fails to load.
@@ -217,7 +233,10 @@
             '<div class="rs-when' + (p.last_sign_in ? '' : ' never') + '">' + signIn + '</div>' +
             '<div class="rs-ll">' + (p.last_sign_in ? stamp(p.last_sign_in) : '<span class="rs-llt">—</span>') + '</div>' +
             (byLevel ? '<div class="rs-act">' + revokeBits(p) + '</div>' : '') + '</li>';
-        }).join('') + '</ul></section>';
+        }).join('') + '</ul>';
+      return fold
+        ? '<details class="kb-group rs-fold" data-g="' + esc(g) + '"' + ((narrowed || openG[g]) ? ' open' : '') + '><summary><h2>' + title + '</h2></summary>' + body + '</details>'
+        : '<section class="kb-group"><h2>' + title + '</h2>' + body + '</section>';
     }).join('') : '<p class="kb-msg">Nobody matches those filters.</p>';
     drawRevoked();
   }
@@ -271,6 +290,10 @@
     setTop(); window.addEventListener('resize', setTop);
     if (window.ResizeObserver && head) new ResizeObserver(setTop).observe(head);
     draw();
+    document.getElementById('rsList').addEventListener('toggle', function (e) {
+      var d = e.target; if (d && d.dataset && d.dataset.g !== undefined) openG[d.dataset.g] = d.open;
+    }, true);
+    PHONE.addEventListener('change', function () { draw(); });
     document.getElementById('rsFilter').addEventListener('input', function (e) { f.q = e.target.value; draw(); });
     // Kate, 3 Oct 2026: the site's own pill menus, not the browser's dropdowns.
     main.querySelectorAll('.rs-selects select').forEach(function (sel) {
