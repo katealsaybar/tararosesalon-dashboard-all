@@ -281,7 +281,7 @@ const STYLIST_PHOTOS = {
   "Kara":     "AQ/kara francis.png",   // AQ Style Director, 2 ledger days in 2024; real B&W headshot from Kate, 18 Oct 2026
   "Denise":   "KCA/denise muc.png",   // real B&W headshot — KCA Mar to May 2022 — Kate, 15 Oct 2026
   "Xavrina":  "SAA/xavrina traya.png",   // placeholder; Phorest Junior Stylist, SAA — Kate, 15 Oct 2026
-  "Lina":      "AQ/lina waled.png",   // placeholder, no photo or IG found; Stylist, AQ Feb to Sep 2024 (also SAA, MC) — Kate, 15 Oct 2026
+  "Lina":      "AQ/lina waled.png",   // real B&W headshot from Kate, 18 Oct 2026 (no IG found); Stylist, AQ Feb to Sep 2024 (also SAA, MC)
   "Sherine":   "KCA/sherine baghdadi.png",   // placeholder, no photo or IG found; Stylist, KCA Sep 2021 to May 2022 — Kate, 15 Oct 2026
   "Gabby":     "SAA/gabby nemeth.png",   // Stylist at SAA Jun 2023 to May 2024 (ledger), Phorest archived 2026 — Kate, 15 Oct 2026
   "Rhi":       "SAA/rhi george.png",   // Style Director at SAA (Phorest), ledger Jan 2021 to Jul 2023; Rhi Hurley in ROSES — Kate, 15 Oct 2026
