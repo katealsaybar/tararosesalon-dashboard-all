@@ -16,6 +16,8 @@
 // It keeps the matched words (opt_phrase, never the message), when (opt_at) and the tags, never the text.
 // Body (all optional): { stale_hours, batch, budget_s, dry_run, offset }. dry_run checks one batch
 // (from offset) without saving and returns counts and the matched words only.
+// 18 Oct 2026: it also keeps the delivery status of the newest eight outgoing messages (out_msgs: time and read / delivered / sent /
+// failed, never text) for the sheets' "Delivered only" and "Seen only"; dry_run reports the status shape it met (status_shape).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const TOK = Deno.env.get('RESPOND_TOKEN') || '';
@@ -60,6 +62,31 @@ function msgText(it: any): string {
   return typeof t === 'string' ? t : '';
 }
 
+// Delivery status of an outgoing message (Kate, 18 Oct 2026: "Delivered only" and "Seen only" on the branch sheets). respond.io keeps
+// a status on each message; read tolerantly, because the shape (a list of {value, timestamp}, a single value or a plain string) has
+// not been checked against a live answer yet: dry_run reports the shape it met. The best status reached wins:
+// read > delivered > failed > sent. Never the message text, only this one word.
+const ST_READ = new Set(['read', 'seen']), ST_DELIVERED = new Set(['delivered']), ST_FAILED = new Set(['failed', 'undelivered', 'error']), ST_SENT = new Set(['sent', 'pending', 'queued', 'accepted']);
+function statusWords(it: any): string[] {
+  const raw = it?.status ?? it?.message?.status ?? it?.deliveryStatus;
+  const out: string[] = [];
+  const add = (v: any) => {
+    if (typeof v === 'string') out.push(v.trim().toLowerCase());
+    else if (v && typeof v === 'object') { const x = v.value ?? v.status ?? v.name; if (typeof x === 'string') out.push(x.trim().toLowerCase()); }
+  };
+  if (Array.isArray(raw)) raw.forEach(add); else add(raw);
+  return out;
+}
+function statusOf(it: any): string | null {
+  const w = statusWords(it);
+  if (!w.length) return null;
+  if (w.some((x) => ST_READ.has(x))) return 'read';
+  if (w.some((x) => ST_DELIVERED.has(x))) return 'delivered';
+  if (w.some((x) => ST_FAILED.has(x))) return 'failed';
+  if (w.some((x) => ST_SENT.has(x))) return 'sent';
+  return 'other';
+}
+
 // messageId / 1e6 is the message time in seconds.
 async function check(phone: string) {
   const row: Record<string, unknown> = { phone, found: false, is_blocked: false, err: null };
@@ -80,15 +107,21 @@ async function check(phone: string) {
     if (m.ok) {
       const mj = await m.json();
       let li = 0, lo = 0, oi = 0, op: string | null = null;
+      const outs: { t: number; s: string | null }[] = [];
       for (const it of (mj.items || mj.data || [])) {
         const t = Number(it.messageId);
         if (it.traffic === 'incoming' && t > li) li = t;
         if (it.traffic === 'outgoing' && t > lo) lo = t;
+        if (it.traffic === 'outgoing') {
+          outs.push({ t: Math.round(t / 1e3) / 1e3, s: statusOf(it) });
+          if (!row._keys) { row._keys = Object.keys(it).sort(); row._raw = JSON.stringify(it.status ?? it.message?.status ?? null).slice(0, 160); }
+        }
         if (it.traffic === 'incoming' && t > oi) { const ph = optPhrase(msgText(it)); if (ph) { oi = t; op = ph; } }
       }
       if (oi) { row.opted_out = true; row.opt_phrase = op; row.opt_at = oi / 1e6; row.opt_source = 'message'; }
       row.last_in = li ? li / 1e6 : null;
       row.last_out = lo ? lo / 1e6 : null;
+      row.out_msgs = outs.sort((a, b) => b.t - a.t).slice(0, 8);   // the newest eight outgoing, time in seconds and status only
     } else row.err = `msgs ${m.status}`;
     if (!row.opted_out && tagHit) { row.opted_out = true; row.opt_phrase = tagHit.slice(0, 30).toLowerCase(); row.opt_at = null; row.opt_source = 'tag'; }
     if (!row.opted_out && lc && OPT_TAG.test(lc)) { row.opted_out = true; row.opt_phrase = lc.slice(0, 30).toLowerCase(); row.opt_at = null; row.opt_source = 'lifecycle'; }
@@ -118,7 +151,16 @@ Deno.serve(async (req) => {
     for (const r of hits) { const k = `${r.opt_source}: ${r.opt_phrase}`; tally[k] = (tally[k] || 0) + 1; }
     const tagCount: Record<string, number> = {};
     for (const r of rows) for (const t of (r.tags as string[]) || []) tagCount[t] = (tagCount[t] || 0) + 1;
+    // What respond.io's messages look like, so the status reading can be checked before it is trusted: the field names of an outgoing
+    // message, how its status comes (up to five distinct examples, each cut at 160 characters), and how many of each status were read.
+    const keys = new Set<string>(); const rawEx = new Set<string>(); const stTally: Record<string, number> = {};
+    for (const r of rows) {
+      for (const k of (r._keys as string[]) || []) keys.add(k);
+      if (r._raw && rawEx.size < 5) rawEx.add(String(r._raw));
+      for (const m of (r.out_msgs as { s: string | null }[]) || []) { const k = m.s ?? 'none'; stTally[k] = (stTally[k] || 0) + 1; }
+    }
     return new Response(JSON.stringify({ dry_run: true, checked: rows.length, found: rows.filter((r) => r.found).length,
+      status_shape: { outgoing_item_keys: [...keys], status_examples: [...rawEx], status_tally: stTally },
       opted_out: hits.length, tally, top_tags: Object.entries(tagCount).sort((a, b) => b[1] - a[1]).slice(0, 40),
       examples: hits.slice(0, 12).map((r) => ({ last4: String(r.phone).slice(-4), src: r.opt_source, phrase: r.opt_phrase, days_ago: r.opt_at ? Math.round((Date.now() / 1000 - Number(r.opt_at)) / 86400) : null })) }),
       { headers: { 'Content-Type': 'application/json' } });
@@ -132,6 +174,7 @@ Deno.serve(async (req) => {
     let i = 0;
     const worker = async () => { while (i < phones.length) rows.push(await check(phones[i++])); };
     await Promise.all(Array.from({ length: 10 }, worker));
+    for (const r of rows) { delete r._keys; delete r._raw; }   // only used by dry_run
     const { error: e2 } = await sb.rpc('lost_wa_save', { p_rows: rows });
     if (e2) return new Response(JSON.stringify({ error: e2.message, done }), { status: 500 });
     done += rows.length;
