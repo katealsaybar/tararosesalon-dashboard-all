@@ -297,7 +297,7 @@ const STAFF_PROFILES = {
   'KELSIE':  { photoFull: 'stylist/photos/KCA/kelsie lally.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'LOUISE':  { photoFull: 'stylist/photos/KCA/louise williams.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
   'LUCIE':   { photoFull: 'stylist/photos/SAA/lucie rogers.png', role: 'Stylist', branch: 'SAA', blank: true, resigned: true },
-  'SHIAN':   { photoFull: 'stylist/photos/KCA/shian davidson.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
+  'SHIAN':   { photoFull: 'stylist/photos/KCA/shian davidson.png', role: 'Stylist', branch: 'KCA', ig: 'hairartist.shiandavidson', blank: true, resigned: true },
   // Kate, 15 Oct 2026: surnames she found for two of the "no surname" Phorest records, both on her say-so ("probably her" / "probably him"):
   // Nataleah . (Saadiyat Stylist, ledger May to Jul 2021) is Nataleah Brandy, hair IG hairbynats19; Ranya x (KCA, Marasy, Saadiyat Stylist, no
   // ledger rows) is Rany Altahesh, hair IG rannyhairstyle, so RANYA folds into RANY (name-aliases.js). Placeholders, personal accounts not used.

@@ -273,7 +273,7 @@ const STYLIST_PHOTOS = {
   "Kelsie":  "KCA/kelsie lally.png",   // placeholder, no photo or IG; Marasy Sep to Dec 2022 — Kate, 15 Oct 2026
   "Louise":  "KCA/louise williams.png",   // placeholder, no photo or IG; KCA Nov 2021 to Sep 2022 — Kate, 15 Oct 2026
   "Lucie":   "SAA/lucie rogers.png",   // placeholder, no photo or IG; Saadiyat and Marasy, Jan to Oct 2021 — Kate, 15 Oct 2026
-  "Shian":   "KCA/shian davidson.png",   // placeholder, no photo or IG; KCA Feb 2024, 12 days — Kate, 15 Oct 2026
+  "Shian":   "KCA/shian davidson.png",   // placeholder photo (IG added 18 Oct 2026); KCA Feb 2024, 12 days — Kate, 15 Oct 2026
   "Nataleah": "SAA/nataleah brandy.png",   // placeholder; SAA May to Jul 2021 — Kate, 15 Oct 2026
   "Rany":     "KCA/rany altahesh.png",   // Phorest has him as Ranya x, no ledger rows; real B&W headshot from Kate, 18 Oct 2026
   "Kara":     "AQ/kara francis.png",   // AQ Style Director, 2 ledger days in 2024; real B&W headshot from Kate, 18 Oct 2026
@@ -357,6 +357,7 @@ const STYLIST_IG = {
   "Aboudi":     "https://www.instagram.com/aboudi.shatila/",
   "Kara":       "https://www.instagram.com/kara__haircare_/",
   "Xavrina":    "https://www.instagram.com/xavrinatraya/",
+  "Shian":      "https://www.instagram.com/hairartist.shiandavidson/",
   "Nataleah":   "https://www.instagram.com/hairbynats19/",
   "Rany":       "https://www.instagram.com/rannyhairstyle/",
   "Rhi":        "https://www.instagram.com/hairbyrhiabudhabi/",   // Rhi George (Phorest) = Rhi Hurley (ROSES, Jan 2022 and Jan 2023 features); Kate, 15 Oct 2026
