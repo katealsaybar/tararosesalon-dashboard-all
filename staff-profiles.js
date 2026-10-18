@@ -329,8 +329,8 @@ const STAFF_PROFILES = {
   // Harriet: Saadiyat Mar to Jun 2025 (one Khalifa City A day), archived in Phorest.
   'HARRIET':  { photoFull: 'stylist/photos/SAA/harriet shannon.png', blank: true, role: 'Stylist', branch: 'SAA', resigned: true },
   // Charlene Payne: Motor City stylist, Oct 2023 to May 2024, archived in Phorest. IG charlene_hair_ off her business card (Kate, 18 Oct 2026). Her own key, because
-  // CHARLENE above is Bahrain's beautician and the Podium Race already splits Payne off as CHARLENE PAYNE (TP_SPLIT_FULL). Placeholder photo until a headshot comes.
-  'CHARLENE PAYNE': { photoFull: 'stylist/photos/MC/charlene payne.png', blank: true, role: 'Stylist', branch: 'MC', ig: 'charlene_hair_', resigned: true },
+  // CHARLENE above is Bahrain's beautician and the Podium Race already splits Payne off as CHARLENE PAYNE (TP_SPLIT_FULL). Real B&W headshot from Kate, 18 Oct 2026.
+  'CHARLENE PAYNE': { photoFull: 'stylist/photos/MC/charlene payne.png', role: 'Stylist', branch: 'MC', ig: 'charlene_hair_', resigned: true },
   // Venus: Motor City Nov 2022 to Jan 2025 (683 daily rows). Junior Stylist per the roster export.
   'VENUS':    { photoFull: 'stylist/photos/MC/venus solomon.png', blank: true, role: 'Junior Stylist', branch: 'MC', resigned: true },
   // Oliver: Barber at Al Quoz, Dec 2025 to Jan 2026.
