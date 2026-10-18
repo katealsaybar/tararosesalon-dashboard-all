@@ -72,6 +72,9 @@ window.TRS_PREF = {};
     var b = localStorage.getItem('trs-branch'), p = localStorage.getItem('trs-period');
     var v = q.get('view') || 'dashboard';
     if (/^ledgers?/i.test(v)) p = null;           // Ledgers read their own month
+    // Kate, 18 Oct 2026: All time is the heaviest window there is (every staff row since 2021), and remembering it opened the
+    // site on it every time. It is one tap away; a link with period=all-time still opens on it.
+    if (p === 'all-time') p = null;
     if (b && b !== 'all') window.TRS_PREF.branch = b;
     if (p) window.TRS_PREF.period = p;
   } catch (e) {}
