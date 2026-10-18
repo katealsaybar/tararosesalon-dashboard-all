@@ -176,7 +176,7 @@ function cmShell() {
           <button type="button" class="cm-pill" id="cmCopy" onclick="cmCopy()">Copy list for Sheets</button></div>
           <div id="cmList"></div></section>
       </div>
-      <p class="slv-muted cm-foot">From Phorest's Sales Transactions, which starts in August 2021. Each sale is sorted by Phorest's own service categories (see the Service roster tab). A client is counted once per family however many times she came. Units are sales lines; the second half of a keratin counts as the same treatment. Deposits, vouchers, refunds, prepaid courses and walk-ins are left out.</p>
+      <p class="slv-muted cm-foot">From Phorest's Sales Transactions, whose data starts in May 2021 at Saadiyat and Khalifa City A, December 2022 at Motor City and September 2023 at Al Quoz; this page reads from August 2021 on. Each sale is sorted by Phorest's own service categories (see the Service roster tab). A client is counted once per family however many times she came. Units are sales lines; the second half of a keratin counts as the same treatment. Deposits, vouchers, refunds, prepaid courses and walk-ins are left out.</p>
     </div>
     <div id="cmPageRoster"${CM.tab === 'roster' ? '' : ' style="display:none"'}><p class="slv-muted" style="margin-top:16px">Loading the roster…</p></div>`;
 }

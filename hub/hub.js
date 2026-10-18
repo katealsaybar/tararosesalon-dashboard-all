@@ -59,7 +59,7 @@
       blurb: 'The month so far, against target.' },
 
     { key: 'dashboards', dept: 'Numbers', title: 'Business', href: '/?view=dashboard', live: true, rule: 'var(--accent-lavender)',
-      blurb: 'Organisation Pulse, branch performance, comparison and financial totals.' },
+      blurb: 'Organisation Pulse, daily performance, comparison, over the years and financial totals.' },
     { key: 'numbers-team', via: 'dashboards', min: 1, ic: 'access', dept: 'Numbers', title: 'Team Performance', href: '/?view=team', rule: 'var(--accent-lavender)',
       blurb: 'Podium race, staff quadrant, staff dashboards, 13 week report and stylist’s benchmarks.' },
     { key: 'numbers-clients', via: 'dashboards', min: 1, ic: 'lost-clients', dept: 'Numbers', title: 'Clients', href: '/?view=clients', rule: 'var(--accent-lavender)',
@@ -72,7 +72,7 @@
       blurb: 'Today’s tasks, the campaign calendar and platform checks.' },
     // Kate, 14 Oct 2026: the 2022 ROSES magazine issues, in a private Storage bucket (kb_magazines.sql), Level 2 and up.
     { key: 'magazines', dept: 'Content', title: 'ROSES Magazine', href: '/hub/magazines', live: true, rule: 'var(--accent-coral)',
-      blurb: 'The 2022 issues of our ROSES magazine, to read or download.' },
+      blurb: 'Our ROSES magazine, 2021 to 2023, to read or download.' },
     { key: 'post-approvals', via: 'dashboards', min: 3, ic: 'approvals', dept: 'Content', title: 'Post Approvals', href: 'https://katealsaybar.github.io/smm_board_approvals/', rule: 'var(--accent-coral)',
       blurb: 'Posts waiting for a yes, with comments.' },
     // Kate, 6 Oct 2026: named as in the dashboard sidebar (Marketing & Campaigns).
@@ -81,7 +81,7 @@
     { key: 'content-web', via: 'dashboards', min: 3, ic: 'dashboards', dept: 'Content', title: 'Website & Search', href: '/?view=website', rule: 'var(--accent-coral)',
       blurb: 'Website visits and how people find us on Google.' },
     { key: 'campaigns', dept: 'Content', title: 'Wellness Voucher Performance', href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
-      blurb: 'Wellness Voucher performance.' },
+      blurb: 'Redemptions, credit collected and the campaign target.' },
 
     { key: 'people-orgchart', via: 'dashboards', min: 1, ic: 'people', dept: 'People', title: 'Org Chart', href: '/?view=orgchart', rule: 'var(--accent-mint)',
       blurb: 'Who is who, and who reports to whom.' },

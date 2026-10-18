@@ -3437,17 +3437,17 @@ table.tp-cmp td.bad{color:var(--bad)}
   // click is usually instant. Each group is loaded in order; the ?v= stamp that used to sit on the script tag lives here now, so
   // BUMP IT HERE when the file changes. Nothing outside a group calls into it except behind a typeof check or showView.
   (function(){
-    var LGX = 'ledger-export.js?v=20261008cb1';
+    var LGX = 'ledger-export.js?v=20261018lb1';
     var G = {
       oty: ['over-the-years.js?v=20261016oty39'],
       dp:  ['daily-performance.js?v=20261018da18', 'daily-addons.js?v=20261016da9'],
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
-      cl:  [LGX, 'lost-clients.js?v=20261014mry1', 'lost-lists.js?v=20261016ll31', 'lost-consults.js?v=20261012lc1', 'lost-review-file.js?v=20261012rf3',
+      cl:  [LGX, 'lost-clients.js?v=20261018lb1', 'lost-lists.js?v=20261016ll31', 'lost-consults.js?v=20261012lc1', 'lost-review-file.js?v=20261012rf3',
             'send-schedule.js?v=20261016ss1', 'lost-queue.js?v=20261016lq30', 'lost-waves.js?v=20261016lw14', 'lost-blast.js?v=20261016ob4',
-            'lost-report.js?v=20261016lr1', 'wv-blast.js?v=20261016ss1', 'top-clients.js?v=20261014mry1', 'client-mix.js?v=20261014mry1',
-            'service-rankings.js?v=20261017bb1']
+            'lost-report.js?v=20261018lb1', 'wv-blast.js?v=20261016ss1', 'top-clients.js?v=20261018lb1', 'client-mix.js?v=20261018lb1',
+            'service-rankings.js?v=20261018lb1']
     };
     var V = {};   // view -> group, from pages.js (lazy)
     TRS_PAGES.forEach(function(p){ if (p.lazy) V[p.id] = p.lazy; });
@@ -4278,19 +4278,19 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script. -->
 <script src="marketing-chart.js?v=20261006ph"></script>
 <script src="google-ads.js?v=20261006per"></script>
-<script src="website.js?v=20261008cb1"></script>
+<script src="website.js?v=20261018lb1"></script>
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20261014d"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261018pk1"></script>
+<script src="dashboard.js?v=20261018lb1"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20261017bb1"></script>
+<script src="branch-ledger.js?v=20261018lb1"></script>
 <script src="compare.js?v=20261016util"></script>
 <!-- over-the-years.js and daily-performance.js + daily-addons.js load on first use (trsLazy, in the boot script above). -->
 <!-- ledger-export.js (spreadsheet export, built from branch-ledger.js's series and target helpers) loads on first use too: trsLazy. -->
-<script src="team-performance.js?v=20261018rb1"></script>
+<script src="team-performance.js?v=20261018lb1"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=20261018lz1"></script>
 <!-- pulse-narrative.js (the model-written Pulse read) was never wired in: fetchPulseNarrative has no caller. Add the tag back if it is. -->

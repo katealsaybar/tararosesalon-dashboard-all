@@ -4995,6 +4995,8 @@ async function renderDashboard() {
 
   const THREE = [
     { k:'Net take', def:'Services + treatments + retail, hair and beauty, before staff cost.',
+      // Audit 18 Oct 2026 (P2-12): the Pulse adds up credited staff rows; Financial Totals reads Phorest's own Sales block.
+      tip: 'Added up from the staff rows in the ledgers, so it leaves out any service Phorest took that no staff row was credited with, and it counts a course when it is performed. Financial Totals reads Phorest’s own Sales block, which counts a course when it is sold, so the two can differ by a small amount.',
       v: aed0(s.netTake), status: netTrend.status, t: netTrend.txt, verdict: netTrend.verdict,
       splits: splitsOf([
         { k:'Hair',   val:hairNetSalonTake,  of:s.netTake, txt:aed0(hairNetSalonTake),  extra:`${shareOf(hairNetSalonTake, s.netTake)}%`,  color:'var(--hair)' },

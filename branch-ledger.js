@@ -82,6 +82,16 @@ function lgCapAtDataEnd(d) {
   const e = (typeof dataEnd === 'function') ? dataEnd() : null;
   return (e && e < d && e.getFullYear() === d.getFullYear() && e.getMonth() === d.getMonth()) ? e : d;
 }
+// Audit 18 Oct 2026 (P2-16): a month that has finished is the whole month, not "month to date".
+// True once the last day of data is on or after the month's last day.
+function lgMonthClosed(w) {
+  const to = w && w.month && w.month.to;
+  const e = (typeof dataEnd === 'function') ? dataEnd() : null;
+  if (!to || !e) return false;
+  const t = to instanceof Date ? to : new Date(to);
+  return e >= t;
+}
+function lgMonthBasis(w) { return lgMonthClosed(w) ? 'full month' : 'month to date'; }
 function lgPaceFrac(series) {
   const w = series && series.windows;
   const last = w && w.days && w.days.length ? w.days[w.days.length - 1].to : null;
@@ -373,8 +383,8 @@ function lgLedgerContext(series) {
     // target", but the MTD columns are the ledger month itself; the prior month
     // is the Last Month column beside them. Comet and the UX inventory both read
     // it as July data.
-    note: `${w.month.label} month to date against the full ${w.month.label} target, with ${w.prev.label} beside it as last month`
-      + (through ? `, month to date to ${shortD(through)}` : '')
+    note: `${w.month.label} ${lgMonthClosed(w) ? 'in full against its target' : 'month to date against the full ' + w.month.label + ' target'}, with ${w.prev.label} beside it as last month`
+      + (through && !lgMonthClosed(w) ? `, month to date to ${shortD(through)}` : '')
       + `. % done is raw progress through the target, not paced against days elapsed — the same way the ledger reads it; while the month is still running, On pace for (Daily Target Sheet) shows where it lands at the rate so far. `
       + `The Period chips do not apply on the Ledgers pages: Month above picks which month all three read, and Split chooses how finely the actual is cut.`,
   };
@@ -1990,7 +2000,7 @@ async function renderLedgerTargets() {
     (typeof lgxPageBar === 'function' ? lgxPageBar() : '') +
     lgShell([['ltPivot', 'Benchmarks by branch'], ['ltPace', paceTitle]],
     lgSection('ltPivot', '#99F6E4', 'Benchmarks by branch',
-      escapeHtml(series.windows.month.label + ' · month to date'),
+      escapeHtml(series.windows.month.label + ' · ' + lgMonthBasis(series.windows)),
       lgTable(pivCols, pivRows, {compact:true})) +
     lgSection('ltPace', '#FFD4D9', paceTitle, escapeHtml(ctx.label), paceGridHtml + lgIdentityNote(roll)) +
     `<div class="fine">
@@ -2584,7 +2594,7 @@ async function renderLedgerFinancials() {
       `Phorest's Financial Totals Sales block, every branch at once, for ${escapeHtml(w.month.label)}. `
       + `The figure to check a branch's report against is <b>Total (Ex VAT)</b>.`,
       { applies: true, label: w.month.label, rangeLabel: `${shortD(w.month.from)} – ${shortD(w.month.to)}`,
-        note: `${escapeHtml(w.month.label)}, month to date, against ${escapeHtml(w.prev.label)}. `
+        note: `${escapeHtml(w.month.label)}, ${lgMonthBasis(w)}, against ${escapeHtml(w.prev.label)}. `
           + `The Sales block is monthly because the report is, and Month above picks which month. `
           + `<b>Split</b> is the drill-down: once a branch's total looks wrong, Weekly or Daily adds a `
           + `second table showing which ${lgGrain === 'daily' ? 'day' : 'week'} it went wrong on.` }) +

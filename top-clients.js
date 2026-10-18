@@ -218,7 +218,7 @@ function tcPaint() {
       </div>
       <div id="tcTable"></div>
     </section>
-    <p class="slv-muted">From Phorest's Sales Transactions, which starts in August 2021. Revenue is ex VAT; deposits and vouchers are left out. Visits are days she came in. Last seen is her newest visit at the branch picked (or at any branch on All), whatever the dates above, so the last day or two can lag. Usual stylist is whoever served most of her visits.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to your login only. The report doesn\'t say who opted out of marketing, so check consent in Phorest before anyone messages a client.' : ''}</p>`;
+    <p class="slv-muted">From Phorest's Sales Transactions, whose data starts in May 2021 at Saadiyat and Khalifa City A, December 2022 at Motor City and September 2023 at Al Quoz; this page reads from August 2021 on. Revenue is ex VAT; deposits and vouchers are left out. Visits are days she came in. Last seen is her newest visit at the branch picked (or at any branch on All), whatever the dates above, so the last day or two can lag. Usual stylist is whoever served most of her visits.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to your login only. The report doesn\'t say who opted out of marketing, so check consent in Phorest before anyone messages a client.' : ''}</p>`;
   tcPaintBoard();
   tcPaintTable();
 }

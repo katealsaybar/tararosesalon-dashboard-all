@@ -992,7 +992,7 @@ async function renderTeam() {
   const SORTS = {
     branch:  { label: 'Branch' },
     name:    { label: 'Name',    cmp: (a, b) => a.name.localeCompare(b.name) },
-    takings: { label: 'Takings', cmp: (a, b) => num(b.numbers.total_revenue) - num(a.numbers.total_revenue) },
+    takings: { label: 'Service sales', cmp: (a, b) => num(b.numbers.total_revenue) - num(a.numbers.total_revenue) },
     clients: { label: 'Clients', cmp: (a, b) => num(b.numbers.clients) - num(a.numbers.clients) },
     rebook:  { label: 'Rebook %', cmp: (a, b) => { const x = rbBoth(a.numbers), y = rbBoth(b.numbers); return num(y.ph ?? y.led) - num(x.ph ?? x.led); } },
     level:   { label: 'Position', cmp: (a, b) => rankOf(b) - rankOf(a) },

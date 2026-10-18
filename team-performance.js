@@ -57,7 +57,7 @@ let tpCompare = [];
 const TP_REBOOK_MIN = 20;
 const TP_PTS = n => (Math.round(Math.max(0, Number(n) || 0) * 10) / 10) + ' pts';
 const TP_LEAGUES = {
-  net:       { label: 'Takings',             note: 'net salon take',        get: s => s.net || 0,         f: tpAed },
+  net:       { label: 'Net take',            note: 'net salon take',        get: s => s.net || 0,         f: tpAed },
   services:  { label: 'Services',            note: 'service sales',         get: s => (s.isBeauty ? s.beautySales : s.hairSalesNet) || 0, f: tpAed },
   retail:    { label: 'Retail',              note: 'retail sales',          get: s => s.retail || 0,      f: tpAed },
   treatment: { label: 'Treatment',           note: 'treatment sales',       get: s => s.treatments || 0,  f: tpAed, hairOnly: true, ledger: true },
@@ -588,7 +588,7 @@ async function renderTeam() {
       ${part === 'race' ? `<select id="tpRankBy" aria-label="Rank by" onchange="tpSetSort(this.value)">
         ${tpLeagues().map(k => `<option value="${k}" ${k === tpLeagueKey() ? 'selected' : ''}>Rank by: ${TP_LEAGUES[k].label}</option>`).join('')}
       </select>` : ''}
-      ${tpCountsBad ? '<span class="tp-bar-n" style="color:var(--warn)">Instagram and review counts did not load, showing Takings.</span>' : ''}
+      ${tpCountsBad ? '<span class="tp-bar-n" style="color:var(--warn)">Instagram and review counts did not load, showing Net take.</span>' : ''}
       <span class="tp-bar-n">${branchLabel} · ${roster.length} ${roster.length === 1 ? 'person' : 'people'}</span>
       ${typeof ihTip === 'function' ? ihTip('', 'Two counts of clients, side by side. Clients per staff is the ledgers’ count: a client seen by two staff counts for each, and rebooking, NCR and the aims are written on it. Phorest is the Staff Daily report per employee: visits, requests (RQ), new clients and her services; her Phorest avg bill is her services over her Phorest visits. Phorest figures need a daily window, so a full-week window shows none.') : ''}
     </div>

@@ -1009,7 +1009,7 @@ function lgxModelTargetsPivot(series) {
   return {
     name: 'Benchmarks by branch',
     title: 'Daily Target Sheet · benchmarks by branch',
-    subtitle: series.windows.month.label + ', month to date, whatever Split is set to',
+    subtitle: series.windows.month.label + ', ' + lgMonthBasis(series.windows) + ', whatever Split is set to',
     blocks: [{ cols: cols, rows: rows }],
     legend: [
       ['Rebooking %', 'Rebooked / Total clients × 100 — both of them columns here, so this one carries its working.'],

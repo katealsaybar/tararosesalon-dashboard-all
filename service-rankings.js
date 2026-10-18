@@ -196,7 +196,7 @@ function srPaint() {
       </div>
       <div id="srTable" style="margin-top:14px"></div>
     </section>
-    <p class="slv-muted cm-foot">From Phorest's Sales Transactions, which starts in August 2021. Each sale is sorted by Phorest's own service category (the Service roster tab on Client Mix), so a service's sizes are one row. Revenue is ex VAT. Units are sales lines; the second half of a keratin counts as the same treatment. Retail is on Products; deposits, vouchers, refunds and prepaid courses are left out.</p>`;
+    <p class="slv-muted cm-foot">From Phorest's Sales Transactions, whose data starts in May 2021 at Saadiyat and Khalifa City A, December 2022 at Motor City and September 2023 at Al Quoz; this page reads from August 2021 on. Each sale is sorted by Phorest's own service category (the Service roster tab on Client Mix), so a service's sizes are one row. Revenue is ex VAT. Units are sales lines; the second half of a keratin counts as the same treatment. Retail is on Products; deposits, vouchers, refunds and prepaid courses are left out.</p>`;
   srPaintTable();
 }
 function srPaintTable() {

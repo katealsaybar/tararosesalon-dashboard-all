@@ -28,7 +28,7 @@ const WEB_CHANNEL = {
   'Direct': 'Typed in or saved link', 'Paid Search': 'Google Ads',
   'Organic Social': 'Social posts, unpaid', 'Referral': 'Other websites',
   'AI Assistant': 'AI assistants (ChatGPT and others)', 'Paid Other': 'Other paid links',
-  'Unassigned': 'Not known', 'Cross-network': 'Google Performance Max', 'Display': 'Google display ads',
+  'Unassigned': 'Not known', 'Cross-network': 'Cross-network (Google)', 'Display': 'Google display ads',
   'Email': 'Email', 'Organic Video': 'Video, unpaid', 'Paid Video': 'Video ads', 'SMS': 'SMS',
 };
 const webEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
