@@ -103,8 +103,8 @@
   /* Podium Race and Staff Quadrant (Kate, 18 Oct 2026, "option 3": the four controls were about 230px): the bar is one summary line,
      "Hair · With leavers · Phorest · Net take", and the controls drop down from it. It starts closed and stays open until it is
      tapped again, so Hair and Beauty can be flipped back and forth. */
-  :root .tp-bar .tp-sum{display:flex;flex:1 1 100%;align-items:center;justify-content:space-between;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text);font:600 13px 'Inter',sans-serif;letter-spacing:.02em;text-align:left;cursor:pointer}
-  :root .tp-bar .tp-sum span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  :root .tp-bar .tp-sum{display:flex;flex:1 1 100%;align-items:center;justify-content:space-between;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text);font:600 13px 'Inter',sans-serif;letter-spacing:.02em;text-align:left;cursor:pointer;min-width:0;max-width:100%;box-sizing:border-box}
+  :root .tp-bar .tp-sum span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   :root .tp-bar .tp-sum svg{flex:none;width:10px;height:10px;transition:transform .18s}
   :root .tp-bar.open .tp-sum{border-color:var(--accent)}
   :root .tp-bar.open .tp-sum svg{transform:rotate(180deg)}
