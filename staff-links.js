@@ -246,6 +246,8 @@ function whoGoStats(key, dept, branch) {
 }
 
 function whoGoRow(key, branch) {
+  // Daily Performance's script loads on first use: wait for it, so the Measure reset below has something to reset.
+  if (typeof trsLazy === 'function' && !trsLazyDone('dp')) { trsLazy('dp').then(() => whoGoRow(key, branch), () => {}); return; }
   // Daily Performance's Staff card (Branch Performance is part of it now, 16 Oct 2026). The card is ranked by the Measure and a
   // hair-only or beauty-only measure leaves one department's table out, so go back to Total sales, which shows both; then open the
   // branch's panel (only the first is open) and land on her row.

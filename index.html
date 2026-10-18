@@ -3426,6 +3426,28 @@ table.tp-cmp td.bad{color:var(--bad)}
   setTimeout(function(){ var s = document.getElementById('blSlow'), b = document.getElementById('bootLoader');
     if (s && b && !b.classList.contains('out')) s.classList.add('on'); }, 15000);
   setTimeout(window.trsBootDone, 60000);   // never strand anyone behind it
+  // Audit 17 Oct 2026 (P1-07): every page's script was downloaded and parsed before the first page could draw. These pages' files
+  // now load the first time the page opens (showView waits for them), and again in idle time after the first page is up so the
+  // click is usually instant. Each group is loaded in order; the ?v= stamp that used to sit on the script tag lives here now, so
+  // BUMP IT HERE when the file changes. Nothing outside a group calls into it except behind a typeof check or showView.
+  (function(){
+    var G = {
+      oty: ['over-the-years.js?v=20261016oty39'],
+      dp:  ['daily-performance.js?v=20261016da16', 'daily-addons.js?v=20261016da9']
+    };
+    var V = { overyears: 'oty', dailyperf: 'dp' };
+    var P = {}, D = {};
+    function one(src){ return new Promise(function(ok, bad){ var s = document.createElement('script'); s.src = src;
+      s.onload = ok; s.onerror = function(){ bad(new Error('Could not load ' + src)); }; document.head.appendChild(s); }); }
+    window.trsLazy = function(g){
+      if (!P[g]) P[g] = G[g].reduce(function(p, src){ return p.then(function(){ return one(src); }); }, Promise.resolve())
+        .then(function(){ D[g] = true; }, function(e){ delete P[g]; throw e; });
+      return P[g];
+    };
+    window.trsLazyDone = function(g){ return !!D[g]; };
+    window.trsLazyOf = function(view){ return V[view] || null; };
+    window.trsLazyIdle = function(){ Object.keys(G).forEach(function(g){ window.trsLazy(g).catch(function(){}); }); };
+  })();
 </script>
 
 <!-- ══════════════════════════════════════════════════
@@ -4258,15 +4280,13 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=20261017bb1"></script>
 <script src="compare.js?v=20261016util"></script>
-<script src="over-the-years.js?v=20261016oty39"></script>
-<script src="daily-performance.js?v=20261016da16"></script>
-<script src="daily-addons.js?v=20261016da9"></script>
+<!-- over-the-years.js and daily-performance.js + daily-addons.js load on first use (trsLazy, in the boot script above). -->
 <!-- After branch-ledger.js, because the models it exports are built from that file's
      own series/target helpers. Nothing here runs on load. -->
 <script src="ledger-export.js?v=20261008cb1"></script>
 <script src="team-performance.js?v=20261017bb1"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
-<script src="staff-links.js?v=20261016ret1"></script>
+<script src="staff-links.js?v=20261018lz1"></script>
 <script src="pulse-narrative.js?v=20261008cb1"></script>
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
 <script src="branch-narrative.js?v=20261008cb1"></script>
@@ -4515,6 +4535,8 @@ async function enterDashboard(role, meAsk){
   // Opened on Lost Clients (Kate, 2 Oct 2026): the page needs none of loadData, so it
   // opens now and its own two calls run beside loadData instead of after it.
   const viewQ = new URLSearchParams(location.search).get('view');
+  // A link to a page whose script loads on demand starts that download now, beside loadData, instead of after it.
+  { const lzq = typeof trsLazyOf === 'function' ? trsLazyOf(viewQ) : null; if (lzq) trsLazy(lzq).catch(() => {}); }
   const earlyLost = viewQ === 'lostclients' && TRS_LEVEL >= 2 && typeof lcPrefetch === 'function';
   // Audit 17 Oct 2026 (P2-06, P6-07): five more pages need nothing from loadData (no masthead window, no ledger rows: Google Ads,
   // Website and Search, Social, Staff Cards, Org Chart), so a direct link opens them now instead of after the whole Pulse load.
@@ -4549,6 +4571,8 @@ async function enterDashboard(role, meAsk){
   if (!earlyView) showView(activeView, btn || null);
   else if (CURRENT_VIEW !== earlyName) showView(CURRENT_VIEW, document.querySelector(`#sidebar [onclick*="'${CURRENT_VIEW}'"]`));
   trsBootDone();
+  // Once the first page is up, fetch the on-demand pages' scripts in idle time, so opening one is usually instant.
+  if (typeof trsLazyIdle === 'function') (window.requestIdleCallback || (f => setTimeout(f, 2500)))(trsLazyIdle, { timeout: 6000 });
 }
 
 // Access levels (dashboard_users.role, 25 Sep 2026): owner = Kate, everything;
@@ -4611,6 +4635,21 @@ function showView(view, el){
   if (!(TRS_LEVEL >= 2) && (view === 'lostclients' || view === 'lostlists')) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (!(TRS_LEVEL >= 3) && view === 'wvblast') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   if (!(TRS_LEVEL >= 3) && (view === 'googleads' || view === 'website' || view === 'social')) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
+  // The page's script has not arrived yet (first open, before the idle load finished): fetch it, then run this whole call again, so
+  // nothing below ever meets a missing function. The page being left stays up meanwhile.
+  const lz = typeof trsLazyOf === 'function' ? trsLazyOf(view) : null;
+  if (lz && !trsLazyDone(lz)) {
+    document.body.style.cursor = 'progress';
+    trsLazy(lz).then(() => { document.body.style.cursor = ''; showView(view, el); }, () => {
+      document.body.style.cursor = '';
+      const n = document.getElementById('view-' + view);
+      if (!n) return;
+      n.innerHTML = '<div class="empty">This page did not load. Refresh to try again.</div>';
+      ALL_VIEWS.forEach(v => { const x = document.getElementById('view-' + v); if (x) x.style.display = 'none'; });
+      n.style.display = 'block';
+    });
+    return;
+  }
   // Reviews opens on All branches + 90 days unless something was already picked, and
   // hands the defaults back on the way out. Before anything below reads the window.
   if (typeof reviewsViewSwitch === 'function') reviewsViewSwitch(CURRENT_VIEW, view);
