@@ -22,7 +22,7 @@
   // The recogniser is a general one, so it hears our own words as the nearest everyday ones ("sarah rose kid" for
   // "Tara Rose Kidd", Kate, 18 Oct 2026). Two cheap helps: of the alternatives it offers for each phrase, take the one
   // that holds the most of OUR words; then put the usual slips right. Add to KNOWN and FIXES as new ones turn up.
-  var KNOWN = ['tara rose', 'kidd', 'saadiyat', 'mamsha', 'khalifa city', 'motor city', 'al quoz', 'marasy', 'fratelli',
+  var KNOWN = ['tara rose', 'kidd', 'kate alsaybar', 'alsaybar', 'saadiyat', 'mamsha', 'khalifa city', 'motor city', 'al quoz', 'marasy', 'fratelli',
     'phorest', 'rebooking', 'wellness voucher', 'hair rhythm', 'podium race', 'my numbers', 'team home', 'induction'];
   var FIXES = [
     [/\b(?:sarah|sara|tarah|tera|terra|tarra|tyra|tiara|tara's) rose\b/gi, 'Tara Rose'],
@@ -31,6 +31,7 @@
     [/\b(?:khalifah?|kalifa|khalifa's) city\b/gi, 'Khalifa City'],
     [/\b(?:al|el) (?:quoz|kuz|koos|kwaz|quaz|couz)\b/gi, 'Al Quoz'],
     [/\bmoto city\b/gi, 'Motor City'],
+    [/\b(?:faith|kate|kay|cate|kait|kaite|kit) (?:alzheimers?|al ?zheimers?|also ?bar|alsa ?bar|al ?sa ?bar|al ?sy ?bar|al ?say ?bar|al ?sai ?bar|al-?saybar|al ?sabbar|al ?seibar)\b/gi, 'Kate Alsaybar'],
     [/\bre[- ]?booking\b/gi, 'rebooking']
   ];
   function pick(result) {
