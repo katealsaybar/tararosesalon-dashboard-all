@@ -331,6 +331,10 @@ const STAFF_PROFILES = {
   // Charlene Payne: Motor City stylist, Oct 2023 to May 2024, archived in Phorest. IG charlene_hair_ off her business card (Kate, 18 Oct 2026). Her own key, because
   // CHARLENE above is Bahrain's beautician and the Podium Race already splits Payne off as CHARLENE PAYNE (TP_SPLIT_FULL). Real B&W headshot from Kate, 18 Oct 2026.
   'CHARLENE PAYNE': { photoFull: 'stylist/photos/MC/charlene payne.png', role: 'Stylist', branch: 'MC', ig: 'charlene_hair_', resigned: true },
+  // Elliesa and Eloisa Purisima: two different people (Kate, 18 Oct 2026, after checking their Instagrams and business cards), both Beauticians at Al Quoz, Sep to Oct 2023,
+  // archived in Phorest. Each has her own placeholder file until a headshot comes. Related, not the same person, so no merge.
+  'ELLIESA':  { photoFull: 'stylist/photos/AQ/elliesa purisima.png', blank: true, role: 'Beauty Team Member', branch: 'AQ', ig: 'elliesa03', resigned: true },
+  'ELOISA':   { photoFull: 'stylist/photos/AQ/eloisa purisima.png', blank: true, role: 'Beauty Team Member', branch: 'AQ', ig: 'tararose.eloisa25', resigned: true },
   // Venus: Motor City Nov 2022 to Jan 2025 (683 daily rows). Junior Stylist per the roster export.
   'VENUS':    { photoFull: 'stylist/photos/MC/venus solomon.png', blank: true, role: 'Junior Stylist', branch: 'MC', resigned: true },
   // Oliver: Barber at Al Quoz, Dec 2025 to Jan 2026.
