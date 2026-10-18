@@ -275,7 +275,7 @@ const STYLIST_PHOTOS = {
   "Lucie":   "SAA/lucie rogers.png",   // placeholder, no photo or IG; Saadiyat and Marasy, Jan to Oct 2021 — Kate, 15 Oct 2026
   "Shian":   "KCA/shian davidson.png",   // placeholder, no photo or IG; KCA Feb 2024, 12 days — Kate, 15 Oct 2026
   "Nataleah": "SAA/nataleah brandy.png",   // placeholder; SAA May to Jul 2021 — Kate, 15 Oct 2026
-  "Rany":     "KCA/rany altahesh.png",   // placeholder; Phorest has him as Ranya x, no ledger rows
+  "Rany":     "KCA/rany altahesh.png",   // Phorest has him as Ranya x, no ledger rows; real B&W headshot from Kate, 18 Oct 2026
   "Kara":     "AQ/kara francis.png",   // AQ Style Director, 2 ledger days in 2024; real B&W headshot from Kate, 18 Oct 2026
   "Denise":   "KCA/denise muc.png",   // real B&W headshot — KCA Mar to May 2022 — Kate, 15 Oct 2026
   "Xavrina":  "SAA/xavrina traya.png",   // placeholder; Phorest Junior Stylist, SAA — Kate, 15 Oct 2026

@@ -302,7 +302,7 @@ const STAFF_PROFILES = {
   // Nataleah . (Saadiyat Stylist, ledger May to Jul 2021) is Nataleah Brandy, hair IG hairbynats19; Ranya x (KCA, Marasy, Saadiyat Stylist, no
   // ledger rows) is Rany Altahesh, hair IG rannyhairstyle, so RANYA folds into RANY (name-aliases.js). Placeholders, personal accounts not used.
   'NATALEAH':{ photoFull: 'stylist/photos/SAA/nataleah brandy.png', role: 'Stylist', branch: 'SAA', ig: 'hairbynats19', blank: true, resigned: true },
-  'RANY':    { photoFull: 'stylist/photos/KCA/rany altahesh.png', role: 'Stylist', branch: 'KCA', ig: 'rannyhairstyle', blank: true, resigned: true },
+  'RANY':    { photoFull: 'stylist/photos/KCA/rany altahesh.png', role: 'Stylist', branch: 'KCA', ig: 'rannyhairstyle', resigned: true },
   // Kate, 15 Oct 2026, "possibly her": Kara . (Al Quoz, Phorest Style Director - DXB, added 20 Mar 2024, two ledger days) is Kara Francis, hair IG kara__haircare_.
   'KARA':    { photoFull: 'stylist/photos/AQ/kara francis.png', role: 'Style Director', branch: 'AQ', ig: 'kara__haircare_', resigned: true },
   // Kate, 15 Oct 2026, "possibly her": Denise . (KCA and Saadiyat Stylist, ledger KCA Mar to May 2022) is Denise Muc; the only IG Kate has is her personal one.
