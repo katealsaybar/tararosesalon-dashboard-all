@@ -87,6 +87,10 @@ const STAFF_NAME_ALIASES = {
   // Clarissa Destacamento: CLARISA and CLARRISA, Motor City, Sep to Oct 2023, the week before she starts as CLARISSA.
   'CLARISA': 'CLARISSA',
   'CLARRISA': 'CLARISSA',
+  // Neeka Kainth (former Style Director): NIKKA, one Motor City day, 13 Mar 2024, 4 clients. Kate asked (18 Oct 2026) and the data agrees:
+  // her Al Quoz row is blank that same day (she was covering), Phorest's Motor City Neeka record runs to 26 Mar 2024, and no Phorest
+  // branch has a Nikka (Nikki Asuncion is a different person, Khalifa City and Saadiyat).
+  'NIKKA': 'NEEKA',
   // Xyrhy Unisa: XYRYH, Motor City, Aug 2024 (XYHRY is mapped above).
   'XYRYH': 'XYRHY',
   // One-day typos: RITCHEL (Motor City) is Richel Modilla, SAMATHA (Motor City) is Samantha Ahmad, LORI (KCA) is Lorie.
