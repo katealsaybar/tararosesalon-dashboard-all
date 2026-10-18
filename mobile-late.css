@@ -77,6 +77,14 @@
   :root .dpf .dp-swr-r{flex:1 0 100%;display:flex;justify-content:space-between;align-items:center}
   :root .dpf .dp-pl{gap:6px}
   :root .dpf .dp-pll{flex:0 0 100%;margin:0}
+  /* Podium Race and Staff Quadrant (Kate, 18 Oct 2026: "toggles in here don't look too good"): each switch was only as wide as its
+     words, so the three switches and the Rank by menu stacked at four different widths with 44px segments. Each is one full-width
+     row now, its two halves equal, 38px tall, the menu the same width and a little taller than its text, so they line up. */
+  :root .tp-bar{gap:8px}
+  :root .tp-bar .tp-seg{flex:1 1 100%;display:flex}
+  :root .tp-bar .tp-seg button{flex:1 1 0;min-height:38px;padding:0 8px;font-size:14px;line-height:1.2;text-align:center;white-space:nowrap}
+  :root .tp-bar .ps{flex:1 1 100%;display:block}
+  :root .tp-bar .ps .ps-btn{width:100%;min-height:40px;display:flex;align-items:center;justify-content:space-between}
 }
 /* Daily Performance injects its own sheet after this one, so these carry :root to win. */
 @media(max-width:560px){
