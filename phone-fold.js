@@ -52,7 +52,8 @@
     // 3. Lost Clients and the voucher blast: the definition, the explainer, the wave cards.
     host.querySelectorAll('.ll-def').forEach(function (el) { wrap(el, 'How a client is chosen', ''); });
     host.querySelectorAll('.ll-explain').forEach(function (el) { wrap(el, 'How to read the waves', ''); });
-    host.querySelectorAll('.ll-cards').forEach(function (el) {
+    // The Performance report's stat tiles (.lr-cards) are numbers to read, not wave cards to pick from: left open (18 Oct 2026).
+    host.querySelectorAll('.ll-cards:not(.lr-cards)').forEach(function (el) {
       var n = el.querySelectorAll('.ll-card').length;
       var on = el.querySelector('.ll-card.on .ll-t');
       wrap(el, 'Waves' + (n ? ' · ' + n : ''), on ? on.textContent.trim() : '');

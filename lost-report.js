@@ -6,6 +6,12 @@
 // Drawn by lqShowTab('perf') in lost-queue.js, into #lqHost. Borrows lcEsc, lcNum, LC_BRANCH (lost-clients.js), LQ_TYPES (lost-queue.js) and the
 // XLSX writer (lgx*), so it must load after both.
 let lrSum = null, lrRowsPage = [], lrTotal = 0, lrErr = '', lrBusy = false, lrOpen = {}, lrQTimer = null;
+// The Booked card split by deposit (lost_booked_deposits, migrations/lost_booked_deposits.sql). Null until the function is live: the section stays out.
+let lrDep = null, lrDepView = 'visual';
+try { if (localStorage.getItem('lr-dep-view') === 'table') lrDepView = 'table'; } catch (e) {}
+// Did our message arrive? (lost_delivery_report, migrations/lost_delivery_report.sql). Same: null until the function is live, the section stays out.
+let lrDel = null, lrDelView = 'visual';
+try { if (localStorage.getItem('lr-del-view') === 'table') lrDelView = 'table'; } catch (e) {}
 let lrSel = { wave: 'all', branch: 'all', status: 'all', q: '', page: 1, per: 50 };
 
 const LR_BR = ['SAA', 'KCA', 'MC', 'AQ'];
@@ -32,9 +38,13 @@ async function lrLoad() {
   if (lrBusy) return;
   lrBusy = true; lrErr = '';
   try {
-    const [s, l] = await Promise.all([sb.rpc('lost_send_report_get'), lrFetchPage()]);
+    const [s, l, dp, dl] = await Promise.all([sb.rpc('lost_send_report_get'), lrFetchPage(), sb.rpc('lost_booked_deposits'), sb.rpc('lost_delivery_report')]);
     if (s.error || !s.data) throw s.error || new Error('no report');
     lrSum = s.data;
+    lrDep = (!dp.error && dp.data && dp.data.total) ? dp.data : null;   // optional: the report still draws without it
+    if (dp.error) console.warn('lost_booked_deposits', dp.error);
+    lrDel = (!dl.error && dl.data && dl.data.total) ? dl.data : null;   // optional too
+    if (dl.error) console.warn('lost_delivery_report', dl.error);
     if (l.error || !l.data) throw l.error || new Error('no log');
     lrRowsPage = l.data.rows || []; lrTotal = l.data.total || 0;
   } catch (e) { console.error(e); lrErr = 'The report did not load. Refresh to try again.'; }
@@ -77,6 +87,108 @@ function lrTiles(t) {
     ${card(t.queued, 'Still queued', 'waiting for the next send window')}
   </div>`;
 }
+// Booked, by deposit (Kate, 18 Oct 2026): of the clients who booked after our message, who has paid a deposit, who has not, and who
+// comes today (no deposit needed). Visual by default, Table beside it like Comparison. Colours are the page's own: paid = --good,
+// not paid yet = --accent, today = --muted2. Counted per client, so it can run under the Booked tile, which counts messages.
+const LR_SOON = { 1: 'Tomorrow', 2: 'In 2 to 3 days', 3: 'In 4 to 7 days', 4: 'In 8 to 14 days', 5: 'Later' };
+function lrDepBar(m, scale) {
+  const w = k => m.booked ? (100 * (m[k] || 0) / m.booked) : 0;
+  return `<span class="lr-dbar" style="width:${Math.max(4, scale)}%"><i class="d-paid" style="width:${w('paid')}%"></i><i class="d-today" style="width:${w('today')}%"></i><i class="d-unpaid" style="width:${w('unpaid')}%"></i></span>`;
+}
+function lrDepVisual(d) {
+  const t = d.total, by = d.by_branch || [], soon = d.soon || [], maxB = Math.max(1, ...by.map(b => b.booked)), maxS = Math.max(1, ...soon.map(s => s.n));
+  const card = (n, ti, ds) => `<div class="ll-card lr-card"><div class="ll-t">${ti}</div><div class="ll-n">${lcNum(n)}</div><div class="ll-d">${ds}</div></div>`;
+  const key = '<div class="lr-dkey"><span><i class="d-paid"></i>Deposit paid</span><span><i class="d-today"></i>Today, none needed</span><span><i class="d-unpaid"></i>Not paid yet</span></div>';
+  return `<div class="ll-cards lr-cards">
+      ${card(t.booked, 'Booked', 'clients with a booking from today on')}
+      ${card(t.paid, 'Deposit paid', lrPct(t.paid, t.booked) + ' of the booked')}
+      ${card(t.unpaid, 'Not paid yet', 'no deposit in Phorest yet')}
+      ${card(t.today, 'Today', 'booked for today, no deposit needed')}
+    </div>
+    <div class="lr-dgrid">
+      <div class="lr-dcard"><h4>By branch</h4>
+        ${by.map(b => `<div class="lr-drow"><span>${lcEsc(LC_BRANCH[b.k] || b.k)}</span>${lrDepBar(b, 100 * b.booked / maxB)}<b>${lcNum(b.booked)}</b></div>`).join('') || '<p class="slv-muted">Nobody yet.</p>'}
+        ${key}</div>
+      <div class="lr-dcard"><h4>Not paid yet: how soon they come</h4>
+        ${soon.map(s => `<div class="lr-drow"><span>${LR_SOON[s.k] || s.k}</span><span class="lr-dbar" style="width:${Math.max(4, 100 * s.n / maxS)}%"><i class="d-unpaid" style="width:100%"></i></span><b>${lcNum(s.n)}</b></div>`).join('') || '<p class="slv-muted">Everyone has paid, or comes today.</p>'}
+        <p class="slv-note">The ones coming tomorrow or the day after are the ones reception can chase today.</p></div>
+    </div>`;
+}
+function lrDepTable(d) {
+  const t = d.total, by = d.by_branch || [], who = d.who || [];
+  const stTxt = w => w.status === 'paid' ? `Paid (AED ${lcNum(Math.round(w.deposit))})` : w.status === 'today' ? 'Today, none needed' : 'Not paid yet';
+  return `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Branch</th><th>Booked</th><th>Deposit paid</th><th>Today, none needed</th><th>Not paid yet</th></tr></thead><tbody>
+      ${by.map(b => `<tr><td>${lcEsc(LC_BRANCH[b.k] || b.k)}</td><td>${lcNum(b.booked)}</td><td>${lcNum(b.paid)}</td><td>${lcNum(b.today)}</td><td>${lcNum(b.unpaid)}</td></tr>`).join('')}
+      <tr><td><b>All</b></td><td><b>${lcNum(t.booked)}</b></td><td><b>${lcNum(t.paid)}</b></td><td><b>${lcNum(t.today)}</b></td><td><b>${lcNum(t.unpaid)}</b></td></tr></tbody></table></div>
+    <h4 class="lr-dh">Who</h4>
+    <div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Client</th><th>Branch</th><th>Next appointment</th><th>Deposit</th></tr></thead><tbody>
+      ${who.map(w => `<tr><td>${lcEsc(w.name || '')}</td><td>${lcEsc(LC_BRANCH[w.branch] || w.branch)}</td><td>${lcEsc(lrDay(w.next))}</td><td>${lcEsc(stTxt(w))}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function lrDepInner() {
+  const d = lrDep;
+  if (!d) return '';
+  const tbl = lrDepView === 'table';
+  return `<div class="lr-dhd"><h3>Booked: who has paid a deposit</h3>
+      <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrDepSet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrDepSet('table')">Table</button></div></div>
+    ${d.total.booked ? (tbl ? lrDepTable(d) : lrDepVisual(d)) : '<p class="slv-muted">Nobody has booked from today on yet.</p>'}
+    <p class="slv-note">A deposit is Phorest's Deposit item, net of refunds, in the last 90 days, matched on the client's name. Deposits arrive with the nightly sales upload, so one paid today shows tomorrow. Counted per client.</p>`;
+}
+function lrDepSet(v) {
+  lrDepView = v === 'table' ? 'table' : 'visual';
+  try { localStorage.setItem('lr-dep-view', lrDepView); } catch (e) {}
+  const el = document.getElementById('lr-deposits');
+  if (el) el.innerHTML = lrDepInner();
+}
+// Did our message arrive? (Kate, 18 Oct 2026). respond.io's delivery status of each message we sent, kept by the nightly sync: seen (read),
+// delivered but not read, accepted but not delivered yet, or failed (WhatsApp refused it, so she never got it). Visual by default, Table beside it.
+// Colours are the page's own: seen = --good, delivered = --accent, not yet = --muted2, failed = --bad. Counted per message sent.
+const LR_DKEYS = [['seen', 'Seen', 'd-seen'], ['delivered', 'Delivered only', 'd-delivered'], ['sent_only', 'Not delivered yet', 'd-sentonly'], ['failed', 'Failed to deliver', 'd-failed']];
+function lrDelBar(m, scale) {
+  const w = k => m.sent ? (100 * (m[k] || 0) / m.sent) : 0;
+  return `<span class="lr-dbar" style="width:${Math.max(4, scale)}%">${LR_DKEYS.map(([k, , c]) => `<i class="${c}" style="width:${w(k)}%"></i>`).join('')}</span>`;
+}
+function lrDelVisual(d) {
+  const t = d.total, by = d.by_branch || [], days = d.by_day || [], maxD = Math.max(1, ...days.map(x => x.sent));
+  const card = (n, ti, ds, cls) => `<div class="ll-card lr-card${cls ? ' ' + cls : ''}"><div class="ll-t">${ti}</div><div class="ll-n">${lcNum(n)}</div><div class="ll-d">${ds}</div></div>`;
+  const key = `<div class="lr-dkey">${LR_DKEYS.map(([, l, c]) => `<span><i class="${c}"></i>${l}</span>`).join('')}</div>`;
+  return `<div class="ll-cards lr-cards">
+      ${card(t.seen, 'Seen', lrPct(t.seen, t.sent) + ' of the sent were read')}
+      ${card(t.delivered, 'Delivered only', lrPct(t.delivered, t.sent) + ', arrived but not read yet')}
+      ${card(t.failed, 'Failed to deliver', lrPct(t.failed, t.sent) + ', WhatsApp refused them', t.sent && t.failed / t.sent > 0.05 ? 'lr-warn' : '')}
+      ${card(t.sent_only, 'Not delivered yet', 'accepted, no delivery report yet')}
+    </div>
+    <div class="lr-dgrid">
+      <div class="lr-dcard"><h4>By branch</h4>
+        ${by.map(b => `<div class="lr-drow lr-drow2"><span>${lcEsc(LC_BRANCH[b.k] || b.k)}</span>${lrDelBar(b, 100)}<b>${lrPct(b.failed, b.sent)} failed</b></div>`).join('') || '<p class="slv-muted">Nothing sent yet.</p>'}
+        ${key}</div>
+      <div class="lr-dcard"><h4>By day sent</h4>
+        ${days.map(x => `<div class="lr-drow lr-drow2"><span>${lcEsc(lrDay(x.k))}</span>${lrDelBar(x, 100 * x.sent / maxD)}<b>${lcNum(x.sent)}</b></div>`).join('') || '<p class="slv-muted">Nothing sent yet.</p>'}
+        <p class="slv-note">Bar length is how many went out that day; the colours are what happened to them.</p></div>
+    </div>`;
+}
+function lrDelTable(d) {
+  const t = d.total, by = d.by_branch || [], days = d.by_day || [];
+  const row = (label, m, bold) => { const b = v => bold ? `<b>${v}</b>` : v; return `<tr><td>${b(label)}</td><td>${b(lcNum(m.sent))}</td><td>${b(lcNum(m.seen))}</td><td>${b(lcNum(m.delivered))}</td><td>${b(lcNum(m.sent_only))}</td><td>${b(lcNum(m.failed))}</td><td>${b(lrPct(m.failed, m.sent))}</td></tr>`; };
+  const head = first => `<thead><tr><th>${first}</th><th>Sent</th><th>Seen</th><th>Delivered only</th><th>Not delivered yet</th><th>Failed</th><th>Failed %</th></tr></thead>`;
+  return `<div class="lr-scroll"><table class="slv-table lr-tbl">${head('Branch')}<tbody>${by.map(b => row(lcEsc(LC_BRANCH[b.k] || b.k), b)).join('')}${row('All', t, true)}</tbody></table></div>
+    <h4 class="lr-dh">By day sent</h4>
+    <div class="lr-scroll"><table class="slv-table lr-tbl">${head('Day')}<tbody>${days.map(x => row(lcEsc(lrDay(x.k)), x)).join('')}</tbody></table></div>`;
+}
+function lrDelInner() {
+  const d = lrDel;
+  if (!d) return '';
+  const tbl = lrDelView === 'table', unk = d.total.unknown || 0;
+  return `<div class="lr-dhd"><h3>Did the message arrive?</h3>
+      <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrDelSet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrDelSet('table')">Table</button></div></div>
+    ${d.total.sent ? (tbl ? lrDelTable(d) : lrDelVisual(d)) : '<p class="slv-muted">Nothing sent yet.</p>'}
+    <p class="slv-note">From respond.io's delivery report for each message, read each night, so a message sent today shows its result tomorrow. A client who replied still counts by what happened to the message.${unk ? ` ${lcNum(unk)} sent message${unk === 1 ? ' has' : 's have'} no report yet and ${unk === 1 ? 'is' : 'are'} left out of the bars.` : ''}</p>`;
+}
+function lrDelSet(v) {
+  lrDelView = v === 'table' ? 'table' : 'visual';
+  try { localStorage.setItem('lr-del-view', lrDelView); } catch (e) {}
+  const el = document.getElementById('lr-delivery');
+  if (el) el.innerHTML = lrDelInner();
+}
 // Half-hour slots, one block per day: how the pace actually ran.
 function lrSlots(slots) {
   if (!slots.length) return '<p class="slv-muted">Nothing sent yet.</p>';
@@ -107,6 +219,8 @@ function lrPaint() {
       <button type="button" class="ll-chip lq-refresh" onclick="lrRenderPerf(true)" title="Ask again">Refresh</button>
     </div>
     <section class="lr-sec" id="lr-totals"><h3>The campaign so far</h3>${lrTiles(t)}</section>
+    ${lrDel ? `<section class="lr-sec" id="lr-delivery">${lrDelInner()}</section>` : ''}
+    ${lrDep ? `<section class="lr-sec" id="lr-deposits">${lrDepInner()}</section>` : ''}
     <section class="lr-sec" id="lr-waves"><h3>By wave</h3>${lrTable('Wave', waveRows)}</section>
     <section class="lr-sec" id="lr-messages"><h3>By message</h3>${lrTable('Message', msgRows)}</section>
     <section class="lr-sec" id="lr-branches"><h3>By branch</h3>${lrTable('Branch', brRows)}</section>

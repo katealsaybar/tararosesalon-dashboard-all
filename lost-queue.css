@@ -167,6 +167,40 @@
 #lostListsContent .lr-bar{height:10px;border-radius:5px;background:var(--border2);overflow:hidden}
 #lostListsContent .lr-bar i{display:block;height:100%;background:var(--accent);border-radius:5px}
 #lostListsContent .lr-sn{text-align:right;font-weight:600}
+/* Booked by deposit (Kate, 18 Oct 2026): lost-report.js lrDepInner. The page's own colours: paid = --good (mint on dark), not paid yet = --accent
+   (pink on dark), today = --muted2. The Visual / Table switch is the site's .tp-seg. */
+#lostListsContent .lr-dhd{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 10px}
+#lostListsContent .lr-dhd h3{margin:0}
+#lostListsContent .lr-dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:14px 0 6px}
+#lostListsContent .lr-dcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+#lostListsContent .lr-dcard h4,#lostListsContent .lr-dh{font-size:14px;font-weight:600;margin:0 0 10px}
+#lostListsContent .lr-dh{margin:18px 0 8px}
+#lostListsContent .lr-drow{display:grid;grid-template-columns:118px minmax(0,1fr) 34px;align-items:center;gap:10px;padding:4px 0;font-size:13px;font-variant-numeric:tabular-nums}
+#lostListsContent .lr-drow b{text-align:right;font-weight:600}
+#lostListsContent .lr-dbar{display:flex;height:14px;border-radius:5px;overflow:hidden;background:var(--border2);min-width:0}
+#lostListsContent .lr-dbar i{display:block;height:100%}
+#lostListsContent .d-paid{background:var(--good)}
+#lostListsContent .d-today{background:var(--muted2)}
+#lostListsContent .d-unpaid{background:var(--accent)}
+#lostListsContent .d-seen{background:var(--good)}
+#lostListsContent .d-delivered{background:var(--accent)}
+#lostListsContent .d-sentonly{background:var(--muted2)}
+#lostListsContent .d-failed{background:var(--bad)}
+#lostListsContent .lr-drow2{grid-template-columns:118px minmax(0,1fr) 84px}
+#lostListsContent .lr-drow2 b{white-space:nowrap}
+#lostListsContent .lr-dkey{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 0;font-size:12px;color:var(--muted)}
+#lostListsContent .lr-dkey span{display:inline-flex;align-items:center;gap:6px}
+#lostListsContent .lr-dkey i{display:inline-block;width:10px;height:10px;border-radius:50%}
+/* On a phone a bar row is two lines: the label and the number, then the bar at the full width of the card (it was about 80px between them). */
+@media(max-width:560px){
+  #lostListsContent .lr-dgrid{grid-template-columns:minmax(0,1fr)}
+  #lostListsContent .lr-drow,#lostListsContent .lr-drow2{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"l v" "b b";row-gap:4px;padding:6px 0}
+  #lostListsContent .lr-drow > span:first-child,#lostListsContent .lr-drow2 > span:first-child{grid-area:l}
+  #lostListsContent .lr-drow > b,#lostListsContent .lr-drow2 > b{grid-area:v}
+  #lostListsContent .lr-drow > .lr-dbar,#lostListsContent .lr-drow2 > .lr-dbar{grid-area:b}
+  #lostListsContent .lr-cards{grid-template-columns:1fr 1fr;gap:8px}
+  #lostListsContent .lr-card{padding:12px}
+}
 #lostListsContent .lr-pager{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px 0 4px}
 #lostListsContent .lr-pager .tglr{min-height:44px}
 #lostListsContent .lr-pager .tglr[disabled]{opacity:.4;cursor:default}
