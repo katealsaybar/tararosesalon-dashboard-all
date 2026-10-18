@@ -135,3 +135,16 @@ function canonicalStaffName(name){
   const key = String(name).trim().toUpperCase();
   return STAFF_NAME_ALIASES[key] || name;
 }
+
+// One ledger first name, two different people, told apart by date. Kate, 18 Oct 2026: the ledger writes both Rachel Dawson
+// (former Style Director, SAA / KCA / Marasy / MC, ledger 1 Dec 2020 to 7 Apr 2024) and Rachel White (KCA and one SAA week, 16 Sep 2024
+// to 12 Jan 2025) as just RACHEL. Nothing in the ledger sits between 7 Apr and 16 Sep 2024, so any date before the cut-off is Dawson.
+// Applied to a ledger row's name and date as it is loaded (dashboard.js loadBranchStaffDailyRange); a row on or after the cut-off keeps the
+// plain name, which is the RACHEL profile (White). 'RACHEL DAWSON' is her own staff-profiles.js key, and Phorest's 'Rachel Dawson' rows
+// match it exactly when the revenue is joined.
+const STAFF_NAME_DATE_SPLITS = { 'RACHEL': { before: '2024-09-01', name: 'RACHEL DAWSON' } };
+function splitStaffNameByDate(name, isoDate){
+  if (!name || !isoDate) return name;
+  const rule = STAFF_NAME_DATE_SPLITS[String(name).trim().toUpperCase()];
+  return (rule && String(isoDate).slice(0, 10) < rule.before) ? rule.name : name;
+}

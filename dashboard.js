@@ -3259,7 +3259,10 @@ async function loadBranchStaffDailyRange(from, to) {
   const pad = n => String(n).padStart(2, '0');
   const fromStr = `${from.getFullYear()}-${pad(from.getMonth()+1)}-${pad(from.getDate())}`;
   const toStr   = `${to.getFullYear()}-${pad(to.getMonth()+1)}-${pad(to.getDate())}`;
-  return keepUae(await loadAllRows('branch_staff_daily_clean', fromStr, toStr));
+  const rows = keepUae(await loadAllRows('branch_staff_daily_clean', fromStr, toStr));
+  // Rachel Dawson and Rachel White are both just RACHEL in the ledger; the one before 1 Sep 2024 is Dawson (name-aliases.js).
+  if (typeof splitStaffNameByDate === 'function') rows.forEach(r => { r.staff_name = splitStaffNameByDate(r.staff_name, r.date); });
+  return rows;
 }
 
 async function loadPhorestStaffDailyRange(from, to) {
