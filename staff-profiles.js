@@ -315,7 +315,7 @@ const STAFF_PROFILES = {
   // Kate, 15 Oct 2026, "possibly her": Denise . (KCA and Saadiyat Stylist, ledger KCA Mar to May 2022) is Denise Muc; the only IG Kate has is her personal one.
   'DENISE':  { photoFull: 'stylist/photos/KCA/denise muc.png', role: 'Stylist', branch: 'KCA', ig: 'denise_muc_abudhabi', resigned: true },
   'LINA':     { photoFull: 'stylist/photos/AQ/lina waled.png', role: 'Stylist', branch: 'AQ', resigned: true },
-  'SHERINE':  { photoFull: 'stylist/photos/KCA/sherine baghdadi.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
+  'SHERINE':  { photoFull: 'stylist/photos/KCA/sherine baghdadi.png', role: 'Stylist', branch: 'KCA', resigned: true },
   'GABBY':    { photoFull: 'stylist/photos/SAA/gabby nemeth.png', role: 'Stylist', branch: 'SAA', ig: 'zuzu_hair_', resigned: true },
   'RHI':      { photoFull: 'stylist/photos/SAA/rhi george.png', role: 'Style Director', branch: 'SAA', ig: 'hairbyrhiabudhabi', resigned: true },
   // Kate, 14 Oct 2026: former team with no photo and no client-facing Instagram yet, so each carries the
