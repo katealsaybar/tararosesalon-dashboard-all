@@ -23,6 +23,14 @@
 .rs-send:hover{border-color:var(--text)}
 .rs-send:disabled{cursor:default;opacity:.6;border-color:var(--border)}
 /* Kate, 15 Oct 2026: Add person and Change level, Level 5 only. */
+/* The My Numbers lock strip (audit 18 Oct 2026, P7-01). */
+.rs-lock{margin:14px 0 4px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);font-size:14px}
+.rs-lock b{font-weight:700}
+.rs-lock .rs-lk-on{color:#2E7D5B}.rs-lock .rs-lk-off{color:var(--muted)}
+.rs-lock details{margin-top:8px}
+.rs-lock summary{cursor:pointer;min-height:32px;display:flex;align-items:center;color:var(--muted)}
+.rs-lock ul{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.rs-lock .rs-lkbtn{font:inherit;font-size:13px;font-weight:600;padding:6px 14px;min-height:36px;border-radius:999px;border:1px solid var(--text);background:transparent;color:var(--text);cursor:pointer;margin-left:8px}
 .rs-add{margin:14px 0 6px}
 .rs-addbtn{font:inherit;font-size:13px;font-weight:600;padding:8px 16px;border-radius:999px;border:1px solid var(--text);background:var(--text);color:var(--bg);cursor:pointer}
 .rs-form{display:none;margin-top:12px;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface);gap:10px;flex-wrap:wrap;align-items:flex-end}
@@ -257,6 +265,7 @@
       '<p class="kb-meta">' + data.people.length + ' people can sign in' +
         (byLevel ? ': ' + (data.people.length - staff) + ' on the dashboard list and ' + staff + ' in the team' : '') +
         (byLevel ? '. You can add people, change their level or email, and revoke access here.' : '. View only; changes go through Kate.') + '</p>' +
+      '<div class="rs-lock" id="rsLock" hidden></div>' +
       (byLevel ? '<div class="rs-add"><button type="button" class="rs-addbtn" id="rsAddBtn">Add person</button>' +
         '<form class="rs-form" id="rsForm" autocomplete="off">' +
           '<label>Full name<input type="text" id="rsName" required></label>' +
@@ -289,6 +298,32 @@
     function setTop() { if (head && tbl) tbl.style.setProperty('--rs-top', Math.round(head.getBoundingClientRect().height) + 'px'); }
     setTop(); window.addEventListener('resize', setTop);
     if (window.ResizeObserver && head) new ResizeObserver(setTop).observe(head);
+    // The My Numbers sign-in lock (migrations/my_numbers_lock.sql): the switch and who has signed in so far. Level 3 and above read it; Level 5 flips it.
+    async function drawLock() {
+      var box = document.getElementById('rsLock');
+      var r = await KB.client.rpc('perf_lock_status');
+      if (r.error || !r.data) { box.hidden = true; return; }
+      var st = r.data, never = st.never || [], nonG = never.filter(function (n) { return !n.gmail; }).length;
+      box.hidden = false;
+      box.innerHTML = '<b>My Numbers sign-in lock:</b> <span class="' + (st.on ? 'rs-lk-on' : 'rs-lk-off') + '"><b>' + (st.on ? 'ON' : 'OFF') + '</b></span>. ' +
+        st.signed_in + ' of ' + st.total + ' stylists and therapists have signed in' + (never.length ? ' (' + never.length + ' not yet, ' + nonG + ' of them without a Gmail address, who use the email link)' : '') + '.' +
+        (byLevel ? '<button type="button" class="rs-lkbtn" id="rsLkBtn">' + (st.on ? 'Switch off' : 'Switch on') + '</button>' : '') +
+        (never.length ? '<details><summary>Who has not signed in yet (' + never.length + ')</summary><ul>' + never.map(function (n) {
+          return '<li>' + esc(n.name) + ' · ' + esc(BRANCH[n.branch] || n.branch || '') + ' · ' + esc(n.email) + (n.gmail ? '' : ' · email link') + '</li>';
+        }).join('') + '</ul></details>' : '');
+      var b = document.getElementById('rsLkBtn');
+      if (b) b.onclick = async function () {
+        var turnOn = !st.on;
+        if (!confirm(turnOn
+          ? 'Switch the lock ON? A stylist\u2019s link will then ask her to sign in with her own email, and ' + never.length + ' have not signed in yet.'
+          : 'Switch the lock OFF? Links open with no sign-in again.')) return;
+        b.disabled = true;
+        var s = await KB.client.rpc('perf_lock_set', { p_on: turnOn });
+        if (s.error) { alert('Not changed: ' + s.error.message); b.disabled = false; return; }
+        drawLock();
+      };
+    }
+    drawLock();
     draw();
     document.getElementById('rsList').addEventListener('toggle', function (e) {
       var d = e.target; if (d && d.dataset && d.dataset.g !== undefined) openG[d.dataset.g] = d.open;

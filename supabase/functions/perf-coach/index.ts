@@ -94,10 +94,10 @@ const json = (body: unknown, headers: Record<string, string>, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...headers, "content-type": "application/json" } });
 const statusOf = (e: unknown) => { const n = (e as { status?: unknown })?.status; return typeof n === "number" ? n : undefined; };
 
-async function rpc(fn: string, args: unknown, key = ANON) {
+async function rpc(fn: string, args: unknown, key = ANON, bearer = key) {
   const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`, {
     method: "POST",
-    headers: { apikey: key, Authorization: `Bearer ${key}`, "content-type": "application/json" },
+    headers: { apikey: key, Authorization: `Bearer ${bearer}`, "content-type": "application/json" },
     body: JSON.stringify(args),
   });
   return r.ok ? r.json() : null;
@@ -142,8 +142,11 @@ Deno.serve(async (req: Request) => {
     if (!question) return json({ error: "Ask a question first." }, CORS, 400);
     if (question.length > MAX_QUESTION_CHARS) return json({ error: `Keep it under ${MAX_QUESTION_CHARS} characters.` }, CORS, 400);
     const month = /^\d{4}-\d{2}$/.test(body.month || "") ? body.month + "-01" : null;
+    // The My Numbers lock (audit 18 Oct 2026, P7-01): her own page is asked for with the caller's own session, so while the lock is on the database
+    // answers only for her signed-in email (or a leader's). With the lock off, the anon key it always was.
+    const bearer = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "") || ANON;
     const d = body.token
-      ? await rpc("perf_dashboard", { p_token: body.token, p_month: month })
+      ? await rpc("perf_dashboard", { p_token: body.token, p_month: month }, ANON, bearer)
       : await rpc("perf_dashboard_by_id", { p_admin: body.admin, p_staff_id: body.staff_id, p_month: month });
     if (!d) return json({ error: "This link isn't active." }, CORS, 403);
 

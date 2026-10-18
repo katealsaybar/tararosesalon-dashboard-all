@@ -214,7 +214,7 @@ async function rpc(fn, args, retried) {
   try {
     r = await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`, {
       method: 'POST',
-      headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' },
+      headers: await PerfAuth.headers(),
       body: JSON.stringify(args),
     });
   } catch (e) {
@@ -512,7 +512,7 @@ function wireCoach(d) {
     try {
       const r = await fetch(COACH_FN, {
         method: 'POST',
-        headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' },
+        headers: await PerfAuth.headers(),
         body: JSON.stringify(Object.assign({ action: 'ask', question: q, month: MONTH, history },
           TOKEN ? { token: TOKEN } : { admin: ADMIN, staff_id: d.staff_id })),
       });
@@ -915,7 +915,7 @@ const PAYSLIP_FN = SUPA_URL + '/functions/v1/payslips';
 async function payslipMine() {
   const r = await fetch(PAYSLIP_FN, {
     method: 'POST',
-    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' },
+    headers: await PerfAuth.headers(),
     body: JSON.stringify({ action: 'mine', token: TOKEN, month: MONTH }),
   });
   if (!r.ok) throw new Error('payslip ' + r.status);
@@ -1066,6 +1066,8 @@ async function renderTeam() {
     setTimeout(postHeight, 300);   // rAF and ResizeObserver pause in a hidden tab; timers still run
   } catch (e) {
     console.error(e);
+    // The lock (audit 18 Oct 2026, P7-01): her page is private to her own email once it is switched on; sign in, and the same link opens.
+    if (PerfAuth.isSignIn(e)) { PerfAuth.card(app); return; }
     app.innerHTML = `<p class="err">Couldn't load the numbers just now. Try again in a minute.</p>`;
   }
 })();

@@ -11,8 +11,8 @@
 (function () {
 async function call(fn, body) {
   const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`, { method: 'POST',
-    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  if (!r.ok) throw new Error(fn + ' ' + r.status);
+    headers: await PerfAuth.headers(), body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(fn + ' ' + r.status + ' ' + await r.text());
   return r.json();
 }
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

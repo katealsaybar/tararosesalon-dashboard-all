@@ -4358,7 +4358,10 @@ const GATE_BACK = location.origin + location.pathname;
 
 const GATE_MODES = {
   signin: { title:'Sign in', btn:'Sign in', google:true, email:true, pw:true,
-            links:[['Forgot password?','forgot'],['First time? Create a password','signup']] },
+            links:[['Email me a sign-in link','link'],['Forgot password?','forgot'],['First time? Create a password','signup']] },
+  // Kate, 18 Oct 2026: staff without a Google account sign in once with a link sent to their own email (My Numbers lock, P7-01).
+  link:   { title:'Email me a sign-in link', btn:'Send the link', google:false, email:true, pw:false,
+            links:[['Back to sign in','signin']] },
   signup: { title:'Create your password', btn:'Create account', google:true, email:true, pw:true,
             links:[['Back to sign in','signin']] },
   forgot: { title:'Reset your password', btn:'Send reset link', google:false, email:true, pw:false,
@@ -4446,6 +4449,14 @@ async function doLogin(){
       if (data.session) { await enterIfAllowed(true); return; }
       gateMode('signin', 'Check your inbox for a confirmation link, then sign in here. If you already have an account, use Forgot password.');
       document.getElementById('loginEmail').value = email;
+    } else if (GATE_MODE === 'link') {
+      // A sign-in link by email (no password). Only an email on the team list, the same check as Create account; the link brings her back to
+      // the page she came from (?next=), for staff that is her My Numbers page.
+      const ok = await sb.rpc('kb_email_allowed', { p_email: email });
+      if (ok.data !== true) { gateMsg('That email isn’t on the team list. Ask Kate to add you.', 'error'); return; }
+      const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: GATE_BACK + gateNextQuery() } });
+      if (error) { gateMsg('Couldn’t send the link just now. Try again in a minute.', 'error'); return; }
+      gateMsg('The link is on its way. Open it on this phone or computer, and check spam too.', 'info');
     } else if (GATE_MODE === 'forgot') {
       const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: GATE_BACK });
       if (error) { gateMsg('Couldn’t send the email just now. Try again in a minute.', 'error'); return; }
@@ -4480,7 +4491,7 @@ async function enterIfAllowed(fresh){
     // would otherwise bounce between here and Team Home.
     const kb = await sb.rpc('kb_access');
     if (!kb.error && kb.data && kb.data.level === 1) {
-      location.replace(safeNext && (safeNext.startsWith('/hub/') || safeNext.startsWith('/search/')) ? safeNext : '/search/');
+      location.replace(safeNext && (safeNext.startsWith('/hub/') || safeNext.startsWith('/search/') || safeNext.startsWith('/performance/') || safeNext.startsWith('/me/')) ? safeNext : '/search/');
       return;
     }
     const { data } = await sb.auth.getUser();

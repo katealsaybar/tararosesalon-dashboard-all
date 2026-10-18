@@ -35,6 +35,22 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+// The lock switch, and whether the signed-in caller may open this staff member's page. Mirrors perf_lock_ok() in the database.
+async function lockOn(): Promise<boolean> {
+  const { data } = await sb.from("kb_settings").select("on_off").eq("key", "my_numbers_lock").maybeSingle();
+  return !!(data && data.on_off);
+}
+async function callerMayOpen(req: Request, staffId: string): Promise<boolean> {
+  const jwt = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!jwt) return false;
+  const { data: u } = await sb.auth.getUser(jwt);
+  const email = u?.user?.email?.toLowerCase();
+  if (!email) return false;
+  const { data: p } = await sb.from("perf_staff").select("email").eq("id", staffId).maybeSingle();
+  if (p?.email && p.email.toLowerCase() === email) return true;
+  const { data: d } = await sb.from("dashboard_users").select("level, scope").eq("email", email).maybeSingle();
+  return !!d && Number(d.level) >= 3 && !d.scope;
+}
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
@@ -73,6 +89,9 @@ Deno.serve(async (req) => {
       if (!UUID.test(token)) return json({ error: "bad token" }, 401);
       const { data: s } = await sb.from("perf_staff").select("id").eq("token", token).eq("active", true).maybeSingle();
       if (!s) return json({ error: "bad token" }, 401);
+      // The My Numbers lock (audit 18 Oct 2026, P7-01). While kb_settings my_numbers_lock is on, the link alone opens nothing: the caller's own signed-in
+      // email must be hers (or a dashboard login at Level 3 and above, who open anyone's). The page sends its session as the bearer token.
+      if (await lockOn() && !(await callerMayOpen(req, s.id))) return json({ error: "sign_in_required" }, 401);
       const { data: p } = await sb.from("payslips").select("path, file_name, uploaded_at").eq("staff_id", s.id).eq("month", monthDate(month)).maybeSingle();
       if (!p) return json({ exists: false });
       return json({ exists: true, url: await signed(p.path), file_name: p.file_name, uploaded_at: p.uploaded_at });

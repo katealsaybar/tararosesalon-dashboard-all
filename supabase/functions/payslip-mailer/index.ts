@@ -136,12 +136,16 @@ async function emailFor(p: Person, month: string) {
   const wt = hasNumbers ? await winTip(d, p.token, month) : null;
   const first = p.name.split(" ")[0];
   const link = `${PAGE}?t=${p.token}&m=${month}`;
+  // While the My Numbers lock is on (audit 18 Oct 2026, P7-01) the link asks her to sign in once, so the email says with which address.
+  const { data: lk } = await sb.from("kb_settings").select("on_off").eq("key", "my_numbers_lock").maybeSingle();
+  const lockLine = lk && lk.on_off ? `<p style="font-size:13px">Sign in with the email this was sent to. Google or an email link, once, and this phone remembers you.</p>` : "";
   const html = `<div style="font-family:Arial,sans-serif;color:#5C5557;max-width:560px;line-height:1.5">
     <p>Hi ${esc(first)},</p>
     <p>${p.slip ? `Your ${label(month, { month: "long" })} payslip is attached.` : `Here is your ${label(month, { month: "long" })} in short. Your payslip will follow.`}</p>
     ${winTipHtml(wt)}
     <p>Your full month is on your own page: your six numbers, your reviews${d && d.next_level ? `, and how close you are to ${esc(d.next_level)}` : ""}.</p>
     <p><a href="${link}" style="display:inline-block;background:#5C5557;color:#F9E8DF;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">See my month</a></p>
+    ${lockLine}
     <p>Questions about your payslip? Just reply to this email. Questions about your numbers? Your salon manager can walk you through them.</p>
     <p style="font-size:12px;color:#9a8a87">This link is yours only, so please keep it to yourself.</p>
     <p style="margin-top:22px"><img src="${LOGO}" alt="Tara Rose Salons" width="100" style="display:block;width:100px;height:auto;border:0"></p>
@@ -152,7 +156,7 @@ async function emailFor(p: Person, month: string) {
     if (error || !blob) throw new Error(`Couldn't read ${p.name}'s payslip file.`);
     pdf = { name: p.slip.file_name || `${p.name} payslip ${month}.pdf`, bytes: new Uint8Array(await blob.arrayBuffer()) };
   }
-  return { html, pdf, text: `Your ${label(month, { month: "long" })} payslip: ${link}` };
+  return { html, pdf, text: `Your ${label(month, { month: "long" })} payslip: ${link}${lockLine ? "\nSign in with the email this was sent to." : ""}` };
 }
 
 // ── sending ──
