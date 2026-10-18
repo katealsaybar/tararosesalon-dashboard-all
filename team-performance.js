@@ -99,6 +99,41 @@ function tpApplyCounts(roster, counts) {
     st.gReviews = c ? (c.google_reviews || 0) : 0;
   });
 }
+// Google review counts by the Google Reviews page's own rule (Kate, 18 Oct 2026: "mag base ka kasi doon sa google reviews section").
+// league_counts() above only knows people on the active performance list, so leavers, the Bahrain MD and anyone with no row there read 0
+// (Zara 46 tagged reviews, Zandri 90, Daisy 35, Danika 37) and the rest were short. league_review_counts() (migrations/league_review_counts.sql)
+// counts, for every person on the board, the reviews whose text names her by staff_name_variants (a strict spelling such as May or Grace only
+// at her home branch) or that are hand-tagged to her: what the Google Reviews section shows. Where the call fails, league_counts' number stays.
+let tpRevCounts = null, tpRevKey = '';
+// A second branch where a strict first name also counts, the same list the Google Reviews page keeps (ALSO_BRANCH in its app.js): Hazel Mae
+// Marco was at Al Quoz from Oct 2023 to Dec 2025, so "Hazel" on an Al Quoz review is hers.
+const TP_ALSO_BRANCH = { 'HAZEL MAE': ['AQ'] };
+function tpHomeBranches(st) {
+  const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null;
+  return (p && p.branch ? [p.branch] : [st.branchCode].filter(Boolean)).concat(TP_ALSO_BRANCH[tpMergeKey(st.name)] || []);
+}
+async function tpLoadReviewCounts(roster) {
+  if (typeof dateFrom === 'undefined' || !dateFrom || !dateTo) return;
+  const staff = [], seen = new Set();
+  roster.forEach(st => {
+    const k = tpMergeKey(st.name);
+    if (!k || seen.has(k)) return;
+    // p: she has a staff profile, so her home is the profile's branch; someone without one (Daisy, Kerryn) is known only by her name rows.
+    seen.add(k); staff.push({ k, h: tpHomeBranches(st), p: (typeof staffProfile === 'function' && staffProfile(st.name)) ? 1 : 0 });
+  });
+  const from = dateToIso(dateFrom), to = dateToIso(dateTo), key = from + '|' + to + '|' + staff.map(s => s.k + ':' + s.h.join('')).join(',');
+  if (tpRevCounts && tpRevKey === key) return;
+  try {
+    const { data, error } = await sb.rpc('league_review_counts', { p_admin: await viewerKey(), p_from: from, p_to: to, p_staff: staff });
+    if (error || !Array.isArray(data)) throw error || new Error('no review counts');
+    tpRevCounts = {}; data.forEach(r => { tpRevCounts[r.k] = r.n || 0; });
+    tpRevKey = key;
+  } catch (e) { console.warn('league_review_counts failed', e); tpRevCounts = null; tpRevKey = ''; }
+}
+function tpApplyReviewCounts(roster) {
+  if (!tpRevCounts) return;
+  roster.forEach(st => { const n = tpRevCounts[tpMergeKey(st.name)]; if (n != null) st.gReviews = n; });
+}
 // REBOOKING SOURCE (Kate, 17 Oct 2026, the audit's P3-01). The same stylist read 4.8% on one page and 16.7% on the page it opened, because the
 // race and the quadrant read the hand-typed ledger and My Numbers can read Phorest. Ruling: Phorest's Staff Performance Tracker is the default
 // here, the ledger is one tap away, and BOTH figures are printed on every card and in the tray, so nobody has to guess which one they are
@@ -580,7 +615,7 @@ async function renderTeam() {
   else tpCountsBad = false;
   const lg = tpLg();
   let roster = tpRoster(tpDept);
-  if (lg.counts && tpCounts) tpApplyCounts(roster, tpCounts);
+  if (lg.counts && tpCounts) { tpApplyCounts(roster, tpCounts); await tpLoadReviewCounts(roster); tpApplyReviewCounts(roster); }
   if (tpHideLeavers) roster = roster.filter(st => !tpGone(st));
   // The race is re-ranked by the league picked; ties fall back to net take, which is
   // the order tpRoster already returns, and Array.sort is stable.

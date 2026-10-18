@@ -106,6 +106,21 @@ const STAFF_NAME_ALIASES = {
   'ABIGAEL': 'ABIGAIL',
   'EMALYN': 'EMMALYN',
   'MELIZZA': 'MELLIZA',
+  // Kate, 18 Oct 2026, from the Beauty bench of the Podium Race ("may mga duplicates dito sa beauty"): the same people under two spellings.
+  // MELISSA (Saadiyat, Aug 2021, 14 days) is Melliza Ancajas, who has her sales at Saadiyat that month. ELLIESA and ELOISA Purisima are
+  // both Al Quoz, 25 Sep to 15 Oct 2023, 21 ledger days each, and Phorest has both spellings; ELOISA is the one kept (Kate to say if it is the other).
+  // NAOMI (Khalifa City, 1 day), NEOMI and NOIME (Saadiyat, May 2021) are Noemi Mallari, whose 491 Saadiyat days are NOEMI. SHILAH (Khalifa
+  // City, May to Jul 2021) is Shila Mandal. ROBINA (Khalifa City, Jun to Aug 2021) is Rovina Jordan, who has her Khalifa City sales those months.
+  // Branch attribution is per row, so folding the names moves no revenue between branches.
+  'MELISSA': 'MELLIZA',
+  'ELLIESA': 'ELOISA',
+  'NAOMI': 'NOEMI',
+  'NEOMI': 'NOEMI',
+  'NOIME': 'NOEMI',
+  'SHILAH': 'SHILA',
+  'ROBINA': 'ROVINA',
+  // JACKY (Saadiyat, 15 to 21 Aug 2021, 7 days) is Jackie Anog, who has her only Saadiyat sale on 19 Aug 2021 and her Marasy days either side.
+  'JACKY': 'JACKIE',
 };
 
 function canonicalStaffName(name){
