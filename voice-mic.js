@@ -33,32 +33,51 @@
     var ph = inp.placeholder, rec = null, on = false;
     function off() { on = false; btn.classList.remove('on'); btn.setAttribute('aria-pressed', 'false'); inp.placeholder = ph; }
     btn.addEventListener('mousedown', function (e) { e.preventDefault(); });   // keep the bar focused
-    btn.addEventListener('click', function () {
-      if (on && rec) { rec.stop(); return; }
+    // One tap listens through the pauses: it stops after SILENCE ms with nothing new said (or a second tap, or Esc),
+    // not at the first breath. If the browser ends the session on its own sooner, it is started again and what was
+    // already said is kept (Kate, 18 Oct 2026: "konting pause lang eh nawawala na agad", "napuputol").
+    var SILENCE = 3500, restarts = 0, base = '', quiet = 0, wantOn = false;
+    function begin() {
       rec = new SR();
       rec.lang = 'en-GB';
       rec.interimResults = true;
-      rec.continuous = false;
+      rec.continuous = true;
       rec.onstart = function () {
         on = true; btn.classList.add('on'); btn.setAttribute('aria-pressed', 'true');
-        inp.value = ''; inp.placeholder = 'Listening…'; inp.focus();
+        if (!base) inp.value = '';
+        inp.placeholder = 'Listening…'; inp.focus();
+        clearTimeout(quiet); quiet = setTimeout(function () { wantOn = false; if (rec) rec.stop(); }, SILENCE + 3000);
       };
       rec.onresult = function (e) {
         var t = '';
         for (var i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
-        inp.value = t.slice(0, 200);
+        inp.value = (base + t).slice(0, 200);
         inp.dispatchEvent(new Event('input', { bubbles: true }));
+        clearTimeout(quiet); quiet = setTimeout(function () { wantOn = false; if (rec) rec.stop(); }, SILENCE);
       };
       rec.onerror = function (e) {
-        off();
+        if (e.error === 'no-speech' && base) return;            // nothing more to say; onend finishes it
+        if (e.error === 'aborted') return;
+        wantOn = false; clearTimeout(quiet); off();
         if (e.error === 'not-allowed' || e.error === 'service-not-allowed') inp.placeholder = 'Allow the microphone to search by voice';
         else if (e.error === 'no-speech') inp.placeholder = 'Did not catch that, tap the mic and try again';
         if (inp.placeholder !== ph) setTimeout(function () { if (!on) inp.placeholder = ph; }, 4000);
       };
-      rec.onend = function () { var had = on; off(); if (had) inp.focus(); };
-      try { rec.start(); } catch (err) { off(); }
+      rec.onend = function () {
+        if (wantOn && restarts < 4) {                           // cut short by the browser, not by us: carry on
+          restarts++; base = inp.value ? inp.value.replace(/\s*$/, ' ') : '';
+          try { begin(); return; } catch (err) { /* fall through and finish */ }
+        }
+        clearTimeout(quiet); var had = on; wantOn = false; off(); if (had) inp.focus();
+      };
+      rec.start();
+    }
+    btn.addEventListener('click', function () {
+      if (on && rec) { wantOn = false; clearTimeout(quiet); rec.stop(); return; }
+      restarts = 0; base = ''; wantOn = true;
+      try { begin(); } catch (err) { wantOn = false; off(); }
     });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && on && rec) rec.stop(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && on && rec) { wantOn = false; clearTimeout(quiet); rec.stop(); } });
     return btn;
   }
   window.TRSMic = { add: add };
