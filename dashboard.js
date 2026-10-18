@@ -1951,6 +1951,12 @@ function jumpToStylistBranch(branch) {
 async function renderStylistCards() {
   const host = document.getElementById('stylistCardsContent');
   if (!host) return;
+  // The card words (stylist-cards.js) load on first use. If this draw ran before they arrived (an old pages.js beside a new index for a few minutes
+  // after a push, or a draw that did not go through showView), draw again once they are in, so no card is missing from a page that says it has them.
+  if (typeof STYLIST_CARDS === 'undefined' && typeof trsLazy === 'function' && !renderStylistCards._again) {
+    renderStylistCards._again = true;
+    trsLazy('sc').then(() => { renderStylistCards._again = false; renderStylistCards(); }, () => { renderStylistCards._again = false; });
+  }
   if (typeof STAFF_PROFILES === 'undefined') {
     host.innerHTML = `<div class="loading">Stylist profiles didn’t load.</div>`;
     return;
