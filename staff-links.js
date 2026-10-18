@@ -78,7 +78,7 @@ function whoMenu() {
 function whoSurface(span) {
   const view = span.closest('[id^="view-"]');
   const id = view ? view.id.slice(5) : '';
-  return id === 'stylists' ? 'card' : id === 'team' ? 'stats' : id === 'dailyperf' ? 'row' : '';
+  return id === 'stylists' ? 'card' : id === 'team' ? 'stats' : id === 'dailyperf' ? 'row' : id === 'staffweeks' ? 'weeks' : id === 'stafflevels' ? 'bench' : '';
 }
 
 function whoShow(span) {
@@ -92,6 +92,10 @@ function whoShow(span) {
   const items = [
     ['card', 'Staff card', hasCard ? 'Staff Cards' : 'No card yet', `whoGoCard('${key}')`],
     ['stats', 'Staff stats', 'Team Performance', `whoGoStats('${key}','${dept}','${branch}')`],
+    // Audit 18 Oct 2026 (P3-19): the manager's walk, who is winning, then the person, then the trend, then the level.
+    ['dash', 'Staff Dashboards', 'Her page', `whoGoDash('${key}')`],
+    ['weeks', 'Staff’s 13 Week', 'Her year, week by week', `whoGoWeeks('${key}')`],
+    ['bench', 'Stylist’s Benchmarks', 'Her level and aims', `whoGoBench()`],
     ['row', 'Branch figures', 'Daily Performance · Staff', `whoGoRow('${key}','${branch}')`],
   ].filter(it => it[0] !== here);
   menu.innerHTML = items.map(([k, label, sub, go]) => {
@@ -244,6 +248,21 @@ function whoGoStats(key, dept, branch) {
   whoWaitFor(find, el => whoLand(el.closest('.tp-pod, .tp-ch, .tp-rr') || el),
     () => whoNote(key + ' is not in the selected branch or period.'));
 }
+
+// Staff Dashboards opens on one person through the frame's ?staff= slug (the same slug the address carries).
+function whoGoDash(key) {
+  window.spfWantStaff = (typeof w13SlugOf === 'function') ? w13SlugOf(key) : String(key).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  window.spfStaffSlug = window.spfWantStaff;
+  const frame = document.getElementById('spfFrame');
+  if (frame) { frame.removeAttribute('src'); delete frame.dataset.loaded; }   // a loaded frame is on someone else
+  whoShowView('staffperf');
+}
+// Staff's 13 Week opens straight on her report (staff-weeks.js reads w13WantSlug when it draws).
+function whoGoWeeks(key) {
+  if (typeof w13SlugOf === 'function' && typeof w13WantSlug !== 'undefined') { w13WantSlug = w13SlugOf(key); w13Pick = null; }
+  whoShowView('staffweeks');
+}
+function whoGoBench() { whoShowView('stafflevels'); }
 
 function whoGoRow(key, branch) {
   // Daily Performance's script loads on first use: wait for it, so the Measure reset below has something to reset.

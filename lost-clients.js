@@ -130,7 +130,7 @@ function lcShell(body) {
   return `
     <section class="slv-intro">
       <h2>Client’s Last Visit</h2>
-      <p>Clients who used to come in and haven't been back, by branch, highest spend first. For reference and outreach planning.</p>
+      <p>Clients who used to come in and haven't been back, by branch, highest spend first. For reference and outreach planning. <b>Lost</b> means no visit at the branch picked (at any branch on All) in the window, and nobody with a booking from today on or seen at another branch. The people we are messaging, and how it is going, are on <a href="?view=lostlists" onclick="event.preventDefault();showView('lostlists', document.querySelector('#sidebar .nav-sub[onclick*=&quot;lostlists&quot;]'))">Lost Clients</a>.</p>
     </section>
     <div class="sc-bar w13-bar lc-bar">
       <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(Object.keys(LC_BRANCH).map(k => [k, k])))}</div>

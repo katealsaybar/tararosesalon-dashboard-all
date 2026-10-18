@@ -96,7 +96,7 @@ function slvAtLevel(cur, next) {
       const f = (SLV_GROUPS.flatMap(g => g[1]).find(x => x[0] === k) || [, , 'num'])[2];
       if (v >= slvCut(next.kpis[k].target, k, f, share)) hit++; });
     const away = share !== null && share < 1 ? ` <span class="slv-note" style="display:inline">(aims cut to ${Math.round(share * 100)}% of the month)</span>` : '';
-    return `<tr><td>${slvEsc(s.name)}<div class="slv-note">${slvEsc((typeof BRANCH_INFO !== 'undefined' && BRANCH_INFO[s.branch] && BRANCH_INFO[s.branch].name) || s.branch)}${away}</div></td>${cells}${next ? `<td class="slv-next">${of ? `${hit} of ${of}` : '–'}</td>` : ''}</tr>`;
+    return `<tr><td>${slvWho(s)}<div class="slv-note">${slvEsc((typeof BRANCH_INFO !== 'undefined' && BRANCH_INFO[s.branch] && BRANCH_INFO[s.branch].name) || s.branch)}${away}</div></td>${cells}${next ? `<td class="slv-next">${of ? `${hit} of ${of}` : '–'}</td>` : ''}</tr>`;
   }).join('');
   return head + slvAtCards(people, cols, cur, next, nextKeys) + `<div class="slv-wrap slv-at-t"><table class="slv-table">
       <thead><tr><th>Stylist</th>${cols.map(([, l]) => `<th>${slvEsc(l)}</th>`).join('')}${next ? `<th>${slvEsc(next.level)} aims hit</th>` : ''}</tr></thead>
@@ -123,7 +123,7 @@ function slvAtCards(people, cols, cur, next, nextKeys) {
       if (v >= slvCut(next.kpis[k].target, k, f, share)) hit++; });
     const br = (typeof BRANCH_INFO !== 'undefined' && BRANCH_INFO[s.branch] && BRANCH_INFO[s.branch].name) || s.branch;
     const away = share !== null && share < 1 ? `, aims cut to ${Math.round(share * 100)}%` : '';
-    return `<div class="slv-mc"><div class="slv-mc-h"><div><b>${slvEsc(s.name)}</b><div class="slv-note">${slvEsc(br)}${away}</div></div>
+    return `<div class="slv-mc"><div class="slv-mc-h"><div><b>${slvWho(s)}</b><div class="slv-note">${slvEsc(br)}${away}</div></div>
       ${next ? `<div class="slv-mc-n"><b>${of ? `${hit} of ${of}` : '–'}</b><span>${slvEsc(next.level)} aims</span></div>` : ''}</div>
       <div class="slv-mts">${tiles}</div></div>`;
   }).join('')}</div>`;
@@ -153,9 +153,13 @@ function slvFmt(v, f) {
   return n.toLocaleString('en-GB');
 }
 const slvEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Her name opens the staff hover menu (staff-links.js), like on Podium and Daily Performance.
+const slvWho = s => (typeof staffWho === 'function')
+  ? staffWho(s.name, slvEsc(s.name), { dept: /^(hair|beauty)$/i.test(s.dept || '') ? s.dept : '', branch: s.branch }) : slvEsc(s.name);
 
 async function renderStylistLevels() {
   const el = document.getElementById('stylistLevelsContent');
+  if (typeof trSyncUrl === 'function') trSyncUrl(null);   // month and level ride in the address (slvUrlParts)
   if (!slvData) {
     el.innerHTML = '<p class="slv-muted">Loading the levels…</p>';
     const { data, error } = await sb.rpc('perf_levels', { p_admin: typeof spfGet === 'function' ? spfGet() : null });
@@ -227,3 +231,20 @@ function slvSet(level) {
   try { localStorage.setItem('slv-level', level); } catch (e) {}
   renderStylistLevels();
 }
+
+// The address (audit 18 Oct 2026, P3-14): the month and the level, written in full because both are remembered per
+// browser. trSyncUrl() in index.html calls slvUrlParts(); a link beats what this browser remembered (read once, here).
+function slvUrlParts() {
+  const p = [];
+  if (slvMonth) p.push('bench_month=' + slvMonth);
+  if (slvPick) p.push('bench_level=' + encodeURIComponent(slvPick));
+  return p;
+}
+(function slvReadUrl() {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get('view') !== 'stafflevels') return;
+    const m = q.get('bench_month'); if (/^\d{4}-\d{2}$/.test(m || '')) slvMonth = m;
+    const l = q.get('bench_level'); if (l) slvPick = l;
+  } catch (e) { /* no address to read */ }
+})();

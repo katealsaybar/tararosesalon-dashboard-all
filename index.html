@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=20261018pg1"></script>
+<script src="pages.js?v=f4df7757"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3395,20 +3395,20 @@ table.tp-cmp td.bad{color:var(--bad)}
 }
 
 </style>
-<link rel="stylesheet" href="team-performance.css?v=20261001quad">
-<link rel="stylesheet" href="nav-collapse.css?v=20261014glide">
+<link rel="stylesheet" href="team-performance.css?v=550e4ced">
+<link rel="stylesheet" href="nav-collapse.css?v=7809b314">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=20261015dpf1">
-<link rel="stylesheet" href="search.css?v=20261008s31">
-<link rel="stylesheet" href="client-mix.css?v=20261008cm3">
-<link rel="stylesheet" href="lost-lists.css?v=20261012ll21">
-<link rel="stylesheet" href="lost-queue.css?v=20261016lq15">
-<link rel="stylesheet" href="send-schedule.css?v=20261016ss2">
-<link rel="stylesheet" href="wv-blast.css?v=20261016ws2">
-<link rel="stylesheet" href="mobile-late.css?v=20261018ml5">   <!-- phone rules for the pages whose sheets load after mobile.css -->
-<link rel="stylesheet" href="nav-style.css?v=20261016sh2">
+<link rel="stylesheet" href="mobile.css?v=cb6ac8d4">
+<link rel="stylesheet" href="search.css?v=4806895e">
+<link rel="stylesheet" href="client-mix.css?v=f68cc80a">
+<link rel="stylesheet" href="lost-lists.css?v=fb99193d">
+<link rel="stylesheet" href="lost-queue.css?v=baff8a67">
+<link rel="stylesheet" href="send-schedule.css?v=88a70391">
+<link rel="stylesheet" href="wv-blast.css?v=a78e3872">
+<link rel="stylesheet" href="mobile-late.css?v=77b012ce">   <!-- phone rules for the pages whose sheets load after mobile.css -->
+<link rel="stylesheet" href="nav-style.css?v=5092890f">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
-<script src="/assets/pill-select.js?v=20261005tap"></script>
+<script src="/assets/pill-select.js?v=7bd2fc3a"></script>
 </head>
 <body>
 <div id="bootLoader" role="status" aria-live="polite">
@@ -3421,7 +3421,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div class="bl-fact" id="blFact" aria-live="off"></div>
   <div class="bl-slow" id="blSlow" role="alert"><span>Still loading. The connection looks slow.</span><button type="button" onclick="location.reload()">Try again</button></div>
 </div>
-<script src="loading-facts.js?v=20261018lf4"></script>
+<script src="loading-facts.js?v=fb9c71d6"></script>
 <script>
   // Dark theme picks the light-on-dark logo before anything paints.
   (function(){ try { var th = document.documentElement.getAttribute('data-theme');
@@ -3440,17 +3440,17 @@ table.tp-cmp td.bad{color:var(--bad)}
   // click is usually instant. Each group is loaded in order; the ?v= stamp that used to sit on the script tag lives here now, so
   // BUMP IT HERE when the file changes. Nothing outside a group calls into it except behind a typeof check or showView.
   (function(){
-    var LGX = 'ledger-export.js?v=20261018lb1';
+    var LGX = 'ledger-export.js?v=67737bd9';
     var G = {
-      oty: ['over-the-years.js?v=20261016oty39'],
-      dp:  ['daily-performance.js?v=20261018da20', 'daily-addons.js?v=20261016da9'],
+      oty: ['over-the-years.js?v=12291a69'],
+      dp:  ['daily-performance.js?v=e4b6d877', 'daily-addons.js?v=1e57830b'],
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
-      cl:  [LGX, 'lost-clients.js?v=20261018lb1', 'lost-lists.js?v=20261016ll31', 'lost-consults.js?v=20261012lc1', 'lost-review-file.js?v=20261012rf3',
-            'send-schedule.js?v=20261016ss1', 'lost-queue.js?v=20261016lq30', 'lost-waves.js?v=20261016lw14', 'lost-blast.js?v=20261016ob4',
-            'lost-report.js?v=20261018lb1', 'wv-blast.js?v=20261016ss1', 'top-clients.js?v=20261018lb1', 'client-mix.js?v=20261018lb1',
-            'service-rankings.js?v=20261018lb1']
+      cl:  [LGX, 'lost-clients.js?v=20896b7b', 'lost-lists.js?v=3f28383e', 'lost-consults.js?v=29c774be', 'lost-review-file.js?v=044ede7b',
+            'send-schedule.js?v=3abf6266', 'lost-queue.js?v=cb3e9753', 'lost-waves.js?v=e6102677', 'lost-blast.js?v=068aa55b',
+            'lost-report.js?v=1bd0b9f4', 'wv-blast.js?v=7df7aab9', 'top-clients.js?v=492b2dcf', 'client-mix.js?v=7ec12be4',
+            'service-rankings.js?v=c1364c02']
     };
     var V = {};   // view -> group, from pages.js (lazy)
     TRS_PAGES.forEach(function(p){ if (p.lazy) V[p.id] = p.lazy; });
@@ -3915,6 +3915,31 @@ table.tp-cmp td.bad{color:var(--bad)}
   <script>
   const SPF_KEY = 'perfAdminKey';
   // Hair / Beauty / All for the team grid, remembered in this browser.
+  // The address (audit 18 Oct 2026, P3-14): department, month, sort and the Ledger | Phorest basis ride in it beside
+  // the person (?staff=), written in full because the department, sort and basis are remembered per browser.
+  // trSyncUrl() calls spfUrlParts(); a link beats what this browser remembered (read once, here).
+  (function spfReadUrl(){
+    try {
+      const q = new URLSearchParams(location.search);
+      if (q.get('view') !== 'staffperf') return;
+      const d = q.get('spf_dept'); if (['all', 'Hair', 'Beauty'].includes(d)) localStorage.setItem('perfDept', d);
+      const s = q.get('spf_sort');
+      if (s && /^[a-z0-9_]+(-rev)?$/i.test(s)) localStorage.setItem('perf-sort', JSON.stringify({ k: s.replace(/-rev$/, ''), rev: /-rev$/.test(s) }));
+      const b = q.get('spf_basis'); if (b === 'ledger' || b === 'phorest') localStorage.setItem('perf-src', b);
+      const m = q.get('spf_month'); window.spfWantMonth = /^\d{4}-\d{2}$/.test(m || '') ? m : null;
+    } catch(e){}
+  })();
+  function spfUrlParts(){
+    const p = ['spf_dept=' + spfDept()];
+    const m = document.getElementById('spfMonth'); if (m && m.value) p.push('spf_month=' + m.value);
+    const st = spfSortState(); p.push('spf_sort=' + st.k + (st.rev ? '-rev' : ''));
+    let basis = 'ledger'; try { if (localStorage.getItem('perf-src') === 'phorest') basis = 'phorest'; } catch(e){}
+    p.push('spf_basis=' + basis);
+    const slug = window.spfStaffSlug !== undefined ? window.spfStaffSlug : new URLSearchParams(location.search).get('staff');
+    if (slug) p.push('staff=' + encodeURIComponent(slug));
+    return p;
+  }
+  function spfSyncUrl(){ if (typeof trSyncUrl === 'function' && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'staffperf') trSyncUrl(null); }
   function spfDept(){ try { return localStorage.getItem('perfDept') || 'all'; } catch(e){ return 'all'; } }
   function spfPaintDept(){
     const d = spfDept();
@@ -3925,6 +3950,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     spfPaintDept();
     const f = document.getElementById('spfFrame');
     if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'perf-dept', dept: d }, '*');
+    spfSyncUrl();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   // Month for the framed page: the last 12, this month first. The frame's own
@@ -3998,11 +4024,13 @@ table.tp-cmp td.bad{color:var(--bad)}
       sel.add(new Option(d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }), v));
     }
     sel.value = spfOpeningMonth();
+    if (window.spfWantMonth && [...sel.options].some(o => o.value === window.spfWantMonth)) sel.value = window.spfWantMonth;
     spfDD(sel);
   }
   function spfSetMonth(m){
     const f = document.getElementById('spfFrame');
     if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'perf-month', m }, '*');
+    spfSyncUrl();
   }
   // Team grid sort. Same key the framed page reads (same origin), so both agree.
   function spfSortState(){
@@ -4022,6 +4050,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     spfPaintSort();
     const f = document.getElementById('spfFrame');
     if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'perf-sort', k: next.k, rev: next.rev }, '*');
+    spfSyncUrl();
   }
   // Kate, 25 Sep 2026: the view opens straight away on a VIEWER key (perf_admins role
   // 'viewer'): numbers and notes only, no emails, no staff tokens, no payslips, no note
@@ -4047,7 +4076,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     spfPaintSort();
     if (key && !frame.dataset.loaded){
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
-      const slug = new URLSearchParams(location.search).get('staff');
+      const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
+      window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
       frame.src = 'performance/index.html?admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
@@ -4081,15 +4111,14 @@ table.tp-cmp td.bad{color:var(--bad)}
   window.addEventListener('message', e => {
     // Which person is open in the frame → the dashboard's own address, so it can be bookmarked.
     if (e.data && e.data.type === 'perf-nav') {
-      const u = new URL(location.href);
-      if (u.searchParams.get('view') !== 'staffperf') return;
-      if (e.data.staff) u.searchParams.set('staff', e.data.staff); else u.searchParams.delete('staff');
+      if (typeof CURRENT_VIEW === 'undefined' || CURRENT_VIEW !== 'staffperf') return;
+      window.spfStaffSlug = e.data.staff || null;
       // Sort only means something on the team grid.
       document.getElementById('spfSortWrap').style.display = e.data.staff ? 'none' : 'inline-flex';
       // Kate, 25 Sep 2026: nor does All / Hair / Beauty once one person is open.
       const spfSeg = document.querySelector('#spfBar .sc-seg');
       if (spfSeg) spfSeg.style.display = e.data.staff ? 'none' : '';
-      history.replaceState(history.state, '', u);
+      spfSyncUrl();
     }
     if (e.data && e.data.type === 'perf-height') {
       document.getElementById('spfFrame').style.height = Math.max(400, e.data.h) + 'px';
@@ -4269,33 +4298,33 @@ table.tp-cmp td.bad{color:var(--bad)}
 </div><!-- end #dashboardWrap -->
 
 
-<script src="upload/name-aliases.js?v=20261015r3"></script>
+<script src="upload/name-aliases.js?v=f340a25c"></script>
 <!-- After name-aliases.js: ledgerStaffTarget() canonicalises names through it. -->
-<script src="ledger-targets.js?v=20261007t20"></script>
+<script src="ledger-targets.js?v=619f551e"></script>
 <!-- After ledger-targets.js: the Supabase target layer overrides its lookups per month. -->
-<script src="ledger-targets-db.js?v=20261017bb1"></script>
-<script src="staff-profiles.js?v=20261016alan"></script>
-<script src="stylist-levels.js?v=20261018rb2"></script>
-<script src="staff-weeks.js?v=20261018rb2"></script>
-<script src="products.js?v=20261014cb2"></script>
+<script src="ledger-targets-db.js?v=a344975f"></script>
+<script src="staff-profiles.js?v=4efa983a"></script>
+<script src="stylist-levels.js?v=13afdff1"></script>
+<script src="staff-weeks.js?v=dec339fd"></script>
+<script src="products.js?v=d1961633"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script. -->
-<script src="marketing-chart.js?v=20261006ph"></script>
-<script src="google-ads.js?v=20261006per"></script>
-<script src="website.js?v=20261018lb1"></script>
-<script src="social.js?v=20261008cb1"></script>
-<script src="stylist-cards.js?v=20261014d"></script>
-<script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261018lt3"></script>
+<script src="marketing-chart.js?v=7aaefb35"></script>
+<script src="google-ads.js?v=e67ce0e7"></script>
+<script src="website.js?v=55a9e0a5"></script>
+<script src="social.js?v=4c3d3645"></script>
+<script src="stylist-cards.js?v=25d94504"></script>
+<script src="org-chart.js?v=37a5bbdf"></script>
+<script src="dashboard.js?v=b76a8179"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
-<script src="auth.js?v=20260925d"></script>
+<script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=20261018lb1"></script>
-<script src="compare.js?v=20261016util"></script>
+<script src="branch-ledger.js?v=9301a6f0"></script>
+<script src="compare.js?v=b8350980"></script>
 <!-- over-the-years.js and daily-performance.js + daily-addons.js load on first use (trsLazy, in the boot script above). -->
 <!-- ledger-export.js (spreadsheet export, built from branch-ledger.js's series and target helpers) loads on first use too: trsLazy. -->
-<script src="team-performance.js?v=20261018lb1"></script>
+<script src="team-performance.js?v=16e00dc8"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
-<script src="staff-links.js?v=20261018lz1"></script>
+<script src="staff-links.js?v=44f66641"></script>
 <!-- pulse-narrative.js (the model-written Pulse read) was never wired in: fetchPulseNarrative has no caller. Add the tag back if it is. -->
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
 <!-- branch-narrative.js belonged to the retired Branch Performance page; bnRender is only called behind a typeof check. -->
@@ -5140,6 +5169,14 @@ function trSyncUrl(sectionId){
   // 13-Week Report: which stylist is open, and the year when it is not the latest
   // (Kate, 29 Sep 2026). staff-weeks.js builds these.
   if (CURRENT_VIEW === 'staffweeks' && typeof w13UrlParts === 'function') parts.push(...w13UrlParts());
+  // Stylist's Benchmarks: month and level (stylist-levels.js).
+  if (CURRENT_VIEW === 'stafflevels' && typeof slvUrlParts === 'function') parts.push(...slvUrlParts());
+  // Staff Dashboards: department, month, sort, basis and the person (index.html, spfUrlParts).
+  if (CURRENT_VIEW === 'staffperf' && typeof spfUrlParts === 'function') parts.push(...spfUrlParts());
+  // Service Rankings: branch, period, rank, family (service-rankings.js).
+  if (CURRENT_VIEW === 'services' && typeof srUrlParts === 'function') parts.push(...srUrlParts());
+  // Podium Race and Staff Quadrant: department, league or chart, basis, rebooking source (team-performance.js).
+  if ((CURRENT_VIEW === 'team' || CURRENT_VIEW === 'teamquad') && typeof tpUrlParts === 'function') parts.push(...tpUrlParts());
   // Daily Performance: measure, branches, period (daily-performance.js), only what differs from the defaults.
   if (CURRENT_VIEW === 'dailyperf' && typeof dpUrlParts === 'function') parts.push(...dpUrlParts());
   // Lost Clients: which tab (groups, to-message, templates), Level 3+ only (lost-queue.js).
@@ -5315,9 +5352,9 @@ addEventListener('load', sizeTopbar);
 
 </script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
-<script src="nav-collapse.js?v=20261014glide2"></script>
-<script src="nav-stars.js?v=20261002a"></script>
-<script src="mobile.js?v=20261008sa"></script>
-<script src="search.js?v=20261018pg1"></script>
-<script src="visits.js?v=20261008v1"></script>
+<script src="nav-collapse.js?v=b0b3ecc8"></script>
+<script src="nav-stars.js?v=c575eba8"></script>
+<script src="mobile.js?v=0aec8169"></script>
+<script src="search.js?v=9aaccf4e"></script>
+<script src="visits.js?v=1176426c"></script>
 </body>

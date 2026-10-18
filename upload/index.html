@@ -13,10 +13,10 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";</script>
-<script src="parser.js?v=4"></script>
-<script src="upload.js?v=20261014bah"></script>
+<script src="parser.js?v=224e1aeb"></script>
+<script src="upload.js?v=9bdf802a"></script>
 <!-- Signed-in people on the dashboard list only (auth.js, 25 Sep 2026); anyone else goes to the dashboard's sign-in and comes back. -->
-<script src="../auth.js?v=20260925d"></script>
+<script src="../auth.js?v=3823f956"></script>
 <!-- Kate, 30 Sep 2026: Google sign-in is the only way in (the old shared password card is gone).
      Owner (Kate) can do everything. Payroll (Accounts and Admin) sees every tab but can only
      change Payslips: the Upload segments, delete/edit buttons and roster switches are hidden,
@@ -62,7 +62,10 @@
 document.documentElement.style.visibility = 'hidden';
 TRSAuth.guard('../', ['owner', 'payroll']).then(async role => {
   window.TRS_ROLE = role;
-  window.PS_AUTO = await TRSAuth.perfKey();   // payslip key without typing it
+  // Payslip key without typing it. Audit 18 Oct 2026 (P7-18): only the Payslips tab needs it, so the
+  // portal no longer waits for it (and cannot hang on it) unless Accounts, who land on Payslips.
+  window.PS_AUTO_READY = Promise.resolve().then(() => TRSAuth.perfKey()).then(k => (window.PS_AUTO = k), () => null);
+  if (role === 'payroll') await window.PS_AUTO_READY;
   const go = () => {
     if (role === 'payroll') {
       document.documentElement.classList.add('role-payroll');
@@ -93,22 +96,22 @@ function upViewOnly() {
   sb.from = t => { const q = from(t); ['insert', 'upsert', 'update', 'delete'].forEach(m => q[m] = refuse); return q; };
 }
 </script>
-<script src="name-aliases.js?v=20261015r3"></script>
+<script src="name-aliases.js?v=f340a25c"></script>
 <!-- staff-profiles.js wants canonicalStaffName() from name-aliases.js above it,
      same load order the dashboard itself uses (its own comment says so). -->
-<script src="../staff-profiles.js?v=20261016alan"></script>
-<script src="phorest-staff.js?v=20261014bah"></script>
-<script src="phorest-pdf.js?v=2"></script>
-<script src="utilisation-pdf.js?v=20261016util"></script>
-<script src="financial-totals-pdf.js?v=20261014bah"></script>
-<script src="sales-transactions-pdf.js?v=20261014bah"></script>
-<script src="sheet-sync.js?v=20261014bah"></script>
-<script src="targets.js?v=20261007t20"></script>
-<script src="team-roster.js?v=1"></script>
-<script src="/payslip/open.js?v=2"></script>
-<script src="payslips.js?v=20261006dots"></script>
+<script src="../staff-profiles.js?v=4efa983a"></script>
+<script src="phorest-staff.js?v=6afedea0"></script>
+<script src="phorest-pdf.js?v=f61051d3"></script>
+<script src="utilisation-pdf.js?v=142204f0"></script>
+<script src="financial-totals-pdf.js?v=431c92d4"></script>
+<script src="sales-transactions-pdf.js?v=c62b0908"></script>
+<script src="sheet-sync.js?v=a97f6098"></script>
+<script src="targets.js?v=0bab250a"></script>
+<script src="team-roster.js?v=e7f88a3a"></script>
+<script src="/payslip/open.js?v=bffa94ab"></script>
+<script src="payslips.js?v=8b1d7482"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
-<script src="data-watch.js?v=1"></script>
+<script src="data-watch.js?v=94e1d202"></script>
 
 <!-- Same two faces as the main dashboard: Inter for everything, Playfair for the
      serif titles. The portal used to load DM Sans + Cormorant Garamond, which is
@@ -854,7 +857,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 }
 </style>
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
-<script src="/assets/pill-select.js?v=20261005tap"></script>
+<script src="/assets/pill-select.js?v=7bd2fc3a"></script>
 </head>
 <body>
 

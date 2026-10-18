@@ -46,7 +46,7 @@ function rvInit(list) {
   if (!rvInit.loading) {
     rvInit.loading = true;
     const sc = document.createElement('script');
-    sc.src = '../add%20ons/google-reviews/review-links.js?v=20260928a';
+    sc.src = '../add%20ons/google-reviews/review-links.js?v=ee3ed966';
     sc.onload = () => document.querySelectorAll('a[data-ri]').forEach(a => { const r = RV_LIST[+a.dataset.ri]; if (r) a.href = reviewUrl(r); });
     document.head.appendChild(sc);
   }

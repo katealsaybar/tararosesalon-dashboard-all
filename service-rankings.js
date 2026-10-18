@@ -24,6 +24,36 @@ const srSave = () => { try { localStorage.setItem(SR_STORE, JSON.stringify({ bra
 const SR_PERIODS = [['this', 'This month'], ['last', 'Last month'], ['month', 'Month'], ['year', 'Year'], ['custom', 'Custom']];
 const SR_BR = ['SAA', 'KCA', 'MC', 'AQ'];
 
+// The address (audit 18 Oct 2026, P5-12): branch, period, rank and family, written in full so a link says what it
+// shows, whatever this browser remembered. Names are prefixed because the masthead's own branch= and period= mean
+// something else. trSyncUrl() in index.html calls srUrlParts(); srLoad() asks for it after every change.
+function srUrlParts() {
+  const p = ['svc_branch=' + SR.branch, 'svc_period=' + SR.period];
+  if (SR.period === 'month' && /^\d{4}-\d{2}$/.test(SR.month)) p.push('svc_month=' + SR.month);
+  if (SR.period === 'year' && /^\d{4}$/.test(SR.year)) p.push('svc_year=' + SR.year);
+  if (SR.period === 'custom') { if (SR.pfrom) p.push('svc_from=' + SR.pfrom); if (SR.pto) p.push('svc_to=' + SR.pto); }
+  p.push('svc_rank=' + (SR.rank === 'units' ? 'units' : 'rev'));
+  if (SR.fam !== 'all') p.push('svc_family=' + encodeURIComponent(SR.fam));
+  if (SR.cat) p.push('svc_category=' + encodeURIComponent(SR.cat));
+  return p;
+}
+(function srReadUrl() {   // a link beats what this browser remembered
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get('view') !== 'services') return;
+    const b = q.get('svc_branch'); if (b === 'all' || SR_BR.includes(b)) SR.branch = b;
+    const per = q.get('svc_period'); if (SR_PERIODS.some(x => x[0] === per)) SR.period = per;
+    const m = q.get('svc_month'); if (/^\d{4}-\d{2}$/.test(m || '')) SR.month = m;
+    const y = q.get('svc_year'); if (/^\d{4}$/.test(y || '')) SR.year = y;
+    const f = q.get('svc_from'), t = q.get('svc_to');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(f || '')) SR.pfrom = f;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(t || '')) SR.pto = t;
+    const r = q.get('svc_rank'); if (r === 'rev' || r === 'units') SR.rank = r;
+    const fam = q.get('svc_family'); if (fam) SR.fam = fam;
+    const cat = q.get('svc_category'); if (cat) SR.cat = cat;
+  } catch (e) { /* no address to read */ }
+})();
+
 // ── THE WINDOW (and the one before it) ──────────────────────────────────────
 const srIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const srToday = () => srIso(new Date());
@@ -137,6 +167,7 @@ async function renderServiceRankings() {
 }
 async function srLoad() {
   const seq = ++srSeq;
+  if (typeof trSyncUrl === 'function' && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'services') trSyncUrl(null);
   srBusy = true; srPaintBusy();
   const cur = srRange(), prev = srPrevRange();
   const prevP = prev ? srCall(srArgs(prev)).catch(e => { console.error(e); return null; }) : Promise.resolve(null);
@@ -196,7 +227,7 @@ function srPaint() {
       </div>
       <div id="srTable" style="margin-top:14px"></div>
     </section>
-    <p class="slv-muted cm-foot">From Phorest's Sales Transactions, whose data starts in May 2021 at Saadiyat and Khalifa City A, December 2022 at Motor City and September 2023 at Al Quoz; this page reads from August 2021 on. Each sale is sorted by Phorest's own service category (the Service roster tab on Client Mix), so a service's sizes are one row. Revenue is ex VAT. Units are sales lines; the second half of a keratin counts as the same treatment. Retail is on Products; deposits, vouchers, refunds and prepaid courses are left out.</p>`;
+    <p class="slv-muted cm-foot">From Phorest's Sales Transactions, whose data starts in May 2021 at Saadiyat and Khalifa City A, December 2022 at Motor City and September 2023 at Al Quoz; this page reads from August 2021 on. Each sale is sorted by Phorest's own service category (the Service roster tab on Client Mix), so a service's sizes are one row. Revenue is ex VAT. Units are sales lines; the second half of a keratin counts as the same treatment. Retail is on Products; deposits, vouchers, refunds and prepaid courses are left out.${typeof dataEnd === 'function' ? ' Phorest data runs to ' + dataEnd().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + '.' : ''}</p>`;
   srPaintTable();
 }
 function srPaintTable() {

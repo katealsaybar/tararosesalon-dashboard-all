@@ -53,6 +53,7 @@ function psDefaultMonth() {
 async function initPayslipsTab() {
   const host = document.getElementById('payslipHost');
   if (!host) return;
+  if (!psKey() && window.PS_AUTO_READY) await window.PS_AUTO_READY;   // the portal opens before the key arrives
   if (!psKey()) { psRenderKeyPrompt(); return; }
   if (!PS_STATE.month) PS_STATE.month = psDefaultMonth();
   host.innerHTML = '<div class="empty-col">Loading…</div>';

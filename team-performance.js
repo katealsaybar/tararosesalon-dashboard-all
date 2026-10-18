@@ -520,6 +520,7 @@ function tpPart() {
 }
 async function renderTeam() {
   const part = tpPart();
+  if (typeof trSyncUrl === 'function') trSyncUrl(null);   // the league, chart and basis ride in the address (tpUrlParts)
   const host  = document.getElementById(part === 'quad' ? 'teamQuadContent' : 'teamContent');
   const other = document.getElementById(part === 'quad' ? 'teamContent' : 'teamQuadContent');
   if (!host) return;
@@ -1192,3 +1193,29 @@ function tpClearCompare() {
   tpCompare = [];
   renderTeam();
 }
+
+// ── THE ADDRESS ────────────────────────────────────────────────────────────
+// Audit 18 Oct 2026 (P3-14): Podium Race and Staff Quadrant put what is on screen in the address, only what
+// is not the default (department) or is remembered per browser (the rest), so a link opens the same chart. Branch and Period already ride there as on every
+// filtered page. trSyncUrl() in index.html calls tpUrlParts().
+function tpUrlParts() {
+  const parts = [], quad = typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'teamquad';
+  if (tpDept !== 'hair') parts.push('dept=' + tpDept);
+  if (quad) {
+    parts.push('chart=' + tpQMetric, 'basis=' + tpQBasis);   // remembered per browser, so written in full
+  } else parts.push('league=' + tpSort);
+  parts.push('rebook=' + tpRebookSrc);
+  return parts;
+}
+// Read once at load, and only on these two pages. A link beats what this browser remembered.
+(function tpReadUrl() {
+  try {
+    const q = new URLSearchParams(location.search), v = q.get('view');
+    if (v !== 'team' && v !== 'teamquad') return;
+    const d = q.get('dept'); if (d === 'hair' || d === 'beauty') tpDept = d;
+    const l = q.get('league'); if (l && TP_LEAGUES[l]) tpSort = l;
+    const c = q.get('chart'); if (c === 'addon' || c === 'takings') tpQMetric = c;
+    const b = q.get('basis'); if (b === 'level' || b === 'bench') tpQBasis = b;
+    const r = q.get('rebook'); if (r === 'phorest' || r === 'ledger') tpRebookSrc = r;
+  } catch (e) { /* no address to read */ }
+})();
