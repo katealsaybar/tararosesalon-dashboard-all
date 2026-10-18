@@ -148,8 +148,8 @@ const STAFF_PROFILES = {
   // purpose: the tables list whoever had sales in the window you are looking at, and her
   // 22 days run Jan to May 2025.
   // Kate, 15 Oct 2026: Xavrina Traya, Saadiyat, archived in Phorest 17 Sep 2026. Phorest has her as a Junior Stylist (hair washes, plaits, blow-dries, head massages,
-  // AED 7,085 in services, Jan 2025 to May 2026); the HR staff list says Manicurist, which her Phorest sales do not show. Former, placeholder, no IG.
-  'XAVRINA':   { photoFull: 'stylist/photos/SAA/xavrina traya.png', role: 'Junior Stylist', branch: 'SAA', blank: true, resigned: true },
+  // AED 7,085 in services, Jan 2025 to May 2026); the HR staff list says Manicurist, which her Phorest sales do not show. Former, placeholder photo, IG xavrinatraya (Kate, 18 Oct 2026).
+  'XAVRINA':   { photoFull: 'stylist/photos/SAA/xavrina traya.png', role: 'Junior Stylist', branch: 'SAA', ig: 'xavrinatraya', blank: true, resigned: true },
 
   // -- Motor City --
   // Kate, 16 Oct 2026: Alan Joseph Russell resigned. Last day with sales 14 Oct 2026 (Phorest and ledger agree).
@@ -281,7 +281,7 @@ const STAFF_PROFILES = {
   // Harriet xx, Ranya x, Xavrina X (placeholder surnames), Kara and Anna Ahaponova (2 and 12 days, AED 0), Cristina Cucos (no ledger),
   // Tara 1 and 2 (the owner's accounts), and the Robyn, Ruth, Tegan, Ibrahim, Rachel records, which share a first name with someone current.
   'ALEX':    { photoFull: 'stylist/photos/KCA/alex duncan.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
-  'BILLY':   { photoFull: 'stylist/photos/other/billy gray.png', role: 'Barber', branch: 'other', blank: true, resigned: true },
+  'BILLY':   { photoFull: 'stylist/photos/other/billy gray.png', role: 'Barber', branch: 'other', resigned: true },
   // Kate, 15 Oct 2026: Tara Rose Bahrain's team members with no surname in Phorest ("." at source), placeholders on her say-so (she
   // does not want placeholders for other surnameless people). Kerryn, Stylist, IG hair_by_kerryn; Farwa, Assistant (blow-dries and
   // styling); Simi and Charlene, Beauticians (nails, brows, massage). The Bahrain Charlene is not Charlene Payne, the Motor City stylist
@@ -291,7 +291,7 @@ const STAFF_PROFILES = {
   'SIMI':    { photoFull: 'stylist/photos/BAH/simi.png', role: 'Beauty Therapist', branch: 'BAH', blank: true },
   'CHARLENE':{ photoFull: 'stylist/photos/BAH/charlene.png', role: 'Beauty Therapist', branch: 'BAH', blank: true },
   'FAYE':    { photoFull: 'stylist/photos/KCA/faye madi.png', role: 'Junior Stylist', branch: 'KCA', blank: true, resigned: true },
-  'HAFEZ':   { photoFull: 'stylist/photos/other/hafez abou hwijj.png', role: 'Barber', branch: 'other', blank: true, resigned: true },
+  'HAFEZ':   { photoFull: 'stylist/photos/other/hafez abou hwijj.png', role: 'Barber', branch: 'other', resigned: true },
   'JANE':    { photoFull: 'stylist/photos/MC/jane astrande.png', role: 'Junior Stylist', branch: 'MC', blank: true, resigned: true },
   'KELSEY':  { photoFull: 'stylist/photos/SAA/kelsey lewis.png', role: 'Stylist', branch: 'SAA', ig: 'kelseylewis_hair', resigned: true },
   'KELSIE':  { photoFull: 'stylist/photos/KCA/kelsie lally.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
@@ -304,7 +304,7 @@ const STAFF_PROFILES = {
   'NATALEAH':{ photoFull: 'stylist/photos/SAA/nataleah brandy.png', role: 'Stylist', branch: 'SAA', ig: 'hairbynats19', blank: true, resigned: true },
   'RANY':    { photoFull: 'stylist/photos/KCA/rany altahesh.png', role: 'Stylist', branch: 'KCA', ig: 'rannyhairstyle', blank: true, resigned: true },
   // Kate, 15 Oct 2026, "possibly her": Kara . (Al Quoz, Phorest Style Director - DXB, added 20 Mar 2024, two ledger days) is Kara Francis, hair IG kara__haircare_.
-  'KARA':    { photoFull: 'stylist/photos/AQ/kara francis.png', role: 'Style Director', branch: 'AQ', ig: 'kara__haircare_', blank: true, resigned: true },
+  'KARA':    { photoFull: 'stylist/photos/AQ/kara francis.png', role: 'Style Director', branch: 'AQ', ig: 'kara__haircare_', resigned: true },
   // Kate, 15 Oct 2026, "possibly her": Denise . (KCA and Saadiyat Stylist, ledger KCA Mar to May 2022) is Denise Muc; the only IG Kate has is her personal one.
   'DENISE':  { photoFull: 'stylist/photos/KCA/denise muc.png', role: 'Stylist', branch: 'KCA', ig: 'denise_muc_abudhabi', resigned: true },
   'LINA':     { photoFull: 'stylist/photos/AQ/lina waled.png', role: 'Stylist', branch: 'AQ', blank: true, resigned: true },

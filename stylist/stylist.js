@@ -267,7 +267,7 @@ const STYLIST_PHOTOS = {
   "Farwa":   "BAH/farwa.png",
   "Simi":    "BAH/simi.png",
   "Faye":    "KCA/faye madi.png",   // placeholder, no photo or IG; Marasy Jan 2021 to May 2022, then KCA — Kate, 15 Oct 2026
-  "Hafez":   "other/hafez abou hwijj.png",   // placeholder, no photo or IG; Fratelli and AQ, Nov 2023 to Jan 2025 — Kate, 15 Oct 2026
+  "Hafez":   "other/hafez abou hwijj.png",   // Fratelli and AQ, Nov 2023 to Jan 2025; real B&W headshot from Kate, 18 Oct 2026 (no IG)
   "Jane":    "MC/jane astrande.png",   // placeholder, no photo or IG; MC and AQ, Nov 2022 to Nov 2024 — Kate, 15 Oct 2026
   "Kelsey":  "SAA/kelsey lewis.png",   // real B&W headshot (made in ChatGPT from her video selfie); SAA Dec 2022 to Sep 2023 — Kate, 15 Oct 2026
   "Kelsie":  "KCA/kelsie lally.png",   // placeholder, no photo or IG; Marasy Sep to Dec 2022 — Kate, 15 Oct 2026
@@ -276,7 +276,7 @@ const STYLIST_PHOTOS = {
   "Shian":   "KCA/shian davidson.png",   // placeholder, no photo or IG; KCA Feb 2024, 12 days — Kate, 15 Oct 2026
   "Nataleah": "SAA/nataleah brandy.png",   // placeholder; SAA May to Jul 2021 — Kate, 15 Oct 2026
   "Rany":     "KCA/rany altahesh.png",   // placeholder; Phorest has him as Ranya x, no ledger rows
-  "Kara":     "AQ/kara francis.png",   // placeholder; AQ Style Director, 2 ledger days in 2024 — Kate, 15 Oct 2026
+  "Kara":     "AQ/kara francis.png",   // AQ Style Director, 2 ledger days in 2024; real B&W headshot from Kate, 18 Oct 2026
   "Denise":   "KCA/denise muc.png",   // real B&W headshot — KCA Mar to May 2022 — Kate, 15 Oct 2026
   "Xavrina":  "SAA/xavrina traya.png",   // placeholder; Phorest Junior Stylist, SAA — Kate, 15 Oct 2026
   "Lina":      "AQ/lina waled.png",   // placeholder, no photo or IG found; Stylist, AQ Feb to Sep 2024 (also SAA, MC) — Kate, 15 Oct 2026
@@ -356,6 +356,7 @@ const STYLIST_IG = {
   "Denise":     "https://www.instagram.com/denise_muc_abudhabi/",   // her personal account, the only one Kate has
   "Aboudi":     "https://www.instagram.com/aboudi.shatila/",
   "Kara":       "https://www.instagram.com/kara__haircare_/",
+  "Xavrina":    "https://www.instagram.com/xavrinatraya/",
   "Nataleah":   "https://www.instagram.com/hairbynats19/",
   "Rany":       "https://www.instagram.com/rannyhairstyle/",
   "Rhi":        "https://www.instagram.com/hairbyrhiabudhabi/",   // Rhi George (Phorest) = Rhi Hurley (ROSES, Jan 2022 and Jan 2023 features); Kate, 15 Oct 2026
