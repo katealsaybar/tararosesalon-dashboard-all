@@ -57,6 +57,16 @@
   :root .dpf .dp-card,:root .dpf .dp-tile{border-top:1px solid var(--border);padding-top:16px}
   /* The charts' own labels (heat-map cells, day letters) were 10.5 to 11.5px. */
   :root .dpf svg text{font-size:12px!important}
+  /* The Pulse (Kate, 18 Oct 2026: "tanggalin na lang natin yung defined containers pag phone view, para hindi constricting"):
+     the same treatment Daily Performance got. No box round a card or a stat block on a phone, a hairline between one
+     section and the next. The stat blocks keep their status colour as a short bar above the label (it was the 3px top edge
+     of the box). Laptops keep the cards as they were. */
+  #mainContent .card,#mainContent .metric{background:none;border:0;border-radius:0;box-shadow:none;padding-left:0;padding-right:0;transform:none}
+  #mainContent .card{border-top:1px solid var(--border);padding-top:18px;margin-bottom:0}
+  #mainContent .metric,#mainContent .three .metric{border:0;border-top:1px solid var(--border);padding-top:18px}
+  #mainContent .metric::before{left:0;right:auto;top:-1px;width:28px;height:3px;border-radius:2px}
+  #mainContent .card:hover{transform:none;box-shadow:none}
+  #mainContent .perf2,#mainContent .perf2 > *{min-width:0}
 }
 /* Daily Performance injects its own sheet after this one, so these carry :root to win. */
 @media(max-width:560px){

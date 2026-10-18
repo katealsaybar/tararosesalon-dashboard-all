@@ -1289,7 +1289,7 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
    either side of a three-letter code (hover or tap the code for the full name). Fixed
    columns, so the counts, bars, pills and codes each line up down the card:
    count | bar | pill | code | pill | bar | count. */
-.fn-grid{display:grid;grid-template-columns:38px minmax(0,1fr) 54px 40px 54px minmax(0,1fr) 38px;
+.fn-grid{display:grid;grid-template-columns:max(38px,var(--fnw,0px)) minmax(0,1fr) 54px 40px 54px minmax(0,1fr) max(38px,var(--fnw,0px));
   column-gap:6px;align-items:center}
 .fn-head{margin-bottom:8px;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
 .fn-head .l{grid-column:1/3;text-align:right;color:var(--hair)}
@@ -1330,7 +1330,7 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 /* Motor City runs hair only. A mirrored funnel with a dead right half reads as a
    broken chart rather than as an absent department, so the mirror folds away and
    the card becomes a plain one-sided funnel: count | bar | pill | code. */
-.hair-only .fn-grid{grid-template-columns:38px minmax(0,1fr) 54px 40px}
+.hair-only .fn-grid{grid-template-columns:max(38px,var(--fnw,0px)) minmax(0,1fr) 54px 40px}
 .hair-only .fn-head .l{grid-column:1/3}
 .hair-only .fn-head .c{grid-column:3/5}
 .hair-only .fn-head .r,.hair-only .fn-pill.r,.hair-only .fn-lane.r,.hair-only .fn-n.r{display:none}
@@ -1343,15 +1343,15 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
    whole width on a phone. */
 .fn-wrap{container-type:inline-size}
 @container (max-width:430px){
-  .fn-grid{grid-template-columns:30px minmax(0,1fr) 46px 34px 46px minmax(0,1fr) 30px;column-gap:4px}
-  .hair-only .fn-grid{grid-template-columns:30px minmax(0,1fr) 46px 34px}
+  .fn-grid{grid-template-columns:max(30px,var(--fnw,0px)) minmax(0,1fr) 46px 34px 46px minmax(0,1fr) max(30px,var(--fnw,0px));column-gap:4px}
+  .hair-only .fn-grid{grid-template-columns:max(30px,var(--fnw,0px)) minmax(0,1fr) 46px 34px}
   .fn-n{font-size:12.5px}.fn-pill{font-size:11px}
   .fn-head{font-size:11px;letter-spacing:.1em}
   .fn-head .c{letter-spacing:.04em}
 }
 @container (max-width:320px){
-  .fn-grid{grid-template-columns:26px minmax(0,1fr) 40px 30px 40px minmax(0,1fr) 26px;column-gap:3px}
-  .hair-only .fn-grid{grid-template-columns:26px minmax(0,1fr) 40px 30px}
+  .fn-grid{grid-template-columns:max(26px,var(--fnw,0px)) minmax(0,1fr) 40px 30px 40px minmax(0,1fr) max(26px,var(--fnw,0px));column-gap:3px}
+  .hair-only .fn-grid{grid-template-columns:max(26px,var(--fnw,0px)) minmax(0,1fr) 40px 30px}
   .fn-n{font-size:12px}.fn-pill{font-size:10.5px;padding:3px 0}
   .fn-c{font-size:10.5px;letter-spacing:.03em}
   .fn-head .c{font-size:0}
@@ -3399,7 +3399,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="lost-queue.css?v=20261016lq15">
 <link rel="stylesheet" href="send-schedule.css?v=20261016ss2">
 <link rel="stylesheet" href="wv-blast.css?v=20261016ws2">
-<link rel="stylesheet" href="mobile-late.css?v=20261015ml1">   <!-- phone rules for the pages whose sheets load after mobile.css -->
+<link rel="stylesheet" href="mobile-late.css?v=20261018ml2">   <!-- phone rules for the pages whose sheets load after mobile.css -->
 <link rel="stylesheet" href="nav-style.css?v=20261016sh2">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/pill-select.js?v=20261005tap"></script>
@@ -3696,6 +3696,7 @@ table.tp-cmp td.bad{color:var(--bad)}
         <span>to</span>
         <input type="date" id="dateRangeTo" aria-label="To">
         <button class="date-picker-apply" onclick="applyDateRange()" style="padding:5px 12px;font-size:12px">Apply</button>
+        <button class="date-picker-clear" onclick="setDateToday()" style="padding:5px 10px;font-size:12px" title="Show today on its own">Today</button>
         <button class="date-picker-clear" onclick="clearDateRange()" style="padding:5px 10px;font-size:12px">Clear</button>
         <!-- The same two dates written out in words. See paintDateEcho(). -->
         <span class="f-echo" id="dateEcho" aria-live="polite"></span>
@@ -4278,7 +4279,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20261014d"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261018rb1"></script>
+<script src="dashboard.js?v=20261018lw3"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->

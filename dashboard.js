@@ -355,16 +355,8 @@ window.addEventListener('message', e => {
 let REVIEWS_STASH = null;
 function reviewsViewSwitch(prev, next) {
   if (prev === next) return;
-  // Podium Race's All time (1 Jan 2021 to today) is a window only that pair has: on any other page it would be a
-  // 2021-to-now custom range with nothing before it to compare against, so the month goes back.
-  const teamPair = v => v === 'team' || v === 'teamquad' || v === 'dailyperf';   // Daily Performance has its own All time too (16 Oct 2026)
-  if (teamPair(prev) && !teamPair(next) && dateFrom && dateTo) {
-    const t = new Date(); t.setHours(0,0,0,0);
-    if (isRange(teamAllTime(t))) {
-      dateFrom = new Date(t.getFullYear(), t.getMonth(), 1); dateTo = t; periodPick = null;
-      paintFilterChips(); renderDashboard();
-    }
-  }
+  // All time (1 Jan 2021 to today) is on every page's Period now (18 Oct 2026), so it rides along from page to page like
+  // any other window. Reviews has its own, from 2000 (reviewsPresets): see where Reviews is entered, below.
   if (prev === 'reviews') REVIEWS_KEEP_MONTH = false;
   if (prev === 'reviews' && REVIEWS_STASH) {
     const st = REVIEWS_STASH; REVIEWS_STASH = null;
@@ -391,6 +383,13 @@ function reviewsViewSwitch(prev, next) {
   if (next === 'reviews') {
     REVIEWS_STASH = {};
     if (sel.branch.includes('all') && !GROUP_MODE) { GROUP_MODE = true; REVIEWS_STASH.group = true; }
+    // Coming from an All time of the other pages: Reviews' own All time (from 2000) takes its place, and the 2021 one
+    // is what leaving Reviews puts back.
+    const t0 = new Date(); t0.setHours(0,0,0,0);
+    if (dateFrom && dateTo && isRange(teamAllTime(t0))) {
+      REVIEWS_STASH.range = { from: dateFrom, to: dateTo };
+      const a = reviewsPresets()[2]; dateFrom = a.from; dateTo = a.to; periodPick = null;
+    }
     reviewsDefaultRange();
   }
 }
@@ -508,12 +507,11 @@ function periodPresets() {
     const r = reviewsPresets();
     return [r[0], r[1], ...base, r[2]];
   }
-  // Podium Race and Staff Quadrant (Kate, 14 Oct 2026): an All time chip after Year, from the first year
-  // there is data for. It is only a window on these two pages; leaving them puts the month back
-  // (reviewsViewSwitch), the way Reviews' own All time is put back.
-  // Daily Performance has it too (Kate, 16 Oct 2026), for Marasy and the years before this one.
-  if (isTeamPage() || isDailyPerfPage()) return [...base, teamAllTime(today)];
-  return base;
+  // All time (Kate, 18 Oct 2026: "an all time button sa universal sticky header"): a chip after Year on every page that
+  // reads the Period, from the first year there is data for. It began on Podium Race and Staff Quadrant (14 Oct) and
+  // Daily Performance (16 Oct); the long-window read (loadAllRows keeps closed months on the device) is what let it
+  // go everywhere. The Ledgers pages and Over the Years grey the whole row, as they always did.
+  return [...base, teamAllTime(today)];
 }
 // The Podium Race pair. applyPeriodParam reads the address bar itself, because it runs before CURRENT_VIEW moves.
 function isTeamPage() {
@@ -522,7 +520,9 @@ function isTeamPage() {
 function isDailyPerfPage() {
   return typeof CURRENT_VIEW === 'string' && CURRENT_VIEW === 'dailyperf';
 }
-const teamAllTime = today => ({ k: 'All time', from: new Date(PERIOD_FIRST_YEAR, 0, 1), to: today });
+// Ends on the last day of data like every other named window (clampData), so the cover reads "shaped up" and the days
+// Phorest has no revenue for yet are not counted.
+const teamAllTime = today => { const from = new Date(PERIOD_FIRST_YEAR, 0, 1); return { k: 'All time', from, to: clampData(today, from) }; };
 function reviewsPresets() {
   const today = new Date(); today.setHours(0,0,0,0);
   const back = n => new Date(today.getFullYear(), today.getMonth(), today.getDate() - n);
@@ -699,10 +699,7 @@ function applyPeriodParam() {
     // All time, Last 30 and Last 90 are Reviews-only windows: on any other page the name means nothing (and All time
     // starts in 2000), so the default window stays (Kate, 9 Oct 2026).
     if (named === 'All time' && periodFirstYear() !== 2015) {
-      // Podium Race and Staff Quadrant have their own All time (1 Jan 2021 on). CURRENT_VIEW is still the default
-      // while this runs, so the address bar says which page the link is for.
-      let uv = ''; try { uv = new URLSearchParams(location.search).get('view') || ''; } catch (e) {}
-      if (uv !== 'team' && uv !== 'teamquad' && uv !== 'dailyperf') return false;
+      // Every page's All time starts on 1 Jan 2021 (Reviews has its own, from 2000, and is read above).
       const t = new Date(); t.setHours(0,0,0,0);
       const a = teamAllTime(t);
       return set(a.from, a.to);
@@ -1171,17 +1168,20 @@ function getClientTarget(branches) {
   const codes = branches.includes('all') ? UAE_ACTIVE : branches;
   let total = 0, monthly = 0, full = true;
   const missing = [];
-  windowMonths(dateFrom, dateTo).forEach(m => {
+  const wm = windowMonths(dateFrom, dateTo), multiYear = wm.length > 12;
+  wm.forEach(m => {
     const [y, mo] = m.split('-').map(Number), days = new Date(y, mo, 0).getDate();
     const a = new Date(Math.max(dateFrom, new Date(y, mo - 1, 1))), b = new Date(Math.min(dateTo, new Date(y, mo - 1, days)));
     const covered = Math.round((b - a) / 86400000) + 1;
     if (covered < days) full = false;
     const t = LG_DB_TARGETS[m];
     const vals = codes.map(c => t && t.branch && t.branch[c] ? t.branch[c].totalClients : undefined);
-    if (vals.some(v => v === undefined || v === null)) { missing.push(MON_LONG[mo - 1]); return; }
+    if (vals.some(v => v === undefined || v === null)) { missing.push(multiYear ? MON_LONG[mo - 1] + ' ' + y : MON_LONG[mo - 1]); return; }
     const sum = vals.reduce((x, v) => x + v, 0);
     monthly = sum; total += sum * covered / days;
   });
+  // Kate, 18 Oct 2026: All time printed "January, February, ..." for every month since 2021, down a whole phone screen.
+  if (missing.length > 4) return missing.length === wm.length ? `No client target uploaded for any of these ${wm.length} months` : `No client target uploaded for ${missing.length} of the ${wm.length} months in these dates`;
   if (missing.length) return `No client target uploaded for ${missing.join(', ')}`;
   const n = Math.round(total).toLocaleString('en-GB');
   return full ? `Target ${n} (handled, from the Monthly Targets)`
@@ -1412,6 +1412,8 @@ function computeHeroPeriodPhrase(from, to) {
   // Same trap one step wider: a five-week range straddling two months isn't
   // "months" either. Describe it by how long it actually is.
   if (diffDays < 45) return 'the past few weeks';
+  // Kate, 18 Oct 2026: All time (2021 to now) read "the past few months". Two years or more is years.
+  if (diffDays >= 700) return 'the past few years';
   return 'the past few months';
 }
 
@@ -2142,6 +2144,14 @@ async function setDefaultRange() {
   const toInput   = document.getElementById('dateRangeTo');
   if (fromInput) fromInput.value = dateToIso(from);
   if (toInput)   toInput.value   = dateToIso(to);
+}
+
+// Kate, 18 Oct 2026: "when toggling for dates can we add a today button". Both dates become today and it applies.
+function setDateToday() {
+  const t = new Date(); t.setHours(0,0,0,0);
+  document.getElementById('dateRangeFrom').value = dateToIso(t);
+  document.getElementById('dateRangeTo').value = dateToIso(t);
+  applyDateRange();
 }
 
 async function clearDateRange() {
@@ -2976,22 +2986,159 @@ function buildStaffArraysFromMaps(hairMap, beautyMap) {
 // (15k+ and 7k+ rows respectively), and the two truncated slices land in unrelated
 // date windows (no shared ORDER BY), so a plain .select('*') silently produces near-zero
 // revenue matches. Page through with .range() until a short page confirms we're done.
+// ── CLOSED MONTHS KEPT ON THE DEVICE ─────────────────────────────
+// Kate, 18 Oct 2026: "it loads too slow, lalo na pag mahahabang span of time". All time is 146,511 ledger rows and
+// 60,714 Phorest rows, about 208 requests of 1,000, and every page that reads the Period (the Pulse, Daily
+// Performance, Comparison, the Ledgers) paid for it on every load. The aggregators read rows, day by day, so the rows
+// themselves cannot be swapped for totals without changing a number; what can go is downloading the same closed
+// months again.
+//
+// A window with at least ROWS_MIN_MONTHS whole closed months in it is read in three parts: the stretch before the
+// first whole month and the stretch after the last (live, as always), and the whole months in between, each from
+// IndexedDB when its checksum still matches. staff_rows_fingerprint (migrations/staff_rows_fingerprint.sql) gives
+// every month's row count and a checksum of its content in one request, so a backfill, a re-sync or a deleted row
+// changes the checksum and that month alone is downloaded again. The checksum is read BEFORE a month is downloaded,
+// so a change in between can only make the next load fetch it once more, never keep a stale month.
+// The rows come back in the order the live read gives them (date, then id), so everything downstream sees the same
+// array it always did. Anything that goes wrong (no IndexedDB, a private window, the function not there, a failed
+// read) falls back to the live read of the whole window. Rows are stored per signed-in person and wiped at sign-out.
+const ROWS_MIN_MONTHS = 3;
+const ROWS_IDB = { db: null, name: 'trs-rows-v1', store: 'months' };
+let ROWS_CACHE_OFF = false;      // set by anything that wants the plain live read (the numbers check, a fault)
+let ROWS_FP_BROKEN = false;
+const ROWS_FP_MEMO = new Map();  // table|from|to -> the checksum request, so the window and its twin share one
+window.TRS_ROWS_STATS = { last: null, hist: [] };   // hist: every long-window read this page load, for timing
+function rowsIdb() {
+  if (ROWS_IDB.db) return ROWS_IDB.db;
+  ROWS_IDB.db = new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open(ROWS_IDB.name, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore(ROWS_IDB.store);
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+      r.onblocked = () => rej(new Error('blocked'));
+    } catch (e) { rej(e); }
+  }).catch(e => { ROWS_IDB.db = null; throw e; });
+  return ROWS_IDB.db;
+}
+function rowsIdbGet(key) {
+  return rowsIdb().then(db => new Promise((res, rej) => {
+    const r = db.transaction(ROWS_IDB.store, 'readonly').objectStore(ROWS_IDB.store).get(key);
+    r.onsuccess = () => res(r.result || null); r.onerror = () => rej(r.error);
+  }));
+}
+function rowsIdbPut(key, val) {
+  return rowsIdb().then(db => new Promise((res, rej) => {
+    const tx = db.transaction(ROWS_IDB.store, 'readwrite');
+    tx.objectStore(ROWS_IDB.store).put(val, key);
+    tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error);
+  }));
+}
+try {
+  sb.auth.onAuthStateChange(ev => {
+    if (ev !== 'SIGNED_OUT') return;
+    ROWS_FP_MEMO.clear();
+    try {
+      const open = ROWS_IDB.db; ROWS_IDB.db = null;
+      Promise.resolve(open).then(d => { if (d) d.close(); }).catch(() => {}).then(() => indexedDB.deleteDatabase(ROWS_IDB.name));
+    } catch (e) {}
+  });
+} catch (e) {}
+const rowsPad = n => String(n).padStart(2, '0');
+// 'YYYY-MM-DD' arithmetic on plain dates, no time zones involved.
+const rowsDay = (y, m, d) => `${y}-${rowsPad(m + 1)}-${rowsPad(d)}`;
+const rowsMonthEnd = (y, m) => rowsDay(y, m, new Date(Date.UTC(y, m + 1, 0)).getUTCDate());
+const rowsShift = (str, by) => { const d = new Date(Date.UTC(+str.slice(0, 4), +str.slice(5, 7) - 1, +str.slice(8, 10) + by)); return rowsDay(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
+function rowsPlan(fromStr, toStr) {
+  const fy = +fromStr.slice(0, 4), fm = +fromStr.slice(5, 7) - 1;
+  const now = new Date(); const cur = now.getFullYear() * 12 + now.getMonth();
+  const months = [];
+  // Nothing exists before the first year there is data for, so the months start there: a window that opens earlier (the
+  // twin window an All time is compared with) has its empty head read live, which costs one count.
+  for (let k = Math.max(fy * 12 + fm, PERIOD_FIRST_YEAR * 12); k < cur; k++) {
+    const y = Math.floor(k / 12), m = k % 12;
+    const a = rowsDay(y, m, 1), b = rowsMonthEnd(y, m);
+    if (a > toStr) break;
+    if (a >= fromStr && b <= toStr) months.push({ key: `${y}-${rowsPad(m + 1)}`, from: a, to: b });
+  }
+  if (months.length < ROWS_MIN_MONTHS) return null;
+  const first = months[0], last = months[months.length - 1];
+  return {
+    months,
+    head: fromStr < first.from ? { from: fromStr, to: rowsShift(first.from, -1) } : null,
+    tail: toStr > last.to ? { from: rowsShift(last.to, 1), to: toStr } : null,
+  };
+}
 async function loadAllRows(table, fromStr, toStr) {
+  if (ROWS_CACHE_OFF || ROWS_FP_BROKEN || typeof indexedDB === 'undefined') return loadAllRowsLive(table, fromStr, toStr);
+  const plan = rowsPlan(fromStr, toStr);
+  if (!plan) return loadAllRowsLive(table, fromStr, toStr);
+  let uid = null, fps = null;
+  try {
+    uid = ((await sb.auth.getSession()).data.session || {}).user?.id || null;
+    if (!uid) return loadAllRowsLive(table, fromStr, toStr);
+    const pFrom = plan.months[0].from, pTo = plan.months[plan.months.length - 1].to;
+    const fk = `${table}|${pFrom}|${pTo}`;
+    if (!ROWS_FP_MEMO.has(fk)) ROWS_FP_MEMO.set(fk, (async () => {
+      const r = await sb.rpc('staff_rows_fingerprint', { p_table: table, p_from: pFrom, p_to: pTo });
+      if (r.error) throw r.error;
+      const o = {}; (r.data || []).forEach(x => { o[x.m] = { n: Number(x.n), fp: String(x.fp) }; });
+      return o;
+    })().catch(e => { ROWS_FP_MEMO.delete(fk); throw e; }));
+    fps = await ROWS_FP_MEMO.get(fk);
+    await rowsIdb();
+  } catch (e) {
+    if (e && /staff_rows_fingerprint/.test(String(e.message || ''))) ROWS_FP_BROKEN = true;
+    return loadAllRowsLive(table, fromStr, toStr);
+  }
+  const stats = { table, months: plan.months.length, fromCache: 0, fetched: 0, rowsFetched: 0, t0: performance.now() };
+  const headAsk = plan.head ? loadAllRowsLive(table, plan.head.from, plan.head.to) : Promise.resolve([]);
+  const tailAsk = plan.tail ? loadAllRowsLive(table, plan.tail.from, plan.tail.to) : Promise.resolve([]);
+  const out = new Array(plan.months.length);
+  const work = plan.months.map((mo, i) => async () => {
+    const f = fps[mo.key];
+    if (!f || !f.n) { out[i] = []; return; }
+    const ck = `${uid}|${table}|${mo.key}`;
+    let hit = null;
+    try { hit = await rowsIdbGet(ck); } catch (e) {}
+    if (hit && hit.fp === f.fp && hit.n === f.n && Array.isArray(hit.rows) && hit.rows.length === f.n) { out[i] = hit.rows; stats.fromCache++; return; }
+    const rows = await loadAllRowsLive(table, mo.from, mo.to);
+    out[i] = rows; stats.fetched++; stats.rowsFetched += rows.length;
+    if (rows.length === f.n) { try { await rowsIdbPut(ck, { fp: f.fp, n: f.n, rows }); } catch (e) {} }
+  });
+  // A handful of months at a time: the first load of a long window is the same few hundred requests as before, but the
+  // shared API is not asked for all of them in the same second.
+  let next = 0;
+  await Promise.all(Array.from({ length: 6 }, async () => { while (next < work.length) await work[next++](); }));
+  const [head, tail] = await Promise.all([headAsk, tailAsk]);
+  stats.ms = Math.round(performance.now() - stats.t0);
+  window.TRS_ROWS_STATS.last = stats;
+  if (window.TRS_ROWS_STATS.hist.length < 40) window.TRS_ROWS_STATS.hist.push(Object.assign({ at: Math.round(performance.now()) }, stats));
+  return head.concat(...out, tail);
+}
+
+async function loadAllRowsLive(table, fromStr, toStr) {
   const PAGE = 1000;
 
   // Get the total row count first so every page can fire at once instead of
   // waiting on each other in turn — over a multi-month range that's the
   // difference between ~1 round trip and 15-20 sequential ones.
-  const { count, error: countErr } = await sb
+  // Kate, 18 Oct 2026: a read that failed used to come back as "no rows". On All time the ledger's count timed out, the
+  // ledger read as empty, and the Pulse quietly fell back to Phorest alone (0 of 4 targets, a Ledger funnel of zeros)
+  // with nothing to say so. A failed count or page is tried once more, and then it throws, so the page says it could
+  // not load instead of printing numbers that are short.
+  const again = async make => { let r = await make(); if (r.error) { await new Promise(res => setTimeout(res, 700)); r = await make(); } return r; };
+  const { count, error: countErr } = await again(() => sb
     .from(table)
     .select('*', { count: 'exact', head: true })
     .gte('date', fromStr)
-    .lte('date', toStr);
-  if (countErr || !count) return [];
+    .lte('date', toStr));
+  if (countErr) throw countErr;
+  if (!count) return [];
 
   const pageCount = Math.ceil(count / PAGE);
   const pages = await Promise.all(
-    Array.from({ length: pageCount }, (_, i) =>
+    Array.from({ length: pageCount }, (_, i) => again(() =>
       sb.from(table)
         .select('*')
         .gte('date', fromStr)
@@ -3006,8 +3153,9 @@ async function loadAllRows(table, fromStr, toStr) {
         .order('date', { ascending: true })
         .order('id', { ascending: true })
         .range(i * PAGE, i * PAGE + PAGE - 1)
-    )
+    ))
   );
+  pages.forEach(p => { if (p.error) throw p.error; });
   return pages.flatMap(p => p.data || []);
 }
 
@@ -3756,12 +3904,17 @@ function fnBuildBody(F, src) {
     if (uH || uB) { rows.push({ k: 'UNS', name: 'Unsplit', uns: true, tip: 'Counted in the total, but not given one of the four types (salon, request, new, new request).' }); H.uns = uH; B.uns = uB; }
   }
   const cell = (o, r) => r.uns ? o.uns : (r.na ? null : o[r.f]);
+  // Kate, 18 Oct 2026: on All time the counts are six digits (140,555) and ran past a 30px column and out of the card on a
+  // phone. The count columns take the width of the longest number in the card (--fnw), the same on every row.
+  let fnMax = 3;
+  rows.forEach(r => { [cell(H, r), cell(B, r)].forEach(v => { if (v != null) fnMax = Math.max(fnMax, fnNum(v).length); }); });
+  const fnw = Math.ceil(fnMax * 7.6) + 2;
   const body = rows.map(r => {
     const hv = cell(H, r), bv = cell(B, r);
     const pc = (v, t, side) => `<span class="fn-pill ${side}${v == null ? ' na' : ''}">${r.tot ? '100%' : (v == null ? (r.na ? 'n/a' : '\u2013') : fnPct(v, t))}</span>`;
     const bar = (v, t, side, col) => `<div class="fn-lane ${side}"><span class="fn-bar" style="width:${fnBarW(v, t)}%;min-width:${v ? 2 : 0}px;background:var(${col});opacity:${r.tot ? .45 : 1}"></span></div>`;
     return `
-    <div class="fn-grid fn-row${r.uns ? ' uns' : ''}${r.na ? ' na' : ''}">
+    <div class="fn-grid fn-row${r.uns ? ' uns' : ''}${r.na ? ' na' : ''}" style="--fnw:${fnw}px">
       <span class="fn-n l tabular">${hv == null ? '\u2013' : fnNum(hv)}</span>
       ${bar(hv, H.t, 'l', '--hair')}
       ${pc(hv, H.t, 'l')}
@@ -3795,7 +3948,7 @@ function fnBuildBody(F, src) {
       + 'Salon and NCR are ledger-only, so they read n/a here. Phorest counts new clients differently from the ledger, so New will not match it.'
       + (H.reb == null ? ' Rebooked is not available for this selection.' : '') + ' Hover a code for its full name.';
   }
-  const head = `<div class="fn-grid fn-head"><span class="l">Hair</span><span class="c">${hasBeauty ? 'Type \u00b7 % of side' : '% \u00b7 Type'}</span><span class="r">Beauty</span></div>`;
+  const head = `<div class="fn-grid fn-head" style="--fnw:${fnw}px"><span class="l">Hair</span><span class="c">${hasBeauty ? 'Type \u00b7 % of side' : '% \u00b7 Type'}</span><span class="r">Beauty</span></div>`;
   const sub = led
     ? (hasBeauty ? 'Every client type, mirrored down the middle. The branch ledger.' : 'Every client type from the branch ledger. This branch runs hair only, so there is nothing to mirror.')
     : (hasBeauty ? 'Phorest\u2019s own visit, request and rebooking counts, mirrored down the middle.' : 'Phorest\u2019s own visit, request and rebooking counts. This branch runs hair only.');
@@ -5222,6 +5375,7 @@ async function loadData() {
   // below refetches, and every chip click until the next one reuses that fetch
   // instead of paying Supabase again.
   RANGE_CACHE.clear();
+  ROWS_FP_MEMO.clear();
   // .then() sends it now; a Supabase query only goes out once something awaits it.
   const weeklyAsk = sb.from('weekly_data').select('*').order('uploaded_at', { ascending:true }).then(r => r);
   // Audit 17 Oct 2026 (P2-06): Daily Performance and Comparison load their own figures and read nothing the Pulse computes, yet a
