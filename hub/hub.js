@@ -18,11 +18,11 @@
   // `live` is for sections that link out rather than holding pages (a section with
   // pages in kb_pages is live on its own).
   // Kate, 6 Oct 2026: grouped by what you came to do, not by department. One front door:
-  // the Numbers, Targets, Content and People rows that point into the dashboard are
+  // the Numbers, Targets, Campaigns, Content and People rows that point into the dashboard are
   // shortcuts (`via: 'dashboards'`), shown to whoever may open the dashboard and is at
   // `min` level or above. They hold no data; the dashboard and the database still
   // decide what each person can read.
-  KB.GROUPS = ['The Tara Rose Way', 'Me', 'Learn', 'Numbers', 'Targets', 'Content', 'People', 'Admin'];
+  KB.GROUPS = ['The Tara Rose Way', 'Me', 'Learn', 'Numbers', 'Targets', 'Campaigns', 'Content', 'People', 'Admin'];
   KB.SECTIONS = [
     // Kate, 5 Oct 2026: Tara's Full Loop handover site (kb_sections min_level 3).
     // 6 Oct 2026: its own group again, at the top, Level 3 and up.
@@ -63,7 +63,7 @@
     { key: 'numbers-team', via: 'dashboards', min: 1, ic: 'access', dept: 'Numbers', title: 'Team Performance', href: '/?view=team', rule: 'var(--accent-lavender)',
       blurb: 'Podium race, staff quadrant, staff dashboards, 13 week report and stylist’s benchmarks.' },
     { key: 'numbers-clients', via: 'dashboards', min: 1, ic: 'lost-clients', dept: 'Numbers', title: 'Clients', href: '/?view=clients', rule: 'var(--accent-lavender)',
-      blurb: 'Top clients, lost clients and Google reviews.' },
+      blurb: 'Top clients, client mix, last visit and Google reviews.' },
     { key: 'numbers-sales', via: 'dashboards', min: 1, ic: 'dashboards', dept: 'Numbers', title: 'Sales & Stock', href: '/?view=services', rule: 'var(--accent-lavender)',
       blurb: 'Service rankings and products.' },
 
@@ -80,7 +80,12 @@
       blurb: 'Spend, clicks and leads from Google Ads.' },
     { key: 'content-web', via: 'dashboards', min: 3, ic: 'dashboards', dept: 'Content', title: 'Website & Search', href: '/?view=website', rule: 'var(--accent-coral)',
       blurb: 'Website visits and how people find us on Google.' },
-    { key: 'campaigns', dept: 'Content', title: 'Wellness Voucher Performance', href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
+    // Kate, 18 Oct 2026: the blasts and the voucher's results have their own group, Campaigns, in the sidebar and here.
+    { key: 'campaigns-lost', via: 'dashboards', min: 2, ic: 'lost-clients', dept: 'Campaigns', title: 'Lost Clients', href: '/?view=lostlists', rule: 'var(--accent-coral)',
+      blurb: 'The WhatsApp blast to clients who have not been in for 6 months: lists, sending, replies and results.' },
+    { key: 'campaigns-wvblast', via: 'dashboards', min: 3, ic: 'campaigns', dept: 'Campaigns', title: 'Wellness Voucher Blast', href: '/?view=wvblast', rule: 'var(--accent-coral)',
+      blurb: 'Send the Wellness Voucher WhatsApp in waves and see who replied.' },
+    { key: 'campaigns', dept: 'Campaigns', title: 'Wellness Voucher Performance', href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
       blurb: 'Redemptions, credit collected and the campaign target.' },
 
     { key: 'people-orgchart', via: 'dashboards', min: 1, ic: 'people', dept: 'People', title: 'Org Chart', href: '/?view=orgchart', rule: 'var(--accent-mint)',

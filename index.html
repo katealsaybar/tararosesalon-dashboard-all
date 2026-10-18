@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=05a33c03"></script>
+<script src="pages.js?v=3acd3b35"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3457,7 +3457,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
-      cl:  [LGX, 'lost-clients.js?v=9d6c0c21', 'lost-lists.js?v=4487498b', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
+      cl:  [LGX, 'lost-clients.js?v=5a36385e', 'lost-lists.js?v=4487498b', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
             'send-schedule.js?v=3abf6266', 'lost-queue.js?v=73e7736d', 'lost-waves.js?v=e6102677', 'lost-blast.js?v=068aa55b',
             'lost-report.js?v=ad61eba4', 'wv-blast.js?v=7ac5c5ab', 'top-clients.js?v=d73e7f2e', 'client-mix.js?v=7ec12be4',
             'service-rankings.js?v=c1364c02'],
@@ -3595,7 +3595,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <a class="nav-home nav-search" href="/search/"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search page</a>
 
   <!-- Kate, 6 Oct 2026: the sidebar uses Team Home's own groups, so the two read the
-       same: Numbers, Targets (was Today), Content, People. Numbers is long, so it carries small
+       same: Numbers, Targets (was Today), Campaigns (18 Oct 2026), Content, People. Numbers is long, so it carries small
        subheads (Business, Team Performance, Clients, Sales & Stock) on the same rule;
        a subhead is a label, not a link. Who sees which page is set per page in
        enterDashboard() and applyScope(); tidyNav() then hides any subhead or group left
@@ -3619,8 +3619,6 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('clients', this)">Top Clients</div>
     <div class="nav-sub" onclick="showView('clientmix', this)">Client Mix</div>
     <div class="nav-sub" onclick="showView('lostclients', this)">Client’s Last Visit</div>
-    <div class="nav-sub" onclick="showView('lostlists', this)">Lost Clients</div>
-    <div class="nav-sub" onclick="showView('wvblast', this)">Wellness Voucher Blast</div>
     <div class="nav-sub" onclick="showView('reviews', this)">Google Reviews</div>
     <div class="nav-subhead">Sales &amp; Stock</div>
     <div class="nav-sub" onclick="showView('services', this)">Service Rankings</div>
@@ -3634,14 +3632,22 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('ledgerActuals', this)">Actuals vs Targets</div>
   </div>
 
-  <!-- Google Ads and Website & Search: Level 3 and above. Wellness Voucher Performance
-       (read-only, no client names, the till stays out): Level 2 and above. -->
+  <!-- Kate, 18 Oct 2026: the two WhatsApp blasts and the voucher's results sit together, apart from the numbers pages: they are
+       things we send out and watch, not reports. Lost Clients: Level 2 and above (sending is Level 3). Wellness Voucher Blast: Level 3.
+       Wellness Voucher Performance (read-only, no client names, the till stays out): Level 2 and above. -->
+  <div class="nav-group" id="navCampaigns">
+    <div class="nav-title">Campaigns</div>
+    <div class="nav-sub" onclick="showView('lostlists', this)">Lost Clients</div>
+    <div class="nav-sub" onclick="showView('wvblast', this)">Wellness Voucher Blast</div>
+    <div class="nav-sub" onclick="showView('wvperf', this)">Wellness Voucher Performance</div>
+  </div>
+
+  <!-- Google Ads, Website & Search and Social: Level 3 and above. -->
   <div class="nav-group" id="navMarketing">
     <div class="nav-title">Content</div>
     <div class="nav-sub" onclick="showView('googleads', this)">Google Ads</div>
     <div class="nav-sub" onclick="showView('website', this)">Website &amp; Search</div>
     <div class="nav-sub" onclick="showView('social', this)">Social</div>
-    <div class="nav-sub" onclick="showView('wvperf', this)">Wellness Voucher Performance</div>
   </div>
 
   <div class="nav-group">
@@ -5393,7 +5399,7 @@ addEventListener('load', sizeTopbar);
 
 </script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
-<script src="nav-collapse.js?v=b0b3ecc8"></script>
+<script src="nav-collapse.js?v=d0cd986f"></script>
 <script src="nav-stars.js?v=c575eba8"></script>
 <script src="scroll-edges.js?v=07b016fd"></script>
 <script src="mobile.js?v=0aec8169"></script>

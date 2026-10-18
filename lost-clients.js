@@ -241,7 +241,8 @@ const LC_COLS = [
   { k: 'stylist', label: 'Usual stylist',    type: 'pick', get: r => lcTeam(r).hair[0] || '' },
   { k: 'beauty',  label: 'Usual beautician', type: 'pick', get: r => lcTeam(r).beauty[0] || '' },
   { k: 'now',     label: 'Now at',              type: 'pick', get: r => r.now_at || '', side: 'moved' },
-  { k: 'booked',  label: 'Booked',              type: 'date', get: r => r.booked_on || '', side: 'booked' },
+  // Kate, 18 Oct 2026: on every tab, not only the Booked one, named for what it is. (It stays empty on Lost, which means no booking.)
+  { k: 'booked',  label: 'Next appointment',    type: 'date', get: r => r.booked_on || '' },
   { k: 'phone',   label: 'Phone',               type: 'has',  get: r => r.mobile || r.landline || '', phones: true },
 ];
 const lcHasPhones = () => (lcAll || []).some(r => r.mobile || r.landline);
@@ -609,7 +610,7 @@ function lcPaintTable() {
   const cards = shown.map((r, i) => `<li class="prd-card lc-row" onclick="lcToggleDetail(event,${i})">
       <div class="prd-body">
         <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${check(r)}</span><span class="prd-spend">AED ${lcNum(r.spend)}</span></div>
-        <div class="prd-meta">${lcNum(r.visits)} visits · avg AED ${lcNum(lcAvg(r))} · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${lcSide === 'moved' && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}${lcSide === 'booked' && r.booked_on ? ' · booked ' + lcEsc(lcBookedAt(r)) + (r.booked_with ? ' with ' + lcEsc(r.booked_with) : '') : ''}</div>
+        <div class="prd-meta">${lcNum(r.visits)} visits · avg AED ${lcNum(lcAvg(r))} · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${lcSide === 'moved' && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}${r.booked_on ? ' · next appointment ' + lcEsc(lcBookedAt(r)) + (r.booked_with ? ' with ' + lcEsc(r.booked_with) : '') : ''}</div>
         ${['hair', 'beauty'].map(t => { const l = lcTeam(r)[t]; return l.length ? `<div class="prd-meta lc-also-line">${t === 'hair' ? 'Stylist' : 'Beautician'} ${lcStylist(l[0])}${l.length > 1 ? ' · also ' + l.slice(1, 3).map(lcStylist).join(', ') + (l.length > 3 ? ' +' + (l.length - 3) : '') : ''}</div>` : ''; }).join('')}
         ${lcHasPhones() && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
         <div class="lc-hint-m">Tap for her visits ›</div>
@@ -740,7 +741,7 @@ function lcExportLines() {
     if (c.k === 'last') { head.push('Last visit', 'Days since'); pick.push(r => r.last_visit, r => Number(r.days_since) || 0); return; }
     if (c.k === 'now') { head.push('Now at', 'Last visit there'); pick.push(r => r.now_at || '', r => r.now_last || ''); return; }
     if (c.k === 'booked') {
-      head.push('Booked for', 'Booked at', 'Booked with', 'Booked services');
+      head.push('Next appointment', 'Next appointment at', 'Next appointment with', 'Next appointment services');
       pick.push(r => r.booked_on || '', r => r.booked_at || '', r => r.booked_with || '', r => r.booked_for || ''); return;
     }
     if (c.k === 'stylist') { head.push('Usual stylist', 'Also saw (hair)'); pick.push(r => lcTeam(r).hair[0] || '', r => lcTeam(r).hair.slice(1).join(', ')); return; }

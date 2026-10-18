@@ -22,6 +22,9 @@
   let folded = {};
   try { folded = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { folded = {}; }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(folded)); } catch (e) {} };
+  // Kate, 18 Oct 2026: "Campaigns" is a new group (Lost Clients and the two Wellness Voucher pages). The name was an older group's, and a browser
+  // that folded that one would open this one shut. Once, per browser, it opens; after that it remembers like the rest.
+  if (!folded['once:campaigns-18oct']) { delete folded['g:Campaigns']; folded['once:campaigns-18oct'] = 1; save(); }
 
   const aside = document.querySelector('aside.sidebar');
   if (!aside) return;
