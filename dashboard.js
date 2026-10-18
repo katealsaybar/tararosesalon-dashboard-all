@@ -2186,7 +2186,7 @@ function branchesWithNoData() {
   return new Set(Object.keys(BRANCH_INFO).filter(b => !present.has(b)));
 }
 
-function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
+function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows, rebookRows) {
   const hasLedgerData = branchStaffRows && branchStaffRows.length;
   const hasPhorest    = phorestStaffRows && phorestStaffRows.length;
   if (!hasLedgerData && !hasPhorest && (!dailyRows || !dailyRows.length)) return null;
@@ -2321,7 +2321,7 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows) {
   // Each stylist's own Phorest counts beside her ledger ones (st.ph). null where Phorest has
   // nothing for her (a day the ledger has and Phorest does not, or a window with no Phorest rows).
   if (phorestStaffRows && phorestStaffRows.length) {
-    const by = fnPhorestPerStaff(phorestStaffRows, branchStaffRows);
+    const by = fnPhorestPerStaff(phorestStaffRows, branchStaffRows, rebookRows);
     hairStaff.forEach(st => { st.ph = by['hair|' + staffMapKey(st.name)] || null; });
     beautyStaff.forEach(st => { st.ph = by['beauty|' + staffMapKey(st.name)] || null; });
   }
@@ -3466,7 +3466,9 @@ function aggByBranch() {
       const pR = phorestStaffRows.filter(r => r.branch === code);
       // Phorest alone is enough (Bahrain has no ledger yet; nor does most of 2025), the
       // same rule aggDailyData() already applies to the page summary.
-      result[code] = (bR.length || dR.length || pR.length) ? aggDailyData(dR, bR, pR) : null;
+      // The tracker's rows for the window, when the Podium Race has loaded them (team-performance.js tpLoadRebook).
+      const rR = (window._cachedDailyJoin.rebookRows || []).filter(r => r.branch === code);
+      result[code] = (bR.length || dR.length || pR.length) ? aggDailyData(dR, bR, pR, rR) : null;
     } else {
       // Weekly mode: filter allData by branch + date range
       const rows = allData.filter(d => {
@@ -3563,7 +3565,9 @@ function fnPhorestPerson(employeeName, branch, ledgerDept, deptMap) {
 // Phorest's own counts for each stylist (visits, new clients, RQ, services, retail), keyed
 // 'hair|NAME' / 'beauty|NAME' on the staff map key, for the Podium Race and the staff tables to
 // print beside the ledger's (Kate, 8 Oct 2026). Built per branch, since aggDailyData is.
-function fnPhorestPerStaff(phRows, ledgerRows) {
+// rebookRows (optional): Phorest's Staff Performance Tracker rows for the same window. Each person's Phorest figures then carry rbV (tracker
+// visits) and rbR (rebooked), so a page can read her rebooking from Phorest beside the ledger's (Kate, 18 Oct 2026).
+function fnPhorestPerStaff(phRows, ledgerRows, rebookRows) {
   const out = {};
   const deptMap = (typeof buildStaffDeptMap === 'function') ? buildStaffDeptMap() : {};
   const ledgerDept = {};
@@ -3576,10 +3580,17 @@ function fnPhorestPerStaff(phRows, ledgerRows) {
     const who = fnPhorestPerson(r.employee_name, r.branch, ledgerDept, deptMap);
     if (!who) return;
     const k = who.side + '|' + who.key;
-    const o = out[k] || (out[k] = { t: 0, nw: 0, req: 0, svc: 0, retail: 0 });
+    const o = out[k] || (out[k] = { t: 0, nw: 0, req: 0, svc: 0, retail: 0, rbV: 0, rbR: 0 });
     o.t += Number(r.visits) || 0; o.nw += Number(r.new_clients) || 0; o.req += Number(r.rqs) || 0;
     o.svc += (Number(r.services_ex_vat) || 0) + (Number(r.courses_ex_vat) || 0);
     o.retail += Number(r.products_ex_vat) || 0;
+  });
+  (rebookRows || []).forEach(r => {
+    const who = fnPhorestPerson(r.employee_name, r.branch, ledgerDept, deptMap);
+    if (!who) return;
+    const k = who.side + '|' + who.key;
+    const o = out[k] || (out[k] = { t: 0, nw: 0, req: 0, svc: 0, retail: 0, rbV: 0, rbR: 0 });
+    o.rbV += Number(r.visits) || 0; o.rbR += Number(r.rebooked) || 0;
   });
   return out;
 }

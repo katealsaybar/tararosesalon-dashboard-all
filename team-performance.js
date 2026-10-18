@@ -99,6 +99,60 @@ function tpApplyCounts(roster, counts) {
     st.gReviews = c ? (c.google_reviews || 0) : 0;
   });
 }
+// REBOOKING SOURCE (Kate, 17 Oct 2026, the audit's P3-01). The same stylist read 4.8% on one page and 16.7% on the page it opened, because the
+// race and the quadrant read the hand-typed ledger and My Numbers can read Phorest. Ruling: Phorest's Staff Performance Tracker is the default
+// here, the ledger is one tap away, and BOTH figures are printed on every card and in the tray, so nobody has to guess which one they are
+// looking at. Where Phorest has nothing for her (the tracker starts 1 Jul 2026, or she has no tracker rows) the ledger answers and says so.
+let tpRebookSrc = 'phorest';
+try { const k = localStorage.getItem('tp-rebook-src'); if (k === 'phorest' || k === 'ledger') tpRebookSrc = k; } catch (e) {}
+// The tracker rows for the window on screen, shared with the Pulse's funnel (same cache key), hung on the daily join so the per-person
+// aggregation can read them.
+async function tpLoadRebook() {
+  const j = window._cachedDailyJoin;
+  if (!j || typeof dateFrom === 'undefined' || !dateFrom || !dateTo) return;
+  const f = dateToIso(dateFrom), t = dateToIso(dateTo), key = f + '|' + t;
+  if (j.rebookKey === key && j.rebookRows) return;
+  try {
+    j.rebookRows = await cachedRange(`rebook|${f}|${t}`, async () => keepUae(await loadAllRows('phorest_staff_rebooking', f, t)));
+  } catch (e) { j.rebookRows = []; }
+  j.rebookKey = key;
+}
+// Her rebooking both ways, and the one in force. Ledger: rebooked over the ledger's clients. Phorest: rebooked over the tracker's visits.
+function tpApplyRebookSrc(st) {
+  if (st.rebookLedger == null) st.rebookLedger = st.rebookPct;
+  const ph = st.ph;
+  st.rebookPhorest = (ph && ph.rbV > 0) ? ph.rbR / ph.rbV * 100 : null;
+  st.rebookSrc = 'ledger';
+  st.rebookPct = st.rebookLedger;
+  if (tpRebookSrc === 'phorest' && st.rebookPhorest != null) { st.rebookPct = st.rebookPhorest; st.rebookSrc = 'phorest'; }
+}
+// "Phorest 40.6% · Ledger 36.3%", the one in force in bold. Plain text for tooltips when plain is true.
+function tpRbBoth(st, plain) {
+  const ph = st.rebookPhorest, lg = st.rebookLedger;
+  const a = ph != null ? 'Phorest ' + tpPct(ph) : 'Phorest n/a';
+  const b = (st.noLedger || lg == null) ? 'Ledger n/a' : 'Ledger ' + tpPct(lg);
+  if (plain) return a + ' · ' + b;
+  return (st.rebookSrc === 'phorest' ? '<b>' + a + '</b>' : a) + ' · ' + (st.rebookSrc === 'ledger' ? '<b>' + b + '</b>' : b);
+}
+function tpSetRebookSrc(k) {
+  if (tpRebookSrc === k) return;
+  tpRebookSrc = k;
+  try { localStorage.setItem('tp-rebook-src', k); } catch (e) {}
+  renderTeam();
+}
+// The switch in the bar, or one line saying why there is none.
+function tpRebookBar() {
+  if (typeof isBahrainView === 'function' && isBahrainView()) return '';
+  const r = tpRoster(tpDept);
+  if (!r.length || tpBenchNoLedger()) return '';
+  if (!r.some(st => st.rebookPhorest != null)) {
+    return '<span class="tp-bar-n" title="Phorest\u2019s Staff Performance Tracker starts on 1 Jul 2026, so an earlier window has the ledger only.">Rebooking: ledger only for this window</span>';
+  }
+  return `<div class="tp-seg" role="group" aria-label="Rebooking from">
+        <button class="${tpRebookSrc === 'phorest' ? 'on' : ''}" onclick="tpSetRebookSrc('phorest')" title="Rebooking from Phorest\u2019s Staff Performance Tracker: rebooked over Phorest visits">Rebooking: Phorest</button>
+        <button class="${tpRebookSrc === 'ledger' ? 'on' : ''}" onclick="tpSetRebookSrc('ledger')" title="Rebooking from the branch ledger: rebooked over the ledger\u2019s clients">Ledger</button>
+      </div>`;
+}
 let tpSort = 'net';
 try { const k = localStorage.getItem('tp-sort'); if (TP_LEAGUES[k]) tpSort = k; } catch (e) {}
 // True when nobody on this bench has ledger rows (a 2025 window, Bahrain): the ledger's
@@ -232,7 +286,8 @@ const TP_SPLIT_FULL = { 'MAY|SAA': 'MAY MANGUIAT', 'CHARLENE|MC': 'CHARLENE PAYN
 let TP_ROSTER_MEMO = { dept: null, inputs: null, out: null };
 function tpRosterInputs(dept) {
   return [dept, sel.branch.join(), dateFrom ? dateToIso(dateFrom) : '', dateTo ? dateToIso(dateTo) : '',
-    ACTIVE_BRANCHES.join(), TP_OVR, window._cachedDailyJoin, window._cachedWeeklyTotals, allData];
+    ACTIVE_BRANCHES.join(), TP_OVR, window._cachedDailyJoin, window._cachedWeeklyTotals, allData,
+    window._cachedDailyJoin && window._cachedDailyJoin.rebookRows, tpRebookSrc];
 }
 function tpRoster(dept) {
   const inputs = tpRosterInputs(dept), m = TP_ROSTER_MEMO;
@@ -295,6 +350,7 @@ function tpRosterBuild(dept) {
     // Kate, 15 Oct 2026: ABCR, BWR, KMR and OR are 2026 Khalifa City ledger codes (draft names), not people.
     .filter(st => !['ABCR', 'BWR', 'KMR', 'OR'].includes(tpMergeKey(st.name)))
     .filter(st => !TP_OVR.hide.has(tpOvrKey(st.name)));
+  list.forEach(tpApplyRebookSrc);
   return list.sort((a, b) => (b.net || 0) - (a.net || 0));
 }
 
@@ -317,8 +373,9 @@ function tpCombine(group, mergeKey) {
   // Her Phorest counts, summed over the same branches (null when Phorest has none for her).
   const phRows = group.filter(r => r.ph);
   const ph = phRows.length
-    ? phRows.reduce((a, r) => ({ t: a.t + r.ph.t, nw: a.nw + r.ph.nw, req: a.req + r.ph.req, svc: a.svc + r.ph.svc, retail: a.retail + r.ph.retail }),
-        { t: 0, nw: 0, req: 0, svc: 0, retail: 0 }) : null;
+    ? phRows.reduce((a, r) => ({ t: a.t + r.ph.t, nw: a.nw + r.ph.nw, req: a.req + r.ph.req, svc: a.svc + r.ph.svc, retail: a.retail + r.ph.retail,
+        rbV: a.rbV + (r.ph.rbV || 0), rbR: a.rbR + (r.ph.rbR || 0) }),
+        { t: 0, nw: 0, req: 0, svc: 0, retail: 0, rbV: 0, rbR: 0 }) : null;
   const treatments   = sum('treatments');
   const retail       = sum('retail');
   const hairSalesNet = sum('hairSalesNet');
@@ -478,6 +535,8 @@ async function renderTeam() {
   }
   // Takings vs Rebooking reads each person against her level's aims; fetched once.
   if (part === 'quad' && !tpLevels) await tpLoadLevels();
+  // Phorest's rebooking for the window, beside the ledger's (a cache hit when the Pulse already asked).
+  await tpLoadRebook();
 
   // The emptiness test is the roster itself, not a weekly_data row count: on a
   // part-week window there are no weekly rows at all and the figures come from
@@ -525,6 +584,7 @@ async function renderTeam() {
         <button class="${tpHideLeavers ? '' : 'on'}" onclick="tpSetLeavers(false)" title="Include people who have left, greyed out">With leavers</button>
         <button class="${tpHideLeavers ? 'on' : ''}" onclick="tpSetLeavers(true)" title="Only the current team">Current team</button>
       </div>
+      ${tpRebookBar()}
       ${part === 'race' ? `<select id="tpRankBy" aria-label="Rank by" onchange="tpSetSort(this.value)">
         ${tpLeagues().map(k => `<option value="${k}" ${k === tpLeagueKey() ? 'selected' : ''}>Rank by: ${TP_LEAGUES[k].label}</option>`).join('')}
       </select>` : ''}
@@ -615,7 +675,8 @@ function tpPhLine(st) {
   // Visits in Phorest and no ledger rows at all: usually a different spelling of her name in the ledger.
   const flag = (st.noLedger && st.ph.t > 0 && !(typeof isBahrainView === 'function' && isBahrainView()))
     ? ' · <b title="Phorest has visits for her but the ledger has no rows. Check how her name is spelled in the ledger.">no ledger rows</b>' : '';
-  return `<div class="tp-ph tabular">Phorest: ${tpNum(st.ph.t)} visits${avg}${flag}</div>`;
+  return `<div class="tp-ph tabular">Phorest: ${tpNum(st.ph.t)} visits${avg}${flag}</div>`
+    + (tpNoLedger(st) && st.rebookPhorest == null ? '' : `<div class="tp-ph tabular" title="Rebooking from Phorest\u2019s tracker and from the branch ledger. The bold one is the one in force (switch it in the bar).">Rebooking: ${tpRbBoth(st)}</div>`);
 }
 function tpRoleBranch(st) {
   return `${escapeHtml(tpRole(st))} · ${(st.branches || [{ name: st.branchName }]).map(b => escapeHtml(b.name)).join(' + ')}`;
@@ -882,8 +943,8 @@ function tpQuadrant(roster) {
     ? `${escapeHtml(st.name)} · ${escapeHtml(tpRole(st))} · ${tpAed(st.treatments)} treatments, ${Math.round(vx(st))}% of her level's aim · ${tpAed(st.retail)} retail, ${Math.round(vy(st))}% of her level's aim`
     : `${escapeHtml(st.name)} · ${tpPct(st.treatmentPct)} treatment · ${tpPct(st.retailPct)} retail · ${escapeHtml(tpRole(st))}`)
     : byLevel
-    ? `${escapeHtml(st.name)} · ${escapeHtml(tpRole(st))} · ${tpAed(st.net)}, ${Math.round(vx(st))}% of her level's take aim · ${tpPct(st.rebookPct)} rebook, ${Math.round(vy(st))}% of her level's ${aimOf(st).rebook}%`
-    : `${escapeHtml(st.name)} · ${tpAed(st.net)} · ${tpPct(st.rebookPct)} rebook · ${escapeHtml(tpRole(st))}`;
+    ? `${escapeHtml(st.name)} · ${escapeHtml(tpRole(st))} · ${tpAed(st.net)}, ${Math.round(vx(st))}% of her level's take aim · ${tpPct(st.rebookPct)} rebook (${tpRbBoth(st, true)}), ${Math.round(vy(st))}% of her level's ${aimOf(st).rebook}%`
+    : `${escapeHtml(st.name)} · ${tpAed(st.net)} · ${tpPct(st.rebookPct)} rebook (${tpRbBoth(st, true)}) · ${escapeHtml(tpRole(st))}`;
   const faces = nodes.map(n => {
     const st = n.st;
     const cx = n.x, cy = n.y, on = tpCompare.includes(tpKey(st));
@@ -1002,9 +1063,11 @@ const TP_CMP_ROWS = [
     bench: b => b.n ? b.phNw / b.n : 0 },
   { label: 'Requests, RQ (Phorest)', fmt: tpNum, pick: st => (st.ph && st.ph.req) || 0,
     bench: b => b.n ? b.phReq / b.n : 0 },
-  { label: 'Rebooked', fmt: tpNum, pick: st => st.rebooked || 0,
+  { label: 'Rebooked (ledger)', fmt: tpNum, pick: st => st.rebooked || 0,
     bench: b => b.n ? b.rebooked / b.n : 0 },
-  { label: 'Rebooking %', fmt: tpPct, target: () => TARGETS.rebookPct, pick: st => st.rebookPct,
+  { label: 'Rebooking % (Phorest)', fmt: tpPct, target: () => TARGETS.rebookPct, pick: st => st.rebookPhorest,
+    bench: b => b.phRbV ? b.phRbR / b.phRbV * 100 : 0 },
+  { label: 'Rebooking % (ledger)', fmt: tpPct, target: () => TARGETS.rebookPct, pick: st => st.rebookLedger,
     bench: b => b.ledgerClients ? b.rebooked / b.ledgerClients * 100 : 0 },
   { label: 'Treatment AED', fmt: tpAed, hairOnly: true, pick: st => st.treatments || 0,
     bench: b => b.n ? b.treatments / b.n : 0 },
@@ -1024,11 +1087,11 @@ const TP_CMP_ROWS = [
 // The bench's own totals, over whoever is on screen — the current department and
 // branch selection, the same roster the podium and floor are drawn from.
 function tpBench(roster) {
-  const b = { n: roster.length, phT:0, phNw:0, phReq:0, phSvc:0, net:0, clients:0, ledgerClients:0, newC:0, rebooked:0, treatments:0, retail:0, services:0 };
+  const b = { n: roster.length, phT:0, phNw:0, phReq:0, phSvc:0, phRbV:0, phRbR:0, net:0, clients:0, ledgerClients:0, newC:0, rebooked:0, treatments:0, retail:0, services:0 };
   roster.forEach(st => {
     b.net       += st.net || 0;
     b.clients   += st.total || 0;
-    if (st.ph) { b.phT += st.ph.t; b.phNw += st.ph.nw; b.phReq += st.ph.req; b.phSvc += st.ph.svc; }
+    if (st.ph) { b.phT += st.ph.t; b.phNw += st.ph.nw; b.phReq += st.ph.req; b.phSvc += st.ph.svc; b.phRbV += st.ph.rbV || 0; b.phRbR += st.ph.rbR || 0; }
     // Rebooking is read against the ledger's count, the same base her own % uses.
     b.ledgerClients += (st.ledgerClients != null ? st.ledgerClients : st.total) || 0;
     b.newC      += (st.newC != null ? st.newC : st.newClients) || 0;
@@ -1068,14 +1131,16 @@ function tpTrayMatrix(picked, roster) {
 
   const body = rows.map(r => {
     const target = r.target ? r.target(tpDept) : null;
-    const vals   = picked.map(st => Number(r.pick(st)) || 0);
+    // null is "no figure" (Phorest has nothing for her), shown as a dash, never as 0%.
+    const vals   = picked.map(st => { const x = r.pick(st); return x == null ? null : (Number(x) || 0); });
+    const have   = vals.filter(v => v != null);
     // The leader is marked only when there is something to lead: one person
     // compared against herself is not a winner. Ties are not marked either.
-    const top    = vals.length > 1 ? Math.max(...vals) : null;
-    const tied   = top != null && vals.filter(v => v === top).length > 1;
+    const top    = have.length > 1 ? Math.max(...have) : null;
+    const tied   = top != null && have.filter(v => v === top).length > 1;
     return `<tr>
       <td class="tp-cmp-k">${r.label}</td>
-      ${vals.map(v => `<td class="r tabular ${target ? tpBand(v, target) : ''}${
+      ${vals.map(v => v == null ? '<td class="r tabular">\u2014</td>' : `<td class="r tabular ${target ? tpBand(v, target) : ''}${
         (top != null && !tied && v === top) ? ' tp-cmp-best' : ''}">${r.fmt(v)}</td>`).join('')}
       <td class="r tabular tp-cmp-agg">${r.fmt(r.bench(bench))}</td>
       <td class="r tabular tp-cmp-agg">${target ? r.fmt(target) : '—'}</td>
