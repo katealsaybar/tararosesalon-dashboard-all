@@ -1114,9 +1114,11 @@ function dpHeat(host, idxs) {
       const tip = `<b>${dpEsc(dpName(code))}</b><div>${dpDayLabel(dpDate(i))}</div>` + (c.state !== 'ok' ? `<div>${dpWhy(c.state)}</div>` : `<div class="r"><span>${M.fmt(c.v)}</span><span>${raw ? '' : M.util ? utilBandNote(c.v) : (c.p != null ? Math.round(c.p) + '% of target' + (M.kind === 'ratio' ? ' (target ' + M.fmt(c.t) + ')' : '') : 'no target')}</span></div>`);
       let fill = 'var(--surface2)', ink = 'var(--muted2)', label = '';
       if (c.state === 'ok') {
-        if (raw) { fill = dpShade(mx ? c.v / mx : 0); ink = 'var(--text)'; label = M.fmt(c.v).replace('%', ''); }
+        // Count measures format as "6 rebooked" / "12 clients"; the unit stays in the tooltip, the square carries the number only.
+        const bare = v => M.fmt(v).replace('%', '').replace(/\s+[A-Za-z][A-Za-z ]*$/, '');
+        if (raw) { fill = dpShade(mx ? c.v / mx : 0); ink = 'var(--text)'; label = bare(c.v); }
         else if (c.p != null) { const b = M.util ? dpUtilBin(c.v) : dpBin(c.p, dpLoP(mk, c.t)); fill = dpBinBg(b); ink = dpBinInk(b); label = M.kind === 'ratio' ? dpPlain(M, c.v) : String(Math.round(c.p)); }
-        else { ink = 'var(--text)'; label = M.fmt(c.v).replace('%', ''); }
+        else { ink = 'var(--text)'; label = bare(c.v); }
       }
       g += `<rect x="${x + 1}" y="${yy + 1}" width="${cw - 2}" height="${ch - 2}" rx="6" style="fill:${fill}" data-tip="${dpEsc(tip)}"/>`;
       if (nums && label) g += `<text x="${x + cw / 2}" y="${yy + ch / 2 + 4}" text-anchor="middle" style="fill:${ink};font-size:11.5px;font-weight:600;pointer-events:none">${label}</text>`;
