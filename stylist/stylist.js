@@ -263,7 +263,7 @@ const STYLIST_PHOTOS = {
   "Catrin":    "MC/catrin birkby.png",      // left Feb 2023, Senior Stylist at MC — Kate, 14 Oct 2026
   "Reshel":    "SAA/reshel tagayuna.png",   // left 2023, Junior Stylist at SAA — Kate, 14 Oct 2026
   "Alex":    "KCA/alex duncan.png",   // placeholder, no photo or IG; KCA Sep 2021 to May 2022 — Kate, 15 Oct 2026
-  "Billy":   "other/billy gray.png",   // placeholder, no photo or IG; Fratelli, Mar 2024 to Sep 2025 — Kate, 15 Oct 2026
+  "Billy":   "other/billy gray.png",   // Fratelli, Mar 2024 to Sep 2025; real B&W headshot from Kate, 18 Oct 2026 (no IG)
   "Charlene":"BAH/charlene.png",   // Bahrain beautician placeholder, no surname at source — Kate, 15 Oct 2026
   "Kerryn":  "BAH/kerryn.png",
   "Farwa":   "BAH/farwa.png",
