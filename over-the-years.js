@@ -438,26 +438,21 @@ async function otyLoad(force) {
   otyBusy = true; otyErr = '';
   const host = document.getElementById('overYearsContent');
   if (host && !otyRaw) host.innerHTML = '<div class="oty oty-load">Reading six years of takings. This takes a few seconds.</div>';
-  try {
-    const { data, error } = await sb.rpc('over_the_years');
-    if (error) throw error;
-    otyRaw = data;
-  } catch (e) { otyErr = (e && e.message) || 'Could not load.'; }
-  if (otyRaw && !otyIgLoaded && typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3) {
-    try {
-      const r = await sb.rpc('over_the_years_ig');
-      if (r.error) throw r.error;
-      otyIgRaw = r.data;
-    } catch (e) { otyIgErr = (e && e.message) || 'Could not load Instagram.'; }
+  // Audit 18 Oct 2026 (P2-11): the three reads do not depend on each other, so they go out together (they used to run one after
+  // another, two avoidable round trips on a page that says it takes a few seconds). A failed one is handled exactly as before;
+  // Instagram and the months are only kept when the main read worked, as they were.
+  const ask = name => sb.rpc(name).then(r => r, e => ({ data: null, error: e }));
+  const wantIg = !otyIgLoaded && typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
+  const wantMo = !otyMoLoaded || force;
+  const [main, ig, mo] = await Promise.all([ask('over_the_years'), wantIg ? ask('over_the_years_ig') : null, wantMo ? ask('over_the_years_months') : null]);
+  if (main.error) otyErr = (main.error && main.error.message) || 'Could not load.'; else otyRaw = main.data;
+  if (otyRaw && wantIg && ig) {
+    if (ig.error) otyIgErr = (ig.error && ig.error.message) || 'Could not load Instagram.'; else otyIgRaw = ig.data;
     otyIgLoaded = true;
   }
   // Kate, 13 Oct 2026: the month by month section reads its own small feed (oty_month_branch), loaded for every level.
-  if (otyRaw && (!otyMoLoaded || force)) {
-    try {
-      const r = await sb.rpc('over_the_years_months');
-      if (r.error) throw r.error;
-      otyMoRaw = r.data; otyMoErr = '';
-    } catch (e) { otyMoErr = (e && e.message) || 'Could not load month by month.'; }
+  if (otyRaw && wantMo && mo) {
+    if (mo.error) otyMoErr = (mo.error && mo.error.message) || 'Could not load month by month.'; else { otyMoRaw = mo.data; otyMoErr = ''; }
     otyMoLoaded = true;
   }
   otyBusy = false;

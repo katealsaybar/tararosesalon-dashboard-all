@@ -217,7 +217,7 @@ function wvSendPaint() {
   const tri = ssTriageHtml((i.failed || []).map(f => ({ id: f.id, cls: f.cls, error: f.error })), { retry: 'wvTriRetry', copy: 'wvTriCopy',
     stopSay: 'These fail the same way every time (no contact with that number in GHL, or GHL refused). Fix the contact in GHL, or message her by hand.' });
   box.innerHTML = `<div class="ll-panel wv-send">
-    <div class="wv-send-h"><div><b>Send a wave from here</b> <span class="slv-note">Level 5 only</span></div>
+    <div class="wv-send-h"><div><b>Send a wave from here</b> <span class="slv-note">Level 5 only</span> <a class="slv-note" href="?view=wvperf" onclick="event.preventDefault();showView('wvperf', document.querySelector('#sidebar .nav-sub[onclick*=&quot;wvperf&quot;]'))">Results: Wellness Voucher Performance</a></div>
       <button type="button" class="tglr lc-btn wv-sw ${on ? 'on' : 'off'}" onclick="wvSendSwitch(${on ? 'false' : 'true'})" title="The kill switch. Off: nothing is sent, even what is already queued.">Sending is ${on ? 'ON' : 'OFF'} · turn ${on ? 'off' : 'on'}</button></div>
     <p class="slv-muted wv-send-p">Each client gets the GHL go tag, which makes GHL send her WhatsApp message and add her to the Wellness Voucher pipeline (Received Blast Campaign). a = short message, b = long message. Sends only between ${i.hour_from}:00 and ${i.hour_to}:00 Dubai${win ? '' : ' <b>(outside that window now)</b>'}. <b>Schedule…</b> picks the day and time, how many, and a pace (for example 40 every 30 minutes); it then sends itself, so you can close this page${on ? '' : ', but only while Sending is ON'}. Sent messages cannot be called back; <b>Stop</b> cancels only the ones still waiting.</p>
     <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th>Send at</th><th>Launched</th><th>Finished</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -233,9 +233,27 @@ function wvSendPaint() {
   const ws = i.waves || [];
   if (ws.some(w => Number(w.waiting) > 0) && !wvSndBusy) wvSndTimer = setTimeout(() => { if (document.getElementById('wvSendBox')) wvSendLoad(); }, ws.some(wvIsDue) ? 6000 : 30000);
 }
+// A review dialog in place of the browser's confirm() (audit 18 Oct 2026, P4-19), the same dialog the schedule and retry steps use
+// (send-schedule.js ssModalOpen). Cancel has the focus, so an Enter or a stray tap does not send; Escape, a click outside or any other way
+// the dialog goes away counts as Cancel. Resolves true only for the button named in `ok`.
+function wvAsk({ title, lines, ok }) {
+  return new Promise(res => {
+    ssModalOpen(`<h3>${lcEsc(title)}</h3>
+      <ul class="lqm-list">${lines.map(l => `<li>${l}</li>`).join('')}</ul>
+      <div class="lqm-btns"><button type="button" class="tglr lc-btn" id="wvAskNo">Cancel</button>
+        <button type="button" class="tglr lc-btn lq-pri" id="wvAskYes">${lcEsc(ok)}</button></div>`);
+    const no = document.getElementById('wvAskNo'), yes = document.getElementById('wvAskYes');
+    const gone = new MutationObserver(() => { if (!document.getElementById('ssModal')) { gone.disconnect(); res(false); } });
+    gone.observe(document.body, { childList: true });
+    if (no) { no.onclick = () => { ssModalClose(); res(false); }; no.focus(); }
+    if (yes) yes.onclick = () => { gone.disconnect(); ssModalClose(); res(true); };
+  });
+}
 function wvSendSay(t) { wvSndMsg = t; const n = document.getElementById('wvSendNote'); if (n) n.textContent = t; }
 async function wvSendSwitch(on) {
-  if (on && !confirm('Turn sending ON?\n\nWaves you queue, or have scheduled, will go to real clients at their time. You can turn it off again at any time; that stops everything still waiting.')) return;
+  if (on && !(await wvAsk({ title: 'Turn sending ON?', ok: 'Turn sending on', lines: [
+    'Waves you queue, or have scheduled, will go to <b>real clients</b> at their time.',
+    'You can turn it off again at any time; that stops everything still waiting.'] }))) return;
   const { data, error } = await sb.rpc('wv_send_config_set', { p_patch: { enabled: on } });
   if (error) { wvSendSay('Could not change the switch: ' + (error.message || error)); return; }
   wvSnd = data; wvSndMsg = on ? 'Sending is ON.' : 'Sending is OFF. Nothing more will go.'; await wvSendLoad();
@@ -246,7 +264,10 @@ async function wvSendGo(sub) {
   if (!wvSnd.enabled) { wvSendSay('Turn sending ON first (top right of this panel).'); return; }
   if (!wvSndWin(wvSnd)) { wvSendSay(`It is outside the send window (${wvSnd.hour_from}:00 to ${wvSnd.hour_to}:00 Dubai). Use Schedule… to pick when it goes.`); return; }
   const msg = sub.endsWith('a') ? 'the SHORT message' : 'the LONG message';
-  if (!confirm(`Send wave ${sub} now?\n\nUp to ${w.clients} clients get ${msg} on WhatsApp from GHL, and go into the Wellness Voucher pipeline.\nSent messages cannot be called back.`)) return;
+  if (!(await wvAsk({ title: `Send wave ${sub} now?`, ok: `Send wave ${sub}`, lines: [
+    `Up to <b>${lcNum(Number(w.clients) || 0)}</b> clients get <b>${msg}</b> on WhatsApp from GHL, and go into the Wellness Voucher pipeline.`,
+    `Sending is ${wvSnd.enabled ? 'ON' : 'OFF'}; the send window is ${wvSnd.hour_from}:00 to ${wvSnd.hour_to}:00 Dubai.`,
+    'Sent messages cannot be called back.'] }))) return;
   wvSndBusy = true; wvSendPaint(); wvSendSay(`Queueing wave ${sub}…`);
   const { data, error } = await sb.rpc('wv_send_enqueue', { p_sub: sub });
   if (error) { wvSndBusy = false; wvSendSay('Could not queue it: ' + (error.message || error)); await wvSendLoad(); return; }
@@ -273,7 +294,9 @@ async function wvSendRun() {
   wvSndBusy = false; wvSendPaint();
 }
 async function wvSendStop(sub) {
-  if (!confirm(`Stop wave ${sub}?\n\nEveryone still waiting is cancelled. Anyone already tagged has been sent and cannot be called back.`)) return;
+  if (!(await wvAsk({ title: `Stop wave ${sub}?`, ok: `Stop wave ${sub}`, lines: [
+    'Everyone still waiting is cancelled.',
+    'Anyone already tagged has been sent and cannot be called back.'] }))) return;
   const { data, error } = await sb.rpc('wv_send_stop', { p_sub: sub });
   if (error) { wvSendSay('Could not stop it: ' + (error.message || error)); return; }
   await wvSendLoad(); wvSendSay(`Stopped wave ${sub}: ${data?.cancelled ?? 0} cancelled.`);
@@ -282,7 +305,10 @@ async function wvSendStop(sub) {
 async function wvSendBring(sub) {
   const w = (wvSnd?.waves || []).find(x => x.sub_wave === sub);
   if (!w) return;
-  if (!confirm(`Send the ${w.waiting} still waiting in wave ${sub} now, instead of at their scheduled time?\nSent messages cannot be called back.`)) return;
+  if (!(await wvAsk({ title: `Send wave ${sub} now?`, ok: 'Send now', lines: [
+    `The <b>${lcNum(Number(w.waiting) || 0)}</b> still waiting go now, instead of at their scheduled time.`,
+    `Sending is ${wvSnd.enabled ? 'ON' : 'OFF'}; the send window is ${wvSnd.hour_from}:00 to ${wvSnd.hour_to}:00 Dubai.`,
+    'Sent messages cannot be called back.'] }))) return;
   const { data, error } = await sb.rpc('wv_send_reschedule', { p_sub: sub, p_at: null });
   if (error) { wvSendSay('Could not change the time: ' + (error.message || error)); return; }
   await wvSendLoad();
