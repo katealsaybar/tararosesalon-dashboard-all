@@ -55,6 +55,10 @@ function grKey_() {
 
 // Location title + address → the add-on's branch label. First match wins.
 const GR_BRANCHES = [
+  // Fratelli and the Academy go first: their addresses say "Al Quoz" (the Academy's also says
+  // "Fratelli"), so the Al Quoz line below would claim them. Academy is skipped (null) on purpose.
+  [/fratelli barbershop/i,     'Fratelli Barbershop, Al Quoz'],
+  [/academy/i,                 null],
   [/khalifa/i,                 'Khalifa City A, Abu Dhabi'],
   [/saadiyat|mamsha/i,         'Saadiyat, Abu Dhabi'],
   [/quoz/i,                    'Al Quoz, Dubai'],
