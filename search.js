@@ -253,7 +253,8 @@
   }
   // Her 13-Week Report, by the same slug the page's own links use.
   function goWeeks(full) {
-    if (typeof w13SlugOf !== 'function') return;
+    // staff-weeks.js loads on first use: wait for it, then go (Audit 18 Oct 2026).
+    if (typeof w13SlugOf !== 'function') { if (typeof trsLazy === 'function' && !(typeof trsLazyDone === 'function' && trsLazyDone('wk'))) trsLazy('wk').then(() => goWeeks(full), () => {}); return; }
     w13Pick = null; w13Data = null;
     w13WantSlug = w13SlugOf(full);
     showView('staffweeks', document.querySelector(`#sidebar .nav-sub[onclick*="'staffweeks'"]`));

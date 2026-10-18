@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=15263f0a"></script>
+<script src="pages.js?v=c3367c3b"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3452,7 +3452,13 @@ table.tp-cmp td.bad{color:var(--bad)}
       cl:  [LGX, 'lost-clients.js?v=20896b7b', 'lost-lists.js?v=3f28383e', 'lost-consults.js?v=29c774be', 'lost-review-file.js?v=044ede7b',
             'send-schedule.js?v=3abf6266', 'lost-queue.js?v=cb3e9753', 'lost-waves.js?v=e6102677', 'lost-blast.js?v=068aa55b',
             'lost-report.js?v=1bd0b9f4', 'wv-blast.js?v=1100cecc', 'top-clients.js?v=492b2dcf', 'client-mix.js?v=7ec12be4',
-            'service-rankings.js?v=c1364c02']
+            'service-rankings.js?v=c1364c02'],
+      // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
+      // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
+      cmp: ['compare.js?v=b8350980'],
+      mk:  ['marketing-chart.js?v=7aaefb35', 'google-ads.js?v=e67ce0e7', 'website.js?v=55a9e0a5', 'social.js?v=4c3d3645'],
+      wk:  ['staff-weeks.js?v=dec339fd'],
+      lv:  ['stylist-levels.js?v=13afdff1']
     };
     var V = {};   // view -> group, from pages.js (lazy)
     TRS_PAGES.forEach(function(p){ if (p.lazy) V[p.id] = p.lazy; });
@@ -4306,14 +4312,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- After ledger-targets.js: the Supabase target layer overrides its lookups per month. -->
 <script src="ledger-targets-db.js?v=a344975f"></script>
 <script src="staff-profiles.js?v=4efa983a"></script>
-<script src="stylist-levels.js?v=13afdff1"></script>
-<script src="staff-weeks.js?v=dec339fd"></script>
 <script src="products.js?v=d1961633"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script. -->
-<script src="marketing-chart.js?v=7aaefb35"></script>
-<script src="google-ads.js?v=e67ce0e7"></script>
-<script src="website.js?v=55a9e0a5"></script>
-<script src="social.js?v=4c3d3645"></script>
 <script src="stylist-cards.js?v=25d94504"></script>
 <script src="org-chart.js?v=37a5bbdf"></script>
 <script src="dashboard.js?v=9ddc282e"></script>
@@ -4321,12 +4321,11 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=9301a6f0"></script>
-<script src="compare.js?v=b8350980"></script>
-<!-- over-the-years.js and daily-performance.js + daily-addons.js load on first use (trsLazy, in the boot script above). -->
+<!-- over-the-years.js and daily-performance.js + daily-addons.js load on first use (trsLazy, in the boot script above). So do compare.js, the Marketing pages (marketing-chart, google-ads, website, social), staff-weeks.js and stylist-levels.js. -->
 <!-- ledger-export.js (spreadsheet export, built from branch-ledger.js's series and target helpers) loads on first use too: trsLazy. -->
 <script src="team-performance.js?v=16e00dc8"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
-<script src="staff-links.js?v=d3dd62d4"></script>
+<script src="staff-links.js?v=75be7e5a"></script>
 <!-- pulse-narrative.js (the model-written Pulse read) was never wired in: fetchPulseNarrative has no caller. Add the tag back if it is. -->
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
 <!-- branch-narrative.js belonged to the retired Branch Performance page; bnRender is only called behind a typeof check. -->
@@ -5371,6 +5370,6 @@ addEventListener('load', sizeTopbar);
 <script src="scroll-edges.js?v=07b016fd"></script>
 <script src="mobile.js?v=0aec8169"></script>
 <script src="voice-mic.js?v=c17b425c"></script>
-<script src="search.js?v=bd1d06eb"></script>
+<script src="search.js?v=2d461340"></script>
 <script src="visits.js?v=1176426c"></script>
 </body>

@@ -451,8 +451,11 @@ def registry_problems(names):
             if p and (p.get('group') != group or (p.get('sub') or None) != sub):
                 out.append(f'{pid} sits under {group}/{sub or "-"} in the sidebar but {p.get("group")}/{p.get("sub") or "-"} in pages.js')
     # Every slug and level is a number or a name that something can open.
+    # The groups come from the loader's own map in index.html (var G), so a new group needs no edit here.
+    gmap = re.search(r"var G = \{(.*?)\n    \};", idx, re.S)
+    groups = set(re.findall(r"^\s{6}(\w+):\s*\[", gmap.group(1), re.M)) if gmap else set()
     for p in pages:
-        if p.get('lazy') and p['lazy'] not in ('oty', 'dp', 'lgx', 'cl'):
+        if p.get('lazy') and p['lazy'] not in groups:
             out.append(f'{p["id"]}: lazy group {p["lazy"]} is not one of the groups in index.html (trsLazy)')
     # No page list of its own may come back in the places that used to carry one.
     for rel, marker in (('search/index.html', 'var DASH = {'), ('hub/index.html', 'var DASH_PAGES = {'), ('search.js', 'const PAGE_WORDS = {\n    dashboard')):

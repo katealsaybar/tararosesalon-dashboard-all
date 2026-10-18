@@ -266,6 +266,8 @@ function whoGoDash(key) {
 }
 // Staff's 13 Week opens straight on her report (staff-weeks.js reads w13WantSlug when it draws).
 function whoGoWeeks(key) {
+  // staff-weeks.js loads on first use: wait for it, so w13WantSlug exists to be set.
+  if (typeof w13WantSlug === 'undefined' && typeof trsLazy === 'function') { trsLazy('wk').then(() => whoGoWeeks(key), () => {}); return; }
   if (typeof w13WantSlug !== 'undefined') { w13WantSlug = whoSlug(key); w13Pick = null; }
   whoShowView('staffweeks');
 }
