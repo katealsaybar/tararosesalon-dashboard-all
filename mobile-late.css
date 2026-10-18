@@ -84,13 +84,13 @@
   /* "yung sticky header not ok, pwede naman yung last metric katabi na agad nung beauty toggle" (Kate, 18 Oct 2026): the Team pills
      and the Measure menu wrapped onto two rows (79px). Now one row (41px at 375px): the pills keep their width, the menu takes the
      rest and shortens its words with an ellipsis if a long measure name does not fit. */
-  :root .dpf .dp-bar-row{flex-wrap:nowrap;gap:0 8px}
+  :root .dpf .dp-bar-row{flex-wrap:nowrap;gap:0 6px}
   :root .dpf .dp-bar .dp-bf:first-child{flex:0 0 auto}
   :root .dpf .dp-bar .dp-bf:not(:first-child){flex:1 1 0;min-width:0}
-  :root .dpf .dp-bar .dp-pills{gap:4px}
-  :root .dpf .dp-bar .dp-pill{padding-left:9px;padding-right:9px}
+  :root .dpf .dp-bar .dp-pills{gap:3px}
+  :root .dpf .dp-bar .dp-pill{padding-left:8px;padding-right:8px}
   :root .dpf .dp-bar .ps{display:flex;width:100%;min-width:0}
-  :root .dpf .dp-bar .ps-btn{width:100%;min-width:0;padding-left:10px;padding-right:8px;gap:6px;justify-content:space-between}
+  :root .dpf .dp-bar .ps-btn{width:100%;min-width:0;padding-left:9px;padding-right:7px;gap:4px;justify-content:space-between}
   :root .dpf .dp-bar .ps-btn span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* Podium Race and Staff Quadrant (Kate, 18 Oct 2026: "toggles in here don't look too good"): each switch was only as wide as its
      words, so the three switches and the Rank by menu stacked at four different widths with 44px segments. Each is one full-width
