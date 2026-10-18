@@ -8,8 +8,12 @@ const SUPA_KEY = "sb_publishable_e5o0vPayb-6552oARTeu7Q_KoqfT7xO";
 // The dashboard's sign-in session (auth.js, 25 Sep 2026); the public key alone can't read these once Phase B is on.
 const authHeaders = () => (window.TRSAuth ? TRSAuth.headers() : {apikey:SUPA_KEY, Authorization:"Bearer "+SUPA_KEY});
 let R = [], META, TODAY, SYNC = null;
-const BRANCHES = ["Khalifa City A, Abu Dhabi","Saadiyat, Abu Dhabi","Al Quoz, Dubai","Motor City, Dubai","District 2, Bahrain","Fratelli Barbershop, Al Quoz"];
-const SHORT = {"Khalifa City A, Abu Dhabi":"Khalifa City A","Saadiyat, Abu Dhabi":"Saadiyat","Al Quoz, Dubai":"Al Quoz","Motor City, Dubai":"Motor City","District 2, Bahrain":"Bahrain","Fratelli Barbershop, Al Quoz":"Fratelli"};
+const BRANCHES = ["Khalifa City A, Abu Dhabi","Saadiyat, Abu Dhabi","Al Quoz, Dubai","Motor City, Dubai","District 2, Bahrain","Fratelli Barbershop, Al Quoz","Marasy, Abu Dhabi"];
+const SHORT = {"Khalifa City A, Abu Dhabi":"Khalifa City A","Saadiyat, Abu Dhabi":"Saadiyat","Al Quoz, Dubai":"Al Quoz","Motor City, Dubai":"Motor City","District 2, Bahrain":"Bahrain","Fratelli Barbershop, Al Quoz":"Fratelli","Marasy, Abu Dhabi":"Marasy"};
+// Marasy (closed branch, Kate, 18 Oct 2026): its reviews are not on any Google tool any more, so the table holds only what
+// Google's own notification emails kept (reviewer, stars, the first ~100 characters of text; 2020 to Dec 2022). Reply status
+// is unknown for them, so they stay out of every reply figure, and no stylist is credited from them.
+const MRY_BRANCH = "Marasy, Abu Dhabi";
 // Each review's own public Google link (Kate, 28 Sep 2026): the exact URL Google's
 // Share button gives, rebuilt from the Maps review id and the branch's Maps CID.
 // Opens that one review for anyone, signed in or not; the Business Profile link
@@ -34,7 +38,7 @@ const GBP_LOC = {"Khalifa City A, Abu Dhabi":"5307528376474579201","Saadiyat, Ab
 const branchMapsUrl = r => MAPS_CID[r.branch] ? "https://www.google.com/maps?cid=" + BigInt(MAPS_CID[r.branch]).toString() + "&hl=en" : "";
 const branchGbpUrl = r => GBP_LOC[r.branch] ? `https://www.google.com/local/business/${GBP_LOC[r.branch]}/customers/reviews?knm=0&ih=lu&hl=en&dcs=1` : "";
 const ALL = [1,2,3,4,5];
-const CODE_TO_BRANCH={KCA:"Khalifa City A, Abu Dhabi",SAA:"Saadiyat, Abu Dhabi",AQ:"Al Quoz, Dubai",MC:"Motor City, Dubai",BAH:"District 2, Bahrain",FRT:"Fratelli Barbershop, Al Quoz"};
+const CODE_TO_BRANCH={KCA:"Khalifa City A, Abu Dhabi",SAA:"Saadiyat, Abu Dhabi",AQ:"Al Quoz, Dubai",MC:"Motor City, Dubai",BAH:"District 2, Bahrain",FRT:"Fratelli Barbershop, Al Quoz",MRY:"Marasy, Abu Dhabi"};
 // Fratelli Barbershop (closed; Kate, 9 Oct 2026) has no chip on the dashboard's bar, so it joins
 // only when the bar is on every branch: all five codes picked.
 // Branch and window are the dashboard's masthead bar (Kate, 8 Oct 2026): dashboard.js
@@ -162,6 +166,8 @@ function tagStaffAuto(r){
   r.staff = [];
   // Fratelli's barbers aren't TRS staff: a "Billy" or "Mihaela" there is never one of ours.
   if (r.branch === CODE_TO_BRANCH.FRT) { r.staff = []; return; }
+  // Marasy's stylists moved on or left, and a first name there ("Robyn", "Jeida") is often not the person now on a TRS profile.
+  if (r.branch === MRY_BRANCH) { r.staff = []; return; }
   const bahrain = r.branch === "District 2, Bahrain";
   STAFF.forEach(s => {
     // Bahrain reviews only count for someone whose home is Bahrain.
@@ -209,7 +215,7 @@ function baseFilter(skip){
     (skip==="branch" || state.branches.has(r.branch)) &&
     (skip==="stars" || state.stars.has(r.stars)) &&
     (skip==="range" || inRange(r.date)) &&
-    (!state.withText || r.comment) && (!state.noReply || !r.replied) && (!state.withPhotos || r.photos.length) &&
+    (!state.withText || r.comment) && (!state.noReply || (!r.replied && r.branch!==MRY_BRANCH)) && (!state.withPhotos || r.photos.length) &&
     (skip==="staff" || !state.staff || (state.staff==="__any" ? r.staff.length : state.staff==="__none" ? noStaffNamed(r) : r.staff.includes(state.staff))) &&
     (!state.q || (r.comment+" "+r.reviewer+" "+r.reply).toLowerCase().includes(state.q.toLowerCase())));
 }
@@ -290,7 +296,8 @@ document.getElementById("fDone").onclick=()=>setFiltersOpen(false);
 function renderKpis(F){
   const low=F.filter(r=>r.stars<=3).length, hi=F.length-low;
   const avg=F.length?(F.reduce((a,r)=>a+r.stars,0)/F.length).toFixed(2):"–";
-  const replied=F.filter(r=>r.replied).length;
+  // Marasy's reply status is unknown (its reviews come from email notices), so it is left out of the reply figure.
+  const FR=F.filter(r=>r.branch!==MRY_BRANCH), replied=FR.filter(r=>r.replied).length;
   const rl = curRange().label, recLabel = /^(Last|This|All)/.test(rl) ? rl.toLowerCase() : rl;
   const pct=n=>F.length?Math.round(n/F.length*100):0;
   document.getElementById("kpis").innerHTML=`
@@ -298,7 +305,7 @@ function renderKpis(F){
    <div class="kpi"><div class="l">Average rating</div><div class="v">${avg}<span style="font-size:16px;color:var(--faint)">★</span></div><div class="h">of filtered reviews</div></div>
    <div class="kpi"><div class="l">Complaints (1–3★)</div><div class="v" style="color:var(--s1)">${low}</div><div class="h">${pct(low)}% of filtered</div></div>
    <div class="kpi"><div class="l">Positive (4–5★)</div><div class="v" style="color:var(--s5)">${hi}</div><div class="h">${pct(hi)}% of filtered</div></div>
-   <div class="kpi"><div class="l">Replied</div><div class="v">${F.length?Math.floor(replied/F.length*1000)/10:0}%</div><div class="h">${F.length-replied} without a reply</div></div>`;
+   <div class="kpi"><div class="l">Replied</div><div class="v">${FR.length?Math.floor(replied/FR.length*1000)/10+"%":"–"}</div><div class="h">${FR.length-replied} without a reply${FR.length<F.length?` · Marasy not counted`:""}</div></div>`;
 }
 function renderExact(){
   const E=META.exact, T=META.totals;
@@ -443,7 +450,7 @@ function renderList(F){
     const long=r.comment.length>380;
     return `<div class="rev s${r.stars}">
       <div class="rtop"><span class="stars">${st}</span><span class="who">${esc(r.reviewer||"Anonymous")}</span><span class="tag">${SHORT[r.branch]}</span>
-      ${r.replied?'<span class="tag ok">Replied</span>':'<span class="tag no">No reply</span>'}
+      ${r.branch===MRY_BRANCH?'<span class="tag" title="Reviews of this closed branch come from Google\'s email notices, which do not show replies">Reply unknown</span>':r.replied?'<span class="tag ok">Replied</span>':'<span class="tag no">No reply</span>'}
       ${r.staff.map(k=>{const s=staffBy(k), hand=!r.viaClient&&(r.manual||[]).includes(k)&&!(r.named||[]).includes(k);return s?`<button class="stag${r.viaClient||hand?" via":""}" data-k="${esc(k)}" title="${r.viaClient?"Not named, but this reviewer was their client in the 14 days before":hand?"Tagged by hand: not named in the text":"Named in the review"}">${s.photo?`<img src="${s.photo}" alt="">`:""}${esc(s.label)}${r.viaClient?" · client":hand?" · tagged":""}</button>`:"";}).join("")}
       <span class="date" title="${r.approx?'Approximate date from Google Maps'+(r.when?' ("'+esc(r.when)+'" when it was read)':''):r.date}">${r.approx?(r.date?fmtDate(r.date)+' · '+ago(r.date)+' · approx.':esc((r.when||'').replace(/^Edited /,'edited '))+' · approx.'):fmtDate(r.date)+' · '+ago(r.date)}</span></div>
       ${r.comment?`<div class="rtext${long?" clamp":""}" id="t${i}">${markNames(r)}</div>${long?`<button class="more" onclick="document.getElementById('t${i}').classList.toggle('clamp');this.textContent=this.textContent==='Show more'?'Show less':'Show more'">Show more</button>`:""}`:`<div class="rtext none">Rating only, no written comment</div>`}
@@ -484,13 +491,16 @@ function openPhoto(btn){
     box.style.cssText=`position:absolute;inset:auto 0 auto 0;top:${top}px;height:${Math.max(240,bot-top)}px`;}
   document.addEventListener("keydown",key); show(); document.body.appendChild(box); box.querySelector(".lb-x").focus({preventScroll:true});
 }
-// Marasy (Kate, 14 Oct 2026): a former branch whose Google reviews nobody can reach.
+// Marasy (Kate, 14 Oct 2026): a former branch whose Google profile nobody can reach any more. 18 Oct 2026: 84 of its reviews
+// were rebuilt from Google's own notification emails (tararosegray@gmail.com), so it shows when picked on the bar above.
 function mryNote(){
-  return ` <b>Marasy</b> (a former branch) is not here: there is no access to its Google profile, and Phorest holds none either.`
+  const k=R.filter(r=>r.branch===MRY_BRANCH).length;
+  if(!k) return ` <b>Marasy</b> (a former branch) is not here: there is no access to its Google profile, and Phorest holds none either.`
     + (state.mry ? (state.branches.size ? ` <b>⚠ Marasy is picked on the bar above, but it has no reviews to show, so what is listed is the other branches picked.</b>` : ` <b>⚠ Marasy is picked on the bar above, and it has no reviews to show.</b>`) : "");
+  return ` <b>Marasy</b> (a former branch) has ${k} reviews here, Jan 2020 to Dec 2022, and it is not the full list: its Google profile cannot be reached, so these are only the reviews Google's email notices kept (reviewer, stars, the first ~100 characters of text, some rating only, reply status unknown). Pick Marasy on the bar above to see them.`;
 }
 function renderNote(){
-  const n=R.length.toLocaleString(), el=document.getElementById("note");
+  const n=R.filter(r=>r.branch!==MRY_BRANCH).length.toLocaleString(), el=document.getElementById("note");
   if(!SYNC){ el.innerHTML=`<b>⚠ Offline copy: ${n} Google reviews as of 24 Sep 2026.</b> The live table couldn't be reached, so anything newer, and any reply posted since, is missing here.`+mryNote(); return; }
   const when=new Date(SYNC.last).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"Asia/Dubai"});
   // Which salons Metricool keeps current (Kate, 6 Oct 2026): any with a matched review.
@@ -513,7 +523,8 @@ async function loadLive(){
   SYNC={last:rows.reduce((m,r)=>r.synced_at>m?r.synced_at:m,""),seedOnly:rows.every(r=>r.source==="seed"),live:new Set(rows.filter(r=>r.gbp_name).map(r=>r.branch))};
   const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Dubai"});
   const totals={},exact={},avg={},cover={};
-  BRANCHES.forEach(b=>{const rs=R.filter(r=>r.branch===b);totals[b]=rs.length;cover[b]=null;
+  // Marasy is not an official Google count (email notices only), so it stays out of the exact-totals table.
+  BRANCHES.forEach(b=>{const rs=b===MRY_BRANCH?[]:R.filter(r=>r.branch===b);totals[b]=rs.length;cover[b]=null;
     exact[b]={};ALL.forEach(s=>exact[b][s]=rs.filter(r=>r.stars===s).length);
     avg[b]=rs.length?rs.reduce((a,r)=>a+r.stars,0)/rs.length:0;});
   META={generated:today,totals,exact,avg,cover};
@@ -606,7 +617,8 @@ if(window.parent!==window){
   function applyFilter(m){
     const picked=(m.codes||[]).map(c=>CODE_TO_BRANCH[c]).filter(Boolean);
     if(["KCA","SAA","AQ","MC","BAH"].every(c=>(m.codes||[]).includes(c))) picked.push(CODE_TO_BRANCH.FRT);
-    // Marasy has no reviews here (Kate, 14 Oct 2026): picked alone it shows nothing, rather than falling back to every branch.
+    // Marasy (MRY) maps to its own branch label now (Kate, 18 Oct 2026); picked alone it shows only its emailed reviews.
+    // state.mry still covers the old case of the table holding none of them.
     state.mry=(m.codes||[]).includes("MRY");
     state.branches=picked.length ? new Set(picked) : (state.mry ? new Set() : new Set(BRANCHES));
     if(m.to) state.range={from:m.from||null,to:m.to,label:m.label||""};
