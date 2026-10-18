@@ -228,6 +228,10 @@ const STAFF_PROFILES = {
   // rows as RACHEL, 3 utilisation rows as Rachel White). Not Rachel Dawson, who is
   // still active at MC.
   'RACHEL':   { photoFull: 'stylist/photos/KCA/rachel white.png', role: 'Stylist', branch: 'KCA', ig: 'hairbyrachel.w', resigned: true },
+  // Rachel Dawson, former Style Director (Phorest: KCA, Marasy, Saadiyat, Motor City, Al Quoz; archived). Kate, 18 Oct 2026: real B&W headshot, IG hair_by_racheld.
+  // Her own key because RACHEL above is Rachel White: the ledger writes both just RACHEL, so Dawson's 2020 to 2024 ledger rows still read as RACHEL (White) on the
+  // dashboards until a window rule splits them (open question for Kate).
+  'RACHEL DAWSON': { photoFull: 'stylist/photos/SAA/rachel dawson.png', role: 'Style Director', branch: 'SAA', ig: 'hair_by_racheld', resigned: true },
   // Added 19 Sep 2026, same RESIGNED board. Branch off her ledger history: 499 SAA
   // Beauty rows (Jan 2025-May 2026) against 9 KCA cover rows. Kate, 21 Sep 2026: she
   // was a beautician, not a stylist — role corrected off the placeholder so she sorts
