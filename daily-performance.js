@@ -69,18 +69,18 @@ function dpFitDept() {
   if (d) DP.dept = d; else { DP.dept = 'all'; DP.measure = 'sales'; }
 }
 const DP_M = {
-  sales:    { label: 'Total sales',     noun: 'total sales',          kind: 'vol',   fmt: dpMoney, monthly: () => LG_TOTAL_TARGET,    pick: s => lgTotalRevenue(s) },
-  services: { label: 'Services',        noun: 'services revenue',     kind: 'vol',   fmt: dpMoney, monthly: () => LG_SERVICES_TARGET, pick: s => lgServicesTotal(s) },
-  retail:   { label: 'Retail',          noun: 'retail revenue',       kind: 'vol',   fmt: dpMoney, monthly: () => ['retailTotal'],   pick: s => s.retailTotal },
-  hair:     { label: 'Hair services',   noun: 'hair services',        kind: 'vol',   fmt: dpMoney, monthly: () => ['hairRevenue'],   pick: s => s.hairServicesIncl },
-  beauty:   { label: 'Beauty services', noun: 'beauty services',      kind: 'vol',   fmt: dpMoney, monthly: () => ['beautyServices'], pick: s => s.beautyServicesTotal, beauty: true },
+  sales:    { def: 'Total sales is everything sold, ex VAT: hair services (treatments and courses are inside them), beauty services and retail. Services, Treatments and Retail on this menu are parts of it, so nothing here is counted twice.', label: 'Total sales',     noun: 'total sales',          kind: 'vol',   fmt: dpMoney, monthly: () => LG_TOTAL_TARGET,    pick: s => lgTotalRevenue(s) },
+  services: { def: 'Services: hair services with treatments and courses taken out, plus beauty services. No retail. Ex VAT.', label: 'Services',        noun: 'services revenue',     kind: 'vol',   fmt: dpMoney, monthly: () => LG_SERVICES_TARGET, pick: s => lgServicesTotal(s) },
+  retail:   { def: 'Retail: hair and beauty retail sales together. Ex VAT.', label: 'Retail',          noun: 'retail revenue',       kind: 'vol',   fmt: dpMoney, monthly: () => ['retailTotal'],   pick: s => s.retailTotal },
+  hair:     { def: 'Hair services, ex VAT, with treatments and courses included. No retail.', label: 'Hair services',   noun: 'hair services',        kind: 'vol',   fmt: dpMoney, monthly: () => ['hairRevenue'],   pick: s => s.hairServicesIncl },
+  beauty:   { def: 'Beauty services, ex VAT. No retail.', label: 'Beauty services', noun: 'beauty services',      kind: 'vol',   fmt: dpMoney, monthly: () => ['beautyServices'], pick: s => s.beautyServicesTotal, beauty: true },
   // Kate, 16 Oct 2026: Hair and Beauty get their own retail and client counts, and the Department toggle (DP_MENU) shows only that team's measures.
   // Beauty retail and the two client counts have no monthly target keyed, so they are plain values, not graded.
   hairretail:    { label: 'Hair retail',     noun: 'hair retail',     kind: 'vol', fmt: dpMoney, monthly: () => ['hairRetail'], pick: s => s.hairRetailOnly },
   beautyretail:  { label: 'Beauty retail',   noun: 'beauty retail',   kind: 'vol', fmt: dpMoney, notarget: true, pick: s => s.beautyRetailOnly, beauty: true },
   hairclients:   { label: 'Hair clients',    noun: 'hair clients',    kind: 'vol', fmt: dpCount('clients'), notarget: true, pick: s => s.hairTotalClients },
   beautyclients: { label: 'Beauty clients',  noun: 'beauty clients',  kind: 'vol', fmt: dpCount('clients'), notarget: true, pick: s => s.beautyTotalClients, beauty: true },
-  treat:    { label: 'Treatments',      noun: 'treatment revenue',    kind: 'vol',   fmt: dpMoney, monthly: () => ['hairTreatment'], pick: s => s.treatmentSales },
+  treat:    { def: 'Treatment sales, ex VAT. Treatments are part of hair services, so they are already inside Total sales.', label: 'Treatments',      noun: 'treatment revenue',    kind: 'vol',   fmt: dpMoney, monthly: () => ['hairTreatment'], pick: s => s.treatmentSales },
   clients:  { label: 'Total clients',   noun: 'clients served',       kind: 'vol',   fmt: dpCount('clients'), monthly: () => ['totalClients'], pick: s => s.totalClients },
   newc:     { label: 'New clients',     noun: 'new clients',          kind: 'vol',   fmt: dpCount('new'),     monthly: () => ['newClients'],   pick: s => s.newClientsTotal },
   // NCR is New Client Requests: a COUNT with its own monthly target (the Pulse's 18 / 18 / 17 / 17 unless the
@@ -160,6 +160,9 @@ function dpCss() {
   .dpf .dp-tile .nm{display:flex;align-items:center;gap:8px;font-weight:600}
   .dpf .dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
   .dpf .dp-tile .big{font-size:28px;font-weight:700;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
+  .dpf .dp-tile .dp-eyebrow{margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-text,var(--muted))}
+  .dpf .dp-tile .dp-eyebrow + .big{margin-top:3px}
+  .dpf .dp-tile .dp-per{margin-top:8px;padding-top:8px;border-top:1px solid var(--border2)}
   .dpf .dp-sub{font-size:13px;color:var(--muted);line-height:1.4}
   .dpf .dp-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;border-radius:10px;padding:1px 8px;margin-top:6px}
   .dpf .dp-chip.on{background:color-mix(in srgb,var(--dv-p2) 20%,transparent);color:var(--dv-p2)}
@@ -206,6 +209,7 @@ function dpCss() {
   .dpf .dp-note{font-size:12.5px;color:var(--muted2);line-height:1.55;margin:6px 0 0}
   .dpf .dp-note b{color:var(--text)}
   .dpf .dp-cust{margin:8px 0 2px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--surface2)}
+  .dpf .dp-info{display:inline-flex;align-items:center}
   .dpf .dp-cust summary{font-weight:600;color:var(--text);list-style:none;display:flex;align-items:center;gap:10px}
   .dpf .dp-cust summary::-webkit-details-marker{display:none}
   /* Kate, 18 Oct 2026: "customise measures doesn't look obvious na it can be clicked". A chevron at the right edge, turned up when it is open. */
@@ -605,8 +609,16 @@ function dpDiff(M, c) {
   return (M.fmt === dpPctF || M.fmt === dpPct1) ? Math.round(d) + ' points' : M.fmt(d);
 }
 function dpSpark(code, idxs, mk) {
-  const W = 220, H = 44, M = DP_M[mk], units = dpRawFor(mk, [code]) || M.kind === 'ratio';
+  const W = 220, H = 44, M = DP_M[mk];
+  let units = dpRawFor(mk, [code]) || M.kind === 'ratio';
   const cells = idxs.map(i => dpCell(mk, code, i));
+  // Kate, 18 Oct 2026: "what's up with the line progress sa baba ng each branch?" On All time the line is drawn as % of target, and
+  // targets were only ever keyed from 2025, so it was a short squiggle at the right-hand end of a line that should span 2021
+  // to now. Where fewer than 60% of the points have a target, the line is the figures themselves, the whole way across.
+  if (!units && M.kind === 'vol') {
+    const nOk = cells.filter(c => c.state === 'ok').length, nP = cells.filter(c => c.state === 'ok' && c.p != null).length;
+    if (nOk && nP < nOk * 0.6) units = true;
+  }
   const vals = cells.map(c => c.state === 'ok' ? (units ? c.v : c.p) : null);
   const ok = vals.filter(v => v != null);
   if (!ok.length) return '';
@@ -684,6 +696,15 @@ function dpWeakest(idxs, codes, best) {
 }
 function dpPeriodName(idxs) {
   const k = typeof activePeriodKey === 'function' ? activePeriodKey() : '';
+  const first = idxs.length ? DPD.days[idxs[0]] : null, last = idxs.length ? DPD.days[idxs[idxs.length - 1]] : null;
+  if (first && idxs.length > 1) {
+    const wholeMonth = first.getDate() === 1 && last.getFullYear() === first.getFullYear() && last.getMonth() === first.getMonth() && (last.getDate() === new Date(last.getFullYear(), last.getMonth() + 1, 0).getDate());
+    // The whole period, said as such (Kate, 18 Oct 2026): the big number above is one day.
+    if (k === 'This month') return `Whole period so far, ${dpDayLabel(first)} to ${dpDayLabel(last)}`;
+    if (wholeMonth) return `Whole of ${MON_LONG[first.getMonth()]} ${first.getFullYear()}`;
+    if (k && !['Custom', 'Year', 'Month'].includes(k)) return `Whole period, ${k.toLowerCase()}`;
+    return `Whole period, ${dpDayLabel(first)} to ${dpDayLabel(last)}`;
+  }
   if (k === 'This month') return 'Month to date';
   if (k && !['Custom', 'Year', 'Month'].includes(k)) return k;
   return idxs.length ? dpDayLabel(DPD.days[idxs[0]]) + ' to ' + dpDayLabel(DPD.days[idxs[idxs.length - 1]]) : 'This window';
@@ -753,7 +774,7 @@ function dpLongTile(code, win, idxs, cidx, head) {
   const gnote = !g ? '' : g.none ? `<div class="dp-sub" style="margin-top:6px">${dpEsc(g.none)}</div>` : `<div class="dp-sub">${dpEsc(g.label)}</div>`;
   const gchip = g && !g.none ? `<span class="dp-chip ${g.cls}" style="margin-left:6px">${g.ic} ${dpEsc(g.text)}</span>` : '';
   return `<div class="dp-tile">${head}<div class="big">${M.fmt(t.v)}</div>
-    <div class="dp-sub"><b style="color:var(--text)">${dpEsc(M.label)}</b> · ${vol ? 'total' : 'average'}, ${dpRangeLbl(win.from)} to ${dpRangeLbl(win.to)}</div>
+    <div class="dp-sub"><b style="color:var(--text)">${M.def && typeof ihTip === 'function' ? ihTip(dpEsc(M.label), M.def) : dpEsc(M.label)}</b> · ${vol ? 'total' : 'average'}, ${dpRangeLbl(win.from)} to ${dpRangeLbl(win.to)}</div>
     <div class="dp-sub">${t.n} open day${t.n === 1 ? '' : 's'}${vol ? ' · ' + M.fmt(t.v / t.n) + ' a day on average' : ''}</div>
     <div>${tchip}${gchip}</div>${gnote}
     <div style="margin-top:8px;max-width:260px">${dpSpark(code, cidx, mk)}</div></div>`;
@@ -773,8 +794,12 @@ function dpTiles(win, idxs, cidx) {
       : `${c.p != null ? Math.round(c.p) + '% \u00B7 ' : ''}${txt}`;
     const lastIdx = idxs[idxs.length - 1];
     const shut = dpCell(mk, code, lastIdx).state !== 'ok';
-    return `<div class="dp-tile">${head}<div class="big">${M.fmt(c.v)}</div>
-      <div class="dp-sub"><b style="color:var(--text)">${dpEsc(M.label)}</b> · ${shut ? (dpCell(mk, code, lastIdx).state === 'closed' ? 'Closed ' + dpDayLabel(DPD.days[lastIdx]) + ' · last open ' : 'Latest figures ') : ''}${dpDayLabel(DPD.days[li])}${c.t ? (M.kind === 'ratio' ? ' · target ' : ' · daily target ') + M.fmt(c.t) : ''}</div>
+    // Kate, 18 Oct 2026, over a month window: "ganito kababa per branch? parang may mali" (it was one day, the month's last, not the month),
+    // then "YOU SHOULD ABSOLUTELY SPECIFY THAT IT'S THE DATE TODAY". The big number is one day, and the line under it holds the whole period:
+    // both now say so in capitals, above the figure and at the start of the period line (dpPeriodName).
+    const eyebrow = idxs.length > 1 ? `<div class="dp-eyebrow">${li === lastIdx ? 'Latest day' : 'Latest open day'} · ${dpEsc(dpDayLabel(DPD.days[li]))}</div>` : '';
+    return `<div class="dp-tile">${head}${eyebrow}<div class="big">${M.fmt(c.v)}</div>
+      <div class="dp-sub"><b style="color:var(--text)">${M.def && typeof ihTip === 'function' ? ihTip(dpEsc(M.label), M.def) : dpEsc(M.label)}</b> · ${shut ? (dpCell(mk, code, lastIdx).state === 'closed' ? 'Closed ' + dpDayLabel(DPD.days[lastIdx]) + ' · last open ' : 'Latest figures ') : ''}${dpDayLabel(DPD.days[li])}${c.t ? (M.kind === 'ratio' ? ' · target ' : ' · daily target ') + M.fmt(c.t) : ''}</div>
       <span class="dp-chip ${cls}">${ic} ${chip}</span>
       ${M.util && c.asst && c.asst.shifts ? `<div class="dp-sub">Assistants on shift: ${c.asst.shifts} (${Math.round(c.asst.hours)} h on the rota), not in the percentage</div>` : ''}
       ${dpPeriodLine(mk, code, idxs)}
@@ -1130,7 +1155,7 @@ function dpControls(win) {
   const mopts = DP_MENU[DP.dept].map(([g, ks]) => `<optgroup label="${g}">${ks.map(k => `<option value="${k}"${k === DP.measure ? ' selected' : ''}>${dpEsc(DP_M[k].label)}</option>`).join('')}</optgroup>`).join('');
   return `<div class="dp-bar" id="dpBar" role="group" aria-label="Measure"><div class="dp-bar-row">
     <div class="dp-bf"><span class="dp-lab">Team</span><span class="dp-pills" id="dpDept" role="group" aria-label="Department">${[['all', 'All'], ['hair', 'Hair'], ['beauty', 'Beauty']].map(([k, l]) => `<button type="button" class="dp-pill" data-dept="${k}" aria-pressed="${DP.dept === k}">${l}</button>`).join('')}</span></div>
-    <label class="dp-bf"><span class="dp-lab">Measure</span><select id="dpSelM" aria-label="Measure">${mopts}</select></label></div></div>${dpDefault() ? '' : '<p class="dp-note" style="margin:0 0 8px">Your choices are saved on this device for next time. <button type="button" class="dp-linkbtn" id="dpReset">Reset to the defaults</button></p>'}`;
+    <label class="dp-bf"><span class="dp-lab">Measure</span><select id="dpSelM" aria-label="Measure">${mopts}</select></label>${DP_M[DP.measure] && DP_M[DP.measure].def && typeof ihTip === 'function' ? '<span class="dp-bf dp-info">' + ihTip('', DP_M[DP.measure].def) + '</span>' : ''}</div></div>${dpDefault() ? '' : '<p class="dp-note" style="margin:0 0 8px">Your choices are saved on this device for next time. <button type="button" class="dp-linkbtn" id="dpReset">Reset to the defaults</button></p>'}`;
 }
 const dpDefault = () => DP.measure === 'sales' && DP.dept === 'all' && !DP.radar;
 

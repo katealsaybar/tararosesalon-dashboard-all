@@ -99,6 +99,33 @@
     'Loading, on rhythm.',
     'Almost there. Stylists know this feeling: the colour is nearly ready.'
   ];
+  // Kate, 18 Oct 2026: "even this Loading data... part should have trivia in it". Every "Loading..." or "Reading..." line the pages
+  // draw (class "loading", the ones that sit in the middle of a page while its figures come) gets a line under it too, taken
+  // from this same list and changed every six seconds while it stays on screen. It watches the page for them, so no page has
+  // to ask. Error and empty messages in the same class are left alone (only text that starts Loading or Reading is touched).
+  (function () {
+    var last = -1;
+    function next() { var i; do { i = Math.floor(Math.random() * LINES.length); } while (i === last && LINES.length > 1); last = i; return LINES[i]; }
+    function decorate(n) {
+      if (n.__fact || !/^\s*(Loading|Reading)/i.test(n.textContent)) return;
+      n.__fact = 1;
+      var msg = document.createElement('span'), fact = document.createElement('span');
+      msg.className = 'load-msg'; msg.textContent = n.textContent.trim();
+      fact.className = 'load-fact'; fact.textContent = next();
+      n.textContent = ''; n.appendChild(msg); n.appendChild(fact);
+      var t = setInterval(function () { if (!n.isConnected) { clearInterval(t); return; } fact.textContent = next(); }, 6000);
+    }
+    function scan(n) {
+      if (n.nodeType !== 1) return;
+      if (n.classList.contains('loading')) decorate(n);
+      var q = n.querySelectorAll ? n.querySelectorAll('.loading') : [];
+      for (var i = 0; i < q.length; i++) decorate(q[i]);
+    }
+    try {
+      new MutationObserver(function (ms) { ms.forEach(function (m) { m.addedNodes.forEach(scan); }); }).observe(document.body, { childList: true, subtree: true });
+      scan(document.body);
+    } catch (e) {}
+  })();
   var KEY = 'trs-fact-last', el = document.getElementById('blFact');
   if (!el) return;
   var last = -1;

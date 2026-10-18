@@ -1810,6 +1810,9 @@ th:not(.sort-asc):not(.sort-desc).sortable::after{content:' ⇅';font-size:12px;
 @media(max-width:700px){.svc-grid-2{grid-template-columns:1fr}}
 .empty{text-align:center;padding:4rem;color:var(--muted);font-size:17px}
 .loading{text-align:center;padding:4rem;color:var(--muted);letter-spacing:0.1em;font-size:15px;text-transform:uppercase}
+/* The line under a Loading... message (loading-facts.js), 18 Oct 2026. */
+.loading .load-msg{display:block}
+.loading .load-fact{display:block;max-width:420px;margin:14px auto 0;font:italic 400 15px/1.5 'Playfair Display',Georgia,serif;letter-spacing:normal;text-transform:none;color:var(--muted)}
 footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);font-size:14px;color:var(--muted2);transition:border-color .3s;line-height:1.8}
 
 @media(max-width:1100px){.top3-grid{grid-template-columns:repeat(3,1fr)}}
@@ -3418,7 +3421,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div class="bl-fact" id="blFact" aria-live="off"></div>
   <div class="bl-slow" id="blSlow" role="alert"><span>Still loading. The connection looks slow.</span><button type="button" onclick="location.reload()">Try again</button></div>
 </div>
-<script src="loading-facts.js?v=20261018lf2"></script>
+<script src="loading-facts.js?v=20261018lf3"></script>
 <script>
   // Dark theme picks the light-on-dark logo before anything paints.
   (function(){ try { var th = document.documentElement.getAttribute('data-theme');
@@ -3440,7 +3443,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     var LGX = 'ledger-export.js?v=20261018lb1';
     var G = {
       oty: ['over-the-years.js?v=20261016oty39'],
-      dp:  ['daily-performance.js?v=20261018da18', 'daily-addons.js?v=20261016da9'],
+      dp:  ['daily-performance.js?v=20261018da20', 'daily-addons.js?v=20261016da9'],
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
@@ -4282,7 +4285,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20261014d"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261018lb1"></script>
+<script src="dashboard.js?v=20261018lt3"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -5286,6 +5289,29 @@ spy();
 // The wordmark is an image, so the bar can settle a pixel or two after it
 // decodes. One re-measure on load, then never again except on resize.
 addEventListener('load', sizeTopbar);
+// Kate, 18 Oct 2026: "sticky header is broken, may gap pag laptop view". The bars that park under the header (Daily Performance's
+// Team and Measure bar, Podium Race's, Stylist Cards') sit at --topbar-cond-h, the header's height when condensed, measured by
+// sizeTopbar() at a moment the header can later stop matching (a web font arriving, a row of chips repainting): the bar then
+// parked 40px short of the header, or under it. Once scrolling has settled, a condensed header's real height replaces the
+// measured one; nothing is touched while it is moving, and the classes are never toggled here, so it cannot shake.
+(function () {
+  const tb = document.getElementById('topbar');
+  if (!tb) return;
+  let t = 0;
+  function heal() {
+    if (tb.classList.contains('measuring') || !tb.classList.contains('stuck')) return;
+    const h = tb.getBoundingClientRect().height;
+    const cur = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-cond-h')) || 0;
+    if (h > 40 && Math.abs(h - cur) > 1.5) document.documentElement.style.setProperty('--topbar-cond-h', h + 'px');
+  }
+  // 220ms after the last time the header changed size (it animates for a third of a second when it condenses), so what is read is
+  // the settled height and never a frame of the animation.
+  const later = () => { clearTimeout(t); t = setTimeout(heal, 220); };
+  addEventListener('scroll', later, { passive: true });
+  tb.addEventListener('transitionend', later);
+  try { new ResizeObserver(later).observe(tb); } catch (e) {}
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (typeof sizeTopbar === 'function') sizeTopbar(); later(); });
+})();
 
 </script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->

@@ -3029,7 +3029,7 @@ const ROWS_PROG = { total: 0, done: 0 };
 function rowsProgress(addTotal, addDone) {
   ROWS_PROG.total += addTotal; ROWS_PROG.done += addDone;
   const el = document.querySelector('#mainContent .loading');
-  if (el && ROWS_PROG.total) el.textContent = `Loading daily data... ${Math.min(99, Math.round(ROWS_PROG.done / ROWS_PROG.total * 100))}%`;
+  if (el && ROWS_PROG.total) (el.querySelector('.load-msg') || el).textContent = `Loading daily data... ${Math.min(99, Math.round(ROWS_PROG.done / ROWS_PROG.total * 100))}%`;
   if (ROWS_PROG.done >= ROWS_PROG.total) { ROWS_PROG.total = 0; ROWS_PROG.done = 0; }
 }
 const ROWS_IDB = { db: null, name: 'trs-rows-v1', store: 'months' };
