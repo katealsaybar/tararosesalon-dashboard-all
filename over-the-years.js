@@ -307,6 +307,7 @@ function otyCss() {
   .oty .oty-bar .b{width:100%;border-radius:5px 5px 0 0;transition:filter .12s;position:relative}
   .oty .mo-hm .mo-c.mry{box-shadow:inset 0 -3px 0 #A5D8FF}
   .oty .mo-hm .mo-c.brk{outline:2px dashed #3f8fd2;outline-offset:-3px}
+  .oty .mo-hm .mo-c.est{outline:1.5px dotted var(--muted);outline-offset:-3px}
   .oty .oty-bar .b .mseg{position:absolute;left:0;right:0;top:0;background:#A5D8FF;border-radius:5px 5px 0 0;min-height:3px}
   .oty .oty-mdot{display:inline-block;width:9px;height:9px;border-radius:2px;background:#A5D8FF;margin-right:5px;vertical-align:-1px}
   .oty .oty-bar:hover .b,.oty .oty-bar:focus-visible .b,.oty .oty-bar.sel .b{filter:brightness(1.15);box-shadow:0 0 0 2px var(--text)}
@@ -1044,8 +1045,9 @@ if (!window.__otySeasonBound) {
 //    and a spread row (how far apart the years are in that month) sit with it.
 //  - Index base: "same" is Jan to the last finished month, in every year (the default), "full" is all twelve for finished
 //    years. A year needs 5+ finished base months, every one with figures for every branch in the region, or its row says
-//    why not. Saadiyat and Khalifa City A only started trading in Jul 2021 (May and Jun 2021 are 4 and 6 launch days),
-//    so 2021 has no shape of its own and shows in the Change and Actual views from July.
+//    why not. Phorest only holds launch days for Saadiyat, Khalifa City A and Marasy before Jul 2021 (they traded, the data starts
+//    then). 18 Oct 2026: Clients per staff for Jan to Jun 2021 comes from the weekly ledgers, scaled to Phorest's count (oty_month_branch
+//    src = 'ledger', see migrations/oty_month_ledger_2021.sql); Net take and Average bill stay empty for those months.
 //  - A finished month with under 10 open days counts as not trading yet, so a launch stub cannot skew a year's average.
 //  - Change view: a month against the same month a year earlier, per open day, so a month in progress reads against
 //    the same number of open days. A dashed edge means Ramadan and Eid fell differently than the year before.
@@ -1079,18 +1081,19 @@ function otyMoModel() {
   return (otyMoM = { raw: otyMoRaw, MO, regions, cut: new Date(otyD.cut + 'T00:00:00') });
 }
 const otyMoState = (M, y, m) => new Date(y, m, 1) > M.cut ? 'ahead' : new Date(y, m, otyMoDim(y, m)) > M.cut ? 'live' : 'done';
+const rs0 = rows => rows.map(x => x[1]);
 // one month in one year for a region: a figure, or why there is none (no takings held, or only some branches traded)
 function otyMoCell(M, reg, y, m) {
   const state = otyMoState(M, y, m); if (state === 'ahead') return { state, y, m };
   const bs = M.regions[reg], opt = OTY_REGION_OPT[reg] || [], need = bs.filter(b => !opt.includes(b));
-  const rows = bs.map(b => [b, M.MO[b] && M.MO[b][y] && M.MO[b][y][m]]).filter(([, r]) => r && +r.net > 0 && (state === 'live' || +r.days >= 10));
+  const rows = bs.map(b => [b, M.MO[b] && M.MO[b][y] && M.MO[b][y][m]]).filter(([, r]) => r && (+r.net > 0 || (r.src === 'ledger' && +r.stf > 0)) && (state === 'live' || +r.days >= 10));   // a ledger month (2021 Jan to Jun) has clients but no takings
   const rs = rows.map(x => x[1]), got = rows.filter(([b]) => need.includes(b)).length;
-  const c = { state, y, m, open: got, of: need.length, dim: otyMoDim(y, m), mry: rows.some(([b]) => opt.includes(b)) };   // mry: Marasy is in this month's figure
+  const c = { state, y, m, open: got, of: need.length, dim: otyMoDim(y, m), mry: rows.some(([b]) => opt.includes(b)), est: rs0(rows).some(r => r.src === 'ledger'), k: rs0(rows).filter(r => r.src === 'ledger').map(r => +r.k) };   // mry: Marasy is in this month's figure
   if (!rs.length) return c;
   c.days = Math.max(...rs.map(r => +r.days));
   if (reg === 'ALL' || got === need.length) {
-    c.tot = rs.reduce((t, r) => t + +r.net, 0);
-    if (rs.every(r => +r.stf > 0)) { c.stf = rs.reduce((t, r) => t + +r.stf, 0); c.avg = c.tot / c.stf; }
+    if (rs.every(r => +r.net > 0)) c.tot = rs.reduce((t, r) => t + +r.net, 0);   // no takings for a ledger month: Net take and Average bill stay empty
+    if (rs.every(r => +r.stf > 0)) { c.stf = rs.reduce((t, r) => t + +r.stf, 0); if (c.tot != null) c.avg = c.tot / c.stf; }
   }
   return c;
 }
@@ -1133,6 +1136,7 @@ function otyMoCtx() {
     const B = X.baseMonths(y), miss = B.filter(m => !X.ok(X.cell(y, m))), held = [...Array(12).keys()].filter(m => X.ok(X.cell(y, m)));
     if (B.length < 5) return `Too few finished months to draw a shape for ${y}.`;
     if (!held.length) return `No takings held for ${y} here.`;
+    if (y === 2021 && met !== 'clients' && miss.includes(0)) return `Phorest takings for 2021 start in July, and the ledger has clients but no takings, so ${met === 'net' ? 'Net take' : 'Average bill'} has no shape for 2021. Switch Measure to Clients to see Jan to Jun from the ledger.`;
     if (held[0] > 0 && miss.includes(0)) return `Takings are held from ${OTY_MON[held[0]]} ${y}${reg !== 'ALL' && M.regions[reg].length > 1 ? ' with every branch open' : ''}, so ${y} has no full ${X.baseLabel(OTY.mbase)} to set against its own average. It shows in the Change and Actual views.`;
     return `${y} cannot be set against its own average here: no figures for ${miss.map(m => OTY_MON[m]).slice(0, 3).join(', ')}${miss.length > 3 ? ' and more' : ''}.`;
   };
@@ -1214,11 +1218,12 @@ function otyMonths() {
     for (let m = 0; m < 12; m++) {
       const c = X.cell(y, m), st = c.state, moon = otyRamIn(y, m) >= 10 ? '<span class="moon">☾</span>' : '';
       if (st === 'ahead') { g += '<div class="mo-c ahead"></div>'; continue; }
-      if (c.tot == null || !X.ok(c)) {
-        const msg = !c.open ? 'No takings held for this month.' : c.tot == null ? `Only ${c.open} of ${c.of} branches traded it, so it is left out.` : 'No per-staff figure held for this month.';
-        g += `<div class="mo-c ${c.open ? 'part' : 'none'}" data-y="${y}" data-m="${m}">${c.open && c.tot == null ? c.open + '/' + c.of : '·'}</div>`; continue;
+      if (!X.ok(c)) {
+        const led = c.est && X.met !== 'clients';   // a ledger month has clients, not takings
+        const msg = led ? 'Phorest takings start in Jul 2021 and the ledger has no takings, only clients. Switch Measure to Clients.' : !c.open ? 'No takings held for this month.' : c.tot == null ? `Only ${c.open} of ${c.of} branches traded it, so it is left out.` : 'No per-staff figure held for this month.';
+        g += `<div class="mo-c ${c.open && !led ? 'part' : 'none'}" title="${otyEsc(msg)}" data-y="${y}" data-m="${m}">${c.open && c.tot == null && !led ? c.open + '/' + c.of : '·'}</div>`; continue;
       }
-      let txt = '', bg = '', cls = 'mo-c' + (st === 'live' ? ' live' : '') + (sel.y === y && sel.m === m ? ' sel' : '') + (c.mry ? ' mry' : '');
+      let txt = '', bg = '', cls = 'mo-c' + (st === 'live' ? ' live' : '') + (sel.y === y && sel.m === m ? ' sel' : '') + (c.mry ? ' mry' : '') + (c.est ? ' est' : '');
       const x = ix && ix[m];
       if (v === 'index') { txt = Math.round(x); bg = otyMoHeat(x - 100, 35); if (S.peak[y] === m) cls += ' pk'; if (S.low[y] === m) cls += ' lo'; }
       else if (v === 'act') { txt = X.fv(X.val(c)); bg = x != null ? otyMoHeat(x - 100, 35) : ''; }
@@ -1253,7 +1258,7 @@ function otyMonths() {
       <div class="oty-hint">${baseHint}</div>
       <div class="oty-seg" role="group" aria-label="View" style="margin:18px 0 14px">${[['index', 'Shape (index)', 'Shape'], ['chg', 'Change on last year', 'Change'], ['act', 'Actual', 'Actual']].map(([k, l, sh]) => tog('mview', k, l, sh)).join('')}</div>
       <div class="mo-swipe">Swipe sideways for the other months and the totals. Tap a month for its detail.</div><div class="mo-sw"><div class="mo-scroll"><div class="mo-hm">${g}</div></div></div>
-      <div class="mo-legend">${legend}${(OTY_REGION_OPT[X.reg] || []).length ? '<span class="sw"><span class="box" style="border-bottom:3px solid #A5D8FF"></span>Marasy is in the figure</span><span class="sw"><span class="box" style="border:2px dashed #3f8fd2"></span>Marasy is in one of the two months and not the other: not like for like</span>' : ''}</div>
+      <div class="mo-legend">${legend}${X.met === 'clients' && years.includes(2021) ? '<span class="sw"><span class="box" style="border:1.5px dotted var(--muted)"></span>Estimated from the ledger (2021, Jan to Jun)</span>' : ''}${(OTY_REGION_OPT[X.reg] || []).length ? '<span class="sw"><span class="box" style="border-bottom:3px solid #A5D8FF"></span>Marasy is in the figure</span><span class="sw"><span class="box" style="border:2px dashed #3f8fd2"></span>Marasy is in one of the two months and not the other: not like for like</span>' : ''}</div>
     </div>
     <div class="oty-card" id="otyMoDetail" style="margin-top:12px">${otyMoDetail(X, S, sel)}</div>`;
   const notes = `
@@ -1263,8 +1268,10 @@ function otyMonths() {
         <li><b>Per open day</b>, so a short February or a closed day is fair.</li>
         <li><b>Striped</b> = the month still running, left out of every average.</li>
         <li><b>Totals</b> (Actual, Change) show only when every finished month has a figure. ${curYear} is Jan to ${OTY_MON[Math.max(X.doneN - 1, 0)]}.</li>
-        <li><b>Marasy</b> (Phorest data 1 Jul 2021 to 24 Dec 2022) is added only when ticked. Shape is fair across it; Actual and Change are not, and those cells have a dashed sky-blue edge. 2021 has no shape because it starts in July.</li>
-        <li><b>Source:</b> Phorest daily totals, refreshed hourly. Net take is net of VAT.</li>
+        <li><b>Marasy</b> (Phorest data 1 Jul 2021 to 24 Dec 2022) is added only when ticked. Shape is fair across it; Actual and Change are not, and those cells have a dashed sky-blue edge.</li>
+        <li><b>2021, Jan to Jun (Clients only):</b> Phorest only holds a few launch days for Saadiyat, Khalifa City A and Marasy before July 2021, so those months come from the weekly ledgers (every day of 2021 is there). The ledger counts clients, not takings, so <b>Net take and Average bill stay empty</b> for those months. The ledger counted more clients than Phorest did later in 2021, so each branch's ledger figure is scaled by its own Jul to Dec 2021 ratio (Phorest ÷ ledger; Saadiyat 0.84, Khalifa City A 0.89, Marasy 1.16) to avoid a false step in July. These cells have a dotted edge: <b>treat them as an estimate, good for the shape and the direction, not for the exact count.</b> From July 2021 it is Phorest, as for every other year.</li>
+        <li><b>2020:</b> only December 2020 ledgers exist (Saadiyat, Khalifa City A, Marasy) and they are not loaded, so the page starts at 2021.</li>
+        <li><b>Source:</b> Phorest daily totals, refreshed hourly (2021 Jan to Jun Clients: the ledger, see above). Net take is net of VAT.</li>
       </ul>
     </details>`;
   // [id, rail label, html] per sub-section; otyDraw() turns each into its own section. The notes ride with the last one.
@@ -1313,13 +1320,14 @@ function otyMoDetail(X, S, sel) {
   const oavg = others.length ? others.reduce((a, b) => a + b, 0) / others.length : null;
   const pc = k && !k.none ? `<span class="oty-chg ${k.big ? 'flat' : Math.abs(k.pct) < .5 ? 'flat' : k.pct > 0 ? 'up' : 'dn'}" style="margin:0">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(1) + '%'}</span>` : '';
   const ram = rd || rp ? `${rd} of ${c.dim} days in ${y}${p ? `, ${rp} of ${p.dim} in ${y - 1}` : ''}${p && Math.abs(rd - rp) >= 10 ? '. Not like for like, read it with the shape view.' : ''}` : 'Not touched in either year';
+  const estNote = c.est ? `<div class="oty-note" style="margin-top:10px"><b>Estimated from the ledger.</b> Phorest has only launch days for this month, so the clients come from the weekly ledgers, scaled to Phorest's count (×${c.k.length ? [...new Set(c.k)].map(x => x.toFixed(2)).join(' / ') : '1'} by branch, from Jul to Dec ${y}). Use it for the shape and the direction, not the exact count. The ledger has no takings, so Net take and Average bill are empty.</div>` : '';
   return `<div class="oty-rh"><b>${OTY_MON[m]} ${y}</b><span>${live ? `1 to ${c.days} open days, against the same number of open days in ${y - 1}` : y > X.years[0] ? `against ${OTY_MON[m]} ${y - 1}` : 'first year held'}</span>${pc}</div>
     <div class="mo-dt">
       <div><div class="k">${otyMoMetName[X.met]}</div><div class="v">${X.met === 'net' ? 'AED ' : ''}${X.fv(X.val(c))}</div><div class="s">${k && !k.none ? `${X.fd(k.diff)} on the same open days of ${y - 1}` : 'No year before to set against'}</div></div>
       <div><div class="k">Index · 100 = average month</div><div class="v">${ix && ix[m] != null ? Math.round(ix[m]) : '·'}</div><div class="s">${rank ? `${otyMoOrd(rank)} strongest of ${ixs.length} finished months in ${y}` : ix ? 'Month still running' : 'Not enough months for a shape'}</div></div>
       <div><div class="k">Same month, other years</div><div class="v">${oavg != null ? Math.round(oavg) : '·'}</div><div class="s">${oavg != null && ix && ix[m] != null ? `${y} is ${Math.abs(ix[m] - oavg).toFixed(0)} pts ${ix[m] >= oavg ? 'above' : 'below'} the average of the other years` : 'Average index across the other years'}</div></div>
       <div><div class="k">Ramadan and Eid</div><div class="v">${rd} <small>of ${c.dim} days</small></div><div class="s">${ram}</div></div>
-    </div>`;
+    </div>${estNote}`;
 }
 
 // a smooth curve through the points (monotone cubic, so it never overshoots a peak or dips below a low that is not in the data)
@@ -1480,7 +1488,7 @@ function otyMoTipFor(el, ev) {
     return;
   }
   const y = +el.dataset.y, m = +el.dataset.m, c = X.cell(y, m); if (!c) return;
-  if (!X.ok(c)) { otyMoTipBox(el, ev, `<div class="h"><b>${OTY_MON[m]} ${y}</b></div><div>${!c.open ? 'No takings held for this month.' : c.tot == null ? `Only ${c.open} of ${c.of} branches traded it, so it is left out.` : 'No per-staff figure held for this month.'}</div>`); return; }
+  if (!X.ok(c)) { otyMoTipBox(el, ev, `<div class="h"><b>${OTY_MON[m]} ${y}</b></div><div>${c.est && X.met !== 'clients' ? 'Phorest takings start in Jul 2021; the ledger has clients only. Switch Measure to Clients.' : !c.open ? 'No takings held for this month.' : c.tot == null ? `Only ${c.open} of ${c.of} branches traded it, so it is left out.` : 'No per-staff figure held for this month.'}</div>`); return; }
   const ix = X.idx(y), k = X.cmp(y, m), rd = otyRamIn(y, m);
   otyMoTipBox(el, ev, `<div class="h"><i style="background:${otyMoCol(y)}"></i><b>${OTY_MON[m]} ${y}</b><span>${otyEsc(otyMoName(X.reg))}</span></div><div class="v">${X.met === 'net' ? 'AED ' : ''}${X.fv(X.val(c))}</div>
     <div>${ix && ix[m] != null ? `Index <b>${Math.round(ix[m])}</b> (100 = this year's average month)` : 'No shape for this year'}${c.state === 'live' ? ` · ${c.days} open days so far` : ''}</div>
