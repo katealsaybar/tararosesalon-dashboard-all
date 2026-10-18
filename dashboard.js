@@ -3003,6 +3003,35 @@ function buildStaffArraysFromMaps(hairMap, beautyMap) {
 // array it always did. Anything that goes wrong (no IndexedDB, a private window, the function not there, a failed
 // read) falls back to the live read of the whole window. Rows are stored per signed-in person and wiped at sign-out.
 const ROWS_MIN_MONTHS = 3;
+const ROWS_BATCH_MONTHS = 6;     // neighbouring months fetched in one request (staff_rows_pack)
+let ROWS_PACK_BROKEN = false;
+// Kate, 18 Oct 2026: "All time takes almost 2 minutes on my phone". The first fill of a device was still 208 requests of
+// 1,000 rows, each row an object with every column name in it. staff_rows_pack (migrations/staff_rows_pack.sql) returns a run
+// of months in ONE request: the column names once and each row as an array (a third of the size, and not cut at 1,000 rows).
+// The rows are rebuilt here with the same keys in the same order, so they are the objects the live read returns.
+async function rowsPacked(table, from, to) {
+  const r = await sb.rpc('staff_rows_pack', { p_table: table, p_from: from, p_to: to });
+  if (r.error) throw r.error;
+  const cols = r.data && r.data.cols, rows = r.data && r.data.rows;
+  if (!Array.isArray(cols) || !Array.isArray(rows)) throw new Error('staff_rows_pack: unexpected answer');
+  const n = cols.length;
+  return rows.map(a => { const o = {}; for (let i = 0; i < n; i++) o[cols[i]] = a[i]; return o; });
+}
+async function rowsFetch(table, from, to) {
+  if (!ROWS_PACK_BROKEN) {
+    try { return await rowsPacked(table, from, to); }
+    catch (e) { if (/staff_rows_pack/.test(String((e && e.message) || ''))) ROWS_PACK_BROKEN = true; }
+  }
+  return loadAllRowsLive(table, from, to);
+}
+// A running "n%" on the page's loading line while months come down.
+const ROWS_PROG = { total: 0, done: 0 };
+function rowsProgress(addTotal, addDone) {
+  ROWS_PROG.total += addTotal; ROWS_PROG.done += addDone;
+  const el = document.querySelector('#mainContent .loading');
+  if (el && ROWS_PROG.total) el.textContent = `Loading daily data... ${Math.min(99, Math.round(ROWS_PROG.done / ROWS_PROG.total * 100))}%`;
+  if (ROWS_PROG.done >= ROWS_PROG.total) { ROWS_PROG.total = 0; ROWS_PROG.done = 0; }
+}
 const ROWS_IDB = { db: null, name: 'trs-rows-v1', store: 'months' };
 let ROWS_CACHE_OFF = false;      // set by anything that wants the plain live read (the numbers check, a fault)
 let ROWS_FP_BROKEN = false;
@@ -3010,15 +3039,20 @@ const ROWS_FP_MEMO = new Map();  // table|from|to -> the checksum request, so th
 window.TRS_ROWS_STATS = { last: null, hist: [] };   // hist: every long-window read this page load, for timing
 function rowsIdb() {
   if (ROWS_IDB.db) return ROWS_IDB.db;
-  ROWS_IDB.db = new Promise((res, rej) => {
+  const open = new Promise((res, rej) => {
     try {
       const r = indexedDB.open(ROWS_IDB.name, 1);
       r.onupgradeneeded = () => r.result.createObjectStore(ROWS_IDB.store);
-      r.onsuccess = () => res(r.result);
+      // A delete or an upgrade asked for by another tab: let go of the connection at once, or that tab waits for this one.
+      r.onsuccess = () => { const db = r.result; db.onversionchange = () => { try { db.close(); } catch (e) {} ROWS_IDB.db = null; }; res(db); };
       r.onerror = () => rej(r.error);
       r.onblocked = () => rej(new Error('blocked'));
     } catch (e) { rej(e); }
-  }).catch(e => { ROWS_IDB.db = null; throw e; });
+  });
+  // A store that never answers (a delete held up by another tab, a private window) must never hold the page: after 4 s it is
+  // given up on and the live read answers instead.
+  ROWS_IDB.db = Promise.race([open, new Promise((_, rej) => setTimeout(() => rej(new Error('IndexedDB did not answer')), 4000))])
+    .catch(e => { ROWS_IDB.db = null; throw e; });
   return ROWS_IDB.db;
 }
 function rowsIdbGet(key) {
@@ -3092,24 +3126,40 @@ async function loadAllRows(table, fromStr, toStr) {
     return loadAllRowsLive(table, fromStr, toStr);
   }
   const stats = { table, months: plan.months.length, fromCache: 0, fetched: 0, rowsFetched: 0, t0: performance.now() };
-  const headAsk = plan.head ? loadAllRowsLive(table, plan.head.from, plan.head.to) : Promise.resolve([]);
-  const tailAsk = plan.tail ? loadAllRowsLive(table, plan.tail.from, plan.tail.to) : Promise.resolve([]);
+  const headAsk = plan.head ? rowsFetch(table, plan.head.from, plan.head.to) : Promise.resolve([]);
+  const tailAsk = plan.tail ? rowsFetch(table, plan.tail.from, plan.tail.to) : Promise.resolve([]);
   const out = new Array(plan.months.length);
-  const work = plan.months.map((mo, i) => async () => {
+  const need = [];
+  // Which months this device already holds, with the checksum the server gives now.
+  await Promise.all(plan.months.map(async (mo, i) => {
     const f = fps[mo.key];
     if (!f || !f.n) { out[i] = []; return; }
-    const ck = `${uid}|${table}|${mo.key}`;
     let hit = null;
-    try { hit = await rowsIdbGet(ck); } catch (e) {}
-    if (hit && hit.fp === f.fp && hit.n === f.n && Array.isArray(hit.rows) && hit.rows.length === f.n) { out[i] = hit.rows; stats.fromCache++; return; }
-    const rows = await loadAllRowsLive(table, mo.from, mo.to);
-    out[i] = rows; stats.fetched++; stats.rowsFetched += rows.length;
-    if (rows.length === f.n) { try { await rowsIdbPut(ck, { fp: f.fp, n: f.n, rows }); } catch (e) {} }
-  });
-  // A handful of months at a time: the first load of a long window is the same few hundred requests as before, but the
-  // shared API is not asked for all of them in the same second.
-  let next = 0;
-  await Promise.all(Array.from({ length: 6 }, async () => { while (next < work.length) await work[next++](); }));
+    try { hit = await rowsIdbGet(`${uid}|${table}|${mo.key}`); } catch (e) {}
+    if (hit && hit.fp === f.fp && hit.n === f.n && Array.isArray(hit.rows) && hit.rows.length === f.n) { out[i] = hit.rows; stats.fromCache++; }
+    else need.push(i);
+  }));
+  need.sort((a, b) => a - b);
+  // The rest: a run of up to ROWS_BATCH_MONTHS neighbouring months per request, four requests at a time. The rows arrive in
+  // the live read's order (date, then id) and are split back into their months, each kept on the device with its checksum.
+  const batches = [];
+  need.forEach(i => { const cur = batches[batches.length - 1]; if (cur && cur[cur.length - 1] === i - 1 && cur.length < ROWS_BATCH_MONTHS) cur.push(i); else batches.push([i]); });
+  rowsProgress(need.length, 0);
+  let nextB = 0;
+  await Promise.all(Array.from({ length: 4 }, async () => {
+    while (nextB < batches.length) {
+      const idxs = batches[nextB++];
+      const rows = await rowsFetch(table, plan.months[idxs[0]].from, plan.months[idxs[idxs.length - 1]].to);
+      const by = {};
+      rows.forEach(r => { const k = String(r.date).slice(0, 7); (by[k] || (by[k] = [])).push(r); });
+      idxs.forEach(i => {
+        const mo = plan.months[i], rr = by[mo.key] || [], f = fps[mo.key];
+        out[i] = rr; stats.fetched++; stats.rowsFetched += rr.length;
+        if (rr.length === f.n) rowsIdbPut(`${uid}|${table}|${mo.key}`, { fp: f.fp, n: f.n, rows: rr }).catch(() => {});
+      });
+      rowsProgress(0, idxs.length);
+    }
+  }));
   const [head, tail] = await Promise.all([headAsk, tailAsk]);
   stats.ms = Math.round(performance.now() - stats.t0);
   window.TRS_ROWS_STATS.last = stats;

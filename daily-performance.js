@@ -183,10 +183,10 @@ function dpCss() {
   .dpf .dp-pi{font-size:11.5px;font-weight:600;border-radius:10px;padding:1px 8px;white-space:nowrap}
   .dpf .dp-pi.good{background:var(--good-bg);color:var(--good)}.dpf .dp-pi.bad{background:var(--bad-bg);color:var(--bad)}
   .dpf .dp-swr .dp-chip{margin-top:0;white-space:nowrap;flex:none}
-  .dpf .dp-swr-r{display:grid;grid-template-columns:58px 96px;align-items:center;gap:12px;flex:none}
+  .dpf .dp-swr-r{display:grid;grid-template-columns:68px 96px;align-items:center;gap:12px;flex:none}
   .dpf .dp-swr-r .dp-chip{justify-self:end}
-  .dpf .dp-cal{display:inline-flex;flex-direction:column;align-items:stretch;width:58px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:9px;overflow:hidden;box-shadow:var(--shadow-card,none);flex:none}
-  .dpf .dp-cal-m{background:var(--accent);color:var(--accent-fg);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;line-height:1;padding:5px 0 4px}
+  .dpf .dp-cal{display:inline-flex;flex-direction:column;align-items:stretch;width:68px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:9px;overflow:hidden;box-shadow:var(--shadow-card,none);flex:none}
+  .dpf .dp-cal-m{background:var(--accent);color:var(--accent-fg);font-size:10.5px;font-weight:700;letter-spacing:.08em;white-space:nowrap;text-transform:uppercase;line-height:1;padding:5px 0 4px}
   .dpf .dp-cal-d{font-size:25px;font-weight:700;line-height:1.05;padding-top:3px;color:var(--text);font-variant-numeric:tabular-nums}
   .dpf .dp-cal-w{font-size:11.5px;font-weight:500;color:var(--muted);line-height:1.2;padding:0 0 5px}
   .dpf .dp-swr > div{min-width:0}
@@ -203,7 +203,11 @@ function dpCss() {
   .dpf .dp-note{font-size:12.5px;color:var(--muted2);line-height:1.55;margin:6px 0 0}
   .dpf .dp-note b{color:var(--text)}
   .dpf .dp-cust{margin:8px 0 2px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--surface2)}
-  .dpf .dp-cust summary{font-weight:600;color:var(--text)}
+  .dpf .dp-cust summary{font-weight:600;color:var(--text);list-style:none;display:flex;align-items:center;gap:10px}
+  .dpf .dp-cust summary::-webkit-details-marker{display:none}
+  /* Kate, 18 Oct 2026: "customise measures doesn't look obvious na it can be clicked". A chevron at the right edge, turned up when it is open. */
+  .dpf .dp-cust summary::after{content:'';flex:none;margin-left:auto;margin-right:4px;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translate(-2px,-2px);transition:transform .2s}
+  .dpf .dp-cust[open] summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
   .dpf .dp-cg{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
   .dpf .dp-cg .dp-lab{flex:1 0 100%;min-width:0}
   .dpf .dp-chk{position:relative;display:inline-flex;align-items:center;font:500 13px Inter,sans-serif;color:var(--text);cursor:pointer;white-space:nowrap;border:1px solid var(--border);background:var(--surface);border-radius:18px;padding:5px 12px}
@@ -604,7 +608,7 @@ function dpOffPage() {
 // A date as a small calendar leaf: month on an ink band, the day number big, the weekday under it (Kate, 16 Oct 2026, for the
 // Weakest day rows). Ink and cream come from the dashboard's own tokens, so the band is ink on light and the theme's accent on
 // dark. The full date is the label for a screen reader.
-const dpCalendar = d => `<span class="dp-cal" role="img" aria-label="${dpEsc(dpDayLabel(d))}"><span class="dp-cal-m">${MON_SHORT[d.getMonth()]}</span><span class="dp-cal-d">${d.getDate()}</span><span class="dp-cal-w">${DP_DOW[d.getDay()]}</span></span>`;
+const dpCalendar = d => `<span class="dp-cal" role="img" aria-label="${dpEsc(dpDayLabel(d))}"><span class="dp-cal-m">${MON_SHORT[d.getMonth()]} ${d.getFullYear()}</span><span class="dp-cal-d">${d.getDate()}</span><span class="dp-cal-w">${DP_DOW[d.getDay()]}</span></span>`;
 // Kate, 16 Oct 2026: the same card, read the other way round for the Strongest day (best = true): the highest figure, or the one furthest above its target.
 function dpWeakest(idxs, codes, best) {
   const mk = DP.measure, M = DP_M[mk], others = Object.keys(DP_M).filter(k => k !== mk && !DP_M[k].notarget);

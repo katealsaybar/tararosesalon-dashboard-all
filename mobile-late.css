@@ -67,6 +67,16 @@
   #mainContent .metric::before{left:0;right:auto;top:-1px;width:28px;height:3px;border-radius:2px}
   #mainContent .card:hover{transform:none;box-shadow:none}
   #mainContent .perf2,#mainContent .perf2 > *{min-width:0}
+  /* Daily Performance, 18 Oct 2026. (1) "nipisan mo yung sticky header": the bar was 44px pills plus padding, over 55px tall. The
+     pills and the Measure menu are 34px in the bar now (the page keeps its 44px taps). (2) "pill tags don't look good, dapat
+     aligned": on a phone the weakest and strongest day rows had the date leaf and the percentage chip floating mid-row, and the
+     "Also low that day" pills starting after the label and then wrapping under it. The leaf sits at the left and the chip at the
+     right edge of one row, the label gets its own line, and the pills line up under it from the left edge. */
+  :root .dpf .dp-bar{padding:3px 0}
+  :root .dpf .dp-bar .dp-pill,:root .dpf .dp-bar .ps-btn{min-height:34px;padding-top:0;padding-bottom:0;display:inline-flex;align-items:center}
+  :root .dpf .dp-swr-r{flex:1 0 100%;display:flex;justify-content:space-between;align-items:center}
+  :root .dpf .dp-pl{gap:6px}
+  :root .dpf .dp-pll{flex:0 0 100%;margin:0}
 }
 /* Daily Performance injects its own sheet after this one, so these carry :root to win. */
 @media(max-width:560px){
