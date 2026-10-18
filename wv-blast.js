@@ -88,7 +88,7 @@ function wvPaint() {
         <span id="wvNote" class="slv-note" style="display:inline"></span>
       </div>
       <div id="wvTable"></div>
-      <p class="slv-muted ll-foot">Built from Phorest sales (2026 spend AED 4,000+ net of VAT, last visit within 90 days of 14 Oct) and respond.io (she wrote to one of our branch WhatsApp numbers in the last 12 months). Phorest marketing opt-in is not checked. A client who bought a Wellness Voucher is left out. The list is refreshed by hand, so it is only as fresh as the date above.</p>
+      <p class="slv-muted ll-foot">Built from Phorest sales (2026 spend AED 4,000+ net of VAT, last visit within 90 days of 14 Oct) and respond.io (she wrote to one of our branch WhatsApp numbers in the last 12 months). Phorest marketing opt-in is not checked. Names and phone numbers on this page are for Level 3 and above. A client who bought a Wellness Voucher is left out. The list is refreshed by hand, so it is only as fresh as the date above.</p>
     </div>`;
   wvPaintTable();
   if (wvOk5()) { if (wvSnd) wvSendPaint(); else wvSendLoad(); }

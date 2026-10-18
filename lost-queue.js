@@ -247,7 +247,7 @@ function lqPaint() {
       </div>
       <p id="lqCount" class="slv-note"></p>
       <div id="lqTable"></div>
-      <p class="slv-muted ll-foot">One message per client, first match wins: smoothing, then colour, then other services, then everyone else. Someone in several groups appears once.
+      <p class="slv-muted ll-foot">One message per client, first match wins: smoothing, then colour, then other services, then everyone else. Someone in several groups appears once. This page and its phone numbers are for Level 3 and above.
       Sent comes from respond.io (it only sees messages sent through it); a text, or WhatsApp opened from here, is marked by the button. A client with a booking, or who came in within the last 6 weeks, leaves the list on her own. Two clients on one number get one message.</p>
     </section>`;
   lqPaintTable();

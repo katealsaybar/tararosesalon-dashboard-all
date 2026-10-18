@@ -62,7 +62,7 @@ function lcnPaintPanel() {
       <span id="llNote" class="slv-note" style="display:inline"></span>
     </div>
     <div id="llTable"></div>
-    <p class="slv-muted ll-foot">A consultation counts as a visit, so these clients are never in the five groups or the blast. Here: came in for a consultation in the last 30 days, nothing bought that day, no visit since and no booking. ${ph ? '' : 'Phone numbers are for Level 3 and above. '}Mark Contacted once you have called or messaged her, so nobody is chased twice. The list refreshes with the latest sales and bookings each time the page opens.</p>`;
+    <p class="slv-muted ll-foot">A consultation counts as a visit, so these clients are never in the five groups or the blast. Here: came in for a consultation in the last 30 days, nothing bought that day, no visit since and no booking. ${ph ? 'Phone numbers are shown to Level 3 and above. ' : 'Phone numbers are for Level 3 and above. '}Mark Contacted once you have called or messaged her, so nobody is chased twice. The list refreshes with the latest sales and bookings each time the page opens.</p>`;
   lcnPaintTable();
 }
 function lcnPaintTable() {
