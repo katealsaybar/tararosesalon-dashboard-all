@@ -91,6 +91,9 @@ const STAFF_NAME_ALIASES = {
   // her Al Quoz row is blank that same day (she was covering), Phorest's Motor City Neeka record runs to 26 Mar 2024, and no Phorest
   // branch has a Nikka (Nikki Asuncion is a different person, Khalifa City and Saadiyat).
   'NIKKA': 'NEEKA',
+  // Sahra Sayed (former Saadiyat stylist, IG hairbyssg): the Saadiyat ledger wrote SARAH for the week of 8 to 14 Aug 2022 (1 client), and SAHRA
+  // carries on from 15 Aug 2022 on the same branch; Phorest has her added at Saadiyat on 1 Jun 2022 and no Sarah on any roster. Kate asked, 18 Oct 2026.
+  'SARAH': 'SAHRA',
   // Xyrhy Unisa: XYRYH, Motor City, Aug 2024 (XYHRY is mapped above).
   'XYRYH': 'XYRHY',
   // One-day typos: RITCHEL (Motor City) is Richel Modilla, SAMATHA (Motor City) is Samantha Ahmad, LORI (KCA) is Lorie.
