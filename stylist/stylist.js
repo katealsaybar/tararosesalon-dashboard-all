@@ -97,7 +97,7 @@ const STYLIST_SURNAMES = {
   "Sherine":   "Baghdadi",
   "Zoe":       "Hogkinson",
   "Aboudi":    "Chatila",
-  "Nicole":    "Sullivan",    // Phorest has O'sullivan; Kate, 14 Oct 2026: Sullivan
+  "Nicole":    "O’Sullivan",   // Phorest has O'sullivan; Kate, 18 Oct 2026: O’Sullivan (was Sullivan on 14 Oct)
   "Sahra":     "Sayed",
   "Jaime":     "Booth",       // Phorest has Petzer; Kate, 14 Oct 2026: Jaime Booth
   "Josh":      "Thomas",

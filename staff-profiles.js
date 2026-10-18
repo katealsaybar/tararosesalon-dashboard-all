@@ -604,7 +604,7 @@ const STAFF_SURNAMES = {
   'MELLIZA':   'Ancajas',
   'MICHELLE':  'Alinea',
   'MIHAELA':   'Solomei',
-  'NICOLE':    'Sullivan',     // Kate, 14 Oct 2026: Sullivan (Phorest has O'sullivan), as in the Jun-Jul 2022 ROSES feature
+  'NICOLE':    'O’Sullivan',   // Kate, 18 Oct 2026: O’Sullivan (Phorest has O'sullivan; 14 Oct it was Sullivan, as in the Jun-Jul 2022 ROSES feature)
   'NOEMI':     'Mallari',
   'PAUL':      'Standenmay',
   'RESHEL':    'Tagayuna',
