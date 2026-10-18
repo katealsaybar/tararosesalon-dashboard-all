@@ -251,7 +251,9 @@ const TP_ROLE_FIX = { 'TARA': 'Owner', 'TARA KIDD': 'Owner',
   'LORIE': 'Assistant', 'ARLENE': 'Assistant', 'NICOLA': 'Assistant', 'FARWA': 'Assistant', 'ABIGAIL': 'Assistant', 'ABIGAIL YANGA': 'Assistant' };
 // Photos for people with no staff card: the owner and Bahrain's managing director, both from the org chart.
 const TP_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'TARA KIDD': 'assets/org-chart/tara-rose-kidd.png',
-  'DAISY': 'assets/org-chart/daisy-charlotte-cropper.png', 'DAISY CROPPER': 'assets/org-chart/daisy-charlotte-cropper.png' };
+  'DAISY': 'assets/org-chart/daisy-charlotte-cropper.png', 'DAISY CROPPER': 'assets/org-chart/daisy-charlotte-cropper.png',
+  // Kate, 18 Oct 2026: Sunitha Dhakshinamurthy, occasional Al Quoz beauty cover with no staff card (Frances, 13 Oct), so no profile; her photo is shown here and in the Stylist View only.
+  'SUNITHA': 'stylist/photos/AQ/sunitha-dhakshinamurthy.png' };
 // Kate, 8 Oct 2026: people the ledger or Phorest carries who are not stylists on the floor
 // (receptionists, assistants, coordinators, a login called "Reception"), and leavers and
 // Bahrain staff with no staff card. The podium_overrides table in Supabase says what to do

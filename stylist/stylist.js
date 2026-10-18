@@ -300,6 +300,7 @@ const STYLIST_PHOTOS = {
   "Rita":      "KCA/rita aryal.png",
   "Emmalyn":   "MC/emmalyn daza.png",       // former beautician, Motor City — Kate, 14 Oct 2026
   "Jackie":    "SAA/jackie anog.png",
+  "Sunitha":   "AQ/sunitha-dhakshinamurthy.png",   // occasional Al Quoz beauty cover, no staff card; Kate, 18 Oct 2026
   "Jaya":      "SAA/jaya wagle.png",   // former Beautician, mainly SAA Oct 2021 to Jun 2023; real B&W headshot, Kate 18 Oct 2026
   "Karina":    "KCA/karina kazarian.png",
   "Lorena":    "SAA/lorena factor.png",
