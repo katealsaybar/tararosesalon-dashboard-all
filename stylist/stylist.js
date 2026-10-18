@@ -270,7 +270,7 @@ const STYLIST_PHOTOS = {
   "Simi":    "BAH/simi.png",
   "Faye":    "KCA/faye madi.png",   // placeholder, no photo or IG; Marasy Jan 2021 to May 2022, then KCA — Kate, 15 Oct 2026
   "Hafez":   "other/hafez abou hwijj.png",   // Fratelli and AQ, Nov 2023 to Jan 2025; real B&W headshot from Kate, 18 Oct 2026 (no IG)
-  "Jane":    "MC/jane astrande.png",   // placeholder, no photo or IG; MC and AQ, Nov 2022 to Nov 2024 — Kate, 15 Oct 2026
+  "Jane":    "MC/jane astrande.png",   // real B&W headshot from Kate, 18 Oct 2026 (no IG); MC and AQ, Nov 2022 to Nov 2024
   "Kelsey":  "SAA/kelsey lewis.png",   // real B&W headshot (made in ChatGPT from her video selfie); SAA Dec 2022 to Sep 2023 — Kate, 15 Oct 2026
   "Kelsie":  "KCA/kelsie lally.png",   // placeholder, no photo or IG; Marasy Sep to Dec 2022 — Kate, 15 Oct 2026
   "Louise":  "KCA/louise williams.png",   // placeholder, no photo or IG; KCA Nov 2021 to Sep 2022 — Kate, 15 Oct 2026
