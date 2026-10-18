@@ -555,7 +555,7 @@ const STAFF_SURNAMES = {
   'NIMI':      'Firth',        // Kate, 8 Oct 2026: left; Style Director, Al Quoz (archived in Phorest)
   'SHIELA':    'Avena',
   'SIMON':     'Faddoul',
-  'SUNITHA':   'Dhakshinamurtht',
+  'SUNITHA':   'Dhakshinamurthy',
   'VICKI':     'Taylor',
   'VIRGINIJA': 'Lisauskaite',
   'ZANDRA':    'Competente',

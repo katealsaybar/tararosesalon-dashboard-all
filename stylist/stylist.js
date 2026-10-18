@@ -170,7 +170,7 @@ const STYLIST_SURNAMES = {
   "Neeka":         "Kainth",
   "Shiela":        "Avena",
   "Simon":         "Faddoul",
-  "Sunitha":       "Dhakshinamurtht",
+  "Sunitha":       "Dhakshinamurthy",
   "Vicki":         "Taylor",
   "Virginija":     "Lisauskaite",   // new joiner, Motor City — Kate, 19 Sep 2026
   "Zandra":        "Competente",
@@ -363,6 +363,7 @@ const STYLIST_IG = {
   "Zoe":        "https://www.instagram.com/hairdesignbyzoe/",   // Kate, 18 Oct 2026
   "Neeka":      "https://www.instagram.com/hair_byneeka/",   // from her business card, Kate, 18 Oct 2026
   "Billy":       "https://www.instagram.com/fadesbybill/",   // from his Fratelli business card, Kate, 18 Oct 2026
+  "Sunitha":     "https://www.instagram.com/heal_with_sunitha/",   // from her business card, Kate, 18 Oct 2026 (occasional Al Quoz beauty cover, no staff card)
   "Shian":      "https://www.instagram.com/hairartist.shiandavidson/",
   "Nataleah":   "https://www.instagram.com/hairbynats19/",
   "Rany":       "https://www.instagram.com/rannyhairstyle/",
