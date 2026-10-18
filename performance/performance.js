@@ -90,6 +90,16 @@ let SRC = 'ledger';
 try { if (localStorage.getItem('perf-src') === 'phorest') SRC = 'phorest'; } catch (e) {}
 if (['ledger', 'phorest'].includes(qs.get('src'))) SRC = qs.get('src');
 let RAW = null, RAW_KEY = null;   // the last perf_dashboard answer, so the switch needn't ask again
+// Rebooking both ways (Kate's ruling, 17 Oct 2026): Phorest's tracker and the branch ledger, side by side wherever a manager reads it, so
+// nobody has to guess which one a card is showing. n is a numbers object as perf_core gives it (ledger at the top, Phorest in n.phorest);
+// pass the unswapped one. Phorest is null where the tracker has no visits for her in the window (it starts 1 Jul 2026).
+function rbBoth(n) {
+  const p = n && n.phorest;
+  const ph = p && p.rebook_visits > 0 ? (p.rebooking_pct != null ? p.rebooking_pct : 100 * p.rebooked / p.rebook_visits) : null;
+  const led = n && n.rebooking_pct != null ? n.rebooking_pct : null;
+  return { ph, led };
+}
+const rbTxt = b => `Phorest ${b.ph == null ? 'n/a' : fmt(b.ph, 'pct')} · Ledger ${b.led == null ? 'n/a' : fmt(b.led, 'pct')}`;
 function withSource(d) {
   if (SRC !== 'phorest') return d;
   const swap = n => {
@@ -672,8 +682,9 @@ async function renderStylist() {
     isHair ? tile('treatments_pct', 'Treatment %', d, pace) : tile('request_pct', 'Request rate', d, pace),
     tile('retail_pct', 'Retail %', d, pace),
     // Emma, 29 Sep 2026: the count under the rate, "10 of 20 clients rebooked".
-    tile('rebooking_pct', 'Rebooking %', d, pace, SRC === 'phorest' && n.rebooked == null ? '<br>Not in our Phorest feed for these dates yet.'
-      : n.clients > 0 ? `<br>${fmt(n.rebooked, 'num')} of ${fmt(n.rebook_visits ?? n.clients, 'num')} clients rebooked` : ''),
+    tile('rebooking_pct', 'Rebooking %', d, pace, (SRC === 'phorest' && n.rebooked == null ? '<br>Not in our Phorest feed for these dates yet.'
+      : n.clients > 0 ? `<br>${fmt(n.rebooked, 'num')} of ${fmt(n.rebook_visits ?? n.clients, 'num')} clients rebooked` : '')
+      + `<br><span class="rb2">${rbTxt(rbBoth(RAW.numbers))}</span>`),
     tile('clients', 'Total clients', d, pace),
     tile('column_fill_pct', 'Column fill', d, pace, `<br>${fmt(n.booked_hours, 'num')} of ${fmt(n.available_hours, 'num')} hours booked`),
   ].join('');
@@ -983,7 +994,7 @@ async function renderTeam() {
     name:    { label: 'Name',    cmp: (a, b) => a.name.localeCompare(b.name) },
     takings: { label: 'Takings', cmp: (a, b) => num(b.numbers.total_revenue) - num(a.numbers.total_revenue) },
     clients: { label: 'Clients', cmp: (a, b) => num(b.numbers.clients) - num(a.numbers.clients) },
-    rebook:  { label: 'Rebook %', cmp: (a, b) => num(b.numbers.rebooking_pct) - num(a.numbers.rebooking_pct) },
+    rebook:  { label: 'Rebook %', cmp: (a, b) => { const x = rbBoth(a.numbers), y = rbBoth(b.numbers); return num(y.ph ?? y.led) - num(x.ph ?? x.led); } },
     level:   { label: 'Position', cmp: (a, b) => rankOf(b) - rankOf(a) },
   };
   if (!SORTS[SORT]) SORT = 'branch';
@@ -995,7 +1006,7 @@ async function renderTeam() {
             : `<div class="ini">${esc(initials(s.name))}</div>`}
           <div class="nm">${esc(s.name)}</div>
           <div class="lv">${esc(s.level || s.dept)}${SORT === 'branch' ? '' : ` · ${esc(BR[s.branch] || s.branch)}`}</div>
-          <div class="mini">${fmt(s.numbers.total_revenue, 'aed')} · ${fmt(s.numbers.clients, 'num')} clients<br>Rebook ${fmt(s.numbers.rebooking_pct, 'pct')}</div>
+          <div class="mini">${fmt(s.numbers.total_revenue, 'aed')} · ${fmt(s.numbers.clients, 'num')} clients<br>Rebook ${rbTxt(rbBoth(s.numbers))}</div>
           ${s.notes ? `<div class="lv">${s.notes} note${s.notes > 1 ? 's' : ''}</div>` : ''}
           ${!s.has_email ? `<div class="flag">No email on file</div>` : (!s.send_email ? `<div class="flag">Email paused</div>` : '')}
         </a>`;

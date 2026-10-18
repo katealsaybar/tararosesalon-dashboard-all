@@ -89,7 +89,7 @@ function slvAtLevel(cur, next) {
       if (v === null || v === undefined) return '<td>–</td>';
       const min = slvCut(b.min, k, f, share), aim = slvCut(b.target, k, f, share);
       const cls = aim != null && v >= aim ? 'slv-a-good' : min != null && v < min ? 'slv-a-bad' : 'slv-a-mid';
-      return `<td class="${cls}" title="Minimum ${slvFmt(min, f)}, aim ${slvFmt(aim, f)}">${slvFmt(v, f)}</td>`;
+      return `<td class="${cls}" title="Minimum ${slvFmt(min, f)}, aim ${slvFmt(aim, f)}">${slvFmt(v, f)}${slvPhRb(k, n)}</td>`;
     }).join('');
     let hit = 0, of = 0;
     nextKeys.forEach(k => { const v = n[k]; if (v === null || v === undefined) return; of++;
@@ -115,7 +115,7 @@ function slvAtCards(people, cols, cur, next, nextKeys) {
       if (v === null || v === undefined) return `<div class="slv-mt"><span>${slvEsc(l)}</span><b>–</b></div>`;
       const min = slvCut(b.min, k, f, share), aim = slvCut(b.target, k, f, share);
       const cls = aim != null && v >= aim ? 'good' : min != null && v < min ? 'bad' : 'mid';
-      return `<div class="slv-mt ${cls}"><span>${slvEsc(l)}</span><b>${fm(v, f)}</b><small>aim ${fm(aim, f)}</small></div>`;
+      return `<div class="slv-mt ${cls}"><span>${slvEsc(l)}</span><b>${fm(v, f)}</b><small>aim ${fm(aim, f)}${slvPhRb(k, n, true)}</small></div>`;
     }).join('');
     let hit = 0, of = 0;
     nextKeys.forEach(k => { const v = n[k]; if (v === null || v === undefined) return; of++;
@@ -135,6 +135,15 @@ function slvSetMonth(m) {
 }
 try { slvPick = localStorage.getItem('slv-level'); } catch (e) {}
 
+// Rebooking: the cell is the ledger's, as the aims were written on it; Phorest's tracker figure sits under it (Kate's ruling, 17 Oct 2026:
+// both, wherever a manager reads it). Nothing under it where the tracker has no visits for her in the month (it starts 1 Jul 2026).
+function slvPhRb(k, n, inline) {
+  if (k !== 'rebooking_pct') return '';
+  const p = n && n.phorest;
+  if (!p || !(p.rebook_visits > 0)) return '';
+  const v = p.rebooking_pct != null ? p.rebooking_pct : 100 * p.rebooked / p.rebook_visits;
+  return inline ? ` · Phorest ${Math.round(v * 10) / 10}%` : `<div class="slv-note">Phorest ${Math.round(v * 10) / 10}%</div>`;
+}
 function slvFmt(v, f) {
   if (v === null || v === undefined || v === '') return '–';
   const n = Number(v);

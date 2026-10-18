@@ -172,8 +172,12 @@ const W13_ROWS = [
   ['New client requests', n => w13Num(n.ncr)],
   ['Request %', n => w13Ratio(100 * (+n.req + +n.ncr), n.clients, v => Math.round(v) + '%')],
   ['g', 'Rebooking'],
-  ['Rebooked', n => n.clients > 0 ? `${w13Num(n.rebooked)} of ${w13Num(n.clients)}` : '–'],
-  ['Rebooking %', n => w13Ratio(100 * n.rebooked, n.clients, v => Math.round(v) + '%')],
+  ['Rebooked (ledger)', n => n.clients > 0 ? `${w13Num(n.rebooked)} of ${w13Num(n.clients)}` : '–'],
+  ['Rebooking % (ledger)', n => w13Ratio(100 * n.rebooked, n.clients, v => Math.round(v) + '%')],
+  // Phorest's Staff Performance Tracker beside the ledger (Kate's ruling, 17 Oct 2026): rebooked over Phorest visits. A dash where the
+  // tracker has nothing (it starts 1 Jul 2026), so the year's total is over the weeks it has.
+  ['Phorest rebooked', n => (n.phorest && n.phorest.rebook_visits > 0) ? `${w13Num(n.phorest.rebooked)} of ${w13Num(n.phorest.rebook_visits)}` : '–'],
+  ['Phorest rebooking %', n => (n.phorest && n.phorest.rebook_visits > 0) ? Math.round(100 * n.phorest.rebooked / n.phorest.rebook_visits) + '%' : '–'],
   ['g', 'Column'],
   ['Column fill %', n => w13Ratio(100 * n.booked_hours, n.available_hours, v => Math.round(v) + '%')],
   ['Hours booked', n => w13Num(n.booked_hours)],
@@ -300,6 +304,8 @@ async function renderStaffWeeks() {
   // gives a week, grouped Sales, Clients, Rebooking, Column and Reviews. The total row is worked out from the
   // same sums as a week, so a ratio is a ratio of totals.
   const yr = Object.fromEntries(W13_SUMS.map(k => [k, weeks.reduce((x, w) => x + (Number(w.numbers[k]) || 0), 0)]));
+  yr.phorest = { rebooked: weeks.reduce((x, w) => x + (Number(w.numbers.phorest && w.numbers.phorest.rebooked) || 0), 0),
+                 rebook_visits: weeks.reduce((x, w) => x + (Number(w.numbers.phorest && w.numbers.phorest.rebook_visits) || 0), 0) };
   const totFill = tot.ah > 0 ? Math.round(100 * tot.uh / tot.ah) + '%' : '–';
   const figs = W13_ROWS.filter(r => r[0] !== 'g');
   const groups = [];
@@ -334,7 +340,7 @@ async function renderStaffWeeks() {
       <div class="w13-tiles">
         <div class="w13-tile"><div class="slv-eyebrow">Service sales (ex retail)</div><div class="w13-val">${w13Aed(tot.sales)}</div><div class="slv-note">${worked ? w13Aed(tot.sales / worked) + ' a week worked' : ''}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Clients (ledger)</div><div class="w13-val">${w13Num(tot.clients)}</div><div class="slv-note">${tot.clients ? 'Average bill ' + w13Aed(tot.sales / tot.clients) + ', Phorest sales per ledger client' : ''}</div></div>
-        <div class="w13-tile"><div class="slv-eyebrow">Rebooking</div><div class="w13-val">${tot.clients ? Math.round(100 * tot.rebooked / tot.clients) + '%' : '–'}</div><div class="slv-note">${tot.clients ? `${w13Num(tot.rebooked)} of ${w13Num(tot.clients)} clients rebooked` : ''}</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">Rebooking</div><div class="w13-val">${yr.phorest.rebook_visits > 0 ? Math.round(100 * yr.phorest.rebooked / yr.phorest.rebook_visits) + '%' : (tot.clients ? Math.round(100 * tot.rebooked / tot.clients) + '%' : '–')}</div><div class="slv-note">Phorest ${yr.phorest.rebook_visits > 0 ? `${w13Num(yr.phorest.rebooked)} of ${w13Num(yr.phorest.rebook_visits)} visits, the weeks it has` : 'n/a'}<br>Ledger ${tot.clients ? `${Math.round(100 * tot.rebooked / tot.clients)}%, ${w13Num(tot.rebooked)} of ${w13Num(tot.clients)} clients` : 'n/a'}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Column fill</div><div class="w13-val">${totFill}</div><div class="slv-note">${tot.ah ? `${w13Num(tot.uh)} of ${w13Num(tot.ah)} hours booked` : ''}</div></div>
       </div>
       <div class="w13-chart-head">
@@ -384,7 +390,7 @@ async function w13RenderTeam(el) {
         <div><div class="w13-card-name">${w13Esc(r.name)}</div><div class="slv-note">${w13Esc(r.level || r.dept)}${w13Sort === 'branch' ? '' : ' · ' + w13Esc(W13_BRANCH[r.branch] || r.branch)}</div></div>
       </div>
       <div class="w13-card-val">${w13Aed(n.total_revenue)}</div>
-      <div class="slv-note">${w13Num(n.clients)} clients · ${n.clients ? `${w13Num(n.rebooked)} of ${w13Num(n.clients)} rebooked` : 'no clients'}</div>
+      <div class="slv-note">${w13Num(n.clients)} clients · ${n.clients ? `${w13Num(n.rebooked)} of ${w13Num(n.clients)} rebooked (ledger)` : 'no clients'}${(n.phorest && n.phorest.rebook_visits > 0) ? ` · Phorest ${Math.round(100 * n.phorest.rebooked / n.phorest.rebook_visits)}%` : ''}</div>
       ${w13Spark(r.weekly, r.current, r.dept, { branch: r.branch, from: t.from, aim: w13WeekAim(w13Aims, r.level) })}
     </button>`;
   };
