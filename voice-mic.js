@@ -19,6 +19,34 @@
   document.head.appendChild(css);
   var MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
 
+  // The recogniser is a general one, so it hears our own words as the nearest everyday ones ("sarah rose kid" for
+  // "Tara Rose Kidd", Kate, 18 Oct 2026). Two cheap helps: of the alternatives it offers for each phrase, take the one
+  // that holds the most of OUR words; then put the usual slips right. Add to KNOWN and FIXES as new ones turn up.
+  var KNOWN = ['tara rose', 'kidd', 'saadiyat', 'mamsha', 'khalifa city', 'motor city', 'al quoz', 'marasy', 'fratelli',
+    'phorest', 'rebooking', 'wellness voucher', 'hair rhythm', 'podium race', 'my numbers', 'team home', 'induction'];
+  var FIXES = [
+    [/\b(?:sarah|sara|tarah|tera|terra|tarra|tyra|tiara|tara's) rose\b/gi, 'Tara Rose'],
+    [/\brose (?:kid|kids|kit|kidd?s)\b/gi, 'Rose Kidd'],
+    [/\b(?:saadiya|saadiyah|saadyat|sadiyat|sa'?adiat|saadiat)\b/gi, 'Saadiyat'],
+    [/\b(?:khalifah?|kalifa|khalifa's) city\b/gi, 'Khalifa City'],
+    [/\b(?:al|el) (?:quoz|kuz|koos|kwaz|quaz|couz)\b/gi, 'Al Quoz'],
+    [/\bmoto city\b/gi, 'Motor City'],
+    [/\bre[- ]?booking\b/gi, 'rebooking']
+  ];
+  function pick(result) {
+    var best = result[0], top = -1;
+    for (var i = 0; i < result.length; i++) {
+      var t = result[i].transcript.toLowerCase(), n = 0;
+      for (var k = 0; k < KNOWN.length; k++) if (t.indexOf(KNOWN[k]) >= 0) n++;
+      if (n > top) { top = n; best = result[i]; }
+    }
+    return best.transcript;
+  }
+  function tidy(t) {
+    for (var i = 0; i < FIXES.length; i++) t = t.replace(FIXES[i][0], FIXES[i][1]);
+    return t;
+  }
+
   function add(inp) {
     if (!SR || !inp || inp.dataset.mic) return null;
     inp.dataset.mic = '1';
@@ -42,6 +70,7 @@
       rec.lang = 'en-GB';
       rec.interimResults = true;
       rec.continuous = true;
+      rec.maxAlternatives = 5;
       rec.onstart = function () {
         on = true; btn.classList.add('on'); btn.setAttribute('aria-pressed', 'true');
         if (!base) inp.value = '';
@@ -50,8 +79,8 @@
       };
       rec.onresult = function (e) {
         var t = '';
-        for (var i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
-        inp.value = (base + t).slice(0, 200);
+        for (var i = 0; i < e.results.length; i++) t += pick(e.results[i]);
+        inp.value = tidy(base + t).slice(0, 200);
         inp.dispatchEvent(new Event('input', { bubbles: true }));
         clearTimeout(quiet); quiet = setTimeout(function () { wantOn = false; if (rec) rec.stop(); }, SILENCE);
       };
