@@ -1875,7 +1875,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 #bootLoader .mark{width:190px;max-width:52vw;aspect-ratio:2321/396}
 #bootLoader .bl-word{font:500 12.5px/1 'Inter',sans-serif;letter-spacing:.4em;text-indent:.4em;text-transform:uppercase;color:var(--text,#1c1b19);opacity:.85}
 #bootLoader .bl-t{font:500 12px/1 'Inter',sans-serif;letter-spacing:.24em;text-transform:uppercase;color:var(--muted,#8a8378)}
-#bootLoader .bl-fact{max-width:min(380px,82vw);min-height:3.2em;text-align:center;font:italic 400 15px/1.5 'Playfair Display',Georgia,serif;color:var(--muted,#8a8378);opacity:0;transition:opacity .22s ease;margin-top:4px}
+#bootLoader .bl-fact{max-width:min(380px,82vw);min-height:4.6em;text-align:center;font:italic 400 15px/1.5 'Playfair Display',Georgia,serif;color:var(--muted,#8a8378);opacity:0;transition:opacity .22s ease;margin-top:4px}
 #bootLoader .bl-fact.on{opacity:1}
 /* Slow-load line (audit 17 Oct 2026, P1-02): after 15 s the loader says so and offers a retry, instead of vanishing at 25 s on a half-drawn page. */
 #bootLoader .bl-slow{display:none;flex-direction:column;align-items:center;gap:12px;max-width:min(380px,82vw);text-align:center;font:500 14px/1.5 'Inter',sans-serif;color:var(--text,#1c1b19)}
@@ -3412,7 +3412,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div class="bl-fact" id="blFact" aria-live="off"></div>
   <div class="bl-slow" id="blSlow" role="alert"><span>Still loading. The connection looks slow.</span><button type="button" onclick="location.reload()">Try again</button></div>
 </div>
-<script src="loading-facts.js?v=20261016lf1"></script>
+<script src="loading-facts.js?v=20261018lf2"></script>
 <script>
   // Dark theme picks the light-on-dark logo before anything paints.
   (function(){ try { var th = document.documentElement.getAttribute('data-theme');
