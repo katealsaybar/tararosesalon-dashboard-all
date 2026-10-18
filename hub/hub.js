@@ -491,11 +491,56 @@
     // Voice, 18 Oct 2026: the shared mic (voice-mic.js), loaded once, added to this bar.
     if (window.TRSMic) TRSMic.add(input);
     else { var vm = document.createElement('script'); vm.src = '/voice-mic.js?v=62fac83a'; vm.onload = function () { if (window.TRSMic) TRSMic.add(input); }; document.head.appendChild(vm); }
-    var timer = null, items = [], active = -1, seq = 0;
+    var timer = null, items = [], active = -1, seq = 0, fixedFrom = '', shownQ = '';
+    // Spelling and title weight (audit 18 Oct 2026, P7-06). kb_search matches the letters typed, so "complants", "balyage" and "depsoit" found
+    // nothing, and a page whose body mentions the words could outrank four pages titled with them. Both are answered here, with no change to
+    // the database function: when a search finds nothing, each word that is in no page title is read as the nearest title word within one
+    // slip (two for a long word, a swapped pair counts as one) and the search runs again, saying so; and the results are re-ordered so the
+    // pages with the most of the words IN THE TITLE come first, the database's own order kept inside each group.
+    var vocab = null;
+    async function loadVocab() {
+      if (vocab) return vocab;
+      var set = {};
+      try {
+        var v = await c.from('kb_pages').select('title');
+        (v.data || []).forEach(function (p) { String(p.title || '').toLowerCase().split(/[^a-z0-9]+/).forEach(function (w) { if (w.length >= 4) set[w] = 1; }); });
+      } catch (e) { /* no vocabulary: the search simply is not corrected */ }
+      vocab = Object.keys(set);
+      return vocab;
+    }
+    function dist(a, b) {   // edit distance with a swapped pair counted as one slip
+      var m = a.length, n = b.length, d = [], i, j;
+      for (i = 0; i <= m; i++) { d[i] = [i]; }
+      for (j = 1; j <= n; j++) d[0][j] = j;
+      for (i = 1; i <= m; i++) for (j = 1; j <= n; j++) {
+        var cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+        if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+      }
+      return d[m][n];
+    }
+    async function spell(q) {
+      var voc = await loadVocab(), changed = false;
+      var out = q.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).map(function (w) {
+        if (w.length < 4 || voc.indexOf(w) >= 0) return w;
+        var best = null, bd = 9, max = w.length >= 7 ? 2 : 1;
+        voc.forEach(function (t) { if (Math.abs(t.length - w.length) > max) return; var x = dist(w, t); if (x <= max && x < bd) { bd = x; best = t; } });
+        if (best) { changed = true; return best; }
+        return w;
+      });
+      return changed ? out.join(' ') : '';
+    }
+    function byTitle(list, q) {
+      var ws = q.toLowerCase().split(/[^a-z0-9]+/).filter(function (w) { return w.length >= 3; });
+      if (!ws.length) return list;
+      var score = function (it) { var t = String(it.title || '').toLowerCase(); return ws.filter(function (w) { return t.indexOf(w) >= 0; }).length; };
+      return list.map(function (it, i) { return { it: it, i: i, s: score(it) }; })
+        .sort(function (a, b) { return (b.s - a.s) || (a.i - b.i); }).map(function (x) { return x.it; });
+    }
     function close() { box.classList.remove('open'); box.innerHTML = ''; active = -1; }
     function paint(q) {
       if (!items.length) { box.innerHTML = '<div class="kb-empty">Nothing matches “' + esc(q) + '”.</div>'; box.classList.add('open'); return; }
-      box.innerHTML = items.map(function (it, i) {
+      box.innerHTML = (fixedFrom ? '<div class="kb-empty" style="padding:8px 14px">Showing results for “' + esc(q) + '” (you typed “' + esc(fixedFrom) + '”).</div>' : '') + items.map(function (it, i) {
         return '<a class="kb-result' + (i === active ? ' active' : '') + '" role="option" href="/hub/kb.html?p=' + encodeURIComponent(it.slug) + '">' +
           '<div class="kb-result-group">' + esc(it.group_name || '') + '</div>' +
           '<div class="kb-result-title">' + highlight(it.title, q) + '</div>' +
@@ -512,14 +557,26 @@
         var r = await c.rpc('kb_search', { q: q });
         if (mine !== seq) return;            // a newer search has gone out
         items = r.error ? [] : (r.data || []);
+        var shown = q;
+        fixedFrom = '';
+        if (!items.length && !r.error && q.length >= 4) {
+          var alt = await spell(q);
+          if (mine !== seq) return;
+          if (alt && alt !== q.toLowerCase()) {
+            var r2 = await c.rpc('kb_search', { q: alt });
+            if (mine !== seq) return;
+            if (!r2.error && (r2.data || []).length) { items = r2.data; shown = alt; fixedFrom = q; }
+          }
+        }
+        items = byTitle(items, shown);
         if (KB.viewAs) items = items.filter(function (it) { return KB.allowed.indexOf(it.section) >= 0 && KB.shows(it.slug); });
-        active = -1; paint(q);
+        active = -1; shownQ = shown; paint(shown);
       }, 220);
     });
     input.addEventListener('keydown', function (e) {
       if (!box.classList.contains('open')) return;
-      if (e.key === 'ArrowDown') { e.preventDefault(); active = Math.min(active + 1, items.length - 1); paint(input.value.trim()); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); paint(input.value.trim()); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); active = Math.min(active + 1, items.length - 1); paint(shownQ || input.value.trim()); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); paint(shownQ || input.value.trim()); }
       else if (e.key === 'Enter' && items[Math.max(active, 0)]) { e.preventDefault(); location.href = '/hub/kb.html?p=' + encodeURIComponent(items[Math.max(active, 0)].slug); }
       else if (e.key === 'Escape') { close(); input.blur(); }
     });

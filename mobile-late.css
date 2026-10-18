@@ -131,3 +131,44 @@
   :root .topbar.stuck .gs-trig{margin-top:4px}
 }
 
+/* Staff Cards names (audit 18 Oct 2026, P1-13). The first name is the Instagram link and sits inside the .who span, whose own
+   44px ::after (mobile.css) painted over it: a tap on the first name landed on the span, not the link. The link now sits above that
+   area and has a real 44px box (padding with an equal negative margin, so the row does not grow), not a ::after. The surname and
+   the space around the name still open the hover menu; the click handler in staff-links.js already ignores a click on a link. */
+@media(max-width:760px){
+  .who a{position:relative;z-index:1}
+  .sc-name .who a,.sc-handle a{display:inline-block;box-sizing:border-box}
+  .sc-name .who a{padding:12px 5px;margin:-12px -5px}
+  .sc-handle a{padding:12px 0;margin:-12px 0}
+  .sc-name .who a::after,.sc-handle a::after{display:none}
+  .mode-pills .sc-head{min-height:44px;box-sizing:border-box}
+}
+
+/* The Pulse's seven target cells were 43.1px wide at 375px (strip 325px, 4px gaps): 2px gaps make them 44.7. */
+@media(max-width:760px){
+  :root .hero-targets .ht-seg{gap:2px}
+}
+
+/* Type floor, audit 18 Oct 2026 (P1-13): Daily Performance's pills, calendar and eyebrow (10.5 to 11.5px) and the Podium rings (11px). */
+@media(max-width:760px){
+  :root .dpf .dp-pi,:root .dpf .dp-cal-m,:root .dpf .dp-cal-w,:root .dpf .dp-pll,:root .dpf .dp-lab,:root .dpf .dp-eyebrow,:root .dpf .dp-tile .dp-eyebrow{font-size:12px}
+  :root .tp-ring,:root .tp-ring text{font-size:12px}
+}
+
+/* Phone folds (phone-fold.js, audit 18 Oct 2026, P4-20): a filter bar, an explainer or the wave cards behind one tappable row. */
+@media(max-width:760px){
+  details.pf{border-bottom:1px solid var(--border);margin:6px 0}
+  details.pf > summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;font-weight:600;font-size:15px}
+  details.pf > summary::-webkit-details-marker{display:none}
+  details.pf > summary::after{content:'+';margin-left:auto;font-weight:400;color:var(--muted);font-size:20px;line-height:1}
+  details.pf[open] > summary::after{content:'3'}
+  details.pf > summary .pf-t{flex:none}
+  details.pf > summary .pf-l{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400;font-size:13.5px;color:var(--muted)}
+  details.pf > .lc-bar{position:static;margin-top:4px}
+  details.pf[open] > :not(summary){margin-bottom:10px}
+}
+
+/* Stylist's Benchmarks' group heads and Staff's 13 Week's group row were 11.5px (audit 18 Oct 2026, P1-13). */
+@media(max-width:760px){
+  :root .slv-table tr.slv-g th,:root .w13-down thead tr.w13-gh th{font-size:12px}
+}

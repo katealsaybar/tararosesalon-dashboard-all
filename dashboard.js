@@ -38,6 +38,19 @@ const TARGETS = {
   get rebookPct()    { return isPostTargetCutover() ? 70 : 45; },
 };
 
+// The standing ratio targets as ONE function (audit 18 Oct 2026, P5-14): ledger-targets.js used to carry its own copy of these five
+// and the two had to be kept in step by hand. `ym` ('YYYY-MM') is the month the caller is drawing, for the rebooking cutover; the
+// other four do not move by month. The average bills are the UAE figures on purpose (TARGETS.hairAvgBill is null on a Bahrain view).
+function benchmarkTargets(ym) {
+  return {
+    rebookPct:     (ym && ym >= TARGET_CUTOVER_ISO.slice(0, 7)) ? 70 : 45,
+    treatmentPct:  TARGETS.treatmentPct,
+    retailPct:     TARGETS.retailPct,
+    hairAvgBill:   TARGETS.hairAvgBillUAE,
+    beautyAvgBill: TARGETS.beautyAvgBillUAE,
+  };
+}
+
 // `color` is the dark-theme/decorative-dot pastel; `colorLight` is the same hue darkened
 // for use as a light-mode graph fill (same pattern as hairColor/beautyColor elsewhere —
 // a flat pastel bar reads as too matingkad against the light-theme cream background).
@@ -1595,7 +1608,7 @@ const STYLIST_ROLE_ORDER = ['Creative Director', 'Style Director', 'Senior Styli
 // ?v= stamps for a while and the cards did not, so Katie's redrawn card would have
 // arrived looking exactly like a card that was never updated — the browser holds
 // these hard, and no number of refreshes tells you which one you are looking at.
-const STYLIST_CARD_V = '20261014d';
+const STYLIST_CARD_V = '20261018a';
 
 function stylistCardEmbed(name) {
   const src = `assets/stylist-cards/${encodeURIComponent(String(name || '').toLowerCase())}.pdf?v=${STYLIST_CARD_V}`;

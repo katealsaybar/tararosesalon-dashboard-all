@@ -11,6 +11,15 @@
    ============================================================ */
 (function () {
   var KBDoc = window.KBDoc = {};
+  // The words in a "being confirmed" banner (audit 18 Oct 2026, P7-08). 39 notes are the fragment that follows "Being confirmed:" ("which quiz
+  // clients are invited to take..."), and under the heading alone they read as half a sentence. Those get a lead that says what the line is:
+  // what is still open. A note that is already a sentence only gets its capital and a full stop.
+  KBDoc.noteLine = function (n) {
+    var t = String(n || '').replace(/^Being confirmed:\s*/i, '').trim();
+    if (/^[a-z]/.test(t)) t = 'What is still open: ' + t; else t = t.replace(/^./, function (c) { return c.toUpperCase(); });
+    if (!/[.?!)]$/.test(t)) t += '.';
+    return t;
+  };
 
   // ── Words that keep their capitals when shouty text becomes sentence case ──
   var KEEP = ['Tara Rose', 'Tara', 'TRS', 'UAE', 'VIP', 'LVL', 'SOP', 'SOPs', 'HR', 'ID', 'PPE', 'SPF', 'UV', 'LED', 'OPI', 'CND',
@@ -337,7 +346,7 @@
     if (pg.meta) head.push({ text: pg.meta, fontSize: 8.5, color: C.soft, margin: [0, 0, 0, 10] });
     head.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 483, y2: 0, lineWidth: 0.6, lineColor: C.hair },
       { type: 'line', x1: 0, y1: 0, x2: 54, y2: 0, lineWidth: 2.4, lineColor: C.accentDeep }], margin: [0, 2, 0, 16] });
-    if (pg.note) pg.note.split('\n').forEach(function (n) { if (n.trim()) head.push(noteBox(n.trim())); });
+    if (pg.note) pg.note.split('\n').forEach(function (n) { if (n.trim()) head.push(noteBox(KBDoc.noteLine(n.trim()))); });
     return head;
   }
 

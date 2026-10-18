@@ -541,6 +541,7 @@ async function renderTeam() {
   }
   // Takings vs Rebooking reads each person against her level's aims; fetched once.
   if (part === 'quad' && !tpLevels) await tpLoadLevels();
+  if (part === 'quad') await tpLoadTeamShare();
   // Phorest's rebooking for the window, beside the ledger's (a cache hit when the Pulse already asked).
   await tpLoadRebook();
 
@@ -619,16 +620,7 @@ async function renderTeam() {
 
     <!-- Fixed to the bottom of the window, but rendered inside the view so it
          disappears with it: a fixed child of a display:none parent is hidden. -->
-    <div class="tp-tray ${tpCompare.length ? 'up' : ''}" id="tpTray">
-      <div class="tp-tray-in">
-        <div class="tp-tray-hd">Comparing ${tpCompare.length} of ${TP_MAX_COMPARE}
-          <span class="tp-tray-n">${tpCompare.length === 1
-            ? 'against the bench and the target — tap + on somebody else to put them side by side'
-            : 'the leader in each row is marked'}</span>
-          <button class="tp-btn" onclick="tpClearCompare()">Clear</button></div>
-        ${tpTrayMatrix(tpCompare.map(k => roster.find(st => tpKey(st) === k)).filter(Boolean), roster)}
-      </div>
-    </div>
+    ${tpTrayHtml(tpCompare.map(k => roster.find(st => tpKey(st) === k)).filter(Boolean), roster)}
     ${tpCompare.length ? '<div class="tp-tray-space"></div>' : ''}
   `;
 
@@ -792,6 +784,61 @@ async function tpLoadLevels() {
   } catch (e) { console.warn('Staff Quadrant: level aims unavailable', e); tpLevels = {}; }
   return tpLevels;
 }
+// Audit 18 Oct 2026 (P3-08, P3-09). Staff Dashboards reads each person against her level's aim cut to the share of the month she
+// worked (perf_team: her level, her start day), and the Quadrant used the calendar months of the window and the position on her staff
+// profile. So a new starter read far lower here, and the two educators (Style Directors in perf_staff) had no aim. The Quadrant now
+// asks perf_team for each calendar month the window touches (at most six; a longer window keeps the calendar way, and says so) and
+// reads her level and her share from it. A month before she started counts as none of it.
+let tpTeamMonths = {};   // 'YYYY-MM' -> { KEY: { level, start } }
+function tpWindowMonthList() {
+  if (typeof dateFrom === 'undefined' || !dateFrom || !dateTo) return [];
+  const out = [];
+  let y = dateFrom.getFullYear(), m = dateFrom.getMonth();
+  while (y < dateTo.getFullYear() || (y === dateTo.getFullYear() && m <= dateTo.getMonth())) {
+    const first = new Date(y, m, 1), last = new Date(y, m + 1, 0);
+    const from = dateFrom > first ? dateFrom : first, to = dateTo < last ? dateTo : last;
+    out.push({ ym: y + '-' + String(m + 1).padStart(2, '0'), frac: (Math.round((to - from) / 864e5) + 1) / last.getDate(), days: last.getDate() });
+    if (++m > 11) { m = 0; y++; }
+  }
+  return out;
+}
+async function tpLoadTeamShare() {
+  const list = tpWindowMonthList();
+  if (!list.length || list.length > 6) return;
+  const key = typeof spfGet === 'function' ? spfGet() : null;
+  await Promise.all(list.filter(x => !tpTeamMonths[x.ym]).map(async x => {
+    try {
+      const { data, error } = await sb.rpc('perf_team', { p_admin: key, p_month: x.ym + '-01' });
+      if (error || !data || !data.staff) throw error || new Error('no team');
+      const map = {};
+      data.staff.forEach(s => (s.keys || []).forEach(k => { map[String(k).toUpperCase()] = { level: s.level || null, start: (s.numbers && s.numbers.start_date) || null }; }));
+      tpTeamMonths[x.ym] = map;
+    } catch (e) { console.warn('Staff Quadrant: team for ' + x.ym + ' unavailable', e); tpTeamMonths[x.ym] = null; }
+  }));
+}
+// Her level and the months of her aim the window holds, or null when perf_team does not know her (then the page falls back to its old way).
+function tpTeamFor(st) {
+  const list = tpWindowMonthList();
+  if (!list.length || list.length > 6) return null;
+  const k = tpMergeKey(st.name);
+  let level = null, mo = 0, found = false;
+  for (const x of list) {
+    const map = tpTeamMonths[x.ym];
+    if (!map) return null;
+    const t = map[k];
+    if (!t) continue;
+    found = true;
+    level = level || t.level;
+    let share = 1;
+    if (t.start) {
+      const sd = new Date(t.start + 'T00:00:00'), ms = new Date(x.ym + '-01T00:00:00'), me = new Date(ms.getFullYear(), ms.getMonth() + 1, 0);
+      if (sd > me) share = 0;
+      else if (sd >= ms) share = (x.days - sd.getDate() + 1) / x.days;
+    }
+    mo += x.frac * share;
+  }
+  return found ? { level, mo } : null;
+}
 function tpSetQBasis(k) {
   tpQBasis = k;
   try { localStorage.setItem('trs-tpq-basis', k); } catch (e) {}
@@ -836,19 +883,27 @@ const tpQuadAddon = aim => ({
 // The phone band mobile.css uses. Crossing it (a phone turned on its side) redraws
 // the chart at the other size.
 const TP_PHONE = matchMedia('(max-width:760px),(hover:none) and (max-height:480px)');
-TP_PHONE.addEventListener('change', () => { if (tpPart() === 'quad') renderTeam(); });
+TP_PHONE.addEventListener('change', () => { if (tpPart() === 'quad' || tpCompare.length) renderTeam(); });
 function tpQuadrant(roster) {
   const months = tpWindowMonths();
   const levels = tpLevels || {};
   const levelOk = tpDept === 'hair' && Object.keys(levels).length > 0 && !!months;
   const byLevel = tpQBasis === 'level' && levelOk;
+  const byLevelWanted = byLevel;
   const addon = tpQMetric === 'addon' && tpDept === 'hair';
   const all = roster.filter(st => tpRole(st) !== 'Owner' && !st.noLedger);   // no ledger rows: no rebooking to place her by
+  // Said on the page, not dropped in silence (audit 18 Oct 2026, P3-09): Phorest has her but the ledger has nothing for her in this window.
+  const noRows = roster.filter(st => tpRole(st) !== 'Owner' && st.noLedger);
+  // Her level from perf_team (what Staff Dashboards grades her on) and the months of her aim the window holds, cut to the days she was
+  // on the team. Without perf_team's answer: her position on the profile and the window's calendar months, as before.
+  const teamOf = st => (byLevelWanted ? tpTeamFor(st) : null);
+  const levelOf = st => { const t = teamOf(st); return (t && t.level) || tpRole(st); };
+  const moOf = st => { const t = teamOf(st); return (t && t.mo > 0) ? t.mo : months; };
   // Kate, 1 Oct 2026 (Comet TR3): the owner is left off on purpose, but silently,
   // so the bar read "38 people" over a chart of 37. She is named in the side list.
   const owners = roster.filter(st => tpRole(st) === 'Owner');
   const aimOf = st => {
-    const a = levels[tpRole(st)];
+    const a = levels[levelOf(st)];
     return a && (!addon || (a.treat && a.retail)) ? a : null;
   };
   const pts = byLevel ? all.filter(aimOf) : all;
@@ -862,10 +917,10 @@ function tpQuadrant(roster) {
   // share of a monthly aim prorated to the window; on the bench, Treatment vs Retail
   // reads the two percentages against the salon targets.
   const vx = addon
-    ? (st => byLevel ? (st.treatments || 0) / (aimOf(st).treat * months) * 100 : (st.treatmentPct || 0))
-    : (st => byLevel ? (st.net || 0) / (aimOf(st).take * months) * 100 : (st.net || 0));
+    ? (st => byLevel ? (st.treatments || 0) / (aimOf(st).treat * moOf(st)) * 100 : (st.treatmentPct || 0))
+    : (st => byLevel ? (st.hairSalesNet || 0) / (aimOf(st).take * moOf(st)) * 100 : (st.net || 0));
   const vy = addon
-    ? (st => byLevel ? (st.retail || 0) / (aimOf(st).retail * months) * 100 : (st.retailPct || 0))
+    ? (st => byLevel ? (st.retail || 0) / (aimOf(st).retail * moOf(st)) * 100 : (st.retailPct || 0))
     : (st => byLevel ? (st.rebookPct || 0) / aimOf(st).rebook * 100 : (st.rebookPct || 0));
   const xSplit = byLevel ? 100 : addon ? TARGETS.treatmentPct : median;
   const ySplit = byLevel ? 100 : addon ? TARGETS.retailPct : target;
@@ -902,7 +957,7 @@ function tpQuadrant(roster) {
   } : {
     title: 'Takings against rebooking',
     aria: byLevel ? 'Takings and rebooking against each person\'s level aims' : 'Net salon take against rebooking',
-    xT: byLevel ? 'Net salon take, % of her level\'s aim →' : 'Net salon take →',
+    xT: byLevel ? 'Service sales, % of her level\'s aim →' : 'Net salon take →',
     yT: byLevel ? 'Rebooking, % of her level\'s aim →' : 'Rebooking % →',
     yLine: byLevel ? 'her level\'s rebook aim' : `rebook target ${target}%`,
     xLine: byLevel ? 'her level\'s take aim' : `bench median ${tpAed(median)}`,
@@ -946,10 +1001,10 @@ function tpQuadrant(roster) {
      <circle cx="${n.tx}" cy="${n.ty}" r="2.5" fill="${n.st.branchColor}" class="tp-q-true"/>`).join('');
 
   const tipOf = st => addon ? (byLevel
-    ? `${escapeHtml(st.name)} · ${escapeHtml(tpRole(st))} · ${tpAed(st.treatments)} treatments, ${Math.round(vx(st))}% of her level's aim · ${tpAed(st.retail)} retail, ${Math.round(vy(st))}% of her level's aim`
+    ? `${escapeHtml(st.name)} · ${escapeHtml(levelOf(st))} · ${tpAed(st.treatments)} treatments, ${Math.round(vx(st))}% of her level's aim · ${tpAed(st.retail)} retail, ${Math.round(vy(st))}% of her level's aim`
     : `${escapeHtml(st.name)} · ${tpPct(st.treatmentPct)} treatment · ${tpPct(st.retailPct)} retail · ${escapeHtml(tpRole(st))}`)
     : byLevel
-    ? `${escapeHtml(st.name)} · ${escapeHtml(tpRole(st))} · ${tpAed(st.net)}, ${Math.round(vx(st))}% of her level's take aim · ${tpPct(st.rebookPct)} rebook (${tpRbBoth(st, true)}), ${Math.round(vy(st))}% of her level's ${aimOf(st).rebook}%`
+    ? `${escapeHtml(st.name)} · ${escapeHtml(levelOf(st))} · ${tpAed(st.hairSalesNet)} service sales, ${Math.round(vx(st))}% of her level's take aim · ${tpPct(st.rebookPct)} rebook (${tpRbBoth(st, true)}), ${Math.round(vy(st))}% of her level's ${aimOf(st).rebook}%`
     : `${escapeHtml(st.name)} · ${tpAed(st.net)} · ${tpPct(st.rebookPct)} rebook (${tpRbBoth(st, true)}) · ${escapeHtml(tpRole(st))}`;
   const faces = nodes.map(n => {
     const st = n.st;
@@ -959,14 +1014,16 @@ function tpQuadrant(roster) {
       ? `<image href="${src}" x="${cx - IW / 2}" y="${cy - IH / 2}" width="${IW}" height="${IH}" preserveAspectRatio="xMidYMax meet"/>`
       : `<rect x="${cx - IW / 2 + 2}" y="${cy - IH / 2 + 8}" width="${IW - 4}" height="${IH - 8}" rx="7" class="tp-q-ph"/>
          <text x="${cx}" y="${cy + IH / 2 - 8}" text-anchor="middle" class="tp-q-in">${escapeHtml(initials(st.name))}</text>`;
-    return `<g class="tp-q-dot" data-k="${escapeHtml(tpKey(st))}" onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')">
+    // On a phone the faces are 23 x 36 and close together, so a tap on the chart (tpQTap) picks the NEAREST face instead of asking for
+    // an exact hit (audit 18 Oct 2026, P3-17). A laptop keeps the click on the face itself.
+    return `<g class="tp-q-dot" data-k="${escapeHtml(tpKey(st))}" data-cx="${cx.toFixed(1)}" data-cy="${cy.toFixed(1)}"${phone ? '' : ` onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')"`}>
       <title>${tipOf(st)}</title>
       ${on ? `<rect x="${cx - IW / 2 - 4}" y="${cy - IH / 2 + 4}" width="${IW + 8}" height="${IH}" rx="9" class="tp-q-on"/>` : ''}
       ${face}
       <circle cx="${cx}" cy="${cy + IH / 2 + 6}" r="3.5" fill="${st.branchColor}"/></g>`;
   }).join('');
 
-  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${L.aria}, one face per person">
+  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${L.aria}, one face per person"${phone ? ' onclick="tpQTap(event)"' : ''}>
     ${axes}
     <rect x="${x(xSplit)}" y="${pad.t}" width="${W - pad.r - x(xSplit)}" height="${y(ySplit) - pad.t}" class="tp-q-star"/>
     <line x1="${pad.l}" x2="${W - pad.r}" y1="${y(ySplit)}" y2="${y(ySplit)}" class="tp-q-tgt"/>
@@ -988,7 +1045,11 @@ function tpQuadrant(roster) {
       <p>${QUAD[g].d}</p>
       <div class="tp-q-chips">${ps.map(chip).join('')}</div>
     </div>`;
-  }).join('') + (noAim.length ? `<div class="tp-q-grp">
+  }).join('') + (noRows.length ? `<div class="tp-q-grp">
+      <div class="tp-q-h">No ledger rows · ${noRows.length}</div>
+      <p>In Phorest this period, with nothing in the branch ledger to read a rebooking or an add-on figure from, so they are left off the chart.</p>
+      <div class="tp-q-chips">${noRows.map(chip).join('')}</div>
+    </div>` : '') + (noAim.length ? `<div class="tp-q-grp">
       <div class="tp-q-h">No level aim · ${noAim.length}</div>
       <p>Positions Stylist’s Benchmarks does not set aims for yet, so they are left off this chart. Switch to Bench to see them.</p>
       <div class="tp-q-chips">${noAim.map(chip).join('')}</div>
@@ -1004,7 +1065,9 @@ function tpQuadrant(roster) {
     </div>` : '';
   const why = tpDept !== 'hair' ? 'beauty has no level aims yet, so this reads against the bench'
     : !levelOk ? (months ? 'level aims did not load, so this reads against the bench' : 'pick a period to read against level aims')
-    : byLevel ? `aims prorated to ${Math.round(months * 100) / 100} month${Math.abs(months - 1) < 0.01 ? '' : 's'} in this window` : '';
+    : byLevel ? (tpWindowMonthList().length <= 6 && tpWindowMonthList().every(x => tpTeamMonths[x.ym])
+        ? `aims cut to the days each person was on the team, as on Staff Dashboards (${Math.round(months * 100) / 100} calendar month${Math.abs(months - 1) < 0.01 ? '' : 's'} in this window)`
+        : `aims prorated to ${Math.round(months * 100) / 100} calendar months in this window (a window this long is not cut to each person's start day)`) : '';
   const legend = `Tap a face to compare. The green dashed line is ${L.yWord}, the grey dashed line ${L.xWord}, and the shaded corner is above both`;
   // Which pair of figures the chart plots. Treatment is a hair line only.
   const metricSeg = `<div class="tp-seg tp-q-basis" role="group" aria-label="Chart">
@@ -1025,6 +1088,21 @@ function tpQuadrant(roster) {
       <div class="card tp-q-plot">${svg}</div>
       <div class="card tp-q-side">${side}</div>
     </div>`;
+}
+
+// A tap anywhere on the phone chart picks the face nearest to it, if one is within 44 screen pixels (the chart is scaled to the
+// phone's width, so distances are measured on screen, not in the drawing's own units).
+function tpQTap(ev) {
+  const svg = ev.currentTarget, r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+  if (!r.width || !vb.width) return;
+  const sc = r.width / vb.width;
+  const px = (ev.clientX - r.left) / sc, py = (ev.clientY - r.top) / sc;
+  let best = null, bd = Infinity;
+  svg.querySelectorAll('.tp-q-dot').forEach(g => {
+    const d = Math.hypot(+g.dataset.cx - px, +g.dataset.cy - py) * sc;
+    if (d < bd) { bd = d; best = g; }
+  });
+  if (best && bd <= 44) tpPick(best.dataset.k);
 }
 
 // A name in the side lists lights her face on the chart and dims the rest
@@ -1108,6 +1186,62 @@ function tpBench(roster) {
     b.services  += (st.isBeauty ? st.beautySales : st.hairSalesNet) || 0;
   });
   return b;
+}
+
+// The tray. On a laptop it is the matrix, pinned to the bottom. On a phone (audit 18 Oct 2026, P3-16) that table was 814px wide inside a
+// 209px scroller and the tray took 52% of the screen, so the phone keeps only a slim bar (the count, Compare, Clear) and the comparison
+// opens as a sheet of cards, one card per measure, each person on a line under it.
+let tpSheet = false;
+function tpTrayHtml(picked, roster) {
+  if (!TP_PHONE.matches) {
+    return `<div class="tp-tray ${tpCompare.length ? 'up' : ''}" id="tpTray">
+      <div class="tp-tray-in">
+        <div class="tp-tray-hd">Comparing ${tpCompare.length} of ${TP_MAX_COMPARE}
+          <span class="tp-tray-n">${tpCompare.length === 1
+            ? 'against the bench and the target \u2014 tap + on somebody else to put them side by side'
+            : 'the leader in each row is marked'}</span>
+          <button class="tp-btn" onclick="tpClearCompare()">Clear</button></div>
+        ${tpTrayMatrix(picked, roster)}
+      </div>
+    </div>`;
+  }
+  if (!picked.length) tpSheet = false;
+  return `<div class="tp-tray ${picked.length ? 'up' : ''}" id="tpTray">
+      <div class="tp-tray-in tp-tray-slim">
+        <div class="tp-tray-hd">Comparing ${picked.length} of ${TP_MAX_COMPARE}
+          <button class="tp-btn tp-btn-go" onclick="tpOpenSheet()">Compare</button>
+          <button class="tp-btn" onclick="tpClearCompare()">Clear</button></div>
+      </div>
+    </div>
+    ${picked.length ? `<div class="tp-sheet" id="tpSheet" role="dialog" aria-label="Comparison"${tpSheet ? '' : ' hidden'}>
+      <div class="tp-sheet-hd"><span>Comparing ${picked.length}</span>
+        <button class="tp-btn" onclick="tpCloseSheet()">Close</button></div>
+      ${tpTrayCards(picked, roster)}
+    </div>` : ''}`;
+}
+function tpOpenSheet() { tpSheet = true; const el = document.getElementById('tpSheet'); if (el) { el.hidden = false; el.scrollTop = 0; } }
+function tpCloseSheet() { tpSheet = false; const el = document.getElementById('tpSheet'); if (el) el.hidden = true; }
+// One card per measure: who is on it, and each person's figure with the bench and the target under it.
+function tpTrayCards(picked, roster) {
+  const bench = tpBench(roster);
+  const rows = TP_CMP_ROWS.filter(r => !(r.hairOnly && tpDept === 'beauty'));
+  const who = `<div class="tp-cc-who">${picked.map(st => `<span class="tp-cc-p">${tpAvatar(st.name, 'sm')}<span class="tp-cc-pn">${escapeHtml(tpTitle(st.name))}</span>
+      <button class="tp-x" onclick="tpPick('${tpKey(st).replace(/'/g, "\\'")}')" aria-label="Remove ${escapeHtml(st.name)} from comparison">\u00d7</button></span>`).join('')}</div>`;
+  const cards = rows.map(r => {
+    const target = r.target ? r.target(tpDept) : null;
+    const vals = picked.map(st => { const x = r.pick(st); return x == null ? null : (Number(x) || 0); });
+    const have = vals.filter(v => v != null);
+    const top = have.length > 1 ? Math.max(...have) : null;
+    const tied = top != null && have.filter(v => v === top).length > 1;
+    return `<div class="tp-cc"><div class="tp-cc-k">${r.label}</div>
+      ${picked.map((st, i) => { const v = vals[i];
+        return `<div class="tp-cc-r"><span>${escapeHtml(tpTitle(st.name))}</span>${v == null ? '<b class="tabular">\u2014</b>'
+          : `<b class="tabular ${target ? tpBand(v, target) : ''}${(top != null && !tied && v === top) ? ' tp-cmp-best' : ''}">${r.fmt(v)}</b>`}</div>`; }).join('')}
+      <div class="tp-cc-r tp-cc-agg"><span>Bench avg</span><b class="tabular">${r.fmt(r.bench(bench))}</b></div>
+      <div class="tp-cc-r tp-cc-agg"><span>Target</span><b class="tabular">${target ? r.fmt(target) : '\u2014'}</b></div>
+    </div>`;
+  }).join('');
+  return who + cards;
 }
 
 function tpTrayMatrix(picked, roster) {
@@ -1196,6 +1330,7 @@ function tpPick(key) {
 
 function tpClearCompare() {
   tpCompare = [];
+  tpSheet = false;
   renderTeam();
 }
 

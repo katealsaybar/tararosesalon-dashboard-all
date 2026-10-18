@@ -45,27 +45,9 @@
   (typeof TRS_PAGES !== 'undefined' ? TRS_PAGES : []).forEach(p => { PAGE_WORDS[p.id] = p.words || ''; });
 
   // Kate, 8 Oct 2026: a metric is a result in its own right, with its meaning, whether or
-  // not Staff Dashboards has been opened this session. Same words as the hover tips in
-  // performance/performance.js (TIPS); change one, change the other.
-  const GLOSSARY = [
-    ['Total revenue', 'Your service sales this month from Phorest, before VAT. Retail is not included.'],
-    ['Hair services', 'Your service sales minus treatments, before VAT.'],
-    ['Treatments', 'Treatment sales on your clients this month, from the branch ledger, before VAT.'],
-    ['Treatments %', 'Treatments as a share of your hair services: treatments ÷ hair services × 100.'],
-    ['Retail', 'Products you sold this month, from Phorest, before VAT.'],
-    ['Retail %', 'Retail as a share of your service sales: retail ÷ total revenue × 100.'],
-    ['Average bill', 'Your service sales divided by your client numbers.'],
-    ['Rebooking %', 'The share of your clients who booked their next visit before they left.'],
-    ['Retention %', 'Of the returning clients you saw 3 to 6 months ago, the share you have seen again in the last 3 months.'],
-    ['Client numbers', 'The clients you saw this month, from the branch ledger.'],
-    ['New client requests', 'New clients who asked for you by name, usually through a referral or your socials.'],
-    ['Request rate %', 'Clients who asked for you (request clients plus new client requests) as a share of your client numbers.'],
-    ['Conversion %', 'Of the brand new clients whose first visit was with you 3 to 6 months ago, the share who came back within 12 weeks.'],
-    ['Column fill %', 'Your booked hours as a share of your available hours, from Phorest.'],
-    ['Colour %', 'The share of your client visits this month that included a colour service.'],
-    ['Reputation score', 'Average star rating of the Google reviews that name you or come from your clients, over the last 90 days. Counts once you have at least 3.'],
-    ['Google reviews', 'Google reviews this month that name you.'],
-  ];
+  // not Staff Dashboards has been opened this session. The words are metric-glossary.js's,
+  // the same ones the hover tips and Staff's 13 Week read (audit 18 Oct 2026, P3-18).
+  const GLOSSARY = (typeof TRS_GLOSSARY !== 'undefined' ? TRS_GLOSSARY : []).map(g => [g[1], g[2]]);
 
   const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const esc = s => (typeof escapeHtml === 'function' ? escapeHtml(s)
@@ -465,6 +447,18 @@
   // Services, clients and products, fetched once per Branch/Period window with the
   // same calls those pages make, so a name is findable before its page is opened.
   let dataItems = [], dataKey = '', dataBusy = false;
+  // The Org Chart and Products are scripts that load on first use (audit 18 Oct 2026, P1-07). Search reads ORG_CHART and prdWindow(), so
+  // opening search asks for them and draws the index again when they arrive; until then people on the chart and products are not offered.
+  let lazyAsked = false;
+  function wantLazy() {
+    if (lazyAsked || typeof trsLazy !== 'function') return;
+    lazyAsked = true;
+    ['oc', 'pr'].forEach(g => { if (!trsLazyDone(g)) trsLazy(g).then(() => {
+      index = buildIndex(); dataKey = '';
+      loadData();
+      if (panel && !panel.hidden && input.value.trim()) render();
+    }, () => {}); });
+  }
   function loadData() {
     if (typeof sb === 'undefined' || typeof _svcWindow !== 'function') return;
     const w = _svcWindow();
@@ -978,6 +972,7 @@
     lastFocus = document.activeElement;
     hideBack();
     index = buildIndex();
+    wantLazy();
     loadFt();
     loadData();
     input.value = '';
@@ -1649,6 +1644,7 @@
       } catch (e) {}
       if (typeof TRS_SCOPE !== 'undefined' && TRS_SCOPE) return;   // Bahrain's team has no dashboard search
       index = buildIndex();
+      wantLazy();
       loadFt();
       loadData();
       lastFocus = null;

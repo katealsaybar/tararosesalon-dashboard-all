@@ -33,17 +33,21 @@ const LEDGER_TARGETS = {
   // this file's own `month` above, so a past month keeps reading against 45 even
   // after a September+ sheet is keyed in here. Kate, 14 Sep 2026.
   benchmarks: {
+    // One source (audit 18 Oct 2026, P5-14): the five ratios below read dashboard.js's TARGETS through benchmarkTargets(), which
+    // is also where the Pulse, Comparison and Podium read them. The numbers typed here are only what answers if dashboard.js is
+    // not loaded. Rebooking follows the Ledgers month, as it always did here.
     get rebookPct() {
+      if (typeof benchmarkTargets === 'function') return benchmarkTargets(typeof lgMonth !== 'undefined' ? lgMonth : null).rebookPct;
       return (typeof lgMonth !== 'undefined' && lgMonth && lgMonth >= '2026-09') ? 70 : 45;
     },
     // Treatment rose 20 -> 30 at the same September 2026 cutover as rebooking
     // (TARGETS.treatmentPct in dashboard.js); until 1 Oct 2026 this stayed at 20,
     // so the ledger pages read September treatment against the old target.
     // Back to 20 on 7 Oct 2026 (Kate, Coach Emma's figure): the September 30 was reversed.
-    treatmentPct: 20,
-    retailPct: 12,
-    hairAvgBill: 650,
-    beautyAvgBill: 200,
+    get treatmentPct()  { return typeof benchmarkTargets === 'function' ? benchmarkTargets().treatmentPct  : 20; },
+    get retailPct()     { return typeof benchmarkTargets === 'function' ? benchmarkTargets().retailPct     : 12; },
+    get hairAvgBill()   { return typeof benchmarkTargets === 'function' ? benchmarkTargets().hairAvgBill   : 650; },
+    get beautyAvgBill() { return typeof benchmarkTargets === 'function' ? benchmarkTargets().beautyAvgBill : 200; },
   },
 
   // Per-branch revenue targets.
@@ -227,11 +231,17 @@ const LEDGER_TARGETS = {
 // — Supabase for any month pasted into the Targets tab, this file for August 2026.
 // See ledger-targets-db.js. The arithmetic below is untouched; only where `b` comes
 // from has moved.
-function ledgerBranchTarget(metric, branchCodes) {
+//
+// MONTH, audit 18 Oct 2026 (P5-13). The third argument is the month the caller is drawing ('YYYY-MM'); left out, it is the Ledgers
+// month picker, which is what the three Ledgers pages mean. A month with no target sheet at all (July 2026) answers 0, and
+// ledgerBranchTargetSet() answers false, where it used to fall through to the August file and hand a caller that forgot to check
+// August's 570,000 for Saadiyat.
+function ledgerBranchTarget(metric, branchCodes, month) {
   // The Group (UAE + Bahrain in one currency) has no target: the UAE's are AED and
   // Bahrain has none, so any figure here would compare unlike with unlike.
   if (typeof isGroupView === 'function' && isGroupView()) return 0;
-  const src = (typeof lgTargetSource === 'function') ? lgTargetSource() : null;
+  const src = (typeof lgTargetSource === 'function') ? lgTargetSource(month) : null;
+  if (src && src.kind === 'none') return 0;
   const table = (src && src.kind === 'db') ? src.data.branch : LEDGER_TARGETS.branch;
   // "All" is the UAE group: Bahrain's targets are BHD and never add into it.
   const codes = (!branchCodes || branchCodes.includes('all'))
@@ -255,9 +265,9 @@ function ledgerBranchTarget(metric, branchCodes) {
 // its dash rather than print a target of zero clients that every branch beats. The
 // money metrics always exist once a month has rows, so this only ever answers false
 // for a head count or for a month with no targets at all.
-function ledgerBranchTargetSet(metric, branchCodes) {
+function ledgerBranchTargetSet(metric, branchCodes, month) {
   if (typeof isGroupView === 'function' && isGroupView()) return false;
-  const src = (typeof lgTargetSource === 'function') ? lgTargetSource() : null;
+  const src = (typeof lgTargetSource === 'function') ? lgTargetSource(month) : null;
   if (src && src.kind === 'none') return false;
   const table = (src && src.kind === 'db') ? src.data.branch : LEDGER_TARGETS.branch;
   const codes = (!branchCodes || branchCodes.includes('all'))
@@ -272,9 +282,10 @@ function ledgerBranchTargetSet(metric, branchCodes) {
 
 // One stylist's targets, or null when she has none. Branch + dept + name,
 // because nicknames repeat across both.
-function ledgerStaffTarget(branchCode, dept, name) {
+function ledgerStaffTarget(branchCode, dept, name, month) {
   if (typeof isGroupView === 'function' && isGroupView()) return null;   // see ledgerBranchTarget
-  const src = (typeof lgTargetSource === 'function') ? lgTargetSource() : null;
+  const src = (typeof lgTargetSource === 'function') ? lgTargetSource(month) : null;
+  if (src && src.kind === 'none') return null;
   const staffTable = (src && src.kind === 'db') ? src.data.staff : LEDGER_TARGETS.staff;
   const byBranch = staffTable[branchCode];
   if (!byBranch) return null;

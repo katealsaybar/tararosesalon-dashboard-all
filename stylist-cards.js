@@ -1041,7 +1041,7 @@ const STYLIST_CARDS = {
   "review": "Judy's manicure was amazing. Her attention to detail removing my gel and reapplying new was excellent, I have found a superb regular manicurist at last!",
   "reviewBy": "Sallie"
  },
- "ARNI": {
+ "ARNALYN": {
   "role": "Nail Technician",
   "quote": "Nails that look great and last, and an hour that feels easy from start to finish.",
   "bio": "I'm Arni from the Philippines, with over six years of experience in the UAE and three years at Tara Rose as a Nail Technician. I love creating beautiful, well-cared-for nails while making every appointment feel comfortable and relaxing. My clients know me for being friendly, attentive and someone they can trust to really listen to what they want.",

@@ -28,9 +28,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=dde16bbf"></script>
+<script src="/hub/hub.js?v=356ae45f"></script>
 <script src="/visits.js?v=1176426c"></script>
-<script src="/hub/kb-doc.js?v=f45ebfc9"></script>
+<script src="/hub/kb-doc.js?v=3bfacc70"></script>
 <script>
 (function () {
   var q = new URLSearchParams(location.search), main = document.getElementById('kbMain'), esc = KB.esc;
@@ -188,7 +188,7 @@
               '<p class="kd-meta">' + esc(metaLine(p, i, list.length)) + '</p>' +
             '</header>' +
             (p.note ? p.note.split('\n').map(function (n) {
-              return '<div class="kb-note"><div><b>Being confirmed</b>' + esc(n.replace(/^Being confirmed:\s*/i, '')) + '</div></div>';
+              return '<div class="kb-note"><div><b>Being confirmed</b>' + esc(KBDoc.noteLine(n)) + '</div></div>';
             }).join('') : '') +
             '<div class="kd-body">' + KBDoc.clean(p.body_html) + '</div>' +
           '</article>' +

@@ -220,6 +220,8 @@ function whoNote(msg) {
 }
 
 function whoGoCard(key) {
+  // Staff Cards' words load on first use: wait for them, so the card page draws with its cards.
+  if (typeof trsLazy === 'function' && !trsLazyDone('sc')) { trsLazy('sc').then(() => whoGoCard(key), () => {}); return; }
   // A card in the other country: switch the masthead there first, or the Staff
   // Cards page won't have drawn it.
   const b = staffCardBranch(key);
@@ -238,6 +240,8 @@ function whoGoCard(key) {
 }
 
 function whoGoStats(key, dept, branch) {
+  // Podium Race's script loads on first use: wait for it, so tpDept and tpCompare exist to be set.
+  if (typeof trsLazy === 'function' && !trsLazyDone('tp')) { trsLazy('tp').then(() => whoGoStats(key, dept, branch), () => {}); return; }
   // The Team page shows one department at a time; switch it to hers first.
   if (dept && typeof tpDept !== 'undefined' && tpDept !== dept) {
     tpDept = dept; tpCompare = [];

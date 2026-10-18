@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=e6042f14"></script>
+<script src="pages.js?v=05a33c03"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -2116,6 +2116,13 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .w13-spark rect.nd{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:2 1.5;vector-effect:non-scaling-stroke}
 .w13-spark line.aim{stroke:var(--text);stroke-width:1;stroke-dasharray:3 2;opacity:.55;vector-effect:non-scaling-stroke}
 /* Staff's 13 Week table down (Kate, 13 Oct 2026): a row a week, a column a figure; the headings stay at the top and the Week column on the left while it scrolls. */
+/* A column head that has a meaning: tap (or focus) it and a card at the foot of the screen says what the column is (staff-weeks.js w13Say). */
+.w13-down thead th.w13-hd{cursor:help;text-decoration:underline dotted var(--muted2);text-underline-offset:3px}
+.w13-say{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:150;max-width:560px;margin:0 auto;
+  padding:12px 14px;border-radius:12px;background:var(--surface);color:var(--text);border:1px solid var(--border);
+  box-shadow:0 10px 30px -8px rgba(0,0,0,.45);font-size:14.5px;line-height:1.45;cursor:pointer}
+.w13-say b{font-weight:700}
+.w13-say-x{display:block;margin-top:6px;font-size:12px;color:var(--muted2)}
 .w13-down-wrap{max-height:72vh;overflow:auto}
 .w13-down{width:auto;min-width:100%;border-collapse:separate;border-spacing:0}
 .w13-down th,.w13-down td{text-align:right;white-space:nowrap}
@@ -3397,7 +3404,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 }
 
 </style>
-<link rel="stylesheet" href="team-performance.css?v=550e4ced">
+<link rel="stylesheet" href="team-performance.css?v=c23a9f7a">
 <link rel="stylesheet" href="nav-collapse.css?v=7809b314">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
 <link rel="stylesheet" href="mobile.css?v=cb6ac8d4">
@@ -3407,7 +3414,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="lost-queue.css?v=baff8a67">
 <link rel="stylesheet" href="send-schedule.css?v=88a70391">
 <link rel="stylesheet" href="wv-blast.css?v=a78e3872">
-<link rel="stylesheet" href="mobile-late.css?v=9a5fafc6">   <!-- phone rules for the pages whose sheets load after mobile.css -->
+<link rel="stylesheet" href="mobile-late.css?v=8773bfdf">   <!-- phone rules for the pages whose sheets load after mobile.css -->
 <link rel="stylesheet" href="nav-style.css?v=5092890f">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/theme-fade.js"></script>
@@ -3445,7 +3452,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   (function(){
     var LGX = 'ledger-export.js?v=67737bd9';
     var G = {
-      oty: ['over-the-years.js?v=2657cb99'],
+      oty: ['over-the-years.js?v=661ed4f2'],
       dp:  ['daily-performance.js?v=f329072a', 'daily-addons.js?v=1e57830b'],
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
@@ -3458,8 +3465,14 @@ table.tp-cmp td.bad{color:var(--bad)}
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['compare.js?v=b8350980'],
       mk:  ['marketing-chart.js?v=7aaefb35', 'google-ads.js?v=e67ce0e7', 'website.js?v=55a9e0a5', 'social.js?v=4c3d3645'],
-      wk:  ['staff-weeks.js?v=dec339fd'],
-      lv:  ['stylist-levels.js?v=13afdff1']
+      wk:  ['team-performance.js?v=67fae3d7', 'staff-weeks.js?v=e29bca44'],
+      lv:  ['stylist-levels.js?v=13afdff1'],
+      // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
+      // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
+      pr:  ['products.js?v=d1961633'],
+      sc:  ['stylist-cards.js?v=fe5a89a4'],
+      oc:  ['org-chart.js?v=37a5bbdf'],
+      tp:  ['team-performance.js?v=67fae3d7']
     };
     var V = {};   // view -> group, from pages.js (lazy)
     TRS_PAGES.forEach(function(p){ if (p.lazy) V[p.id] = p.lazy; });
@@ -4309,24 +4322,21 @@ table.tp-cmp td.bad{color:var(--bad)}
 
 <script src="upload/name-aliases.js?v=f340a25c"></script>
 <!-- After name-aliases.js: ledgerStaffTarget() canonicalises names through it. -->
-<script src="ledger-targets.js?v=619f551e"></script>
+<script src="ledger-targets.js?v=14d8143e"></script>
 <!-- After ledger-targets.js: the Supabase target layer overrides its lookups per month. -->
 <script src="ledger-targets-db.js?v=a344975f"></script>
 <script src="staff-profiles.js?v=4efa983a"></script>
-<script src="products.js?v=d1961633"></script>
-<!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script. -->
-<script src="stylist-cards.js?v=25d94504"></script>
-<script src="org-chart.js?v=37a5bbdf"></script>
-<script src="dashboard.js?v=f1315adb"></script>
+<!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
+     So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
+<script src="dashboard.js?v=118c4189"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=9301a6f0"></script>
 <!-- over-the-years.js and daily-performance.js + daily-addons.js load on first use (trsLazy, in the boot script above). So do compare.js, the Marketing pages (marketing-chart, google-ads, website, social), staff-weeks.js and stylist-levels.js. -->
 <!-- ledger-export.js (spreadsheet export, built from branch-ledger.js's series and target helpers) loads on first use too: trsLazy. -->
-<script src="team-performance.js?v=5bbd76ce"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
-<script src="staff-links.js?v=75be7e5a"></script>
+<script src="staff-links.js?v=9919df7f"></script>
 <!-- pulse-narrative.js (the model-written Pulse read) was never wired in: fetchPulseNarrative has no caller. Add the tag back if it is. -->
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
 <!-- branch-narrative.js belonged to the retired Branch Performance page; bnRender is only called behind a typeof check. -->
@@ -5374,7 +5384,9 @@ addEventListener('load', sizeTopbar);
 <script src="nav-stars.js?v=c575eba8"></script>
 <script src="scroll-edges.js?v=07b016fd"></script>
 <script src="mobile.js?v=0aec8169"></script>
+<script src="phone-fold.js?v=ead08e33"></script>
 <script src="voice-mic.js?v=62fac83a"></script>
-<script src="search.js?v=3325b7ee"></script>
+<script src="metric-glossary.js?v=8f5b03ad"></script>
+<script src="search.js?v=d23df084"></script>
 <script src="visits.js?v=1176426c"></script>
 </body>

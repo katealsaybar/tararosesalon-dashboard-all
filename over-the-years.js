@@ -405,6 +405,51 @@ function otyCss() {
   .oty .mo-b{flex:1 1 0;max-width:22px;border-radius:4px 4px 0 0}
   .oty .mo-b.live{background-image:repeating-linear-gradient(135deg,rgba(45,46,55,.62) 0 4px,transparent 4px 9px)}
   .oty .mo-pr .m{margin-top:6px;font-size:11px;color:var(--muted2)}
+  /* Type floor on a phone (audit 18 Oct 2026, P1-13): 240 text runs here measured 9 to 11.5px at 375. Nothing below 12px. */
+  @media(max-width:760px),(hover:none) and (max-height:480px){
+    :root .oty .oty-eb,
+    :root .oty .oty-uc,
+    :root .oty .oty-lab,
+    :root .oty .oty-tile .k,
+    :root .oty .sm-t small,
+    :root .oty .sm-v,
+    :root .oty .sm-m,
+    :root .oty .sm-r,
+    :root .oty .st-f em,
+    :root .oty .st-b i,
+    :root .oty .oty-rs .k,
+    :root .oty th,
+    :root .oty .oty-gl span,
+    :root .oty .oty-delta small,
+    :root .oty .oty-bar .vl,
+    :root .oty .oty-bar.void .vl,
+    :root .oty .oty-yl,
+    :root .oty .oty-yl span,
+    :root .oty .oty-yl span:not(.cur),
+    :root .oty .oty-names span,
+    :root .oty .oty-band,
+    :root .oty .oty-months,
+    :root .oty .oty-cov,
+    :root .oty .oty-cov .l,
+    :root .oty-stt .v small,
+    :root .oty .mo-hm .h,
+    :root .oty .mo-c.none,
+    :root .oty .mo-c.part,
+    :root .oty .mo-c .moon,
+    :root .oty .mo-hm .spr,
+    :root .oty .mo-hm .sl,
+    :root .oty .mo-dt .k,
+    :root .oty .mo-lane .ly,
+    :root .oty .mo-lane .lm,
+    :root .oty .mo-pr .m,
+    :root .oty .oty-dp,
+    :root .oty .vl,
+    :root .oty .cur,
+    :root .oty .ih-lbl,
+    :root .oty table.oty-yt td::before{font-size:12px}
+    :root .oty .oty-sp .oty-bars .oty-bar .vl,:root .oty .oty-sp .oty-bars .oty-bar:not(.cur) .vl,:root .oty .oty-sp .oty-yl span,:root .oty .oty-sp .oty-yl span:not(.cur),:root .oty .oty-yl span:not(.cur){font-size:12px}
+    :root .oty svg text{font-size:12px}
+  }
   `;
   document.head.appendChild(st);
 }

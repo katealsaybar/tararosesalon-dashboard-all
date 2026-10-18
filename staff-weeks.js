@@ -185,6 +185,38 @@ const W13_ROWS = [
   ['g', 'Reviews'],
   ['Google reviews', n => w13Num(n.google_reviews)],
 ];
+// What a column means, on a tap (a phone has no hover for the title). The words are metric-glossary.js's; the few columns that are
+// not a staff metric (hours, the ledger and Phorest rebooked counts) carry their own line here. A card at the foot of the screen says
+// it, so it is read wherever the table is scrolled to.
+const W13_MEAN_KEY = {
+  'Service sales (AED)': 'total_revenue', 'Hair services (AED)': 'hair_services', 'Treatments (AED)': 'treatments', 'Retail (AED)': 'retail',
+  'Average bill (AED, Phorest sales per ledger client)': 'avg_bill', 'Clients (ledger)': 'clients', 'Salon clients': 'salon', 'Requests': 'req',
+  'New clients': 'new_clients', 'New client requests': 'ncr', 'Request %': 'request_pct', 'Rebooking % (ledger)': 'rebooking_pct',
+  'Column fill %': 'column_fill_pct', 'Google reviews': 'google_reviews',
+};
+const W13_MEAN_OWN = {
+  'Rebooked (ledger)': 'Clients who booked their next visit before they left, out of the clients the branch ledger counted for her that week.',
+  'Phorest rebooked': 'The same, from Phorest\u2019s Staff Performance Tracker: rebooked out of Phorest visits. A dash where the tracker has nothing (it starts 1 Jul 2026).',
+  'Phorest rebooking %': 'Rebooked out of Phorest visits, from Phorest\u2019s Staff Performance Tracker. A dash where the tracker has nothing (it starts 1 Jul 2026).',
+  'Hours booked': 'Her booked hours that week, from Phorest.',
+  'Hours available': 'Her available hours that week, from Phorest.',
+};
+function w13Mean(label) {
+  return W13_MEAN_OWN[label] || (W13_MEAN_KEY[label] && window.trsGlossary ? trsGlossary.def(W13_MEAN_KEY[label]) : '');
+}
+function w13Say(th) {
+  const label = th.dataset.l, text = w13Mean(label);
+  let el = document.getElementById('w13Say');
+  if (!text) { if (el) el.remove(); return; }
+  if (!el) {
+    el = document.createElement('div'); el.id = 'w13Say'; el.className = 'w13-say'; el.setAttribute('role', 'status');
+    el.onclick = () => el.remove();
+    document.body.appendChild(el);
+  }
+  if (el.dataset.l === label) { el.remove(); return; }   // the same head again closes it
+  el.dataset.l = label;
+  el.innerHTML = '<b>' + w13Esc(label.replace(/ \(.*\)$/, '')) + '</b> ' + w13Esc(text) + ' <span class="w13-say-x">Tap to close</span>';
+}
 function w13Rebook(rebooked, clients) {
   if (!clients) return '–';
   return `${w13Num(rebooked)} of ${w13Num(clients)} · ${Math.round(100 * rebooked / clients)}%`;
@@ -312,7 +344,7 @@ async function renderStaffWeeks() {
   W13_ROWS.forEach(r => { if (r[0] === 'g') groups.push([r[1], 0]); else groups[groups.length - 1][1]++; });
   const figHead = l => l.replace(/ \(.*\)$/, '');
   const head = `<tr class="w13-gh"><th></th>${groups.map(g => `<th colspan="${g[1]}">${w13Esc(g[0])}</th>`).join('')}</tr>
-    <tr><th>Week</th>${figs.map(r => `<th title="${w13Esc(r[0])}">${w13Esc(figHead(r[0]))}</th>`).join('')}</tr>`;
+    <tr><th>Week</th>${figs.map(r => `<th title="${w13Esc(r[0])}"${w13Mean(r[0]) ? ` class="w13-hd" tabindex="0" role="button" onclick="w13Say(this)" data-l="${w13Esc(r[0])}"` : ''}>${w13Esc(figHead(r[0]))}</th>`).join('')}</tr>`;
   const cells = n => figs.map(r => `<td>${r[1](n)}</td>`).join('');
   const rows = weeks.map(w => {
     const n = w.numbers, off = !(n.total_revenue > 0 || n.clients > 0);
