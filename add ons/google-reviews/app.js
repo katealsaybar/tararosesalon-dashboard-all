@@ -159,6 +159,9 @@ function tagStaff(r){
   r.named = r.viaClient ? [] : r.staff.slice();
   const man = (r.manual || []).filter(k => staffBy(k));
   if (man.length) { r.staff = [...new Set([...r.named, ...man])]; r.viaClient = false; }
+  // Marasy (Kate, 18 Oct 2026): its stylists are matched by hand from what each review says (the text is cut off in the email
+  // notices and a first name there is often a different person now), so the tag counts as named, not as "tagged by hand".
+  if (r.branch === MRY_BRANCH) r.named = man;
 }
 function tagStaffAuto(r){
   r.staff = []; r.hits = []; r.viaClient = false;
