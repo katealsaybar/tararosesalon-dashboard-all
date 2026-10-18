@@ -15,6 +15,7 @@
      scope     a Bahrain-scoped sign-in may open it
      filtered  reads the masthead's Branch and Period;  ledger  takes the Branch but fixes the period to the ledger month
      free      needs nothing from the Pulse's load, so a direct link opens it at once (index.html enterDashboard)
+     perfkey   needs nothing from the Pulse's load but the sign-in's Staff Benchmarks key, so a direct link opens it once that arrives
      lazy      the script group that holds its code (trsLazy in index.html)
      ic        Team Home's icon name for it
      words     what people type that is not in the name
@@ -28,9 +29,9 @@ window.TRS_PAGES = /*PAGES*/[
   {"id": "ledgerFinancials", "label": "Financial Totals", "group": "Numbers", "sub": "Business", "scope": 1, "filtered": 1, "ledger": 1, "lazy": "lgx", "words": "financial totals ledger cash card payments"},
   {"id": "team", "label": "Podium Race", "group": "Numbers", "sub": "Team Performance", "scope": 1, "filtered": 1, "ic": "access", "words": "podium race ranking leaderboard top performer"},
   {"id": "teamquad", "label": "Staff Quadrant", "group": "Numbers", "sub": "Team Performance", "filtered": 1, "ic": "access", "words": "staff quadrant treatment retail rebook rebooking takings"},
-  {"id": "staffperf", "label": "Staff Dashboards", "group": "Numbers", "sub": "Team Performance", "ic": "access", "words": "benchmarks money five kpi promotion rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail"},
-  {"id": "staffweeks", "label": "Staff’s 13 Week", "group": "Numbers", "sub": "Team Performance", "ic": "access", "words": "staff quarterly performance quarter q1 q2 q3 q4 13 week thirteen weekly report emma rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail"},
-  {"id": "stafflevels", "label": "Stylist’s Benchmarks", "group": "Numbers", "sub": "Team Performance", "ic": "access", "words": "levels promotion grade stylist benchmarks rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail"},
+  {"id": "staffperf", "perfkey": 1, "label": "Staff Dashboards", "group": "Numbers", "sub": "Team Performance", "ic": "access", "words": "benchmarks money five kpi promotion rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail"},
+  {"id": "staffweeks", "perfkey": 1, "label": "Staff’s 13 Week", "group": "Numbers", "sub": "Team Performance", "ic": "access", "words": "staff quarterly performance quarter q1 q2 q3 q4 13 week thirteen weekly report emma rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail"},
+  {"id": "stafflevels", "perfkey": 1, "label": "Stylist’s Benchmarks", "group": "Numbers", "sub": "Team Performance", "ic": "access", "words": "levels promotion grade stylist benchmarks rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail"},
   {"id": "clients", "label": "Top Clients", "group": "Numbers", "sub": "Clients", "lazy": "cl", "words": "top clients customers"},
   {"id": "clientmix", "label": "Client Mix", "group": "Numbers", "sub": "Clients", "lazy": "cl", "words": "client mix colour units new returning mix of clients"},
   {"id": "lostclients", "label": "Client’s Last Visit", "group": "Numbers", "sub": "Clients", "min": 2, "slug": "last-visit", "lazy": "cl", "ic": "lost-clients", "words": "last visit lapsed clients not back come back haven't been back win back"},

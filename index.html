@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=f4df7757"></script>
+<script src="pages.js?v=15263f0a"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -4570,10 +4570,13 @@ async function enterDashboard(role, meAsk){
   // The level and scope rules are the ones showView applies, checked first so a page the person may not open never half-draws.
   const earlyPage = trsPage(viewQ);   // pages.js: free, min
   const earlyFree = !TRS_SCOPE && !!(earlyPage && earlyPage.free && ((earlyPage.min || 1) <= 1 || TRS_LEVEL >= earlyPage.min));
-  const earlyView = earlyLost || earlyFree;
+  // Audit 18 Oct 2026 (P3-15): Staff Dashboards, Staff's 13 Week and Stylist's Benchmarks read their numbers through the
+  // sign-in's Staff Benchmarks key (SPF_AUTO) and not through loadData, so they open as soon as that key is in.
+  const earlyKeyed = !TRS_SCOPE && !!(earlyPage && earlyPage.perfkey && ((earlyPage.min || 1) <= 1 || TRS_LEVEL >= earlyPage.min));
+  const earlyView = earlyLost || earlyFree || earlyKeyed;
   const earlyName = earlyLost ? 'lostclients' : viewQ;
   // Lost Clients' script arrives with the download started above; its own two calls then run beside loadData, as before.
-  const earlyOpen = !earlyView ? null : (earlyLost ? trsLazy('cl').then(() => lcPrefetch()) : Promise.resolve()).then(() => {
+  const earlyOpen = !earlyView ? null : (earlyLost ? trsLazy('cl').then(() => lcPrefetch()) : earlyKeyed ? perfKey.then(k => { window.SPF_AUTO = k; }) : Promise.resolve()).then(() => {
     showView(earlyName, document.querySelector(`[onclick*="${earlyName}"]`));
     trsBootDone();
   }).catch(() => { try { showView(earlyName, null); } catch (e) {} trsBootDone(); });   // a script that will not load: the page says so
