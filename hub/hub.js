@@ -308,7 +308,7 @@
   }
   KB.toggleTheme = function () {
     var next = theme() === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
+    (window.trsThemeSwap || function (f) { f(); })(function () { document.documentElement.setAttribute('data-theme', next); });
     try { localStorage.setItem('trs-theme', next); } catch (e) {}
     var b = document.getElementById('kbThemeBtn');
     if (b) b.textContent = next === 'dark' ? 'Light mode' : 'Dark mode';

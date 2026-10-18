@@ -232,7 +232,8 @@ const cliSel = { branch: ['all'] };
 
 // ── THEME ───────────────────────────────────────────────────
 
-function toggleTheme() {
+function toggleTheme() { (window.trsThemeSwap || (f => f()))(toggleThemeNow); }
+function toggleThemeNow() {
   const dark = document.documentElement.getAttribute('data-theme') === 'dark';
   document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
   // The label names where the button TAKES you, not where you are — the page

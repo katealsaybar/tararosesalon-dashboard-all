@@ -68,6 +68,15 @@
   /* Kate, 18 Oct 2026: "a separate listing of favourites and frequently visited, hanay 1 and hanay 2". */
   .sr-grp[hidden]{display:none}
   .sr-grp + .sr-grp{margin-top:22px}
+  /* Kate, 18 Oct 2026: "column 1 and column 2, separate but not containers": side by side on a laptop, no box or border round either, each a
+     heading over a plain list of pills; on a phone they stack as before. */
+  @media (min-width:761px){
+    .sr-tiles{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 48px;align-items:start}
+    .sr-grp + .sr-grp{margin-top:0}
+    .sr-tiles .sr-gh{text-align:left;padding:0 4px}
+    .sr-tiles .kb-fvs{flex-direction:column;align-items:flex-start;justify-content:flex-start;flex-wrap:nowrap;gap:8px}
+    .sr-tiles .sr-cap{grid-column:1 / -1;text-align:center}
+  }
   .sr-gh{margin:0 0 10px;text-align:center;font:600 11px/1 'Inter',system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2)}
   /* Recently updated: the Team Home pages edited last, one quiet card under the bar (the suggestions drop over it). */
   .sr-recent{margin-top:24px;width:100%;max-width:600px;text-align:left;background:var(--surface);border:1px solid var(--border);
@@ -112,6 +121,7 @@
     .sr-btn{flex:1;padding:12px 8px}
   }
 </style>
+<script src="/assets/theme-fade.js"></script>
 </head>
 <body class="sr-wait">
 <div class="sr-top"><button type="button" class="sr-theme" id="srTheme"></button><button type="button" class="sr-theme" id="srOut">Sign out</button></div>
@@ -150,7 +160,7 @@
 <script src="/pages.js?v=c3367c3b"></script>
 <!-- Team Home's own script: the sign-in check, the icons and the stars. It draws no header here (no #kbHead). -->
 <script src="/voice-mic.js?v=62fac83a"></script>
-<script src="/hub/hub.js?v=67623f95"></script>
+<script src="/hub/hub.js?v=dde16bbf"></script>
 <script>
 (async function () {
   // Signed in and on a list, as Team Home checks it; anyone else is sent to the sign-in card
@@ -186,9 +196,9 @@
   function paintTheme() { tbtn.textContent = theme() === 'dark' ? 'Light mode' : 'Dark mode'; }
   tbtn.addEventListener('click', function () {
     var next = theme() === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
+    // the label is repainted inside the swap: the swap changes the page a frame later, and the label reads it
+    (window.trsThemeSwap || function (f) { f(); })(function () { document.documentElement.setAttribute('data-theme', next); paintTheme(); });
     try { localStorage.setItem('trs-theme', next); } catch (e) {}
-    paintTheme();
   });
   paintTheme();
 

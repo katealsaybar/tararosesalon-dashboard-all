@@ -3410,6 +3410,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="mobile-late.css?v=22419688">   <!-- phone rules for the pages whose sheets load after mobile.css -->
 <link rel="stylesheet" href="nav-style.css?v=5092890f">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
+<script src="/assets/theme-fade.js"></script>
 <script src="/assets/pill-select.js?v=7bd2fc3a"></script>
 </head>
 <body>
@@ -3491,9 +3492,9 @@ table.tp-cmp td.bad{color:var(--bad)}
       if (b) b.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? 'Light mode' : 'Dark mode'; }
     function gateTheme(){
       var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
+      // the label is repainted inside the swap: the swap changes the page a frame later, and the label reads it
+      (window.trsThemeSwap || function (f) { f(); })(function () { document.documentElement.setAttribute('data-theme', next); paintGateTheme(); });
       try { localStorage.setItem('trs-theme', next); } catch (e) {}
-      paintGateTheme();
     }
     paintGateTheme();
   </script>
@@ -4316,7 +4317,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script. -->
 <script src="stylist-cards.js?v=25d94504"></script>
 <script src="org-chart.js?v=37a5bbdf"></script>
-<script src="dashboard.js?v=9ddc282e"></script>
+<script src="dashboard.js?v=3ca0ed2d"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
