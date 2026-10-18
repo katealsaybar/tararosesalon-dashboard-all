@@ -312,7 +312,8 @@ def how_to(branch):
         ["5. Status says Check numbers when a client has 2+ numbers and we cannot tell which is hers. Pick her number in Which number? (the cell is amber until you do). Clear it to go back to the automatic choice."],
         ["6. Status says No number on file when Phorest has no phone number for her. She cannot be messaged until a number is added in Phorest. Status says No valid number when Phorest has a number for her but it is wrong (too short, too long or made up), so WhatsApp refuses it. Fix the number in Phorest and she comes back in."],
         ["7. Last smoothing (beside Last service) shows the date of her last keratin or Supreme Straighten. Filter that column to see the smoothing clients. Status says Still visiting (smoothing due) when she still comes in for other services."],
-        ["8. Tell your coordinator when you are done."],
+        ["8. After our message (far right, next to Area) shows what came of the WhatsApp we sent her: Replied, Opted out (STOP / DND), Blocked us, Rebooked with or without a deposit paid, No reply yet, or Waiting to be sent, with the day it went. It updates by itself. Filter it to find the clients to chase: for example Rebooked, deposit not paid yet."],
+        ["9. Tell your coordinator when you are done."],
         [""],
         ["Your choices reach the dashboard within a few minutes. Please do not change the other columns, and do not delete rows."],
     ]
@@ -556,6 +557,55 @@ def area_column(svc, b, ids, rows):
     print(f"{b}: Area filled for {sum(1 for c in col if c[0])} client(s)")
 
 
+OUTCOME_HEAD = "After our message"   # column N (Kate, 18 Oct 2026): what came of the WhatsApp we sent her
+
+
+def outcome_column(svc, b, ids, outcomes):
+    """Column N on the sheet: what happened after our message, from lost_sheet_outcomes() (migrations/lost_sheet_outcomes.sql): Replied,
+    Opted out (STOP / DND), Blocked us, Rebooked with or without a deposit, No reply yet, Waiting to be sent, each with the day it was sent.
+    Header, width, protection, the filter widened to take N in, colours on the key states, and the text matched by the hidden key
+    (a client who was never messaged is blank). Never touches another column."""
+    sid = ids[b]["id"]
+    meta = svc.spreadsheets().get(spreadsheetId=sid, fields="sheets(properties(sheetId,title),basicFilter,protectedRanges.range,conditionalFormats.ranges)").execute()
+    tab = next(s_ for s_ in meta["sheets"] if s_["properties"]["title"] == TAB)
+    tab_id = tab["properties"]["sheetId"]
+    got = svc.spreadsheets().values().get(spreadsheetId=sid, range=f"{TAB}!I2:N20000").execute().get("values", [])
+    col = []
+    for row in got:
+        key = row[0].strip() if row else ""
+        col.append([outcomes.get(key, "") if key else ""])
+    rng = lambda r0, r1: {"sheetId": tab_id, "startRowIndex": r0, "endRowIndex": r1, "startColumnIndex": 13, "endColumnIndex": 14}
+    reqs = [
+        {"repeatCell": {"range": rng(0, 1), "cell": {"userEnteredFormat": {"textFormat": {"bold": True}, "backgroundColor": {"red": .93, "green": .91, "blue": .97}}},
+                        "fields": "userEnteredFormat(textFormat,backgroundColor)"}},
+        {"repeatCell": {"range": rng(1, FORMAT_ROWS), "cell": {"userEnteredFormat": {"numberFormat": {"type": "TEXT"}}}, "fields": "userEnteredFormat.numberFormat"}},
+        {"updateDimensionProperties": {"range": {"sheetId": tab_id, "dimension": "COLUMNS", "startIndex": 13, "endIndex": 14}, "properties": {"pixelSize": 270}, "fields": "pixelSize"}},
+    ]
+    bf = tab.get("basicFilter")
+    if bf and bf.get("range", {}).get("endColumnIndex", 0) < 14:       # keep her criteria and sort, just take in N
+        bf["range"]["endColumnIndex"] = 14
+        reqs.append({"setBasicFilter": {"filter": bf}})
+    if not any(pr.get("range", {}).get("startColumnIndex") == 13 for pr in tab.get("protectedRanges", [])):
+        reqs.append({"addProtectedRange": {"protectedRange": {"range": rng(0, FORMAT_ROWS), "warningOnly": True, "description": "After our message is kept up to date automatically"}}})
+    if not any(rg.get("startColumnIndex") == 13 for cf in tab.get("conditionalFormats", []) for rg in cf.get("ranges", [])):
+        cond = lambda formula, fmt: {"addConditionalFormatRule": {"index": 0, "rule": {"ranges": [rng(1, FORMAT_ROWS)], "booleanRule": {
+            "condition": {"type": "CUSTOM_FORMULA", "values": [{"userEnteredValue": formula}]}, "format": fmt}}}}
+        # added in reverse of how they win (the first added ends up on top): rebooked without a deposit, then with one, then the bad news
+        reqs.append(cond('=LEFT($N2,8)="Rebooked"', {"backgroundColor": {"red": 1, "green": .95, "blue": .8}}))
+        reqs.append(cond('=LEFT($N2,22)="Rebooked, deposit paid"', {"backgroundColor": {"red": .85, "green": .95, "blue": .87}}))
+        reqs.append(cond('=OR(LEFT($N2,9)="Opted out",LEFT($N2,10)="Blocked us")', {"backgroundColor": {"red": .99, "green": .88, "blue": .88}}))
+    svc.spreadsheets().values().update(spreadsheetId=sid, range=f"{TAB}!N1", valueInputOption="RAW", body={"values": [[OUTCOME_HEAD]]}).execute()
+    svc.spreadsheets().batchUpdate(spreadsheetId=sid, body={"requests": reqs}).execute()
+    if col:
+        svc.spreadsheets().values().update(spreadsheetId=sid, range=f"{TAB}!N2:N{len(col) + 1}", valueInputOption="RAW", body={"values": col}).execute()
+    tally = {}
+    for c in col:
+        if c[0]:
+            k = c[0].split(" · ")[0]
+            tally[k] = tally.get(k, 0) + 1
+    print(f"{b}: After our message filled for {sum(tally.values())} client(s): " + ", ".join(f"{k} {n}" for k, n in sorted(tally.items(), key=lambda kv: -kv[1])))
+
+
 def relayout(only=None, dry=False):
     """One-off (13 Oct 2026) for the sheets as they were: A Client, B Area, C Last visit, D Last service ... M Last smoothing. Moves to
     B Last visit, C Last service, D Last smoothing, M Area. Only B to D and M change, row by row, so G to L (Take out?, Note, key,
@@ -617,6 +667,7 @@ def update(only=None, dry=False):
     state = load(STATE_JSON, {})
     added = load(ADDED_JSON, {})
     optouts = set(rpc("lost_sheet_optouts", {}) or [])      # opted out or blocked in respond.io, listed or not (lost_sheet_optouts)
+    outcomes = rpc("lost_sheet_outcomes", {}) or {}         # what came of our message, per client key (column N)
     for b in [x for x in BRANCHES if x in ids and (not only or x == only)]:
         rows = db_rows(b)
         by_key = {r["client_key"]: r for r in rows}
@@ -664,6 +715,7 @@ def update(only=None, dry=False):
         if not dry:
             number_dropdowns(svc, b, ids, rows)
             area_column(svc, b, ids, rows)
+            outcome_column(svc, b, ids, outcomes)
     if not dry:
         save(ADDED_JSON, added)
         save(STATE_JSON, state)
@@ -738,6 +790,7 @@ def main():
             rows_b = db_rows(b)
             number_dropdowns(svc, b, ids, rows_b, with_how_to=True)
             area_column(svc, b, ids, rows_b)
+            outcome_column(svc, b, ids, rpc("lost_sheet_outcomes", {}) or {})
     elif a.cmd == "update":
         update(only=a.branch, dry=a.dry)
     elif a.cmd == "upgrade":
