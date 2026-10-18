@@ -104,8 +104,15 @@
   // from this same list and changed every six seconds while it stays on screen. It watches the page for them, so no page has
   // to ask. Error and empty messages in the same class are left alone (only text that starts Loading or Reading is touched).
   (function () {
-    var last = -1;
-    function next() { var i; do { i = Math.floor(Math.random() * LINES.length); } while (i === last && LINES.length > 1); last = i; return LINES[i]; }
+    var last = -1, DYN = [];
+    // Kate, 18 Oct 2026: shoutouts by name, "just base it on their stats". This file is served to anyone, so it holds no names: the dashboard
+    // hands a signed-in page its own shoutouts (built from the Wins and the Podium it has just drawn) through this, and they are kept in
+    // memory only and used for the in-page Loading lines, never the sign-in screen's.
+    window.trsSetShoutouts = function (a) { DYN = (Array.isArray(a) ? a : []).filter(function (x) { return typeof x === 'string' && x.length < 160; }).slice(0, 24); window.TRS_SHOUTS = DYN; };
+    function next() {
+      if (DYN.length && Math.random() < 0.4) { var s = DYN[Math.floor(Math.random() * DYN.length)]; if (s !== last) { last = s; return s; } }
+      var i; do { i = Math.floor(Math.random() * LINES.length); } while (i === last && LINES.length > 1); last = i; return LINES[i];
+    }
     function decorate(n) {
       if (n.__fact || !/^\s*(Loading|Reading)/i.test(n.textContent)) return;
       n.__fact = 1;

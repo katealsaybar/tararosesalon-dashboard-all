@@ -5154,6 +5154,26 @@ async function renderDashboard() {
   // 92,199 on the card, 95,226 in the table). Both read Net take now.
   const winsHair   = winnersFor(d.hairStaff,   'netSalonTake').map(winCard).join('');
   const winsBeauty = winnersFor(d.beautyStaff, 'netSalonTake').map(winCard).join('');
+  // Shoutouts for the Loading lines (loading-facts.js), from the Wins above and the top three of the Podium for the same window, by name and
+  // no numbers (Kate, 18 Oct 2026: "just base it on their stats... may wins tayo sa org pulse, meron din tayong rankings sa podium race").
+  // Built here, in the signed-in page, and kept in memory: nothing with a name is in a file that is served to anyone. Only for the windows
+  // that read naturally ("this month", "last month", "this year"); any other window leaves the old ones in place.
+  try {
+    const when = { 'this month so far': 'this month', 'the past month and this month so far': 'this month', 'last month': 'last month', 'the year so far': 'this year' }[computeHeroPeriodPhrase(dateFrom, dateTo)];
+    if (when && typeof window.trsSetShoutouts === 'function') {
+      const lines = [];
+      const nameOf = p => { const prof = typeof staffProfile === 'function' ? staffProfile(p.name) : null; const last = (prof && prof.last) || (typeof staffSurname === 'function' ? staffSurname(p.name) : '') || ''; return (titleCaseName(p.name) + (last ? ' ' + last : '')).trim(); };
+      const cat = { 'Top biller': 'top biller', 'Highest avg bill': 'highest average bill', 'Requested by regulars': 'most requested by regulars', 'Most new clients': 'most new clients' };
+      const team = (staff, label) => {
+        winnersFor(staff, 'netSalonTake').forEach(w => { if (cat[w.k]) lines.push(`Shoutout to ${nameOf(w.p)}, ${cat[w.k]} in ${label} ${when}.`); });
+        const top = (staff || []).filter(st => st.name && st.name !== 'ASSISTANTS' && (st.total || 0) > 0).sort((a, b) => (b.netSalonTake || 0) - (a.netSalonTake || 0)).slice(0, 3);
+        if (top.length === 3) lines.push(`Leading the ${label} podium ${when}: ${top.map(p => titleCaseName(p.name)).join(', ')}.`);
+      };
+      team(d.hairStaff, 'hair');
+      if (hasBeauty) team(d.beautyStaff, 'beauty');
+      if (lines.length) window.trsSetShoutouts(lines);
+    }
+  } catch (e) { /* the Loading lines stay as they were */ }
 
   // ── CLIENT FUNNEL ────────────────────────────────────────────────
   // Kate, 8 Oct 2026: Ledger | Phorest switch (fnBuildBody and friends, above). Ledger is
