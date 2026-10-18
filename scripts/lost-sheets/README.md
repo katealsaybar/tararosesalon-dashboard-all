@@ -24,6 +24,8 @@ Windows task **TRS lost clients sheets sync** runs `sync` every 15 minutes from 
 
 Sheets made 12 Oct 2026 (links in `sheets.json`, not in git). Round trip tested on the AQ sheet: a reason typed in Take out? reached `lost_excluded` as "Sheet: Al Quoz reception", and clearing the cell removed it.
 
+**Next appointment and Status follow the bookings sync** (18 Oct 2026, Kate: "dapat auto-update din yun"): the bookings sync runs 6 times a day (07, 10, 13, 16, 19, 22) but `update` only ran at 06:30, so a booking made in the day reached the sheet the next morning and a booked client still said In the blast (18 Oct: 11 booked clients blank, 9 wrongly In the blast, 2 cancelled bookings still showing). The refresh task now also runs `update` at 07:20, 10:20, 13:20, 16:20, 19:20 and 22:20, 20 minutes after each bookings sync (a sync takes about 2 minutes); `update` touches only the columns it always did, never client names, Take out? or Note. After one run the four sheets matched the database exactly.
+
 A second task, **TRS lost clients sheets refresh**, runs `refresh` every morning at 06:30 (sync first, then the rows are rewritten from the database: new bookings, new clients, who has been taken out on the dashboard). `StartWhenAvailable` is on, so a morning the PC was off runs when it is next on.
 
 The dashboard's Lost Clients page opens these sheets from **Open in Google Sheets** (one per branch). The links are in the database table `lost_sheet_links` (migrations/lost_sheet_links.sql), because the page cannot read `sheets.json`; if a sheet is ever recreated, update that row. There is no Excel review file and no upload any more (12 Oct 2026): one live copy, on the sheet.
