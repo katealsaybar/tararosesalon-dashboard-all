@@ -351,9 +351,12 @@
   (async function () {
     var NEWS_SHOW = 5, NEWS_ALL = 30;
     try {
-      var r = await c.from('site_updates').select('id,published_at,title,body,link')
+      var r = await c.from('site_updates').select('id,published_at,title,body,link,min_level')
         .order('published_at', { ascending: false }).limit(NEWS_ALL);
       var rows = r.error ? [] : (r.data || []);
+      // The database already keeps back what is above this person's level; this also holds in
+      // Level 5's "View as", which previews another level.
+      rows = rows.filter(function (u) { return (u.min_level || 1) <= KB.level; });
       if (!rows.length) return;
       var box = document.getElementById('srNewsRows'), more = document.getElementById('srNewsMore'), open = false;
       function row(u) {
