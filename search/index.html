@@ -40,6 +40,15 @@
   .sr-bar input{flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:16px;color:var(--text)}
   .sr-bar input::placeholder{color:var(--muted2)}
   .sr-bar input::-webkit-search-cancel-button{display:none}
+  /* Kate, 18 Oct 2026: the mic. Shown only where the browser can listen (see the script); red and pulsing while it does. */
+  .sr-mic{appearance:none;cursor:pointer;flex-shrink:0;display:grid;place-items:center;width:32px;height:32px;margin:0 -8px 0 0;
+    border:0;border-radius:50%;background:none;color:var(--muted);transition:color .15s var(--ease),background .15s var(--ease)}
+  .sr-mic:hover{color:var(--text);background:var(--surface2)}
+  .sr-mic:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(153,246,228,.6)}
+  .sr-mic svg{width:18px;height:18px}
+  .sr-mic.on{color:#C0392B;background:rgba(192,57,43,.12);animation:srPulse 1.2s ease-in-out infinite}
+  @keyframes srPulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.35)}50%{box-shadow:0 0 0 7px rgba(192,57,43,0)}}
+  @media (prefers-reduced-motion:reduce){.sr-mic.on{animation:none}}
   /* Suggestions drop under the bar as Team Home's search results do (hub.css .kb-results). */
   .sr-sug{text-align:left;top:calc(100% + 10px)}
   .sr-sug .kb-result{cursor:pointer}
@@ -98,6 +107,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input type="search" id="srIn" name="q" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"
           placeholder="Find a treatment, policy or how-to" aria-label="Search" role="combobox" aria-expanded="false" aria-controls="srSug" aria-autocomplete="list">
+        <button type="button" class="sr-mic hide" id="srMic" aria-label="Search by voice" aria-pressed="false" title="Search by voice">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        </button>
       </div>
       <div class="kb-results sr-sug" id="srSug" role="listbox"></div>
     </div>
@@ -426,6 +438,42 @@
   }
   box.addEventListener('mousedown', function (e) { e.preventDefault(); });   // keep the bar focused while choosing
   document.addEventListener('click', function (e) { if (!box.contains(e.target) && e.target !== input) closeSug(); });
+
+  // Voice, 18 Oct 2026: the browser's own speech recognition (Chrome, Edge, Safari), no server and no key.
+  // What is heard goes into the bar as it is said, so the suggestions draw under it as if typed; it does not
+  // search by itself, Enter or a tap on a suggestion does, so a misheard word can be fixed first.
+  var mic = document.getElementById('srMic');
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    mic.classList.remove('hide');
+    var rec = null, listening = false, basePh = input.placeholder;
+    var stopMic = function () { listening = false; mic.classList.remove('on'); mic.setAttribute('aria-pressed', 'false'); input.placeholder = basePh; };
+    mic.addEventListener('click', function () {
+      if (listening && rec) { rec.stop(); return; }
+      rec = new SR();
+      rec.lang = 'en-GB';
+      rec.interimResults = true;
+      rec.continuous = false;
+      rec.onstart = function () {
+        listening = true; mic.classList.add('on'); mic.setAttribute('aria-pressed', 'true');
+        input.value = ''; input.placeholder = 'Listening…'; input.focus();
+      };
+      rec.onresult = function (e) {
+        var t = '';
+        for (var i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+        input.value = t.slice(0, 200);
+        input.dispatchEvent(new Event('input'));
+      };
+      rec.onerror = function (e) {
+        stopMic();
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') input.placeholder = 'Allow the microphone to search by voice';
+        else if (e.error === 'no-speech') input.placeholder = 'Did not catch that, tap the mic and try again';
+        if (input.placeholder !== basePh) setTimeout(function () { if (!listening) input.placeholder = basePh; }, 4000);
+      };
+      rec.onend = function () { var had = listening; stopMic(); if (had) input.focus(); };
+      try { rec.start(); } catch (err) { stopMic(); }
+    });
+  }
 
   document.getElementById('srForm').addEventListener('submit', function (e) { e.preventDefault(); submitQuery(); });
   // / jumps to the bar, as it does everywhere else on the site.
