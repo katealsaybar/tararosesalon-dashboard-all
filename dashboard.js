@@ -1520,6 +1520,14 @@ function refreshActiveView() {
     if (typeof spy === 'function') spy();
     return Promise.resolve();
   }
+  // Daily Performance reads the masthead's Branch and Period itself and takes nothing from the Pulse, so the same applies (P2-06).
+  if (CURRENT_VIEW === 'dailyperf') {
+    PULSE_STALE = true;
+    paintFilterChips();
+    renderDailyPerf();
+    if (typeof spy === 'function') spy();
+    return Promise.resolve();
+  }
   PULSE_STALE = false;
   return renderDashboard().then(() => {
     const visible = v => {
@@ -5225,6 +5233,12 @@ async function loadData() {
   RANGE_CACHE.clear();
   // .then() sends it now; a Supabase query only goes out once something awaits it.
   const weeklyAsk = sb.from('weekly_data').select('*').order('uploaded_at', { ascending:true }).then(r => r);
+  // Audit 17 Oct 2026 (P2-06): Daily Performance and Comparison load their own figures and read nothing the Pulse computes, yet a
+  // first load onto either ran the whole Pulse behind them (about 37 requests of its own). On those two pages the Pulse now waits
+  // (PULSE_STALE, as for Reviews and Over the Years) until a page that needs it is opened.
+  const firstLoad = !dateFrom || !dateTo;
+  let initView = null; try { initView = new URLSearchParams(location.search).get('view'); } catch (e) {}
+  const pulseFree = firstLoad && (initView === 'dailyperf' || initView === 'compare' || initView === 'branchperf');
   // The last day of data (audit 17 Oct, P2-01). Asked now, awaited before the default window is set.
   const endAsk = loadDataEnd();
   const oldDataEnd = DATA_END;
@@ -5252,7 +5266,7 @@ async function loadData() {
       if (toInput) toInput.value = dateToIso(dateTo);
     }
   }
-  warmDashboardWindows();
+  if (!pulseFree) warmDashboardWindows();
   const { data, error } = await weeklyAsk;
   if (error || !data) {
     document.getElementById('mainContent').innerHTML = '<div class="empty">No data available yet.</div>';
@@ -5262,7 +5276,7 @@ async function loadData() {
   const branches = ACTIVE_BRANCHES.map(k => ({ val:k, label:BRANCH_INFO[k].name }));
   buildDrop('branch', branches);
   rebuildDependentDrops();
-  renderDashboard();
+  if (pulseFree) { PULSE_STALE = true; paintFilterChips(); } else renderDashboard();
   // Freshness badge — auto-detects the most recent date where EVERY branch has
   // actually synced, instead of trusting created_at of whatever row landed last.
   // A sync can touch the table today for one branch while others are still days

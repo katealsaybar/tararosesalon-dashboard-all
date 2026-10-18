@@ -86,7 +86,7 @@ window.trsParam = function (k) {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="ask-widget.css?v=20260925a">
+<!-- ask-widget.css and ask-widget.js are not loaded while the Ask box is switched off (24 Sep 2026, no API credit). To bring it back, add both and set ENABLED = true in ask-widget.js. -->
 
 
 <style>
@@ -4275,7 +4275,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20261014d"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261017d1"></script>
+<script src="dashboard.js?v=20261018pf1"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4286,11 +4286,9 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="team-performance.js?v=20261017bb1"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=20261018lz1"></script>
-<script src="pulse-narrative.js?v=20261008cb1"></script>
+<!-- pulse-narrative.js (the model-written Pulse read) was never wired in: fetchPulseNarrative has no caller. Add the tag back if it is. -->
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
-<script src="branch-narrative.js?v=20261008cb1"></script>
-<!-- The "Ask a question" widget. Reads the open view at ask time; see ask-widget.js. -->
-<script src="ask-widget.js?v=20261001a"></script>
+<!-- branch-narrative.js belonged to the retired Branch Performance page; bnRender is only called behind a typeof check. -->
 <script>
 
 // ── SIGN-IN GATE ─────────────────────────────────────────────
@@ -4773,7 +4771,7 @@ function showView(view, el){
   if (view === 'ledgerStylist') renderLedgerStylist();
   CURRENT_VIEW = view;
   // A filter changed while Google Reviews was open and the Pulse redraw was skipped (refreshActiveView): catch up now.
-  if (PULSE_STALE && view !== 'reviews' && view !== 'overyears' && typeof refreshActiveView === 'function') { PULSE_STALE = false; refreshActiveView(); }
+  if (PULSE_STALE && view !== 'reviews' && view !== 'overyears' && view !== 'dailyperf' && view !== 'compare' && typeof refreshActiveView === 'function') { PULSE_STALE = false; refreshActiveView(); }
   // After CURRENT_VIEW, not before: the Period chips grey out on the Ledgers pages
   // and paintFilterChips() reads CURRENT_VIEW to know. Without this the chips only
   // caught up on the next filter change. Cheap — it paints chips, not data.
