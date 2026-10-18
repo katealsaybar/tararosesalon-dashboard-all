@@ -14,6 +14,8 @@ const SHORT = {"Khalifa City A, Abu Dhabi":"Khalifa City A","Saadiyat, Abu Dhabi
 // Google's own notification emails kept (reviewer, stars, the first ~100 characters of text; 2020 to Dec 2022). Reply status
 // is unknown for them, so they stay out of every reply figure, and no stylist is credited from them.
 const MRY_BRANCH = "Marasy, Abu Dhabi";
+// First and last review dates held for Marasy (Jan 2020 to Dec 2022); a window outside this has nothing of Marasy to show.
+const MRY_SPAN = {first:"2020-01-01", last:"2022-12-31"};
 // Each review's own public Google link (Kate, 28 Sep 2026): the exact URL Google's
 // Share button gives, rebuilt from the Maps review id and the branch's Maps CID.
 // Opens that one review for anyone, signed in or not; the Business Profile link
@@ -500,14 +502,14 @@ function mryNote(){
   const k=R.filter(r=>r.branch===MRY_BRANCH).length;
   if(!k) return ` <b>Marasy</b> (a former branch) is not here: there is no access to its Google profile, and Phorest holds none either.`
     + (state.mry ? (state.branches.size ? ` <b>⚠ Marasy is picked on the bar above, but it has no reviews to show, so what is listed is the other branches picked.</b>` : ` <b>⚠ Marasy is picked on the bar above, and it has no reviews to show.</b>`) : "");
-  return ` <b>Marasy</b> (a former branch) has ${k} reviews here, Jan 2020 to Dec 2022, and it is not the full list: its Google profile cannot be reached, so these are only the reviews Google's email notices kept (reviewer, stars, the first ~100 characters of text, some rating only, reply status unknown). Pick Marasy on the bar above to see them.`;
+  return ` <b>Marasy</b> (a former branch) has ${k} reviews here, Jan 2020 to Dec 2022, and it is not the full list: its Google profile cannot be reached, so these are only the reviews Google's email notices kept (reviewer, stars, the first ~100 characters of text, some rating only, reply status unknown). They show on UAE Branches and All whenever the dates picked touch 2020 to 2022 (always on All time), or pick Marasy on the bar.`;
 }
 function renderNote(){
   const n=R.filter(r=>r.branch!==MRY_BRANCH).length.toLocaleString(), el=document.getElementById("note");
   if(!SYNC){ el.innerHTML=`<b>⚠ Offline copy: ${n} Google reviews as of 24 Sep 2026.</b> The live table couldn't be reached, so anything newer, and any reply posted since, is missing here.`+mryNote(); return; }
   const when=new Date(SYNC.last).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"Asia/Dubai"});
   // Which salons Metricool keeps current (Kate, 6 Oct 2026): any with a matched review.
-  const live=BRANCHES.filter(b=>SYNC.live.has(b)), off=BRANCHES.filter(b=>!SYNC.live.has(b)&&b!==CODE_TO_BRANCH.FRT).map(b=>SHORT[b]);
+  const live=BRANCHES.filter(b=>SYNC.live.has(b)), off=BRANCHES.filter(b=>!SYNC.live.has(b)&&b!==CODE_TO_BRANCH.FRT&&b!==MRY_BRANCH).map(b=>SHORT[b]);
   el.innerHTML = !live.length
     ? `<b>✓ All ${n} Google reviews</b> across the 5 branches (plus closed Fratelli Barbershop), from the 24 Sep 2026 pull. Older reviews use Google Maps' approximate dates ("a year ago").`
     : `<b>✓ All ${n} Google reviews</b> across the 5 branches (plus closed Fratelli Barbershop). New reviews and replies come in nightly through Metricool, last ${when}.${off.length?` ${off.join(", ")} ${off.length>1?"are":"is"} still as of the 24 Sep 2026 pull, until connected in Metricool.`:""} Older reviews use Google Maps' approximate dates ("a year ago").`;
@@ -620,6 +622,10 @@ if(window.parent!==window){
   function applyFilter(m){
     const picked=(m.codes||[]).map(c=>CODE_TO_BRANCH[c]).filter(Boolean);
     if(["KCA","SAA","AQ","MC","BAH"].every(c=>(m.codes||[]).includes(c))) picked.push(CODE_TO_BRANCH.FRT);
+    // Marasy (Kate, 18 Oct 2026): on UAE Branches or All, it joins whenever the window touches the span its reviews cover
+    // (MRY_SPAN), and always on All time (from null), so the 2020 reviews show there too. Outside that span it stays out,
+    // so a recent window carries no Marasy row of zeros. The bar has no Marasy chip in the Group view, hence this rule.
+    if(["KCA","SAA","AQ","MC"].every(c=>(m.codes||[]).includes(c)) && (!m.from || (m.from<=MRY_SPAN.last && (m.to||"9999")>=MRY_SPAN.first))) picked.push(MRY_BRANCH);
     // Marasy (MRY) maps to its own branch label now (Kate, 18 Oct 2026); picked alone it shows only its emailed reviews.
     // state.mry still covers the old case of the table holding none of them.
     state.mry=(m.codes||[]).includes("MRY");
