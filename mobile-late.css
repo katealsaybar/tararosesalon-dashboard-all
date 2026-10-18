@@ -78,6 +78,9 @@
   :root .dpf .dp-swr-r{flex:1 0 100%;display:flex;justify-content:flex-start;align-items:center;gap:12px}
   :root .dpf .dp-pl{gap:6px}
   :root .dpf .dp-pll{flex:0 0 100%;margin:0}
+  :root .dpf .dp-lead .dp-pill{min-height:38px;display:inline-flex;align-items:center}
+  /* The measure's (i) wrapped onto a second line of the sticky bar and made it taller; the tiles carry the same (i) on a phone. */
+  :root .dpf .dp-bar .dp-info{display:none}
   /* Podium Race and Staff Quadrant (Kate, 18 Oct 2026: "toggles in here don't look too good"): each switch was only as wide as its
      words, so the three switches and the Rank by menu stacked at four different widths with 44px segments. Each is one full-width
      row now, its two halves equal, 38px tall, the menu the same width and a little taller than its text, so they line up. */
