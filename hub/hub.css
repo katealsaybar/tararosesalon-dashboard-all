@@ -576,3 +576,19 @@ body.kb-wait .wrap{visibility:hidden}
 
 /* The narrowest phones: the centred header still fits on one line. */
 @media (max-width:360px){.kb-titles h1{font-size:14.5px}.kb-brand img{width:88px}}
+
+/* Phone tap targets and the branch switch (audit 18 Oct 2026, P7-10, P7-11): everything that measured under 44px at 375px on
+   Team Home, Staff Card Links and the roster. The row-link on Team Home is a stretched link, so the whole row is its target. */
+@media(max-width:760px){
+  .kb-row .kb-star{width:44px;height:44px}
+  .kb-check{position:relative}
+  a.kb-check::after,.kb-searchpage::after,.kb-brand::after{content:"";position:absolute;left:-6px;right:-6px;top:50%;height:44px;transform:translateY(-50%)}
+  .kb-searchpage,.kb-brand{position:relative}
+  .fm-btn,.fm-switch button,.kb-dd-btn,.kb-account-btn{min-height:44px}
+  .rs-chg,.rs-rm,.rs-send,.rs-lv,.rs-addbtn{min-height:44px}
+  .kb-foot a{display:inline-block;padding:14px 6px}
+  /* Staff Card Links: five branches did not fit one row and pushed the page 46px wider than the screen. */
+  .fm-switch{flex-wrap:wrap;border-radius:22px}
+  .fm-switch button{flex:1 1 auto;min-width:0}
+}
+

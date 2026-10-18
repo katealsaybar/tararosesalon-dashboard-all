@@ -606,6 +606,8 @@ body.scoped #gsTrig, body.scoped #trs-ask{display:none!important}
 .upd.mini .upd-full{display:none}
 .upd.mini .upd-pill{display:block}
 @media(max-width:520px){.upd{right:12px;top:calc(var(--topbar-h,190px) + 10px)}}
+/* Audit 18 Oct 2026 (P4-24): the floating "data has landed" card sat over the Send panel, and its Refresh redraws figures the send pages do not use. It stays pending and shows on the next page. */
+body.upd-quiet .upd{display:none!important}
 
 /* ── FILTERS: branch + period ─────────────────────────────
    An index line, not a control panel. The options are plain text separated by
@@ -3405,7 +3407,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="lost-queue.css?v=baff8a67">
 <link rel="stylesheet" href="send-schedule.css?v=88a70391">
 <link rel="stylesheet" href="wv-blast.css?v=a78e3872">
-<link rel="stylesheet" href="mobile-late.css?v=072c49a3">   <!-- phone rules for the pages whose sheets load after mobile.css -->
+<link rel="stylesheet" href="mobile-late.css?v=22419688">   <!-- phone rules for the pages whose sheets load after mobile.css -->
 <link rel="stylesheet" href="nav-style.css?v=5092890f">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/pill-select.js?v=7bd2fc3a"></script>
@@ -3442,7 +3444,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   (function(){
     var LGX = 'ledger-export.js?v=67737bd9';
     var G = {
-      oty: ['over-the-years.js?v=12291a69'],
+      oty: ['over-the-years.js?v=de6221a8'],
       dp:  ['daily-performance.js?v=7786e622', 'daily-addons.js?v=1e57830b'],
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
@@ -4763,6 +4765,7 @@ function showView(view, el){
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
   document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'clients' || view === 'clientmix' || view === 'services');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
+  document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('website-chrome', view === 'website');
   document.body.classList.toggle('social-chrome', view === 'social');
@@ -4840,6 +4843,7 @@ function showView(view, el){
 // dead zone and the whole script died on "Cannot access 'CONDENSE_AT' before
 // initialization". sizeTopbar() computes the real value; this is only the seed.
 let CONDENSE_AT = 24;
+const TB_PHONE = matchMedia('(max-width:760px)');   // the same width mobile.js calls a phone; declared here with CONDENSE_AT, which the bar code reads early
 
 // ── MAIN NAV ────────────────────────────────────────────────
 // Open by default only where the gutter can actually hold the panel. Narrower
@@ -5040,7 +5044,14 @@ function sizeTopbar(){
   // past CONDENSE_AT, so the bar has already shrunk.
   document.documentElement.style.setProperty('--topbar-cond-h', condensed + 'px');
   CONDENSE_AT = Math.max(8, Math.round(full - condensed));
-  TOPBAR.classList.toggle('stuck', scrollY > CONDENSE_AT);
+  // Audit 18 Oct 2026 (P1-12): on a phone the bar starts condensed and stays so, so the pinned masthead is not a sixth of the
+  // screen before any content. The spacer holds the condensed height and the bar never grows back at the top of the page.
+  if (TB_PHONE.matches) {
+    SPACER.style.height = condensed + 'px';
+    document.documentElement.style.setProperty('--topbar-h', condensed + 'px');
+    CONDENSE_AT = 1e6;
+  }
+  TOPBAR.classList.toggle('stuck', TB_PHONE.matches || scrollY > CONDENSE_AT);
   TOPBAR.getBoundingClientRect();                          // flush before re-arming
   TOPBAR.classList.remove('measuring');
 }
@@ -5199,7 +5210,7 @@ function trSyncUrl(sectionId){
 function spy(){
   const TOPBAR = document.getElementById('topbar');
   const TOTOP  = document.getElementById('toTop');
-  if (TOPBAR) TOPBAR.classList.toggle('stuck', scrollY > CONDENSE_AT);
+  if (TOPBAR) TOPBAR.classList.toggle('stuck', TB_PHONE.matches || scrollY > CONDENSE_AT);
   stickLgHead();
 
   // Every view, once you are most of a screen down. Kate, 24 Sep 2026: it used
@@ -5357,6 +5368,7 @@ addEventListener('load', sizeTopbar);
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
 <script src="nav-collapse.js?v=b0b3ecc8"></script>
 <script src="nav-stars.js?v=c575eba8"></script>
+<script src="scroll-edges.js?v=07b016fd"></script>
 <script src="mobile.js?v=0aec8169"></script>
 <script src="voice-mic.js?v=72c98477"></script>
 <script src="search.js?v=bd1d06eb"></script>

@@ -94,3 +94,29 @@
 @media(max-width:560px){
   :root .dpf .dp-wc,:root .dpf .dp-wh{font-size:12px}
 }
+
+/* Sideways tables (scroll-edges.js, audit 18 Oct 2026): the edge that still has more to scroll to fades out, so a cut-off
+   column reads as "there is more" and not as the end. The hint line sits above the table until the first swipe. */
+@media(max-width:760px){
+  .se-on.se-r{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 38px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 38px),transparent)}
+  .se-on.se-l{-webkit-mask-image:linear-gradient(to left,#000 calc(100% - 38px),transparent);mask-image:linear-gradient(to left,#000 calc(100% - 38px),transparent)}
+  .se-on.se-l.se-r{-webkit-mask-image:linear-gradient(to right,transparent,#000 38px,#000 calc(100% - 38px),transparent);mask-image:linear-gradient(to right,transparent,#000 38px,#000 calc(100% - 38px),transparent)}
+  .se-hint{margin:2px 0 6px;font-size:12px;line-height:1.3;color:var(--muted)}
+  .se-hint::after{content:" 92"}
+}
+@media(min-width:761px){.se-hint{display:none}}
+
+/* Tap targets (audit 18 Oct 2026, P1-13, P3-17): the controls that measured under 44px at 375px. Visual size stays; the
+   hit area grows. The month grid on Over the Years is widened in its own sheet so its cells reach 44 wide. */
+@media(max-width:760px){
+  :root .hero-targets .ht-cell{min-height:44px;box-sizing:border-box}
+  :root .tp-bar .tp-seg button{min-height:44px}
+  :root .oty .oty-how>summary{padding-top:8px;padding-bottom:8px;min-height:44px;box-sizing:border-box}
+}
+
+/* The phone masthead, condensed from the start (index.html sizeTopbar): trimmed again so it sits under 15% of a 640px screen. */
+@media(max-width:760px){
+  :root .topbar.stuck .mast{padding-top:4px;padding-bottom:4px}
+  :root .topbar.stuck .gs-trig{margin-top:4px}
+}
+

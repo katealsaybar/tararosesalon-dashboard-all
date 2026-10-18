@@ -351,7 +351,7 @@ function otyCss() {
   .oty-stt .v small{font-size:11.5px;font-weight:500;color:var(--muted)}
   .oty-stt b{color:var(--text)}.oty-stt .oty-up{color:var(--good)}.oty-stt .oty-dn{color:var(--bad)}
   .oty .mo-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .oty .mo-hm{min-width:700px;display:grid;grid-template-columns:44px repeat(12,minmax(0,1fr)) 46px 46px;gap:4px;align-items:stretch}
+  .oty .mo-hm{min-width:724px;display:grid;grid-template-columns:44px repeat(12,minmax(0,1fr)) 46px 46px;gap:4px;align-items:stretch}
   .oty .mo-hm .h{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);text-align:center;padding:4px 0}
   .oty .mo-hm .yr{display:flex;align-items:center;font-size:13px;font-weight:700;color:var(--text)}
   .oty .mo-c{position:relative;height:46px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer;background:var(--surface2);border:1.5px solid transparent;user-select:none;padding:0;color:var(--text);font-family:inherit}
