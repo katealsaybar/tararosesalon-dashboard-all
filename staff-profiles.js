@@ -325,7 +325,7 @@ const STAFF_PROFILES = {
   // Kate, 15 Oct 2026: `blank: true` marks the line-art template placeholder (the 6 files below), which keeps its own
   // colour on the Former cards instead of going black and white like a real photo. Drop the flag when a headshot replaces the file.
   // Zoe: Al Quoz Sep 2024 to Jan 2025 (KCA early 2021); role and branch not confirmed, so Stylist/AQ is a default.
-  'ZOE':      { photoFull: 'stylist/photos/AQ/zoe hogkinson.png', blank: true, role: 'Stylist', branch: 'AQ', resigned: true },
+  'ZOE':      { photoFull: 'stylist/photos/AQ/zoe hogkinson.png', blank: true, role: 'Stylist', branch: 'AQ', ig: 'hairdesignbyzoe', resigned: true },
   // Harriet: Saadiyat Mar to Jun 2025 (one Khalifa City A day), archived in Phorest.
   'HARRIET':  { photoFull: 'stylist/photos/SAA/harriet shannon.png', blank: true, role: 'Stylist', branch: 'SAA', resigned: true },
   // Venus: Motor City Nov 2022 to Jan 2025 (683 daily rows). Junior Stylist per the roster export.
