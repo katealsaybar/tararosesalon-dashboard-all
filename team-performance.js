@@ -268,6 +268,8 @@ function tpMergeKey(name) {
 // another. staff-profiles.js's STAFF_SURNAMES carries the same call for MAY:
 // Fernandez at Khalifa City, Manguiat at Saadiyat, kept apart on purpose.
 const TP_SPLIT_NAMES = new Set(['MAY']);
+// Blank ledger slots and catch-all lines, never a person (see tpRosterBuild).
+const TP_PLACEHOLDER = /^(BEAUTY|STYLIST|HAIR|NAIL|STAFF|BUSINESS|ASSISTANTS?)(\s+\d+)?$/;
 // The split keeps the two Mays apart, but both rows still looked up the one MAY
 // profile, so Saadiyat's May printed as "May Fernandez · Junior Stylist" with
 // Khalifa City May's photo and read as a duplicate (Comet, 1 Oct 2026). The row
@@ -315,7 +317,17 @@ function tpRosterBuild(dept) {
     // Kate, 15 Oct 2026: Dina Paycao (Beauty Team Member) was on the Hair bench because the ledger had her figures
     // in its hair list. The bench follows her role in staff-profiles.js: a beauty or nail role is always Beauty,
     // wherever the ledger filed her; everyone else stays on the side the ledger put her.
-    const side = (st, from) => /Beauty|Nail/i.test(tpRole({ name: st.name }) || '') ? 'beauty' : from;
+    // Kate, 18 Oct 2026: and the days a hair person was filed under Beauty are left out of this race altogether ("wag mo isama yung days
+    // na nag work sila as beauty dito sa podium race; only for other dashboards"). KCA's MAY (Jun 2023 to May 2024: 34 days, 1 client,
+    // AED 0) and AQ's XYRHY (8 days) gave a long window a second row for a stylist on the Beauty bench, with her 39 Google reviews beside
+    // "AED 0 take". A hair role (stylist, style director, blow-dry specialist, barber) filed under Beauty is on neither bench; her Hair row
+    // is untouched. Other dashboards read the ledger as it is.
+    const side = (st, from) => {
+      const role = tpRole({ name: st.name }) || '';
+      if (/Beauty|Nail/i.test(role)) return 'beauty';
+      if (from === 'beauty' && /Stylist|Style Director|Blow-?Dry|Barber|Colou?rist/i.test(role)) return null;
+      return from;
+    };
     const staff = [].concat((bd.hairStaff || []).map(st => ({ st, from: 'hair' })), (bd.beautyStaff || []).map(st => ({ st, from: 'beauty' })))
       .filter(x => side(x.st, x.from) === dept)
       .map(x => (dept === 'beauty' && x.from === 'hair') ? { ...x.st, beautySales: x.st.beautySales || x.st.hairSalesNet || 0 } : x.st);
@@ -358,6 +370,9 @@ function tpRosterBuild(dept) {
     .filter(st => tpRole(st) !== 'Assistant')
     // Kate, 15 Oct 2026: ABCR, BWR, KMR and OR are 2026 Khalifa City ledger codes (draft names), not people.
     .filter(st => !['ABCR', 'BWR', 'KMR', 'OR'].includes(tpMergeKey(st.name)))
+    // Kate, 18 Oct 2026 ("who is B8 omg"): the ledger sheets carry numbered blank slots (BEAUTY 1 to 15, STYLIST 1 to 18) and BUSINESS /
+    // ASSISTANTS lines for figures that belong to no one. One of them with a single stray client (SAA's BEAUTY 8, 2021) read as a person.
+    .filter(st => !TP_PLACEHOLDER.test(tpMergeKey(st.name)))
     .filter(st => !TP_OVR.hide.has(tpOvrKey(st.name)));
   list.forEach(tpApplyRebookSrc);
   return list.sort((a, b) => (b.net || 0) - (a.net || 0));
