@@ -232,9 +232,9 @@ const STAFF_PROFILES = {
   // Her own key because RACHEL above is Rachel White: the ledger writes both just RACHEL, so Dawson's 2020 to 2024 ledger rows still read as RACHEL (White) on the
   // dashboards until a window rule splits them (open question for Kate).
   'RACHEL DAWSON': { photoFull: 'stylist/photos/SAA/rachel dawson.png', role: 'Style Director', branch: 'SAA', ig: 'hair_by_racheld', resigned: true },
-  // Robyn Gargan, former Marasy hair stylist (Phorest MRY 1 Jul 2021 to 18 Dec 2022). Kate, 18 Oct 2026: IG hairby.robyn, placeholder photo until Kate finds one.
+  // Robyn Gargan, former Marasy hair stylist (Phorest MRY 1 Jul 2021 to 18 Dec 2022). Kate, 18 Oct 2026: IG hairby.robyn, real B&W photo (her own Instagram picture).
   // Her own key because ROBYN is Robyn Hart (Motor City): the ledger writes both just ROBYN, so Gargan's Marasy ledger rows still read as Robyn Hart.
-  'ROBYN GARGAN': { photoFull: 'stylist/photos/other/robyn gargan.png', role: 'Stylist', branch: 'other', ig: 'hairby.robyn', blank: true, resigned: true },
+  'ROBYN GARGAN': { photoFull: 'stylist/photos/other/robyn gargan.png', role: 'Stylist', branch: 'other', ig: 'hairby.robyn', resigned: true },
   // Added 19 Sep 2026, same RESIGNED board. Branch off her ledger history: 499 SAA
   // Beauty rows (Jan 2025-May 2026) against 9 KCA cover rows. Kate, 21 Sep 2026: she
   // was a beautician, not a stylist — role corrected off the placeholder so she sorts
