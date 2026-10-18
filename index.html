@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=c3367c3b"></script>
+<script src="pages.js?v=e6042f14"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -4317,14 +4317,14 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script. -->
 <script src="stylist-cards.js?v=25d94504"></script>
 <script src="org-chart.js?v=37a5bbdf"></script>
-<script src="dashboard.js?v=3ca0ed2d"></script>
+<script src="dashboard.js?v=f1315adb"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
 <script src="branch-ledger.js?v=9301a6f0"></script>
 <!-- over-the-years.js and daily-performance.js + daily-addons.js load on first use (trsLazy, in the boot script above). So do compare.js, the Marketing pages (marketing-chart, google-ads, website, social), staff-weeks.js and stylist-levels.js. -->
 <!-- ledger-export.js (spreadsheet export, built from branch-ledger.js's series and target helpers) loads on first use too: trsLazy. -->
-<script src="team-performance.js?v=16e00dc8"></script>
+<script src="team-performance.js?v=5bbd76ce"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=75be7e5a"></script>
 <!-- pulse-narrative.js (the model-written Pulse read) was never wired in: fetchPulseNarrative has no caller. Add the tag back if it is. -->
@@ -4575,10 +4575,14 @@ async function enterDashboard(role, meAsk){
   // Audit 18 Oct 2026 (P3-15): Staff Dashboards, Staff's 13 Week and Stylist's Benchmarks read their numbers through the
   // sign-in's Staff Benchmarks key (SPF_AUTO) and not through loadData, so they open as soon as that key is in.
   const earlyKeyed = !TRS_SCOPE && !!(earlyPage && earlyPage.perfkey && ((earlyPage.min || 1) <= 1 || TRS_LEVEL >= earlyPage.min));
-  const earlyView = earlyLost || earlyFree || earlyKeyed;
+  // Audit 18 Oct 2026 (P2-06): the four Ledgers pages, Podium Race and Staff Quadrant need the window, the last day of data, the address and the
+  // weekly table (trsWindowReady) and nothing the Pulse computes, so they open the moment those are in, not after the freshness badge,
+  // the update watch and the Pulse. A window that never arrives (20 s) opens the page anyway, as the slow path would.
+  const earlyWindow = !TRS_SCOPE && !!(earlyPage && earlyPage.nopulse && ((earlyPage.min || 1) <= 1 || TRS_LEVEL >= earlyPage.min));
+  const earlyView = earlyLost || earlyFree || earlyKeyed || earlyWindow;
   const earlyName = earlyLost ? 'lostclients' : viewQ;
   // Lost Clients' script arrives with the download started above; its own two calls then run beside loadData, as before.
-  const earlyOpen = !earlyView ? null : (earlyLost ? trsLazy('cl').then(() => lcPrefetch()) : earlyKeyed ? perfKey.then(k => { window.SPF_AUTO = k; }) : Promise.resolve()).then(() => {
+  const earlyOpen = !earlyView ? null : (earlyLost ? trsLazy('cl').then(() => lcPrefetch()) : earlyKeyed ? perfKey.then(k => { window.SPF_AUTO = k; }) : earlyWindow ? Promise.race([window.trsWindowReady, new Promise(r => setTimeout(r, 20000))]) : Promise.resolve()).then(() => {
     showView(earlyName, document.querySelector(`[onclick*="${earlyName}"]`));
     trsBootDone();
   }).catch(() => { try { showView(earlyName, null); } catch (e) {} trsBootDone(); });   // a script that will not load: the page says so
@@ -4780,7 +4784,7 @@ function showView(view, el){
   const ocPrintLink = document.getElementById('ocPrintBtn');
   if (ocPrintLink) ocPrintLink.style.display = view === 'orgchart' ? '' : 'none';
 
-  if ((view === 'team' || view === 'teamquad') && allData.length) renderTeam();
+  if ((view === 'team' || view === 'teamquad') && (allData.length || (dateFrom && dateTo))) renderTeam();
   if (view === 'stylists') renderStylistCards();
   if (view === 'orgchart') renderOrgChart();
   if (view === 'staffperf') initStaffPerfView();
@@ -4806,7 +4810,7 @@ function showView(view, el){
   if (view === 'ledgerStylist') renderLedgerStylist();
   CURRENT_VIEW = view;
   // A filter changed while Google Reviews was open and the Pulse redraw was skipped (refreshActiveView): catch up now.
-  if (PULSE_STALE && view !== 'reviews' && view !== 'overyears' && view !== 'dailyperf' && view !== 'compare' && typeof refreshActiveView === 'function') { PULSE_STALE = false; refreshActiveView(); }
+  if (PULSE_STALE && view !== 'reviews' && view !== 'overyears' && view !== 'dailyperf' && view !== 'compare' && !NOPULSE_VIEWS.has(view) && typeof refreshActiveView === 'function') { PULSE_STALE = false; refreshActiveView(); }
   // After CURRENT_VIEW, not before: the Period chips grey out on the Ledgers pages
   // and paintFilterChips() reads CURRENT_VIEW to know. Without this the chips only
   // caught up on the next filter change. Cheap — it paints chips, not data.

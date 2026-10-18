@@ -1465,6 +1465,15 @@ const FILTERED_VIEWS = new Set(TRS_PAGES.filter(p => p.filtered).map(p => p.id))
 // explains why they have to. Branch Performance is deliberately absent — it reads
 // both filters like any other page.
 const LEDGER_VIEWS = new Set(TRS_PAGES.filter(p => p.ledger).map(p => p.id));   // pages.js
+// Audit 18 Oct 2026 (P2-06, P3-15): pages that draw from their own loaders and take nothing from the Pulse's computed state (pages.js
+// nopulse: the four Ledgers pages, Podium Race and Staff Quadrant). A first load onto one no longer runs the Pulse behind it, and a Branch
+// or Period change redraws that page alone (PULSE_STALE, as for Daily Performance); the Pulse catches up when a page that needs it opens.
+const NOPULSE_VIEWS = new Set(TRS_PAGES.filter(p => p.nopulse).map(p => p.id));
+const NOPULSE_REDRAW = { ledgerFinancials: 'renderLedgerFinancials', ledgerTargets: 'renderLedgerTargets', ledgerActuals: 'renderLedgerActuals', ledgerStylist: 'renderLedgerStylist', team: 'renderTeam', teamquad: 'renderTeam' };
+// Resolved by loadData() once the window, the last day of data, the address and the weekly table (its staff names classify Phorest-only
+// people) are in, so a page that needs only those can open before the rest of the load (the freshness badge, the Pulse) is done.
+let _winReadyRes = null;
+window.trsWindowReady = new Promise(r => { _winReadyRes = r; });
 
 let CURRENT_VIEW = 'dashboard';
 // Set when a filter changed while a page that does not use the Pulse's numbers (Google Reviews) was open, so the Pulse
@@ -1510,6 +1519,13 @@ function refreshActiveView() {
     renderDailyPerf();
     if (typeof spy === 'function') spy();
     return Promise.resolve();
+  }
+  // The pages that take nothing from the Pulse (pages.js nopulse): chips and address now, that page alone.
+  const npFn = NOPULSE_VIEWS.has(CURRENT_VIEW) ? window[NOPULSE_REDRAW[CURRENT_VIEW]] : null;
+  if (typeof npFn === 'function') {
+    PULSE_STALE = true;
+    paintFilterChips();
+    return Promise.resolve(npFn()).then(() => { if (typeof spy === 'function') spy(); });
   }
   PULSE_STALE = false;
   return renderDashboard().then(() => {
@@ -4306,6 +4322,27 @@ async function renderOrgPulseMore(s) {
     <div class="foot">${isGroupView() ? 'UAE branches only. ' : ''}The big figure is hair and beauty together. Hover the ⓘ on a tile for how it is counted. No aims here: they are set for each level on a stylist’s own page.</div>`;
 }
 
+// The rows of the window on screen, loaded the way renderDashboard() loads them (same cachedRange keys, so a Pulse that runs later
+// finds them) and left where Podium Race, the Quadrant and aggByBranch() read them, without computing or drawing the Pulse.
+async function ensureWindowData() {
+  if (!dateFrom || !dateTo) return false;
+  if (isFullWeekRange(dateFrom, dateTo)) {
+    window._cachedWeeklyTotals = await cachedRange(`weekly|${dateToIso(dateFrom)}|${dateToIso(dateTo)}`, () => loadWeeklyTotalsRange(dateFrom, dateTo));
+    currentDailyRows = [];
+    window._cachedDailyTrend = null;
+    window._cachedDailyJoin = null;
+  } else {
+    const [dailyRows, branchStaffRows, phorestStaffRows] = await cachedRange(`daily|${dateToIso(dateFrom)}|${dateToIso(dateTo)}`, () => Promise.all([
+      loadDailyRange(dateFrom, dateTo),
+      loadBranchStaffDailyRange(dateFrom, dateTo),
+      loadPhorestStaffDailyRange(dateFrom, dateTo),
+    ]));
+    currentDailyRows = dailyRows;
+    window._cachedDailyJoin = { dailyRows, branchStaffRows, phorestStaffRows };   // pre-branch-filter, as renderDashboard leaves it
+  }
+  return true;
+}
+
 async function renderDashboard() {
   paintFilterChips();
   const main = document.getElementById('mainContent');
@@ -5456,7 +5493,7 @@ async function loadData() {
   // (PULSE_STALE, as for Reviews and Over the Years) until a page that needs it is opened.
   const firstLoad = !dateFrom || !dateTo;
   let initView = null; try { initView = new URLSearchParams(location.search).get('view'); } catch (e) {}
-  const pulseFree = firstLoad && (initView === 'dailyperf' || initView === 'compare' || initView === 'branchperf');
+  const pulseFree = firstLoad && (initView === 'dailyperf' || initView === 'compare' || initView === 'branchperf' || NOPULSE_VIEWS.has(initView));
   // The last day of data (audit 17 Oct, P2-01). Asked now, awaited before the default window is set.
   const endAsk = loadDataEnd();
   const oldDataEnd = DATA_END;
@@ -5491,6 +5528,9 @@ async function loadData() {
     return;
   }
   allData = data;
+  // The window, the last day of data and the weekly names are in. aggDailyData() reads those names (buildStaffDeptMap) to give a Phorest-only
+  // person a department, so a page that aggregates the daily rows waits for them too, but not for the Pulse that follows.
+  if (_winReadyRes) { _winReadyRes(); _winReadyRes = null; }
   const branches = ACTIVE_BRANCHES.map(k => ({ val:k, label:BRANCH_INFO[k].name }));
   buildDrop('branch', branches);
   rebuildDependentDrops();
@@ -5840,7 +5880,7 @@ async function refreshNow(btn) {
 // do to someone reading halfway down a table.
 function redrawCurrentView() {
   const v = (typeof CURRENT_VIEW === 'string') ? CURRENT_VIEW : 'dashboard';
-  if ((v === 'team' || v === 'teamquad') && allData.length) renderTeam();
+  if ((v === 'team' || v === 'teamquad') && (allData.length || (dateFrom && dateTo))) renderTeam();
   else if (v === 'stylists')           renderStylistCards();
   else if (v === 'services')           initSvcView();
   else if (v === 'clients')            initCliView();

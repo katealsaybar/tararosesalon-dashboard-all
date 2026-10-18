@@ -530,7 +530,12 @@ async function renderTeam() {
   // (Kate, 8 Oct 2026: the page took too long).
   const wantCounts = part === 'race' && TP_LEAGUES[tpSort] && TP_LEAGUES[tpSort].counts && tpLeagues().includes(tpSort);
   const early = Promise.all([wantCounts ? tpLoadCounts() : null, tpLoadOverrides()]);
-  if (!window._lastDashState && typeof renderDashboard === 'function') {
+  // The window's rows, loaded the way the Pulse loads them but without running the Pulse (audit 18 Oct 2026, P2-06): a cache hit when
+  // the Pulse already asked, one read of three tables when it has not.
+  if (typeof ensureWindowData === 'function') {
+    if (!window._cachedDailyJoin && !(window._cachedWeeklyTotals && window._cachedWeeklyTotals.length)) host.innerHTML = '<div class="loading">Loading data...</div>';
+    await ensureWindowData();
+  } else if (!window._lastDashState && typeof renderDashboard === 'function') {
     host.innerHTML = '<div class="loading">Loading data...</div>';
     await renderDashboard();
   }
