@@ -361,6 +361,7 @@ const STYLIST_IG = {
   "Kara":       "https://www.instagram.com/kara__haircare_/",
   "Xavrina":    "https://www.instagram.com/xavrinatraya/",
   "Zoe":        "https://www.instagram.com/hairdesignbyzoe/",   // Kate, 18 Oct 2026
+  "Neeka":      "https://www.instagram.com/hair_byneeka/",   // from her business card, Kate, 18 Oct 2026
   "Shian":      "https://www.instagram.com/hairartist.shiandavidson/",
   "Nataleah":   "https://www.instagram.com/hairbynats19/",
   "Rany":       "https://www.instagram.com/rannyhairstyle/",

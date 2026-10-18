@@ -411,7 +411,7 @@ const STAFF_PROFILES = {
   // Year in the May-Jun 2023 ROSES mag). Worked all four branches; branch follows the most ledger rows (Saadiyat 379,
   // Khalifa City A 372, Motor City 273, Al Quoz 182, Jan 2021 to Mar 2024). No client-facing Instagram found, so no ig.
   // Black-and-white headshot, 375x435.
-  'NEEKA':    { photoFull: 'stylist/photos/SAA/neeka kainth.png', role: 'Style Director', branch: 'SAA', resigned: true },
+  'NEEKA':    { photoFull: 'stylist/photos/SAA/neeka kainth.png', role: 'Style Director', branch: 'SAA', ig: 'hair_byneeka', resigned: true },
 };
 
 // ── SURNAMES ──────────────────────────────────────────────────
