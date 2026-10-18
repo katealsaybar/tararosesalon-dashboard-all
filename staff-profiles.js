@@ -286,7 +286,7 @@ const STAFF_PROFILES = {
   // does not want placeholders for other surnameless people). Kerryn, Stylist, IG hair_by_kerryn; Farwa, Assistant (blow-dries and
   // styling); Simi and Charlene, Beauticians (nails, brows, massage). The Bahrain Charlene is not Charlene Payne, the Motor City stylist
   // of Oct 2023 to May 2024 whom the ledger also writes CHARLENE, so Payne has no card and no surname here and her Podium row is split off (TP_SPLIT_FULL).
-  'KERRYN':  { photoFull: 'stylist/photos/BAH/kerryn.png', role: 'Stylist', branch: 'BAH', ig: 'hair_by_kerryn', blank: true },
+  'KERRYN':  { photoFull: 'stylist/photos/BAH/kerryn.png', role: 'Stylist', branch: 'BAH', ig: 'hair_by_kerryn' },
   'FARWA':   { photoFull: 'stylist/photos/BAH/farwa.png', role: 'Assistant', branch: 'BAH', blank: true },
   'SIMI':    { photoFull: 'stylist/photos/BAH/simi.png', role: 'Beauty Therapist', branch: 'BAH', blank: true },
   'CHARLENE':{ photoFull: 'stylist/photos/BAH/charlene.png', role: 'Beauty Therapist', branch: 'BAH', blank: true },
