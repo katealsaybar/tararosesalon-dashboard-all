@@ -70,11 +70,12 @@
   /* Daily Performance, 18 Oct 2026. (1) "nipisan mo yung sticky header": the bar was 44px pills plus padding, over 55px tall. The
      pills and the Measure menu are 34px in the bar now (the page keeps its 44px taps). (2) "pill tags don't look good, dapat
      aligned": on a phone the weakest and strongest day rows had the date leaf and the percentage chip floating mid-row, and the
-     "Also low that day" pills starting after the label and then wrapping under it. The leaf sits at the left and the chip at the
-     right edge of one row, the label gets its own line, and the pills line up under it from the left edge. */
+     "Also low that day" pills starting after the label and then wrapping under it. The leaf sits at the left with the chip right
+     beside it (the chip first floated out at the right edge, away from its date), the label gets its own line, and the pills line
+     up under it from the left edge. */
   :root .dpf .dp-bar{padding:3px 0}
   :root .dpf .dp-bar .dp-pill,:root .dpf .dp-bar .ps-btn{min-height:34px;padding-top:0;padding-bottom:0;display:inline-flex;align-items:center}
-  :root .dpf .dp-swr-r{flex:1 0 100%;display:flex;justify-content:space-between;align-items:center}
+  :root .dpf .dp-swr-r{flex:1 0 100%;display:flex;justify-content:flex-start;align-items:center;gap:12px}
   :root .dpf .dp-pl{gap:6px}
   :root .dpf .dp-pll{flex:0 0 100%;margin:0}
   /* Podium Race and Staff Quadrant (Kate, 18 Oct 2026: "toggles in here don't look too good"): each switch was only as wide as its

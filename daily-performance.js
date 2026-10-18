@@ -11,10 +11,13 @@
 // be checked against the sheet. Utilisation is staff_utilisation, one row per person per day.
 //
 // THE DAILY TARGET. The ledger's targets are monthly, and branch-ledger.js says why pro-rating one down to a
-// day "would need its own thinking". The thinking, kept deliberately plain so it can be defended: the
-// monthly target divided by the branch's trading days in that month (days not shut by LG_CLOSED_DAYS or the
-// closed_days table). Flat, so a Saturday and a Sunday carry the same target; the weekday chart is the one
-// that shows the difference. Ratios (rebooking %, treatment %, retail %, average bills) read the same
+// day "would need its own thinking". The thinking: the monthly target is spread over the branch's trading days in
+// that month (days not shut by LG_CLOSED_DAYS or the closed_days table). It was spread flat until 18 Oct 2026, so a
+// Friday was judged against the same figure as a Monday and every Friday read well ahead (Saadiyat's Fridays run
+// about 1.6 times its flat day). Kate: weighted. A money or count measure now gets each weekday's share of the month
+// in proportion to how strong that weekday was for that branch in the 8 weeks before the month began (the average of
+// that measure on that weekday); the shares add back to the monthly target, so a month that hits its target still
+// reads 100%. With less than three of any weekday behind it, the month is spread flat as before (dpDayShare). Ratios (rebooking %, treatment %, retail %, average bills) read the same
 // benchmark every day; utilisation is a band around 85 (on target 85 to 100, red under 60 or over 100), hair and beauty teams only, weighted by the hours available.
 // A client count nobody keyed a target for is shown with no target, never against zero.
 //
@@ -297,6 +300,8 @@ async function dpLoad(win) {
   // A window of 100 to 600 days is read against the same dates a year earlier (dpGrowth), so that year comes in too.
   const wn = Math.round((win.to - win.from) / 864e5) + 1, py = dpYearsBack(win.from, 1);
   if (wn > 100 && wn < 600 && py >= new Date(PERIOD_FIRST_YEAR, 0, 1)) loadFrom = new Date(Math.min(loadFrom, py));
+  // The weekday weights of a month come from the 56 days before it, so every window loads those days too.
+  loadFrom = new Date(Math.min(loadFrom, dpAdd(new Date(win.from.getFullYear(), win.from.getMonth(), 1), -56)));
   const loadTo = recent ? new Date(Math.max(win.to, win.yest)) : win.to;
   const key = dpYmd(loadFrom) + '|' + dpYmd(loadTo) + '|' + codes.join(',');
   if (DPD && DPD.key === key) return DPD;
@@ -370,6 +375,41 @@ function dpTradingDays(month, code) {
   for (let i = 1; i <= n; i++) if (!lgIsClosedDay(code, new Date(y, m - 1, i))) open++;
   return open;
 }
+// The value of a measure on one day, before any target: null on a closed day, a day with no trading or no figure.
+function dpValueAt(M, c, i) {
+  if (c.closed[i]) return null;
+  const s = c.sum[i];
+  if (!s || !((lgTotalRevenue(s) || 0) > 0)) return null;
+  const x = M.pick(s);
+  return x == null || !isFinite(x) ? null : Number(x);
+}
+// This date's share of its month's target (0 to 1), or null where the month has to be spread flat. Weekday weights are the
+// average of the measure on that weekday over the 56 days before the month began (at least 3 of each weekday that is open,
+// and a positive average), shared over the month's open days; memoised per measure, branch and month.
+function dpDayShare(mk, code, date) {
+  const M = DP_M[mk], month = dpYmd(date).slice(0, 7), key = mk + '|' + code + '|' + month;
+  if (!DPD.w) DPD.w = new Map();
+  let sh = DPD.w.get(key);
+  if (sh === undefined) {
+    sh = null;
+    const [y, m] = month.split('-').map(Number), first = new Date(y, m - 1, 1), from = dpAdd(first, -56), c = DPD.byCode[code];
+    const sums = [0, 0, 0, 0, 0, 0, 0], cnt = [0, 0, 0, 0, 0, 0, 0];
+    DPD.days.forEach((d, i) => {
+      if (d < from || d >= first) return;
+      const v = dpValueAt(M, c, i);
+      if (v != null && v > 0) { sums[d.getDay()] += v; cnt[d.getDay()]++; }
+    });
+    const n = new Date(y, m, 0).getDate(), open = [];
+    for (let k = 1; k <= n; k++) { const d = new Date(y, m - 1, k); if (!lgIsClosedDay(code, d)) open.push(d.getDay()); }
+    const w = sums.map((s, k) => cnt[k] >= 3 ? s / cnt[k] : null);
+    if (open.length && open.every(k => w[k] != null && w[k] > 0)) {
+      const total = open.reduce((a, k) => a + w[k], 0);
+      sh = w.map(x => x == null ? null : x / total);
+    }
+    DPD.w.set(key, sh);
+  }
+  return sh ? sh[date.getDay()] : null;
+}
 function dpBenchmark(bm, date) {
   if (bm === 'rebookPct') return dpYmd(date) >= '2026-09-01' ? 70 : 45;
   const b = (typeof bpBenchmarks === 'function') ? bpBenchmarks() : {};
@@ -409,6 +449,8 @@ function dpCell(mk, code, i) {
       else {
         const month = dpYmd(date).slice(0, 7), mt = M.tgtFn ? M.tgtFn(code, month) : dpMonthTarget(month, code, M.monthly()), td = dpTradingDays(month, code);
         t = mt && td ? mt / td : null;
+        // Weighted by weekday (Kate, 18 Oct 2026): a money or count measure takes this weekday's share of the month, where there is history to weigh it by.
+        if (t && M.kind === 'vol') { const sh = dpDayShare(mk, code, date); if (sh) t = mt * sh; }
       }
     }
     if (v == null) out = { state: c.closed[i] ? 'closed' : 'nodata' };
@@ -1159,7 +1201,7 @@ function dpDraw(host, win) {
       <div class="dp-how">
         <div class="dp-hw"><b>% of target</b><span>The figure divided by its target. 100% means the target was met. 80% means a fifth short.</span></div>
         <div class="dp-hw"><b>Points</b><span>The gap between two percentages. Rebooking at 61% against 70% is 9 points below.</span></div>
-        <div class="dp-hw"><b>Daily target</b><span>The month's target shared evenly across the branch's trading days. A Saturday and a Sunday carry the same target.</span></div>
+        <div class="dp-hw"><b>Daily target</b><span>The month's target shared over the branch's trading days by weekday: a day carries a bigger share when that weekday has been stronger at that branch (the average of the 8 weeks before the month), so a Friday is not judged against a Monday's figure. The shares add up to the month's target. Where there is not yet enough history, it is shared evenly.</span></div>
         <div class="dp-hw"><b>Rebooking, treatment %, retail %, average bills</b><span>Each day is read against the same benchmark. Utilisation is read as a band: 85 to 100% is on target, 60 to 84% amber, under 60% or over 100% red (hair and beauty teams only).</span></div>
         <div class="dp-hw"><b>NCR</b><span>New Client Requests. A count, against the Pulse's monthly NCR target.</span></div>
         <div class="dp-hw"><b>NCR %</b><span>NCR as a share of the day's clients. It has no target, so nothing is graded.</span></div>
