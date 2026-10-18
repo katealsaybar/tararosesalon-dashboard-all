@@ -16,15 +16,15 @@
     'Hair grows roughly a centimetre a month. Patience is part of the plan.',
     'Most heads carry somewhere around 100,000 hairs. We have met a lot of them.',
     'Wet hair is at its most fragile, which is why we are gentle at the basin.',
-    'A cooler final rinse helps the cuticle lie flat, and flat reads as shine.',
-    'Grey hair is hair that has stopped making pigment. It did not turn anything.',
+    'A cooler final rinse helps each strand lie flat, and flat reads as shine.',
+    'Grey hair is hair that has stopped making colour. It did not turn anything.',
     'Every follicle keeps its own timetable, so you never shed everything at once.',
     'Curls tend to run drier because scalp oils take the long way down a bend.',
     'The scalp is skin. SPF on the parting is not vanity.',
     'Hair is one of the fastest growing tissues in the body, and the most photographed.',
     // The beauty world
     'Fingernails grow faster than toenails, about three millimetres a month.',
-    'Cuticles are there to protect. Please leave them their dignity.',
+    'The skin around your nails is there to protect. Please leave it its dignity.',
     'Lashes have their own growth cycle too, so a few are always on their way out.',
     'A good blow-dry is half technique and half the right brush. We will not say which half.',
     // Good hair, in practice
@@ -75,7 +75,7 @@
     'Did you know ROSES spotlighted our stylists and beauticians with #BloomingRoses in September 2021?',
     // Did you know: the years so far (a fixed snapshot of whole years, taken 18 Oct 2026). Public facts only: this file is
     // served to anyone, so no sales, no visit counts, no names.
-    'Did you know our Motor City and Al Quoz salons have been on this dashboard since November 2022 and September 2023?',
+    'Did you know Motor City opened in December 2022 and Al Quoz in September 2023?',
     'Did you know our two Abu Dhabi salons collected 111 Google reviews in 2021? In 2025 our four UAE branches collected 1,054.',
     'Did you know our Google reviews more than tripled between 2023 and 2024?',
     'Did you know our Google reviews nearly doubled between 2024 and 2025, from 557 to 1,054?',
