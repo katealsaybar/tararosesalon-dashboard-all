@@ -65,6 +65,10 @@
   .sr-pstar{flex:none;display:grid;place-items:center;margin-left:-4px;color:#C9971A}
   .sr-pstar svg{width:14px;height:14px;fill:currentColor}
   .sr-cap{margin:14px 0 0;font-size:12px;color:var(--muted2)}
+  /* Kate, 18 Oct 2026: "a separate listing of favourites and frequently visited, hanay 1 and hanay 2". */
+  .sr-grp[hidden]{display:none}
+  .sr-grp + .sr-grp{margin-top:22px}
+  .sr-gh{margin:0 0 10px;text-align:center;font:600 11px/1 'Inter',system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2)}
   .sr-top{position:fixed;top:14px;right:16px;z-index:5;display:flex;gap:8px}
   /* Narrow, the buttons would sit over the logo: they take a row of their own above it instead. */
   @media (max-width:760px){.sr-top{position:static;align-self:flex-end;padding:14px 16px 0}}
@@ -108,7 +112,7 @@
     </div>
   </form>
   <p class="sr-hint" id="srHint"></p>
-  <nav class="sr-tiles hide" id="srTiles" aria-label="Your shortcuts"><div class="kb-fvs" id="srTilesRow"></div><p class="sr-cap" id="srCap"></p></nav>
+  <nav class="sr-tiles hide" id="srTiles" aria-label="Your shortcuts"><div class="sr-grp" id="srFavGrp"><h2 class="sr-gh">Favourites</h2><div class="kb-fvs" id="srFavRow"></div><p class="sr-cap" id="srFavHint" hidden>Star a page on Team Home or in the dashboard, and it will wait here.</p></div><div class="sr-grp" id="srOftenGrp"><h2 class="sr-gh">Frequently visited</h2><div class="kb-fvs" id="srOftenRow"></div></div><p class="sr-cap" id="srCap"></p></nav>
 </main>
 <footer class="sr-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
@@ -188,12 +192,15 @@
 
   // ── Shortcuts: what you starred (kept per person, the same stars as Team Home and the
   // dashboard sidebar), then what you open most (counted in this browser by visits.js).
-  var MAX_TILES = 8;
+  // Two rows (Kate, 18 Oct 2026): Favourites, which are the stars, and Frequently visited, which are the ones opened most that are not
+  // starred (a starred page is in the first row only).
+  var MAX_FAV = 10, MAX_OFTEN = 8;
   (async function () {
-    var tiles = [], seen = {};
+    var favT = [], oftenT = [], seen = {};
     function add(t, h, ic, star) {
-      if (!t || !h || seen[h] || tiles.length >= MAX_TILES) return;
-      seen[h] = 1; tiles.push({ t: t, h: h, ic: ic, star: !!star });
+      var list = star ? favT : oftenT;
+      if (!t || !h || seen[h] || list.length >= (star ? MAX_FAV : MAX_OFTEN)) return;
+      seen[h] = 1; list.push({ t: t, h: h, ic: ic, star: !!star });
     }
     // Team Home's cards, in its order: what this person may open, plus the two it adds itself.
     var shown = KB.SECTIONS.filter(KB.opens);
@@ -253,16 +260,16 @@
     });
 
     var nav = document.getElementById('srTiles');
-    if (!tiles.length) {
-      document.getElementById('srCap').textContent = 'Star a page and it will wait here. So will the ones you open most.';
-      nav.classList.remove('hide');
-      return;
+    function pills(list) {
+      return list.map(function (t) {
+        return '<a class="kb-fv" href="' + esc(t.h) + '" title="' + esc(t.t) + (t.star ? ' (favourite)' : '') + '">' + t.ic + '<span>' + esc(t.t) + '</span></a>';
+      }).join('');
     }
-    document.getElementById('srTilesRow').innerHTML = tiles.map(function (t) {
-      return '<a class="kb-fv" href="' + esc(t.h) + '" title="' + esc(t.t) + (t.star ? ' (starred)' : '') + '">' + t.ic + '<span>' + esc(t.t) + '</span>' +
-        (t.star ? '<span class="sr-pstar" role="img" aria-label="Starred"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z"/></svg></span>' : '') + '</a>';
-    }).join('');
-    document.getElementById('srCap').textContent = tiles.some(function (t) { return t.star; }) ? 'Pages with a star come first, then the ones you open most.' : 'The pages you open most. Star one, on Team Home or in the dashboard, to keep it first.';
+    document.getElementById('srFavRow').innerHTML = pills(favT);
+    document.getElementById('srFavHint').hidden = favT.length > 0;
+    document.getElementById('srOftenRow').innerHTML = pills(oftenT);
+    document.getElementById('srOftenGrp').hidden = !oftenT.length;
+    document.getElementById('srCap').textContent = oftenT.length ? '' : (favT.length ? 'The pages you open most will wait here too.' : '');
     nav.classList.remove('hide');
   })();
 
