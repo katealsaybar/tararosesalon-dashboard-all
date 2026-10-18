@@ -93,10 +93,12 @@ const ACTIVE_BRANCHES = UAE_ACTIVE.slice();
 function closedOffered(code) {
   const c = CLOSED_BRANCHES[code];
   // Over the Years sets years against years, so every closed branch is always on offer there (its Period chips are greyed).
-  if (c && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'overyears') return !isBahrainView() && !isGroupView();
+  if (c && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'overyears') return !isBahrainView();
+  // The Group (UAE + Bahrain) offers them too (Kate, 18 Oct 2026: "wala rin dyan ang Fratelli", "add Marasy to all dashboards, lalo
+  // na All time"): they are UAE branches, so the Group's UAE side counts them, and the totals already held their rows.
   return !!c && typeof dateFrom !== 'undefined' && !!dateFrom && !!dateTo
     && dateToIso(dateFrom) <= c.last && dateToIso(dateTo) >= c.first
-    && !isBahrainView() && !isGroupView();
+    && !isBahrainView();
 }
 
 // Tara Rose Salon Bahrain (branch BAH) is a separate Phorest business, trading in
@@ -179,13 +181,16 @@ function toGroupCurrency(rows) {
 }
 function syncCountry() {
   let want = isBahrainView() ? BH_BRANCHES : isGroupView() ? UAE_ACTIVE.concat(BH_BRANCHES) : UAE_ACTIVE;
+  let closed = [];
   // A closed branch (Fratelli, Marasy) is a live code while it is picked, and, on All Branches, whenever the window on screen touches
   // its open days (Kate, 14 Oct 2026: "add MRY sa org pulse, everywhere applicable"). The totals already counted its rows; now
   // every branch list, card and chart on the page names it too, so the parts add up to the total. The Ledgers pages read one
   // ledger month, not the window, so there it is only live when picked.
-  if (!isBahrainView() && !isGroupView() && typeof sel !== 'undefined') {
+  if (!isBahrainView() && typeof sel !== 'undefined') {
     const all = sel.branch.includes('all') && !(typeof LEDGER_VIEWS !== 'undefined' && LEDGER_VIEWS.has(CURRENT_VIEW));
-    want = want.concat(Object.keys(CLOSED_BRANCHES).filter(c => sel.branch.includes(c) || (all && closedOffered(c))));
+    closed = Object.keys(CLOSED_BRANCHES).filter(c => sel.branch.includes(c) || (all && closedOffered(c)));
+    // UAE side first, then the closed branches, Bahrain last (the chip row's order).
+    want = isGroupView() ? UAE_ACTIVE.concat(closed, BH_BRANCHES) : want.concat(closed);
   }
   if (ACTIVE_BRANCHES.join() !== want.join()) ACTIVE_BRANCHES.splice(0, ACTIVE_BRANCHES.length, ...want);
 }
