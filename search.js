@@ -550,10 +550,13 @@
   //      one word that matters. Filler words are ignored.
   //   3. Every word has to land somewhere: as itself, as its plural, a letter off, or as
   //      a word that means the same (convert for conversion, sales for revenue).
-  const LEAD = /^(?:hey|hi|hello|pls|please|plz|kindly|ok|okay|so|um|uhm|can you|could you|would you|help me|tell me|show me|take me to|bring me to|i want to|i wanna|i need to|i need|i'm looking for|im looking for|looking for|where can i|where do i|where should i|where would i|where is|where are|where's|wheres|where|how can i|how do i|how do we|how to|how is|how are|how does|how's|what is|what are|what's|whats|what does|what do|which page|which tab|which report|which section|which|is there|are there|do we have|do i have|can i|can we|how|what|saan ko|saan po|saan|nasaan|nasan|paano|pano|ano ang|ano yung|ano|pwede ba|pwede)\b[\s,:?-]*/i;
+  // Kate, 18 Oct 2026: 'who is Mona Soba' found no Mona, because 'who' was searched as a word on every page and the
+  // person never has it. who / sino / when / why now lead a question like what / where / how already do.
+  const LEAD = /^(?:hey|hi|hello|pls|please|plz|kindly|ok|okay|so|um|uhm|can you|could you|would you|help me|tell me|show me|take me to|bring me to|i want to|i wanna|i need to|i need|i'm looking for|im looking for|looking for|who is|who are|who's|whos|who was|who does|who do|who|whose|sino si|sino ang|sino|when is|when are|when does|when do|when|why is|why does|why do|why|where can i|where do i|where should i|where would i|where is|where are|where's|wheres|where|how can i|how do i|how do we|how to|how is|how are|how does|how's|what is|what are|what's|whats|what does|what do|which page|which tab|which report|which section|which|is there|are there|do we have|do i have|can i|can we|how|what|saan ko|saan po|saan|nasaan|nasan|paano|pano|ano ang|ano yung|ano|pwede ba|pwede)\b[\s,:?-]*/i;
   const GREET = /^(?:hey|hi|hello|pls|please|plz|kindly|ok|okay|so|um|uhm)\b/;
   const STOP = new Set(('a an the my our your their his her this that these those it its to of for in on at by with from and or but ' +
     'is are was were be been am do does did done i we you me us he she they them find see get show look check view tell know want need ' +
+    'who whom whose why sino more info information details detail ' +
     'there here can could would should will please pls plz thanks thank shit damn fuck hell stuff thing things something anything ' +
     'lol haha hihe ba ang ng sa mga yung yun yan ito iyan ung ko mo po naman lang na pala kasi din rin nga pwede makikita makita ' +
     'hanapin nasaan saan mean means meaning define definition calculated calculate explain explained about any some many much ' +
@@ -565,7 +568,7 @@
     ['retention', 'retain', 'retained'],
     ['conversion', 'convert', 'converted', 'conversions'],
     ['client', 'clients', 'customer', 'customers', 'guest', 'guests'],
-    ['stylist', 'stylists', 'hairdresser', 'therapist', 'staff'],
+    ['stylist', 'stylists', 'hairdresser', 'therapist', 'beautician', 'beauticians', 'staff'],
     ['target', 'targets', 'goal', 'goals', 'aim', 'aims', 'quota'],
     ['review', 'reviews', 'feedback', 'rating', 'ratings', 'stars'],
     ['spend', 'spending', 'cost', 'costs', 'budget'],
