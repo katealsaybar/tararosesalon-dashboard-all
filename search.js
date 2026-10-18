@@ -426,6 +426,9 @@
   // (whoWaitFor gives up at 2.5s), then lands once. alts: other things to land on when
   // the text itself is not drawn (the heading of its section).
   function goText(view, text, prep, anchor, alts) {
+    // A page whose script loads on first use (index.html, trsLazy): get it first, so prep can reach the page's own functions.
+    const lz = typeof trsLazyOf === 'function' ? trsLazyOf(view) : null;
+    if (lz && !trsLazyDone(lz)) { trsLazy(lz).then(() => goText(view, text, prep, anchor, alts), () => whoShowView(view)); return; }
     if (prep) prep(CURRENT_VIEW === view);
     whoShowView(view);
     // Kate, 16 Oct 2026: a result must land on the page it names. If another page opened

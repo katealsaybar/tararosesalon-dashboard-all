@@ -3431,17 +3431,30 @@ table.tp-cmp td.bad{color:var(--bad)}
   // click is usually instant. Each group is loaded in order; the ?v= stamp that used to sit on the script tag lives here now, so
   // BUMP IT HERE when the file changes. Nothing outside a group calls into it except behind a typeof check or showView.
   (function(){
+    var LGX = 'ledger-export.js?v=20261008cb1';
     var G = {
       oty: ['over-the-years.js?v=20261016oty39'],
-      dp:  ['daily-performance.js?v=20261016da16', 'daily-addons.js?v=20261016da9']
+      dp:  ['daily-performance.js?v=20261016da16', 'daily-addons.js?v=20261016da9'],
+      // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
+      lgx: [LGX],
+      // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
+      cl:  [LGX, 'lost-clients.js?v=20261014mry1', 'lost-lists.js?v=20261016ll31', 'lost-consults.js?v=20261012lc1', 'lost-review-file.js?v=20261012rf3',
+            'send-schedule.js?v=20261016ss1', 'lost-queue.js?v=20261016lq30', 'lost-waves.js?v=20261016lw14', 'lost-blast.js?v=20261016ob4',
+            'lost-report.js?v=20261016lr1', 'wv-blast.js?v=20261016ss1', 'top-clients.js?v=20261014mry1', 'client-mix.js?v=20261014mry1',
+            'service-rankings.js?v=20261017bb1']
     };
-    var V = { overyears: 'oty', dailyperf: 'dp' };
-    var P = {}, D = {};
-    function one(src){ return new Promise(function(ok, bad){ var s = document.createElement('script'); s.src = src;
-      s.onload = ok; s.onerror = function(){ bad(new Error('Could not load ' + src)); }; document.head.appendChild(s); }); }
+    var V = { overyears: 'oty', dailyperf: 'dp', ledgerFinancials: 'lgx', ledgerTargets: 'lgx', ledgerActuals: 'lgx', ledgerStylist: 'lgx',
+              clients: 'cl', clientmix: 'cl', services: 'cl', lostclients: 'cl', lostlists: 'cl', wvblast: 'cl' };
+    var P = {}, D = {}, F = {};
+    // One file is fetched once, however many groups name it. A group's files download side by side but run in the order listed
+    // (async = false), which is the order the script tags used to run in.
+    function file(src){
+      if (!F[src]) F[src] = new Promise(function(ok, bad){ var s = document.createElement('script'); s.src = src; s.async = false;
+        s.onload = ok; s.onerror = function(){ delete F[src]; bad(new Error('Could not load ' + src)); }; document.head.appendChild(s); });
+      return F[src];
+    }
     window.trsLazy = function(g){
-      if (!P[g]) P[g] = G[g].reduce(function(p, src){ return p.then(function(){ return one(src); }); }, Promise.resolve())
-        .then(function(){ D[g] = true; }, function(e){ delete P[g]; throw e; });
+      if (!P[g]) P[g] = Promise.all(G[g].map(file)).then(function(){ D[g] = true; }, function(e){ delete P[g]; throw e; });
       return P[g];
     };
     window.trsLazyDone = function(g){ return !!D[g]; };
@@ -4255,19 +4268,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="stylist-levels.js?v=20261005dots"></script>
 <script src="staff-weeks.js?v=20261013a"></script>
 <script src="products.js?v=20261014cb2"></script>
-<script src="lost-clients.js?v=20261014mry1"></script>
-<script src="lost-lists.js?v=20261016ll31"></script>
-<script src="lost-consults.js?v=20261012lc1"></script>
-<script src="lost-review-file.js?v=20261012rf3"></script>
-<script src="send-schedule.js?v=20261016ss1"></script>
-<script src="lost-queue.js?v=20261016lq30"></script>
-<script src="lost-waves.js?v=20261016lw14"></script>
-<script src="lost-blast.js?v=20261016ob4"></script>
-<script src="lost-report.js?v=20261016lr1"></script>
-<script src="wv-blast.js?v=20261016ss1"></script>
-<script src="top-clients.js?v=20261014mry1"></script>
-<script src="client-mix.js?v=20261014mry1"></script>
-<script src="service-rankings.js?v=20261017bb1"></script>
+<!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script. -->
 <script src="marketing-chart.js?v=20261006ph"></script>
 <script src="google-ads.js?v=20261006per"></script>
 <script src="website.js?v=20261008cb1"></script>
@@ -4281,9 +4282,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="branch-ledger.js?v=20261017bb1"></script>
 <script src="compare.js?v=20261016util"></script>
 <!-- over-the-years.js and daily-performance.js + daily-addons.js load on first use (trsLazy, in the boot script above). -->
-<!-- After branch-ledger.js, because the models it exports are built from that file's
-     own series/target helpers. Nothing here runs on load. -->
-<script src="ledger-export.js?v=20261008cb1"></script>
+<!-- ledger-export.js (spreadsheet export, built from branch-ledger.js's series and target helpers) loads on first use too: trsLazy. -->
 <script src="team-performance.js?v=20261017bb1"></script>
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
 <script src="staff-links.js?v=20261018lz1"></script>
@@ -4537,7 +4536,7 @@ async function enterDashboard(role, meAsk){
   const viewQ = new URLSearchParams(location.search).get('view');
   // A link to a page whose script loads on demand starts that download now, beside loadData, instead of after it.
   { const lzq = typeof trsLazyOf === 'function' ? trsLazyOf(viewQ) : null; if (lzq) trsLazy(lzq).catch(() => {}); }
-  const earlyLost = viewQ === 'lostclients' && TRS_LEVEL >= 2 && typeof lcPrefetch === 'function';
+  const earlyLost = viewQ === 'lostclients' && TRS_LEVEL >= 2 && typeof trsLazyOf === 'function' && !!trsLazyOf('lostclients');
   // Audit 17 Oct 2026 (P2-06, P6-07): five more pages need nothing from loadData (no masthead window, no ledger rows: Google Ads,
   // Website and Search, Social, Staff Cards, Org Chart), so a direct link opens them now instead of after the whole Pulse load.
   // The level and scope rules are the ones showView applies, checked first so a page the person may not open never half-draws.
@@ -4545,12 +4544,13 @@ async function enterDashboard(role, meAsk){
     ? TRS_LEVEL >= 3 : (viewQ === 'stylists' || viewQ === 'orgchart'));
   const earlyView = earlyLost || earlyFree;
   const earlyName = earlyLost ? 'lostclients' : viewQ;
-  if (earlyView) {
-    if (earlyLost) lcPrefetch();
+  // Lost Clients' script arrives with the download started above; its own two calls then run beside loadData, as before.
+  const earlyOpen = !earlyView ? null : (earlyLost ? trsLazy('cl').then(() => lcPrefetch()) : Promise.resolve()).then(() => {
     showView(earlyName, document.querySelector(`[onclick*="${earlyName}"]`));
     trsBootDone();
-  }
+  }).catch(() => { try { showView(earlyName, null); } catch (e) {} trsBootDone(); });   // a script that will not load: the page says so
   await loadData();
+  if (earlyOpen) await earlyOpen;
   window.SPF_AUTO = await perfKey;
   // Kate, 30 Sep 2026: on a phone the quiet preload (1.5s after load) ran before the
   // sign-in had fetched her leader key, so the frame stayed on the view-only key and
@@ -5297,6 +5297,6 @@ addEventListener('load', sizeTopbar);
 <script src="nav-collapse.js?v=20261014glide2"></script>
 <script src="nav-stars.js?v=20261002a"></script>
 <script src="mobile.js?v=20261008sa"></script>
-<script src="search.js?v=20261016sg1"></script>
+<script src="search.js?v=20261018lz2"></script>
 <script src="visits.js?v=20261008v1"></script>
 </body>
