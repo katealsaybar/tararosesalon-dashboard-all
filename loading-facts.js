@@ -49,7 +49,7 @@
     'Cleanse at night, every night. Make-up and sunscreen need to come off.',
     'Moisturiser holds on to more when it goes on to slightly damp skin.',
     'Pat your face dry. Rubbing is for towels, not skin.',
-    'Hot showers feel lovely and dry skin out. Warm is kinder.',
+    'Hot showers feel lovely, but they dry skin out. Warm is kinder.',
     'Air conditioning dries skin too, so moisturising is a year-round habit here.',
     'Introduce one new product at a time, so you know which one is doing what.',
     'Exfoliate gently and not every day. Smooth is good, stripped is not.',
