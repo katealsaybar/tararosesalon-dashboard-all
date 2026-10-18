@@ -1443,45 +1443,25 @@ function heroPeriodPhrasing() {
 // A MutationObserver (not a renderDashboard() hook) drives the initial read
 // so it stays correct no matter which of renderDashboard()'s early-return
 // paths (loading/empty/error) last touched #mainContent.
-const VIEW_SECTION_LABELS = {
-  dashboard: 'Organisation Pulse', team: 'Podium Race', teamquad: 'Staff Quadrant', staffperf: 'Staff Dashboards', stafflevels: 'Stylist’s Benchmarks', staffweeks: 'Staff’s 13 Week', stylists: 'Staff Cards',
-  orgchart: 'Org Chart',
-  services: 'Service Rankings', clients: 'Top Clients', clientmix: 'Client Mix', lostclients: 'Client’s Last Visit', lostlists: 'Lost Clients', wvblast: 'Wellness Voucher Blast', products: 'Products', reviews: 'Google Reviews',
-  wvperf: 'Wellness Voucher Performance',
-  googleads: 'Google Ads',
-  website: 'Website & Search',
-  social: 'Social',
-  branchperf: 'Branch Performance',
-  dailyperf: 'Daily Performance',
-  compare: 'Comparison',
-  overyears: 'Over the Years',
-  ledgerFinancials: 'Financial Totals',
-  ledgerTargets: 'Ledgers · Daily Target Sheet',
-  ledgerActuals: 'Ledgers · Actuals vs Targets',
-  ledgerStylist: 'Ledgers · Daily Stylist Target',
-};
+// The masthead's small heading for each page: the page's section (or its label) from pages.js.
+const VIEW_SECTION_LABELS = {};
+TRS_PAGES.forEach(p => { VIEW_SECTION_LABELS[p.id] = p.section || p.label; });
 
 // ── THE VIEW REGISTRY ────────────────────────────────────────
 // One list, so adding a page means editing one line instead of three. showView()
 // used to hide an inline array that had drifted out of date — it still carried
 // 'khalifa' and 'saadiyat', which have not existed for months.
-const ALL_VIEWS = [
-  'dashboard','branchperf','dailyperf','compare','overyears','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
-  'team','teamquad','staffperf','staffweeks','stafflevels','stylists','orgchart','services','clients','clientmix','lostclients','lostlists','wvblast','products','googleads','website','social','wvperf','reviews','calendar','giveaway','trk',
-];
+const ALL_VIEWS = TRS_PAGES.map(p => p.id);   // pages.js
 
 // Which pages read the shared branch + period filters. Everything that shows a
 // number: the reference pages (stylist cards) and the embedded iframes do not.
-const FILTERED_VIEWS = new Set([
-  'dashboard','team','teamquad','branchperf','ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist',
-  'services','clients','products','reviews','overyears','dailyperf',
-]);
+const FILTERED_VIEWS = new Set(TRS_PAGES.filter(p => p.filtered).map(p => p.id));   // pages.js
 
 // Of those, the ones that take the Branch filter but fix the period to the ledger
 // month. paintFilterChips() greys the Period chips out on these; branch-ledger.js
 // explains why they have to. Branch Performance is deliberately absent — it reads
 // both filters like any other page.
-const LEDGER_VIEWS = new Set(['ledgerFinancials','ledgerTargets','ledgerActuals','ledgerStylist']);
+const LEDGER_VIEWS = new Set(TRS_PAGES.filter(p => p.ledger).map(p => p.id));   // pages.js
 
 let CURRENT_VIEW = 'dashboard';
 // Set when a filter changed while a page that does not use the Pulse's numbers (Google Reviews) was open, so the Pulse

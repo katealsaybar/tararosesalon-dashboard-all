@@ -78,6 +78,7 @@ NOT_PAGES = {
     'marketing-chart.js': 'chart drawing shared by Google Ads and Website',
     'fix-blank-rows.js': 'one-off Node repair script, not a page',
     'loading-facts.js': 'the lines on the loading screen',
+    'pages.js': 'the list of dashboard pages: names, levels, slugs; read by the check below',
 }
 # A page in the sidebar that may have no text in the index, and why.
 NO_TEXT_OK = {
@@ -378,7 +379,7 @@ def view_names():
 
 def source_files():
     """Everything the index is built from. Edit any of them and src_hash() changes."""
-    files = {'index.html', 'hub/hub.js', 'scripts/build-search-index.py'}
+    files = {'index.html', 'hub/hub.js', 'scripts/build-search-index.py', 'pages.js', 'search/index.html', 'hub/index.html'}
     files.update(FILE_VIEWS)
     files.update(SPECIAL)
     files.update(FRAME_VIEWS)
@@ -405,8 +406,65 @@ def script_problems():
     return out
 
 
+def page_list():
+    """pages.js's strict-JSON list of dashboard pages."""
+    src = (ROOT / 'pages.js').read_text(encoding='utf-8')
+    m = re.search(r'/\*PAGES\*/(\[.*?\])/\*END\*/', src, re.S)
+    return json.loads(m.group(1)) if m else []
+
+
+def registry_problems(names):
+    """index.html's sidebar and pages.js must say the same thing: the same pages, the same names, the same groups.
+    Audit 17 Oct 2026 (P1-15): those names used to be written by hand in nine places and had drifted."""
+    out = []
+    pages = page_list()
+    if not pages:
+        return ['pages.js has no readable list between /*PAGES*/ and /*END*/']
+    live = {p['id']: p for p in pages if not p.get('retired')}
+    ids = set()
+    for p in pages:
+        if p['id'] in ids:
+            out.append(f'pages.js lists {p["id"]} twice')
+        ids.add(p['id'])
+        if p.get('retired') and p['retired'] not in live:
+            out.append(f'pages.js: {p["id"]} is retired into {p["retired"]}, which is not a page')
+    for pid, label in names.items():
+        if pid not in live:
+            out.append(f'{label} ({pid}) is in the sidebar but not in pages.js')
+        elif clean(live[pid]['label']) != label:
+            out.append(f'{pid} is "{label}" in the sidebar but "{live[pid]["label"]}" in pages.js')
+    for pid, p in live.items():
+        if pid not in names:
+            out.append(f'{p["label"]} ({pid}) is in pages.js but not in the sidebar')
+    # The sidebar's groups and subheads, in order, against the list's.
+    idx = (ROOT / 'index.html').read_text(encoding='utf-8')
+    group = sub = None
+    for m in re.finditer(r'<div class="nav-title">([^<]+)<|<div class="nav-subhead">([^<]+)<|<div class="nav-sub"[^>]*onclick="showView\(\'([^\']+)\'', idx):
+        if m.group(1):
+            group, sub = clean(m.group(1)), None
+        elif m.group(2):
+            sub = clean(m.group(2))
+        else:
+            pid = m.group(3)
+            p = live.get(pid)
+            if p and (p.get('group') != group or (p.get('sub') or None) != sub):
+                out.append(f'{pid} sits under {group}/{sub or "-"} in the sidebar but {p.get("group")}/{p.get("sub") or "-"} in pages.js')
+    # Every slug and level is a number or a name that something can open.
+    for p in pages:
+        if p.get('lazy') and p['lazy'] not in ('oty', 'dp', 'lgx', 'cl'):
+            out.append(f'{p["id"]}: lazy group {p["lazy"]} is not one of the groups in index.html (trsLazy)')
+    # No page list of its own may come back in the places that used to carry one.
+    for rel, marker in (('search/index.html', 'var DASH = {'), ('hub/index.html', 'var DASH_PAGES = {'), ('search.js', 'const PAGE_WORDS = {\n    dashboard')):
+        try:
+            if marker in (ROOT / rel).read_text(encoding='utf-8'):
+                out.append(f'{rel} has its own list of dashboard pages again: read pages.js instead')
+        except FileNotFoundError:
+            pass
+    return out
+
+
 def guard_problems(items, names, containers):
-    out = script_problems()
+    out = script_problems() + registry_problems(names)
     by_line, count = {}, {}
     for view, sec, text, head in items:
         by_line.setdefault(text.lower(), set()).add(view)

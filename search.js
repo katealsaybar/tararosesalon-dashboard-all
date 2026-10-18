@@ -40,27 +40,9 @@
   const ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
 
   // Words people type that are not in the page's own name.
-  const PAGE_WORDS = {
-    dashboard: 'home overview kpi sales revenue takings pulse summary',
-    branchperf: 'branch staff table figures services retail',
-    dailyperf: 'daily day by day per branch graph chart radar heatmap weekday strengths weaknesses sales clients utilisation rebooking target',
-    compare: 'compare versus vs side by side',
-    team: 'podium race ranking leaderboard top performer',
-    teamquad: 'staff quadrant treatment retail rebook rebooking takings',
-    staffperf: 'benchmarks money five kpi promotion rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail',
-    staffweeks: 'staff quarterly performance quarter q1 q2 q3 q4 13 week thirteen weekly report emma rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail',
-    stafflevels: 'levels promotion grade stylist benchmarks rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail',
-    stylists: 'cards photos instagram profiles',
-    orgchart: 'org chart structure hierarchy',
-    ledgerFinancials: 'financial totals ledger cash card payments',
-    ledgerTargets: 'daily target sheet ledger',
-    ledgerActuals: 'actuals targets pacing ledger',
-    ledgerStylist: 'stylist target daily ledger',
-    services: 'service rankings treatments top services',
-    clients: 'top clients customers',
-    products: 'products stock orders retail professional spend',
-    reviews: 'google reviews ratings stars',
-  };
+  // pages.js: the words people type that are not in the page's own name.
+  const PAGE_WORDS = {};
+  (typeof TRS_PAGES !== 'undefined' ? TRS_PAGES : []).forEach(p => { PAGE_WORDS[p.id] = p.words || ''; });
 
   // Kate, 8 Oct 2026: a metric is a result in its own right, with its meaning, whether or
   // not Staff Dashboards has been opened this session. Same words as the hover tips in
@@ -798,13 +780,17 @@
       if (t === part) best = 100;
       else if (t.startsWith(part)) best = 80;
       else if (tw.some(x => x.startsWith(part))) best = 65;
+      // Audit 17 Oct 2026 (P1-04): "compare" is not the start of "Comparison" (it parts at "compar"), so the page ranked seventh behind
+      // seven lines of body text. A word that shares most of its start with a name word counts as that name word, just under a true start.
+      else if (part.length >= 5 && tw.some(x => stemTie(part, x))) best = 62;
       else if (t.includes(part)) best = 45;
       else if (ww.some(x => x.startsWith(part))) best = 30;
       else if (s.includes(part)) best = 20;
       else if (part.length >= 2 && initials(t).startsWith(part)) best = 25;
       // Typos: "jumeira" for Jumera, "saadyat" for Saadiyat, "kaet" for Kate.
-      else if (!syn && part.length >= 3 && tw.some(x => near(part, x))) best = 35;
-      else if (!syn && loose && part.length >= 3 && ww.some(x => near(part, x))) best = 15;
+      // Not under four letters: "kpi" is a near cousin of three first names.
+      else if (!syn && part.length >= 4 && tw.some(x => near(part, x))) best = 35;
+      else if (!syn && loose && part.length >= 4 && ww.some(x => near(part, x))) best = 15;
       return best;
     };
     for (const part of q.split(/\s+/).filter(Boolean)) {
@@ -821,6 +807,12 @@
     // Text on the page you are looking at outranks the same text elsewhere.
     if (item.kind === 'content' && item.view === CURRENT_VIEW) total += 10;
     return total;
+  }
+  // Same stem: the two words share a start of at least five letters that is most of the shorter word (compare / comparison, target / targets).
+  function stemTie(a, b) {
+    let i = 0;
+    while (i < a.length && i < b.length && a[i] === b[i]) i++;
+    return i >= 5 && i >= Math.ceil(Math.min(a.length, b.length) * 0.7);
   }
   // Is the typed word within reach of this word (or of its start, while typing)?
   // One slip allowed, two once the word is seven letters or more.
@@ -1032,6 +1024,7 @@
   // rest. The results page (Enter) has much roomier caps.
   const MAX = { metric: 3, page: 5, staff: 5, branch: 4, period: 3, service: 4, client: 4, product: 4, content: 5, kb: 3 };
   const ORDER = Object.keys(MAX);
+  const TIE = ['page', 'metric', 'staff', 'branch', 'period', 'service', 'client', 'product', 'content', 'kb'];
   const MAX_SERP = { metric: 12, page: 14, staff: 25, branch: 5, period: 5, service: 20, client: 20, product: 20, content: 60, kb: 20 };
   const KIND_HEAD = { metric: 'Metrics', page: 'Pages', staff: 'Team', branch: 'Branches', period: 'Periods',
     service: 'Services', client: 'Clients', product: 'Products', content: 'On the pages', kb: 'Team Home' };
@@ -1064,7 +1057,9 @@
       scored = pool.map(x => [x, 20]);
     }
     scored = scored.concat(ftItems.map(x => [x, x.score]));
-    scored.sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind));
+    // Equal scores: a page before a metric or a person ("reviews" is the Google Reviews page, not the metric; "branch" is not a stylist), then the
+    // shorter name, which is the closer one ("org" is Org Chart before Organisation Pulse).
+    scored.sort((a, b) => b[1] - a[1] || TIE.indexOf(a[0].kind) - TIE.indexOf(b[0].kind) || String(a[0].t || '').length - String(b[0].t || '').length);
     return scored.map(([x]) => x);
   }
   function capped(all, caps, total) {

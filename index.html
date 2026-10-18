@@ -20,6 +20,8 @@
 <link rel="icon" href="assets/favicon-96x96.png" sizes="96x96" type="image/png">
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
+<!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
+<script src="pages.js?v=20261018pg1"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -34,15 +36,16 @@ window.TRS_AUTH_HASH = location.hash;
   history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
 })();
 // Kate, 7 Oct 2026: Client's Last Visit's address reads ?view=last-visit. Everything below still
-// knows the page as 'lostclients' (stars, favourites, the nav), so the new name is turned back
-// into it here before anything reads the address; trSyncUrl writes last-visit out again.
+// knows the page as 'lostclients' (stars, favourites, the nav), so a slug (or a retired page's old name, like branchperf) is
+// turned back into its page id here before anything reads the address; trSyncUrl writes the slug out again. The slugs and
+// retired names are in pages.js.
 (function(){
   try {
-    var q = new URLSearchParams(location.search);
-    if (q.get('view') === 'lost-clients') q.set('view', 'lostlists');   // Lost Clients (campaign lists, 9 Oct 2026) is its own page
-    else if (q.get('view') === 'branchperf') q.set('view', 'dailyperf');   // Branch Performance is part of Daily Performance now (16 Oct 2026); branch= and period= mean the same on both
-    else if (q.get('view') !== 'last-visit') return;
-    else q.set('view', 'lostclients');
+    var q = new URLSearchParams(location.search), v = q.get('view');
+    if (!v) return;
+    var id = trsViewOfSlug(v);
+    if (id === v) return;
+    q.set('view', id);
     history.replaceState(null, '', location.pathname + '?' + q + location.hash);
   } catch (e) {}
 })();
@@ -3443,8 +3446,8 @@ table.tp-cmp td.bad{color:var(--bad)}
             'lost-report.js?v=20261016lr1', 'wv-blast.js?v=20261016ss1', 'top-clients.js?v=20261014mry1', 'client-mix.js?v=20261014mry1',
             'service-rankings.js?v=20261017bb1']
     };
-    var V = { overyears: 'oty', dailyperf: 'dp', ledgerFinancials: 'lgx', ledgerTargets: 'lgx', ledgerActuals: 'lgx', ledgerStylist: 'lgx',
-              clients: 'cl', clientmix: 'cl', services: 'cl', lostclients: 'cl', lostlists: 'cl', wvblast: 'cl' };
+    var V = {};   // view -> group, from pages.js (lazy)
+    TRS_PAGES.forEach(function(p){ if (p.lazy) V[p.id] = p.lazy; });
     var P = {}, D = {}, F = {};
     // One file is fetched once, however many groups name it. A group's files download side by side but run in the order listed
     // (async = false), which is the order the script tags used to run in.
@@ -4275,7 +4278,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="social.js?v=20261008cb1"></script>
 <script src="stylist-cards.js?v=20261014d"></script>
 <script src="org-chart.js?v=20260925d"></script>
-<script src="dashboard.js?v=20261018pf1"></script>
+<script src="dashboard.js?v=20261018pg1"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=20260925d"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4446,7 +4449,7 @@ let DASHBOARD_OPEN = false;
 // offered to click either. Null for everyone else: the whole dashboard, as before.
 let TRS_SCOPE = null;
 let TRS_LEVEL = null;   // dashboard_users.level, from dashboard_me()
-const SCOPE_VIEWS = new Set(['dashboard', 'branchperf', 'ledgerFinancials', 'team']);
+const SCOPE_VIEWS = new Set(TRS_PAGES.filter(p => p.scope).map(p => p.id));   // pages.js
 function applyScope(code){
   TRS_SCOPE = code;
   sel.branch = [code]; pendingSel.branch = [code];
@@ -4507,18 +4510,9 @@ async function enterDashboard(role, meAsk){
   // Kate, 6 Oct 2026: Campaigns now shares a group with Marketing, so the page row
   // goes, not the group; a group with nothing left open hides below.
   const hideNav = v => { const n = document.querySelector(`#sidebar .nav-sub[onclick*="showView('${v}'"]`); if (n) n.style.display = 'none'; };
-  if (TRS_LEVEL === 1) hideNav('wvperf');
-  // Lost Clients (Kate, 2 Oct 2026): Level 2 and above. lost_clients refuses the rest too.
-  if (!(TRS_LEVEL >= 2)) {
-    const lc = document.querySelector(`#sidebar .nav-sub[onclick*="showView('lostclients'"]`);
-    if (lc) lc.style.display = 'none';
-    const ll = document.querySelector(`#sidebar .nav-sub[onclick*="showView('lostlists'"]`);
-    if (ll) ll.style.display = 'none';
-  }
-  // Wellness Voucher Blast (Kate, 15 Oct 2026): Level 3 and above (client names and numbers). wv_blast_get refuses the rest too.
-  if (!(TRS_LEVEL >= 3)) hideNav('wvblast');
-  // Marketing (Kate, 6 Oct 2026): Level 3 and above. google_ads_report and website_report refuse the rest too.
-  if (!(TRS_LEVEL >= 3)) { hideNav('googleads'); hideNav('website'); hideNav('social'); }
+  // Each page's lowest level is in pages.js (min): Lost Clients and Wellness Voucher Performance 2, the Blast and the Content pages 3
+  // (client names and numbers, ad spend). A page the level does not reach leaves the menu; the page and its data refuse it too.
+  TRS_PAGES.forEach(p => { if ((p.min || 1) > 1 && !(TRS_LEVEL >= p.min)) hideNav(p.id); });
   tidyNav();
   {
     const first = ((me && me.name) || '').split(/[\s(]/)[0].replace(/[<>&"]/g, '');
@@ -4538,8 +4532,8 @@ async function enterDashboard(role, meAsk){
   // Audit 17 Oct 2026 (P2-06, P6-07): five more pages need nothing from loadData (no masthead window, no ledger rows: Google Ads,
   // Website and Search, Social, Staff Cards, Org Chart), so a direct link opens them now instead of after the whole Pulse load.
   // The level and scope rules are the ones showView applies, checked first so a page the person may not open never half-draws.
-  const earlyFree = !TRS_SCOPE && (viewQ === 'googleads' || viewQ === 'website' || viewQ === 'social'
-    ? TRS_LEVEL >= 3 : (viewQ === 'stylists' || viewQ === 'orgchart'));
+  const earlyPage = trsPage(viewQ);   // pages.js: free, min
+  const earlyFree = !TRS_SCOPE && !!(earlyPage && earlyPage.free && ((earlyPage.min || 1) <= 1 || TRS_LEVEL >= earlyPage.min));
   const earlyView = earlyLost || earlyFree;
   const earlyName = earlyLost ? 'lostclients' : viewQ;
   // Lost Clients' script arrives with the download started above; its own two calls then run beside loadData, as before.
@@ -4629,10 +4623,9 @@ function showView(view, el){
   // opens Daily. Before the scope check, so a Bahrain sign-in is sent on to its own page like any other page it may not open.
   if (view === 'branchperf') { view = 'dailyperf'; el = document.querySelector(`[onclick*="showView('dailyperf'"]`); }
   if (TRS_SCOPE && !SCOPE_VIEWS.has(view)) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
-  if (TRS_LEVEL === 1 && view === 'wvperf') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
-  if (!(TRS_LEVEL >= 2) && (view === 'lostclients' || view === 'lostlists')) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
-  if (!(TRS_LEVEL >= 3) && view === 'wvblast') { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
-  if (!(TRS_LEVEL >= 3) && (view === 'googleads' || view === 'website' || view === 'social')) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
+  // The lowest level for each page is in pages.js (min): Wellness Voucher Performance and Lost Clients 2, the Blast and the three
+  // Content pages 3. The page's data refuses the rest as well.
+  { const need = trsPageMin(view); if (need > 1 && !(TRS_LEVEL >= need)) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); } }
   // The page's script has not arrived yet (first open, before the idle load finished): fetch it, then run this whole call again, so
   // nothing below ever meets a missing function. The page being left stays up meanwhile.
   const lz = typeof trsLazyOf === 'function' ? trsLazyOf(view) : null;
@@ -5100,7 +5093,7 @@ function trSyncUrl(sectionId){
   const parts = [];
   // The Pulse is the default view, so it stays a bare path — same URL the load
   // path builds when ?view= is absent.
-  if (CURRENT_VIEW && CURRENT_VIEW !== 'dashboard') parts.push('view=' + (CURRENT_VIEW === 'lostclients' ? 'last-visit' : CURRENT_VIEW === 'lostlists' ? 'lost-clients' : CURRENT_VIEW));
+  if (CURRENT_VIEW && CURRENT_VIEW !== 'dashboard') parts.push('view=' + trsSlugOf(CURRENT_VIEW));
   // Kate, 4 Sep 2026: the Split too. MTD, Weekly and Daily are three readings of
   // the same month rather than a preference you happen to hold, so which one you
   // are looking at is part of where you are. Written in full including the
@@ -5295,6 +5288,6 @@ addEventListener('load', sizeTopbar);
 <script src="nav-collapse.js?v=20261014glide2"></script>
 <script src="nav-stars.js?v=20261002a"></script>
 <script src="mobile.js?v=20261008sa"></script>
-<script src="search.js?v=20261018lz2"></script>
+<script src="search.js?v=20261018pg1"></script>
 <script src="visits.js?v=20261008v1"></script>
 </body>
