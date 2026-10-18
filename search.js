@@ -930,6 +930,7 @@
     input.addEventListener('input', () => { clear.hidden = !input.value; picked = false; render(); });
     clear.addEventListener('click', () => { input.value = ''; clear.hidden = true; picked = false; render(); input.focus(); });
     input.addEventListener('keydown', onKey);
+    if (window.TRSMic) TRSMic.add(input);
 
     list.addEventListener('click', e => {
       if (e.target.closest('.gs-more')) { openSerp(input.value.trim()); return; }
@@ -1181,6 +1182,7 @@
     document.body.append(serp);
     serpIn = serp.querySelector('.gs-serp-in');
     serpIn.addEventListener('input', () => { clearTimeout(serpTimer); serpTimer = setTimeout(runSerp, 200); });
+    if (window.TRSMic) TRSMic.add(serpIn);
     serpIn.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); clearTimeout(serpTimer); runSerp(); if (isPhone()) serpIn.blur(); }
       else if (e.key === 'Escape') { e.preventDefault(); closeSerp(); }

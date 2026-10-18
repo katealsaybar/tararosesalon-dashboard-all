@@ -70,7 +70,7 @@ SPECIAL = {'dashboard.js', 'branch-ledger.js', 'team-performance.js'}
 NOT_PAGES = {
     'auth.js': 'sign-in helpers', 'mobile.js': 'phone layer', 'nav-collapse.js': 'sidebar behaviour',
     'nav-stars.js': 'stars beside sidebar links', 'search.js': 'the search itself',
-    'search-index.js': 'the output of this file', 'visits.js': 'remembers what was opened',
+    'search-index.js': 'the output of this file', 'voice-mic.js': 'the mic button on every search bar', 'visits.js': 'remembers what was opened',
     'ask-widget.js': 'the Ask box, one widget on every page', 'staff-links.js': 'the name hover menu',
     'staff-profiles.js': 'staff card data; people are found through the Team results',
     'stylist-cards.js': 'staff card words; people are found through the Team results',

@@ -488,6 +488,9 @@
   }
   function wireSearch() {
     var input = document.getElementById('kbSearch'), box = document.getElementById('kbResults');
+    // Voice, 18 Oct 2026: the shared mic (voice-mic.js), loaded once, added to this bar.
+    if (window.TRSMic) TRSMic.add(input);
+    else { var vm = document.createElement('script'); vm.src = '/voice-mic.js?v=72c98477'; vm.onload = function () { if (window.TRSMic) TRSMic.add(input); }; document.head.appendChild(vm); }
     var timer = null, items = [], active = -1, seq = 0;
     function close() { box.classList.remove('open'); box.innerHTML = ''; active = -1; }
     function paint(q) {
