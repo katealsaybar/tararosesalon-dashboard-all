@@ -14,6 +14,7 @@
     '.trs-mic:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(153,246,228,.6)}' +
     '.trs-mic.on{color:#C0392B;background:rgba(192,57,43,.12);animation:trsMic 1.2s ease-in-out infinite}' +
     '@keyframes trsMic{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.35)}50%{box-shadow:0 0 0 7px rgba(192,57,43,0)}}' +
+    '@media (pointer:coarse){.trs-mic{width:40px;height:40px;margin:-5px -6px -5px 0}.trs-mic svg{width:19px;height:19px}}' +
     '@media (prefers-reduced-motion:reduce){.trs-mic.on{animation:none}}';
   document.head.appendChild(css);
   var MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
