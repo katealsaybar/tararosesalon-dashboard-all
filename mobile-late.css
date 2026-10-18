@@ -171,7 +171,7 @@
   details.pf > summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;font-weight:600;font-size:15px}
   details.pf > summary::-webkit-details-marker{display:none}
   details.pf > summary::after{content:'+';margin-left:auto;font-weight:400;color:var(--muted);font-size:20px;line-height:1}
-  details.pf[open] > summary::after{content:'3'}
+  details.pf[open] > summary::after{content:'\2212'}
   details.pf > summary .pf-t{flex:none}
   details.pf > summary .pf-l{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400;font-size:13.5px;color:var(--muted)}
   details.pf > .lc-bar{position:static;margin-top:4px}
@@ -181,4 +181,23 @@
 /* Stylist's Benchmarks' group heads and Staff's 13 Week's group row were 11.5px (audit 18 Oct 2026, P1-13). */
 @media(max-width:760px){
   :root .slv-table tr.slv-g th,:root .w13-down thead tr.w13-gh th{font-size:12px}
+}
+
+
+/* Phone ops, 18 Oct 2026 (Kate, from her phone on Lost Clients).
+   1. The Clients family kept the 28px desktop gutter on top of the page's own, and every section sat in a bordered box, so the
+      content was a narrow strip with a box inside it. No gutter of its own, no box (16 Oct ruling: a hairline between sections).
+   2. The search box was 100% wide plus its padding and border, so it ran past the right edge.
+   3. "On this page" was a wrapping pile of pills, four ragged rows. It is one row that scrolls sideways, with an edge fade. */
+@media(max-width:760px){
+  #topClientsContent,#clientMixContent,#lostClientsContent,#lostListsContent,#wvBlastContent{padding-left:0!important;padding-right:0!important}
+  :root #topClientsContent .slv-card,:root #clientMixContent .slv-card,:root #lostClientsContent .slv-card,:root #lostListsContent .slv-card,:root #wvBlastContent .slv-card{
+    background:none;border:0;border-radius:0;box-shadow:none;padding-left:0;padding-right:0}
+  :root #topClientsContent .slv-card + .slv-card,:root #clientMixContent .slv-card + .slv-card,:root #lostClientsContent .slv-card + .slv-card,:root #lostListsContent .slv-card + .slv-card,:root #wvBlastContent .slv-card + .slv-card{
+    border-top:1px solid var(--border);padding-top:16px}
+  :root .ll-tools .ll-search,:root .lc-tools input[type=search]{box-sizing:border-box;width:100%;min-width:0;max-width:100%}
+  :root .lg-side .side-nav{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    padding-right:28px;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 32px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 32px),transparent)}
+  :root .lg-side .side-nav::-webkit-scrollbar{display:none}
+  :root .lg-side .side-nav .side-k,:root .lg-side .side-nav a{flex:none;white-space:nowrap}
 }
