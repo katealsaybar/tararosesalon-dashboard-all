@@ -3246,6 +3246,9 @@ body.ledger-chrome .lg-month-sel{font-size:15px}
   margin:0 -28px 4px;padding:9px 28px;
   background:var(--bg);border-bottom:1px solid var(--border)}
 .tp-bar-n{font-size:13px;color:var(--muted2);letter-spacing:.04em}
+/* Phone summary line (mobile-late.css shows it); a laptop keeps the controls in the bar exactly as they were. */
+.tp-sum{display:none}
+.tp-ctl{display:contents}
 .tp-bar-sp{margin-left:auto}
 /* Kate, 15 Oct 2026: the compare hint used to wrap onto a second row of the sticky bar,
    so the bar ate two rows of the screen. It now sits under the bar and scrolls away. */
@@ -3414,7 +3417,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="lost-queue.css?v=baff8a67">
 <link rel="stylesheet" href="send-schedule.css?v=88a70391">
 <link rel="stylesheet" href="wv-blast.css?v=a78e3872">
-<link rel="stylesheet" href="mobile-late.css?v=8773bfdf">   <!-- phone rules for the pages whose sheets load after mobile.css -->
+<link rel="stylesheet" href="mobile-late.css?v=63902758">   <!-- phone rules for the pages whose sheets load after mobile.css -->
 <link rel="stylesheet" href="nav-style.css?v=5092890f">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/theme-fade.js"></script>
@@ -3465,14 +3468,14 @@ table.tp-cmp td.bad{color:var(--bad)}
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['compare.js?v=b8350980'],
       mk:  ['marketing-chart.js?v=7aaefb35', 'google-ads.js?v=e67ce0e7', 'website.js?v=55a9e0a5', 'social.js?v=4c3d3645'],
-      wk:  ['team-performance.js?v=67fae3d7', 'staff-weeks.js?v=e29bca44'],
+      wk:  ['team-performance.js?v=d403f86f', 'staff-weeks.js?v=e29bca44'],
       lv:  ['stylist-levels.js?v=13afdff1'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['products.js?v=d1961633'],
       sc:  ['stylist-cards.js?v=fe5a89a4'],
       oc:  ['org-chart.js?v=37a5bbdf'],
-      tp:  ['team-performance.js?v=67fae3d7']
+      tp:  ['team-performance.js?v=d403f86f']
     };
     var V = {};   // view -> group, from pages.js (lazy)
     TRS_PAGES.forEach(function(p){ if (p.lazy) V[p.id] = p.lazy; });

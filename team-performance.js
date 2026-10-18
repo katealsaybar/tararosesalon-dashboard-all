@@ -140,6 +140,15 @@ function tpSetRebookSrc(k) {
   try { localStorage.setItem('tp-rebook-src', k); } catch (e) {}
   renderTeam();
 }
+// Phone only: whether the controls are dropped down from the summary line. Kept here so a re-render (every switch re-draws the
+// page) leaves it as it was; it starts closed.
+let tpCtlOpen = false;
+function tpToggleCtl(btn) {
+  tpCtlOpen = !tpCtlOpen;
+  const bar = btn && btn.closest('.tp-bar');
+  if (bar) bar.classList.toggle('open', tpCtlOpen);
+  if (btn) btn.setAttribute('aria-expanded', String(tpCtlOpen));
+}
 // The switch in the bar, or one line saying why there is none.
 function tpRebookBar() {
   if (typeof isBahrainView === 'function' && isBahrainView()) return '';
@@ -581,8 +590,16 @@ async function renderTeam() {
   const lead   = roster.length ? lg.get(roster[0]) : 0;
   const benchWord = tpDept === 'beauty' ? 'beauty bench' : 'hair floor';
 
+  // Kate, 18 Oct 2026 ("option 3"): on a phone the four controls were about 230px tall, so the bar shows one summary line and the
+  // controls drop down from it. Laptops never see the summary (display:none) and the wrapper is display:contents, so nothing moves.
+  const rebookBar = tpRebookBar();
+  const sumBits = [tpDept === 'hair' ? 'Hair' : 'Beauty', tpHideLeavers ? 'Current team' : 'With leavers'];
+  if (rebookBar.includes('aria-label="Rebooking from"')) sumBits.push(tpRebookSrc === 'phorest' ? 'Phorest' : 'Ledger');
+  if (part === 'race') sumBits.push(TP_LEAGUES[tpLeagueKey()].label);
   host.innerHTML = `
-    <div class="tp-bar">
+    <div class="tp-bar${tpCtlOpen ? ' open' : ''}">
+      <button type="button" class="tp-sum" aria-expanded="${tpCtlOpen}" aria-controls="tpCtl" onclick="tpToggleCtl(this)"><span>${sumBits.join(' · ')}</span><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="tp-ctl" id="tpCtl">
       <div class="tp-seg">
         <button class="${tpDept === 'hair'   ? 'on' : ''}" onclick="tpSetDept('hair')">Hair</button>
         <button class="${tpDept === 'beauty' ? 'on' : ''}" onclick="tpSetDept('beauty')">Beauty</button>
@@ -591,13 +608,14 @@ async function renderTeam() {
         <button class="${tpHideLeavers ? '' : 'on'}" onclick="tpSetLeavers(false)" title="Include people who have left, greyed out">With leavers</button>
         <button class="${tpHideLeavers ? 'on' : ''}" onclick="tpSetLeavers(true)" title="Only the current team">Current team</button>
       </div>
-      ${tpRebookBar()}
+      ${rebookBar}
       ${part === 'race' ? `<select id="tpRankBy" aria-label="Rank by" onchange="tpSetSort(this.value)">
         ${tpLeagues().map(k => `<option value="${k}" ${k === tpLeagueKey() ? 'selected' : ''}>Rank by: ${TP_LEAGUES[k].label}</option>`).join('')}
       </select>` : ''}
       ${tpCountsBad ? '<span class="tp-bar-n" style="color:var(--warn)">Instagram and review counts did not load, showing Net take.</span>' : ''}
       <span class="tp-bar-n">${branchLabel} · ${roster.length} ${roster.length === 1 ? 'person' : 'people'}</span>
       ${typeof ihTip === 'function' ? ihTip('', 'Two counts of clients, side by side. Clients per staff is the ledgers’ count: a client seen by two staff counts for each, and rebooking, NCR and the aims are written on it. Phorest is the Staff Daily report per employee: visits, requests (RQ), new clients and her services; her Phorest avg bill is her services over her Phorest visits. Phorest figures need a daily window, so a full-week window shows none.') : ''}
+      </div>
     </div>
     <div class="tp-hint tp-bar-n">${part === 'quad' ? 'Tap a face' : 'Tap + on anyone'} to compare, up to ${TP_MAX_COMPARE}</div>
 

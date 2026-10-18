@@ -100,6 +100,16 @@
   :root .tp-bar .tp-seg button{flex:1 1 0;min-height:38px;padding:0 8px;font-size:14px;line-height:1.2;text-align:center;white-space:nowrap}
   :root .tp-bar .ps{flex:1 1 100%;display:block}
   :root .tp-bar .ps .ps-btn{width:100%;min-height:40px;display:flex;align-items:center;justify-content:space-between}
+  /* Podium Race and Staff Quadrant (Kate, 18 Oct 2026, "option 3": the four controls were about 230px): the bar is one summary line,
+     "Hair · With leavers · Phorest · Net take", and the controls drop down from it. It starts closed and stays open until it is
+     tapped again, so Hair and Beauty can be flipped back and forth. */
+  :root .tp-bar .tp-sum{display:flex;flex:1 1 100%;align-items:center;justify-content:space-between;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text);font:600 13px 'Inter',sans-serif;letter-spacing:.02em;text-align:left;cursor:pointer}
+  :root .tp-bar .tp-sum span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  :root .tp-bar .tp-sum svg{flex:none;width:10px;height:10px;transition:transform .18s}
+  :root .tp-bar.open .tp-sum{border-color:var(--accent)}
+  :root .tp-bar.open .tp-sum svg{transform:rotate(180deg)}
+  :root .tp-bar .tp-ctl{display:none}
+  :root .tp-bar.open .tp-ctl{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:8px}
 }
 /* Daily Performance injects its own sheet after this one, so these carry :root to win. */
 @media(max-width:560px){
