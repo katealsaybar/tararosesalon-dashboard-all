@@ -889,6 +889,17 @@
   let serpQ = null, serpView = '', serpTips = false, serpAns = null, serpPage = 0, serpText = '';
   const PAGE = 10;
 
+  // The mic (voice-mic.js), told the staff names this dashboard already holds so what is heard is set right to them.
+  function micFor(el) {
+    if (!window.TRSMic) return;
+    try {
+      if (typeof STAFF_SURNAMES !== 'undefined') {
+        TRSMic.learn(Object.keys(STAFF_SURNAMES).map(n => n.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase()) + ' ' + STAFF_SURNAMES[n]));
+      }
+    } catch (e) { /* names are a help, not a need */ }
+    TRSMic.add(el);
+  }
+
   function mount() {
     const acts = document.querySelector('.mast-acts');
     if (acts && !document.getElementById('gsTrig')) {
@@ -931,7 +942,7 @@
     input.addEventListener('input', () => { clear.hidden = !input.value; picked = false; render(); });
     clear.addEventListener('click', () => { input.value = ''; clear.hidden = true; picked = false; render(); input.focus(); });
     input.addEventListener('keydown', onKey);
-    if (window.TRSMic) TRSMic.add(input);
+    micFor(input);
 
     list.addEventListener('click', e => {
       if (e.target.closest('.gs-more')) { openSerp(input.value.trim()); return; }
@@ -1183,7 +1194,7 @@
     document.body.append(serp);
     serpIn = serp.querySelector('.gs-serp-in');
     serpIn.addEventListener('input', () => { clearTimeout(serpTimer); serpTimer = setTimeout(runSerp, 200); });
-    if (window.TRSMic) TRSMic.add(serpIn);
+    micFor(serpIn);
     serpIn.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); clearTimeout(serpTimer); runSerp(); if (isPhone()) serpIn.blur(); }
       else if (e.key === 'Escape') { e.preventDefault(); closeSerp(); }

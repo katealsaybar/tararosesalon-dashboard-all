@@ -34,6 +34,44 @@
     [/\b(?:faith|kate|kay|cate|kait|kaite|kit) (?:alzheimers?|al ?zheimers?|also ?bar|alsa ?bar|al ?sa ?bar|al ?sy ?bar|al ?say ?bar|al ?sai ?bar|al-?saybar|al ?sabbar|al ?seibar)\b/gi, 'Kate Alsaybar'],
     [/\bre[- ]?booking\b/gi, 'rebooking']
   ];
+  // Names, matched by sound-alike spelling instead of one list of slips (Kate, 18 Oct 2026: "faith alzheimer", then
+  // "kate and savar", for Kate Alsaybar). Each name is compared with every run of one to a few words in what was
+  // heard, spaces ignored; a run within a few letters of the name is replaced by the name. NAMES holds the ones
+  // we always want right (the second number is how loose the match may be, a share of the name's letters);
+  // TRSMic.learn(list) adds more at run time, for example the staff names the dashboard already holds.
+  var NAMES = [['Tara Rose Kidd', 0.34], ['Tara Rose', 0.34], ['Kate Alsaybar', 0.34], ['Saadiyat', 0.25], ['Mamsha', 0.2],
+    ['Khalifa City', 0.25], ['Motor City', 0.2], ['Al Quoz', 0.25], ['Marasy', 0.2], ['Wellness Voucher', 0.2], ['Hair Rhythm', 0.2]];
+  var learned = [];
+  function lev(a, b) {
+    var prev = [], cur, i, j;
+    for (j = 0; j <= b.length; j++) prev[j] = j;
+    for (i = 1; i <= a.length; i++) {
+      cur = [i];
+      for (j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1));
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  function letters(x) { return x.toLowerCase().replace(/[^a-z]/g, ''); }
+  function soundalike(text) {
+    var words = text.split(/\s+/), all = NAMES.concat(learned).slice().sort(function (x, y) { return y[0].length - x[0].length; });
+    for (var n = 0; n < all.length; n++) {
+      var key = letters(all[n][0]);
+      if (key.length < 6) continue;
+      var lim = Math.floor(key.length * all[n][1]), nw = all[n][0].split(' ').length, best = null;
+      // the closest run of words wins (then the shorter one), so a neighbouring word is never swallowed with it
+      for (var i = 0; i < words.length; i++) {
+        for (var L = Math.max(1, nw - 1); L <= nw + 1 && i + L <= words.length; L++) {
+          var w = letters(words.slice(i, i + L).join(''));
+          if (!w || Math.abs(w.length - key.length) > 3) continue;
+          var d = lev(w, key);
+          if (d <= lim && (!best || d < best.d || (d === best.d && L < best.L))) best = { i: i, L: L, d: d };
+        }
+      }
+      if (best) words.splice(best.i, best.L, all[n][0]);
+    }
+    return words.join(' ');
+  }
   function pick(result) {
     var best = result[0], top = -1;
     for (var i = 0; i < result.length; i++) {
@@ -45,7 +83,7 @@
   }
   function tidy(t) {
     for (var i = 0; i < FIXES.length; i++) t = t.replace(FIXES[i][0], FIXES[i][1]);
-    return t;
+    return soundalike(t);
   }
 
   function add(inp) {
@@ -110,5 +148,12 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && on && rec) { wantOn = false; clearTimeout(quiet); rec.stop(); } });
     return btn;
   }
-  window.TRSMic = { add: add };
+  // learn(['Hanneh Smith', ...]): more names to hear right. A fifth of its letters off, at most, still counts as a match.
+  function learn(list) {
+    (list || []).forEach(function (x) {
+      x = String(x || '').replace(/\s+/g, ' ').trim();
+      if (letters(x).length >= 6 && !learned.some(function (l) { return l[0] === x; })) learned.push([x, 0.2]);
+    });
+  }
+  window.TRSMic = { add: add, learn: learn };
 })();
