@@ -36,5 +36,32 @@ async function lrfMenu(ev) {
     + Object.keys(LC_BRANCH).map(b => links[b]
       ? `<button type="button" class="ll-opt" onclick="lrfOpen('${b}')">${lcEsc(LC_BRANCH[b])}</button>`
       : `<button type="button" class="ll-opt" disabled>${lcEsc(LC_BRANCH[b])} <em>not set up</em></button>`).join('')
-    + '<div class="ll-pt ll-pn">Pick Take out? and a Note for the clients who should not get the message. Changes reach the dashboard within about 15 minutes. You need to be shared on the sheet.</div>';
+    + '<div class="ll-pt ll-pn">Pick Take out? and a Note for the clients who should not get the message. Changes reach the dashboard within about 15 minutes. You need to be shared on the sheet.</div>'
+    + '<div class="lrf-add" id="lrfAdd"></div>';
+  lrfPaintAdd();
+}
+
+// Stop adding new clients to the sheets (Kate, 18 Oct 2026). Each refresh adds clients who have joined the lists since to the bottom of the
+// four sheets, in green. Once every message of the October 2026 blast has gone out, Level 3 and above can stop that; rows already on the
+// sheets keep their Next appointment, Status and After our message. State is in lost_sheet_config (migrations/lost_sheet_adding.sql).
+async function lrfPaintAdd(msg) {
+  const el = document.getElementById('lrfAdd');
+  if (!el) return;
+  if (!el.innerHTML) el.innerHTML = '<div class="ll-pt ll-pn">Checking…</div>';
+  const { data, error } = await sb.rpc('lost_sheet_adding_get');
+  if (document.getElementById('lrfAdd') !== el) return;
+  if (error || !data) { el.innerHTML = ''; return; }          // the switch is not there yet: say nothing
+  const can = typeof llPhones === 'function' && llPhones();   // Level 3 and above
+  const day = data.at ? new Date(data.at).toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short' }) : '';
+  el.innerHTML = (data.add_new
+    ? `<div class="ll-pt ll-pn">New clients are added to the bottom of each sheet every day, in green.</div>`
+      + (can ? `<button type="button" class="ll-opt lrf-stop" onclick="lrfAddSet(false)">Stop adding new clients</button>` : '')
+    : `<div class="ll-pt ll-pn"><b>Adding new clients is stopped</b>${data.by ? ' by ' + lcEsc(data.by) : ''}${day ? ' on ' + lcEsc(day) : ''}. The rows already on the sheets keep updating.</div>`
+      + (can ? `<button type="button" class="ll-opt lrf-stop" onclick="lrfAddSet(true)">Start adding new clients again</button>` : ''))
+    + (msg ? `<div class="ll-pt ll-pn">${lcEsc(msg)}</div>` : '');
+}
+async function lrfAddSet(on) {
+  if (!on && !confirm('Stop adding new clients to the four sheets?\n\nRows already on the sheets keep updating. You can start it again here.')) return;
+  const { error } = await sb.rpc('lost_sheet_adding_set', { p_on: !!on });
+  lrfPaintAdd(error ? 'That did not save. You need Level 3 or above.' : '');
 }

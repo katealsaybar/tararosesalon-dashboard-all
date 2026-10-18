@@ -655,6 +655,16 @@ ADDED_JSON = DATA / "added.json"
 NEW_DAYS = 7
 
 
+def add_new_enabled():
+    """The Stop button on the dashboard (Kate, 18 Oct 2026, migrations/lost_sheet_adding.sql): False once someone has stopped new clients
+    being added to the sheets. If the function is not there yet or the read fails, carry on as before (add them)."""
+    try:
+        cfg = rpc("lost_sheet_config", {})
+    except SystemExit:
+        return True
+    return not (isinstance(cfg, dict) and cfg.get("add_new") is False)
+
+
 def update(only=None, dry=False):
     """The daily upkeep (Kate, 12 Oct 2026: "you can't change the client names in column A: someone may already be editing"). Nothing is
     rewritten and no client row is ever removed, moved or renamed. After a sync (so what was typed is safe), for each existing row only
@@ -668,6 +678,7 @@ def update(only=None, dry=False):
     added = load(ADDED_JSON, {})
     optouts = set(rpc("lost_sheet_optouts", {}) or [])      # opted out or blocked in respond.io, listed or not (lost_sheet_optouts)
     outcomes = rpc("lost_sheet_outcomes", {}) or {}         # what came of our message, per client key (column N)
+    adding = add_new_enabled()                              # False after Stop on the dashboard: no new clients at the bottom
     for b in [x for x in BRANCHES if x in ids and (not only or x == only)]:
         rows = db_rows(b)
         by_key = {r["client_key"]: r for r in rows}
@@ -701,6 +712,9 @@ def update(only=None, dry=False):
                 {"range": f"{TAB}!B2:F{n + 1}", "values": block}, {"range": f"{TAB}!J2:J{n + 1}", "values": stat}]}).execute()
             svc.spreadsheets().values().update(spreadsheetId=sid, range=f"{TAB}!K2:K{n + 1}", valueInputOption="RAW", body={"values": phones}).execute()   # RAW: +971... stays text
         fresh = [r for r in rows if r["client_key"] not in on_sheet and not r.get("recent")]
+        if fresh and not adding:
+            print(f"{b}: adding new clients is stopped (dashboard button); {len(fresh)} client(s) not added")
+            fresh = []
         if fresh and not dry:
             svc.spreadsheets().values().append(spreadsheetId=sid, range=f"{TAB}!A{n + 2}", valueInputOption="USER_ENTERED", insertDataOption="OVERWRITE",
                                                body={"values": [row_values(r, nice(str(today)))[:10] for r in fresh]}).execute()
