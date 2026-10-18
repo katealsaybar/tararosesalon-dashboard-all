@@ -8,6 +8,7 @@
 --   p_staff  [{"k": "ZARA", "h": ["SAA","KCA"]}, ...]   k = the staff key (the ledger name), h = her home branch codes (a strict spelling such as
 --            May or Grace only counts at her own branch, a loose one anywhere), taken from staff-profiles.js on the page
 --   returns  [{"k": "ZARA", "n": 46}, ...]   reviews dated inside the window that name her, or are hand-tagged to her
+-- staff_not (google_reviews.staff_not, 18 Oct 2026) removes a key from the text matches of that review; a hand tag in staff_manual still counts.
 -- Same sign-in key check as league_counts (perf_admins leader or viewer). Client credit (reviews that name nobody) is not counted, as before.
 
 create or replace function public.league_review_counts(p_admin uuid, p_from date, p_to date, p_staff jsonb) returns jsonb
@@ -22,7 +23,7 @@ begin
   --   her name rows, so her home is the home_branch on them and there is no first-name fallback.
   return (
     with rv as (
-      select row_number() over () as rid, g.comment, g.reviewer, g.staff_manual as man,
+      select row_number() over () as rid, g.comment, g.reviewer, g.staff_manual as man, g.staff_not as nt,
              case when g.branch like 'Al Quoz%' then 'AQ' when g.branch like 'Khalifa%' then 'KCA' when g.branch like 'Motor%' then 'MC'
                   when g.branch like 'Saadiyat%' then 'SAA' when g.branch like 'District 2%' then 'BAH' end as gb
       from google_reviews g where g.review_date between p_from and p_to
@@ -40,6 +41,7 @@ begin
       select st.k, rv.rid from st
       join vv v on v.k = st.k
       join rv on (rv.gb is distinct from 'BAH' or 'BAH' = any(st.h))
+       and not coalesce(rv.nt && array[st.k], false)   -- staff_not (18 Oct 2026): a review that must not credit her although the text names her (Rachel Dawson's "Rachel" is not Rachel White)
        and rv.comment ilike '%' || v.variant || '%'
        and case when v.strict then (rv.gb = any(st.h)) and (case when v.ci then rv.comment ~* ('\m' || v.variant || '\M') else rv.comment ~ ('\m' || v.variant || '\M') end)
                 else rv.comment ~* ('\m' || v.variant || '\M') end

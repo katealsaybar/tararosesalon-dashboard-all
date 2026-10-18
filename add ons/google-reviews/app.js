@@ -161,6 +161,11 @@ function tagStaff(r){
   r.named = r.viaClient ? [] : r.staff.slice();
   const man = (r.manual || []).filter(k => staffBy(k));
   if (man.length) { r.staff = [...new Set([...r.named, ...man])]; r.viaClient = false; }
+  // staff_not (Kate, 18 Oct 2026): keys this review must not credit although its text names them ("Rachel" is Rachel Dawson's here, not
+  // Rachel White's). The hand tag then is the name the text gives, so it counts as named, not as tagged by hand.
+  if (r.not && r.not.length) {
+    r.staff = r.staff.filter(k => !r.not.includes(k)); r.named = [...r.named.filter(k => !r.not.includes(k)), ...man.filter(k => r.staff.includes(k))];
+  }
   // Marasy (Kate, 18 Oct 2026): its stylists are matched by hand from what each review says (the text is cut off in the email
   // notices and a first name there is often a different person now), so the tag counts as named, not as "tagged by hand".
   if (r.branch === MRY_BRANCH) r.named = man;
@@ -517,14 +522,14 @@ function renderNote(){
 }
 async function loadLive(){
   // photos: what the client attached on Google, read off Business Profile (google_review_photos, Kate, 5 Oct 2026).
-  const rows=[], cols="review_id,branch,stars,reviewer,comment,review_date,date_approx,when_text,replied,reply,url,source,synced_at,photos,gbp_name,staff_manual";
+  const rows=[], cols="review_id,branch,stars,reviewer,comment,review_date,date_approx,when_text,replied,reply,url,source,synced_at,photos,gbp_name,staff_manual,staff_not";
   for(let from=0;;from+=1000){
     const res=await fetch(`${SUPA_URL}/rest/v1/google_reviews?select=${cols}&order=review_date.desc,review_id`,{headers:{...authHeaders(),Range:`${from}-${from+999}`}});
     if(!res.ok) throw new Error("google_reviews "+res.status);
     const page=await res.json(); rows.push(...page); if(page.length<1000) break;
   }
   if(!rows.length) throw new Error("google_reviews is empty");
-  R=rows.map(r=>({id:r.review_id,branch:r.branch,stars:r.stars,reviewer:r.reviewer,date:r.review_date,comment:r.comment||"",replied:r.replied,reply:r.reply||"",url:r.url,approx:r.date_approx,when:r.when_text,photos:r.photos||[],manual:r.staff_manual||[]}));
+  R=rows.map(r=>({id:r.review_id,branch:r.branch,stars:r.stars,reviewer:r.reviewer,date:r.review_date,comment:r.comment||"",replied:r.replied,reply:r.reply||"",url:r.url,approx:r.date_approx,when:r.when_text,photos:r.photos||[],manual:r.staff_manual||[],not:r.staff_not||[]}));
   SYNC={last:rows.reduce((m,r)=>r.synced_at>m?r.synced_at:m,""),seedOnly:rows.every(r=>r.source==="seed"),live:new Set(rows.filter(r=>r.gbp_name).map(r=>r.branch))};
   const today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Dubai"});
   const totals={},exact={},avg={},cover={};
