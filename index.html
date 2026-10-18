@@ -4514,11 +4514,18 @@ async function enterDashboard(role, meAsk){
   const perfKey = TRSAuth.perfKey();
   // Opened on Lost Clients (Kate, 2 Oct 2026): the page needs none of loadData, so it
   // opens now and its own two calls run beside loadData instead of after it.
-  const earlyView = new URLSearchParams(location.search).get('view') === 'lostclients'
-    && TRS_LEVEL >= 2 && typeof lcPrefetch === 'function';
+  const viewQ = new URLSearchParams(location.search).get('view');
+  const earlyLost = viewQ === 'lostclients' && TRS_LEVEL >= 2 && typeof lcPrefetch === 'function';
+  // Audit 17 Oct 2026 (P2-06, P6-07): five more pages need nothing from loadData (no masthead window, no ledger rows: Google Ads,
+  // Website and Search, Social, Staff Cards, Org Chart), so a direct link opens them now instead of after the whole Pulse load.
+  // The level and scope rules are the ones showView applies, checked first so a page the person may not open never half-draws.
+  const earlyFree = !TRS_SCOPE && (viewQ === 'googleads' || viewQ === 'website' || viewQ === 'social'
+    ? TRS_LEVEL >= 3 : (viewQ === 'stylists' || viewQ === 'orgchart'));
+  const earlyView = earlyLost || earlyFree;
+  const earlyName = earlyLost ? 'lostclients' : viewQ;
   if (earlyView) {
-    lcPrefetch();
-    showView('lostclients', document.querySelector(`[onclick*="lostclients"]`));
+    if (earlyLost) lcPrefetch();
+    showView(earlyName, document.querySelector(`[onclick*="${earlyName}"]`));
     trsBootDone();
   }
   await loadData();
@@ -4538,9 +4545,9 @@ async function enterDashboard(role, meAsk){
   const viewParam = params.get('view') || 'dashboard';
   const activeView = /^[A-Za-z0-9_-]{1,40}$/.test(viewParam) ? viewParam : 'dashboard';
   const btn = document.querySelector(`[onclick*="${activeView}"]`);
-  // Already open early: leave Lost Clients as drawn; a page picked meanwhile redraws with the data.
+  // Already open early: leave that page as drawn; a page picked meanwhile redraws with the data.
   if (!earlyView) showView(activeView, btn || null);
-  else if (CURRENT_VIEW !== 'lostclients') showView(CURRENT_VIEW, document.querySelector(`#sidebar [onclick*="'${CURRENT_VIEW}'"]`));
+  else if (CURRENT_VIEW !== earlyName) showView(CURRENT_VIEW, document.querySelector(`#sidebar [onclick*="'${CURRENT_VIEW}'"]`));
   trsBootDone();
 }
 
