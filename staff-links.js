@@ -249,9 +249,16 @@ function whoGoStats(key, dept, branch) {
     () => whoNote(key + ' is not in the selected branch or period.'));
 }
 
+// The slug the performance pages know her by: her full name, and the menu's key is the name the ledgers use (often
+// the first name alone, with the surname kept beside it by staffSurname).
+function whoSlug(key) {
+  const last = (typeof staffSurname === 'function') ? staffSurname(key) : '';
+  const full = last && !String(key).toUpperCase().includes(String(last).toUpperCase()) ? key + ' ' + last : key;
+  return (typeof w13SlugOf === 'function') ? w13SlugOf(full) : String(full).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+}
 // Staff Dashboards opens on one person through the frame's ?staff= slug (the same slug the address carries).
 function whoGoDash(key) {
-  window.spfWantStaff = (typeof w13SlugOf === 'function') ? w13SlugOf(key) : String(key).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  window.spfWantStaff = whoSlug(key);
   window.spfStaffSlug = window.spfWantStaff;
   const frame = document.getElementById('spfFrame');
   if (frame) { frame.removeAttribute('src'); delete frame.dataset.loaded; }   // a loaded frame is on someone else
@@ -259,7 +266,7 @@ function whoGoDash(key) {
 }
 // Staff's 13 Week opens straight on her report (staff-weeks.js reads w13WantSlug when it draws).
 function whoGoWeeks(key) {
-  if (typeof w13SlugOf === 'function' && typeof w13WantSlug !== 'undefined') { w13WantSlug = w13SlugOf(key); w13Pick = null; }
+  if (typeof w13WantSlug !== 'undefined') { w13WantSlug = whoSlug(key); w13Pick = null; }
   whoShowView('staffweeks');
 }
 function whoGoBench() { whoShowView('stafflevels'); }
