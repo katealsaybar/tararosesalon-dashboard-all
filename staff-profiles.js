@@ -335,6 +335,8 @@ const STAFF_PROFILES = {
   // archived in Phorest. Each has her own placeholder file until a headshot comes. Related, not the same person, so no merge.
   'ELLIESA':  { photoFull: 'stylist/photos/AQ/elliesa purisima.png', blank: true, role: 'Beauty Team Member', branch: 'AQ', ig: 'elliesa03', resigned: true },
   'ELOISA':   { photoFull: 'stylist/photos/AQ/eloisa purisima.png', blank: true, role: 'Beauty Team Member', branch: 'AQ', ig: 'tararose.eloisa25', resigned: true },
+  // Jenna Mcdonnell: former Al Quoz Beautician (Phorest added 26 Jan 2024, archived; ledger Feb to Mar 2024). Real B&W headshot from Kate, 19 Oct 2026, no IG added (her personal account, not a business one).
+  'JENNA':    { photoFull: 'stylist/photos/AQ/jenna mcdonnell.png', role: 'Beauty Team Member', branch: 'AQ', resigned: true },
   // Venus: Motor City Nov 2022 to Jan 2025 (683 daily rows). Junior Stylist per the roster export.
   'VENUS':    { photoFull: 'stylist/photos/MC/venus solomon.png', blank: true, role: 'Junior Stylist', branch: 'MC', resigned: true },
   // Oliver: Barber at Al Quoz, Dec 2025 to Jan 2026.
