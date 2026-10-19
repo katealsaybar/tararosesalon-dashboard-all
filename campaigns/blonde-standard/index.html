@@ -6,11 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#FAF8F4">
 <title>The Blonde Standard &middot; Tara Rose Salon</title>
-<meta name="description" content="A three-visit plan for blonde that stays blonde: Create, Protect, Keep on Track. Soft, Signature and Transformation Blonde, plans from AED 1,550 for short or fine hair. The Confidence Mapping is free. Abu Dhabi and Dubai.">
+<meta name="description" content="Three visits, planned together, to keep your blonde bright and even. Plans from AED 1,550 for short or fine hair. Free Confidence Mapping in Abu Dhabi and Dubai.">
 <meta name="robots" content="noindex,nofollow">
 <meta property="og:type" content="website">
 <meta property="og:title" content="The Blonde Standard &middot; Tara Rose Salon">
-<meta property="og:description" content="A three-visit plan for blonde that stays blonde: Create, Protect, Keep on Track. Soft, Signature and Transformation Blonde, plans from AED 1,550 for short or fine hair. The Confidence Mapping is free. Abu Dhabi and Dubai.">
+<meta property="og:description" content="Three visits, planned together, to keep your blonde bright and even. Plans from AED 1,550 for short or fine hair. Free Confidence Mapping in Abu Dhabi and Dubai.">
 <meta property="og:locale" content="en_GB">
 <meta property="og:site_name" content="Tara Rose">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -19,10 +19,12 @@
 <link rel="stylesheet" href="css/fonts.css">
 <link rel="stylesheet" href="css/voucher-base.css">
 <link rel="stylesheet" href="css/blonde-standard.css">
-<link rel="stylesheet" href="css/offers.css?v=7de82534">
+<link rel="stylesheet" href="css/offers.css?v=19">
 <style>
 .draft-bar{background:#1c1b18;color:#99f6e4;text-align:center;font:600 11.5px/1.4 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;padding:8px 14px}
 .hero-b .lede{max-width:46ch}
+.hero-hr .lede .lede-tag{display:block;font:400 clamp(18px,1.6vw,21px)/1.4 Inter,system-ui,sans-serif;letter-spacing:0;text-transform:none;color:#fff;margin-bottom:12px}
+.hero-hr .lede .lede-life{display:block;color:rgba(255,255,255,.84)}
 .hero-hr{background:#161512 url(assets/img/hero-blonde-wide.jpg) 100% 0/cover no-repeat}
 .hero-hr::before{content:"";position:absolute;inset:0;opacity:1;background:linear-gradient(100deg,rgba(22,21,18,.9) 0%,rgba(22,21,18,.6) 40%,rgba(22,21,18,0) 62%)}
 @media (min-width:900px){
@@ -39,12 +41,43 @@
   .hero-hr{background-size:auto 440px;background-position:100% 0;padding-top:470px !important}
   .hero-hr::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 300px,#161512 440px)}
 }
-#environment{padding-block:56px}
-#environment .sec-head{margin-bottom:0}
+.fit{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:1040px;margin:30px auto 0}
+@media (max-width:900px){.fit{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.fit{grid-template-columns:repeat(2,1fr);gap:10px}a.inc.fitcard{min-height:0;padding:14px 12px;gap:6px}.fitcard p{font-size:16.5px}.fitcard span{font-size:12.5px}}
+@media (max-width:359px){.fit{grid-template-columns:1fr}a.inc.fitcard{padding:14px 16px}}
+a.inc.fitcard{padding:22px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:128px;text-decoration:none;color:var(--ink)}
+.fitcard p{margin:0;font-family:var(--fd);font-size:19px;line-height:1.3;color:var(--ink)}
+.fitcard span{font-family:var(--fb);font-size:13.5px;font-weight:600;color:var(--accent-text)}
+.fitcard:hover span{text-decoration:underline}
+.chat-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:16px auto 0;max-width:640px}
+.chat-row a{display:inline-flex;align-items:center;padding:11px 18px;border:1px solid rgba(45,46,55,.18);border-radius:999px;font:600 14px/1 Inter,system-ui,sans-serif;color:var(--ink);text-decoration:none;background:#fff}
+.chat-row a:hover{border-color:var(--accent-deep)}
+.chat-lbl{text-align:center;margin:26px 0 0;font:600 12px/1.4 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+@media (max-width:860px){
+  .hero-hr.hero-photo-right .hero-photo{order:1}
+  .hero-hr.hero-photo-right .hero-photo img{max-height:380px}
+  .hero-hr.hero-photo-right .wrap{padding-block:30px 36px;gap:28px}
+}
+@media (max-width:860px) and (max-height:640px){
+  .hero-hr .pill-tag{display:none}
+}
+@media (max-width:767px){
+  .trs-nav .nav__cta{font-size:11.5px;padding:11px 16px}
+  .ochip{font-size:11.5px}
+  .ogroup .orows .door .bands>summary{min-height:44px;font-size:12.5px}
+  .bands--len li span{font-size:13px}
+  .from--quote b{font-size:14px}
+  .terms-q>summary{min-height:44px;display:flex;align-items:center}
+  .field input:not([type=checkbox]),.field select,.field textarea{min-height:46px}
+  .chat-row a{flex:1 1 calc(50% - 10px);justify-content:center;min-height:46px}
+  main section[id]{scroll-margin-top:calc(var(--nav-h,75px) + 6px)}
+  .door--plan{scroll-margin-top:calc(var(--sticky-h,130px) + 8px)}
+}
+.rhythm-note{max-width:56ch;margin:22px auto 0;text-align:center;font:300 16.5px/1.6 Inter,system-ui,sans-serif;color:var(--ink-soft)}
 </style>
 <meta name="geo.region" content="AE">
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://www.tararosesalon.com/#organization", "name": "Tara Rose Salon", "url": "https://www.tararosesalon.com"}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I know which lane I am?", "acceptedAnswer": {"@type": "Answer", "text": "Soft Blonde is brightness with lower upkeep. Signature Blonde is for women who identify as blonde and want a regular rhythm. Transformation Blonde is for a major change, high lift or correction. You do not have to be right: the Confidence Mapping names it with you. Balayage sits inside whichever lane you are in."}}, {"@type": "Question", "name": "How often will I need to come in?", "acceptedAnswer": {"@type": "Answer", "text": "Visit 2 sits at week four to six, and visit 3 at week eight to twelve. Your stylist names your exact weeks in the chair, and you leave with the next two visits booked."}}, {"@type": "Question", "name": "Will lightening damage my hair?", "acceptedAnswer": {"@type": "Answer", "text": "Lightening always puts hair under stress, so protection has to be built in from the start. Bond protection runs through every blonde service here, before, during and after your colour, and your plan keeps it cared for between visits. That is how blonde stays healthy."}}, {"@type": "Question", "name": "What does it cost?", "acceptedAnswer": {"@type": "Answer", "text": "Plans start from AED 1,550 for short or fine hair, and every service price is confirmed at your free Confidence Mapping, before you commit to anything."}}]}]}
+{"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://www.tararosesalon.com/#organization", "name": "Tara Rose Salon", "url": "https://www.tararosesalon.com"}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I know which plan is mine?", "acceptedAnswer": {"@type": "Answer", "text": "Soft Blonde is brightness with lower upkeep. Signature Blonde is for women who are already blonde and want to stay that way. Transformation Blonde is for a major change, high lift or correction. You do not need to know. We work it out together at your Confidence Mapping. Balayage sits inside whichever plan you are on."}}, {"@type": "Question", "name": "How often will I need to come in?", "acceptedAnswer": {"@type": "Answer", "text": "Visit 2 sits at week four to six, and visit 3 at week eight to twelve. Your stylist names your exact weeks in the chair, and you leave with the next two visits booked."}}, {"@type": "Question", "name": "Will lightening damage my hair?", "acceptedAnswer": {"@type": "Answer", "text": "Lightening does put stress on hair, so protection is built in from the start. Bond protection is part of every blonde plan, before, during and after your colour, and your plan keeps it topped up between visits."}}, {"@type": "Question", "name": "What does it cost?", "acceptedAnswer": {"@type": "Answer", "text": "Plans start from AED 1,550 for short or fine hair, and every service price is confirmed at your free Confidence Mapping, before you commit to anything."}}]}]}
 </script>
 </head>
 <body>
@@ -68,15 +101,47 @@
 <section class="hero-c hero-hr hero-photo-right">
   <div class="wrap">
     <div class="inner">
-      <span class="pill-tag"><span class="dot"></span>We set the Blonde Standard</span>
-      <h1 class="h-1">Protect the blonde <em>investment.</em></h1>
-      <p class="lede"><span class="lede-tag">You&rsquo;re not high maintenance. You&rsquo;ve never had the right plan.</span> <span class="lede-life">A three-visit plan for blonde that stays blonde, starting with a free Confidence Mapping. Plans from AED 1,550 for short or fine hair.</span></p>
+      <span class="pill-tag"><span class="dot"></span>The Blonde Standard</span>
+      <h1 class="h-1">Your blonde, kept the way <em>it left the chair.</em></h1>
+      <p class="lede"><span class="lede-tag">Blonde can go warm and flat within weeks of leaving the chair.</span> <span class="lede-life">The Blonde Standard is three visits planned together: one to create your blonde, two to keep it bright. It starts with a free Confidence Mapping.</span></p>
       <div class="cta-row">
         <a class="pill pill--accent" href="#book">Book your free Confidence Mapping <span class="arr">&rarr;</span></a>
-        <a class="nav-link" href="#start" style="align-self:center">What we offer &rarr;</a>
+        <a class="nav-link" href="#rhythm" style="align-self:center">See how it works &rarr;</a>
       </div>
     </div>
-    <figure class="hero-photo"><img src="assets/img/hero-blonde-original.jpg" alt="Long blonde hair with soft, dimensional highlights, glossy from root to tip" width="800" height="1200" decoding="async"></figure>
+    <figure class="hero-photo"><img src="assets/img/hero-blonde-original.jpg" alt="Long blonde hair with soft, dimensional highlights, glossy from root to tip" width="800" height="1200" decoding="async" fetchpriority="high"></figure>
+  </div>
+</section>
+
+<section id="rhythm" style="background:var(--paper);">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="eyebrow">How it works</span>
+      <h2>How the three <em>visits work.</em></h2>
+      <p class="stack-anchor">Sun, pool water, hard water and humidity pull the cool tone out of blonde. The plan tones it back as it starts to shift, and you leave your first visit with the next two booked.</p>
+    </div>
+    <div class="timeline timeline--three">
+      <div class="tstep"><span class="wk">Visit 1 &middot; Create</span><b>The blonde itself</b><p>Your colour, with bond protection at every stage.</p></div>
+      <div class="tstep"><span class="wk">Visit 2 &middot; Protect</span><b>Week 4 to 6</b><p>Hydration, and the toner refreshed before it shifts warm.</p></div>
+      <div class="tstep"><span class="wk">Visit 3 &middot; Keep on track</span><b>Week 8 to 12</b><p>Tone and shine refreshed, protection topped up, next cycle booked.</p></div>
+    </div>
+    <p class="rhythm-note">Not sure what your hair needs? The Confidence Mapping is free and comes first, before you commit to a plan.</p>
+    <div class="gcta"><a class="pill pill--accent" href="#book">Book your free Confidence Mapping <span class="arr">&rarr;</span></a></div>
+  </div>
+</section>
+
+<section id="fit" style="background:var(--cream);padding-block:56px">
+  <div class="wrap">
+    <div class="sec-head center" style="margin-bottom:0">
+      <span class="eyebrow">Is this you?</span>
+      <h2>Which is <em>closest?</em></h2>
+    </div>
+    <div class="fit">
+      <a class="inc fitcard" href="#plan-soft"><p>I want brighter hair that grows out softly.</p><span>See Soft Blonde &darr;</span></a>
+      <a class="inc fitcard" href="#plan-signature"><p>I am blonde and I want to stay blonde.</p><span>See Signature Blonde &darr;</span></a>
+      <a class="inc fitcard" href="#plan-transformation"><p>I want a big change, or a colour put right.</p><span>See Transformation Blonde &darr;</span></a>
+      <a class="inc fitcard" href="#book" data-svc="unsure"><p>I am not sure.</p><span>Book a free Confidence Mapping &darr;</span></a>
+    </div>
   </div>
 </section>
 
@@ -84,48 +149,48 @@
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">What we offer</span>
-      <h2>Pick the one that sounds like <em>you.</em></h2>
-      <p class="menu-lede">Not sure? Start with a plan. Know exactly what you want? Choose from the menu. Every price is a starting price, shown by length.</p>
+      <h2>Plans <em>and prices.</em></h2>
+      <p class="menu-lede">Start with a plan, or choose one service from the menu. Every price is a starting price, and your length sets the final one.</p>
     </div>
   </div>
   <div class="offer-nav" aria-label="Jump to a group"><div class="wrap"><ul class="offer-nav__row"><li><a class="ochip" href="#o-plans">Plans</a></li><li><a class="ochip" href="#o-menu">The Blonde Menu</a></li></ul></div></div>
   <div class="wrap menu-zone">
   <div class="ogroup" id="o-plans">
     <h3>Blonde plans</h3>
-    <p class="who">For you if you want blonde that stays blonde: three visits, one plan, starting with a free Confidence Mapping.</p>
+    <p class="who">For you if you want blonde that stays blonde. Three visits, booked and paid as one plan.</p>
     <div class="obody">
       <div class="doors orows">
-      <article class="door door--plan">
+      <article class="door door--plan" id="plan-soft">
         <figure class="rowphoto"><img src="assets/img/lane-soft.jpg" alt="Soft blonde with a brighter face frame, the lengths left natural with a gentle grow-out" loading="lazy" decoding="async" width="520" height="650" style="object-position:50% 18%"></figure>
         <h3>Soft Blonde</h3>
-        <p>For you when you want brightness with lower upkeep: soft grow-out, face-framing light.</p>
-        <span class="from">The plan, from<b>AED 1,550</b></span>
-        <a class="pill pill--accent" href="#book" data-svc="soft">This sounds like me <span class="arr">&rarr;</span></a>
-        <details class="bands bands--len" open><summary>The plan, by length</summary><ul><li><span>Short / Fine</span><b>AED 1,550</b></li><li><span>Medium</span><b>AED 1,705</b></li><li><span>Long / Thick</span><b>AED 1,960</b></li><li><span>Extra Long</span><b>AED 2,565</b></li></ul></details>
+        <p>For you if you want brighter hair with less upkeep. It grows out softly, with light around your face.</p>
+        <span class="from">3 visits, from<b>AED 1,550</b></span>
+        <a class="pill pill--accent" href="#book" data-svc="soft">Choose Soft Blonde <span class="arr">&rarr;</span></a>
+        <details class="bands bands--len" open><summary>All three visits, by length</summary><ul><li><span>Short / Fine</span><b>AED 1,550</b></li><li><span>Medium</span><b>AED 1,705</b></li><li><span>Long / Thick</span><b>AED 1,960</b></li><li><span>Extra Long</span><b>AED 2,565</b></li></ul></details>
       </article>
-      <article class="door door--plan">
+      <article class="door door--plan" id="plan-signature">
         <figure class="rowphoto"><img src="assets/img/lane-signature.jpg" alt="Creamy, even blonde from the parting through the lengths, glossy and freshly finished" loading="lazy" decoding="async" width="520" height="650" style="object-position:50% 25%"></figure>
         <h3>Signature Blonde</h3>
-        <p>For you when you identify as blonde: regular maintenance, a toner and gloss rhythm.</p>
-        <span class="from">The plan, from<b>AED 1,695</b></span>
-        <a class="pill pill--accent" href="#book" data-svc="signature">This sounds like me <span class="arr">&rarr;</span></a>
-        <details class="bands bands--len" open><summary>The plan, by length</summary><ul><li><span>Short / Fine</span><b>AED 1,695</b></li><li><span>Medium</span><b>AED 1,870</b></li><li><span>Long / Thick</span><b>AED 2,105</b></li><li><span>Extra Long</span><b>AED 2,705</b></li></ul></details>
+        <p>For you if you are blonde and want to stay blonde. Regular toning and gloss keep it right.</p>
+        <span class="from">3 visits, from<b>AED 1,695</b></span>
+        <a class="pill pill--accent" href="#book" data-svc="signature">Choose Signature Blonde <span class="arr">&rarr;</span></a>
+        <details class="bands bands--len" open><summary>All three visits, by length</summary><ul><li><span>Short / Fine</span><b>AED 1,695</b></li><li><span>Medium</span><b>AED 1,870</b></li><li><span>Long / Thick</span><b>AED 2,105</b></li><li><span>Extra Long</span><b>AED 2,705</b></li></ul></details>
       </article>
-      <article class="door door--plan">
+      <article class="door door--plan" id="plan-transformation">
         <figure class="rowphoto"><img src="assets/img/lane-transformation.jpg" alt="A high-lift platinum blonde, kept glossy and strong" loading="lazy" decoding="async" width="520" height="650" style="object-position:50% 25%"></figure>
         <h3>Transformation Blonde</h3>
-        <p>For you when it is a major change: high lift, correction, big contrast.</p>
-        <span class="from">The plan, from<b>AED 2,160</b></span>
-        <a class="pill pill--accent" href="#book" data-svc="transformation">This sounds like me <span class="arr">&rarr;</span></a>
-        <details class="bands bands--len" open><summary>The plan, by length</summary><ul><li><span>Short / Fine</span><b>AED 2,160</b></li><li><span>Medium</span><b>AED 2,325</b></li><li><span>Long / Thick</span><b>AED 2,555</b></li><li><span>Extra Long</span><b>AED 3,150</b></li></ul></details>
+        <p>For you if you want a big change: much lighter, more contrast, or a colour put right.</p>
+        <span class="from">3 visits, from<b>AED 2,160</b></span>
+        <a class="pill pill--accent" href="#book" data-svc="transformation">Choose Transformation Blonde <span class="arr">&rarr;</span></a>
+        <details class="bands bands--len" open><summary>All three visits, by length</summary><ul><li><span>Short / Fine</span><b>AED 2,160</b></li><li><span>Medium</span><b>AED 2,325</b></li><li><span>Long / Thick</span><b>AED 2,555</b></li><li><span>Extra Long</span><b>AED 3,150</b></li></ul></details>
       </article>
 </div>
-      <p class="short-note">Prices are for a Stylist, and your stylist level is confirmed at your free Confidence Mapping. The plan is booked and paid as one, across your three visits. Your length sets your price, confirmed at the Mapping.</p>
+      <p class="short-note">Prices are for a Stylist. Your stylist level and your length are confirmed at your free Confidence Mapping, before you pay anything.</p>
     </div>
   </div>
   <div class="ogroup" id="o-menu">
     <h3>The Blonde Menu</h3>
-    <p class="who">Prefer one service at a time? Choose from the menu. Not sure which? Start with a plan above.</p>
+    <p class="who">Prefer one service at a time? Choose from the menu.</p>
     <div class="obody">
       <h4 class="osub">Highlighting</h4>
       <p class="osub__who">For you if you want brightness through foils, from a quick refresh to a full change.</p>
@@ -137,42 +202,42 @@
         <p>A colour top-up that keeps your roots fresh and the grow-out line blended.</p>
         <span class="from">From<b>AED 330</b></span>
         <p class="door__where"><span>Type</span> Refresh</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 330</b></li><li><span>Medium</span><b>AED 355</b></li><li><span>Long / Thick</span><b>AED 385</b></li><li><span>Extra Long</span><b>AED 495</b></li></ul></details>
+      <details class="bands bands--len"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 330</b></li><li><span>Medium</span><b>AED 355</b></li><li><span>Long / Thick</span><b>AED 385</b></li><li><span>Extra Long</span><b>AED 495</b></li></ul></details>
       </article>
       <article class="door door--menu">
         <h3>Blonde Veil</h3>
         <p>Partial highlights to freshen your parting and hairline.</p>
         <span class="from">From<b>AED 340</b></span>
         <p class="door__where"><span>Type</span> Refresh</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 345</b></li><li><span>Medium</span><b>AED 340</b></li><li><span>Long / Thick</span><b>AED 385</b></li><li><span>Extra Long</span><b>AED 495</b></li></ul></details>
+      <details class="bands bands--len"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 345</b></li><li><span>Medium</span><b>AED 340</b></li><li><span>Long / Thick</span><b>AED 385</b></li><li><span>Extra Long</span><b>AED 495</b></li></ul></details>
       </article>
       <article class="door door--menu">
         <h3>Classic Halo</h3>
         <p>Half-head highlights for soft dimension and natural lift.</p>
         <span class="from">From<b>AED 490</b></span>
         <p class="door__where"><span>Type</span> Refresh</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 490</b></li><li><span>Medium</span><b>AED 505</b></li><li><span>Long / Thick</span><b>AED 525</b></li><li><span>Extra Long</span><b>AED 635</b></li></ul></details>
+      <details class="bands bands--len"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 490</b></li><li><span>Medium</span><b>AED 505</b></li><li><span>Long / Thick</span><b>AED 525</b></li><li><span>Extra Long</span><b>AED 635</b></li></ul></details>
       </article>
       <article class="door door--menu">
         <h3>Full Blonde Coverage</h3>
         <p>Full-head highlights for a bright, all-over blonde.</p>
         <span class="from">From<b>AED 650</b></span>
         <p class="door__where"><span>Type</span> Refresh</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 650</b></li><li><span>Medium</span><b>AED 665</b></li><li><span>Long / Thick</span><b>AED 690</b></li><li><span>Extra Long</span><b>AED 795</b></li></ul></details>
+      <details class="bands bands--len"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 650</b></li><li><span>Medium</span><b>AED 665</b></li><li><span>Long / Thick</span><b>AED 690</b></li><li><span>Extra Long</span><b>AED 795</b></li></ul></details>
       </article>
       <article class="door door--menu">
         <h3>High Impact Blonde</h3>
         <p>Maximum foil coverage for a brighter, bolder blonde with a refined tone.</p>
         <span class="from">From<b>AED 895</b></span>
         <p class="door__where"><span>Type</span> Big Change</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 895</b></li><li><span>Medium</span><b>AED 915</b></li><li><span>Long / Thick</span><b>AED 935</b></li><li><span>Extra Long</span><b>AED 1,045</b></li></ul></details>
+      <details class="bands bands--len"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 895</b></li><li><span>Medium</span><b>AED 915</b></li><li><span>Long / Thick</span><b>AED 935</b></li><li><span>Extra Long</span><b>AED 1,045</b></li></ul></details>
       </article>
       <article class="door door--menu">
         <h3>Global Bleach Application</h3>
         <p>A precision all-over bleach application. The biggest change we make.</p>
         <span class="from">From<b>AED 1,160</b></span>
         <p class="door__where"><span>Type</span> Big Change</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 1,160</b></li><li><span>Medium</span><b>AED 1,160</b></li><li><span>Long / Thick</span><b>AED 1,235</b></li><li><span>Extra Long</span><b>AED 1,400</b></li></ul></details>
+      <details class="bands bands--len"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 1,160</b></li><li><span>Medium</span><b>AED 1,160</b></li><li><span>Long / Thick</span><b>AED 1,235</b></li><li><span>Extra Long</span><b>AED 1,400</b></li></ul></details>
       </article>
 </div>
       </div>
@@ -186,35 +251,35 @@
         <p>Brightness placed softly around your hairline to frame your face.</p>
         <span class="from">From<b>AED 320</b></span>
         <p class="door__where"><span>Type</span> Refresh</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 320</b></li><li><span>Medium</span><b>AED 340</b></li><li><span>Long / Thick</span><b>AED 360</b></li><li><span>Extra Long</span><b>AED 460</b></li></ul></details>
+      <details class="bands bands--len"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 320</b></li><li><span>Medium</span><b>AED 340</b></li><li><span>Long / Thick</span><b>AED 360</b></li><li><span>Extra Long</span><b>AED 460</b></li></ul></details>
       </article>
       <article class="door door--menu">
         <h3>Balayage Refresh</h3>
         <p>A subtle refresh through your parting and hairline between full balayage services.</p>
         <span class="from">From<b>AED 515</b></span>
         <p class="door__where"><span>Type</span> Refresh</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 515</b></li><li><span>Medium</span><b>AED 540</b></li><li><span>Long / Thick</span><b>AED 560</b></li><li><span>Extra Long</span><b>AED 665</b></li></ul></details>
+      <details class="bands bands--len"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 515</b></li><li><span>Medium</span><b>AED 540</b></li><li><span>Long / Thick</span><b>AED 560</b></li><li><span>Extra Long</span><b>AED 665</b></li></ul></details>
       </article>
       <article class="door door--menu">
         <h3>Blonde Custom Face Frame</h3>
         <p>A new placement: face-framing brightness mapped to your features.</p>
         <span class="from">From<b>AED 410</b></span>
         <p class="door__where"><span>Type</span> Big Change</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 410</b></li><li><span>Medium</span><b>AED 430</b></li><li><span>Long / Thick</span><b>AED 450</b></li><li><span>Extra Long</span><b>AED 560</b></li></ul></details>
+      <details class="bands bands--len"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 410</b></li><li><span>Medium</span><b>AED 430</b></li><li><span>Long / Thick</span><b>AED 450</b></li><li><span>Extra Long</span><b>AED 560</b></li></ul></details>
       </article>
       <article class="door door--menu">
         <h3>Classic Balayage</h3>
         <p>Natural, hand-painted lightness through the top and sides.</p>
         <span class="from">From<b>AED 630</b></span>
         <p class="door__where"><span>Type</span> Big Change</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 630</b></li><li><span>Medium</span><b>AED 645</b></li><li><span>Long / Thick</span><b>AED 665</b></li><li><span>Extra Long</span><b>AED 775</b></li></ul></details>
+      <details class="bands bands--len"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 630</b></li><li><span>Medium</span><b>AED 645</b></li><li><span>Long / Thick</span><b>AED 665</b></li><li><span>Extra Long</span><b>AED 775</b></li></ul></details>
       </article>
       <article class="door door--menu">
         <h3>Full Balayage</h3>
         <p>Our most-requested balayage: the full head, bright and blended, with depth and movement.</p>
         <span class="from">From<b>AED 735</b></span>
         <p class="door__where"><span>Type</span> Big Change</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 735</b></li><li><span>Medium</span><b>AED 750</b></li><li><span>Long / Thick</span><b>AED 775</b></li><li><span>Extra Long</span><b>AED 880</b></li></ul></details>
+      <details class="bands bands--len"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 735</b></li><li><span>Medium</span><b>AED 750</b></li><li><span>Long / Thick</span><b>AED 775</b></li><li><span>Extra Long</span><b>AED 880</b></li></ul></details>
       </article>
 </div>
       </div>
@@ -240,14 +305,14 @@
         <p>A root colour worked in alongside your foils, to add depth at the base.</p>
         <span class="from">From<b>AED 330</b></span>
         <p class="door__where"><span>Type</span> Pairs with any colour service</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 330</b></li><li><span>Medium</span><b>AED 355</b></li><li><span>Long / Thick</span><b>AED 385</b></li><li><span>Extra Long</span><b>AED 495</b></li></ul></details>
+      <details class="bands bands--len"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 330</b></li><li><span>Medium</span><b>AED 355</b></li><li><span>Long / Thick</span><b>AED 385</b></li><li><span>Extra Long</span><b>AED 495</b></li></ul></details>
       </article>
       <article class="door door--menu">
         <h3>All-Over Colour</h3>
         <p>A full base colour with your foils, for complete coverage or a tonal shift.</p>
         <span class="from">From<b>AED 535</b></span>
         <p class="door__where"><span>Type</span> Pairs with any colour service</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 535</b></li><li><span>Medium</span><b>AED 550</b></li><li><span>Long / Thick</span><b>AED 580</b></li><li><span>Extra Long</span><b>AED 690</b></li></ul></details>
+      <details class="bands bands--len"><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 535</b></li><li><span>Medium</span><b>AED 550</b></li><li><span>Long / Thick</span><b>AED 580</b></li><li><span>Extra Long</span><b>AED 690</b></li></ul></details>
       </article>
       <article class="door door--menu">
         <h3>Ammonia-Free Colour</h3>
@@ -267,30 +332,6 @@
     </div>
   </div>
   <p class="short-note">Services without a price are priced at your free Confidence Mapping, where every price is confirmed for your length, thickness and starting colour. A Create visit is the colour service plus your finish, so it is priced above the service on its own.</p>
-  </div>
-</section>
-
-<section id="rhythm" style="background:var(--paper);">
-  <div class="wrap">
-    <div class="sec-head center">
-      <span class="eyebrow">How the plan works</span>
-      <h2>Visit&nbsp;1 creates the result. Visit&nbsp;2 protects it. <em>Visit&nbsp;3 keeps it on track.</em></h2>
-    </div>
-    <div class="timeline timeline--three">
-      <div class="tstep"><span class="wk">One &middot; Create</span><b>The blonde itself</b><p>Core blonde, with bond protection at every stage.</p></div>
-      <div class="tstep"><span class="wk">Two &middot; Protect</span><b>Week 4 to 6</b><p>Hydration, and the toner refreshed before it shifts warm.</p></div>
-      <div class="tstep"><span class="wk">Three &middot; Keep it on track</span><b>Week 8 to 12</b><p>Tone and shine refreshed, re-protected, next cycle booked.</p></div>
-    </div>
-  </div>
-</section>
-
-<section id="environment" style="background:var(--stone-soft);">
-  <div class="wrap">
-    <div class="sec-head center">
-      <span class="eyebrow">It is not you</span>
-      <h2>The UAE moves your colour. <em>Your plan holds it.</em></h2>
-      <p class="stack-anchor">Sun, pool, hard water and air conditioning. Your blonde is not going brassy: the cool tone has worn off.</p>
-    </div>
   </div>
 </section>
 
@@ -321,15 +362,16 @@
       </div>
     </div>
     <p class="proof__line">The same hair, one visit apart.</p>
+    <div class="gcta"><a class="pill pill--accent" href="#book">Book your free Confidence Mapping <span class="arr">&rarr;</span></a></div>
   </div>
 </section>
 
 <section class="press-strip"><div class="wrap"><p class="press-eyebrow">Press and platforms</p><div class="press-row">
-  <a href="https://www.cosmopolitanme.com/beauty/best-dubai-salons-2026" target="_blank" rel="noopener"><span class="press-logo-box"><img width="600" height="106" class="press-logo press-logo--cosmo" src="assets/press/cosmopolitan.svg" alt="Cosmopolitan" decoding="async"></span><span class="press-sub">Best Dubai Salons 2026</span></a>
-  <a href="https://www.harpersbazaararabia.com/beauty/best-balayage-salon-in-dubai" target="_blank" rel="noopener"><span class="press-logo-box"><img width="438" height="107" class="press-logo press-logo--hb" src="assets/press/harpers-bazaar.svg" alt="Harper&rsquo;s Bazaar" decoding="async"></span><span class="press-sub">Arabia, 2024</span></a>
-  <a href="https://professionalbeauty.me/professional-beauty-gcc-awards-hall-of-fame1" target="_blank" rel="noopener"><span class="press-logo-box"><img width="313" height="109" class="press-logo press-logo--pb" src="assets/press/professional-beauty.png" alt="Professional Beauty" decoding="async"></span><span class="press-sub">GCC Hall of Fame, 2024</span></a>
-  <a href="https://www.entrepreneur.com/en-ae/starting-a-business/turning-your-creative-talent-into-a-successful-business/454020" target="_blank" rel="noopener"><span class="press-logo-box"><img width="787" height="203" class="press-logo press-logo--ent" src="assets/press/entrepreneur.svg" alt="Entrepreneur Middle East" decoding="async"></span><span class="press-sub">By Tara</span></a>
-  <a href="https://beautyworld-dubai.ae.messefrankfurt.com/dubai/en/press/press-releases/all/20241025.html" target="_blank" rel="noopener"><span class="press-logo-box"><img width="115" height="35" class="press-logo press-logo--bw" src="assets/press/beautyworld.svg" alt="Beautyworld Middle East" decoding="async"></span><span class="press-sub">Speaker</span></a>
+  <a href="https://www.cosmopolitanme.com/beauty/best-dubai-salons-2026" target="_blank" rel="noopener"><span class="press-logo-box"><img width="600" height="106" class="press-logo press-logo--cosmo" src="assets/press/cosmopolitan.svg" alt="Cosmopolitan" loading="lazy" decoding="async"></span><span class="press-sub">Best Dubai Salons 2026</span></a>
+  <a href="https://www.harpersbazaararabia.com/beauty/best-balayage-salon-in-dubai" target="_blank" rel="noopener"><span class="press-logo-box"><img width="438" height="107" class="press-logo press-logo--hb" src="assets/press/harpers-bazaar.svg" alt="Harper&rsquo;s Bazaar" loading="lazy" decoding="async"></span><span class="press-sub">Arabia, 2024</span></a>
+  <a href="https://professionalbeauty.me/professional-beauty-gcc-awards-hall-of-fame1" target="_blank" rel="noopener"><span class="press-logo-box"><img width="313" height="109" class="press-logo press-logo--pb" src="assets/press/professional-beauty.png" alt="Professional Beauty" loading="lazy" decoding="async"></span><span class="press-sub">GCC Hall of Fame, 2024</span></a>
+  <a href="https://www.entrepreneur.com/en-ae/starting-a-business/turning-your-creative-talent-into-a-successful-business/454020" target="_blank" rel="noopener"><span class="press-logo-box"><img width="787" height="203" class="press-logo press-logo--ent" src="assets/press/entrepreneur.svg" alt="Entrepreneur Middle East" loading="lazy" decoding="async"></span><span class="press-sub">By Tara</span></a>
+  <a href="https://beautyworld-dubai.ae.messefrankfurt.com/dubai/en/press/press-releases/all/20241025.html" target="_blank" rel="noopener"><span class="press-logo-box"><img width="115" height="35" class="press-logo press-logo--bw" src="assets/press/beautyworld.svg" alt="Beautyworld Middle East" loading="lazy" decoding="async"></span><span class="press-sub">Speaker</span></a>
 </div><p class="press-quote">&ldquo;A salon could be a place where a woman walks out feeling genuinely seen, not just groomed.&rdquo;<span>Tara Rose Kidd, Bizpreneur Middle East, August 2026</span></p></div></section>
 
 <section class="dark promise-band" id="promise">
@@ -346,7 +388,15 @@
       <div class="head">
         <span class="eyebrow">Book</span>
         <h2>Start with a free Confidence Mapping.</h2>
-        <p style="max-width:54ch;margin:14px auto 0;font-size:16.5px;line-height:1.62;color:var(--ink-soft);text-align:center">Free, before the chair. We look at your hair history, water, routine and goal, and map what your blonde needs and what it will cost.</p>
+        <p style="max-width:54ch;margin:14px auto 0;font-size:16.5px;line-height:1.62;color:var(--ink-soft);text-align:center">It is free. Your stylist looks at your hair history and what you want, then tells you which plan suits you and what it costs for your hair.</p>
+        <p class="chat-lbl">Rather chat? WhatsApp your salon</p>
+        <div class="chat-row">
+          <a href="https://wa.me/971502811494?text=Hi%20Tara%20Rose%2C%20I%20would%20like%20to%20book%20a%20free%20Confidence%20Mapping%20for%20my%20blonde." target="_blank" rel="noopener">Khalifa City A</a>
+          <a href="https://wa.me/971501968720?text=Hi%20Tara%20Rose%2C%20I%20would%20like%20to%20book%20a%20free%20Confidence%20Mapping%20for%20my%20blonde." target="_blank" rel="noopener">Mamsha Al Saadiyat</a>
+          <a href="https://wa.me/971556245520?text=Hi%20Tara%20Rose%2C%20I%20would%20like%20to%20book%20a%20free%20Confidence%20Mapping%20for%20my%20blonde." target="_blank" rel="noopener">Al Quoz</a>
+          <a href="https://wa.me/971524960903?text=Hi%20Tara%20Rose%2C%20I%20would%20like%20to%20book%20a%20free%20Confidence%20Mapping%20for%20my%20blonde." target="_blank" rel="noopener">Motor City</a>
+        </div>
+        <p class="chat-lbl">Or leave your details</p>
       </div>
       <form novalidate>
         <div class="field">
@@ -357,13 +407,13 @@
           <label for="wa">WhatsApp number <span class="req">*</span></label>
           <div class="phone-wrap">
             <select id="cc" name="cc" aria-label="Country code" autocomplete="tel-country-code">
-              <option value="+971" selected>&#127462;&#127466; +971 &middot; UAE</option>
-              <option value="+973">&#127463;&#127469; +973 &middot; Bahrain</option>
-              <option value="+966">&#127480;&#127462; +966 &middot; KSA</option>
-              <option value="+965">&#127472;&#127484; +965 &middot; Kuwait</option>
-              <option value="+974">&#127478;&#127462; +974 &middot; Qatar</option>
-              <option value="+968">&#127476;&#127474; +968 &middot; Oman</option>
-              <option value="+44">&#127468;&#127463; +44 &middot; UK</option>
+              <option value="+971" selected>+971 &middot; UAE</option>
+              <option value="+973">+973 &middot; Bahrain</option>
+              <option value="+966">+966 &middot; KSA</option>
+              <option value="+965">+965 &middot; Kuwait</option>
+              <option value="+974">+974 &middot; Qatar</option>
+              <option value="+968">+968 &middot; Oman</option>
+              <option value="+44">+44 &middot; UK</option>
             </select>
             <input id="wa" name="whatsapp" type="tel" placeholder="50 000 0000" required autocomplete="tel">
           </div>
@@ -417,7 +467,7 @@
         </div>
         <div class="field">
           <label for="notes">Anything we should know? (optional)</label>
-          <textarea id="notes" name="notes" rows="3" placeholder="Colour history, box dye, anything that has gone wrong before, anything you are worried about."></textarea>
+          <textarea id="notes" name="notes" rows="3" placeholder="Colour history, box dye, anything you did not love last time, anything you are worried about."></textarea>
         </div>
 
         <div class="pdpl">
@@ -442,7 +492,7 @@
         <div class="submit-row">
           <button class="pill pill--accent" type="submit">Book my free Confidence Mapping <span class="arr">&rarr;</span></button>
         </div>
-        <p class="consent">We reply on WhatsApp. Prefer to message your salon? <a href="https://wa.me/971502811494?text=Hi%20Tara%20Rose%2C%20I%20would%20like%20to%20book%20a%20free%20Confidence%20Mapping%20for%20my%20blonde." target="_blank" rel="noopener" style="color:#3aa892">Khalifa City A</a>, <a href="https://wa.me/971501968720?text=Hi%20Tara%20Rose%2C%20I%20would%20like%20to%20book%20a%20free%20Confidence%20Mapping%20for%20my%20blonde." target="_blank" rel="noopener" style="color:#3aa892">Mamsha Al Saadiyat</a>, <a href="https://wa.me/971556245520?text=Hi%20Tara%20Rose%2C%20I%20would%20like%20to%20book%20a%20free%20Confidence%20Mapping%20for%20my%20blonde." target="_blank" rel="noopener" style="color:#3aa892">Al Quoz</a>, or <a href="https://wa.me/971524960903?text=Hi%20Tara%20Rose%2C%20I%20would%20like%20to%20book%20a%20free%20Confidence%20Mapping%20for%20my%20blonde." target="_blank" rel="noopener" style="color:#3aa892">Motor City</a>. New to us? A deposit secures your appointment, and we explain it when we reply: <a href="https://promo.tararosesalon.com/deposit-policy?client=new" target="_blank" rel="noopener" style="color:#3aa892">how deposits work</a>.</p>
+        <p class="consent">We reply on WhatsApp. New to us? A deposit secures your appointment, and we explain it when we reply: <a href="https://promo.tararosesalon.com/deposit-policy?client=new" target="_blank" rel="noopener" style="color:#3aa892">how deposits work</a>.</p>
       </form>
     </div>
   </div>
@@ -454,7 +504,7 @@
     <details class="q terms-q"><summary>Read the plan terms<span class="chev"></span></summary><div class="ans"><ol class="terms-list">
       <li><b>What the plan is.</b> Three visits, Create, Protect and Keep on Track, booked and paid together. Your plan price depends on your length and starting colour, and it is confirmed at your free Confidence Mapping before you pay anything.</li>
       <li><b>When the visits happen.</b> Visit 2 is four to six weeks after Visit 1, and Visit 3 is eight to twelve weeks after it. You leave Visit 1 with the next two booked.</li>
-      <li><b>Which plan.</b> If your Confidence Mapping shows that another lane suits your hair better, we tell you and the plan price moves to that lane before you pay.</li>
+      <li><b>Which plan.</b> If your Confidence Mapping shows that another plan suits your hair better, we tell you and the price moves to that plan before you pay.</li>
       <li><b>Paying.</b> Our team sends you a secure payment link during salon hours, 9am to 8pm. New clients secure the first appointment with a deposit, and we explain how deposits work when we reply.</li>
       <li><b>Changing a visit.</b> Please give us 48 hours&rsquo; notice to move or cancel a visit. A deposit is non-refundable if the appointment is missed or cancelled late.</li>
       <li><b>The Confidence Promise.</b> If something does not feel right within seven days of any colour or treatment service, we invite you back to refine it. No blame, just care.</li>
@@ -470,9 +520,9 @@
       <span class="eyebrow">Questions</span>
       <h2>Quick answers.</h2>
     </div>
-    <details class="q"><summary>How do I know which lane I am?<span class="chev"></span></summary><div class="ans">Soft Blonde is brightness with lower upkeep. Signature Blonde is for women who identify as blonde and want a regular rhythm. Transformation Blonde is for a major change, high lift or correction. You do not have to be right: the Confidence Mapping names it with you. Balayage sits inside whichever lane you are in.</div></details>
+    <details class="q"><summary>How do I know which plan is mine?<span class="chev"></span></summary><div class="ans">Soft Blonde is brightness with lower upkeep. Signature Blonde is for women who are already blonde and want to stay that way. Transformation Blonde is for a major change, high lift or correction. You do not need to know. We work it out together at your Confidence Mapping. Balayage sits inside whichever plan you are on.</div></details>
     <details class="q"><summary>How often will I need to come in?<span class="chev"></span></summary><div class="ans">Visit 2 sits at week four to six, and visit 3 at week eight to twelve. Your stylist names your exact weeks in the chair, and you leave with the next two visits booked.</div></details>
-    <details class="q"><summary>Will lightening damage my hair?<span class="chev"></span></summary><div class="ans">Lightening always puts hair under stress, so protection has to be built in from the start. Bond protection runs through every blonde service here, before, during and after your colour, and your plan keeps it cared for between visits. That is how blonde stays healthy.</div></details>
+    <details class="q"><summary>Will lightening damage my hair?<span class="chev"></span></summary><div class="ans">Lightening does put stress on hair, so protection is built in from the start. Bond protection is part of every blonde plan, before, during and after your colour, and your plan keeps it topped up between visits.</div></details>
     <details class="q"><summary>What does it cost?<span class="chev"></span></summary><div class="ans">Plans start from AED 1,550 for short or fine hair, and every service price is confirmed at your free Confidence Mapping, before you commit to anything.</div></details>
   </div>
 </section>
@@ -524,7 +574,7 @@
   </div>
 </footer>
 
-<script src="js/nav-scroll.js?v=c5ff7a5d" defer></script>
+<script src="js/nav-scroll.js?v=4" defer></script>
 
 <script src="js/form-prefill.js" defer></script>
 

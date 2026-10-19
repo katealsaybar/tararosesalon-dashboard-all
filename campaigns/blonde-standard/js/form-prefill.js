@@ -1,6 +1,6 @@
-/* Entry-card prefill: clicking a door pre-selects the matching reason on the form. */
+/* Entry-card prefill: clicking a door or a "not sure" card pre-selects the matching reason on the form. */
 (function(){
-  document.querySelectorAll('.door [data-svc]').forEach(function(a){
+  document.querySelectorAll('[data-svc]').forEach(function(a){
     a.addEventListener('click',function(){
       var s=document.getElementById('svc'); if(s) s.value=a.getAttribute('data-svc');
     });
