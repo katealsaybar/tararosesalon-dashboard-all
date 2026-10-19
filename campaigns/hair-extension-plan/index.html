@@ -6,19 +6,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#FAF8F4">
 <title>The Hair Extension Plan · Abu Dhabi and Dubai · Tara Rose</title>
-<meta name="description" content="Prepay your hair extension maintenance, with a Maintenance Bonus added on two of the three plans. From AED 1,500. Abu Dhabi and Dubai.">
+<meta name="description" content="Prepaid care for your hair extensions, planned around your method. Plans from AED 1,500. Abu Dhabi and Dubai.">
 <meta name="robots" content="noindex,nofollow">
 <meta property="og:type" content="website">
 <meta property="og:title" content="The Hair Extension Plan · Tara Rose">
-<meta property="og:description" content="Prepay your hair extension maintenance, with a Maintenance Bonus added on two of the three plans. From AED 1,500. Abu Dhabi and Dubai.">
+<meta property="og:description" content="Prepaid care for your hair extensions, planned around your method. Plans from AED 1,500. Abu Dhabi and Dubai.">
 <meta property="og:locale" content="en_GB">
 <meta property="og:site_name" content="Tara Rose">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/favicon-96x96.png" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
+<link rel="preload" as="image" href="assets/img/hero-extensions.jpg" fetchpriority="high">
 <link rel="stylesheet" href="css/fonts.css">
 <link rel="stylesheet" href="css/voucher-base.css">
-<link rel="stylesheet" href="css/offers.css?v=627128d5">
+<link rel="stylesheet" href="css/offers.css?v=2">
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@graph": [{"@type": "Service", "name": "The Hair Extension Plan", "serviceType": "Prepaid hair extension maintenance plan", "provider": {"@type": "Organization", "name": "Tara Rose Salon", "url": "https://www.tararosesalon.com"}, "areaServed": [{"@type": "City", "name": "Dubai"}, {"@type": "City", "name": "Abu Dhabi"}], "termsOfService": "https://www.tararosesalon.com/en/ae/terms-and-conditions/", "offers": [{"@type": "Offer", "name": "Maintain Essentials", "price": "1500", "priceCurrency": "AED"}, {"@type": "Offer", "name": "Maintain Plus", "price": "3000", "priceCurrency": "AED"}, {"@type": "Offer", "name": "New Hair and Maintain Bundle", "priceSpecification": {"@type": "PriceSpecification", "minPrice": "3300", "priceCurrency": "AED"}}]}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does the plan cover new hair?", "acceptedAnswer": {"@type": "Answer", "text": "Only the New Hair and Maintain Bundle does. It includes your full application in your chosen method, plus a 12-month Maintenance Bundle credit of AED 1,500. Maintain Essentials and Maintain Plus are for extensions you already wear."}}, {"@type": "Question", "name": "Does the credit cover my move-up appointment?", "acceptedAnswer": {"@type": "Answer", "text": "No. Your move-up is booked and paid as it is today. The plan covers everything around it that keeps the blend looking new."}}, {"@type": "Question", "name": "Can I split the payment?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Maintain Plus splits into 4 interest-free payments of AED 750, and the New Hair and Maintain Bundle into 4 payments, from AED 825 each, with Tabby. The credit stays exactly the same, and so does the Maintenance Bonus on Maintain Essentials and Maintain Plus. Maintain Essentials is cash or card only."}}, {"@type": "Question", "name": "Can I give it as a gift?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. The plan is issued in her name, ready to book, with a note from you."}}]}]}
 </script>
@@ -73,6 +74,29 @@
   .trs-nav .nav__cta{padding-inline:8px;font-size:8px;letter-spacing:.03em;min-height:38px}
   .trs-nav .brand__wm{font-size:12px;letter-spacing:.12em}
   .trs-nav .brand small{font-size:8px}
+}
+/* Which-one-is-you selector: three link cards that jump to the right group */
+.fit a.inc{flex-direction:column;gap:14px;text-decoration:none;color:inherit;border:1px solid transparent;transition:border-color .2s}
+.fit a.inc:hover,.fit a.inc:focus-visible{border-color:var(--ink)}
+.fit a.inc small{font-family:var(--fb);font-size:13px;font-weight:600;line-height:1.3;color:var(--accent-text)}
+@media(max-width:760px){.fit .inc{min-height:0;padding:20px 22px}}
+#p-bundle{scroll-margin-top:calc(var(--sticky-h,150px) + 12px)}
+/* Phone pass (19 Oct 2026): prices were 10px, the card buttons 10px, taps under 44px, and a sticky chip bar repeated the selector above it */
+@media(max-width:767px){
+  .offer-nav{display:none}
+  #o-plans .door .from,#o-methods .door .from{font-size:12px;letter-spacing:.06em}
+  #o-plans .door .pill{font-size:12.5px;letter-spacing:.05em;min-height:48px;padding-inline:22px}
+  .sec-head .eyebrow,.reserve .head .eyebrow{font-size:11.5px}
+  .press-strip .press-sub{font-size:11.5px !important}
+  #o-plans .bands>summary{min-height:44px;font-size:12px;display:flex;align-items:center}
+  .terms-more summary{min-height:44px;display:flex;align-items:center}
+  .pdpl__label{padding-block:10px}
+}
+/* shorter hero photo so the Reserve button reaches the first screen on 360px Androids and the iPhone SE */
+@media(max-width:599px){
+  .hero-hr{background-size:auto 250px;padding-top:222px !important}
+  .hero-hr::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 120px,#161512 250px)}
+  .hero-hr .pt-loc{display:none}
 }
 .rblocks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
 @media(max-width:860px){.rblocks{grid-template-columns:minmax(0,1fr)}}
@@ -129,9 +153,9 @@
 <section class="hero-c hero-hr">
   <div class="wrap">
     <div class="inner">
-      <span class="pill-tag"><span class="dot"></span>The Hair Extension Plan &middot; Abu Dhabi and Dubai</span>
-      <h1 class="h-1">Your extensions were never a fitting. <em>They were always a plan.</em></h1>
-      <p class="lede">Prepay your extension maintenance. Maintain Essentials and Maintain Plus come with a Maintenance Bonus on top. Cuts, blow-dries, toning, treatments and scalp care, planned to your method. From AED 1,500.</p>
+      <span class="pill-tag"><span class="dot"></span>The Hair Extension Plan<span class="pt-loc"> &middot; Abu Dhabi and Dubai</span></span>
+      <h1 class="h-1">Keep your extensions <em>looking like day one.</em></h1>
+      <p class="lede">A few weeks in, your own hair has grown and the blend starts to show. The Hair Extension Plan is prepaid care for the time between your move-ups, matched to your method. From AED 1,500.</p>
       <div class="cta-row">
         <a class="pill pill--accent" href="#reserve" data-cta="hero-reserve">Reserve Your Plan <span class="arr">&rarr;</span></a>
         <a class="nav-link" href="#reserve" style="align-self:center" data-cta="hero-gift" data-gift="1">Gift it instead &rarr;</a>
@@ -143,21 +167,26 @@
 <section id="start" class="menu-sec" style="background:var(--paper);">
   <div class="wrap">
     <div class="sec-head center">
-      <span class="eyebrow">What is on offer</span>
-      <h2>Pick the one that <em>fits your hair.</em></h2>
+      <span class="eyebrow">Start here</span>
+      <h2>Which one <em>sounds like you?</em></h2>
+    </div>
+    <div class="fit">
+      <a class="inc" href="#o-plans"><p>My extensions have grown down and the blend is starting to show.</p><small>Maintain Essentials and Plus &darr;</small></a>
+      <a class="inc" href="#p-bundle"><p>I am about to get extensions.</p><small>The New Hair and Maintain Bundle &darr;</small></a>
+      <a class="inc" href="#o-methods"><p>I want to know what keeping my method costs.</p><small>Move-up prices &darr;</small></a>
     </div>
   </div>
   <div class="offer-nav" aria-label="Jump to a group"><div class="wrap"><ul class="offer-nav__row"><li><a class="ochip" href="#o-plans">Plans</a></li><li><a class="ochip" href="#o-methods">Move-ups</a></li></ul></div></div>
   <div class="wrap menu-zone">
     <div class="ogroup" id="o-plans">
       <h3>Plans</h3>
-      <p class="who">For you if you already wear extensions and want them kept looking new, or you are ready for new hair and a plan that keeps it.</p>
+      <p class="who">Essentials and Plus are for extensions you already wear. They cover the care around your move-up, not the move-up itself. The Bundle includes the new hair.</p>
       <div class="obody">
         <div class="doors orows">
     <article class="door">
       <img class="pthumb" src="assets/img/tier-essentials.jpg" alt="The back of a client&rsquo;s head during an extension install, sections held in clips with the weft track sewn at the root" loading="lazy" decoding="async" width="1200" height="800">
       <h3>Maintain Essentials</h3>
-      <p>Keep it fresh. Spends on your maintenance: cuts, blow-dries, toning, treatments, scalp scrubs and head and neck massage. Not new hair, not your move-up.</p>
+      <p>Your credit covers cuts, blow-dries, toning, treatments, scalp scrubs and head and neck massage.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 300 Maintenance Bonus added on top</li><li><span class="tk"></span>Confidence Mapping and your 8-Step Hair Plan, free</li><li><span class="tk"></span>Cash or card</li></ul>
       <span class="from">You pay<b>AED 1,500</b></span>
       <span class="from">Yours to spend<b>AED 1,800</b></span>
@@ -168,7 +197,7 @@
     <article class="door">
       <img class="pthumb" src="assets/img/tier-plus.jpg" alt="A stylist&rsquo;s hands threading a weft at the root, close up" loading="lazy" decoding="async" width="1200" height="800">
       <h3>Maintain Plus</h3>
-      <p>Our recommendation. The same services across nine months, cared for. Not new hair, not your move-up.</p>
+      <p>Our recommendation. The same care as Essentials, with nine months to use it and AED 3,600 to spend.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 600 Maintenance Bonus added on top</li><li><span class="tk"></span>Confidence Mapping and your 8-Step Hair Plan, free</li><li><span class="tk"></span>Priority last-minute booking slots, except December and public holidays</li><li><span class="tk"></span>Or 4 interest-free payments of AED 750 with Tabby</li></ul>
       <span class="from">You pay<b>AED 3,000</b></span>
       <span class="from">Yours to spend<b>AED 3,600</b></span>
@@ -176,10 +205,10 @@
       <p class="door__where"><span>Valid</span> 9 months from purchase.</p>
       <a class="pill pill--accent" href="#reserve" data-pick="plus" data-cta="stack-plus">Reserve Plus <span class="arr">&rarr;</span></a>
     </article>
-    <article class="door">
+    <article class="door" id="p-bundle">
       <img class="pthumb" src="assets/img/tier-bundle.jpg" alt="A new extension install in progress, seen from behind" loading="lazy" decoding="async" width="1200" height="800">
       <h3>New Hair and Maintain Bundle</h3>
-      <p>One decision. Your full new-hair application in your chosen method, plus a 12-month Maintenance Bundle credit. No Maintenance Bonus on the bundle. Move-ups after your install are booked and paid separately.</p>
+      <p>Your full application in the method you choose, plus a 12-month Maintenance Bundle credit of AED 1,500. There is no Maintenance Bonus on the Bundle, and move-ups after your install are booked and paid separately.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 1,500 credit to spend over 12 months</li><li><span class="tk"></span>Confidence Mapping and your 8-Step Hair Plan, free</li><li><span class="tk"></span>Priority last-minute booking slots, except December and public holidays</li><li><span class="tk"></span>Or Tabby, 4 payments, from AED 825 each</li></ul>
       <span class="from">From<b>AED 3,300</b></span>
       <details class="bands"><summary>Price by method, from</summary><ul><li><span>Tape-In</span><b>AED 3,700</b></li><li><span>Nano Rings</span><b>AED 4,300</b></li><li><span>Beaded or Sewn Weft</span><b>AED 3,300</b></li><li><span>Keratin and Fusion</span><b>At your Mapping</b></li></ul></details>
@@ -191,13 +220,12 @@
     </div>
     <div class="ogroup ogroup--wide" id="o-methods">
       <h3>Move-ups</h3>
-      <p class="who">For you if you want to know what keeping your method costs: when your move-up is due, and what it costs. Move-ups are booked and paid separately from your plan.</p>
+      <p class="who">What each method costs to keep up, and how often it is due. Move-ups are booked and paid separately from your plan.</p>
       <div class="obody">
         <div class="doors orows">
     <article class="door">
       <div class="slot mthumb" role="img" aria-label="Photo: Tape-In" style="background-image:url(assets/img/method-tape-in.jpg),url(assets/img/slots/method-tape-in.svg)"></div>
       <h3>Tape-In</h3>
-      <p>Move-up appointment, booked and paid separately.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 450 for 1 pack</li><li><span class="tk"></span>AED 1,050 for 4 packs</li></ul>
       <span class="from">Move-up from<b>AED 450</b></span>
       
@@ -206,7 +234,6 @@
     <article class="door">
       <div class="slot mthumb" role="img" aria-label="Photo: Nano Rings" style="background-image:url(assets/img/method-nano-rings.jpg),url(assets/img/slots/method-nano-rings.svg)"></div>
       <h3>Nano Rings</h3>
-      <p>Move-up appointment, booked and paid separately.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 500 per hour</li></ul>
       <span class="from">Move-up, per hour<b>AED 500</b></span>
       
@@ -215,7 +242,6 @@
     <article class="door">
       <div class="slot mthumb" role="img" aria-label="Photo: Beaded Weft" style="background-image:url(assets/img/method-beaded-weft.jpg),url(assets/img/slots/method-beaded-weft.svg)"></div>
       <h3>Beaded Weft</h3>
-      <p>Move-up appointment, booked and paid separately.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 450 for 1 row</li><li><span class="tk"></span>AED 850 for 3 rows</li></ul>
       <span class="from">Move-up from<b>AED 450</b></span>
       
@@ -224,7 +250,6 @@
     <article class="door">
       <div class="slot mthumb" role="img" aria-label="Photo: Sewn Weft" style="background-image:url(assets/img/method-sewn-weft.jpg),url(assets/img/slots/method-sewn-weft.svg)"></div>
       <h3>Sewn Weft</h3>
-      <p>Tightening appointment, booked and paid separately.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 450 for 1 row</li><li><span class="tk"></span>AED 850 for 3 rows</li></ul>
       <span class="from">Tighten from<b>AED 450</b></span>
       
@@ -233,7 +258,6 @@
     <article class="door">
       <div class="slot mthumb" role="img" aria-label="Photo: Keratin and Fusion" style="background-image:url(assets/img/method-keratin-fusion.jpg),url(assets/img/slots/method-keratin-fusion.svg)"></div>
       <h3>Keratin and Fusion</h3>
-      <p>Move-up appointment, booked and paid separately.</p>
       <ul class="door__inc"><li><span class="tk"></span>AED 500 per hour</li></ul>
       <span class="from">Move-up, per hour<b>AED 500</b></span>
       
@@ -242,22 +266,8 @@
         </div>
       </div>
     </div>
-    <p class="menu-note">Move-ups are booked and paid separately, and your stylist confirms the packs, rows or hours at your Confidence Mapping. Every install and move-up sits inside your 8-Step Hair Plan: your method, how fast your hair grows and your scalp, written down with your stylist before the chair.</p>
-    <p class="menu-note">The Bundle price is your method&rsquo;s application price plus your AED 1,500 credit, and the amount of hair is confirmed at your Confidence Mapping, before you pay. Credit spends at any of our four salons. Once it is on your account it is yours until it is used or the validity date passes. We ask for 48 hours&rsquo; notice to move an appointment.</p>
-  </div>
-</section>
-
-<section id="fit" style="background:var(--cream);padding-block:60px">
-  <div class="wrap">
-    <div class="sec-head center">
-      <span class="eyebrow">Is this for you?</span>
-      <h2>If any of these sound like you, <em>yes.</em></h2>
-    </div>
-    <div class="fit">
-      <div class="inc"><p>Your extensions have grown down and the blend is starting to show.</p></div>
-      <div class="inc"><p>You are about to get extensions and want to know what keeping them costs.</p></div>
-      <div class="inc"><p>You want one plan for cuts, blow-dries, toning and scalp care.</p></div>
-    </div>
+    <p class="menu-note">Your stylist confirms the packs, rows or hours at your Confidence Mapping. Every install and move-up sits inside your 8-Step Hair Plan: your method, how fast your hair grows and your scalp, written down with your stylist before you sit in the chair.</p>
+    <p class="menu-note">The Bundle price is your method&rsquo;s application price plus the AED 1,500 credit. The amount of hair is confirmed at your Confidence Mapping, before you pay. Credit works at all four of our salons and stays yours until it is used or the validity date passes. We ask for 48 hours&rsquo; notice to move an appointment.</p>
   </div>
 </section>
 
@@ -265,11 +275,11 @@
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">Why a plan</span>
-      <h2>Why hair extensions <em>need maintenance.</em></h2>
+      <h2>Why extensions need <em>looking after.</em></h2>
     </div>
     <div class="rblocks">
-      <div class="rblock"><span class="rnum">01</span><h3>Here&rsquo;s what&rsquo;s actually happening</h3><p>Your own hair keeps growing underneath. The point of attachment moves further from the scalp every week. The extension is not failing.</p></div>
-      <div class="rblock"><span class="rnum">02</span><h3>What this means for you</h3><p>A rhythm built around your method and how fast your hair grows. We move the point of attachment back up, check the tension and protect the blend.</p></div>
+      <div class="rblock"><span class="rnum">01</span><h3>Here&rsquo;s what&rsquo;s actually happening</h3><p>Your own hair keeps growing underneath, so every week the point where your extensions attach sits a little further from your scalp. That is what you see as the blend starting to show.</p></div>
+      <div class="rblock"><span class="rnum">02</span><h3>What this means for you</h3><p>We move the attachment back up, check the tension and look after the blend, on a rhythm set by your method and how fast your hair grows.</p></div>
       <div class="rblock"><span class="rnum">03</span><h3>The Tara Rose Truth</h3><p class="rtruth" style="text-align:left;margin:0;max-width:none">The rhythm is what makes the extensions last.</p></div>
     </div>
   </div>
@@ -384,7 +394,7 @@
 <section style="background:var(--cream);padding:34px 0;border-top:1px solid var(--hair)">
   <div class="wrap">
     <p class="consent" style="max-width:80ch;margin:0 auto;text-align:left">All figures are in UAE Dirhams and include applicable value added tax. Plans are not refundable. If something unexpected happens, message us and our management team will review your case with care. A plan bought as a gift is issued in her name at purchase and cannot be moved again after that. Validity runs from the day your payment is confirmed, including when you pay with Tabby: 6 months for Maintain Essentials, 9 months for Maintain Plus and 12 months for the New Hair and Maintain Bundle. Unused credit expires at the end of the validity period. Move-up appointments are not part of any plan and are booked and paid separately.</p>
-    <div style="max-width:80ch;margin:14px auto 0"><details><summary>Full plan terms</summary>Credit is valid across all Tara Rose salons in Dubai and Abu Dhabi. Maintain Essentials and Maintain Plus cover cuts, blow-dries, toning and gloss, treatments, scalp scrubs and head and neck massage, and do not cover new hair. The Maintenance Bonus (AED 300 on Maintain Essentials, AED 600 on Maintain Plus) is added to your plan as credit, not cash, and has the same validity as the plan. The New Hair and Maintain Bundle has no Maintenance Bonus. Neither a plan nor the Bundle&rsquo;s AED 1,500 credit covers a move-up appointment. Move-up and tightening appointments for Tape-In, Nano Rings, Beaded Weft, Sewn Weft and Keratin and Fusion are booked and paid separately, at the move-up prices shown, and your stylist confirms the packs, rows or hours at your Confidence Mapping. The New Hair and Maintain Bundle includes your full application, in your chosen method, at any Tara Rose salon, with the method and the amount of hair agreed at your Confidence Mapping. Its price is the application price for your method plus the AED 1,500 credit. We ask for 48 hours&rsquo; notice to move an appointment, and short notice follows our <a href="https://promo.tararosesalon.com/deposit-policy?client=existing">booking and deposit policy</a>. Priority last-minute slots on Maintain Plus and the Bundle mean that when a same-day or next-day space opens at your salon, our team offers it to you first. It depends on availability, the time is not guaranteed, and priority slots are not offered in December or on public holidays. Tabby&rsquo;s own terms apply to a split payment. The Hair Extension Plan is available all year, and the prices and validity shown are those on the day you reserve.</details></div>
+    <div class="terms-more" style="max-width:80ch;margin:14px auto 0"><details><summary>Full plan terms</summary>Credit is valid across all Tara Rose salons in Dubai and Abu Dhabi. Maintain Essentials and Maintain Plus cover cuts, blow-dries, toning and gloss, treatments, scalp scrubs and head and neck massage, and do not cover new hair. The Maintenance Bonus (AED 300 on Maintain Essentials, AED 600 on Maintain Plus) is added to your plan as credit, not cash, and has the same validity as the plan. The New Hair and Maintain Bundle has no Maintenance Bonus. Neither a plan nor the Bundle&rsquo;s AED 1,500 credit covers a move-up appointment. Move-up and tightening appointments for Tape-In, Nano Rings, Beaded Weft, Sewn Weft and Keratin and Fusion are booked and paid separately, at the move-up prices shown, and your stylist confirms the packs, rows or hours at your Confidence Mapping. The New Hair and Maintain Bundle includes your full application, in your chosen method, at any Tara Rose salon, with the method and the amount of hair agreed at your Confidence Mapping. Its price is the application price for your method plus the AED 1,500 credit. We ask for 48 hours&rsquo; notice to move an appointment, and short notice follows our <a href="https://promo.tararosesalon.com/deposit-policy?client=existing">booking and deposit policy</a>. Priority last-minute slots on Maintain Plus and the Bundle mean that when a same-day or next-day space opens at your salon, our team offers it to you first. It depends on availability, the time is not guaranteed, and priority slots are not offered in December or on public holidays. Tabby&rsquo;s own terms apply to a split payment. The Hair Extension Plan is available all year, and the prices and validity shown are those on the day you reserve.</details></div>
   </div>
 </section>
 
@@ -441,7 +451,7 @@
       <span>&copy; 2026 Tara Rose Salon.</span>
       <span><a href="https://www.tararosesalon.com/en/ae/privacy-policy/">Privacy</a> &middot; <a href="https://www.tararosesalon.com/en/ae/terms-and-conditions/">Terms</a> &middot; <a href="https://www.tararosesalon.com/en/ae/cookies-policy/">Cookies</a></span>
     </div>
-    <p class="permit">The Hair Extension Plan: available all year, Abu Dhabi and Dubai. Your credit, your bonus, your rhythm, at every Tara Rose salon.</p>
+    <p class="permit">The Hair Extension Plan: available all year, at every Tara Rose salon in Abu Dhabi and Dubai.</p>
   </div>
 </footer>
 
@@ -449,7 +459,7 @@
   <a class="pill pill--accent" href="#reserve" data-cta="float-reserve" tabindex="-1">Reserve Your Plan <span class="arr">&rarr;</span></a>
 </div>
 
-<script src="js/nav-scroll.js?v=25ea5197" defer></script>
+<script src="js/nav-scroll.js?v=2" defer></script>
 <script src="js/ext.js" defer></script>
 </body>
 </html>
