@@ -251,12 +251,15 @@
   .revgrid .tcard{flex:0 0 84%;scroll-snap-align:center}
 }
 
-/* more dark (Kate, 19 Oct): the offers, reviews and FAQ sit on the dark ground; the booking form, press strip and Good to know row stay light */
-.offers-dark{--paper:#1f1e1a;--cream:#1f1e1a;--stone-soft:#2a2823;--stone:#34312b;--ink:#f5f2eb;--ink-soft:rgba(245,242,235,.72);--hair:rgba(255,255,255,.15);--accent-text:#7DE6D2;background:#161512;color:#f5f2eb}
+/* dark only on what was added (Kate, 19 Oct): the picker band, the reviews and the Good to know row; offers, press, form and FAQ stay light */
 #start{border-top:1px solid rgba(255,255,255,.08)}
+.pickband{background:#161512}
+.pickband .pick{margin-bottom:0}
+#offers{padding:0 0 68px}
 #reviews{background:#161512;border-top:1px solid rgba(255,255,255,.08)}
 #promise{border-top:1px solid rgba(255,255,255,.08)}
-#faq{background:#161512}
+.glance.dark{background:var(--ink-deep)}
+.foot{border-top:1px solid rgba(255,255,255,.08)}
 </style>
 <meta name="geo.region" content="AE">
 <script type="application/ld+json">
@@ -295,7 +298,7 @@
   </div>
 </section>
 
-<section id="start" class="menu-sec dark offers-dark">
+<section id="start" class="pickband dark">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">Where to start</span>
@@ -309,6 +312,8 @@
       <li><a href="#o-blowdry"><span>I want to feel polished all month.</span><small>Blow-dries</small></a></li>
     </ul>
   </div>
+</section>
+<section id="offers" class="menu-sec" style="background:var(--paper);">
   <div class="offer-nav" aria-label="Jump to a group"><div class="wrap"><ul class="offer-nav__row"><li><a class="ochip" href="#o-blowdry">Blow-dry</a></li><li><a class="ochip" href="#o-treatment">Treatments</a></li><li><a class="ochip" href="#o-smooth">Smoothing</a></li><li><a class="ochip" href="#o-colour">Colour</a></li></ul></div></div>
   <div class="wrap menu-zone">
     <div class="ogroup" id="o-blowdry">
@@ -646,7 +651,7 @@
   </div>
 </section>
 
-<section class="faq dark" id="faq">
+<section class="faq faq--light" id="faq" style="background:var(--cream);">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">Questions</span>
@@ -659,7 +664,7 @@
   </div>
 </section>
 
-<section id="terms" class="glance">
+<section id="terms" class="glance dark">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">Offer terms</span>
