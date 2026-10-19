@@ -97,6 +97,9 @@ const STAFF_NAME_ALIASES = {
   // Kathy Garcia (Assistant, KCA, Saadiyat and Marasy, archived in Phorest): the KCA and Saadiyat ledgers wrote KAT for 7 to 20 Feb 2021 (23 clients across both).
   // Phorest has no Kat on any roster, only Kate Siryk and Kathy Garcia, and Kate Siryk was at Marasy those weeks. Kate said Assistant, 19 Oct 2026.
   'KAT': 'KATHY',
+  // Dina Paycao (Beautician, KCA, Marasy, Saadiyat, Motor City, Al Quoz): the KCA ledger wrote DINA (HAIR) for 2 Jan to 30 Apr 2023 (8 clients), her figures in the hair list.
+  // Phorest has no hair Dina, only Dina Paycao. Folded for the dashboards' hair and beauty totals; the rows stay Hair. Kate, 19 Oct 2026.
+  'DINA (HAIR)': 'DINA',
   // Xyrhy Unisa: XYRYH, Motor City, Aug 2024 (XYHRY is mapped above).
   'XYRYH': 'XYRHY',
   // One-day typos: RITCHEL (Motor City) is Richel Modilla, SAMATHA (Motor City) is Samantha Ahmad, LORI (KCA) is Lorie.

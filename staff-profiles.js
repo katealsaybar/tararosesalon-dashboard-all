@@ -310,6 +310,9 @@ const STAFF_PROFILES = {
   // ledger rows) is Rany Altahesh, hair IG rannyhairstyle, so RANYA folds into RANY (name-aliases.js). Placeholders, personal accounts not used.
   'NATALEAH':{ photoFull: 'stylist/photos/SAA/nataleah brandy.png', role: 'Stylist', branch: 'SAA', ig: 'hairbynats19', blank: true, resigned: true },
   'RANY':    { photoFull: 'stylist/photos/KCA/rany altahesh.png', role: 'Stylist', branch: 'KCA', ig: 'rannyhairstyle', resigned: true },
+  // Kate, 19 Oct 2026: Anna Ahaponova, former Stylist (Phorest category 4, archived): SAA 27 Feb to 12 Mar 2023 (ledger, 1 client), KCA the week of 6 Mar 2023
+  // (utilisation only). No photo or IG found, so the default placeholder, marked resigned.
+  'ANNA':    { photoFull: 'stylist/photos/SAA/anna ahaponova.png', role: 'Stylist', branch: 'SAA', alsoAt: ['KCA'], blank: true, resigned: true },
   // Kate, 15 Oct 2026, "possibly her": Kara . (Al Quoz, Phorest Style Director - DXB, added 20 Mar 2024, two ledger days) is Kara Francis, hair IG kara__haircare_.
   'KARA':    { photoFull: 'stylist/photos/AQ/kara francis.png', role: 'Style Director', branch: 'AQ', ig: 'kara__haircare_', resigned: true },
   // Kate, 15 Oct 2026, "possibly her": Denise . (KCA and Saadiyat Stylist, ledger KCA Mar to May 2022) is Denise Muc; the only IG Kate has is her personal one.
