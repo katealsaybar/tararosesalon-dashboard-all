@@ -58,16 +58,6 @@ a.inc.fitcard{padding:22px 20px;text-align:center;display:flex;flex-direction:co
   .hero-hr.hero-photo-right .hero-photo img{max-height:380px}
   .hero-hr.hero-photo-right .wrap{padding-block:30px 36px;gap:28px}
 }
-/* The plan terms row sat outside .faq, so it never got the + icon and read as plain text. Give it a card and the same +. */
-.terms-q{background:#fff;border:1px solid rgba(45,46,55,.14);border-radius:14px;padding:0 20px}
-.terms-q>summary{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:58px;cursor:pointer;list-style:none;font:500 17px/1.35 Inter,system-ui,sans-serif;color:var(--ink)}
-.terms-q>summary::-webkit-details-marker{display:none}
-.terms-q .chev{flex:0 0 22px;width:22px;height:22px;position:relative}
-.terms-q .chev::before,.terms-q .chev::after{content:"";position:absolute;background:var(--accent-deep);border-radius:2px}
-.terms-q .chev::before{top:10px;left:3px;right:3px;height:2px}
-.terms-q .chev::after{left:10px;top:3px;bottom:3px;width:2px;transition:opacity .2s}
-.terms-q[open] .chev::after{opacity:0}
-.terms-q .ans{padding:2px 0 20px}
 /* Model photos are 4:5 portraits. A 16:9 or 4:3 banner crop on a phone cut faces in half, so show them whole, a little smaller and centred. */
 @media (max-width:860px){
   .osubgrid .osubphoto img{aspect-ratio:4/5;width:min(66%,260px);margin:0 auto}
@@ -85,12 +75,13 @@ a.inc.fitcard{padding:22px 20px;text-align:center;display:flex;flex-direction:co
   .ogroup .orows .door .bands>summary{min-height:44px;font-size:12.5px}
   .bands--len li span{font-size:13px}
   .from--quote b{font-size:14px}
-  .terms-q>summary{min-height:44px;display:flex;align-items:center}
   .field input:not([type=checkbox]),.field select,.field textarea{min-height:46px}
   .chat-row a{flex:1 1 calc(50% - 10px);justify-content:center;min-height:46px}
   main section[id]{scroll-margin-top:calc(var(--nav-h,75px) + 6px)}
   .door--plan{scroll-margin-top:calc(var(--sticky-h,130px) + 8px)}
 }
+.terms summary{min-height:52px}
+.terms__body .terms-list{font-size:14px;line-height:1.65}
 .rhythm-note{max-width:56ch;margin:22px auto 0;text-align:center;font:300 16.5px/1.6 Inter,system-ui,sans-serif;color:var(--ink-soft)}
 </style>
 <meta name="geo.region" content="AE">
@@ -516,10 +507,9 @@ a.inc.fitcard{padding:22px 20px;text-align:center;display:flex;flex-direction:co
   </div>
 </section>
 
-<section id="terms" style="background:var(--cream);padding:48px 0">
+<section id="terms" style="background:var(--cream);padding:40px 0">
   <div class="wrap">
-    <div class="sec-head center"><span class="eyebrow">Plan terms</span><h2>The small print, <em>in plain English.</em></h2></div>
-    <details class="q terms-q"><summary>Tap to read the plan terms.<span class="chev"></span></summary><div class="ans"><ol class="terms-list">
+    <details class="terms"><summary><span>The full terms, and what your plan covers</span></summary><div class="terms__body"><ol class="terms-list">
       <li><b>What the plan is.</b> Three visits, Create, Protect and Keep on Track, booked and paid together. Your plan price depends on your length and starting colour, and it is confirmed at your free Confidence Mapping before you pay anything.</li>
       <li><b>When the visits happen.</b> Visit 2 is four to six weeks after Visit 1, and Visit 3 is eight to twelve weeks after it. You leave Visit 1 with the next two booked.</li>
       <li><b>Which plan.</b> If your Confidence Mapping shows that another plan suits your hair better, we tell you and the price moves to that plan before you pay.</li>
