@@ -1,0 +1,6 @@
+-- Record only: already applied to Supabase on 18 Oct 2026, do not re-run.
+-- staff_name_variants rows added so Fratelli reviews match their barbers despite spelling slips:
+--   Goncallo, Gonzalo, Gonzales, Almeida  -> GONCALO
+--   Hafez, Hafeez, Hafiz, Hafaz           -> HAFEZ
+--   Mihaela, Michaela                     -> MIHAELA
+-- Hand tags were also set on the reviews for Ruth and Billy.

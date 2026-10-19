@@ -98,7 +98,7 @@ const inRange = d => { const r=curRange(); return (!r.from || d>=r.from) && d<=r
 // / role (role decides hair or beauty) on their name row. Daisy Cropper, Managing
 // Director of TRS Bahrain, is one, so Bahrain reviews count for whoever's home it
 // is; Kerryn, Charlene, Simi and Farwa (Bahrain, 1 Oct 2026) are the others.
-const BR_OF = {KCA:"Khalifa City A, Abu Dhabi", SAA:"Saadiyat, Abu Dhabi", MC:"Motor City, Dubai", AQ:"Al Quoz, Dubai", BAH:"District 2, Bahrain"};
+const BR_OF = {KCA:"Khalifa City A, Abu Dhabi", SAA:"Saadiyat, Abu Dhabi", MC:"Motor City, Dubai", AQ:"Al Quoz, Dubai", BAH:"District 2, Bahrain", FRT:"Fratelli Barbershop, Al Quoz"};
 const MONTH_BEFORE = /(?:\b(?:in|on|of|since|last|this|next|early|late|mid|from|until|till|during|by)\s+)$/i;
 const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const wordRe = (list, flags) => list.length ? new RegExp("(?<![\\p{L}])(" + list.map(reEsc).join("|") + ")(?![\\p{L}])", flags + "u") : null;
@@ -107,6 +107,12 @@ const wordRe = (list, flags) => list.length ? new RegExp("(?<![\\p{L}])(" + list
 // second branch for a stretch, the extra branch is listed here: Hazel Mae Marco was at Al Quoz from Oct 2023 to Dec 2025,
 // then back at Khalifa City A, so "Hazel was super amazing" on an Al Quoz review in 2025 is hers.
 const ALSO_BRANCH = {"HAZEL MAE": ["AQ"]};
+// Kate, 18 Oct 2026: Gonçalo de Almeida, Hafez and Billy Gray (Fratelli barbers, keys GONCALO, HAFEZ, BILLY) and Mihaela Solomei (the
+// Al Quoz stylist, who worked at Fratelli too; Kate's call, "Michaela" is her) and Josh Thomas (key JOSH, same: Al Quoz profile, Fratelli
+// chair) are tagged on Fratelli reviews; the other Fratelli barbers stay untagged. Their strict spellings (Billy, Almeida, Hafeez,
+// Michaela...) count at Fratelli (and their own branch) only.
+const FRT_STAFF = ["GONCALO", "HAFEZ", "BILLY", "MIHAELA", "JOSH"];
+ALSO_BRANCH.GONCALO = ALSO_BRANCH.HAFEZ = ALSO_BRANCH.BILLY = ALSO_BRANCH.MIHAELA = ALSO_BRANCH.JOSH = ["FRT"];
 const atBranch = (s, r) => r.branch === s.branch || (s.also || []).includes(r.branch);
 let STAFF = [], VARIANTS = null;
 // Reviews that name nobody but came from a client of that stylist within 14 days
@@ -174,12 +180,14 @@ function tagStaffAuto(r){
   r.staff = []; r.hits = []; r.viaClient = false;
   if (!r.comment) { if (r.id && CLIENT_CREDIT[r.id]) { r.staff = [...new Set(CLIENT_CREDIT[r.id])]; r.viaClient = true; } return; }
   r.staff = [];
-  // Fratelli's barbers aren't TRS staff: a "Billy" or "Mihaela" there is never one of ours.
-  if (r.branch === CODE_TO_BRANCH.FRT) { r.staff = []; return; }
+  // Fratelli's barbers aren't TRS staff: a "Billy" or "Mihaela" there is never one of ours. Only the people in FRT_STAFF are
+  // matched on a Fratelli review, and no client-credit fallback, since the sales lines are TRS's.
+  const frt = r.branch === CODE_TO_BRANCH.FRT;
   // Marasy's stylists moved on or left, and a first name there ("Robyn", "Jeida") is often not the person now on a TRS profile.
   if (r.branch === MRY_BRANCH) { r.staff = []; return; }
   const bahrain = r.branch === "District 2, Bahrain";
   STAFF.forEach(s => {
+    if (frt && !FRT_STAFF.includes(s.key)) return;
     // Bahrain reviews only count for someone whose home is Bahrain.
     if (bahrain && s.branch !== r.branch) return;
     // A client signing off with her own name ("... Maria.") isn't naming a stylist.
@@ -203,7 +211,7 @@ function tagStaffAuto(r){
   });
   // Nobody named: fall back to whoever served this reviewer just before.
   r.viaClient = false;
-  if (!r.staff.length && r.id && CLIENT_CREDIT[r.id]) { r.staff = [...new Set(CLIENT_CREDIT[r.id])]; r.viaClient = true; }
+  if (!frt && !r.staff.length && r.id && CLIENT_CREDIT[r.id]) { r.staff = [...new Set(CLIENT_CREDIT[r.id])]; r.viaClient = true; }
 }
 const staffBy = k => STAFF.find(s => s.key === k);
 function markNames(r){
