@@ -91,9 +91,15 @@
   #o-plans .bands>summary{min-height:44px;font-size:12px;display:flex;align-items:center}
   .pdpl__label{padding-block:10px}
 }
-/* Terms toggle: the same look as the Wellness Voucher page (.terms in voucher-base.css), lined up with the paragraph above it and a touch larger for phones */
-.terms{max-width:80ch;margin:14px auto 0}
-.terms__body{font-size:13px}
+/* Plan terms at a glance, with the full terms on their own page (same pattern as The Hair Rhythm, Kate 19 Oct) */
+.glance{background:var(--cream);padding:60px 0}
+.glance__row{list-style:none;margin:30px auto 0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:980px}
+.glance__row li{background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-md);padding:20px 18px}
+.glance__row b{display:block;font-family:var(--fb);font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-text);margin-bottom:8px}
+.glance__row span{font-family:var(--fd);font-size:18px;line-height:1.35;color:var(--ink)}
+.glance__cta{text-align:center;margin:30px 0 0}
+@media(max-width:860px){.glance__row{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.glance{padding:48px 0}.glance__row{gap:10px}.glance__row li{padding:16px 14px}.glance__row span{font-size:16px}.glance__cta .pill{width:100%;justify-content:center;min-height:48px}}
 /* shorter hero photo so the Reserve button reaches the first screen on 360px Androids and the iPhone SE */
 @media(max-width:599px){
   .hero-hr{background-size:auto 250px;padding-top:222px !important}
@@ -393,13 +399,19 @@
   </div>
 </section>
 
-<section style="background:var(--cream);padding:34px 0;border-top:1px solid var(--hair)">
+<section id="terms" class="glance">
   <div class="wrap">
-    <p class="consent" style="max-width:80ch;margin:0 auto;text-align:left">All figures are in UAE Dirhams and include applicable value added tax. Plans are not refundable. If something unexpected happens, message us and our management team will review your case with care. A plan bought as a gift is issued in her name at purchase and cannot be moved again after that. Validity runs from the day your payment is confirmed, including when you pay with Tabby: 6 months for Maintain Essentials, 9 months for Maintain Plus and 12 months for the New Hair and Maintain Bundle. Unused credit expires at the end of the validity period. Move-up appointments are not part of any plan and are booked and paid separately.</p>
-    <details class="terms" id="terms">
-      <summary><span>The full terms, and what your plan covers</span></summary>
-      <div class="terms__body">Credit is valid across all Tara Rose salons in Dubai and Abu Dhabi. Maintain Essentials and Maintain Plus cover cuts, blow-dries, toning and gloss, treatments, scalp scrubs and head and neck massage, and do not cover new hair. The Maintenance Bonus (AED 300 on Maintain Essentials, AED 600 on Maintain Plus) is added to your plan as credit, not cash, and has the same validity as the plan. The New Hair and Maintain Bundle has no Maintenance Bonus. Neither a plan nor the Bundle&rsquo;s AED 1,500 credit covers a move-up appointment. Move-up and tightening appointments for Tape-In, Nano Rings, Beaded Weft, Sewn Weft and Keratin and Fusion are booked and paid separately, at the move-up prices shown, and your stylist confirms the packs, rows or hours at your Confidence Mapping. The New Hair and Maintain Bundle includes your full application, in your chosen method, at any Tara Rose salon, with the method and the amount of hair agreed at your Confidence Mapping. Its price is the application price for your method plus the AED 1,500 credit. We ask for 48 hours&rsquo; notice to move an appointment, and short notice follows our <a href="https://promo.tararosesalon.com/deposit-policy?client=existing">booking and deposit policy</a>. Priority last-minute slots on Maintain Plus and the Bundle mean that when a same-day or next-day space opens at your salon, our team offers it to you first. It depends on availability, the time is not guaranteed, and priority slots are not offered in December or on public holidays. Tabby&rsquo;s own terms apply to a split payment. The Hair Extension Plan is available all year, and the prices and validity shown are those on the day you reserve.</div>
-    </details>
+    <div class="sec-head center">
+      <span class="eyebrow">Plan terms</span>
+      <h2>Good to <em>know.</em></h2>
+    </div>
+    <ul class="glance__row">
+      <li><b>Valid</b><span>6 months on Essentials, 9 on Plus, 12 on the Bundle.</span></li>
+      <li><b>Notice</b><span>48 hours to move an appointment.</span></li>
+      <li><b>Refunds</b><span>Plans are not refundable.</span></li>
+      <li><b>Move-ups</b><span>Booked and paid separately.</span></li>
+    </ul>
+    <p class="glance__cta"><a class="pill pill--accent" href="terms/">Read the full plan terms <span class="arr">&rarr;</span></a></p>
   </div>
 </section>
 
@@ -430,7 +442,7 @@
         <h3>The Hair Extension Plan</h3>
         <p><a href="#reserve">Reserve Your Plan</a></p>
         <p><a href="#reserve" data-gift="1">Gift it instead</a></p>
-        <p><a href="https://www.tararosesalon.com/en/ae/terms-and-conditions/">Plan terms</a></p>
+        <p><a href="terms/">Plan terms</a></p>
       </div>
       <div>
         <h3>Contact</h3>
