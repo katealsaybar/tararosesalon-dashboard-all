@@ -49,14 +49,16 @@ const nextOf = name => { const l = levelOf(name); return l ? S.levels.find(x => 
 function paint() {
   const hasLevel = !!levelOf(S.me && S.me.level);
   const tabs = document.getElementById('perfTabs'), more = document.getElementById('perfMore');
-  const b = (k, l, extra = '') => `<button type="button" role="tab" aria-selected="${S.tab === k}" class="${S.tab === k ? 'on' : ''}" onclick="PerfTabs.go('${k}')"${extra}>${l}</button>`;
+  // Kate, 19 Oct 2026: on a phone the bar is underline tabs with the short name (Month, Year, Podium, Move up, 1-to-1);
+  // the full name stays for screen readers and for the wider pill bar.
+  const b = (k, l, short, extra = '') => `<button type="button" role="tab" aria-selected="${S.tab === k}" aria-label="${l}" class="${S.tab === k ? 'on' : ''}" onclick="PerfTabs.go('${k}')"${extra}><span class="tl">${l}</span><span class="ts" aria-hidden="true">${short}</span></button>`;
   // No levels for her team (beauty, so far): no "How you move up" tab at all, rather
   // than a greyed-out one (Kate, 2 Oct 2026). It comes back by itself once
   // perf_benchmarks carries levels for that team.
   // My 1-to-1 (Kate, 7 Oct 2026): only for a stylist the trial is switched on for
   // (perf_one2one_me answers null for everyone else), drawn by one2one.js.
-  tabs.innerHTML = b('month', 'This month') + b('year', 'My year') + (S.pod ? b('podium', 'Podium Race') : '')
-    + (hasLevel ? b('levels', 'How you move up') : '') + (S.o2o ? b('one', 'My 1-to-1') : '');
+  tabs.innerHTML = b('month', 'This month', 'Month') + b('year', 'My year', 'Year') + (S.pod ? b('podium', 'Podium Race', 'Podium') : '')
+    + (hasLevel ? b('levels', 'How you move up', 'Move up') : '') + (S.o2o ? b('one', 'My 1-to-1', '1-to-1') : '');
   tabs.parentElement.hidden = false;
   const onMonth = S.tab === 'month';
   document.getElementById('app').hidden = !onMonth;
