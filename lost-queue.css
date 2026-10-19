@@ -222,3 +222,6 @@
 /* Resend what WhatsApp did not deliver (lost-blast.js), 19 Oct 2026. */
 #lostListsContent .lqb-rs{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:10px 0 2px;padding:10px 13px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}
 #lostListsContent .lqb-rs > div{flex:1 1 420px;line-height:1.5;font-size:13px}
+/* The template name on a failed send (lost-queue.js lqFailTpl), 19 Oct 2026. */
+#lostListsContent .lq-tpl{margin:6px 0 2px}
+#lostListsContent .lq-tpl code{font-size:12.5px;background:var(--surface2);padding:2px 6px;border-radius:6px;user-select:all}

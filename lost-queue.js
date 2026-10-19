@@ -740,13 +740,26 @@ function lqOutAt(r, i) {
   if (j.status === 'sent' && j.sent_at) return `<span class="slv-note">Sent ${lcEsc(ssFmt(j.sent_at))}</span>`;
   return '<span class="slv-muted">–</span>';
 }
+// The exact Meta template a failed send was queued with, and the values for its {{1}}, {{2}}, so a send that has to go by hand can pick the same
+// template in respond.io (Kate, 19 Oct 2026). The key and the values come from lost_send_jobs_get (migrations/lost_send_jobs_tkey.sql), the name from
+// lost_send_info().templates.
+function lqFailTpl(j) {
+  const t = j && j.tkey && lqSnd.info && (lqSnd.info.templates || []).find(x => x.key === j.tkey);
+  if (!t) return '';
+  const p = Array.isArray(j.params) ? j.params : [];
+  const vals = (t.vars || []).map((k, n) => `{{${n + 1}}} ${lcEsc(p[n] != null ? p[n] : '')}`).join(' · ');
+  return `<div class="lq-tpl"><span class="slv-note">Template in respond.io</span> <code>${lcEsc(t.respond_name)}</code> <button type="button" class="tglr lc-btn" onclick="lqCopyTpl('${lcEsc(t.respond_name)}')">Copy name</button>${vals ? `<div class="slv-note">${vals}</div>` : ''}</div>`;
+}
+async function lqCopyTpl(n) {
+  try { await navigator.clipboard.writeText(n); lqNote('Copied ' + n); } catch (e) { lqNote('The browser would not copy. Select the name instead.'); }
+}
 function lqOutAct(r, i) {
   const j = r._job || {};
   if (j.status === 'queued') return `<div class="lq-q">${j.scheduled_for ? 'Scheduled' : 'Queued'}${j.requested_by ? ` by ${lcEsc(j.requested_by)}` : ''}</div><div class="lq-acts"><button type="button" class="tglr lc-btn" onclick="lqCancel(${i})">Cancel</button></div>`;
   if (j.status === 'sending') return '<div class="lq-q">Sending…</div>';
   if (j.status === 'skipped') return `<div class="lq-skip">Skipped</div><div class="slv-note">${lcEsc(j.error || '')}</div>`;
   const wa = r._ch === 'whatsapp' && r._phone ? `<button type="button" class="tglr lc-btn" onclick="lqOpen(${i})">Open in WhatsApp</button>` : '';
-  return `<div class="lq-fail">Did not send</div><div class="slv-note">${lcEsc(j.error || '')}</div>
+  return `<div class="lq-fail">Did not send</div><div class="slv-note">${lcEsc(j.error || '')}</div>${lqFailTpl(j)}
     <div class="lq-acts"><button type="button" class="tglr lc-btn lq-pri" onclick="lqRetry(${i})">Retry</button>${wa}<button type="button" class="tglr lc-btn" onclick="lqMarkOne(${i})" title="I sent this one">Mark sent</button></div>`;
 }
 
