@@ -734,11 +734,54 @@ function psRenderSend() {
       <button class="btn-outline" onclick="psSendAct('send')"${dis || (!ready ? ' disabled' : '')}>Send ${ready} ready now</button>
       <a href="#" class="ps-link ps-refresh" onclick="PS_STATE.send=null;psRenderSend();psLoadSend();return false">Refresh</a>
     </div>
+    ${psWelcomeHtml(S, dis)}
     ${busy ? `<div class="ps-meta">${psEsc(busy)}</div>` : ''}
     ${PS_STATE.sendMsg ? `<div class="ps-ok">${psEsc(PS_STATE.sendMsg)}</div>` : ''}
     ${PS_STATE.sendErr ? `<div class="ps-err">${psEsc(PS_STATE.sendErr)}</div>` : ''}
     ${S.log && S.log.length ? `<div class="ps-send-log">${S.log.map(l => `<div>${psEsc(psWhen(l.at))} · ${psEsc(l.who)} · ${psEsc(l.what)}</div>`).join('')}</div>` : ''}`;
   psBadges();
+}
+
+// Welcome email (Kate, 19 Oct 2026): asks the hair and beauty team to sign in once to their own page. Goes once to each person who has not
+// signed in yet; assistants have no page of their own, so they are not on it. Same test box as above, then one button for everyone.
+function psWelcomeHtml(S, dis) {
+  const w = S.welcome;
+  if (!w) return '';
+  return `<div class="ps-send-sub">Welcome email: sign in once</div>
+    <div class="ps-meta">Asks the hair and beauty team to sign in to their own page. It goes once to anyone who has not signed in yet. Assistants are not on it.</div>
+    <div class="ps-chips">
+      <span class="ps-chip st-sent">Signed in ${w.signed_in}</span>
+      <span class="ps-chip">Welcome sent ${w.welcomed}</span>
+      <span class="ps-chip">To send ${w.to_send}</span>
+      ${w.check ? `<span class="ps-chip st-check">Check Sent folder ${w.check}</span>` : ''}
+    </div>
+    <div class="ps-send-row">
+      <button class="btn-outline" onclick="psWelcomeTest()"${dis}>Send a welcome test to ${psEsc((S.sender || 'payroll@').split('@')[0])}@</button>
+      <button class="btn-outline" onclick="psWelcomeSend()"${dis || (!w.to_send ? ' disabled' : '')}>Send welcome to ${w.to_send} ${w.to_send === 1 ? 'person' : 'people'}</button>
+    </div>
+    <div class="ps-meta">The test uses the name picked under Check one first, and goes to ${psEsc(S.sender || 'payroll@')} only.</div>`;
+}
+
+async function psWelcomeTest() {
+  const who = document.getElementById('psTestWho');
+  if (!who || !who.value) return;
+  const name = who.options[who.selectedIndex].text.replace(/ \(no payslip yet\)$/, '');
+  PS_STATE.sendBusy = `Sending a welcome test for ${name}…`; PS_STATE.sendMsg = ''; PS_STATE.sendErr = ''; psRenderSend();
+  try { const j = await psSend('welcome', { test: true, staff: [who.value] }); PS_STATE.send = j; PS_STATE.sendMsg = j.done; }
+  catch (e) { PS_STATE.sendErr = e.message; }
+  PS_STATE.sendBusy = ''; psRenderSend();
+}
+
+async function psWelcomeSend() {
+  const n = ((PS_STATE.send || {}).welcome || {}).to_send || 0;
+  if (!n || !confirm(`Send the welcome email to ${n} ${n === 1 ? 'person' : 'people'} who haven’t signed in yet? It goes out straight away.`)) return;
+  PS_STATE.sendBusy = 'Sending the welcome emails. This takes a minute or two, keep this page open.'; PS_STATE.sendMsg = ''; PS_STATE.sendErr = ''; psRenderSend();
+  try {
+    let j = await psSend('welcome');
+    while (j.left > 0) { PS_STATE.send = j; psRenderSend(); j = await psSend('welcome'); }   // a big list can outrun one call
+    PS_STATE.send = j; PS_STATE.sendMsg = j.done || '';
+  } catch (e) { PS_STATE.sendErr = e.message; }
+  PS_STATE.sendBusy = ''; psRenderSend(); psRenderViews();
 }
 
 // A small state tag next to each name in the upload list.

@@ -19,8 +19,12 @@
 // Who is on the roster: every active perf_staff (hair and beauty team) plus the employed assistants in kb_staff (category Assistant,
 // active), added 19 Oct 2026. Assistants get the payslip only: no win, no tip, no "See my month" link.
 //
+// Welcome email (Kate, 19 Oct 2026): `welcome` emails the hair and beauty team who have not signed in yet and have not had it, asking them to
+// sign in once to their own page; `welcome` + test + staff sends one to payroll@ only. Recorded in staff_welcome_sends. The payslip email
+// now sends people through the sign-in too, and carries their Podium Race place (perf_podium_me).
+//
 // Actions (POST JSON):
-//   status | test | schedule | unschedule | send | revised   key = payroll or leader key
+//   status | test | schedule | unschedule | send | revised | welcome   key = payroll or leader key
 //                          (perf_admins), the same check as the payslips function
 //   due                    secret = vault 'payslip_cron_secret'
 //                          (pg_cron, migrations/payslip_mailer.sql)
@@ -45,8 +49,10 @@ const SMTP_PASS = Deno.env.get("SMTP_PASS") || "";
 const FROM_NAME = "Tara Rose Salons Accounts";
 const REPLY_TO = "payroll@tararosesalon.com, hr.tararose@gmail.com";
 const CC_NOTES = "kate@tararosesalon.com";   // copied on the notes to payroll@, never on staff emails
+const SITE = "https://trk-salon-os.com/";
 const PAGE = "https://trk-salon-os.com/performance/";
-const LOGO = "https://trk-salon-os.com/assets/email-logo.png";
+// Transparent PNG in a mid warm grey (Kate, 19 Oct 2026: the old logo was a flat white box on dark-mode emails). 4.3:1 on white and on near-black.
+const LOGO = "https://trk-salon-os.com/assets/email-logo-tp.png";
 const PORTAL = "trk-salon-os.com/upload/";
 const BUDGET_MS = 100_000;   // stop starting new emails here; the rest go on the next run or press
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -204,23 +210,41 @@ Questions about your payslip? Just reply to this email and we'll sort it with yo
 
 Tara Rose Salons Accounts` };
 }
+// "3rd", "21st". Same helper as the staff page's Podium tab.
+const ord = (n: number) => { const v = n % 100, t = ["th", "st", "nd", "rd"]; return n + (t[(v - 20) % 10] || t[v] || t[0]); };
+// Where she stands on the Podium Race for the month, from the same function her own page uses (perf_podium_me: her own team only, services plus
+// retail before VAT). The mailer runs as the service role, which the sign-in lock lets through. Null when she has nothing in the month.
+async function podiumLine(token: string, month: string): Promise<{ text: string; first: boolean } | null> {
+  try {
+    const { data: r } = await sb.rpc("perf_podium_me", { p_token: token, p_month: `${month}-01` });
+    if (!r || !r.me || !r.me.rank) return null;
+    const team = r.dept === "Beauty" ? "Beauty team" : "Hair team";
+    const mn = label(String(r.month).slice(0, 7), { month: "long" });
+    const tied = (r.board || []).filter((b: { rank: number }) => b.rank === r.me.rank).length > 1;
+    return { text: `${tied ? "Joint " + ord(r.me.rank) : ord(r.me.rank)} of ${r.ranked} on the ${team} for ${mn}.`, first: r.me.rank === 1 };
+  } catch (_) { return null; }
+}
+// The sign-in on the site, which brings her back to her own page (index.html ?next=). Google, or an email link, once.
+const signInLink = (token: string, month?: string) => `${SITE}?next=${encodeURIComponent(`/performance/?t=${token}${month ? `&m=${month}` : ""}`)}`;
+
 async function emailFor(p: Person, month: string) {
   if (p.kind === "assistant") return assistantEmailFor(p, month);
   const { data: d } = await sb.rpc("perf_dashboard", { p_token: p.token, p_month: `${month}-01` });
   const hasNumbers = d && d.numbers && (d.numbers.total_revenue || d.numbers.clients);
   const wt = hasNumbers ? await winTip(d, p.token, month) : null;
+  const pod = await podiumLine(p.token, month);
   const first = p.name.split(" ")[0];
-  const link = `${PAGE}?t=${p.token}&m=${month}`;
-  // While the My Numbers lock is on (audit 18 Oct 2026, P7-01) the link asks her to sign in once, so the email says with which address.
-  const { data: lk } = await sb.from("kb_settings").select("on_off").eq("key", "my_numbers_lock").maybeSingle();
-  const lockLine = lk && lk.on_off ? `<p style="font-size:13px">Sign in with the email this was sent to. Google or an email link, once, and this phone remembers you.</p>` : "";
+  const link = signInLink(p.token, month);
+  const mon = label(month, { month: "long" });
+  const podHtml = pod ? `<p style="margin:14px 0;padding:10px 14px;background:#FBEAF0;border-radius:8px"><b style="color:#993556">Your Podium Race place</b><br>${esc(pod.text)}${pod.first ? " Lovely work." : ""}<br><span style="color:#77706A">${pod.first ? "The race starts fresh every month." : "A race is a moment, not a verdict, and a new month starts fresh for everyone."}</span></p>` : "";
+  const more = `There is more waiting on your own page: your numbers against your aims, your reviews${d && d.next_level ? `, how close you are to ${d.next_level}` : ""}, and the whole Podium Race for your team.`;
   const html = `<div style="font-family:Arial,sans-serif;color:#5C5557;max-width:560px;line-height:1.5">
     <p>Hi ${esc(first)},</p>
-    <p>${p.slip ? `Your ${label(month, { month: "long" })} payslip is attached.` : `Here is your ${label(month, { month: "long" })} in short. Your payslip will follow.`}</p>
+    <p>${p.slip ? `Your ${esc(mon)} payslip is attached.` : `Here is your ${esc(mon)} in short. Your payslip will follow.`}</p>
     ${winTipHtml(wt)}
-    <p>Your full month is on your own page: your six numbers, your reviews${d && d.next_level ? `, and how close you are to ${esc(d.next_level)}` : ""}.</p>
-    <p><a href="${link}" style="display:inline-block;background:#5C5557;color:#F9E8DF;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">See my month</a></p>
-    ${lockLine}
+    ${podHtml}
+    <p>${esc(more)} It is private to you, so please sign in once with this email address: Google, or an email link. This phone remembers you after that.</p>
+    <p><a href="${link}" style="display:inline-block;background:#5C5557;color:#F9E8DF;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">Sign in to see my month</a></p>
     <p>Questions about your payslip? Just reply to this email. Questions about your numbers? Your salon manager can walk you through them.</p>
     <p style="font-size:12px;color:#9a8a87">This link is yours only, so please keep it to yourself.</p>
     <p style="margin-top:22px"><img src="${LOGO}" alt="Tara Rose Salons" width="100" style="display:block;width:100px;height:auto;border:0"></p>
@@ -231,7 +255,91 @@ async function emailFor(p: Person, month: string) {
     if (error || !blob) throw new Error(`Couldn't read ${p.name}'s payslip file.`);
     pdf = { name: p.slip.file_name || `${p.name} payslip ${month}.pdf`, bytes: new Uint8Array(await blob.arrayBuffer()) };
   }
-  return { html, pdf, text: `Your ${label(month, { month: "long" })} payslip: ${link}${lockLine ? "\nSign in with the email this was sent to." : ""}` };
+  const text = `Hi ${first},
+
+${p.slip ? `Your ${mon} payslip is attached.` : `Here is your ${mon} in short. Your payslip will follow.`}
+
+${pod ? `Your Podium Race place: ${pod.text}
+
+` : ""}${more} It is private to you, so please sign in once with this email address: Google, or an email link.
+Sign in to see my month: ${link}
+
+Questions about your payslip? Just reply to this email.
+
+Tara Rose Salons Accounts`;
+  return { html, pdf, text };
+}
+
+// ── the welcome email ──
+// Sent once to each stylist and beautician who has not signed in yet (Kate, 19 Oct 2026), so the My Numbers sign-in is already in place
+// before the lock is switched on. The same private link as the payslip email, through the sign-in.
+function welcomeEmail(p: Person) {
+  const first = p.name.split(" ")[0], link = signInLink(p.token);
+  const line = "It is private to you and it holds your numbers for the month, your reviews, how close you are to your next level, where you stand on the Podium Race, and your payslip.";
+  const html = `<div style="font-family:Arial,sans-serif;color:#5C5557;max-width:560px;line-height:1.5">
+    <p>Hi ${esc(first)},</p>
+    <p>You have your own Tara Rose page. ${esc(line)}</p>
+    <p>To keep it yours, please sign in once with this email address: Google, or an email link. This phone (or computer) remembers you after that, so it takes a minute.</p>
+    <p><a href="${link}" style="display:inline-block;background:#5C5557;color:#F9E8DF;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">Sign in to my page</a></p>
+    <p>Stuck, or the sign-in doesn't take? Just reply to this email and we'll sort it with you.</p>
+    <p>Tara Rose Salons Accounts</p>
+    <p style="margin-top:22px"><img src="${LOGO}" alt="Tara Rose Salons" width="100" style="display:block;width:100px;height:auto;border:0"></p>
+  </div>`;
+  const text = `Hi ${first},
+
+You have your own Tara Rose page. ${line}
+
+To keep it yours, please sign in once with this email address: Google, or an email link. This phone (or computer) remembers you after that, so it takes a minute.
+Sign in to my page: ${link}
+
+Stuck, or the sign-in doesn't take? Just reply to this email and we'll sort it with you.
+
+Tara Rose Salons Accounts`;
+  return { html, text };
+}
+const welcomeSubject = "Welcome to your Tara Rose page";
+
+type WelcomeState = "to_send" | "welcomed" | "signed_in" | "check";
+// The hair and beauty team who can be welcomed: active, with an email, and not paused. Anyone who has signed in already is skipped.
+async function welcomeRoster(list: Person[]): Promise<{ p: Person; state: WelcomeState }[]> {
+  const [{ data: rows }, { data: si }] = await Promise.all([
+    sb.from("staff_welcome_sends").select("staff_id, status"),
+    sb.rpc("perf_signed_in_emails"),
+  ]);
+  const signed = new Set(((si || []) as string[]).map((e) => String(e).toLowerCase()));
+  const by = Object.fromEntries((rows || []).map((r: { staff_id: string; status: string }) => [r.staff_id, r.status]));
+  return list.filter((p) => p.kind === "stylist" && p.send_email && p.email).map((p) => ({
+    p,
+    state: (signed.has(p.email!.toLowerCase()) ? "signed_in" : by[p.id] ? (by[p.id] === "sent" ? "welcomed" : "check") : "to_send") as WelcomeState,
+  }));
+}
+async function sendWelcome(who: string, t0: number) {
+  const sent: string[] = [], failed: string[] = [];
+  let left = 0;
+  for (const { p, state } of await welcomeRoster(await people(new Date().toISOString().slice(0, 7)))) {
+    if (state !== "to_send") continue;
+    if (Date.now() - t0 > BUDGET_MS) { left++; continue; }
+    const { error: claim } = await sb.from("staff_welcome_sends").insert({ staff_id: p.id, email: p.email, status: "sending", sent_by: who });
+    if (claim) continue;   // someone else's press has them
+    try {
+      const e = welcomeEmail(p);
+      await mail({ to: p.email!, subject: welcomeSubject, html: e.html, text: e.text });
+      await sb.from("staff_welcome_sends").update({ status: "sent", sent_at: new Date().toISOString() }).eq("staff_id", p.id);
+      sent.push(p.name);
+    } catch (err) {
+      console.error(p.name, err);
+      await sb.from("staff_welcome_sends").delete().eq("staff_id", p.id).eq("status", "sending");   // not sent: free them for the next try
+      failed.push(p.name);
+    }
+  }
+  return { sent, failed, left };
+}
+async function welcomeSummary(list: Person[]) {
+  try {
+    const r = await welcomeRoster(list);
+    const n = (st: WelcomeState) => r.filter((x) => x.state === st).length;
+    return { eligible: r.length, signed_in: n("signed_in"), welcomed: n("welcomed"), to_send: n("to_send"), check: n("check") };
+  } catch (e) { console.error("welcome summary", e); return null; }
 }
 
 // ── sending ──
@@ -288,6 +396,7 @@ async function status(month: string) {
   return {
     month, sender: SMTP_USER, ready_to_send: !!SMTP_PASS, schedule: sched, last_sent: lastSent,
     people: list.map((p) => ({ id: p.id, name: p.name, state: stateOf(p), revised: rev[p.id]?.n || 0, revised_at: rev[p.id]?.at || null })),
+    welcome: await welcomeSummary(list),
     log: logRows || [],
   };
 }
@@ -382,6 +491,36 @@ Deno.serve(async (req) => {
       await log(admin.name, `Sent now: ${r.sent.length} sent${r.failed.length ? `, ${r.failed.length} failed` : ""}${r.left ? `, ${r.left} still to go` : ""}`);
       return json({
         done: `Sent ${r.sent.length} email${r.sent.length === 1 ? "" : "s"}.` + (r.left ? ` ${r.left} more to go, press Send again.` : "") + (r.failed.length ? ` Couldn't send ${r.failed.join(", ")}; press Send again.` : ""),
+        left: r.left, ...(await status(month)),
+      });
+    }
+
+    if (action === "welcome") {
+      mailer();
+      const list = await people(month);
+      if (body.test === true) {
+        // One welcome to payroll@ only, marked [TEST]; nothing recorded.
+        const ids = (Array.isArray(body.staff) ? body.staff : []).map(String).filter((x: string) => UUID.test(x)).slice(0, 5);
+        if (!ids.length) throw new Oops("Pick at least one person for the test.");
+        const picked = list.filter((p) => ids.includes(p.id));
+        if (!picked.length) throw new Oops("Couldn't find that person.");
+        if (picked.some((p) => p.kind !== "stylist")) throw new Oops("The welcome email is for the hair and beauty team, who have a page to sign in to. Pick one of them.");
+        for (const p of picked) {
+          const e = welcomeEmail(p);
+          const top = `<p style="font-family:Arial,sans-serif;padding:8px 12px;background:#eee;border-radius:6px">Test. The real one goes to <b>${esc(p.name)}</b> &lt;${esc(p.email || "no email on file")}&gt;.</p>`;
+          await mail({ to: SMTP_USER, subject: "[TEST] " + welcomeSubject, html: top + e.html, text: e.text });
+        }
+        await log(admin.name, `Welcome test sent for ${picked.map((p) => p.name).join(", ")}`);
+        return json({ done: `Sent ${picked.length} welcome test${picked.length === 1 ? "" : "s"} to ${SMTP_USER}.`, ...(await status(month)) });
+      }
+      const r = await sendWelcome(admin.name, t0);
+      if (r.sent.length || r.failed.length) {
+        const names = (k: string, v: string[]) => v.length ? `<p><b>${k} (${v.length})</b><br>${v.map(esc).join(", ")}</p>` : "";
+        await note("Welcome emails sent", `<p>${esc(admin.name)} sent the sign-in welcome email from the Upload Portal.</p>${names("Sent", r.sent)}${names("Couldn't send, press Send again", r.failed)}${r.left ? `<p><b>${r.left} more</b> still to go.</p>` : ""}`).catch(() => {});
+      }
+      await log(admin.name, `Welcome email: ${r.sent.length} sent${r.failed.length ? `, ${r.failed.length} failed` : ""}${r.left ? `, ${r.left} still to go` : ""}`);
+      return json({
+        done: `Sent ${r.sent.length} welcome email${r.sent.length === 1 ? "" : "s"}.` + (r.left ? ` ${r.left} more to go, press Send again.` : "") + (r.failed.length ? ` Couldn't send ${r.failed.join(", ")}; press Send again.` : ""),
         left: r.left, ...(await status(month)),
       });
     }
