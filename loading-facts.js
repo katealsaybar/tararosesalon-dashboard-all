@@ -105,6 +105,10 @@
   // to ask. Error and empty messages in the same class are left alone (only text that starts Loading or Reading is touched).
   (function () {
     var last = -1, DYN = [];
+    // Kate, 19 Oct 2026: "walang trivia eme dito" on Lost Client Blasts. Most of the pages draw their wait line as a small grey
+    // paragraph (slv-muted, at-note), not a div with class loading, so they never got a line. Those are matched the same way, by
+    // the text starting Loading or Reading, and marked load-lite so they take the lighter spacing instead of the big centred block.
+    var LOAD_SEL = '.loading, .slv-muted, .at-note';
     // Kate, 18 Oct 2026: shoutouts by name, "just base it on their stats". This file is served to anyone, so it holds no names: the dashboard
     // hands a signed-in page its own shoutouts (built from the Wins and the Podium it has just drawn) through this, and they are kept in
     // memory only and used for the in-page Loading lines, never the sign-in screen's.
@@ -116,6 +120,7 @@
     function decorate(n) {
       if (n.__fact || !/^\s*(Loading|Reading)/i.test(n.textContent)) return;
       n.__fact = 1;
+      if (!n.classList.contains('loading')) n.classList.add('load-lite');
       var msg = document.createElement('span'), fact = document.createElement('span');
       msg.className = 'load-msg'; msg.textContent = n.textContent.trim();
       fact.className = 'load-fact'; fact.textContent = next();
@@ -124,8 +129,8 @@
     }
     function scan(n) {
       if (n.nodeType !== 1) return;
-      if (n.classList.contains('loading')) decorate(n);
-      var q = n.querySelectorAll ? n.querySelectorAll('.loading') : [];
+      if (n.matches(LOAD_SEL)) decorate(n);
+      var q = n.querySelectorAll ? n.querySelectorAll(LOAD_SEL) : [];
       for (var i = 0; i < q.length; i++) decorate(q[i]);
     }
     try {
