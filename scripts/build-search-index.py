@@ -52,7 +52,7 @@ OUT = ROOT / 'search-index.js'
 FILE_VIEWS = {
     'compare.js': 'compare', 'daily-performance.js': 'dailyperf', 'daily-addons.js': 'dailyperf', 'google-ads.js': 'googleads', 'website.js': 'website',
     'social.js': 'social', 'products.js': 'products', 'org-chart.js': 'orgchart',
-    'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels',
+    'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels', 'attrition.js': 'attrition',
     'top-clients.js': 'clients',
     # Added 14 Oct 2026: these pages had no entry here, so their text was not in the index at all.
     'over-the-years.js': 'overyears', 'client-mix.js': 'clientmix', 'service-rankings.js': 'services',
@@ -101,6 +101,7 @@ PAGE_ANCHORS = {
     'teamquad': ['Treatment against retail'],
     'staffweeks': ['sales (bars) and clients (line)'],
     'stafflevels': ['At this level'],
+    'attrition': ['How long they stayed'],
     'clients': ['Not back in 60+ days'],
     'clientmix': ['Narrow it down'],
     'lostclients': ['Regulars (3+ visits)', 'Days away'],
