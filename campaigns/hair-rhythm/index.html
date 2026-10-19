@@ -23,10 +23,17 @@
 .door__where{font-size:14px;margin-top:12px}
 .door__where span{font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-size:11.5px;color:var(--ink-soft);margin-right:6px}
 .door .from--quote b{font-size:19px;line-height:1.25}
-.fit{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:960px;margin:34px auto 0}
-@media (max-width:760px){.fit{grid-template-columns:1fr}}
-.fit .inc{padding:26px 24px;text-align:center;display:flex;align-items:center;justify-content:center;min-height:150px}
-.fit .inc p{margin:0;font-family:var(--fd);font-size:20px;line-height:1.35;color:var(--ink)}
+.pick{list-style:none;margin:28px auto 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;max-width:980px}
+.pick a{display:flex;flex-direction:column;justify-content:space-between;gap:14px;height:100%;min-height:112px;padding:18px 18px 14px;border:1px solid var(--hair);border-radius:var(--r-md);background:var(--stone-soft);text-decoration:none;color:var(--ink)}
+.pick a:hover,.pick a:focus-visible{border-color:var(--ink)}
+.pick span{font-family:var(--fd);font-size:19px;line-height:1.3}
+.pick small{font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
+.pick small::after{content:" \2192"}
+@media (max-width:560px){.pick{grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}.pick a{min-height:96px;padding:14px 14px 12px}.pick span{font-size:16.5px}.pick small{font-size:10px;letter-spacing:.08em}.pick li:last-child{grid-column:1/-1}}
+.wa-lbl{margin:18px auto 0;text-align:center;font-family:var(--fb);font-size:15px;font-weight:300;color:var(--ink-soft)}
+.wa-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:12px auto 0;max-width:640px}
+.wa-row a{display:inline-flex;align-items:center;min-height:42px;padding:0 18px;border:1px solid var(--hair);border-radius:999px;background:var(--paper);font-family:var(--fb);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-text);text-decoration:none}
+.wa-row a:hover,.wa-row a:focus-visible{border-color:var(--ink)}
 .svcalt{display:block;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.4;color:var(--taupe-soft);margin-top:2px}
 .door .bands .ptable{margin-top:4px}
 @media (max-width:480px){
@@ -161,8 +168,8 @@
 @media(max-width:560px){.ogroup .orows .door__inc{flex-direction:column;gap:6px}}
 
 .omedia .ph-slot{aspect-ratio:4/3}
-@media(max-width:767px){.offer-nav__row{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.ochip{font-size:9px;letter-spacing:0;padding:0 1px}}
-@media(max-width:360px){.offer-nav__row{grid-template-columns:repeat(3,minmax(0,1fr))}.ochip{font-size:9.5px}}
+@media(max-width:767px){.offer-nav__row{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.ochip{font-size:9.5px;letter-spacing:0;padding:0 1px}}
+@media(max-width:360px){.offer-nav__row{grid-template-columns:repeat(4,minmax(0,1fr))}.ochip{font-size:9px}}
 .omedia .mphoto--p img{aspect-ratio:4/5}
 @media(max-width:860px){.omedia .mphoto--p{max-width:420px;margin-inline:auto}.omedia .mphoto--p img{aspect-ratio:4/5}}
 .omedia .mphoto--q img{aspect-ratio:1/1}
@@ -183,10 +190,40 @@
   .hero-hr{background-size:100% auto;background-position:50% 0;padding-top:470px !important}
   .hero-hr::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 52%,#161512 calc(100vw * .6667))}
 }
+
+/* phone legibility floor (Kate, 19 Oct): nothing meant to be read or tapped under 11px, tap targets about 44px */
+@media(max-width:767px){
+  html body .pill-tag{font-size:11.5px !important}
+  html body .ochip{min-height:42px;font-size:11px !important;letter-spacing:0}
+  html body .offer-nav{padding:5px 0}
+  html body .pick small{font-size:11px !important}
+  html body .ogroup .door .from,html body .ogroup .orows .door .from{font-size:11.5px !important}
+  html body .ogroup .orows .door .bands>summary,html body .ogroup .bands>summary{min-height:44px;font-size:12.5px;display:flex;align-items:center}
+  html body .door__where span,html body .ogroup .orows .door__where span{font-size:12px !important}
+  html body .ogroup .orows .door .pill{min-height:46px;font-size:12.5px !important;padding-inline:22px}
+  html body .wa-row a{min-height:46px;font-size:12px}
+  html body .door .ptable th{font-size:10px !important}
+  html body .press-sub,html body .press-quote span,html body .foot .soc-grp{font-size:11.5px !important}
+}
+@media(max-width:480px){
+  html body .trs-nav .nav__cta{font-size:12px !important;letter-spacing:.04em;padding-inline:16px;min-height:42px}
+  html body .trs-nav .nav__cta .nb{display:none}
+}
+@media(max-width:350px){
+  html body .ochip{font-size:10.5px !important}
+  html body .pick span{font-size:15.5px}
+  html body .offer-nav .wrap{padding-inline:8px}
+  html body .offer-nav__row{gap:3px}
+}
+@media(max-width:300px){
+  html body .offer-nav__row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  html body .ochip{font-size:11px !important}
+  html body .pick{grid-template-columns:1fr}
+}
 </style>
 <meta name="geo.region" content="AE">
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://www.tararosesalon.com/#organization", "name": "Tara Rose Salon", "url": "https://www.tararosesalon.com"}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is a junior stylist experienced enough?", "acceptedAnswer": {"@type": "Answer", "text": "She is a specialist in the appointments she does most. Every one of them is trained the Tara Rose way and supervised by senior team members on everything she offers you."}}, {"@type": "Question", "name": "How often should I come in?", "acceptedAnswer": {"@type": "Answer", "text": "Your stylist writes your rhythm down for you. A common one is colour, a Tone Reset at week four or five, a blow-dry or treatment around week eight, then colour again around week ten."}}, {"@type": "Question", "name": "Which salons?", "acceptedAnswer": {"@type": "Answer", "text": "All four: Khalifa City A and Mamsha Al Saadiyat in Abu Dhabi, Al Quoz 1 and Motor City in Dubai."}}, {"@type": "Question", "name": "What is a Tone Reset?", "acceptedAnswer": {"@type": "Answer", "text": "Toner and a blow-dry, thirty to forty-five minutes. It resets your tone before the warmth creeps back in, which is why week eight can still look like week one."}}]}]}
+{"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://www.tararosesalon.com/#organization", "name": "Tara Rose Salon", "url": "https://www.tararosesalon.com"}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is a junior stylist experienced enough?", "acceptedAnswer": {"@type": "Answer", "text": "She is a specialist in the appointments she does most. Every one of them is trained the Tara Rose way and supervised by senior team members on everything she offers you."}}, {"@type": "Question", "name": "How often should I come in?", "acceptedAnswer": {"@type": "Answer", "text": "Your stylist will talk you through a rhythm that suits your hair. A common one is colour, a Tone Reset at week four or five, a blow-dry or treatment around week eight, then colour again around week ten."}}, {"@type": "Question", "name": "Which salons?", "acceptedAnswer": {"@type": "Answer", "text": "All four: Khalifa City A and Mamsha Al Saadiyat in Abu Dhabi, Al Quoz 1 and Motor City in Dubai."}}, {"@type": "Question", "name": "What is a Tone Reset?", "acceptedAnswer": {"@type": "Answer", "text": "Toner and a blow-dry. It resets your tone before the warmth comes back."}}]}]}
 </script>
 </head>
 <body>
@@ -197,7 +234,7 @@
 
 <nav class="trs-nav" aria-label="Primary">
   <div class="wrap navrow">
-    <a class="pill pill--accent nav__cta" href="#book">Book an appointment</a>
+    <a class="pill pill--accent nav__cta" href="#book">Book<span class="nb"> an appointment</span></a>
     <a class="brand" href="https://www.tararosesalon.com/" aria-label="Tara Rose, home">
       <span class="brand__tick"></span><span class="brand__wm">TARA ROSE</span><small>UAE</small>
     </a>
@@ -211,11 +248,11 @@
   <div class="wrap">
     <div class="inner">
       <span class="pill-tag"><span class="dot"></span>The Hair Rhythm By Tara Rose</span>
-      <h1 class="h-1">Great hair isn&rsquo;t one visit. <em>It&rsquo;s a rhythm.</em></h1>
-      <p class="lede">Short appointments between your big colour visits: a toner, a treatment, a blow-dry. Our junior stylists are the specialists for exactly these. Prices confirmed before you book.</p>
+      <h1 class="h-1">Keep your colour looking <em>like colour day.</em></h1>
+      <p class="lede">After colour day the warmth can creep back and the shine can fade. Our junior stylists are the specialists for the toner, treatment or blow-dry that brings it back. Tone Resets from AED&nbsp;200, price confirmed before you book.</p>
       <div class="cta-row">
         <a class="pill pill--accent" href="#book">Book an appointment <span class="arr">&rarr;</span></a>
-        <a class="nav-link" href="#start" style="align-self:center">What is on offer &rarr;</a>
+        <a class="nav-link" href="#whatsapp" style="align-self:center">Or message us on WhatsApp &rarr;</a>
       </div>
     </div>
   </div>
@@ -224,29 +261,19 @@
 <section id="start" class="menu-sec" style="background:var(--paper);">
   <div class="wrap">
     <div class="sec-head center">
-      <span class="eyebrow">What is on offer</span>
-      <h2>Pick the one that sounds like <em>you.</em></h2>
+      <span class="eyebrow">Where to start</span>
+      <h2>What is your hair <em>doing?</em></h2>
     </div>
+    <ul class="pick" aria-label="Start with what your hair is doing">
+      <li><a href="#o-colour"><span>My colour has gone warm or flat.</span><small>Colour maintenance</small></a></li>
+      <li><a href="#o-colour"><span>My roots are showing.</span><small>Colour maintenance</small></a></li>
+      <li><a href="#o-treatment"><span>My hair feels dry or tired.</span><small>Treatments</small></a></li>
+      <li><a href="#o-smooth"><span>I want it smooth, with no frizz.</span><small>Smoothing</small></a></li>
+      <li><a href="#o-blowdry"><span>I want to feel polished all month.</span><small>Blow-dries</small></a></li>
+    </ul>
   </div>
-  <div class="offer-nav" aria-label="Jump to a group"><div class="wrap"><ul class="offer-nav__row"><li><a class="ochip" href="#o-trim">Trim</a></li><li><a class="ochip" href="#o-blowdry">Blow-dry</a></li><li><a class="ochip" href="#o-treatment">Treatments</a></li><li><a class="ochip" href="#o-smooth">Smoothing</a></li><li><a class="ochip" href="#o-colour">Colour</a></li></ul></div></div>
+  <div class="offer-nav" aria-label="Jump to a group"><div class="wrap"><ul class="offer-nav__row"><li><a class="ochip" href="#o-blowdry">Blow-dry</a></li><li><a class="ochip" href="#o-treatment">Treatments</a></li><li><a class="ochip" href="#o-smooth">Smoothing</a></li><li><a class="ochip" href="#o-colour">Colour</a></li></ul></div></div>
   <div class="wrap menu-zone">
-    <div class="ogroup" id="o-trim">
-      <h3>Trim</h3>
-      <p class="who">For you if your cut has lost its shape.</p>
-    <div class="obody">
-      <div class="omedia"><figure class="mphoto"><img src="assets/img/menu-trim-finish.jpg" alt="A stylist finishing her client&rsquo;s freshly shaped copper waves with a light spray, seen from behind" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 25%"></figure></div>
-      <div class="doors orows">
-    <article class="door">
-      <h3>The Maintenance Trim</h3>
-      <p>A reshape that keeps your frame, finished before you leave.</p>
-      <ul class="door__inc"><li><span class="tk"></span>A reshape that keeps your frame</li><li><span class="tk"></span>Finished to leave</li></ul>
-      <span class="from">From, per visit<b>AED 205</b></span>
-      <p class="door__where"><span>When</span> Every six to eight weeks.</p>
-      <a class="pill pill--accent" href="#book" data-svc="trim">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    </div>
-      </div>
-    </div>
     <div class="ogroup" id="o-blowdry">
       <h3>Blow-dry packages</h3>
       <p class="who">For you if you want to feel polished more than once every few weeks.</p>
@@ -255,8 +282,8 @@
       <div class="doors orows">
     <article class="door">
       <h3>The Blow-dry Edit</h3>
-      <p>Three blow-dries, prepaid, so the week starts the way you want it to rather than the way it happens to.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Three blow-dries</li><li><span class="tk"></span>Booked as you need them</li><li><span class="tk"></span>The same stylist each time if you would like her</li></ul>
+      <p>Three blow-dries, paid for once and booked whenever you need them.</p>
+      <ul class="door__inc"><li><span class="tk"></span>Three blow-dries</li><li><span class="tk"></span>Booked as you need them</li><li><span class="tk"></span>We will do our best to book the same stylist each time</li></ul>
       <span class="from">Three blow-dries from<b>AED 264</b></span>
       <details class="bands" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 264</b></li><li><span>Medium</span><b>AED 300</b></li><li><span>Long / Thick</span><b>AED 336</b></li><li><span>Extra Long</span><b>AED 372</b></li></ul></details>
       <p class="door__where"><span>When</span> Every week, or every other week, across the weeks between colour visits.</p>
@@ -265,8 +292,8 @@
     </article>
     <article class="door">
       <h3>The Blow-dry Series</h3>
-      <p>Five blow-dries, prepaid, for when a blow-dry stops being occasional and becomes your routine.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Five blow-dries</li><li><span class="tk"></span>Booked as you need them</li><li><span class="tk"></span>The same stylist each time if you would like her</li></ul>
+      <p>Five blow-dries, paid for once. For when a blow-dry is part of your week.</p>
+      <ul class="door__inc"><li><span class="tk"></span>Five blow-dries</li><li><span class="tk"></span>Booked as you need them</li><li><span class="tk"></span>We will do our best to book the same stylist each time</li></ul>
       <span class="from">Five blow-dries from<b>AED 440</b></span>
       <details class="bands" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 440</b></li><li><span>Medium</span><b>AED 500</b></li><li><span>Long / Thick</span><b>AED 560</b></li><li><span>Extra Long</span><b>AED 620</b></li></ul></details>
       <p class="door__where"><span>When</span> Weekly, across a month and a bit.</p>
@@ -295,20 +322,20 @@
       <div class="doors orows">
     <article class="door">
       <h3>Treatment and Blow-dry</h3>
-      <p>One appointment that treats your hair or scalp and finishes it. Your stylist prescribes the treatment that suits your hair.</p>
+      <p>One appointment: a treatment for your hair or scalp, then a blow-dry. Your stylist picks the treatment that suits your hair.</p>
       <ul class="door__inc"><li><span class="tk"></span>Strength, Colour Longevity, Hydration &amp; Frizz or Scalp Health</li><li><span class="tk"></span>Worked through your 8-Step Hair Plan</li><li><span class="tk"></span>A blow-dry to finish</li></ul>
       <span class="from">From, per visit<b>AED 210</b></span>
-      <details class="bands" open><summary>Prices by treatment and length</summary><table class="ptable"><thead><tr><th scope="col">Treatment</th><th scope="col">Short / Fine</th><th scope="col">Medium</th><th scope="col">Long / Thick</th><th scope="col">Extra Long</th></tr></thead><tbody><tr><td>Strength<span class="svcalt">Repair</span></td><td><b><span class="cur">AED </span>210</b></td><td><b><span class="cur">AED </span>250</b></td><td><b><span class="cur">AED </span>285</b></td><td><b><span class="cur">AED </span>325</b></td></tr><tr><td>Colour Longevity<span class="svcalt">Colour Lock</span></td><td><b><span class="cur">AED </span>250</b></td><td><b><span class="cur">AED </span>260</b></td><td><b><span class="cur">AED </span>275</b></td><td><b><span class="cur">AED </span>285</b></td></tr><tr><td>Hydration &amp; Frizz<span class="svcalt">Restore Edit</span></td><td><b><span class="cur">AED </span>290</b></td><td><b><span class="cur">AED </span>330</b></td><td><b><span class="cur">AED </span>365</b></td><td><b><span class="cur">AED </span>405</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, vegan</span></td><td><b><span class="cur">AED </span>210</b></td><td><b><span class="cur">AED </span>220</b></td><td><b><span class="cur">AED </span>235</b></td><td><b><span class="cur">AED </span>245</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, caviar</span></td><td><b><span class="cur">AED </span>250</b></td><td><b><span class="cur">AED </span>260</b></td><td><b><span class="cur">AED </span>275</b></td><td><b><span class="cur">AED </span>285</b></td></tr></tbody></table><p class="ptable__note">Every price includes the blow-dry to finish.</p></details>
+      <details class="bands"><summary>Prices by treatment and length</summary><table class="ptable"><thead><tr><th scope="col">Treatment</th><th scope="col">Short / Fine</th><th scope="col">Medium</th><th scope="col">Long / Thick</th><th scope="col">Extra Long</th></tr></thead><tbody><tr><td>Strength<span class="svcalt">Repair</span></td><td><b><span class="cur">AED </span>210</b></td><td><b><span class="cur">AED </span>250</b></td><td><b><span class="cur">AED </span>285</b></td><td><b><span class="cur">AED </span>325</b></td></tr><tr><td>Colour Longevity<span class="svcalt">Colour Lock</span></td><td><b><span class="cur">AED </span>250</b></td><td><b><span class="cur">AED </span>260</b></td><td><b><span class="cur">AED </span>275</b></td><td><b><span class="cur">AED </span>285</b></td></tr><tr><td>Hydration &amp; Frizz<span class="svcalt">Restore Edit</span></td><td><b><span class="cur">AED </span>290</b></td><td><b><span class="cur">AED </span>330</b></td><td><b><span class="cur">AED </span>365</b></td><td><b><span class="cur">AED </span>405</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, vegan</span></td><td><b><span class="cur">AED </span>210</b></td><td><b><span class="cur">AED </span>220</b></td><td><b><span class="cur">AED </span>235</b></td><td><b><span class="cur">AED </span>245</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, caviar</span></td><td><b><span class="cur">AED </span>250</b></td><td><b><span class="cur">AED </span>260</b></td><td><b><span class="cur">AED </span>275</b></td><td><b><span class="cur">AED </span>285</b></td></tr></tbody></table><p class="ptable__note">Every price includes the blow-dry to finish.</p></details>
       <p class="door__where"><span>When</span> Monthly, between colour visits.</p>
       <a class="pill pill--accent" href="#book" data-svc="treatment">Book this <span class="arr">&rarr;</span></a>
     </article>
     <article class="door">
       <h3>Treatment Courses</h3>
-      <p>Three or five sessions, prepaid, with the same stylist tracking the result at every visit.</p>
+      <p>Three or five treatments, paid for once, with the same stylist checking your progress at every visit.</p>
       <ul class="door__inc"><li><span class="tk"></span>Three or five sessions, one payment</li><li><span class="tk"></span>The same stylist tracking your result</li><li><span class="tk"></span>Your stylist will say so if one session is all you need</li></ul>
       <span class="from">Three sessions from<b>AED 625</b></span>
       <span class="from">Five sessions from<b>AED 1,040</b></span>
-      <details class="bands" open><summary>Prices by course and length</summary><table class="ptable"><thead><tr><th scope="col">Course</th><th scope="col" class="ses">Sessions</th><th scope="col">Short / Fine</th><th scope="col">Medium</th><th scope="col">Long / Thick</th><th scope="col">Extra Long</th></tr></thead><tbody><tr><td>Strength<span class="svcalt">Repair</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>625</b></td><td><b><span class="cur">AED </span>745</b></td><td><b><span class="cur">AED </span>855</b></td><td><b><span class="cur">AED </span>975</b></td></tr><tr><td>Strength<span class="svcalt">Repair</span></td><td class="ses">5</td><td><b><span class="cur">AED </span>1,040</b></td><td><b><span class="cur">AED </span>1,240</b></td><td><b><span class="cur">AED </span>1,420</b></td><td><b><span class="cur">AED </span>1,620</b></td></tr><tr><td>Colour Longevity<span class="svcalt">Colour Lock</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>745</b></td><td><b><span class="cur">AED </span>780</b></td><td><b><span class="cur">AED </span>820</b></td><td><b><span class="cur">AED </span>855</b></td></tr><tr><td>Hydration &amp; Frizz<span class="svcalt">Restore Edit</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>865</b></td><td><b><span class="cur">AED </span>985</b></td><td><b><span class="cur">AED </span>1,095</b></td><td><b><span class="cur">AED </span>1,215</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, vegan</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>625</b></td><td><b><span class="cur">AED </span>660</b></td><td><b><span class="cur">AED </span>700</b></td><td><b><span class="cur">AED </span>735</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, caviar</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>745</b></td><td><b><span class="cur">AED </span>780</b></td><td><b><span class="cur">AED </span>820</b></td><td><b><span class="cur">AED </span>855</b></td></tr></tbody></table><p class="ptable__note">One payment covers every session in the course.</p></details>
+      <details class="bands"><summary>Prices by course and length</summary><table class="ptable"><thead><tr><th scope="col">Course</th><th scope="col" class="ses">Sessions</th><th scope="col">Short / Fine</th><th scope="col">Medium</th><th scope="col">Long / Thick</th><th scope="col">Extra Long</th></tr></thead><tbody><tr><td>Strength<span class="svcalt">Repair</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>625</b></td><td><b><span class="cur">AED </span>745</b></td><td><b><span class="cur">AED </span>855</b></td><td><b><span class="cur">AED </span>975</b></td></tr><tr><td>Strength<span class="svcalt">Repair</span></td><td class="ses">5</td><td><b><span class="cur">AED </span>1,040</b></td><td><b><span class="cur">AED </span>1,240</b></td><td><b><span class="cur">AED </span>1,420</b></td><td><b><span class="cur">AED </span>1,620</b></td></tr><tr><td>Colour Longevity<span class="svcalt">Colour Lock</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>745</b></td><td><b><span class="cur">AED </span>780</b></td><td><b><span class="cur">AED </span>820</b></td><td><b><span class="cur">AED </span>855</b></td></tr><tr><td>Hydration &amp; Frizz<span class="svcalt">Restore Edit</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>865</b></td><td><b><span class="cur">AED </span>985</b></td><td><b><span class="cur">AED </span>1,095</b></td><td><b><span class="cur">AED </span>1,215</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, vegan</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>625</b></td><td><b><span class="cur">AED </span>660</b></td><td><b><span class="cur">AED </span>700</b></td><td><b><span class="cur">AED </span>735</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, caviar</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>745</b></td><td><b><span class="cur">AED </span>780</b></td><td><b><span class="cur">AED </span>820</b></td><td><b><span class="cur">AED </span>855</b></td></tr></tbody></table><p class="ptable__note">One payment covers every session in the course.</p></details>
       <p class="door__where"><span>When</span> Every three weeks.</p>
       <p class="door__where"><span>Valid</span> 4 months from purchase.</p>
       <a class="pill pill--accent" href="#book" data-svc="course">Book this <span class="arr">&rarr;</span></a>
@@ -349,8 +376,8 @@
       <div class="doors orows">
     <article class="door">
       <h3>The Tone Reset</h3>
-      <p>Toner and a blow-dry, thirty to forty-five minutes. It resets your tone before the warmth comes back.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Toner, matched to your colour</li><li><span class="tk"></span>A blow-dry to finish</li><li><span class="tk"></span>Thirty to forty-five minutes</li></ul>
+      <p>Toner and a blow-dry. It resets your tone before the warmth comes back.</p>
+      <ul class="door__inc"><li><span class="tk"></span>Toner, matched to your colour</li><li><span class="tk"></span>A blow-dry to finish</li></ul>
       <span class="from">From, per visit<b>AED 200</b></span>
       <details class="bands" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 200</b></li><li><span>Medium</span><b>AED 260</b></li><li><span>Long / Thick</span><b>AED 315</b></li><li><span>Extra Long</span><b>AED 410</b></li></ul></details>
       <p class="door__where"><span>When</span> Week four to five after colour.</p>
@@ -388,25 +415,11 @@
   </div>
 </section>
 
-<section id="fit" style="background:var(--cream);">
-  <div class="wrap">
-    <div class="sec-head center">
-      <span class="eyebrow">Is this for you?</span>
-      <h2>If any of these sound like you, <em>yes.</em></h2>
-    </div>
-    <div class="fit">
-      <div class="inc"><p>Your colour has gone warm or flat.</p></div>
-      <div class="inc"><p>Your hair feels tired, dry or frizzy.</p></div>
-      <div class="inc"><p>You want to feel polished more than once every few weeks.</p></div>
-    </div>
-  </div>
-</section>
-
 <section class="dark" id="rhythm">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">The rhythm</span>
-      <h2>The result lives in <em>the weeks in between.</em></h2>
+      <h2>Colour day is week one. <em>Here is what comes next.</em></h2>
     </div>
     <div class="timeline timeline--strip">
       <div class="tstep"><span class="wk">Week 1</span><b>Colour day</b></div>
@@ -419,8 +432,8 @@
 
 <section class="dark reframe" id="reframe">
   <div class="wrap">
-    <p class="reframe__claim">Our junior stylists are already specialists</p>
-    <p class="reframe__sub">Blow-dries, toners and maintenance treatments are what they do every day, and they have the time to look at your hair properly before anything starts.</p>
+    <p class="reframe__claim">Our junior stylists are the specialists for these appointments</p>
+    <p class="reframe__sub">Blow-dries, toners and maintenance treatments are their daily work, and they have time to look at your hair properly before they start.</p>
   </div>
 </section>
 
@@ -463,6 +476,13 @@
         <span class="eyebrow">Book</span>
         <h2>Book your appointment.</h2>
         <p style="max-width:54ch;margin:14px auto 0;font-size:16.5px;line-height:1.62;color:var(--ink-soft);text-align:center">Tell us what you need. We reply on WhatsApp with a time.</p>
+        <p class="wa-lbl" id="whatsapp">Quicker on WhatsApp? Message your salon.</p>
+        <div class="wa-row">
+          <a href="https://wa.me/971502811494?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener">Khalifa City A</a>
+          <a href="https://wa.me/971501968720?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener">Mamsha Al Saadiyat</a>
+          <a href="https://wa.me/971556245520?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener">Al Quoz</a>
+          <a href="https://wa.me/971524960903?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener">Motor City</a>
+        </div>
       </div>
       <form novalidate>
         <div class="field">
@@ -473,13 +493,13 @@
           <label for="wa">WhatsApp number <span class="req">*</span></label>
           <div class="phone-wrap">
             <select id="cc" name="cc" aria-label="Country code" autocomplete="tel-country-code">
-              <option value="+971" selected>&#127462;&#127466; +971 &middot; UAE</option>
-              <option value="+973">&#127463;&#127469; +973 &middot; Bahrain</option>
-              <option value="+966">&#127480;&#127462; +966 &middot; KSA</option>
-              <option value="+965">&#127472;&#127484; +965 &middot; Kuwait</option>
-              <option value="+974">&#127478;&#127462; +974 &middot; Qatar</option>
-              <option value="+968">&#127476;&#127474; +968 &middot; Oman</option>
-              <option value="+44">&#127468;&#127463; +44 &middot; UK</option>
+              <option value="+971" selected>+971 &middot; UAE</option>
+              <option value="+973">+973 &middot; Bahrain</option>
+              <option value="+966">+966 &middot; KSA</option>
+              <option value="+965">+965 &middot; Kuwait</option>
+              <option value="+974">+974 &middot; Qatar</option>
+              <option value="+968">+968 &middot; Oman</option>
+              <option value="+44">+44 &middot; UK</option>
             </select>
             <input id="wa" name="whatsapp" type="tel" placeholder="50 000 0000" required autocomplete="tel">
           </div>
@@ -497,7 +517,6 @@
             <option value="course">A course of treatments, three or five</option>
             <option value="bundle">Blow-dries, a bundle of three or five</option>
             <option value="colour">A colour refresh</option>
-            <option value="trim">A maintenance trim</option>
             <option value="smooth">Keratin smoothing</option>
             <option value="scalp">Something for my scalp, match me with a treatment</option>
             <option value="mapping">Confidence Mapping first: a free look at my hair, and a plan, before the chair</option>
@@ -560,7 +579,7 @@
         <div class="submit-row">
           <button class="pill pill--accent" type="submit">Book an appointment <span class="arr">&rarr;</span></button>
         </div>
-        <p class="consent">We reply on WhatsApp. Prefer to message your salon? <a href="https://wa.me/971502811494?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener" style="color:#3aa892">Khalifa City A</a>, <a href="https://wa.me/971501968720?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener" style="color:#3aa892">Mamsha Al Saadiyat</a>, <a href="https://wa.me/971556245520?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener" style="color:#3aa892">Al Quoz</a>, or <a href="https://wa.me/971524960903?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener" style="color:#3aa892">Motor City</a>. New to us? A deposit secures your appointment, and we explain it when we reply: <a href="https://promo.tararosesalon.com/deposit-policy?client=new" target="_blank" rel="noopener" style="color:#3aa892">how deposits work</a>.</p>
+        <p class="consent">We reply on WhatsApp with a time. New to us? A deposit secures your appointment, and we explain it when we reply: <a href="https://promo.tararosesalon.com/deposit-policy?client=new" target="_blank" rel="noopener" style="color:#3aa892">how deposits work</a>.</p>
       </form>
     </div>
   </div>
@@ -573,15 +592,15 @@
       <h2>Quick answers.</h2>
     </div>
     <details class="q"><summary>Is a junior stylist experienced enough?<span class="chev"></span></summary><div class="ans">She is a specialist in the appointments she does most. Every one of them is trained the Tara Rose way and supervised by senior team members on everything she offers you.</div></details>
-    <details class="q"><summary>How often should I come in?<span class="chev"></span></summary><div class="ans">Your stylist writes your rhythm down for you. A common one is colour, a Tone Reset at week four or five, a blow-dry or treatment around week eight, then colour again around week ten.</div></details>
+    <details class="q"><summary>How often should I come in?<span class="chev"></span></summary><div class="ans">Your stylist will talk you through a rhythm that suits your hair. A common one is colour, a Tone Reset at week four or five, a blow-dry or treatment around week eight, then colour again around week ten.</div></details>
     <details class="q"><summary>Which salons?<span class="chev"></span></summary><div class="ans">All four: Khalifa City A and Mamsha Al Saadiyat in Abu Dhabi, Al Quoz 1 and Motor City in Dubai.</div></details>
-    <details class="q"><summary>What is a Tone Reset?<span class="chev"></span></summary><div class="ans">Toner and a blow-dry, thirty to forty-five minutes. It resets your tone before the warmth creeps back in, which is why week eight can still look like week one.</div></details>
+    <details class="q"><summary>What is a Tone Reset?<span class="chev"></span></summary><div class="ans">Toner and a blow-dry. It resets your tone before the warmth comes back.</div></details>
   </div>
 </section>
 
 <section class="faq faq--light" id="terms" style="background:var(--cream);padding-top:0">
   <div class="wrap">
-    <details class="q"><summary>Full offer terms<span class="chev"></span></summary><div class="ans">The Hair Rhythm is available at all four Tara Rose salons: Khalifa City A and Mamsha Al Saadiyat in Abu Dhabi, Al Quoz 1 and Motor City in Dubai. Every price shown is a starting price for short or fine hair, in AED, and is the price on the day you book. Your salon confirms your price for your length and thickness before anything is booked, not at the till. Colour refreshes, Keratin smoothing and the Maintenance Trim are priced the same way, by your hair length, and confirmed before you book. The Blow-dry Edit, the Blow-dry Series, Four Weeks of Blow-dries and Treatment Courses are paid once and booked with your salon as you need them, at any of the four salons. Four Weeks of Blow-dries is two blow-dries a week across four weeks, with the slots held in advance. Prepaid sessions are valid for 3 months from the date of purchase for the Blow-dry Edit and the Blow-dry Series, 4 months for Treatment Courses, and 6 weeks from your first booking for Four Weeks of Blow-dries. Sessions not used by then expire. Prepaid sessions are not refundable, and an appointment missed without 48 hours&rsquo; notice counts as a used session. If something unexpected happens, talk to your salon and we will look after you. Prepaid sessions are personal to the person who bought them, and cannot be shared, and they cannot be combined with other offers or vouchers. New clients secure their first appointment with a deposit, and we explain how it works when we reply. We ask for 48 hours&rsquo; notice to move an appointment. The Tara Rose Confidence Promise applies to every colour and treatment service. If something does not feel right within seven days, we invite you back to refine it. No blame, just care.</div></details>
+    <details class="q"><summary>Full offer terms<span class="chev"></span></summary><div class="ans">The Hair Rhythm is available at all four Tara Rose salons: Khalifa City A and Mamsha Al Saadiyat in Abu Dhabi, Al Quoz 1 and Motor City in Dubai. Every price shown is a starting price for short or fine hair, in AED, and is the price on the day you book. Your salon confirms your price for your length and thickness before anything is booked, not at the till. Colour refreshes and Keratin smoothing are priced the same way, by your hair length, and confirmed before you book. The Blow-dry Edit, the Blow-dry Series, Four Weeks of Blow-dries and Treatment Courses are paid once and booked with your salon as you need them, at any of the four salons. Four Weeks of Blow-dries is two blow-dries a week across four weeks, with the slots held in advance. Prepaid sessions are valid for 3 months from the date of purchase for the Blow-dry Edit and the Blow-dry Series, 4 months for Treatment Courses, and 6 weeks from your first booking for Four Weeks of Blow-dries. Sessions not used by then expire. Prepaid sessions are not refundable, and an appointment missed without 48 hours&rsquo; notice counts as a used session. If something unexpected happens, talk to your salon and we will look after you. Prepaid sessions are personal to the person who bought them, and cannot be shared, and they cannot be combined with other offers or vouchers. New clients secure their first appointment with a deposit, and we explain how it works when we reply. We ask for 48 hours&rsquo; notice to move an appointment. The Tara Rose Confidence Promise applies to every colour and treatment service, as set out above.</div></details>
   </div>
 </section>
 
@@ -632,7 +651,7 @@
   </div>
 </footer>
 
-<script src="js/nav-scroll.js?v=52464e4b" defer></script>
+<script src="js/nav-scroll.js?v=mock5" defer></script>
 
 <script src="js/form-prefill.js" defer></script>
 
