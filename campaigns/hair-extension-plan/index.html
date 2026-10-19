@@ -106,6 +106,40 @@
   .hero-hr::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 120px,#161512 250px)}
   .hero-hr .pt-loc{display:none}
 }
+/* Dark pass (Kate, 19 Oct: too much beige). Hero, selector, why, promise, reserve, questions and footer are dark; the offers and the press strip stay light so prices and logos read. */
+.pickband{padding:60px 0 68px}
+.pickband .sec-head{margin-bottom:6px}
+.pickband .fit{margin-top:30px}
+.pickband .fit a.inc{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.2);box-shadow:none}
+.pickband .fit a.inc:hover,.pickband .fit a.inc:focus-visible{border-color:var(--accent)}
+.pickband .fit .inc p{color:#fff}
+.pickband .fit a.inc small{color:var(--accent)}
+.why .rblock{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13);border-radius:16px;padding:28px 26px}
+.why .rblock h3{color:#fff}
+.why .rblock p{color:rgba(255,255,255,.8)}
+.why .rnum{color:var(--accent)}
+.why .rtruth{color:#fff}
+.reserve.dark{background:var(--ink-deep)}
+.reserve.dark .head h2{color:#fff}
+.reserve.dark .field label{color:#fff}
+.reserve.dark .field label .req{color:var(--accent)}
+.reserve.dark .field label span[style]{color:rgba(255,255,255,.6) !important}
+.reserve.dark .field label.pdpl__label{color:rgba(255,255,255,.82)}
+.reserve.dark .pdpl{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16)}
+.reserve.dark .pdpl__label{color:#fff}
+.reserve.dark .pdpl__label span{color:rgba(255,255,255,.6)}
+.reserve.dark .pdpl__note{color:rgba(255,255,255,.7);border-top-color:rgba(255,255,255,.16)}
+.reserve.dark .pdpl__note strong{color:#fff}
+.reserve.dark .pdpl__note a{color:var(--accent);border-bottom-color:var(--accent)}
+.reserve.dark .consent{color:rgba(255,255,255,.72)}
+.reserve.dark .pay-trust__lbl{color:rgba(255,255,255,.7)}
+.reserve.dark .pay-trust .pay-chip{color:#fff;border-color:rgba(255,255,255,.3)}
+.reserve.dark .pay-trust .pay-logo{background:#fff;border-radius:6px;padding:4px 7px;height:31px;box-sizing:border-box}
+.reserve.dark .field-error{color:#ff9b9b}
+.reserve.dark .form-thanks h3{color:#fff}
+.reserve.dark .form-thanks p{color:rgba(255,255,255,.78)}
+.glance{background:var(--paper)}
+.glance__row li{background:var(--cream)}
 .rblocks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
 @media(max-width:860px){.rblocks{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:860px){
@@ -172,7 +206,7 @@
   </div>
 </section>
 
-<section id="start" class="menu-sec" style="background:var(--paper);">
+<section id="start" class="dark pickband">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">Start here</span>
@@ -184,6 +218,9 @@
       <a class="inc" href="#o-methods"><p>I want to know what keeping my method costs.</p><small>Move-up prices &darr;</small></a>
     </div>
   </div>
+</section>
+
+<section id="menu" class="menu-sec" style="background:var(--paper);">
   <div class="offer-nav" aria-label="Jump to a group"><div class="wrap"><ul class="offer-nav__row"><li><a class="ochip" href="#o-plans">Plans</a></li><li><a class="ochip" href="#o-methods">Move-ups</a></li></ul></div></div>
   <div class="wrap menu-zone">
     <div class="ogroup" id="o-plans">
@@ -279,7 +316,7 @@
   </div>
 </section>
 
-<section style="background:var(--paper);padding-block:60px">
+<section class="dark why" style="padding-block:64px">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">Why a plan</span>
@@ -301,14 +338,14 @@
   <a href="https://beautyworld-dubai.ae.messefrankfurt.com/dubai/en/press/press-releases/all/20241025.html" target="_blank" rel="noopener"><span class="press-logo-box"><img width="115" height="35" class="press-logo press-logo--bw" src="assets/press/beautyworld.svg" alt="Beautyworld Middle East" decoding="async"></span><span class="press-sub">Speaker</span></a>
 </div><p class="press-quote">&ldquo;A salon could be a place where a woman walks out feeling genuinely seen, not just groomed.&rdquo;<span>Tara Rose Kidd, Bizpreneur Middle East, August 2026</span></p></div></section>
 
-<section style="background:var(--paper);padding:48px 0;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)" id="confidence-promise">
+<section class="dark" style="padding:56px 0" id="confidence-promise">
   <div class="wrap" style="text-align:center">
-    <p class="press-eyebrow">The Confidence Promise</p>
-    <p style="max-width:54ch;margin:12px auto 0;font-family:var(--fd);font-size:clamp(20px,2.4vw,26px);line-height:1.4;color:var(--ink)">If something does not feel right within seven days of any colour or treatment service, we invite you back to refine it. No blame, just care.</p>
+    <p class="press-eyebrow" style="color:var(--accent)">The Confidence Promise</p>
+    <p style="max-width:54ch;margin:12px auto 0;font-family:var(--fd);font-size:clamp(20px,2.4vw,26px);line-height:1.4;color:#fff">If something does not feel right within seven days of any colour or treatment service, we invite you back to refine it. No blame, just care.</p>
   </div>
 </section>
 
-<section class="reserve" id="reserve">
+<section class="reserve dark" id="reserve">
   <div class="wrap">
     <div class="inner">
       <div class="head">
