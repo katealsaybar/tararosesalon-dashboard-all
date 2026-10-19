@@ -118,6 +118,9 @@ function postHeight() {
 }
 if (EMBED) {
   document.body.classList.add('embed');
+  // Kate, 19 Oct 2026: opened on its own (not inside the dashboard frame) the transparent body showed the browser's white
+  // behind dark cards and light text. On its own it paints the page colour.
+  if (window.top === window.self) document.body.classList.add('embed-solo');
   window.perfResize = new ResizeObserver(postHeight);   // held globally so it isn't collected
   window.perfResize.observe(document.body);
   addEventListener('load', postHeight);

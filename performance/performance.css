@@ -153,6 +153,7 @@ table.hist th,table.hist td:not(:first-child){white-space:nowrap}
 @media(max-width:760px),(hover:none) and (max-height:480px){.back{min-height:44px}}
 /* framed inside the dashboard (?embed=1) */
 body.embed{background:transparent}
+body.embed.embed-solo{background:var(--bg)}
 body.embed .top{display:none}
 body.embed .brand{display:none}
 body.embed main{max-width:none}
