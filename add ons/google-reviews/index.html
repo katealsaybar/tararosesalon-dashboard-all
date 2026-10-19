@@ -152,6 +152,14 @@ table.ex tr.tot td{font-weight:700;border-bottom:none}
 a.gbp{color:var(--rose);font-size:12px;text-decoration:none}
 @media(hover:hover){a.gbp:hover{text-decoration:underline}}
 .links{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px 18px}
+/* Match staff (Kate, 19 Oct 2026): owner only, shown by app.js after google_review_can_edit(). */
+.medit{margin-top:8px}.mpanel{margin-top:8px;padding:10px 12px;background:var(--surface2);border-radius:8px;display:flex;flex-direction:column;gap:8px}
+.mpanel.busy{opacity:.6;pointer-events:none}.mrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.mtag{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:3px 4px 3px 10px;font-size:13px}
+.mtag em{font-style:normal;font-size:11px;color:var(--faint)}.mtag.off{opacity:.75}.mtag.off b,.mtag.off em{text-decoration:line-through}
+.mtag button{border:0;background:var(--surface2);color:var(--text);border-radius:999px;padding:2px 9px;font:inherit;font-size:12px;cursor:pointer;min-height:0}
+.mnone{font-size:13px;color:var(--muted)}.msel{flex:1 1 180px;min-width:0;font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
+.mmsg{font-size:12px;color:var(--muted)}
 @media(max-width:700px){.links{margin-top:2px;gap:0 18px}.links a.gbp{display:inline-flex;align-items:center;min-height:44px}}
 /* staff named in reviews: photos keep their own shape, no circle */
 .srow{display:grid;grid-template-columns:40px 150px 1fr 150px;gap:10px;align-items:center;padding:5px 6px;cursor:pointer;border-radius:8px}
@@ -381,6 +389,6 @@ html.embedded .filters.away{translate:0 calc(-100% - 14px);opacity:0;visibility:
 <script src="../../auth.js?v=3823f956"></script>
 <script src="review-links.js?v=ee3ed966"></script>
 <script src="/assets/pill-select.js?v=7bd2fc3a"></script>
-<script src="app.js?v=e30e76d3"></script>
+<script src="app.js?v=6fe358cc"></script>
 </body>
 </html>

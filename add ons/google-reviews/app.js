@@ -49,7 +49,7 @@ const CODE_TO_BRANCH={KCA:"Khalifa City A, Abu Dhabi",SAA:"Saadiyat, Abu Dhabi",
 // Until the first message arrives it reads the last 90 days (the 1 Oct 2026 default:
 // "All time" averaged years of reviews and hid the recent trend; the official all-time
 // totals stay in their own table). range.from null means all time.
-const state = {mry:false, branches:new Set(BRANCHES), range:null, stars:new Set(ALL), withText:true, noReply:false, withPhotos:false, q:"", sort:"new", staff:""};
+const state = {mry:false, branches:new Set(BRANCHES), range:null, stars:new Set(ALL), withText:true, noReply:false, withPhotos:false, noTag:false, q:"", sort:"new", staff:""};
 // With written comment only is on unless switched off (Kate, 12 Oct 2026: always wanted).
 // The Refine filters (rating, staff, comment, no reply, photos, search, sort) are kept per browser
 // (Kate, 12 Oct 2026: a hard refresh wiped them). The Branch and Period bar is the dashboard's and
@@ -57,8 +57,8 @@ const state = {mry:false, branches:new Set(BRANCHES), range:null, stars:new Set(
 const REFINE_KEY="trs-reviews-refine";
 function saveRefine(){
   try{
-    const d={stars:[...state.stars],withText:state.withText,noReply:state.noReply,withPhotos:state.withPhotos,q:state.q,sort:state.sort,staff:state.staff};
-    const plain=setEq(state.stars,ALL)&&d.withText&&!d.noReply&&!d.withPhotos&&!d.q&&!d.staff&&d.sort==="new";
+    const d={stars:[...state.stars],withText:state.withText,noReply:state.noReply,withPhotos:state.withPhotos,noTag:state.noTag,q:state.q,sort:state.sort,staff:state.staff};
+    const plain=setEq(state.stars,ALL)&&d.withText&&!d.noReply&&!d.withPhotos&&!d.noTag&&!d.q&&!d.staff&&d.sort==="new";
     if(plain) localStorage.removeItem(REFINE_KEY); else localStorage.setItem(REFINE_KEY,JSON.stringify(d));
   }catch(e){}
 }
@@ -66,7 +66,7 @@ function saveRefine(){
   try{
     const d=JSON.parse(localStorage.getItem(REFINE_KEY)||"null"); if(!d) return;
     const st=(d.stars||[]).filter(x=>ALL.includes(x)); if(st.length) state.stars=new Set(st);
-    state.withText=d.withText!==false; state.noReply=!!d.noReply; state.withPhotos=!!d.withPhotos;
+    state.withText=d.withText!==false; state.noReply=!!d.noReply; state.withPhotos=!!d.withPhotos; state.noTag=!!d.noTag;
     state.q=String(d.q||""); state.staff=String(d.staff||"");
     if(["new","old","high","low"].includes(d.sort)) state.sort=d.sort;
     document.getElementById("q").value=state.q;
@@ -234,6 +234,8 @@ function baseFilter(skip){
     (skip==="stars" || state.stars.has(r.stars)) &&
     (skip==="range" || inRange(r.date)) &&
     (!state.withText || r.comment) && (!state.noReply || (!r.replied && r.branch!==MRY_BRANCH)) && (!state.withPhotos || r.photos.length) &&
+    // Kate, 19 Oct 2026: a written review nobody is tagged on after every rule (text, hand tag, client credit): the ones to match by hand.
+    (skip==="noTag" || !state.noTag || (r.comment && !r.staff.length)) &&
     (skip==="staff" || !state.staff || (state.staff==="__any" ? r.staff.length : state.staff==="__none" ? noStaffNamed(r) : r.staff.includes(state.staff))) &&
     (!state.q || (r.comment+" "+r.reviewer+" "+r.reply).toLowerCase().includes(state.q.toLowerCase())));
 }
@@ -273,6 +275,7 @@ function renderFilters(){
   fm.appendChild(chip("With written comment only", state.withText, null, ()=>{state.withText=!state.withText;render();}));
   fm.appendChild(chip("No reply yet", state.noReply, null, ()=>{state.noReply=!state.noReply;render();}));
   fm.appendChild(chip("With client photos", state.withPhotos, null, ()=>{state.withPhotos=!state.withPhotos;render();}));
+  fm.appendChild(chip("Comment, no staff tagged", state.noTag, baseFilter("noTag").filter(r=>r.comment&&!r.staff.length).length, ()=>{state.noTag=!state.noTag;render();}, "", "No staff tag"));
   renderSummary();
 }
 // The phone filter bar (Kate, 2 Oct 2026): what's on, as pills that clear on a tap.
@@ -291,6 +294,7 @@ function renderSummary(){
   if(state.withText) pills.push(["With comment", ()=>{state.withText=false;}]);
   if(state.noReply) pills.push(["No reply yet", ()=>{state.noReply=false;}]);
   if(state.withPhotos) pills.push(["With photos", ()=>{state.withPhotos=false;}]);
+  if(state.noTag) pills.push(["No staff tagged", ()=>{state.noTag=false;}]);
   if(state.q) pills.push(["“"+state.q+"”", ()=>{state.q="";document.getElementById("q").value="";}]);
   const fp=document.getElementById("fPills"); fp.innerHTML="";
   pills.forEach(([l,clear])=>{
@@ -475,6 +479,7 @@ function renderList(F){
       ${r.photos.length?`<div class="rphotos">${r.photos.map((u,k)=>`<button type="button" class="rph" data-u="${esc(u)}" aria-label="Photo ${k+1} of ${r.photos.length} from ${esc(r.reviewer||"the client")}"><img src="${esc(u)}=w240-h240-p" alt="" loading="lazy"></button>`).join("")}</div>`:""}
       ${r.replied?`<details class="reply"><summary><b>Our reply</b></summary><div style="white-space:pre-wrap;margin-top:6px">${esc(r.reply)}</div></details>`:""}
       ${(()=>{const g=googleReviewUrl(r)||branchMapsUrl(r),u=r.url||branchGbpUrl(r);return g||u?`<div class="links">${g?`<a class="gbp" href="${g}" target="_blank" rel="noopener">View on Google ↗</a>`:""}${u?`<a class="gbp" href="${u}" target="_blank" rel="noopener">Reply in Business Profile →</a>`:""}</div>`:"";})()}
+      ${CAN_EDIT&&r.id?`<div class="medit"><button type="button" class="chip mbtn" data-id="${esc(r.id)}" aria-expanded="false">Match staff</button><div class="mpanel" hidden></div></div>`:""}
     </div>`;}).join("") + (pages>1?`<nav class="pager" aria-label="Review pages">
       <div class="pg-info">Showing ${PAGE*PAGE_SIZE+1}–${Math.min((PAGE+1)*PAGE_SIZE,L.length)} of ${L.length}</div>
       <div class="pg-btns">
@@ -491,7 +496,61 @@ function renderList(F){
     if(nb) holdScroll(Math.round(nb.getBoundingClientRect().top+window.scrollY-y0));
   });
   el.querySelectorAll(".stag").forEach(b=>b.onclick=()=>{state.staff=b.dataset.k;render();window.scrollTo(0,0);});
+  el.querySelectorAll(".mbtn").forEach(b=>b.onclick=()=>toggleMatch(b));
   el.querySelectorAll(".rph").forEach(b=>b.onclick=()=>openPhoto(b));
+}
+// Match staff (Kate, 19 Oct 2026): the owner login (Level 5) tags a review to a stylist, or says a name in the text is not hers,
+// from the card itself. Writes go through google_review_set_staff, which refuses anyone else; the page only shows the button
+// when google_review_can_edit() says yes. Same two columns as before: staff_manual (tag by hand) and staff_not (not hers).
+let CAN_EDIT=false;
+async function rpc(fn, body){
+  const res=await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`,{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify(body||{})});
+  if(!res.ok){ const t=await res.text(); throw new Error(res.status===401||res.status===403||/Level 5/.test(t)?"Only the owner login can match staff":t.slice(0,160)); }
+  return res.json();
+}
+async function checkEdit(){
+  if(!window.TRSAuth||!TRSAuth.token()) return;
+  try{ if((await rpc("google_review_can_edit"))===true){ CAN_EDIT=true; renderList(baseFilter()); } }catch(e){}
+}
+function toggleMatch(btn){
+  const r=R.find(x=>x.id===btn.dataset.id), box=btn.parentNode.querySelector(".mpanel"); if(!r||!box) return;
+  const open=box.hidden; box.hidden=!open; btn.setAttribute("aria-expanded",open); btn.classList.toggle("on",open);
+  if(open) drawMatch(r,box);
+}
+function drawMatch(r,box,msg){
+  const man=r.manual||[], nots=r.not||[], named=r.named||[];
+  const lab=k=>{const s=staffBy(k);return esc(s?s.label:k);};
+  const cur=r.staff.map(k=>{
+    const hand=man.includes(k)&&!named.includes(k), how=hand?"by hand":(r.viaClient?"client credit":"named in the text");
+    return `<span class="mtag"><b>${lab(k)}</b><em>${how}</em>`+
+      (hand?`<button type="button" data-a="remove" data-k="${esc(k)}">Remove</button>`:`<button type="button" data-a="not" data-k="${esc(k)}">Not her</button>`)+`</span>`;
+  }).join("")||`<span class="mnone">Nobody tagged on this review yet</span>`;
+  const off=nots.map(k=>`<span class="mtag off"><b>${lab(k)}</b><em>excluded</em><button type="button" data-a="undo" data-k="${esc(k)}">Undo</button></span>`).join("");
+  const taken=new Set(r.staff);
+  const opts=STAFF.filter(s=>!taken.has(s.key)).sort((a,b)=>((b.branch===r.branch)-(a.branch===r.branch))||a.label.localeCompare(b.label))
+    .map(s=>`<option value="${esc(s.key)}">${esc(s.label)}${s.resigned?" (former)":""}${s.branch?" · "+esc(SHORT[s.branch]||s.branch):""}</option>`).join("");
+  box.innerHTML=`<div class="mrow">${cur}${off}</div>
+    <div class="mrow"><select class="msel" aria-label="Add a staff member"><option value="">Add staff…</option>${opts}</select><button type="button" class="chip" data-a="add">Add</button></div>
+    ${msg?`<div class="mmsg">${esc(msg)}</div>`:""}`;
+  box.querySelectorAll("button[data-a]").forEach(b=>b.onclick=()=>{
+    const a=b.dataset.a, k=b.dataset.k;
+    let m=[...man], n=[...nots];
+    if(a==="remove") m=m.filter(x=>x!==k);
+    else if(a==="not"){ m=m.filter(x=>x!==k); if(!n.includes(k)) n.push(k); }
+    else if(a==="undo") n=n.filter(x=>x!==k);
+    else if(a==="add"){ const v=box.querySelector(".msel").value; if(!v) return; if(!m.includes(v)) m.push(v); n=n.filter(x=>x!==v); }
+    saveMatch(r,box,m,n);
+  });
+}
+async function saveMatch(r,box,manual,not){
+  box.classList.add("busy");
+  try{
+    const out=await rpc("google_review_set_staff",{p_review_id:r.id,p_manual:manual,p_not:not});
+    r.manual=out.manual||[]; r.not=out.not||[]; tagStaff(r);
+    const keep=PAGE; render(); PAGE=keep; renderList(baseFilter());
+    const b=[...document.querySelectorAll(".mbtn")].find(x=>x.dataset.id===r.id);
+    if(b){ const bx=b.parentNode.querySelector(".mpanel"); bx.hidden=false; b.setAttribute("aria-expanded",true); b.classList.add("on"); drawMatch(r,bx,"Saved"); }
+  }catch(e){ box.classList.remove("busy"); drawMatch(r,box,"Not saved: "+e.message); }
 }
 // A client's photo full size, over the page; arrows step through that review's photos.
 function openPhoto(btn){
@@ -608,7 +667,7 @@ function render(){
 }
 document.getElementById("q").oninput=e=>{state.q=e.target.value;render();};
 document.getElementById("sort").onchange=e=>{state.sort=e.target.value;render();};
-document.getElementById("reset").onclick=()=>{Object.assign(state,{stars:new Set(ALL),withText:true,noReply:false,withPhotos:false,q:"",staff:""});document.getElementById("q").value="";render();};
+document.getElementById("reset").onclick=()=>{Object.assign(state,{stars:new Set(ALL),withText:true,noReply:false,withPhotos:false,noTag:false,q:"",staff:""});document.getElementById("q").value="";render();};
 document.getElementById("reset2").onclick=()=>document.getElementById("reset").click();
 // Embedded in the dashboard: no own toggle and no own scrollbar. The dashboard's
 // sticky-header toggle sends the theme by postMessage (direct parent access is
@@ -681,5 +740,5 @@ if(window.parent!==window){
 }
 loadLive().catch(e=>{console.warn("Google reviews: live load failed, using the 24 Sep copy.",e);return loadOffline();})
   .then(()=>Promise.all([loadVariants(), loadClientCredit()]))
-  .then(()=>{TODAY=new Date(META.generated+"T00:00:00");buildStaff();if(state.staff&&state.staff!=="__any"&&state.staff!=="__none"&&!STAFF.some(x=>x.key===state.staff)) state.staff="";R.forEach(tagStaff);renderExact();render();});
+  .then(()=>{TODAY=new Date(META.generated+"T00:00:00");buildStaff();if(state.staff&&state.staff!=="__any"&&state.staff!=="__none"&&!STAFF.some(x=>x.key===state.staff)) state.staff="";R.forEach(tagStaff);renderExact();render();checkEdit();});
 document.getElementById("fStaff").onchange=e=>{state.staff=e.target.value;render();};
