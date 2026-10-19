@@ -45,17 +45,20 @@ const lqToday = () => new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD on
 
 // ── TABS (drawn by renderLostListsPage in lost-lists.js) ─────────────────────────────────────
 function lqAllowed() { return typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3; }
+// Kate, 19 Oct 2026: the Performance report opens to Level 2 (the coordinators), who see the rail with just The five groups and Performance report.
+// To message and Templates show phone numbers and stay Level 3 and above, and so does Terms and conditions.
+const lqTabOk = t => lqAllowed() || (typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2 && (t === 'groups' || t === 'perf'));
 // Kate, 16 Oct 2026: the tabs became the "On this page" rail the Organisation Pulse has (same .side-nav markup, in the gutter above 1100px and a
 // row of chips below it), with a fourth entry, Performance report. A rail entry opens a tab instead of scrolling, so spy() in index.html leaves
-// this rail alone (data-tabs) and lqShowTab lights the entry. Level 3 and above; Level 2 sees the groups with no rail.
+// this rail alone (data-tabs) and lqShowTab lights the entry. Level 3 and above; Level 2 sees the groups and the Performance report (lqTabOk).
 const LQ_TABS = [['groups', 'The five groups'], ['queue', 'To message'], ['tpl', 'Templates'], ['perf', 'Performance report'], ['terms', 'Terms and conditions']];
 function lqRailHtml() {
-  if (!lqAllowed()) return '';
+  if (!lqTabOk('groups')) return '';
   return `<aside class="lg-side"><nav class="side-nav" data-tabs="1" aria-label="On this page"><div class="side-k">On this page</div>${LQ_TABS
-    .map(([k, l]) => `<a href="#lost-${k}" data-t="${k}" class="${lqSel.tab === k ? 'on' : ''}" onclick="event.preventDefault();lqShowTab('${k}')">${l}</a>`).join('')}</nav></aside>`;
+    .filter(([k]) => lqTabOk(k)).map(([k, l]) => `<a href="#lost-${k}" data-t="${k}" class="${lqSel.tab === k ? 'on' : ''}" onclick="event.preventDefault();lqShowTab('${k}')">${l}</a>`).join('')}</nav></aside>`;
 }
 function lqShowTab(t) {
-  if (!lqAllowed()) t = 'groups';
+  if (!lqTabOk(t)) t = 'groups';
   lqSel.tab = t; lqSave();
   if (typeof trSyncUrl === 'function') trSyncUrl(null);   // the address names the tab: ?view=lost-clients&tab=templates
   document.querySelectorAll('#lostListsContent .side-nav a[data-t]').forEach(a => a.classList.toggle('on', a.dataset.t === t));
@@ -77,13 +80,13 @@ function lqRenderTerms() {
 // Called once renderLostListsPage has drawn the page: open the tab the person left on.
 // The address bar names the tab (Kate, 12 Oct 2026): ?view=lost-clients&tab=templates. Slugs: groups, to-message, templates.
 const LQ_SLUG = { groups: 'groups', queue: 'to-message', tpl: 'templates', perf: 'performance', terms: 'terms-and-conditions' };
-function lqUrlParts() { return lqAllowed() && LQ_SLUG[lqSel.tab] ? ['tab=' + LQ_SLUG[lqSel.tab]] : []; }
+function lqUrlParts() { return lqTabOk(lqSel.tab) && LQ_SLUG[lqSel.tab] ? ['tab=' + LQ_SLUG[lqSel.tab]] : []; }
 function lqTabFromUrl() {
   try { const s = new URLSearchParams(location.search).get('tab'); return Object.keys(LQ_SLUG).find(k => LQ_SLUG[k] === s) || ''; } catch (e) { return ''; }
 }
 function lqAfterRender() {
   // A link that names its tab wins over the one she left on; a bare link opens the remembered one.
-  const t = lqAllowed() ? (lqTabFromUrl() || lqSel.tab) : 'groups';
+  const want = lqTabFromUrl() || lqSel.tab, t = lqTabOk(want) ? want : 'groups';
   lqShowTab(t && LQ_SLUG[t] ? t : 'groups');
 }
 

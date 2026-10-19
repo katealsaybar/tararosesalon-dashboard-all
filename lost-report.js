@@ -1,5 +1,5 @@
 // Lost Clients, Performance report tab (Kate, 16 Oct 2026): the record of what the site sent through respond.io, when, and what came of it.
-// Numbers from lost_send_report_get() and the log from lost_send_log_get() (migrations/lost_send_report.sql), Level 3 and above.
+// Numbers from lost_send_report_get() and the log from lost_send_log_get() (migrations/lost_send_report.sql), Level 2 and above (migrations/lost_performance_report_level2.sql, 19 Oct 2026).
 // Replied, STOP and blocked come from lost_wa_status, which respond-status-sync refreshes each night, so they run up to a day behind; booked is a booking
 // from today on in client_bookings. The page keeps its own copy only while it is open: Refresh asks again.
 //
