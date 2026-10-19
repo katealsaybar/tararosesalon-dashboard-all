@@ -236,6 +236,20 @@
 .glance__cta{text-align:center;margin:30px 0 0}
 @media(max-width:860px){.glance__row{grid-template-columns:1fr 1fr}}
 @media(max-width:480px){.glance{padding:48px 0}.glance__row{gap:10px}.glance__row li{padding:16px 14px}.glance__row span{font-size:16px}.glance__cta .pill{width:100%;justify-content:center;min-height:48px}}
+
+/* more reviews (Kate, 19 Oct): six real Google reviews, a swipe row on phones */
+#reviews{padding:64px 0}
+#reviews .sec-head{margin-bottom:30px}
+.revgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;max-width:1040px;margin:0 auto}
+#reviews .tcard{display:flex;flex-direction:column}
+#reviews .tcard blockquote{flex:1;margin-bottom:18px}
+#reviews .tcard cite{margin-top:auto}
+@media(max-width:900px){.revgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){
+  #reviews{padding:48px 0}
+  .revgrid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin-inline:-20px;padding:2px 20px 14px;-webkit-overflow-scrolling:touch}
+  .revgrid .tcard{flex:0 0 84%;scroll-snap-align:center}
+}
 </style>
 <meta name="geo.region" content="AE">
 <script type="application/ld+json">
@@ -463,7 +477,21 @@
 
 <section id="reviews" style="background:var(--stone-soft);">
   <div class="wrap">
-    <div class="grid-2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;max-width:760px;margin:0 auto;">
+    <div class="sec-head center">
+      <span class="eyebrow">Reviews</span>
+      <h2>What clients <em>say.</em></h2>
+    </div>
+    <div class="revgrid">
+      <div class="tcard">
+        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <blockquote>Clarissa did a wonderful job with my blow dry! I&rsquo;ve purchased a blow dry package because of the excellent job she did.</blockquote>
+        <cite>Anamika &middot; on Clarissa, Motor City</cite>
+      </div>
+      <div class="tcard">
+        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <blockquote>A special thank you to Xyrhy, the Junior Hair Stylist, who did an absolutely terrific job. She was attentive, gentle, professional, and truly took the time to understand what I wanted.</blockquote>
+        <cite>Febbie &middot; on Xyrhy, Motor City</cite>
+      </div>
       <div class="tcard">
         <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
         <blockquote>I visited Tara Rose Al Quoz for the first time and had the most pleasant experience. Areanne was so kind and attentive and really took the time to find out my hair concerns and gave a great recommendation for my hair type. I had the Keratin blow dry and I am really happy with the results.</blockquote>
@@ -473,6 +501,16 @@
         <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
         <blockquote>You know that feeling of knowing without a doubt that you have finally found what you were looking for? That is how I felt today during my appointment with Edz.</blockquote>
         <cite>Marta &middot; on Eds, Mamsha Al Saadiyat</cite>
+      </div>
+      <div class="tcard">
+        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <blockquote>I used to go to Mevil in Khalifa City and now see Eds at the Saadiyat branch for my weekly treatment and blow-dry.</blockquote>
+        <cite>Amna &middot; on Eds, Mamsha Al Saadiyat</cite>
+      </div>
+      <div class="tcard">
+        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <blockquote>Hazel did the blowdry so nicely, and I really appreciated that she didn&rsquo;t use high heat.</blockquote>
+        <cite>Sara &middot; on Hazel, Khalifa City A</cite>
       </div>
     </div>
   </div>
