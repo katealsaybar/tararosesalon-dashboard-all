@@ -13,6 +13,12 @@ try { if (localStorage.getItem('lr-dep-view') === 'table') lrDepView = 'table'; 
 let lrDel = null, lrDelView = 'visual';
 try { if (localStorage.getItem('lr-del-view') === 'table') lrDelView = 'table'; } catch (e) {}
 let lrSel = { wave: 'all', branch: 'all', status: 'all', q: '', page: 1, per: 50 };
+// One message at a time (Kate, 19 Oct 2026): the whole report, the Booked and deposit and delivery sections and the log can be cut to Smoothing,
+// Colour or Due (migrations/lost_report_by_type.sql). 'all' sends no argument, so the page still works before that migration is live.
+let lrType = 'all';
+const LR_TYPES = [['smoothing', 'Smoothing'], ['colour', 'Colour'], ['due', 'Due (the reminder)']];
+const lrArgs = () => lrType === 'all' ? undefined : { p_type: lrType };
+const lrTypeName = () => (LR_TYPES.find(t => t[0] === lrType) || [, ''])[1];
 
 const LR_BR = ['SAA', 'KCA', 'MC', 'AQ'];
 const lrPct = (a, b) => b ? (100 * a / b).toFixed(1) + '%' : '–';
@@ -38,7 +44,7 @@ async function lrLoad() {
   if (lrBusy) return;
   lrBusy = true; lrErr = '';
   try {
-    const [s, l, dp, dl] = await Promise.all([sb.rpc('lost_send_report_get'), lrFetchPage(), sb.rpc('lost_booked_deposits'), sb.rpc('lost_delivery_report')]);
+    const [s, l, dp, dl] = await Promise.all([sb.rpc('lost_send_report_get', lrArgs()), lrFetchPage(), sb.rpc('lost_booked_deposits', lrArgs()), sb.rpc('lost_delivery_report', lrArgs())]);
     if (s.error || !s.data) throw s.error || new Error('no report');
     lrSum = s.data;
     lrDep = (!dp.error && dp.data && dp.data.total) ? dp.data : null;   // optional: the report still draws without it
@@ -53,13 +59,18 @@ async function lrLoad() {
 function lrFetchPage(offset, limit) {
   return sb.rpc('lost_send_log_get', {
     p_wave: lrSel.wave === 'all' ? null : +lrSel.wave, p_branch: lrSel.branch, p_status: lrSel.status, p_q: lrSel.q.trim(),
-    p_offset: offset != null ? offset : (lrSel.page - 1) * lrSel.per, p_limit: limit || lrSel.per });
+    p_offset: offset != null ? offset : (lrSel.page - 1) * lrSel.per, p_limit: limit || lrSel.per, ...(lrType === 'all' ? {} : { p_type: lrType }) });
 }
 async function lrRefreshLog() {
   const { data, error } = await lrFetchPage();
   if (error || !data) { console.error(error); lrNote('The log did not load. Try again.'); return; }
   lrRowsPage = data.rows || []; lrTotal = data.total || 0;
   lrPaintLog();
+}
+function lrSetType(v) {
+  lrType = LR_TYPES.some(t => t[0] === v) ? v : 'all';
+  lrSel.page = 1; lrOpen = {};
+  lrRenderPerf(true);
 }
 function lrSet(k, v) { lrSel[k] = v; lrSel.page = 1; lrOpen = {}; lrRefreshLog(); }
 function lrSearch(v) { lrSel.q = v; lrSel.page = 1; clearTimeout(lrQTimer); lrQTimer = setTimeout(lrRefreshLog, 350); }
@@ -206,6 +217,7 @@ function lrPaint() {
   if (!host) return;
   if (lrErr || !lrSum) { host.innerHTML = `<p class="slv-muted">${lcEsc(lrErr || 'No report yet.')}</p>`; return; }
   const s = lrSum, t = s.totals || {}, byB = s.by_branch || [];
+  const typeRows = LR_TYPES.map(([k, l]) => { const m = (s.by_type || []).find(x => x.k === k); return m ? lrRow(`<b>${lcEsc(l)}</b>`, m) : null; }).filter(Boolean);
   const waveRows = (s.by_wave || []).map(w => lrRow(`<b>Wave ${w.k || '?'}</b>`, w));
   const msgRows = (s.by_message || []).map(m => { const x = lrMsg(m.k); return lrRow(`${lcEsc(x.nm)} <span class="ll-tag">${lcEsc(x.arm)}</span>`, m); });
   const brRows = LR_BR.map(b => byB.find(x => x.k === b)).filter(Boolean).map(m => lrRow(lcEsc(LC_BRANCH[m.k] || m.k), m))
@@ -218,7 +230,12 @@ function lrPaint() {
       <span class="ll-chip">Report made <b>${lcEsc(lrTime(s.at))}</b></span>
       <button type="button" class="ll-chip lq-refresh" onclick="lrRenderPerf(true)" title="Ask again">Refresh</button>
     </div>
-    <section class="lr-sec" id="lr-totals"><h3>The campaign so far</h3>${lrTiles(t)}</section>
+    <section class="lr-sec" id="lr-type"><div class="lr-dhd"><h3>Which message</h3>
+      <div class="tp-seg" role="group" aria-label="Message">${[['all', 'All messages']].concat(LR_TYPES).map(([k, l]) => `<button type="button" class="${lrType === k ? 'on' : ''}" onclick="lrSetType('${k}')">${l}</button>`).join('')}</div></div>
+      ${lrType === 'all' ? `${lrTable('Message', typeRows)}<p class="slv-note">Pick one above to see every number on this page for that message alone. Smoothing is groups 1 and 2, Colour is group 3, Due is everyone else. A client who was sent two different messages is counted under each.</p>`
+        : `<p class="slv-note">Showing <b>${lcEsc(lrTypeName())}</b> only, everything below. Pick All messages to see the three together.</p>`}
+    </section>
+    <section class="lr-sec" id="lr-totals"><h3>The campaign so far${lrType === 'all' ? '' : `: ${lcEsc(lrTypeName())}`}</h3>${lrTiles(t)}</section>
     ${lrDel ? `<section class="lr-sec" id="lr-delivery">${lrDelInner()}</section>` : ''}
     ${lrDep ? `<section class="lr-sec" id="lr-deposits">${lrDepInner()}</section>` : ''}
     <section class="lr-sec" id="lr-waves"><h3>By wave</h3>${lrTable('Wave', waveRows)}</section>
@@ -285,7 +302,7 @@ async function lrSaveLog(kind) {
   const built = lgxBuild({ sheets: [{ name: 'Send log', blocks: [{ cols: head.map(h => ({ label: h, fmt: 'text' })), rows: lines.map(l => ({ cells: l })) }] }] });
   const slug = t => String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const name = ['lost-clients-send-log', lrSel.wave !== 'all' ? 'wave-' + lrSel.wave : '', lrSel.branch !== 'all' ? slug(LC_BRANCH[lrSel.branch] || lrSel.branch) : '',
-    lrSel.status !== 'all' ? lrSel.status : '', lrSel.q.trim() ? 'search' : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
+    lrType !== 'all' ? lrType : '', lrSel.status !== 'all' ? lrSel.status : '', lrSel.q.trim() ? 'search' : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
   lrNote(`Saved ${lcNum(lines.length)} rows as ${kind.toUpperCase()}`);
