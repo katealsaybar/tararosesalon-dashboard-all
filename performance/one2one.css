@@ -94,19 +94,19 @@
 .o2o-tbl .dot{display:inline-block}
 
 /* This month | 1-to-1 | Goals toggle beside the Open view button (Kate, 7 Oct 2026), the same
-   segmented pill as the tabs on a stylist's own link. 1-to-1 and Goals swap the numbers out. */
+   underline tabs as a stylist's own link (Kate, 19 Oct 2026). 1-to-1 and Goals swap the numbers out. */
 .o2o-right{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
-.o2o-seg{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}
+.o2o-seg{display:inline-flex;gap:0;padding:0;border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent}
 .o2o-seg:empty{display:none}
-.o2o-seg button{font:inherit;font-size:14px;font-weight:600;border:0;border-radius:999px;padding:0 14px;min-height:36px;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:7px}
-.o2o-seg button.on{background:var(--btn);color:var(--btn-fg)}
-.o2o-seg button:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.o2o-seg button{font:inherit;font-size:14px;font-weight:500;border:0;border-bottom:3px solid transparent;border-radius:0;margin-bottom:-1px;padding:0 16px;height:44px;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.o2o-seg button.on{color:var(--text);font-weight:600;border-bottom-color:var(--btn)}
+.o2o-seg button:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
 #app.o2o-view>:not(.admin-bar):not(#o2oSlot){display:none!important}
 #o2oSlot[hidden]{display:none}
 @media(max-width:760px){
   .o2o-right{width:100%;justify-content:stretch}
   .o2o-seg{width:100%}
-  .o2o-seg button{flex:1 1 0;min-height:44px;padding:0 6px}
+  .o2o-seg button{flex:1 1 0;padding:0 6px}
   .o2o-right>.btn{flex:1 1 100%;min-height:44px}
 }
 
