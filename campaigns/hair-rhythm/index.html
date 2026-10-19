@@ -194,7 +194,9 @@
 /* phone legibility floor (Kate, 19 Oct): nothing meant to be read or tapped under 11px, tap targets about 44px */
 @media(max-width:767px){
   html body .pill-tag{font-size:11.5px !important}
-  html body .ochip{min-height:42px;font-size:11px !important;letter-spacing:0}
+  html body .offer-nav__row{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px}
+  html body .offer-nav__row>li{flex:0 0 auto}
+  html body .ochip{min-height:42px;font-size:13px !important;font-weight:600;letter-spacing:.01em;text-transform:none;padding:0 11px}
   html body .offer-nav{padding:5px 0}
   html body .pick small{font-size:11px !important}
   html body .ogroup .door .from,html body .ogroup .orows .door .from{font-size:11.5px !important}
@@ -209,15 +211,19 @@
   html body .trs-nav .nav__cta{font-size:12px !important;letter-spacing:.04em;padding-inline:16px;min-height:42px}
   html body .trs-nav .nav__cta .nb{display:none}
 }
+@media(max-width:380px){
+  html body .offer-nav__row{gap:5px}
+  html body .ochip{font-size:12.5px !important;padding:0 8px}
+}
 @media(max-width:350px){
-  html body .ochip{font-size:10.5px !important}
+  html body .ochip{font-size:12px !important;padding:0 7px}
   html body .pick span{font-size:15.5px}
   html body .offer-nav .wrap{padding-inline:8px}
-  html body .offer-nav__row{gap:3px}
+  html body .offer-nav__row{gap:4px}
 }
 @media(max-width:300px){
-  html body .offer-nav__row{grid-template-columns:repeat(2,minmax(0,1fr))}
-  html body .ochip{font-size:11px !important}
+  html body .offer-nav__row{flex-wrap:wrap}
+  html body .ochip{font-size:12.5px !important;padding:0 11px}
   html body .pick{grid-template-columns:1fr}
 }
 </style>
