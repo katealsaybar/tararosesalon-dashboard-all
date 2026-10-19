@@ -250,6 +250,13 @@
   .revgrid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin-inline:-20px;padding:2px 20px 14px;-webkit-overflow-scrolling:touch}
   .revgrid .tcard{flex:0 0 84%;scroll-snap-align:center}
 }
+
+/* more dark (Kate, 19 Oct): the offers, reviews and FAQ sit on the dark ground; the booking form, press strip and Good to know row stay light */
+.offers-dark{--paper:#1f1e1a;--cream:#1f1e1a;--stone-soft:#2a2823;--stone:#34312b;--ink:#f5f2eb;--ink-soft:rgba(245,242,235,.72);--hair:rgba(255,255,255,.15);--accent-text:#7DE6D2;background:#161512;color:#f5f2eb}
+#start{border-top:1px solid rgba(255,255,255,.08)}
+#reviews{background:#161512;border-top:1px solid rgba(255,255,255,.08)}
+#promise{border-top:1px solid rgba(255,255,255,.08)}
+#faq{background:#161512}
 </style>
 <meta name="geo.region" content="AE">
 <script type="application/ld+json">
@@ -288,7 +295,7 @@
   </div>
 </section>
 
-<section id="start" class="menu-sec" style="background:var(--paper);">
+<section id="start" class="menu-sec dark offers-dark">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">Where to start</span>
@@ -475,7 +482,7 @@
   <a href="https://beautyworld-dubai.ae.messefrankfurt.com/dubai/en/press/press-releases/all/20241025.html" target="_blank" rel="noopener"><span class="press-logo-box"><img width="115" height="35" class="press-logo press-logo--bw" src="assets/press/beautyworld.svg" alt="Beautyworld Middle East" decoding="async"></span><span class="press-sub">Speaker</span></a>
 </div><p class="press-quote">&ldquo;A salon could be a place where a woman walks out feeling genuinely seen, not just groomed.&rdquo;<span>Tara Rose Kidd, Bizpreneur Middle East, August 2026</span></p></div></section>
 
-<section id="reviews" style="background:var(--stone-soft);">
+<section id="reviews" class="dark">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">Reviews</span>
@@ -639,7 +646,7 @@
   </div>
 </section>
 
-<section class="faq faq--light" id="faq" style="background:var(--cream);">
+<section class="faq dark" id="faq">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">Questions</span>
