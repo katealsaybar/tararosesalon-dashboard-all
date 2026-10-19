@@ -302,7 +302,7 @@ const STAFF_PROFILES = {
   'JANE':    { photoFull: 'stylist/photos/MC/jane astrande.png', role: 'Junior Stylist', branch: 'MC', resigned: true },
   'KELSEY':  { photoFull: 'stylist/photos/SAA/kelsey lewis.png', role: 'Stylist', branch: 'SAA', ig: 'kelseylewis_hair', resigned: true },
   'KELSIE':  { photoFull: 'stylist/photos/KCA/kelsie lally.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
-  'LOUISE':  { photoFull: 'stylist/photos/KCA/louise williams.png', role: 'Stylist', branch: 'KCA', blank: true, resigned: true },
+  'LOUISE':  { photoFull: 'stylist/photos/KCA/louise williams.png', role: 'Stylist', branch: 'KCA', resigned: true },
   'LUCIE':   { photoFull: 'stylist/photos/SAA/lucie rogers.png', role: 'Stylist', branch: 'SAA', blank: true, resigned: true },
   'SHIAN':   { photoFull: 'stylist/photos/KCA/shian davidson.png', role: 'Stylist', branch: 'KCA', ig: 'hairartist.shiandavidson', resigned: true },
   // Kate, 15 Oct 2026: surnames she found for two of the "no surname" Phorest records, both on her say-so ("probably her" / "probably him"):
