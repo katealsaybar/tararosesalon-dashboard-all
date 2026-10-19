@@ -107,6 +107,7 @@ function lqbSendPanel() {
     <p class="slv-muted wv-send-p">Each message goes through respond.io from that client's own branch number, as an approved template. It sends only between ${lcEsc(lqHour(i.hour_from))} and ${lcEsc(lqHour(i.hour_to))} Dubai${win ? '' : ' <b>(closed right now, so it waits)</b>'}, ${pace}.
       Today <b>${lcNum(i.sent_today || 0)}</b> sent${waiting ? `, <b>${lcNum(waiting)}</b> waiting` : ''}, up to ${lcNum(i.daily_cap)} a day. A client who wrote STOP, is blocked, or is not a respond.io contact is skipped.</p>
     <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th>Send at</th><th>Set by</th><th></th></tr></thead><tbody>${lqbGroups().map(lqbRow).join('')}</tbody></table></div>
+    <div id="lqbRS">${lqbRsHtml()}</div>
     <div id="lqNote" class="slv-note" style="margin-top:6px"></div>
     <details class="wv-log"><summary>Pace and test</summary><div class="lqb-pace"><label class="slv-note">Daily cap ${capSel}</label> <label class="slv-note">Every ${lcNum(i.slot_minutes || 30)} minutes ${slotSel}</label> ${test}
       <p class="slv-note">Meta limits how many new people each branch number can message in 24 hours and rates each number's quality, which this page cannot see. Check it in Meta Business Manager before opening the next wave. Wave 4 goes at half the daily cap because those clients are the likeliest to block or report.</p></div></details>
@@ -165,6 +166,7 @@ function lqbPaint(host) {
       Sent comes from respond.io (it only sees messages sent through it); WhatsApp opened from here is marked by the button. A client with a booking, or who came in within the last 6 weeks, leaves the list on her own. Two clients on one number get one message.</p>
     </div>`;
   lqPaintTable();
+  lqbRsLoad();
 }
 
 // ── actions ──────────────────────────────────────────────────────────────────────────────────
@@ -203,6 +205,91 @@ async function lqbCopy() {
   const nums = [...new Set(lqFiltered().map(r => r._phone).filter(Boolean))];
   try { await navigator.clipboard.writeText(nums.join('\n')); } catch (e) { lqNote('The browser would not copy. Use the file instead.'); return; }
   lqNote(`Copied ${lcNum(nums.length)} numbers`);
+}
+
+// ── Resend what WhatsApp did not deliver (Kate, 19 Oct 2026) ─────────────────────────────────────────────────────────────────
+// Meta kept some messages back ("not delivered to maintain healthy ecosystem engagement", nothing charged). respond.io still calls them sent, so Send
+// from here refuses them as already sent. This is the way back: lost_resend_info says how many per branch can be queued again, lost_send_resend queues
+// them as new jobs (same client, same template, one per client, nobody who replied, wrote STOP, is blocked or has booked) with a time and a pace, one
+// branch at a time so each branch can have its own time. Level 4 and up (migrations/lost_send_resend.sql).
+let lqbRS = null;
+async function lqbRsLoad() {
+  const host = document.getElementById('lqbRS');
+  if (!host || !lqwLevel(4)) return;
+  try {
+    const { data, error } = await sb.rpc('lost_resend_info');
+    if (error || !data) throw error || new Error('no resend info');
+    lqbRS = data;
+  } catch (e) { lqbRS = null; }
+  const h = document.getElementById('lqbRS');
+  if (h) h.innerHTML = lqbRsHtml();
+}
+const lqbRsBr = () => ['SAA', 'KCA', 'MC', 'AQ'].filter(b => Number(((lqbRS || {}).by_branch || {})[b]) > 0);
+function lqbRsHtml() {
+  const d = lqbRS;
+  if (!d || !lqwLevel(4)) return '';
+  const total = Number(d.total) || 0, resent = Number(d.resent) || 0, wait = Number(d.resent_waiting) || 0;
+  if (!total && !resent) return '';
+  const by = lqbRsBr().map(b => `${lcEsc(LC_BRANCH[b] || b)} ${lcNum(Number(d.by_branch[b]))}`).join(' · ');
+  const on = lqSnd.info && lqSnd.info.enabled;
+  return `<div class="lqb-rs"><div><b>Not delivered</b> <span class="slv-note">${total ? `${lcNum(total)} message${total === 1 ? '' : 's'} that WhatsApp did not deliver can be queued again (${by}).` : 'Nothing left to resend.'}
+      Meta held them back to keep engagement healthy, and nothing was charged. One message per client, never anyone who replied, wrote STOP, is blocked or has booked.${resent ? ` Resent so far: ${lcNum(resent)}${wait ? `, ${lcNum(wait)} still waiting` : ''}.` : ''}</span></div>
+    ${total ? `<button type="button" class="tglr lc-btn lq-pri" onclick="lqbRsOpen()"${on ? '' : ' disabled title="Sending is off"'}>Resend ${lcNum(total)}…</button>` : ''}</div>`;
+}
+function lqbRsOpen() {
+  const d = lqbRS, i = lqSnd.info;
+  if (!d || !i || !lqbRsBr().length) return;
+  const brs = lqbRsBr();
+  lqModalOpen(`<h3 id="lqrH">Resend ${lcNum(Number(d.total))} message${Number(d.total) === 1 ? '' : 's'} through respond.io?</h3>
+    <p class="slv-note">The same message each client was sent, from the same branch number. Pick a time and a pace for each branch. They go out themselves at that time, even with this page closed, ${lcEsc(lqHour(i.hour_from))} to ${lcEsc(lqHour(i.hour_to))} Dubai time. Meta may hold some back again, and it costs nothing when it does.</p>
+    ${brs.map(b => { const n = Number(d.by_branch[b]); return `<div class="lqm-br"><label class="ss-opt"><input type="checkbox" id="lqrb_${b}" checked onchange="lqbRsSummary()"> <b>${lcEsc(LC_BRANCH[b] || b)}</b> <span class="slv-note">${lcNum(n)} client${n === 1 ? '' : 's'}</span></label>
+      ${ssWhenHtml('lqr_' + b, { max: n, maxNow: n, from: i.hour_from, to: i.hour_to, nowOk: true, onChange: lqbRsSummary })}</div>`; }).join('')}
+    <div class="lqm-btns"><button type="button" class="tglr lc-btn" onclick="lqModalClose()">Cancel</button>
+      <button type="button" class="tglr lc-btn lq-pri" id="lqrGo" onclick="lqbRsGo()">Schedule</button></div>`);
+  // A starting point, not a rule: today at 16:00 (tomorrow if that has passed), 50 at a time every 10 minutes. Change any of it.
+  const day = ssLocalStr(new Date()).slice(0, 10), at = day + 'T16:00', fut = new Date(at + ':00' + SS_OFF).getTime() > Date.now() + 60000;
+  brs.forEach(b => {
+    const m = document.querySelector(`input[name=lqr_${b}Mode][value=at]`), t = document.getElementById(`lqr_${b}At`), bb = document.getElementById(`lqr_${b}B`), ee = document.getElementById(`lqr_${b}E`);
+    if (m) m.checked = true;
+    if (t && fut) t.value = at;
+    if (bb) bb.value = '50';
+    if (ee) ee.value = '10';
+    ssUpdate('lqr_' + b);
+  });
+  lqbRsSummary();
+}
+function lqbRsPicks() {
+  return lqbRsBr().filter(b => { const c = document.getElementById('lqrb_' + b); return c && c.checked; }).map(b => ({ b, r: ssWhenRead('lqr_' + b) }));
+}
+function lqbRsSummary() {
+  const go = document.getElementById('lqrGo'), h = document.getElementById('lqrH'), picks = lqbRsPicks();
+  const bad = picks.some(x => x.r.error), n = picks.reduce((a, x) => a + (x.r.error ? 0 : x.r.count), 0);
+  if (go) { go.disabled = bad || !picks.length; go.textContent = `${picks.some(x => x.r.at || x.r.every) ? 'Schedule' : 'Queue'} ${lcNum(n)}`; }
+  if (h) h.textContent = `Resend ${lcNum(n)} message${n === 1 ? '' : 's'} through respond.io?`;
+}
+async function lqbRsGo() {
+  const picks = lqbRsPicks();
+  if (!picks.length || picks.some(x => x.r.error)) { lqbRsSummary(); return; }
+  const go = document.getElementById('lqrGo');
+  if (go) { go.disabled = true; go.textContent = 'Queueing…'; }
+  const out = [];
+  let failed = null;
+  for (const p of picks) {
+    const { data, error } = await sb.rpc('lost_send_resend', { p_branch: p.b, p_limit: p.r.limit, p_at: p.r.at, p_batch: p.r.batch, p_every: p.r.every });
+    if (error) { console.error(error); failed = { p, error }; break; }
+    out.push({ p, data });
+  }
+  lqModalClose();
+  const when = ({ p, data }) => (p.r.at || p.r.every) && data.first_at ? `first ${ssFmt(data.first_at)}${data.last_at && data.last_at !== data.first_at ? `, last ${ssFmt(data.last_at)}` : ''}` : 'now';
+  let msg = out.length ? `Queued again: ${out.map(o => `${LC_BRANCH[o.p.b] || o.p.b} ${lcNum(o.data.queued)} (${when(o)})`).join('. ')}. ${out.some(o => o.p.r.at || o.p.r.every) ? 'It sends itself.' : ''}`.trim() : '';
+  if (failed) {
+    const em = failed.error.message || 'try again';
+    msg += `${msg ? ' ' : ''}${/switched off/i.test(em) ? 'Sending is switched off.' : `${LC_BRANCH[failed.p.b] || failed.p.b} did not queue: ${em}.`}${out.length ? ' The branches above it did queue.' : ''}`;
+  }
+  await lqSendLoad(); lqRelink(); lqPaint();
+  lqNote(msg);
+  if (out.some(o => !o.p.r.at)) lqKick();
+  lqPoll();
 }
 
 // ── the messages themselves (Kate, 16 Oct 2026: the Message column is a link) ───────────────────────────────────────────────────
