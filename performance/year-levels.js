@@ -4,7 +4,8 @@
    month is performance.js, untouched; these draw into #perfMore and read only:
      perf_year_weeks_me(p_token)  her own weeks, leave and aim per week
      perf_levels(p_token)         the ladder (Stylist Levels' numbers)
-   Nothing about anyone else. Not shown in the dashboard frame (embed=1) or on a
+     perf_podium_me(p_token)      the Podium Race for her own team only (19 Oct 2026)
+   Nothing else about anyone else. Not shown in the dashboard frame (embed=1) or on a
    leader's view (?admin=). Wrapped in one function: performance.js keeps esc, fmt,
    rpc and friends at the top level, so nothing here may share a global name.
    ============================================================ */
@@ -38,7 +39,7 @@ const GROUPS = [
 // The four a stylist reads first; the rest fold away (progressive disclosure).
 const HEADLINE = ['total_revenue', 'treatments', 'retail', 'rebooking_pct'];
 
-const S = { tab: 'month', levels: [], me: null, year: null, pick: null, o2o: null, token: null };
+const S = { tab: 'month', levels: [], me: null, year: null, pick: null, o2o: null, token: null, pod: null, podLast: false, podCur: null };
 const levelOf = name => S.levels.find(l => l.level === name) || null;
 const nextOf = name => { const l = levelOf(name); return l ? S.levels.find(x => x.order === l.order + 1) || null : null; };
 
@@ -54,7 +55,7 @@ function paint() {
   // perf_benchmarks carries levels for that team.
   // My 1-to-1 (Kate, 7 Oct 2026): only for a stylist the trial is switched on for
   // (perf_one2one_me answers null for everyone else), drawn by one2one.js.
-  tabs.innerHTML = b('month', 'This month') + b('year', 'My year')
+  tabs.innerHTML = b('month', 'This month') + b('year', 'My year') + (S.pod ? b('podium', 'Podium Race') : '')
     + (hasLevel ? b('levels', 'How you move up') : '') + (S.o2o ? b('one', 'My 1-to-1') : '');
   tabs.parentElement.hidden = false;
   const onMonth = S.tab === 'month';
@@ -68,7 +69,7 @@ function paint() {
     window.PerfO2O.me(more, { token: S.token, data: S.o2o, reload: async () => { S.o2o = await call('perf_one2one_me', { p_token: S.token }); paint(); } });
     return;
   }
-  more.innerHTML = S.tab === 'year' ? yearTab() : levelsTab();
+  more.innerHTML = S.tab === 'year' ? yearTab() : S.tab === 'podium' ? podiumTab() : levelsTab();
   if (S.tab === 'year') wireChart();
 }
 // The 1-to-1 line under the win and tip on This month. performance.js redraws #app now and then
@@ -86,6 +87,7 @@ function placeNudge() {
 function go(t) {
   if (t === 'levels' && !levelOf(S.me && S.me.level)) return;
   if (t === 'one' && !S.o2o) return;
+  if (t === 'podium' && !S.pod) return;
   S.tab = t;
   // Kept in the address, so a refresh or a shared bookmark lands on the same tab.
   const u = new URL(location.href);
@@ -100,12 +102,14 @@ addEventListener('resize', () => { if (Math.abs(innerWidth - lastW) > 40 && S.ta
 async function mount(token) {
   if (!token || !document.getElementById('perfTabs')) return;
   try {
-    const [levels, year, o2o] = await Promise.all([call('perf_levels', { p_token: token }), call('perf_year_weeks_me', { p_token: token }),
-      window.PerfO2O ? call('perf_one2one_me', { p_token: token }).catch(() => null) : null]);
+    // The Podium is read apart: if it is slow or fails, the other tabs still open and this one is simply not there.
+    const [levels, year, o2o, pod] = await Promise.all([call('perf_levels', { p_token: token }), call('perf_year_weeks_me', { p_token: token }),
+      window.PerfO2O ? call('perf_one2one_me', { p_token: token }).catch(() => null) : null,
+      call('perf_podium_me', { p_token: token }).catch(() => null)]);
     if (!year) return;                     // link not active: This month already says so
-    S.levels = levels || []; S.year = year; S.me = year.staff; S.pick = S.me.level; S.token = token; S.o2o = o2o && o2o.enabled ? o2o : null;
+    S.levels = levels || []; S.year = year; S.me = year.staff; S.pick = S.me.level; S.token = token; S.o2o = o2o && o2o.enabled ? o2o : null; S.pod = pod && pod.board ? pod : null; S.podCur = S.pod ? S.pod.month : null;
     const want = new URLSearchParams(location.search).get('tab');
-    S.tab = want === 'year' || (want === 'levels' && levelOf(S.me.level)) || (want === 'one' && S.o2o) ? want : 'month';
+    S.tab = want === 'year' || (want === 'podium' && S.pod) || (want === 'levels' && levelOf(S.me.level)) || (want === 'one' && S.o2o) ? want : 'month';
     paint();
     if (S.o2o) new MutationObserver(placeNudge).observe(document.getElementById('app'), { childList: true });
   } catch (e) { console.warn('My year / levels unavailable', e); }
@@ -274,6 +278,55 @@ function wireChart() {
   svg.addEventListener('blur', hide);
 }
 
+// ── PODIUM RACE ─────────────────────────────────────────────
+// Kate, 19 Oct 2026: where she stands on the Podium Race, on her own link. perf_podium_me(p_token) answers for her
+// own team only (hair with hair, beauty with beauty): people on the active list, sales plus retail before VAT for one
+// month. Kate chose the whole board here, so every row is a name, a branch and a figure; nothing else about anyone.
+const ord = n => { const v = n % 100, t = ['th', 'st', 'nd', 'rd']; return n + (t[(v - 20) % 10] || t[v] || t[0]); };
+const monthName = iso => new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { month: 'long' });
+async function podMonth(last) {
+  const d = new Date(S.podCur + 'T00:00:00');           // first of the month the data runs to
+  const m = last ? new Date(d.getFullYear(), d.getMonth() - 1, 1) : d;
+  const iso = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}-01`;
+  try {
+    const r = await call('perf_podium_me', { p_token: S.token, p_month: iso });
+    if (r && r.board) { S.pod = r; S.podLast = !!last; }
+  } catch (e) { console.warn('Podium unavailable', e); }
+  paint();
+}
+function podiumTab() {
+  const p = S.pod, team = p.dept === 'Beauty' ? 'Beauty team' : 'Hair team';
+  const mn = monthName(p.month), n = p.ranked, me = p.me;
+  const through = p.to ? dShort(p.to) : '';
+  const hero = me
+    ? `<div class="hero-n">${ord(me.rank)}</div><div class="hero-s">of ${n} on the ${team} for ${mn}${S.podLast ? '' : ' so far'}</div>`
+    : `<div class="hero-n">Not yet</div><div class="hero-s">${S.podLast ? `There is nothing in your ${mn} numbers, so you are not on that board.` : `There is nothing in your ${mn} numbers yet, so your place is waiting. It appears as soon as your first sale is in.`}</div>`;
+  const tied = me && me.rank === 1 && p.board.filter(r => r.rank === 1).length > 1;
+  const lead = tied ? `joint first on the ${team}` : `${S.podLast ? 'first on' : 'leading'} the ${team}`;
+  const note = !me ? '' : me.rank === 1
+    ? `<div class="step"><span class="k">Where you are</span>${S.podLast ? `You were ${lead} in ${mn}.` : `You are ${lead}.`} Lovely work.${S.podLast ? '' : ' The race moves every day, so simply enjoy it.'}</div>`
+    : `<div class="step"><span class="k">Where you are</span>A race is a moment, not a verdict. Everyone has quiet days and busy ones, and ${S.podLast ? 'a new month starts fresh for all of us' : 'your place can change by tomorrow'}.</div>`;
+  const rows = p.board.map(r => `<tr class="${r.me ? 'me' : ''}"><td class="pl"><span class="rk${r.rank <= 3 ? ' top' : ''}">${r.rank}</span></td>
+      <td>${esc(r.name)}${r.me ? ' <span class="you-tag">You</span>' : ''}<span class="br">${esc(BRANCH[r.branch] || r.branch || '')}</span></td>
+      <td class="r">${Math.round(r.amount || 0).toLocaleString('en-GB')}</td></tr>`).join('');
+  return `
+    <section class="card">
+      <div class="eyebrow">Podium Race${through && !S.podLast ? ', to ' + through : ''}</div>
+      ${hero}
+      ${note}
+      <div class="pod-seg" role="group" aria-label="Month">
+        <button type="button" class="${S.podLast ? '' : 'on'}" onclick="PerfTabs.podium(false)" aria-pressed="${!S.podLast}">This month</button>
+        <button type="button" class="${S.podLast ? 'on' : ''}" onclick="PerfTabs.podium(true)" aria-pressed="${S.podLast}">Last month</button>
+      </div>
+    </section>
+    <section class="card">
+      <h2>The ${team}</h2>
+      <p class="sub">${n === 1 ? 'Just you, so far' : n + ' people'}, in order. Sales in AED.</p>
+      <div class="tbl-wrap"><table class="tbl pod"><thead><tr><th class="pl">Place</th><th>Name</th><th class="r">Sales</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="sub wk-foot">Sales are services plus retail before VAT, the same figures as This month. Anyone with no sales yet in the month is not listed.</p>
+    </section>`;
+}
+
 // ── HOW YOU MOVE UP ─────────────────────────────────────────
 function levelsTab() {
   const mine = levelOf(S.me.level), next = nextOf(S.me.level);
@@ -317,5 +370,5 @@ function levelsTab() {
 }
 function pickLevel(l) { S.pick = l; paint(); }
 
-window.PerfTabs = { mount, go, pickLevel };
+window.PerfTabs = { mount, go, pickLevel, podium: podMonth };
 })();
