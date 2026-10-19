@@ -17,10 +17,15 @@
 //   Any time: test, cancel the time, or send the ready ones now.
 //
 // Actions (POST JSON):
-//   status | test | schedule | unschedule | send   key = payroll or leader key
+//   status | test | schedule | unschedule | send | revised   key = payroll or leader key
 //                          (perf_admins), the same check as the payslips function
 //   due                    secret = vault 'payslip_cron_secret'
 //                          (pg_cron, migrations/payslip_mailer.sql)
+//
+// Revised payslip (Kate, 19 Oct 2026): `revised` + staff + what ("what changed", one line) emails the person the payslip now
+// stored for the month with the standard "we've updated your payslip" note, from payroll@, and records it in payslip_revisions.
+// Only for someone who already had the original email. `test: true` sends it to payroll@ only, marked [TEST], nothing recorded.
+// Accounts replace the PDF first (the portal does both in one press).
 //
 // Secrets (Supabase → Edge Functions → Secrets): SMTP_USER = payroll@tararosesalon.com,
 // SMTP_PASS = that account's Google App Password. Supabase blocks port 587, so it's 465.
@@ -74,6 +79,41 @@ async function mail(o: { to: string; subject: string; html: string; text?: strin
     to: o.to, cc: o.cc, subject: o.subject, html: o.html, text: o.text || "See the HTML version.",
     attachments: o.pdf ? [{ filename: o.pdf.name, content: Buffer.from(o.pdf.bytes), contentType: "application/pdf" }] : [],
   });
+}
+// The "what changed" line reads on from "What changed:", so it starts lower case and ends with a full stop.
+function whatLine(raw: unknown) {
+  let w = String(raw ?? "").replace(/\s+/g, " ").trim().replace(/[.\s]+$/, "");
+  if (w.length < 5) throw new Oops("Write one line on what changed (at least a few words).");
+  if (w.length > 400) throw new Oops("Keep what changed to one or two sentences (400 characters).");
+  if (/^[A-Z][a-z]/.test(w)) w = w[0].toLowerCase() + w.slice(1);
+  return w + ".";
+}
+const revisedSubject = (m: string) => `Revised: your ${label(m, { month: "long", year: "numeric" })} payslip · Tara Rose`;
+async function revisedEmail(p: Person, month: string, what: string) {
+  const first = p.name.split(" ")[0], mon = label(month, { month: "long" });
+  const text = `Hi ${first},
+
+We've updated your ${mon} payslip. The new one is attached and replaces the one we sent earlier, so please use this one.
+
+`
+    + `What changed: ${what}
+
+If anything still looks off, just reply to this email and we'll sort it with you.
+
+Tara Rose Salons Accounts`;
+  const html = `<div style="font-family:Arial,sans-serif;color:#5C5557;max-width:560px;line-height:1.5">
+    <p>Hi ${esc(first)},</p>
+    <p>We've updated your ${esc(mon)} payslip. The new one is attached and replaces the one we sent earlier, so please use this one.</p>
+    <p style="margin:14px 0;padding:10px 14px;background:#FAEEDA;border-radius:8px"><b style="color:#BA7517">What changed</b><br>${esc(what)}</p>
+    <p>If anything still looks off, just reply to this email and we'll sort it with you.</p>
+    <p>Tara Rose Salons Accounts</p>
+    <p style="margin-top:22px"><img src="${LOGO}" alt="Tara Rose Salons" width="100" style="display:block;width:100px;height:auto;border:0"></p>
+  </div>`;
+  if (!p.slip) throw new Oops(`${p.name} has no payslip uploaded for ${mon}.`);
+  const { data: blob, error } = await sb.storage.from("payslips").download(p.slip.path);
+  if (error || !blob) throw new Oops(`Couldn't read ${p.name}'s payslip file.`);
+  const pdf = { name: p.slip.file_name || `${p.name} payslip ${month}.pdf`, bytes: new Uint8Array(await blob.arrayBuffer()) };
+  return { html, text, pdf };
 }
 async function note(subj: string, html: string) {
   await mail({ to: SMTP_USER, cc: CC_NOTES, subject: subj, html: `<div style="font-family:Arial,sans-serif">${html}</div>` });
@@ -207,9 +247,12 @@ async function status(month: string) {
     sb.from("payslip_mailer_log").select("at, who, what").order("at", { ascending: false }).limit(8),
   ]);
   const lastSent = list.map((p) => p.sent?.sent_at).filter(Boolean).sort().pop() || null;
+  const { data: revs } = await sb.from("payslip_revisions").select("staff_id, sent_at").eq("month", `${month}-01`).order("sent_at");
+  const rev: Record<string, { n: number; at: string }> = {};
+  for (const r of revs || []) { const x = rev[r.staff_id] || { n: 0, at: "" }; x.n++; x.at = r.sent_at; rev[r.staff_id] = x; }
   return {
     month, sender: SMTP_USER, ready_to_send: !!SMTP_PASS, schedule: sched, last_sent: lastSent,
-    people: list.map((p) => ({ id: p.id, name: p.name, state: stateOf(p) })),
+    people: list.map((p) => ({ id: p.id, name: p.name, state: stateOf(p), revised: rev[p.id]?.n || 0, revised_at: rev[p.id]?.at || null })),
     log: logRows || [],
   };
 }
@@ -306,6 +349,29 @@ Deno.serve(async (req) => {
         done: `Sent ${r.sent.length} email${r.sent.length === 1 ? "" : "s"}.` + (r.left ? ` ${r.left} more to go, press Send again.` : "") + (r.failed.length ? ` Couldn't send ${r.failed.join(", ")}; press Send again.` : ""),
         left: r.left, ...(await status(month)),
       });
+    }
+
+    if (action === "revised") {
+      mailer();
+      const id = String(body.staff || "");
+      if (!UUID.test(id)) throw new Oops("Pick who the revised payslip is for.");
+      const what = whatLine(body.what);
+      const p = (await people(month)).find((x) => x.id === id);
+      if (!p) throw new Oops("Couldn't find that person.");
+      if (stateOf(p) !== "sent") throw new Oops(`${p.name} hasn't been emailed her ${nice} payslip yet, so there is nothing to revise. Use Send ready now instead.`);
+      if (!p.email) throw new Oops(`${p.name} has no email on file.`);
+      const e = await revisedEmail(p, month, what);
+      if (body.test === true) {
+        const top = `<p style="font-family:Arial,sans-serif;padding:8px 12px;background:#eee;border-radius:6px">Test. The real one goes to <b>${esc(p.name)}</b> &lt;${esc(p.email)}&gt;.</p>`;
+        await mail({ to: SMTP_USER, subject: "[TEST] " + revisedSubject(month), html: top + e.html, text: e.text, pdf: e.pdf });
+        await log(admin.name, `Test of ${p.name}'s revised payslip`);
+        return json({ done: `Sent a test of ${p.name}'s revised payslip to ${SMTP_USER}.`, ...(await status(month)) });
+      }
+      await mail({ to: p.email, subject: revisedSubject(month), html: e.html, text: e.text, pdf: e.pdf });
+      await sb.from("payslip_revisions").insert({ month: `${month}-01`, staff_id: p.id, email: p.email, what, sent_by: admin.name });
+      await log(admin.name, `Revised ${nice} payslip sent to ${p.name}`);
+      await note(`Revised payslip sent · ${p.name} · ${month}`, `<p>${esc(admin.name)} sent ${esc(p.name)} her revised ${esc(nice)} payslip from the Upload Portal.</p><p><b>What changed:</b> ${esc(what)}</p>`).catch(() => {});
+      return json({ done: `Sent ${p.name} her revised ${label(month, { month: "long" })} payslip.`, ...(await status(month)) });
     }
 
     return json({ error: "Unknown action." }, 400);

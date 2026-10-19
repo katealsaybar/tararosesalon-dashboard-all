@@ -20,7 +20,7 @@ const PS_KEY_STORE = 'payslipKey';
 // Every call carries the payslip key. Replaced the Staff Payslips Apps Script, 5 Oct 2026.
 const PS_MAIL_FN = 'https://gvijxenafoowajqktqvd.supabase.co/functions/v1/payslip-mailer';
 const PS_BRANCH = { KCA: 'Khalifa City A', SAA: 'Mamsha Al Saadiyat', MC: 'Motor City', AQ: 'Al Quoz' };
-let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '', branch: (() => { try { return localStorage.getItem('trs-ps-branch') || ''; } catch (e) { return ''; } })(), pos: (() => { try { return localStorage.getItem('trs-ps-pos') || ''; } catch (e) { return ''; } })(), up: (() => { try { return localStorage.getItem('trs-ps-up') || ''; } catch (e) { return ''; } })(), send: null, sendBusy: '', sendMsg: '', sendErr: '', tpl: { who: '', what: '' }, view: (() => { try { return localStorage.getItem('trs-ps-view') || 'upload'; } catch (e) { return 'upload'; } })() };
+let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '', branch: (() => { try { return localStorage.getItem('trs-ps-branch') || ''; } catch (e) { return ''; } })(), pos: (() => { try { return localStorage.getItem('trs-ps-pos') || ''; } catch (e) { return ''; } })(), up: (() => { try { return localStorage.getItem('trs-ps-up') || ''; } catch (e) { return ''; } })(), send: null, sendBusy: '', sendMsg: '', sendErr: '', tpl: { who: '', what: '', file: null, busy: '', msg: '', err: '' }, view: (() => { try { return localStorage.getItem('trs-ps-view') || 'upload'; } catch (e) { return 'upload'; } })() };
 
 // A typed key wins; otherwise the one the sign-in hands payroll and leaders (PS_AUTO, set in upload.html).
 const psKey = () => { try { return localStorage.getItem(PS_KEY_STORE) || window.PS_AUTO || null; } catch (e) { return window.PS_AUTO || null; } };
@@ -272,6 +272,7 @@ function psRender() {
       <div class="ps-actions">
         ${p ? `<button class="btn-dl" onclick="psView('${s.id}')">View</button>` : ''}
         <label class="btn-outline ps-pick">${p ? 'Replace' : 'Upload PDF'}<input type="file" accept="application/pdf,.pdf" hidden onchange="psUploadOne('${s.id}', this.files[0]); this.value=''"></label>
+        ${p ? `<button class="btn-outline ps-rev" hidden onclick="psRevFor('${s.id}')">Send revised</button>` : ''}
         ${p ? `<button class="btn-danger" onclick="psRemove('${s.id}')">Remove</button>` : ''}
       </div></div>`;
   };
@@ -330,7 +331,7 @@ function psRenderViews() {
   const views = [
     ['upload', `Upload · ${done}/${PS_STATE.staff.length}`],
     ['email', 'Email to staff' + (S ? (ready ? ` · ${ready} ready` : ` · ${sent} emailed`) : '')],
-    ['tpl', 'Templates'],
+    ['tpl', 'Revised payslip'],
   ];
   if (!views.some(v => v[0] === PS_STATE.view)) PS_STATE.view = 'upload';
   el.innerHTML = views.map(([v, t]) => `<button type="button" class="ps-bpill${PS_STATE.view === v ? ' on' : ''}" onclick="psPickView('${v}')">${psEsc(t)}</button>`).join('');
@@ -356,17 +357,75 @@ function psTplText() {
   return `Hi ${first},\n\nWe've updated your ${month} payslip. The new one is attached and replaces the one we sent earlier, so please use this one.\n\n`
     + `What changed: ${what}\n\nIf anything still looks off, just reply to this email and we'll sort it with you.\n\nTara Rose Salons Accounts`;
 }
+// Kate, 19 Oct 2026: fixing a payslip is one step now. Pick the person, attach the corrected PDF (or leave it if it is already
+// replaced), write what changed, press Send: the corrected PDF is saved and the payslip-mailer emails her the revised one from
+// payroll@ (action `revised`), with the note below, and records it. The Gmail reply-and-paste way is kept underneath.
+function psRevPeople() {
+  const S = PS_STATE.send;
+  if (!S) return PS_STATE.staff.map(s => ({ id: s.id, name: s.name }));
+  return S.people.filter(p => p.state === 'sent');
+}
+function psRevFor(id) {
+  PS_STATE.tpl.who = id; PS_STATE.tpl.msg = ''; PS_STATE.tpl.err = '';
+  psPickView('tpl'); psRenderTpl();
+  const w = document.querySelector('.ps-tpl-what'); if (w) w.focus();
+}
 function psRenderTpl() {
   const el = document.getElementById('psTplPanel');
   if (!el) return;
-  const t = PS_STATE.tpl;
-  el.innerHTML = `<div class="ps-send-hd">Revised payslip email</div>
-    <div class="ps-meta">Fixing someone’s payslip? In the Upload tab, press Replace next to their name with the new PDF. Then in payroll@’s Gmail open their payslip email, press Reply (not Forward), attach the new PDF and paste this.</div>
-    <div class="ps-send-row"><select onchange="PS_STATE.tpl.who=this.value; psTplPreview()"><option value="">Pick a person</option>${PS_STATE.staff.map(s => `<option value="${psEsc(s.id)}"${t.who === String(s.id) ? ' selected' : ''}>${psEsc(s.name)}</option>`).join('')}</select></div>
-    <textarea class="ps-tpl-what" rows="2" placeholder="What changed, in one line. E.g. your service commission was corrected from AED 19,901 to AED 21,006, so your net salary is now AED 21,006." oninput="PS_STATE.tpl.what=this.value; psTplPreview()">${psEsc(t.what)}</textarea>
+  const t = PS_STATE.tpl, dis = t.busy ? ' disabled' : '';
+  const monthName = new Date(PS_STATE.month + '-15').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const who = psRevPeople();
+  el.innerHTML = `<div class="ps-send-hd">Revised payslip · ${psEsc(monthName)}</div>
+    <div class="ps-meta">Corrected someone’s payslip? Do it all here: attach the new PDF, say what changed in one line, and it is saved and emailed to her from payroll@ in one go. Only people who already had their ${psEsc(monthName.split(' ')[0])} email are listed.</div>
+    <div class="ps-send-row"><select id="psRevWho" onchange="PS_STATE.tpl.who=this.value; psTplPreview()"${dis}><option value="">Pick a person</option>${who.map(s => `<option value="${psEsc(s.id)}"${t.who === String(s.id) ? ' selected' : ''}>${psEsc(s.name)}${s.revised ? ` (revised ×${s.revised})` : ''}</option>`).join('')}</select>
+      <label class="btn-outline ps-pick"><span id="psRevPickLbl">${t.file ? 'Change PDF' : 'Attach corrected PDF'}</span><input type="file" accept="application/pdf,.pdf" hidden onchange="psRevFile(this.files[0]); this.value=''"${dis}></label>
+      <span class="ps-meta" id="psRevFileName">${t.file ? psEsc(t.file.name) : 'No new PDF: the one already saved is sent.'}</span></div>
+    <textarea class="ps-tpl-what" rows="2" placeholder="What changed, in one line. E.g. your service commission was corrected from AED 19,901 to AED 21,006, so your net salary is now AED 21,006." oninput="PS_STATE.tpl.what=this.value; psTplPreview()"${dis}>${psEsc(t.what)}</textarea>
     <pre class="ps-tpl-out" id="psTplOut"></pre>
-    <div class="ps-send-row"><button class="btn-outline" onclick="psTplCopy(this)">Copy email</button></div>`;
+    <div class="ps-send-row">
+      <button class="btn" onclick="psRevSend(false)"${dis}>Send revised payslip</button>
+      <button class="btn-outline" onclick="psRevSend(true)"${dis}>Send a test to payroll@</button>
+    </div>
+    ${t.busy ? `<div class="ps-meta">${psEsc(t.busy)}</div>` : ''}
+    ${t.msg ? `<div class="ps-ok">${psEsc(t.msg)}</div>` : ''}
+    ${t.err ? `<div class="ps-err">${psEsc(t.err)}</div>` : ''}
+    <details class="ps-tpl-gmail" style="margin-top:14px"><summary class="ps-meta" style="cursor:pointer">Prefer to reply from payroll@’s Gmail yourself?</summary>
+      <div class="ps-meta" style="margin-top:6px">Press Replace next to their name, then in Gmail open their payslip email, press Reply (not Forward), attach the new PDF and paste the email above.</div>
+      <div class="ps-send-row"><button class="btn-outline" onclick="psTplCopy(this)">Copy email</button></div></details>`;
   psTplPreview();
+}
+function psRevFile(f) {
+  if (!f) return;
+  if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') { PS_STATE.tpl.err = 'The corrected payslip must be a PDF.'; psRenderTpl(); return; }
+  PS_STATE.tpl.file = f; PS_STATE.tpl.err = '';
+  const n = document.getElementById('psRevFileName'); if (n) n.textContent = f.name;
+  const b = document.getElementById('psRevPickLbl'); if (b) b.textContent = 'Change PDF';
+}
+async function psRevSend(test) {
+  const t = PS_STATE.tpl, person = PS_STATE.staff.find(s => String(s.id) === t.who);
+  t.msg = ''; t.err = '';
+  if (!person) { t.err = 'Pick who the revised payslip is for.'; psRenderTpl(); return; }
+  if (t.what.trim().length < 5) { t.err = 'Write one line on what changed.'; psRenderTpl(); return; }
+  if (!person.payslip && !t.file) { t.err = `${person.name} has no payslip saved for this month. Attach the corrected PDF.`; psRenderTpl(); return; }
+  const month = new Date(PS_STATE.month + '-15').toLocaleDateString('en-GB', { month: 'long' });
+  if (!test && !confirm(`Email ${person.name} her revised ${month} payslip now${t.file ? ' (the corrected PDF replaces the saved one first)' : ''}?`)) return;
+  try {
+    if (t.file) {
+      t.busy = 'Saving the corrected PDF…'; psRenderTpl();
+      const file = new File([t.file], psFileName(person, await psReadPayName(t.file)), { type: 'application/pdf' });
+      await psCall({ action: 'upload', admin: psKey(), month: PS_STATE.month, staff_id: person.id }, file);
+    }
+    t.busy = test ? 'Sending a test to payroll@…' : `Emailing ${person.name}…`; psRenderTpl();
+    const j = await psSend('revised', { staff: person.id, what: t.what, test: !!test });
+    PS_STATE.send = j; t.msg = j.done || 'Sent.';
+    if (!test) { t.what = ''; t.file = null; }
+    t.busy = '';
+    const d = await psCall({ action: 'list', admin: psKey(), month: PS_STATE.month });   // the saved file name and date, so the rows are right
+    PS_STATE.staff = d.staff;
+  } catch (e) { t.err = e.message; t.busy = ''; }
+  psRender();
+  psPickView('tpl');
 }
 function psTplPreview() { const o = document.getElementById('psTplOut'); if (o) o.textContent = psTplText(); }
 async function psTplCopy(btn) {
@@ -685,14 +744,16 @@ function psRenderSend() {
 function psBadges() {
   const S = PS_STATE.send;
   if (!S) return;
-  const by = {};
-  S.people.forEach(p => { by[psNorm(p.name)] = p.state; });
+  const by = {}, rv = {};
+  S.people.forEach(p => { by[psNorm(p.name)] = p.state; rv[psNorm(p.name)] = p.revised || 0; });
   document.querySelectorAll('#payslipHost .ps-row').forEach(r => {
     const b = r.querySelector('.ps-badge');
     if (!b) return;
-    const st = by[r.dataset.name] || '';
+    const st = by[r.dataset.name] || '', n = rv[r.dataset.name] || 0;
     b.className = 'ps-badge' + (st ? ' st-' + st : '');
-    b.textContent = PS_STATE_LABEL[st] || '';
+    b.textContent = (PS_STATE_LABEL[st] || '') + (st === 'sent' && n ? ` · revised${n > 1 ? ' ×' + n : ''}` : '');
+    const rb = r.querySelector('.ps-rev');
+    if (rb) rb.hidden = st !== 'sent';   // a revised payslip only goes to someone who already had the original
   });
 }
 
