@@ -81,7 +81,7 @@
     { key: 'content-web', via: 'dashboards', min: 3, ic: 'dashboards', dept: 'Content', title: 'Website & Search', href: '/?view=website', rule: 'var(--accent-coral)',
       blurb: 'Website visits and how people find us on Google.' },
     // Kate, 18 Oct 2026: the blasts and the voucher's results have their own group, Campaigns, in the sidebar and here.
-    { key: 'campaigns-lost', via: 'dashboards', min: 2, ic: 'lost-clients', dept: 'Campaigns', title: 'Lost Clients', href: '/?view=lostlists', rule: 'var(--accent-coral)',
+    { key: 'campaigns-lost', via: 'dashboards', min: 2, ic: 'lost-clients', dept: 'Campaigns', title: 'Lost Client Blasts, October 2026', href: '/?view=lostlists', rule: 'var(--accent-coral)',
       blurb: 'The WhatsApp blast to clients who have not been in for 6 months: lists, sending, replies and results.' },
     { key: 'campaigns-wvblast', via: 'dashboards', min: 3, ic: 'campaigns', dept: 'Campaigns', title: 'Wellness Voucher Blast', href: '/?view=wvblast', rule: 'var(--accent-coral)',
       blurb: 'Send the Wellness Voucher WhatsApp in waves and see who replied.' },

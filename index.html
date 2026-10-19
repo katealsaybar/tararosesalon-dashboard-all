@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=68a2ccde"></script>
+<script src="pages.js?v=44b4cb1a"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3451,7 +3451,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
-      cl:  [LGX, 'lost-clients.js?v=5a36385e', 'lost-lists.js?v=4487498b', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
+      cl:  [LGX, 'lost-clients.js?v=5a36385e', 'lost-lists.js?v=fa33b877', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
             'send-schedule.js?v=3abf6266', 'lost-queue.js?v=73e7736d', 'lost-waves.js?v=e6102677', 'lost-blast.js?v=068aa55b',
             'lost-report.js?v=ad61eba4', 'wv-blast.js?v=7ac5c5ab', 'top-clients.js?v=d73e7f2e', 'client-mix.js?v=7ec12be4',
             'service-rankings.js?v=c1364c02'],
@@ -3633,7 +3633,7 @@ table.tp-cmp td.bad{color:var(--bad)}
        Wellness Voucher Performance (read-only, no client names, the till stays out): Level 2 and above. -->
   <div class="nav-group" id="navCampaigns">
     <div class="nav-title">Campaigns</div>
-    <div class="nav-sub" onclick="showView('lostlists', this)">Lost Clients</div>
+    <div class="nav-sub" onclick="showView('lostlists', this)">Lost Client Blasts, October 2026</div>
     <div class="nav-sub" onclick="showView('wvblast', this)">Wellness Voucher Blast</div>
     <div class="nav-sub" onclick="showView('wvperf', this)">Wellness Voucher Performance</div>
   </div>
