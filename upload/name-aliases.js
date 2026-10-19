@@ -94,6 +94,9 @@ const STAFF_NAME_ALIASES = {
   // Sahra Sayed (former Saadiyat stylist, IG hairbyssg): the Saadiyat ledger wrote SARAH for the week of 8 to 14 Aug 2022 (1 client), and SAHRA
   // carries on from 15 Aug 2022 on the same branch; Phorest has her added at Saadiyat on 1 Jun 2022 and no Sarah on any roster. Kate asked, 18 Oct 2026.
   'SARAH': 'SAHRA',
+  // Kathy Garcia (Assistant, KCA, Saadiyat and Marasy, archived in Phorest): the KCA and Saadiyat ledgers wrote KAT for 7 to 20 Feb 2021 (23 clients across both).
+  // Phorest has no Kat on any roster, only Kate Siryk and Kathy Garcia, and Kate Siryk was at Marasy those weeks. Kate said Assistant, 19 Oct 2026.
+  'KAT': 'KATHY',
   // Xyrhy Unisa: XYRYH, Motor City, Aug 2024 (XYHRY is mapped above).
   'XYRYH': 'XYRHY',
   // One-day typos: RITCHEL (Motor City) is Richel Modilla, SAMATHA (Motor City) is Samantha Ahmad, LORI (KCA) is Lorie.
