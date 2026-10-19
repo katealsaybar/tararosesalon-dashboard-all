@@ -19,7 +19,8 @@ const PS_KEY_STORE = 'payslipKey';
 // Sends the monthly emails from payroll@ (supabase/functions/payslip-mailer).
 // Every call carries the payslip key. Replaced the Staff Payslips Apps Script, 5 Oct 2026.
 const PS_MAIL_FN = 'https://gvijxenafoowajqktqvd.supabase.co/functions/v1/payslip-mailer';
-const PS_BRANCH = { KCA: 'Khalifa City A', SAA: 'Mamsha Al Saadiyat', MC: 'Motor City', AQ: 'Al Quoz' };
+// ASST = the employed assistants (19 Oct 2026): no branch of their own on the roster, so they are a group of their own.
+const PS_BRANCH = { KCA: 'Khalifa City A', SAA: 'Mamsha Al Saadiyat', MC: 'Motor City', AQ: 'Al Quoz', ASST: 'Assistants' };
 let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '', branch: (() => { try { return localStorage.getItem('trs-ps-branch') || ''; } catch (e) { return ''; } })(), pos: (() => { try { return localStorage.getItem('trs-ps-pos') || ''; } catch (e) { return ''; } })(), up: (() => { try { return localStorage.getItem('trs-ps-up') || ''; } catch (e) { return ''; } })(), send: null, sendBusy: '', sendMsg: '', sendErr: '', tpl: { who: '', what: '', file: null, busy: '', msg: '', err: '' }, view: (() => { try { return localStorage.getItem('trs-ps-view') || 'upload'; } catch (e) { return 'upload'; } })() };
 
 // A typed key wins; otherwise the one the sign-in hands payroll and leaders (PS_AUTO, set in upload.html).
@@ -294,7 +295,7 @@ function psRender() {
     <div class="ps-search-wrap">
       <input id="psSearch" class="ps-search" type="search" placeholder="Search a name…" autocomplete="off"
         value="${psEsc(PS_STATE.q)}" oninput="PS_STATE.q=this.value; psFilter()">
-      <div class="ps-branches">${['', 'KCA', 'SAA', 'MC', 'AQ'].filter(b => !b || groups[b]).map(b => `
+      <div class="ps-branches">${['', 'KCA', 'SAA', 'MC', 'AQ', 'ASST'].filter(b => !b || groups[b]).map(b => `
         <button type="button" class="ps-bpill${PS_STATE.branch === b ? ' on' : ''}" onclick="psPickBranch('${b}')">${b ? psEsc(PS_BRANCH[b]) : 'All'}</button>`).join('')}</div>
       <div class="ps-branches ps-up">${[['', 'Everyone'], ['done', `Uploaded · ${done}`], ['todo', `Not yet · ${all - done}`]].map(([v, t]) => `
         <button type="button" class="ps-bpill${PS_STATE.up === v ? ' on' : ''}" data-up="${v}" onclick="psPickUp('${v}')">${t}</button>`).join('')}</div>
@@ -304,7 +305,7 @@ function psRender() {
       </select>
       <span class="ps-meta" id="psSearchNone" hidden>Nobody matches.</span>
     </div>
-    ${['KCA', 'SAA', 'MC', 'AQ'].filter(b => groups[b]).map(b => `
+    ${['KCA', 'SAA', 'MC', 'AQ', 'ASST'].filter(b => groups[b]).map(b => `
       <div class="roster-branch ps-branch" data-branch="${b}"><div class="roster-branch-hd">${PS_BRANCH[b]} · ${groups[b].filter(s => s.payslip).length}/${groups[b].length}</div>
       ${groups[b].map(row).join('')}</div>`).join('')}
     </div>`;
@@ -516,7 +517,7 @@ function psRenderPending() {
   if (!el) return;
   const P = PS_STATE.pending;
   if (!P.length) { el.innerHTML = ''; return; }
-  const opts = sel => `<option value="">Pick who this is…</option>` + PS_STATE.staff.map(s => `<option value="${s.id}"${sel && sel.id === s.id ? ' selected' : ''}>${psEsc(s.name)} (${s.branch})</option>`).join('');
+  const opts = sel => `<option value="">Pick who this is…</option>` + PS_STATE.staff.map(s => `<option value="${s.id}"${sel && sel.id === s.id ? ' selected' : ''}>${psEsc(s.name)} (${PS_BRANCH[s.branch] || s.branch})</option>`).join('');
   const live = P.filter(p => p.status === 'ready' && p.match && !p.error);
   const people = new Set(live.map(p => p.match.id)).size;
   const count = id => live.filter(p => p.match.id === id).length;

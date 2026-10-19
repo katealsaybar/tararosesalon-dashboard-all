@@ -16,6 +16,9 @@
 //   hasn't had theirs gets it, and a note follows.
 //   Any time: test, cancel the time, or send the ready ones now.
 //
+// Who is on the roster: every active perf_staff (hair and beauty team) plus the employed assistants in kb_staff (category Assistant,
+// active), added 19 Oct 2026. Assistants get the payslip only: no win, no tip, no "See my month" link.
+//
 // Actions (POST JSON):
 //   status | test | schedule | unschedule | send | revised   key = payroll or leader key
 //                          (perf_admins), the same check as the payslips function
@@ -121,23 +124,30 @@ async function note(subj: string, html: string) {
 async function log(who: string, what: string) { await sb.from("payslip_mailer_log").insert({ who, what }); }
 
 // ── who gets what ──
-type Person = { id: string; name: string; branch: string; email: string | null; send_email: boolean; token: string;
+// kind 'assistant' = an employed assistant from kb_staff (Kate, 19 Oct 2026): payslip only, no performance page, so no token and no numbers.
+type Person = { id: string; name: string; branch: string; kind: "stylist" | "assistant"; email: string | null; send_email: boolean; token: string;
   slip: { path: string; file_name: string } | null; sent: { status: string; sent_at: string } | null };
 
 async function people(month: string): Promise<Person[]> {
   const m = `${month}-01`;
-  const [{ data: staff, error: e1 }, { data: slips, error: e2 }, { data: sends, error: e3 }] = await Promise.all([
+  const [{ data: staff, error: e1 }, { data: slips, error: e2 }, { data: sends, error: e3 }, { data: asst, error: e4 }] = await Promise.all([
     sb.from("perf_staff").select("id, display_name, branch, email, send_email, token").eq("active", true).order("branch").order("display_name"),
     sb.from("payslips").select("staff_id, path, file_name").eq("month", m),
     sb.from("payslip_sends").select("staff_id, status, sent_at").eq("month", m),
+    sb.from("kb_staff").select("id, name, email").eq("category", "Assistant").eq("active", true).order("name"),
   ]);
-  if (e1 || e2 || e3) throw e1 || e2 || e3;
+  if (e1 || e2 || e3 || e4) throw e1 || e2 || e3 || e4;
   const slip = Object.fromEntries((slips || []).map((p) => [p.staff_id, p]));
   const sent = Object.fromEntries((sends || []).map((p) => [p.staff_id, p]));
-  return (staff || []).map((s) => ({
-    id: s.id, name: s.display_name, branch: s.branch, email: (s.email || "").trim() || null, send_email: !!s.send_email,
+  const stylists: Person[] = (staff || []).map((s) => ({
+    id: s.id, name: s.display_name, branch: s.branch, kind: "stylist" as const, email: (s.email || "").trim() || null, send_email: !!s.send_email,
     token: s.token, slip: slip[s.id] || null, sent: sent[s.id] || null,
   }));
+  const assistants: Person[] = (asst || []).map((a) => ({
+    id: a.id, name: a.name, branch: "ASST", kind: "assistant" as const, email: (a.email || "").trim() || null, send_email: true,
+    token: "", slip: slip[a.id] || null, sent: sent[a.id] || null,
+  }));
+  return [...stylists, ...assistants];
 }
 function stateOf(p: Person) {
   if (p.sent) return p.sent.status === "sent" ? "sent" : "check";
@@ -170,7 +180,32 @@ function winTipHtml(wt: { win?: string; tip?: string; how?: string } | null) {
   return (wt.win ? `<p style="margin:14px 0 8px;padding:10px 14px;background:#E1F5EE;border-radius:8px"><b style="color:#0F6E56">Your win</b><br>${esc(wt.win)}</p>` : "")
     + (wt.tip ? `<p style="margin:8px 0 14px;padding:10px 14px;background:#FAEEDA;border-radius:8px"><b style="color:#BA7517">Top tip for next month</b><br>${esc(wt.tip)}${wt.how ? `<br><span style="color:#77706A">${esc(wt.how)}</span>` : ""}</p>` : "");
 }
+// An employed assistant has no performance page, so her email is the payslip and nothing else.
+async function assistantEmailFor(p: Person, month: string) {
+  const first = p.name.split(" ")[0], mon = label(month, { month: "long" });
+  const html = `<div style="font-family:Arial,sans-serif;color:#5C5557;max-width:560px;line-height:1.5">
+    <p>Hi ${esc(first)},</p>
+    <p>${p.slip ? `Your ${esc(mon)} payslip is attached.` : `Your ${esc(mon)} payslip will follow.`}</p>
+    <p>Questions about your payslip? Just reply to this email and we'll sort it with you.</p>
+    <p>Tara Rose Salons Accounts</p>
+    <p style="margin-top:22px"><img src="${LOGO}" alt="Tara Rose Salons" width="100" style="display:block;width:100px;height:auto;border:0"></p>
+  </div>`;
+  let pdf = null;
+  if (p.slip) {
+    const { data: blob, error } = await sb.storage.from("payslips").download(p.slip.path);
+    if (error || !blob) throw new Error(`Couldn't read ${p.name}'s payslip file.`);
+    pdf = { name: p.slip.file_name || `${p.name} payslip ${month}.pdf`, bytes: new Uint8Array(await blob.arrayBuffer()) };
+  }
+  return { html, pdf, text: `Hi ${first},
+
+${p.slip ? `Your ${mon} payslip is attached.` : `Your ${mon} payslip will follow.`}
+
+Questions about your payslip? Just reply to this email and we'll sort it with you.
+
+Tara Rose Salons Accounts` };
+}
 async function emailFor(p: Person, month: string) {
+  if (p.kind === "assistant") return assistantEmailFor(p, month);
   const { data: d } = await sb.rpc("perf_dashboard", { p_token: p.token, p_month: `${month}-01` });
   const hasNumbers = d && d.numbers && (d.numbers.total_revenue || d.numbers.clients);
   const wt = hasNumbers ? await winTip(d, p.token, month) : null;
