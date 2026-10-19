@@ -80,8 +80,10 @@ a.inc.fitcard{padding:22px 20px;text-align:center;display:flex;flex-direction:co
   main section[id]{scroll-margin-top:calc(var(--nav-h,75px) + 6px)}
   .door--plan{scroll-margin-top:calc(var(--sticky-h,130px) + 8px)}
 }
-.terms summary{min-height:52px}
-.terms__body .terms-list{font-size:14px;line-height:1.65}
+a.terms--link{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 22px;min-height:56px;font-family:var(--fb);font-size:13px;font-weight:500;letter-spacing:.04em;line-height:1.4;color:var(--ink);text-decoration:none}
+a.terms--link .tarr{font-style:normal;font-size:18px;line-height:1;color:var(--accent-text);transition:transform .3s var(--ease)}
+a.terms--link:hover{color:var(--accent-text)}
+a.terms--link:hover .tarr{transform:translateX(4px)}
 .rhythm-note{max-width:56ch;margin:22px auto 0;text-align:center;font:300 16.5px/1.6 Inter,system-ui,sans-serif;color:var(--ink-soft)}
 </style>
 <meta name="geo.region" content="AE">
@@ -509,16 +511,7 @@ a.inc.fitcard{padding:22px 20px;text-align:center;display:flex;flex-direction:co
 
 <section id="terms" style="background:var(--cream);padding:40px 0">
   <div class="wrap">
-    <details class="terms"><summary><span>The full terms, and what your plan covers</span></summary><div class="terms__body"><ol class="terms-list">
-      <li><b>What the plan is.</b> Three visits, Create, Protect and Keep on Track, booked and paid together. Your plan price depends on your length and starting colour, and it is confirmed at your free Confidence Mapping before you pay anything.</li>
-      <li><b>When the visits happen.</b> Visit 2 is four to six weeks after Visit 1, and Visit 3 is eight to twelve weeks after it. You leave Visit 1 with the next two booked.</li>
-      <li><b>Which plan.</b> If your Confidence Mapping shows that another plan suits your hair better, we tell you and the price moves to that plan before you pay.</li>
-      <li><b>Paying.</b> Our team sends you a secure payment link during salon hours, 9am to 8pm. New clients secure the first appointment with a deposit, and we explain how deposits work when we reply.</li>
-      <li><b>Changing a visit.</b> Please give us 48 hours&rsquo; notice to move or cancel a visit. A deposit is non-refundable if the appointment is missed or cancelled late.</li>
-      <li><b>The Confidence Promise.</b> If something does not feel right within seven days of any colour or treatment service, we invite you back to refine it. No blame, just care.</li>
-      <li><b>Prices.</b> Prices shown are for a Stylist, in AED, with VAT. Your stylist level and your length are confirmed at the Confidence Mapping, before anything is booked.</li>
-      <li><b>Your details.</b> We use what you send only to arrange your appointments. See our <a href="https://www.tararosesalon.com/en/ae/privacy-policy/">Privacy Policy</a>.</li>
-    </ol></div></details>
+    <a class="terms terms--link" href="terms/"><span>Read the full terms, and what your plan covers</span><i class="tarr">&rarr;</i></a>
   </div>
 </section>
 
@@ -549,7 +542,7 @@ a.inc.fitcard{padding:22px 20px;text-align:center;display:flex;flex-direction:co
         <h3>The Blonde Standard</h3>
         <p><a href="#start">What we offer</a></p>
         <p><a href="#book">Book a Confidence Mapping</a></p>
-        <p><a href="#terms">Plan terms</a></p>
+        <p><a href="terms/">Plan terms</a></p>
         <p><a href="#promise">The Confidence Promise</a></p>
       </div>
       <div>
