@@ -271,19 +271,19 @@ function lqbCampHtml() {
   if (!c) return '';
   if (c.finished) {
     const day = c.at ? new Date(c.at).toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short' }) : '';
-    return `<div class="lqb-rs"><div><b>Campaign finished</b> <span class="slv-note">${c.by ? 'by ' + lcEsc(c.by) : ''}${day ? ' on ' + lcEsc(day) : ''}. No new client is added to the four Google sheets or to these lists. Clients already on them keep updating, and anything already queued still goes.</span></div>
+    return `<div class="lqb-rs"><div><b>Campaign finished</b> <span class="slv-note">${c.by ? 'by ' + lcEsc(c.by) : ''}${day ? ' on ' + lcEsc(day) : ''}. No new client is added to the four Google sheets or to these lists, and the last wave is ended. Clients already on them keep updating, and anything already queued still goes.</span></div>
       ${lvl5 ? '<button type="button" class="tglr lc-btn" onclick="lqbCampSet(false)">Reopen campaign</button>' : ''}</div>`;
   }
   if (!lvl5) return '';
-  return `<div class="lqb-rs"><div><b>Finish the campaign</b> <span class="slv-note">When the last messages have gone out: no new client is added to the four Google sheets or to these lists. Clients already on them keep updating, and what is already queued still goes. You can reopen it.</span></div>
+  return `<div class="lqb-rs"><div><b>Finish the campaign</b> <span class="slv-note">When the last messages have gone out: no new client is added to the four Google sheets or to these lists, and the last wave is ended. Clients already on them keep updating, and what is already queued still goes. You can reopen it.</span></div>
     <button type="button" class="tglr lc-btn lq-pri" onclick="lqbCampSet(true)">Finish campaign…</button></div>`;
 }
 async function lqbCampSet(on) {
   if (!lqwLevel(5)) return;
   const waiting = Object.values(lqSnd.jobs || {}).filter(j => j.status === 'queued' || j.status === 'sending').length + (lqbRS ? Number(lqbRS.resent_waiting) || 0 : 0);
   const ask = on
-    ? `Finish the campaign?\n\nNo new client will be added to the four Google sheets or to the lists on this page. Clients already on them keep updating.${waiting ? `\n\n${lcNum(waiting)} messages are still waiting and will still go out: finishing does not stop sending.` : ''}\n\nYou can reopen it here.`
-    : 'Reopen the campaign?\n\nNew clients are added to the sheets and the lists again, from tonight\'s refresh.';
+    ? `Finish the campaign?\n\nNo new client will be added to the four Google sheets or to the lists on this page, and any wave still open is ended. Clients already on them keep updating.${waiting ? `\n\n${lcNum(waiting)} messages are still waiting and will still go out: finishing does not stop sending.` : ''}\n\nYou can reopen it here.`
+    : 'Reopen the campaign?\n\nNew clients are added to the sheets and the lists again, from tonight\'s refresh, and the wave that was ended comes back.';
   if (!confirm(ask)) return;
   const { error } = await sb.rpc('lost_campaign_finish', { p_on: !!on });
   if (error) { console.error(error); lqNote('That did not save. Only Level 5 can do it.'); return; }
