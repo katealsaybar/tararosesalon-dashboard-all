@@ -622,7 +622,7 @@ if(window.parent!==window){
   document.documentElement.classList.add("embedded");
   window.addEventListener("message",e=>{
     if(e.source===window.parent&&e.data&&e.data.type==="trs-theme"){setTheme(e.data.theme==="dark"?"dark":"light");setTimeout(postH,50);}
-    if(e.source===window.parent&&e.data&&e.data.type==="trs-reviews-scroll"){pin=+e.data.pin||0;placeFilters();}
+    if(e.source===window.parent&&e.data&&e.data.type==="trs-reviews-scroll"){const np=+e.data.pin||0,d=np-pin;pin=np;if(Math.abs(d)>=4)dir=d>0?1:-1;placeFilters();}
     if(e.source===window.parent&&e.data&&e.data.type==="trs-reviews-filter") applyFilter(e.data);
   });
   // The dashboard scrolls, not this frame, so position:sticky has nothing to stick
@@ -647,7 +647,7 @@ if(window.parent!==window){
     if(META) render();
   }
   const fl=document.querySelector(".filters"), wide=matchMedia("(min-width:761px)");
-  let pin=0, lastY=0;
+  let pin=0, lastY=0, dir=-1;   // dir: 1 = scrolling down, -1 = up (from how the pin moved)
   function placeFilters(){
     if(!fl) return;
     const list=document.getElementById("list"), held=!wide.matches && fl.classList.contains("open");
@@ -655,11 +655,14 @@ if(window.parent!==window){
     lastY=y;
     fl.style.transform = y ? `translateY(${Math.round(y)}px)` : "";
     fl.classList.toggle("pinned", y > 0);
+    // Kate, 19 Oct 2026: pinned and scrolling down, the closed bar steps out of the way; any scroll up brings it back. It stays put
+    // while the panel is open or something inside it has focus (typing in search), and at the top of the page.
+    fl.classList.toggle("away", y > 0 && dir > 0 && !fl.classList.contains("open") && !fl.contains(document.activeElement));
     // The panel is always the compact bar now (class "mini" in the markup): with Branch
     // and Recency on the masthead only the refine rows are left, so it opens in place
     // instead of unfolding when you scroll back to the top. Kate, 8 Oct 2026.
   }
-  onFiltersToggle=placeFilters;
+  onFiltersToggle=()=>{dir=-1;placeFilters();};
   // Kate, 14 Oct 2026: the "On this page" rail. The dashboard draws it (like the Pulse's and Over the Years'), but only this
   // page knows where its sections are, so it reports them: id, label and top inside the frame. Hidden ones are left out.
   const RAIL=[["gbp","Google profile","#gbp"],["kpis","The headline numbers","#kpis"],["stars","Star breakdown",()=>document.getElementById("exact").closest(".card")],

@@ -171,6 +171,11 @@ html.embedded .wrap{padding-top:8px}
 /* relative, not static: z-index only works on a positioned box. Pinned (transformed) the bar is its own layer, and
    with z-index ignored the Staff menu inside it was painted over by the cards below (Kate, 12 Oct 2026: "translucent"). */
 html.embedded .filters{position:relative;z-index:30}
+/* Kate, 19 Oct 2026: the pinned Refine bar slides away when you scroll down and comes back the moment you scroll up (app.js placeFilters
+   sets .away). `translate` is its own property so the scroll-following `transform` stays instant and only the hide is animated. */
+html.embedded .filters{transition:translate .22s ease,opacity .22s ease,visibility 0s}
+html.embedded .filters.away{translate:0 calc(-100% - 14px);opacity:0;visibility:hidden;pointer-events:none;transition:translate .22s ease,opacity .22s ease,visibility 0s .22s}
+@media (prefers-reduced-motion:reduce){html.embedded .filters,html.embedded .filters.away{transition:none}}
 @media (max-width:900px){.srow{grid-template-columns:36px 1fr 90px}.srow .bar{display:none}.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.brow{grid-template-columns:110px 1fr 70px}.filters{position:static}}
 /* The phone filter bar, pills and Done row; hidden here so desktop is unchanged. */
 .fbar,.fpills,.fdone,.chip .sh{display:none}
@@ -197,9 +202,10 @@ html.embedded .filters{position:relative;z-index:30}
   /* Kate, 9 Oct 2026: too big for a sticky bar. Closed, the Refine button, the count and the
      filter pills share one row (they wrapped onto a second, so two filters made it ~125px
      tall); it only wraps when there are many pills. Open, it is the grid above. */
-  .filters.mini:not(.open){display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:7px 14px}
+  .filters.mini:not(.open){display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:4px 14px}
   .filters.mini:not(.open) .fpills:not(:empty){margin-top:0}
-  .filters.mini .fopen{padding:4px 14px}
+  .filters.mini .fopen{padding:2px 12px;font-size:12px}
+  .filters.mini:not(.open) .fcount{font-size:12px;line-height:1.2}
 }
 /* Phones (Kate, 25 Sep 2026). Framed in the dashboard, whose page already has a
    side gutter, so the frame's own goes. Bars and staff rows stack: name and count
@@ -233,9 +239,14 @@ html.embedded .filters{position:relative;z-index:30}
      follows the scroll (app.js placeFilters). Open: each group is a tile grid with
      its label above, so nothing wraps into ragged rows. */
   .filters{padding:10px 12px;gap:0}
+  /* Kate, 19 Oct 2026: thinner closed bar. The Refine button is 32px to look at and keeps its 44px tap area through ::after. */
+  .filters:not(.open){padding:4px 12px}
+  .filters:not(.open) .fpills:not(:empty){margin-top:4px}
+  .filters:not(.open) .pill{min-height:28px}
   html:not(.embedded) .filters:not(.open){position:sticky;top:0}
   .fbar{display:flex;align-items:center;gap:10px}
-  .fopen{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rose);background:var(--rose);color:var(--on-accent);border-radius:999px;padding:0 16px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  .fopen{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rose);background:var(--rose);color:var(--on-accent);border-radius:999px;padding:0 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:32px;position:relative}
+  .fopen::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
   .fbadge:not(:empty){min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--on-accent);color:var(--rose);font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
   .fcaret{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
   .filters.open .fcaret{transform:translateY(2px) rotate(-135deg)}
@@ -370,6 +381,6 @@ html.embedded .filters{position:relative;z-index:30}
 <script src="../../auth.js?v=3823f956"></script>
 <script src="review-links.js?v=ee3ed966"></script>
 <script src="/assets/pill-select.js?v=7bd2fc3a"></script>
-<script src="app.js?v=a6bbfd55"></script>
+<script src="app.js?v=e30e76d3"></script>
 </body>
 </html>
