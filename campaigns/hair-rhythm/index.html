@@ -226,6 +226,16 @@
   html body .ochip{font-size:12.5px !important;padding:0 11px}
   html body .pick{grid-template-columns:1fr}
 }
+
+/* offer terms at a glance (Kate, 19 Oct): the wall of text moved to terms/, in the Wellness Voucher terms style */
+.glance{background:var(--cream);padding:60px 0}
+.glance__row{list-style:none;margin:30px auto 0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:980px}
+.glance__row li{background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-md);padding:20px 18px}
+.glance__row b{display:block;font-family:var(--fb);font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-text);margin-bottom:8px}
+.glance__row span{font-family:var(--fd);font-size:18px;line-height:1.35;color:var(--ink)}
+.glance__cta{text-align:center;margin:30px 0 0}
+@media(max-width:860px){.glance__row{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.glance{padding:48px 0}.glance__row{gap:10px}.glance__row li{padding:16px 14px}.glance__row span{font-size:16px}.glance__cta .pill{width:100%;justify-content:center;min-height:48px}}
 </style>
 <meta name="geo.region" content="AE">
 <script type="application/ld+json">
@@ -604,9 +614,19 @@
   </div>
 </section>
 
-<section class="faq faq--light" id="terms" style="background:var(--cream);padding-top:0">
+<section id="terms" class="glance">
   <div class="wrap">
-    <details class="q"><summary>Full offer terms<span class="chev"></span></summary><div class="ans">The Hair Rhythm is available at all four Tara Rose salons: Khalifa City A and Mamsha Al Saadiyat in Abu Dhabi, Al Quoz 1 and Motor City in Dubai. Every price shown is a starting price for short or fine hair, in AED, and is the price on the day you book. Your salon confirms your price for your length and thickness before anything is booked, not at the till. Colour refreshes and Keratin smoothing are priced the same way, by your hair length, and confirmed before you book. The Blow-dry Edit, the Blow-dry Series, Four Weeks of Blow-dries and Treatment Courses are paid once and booked with your salon as you need them, at any of the four salons. Four Weeks of Blow-dries is two blow-dries a week across four weeks, with the slots held in advance. Prepaid sessions are valid for 3 months from the date of purchase for the Blow-dry Edit and the Blow-dry Series, 4 months for Treatment Courses, and 6 weeks from your first booking for Four Weeks of Blow-dries. Sessions not used by then expire. Prepaid sessions are not refundable, and an appointment missed without 48 hours&rsquo; notice counts as a used session. If something unexpected happens, talk to your salon and we will look after you. Prepaid sessions are personal to the person who bought them, and cannot be shared, and they cannot be combined with other offers or vouchers. New clients secure their first appointment with a deposit, and we explain how it works when we reply. We ask for 48 hours&rsquo; notice to move an appointment. The Tara Rose Confidence Promise applies to every colour and treatment service, as set out above.</div></details>
+    <div class="sec-head center">
+      <span class="eyebrow">Offer terms</span>
+      <h2>Good to <em>know.</em></h2>
+    </div>
+    <ul class="glance__row">
+      <li><b>Valid</b><span>3 months for blow-dries, 4 months for courses, 6 weeks for Four Weeks.</span></li>
+      <li><b>Notice</b><span>48 hours to move an appointment.</span></li>
+      <li><b>Refunds</b><span>Prepaid sessions are not refundable.</span></li>
+      <li><b>Where</b><span>All four Tara Rose salons.</span></li>
+    </ul>
+    <p class="glance__cta"><a class="pill pill--accent" href="terms/">Read the full offer terms <span class="arr">&rarr;</span></a></p>
   </div>
 </section>
 
