@@ -106,8 +106,9 @@ function lqbSendPanel() {
     <div class="wv-send-h"><div><b>Send from here</b> <span class="slv-note">Level 4 opens a wave · Level 5 switches sending and sets the pace</span></div>${sw}</div>
     <p class="slv-muted wv-send-p">Each message goes through respond.io from that client's own branch number, as an approved template. It sends only between ${lcEsc(lqHour(i.hour_from))} and ${lcEsc(lqHour(i.hour_to))} Dubai${win ? '' : ' <b>(closed right now, so it waits)</b>'}, ${pace}.
       Today <b>${lcNum(i.sent_today || 0)}</b> sent${waiting ? `, <b>${lcNum(waiting)}</b> waiting` : ''}, up to ${lcNum(i.daily_cap)} a day. A client who wrote STOP, is blocked, or is not a respond.io contact is skipped.</p>
-    <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th>Send at</th><th>Set by</th><th></th></tr></thead><tbody>${lqbGroups().map(lqbRow).join('')}</tbody></table></div>
+    <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th>Send at</th><th>Set by</th><th></th></tr></thead><tbody>${lqbGroups().map(lqbRow).join('')}</tbody><tbody id="lqbRsTb">${lqbRsRowHtml()}</tbody></table></div>
     <div id="lqbRS">${lqbRsHtml()}</div>
+    <div id="lqbCamp">${lqbCampHtml()}</div>
     <div id="lqNote" class="slv-note" style="margin-top:6px"></div>
     <details class="wv-log"><summary>Pace and test</summary><div class="lqb-pace"><label class="slv-note">Daily cap ${capSel}</label> <label class="slv-note">Every ${lcNum(i.slot_minutes || 30)} minutes ${slotSel}</label> ${test}
       <p class="slv-note">Meta limits how many new people each branch number can message in 24 hours and rates each number's quality, which this page cannot see. Check it in Meta Business Manager before opening the next wave. Wave 4 goes at half the daily cap because those clients are the likeliest to block or report.</p></div></details>
@@ -167,6 +168,7 @@ function lqbPaint(host) {
     </div>`;
   lqPaintTable();
   lqbRsLoad();
+  lqbCampLoad();
 }
 
 // ── actions ──────────────────────────────────────────────────────────────────────────────────
@@ -221,8 +223,72 @@ async function lqbRsLoad() {
     if (error || !data) throw error || new Error('no resend info');
     lqbRS = data;
   } catch (e) { lqbRS = null; }
-  const h = document.getElementById('lqbRS');
+  const h = document.getElementById('lqbRS'), tb = document.getElementById('lqbRsTb');
   if (h) h.innerHTML = lqbRsHtml();
+  if (tb) tb.innerHTML = lqbRsRowHtml();
+}
+// The Resend line in the waves table (Kate, 19 Oct 2026: where are the resends that are waiting). The resent jobs are a separate campaign
+// (name plus -resend), so the wave rows above never count them; this row does, with when they go and a Stop for the ones that have not gone.
+function lqbRsRowHtml() {
+  const d = lqbRS;
+  if (!d || !lqwLevel(4) || !Number(d.resent)) return '';
+  const sent = Number(d.resent_sent) || 0, wait = Number(d.resent_waiting) || 0, fail = Number(d.resent_failed) || 0, total = sent + wait + fail;
+  const future = d.resent_first && Date.parse(d.resent_first) > Date.now() + (lqSnd.skew || 0);
+  const status = wait ? `<b>${future ? 'Scheduled' : 'Sending'}</b>: ${lcNum(sent)} done, ${lcNum(wait)} waiting` : `Sent <b>${lcNum(sent)}</b> of ${lcNum(total)}`;
+  const pill = fail ? ` <span class="ll-pill ll-num" title="Failed to queue or send: see the send log">${lcNum(fail)} failed</span>` : '';
+  const at = wait && d.resent_first ? `<div class="ss-cell"><span>${future ? 'Next' : 'Due'} <b>${lcEsc(ssFmt(d.resent_first))}</b></span>${d.resent_last && d.resent_last !== d.resent_first ? `<span class="slv-note">Last ${lcEsc(ssFmt(d.resent_last))}</span>` : ''}</div>` : '<span class="slv-muted">–</span>';
+  const by = d.resent_by ? lcEsc(String(d.resent_by).replace(/ \(resend\)$/, '')) : '<span class="slv-muted">–</span>';
+  const act = wait ? '<button type="button" class="tglr lc-btn" onclick="lqbRsStop()">Stop</button>' : '<span class="slv-muted">Done</span>';
+  return `<tr><td class="ll-nw"><b>Resend</b></td><td class="ll-nw">Not delivered, again</td><td class="ll-nw">${lcNum(total)}</td><td>${status}${pill}</td><td class="ll-nw">${at}</td><td class="ll-nw">${by}</td><td class="ll-nw">${act}</td></tr>`;
+}
+async function lqbRsStop() {
+  const wait = lqbRS ? Number(lqbRS.resent_waiting) || 0 : 0;
+  if (!wait) { lqNote('Nothing is waiting to stop.'); return; }
+  if (!confirm(`Stop the resend?\n\n${lcNum(wait)} messages that have not gone yet are cancelled. Anything already sent cannot be called back. Those clients go back under Not delivered and can be scheduled again.`)) return;
+  const { data, error } = await sb.rpc('lost_resend_cancel');
+  if (error) { console.error(error); lqNote('That did not stop. Try again.'); return; }
+  await lqbRsLoad();
+  lqNote(`Stopped the resend: ${lcNum(data)} cancelled.`);
+}
+
+// ── Finish campaign (Kate, 19 Oct 2026) ──────────────────────────────────────────────────────────────────────────────────────────
+// Once the last messages have gone out, Level 5 can finish the campaign: no new client goes into the four Google sheets or into the lists (the same
+// switch as Stop adding new clients on the review sheets, plus the nightly refresh of the lists stops). Sending is not touched. migrations/lost_campaign_finish.sql.
+let lqbCamp = null;
+async function lqbCampLoad() {
+  const host = document.getElementById('lqbCamp');
+  if (!host) return;
+  try {
+    const { data, error } = await sb.rpc('lost_campaign_get');
+    if (error || !data) throw error || new Error('no campaign info');
+    lqbCamp = data;
+  } catch (e) { lqbCamp = null; }
+  const h = document.getElementById('lqbCamp');
+  if (h) h.innerHTML = lqbCampHtml();
+}
+function lqbCampHtml() {
+  const c = lqbCamp, lvl5 = lqwLevel(5);
+  if (!c) return '';
+  if (c.finished) {
+    const day = c.at ? new Date(c.at).toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short' }) : '';
+    return `<div class="lqb-rs"><div><b>Campaign finished</b> <span class="slv-note">${c.by ? 'by ' + lcEsc(c.by) : ''}${day ? ' on ' + lcEsc(day) : ''}. No new client is added to the four Google sheets or to these lists. Clients already on them keep updating, and anything already queued still goes.</span></div>
+      ${lvl5 ? '<button type="button" class="tglr lc-btn" onclick="lqbCampSet(false)">Reopen campaign</button>' : ''}</div>`;
+  }
+  if (!lvl5) return '';
+  return `<div class="lqb-rs"><div><b>Finish the campaign</b> <span class="slv-note">When the last messages have gone out: no new client is added to the four Google sheets or to these lists. Clients already on them keep updating, and what is already queued still goes. You can reopen it.</span></div>
+    <button type="button" class="tglr lc-btn lq-pri" onclick="lqbCampSet(true)">Finish campaign…</button></div>`;
+}
+async function lqbCampSet(on) {
+  if (!lqwLevel(5)) return;
+  const waiting = Object.values(lqSnd.jobs || {}).filter(j => j.status === 'queued' || j.status === 'sending').length + (lqbRS ? Number(lqbRS.resent_waiting) || 0 : 0);
+  const ask = on
+    ? `Finish the campaign?\n\nNo new client will be added to the four Google sheets or to the lists on this page. Clients already on them keep updating.${waiting ? `\n\n${lcNum(waiting)} messages are still waiting and will still go out: finishing does not stop sending.` : ''}\n\nYou can reopen it here.`
+    : 'Reopen the campaign?\n\nNew clients are added to the sheets and the lists again, from tonight\'s refresh.';
+  if (!confirm(ask)) return;
+  const { error } = await sb.rpc('lost_campaign_finish', { p_on: !!on });
+  if (error) { console.error(error); lqNote('That did not save. Only Level 5 can do it.'); return; }
+  await lqbCampLoad();
+  lqNote(on ? 'Campaign finished. No new clients will be added.' : 'Campaign reopened.');
 }
 const lqbRsBr = () => ['SAA', 'KCA', 'MC', 'AQ'].filter(b => Number(((lqbRS || {}).by_branch || {})[b]) > 0);
 function lqbRsHtml() {
