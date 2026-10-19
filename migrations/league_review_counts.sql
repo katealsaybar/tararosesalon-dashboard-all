@@ -17,7 +17,9 @@ begin
   if not exists (select 1 from perf_admins where token = p_admin and role in ('leader', 'viewer')) then return null; end if;
   -- One join instead of perf_review_names() once per person per review (that timed out on 145 people): the same test, written out, behind a cheap
   -- ILIKE so the regexes only run on reviews that contain the spelling. The rules are the Google Reviews page's (add ons/google-reviews/app.js):
-  --   only the page's own branches count (the four UAE salons and Bahrain: Fratelli's barbers are not ours, and the Marasy reviews are not loaded); a Bahrain review counts only for someone whose home is Bahrain;
+  --   only the page's own branches count (the four UAE salons, Bahrain and Fratelli; the Marasy reviews are not loaded); a Bahrain review counts only for someone whose home is Bahrain;
+--   a Fratelli review (Kate, 19 Oct 2026: Josh Thomas showed 0 on the Podium) counts only for someone whose home list has FRT, which the page sends for the five people its FRT_STAFF
+--   tags there (GONCALO, HAFEZ, BILLY, MIHAELA, JOSH: TP_ALSO_BRANCH in team-performance.js); Fratelli's other barbers are not ours;
   --   p = 1 means she has a staff profile: her home branches are the ones the page sends (her profile branch, plus the page's own ALSO_BRANCH list),
   --   and a key with no name rows is matched on her first name, loosely ("Melliza"). Someone with no profile (Daisy, Kerryn...) is only there through
   --   her name rows, so her home is the home_branch on them and there is no first-name fallback.
@@ -25,9 +27,9 @@ begin
     with rv as (
       select row_number() over () as rid, g.comment, g.reviewer, g.staff_manual as man, g.staff_not as nt,
              case when g.branch like 'Al Quoz%' then 'AQ' when g.branch like 'Khalifa%' then 'KCA' when g.branch like 'Motor%' then 'MC'
-                  when g.branch like 'Saadiyat%' then 'SAA' when g.branch like 'District 2%' then 'BAH' end as gb
+                  when g.branch like 'Saadiyat%' then 'SAA' when g.branch like 'District 2%' then 'BAH' when g.branch like 'Fratelli%' then 'FRT' end as gb
       from google_reviews g where g.review_date between p_from and p_to
-        and (g.branch like 'Al Quoz%' or g.branch like 'Khalifa%' or g.branch like 'Motor%' or g.branch like 'Saadiyat%' or g.branch like 'District 2%')),
+        and (g.branch like 'Al Quoz%' or g.branch like 'Khalifa%' or g.branch like 'Motor%' or g.branch like 'Saadiyat%' or g.branch like 'District 2%' or g.branch like 'Fratelli%')),
     st0 as (
       select distinct on (s->>'k') s->>'k' as k, coalesce(array(select jsonb_array_elements_text(s->'h')), '{}') as h, coalesce(s->>'p', '0') = '1' as p
       from jsonb_array_elements(p_staff) s order by s->>'k'),
@@ -41,6 +43,7 @@ begin
       select st.k, rv.rid from st
       join vv v on v.k = st.k
       join rv on (rv.gb is distinct from 'BAH' or 'BAH' = any(st.h))
+       and (rv.gb is distinct from 'FRT' or 'FRT' = any(st.h))
        and not coalesce(rv.nt && array[st.k], false)   -- staff_not (18 Oct 2026): a review that must not credit her although the text names her (Rachel Dawson's "Rachel" is not Rachel White)
        and rv.comment ilike '%' || v.variant || '%'
        and case when v.strict then (rv.gb = any(st.h)) and (case when v.ci then rv.comment ~* ('\m' || v.variant || '\M') else rv.comment ~ ('\m' || v.variant || '\M') end)

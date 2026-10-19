@@ -107,7 +107,8 @@ function tpApplyCounts(roster, counts) {
 let tpRevCounts = null, tpRevKey = '';
 // A second branch where a strict first name also counts, the same list the Google Reviews page keeps (ALSO_BRANCH in its app.js): Hazel Mae
 // Marco was at Al Quoz from Oct 2023 to Dec 2025, so "Hazel" on an Al Quoz review is hers.
-const TP_ALSO_BRANCH = { 'HAZEL MAE': ['AQ'] };
+// Kate, 19 Oct 2026: the five the page tags on Fratelli reviews (FRT_STAFF in its app.js) also count there, so Josh Thomas's Fratelli review is his.
+const TP_ALSO_BRANCH = { 'HAZEL MAE': ['AQ'], 'GONCALO': ['FRT'], 'HAFEZ': ['FRT'], 'BILLY': ['FRT'], 'MIHAELA': ['FRT'], 'JOSH': ['FRT'] };
 function tpHomeBranches(st) {
   const p = (typeof staffProfile === 'function') ? staffProfile(st.name) : null;
   return (p && p.branch ? [p.branch] : [st.branchCode].filter(Boolean)).concat(TP_ALSO_BRANCH[tpMergeKey(st.name)] || []);
