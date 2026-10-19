@@ -1,0 +1,4 @@
+-- Record only: already applied to Supabase on 18 Oct 2026, do not re-run.
+-- oty_refresh() now maps the review branch 'Marasy, Abu Dhabi' to MRY, so Marasy's Google reviews
+-- (84 rebuilt from Google's notification emails) show in Over the years.
+-- staff_name_variants: Madison rows added.

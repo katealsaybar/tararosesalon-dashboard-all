@@ -44,8 +44,8 @@ const OTY_BR = ['SAA', 'KCA', 'MC', 'AQ', 'FRT', 'MRY'];
 const OTY_NAME = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', FRT: 'Fratelli', MRY: 'Marasy' };
 const OTY_COL = { SAA: '#C4B5FD', KCA: '#FFD4D9', MC: '#99F6E4', AQ: '#FF9B9B', FRT: '#EEF3C7', MRY: '#A5D8FF' };
 const OTY_ORDER = ['ALL', 'LFL', 'SAA', 'KCA', 'MC', 'AQ', 'ALLF', 'FRT', 'MRY'];
-// Kate, 14 Oct 2026: nobody can reach Marasy's Google reviews (no access to its Google profile) and Phorest holds none either.
-const OTY_MRY_REV = "Marasy's Google reviews are not available: there is no access to its Google profile, and Phorest holds none either.";
+// Kate, 18 Oct 2026: Marasy's reviews are in now (84 rebuilt from Google's notification emails), so it counts like the others, but only what the emails kept.
+const OTY_MRY_REV = "Marasy's reviews are only the ones Google's notification emails kept (its Google profile cannot be reached), so its count is short of the real total.";
 const OTY_HIST = ['FRT', 'MRY'];   // branches that are not open now, so out of All four
 // Kate, 14 Oct 2026: "gamitin na lang natin yung global sticky filters, nakakalito". The page's own Branches pills are gone;
 // the branch comes from the masthead Branch chips (sel.branch), like the Pulse. UAE Branches = every branch with figures,
@@ -1517,7 +1517,7 @@ function otyReviews() {
     const c = per.reduce((a, p) => a + p.v, 0), stars = c ? per.reduce((a, p) => a + p.v * p.s, 0) / c : 0;
     return { y, i, n: c, stars, per, partial: !same && y === curYear };
   });
-  if (!rows.some(r => r.n)) return `<div class="oty-eb"><i style="background:var(--warn)"></i>Reputation · Google reviews <span class="oty-uc">(UNDER CONSTRUCTION)</span></div><div class="oty-card oty-flag"><div class="oty-note">No Google reviews are held for ${otySetLabel(set)}.${set.includes('MRY') ? ' ' + otyEsc(OTY_MRY_REV) : ''}</div></div>`;
+  if (!rows.some(r => r.n)) return `<div class="oty-eb"><i style="background:var(--warn)"></i>Reputation · Google reviews <span class="oty-uc">(UNDER CONSTRUCTION)</span></div><div class="oty-card oty-flag"><div class="oty-note">No Google reviews are held for ${otySetLabel(set)}.</div></div>`;
   const { W, H, bmax } = otyCanvas(260), L = 34, R = 36, T = 24, B = 28, bw = (W - L - R) / n, bar = Math.min(bmax, bw * .62);
   const maxN = Math.max(250, Math.ceil(Math.max(...rows.map(r => r.n), 1) * 1.08 / 250) * 250), yb = v => T + (H - T - B) * (1 - v / maxN);
   const lo = 4.4, hi = 5.0, yl = v => T + (H - T - B) * (1 - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo));
@@ -1533,8 +1533,7 @@ function otyReviews() {
   const pts = rows.filter(r => r.n);
   if (pts.length) g += `<path d="${pts.map((r, k) => (k ? 'L' : 'M') + (L + bw * r.i + bw / 2).toFixed(1) + ' ' + yl(r.stars).toFixed(1)).join(' ')}" fill="none" stroke="var(--warn)" stroke-width="2.4" stroke-linejoin="round"/>`;
   pts.forEach(r => g += `<circle cx="${L + bw * r.i + bw / 2}" cy="${yl(r.stars)}" r="3.6" fill="var(--warn)"/><circle class="hit" cx="${L + bw * r.i + bw / 2}" cy="${yl(r.stars)}" r="11" fill="transparent"${otyTTh(`<div class="h"><b>${r.y}${r.partial ? '*' : ''}</b></div><div class="v">${r.stars.toFixed(2)} stars</div><div class="s">average of ${r.n} reviews</div>`)}/>`);
-  // Kate, 16 Oct 2026: Marasy's Google reviews are out of reach, so it stays in the key but struck out (hover says why).
-  const legend = (set.length > 1 ? set.map(b => b === 'MRY' ? `<span class="nope" title="${otyEsc(OTY_MRY_REV)}"><i style="background:${OTY_COL[b]}"></i><s>${OTY_NAME[b]}</s></span>` : `<span><i style="background:${OTY_COL[b]}"></i>${OTY_NAME[b]}</span>`).join('') : `<span><i style="background:var(--hair)"></i>${OTY_NAME[set[0]]}</span>`) + `<span><i class="ln" style="background:var(--warn)"></i>Average stars (right scale)</span>`;
+  const legend = (set.length > 1 ? set.map(b => `<span><i style="background:${OTY_COL[b]}"></i>${OTY_NAME[b]}</span>`).join('') : `<span><i style="background:var(--hair)"></i>${OTY_NAME[set[0]]}</span>`) + `<span><i class="ln" style="background:var(--warn)"></i>Average stars (right scale)</span>`;
   const a = rows[n - 1];
   const n25 = set.reduce((t, b) => t + (D[b].rev.ny[n - 2] || 0), 0), n26 = set.reduce((t, b) => t + (D[b].rev.ny[n - 1] || 0), 0);
   const s25 = n25 ? set.reduce((t, b) => t + (D[b].rev.ny[n - 2] || 0) * (D[b].rev.sy[n - 2] || 0), 0) / n25 : 0;
@@ -1543,7 +1542,7 @@ function otyReviews() {
     <div class="oty-card"><div class="oty-legend">${legend}</div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Google reviews by year, bars, with average stars as a line">${g}</svg>
     <div class="oty-read"><b>${otyD.curYear}</b> · ${same ? `1 Jan – ${otyCutLabel()}` : 'so far'}<div class="oty-ro"><span>Reviews <b>${a.n}</b></span><span>Average <b>${a.stars ? a.stars.toFixed(2) : '·'} stars</b></span><span>${otyD.curYear - 1}, same days <b>${n25}</b></span><span>${otyD.curYear - 1} average <b>${s25 ? s25.toFixed(2) : '·'}</b></span></div></div></div>
-    <div class="oty-card oty-flag" style="margin-top:10px"><div class="oty-note"><p><b>Check before reading ${d == null ? 'it' : d.toFixed(0) + '%'} as a drop.</b> ${n26} reviews so far in ${otyD.curYear} against ${n25} on the same days of ${otyD.curYear - 1}. A fall that steep may be the review sync, not the salons: new reviews are still pulled by hand while the Google approval is pending, and older dates are approximate ("2 years ago"), so the years are solid and the days are not.</p><p><b>The stars</b> are a review-weighted average of every review in the window, so a branch with more reviews counts for more.</p>${set.includes('MRY') ? `<p><b>Marasy is not in these figures.</b> ${otyEsc(OTY_MRY_REV)}</p>` : ''}</div></div>`;
+    <div class="oty-card oty-flag" style="margin-top:10px"><div class="oty-note"><p><b>Check before reading ${d == null ? 'it' : d.toFixed(0) + '%'} as a drop.</b> ${n26} reviews so far in ${otyD.curYear} against ${n25} on the same days of ${otyD.curYear - 1}. A fall that steep may be the review sync, not the salons: new reviews are still pulled by hand while the Google approval is pending, and older dates are approximate ("2 years ago"), so the years are solid and the days are not.</p><p><b>The stars</b> are a review-weighted average of every review in the window, so a branch with more reviews counts for more.</p>${set.includes('MRY') ? `<p><b>Marasy is in these figures.</b> ${otyEsc(OTY_MRY_REV)}</p>` : ''}</div></div>`;
 }
 
 // ── INSTAGRAM (UNDER CONSTRUCTION) ───────────────────────────────────────
