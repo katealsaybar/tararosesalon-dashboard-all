@@ -53,8 +53,16 @@
   .sr-btn{appearance:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-align:center;
     border:1px solid var(--border);background:var(--surface2);color:var(--text);
     border-radius:8px;padding:10px 20px;font:500 14px/1 'Inter',system-ui,sans-serif;text-decoration:none;white-space:nowrap;
-    transition:border-color .15s var(--ease),box-shadow .15s var(--ease)}
-  .sr-btn:hover{border-color:var(--text);box-shadow:var(--shadow)}
+    --glow:rgba(124,92,212,.38);
+    transition:border-color .18s var(--ease),box-shadow .18s var(--ease),transform .18s var(--ease)}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sr-btn{--glow:rgba(153,246,228,.5)}}
+  [data-theme="dark"] .sr-btn{--glow:rgba(153,246,228,.5)}
+  /* Kate, 20 Oct 2026: the three buttons lift and glow on hover. Mouse only, so a phone tap does not leave one stuck raised. */
+  @media (hover:hover){
+    .sr-btn:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 22px -4px var(--glow),0 0 0 1px var(--glow)}
+    .sr-btn:active{transform:translateY(-1px)}
+  }
+  @media (prefers-reduced-motion:reduce){.sr-btn:hover,.sr-btn:active{transform:none}}
   .sr-btn:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(153,246,228,.6)}
   .sr-hint{margin:22px 0 0;font-size:13px;color:var(--muted2)}
   .sr-hint kbd{font:inherit;font-size:11px;border:1px solid var(--border);border-radius:4px;padding:1px 6px;background:var(--surface)}
