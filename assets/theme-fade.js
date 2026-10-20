@@ -8,6 +8,9 @@
   var st = document.createElement('style');
   st.textContent =
     '::view-transition-old(root),::view-transition-new(root){animation-duration:.6s;animation-timing-function:cubic-bezier(.4,0,.2,1)}' +
+    // during a true cross-fade the page's own short hover transitions (150-200ms on buttons, bars, pills) would run inside the new picture
+    // and land at a different moment from the fade, so colours step instead of blending: they are switched off for the swap
+    'html.theme-vt *,html.theme-vt *::before,html.theme-vt *::after{transition:none!important}' +
     'html.theme-fade,html.theme-fade *,html.theme-fade *::before,html.theme-fade *::after{transition:background-color .55s ease,color .55s ease,border-color .55s ease,fill .55s ease,stroke .55s ease,box-shadow .55s ease,outline-color .55s ease!important}';
   (document.head || document.documentElement).appendChild(st);
   window.trsThemeSwap = function (change) {
@@ -16,13 +19,16 @@
     if (reduce) { change(); return; }
     if (document.startViewTransition) {
       try {
-        document.startViewTransition(function () {
+        document.documentElement.classList.add('theme-vt');
+        var vt = document.startViewTransition(function () {
           change();
           // two frames, so anything the change redraws is in place before the new picture is taken
           return new Promise(function (res) { requestAnimationFrame(function () { requestAnimationFrame(res); }); });
         });
+        var done = function () { document.documentElement.classList.remove('theme-vt'); };
+        if (vt && vt.finished) vt.finished.then(done, done); else done();
         return;
-      } catch (e) { /* the CSS fade below */ }
+      } catch (e) { document.documentElement.classList.remove('theme-vt'); /* the CSS fade below */ }
     }
     var el = document.documentElement;
     el.classList.add('theme-fade');
