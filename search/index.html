@@ -158,9 +158,9 @@
   @keyframes sr-bar{0%,12.5%{background:var(--c1)}25%,37.5%{background:var(--c2)}50%,62.5%{background:var(--c3)}75%,87.5%{background:var(--c4)}100%{background:var(--c1)}}
   @media (prefers-reduced-motion:reduce){.sr-main .kb-brand::before{animation:none}}
   /* Kate, 20 Oct 2026: light and dark was a hard cut here. The page-wide View Transition cross-fade never showed for her, so this page now
-     fades itself with plain CSS transitions that need nothing from the browser: every colour, border and shadow eases over .6s
+     fades itself with plain CSS transitions that need nothing from the browser: every colour, border and shadow eases over .2s (Kate: "quick click", the .6s one felt slow)
      (class sr-themefade, on for the length of the swap), and the two logos sit on top of each other and cross-fade instead of switching. */
-  html body .sr-main .kb-brand .kb-logo-light,html body .sr-main .kb-brand .kb-logo-dark{display:block!important;transition:opacity .6s ease}
+  html body .sr-main .kb-brand .kb-logo-light,html body .sr-main .kb-brand .kb-logo-dark{display:block!important;transition:opacity .2s ease}
   html body .sr-main .kb-brand .kb-logo-dark{position:absolute;top:0;left:0;opacity:0}
   html body .sr-main .kb-brand .kb-logo-light{opacity:1}
   @media (prefers-color-scheme:dark){html:not([data-theme="light"]) body .sr-main .kb-brand .kb-logo-light{opacity:0}
@@ -168,7 +168,7 @@
   html[data-theme="dark"] body .sr-main .kb-brand .kb-logo-light{opacity:0}
   html[data-theme="dark"] body .sr-main .kb-brand .kb-logo-dark{opacity:1}
   html.sr-themefade,html.sr-themefade *,html.sr-themefade *::before,html.sr-themefade *::after{
-    transition:background-color .6s ease,color .6s ease,border-color .6s ease,fill .6s ease,stroke .6s ease,box-shadow .6s ease,opacity .6s ease,outline-color .6s ease!important}
+    transition:background-color .2s ease,color .2s ease,border-color .2s ease,fill .2s ease,stroke .2s ease,box-shadow .2s ease,opacity .2s ease,outline-color .2s ease!important}
 </style>
 <script src="/assets/theme-fade.js"></script>
 </head>
@@ -273,7 +273,7 @@
     root.classList.add('sr-themefade');
     document.documentElement.setAttribute('data-theme', next); paintTheme();
     clearTimeout(window.srFadeT);
-    window.srFadeT = setTimeout(function () { root.classList.remove('sr-themefade'); }, 800);
+    window.srFadeT = setTimeout(function () { root.classList.remove('sr-themefade'); }, 400);
     try { localStorage.setItem('trs-theme', next); } catch (e) {}
   });
   paintTheme();
