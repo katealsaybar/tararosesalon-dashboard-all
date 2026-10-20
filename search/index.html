@@ -28,7 +28,7 @@
     padding:0 20px 40px;text-align:center}
   /* Kate, 20 Oct 2026: "center the logo and search bar in the UI, then everything follows". The logo, greeting, bar and buttons sit
      together in the middle of the screen, Google-style (a full screen tall); shortcuts and the cards follow underneath, below the fold, centred on the same line. */
-  .sr-hero{width:100%;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 0 8vh}
+  .sr-hero{width:100%;min-height:calc(100vh - 140px);min-height:calc(100dvh - 140px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 0 4vh}
   .sr-main .kb-brand img{width:min(260px,62vw)}
   .sr-main .kb-brand span{font-size:13px;margin-top:2px}
   .sr-hello{margin:28px 0 14px;font:400 15px/1.4 'Inter',system-ui,sans-serif;color:var(--muted)}
@@ -112,6 +112,20 @@
     .sr-go{gap:8px}
     .sr-btn{flex:1;padding:12px 8px}
   }
+  /* Kate, 20 Oct 2026 (mock-up C): the top of Favourites and Frequently visited peeks in at the foot of the screen under a fade,
+     with a quiet "Show more" that scrolls down to them. It goes once you scroll, or if there is nothing below to scroll to. */
+  .sr-tiles{scroll-margin-top:28px}
+  .sr-fade{position:fixed;left:0;right:0;bottom:0;height:150px;z-index:4;pointer-events:none;
+    background:linear-gradient(to bottom,transparent 0,var(--bg) 82%);opacity:0;transition:opacity .25s var(--ease)}
+  .sr-more{position:fixed;left:50%;bottom:14px;z-index:5;transform:translateX(-50%);appearance:none;cursor:pointer;border:0;background:none;
+    display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;font:500 13px/1 'Inter',system-ui,sans-serif;color:var(--muted);
+    opacity:0;pointer-events:none;transition:opacity .25s var(--ease),color .15s var(--ease)}
+  .sr-more:hover,.sr-more:focus-visible{color:var(--text);outline:0}
+  .sr-more svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;animation:sr-bob 1.8s ease-in-out infinite}
+  @keyframes sr-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+  body.sr-peek .sr-fade{opacity:1}
+  body.sr-peek .sr-more{opacity:1;pointer-events:auto}
+  @media (prefers-reduced-motion:reduce){.sr-more svg{animation:none}}
 </style>
 <script src="/assets/theme-fade.js"></script>
 </head>
@@ -146,7 +160,29 @@
   <section class="sr-recent hide" id="srRecent" aria-labelledby="srRecentH"><h2 id="srRecentH">Recently updated</h2><div id="srRecentRows"></div></section>
   <section class="sr-recent sr-news hide" id="srNews" aria-labelledby="srNewsH"><h2 id="srNewsH">What's new</h2><div id="srNewsRows"></div><button type="button" class="sr-rec-more hide" id="srNewsMore">See all</button></section>
 </main>
+<div class="sr-fade" aria-hidden="true"></div>
+<button type="button" class="sr-more" id="srMore">Show more <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
 <footer class="sr-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
+<script>
+// "Show more" under the hero: visible while there is more page below and the page is still at the top.
+(function () {
+  var more = document.getElementById('srMore');
+  function update() {
+    var el = document.documentElement;
+    var room = el.scrollHeight - window.innerHeight;
+    document.body.classList.toggle('sr-peek', room > 60 && window.scrollY < 40);
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  if (window.ResizeObserver) new ResizeObserver(update).observe(document.querySelector('.sr-main'));
+  update();
+  more.addEventListener('click', function () {
+    var t = document.getElementById('srTiles');
+    if (!t || t.classList.contains('hide')) t = document.getElementById('srRecent') || document.querySelector('.sr-foot');
+    t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <script src="/auth.js?v=3823f956"></script>
 <!-- The list of dashboard pages: names, levels, icons. The same list the dashboard reads. -->
