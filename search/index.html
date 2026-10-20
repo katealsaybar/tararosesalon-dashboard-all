@@ -126,6 +126,17 @@
   body.sr-peek .sr-fade{opacity:1}
   body.sr-peek .sr-more{opacity:1;pointer-events:auto}
   @media (prefers-reduced-motion:reduce){.sr-more svg{animation:none}}
+  /* Kate, 20 Oct 2026, phone: centred pills of every width made a ragged column that ran the two lists together. Here each list is a heading
+     over one even column of full-width pills, left-aligned like the laptop columns, with room between the lists. */
+  @media (max-width:760px){
+    .sr-tiles{max-width:420px;text-align:left;margin-top:28px}
+    .sr-tiles .sr-gh{text-align:left;padding:0 6px;margin-bottom:12px}
+    .sr-tiles .kb-fvs{flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:8px}
+    .sr-tiles .kb-fv{width:100%}
+    .sr-tiles .kb-fv span:not(.kb-ic):not(.sr-pstar){flex:1;min-width:0}
+    .sr-grp + .sr-grp{margin-top:34px}
+    .sr-tiles .sr-cap{text-align:left;padding:0 6px}
+  }
 </style>
 <script src="/assets/theme-fade.js"></script>
 </head>
