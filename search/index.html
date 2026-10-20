@@ -27,8 +27,8 @@
   .sr-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
     padding:0 20px 40px;text-align:center}
   /* Kate, 20 Oct 2026: "center the logo and search bar in the UI, then everything follows". The logo, greeting, bar and buttons sit
-     together in the middle of the screen; shortcuts and the cards follow underneath, centred on the same line. */
-  .sr-hero{width:100%;min-height:62vh;min-height:62dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 0 0}
+     together in the middle of the screen, Google-style (a full screen tall); shortcuts and the cards follow underneath, below the fold, centred on the same line. */
+  .sr-hero{width:100%;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 0 8vh}
   .sr-main .kb-brand img{width:min(260px,62vw)}
   .sr-main .kb-brand span{font-size:13px;margin-top:2px}
   .sr-hello{margin:28px 0 14px;font:400 15px/1.4 'Inter',system-ui,sans-serif;color:var(--muted)}
@@ -74,7 +74,7 @@
   /* Kate, 18 Oct 2026: "column 1 and column 2, separate but not containers": side by side on a laptop, no box or border round either, each a
      heading over a plain list of pills; on a phone they stack as before. */
   @media (min-width:761px){
-    .sr-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,340px));justify-content:center;gap:0 48px;align-items:start}
+    .sr-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,max-content));justify-content:center;gap:0 72px;align-items:start}
     .sr-grp + .sr-grp{margin-top:0}
     .sr-tiles .sr-gh{text-align:left;padding:0 4px}
     .sr-tiles .kb-fvs{flex-direction:column;align-items:flex-start;justify-content:flex-start;flex-wrap:nowrap;gap:8px}
