@@ -123,7 +123,8 @@
      with a quiet "Show more" that scrolls down to them. It goes once you scroll, or if there is nothing below to scroll to. */
   .sr-tiles{scroll-margin-top:28px}
   .sr-fade{position:fixed;left:0;right:0;bottom:0;height:150px;z-index:4;pointer-events:none;
-    background:linear-gradient(to bottom,transparent 0,var(--bg) 82%);opacity:0;transition:opacity .25s var(--ease)}
+    background:var(--bg);-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 82%);mask-image:linear-gradient(to bottom,transparent 0,#000 82%);
+    opacity:0;transition:opacity .25s var(--ease)}
   .sr-more{position:fixed;left:50%;bottom:14px;z-index:5;transform:translateX(-50%);appearance:none;cursor:pointer;border:0;background:none;
     display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;font:500 13px/1 'Inter',system-ui,sans-serif;color:var(--muted);
     opacity:0;pointer-events:none;transition:opacity .25s var(--ease),color .15s var(--ease)}
@@ -156,6 +157,18 @@
   [data-theme="dark"] .sr-main .kb-brand{--c1:#99F6E4;--c2:#C4B5FD;--c3:#FF9B9B;--c4:#EEF3C7}
   @keyframes sr-bar{0%,12.5%{background:var(--c1)}25%,37.5%{background:var(--c2)}50%,62.5%{background:var(--c3)}75%,87.5%{background:var(--c4)}100%{background:var(--c1)}}
   @media (prefers-reduced-motion:reduce){.sr-main .kb-brand::before{animation:none}}
+  /* Kate, 20 Oct 2026: light and dark was a hard cut here. The page-wide View Transition cross-fade never showed for her, so this page now
+     fades itself with plain CSS transitions that need nothing from the browser: every colour, border and shadow eases over .6s
+     (class sr-themefade, on for the length of the swap), and the two logos sit on top of each other and cross-fade instead of switching. */
+  html body .sr-main .kb-brand .kb-logo-light,html body .sr-main .kb-brand .kb-logo-dark{display:block!important;transition:opacity .6s ease}
+  html body .sr-main .kb-brand .kb-logo-dark{position:absolute;top:0;left:0;opacity:0}
+  html body .sr-main .kb-brand .kb-logo-light{opacity:1}
+  @media (prefers-color-scheme:dark){html:not([data-theme="light"]) body .sr-main .kb-brand .kb-logo-light{opacity:0}
+    html:not([data-theme="light"]) body .sr-main .kb-brand .kb-logo-dark{opacity:1}}
+  html[data-theme="dark"] body .sr-main .kb-brand .kb-logo-light{opacity:0}
+  html[data-theme="dark"] body .sr-main .kb-brand .kb-logo-dark{opacity:1}
+  html.sr-themefade,html.sr-themefade *,html.sr-themefade *::before,html.sr-themefade *::after{
+    transition:background-color .6s ease,color .6s ease,border-color .6s ease,fill .6s ease,stroke .6s ease,box-shadow .6s ease,opacity .6s ease,outline-color .6s ease!important}
 </style>
 <script src="/assets/theme-fade.js"></script>
 </head>
@@ -256,7 +269,11 @@
   tbtn.addEventListener('click', function () {
     var next = theme() === 'dark' ? 'light' : 'dark';
     // the label is repainted inside the swap: the swap changes the page a frame later, and the label reads it
-    (window.trsThemeSwap || function (f) { f(); })(function () { document.documentElement.setAttribute('data-theme', next); paintTheme(); });
+    var root = document.documentElement;
+    root.classList.add('sr-themefade');
+    document.documentElement.setAttribute('data-theme', next); paintTheme();
+    clearTimeout(window.srFadeT);
+    window.srFadeT = setTimeout(function () { root.classList.remove('sr-themefade'); }, 800);
     try { localStorage.setItem('trs-theme', next); } catch (e) {}
   });
   paintTheme();
