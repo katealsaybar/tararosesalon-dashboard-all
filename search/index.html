@@ -24,8 +24,11 @@
 <style>
   body{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
   body.sr-wait .sr-main{visibility:hidden}
-  .sr-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:32px 20px 12vh;text-align:center}
+  .sr-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    padding:0 20px 40px;text-align:center}
+  /* Kate, 20 Oct 2026: "center the logo and search bar in the UI, then everything follows". The logo, greeting, bar and buttons sit
+     together in the middle of the screen; shortcuts and the cards follow underneath, centred on the same line. */
+  .sr-hero{width:100%;min-height:62vh;min-height:62dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 0 0}
   .sr-main .kb-brand img{width:min(260px,62vw)}
   .sr-main .kb-brand span{font-size:13px;margin-top:2px}
   .sr-hello{margin:28px 0 14px;font:400 15px/1.4 'Inter',system-ui,sans-serif;color:var(--muted)}
@@ -59,7 +62,7 @@
   .sr-foot{padding:18px 20px calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:13px;color:var(--muted2)}
   .sr-foot a{margin:0 8px}
   /* Shortcuts: Team Home's own favourite pills (kb-fv, 32px icon), starred first, then what you open most. */
-  .sr-tiles{margin-top:34px;width:100%;max-width:780px}
+  .sr-tiles{margin-top:34px;width:100%;max-width:780px;margin-left:auto;margin-right:auto}
   .sr-tiles .kb-fvs{justify-content:center;margin:0}
   /* A starred pill wears the star Team Home's cards have, so you can tell it from one that is only often opened. */
   .sr-pstar{flex:none;display:grid;place-items:center;margin-left:-4px;color:#C9971A}
@@ -71,7 +74,7 @@
   /* Kate, 18 Oct 2026: "column 1 and column 2, separate but not containers": side by side on a laptop, no box or border round either, each a
      heading over a plain list of pills; on a phone they stack as before. */
   @media (min-width:761px){
-    .sr-tiles{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 48px;align-items:start}
+    .sr-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,340px));justify-content:center;gap:0 48px;align-items:start}
     .sr-grp + .sr-grp{margin-top:0}
     .sr-tiles .sr-gh{text-align:left;padding:0 4px}
     .sr-tiles .kb-fvs{flex-direction:column;align-items:flex-start;justify-content:flex-start;flex-wrap:nowrap;gap:8px}
@@ -115,6 +118,7 @@
 <body class="sr-wait">
 <div class="sr-top"><button type="button" class="sr-theme" id="srTheme"></button><button type="button" class="sr-theme" id="srOut">Sign out</button></div>
 <main class="sr-main">
+  <div class="sr-hero">
   <a class="kb-brand" href="/hub/" aria-label="Tara Rose Salons, Team Home">
     <img class="kb-logo-light" src="/assets/mast-ink.png" alt="Tara Rose">
     <img class="kb-logo-dark" src="/assets/mast-paper.png" alt="Tara Rose">
@@ -137,6 +141,7 @@
     </div>
   </form>
   <p class="sr-hint" id="srHint"></p>
+  </div>
   <nav class="sr-tiles hide" id="srTiles" aria-label="Your shortcuts"><div class="sr-grp" id="srFavGrp"><h2 class="sr-gh">Favourites</h2><div class="kb-fvs" id="srFavRow"></div><p class="sr-cap" id="srFavHint" hidden>Star a page on Team Home or in the dashboard, and it will wait here.</p></div><div class="sr-grp" id="srOftenGrp"><h2 class="sr-gh">Frequently visited</h2><div class="kb-fvs" id="srOftenRow"></div></div><p class="sr-cap" id="srCap"></p></nav>
   <section class="sr-recent hide" id="srRecent" aria-labelledby="srRecentH"><h2 id="srRecentH">Recently updated</h2><div id="srRecentRows"></div></section>
   <section class="sr-recent sr-news hide" id="srNews" aria-labelledby="srNewsH"><h2 id="srNewsH">What's new</h2><div id="srNewsRows"></div><button type="button" class="sr-rec-more hide" id="srNewsMore">See all</button></section>
