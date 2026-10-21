@@ -112,6 +112,18 @@ tbody td{padding:11px 12px;vertical-align:middle;}
 td.ser{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;font-weight:600;white-space:nowrap;}
 td.nm{font-weight:600;}
 td.dt{white-space:nowrap;color:var(--muted);}
+/* Kate, 21 Oct 2026: Serial, Client and Branch stay put while the table scrolls sideways. The
+   left offsets are the widths added up (136 + 170), so change them together. Off on phones,
+   where the rows are cards. */
+.twrap th.sk,.twrap td.sk{position:sticky;box-sizing:border-box;}
+.twrap th.sk0,.twrap td.sk0{left:0;width:136px;min-width:136px;max-width:136px;}
+.twrap th.sk1,.twrap td.sk1{left:136px;width:170px;min-width:170px;max-width:170px;}
+.twrap th.sk2,.twrap td.sk2{left:306px;width:126px;min-width:126px;max-width:126px;box-shadow:inset -1px 0 0 var(--line);}
+.twrap td.sk{z-index:1;background:var(--paper);}
+.twrap tbody tr.r:hover td.sk{background:var(--sand);}
+.twrap tbody tr.r.void td.sk{background:var(--red-bg);}
+.twrap thead th{z-index:2;}
+.twrap thead th.sk{z-index:4;}
 
 .tag{font-size:11px;padding:2px 7px;border-radius:5px;background:var(--sand);white-space:nowrap;}
 .tag.warn{background:var(--amber-bg);color:var(--amber);}
@@ -192,6 +204,7 @@ tr.det.hide{display:none;}
     border-radius:8px;background:#fff;color:var(--ink);}
   .twrap{overflow:visible;max-height:none;background:none;border:0;border-radius:0;}
   .twrap table{min-width:0;}
+  .twrap th.sk,.twrap td.sk{position:static;width:auto;min-width:0;max-width:none;box-shadow:none;background:none;}
   .twrap table,.twrap tbody{display:block;}
   .twrap thead{display:none;}
   tbody tr.r{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px;background:var(--paper);
@@ -509,9 +522,9 @@ function progressHtml(collected){
 
 /* ---------- draw ---------- */
 function drawHead(){
-  el('hrow').innerHTML = COLS.map(function (c){
+  el('hrow').innerHTML = COLS.map(function (c, i){
     var on = c.key === sortKey;
-    return '<th class="' + (c.cls === 'num' ? 'num ' : '') + (on ? 'on' : '') + '" data-k="' + c.key + '">' +
+    return '<th class="' + (c.cls === 'num' ? 'num ' : '') + (i < 3 ? 'sk sk' + i + ' ' : '') + (on ? 'on' : '') + '" data-k="' + c.key + '">' +
       C.esc(c.head) + '<span class="ar">' + (on && sortDir > 0 ? '&#9650;' : '&#9660;') + '</span></th>';
   }).join('');
 }
@@ -621,8 +634,8 @@ function exportXlsx(){
 }
 
 function rowHtml(r){
-  var cells = COLS.map(function (c){
-    return '<td class="' + (c.cls || '') + '" data-l="' + C.esc(c.head) + '">' + c.get(r) + '</td>';
+  var cells = COLS.map(function (c, i){
+    return '<td class="' + (c.cls || '') + (i < 3 ? ' sk sk' + i : '') + '" data-l="' + C.esc(c.head) + '">' + c.get(r) + '</td>';
   }).join('');
 
   return '<tr class="r' + (r.is_voided ? ' void' : '') + (r.is_archived ? ' arch' : '') +
