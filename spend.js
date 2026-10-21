@@ -1,10 +1,11 @@
-// Stock and Supplier Spend (Kate, 21 Oct 2026): every supplier Accounts pays, the products Phorest received under it,
-// sorted into the five categories, with each branch, category and supplier read against its cap.
+// Stock and Supplier Spend (Kate, 21 Oct 2026): every supplier, the products Phorest received under it, the five categories, with
+// each branch, category and supplier read against its cap.
 //
-// One source for every number: what suppliers invoiced (Accounts' Supplier Balance files, loaded by
-// scripts/spend/load_supplier_months.py into spend_invoiced). An invoice has no category, so a supplier's amount is
-// split by the products received under it (stock_order_lines); the Phorest column in the sheet is that detail only.
-// Income for the percentages is the dashboard's own (phorest_staff_daily TOTAL, ex VAT).
+// The numbers that count against the caps are Phorest's: what arrived on stock orders in the month (stock_order_lines, at the Stock
+// List cost), so every line has its product, category and branch. What Accounts paid per supplier (their Supplier Balance monthly
+// sheet, loaded by scripts/spend/load_supplier_months.py into spend_invoiced) is its own section at the bottom: that sheet follows
+// payments, not invoice dates, so it is read as cash out and is not part of the caps. Income for the percentages is the
+// dashboard's own (phorest_staff_daily TOTAL, ex VAT).
 //
 // One call to spend_report() draws the page; spend_set() saves a tag or a cap (migrations/stock_spend_report.sql). Level 4
 // and up only: the functions refuse anyone else, whatever this file does.
@@ -175,7 +176,6 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
   const bi = b => B.indexOf(b);
   const scope = () => S.br === 'ALL' ? B : [S.br];
   const sumP = p => scope().reduce((a, b) => a + p.v[bi(b)], 0);
-  const sumInv = s => scope().reduce((a, b) => a + (s.inv[b] || 0), 0);
   const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
   const dsh = () => '<span class="muted">-</span>';
   const dis = () => EDIT ? '' : ' disabled';
@@ -219,22 +219,19 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
   }
 
   /* ---------- the numbers ---------- */
-  // An invoice has no category, so a supplier's amount is split by the products received under it.
-  function splitOf(name, bs) {
-    const s = SUP.find(x => x.n === name), ps = PR.filter(p => p.s === name);
-    const weights = list => { const o = {}; let t = 0; ps.forEach(p => { const v = list.reduce((a, b) => a + p.v[bi(b)], 0); if (v) { o[p.c] = (o[p.c] || 0) + v; t += v; } }); return [o, t]; };
-    let r = weights(bs); if (!r[1]) r = weights(B);
-    if (!r[1]) { const o = {}; o[s ? s.cat : 'Not sorted'] = 1; return o; }
-    const out = {}; Object.keys(r[0]).forEach(c => { out[c] = r[0][c] / r[1]; }); return out;
+  // Phorest: the categories a supplier's received products fall in, with the AED in each (null when it has none this month).
+  function prodCats(name) {
+    const o = {}; let t = 0;
+    PR.forEach(p => { if (p.s === name) { const v = p.v.reduce((a, x) => a + x, 0); if (v) { o[p.c] = (o[p.c] || 0) + v; t += v; } } });
+    return t ? o : null;
   }
   function figures() {
-    const bs = scope(), out = { salon: {}, cat: {}, sup: {}, outside: 0 };
+    const bs = scope(), out = { salon: {}, cat: {}, sup: {} };
     B.forEach(b => { out.salon[b] = 0; });
-    SUP.forEach(s => {
-      const sp = splitOf(s.n, bs), tot = sumInv(s), keep = 1 - (sp['Outside the 5'] || 0);
-      B.forEach(b => { out.salon[b] += (s.inv[b] || 0) * keep; });
-      Object.keys(sp).forEach(c => { const v = tot * sp[c]; if (c === 'Outside the 5') out.outside += v; else out.cat[c] = (out.cat[c] || 0) + v; });
-      if (tot * keep > 0) out.sup[s.n] = tot * keep;
+    PR.forEach(p => {
+      B.forEach(b => { out.salon[b] += p.v[bi(b)]; });
+      const v = sumP(p);
+      if (v > 0) { out.cat[p.c] = (out.cat[p.c] || 0) + v; out.sup[p.s] = (out.sup[p.s] || 0) + v; }
     });
     return out;
   }
@@ -257,10 +254,9 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
         h += '<div class="prow"><div class="l1"><span class="pn">' + BN[b] + '</span><span class="pv">AED ' + f(v) + '</span></div><div class="l2"><span>No income on the dashboard for this month yet.</span></div></div>';
       }
     });
-    if (F.outside) h += '<div class="small muted" style="margin-top:8px">Not counted: AED ' + f(F.outside) + ' from suppliers outside the 5 (accountants, insurance and similar).</div>';
     h += '</div></div>';
 
-    const cats = FIVE.concat(['Not sorted']);
+    const cats = FIVE.concat(F.cat['Not sorted'] ? ['Not sorted'] : []);
     h += '<div class="card"><div class="pt">By category <span>AED, share of net income</span></div><div class="pbody">';
     cats.forEach(c => {
       const v = F.cat[c] || 0, cp = CAPS.cat[c], capAed = (cp != null && inS) ? cp / 100 * inS : null;
@@ -268,7 +264,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
       h += '<div class="prow"><div class="l1"><span class="pn">' + c + '</span><span class="pv">' + (v ? f(v) : '<span class="muted">-</span>') + '</span></div>' + bar(v / scale, capAed ? capAed / scale : null) +
         '<div class="l2"><span>' + (inS && v ? p1(v / inS) + ' of income' : '') + '</span><span>' + (capAed ? (v > capAed ? '<span class="pill p-over">Over</span> ' : '<span class="pill p-ok">Within</span> ') : '') + (c === 'Not sorted' ? '' : 'cap ' + capIn('cat', c, cp) + '%') + '</span></div></div>';
     });
-    h += '<div class="small muted" style="margin-top:8px">A supplier with products in two categories is split by what was received (for example DBD). Suppliers not sorted yet show under Not sorted.</div></div></div>';
+    h += '<div class="small muted" style="margin-top:8px">Consumables and most Beauty are not ordered through Phorest, so they only show here when Phorest has them. What Accounts paid for them is in the last section.</div></div></div>';
 
     h += '<div class="card"><div class="pt">Top suppliers <span>AED, cap in AED a month</span></div><div class="pbody">';
     const top = Object.keys(F.sup).map(k => [k, F.sup[k]]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, S.phone ? 8 : 12);
@@ -278,106 +274,114 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
       h += '<div class="prow"><div class="l1"><span class="pn">' + esc(x[0]) + '</span><span class="pv">' + f(x[1]) + '</span></div>' + bar(x[1] / sc, cp ? cp / sc : null) +
         '<div class="l2"><span>' + (cp ? (x[1] > cp ? '<span class="pill p-over">Over by ' + f(x[1] - cp) + '</span>' : '<span class="pill p-ok">' + f(cp - x[1]) + ' left</span>') : '') + '</span><span>cap ' + capIn('sup', x[0], cp, 'aed') + '</span></div></div>';
     });
-    if (!top.length) h += '<div class="small muted">No invoices loaded for this month.</div>';
+    if (!top.length) h += '<div class="small muted">No stock received in Phorest for this month.</div>';
     return h + '</div></div>';
   }
 
-  /* ---------- the sheet ---------- */
+  /* ---------- Phorest: every supplier and its products ---------- */
   function supRows() {
     const groups = {}, q = S.q.toLowerCase();
-    SUP.forEach(s => { groups[s.n] = { n: s.n, s, prods: [] }; });
-    PR.forEach(p => { if (!groups[p.s]) groups[p.s] = { n: p.s, s: { n: p.s, cat: 'Not sorted', inv: {} }, prods: [] }; groups[p.s].prods.push(p); });
+    PR.forEach(p => { (groups[p.s] = groups[p.s] || { n: p.s, prods: [] }).prods.push(p); });
     const out = [];
     Object.keys(groups).forEach(k => {
       const g = groups[k]; if (S.fSup && !S.fSup[g.n]) return;
-      const sp = splitOf(g.n, scope()), cats = Object.keys(sp);
-      const share = S.fCat ? cats.reduce((a, c) => a + (S.fCat[c] ? sp[c] : 0), 0) : 1;
-      const hasProds = g.prods.some(p => p.v.some(Boolean));
       const qs = q && g.n.toLowerCase().indexOf(q) >= 0;
-      const ps = g.prods.filter(p => p.v.some(Boolean) && (!S.fCat || S.fCat[p.c]) && (!q || qs || (p.p + ' ' + p.brand).toLowerCase().indexOf(q) >= 0));
-      const show = hasProds ? ps.length > 0 : ((!q || qs) && (!S.fCat || share > 0));
-      if (!show) return;
-      const rec = ps.reduce((a, p) => a + sumP(p), 0), inv = sumInv(g.s) * share;
-      if (S.activeOnly && !inv && !rec) return;
-      out.push({ g, sp, cats, ps, rec, inv, hasProds, bv: scope().map(b => (g.s.inv[b] || 0) * share) });
+      const ps = g.prods.filter(p => sumP(p) > 0 && (!S.fCat || S.fCat[p.c]) && (!q || qs || (p.p + ' ' + p.brand).toLowerCase().indexOf(q) >= 0));
+      if (!ps.length) return;
+      const bv = scope().map(b => ps.reduce((a, p) => a + p.v[bi(b)], 0)), tot = bv.reduce((a, v) => a + v, 0);
+      const cs = {}; ps.forEach(p => { cs[p.c] = (cs[p.c] || 0) + sumP(p); });
+      out.push({ g, ps, bv, tot, cs });
     });
     const sk = S.sort.k, d = S.sort.d;
-    out.sort((a, b) => sk === 'name' ? d * a.g.n.localeCompare(b.g.n) : (d * (a.inv - b.inv) || d * (a.rec - b.rec) || a.g.n.localeCompare(b.g.n)));
+    out.sort((a, b) => sk === 'name' ? d * a.g.n.localeCompare(b.g.n) : (d * (a.tot - b.tot) || a.g.n.localeCompare(b.g.n)));
     return out;
   }
   const catSel = (val, attr) => '<select class="sel" ' + attr + ' aria-label="Category"' + dis() + '>' + ALLCATS.map(c => '<option' + (c === val ? ' selected' : '') + '>' + c + '</option>').join('') + '</select>';
   const supSel = (val, attr) => '<select class="sel" ' + attr + ' aria-label="Supplier" title="Moves every product of this brand"' + dis() + '>' + SUP.map(s => s.n).concat(['Unassigned']).map(c => '<option' + (c === val ? ' selected' : '') + '>' + esc(c) + '</option>').join('') + '</select>';
+  const catChip = cs => {
+    const ks = Object.keys(cs).sort((a, b) => cs[b] - cs[a]), t = ks.reduce((a, c) => a + cs[c], 0);
+    return '<span class="catc" title="' + esc(ks.map(c => c + ' ' + Math.round(cs[c] / t * 100) + '%').join(', ')) + '">' + ks[0] + (ks.length > 1 ? ' +' + (ks.length - 1) : '') + '</span>';
+  };
+  const isOpenRow = (name, r, anyFilter) => !!S.open[name] || (anyFilter && r.ps.length > 0 && S.open[name] !== false);
 
   function sheetPhone() {
-    const rows = supRows(), bs = scope(), anyFilter = !!(S.fSup || S.fCat || S.q);
-    const sumInvT = rows.reduce((a, r) => a + r.inv, 0), sumRec = rows.reduce((a, r) => a + r.rec, 0);
+    const rows = supRows(), bs = scope(), anyFilter = !!(S.fSup || S.fCat || S.q), grand = rows.reduce((a, r) => a + r.tot, 0);
     const prodCard = (p, withSup) => '<div class="pcard"><div class="pcn">' + esc(p.p) + '</div><div class="pcs">' + esc(p.brand) + ' · qty ' + f(p.q) + '</div><div class="pcr">' +
       (withSup ? supSel(p.s, 'data-psup="' + p.i + '"') : '') + catSel(p.c, 'data-pcat="' + p.i + '"') + '<b>AED ' + f(sumP(p)) + '</b></div></div>';
-    const supCard = (r, isOpen) => {
-      const ks = r.cats.slice().sort((a, b) => r.sp[b] - r.sp[a]);
-      const chip = r.hasProds ? '<span class="catc" title="' + esc(ks.map(c => c + ' ' + Math.round(r.sp[c] * 100) + '%').join(', ')) + '">' + ks[0] + (ks.length > 1 ? ' +' + (ks.length - 1) : '') + '</span>' : catSel(r.g.s.cat, 'data-supcat="' + esc(r.g.n) + '"');
-      return '<div class="sc' + (!r.rec && !r.inv ? ' zero' : '') + '"><button type="button" class="sch" data-exp="' + esc(r.g.n) + '" aria-expanded="' + isOpen + '"' + (r.ps.length ? '' : ' disabled') + '><span class="scn">' +
-        (r.ps.length ? (isOpen ? '▾ ' : '▸ ') : '') + esc(r.g.n) + (r.g.n === 'Unassigned' ? '<span class="tag">no supplier yet</span>' : '') + '</span><span class="scv">' + (r.inv ? f(r.inv) : '-') + '</span></button>' +
-        '<div class="scm">' + chip + (r.ps.length ? '<span>' + r.ps.length + ' product lines' + (isOpen ? '' : ', tap to open') + '</span>' : (r.hasProds ? '' : '<span>whole supplier</span>')) + '</div>' +
-        (r.bv.some(Boolean) ? '<div class="scb">' + bs.map((b, i) => r.bv[i] ? '<span>' + b + ' <b>' + f(r.bv[i]) + '</b></span>' : '').join('') + '</div>' : '') +
-        (r.rec ? '<div class="scr">Received in Phorest <b>' + f(r.rec) + '</b></div>' : '') +
-        (isOpen ? '<div class="spl">' + r.ps.slice().sort((a, b) => sumP(b) - sumP(a)).map(p => prodCard(p, false)).join('') + '</div>' : '') + '</div>';
-    };
+    const supCard = (r, isOpen) => '<div class="sc"><button type="button" class="sch" data-exp="' + esc(r.g.n) + '" aria-expanded="' + isOpen + '"><span class="scn">' + (isOpen ? '▾ ' : '▸ ') + esc(r.g.n) +
+      (r.g.n === 'Unassigned' ? '<span class="tag">no supplier yet</span>' : '') + '</span><span class="scv">' + f(r.tot) + '</span></button>' +
+      '<div class="scm">' + catChip(r.cs) + '<span>' + r.ps.length + ' product lines' + (isOpen ? '' : ', tap to open') + '</span></div>' +
+      (r.bv.some(Boolean) ? '<div class="scb">' + bs.map((b, i) => r.bv[i] ? '<span>' + b + ' <b>' + f(r.bv[i]) + '</b></span>' : '').join('') + '</div>' : '') +
+      (isOpen ? '<div class="spl">' + r.ps.slice().sort((a, b) => sumP(b) - sumP(a)).map(p => prodCard(p, false)).join('') + '</div>' : '') + '</div>';
     let body = '', cnt = rows.length;
-    if (S.group) body = rows.map(r => supCard(r, !!S.open[r.g.n] || (anyFilter && r.ps.length > 0 && S.open[r.g.n] !== false))).join('');
+    if (S.group) body = rows.map(r => supCard(r, isOpenRow(r.g.n, r, anyFilter))).join('');
     else {
-      const all = [];
-      rows.forEach(r => { if (r.ps.length) r.ps.forEach(p => all.push({ p, r })); else all.push({ r }); });
-      all.sort((a, b) => S.sort.d * ((a.p ? sumP(a.p) : a.r.inv) - (b.p ? sumP(b.p) : b.r.inv)));
-      cnt = all.length;
-      body = all.map(x => x.p ? prodCard(x.p, true) : supCard(x.r, false)).join('');
+      const all = []; rows.forEach(r => r.ps.forEach(p => all.push(p)));
+      all.sort((a, b) => S.sort.k === 'name' ? S.sort.d * (a.s + a.p).localeCompare(b.s + b.p) : S.sort.d * (sumP(a) - sumP(b)));
+      cnt = all.length; body = all.map(p => prodCard(p, true)).join('');
     }
-    if (!body) body = '<p class="msg">No rows match these filters.</p>';
-    return '<div class="cards">' + body + '</div><div class="stat"><span><b>' + cnt + '</b> ' + (S.group ? 'suppliers' : 'rows') + (anyFilter ? ' (filtered)' : '') + '</span><span>Invoiced <b>AED ' + f(sumInvT) + '</b></span><span>Received in Phorest <b>AED ' + f(sumRec) + '</b></span></div>';
+    if (!body) body = '<p class="msg">No stock received matches these filters.</p>';
+    return '<div class="cards">' + body + '</div><div class="stat"><span><b>' + cnt + '</b> ' + (S.group ? 'suppliers' : 'product lines') + (anyFilter ? ' (filtered)' : '') + '</span><span>Received <b>AED ' + f(grand) + '</b></span></div>';
   }
   function sheet() {
     if (S.phone) return sheetPhone();
-    const rows = supRows(), bs = scope(), anyFilter = !!(S.fSup || S.fCat || S.q), arrow = S.sort.d > 0 ? '▲' : '▼';
-    const sumInvT = rows.reduce((a, r) => a + r.inv, 0), sumRec = rows.reduce((a, r) => a + r.rec, 0);
+    const rows = supRows(), bs = scope(), anyFilter = !!(S.fSup || S.fCat || S.q), arrow = S.sort.d > 0 ? '▲' : '▼', grand = rows.reduce((a, r) => a + r.tot, 0);
     const supTh = '<button type="button" class="so" data-sort="name">Supplier ' + (S.sort.k === 'name' ? arrow : '') + '</button>';
     const th = '<tr><th class="n">#</th>' + (S.group ? '<th class="l" colspan="2">' + supTh + ' <span style="font-weight:400">and its products</span></th>' : '<th class="l">' + supTh + '</th><th class="l">Product</th>') +
-      '<th class="l">Category</th>' + bs.map(b => '<th>' + b + '</th>').join('') +
-      '<th><button type="button" class="so" data-sort="val">Invoiced ' + (S.sort.k === 'val' ? arrow : '') + '</button></th><th title="What arrived on Phorest stock orders in the month, at the Stock List cost. Product detail only.">Received (Phorest)</th></tr>';
-    const catCell = r => {
-      if (!r.hasProds) return catSel(r.g.s.cat, 'data-supcat="' + esc(r.g.n) + '"');
-      const ks = r.cats.slice().sort((a, b) => r.sp[b] - r.sp[a]);
-      const tip = ks.map(c => c + ' ' + Math.round(r.sp[c] * 100) + '%').join(', ');
-      return '<span class="catc" title="Split by products received: ' + esc(tip) + '">' + ks[0] + (ks.length > 1 ? ' +' + (ks.length - 1) : '') + '</span>';
-    };
-    const prodCells = (p, withSup) =>
-      (withSup ? '<td class="l">' + supSel(p.s, 'data-psup="' + p.i + '"') + '</td>' : '') +
+      '<th class="l">Category</th>' + bs.map(b => '<th>' + b + '</th>').join('') + '<th><button type="button" class="so" data-sort="val">Received ' + (S.sort.k === 'val' ? arrow : '') + '</button></th></tr>';
+    const prodCells = (p, withSup) => (withSup ? '<td class="l">' + supSel(p.s, 'data-psup="' + p.i + '"') + '</td>' : '') +
       '<td class="pc' + (withSup ? ' flat' : '') + '"' + (withSup ? '' : ' colspan="2"') + '><span title="' + esc(p.p) + '">' + esc(p.p) + '</span><small>' + esc(p.brand) + ' · qty ' + f(p.q) + '</small></td><td class="l">' + catSel(p.c, 'data-pcat="' + p.i + '"') + '</td>' +
-      bs.map(() => '<td>' + dsh() + '</td>').join('') + '<td>' + dsh() + '</td><td>' + f(sumP(p)) + '</td>';
-    let n = 0, cnt = 0, body;
+      bs.map(b => '<td>' + (p.v[bi(b)] ? f(p.v[bi(b)]) : dsh()) + '</td>').join('') + '<td>' + f(sumP(p)) + '</td>';
+    let n = 0, cnt = rows.length, body;
     const groupRow = r => {
-      n++; cnt++;
-      const isOpen = !!S.open[r.g.n] || (anyFilter && r.ps.length > 0 && S.open[r.g.n] !== false);
-      return '<tr class="g' + (!r.rec && !r.inv ? ' zero' : '') + '"><td class="n">' + n + '</td><td class="l" colspan="2">' +
-        (r.ps.length ? '<button type="button" class="exp" data-exp="' + esc(r.g.n) + '" aria-label="Show products" aria-expanded="' + isOpen + '">' + (isOpen ? '▾' : '▸') + '</button>' : '<span class="exp" style="display:inline-block"></span>') + esc(r.g.n) +
-        (r.g.n === 'Unassigned' ? '<span class="tag">no supplier yet</span>' : '') +
-        (r.ps.length ? ' <span class="muted" style="font-weight:400;font-size:12px">' + r.ps.length + ' product lines</span>' : '') + (r.hasProds ? '' : ' <span class="muted" style="font-weight:400;font-size:12px"><i>whole supplier, no product list yet</i></span>') +
-        '</td><td class="l">' + catCell(r) + '</td>' + r.bv.map(v => '<td>' + (v ? f(v) : dsh()) + '</td>').join('') +
-        '<td>' + (r.inv ? f(r.inv) : dsh()) + '</td><td>' + (r.rec ? f(r.rec) : dsh()) + '</td></tr>' +
+      n++;
+      const isOpen = isOpenRow(r.g.n, r, anyFilter);
+      return '<tr class="g"><td class="n">' + n + '</td><td class="l" colspan="2"><button type="button" class="exp" data-exp="' + esc(r.g.n) + '" aria-label="Show products" aria-expanded="' + isOpen + '">' + (isOpen ? '▾' : '▸') + '</button>' + esc(r.g.n) +
+        (r.g.n === 'Unassigned' ? '<span class="tag">no supplier yet</span>' : '') + ' <span class="muted" style="font-weight:400;font-size:12px">' + r.ps.length + ' product lines</span></td><td class="l">' + catChip(r.cs) + '</td>' +
+        r.bv.map(v => '<td>' + (v ? f(v) : dsh()) + '</td>').join('') + '<td>' + f(r.tot) + '</td></tr>' +
         (isOpen ? r.ps.slice().sort((a, b) => sumP(b) - sumP(a)).map(p => '<tr class="pr"><td class="n"></td>' + prodCells(p, false) + '</tr>').join('') : '');
     };
     if (S.group) body = rows.map(groupRow).join('');
     else {
-      const all = [];
-      rows.forEach(r => { if (r.ps.length) r.ps.forEach(p => all.push({ p, r })); else all.push({ r }); });
-      all.sort((a, b) => S.sort.d * ((a.p ? sumP(a.p) : a.r.inv) - (b.p ? sumP(b.p) : b.r.inv)));
-      cnt = all.length;
-      body = all.map((x, i) => x.p ? '<tr class="pr"><td class="n">' + (i + 1) + '</td>' + prodCells(x.p, true) + '</tr>' :
-        '<tr class="g"><td class="n">' + (i + 1) + '</td><td class="l">' + esc(x.r.g.n) + '</td><td class="l muted" style="font-weight:400"><i>Whole supplier, no product list yet</i></td><td class="l">' + catSel(x.r.g.s.cat, 'data-supcat="' + esc(x.r.g.n) + '"') + '</td>' +
-        x.r.bv.map(v => '<td>' + (v ? f(v) : dsh()) + '</td>').join('') + '<td>' + (x.r.inv ? f(x.r.inv) : dsh()) + '</td><td>' + dsh() + '</td></tr>').join('');
+      const all = []; rows.forEach(r => r.ps.forEach(p => all.push(p)));
+      all.sort((a, b) => S.sort.k === 'name' ? S.sort.d * (a.s + a.p).localeCompare(b.s + b.p) : S.sort.d * (sumP(a) - sumP(b)));
+      cnt = all.length; body = all.map((p, i) => '<tr class="pr"><td class="n">' + (i + 1) + '</td>' + prodCells(p, true) + '</tr>').join('');
     }
-    if (!body) body = '<tr><td colspan="' + (6 + bs.length) + '" class="l" style="padding:22px;color:var(--muted)">No rows match these filters.</td></tr>';
-    const st = '<div class="stat"><span><b>' + cnt + '</b> ' + (S.group ? 'suppliers' : 'rows') + (anyFilter ? ' (filtered)' : '') + '</span><span>Invoiced <b>AED ' + f(sumInvT) + '</b></span><span>Received in Phorest <b>AED ' + f(sumRec) + '</b> (detail)</span><span>' + monthLabel(S.month, D.partial) + ' · ' + (S.br === 'ALL' ? 'all branches' : BN[S.br]) + '</span></div>';
+    if (!body) body = '<tr><td colspan="' + (5 + bs.length) + '" class="l" style="padding:22px;color:var(--muted)">No stock received matches these filters.</td></tr>';
+    const st = '<div class="stat"><span><b>' + cnt + '</b> ' + (S.group ? 'suppliers' : 'product lines') + (anyFilter ? ' (filtered)' : '') + '</span><span>Received <b>AED ' + f(grand) + '</b></span><span>' + monthLabel(S.month, D.partial) + ' · ' + (S.br === 'ALL' ? 'all branches' : BN[S.br]) + '</span></div>';
     return '<div class="sw"><table class="sh"><thead>' + th + '</thead><tbody>' + body + '</tbody></table></div>' + st;
+  }
+
+  /* ---------- Accounts: what was paid, per supplier (their monthly sheet; not part of the caps) ---------- */
+  function acctRows() {
+    const q = S.q.toLowerCase(), out = [];
+    SUP.forEach(s => {
+      if (S.fSup && !S.fSup[s.n]) return;
+      if (q && s.n.toLowerCase().indexOf(q) < 0) return;
+      const cs = prodCats(s.n);
+      if (S.fCat && !(cs ? Object.keys(cs).some(c => S.fCat[c]) : S.fCat[s.cat])) return;
+      const bv = scope().map(b => s.inv[b] || 0), tot = bv.reduce((a, v) => a + v, 0);
+      if (S.activeOnly && !tot) return;
+      out.push({ s, cs, bv, tot });
+    });
+    const sk = S.sort.k, d = S.sort.d;
+    out.sort((a, b) => sk === 'name' ? d * a.s.n.localeCompare(b.s.n) : (d * (a.tot - b.tot) || a.s.n.localeCompare(b.s.n)));
+    return out;
+  }
+  function acctSheet() {
+    const rows = acctRows(), bs = scope(), arrow = S.sort.d > 0 ? '▲' : '▼', grand = rows.reduce((a, r) => a + r.tot, 0);
+    const catCell = r => r.cs ? catChip(r.cs) : catSel(r.s.cat, 'data-supcat="' + esc(r.s.n) + '"');
+    const st = '<div class="stat"><span><b>' + rows.length + '</b> suppliers' + (S.activeOnly ? ' with a payment' : '') + '</span><span>Paid <b>AED ' + f(grand) + '</b></span>' + (D.invoiced_loaded ? '<span>Accounts\' sheet loaded ' + day(D.invoiced_loaded) + '</span>' : '') + '</div>';
+    if (S.phone) {
+      const body = rows.map(r => '<div class="sc' + (!r.tot ? ' zero' : '') + '"><div class="sch" style="cursor:default"><span class="scn">' + esc(r.s.n) + '</span><span class="scv">' + (r.tot ? f(r.tot) : '-') + '</span></div>' +
+        '<div class="scm">' + catCell(r) + '</div>' + (r.bv.some(Boolean) ? '<div class="scb">' + bs.map((b, i) => r.bv[i] ? '<span>' + b + ' <b>' + f(r.bv[i]) + '</b></span>' : '').join('') + '</div>' : '') + '</div>').join('');
+      return '<div class="cards">' + (body || '<p class="msg">No suppliers match these filters.</p>') + '</div>' + st;
+    }
+    const th = '<tr><th class="n">#</th><th class="l"><button type="button" class="so" data-sort="name">Supplier ' + (S.sort.k === 'name' ? arrow : '') + '</button></th><th class="l">Category</th>' + bs.map(b => '<th>' + b + '</th>').join('') +
+      '<th><button type="button" class="so" data-sort="val">Paid ' + (S.sort.k === 'val' ? arrow : '') + '</button></th></tr>';
+    const body = rows.map((r, i) => '<tr><td class="n">' + (i + 1) + '</td><td class="l">' + esc(r.s.n) + '</td><td class="l">' + catCell(r) + '</td>' +
+      r.bv.map(v => '<td>' + (v ? f(v) : dsh()) + '</td>').join('') + '<td><b>' + (r.tot ? f(r.tot) : '-') + '</b></td></tr>').join('');
+    return '<div class="sw"><table class="sh"><thead>' + th + '</thead><tbody>' + (body || '<tr><td colspan="' + (4 + bs.length) + '" class="l" style="padding:22px;color:var(--muted)">No suppliers match these filters.</td></tr>') + '</tbody></table></div>' + st;
   }
 
   /* ---------- the one filter bar ---------- */
@@ -394,7 +398,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
         '<input type="search" id="q" placeholder="Search supplier, product or brand" value="' + esc(S.qraw) + '" aria-label="Search the sheet">' +
         '<div class="seg"><button type="button" data-grp="1" aria-pressed="' + S.group + '">By supplier</button><button type="button" data-grp="0" aria-pressed="' + !S.group + '">Flat list</button></div>' +
         '<div class="seg"><button type="button" data-psort="val" aria-pressed="' + (S.sort.k === 'val') + '">Biggest first</button><button type="button" data-psort="name" aria-pressed="' + (S.sort.k === 'name') + '">A to Z</button></div>' +
-        '<div class="chips"><button type="button" data-tgl="active" aria-pressed="' + S.activeOnly + '">Active this month</button></div>' +
+        '<div class="chips"><button type="button" data-tgl="active" aria-pressed="' + S.activeOnly + '">Accounts: paid this month only</button></div>' +
         '<button type="button" class="fbtn pri" data-ftoggle="1">Done</button></div>';
     }
     return h;
@@ -412,31 +416,34 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
         '<span class="fg chips"><span class="lab">Branch</span>' + ['ALL'].concat(B).map(b => '<button type="button" data-br="' + b + '" aria-pressed="' + (S.br === b) + '">' + (b === 'ALL' ? 'All' : BN[b]) + '</button>').join('') + '</span>' +
         '<span class="fg"><span class="lab">Show</span><button type="button" class="fbtn' + (S.fSup ? ' on' : '') + '" data-fmenu="sup">Supplier' + cnt(S.fSup) + ' ▾</button><button type="button" class="fbtn' + (S.fCat ? ' on' : '') + '" data-fmenu="cat">Category' + cnt(S.fCat) + ' ▾</button>' +
         '<input type="search" id="q" placeholder="Search supplier, product or brand" value="' + esc(S.qraw) + '" aria-label="Search the sheet"></span>' +
-        '<span class="fg chips"><button type="button" data-tgl="group" aria-pressed="' + S.group + '" title="On: open a supplier to see its products. Off: a flat list where you can move a brand to another supplier.">Group by supplier</button><button type="button" data-tgl="active" aria-pressed="' + S.activeOnly + '">Active this month</button></span></div>';
+        '<span class="fg chips"><button type="button" data-tgl="group" aria-pressed="' + S.group + '" title="On: open a supplier to see its products. Off: a flat list where you can move a brand to another supplier. Applies to the Phorest sheet.">Group by supplier</button><button type="button" data-tgl="active" aria-pressed="' + S.activeOnly + '" title="Accounts section: hide suppliers with nothing paid this month">Paid this month only</button></span></div>';
     }
     return h;
   }
   const drawBar = () => { const b = root && $('fbar'); if (b) b.innerHTML = barHtml(); };
   function drawBody() {
-    const d = $('dash'), s = $('sheet'); if (!d || !s) return;
+    const d = $('dash'), s = $('sheet'), a = $('acct'); if (!d || !s || !a) return;
     const tops = [].map.call(d.querySelectorAll('.pbody'), x => x.scrollTop);
     d.innerHTML = dash();
     [].forEach.call(d.querySelectorAll('.pbody'), (x, i) => { x.scrollTop = tops[i] || 0; });
-    const sc = s.querySelector('.sw'), top = sc ? sc.scrollTop : 0, left = sc ? sc.scrollLeft : 0;
-    s.innerHTML = sheet();
-    const nw = s.querySelector('.sw'); if (nw) { nw.scrollTop = top; nw.scrollLeft = left; }
+    const keep = el => { const sc = el.querySelector('.sw'); return sc ? [sc.scrollTop, sc.scrollLeft] : [0, 0]; };
+    const k1 = keep(s), k2 = keep(a);
+    s.innerHTML = sheet(); a.innerHTML = acctSheet();
+    const n1 = s.querySelector('.sw'), n2 = a.querySelector('.sw');
+    if (n1) { n1.scrollTop = k1[0]; n1.scrollLeft = k1[1]; }
+    if (n2) { n2.scrollTop = k2[0]; n2.scrollLeft = k2[1]; }
   }
   function draw() {
     const note = [];
-    if (D.invoiced_loaded) note.push('Accounts\' files loaded ' + day(D.invoiced_loaded));
-    if (D.orders_through) note.push('products received to ' + day(D.orders_through));
+    if (D.orders_through) note.push('stock received to ' + day(D.orders_through));
     if (D.income_through) note.push('income to ' + day(D.income_through));
-    const how = '<b>One source: what suppliers invoiced</b>, from Accounts\' supplier files. An invoice has no category, so each supplier\'s amount is split by the products received in Phorest, and a supplier with no products carries a category set by hand. "Received (Phorest)" in the sheet is product detail only.' +
+    const how = '<b>Spend here is what Phorest received on stock orders</b> in the month (booked in, at the Stock List cost), so every line has its product, category and branch. It does not include consumables or most beauty. The caps, panels and the first sheet use only this. <b>What Accounts paid</b> is its own section at the bottom: their monthly sheet follows payments, not invoice dates, so read it as cash out, not as spend. The filters above apply to both.' +
       (D.partial ? ' <b>Month to date</b>: ' + esc(note.join(', ')) + '.' : ' ' + esc(note.join(', ')) + '.');
     $('pg').className = 'pg' + (S.phone ? ' ph' : '');
     $('pg').innerHTML = '<div class="fwrap" id="fwrap"><div id="fbar">' + barHtml() + '</div><div id="menu" role="dialog" aria-label="Filter"></div></div>' +
       (S.phone ? '<details class="how"><summary>How this is worked out</summary><p class="basisnote">' + how + '</p></details>' : '<p class="basisnote">' + how + '</p>') +
-      '<div class="grid3" id="dash"></div><h2 class="s">Every supplier and its products <em>sort by clicking a header, change a Category cell to tag it' + (EDIT ? '' : ' (view only)') + '</em></h2><div class="sheet" id="sheet"></div>';
+      '<div class="grid3" id="dash"></div><h2 class="s">Every supplier and its products <em>Phorest, received in the month' + (EDIT ? ', change a Category cell to tag it' : ' (view only)') + '</em></h2><div class="sheet" id="sheet"></div>' +
+      '<h2 class="s">What Accounts paid, per supplier <em>from their monthly sheet, not part of the caps</em></h2><div class="sheet" id="acct"></div>';
     S.menu = null;
     drawBody();
   }

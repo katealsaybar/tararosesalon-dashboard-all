@@ -4,7 +4,7 @@ Reads the monthly summary sheet ("September 2026", "October 2026", ...) of the t
   ALL (Tara Rose Salon Accounts)  Saadiyat and Khalifa City A   columns KCA, Saadiyat
   Motor City Tara Rose Salon LLC  Motor City                    column Motor City
   Al Quoz Dubai Branch            Al Quoz                       columns Ladies + Gents + Specialized
-and sends supplier x branch x month to spend_import() (migrations/stock_spend_report.sql). Every supplier named on a
+and sends supplier x branch x month to spend_import(). The sheet follows what Accounts paid in the month, not invoice dates (migrations/stock_spend_report.sql). Every supplier named on a
 sheet is sent too, so one with no spend that month is still listed. A month already loaded is replaced; the supplier
 tags and brand links set on the page are not touched.
 

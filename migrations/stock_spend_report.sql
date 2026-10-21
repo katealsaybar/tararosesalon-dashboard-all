@@ -2,10 +2,11 @@
 -- under it, sorted into the five categories (Hair Retail, Hair Professional, Beauty Retail, Beauty
 -- Professional, Consumables), and each branch, category and supplier read against its cap.
 --
--- One source for every number: what suppliers invoiced, from Accounts' three Supplier Balance files
--- (spend_invoiced, loaded by scripts/spend/load_supplier_months.py). An invoice has no category, so the page
--- splits a supplier's amount by the products Phorest received under it (stock_order_lines). Income for the
--- percentages is the dashboard's own: phorest_staff_daily, the daily TOTAL line, ex VAT.
+-- The numbers against the caps are Phorest's: what arrived on stock orders in the month (stock_order_lines, at the Stock List cost),
+-- so every line has its product, category and branch. What Accounts paid per supplier (their three Supplier Balance files, monthly
+-- sheet, loaded by scripts/spend/load_supplier_months.py into spend_invoiced) is a separate section: that sheet follows payments,
+-- not invoice dates (checked on one supplier ledger, 21 Oct), so it is read as cash out and is not part of the caps. The table keeps
+-- its first name. Income for the percentages is the dashboard's own: phorest_staff_daily, the daily TOTAL line, ex VAT.
 --
 -- Nothing here answers to the public key. Every table is locked (RLS on, no policies, no grants) and the
 -- page reads and writes through the functions below, which check the signed-in person:
