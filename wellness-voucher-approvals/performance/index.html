@@ -70,6 +70,7 @@ a{color:inherit}
 .track{height:12px;background:var(--sand);border-radius:999px;overflow:hidden;margin:12px 0 6px}
 .fill{height:100%;background:var(--series);border-radius:999px}
 .cap{color:var(--muted);font-size:13px}
+.zero{color:var(--muted);opacity:.4}   /* a zero in the Who sold them table: a faint dash so the counts stand out */
 .pace{border-left:1px solid var(--line);padding-left:24px}
 @media (max-width:760px){.pace{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}}
 .pace .row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;color:var(--ink2)}
@@ -399,7 +400,7 @@ function render(){
              (a.via ? VIA[a.via][1] : 0) - (b.via ? VIA[b.via][1] : 0);
     });
   // One column per branch (counts), so a row reads straight across; zero is a dash.
-  function bc(n){ return n ? n : '<span class="cap">–</span>'; }
+  function bc(n){ return n ? n : '<span class="zero">–</span>'; }
   var brTot = {}; live.forEach(function(r){ brTot[r.branch] = (brTot[r.branch] || 0) + 1; });
   el('byWho').innerHTML = !whoSeen
     ? '<div class="empty">Not showing yet. The report database needs the one SQL update in migrations/voucher_performance_open.sql, then press Refresh.</div>'
