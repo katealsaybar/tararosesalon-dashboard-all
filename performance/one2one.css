@@ -140,3 +140,7 @@
 .o2o-fx-body li{margin-bottom:3px}
 .o2o-fx-h{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:12px 0 4px!important}
 .o2o-fx-un{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--border)}
+/* Fathom tab: a tag on every call, changed from the row (Kate, 21 Oct 2026) */
+.o2o-fx-tag{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.o2o-fx-tag .hint{font-weight:500;font-size:12.5px;color:var(--muted)}
+.o2o-fx-sel{width:auto;min-width:0;font-size:12.5px;padding:4px 8px;border-radius:999px}

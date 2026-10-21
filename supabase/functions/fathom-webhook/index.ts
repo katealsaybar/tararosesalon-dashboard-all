@@ -11,6 +11,7 @@
 //   more than one stylist (a team meeting)    → dropped
 //   no stylist, but it looks like a 1-to-1    → kept unmatched, for the editor to claim
 //   anything else (supplier calls, etc.)      → dropped, nothing stored
+// Every kept call is tagged kind 'goals' or 'one' from its title and summary (21 Oct 2026); the editor changes it on the page.
 // A 2xx is returned for everything we choose not to keep, so Fathom does not retry; a database failure is a 500
 // so it does.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -49,6 +50,8 @@ Deno.serve(async (req) => {
 
   const ds = m.default_summary;
   const summary = typeof ds === 'string' ? ds : (ds?.markdown_formatted || ds?.text || ds?.summary || null);
+  // A guess the editor can change in one click: goals when the title says goal, or the summary keeps coming back to it.
+  const kind = /\bgoals?\b/i.test(title) || ((String(summary || '').match(/\bgoals?\b/gi) || []).length >= 2) ? 'goals' : 'one';
   const items = (Array.isArray(m.action_items) ? m.action_items : []).map((a: any) => ({
     text: typeof a === 'string' ? a : String(a?.description || a?.text || a?.title || '').trim(),
     assignee: a?.assignee?.name || a?.assignee?.email || null,
@@ -60,6 +63,7 @@ Deno.serve(async (req) => {
     recording_id: rid,
     staff_id: staffId,
     match_how: staffId ? 'email' : null,
+    kind,
     title: m.title ?? null,
     meeting_title: m.meeting_title ?? null,
     started_at: m.recording_start_time || m.scheduled_start_time || m.created_at || null,

@@ -529,7 +529,7 @@ function nudge(data) {
 // ════════════════════════════════════════════════════════════
 //  Leaders, in Staff Benchmarks
 // ════════════════════════════════════════════════════════════
-const L = { d: null, ctx: null, slot: null, view: 'numbers', tok: null, hz: 'm6', content: {}, timers: {}, wired: false, newChecks: [], fx: { notes: [], unmatched: [] } };
+const L = { d: null, ctx: null, slot: null, view: 'numbers', tok: null, hz: 'm6', content: {}, timers: {}, wired: false, newChecks: [], fx: { notes: [], unmatched: [] }, fxShowNo: false };
 const appEl = () => document.getElementById('app');
 // A card's key: 'monthly', 'goals' or 'check:YYYY-MM-01' (a 13-week check of the goals, signed on its own).
 const kindOf = key => key.split(':')[0];
@@ -842,8 +842,11 @@ function checksHTML() {
 }
 function barHTML() {
   const worst = rs => { rs = rs.filter(Boolean); return !rs.length ? '' : rs.every(r => r.status === 'filed') ? 'good' : 'warn'; };
-  const dot = v => v === 'monthly' ? worst([rec('monthly')]) : v === 'goals' ? ((!rec('goals') || rec('goals').status === 'draft') ? '' : worst([rec('goals')].concat(L.d.checks || []))) : '';
+  const dotOf = v => v === 'monthly' ? worst([rec('monthly')]) : v === 'goals' ? ((!rec('goals') || rec('goals').status === 'draft') ? '' : worst([rec('goals')].concat(L.d.checks || []))) : '';
   const seg = [['numbers', 'This month'], ['monthly', '1-to-1'], ['goals', 'Goals']];
+  // Fathom notes come first (Kate, 21 Oct 2026); a read-only key with nothing filed has no use for the tab.
+  if (!(ro() && !L.fx.notes.length)) seg.unshift(['fathom', 'Fathom']);
+  const dot = v0 => v0 === 'fathom' ? (L.fx.notes.some(n => n.status === 'new' && n.kind !== 'no') ? 'warn' : '') : dotOf(v0);
   return seg.map(([v, l]) => `<button type="button" role="tab" aria-selected="${L.view === v}" class="${L.view === v ? 'on' : ''}" data-act="view" data-v="${v}">${l}${dot(v) ? `<i class="dot ${dot(v)}"></i>` : ''}</button>`).join('');
 }
 function drawBar() { if (L.ctx.bar) L.ctx.bar.innerHTML = barHTML(); }
@@ -878,36 +881,52 @@ function fxMd(s) {
   });
   return out + (list ? '</ul>' : '');
 }
+const FXK = { one: ['1-to-1', 'new'], goals: ['Goals', 'good'], no: ['Not a 1-to-1', ''] };
 function fxNote(n, i) {
-  const items = n.action_items || [], used = n.status === 'used';
-  const canAdd = !ro() && !locked('monthly') && items.length && !used;
-  return `<details class="o2o-more o2o-fx-note"${i === 0 && !used ? ' open' : ''}><summary><span>${esc(stamp(n.started_at))} · ${esc(n.title || 'Meeting')}</span><span class="hint">${used ? 'Added to the 1-to-1' : 'New'}</span></summary>
+  const items = n.action_items || [], used = n.status === 'used', k = FXK[n.kind] ? n.kind : 'one';
+  const canAdd = !ro() && k === 'one' && !locked('monthly') && items.length && !used;
+  const pick = ro() ? '' : `<select class="o2o-fx-sel" data-fxkind="${n.id}" aria-label="Change what kind of meeting this is"><option value="">Change tag</option>${Object.keys(FXK).filter(x => x !== k).map(x => `<option value="${x}">${FXK[x][0]}</option>`).join('')}</select>`;
+  return `<details class="o2o-more o2o-fx-note"${i === 0 && !used ? ' open' : ''}><summary><span>${esc(stamp(n.started_at))} · ${esc(n.title || 'Meeting')}</span><span class="o2o-fx-tag"><span class="o2o-chip ${FXK[k][1]}">${FXK[k][0]}</span>${pick}<span class="hint">${used ? 'Added to the 1-to-1' : 'New'}</span></span></summary>
     <div class="o2o-fx-body">
+      <p class="o2o-who">${has(n.kind_by) ? 'Tag set by ' + esc(n.kind_by) : 'Tagged automatically from the title and summary'}</p>
       ${has(n.summary) ? fxMd(n.summary) : '<p class="o2o-who">Fathom has not sent a summary for this meeting.</p>'}
       ${items.length ? `<p class="o2o-fx-h">Action items</p><ul class="o2o-fx-ai">${items.map(a => `<li>${esc(a.text)}${has(a.assignee) ? ` <span class="o2o-save">(${esc(a.assignee)})</span>` : ''}</li>`).join('')}</ul>` : ''}
       <div class="o2o-btns" style="margin-top:10px">
         ${canAdd ? `<button class="btn" type="button" data-act="fx-add" data-id="${n.id}">Add action items to this 1-to-1</button>` : ''}
         ${has(n.share_url || n.url) ? `<a class="btn o2o-ghost" href="${esc(n.share_url || n.url)}" target="_blank" rel="noopener">Open in Fathom</a>` : ''}
         ${ro() ? '' : used ? `<button class="btn o2o-ghost" type="button" data-act="fx-undo" data-id="${n.id}">Mark as new</button>` : `<button class="btn o2o-ghost" type="button" data-act="fx-dismiss" data-id="${n.id}">Dismiss</button>`}
-        ${items.length && !used && !ro() && locked('monthly') ? `<span class="o2o-save">Reopen the 1-to-1 to add these.</span>` : ''}
+        ${items.length && k === 'one' && !used && !ro() && locked('monthly') ? `<span class="o2o-save">Reopen the 1-to-1 to add these.</span>` : ''}
       </div></div></details>`;
 }
 function fxHTML() {
   const { notes, unmatched } = L.fx, name = first(L.d.staff.name), show = ro() ? [] : unmatched;
   if (!notes.length && !show.length && ro()) return '';
-  const body = notes.length ? notes.map(fxNote).join('')
-    : `<p class="o2o-who">Nothing from Fathom yet. After a recorded 1-to-1 with ${esc(name)}, the summary and action items appear here. ${esc(name)}'s email has to be on the meeting invite.</p>`;
+  const hidN = notes.filter(n => n.kind === 'no'), vis = notes.filter(n => n.kind !== 'no' || L.fxShowNo);
+  const body = vis.length ? vis.map(fxNote).join('')
+    : hidN.length ? `<p class="o2o-who">Every call so far is tagged Not a 1-to-1.</p>`
+    : `<p class="o2o-who">Nothing from Fathom yet. After a recorded call with ${esc(name)}, the summary and action items appear here. ${esc(name)}'s email has to be on the meeting invite.</p>`;
+  const hid = hidN.length ? `<div class="o2o-btns" style="margin-top:8px"><button class="btn o2o-ghost" type="button" data-act="fx-showno">${L.fxShowNo ? 'Hide' : 'Show'} ${hidN.length} marked Not a 1-to-1</button></div>` : '';
   const un = show.length ? `<div class="o2o-sec">Fathom meetings not matched to anyone</div>
     ${show.map(u => `<div class="o2o-fx-un"><span><b>${esc(u.title || 'Meeting')}</b> <span class="o2o-save">${esc(stamp(u.started_at))}${(u.invitees || []).length ? ' · ' + esc((u.invitees || []).map(x => x.name || x.email).join(', ')) : ''}</span></span>
       <button class="btn o2o-ghost" type="button" data-act="fx-claim" data-id="${u.id}">This is ${esc(name)}'s</button></div>`).join('')}` : '';
-  return `<section class="card o2o-card" data-fathom data-view="monthly"${L.view === 'monthly' ? '' : ' hidden'}>
-    <div class="o2o-fold"><span class="o2o-ft"><div class="eyebrow">From Fathom</div><h2>Meeting notes with ${esc(name)}</h2></span>${notes.some(n => n.status === 'new') ? '<span class="o2o-chip new">New</span>' : ''}</div>
-    <div class="o2o-body"><p class="o2o-who">Only leaders see these. They are not part of the signed 1-to-1 or its PDF, and ${esc(name)} does not see them.</p>${body}${un}</div></section>`;
+  return `<section class="card o2o-card" data-fathom data-view="fathom"${L.view === 'fathom' ? '' : ' hidden'}>
+    <div class="o2o-fold"><span class="o2o-ft"><div class="eyebrow">From Fathom</div><h2>Meeting notes with ${esc(name)}</h2></span>${notes.some(n => n.status === 'new' && n.kind !== 'no') ? '<span class="o2o-chip new">New</span>' : ''}</div>
+    <div class="o2o-body"><p class="o2o-who">Only leaders see these. They are not part of the signed 1-to-1 or its PDF, and ${esc(name)} does not see them. Each call is tagged from its title and summary, so change the tag if it is wrong.</p>${body}${hid}${un}</div></section>`;
 }
 function redrawFx() {
   const old = L.slot.querySelector('[data-fathom]'), t = document.createElement('div'); t.innerHTML = fxHTML();
   if (old) { if (t.firstElementChild) old.replaceWith(t.firstElementChild); else old.remove(); }
   else if (t.firstElementChild) L.slot.prepend(t.firstElementChild);
+  drawBar();
+}
+// The editor says what kind of meeting this was: 1-to-1, Goals or not one of ours (hidden).
+async function fxKind(sel) {
+  const v = sel.value; if (!v || ro()) return;
+  try {
+    const r = await call('perf_o2o_fathom_kind', { p_admin: L.ctx.admin, p_token: L.ctx.token, p_id: Number(sel.dataset.fxkind), p_kind: v });
+    if (r !== 'ok') alert(r === 'gone' ? 'That meeting is no longer here.' : 'Only ' + (L.d.editor || 'the editor') + ' can do this.');
+    await fxLoad(); redrawFx();
+  } catch (e) { alert('Could not do that. Check the connection and try again.'); }
 }
 async function fxAct(act, id) {
   const n = L.fx.notes.find(x => x.id === id), tok = { p_admin: L.ctx.admin, p_token: L.ctx.token, p_id: id };
@@ -941,7 +960,7 @@ function drawLeader() {
   if (!L.wired) {
     L.slot.addEventListener('click', onLeaderClick);
     L.slot.addEventListener('input', onLeaderInput);
-    L.slot.addEventListener('change', e => { if (e.target.matches && e.target.matches('select[data-rpm]')) { onRpMonth(e.target); return; } onDate(e); onLeaderInput(e); });
+    L.slot.addEventListener('change', e => { if (e.target.matches && e.target.matches('select[data-fxkind]')) { fxKind(e.target); return; } if (e.target.matches && e.target.matches('select[data-rpm]')) { onRpMonth(e.target); return; } onDate(e); onLeaderInput(e); });
     L.wired = true;
   }
 }
@@ -1006,6 +1025,7 @@ function onLeaderInput(e) {
 async function onLeaderClick(e) {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act, key = b.dataset.kind;
+  if (a === 'fx-showno') { L.fxShowNo = !L.fxShowNo; redrawFx(); return; }
   if (a === 'fx-add' || a === 'fx-dismiss' || a === 'fx-undo' || a === 'fx-claim') { if (!ro()) await fxAct(a, Number(b.dataset.id)); return; }
   if (a === 'hz') { L.hz = b.dataset.v; const card = b.closest('.o2o-card'); card.querySelectorAll('.o2o-pill').forEach(p => p.classList.toggle('on', p === b)); card.querySelectorAll('[data-hz]').forEach(g => { g.hidden = g.dataset.hz !== L.hz; }); }
   else if (a === 'addrow') { if (locked(key)) return; L.content[key] = gather(key, true); const arr = b.dataset.arr; L.content[key][arr] = (L.content[key][arr] || []).concat([{}]); redrawCard(key); }
