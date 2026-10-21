@@ -92,7 +92,8 @@ function lrTiles(t) {
   return `<div class="ll-cards lr-cards">
     ${card(t.sent, 'Sent', t.first ? `${lcEsc(lrTime(t.first))} to ${lcEsc(lrTime(t.last))}` : 'nothing sent yet')}
     ${card(t.replied, 'Replied', `${lrPct(t.replied, t.sent)} of the sent, wrote in after our message (a STOP is counted under STOP, not here)`)}
-    ${card(t.booked, 'Booked', `${lrPct(t.booked, t.sent)} have a booking from today on`)}
+    ${lrDep ? card(lrDep.total.booked, 'Booked', `clients with a booking from today on (${lcNum(t.booked)} messages led to one, ${lrPct(t.booked, t.sent)} of the sent)`)
+      : card(t.booked, 'Booked', `${lrPct(t.booked, t.sent)} have a booking from today on`)}
     ${card(t.stop, 'STOP', `${lrPct(t.stop, t.sent)} opted out since (suggested limit 2%)`, t.sent && t.stop / t.sent > 0.02 ? 'lr-warn' : '')}
     ${card(t.failed, 'Failed', `${lrPct(t.failed, t.n - t.queued)} of those tried (suggested limit 5%)`, t.failed ? 'lr-warn' : '')}
     ${card(t.queued, 'Still queued', 'waiting for the next send window')}
