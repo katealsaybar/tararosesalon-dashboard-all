@@ -398,14 +398,14 @@ function render(){
       return (a.who === 'Not recorded') - (b.who === 'Not recorded') || perPerson[b.pk] - perPerson[a.pk] || (a.pk < b.pk ? -1 : a.pk > b.pk ? 1 : 0) ||
              (a.via ? VIA[a.via][1] : 0) - (b.via ? VIA[b.via][1] : 0);
     });
-  M.who.forEach(function(w){
-    w.branches = BR.filter(function(b){ return w.br[b[0]]; }).map(function(b){ return b[1] + ' ' + w.br[b[0]]; }).join(', ');
-  });
+  // One column per branch (counts), so a row reads straight across; zero is a dash.
+  function bc(n){ return n ? n : '<span class="cap">–</span>'; }
+  var brTot = {}; live.forEach(function(r){ brTot[r.branch] = (brTot[r.branch] || 0) + 1; });
   el('byWho').innerHTML = !whoSeen
     ? '<div class="empty">Not showing yet. The report database needs the one SQL update in migrations/voucher_performance_open.sql, then press Refresh.</div>'
-    : '<table><thead><tr><th>Issued by</th><th>Branch</th><th class="n">Sold</th><th class="n">Collected</th><th>Share</th></tr></thead><tbody>' +
-      M.who.map(function(w){ return '<tr><td>' + esc(w.name) + '</td><td>' + esc(w.branches) + '</td><td class="n">' + w.n + '</td><td class="n">' + aed(w.paid) + '</td><td>' + mini(w.paid, collected) + '</td></tr>'; }).join('') +
-      '<tr class="tot"><td>Total</td><td></td><td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td>' + mini(collected, collected) + '</td></tr></tbody></table>';
+    : '<table><thead><tr><th>Issued by</th>' + BR.map(function(b){ return '<th class="n">' + b[1] + '</th>'; }).join('') + '<th class="n">Sold</th><th class="n">Collected</th><th>Share</th></tr></thead><tbody>' +
+      M.who.map(function(w){ return '<tr><td>' + esc(w.name) + '</td>' + BR.map(function(b){ return '<td class="n">' + bc(w.br[b[0]]) + '</td>'; }).join('') + '<td class="n"><b>' + w.n + '</b></td><td class="n">' + aed(w.paid) + '</td><td>' + mini(w.paid, collected) + '</td></tr>'; }).join('') +
+      '<tr class="tot"><td>Total</td>' + BR.map(function(b){ return '<td class="n">' + bc(brTot[b[0]]) + '</td>'; }).join('') + '<td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td>' + mini(collected, collected) + '</td></tr></tbody></table>';
 
   /* payment methods; anything unrecorded gets its own grey slice rather than vanishing */
   M.pay = PAY.map(function(p){ return { name:p[0], color:p[1], rows: live.filter(function(r){ return r.payment_method === p[0]; }) }; });
@@ -633,8 +633,8 @@ function exportXlsx(){
       sum.push(['', ''], ['Branch', 'Sold', 'Collected (AED)', 'Redeemed (AED)']);
       M.byBr.forEach(function(b){ sum.push([b.name, b.units, b.paid, b.red]); });
       if (M.who && M.who.length){
-        sum.push(['', ''], ['Issued by', 'Branch', 'Sold', 'Collected (AED)']);
-        M.who.forEach(function(w){ sum.push([w.name, w.branches, w.n, w.paid]); });
+        sum.push(['', ''], ['Issued by'].concat(BR.map(function(b){ return b[1]; }), ['Sold', 'Collected (AED)']));
+        M.who.forEach(function(w){ sum.push([w.name].concat(BR.map(function(b){ return w.br[b[0]] || 0; }), [w.n, w.paid])); });
       }
       sum.push(['', ''], ['Payment method', 'Vouchers', 'Collected (AED)']);
       M.pay.forEach(function(p){ sum.push([p.name, p.n, p.amt]); });
@@ -643,7 +643,7 @@ function exportXlsx(){
 
     var opts = {};
     var wb = XLSX.utils.book_new();
-    var wsS = XLSX.utils.aoa_to_sheet(sum, opts); wsS['!cols'] = [{wch:30},{wch:14},{wch:16},{wch:16}];
+    var wsS = XLSX.utils.aoa_to_sheet(sum, opts); wsS['!cols'] = [{wch:34},{wch:14},{wch:16},{wch:14},{wch:12},{wch:8},{wch:16}];
     var wsL = XLSX.utils.aoa_to_sheet(log, opts); wsL['!cols'] = log[0].map(function(h){ return {wch: Math.max(12, h.length + 2)}; }); wsL['!cols'][1] = {wch:24};
     var wsR = XLSX.utils.aoa_to_sheet(red, opts); wsR['!cols'] = [{wch:20},{wch:24},{wch:8},{wch:12},{wch:36},{wch:13},{wch:16}];
     XLSX.utils.book_append_sheet(wb, wsS, 'Summary');
