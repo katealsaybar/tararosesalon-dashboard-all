@@ -92,12 +92,14 @@ function lrTiles(t) {
   return `<div class="ll-cards lr-cards">
     ${card(t.sent, 'Sent', t.first ? `${lcEsc(lrTime(t.first))} to ${lcEsc(lrTime(t.last))}` : 'nothing sent yet')}
     ${card(t.replied, 'Replied', `${lrPct(t.replied, t.sent)} of the sent, wrote in after our message (a STOP is counted under STOP, not here)`)}
-    ${lrDep ? card(lrDep.total.booked, 'Booked', `clients with a booking from today on (${lcNum(t.booked)} messages led to one, ${lrPct(t.booked, t.sent)} of the sent)`)
+    ${lrDep ? card(lrDep.total.booked, 'Clients booked', 'clients with an appointment from today on, each counted once')
       : card(t.booked, 'Booked', `${lrPct(t.booked, t.sent)} have a booking from today on`)}
+    ${lrDep && lrDep.total.appts != null ? card(lrDep.total.appts, 'Appointments booked', 'appointments from today on. A client can book more than one, so this is higher than the clients')
+      : ''}
     ${card(t.stop, 'STOP', `${lrPct(t.stop, t.sent)} opted out since (suggested limit 2%)`, t.sent && t.stop / t.sent > 0.02 ? 'lr-warn' : '')}
     ${card(t.failed, 'Failed', `${lrPct(t.failed, t.n - t.queued)} of those tried (suggested limit 5%)`, t.failed ? 'lr-warn' : '')}
     ${card(t.queued, 'Still queued', 'waiting for the next send window')}
-  </div>`;
+  </div>${lrDep ? '<p class="slv-note">Clients booked and Appointments booked are clients we messaged who have an appointment from today on. A booking may have been made before our message or at the chair: Phorest does not record that.</p>' : ''}`;
 }
 // Booked, by deposit (Kate, 18 Oct 2026): of the clients who booked after our message, who has paid a deposit, who has not, and who
 // comes today (no deposit needed). Visual by default, Table beside it like Comparison. Colours are the page's own: paid = --good,
@@ -128,11 +130,11 @@ function lrDepVisual(d) {
     ? '<div class="lr-dkey"><span><i class="d-paid"></i>Deposit paid</span><span><i class="d-today"></i>Today, none needed</span><span><i class="d-none"></i>Short service, none needed</span><span><i class="d-need"></i>Likely needed, not paid</span></div>'
     : '<div class="lr-dkey"><span><i class="d-paid"></i>Deposit paid</span><span><i class="d-today"></i>Today, none needed</span><span><i class="d-unpaid"></i>Not paid yet</span></div>';
   const cards = pol
-    ? `${card(t.booked, 'Booked', 'clients with a booking from today on')}
+    ? `${card(t.booked, 'Clients booked', t.appts != null ? `${lcNum(t.appts)} appointments from today on` : 'clients with a booking from today on')}
       ${card(t.paid, 'Deposit paid', lrPct(t.paid, t.booked) + ' of the booked')}
       ${card(t.need, 'Deposit likely needed', 'not paid yet: balayage, foils, all over colour or a restyle', 'lr-need')}
       ${card(t.none + t.today, 'No deposit needed', `by policy: ${lcNum(t.none)} short service, ${lcNum(t.today)} come today`)}`
-    : `${card(t.booked, 'Booked', 'clients with a booking from today on')}
+    : `${card(t.booked, 'Clients booked', t.appts != null ? `${lcNum(t.appts)} appointments from today on` : 'clients with a booking from today on')}
       ${card(t.paid, 'Deposit paid', lrPct(t.paid, t.booked) + ' of the booked')}
       ${card(t.unpaid, 'Not paid yet', 'no deposit in Phorest yet')}
       ${card(t.today, 'Today', 'booked for today, no deposit needed')}`;
@@ -149,20 +151,21 @@ function lrDepVisual(d) {
     </div>`;
 }
 function lrDepTable(d) {
-  const t = d.total, by = d.by_branch || [], who = d.who || [], pol = lrDepPol(d);
+  const t = d.total, by = d.by_branch || [], who = d.who || [], pol = lrDepPol(d), ap = t.appts != null;
+  const apH = ap ? '<th>Appointments</th>' : '', apC = m => ap ? `<td>${lcNum(m.appts)}</td>` : '';
   const tag = (c, x) => `<span class="lr-dtag${c ? ' ' + c : ''}">${x}</span>`;
   const stTxt = w => w.status === 'paid' ? tag('paid', `Paid (AED ${lcNum(Math.round(w.deposit))})`) : w.status === 'today' ? tag('', 'Today, none needed')
     : !pol ? 'Not paid yet' : w.st === 'need' ? tag('need', 'Likely needed, not paid') : tag('', 'None needed, short service');
-  const head = pol ? '<th>Branch</th><th>Booked</th><th>Deposit paid</th><th>Likely needed, not paid</th><th>None needed, short service</th><th>Today, none needed</th>'
-    : '<th>Branch</th><th>Booked</th><th>Deposit paid</th><th>Today, none needed</th><th>Not paid yet</th>';
-  const cells = m => pol ? `<td>${lcNum(m.booked)}</td><td>${lcNum(m.paid)}</td><td>${lcNum(m.need)}</td><td>${lcNum(m.none)}</td><td>${lcNum(m.today)}</td>`
-    : `<td>${lcNum(m.booked)}</td><td>${lcNum(m.paid)}</td><td>${lcNum(m.today)}</td><td>${lcNum(m.unpaid)}</td>`;
+  const head = pol ? '<th>Branch</th><th>Clients booked</th>' + apH + '<th>Deposit paid</th><th>Likely needed, not paid</th><th>None needed, short service</th><th>Today, none needed</th>'
+    : '<th>Branch</th><th>Clients booked</th>' + apH + '<th>Deposit paid</th><th>Today, none needed</th><th>Not paid yet</th>';
+  const cells = m => pol ? `<td>${lcNum(m.booked)}</td>${apC(m)}<td>${lcNum(m.paid)}</td><td>${lcNum(m.need)}</td><td>${lcNum(m.none)}</td><td>${lcNum(m.today)}</td>`
+    : `<td>${lcNum(m.booked)}</td>${apC(m)}<td>${lcNum(m.paid)}</td><td>${lcNum(m.today)}</td><td>${lcNum(m.unpaid)}</td>`;
   return `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr>${head}</tr></thead><tbody>
       ${by.map(b => `<tr><td>${lcEsc(LC_BRANCH[b.k] || b.k)}</td>${cells(b)}</tr>`).join('')}
       <tr><td><b>All</b></td>${cells(t).replace(/<td>(.*?)<\/td>/g, '<td><b>$1</b></td>')}</tr></tbody></table></div>
     <h4 class="lr-dh">Who</h4>
-    <div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Client</th><th>Branch</th><th>Next appointment</th>${pol ? '<th>Booked</th>' : ''}<th>Deposit</th>${pol ? '<th>Why</th>' : ''}</tr></thead><tbody>
-      ${who.map(w => `<tr><td>${lcEsc(w.name || '')}${pol && w.away >= 365 ? ' <span class="lr-daway">away 12+ months</span>' : ''}</td><td>${lcEsc(LC_BRANCH[w.branch] || w.branch)}</td><td>${lcEsc(lrDay(w.next))}</td>${pol ? `<td class="lr-dsvc">${lcEsc(w.svc || '')}</td>` : ''}<td>${stTxt(w)}</td>${pol ? `<td>${w.st === 'need' ? lcEsc(lrDepWhy(w.svc || '')) : ''}</td>` : ''}</tr>`).join('')}</tbody></table></div>`;
+    <div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Client</th><th>Branch</th><th>Next appointment</th>${ap ? '<th>Appointments</th>' : ''}${pol ? '<th>Service booked</th>' : ''}<th>Deposit</th>${pol ? '<th>Why</th>' : ''}</tr></thead><tbody>
+      ${who.map(w => `<tr><td>${lcEsc(w.name || '')}${pol && w.away >= 365 ? ' <span class="lr-daway">away 12+ months</span>' : ''}</td><td>${lcEsc(LC_BRANCH[w.branch] || w.branch)}</td><td>${lcEsc(lrDay(w.next))}</td>${ap ? `<td>${lcNum(w.n)}</td>` : ''}${pol ? `<td class="lr-dsvc">${lcEsc(w.svc || '')}</td>` : ''}<td>${stTxt(w)}</td>${pol ? `<td>${w.st === 'need' ? lcEsc(lrDepWhy(w.svc || '')) : ''}</td>` : ''}</tr>`).join('')}</tbody></table></div>`;
 }
 function lrDepInner() {
   const d = lrDep;
