@@ -103,38 +103,66 @@ function lrTiles(t) {
 // comes today (no deposit needed). Visual by default, Table beside it like Comparison. Colours are the page's own: paid = --good,
 // not paid yet = --accent, today = --muted2. Counted per client, so it can run under the Booked tile, which counts messages.
 const LR_SOON = { 1: 'Tomorrow', 2: 'In 2 to 3 days', 3: 'In 4 to 7 days', 4: 'In 8 to 14 days', 5: 'Later' };
+// Not paid yet, split by the deposit policy (Kate, 21 Oct 2026; migrations/lost_booked_deposits_policy.sql): need = the next appointment has a
+// service the policy asks a deposit for (balayage, foils or highlights, all over colour, a restyle), none = a short service. Before that
+// migration is live the function sends only unpaid, and the section draws as it did: pol is false.
+const lrDepPol = d => d && d.total && d.total.need != null;
+function lrDepWhy(svc) {
+  const w = [];
+  if (/balayage/i.test(svc)) w.push('Balayage');
+  if (/foil|highlight/i.test(svc)) w.push('Foils');
+  if (/all over colo/i.test(svc)) w.push('All over colour');
+  if (/restyle/i.test(svc)) w.push('Restyle');
+  if (/extension/i.test(svc)) w.push('Extensions');
+  return w.join(', ');
+}
 function lrDepBar(m, scale) {
   const w = k => m.booked ? (100 * (m[k] || 0) / m.booked) : 0;
-  return `<span class="lr-dbar" style="width:${Math.max(4, scale)}%"><i class="d-paid" style="width:${w('paid')}%"></i><i class="d-today" style="width:${w('today')}%"></i><i class="d-unpaid" style="width:${w('unpaid')}%"></i></span>`;
+  const tail = m.need != null ? `<i class="d-none" style="width:${w('none')}%"></i><i class="d-need" style="width:${w('need')}%"></i>` : `<i class="d-unpaid" style="width:${w('unpaid')}%"></i>`;
+  return `<span class="lr-dbar" style="width:${Math.max(4, scale)}%"><i class="d-paid" style="width:${w('paid')}%"></i><i class="d-today" style="width:${w('today')}%"></i>${tail}</span>`;
 }
 function lrDepVisual(d) {
-  const t = d.total, by = d.by_branch || [], soon = d.soon || [], maxB = Math.max(1, ...by.map(b => b.booked)), maxS = Math.max(1, ...soon.map(s => s.n));
-  const card = (n, ti, ds) => `<div class="ll-card lr-card"><div class="ll-t">${ti}</div><div class="ll-n">${lcNum(n)}</div><div class="ll-d">${ds}</div></div>`;
-  const key = '<div class="lr-dkey"><span><i class="d-paid"></i>Deposit paid</span><span><i class="d-today"></i>Today, none needed</span><span><i class="d-unpaid"></i>Not paid yet</span></div>';
-  return `<div class="ll-cards lr-cards">
-      ${card(t.booked, 'Booked', 'clients with a booking from today on')}
+  const t = d.total, by = d.by_branch || [], pol = lrDepPol(d), soon = (pol ? d.soon_need : d.soon) || [], maxB = Math.max(1, ...by.map(b => b.booked)), maxS = Math.max(1, ...soon.map(s => s.n));
+  const card = (n, ti, ds, cls) => `<div class="ll-card lr-card${cls ? ' ' + cls : ''}"><div class="ll-t">${ti}</div><div class="ll-n">${lcNum(n)}</div><div class="ll-d">${ds}</div></div>`;
+  const key = pol
+    ? '<div class="lr-dkey"><span><i class="d-paid"></i>Deposit paid</span><span><i class="d-today"></i>Today, none needed</span><span><i class="d-none"></i>Short service, none needed</span><span><i class="d-need"></i>Likely needed, not paid</span></div>'
+    : '<div class="lr-dkey"><span><i class="d-paid"></i>Deposit paid</span><span><i class="d-today"></i>Today, none needed</span><span><i class="d-unpaid"></i>Not paid yet</span></div>';
+  const cards = pol
+    ? `${card(t.booked, 'Booked', 'clients with a booking from today on')}
+      ${card(t.paid, 'Deposit paid', lrPct(t.paid, t.booked) + ' of the booked')}
+      ${card(t.need, 'Deposit likely needed', 'not paid yet: balayage, foils, all over colour or a restyle', 'lr-need')}
+      ${card(t.none + t.today, 'No deposit needed', `by policy: ${lcNum(t.none)} short service, ${lcNum(t.today)} come today`)}`
+    : `${card(t.booked, 'Booked', 'clients with a booking from today on')}
       ${card(t.paid, 'Deposit paid', lrPct(t.paid, t.booked) + ' of the booked')}
       ${card(t.unpaid, 'Not paid yet', 'no deposit in Phorest yet')}
-      ${card(t.today, 'Today', 'booked for today, no deposit needed')}
+      ${card(t.today, 'Today', 'booked for today, no deposit needed')}`;
+  return `<div class="ll-cards lr-cards">
+      ${cards}
     </div>
     <div class="lr-dgrid">
       <div class="lr-dcard"><h4>By branch</h4>
         ${by.map(b => `<div class="lr-drow"><span>${lcEsc(LC_BRANCH[b.k] || b.k)}</span>${lrDepBar(b, 100 * b.booked / maxB)}<b>${lcNum(b.booked)}</b></div>`).join('') || '<p class="slv-muted">Nobody yet.</p>'}
         ${key}</div>
-      <div class="lr-dcard"><h4>Not paid yet: how soon they come</h4>
-        ${soon.map(s => `<div class="lr-drow"><span>${LR_SOON[s.k] || s.k}</span><span class="lr-dbar" style="width:${Math.max(4, 100 * s.n / maxS)}%"><i class="d-unpaid" style="width:100%"></i></span><b>${lcNum(s.n)}</b></div>`).join('') || '<p class="slv-muted">Everyone has paid, or comes today.</p>'}
-        <p class="slv-note">The ones coming tomorrow or the day after are the ones reception can chase today.</p></div>
+      <div class="lr-dcard"><h4>${pol ? 'Likely needed, not paid' : 'Not paid yet'}: how soon they come</h4>
+        ${soon.map(s => `<div class="lr-drow"><span>${LR_SOON[s.k] || s.k}</span><span class="lr-dbar" style="width:${Math.max(4, 100 * s.n / maxS)}%"><i class="${pol ? 'd-need' : 'd-unpaid'}" style="width:100%"></i></span><b>${lcNum(s.n)}</b></div>`).join('') || `<p class="slv-muted">${pol ? 'Nobody is waiting on a deposit.' : 'Everyone has paid, or comes today.'}</p>`}
+        <p class="slv-note">${pol ? 'These are the ones reception can chase today. Check at the chair first: a client who booked her next visit before leaving the salon does not need one.' : 'The ones coming tomorrow or the day after are the ones reception can chase today.'}</p></div>
     </div>`;
 }
 function lrDepTable(d) {
-  const t = d.total, by = d.by_branch || [], who = d.who || [];
-  const stTxt = w => w.status === 'paid' ? `Paid (AED ${lcNum(Math.round(w.deposit))})` : w.status === 'today' ? 'Today, none needed' : 'Not paid yet';
-  return `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Branch</th><th>Booked</th><th>Deposit paid</th><th>Today, none needed</th><th>Not paid yet</th></tr></thead><tbody>
-      ${by.map(b => `<tr><td>${lcEsc(LC_BRANCH[b.k] || b.k)}</td><td>${lcNum(b.booked)}</td><td>${lcNum(b.paid)}</td><td>${lcNum(b.today)}</td><td>${lcNum(b.unpaid)}</td></tr>`).join('')}
-      <tr><td><b>All</b></td><td><b>${lcNum(t.booked)}</b></td><td><b>${lcNum(t.paid)}</b></td><td><b>${lcNum(t.today)}</b></td><td><b>${lcNum(t.unpaid)}</b></td></tr></tbody></table></div>
+  const t = d.total, by = d.by_branch || [], who = d.who || [], pol = lrDepPol(d);
+  const tag = (c, x) => `<span class="lr-dtag${c ? ' ' + c : ''}">${x}</span>`;
+  const stTxt = w => w.status === 'paid' ? tag('paid', `Paid (AED ${lcNum(Math.round(w.deposit))})`) : w.status === 'today' ? tag('', 'Today, none needed')
+    : !pol ? 'Not paid yet' : w.st === 'need' ? tag('need', 'Likely needed, not paid') : tag('', 'None needed, short service');
+  const head = pol ? '<th>Branch</th><th>Booked</th><th>Deposit paid</th><th>Likely needed, not paid</th><th>None needed, short service</th><th>Today, none needed</th>'
+    : '<th>Branch</th><th>Booked</th><th>Deposit paid</th><th>Today, none needed</th><th>Not paid yet</th>';
+  const cells = m => pol ? `<td>${lcNum(m.booked)}</td><td>${lcNum(m.paid)}</td><td>${lcNum(m.need)}</td><td>${lcNum(m.none)}</td><td>${lcNum(m.today)}</td>`
+    : `<td>${lcNum(m.booked)}</td><td>${lcNum(m.paid)}</td><td>${lcNum(m.today)}</td><td>${lcNum(m.unpaid)}</td>`;
+  return `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr>${head}</tr></thead><tbody>
+      ${by.map(b => `<tr><td>${lcEsc(LC_BRANCH[b.k] || b.k)}</td>${cells(b)}</tr>`).join('')}
+      <tr><td><b>All</b></td>${cells(t).replace(/<td>(.*?)<\/td>/g, '<td><b>$1</b></td>')}</tr></tbody></table></div>
     <h4 class="lr-dh">Who</h4>
-    <div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Client</th><th>Branch</th><th>Next appointment</th><th>Deposit</th></tr></thead><tbody>
-      ${who.map(w => `<tr><td>${lcEsc(w.name || '')}</td><td>${lcEsc(LC_BRANCH[w.branch] || w.branch)}</td><td>${lcEsc(lrDay(w.next))}</td><td>${lcEsc(stTxt(w))}</td></tr>`).join('')}</tbody></table></div>`;
+    <div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Client</th><th>Branch</th><th>Next appointment</th>${pol ? '<th>Booked</th>' : ''}<th>Deposit</th>${pol ? '<th>Why</th>' : ''}</tr></thead><tbody>
+      ${who.map(w => `<tr><td>${lcEsc(w.name || '')}${pol && w.away >= 365 ? ' <span class="lr-daway">away 12+ months</span>' : ''}</td><td>${lcEsc(LC_BRANCH[w.branch] || w.branch)}</td><td>${lcEsc(lrDay(w.next))}</td>${pol ? `<td class="lr-dsvc">${lcEsc(w.svc || '')}</td>` : ''}<td>${stTxt(w)}</td>${pol ? `<td>${w.st === 'need' ? lcEsc(lrDepWhy(w.svc || '')) : ''}</td>` : ''}</tr>`).join('')}</tbody></table></div>`;
 }
 function lrDepInner() {
   const d = lrDep;
@@ -143,7 +171,8 @@ function lrDepInner() {
   return `<div class="lr-dhd"><h3>Booked: who has paid a deposit</h3>
       <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrDepSet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrDepSet('table')">Table</button></div></div>
     ${d.total.booked ? (tbl ? lrDepTable(d) : lrDepVisual(d)) : '<p class="slv-muted">Nobody has booked from today on yet.</p>'}
-    <p class="slv-note">A deposit is Phorest's Deposit item, net of refunds, in the last 90 days, matched on the client's name. Deposits arrive with the nightly sales upload, so one paid today shows tomorrow. Counted per client.</p>`;
+    <p class="slv-note">A deposit is Phorest's Deposit item, net of refunds, in the last 90 days, matched on the client's name. Deposits arrive with the nightly sales upload, so one paid today shows tomorrow. Counted per client.</p>
+    ${lrDepPol(d) ? '<p class="slv-note">Likely needed: from the Booking and Deposit policy (Existing client), her next appointment has balayage, foils or highlights, an all over colour or a restyle, and no deposit is in Phorest. Any other service without a deposit is None needed. Phorest does not show an appointment over two hours, several guests, a missed or changed visit, or a next visit booked at the chair (which needs no deposit), so check those at the desk.</p>' : ''}`;
 }
 function lrDepSet(v) {
   lrDepView = v === 'table' ? 'table' : 'visual';

@@ -182,6 +182,15 @@
 #lostListsContent .d-paid{background:var(--good)}
 #lostListsContent .d-today{background:var(--muted2)}
 #lostListsContent .d-unpaid{background:var(--accent)}
+/* Not paid yet split by the deposit policy (Kate, 21 Oct 2026): likely needed = --warn (so it is not the same mint as paid on dark), short service = a faded --muted2. */
+#lostListsContent .d-need{background:var(--warn)}
+#lostListsContent .d-none{background:rgba(119,112,106,.38);background:color-mix(in srgb,var(--muted2) 45%,transparent)}
+#lostListsContent .lr-card.lr-need{border-color:var(--warn)}
+#lostListsContent .lr-dtag{display:inline-block;font-size:11.5px;border-radius:999px;padding:1px 9px;border:1px solid var(--border);white-space:nowrap}
+#lostListsContent .lr-dtag.need{border-color:var(--warn);color:var(--warn)}
+#lostListsContent .lr-dtag.paid{border-color:var(--good);color:var(--good)}
+#lostListsContent .lr-daway{font-size:11.5px;color:var(--muted);white-space:nowrap}
+#lostListsContent .lr-dsvc{white-space:normal;min-width:220px;color:var(--muted)}
 #lostListsContent .d-seen{background:var(--good)}
 #lostListsContent .d-delivered{background:var(--accent)}
 #lostListsContent .d-sentonly{background:var(--muted2)}
