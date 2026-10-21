@@ -65,6 +65,7 @@ function lqShowTab(t) {
   const g = document.getElementById('llHost'), q = document.getElementById('lqHost');
   if (g) g.hidden = t !== 'groups';
   if (q) q.hidden = t === 'groups';
+  if (t !== 'perf' && typeof lrRailClear === 'function') lrRailClear();   // the Performance report's sub-entries only live on its own tab
   if (t === 'queue') lqRenderQueue(); else if (t === 'tpl') lqRenderTpl(); else if (t === 'perf' && typeof lrRenderPerf === 'function') lrRenderPerf(); else if (t === 'terms') lqRenderTerms();
 }
 // Terms and conditions (Kate, 16 Oct 2026): the welcome-back rate terms PDF, fifth rail entry, shown inline with an Open link for a bigger view.

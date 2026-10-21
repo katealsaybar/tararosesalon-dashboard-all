@@ -245,9 +245,45 @@ function lrSlots(slots) {
   }).join('');
 }
 
+// Sub-entries under Performance report in the "On this page" rail (Kate, 21 Oct 2026): the report runs for several screens, so each of its
+// sections gets a link under the Performance report entry. Drawn only in the sidebar rail (lost-queue.css shows them from 1400px; below
+// that the rail is a row of chips), removed when another tab opens (lqShowTab) and redrawn on every paint, so a section that is not
+// there (no delivery or deposit data yet) has no link. The lit entry follows the scroll.
+const LR_SUBS = [['lr-type', 'Which message'], ['lr-totals', 'The campaign so far'], ['lr-delivery', 'Did the message arrive?'], ['lr-deposits', 'Bookings and deposits'],
+  ['lr-waves', 'By wave'], ['lr-messages', 'By message'], ['lr-branches', 'By branch'], ['lr-days', 'By day'], ['lr-slots', 'Send times'], ['lr-log', 'Send log']];
+let lrSpy = null;
+function lrRailClear() {
+  document.querySelectorAll('#lostListsContent .side-sub').forEach(n => n.remove());
+  if (lrSpy) { window.removeEventListener('scroll', lrSpy); lrSpy = null; }
+}
+function lrGoSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function lrRailSubs() {
+  lrRailClear();
+  const a = document.querySelector('#lostListsContent .side-nav a[data-t="perf"]');
+  const subs = LR_SUBS.filter(([id]) => document.getElementById(id));
+  if (!a || !subs.length) return;
+  const nav = document.createElement('div');
+  nav.className = 'side-sub'; nav.setAttribute('role', 'group'); nav.setAttribute('aria-label', 'Performance report sections');
+  nav.innerHTML = subs.map(([id, l]) => `<a href="#${id}" data-s="${id}" onclick="event.preventDefault();lrGoSection('${id}')">${l}</a>`).join('');
+  a.insertAdjacentElement('afterend', nav);
+  // the lit entry is the last section whose top has passed just under the pinned header
+  const spy = () => {
+    let cur = subs[0][0];
+    subs.forEach(([id]) => { const el = document.getElementById(id); if (el && el.getBoundingClientRect().top <= 150) cur = id; });
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) cur = subs[subs.length - 1][0];   // the end of the page lights the last one
+    nav.querySelectorAll('a').forEach(x => x.classList.toggle('on', x.dataset.s === cur));
+  };
+  lrSpy = spy;   // ten getBoundingClientRect reads per scroll event, cheap enough without a throttle
+  window.addEventListener('scroll', lrSpy, { passive: true });
+  spy();
+}
 function lrPaint() {
   const host = document.getElementById('lqHost');
   if (!host) return;
+  lrRailClear();
   if (lrErr || !lrSum) { host.innerHTML = `<p class="slv-muted">${lcEsc(lrErr || 'No report yet.')}</p>`; return; }
   const s = lrSum, t = s.totals || {}, byB = s.by_branch || [];
   const typeRows = LR_TYPES.map(([k, l]) => { const m = (s.by_type || []).find(x => x.k === k); return m ? lrRow(`<b>${lcEsc(l)}</b>`, m) : null; }).filter(Boolean);
@@ -292,6 +328,7 @@ function lrPaint() {
       <div id="lrLog"></div>
     </section>`;
   lrPaintLog();
+  lrRailSubs();
 }
 
 function lrStatus(r) {
