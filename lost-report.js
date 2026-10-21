@@ -165,7 +165,7 @@ function lrDepTable(d) {
       <tr><td><b>All</b></td>${cells(t).replace(/<td>(.*?)<\/td>/g, '<td><b>$1</b></td>')}</tr></tbody></table></div>
     <h4 class="lr-dh">Who</h4>
     <div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Client</th><th>Branch</th><th>Next appointment</th>${ap ? '<th>Appointments</th>' : ''}${pol ? '<th>Service booked</th>' : ''}<th>Deposit</th>${pol ? '<th>Why</th>' : ''}</tr></thead><tbody>
-      ${who.map(w => `<tr><td>${lcEsc(w.name || '')}${pol && w.away >= 365 ? ' <span class="lr-daway">away 12+ months</span>' : ''}</td><td>${lcEsc(LC_BRANCH[w.branch] || w.branch)}</td><td>${lcEsc(lrDay(w.next))}</td>${ap ? `<td>${lcNum(w.n)}</td>` : ''}${pol ? `<td class="lr-dsvc">${lcEsc(w.svc || '')}</td>` : ''}<td>${stTxt(w)}</td>${pol ? `<td>${w.st === 'need' ? lcEsc(lrDepWhy(w.svc || '')) : ''}</td>` : ''}</tr>`).join('')}</tbody></table></div>`;
+      ${who.map(w => `<tr><td>${lcEsc(w.name || '')}</td><td>${lcEsc(LC_BRANCH[w.branch] || w.branch)}</td><td>${lcEsc(lrDay(w.next))}</td>${ap ? `<td>${lcNum(w.n)}</td>` : ''}${pol ? `<td class="lr-dsvc">${lcEsc(w.svc || '')}</td>` : ''}<td>${stTxt(w)}</td>${pol ? `<td>${w.st === 'need' ? lcEsc(lrDepWhy(w.svc || '')) : ''}</td>` : ''}</tr>`).join('')}</tbody></table></div>`;
 }
 function lrDepInner() {
   const d = lrDep;

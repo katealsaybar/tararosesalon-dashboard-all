@@ -31,21 +31,15 @@ begin
     from public.sales_transaction_lines s
     where s.item in ('Deposit', 'Deposit (Refund)') and s.date >= current_date - 90
     group by 1),
-  lv as (
-    select public.stl_key_fold(public.stl_client_key(s.client_name)) as k, max(s.date) as last_visit
-    from public.sales_transaction_lines s
-    where s.item not in ('Deposit', 'Deposit (Refund)') and s.date < current_date
-    group by 1),
   x as (
-    select bk.branch, nb.name, nb.nxt, coalesce(d.bal, 0) as bal, left(coalesce(sv.svc, ''), 90) as svc, nb.nxt - lv.last_visit as away,
+    select bk.branch, nb.name, nb.nxt, coalesce(d.bal, 0) as bal, left(coalesce(sv.svc, ''), 90) as svc,
            coalesce(ap.n, 0) as n,
            case when coalesce(d.bal, 0) > 0 then 'paid' when nb.nxt = current_date then 'today'
                 when coalesce(sv.svc, '') ~* 'balayage|foil|highlight|all over colo|restyle|extension' then 'need' else 'none' end as st
     from bk join nb on nb.k = bk.k
          left join sv on sv.k = bk.k and sv.date = nb.nxt
          left join ap on ap.k = bk.k
-         left join dep d on d.k = bk.k
-         left join lv on lv.k = bk.k)
+         left join dep d on d.k = bk.k)
   select jsonb_build_object(
     'at', now(),
     'total', (select jsonb_build_object('booked', count(*), 'appts', coalesce(sum(n), 0), 'paid', count(*) filter (where st = 'paid'),
@@ -63,7 +57,7 @@ begin
                                when nxt - current_date <= 14 then 4 else 5 end as o, count(*) c
                    from x where st = 'need' group by 1) q),
     'who', (select coalesce(jsonb_agg(jsonb_build_object('name', name, 'branch', branch, 'next', nxt, 'n', n,
-                'status', case when st in ('need', 'none') then 'unpaid' else st end, 'deposit', bal, 'st', st, 'svc', svc, 'away', away)
+                'status', case when st in ('need', 'none') then 'unpaid' else st end, 'deposit', bal, 'st', st, 'svc', svc)
                 order by case st when 'need' then 1 when 'none' then 2 when 'paid' then 3 else 4 end, nxt, name), '[]'::jsonb) from x))
   into out;
   return out;

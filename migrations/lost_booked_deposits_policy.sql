@@ -15,7 +15,8 @@
 --             none   no deposit, and anything else (a short service)
 --   unpaid (kept)  need + none
 --   soon (kept)    the unpaid by how soon;  soon_need (new)  the same for need only
---   who[]  adds st, svc (the next day's services, cut to 90 characters) and away (days since her last visit before today, null if none)
+--   who[]  adds st and svc (the next day's services, cut to 90 characters)
+-- No last-visit lookup: it scanned every sales line (11 s, over the API's 8 s limit) and the report then fell back to the old section. Fixed 21 Oct 2026.
 -- Counted per client, grouped by the branch the message came from. Level 2 and above, with the optional message filter, as it is live.
 
 create or replace function public.lost_booked_deposits(p_type text default null) returns jsonb
@@ -38,19 +39,13 @@ begin
     from public.sales_transaction_lines s
     where s.item in ('Deposit', 'Deposit (Refund)') and s.date >= current_date - 90
     group by 1),
-  lv as (
-    select public.stl_key_fold(public.stl_client_key(s.client_name)) as k, max(s.date) as last_visit
-    from public.sales_transaction_lines s
-    where s.item not in ('Deposit', 'Deposit (Refund)') and s.date < current_date
-    group by 1),
   x as (
-    select bk.branch, nb.name, nb.nxt, coalesce(d.bal, 0) as bal, left(coalesce(sv.svc, ''), 90) as svc, nb.nxt - lv.last_visit as away,
+    select bk.branch, nb.name, nb.nxt, coalesce(d.bal, 0) as bal, left(coalesce(sv.svc, ''), 90) as svc,
            case when coalesce(d.bal, 0) > 0 then 'paid' when nb.nxt = current_date then 'today'
                 when coalesce(sv.svc, '') ~* 'balayage|foil|highlight|all over colo|restyle|extension' then 'need' else 'none' end as st
     from bk join nb on nb.k = bk.k
          left join sv on sv.k = bk.k and sv.date = nb.nxt
-         left join dep d on d.k = bk.k
-         left join lv on lv.k = bk.k)
+         left join dep d on d.k = bk.k)
   select jsonb_build_object(
     'at', now(),
     'total', (select jsonb_build_object('booked', count(*), 'paid', count(*) filter (where st = 'paid'),
@@ -68,7 +63,7 @@ begin
                                when nxt - current_date <= 14 then 4 else 5 end as o, count(*) c
                    from x where st = 'need' group by 1) q),
     'who', (select coalesce(jsonb_agg(jsonb_build_object('name', name, 'branch', branch, 'next', nxt,
-                'status', case when st in ('need', 'none') then 'unpaid' else st end, 'deposit', bal, 'st', st, 'svc', svc, 'away', away)
+                'status', case when st in ('need', 'none') then 'unpaid' else st end, 'deposit', bal, 'st', st, 'svc', svc)
                 order by case st when 'need' then 1 when 'none' then 2 when 'paid' then 3 else 4 end, nxt, name), '[]'::jsonb) from x))
   into out;
   return out;
