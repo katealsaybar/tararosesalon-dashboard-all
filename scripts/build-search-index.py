@@ -51,7 +51,7 @@ OUT = ROOT / 'search-index.js'
 # One page script, one page. A file that draws several pages is handled below.
 FILE_VIEWS = {
     'compare.js': 'compare', 'daily-performance.js': 'dailyperf', 'daily-addons.js': 'dailyperf', 'google-ads.js': 'googleads', 'website.js': 'website',
-    'social.js': 'social', 'products.js': 'products', 'org-chart.js': 'orgchart',
+    'social.js': 'social', 'products.js': 'products', 'spend.js': 'supplierspend', 'org-chart.js': 'orgchart',
     'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels', 'attrition.js': 'attrition',
     'top-clients.js': 'clients',
     # Added 14 Oct 2026: these pages had no entry here, so their text was not in the index at all.

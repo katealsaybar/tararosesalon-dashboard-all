@@ -42,6 +42,7 @@ window.TRS_PAGES = /*PAGES*/[
   {"id": "reviews", "label": "Google Reviews", "group": "Numbers", "sub": "Clients", "filtered": 1, "words": "google reviews ratings stars"},
   {"id": "services", "label": "Service Rankings", "group": "Numbers", "sub": "Sales & Stock", "lazy": "cl", "words": "service rankings treatments top services"},
   {"id": "products", "lazy": "pr", "label": "Products", "group": "Numbers", "sub": "Sales & Stock", "filtered": 1, "words": "products stock orders retail professional spend"},
+  {"id": "supplierspend", "lazy": "sp", "nopulse": 1, "label": "Stock & Supplier Spend", "group": "Numbers", "sub": "Sales & Stock", "min": 4, "words": "supplier suppliers spend stock caps budget invoices invoiced categories consumables retail professional dbd accounts"},
   {"id": "ledgerTargets", "nopulse": 1, "label": "Daily Target Sheet", "group": "Targets", "section": "Ledgers · Daily Target Sheet", "filtered": 1, "ledger": 1, "lazy": "lgx", "ic": "today", "words": "daily target sheet ledger"},
   {"id": "ledgerStylist", "nopulse": 1, "label": "Daily Stylist Target", "group": "Targets", "section": "Ledgers · Daily Stylist Target", "filtered": 1, "ledger": 1, "lazy": "lgx", "ic": "today", "words": "stylist target daily ledger"},
   {"id": "ledgerActuals", "nopulse": 1, "label": "Actuals vs Targets", "group": "Targets", "section": "Ledgers · Actuals vs Targets", "filtered": 1, "ledger": 1, "lazy": "lgx", "ic": "today", "words": "actuals targets pacing ledger"},

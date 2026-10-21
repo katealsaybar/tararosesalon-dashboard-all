@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=44b4cb1a"></script>
+<script src="pages.js?v=d8755887"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3469,6 +3469,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['products.js?v=d1961633'],
+      sp:  ['spend.js?v=89c018c0'],
       sc:  ['stylist-cards.js?v=fe5a89a4'],
       oc:  ['org-chart.js?v=37a5bbdf'],
       tp:  ['team-performance.js?v=b9b2a0b2']
@@ -3623,6 +3624,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-subhead">Sales &amp; Stock</div>
     <div class="nav-sub" onclick="showView('services', this)">Service Rankings</div>
     <div class="nav-sub" onclick="showView('products', this)">Products</div>
+    <div class="nav-sub" onclick="showView('supplierspend', this)">Stock &amp; Supplier Spend</div>
   </div>
 
   <div class="nav-group">
@@ -4264,6 +4266,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="productsContent" style="padding:10px 0 48px"></main>
   </div>
 
+  <!-- STOCK & SUPPLIER SPEND (Kate, 21 Oct 2026): what every supplier invoiced, the products received under it, the five
+       categories and the caps. Level 4 and up. spend.js draws it (inside a shadow root) from spend_report(). -->
+  <div id="view-supplierspend" style="display:none">
+    <main id="spendContent" style="padding:10px 0 48px"></main>
+  </div>
+
   <!-- WELLNESS VOUCHER PERFORMANCE (Kate, 29 Sep 2026): the performance report at
        wellness-voucher-approvals/performance/, next to the log and till it reads.
        Same origin as the dashboard, but its sign-in is its own: info@, on the voucher
@@ -4349,7 +4357,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=a67ddd4e"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
-<script src="dashboard.js?v=f4ed2686"></script>
+<script src="dashboard.js?v=aeb9b461"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4843,6 +4851,7 @@ function showView(view, el){
   if (view === 'website') renderWebsite();
   if (view === 'social') renderSocial();
   if (view === 'products') renderProducts();
+  if (view === 'supplierspend') renderSpend();
   if (view === 'branchperf')    renderBranchPerformance();
   if (view === 'compare')       renderCompare();
   if (view === 'overyears')     renderOverYears();
