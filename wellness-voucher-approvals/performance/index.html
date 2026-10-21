@@ -162,7 +162,7 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
 
   <section class="card">
     <h2>Who sold them</h2>
-    <p class="sub">Vouchers and cash by the person who issued the card at the till (the name typed in Your name on the till page). Same live vouchers as everything above. A Stripe sale is paid by the client on a link and only logged at the till, so those are split by how she came to us: nurtured by the person, from a blast, or paid direct.</p>
+    <p class="sub">Vouchers and cash by the person who issued the card at the till (the name typed in Your name on the till page). Same live vouchers as everything above. A Stripe sale is paid by the client on a link and only logged at the till, so those are split by how she came to us: nurtured by the person, from the 3rd blast or an earlier one, or paid direct. A sale at the till that came from the 3rd blast is marked too.</p>
     <div id="byWho"></div>
   </section>
 
@@ -381,7 +381,7 @@ function render(){
   /* who sold them: the till's "Your name", grouped ignoring case and spacing. Blank gets its own
      row so the total always matches the headline. */
   var whoMap = {}, whoSeen = false, viaSeen = live.some(function(r){ return r.sold_via !== undefined; });
-  var VIA = { nurtured:['nurtured by her', 1], blast:['came from the blast', 2], direct:['paid direct on Stripe', 3], unsorted:['Stripe, not sorted yet', 4] };
+  var VIA = { nurtured:['nurtured by her', 1], blast3:['came from the 3rd blast', 2], blast:['came from an earlier blast', 3], direct:['paid direct on Stripe', 4], unsorted:['Stripe, not sorted yet', 5] };
   live.forEach(function(r){
     if (r.issued_by !== undefined) whoSeen = true;
     var raw = String(r.issued_by || '').replace(/\s+/g, ' ').trim(), pk = raw.toLowerCase() || '\u0000';

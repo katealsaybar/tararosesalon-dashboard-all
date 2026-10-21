@@ -5,17 +5,19 @@
 -- A Stripe sale is paid by the client on a link and only logged at the till (usually by Belle), so "Issued by" cannot say who
 -- actually sold it. sold_via says how she came to us:
 --   nurtured  the person worked her (she was a Hot Lead in GHL and the person followed up)
---   blast     she was on a blast list (the August beauty voucher blast or the 3rd blast) and paid the link
+--   blast3    she was on the 3rd blast list (messaged 15 to 16 Oct) and bought after it, at the till or on the Stripe link
+--   blast     she was on an earlier blast (the August beauty voucher blast) and paid the link
 --   direct    organic or website, paid on Stripe with no follow-up
 -- Sorted from the GHL tags and pipeline notes on 21 Oct 2026. It is a judgement call: change any line below if you know better,
 -- and set it for each new Stripe sale:  update public.voucher_issues set sold_via = 'nurtured' where branch = 'KCA' and seq = 17;
 
 alter table public.voucher_issues add column if not exists sold_via text;
 alter table public.voucher_issues drop constraint if exists voucher_issues_sold_via_check;
-alter table public.voucher_issues add constraint voucher_issues_sold_via_check check (sold_via is null or sold_via in ('nurtured','blast','direct'));
+alter table public.voucher_issues add constraint voucher_issues_sold_via_check check (sold_via is null or sold_via in ('nurtured','blast3','blast','direct'));
 
 update public.voucher_issues set sold_via = 'nurtured' where (branch, seq) in (('KCA',14),('SAA',16));
-update public.voucher_issues set sold_via = 'blast'    where (branch, seq) in (('KCA',4),('SAA',3),('SAA',5),('SAA',7),('KCA',15),('KCA',16));
+update public.voucher_issues set sold_via = 'blast'    where (branch, seq) in (('KCA',4),('SAA',3),('SAA',5),('SAA',7));
+update public.voucher_issues set sold_via = 'blast3'   where (branch, seq) in (('KCA',15),('KCA',16),('AQ',5),('SAA',15));   -- Sally Kabboush, Kate Healy, Emma Nobla (till), Natalia Rwudeko (till)
 update public.voucher_issues set sold_via = 'direct'   where (branch, seq) in (('KCA',6),('KCA',9),('SAA',4),('AQ',3));
 
 create or replace function public.voucher_perf_data()
