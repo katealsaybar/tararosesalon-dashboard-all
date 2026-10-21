@@ -66,6 +66,11 @@
       blurb: 'Top clients, client mix, last visit and Google reviews.' },
     { key: 'numbers-sales', via: 'dashboards', min: 1, ic: 'dashboards', dept: 'Numbers', title: 'Sales & Stock', href: '/?view=services', rule: 'var(--accent-lavender)',
       blurb: 'Service rankings and products.' },
+    // Kate, 21 Oct 2026: accounts (Level 4) no longer see the Business row, so these two are their way in (`only` = the levels that see the row).
+    { key: 'numbers-financials', via: 'dashboards', only: [4], ic: 'dashboards', dept: 'Numbers', title: 'Financial Totals', href: '/?view=ledgerFinancials', rule: 'var(--accent-lavender)',
+      blurb: 'Takings by branch: cash, card and other payments.' },
+    { key: 'numbers-products', via: 'dashboards', only: [4], ic: 'dashboards', dept: 'Numbers', title: 'Products', href: '/?view=products', rule: 'var(--accent-lavender)',
+      blurb: 'Stock orders, retail and professional product spend.' },
 
     // Kate, 5 Oct 2026: Tara's marketing workspace from her Full Loop handover, as she built it.
     { key: 'marketing', dept: 'Content', title: 'Marketing Workspace', href: '/hub/marketing', live: true, rule: 'var(--accent-coral)',
@@ -106,6 +111,7 @@
   // A shortcut row shows when its `via` section is open to this person and they are at
   // its `min` level; every other row when kb_access() opened its own key.
   KB.opens = function (s) {
+    if (s.only && s.only.indexOf(KB.level) < 0) return false;
     // Kate, 21 Oct 2026: a row that opens a dashboard page (/?view=...) follows that page's own list in pages.js (lv, and this
     // person's extras), via or not, so Team Home offers a coordinator the Daily Target Sheet and not the Pulse.
     var pv = /[?&]view=([A-Za-z0-9_-]+)/.exec(s.href || '');
