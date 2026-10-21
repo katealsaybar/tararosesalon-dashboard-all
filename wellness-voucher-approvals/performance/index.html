@@ -51,6 +51,20 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans)
 .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 56px}
 /* Inside the dashboard the frame is sized to this page, so the bottom gap is the dashboard's. */
 html.embedded .wrap{padding-bottom:4px}
+/* "On this page" rail (Kate, 21 Oct 2026, like Org Pulse's). Standalone only: inside the dashboard the dashboard draws its own rail
+   beside the frame from the sections this page reports (see tellHeight). Wide screens put it in the left gutter. */
+.rail{display:none}
+[id^="wv-"]{scroll-margin-top:16px}
+@media(min-width:1100px){
+  html:not(.embedded) .wrap{max-width:1290px;padding-left:206px;position:relative}
+  html:not(.embedded) body.has-rail .rail{display:block;position:absolute;left:16px;top:20px;bottom:0;width:160px}
+  .rail nav{position:sticky;top:24px}
+  .rail .k{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);padding-bottom:9px;border-bottom:1px solid var(--ink);margin-bottom:2px}
+  .rail a{display:block;padding:8px 0 8px 13px;font-size:14px;line-height:1.35;color:var(--muted);text-decoration:none;border-left:2px solid var(--line);transition:color .16s,border-color .16s}
+  .rail a:hover{color:var(--ink)}
+  .rail a.on{color:var(--ink);font-weight:600;border-left-color:var(--ink)}
+  .rail a:focus-visible{outline:2px solid var(--good);outline-offset:2px}
+}
 h1{font-family:var(--serif);font-weight:600;font-size:28px;margin:0;letter-spacing:-.01em}
 h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:0 0 2px}
 .sub{color:var(--muted);font-size:13px;margin:2px 0 0}
@@ -114,6 +128,7 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
 </head>
 <body data-auth-root="../">
 <div class="wrap">
+  <aside class="rail" id="rail" aria-label="On this page"><nav id="railNav"></nav></aside>
   <div class="top">
     <div>
       <h1>Wellness Voucher Performance</h1>
@@ -130,7 +145,7 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
 
   <div id="report">
   <!-- 1. The headline: are we going to hit the target? -->
-  <section class="card">
+  <section class="card" id="wv-headline">
     <div class="hero">
       <div>
         <div class="cap">Cash collected so far</div>
@@ -145,7 +160,7 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
   <div class="tiles" id="tiles"></div>
 
   <!-- 2. Running total vs the straight line to the target -->
-  <section class="card">
+  <section class="card" id="wv-target">
     <h2>Collected vs the target line</h2>
     <p class="sub" id="cumSub"></p>
     <div class="chart" id="cumChart"></div>
@@ -154,20 +169,20 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
   </section>
 
   <!-- 3. Branches -->
-  <section class="card">
+  <section class="card" id="wv-branch">
     <h2>By branch</h2>
     <p class="sub">Cash collected per salon. Redeemed is counted against the branch that sold the voucher, since vouchers redeem UAE-wide.</p>
     <div class="chart" id="brChart"></div>
     <details><summary>Show as table</summary><div id="brTable"></div></details>
   </section>
 
-  <section class="card">
+  <section class="card" id="wv-sold">
     <h2>Who sold them</h2>
     <p class="sub">Vouchers and cash by the person who issued the card at the till (the name typed in Your name on the till page). Same live vouchers as everything above. A Stripe sale is paid by the client on a link and only logged at the till, so those are split by how she came to us: nurtured by the person, from the 3rd blast or an earlier one, or paid direct. A sale at the till that came from the 3rd blast is marked too.</p>
     <div id="byWho"></div>
   </section>
 
-  <div class="grid2">
+  <div class="grid2" id="wv-tier">
     <section class="card">
       <h2>By tier</h2>
       <p class="sub">Units sold against the unit target (45 by 31 Oct), and cash collected, per voucher type.</p>
@@ -182,13 +197,13 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
     </section>
   </div>
 
-  <section class="card">
+  <section class="card" id="wv-referrals">
     <h2>Referrals: new faces through the door</h2>
     <p class="sub">Friends who came in on a voucher holder's Gift card, as logged on the voucher log. Three friends earn the holder AED 50 more credit.</p>
     <div class="funnel" id="funnel"></div>
   </section>
 
-  <div class="grid2">
+  <div class="grid2" id="wv-redeem">
     <section class="card">
       <h2>Redemptions per week</h2>
       <p class="sub">Credit spent in the salon, by week (Monday start).</p>
@@ -558,9 +573,35 @@ function drawAll(){ if (DATA && DATA.live.length){ drawCum(); drawBranches(); dr
 /* Embedded in the dashboard, the frame is sized to this page: say how tall it is after every
    draw, and whenever a "Show as table" opens or closes. */
 function tellHeight(){
+  railSpy();
   if (window.parent === window) return;
-  requestAnimationFrame(function(){ try { window.parent.postMessage({ type:'trs-wvperf-height', h: document.body.scrollHeight }, location.origin); } catch (e) {} });
+  requestAnimationFrame(function(){ try {
+    window.parent.postMessage({ type:'trs-wvperf-height', h: document.body.scrollHeight }, location.origin);
+    // Where each section starts, so the dashboard can draw its "On this page" rail beside the frame.
+    window.parent.postMessage({ type:'trs-wvperf-sections', items: RAIL.map(function(r){ var e = el(r[0]); return e && e.offsetParent ? { id:r[0], label:r[1], top:e.getBoundingClientRect().top + window.scrollY } : null; }).filter(Boolean) }, location.origin);
+  } catch (e) {} });
 }
+/* ---------- On this page rail (standalone) ---------- */
+var RAIL = [['wv-headline','Headline'],['wv-target','Target line'],['wv-branch','By branch'],['wv-sold','Who sold them'],['wv-tier','Tier and payment'],['wv-referrals','Referrals'],['wv-redeem','Redemptions']];
+function railBuild(){
+  var nav = el('railNav'); if (!nav || nav.firstChild) return;
+  nav.innerHTML = '<div class="k">On this page</div>' + RAIL.map(function(r){ return '<a href="#' + r[0] + '" data-r="' + r[0] + '">' + r[1] + '</a>'; }).join('');
+  nav.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[data-r]'); if (!a) return;
+    e.preventDefault(); var t = el(a.getAttribute('data-r'));
+    if (t) t.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  });
+}
+// The last section whose top has passed the reading line is the one you are on; at the very bottom, the last one.
+function railSpy(){
+  if (window.parent !== window || !el('report') || el('report').style.display !== 'block') return;
+  railBuild(); document.body.classList.add('has-rail');
+  var live = 0;
+  RAIL.forEach(function(r, i){ var e = el(r[0]); if (e && e.getBoundingClientRect().top <= 120) live = i; });
+  if (window.innerHeight + Math.ceil(window.scrollY) >= document.documentElement.scrollHeight - 2) live = RAIL.length - 1;
+  el('railNav').querySelectorAll('a').forEach(function(a, i){ a.classList.toggle('on', i === live); });
+}
+window.addEventListener('scroll', railSpy, { passive:true });
 document.addEventListener('toggle', tellHeight, true);
 var rt; window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(drawAll, 120); });
 el('refresh').onclick = load;

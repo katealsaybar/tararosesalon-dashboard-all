@@ -4272,11 +4272,18 @@ table.tp-cmp td.bad{color:var(--bad)}
        data-src, not src: loaded on first open only, so a dashboard visit does not
        boot the voucher page and its sign-in gate in the background. -->
   <div id="view-wvperf" style="display:none">
-    <iframe
-      id="wvperfFrame" title="Wellness Voucher Performance"
-      data-src="wellness-voucher-approvals/performance/" scrolling="no"
-      style="width:100%;height:calc(100vh - 120px);min-height:calc(100vh - 160px);border:none;border-radius:12px;display:block;">
-    </iframe>
+    <!-- Kate, 21 Oct 2026: the "On this page" rail, built the way Google Reviews' is. The frame reports where its sections are
+         (trs-wvperf-sections, dashboard.js drawReviewsRail) and an empty anchor sits at each one over the frame. -->
+    <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="wvShell">
+      <aside class="lg-side" id="wvSide"><nav class="side-nav" aria-label="On this page"><div class="side-k">On this page</div></nav></aside>
+      <div class="lg-doc rv-doc" id="wvDoc">
+        <iframe
+          id="wvperfFrame" title="Wellness Voucher Performance"
+          data-src="wellness-voucher-approvals/performance/" scrolling="no"
+          style="width:100%;height:calc(100vh - 120px);min-height:calc(100vh - 160px);border:none;border-radius:12px;display:block;">
+        </iframe>
+      </div>
+    </div>
   </div>
 
   <!-- REVIEWS -->
@@ -4342,7 +4349,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=a67ddd4e"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
-<script src="dashboard.js?v=216cca18"></script>
+<script src="dashboard.js?v=f4ed2686"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->

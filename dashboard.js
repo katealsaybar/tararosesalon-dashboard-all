@@ -299,6 +299,8 @@ window.addEventListener('message', e => {
   const w = document.getElementById('wvperfFrame');
   if (!w || e.source !== w.contentWindow || e.origin !== location.origin || !e.data) return;
   if (e.data.type === 'trs-wvperf-height' && e.data.h > 0) w.style.height = e.data.h + 'px';
+  // Kate, 21 Oct 2026: its "On this page" rail, the same builder as Google Reviews' (ids wv-*, shell wvShell).
+  if (e.data.type === 'trs-wvperf-sections') drawReviewsRail(e.data.items, { doc: 'wvDoc', side: 'wvSide', shell: 'wvShell', re: /^wv-[a-z]+$/ });
 });
 window.addEventListener('message', e => {
   const f = document.getElementById('reviewsFrame');
@@ -314,10 +316,11 @@ window.addEventListener('message', e => {
 // Kate, 14 Oct 2026: the "On this page" rail for Google Reviews. The frame reports its sections (id, label, top inside the
 // frame) on every height change; the nav is rebuilt only when the list itself changes, so a link is never swapped under a
 // click, and each section gets an empty anchor over the frame at its top, which is all lgJump() and spy() need.
-function drawReviewsRail(items) {
-  const doc = document.getElementById('rvDoc'), side = document.getElementById('rvSide'), shell = document.getElementById('rvShell');
+function drawReviewsRail(items, o) {
+  o = o || { doc: 'rvDoc', side: 'rvSide', shell: 'rvShell', re: /^rv-[a-z]+$/ };   // Google Reviews by default; Wellness Voucher Performance passes its own
+  const doc = document.getElementById(o.doc), side = document.getElementById(o.side), shell = document.getElementById(o.shell);
   if (!doc || !side || !shell) return;
-  items = Array.isArray(items) ? items.filter(i => i && /^rv-[a-z]+$/.test(i.id) && isFinite(+i.top)) : [];
+  items = Array.isArray(items) ? items.filter(i => i && o.re.test(i.id) && isFinite(+i.top)) : [];
   shell.classList.toggle('rv-norail', items.length < 2);
   const nav = side.querySelector('.side-nav'), sig = items.map(i => i.id + '|' + i.label).join(';');
   if (nav && nav.dataset.sig !== sig) {
