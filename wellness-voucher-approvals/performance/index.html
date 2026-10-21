@@ -177,6 +177,7 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
       <p class="sub">Share of cash collected by payment method.</p>
       <div class="chart" id="payChart"></div>
       <div id="payLegend" class="legend"></div>
+      <div id="payTable" style="margin-top:14px"></div>
     </section>
   </div>
 
@@ -520,7 +521,12 @@ function drawPay(){
   });
   host.innerHTML = s + '</svg>';
   hover(host, 'rect[data-i]', function(i){ var p = parts[i]; return '<b>' + p.name + '</b><br>' + p.n + (p.n === 1 ? ' voucher · ' : ' vouchers · ') + aed(p.amt) + ' (' + pc(p.amt, M.collected) + ')'; });
-  el('payLegend').innerHTML = parts.map(function(p){ return '<span><i style="background:' + p.color + '"></i>' + p.name + ' · ' + pc(p.amt, M.collected) + '</span>'; }).join('');
+  el('payLegend').innerHTML = parts.map(function(p){ return '<span><i style="background:' + p.color + '"></i>' + p.name + ' · ' + p.n + ' sold' + ' · ' + pc(p.amt, M.collected) + '</span>'; }).join('');
+  // Units per payment option (Kate, 21 Oct 2026): the bar is cash, so the count of vouchers sits in a small table under it.
+  var tot = parts.reduce(function(a, p){ return a + p.n; }, 0);
+  el('payTable').innerHTML = '<table><thead><tr><th>Paid via</th><th class="n">Units sold</th><th class="n">Collected</th><th class="n">Share of cash</th></tr></thead><tbody>' +
+    parts.map(function(p){ return '<tr><td><span class="dot" style="background:' + p.color + '"></span>' + p.name + '</td><td class="n">' + p.n + '</td><td class="n">' + aed(p.amt) + '</td><td class="n">' + pc(p.amt, M.collected) + '</td></tr>'; }).join('') +
+    '<tr class="tot"><td>Total</td><td class="n">' + tot + '</td><td class="n">' + aed(M.collected) + '</td><td class="n">100%</td></tr></tbody></table>';
 }
 function drawRed(){
   var host = el('redChart'), weeks = M.weeks, W = Math.max(300, host.clientWidth), H = 200, L = 40, R = 8, T = 10, B = 26;
