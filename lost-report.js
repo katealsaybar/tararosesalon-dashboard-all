@@ -151,9 +151,10 @@ function lrDepSet(v) {
   if (el) el.innerHTML = lrDepInner();
 }
 // Did our message arrive? (Kate, 18 Oct 2026). respond.io's delivery status of each message we sent, kept by the nightly sync: seen (read),
-// delivered but not read, accepted but not delivered yet, or failed (WhatsApp refused it, so she never got it). Visual by default, Table beside it.
-// Colours are the page's own: seen = --good, delivered = --accent, not yet = --muted2, failed = --bad. Counted per message sent.
-const LR_DKEYS = [['seen', 'Seen', 'd-seen'], ['delivered', 'Delivered only', 'd-delivered'], ['sent_only', 'Not delivered yet', 'd-sentonly'], ['failed', 'Failed to deliver', 'd-failed']];
+// delivered but not read, or accepted but not delivered yet. The failed count is left off the page on purpose (Kate, 21 Oct 2026): it read like our send had
+// failed when it is WhatsApp's own status on a message we did send. Visual by default, Table beside it.
+// Colours are the page's own: seen = --good, delivered = --accent, not yet = --muted2. Counted per message sent.
+const LR_DKEYS = [['seen', 'Seen', 'd-seen'], ['delivered', 'Delivered only', 'd-delivered'], ['sent_only', 'Not delivered yet', 'd-sentonly']];
 function lrDelBar(m, scale) {
   const w = k => m.sent ? (100 * (m[k] || 0) / m.sent) : 0;
   return `<span class="lr-dbar" style="width:${Math.max(4, scale)}%">${LR_DKEYS.map(([k, , c]) => `<i class="${c}" style="width:${w(k)}%"></i>`).join('')}</span>`;
@@ -165,22 +166,21 @@ function lrDelVisual(d) {
   return `<div class="ll-cards lr-cards">
       ${card(t.seen, 'Seen', lrPct(t.seen, t.sent) + ' of the sent were read')}
       ${card(t.delivered, 'Delivered only', lrPct(t.delivered, t.sent) + ', arrived but not read yet')}
-      ${card(t.failed, 'Failed to deliver', lrPct(t.failed, t.sent) + ', WhatsApp refused them', t.sent && t.failed / t.sent > 0.05 ? 'lr-warn' : '')}
       ${card(t.sent_only, 'Not delivered yet', 'accepted, no delivery report yet')}
     </div>
     <div class="lr-dgrid">
       <div class="lr-dcard"><h4>By branch</h4>
-        ${by.map(b => `<div class="lr-drow lr-drow2"><span>${lcEsc(LC_BRANCH[b.k] || b.k)}</span>${lrDelBar(b, 100)}<b>${lrPct(b.failed, b.sent)} failed</b></div>`).join('') || '<p class="slv-muted">Nothing sent yet.</p>'}
+        ${by.map(b => `<div class="lr-drow lr-drow2"><span>${lcEsc(LC_BRANCH[b.k] || b.k)}</span>${lrDelBar(b, 100)}<b>${lcNum(b.sent)} sent</b></div>`).join('') || '<p class="slv-muted">Nothing sent yet.</p>'}
         ${key}</div>
       <div class="lr-dcard"><h4>By day sent</h4>
         ${days.map(x => `<div class="lr-drow lr-drow2"><span>${lcEsc(lrDay(x.k))}</span>${lrDelBar(x, 100 * x.sent / maxD)}<b>${lcNum(x.sent)}</b></div>`).join('') || '<p class="slv-muted">Nothing sent yet.</p>'}
-        <p class="slv-note">Bar length is how many went out that day; the colours are what happened to them.</p></div>
+        <p class="slv-note">Bar length is how many went out that day; the colours are what happened to them. A blank part of a bar has no delivery result to show.</p></div>
     </div>`;
 }
 function lrDelTable(d) {
   const t = d.total, by = d.by_branch || [], days = d.by_day || [];
-  const row = (label, m, bold) => { const b = v => bold ? `<b>${v}</b>` : v; return `<tr><td>${b(label)}</td><td>${b(lcNum(m.sent))}</td><td>${b(lcNum(m.seen))}</td><td>${b(lcNum(m.delivered))}</td><td>${b(lcNum(m.sent_only))}</td><td>${b(lcNum(m.failed))}</td><td>${b(lrPct(m.failed, m.sent))}</td></tr>`; };
-  const head = first => `<thead><tr><th>${first}</th><th>Sent</th><th>Seen</th><th>Delivered only</th><th>Not delivered yet</th><th>Failed</th><th>Failed %</th></tr></thead>`;
+  const row = (label, m, bold) => { const b = v => bold ? `<b>${v}</b>` : v; return `<tr><td>${b(label)}</td><td>${b(lcNum(m.sent))}</td><td>${b(lcNum(m.seen))}</td><td>${b(lcNum(m.delivered))}</td><td>${b(lcNum(m.sent_only))}</td></tr>`; };
+  const head = first => `<thead><tr><th>${first}</th><th>Sent</th><th>Seen</th><th>Delivered only</th><th>Not delivered yet</th></tr></thead>`;
   return `<div class="lr-scroll"><table class="slv-table lr-tbl">${head('Branch')}<tbody>${by.map(b => row(lcEsc(LC_BRANCH[b.k] || b.k), b)).join('')}${row('All', t, true)}</tbody></table></div>
     <h4 class="lr-dh">By day sent</h4>
     <div class="lr-scroll"><table class="slv-table lr-tbl">${head('Day')}<tbody>${days.map(x => row(lcEsc(lrDay(x.k)), x)).join('')}</tbody></table></div>`;
