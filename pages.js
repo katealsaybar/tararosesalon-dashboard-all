@@ -12,6 +12,10 @@
      group     the sidebar group; sub is the subhead inside Numbers
      slug      the address when it is not the id (?view=last-visit is the page whose id is lostclients)
      min       the lowest dashboard level that may open it (default 1); the page and its data refuse the rest too
+     lv        Kate, 21 Oct 2026: the levels besides 3 and 5 that may open it, e.g. [2] for coordinators, [4] for accounts, [] for
+               executives only. Level 3 and Level 5 open every page. A page with no lv falls back to min. Levels are no longer
+               cumulative for 2 and 4: Level 4 does not inherit Level 3's pages. A person's own extras (dashboard_users.extra_pages)
+               open more pages for that person only. This decides what is drawn; the data itself is still protected by row-level security.
      scope     a Bahrain-scoped sign-in may open it
      filtered  reads the masthead's Branch and Period;  ledger  takes the Branch but fixes the period to the ledger month
      free      needs nothing from the Pulse's load, so a direct link opens it at once (index.html enterDashboard)
@@ -23,32 +27,32 @@
      retired   the page it was folded into; its old links and stars still land there
    Keep the list between the markers strict JSON: the check reads it. */
 window.TRS_PAGES = /*PAGES*/[
-  {"id": "dashboard", "label": "Organisation Pulse", "group": "Numbers", "sub": "Business", "scope": 1, "filtered": 1, "words": "home overview kpi sales revenue takings pulse summary"},
-  {"id": "compare", "lazy": "cmp", "label": "Comparison", "group": "Numbers", "sub": "Business", "words": "compare comparison versus vs side by side"},
-  {"id": "dailyperf", "label": "Daily Performance", "group": "Numbers", "sub": "Business", "filtered": 1, "lazy": "dp", "words": "daily day by day per branch graph chart radar heatmap weekday strengths weaknesses sales clients utilisation rebooking target"},
-  {"id": "overyears", "label": "Over the Years", "group": "Numbers", "sub": "Business", "filtered": 1, "lazy": "oty", "words": "years history annual year by year seasons month by month growth"},
-  {"id": "ledgerFinancials", "nopulse": 1, "label": "Financial Totals", "group": "Numbers", "sub": "Business", "scope": 1, "filtered": 1, "ledger": 1, "lazy": "lgx", "words": "financial totals ledger cash card payments"},
-  {"id": "team", "lazy": "tp", "nopulse": 1, "label": "Podium Race", "group": "Numbers", "sub": "Team Performance", "scope": 1, "filtered": 1, "ic": "access", "words": "podium race ranking leaderboard top performer"},
-  {"id": "teamquad", "lazy": "tp", "nopulse": 1, "label": "Staff Quadrant", "group": "Numbers", "sub": "Team Performance", "filtered": 1, "ic": "access", "words": "staff quadrant treatment retail rebook rebooking takings"},
-  {"id": "staffperf", "perfkey": 1, "label": "Staff Dashboards", "group": "Numbers", "sub": "Team Performance", "ic": "access", "words": "benchmarks money five kpi promotion rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail"},
-  {"id": "staffweeks", "lazy": "wk", "perfkey": 1, "label": "Staff’s 13 Week", "group": "Numbers", "sub": "Team Performance", "ic": "access", "words": "staff quarterly performance quarter q1 q2 q3 q4 13 week thirteen weekly report emma rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail"},
-  {"id": "stafflevels", "lazy": "lv", "perfkey": 1, "label": "Stylist’s Benchmarks", "group": "Numbers", "sub": "Team Performance", "ic": "access", "words": "levels promotion grade stylist benchmarks rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail"},
-  {"id": "attrition", "lazy": "at", "label": "Staff Attrition", "group": "Numbers", "sub": "Team Performance", "min": 3, "ic": "access", "words": "attrition turnover leavers left resigned resignation staff retention tenure how long stayed stylists beauticians churn"},
-  {"id": "clients", "label": "Top Clients", "group": "Numbers", "sub": "Clients", "lazy": "cl", "words": "top clients customers"},
-  {"id": "clientmix", "label": "Client Mix", "group": "Numbers", "sub": "Clients", "lazy": "cl", "words": "client mix colour units new returning mix of clients"},
-  {"id": "lostclients", "label": "Client’s Last Visit", "group": "Numbers", "sub": "Clients", "min": 2, "slug": "last-visit", "lazy": "cl", "ic": "lost-clients", "words": "last visit lapsed clients not back come back haven't been back win back"},
-  {"id": "lostlists", "label": "Lost Client Blasts, October 2026", "group": "Campaigns", "min": 2, "slug": "lost-clients", "lazy": "cl", "ic": "lost-clients", "words": "lost clients outreach lists whatsapp groups waves campaign templates to message"},
-  {"id": "wvblast", "label": "Wellness Voucher Blast", "group": "Campaigns", "min": 3, "lazy": "cl", "words": "voucher blast whatsapp wave send message vouchers clients"},
-  {"id": "reviews", "label": "Google Reviews", "group": "Numbers", "sub": "Clients", "filtered": 1, "words": "google reviews ratings stars"},
-  {"id": "services", "label": "Service Rankings", "group": "Numbers", "sub": "Sales & Stock", "lazy": "cl", "words": "service rankings treatments top services"},
-  {"id": "products", "lazy": "pr", "label": "Products", "group": "Numbers", "sub": "Sales & Stock", "filtered": 1, "words": "products stock orders retail professional spend"},
-  {"id": "ledgerTargets", "nopulse": 1, "label": "Daily Target Sheet", "group": "Targets", "section": "Ledgers · Daily Target Sheet", "filtered": 1, "ledger": 1, "lazy": "lgx", "ic": "today", "words": "daily target sheet ledger"},
-  {"id": "ledgerStylist", "nopulse": 1, "label": "Daily Stylist Target", "group": "Targets", "section": "Ledgers · Daily Stylist Target", "filtered": 1, "ledger": 1, "lazy": "lgx", "ic": "today", "words": "stylist target daily ledger"},
-  {"id": "ledgerActuals", "nopulse": 1, "label": "Actuals vs Targets", "group": "Targets", "section": "Ledgers · Actuals vs Targets", "filtered": 1, "ledger": 1, "lazy": "lgx", "ic": "today", "words": "actuals targets pacing ledger"},
-  {"id": "googleads", "lazy": "mk", "label": "Google Ads", "group": "Content", "min": 3, "free": 1, "ic": "marketing", "words": "ads adwords campaigns clicks spend cost per click paid search"},
-  {"id": "website", "lazy": "mk", "label": "Website & Search", "group": "Content", "min": 3, "free": 1, "ic": "dashboards", "words": "website traffic visitors seo search console sessions analytics google"},
-  {"id": "social", "lazy": "mk", "label": "Social", "group": "Content", "min": 3, "free": 1, "ic": "marketing", "words": "instagram tiktok youtube facebook followers reach views posts reels metricool"},
-  {"id": "wvperf", "label": "Wellness Voucher Performance", "group": "Campaigns", "min": 2, "ic": "campaigns", "words": "voucher performance redemptions credit collected campaign target"},
+  {"id": "dashboard", "label": "Organisation Pulse", "group": "Numbers", "sub": "Business", "scope": 1, "filtered": 1, "words": "home overview kpi sales revenue takings pulse summary", "lv": []},
+  {"id": "compare", "lazy": "cmp", "label": "Comparison", "group": "Numbers", "sub": "Business", "words": "compare comparison versus vs side by side", "lv": []},
+  {"id": "dailyperf", "label": "Daily Performance", "group": "Numbers", "sub": "Business", "filtered": 1, "lazy": "dp", "words": "daily day by day per branch graph chart radar heatmap weekday strengths weaknesses sales clients utilisation rebooking target", "lv": []},
+  {"id": "overyears", "label": "Over the Years", "group": "Numbers", "sub": "Business", "filtered": 1, "lazy": "oty", "words": "years history annual year by year seasons month by month growth", "lv": []},
+  {"id": "ledgerFinancials", "nopulse": 1, "label": "Financial Totals", "group": "Numbers", "sub": "Business", "scope": 1, "filtered": 1, "ledger": 1, "lazy": "lgx", "words": "financial totals ledger cash card payments", "lv": [4]},
+  {"id": "team", "lazy": "tp", "nopulse": 1, "label": "Podium Race", "group": "Numbers", "sub": "Team Performance", "scope": 1, "filtered": 1, "ic": "access", "words": "podium race ranking leaderboard top performer", "lv": [2]},
+  {"id": "teamquad", "lazy": "tp", "nopulse": 1, "label": "Staff Quadrant", "group": "Numbers", "sub": "Team Performance", "filtered": 1, "ic": "access", "words": "staff quadrant treatment retail rebook rebooking takings", "lv": []},
+  {"id": "staffperf", "perfkey": 1, "label": "Staff Dashboards", "group": "Numbers", "sub": "Team Performance", "ic": "access", "words": "benchmarks money five kpi promotion rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail", "lv": []},
+  {"id": "staffweeks", "lazy": "wk", "perfkey": 1, "label": "Staff’s 13 Week", "group": "Numbers", "sub": "Team Performance", "ic": "access", "words": "staff quarterly performance quarter q1 q2 q3 q4 13 week thirteen weekly report emma rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail", "lv": []},
+  {"id": "stafflevels", "lazy": "lv", "perfkey": 1, "label": "Stylist’s Benchmarks", "group": "Numbers", "sub": "Team Performance", "ic": "access", "words": "levels promotion grade stylist benchmarks rebooking retention conversion request rate column fill colour client numbers new client requests reputation treatment retail", "lv": []},
+  {"id": "attrition", "lazy": "at", "label": "Staff Attrition", "group": "Numbers", "sub": "Team Performance", "min": 3, "ic": "access", "words": "attrition turnover leavers left resigned resignation staff retention tenure how long stayed stylists beauticians churn", "lv": []},
+  {"id": "clients", "label": "Top Clients", "group": "Numbers", "sub": "Clients", "lazy": "cl", "words": "top clients customers", "lv": []},
+  {"id": "clientmix", "label": "Client Mix", "group": "Numbers", "sub": "Clients", "lazy": "cl", "words": "client mix colour units new returning mix of clients", "lv": []},
+  {"id": "lostclients", "label": "Client’s Last Visit", "group": "Numbers", "sub": "Clients", "min": 2, "slug": "last-visit", "lazy": "cl", "ic": "lost-clients", "words": "last visit lapsed clients not back come back haven't been back win back", "lv": [2]},
+  {"id": "lostlists", "label": "Lost Client Blasts, October 2026", "group": "Campaigns", "min": 2, "slug": "lost-clients", "lazy": "cl", "ic": "lost-clients", "words": "lost clients outreach lists whatsapp groups waves campaign templates to message", "lv": [2]},
+  {"id": "wvblast", "label": "Wellness Voucher Blast", "group": "Campaigns", "min": 3, "lazy": "cl", "words": "voucher blast whatsapp wave send message vouchers clients", "lv": []},
+  {"id": "reviews", "label": "Google Reviews", "group": "Numbers", "sub": "Clients", "filtered": 1, "words": "google reviews ratings stars", "lv": [2]},
+  {"id": "services", "label": "Service Rankings", "group": "Numbers", "sub": "Sales & Stock", "lazy": "cl", "words": "service rankings treatments top services", "lv": []},
+  {"id": "products", "lazy": "pr", "label": "Products", "group": "Numbers", "sub": "Sales & Stock", "filtered": 1, "words": "products stock orders retail professional spend", "lv": [4]},
+  {"id": "ledgerTargets", "nopulse": 1, "label": "Daily Target Sheet", "group": "Targets", "section": "Ledgers · Daily Target Sheet", "filtered": 1, "ledger": 1, "lazy": "lgx", "ic": "today", "words": "daily target sheet ledger", "lv": [2]},
+  {"id": "ledgerStylist", "nopulse": 1, "label": "Daily Stylist Target", "group": "Targets", "section": "Ledgers · Daily Stylist Target", "filtered": 1, "ledger": 1, "lazy": "lgx", "ic": "today", "words": "stylist target daily ledger", "lv": [2]},
+  {"id": "ledgerActuals", "nopulse": 1, "label": "Actuals vs Targets", "group": "Targets", "section": "Ledgers · Actuals vs Targets", "filtered": 1, "ledger": 1, "lazy": "lgx", "ic": "today", "words": "actuals targets pacing ledger", "lv": [2]},
+  {"id": "googleads", "lazy": "mk", "label": "Google Ads", "group": "Content", "min": 3, "free": 1, "ic": "marketing", "words": "ads adwords campaigns clicks spend cost per click paid search", "lv": []},
+  {"id": "website", "lazy": "mk", "label": "Website & Search", "group": "Content", "min": 3, "free": 1, "ic": "dashboards", "words": "website traffic visitors seo search console sessions analytics google", "lv": []},
+  {"id": "social", "lazy": "mk", "label": "Social", "group": "Content", "min": 3, "free": 1, "ic": "marketing", "words": "instagram tiktok youtube facebook followers reach views posts reels metricool", "lv": []},
+  {"id": "wvperf", "label": "Wellness Voucher Performance", "group": "Campaigns", "min": 2, "ic": "campaigns", "words": "voucher performance redemptions credit collected campaign target", "lv": [2, 4]},
   {"id": "stylists", "lazy": "sc", "label": "Staff Cards", "group": "People", "free": 1, "ic": "access", "words": "cards photos instagram profiles"},
   {"id": "orgchart", "lazy": "oc", "label": "Org Chart", "group": "People", "free": 1, "ic": "people", "words": "org chart structure hierarchy"},
   {"id": "branchperf", "label": "Branch Performance", "retired": "dailyperf", "scope": 1, "filtered": 1, "words": "branch staff table figures services retail"}
@@ -59,6 +63,23 @@ window.TRS_PAGES = /*PAGES*/[
   window.trsPage = function (id) { return by[id] || null; };
   // The page an id really opens: a retired page opens the one it was folded into.
   window.trsLive = function (id) { var p = by[id]; return p && p.retired ? p.retired : id; };
+  // Kate, 21 Oct 2026: who may open a page. Level 5 (Kate) and Level 3 (executives and marketing) open all of them. Level 2
+  // (coordinators) and Level 4 (accounts) open only the pages whose lv lists them, plus any page named in their own extras.
+  // Below Level 2, or with no level, the old rule stands (min), so nothing changes for Level 1 until reception's own view is built.
+  window.trsPageOpen = function (id, level, extras) {
+    var p = by[window.trsLive(id)];
+    if (!p) return true;
+    if (!level || level < 2) return (p.min || 1) <= (level || 1);
+    if (level >= 5 || level === 3) return true;
+    if (extras && extras.indexOf(p.id) >= 0) return true;
+    if (p.lv) return p.lv.indexOf(level) >= 0;
+    return (p.min || 1) <= level;
+  };
+  // The page a person lands on when none is asked for (or the one asked for is not theirs): the Pulse for executives, the
+  // Daily Target Sheet for coordinators, Financial Totals for accounts.
+  window.trsHomePage = function (level) {
+    return level === 2 ? 'ledgerTargets' : level === 4 ? 'ledgerFinancials' : 'dashboard';
+  };
   window.trsPageLabel = function (id) { var p = by[window.trsLive(id)]; return p ? p.label : id; };
   window.trsPageMin = function (id) { var p = by[id]; return (p && p.min) || 1; };
   window.trsSlugOf = function (id) { var p = by[id]; return (p && p.slug) || id; };

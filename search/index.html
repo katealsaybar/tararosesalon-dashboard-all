@@ -229,10 +229,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <script src="/auth.js?v=3823f956"></script>
 <!-- The list of dashboard pages: names, levels, icons. The same list the dashboard reads. -->
-<script src="/pages.js?v=44b4cb1a"></script>
+<script src="/pages.js?v=536dc1f1"></script>
 <!-- Team Home's own script: the sign-in check, the icons and the stars. It draws no header here (no #kbHead). -->
 <script src="/voice-mic.js?v=62fac83a"></script>
-<script src="/hub/hub.js?v=2c1a9245"></script>
+<script src="/hub/hub.js?v=88713ec4"></script>
 <script>
 (async function () {
   // Signed in and on a list, as Team Home checks it; anyone else is sent to the sign-in card
@@ -334,7 +334,7 @@
         });
       }
       if (dash) Object.keys(favs).forEach(function (k) {
-        if (k.indexOf('d:') === 0 && DASH[k.slice(2)]) add(DASH[k.slice(2)], '/?view=' + k.slice(2), dashIcon(k.slice(2)), true);
+        if (k.indexOf('d:') === 0 && DASH[k.slice(2)] && trsPageOpen(k.slice(2), KB.level, KB.extra)) add(DASH[k.slice(2)], '/?view=' + k.slice(2), dashIcon(k.slice(2)), true);
       });
     } catch (e) { /* no favourites to show; the rest still can */ }
 
@@ -479,7 +479,7 @@
   });
   if (dash) Object.keys(DASH).forEach(function (v) {
     var h = '/?view=' + v;
-    if (localSeen[h] || KB.level < (DASH_MIN[v] || 1)) return;
+    if (localSeen[h] || !trsPageOpen(v, KB.level, KB.extra)) return;
     localSeen[h] = 1; local.push({ t: DASH[v], h: h, g: 'Dashboard', b: '' });
   });
   local.forEach(function (x) { x.tw = words(x.t); x.bw = words(x.b); });

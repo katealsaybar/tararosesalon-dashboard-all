@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=44b4cb1a"></script>
+<script src="pages.js?v=536dc1f1"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -4529,6 +4529,7 @@ let DASHBOARD_OPEN = false;
 // offered to click either. Null for everyone else: the whole dashboard, as before.
 let TRS_SCOPE = null;
 let TRS_LEVEL = null;   // dashboard_users.level, from dashboard_me()
+let TRS_EXTRA = [];     // dashboard_users.extra_pages: pages opened for this person alone (Kate, 21 Oct 2026)
 const SCOPE_VIEWS = new Set(TRS_PAGES.filter(p => p.scope).map(p => p.id));   // pages.js
 function applyScope(code){
   TRS_SCOPE = code;
@@ -4587,12 +4588,14 @@ async function enterDashboard(role, meAsk){
   // Reception (Level 1 on dashboard_users, Kate 1 Oct 2026): the dashboards, but not
   // Campaigns. The menu entry goes and the page itself refuses (showView).
   TRS_LEVEL = viewAs ? viewAs.level : ((me && me.level) || null);
+  TRS_EXTRA = (viewAs ? viewAs.extra : (me && me.extra_pages)) || [];
   // Kate, 6 Oct 2026: Campaigns now shares a group with Marketing, so the page row
   // goes, not the group; a group with nothing left open hides below.
   const hideNav = v => { const n = document.querySelector(`#sidebar .nav-sub[onclick*="showView('${v}'"]`); if (n) n.style.display = 'none'; };
   // Each page's lowest level is in pages.js (min): Lost Clients and Wellness Voucher Performance 2, the Blast and the Content pages 3
   // (client names and numbers, ad spend). A page the level does not reach leaves the menu; the page and its data refuse it too.
-  TRS_PAGES.forEach(p => { if ((p.min || 1) > 1 && !(TRS_LEVEL >= p.min)) hideNav(p.id); });
+  // Kate, 21 Oct 2026: coordinators (Level 2) and accounts (Level 4) each get their own list (lv in pages.js), not every page below their level.
+  TRS_PAGES.forEach(p => { if (!trsPageOpen(p.id, TRS_LEVEL, TRS_EXTRA)) hideNav(p.id); });
   tidyNav();
   {
     const first = ((me && me.name) || '').split(/[\s(]/)[0].replace(/[<>&"]/g, '');
@@ -4605,22 +4608,22 @@ async function enterDashboard(role, meAsk){
   const perfKey = TRSAuth.perfKey();
   // Opened on Lost Clients (Kate, 2 Oct 2026): the page needs none of loadData, so it
   // opens now and its own two calls run beside loadData instead of after it.
-  const viewQ = new URLSearchParams(location.search).get('view');
+  const viewQ = new URLSearchParams(location.search).get('view') || (!TRS_SCOPE && trsHomePage(TRS_LEVEL) !== 'dashboard' ? trsHomePage(TRS_LEVEL) : null);
   // A link to a page whose script loads on demand starts that download now, beside loadData, instead of after it.
   { const lzq = typeof trsLazyOf === 'function' ? trsLazyOf(viewQ) : null; if (lzq) trsLazy(lzq).catch(() => {}); }
-  const earlyLost = viewQ === 'lostclients' && TRS_LEVEL >= 2 && typeof trsLazyOf === 'function' && !!trsLazyOf('lostclients');
+  const earlyLost = viewQ === 'lostclients' && trsPageOpen('lostclients', TRS_LEVEL, TRS_EXTRA) && typeof trsLazyOf === 'function' && !!trsLazyOf('lostclients');
   // Audit 17 Oct 2026 (P2-06, P6-07): five more pages need nothing from loadData (no masthead window, no ledger rows: Google Ads,
   // Website and Search, Social, Staff Cards, Org Chart), so a direct link opens them now instead of after the whole Pulse load.
   // The level and scope rules are the ones showView applies, checked first so a page the person may not open never half-draws.
   const earlyPage = trsPage(viewQ);   // pages.js: free, min
-  const earlyFree = !TRS_SCOPE && !!(earlyPage && earlyPage.free && ((earlyPage.min || 1) <= 1 || TRS_LEVEL >= earlyPage.min));
+  const earlyFree = !TRS_SCOPE && !!(earlyPage && earlyPage.free && trsPageOpen(viewQ, TRS_LEVEL, TRS_EXTRA));
   // Audit 18 Oct 2026 (P3-15): Staff Dashboards, Staff's 13 Week and Stylist's Benchmarks read their numbers through the
   // sign-in's Staff Benchmarks key (SPF_AUTO) and not through loadData, so they open as soon as that key is in.
-  const earlyKeyed = !TRS_SCOPE && !!(earlyPage && earlyPage.perfkey && ((earlyPage.min || 1) <= 1 || TRS_LEVEL >= earlyPage.min));
+  const earlyKeyed = !TRS_SCOPE && !!(earlyPage && earlyPage.perfkey && trsPageOpen(viewQ, TRS_LEVEL, TRS_EXTRA));
   // Audit 18 Oct 2026 (P2-06): the four Ledgers pages, Podium Race and Staff Quadrant need the window, the last day of data, the address and the
   // weekly table (trsWindowReady) and nothing the Pulse computes, so they open the moment those are in, not after the freshness badge,
   // the update watch and the Pulse. A window that never arrives (20 s) opens the page anyway, as the slow path would.
-  const earlyWindow = !TRS_SCOPE && !!(earlyPage && earlyPage.nopulse && ((earlyPage.min || 1) <= 1 || TRS_LEVEL >= earlyPage.min));
+  const earlyWindow = !TRS_SCOPE && !!(earlyPage && earlyPage.nopulse && trsPageOpen(viewQ, TRS_LEVEL, TRS_EXTRA));
   const earlyView = earlyLost || earlyFree || earlyKeyed || earlyWindow;
   const earlyName = earlyLost ? 'lostclients' : viewQ;
   // Lost Clients' script arrives with the download started above; its own two calls then run beside loadData, as before.
@@ -4643,7 +4646,7 @@ async function enterDashboard(role, meAsk){
   const params = new URLSearchParams(window.location.search);
   // Audit 17 Oct 2026 (P1-03): a ?view= with a quote mark in it threw inside querySelector and left the loader up for 25 s with no page.
   // A page name is letters, digits, hyphen and underscore; anything else opens the Pulse.
-  const viewParam = params.get('view') || 'dashboard';
+  const viewParam = params.get('view') || trsHomePage(TRS_LEVEL);
   const activeView = /^[A-Za-z0-9_-]{1,40}$/.test(viewParam) ? viewParam : 'dashboard';
   const btn = document.querySelector(`[onclick*="${activeView}"]`);
   // Already open early: leave that page as drawn; a page picked meanwhile redraws with the data.
@@ -4712,7 +4715,8 @@ function showView(view, el){
   if (TRS_SCOPE && !SCOPE_VIEWS.has(view)) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   // The lowest level for each page is in pages.js (min): Wellness Voucher Performance and Lost Clients 2, the Blast and the three
   // Content pages 3. The page's data refuses the rest as well.
-  { const need = trsPageMin(view); if (need > 1 && !(TRS_LEVEL >= need)) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); } }
+  // Kate, 21 Oct 2026: a page that is not on this person's list opens their own landing page (the Pulse, the Daily Target Sheet or Financial Totals).
+  if (!trsPageOpen(view, TRS_LEVEL, TRS_EXTRA)) { view = trsHomePage(TRS_LEVEL); el = document.querySelector(`[onclick*="showView('${view}'"]`); }
   // The page's script has not arrived yet (first open, before the idle load finished): fetch it, then run this whole call again, so
   // nothing below ever meets a missing function. The page being left stays up meanwhile.
   const lz = typeof trsLazyOf === 'function' ? trsLazyOf(view) : null;

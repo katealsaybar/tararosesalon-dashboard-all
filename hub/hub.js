@@ -106,7 +106,14 @@
   // A shortcut row shows when its `via` section is open to this person and they are at
   // its `min` level; every other row when kb_access() opened its own key.
   KB.opens = function (s) {
-    if (s.via) return KB.allowed.indexOf(s.via) >= 0 && KB.level >= (s.min || 1);
+    if (s.via) {
+      if (KB.allowed.indexOf(s.via) < 0) return false;
+      // Kate, 21 Oct 2026: a dashboard shortcut follows the page's own list in pages.js (lv, and this person's extras), so Team Home
+      // offers a coordinator the Daily Target Sheet and not the Pulse. A row that is not a dashboard page keeps its min.
+      var pv = /[?&]view=([A-Za-z0-9_-]+)/.exec(s.href || '');
+      if (pv && typeof trsPageOpen === 'function') return trsPageOpen(pv[1], KB.level, KB.extra);
+      return KB.level >= (s.min || 1);
+    }
     return KB.allowed.indexOf(s.key) >= 0;
   };
   KB.LEVELS = { 1: 'Team', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin', 5: 'Backend' };
@@ -350,6 +357,13 @@
           KB.access = Object.assign({}, KB.access, { dept: p.data.dept, scope: null });
         }
       }
+    }
+    // Kate, 21 Oct 2026: pages opened for one person alone (dashboard_users.extra_pages); only Level 2 and 4 can have any.
+    KB.extra = [];
+    if (KB.viewAs) KB.extra = KB.viewAs.extra || [];
+    else if (KB.level === 2 || KB.level === 4) {
+      var dm = await c.rpc('dashboard_me');
+      KB.extra = (!dm.error && dm.data && dm.data[0] && dm.data[0].extra_pages) || [];
     }
     // Kate, 5 Oct 2026: a Level 1 preview also hides the leadership-only pages inside an
     // open section (audience 'manager', like the trade test). The database already hides
