@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en-GB" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup: Fathom notes beside the 1-to-1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F9E8DF;--surface:#fff;--surface2:#fdf8f6;
+  --border:#e8d5cc;--text:#5C5557;--muted:#9a8a87;
+  --good:#0F6E56;--good-bg:#E1F5EE;
+  --warn:#BA7517;--warn-bg:#FAEEDA;
+  --bad:#A32D2D;--bad-bg:#FCEBEB;
+  --none:#a09898;--none-bg:#f3eeec;
+  --btn:#5C5557;--btn-fg:#F9E8DF;--bar:#8E7CC3;--new:#6D28D9;--new-bg:rgba(109,40,217,.07);
+}
+:root[data-theme="dark"]{
+  --bg:#2D2E37;--surface:#383944;--surface2:#3f4052;
+  --border:rgba(250,248,243,0.09);--text:#FAF8F3;--muted:rgba(250,248,243,0.55);
+  --good:#99F6E4;--good-bg:rgba(153,246,228,0.12);
+  --warn:#EEF3C7;--warn-bg:rgba(238,243,199,0.12);
+  --bad:#FF9B9B;--bad-bg:rgba(255,155,155,0.12);
+  --none:rgba(250,248,243,0.4);--none-bg:rgba(250,248,243,0.05);
+  --btn:#FFD4D9;--btn-fg:#2D2E37;--bar:#C4B5FD;--new:#C4B5FD;--new-bg:rgba(196,181,253,.10);
+}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.45;font-size:15px}
+h1{font-family:'Playfair Display',Georgia,serif;font-weight:600;font-size:34px;line-height:1.15}
+h2{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:23px;margin-bottom:4px}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:12px}
+.muted{color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px}
+.card.new{border-color:var(--new);box-shadow:0 0 0 3px var(--new-bg)}
+.rows{display:flex;flex-direction:column;gap:6px}
+.row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;padding:9px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:14px}
+.row .r-val{font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;column-gap:8px;margin-left:auto;text-align:right}
+.row .r-tail{display:inline-flex;align-items:center;gap:8px}
+.row .r-val small{color:var(--muted)}
+.row .r-note{flex-basis:100%;color:var(--muted);font-size:12px;line-height:1.4}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--none);flex-shrink:0;display:inline-block}
+.dot.good{background:var(--good)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
+.legend{font-size:12px;color:var(--muted);margin-top:10px}
+.note{border-left:3px solid var(--border);padding:6px 10px;margin-bottom:8px;font-size:14px}
+.btn{font:inherit;font-weight:600;background:var(--btn);color:var(--btn-fg);border:none;border-radius:10px;padding:9px 14px;cursor:pointer;margin-top:8px}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.chip{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--none-bg);color:var(--muted);white-space:nowrap}
+.chip.good{background:var(--good-bg);color:var(--good)}.chip.warn{background:var(--warn-bg);color:var(--warn)}.chip.new{background:var(--new-bg);color:var(--new)}
+.meter{height:6px;border-radius:99px;background:var(--none-bg);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--bar);border-radius:99px}
+.act{border-left:3px solid var(--bar);padding:10px 12px;background:var(--surface2);border-radius:0 10px 10px 0;font-size:14.5px;margin-top:10px}
+.act .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px}
+.act small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
+details.more{margin-top:10px}
+details.more summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:9px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface2);font-weight:600;font-size:14px;color:var(--text)}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary .hint{font-weight:500;font-size:12.5px;color:var(--muted)}
+details.more[open] summary{margin-bottom:8px}
+.pills{display:flex;gap:6px;margin:0 0 12px;flex-wrap:wrap}
+.pill{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:999px;padding:8px 14px;min-height:40px;background:var(--surface2);color:var(--muted);cursor:pointer}
+.pill.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:600;padding:7px 6px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:7px 6px;border-bottom:1px solid var(--border);vertical-align:top}
+.tbl .r{text-align:right;font-variant-numeric:tabular-nums}
+.tbl-wrap{overflow-x:auto}
+.auto{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--new);font-weight:600}
+
+/* Page chrome around the two mockups */
+.page{max-width:1180px;margin:0 auto;padding:22px 18px 60px}
+.intro{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px}
+.intro h1{font-size:30px}
+.intro p{max-width:760px;margin-top:6px;color:var(--muted);font-size:14px}
+.sample{display:inline-block;margin-top:10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--warn-bg);color:var(--warn)}
+.theme{font:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:7px 14px;cursor:pointer}
+.part{margin-top:40px}
+.part>h2{font-size:26px;margin-bottom:2px}
+.part>.sub{margin-bottom:18px;font-size:14px}
+.a-grid{display:grid;grid-template-columns:minmax(0,410px) minmax(0,1fr);gap:30px;align-items:start}
+@media (max-width:900px){.a-grid{grid-template-columns:minmax(0,1fr)}}
+.notes{display:flex;flex-direction:column;gap:12px}
+.notes .n{display:flex;gap:12px;font-size:14px}
+.notes .n b{flex:none;width:26px;height:26px;border-radius:50%;background:var(--new);color:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+.notes .n span{padding-top:3px}
+.notes .n span em{font-style:normal;color:var(--muted)}
+.outline{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.outline span{font-size:12px;padding:6px 10px;border-radius:8px;border:1px dashed var(--border);color:var(--muted)}
+.outline span.n{border:1px solid var(--new);color:var(--new);background:var(--new-bg);font-weight:600}
+
+/* Phone frame: the live My Numbers page at 390px */
+.phone{border:1px solid var(--border);border-radius:30px;padding:8px;background:var(--surface);box-shadow:0 18px 50px -20px rgba(0,0,0,.5)}
+.phone-in{height:790px;overflow-y:auto;border-radius:22px;background:var(--bg);scrollbar-width:thin}
+.p-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+.brand{display:flex;flex-direction:column;align-items:center;gap:4px}
+.brand b{font-weight:400;letter-spacing:.22em;font-size:15px;text-indent:.22em}
+.brand i{font-style:normal;font-size:9px;letter-spacing:.36em;text-indent:.36em;text-transform:uppercase}
+.p-acts{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.home{width:36px;height:36px;border-radius:50%;background:#99F6E4;color:#1A1A1A;display:grid;place-items:center;font-size:16px}
+.pdd{background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--text);font-weight:500}
+.p-wrap{padding:14px 12px 0}
+#perfTabs{display:flex;gap:4px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--surface);overflow-x:auto}
+#perfTabs button{flex:1 1 0;font:inherit;font-size:13px;font-weight:600;border:0;border-radius:999px;padding:9px 6px;min-height:44px;background:transparent;color:var(--muted);cursor:pointer;line-height:1.2}
+#perfTabs button.on{background:var(--btn);color:var(--btn-fg)}
+#perfTabs button.fresh{position:relative}
+#perfTabs button.fresh:not(.on)::after{content:"";position:absolute;top:6px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--new)}
+.p-main{padding:14px 12px 24px}
+.p-main h2{font-size:22px}
+.stub{border:1.5px dashed var(--border);border-radius:14px;padding:16px;color:var(--muted);font-size:14px;margin-bottom:14px}
+.nudge{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1.5px dashed var(--new);background:var(--new-bg);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:14px}
+.nudge small{display:block;color:var(--muted);font-size:12px}
+.nudge .tag{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--new);font-weight:700}
+.sid{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;font-size:13.5px}
+.sid .meter{grid-column:1/-1;margin-bottom:6px}
+.chk{list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.chk li{display:flex;gap:9px;line-height:1.35}
+.chk li i{flex:none;font-style:normal;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:var(--none-bg);color:var(--muted)}
+.chk li.y i{background:var(--good-bg);color:var(--good)}
+.chk li.todo{color:var(--text);font-weight:500}
+.goal{font-size:17px;font-weight:600;line-height:1.3;margin:2px 0 8px}
+.qa{font-size:13.5px;margin-top:8px}.qa b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:1px}
+.private{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:14px}
+
+/* Leader view: Staff Benchmarks inside the dashboard */
+.lead{border:1px solid var(--border);border-radius:16px;background:var(--bg);overflow:hidden;box-shadow:0 18px 50px -24px rgba(0,0,0,.5)}
+.l-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 22px;background:var(--surface);border-bottom:1px solid var(--border)}
+.l-top .brand{align-items:flex-start}
+.l-top .grow{flex:1}
+.l-find{flex:1;min-width:200px;max-width:340px;border:1px solid var(--border);border-radius:999px;padding:9px 16px;color:var(--muted);font-size:14px;background:var(--surface2)}
+.l-btn{font-size:12px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--border);border-radius:999px;padding:9px 16px;color:var(--muted);background:var(--surface2)}
+.l-btn.mint{background:#99F6E4;color:#1A1A1A;border-color:#99F6E4;font-weight:600}
+.l-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 26px;border-bottom:1px solid var(--border);font-size:13px;letter-spacing:.22em;text-transform:uppercase;font-weight:600}
+.l-body{padding:22px 26px 10px;max-width:980px;margin:0 auto}
+.l-head h1{font-size:32px}
+.l-head .sub{font-size:14px;margin:2px 0 14px}
+.l-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.fold{display:flex;align-items:center;gap:10px;width:100%}
+.fold .eyebrow{margin:0;flex:1}
+.fold .s{font-size:12px;color:var(--muted)}
+.card.ctx{padding:13px 16px;opacity:.75}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.card-head h2{margin:0}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 16px;font-size:12.5px}
+.steps span{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
+.steps span b{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:10px;background:var(--none-bg)}
+.steps span.done{color:var(--good);border-color:transparent;background:var(--good-bg)}
+.steps span.done b{background:var(--good);color:var(--bg)}
+.steps span.cur{color:var(--text);border-color:var(--new);font-weight:600}
+.steps span.cur b{background:var(--new);color:var(--bg)}
+.sec{margin:20px 0 8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;gap:10px;align-items:center}
+.sec::after{content:"";flex:1;height:1px;background:var(--border)}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.g2,.g3{grid-template-columns:minmax(0,1fr)}}
+.fl{display:flex;flex-direction:column;gap:4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+input,select,textarea{font:inherit;font-size:14px;letter-spacing:0;text-transform:none;font-weight:400;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;width:100%}
+textarea{min-height:64px;resize:vertical}
+.ltbl input,.ltbl select{padding:6px 8px;font-size:13.5px}
+.ltbl td{padding:6px 5px}
+.ltbl .auto-v{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;padding-top:10px}
+.lock{font-size:11px;color:var(--muted)}
+.ck{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;padding:6px 2px;line-height:1.35}
+.ck input{width:18px;height:18px;margin-top:1px;flex:none;accent-color:#8E7CC3}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center}
+.btns .btn{margin-top:0}
+.goalcol{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.goalcol h3{font-size:14px;font-weight:700}
+.goalcol .empty{font-size:13.5px;color:var(--muted);padding:6px 0}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:13.5px;z-index:50;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);max-width:90vw}
+.who{font-size:12.5px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+</style>
+<style>
+.fx-tag{display:inline-flex;gap:6px;align-items:center}
+.fx-tag select{width:auto;padding:4px 8px;font-size:12.5px;border-radius:999px}
+details.fx{border:1px solid var(--border);border-radius:12px;background:var(--surface2);margin-top:8px}
+details.fx>summary{list-style:none;cursor:pointer;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;min-height:44px}
+details.fx>summary::-webkit-details-marker{display:none}
+details.fx .t{font-weight:600;font-size:14px}
+details.fx .d{font-size:12.5px;color:var(--muted)}
+.fx-body{padding:2px 14px 14px;font-size:14px;line-height:1.5}
+.fx-body ul{margin:0 0 8px;padding-left:20px}.fx-body li{margin-bottom:3px}
+.fx-h{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:12px 0 4px}
+.fx-un{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--border);margin-top:6px}
+.fx-where{border:1.5px dashed var(--new);background:var(--new-bg);border-radius:12px;padding:8px 12px;margin:0 0 12px;font-size:13px;color:var(--new);font-weight:600}
+.ptabs{display:flex;gap:6px;margin:6px 0 14px;flex-wrap:wrap}
+.acts-tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.acts-tbl th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:600;padding:6px;border-bottom:1px solid var(--border)}
+.acts-tbl td{padding:6px;border-bottom:1px solid var(--border);height:38px}
+.acts-tbl td.f{background:var(--new-bg)}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="intro">
+    <div>
+      <h1>Fathom notes on the 1-to-1</h1>
+      <p>Where the new From Fathom card sits inside Staff Benchmarks, on Ibrahim's page, as Kate and Emma see it. Click around: the tags, Open, Add action items and Dismiss all work. Nothing is saved and nothing is connected to Fathom.</p>
+      <span class="sample">Sample meetings and wording, not real calls</span>
+    </div>
+    <button class="theme" id="themeBtn" type="button">Light</button>
+  </div>
+
+  <section class="part">
+    <h2>Staff Benchmarks, Ibrahim</h2>
+    <p class="sub">The card is the first thing in the 1-to-1 part of his page, above the form Emma fills in.</p>
+    <div class="lead" id="lead">
+      <div class="l-top"><div class="brand"><b>TARA ROSE</b><i>Salons</i></div><div class="l-find">&#9906; Find a person, page ...</div><span class="grow"></span><span class="l-btn mint">Team Home</span><span class="l-btn">Sections</span><span style="font-size:14px">Hello, <b>Kate</b></span></div>
+      <div class="l-bar"><span>Staff Benchmarks</span><span class="pdd" style="letter-spacing:0;text-transform:none;font-weight:500">Oct 2026 &#8964;</span></div>
+      <div class="l-body">
+        <div class="l-head"><h1>Ibrahim Al Mofdi</h1><p class="sub">Senior Stylist &middot; AQ &middot; October 2026</p>
+          <div class="l-chips"><span class="chip">1-to-1 October: draft</span><span class="chip">Goals: next check Tue 5 Jan 2027</span></div></div>
+        <section class="card ctx"><div class="fold"><div class="eyebrow">Win and tip</div><span class="s">Retention up</span><span class="muted">&#8963;</span></div></section>
+        <section class="card ctx"><div class="fold"><div class="eyebrow">Notes from Tara and Emma</div><span class="s">None yet</span><span class="muted">&#8963;</span></div></section>
+
+        <div class="fx-where">New: the From Fathom card sits here, at the top of the 1-to-1 part</div>
+        <div class="ptabs"><span class="pill on">Monthly 1-to-1</span><span class="pill">Goals</span><span class="pill">Checklist</span></div>
+
+        <section class="card new" id="fxCard">
+          <div class="fold"><span style="flex:1"><div class="eyebrow">From Fathom</div><h2>Meeting notes with Ibrahim</h2></span><span class="chip new" id="fxNew">New</span></div>
+          <p class="who" style="margin:4px 0 6px">Only leaders see these. They are not part of the signed 1-to-1 or its PDF, and Ibrahim does not see them. The tag on each call is a guess from its title and summary, so change it if it is wrong.</p>
+          <div id="fxList"></div>
+          <div class="sec">Fathom meetings not matched to anyone</div>
+          <div class="fx-un" id="unm"><span><b>Catch up</b> <span class="muted" style="font-size:12.5px">Mon 12 Oct &middot; Coach Emma, Ibrahim, Rhi</span></span><button class="btn ghost" type="button" id="claim" style="margin:0">This is Ibrahim's</button></div>
+        </section>
+
+        <section class="card" id="oneCard">
+          <div class="card-head"><div><div class="eyebrow">Monthly 1-to-1 &middot; October 2026</div><h2>One-to-one with Ibrahim</h2></div><span class="chip warn">Draft</span></div>
+          <div class="sec">Agreed actions</div>
+          <table class="acts-tbl"><thead><tr><th>Action</th><th style="width:110px">Owner</th><th style="width:90px">Due</th></tr></thead><tbody id="actRows"></tbody></table>
+          <div class="btns"><button class="btn" type="button">Save draft</button><button class="btn" type="button" style="background:var(--new);color:var(--bg)">Sign off as Emma</button></div>
+        </section>
+
+        <section class="card ctx"><div class="fold"><div class="eyebrow">Goals (yearly)</div><span class="s">Set 5 Jan 2027</span><span class="muted">&#8963;</span></div></section>
+        <section class="card ctx"><div class="fold"><div class="eyebrow">New clients and returning clients</div><span class="s">32.4% came back</span><span class="muted">&#8963;</span></div></section>
+      </div>
+    </div>
+    <div class="notes" style="margin-top:20px">
+      <div class="n"><b>1</b><span><strong>Emma pastes nothing.</strong> <em>Her recorded calls arrive by themselves. She only opens the card when she is preparing or writing up the 1-to-1.</em></span></div>
+      <div class="n"><b>2</b><span><strong>Every call with one stylist lands here.</strong> <em>Matched by the email on the invite. Team calls and calls with several stylists are dropped.</em></span></div>
+      <div class="n"><b>3</b><span><strong>The tag is a guess, one click to fix.</strong> <em>1-to-1, Goals, or Not a 1-to-1. A call marked Not a 1-to-1 is hidden, with a Show link under the list.</em></span></div>
+      <div class="n"><b>4</b><span><strong>Action items can drop straight into the form.</strong> <em>Add action items to this 1-to-1 fills the empty Agreed actions rows below. Try it.</em></span></div>
+      <div class="n"><b>5</b><span><strong>Leaders only.</strong> <em>Not on Ibrahim's link and not on either PDF. The transcript is never stored.</em></span></div>
+    </div>
+  </section>
+</div>
+<script>
+var esc=function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')};
+var LBL={one:'1-to-1',goals:'Goals',no:'Not a 1-to-1'},CLS={one:'new',goals:'good',no:''};
+var N=[
+ {id:0,d:'Tue 20 Oct',t:'Ibrahim / Coach Emma',k:'one',st:'new',open:true,sum:['Retention is up on colour clients, still low on cut-only.','Ibrahim wants more Saturday slots for new clients.','Agreed to review the rebooking script next month.'],ai:[['Try the new rebooking script on 10 clients','Ibrahim'],['Share Saturday slot options','Emma']]},
+ {id:1,d:'Thu 8 Oct',t:'Catch up',k:'goals',st:'new',sum:['Ibrahim wants to reach Style Director within 18 months.','Next step is the colour education day.'],ai:[['Book the next colour education day','Ibrahim']]},
+ {id:2,d:'Mon 28 Sep',t:'Quick call re schedule',k:'no',st:'new',sum:['Swapped two Saturdays with Rhi.'],ai:[]}
+];
+var ACT=[['',''],['',''],['',''],['','']];
+function drawFx(){
+  var h='',any=false;
+  N.forEach(function(n){
+    if(n.k==='no'||n.st==='gone')return;
+    any=true;
+    var used=n.st==='used';
+    h+='<details class="fx"'+(n.open?' open':'')+'><summary><span class="t">'+esc(n.d)+' &middot; '+esc(n.t)+'</span>'
+     +'<span class="fx-tag"><span class="chip '+CLS[n.k]+'">'+LBL[n.k]+'</span>'
+     +'<select data-tag="'+n.id+'" aria-label="Change kind" onclick="event.stopPropagation()"><option value="">Change tag</option><option value="one">1-to-1</option><option value="goals">Goals</option><option value="no">Not a 1-to-1</option></select>'
+     +'<span class="chip'+(used?'':' new')+'">'+(used?'Added to the 1-to-1':'New')+'</span></span></summary>'
+     +'<div class="fx-body"><div class="d" style="margin-bottom:6px">Auto-tagged from the title and summary</div><div class="fx-h">Summary</div><ul>'+n.sum.map(function(s){return '<li>'+esc(s)+'</li>'}).join('')+'</ul>'
+     +(n.ai.length?'<div class="fx-h">Action items</div><ul>'+n.ai.map(function(a){return '<li>'+esc(a[0])+' <span class="muted">('+esc(a[1])+')</span></li>'}).join('')+'</ul>':'')
+     +'<div class="btns" style="margin-top:10px">'
+     +(n.k==='one'&&n.ai.length&&!used?'<button class="btn" type="button" data-add="'+n.id+'">Add action items to this 1-to-1</button>':'')
+     +'<button class="btn ghost" type="button" disabled style="opacity:.6">Open in Fathom</button>'
+     +(used?'<button class="btn ghost" type="button" data-undo="'+n.id+'">Mark as new</button>':'<button class="btn ghost" type="button" data-dismiss="'+n.id+'">Dismiss</button>')
+     +'</div></div></details>';
+  });
+  if(!any)h='<p class="who">Nothing from Fathom yet. After a recorded call with Ibrahim, the summary and action items appear here. His email has to be on the meeting invite.</p>';
+  var hid=N.filter(function(n){return n.k==='no'&&n.st!=='gone'}).length;
+  if(hid)h+='<p class="who" style="margin-top:8px">'+hid+' call hidden as Not a 1-to-1. <a href="#" id="showno" style="color:var(--new)">Show</a></p>';
+  document.getElementById('fxList').innerHTML=h;
+  document.getElementById('fxNew').style.display=N.some(function(n){return n.st==='new'&&n.k!=='no'})?'':'none';
+  document.querySelectorAll('[data-tag]').forEach(function(s){s.onchange=function(){if(s.value){N.find(function(n){return n.id==s.dataset.tag}).k=s.value;drawFx();}}});
+  document.querySelectorAll('[data-add]').forEach(function(b){b.onclick=function(){var n=N.find(function(x){return x.id==b.dataset.add});n.ai.forEach(function(a){var r=ACT.findIndex(function(x){return !x[0]});if(r>=0)ACT[r]=[a[0],a[1]];});n.st='used';drawFx();drawAct();}});
+  document.querySelectorAll('[data-dismiss]').forEach(function(b){b.onclick=function(){N.find(function(x){return x.id==b.dataset.dismiss}).st='gone';drawFx();}});
+  document.querySelectorAll('[data-undo]').forEach(function(b){b.onclick=function(){N.find(function(x){return x.id==b.dataset.undo}).st='new';drawFx();}});
+  var sn=document.getElementById('showno');if(sn)sn.onclick=function(e){e.preventDefault();N.forEach(function(n){if(n.k==='no')n.k='one'});drawFx();};
+}
+function drawAct(){document.getElementById('actRows').innerHTML=ACT.map(function(r){return '<tr><td'+(r[0]?' class="f"':'')+'>'+esc(r[0])+'</td><td'+(r[1]?' class="f"':'')+'>'+esc(r[1])+'</td><td></td></tr>'}).join('')}
+document.getElementById('claim').onclick=function(){document.getElementById('unm').innerHTML='<span class="who">Added to Ibrahim as a 1-to-1. It now shows in the list above.</span>';N.unshift({id:9,d:'Mon 12 Oct',t:'Catch up',k:'one',st:'new',sum:['Short check-in on the October plan.'],ai:[]});drawFx();};
+document.getElementById('themeBtn').addEventListener('click',function(e){var r=document.documentElement,dark=r.dataset.theme==='dark';r.dataset.theme=dark?'light':'dark';e.target.textContent=dark?'Dark':'Light';});
+drawFx();drawAct();
+</script>
+</body>
+</html>
