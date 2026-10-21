@@ -160,6 +160,12 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
     <details><summary>Show as table</summary><div id="brTable"></div></details>
   </section>
 
+  <section class="card">
+    <h2>Who sold them</h2>
+    <p class="sub">Vouchers and cash by the person who issued the card at the till (the name typed in Your name on the till page). Same live vouchers as everything above.</p>
+    <div id="byWho"></div>
+  </section>
+
   <div class="grid2">
     <section class="card">
       <h2>By tier</h2>
@@ -280,7 +286,7 @@ function failLoad(err){
 }
 function loadFromTables(d){
   return d.from('voucher_log')
-    .select('id,branch,tier,paid_aed,credit_aed,redeemed_aed,remaining_aed,payment_method,purchase_date,main_expires_on,friends_so_far,referral_earned,is_voided,is_archived')
+    .select('id,branch,tier,paid_aed,credit_aed,redeemed_aed,remaining_aed,payment_method,purchase_date,main_expires_on,friends_so_far,referral_earned,issued_by,is_voided,is_archived')
     .limit(2000)
     .then(function(res){
       if (res.error) throw res.error;
@@ -370,6 +376,26 @@ function render(){
       return '<tr><td><span class="dot" style="background:var(--c' + (i+1) + ')"></span>' + t.name + '</td><td class="n">' + t.n + '</td><td class="n">' + t.target + '</td><td>' + mini(t.n, t.target) + '</td><td class="n">' + aed(t.paid) + '</td></tr>';
     }).join('') +
     '<tr class="tot"><td>Total</td><td class="n">' + live.length + '</td><td class="n">' + UNIT_TARGET + '</td><td>' + mini(live.length, UNIT_TARGET) + '</td><td class="n">' + aed(collected) + '</td></tr></tbody></table>';
+
+  /* who sold them: the till's "Your name", grouped ignoring case and spacing. Blank gets its own
+     row so the total always matches the headline. */
+  var whoMap = {}, whoSeen = false;
+  live.forEach(function(r){
+    if (r.issued_by !== undefined) whoSeen = true;
+    var raw = String(r.issued_by || '').replace(/\s+/g, ' ').trim(), k = raw.toLowerCase() || '\u0000';
+    var w = whoMap[k] = whoMap[k] || { name: raw ? raw.replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); }) : 'Not recorded', n:0, paid:0, br:{} };
+    w.n++; w.paid += num(r.paid_aed); w.br[r.branch] = (w.br[r.branch] || 0) + 1;
+  });
+  M.who = Object.keys(whoMap).map(function(k){ return whoMap[k]; })
+    .sort(function(a, b){ return (a.name === 'Not recorded') - (b.name === 'Not recorded') || b.paid - a.paid || (a.name < b.name ? -1 : 1); });
+  M.who.forEach(function(w){
+    w.branches = BR.filter(function(b){ return w.br[b[0]]; }).map(function(b){ return b[1] + ' ' + w.br[b[0]]; }).join(', ');
+  });
+  el('byWho').innerHTML = !whoSeen
+    ? '<div class="empty">Not showing yet. The report database needs the one SQL update in migrations/voucher_performance_open.sql, then press Refresh.</div>'
+    : '<table><thead><tr><th>Issued by</th><th>Branch</th><th class="n">Sold</th><th class="n">Collected</th><th>Share</th></tr></thead><tbody>' +
+      M.who.map(function(w){ return '<tr><td>' + esc(w.name) + '</td><td>' + esc(w.branches) + '</td><td class="n">' + w.n + '</td><td class="n">' + aed(w.paid) + '</td><td>' + mini(w.paid, collected) + '</td></tr>'; }).join('') +
+      '<tr class="tot"><td>Total</td><td></td><td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td>' + mini(collected, collected) + '</td></tr></tbody></table>';
 
   /* payment methods; anything unrecorded gets its own grey slice rather than vanishing */
   M.pay = PAY.map(function(p){ return { name:p[0], color:p[1], rows: live.filter(function(r){ return r.payment_method === p[0]; }) }; });
@@ -591,6 +617,10 @@ function exportXlsx(){
       M.tiers.forEach(function(t){ sum.push([t.name, t.n, t.target, t.paid]); });
       sum.push(['', ''], ['Branch', 'Sold', 'Collected (AED)', 'Redeemed (AED)']);
       M.byBr.forEach(function(b){ sum.push([b.name, b.units, b.paid, b.red]); });
+      if (M.who && M.who.length){
+        sum.push(['', ''], ['Issued by', 'Branch', 'Sold', 'Collected (AED)']);
+        M.who.forEach(function(w){ sum.push([w.name, w.branches, w.n, w.paid]); });
+      }
       sum.push(['', ''], ['Payment method', 'Vouchers', 'Collected (AED)']);
       M.pay.forEach(function(p){ sum.push([p.name, p.n, p.amt]); });
       sum.push(['', ''], ['Live vouchers only. Voided and archived are in the Voucher log sheet with their status.', '']);

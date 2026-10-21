@@ -8,6 +8,9 @@
 -- voucher sign-in on top of the dashboard login. Kate, 9 Oct 2026: anyone viewing the
 -- dashboard report should see it straight away.
 --
+-- 21 Oct 2026: also returns issued_by (the staff name typed at the till, so the report can show who
+-- sold each voucher). A staff name only; still no client_name or client_contact.
+--
 -- WHAT IT OPENS: one function that returns live vouchers with only the columns the report
 -- draws (branch, tier, AED amounts, dates, payment method, referral count) plus their
 -- redemptions (date, amount). No client_name, no client_contact, no stylist, no service, no
@@ -28,7 +31,7 @@ as $$
   with live as (
     select id, branch, tier, paid_aed, credit_aed, redeemed_aed, remaining_aed,
            payment_method, purchase_date, main_expires_on, friends_so_far,
-           referral_earned, is_voided, is_archived
+           referral_earned, issued_by, is_voided, is_archived
       from public.voucher_log
      where not coalesce(is_voided, false) and not coalesce(is_archived, false)
   )
