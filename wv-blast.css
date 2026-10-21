@@ -15,3 +15,8 @@
 .wv-ring{display:inline-block;width:12px;height:12px;vertical-align:-1px;border:2px solid var(--accent,#7aa7ff);border-top-color:transparent;border-radius:50%;animation:wvspin .8s linear infinite}
 @keyframes wvspin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.wv-ring{animation-duration:2.4s}}
+/* Clients who have bought since the blast (21 Oct 2026): the row is tinted green so it stands out in a 600-row list */
+.slv-table tr.wv-bought td{background:rgba(47,125,79,.16)}
+.slv-table tr.wv-bought td:first-child{box-shadow:inset 3px 0 0 #2f7d4f}
+.prd-card.wv-bought{background:rgba(47,125,79,.16);box-shadow:inset 3px 0 0 #2f7d4f}
+.wv-bought-line{color:#2f7d4f}

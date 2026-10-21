@@ -9,7 +9,7 @@
 const WV_BANDS = { 1: '10k+', 2: '8k to 10k', 3: '6k to 8k', 4: '5k to 6k', 5: '4k to 5k' };
 const WV_BR = { SAA: 'Saadiyat', KCA: 'Khalifa City A', AQ: 'Al Quoz', MC: 'Motor City' };
 const WV_PER = [10, 20, 50, 100];
-let wvSel = { wave: 'all', branch: 'all', msg: 'all', per: 20 };
+let wvSel = { wave: 'all', branch: 'all', msg: 'all', bought: 'all', per: 20 };
 try { Object.assign(wvSel, JSON.parse(localStorage.getItem('trs-wv-blast') || '{}')); } catch (e) {}
 let wvRows = null, wvErr = '', wvPage = 1, wvQuery = '', wvShown = [];
 const wvSave = () => { try { localStorage.setItem('trs-wv-blast', JSON.stringify(wvSel)); } catch (e) {} };
@@ -17,6 +17,12 @@ const wvOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
 const wvOk5 = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;   // sending waves from this page is Level 5 (Kate) only
 const wvIsNew = r => !!(r.listed_on && String(r.listed_on) > '2026-10-08');   // added at a refresh after the first build
 const wvWave = r => wvIsNew(r) ? 'new' : String(r.wave);
+// Who has bought a voucher since the blast started (21 Oct 2026, Kate). wv_blast_get adds bought_on / bought_serial / bought_aed / bought_pay to a
+// row when her name matches a Phorest voucher sale from 15 Oct on (migrations/wv_blast_bought.sql). bought_pay is the Phorest tender code.
+const wvBought = r => !!r.bought_on;
+const wvPayName = c => ({ S: 'Stripe', T: 'Tabby link', CC: 'Card' })[String(c || '').trim()] || String(c || '').trim();
+const wvTierName = serial => ({ D: 'Dip Your Toes', S: 'Season of You', V: 'All-In VIP Year' })[String(serial || '').split('-')[1]?.[0]] || '';
+const wvBoughtLine = r => [wvTierName(r.bought_serial), 'AED ' + lcNum(Math.round(r.bought_aed)), wvPayName(r.bought_pay)].filter(Boolean).join(' · ');
 const wvInWave = (r, w) => w === 'new' ? wvIsNew(r) : String(r.wave) === w;   // the new clients sit in their spend-band wave too
 // The message test (15 Oct 2026): each wave and branch split half and half. A = the short message (image, Tell me more / Reserve mine), B = the long one.
 const wvArm = r => r.test_arm === 'short' ? 'A' : r.test_arm === 'long' ? 'B' : '';
@@ -47,6 +53,7 @@ function wvFiltered() {
   if (wvSel.wave !== 'all' && wvSel.wave !== 'out') rows = rows.filter(r => wvInWave(r, wvSel.wave));
   if (wvSel.msg !== 'all' && wvSel.wave !== 'out') rows = rows.filter(r => wvArm(r) === wvSel.msg);
   if (wvSel.branch !== 'all') rows = rows.filter(r => r.branch === wvSel.branch);
+  if (wvSel.bought === 'yes') rows = rows.filter(wvBought);
   if (q) rows = rows.filter(r => r.client.toLowerCase().includes(q) || (qd.length >= 3 && String(r.phone || '').replace(/\D/g, '').includes(qd)));
   return rows;
 }
@@ -70,7 +77,7 @@ function wvPaint() {
   const chip = (txt, warn) => `<span class="ll-chip${warn ? ' warn' : ''}">${txt}</span>`;
   const cards = [1, 2, 3, 4, 5].map(n => wvCard(String(n), 'Wave ' + n, WV_BANDS[n] + ' spenders, tags wv-blast-wave-' + n + 'a / ' + n + 'b'))
     .concat([wvCard('new', 'New since 8 Oct', 'Added 15 Oct, already inside their wave'), wvCard('out', 'Removed', 'Were on the 8 Oct list, no longer qualify')]).join('');
-  host.innerHTML = `${wvOk5() ? '<div id="wvSendBox"></div>' : ''}<div class="ll-fresh">${chip('List refreshed <b>' + lcEsc(wvDayY(when)) + '</b>')}${chip('First built <b>8 Oct 2026</b>')}${newN ? chip('<b>' + lcNum(newN) + '</b> added since 8 Oct') : ''}${wvCan().some(r => wvArm(r)) ? chip('Message test: <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'A').length) + '</b> short (A) · <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'B').length) + '</b> long (B)') : ''}</div>
+  host.innerHTML = `${wvOk5() ? '<div id="wvSendBox"></div>' : ''}<div class="ll-fresh">${chip('List refreshed <b>' + lcEsc(wvDayY(when)) + '</b>')}${chip('First built <b>8 Oct 2026</b>')}${newN ? chip('<b>' + lcNum(newN) + '</b> added since 8 Oct') : ''}${wvRows.some(wvBought) ? chip('<b>' + lcNum(wvRows.filter(wvBought).length) + '</b> have bought since the blast') : ''}${wvCan().some(r => wvArm(r)) ? chip('Message test: <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'A').length) + '</b> short (A) · <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'B').length) + '</b> long (B)') : ''}</div>
     <div class="ll-cards wv-cards">${wvCard('all', 'Everyone on the list', 'Can be messaged on WhatsApp now')}${cards}</div>
     <div class="ll-panel">
       <div class="ll-def"><b>${lcEsc(wvWaveName(wvSel.wave))}:</b> ${wvSel.wave === 'out' ? 'Clients on the 8 Oct list who no longer qualify, with the reason. Nobody here is in the list above.'
@@ -79,6 +86,7 @@ function wvPaint() {
         : 'Spend band ' + lcEsc(WV_BANDS[wvSel.wave] || '') + '. The wave is the tag put on her in GHL (wv-blast-wave-N), so the waves go out in order. Each wave is split half and half by branch: <b>a</b> gets the short message, <b>b</b> the long one with the plans written out.'}</div>
       <div class="ll-filters">
         <div class="ll-chips"><span class="slv-note">Branch</span>${['all', 'SAA', 'KCA', 'AQ'].map(b => `<button type="button" class="ll-fchip${wvSel.branch === b ? ' on ll-act' : ''}" onclick="wvSet('branch','${b}')">${b === 'all' ? 'All' : lcEsc(WV_BR[b])}</button>`).join('')}</div>
+        <div class="ll-chips"><span class="slv-note">Bought</span>${[['all', 'Everyone'], ['yes', 'Bought (' + lcNum(wvCan().filter(wvBought).length) + ')']].map(([k, l]) => `<button type="button" class="ll-fchip${wvSel.bought === k ? ' on ll-act' : ''}" onclick="wvSet('bought','${k}')">${l}</button>`).join('')}</div>
         <div class="ll-chips"><span class="slv-note">Message</span>${[['all', 'Both'], ['A', 'A short'], ['B', 'B long']].map(([k, l]) => `<button type="button" class="ll-fchip${wvSel.msg === k ? ' on ll-act' : ''}" onclick="wvSet('msg','${k}')">${l}</button>`).join('')}</div>
         <input id="wvSearch" class="ll-sel" type="search" placeholder="Search name or number" value="${lcEsc(wvQuery)}" oninput="wvQuery=this.value;wvPage=1;wvPaintTable()" style="min-width:210px">
         <button type="button" class="tglr lc-btn" onclick="wvCopy()" title="Copy the numbers shown, one per line">Copy numbers</button>
@@ -111,8 +119,9 @@ function wvPaintTable() {
   const out = wvSel.wave === 'out';
   const waveCell = r => r.wave ? `<span class="ll-tag">Wave ${lcEsc(r.sub_wave || r.wave)}</span>${wvIsNew(r) ? ' <span class="ll-tag" title="Added after 8 Oct">New</span>' : ''}` : '<span class="slv-muted">–</span>';
   const armCell = r => wvArm(r) ? `<span class="ll-tag" title="${lcEsc(wvArmName(wvArm(r)))}">${lcEsc(wvArmName(wvArm(r)))}</span>` : '<span class="slv-muted">–</span>';
-  const cols = ['Client', 'Wave', 'Message', '2026 spend', 'Last visit', 'Last wrote to us', 'Phone', 'Status'];
-  const tr = shown.map(r => `<tr>
+  const cols = ['Client', 'Wave', 'Message', '2026 spend', 'Last visit', 'Last wrote to us', 'Phone', 'Status', 'Bought'];
+  const boughtCell = r => wvBought(r) ? `<b>${lcEsc(wvDay(r.bought_on))}</b><div class="slv-note">${lcEsc(wvBoughtLine(r))}</div><div class="slv-note">${lcEsc(r.bought_serial || '')}</div>` : '<span class="slv-muted">–</span>';
+  const tr = shown.map(r => `<tr${wvBought(r) ? ' class="wv-bought"' : ''}>
       <td>${lcEsc(r.client)}<div class="slv-note">${lcEsc(WV_BR[r.branch] || r.branch)}</div></td>
       <td class="ll-nw">${waveCell(r)}</td>
       <td class="ll-nw">${armCell(r)}</td>
@@ -120,10 +129,12 @@ function wvPaintTable() {
       <td class="ll-nw">${lcEsc(wvDay(r.last_visit))}</td>
       <td class="ll-nw">${r.last_wrote ? lcEsc(wvDay(r.last_wrote)) + `<div class="slv-note">to ${lcEsc(r.wrote_to || '')}</div>` : '<span class="slv-muted">–</span>'}</td>
       <td class="ll-ph">${r.phone ? `<a href="tel:${lcEsc(r.phone)}" style="color:inherit;white-space:nowrap">${lcEsc(r.phone)}</a>` : '–'}</td>
-      <td>${wvPill(r)}</td></tr>`).join('');
-  const cards = shown.map(r => `<li class="prd-card"><div class="prd-body">
+      <td>${wvPill(r)}</td>
+      <td class="ll-nw">${boughtCell(r)}</td></tr>`).join('');
+  const cards = shown.map(r => `<li class="prd-card${wvBought(r) ? ' wv-bought' : ''}"><div class="prd-body">
       <div class="prd-top"><span class="prd-name">${lcEsc(r.client)}</span><span>${wvPill(r)}</span></div>
       <div class="prd-meta">${lcEsc(WV_BR[r.branch] || r.branch)} · ${r.wave ? 'Wave ' + lcEsc(r.sub_wave || r.wave) : ''}${wvArm(r) ? ' · ' + lcEsc(wvArmName(wvArm(r))) : ''}${wvIsNew(r) ? ' (new)' : ''} · AED ${lcNum(Math.round(r.spend))}</div>
+      ${wvBought(r) ? `<div class="prd-meta wv-bought-line"><b>Bought ${lcEsc(wvDay(r.bought_on))}</b> · ${lcEsc(wvBoughtLine(r))}</div>` : ''}
       <div class="prd-meta">Last visit ${lcEsc(wvDay(r.last_visit))}${r.last_wrote ? ' · wrote to us ' + lcEsc(wvDay(r.last_wrote)) : ''}</div>
       ${r.phone ? `<div class="prd-meta" style="margin-top:4px"><a href="tel:${lcEsc(r.phone)}" style="color:inherit">${lcEsc(r.phone)}</a></div>` : ''}</div></li>`).join('');
   const from = (wvPage - 1) * per + 1;
@@ -150,10 +161,11 @@ async function wvCopy() {
 function wvSaveFile(kind) {
   if (typeof lgxBuild !== 'function') return;
   const rows = wvFiltered();
-  const head = ['Client', 'Branch', 'Wave (GHL tag)', 'Message (test)', 'Spend band', '2026 spend (AED)', 'Last visit', 'Phone', 'Last wrote to us', 'Wrote to', 'Status', 'On the list since'];
-  const num = new Set(['2026 spend (AED)']);
+  const head = ['Client', 'Branch', 'Wave (GHL tag)', 'Message (test)', 'Spend band', '2026 spend (AED)', 'Last visit', 'Phone', 'Last wrote to us', 'Wrote to', 'Status', 'On the list since', 'Bought on', 'Voucher', 'Paid (AED)', 'Paid via'];
+  const num = new Set(['2026 spend (AED)', 'Paid (AED)']);
   const lines = rows.map(r => [r.client, WV_BR[r.branch] || r.branch, r.sub_wave ? 'wv-blast-wave-' + r.sub_wave : r.wave ? 'wv-blast-wave-' + r.wave : 'Not tagged', wvArmName(wvArm(r)), r.band ? WV_BANDS[r.band] : '', Math.round(r.spend), r.last_visit || '',
-    r.phone || '', r.last_wrote || '', r.wrote_to || '', r.can_message ? 'Can message' : wvWhy(r), r.listed_on || '']);
+    r.phone || '', r.last_wrote || '', r.wrote_to || '', r.can_message ? 'Can message' : wvWhy(r), r.listed_on || '',
+    r.bought_on || '', r.bought_serial || '', wvBought(r) ? Math.round(r.bought_aed) : '', wvBought(r) ? wvPayName(r.bought_pay) : '']);
   const pi = head.indexOf('Phone');
   const out = kind === 'csv' ? lines.map(l => l.map((v, j) => j === pi && v ? `="${v}"` : v)) : lines;   // as lost-lists.js: Excel would show 9.72E+11
   const built = lgxBuild({ sheets: [{ name: 'Wellness Voucher blast', blocks: [{ cols: head.map(h => ({ label: h, fmt: num.has(h) ? 'num' : 'text' })), rows: out.map(l => ({ cells: l })) }] }] });
