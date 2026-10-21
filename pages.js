@@ -13,9 +13,10 @@
      slug      the address when it is not the id (?view=last-visit is the page whose id is lostclients)
      min       the lowest dashboard level that may open it (default 1); the page and its data refuse the rest too
      lv        Kate, 21 Oct 2026: the levels besides 3 and 5 that may open it, e.g. [2] for coordinators, [4] for accounts, [] for
-               executives only. Level 3 and Level 5 open every page. A page with no lv falls back to min. Levels are no longer
-               cumulative for 2 and 4: Level 4 does not inherit Level 3's pages. A person's own extras (dashboard_users.extra_pages)
-               open more pages for that person only. This decides what is drawn; the data itself is still protected by row-level security.
+               executives only. Level 5 opens every page; Level 3 opens every page whose min is 3 or less. A page with no lv falls back to min.
+               Levels are no longer cumulative for 2 and 4: Level 4 does not inherit Level 3's pages. A person's own extras
+               (dashboard_users.extra_pages) open more pages for that person only. This decides what is drawn; the data itself is
+               still protected by row-level security.
      scope     a Bahrain-scoped sign-in may open it
      filtered  reads the masthead's Branch and Period;  ledger  takes the Branch but fixes the period to the ledger month
      free      needs nothing from the Pulse's load, so a direct link opens it at once (index.html enterDashboard)
@@ -46,6 +47,7 @@ window.TRS_PAGES = /*PAGES*/[
   {"id": "reviews", "label": "Google Reviews", "group": "Numbers", "sub": "Clients", "filtered": 1, "words": "google reviews ratings stars", "lv": [2]},
   {"id": "services", "label": "Service Rankings", "group": "Numbers", "sub": "Sales & Stock", "lazy": "cl", "words": "service rankings treatments top services", "lv": []},
   {"id": "products", "lazy": "pr", "label": "Products", "group": "Numbers", "sub": "Sales & Stock", "filtered": 1, "words": "products stock orders retail professional spend", "lv": [4]},
+  {"id": "supplierspend", "lazy": "sp", "nopulse": 1, "label": "Stock & Supplier Spend", "group": "Numbers", "sub": "Sales & Stock", "min": 4, "words": "supplier suppliers spend stock caps budget invoices invoiced categories consumables retail professional dbd accounts", "lv": [4]},
   {"id": "ledgerTargets", "nopulse": 1, "label": "Daily Target Sheet", "group": "Targets", "section": "Ledgers · Daily Target Sheet", "filtered": 1, "ledger": 1, "lazy": "lgx", "ic": "today", "words": "daily target sheet ledger", "lv": [2]},
   {"id": "ledgerStylist", "nopulse": 1, "label": "Daily Stylist Target", "group": "Targets", "section": "Ledgers · Daily Stylist Target", "filtered": 1, "ledger": 1, "lazy": "lgx", "ic": "today", "words": "stylist target daily ledger", "lv": [2]},
   {"id": "ledgerActuals", "nopulse": 1, "label": "Actuals vs Targets", "group": "Targets", "section": "Ledgers · Actuals vs Targets", "filtered": 1, "ledger": 1, "lazy": "lgx", "ic": "today", "words": "actuals targets pacing ledger", "lv": [2]},
@@ -63,14 +65,15 @@ window.TRS_PAGES = /*PAGES*/[
   window.trsPage = function (id) { return by[id] || null; };
   // The page an id really opens: a retired page opens the one it was folded into.
   window.trsLive = function (id) { var p = by[id]; return p && p.retired ? p.retired : id; };
-  // Kate, 21 Oct 2026: who may open a page. Level 5 (Kate) and Level 3 (executives and marketing) open all of them. Level 2
-  // (coordinators) and Level 4 (accounts) open only the pages whose lv lists them, plus any page named in their own extras.
+  // Kate, 21 Oct 2026: who may open a page. Level 5 (Kate) opens all of them and Level 3 (executives and marketing) every page whose min is 3
+  // or less. Level 2 (coordinators) and Level 4 (accounts) open only the pages whose lv lists them, plus any page named in their own extras.
   // Below Level 2, or with no level, the old rule stands (min), so nothing changes for Level 1 until reception's own view is built.
   window.trsPageOpen = function (id, level, extras) {
     var p = by[window.trsLive(id)];
     if (!p) return true;
     if (!level || level < 2) return (p.min || 1) <= (level || 1);
-    if (level >= 5 || level === 3) return true;
+    if (level >= 5) return true;
+    if (level === 3) return (p.min || 1) <= 3;
     if (extras && extras.indexOf(p.id) >= 0) return true;
     if (p.lv) return p.lv.indexOf(level) >= 0;
     return (p.min || 1) <= level;
