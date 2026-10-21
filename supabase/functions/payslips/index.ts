@@ -8,8 +8,8 @@
 // token on every call and hands out short-lived signed links, never the file
 // path itself.
 //
-//   list    admin token (payroll or leader) + month → who has a payslip (the hair and beauty team from perf_staff, plus the employed
-//           assistants from kb_staff, branch 'ASST')
+//   list    admin token (payroll or leader) + month → who has a payslip (the hair and beauty team from perf_staff, plus the assistants
+//           and reception team from payslip_staff, branch 'ASST' and 'REC')
 //   upload  admin token + month + staff_id + PDF (multipart) → stored, replaces
 //   url     admin token + month + staff_id → 10-minute signed link
 //   delete  admin token + month + staff_id → removed
@@ -62,10 +62,11 @@ async function adminFor(token: unknown) {
   return data;
 }
 const monthDate = (m: string) => `${m}-01`;
-// Employed assistants (Kate, 19 Oct 2026): not in perf_staff, they live in kb_staff (category Assistant, active) and get a payslip like anyone else.
-// branch 'ASST' is the portal's "Assistants" group; they have no performance page, so no token.
-async function assistants() {
-  const { data, error } = await sb.from("kb_staff").select("id, name").eq("category", "Assistant").eq("active", true).order("name");
+// Everyone who gets a payslip but has no performance page (Kate, 19 and 21 Oct 2026): the employed assistants and the reception team.
+// They are not in perf_staff, so they have their own roster, payslip_staff (migrations/payslip_staff.sql). grp 'ASST' and 'REC' are the
+// portal's "Assistants" and "Reception" groups; they have no performance page, so no token.
+async function others() {
+  const { data, error } = await sb.from("payslip_staff").select("id, name, grp, site, role, alt").eq("active", true).order("grp").order("site", { nullsFirst: false }).order("name");
   if (error) throw error;
   return data || [];
 }
@@ -113,14 +114,14 @@ Deno.serve(async (req) => {
       const [{ data: staff }, { data: slips }, asst] = await Promise.all([
         sb.from("perf_staff").select("id, display_name, branch, dept, level").eq("active", true).order("branch").order("display_name"),
         sb.from("payslips").select("staff_id, file_name, size_bytes, uploaded_by, uploaded_at").eq("month", monthDate(month)),
-        assistants(),
+        others(),
       ]);
       const by = Object.fromEntries((slips || []).map((p) => [p.staff_id, p]));
       return json({
         admin: admin.name, role: admin.role, month,
         staff: [
           ...(staff || []).map((s) => ({ id: s.id, name: s.display_name, branch: s.branch, dept: s.dept, level: s.level, payslip: by[s.id] || null })),
-          ...asst.map((a) => ({ id: a.id, name: a.name, branch: "ASST", dept: "Assistant", level: "Assistant", payslip: by[a.id] || null })),
+          ...asst.map((a) => ({ id: a.id, name: a.name, branch: a.grp, site: a.site, dept: a.role, level: a.role, alt: a.alt || [], payslip: by[a.id] || null })),
         ],
       });
     }
@@ -128,7 +129,7 @@ Deno.serve(async (req) => {
     const staffId = String(body.staff_id || "");
     if (!UUID.test(staffId)) return json({ error: "bad staff_id" }, 400);
     const { data: stylist } = await sb.from("perf_staff").select("id, display_name").eq("id", staffId).maybeSingle();
-    const person = stylist || (await assistants()).map((a) => ({ id: a.id, display_name: a.name })).find((a) => a.id === staffId);
+    const person = stylist || (await others()).map((a) => ({ id: a.id, display_name: a.name })).find((a) => a.id === staffId);
     if (!person) return json({ error: "unknown staff" }, 404);
     const path = pathFor(month, staffId);
 

@@ -19,8 +19,9 @@ const PS_KEY_STORE = 'payslipKey';
 // Sends the monthly emails from payroll@ (supabase/functions/payslip-mailer).
 // Every call carries the payslip key. Replaced the Staff Payslips Apps Script, 5 Oct 2026.
 const PS_MAIL_FN = 'https://gvijxenafoowajqktqvd.supabase.co/functions/v1/payslip-mailer';
-// ASST = the employed assistants (19 Oct 2026): no branch of their own on the roster, so they are a group of their own.
-const PS_BRANCH = { KCA: 'Khalifa City A', SAA: 'Mamsha Al Saadiyat', MC: 'Motor City', AQ: 'Al Quoz', ASST: 'Assistants' };
+// ASST = the employed assistants (19 Oct 2026) and REC = the reception team (21 Oct 2026): not part of a branch's hair and beauty team, so each is a
+// group of its own. Each of them carries a `site` (the branch they work at), shown after their role.
+const PS_BRANCH = { KCA: 'Khalifa City A', SAA: 'Mamsha Al Saadiyat', MC: 'Motor City', AQ: 'Al Quoz', ASST: 'Assistants', REC: 'Reception' };
 let PS_STATE = { month: null, staff: [], admin: null, pending: [], q: '', branch: (() => { try { return localStorage.getItem('trs-ps-branch') || ''; } catch (e) { return ''; } })(), pos: (() => { try { return localStorage.getItem('trs-ps-pos') || ''; } catch (e) { return ''; } })(), up: (() => { try { return localStorage.getItem('trs-ps-up') || ''; } catch (e) { return ''; } })(), send: null, sendBusy: '', sendMsg: '', sendErr: '', tpl: { who: '', what: '', file: null, busy: '', msg: '', err: '' }, view: (() => { try { return localStorage.getItem('trs-ps-view') || 'upload'; } catch (e) { return 'upload'; } })() };
 
 // A typed key wins; otherwise the one the sign-in hands payroll and leaders (PS_AUTO, set in upload.html).
@@ -162,7 +163,7 @@ function psFuzzy(payName, branch) {
   const scored = PS_STATE.staff.map(s => {
     const S = psNorm(s.name).split(' ');
     const last = S.length > 1 ? Math.max(0, ...P.slice(1).map(w => psSim(w, S[S.length - 1]))) : 0;
-    return { s, score: close(psSim(P[0], S[0])) + close(last) + (branch && s.branch === branch ? 0.5 : 0) };
+    return { s, score: close(psSim(P[0], S[0])) + close(last) + (branch && (s.site || s.branch) === branch ? 0.5 : 0) };
   }).sort((x, y) => y.score - x.score);
   const [a, b] = scored;
   return a && a.score >= 1.2 && (!b || a.score - b.score >= 0.3) ? a.s : null;
@@ -199,6 +200,9 @@ function psMatchPage(text) {
   if (!name) return { match: psMatchText(text), payName: '', fuzzy: false };
   const alias = PS_STATE.staff.find(s => s.name === PS_ALIASES[psNorm(name)]);
   if (alias) return { match: alias, payName: name, fuzzy: false };
+  // Other spellings kept on the person's own row (payslip_staff.alt), for the assistants and reception team.
+  const alt = PS_STATE.staff.filter(s => (s.alt || []).some(a => psNorm(a) === psNorm(name)));
+  if (alt.length === 1) return { match: alt[0], payName: name, fuzzy: false };
   const exact = psMatchText(name);
   if (exact) return { match: exact, payName: name, fuzzy: false };
   const near = psFuzzy(name, branch);
@@ -269,7 +273,7 @@ function psRender() {
   const row = s => {
     const p = s.payslip;
     return `<div class="ps-row${p ? ' done' : ''}" data-name="${psEsc(psNorm(s.name))}" data-pos="${psEsc(s.level || s.dept || '')}">
-      <div><div class="ps-name">${psEsc(s.name)}<span class="ps-badge"></span></div><div class="ps-meta">${psEsc(s.level || s.dept)}${p ? ` · ${psEsc(p.file_name || 'payslip.pdf')} · by ${psEsc(p.uploaded_by)}, ${new Date(p.uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}</div></div>
+      <div><div class="ps-name">${psEsc(s.name)}<span class="ps-badge"></span></div><div class="ps-meta">${psEsc(s.level || s.dept)}${s.site ? ` · ${psEsc(PS_BRANCH[s.site])}` : ''}${p ? ` · ${psEsc(p.file_name || 'payslip.pdf')} · by ${psEsc(p.uploaded_by)}, ${new Date(p.uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}</div></div>
       <div class="ps-actions">
         ${p ? `<button class="btn-dl" onclick="psView('${s.id}')">View</button>` : ''}
         <label class="btn-outline ps-pick">${p ? 'Replace' : 'Upload PDF'}<input type="file" accept="application/pdf,.pdf" hidden onchange="psUploadOne('${s.id}', this.files[0]); this.value=''"></label>
@@ -295,7 +299,7 @@ function psRender() {
     <div class="ps-search-wrap">
       <input id="psSearch" class="ps-search" type="search" placeholder="Search a name…" autocomplete="off"
         value="${psEsc(PS_STATE.q)}" oninput="PS_STATE.q=this.value; psFilter()">
-      <div class="ps-branches">${['', 'KCA', 'SAA', 'MC', 'AQ', 'ASST'].filter(b => !b || groups[b]).map(b => `
+      <div class="ps-branches">${['', 'KCA', 'SAA', 'MC', 'AQ', 'ASST', 'REC'].filter(b => !b || groups[b]).map(b => `
         <button type="button" class="ps-bpill${PS_STATE.branch === b ? ' on' : ''}" onclick="psPickBranch('${b}')">${b ? psEsc(PS_BRANCH[b]) : 'All'}</button>`).join('')}</div>
       <div class="ps-branches ps-up">${[['', 'Everyone'], ['done', `Uploaded · ${done}`], ['todo', `Not yet · ${all - done}`]].map(([v, t]) => `
         <button type="button" class="ps-bpill${PS_STATE.up === v ? ' on' : ''}" data-up="${v}" onclick="psPickUp('${v}')">${t}</button>`).join('')}</div>
@@ -305,7 +309,7 @@ function psRender() {
       </select>
       <span class="ps-meta" id="psSearchNone" hidden>Nobody matches.</span>
     </div>
-    ${['KCA', 'SAA', 'MC', 'AQ', 'ASST'].filter(b => groups[b]).map(b => `
+    ${['KCA', 'SAA', 'MC', 'AQ', 'ASST', 'REC'].filter(b => groups[b]).map(b => `
       <div class="roster-branch ps-branch" data-branch="${b}"><div class="roster-branch-hd">${PS_BRANCH[b]} · ${groups[b].filter(s => s.payslip).length}/${groups[b].length}</div>
       ${groups[b].map(row).join('')}</div>`).join('')}
     </div>`;
@@ -517,7 +521,7 @@ function psRenderPending() {
   if (!el) return;
   const P = PS_STATE.pending;
   if (!P.length) { el.innerHTML = ''; return; }
-  const opts = sel => `<option value="">Pick who this is…</option>` + PS_STATE.staff.map(s => `<option value="${s.id}"${sel && sel.id === s.id ? ' selected' : ''}>${psEsc(s.name)} (${PS_BRANCH[s.branch] || s.branch})</option>`).join('');
+  const opts = sel => `<option value="">Pick who this is…</option>` + PS_STATE.staff.map(s => `<option value="${s.id}"${sel && sel.id === s.id ? ' selected' : ''}>${psEsc(s.name)} (${PS_BRANCH[s.site || s.branch] || s.branch})</option>`).join('');
   const live = P.filter(p => p.status === 'ready' && p.match && !p.error);
   const people = new Set(live.map(p => p.match.id)).size;
   const count = id => live.filter(p => p.match.id === id).length;
@@ -743,12 +747,12 @@ function psRenderSend() {
 }
 
 // Welcome email (Kate, 19 Oct 2026): asks the hair and beauty team to sign in once to their own page. Goes once to each person who has not
-// signed in yet; assistants have no page of their own, so they are not on it. Same test box as above, then one button for everyone.
+// signed in yet; assistants and the reception team have no page of their own, so they are not on it. Same test box as above, then one button for everyone.
 function psWelcomeHtml(S, dis) {
   const w = S.welcome;
   if (!w) return '';
   return `<div class="ps-send-sub">Welcome email: sign in once</div>
-    <div class="ps-meta">Asks the hair and beauty team to sign in to their own page. It goes once to anyone who has not signed in yet. Assistants are not on it.</div>
+    <div class="ps-meta">Asks the hair and beauty team to sign in to their own page. It goes once to anyone who has not signed in yet. Assistants and the reception team are not on it.</div>
     <div class="ps-chips">
       <span class="ps-chip st-sent">Signed in ${w.signed_in}</span>
       <span class="ps-chip">Welcome sent ${w.welcomed}</span>
