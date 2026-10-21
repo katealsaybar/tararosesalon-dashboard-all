@@ -162,7 +162,7 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
 
   <section class="card">
     <h2>Who sold them</h2>
-    <p class="sub">Vouchers and cash by the person who issued the card at the till (the name typed in Your name on the till page). Same live vouchers as everything above.</p>
+    <p class="sub">Vouchers and cash by the person who issued the card at the till (the name typed in Your name on the till page). Same live vouchers as everything above. A Stripe sale is paid by the client on a link and only logged at the till, so those are split by how she came to us: nurtured by the person, from a blast, or paid direct.</p>
     <div id="byWho"></div>
   </section>
 
@@ -380,15 +380,24 @@ function render(){
 
   /* who sold them: the till's "Your name", grouped ignoring case and spacing. Blank gets its own
      row so the total always matches the headline. */
-  var whoMap = {}, whoSeen = false;
+  var whoMap = {}, whoSeen = false, viaSeen = live.some(function(r){ return r.sold_via !== undefined; });
+  var VIA = { nurtured:['nurtured by her', 1], blast:['came from the blast', 2], direct:['paid direct on Stripe', 3], unsorted:['Stripe, not sorted yet', 4] };
   live.forEach(function(r){
     if (r.issued_by !== undefined) whoSeen = true;
-    var raw = String(r.issued_by || '').replace(/\s+/g, ' ').trim(), k = raw.toLowerCase() || '\u0000';
-    var w = whoMap[k] = whoMap[k] || { name: raw ? raw.replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); }) : 'Not recorded', n:0, paid:0, br:{} };
+    var raw = String(r.issued_by || '').replace(/\s+/g, ' ').trim(), pk = raw.toLowerCase() || '\u0000';
+    // Stripe sales are split by how she came to us (sold_via, set on the voucher); a Stripe sale with none yet shows as not sorted.
+    var via = !viaSeen || !raw ? '' : (VIA[r.sold_via] ? r.sold_via : (r.payment_method === 'Stripe' ? 'unsorted' : '')), k = pk + '|' + via;
+    var nm = raw ? raw.replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); }) : 'Not recorded';
+    var w = whoMap[k] = whoMap[k] || { name: nm + (via ? ' · ' + VIA[via][0] : ''), who:nm, pk:pk, via:via, n:0, paid:0, br:{} };
     w.n++; w.paid += num(r.paid_aed); w.br[r.branch] = (w.br[r.branch] || 0) + 1;
   });
+  var perPerson = {};
+  Object.keys(whoMap).forEach(function(k){ var w = whoMap[k]; perPerson[w.pk] = (perPerson[w.pk] || 0) + w.paid; });
   M.who = Object.keys(whoMap).map(function(k){ return whoMap[k]; })
-    .sort(function(a, b){ return (a.name === 'Not recorded') - (b.name === 'Not recorded') || b.paid - a.paid || (a.name < b.name ? -1 : 1); });
+    .sort(function(a, b){
+      return (a.who === 'Not recorded') - (b.who === 'Not recorded') || perPerson[b.pk] - perPerson[a.pk] || (a.pk < b.pk ? -1 : a.pk > b.pk ? 1 : 0) ||
+             (a.via ? VIA[a.via][1] : 0) - (b.via ? VIA[b.via][1] : 0);
+    });
   M.who.forEach(function(w){
     w.branches = BR.filter(function(b){ return w.br[b[0]]; }).map(function(b){ return b[1] + ' ' + w.br[b[0]]; }).join(', ');
   });

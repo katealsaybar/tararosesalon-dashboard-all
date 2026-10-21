@@ -8,6 +8,7 @@
 -- voucher sign-in on top of the dashboard login. Kate, 9 Oct 2026: anyone viewing the
 -- dashboard report should see it straight away.
 --
+-- 21 Oct 2026 (later): also returns sold_via (nurtured / blast / direct, set on voucher_issues by migrations/voucher_sold_via.sql).
 -- 21 Oct 2026: also returns issued_by (the staff name typed at the till, so the report can show who
 -- sold each voucher). A staff name only; still no client_name or client_contact.
 --
@@ -29,11 +30,12 @@ security definer
 set search_path = public
 as $$
   with live as (
-    select id, branch, tier, paid_aed, credit_aed, redeemed_aed, remaining_aed,
-           payment_method, purchase_date, main_expires_on, friends_so_far,
-           referral_earned, issued_by, is_voided, is_archived
-      from public.voucher_log
-     where not coalesce(is_voided, false) and not coalesce(is_archived, false)
+    select l.id, l.branch, l.tier, l.paid_aed, l.credit_aed, l.redeemed_aed, l.remaining_aed,
+           l.payment_method, l.purchase_date, l.main_expires_on, l.friends_so_far,
+           l.referral_earned, l.issued_by, i.sold_via, l.is_voided, l.is_archived
+      from public.voucher_log l
+      left join public.voucher_issues i on i.id = l.id
+     where not coalesce(l.is_voided, false) and not coalesce(l.is_archived, false)
   )
   select json_build_object(
     'vouchers',    coalesce((select json_agg(l) from live l), '[]'::json),
