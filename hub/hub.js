@@ -106,15 +106,16 @@
   // A shortcut row shows when its `via` section is open to this person and they are at
   // its `min` level; every other row when kb_access() opened its own key.
   KB.opens = function (s) {
+    // Kate, 21 Oct 2026: a row that opens a dashboard page (/?view=...) follows that page's own list in pages.js (lv, and this
+    // person's extras), via or not, so Team Home offers a coordinator the Daily Target Sheet and not the Pulse.
+    var pv = /[?&]view=([A-Za-z0-9_-]+)/.exec(s.href || '');
+    var pageOk = !(pv && typeof trsPageOpen === 'function') || trsPageOpen(pv[1], KB.level, KB.extra);
     if (s.via) {
       if (KB.allowed.indexOf(s.via) < 0) return false;
-      // Kate, 21 Oct 2026: a dashboard shortcut follows the page's own list in pages.js (lv, and this person's extras), so Team Home
-      // offers a coordinator the Daily Target Sheet and not the Pulse. A row that is not a dashboard page keeps its min.
-      var pv = /[?&]view=([A-Za-z0-9_-]+)/.exec(s.href || '');
-      if (pv && typeof trsPageOpen === 'function') return trsPageOpen(pv[1], KB.level, KB.extra);
+      if (pv && typeof trsPageOpen === 'function') return pageOk;
       return KB.level >= (s.min || 1);
     }
-    return KB.allowed.indexOf(s.key) >= 0;
+    return KB.allowed.indexOf(s.key) >= 0 && pageOk;
   };
   KB.LEVELS = { 1: 'Team', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin', 5: 'Backend' };
   // The "View as" choices, and the key they live under (this browser only).

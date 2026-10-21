@@ -32,7 +32,7 @@
 <script src="/auth.js?v=3823f956"></script>
 <script src="/pages.js?v=536dc1f1"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=88713ec4"></script>
+<script src="/hub/hub.js?v=21f93b11"></script>
 <script src="/visits.js?v=1176426c"></script>
 <script>
 KB.ready.then(async function () {
@@ -94,7 +94,7 @@ KB.ready.then(async function () {
   // Dashboard pages starred from the dashboard's sidebar (nav-stars.js, 2 Oct 2026),
   // 'd:' + the view. Titles from here, so a page renamed there needs its line here.
   var DASH_PAGES = trsPageTitles();   // pages.js
-  var dashFavs = Object.keys(favs).filter(function (k) { return k.indexOf('d:') === 0 && DASH_PAGES[k.slice(2)]; })
+  var dashFavs = Object.keys(favs).filter(function (k) { return k.indexOf('d:') === 0 && DASH_PAGES[k.slice(2)] && trsPageOpen(k.slice(2), KB.level, KB.extra); })
     .map(function (k) { var v = k.slice(2);
       return { key: k, title: DASH_PAGES[v], href: '/?view=' + v, live: true, rule: 'var(--accent-lavender)', blurb: 'Dashboards',
         ic: (trsPage(v) || {}).ic === 'lost-clients' ? 'lost-clients' : 'dashboards' }; });
