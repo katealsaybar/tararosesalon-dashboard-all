@@ -389,7 +389,7 @@ function render(){
     // Stripe sales are split by how she came to us (sold_via, set on the voucher); a Stripe sale with none yet shows as not sorted.
     var via = !viaSeen || !raw ? '' : (VIA[r.sold_via] ? r.sold_via : (r.payment_method === 'Stripe' ? 'unsorted' : '')), k = pk + '|' + via;
     var nm = raw ? raw.replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); }) : 'Not recorded';
-    var w = whoMap[k] = whoMap[k] || { name: nm, srcName: via ? VIA[via][0] : '', who:nm, pk:pk, via:via, n:0, paid:0, br:{} };
+    var w = whoMap[k] = whoMap[k] || { name: nm, srcName: via ? VIA[via][0] : (viaSeen ? 'At the salon' : ''), who:nm, pk:pk, via:via, n:0, paid:0, br:{} };
     w.n++; w.paid += num(r.paid_aed); w.br[r.branch] = (w.br[r.branch] || 0) + 1;
   });
   var perPerson = {};
@@ -405,7 +405,7 @@ function render(){
   el('byWho').innerHTML = !whoSeen
     ? '<div class="empty">Not showing yet. The report database needs the one SQL update in migrations/voucher_performance_open.sql, then press Refresh.</div>'
     : '<table><thead><tr><th>Issued by</th><th>Came from</th>' + BR.map(function(b){ return '<th class="n">' + b[1] + '</th>'; }).join('') + '<th class="n">Sold</th><th class="n">Collected</th><th>Share</th></tr></thead><tbody>' +
-      M.who.map(function(w){ return '<tr><td>' + esc(w.name) + '</td><td>' + (w.srcName ? esc(w.srcName) : '<span class="zero">–</span>') + '</td>' + BR.map(function(b){ return '<td class="n">' + bc(w.br[b[0]]) + '</td>'; }).join('') + '<td class="n"><b>' + w.n + '</b></td><td class="n">' + aed(w.paid) + '</td><td>' + mini(w.paid, collected) + '</td></tr>'; }).join('') +
+      M.who.map(function(w){ return '<tr><td>' + esc(w.name) + '</td><td>' + (w.srcName ? esc(w.srcName) : '') + '</td>' + BR.map(function(b){ return '<td class="n">' + bc(w.br[b[0]]) + '</td>'; }).join('') + '<td class="n"><b>' + w.n + '</b></td><td class="n">' + aed(w.paid) + '</td><td>' + mini(w.paid, collected) + '</td></tr>'; }).join('') +
       '<tr class="tot"><td>Total</td><td></td>' + BR.map(function(b){ return '<td class="n">' + bc(brTot[b[0]]) + '</td>'; }).join('') + '<td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td>' + mini(collected, collected) + '</td></tr></tbody></table>';
 
   /* payment methods; anything unrecorded gets its own grey slice rather than vanishing */
