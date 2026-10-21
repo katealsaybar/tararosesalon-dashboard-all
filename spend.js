@@ -29,7 +29,10 @@ button,select,input{font:inherit;color:inherit}
 .msg{padding:30px 0;color:var(--muted);font-size:14px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch;margin-bottom:6px}
-.grid3>.card{display:flex;flex-direction:column;height:440px;min-width:0}
+.grid3{grid-auto-rows:minmax(380px,auto)}
+.grid3>.card{display:flex;flex-direction:column;min-width:0}
+.grid3>.card:not(.fit){contain:size}
+.grid3>.card.fit .pbody{overflow:visible;margin-right:0;padding-right:0}
 .pbody{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin-right:-8px;padding-right:8px;scrollbar-width:thin}
 .pt{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
 .pt span{text-transform:none;letter-spacing:0;font-weight:400}
@@ -55,7 +58,7 @@ h2.s{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercas
 h2.s em{font-style:normal;font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted2)}
 
 /* the one filter bar */
-.fwrap{position:sticky;top:var(--topbar-cond-h,104px);z-index:40;background:var(--bg);margin:0 -28px 14px;padding:8px 28px 10px;border-bottom:1px solid var(--border)}
+.fwrap{position:sticky;top:var(--topbar-cond-h,104px);z-index:40;background:var(--bg);margin:0 0 14px;padding:8px 0 10px;border-bottom:1px solid var(--border)}
 .fhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .fsum{font-size:13px;color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fmsg{font-size:12.5px;color:var(--muted2)}
@@ -107,15 +110,63 @@ table.sh tr.g:hover td{background:color-mix(in srgb,var(--hl) 55%,var(--surface2
 .stat{display:flex;gap:6px 22px;flex-wrap:wrap;padding:9px 14px;border-top:1px solid var(--border);background:var(--surface2);font-size:12.5px;color:var(--muted)}
 .stat b{color:var(--text)}
 
-@container (max-width:900px){.grid3{grid-template-columns:1fr}}
+@container (max-width:900px){.grid3{grid-template-columns:1fr}.grid3>.card:not(.fit){contain:none;height:380px}}
 @container (max-width:600px){.pg{padding-left:14px;padding-right:14px}.fwrap{margin:0 -14px 14px;padding-left:14px;padding-right:14px}#q{min-width:0;width:100%}}
+
+/* phone: the page is under 600px wide. No boxes round the panels, a card per supplier instead of a table, the filters as one row
+   that drops a panel down (Kate's phone rulings, 16 Oct 2026). */
+.ph.pg{padding-left:14px;padding-right:14px}
+.ph .fwrap{margin:0 -14px 10px;padding:6px 14px}
+.ph .fhead{flex-wrap:nowrap}
+.ph .fhead .fsum{font-size:12.5px}
+.ph .fbtn,.ph .seg button,.ph .chips button{min-height:36px}
+.ph .fbar2.ov{position:absolute;left:0;right:0;top:100%;margin:0;background:var(--bg);border-bottom:1px solid var(--border);box-shadow:0 18px 30px -18px rgba(0,0,0,.5);padding:12px 14px 14px;display:flex;flex-direction:column;align-items:stretch;gap:12px;max-height:calc(100vh - var(--topbar-cond-h,92px) - 70px);overflow:auto}
+.ph .seg{display:flex;width:100%}
+.ph .seg button{flex:1;padding:6px 4px}
+.ph .fg2{display:flex;gap:8px}
+.ph .fg2>*{flex:1}
+.ph #q{width:100%;min-width:0;min-height:38px}
+.ph #menu{left:8px!important;right:8px;width:auto}
+.ph .fbtn.pri{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
+.ph .grid3{display:block}
+.ph .grid3>.card:not(.fit){contain:none;height:auto}
+.ph .grid3>.card{height:auto;border:0;border-radius:0;background:transparent;padding:14px 0;border-top:1px solid var(--border)}
+.ph .grid3>.card:first-child{border-top:0;padding-top:4px}
+.ph .pbody{overflow:visible;margin:0;padding:0}
+.ph .capin{min-height:32px;width:70px}
+.ph .capin.aed{width:84px}
+.ph h2.s em{display:none}
+details.how{margin:0 0 6px;font-size:13px;color:var(--muted)}
+details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px 0}
+.ph .sheet{border:0;border-radius:0;background:transparent;overflow:visible}
+.ph .stat{background:transparent;border-top:1px solid var(--border);padding:10px 0}
+.sc{border-top:1px solid var(--border);padding:12px 0}
+.sc:first-child{border-top:0}
+.sch{display:flex;justify-content:space-between;gap:10px;width:100%;border:0;background:none;padding:0;text-align:left;font-weight:600;font-size:15px;cursor:pointer;color:var(--text)}
+.sch:disabled{cursor:default}
+.scn{min-width:0;overflow-wrap:anywhere}
+.scv{font-variant-numeric:tabular-nums;white-space:nowrap}
+.scm{display:flex;gap:4px 10px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--muted)}
+.scb{display:flex;gap:4px 14px;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.scb b,.scr b{color:var(--text);font-weight:600}
+.scr{margin-top:4px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sc.zero .scn{font-weight:400;color:var(--muted2)}
+.spl{margin:10px 0 0 4px;border-left:2px solid var(--border);padding-left:12px}
+.pcard{padding:9px 0;border-top:1px solid var(--border2)}
+.pcard:first-child{border-top:0}
+.pcn{font-size:14px;overflow-wrap:anywhere}
+.pcs{font-size:11.5px;color:var(--muted2)}
+.pcr{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+.pcr b{font-variant-numeric:tabular-nums}
+.ph .sel{border-color:var(--border);background:var(--surface);min-height:34px;max-width:100%}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 `;
 
   let host = null, root = null, D = null;
   let SUP = [], PR = [], CAPS = { salon: {}, cat: {}, sup: {} }, INC = {}, EDIT = false;
-  const S = { month: null, br: 'ALL', group: true, activeOnly: true, q: '', qraw: '', fSup: null, fCat: null, sort: { k: 'val', d: -1 }, open: {}, menu: null, fOpen: true, msg: '' };
+  const S = { phone: false, month: null, br: 'ALL', group: true, activeOnly: true, q: '', qraw: '', fSup: null, fCat: null, sort: { k: 'val', d: -1 }, open: {}, menu: null, fOpen: true, msg: '' };
   let loading = false;
+  const isPhone = () => !!host && host.getBoundingClientRect().width < 600;
 
   const $ = id => root.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -195,13 +246,13 @@ table.sh tr.g:hover td{background:color-mix(in srgb,var(--hl) 55%,var(--surface2
 
   function dash() {
     const F = figures(), bs = scope(), inS = incomeFor(bs);
-    let h = '<div class="card"><div class="pt">Salon vs cap <span>% of net income</span></div><div class="pbody">';
+    let h = '<div class="card fit"><div class="pt">Salon vs cap <span>% of net income</span></div><div class="pbody">';
     bs.forEach(b => {
       const v = F.salon[b], income = INC[b] ? Number(INC[b]) : null, cp = CAPS.salon[b] != null ? CAPS.salon[b] : DEFAULT_SALON_CAP;
       if (income) {
         const r = v / income, over = r > cp / 100;
         h += '<div class="prow"><div class="l1"><span class="pn">' + BN[b] + '</span><span class="pv">' + p1(r) + '</span></div>' + bar(r / 0.25, cp / 100 / 0.25) +
-          '<div class="l2"><span>AED ' + f(v) + ' of ' + f(income) + '</span><span>' + (over ? '<span class="pill p-over">Over by AED ' + f(v - cp / 100 * income) + '</span>' : '<span class="pill p-ok">AED ' + f(cp / 100 * income - v) + ' left</span>') + ' cap ' + capIn('salon', b, cp) + '%</span></div></div>';
+          '<div class="l2"><span>AED ' + f(v) + ' of ' + f(income) + '</span><span>' + (over ? '<span class="pill p-over" title="Over the cap by AED ' + f(v - cp / 100 * income) + '">Over ' + f(v - cp / 100 * income) + '</span>' : '<span class="pill p-ok" title="AED ' + f(cp / 100 * income - v) + ' left under the cap">' + f(cp / 100 * income - v) + ' left</span>') + ' cap ' + capIn('salon', b, cp) + '%</span></div></div>';
       } else {
         h += '<div class="prow"><div class="l1"><span class="pn">' + BN[b] + '</span><span class="pv">AED ' + f(v) + '</span></div><div class="l2"><span>No income on the dashboard for this month yet.</span></div></div>';
       }
@@ -220,7 +271,7 @@ table.sh tr.g:hover td{background:color-mix(in srgb,var(--hl) 55%,var(--surface2
     h += '<div class="small muted" style="margin-top:8px">A supplier with products in two categories is split by what was received (for example DBD). Suppliers not sorted yet show under Not sorted.</div></div></div>';
 
     h += '<div class="card"><div class="pt">Top suppliers <span>AED, cap in AED a month</span></div><div class="pbody">';
-    const top = Object.keys(F.sup).map(k => [k, F.sup[k]]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 12);
+    const top = Object.keys(F.sup).map(k => [k, F.sup[k]]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, S.phone ? 8 : 12);
     const mx = top.length ? top[0][1] : 1;
     top.forEach(x => {
       const cp = CAPS.sup[x[0]], sc = cp ? Math.max(cp * 1.4, x[1]) : mx;
@@ -257,7 +308,35 @@ table.sh tr.g:hover td{background:color-mix(in srgb,var(--hl) 55%,var(--surface2
   const catSel = (val, attr) => '<select class="sel" ' + attr + ' aria-label="Category"' + dis() + '>' + ALLCATS.map(c => '<option' + (c === val ? ' selected' : '') + '>' + c + '</option>').join('') + '</select>';
   const supSel = (val, attr) => '<select class="sel" ' + attr + ' aria-label="Supplier" title="Moves every product of this brand"' + dis() + '>' + SUP.map(s => s.n).concat(['Unassigned']).map(c => '<option' + (c === val ? ' selected' : '') + '>' + esc(c) + '</option>').join('') + '</select>';
 
+  function sheetPhone() {
+    const rows = supRows(), bs = scope(), anyFilter = !!(S.fSup || S.fCat || S.q);
+    const sumInvT = rows.reduce((a, r) => a + r.inv, 0), sumRec = rows.reduce((a, r) => a + r.rec, 0);
+    const prodCard = (p, withSup) => '<div class="pcard"><div class="pcn">' + esc(p.p) + '</div><div class="pcs">' + esc(p.brand) + ' · qty ' + f(p.q) + '</div><div class="pcr">' +
+      (withSup ? supSel(p.s, 'data-psup="' + p.i + '"') : '') + catSel(p.c, 'data-pcat="' + p.i + '"') + '<b>AED ' + f(sumP(p)) + '</b></div></div>';
+    const supCard = (r, isOpen) => {
+      const ks = r.cats.slice().sort((a, b) => r.sp[b] - r.sp[a]);
+      const chip = r.hasProds ? '<span class="catc" title="' + esc(ks.map(c => c + ' ' + Math.round(r.sp[c] * 100) + '%').join(', ')) + '">' + ks[0] + (ks.length > 1 ? ' +' + (ks.length - 1) : '') + '</span>' : catSel(r.g.s.cat, 'data-supcat="' + esc(r.g.n) + '"');
+      return '<div class="sc' + (!r.rec && !r.inv ? ' zero' : '') + '"><button type="button" class="sch" data-exp="' + esc(r.g.n) + '" aria-expanded="' + isOpen + '"' + (r.ps.length ? '' : ' disabled') + '><span class="scn">' +
+        (r.ps.length ? (isOpen ? '▾ ' : '▸ ') : '') + esc(r.g.n) + (r.g.n === 'Unassigned' ? '<span class="tag">no supplier yet</span>' : '') + '</span><span class="scv">' + (r.inv ? f(r.inv) : '-') + '</span></button>' +
+        '<div class="scm">' + chip + (r.ps.length ? '<span>' + r.ps.length + ' product lines' + (isOpen ? '' : ', tap to open') + '</span>' : (r.hasProds ? '' : '<span>whole supplier</span>')) + '</div>' +
+        (r.bv.some(Boolean) ? '<div class="scb">' + bs.map((b, i) => r.bv[i] ? '<span>' + b + ' <b>' + f(r.bv[i]) + '</b></span>' : '').join('') + '</div>' : '') +
+        (r.rec ? '<div class="scr">Received in Phorest <b>' + f(r.rec) + '</b></div>' : '') +
+        (isOpen ? '<div class="spl">' + r.ps.slice().sort((a, b) => sumP(b) - sumP(a)).map(p => prodCard(p, false)).join('') + '</div>' : '') + '</div>';
+    };
+    let body = '', cnt = rows.length;
+    if (S.group) body = rows.map(r => supCard(r, !!S.open[r.g.n] || (anyFilter && r.ps.length > 0 && S.open[r.g.n] !== false))).join('');
+    else {
+      const all = [];
+      rows.forEach(r => { if (r.ps.length) r.ps.forEach(p => all.push({ p, r })); else all.push({ r }); });
+      all.sort((a, b) => S.sort.d * ((a.p ? sumP(a.p) : a.r.inv) - (b.p ? sumP(b.p) : b.r.inv)));
+      cnt = all.length;
+      body = all.map(x => x.p ? prodCard(x.p, true) : supCard(x.r, false)).join('');
+    }
+    if (!body) body = '<p class="msg">No rows match these filters.</p>';
+    return '<div class="cards">' + body + '</div><div class="stat"><span><b>' + cnt + '</b> ' + (S.group ? 'suppliers' : 'rows') + (anyFilter ? ' (filtered)' : '') + '</span><span>Invoiced <b>AED ' + f(sumInvT) + '</b></span><span>Received in Phorest <b>AED ' + f(sumRec) + '</b></span></div>';
+  }
   function sheet() {
+    if (S.phone) return sheetPhone();
     const rows = supRows(), bs = scope(), anyFilter = !!(S.fSup || S.fCat || S.q), arrow = S.sort.d > 0 ? '▲' : '▼';
     const sumInvT = rows.reduce((a, r) => a + r.inv, 0), sumRec = rows.reduce((a, r) => a + r.rec, 0);
     const supTh = '<button type="button" class="so" data-sort="name">Supplier ' + (S.sort.k === 'name' ? arrow : '') + '</button>';
@@ -302,7 +381,26 @@ table.sh tr.g:hover td{background:color-mix(in srgb,var(--hl) 55%,var(--surface2
   }
 
   /* ---------- the one filter bar ---------- */
+  const SHORT = { ALL: 'All', SAA: 'SAA', KCA: 'KCA', MC: 'MC', AQ: 'AQ' };
+  function barPhone() {
+    const nF = (S.fSup ? 1 : 0) + (S.fCat ? 1 : 0) + (S.q ? 1 : 0), open = S.fOpen, cnt = o => o ? ' · ' + Object.keys(o).length : '';
+    let h = '<div class="fhead"><button type="button" class="fbtn' + (nF ? ' on' : '') + '" data-ftoggle="1" aria-expanded="' + open + '">Filters' + (nF ? ' · ' + nF : '') + ' ' + (open ? '▴' : '▾') + '</button>' +
+      '<span class="fsum">' + monthLabel(S.month, D.partial) + ' · ' + (S.br === 'ALL' ? 'All' : S.br) + '</span>' +
+      (S.msg ? '<span class="fmsg" role="status">' + esc(S.msg) + '</span>' : '') + (nF ? '<button type="button" class="fbtn" data-clear="1">Clear</button>' : '') + '</div>';
+    if (open) {
+      h += '<div class="fbar2 ov"><div class="seg">' + (D.months || []).slice(0, 6).reverse().map(m => '<button type="button" data-m="' + m + '" aria-pressed="' + (m === S.month) + '">' + monthLabel(m, m === thisMonth()) + '</button>').join('') + '</div>' +
+        '<div class="seg">' + ['ALL'].concat(B).map(b => '<button type="button" data-br="' + b + '" aria-pressed="' + (S.br === b) + '" title="' + (b === 'ALL' ? 'All branches' : BN[b]) + '">' + SHORT[b] + '</button>').join('') + '</div>' +
+        '<div class="fg2"><button type="button" class="fbtn' + (S.fSup ? ' on' : '') + '" data-fmenu="sup">Supplier' + cnt(S.fSup) + ' ▾</button><button type="button" class="fbtn' + (S.fCat ? ' on' : '') + '" data-fmenu="cat">Category' + cnt(S.fCat) + ' ▾</button></div>' +
+        '<input type="search" id="q" placeholder="Search supplier, product or brand" value="' + esc(S.qraw) + '" aria-label="Search the sheet">' +
+        '<div class="seg"><button type="button" data-grp="1" aria-pressed="' + S.group + '">By supplier</button><button type="button" data-grp="0" aria-pressed="' + !S.group + '">Flat list</button></div>' +
+        '<div class="seg"><button type="button" data-psort="val" aria-pressed="' + (S.sort.k === 'val') + '">Biggest first</button><button type="button" data-psort="name" aria-pressed="' + (S.sort.k === 'name') + '">A to Z</button></div>' +
+        '<div class="chips"><button type="button" data-tgl="active" aria-pressed="' + S.activeOnly + '">Active this month</button></div>' +
+        '<button type="button" class="fbtn pri" data-ftoggle="1">Done</button></div>';
+    }
+    return h;
+  }
   function barHtml() {
+    if (S.phone) return barPhone();
     const nF = (S.fSup ? 1 : 0) + (S.fCat ? 1 : 0) + (S.q ? 1 : 0), open = S.fOpen;
     const cnt = o => o ? ' · ' + Object.keys(o).length : '';
     let h = '<div class="fhead"><button type="button" class="fbtn' + (nF ? ' on' : '') + '" data-ftoggle="1" aria-expanded="' + open + '">Filters' + (nF ? ' · ' + nF + ' on' : '') + ' ' + (open ? '▴' : '▾') + '</button>' +
@@ -333,9 +431,11 @@ table.sh tr.g:hover td{background:color-mix(in srgb,var(--hl) 55%,var(--surface2
     if (D.invoiced_loaded) note.push('Accounts\' files loaded ' + day(D.invoiced_loaded));
     if (D.orders_through) note.push('products received to ' + day(D.orders_through));
     if (D.income_through) note.push('income to ' + day(D.income_through));
+    const how = '<b>One source: what suppliers invoiced</b>, from Accounts\' supplier files. An invoice has no category, so each supplier\'s amount is split by the products received in Phorest, and a supplier with no products carries a category set by hand. "Received (Phorest)" in the sheet is product detail only.' +
+      (D.partial ? ' <b>Month to date</b>: ' + esc(note.join(', ')) + '.' : ' ' + esc(note.join(', ')) + '.');
+    $('pg').className = 'pg' + (S.phone ? ' ph' : '');
     $('pg').innerHTML = '<div class="fwrap" id="fwrap"><div id="fbar">' + barHtml() + '</div><div id="menu" role="dialog" aria-label="Filter"></div></div>' +
-      '<p class="basisnote"><b>One source: what suppliers invoiced</b>, from Accounts\' supplier files. An invoice has no category, so each supplier\'s amount is split by the products received in Phorest, and a supplier with no products carries a category set by hand. "Received (Phorest)" in the sheet is product detail only.' +
-      (D.partial ? ' <b>Month to date</b>: ' + esc(note.join(', ')) + '.' : ' ' + esc(note.join(', ')) + '.') + '</p>' +
+      (S.phone ? '<details class="how"><summary>How this is worked out</summary><p class="basisnote">' + how + '</p></details>' : '<p class="basisnote">' + how + '</p>') +
       '<div class="grid3" id="dash"></div><h2 class="s">Every supplier and its products <em>sort by clicking a header, change a Category cell to tag it' + (EDIT ? '' : ' (view only)') + '</em></h2><div class="sheet" id="sheet"></div>';
     S.menu = null;
     drawBody();
@@ -380,6 +480,8 @@ table.sh tr.g:hover td{background:color-mix(in srgb,var(--hl) 55%,var(--surface2
       if ((el = up('[data-br]'))) { S.br = el.getAttribute('data-br'); drawBar(); drawBody(); return; }
       if ((el = up('[data-tgl]'))) { if (el.getAttribute('data-tgl') === 'group') S.group = !S.group; else S.activeOnly = !S.activeOnly; drawBar(); drawBody(); return; }
       if (up('[data-clear]')) { S.fSup = null; S.fCat = null; S.q = ''; S.qraw = ''; closeMenu(); drawBar(); drawBody(); return; }
+      if ((el = up('[data-grp]'))) { S.group = el.getAttribute('data-grp') === '1'; drawBar(); drawBody(); return; }
+      if ((el = up('[data-psort]'))) { const k = el.getAttribute('data-psort'); S.sort = { k, d: k === 'name' ? 1 : -1 }; drawBar(); drawBody(); return; }
       if ((el = up('[data-exp]'))) { const n = el.getAttribute('data-exp'); S.open[n] = !(S.open[n] || ((S.fSup || S.fCat || S.q) && S.open[n] !== false)); drawBody(); return; }
       if ((el = up('[data-sort]'))) { const k = el.getAttribute('data-sort'); S.sort = S.sort.k === k ? { k, d: -S.sort.d } : { k, d: k === 'name' ? 1 : -1 }; drawBody(); return; }
       if ((el = up('[data-fmenu]'))) { const k = el.getAttribute('data-fmenu'); if (S.menu === k) closeMenu(); else openMenu(k, el); return; }
@@ -420,6 +522,8 @@ table.sh tr.g:hover td{background:color-mix(in srgb,var(--hl) 55%,var(--surface2
       root = host.attachShadow({ mode: 'open' });
       root.innerHTML = '<style>' + CSS + '</style><div class="stage"><div class="pg" id="pg"></div></div>';
       wire();
+      S.phone = isPhone(); S.fOpen = !S.phone;
+      new ResizeObserver(() => requestAnimationFrame(() => { const p = isPhone(); if (p !== S.phone && D) { S.phone = p; S.fOpen = !p; draw(); } })).observe(host);
     }
     $('pg').innerHTML = '<p class="msg">Loading supplier spend…</p>';
     try {
