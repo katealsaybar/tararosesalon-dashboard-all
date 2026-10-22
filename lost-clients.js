@@ -2,7 +2,9 @@
 // a lot of regular clients this year … the issue is they don't book back in", and
 // she wanted a list per branch for outreach. One call to lost_clients
 // (migrations/create_lost_clients.sql) over sales_transaction_lines, which starts in
-// January 2025, so "regular" and "gone" are judged on 2025+ visits only.
+// January 2025. Kate, 22 Oct 2026: the page now counts from 1 Jan 2021 (LC_SINCE, passed to every call as p_since;
+// the client-level data starts May 2021) and leaves out staff (any name with the word Staff in it), see
+// migrations/last_visit_2021_floor_no_staff.sql. Lost Client Blasts keeps its own 2025 floor.
 //
 // Phone numbers come from client_contacts, matched from Phorest's New Clients report
 // by "phorest data export/new clients/parse_new_clients.py". Only the owner login can
@@ -105,6 +107,9 @@ function lcShowSide(s) {
 // the Pulse data it never uses, then the board's summary waited for the list. Both
 // are asked for at sign-in now (lcPrefetch, from enterDashboard, before loadData)
 // and side by side, so the page draws when its own two calls are back.
+// Where every count on this page starts (Kate, 22 Oct 2026: "All time" is not since 2025). The database default stays
+// 2025-01-01 for the other callers.
+const LC_SINCE = '2021-01-01';
 let lcListP = null, lcListKey = '', lcSumP = null;
 function lcFetchList() {
   lcSyncBranch();
@@ -113,11 +118,11 @@ function lcFetchList() {
   if (!lcListP || lcListKey !== key) {
     lcListKey = key;
     lcListP = Promise.resolve(sb.rpc('lost_clients', {
-      p_branch: lcBranchArg(), p_min_visits: seg.min, p_max_visits: seg.max, p_days: lcDaysFetch() }));
+      p_branch: lcBranchArg(), p_min_visits: seg.min, p_max_visits: seg.max, p_days: lcDaysFetch(), p_since: LC_SINCE }));
   }
   return lcListP;
 }
-function lcFetchSummary() { return lcSumP || (lcSumP = Promise.resolve(sb.rpc('lost_clients_summary'))); }
+function lcFetchSummary() { return lcSumP || (lcSumP = Promise.resolve(sb.rpc('lost_clients_summary', { p_since: LC_SINCE }))); }
 function lcPrefetch() {
   if (!(typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2)) return;
   lcFetchList(); lcFetchSummary();
@@ -191,11 +196,11 @@ function lcPaint() {
     <section class="slv-card">
       <div class="slv-head">
         <div><div class="slv-eyebrow">${lcSel.branch === 'all' ? 'All branches' : lcEsc(LC_BRANCH[lcSel.branch])}</div><h3>${lcEsc(seg.label)}, ${lcAllTime() ? 'whenever they last came' : lcCustom() ? 'last seen ' + lcDaysTxt() + ' ago' : 'not back in ' + lcDaysTxt()}</h3></div>
-        <p>Visits since 1 Jan 2025</p>
+        <p>Visits since 1 Jan 2021</p>
       </div>
       <div class="w13-tiles lc-tiles">
         <div class="w13-tile"><div class="slv-eyebrow">Clients</div><div class="w13-val">${lcNum(lost.length)}</div><div class="slv-note">${lcAllTime() ? 'on the list' : "haven't been back"}</div></div>
-        <div class="w13-tile"><div class="slv-eyebrow">What they spent</div><div class="w13-val">AED ${lcNum(spend)}</div><div class="slv-note">since Jan 2025, ex VAT</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">What they spent</div><div class="w13-val">AED ${lcNum(spend)}</div><div class="slv-note">since Jan 2021, ex VAT</div></div>
         ${phones ? `<div class="w13-tile"><div class="slv-eyebrow">With a phone number</div><div class="w13-val">${lcNum(withNo)}</div><div class="slv-note">${lost.length ? Math.round(100 * withNo / lost.length) : 0}% of the list</div></div>` : ''}
         ${topTile('Their stylist', topSt)}
         ${topTile('Their beautician', topBt)}
@@ -216,7 +221,7 @@ function lcPaint() {
       </div>
       <div id="lcTable"></div>
     </section>
-    <p class="slv-muted">From Phorest's Sales Transactions. Their data goes back to 2021, but this page counts visits from 1 January 2025 only, so a client who was a regular in 2024 and stopped before then isn't on this list. Visits are days she came in at this branch (on All salons, at any branch); a deposit, a balance payment or a voucher bought on its own is not a visit; a client seen at another branch in the same window is counted on its own line, not as lost, and so is a client with a booking from today on in Phorest's Staff Appointments report (matched on her name, from the last time it was pulled). Usual stylist is whoever served most of her visits. "Last visit" is the newest day uploaded, so the last day or two can lag.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to the owner login only (Level 5); Lost Clients, To message and the Wellness Voucher blast show them to Level 3 and above. Email is Phorest\'s own, only where it has a real one for her (never a shared or placeholder address). Opt-out says STOP, DND or Opted out when she replied stop, asked not to be disturbed or is on a do-not-contact list (the coordinators\' Do not contact marks on the Lost Clients review sheets, reception\'s, or ours). Phorest\'s own marketing opt-out is not in any report, so for anyone with no flag check consent in Phorest before messaging.' : ''}</p>`;
+    <p class="slv-muted">From Phorest's Sales Transactions. This page counts every visit from 1 January 2021, where the client-level data starts (Saadiyat and Khalifa City A from May 2021, Motor City from December 2022, Al Quoz from September 2023), so All time goes back that far and no further. Staff are left out: anyone whose name in Phorest has the word Staff in it (a staff member who books under her own name is not caught). Visits are days she came in at this branch (on All salons, at any branch); a deposit, a balance payment or a voucher bought on its own is not a visit; a client seen at another branch in the same window is counted on its own line, not as lost, and so is a client with a booking from today on in Phorest's Staff Appointments report (matched on her name, from the last time it was pulled). Usual stylist is whoever served most of her visits. "Last visit" is the newest day uploaded, so the last day or two can lag.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to the owner login only (Level 5); Lost Clients, To message and the Wellness Voucher blast show them to Level 3 and above. Email is Phorest\'s own, only where it has a real one for her (never a shared or placeholder address). Opt-out says STOP, DND or Opted out when she replied stop, asked not to be disturbed or is on a do-not-contact list (the coordinators\' Do not contact marks on the Lost Clients review sheets, reception\'s, or ours). Phorest\'s own marketing opt-out is not in any report, so for anyone with no flag check consent in Phorest before messaging.' : ''}</p>`;
   lcPaintTable();
   lcStickHead();
   lcLoadSummary();
@@ -236,7 +241,7 @@ window.addEventListener('resize', lcStickHead);
 // (contains for the name, a range for numbers and dates, a tick list for the stylist
 // and the branch she moved to, has / has not for the phone). Filters stack with the
 // search box and with each other, the heading of a filtered column is marked, and
-// XLSX / CSV save exactly what the filters leave. Spend is her total since Jan 2025;
+// XLSX / CSV save exactly what the filters leave. Spend is her total since Jan 2021;
 // Avg per visit is that over her visits (Kate asked which it was, same day).
 let lcSort = { k: 'spend', dir: -1 };
 let lcF = {};
@@ -251,7 +256,7 @@ const LC_COLS = [
   { k: 'client',  label: 'Client',              type: 'text', get: r => r.client_name || '' },
   { k: 'visits',  label: 'Visits',              type: 'num',  get: r => Number(r.visits) || 0 },
   // Kate, 22 Oct 2026: her first visit ever, at any branch (Phorest data goes back to 2021), from client_directory via lost_first_visits.
-  // Visits and Total spend above count from 1 Jan 2025 only.
+  // Visits and Total spend above count from 1 Jan 2021.
   { k: 'first',   label: 'First visit',         type: 'date', get: r => r.first_ever || r.first_visit || '' },
   { k: 'last',    label: 'Last visit',          type: 'date', get: r => r.last_visit || '' },
   // On screen the headings stay one line (Kate, 2 Oct 2026: "(AED)" stacked them three
@@ -421,7 +426,7 @@ async function lcToggleDetail(ev, i) {
   const key = (br || 'all') + '|' + r.client_name;
   try {
     if (!lcDetailCache[key]) {
-      const { data, error } = await sb.rpc('lost_client_detail', { p_branch: br, p_client: r.client_name });
+      const { data, error } = await sb.rpc('lost_client_detail', { p_branch: br, p_client: r.client_name, p_since: LC_SINCE });
       if (error) throw error;
       lcDetailCache[key] = data;
     }
@@ -455,7 +460,7 @@ function lcDetailHtml(d, o) {
       <div>
         ${prod.length ? `<div class="slv-eyebrow">Took home</div><ul class="lc-prod">${prod.map(p => `<li>${lcEsc(p.item)} <span>AED ${lcNum(p.spend)}${p.times > 1 ? ' · ' + p.times + 'x' : ''}</span></li>`).join('')}</ul>` : ''}
         ${st.length ? `<div class="slv-eyebrow" style="margin-top:${prod.length ? 14 : 0}px">Looked after by</div><div class="lc-sts">${st.map(s => `<span>${lcStylist(s.employee_name)} <em>${lcNum(s.visits)}</em></span>`).join('')}</div>` : ''}
-        ${d && d.first_visit ? `<p class="slv-note" style="margin-top:12px">First visit ${o.allBranches ? 'since Jan 2025' : 'here'} ${lcEsc(lcDayY(d.first_visit))}</p>` : ''}
+        ${d && d.first_visit ? `<p class="slv-note" style="margin-top:12px">First visit ${o.allBranches ? 'since Jan 2021' : 'here'} ${lcEsc(lcDayY(d.first_visit))}</p>` : ''}
         ${o.extra || ''}
       </div>
     </div>`;
@@ -482,7 +487,7 @@ function lcLoadCustom() {
   const key = lcFrom() + '-' + lcTo();
   if (lcCust.key === key) return;
   lcCust = { key, data: null, err: false };
-  Promise.resolve(sb.rpc('lost_clients_summary', { p_days: [lcFrom()], p_to: lcTo() })).then(({ data, error }) => {
+  Promise.resolve(sb.rpc('lost_clients_summary', { p_days: [lcFrom()], p_to: lcTo(), p_since: LC_SINCE })).then(({ data, error }) => {
     if (lcCust.key !== key) return;
     if (error) throw error;
     lcCust.data = data || []; lcPaintBoard();
@@ -567,7 +572,7 @@ function lcPaintBoard() {
         <button type="button" class="${spend ? 'on' : ''}" onclick="lcBoardSetMode('spend')">Spend</button></div></div>
     <div class="w13-tiles lc-btiles">
       ${tile(cust ? 'In this range' : 'Not back', lcNum(allLost), `${allClients ? Math.round(100 * allLost / allClients) : 0}% of ${lcNum(allClients)} clients`)}
-      ${tile('They had spent', lcShortAed(allSpend), 'since Jan 2025, ex VAT')}
+      ${tile('They had spent', lcShortAed(allSpend), 'since Jan 2021, ex VAT')}
       ${tile(cust ? 'Most in range' : 'Most lost', lcEsc(worst.name), `${worst.all ? Math.round(100 * worst.lost / worst.all) : 0}% of its clients`)}
       ${tile('Biggest group', lcEsc(topGroup.g.label), `${allLost ? Math.round(100 * topGroup.n / allLost) : 0}% ${cust ? 'of this range' : 'of those not back'}`)}
     </div>
@@ -600,7 +605,7 @@ function lcBoardTable(B, days) {
   return `<div class="slv-wrap"><table class="slv-table lc-board-t">
       <thead><tr><th>Branch</th><th>Regulars (3+)</th><th>Came twice</th><th>One visit</th><th>All lost</th><th>Of their clients</th></tr></thead>
       <tbody>${B.map(row).join('')}${row(all).replace('<tr>', '<tr class="tot">')}</tbody></table></div>
-    <p class="slv-note" style="margin-top:8px">Clients since Jan 2025, total spend ex VAT. "Of their clients" is everyone who came to that branch since then. A client who has since been in at another branch, or who already has a booking, is not counted as lost.</p>`;
+    <p class="slv-note" style="margin-top:8px">Clients since Jan 2021, total spend ex VAT. "Of their clients" is everyone who came to that branch since then. A client who has since been in at another branch, or who already has a booking, is not counted as lost.</p>`;
 }
 
 // The table on its own, so typing in the search box or changing a column filter
@@ -638,7 +643,7 @@ function lcPaintTable() {
     // One small mark per heading (Kate, 2 Oct 2026: two arrows side by side looked off):
     // a chevron that opens the menu, which becomes an accent arrow when that column sorts.
     const sorted = lcSort.k === c.k ? `<svg class="lc-sort${lcSort.dir > 0 ? ' up' : ''}" viewBox="0 0 12 12" aria-label="${lcSort.dir > 0 ? 'sorted up' : 'sorted down'}"><path d="M6 2v8M2.5 6.5 6 10l3.5-3.5"/></svg>` : '';
-    return `<th class="lc-th lc-c-${c.k}${lcOn(c.k) ? ' on' : ''}${c.k === 'stylist' || c.k === 'beauty' ? ' lc-l' : ''}"><button type="button" class="lc-thb" onclick="lcOpenFilter(event,'${c.k}')" aria-haspopup="dialog"${c.xl ? ` title="${lcEsc(c.xl)}, ex VAT, since Jan 2025"` : ''}>${lcEsc(c.label)}${sorted || '<svg class="lc-fn" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>'}</button></th>`;
+    return `<th class="lc-th lc-c-${c.k}${lcOn(c.k) ? ' on' : ''}${c.k === 'stylist' || c.k === 'beauty' ? ' lc-l' : ''}"><button type="button" class="lc-thb" onclick="lcOpenFilter(event,'${c.k}')" aria-haspopup="dialog"${c.xl ? ` title="${lcEsc(c.xl)}, ex VAT, since Jan 2021"` : ''}>${lcEsc(c.label)}${sorted || '<svg class="lc-fn" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>'}</button></th>`;
   };
   const tr = shown.map((r, i) => `<tr class="lc-row" title="Click to see what she came in for, what she took home and who looked after her" onclick="lcToggleDetail(event,${i})">${cols.map(c => td(c, r)).join('')}</tr>`).join('');
   // Under 760px the table becomes a list, like Products: name and spend on one line,
@@ -823,7 +828,7 @@ async function lcFetchDetails(rows) {
   const worker = async () => {
     while (next < chunks.length) {
       const part = chunks[next++];
-      const { data, error } = await sb.rpc('lost_clients_detail_bulk', { p_branch: lcBranchArg(), p_clients: part });
+      const { data, error } = await sb.rpc('lost_clients_detail_bulk', { p_branch: lcBranchArg(), p_clients: part, p_since: LC_SINCE });
       if (error) throw error;
       part.forEach(n => { lcBulkCache[key(n)] = null; });
       (data || []).forEach(d => { lcBulkCache[key(d.client_name)] = d; });
