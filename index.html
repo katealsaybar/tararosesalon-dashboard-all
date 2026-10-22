@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=708c7336"></script>
+<script src="pages.js?v=6a601d9b"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3654,7 +3654,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <!-- Kate, 18 Oct 2026: the two WhatsApp blasts and the voucher's results sit together, apart from the numbers pages: they are
        things we send out and watch, not reports. Lost Clients: Level 2 and above (sending is Level 3). Wellness Voucher (3rd blast), Level 3, sits
-       inside Wellness Voucher Performance (Kate, 22 Oct 2026): a tab at the top of that page and an indented entry under it here.
+       inside Wellness Voucher Performance (Kate, 22 Oct 2026): an entry at the end of that page's "On this page" rail and an indented entry under it here.
        Wellness Voucher Performance (read-only, no client names, the till stays out): Level 2 and above. -->
   <div class="nav-group" id="navCampaigns">
     <div class="nav-title">Campaigns</div>
@@ -4307,7 +4307,6 @@ table.tp-cmp td.bad{color:var(--bad)}
        data-src, not src: loaded on first open only, so a dashboard visit does not
        boot the voucher page and its sign-in gate in the background. -->
   <div id="view-wvperf" style="display:none">
-    <div class="wv-tabs" id="wvTabsPerf" style="display:none"></div>
     <!-- Kate, 21 Oct 2026: the "On this page" rail, built the way Google Reviews' is. The frame reports where its sections are
          (trs-wvperf-sections, dashboard.js drawReviewsRail) and an empty anchor sits at each one over the frame. -->
     <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="wvShell">
@@ -4387,7 +4386,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=a67ddd4e"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
-<script src="dashboard.js?v=c1f597d4"></script>
+<script src="dashboard.js?v=9f2987ec"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4746,20 +4745,15 @@ sb.auth.onAuthStateChange((event) => {
 })();
 
 // ── VIEW SWITCHER
-// Performance | Wellness Voucher (3rd blast): the strip on both pages, only for a level that may open the blast (Level 3 and up).
+// Wellness Voucher (3rd blast) lives inside Wellness Voucher Performance (Kate, 22 Oct 2026): from Performance's "On this page" rail (dashboard.js
+// drawReviewsRail) and the indented sidebar entry; on the blast page itself this is the way back.
 function wvTabs(view){
-  const ok = trsPageOpen('wvblast', TRS_LEVEL, TRS_EXTRA);
-  [['wvTabsPerf'], ['wvTabsBlast']].forEach(([id]) => {
-    const box = document.getElementById(id);
-    if (!box) return;
-    box.style.display = ok ? '' : 'none';
-    box.innerHTML = ok ? [['wvperf', 'Performance'], ['wvblast', 'Wellness Voucher (3rd blast)']].map(([k, l]) =>
-      `<button type="button" role="tab" data-v="${k}" aria-selected="${k === view}" class="${k === view ? 'on' : ''}">${l}</button>`).join('') : '';
-    box.onclick = e => {
-      const b = e.target.closest('button[data-v]');
-      if (b && b.dataset.v !== view) showView(b.dataset.v, document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`));
-    };
-  });
+  const box = document.getElementById('wvTabsBlast');
+  if (!box) return;
+  const ok = view === 'wvblast' && trsPageOpen('wvblast', TRS_LEVEL, TRS_EXTRA);
+  box.style.display = ok ? '' : 'none';
+  box.innerHTML = ok ? '<button type="button" data-v="wvperf">← Wellness Voucher Performance</button>' : '';
+  box.onclick = e => { if (e.target.closest('button[data-v]')) showView('wvperf', document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`)); };
 }
 function showView(view, el){
   // Branch Performance was folded into Daily Performance (Kate, 16 Oct 2026, "daily lang matira"): an old star, link or button
@@ -5330,7 +5324,7 @@ function spy(){
   // so its links measure zero and a document-wide query would light the wrong page's
   // rail. Kate, 2026-08-14: the Ledgers pages and Stylist Cards have rails now too.
   const VIEW = document.getElementById('view-' + CURRENT_VIEW);
-  const NAV = VIEW ? [...VIEW.querySelectorAll('.side-nav a')] : [];
+  const NAV = VIEW ? [...VIEW.querySelectorAll('.side-nav a:not(.side-go)')] : [];
   if (!NAV.length){ trSyncUrl(null); return; }
   // A rail whose entries open tabs rather than scroll to sections (Lost Clients, 16 Oct 2026) lights its own entry in lqShowTab.
   if (NAV[0].closest('[data-tabs]')){ trSyncUrl(null); return; }
