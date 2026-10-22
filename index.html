@@ -454,7 +454,7 @@ body.one2ones-chrome .mast-rule,
 body.one2ones-chrome .filters-wrap,
 body.reviews-chrome .mast-rule,
 body.lostclients-chrome .mast-rule,
-body.lostclients-chrome:not(.lastvisit-chrome) .filters-wrap,
+body.lostclients-chrome:not(.lastvisit-chrome):not(.complaints-chrome) .filters-wrap,
 body.googleads-chrome .mast-rule,
 body.googleads-chrome .filters-wrap,
 body.website-chrome .mast-rule,
@@ -3525,7 +3525,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       o2:  ['one2ones.js?v=05296c93'],
       at:  ['attrition.js?v=ab90cc3b'],
       cb:  ['client-book.js?v=9bb069ee'],
-      cp:  ['complaints.js?v=b8184d9c'],
+      cp:  ['complaints.js?v=64859890'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['products.js?v=d1961633'],
@@ -4309,7 +4309,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   </div>
 
   <div id="view-complaints" style="display:none">
-    <main id="complaintsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+    <main id="complaintsContent" style="max-width:1340px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
   <!-- LOST CLIENTS (Kate, 2 Oct 2026): regulars who stopped coming back, per branch,
@@ -4450,7 +4450,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=a67ddd4e"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
-<script src="dashboard.js?v=1fcef946"></script>
+<script src="dashboard.js?v=19d71750"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4928,6 +4928,7 @@ function showView(view, el){
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
   document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'clients' || view === 'clientmix' || view === 'clientbook' || view === 'complaints' || view === 'services' || view === 'attrition');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
+  document.body.classList.toggle('complaints-chrome', view === 'complaints');   // Client Complaints follows the masthead's Branch and Period chips (Kate, 22 Oct 2026); it opens on All time
   document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('website-chrome', view === 'website');

@@ -6,23 +6,40 @@
 //   client_complaints_summary   everything on the page above the list: tiles, branch table, years, kinds, outcomes
 //   client_complaints_list      a page of the complaints themselves, with the original note
 // The table behind them is owner_read only and the functions refuse anyone under Level 5, because the dashboard's
-// table policies check membership, not level. Nothing here is stored in the browser except the branch pick: no
+// table policies check membership, not level. Nothing here is stored in the browser except the rows-per-page pick: no
 // names or notes ever go into localStorage.
 //
-// Own controls (branch, filters), so the masthead filters are hidden here, as on Client Mix and the Client Book.
+// Branch is the masthead's Branch chips (sel.branch), like every other page (Kate, 22 Oct 2026: "we must use global sticky
+// header filter"); there is no Period, it is a snapshot. The page keeps only its own list filters, sort and page size.
+// The summary and list take the branch as 'all', one code, or codes joined by commas.
 // What it cannot show: complaints nobody wrote down, WhatsApp complaints, and Google reviews (that is its own page).
 const CQ_STORE = 'trs-client-complaints';
-const CQ = { branch: 'all', src: 'visit', type: 'all', res: 'all', q: '', low: false, page: 0 };
+const CQ = { src: 'visit', type: 'all', res: 'all', google: 'all', q: '', low: false, page: 0, size: 10, sort: 'date', dir: 'desc' };
+const CQ_SIZES = [10, 20, 50, 100];
 try {
-  const s = JSON.parse(localStorage.getItem(CQ_STORE) || '{}');
-  if (typeof s.branch === 'string') CQ.branch = s.branch;
+  const st = JSON.parse(localStorage.getItem(CQ_STORE) || '{}');
+  if (CQ_SIZES.includes(st.size)) CQ.size = st.size;
 } catch (e) {}
-const cqSave = () => { try { localStorage.setItem(CQ_STORE, JSON.stringify({ branch: CQ.branch })); } catch (e) {} };
+const cqSave = () => { try { localStorage.setItem(CQ_STORE, JSON.stringify({ size: CQ.size })); } catch (e) {} };
 let cqSum = null, cqList = null, cqSeqS = 0, cqSeqL = 0, cqTimer = 0, cqOpen = 0;
-const CQ_PAGE = 30;
+// The masthead's Branch pick as the functions want it. Dashboard code FRT (Fratelli) is FRA in the notes.
+const cqBranch = () => {
+  const b = (typeof sel !== 'undefined' && sel && Array.isArray(sel.branch)) ? sel.branch : ['all'];
+  return (!b.length || b.includes('all')) ? 'all' : b.map(c => (c === 'FRT' ? 'FRA' : c)).join(',');
+};
+// The masthead's Period as the functions want it: both null for All time (the notes go back to 2016, the chip starts in 2021, and the undated
+// client-card notes count only then); otherwise the window's first and last day.
+const cqWin = () => {
+  try {
+    if (typeof activePeriodKey === 'function' && activePeriodKey() === 'All time') return { p_from: null, p_to: null };
+    if (typeof dateFrom !== 'undefined' && dateFrom && dateTo) return { p_from: dateToIso(dateFrom), p_to: dateToIso(dateTo) };
+  } catch (e) {}
+  return { p_from: null, p_to: null };
+};
+const cqWindowed = () => { const w = cqWin(); return !!(w.p_from || w.p_to); };
+let cqAllTimeDone = false;
+const cqPicked = () => { const b = cqBranch(); return b === 'all' ? [] : b.split(','); };
 const CQ_BRANCH = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', MRY: 'Marasy', FRA: 'Fratelli', BAH: 'Bahrain' };
-const CQ_TOGGLE = [['all', 'All branches'], ['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz'],
-  ['MRY', 'Marasy (closed)'], ['BAH', 'Bahrain']];
 const CQ_COLOUR = { SAA: '#b4637a', KCA: '#3e7f8f', MC: '#c8923a', AQ: '#6f8f4e', MRY: '#8a7aa6', FRA: '#999', BAH: '#c06a3a' };
 const CQ_TYPE = {
   colour_result: 'Colour result', nail_service: 'Nail service', treatment_result: 'Treatment result', cut_result: 'Cut result',
@@ -48,8 +65,13 @@ const cqDay = iso => {
 const cqBr = c => CQ_BRANCH[c] || c || 'Not matched';
 const cqLevelOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;
 
+// The mini side nav: the "On this page" rail the Ledgers pages carry (lgShell in branch-ledger.js; spy() lights the entry in view).
+const CQ_RAIL = [['cq-branch', 'By branch'], ['cq-year', 'By year'], ['cq-kind', 'What it was about'], ['cq-res', 'How it was resolved'], ['cq-list', 'The complaints']];
+function cqRailShell(body) {
+  return typeof lgShell === 'function' ? lgShell(CQ_RAIL, body, 'lg-shell-wide') : body;
+}
+
 function cqShell() {
-  const bopts = CQ_TOGGLE.map(([k, l]) => `<option value="${k}"${CQ.branch === k ? ' selected' : ''}>${cqEsc(l)}</option>`).join('');
   const topts = ['<option value="all">All kinds</option>'].concat(Object.keys(CQ_TYPE).map(k => `<option value="${k}">${cqEsc(CQ_TYPE[k])}</option>`)).join('');
   const ropts = ['<option value="all">All outcomes</option>'].concat(Object.keys(CQ_RES).map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
   return `<style>
@@ -71,9 +93,13 @@ function cqShell() {
     .cq-t th{text-align:left;font-size:11px;font-weight:600;color:var(--muted);padding:8px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
     .cq-t td{padding:9px 8px;border-bottom:1px solid var(--border2);vertical-align:top}
     .cq-t .n{text-align:right;font-variant-numeric:tabular-nums}
-    .cq-t tr.cq-br{cursor:pointer}
-    .cq-t tr.cq-br:hover td,.cq-t tr.cq-br:focus-visible td,.cq-t tr.cq-br.on td{background:var(--surface2)}
-    .cq-t tr.cq-br:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+    .cq-t tr.cq-br.on td{background:var(--surface2)}
+    .cq-t th.cq-sort{cursor:pointer;user-select:none}
+    .cq-t th.cq-sort:hover,.cq-t th.cq-sort:focus-visible{color:var(--text);background:var(--surface2)}
+    .cq-t th.cq-sort:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+    .cq-t th.cq-sort .ar{display:inline-block;width:12px;margin-left:4px;font-size:10px;opacity:.35}
+    .cq-t th.cq-sort[aria-sort] {color:var(--text)}
+    .cq-t th.cq-sort[aria-sort] .ar{opacity:1}
     .cq-t tr.cq-row{cursor:pointer}
     .cq-t tr.cq-row:hover td,.cq-t tr.cq-row:focus-visible td,.cq-t tr.cq-row.on td{background:var(--surface2)}
     .cq-t tr.cq-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
@@ -94,18 +120,18 @@ function cqShell() {
     .cq-orig{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;margin:0 0 10px;overflow-wrap:anywhere}
     .cq-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:5px 14px;font:inherit;font-size:13px;cursor:pointer}
     .cq-btn:disabled{opacity:.4;cursor:default}
-    .cq-pager{display:flex;align-items:center;gap:10px;justify-content:flex-end;padding:10px 0 2px}
+    .cq-pager{display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding:10px 0 2px}
+    .cq-pager .cq-size{margin-right:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+    .cq-tip{position:fixed;z-index:9999;pointer-events:none;max-width:260px;padding:6px 10px;border-radius:8px;font-size:12px;line-height:1.4;background:var(--surface2);color:var(--text);border:1px solid var(--border);box-shadow:0 4px 14px rgba(0,0,0,.25);display:none}
+    .cq [data-tip]{cursor:default}
     .cq-foot{color:var(--muted);font-size:12px;line-height:1.5;margin:12px 0 0;max-width:820px}
     @media (max-width:760px){.cq-t .hm{display:none}.cq-grid{grid-template-columns:1fr}.cq h1{font-size:24px}.cq-bars{grid-template-columns:minmax(90px,130px) 1fr auto}}
   </style>
   <div class="cq">
     <h1>Client Complaints</h1>
     <p class="cq-sub">Every complaint written into a Phorest client card or visit note, read one by one and sorted by branch, year, kind and how it was resolved. Level 5 only. It shows what staff wrote down, not every complaint that happened, and it is a copy from 21 Oct 2026.</p>
-    <div class="cq-bar">
-      <select id="cqB" class="cq-sel" aria-label="Branch">${bopts}</select>
-    </div>
-    <div id="cqTop"><p class="cq-meta">Loading…</p></div>
-    <div class="cq-card">
+    ${cqRailShell(`<div id="cqTop"><p class="cq-meta">Loading…</p></div>
+    <div class="cq-card" id="cq-list">
       <h2>The complaints</h2>
       <p class="cq-note">Tap one to read the original note and how it ended. Redo notes with no reason written are in here as complaints with the reason left blank.</p>
       <div class="cq-bar">
@@ -113,26 +139,23 @@ function cqShell() {
         <select id="cqS" class="cq-sel" aria-label="Where it was written"><option value="visit">Visit notes</option><option value="client">Client card notes</option></select>
         <select id="cqT" class="cq-sel" aria-label="Kind">${topts}</select>
         <select id="cqR" class="cq-sel" aria-label="Outcome">${ropts}</select>
+        <select id="cqG" class="cq-sel" aria-label="Google review"><option value="all">Google: any</option><option value="yes">Left a Google review</option><option value="no">No Google review found</option></select>
         <label class="cq-chk"><input id="cqL" type="checkbox"> Unsure only</label>
       </div>
       <p class="cq-meta" id="cqMeta" aria-live="polite"></p>
       <div id="cqBody" style="overflow-x:auto"><p class="cq-meta">Loading…</p></div>
-    </div>
-    <p class="cq-foot">How to read it. A complaint here is a note where the client was unhappy with the service, result, price, wait or experience, or where a redo, refund or credit was given because the result was not right. Cancellation apologies, deposit rules, Google review requests and clients unhappy with another salon were left out. A free redo means a redo was written down; most of them had no charge on the visit, some did. The rate per 1,000 noted visits is there because branches do not write notes equally, so the raw count favours the branch that writes most. Marasy closed in 2022. Not included: WhatsApp complaints, respond.io tags, Google reviews, and anything nobody typed into Phorest. Client card notes have no date, so they are counted apart. Unsure means the note was too short to be sure, usually a bare "redo".</p>
+    </div>`)}
+    <p class="cq-foot">How to read it. A complaint here is a note where the client was unhappy with the service, result, price, wait or experience, or where a redo, refund or credit was given because the result was not right. Cancellation apologies, deposit rules, Google review requests and clients unhappy with another salon were left out. A free redo means a redo was written down; most of them had no charge on the visit, some did. The rate per 1,000 noted visits is there because branches do not write notes equally, so the raw count favours the branch that writes most. Marasy closed in 2022. Not included: WhatsApp complaints, respond.io tags, Google reviews, and anything nobody typed into Phorest. Client card notes have no date, so they are counted apart and only show in All time. Unsure means the note was too short to be sure, usually a bare "redo". The Google column looks for a Google review whose reviewer name is the client's full name, left on or after the complaint. Reviewers often post a first name or a nickname, so None found is not proof that nothing was posted, and a match is the same name, not a certainty it is about that visit.</p>
   </div>`;
 }
 
 function cqWire() {
-  const sel = document.getElementById('cqB'), q = document.getElementById('cqQ'), body = document.getElementById('cqBody'), top = document.getElementById('cqTop');
-  if (sel && !sel.dataset.w) {
-    sel.dataset.w = '1';
-    sel.addEventListener('change', () => { CQ.branch = sel.value; CQ.page = 0; cqOpen = 0; cqSave(); cqLoadSummary(); cqLoadList(); });
-  }
+  const q = document.getElementById('cqQ'), body = document.getElementById('cqBody'), top = document.getElementById('cqTop');
   if (q && !q.dataset.w) {
     q.dataset.w = '1';
     q.addEventListener('input', () => { CQ.q = q.value; CQ.page = 0; cqOpen = 0; clearTimeout(cqTimer); cqTimer = setTimeout(cqLoadList, 300); });
   }
-  [['cqS', 'src'], ['cqT', 'type'], ['cqR', 'res']].forEach(([id, k]) => {
+  [['cqS', 'src'], ['cqT', 'type'], ['cqR', 'res'], ['cqG', 'google']].forEach(([id, k]) => {
     const el = document.getElementById(id);
     if (el && !el.dataset.w) {
       el.dataset.w = '1';
@@ -149,29 +172,46 @@ function cqWire() {
   if (body && !body.dataset.w) {
     body.dataset.w = '1';
     body.addEventListener('click', cqClick);
+    body.addEventListener('change', e => {
+      if (e.target && e.target.id === 'cqN') { CQ.size = Number(e.target.value) || 10; CQ.page = 0; cqOpen = 0; cqSave(); cqLoadList(); }
+    });
     body.addEventListener('keydown', e => {
-      if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('cq-row')) { e.preventDefault(); cqClick(e); }
+      const c = e.target.classList;
+      if ((e.key === 'Enter' || e.key === ' ') && c && (c.contains('cq-row') || c.contains('cq-sort'))) { e.preventDefault(); cqClick(e); }
     });
   }
   if (top && !top.dataset.w) {
     top.dataset.w = '1';
-    top.addEventListener('click', cqTopClick);
-    top.addEventListener('keydown', e => {
-      if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('cq-br')) { e.preventDefault(); cqTopClick(e); }
-    });
+    cqWireTip(top);
   }
 }
 
-function cqTopClick(e) {
-  const row = e.target.closest && e.target.closest('tr.cq-br');
-  if (!row) return;
-  CQ.branch = CQ.branch === row.dataset.b ? 'all' : row.dataset.b;
-  const sel = document.getElementById('cqB'); if (sel) sel.value = CQ.branch;
-  CQ.page = 0; cqOpen = 0; cqSave(); cqLoadSummary(); cqLoadList();
+// One floating tooltip for the bars: hover shows the number, a tap does on a phone. The native title tooltip showed blank.
+function cqWireTip(root) {
+  let tip = document.getElementById('cqTip');
+  if (!tip) { tip = document.createElement('div'); tip.id = 'cqTip'; tip.className = 'cq-tip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip); }
+  const at = (e, el) => {
+    tip.textContent = el.dataset.tip; tip.style.display = 'block';
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.max(6, Math.min(e.clientX + 14, window.innerWidth - w - 6)) + 'px';
+    tip.style.top = Math.max(6, (e.clientY - h - 12 < 6) ? e.clientY + 18 : e.clientY - h - 12) + 'px';
+  };
+  const off = () => { tip.style.display = 'none'; };
+  root.addEventListener('mousemove', e => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el) at(e, el); else off(); });
+  root.addEventListener('mouseleave', off);
+  root.addEventListener('click', e => { const el = e.target.closest && e.target.closest('[data-tip]'); if (el) at(e, el); else off(); });
+  window.addEventListener('scroll', off, { passive: true });
 }
 
 function cqClick(e) {
   const t = e.target;
+  const th = t.closest && t.closest('th[data-s]');
+  if (th) {
+    const k = th.dataset.s;
+    if (CQ.sort === k) CQ.dir = CQ.dir === 'asc' ? 'desc' : 'asc';
+    else { CQ.sort = k; CQ.dir = k === 'date' ? 'desc' : 'asc'; }
+    CQ.page = 0; cqOpen = 0; cqLoadList(); return;
+  }
   const pg = t.closest && t.closest('[data-pg]');
   if (pg) { CQ.page = Math.max(0, CQ.page + Number(pg.dataset.pg)); cqOpen = 0; cqLoadList(); return; }
   const row = t.closest && t.closest('tr.cq-row');
@@ -194,6 +234,16 @@ function cqToggle(row) {
   row.after(det);
 }
 
+// Which complaints reached Google: a Google review whose reviewer name is the client's full name, left on or after the complaint.
+// A name match only (reviewers often post a first name), so "none found" is not proof there is no review.
+function cqGoogle(r) {
+  if (!r.g_date) return '<span class="cq-muted">None found</span>';
+  const txt = `${'★'.repeat(Math.max(0, Math.min(5, Number(r.g_stars) || 0)))} ${cqDay(r.g_date)}`;
+  const low = Number(r.g_stars) > 0 && Number(r.g_stars) <= 3;
+  const body = r.g_url ? `<a href="${cqEsc(r.g_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${cqEsc(txt)}</a>` : cqEsc(txt);
+  return `<span class="cq-pill${low ? ' warn' : ''}">${body}</span>`;
+}
+
 function cqCard(r) {
   const conf = r.confidence === 'low' ? '<span class="cq-pill warn">Unsure</span>' : '';
   return `<div class="cq-grid">
@@ -205,6 +255,7 @@ function cqCard(r) {
       ${r.services ? `<p class="cq-kv"><span>Services that day</span> ${cqEsc(r.services)}</p>` : ''}
       ${r.fee != null && r.src === 'visit' ? `<p class="cq-kv"><span>Charged that visit</span> AED ${cqNum(r.fee)}</p>` : ''}
       ${r.handled_by ? `<p class="cq-kv"><span>Handled by</span> ${cqEsc(r.handled_by)}</p>` : ''}
+      <p class="cq-kv"><span>Google review</span> ${r.g_date ? cqGoogle(r) : 'None found under this name'}</p>
       <p class="cq-kv"><span>Phorest ID</span> ${cqEsc(r.phorest_id)}</p>
     </div>
     <div>
@@ -222,7 +273,7 @@ function cqBars(rows, labelOf, total, colour) {
   if (!rows.length) return '<p class="cq-meta">Nothing here.</p>';
   const max = Math.max(...rows.map(r => r.n), 1);
   return `<div class="cq-bars">${rows.map(r => `<div>${cqEsc(labelOf(r))}</div>
-    <div class="cq-trk" role="img" aria-label="${cqEsc(labelOf(r))}: ${r.n}"><div class="cq-seg" style="width:${(100 * r.n / max).toFixed(1)}%;background:${colour}"></div></div>
+    <div class="cq-trk" role="img" aria-label="${cqEsc(labelOf(r))}: ${r.n}" data-tip="${cqEsc(labelOf(r))}: ${cqNum(r.n)} complaint${r.n === 1 ? '' : 's'} (${cqPct(r.n, total)})"><div class="cq-seg" style="width:${(100 * r.n / max).toFixed(1)}%;background:${colour}"></div></div>
     <div class="cq-val">${cqNum(r.n)} · ${cqPct(r.n, total)}</div>`).join('')}</div>`;
 }
 
@@ -234,12 +285,12 @@ function cqYears(rows) {
   const max = Math.max(...yrs.map(y => y.tot), 1);
   const used = Array.from(new Set(rows.map(r => r.branch)));
   const order = ['SAA', 'KCA', 'MC', 'AQ', 'MRY', 'FRA', 'BAH'].filter(b => used.includes(b));
-  const legend = CQ.branch === 'all'
+  const legend = cqPicked().length !== 1
     ? `<div class="cq-legend">${order.map(b => `<span><i style="background:${CQ_COLOUR[b] || '#999'}"></i>${cqEsc(cqBr(b))}</span>`).join('')}</div>` : '';
   const bars = yrs.map(y => {
-    const segs = order.map(b => { const s = y.seg.find(x => x.branch === b); return s ? `<div class="cq-seg" title="${cqEsc(cqBr(b))}: ${s.n}" style="width:${(100 * s.n / max).toFixed(1)}%;background:${CQ_COLOUR[b] || '#999'}"></div>` : ''; }).join('');
+    const segs = order.map(b => { const s = y.seg.find(x => x.branch === b); return s ? `<div class="cq-seg" data-tip="${cqEsc(cqBr(b))}, ${y.yr}: ${cqNum(s.n)} complaint${s.n === 1 ? '' : 's'} (${cqPct(s.n, y.tot)} of the year)" style="width:${(100 * s.n / max).toFixed(1)}%;background:${CQ_COLOUR[b] || '#999'}"></div>` : ''; }).join('');
     const parts = order.map(b => { const s = y.seg.find(x => x.branch === b); return s ? `${cqBr(b)} ${s.n}` : ''; }).filter(Boolean).join(', ');
-    return `<div>${y.yr}</div><div class="cq-trk" role="img" aria-label="${y.yr}: ${y.tot} (${cqEsc(parts)})">${segs}</div><div class="cq-val">${cqNum(y.tot)}</div>`;
+    return `<div>${y.yr}</div><div class="cq-trk" role="img" aria-label="${y.yr}: ${y.tot} (${cqEsc(parts)})" data-tip="${y.yr}: ${cqNum(y.tot)} complaint${y.tot === 1 ? '' : 's'}">${segs}</div><div class="cq-val">${cqNum(y.tot)}</div>`;
   }).join('');
   return `${legend}<div class="cq-bars">${bars}</div>`;
 }
@@ -248,18 +299,19 @@ function cqPaintSummary() {
   const el = document.getElementById('cqTop');
   if (!el || !cqSum) return;
   const t = cqSum.tiles || {}, total = Number(t.complaints || 0);
-  const where = CQ.branch === 'all' ? '' : ' at ' + cqBr(CQ.branch);
+  const picked = cqPicked();
+  const where = picked.length ? ' at ' + picked.map(cqBr).join(', ') : '';
   const tiles = [
     [cqNum(t.complaints), 'complaints in visit notes' + where],
     [cqNum(t.since_2025), 'of them since 1 Jan 2025'],
     [cqNum(t.clients), 'different clients'],
     [cqNum(t.repeat_clients), 'clients with 2 or more'],
-    [cqNum(t.profile_flags), 'more on client cards, undated'],
-    [cqNum(t.low_confidence), 'unsure, note too short']
-  ].map(([b, s]) => `<div class="cq-tile"><b>${b}</b><span>${cqEsc(s)}</span></div>`).join('');
+    ...(cqWindowed() ? [] : [[cqNum(t.profile_flags), 'more on client cards, undated']]),
+    [cqNum(t.low_confidence), 'unsure, note too short']].concat(cqSum.google ? [[cqNum(cqSum.google.on_google), 'also left a Google review (same name)']] : []
+  ).map(([b, s]) => `<div class="cq-tile"><b>${b}</b><span>${cqEsc(s)}</span></div>`).join('');
   const brows = (cqSum.branches || []).map(b => {
     const rate = b.noted_since_2024 ? (1000 * b.since_2024 / b.noted_since_2024).toFixed(1) : 'n/a';
-    return `<tr class="cq-br${CQ.branch === b.branch ? ' on' : ''}" tabindex="0" role="button" aria-label="${cqEsc(cqBr(b.branch))}" data-b="${cqEsc(b.branch)}">
+    return `<tr class="cq-br${picked.includes(b.branch) ? ' on' : ''}">
       <td><b>${cqEsc(cqBr(b.branch))}</b></td><td class="n">${cqNum(b.complaints)}</td><td class="n">${cqNum(b.since_2025)}</td><td class="n hm">${rate}</td>
       <td class="n">${cqNum(b.free_redo)}</td><td class="n hm">${cqNum(b.refund)}</td><td class="n hm">${cqNum(b.discount_credit)}</td><td class="n hm">${cqNum(b.free_service)}</td>
       <td class="n hm">${cqNum(b.adjusted)}</td><td class="n hm">${cqNum(b.talked)}</td><td class="n hm">${cqNum(b.lost)}</td><td class="n">${cqNum(b.no_outcome)}</td></tr>`;
@@ -267,19 +319,19 @@ function cqPaintSummary() {
   const types = (cqSum.types || []).map(r => ({ n: r.n, k: r.type }));
   const ress = (cqSum.resolutions || []).map(r => ({ n: r.n, k: r.resolution }));
   el.innerHTML = `<div class="cq-tiles">${tiles}</div>
-    <div class="cq-card"><h2>By branch</h2>
-      <p class="cq-note">Visit notes only. Tap a branch to filter the rest of the page to it. The rate is complaints per 1,000 visits that had a note, since 1 Jan 2024, so branches that write fewer notes are not flattered.</p>
+    <div class="cq-card" id="cq-branch"><h2>By branch</h2>
+      <p class="cq-note">Visit notes only. Every branch is shown here; pick branches in the filter at the top to narrow the rest of the page. The rate is complaints per 1,000 visits that had a note, since 1 Jan 2024, so branches that write fewer notes are not flattered.</p>
       <div style="overflow-x:auto"><table class="cq-t"><tr><th>Branch</th><th class="n">Complaints</th><th class="n">Since 2025</th><th class="n hm">Per 1,000 noted</th><th class="n">Free redo</th><th class="n hm">Refund</th><th class="n hm">Discount or credit</th><th class="n hm">Free service</th><th class="n hm">Fixed on the day</th><th class="n hm">Talked or escalated</th><th class="n hm">Client lost</th><th class="n">No outcome</th></tr>${brows}</table></div></div>
-    <div class="cq-card"><h2>By year</h2><p class="cq-note">Complaints by the year of the visit${CQ.branch === 'all' ? ', split by branch' : ''}. The early years are thin because few notes were typed then.</p>${cqYears(cqSum.years || [])}</div>
-    <div class="cq-card"><h2>What the complaint was about</h2>${cqBars(types, r => CQ_TYPE[r.k] || r.k, total, 'var(--accent)')}</div>
-    <div class="cq-card"><h2>How it was resolved</h2><p class="cq-note">What the note says happened. No outcome written means the problem is on record but the note does not say how it ended.</p>${cqBars(ress, r => CQ_RES[r.k] || r.k, total, 'var(--accent)')}</div>`;
+    <div class="cq-card" id="cq-year"><h2>By year</h2><p class="cq-note">Complaints by the year of the visit${picked.length === 1 ? '' : ', split by branch'}. The early years are thin because few notes were typed then.</p>${cqYears(cqSum.years || [])}</div>
+    <div class="cq-card" id="cq-kind"><h2>What the complaint was about</h2>${cqBars(types, r => CQ_TYPE[r.k] || r.k, total, 'var(--accent)')}</div>
+    <div class="cq-card" id="cq-res"><h2>How it was resolved</h2><p class="cq-note">What the note says happened. No outcome written means the problem is on record but the note does not say how it ended.</p>${cqBars(ress, r => CQ_RES[r.k] || r.k, total, 'var(--accent)')}</div>`;
 }
 
 function cqPaintList() {
   const body = document.getElementById('cqBody'), meta = document.getElementById('cqMeta');
   if (!body || !cqList) return;
   const rows = cqList.rows || [], total = Number(cqList.total || 0);
-  const from = total ? CQ.page * CQ_PAGE + 1 : 0, to = CQ.page * CQ_PAGE + rows.length;
+  const from = total ? CQ.page * CQ.size + 1 : 0, to = CQ.page * CQ.size + rows.length;
   if (meta) meta.textContent = total ? `${cqNum(from)} to ${cqNum(to)} of ${cqNum(total)} complaint${total === 1 ? '' : 's'}` : '';
   if (!rows.length) { body.innerHTML = '<p class="cq-meta" style="padding:10px 4px">No complaint matches that.</p>'; return; }
   const tr = rows.map(r => `<tr class="cq-row" tabindex="0" role="button" aria-label="Open this complaint" data-i="${r.id}">
@@ -288,9 +340,15 @@ function cqPaintList() {
       <td><b>${cqEsc(r.client || 'No name')}</b></td>
       <td>${cqEsc(r.detail || 'Not stated')}${r.confidence === 'low' ? ' <span class="cq-pill warn">unsure</span>' : ''}<div class="cq-muted" style="font-size:12px">${cqEsc(CQ_TYPE[r.type] || '')}</div></td>
       <td>${cqEsc(CQ_RES[r.resolution] || '')}</td>
+      <td class="hm" style="white-space:nowrap">${cqGoogle(r)}</td>
     </tr>`).join('');
-  body.innerHTML = `<table class="cq-t"><tr><th>Date</th><th class="hm">Branch</th><th>Client</th><th>What happened</th><th>Outcome</th></tr>${tr}</table>
-    <div class="cq-pager"><button type="button" class="cq-btn" data-pg="-1"${CQ.page === 0 ? ' disabled' : ''}>Previous</button>
+  const th = (k, label, cls) => {
+    const on = CQ.sort === k;
+    return `<th class="cq-sort${cls ? ' ' + cls : ''}" tabindex="0" role="columnheader button" data-s="${k}"${on ? ` aria-sort="${CQ.dir === 'asc' ? 'ascending' : 'descending'}"` : ''} title="Sort by ${label.toLowerCase()}">${label}<span class="ar" aria-hidden="true">${on ? (CQ.dir === 'asc' ? '▲' : '▼') : '↕'}</span></th>`;
+  };
+  const sizes = CQ_SIZES.map(n => `<option value="${n}"${CQ.size === n ? ' selected' : ''}>${n}</option>`).join('');
+  body.innerHTML = `<table class="cq-t"><tr>${th('date', 'Date')}${th('branch', 'Branch', 'hm')}${th('client', 'Client')}${th('detail', 'What happened')}${th('resolution', 'Outcome')}<th class="hm" title="Is there a Google review by someone with the same name, left on or after the complaint date">Google</th></tr>${tr}</table>
+    <div class="cq-pager"><label class="cq-size">Show <select id="cqN" class="cq-sel" aria-label="Complaints per page">${sizes}</select> per page</label><button type="button" class="cq-btn" data-pg="-1"${CQ.page === 0 ? ' disabled' : ''}>Previous</button>
     <button type="button" class="cq-btn" data-pg="1"${to >= total ? ' disabled' : ''}>Next</button></div>`;
 }
 
@@ -299,10 +357,14 @@ async function cqLoadSummary() {
   if (!el) return;
   const seq = ++cqSeqS;
   try {
-    const { data, error } = await sb.rpc('client_complaints_summary', { p_branch: CQ.branch });
+    const [{ data, error }, g] = await Promise.all([
+      sb.rpc('client_complaints_summary', { p_branch: cqBranch(), ...cqWin() }),
+      sb.rpc('client_complaints_google_count', { p_branch: cqBranch(), ...cqWin() })
+    ]);
     if (error) throw error;
     if (seq !== cqSeqS) return;
     cqSum = data;
+    if (cqSum && g && !g.error) cqSum.google = g.data;
     cqPaintSummary();
   } catch (e) {
     console.error(e);
@@ -317,8 +379,8 @@ async function cqLoadList() {
   const seq = ++cqSeqL;
   try {
     const { data, error } = await sb.rpc('client_complaints_list', {
-      p_branch: CQ.branch, p_src: CQ.src, p_type: CQ.type, p_resolution: CQ.res, p_q: CQ.q.trim(), p_low: CQ.low,
-      p_limit: CQ_PAGE, p_offset: CQ.page * CQ_PAGE
+      p_branch: cqBranch(), p_src: CQ.src, p_type: CQ.type, p_resolution: CQ.res, p_q: CQ.q.trim(), p_low: CQ.low,
+      p_limit: CQ.size, p_offset: CQ.page * CQ.size, p_sort: CQ.sort, p_dir: CQ.dir, p_google: CQ.google, ...cqWin()
     });
     if (error) throw error;
     if (seq !== cqSeqL) return;
@@ -331,6 +393,14 @@ async function cqLoadList() {
   }
 }
 
+// The masthead's Branch chips changed (dashboard.js NOPULSE_REDRAW): redraw the numbers and the list for the new pick.
+function cqRefresh() {
+  if (!document.getElementById('cqTop')) return renderComplaints();
+  CQ.page = 0; cqOpen = 0;
+  cqLoadSummary();
+  return cqLoadList();
+}
+
 function renderComplaints() {
   const el = document.getElementById('complaintsContent');
   if (!el) return;
@@ -340,4 +410,11 @@ function renderComplaints() {
   cqOpen = 0;
   cqLoadSummary();
   cqLoadList();
+  // Kate, 22 Oct 2026: "all time toggling pwede". The notes go back years, so the first time the page opens in a visit it asks for the
+  // masthead's All time (the Period chips are the toggle after that); the chip's own redraw reloads the page, so only the chip is touched here.
+  if (!cqAllTimeDone) {
+    cqAllTimeDone = true;
+    const chip = document.querySelector('#periodChips .chip[data-v="All time"]');
+    if (chip && !chip.disabled && chip.getAttribute('aria-pressed') !== 'true') chip.click();
+  }
 }
