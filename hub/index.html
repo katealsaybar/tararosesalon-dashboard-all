@@ -149,13 +149,23 @@ KB.ready.then(async function () {
     var present = KB.GROUPS.filter(function (g) { return shown.some(function (s) { return s.dept === g; }); });
     if (openG && present.indexOf(openG) < 0) openG = null;
     if (!openG && present.length === 1) openG = present[0];
-    html += '<div class="kb-gtiles">' + present.map(function (g) {
+    // Kate, 22 Oct 2026: "di mo naman hiniwalay yung informational sa dashboard stuff". What you read and learn from (the Tara Rose Way, Me, Learn)
+    // is one block of squares and the dashboard shortcuts and tools (Numbers, Clients, Targets, Campaigns, Content, People, Admin) another, each
+    // with a small heading. A person who has only one kind sees no heading.
+    var INFO_G = { 'The Tara Rose Way': 1, 'Me': 1, 'Learn': 1 };
+    function tile(g) {
       var list = shown.filter(function (s) { return s.dept === g; }), n = list.filter(isLive).length;
       var on = g === openG;
       return '<button type="button" class="kb-gtile' + (on ? ' on' : '') + '" data-g="' + esc(g) + '" aria-expanded="' + on + '">' +
         KB.icon(GROUP_IC[g] || 'dashboards', GROUP_COLOR[g] || 'var(--accent-mint)') +
         '<span class="kb-gt-tx"><b>' + esc(g) + '</b><span>' + n + (n === 1 ? ' item' : ' items') + '</span></span></button>';
-    }).join('') + '</div>';
+    }
+    var infoG = present.filter(function (g) { return INFO_G[g]; }), dashG = present.filter(function (g) { return !INFO_G[g]; });
+    var heads = infoG.length && dashG.length;
+    function block(list, label) {
+      return list.length ? (heads ? '<h2 class="kb-section-title" style="margin:20px 0 10px">' + label + '</h2>' : '') + '<div class="kb-gtiles">' + list.map(tile).join('') + '</div>' : '';
+    }
+    html += block(infoG, 'Read and learn') + block(dashG, 'Dashboards and tools');
     if (openG) html += '<div class="kb-depts kb-depts-one" id="kbOpenG">' + group(openG, shown.filter(function (s) { return s.dept === openG; })) + '</div>';
     document.getElementById('kbGrid').innerHTML = html;
   }
