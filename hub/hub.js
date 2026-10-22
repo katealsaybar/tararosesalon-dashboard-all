@@ -78,7 +78,7 @@
     // Kate, 14 Oct 2026: the 2022 ROSES magazine issues, in a private Storage bucket (kb_magazines.sql), Level 2 and up.
     { key: 'magazines', dept: 'Content', title: 'ROSES Magazine', href: '/hub/magazines', live: true, rule: 'var(--accent-coral)',
       blurb: 'Our ROSES magazine, 2021 to 2023, to read or download.' },
-    { key: 'post-approvals', via: 'dashboards', min: 3, ic: 'approvals', dept: 'Content', title: 'Post Approvals', href: 'https://katealsaybar.github.io/smm_board_approvals/', rule: 'var(--accent-coral)',
+    { key: 'post-approvals', via: 'dashboards', min: 3, only: [3, 5], ic: 'approvals', dept: 'Content', title: 'Post Approvals', href: 'https://katealsaybar.github.io/smm_board_approvals/', rule: 'var(--accent-coral)',
       blurb: 'Posts waiting for a yes, with comments.' },
     // Kate, 6 Oct 2026: named as in the dashboard sidebar (Marketing & Campaigns).
     { key: 'content-ads', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Content', title: 'Google Ads', href: '/?view=googleads', rule: 'var(--accent-coral)',
