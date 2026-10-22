@@ -44,7 +44,7 @@ window.TRS_PAGES = /*PAGES*/[
   {"id": "attrition", "lazy": "at", "label": "Staff Attrition", "group": "Numbers", "sub": "Team Performance", "min": 3, "ic": "access", "words": "attrition turnover leavers left resigned resignation staff retention tenure how long stayed stylists beauticians churn", "lv": []},
   {"id": "clients", "label": "Top Clients", "group": "Numbers", "sub": "Clients", "lazy": "cl", "words": "top clients customers", "lv": []},
   {"id": "clientmix", "label": "Client Mix", "group": "Numbers", "sub": "Clients", "lazy": "cl", "words": "client mix colour units new returning mix of clients", "lv": []},
-  {"id": "lostclients", "label": "Client’s Last Visit", "group": "Numbers", "sub": "Clients", "min": 2, "slug": "last-visit", "lazy": "cl", "ic": "lost-clients", "words": "last visit lapsed clients not back come back haven't been back win back", "lv": [2]},
+  {"id": "lostclients", "label": "Client’s Last Visit", "group": "Numbers", "sub": "Clients", "min": 2, "slug": "last-visit", "filtered": 1, "nopulse": 1, "lazy": "cl", "ic": "lost-clients", "words": "last visit lapsed clients not back come back haven't been back win back", "lv": [2]},
   {"id": "lostlists", "label": "Lost Client Blasts, October 2026", "group": "Campaigns", "min": 2, "slug": "lost-clients", "lazy": "cl", "ic": "lost-clients", "words": "lost clients outreach lists whatsapp groups waves campaign templates to message", "lv": [2]},
   {"id": "wvblast", "label": "Wellness Voucher Blast", "group": "Campaigns", "min": 3, "lazy": "cl", "words": "voucher blast whatsapp wave send message vouchers clients", "lv": []},
   {"id": "reviews", "label": "Google Reviews", "group": "Numbers", "sub": "Clients", "filtered": 1, "words": "google reviews ratings stars", "lv": [2]},

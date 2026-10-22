@@ -8,7 +8,9 @@
 --                      in the inbox, respond.io message/tag matches) always counts;
 --   lost_wa_status    (respond-status-sync, opted_out) counts when she has not visited since the reply, the
 --                      same visit rule as the Lost Clients lists (lost_lists_core_x).
--- Both are matched on her phone numbers. The helper is SECURITY DEFINER and returns labels only, never
+-- A third source, added 22 Oct 2026: lost_excluded 'Do not contact', the coordinators' marks in the Lost Clients blast lists,
+-- always counts as DND and is matched on her name, so it needs no number.
+-- The first two are matched on her phone numbers. The helper is SECURITY DEFINER and returns labels only, never
 -- numbers, so every Level 2+ login sees the opt-out even though only the owner can read client_contacts.
 
 create or replace function public.lost_optout_map()
@@ -29,16 +31,21 @@ begin
     where btrim(x) <> ''
     group by 1, 2
   ), hits as (
-    select n.k, o.reason as why, o.added_at::date as at, true as hard
+    select n.k, o.reason as why, o.added_at::date as at, true as hard, null::text as forced
     from nums n join lost_send_optout o on o.phone = n.phone
     union all
-    select n.k, w.opt_phrase || coalesce(' (' || w.opt_source || ')', ''), w.opt_at::date, false
+    select n.k, w.opt_phrase || coalesce(' (' || w.opt_source || ')', ''), w.opt_at::date, false, null::text
     from nums n join lost_wa_status w on w.phone = n.phone and w.opted_out
+    union all
+    -- the coordinators' "Do not contact" marks in the Lost Clients blast lists (lost_excluded), by name, so no number is needed
+    select public.stl_key_fold(e.client_key), 'Coordinators marked do not contact (' || coalesce(e.set_by, 'blast list') || ')' || coalesce(': ' || e.note, ''),
+           e.set_at::date, true, 'DND'
+    from lost_excluded e where e.reason = 'Do not contact'
   ), lab as (
-    select h.*, case
+    select h.*, coalesce(h.forced, case
         when lower(h.why) ~ '(^|[^a-z])(stop|unsubscribe)([^a-z]|$)' then 'STOP'
         when lower(h.why) ~ 'do not contact|do not disturb|dont disturb|don''t disturb|dnd|do not call|dont call|do not text|do not message' then 'DND'
-        else 'Opted out' end as label
+        else 'Opted out' end) as label
     from hits h
   )
   select distinct on (l.k) l.k, l.label, l.why, l.at, l.hard

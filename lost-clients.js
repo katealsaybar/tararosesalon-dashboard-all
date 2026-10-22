@@ -44,6 +44,21 @@ const lcBranchName = b => LC_BRANCH[b] || (typeof BRANCH_INFO !== 'undefined' &&
 const lcBranchKeys = range => Object.keys(LC_BRANCH).concat(range ? Object.keys(LC_CLOSED).filter(c => range[0] <= LC_CLOSED[c].last && range[1] >= LC_CLOSED[c].first) : []);
 // "All" (Kate, 7 Oct 2026) asks the server for every branch at once: the RPCs take a null branch.
 const lcBranchArg = () => lcSel.branch === 'all' ? null : lcSel.branch;
+// Branch (Kate, 22 Oct 2026): the page's own Branch toggles moved into the masthead's Branch row (pages.js filtered + nopulse, so a
+// Branch change redraws this page alone). The server takes one branch or all four, so: one open UAE branch is that branch, UAE
+// Branches (or the Group) is All, and anything else (two branches ticked, Bahrain, a closed branch) shows All with a line saying so.
+let lcBranchNote = '';
+function lcSyncBranch() {
+  const b = (typeof sel !== 'undefined' && sel.branch) || ['all'];
+  let code = 'all', note = '';
+  if (!b.includes('all')) {
+    if (b.length === 1 && LC_BRANCH[b[0]]) code = b[0];
+    else note = b.length > 1 ? 'This page reads one branch or all four, so it is showing all four. Pick a single branch in the filter above for one.'
+      : 'This page covers the four open UAE salons, so it is showing all four.';
+  }
+  if (code !== lcSel.branch) { lcSel.branch = code; lcPage = 1; lcSide = ''; lcSave(); }
+  lcBranchNote = note;
+}
 // min/max visits per segment. Visits = days the client came in at that branch.
 const LC_SEG = {
   regular: { label: 'Regulars (3+ visits)', short: '3+', min: 3, max: null },
@@ -90,6 +105,7 @@ function lcShowSide(s) {
 // and side by side, so the page draws when its own two calls are back.
 let lcListP = null, lcListKey = '', lcSumP = null;
 function lcFetchList() {
+  lcSyncBranch();
   const seg = LC_SEG[lcSel.seg] || LC_SEG.regular;
   const key = [lcSel.branch, seg.min, seg.max, lcDaysFetch()].join('|');
   if (!lcListP || lcListKey !== key) {
@@ -109,6 +125,7 @@ async function renderLostClients() {
   const el = document.getElementById('lostClientsContent');
   if (!el) return;
   lcDetailCtx = null;
+  lcSyncBranch();
   el.innerHTML = lcShell('<p class="slv-muted">Loading clients…</p>');
   const listP = lcFetchList(); lcListP = null;   // used once; a later pick asks again
   lcFetchSummary();
@@ -133,10 +150,10 @@ function lcShell(body) {
       <p>Clients who used to come in and haven't been back, by branch, highest spend first. For reference and outreach planning. <b>Lost</b> means no visit at the branch picked (at any branch on All) in the window, and nobody with a booking from today on or seen at another branch. The people we are messaging, and how it is going, are on <a href="?view=lostlists" onclick="event.preventDefault();showView('lostlists', document.querySelector('#sidebar .nav-sub[onclick*=&quot;lostlists&quot;]'))">Lost Clients</a>.</p>
     </section>
     <div class="sc-bar w13-bar lc-bar">
-      <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(Object.keys(LC_BRANCH).map(k => [k, k])))}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Visits</div>${seg('seg', Object.entries(LC_SEG).map(([k, s]) => [k, s.short]))}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Days away</div>${seg('days', LC_DAYS.map(d => [d, `${d}+`]).concat([['custom', 'Custom']]))}</div>
     </div>
+    ${lcBranchNote ? `<p class="slv-note" style="margin:8px 0 0">${lcEsc(lcBranchNote)}</p>` : ''}
     ${lcCustom() ? `<div class="lc-cust"><span>Last seen between</span><input type="number" min="0" inputmode="numeric" value="${lcFrom()}" aria-label="From days" onchange="lcSetCustom('cfrom', this.value)"><span>and</span><input type="number" min="0" inputmode="numeric" value="${lcTo()}" aria-label="To days" onchange="lcSetCustom('cto', this.value)"><span>days ago</span></div>` : ''}
     <div id="lcBody">${body}</div>`;
 }
@@ -197,7 +214,7 @@ function lcPaint() {
       </div>
       <div id="lcTable"></div>
     </section>
-    <p class="slv-muted">From Phorest's Sales Transactions. Their data goes back to 2021, but this page counts visits from 1 January 2025 only, so a client who was a regular in 2024 and stopped before then isn't on this list. Visits are days she came in at this branch (on All salons, at any branch); a deposit, a balance payment or a voucher bought on its own is not a visit; a client seen at another branch in the same window is counted on its own line, not as lost, and so is a client with a booking from today on in Phorest's Staff Appointments report (matched on her name, from the last time it was pulled). Usual stylist is whoever served most of her visits. "Last visit" is the newest day uploaded, so the last day or two can lag.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to the owner login only (Level 5); Lost Clients, To message and the Wellness Voucher blast show them to Level 3 and above. Email is Phorest\'s own, only where it has a real one for her (never a shared or placeholder address). Opt-out says STOP, DND or Opted out when she replied stop, asked not to be disturbed or is on a do-not-contact list (reception\'s, or ours). Phorest\'s own marketing opt-out is not in any report, so for anyone with no flag check consent in Phorest before messaging.' : ''}</p>`;
+    <p class="slv-muted">From Phorest's Sales Transactions. Their data goes back to 2021, but this page counts visits from 1 January 2025 only, so a client who was a regular in 2024 and stopped before then isn't on this list. Visits are days she came in at this branch (on All salons, at any branch); a deposit, a balance payment or a voucher bought on its own is not a visit; a client seen at another branch in the same window is counted on its own line, not as lost, and so is a client with a booking from today on in Phorest's Staff Appointments report (matched on her name, from the last time it was pulled). Usual stylist is whoever served most of her visits. "Last visit" is the newest day uploaded, so the last day or two can lag.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to the owner login only (Level 5); Lost Clients, To message and the Wellness Voucher blast show them to Level 3 and above. Email is Phorest\'s own, only where it has a real one for her (never a shared or placeholder address). Opt-out says STOP, DND or Opted out when she replied stop, asked not to be disturbed or is on a do-not-contact list (the coordinators\' Do not contact marks on the Lost Clients review sheets, reception\'s, or ours). Phorest\'s own marketing opt-out is not in any report, so for anyone with no flag check consent in Phorest before messaging.' : ''}</p>`;
   lcPaintTable();
   lcStickHead();
   lcLoadSummary();
@@ -466,7 +483,12 @@ function lcLoadCustom() {
     lcCust.data = data || []; lcPaintBoard();
   }).catch(e => { console.error(e); if (lcCust.key === key) { lcCust.err = true; lcPaintBoard(); } });
 }
-function lcOpenCell(b, s) { lcSel.seg = s; lcSet('branch', b); }
+function lcOpenCell(b, s) {
+  // A board cell opens that branch's list: the masthead's Branch follows it.
+  lcSel.seg = s; lcPage = 1; lcSide = ''; lcClosePop(); lcSave();
+  if (typeof sel !== 'undefined' && b) { sel.branch = [b]; pendingSel.branch = [b]; GROUP_MODE = false; }
+  if (typeof refreshActiveView === 'function') refreshActiveView(); else renderLostClients();
+}
 // The board as a picture (Kate, 2 Oct 2026: "I was expecting more of interactive visual
 // dashboards"). A headline row, then one bar per branch split into who has not come
 // back (regulars, twice, once), who moved to another branch and who is still coming,

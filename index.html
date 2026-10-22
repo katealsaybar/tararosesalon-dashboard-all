@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=716a9978"></script>
+<script src="pages.js?v=d981ef8e"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -452,13 +452,23 @@ body.stafflevels-chrome .mast-rule,
 body.stafflevels-chrome .filters-wrap,
 body.reviews-chrome .mast-rule,
 body.lostclients-chrome .mast-rule,
-body.lostclients-chrome .filters-wrap,
+body.lostclients-chrome:not(.lastvisit-chrome) .filters-wrap,
 body.googleads-chrome .mast-rule,
 body.googleads-chrome .filters-wrap,
 body.website-chrome .mast-rule,
 body.website-chrome .filters-wrap,
 body.social-chrome .mast-rule,
 body.social-chrome .filters-wrap{display:none}
+/* Client's Last Visit (Kate, 22 Oct 2026): its Branch toggles live in the masthead's Branch row now; Visits and Days away stay on
+   the page, so the masthead's Period row (which would change nothing here) is left out. */
+body.lastvisit-chrome #periodRow{display:none}
+/* "Dikit dikit na masyado" (Kate, 22 Oct 2026): with Email and Opt-out the table was too tight. Wide screens get a wider page (the masthead
+   follows, so they stay in line), the column words wrap onto two lines instead of cutting ("TOTAL SPE"), and cells breathe a little more.
+   Top Clients does the same for its heads (.tc-wrap). */
+@media(min-width:1240px){body.lastvisit-chrome .wrap,body.lastvisit-chrome .topbar-in{max-width:1480px}body.lastvisit-chrome #lostClientsContent{max-width:1400px!important}}
+body.lastvisit-chrome .lc-wrap thead th{white-space:normal;line-height:1.3;overflow:visible;text-overflow:clip;padding-left:8px;padding-right:8px}
+body.lastvisit-chrome .lc-wrap .lc-thb{white-space:normal;text-align:inherit;flex-wrap:wrap;max-width:100%;row-gap:0}
+body.lastvisit-chrome .lc-wrap tr.lc-row td{padding-left:8px;padding-right:8px}
 /* Wellness Voucher Performance: the frame is content-height, so only a few px sit
    between the report and the footer instead of the page's usual 96px. */
 body.wvperf-chrome .wrap{padding-bottom:12px}
@@ -2287,9 +2297,9 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
    showing the shares add past 100 and the browser scales them down evenly. */
 .lc-wrap > table{table-layout:fixed;width:100%}
 .lc-wrap td{overflow-wrap:anywhere}
-.lc-c-client{width:10%}.lc-c-visits{width:5%}.lc-c-last{width:11.5%}.lc-c-spend{width:8%}.lc-c-avg{width:8%}
-.lc-c-stylist{width:9.5%}.lc-c-beauty{width:9.5%}.lc-c-phone{width:13%}.lc-c-now{width:9%}.lc-c-booked{width:7.5%}
-.lc-c-email{width:14%}.lc-c-optout{width:8%}
+.lc-c-client{width:10%}.lc-c-visits{width:5.5%}.lc-c-last{width:10%}.lc-c-spend{width:7.5%}.lc-c-avg{width:7.5%}
+.lc-c-stylist{width:9.5%}.lc-c-beauty{width:9.5%}.lc-c-phone{width:11.5%}.lc-c-now{width:9%}.lc-c-booked{width:9%}
+.lc-c-email{width:15%}.lc-c-optout{width:8.5%}
 /* Email and Opt-out (Kate, 22 Oct 2026): the address cuts with an ellipsis (full on hover), the flag is a small pill. */
 .lc-wrap tr.lc-row td{overflow:hidden}
 .lc-wrap td.lc-em,.prd-meta.lc-em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -3454,7 +3464,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
-      cl:  [LGX, 'lost-clients.js?v=0c957715', 'lost-lists.js?v=fa33b877', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
+      cl:  [LGX, 'lost-clients.js?v=fde2b359', 'lost-lists.js?v=fa33b877', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
             'send-schedule.js?v=3abf6266', 'lost-queue.js?v=383b6fdd', 'lost-waves.js?v=e6102677', 'lost-blast.js?v=035195d9',
             'lost-report.js?v=e94a4484', 'wv-blast.js?v=66eb2137', 'top-clients.js?v=d73e7f2e', 'client-mix.js?v=7ec12be4',
             'service-rankings.js?v=c1364c02'],
@@ -3721,7 +3731,7 @@ table.tp-cmp td.bad{color:var(--bad)}
            branch, "UAE Branches | All" resets (All = UAE + Bahrain). Painted by paintFilterChips(). -->
       <div class="chipset" role="group" aria-labelledby="branchLbl" id="branchChips"></div>
     </div>
-    <div class="f-row">
+    <div class="f-row" id="periodRow">
       <span class="f-lbl" id="periodLbl">Period</span>
       <div class="chipset" role="group" aria-labelledby="periodLbl" id="periodChips"></div>
       <!-- Same two inputs as before, same ids, so applyDateRange()/clearDateRange()
@@ -4356,7 +4366,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=a67ddd4e"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
-<script src="dashboard.js?v=aeb9b461"></script>
+<script src="dashboard.js?v=c1f597d4"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4822,6 +4832,7 @@ function showView(view, el){
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
   document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'clients' || view === 'clientmix' || view === 'services' || view === 'attrition');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
+  document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
   document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('website-chrome', view === 'website');
