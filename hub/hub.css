@@ -156,6 +156,19 @@ body.kb-wait .wrap{visibility:hidden}
 .kb-fv:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 .kb-fv .kb-ic{width:32px;height:32px;font-size:13px;border-radius:50%}
 .kb-depts{columns:2 440px;column-gap:24px}
+/* Kate, 22 Oct 2026: Team Home is one square per main section; a click opens its rows (.kb-depts-one) underneath. */
+.kb-depts-one{columns:1;margin-top:-6px}
+.kb-gtiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px;margin:0 0 26px}
+.kb-gtile{appearance:none;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;gap:14px;text-align:left;
+  aspect-ratio:1/1;min-height:140px;padding:16px;background:var(--surface);color:var(--text);font:inherit;border:1px solid var(--border);border-radius:16px;
+  box-shadow:var(--shadow);transition:box-shadow .18s var(--ease),transform .18s var(--ease),border-color .18s var(--ease)}
+.kb-gtile:hover{box-shadow:var(--shadow-hover);transform:translateY(-2px);border-color:var(--muted2)}
+.kb-gtile:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.kb-gtile.on{border-color:var(--text);box-shadow:0 0 0 1px var(--text) inset}
+.kb-gtile .kb-ic{width:44px;height:44px}
+.kb-gt-tx b{display:block;font-size:16px;font-weight:600;line-height:1.25}
+.kb-gt-tx span{display:block;font-size:12.5px;color:var(--muted2);margin-top:2px}
+@media (prefers-reduced-motion:reduce){.kb-gtile{transition:none}.kb-gtile:hover{transform:none}}
 .kb-dept{break-inside:avoid;margin:0 0 24px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
 .kb-dept-h{margin:0;padding:16px 20px 10px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);font-weight:600}
 .kb-row{position:relative;display:flex;align-items:center;gap:14px;min-height:68px;padding:12px 12px 12px 20px;border-top:1px solid var(--border2)}
@@ -320,6 +333,9 @@ body.kb-wait .wrap{visibility:hidden}
   .kb-fvs::-webkit-scrollbar{display:none}
   .kb-fv{flex:none}
   .kb-depts{columns:1}
+  .kb-gtiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:20px}
+  .kb-gtile{min-height:120px;padding:14px;gap:10px;border-radius:14px}
+  .kb-gt-tx b{font-size:15px}
   .kb-dept{margin-bottom:16px;border-radius:14px}
   .kb-dept-h{padding:14px 16px 8px}
   .kb-row{min-height:60px;gap:12px;padding:10px 6px 10px 14px}

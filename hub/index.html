@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=a0a8f47d">
+<link rel="stylesheet" href="/hub/hub.css?v=937d42be">
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 </head>
 <body class="kb-wait">
@@ -143,13 +143,40 @@ KB.ready.then(async function () {
       : '<p class="kb-fav-hint">Tap the star on any section to keep it at the top.</p>';
     // Staff have one department, so no headings beyond theirs; everyone else reads
     // Team Home by department.
-    html += '<div class="kb-depts">';
-    KB.GROUPS.forEach(function (g) { html += group(g, shown.filter(function (s) { return s.dept === g; })); });
-    document.getElementById('kbGrid').innerHTML = html + '</div>';
+    // Kate, 22 Oct 2026: "naka square square lang per main section", so it does not overwhelm: one square for each main section, and a
+    // click opens everything inside it (one section open at a time, kept in the address as #g=Learn). A person with only one section
+    // sees it open already.
+    var present = KB.GROUPS.filter(function (g) { return shown.some(function (s) { return s.dept === g; }); });
+    if (openG && present.indexOf(openG) < 0) openG = null;
+    if (!openG && present.length === 1) openG = present[0];
+    html += '<div class="kb-gtiles">' + present.map(function (g) {
+      var list = shown.filter(function (s) { return s.dept === g; }), n = list.filter(isLive).length;
+      var on = g === openG;
+      return '<button type="button" class="kb-gtile' + (on ? ' on' : '') + '" data-g="' + esc(g) + '" aria-expanded="' + on + '">' +
+        KB.icon(GROUP_IC[g] || 'dashboards', GROUP_COLOR[g] || 'var(--accent-mint)') +
+        '<span class="kb-gt-tx"><b>' + esc(g) + '</b><span>' + n + (n === 1 ? ' item' : ' items') + '</span></span></button>';
+    }).join('') + '</div>';
+    if (openG) html += '<div class="kb-depts kb-depts-one" id="kbOpenG">' + group(openG, shown.filter(function (s) { return s.dept === openG; })) + '</div>';
+    document.getElementById('kbGrid').innerHTML = html;
   }
+  var GROUP_IC = { 'The Tara Rose Way': 'full-loop', 'Me': 'my-numbers', 'Learn': 'hair-induction', 'Numbers': 'dashboards', 'Targets': 'today',
+    'Campaigns': 'campaigns', 'Content': 'marketing', 'People': 'access', 'Admin': 'uploads' };
+  var GROUP_COLOR = { 'The Tara Rose Way': 'var(--accent-mint)', 'Me': 'var(--accent-mint)', 'Learn': 'var(--accent-butter)', 'Numbers': 'var(--accent-lavender)',
+    'Targets': 'var(--accent-coral)', 'Campaigns': 'var(--accent-coral)', 'Content': 'var(--accent-coral)', 'People': 'var(--accent-mint)', 'Admin': 'var(--accent-mint)' };
+  var openG = null;
+  try { var hm = /^#g=(.+)$/.exec(location.hash); if (hm) openG = decodeURIComponent(hm[1]); } catch (e) {}
   paint();
 
   document.getElementById('kbGrid').addEventListener('click', async function (e) {
+    var t = e.target.closest('.kb-gtile');
+    if (t) {
+      openG = t.dataset.g === openG ? null : t.dataset.g;
+      try { history.replaceState(null, '', openG ? '#g=' + encodeURIComponent(openG) : location.pathname + location.search); } catch (er) {}
+      paint();
+      var pn = document.getElementById('kbOpenG');
+      if (pn) pn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
     var b = e.target.closest('.kb-star');
     if (!b) return;
     e.preventDefault();
