@@ -14,7 +14,10 @@
      min       the lowest dashboard level that may open it (default 1); the page and its data refuse the rest too
      lv        Kate, 21 Oct 2026: the levels besides 3 and 5 that may open it, e.g. [2] for coordinators, [4] for accounts, [] for
                executives only. Level 5 opens every page; Level 3 opens every page whose min is 3 or less. A page with no lv falls back to min.
-               Levels are no longer cumulative for 2 and 4: Level 4 does not inherit Level 3's pages. A person's own extras
+               Levels are no longer cumulative for 2 and 4: Level 4 does not inherit Level 3's pages.
+               Kate, 22 Oct 2026: Level 1 (the team) is on the same footing: it opens only the pages whose lv lists 1, which today are
+               Staff Cards and Org Chart. Nobody holds Level 1 in dashboard_users, so this is what View as Level 1 shows and what a
+               first Level 1 login would get, rather than the twenty pages the old min rule opened. A person's own extras
                (dashboard_users.extra_pages) open more pages for that person only. This decides what is drawn; the data itself is
                still protected by row-level security.
      scope     a Bahrain-scoped sign-in may open it
@@ -55,8 +58,8 @@ window.TRS_PAGES = /*PAGES*/[
   {"id": "website", "lazy": "mk", "label": "Website & Search", "group": "Content", "min": 3, "free": 1, "ic": "dashboards", "words": "website traffic visitors seo search console sessions analytics google", "lv": []},
   {"id": "social", "lazy": "mk", "label": "Social", "group": "Content", "min": 3, "free": 1, "ic": "marketing", "words": "instagram tiktok youtube facebook followers reach views posts reels metricool", "lv": []},
   {"id": "wvperf", "label": "Wellness Voucher Performance", "group": "Campaigns", "min": 2, "ic": "campaigns", "words": "voucher performance redemptions credit collected campaign target", "lv": [2, 4]},
-  {"id": "stylists", "lazy": "sc", "label": "Staff Cards", "group": "People", "free": 1, "ic": "access", "words": "cards photos instagram profiles"},
-  {"id": "orgchart", "lazy": "oc", "label": "Org Chart", "group": "People", "free": 1, "ic": "people", "words": "org chart structure hierarchy"},
+  {"id": "stylists", "lazy": "sc", "label": "Staff Cards", "group": "People", "free": 1, "ic": "access", "words": "cards photos instagram profiles", "lv": [1, 2, 4]},
+  {"id": "orgchart", "lazy": "oc", "label": "Org Chart", "group": "People", "free": 1, "ic": "people", "words": "org chart structure hierarchy", "lv": [1, 2, 4]},
   {"id": "branchperf", "label": "Branch Performance", "retired": "dailyperf", "scope": 1, "filtered": 1, "words": "branch staff table figures services retail"}
 ]/*END*/;
 (function () {
@@ -67,11 +70,13 @@ window.TRS_PAGES = /*PAGES*/[
   window.trsLive = function (id) { var p = by[id]; return p && p.retired ? p.retired : id; };
   // Kate, 21 Oct 2026: who may open a page. Level 5 (Kate) opens all of them and Level 3 (executives and marketing) every page whose min is 3
   // or less. Level 2 (coordinators) and Level 4 (accounts) open only the pages whose lv lists them, plus any page named in their own extras.
-  // Below Level 2, or with no level, the old rule stands (min), so nothing changes for Level 1 until reception's own view is built.
+  // Kate, 22 Oct 2026: Level 1 opens only the pages whose lv lists 1 (Staff Cards, Org Chart). With no level at all (not signed in yet) the old
+  // rule stands (min), so nothing is hidden before the sign-in has answered.
   window.trsPageOpen = function (id, level, extras) {
     var p = by[window.trsLive(id)];
     if (!p) return true;
-    if (!level || level < 2) return (p.min || 1) <= (level || 1);
+    if (!level) return (p.min || 1) <= 1;
+    if (level === 1) return !!(p.lv && p.lv.indexOf(1) >= 0);
     if (level >= 5) return true;
     if (level === 3) return (p.min || 1) <= 3;
     if (extras && extras.indexOf(p.id) >= 0) return true;
@@ -79,9 +84,9 @@ window.TRS_PAGES = /*PAGES*/[
     return (p.min || 1) <= level;
   };
   // The page a person lands on when none is asked for (or the one asked for is not theirs): the Pulse for executives, the
-  // Daily Target Sheet for coordinators, Financial Totals for accounts.
+  // Daily Target Sheet for coordinators, Financial Totals for accounts, Staff Cards for the team.
   window.trsHomePage = function (level) {
-    return level === 2 ? 'ledgerTargets' : level === 4 ? 'ledgerFinancials' : 'dashboard';
+    return level === 1 ? 'stylists' : level === 2 ? 'ledgerTargets' : level === 4 ? 'ledgerFinancials' : 'dashboard';
   };
   window.trsPageLabel = function (id) { var p = by[window.trsLive(id)]; return p ? p.label : id; };
   window.trsPageMin = function (id) { var p = by[id]; return (p && p.min) || 1; };
