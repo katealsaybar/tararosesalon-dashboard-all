@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=937d42be">
+<link rel="stylesheet" href="/hub/hub.css?v=2dc7b9bb">
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 </head>
 <body class="kb-wait">
@@ -130,16 +130,18 @@ KB.ready.then(async function () {
     list = list.filter(isLive).concat(list.filter(function (s) { return !isLive(s); }));
     return '<section class="kb-dept"><h2 class="kb-dept-h">' + esc(title) + '</h2>' + list.map(row).join('') + '</section>';
   }
+  // Kate, 22 Oct 2026: "yung favorites gawin mo na ring boxes": a favourite is a square like the section squares, same size and same lift on hover,
+  // with the section it belongs to underneath its name.
   function pill(s) {
-    return '<a class="kb-fv" href="' + esc(s.href || '/hub/kb.html?s=' + s.key) + '"' + (s.blurb ? ' title="' + esc(s.blurb) + '"' : '') + '>' +
-      icon(s) + '<span>' + esc(s.title) + '</span></a>';
+    return '<a class="kb-gtile kb-fvbox" href="' + esc(s.href || '/hub/kb.html?s=' + s.key) + '"' + (s.blurb ? ' title="' + esc(s.blurb) + '"' : '') + '>' +
+      icon(s) + '<span class="kb-gt-tx"><b>' + esc(s.title) + '</b>' + (function (sub) { return sub ? '<span>' + esc(sub) + '</span>' : ''; })(s.dept || (s.key.indexOf('p:') === 0 ? s.blurb : '') || (/^\/\?view=/.test(s.href || '') ? 'Dashboard' : '')) + '</span></a>';
   }
   function paint() {
     var starred = shown.filter(function (s) { return favs[s.key] && isLive(s) && !s.sample; })
       .concat(pageFavs.filter(function (p) { return favs[p.key]; }))
       .concat(dashFavs.filter(function (p) { return favs[p.key]; }));
     var html = starred.length
-      ? '<h2 class="kb-section-title kb-fv-h">Your favourites</h2><div class="kb-fvs">' + starred.map(pill).join('') + '</div>'
+      ? '<h2 class="kb-section-title kb-fv-h">Your favourites</h2><div class="kb-gtiles">' + starred.map(pill).join('') + '</div>'
       : '<p class="kb-fav-hint">Tap the star on any section to keep it at the top.</p>';
     // Staff have one department, so no headings beyond theirs; everyone else reads
     // Team Home by department.
@@ -163,10 +165,11 @@ KB.ready.then(async function () {
     var infoG = present.filter(function (g) { return INFO_G[g]; }), dashG = present.filter(function (g) { return !INFO_G[g]; });
     var heads = infoG.length && dashG.length;
     function block(list, label) {
-      return list.length ? (heads ? '<h2 class="kb-section-title" style="margin:20px 0 10px">' + label + '</h2>' : '') + '<div class="kb-gtiles">' + list.map(tile).join('') + '</div>' : '';
+      // Kate, 22 Oct 2026: the rows of the open square appear right under its own block, not after the last block of squares.
+      var opened = openG && list.indexOf(openG) >= 0 ? '<div class="kb-depts kb-depts-one" id="kbOpenG">' + group(openG, shown.filter(function (s) { return s.dept === openG; })) + '</div>' : '';
+      return list.length ? (heads ? '<h2 class="kb-section-title" style="margin:20px 0 10px">' + label + '</h2>' : '') + '<div class="kb-gtiles">' + list.map(tile).join('') + '</div>' + opened : '';
     }
     html += block(infoG, 'Read and learn') + block(dashG, 'Dashboards and tools');
-    if (openG) html += '<div class="kb-depts kb-depts-one" id="kbOpenG">' + group(openG, shown.filter(function (s) { return s.dept === openG; })) + '</div>';
     document.getElementById('kbGrid').innerHTML = html;
   }
   var GROUP_IC = { 'The Tara Rose Way': 'full-loop', 'Me': 'my-numbers', 'Learn': 'hair-induction', 'Numbers': 'dashboards', 'Clients': 'lost-clients', 'Targets': 'today',

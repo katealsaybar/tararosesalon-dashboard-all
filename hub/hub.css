@@ -162,7 +162,8 @@ body.kb-wait .wrap{visibility:hidden}
 .kb-gtile{appearance:none;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;gap:14px;text-align:left;
   aspect-ratio:1/1;min-height:140px;padding:16px;background:var(--surface);color:var(--text);font:inherit;border:1px solid var(--border);border-radius:16px;
   box-shadow:var(--shadow);transition:box-shadow .18s var(--ease),transform .18s var(--ease),border-color .18s var(--ease)}
-.kb-gtile:hover{box-shadow:var(--shadow-hover);transform:translateY(-2px);border-color:var(--muted2)}
+.kb-gtile:hover{box-shadow:var(--shadow-hover);transform:translateY(-5px);border-color:var(--muted2)}
+.kb-gtile{text-decoration:none}
 .kb-gtile:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 .kb-gtile.on{border-color:var(--text);box-shadow:0 0 0 1px var(--text) inset}
 .kb-gtile .kb-ic{width:44px;height:44px}
@@ -329,9 +330,6 @@ body.kb-wait .wrap{visibility:hidden}
   .kb-intro{margin-bottom:18px}
   .kb-section-title{margin:24px 0 10px}
   /* Team Home rows on a phone: one column, favourites swipe sideways, no page counts. */
-  .kb-fvs{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px 22px;padding:0 16px 4px;scrollbar-width:none}
-  .kb-fvs::-webkit-scrollbar{display:none}
-  .kb-fv{flex:none}
   .kb-depts{columns:1}
   .kb-gtiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:20px}
   .kb-gtile{min-height:120px;padding:14px;gap:10px;border-radius:14px}
