@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=f0d790d3"></script>
+<script src="pages.js?v=f0e55f18"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -296,7 +296,6 @@ window.trsParam = function (k) {
 @media(hover:hover){.nav-sub:hover .nav-star{opacity:.6}.nav-sub .nav-star:hover{opacity:1;transform:scale(1.12)}}
 @media(hover:none){.nav-star{opacity:.45}}
 .nav-star:focus-visible{opacity:1;outline:2px solid var(--accent);outline-offset:1px}
-.nav-sub.nav-child{margin-left:14px;font-size:14.5px;padding:6px 10px}   /* Kate, 22 Oct 2026: inside the entry above it */
 .nav-sub.active {
   background: var(--accent-lavender);
   color: #1A1A1A;
@@ -3700,13 +3699,12 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <!-- Kate, 18 Oct 2026: the two WhatsApp blasts and the voucher's results sit together, apart from the numbers pages: they are
        things we send out and watch, not reports. Lost Clients: Level 2 and above (sending is Level 3). Wellness Voucher (3rd blast), Level 3, sits
-       inside Wellness Voucher Performance (Kate, 22 Oct 2026): an entry at the end of that page's "On this page" rail and an indented entry under it here.
+       inside Wellness Voucher Performance (Kate, 22 Oct 2026): the last entry of that page's "On this page" rail, with no sidebar entry of its own.
        Wellness Voucher Performance (read-only, no client names, the till stays out): Level 2 and above. -->
   <div class="nav-group" id="navCampaigns">
     <div class="nav-title">Campaigns</div>
     <div class="nav-sub" onclick="showView('lostlists', this)">Lost Client Blasts, October 2026</div>
     <div class="nav-sub" onclick="showView('wvperf', this)">Wellness Voucher Performance</div>
-    <div class="nav-sub nav-child" onclick="showView('wvblast', this)">Wellness Voucher (3rd blast)</div>
     <div class="nav-sub" onclick="showView('glowclub', this)">Glow Club Performance</div>
   </div>
 
@@ -4452,7 +4450,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=a67ddd4e"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
-<script src="dashboard.js?v=9f2987ec"></script>
+<script src="dashboard.js?v=1fcef946"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4986,6 +4984,8 @@ function showView(view, el){
   // above call it while CURRENT_VIEW is still the page you just left.
   if (typeof spy === 'function') spy();
 
+  // Kate, 22 Oct 2026: the 3rd blast has no sidebar entry; it is inside Wellness Voucher Performance, so that entry stays lit for both.
+  if (view === 'wvblast') el = document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`) || el;
   wvTabs(view);
   // active button state
   document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active'));

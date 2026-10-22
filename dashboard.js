@@ -330,7 +330,7 @@ function drawReviewsRail(items, o) {
     nav.dataset.sig = sig;
     nav.innerHTML = '<div class="side-k">On this page</div>' + items.map(i =>
       `<a href="#${i.id}" onclick="lgJump(event,'${i.id}')">${escapeHtml(i.label)}</a>`).join('') +
-      (goBlast ? `<a class="side-go" href="/?view=wvblast" onclick="event.preventDefault();showView('wvblast', document.querySelector('#sidebar .nav-child'))">Wellness Voucher (3rd blast)</a>` : '');
+      (goBlast ? `<a class="side-go" href="/?view=wvblast" onclick="event.preventDefault();showView('wvblast', null)">Wellness Voucher (3rd blast)</a>` : '');
   }
   doc.querySelectorAll('.rv-anchor').forEach(a => { if (!items.some(i => i.id === a.id)) a.remove(); });
   items.forEach(i => {
