@@ -31,9 +31,9 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=3823f956"></script>
-<script src="/pages.js?v=7a71494b"></script>
+<script src="/pages.js?v=064c20af"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=1e1e0ee6"></script>
+<script src="/hub/hub.js?v=a8c0aa9f"></script>
 <script src="/visits.js?v=1176426c"></script>
 <script>
 KB.ready.then(async function () {
@@ -159,9 +159,9 @@ KB.ready.then(async function () {
     if (openG) html += '<div class="kb-depts kb-depts-one" id="kbOpenG">' + group(openG, shown.filter(function (s) { return s.dept === openG; })) + '</div>';
     document.getElementById('kbGrid').innerHTML = html;
   }
-  var GROUP_IC = { 'The Tara Rose Way': 'full-loop', 'Me': 'my-numbers', 'Learn': 'hair-induction', 'Numbers': 'dashboards', 'Targets': 'today',
+  var GROUP_IC = { 'The Tara Rose Way': 'full-loop', 'Me': 'my-numbers', 'Learn': 'hair-induction', 'Numbers': 'dashboards', 'Clients': 'lost-clients', 'Targets': 'today',
     'Campaigns': 'campaigns', 'Content': 'marketing', 'People': 'access', 'Admin': 'uploads' };
-  var GROUP_COLOR = { 'The Tara Rose Way': 'var(--accent-mint)', 'Me': 'var(--accent-mint)', 'Learn': 'var(--accent-butter)', 'Numbers': 'var(--accent-lavender)',
+  var GROUP_COLOR = { 'The Tara Rose Way': 'var(--accent-mint)', 'Me': 'var(--accent-mint)', 'Learn': 'var(--accent-butter)', 'Numbers': 'var(--accent-lavender)', 'Clients': 'var(--accent-lavender)',
     'Targets': 'var(--accent-coral)', 'Campaigns': 'var(--accent-coral)', 'Content': 'var(--accent-coral)', 'People': 'var(--accent-mint)', 'Admin': 'var(--accent-mint)' };
   var openG = null;
   try { var hm = /^#g=(.+)$/.exec(location.hash); if (hm) openG = decodeURIComponent(hm[1]); } catch (e) {}

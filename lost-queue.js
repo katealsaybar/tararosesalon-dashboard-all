@@ -44,23 +44,27 @@ let lqData = null, lqRows = [], lqTpl = null, lqLoadedAt = 0, lqQuery = '', lqPa
 const lqToday = () => new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD on this computer's clock
 
 // ── TABS (drawn by renderLostListsPage in lost-lists.js) ─────────────────────────────────────
-function lqAllowed() { return typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3; }
+// Kate, 22 Oct 2026: Level 4 (Accounts and Admin) sees every campaign's performance, so here the Performance report and Terms and conditions only:
+// no lists, no To message, no Templates, no phone numbers.
+const lqAcct = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL === 4;
+const lqDefaultTab = () => lqAcct() ? 'perf' : 'groups';
+function lqAllowed() { return typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3 && !lqAcct(); }
 // Kate, 19 Oct 2026: the Performance report opens to Level 2 (the coordinators), who see the rail with just The five groups and Performance report.
 // To message and Templates show phone numbers and stay Level 3 and above.
 // Kate, 22 Oct 2026: Terms and conditions is Level 2 as well ("nawala t&c sa view nila"): it is the welcome-back rate PDF, no names or numbers, and the
 // coordinators are the ones who tell a client what the rate's terms are.
-const lqTabOk = t => lqAllowed() || (typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2 && (t === 'groups' || t === 'perf' || t === 'terms'));
+const lqTabOk = t => lqAllowed() || (lqAcct() && (t === 'perf' || t === 'terms')) || (typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2 && !lqAcct() && (t === 'groups' || t === 'perf' || t === 'terms'));
 // Kate, 16 Oct 2026: the tabs became the "On this page" rail the Organisation Pulse has (same .side-nav markup, in the gutter above 1100px and a
 // row of chips below it), with a fourth entry, Performance report. A rail entry opens a tab instead of scrolling, so spy() in index.html leaves
 // this rail alone (data-tabs) and lqShowTab lights the entry. Level 3 and above; Level 2 sees the groups, the Performance report and Terms and conditions (lqTabOk).
 const LQ_TABS = [['groups', 'The five groups'], ['queue', 'To message'], ['tpl', 'Templates'], ['perf', 'Performance report'], ['terms', 'Terms and conditions']];
 function lqRailHtml() {
-  if (!lqTabOk('groups')) return '';
+  if (!lqTabOk('groups') && !lqTabOk('perf')) return '';
   return `<aside class="lg-side"><nav class="side-nav" data-tabs="1" aria-label="On this page"><div class="side-k">On this page</div>${LQ_TABS
     .filter(([k]) => lqTabOk(k)).map(([k, l]) => `<a href="#lost-${k}" data-t="${k}" class="${lqSel.tab === k ? 'on' : ''}" onclick="event.preventDefault();lqShowTab('${k}')">${l}</a>`).join('')}</nav></aside>`;
 }
 function lqShowTab(t) {
-  if (!lqTabOk(t)) t = 'groups';
+  if (!lqTabOk(t)) t = lqDefaultTab();
   lqSel.tab = t; lqSave();
   if (typeof trSyncUrl === 'function') trSyncUrl(null);   // the address names the tab: ?view=lost-clients&tab=templates
   document.querySelectorAll('#lostListsContent .side-nav a[data-t]').forEach(a => a.classList.toggle('on', a.dataset.t === t));
@@ -89,8 +93,8 @@ function lqTabFromUrl() {
 }
 function lqAfterRender() {
   // A link that names its tab wins over the one she left on; a bare link opens the remembered one.
-  const want = lqTabFromUrl() || lqSel.tab, t = lqTabOk(want) ? want : 'groups';
-  lqShowTab(t && LQ_SLUG[t] ? t : 'groups');
+  const want = lqTabFromUrl() || lqSel.tab, t = lqTabOk(want) ? want : lqDefaultTab();
+  lqShowTab(t && LQ_SLUG[t] ? t : lqDefaultTab());
 }
 
 // ── DATA ─────────────────────────────────────────────────────────────────────────────────────

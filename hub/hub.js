@@ -22,7 +22,7 @@
   // shortcuts (`via: 'dashboards'`), shown to whoever may open the dashboard and is at
   // `min` level or above. They hold no data; the dashboard and the database still
   // decide what each person can read.
-  KB.GROUPS = ['The Tara Rose Way', 'Me', 'Learn', 'Numbers', 'Targets', 'Campaigns', 'Content', 'People', 'Admin'];
+  KB.GROUPS = ['The Tara Rose Way', 'Me', 'Learn', 'Numbers', 'Clients', 'Targets', 'Campaigns', 'Content', 'People', 'Admin'];
   KB.SECTIONS = [
     // Kate, 5 Oct 2026: Tara's Full Loop handover site (kb_sections min_level 3).
     // 6 Oct 2026: its own group again, at the top, Level 3 and up.
@@ -31,10 +31,6 @@
 
     { key: 'hr-forms', dept: 'Me', title: 'HR Forms & Waivers', href: '/hub/forms', live: true, rule: 'var(--accent-butter)',
       blurb: 'Leave, probation and return-to-work forms; client waivers and consultation forms.' },
-    // Kate, 22 Oct 2026: the form to log a client complaint and follow it to the end, in place of WhatsApp. A shortcut to the dashboard's Log a Complaint
-    // page (Levels 2 and up, by that page's own entry in pages.js); the page and the database decide who may log or read.
-    { key: 'log-complaint', via: 'dashboards', min: 2, ic: 'suggestions', dept: 'Me', title: 'Log a Complaint', href: '/?view=complaintlog', rule: 'var(--accent-coral)',
-      blurb: 'Write down a client complaint, follow it up and mark it resolved, so it is not left in WhatsApp.' },
 
     { key: 'hair-sop', dept: 'Learn', title: 'Hair SOPs', rule: 'var(--accent-lavender)',
       blurb: 'Every foundation cut, step by step, plus the backwash, the 8-Step Hair Plan, the client journey and stylist standards.' },
@@ -70,6 +66,12 @@
       blurb: 'Top clients, client mix, last visit and Google reviews.' },
     { key: 'numbers-sales', via: 'dashboards', min: 1, ic: 'dashboards', dept: 'Numbers', title: 'Sales & Stock', href: '/?view=services', rule: 'var(--accent-lavender)',
       blurb: 'Service rankings and products.' },
+    // Kate, 22 Oct 2026: the client complaints have their own box, Clients ("dapat nasa clients, may sariling box"). Shortcuts to the dashboard's Client
+    // Complaints and Log a Client Complaint pages (Levels 2 and up, by those pages' own entries in pages.js); the pages and the database decide who may read or log.
+    { key: 'clients-complaints', via: 'dashboards', min: 2, ic: 'pg-alert', dept: 'Clients', title: 'Client Complaints', href: '/?view=complaints', rule: 'var(--accent-lavender)',
+      blurb: 'Complaints by branch, year, kind and how each was resolved.' },
+    { key: 'log-complaint', via: 'dashboards', min: 2, ic: 'suggestions', dept: 'Clients', title: 'Log a Client Complaint', href: '/?view=complaintlog', rule: 'var(--accent-lavender)',
+      blurb: 'Write down a client complaint, follow it up and mark it resolved, so it is not left in WhatsApp.' },
     // Kate, 21 Oct 2026: accounts (Level 4) no longer see the Business row, so these two are their way in (`only` = the levels that see the row).
     { key: 'numbers-financials', via: 'dashboards', only: [4], ic: 'dashboards', dept: 'Numbers', title: 'Financial Totals', href: '/?view=ledgerFinancials', rule: 'var(--accent-lavender)',
       blurb: 'Takings by branch: cash, card and other payments.' },

@@ -117,7 +117,7 @@ async function cqSubmit() {
 // Remove as Client Complaints (list source 'logged' = only the ones logged from the form), so the ids are shared and only one page is drawn at a time.
 function cqLogShell() {
   return cqCss() + `<div class="cq">
-    <h1>Log a Complaint</h1>
+    <h1>Log a Client Complaint</h1>
     <p class="cq-sub">When a client complains, log it here so it is written down once, followed up and closed, and not left in WhatsApp. Leave How it was resolved empty and it stays open until you mark it resolved. Levels 2 and up. Everything logged here also counts in Client Complaints.</p>
     ${cqRailShell(`${cqForm()}
     <div class="cq-card cq-wait" id="cq-list">
@@ -139,7 +139,7 @@ function cqLogShell() {
 function renderComplaintLog() {
   const el = document.getElementById('complaintlogContent');
   if (!el) return;
-  if (!cqLevelOk('complaintlog')) { el.innerHTML = '<div class="cq"><p class="cq-meta" style="padding:20px 0">Log a Complaint is for Levels 2 and up.</p></div>'; return; }
+  if (!cqLevelOk('complaintlog')) { el.innerHTML = '<div class="cq"><p class="cq-meta" style="padding:20px 0">Log a Client Complaint is for Levels 2 and up.</p></div>'; return; }
   const other = document.getElementById('complaintsContent'); if (other) other.innerHTML = '';
   cqMode = 'log';
   CQ.page = 0; cqOpen = 0;

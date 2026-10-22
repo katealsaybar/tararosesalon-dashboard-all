@@ -76,9 +76,9 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <script src="/auth.js?v=3823f956"></script>
-<script src="/pages.js?v=7a71494b"></script>
+<script src="/pages.js?v=064c20af"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=1e1e0ee6"></script>
+<script src="/hub/hub.js?v=a8c0aa9f"></script>
 <script>
 KB.ready.then(async function () {
   var esc = KB.esc, c = KB.client;
@@ -103,7 +103,7 @@ KB.ready.then(async function () {
     "clientmix": "New and returning clients, and how they split.",
     "clientbook": "Phone, email and notes for every Phorest client.",
     "complaints": "Client complaints by branch, year, kind and how each was resolved.",
-    "complaintlog": "Log a complaint, follow it up and mark it resolved.",
+    "complaintlog": "Log a client complaint, follow it up and mark it resolved.",
     "lostclients": "Clients who have not been back, and for how long.",
     "reviews": "Ratings and new reviews by branch.",
     "services": "Which treatments sell most.",
@@ -183,8 +183,8 @@ KB.ready.then(async function () {
   };
   var COLOR = { 'Me': 'var(--accent-mint)', 'Numbers': 'var(--accent-lavender)', 'Targets': 'var(--accent-coral)', 'Marketing & Campaigns': 'var(--accent-butter)', 'People': 'var(--accent-mint)', 'Admin & Money': 'var(--accent-mint)', 'Learn': 'var(--accent-butter)' };
   var ORDER = ['Me', 'Numbers', 'Targets', 'Marketing & Campaigns', 'People', 'Admin & Money', 'Learn'];
-  var DASH_GROUP = { 'Numbers': 'Numbers', 'Targets': 'Targets', 'Campaigns': 'Marketing & Campaigns', 'Content': 'Marketing & Campaigns', 'People': 'People' };
-  var SEC_GROUP = { 'The Tara Rose Way': 'Learn', 'Me': 'Admin & Money', 'Learn': 'Learn', 'Content': 'Marketing & Campaigns', 'Campaigns': 'Marketing & Campaigns', 'People': 'People', 'Admin': 'Admin & Money' };
+  var DASH_GROUP = { 'Numbers': 'Numbers', 'Clients': 'Numbers', 'Targets': 'Targets', 'Campaigns': 'Marketing & Campaigns', 'Content': 'Marketing & Campaigns', 'People': 'People' };
+  var SEC_GROUP = { 'Clients': 'Numbers', 'The Tara Rose Way': 'Learn', 'Me': 'Admin & Money', 'Learn': 'Learn', 'Content': 'Marketing & Campaigns', 'Campaigns': 'Marketing & Campaigns', 'People': 'People', 'Admin': 'Admin & Money' };
   var STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z"/></svg>';
 
   // Team Home's own rows for dashboard pages (Daily Target Sheet is 'today-targets' there). A star on either one is a star on both.

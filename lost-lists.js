@@ -103,7 +103,7 @@ function renderLostListsPage() {
     <p>Coach Emma's outreach lists: who is lost, who is ready on WhatsApp and who is text only. <b>Lost</b> means the same as on Client’s Last Visit: no visit at the branch (at any branch on All salons), nobody with a booking from today on, nobody seen at another branch since. The full list by last visit and spend is on <a href="?view=lostclients" onclick="event.preventDefault();showView('lostclients', document.querySelector('#sidebar .nav-sub[onclick*=&quot;lostclients&quot;]'))">Client’s Last Visit</a>.</p></section>
     ${(() => { const rail = typeof lqRailHtml === 'function' ? lqRailHtml() : '', body = '<div id="llHost"></div><div id="lqHost" hidden></div>';
       return rail ? `<div class="lg-shell lg-shell-wide ll-shell">${rail}<div class="lg-doc">${body}</div></div>` : body; })()}`;
-  renderLostLists(document.getElementById('llHost'));
+  if (!(typeof lqAcct === 'function' && lqAcct())) renderLostLists(document.getElementById('llHost'));   // Level 4 gets the Performance report only, so the lists are never fetched
   // Level 3+ also gets the To message and Templates tabs (lost-queue.js); this opens the one she left on.
   if (typeof lqAfterRender === 'function') lqAfterRender();
 }

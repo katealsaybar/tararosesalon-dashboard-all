@@ -17,6 +17,8 @@ let wvRows = null, wvErr = '', wvPage = 1, wvQuery = '', wvShown = [];
 let wvPerf = null;
 const wvSave = () => { try { localStorage.setItem('trs-wv-blast', JSON.stringify(wvSel)); } catch (e) {} };
 const wvOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
+// Kate, 22 Oct 2026: Level 4 (Accounts and Admin) sees how the blast is doing in AED and nothing else: the list, the phone numbers and the sends stay Level 3 and 5.
+const wvPerfOnly = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL === 4;
 const wvOk5 = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;   // sending waves from this page is Level 5 (Kate) only
 const wvIsNew = r => !!(r.listed_on && String(r.listed_on) > '2026-10-08');   // added at a refresh after the first build
 const wvWave = r => wvIsNew(r) ? 'new' : String(r.wave);
@@ -39,7 +41,14 @@ async function renderWvBlast() {
   const el = document.getElementById('wvBlastContent');
   if (!el || !wvOk()) return;
   el.innerHTML = `<section class="slv-intro"><h2>Wellness Voucher Blast</h2>
-    <p>The 3rd blast: top spenders who can be messaged on WhatsApp about the Wellness Voucher, by wave.</p></section><div id="wvHost"><p class="slv-muted">Loading the list…</p></div>`;
+    <p>The 3rd blast: top spenders who can be messaged on WhatsApp about the Wellness Voucher, by wave.${wvPerfOnly() ? ' This page shows the money only.' : ''}</p></section><div id="wvHost"><p class="slv-muted">Loading the list…</p></div>`;
+  if (wvPerfOnly()) {
+    const pf = await sb.rpc('wv_blast_performance');
+    wvPerf = (!pf.error && pf.data && pf.data.totals) ? pf.data : null;
+    const host = document.getElementById('wvHost');
+    if (host) host.innerHTML = wvPerf ? wvPerfHtml() : '<p class="slv-muted">The numbers did not load. Refresh to try again.</p>';
+    return;
+  }
   try {
     const [{ data, error }, pf] = await Promise.all([sb.rpc('wv_blast_get'), sb.rpc('wv_blast_performance')]);
     if (error || !Array.isArray(data)) throw error || new Error('no list');
