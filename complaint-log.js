@@ -3,6 +3,40 @@
 // close. It shares state, styles and the list with complaints.js (CQ, cqCss, cqLoadList, cqPaintList, cqUpdate, cqRemove), which loads first in the
 // same lazy group (cp); only one of the two pages is drawn at a time, so their ids never meet. Levels 2 and up, enforced in every function.
 
+// Kate, 22 Oct 2026: "make sure na ma-flag or di mag-go through if duplicate filing", and an i button that reminds to check first.
+// client_complaint_dupes looks for the same client (full name, or first and last name) near that date; the same client, branch and date is
+// refused by client_complaint_submit itself (DUPLICATE), a similar one asks for a confirmation (SIMILAR, then p_force).
+const CQ_DUP_TIP = 'Check first: search Logged complaints below, and Client Complaints, for this client. If it is already there, open it and add a follow-up instead of logging it again. The same client, branch and date cannot be logged twice.';
+const cqInfo = () => `<button type="button" class="cq-i" aria-label="Check that it was not already submitted" data-tip="${cqEsc(CQ_DUP_TIP)}" onclick="event.preventDefault();event.stopPropagation()">i</button>`;
+let cqDupSeq = 0, cqDupTimer = 0;
+
+function cqWireDup() {
+  [['cqfClient', 'input'], ['cqfBranch', 'change'], ['cqfDate', 'change']].forEach(([id, ev]) => {
+    const el = document.getElementById(id);
+    if (el && !el.dataset.dw) { el.dataset.dw = '1'; el.addEventListener(ev, cqDupSoon); }
+  });
+}
+function cqDupSoon() { clearTimeout(cqDupTimer); cqDupTimer = setTimeout(cqCheckDup, 450); }
+async function cqCheckDup() {
+  const box = document.getElementById('cqfDup');
+  if (!box) return;
+  const val = id => ((document.getElementById(id) || {}).value || '').trim();
+  const name = val('cqfClient');
+  if (name.length < 3) { box.hidden = true; return; }
+  const seq = ++cqDupSeq;
+  try {
+    const { data, error } = await sb.rpc('client_complaint_dupes', { p_name: name, p_branch: val('cqfBranch'), p_date: val('cqfDate') || null });
+    if (error || seq !== cqDupSeq) return;
+    const rows = data || [], exact = rows.some(r => r.exact);
+    if (!rows.length) { box.hidden = true; return; }
+    box.className = 'cq-dup' + (exact ? ' hard' : '');
+    box.innerHTML = `<b>${exact ? 'This one is already on file, so it cannot be logged again.' : 'Check before you log: this client already has a complaint on file.'}</b>`
+      + `<ul>${rows.map(r => `<li>${cqEsc(r.text)}</li>`).join('')}</ul>`
+      + `<div class="cq-note" style="margin:4px 0 0">${exact ? 'Find it in Logged complaints below and add a follow-up there.' : 'If it is the same complaint, add a follow-up to it. If it is a new one, go ahead and log it.'}</div>`;
+    box.hidden = false;
+  } catch (e) { /* the server checks again on submit */ }
+}
+
 function cqForm() {
   const picked = cqPicked();
   const brs = [['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz'], ['BAH', 'Bahrain']];
@@ -12,7 +46,7 @@ function cqForm() {
   const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   // Minimisable (Kate, 22 Oct 2026): open the first time, then it stays as it was left in this browser.
   let closed = false; try { closed = localStorage.getItem('trs-cq-form') === 'closed'; } catch (e) {}
-  return `<details class="cq-card" id="cq-new"${closed ? '' : ' open'} ontoggle="try{localStorage.setItem('trs-cq-form',this.open?'open':'closed')}catch(e){}"><summary>Log a complaint</summary>
+  return `<details class="cq-card" id="cq-new"${closed ? '' : ' open'} ontoggle="try{localStorage.setItem('trs-cq-form',this.open?'open':'closed')}catch(e){}"><summary>Log a complaint ${cqInfo()}</summary>
     <p class="cq-note" style="margin-top:6px">For a complaint a client made that is not in the Phorest notes yet. It is counted with the rest and marked as logged by staff, under your name. The client, branch, date, kind, what happened and how it ended are needed; the rest helps.</p>
     <div class="cq-form">
       <label>Client's full name<input id="cqfClient" class="cq-in" maxlength="80" autocomplete="off"></label>
@@ -27,7 +61,8 @@ function cqForm() {
       <label>Handled by (optional)<input id="cqfBy" class="cq-in" maxlength="80" autocomplete="off"></label>
       <label>Google review link, if they posted one (optional)<input id="cqfG" class="cq-in" type="url" placeholder="https://" autocomplete="off"></label>
     </div>
-    <div class="cq-bar"><button type="button" id="cqfGo" class="cq-btn pri">Log this complaint</button><span id="cqfMsg" class="cq-msg" aria-live="polite"></span></div>
+    <div id="cqfDup" class="cq-dup" hidden></div>
+    <div class="cq-bar"><button type="button" id="cqfGo" class="cq-btn pri">Log this complaint</button>${cqInfo()}<span id="cqfMsg" class="cq-msg" aria-live="polite"></span></div>
   </details>`;
 }
 
@@ -49,8 +84,21 @@ async function cqSubmit() {
   if (btn) btn.disabled = true;
   say('Saving…');
   try {
-    const { error } = await sb.rpc('client_complaint_submit', p);
-    if (error) throw error;
+    let force = false;
+    for (;;) {
+      const { error } = await sb.rpc('client_complaint_submit', { ...p, p_force: force });
+      if (!error) break;
+      const m = String(error.message || '');
+      if (!force && m.startsWith('SIMILAR:')) {
+        const ok = window.confirm('This client already has a complaint on file:\n\n' + m.replace(/^SIMILAR:\s*/, '').split('; ').join('\n')
+          + '\n\nIf it is the same complaint, cancel and add a follow-up to it instead.\nLog this as a new complaint?');
+        if (!ok) { say('Not logged. Check the one on file first.'); return; }
+        force = true;
+        continue;
+      }
+      throw error;
+    }
+    const dupBox = document.getElementById('cqfDup'); if (dupBox) dupBox.hidden = true;
     ['cqfClient', 'cqfStylist', 'cqfService', 'cqfDetail', 'cqfResD', 'cqfBy', 'cqfG', 'cqfDate'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     ['cqfType', 'cqfRes'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     say((p.p_resolution ? 'Logged as resolved.' : 'Logged as open. Open it in the list below to add follow-ups and mark it resolved.') + ' It shows under the date you gave, as long as that date is inside the Period and Branch picked above.');
@@ -58,7 +106,8 @@ async function cqSubmit() {
     cqLoadSummary(); cqLoadList();
   } catch (e) {
     console.error(e);
-    say((e && e.message) ? e.message : 'It did not save. Try again.', true);
+    const m = (e && e.message) ? String(e.message).replace(/^DUPLICATE:\s*/, 'Already logged: ') : 'It did not save. Try again.';
+    say(m, true);
   } finally { if (btn) btn.disabled = false; }
 }
 

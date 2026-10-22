@@ -130,6 +130,7 @@ function cqCss() {
     .cq-metarow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;margin:0 0 8px}
     .cq-metarow .cq-meta{margin:0}
     .cq-sheetwrap{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .cq-sheetwrap .cq-meta:empty{display:none}   /* an empty message left a 10px gap before the button, so it sat out of line with the search box */
     .cq-trk{height:14px;border-radius:7px;background:var(--surface2);display:flex;overflow:hidden}
     .cq-seg{height:100%;min-width:2px}
     .cq-val{font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted);white-space:nowrap}
@@ -159,8 +160,15 @@ function cqCss() {
     .cq-form .cq-in,.cq-form .cq-sel,.cq-form textarea{flex:none;width:100%;box-sizing:border-box;border-radius:12px;color:var(--text)}
     .cq-form textarea{border:1px solid var(--border);background:var(--surface);padding:9px 14px;font:inherit;font-size:14px;resize:vertical}
     .cq-msg{font-size:13px}.cq-msg.err{color:var(--warn)}
-    .cq-btn.pri{background:var(--accent);color:#102;border-color:var(--accent);font-weight:600}
+    .cq-btn.pri{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600}   /* the text takes the page colour, so it reads on the accent in dark and light */
     .cq-foot{color:var(--muted);font-size:12px;line-height:1.5;margin:12px 0 0;max-width:820px}
+    .cq-i{position:relative;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:8px;border:1px solid var(--border);border-radius:50%;background:var(--surface2);color:var(--muted);font:600 11px/1 inherit;cursor:help;padding:0;vertical-align:middle;flex:none}
+    .cq-i::after{content:attr(data-tip);position:absolute;left:0;top:calc(100% + 8px);width:260px;max-width:70vw;padding:8px 10px;border-radius:8px;background:var(--surface2);color:var(--text);border:1px solid var(--border);box-shadow:0 4px 14px rgba(0,0,0,.3);font:400 12px/1.45 inherit;text-align:left;white-space:normal;display:none;z-index:50}
+    .cq-i:hover::after,.cq-i:focus::after{display:block}
+    .cq-dup{margin:0 0 10px;padding:10px 12px;border-radius:10px;border:1px solid var(--warn);background:var(--warn-bg);color:var(--text);font-size:13px;line-height:1.5}
+    .cq-dup[hidden]{display:none}
+    .cq-dup.hard{border-color:#d9534f}
+    .cq-dup ul{margin:4px 0 0 18px;padding:0}
     @media (max-width:760px){.cq-t .hm{display:none}.cq-grid{grid-template-columns:1fr}.cq h1{font-size:24px}.cq-bars{grid-template-columns:minmax(90px,130px) 1fr auto}
       .cq-bars.yrs{grid-template-columns:40px 1fr auto}
       .cq-card{padding:12px 12px}
@@ -172,6 +180,10 @@ function cqCss() {
       .cq .cq-filt .cq-sel{width:100%;min-width:0;min-height:40px;font-size:14px;padding:0 10px}
       .cq .cq-filt .cq-chk{grid-column:1/-1}
       #complaintsContent .lg-side{display:none}
+      .cq .cq-filt .cq-sel:only-of-type{grid-column:1/-1}
+      .cq-metarow{flex-direction:column;align-items:stretch;gap:8px}
+      .cq-sheetwrap{display:flex;width:100%}
+      .cq-sheetwrap .cq-btn{flex:1 1 auto;min-height:40px}
       .cq-tiles{grid-template-columns:1fr 1fr}
       .cq-tile{padding:9px 11px}.cq-tile b{font-size:21px}}
   </style>`;
@@ -226,6 +238,7 @@ function cqWire() {
   if (sh && !sh.dataset.w) { sh.dataset.w = '1'; sh.addEventListener('click', cqSheetsExport); }
   const go = document.getElementById('cqfGo');
   if (go && !go.dataset.w) { go.dataset.w = '1'; go.addEventListener('click', cqSubmit); }
+  if (typeof cqWireDup === 'function') cqWireDup();
   if (q && !q.dataset.w) {
     q.dataset.w = '1';
     q.addEventListener('input', () => { CQ.q = q.value; CQ.page = 0; cqOpen = 0; clearTimeout(cqTimer); cqTimer = setTimeout(cqLoadList, 300); });
