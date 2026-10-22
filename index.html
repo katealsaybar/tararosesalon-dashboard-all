@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=62eea993"></script>
+<script src="pages.js?v=f5d871b5"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3523,6 +3523,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       o2:  ['one2ones.js?v=05296c93'],
       at:  ['attrition.js?v=ab90cc3b'],
       cb:  ['client-book.js?v=9bb069ee'],
+      cp:  ['complaints.js?v=b8184d9c'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['products.js?v=d1961633'],
@@ -3678,6 +3679,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('clients', this)">Top Clients</div>
     <div class="nav-sub" onclick="showView('clientmix', this)">Client Mix</div>
     <div class="nav-sub" onclick="showView('clientbook', this)">Client Book</div>
+    <div class="nav-sub" onclick="showView('complaints', this)">Client Complaints</div>
     <div class="nav-sub" onclick="showView('lostclients', this)">Client’s Last Visit</div>
     <div class="nav-sub" onclick="showView('reviews', this)">Google Reviews</div>
     <div class="nav-subhead">Sales &amp; Stock</div>
@@ -4294,6 +4296,14 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="clientBookContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- CLIENT COMPLAINTS (Kate, 22 Oct 2026): the historical map of complaints written into Phorest client and visit notes, per branch,
+       per year, by kind and by how each was resolved. From client_complaints_summary and client_complaints_list
+       (migrations/client_complaints.sql), Level 5 only, enforced in both functions. complaints.js draws it. Own controls, so the
+       masthead filters are hidden, as on the Client Book. -->
+  <div id="view-complaints" style="display:none">
+    <main id="complaintsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <!-- LOST CLIENTS (Kate, 2 Oct 2026): regulars who stopped coming back, per branch,
        from lost_clients over sales_transaction_lines. lost-clients.js draws it. -->
   <div id="view-lostclients" style="display:none">
@@ -4908,7 +4918,7 @@ function showView(view, el){
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('one2ones-chrome', view === 'one2ones');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'clients' || view === 'clientmix' || view === 'clientbook' || view === 'services' || view === 'attrition');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'clients' || view === 'clientmix' || view === 'clientbook' || view === 'complaints' || view === 'services' || view === 'attrition');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
   document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
@@ -4936,6 +4946,7 @@ function showView(view, el){
   if (view === 'clients') initCliView();
   if (view === 'clientmix') renderClientMix();
   if (view === 'clientbook') renderClientBook();
+  if (view === 'complaints') renderComplaints();
   if (view === 'attrition') renderAttrition();
   if (view === 'lostclients') renderLostClients();
   if (view === 'lostlists') renderLostListsPage();
