@@ -2,10 +2,15 @@
 // how each one was resolved. Built from the notes staff typed into Phorest (client card and visit notes), copied on
 // 21 Oct 2026 for the Zenoti move, then read and sorted one by one. A snapshot, not live.
 //
-// Two calls (migrations/client_complaints.sql), both Level 5 only and both read only:
+// Kate, 22 Oct 2026: Levels 2 and up may view it and log a complaint from it ("complaints view and complaints submission shall be
+// available to level 2 and up"). The form saves through client_complaint_submit into the same table, so a logged complaint is counted
+// like any other and shows a "Logged by staff" mark; the person who logged it (or Level 5) can remove it again.
+// A logged complaint is tracked here instead of in WhatsApp (Kate, 22 Oct 2026): it starts Open unless it was resolved when logged, takes
+// follow-up notes (who was spoken to, what was agreed) in client_complaint_update, and is marked Resolved with how it ended, or reopened.
+// Calls (migrations/client_complaints.sql), all Levels 2 and up; the first two read only:
 //   client_complaints_summary   everything on the page above the list: tiles, branch table, years, kinds, outcomes
 //   client_complaints_list      a page of the complaints themselves, with the original note
-// The table behind them is owner_read only and the functions refuse anyone under Level 5, because the dashboard's
+// The table behind them is owner_read only and the functions refuse anyone under Level 2, because the dashboard's
 // table policies check membership, not level. Nothing here is stored in the browser except the rows-per-page pick: no
 // names or notes ever go into localStorage.
 //
@@ -14,7 +19,7 @@
 // The summary and list take the branch as 'all', one code, or codes joined by commas.
 // What it cannot show: complaints nobody wrote down, WhatsApp complaints, and Google reviews (that is its own page).
 const CQ_STORE = 'trs-client-complaints';
-const CQ = { src: 'visit', type: 'all', res: 'all', google: 'all', q: '', low: false, page: 0, size: 10, sort: 'date', dir: 'desc' };
+const CQ = { src: 'visit', type: 'all', res: 'all', google: 'all', status: 'all', q: '', low: false, page: 0, size: 10, sort: 'date', dir: 'desc' };
 const CQ_SIZES = [10, 20, 50, 100];
 try {
   const st = JSON.parse(localStorage.getItem(CQ_STORE) || '{}');
@@ -50,7 +55,7 @@ const CQ_TYPE = {
 const CQ_RES = {
   free_redo: 'Free redo', refund: 'Refund', discount_or_credit: 'Discount or credit', free_service_or_product: 'Free service or product',
   adjusted_same_visit: 'Fixed during the visit', apology_or_explanation: 'Talked through', escalated_followup: 'Escalated, follow-up',
-  client_lost_or_cancelled: 'Client cancelled or left', no_action_noted: 'No outcome written', unclear: 'Unclear'
+  client_lost_or_cancelled: 'Client cancelled or left', no_action_noted: 'No outcome written', unclear: 'Unclear', open: 'Still open'
 };
 
 const cqEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -63,12 +68,80 @@ const cqDay = iso => {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 };
 const cqBr = c => CQ_BRANCH[c] || c || 'Not matched';
-const cqLevelOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;
+const cqLevelOk = () => typeof TRS_LEVEL !== 'undefined' && (typeof trsPageOpen === 'function'
+  ? trsPageOpen('complaints', TRS_LEVEL, typeof TRS_EXTRA !== 'undefined' ? TRS_EXTRA : null) : TRS_LEVEL >= 2);
 
 // The mini side nav: the "On this page" rail the Ledgers pages carry (lgShell in branch-ledger.js; spy() lights the entry in view).
-const CQ_RAIL = [['cq-branch', 'By branch'], ['cq-year', 'By year'], ['cq-kind', 'What it was about'], ['cq-res', 'How it was resolved'], ['cq-list', 'The complaints']];
+const CQ_RAIL = [['cq-new', 'Log a complaint'], ['cq-branch', 'By branch'], ['cq-year', 'By year'], ['cq-kind', 'What it was about'], ['cq-res', 'How it was resolved'], ['cq-list', 'The complaints']];
 function cqRailShell(body) {
   return typeof lgShell === 'function' ? lgShell(CQ_RAIL, body, 'lg-shell-wide') : body;
+}
+
+function cqForm() {
+  const picked = cqPicked();
+  const brs = [['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz'], ['BAH', 'Bahrain']];
+  const bopts = ['<option value="">Pick the branch</option>'].concat(brs.map(([k, l]) => `<option value="${k}"${picked.length === 1 && picked[0] === k ? ' selected' : ''}>${l}</option>`)).join('');
+  const topts = ['<option value="">Pick one</option>'].concat(Object.keys(CQ_TYPE).filter(k => k !== 'unclear' && k !== 'repeat_complainer').map(k => `<option value="${k}">${cqEsc(CQ_TYPE[k])}</option>`)).join('');
+  const ropts = ['<option value="">Not resolved yet (keep it open)</option>'].concat(Object.keys(CQ_RES).filter(k => k !== 'unclear' && k !== 'open').map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
+  const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return `<details class="cq-card" id="cq-new"><summary>Log a complaint</summary>
+    <p class="cq-note" style="margin-top:6px">For a complaint a client made that is not in the Phorest notes yet. It is counted with the rest and marked as logged by staff, under your name. The client, branch, date, kind, what happened and how it ended are needed; the rest helps.</p>
+    <div class="cq-form">
+      <label>Client's full name<input id="cqfClient" class="cq-in" maxlength="80" autocomplete="off"></label>
+      <label>Branch<select id="cqfBranch" class="cq-sel">${bopts}</select></label>
+      <label>Date of the visit<input id="cqfDate" class="cq-in" type="date" max="${today}"></label>
+      <label>Stylist (optional)<input id="cqfStylist" class="cq-in" maxlength="80" autocomplete="off"></label>
+      <label>Service (optional)<input id="cqfService" class="cq-in" maxlength="120" autocomplete="off"></label>
+      <label>What it was about<select id="cqfType" class="cq-sel">${topts}</select></label>
+      <label class="wide">What happened<textarea id="cqfDetail" rows="3" maxlength="4000" placeholder="One or two sentences, in your own words"></textarea></label>
+      <label>How it was resolved, if it has been<select id="cqfRes" class="cq-sel">${ropts}</select></label>
+      <label>How it ended, in a few words (optional)<input id="cqfResD" class="cq-in" maxlength="300" autocomplete="off"></label>
+      <label>Handled by (optional)<input id="cqfBy" class="cq-in" maxlength="80" autocomplete="off"></label>
+      <label>Google review link, if they posted one (optional)<input id="cqfG" class="cq-in" type="url" placeholder="https://" autocomplete="off"></label>
+    </div>
+    <div class="cq-bar"><button type="button" id="cqfGo" class="cq-btn pri">Log this complaint</button><span id="cqfMsg" class="cq-msg" aria-live="polite"></span></div>
+  </details>`;
+}
+
+async function cqSubmit() {
+  const v = id => (document.getElementById(id) || {}).value || '';
+  const msg = document.getElementById('cqfMsg'), btn = document.getElementById('cqfGo');
+  const say = (t, err) => { if (msg) { msg.textContent = t; msg.className = 'cq-msg' + (err ? ' err' : ''); } };
+  const p = {
+    p_client: v('cqfClient').trim(), p_branch: v('cqfBranch'), p_date: v('cqfDate') || null, p_stylist: v('cqfStylist').trim(), p_service: v('cqfService').trim(),
+    p_type: v('cqfType'), p_detail: v('cqfDetail').trim(), p_resolution: v('cqfRes'), p_resolution_detail: v('cqfResD').trim(), p_handled_by: v('cqfBy').trim(),
+    p_google_url: v('cqfG').trim()
+  };
+  if (p.p_client.length < 3) return say('Write the client\'s full name.', true);
+  if (!p.p_branch) return say('Pick the branch.', true);
+  if (!p.p_date) return say('Pick the date of the visit.', true);
+  if (!p.p_type) return say('Pick what the complaint was about.', true);
+  if (p.p_detail.length < 10) return say('Write what happened, a sentence will do.', true);
+  if (p.p_google_url && !/^https?:\/\//i.test(p.p_google_url)) return say('The Google link must start with http.', true);
+  if (btn) btn.disabled = true;
+  say('Saving…');
+  try {
+    const { error } = await sb.rpc('client_complaint_submit', p);
+    if (error) throw error;
+    ['cqfClient', 'cqfStylist', 'cqfService', 'cqfDetail', 'cqfResD', 'cqfBy', 'cqfG', 'cqfDate'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['cqfType', 'cqfRes'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    say((p.p_resolution ? 'Logged as resolved.' : 'Logged as open. Open it in the list below to add follow-ups and mark it resolved.') + ' It shows under the date you gave, as long as that date is inside the Period and Branch picked above.');
+    CQ.page = 0; CQ.sort = 'date'; CQ.dir = 'desc'; cqOpen = 0;
+    cqLoadSummary(); cqLoadList();
+  } catch (e) {
+    console.error(e);
+    say((e && e.message) ? e.message : 'It did not save. Try again.', true);
+  } finally { if (btn) btn.disabled = false; }
+}
+
+async function cqRemove(id) {
+  if (!window.confirm('Remove this logged complaint?')) return;
+  try {
+    const { data, error } = await sb.rpc('client_complaint_submission_delete', { p_id: id });
+    if (error) throw error;
+    if (!data) { window.alert('Only the person who logged it, or Level 5, can remove it.'); return; }
+    cqOpen = 0; cqLoadSummary(); cqLoadList();
+  } catch (e) { console.error(e); window.alert('It could not be removed. Try again.'); }
 }
 
 function cqShell() {
@@ -124,13 +197,24 @@ function cqShell() {
     .cq-pager .cq-size{margin-right:auto;display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
     .cq-tip{position:fixed;z-index:9999;pointer-events:none;max-width:260px;padding:6px 10px;border-radius:8px;font-size:12px;line-height:1.4;background:var(--surface2);color:var(--text);border:1px solid var(--border);box-shadow:0 4px 14px rgba(0,0,0,.25);display:none}
     .cq [data-tip]{cursor:default}
+    details.cq-card>summary{cursor:pointer;font-size:14px;font-weight:600;list-style:none}
+    details.cq-card>summary::-webkit-details-marker{display:none}
+    details.cq-card>summary::before{content:'+';display:inline-block;width:16px;color:var(--muted)}
+    details.cq-card[open]>summary::before{content:'−'}
+    .cq-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 14px;margin:10px 0 12px}
+    .cq-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:0}
+    .cq-form .wide{grid-column:1/-1}
+    .cq-form .cq-in,.cq-form .cq-sel,.cq-form textarea{flex:none;width:100%;box-sizing:border-box;border-radius:12px;color:var(--text)}
+    .cq-form textarea{border:1px solid var(--border);background:var(--surface);padding:9px 14px;font:inherit;font-size:14px;resize:vertical}
+    .cq-msg{font-size:13px}.cq-msg.err{color:var(--warn)}
+    .cq-btn.pri{background:var(--accent);color:#102;border-color:var(--accent);font-weight:600}
     .cq-foot{color:var(--muted);font-size:12px;line-height:1.5;margin:12px 0 0;max-width:820px}
     @media (max-width:760px){.cq-t .hm{display:none}.cq-grid{grid-template-columns:1fr}.cq h1{font-size:24px}.cq-bars{grid-template-columns:minmax(90px,130px) 1fr auto}}
   </style>
   <div class="cq">
     <h1>Client Complaints</h1>
-    <p class="cq-sub">Every complaint written into a Phorest client card or visit note, read one by one and sorted by branch, year, kind and how it was resolved. Level 5 only. It shows what staff wrote down, not every complaint that happened, and it is a copy from 21 Oct 2026.</p>
-    ${cqRailShell(`<div id="cqTop"><p class="cq-meta">Loading…</p></div>
+    <p class="cq-sub">Every complaint written into a Phorest client card or visit note, read one by one and sorted by branch, year, kind and how it was resolved. Levels 2 and up. It shows what staff wrote down, not every complaint that happened, and it is a copy from 21 Oct 2026.</p>
+    ${cqRailShell(`${cqForm()}<div id="cqTop"><p class="cq-meta">Loading…</p></div>
     <div class="cq-card" id="cq-list">
       <h2>The complaints</h2>
       <p class="cq-note">Tap one to read the original note and how it ended. Redo notes with no reason written are in here as complaints with the reason left blank.</p>
@@ -139,6 +223,7 @@ function cqShell() {
         <select id="cqS" class="cq-sel" aria-label="Where it was written"><option value="visit">Visit notes</option><option value="client">Client card notes</option></select>
         <select id="cqT" class="cq-sel" aria-label="Kind">${topts}</select>
         <select id="cqR" class="cq-sel" aria-label="Outcome">${ropts}</select>
+        <select id="cqSt" class="cq-sel" aria-label="Status"><option value="all">Status: any</option><option value="open">Still open</option><option value="resolved">Resolved</option></select>
         <select id="cqG" class="cq-sel" aria-label="Google review"><option value="all">Google: any</option><option value="yes">Left a Google review</option><option value="no">No Google review found</option></select>
         <label class="cq-chk"><input id="cqL" type="checkbox"> Unsure only</label>
       </div>
@@ -151,11 +236,13 @@ function cqShell() {
 
 function cqWire() {
   const q = document.getElementById('cqQ'), body = document.getElementById('cqBody'), top = document.getElementById('cqTop');
+  const go = document.getElementById('cqfGo');
+  if (go && !go.dataset.w) { go.dataset.w = '1'; go.addEventListener('click', cqSubmit); }
   if (q && !q.dataset.w) {
     q.dataset.w = '1';
     q.addEventListener('input', () => { CQ.q = q.value; CQ.page = 0; cqOpen = 0; clearTimeout(cqTimer); cqTimer = setTimeout(cqLoadList, 300); });
   }
-  [['cqS', 'src'], ['cqT', 'type'], ['cqR', 'res'], ['cqG', 'google']].forEach(([id, k]) => {
+  [['cqS', 'src'], ['cqT', 'type'], ['cqR', 'res'], ['cqSt', 'status'], ['cqG', 'google']].forEach(([id, k]) => {
     const el = document.getElementById(id);
     if (el && !el.dataset.w) {
       el.dataset.w = '1';
@@ -205,6 +292,10 @@ function cqWireTip(root) {
 
 function cqClick(e) {
   const t = e.target;
+  const up = t.closest && t.closest('[data-up]');
+  if (up) { cqUpdate(Number(up.dataset.id), up.dataset.up); return; }
+  const del = t.closest && t.closest('[data-del]');
+  if (del) { cqRemove(Number(del.dataset.del)); return; }
   const th = t.closest && t.closest('th[data-s]');
   if (th) {
     const k = th.dataset.s;
@@ -237,11 +328,51 @@ function cqToggle(row) {
 // Which complaints reached Google: a Google review whose reviewer name is the client's full name, left on or after the complaint.
 // A name match only (reviewers often post a first name), so "none found" is not proof there is no review.
 function cqGoogle(r) {
+  if (!r.g_date && r.g_manual) return `<span class="cq-pill"><a href="${cqEsc(r.g_manual)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Posted (logged)</a></span>`;
   if (!r.g_date) return '<span class="cq-muted">None found</span>';
   const txt = `${'★'.repeat(Math.max(0, Math.min(5, Number(r.g_stars) || 0)))} ${cqDay(r.g_date)}`;
   const low = Number(r.g_stars) > 0 && Number(r.g_stars) <= 3;
   const body = r.g_url ? `<a href="${cqEsc(r.g_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${cqEsc(txt)}</a>` : cqEsc(txt);
   return `<span class="cq-pill${low ? ' warn' : ''}">${body}</span>`;
+}
+
+function cqFollow(r) {
+  const ups = (r.updates || []).map(u => {
+    const tag = u.status === 'resolved' ? ` <span class="cq-pill">Resolved: ${cqEsc(CQ_RES[u.res] || u.res || '')}</span>` : (u.status === 'open' ? ' <span class="cq-pill warn">Reopened</span>' : '');
+    return `<p class="cq-kv"><span>${cqEsc(cqDay(u.at))}, ${cqEsc(u.by || '')}</span>${tag} ${cqText(u.note || '')}</p>`;
+  }).join('');
+  const ropts = ['<option value="">How it ended (needed to mark it resolved)</option>'].concat(Object.keys(CQ_RES).filter(k => k !== 'unclear' && k !== 'open')
+    .map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
+  const isOpen = r.status === 'open';
+  return `<div style="grid-column:1/-1">
+    <div class="cq-eye">Follow-up ${isOpen ? '<span class="cq-pill warn">Open</span>' : '<span class="cq-pill">Resolved</span>'}</div>
+    ${ups || '<p class="cq-kv cq-muted">No follow-up written yet.</p>'}
+    <div class="cq-form" style="margin-top:8px">
+      <label class="wide">Add an update<textarea id="cqu-note" rows="2" maxlength="1000" placeholder="Who you spoke to, what was agreed, what was done"></textarea></label>
+      <label>${isOpen ? 'Mark it resolved with' : 'Reopen it, or add a note'}<select id="cqu-res" class="cq-sel"${isOpen ? '' : ' disabled'}>${ropts}</select></label>
+    </div>
+    <div class="cq-bar"><button type="button" class="cq-btn" data-up="note" data-id="${r.id}">Add update</button>
+      ${isOpen ? `<button type="button" class="cq-btn pri" data-up="resolved" data-id="${r.id}">Mark resolved</button>` : `<button type="button" class="cq-btn" data-up="open" data-id="${r.id}">Reopen</button>`}
+      <span id="cqu-msg" class="cq-msg err" aria-live="polite"></span></div>
+  </div>`;
+}
+
+async function cqUpdate(id, kind) {
+  const note = (document.getElementById('cqu-note') || {}).value || '';
+  const res = (document.getElementById('cqu-res') || {}).value || '';
+  const msg = document.getElementById('cqu-msg');
+  const say = t => { if (msg) msg.textContent = t; };
+  if (kind === 'resolved' && !res) return say('Pick how it ended, then mark it resolved.');
+  if (kind !== 'resolved' && note.trim().length < 2) return say('Write the update first.');
+  say('Saving…');
+  try {
+    const { error } = await sb.rpc('client_complaint_update', { p_id: id, p_note: note.trim(), p_resolution: kind === 'resolved' ? res : '', p_status: kind });
+    if (error) throw error;
+    cqOpen = 0;
+    await Promise.all([cqLoadSummary(), cqLoadList()]);
+    const row = document.querySelector(`#cqBody tr.cq-row[data-i="${id}"]`);
+    if (row) cqToggle(row);
+  } catch (e) { console.error(e); say((e && e.message) || 'It did not save. Try again.'); }
 }
 
 function cqCard(r) {
@@ -255,8 +386,8 @@ function cqCard(r) {
       ${r.services ? `<p class="cq-kv"><span>Services that day</span> ${cqEsc(r.services)}</p>` : ''}
       ${r.fee != null && r.src === 'visit' ? `<p class="cq-kv"><span>Charged that visit</span> AED ${cqNum(r.fee)}</p>` : ''}
       ${r.handled_by ? `<p class="cq-kv"><span>Handled by</span> ${cqEsc(r.handled_by)}</p>` : ''}
-      <p class="cq-kv"><span>Google review</span> ${r.g_date ? cqGoogle(r) : 'None found under this name'}</p>
-      <p class="cq-kv"><span>Phorest ID</span> ${cqEsc(r.phorest_id)}</p>
+      <p class="cq-kv"><span>Google review</span> ${(r.g_date || r.g_manual) ? cqGoogle(r) : 'None found under this name'}</p>
+      ${r.by ? `<p class="cq-kv"><span>Logged by</span> ${cqEsc(r.by)}${r.by_at ? ' on ' + cqEsc(cqDay(r.by_at)) : ''} <button type="button" class="cq-btn" data-del="${r.id}" style="margin-left:8px">Remove</button></p>` : `<p class="cq-kv"><span>Phorest ID</span> ${cqEsc(r.phorest_id)}</p>`}
     </div>
     <div>
       <div class="cq-eye">What was written ${conf}</div>
@@ -264,8 +395,9 @@ function cqCard(r) {
       <div class="cq-eye">How it was read</div>
       <p class="cq-kv"><span>Kind</span> ${cqEsc(CQ_TYPE[r.type] || r.type || 'Unclear')}</p>
       <p class="cq-kv"><span>Problem</span> ${cqEsc(r.detail || 'Not stated')}</p>
-      <p class="cq-kv"><span>Outcome</span> ${cqEsc(CQ_RES[r.resolution] || r.resolution || 'Unclear')}${r.resolution_detail ? ': ' + cqEsc(r.resolution_detail) : ''}</p>
+      <p class="cq-kv"><span>Outcome</span> ${r.status === 'open' ? 'Still open' : cqEsc(CQ_RES[r.resolution] || r.resolution || 'Unclear')}${r.resolution_detail ? ': ' + cqEsc(r.resolution_detail) : ''}</p>
     </div>
+    ${r.by ? cqFollow(r) : ''}
   </div>`;
 }
 
@@ -303,6 +435,7 @@ function cqPaintSummary() {
   const where = picked.length ? ' at ' + picked.map(cqBr).join(', ') : '';
   const tiles = [
     [cqNum(t.complaints), 'complaints in visit notes' + where],
+    ...(Number(t.open_now) > 0 ? [[cqNum(t.open_now), 'logged complaints still open']] : []),
     [cqNum(t.since_2025), 'of them since 1 Jan 2025'],
     [cqNum(t.clients), 'different clients'],
     [cqNum(t.repeat_clients), 'clients with 2 or more'],
@@ -338,8 +471,8 @@ function cqPaintList() {
       <td style="white-space:nowrap">${cqEsc(cqDay(r.date))}</td>
       <td class="hm">${cqEsc(cqBr(r.branch))}</td>
       <td><b>${cqEsc(r.client || 'No name')}</b></td>
-      <td>${cqEsc(r.detail || 'Not stated')}${r.confidence === 'low' ? ' <span class="cq-pill warn">unsure</span>' : ''}<div class="cq-muted" style="font-size:12px">${cqEsc(CQ_TYPE[r.type] || '')}</div></td>
-      <td>${cqEsc(CQ_RES[r.resolution] || '')}</td>
+      <td>${cqEsc(r.detail || 'Not stated')}${r.confidence === 'low' ? ' <span class="cq-pill warn">unsure</span>' : ''}${r.by ? ' <span class="cq-pill">logged by staff</span>' : ''}<div class="cq-muted" style="font-size:12px">${cqEsc(CQ_TYPE[r.type] || '')}</div></td>
+      <td>${r.status === 'open' ? '<span class="cq-pill warn">Open</span>' : cqEsc(CQ_RES[r.resolution] || '')}</td>
       <td class="hm" style="white-space:nowrap">${cqGoogle(r)}</td>
     </tr>`).join('');
   const th = (k, label, cls) => {
@@ -380,7 +513,7 @@ async function cqLoadList() {
   try {
     const { data, error } = await sb.rpc('client_complaints_list', {
       p_branch: cqBranch(), p_src: CQ.src, p_type: CQ.type, p_resolution: CQ.res, p_q: CQ.q.trim(), p_low: CQ.low,
-      p_limit: CQ.size, p_offset: CQ.page * CQ.size, p_sort: CQ.sort, p_dir: CQ.dir, p_google: CQ.google, ...cqWin()
+      p_limit: CQ.size, p_offset: CQ.page * CQ.size, p_sort: CQ.sort, p_dir: CQ.dir, p_google: CQ.google, p_status: CQ.status, ...cqWin()
     });
     if (error) throw error;
     if (seq !== cqSeqL) return;
@@ -404,7 +537,7 @@ function cqRefresh() {
 function renderComplaints() {
   const el = document.getElementById('complaintsContent');
   if (!el) return;
-  if (!cqLevelOk()) { el.innerHTML = '<div class="cq"><p class="cq-meta" style="padding:20px 0">Client Complaints is for Level 5 only.</p></div>'; return; }
+  if (!cqLevelOk()) { el.innerHTML = '<div class="cq"><p class="cq-meta" style="padding:20px 0">Client Complaints is for Levels 2 and up.</p></div>'; return; }
   el.innerHTML = cqShell();
   cqWire();
   cqOpen = 0;

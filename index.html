@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=f0e55f18"></script>
+<script src="pages.js?v=b4ac4217"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3525,7 +3525,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       o2:  ['one2ones.js?v=05296c93'],
       at:  ['attrition.js?v=ab90cc3b'],
       cb:  ['client-book.js?v=9bb069ee'],
-      cp:  ['complaints.js?v=64859890'],
+      cp:  ['complaints.js?v=b61ba4bd'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['products.js?v=d1961633'],
@@ -4300,7 +4300,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <!-- CLIENT COMPLAINTS (Kate, 22 Oct 2026): the historical map of complaints written into Phorest client and visit notes, per branch,
        per year, by kind and by how each was resolved. From client_complaints_summary and client_complaints_list
-       (migrations/client_complaints.sql), Level 5 only, enforced in both functions. complaints.js draws it. Own controls, so the
+       (migrations/client_complaints.sql), Levels 2 and up (Kate, 22 Oct 2026), enforced in every function; it also logs a new complaint (client_complaint_submit). complaints.js draws it. Own controls, so the
        masthead filters are hidden, as on the Client Book. -->
   <!-- GLOW CLUB PERFORMANCE (Kate, 22 Oct 2026): the monthly membership counted from the till, no client names,
        Level 3 and above. glow_club_performance() (migrations/glow_club_performance.sql); glow-club.js draws it. -->

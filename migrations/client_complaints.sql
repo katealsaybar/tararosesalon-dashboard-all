@@ -50,6 +50,10 @@ end $$;
 
 -- 22 Oct 2026 (v4): the masthead's Period. p_from and p_to are null for All time (undated client-card notes only count then).
 drop function if exists public.client_complaints_summary(text);
+-- 22 Oct 2026 (v5): Levels 2 and up (no Bahrain-scoped sign-in) may open the page, and may log a complaint from it.
+alter table public.client_complaints
+  add column if not exists submitted_by text, add column if not exists submitted_email text,
+  add column if not exists submitted_at timestamptz, add column if not exists google_url text;
 create or replace function public.client_complaints_summary(p_branch text default 'all', p_from date default null, p_to date default null)
 returns jsonb
 language plpgsql stable security definer
@@ -61,8 +65,8 @@ declare
   bs text[] := string_to_array(coalesce(nullif(p_branch, ''), 'all'), ',');
   out jsonb;
 begin
-  if coalesce((select m.level from public.dashboard_me() m limit 1), 0) < 5 then
-    raise exception 'Client Complaints is for Level 5 only';
+  if coalesce((select m.level from public.dashboard_me() m limit 1), 0) < 2 or (select public.dashboard_scope()) is not null then
+    raise exception 'Client Complaints is for Levels 2 and up';
   end if;
 
   with v as (
@@ -172,8 +176,8 @@ declare
   d text := case when p_dir = 'asc' then 'asc' else 'desc' end;
   out jsonb;
 begin
-  if coalesce((select m.level from public.dashboard_me() m limit 1), 0) < 5 then
-    raise exception 'Client Complaints is for Level 5 only';
+  if coalesce((select m.level from public.dashboard_me() m limit 1), 0) < 2 or (select public.dashboard_scope()) is not null then
+    raise exception 'Client Complaints is for Levels 2 and up';
   end if;
 
   with hit as (
@@ -186,7 +190,7 @@ begin
       and (coalesce(p_type, 'all') = 'all' or c.complaint_type = p_type)
       and (coalesce(p_resolution, 'all') = 'all' or c.resolution = p_resolution)
       and (not coalesce(p_low, false) or c.confidence = 'low')
-      and (coalesce(p_google, 'all') = 'all' or (p_google = 'yes') = (g.review_date is not null))
+      and (coalesce(p_google, 'all') = 'all' or (p_google = 'yes') = (g.review_date is not null or c.google_url is not null))
       and (p_from is null or c.event_date >= p_from) and (p_to is null or c.event_date <= p_to)
       and (q = '' or position(q in lower(coalesce(c.client_name, '') || ' ' || coalesce(c.stylists, '') || ' ' ||
              coalesce(c.detail, '') || ' ' || coalesce(c.resolution_detail, '') || ' ' || coalesce(c.note, ''))) > 0)
@@ -215,7 +219,7 @@ begin
       'phorest_id', p.phorest_id, 'stylists', p.stylists, 'services', p.services, 'fee', p.fee_total,
       'type', p.complaint_type, 'detail', p.detail, 'resolution', p.resolution,
       'resolution_detail', p.resolution_detail, 'handled_by', p.handled_by, 'confidence', p.confidence,
-      'note', p.note, 'g_date', p.g_date, 'g_stars', p.g_stars, 'g_url', p.g_url
+      'note', p.note, 'g_manual', p.google_url, 'by', p.submitted_by, 'by_at', p.submitted_at, 'by_email', p.submitted_email, 'g_date', p.g_date, 'g_stars', p.g_stars, 'g_url', p.g_url
     ) order by p.rn), '[]'::jsonb)
   ) into out
   from page p;
@@ -237,10 +241,10 @@ set search_path to ''
 as $function$
 declare out jsonb;
 begin
-  if coalesce((select m.level from public.dashboard_me() m limit 1), 0) < 5 then
-    raise exception 'Client Complaints is for Level 5 only';
+  if coalesce((select m.level from public.dashboard_me() m limit 1), 0) < 2 or (select public.dashboard_scope()) is not null then
+    raise exception 'Client Complaints is for Levels 2 and up';
   end if;
-  select jsonb_build_object('total', count(*), 'on_google', count(*) filter (where g.review_date is not null)) into out
+  select jsonb_build_object('total', count(*), 'on_google', count(*) filter (where g.review_date is not null or c.google_url is not null)) into out
   from public.client_complaints c
   left join lateral public.cq_google_review(c.client_name, c.event_date) g on true
   where c.is_complaint and c.src = 'visit'
@@ -251,3 +255,62 @@ end
 $function$;
 revoke all on function public.client_complaints_google_count(text, date, date) from public, anon;
 grant execute on function public.client_complaints_google_count(text, date, date) to authenticated;
+
+-- v5: logging a complaint from the page. A logged complaint is an ordinary 'visit' row (ref sub-<uuid>, phorest_id manual:<name>, regex_tier S,
+-- reviewed, confidence high) with submitted_by / submitted_email / submitted_at set, so every number counts it. The person who logged it,
+-- or Level 5, can remove it again.
+create or replace function public.client_complaint_submit(
+  p_client text, p_branch text, p_date date, p_stylist text, p_service text, p_type text, p_detail text,
+  p_resolution text, p_resolution_detail text, p_handled_by text, p_google_url text)
+returns bigint
+language plpgsql security definer
+set search_path to ''
+as $function$
+declare
+  me record; nid bigint; nm text := regexp_replace(trim(coalesce(p_client, '')), '\s+', ' ', 'g');
+  gu text := nullif(trim(coalesce(p_google_url, '')), '');
+begin
+  select * into me from public.dashboard_me() limit 1;
+  if me.level is null or me.level < 2 or me.scope is not null then
+    raise exception 'Logging a complaint is for Levels 2 and up';
+  end if;
+  if length(nm) < 3 then raise exception 'Write the client''s full name'; end if;
+  if p_branch not in ('SAA', 'KCA', 'MC', 'AQ', 'BAH') then raise exception 'Pick the branch'; end if;
+  if p_date is null or p_date > current_date or p_date < date '2016-01-01' then raise exception 'Pick the date of the visit'; end if;
+  if p_type not in ('colour_result', 'nail_service', 'treatment_result', 'cut_result', 'price_or_billing', 'booking_or_admin', 'wait_or_time',
+                    'staff_attitude', 'skin_reaction_or_injury', 'facility_or_parking', 'product', 'other') then raise exception 'Pick what the complaint was about'; end if;
+  if p_resolution not in ('free_redo', 'refund', 'discount_or_credit', 'free_service_or_product', 'adjusted_same_visit', 'apology_or_explanation',
+                          'escalated_followup', 'client_lost_or_cancelled', 'no_action_noted') then raise exception 'Pick how it was resolved'; end if;
+  if length(trim(coalesce(p_detail, ''))) < 10 then raise exception 'Write what happened (a sentence)'; end if;
+  if gu is not null and gu !~* '^https?://' then raise exception 'The Google link must start with http'; end if;
+  insert into public.client_complaints (src, ref, phorest_id, client_name, branch_code, event_date, stylists, services, note, regex_tier, reviewed,
+      is_complaint, complaint_type, detail, resolution, resolution_detail, handled_by, confidence, submitted_by, submitted_email, submitted_at, google_url)
+  values ('visit', 'sub-' || gen_random_uuid()::text, 'manual:' || lower(nm), nm, p_branch, p_date, nullif(trim(coalesce(p_stylist, '')), ''),
+      nullif(trim(coalesce(p_service, '')), ''), left(trim(p_detail), 4000), 'S', true, true, p_type, left(trim(p_detail), 300), p_resolution,
+      nullif(left(trim(coalesce(p_resolution_detail, '')), 300), ''), nullif(left(trim(coalesce(p_handled_by, '')), 80), ''), 'high',
+      coalesce(me.name, 'Unknown'), (select lower(u.email) from auth.users u where u.id = auth.uid()), now(), gu)
+  returning id into nid;
+  return nid;
+end
+$function$;
+
+create or replace function public.client_complaint_submission_delete(p_id bigint)
+returns boolean
+language plpgsql security definer
+set search_path to ''
+as $function$
+declare me record; em text := (select lower(u.email) from auth.users u where u.id = auth.uid()); n int;
+begin
+  select * into me from public.dashboard_me() limit 1;
+  if me.level is null or me.level < 2 or me.scope is not null then raise exception 'Not allowed'; end if;
+  delete from public.client_complaints c
+   where c.id = p_id and c.submitted_at is not null and (me.level >= 5 or c.submitted_email = em);
+  get diagnostics n = row_count;
+  return n > 0;
+end
+$function$;
+
+revoke all on function public.client_complaint_submit(text, text, date, text, text, text, text, text, text, text, text) from public, anon;
+revoke all on function public.client_complaint_submission_delete(bigint) from public, anon;
+grant execute on function public.client_complaint_submit(text, text, date, text, text, text, text, text, text, text, text) to authenticated;
+grant execute on function public.client_complaint_submission_delete(bigint) to authenticated;
