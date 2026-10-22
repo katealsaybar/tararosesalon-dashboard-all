@@ -16,7 +16,7 @@
                executives only. Level 5 opens every page; Level 3 opens every page whose min is 3 or less. A page with no lv falls back to min.
                Levels are no longer cumulative for 2 and 4: Level 4 does not inherit Level 3's pages.
                Kate, 22 Oct 2026: Level 1 (the team) is on the same footing: it opens only the pages whose lv lists 1, which today are
-               Staff Cards and Org Chart. Nobody holds Level 1 in dashboard_users, so this is what View as Level 1 shows and what a
+               Staff Cards (Kate, 22 Oct 2026: Org Chart is Level 2 and up, so not Level 1). Nobody holds Level 1 in dashboard_users, so this is what View as Level 1 shows and what a
                first Level 1 login would get, rather than the twenty pages the old min rule opened. A person's own extras
                (dashboard_users.extra_pages) open more pages for that person only. This decides what is drawn; the data itself is
                still protected by row-level security.
@@ -60,7 +60,7 @@ window.TRS_PAGES = /*PAGES*/[
   {"id": "social", "lazy": "mk", "label": "Social", "group": "Content", "min": 3, "free": 1, "ic": "marketing", "words": "instagram tiktok youtube facebook followers reach views posts reels metricool", "lv": []},
   {"id": "wvperf", "label": "Wellness Voucher Performance", "group": "Campaigns", "min": 2, "ic": "campaigns", "words": "voucher performance redemptions credit collected campaign target", "lv": [2, 4]},
   {"id": "stylists", "lazy": "sc", "label": "Staff Cards", "group": "People", "free": 1, "ic": "access", "words": "cards photos instagram profiles", "lv": [1, 2, 4]},
-  {"id": "orgchart", "lazy": "oc", "label": "Org Chart", "group": "People", "free": 1, "ic": "people", "words": "org chart structure hierarchy", "lv": [1, 2, 4]},
+  {"id": "orgchart", "lazy": "oc", "label": "Org Chart", "group": "People", "free": 1, "ic": "people", "words": "org chart structure hierarchy", "lv": [2, 4]},
   {"id": "branchperf", "label": "Branch Performance", "retired": "dailyperf", "scope": 1, "filtered": 1, "words": "branch staff table figures services retail"}
 ]/*END*/;
 (function () {

@@ -112,6 +112,8 @@
   // its `min` level; every other row when kb_access() opened its own key.
   KB.opens = function (s) {
     if (s.only && s.only.indexOf(KB.level) < 0) return false;
+    // Kate, 22 Oct 2026: Level 1 opens Wellness Voucher Performance; it is its own page (KB.ready points the row at it), not a dashboard view.
+    if (s.key === 'campaigns' && KB.level === 1) return KB.allowed.indexOf('campaigns') >= 0;
     // Kate, 21 Oct 2026: a row that opens a dashboard page (/?view=...) follows that page's own list in pages.js (lv, and this
     // person's extras), via or not, so Team Home offers a coordinator the Daily Target Sheet and not the Pulse.
     var pv = /[?&]view=([A-Za-z0-9_-]+)/.exec(s.href || '');
@@ -381,6 +383,8 @@
       KB.hidden = (m.data || []).map(function (x) { return x.slug; });
     }
     KB.shows = function (slug) { return KB.hidden.indexOf(slug) < 0; };
+    // Level 1 is not on the dashboard, so its Wellness Voucher Performance row goes to the report's own page, which needs no sign-in (totals only).
+    if (KB.level === 1) KB.SECTIONS.forEach(function (x) { if (x.key === 'campaigns') x.href = '/wellness-voucher-approvals/performance/'; });
     KB.email = s.user && s.user.email;
     var n = await c.rpc('kb_me');
     KB.name = (!n.error && n.data) || '';
