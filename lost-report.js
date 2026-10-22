@@ -199,7 +199,9 @@ function lrDepSet(v) {
 // Money from the bookings (Kate, 22 Oct 2026): what the blast cost, what the clients who booked are worth, and what the clients we messaged have really spent
 // since. Visual by default, Table beside it. Projected = --accent, actual = --good (the page's own, like the deposit bars). All AED, VAT included.
 // lost_campaign_money explains each number; the notes under the section say the same in plain words.
-const LR_SPLIT = [['hair_services', 'Hair services', 'colour, cut and extensions'], ['hair_treat', 'Hair treatments', 'treatments'], ['beauty_services', 'Beauty services', 'beauty and nails'], ['retail', 'Retail', 'products, hair and beauty together'], ['other', 'Other', 'consultations and anything not sorted yet']];
+const LR_SPLIT = [['hair_services', 'Hair services', 'colour, cut and extensions'], ['hair_treat', 'Hair treatments', 'treatments'], ['beauty_services', 'Beauty services', 'beauty and nails'], ['retail_hair', 'Hair retail', 'shampoo, treatments, styling and tools'], ['retail_beauty', 'Beauty retail', 'skincare, lashes and nails'], ['retail', 'Retail', 'products, hair and beauty together'], ['other', 'Other', 'consultations and anything not sorted yet']];
+// Retail is two lines (Hair retail, Beauty retail) once lost_campaign_money gives retail_hair; before that it is the one Retail line.
+const lrSplitRows = a => LR_SPLIT.filter(([k]) => k === 'other' ? a.other : k === 'retail' ? a.retail_hair == null : (k === 'retail_hair' || k === 'retail_beauty') ? a.retail_hair != null : true);
 function lrMoneyVisual(m) {
   const b = m.booked, a = m.actual, by = m.by_branch || [];
   const maxP = Math.max(1, ...by.map(x => x.proj)), maxA = Math.max(1, ...by.map(x => x.actual));
@@ -213,7 +215,7 @@ function lrMoneyVisual(m) {
     </div>
     <h4 class="lr-dh">Actual spend, by what they bought</h4>
     <div class="ll-cards lr-cards">
-      ${LR_SPLIT.filter(([k]) => k !== 'other' || a.other).map(([k, l, d]) => card(lrAed(a[k]), l, `${a.total ? lrPct(a[k], a.total) + ' of the actual, ' : ''}${d}`)).join('')}
+      ${lrSplitRows(a).map(([k, l, d]) => card(lrAed(a[k]), l, `${a.total ? lrPct(a[k], a.total) + ' of the actual, ' : ''}${d}`)).join('')}
     </div>
     <div class="lr-dgrid">
       <div class="lr-dcard"><h4>Projected spend by branch</h4>${by.filter(x => x.booked).map(x => brow(x, 'proj', maxP, 'd-unpaid')).join('') || '<p class="slv-muted">Nobody yet.</p>'}</div>
@@ -228,7 +230,7 @@ function lrMoneyTable(m) {
       ${by.map(x => row(lcEsc(LC_BRANCH[x.k] || x.k), x)).join('')}${row('All', all, true)}</tbody></table></div>
     <h4 class="lr-dh">Actual spend, by what they bought</h4>
     <div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>What</th><th>Actual spend</th><th>Share</th></tr></thead><tbody>
-      ${LR_SPLIT.filter(([k]) => k !== 'other' || a.other).map(([k, l]) => `<tr><td>${l}</td><td>${lrAed(a[k])}</td><td>${lrPct(a[k], a.total)}</td></tr>`).join('')}
+      ${lrSplitRows(a).map(([k, l]) => `<tr><td>${l}</td><td>${lrAed(a[k])}</td><td>${lrPct(a[k], a.total)}</td></tr>`).join('')}
       <tr><td><b>All</b></td><td><b>${lrAed(a.total)}</b></td><td><b>${a.total ? '100.0%' : '–'}</b></td></tr></tbody></table></div>`;
 }
 function lrMoneyInner() {

@@ -16,7 +16,10 @@
 --             date of her first message on, total (VAT included) net of refunds. Deposits, vouchers sold and prepaid courses are left out
 --             (a deposit is counted again on the service it pays for), the same rule as Top Clients. Split by the family each item belongs to
 --             in Client Mix (item_classes): hair_services = colour, cut, extensions; hair_treat = treatments; beauty_services = beauty and nails;
---             retail = products (a sales line has no hair or beauty department, so retail is one line); other = anything left (consult, unmapped).
+--             retail_hair / retail_beauty = products, told apart the way the Products page does it (Kate, 22 Oct 2026): a sales item that is on the
+--             Stock List takes its brand's department (Matis, Image Skin, PCA Skin, Xitronix, Nouveau, IOlite, Kinetics, Alessandro, OPI's distributor
+--             and LUK are Beauty, every other brand Hair); an item not on the Stock List is Beauty only if its name says skin, lash, nail, facial, OPI,
+--             SPF and the like, else Hair. retail is the two together. other = anything left (consult, unmapped).
 --             This is every client messaged who came in, not only those still holding a booking, so it also counts the ones who have
 --             already been and left no future booking.
 --   by_branch The branch the message came from (the first message for actual), like the other By branch tables.
@@ -62,12 +65,17 @@ begin
     where s.date >= (select min(d0) from fs) and nullif(trim(s.client_name), '') is not null),
   ln as (select fs.k, fs.branch, sl.item, sl.total from fs join sl on sl.k = fs.k and sl.date >= fs.d0),
   cl as (select * from public.item_classes(coalesce((select array_agg(distinct item) from ln), '{}'::text[]))),
+  bt as (select public.stl_name_key(product) as k, bool_or(brand ~* '(matis|image skin|pca skin|xitronix|nouveau|iolite|kinetics|alessandro|madi international|^luk\M|luke''s food)') as beauty
+         from public.stock_levels group by 1),
   ac as (
     select ln.k, ln.branch, ln.total,
            case c.family when 'colour' then 'hair_services' when 'cut' then 'hair_services' when 'extensions' then 'hair_services'
                          when 'treat' then 'hair_treat' when 'beauty' then 'beauty_services' when 'nails' then 'beauty_services'
-                         when 'retail' then 'retail' else 'other' end as b
-    from ln join cl c on c.item = ln.item
+                         when 'retail' then case when bt.k is not null then (case when bt.beauty then 'retail_beauty' else 'retail_hair' end)
+                                                 when ln.item ~* '(\mopi\M|\mlash|\mnail|cuticle|facial|sheet mask|\mpeel\M|nutrient toner|\mspf|ormedic|\mskin\M|\meyes\M|papaya mask)' then 'retail_beauty'
+                                                 else 'retail_hair' end
+                         else 'other' end as b
+    from ln join cl c on c.item = ln.item left join bt on bt.k = public.stl_name_key(ln.item)
     where c.category <> 'SKIP' and c.family <> 'skip'),
   ak as (select k, branch, sum(total) as spent from ac group by k, branch),
   ab as (
@@ -76,7 +84,7 @@ begin
   ax as (
     select branch,
            coalesce(sum(total) filter (where b = 'hair_services'), 0) as hair_services, coalesce(sum(total) filter (where b = 'hair_treat'), 0) as hair_treat,
-           coalesce(sum(total) filter (where b = 'beauty_services'), 0) as beauty_services, coalesce(sum(total) filter (where b = 'retail'), 0) as retail,
+           coalesce(sum(total) filter (where b = 'beauty_services'), 0) as beauty_services, coalesce(sum(total) filter (where b = 'retail_hair'), 0) as retail_hair, coalesce(sum(total) filter (where b = 'retail_beauty'), 0) as retail_beauty,
            coalesce(sum(total) filter (where b = 'other'), 0) as other
     from ac group by branch),
   brs as (select branch from cost union select branch from pb union select branch from ab)
@@ -89,7 +97,8 @@ begin
       'visited', (select coalesce(sum(visited), 0) from ab), 'total', (select coalesce(sum(actual), 0) from ab),
       'messaged', (select count(*) from fs),
       'hair_services', (select coalesce(sum(hair_services), 0) from ax), 'hair_treat', (select coalesce(sum(hair_treat), 0) from ax),
-      'beauty_services', (select coalesce(sum(beauty_services), 0) from ax), 'retail', (select coalesce(sum(retail), 0) from ax),
+      'beauty_services', (select coalesce(sum(beauty_services), 0) from ax), 'retail', (select coalesce(sum(retail_hair + retail_beauty), 0) from ax),
+      'retail_hair', (select coalesce(sum(retail_hair), 0) from ax), 'retail_beauty', (select coalesce(sum(retail_beauty), 0) from ax),
       'other', (select coalesce(sum(other), 0) from ax)),
     'by_branch', (select coalesce(jsonb_agg(jsonb_build_object('k', brs.branch, 'sent', coalesce(cost.n, 0), 'cost', coalesce(cost.n, 0) * p_rate,
                    'booked', coalesce(pb.clients, 0), 'appts', coalesce(pb.appts, 0), 'proj', coalesce(pb.proj, 0),
