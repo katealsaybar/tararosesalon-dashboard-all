@@ -57,6 +57,11 @@
       blurb: 'Each stylist against today’s aim.' },
     { key: 'today-actuals', via: 'dashboards', min: 1, ic: 'today', dept: 'Targets', title: 'Actuals vs Targets', href: '/?view=ledgerActuals', rule: 'var(--accent-coral)',
       blurb: 'The month so far, against target.' },
+    // Kate, 22 Oct 2026: the target method, for Level 3 and Level 5 only. The numbers behind both pages are served by target_calc_data() (migrations/target_calc.sql), not by the page code.
+    { key: 'targets-calc', via: 'dashboards', min: 3, only: [3, 5], ic: 'today', dept: 'Targets', title: 'Target Calculator', href: '/targets/', rule: 'var(--accent-coral)',
+      blurb: 'Each stylist’s plan for the month, worked out from her own sales and the season.' },
+    { key: 'targets-how', via: 'dashboards', min: 3, only: [3, 5], ic: 'today', dept: 'Targets', title: 'How a Target Is Made', href: '/targets/how/', rule: 'var(--accent-coral)',
+      blurb: 'Step by step, so you can show any stylist why her number is her number.' },
 
     { key: 'dashboards', dept: 'Numbers', title: 'Business', href: '/?view=dashboard', live: true, rule: 'var(--accent-lavender)',
       blurb: 'Organisation Pulse, daily performance, comparison, over the years and financial totals.' },

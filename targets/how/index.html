@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How a target is made · Tara Rose Salons</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<style>.gating>*:not(#gate){display:none!important}.gate{max-width:560px;margin:90px auto;padding:0 20px;text-align:center;font:16px/1.6 Inter,system-ui,sans-serif}.gate a{color:inherit}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAF8F4;--cream:#F1ECE3;--stone:#E7E2D8;--sand:#E7DFD2;
+  --ink:#2D2E37;--ink-deep:#1C1B18;--ink-soft:#74747B;--hair:rgba(45,46,55,.13);
+  --accent:#99F6E4;--accent-deep:#7DE6D2;--lime:#EEF3C7;--lavender:#C4B5FD;--coral:#FF9B9B;
+  --hydra:#01696F;--pale:#E8F5F5;--bar:#C9BFA9;
+  --r-lg:22px;--r-md:16px;--r-pill:100px;
+  --fd:'Inter',system-ui,-apple-system,sans-serif;--fb:'Inter',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html{background:var(--paper);scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 var(--fb);-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:24px 20px 110px}
+.eyebrow{font-size:11px;font-weight:500;letter-spacing:.4em;text-transform:uppercase;color:var(--ink-soft)}
+h1,h2,h3{font-family:var(--fb);font-weight:600;letter-spacing:-.02em;line-height:1.15;margin:0}
+h1{font-size:clamp(34px,7vw,54px);margin-top:10px;text-align:center}
+.lockup{width:148px;margin:6px auto 0;container-type:inline-size}
+.lockup img{display:block;width:100%;height:auto}
+.lockup .word{display:block;margin-top:max(4.2cqw,4px);font:500 max(7.4cqw,7.5px)/1 var(--fb);letter-spacing:.42em;text-indent:.42em;text-transform:uppercase;text-align:center;color:var(--ink)}
+h2{font-size:clamp(21px,3.6vw,28px)}
+.belief{margin:20px 0 0;background:var(--pale);border-left:4px solid var(--hydra);padding:14px 18px;font-style:italic;font-size:18px;border-radius:0 var(--r-md) var(--r-md) 0}
+.who{margin-top:14px;display:grid;gap:10px;grid-template-columns:1fr 1fr}
+.who div{background:var(--cream);border-radius:var(--r-md);padding:12px 16px;font-size:15px}
+.who b{display:block;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-soft);font-weight:500;margin-bottom:3px}
+@media(max-width:600px){.who{grid-template-columns:1fr}}
+
+/* the whole thing in 3 boxes */
+.overview{margin-top:22px}
+.formula{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;justify-content:center;margin-top:12px}
+.fbox{flex:1 1 150px;max-width:220px;background:var(--cream);border-radius:var(--r-md);padding:14px 12px;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.fbox .n{font:600 24px/1.15 var(--fd)}
+.fbox .l{font-size:13.5px;color:var(--ink-soft);margin-top:5px;line-height:1.4}
+.fbox.out{background:var(--accent)}.fbox.out .l{color:var(--ink)}
+.op{align-self:center;font:500 28px var(--fd);color:var(--ink-soft)}
+
+/* controls */
+.bar{position:sticky;top:0;z-index:5;background:var(--paper);padding:10px 0 8px;margin-top:18px;border-bottom:1px solid var(--hair)}
+.bar .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.prog{display:flex;gap:4px;margin-top:10px}
+.prog button{flex:1;height:10px;border:0;border-radius:6px;background:var(--stone);cursor:pointer;padding:0}
+.prog button.done{background:var(--accent-deep)}
+.prog button.now{background:var(--hydra)}
+.where{font-size:14px;color:var(--ink-soft)}
+.where b{color:var(--ink)}
+.pill{border:1px solid var(--hair);background:var(--cream);color:var(--ink);border-radius:var(--r-pill);padding:7px 15px;font:500 14px var(--fb);cursor:pointer}
+.pill[aria-pressed=true]{background:var(--accent);border-color:var(--accent-deep)}
+.pill:focus-visible,.prog button:focus-visible,.nav button:focus-visible,.opt:focus-visible,summary:focus-visible{outline:3px solid var(--hydra);outline-offset:2px}
+
+/* cards */
+.card{background:var(--cream);border-radius:var(--r-lg);padding:18px 20px 16px;margin-top:14px;scroll-margin-top:90px}
+.tag{display:inline-block;background:var(--hydra);color:#fff;font:500 11px var(--fb);letter-spacing:.2em;text-transform:uppercase;padding:5px 12px;border-radius:var(--r-pill)}
+.card h2{margin-top:8px}
+.three{margin:10px 0 0;display:grid;gap:6px}
+.three p{margin:0;font-size:15.5px;position:relative;padding-left:152px}
+.three b{position:absolute;left:0;top:.3em;width:140px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--hydra);font-weight:600}
+@media(max-width:600px){.three p{padding-left:0}.three b{position:static;display:block;width:auto;margin-bottom:2px}}
+svg{display:block;width:100%;height:auto;margin:10px auto 0;overflow:visible}
+svg text{font-family:var(--fb);fill:var(--ink)}
+.sum{margin-top:10px;padding:10px 14px;background:var(--paper);border-radius:var(--r-md);font-size:15px;line-height:1.6;text-align:center}
+.eq{font-family:var(--fd);font-size:22px}
+.key{display:flex;flex-wrap:wrap;gap:14px;font-size:13.5px;color:var(--ink-soft);margin-top:10px}
+.key i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+details{margin-top:10px;background:var(--paper);border-radius:var(--r-md);padding:0 16px}
+summary{cursor:pointer;padding:9px 0;font-weight:500;font-size:15px;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:'+ ';color:var(--hydra);font-weight:600}
+details[open] summary::before{content:'– '}
+details p{margin:0 0 12px;font-size:15.5px}
+.cal{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:8px}
+.tile{background:var(--paper);border-radius:var(--r-md);padding:8px 10px 8px}
+.tile .m{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+.tile .f{font:600 22px/1.1 var(--fb);margin-top:2px}
+.tile .s{font-size:12px;margin-top:4px;display:inline-block;padding:1px 9px;border-radius:var(--r-pill)}
+.peak{background:var(--coral)}.quiet{background:var(--lavender)}.normal{background:var(--stone)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.chips .pill{padding:4px 12px;font-size:13px}
+.pick{background:var(--pale);border-radius:var(--r-md);padding:6px 14px;margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px}
+.pick .chips{margin:0}
+.pick b{font-size:15px}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;justify-content:space-between;gap:10px;padding:10px max(20px,calc((100vw - 780px)/2));background:rgba(250,248,244,.97);border-top:1px solid var(--hair)}
+.nav button{border:0;border-radius:var(--r-pill);padding:11px 24px;font:600 15px var(--fb);cursor:pointer}
+.nav .back{background:var(--stone);color:var(--ink)}
+.nav .next{background:var(--hydra);color:#fff;margin-left:auto}
+.q{margin-top:10px;background:var(--pale);border-radius:var(--r-md);padding:16px}
+.q p{margin:0 0 10px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{border:1px solid var(--hydra);background:#fff;color:var(--ink);border-radius:var(--r-pill);padding:8px 16px;font:500 15px var(--fb);cursor:pointer}
+.opt.right{background:var(--accent);border-color:var(--accent-deep)}
+.opt.wrong{background:var(--stone);border-color:var(--hair);color:var(--ink-soft)}
+.fb{margin-top:10px;font-size:15.5px}
+.act{background:var(--accent);border-radius:var(--r-md);padding:18px;margin-top:16px}
+.act .eq{display:block;margin-bottom:8px}
+.act dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0}
+.act dt{font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;padding-top:4px}
+.act dd{margin:0}
+.leq{display:flex;flex-wrap:wrap;gap:8px 8px;align-items:flex-start;justify-content:center;margin-top:10px}
+.leq .t{text-align:center;min-width:78px;max-width:150px;padding:6px 9px;background:var(--cream);border-radius:var(--r-md)}
+.leq .t.hi{background:var(--accent)}
+.leq .v{font:600 18px/1.2 var(--fb)}
+.leq .c{font-size:12px;line-height:1.3;color:var(--ink-soft);margin-top:3px}
+.leq .t.hi .c{color:var(--ink)}
+.leq .o{font:500 20px/1 var(--fb);color:var(--ink-soft);padding-top:9px}
+.expick{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-top:8px;font-size:13px}
+.expick .exlab{color:var(--ink-soft);font-weight:500}
+.expick .pill{padding:4px 10px;font-size:13px;margin-right:0}
+#exBr,#exYr{display:inline-flex;flex-wrap:wrap;gap:4px}
+.expick select{font:500 13px var(--fb);color:var(--ink);background:var(--cream);border:1px solid var(--hair);border-radius:var(--r-pill);padding:4px 12px;margin-left:4px;cursor:pointer}
+.srcnote{margin:6px 0 0;font-size:13px;color:var(--ink-soft);text-align:center}
+.linkbtn{border:0;background:none;color:var(--hydra);font:600 13px var(--fb);text-decoration:underline;cursor:pointer;padding:0}
+.tile .cap{font-size:11.5px;color:var(--ink-soft);margin-top:4px;line-height:1.3}
+.tile[style] .cap{color:var(--ink)}
+.why{width:100%;border-collapse:collapse;font-size:14px;text-align:center;margin:6px 0 10px}
+.why th{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:500;padding:4px 6px}
+.why td{padding:6px;border-top:1px solid var(--hair)}
+.why td:first-child{font-weight:600;text-align:left}
+.chipst{display:inline-block;font-size:12px;font-weight:600;padding:1px 10px;border-radius:var(--r-pill);vertical-align:1px;background:var(--stone)}
+.chipst.regular{background:var(--accent)}.chipst.joiner{background:var(--lime)}.chipst.part,.chipst.left{background:var(--lavender)}.chipst.look,.chipst.none{background:var(--coral)}
+#pxSel{font:500 13px var(--fb);color:var(--ink);background:var(--cream);border:1px solid var(--hair);border-radius:var(--r-pill);padding:4px 12px;cursor:pointer;max-width:100%}
+.exbox{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;background:var(--pale);border-radius:var(--r-md);padding:6px 12px;margin-top:8px;font-size:13px}
+.exbox .exlab{color:var(--ink-soft);font-weight:500}
+.exbox .exlab b{color:var(--ink)}
+.exbox .exgrp{display:inline-flex;flex-wrap:wrap;gap:4px}
+.exbox .pill{padding:4px 9px;font-size:13px;background:var(--paper)}
+.exbox[data-kind=A]{flex-wrap:nowrap;white-space:nowrap}
+@media(max-width:760px){.exbox[data-kind=A]{flex-wrap:wrap}}
+.exbox .pill[aria-pressed=true]{background:var(--accent)}
+.exbox select{font:500 13px var(--fb);color:var(--ink);background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-pill);padding:4px 12px;cursor:pointer;max-width:100%}
+.qgrid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px}
+.qgrid .q{margin-top:0;padding:14px 18px}
+.qgrid .q p{font-size:16px;margin:0 0 10px}
+.qgrid .opt{padding:7px 16px;font-size:14.5px}
+.qgrid .fb{font-size:15px;margin-top:8px}
+@media (max-height:820px){
+  .wrap{padding-top:10px}
+  .bar{padding:6px 0 4px;margin-top:8px}
+  .prog{margin-top:6px}.prog button{height:8px}
+  .card{padding:12px 16px 12px;margin-top:8px}
+  .card h2{font-size:21px;margin-top:6px}
+  .tag{font-size:10px;padding:3px 10px}
+  .three{margin-top:6px;gap:3px}.three p{font-size:14.5px;line-height:1.4}
+  .exbox{padding:4px 10px;margin-top:6px}.exbox .pill{padding:3px 8px}
+  .sum{padding:6px 12px;font-size:14px;margin-top:6px;line-height:1.5}
+  .leq{margin-top:6px}.leq .t{padding:4px 8px}.leq .v{font-size:16px}.leq .c{font-size:11.5px}
+  details{margin-top:6px}summary{padding:6px 0;font-size:14px}
+  .tile{padding:6px 8px}.tile .f{font-size:19px}.pick{padding:4px 12px}.cal{margin-top:6px}
+  .key{margin-top:4px}
+  svg{margin-top:6px}
+  .nav{padding-top:6px;padding-bottom:6px}.nav button{padding:8px 20px}
+}
+.calbtn{display:inline-block;margin:0 0 10px;background:var(--hydra);color:#fff;text-decoration:none;font:600 15px var(--fb);padding:11px 24px;border-radius:var(--r-pill)}
+.hide{display:none}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body class="gating">
+<div id="gate" class="gate"><p>Checking your sign-in…</p></div>
+
+<div class="wrap">
+
+<div id="intro">
+<div class="lockup"><img src="data:image/png;base64,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" alt="Tara Rose Salons"><div class="word">Salons</div></div>
+<div class="eyebrow" style="text-align:center;margin-top:14px">Team training</div>
+<h1>How a target is made</h1>
+<p class="belief">A target is not a guess. It is a normal day, adjusted for the kind of month that is coming.</p>
+<div class="who">
+  <div><b>Who this is for</b>Coordinators, Coach Emma, Mette, anyone who has to explain a number to a stylist.</div>
+  <div><b>After 10 minutes you can</b>Show any stylist, step by step, why her number is her number.</div>
+</div>
+
+<div class="overview">
+  <div class="eyebrow">The whole thing in 3 boxes</div>
+  <div class="formula" id="formula0"></div>
+</div>
+
+</div><!-- /intro -->
+
+<div class="bar" id="bar">
+  <div class="row">
+    <div class="where" id="where"></div>
+    <div><button class="pill" id="mOne" aria-pressed="true">One step at a time</button> <button class="pill" id="mAll" aria-pressed="false">Show everything</button></div>
+  </div>
+  <div class="prog" id="prog" role="tablist" aria-label="Steps"></div>
+  
+</div>
+
+<!-- 0 -->
+<section class="card" data-title="Why we need it">
+  <span class="tag">Start here</span>
+  <h2>Why do we need a season number?</h2>
+  <div class="three">
+    <p><b>What it is</b>Some months are busy. Some are slow.</p>
+    <p><b>Why it matters</b>Plan a busy month with slow-month numbers and the target comes out too low.</p>
+  </div>
+  <div class="sum">An ice cream shop sells <b>100 cones a day in winter</b> and <b>200 a day in summer</b>. The owner plans summer using the winter average, so the plan says 100. Summer comes and the shop sells 200. <b>The target was too easy.</b></div>
+  <svg id="s0" viewBox="0 0 760 230" role="img" aria-label="Ice cream shop: winter 100 cones a day, summer 200, plan made from winter 100"></svg>
+  <div class="three" style="margin-top:14px">
+    <p><b>In our salon</b>December is busy. July is slow. The season number is the fix: it says how busy each month usually is.</p>
+  </div>
+</section>
+
+<!-- A1 -->
+<section class="card" data-title="Sales on a working day">
+  <span class="tag">Piece 1 · The season number · Step 1 of 5</span>
+  <h2>Sales on a working day, month by month</h2>
+  <div class="exbox" data-kind="A"></div>
+  <div class="three">
+    <p><b>What you see</b>How much <span class="xb"></span> sold on a day it was open, for 13 months. We test <span class="xmy"></span>.</p>
+    <p><b>Why it matters</b>Dividing by working days is fair. A 28-day month and a 31-day month can now be compared.</p>
+    <p><b>Why December?</b>It is our busiest month, so the effect is easiest to see. Pick any branch and year at the top.</p>
+  </div>
+  <svg id="a1" viewBox="0 0 760 252" role="img" aria-label="Sales per working day for the 13 months around the month we test"></svg>
+  <div class="key"><span><i style="background:var(--coral)"></i>The month we are testing</span><span><i style="background:var(--bar)"></i>Other months</span></div>
+  <details><summary>Deep dive: what counts as sales</summary><p>Services, treatments and courses, ex VAT, on days the branch traded. Treatments are already inside the Phorest "Services" and "Courses" lines, so nothing is missed. Retail is not in this number. Closed days are left out.</p></details>
+  <details><summary>Deep dive: why the latest December is 2025</summary><p>To find the normal level around a month we need 6 months of sales after it as well as 6 before. December 2026 has not happened yet, so December 2025 is the latest we can test. The method is the same for every month. The live plan in Piece 2 uses Aug, Sep and Oct 2026.</p></details>
+</section>
+
+<!-- A2 -->
+<section class="card" data-title="The normal level">
+  <span class="tag">Piece 1 · The season number · Step 2 of 5</span>
+  <h2>Find the normal level</h2>
+  <div class="exbox" data-kind="A"></div>
+  <div class="three">
+    <p><b>What you see</b>The dashed line: the average of the 12 months around <span class="xm"></span>.</p>
+    <p><b>Why it matters</b>It is what we divide <span class="xm"></span> by. <span class="xe"></span> counts half at each end (see deep dive).</p>
+  </div>
+  <svg id="a2" viewBox="0 0 760 252" role="img" aria-label="The same bars with the normal level drawn as a line"></svg>
+  <div class="sum" id="a2sum"></div>
+  <details><summary>Deep dive: why <span class="xe"></span> counts half</summary><p>We want every month of the year to count exactly once. The 13 bars have <span class="xe"></span> twice, one at each end. If both counted in full, <span class="xe"></span> would be counted twice and pull the normal level towards it. So each end counts half: 0.5 + 0.5 = one <span class="xe"></span>. That is also why we divide by 12, not 13.</p></details>
+</section>
+
+<!-- A3 -->
+<section class="card" data-title="Divide">
+  <span class="tag">Piece 1 · The season number · Step 3 of 5</span>
+  <h2>Divide <span class="xm"></span> by the normal level</h2>
+  <div class="exbox" data-kind="A"></div>
+  <div class="three">
+    <p><b>What you see</b><span class="xm"></span> next to the normal level, and one answer.</p>
+    <p><b>Why it matters</b>The answer says how many times bigger than normal <span class="xm"></span> was.</p>
+  </div>
+  <svg id="a3" viewBox="0 0 760 210" role="img" aria-label="The test month against the normal level"></svg>
+  <div class="sum" id="a3sum"></div>
+</section>
+
+<!-- A4 -->
+<section class="card" data-title="The middle answer">
+  <span class="tag">Piece 1 · The season number · Step 4 of 5</span>
+  <h2>Pick the middle answer</h2>
+  <div class="exbox" data-kind="A"></div>
+  <div class="three">
+    <p><b>What you see</b><span id="xn"></span> <span class="xm"></span> answers, smallest to biggest. Each dot is one branch in one year: colour = branch. The ringed dot is your example.</p>
+    <p><b>Why it matters</b>The middle one is not moved by one strange <span class="xm"></span>.</p>
+  </div>
+  <svg id="a4" viewBox="0 0 760 226" role="img" aria-label="The answers for this calendar month in order, with the middle one marked"></svg>
+  <div class="sum" id="a4sum"></div>
+  <details><summary>Deep dive: which years and branches</summary><p>Saadiyat and Khalifa City A from 2022, Motor City from 2023, Al Quoz from 2024, up to March 2026. A branch only counts once it has trading history.</p></details>
+</section>
+
+<!-- A5 -->
+<section class="card" data-title="The season calendar">
+  <span class="tag">Piece 1 · The season number · Step 5 of 5</span>
+  <h2>The season calendar: all 12 months</h2>
+  <div class="three">
+    <p><b>What you see</b>One dot per month. The further right the dot, the busier the month.</p>
+    <p><b>Why it matters</b>The number next to each dot is the one we use. Dashed line = 1.00, a normal month.</p>
+    <p><b>Which year?</b>Built from our sales in 2022 to March 2026. The same 12 numbers are used for 2026.</p>
+  </div>
+  <svg id="a5" viewBox="0 0 760 360" role="img" aria-label="For each month, the lowest, middle and highest answer"></svg>
+  <details><summary>Deep dive: why they add up to 11.98, not 12</summary><p>Each month is measured on its own and rounded. We only ever compare two months, so that small gap changes nothing.</p></details>
+</section>
+
+<!-- B1 -->
+<section class="card" data-title="Her sales per day">
+  <span class="tag">Piece 2 · One person's plan · Step 1 of 5</span>
+  <h2>What does she sell on a day she comes in?</h2>
+  <div class="exbox" data-kind="B"></div>
+  <div class="three">
+    <p><b>What you see</b><span class="pn"></span> <span class="chipst" id="pStatus"></span><br>For each of her last 3 months: sales ÷ days she came in = her average sale on a day she comes in.</p>
+    <p><b>Why it matters</b>Leave and days off are never counted against her. Only days she worked.</p>
+  </div>
+  <svg id="b1" viewBox="0 0 760 270" role="img" aria-label="April's sales per day worked in August, September and October"></svg>
+  <details><summary>Deep dive: which months count</summary><p>Her sales here include treatments and courses, but not retail. A month counts if she worked 10 days or more. October counts at 6 days or more, because it is not finished. Part-timers count any month with days.</p></details>
+</section>
+
+<!-- B2 -->
+<section class="card" data-title="Her normal day">
+  <span class="tag">Piece 2 · One person's plan · Step 2 of 5</span>
+  <h2>Her normal day</h2>
+  <div class="exbox" data-kind="B"></div>
+  <div class="three">
+    <p><b>What you see</b>The average of her three "a day" figures.</p>
+    <p><b>Why it matters</b>This is the real her, in her own sales. No guessing.</p>
+  </div>
+  <div class="sum" id="b2sum"></div>
+</section>
+
+<!-- B3 -->
+<section class="card" data-title="Busy or quiet next month">
+  <span class="tag">Piece 2 · One person's plan · Step 3 of 5</span>
+  <h2>Is the new month busier or slower?</h2>
+  <div class="exbox" data-kind="B"></div>
+  <div class="three">
+    <p><b>What you see</b>The season numbers of her 3 months and of the month we plan, taken from the calendar. <button class="linkbtn" id="toCal">See the calendar</button></p>
+    <p><b>Why it matters</b>Quiet months behind her and a busy one ahead: her day goes up. The other way round: it goes down.</p>
+  </div>
+  <div class="pick"><b>Your choice: which month of 2026 are we planning?</b><div class="chips" id="monthPick" role="group" aria-label="Month to plan"></div></div>
+  <div class="cal" id="b3tiles" style="grid-template-columns:repeat(5,1fr)"></div>
+  <details><summary>Deep dive: where do these season numbers come from?</summary><p>Each one is worked out exactly like December in Piece 1: for every branch and year, divide that month by its normal level, then take the middle answer. Here are the real answers behind each number.</p><div id="b3why"></div></details>
+  <svg id="b3" viewBox="0 0 760 160" role="img" aria-label="Her normal day times the adjustment gives her adjusted day"></svg>
+  <div class="sum" id="b3sum"></div>
+</section>
+
+<!-- B4 -->
+<section class="card" data-title="Days and plan">
+  <span class="tag">Piece 2 · One person's plan · Step 4 of 5</span>
+  <h2>Her days, and her plan</h2>
+  <div class="exbox" data-kind="B"></div>
+  <div class="three">
+    <p><b>What you see</b>Her days, then her day times her days.</p>
+    <p><b>Why it matters</b>This is the number we write on her sheet.</p>
+  </div>
+  <div class="sum" id="b4sum"></div>
+  <details><summary>Deep dive: how the days are chosen</summary><p>The average days she worked in her full months (August and September). October is left out of this count because it is not finished. The most we plan is 26 days. Coach Emma can change a person's days.</p></details>
+  <details><summary>Deep dive: the bottom-up check</summary><p>The steps above are top-down: they only know the past. They cannot see who is on the floor this month. So before a plan is final, the branch manager and Mette ask one more question: given the real team (leave, a new starter with a guest book, a part-time rota), is this number too low or too high? If yes, a percentage is added or taken off that person's plan. Example: a plan that grows 7.3% on her normal day can become 17% for a stylist with a new guest book to fill. The adjustment is written next to the plan so everyone can see it.</p></details>
+</section>
+
+<!-- B5 -->
+<section class="card" data-title="Split the plan">
+  <span class="tag">Piece 2 · One person's plan · Step 5 of 5</span>
+  <h2>Split the plan, and the other targets</h2>
+  <div class="exbox" data-kind="B"></div>
+  <div class="three">
+    <p><b>What you see</b>The plan cut into service and treatment. Retail is worked out from the plan but sits on top of it, separate.</p>
+    <p><b>Why it matters</b>She sees what to sell, not just one big number.</p>
+  </div>
+  <svg id="b5" viewBox="0 0 760 145" role="img" aria-label="The plan split into service and treatment, with retail on top"></svg>
+  <div class="sum" id="b5sum"></div>
+  <div class="sum" id="b5oth"></div>
+</section>
+
+<!-- Together -->
+<section class="card" data-title="Put it together">
+  <span class="tag">Together</span>
+  <h2>Put the two pieces together</h2>
+  <div class="exbox" data-kind="B"></div>
+  <div class="three">
+    <p><b>What you see</b>The three boxes from the top, now with real numbers.</p>
+    <p><b>Why it matters</b>Her normal day comes from <i>her</i> sales. The season number comes from <i>the branches' history</i>. One says who she is. The other says what kind of month is coming.</p>
+  </div>
+  <div class="formula" id="formula"></div>
+  <details><summary>Deep dive: who is treated differently</summary><p>Joiners have no history, so they get 70% of what the regulars in the same job plan for, or their own pace if that is lower. Leavers use the months they have (at least two). Anyone with fewer than two counted months is checked by Coach Emma first.</p></details>
+</section>
+
+<!-- Quiz -->
+<section class="card" data-title="Your turn 1 of 2">
+  <span class="tag">Your turn</span>
+  <h2>Try it before you explain it (1 of 2)</h2>
+  <div class="three"><p><b>What to do</b>Answer three quick questions. You will get the answer straight away.</p></div>
+  <div class="qgrid" id="quizBox1"></div>
+</section>
+
+<section class="card" data-title="Your turn 2 of 2">
+  <span class="tag">Your turn</span>
+  <h2>Try it before you explain it (2 of 2)</h2>
+  <div class="three"><p><b>What to do</b>Three more. Same idea: answer, then read the reason. You will get the answer straight away.</p></div>
+  <div class="qgrid" id="quizBox2"></div>
+</section>
+
+<!-- Action -->
+<section class="card" data-title="Your one action">
+  <span class="tag">Your one action</span>
+  <h2>One action. One owner. One deadline.</h2>
+  <div class="act">
+    <span class="eq"><a href="/targets/" style="color:var(--ink)">Open the calculator</a>, tap "How" on one of your stylists, and check it matches these steps.</span>
+    <a class="calbtn" href="/targets/">Open the target calculator</a>
+    <dl><dt>Owner</dt><dd>Each coordinator</dd><dt>Deadline</dt><dd>Before the November targets are signed off</dd></dl>
+  </div>
+  <p style="font-size:13.5px;color:var(--ink-soft);margin:14px 0 0">Sources: Saadiyat sales per working day from the ledger totals, re-run 22 Oct 2026. April's figures from Phorest staff daily, 1 Aug to 20 Oct 2026. Season numbers as used in the calculator.</p>
+</section>
+
+<div class="nav" id="nav"><button class="back" id="btnBack">Back</button><button class="next" id="btnNext">Next step</button></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+<script src="/auth.js?v=3823f956"></script>
+<script>
+(async function(){
+/* Kate, 22 Oct 2026: the numbers on this page (each stylist's sales and days, the branch history) are not in this file.
+   target_calc_data() hands them to Level 3 and Level 5 only (migrations/target_calc.sql); anyone else sees the message below. */
+var DATA=null;
+try{
+  await TRSAuth.guard('/');
+  var r=await TRSAuth.client().rpc('target_calc_data');
+  DATA=(!r.error&&r.data&&!r.data.denied)?r.data:null;
+}catch(e){DATA=null}
+if(!DATA){
+  document.getElementById('gate').innerHTML='<p><b>This page is for Level 3 (Executives &amp; Marketing) only.</b></p><p><a href="/hub/">Back to Team Home</a></p>';
+  return;
+}
+document.getElementById('gate').hidden=true;document.body.classList.remove('gating');
+const NS='http://www.w3.org/2000/svg';
+const fmt=n=>Math.round(n).toLocaleString('en-GB');
+const r100=n=>Math.round(n/100)*100;
+const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const FAC=[0.92,1.01,1.01,1.02,0.97,1.10,0.87,0.84,0.92,0.98,0.98,1.36];
+const rv=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const C={ink:rv('--ink'),soft:rv('--ink-soft'),hair:rv('--hair'),stone:rv('--stone'),sand:rv('--sand'),accent:rv('--accent'),coral:rv('--coral'),lav:rv('--lavender'),hydra:rv('--hydra'),bar:rv('--bar')};
+
+function el(tag,attrs,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;return e}
+function clear(id){const s=document.getElementById(id);while(s.firstChild)s.removeChild(s.firstChild);return s}
+function label(svg,x,y,t,o={}){const e=el('text',{x,y,'text-anchor':o.anchor||'middle','font-size':Math.round((o.size||13)*1.22*10)/10,'font-weight':o.weight||400,fill:o.fill||C.ink},t);if(o.halo)e.setAttribute('style','paint-order:stroke;stroke:#F1ECE3;stroke-width:5px;stroke-linejoin:round');svg.appendChild(e)}
+function leq(items){return '<div class="leq">'+items.map(it=>it[0]==='o'?'<div class="o">'+it[1]+'</div>':'<div class="t'+(it[3]?' hi':'')+'"><div class="v">'+it[1]+'</div><div class="c">'+it[2]+'</div></div>').join('')+'</div>'}
+const fmt1=n=>Number.isInteger(n)?fmt(n):n.toLocaleString('en-GB',{minimumFractionDigits:1,maximumFractionDigits:1});
+function fbox(n,l,out){return '<div class="fbox'+(out?' out':'')+'"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'}
+function tile(m,f,hi,cap){const c=f>=1.05?'peak':f<=0.95?'quiet':'normal',t=f>=1.05?'Peak':f<=0.95?'Quiet':'Normal';return '<div class="tile"'+(hi?' style="background:var(--accent)"':'')+'><div class="m">'+m+'</div><div class="f">'+f.toFixed(2)+'</div><span class="s '+c+'">'+t+'</span>'+(cap?'<div class="cap">'+cap+'</div>':'')+'</div>'}
+
+/* ---------- story ---------- */
+function buildStory(){
+  const s=clear('s0'),base=195,k=0.75;
+  [['Winter',100,C.stone],['Summer',200,C.coral]].forEach((b,i)=>{
+    const x=140+i*230,h=b[1]*k;
+    s.appendChild(el('rect',{x,y:base-h,width:130,height:h,rx:6,fill:b[2]}));
+    label(s,x+65,base-h-8,b[1]+' cones a day',{size:14,weight:600});
+    label(s,x+65,base+22,b[0],{size:13,fill:C.soft});
+  });
+  s.appendChild(el('line',{x1:60,x2:700,y1:base-100*k,y2:base-100*k,stroke:C.ink,'stroke-width':2,'stroke-dasharray':'7 5'}));
+  s.appendChild(el('rect',{x:520,y:base-100*k-34,width:190,height:26,rx:13,fill:C.accent}));
+  label(s,615,base-100*k-16,'Plan made from winter',{size:13,weight:600});
+  label(s,60,18,'Cones sold on a normal day',{anchor:'start',size:12,fill:C.soft});
+}
+
+/* ---------- Part A ---------- */
+const BR={KCA:['Khalifa City A','#FF9B9B'],SAA:['Saadiyat','#C4B5FD'],MC:['Motor City','#99F6E4'],AQ:['Al Quoz','#EEF3C7']};
+const SER_RAW=DATA.series;
+const SER={};Object.keys(SER_RAW).forEach(b=>{SER[b]={};SER_RAW[b].split(',').forEach(p=>{const q=p.split(':');SER[b][q[0]]=+q[1]})});
+SER.ALL={};Object.keys(SER.SAA).forEach(ym=>{let t=0;['SAA','KCA','MC','AQ'].forEach(b=>{if(t!==null){if(SER[b][ym]==null)t=null;else t+=SER[b][ym]}});if(t!==null)SER.ALL[ym]=t});
+const FROM={SAA:'2022-01',KCA:'2022-01',MC:'2023-01',AQ:'2024-01',ALL:'2024-01'},TO='2026-03';
+const bName=b=>b==='ALL'?'All branches together':BR[b][0];
+const MFULL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const ymAdd=(ym,n)=>{const q=ym.split('-').map(Number),t=q[0]*12+(q[1]-1)+n;return Math.floor(t/12)+'-'+String(t%12+1).padStart(2,'0')};
+const ymMon=ym=>+ym.slice(5)-1;
+function win13(b,ym){const o=[];for(let k=-6;k<=6;k++){const key=ymAdd(ym,k),v=SER[b][key];if(v==null)return null;o.push([key,v])}return o}
+function calc(b,ym){const w=win13(b,ym);if(!w)return null;const mid=w.slice(1,12).reduce((a,x)=>a+x[1],0),sum=0.5*w[0][1]+mid+0.5*w[12][1];return {w,mid,sum,trend:sum/12,x:w[6][1],ratio:w[6][1]/(sum/12)}}
+function eligible(b){return Object.keys(SER[b]).filter(ym=>ym>=FROM[b]&&ym<=TO&&win13(b,ym)).sort()}
+const EX={b:'SAA',ym:'2025-12'};
+function ymFull(ym){return MFULL[ymMon(ym)]+' '+ym.slice(0,4)}
+
+function barChart(id,opts){
+  const d=calc(EX.b,EX.ym),w=d.w,s=clear(id),W=760,H=252,L=14,R=14,T=56,B=44,n=w.length,gw=(W-L-R)/n,bw=gw*0.64;
+  const top=Math.max.apply(null,w.map(x=>x[1])),stepv=top>12000?5000:2000,max=Math.ceil(top*1.1/stepv)*stepv;
+  const y=v=>T+(H-T-B)*(1-v/max),later=[];
+  s.appendChild(el('line',{x1:L,x2:W-R,y1:y(0),y2:y(0),stroke:C.hair}));
+  w.forEach((m,i)=>{
+    const x=L+i*gw+(gw-bw)/2,test=i===6,half=i===0||i===12,mo=ymMon(m[0]);
+    s.appendChild(el('rect',{x,y:y(m[1]),width:bw,height:y(0)-y(m[1]),rx:5,fill:test?C.coral:C.bar}));
+    if(opts.halves&&half){
+      s.appendChild(el('rect',{x,y:y(m[1]),width:bw,height:(y(0)-y(m[1]))/2,rx:5,fill:C.lav,opacity:.9}));
+      later.push(()=>label(s,x+bw/2,y(m[1])-28,'counts half',{size:11,fill:C.soft,halo:true}));
+    }
+    if(!opts.sparse||test||half)later.push(()=>label(s,x+bw/2,y(m[1])-7,(m[1]/1000).toFixed(1)+'k',{size:12,weight:test?600:400,halo:true}));
+    label(s,x+bw/2,H-B+20,MN[mo]+((i===0||i===12||mo===0)?' '+m[0].slice(2,4):''),{size:12,weight:test?600:400,fill:test?C.ink:C.soft});
+  });
+  label(s,L,16,'AED sold on a working day',{anchor:'start',size:12,fill:C.soft});
+  if(opts.line){
+    s.appendChild(el('line',{x1:L,x2:W-R,y1:y(d.trend),y2:y(d.trend),stroke:C.ink,'stroke-width':2,'stroke-dasharray':'7 5'}));
+    s.appendChild(el('line',{x1:W-R-250,x2:W-R-220,y1:12,y2:12,stroke:C.ink,'stroke-width':2,'stroke-dasharray':'7 5'}));
+    label(s,W-R-212,16,'Normal level: AED '+fmt(d.trend),{anchor:'start',size:13,weight:600});
+  }
+  later.forEach(f=>f());
+}
+
+function fillNames(){
+  const mo=ymMon(EX.ym);
+  document.querySelectorAll('.xb').forEach(e=>e.textContent=EX.b==='ALL'?'all four branches together':BR[EX.b][0]);
+  document.querySelectorAll('.xm').forEach(e=>e.textContent=MFULL[mo]);
+  document.querySelectorAll('.xmy').forEach(e=>e.textContent=ymFull(EX.ym));
+  document.querySelectorAll('.xe').forEach(e=>e.textContent=MFULL[(mo+6)%12]);
+}
+
+function buildEx(){
+  fillNames();
+  const d=calc(EX.b,EX.ym),w=d.w,mo=ymMon(EX.ym),mName=MFULL[mo];
+  barChart('a1',{});
+  barChart('a2',{halves:true,line:true,sparse:true});
+  const e0=MN[ymMon(w[0][0])]+' '+w[0][0].slice(0,4),e1=MN[ymMon(w[12][0])]+' '+w[12][0].slice(0,4);
+  document.getElementById('a2sum').innerHTML=leq([
+    ['t',fmt1(0.5*w[0][1]),'half of '+e0+' (0.5 × '+fmt(w[0][1])+')'],['o','+'],
+    ['t',fmt(d.mid),'the 11 months in between, added together'],['o','+'],
+    ['t',fmt1(0.5*w[12][1]),'half of '+e1+' (0.5 × '+fmt(w[12][1])+')'],['o','='],
+    ['t',fmt(d.sum),'added up: 12 months\u2019 worth of "a day" figures']])+
+    leq([['t',fmt(d.sum),'the 12 months added up'],['o','÷'],['t','12','months'],['o','='],['t',fmt(d.trend),'the normal level, AED a day',1]]);
+
+  let s=clear('a3'),base=170,k=120/Math.max(d.x,d.trend);
+  [[mName,d.x,C.coral],['Normal level',d.trend,C.bar]].forEach((b,i)=>{
+    const x=110+i*210,h=b[1]*k;
+    s.appendChild(el('rect',{x,y:base-h,width:120,height:h,rx:6,fill:b[2]}));
+    label(s,x+60,base-h-8,'AED '+fmt(b[1]),{size:14,weight:600});
+    label(s,x+60,base+22,b[0],{size:13,fill:C.soft});
+  });
+  label(s,275,105,'÷',{size:34,fill:C.soft});
+  label(s,480,105,'=',{size:34,fill:C.soft});
+  s.appendChild(el('rect',{x:520,y:62,width:200,height:76,rx:16,fill:C.accent}));
+  label(s,620,100+Math.round(38*1.22*0.35),d.ratio.toFixed(3),{size:38,weight:600});
+  const pc=Math.round((d.ratio-1)*100);
+  document.getElementById('a3sum').innerHTML=leq([['t',fmt(d.x),mName+', AED a day (step 2)'],['o','÷'],['t',fmt(d.trend),'the normal level, AED a day (step 3)'],['o','='],['t',d.ratio.toFixed(3),mName+'\u2019s number: how many times bigger than normal',1]])+'<p style="margin:12px 0 0">'+ymFull(EX.ym)+(EX.b==='ALL'?' for ':' at ')+bName(EX.b)+' was <b>'+Math.abs(pc)+'% '+(pc>=0?'busier':'slower')+'</b> than a normal day that year.</p>';
+
+  /* step 4: every branch and year for this calendar month */
+  const pool=[];
+  Object.keys(BR).forEach(b=>eligible(b).forEach(ym=>{if(ymMon(ym)===mo)pool.push({b,ym,ratio:calc(b,ym).ratio})}));
+  pool.sort((p,q)=>p.ratio-q.ratio);
+  const n=pool.length,odd=n%2===1,half=Math.floor(n/2);
+  const medVal=odd?pool[half].ratio:(pool[half-1].ratio+pool[half].ratio)/2;
+  document.getElementById('xn').textContent=n;
+  s=clear('a4');
+  const L=30,Rr=730,sw=(Rr-L)/n,cx=i=>L+sw*i+sw/2,cy=132;
+  let kx=34;
+  Object.keys(BR).forEach(k2=>{
+    s.appendChild(el('circle',{cx:kx,cy:14,r:8,fill:BR[k2][1],stroke:C.soft,'stroke-width':1}));
+    label(s,kx+14,19,BR[k2][0],{anchor:'start',size:12,weight:600});
+    kx+=BR[k2][0].length*9.2+58;
+  });
+  s.appendChild(el('line',{x1:cx(0),x2:cx(n-1),y1:cy,y2:cy,stroke:C.hair,'stroke-width':2}));
+  pool.forEach((p,i)=>{
+    const me=EX.b==='ALL'?p.ym===EX.ym:(p.b===EX.b&&p.ym===EX.ym);
+    s.appendChild(el('circle',{cx:cx(i),cy,r:me?17:13,fill:BR[p.b][1],stroke:me?C.ink:C.soft,'stroke-width':me?3:1}));
+    label(s,cx(i),cy+5,String(i+1),{size:me?14:12,weight:me?600:400});
+    label(s,cx(i),cy-26,p.ym.slice(0,4),{size:11,fill:me?C.ink:C.soft,weight:me?600:400});
+    label(s,cx(i),cy+40,p.ratio.toFixed(3),{size:11,fill:me?C.ink:C.soft,weight:me?600:400});
+  });
+  const mx=odd?cx(half):(cx(half-1)+cx(half))/2;
+  label(s,mx,64,odd?'The middle one: number '+(half+1)+' of '+n:'The middle two: numbers '+half+' and '+(half+1)+', averaged',{size:13,weight:600});
+  s.appendChild(el('line',{x1:mx,x2:mx,y1:74,y2:cy-46,stroke:C.ink,'stroke-width':1.5}));
+  const lowEnd=half-1,upStart=odd?half+1:half;
+  [[0,lowEnd,half+' answers smaller'],[upStart,n-1,(n-upStart)+' answers bigger']].forEach(g=>{
+    s.appendChild(el('line',{x1:cx(g[0])-10,x2:cx(g[1])+10,y1:cy+60,y2:cy+60,stroke:C.soft,'stroke-width':1.5}));
+    label(s,(cx(g[0])+cx(g[1]))/2,cy+80,g[2],{size:12,fill:C.soft});
+  });
+  const use=FAC[mo];
+  document.getElementById('a4sum').innerHTML='The middle answer is <span class="eq"><b>'+medVal.toFixed(3)+'</b></span>, so the '+mName+' number is <span class="eq"><b>'+medVal.toFixed(2)+'</b></span>.'+(Math.abs(medVal-use)>0.0051?' The calendar uses '+use.toFixed(2)+'.':'')+'<br>Colour = the branch. The small number above each dot = the year. '+(EX.b==='ALL'?'The ringed dots are all four branches in '+EX.ym.slice(0,4)+', your example.':'The ringed dot is '+BR[EX.b][0]+' in '+EX.ym.slice(0,4)+', your example.');
+}
+
+function seasonInfo(mo){
+  const r=[];Object.keys(BR).forEach(b=>eligible(b).forEach(ym=>{if(ymMon(ym)===mo)r.push(calc(b,ym).ratio)}));
+  r.sort((a,c)=>a-c);const n=r.length,h=Math.floor(n/2);
+  return {n,lo:r[0],hi:r[n-1],mid:n%2?r[h]:(r[h-1]+r[h])/2};
+}
+function exBoxHtml(kind){
+  if(kind==='A'){
+    return '<span class="exlab"><b>Example</b></span><span class="exgrp" role="group" aria-label="Branch">'+['ALL'].concat(Object.keys(BR)).map(b=>'<button class="pill" data-b="'+b+'" aria-pressed="'+(b===EX.b)+'">'+(b==='ALL'?'All':BR[b][0])+'</button>').join('')+'</span>'+
+      '<span class="exlab">Measure from</span><select class="yrsel" aria-label="Measure from">'+decs(EX.b).map(ym=>'<option value="'+ym+'"'+(ym===EX.ym?' selected':'')+'>December '+ym.slice(0,4)+'</option>').join('')+'</select>';
+  }
+  const order=['SAA','KCA','MC','AQ'];
+  return '<span class="exlab"><b>Example</b></span><select class="pxsel" aria-label="Staff member" title="'+BADGE[buildAll()[PERSON].status]+'">'+order.map(b=>'<optgroup label="'+BR[b][0]+'">'+PEOPLE.map((q,i)=>[q,i]).filter(z=>z[0][0]===b).sort((x,z)=>x[0][1].localeCompare(z[0][1])).map(z=>'<option value="'+z[1]+'"'+(z[1]===PERSON?' selected':'')+'>'+z[0][1]+', '+z[0][3]+', '+BR[b][0]+'</option>').join('')+'</optgroup>').join('')+'</select>';
+}
+function decs(b){return eligible(b).filter(ym=>ym.slice(5)==='12')}
+function renderBoxes(){document.querySelectorAll('.exbox').forEach(bx=>{bx.innerHTML=exBoxHtml(bx.dataset.kind)})}
+function refreshSel(){renderBoxes()}
+function buildPickEx(){
+  document.addEventListener('click',e=>{
+    const x=e.target.closest('.exbox button');if(!x)return;
+    if(x.dataset.b){
+      EX.b=x.dataset.b;const lst=decs(EX.b);
+      if(!lst.includes(EX.ym)){const yr=+EX.ym.slice(0,4);EX.ym=lst.slice().sort((p,q)=>Math.abs(+p.slice(0,4)-yr)-Math.abs(+q.slice(0,4)-yr))[0];}
+    }
+    renderBoxes();buildEx();fitStep();
+  });
+  document.addEventListener('change',e=>{
+    if(e.target.classList.contains('yrsel')){EX.ym=e.target.value;renderBoxes();buildEx();fitStep();return}
+    if(!e.target.classList.contains('pxsel'))return;
+    PERSON=+e.target.value;buildB();renderBoxes();fitStep();
+  });
+  renderBoxes();
+}
+function buildPxPick(){}
+
+function buildA(){
+  buildEx();
+  let s;
+  s=clear('a5');
+  const rl=0.75,rh=1.45,T=30,rowH=20,Lx=70,Rx=690,xx=v=>Lx+(Rx-Lx)*(v-rl)/(rh-rl),bottom=T+rowH*12;
+  [0.8,0.9,1.1,1.2,1.3,1.4].forEach(v=>{s.appendChild(el('line',{x1:xx(v),x2:xx(v),y1:T-4,y2:bottom,stroke:C.hair}));label(s,xx(v),bottom+20,v.toFixed(1),{size:11,fill:C.soft})});
+  s.appendChild(el('line',{x1:xx(1),x2:xx(1),y1:T-4,y2:bottom,stroke:C.ink,'stroke-dasharray':'5 4','stroke-width':1.5}));
+  label(s,xx(1),bottom+20,'1.0',{size:11,weight:600});
+  label(s,xx(1),16,'1.00 = a normal month',{size:12,weight:600});
+  [['Quiet: 0.95 or less',C.lav,190],['Normal',C.stone,375],['Peak: 1.05 or more',C.coral,465]].forEach(k=>{const lx=k[2];
+    s.appendChild(el('circle',{cx:lx,cy:bottom+70,r:7,fill:k[1],stroke:C.ink,'stroke-width':1.2}));
+    label(s,lx+14,bottom+75,k[0],{anchor:'start',size:11});});
+  FAC.forEach((use,i)=>{
+    const cy=T+i*rowH+rowH/2,tone=use>=1.05?C.coral:use<=0.95?C.lav:C.stone;
+    label(s,Lx-14,cy+5,MN[i],{anchor:'end',size:13,weight:600});
+    s.appendChild(el('circle',{cx:xx(use),cy,r:8,fill:tone,stroke:C.ink,'stroke-width':1.5}));
+    label(s,xx(use)+16,cy+5,use.toFixed(2),{anchor:'start',size:13,weight:600});
+  });
+  label(s,Lx,bottom+44,'← slower than normal',{anchor:'start',size:12,fill:C.soft});
+  label(s,Rx,bottom+44,'busier than normal →',{anchor:'end',size:12,fill:C.soft});
+}
+
+/* ---------- Part B ---------- */
+const PEOPLE=DATA.people;
+const FULL_MIN=10,OCT_MIN=6;
+const AB=[[220,220],[220,400],[500,575],[600,650],[695,795],[700,800]],BEAUTY_AB=200;
+const LVN=['Blow-Dry Specialist','Junior Stylist','Stylist','Senior Stylist','Style Director','Artistic Director'];
+const LVB=[[20,30],[30,30],[30,55],[55,60],[60,70],[70,80]];
+const B={treat:20,retail:12,join:70};
+const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+const median=a=>{const q=[...a].sort((x,y)=>x-y),m=q.length>>1;return q.length%2?q[m]:(q[m-1]+q[m])/2};
+function lvIndex(des){const d=des.toLowerCase();if(/blow|bdry|^bd /.test(d))return 0;if(/junior/.test(d))return 1;if(/senior/.test(d))return 3;if(/style director/.test(d))return 4;if(/artistic/.test(d))return 5;return 2}
+let target=11,PERSON=0;
+const BADGE={regular:'Regular',joiner:'Joiner',left:'Short month left out',part:'Part-timer',look:'Needs a look',none:'No days found'};
+const BADGE_WHY={regular:'Worked enough days in all 3 months.',joiner:'Started recently: no history yet, so the plan follows her peers.',left:'One month had too few days, so it is left out.',part:'Part-timer: any month with days counts.',look:'Fewer than two months with enough days: Coach Emma checks first.',none:'No days found in the last 3 months.'};
+
+function buildAll(){
+  const fT=FAC[target-1];
+  const rows=PEOPLE.map((p,i)=>{
+    const months=[8,9,10].map((m,k)=>({m,d:p[4+k][0],r:p[4+k][1]}));
+    const part=/part-time/i.test(p[3]);
+    const need=m=>part?1:(m===10?OCT_MIN:FULL_MIN);
+    const qual=months.filter(x=>x.d>=need(x.m)),any=months.filter(x=>x.d>0);
+    let status,used;
+    if(!any.length){status='none';used=[];}
+    else if(part){status='part';used=any;}
+    else if(qual.length===3){status='regular';used=qual;}
+    else if(months[0].d===0&&qual.length>=1&&qual.length===any.length){status='joiner';used=qual;}
+    else if(qual.length>=2){status='left';used=qual;}
+    else{status='look';used=qual.length?qual:any;}
+    let avgDay=null,ratio=null,adj=null,planned=null,plan=null;
+    if(used.length){
+      avgDay=mean(used.map(x=>x.r/x.d));ratio=fT/mean(used.map(x=>FAC[x.m-1]));adj=avgDay*ratio;
+      const basis=(status==='part'||status==='look')?any:used,full=basis.filter(x=>x.m!==10);
+      planned=full.length?Math.round(mean(full.map(x=>x.d))):Math.round(used[0].d*31/20);planned=Math.min(planned,26);
+    }
+    return {i,p,months,status,used,avgDay,ratio,adj,planned,plan,joiner:status==='joiner'};
+  });
+  rows.forEach(r=>{if(r.adj==null||r.joiner)return;r.plan=r100(r.adj*r.planned)});
+  rows.forEach(r=>{if(!r.joiner)return;
+    const reg=x=>x.status==='regular'&&x.plan;
+    let pool=rows.filter(x=>reg(x)&&x.p[0]===r.p[0]&&x.p[3]===r.p[3]),basis='the same position at the same branch';
+    if(!pool.length){pool=rows.filter(x=>reg(x)&&x.p[3]===r.p[3]);basis='the same position at all branches';}
+    if(!pool.length){pool=rows.filter(x=>reg(x)&&x.p[2]===r.p[2]);basis='the same team at all branches';}
+    r.med=pool.length?median(pool.map(x=>x.plan)):0;r.medBasis=basis;r.nPool=pool.length;
+    r.planned=Math.round(mean(r.used.filter(x=>x.m!==10).map(x=>x.d))||r.used[0].d*31/20);
+    r.planJoin=r100(B.join/100*r.med);r.own=r100(r.adj*r.planned);
+    r.capped=r.used.length>=2&&r.own<r.planJoin;r.plan=r.capped?r.own:r.planJoin;
+  });
+  rows.forEach(r=>{
+    r.avgBill=r.p[2]==='BEAUTY'?BEAUTY_AB:AB[lvIndex(r.p[3])][1];
+    if(r.plan==null){r.treat=r.service=r.retail=r.clients=null;return}
+    r.treat=r100(r.plan*B.treat/100);r.service=r.plan-r.treat;r.retail=r100(r.plan*B.retail/100);r.clients=Math.round(r.plan/r.avgBill);
+  });
+  return rows;
+}
+
+function buildB(){
+  const r=buildAll()[PERSON],p=r.p,tName=MN[target-1],fT=FAC[target-1];
+  const who=p[1]+', '+p[3]+', '+BR[p[0]][0],who2=p[3]+' '+p[1],fn=p[1].split(' ')[0];
+  document.querySelectorAll('.pn').forEach(e=>e.textContent=who);
+  const st=document.getElementById('pStatus');st.textContent=BADGE[r.status];st.title=BADGE_WHY[r.status];st.className='chipst '+r.status;
+  document.querySelectorAll('.pxsel').forEach(e=>e.title=BADGE[r.status]+': '+BADGE_WHY[r.status]);
+  const perDay=r.months.map(x=>x.d?x.r/x.d:0),usedSet=r.used.map(x=>x.m);
+  const facs=r.used.map(x=>FAC[x.m-1]),avgF=facs.length?mean(facs):null;
+  const noPlan=r.plan==null;
+
+  /* step 7 */
+  let s=clear('b1'),W=760,H=270,T=58,Bm=74,gw=W/3,bw=120;
+  const max=Math.max(1000,Math.ceil(Math.max.apply(null,perDay)*1.15/500)*500),y=v=>T+(H-T-Bm)*(1-v/max);
+  s.appendChild(el('line',{x1:14,x2:W-14,y1:y(0),y2:y(0),stroke:C.hair}));
+  r.months.forEach((x,i)=>{
+    const cx0=i*gw+(gw-bw)/2,v=perDay[i],used=usedSet.includes(x.m);
+    if(v>0)s.appendChild(el('rect',{x:cx0,y:y(v),width:bw,height:y(0)-y(v),rx:6,fill:C.bar,opacity:used?1:.45}));
+    label(s,cx0+bw/2,v>0?y(v)-12:y(0)-12,v>0?'AED '+fmt(v)+' a day':'no days',{size:15,weight:600,halo:true,fill:v>0?C.ink:C.soft});
+    label(s,cx0+bw/2,y(0)+20,MN[x.m-1]+' 2026',{size:14,weight:600});
+    label(s,cx0+bw/2,y(0)+42,'AED '+fmt(x.r)+' sold',{size:12,fill:C.soft});
+    label(s,cx0+bw/2,y(0)+60,'÷ '+x.d+' day'+(x.d===1?'':'s')+' she came in'+(v>0&&!used?' (not used)':''),{size:12,fill:C.soft});
+  });
+  label(s,14,20,'Her average sale on a day she comes in',{anchor:'start',size:13,weight:600});
+
+  /* step 8 */
+  if(!r.used.length){
+    document.getElementById('b2sum').innerHTML='No days found for her in the last 3 months, so there is no normal day to work out. Check the spelling or the roster.';
+  }else{
+    const items=[];r.used.forEach((x,k)=>{if(k)items.push(['o','+']);items.push(['t',fmt(x.r/x.d),MN[x.m-1]+' 2026, AED a day (step 7)'])});
+    items.push(['o','=']);items.push(['t',fmt(r.used.reduce((a,x)=>a+x.r/x.d,0)),'the '+(r.used.length===1?'one':r.used.length===2?'two':'three')+' added together']);
+    if(r.used.length>1){items.push(['o','÷']);items.push(['t',String(r.used.length),'months used'])}
+    items.push(['o','=']);items.push(['t',fmt(r.avgDay),who2+'’s normal day, AED a day',1]);
+    document.getElementById('b2sum').innerHTML=leq(items);
+  }
+
+  /* step 9 */
+  document.getElementById('b3tiles').innerHTML=r.used.length?
+    r.used.map(x=>tile(MN[x.m-1]+' 2026',FAC[x.m-1],false,'middle of '+seasonInfo(x.m-1).n+' answers')).join('')+
+    '<div class="tile" style="background:var(--lime)"><div class="m">Her average</div><div class="f">'+avgF.toFixed(3)+'</div><span class="s normal">('+facs.map(f=>f.toFixed(2)).join(' + ')+')'+(facs.length>1?' ÷ '+facs.length:'')+'</span></div>'+
+    tile(tName+' 2026 (planning)',fT,true,'middle of '+seasonInfo(target-1).n+' answers'):'';
+  document.getElementById('b3why').innerHTML='<table class="why"><thead><tr><th>Month</th><th>Answers (branch × year)</th><th>Lowest</th><th>Highest</th><th>Middle = the season number</th></tr></thead><tbody>'+
+    r.used.map(x=>[MFULL[x.m-1]+' 2026',x.m-1]).concat([[tName+' 2026 (planning)',target-1]]).map(m=>{const q=seasonInfo(m[1]);return '<tr><td>'+m[0]+'</td><td>'+q.n+'</td><td>'+q.lo.toFixed(3)+'</td><td>'+q.hi.toFixed(3)+'</td><td><b>'+q.mid.toFixed(3)+'</b> → '+q.mid.toFixed(2)+'</td></tr>'}).join('')+'</tbody></table>';
+  s=clear('b3');
+  if(noPlan||!r.used.length){
+    label(s,380,90,'Nothing to adjust: no days found for her.',{size:14,fill:C.soft});
+    document.getElementById('b3sum').innerHTML='No days found, so there is no plan to work out.';
+  }else{
+    const avgDay=r.avgDay,adj=r.adj,ratio=r.ratio,k=78/Math.max(avgDay,adj),base=130,up=ratio>=1;
+    s.appendChild(el('rect',{x:30,y:base-avgDay*k,width:130,height:avgDay*k,rx:6,fill:C.bar}));
+    label(s,95,base-avgDay*k-8,'AED '+fmt(avgDay),{size:14,weight:600});
+    label(s,95,base+22,fn+'’s normal day',{size:13,fill:C.soft});
+    label(s,205,base-30,'×',{size:32,fill:C.soft});
+    s.appendChild(el('rect',{x:240,y:base-86,width:130,height:76,rx:16,fill:C.accent}));
+    label(s,305,base-48+Math.round(34*1.22*0.35),ratio.toFixed(3),{size:34,weight:600});
+    label(s,305,base+22,'Busy-or-quiet adjustment',{size:13,fill:C.soft});
+    label(s,415,base-30,'=',{size:32,fill:C.soft});
+    s.appendChild(el('rect',{x:450,y:base-adj*k,width:130,height:adj*k,rx:6,fill:C.accent}));
+    label(s,515,base-adj*k-8,'AED '+fmt(adj),{size:14,weight:600});
+    label(s,515,base+22,'Adjusted for '+tName+' 2026',{size:13,fill:C.soft});
+    label(s,672,base-66,(up?'+':'')+((ratio-1)*100).toFixed(1)+'%',{size:26,weight:600});
+    label(s,672,base-34,up?'busier month,':'slower month,',{size:12,fill:C.soft});
+    label(s,672,base-12,up?'her day goes up':'her day goes down',{size:12,fill:C.soft});
+    document.getElementById('b3sum').innerHTML='<b>'+tName+' 2026\u2019s '+fT.toFixed(2)+'</b> (calendar) ÷ <b>'+avgF.toFixed(3)+'</b> (average of her months above) = <b>'+ratio.toFixed(3)+'</b>. Her day: <b>'+fmt(avgDay)+'</b> × '+ratio.toFixed(3)+' = <b>AED '+fmt(adj)+'</b>.';
+  }
+
+  /* step 10 */
+  if(noPlan){
+    document.getElementById('b4sum').innerHTML='No plan: there are no days to work from.';
+  }else{
+    const basis=(r.status==='part'||r.status==='look')?r.months.filter(x=>x.d>0):r.used,full=basis.filter(x=>x.m!==10);
+    const dayTxt=full.length?'Days: '+full.map(x=>MN[x.m-1]+' '+x.d).join(' and ')+(full.length>1?', average '+mean(full.map(x=>x.d)).toFixed(1):'')+', so <b>'+r.planned+' days</b>.':'Only October so far: '+r.used[0].d+' days × 31 ÷ 20 = <b>'+r.planned+' days</b>.';
+    if(!r.joiner){
+      document.getElementById('b4sum').innerHTML=dayTxt+leq([['t',fmt(r.adj),'her adjusted day (step 9)'],['o','×'],['t',String(r.planned),'days she will work'],['o','='],['t',fmt(r.adj*r.planned),'before rounding'],['o','→'],['t',fmt(r.plan),'her plan for '+tName+' 2026, to the nearest 100',1]]);
+    }else{
+      document.getElementById('b4sum').innerHTML=dayTxt+'<br>She is a joiner, so she has no history of her own yet. Her plan is 70% of what '+r.nPool+' regular'+(r.nPool===1?'':'s')+' ('+r.medBasis+') plan for, or her own pace if that is lower.'+
+        leq([['t',fmt(r.own),'her own pace ('+fmt(r.adj)+' × '+r.planned+' days)'],['o','vs'],['t',fmt(r.planJoin),'70% of the regulars\u2019 median ('+fmt(r.med)+')'],['o','→'],['t',fmt(r.plan),'her plan for '+tName+(r.capped?' (her own pace is lower)':' (70% of the median)'),1]]);
+    }
+  }
+
+  /* step 11 */
+  s=clear('b5');
+  const plan=r.plan;
+  if(noPlan||!plan){
+    label(s,380,70,noPlan?'No plan to split.':'Plan is zero, so nothing to split.',{size:14,fill:C.soft});
+    document.getElementById('b5sum').innerHTML='Nothing to split yet.';
+  }else{
+    const planW=600,x0=30,gap=34,svc=r.service,wSvc=planW*svc/plan,wTr=planW*r.treat/plan,wRet=planW*r.retail/plan;
+    s.appendChild(el('rect',{x:x0,y:34,width:wSvc,height:44,fill:C.bar,rx:10}));
+    s.appendChild(el('rect',{x:x0+wSvc,y:34,width:wTr,height:44,fill:C.accent}));
+    s.appendChild(el('rect',{x:x0+planW+gap,y:34,width:wRet,height:44,fill:C.lav,rx:6}));
+    label(s,x0+wSvc/2,61,'Service AED '+fmt(svc),{size:14,weight:600});
+    label(s,x0+wSvc+wTr/2,61,'AED '+fmt(r.treat),{size:14,weight:600});
+    label(s,x0+wSvc+wTr/2,98,'Treatment '+B.treat+'%',{size:12,fill:C.soft});
+    s.appendChild(el('line',{x1:x0,x2:x0+planW,y1:112,y2:112,stroke:C.ink,'stroke-width':1.5}));
+    label(s,x0+planW/2,132,'The plan: AED '+fmt(plan),{size:13,weight:600});
+    label(s,x0+planW+gap+wRet/2,98,'Retail '+B.retail+'%',{size:12,fill:C.soft});
+    label(s,x0+planW+gap+wRet/2,28,'AED '+fmt(r.retail),{size:13,weight:600});
+    label(s,x0+planW+gap/2,61,'+',{size:24,fill:C.soft});
+    document.getElementById('b5sum').innerHTML='Treatment '+B.treat+'% of the plan = <b>'+fmt(r.treat)+'</b>. Service is the rest of the plan: <b>'+fmt(svc)+'</b>.<br>Retail '+B.retail+'% of the plan = <b>'+fmt(r.retail)+'</b>, on top of the plan, not inside it.'+leq([['t',fmt(plan),'her plan (step 10)'],['o','÷'],['t',String(r.avgBill),'average bill for her level'],['o','='],['t','about '+r.clients,'clients to serve',1]]);
+  }
+  const li=lvIndex(p[3]);
+  document.getElementById('b5oth').innerHTML=p[2]==='BEAUTY'
+    ?'<b>Not worked out from her sales:</b> for beauty we use an average bill of <b>AED '+BEAUTY_AB+'</b>. Rebooking and retention are not worked out from her sales either.'
+    :'<b>Not worked out from her sales:</b> rebooking and average bill come straight from her level\u2019s benchmark table. For '+p[1].split(' ')[0]+'\u2019s level, '+LVN[li]+': <b>rebooking '+LVB[li][1]+'%</b> target (minimum '+LVB[li][0]+'%) and <b>average bill AED '+AB[li][1]+'</b> target (minimum '+AB[li][0]+'). Retention is unchanged too.';
+
+  /* together */
+  document.getElementById('formula').innerHTML=noPlan?'<p class="srcnote">No plan: no days found for her.</p>':
+    fbox('AED '+fmt(r.avgDay),who2+'’s normal day<br>from her last 3 months')+'<div class="op">×</div>'+
+    fbox(r.ratio.toFixed(3),'Busy-or-quiet adjustment<br>'+fT.toFixed(2)+' ÷ '+avgF.toFixed(3))+'<div class="op">×</div>'+
+    fbox(String(r.planned),'Days she will work')+'<div class="op">=</div>'+
+    fbox('AED '+fmt(r.plan),(r.joiner?'Her plan for '+tName+' 2026<br>(joiner rule)':'Her plan for '+tName+' 2026'),true);
+}
+function buildTop(){
+  document.getElementById('formula0').innerHTML=
+    fbox('Her normal day','What she really sells on a day she comes in')+'<div class="op">×</div>'+
+    fbox('Busy or quiet','Is next month busier or slower than her last 3?')+'<div class="op">×</div>'+
+    fbox('Days she works','How many days she will be in')+'<div class="op">=</div>'+
+    fbox('Her plan','The number on her sheet',true);
+}
+function buildPick(){
+  const box=document.getElementById('monthPick');
+  box.innerHTML=MN.map((m,i)=>'<button class="pill" data-m="'+(i+1)+'" aria-pressed="'+(i+1===target)+'">'+m+'</button>').join('');
+  box.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;target=+b.dataset.m;box.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));buildB();fitStep();});
+}
+
+/* ---------- quiz ---------- */
+function buildQuiz(){
+  const Q=[
+   {q:'A stylist\u2019s last 3 months were Jul, Aug and Sep (0.87, 0.84, 0.92). We plan her for December (1.36). Does her day go up or down?',o:[['Up',1],['Down',0]],yes:'Yes. Her 3 months were quiet (average 0.877) and December is busy (1.36). 1.36 \u00f7 0.877 = 1.55, so her day goes <b>up by about 55%</b>.',no:'Not quite. Her months were quiet (0.877) and December is busy (1.36), so her day goes <b>up</b>, by about 55%.'},
+   {q:'Why do we divide her sales by the days she <i>came in</i>, not the days in the month?',o:[['It is easier',0],['So leave is not counted against her',1],['Phorest needs it',0]],yes:'Yes. Leave days have no sales. Dividing by days she came in means leave is never counted against her.',no:'Not quite. We divide by the days she <b>came in</b>, so leave is never counted against her.'},
+   {q:'Which month is the busiest on the season calendar?',o:[['June',0],['December',1],['January',0]],yes:'Yes. December is 1.36, so 36% busier than a normal month. June is next at 1.10.',no:'Not quite. December is the busiest at 1.36. June is next at 1.10.'},
+   {q:'A plan is AED 85,000 and treatment is 20% of it. What is the treatment target?',o:[['AED 12,000',0],['AED 17,000',1],['AED 20,000',0]],yes:'Yes. 85,000 \u00d7 20% = 17,000. Service is the rest, 68,000.',no:'Not quite. 85,000 \u00d7 20% = <b>17,000</b>. Service is the rest, 68,000.'},
+   {q:'Where does a stylist\u2019s rebooking target come from?',o:[['Her last 3 months of sales',0],['Her level\u2019s benchmark table',1],['The season calendar',0]],yes:'Yes. Rebooking and average bill come from the benchmark table for her level, not from her sales.',no:'Not quite. Rebooking comes from the <b>benchmark table for her level</b>, not from her sales or the calendar.'},
+   {q:'A new joiner has no sales history yet. What is her plan?',o:[['Zero until she has history',0],['70% of what the regulars in her job plan for, or her own pace if that is lower',1],['Last year\u2019s plan',0]],yes:'Yes. A joiner gets 70% of the regulars\u2019 median plan for the same job, or her own pace if that is lower.',no:'Not quite. A joiner gets <b>70% of the regulars\u2019 median plan</b> for the same job, or her own pace if that is lower.'}
+  ];
+  [['quizBox1',0,3],['quizBox2',3,6]].forEach(g=>{
+    const box=document.getElementById(g[0]);
+    box.innerHTML=Q.slice(g[1],g[2]).map((x,k)=>'<div class="q" data-i="'+(g[1]+k)+'"><p><b>'+(g[1]+k+1)+'.</b> '+x.q+'</p><div class="opts">'+x.o.map(o=>'<button class="opt" data-ok="'+o[1]+'">'+o[0]+'</button>').join('')+'</div><div class="fb hide"></div></div>').join('');
+    box.addEventListener('click',e=>{
+      const b=e.target.closest('.opt');if(!b)return;
+      const q=b.closest('.q'),x=Q[+q.dataset.i],ok=b.dataset.ok==='1';
+      q.querySelectorAll('.opt').forEach(o=>{o.classList.remove('right','wrong');if(o.dataset.ok==='1')o.classList.add('right');else if(o===b)o.classList.add('wrong')});
+      const out=q.querySelector('.fb');out.innerHTML=ok?x.yes:x.no;out.classList.remove('hide');
+    });
+  });
+}
+
+/* ---------- stepper ---------- */
+const cards=[...document.querySelectorAll('section.card')];
+let idx=0,mode='one';
+function renderStep(){
+  cards.forEach((c,i)=>c.classList.toggle('hide',mode==='one'&&i!==idx));
+  document.querySelectorAll('#prog button').forEach((b,i)=>{b.className=i<idx?'done':i===idx?'now':'';b.setAttribute('aria-selected',i===idx)});
+  document.getElementById('where').innerHTML=mode==='one'?'Step <b>'+(idx+1)+' of '+cards.length+'</b> · '+cards[idx].dataset.title:'Showing every step';
+  document.getElementById('btnBack').classList.toggle('hide',mode!=='one'||idx===0);
+  const nx=document.getElementById('btnNext');nx.classList.toggle('hide',mode!=='one'||idx===cards.length-1);
+  nx.textContent=idx===cards.length-2?'Last step':'Next step';
+  document.getElementById('nav').classList.toggle('hide',mode!=='one');
+  document.getElementById('intro').classList.toggle('hide',mode==='one'&&idx>0);
+  fitStep(true);
+}
+
+function writeHash(){
+  const h='#step='+(idx+1)+'&b='+EX.b+'&ym='+EX.ym+'&p='+PERSON+'&m='+target+(mode==='all'?'&all=1':'');
+  try{history.replaceState(null,'',h)}catch(e){try{location.replace(h)}catch(e2){}}
+}
+function readHash(){
+  const q=new URLSearchParams(location.hash.slice(1));if(![...q.keys()].length)return;
+  const st=parseInt(q.get('step'),10);if(st>=1&&st<=cards.length)idx=st-1;
+  const b=q.get('b');if(b&&(b==='ALL'||BR[b]))EX.b=b;
+  const ym=q.get('ym');if(ym&&decs(EX.b).includes(ym))EX.ym=ym;else{const l=decs(EX.b);if(!l.includes(EX.ym))EX.ym=l[l.length-1]}
+  const pp=parseInt(q.get('p'),10);if(pp>=0&&pp<PEOPLE.length)PERSON=pp;
+  const mm=parseInt(q.get('m'),10);if(mm>=1&&mm<=12)target=mm;
+  if(q.get('all')==='1'){mode='all';document.getElementById('mAll').setAttribute('aria-pressed',true);document.getElementById('mOne').setAttribute('aria-pressed',false)}
+}
+function fitStep(toTop){
+  writeHash();
+  if(mode!=='one'||idx===0)return;
+  const c=cards[idx],svgs=[...c.querySelectorAll('svg')];
+  svgs.forEach(v=>v.style.maxHeight='');c.style.zoom='';
+  /* only jump to the top when the step changes, never when a toggle is clicked */
+  if(toTop)window.scrollTo({top:0,behavior:'instant'});
+  const avail=innerHeight-document.getElementById('nav').offsetHeight-14;
+  let over=c.getBoundingClientRect().bottom+window.scrollY-avail;
+  if(over>0&&svgs.length){
+    const h=svgs[0].getBoundingClientRect().height;
+    svgs.forEach(v=>v.style.maxHeight=Math.max(v.viewBox.baseVal.height*0.9,h-over/svgs.length)+'px');
+    over=c.getBoundingClientRect().bottom+window.scrollY-avail;
+  }
+  if(over>0){
+    const top=c.getBoundingClientRect().top+window.scrollY,hgt=c.getBoundingClientRect().height;
+    const z=Math.max(0.85,(avail-top)/hgt);
+    if(z<1)c.style.zoom=z;
+  }
+}
+window.addEventListener('resize',fitStep);
+function go(i,scroll){idx=Math.max(0,Math.min(cards.length-1,i));if(mode==='all'){renderStep();cards[idx].scrollIntoView({behavior:'smooth',block:'start'});return}renderStep();if(scroll!==false)document.getElementById('bar').scrollIntoView({behavior:'smooth',block:'start'})}
+function buildProg(){
+  document.getElementById('prog').innerHTML=cards.map((c,i)=>'<button role="tab" title="'+(i+1)+'. '+c.dataset.title+'" aria-label="Step '+(i+1)+': '+c.dataset.title+'"></button>').join('');
+  document.getElementById('prog').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;go([...b.parentNode.children].indexOf(b))});
+}
+document.getElementById('toCal').addEventListener('click',()=>go(5));
+document.getElementById('btnNext').addEventListener('click',()=>go(idx+1));
+document.getElementById('btnBack').addEventListener('click',()=>go(idx-1));
+document.getElementById('mOne').addEventListener('click',()=>{mode='one';document.getElementById('mOne').setAttribute('aria-pressed',true);document.getElementById('mAll').setAttribute('aria-pressed',false);renderStep()});
+document.getElementById('mAll').addEventListener('click',()=>{mode='all';document.getElementById('mAll').setAttribute('aria-pressed',true);document.getElementById('mOne').setAttribute('aria-pressed',false);renderStep()});
+document.addEventListener('keydown',e=>{if(mode!=='one'||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.key==='ArrowRight')go(idx+1);if(e.key==='ArrowLeft')go(idx-1)});
+
+readHash();
+buildTop();buildStory();buildA();buildPickEx();buildPick();buildPxPick();buildB();buildQuiz();buildProg();renderStep();
+})();
+</script>
+</body>
+</html>
