@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=6a601d9b"></script>
+<script src="pages.js?v=62eea993"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -451,6 +451,8 @@ body.staffweeks-chrome .mast-rule,
 body.staffweeks-chrome .filters-wrap,
 body.stafflevels-chrome .mast-rule,
 body.stafflevels-chrome .filters-wrap,
+body.one2ones-chrome .mast-rule,
+body.one2ones-chrome .filters-wrap,
 body.reviews-chrome .mast-rule,
 body.lostclients-chrome .mast-rule,
 body.lostclients-chrome:not(.lastvisit-chrome) .filters-wrap,
@@ -517,6 +519,43 @@ body.orgchart-pop main#orgChartContent{max-width:none;padding:6px 14px 40px}
 .viewas-bar{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;width:fit-content;max-width:calc(100% - 24px);
   position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9000;width:max-content;max-width:calc(100% - 24px);
   margin:0;padding:2px 3px 2px 12px;border-radius:999px;background:#FAEEDA;color:#1A1A1A;font-size:12.5px;line-height:1.2;box-shadow:0 4px 16px rgba(0,0,0,.28)}   /* Kate, 22 Oct 2026: a thin pill of its own, floating at the bottom, not part of the sticky header */
+/* 1-to-1s & Goals (Kate, 22 Oct 2026) */
+.o2-head h2{margin:6px 0 4px;font-size:clamp(22px,3vw,30px);font-weight:600;letter-spacing:-.01em}
+.o2-head p{margin:0 0 18px;color:var(--muted);max-width:640px}
+.o2-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.o2-tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;min-width:0}
+.o2-l{color:var(--muted);font-size:12px;font-weight:500}
+.o2-v{font-size:clamp(20px,2.6vw,28px);font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+.o2-h{color:var(--muted2);font-size:12px}
+.o2-bar{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-bottom:12px}
+.o2-pills{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
+.o2-k{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin-right:2px}
+.o2-pill{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 13px;font:inherit;font-size:13px;font-weight:500;cursor:pointer}
+.o2-pill[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+.o2-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.o2-card table{width:100%;border-collapse:collapse}
+.o2-card th{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);font-weight:600;text-align:left;padding:12px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
+.o2-card th button{border:0;background:none;padding:0;cursor:pointer;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit}
+.o2-card td{padding:11px 14px;border-top:1px solid var(--border2);vertical-align:middle}
+.o2-card tbody tr:first-child td{border-top:0}
+@media(hover:hover){.o2-card tbody tr:hover{background:var(--surface2)}}
+.o2-nm b{font-weight:600}.o2-nm span{display:block;font-size:12.5px;color:var(--muted)}
+.o2-chip{display:inline-flex;align-items:center;border-radius:999px;padding:3px 11px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.o2-chip.signed{background:var(--good-bg);color:var(--good)}
+.o2-chip.draft{background:var(--warn-bg);color:var(--warn)}
+.o2-chip.sent{background:color-mix(in srgb,var(--accent-lavender) 30%,var(--surface));color:var(--text)}
+.o2-chip.none{background:none;border:1px dashed var(--border);color:var(--muted2);font-weight:500}
+.o2-dt{display:block;font-size:12px;color:var(--muted2);margin-top:2px}
+.o2-open{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:5px 13px;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;color:var(--text)}
+.o2-open:hover{border-color:var(--text)}
+.o2-cards{display:none}
+.o2-row{padding:12px 14px;border-top:1px solid var(--border2);display:grid;gap:6px}
+.o2-row:first-child{border-top:0}
+.o2-two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.o2-lab{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+.o2-foot{margin-top:10px;color:var(--muted2);font-size:12.5px}
+.o2-empty{color:var(--muted);padding:24px 0}
+@media(max-width:760px){.o2-card table{display:none}.o2-cards{display:block}.o2-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .wv-tabs{display:flex;flex-wrap:wrap;gap:6px;max-width:1100px;margin:0 auto;padding:10px 28px 0}   /* Kate, 22 Oct 2026: Performance | Wellness Voucher (3rd blast) */
 .wv-tabs button{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:999px;padding:7px 16px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .wv-tabs button.on{background:var(--text);color:var(--bg);border-color:var(--text)}
@@ -3481,6 +3520,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       mk:  ['marketing-chart.js?v=7aaefb35', 'google-ads.js?v=e67ce0e7', 'website.js?v=55a9e0a5', 'social.js?v=4c3d3645'],
       wk:  ['team-performance.js?v=b9b2a0b2', 'staff-weeks.js?v=e0c1f939'],
       lv:  ['stylist-levels.js?v=cf577214'],
+      o2:  ['one2ones.js?v=15ea2929'],
       at:  ['attrition.js?v=ab90cc3b'],
       cb:  ['client-book.js?v=9bb069ee'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
@@ -3632,6 +3672,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('staffperf', this)">Staff Dashboards</div>
     <div class="nav-sub" onclick="showView('staffweeks', this)">Staff&rsquo;s 13 Week</div>
     <div class="nav-sub" onclick="showView('stafflevels', this)">Stylist&rsquo;s Benchmarks</div>
+    <div class="nav-sub" onclick="showView('one2ones', this)">1-to-1s &amp; Goals</div>
     <div class="nav-sub" onclick="showView('attrition', this)">Staff Attrition</div>
     <div class="nav-subhead">Clients</div>
     <div class="nav-sub" onclick="showView('clients', this)">Top Clients</div>
@@ -4203,6 +4244,11 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <div id="view-stafflevels" style="display:none">
     <main id="stylistLevelsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
+  <!-- 1-TO-1s & GOALS (Kate, 22 Oct 2026): who has had a 1-to-1, whose goals are set. perf_one2one_list (leaders only). one2ones.js draws it. -->
+  <div id="view-one2ones" style="display:none">
+    <main id="one2onesContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
   <div id="view-orgchart" style="display:none">
@@ -4860,6 +4906,7 @@ function showView(view, el){
   document.body.classList.toggle('compare-chrome', view === 'compare');
   document.body.classList.toggle('staffperf-chrome', view === 'staffperf');
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
+  document.body.classList.toggle('one2ones-chrome', view === 'one2ones');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
   document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'clients' || view === 'clientmix' || view === 'clientbook' || view === 'services' || view === 'attrition');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
@@ -4883,6 +4930,7 @@ function showView(view, el){
   if (view === 'orgchart') renderOrgChart();
   if (view === 'staffperf') initStaffPerfView();
   if (view === 'stafflevels') renderStylistLevels();
+  if (view === 'one2ones') renderOne2Ones();
   if (view === 'staffweeks') renderStaffWeeks();
   if (view === 'services') initSvcView();
   if (view === 'clients') initCliView();

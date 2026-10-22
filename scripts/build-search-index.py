@@ -52,7 +52,7 @@ OUT = ROOT / 'search-index.js'
 FILE_VIEWS = {
     'compare.js': 'compare', 'daily-performance.js': 'dailyperf', 'daily-addons.js': 'dailyperf', 'google-ads.js': 'googleads', 'website.js': 'website',
     'social.js': 'social', 'products.js': 'products', 'spend.js': 'supplierspend', 'org-chart.js': 'orgchart',
-    'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels', 'attrition.js': 'attrition', 'client-book.js': 'clientbook',
+    'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels', 'one2ones.js': 'one2ones', 'attrition.js': 'attrition', 'client-book.js': 'clientbook',
     'top-clients.js': 'clients',
     # Added 14 Oct 2026: these pages had no entry here, so their text was not in the index at all.
     'over-the-years.js': 'overyears', 'client-mix.js': 'clientmix', 'service-rankings.js': 'services',
@@ -551,7 +551,7 @@ def main():
 
     # 1. The static pages in index.html.
     idx = (ROOT / 'index.html').read_text(encoding='utf-8')
-    starts = [(m.start(), m.group(1)) for m in re.finditer(r'<div id="view-([A-Za-z]+)"', idx)]
+    starts = [(m.start(), m.group(1)) for m in re.finditer(r'<div id="view-([A-Za-z0-9]+)"', idx)]
     for i, (pos, view) in enumerate(starts):
         end = starts[i + 1][0] if i + 1 < len(starts) else idx.find('<script', pos)
         chunk = re.sub(r'<!--.*?-->', '', idx[pos:end], flags=re.S)
@@ -607,7 +607,7 @@ def main():
     for it in ix.items:
         it[0] = it[0] if it[0] in names else it[0]
     data = {'built': __import__('datetime').date.today().isoformat(), 'src': src_hash(), 'items': ix.items, 'kb': kb}
-    containers = set(re.findall(r'<div id="view-([A-Za-z]+)"', idx))
+    containers = set(re.findall(r'<div id="view-([A-Za-z0-9]+)"', idx))
     problems = guard_problems(ix.items, names, containers)
     if check:
         try:
