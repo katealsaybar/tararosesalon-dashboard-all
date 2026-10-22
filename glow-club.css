@@ -1,0 +1,21 @@
+/* Glow Club Performance (Kate, 22 Oct 2026). The cards reuse .ll-cards / .ll-card from lost-lists.css; the rest is here. */
+#glowClubContent .gc-intro{margin:6px 0 2px}
+#glowClubContent .gc-intro h2{font-size:24px;margin:0 0 2px}
+#glowClubContent .gc-intro p{font-size:14px;line-height:1.4;color:var(--muted)}
+#glowClubContent .gc-fresh{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 14px}
+#glowClubContent .gc-chip{font:inherit;font-size:12.5px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px 11px}
+#glowClubContent .gc-refresh{cursor:pointer;color:var(--text)}
+#glowClubContent .gc-card{cursor:default}
+#glowClubContent .gc-card.gc-warn{border-color:var(--accent)}
+#glowClubContent .gc-sec{margin:24px 0 8px}
+#glowClubContent .gc-sec h3{font-family:'Playfair Display',serif;font-size:21px;font-weight:600;margin:0 0 10px}
+#glowClubContent .gc-list{margin:0;padding-left:18px;font-size:14px;line-height:1.55}
+#glowClubContent .gc-note{font-size:12.5px;color:var(--muted);margin:8px 0 0;line-height:1.4}
+#glowClubContent .gc-scroll{overflow-x:auto}
+#glowClubContent .gc-tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+#glowClubContent .gc-tbl th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--border2);white-space:nowrap}
+#glowClubContent .gc-tbl td{padding:7px 10px;border-bottom:1px solid var(--border2);white-space:nowrap}
+#glowClubContent .gc-tbl td.gc-barcell{width:28%;min-width:110px}
+#glowClubContent .gc-bar{height:10px;border-radius:5px;background:var(--border2);overflow:hidden}
+#glowClubContent .gc-bar i{display:block;height:100%;background:var(--accent);border-radius:5px}
+@media(max-width:760px){#glowClubContent .gc-sec h3{font-size:19px}}

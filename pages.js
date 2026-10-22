@@ -63,6 +63,7 @@ window.TRS_PAGES = /*PAGES*/[
   {"id": "website", "lazy": "mk", "label": "Website & Search", "group": "Content", "min": 3, "free": 1, "ic": "dashboards", "words": "website traffic visitors seo search console sessions analytics google", "lv": []},
   {"id": "social", "lazy": "mk", "label": "Social", "group": "Content", "min": 3, "free": 1, "ic": "marketing", "words": "instagram tiktok youtube facebook followers reach views posts reels metricool", "lv": []},
   {"id": "wvperf", "label": "Wellness Voucher Performance", "group": "Campaigns", "min": 2, "ic": "campaigns", "words": "voucher performance redemptions credit collected campaign target", "lv": [2, 4]},
+  {"id": "glowclub", "label": "Glow Club Performance", "group": "Campaigns", "min": 3, "lazy": "gc", "ic": "campaigns", "words": "glow club membership silver gold platinum members renewals perks used monthly performance campaign circle", "lv": []},
   {"id": "stylists", "lazy": "sc", "label": "Staff Cards", "group": "People", "free": 1, "ic": "access", "words": "cards photos instagram profiles", "lv": [1, 2, 4]},
   {"id": "orgchart", "lazy": "oc", "label": "Org Chart", "group": "People", "free": 1, "ic": "people", "words": "org chart structure hierarchy", "lv": [2, 4]},
   {"id": "branchperf", "label": "Branch Performance", "retired": "dailyperf", "scope": 1, "filtered": 1, "words": "branch staff table figures services retail"}

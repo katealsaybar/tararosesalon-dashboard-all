@@ -90,6 +90,8 @@
       blurb: 'The WhatsApp blast to clients who have not been in for 6 months: lists, sending, replies and results.' },
     { key: 'campaigns', dept: 'Campaigns', title: 'Wellness Voucher Performance', href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
       blurb: 'Redemptions, credit collected and the campaign target.' },
+    { key: 'campaigns-glowclub', via: 'dashboards', min: 3, ic: 'campaigns', dept: 'Campaigns', title: 'Glow Club Performance', href: '/?view=glowclub', rule: 'var(--accent-coral)',
+      blurb: 'The monthly membership: sign-ups, renewals, AED collected and the perks used.' },
 
     { key: 'people-orgchart', via: 'dashboards', min: 1, ic: 'people', dept: 'People', title: 'Org Chart', href: '/?view=orgchart', rule: 'var(--accent-mint)',
       blurb: 'Who is who, and who reports to whom.' },
