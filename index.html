@@ -511,10 +511,11 @@ body.orgchart-pop main#orgChartContent{max-width:none;padding:6px 14px 40px}
 .mast-sub{font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-top:7px}
 .mast-acts{display:flex;gap:8px;flex-shrink:0}
 /* Team Home: the way back to the hub (Kate, 1 Oct 2026). Mint, so it doesn't read as one more toggle. */
-.viewas-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
-  padding:8px 16px;background:#FAEEDA;color:#1A1A1A;font-size:13.5px}
-.viewas-bar button{border:1px solid rgba(0,0,0,.25);background:#fff;color:#1A1A1A;border-radius:999px;padding:6px 14px;min-height:36px;
-  font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.viewas-bar{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;width:fit-content;max-width:calc(100% - 24px);
+  position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9000;width:max-content;max-width:calc(100% - 24px);
+  margin:0;padding:2px 3px 2px 12px;border-radius:999px;background:#FAEEDA;color:#1A1A1A;font-size:12.5px;line-height:1.2;box-shadow:0 4px 16px rgba(0,0,0,.28)}   /* Kate, 22 Oct 2026: a thin pill of its own, floating at the bottom, not part of the sticky header */
+.viewas-bar button{border:1px solid rgba(0,0,0,.25);background:#fff;color:#1A1A1A;border-radius:999px;padding:3px 11px;min-height:24px;
+  font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 #homeBtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;background:var(--accent-mint);color:#1A1A1A;border-color:var(--accent-mint)}
 @media(hover:hover){#homeBtn:hover{color:#1A1A1A;border-color:#1A1A1A}}
 .nav-home{display:flex;align-items:center;justify-content:center;gap:7px;margin:0 10px 14px;padding:8px 12px;border-radius:20px;
@@ -4584,18 +4585,18 @@ function trsViewAs(){
 function trsViewAsBar(v){
   const bar = document.createElement('div');
   bar.className = 'viewas-bar';
-  const staffOnly = v.level === 1 && v.dept && v.dept !== 'Front Desk';
-  bar.innerHTML = `<span>Viewing as <b>Level ${v.level} · ${TRS_LEVEL_NAMES[v.level]}${v.dept ? ', ' + v.dept.replace(/[<>&"]/g, '') : ''}</b>${
-    staffOnly ? '. They don’t open the dashboard; they land on Team Home.' : ''}</span><button type="button">Back to my view</button>`;
+  bar.innerHTML = `<span>Viewing as <b>Level ${v.level} · ${TRS_LEVEL_NAMES[v.level]}${v.dept ? ', ' + v.dept.replace(/[<>&"]/g, '') : ''}</b></span><button type="button">Back to my view</button>`;
   bar.querySelector('button').onclick = () => { try { localStorage.removeItem('trs-viewas'); } catch(e){} location.reload(); };
-  (document.getElementById('topbar') || document.body).append(bar);
-  if (typeof sizeTopbar === 'function') requestAnimationFrame(sizeTopbar);
+  document.body.append(bar);   // its own pill (Kate, 22 Oct 2026), not inside the sticky masthead
 }
 async function enterDashboard(role, meAsk){
   if (DASHBOARD_OPEN) return;
   DASHBOARD_OPEN = true;
   document.title = 'Dashboard · Tara Rose Salons';
   const viewAs = role === 'owner' ? trsViewAs() : null;
+  // Kate, 22 Oct 2026: a Level 1 staff view (Hair, Beauty, Call Centre) does not open the dashboard at all, so it is not drawn:
+  // View as sends it to Team Home, where its own bar is. Front Desk is a dashboard login, so it keeps the dashboard.
+  if (viewAs && viewAs.level === 1 && viewAs.dept && viewAs.dept !== 'Front Desk') { location.replace('/hub/'); return; }
   if (viewAs) { role = viewAs.level === 4 ? 'payroll' : 'team'; trsViewAsBar(viewAs); }
   applyRole(role);
   // Awaited now, not just for the greeting: the scope has to be set before the
