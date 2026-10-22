@@ -3,6 +3,11 @@
 // Replied, STOP and blocked come from lost_wa_status, which respond-status-sync refreshes each night, so they run up to a day behind; booked is a booking
 // from today on in client_bookings. The page keeps its own copy only while it is open: Refresh asks again.
 //
+// The money (Kate, 22 Oct 2026): a Spent card in The campaign so far and the Money from the bookings section, both from lost_campaign_money()
+// (migrations/lost_campaign_money.sql, Level 3 and above, so a Level 2 reader gets no card and no section). Spend on the blast is an estimate
+// (messages sent times a rate), projected spend prices each booked service at what it really charged lately, actual spend is what the clients
+// we messaged have paid since.
+//
 // Drawn by lqShowTab('perf') in lost-queue.js, into #lqHost. Borrows lcEsc, lcNum, LC_BRANCH (lost-clients.js), LQ_TYPES (lost-queue.js) and the
 // XLSX writer (lgx*), so it must load after both.
 let lrSum = null, lrRowsPage = [], lrTotal = 0, lrErr = '', lrBusy = false, lrOpen = {}, lrQTimer = null;
@@ -12,6 +17,9 @@ try { if (localStorage.getItem('lr-dep-view') === 'table') lrDepView = 'table'; 
 // Did our message arrive? (lost_delivery_report, migrations/lost_delivery_report.sql). Same: null until the function is live, the section stays out.
 let lrDel = null, lrDelView = 'visual';
 try { if (localStorage.getItem('lr-del-view') === 'table') lrDelView = 'table'; } catch (e) {}
+// The money, by the same rule: null until lost_campaign_money is live (or for Level 2), the Spent card and the section stay out.
+let lrMoney = null, lrMoneyView = 'visual';
+try { if (localStorage.getItem('lr-money-view') === 'table') lrMoneyView = 'table'; } catch (e) {}
 let lrSel = { wave: 'all', branch: 'all', status: 'all', q: '', page: 1, per: 50 };
 // One message at a time (Kate, 19 Oct 2026): the whole report, the Booked and deposit and delivery sections and the log can be cut to Smoothing,
 // Colour or Due (migrations/lost_report_by_type.sql). 'all' sends no argument, so the page still works before that migration is live.
@@ -22,6 +30,7 @@ const lrTypeName = () => (LR_TYPES.find(t => t[0] === lrType) || [, ''])[1];
 
 const LR_BR = ['SAA', 'KCA', 'MC', 'AQ'];
 const lrPct = (a, b) => b ? (100 * a / b).toFixed(1) + '%' : '–';
+const lrAed = n => 'AED ' + lcNum(Math.round(+n || 0));
 const lrDay = d => { try { return new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { return d; } };
 const lrTime = iso => { if (!iso) return '–'; try { return new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { return '–'; } };
 // "colour_story" -> Colour, story (1b);  "due_v2" -> Due, standard;  "colour_v2_stop" -> Colour, standard + STOP line
@@ -44,13 +53,15 @@ async function lrLoad() {
   if (lrBusy) return;
   lrBusy = true; lrErr = '';
   try {
-    const [s, l, dp, dl] = await Promise.all([sb.rpc('lost_send_report_get', lrArgs()), lrFetchPage(), sb.rpc('lost_booked_deposits', lrArgs()), sb.rpc('lost_delivery_report', lrArgs())]);
+    const [s, l, dp, dl, mo] = await Promise.all([sb.rpc('lost_send_report_get', lrArgs()), lrFetchPage(), sb.rpc('lost_booked_deposits', lrArgs()), sb.rpc('lost_delivery_report', lrArgs()), sb.rpc('lost_campaign_money', lrArgs())]);
     if (s.error || !s.data) throw s.error || new Error('no report');
     lrSum = s.data;
     lrDep = (!dp.error && dp.data && dp.data.total) ? dp.data : null;   // optional: the report still draws without it
     if (dp.error) console.warn('lost_booked_deposits', dp.error);
     lrDel = (!dl.error && dl.data && dl.data.total) ? dl.data : null;   // optional too
     if (dl.error) console.warn('lost_delivery_report', dl.error);
+    lrMoney = (!mo.error && mo.data && mo.data.cost) ? mo.data : null;   // optional too
+    if (mo.error && !/Level 3/.test(mo.error.message || '')) console.warn('lost_campaign_money', mo.error);
     if (l.error || !l.data) throw l.error || new Error('no log');
     lrRowsPage = l.data.rows || []; lrTotal = l.data.total || 0;
   } catch (e) { console.error(e); lrErr = 'The report did not load. Refresh to try again.'; }
@@ -88,7 +99,8 @@ function lrTable(first, rows) {
   return `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>${first}</th>${LR_COLS.map(c => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
 }
 function lrTiles(t) {
-  const card = (n, ti, d, cls) => `<div class="ll-card lr-card${cls ? ' ' + cls : ''}"><div class="ll-t">${ti}</div><div class="ll-n">${lcNum(n)}</div><div class="ll-d">${d}</div></div>`;
+  const card = (n, ti, d, cls) => `<div class="ll-card lr-card${cls ? ' ' + cls : ''}"><div class="ll-t">${ti}</div><div class="ll-n">${typeof n === 'string' ? n : lcNum(n)}</div><div class="ll-d">${d}</div></div>`;
+  const m = lrMoney, perBooked = m && m.booked && m.booked.clients ? ` (${lrAed(m.cost.aed / m.booked.clients)} per client booked)` : '';
   return `<div class="ll-cards lr-cards">
     ${card(t.sent, 'Sent', t.first ? `${lcEsc(lrTime(t.first))} to ${lcEsc(lrTime(t.last))}` : 'nothing sent yet')}
     ${card(t.replied, 'Replied', `${lrPct(t.replied, t.sent)} of the sent, wrote in after our message (a STOP is counted under STOP, not here)`)}
@@ -99,6 +111,7 @@ function lrTiles(t) {
     ${card(t.stop, 'STOP', `${lrPct(t.stop, t.sent)} opted out since (suggested limit 2%)`, t.sent && t.stop / t.sent > 0.02 ? 'lr-warn' : '')}
     ${card(t.failed, 'Failed', `${lrPct(t.failed, t.n - t.queued)} of those tried (suggested limit 5%)`, t.failed ? 'lr-warn' : '')}
     ${card(t.queued, 'Still queued', 'waiting for the next send window')}
+    ${m ? card(lrAed(m.cost.aed), 'Spent (estimate)', `${lcNum(m.cost.sent)} messages at AED ${(+m.rate).toFixed(2)} each${perBooked}. Meta's invoice has the exact figure`) : ''}
   </div>${lrDep ? '<p class="slv-note">Clients booked and Appointments booked are clients we messaged who have an appointment from today on. A booking may have been made before our message or at the chair: Phorest does not record that.</p>' : ''}`;
 }
 // Booked, by deposit (Kate, 18 Oct 2026): of the clients who booked after our message, who has paid a deposit, who has not, and who
@@ -183,6 +196,56 @@ function lrDepSet(v) {
   const el = document.getElementById('lr-deposits');
   if (el) el.innerHTML = lrDepInner();
 }
+// Money from the bookings (Kate, 22 Oct 2026): what the blast cost, what the clients who booked are worth, and what the clients we messaged have really spent
+// since. Visual by default, Table beside it. Projected = --accent, actual = --good (the page's own, like the deposit bars). All AED, VAT included.
+// lost_campaign_money explains each number; the notes under the section say the same in plain words.
+const LR_SPLIT = [['hair_services', 'Hair services', 'colour, cut and extensions'], ['hair_treat', 'Hair treatments', 'treatments'], ['beauty_services', 'Beauty services', 'beauty and nails'], ['retail', 'Retail', 'products, hair and beauty together'], ['other', 'Other', 'consultations and anything not sorted yet']];
+function lrMoneyVisual(m) {
+  const b = m.booked, a = m.actual, by = m.by_branch || [];
+  const maxP = Math.max(1, ...by.map(x => x.proj)), maxA = Math.max(1, ...by.map(x => x.actual));
+  const card = (n, ti, ds) => `<div class="ll-card lr-card"><div class="ll-t">${ti}</div><div class="ll-n">${n}</div><div class="ll-d">${ds}</div></div>`;
+  const key = '<div class="lr-dkey"><span><i class="d-unpaid"></i>Projected (booked from today on)</span><span><i class="d-paid"></i>Actual (spent since our message)</span></div>';
+  const brow = (x, k, max, cls) => `<div class="lr-drow lr-drow2"><span>${lcEsc(LC_BRANCH[x.k] || x.k)}</span><span class="lr-dbar" style="width:${Math.max(4, 100 * x[k] / max)}%"><i class="${cls}" style="width:100%"></i></span><b>${lrAed(x[k])}</b></div>`;
+  return `<div class="ll-cards lr-cards">
+      ${card(lrAed(b.proj), 'Projected spend', `${lcNum(b.clients)} clients booked, ${lcNum(b.appts)} appointments from today on`)}
+      ${card(lrAed(b.clients ? b.proj / b.clients : 0), 'Average projected per client', `${lrAed(b.appts ? b.proj / b.appts : 0)} per appointment`)}
+      ${card(lrAed(a.total), 'Actual spend so far', `${lcNum(a.visited)} of the ${lcNum(a.messaged)} we messaged have paid for something since`)}
+    </div>
+    <h4 class="lr-dh">Actual spend, by what they bought</h4>
+    <div class="ll-cards lr-cards">
+      ${LR_SPLIT.filter(([k]) => k !== 'other' || a.other).map(([k, l, d]) => card(lrAed(a[k]), l, `${a.total ? lrPct(a[k], a.total) + ' of the actual, ' : ''}${d}`)).join('')}
+    </div>
+    <div class="lr-dgrid">
+      <div class="lr-dcard"><h4>Projected spend by branch</h4>${by.filter(x => x.booked).map(x => brow(x, 'proj', maxP, 'd-unpaid')).join('') || '<p class="slv-muted">Nobody yet.</p>'}</div>
+      <div class="lr-dcard"><h4>Actual spend by branch</h4>${by.filter(x => x.visited).map(x => brow(x, 'actual', maxA, 'd-paid')).join('') || '<p class="slv-muted">Nobody yet.</p>'}${key}</div>
+    </div>`;
+}
+function lrMoneyTable(m) {
+  const b = m.booked, a = m.actual, by = m.by_branch || [];
+  const row = (label, x, bold) => { const f = v => bold ? `<b>${v}</b>` : v; return `<tr><td>${f(label)}</td><td>${f(lcNum(x.sent))}</td><td>${f(lrAed(x.cost))}</td><td>${f(lcNum(x.booked))}</td><td>${f(lcNum(x.appts))}</td><td>${f(lrAed(x.proj))}</td><td>${f(x.booked ? lrAed(x.proj / x.booked) : '–')}</td><td>${f(lcNum(x.visited))}</td><td>${f(lrAed(x.actual))}</td></tr>`; };
+  const all = { sent: m.cost.sent, cost: m.cost.aed, booked: b.clients, appts: b.appts, proj: b.proj, visited: a.visited, actual: a.total };
+  return `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Branch</th><th>Sent</th><th>Spent (estimate)</th><th>Clients booked</th><th>Appointments</th><th>Projected spend</th><th>Projected per client</th><th>Came in</th><th>Actual spend</th></tr></thead><tbody>
+      ${by.map(x => row(lcEsc(LC_BRANCH[x.k] || x.k), x)).join('')}${row('All', all, true)}</tbody></table></div>
+    <h4 class="lr-dh">Actual spend, by what they bought</h4>
+    <div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>What</th><th>Actual spend</th><th>Share</th></tr></thead><tbody>
+      ${LR_SPLIT.filter(([k]) => k !== 'other' || a.other).map(([k, l]) => `<tr><td>${l}</td><td>${lrAed(a[k])}</td><td>${lrPct(a[k], a.total)}</td></tr>`).join('')}
+      <tr><td><b>All</b></td><td><b>${lrAed(a.total)}</b></td><td><b>${a.total ? '100.0%' : '–'}</b></td></tr></tbody></table></div>`;
+}
+function lrMoneyInner() {
+  const m = lrMoney;
+  if (!m) return '';
+  const tbl = lrMoneyView === 'table', b = m.booked, unp = b.unpriced || 0;
+  return `<div class="lr-dhd"><h3>Money from the bookings</h3>
+      <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrMoneySet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrMoneySet('table')">Table</button></div></div>
+    ${tbl ? lrMoneyTable(m) : lrMoneyVisual(m)}
+    <p class="slv-note"><b>Projected</b> prices each service on the booked clients' appointments from today on at the median of what that service charged in the last 120 days, VAT included. ${unp ? `${lcNum(unp)} of the ${lcNum(b.svcs)} booked services have no price yet (a package or a free item) and count as 0, so it runs low. ` : ''}<b>Actual</b> is everything the clients we messaged have paid since their first message, VAT included, refunds taken off, without deposits, vouchers and courses sold. It also counts clients who came in and have no booking left. Sales arrive with the nightly upload, so today shows tomorrow. <b>Spent</b> is an estimate, messages sent at AED ${(+m.rate).toFixed(2)} each. A booking or a visit may not be because of our message: she may have booked before it, or been coming anyway.</p>`;
+}
+function lrMoneySet(v) {
+  lrMoneyView = v === 'table' ? 'table' : 'visual';
+  try { localStorage.setItem('lr-money-view', lrMoneyView); } catch (e) {}
+  const el = document.getElementById('lr-money');
+  if (el) el.innerHTML = lrMoneyInner();
+}
 // Did our message arrive? (Kate, 18 Oct 2026). respond.io's delivery status of each message we sent, kept by the nightly sync: seen (read),
 // delivered but not read, or accepted but not delivered yet. The failed count is left off the page on purpose (Kate, 21 Oct 2026): it read like our send had
 // failed when it is WhatsApp's own status on a message we did send. Visual by default, Table beside it.
@@ -249,7 +312,7 @@ function lrSlots(slots) {
 // sections gets a link under the Performance report entry. Drawn only in the sidebar rail (lost-queue.css shows them from 1400px; below
 // that the rail is a row of chips), removed when another tab opens (lqShowTab) and redrawn on every paint, so a section that is not
 // there (no delivery or deposit data yet) has no link. The lit entry follows the scroll.
-const LR_SUBS = [['lr-type', 'Which message'], ['lr-totals', 'The campaign so far'], ['lr-delivery', 'Did the message arrive?'], ['lr-deposits', 'Bookings and deposits'],
+const LR_SUBS = [['lr-type', 'Which message'], ['lr-totals', 'The campaign so far'], ['lr-delivery', 'Did the message arrive?'], ['lr-deposits', 'Bookings and deposits'], ['lr-money', 'Money from the bookings'],
   ['lr-waves', 'By wave'], ['lr-messages', 'By message'], ['lr-branches', 'By branch'], ['lr-days', 'By day'], ['lr-slots', 'Send times'], ['lr-log', 'Send log']];
 let lrSpy = null;
 function lrRailClear() {
@@ -307,6 +370,7 @@ function lrPaint() {
     <section class="lr-sec" id="lr-totals"><h3>The campaign so far${lrType === 'all' ? '' : `: ${lcEsc(lrTypeName())}`}</h3>${lrTiles(t)}</section>
     ${lrDel ? `<section class="lr-sec" id="lr-delivery">${lrDelInner()}</section>` : ''}
     ${lrDep ? `<section class="lr-sec" id="lr-deposits">${lrDepInner()}</section>` : ''}
+    ${lrMoney ? `<section class="lr-sec" id="lr-money">${lrMoneyInner()}</section>` : ''}
     <section class="lr-sec" id="lr-waves"><h3>By wave</h3>${lrTable('Wave', waveRows)}</section>
     <section class="lr-sec" id="lr-messages"><h3>By message</h3>${lrTable('Message', msgRows)}</section>
     <section class="lr-sec" id="lr-branches"><h3>By branch</h3>${lrTable('Branch', brRows)}</section>
