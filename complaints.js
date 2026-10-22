@@ -122,6 +122,9 @@ function cqCss() {
     .cq-t td.cq-det{padding:14px 12px 18px;background:var(--surface2)}
     .cq-bars{display:grid;grid-template-columns:minmax(120px,190px) 1fr auto;gap:6px 10px;align-items:center;font-size:13px}
     .cq-bars.yrs{grid-template-columns:44px 1fr auto}
+    .cq-ftog{display:none}
+    .cq-fsel{display:contents}
+    .cq-ftog .n{display:inline-block;min-width:18px;margin-left:6px;border-radius:9px;background:var(--accent);color:#102;font-size:11px;font-weight:700;line-height:18px;text-align:center}
     .cq-card.cq-wait{border:0;background:none;padding:0;margin-bottom:0}
     .cq-card.cq-wait>:not(#cqBody){display:none}
     .cq-metarow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;margin:0 0 8px}
@@ -161,10 +164,14 @@ function cqCss() {
     @media (max-width:760px){.cq-t .hm{display:none}.cq-grid{grid-template-columns:1fr}.cq h1{font-size:24px}.cq-bars{grid-template-columns:minmax(90px,130px) 1fr auto}
       .cq-bars.yrs{grid-template-columns:40px 1fr auto}
       .cq-card{padding:12px 12px}
-      .cq .cq-filt{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-      .cq .cq-filt .cq-in{grid-column:1/-1;min-height:42px}
+      .cq .cq-filt{display:grid;grid-template-columns:1fr auto;gap:8px}
+      .cq .cq-filt .cq-in{min-height:42px}
+      .cq .cq-ftog{display:inline-flex;align-items:center;min-height:42px;padding:0 16px}
+      .cq .cq-filt .cq-fsel{display:none}
+      .cq .cq-filt.open .cq-fsel{display:grid;grid-template-columns:1fr 1fr;gap:8px;grid-column:1/-1}
       .cq .cq-filt .cq-sel{width:100%;min-width:0;min-height:40px;font-size:14px;padding:0 10px}
       .cq .cq-filt .cq-chk{grid-column:1/-1}
+      #complaintsContent .lg-side{display:none}
       .cq-tiles{grid-template-columns:1fr 1fr}
       .cq-tile{padding:9px 11px}.cq-tile b{font-size:21px}}
   </style>`;
@@ -182,12 +189,15 @@ function cqShell() {
       <p class="cq-note">Tap one to read the original note and how it ended. Redo notes with no reason written are in here as complaints with the reason left blank.</p>
       <div class="cq-bar cq-filt">
         <input id="cqQ" class="cq-in" type="search" inputmode="search" autocomplete="off" placeholder="Name, stylist or words in the note" aria-label="Search complaints" value="${cqEsc(CQ.q)}">
+        <button type="button" id="cqFtog" class="cq-btn cq-ftog" aria-expanded="false">Filters</button>
+        <div class="cq-fsel">
         <select id="cqS" class="cq-sel" aria-label="Where it was written"><option value="visit">Visit notes</option><option value="client">Client card notes</option></select>
         <select id="cqT" class="cq-sel" aria-label="Kind">${topts}</select>
         <select id="cqR" class="cq-sel" aria-label="Outcome">${ropts}</select>
         <select id="cqSt" class="cq-sel" aria-label="Status"><option value="all">Status: any</option><option value="open">Still open</option><option value="resolved">Resolved</option></select>
         <select id="cqG" class="cq-sel" aria-label="Google review"><option value="all">Google: any</option><option value="yes">Left a Google review</option><option value="no">No Google review found</option></select>
         <label class="cq-chk"><input id="cqL" type="checkbox"> Unsure only</label>
+        </div>
       </div>
       <div class="cq-metarow"><p class="cq-meta" id="cqMeta" aria-live="polite"></p><span class="cq-sheetwrap"><span id="cqSheetMsg" class="cq-meta" aria-live="polite"></span><button type="button" id="cqSheet" class="cq-btn">Open in Google Sheets</button></span></div>
       <div id="cqBody" style="overflow-x:auto"><p class="cq-meta">Loading…</p></div>
@@ -196,8 +206,22 @@ function cqShell() {
   </div>`;
 }
 
+// The Filters button on a phone says how many of the pickers are set to something.
+function cqFtogLabel() {
+  const ft = document.getElementById('cqFtog');
+  if (!ft) return;
+  const n = (cqMode === 'log' ? [CQ.status] : [CQ.src === 'visit' ? 'all' : CQ.src, CQ.type, CQ.res, CQ.status, CQ.google]).filter(v => v && v !== 'all').length + (cqMode !== 'log' && CQ.low ? 1 : 0);
+  ft.innerHTML = 'Filters' + (n ? `<span class="n">${n}</span>` : '');
+}
+
 function cqWire() {
   const q = document.getElementById('cqQ'), body = document.getElementById('cqBody'), top = document.getElementById('cqTop');
+  const ft = document.getElementById('cqFtog');
+  if (ft && !ft.dataset.w) {
+    ft.dataset.w = '1';
+    ft.addEventListener('click', () => { const bar = ft.closest('.cq-filt'); const on = bar.classList.toggle('open'); ft.setAttribute('aria-expanded', String(on)); });
+  }
+  cqFtogLabel();
   const sh = document.getElementById('cqSheet');
   if (sh && !sh.dataset.w) { sh.dataset.w = '1'; sh.addEventListener('click', cqSheetsExport); }
   const go = document.getElementById('cqfGo');
@@ -211,14 +235,14 @@ function cqWire() {
     if (el && !el.dataset.w) {
       el.dataset.w = '1';
       el.value = CQ[k];
-      el.addEventListener('change', () => { CQ[k] = el.value; CQ.page = 0; cqOpen = 0; cqLoadList(); });
+      el.addEventListener('change', () => { CQ[k] = el.value; CQ.page = 0; cqOpen = 0; cqFtogLabel(); cqLoadList(); });
     }
   });
   const low = document.getElementById('cqL');
   if (low && !low.dataset.w) {
     low.dataset.w = '1';
     low.checked = CQ.low;
-    low.addEventListener('change', () => { CQ.low = low.checked; CQ.page = 0; cqOpen = 0; cqLoadList(); });
+    low.addEventListener('change', () => { CQ.low = low.checked; CQ.page = 0; cqOpen = 0; cqFtogLabel(); cqLoadList(); });
   }
   if (body && !body.dataset.w) {
     body.dataset.w = '1';

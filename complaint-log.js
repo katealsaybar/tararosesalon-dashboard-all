@@ -76,7 +76,10 @@ function cqLogShell() {
       <p class="cq-note">Tap one to add a follow-up, mark it resolved with how it ended, or reopen it. Branch and Period follow the filters at the top.</p>
       <div class="cq-bar cq-filt">
         <input id="cqQ" class="cq-in" type="search" inputmode="search" autocomplete="off" placeholder="Name, stylist or words in the note" aria-label="Search complaints" value="${cqEsc(CQ.q)}">
+        <button type="button" id="cqFtog" class="cq-btn cq-ftog" aria-expanded="false">Filters</button>
+        <div class="cq-fsel">
         <select id="cqSt" class="cq-sel" aria-label="Status"><option value="all">Status: any</option><option value="open">Still open</option><option value="resolved">Resolved</option></select>
+        </div>
       </div>
       <div class="cq-metarow"><p class="cq-meta" id="cqMeta" aria-live="polite"></p><span class="cq-sheetwrap"><span id="cqSheetMsg" class="cq-meta" aria-live="polite"></span><button type="button" id="cqSheet" class="cq-btn">Open in Google Sheets</button></span></div>
       <div id="cqBody" style="overflow-x:auto"><p class="cq-meta">Loading…</p></div>
