@@ -121,6 +121,12 @@ function cqCss() {
     .cq-t tr.cq-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
     .cq-t td.cq-det{padding:14px 12px 18px;background:var(--surface2)}
     .cq-bars{display:grid;grid-template-columns:minmax(120px,190px) 1fr auto;gap:6px 10px;align-items:center;font-size:13px}
+    .cq-bars.yrs{grid-template-columns:44px 1fr auto}
+    .cq-card.cq-wait{border:0;background:none;padding:0;margin-bottom:0}
+    .cq-card.cq-wait>:not(#cqBody){display:none}
+    .cq-metarow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;margin:0 0 8px}
+    .cq-metarow .cq-meta{margin:0}
+    .cq-sheetwrap{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
     .cq-trk{height:14px;border-radius:7px;background:var(--surface2);display:flex;overflow:hidden}
     .cq-seg{height:100%;min-width:2px}
     .cq-val{font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted);white-space:nowrap}
@@ -152,7 +158,15 @@ function cqCss() {
     .cq-msg{font-size:13px}.cq-msg.err{color:var(--warn)}
     .cq-btn.pri{background:var(--accent);color:#102;border-color:var(--accent);font-weight:600}
     .cq-foot{color:var(--muted);font-size:12px;line-height:1.5;margin:12px 0 0;max-width:820px}
-    @media (max-width:760px){.cq-t .hm{display:none}.cq-grid{grid-template-columns:1fr}.cq h1{font-size:24px}.cq-bars{grid-template-columns:minmax(90px,130px) 1fr auto}}
+    @media (max-width:760px){.cq-t .hm{display:none}.cq-grid{grid-template-columns:1fr}.cq h1{font-size:24px}.cq-bars{grid-template-columns:minmax(90px,130px) 1fr auto}
+      .cq-bars.yrs{grid-template-columns:40px 1fr auto}
+      .cq-card{padding:12px 12px}
+      .cq .cq-filt{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+      .cq .cq-filt .cq-in{grid-column:1/-1;min-height:42px}
+      .cq .cq-filt .cq-sel{width:100%;min-width:0;min-height:40px;font-size:14px;padding:0 10px}
+      .cq .cq-filt .cq-chk{grid-column:1/-1}
+      .cq-tiles{grid-template-columns:1fr 1fr}
+      .cq-tile{padding:9px 11px}.cq-tile b{font-size:21px}}
   </style>`;
 }
 
@@ -163,10 +177,10 @@ function cqShell() {
     <h1>Client Complaints</h1>
     <p class="cq-sub">Every complaint written into a Phorest client card or visit note, read one by one and sorted by branch, year, kind and how it was resolved. Levels 2 and up. It shows what staff wrote down, not every complaint that happened, and it is a copy from 21 Oct 2026.</p>
     ${cqRailShell(`<div id="cqTop"><p class="cq-meta">Loading…</p></div>
-    <div class="cq-card" id="cq-list">
+    <div class="cq-card cq-wait" id="cq-list">
       <h2>The complaints</h2>
       <p class="cq-note">Tap one to read the original note and how it ended. Redo notes with no reason written are in here as complaints with the reason left blank.</p>
-      <div class="cq-bar">
+      <div class="cq-bar cq-filt">
         <input id="cqQ" class="cq-in" type="search" inputmode="search" autocomplete="off" placeholder="Name, stylist or words in the note" aria-label="Search complaints" value="${cqEsc(CQ.q)}">
         <select id="cqS" class="cq-sel" aria-label="Where it was written"><option value="visit">Visit notes</option><option value="client">Client card notes</option></select>
         <select id="cqT" class="cq-sel" aria-label="Kind">${topts}</select>
@@ -175,7 +189,7 @@ function cqShell() {
         <select id="cqG" class="cq-sel" aria-label="Google review"><option value="all">Google: any</option><option value="yes">Left a Google review</option><option value="no">No Google review found</option></select>
         <label class="cq-chk"><input id="cqL" type="checkbox"> Unsure only</label>
       </div>
-      <p class="cq-meta" id="cqMeta" aria-live="polite"></p>
+      <div class="cq-metarow"><p class="cq-meta" id="cqMeta" aria-live="polite"></p><span class="cq-sheetwrap"><span id="cqSheetMsg" class="cq-meta" aria-live="polite"></span><button type="button" id="cqSheet" class="cq-btn">Open in Google Sheets</button></span></div>
       <div id="cqBody" style="overflow-x:auto"><p class="cq-meta">Loading…</p></div>
     </div>`)}
     <p class="cq-foot">How to read it. A complaint here is a note where the client was unhappy with the service, result, price, wait or experience, or where a redo, refund or credit was given because the result was not right. Cancellation apologies, deposit rules, Google review requests and clients unhappy with another salon were left out. A free redo means a redo was written down; most of them had no charge on the visit, some did. The rate per 1,000 noted visits is there because branches do not write notes equally, so the raw count favours the branch that writes most. Marasy closed in 2022. Not included: WhatsApp complaints, respond.io tags, Google reviews, and anything nobody typed into Phorest. Client card notes have no date, so they are counted apart and only show in All time. Unsure means the note was too short to be sure, usually a bare "redo". The Google column looks for a Google review whose reviewer name is the client's full name, left on or after the complaint. Reviewers often post a first name or a nickname, so None found is not proof that nothing was posted, and a match is the same name, not a certainty it is about that visit.</p>
@@ -184,6 +198,8 @@ function cqShell() {
 
 function cqWire() {
   const q = document.getElementById('cqQ'), body = document.getElementById('cqBody'), top = document.getElementById('cqTop');
+  const sh = document.getElementById('cqSheet');
+  if (sh && !sh.dataset.w) { sh.dataset.w = '1'; sh.addEventListener('click', cqSheetsExport); }
   const go = document.getElementById('cqfGo');
   if (go && !go.dataset.w) { go.dataset.w = '1'; go.addEventListener('click', cqSubmit); }
   if (q && !q.dataset.w) {
@@ -372,7 +388,7 @@ function cqYears(rows) {
     const parts = order.map(b => { const s = y.seg.find(x => x.branch === b); return s ? `${cqBr(b)} ${s.n}` : ''; }).filter(Boolean).join(', ');
     return `<div>${y.yr}</div><div class="cq-trk" role="img" aria-label="${y.yr}: ${y.tot} (${cqEsc(parts)})" data-tip="${y.yr}: ${cqNum(y.tot)} complaint${y.tot === 1 ? '' : 's'}">${segs}</div><div class="cq-val">${cqNum(y.tot)}</div>`;
   }).join('');
-  return `${legend}<div class="cq-bars">${bars}</div>`;
+  return `${legend}<div class="cq-bars yrs">${bars}</div>`;
 }
 
 function cqPaintSummary() {
@@ -411,6 +427,7 @@ function cqPaintSummary() {
 function cqPaintList() {
   const body = document.getElementById('cqBody'), meta = document.getElementById('cqMeta');
   if (!body || !cqList) return;
+  const wcard = document.getElementById('cq-list'); if (wcard) wcard.classList.remove('cq-wait');
   const rows = cqList.rows || [], total = Number(cqList.total || 0);
   const from = total ? CQ.page * CQ.size + 1 : 0, to = CQ.page * CQ.size + rows.length;
   if (meta) meta.textContent = total ? `${cqNum(from)} to ${cqNum(to)} of ${cqNum(total)} complaint${total === 1 ? '' : 's'}` : '';
@@ -454,15 +471,56 @@ async function cqLoadSummary() {
   }
 }
 
+const cqListArgs = (limit, offset) => ({
+  p_branch: cqBranch(), p_src: cqSrc(), p_type: CQ.type, p_resolution: CQ.res, p_q: CQ.q.trim(), p_low: CQ.low,
+  p_limit: limit, p_offset: offset, p_sort: CQ.sort, p_dir: CQ.dir, p_google: CQ.google, p_status: CQ.status, ...cqWin()
+});
+
+// Open in Google Sheets (Kate, 22 Oct 2026: "this table may be opened on Google Sheets"). A Google Sheet cannot be made from the page without a
+// sign-in to Google, so this copies every row the filters match (not only the page on screen), tab separated, and opens a new Google Sheet to
+// paste into with Ctrl+V. The window is opened first, on the click, so the browser does not block it while the rows are fetched.
+async function cqSheetsExport() {
+  const btn = document.getElementById('cqSheet'), msg = document.getElementById('cqSheetMsg');
+  const say = t => { if (msg) msg.textContent = t; };
+  const w = window.open('', '_blank');
+  if (btn) btn.disabled = true;
+  say('Getting the rows…');
+  try {
+    const rows = []; let total = Infinity, off = 0;
+    while (off < total && off < 5000) {
+      const { data, error } = await sb.rpc('client_complaints_list', cqListArgs(100, off));
+      if (error) throw error;
+      total = Number(data.total || 0);
+      const got = data.rows || [];
+      rows.push(...got);
+      if (!got.length) break;
+      off += 100;
+    }
+    const cell = v => String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' ').replace(/"/g, "'").trim();
+    const head = ['Date', 'Branch', 'Client', 'Kind', 'What happened', 'Outcome', 'How it ended', 'Stylist', 'Service', 'Charged (AED)', 'Handled by',
+      'Status', 'Logged by', 'Google review', 'Original note'];
+    const lines = [head].concat(rows.map(r => [
+      r.date ? String(r.date).slice(0, 10) : 'Client card', cqBr(r.branch), r.client, CQ_TYPE[r.type] || r.type,
+      r.detail, r.status === 'open' ? 'Still open' : (CQ_RES[r.resolution] || r.resolution), r.resolution_detail, r.stylists, r.services,
+      r.fee, r.handled_by, r.status === 'open' ? 'Open' : (r.status === 'resolved' ? 'Resolved' : ''), r.by,
+      r.g_date ? `${'★'.repeat(Math.max(0, Math.min(5, Number(r.g_stars) || 0)))} ${String(r.g_date).slice(0, 10)}` : (r.g_manual ? 'Posted (logged)' : ''), r.note
+    ]));
+    await navigator.clipboard.writeText(lines.map(l => l.map(cell).join('\t')).join('\n'));
+    if (w) w.location.href = 'https://sheets.new';
+    say(`Copied ${rows.length} row${rows.length === 1 ? '' : 's'}. Paste them into the new sheet with Ctrl+V.`);
+  } catch (e) {
+    console.error(e);
+    if (w) w.close();
+    say('It could not copy the rows. Try again.');
+  } finally { if (btn) btn.disabled = false; }
+}
+
 async function cqLoadList() {
   const body = document.getElementById('cqBody');
   if (!body) return;
   const seq = ++cqSeqL;
   try {
-    const { data, error } = await sb.rpc('client_complaints_list', {
-      p_branch: cqBranch(), p_src: cqSrc(), p_type: CQ.type, p_resolution: CQ.res, p_q: CQ.q.trim(), p_low: CQ.low,
-      p_limit: CQ.size, p_offset: CQ.page * CQ.size, p_sort: CQ.sort, p_dir: CQ.dir, p_google: CQ.google, p_status: CQ.status, ...cqWin()
-    });
+    const { data, error } = await sb.rpc('client_complaints_list', cqListArgs(CQ.size, CQ.page * CQ.size));
     if (error) throw error;
     if (seq !== cqSeqL) return;
     cqList = data;
@@ -470,6 +528,7 @@ async function cqLoadList() {
   } catch (e) {
     console.error(e);
     if (seq !== cqSeqL) return;
+    const wc = document.getElementById('cq-list'); if (wc) wc.classList.remove('cq-wait');
     body.innerHTML = '<p class="cq-meta" style="padding:10px 4px">The list did not load. Refresh to try again.</p>';
   }
 }

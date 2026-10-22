@@ -69,14 +69,14 @@ function cqLogShell() {
     <h1>Log a Complaint</h1>
     <p class="cq-sub">When a client complains, log it here so it is written down once, followed up and closed, and not left in WhatsApp. Leave How it was resolved empty and it stays open until you mark it resolved. Levels 2 and up. Everything logged here also counts in Client Complaints.</p>
     ${cqRailShell(`${cqForm()}
-    <div class="cq-card" id="cq-list">
+    <div class="cq-card cq-wait" id="cq-list">
       <h2>Logged complaints</h2>
       <p class="cq-note">Tap one to add a follow-up, mark it resolved with how it ended, or reopen it. Branch and Period follow the filters at the top.</p>
-      <div class="cq-bar">
+      <div class="cq-bar cq-filt">
         <input id="cqQ" class="cq-in" type="search" inputmode="search" autocomplete="off" placeholder="Name, stylist or words in the note" aria-label="Search complaints" value="${cqEsc(CQ.q)}">
         <select id="cqSt" class="cq-sel" aria-label="Status"><option value="all">Status: any</option><option value="open">Still open</option><option value="resolved">Resolved</option></select>
       </div>
-      <p class="cq-meta" id="cqMeta" aria-live="polite"></p>
+      <div class="cq-metarow"><p class="cq-meta" id="cqMeta" aria-live="polite"></p><span class="cq-sheetwrap"><span id="cqSheetMsg" class="cq-meta" aria-live="polite"></span><button type="button" id="cqSheet" class="cq-btn">Open in Google Sheets</button></span></div>
       <div id="cqBody" style="overflow-x:auto"><p class="cq-meta">Loading…</p></div>
     </div>`, [['cq-new', 'Log a complaint'], ['cq-list', 'Logged complaints']])}
   </div>`;
