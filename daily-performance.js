@@ -216,7 +216,7 @@ function dpCss() {
   .dpf .dp-scrub input{flex:1;min-width:0;accent-color:var(--accent)}
   .dpf .dp-scrub output{font-size:13px;font-weight:600;min-width:120px;text-align:right}
   .dpf .dp-lead .dp-lab{min-width:0;flex:none}
-  .dpf .dp-meter{position:relative;display:flex;height:10px;margin:16px 0 6px}
+  .dpf .dp-meter{position:relative;display:flex;height:10px;margin:22px 0 6px}
   .dpf .dp-meter .mz{display:block;height:10px}
   .dpf .dp-meter .mz:first-child{border-radius:5px 0 0 5px}.dpf .dp-meter .mz.good{flex:1;border-radius:0 5px 5px 0}
   .dpf .dp-meter .mz.bad{background:var(--bad-bg)}.dpf .dp-meter .mz.warn{background:var(--warn-bg)}.dpf .dp-meter .mz.good{background:var(--good-bg)}
@@ -228,6 +228,13 @@ function dpCss() {
   .dpf .dp-meter-k .kb{flex:none;width:14px;height:6px;border-radius:3px;background:var(--muted)}
   .dpf .dp-meter-k .kn{flex:none;width:3px;height:12px;margin:0 5.5px;border-radius:1px;background:var(--text)}
   .dpf .dp-meter-k .kt{flex:none;width:0;height:12px;margin:0 6.5px;border-left:1.5px dashed var(--muted)}
+  .dpf .dp-meter-k.dp-mkt{margin-top:7px}
+  .dpf .dp-mrow{display:flex;gap:8px;align-items:flex-start;margin:7px 0 0}
+  .dpf .dp-mrow>i{flex:none;display:block;margin-top:5px}.dpf .dp-mrow>i.kb{width:14px;height:6px;border-radius:3px;background:var(--muted)}.dpf .dp-mrow>i.kn{width:3px;height:14px;margin:1px 5.5px 0;border-radius:1px;background:var(--text)}
+  .dpf .dp-mrow>div{flex:1;min-width:0}
+  .dpf .dp-mh{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--text);line-height:1.4}.dpf .dp-mh span{font-weight:700}
+  .dpf .dp-ms{font-size:12px;color:var(--muted);line-height:1.4}
+  .dpf .dp-meter .mt::after{content:"target";position:absolute;top:-12px;left:0;transform:translateX(-50%);font-size:9px;line-height:1;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
   .dpf .dp-cust summary{font-weight:600;color:var(--text);list-style:none;display:flex;align-items:center;gap:10px}
   .dpf .dp-cust summary::-webkit-details-marker{display:none}
   /* Kate, 18 Oct 2026: "customise measures doesn't look obvious na it can be clicked". A chevron at the right edge, turned up when it is open. */
@@ -815,17 +822,16 @@ function dpPeriodFig(mk, code, idxs) {
 // The meter under a tile (Kate, 18 Oct 2026: "a bar meter with a moveable needle to show daily performance"): 0 to 150% of target,
 // red under 80, amber to 100, green beyond. The bar is the whole period against its target, the needle is the latest day against its
 // own daily target, the dashed line is 100%. Money and counts that have a target; a rate keeps its chip.
-function dpMeter(pf, c, dayName, M) {
+function dpMeter(pf, c, dayName, M, dayWord) {
   if (!pf || pf.p == null) return '';
+  // Kate, 22 Oct 2026: the day's target read as an afterthought when the day slider moved. The bar and the white line now each get a
+  // row of the same weight: what it is, its % of target, then its figure against its own target in plain words.
+  const mrow = (cls, name, p, v, t, tword) => `<div class="dp-mrow"><i class="${cls}"></i><div><div class="dp-mh"><b>${name}</b><span>${Math.round(p)}%</span></div><div class="dp-ms">${M && M.fmt ? M.fmt(v) : ''} against ${tword} of ${M && M.fmt ? M.fmt(t) : ''}</div></div></div>`;
   const X = p => Math.min(Math.max(p, 0), 150) / 150 * 100;
   const dayP = c && c.p != null ? c.p : null, col = pf.p >= 100 ? 'good' : pf.p >= 80 ? 'warn' : 'bad';
-  // Kate, 18 Oct 2026: "it says 149% above target, but doesn't actually show what the target value is": each line under the meter now
-  // names the target it is a percentage of.
-  const tgt = x => x != null && M && M.fmt ? ' of ' + M.fmt(x) : '';
   return `<div class="dp-meter" role="img" aria-label="Whole period ${Math.round(pf.p)}% of target${dayP != null ? ', day ' + Math.round(dayP) + '%' : ''}"><span class="mz bad" style="width:${80 / 150 * 100}%"></span><span class="mz warn" style="width:${20 / 150 * 100}%"></span><span class="mz good"></span><i class="mf ${col}" style="width:${X(pf.p)}%"></i><b class="mt" style="left:${X(100)}%"></b>${dayP != null ? `<b class="mn" style="left:${X(dayP)}%"></b>` : ''}</div>
-    <div class="dp-meter-k"><i class="kb"></i><span>Bar: whole period so far, ${M && M.fmt ? M.fmt(pf.v) + ', ' : ''}${Math.round(pf.p)}%${tgt(pf.t)} target</span></div>${dayP != null ? `
-    <div class="dp-meter-k"><i class="kn"></i><span>White line: ${dayName ? dayName : 'the day'}, ${M && M.fmt ? M.fmt(c.v) + ', ' : ''}${Math.round(dayP)}%${tgt(c.t)} daily target${dayP > 150 ? ' (off the end of the meter)' : ''}</span></div>` : ''}
-    <div class="dp-meter-k"><i class="kt"></i><span>Dashed line: the target (100%)</span></div>`;
+    ${mrow('kb', 'Whole period so far', pf.p, pf.v, pf.t, 'its target')}${dayP != null ? mrow('kn', (dayWord ? dayWord + ' · ' : '') + (dayName || 'the day'), dayP, c.v, c.t, "that day's target") + (dayP > 150 ? '<div class="dp-meter-k">The white line is off the end of the meter.</div>' : '') : ''}
+    <div class="dp-meter-k dp-mkt"><i class="kt"></i><span>Dashed line: the target (100%)</span></div>`;
 }
 // The day the needle has been moved to (an index into the window's days), or null for the latest open day. Reset when the window changes.
 let dpPick = null, dpPickKey = '', dpCtx = null;
@@ -857,7 +863,9 @@ function dpTiles(win, idxs, cidx) {
     const why = raw.state === 'closed' ? 'Closed' : 'No figures';
     const pf = idxs.length > 1 ? dpPeriodFig(mk, code, idxs) : null;
     const label = `<b style="color:var(--text)">${M.def && typeof ihTip === 'function' ? ihTip(dpEsc(M.label), M.def) : dpEsc(M.label)}</b>`;
-    const meter = M.kind === 'vol' && !M.notarget ? dpMeter(pf, c, dayName, M) : '';
+    const meter = M.kind === 'vol' && !M.notarget ? dpMeter(pf, c, dayName, M, dayWord) : '';
+    // The meter's own rows already give the period and the day, each against its target, so the lines that said the same are left out.
+    const metered = !!meter;
     const spark = `<div style="margin-top:8px;max-width:260px">${dpSpark(code, idxs, mk)}</div>`;
     const asst = c && M.util && c.asst && c.asst.shifts ? `<div class="dp-sub">Assistants on shift: ${c.asst.shifts} (${Math.round(c.asst.hours)} h on the rota), not in the percentage</div>` : '';
     if (DP.lead !== 'day' && pf) {
@@ -865,7 +873,8 @@ function dpTiles(win, idxs, cidx) {
       const [pcls, ptxt, pic] = M.util ? dpUtilStatus(pf.v) : dpStatus(pf.p, dpLoP(mk, pf.t));
       const pchip = M.util ? ptxt : (M.kind === 'ratio' && pf.t != null) ? (Math.abs(pf.v - pf.t) < 1e-9 ? 'On target' : `${dpDiff(M, pf)} ${pf.v >= pf.t ? 'above' : 'below'} target`)
         : `${pf.p != null ? Math.round(pf.p) + '% · ' : ''}${ptxt}`;
-      const dayLine = c
+      const dayLine = c && metered && c.p != null ? ''
+        : c
         ? `<div class="dp-sub dp-per"><b>${dayWord} · ${dayName}</b>: ${M.fmt(c.v)}${c.p != null && !M.util ? ' · ' + Math.round(c.p) + '% of target' : ''}${c.t && M.kind !== 'ratio' ? ' (daily target ' + M.fmt(c.t) + ')' : ''}</div>`
         : `<div class="dp-sub dp-per"><b>${dayWord} · ${dayName}</b>: ${why}</div>`;
       return `<div class="dp-tile">${head}<div class="dp-eyebrow">${dpEsc(dpPeriodName(idxs))}</div><div class="big">${M.fmt(pf.v)}</div>
@@ -882,7 +891,7 @@ function dpTiles(win, idxs, cidx) {
       return `<div class="dp-tile">${head}${eyebrow}<div class="big" style="color:var(--muted2)">—</div>
       <div class="dp-sub">${label} · ${why} ${dayName}</div>
       ${meter}
-      ${dpPeriodLine(mk, code, idxs)}
+      ${metered ? '' : dpPeriodLine(mk, code, idxs)}
       ${spark}</div>`;
     }
     const [cls, txt, ic] = M.util ? dpUtilStatus(c.v) : dpStatus(c.p, dpLoP(mk, c.t));
@@ -894,7 +903,7 @@ function dpTiles(win, idxs, cidx) {
       <span class="dp-chip ${cls}">${ic} ${chip}</span>
       ${meter}
       ${asst}
-      ${dpPeriodLine(mk, code, idxs)}
+      ${metered && c.p != null ? '' : dpPeriodLine(mk, code, idxs)}
       ${spark}</div>`;
   }).join('');
 }
