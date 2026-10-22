@@ -164,10 +164,10 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
 `;
 
   let host = null, root = null, D = null;
-  let SUP = [], PR = [], CAPS = { salon: {}, cat: {}, sup: {} }, INC = {}, EDIT = false;
-  const S = { phone: false, month: null, br: 'ALL', group: true, activeOnly: true, q: '', qraw: '', fSup: null, fCat: null, sort: { k: 'val', d: -1 }, open: {}, menu: null, fOpen: true, msg: '' };
+  let SUP = [], PR = [], FM = [], CAPS = { salon: {}, cat: {}, sup: {}, fam: {} }, INC = {}, EDIT = false;
+  const S = { phone: false, month: null, br: 'ALL', group: true, activeOnly: true, q: '', qraw: '', fSup: null, fCat: null, fPrio: null, sort: { k: 'val', d: -1 }, open: {}, menu: null, fOpen: true, msg: '' };
   let loading = false;
-  const isPhone = () => !!host && host.getBoundingClientRect().width < 600;
+  const isPhone = () => { const w = host ? host.getBoundingClientRect().width : 0; return w ? w < 600 : S.phone; };   // hidden (width 0) keeps what it was
 
   const $ = id => root.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -190,13 +190,15 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
     const byName = {};
     SUP = d.suppliers.map(s => (byName[s.n] = { n: s.n, cat: s.cat, inv: {} }));
     d.invoiced.forEach(r => { const s = byName[r.s]; if (s) s.inv[r.b] = Number(r.v); });
-    const bs = d.brandsup || {}, pc = {};
+    const bs = d.brandsup || {}, pc = {}, pp = {};
     d.prodcat.forEach(r => { pc[r[0] + '\n' + r[1]] = r[2]; });
+    (d.prodprio || []).forEach(r => { pp[r[0] + '\n' + r[1]] = r[2]; });
     PR = d.products.map((r, i) => {
       const def = (r[3] === 'Beauty' ? 'Beauty' : 'Hair') + (r[2] === 'retail' ? ' Retail' : ' Professional'), key = r[0] + '\n' + r[1];
-      return { i, brand: r[0], p: r[1], key, def, c: pc[key] || def, s: bs[r[0]] || 'Unassigned', v: [r[4], r[5], r[6], r[7]].map(Number), q: Number(r[8]) };
+      return { i, brand: r[0], p: r[1], key, def, c: pc[key] || def, pr: pp[key] || '', s: bs[r[0]] || 'Unassigned', v: [r[4], r[5], r[6], r[7]].map(Number), q: Number(r[8]) };
     });
-    CAPS = { salon: {}, cat: {}, sup: {} };
+    FM = (d.fam_months || []).map(r => ({ b: r[0], f: r[1], m: r[2], s: Number(r[3]), u: Number(r[4]) }));
+    CAPS = { salon: {}, cat: {}, sup: {}, fam: {} };
     d.caps.forEach(r => { if (CAPS[r[0]]) CAPS[r[0]][r[1]] = Number(r[2]); });
     INC = d.income || {};
   }
@@ -235,7 +237,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
     });
     return out;
   }
-  const capIn = (kind, key, val, cls) => '<input class="capin ' + (cls || '') + '" type="number" min="0" step="' + (kind === 'sup' ? 500 : 0.5) + '" data-cap="' + kind + '|' + esc(key) + '" value="' + (val == null ? '' : val) + '" placeholder="cap" aria-label="Cap for ' + esc(key) + '"' + dis() + '>';
+  const capIn = (kind, key, val, cls) => '<input class="capin ' + (cls || '') + '" type="number" min="0" step="' + (kind === 'sup' ? 500 : kind === 'fam' ? 100 : 0.5) + '" data-cap="' + kind + '|' + esc(key) + '" value="' + (val == null ? '' : val) + '" placeholder="cap" aria-label="Cap for ' + esc(key) + '"' + dis() + '>';
   function bar(ratio, capRatio) {
     const w = Math.max(0, Math.min(ratio, 1)) * 100, over = capRatio != null && ratio > capRatio;
     return '<div class="bar" aria-hidden="true"><i class="' + (capRatio == null ? 'neu' : over ? 'over' : '') + '" style="width:' + w.toFixed(1) + '%"></i>' + (capRatio != null ? '<b style="left:' + (Math.min(capRatio, 1) * 100).toFixed(1) + '%"></b>' : '') + '</div>';
@@ -286,7 +288,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
     Object.keys(groups).forEach(k => {
       const g = groups[k]; if (S.fSup && !S.fSup[g.n]) return;
       const qs = q && g.n.toLowerCase().indexOf(q) >= 0;
-      const ps = g.prods.filter(p => sumP(p) > 0 && (!S.fCat || S.fCat[p.c]) && (!q || qs || (p.p + ' ' + p.brand).toLowerCase().indexOf(q) >= 0));
+      const ps = g.prods.filter(p => sumP(p) > 0 && (!S.fCat || S.fCat[p.c]) && (!S.fPrio || (p.pr || '-') === S.fPrio) && (!q || qs || (p.p + ' ' + p.brand).toLowerCase().indexOf(q) >= 0));
       if (!ps.length) return;
       const bv = scope().map(b => ps.reduce((a, p) => a + p.v[bi(b)], 0)), tot = bv.reduce((a, v) => a + v, 0);
       const cs = {}; ps.forEach(p => { cs[p.c] = (cs[p.c] || 0) + sumP(p); });
@@ -298,16 +300,18 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
   }
   const catSel = (val, attr) => '<select class="sel" ' + attr + ' aria-label="Category"' + dis() + '>' + ALLCATS.map(c => '<option' + (c === val ? ' selected' : '') + '>' + c + '</option>').join('') + '</select>';
   const supSel = (val, attr) => '<select class="sel" ' + attr + ' aria-label="Supplier" title="Moves every product of this brand"' + dis() + '>' + SUP.map(s => s.n).concat(['Unassigned']).map(c => '<option' + (c === val ? ' selected' : '') + '>' + esc(c) + '</option>').join('') + '</select>';
+  const prioSel = (val, attr) => '<select class="sel prio" ' + attr + ' aria-label="Priority"' + dis() + '><option value="">-</option><option' + (val === 'A' ? ' selected' : '') + '>A</option><option' + (val === 'B' ? ' selected' : '') + '>B</option></select>';
   const catChip = cs => {
     const ks = Object.keys(cs).sort((a, b) => cs[b] - cs[a]), t = ks.reduce((a, c) => a + cs[c], 0);
     return '<span class="catc" title="' + esc(ks.map(c => c + ' ' + Math.round(cs[c] / t * 100) + '%').join(', ')) + '">' + ks[0] + (ks.length > 1 ? ' +' + (ks.length - 1) : '') + '</span>';
   };
+  const prioCount = r => { const a = r.ps.filter(p => p.pr === 'A').length, b = r.ps.filter(p => p.pr === 'B').length; return (a ? 'A ' + a : '') + (a && b ? ' · ' : '') + (b ? 'B ' + b : ''); };
   const isOpenRow = (name, r, anyFilter) => !!S.open[name] || (anyFilter && r.ps.length > 0 && S.open[name] !== false);
 
   function sheetPhone() {
     const rows = supRows(), bs = scope(), anyFilter = !!(S.fSup || S.fCat || S.q), grand = rows.reduce((a, r) => a + r.tot, 0);
     const prodCard = (p, withSup) => '<div class="pcard"><div class="pcn">' + esc(p.p) + '</div><div class="pcs">' + esc(p.brand) + ' · qty ' + f(p.q) + '</div><div class="pcr">' +
-      (withSup ? supSel(p.s, 'data-psup="' + p.i + '"') : '') + catSel(p.c, 'data-pcat="' + p.i + '"') + '<b>AED ' + f(sumP(p)) + '</b></div></div>';
+      (withSup ? supSel(p.s, 'data-psup="' + p.i + '"') : '') + catSel(p.c, 'data-pcat="' + p.i + '"') + prioSel(p.pr, 'data-pprio="' + p.i + '"') + '<b>AED ' + f(sumP(p)) + '</b></div></div>';
     const supCard = (r, isOpen) => '<div class="sc"><button type="button" class="sch" data-exp="' + esc(r.g.n) + '" aria-expanded="' + isOpen + '"><span class="scn">' + (isOpen ? '▾ ' : '▸ ') + esc(r.g.n) +
       (r.g.n === 'Unassigned' ? '<span class="tag">no supplier yet</span>' : '') + '</span><span class="scv">' + f(r.tot) + '</span></button>' +
       '<div class="scm">' + catChip(r.cs) + '<span>' + r.ps.length + ' product lines' + (isOpen ? '' : ', tap to open') + '</span></div>' +
@@ -328,16 +332,16 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
     const rows = supRows(), bs = scope(), anyFilter = !!(S.fSup || S.fCat || S.q), arrow = S.sort.d > 0 ? '▲' : '▼', grand = rows.reduce((a, r) => a + r.tot, 0);
     const supTh = '<button type="button" class="so" data-sort="name">Supplier ' + (S.sort.k === 'name' ? arrow : '') + '</button>';
     const th = '<tr><th class="n">#</th>' + (S.group ? '<th class="l" colspan="2">' + supTh + ' <span style="font-weight:400">and its products</span></th>' : '<th class="l">' + supTh + '</th><th class="l">Product</th>') +
-      '<th class="l">Category</th>' + bs.map(b => '<th>' + b + '</th>').join('') + '<th><button type="button" class="so" data-sort="val">Received ' + (S.sort.k === 'val' ? arrow : '') + '</button></th></tr>';
+      '<th class="l">Category</th><th class="l" title="A or B, set by hand">Prio</th>' + bs.map(b => '<th>' + b + '</th>').join('') + '<th><button type="button" class="so" data-sort="val">Received ' + (S.sort.k === 'val' ? arrow : '') + '</button></th></tr>';
     const prodCells = (p, withSup) => (withSup ? '<td class="l">' + supSel(p.s, 'data-psup="' + p.i + '"') + '</td>' : '') +
-      '<td class="pc' + (withSup ? ' flat' : '') + '"' + (withSup ? '' : ' colspan="2"') + '><span title="' + esc(p.p) + '">' + esc(p.p) + '</span><small>' + esc(p.brand) + ' · qty ' + f(p.q) + '</small></td><td class="l">' + catSel(p.c, 'data-pcat="' + p.i + '"') + '</td>' +
+      '<td class="pc' + (withSup ? ' flat' : '') + '"' + (withSup ? '' : ' colspan="2"') + '><span title="' + esc(p.p) + '">' + esc(p.p) + '</span><small>' + esc(p.brand) + ' · qty ' + f(p.q) + '</small></td><td class="l">' + catSel(p.c, 'data-pcat="' + p.i + '"') + '</td><td class="l">' + prioSel(p.pr, 'data-pprio="' + p.i + '"') + '</td>' +
       bs.map(b => '<td>' + (p.v[bi(b)] ? f(p.v[bi(b)]) : dsh()) + '</td>').join('') + '<td>' + f(sumP(p)) + '</td>';
     let n = 0, cnt = rows.length, body;
     const groupRow = r => {
       n++;
       const isOpen = isOpenRow(r.g.n, r, anyFilter);
       return '<tr class="g"><td class="n">' + n + '</td><td class="l" colspan="2"><button type="button" class="exp" data-exp="' + esc(r.g.n) + '" aria-label="Show products" aria-expanded="' + isOpen + '">' + (isOpen ? '▾' : '▸') + '</button>' + esc(r.g.n) +
-        (r.g.n === 'Unassigned' ? '<span class="tag">no supplier yet</span>' : '') + ' <span class="muted" style="font-weight:400;font-size:12px">' + r.ps.length + ' product lines</span></td><td class="l">' + catChip(r.cs) + '</td>' +
+        (r.g.n === 'Unassigned' ? '<span class="tag">no supplier yet</span>' : '') + ' <span class="muted" style="font-weight:400;font-size:12px">' + r.ps.length + ' product lines</span></td><td class="l">' + catChip(r.cs) + '</td><td class="l muted">' + prioCount(r) + '</td>' +
         r.bv.map(v => '<td>' + (v ? f(v) : dsh()) + '</td>').join('') + '<td>' + f(r.tot) + '</td></tr>' +
         (isOpen ? r.ps.slice().sort((a, b) => sumP(b) - sumP(a)).map(p => '<tr class="pr"><td class="n"></td>' + prodCells(p, false) + '</tr>').join('') : '');
     };
@@ -347,9 +351,51 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
       all.sort((a, b) => S.sort.k === 'name' ? S.sort.d * (a.s + a.p).localeCompare(b.s + b.p) : S.sort.d * (sumP(a) - sumP(b)));
       cnt = all.length; body = all.map((p, i) => '<tr class="pr"><td class="n">' + (i + 1) + '</td>' + prodCells(p, true) + '</tr>').join('');
     }
-    if (!body) body = '<tr><td colspan="' + (5 + bs.length) + '" class="l" style="padding:22px;color:var(--muted)">No stock received matches these filters.</td></tr>';
+    if (!body) body = '<tr><td colspan="' + (6 + bs.length) + '" class="l" style="padding:22px;color:var(--muted)">No stock received matches these filters.</td></tr>';
     const st = '<div class="stat"><span><b>' + cnt + '</b> ' + (S.group ? 'suppliers' : 'product lines') + (anyFilter ? ' (filtered)' : '') + '</span><span>Received <b>AED ' + f(grand) + '</b></span><span>' + monthLabel(S.month, D.partial) + ' · ' + (S.br === 'ALL' ? 'all branches' : BN[S.br]) + '</span></div>';
     return '<div class="sw"><table class="sh"><thead>' + th + '</thead><tbody>' + body + '</tbody></table></div>' + st;
+  }
+
+  /* ---------- Weekly spend by product family (professional stock received in Phorest, as a weekly rate) ---------- */
+  function famModel() {
+    const bs = scope(), m0 = new Date(S.month + 'T00:00:00'), months = [];
+    for (let i = 3; i >= 0; i--) { const d = new Date(m0.getFullYear(), m0.getMonth() - i, 1); months.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01'); }
+    const dim = k => { const a = k.split('-').map(Number); return new Date(a[0], a[1], 0).getDate(); };
+    const partialDays = D.partial && D.orders_through ? new Date(D.orders_through.slice(0, 10) + 'T00:00:00').getDate() : null;
+    const weeks = months.map(k => (k === S.month && partialDays != null ? partialDays : dim(k)) / 7);
+    const by = {};
+    FM.forEach(r => { if (bs.indexOf(r.b) < 0) return; const i = months.indexOf(r.m); if (i < 0) return; (by[r.f] = by[r.f] || months.map(() => 0))[i] += r.s; });
+    const stat = (name, arr, capKey) => {
+      const rate = arr.map((v, i) => v / weeks[i]);
+      const done = months.map((k, i) => !(k === S.month && D.partial));
+      let sp = 0, wk = 0; arr.forEach((v, i) => { if (done[i]) { sp += v; wk += weeks[i]; } });
+      const used = rate.filter((r, i) => weeks[i] >= 1);
+      const cur = weeks[3] >= 1 ? rate[3] : null, lo = used.length ? Math.min.apply(null, used) : 0, hi = used.length ? Math.max.apply(null, used) : 0, usual = wk ? sp / wk : 0;
+      const cap = capKey ? CAPS.fam[S.br + '|' + name] : null;
+      let st = '';
+      if (cur != null) st = cap != null ? (cur > cap ? 'over' : 'ok') : (cur > hi * 1.0001 ? 'above' : cur < lo * 0.9999 ? 'below' : 'in');
+      return { name, usual, lo, hi, cur, cap, st, tot: arr.reduce((a, v) => a + v, 0), capKey };
+    };
+    let rows = Object.keys(by).map(k => stat(k, by[k], true)).filter(r => r.tot > 0).sort((a, b) => b.usual - a.usual || b.tot - a.tot);
+    const top = rows.slice(0, 10), rest = rows.slice(10);
+    if (rest.length) { const arr = months.map((m, i) => rest.reduce((a, r) => a + (by[r.name][i] || 0), 0)); top.push(stat('Other families (' + rest.length + ')', arr, false)); }
+    const all = months.map((m, i) => Object.keys(by).reduce((a, k) => a + by[k][i], 0));
+    return { rows: top, total: stat('All families together', all, false), months, weeks };
+  }
+  const famPill = r => r.st === 'over' ? '<span class="pill p-over">Over cap</span>' : r.st === 'ok' ? '<span class="pill p-ok">Within cap</span>' : r.st === 'above' ? '<span class="pill p-over">Above usual</span>' : r.st === 'below' ? '<span class="pill p-ok">Below usual</span>' : r.st === 'in' ? '<span class="pill p-ok">Usual</span>' : '<span class="muted">-</span>';
+  function famSheet() {
+    const M = famModel(), bs = scope();
+    if (!M.rows.length) return '<p class="msg">No professional stock received in these months.</p>';
+    const note = '<div class="stat"><span>Band = lowest to highest month, as AED a week; usual = the complete months together.</span><span>The band is worked out on each family\'s own total, not by adding product bands.</span></div>';
+    const capCell = r => r.capKey ? capIn('fam', S.br + '|' + r.name, r.cap, 'aed') : '';
+    if (S.phone) {
+      const card = (r, tot) => '<div class="sc"><div class="sch" style="cursor:default"><span class="scn">' + esc(r.name) + '</span><span class="scv">' + f(r.usual) + ' / wk</span></div>' +
+        '<div class="scb"><span>Band <b>' + f(r.lo) + ' to ' + f(r.hi) + '</b></span><span>This month <b>' + (r.cur != null ? f(r.cur) : '-') + '</b></span></div><div class="scm">' + famPill(r) + (r.capKey ? '<span>cap ' + capCell(r) + ' a week</span>' : '') + '</div></div>';
+      return '<div class="cards">' + M.rows.map(r => card(r)).join('') + card(M.total, true) + '</div>' + note;
+    }
+    const th = '<tr><th class="l">Product family</th><th>Usual a week</th><th>Band a week</th><th>This month a week</th><th class="l">Against</th><th>Cap a week</th></tr>';
+    const row = (r, tot) => '<tr class="' + (tot ? 'g' : '') + '"><td class="l">' + esc(r.name) + '</td><td>' + f(r.usual) + '</td><td>' + f(r.lo) + ' to ' + f(r.hi) + '</td><td>' + (r.cur != null ? '<b>' + f(r.cur) + '</b>' : dsh()) + '</td><td class="l">' + famPill(r) + '</td><td>' + (r.capKey ? capCell(r) : '') + '</td></tr>';
+    return '<div class="sw" style="max-height:none"><table class="sh"><thead>' + th + '</thead><tbody>' + M.rows.map(r => row(r, false)).join('') + row(M.total, true) + '</tbody></table></div>' + note;
   }
 
   /* ---------- Accounts: what was paid, per supplier (their monthly sheet; not part of the caps) ---------- */
@@ -387,7 +433,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
   /* ---------- the one filter bar ---------- */
   const SHORT = { ALL: 'All', SAA: 'SAA', KCA: 'KCA', MC: 'MC', AQ: 'AQ' };
   function barPhone() {
-    const nF = (S.fSup ? 1 : 0) + (S.fCat ? 1 : 0) + (S.q ? 1 : 0), open = S.fOpen, cnt = o => o ? ' · ' + Object.keys(o).length : '';
+    const nF = (S.fSup ? 1 : 0) + (S.fCat ? 1 : 0) + (S.fPrio ? 1 : 0) + (S.q ? 1 : 0), open = S.fOpen, cnt = o => o ? ' · ' + Object.keys(o).length : '';
     let h = '<div class="fhead"><button type="button" class="fbtn' + (nF ? ' on' : '') + '" data-ftoggle="1" aria-expanded="' + open + '">Filters' + (nF ? ' · ' + nF : '') + ' ' + (open ? '▴' : '▾') + '</button>' +
       '<span class="fsum">' + monthLabel(S.month, D.partial) + ' · ' + (S.br === 'ALL' ? 'All' : S.br) + '</span>' +
       (S.msg ? '<span class="fmsg" role="status">' + esc(S.msg) + '</span>' : '') + (nF ? '<button type="button" class="fbtn" data-clear="1">Clear</button>' : '') + '</div>';
@@ -396,6 +442,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
         '<div class="seg">' + ['ALL'].concat(B).map(b => '<button type="button" data-br="' + b + '" aria-pressed="' + (S.br === b) + '" title="' + (b === 'ALL' ? 'All branches' : BN[b]) + '">' + SHORT[b] + '</button>').join('') + '</div>' +
         '<div class="fg2"><button type="button" class="fbtn' + (S.fSup ? ' on' : '') + '" data-fmenu="sup">Supplier' + cnt(S.fSup) + ' ▾</button><button type="button" class="fbtn' + (S.fCat ? ' on' : '') + '" data-fmenu="cat">Category' + cnt(S.fCat) + ' ▾</button></div>' +
         '<input type="search" id="q" placeholder="Search supplier, product or brand" value="' + esc(S.qraw) + '" aria-label="Search the sheet">' +
+        '<div class="seg">' + [['', 'Any priority'], ['A', 'A'], ['B', 'B'], ['-', 'None']].map(x => '<button type="button" data-prio="' + x[0] + '" aria-pressed="' + ((S.fPrio || '') === x[0]) + '">' + x[1] + '</button>').join('') + '</div>' +
         '<div class="seg"><button type="button" data-grp="1" aria-pressed="' + S.group + '">By supplier</button><button type="button" data-grp="0" aria-pressed="' + !S.group + '">Flat list</button></div>' +
         '<div class="seg"><button type="button" data-psort="val" aria-pressed="' + (S.sort.k === 'val') + '">Biggest first</button><button type="button" data-psort="name" aria-pressed="' + (S.sort.k === 'name') + '">A to Z</button></div>' +
         '<div class="chips"><button type="button" data-tgl="active" aria-pressed="' + S.activeOnly + '">Accounts: paid this month only</button></div>' +
@@ -405,7 +452,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
   }
   function barHtml() {
     if (S.phone) return barPhone();
-    const nF = (S.fSup ? 1 : 0) + (S.fCat ? 1 : 0) + (S.q ? 1 : 0), open = S.fOpen;
+    const nF = (S.fSup ? 1 : 0) + (S.fCat ? 1 : 0) + (S.fPrio ? 1 : 0) + (S.q ? 1 : 0), open = S.fOpen;
     const cnt = o => o ? ' · ' + Object.keys(o).length : '';
     let h = '<div class="fhead"><button type="button" class="fbtn' + (nF ? ' on' : '') + '" data-ftoggle="1" aria-expanded="' + open + '">Filters' + (nF ? ' · ' + nF + ' on' : '') + ' ' + (open ? '▴' : '▾') + '</button>' +
       '<span class="fsum">' + monthLabel(S.month, D.partial) + ' · ' + (S.br === 'ALL' ? 'All branches' : BN[S.br]) + (S.fSup ? ' · ' + plural(Object.keys(S.fSup).length, 'supplier', 'suppliers') : '') + (S.fCat ? ' · ' + plural(Object.keys(S.fCat).length, 'category', 'categories') : '') + (S.q ? ' · "' + esc(S.q) + '"' : '') + '</span>' +
@@ -416,19 +463,20 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
         '<span class="fg chips"><span class="lab">Branch</span>' + ['ALL'].concat(B).map(b => '<button type="button" data-br="' + b + '" aria-pressed="' + (S.br === b) + '">' + (b === 'ALL' ? 'All' : BN[b]) + '</button>').join('') + '</span>' +
         '<span class="fg"><span class="lab">Show</span><button type="button" class="fbtn' + (S.fSup ? ' on' : '') + '" data-fmenu="sup">Supplier' + cnt(S.fSup) + ' ▾</button><button type="button" class="fbtn' + (S.fCat ? ' on' : '') + '" data-fmenu="cat">Category' + cnt(S.fCat) + ' ▾</button>' +
         '<input type="search" id="q" placeholder="Search supplier, product or brand" value="' + esc(S.qraw) + '" aria-label="Search the sheet"></span>' +
+        '<span class="fg chips"><span class="lab">Priority</span>' + [['', 'Any'], ['A', 'A'], ['B', 'B'], ['-', 'None']].map(x => '<button type="button" data-prio="' + x[0] + '" aria-pressed="' + ((S.fPrio || '') === x[0]) + '">' + x[1] + '</button>').join('') + '</span>' +
         '<span class="fg chips"><button type="button" data-tgl="group" aria-pressed="' + S.group + '" title="On: open a supplier to see its products. Off: a flat list where you can move a brand to another supplier. Applies to the Phorest sheet.">Group by supplier</button><button type="button" data-tgl="active" aria-pressed="' + S.activeOnly + '" title="Accounts section: hide suppliers with nothing paid this month">Paid this month only</button></span></div>';
     }
     return h;
   }
   const drawBar = () => { const b = root && $('fbar'); if (b) b.innerHTML = barHtml(); };
   function drawBody() {
-    const d = $('dash'), s = $('sheet'), a = $('acct'); if (!d || !s || !a) return;
+    const d = $('dash'), s = $('sheet'), a = $('acct'), fm = $('fam'); if (!d || !s || !a || !fm) return;
     const tops = [].map.call(d.querySelectorAll('.pbody'), x => x.scrollTop);
     d.innerHTML = dash();
     [].forEach.call(d.querySelectorAll('.pbody'), (x, i) => { x.scrollTop = tops[i] || 0; });
     const keep = el => { const sc = el.querySelector('.sw'); return sc ? [sc.scrollTop, sc.scrollLeft] : [0, 0]; };
     const k1 = keep(s), k2 = keep(a);
-    s.innerHTML = sheet(); a.innerHTML = acctSheet();
+    s.innerHTML = sheet(); a.innerHTML = acctSheet(); fm.innerHTML = famSheet();
     const n1 = s.querySelector('.sw'), n2 = a.querySelector('.sw');
     if (n1) { n1.scrollTop = k1[0]; n1.scrollLeft = k1[1]; }
     if (n2) { n2.scrollTop = k2[0]; n2.scrollLeft = k2[1]; }
@@ -442,7 +490,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
     $('pg').className = 'pg' + (S.phone ? ' ph' : '');
     $('pg').innerHTML = '<div class="fwrap" id="fwrap"><div id="fbar">' + barHtml() + '</div><div id="menu" role="dialog" aria-label="Filter"></div></div>' +
       (S.phone ? '<details class="how"><summary>How this is worked out</summary><p class="basisnote">' + how + '</p></details>' : '<p class="basisnote">' + how + '</p>') +
-      '<div class="grid3" id="dash"></div><h2 class="s">Every supplier and its products <em>Phorest, received in the month' + (EDIT ? ', change a Category cell to tag it' : ' (view only)') + '</em></h2><div class="sheet" id="sheet"></div>' +
+      '<div class="grid3" id="dash"></div><h2 class="s">Weekly spend by product family <em>professional stock received in Phorest, as a rate a week' + (EDIT ? ', set a cap a week' : '') + '</em></h2><div class="sheet" id="fam"></div><h2 class="s">Every supplier and its products <em>Phorest, received in the month' + (EDIT ? ', change a Category cell to tag it' : ' (view only)') + '</em></h2><div class="sheet" id="sheet"></div>' +
       '<h2 class="s">What Accounts paid, per supplier <em>from their monthly sheet, not part of the caps</em></h2><div class="sheet" id="acct"></div>';
     S.menu = null;
     drawBody();
@@ -486,7 +534,8 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
       if ((el = up('[data-m]'))) { switchMonth(el.getAttribute('data-m')); return; }
       if ((el = up('[data-br]'))) { S.br = el.getAttribute('data-br'); drawBar(); drawBody(); return; }
       if ((el = up('[data-tgl]'))) { if (el.getAttribute('data-tgl') === 'group') S.group = !S.group; else S.activeOnly = !S.activeOnly; drawBar(); drawBody(); return; }
-      if (up('[data-clear]')) { S.fSup = null; S.fCat = null; S.q = ''; S.qraw = ''; closeMenu(); drawBar(); drawBody(); return; }
+      if (up('[data-clear]')) { S.fSup = null; S.fCat = null; S.fPrio = null; S.q = ''; S.qraw = ''; closeMenu(); drawBar(); drawBody(); return; }
+      if ((el = up('[data-prio]'))) { S.fPrio = el.getAttribute('data-prio') || null; drawBar(); drawBody(); return; }
       if ((el = up('[data-grp]'))) { S.group = el.getAttribute('data-grp') === '1'; drawBar(); drawBody(); return; }
       if ((el = up('[data-psort]'))) { const k = el.getAttribute('data-psort'); S.sort = { k, d: k === 'name' ? 1 : -1 }; drawBar(); drawBody(); return; }
       if ((el = up('[data-exp]'))) { const n = el.getAttribute('data-exp'); S.open[n] = !(S.open[n] || ((S.fSup || S.fCat || S.q) && S.open[n] !== false)); drawBody(); return; }
@@ -510,6 +559,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
         if (val == null) delete CAPS[kind][key]; else CAPS[kind][key] = val;
         drawBody(); save('cap', kind + '|' + key, val); return;
       }
+      if (t.matches('[data-pprio]')) { const p = PR[+t.getAttribute('data-pprio')]; p.pr = t.value === '-' ? '' : t.value; drawBody(); save('prodprio', p.key, p.pr || null); return; }
       if (t.matches('[data-pcat]')) { const p = PR[+t.getAttribute('data-pcat')]; p.c = t.value; drawBody(); save('prodcat', p.key, t.value === p.def ? null : t.value); return; }
       if (t.matches('[data-psup]')) { const p = PR[+t.getAttribute('data-psup')]; PR.forEach(x => { if (x.brand === p.brand) x.s = t.value; }); drawBody(); save('brandsup', p.brand, t.value); return; }
       if (t.matches('[data-supcat]')) { const s = SUP.find(x => x.n === t.getAttribute('data-supcat')); if (s) { s.cat = t.value; drawBody(); save('supcat', s.n, t.value); } }
@@ -532,6 +582,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
       S.phone = isPhone(); S.fOpen = !S.phone;
       new ResizeObserver(() => requestAnimationFrame(() => { const p = isPhone(); if (p !== S.phone && D) { S.phone = p; S.fOpen = !p; draw(); } })).observe(host);
     }
+    S.phone = isPhone();
     $('pg').innerHTML = '<p class="msg">Loading supplier spend…</p>';
     try {
       const d = await load(S.month);
