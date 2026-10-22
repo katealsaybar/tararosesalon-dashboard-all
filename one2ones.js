@@ -1,8 +1,9 @@
 // 1-to-1s & Goals (Kate, 22 Oct 2026): who has had a 1-to-1, whose goals are set, at a glance. Numbers > Team Performance, Level 3 and 5.
 //
-// One call (migrations/perf_one2one_list.sql): perf_one2one_list(p_admin), statuses and dates only, never what was written. It answers
-// leaders only (Emma, Kate, Tara: perf_admins.role = 'leader', the gate perf_one2one_get already has), so anyone else on Level 3 gets null and a
-// line that says so. "Open" goes to that person's own My Numbers page on the 1-to-1 tab, where the leader writes it up and signs it.
+// One call (migrations/perf_one2one_list.sql): perf_one2one_list(p_admin), statuses and dates only, never what was written. It answers the
+// leader and viewer keys (Emma, Kate, Tara and the shared key the rest of Level 3 get; Kate, 22 Oct 2026: all of Level 3), so payroll or a missing key
+// gets null and a line that says so. "Open" goes to that person's own My Numbers page on the 1-to-1 tab, where Emma writes it up and signs it
+// (what was written stays leader-only behind perf_one2one_get).
 // The key is the Staff Benchmarks one (spfGet), the same as Staff's 13 Week. Nothing here is stored in the browser except the filters.
 const O2_STORE = 'trs-one2ones';
 const O2 = { branch: 'all', team: 'all', need: false, sort: 'name', dir: 1 };
@@ -87,7 +88,7 @@ function o2Draw() {
       <span class="o2-pills"><button type="button" class="o2-pill" data-need="1" aria-pressed="${O2.need}">Needs attention</button></span></div>` +
     (l.length ? `<div class="o2-card"><table><thead><tr><th><button type="button" data-sort="name">Name</button></th><th><button type="button" data-sort="oto">1-to-1</button></th><th>Their part</th><th><button type="button" data-sort="goals">Goals ${o2Esc(year)}</button></th><th></th></tr></thead><tbody>${rows}</tbody></table><div class="o2-cards">${cards}</div></div>`
       : '<p class="o2-empty">Nobody matches those filters.</p>') +
-    `<p class="o2-foot">${l.length} of ${all.length} people. Only staff whose 1-to-1 is switched on are listed. Emma, Tara and Kate only: the list asks for the leader key.</p>`;
+    `<p class="o2-foot">${l.length} of ${all.length} people. Only staff whose 1-to-1 is switched on are listed. Level 3 and 5 only. Statuses and dates; what was written is on each person's own page, for Emma, Tara and Kate.</p>`;
 }
 
 async function renderOne2Ones() {
@@ -114,10 +115,10 @@ async function renderOne2Ones() {
     if (!key) await new Promise(r => setTimeout(r, 250));
   }
   if (seq !== o2Seq) return;
-  if (!key) { o2Data = null; o2Msg = 'This list is for Emma, Tara and Kate. It needs the leader key from your sign-in.'; o2Draw(); return; }
+  if (!key) { o2Data = null; o2Msg = 'This list needs the Staff Benchmarks key from your sign-in (Level 3 and above). Sign out and in again, or ask Kate.'; o2Draw(); return; }
   const { data, error } = await sb.rpc('perf_one2one_list', { p_admin: key });
   if (seq !== o2Seq) return;
   if (error) { o2Data = null; o2Msg = 'The list did not load. Refresh to try again.'; o2Draw(); return; }
-  if (!data) { o2Data = null; o2Msg = 'This list is for Emma, Tara and Kate. It needs the leader key from your sign-in.'; o2Draw(); return; }
+  if (!data) { o2Data = null; o2Msg = 'This list needs the Staff Benchmarks key from your sign-in (Level 3 and above). Sign out and in again, or ask Kate.'; o2Draw(); return; }
   o2Data = data; o2Draw();
 }

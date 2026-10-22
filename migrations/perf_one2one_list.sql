@@ -1,7 +1,8 @@
 -- Kate, 22 Oct 2026: the 1-to-1s & Goals list (dashboard > Numbers > Team Performance). One row per active staff member whose 1-to-1 is switched on
 -- (perf_staff.one2one_on): the status and date of the latest monthly 1-to-1, whether they have sent their own part for it, and this year's Goals.
--- Statuses and dates only, never what was written: the content stays behind perf_one2one_get. Leaders only (perf_admins.role = 'leader':
--- Emma, Kate, Tara), the same gate as perf_one2one_get, so the viewer and payroll keys get null. Staff drafts are not shown (a draft of their own part
+-- Statuses and dates only, never what was written: the content stays behind perf_one2one_get. Leader and viewer keys
+-- (perf_admins.role in ('leader', 'viewer'): Emma, Kate, Tara and the shared key the rest of Level 3 get; Kate opened it to all of Level 3 on 22 Oct 2026),
+-- so the payroll key and a wrong key get null. The contents of a 1-to-1 stay leader-only behind perf_one2one_get. Staff drafts are not shown (a draft of their own part
 -- is private to them until they press Send, as perf_one2one_get already hides it).
 create or replace function public.perf_one2one_list(p_admin uuid)
  returns jsonb
@@ -14,7 +15,7 @@ declare
   m1 date := date_trunc('month', current_date)::date;
   y1 date := date_trunc('year', current_date)::date;
 begin
-  select name into who from perf_admins where token = p_admin and role = 'leader';
+  select name into who from perf_admins where token = p_admin and role in ('leader', 'viewer');
   if who is null then return null; end if;
   return jsonb_build_object(
     'who', who, 'month', m1, 'year', y1,
