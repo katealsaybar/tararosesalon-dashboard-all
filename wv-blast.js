@@ -12,6 +12,9 @@ const WV_PER = [10, 20, 50, 100];
 let wvSel = { wave: 'all', branch: 'all', msg: 'all', bought: 'all', per: 20 };
 try { Object.assign(wvSel, JSON.parse(localStorage.getItem('trs-wv-blast') || '{}')); } catch (e) {}
 let wvRows = null, wvErr = '', wvPage = 1, wvQuery = '', wvShown = [];
+// How the blast is doing, in AED (Kate, 22 Oct 2026): wv_blast_performance (migrations/wv_blast_performance.sql, Level 3 and above). Null until the function is live:
+// the section stays out and the page draws as before.
+let wvPerf = null;
 const wvSave = () => { try { localStorage.setItem('trs-wv-blast', JSON.stringify(wvSel)); } catch (e) {} };
 const wvOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
 const wvOk5 = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;   // sending waves from this page is Level 5 (Kate) only
@@ -38,9 +41,11 @@ async function renderWvBlast() {
   el.innerHTML = `<section class="slv-intro"><h2>Wellness Voucher Blast</h2>
     <p>The 3rd blast: top spenders who can be messaged on WhatsApp about the Wellness Voucher, by wave.</p></section><div id="wvHost"><p class="slv-muted">Loading the list…</p></div>`;
   try {
-    const { data, error } = await sb.rpc('wv_blast_get');
+    const [{ data, error }, pf] = await Promise.all([sb.rpc('wv_blast_get'), sb.rpc('wv_blast_performance')]);
     if (error || !Array.isArray(data)) throw error || new Error('no list');
     wvRows = data; wvErr = '';
+    wvPerf = (!pf.error && pf.data && pf.data.totals) ? pf.data : null;
+    if (pf.error) console.warn('wv_blast_performance', pf.error);
   } catch (e) { console.error(e); wvErr = 'The list did not load. Refresh to try again.'; }
   wvPaint();
 }
@@ -58,6 +63,69 @@ function wvFiltered() {
   return rows;
 }
 
+// ---- How the blast is doing: cards, then by wave / message / branch with a bar for each row's AED collected (click, tap or tab to a bar for its value) ----
+const wvAed = n => 'AED ' + lcNum(Math.round(+n || 0));
+const wvPct = (a, b) => b ? (100 * a / b).toFixed(1) + '%' : '–';
+function wvTipOn(seg) {
+  document.querySelectorAll('.wv-tip').forEach(n => n.remove());
+  if (!seg) return;
+  const row = seg.closest('tr'), who = row && row.firstElementChild ? row.firstElementChild.textContent.trim() : '';
+  const el = document.createElement('div'); el.className = 'wv-tip'; el.setAttribute('role', 'status');
+  el.textContent = (who ? who + ': ' : '') + seg.dataset.tip; document.body.appendChild(el);
+  const r = seg.getBoundingClientRect(), tw = el.offsetWidth, th = el.offsetHeight;
+  el.style.left = Math.max(8, Math.min(window.innerWidth - tw - 8, r.left + r.width / 2 - tw / 2)) + 'px';
+  el.style.top = (r.top - th - 8 < 8 ? r.bottom + 8 : r.top - th - 8) + 'px';
+}
+let wvTipPinned = null;
+const wvSegOf = e => e.target.closest && e.target.closest('.wv-bar i[data-tip]');
+document.addEventListener('click', e => {
+  const seg = wvSegOf(e);
+  if (!seg || wvTipPinned === seg) { wvTipOn(null); wvTipPinned = null; return; }
+  wvTipOn(seg); wvTipPinned = seg;
+});
+document.addEventListener('mouseover', e => { const seg = wvSegOf(e); if (seg && !wvTipPinned) wvTipOn(seg); });
+document.addEventListener('mouseout', e => { if (!wvTipPinned && wvSegOf(e)) wvTipOn(null); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { wvTipOn(null); wvTipPinned = null; return; }
+  const seg = wvSegOf(e);
+  if (seg && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); if (wvTipPinned === seg) { wvTipOn(null); wvTipPinned = null; } else { wvTipOn(seg); wvTipPinned = seg; } }
+});
+window.addEventListener('scroll', () => { wvTipOn(null); wvTipPinned = null; }, { passive: true });
+function wvPerfRows(rows, label, max) {
+  return rows.map(r => {
+    const tip = `${wvAed(r.aed)} from ${lcNum(r.bought)} client${r.bought === 1 ? '' : 's'} bought, of ${lcNum(r.sent)} messaged (${wvPct(r.bought, r.sent)})`;
+    const bar = r.aed ? `<span class="wv-bar" style="width:${Math.max(6, 100 * r.aed / max)}%"><i data-tip="${lcEsc(tip)}" tabindex="0" role="button" aria-label="${lcEsc(label(r.k) + ': ' + tip)}"></i></span>` : '';
+    return `<tr><td>${lcEsc(label(r.k))}</td><td>${lcNum(r.sent)}</td><td>${lcNum(r.bought)}</td><td>${wvPct(r.bought, r.sent)}</td><td class="wv-aedc"><span class="wv-aedt">${wvAed(r.aed)}</span>${bar}</td></tr>`;
+  }).join('');
+}
+function wvPerfTable(title, rows, label) {
+  const max = Math.max(1, ...rows.map(r => r.aed || 0));
+  return `<div class="wv-pbox"><h4>${title}</h4><div class="wv-pscroll"><table class="slv-table wv-ptbl"><thead><tr><th></th><th>Messaged</th><th>Bought</th><th>Bought %</th><th>AED collected</th></tr></thead><tbody>${wvPerfRows(rows, label, max)}</tbody></table></div></div>`;
+}
+function wvPerfHtml() {
+  const p = wvPerf; if (!p) return '';
+  const t = p.totals, o = p.other || {}, per = t.bought ? t.aed / t.bought : 0;
+  const card = (n, ti, d) => `<div class="ll-card wv-pcard"><div class="ll-t">${ti}</div><div class="ll-n">${n}</div><div class="ll-d">${d}</div></div>`;
+  const when = iso => { try { return new Date(iso).toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
+  const tierName = k => ({ D: 'Dip Your Toes', S: 'Season of You', V: 'All-In VIP Year' })[k] || k;
+  const tiers = (p.by_tier || []).map(x => `${lcEsc(tierName(x.k))} ${lcNum(x.vouchers)} (${wvAed(x.aed)})`).join(' · '), pays = (p.by_pay || []).map(x => `${lcEsc(wvPayName(x.k) || x.k)} ${lcNum(x.vouchers)}`).join(' · ');
+  return `<section class="wv-perf" id="wvPerf"><h3>How the blast is doing</h3>
+    <div class="ll-cards wv-pcards">
+      ${card(lcNum(t.sent), 'Messaged', t.first ? `sent ${lcEsc(when(t.first))} to ${lcEsc(when(t.last))}${t.failed ? `, ${lcNum(t.failed)} failed` : ''}${t.queued ? `, ${lcNum(t.queued)} still queued` : ''}` : 'nothing sent yet')}
+      ${card(lcNum(t.bought), 'Bought', `${wvPct(t.bought, t.sent)} of the messaged, ${lcNum(t.vouchers)} voucher${t.vouchers === 1 ? '' : 's'}`)}
+      ${card(wvAed(t.aed), 'AED collected', t.bought ? `${wvAed(per)} per buyer, VAT included` : 'no buyer yet')}
+      ${card(wvAed(t.cost), 'Spent (estimate)', `${lcNum(t.sent)} messages at AED ${(+p.rate).toFixed(2)} each. Meta's invoice has the exact figure`)}
+      ${card(t.cost ? wvAed(t.aed / t.cost) : '–', 'Back for every AED 1 spent', 'AED collected divided by the estimated spend')}
+    </div>
+    ${tiers || pays ? `<p class="slv-note">Bought: ${tiers}${tiers && pays ? '. Paid by ' : ''}${pays}.</p>` : ''}
+    ${o.vouchers ? `<p class="slv-note"><b>${lcNum(o.vouchers)}</b> other voucher${o.vouchers === 1 ? '' : 's'} (${wvAed(o.aed)}) sold since the blast started to clients who are not on the messaged list: a spelling that does not match, or someone who bought without our message. They are not counted above.</p>` : ''}
+    <div class="wv-pgrid">
+      ${wvPerfTable('By wave', p.by_wave || [], k => 'Wave ' + k)}
+      ${wvPerfTable('By message', p.by_arm || [], k => k === 'A' ? 'A: short message' : 'B: long message')}
+      ${wvPerfTable('By branch', p.by_branch || [], k => WV_BR[k] || k)}
+    </div>
+    <p class="slv-note">Messages sent through this page, one per client. A client may have bought without our message, and the match to a sale is by name. Replies and STOP are not shown: respond.io's status feed only covers a small part of this list.</p></section>`;
+}
 function wvCard(key, title, desc) {
   const rows = key === 'out' ? wvOut() : wvCan().filter(r => key === 'all' || wvInWave(r, key));
   const ab = key === 'out' ? '' : `<div class="ll-ch">A ${rows.filter(r => wvArm(r) === 'A').length} · B ${rows.filter(r => wvArm(r) === 'B').length}</div>`;
@@ -77,7 +145,7 @@ function wvPaint() {
   const chip = (txt, warn) => `<span class="ll-chip${warn ? ' warn' : ''}">${txt}</span>`;
   const cards = [1, 2, 3, 4, 5].map(n => wvCard(String(n), 'Wave ' + n, WV_BANDS[n] + ' spenders, tags wv-blast-wave-' + n + 'a / ' + n + 'b'))
     .concat([wvCard('new', 'New since 8 Oct', 'Added 15 Oct, already inside their wave'), wvCard('out', 'Removed', 'Were on the 8 Oct list, no longer qualify')]).join('');
-  host.innerHTML = `${wvOk5() ? '<div id="wvSendBox"></div>' : ''}<div class="ll-fresh">${chip('List refreshed <b>' + lcEsc(wvDayY(when)) + '</b>')}${chip('First built <b>8 Oct 2026</b>')}${newN ? chip('<b>' + lcNum(newN) + '</b> added since 8 Oct') : ''}${wvRows.some(wvBought) ? chip('<b>' + lcNum(wvRows.filter(wvBought).length) + '</b> have bought since the blast') : ''}${wvCan().some(r => wvArm(r)) ? chip('Message test: <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'A').length) + '</b> short (A) · <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'B').length) + '</b> long (B)') : ''}</div>
+  host.innerHTML = `${wvOk5() ? '<div id="wvSendBox"></div>' : ''}${wvPerfHtml()}<div class="ll-fresh">${chip('List refreshed <b>' + lcEsc(wvDayY(when)) + '</b>')}${chip('First built <b>8 Oct 2026</b>')}${newN ? chip('<b>' + lcNum(newN) + '</b> added since 8 Oct') : ''}${wvRows.some(wvBought) ? chip('<b>' + lcNum(wvRows.filter(wvBought).length) + '</b> have bought since the blast') : ''}${wvCan().some(r => wvArm(r)) ? chip('Message test: <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'A').length) + '</b> short (A) · <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'B').length) + '</b> long (B)') : ''}</div>
     <div class="ll-cards wv-cards">${wvCard('all', 'Everyone on the list', 'Can be messaged on WhatsApp now')}${cards}</div>
     <div class="ll-panel">
       <div class="ll-def"><b>${lcEsc(wvWaveName(wvSel.wave))}:</b> ${wvSel.wave === 'out' ? 'Clients on the 8 Oct list who no longer qualify, with the reason. Nobody here is in the list above.'

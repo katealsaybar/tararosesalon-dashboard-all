@@ -20,3 +20,22 @@
 .slv-table tr.wv-bought td:first-child{box-shadow:inset 3px 0 0 #2f7d4f}
 .prd-card.wv-bought{background:rgba(47,125,79,.16);box-shadow:inset 3px 0 0 #2f7d4f}
 .wv-bought-line{color:#2f7d4f}
+/* How the blast is doing (22 Oct 2026): cards that do not click, three small tables with a bar for each row's AED collected, a value label on a bar */
+.wv-perf{margin:0 0 20px}
+.wv-perf h3{margin:0 0 10px}
+.ll-cards.wv-pcards{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.wv-pcard{cursor:default}
+.wv-pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;margin:14px 0 6px}
+.wv-pbox{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;min-width:0}
+.wv-pbox h4{font-size:14px;font-weight:600;margin:0 0 10px}
+.wv-pscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.wv-ptbl{font-variant-numeric:tabular-nums}
+.wv-ptbl th:not(:first-child),.wv-ptbl td:not(:first-child){text-align:right}
+.wv-ptbl td.wv-aedc{text-align:left;min-width:150px}
+.wv-aedt{display:block;text-align:right;font-weight:600;margin-bottom:3px}
+.wv-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--border2);margin-left:auto;min-width:0}
+.wv-bar i{display:block;width:100%;height:100%;background:var(--good);cursor:pointer;transition:filter 120ms}
+.wv-bar i:hover{filter:brightness(1.12)}
+.wv-bar i:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
+/* The value label over a bar (wvTipOn in wv-blast.js): the page's text and background swapped, so it reads on both themes. */
+.wv-tip{position:fixed;z-index:80;max-width:min(320px,calc(100vw - 16px));padding:6px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12.5px;line-height:1.35;font-variant-numeric:tabular-nums;box-shadow:0 6px 18px rgba(0,0,0,.28);pointer-events:none}
