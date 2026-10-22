@@ -20,8 +20,8 @@
                first Level 1 login would get, rather than the twenty pages the old min rule opened. A person's own extras
                (dashboard_users.extra_pages) open more pages for that person only. This decides what is drawn; the data itself is
                still protected by row-level security.
-     inside    Kate, 22 Oct 2026: the page is a tab inside another page and has no sidebar entry (Wellness Voucher (3rd blast) is inside
-               Wellness Voucher Performance), so the sidebar check does not look for it and Team Home and the Reports Hub do not list it twice
+     inside    Kate, 22 Oct 2026: the page lives inside another page (Wellness Voucher (3rd blast) is inside Wellness Voucher Performance: a tab at
+               its top and an indented sidebar entry under it), so Team Home and the Reports Hub do not list it as a second report
      scope     a Bahrain-scoped sign-in may open it
      filtered  reads the masthead's Branch and Period;  ledger  takes the Branch but fixes the period to the ledger month
      free      needs nothing from the Pulse's load, so a direct link opens it at once (index.html enterDashboard)
