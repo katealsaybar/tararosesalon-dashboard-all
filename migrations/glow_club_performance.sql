@@ -67,3 +67,7 @@ end $$;
 
 revoke all on function public.glow_club_performance() from public, anon;
 grant execute on function public.glow_club_performance() to authenticated;
+
+-- 22 Oct 2026 (later): the report timed out on the signed-in page. The item filter was a full scan of sales_transaction_lines (about 460k lines, 5 s),
+-- so a busy moment went past the timeout. A partial index over just the Glow Club lines brings it to about 6 ms. Applied live 22 Oct 2026.
+create index if not exists stl_glow_club_idx on public.sales_transaction_lines (date) where item ilike 'Glow club%';
