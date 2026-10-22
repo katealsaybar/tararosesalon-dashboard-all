@@ -31,6 +31,10 @@
 
     { key: 'hr-forms', dept: 'Me', title: 'HR Forms & Waivers', href: '/hub/forms', live: true, rule: 'var(--accent-butter)',
       blurb: 'Leave, probation and return-to-work forms; client waivers and consultation forms.' },
+    // Kate, 22 Oct 2026: the form to log a client complaint and follow it to the end, in place of WhatsApp. A shortcut to the dashboard's Log a Complaint
+    // page (Levels 2 and up, by that page's own entry in pages.js); the page and the database decide who may log or read.
+    { key: 'log-complaint', via: 'dashboards', min: 2, ic: 'suggestions', dept: 'Me', title: 'Log a Complaint', href: '/?view=complaintlog', rule: 'var(--accent-coral)',
+      blurb: 'Write down a client complaint, follow it up and mark it resolved, so it is not left in WhatsApp.' },
 
     { key: 'hair-sop', dept: 'Learn', title: 'Hair SOPs', rule: 'var(--accent-lavender)',
       blurb: 'Every foundation cut, step by step, plus the backwash, the 8-Step Hair Plan, the client journey and stylist standards.' },
