@@ -130,3 +130,17 @@ end
 $do$;
 revoke all on function public.client_complaints_list(text, text, text, text, text, boolean, int, int, text, text, text, date, date, text) from public, anon;
 grant execute on function public.client_complaints_list(text, text, text, text, text, boolean, int, int, text, text, text, date, date, text) to authenticated;
+
+-- Log a Complaint page (22 Oct 2026): p_src = 'logged' lists only the complaints logged from the form (submitted_at set). Applied as a patch to the list.
+do $do$
+declare r record; d text;
+  a text := $q$and c.src = case when p_src = 'client' then 'client' else 'visit' end$q$;
+  b text := $q$and c.src = case when p_src = 'client' then 'client' else 'visit' end
+      and (coalesce(p_src, '') <> 'logged' or c.submitted_at is not null)$q$;
+begin
+  select p.oid into r from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'client_complaints_list';
+  d := pg_get_functiondef(r.oid);
+  if position(a in d) = 0 then raise exception 'pattern missing'; end if;
+  execute replace(d, a, b);
+end
+$do$;

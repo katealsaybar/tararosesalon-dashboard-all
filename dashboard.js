@@ -93,7 +93,7 @@ const ACTIVE_BRANCHES = UAE_ACTIVE.slice();
 function closedOffered(code) {
   const c = CLOSED_BRANCHES[code];
   // Over the Years sets years against years, so every closed branch is always on offer there (its Period chips are greyed).
-  if (c && typeof CURRENT_VIEW !== 'undefined' && (CURRENT_VIEW === 'overyears' || CURRENT_VIEW === 'complaints')) return !isBahrainView();   // Client Complaints is all-time notes, so Marasy is always there too
+  if (c && typeof CURRENT_VIEW !== 'undefined' && (CURRENT_VIEW === 'overyears' || CURRENT_VIEW === 'complaints' || CURRENT_VIEW === 'complaintlog')) return !isBahrainView();   // Client Complaints is all-time notes, so Marasy is always there too
   // The Group (UAE + Bahrain) offers them too (Kate, 18 Oct 2026: "wala rin dyan ang Fratelli", "add Marasy to all dashboards, lalo
   // na All time"): they are UAE branches, so the Group's UAE side counts them, and the totals already held their rows.
   return !!c && typeof dateFrom !== 'undefined' && !!dateFrom && !!dateTo
@@ -1494,7 +1494,7 @@ const LEDGER_VIEWS = new Set(TRS_PAGES.filter(p => p.ledger).map(p => p.id));   
 // nopulse: the four Ledgers pages, Podium Race and Staff Quadrant). A first load onto one no longer runs the Pulse behind it, and a Branch
 // or Period change redraws that page alone (PULSE_STALE, as for Daily Performance); the Pulse catches up when a page that needs it opens.
 const NOPULSE_VIEWS = new Set(TRS_PAGES.filter(p => p.nopulse).map(p => p.id));
-const NOPULSE_REDRAW = { ledgerFinancials: 'renderLedgerFinancials', ledgerTargets: 'renderLedgerTargets', ledgerActuals: 'renderLedgerActuals', ledgerStylist: 'renderLedgerStylist', team: 'renderTeam', teamquad: 'renderTeam', supplierspend: 'renderSpend', lostclients: 'renderLostClients', complaints: 'cqRefresh' };
+const NOPULSE_REDRAW = { ledgerFinancials: 'renderLedgerFinancials', ledgerTargets: 'renderLedgerTargets', ledgerActuals: 'renderLedgerActuals', ledgerStylist: 'renderLedgerStylist', team: 'renderTeam', teamquad: 'renderTeam', supplierspend: 'renderSpend', lostclients: 'renderLostClients', complaints: 'cqRefresh', complaintlog: 'cqRefreshLog' };
 // Resolved by loadData() once the window, the last day of data, the address and the weekly table (its staff names classify Phorest-only
 // people) are in, so a page that needs only those can open before the rest of the load (the freshness badge, the Pulse) is done.
 let _winReadyRes = null;

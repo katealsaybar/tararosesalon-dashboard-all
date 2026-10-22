@@ -26,6 +26,8 @@ try {
   if (CQ_SIZES.includes(st.size)) CQ.size = st.size;
 } catch (e) {}
 const cqSave = () => { try { localStorage.setItem(CQ_STORE, JSON.stringify({ size: CQ.size })); } catch (e) {} };
+let cqMode = 'main';   // 'main' = Client Complaints, 'log' = Log a Complaint (the logged ones, with the form)
+const cqSrc = () => (cqMode === 'log' ? 'logged' : CQ.src);
 let cqSum = null, cqList = null, cqSeqS = 0, cqSeqL = 0, cqTimer = 0, cqOpen = 0;
 // The masthead's Branch pick as the functions want it. Dashboard code FRT (Fratelli) is FRA in the notes.
 const cqBranch = () => {
@@ -68,70 +70,13 @@ const cqDay = iso => {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 };
 const cqBr = c => CQ_BRANCH[c] || c || 'Not matched';
-const cqLevelOk = () => typeof TRS_LEVEL !== 'undefined' && (typeof trsPageOpen === 'function'
-  ? trsPageOpen('complaints', TRS_LEVEL, typeof TRS_EXTRA !== 'undefined' ? TRS_EXTRA : null) : TRS_LEVEL >= 2);
+const cqLevelOk = (pg) => typeof TRS_LEVEL !== 'undefined' && (typeof trsPageOpen === 'function'
+  ? trsPageOpen(pg || 'complaints', TRS_LEVEL, typeof TRS_EXTRA !== 'undefined' ? TRS_EXTRA : null) : TRS_LEVEL >= 2);
 
 // The mini side nav: the "On this page" rail the Ledgers pages carry (lgShell in branch-ledger.js; spy() lights the entry in view).
-const CQ_RAIL = [['cq-new', 'Log a complaint'], ['cq-branch', 'By branch'], ['cq-year', 'By year'], ['cq-kind', 'What it was about'], ['cq-res', 'How it was resolved'], ['cq-list', 'The complaints']];
+const CQ_RAIL = [['cq-branch', 'By branch'], ['cq-year', 'By year'], ['cq-kind', 'What it was about'], ['cq-res', 'How it was resolved'], ['cq-list', 'The complaints']];
 function cqRailShell(body) {
   return typeof lgShell === 'function' ? lgShell(CQ_RAIL, body, 'lg-shell-wide') : body;
-}
-
-function cqForm() {
-  const picked = cqPicked();
-  const brs = [['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz'], ['BAH', 'Bahrain']];
-  const bopts = ['<option value="">Pick the branch</option>'].concat(brs.map(([k, l]) => `<option value="${k}"${picked.length === 1 && picked[0] === k ? ' selected' : ''}>${l}</option>`)).join('');
-  const topts = ['<option value="">Pick one</option>'].concat(Object.keys(CQ_TYPE).filter(k => k !== 'unclear' && k !== 'repeat_complainer').map(k => `<option value="${k}">${cqEsc(CQ_TYPE[k])}</option>`)).join('');
-  const ropts = ['<option value="">Not resolved yet (keep it open)</option>'].concat(Object.keys(CQ_RES).filter(k => k !== 'unclear' && k !== 'open').map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
-  const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  return `<details class="cq-card" id="cq-new"><summary>Log a complaint</summary>
-    <p class="cq-note" style="margin-top:6px">For a complaint a client made that is not in the Phorest notes yet. It is counted with the rest and marked as logged by staff, under your name. The client, branch, date, kind, what happened and how it ended are needed; the rest helps.</p>
-    <div class="cq-form">
-      <label>Client's full name<input id="cqfClient" class="cq-in" maxlength="80" autocomplete="off"></label>
-      <label>Branch<select id="cqfBranch" class="cq-sel">${bopts}</select></label>
-      <label>Date of the visit<input id="cqfDate" class="cq-in" type="date" max="${today}"></label>
-      <label>Stylist (optional)<input id="cqfStylist" class="cq-in" maxlength="80" autocomplete="off"></label>
-      <label>Service (optional)<input id="cqfService" class="cq-in" maxlength="120" autocomplete="off"></label>
-      <label>What it was about<select id="cqfType" class="cq-sel">${topts}</select></label>
-      <label class="wide">What happened<textarea id="cqfDetail" rows="3" maxlength="4000" placeholder="One or two sentences, in your own words"></textarea></label>
-      <label>How it was resolved, if it has been<select id="cqfRes" class="cq-sel">${ropts}</select></label>
-      <label>How it ended, in a few words (optional)<input id="cqfResD" class="cq-in" maxlength="300" autocomplete="off"></label>
-      <label>Handled by (optional)<input id="cqfBy" class="cq-in" maxlength="80" autocomplete="off"></label>
-      <label>Google review link, if they posted one (optional)<input id="cqfG" class="cq-in" type="url" placeholder="https://" autocomplete="off"></label>
-    </div>
-    <div class="cq-bar"><button type="button" id="cqfGo" class="cq-btn pri">Log this complaint</button><span id="cqfMsg" class="cq-msg" aria-live="polite"></span></div>
-  </details>`;
-}
-
-async function cqSubmit() {
-  const v = id => (document.getElementById(id) || {}).value || '';
-  const msg = document.getElementById('cqfMsg'), btn = document.getElementById('cqfGo');
-  const say = (t, err) => { if (msg) { msg.textContent = t; msg.className = 'cq-msg' + (err ? ' err' : ''); } };
-  const p = {
-    p_client: v('cqfClient').trim(), p_branch: v('cqfBranch'), p_date: v('cqfDate') || null, p_stylist: v('cqfStylist').trim(), p_service: v('cqfService').trim(),
-    p_type: v('cqfType'), p_detail: v('cqfDetail').trim(), p_resolution: v('cqfRes'), p_resolution_detail: v('cqfResD').trim(), p_handled_by: v('cqfBy').trim(),
-    p_google_url: v('cqfG').trim()
-  };
-  if (p.p_client.length < 3) return say('Write the client\'s full name.', true);
-  if (!p.p_branch) return say('Pick the branch.', true);
-  if (!p.p_date) return say('Pick the date of the visit.', true);
-  if (!p.p_type) return say('Pick what the complaint was about.', true);
-  if (p.p_detail.length < 10) return say('Write what happened, a sentence will do.', true);
-  if (p.p_google_url && !/^https?:\/\//i.test(p.p_google_url)) return say('The Google link must start with http.', true);
-  if (btn) btn.disabled = true;
-  say('Saving…');
-  try {
-    const { error } = await sb.rpc('client_complaint_submit', p);
-    if (error) throw error;
-    ['cqfClient', 'cqfStylist', 'cqfService', 'cqfDetail', 'cqfResD', 'cqfBy', 'cqfG', 'cqfDate'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    ['cqfType', 'cqfRes'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    say((p.p_resolution ? 'Logged as resolved.' : 'Logged as open. Open it in the list below to add follow-ups and mark it resolved.') + ' It shows under the date you gave, as long as that date is inside the Period and Branch picked above.');
-    CQ.page = 0; CQ.sort = 'date'; CQ.dir = 'desc'; cqOpen = 0;
-    cqLoadSummary(); cqLoadList();
-  } catch (e) {
-    console.error(e);
-    say((e && e.message) ? e.message : 'It did not save. Try again.', true);
-  } finally { if (btn) btn.disabled = false; }
 }
 
 async function cqRemove(id) {
@@ -144,9 +89,7 @@ async function cqRemove(id) {
   } catch (e) { console.error(e); window.alert('It could not be removed. Try again.'); }
 }
 
-function cqShell() {
-  const topts = ['<option value="all">All kinds</option>'].concat(Object.keys(CQ_TYPE).map(k => `<option value="${k}">${cqEsc(CQ_TYPE[k])}</option>`)).join('');
-  const ropts = ['<option value="all">All outcomes</option>'].concat(Object.keys(CQ_RES).map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
+function cqCss() {
   return `<style>
     .cq h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:28px;margin:6px 0 4px}
     .cq .cq-sub{color:var(--muted);font-size:13px;margin:0 0 16px;max-width:820px;line-height:1.5}
@@ -210,11 +153,16 @@ function cqShell() {
     .cq-btn.pri{background:var(--accent);color:#102;border-color:var(--accent);font-weight:600}
     .cq-foot{color:var(--muted);font-size:12px;line-height:1.5;margin:12px 0 0;max-width:820px}
     @media (max-width:760px){.cq-t .hm{display:none}.cq-grid{grid-template-columns:1fr}.cq h1{font-size:24px}.cq-bars{grid-template-columns:minmax(90px,130px) 1fr auto}}
-  </style>
-  <div class="cq">
+  </style>`;
+}
+
+function cqShell() {
+  const topts = ['<option value="all">All kinds</option>'].concat(Object.keys(CQ_TYPE).map(k => `<option value="${k}">${cqEsc(CQ_TYPE[k])}</option>`)).join('');
+  const ropts = ['<option value="all">All outcomes</option>'].concat(Object.keys(CQ_RES).map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
+  return cqCss() + `<div class="cq">
     <h1>Client Complaints</h1>
     <p class="cq-sub">Every complaint written into a Phorest client card or visit note, read one by one and sorted by branch, year, kind and how it was resolved. Levels 2 and up. It shows what staff wrote down, not every complaint that happened, and it is a copy from 21 Oct 2026.</p>
-    ${cqRailShell(`${cqForm()}<div id="cqTop"><p class="cq-meta">Loading…</p></div>
+    ${cqRailShell(`<div id="cqTop"><p class="cq-meta">Loading…</p></div>
     <div class="cq-card" id="cq-list">
       <h2>The complaints</h2>
       <p class="cq-note">Tap one to read the original note and how it ended. Redo notes with no reason written are in here as complaints with the reason left blank.</p>
@@ -512,7 +460,7 @@ async function cqLoadList() {
   const seq = ++cqSeqL;
   try {
     const { data, error } = await sb.rpc('client_complaints_list', {
-      p_branch: cqBranch(), p_src: CQ.src, p_type: CQ.type, p_resolution: CQ.res, p_q: CQ.q.trim(), p_low: CQ.low,
+      p_branch: cqBranch(), p_src: cqSrc(), p_type: CQ.type, p_resolution: CQ.res, p_q: CQ.q.trim(), p_low: CQ.low,
       p_limit: CQ.size, p_offset: CQ.page * CQ.size, p_sort: CQ.sort, p_dir: CQ.dir, p_google: CQ.google, p_status: CQ.status, ...cqWin()
     });
     if (error) throw error;
@@ -537,6 +485,8 @@ function cqRefresh() {
 function renderComplaints() {
   const el = document.getElementById('complaintsContent');
   if (!el) return;
+  const other = document.getElementById('complaintlogContent'); if (other) other.innerHTML = '';   // one page's ids at a time
+  cqMode = 'main';
   if (!cqLevelOk()) { el.innerHTML = '<div class="cq"><p class="cq-meta" style="padding:20px 0">Client Complaints is for Levels 2 and up.</p></div>'; return; }
   el.innerHTML = cqShell();
   cqWire();
@@ -545,9 +495,12 @@ function renderComplaints() {
   cqLoadList();
   // Kate, 22 Oct 2026: "all time toggling pwede". The notes go back years, so the first time the page opens in a visit it asks for the
   // masthead's All time (the Period chips are the toggle after that); the chip's own redraw reloads the page, so only the chip is touched here.
-  if (!cqAllTimeDone) {
-    cqAllTimeDone = true;
-    const chip = document.querySelector('#periodChips .chip[data-v="All time"]');
-    if (chip && !chip.disabled && chip.getAttribute('aria-pressed') !== 'true') chip.click();
-  }
+  cqAllTime();
+}
+
+function cqAllTime() {
+  if (cqAllTimeDone) return;
+  cqAllTimeDone = true;
+  const chip = document.querySelector('#periodChips .chip[data-v="All time"]');
+  if (chip && !chip.disabled && chip.getAttribute('aria-pressed') !== 'true') chip.click();
 }
