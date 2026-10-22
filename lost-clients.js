@@ -188,7 +188,7 @@ function lcPaint() {
         `${lcNum(booked.length)} more already have a booking, so they aren't counted as lost.`,
         `Showing the ${lcNum(booked.length)} who already have a booking, soonest first. They aren't counted above.`)}
       <div class="lc-tools" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0 8px">
-        <input type="search" id="lcSearch" placeholder="Search name or stylist" value="${lcEsc(lcQuery)}"
+        <input type="search" id="lcSearch" placeholder="Search name, stylist or email" value="${lcEsc(lcQuery)}"
           oninput="lcQuery=this.value;lcPage=1;lcPaintTable()"
           style="flex:1;min-width:180px;max-width:320px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit">
         <button type="button" class="tglr lc-btn" onclick="lcSaveFile('xlsx')" title="Download as Excel">XLSX</button>
@@ -197,7 +197,7 @@ function lcPaint() {
       </div>
       <div id="lcTable"></div>
     </section>
-    <p class="slv-muted">From Phorest's Sales Transactions. Their data goes back to 2021, but this page counts visits from 1 January 2025 only, so a client who was a regular in 2024 and stopped before then isn't on this list. Visits are days she came in at this branch (on All salons, at any branch); a deposit, a balance payment or a voucher bought on its own is not a visit; a client seen at another branch in the same window is counted on its own line, not as lost, and so is a client with a booking from today on in Phorest's Staff Appointments report (matched on her name, from the last time it was pulled). Usual stylist is whoever served most of her visits. "Last visit" is the newest day uploaded, so the last day or two can lag.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to the owner login only (Level 5); Lost Clients, To message and the Wellness Voucher blast show them to Level 3 and above. The report doesn\'t say who opted out of marketing, so check consent in Phorest before anyone messages a client.' : ''}</p>`;
+    <p class="slv-muted">From Phorest's Sales Transactions. Their data goes back to 2021, but this page counts visits from 1 January 2025 only, so a client who was a regular in 2024 and stopped before then isn't on this list. Visits are days she came in at this branch (on All salons, at any branch); a deposit, a balance payment or a voucher bought on its own is not a visit; a client seen at another branch in the same window is counted on its own line, not as lost, and so is a client with a booking from today on in Phorest's Staff Appointments report (matched on her name, from the last time it was pulled). Usual stylist is whoever served most of her visits. "Last visit" is the newest day uploaded, so the last day or two can lag.${phones ? ' Phone numbers come from Phorest\'s New Clients report and are shown to the owner login only (Level 5); Lost Clients, To message and the Wellness Voucher blast show them to Level 3 and above. Email is Phorest\'s own, only where it has a real one for her (never a shared or placeholder address). Opt-out says STOP, DND or Opted out when she replied stop, asked not to be disturbed or is on a do-not-contact list (reception\'s, or ours). Phorest\'s own marketing opt-out is not in any report, so for anyone with no flag check consent in Phorest before messaging.' : ''}</p>`;
   lcPaintTable();
   lcStickHead();
   lcLoadSummary();
@@ -244,9 +244,16 @@ const LC_COLS = [
   // Kate, 18 Oct 2026: on every tab, not only the Booked one, named for what it is. (It stays empty on Lost, which means no booking.)
   { k: 'booked',  label: 'Next appointment',    type: 'date', get: r => r.booked_on || '' },
   { k: 'phone',   label: 'Phone',               type: 'has',  get: r => r.mobile || r.landline || '', phones: true },
+  // Kate, 22 Oct 2026: her email when Phorest has a real one (placeholder and shared emails never come through), and
+  // whether she asked not to be messaged: STOP, DND or Opted out (lost_optout_map: the site-sending block list plus the
+  // respond.io stop / do-not-disturb replies). Email follows the phone: owner login only, so the column draws only when
+  // there is one; Opt-out shows for every Level 2+ login.
+  { k: 'email',   label: 'Email',               type: 'has',  get: r => r.email || '', emails: true, words: ['Everyone', 'Has an email', 'No email'] },
+  { k: 'optout',  label: 'Opt-out',             type: 'pick', get: r => r.optout || '', blank: 'None' },
 ];
 const lcHasPhones = () => (lcAll || []).some(r => r.mobile || r.landline);
-const lcCols = () => LC_COLS.filter(c => (!c.side || c.side === lcSide) && (!c.phones || lcHasPhones()));
+const lcHasEmails = () => (lcAll || []).some(r => r.email);
+const lcCols = () => LC_COLS.filter(c => (!c.side || c.side === lcSide) && (!c.phones || lcHasPhones()) && (!c.emails || lcHasEmails()));
 // "12 Oct 2026 at KCA" (the branch only when it isn't this list's) and who with.
 const lcBookedAt = r => lcDayY(r.booked_on) + (r.booked_at && (lcSel.branch === 'all' || r.booked_at !== lcSel.branch) ? ' at ' + r.booked_at : '');
 const lcColOf = k => LC_COLS.find(c => c.k === k);
@@ -268,7 +275,7 @@ function lcRuleOk(c, r, v) {
 }
 function lcPass(r, skip) {
   const q = lcQuery.trim().toLowerCase();
-  if (q && !`${r.client_name} ${r.stylist || ''} ${r.also_saw || ''}`.toLowerCase().includes(q)) return false;
+  if (q && !`${r.client_name} ${r.stylist || ''} ${r.also_saw || ''} ${r.email || ''}`.toLowerCase().includes(q)) return false;
   for (const c of LC_COLS) {
     if (c.k === skip || !lcOn(c.k)) continue;
     const f = lcF[c.k], v = c.get(r);
@@ -305,14 +312,14 @@ function lcOpenFilter(ev, k) {
   let body = '';
   const ruled = c.type === 'text' || c.type === 'num' || c.type === 'date';
   if (ruled) body = `<div class="lc-rules"></div><button type="button" class="lc-or-add">+ Or another rule</button>`;
-  if (c.type === 'has') body = ['', 'yes', 'no'].map((v, i) => `<label class="lc-chk"><input type="radio" name="lcHas" value="${v}"${(f.has || '') === v ? ' checked' : ''}> ${['Everyone', 'Has a number', 'No number'][i]}</label>`).join('');
+  if (c.type === 'has') body = ['', 'yes', 'no'].map((v, i) => `<label class="lc-chk"><input type="radio" name="lcHas" value="${v}"${(f.has || '') === v ? ' checked' : ''}> ${(c.words || ['Everyone', 'Has a number', 'No number'])[i]}</label>`).join('');
   if (c.type === 'pick') {
     const cnt = {};
     (lcRows || []).filter(r => lcPass(r, k)).forEach(r => { const v = c.get(r); cnt[v] = (cnt[v] || 0) + 1; });
     const vals = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || a.localeCompare(b));
     body = `<input type="search" class="lc-in lc-pick-q" placeholder="Search…">
       <div class="lc-pick-acts"><button type="button" data-all="1">Select all</button><span aria-hidden="true">·</span><button type="button" data-all="0">None</button></div>
-      <div class="lc-pick">${vals.map(v => `<label class="lc-chk" data-v="${lcEsc(v.toLowerCase())}"><input type="checkbox" value="${lcEsc(v)}"${!f.set || f.set.includes(v) ? ' checked' : ''}> <span>${lcEsc(v || '(blank)')}</span><em>${cnt[v]}</em></label>`).join('')}</div>`;
+      <div class="lc-pick">${vals.map(v => `<label class="lc-chk" data-v="${lcEsc(v.toLowerCase())}"><input type="checkbox" value="${lcEsc(v)}"${!f.set || f.set.includes(v) ? ' checked' : ''}> <span>${lcEsc(v || c.blank || '(blank)')}</span><em>${cnt[v]}</em></label>`).join('')}</div>`;
   }
   pop.innerHTML = `<div class="lc-pop-sort"><button type="button" data-dir="1">${words[0]}</button><button type="button" data-dir="-1">${words[1]}</button></div>
     <div class="slv-eyebrow" style="margin:10px 0 6px">Filter</div>${body}
@@ -595,6 +602,8 @@ function lcPaintTable() {
     if (c.k === 'now') return `<td>${r.now_at ? `${lcEsc(r.now_at)}<div class="slv-note">${lcEsc(lcDayY(r.now_last))}</div>` : ''}</td>`;
     if (c.k === 'booked') return `<td>${r.booked_on ? `${lcEsc(lcBookedAt(r))}<div class="slv-note">${lcEsc(r.booked_with || '')}</div>` : ''}</td>`;
     if (c.k === 'phone') return `<td>${lcPhone(r)}</td>`;
+    if (c.k === 'email') return `<td class="lc-em">${lcEmail(r)}</td>`;
+    if (c.k === 'optout') return `<td>${lcOptout(r)}</td>`;
     return '<td></td>';
   };
   const th = c => {
@@ -613,6 +622,8 @@ function lcPaintTable() {
         <div class="prd-meta">${lcNum(r.visits)} visits · avg AED ${lcNum(lcAvg(r))} · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${lcSide === 'moved' && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}${r.booked_on ? ' · next appointment ' + lcEsc(lcBookedAt(r)) + (r.booked_with ? ' with ' + lcEsc(r.booked_with) : '') : ''}</div>
         ${['hair', 'beauty'].map(t => { const l = lcTeam(r)[t]; return l.length ? `<div class="prd-meta lc-also-line">${t === 'hair' ? 'Stylist' : 'Beautician'} ${lcStylist(l[0])}${l.length > 1 ? ' · also ' + l.slice(1, 3).map(lcStylist).join(', ') + (l.length > 3 ? ' +' + (l.length - 3) : '') : ''}</div>` : ''; }).join('')}
         ${lcHasPhones() && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
+        ${r.email ? `<div class="prd-meta lc-em">${lcEmail(r)}</div>` : ''}
+        ${r.optout ? `<div class="prd-meta" style="margin-top:4px">${lcOptout(r)}</div>` : ''}
         <div class="lc-hint-m">Tap for her visits ›</div>
       </div>
     </li>`).join('');
@@ -731,6 +742,20 @@ function lcPhone(r) {
     : tel(nums[0]);
 }
 
+// Email (Kate, 22 Oct 2026): one address, tap to write. Phorest placeholder and shared emails are left out upstream.
+function lcEmail(r) {
+  if (!r.email) return '<span class="slv-muted">–</span>';
+  return `<a href="mailto:${lcEsc(r.email)}" class="lc-mail" title="${lcEsc(r.email)}">${lcEsc(r.email)}</a>`;
+}
+// Opt-out (Kate, 22 Oct 2026): STOP, DND or Opted out, the reason and date on hover. Someone on this list is not to be
+// messaged; the server only returns it when it is a standing flag (the do-not-contact lists always, a WhatsApp reply
+// only if she has not visited since, the same visit rule as the Lost Clients lists).
+function lcOptout(r) {
+  if (!r.optout) return '<span class="slv-muted">–</span>';
+  const tip = [r.optout_note, r.optout_at ? lcDayY(r.optout_at) : ''].filter(Boolean).join(', ');
+  return `<span class="lc-opt lc-opt-${String(r.optout).toLowerCase().replace(/\s+/g, '-')}" tabindex="0" title="${lcEsc(tip)}">${lcEsc(r.optout)}</span>`;
+}
+
 // The list as filtered, all of it, not just the rows drawn: the header and one array
 // per client, in the columns on screen (Last visit adds Days since, Now at adds its
 // date). XLSX and CSV both read this, so the two never disagree.
@@ -744,6 +769,7 @@ function lcExportLines() {
       head.push('Next appointment', 'Next appointment at', 'Next appointment with', 'Next appointment services');
       pick.push(r => r.booked_on || '', r => r.booked_at || '', r => r.booked_with || '', r => r.booked_for || ''); return;
     }
+    if (c.k === 'optout') { head.push('Opt-out', 'Opt-out reason', 'Opt-out date'); pick.push(r => r.optout || '', r => r.optout_note || '', r => r.optout_at || ''); return; }
     if (c.k === 'stylist') { head.push('Usual stylist', 'Also saw (hair)'); pick.push(r => lcTeam(r).hair[0] || '', r => lcTeam(r).hair.slice(1).join(', ')); return; }
     if (c.k === 'beauty') { head.push('Usual beautician', 'Also saw (beauty)'); pick.push(r => lcTeam(r).beauty[0] || '', r => lcTeam(r).beauty.slice(1).join(', ')); return; }
     head.push(c.xl || c.label); pick.push(c.get);

@@ -2289,8 +2289,14 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
    showing the shares add past 100 and the browser scales them down evenly. */
 .lc-wrap > table{table-layout:fixed;width:100%}
 .lc-wrap td{overflow-wrap:anywhere}
-.lc-c-client{width:14%}.lc-c-visits{width:8%}.lc-c-last{width:11%}.lc-c-spend{width:12%}.lc-c-avg{width:12.5%}
-.lc-c-stylist{width:13.5%}.lc-c-beauty{width:15.5%}.lc-c-phone{width:13.5%}.lc-c-now{width:11%}.lc-c-booked{width:13%}
+.lc-c-client{width:10%}.lc-c-visits{width:5%}.lc-c-last{width:11.5%}.lc-c-spend{width:8%}.lc-c-avg{width:8%}
+.lc-c-stylist{width:9.5%}.lc-c-beauty{width:9.5%}.lc-c-phone{width:13%}.lc-c-now{width:9%}.lc-c-booked{width:7.5%}
+.lc-c-email{width:14%}.lc-c-optout{width:8%}
+/* Email and Opt-out (Kate, 22 Oct 2026): the address cuts with an ellipsis (full on hover), the flag is a small pill. */
+.lc-wrap tr.lc-row td{overflow:hidden}
+.lc-wrap td.lc-em,.prd-meta.lc-em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lc-mail{color:inherit;text-decoration:none}.lc-mail:hover{text-decoration:underline}
+.lc-opt{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;color:var(--warn);background:var(--warn-bg);cursor:help;white-space:nowrap}
 .lc-wrap td .lc-ph,.lc-wrap td > a[href^="tel:"]{white-space:normal}
 .lc-wrap .lc-more{padding-left:0;display:inline-block}
 /* Stylist links (Kate, 2 Oct 2026, "ang pangit nung underlined"): no dotted rule, the
@@ -3455,7 +3461,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
-      cl:  [LGX, 'lost-clients.js?v=5a36385e', 'lost-lists.js?v=fa33b877', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
+      cl:  [LGX, 'lost-clients.js?v=0c957715', 'lost-lists.js?v=fa33b877', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
             'send-schedule.js?v=3abf6266', 'lost-queue.js?v=383b6fdd', 'lost-waves.js?v=e6102677', 'lost-blast.js?v=035195d9',
             'lost-report.js?v=ce7d75fb', 'wv-blast.js?v=66eb2137', 'top-clients.js?v=d73e7f2e', 'client-mix.js?v=7ec12be4',
             'service-rankings.js?v=c1364c02'],
