@@ -84,7 +84,8 @@ a{color:inherit}
 .track{height:12px;background:var(--sand);border-radius:999px;overflow:hidden;margin:12px 0 6px}
 .fill{height:100%;background:var(--series);border-radius:999px}
 .cap{color:var(--muted);font-size:13px}
-.zero{color:var(--muted);opacity:.4}   /* a zero in the Who sold them table: a faint dash so the counts stand out */
+.zero{color:var(--muted);opacity:.4}
+.sub-h{margin:20px 0 6px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}   /* a zero in the Who sold them table: a faint dash so the counts stand out */
 .pace{border-left:1px solid var(--line);padding-left:24px}
 @media (max-width:760px){.pace{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}}
 .pace .row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;color:var(--ink2)}
@@ -199,6 +200,15 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
       <div id="payTable" style="margin-top:14px"></div>
     </section>
   </div>
+
+  <!-- How they were sold (Kate, 22 Oct 2026): by the source tagged on the voucher, and by purchase date around each blast. -->
+  <section class="card" id="wv-source">
+    <h2>How they were sold</h2>
+    <p class="sub">By the source tagged on each voucher in the log, and by the date it was bought around each blast. The 1st blast (21 Aug) and the reminder (28 Aug) went out from GHL, so there are no delivered or reply counts here: a sale is only counted by its date and its tag, not matched to a message.</p>
+    <div id="srcTable"></div>
+    <h3 class="sub-h">Around each blast</h3>
+    <div id="blastTable"></div>
+  </section>
 
   <section class="card" id="wv-referrals">
     <h2>Referrals: new faces through the door</h2>
@@ -433,6 +443,31 @@ function render(){
   M.pay.forEach(function(p){ p.n = p.rows.length; p.amt = p.rows.reduce(function(a,r){ return a + num(r.paid_aed); }, 0); });
   M.pay = M.pay.filter(function(p){ return p.n; });
 
+  /* how they were sold (Kate, 22 Oct 2026): the source tagged on each voucher (sold_via), with the ones nobody tagged on their own line so the
+     total still matches the headline, then the sales by purchase date around each blast. Blast dates are from GHL (21 Aug, 28 Aug) and the site's
+     send queue (the 3rd blast from 15 Oct); the first sale was 21 Aug. */
+  var SRC = [['blast','1st and 2nd blasts'], ['blast3','3rd blast'], ['nurtured','Nurtured by her'], ['direct','Direct on Stripe']];
+  function sum(l){ return l.reduce(function(a,r){ return a + num(r.paid_aed); }, 0); }
+  var srcRows = SRC.map(function(x){ var l = live.filter(function(r){ return r.sold_via === x[0]; }); return { name:x[1], n:l.length, paid:sum(l) }; });
+  var untagged = live.filter(function(r){ return !SRC.some(function(x){ return x[0] === r.sold_via; }); });
+  srcRows.push({ name:'No source recorded yet', n:untagged.length, paid:sum(untagged), grey:true });
+  el('srcTable').innerHTML = !viaSeen
+    ? '<div class="empty">Not showing yet: the report database does not send the source tag.</div>'
+    : '<table><thead><tr><th>Source</th><th class="n">Sold</th><th class="n">Collected</th><th>Share</th></tr></thead><tbody>' +
+      srcRows.map(function(x){ return '<tr><td>' + esc(x.name) + '</td><td class="n">' + x.n + '</td><td class="n">' + aed(x.paid) + '</td><td>' + mini(x.paid, collected) + '</td></tr>'; }).join('') +
+      '<tr class="tot"><td>Total</td><td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td class="n">100%</td></tr></tbody></table>';
+  var dayOf = function(r){ return String(r.purchase_date || '').slice(0, 10); };
+  var BLASTS = [['1st blast: WhatsApp 21 Aug, email 22 Aug', 'the 7 days from 21 Aug', '2026-08-21', '2026-08-27'],
+                ['2nd blast: reminder 28 Aug', 'the 7 days from 28 Aug', '2026-08-28', '2026-09-03'],
+                ['Between the blasts', '4 Sep to 14 Oct', '2026-09-04', '2026-10-14'],
+                ['3rd blast: from 15 Oct', 'since 15 Oct', '2026-10-15', '9999-12-31']];
+  el('blastTable').innerHTML = '<table><thead><tr><th>Blast</th><th>Window</th><th class="n">Sold</th><th class="n">Collected</th><th class="n">Tagged to a blast</th></tr></thead><tbody>' +
+    BLASTS.map(function(b){
+      var l = live.filter(function(r){ return dayOf(r) >= b[2] && dayOf(r) <= b[3]; });
+      var tagged = l.filter(function(r){ return r.sold_via === 'blast' || r.sold_via === 'blast3'; }).length;
+      return '<tr><td>' + esc(b[0]) + '</td><td>' + esc(b[1]) + '</td><td class="n">' + l.length + '</td><td class="n">' + aed(sum(l)) + '</td><td class="n">' + bc(tagged) + '</td></tr>';
+    }).join('') + '</tbody></table>';
+
   /* referrals */
   var friends = live.reduce(function(a,r){ return a + num(r.friends_so_far); }, 0);
   var withFriend = live.filter(function(r){ return num(r.friends_so_far) > 0; }).length;
@@ -585,7 +620,7 @@ function tellHeight(){
   } catch (e) {} });
 }
 /* ---------- On this page rail (standalone) ---------- */
-var RAIL = [['wv-headline','Headline'],['wv-target','Target line'],['wv-branch','By branch'],['wv-sold','Who sold them'],['wv-tier','Tier and payment'],['wv-referrals','Referrals'],['wv-redeem','Redemptions']];
+var RAIL = [['wv-headline','Headline'],['wv-target','Target line'],['wv-branch','By branch'],['wv-sold','Who sold them'],['wv-tier','Tier and payment'],['wv-source','How they were sold'],['wv-referrals','Referrals'],['wv-redeem','Redemptions']];
 function railBuild(){
   var nav = el('railNav'); if (!nav || nav.firstChild) return;
   nav.innerHTML = '<div class="k">On this page</div>' + RAIL.map(function(r){ return '<a href="#' + r[0] + '" data-r="' + r[0] + '">' + r[1] + '</a>'; }).join('');
