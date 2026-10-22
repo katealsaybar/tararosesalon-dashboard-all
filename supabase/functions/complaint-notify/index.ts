@@ -19,6 +19,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import nodemailer from "npm:nodemailer@6.9.16";
+import { renderEmail } from "./email.ts";
 
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const SITE = "https://trk-salon-os.com/?view=complaints";
@@ -44,7 +45,7 @@ const RES: Record<string, string> = {
   client_lost_or_cancelled: "Client cancelled or left", no_action_noted: "No outcome written",
 };
 
-type Rec = { id: number; name: string; email: string | null; phone: string | null; email_on: boolean; sms_on: boolean };
+type Rec = { id: number; name: string; email: string | null; phone: string | null; email_on: boolean; sms_on: boolean; branch_code: string | null };
 
 const log = (complaint_id: number | null, recipient: string, channel: string, status: string, error?: string) =>
   sb.from("complaint_notify_log").insert({ complaint_id, recipient, channel, status, error: error ? error.slice(0, 500) : null });
@@ -112,32 +113,25 @@ Deno.serve(async (req) => {
 
     const id = Number(body.complaint_id);
     const { data: c } = await sb.from("client_complaints")
-      .select("id, client_name, branch_code, event_date, stylists, services, complaint_type, detail, resolution, resolution_detail, status, submitted_by, google_url")
+      .select("id, client_name, branch_code, event_date, stylists, services, complaint_type, detail, resolution, resolution_detail, status, submitted_by, submitted_at, google_url")
       .eq("id", id).maybeSingle();
     if (!c) return json({ error: "no such complaint" }, 404);
-    const { data: recs } = await sb.from("complaint_notify_recipients").select("*").eq("active", true).order("id");
-    if (!recs || !recs.length) { await log(id, "(nobody)", "none", "skipped", "no recipients set up"); return json({ sent: 0, note: "no recipients" }); }
+    // everyone with no branch set, plus the people set to this complaint's branch
+    const { data: all } = await sb.from("complaint_notify_recipients").select("*").eq("active", true).order("id");
+    const recs = (all || []).filter((r: Rec) => !r.branch_code || r.branch_code === c.branch_code);
+    if (!recs.length) { await log(id, "(nobody)", "none", "skipped", "no recipients set up"); return json({ sent: 0, note: "no recipients" }); }
 
     const branch = BRANCH[c.branch_code] || c.branch_code || "";
     const kind = TYPE[c.complaint_type] || c.complaint_type || "";
     const open = c.status === "open";
-    const outcome = open ? "Still open" : (RES[c.resolution] || c.resolution || "") + (c.resolution_detail ? `: ${c.resolution_detail}` : "");
     const by = c.submitted_by || "A team member";
-    const subject = `Complaint logged at ${branch}: ${c.client_name}${open ? " (open)" : ""}`;
-    const rows: [string, string][] = [
-      ["Client", c.client_name], ["Branch", branch], ["Visit date", String(c.event_date || "")], ["Stylist", c.stylists || ""],
-      ["Service", c.services || ""], ["About", kind], ["What happened", c.detail || ""], ["Outcome", outcome], ["Logged by", by],
-      ["Google review", c.google_url || ""],
-    ];
-    const text = rows.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join("\n") + `\n\nOpen it: ${SITE}`;
-    const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222"><p><b>${esc(by)}</b> logged a complaint${open ? " that is still open" : ""}.</p>
-      <table style="border-collapse:collapse">${rows.filter(([, v]) => v).map(([k, v]) =>
-        `<tr><td style="padding:3px 14px 3px 0;color:#777;vertical-align:top">${esc(k)}</td><td style="padding:3px 0">${esc(v)}</td></tr>`).join("")}</table>
-      <p><a href="${SITE}">Open it on the dashboard</a> to follow it up and mark it resolved.</p></div>`;
     const sms = `Tara Rose: a complaint was logged at ${branch} by ${by} (${kind}${open ? ", still open" : ", resolved"}). ${SITE}`;
 
     const results = [];
-    for (const r of recs as Rec[]) results.push(await deliver(r, id, subject, text, html, sms));
+    for (const r of recs as Rec[]) {
+      const em = renderEmail(c, String(r.name || "").split(/\s+/)[0]);
+      results.push(await deliver(r, id, em.subject, em.text, em.html, sms));
+    }
     return json({ complaint: id, results });
   } catch (e) {
     return json({ error: String((e as Error).message || e) }, 500);

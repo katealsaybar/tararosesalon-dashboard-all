@@ -25,6 +25,8 @@ create table if not exists public.complaint_notify_recipients (
   active boolean not null default true,
   created_at timestamptz not null default now());
 alter table public.complaint_notify_recipients enable row level security;
+-- branch_code: null = every complaint, or a branch code (SAA, KCA, MC, AQ, BAH) = only that branch's complaints (the coordinators). Added 22 Oct 2026.
+alter table public.complaint_notify_recipients add column if not exists branch_code text;
 
 create table if not exists public.complaint_notify_log (
   id bigserial primary key,
