@@ -64,7 +64,9 @@ function paint() {
   document.getElementById('app').hidden = !onMonth;
   more.hidden = onMonth;
   // Kate, 7 Oct 2026: gone, not just invisible: it left a blank gap between the home and Light buttons.
-  const mp = document.querySelector('.month-pick'); if (mp) mp.style.display = onMonth ? '' : 'none';
+  const mp = document.querySelector('.month-pick:not(.year-pick)'); if (mp) mp.style.display = onMonth ? '' : 'none';
+  // Kate, 22 Oct 2026: the Year toggle belongs to My year, and only when there is more than one year to pick.
+  const yp = document.querySelector('.year-pick'); if (yp) yp.style.display = S.tab === 'year' && S.year && (S.year.years || []).length > 1 ? '' : 'none';
   if (onMonth) { more.innerHTML = ''; placeNudge(); return; }
   if (S.tab === 'one') {
     more.innerHTML = '';
@@ -86,6 +88,30 @@ function placeNudge() {
   const anchor = app.querySelector('.wintip') || app.querySelector('.hero');
   if (anchor) anchor.insertAdjacentHTML('afterend', n.html);
 }
+// Kate, 22 Oct 2026: "should also have year toggle sa taas". perf_year_weeks_me takes a year and says which ones exist (years), so the header
+// gets a Year pill next to where Month sits on This month. Picking one redraws My year for that year and keeps it in the address (?y=).
+function buildYearPick() {
+  const wrap = document.querySelector('.year-pick .pdd'), sel = document.getElementById('yearSel');
+  if (!wrap || !sel || typeof pillMenu !== 'function' || !S.year) return;
+  wrap.querySelectorAll('.pdd-btn, .pdd-menu').forEach(n => n.remove());
+  wrap.classList.remove('open');
+  sel.innerHTML = (S.year.years || []).map(y => `<option value="${y}"${y === S.year.year ? ' selected' : ''}>${y}</option>`).join('');
+  sel.onchange = async () => {
+    const y = +sel.value;
+    try {
+      const next = await call('perf_year_weeks_me', { p_token: S.token, p_year: y });
+      if (next) {
+        S.year = next;
+        const u = new URL(location.href);
+        u.searchParams.set('y', String(y));
+        history.replaceState(null, '', u);
+      }
+    } catch (e) { console.warn('Year not available', e); }
+    buildYearPick();
+    paint();
+  };
+  pillMenu(sel);
+}
 function go(t) {
   if (t === 'levels' && !levelOf(S.me && S.me.level)) return;
   if (t === 'one' && !S.o2o) return;
@@ -105,12 +131,13 @@ async function mount(token) {
   if (!token || !document.getElementById('perfTabs')) return;
   try {
     // The Podium is read apart: if it is slow or fails, the other tabs still open and this one is simply not there.
-    const [levels, year, o2o, pod] = await Promise.all([call('perf_levels', { p_token: token }), call('perf_year_weeks_me', { p_token: token }),
+    const [levels, year, o2o, pod] = await Promise.all([call('perf_levels', { p_token: token }), call('perf_year_weeks_me', { p_token: token, p_year: +new URLSearchParams(location.search).get('y') || null }),
       window.PerfO2O ? call('perf_one2one_me', { p_token: token }).catch(() => null) : null,
       call('perf_podium_me', { p_token: token }).catch(() => null)]);
     if (!year) return;                     // link not active: This month already says so
     S.levels = levels || []; S.year = year; S.me = year.staff; S.pick = S.me.level; S.token = token; S.o2o = o2o && o2o.enabled ? o2o : null; S.pod = pod && pod.board ? pod : null; S.podCur = S.pod ? S.pod.month : null;
     const want = new URLSearchParams(location.search).get('tab');
+    buildYearPick();
     S.tab = want === 'year' || (want === 'podium' && S.pod) || (want === 'levels' && levelOf(S.me.level)) || (want === 'one' && S.o2o) ? want : 'month';
     paint();
     if (S.o2o) new MutationObserver(placeNudge).observe(document.getElementById('app'), { childList: true });
@@ -167,7 +194,7 @@ function yearTab() {
 
   return `
     <section class="card">
-      <div class="eyebrow">Your 2026 so far</div>
+      <div class="eyebrow">Your ${y.year}${(y.years || [])[0] > y.year ? '' : ' so far'}</div>
       <div class="hero-n">${aed(total)}</div>
       <div class="hero-s">${atAim != null ? `<b>${atAim} of ${counted.length}</b> weeks at or above your aim` : `${full.length} weeks`}${leaveWeeks ? `, ${leaveWeeks} on leave and not counted` : ''}</div>
       ${step ? `<div class="step"><span class="k">Your next step</span>${step}</div>` : ''}
@@ -221,7 +248,7 @@ function chartSvg(weeks, wkAim, aimOf) {
   }
   s += (W < 500 ? [1, 26, 52] : [1, 13, 26, 39, 52]).map(wk =>
  `<text class="ax" x="${x(wk) + slot / 2}" y="${H - 8}" text-anchor="middle">W${wk}</text>`).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" tabindex="0" role="img" aria-label="Weekly sales for 2026${wkAim ? ', with your aim as a dashed line' : ''}. Slide along it, or use the arrow keys, to read each week. Every figure is also in the weeks list under Weeks 1 to 52.">${s}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" tabindex="0" role="img" aria-label="Weekly sales for ${S.year.year}${wkAim ? ', with your aim as a dashed line' : ''}. Slide along it, or use the arrow keys, to read each week. Every figure is also in the weeks list under Weeks 1 to 52.">${s}</svg>`;
 }
 
 function wireChart() {
@@ -308,7 +335,7 @@ function podiumTab() {
   const note = !me ? '' : me.rank === 1
     ? `<div class="step"><span class="k">Where you are</span>${S.podLast ? `You were ${lead} in ${mn}.` : `You are ${lead}.`} Lovely work.${S.podLast ? '' : ' The race moves every day, so simply enjoy it.'}</div>`
     : `<div class="step"><span class="k">Where you are</span>A race is a moment, not a verdict. Everyone has quiet days and busy ones, and ${S.podLast ? 'a new month starts fresh for all of us' : 'your place can change by tomorrow'}.</div>`;
-  const rows = p.board.map(r => `<tr class="${r.me ? 'me' : ''}"><td class="pl"><span class="rk${r.rank <= 3 ? ' top' : ''}">${r.rank}</span></td>
+  const rows = p.board.map(r => `<tr class="${r.me ? 'me' : ''}"><td class="pl"><span class="rk${r.rank <= 3 ? ' podtop' : ''}">${r.rank}</span></td>
       <td>${esc(r.name)}${r.me ? ' <span class="you-tag">You</span>' : ''}<span class="br">${esc(BRANCH[r.branch] || r.branch || '')}</span></td>
       <td class="r">${Math.round(r.amount || 0).toLocaleString('en-GB')}</td></tr>`).join('');
   return `

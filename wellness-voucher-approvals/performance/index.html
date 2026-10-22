@@ -91,12 +91,15 @@ a{color:inherit}
 .pace .row b{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
 .status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-weight:600;font-size:12px;margin-bottom:6px}
 .status.bad{background:var(--bad-bg);color:var(--bad)} .status.good{background:var(--good-bg);color:var(--good)} .status.warn{background:var(--warn-bg);color:var(--warn)}
-.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
-@media (max-width:900px){.tiles{grid-template-columns:repeat(2,1fr)}}
-.tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+/* Kate, 22 Oct 2026: "containers too wide, we need 5 containers, horizontally". The five tiles stay in one row from a narrow desktop frame down to 560px
+   (the dashboard shows this page in a frame about 850px wide on a scaled screen, which used to drop them to two a row at 900px); below that, two a row. */
+.tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media (max-width:560px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
 .tile .l{color:var(--muted);font-size:12px;font-weight:500}
-.tile .v{font-family:var(--serif);font-size:24px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+.tile .v{font-family:var(--serif);font-size:clamp(17px,2.3vw,24px);font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .tile .h{color:var(--muted);font-size:12px}
+@media (max-width:900px) and (min-width:561px){.tile .l,.tile .h{font-size:11.5px}}
 .chart{position:relative;margin-top:10px}
 .chart svg{display:block;width:100%;height:auto;overflow:visible}
 .ax{fill:var(--muted);font-size:11px;font-family:var(--sans)}

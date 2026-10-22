@@ -15,7 +15,7 @@
 <!-- Brand type (Kate, 29 Sep 2026): Playfair Display for headings and names, Inter for body, as trs-brand-guardian sets it and the dashboard around this frame already uses. -->
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="performance.css?v=e5c9fd40">
-<link rel="stylesheet" href="year-levels.css?v=91d485d5">
+<link rel="stylesheet" href="year-levels.css?v=1cd8c5db">
 <link rel="stylesheet" href="one2one.css?v=45652a29">
 <script>
 // Light / Dark (Kate, 25 Sep 2026): a stylist's own link remembers the choice per
@@ -61,6 +61,10 @@ function perfToggleTheme() {
     <div class="month-pick"><span class="month-lbl">Month</span>
       <span class="pdd"><select id="monthSel" aria-label="Month"></select></span>
     </div>
+    <!-- Kate, 22 Oct 2026: a Year toggle at the top of My year, as Month is on This month (year-levels.js fills it from perf_year_weeks_me's years). -->
+    <div class="month-pick year-pick" style="display:none"><span class="month-lbl">Year</span>
+      <span class="pdd"><select id="yearSel" aria-label="Year"></select></span>
+    </div>
     <button type="button" class="theme-btn" id="themeBtn" onclick="perfToggleTheme()">Dark</button>
   </div>
 <script>perfPaintTheme(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change', perfPaintTheme);</script>
@@ -96,6 +100,6 @@ function perfToggleTheme() {
 <script src="one2one.js?v=4f6e6df0"></script>
 <script src="one2one-pdf.js?v=abbc42da"></script>
 <script src="performance.js?v=f07dd795"></script>
-<script src="year-levels.js?v=ecb381d0"></script>
+<script src="year-levels.js?v=66e9fbb5"></script>
 </body>
 </html>

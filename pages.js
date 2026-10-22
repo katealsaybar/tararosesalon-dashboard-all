@@ -20,6 +20,8 @@
                first Level 1 login would get, rather than the twenty pages the old min rule opened. A person's own extras
                (dashboard_users.extra_pages) open more pages for that person only. This decides what is drawn; the data itself is
                still protected by row-level security.
+     inside    Kate, 22 Oct 2026: the page is a tab inside another page and has no sidebar entry (Wellness Voucher (3rd blast) is inside
+               Wellness Voucher Performance), so the sidebar check does not look for it and Team Home and the Reports Hub do not list it twice
      scope     a Bahrain-scoped sign-in may open it
      filtered  reads the masthead's Branch and Period;  ledger  takes the Branch but fixes the period to the ledger month
      free      needs nothing from the Pulse's load, so a direct link opens it at once (index.html enterDashboard)
@@ -47,7 +49,7 @@ window.TRS_PAGES = /*PAGES*/[
   {"id": "clientbook", "label": "Client Book", "group": "Numbers", "sub": "Clients", "lazy": "cb", "nopulse": 1, "min": 5, "words": "client book clients phone number email contact details notes client notes visit notes appointment history allergies formulas search directory records", "lv": []},
   {"id": "lostclients", "label": "Client’s Last Visit", "group": "Numbers", "sub": "Clients", "min": 2, "slug": "last-visit", "filtered": 1, "nopulse": 1, "lazy": "cl", "ic": "lost-clients", "words": "last visit lapsed clients not back come back haven't been back win back", "lv": [2]},
   {"id": "lostlists", "label": "Lost Client Blasts, October 2026", "group": "Campaigns", "min": 2, "slug": "lost-clients", "lazy": "cl", "ic": "lost-clients", "words": "lost clients outreach lists whatsapp groups waves campaign templates to message", "lv": [2]},
-  {"id": "wvblast", "label": "Wellness Voucher Blast", "group": "Campaigns", "min": 3, "lazy": "cl", "words": "voucher blast whatsapp wave send message vouchers clients", "lv": []},
+  {"id": "wvblast", "label": "Wellness Voucher (3rd blast)", "group": "Campaigns", "inside": "wvperf", "min": 3, "lazy": "cl", "words": "voucher blast whatsapp wave send message vouchers clients", "lv": []},
   {"id": "reviews", "label": "Google Reviews", "group": "Numbers", "sub": "Clients", "filtered": 1, "words": "google reviews ratings stars", "lv": [2]},
   {"id": "services", "label": "Service Rankings", "group": "Numbers", "sub": "Sales & Stock", "lazy": "cl", "words": "service rankings treatments top services", "lv": []},
   {"id": "products", "lazy": "pr", "label": "Products", "group": "Numbers", "sub": "Sales & Stock", "filtered": 1, "words": "products stock orders retail professional spend", "lv": [4]},

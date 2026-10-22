@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=1f5632a1"></script>
+<script src="pages.js?v=b8562f63"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -516,6 +516,10 @@ body.orgchart-pop main#orgChartContent{max-width:none;padding:6px 14px 40px}
 .viewas-bar{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;width:fit-content;max-width:calc(100% - 24px);
   position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9000;width:max-content;max-width:calc(100% - 24px);
   margin:0;padding:2px 3px 2px 12px;border-radius:999px;background:#FAEEDA;color:#1A1A1A;font-size:12.5px;line-height:1.2;box-shadow:0 4px 16px rgba(0,0,0,.28)}   /* Kate, 22 Oct 2026: a thin pill of its own, floating at the bottom, not part of the sticky header */
+.wv-tabs{display:flex;flex-wrap:wrap;gap:6px;max-width:1100px;margin:0 auto;padding:10px 28px 0}   /* Kate, 22 Oct 2026: Performance | Wellness Voucher (3rd blast) */
+.wv-tabs button{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:999px;padding:7px 16px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.wv-tabs button.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+@media(max-width:640px){.wv-tabs{padding:8px 14px 0}}
 .viewas-bar button{border:1px solid rgba(0,0,0,.25);background:#fff;color:#1A1A1A;border-radius:999px;padding:3px 11px;min-height:24px;
   font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 #homeBtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;background:var(--accent-mint);color:#1A1A1A;border-color:var(--accent-mint)}
@@ -3648,12 +3652,12 @@ table.tp-cmp td.bad{color:var(--bad)}
   </div>
 
   <!-- Kate, 18 Oct 2026: the two WhatsApp blasts and the voucher's results sit together, apart from the numbers pages: they are
-       things we send out and watch, not reports. Lost Clients: Level 2 and above (sending is Level 3). Wellness Voucher Blast: Level 3.
+       things we send out and watch, not reports. Lost Clients: Level 2 and above (sending is Level 3). Wellness Voucher (3rd blast), Level 3, is a
+       tab inside Wellness Voucher Performance (Kate, 22 Oct 2026), so it has no sidebar entry of its own.
        Wellness Voucher Performance (read-only, no client names, the till stays out): Level 2 and above. -->
   <div class="nav-group" id="navCampaigns">
     <div class="nav-title">Campaigns</div>
     <div class="nav-sub" onclick="showView('lostlists', this)">Lost Client Blasts, October 2026</div>
-    <div class="nav-sub" onclick="showView('wvblast', this)">Wellness Voucher Blast</div>
     <div class="nav-sub" onclick="showView('wvperf', this)">Wellness Voucher Performance</div>
   </div>
 
@@ -4258,6 +4262,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <!-- WELLNESS VOUCHER BLAST (Kate, 15 Oct 2026): the 3rd blast list by wave, beside Lost Clients. wv_blast
        (migrations/wv_blast.sql). Level 3 and above, names and numbers. wv-blast.js draws it. -->
   <div id="view-wvblast" style="display:none">
+    <div class="wv-tabs" id="wvTabsBlast" style="display:none"></div>
     <main id="wvBlastContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
@@ -4300,6 +4305,7 @@ table.tp-cmp td.bad{color:var(--bad)}
        data-src, not src: loaded on first open only, so a dashboard visit does not
        boot the voucher page and its sign-in gate in the background. -->
   <div id="view-wvperf" style="display:none">
+    <div class="wv-tabs" id="wvTabsPerf" style="display:none"></div>
     <!-- Kate, 21 Oct 2026: the "On this page" rail, built the way Google Reviews' is. The frame reports where its sections are
          (trs-wvperf-sections, dashboard.js drawReviewsRail) and an empty anchor sits at each one over the frame. -->
     <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="wvShell">
@@ -4736,6 +4742,21 @@ sb.auth.onAuthStateChange((event) => {
 })();
 
 // ── VIEW SWITCHER
+// Performance | Wellness Voucher (3rd blast): the strip on both pages, only for a level that may open the blast (Level 3 and up).
+function wvTabs(view){
+  const ok = trsPageOpen('wvblast', TRS_LEVEL, TRS_EXTRA);
+  [['wvTabsPerf'], ['wvTabsBlast']].forEach(([id]) => {
+    const box = document.getElementById(id);
+    if (!box) return;
+    box.style.display = ok ? '' : 'none';
+    box.innerHTML = ok ? [['wvperf', 'Performance'], ['wvblast', 'Wellness Voucher (3rd blast)']].map(([k, l]) =>
+      `<button type="button" role="tab" data-v="${k}" aria-selected="${k === view}" class="${k === view ? 'on' : ''}">${l}</button>`).join('') : '';
+    box.onclick = e => {
+      const b = e.target.closest('button[data-v]');
+      if (b && b.dataset.v !== view) showView(b.dataset.v, document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`));
+    };
+  });
+}
 function showView(view, el){
   // Branch Performance was folded into Daily Performance (Kate, 16 Oct 2026, "daily lang matira"): an old star, link or button
   // opens Daily. Before the scope check, so a Bahrain sign-in is sent on to its own page like any other page it may not open.
@@ -4897,6 +4918,9 @@ function showView(view, el){
   // above call it while CURRENT_VIEW is still the page you just left.
   if (typeof spy === 'function') spy();
 
+  // Kate, 22 Oct 2026: the (3rd blast) page is a tab inside Wellness Voucher Performance, so the sidebar lights Performance for both.
+  if (view === 'wvblast') el = document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`) || el;
+  wvTabs(view);
   // active button state
   document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active'));
   if (el && el.dataset && el.dataset.lands) el = document.getElementById(el.dataset.lands) || el;

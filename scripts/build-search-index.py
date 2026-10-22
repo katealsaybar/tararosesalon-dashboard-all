@@ -377,6 +377,10 @@ def view_names():
     idx = (ROOT / 'index.html').read_text(encoding='utf-8')
     for m in re.finditer(r"""<div class="nav-sub"[^>]*onclick="showView\('([^']+)'[^>]*>([^<]+)<""", idx):
         names.setdefault(m.group(1), clean(m.group(2)))
+    # A page that is a tab inside another page (pages.js "inside") has no sidebar entry but is still a page to index and to name.
+    for p in page_list():
+        if p.get('inside') and p['id'] not in names:
+            names[p['id']] = clean(p['label'])
     return names
 
 

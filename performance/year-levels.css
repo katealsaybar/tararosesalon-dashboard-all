@@ -104,7 +104,8 @@
 #perfMore .tbl.pod .pl{width:44px}
 #perfMore .tbl.pod .br{display:block;font-size:12px;color:var(--muted)}
 #perfMore .tbl.pod .rk{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;border-radius:50%;font-size:12px;font-weight:700;background:var(--none-bg)}
-#perfMore .tbl.pod .rk.top{background:var(--bar);color:#2D2E37}
+/* Kate, 22 Oct 2026: was .rk.top, which also took the page header's .top padding and turned 1, 2 and 3 into ovals */
+#perfMore .tbl.pod .rk.podtop{background:var(--bar);color:#2D2E37;padding:0}
 #perfMore .tbl.pod tr.me td{background:var(--surface2);font-weight:600}
 #perfMore .tbl.pod tr.me td:first-child{box-shadow:inset 3px 0 0 var(--bar)}
 #perfMore .you-tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-left:4px}

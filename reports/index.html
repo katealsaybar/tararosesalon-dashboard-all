@@ -76,9 +76,9 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <script src="/auth.js?v=3823f956"></script>
-<script src="/pages.js?v=1f5632a1"></script>
+<script src="/pages.js?v=b8562f63"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=d2ef2f5d"></script>
+<script src="/hub/hub.js?v=4728ed12"></script>
 <script>
 KB.ready.then(async function () {
   var esc = KB.esc, c = KB.client;
@@ -198,7 +198,7 @@ KB.ready.then(async function () {
   // Dashboard pages: exactly the ones pages.js opens for this level and this person's extras.
   if (KB.allowed.indexOf('dashboards') >= 0) {
     TRS_PAGES.forEach(function (p) {
-      if (p.retired || !trsPageOpen(p.id, KB.level, KB.extra) || (scope && !p.scope)) return;
+      if (p.retired || p.inside || !trsPageOpen(p.id, KB.level, KB.extra) || (scope && !p.scope)) return;
       items.push({ key: 'd:' + p.id, alias: ALIAS['d:' + p.id] || null, group: DASH_GROUP[p.group] || 'Numbers', title: trsPageLabel(p.id),
         blurb: BLURB[p.id] || '', href: '/?view=' + trsSlugOf(p.id), svg: ICON[p.id] || '', words: p.words || '' });
     });

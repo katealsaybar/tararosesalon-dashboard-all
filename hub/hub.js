@@ -88,8 +88,6 @@
     // Kate, 18 Oct 2026: the blasts and the voucher's results have their own group, Campaigns, in the sidebar and here.
     { key: 'campaigns-lost', via: 'dashboards', min: 2, ic: 'lost-clients', dept: 'Campaigns', title: 'Lost Client Blasts, October 2026', href: '/?view=lostlists', rule: 'var(--accent-coral)',
       blurb: 'The WhatsApp blast to clients who have not been in for 6 months: lists, sending, replies and results.' },
-    { key: 'campaigns-wvblast', via: 'dashboards', min: 3, ic: 'campaigns', dept: 'Campaigns', title: 'Wellness Voucher Blast', href: '/?view=wvblast', rule: 'var(--accent-coral)',
-      blurb: 'Send the Wellness Voucher WhatsApp in waves and see who replied.' },
     { key: 'campaigns', dept: 'Campaigns', title: 'Wellness Voucher Performance', href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
       blurb: 'Redemptions, credit collected and the campaign target.' },
 
