@@ -2582,11 +2582,7 @@ async function renderLedgerFinancials() {
       lgTable([{ label: 'Branch' }, { label: 'Report', align: 'r' }, { label: 'Dashboard', align: 'r' },
         { label: 'Courses sold − performed', align: 'r' }, { label: 'Uncredited service', align: 'r' },
         { label: 'Unexplained', align: 'r' }], reconRows, { compact: true }) +
-      `<div class="foot"><b>Unexplained is the column to read.</b> Report less dashboard, with both
-        known causes taken off: courses, which Phorest counts sold where this counts performed, and
-        service revenue no stylist was credited with. A tick means the two agree once those are
-        accounted for. A figure there is a real difference and is worth chasing — start with the
-        by-day table below to find which day it sits on.</div>`);
+      `<div class="foot"><b>Read the Unexplained column.</b> A tick means the report and this page agree once courses and uncredited service are taken off. A number is a real gap: use the by-day table below to find the day.</div>`);
   }
 
   host.innerHTML =
@@ -2615,43 +2611,16 @@ async function renderLedgerFinancials() {
     splitHtml +
     lgSection('fnCheck', '#C4B5FD', 'Checking against Phorest', 'what will and will not tie out',
       `<div class="fine" style="margin:0">
-        <p><b>How to check one</b>. Open Phorest → Financial Totals for one branch and one month, and
-        put the Sales block's <code>Total</code>, <code>Net (Ex VAT)</code> beside this page's
-        Total (Ex VAT) for the same branch. Compare ex VAT, never the gross Total column: the rest of
-        the dashboard is ex VAT throughout, and read against the gross the two will look wrong together
-        for no reason other than the ${Math.round(lgVat() * 100)}%.</p>
-        <p><b>Two reasons it reads under the report</b>, both deliberate, and between them they
-        account for the gap exactly. <i>Courses</i>: Phorest counts courses <b>sold</b>, every figure
-        here counts courses <b>performed</b>, because Phorest's staff export gives a "Courses (perf)"
-        column and nothing anywhere gives courses sold. <i>Service revenue nobody was credited
-        with</i>: these pages are built by summing staff rows, and a row is dropped whenever it
-        cannot be tied to a person the ledger knows — an assistant, whose work never attributes to a
-        stylist, or a Phorest name with no ledger row that day.</p>
-        <p>Saadiyat's August is the worked example. The report says AED 518,674, this page says
-        AED 517,888, and the AED 786 between them is AED 481 of courses plus AED 305 of uncredited
-        service — Maria Theresa on the 2nd and Lhang Ann on the 22nd, two assistants at AED 152.38
-        each. <b>Services and Products match the report to the fils.</b> A gap those two do not
-        explain is something else and is worth chasing.</p>
-        ${asstRows.length ? `<p><b>Uncredited service this month</b>, measured against Phorest's own
-        branch TOTAL line, so it is exact and needs no report:
-        ${asstRows.map(([n, v]) => `${escapeHtml(n)} ${lgAed(v)}`).join(' · ')}.
-        Courses are the rest of the gap and cannot be quantified until the Financial Totals upload
-        lands, which is the other session's work.</p>` : ''}
+        <p><b>Step 1</b><br>Phorest → Financial Totals, one branch, one month. Put its <code>Net (Ex VAT)</code> beside this page's Total (Ex VAT). Always ex VAT, never the gross Total.</p>
+        <p><b>Step 2</b><br>This page reads a little under the report. Two reasons, both on purpose:<br>
+        <b>Courses</b>: Phorest counts them when sold, this page when performed.<br>
+        <b>Uncredited service</b>: an assistant's work has no stylist to credit, so it drops out.</p>
+        <p><b>Example</b><br>Saadiyat, August. Report 518,674, this page 517,888. The 786 gap is 481 courses + 305 uncredited service. Services and Products match to the fils.</p>
+        <p><b>Step 3</b><br>Any gap those two don't explain is something else. Chase it.</p>
+        ${asstRows.length ? `<p><b>Uncredited this month</b><br>${asstRows.map(([n, v]) => `${escapeHtml(n)} ${lgAed(v)}`).join(' · ')}</p>` : ''}
         ${ft
-          ? `<p><b>The report itself is loaded</b> for ${escapeHtml(w.month.label)}, so the top of
-             this page is Phorest's own figures rather than anything derived, and the Report against
-             this dashboard table does the subtraction for you. Read the <b>Unexplained</b> column:
-             a tick means the two agree once courses and uncredited service are taken off.</p>`
-          : `<p><b>The rest of the report</b> is not uploaded for ${escapeHtml(w.month.label)} yet.
-             Non-Revenue Sales (vouchers sold and topped up, paid into account, vouchers used,
-             account used), Pay Outs, Payment Types (cash, card, Stripe, Tabby) and Total Banked
-             are branch-level money movements, and every feed behind this dashboard is staff-level
-             daily takings, so none of them can be derived from what is loaded. They come from the
-             Financial Totals upload. This page reads that table the moment it has rows for a month:
-             two more sections appear above, the report in full and the report against this
-             dashboard, and nothing here has to change for it. Vouchers are the line worth having
-             soonest — an unredeemed voucher is money owed, and there is nowhere to see the
-             balance.</p>`}
+          ? `<p><b>Report loaded</b><br>Read the Unexplained column in Report against this dashboard. A tick means they agree.</p>`
+          : `<p><b>Not uploaded yet</b><br>The rest of ${escapeHtml(w.month.label)}'s report (vouchers, pay outs, payment types, total banked) comes from the Financial Totals upload. It appears here once that lands.</p>`}
       </div>`) +
     `<div class="fine">
       <p><b>Where these come from</b>. The same summaries every other Ledgers page reads — Phorest's
