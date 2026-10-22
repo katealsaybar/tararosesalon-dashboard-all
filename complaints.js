@@ -75,8 +75,8 @@ const cqLevelOk = (pg) => typeof TRS_LEVEL !== 'undefined' && (typeof trsPageOpe
 
 // The mini side nav: the "On this page" rail the Ledgers pages carry (lgShell in branch-ledger.js; spy() lights the entry in view).
 const CQ_RAIL = [['cq-branch', 'By branch'], ['cq-year', 'By year'], ['cq-kind', 'What it was about'], ['cq-res', 'How it was resolved'], ['cq-list', 'The complaints']];
-function cqRailShell(body) {
-  return typeof lgShell === 'function' ? lgShell(CQ_RAIL, body, 'lg-shell-wide') : body;
+function cqRailShell(body, items) {
+  return typeof lgShell === 'function' ? lgShell(items || CQ_RAIL, body, 'lg-shell-wide') : body;
 }
 
 async function cqRemove(id) {

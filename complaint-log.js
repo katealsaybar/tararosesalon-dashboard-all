@@ -68,7 +68,7 @@ function cqLogShell() {
   return cqCss() + `<div class="cq">
     <h1>Log a Complaint</h1>
     <p class="cq-sub">When a client complains, log it here so it is written down once, followed up and closed, and not left in WhatsApp. Leave How it was resolved empty and it stays open until you mark it resolved. Levels 2 and up. Everything logged here also counts in Client Complaints.</p>
-    ${cqForm()}
+    ${cqRailShell(`${cqForm()}
     <div class="cq-card" id="cq-list">
       <h2>Logged complaints</h2>
       <p class="cq-note">Tap one to add a follow-up, mark it resolved with how it ended, or reopen it. Branch and Period follow the filters at the top.</p>
@@ -78,7 +78,7 @@ function cqLogShell() {
       </div>
       <p class="cq-meta" id="cqMeta" aria-live="polite"></p>
       <div id="cqBody" style="overflow-x:auto"><p class="cq-meta">Loading…</p></div>
-    </div>
+    </div>`, [['cq-new', 'Log a complaint'], ['cq-list', 'Logged complaints']])}
   </div>`;
 }
 
