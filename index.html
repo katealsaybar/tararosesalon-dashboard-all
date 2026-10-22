@@ -2258,9 +2258,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .lc-pick-acts{display:flex;align-items:center;gap:6px;margin:8px 2px 2px;color:var(--muted);font-size:12.5px}
 .lc-pick-acts button{border:0;background:none;padding:2px 0;color:var(--hair);font-size:12.5px;font-weight:600}
 @media(hover:hover){.lc-pick-acts button:hover{text-decoration:underline;text-underline-offset:3px}}
-.lc-pick{max-height:230px;overflow:auto;margin-top:4px;padding-right:4px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-.lc-pick::-webkit-scrollbar{width:6px}.lc-pick::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.lc-pick::-webkit-scrollbar-track{background:transparent}
+.lc-pick{max-height:230px;overflow:auto;margin-top:4px;padding-right:4px}
 .lc-chk{display:flex;align-items:center;gap:10px;padding:6px 4px;cursor:pointer;border-radius:8px}
 @media(hover:hover){.lc-chk:hover{background:var(--surface2)}}
 .lc-chk input{accent-color:var(--hair);width:16px;height:16px;margin:0;flex:none;cursor:pointer}
@@ -2781,13 +2779,7 @@ html.oc-print body.orgchart-chrome .oc-tree{overflow:visible}
   border:1px solid var(--border);border-radius:var(--radius-card);background:var(--surface)}
 /* A scrollbar you can see. The overlay one fades out after a second, which is no
    use as the only sign that half the month is off to the right. */
-.lg-wrap.sx{scrollbar-width:thin;scrollbar-color:var(--muted2) transparent;padding-bottom:2px}
-.lg-wrap.sx::-webkit-scrollbar{height:10px}
-.lg-wrap.sx::-webkit-scrollbar-track{background:var(--surface2);
-  border-radius:0 0 var(--radius-card) var(--radius-card)}
-.lg-wrap.sx::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:999px;
-  border:3px solid var(--surface2)}
-@media(hover:hover){.lg-wrap.sx::-webkit-scrollbar-thumb:hover{background:var(--text)}}
+.lg-wrap.sx{padding-bottom:2px}
 /* More to come on the right: the edge fades under the next column so the cut is
    obviously a fold and not the end of the table. Goes when you reach the end. */
 .lg-sx::after{content:'';position:absolute;top:1px;bottom:1px;right:1px;width:38px;
@@ -3408,13 +3400,14 @@ table.tp-cmp td.bad{color:var(--bad)}
 }
 
 </style>
+<link rel="stylesheet" href="scrollbars.css?v=66c39ec4">
 <link rel="stylesheet" href="team-performance.css?v=c23a9f7a">
 <link rel="stylesheet" href="nav-collapse.css?v=7809b314">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
 <link rel="stylesheet" href="mobile.css?v=cb6ac8d4">
 <link rel="stylesheet" href="search.css?v=ad896c51">
 <link rel="stylesheet" href="client-mix.css?v=f68cc80a">
-<link rel="stylesheet" href="lost-lists.css?v=fb99193d">
+<link rel="stylesheet" href="lost-lists.css?v=5021aa8e">
 <link rel="stylesheet" href="lost-queue.css?v=17dc5699">
 <link rel="stylesheet" href="send-schedule.css?v=88a70391">
 <link rel="stylesheet" href="wv-blast.css?v=59f092d0">

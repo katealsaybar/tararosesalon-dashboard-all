@@ -56,7 +56,7 @@
    far right properly". It is a scroll box now, both ways: the Client column is frozen at the left and the headings stay at the
    top of the box. The box is as tall as the screen under the top bar, so the headings still stay in view while the list
    scrolls (a scroll box cannot use the page's sticky header, so it keeps its own). */
-.lc-wrap.ll-wrap{overflow:auto;max-height:calc(100vh - var(--topbar-cond-h,104px) - 28px);overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:var(--muted2) transparent}
+.lc-wrap.ll-wrap{overflow:auto;max-height:calc(100vh - var(--topbar-cond-h,104px) - 28px);overscroll-behavior-x:contain}
 .lc-wrap.ll-wrap > table{table-layout:auto;width:100%;min-width:max-content;font-size:13.5px}
 .lc-wrap.ll-wrap th,.lc-wrap.ll-wrap td{text-align:left;vertical-align:top;white-space:normal;overflow-wrap:normal;padding:9px 8px}
 .lc-wrap.ll-wrap thead th{position:sticky;top:0;z-index:5;background:var(--surface);box-shadow:0 1px 0 var(--border);white-space:nowrap}

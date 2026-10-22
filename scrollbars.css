@@ -1,0 +1,16 @@
+/* One scrollbar for the whole site (Kate, 22 Oct 2026): thin, no arrows, no track, a soft pill that is a light tone on a dark page and a dark tone
+   on a light page, a little stronger under the pointer. The page's own scrollbar, the side rail, tables, menus and lists all read from this.
+   Colours key off data-theme (the toggle sets it on <html> on every page); a page with none counts as light. A rule elsewhere that sets its own
+   scrollbar-color or ::-webkit-scrollbar would win over this on that one element, so there should be none. */
+:root{--sb:rgba(26,26,26,.26);--sb-h:rgba(26,26,26,.5)}
+[data-theme="dark"]{--sb:rgba(250,248,243,.28);--sb-h:rgba(250,248,243,.55)}
+* {scrollbar-width:thin;scrollbar-color:var(--sb) transparent}
+/* Chrome, Edge and Safari: draw it by hand so it can have a hover and no arrow buttons; scrollbar-color is reset or it would switch this off. */
+@supports selector(::-webkit-scrollbar){
+  *{scrollbar-width:auto;scrollbar-color:auto}
+  *::-webkit-scrollbar{width:10px;height:10px;background:transparent}
+  *::-webkit-scrollbar-track,*::-webkit-scrollbar-corner{background:transparent}
+  *::-webkit-scrollbar-button{display:none;width:0;height:0}
+  *::-webkit-scrollbar-thumb{background:var(--sb);background-clip:padding-box;border:3px solid transparent;border-radius:999px;min-height:40px;min-width:40px}
+  *::-webkit-scrollbar-thumb:hover,*::-webkit-scrollbar-thumb:active{background:var(--sb-h);background-clip:padding-box}
+}
