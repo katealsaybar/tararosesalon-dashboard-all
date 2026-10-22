@@ -463,6 +463,8 @@
                   (o.v === cur ? ' class="on"' : '') + '>' + esc(o.label) + '</button>';
               }).join('') + '</div></div>';
           })() : '') +
+          // Kate, 22 Oct 2026: the Reports Hub, one box per report, for everyone who is signed in.
+          '<a href="/reports/">Reports</a>' +
           (KB.allowed.indexOf('dashboards') >= 0 ? '<a href="/dashboard/">Open the dashboard</a>' : '') +
           (KB.myLink ? '<a href="' + esc(KB.myLink) + '">My numbers &amp; payslip</a>' : '') +
 
