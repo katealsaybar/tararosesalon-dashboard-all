@@ -69,11 +69,13 @@ const LC_DAYS = [30, 60, 90, 180];
 // Custom (Kate, 7 Oct 2026): a From and To in days since the last visit, so the list can show
 // who is still coming (0 to 60) as well as who is gone. From goes to the RPC as p_days; To is
 // applied here, on the rows that come back.
-const lcCustom = () => lcSel.days === 'custom';
-const lcFrom = () => Math.max(0, Math.floor(Number(lcSel.cfrom)) || 0);
-const lcTo = () => Math.max(lcFrom(), Math.floor(Number(lcSel.cto)) || 0);
+// All time (Kate, 22 Oct 2026): everyone with any last visit, i.e. the Custom range 0 to forever, without the From / To row.
+const lcAllTime = () => lcSel.days === 'all';
+const lcCustom = () => lcSel.days === 'custom' || lcAllTime();
+const lcFrom = () => lcAllTime() ? 0 : Math.max(0, Math.floor(Number(lcSel.cfrom)) || 0);
+const lcTo = () => lcAllTime() ? 99999 : Math.max(lcFrom(), Math.floor(Number(lcSel.cto)) || 0);
 const lcDaysFetch = () => lcCustom() ? lcFrom() : Number(lcSel.days);
-const lcDaysTxt = () => lcCustom() ? `${lcNum(lcFrom())} to ${lcNum(lcTo())} days` : `${lcNum(lcSel.days)}+ days`;
+const lcDaysTxt = () => lcAllTime() ? 'all time' : lcCustom() ? `${lcNum(lcFrom())} to ${lcNum(lcTo())} days` : `${lcNum(lcSel.days)}+ days`;
 // Pages (Kate, 2 Oct 2026): 10 a page by default, or 20, 50 or 100, with "Page 1 of N".
 // Replaces the first-200-then-Show-all list. The choice is kept per browser.
 const LC_PER = [10, 20, 50, 100];
@@ -151,10 +153,10 @@ function lcShell(body) {
     </section>
     <div class="sc-bar w13-bar lc-bar">
       <div class="lc-grp"><div class="slv-eyebrow">Visits</div>${seg('seg', Object.entries(LC_SEG).map(([k, s]) => [k, s.short]))}</div>
-      <div class="lc-grp"><div class="slv-eyebrow">Days away</div>${seg('days', LC_DAYS.map(d => [d, `${d}+`]).concat([['custom', 'Custom']]))}</div>
+      <div class="lc-grp"><div class="slv-eyebrow">Days away</div>${seg('days', LC_DAYS.map(d => [d, `${d}+`]).concat([['all', 'All time'], ['custom', 'Custom']]))}</div>
     </div>
     ${lcBranchNote ? `<p class="slv-note" style="margin:8px 0 0">${lcEsc(lcBranchNote)}</p>` : ''}
-    ${lcCustom() ? `<div class="lc-cust"><span>Last seen between</span><input type="number" min="0" inputmode="numeric" value="${lcFrom()}" aria-label="From days" onchange="lcSetCustom('cfrom', this.value)"><span>and</span><input type="number" min="0" inputmode="numeric" value="${lcTo()}" aria-label="To days" onchange="lcSetCustom('cto', this.value)"><span>days ago</span></div>` : ''}
+    ${lcSel.days === 'custom' ? `<div class="lc-cust"><span>Last seen between</span><input type="number" min="0" inputmode="numeric" value="${lcFrom()}" aria-label="From days" onchange="lcSetCustom('cfrom', this.value)"><span>and</span><input type="number" min="0" inputmode="numeric" value="${lcTo()}" aria-label="To days" onchange="lcSetCustom('cto', this.value)"><span>days ago</span></div>` : ''}
     <div id="lcBody">${body}</div>`;
 }
 
@@ -188,11 +190,11 @@ function lcPaint() {
     <section class="slv-card lc-board" id="lcBoard"></section>
     <section class="slv-card">
       <div class="slv-head">
-        <div><div class="slv-eyebrow">${lcSel.branch === 'all' ? 'All branches' : lcEsc(LC_BRANCH[lcSel.branch])}</div><h3>${lcEsc(seg.label)}, ${lcCustom() ? 'last seen ' + lcDaysTxt() + ' ago' : 'not back in ' + lcDaysTxt()}</h3></div>
+        <div><div class="slv-eyebrow">${lcSel.branch === 'all' ? 'All branches' : lcEsc(LC_BRANCH[lcSel.branch])}</div><h3>${lcEsc(seg.label)}, ${lcAllTime() ? 'whenever they last came' : lcCustom() ? 'last seen ' + lcDaysTxt() + ' ago' : 'not back in ' + lcDaysTxt()}</h3></div>
         <p>Visits since 1 Jan 2025</p>
       </div>
       <div class="w13-tiles lc-tiles">
-        <div class="w13-tile"><div class="slv-eyebrow">Clients</div><div class="w13-val">${lcNum(lost.length)}</div><div class="slv-note">haven't been back</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">Clients</div><div class="w13-val">${lcNum(lost.length)}</div><div class="slv-note">${lcAllTime() ? 'on the list' : "haven't been back"}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">What they spent</div><div class="w13-val">AED ${lcNum(spend)}</div><div class="slv-note">since Jan 2025, ex VAT</div></div>
         ${phones ? `<div class="w13-tile"><div class="slv-eyebrow">With a phone number</div><div class="w13-val">${lcNum(withNo)}</div><div class="slv-note">${lost.length ? Math.round(100 * withNo / lost.length) : 0}% of the list</div></div>` : ''}
         ${topTile('Their stylist', topSt)}
@@ -248,6 +250,9 @@ const lcAvg = r => (Number(r.visits) || 0) ? Math.round((Number(r.spend) || 0) /
 const LC_COLS = [
   { k: 'client',  label: 'Client',              type: 'text', get: r => r.client_name || '' },
   { k: 'visits',  label: 'Visits',              type: 'num',  get: r => Number(r.visits) || 0 },
+  // Kate, 22 Oct 2026: her first visit ever, at any branch (Phorest data goes back to 2021), from client_directory via lost_first_visits.
+  // Visits and Total spend above count from 1 Jan 2025 only.
+  { k: 'first',   label: 'First visit',         type: 'date', get: r => r.first_ever || r.first_visit || '' },
   { k: 'last',    label: 'Last visit',          type: 'date', get: r => r.last_visit || '' },
   // On screen the headings stay one line (Kate, 2 Oct 2026: "(AED)" stacked them three
   // deep); the files keep the unit in the heading (xl).
@@ -556,7 +561,7 @@ function lcPaintBoard() {
     return `<div class="lc-brow"><div class="lc-bname">${lcEsc(x.name)}</div><div class="lc-btrack">${parts}${rest}</div><div class="lc-bfig">${fig}</div></div>`;
   };
   const tile = (k, v, n) => `<div class="w13-tile"><div class="slv-eyebrow">${k}</div><div class="w13-val">${v}</div><div class="slv-note">${n}</div></div>`;
-  el.innerHTML = `<div class="slv-head"><div><div class="slv-eyebrow">Every branch</div><h3>${cust ? 'Last seen ' + lcDaysTxt() + ' ago' : 'Not back in ' + days + '+ days'}</h3></div>
+  el.innerHTML = `<div class="slv-head"><div><div class="slv-eyebrow">Every branch</div><h3>${lcAllTime() ? 'Every client, whenever she last came' : cust ? 'Last seen ' + lcDaysTxt() + ' ago' : 'Not back in ' + days + '+ days'}</h3></div>
       <div class="sc-seg lc-mode" role="group" aria-label="Show">
         <button type="button" class="${spend ? '' : 'on'}" onclick="lcBoardSetMode('clients')">Clients</button>
         <button type="button" class="${spend ? 'on' : ''}" onclick="lcBoardSetMode('spend')">Spend</button></div></div>
@@ -616,6 +621,7 @@ function lcPaintTable() {
   const td = (c, r) => {
     if (c.k === 'client') return `<td>${lcEsc(r.client_name)}${check(r)}<span class="lc-hint" aria-hidden="true">See her visits ›</span></td>`;
     if (c.k === 'visits') return `<td>${lcNum(r.visits)}</td>`;
+    if (c.k === 'first') return `<td class="ll-nw">${r.first_ever || r.first_visit ? lcEsc(lcDayY(r.first_ever || r.first_visit)) : ''}</td>`;
     if (c.k === 'last') return `<td>${lcEsc(lcDayY(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days ago</div></td>`;
     if (c.k === 'spend') return `<td>${lcNum(r.spend)}</td>`;
     if (c.k === 'avg') return `<td>${lcNum(lcAvg(r))}</td>`;
@@ -641,7 +647,7 @@ function lcPaintTable() {
   const cards = shown.map((r, i) => `<li class="prd-card lc-row" onclick="lcToggleDetail(event,${i})">
       <div class="prd-body">
         <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}${check(r)}</span><span class="prd-spend">AED ${lcNum(r.spend)}</span></div>
-        <div class="prd-meta">${lcNum(r.visits)} visits · avg AED ${lcNum(lcAvg(r))} · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${lcSide === 'moved' && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}${r.booked_on ? ' · next appointment ' + lcEsc(lcBookedAt(r)) + (r.booked_with ? ' with ' + lcEsc(r.booked_with) : '') : ''}</div>
+        <div class="prd-meta">${lcNum(r.visits)} visits · avg AED ${lcNum(lcAvg(r))} · first ${lcEsc(lcDayY(r.first_ever || r.first_visit))} · last ${lcEsc(lcDayY(r.last_visit))} (${lcNum(r.days_since)} days)${lcSide === 'moved' && r.now_at ? ' · now at ' + lcEsc(r.now_at) + ' (' + lcEsc(lcDayY(r.now_last)) + ')' : ''}${r.booked_on ? ' · next appointment ' + lcEsc(lcBookedAt(r)) + (r.booked_with ? ' with ' + lcEsc(r.booked_with) : '') : ''}</div>
         ${['hair', 'beauty'].map(t => { const l = lcTeam(r)[t]; return l.length ? `<div class="prd-meta lc-also-line">${t === 'hair' ? 'Stylist' : 'Beautician'} ${lcStylist(l[0])}${l.length > 1 ? ' · also ' + l.slice(1, 3).map(lcStylist).join(', ') + (l.length > 3 ? ' +' + (l.length - 3) : '') : ''}</div>` : ''; }).join('')}
         ${lcHasPhones() && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
         ${r.email ? `<div class="prd-meta lc-em">${lcEmail(r)}</div>` : ''}
@@ -652,7 +658,7 @@ function lcPaintTable() {
   const filtered = Object.keys(lcF).some(lcOn);
   const note = filtered || lcQuery.trim()
     ? `<p class="slv-note lc-fnote">${lcNum(rows.length)} of ${lcNum(lcRows.length)} after filters. <button type="button" class="lc-more" onclick="lcClearAll()">Clear all</button></p>` : '';
-  box.innerHTML = note + `<div class="slv-wrap prd-desk lc-wrap"><table class="slv-table">
+  box.innerHTML = note + `<div class="slv-wrap prd-desk lc-wrap ll-wrap"><table class="slv-table">
       <thead><tr>${cols.map(th).join('')}</tr></thead>
       <tbody>${tr || `<tr><td colspan="${cols.length}" class="slv-muted">No one on this list matches those filters.</td></tr>`}</tbody></table></div>
       <ol class="prd-cards">${cards || '<li class="slv-muted">No one on this list matches those filters.</li>'}</ol>
@@ -835,8 +841,8 @@ async function lcSaveFile(kind) {
   if (s) s.textContent = `Adding her visits to ${lcNum(rows.length)} rows…`;
   try {
     const det = await lcFetchDetails(rows);
-    head.push('First visit', 'Usual services', 'Products bought', 'Retail spend (AED)');
-    rows.forEach((r, i) => { const d = det(r.client_name); lines[i].push(d.first_visit || '', d.services || '', d.products || '', Number(d.retail_spend) || 0); });
+    head.push('Usual services', 'Products bought', 'Retail spend (AED)');
+    rows.forEach((r, i) => { const d = det(r.client_name); lines[i].push(d.services || '', d.products || '', Number(d.retail_spend) || 0); });
   } catch (e) {
     console.error(e);
     lcSaving = false;
@@ -852,7 +858,7 @@ async function lcSaveFile(kind) {
   const pi = head.indexOf('Phone');
   const out = kind === 'csv' && pi >= 0 ? lines.map(l => l.map((v, j) => j === pi && v ? `="${v}"` : v)) : lines;
   const built = lgxBuild({ sheets: [{ name: 'Lost clients ' + lcSel.branch, blocks: [{ cols, rows: out.map(l => ({ cells: l })) }] }] });
-  const name = ['lost-clients', lcSel.branch, lcSel.seg === 'regular' ? 'regulars' : lcSel.seg, (lcCustom() ? lcFrom() + '-' + lcTo() : lcSel.days) + 'd']
+  const name = ['lost-clients', lcSel.branch, lcSel.seg === 'regular' ? 'regulars' : lcSel.seg, (lcAllTime() ? 'alltime' : lcCustom() ? lcFrom() + '-' + lcTo() + 'd' : lcSel.days + 'd')]
     .concat(lcSide ? [lcSide] : []).concat(lcQuery.trim() || Object.keys(lcF).some(lcOn) ? ['filtered'] : []).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');

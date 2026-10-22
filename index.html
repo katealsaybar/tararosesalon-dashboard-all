@@ -462,13 +462,15 @@ body.social-chrome .filters-wrap{display:none}
 /* Client's Last Visit (Kate, 22 Oct 2026): its Branch toggles live in the masthead's Branch row now; Visits and Days away stay on
    the page, so the masthead's Period row (which would change nothing here) is left out. */
 body.lastvisit-chrome #periodRow{display:none}
-/* "Dikit dikit na masyado" (Kate, 22 Oct 2026): with Email and Opt-out the table was too tight. Wide screens get a wider page (the masthead
-   follows, so they stay in line), the column words wrap onto two lines instead of cutting ("TOTAL SPE"), and cells breathe a little more.
-   Top Clients does the same for its heads (.tc-wrap). */
+/* "Dikit dikit na masyado" (Kate, 22 Oct 2026): with Email, Opt-out and First visit the fixed-width table was too tight. It is the Lost Clients
+   blast list's table now (lost-lists.css .ll-wrap: a scroll box, columns size themselves, headings stay at the top), and Client and Visits are
+   frozen at the left while the rest scrolls. Wide screens also get a wider page (the masthead follows, so they stay in line). */
 @media(min-width:1240px){body.lastvisit-chrome .wrap,body.lastvisit-chrome .topbar-in{max-width:1480px}body.lastvisit-chrome #lostClientsContent{max-width:1400px!important}}
-body.lastvisit-chrome .lc-wrap thead th{white-space:normal;line-height:1.3;overflow:visible;text-overflow:clip;padding-left:8px;padding-right:8px}
-body.lastvisit-chrome .lc-wrap .lc-thb{white-space:normal;text-align:inherit;flex-wrap:wrap;max-width:100%;row-gap:0}
-body.lastvisit-chrome .lc-wrap tr.lc-row td{padding-left:8px;padding-right:8px}
+body.lastvisit-chrome .lc-wrap.ll-wrap th[class*="lc-c-"]{width:auto}
+body.lastvisit-chrome .lc-wrap.ll-wrap th:first-child,body.lastvisit-chrome .lc-wrap.ll-wrap td:first-child:not([colspan]){width:170px;min-width:170px;max-width:170px}
+body.lastvisit-chrome .lc-wrap.ll-wrap th:nth-child(2),body.lastvisit-chrome .lc-wrap.ll-wrap td:nth-child(2):not([colspan]){position:sticky;left:170px;z-index:3;background:var(--surface);box-shadow:1px 0 0 var(--border);width:64px;min-width:64px}
+body.lastvisit-chrome .lc-wrap.ll-wrap thead th:nth-child(2){z-index:6}
+body.lastvisit-chrome .lc-wrap.ll-wrap tr.lc-open td:nth-child(2):not([colspan]){background:var(--surface2)}
 /* Wellness Voucher Performance: the frame is content-height, so only a few px sit
    between the report and the footer instead of the page's usual 96px. */
 body.wvperf-chrome .wrap{padding-bottom:12px}
@@ -2302,8 +2304,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .lc-c-stylist{width:9.5%}.lc-c-beauty{width:9.5%}.lc-c-phone{width:11.5%}.lc-c-now{width:9%}.lc-c-booked{width:9%}
 .lc-c-email{width:15%}.lc-c-optout{width:8.5%}
 /* Email and Opt-out (Kate, 22 Oct 2026): the address cuts with an ellipsis (full on hover), the flag is a small pill. */
-.lc-wrap tr.lc-row td{overflow:hidden}
-.lc-wrap td.lc-em,.prd-meta.lc-em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lc-wrap td.lc-em,.prd-meta.lc-em{white-space:nowrap}
 .lc-mail{color:inherit;text-decoration:none}.lc-mail:hover{text-decoration:underline}
 .lc-opt{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;color:var(--warn);background:var(--warn-bg);cursor:help;white-space:nowrap}
 .lc-wrap td .lc-ph,.lc-wrap td > a[href^="tel:"]{white-space:normal}
@@ -3465,7 +3466,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
-      cl:  [LGX, 'lost-clients.js?v=fde2b359', 'lost-lists.js?v=fa33b877', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
+      cl:  [LGX, 'lost-clients.js?v=69af2971', 'lost-lists.js?v=fa33b877', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
             'send-schedule.js?v=3abf6266', 'lost-queue.js?v=383b6fdd', 'lost-waves.js?v=e6102677', 'lost-blast.js?v=035195d9',
             'lost-report.js?v=e94a4484', 'wv-blast.js?v=66eb2137', 'top-clients.js?v=d73e7f2e', 'client-mix.js?v=7ec12be4',
             'service-rankings.js?v=c1364c02'],
