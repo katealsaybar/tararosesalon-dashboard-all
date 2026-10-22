@@ -385,6 +385,16 @@
     var n = await c.rpc('kb_me');
     KB.name = (!n.error && n.data) || '';
     drawHeader();
+    // Kate, 22 Oct 2026: a page with no Team Home header (the search page, Marketing) says who is being viewed too. The pill is fixed to the
+    // screen, so it can go on the body; a page that does not load hub.css (Service Playbooks) would show it unstyled, so it gets none.
+    if (KB.viewAs && !document.querySelector('.kb-viewas-bar') && document.querySelector('link[href*="hub.css"]')) {
+      var vb = document.createElement('div');
+      vb.className = 'kb-viewas-bar';
+      vb.innerHTML = '<span>Viewing as <b>Level ' + KB.level + ' · ' + esc(KB.LEVELS[KB.level] || '') +
+        (KB.viewAs.dept ? ', ' + esc(KB.viewAs.dept) : '') + '</b></span><button type="button">Back to my view</button>';
+      vb.querySelector('button').onclick = function () { KB.setViewAs('5'); };
+      document.body.appendChild(vb);
+    }
     document.body.classList.remove('kb-wait');
     return KB;
   })();
