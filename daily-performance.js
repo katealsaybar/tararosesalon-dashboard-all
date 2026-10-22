@@ -227,6 +227,7 @@ function dpCss() {
   .dpf .dp-meter-k{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);line-height:1.5}
   .dpf .dp-meter-k .kb{flex:none;width:14px;height:6px;border-radius:3px;background:var(--muted)}
   .dpf .dp-meter-k .kn{flex:none;width:3px;height:12px;margin:0 5.5px;border-radius:1px;background:var(--text)}
+  .dpf .dp-meter-k .kt{flex:none;width:0;height:12px;margin:0 6.5px;border-left:1.5px dashed var(--muted)}
   .dpf .dp-cust summary{font-weight:600;color:var(--text);list-style:none;display:flex;align-items:center;gap:10px}
   .dpf .dp-cust summary::-webkit-details-marker{display:none}
   /* Kate, 18 Oct 2026: "customise measures doesn't look obvious na it can be clicked". A chevron at the right edge, turned up when it is open. */
@@ -822,8 +823,9 @@ function dpMeter(pf, c, dayName, M) {
   // names the target it is a percentage of.
   const tgt = x => x != null && M && M.fmt ? ' of ' + M.fmt(x) : '';
   return `<div class="dp-meter" role="img" aria-label="Whole period ${Math.round(pf.p)}% of target${dayP != null ? ', day ' + Math.round(dayP) + '%' : ''}"><span class="mz bad" style="width:${80 / 150 * 100}%"></span><span class="mz warn" style="width:${20 / 150 * 100}%"></span><span class="mz good"></span><i class="mf ${col}" style="width:${X(pf.p)}%"></i><b class="mt" style="left:${X(100)}%"></b>${dayP != null ? `<b class="mn" style="left:${X(dayP)}%"></b>` : ''}</div>
-    <div class="dp-meter-k"><i class="kb"></i><span>Whole period ${Math.round(pf.p)}%${tgt(pf.t)} target</span></div>${dayP != null ? `
-    <div class="dp-meter-k"><i class="kn"></i><span>${dayName ? dayName + ' ' : 'Day '}${Math.round(dayP)}%${tgt(c.t)} target${dayP > 150 ? ' (off the end of the meter)' : ''}</span></div>` : ''}`;
+    <div class="dp-meter-k"><i class="kb"></i><span>Bar: whole period so far, ${M && M.fmt ? M.fmt(pf.v) + ', ' : ''}${Math.round(pf.p)}%${tgt(pf.t)} target</span></div>${dayP != null ? `
+    <div class="dp-meter-k"><i class="kn"></i><span>White line: ${dayName ? dayName : 'the day'}, ${M && M.fmt ? M.fmt(c.v) + ', ' : ''}${Math.round(dayP)}%${tgt(c.t)} daily target${dayP > 150 ? ' (off the end of the meter)' : ''}</span></div>` : ''}
+    <div class="dp-meter-k"><i class="kt"></i><span>Dashed line: the target (100%)</span></div>`;
 }
 // The day the needle has been moved to (an index into the window's days), or null for the latest open day. Reset when the window changes.
 let dpPick = null, dpPickKey = '', dpCtx = null;
