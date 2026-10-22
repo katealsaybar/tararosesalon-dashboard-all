@@ -190,6 +190,11 @@
 #lostListsContent .lr-drow b{text-align:right;font-weight:600}
 #lostListsContent .lr-dbar{display:flex;height:14px;border-radius:5px;overflow:hidden;background:var(--border2);min-width:0}
 #lostListsContent .lr-dbar i{display:block;height:100%}
+#lostListsContent .lr-dbar i[data-tip]{cursor:pointer;transition:filter 120ms}
+#lostListsContent .lr-dbar i[data-tip]:hover{filter:brightness(1.12)}
+#lostListsContent .lr-dbar i[data-tip]:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
+/* The value label over a bar segment (lrSegI in lost-report.js): the page's own text and background swapped, so it reads on both themes. */
+.lr-tip{position:fixed;z-index:80;max-width:min(300px,calc(100vw - 16px));padding:6px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12.5px;line-height:1.35;font-variant-numeric:tabular-nums;box-shadow:0 6px 18px rgba(0,0,0,.28);pointer-events:none}
 #lostListsContent .d-paid{background:var(--good)}
 #lostListsContent .d-today{background:var(--muted2)}
 #lostListsContent .d-unpaid{background:var(--accent)}

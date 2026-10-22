@@ -131,10 +131,46 @@ function lrDepWhy(svc) {
   if (/extension/i.test(svc)) w.push('Extensions');
   return w.join(', ');
 }
+// Every bar segment can be clicked, tapped or tabbed to for its value (Kate, 22 Oct 2026): a small label above it, "Khalifa City A: Deposit paid: 5 of 17 (29.4%)".
+// The row's own name (branch, day, how soon) is read from the row when the label opens, so a segment only carries what it is and its count.
+// Hover shows it too on a mouse; a click or tap keeps it open until the next click, a scroll or Escape.
+function lrSegI(cls, label, n, tot, w, fmt) {
+  const f = fmt || lcNum, tip = `${label}: ${f(n)}${tot ? ` of ${f(tot)} (${lrPct(n, tot)})` : ''}`;
+  return `<i class="${cls}" style="width:${w}%" data-tip="${lcEsc(tip)}" tabindex="0" role="button" aria-label="${lcEsc(tip)}"></i>`;
+}
+let lrTipEl = null, lrTipPinned = null;
+function lrTipHide() { if (lrTipEl) lrTipEl.remove(); lrTipEl = null; lrTipPinned = null; }
+function lrTipShow(seg) {
+  lrTipHide();
+  const row = seg.closest('.lr-drow'), who = row && row.firstElementChild ? row.firstElementChild.textContent.trim() : '';
+  const el = document.createElement('div');
+  el.className = 'lr-tip'; el.setAttribute('role', 'status');
+  el.textContent = (who ? who + ': ' : '') + seg.dataset.tip;
+  document.body.appendChild(el);
+  const r = seg.getBoundingClientRect(), tw = el.offsetWidth, th = el.offsetHeight;
+  const left = Math.max(8, Math.min(window.innerWidth - tw - 8, r.left + r.width / 2 - tw / 2));
+  el.style.left = left + 'px';
+  el.style.top = (r.top - th - 8 < 8 ? r.bottom + 8 : r.top - th - 8) + 'px';
+  lrTipEl = el;
+}
+document.addEventListener('click', e => {
+  const seg = e.target.closest && e.target.closest('.lr-dbar i[data-tip]');
+  if (!seg) { lrTipHide(); return; }
+  if (lrTipPinned === seg) { lrTipHide(); return; }
+  lrTipShow(seg); lrTipPinned = seg;
+});
+document.addEventListener('mouseover', e => { const seg = e.target.closest && e.target.closest('.lr-dbar i[data-tip]'); if (seg && !lrTipPinned) lrTipShow(seg); });
+document.addEventListener('mouseout', e => { if (!lrTipPinned && e.target.closest && e.target.closest('.lr-dbar i[data-tip]')) lrTipHide(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { lrTipHide(); return; }
+  const seg = e.target.closest && e.target.closest('.lr-dbar i[data-tip]');
+  if (seg && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); if (lrTipPinned === seg) lrTipHide(); else { lrTipShow(seg); lrTipPinned = seg; } }
+});
+window.addEventListener('scroll', lrTipHide, { passive: true });
 function lrDepBar(m, scale) {
-  const w = k => m.booked ? (100 * (m[k] || 0) / m.booked) : 0;
-  const tail = m.need != null ? `<i class="d-none" style="width:${w('none')}%"></i><i class="d-need" style="width:${w('need')}%"></i>` : `<i class="d-unpaid" style="width:${w('unpaid')}%"></i>`;
-  return `<span class="lr-dbar" style="width:${Math.max(4, scale)}%"><i class="d-paid" style="width:${w('paid')}%"></i><i class="d-today" style="width:${w('today')}%"></i>${tail}</span>`;
+  const w = k => m.booked ? (100 * (m[k] || 0) / m.booked) : 0, seg = (cls, k, label) => lrSegI(cls, label, m[k] || 0, m.booked, w(k));
+  const tail = m.need != null ? seg('d-none', 'none', 'Short service, none needed') + seg('d-need', 'need', 'Likely needed, not paid') : seg('d-unpaid', 'unpaid', 'Not paid yet');
+  return `<span class="lr-dbar" style="width:${Math.max(4, scale)}%">${seg('d-paid', 'paid', 'Deposit paid')}${seg('d-today', 'today', 'Today, none needed')}${tail}</span>`;
 }
 function lrDepVisual(d) {
   const t = d.total, by = d.by_branch || [], pol = lrDepPol(d), soon = (pol ? d.soon_need : d.soon) || [], maxB = Math.max(1, ...by.map(b => b.booked)), maxS = Math.max(1, ...soon.map(s => s.n));
@@ -159,7 +195,7 @@ function lrDepVisual(d) {
         ${by.map(b => `<div class="lr-drow"><span>${lcEsc(LC_BRANCH[b.k] || b.k)}</span>${lrDepBar(b, 100 * b.booked / maxB)}<b>${lcNum(b.booked)}</b></div>`).join('') || '<p class="slv-muted">Nobody yet.</p>'}
         ${key}</div>
       <div class="lr-dcard"><h4>${pol ? 'Likely needed, not paid' : 'Not paid yet'}: how soon they come</h4>
-        ${soon.map(s => `<div class="lr-drow"><span>${LR_SOON[s.k] || s.k}</span><span class="lr-dbar" style="width:${Math.max(4, 100 * s.n / maxS)}%"><i class="${pol ? 'd-need' : 'd-unpaid'}" style="width:100%"></i></span><b>${lcNum(s.n)}</b></div>`).join('') || `<p class="slv-muted">${pol ? 'Nobody is waiting on a deposit.' : 'Everyone has paid, or comes today.'}</p>`}
+        ${soon.map(s => `<div class="lr-drow"><span>${LR_SOON[s.k] || s.k}</span><span class="lr-dbar" style="width:${Math.max(4, 100 * s.n / maxS)}%">${lrSegI(pol ? 'd-need' : 'd-unpaid', pol ? 'Likely needed, not paid' : 'Not paid yet', s.n, 0, 100)}</span><b>${lcNum(s.n)}</b></div>`).join('') || `<p class="slv-muted">${pol ? 'Nobody is waiting on a deposit.' : 'Everyone has paid, or comes today.'}</p>`}
         <p class="slv-note">${pol ? 'These are the ones reception can chase today. Check at the chair first: a client who booked her next visit before leaving the salon does not need one.' : 'The ones coming tomorrow or the day after are the ones reception can chase today.'}</p></div>
     </div>`;
 }
@@ -207,7 +243,7 @@ function lrMoneyVisual(m) {
   const maxP = Math.max(1, ...by.map(x => x.proj)), maxA = Math.max(1, ...by.map(x => x.actual));
   const card = (n, ti, ds) => `<div class="ll-card lr-card"><div class="ll-t">${ti}</div><div class="ll-n">${n}</div><div class="ll-d">${ds}</div></div>`;
   const key = '<div class="lr-dkey"><span><i class="d-unpaid"></i>Projected (booked from today on)</span><span><i class="d-paid"></i>Actual (spent since our message)</span></div>';
-  const brow = (x, k, max, cls) => `<div class="lr-drow lr-drow2"><span>${lcEsc(LC_BRANCH[x.k] || x.k)}</span><span class="lr-dbar" style="width:${Math.max(4, 100 * x[k] / max)}%"><i class="${cls}" style="width:100%"></i></span><b>${lrAed(x[k])}</b></div>`;
+  const brow = (x, k, max, cls) => `<div class="lr-drow lr-drow2"><span>${lcEsc(LC_BRANCH[x.k] || x.k)}</span><span class="lr-dbar" style="width:${Math.max(4, 100 * x[k] / max)}%">${lrSegI(cls, k === 'proj' ? 'Projected' : 'Actual', x[k], 0, 100, lrAed)}</span><b>${lrAed(x[k])}</b></div>`;
   return `<div class="ll-cards lr-cards">
       ${card(lrAed(b.proj), 'Projected spend', `${lcNum(b.clients)} clients booked, ${lcNum(b.appts)} appointments from today on`)}
       ${card(lrAed(b.clients ? b.proj / b.clients : 0), 'Average projected per client', `${lrAed(b.appts ? b.proj / b.appts : 0)} per appointment`)}
@@ -255,7 +291,7 @@ function lrMoneySet(v) {
 const LR_DKEYS = [['seen', 'Seen', 'd-seen'], ['delivered', 'Delivered only', 'd-delivered'], ['sent_only', 'Not delivered yet', 'd-sentonly']];
 function lrDelBar(m, scale) {
   const w = k => m.sent ? (100 * (m[k] || 0) / m.sent) : 0;
-  return `<span class="lr-dbar" style="width:${Math.max(4, scale)}%">${LR_DKEYS.map(([k, , c]) => `<i class="${c}" style="width:${w(k)}%"></i>`).join('')}</span>`;
+  return `<span class="lr-dbar" style="width:${Math.max(4, scale)}%">${LR_DKEYS.map(([k, l, c]) => lrSegI(c, l, m[k] || 0, m.sent, w(k))).join('')}</span>`;
 }
 function lrDelVisual(d) {
   const t = d.total, by = d.by_branch || [], days = d.by_day || [], maxD = Math.max(1, ...days.map(x => x.sent));
