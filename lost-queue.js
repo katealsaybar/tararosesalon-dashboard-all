@@ -46,11 +46,13 @@ const lqToday = () => new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD on
 // ── TABS (drawn by renderLostListsPage in lost-lists.js) ─────────────────────────────────────
 function lqAllowed() { return typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3; }
 // Kate, 19 Oct 2026: the Performance report opens to Level 2 (the coordinators), who see the rail with just The five groups and Performance report.
-// To message and Templates show phone numbers and stay Level 3 and above, and so does Terms and conditions.
-const lqTabOk = t => lqAllowed() || (typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2 && (t === 'groups' || t === 'perf'));
+// To message and Templates show phone numbers and stay Level 3 and above.
+// Kate, 22 Oct 2026: Terms and conditions is Level 2 as well ("nawala t&c sa view nila"): it is the welcome-back rate PDF, no names or numbers, and the
+// coordinators are the ones who tell a client what the rate's terms are.
+const lqTabOk = t => lqAllowed() || (typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2 && (t === 'groups' || t === 'perf' || t === 'terms'));
 // Kate, 16 Oct 2026: the tabs became the "On this page" rail the Organisation Pulse has (same .side-nav markup, in the gutter above 1100px and a
 // row of chips below it), with a fourth entry, Performance report. A rail entry opens a tab instead of scrolling, so spy() in index.html leaves
-// this rail alone (data-tabs) and lqShowTab lights the entry. Level 3 and above; Level 2 sees the groups and the Performance report (lqTabOk).
+// this rail alone (data-tabs) and lqShowTab lights the entry. Level 3 and above; Level 2 sees the groups, the Performance report and Terms and conditions (lqTabOk).
 const LQ_TABS = [['groups', 'The five groups'], ['queue', 'To message'], ['tpl', 'Templates'], ['perf', 'Performance report'], ['terms', 'Terms and conditions']];
 function lqRailHtml() {
   if (!lqTabOk('groups')) return '';
