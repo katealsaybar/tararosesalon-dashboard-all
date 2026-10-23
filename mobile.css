@@ -179,8 +179,8 @@
   .m-swipe.gone{opacity:0}
 
   /* Cards / Table for the widest tables (mobile.js builds the cards). */
-  .m-tv{display:flex;gap:8px;margin:0 0 10px}
-  .m-tv button{min-height:44px;padding:0 16px;border:1px solid var(--border);border-radius:999px;
+  .m-tv{display:flex;gap:6px;margin:0 0 8px}
+  .m-tv button{min-height:32px;padding:0 14px;border:1px solid var(--border);border-radius:999px;
     background:var(--surface);color:var(--muted);font:inherit;font-size:13px;letter-spacing:.06em;
     text-transform:uppercase;cursor:pointer}
   .m-tv button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}

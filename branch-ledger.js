@@ -863,6 +863,9 @@ async function lgSeries() {
 // build the same six blocks from the same definitions instead of from a copy that
 // would drift the first time one of these titles changed.
 const LG_PACE_BLOCKS = [
+  // Kate, 23 Oct 2026: a net take line, as Daily Performance has. Its target is the services target (hair with
+  // treatments and courses, plus beauty) and the retail target added together, the same two parts that page adds.
+  { title:'Salon net take (all services + retail)', key:['servicesTotal','retailTotal'], pick: d => d.netTake },
   { title:'Salon total services (hair excl. treatments and courses + beauty)', key:LG_SERVICES_TARGET, pick: lgServicesTotal },
   { title:'Salon total retail (hair + beauty)', key:'retailTotal', pick: d => d.retailTotal },
   { title:'Hair treatment',       key:'hairTreatment',    pick: d => d.treatmentSales },
@@ -1559,6 +1562,7 @@ function bpDrawCharts(codes, ctx) {
   // one chart that colours by status.
   if (ctx.applies) {
     const METRICS = [
+      ['Salon net take', ['servicesTotal','retailTotal'], d => d.netTake],
       ['Salon total services', LG_SERVICES_TARGET, lgServicesTotal],
       ['Salon total retail (hair + beauty)', 'retailTotal', d => d.retailTotal],
       ['Hair revenue',         'hairRevenue',      d => d.hairServicesIncl],
