@@ -117,7 +117,7 @@ table.sh tr.g:hover td{background:color-mix(in srgb,var(--hl) 55%,var(--surface2
 /* phone: the page is under 600px wide. No boxes round the panels, a card per supplier instead of a table, the filters as one row
    that drops a panel down (Kate's phone rulings, 16 Oct 2026). */
 .ph.pg{padding-left:14px;padding-right:14px}
-.ph .fwrap{margin:0 -14px 10px;padding:6px 14px}
+.ph .fwrap{position:relative;top:auto;margin:0 -14px 10px;padding:6px 14px}  /* a second sticky bar would hang mid-list under the phone header: it scrolls (Kate, 23 Oct 2026) */
 .ph .fhead{flex-wrap:nowrap}
 .ph .fhead .fsum{font-size:12.5px}
 .ph .fbtn,.ph .seg button,.ph .chips button{min-height:36px}
