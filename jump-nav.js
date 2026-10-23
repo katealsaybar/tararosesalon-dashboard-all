@@ -234,13 +234,16 @@ function jnWatch(key) {
   contentWatch.observe(box, { childList: true, subtree: true });
   // The view is shown and hidden by its own style; a page that kept its content while hidden needs the row when it is shown again.
   new MutationObserver(queue).observe(box, { attributes: true, attributeFilter: ['style'] });
-  // A page drawn in a shadow root (Supplier Spend) is invisible to the observer above: watch its root once the host has one.
+  // A page drawn in a shadow root (Supplier Spend) is invisible to the observer above, and its root is made on first draw, with no change
+  // to the light DOM to say so: look for the root once a second until it is there, then watch it.
   if (cfg.shadow) {
     const hook = () => {
       const { host } = jnBox(key);
-      if (host && host.shadowRoot && !host._jnWatched) { host._jnWatched = 1; contentWatch.observe(host.shadowRoot, { childList: true, subtree: true }); }
+      if (!host || !host.shadowRoot) return false;
+      if (!host._jnWatched) { host._jnWatched = 1; contentWatch.observe(host.shadowRoot, { childList: true, subtree: true }); queue(); }
+      return true;
     };
-    new MutationObserver(hook).observe(box, { childList: true, subtree: true }); hook();
+    if (!hook()) { const poll = setInterval(() => { if (hook()) clearInterval(poll); }, 1000); }
   }
   queue();
 }
