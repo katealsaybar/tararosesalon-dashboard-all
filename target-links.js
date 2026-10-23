@@ -48,8 +48,8 @@ function tlEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'
 function tlHtml(why, key) {
   return `<div class="tl" role="note" data-tl="${tlEsc(key || '')}"><span class="tl-k">Where the target comes from</span>`
     + `<span class="tl-t">${tlEsc(why)}</span>`
-    + `<span class="tl-b"><a class="tl-a" href="${TL_HOW}">How a target is made</a>`
-    + `<a class="tl-a tl-p" href="${TL_CALC}">Open the Target Calculator</a></span></div>`;
+    + `<span class="tl-b"><a class="tl-a" href="${TL_HOW}" target="_blank" rel="noopener" title="Opens in a new tab">How a target is made<span aria-hidden="true"> ↗</span></a>`
+    + `<a class="tl-a tl-p" href="${TL_CALC}" target="_blank" rel="noopener" title="Opens in a new tab">Open the Target Calculator<span aria-hidden="true"> ↗</span></a></span></div>`;
 }
 
 function tlPlace(a) {

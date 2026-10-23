@@ -4995,6 +4995,7 @@ async function renderDashboard() {
       <div class="r-row"><span class="r-label">Beauty net take</span><span class="r-val tabular">${num0(beautyNetTakeDept)}</span></div>
       <div class="r-rule"></div>` : ''}
       <div class="r-row"><span class="r-label">Net take</span><span class="r-val tabular">${num0(s.netTake)}</span></div>
+      ${(s.hairRetail || 0) > 0 ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">of which retail</span><span class="r-val tabular" style="opacity:.75">${num0(s.hairRetail)}</span></div>` : ''}
       <div class="r-row"><span class="r-label">Clients${doorOn(s) ? ' through the door' : ''}</span><span class="r-val tabular">${num0(clientsOf(s))}</span></div>
       ${doorOn(s) ? `<div class="r-row"><span class="r-label" style="padding-left:10px;opacity:.75">per staff, ledgers (hand-typed)</span><span class="r-val tabular" style="opacity:.75">${num0(s.totalClients)}</span></div>` : ''}
       <div class="r-row"><span class="r-label">Avg bill${doorOn(s) ? ' per staff' : ''}</span><span class="r-val tabular">${num0(s.avgBill)}</span></div>
