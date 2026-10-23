@@ -37,45 +37,107 @@ const wvDayY = d => d ? new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleD
 const wvWhy = r => String(r.status || '').replace(/^No: /, '');
 const wvWaveName = w => w === 'all' ? 'Everyone on the list' : w === 'new' ? 'New since 8 Oct' : w === 'out' ? 'Removed' : 'Wave ' + w;
 
+// Which blast the page shows (Kate, 23 Oct 2026): the sidebar lists Overall Blast performances and Blast 4, 3, 2, 1 under Wellness Voucher Performance, each a page of its own with
+// its own mini nav. One view (view-wvblast) draws all five. WV_ONLY (index.html, wvGoBlast) says which; else the section in the address of a deep link; else Overall.
+let wvMode = 'all';
+function wvModeOfId(id) {
+  id = id || '';
+  const m = /^wv(?:B|Full|Read)([1-4])$/.exec(id);
+  if (m) return 'b' + m[1];
+  if (/^wvAll/.test(id)) return 'all';
+  if (/^wv(Ls|Lp|Last)/.test(id)) return 'b4';
+  if (/^wv(SendBox|List|Host|Perf)$/.test(id)) return 'b3';
+  return null;
+}
+const WV_MODE_NAME = { all: 'Overall Blast performances', b4: 'Blast 4: the last push', b3: 'Blast 3: the 600 top spenders', b2: 'Blast 2: the reminder', b1: 'Blast 1: the first message' };
+// Sub-entries under Full performance in a blast page's "On this page" rail (Kate, 23 Oct 2026, the way Lost Client Blasts lists its Performance report: lost-report.js lrRailSubs).
+// Each box of the full performance (From message to voucher, Cost against what came in, How soon they bought, ...) gets a link under the Full performance entry, found from the
+// boxes that are really on the page, so a cut with no record has no link. Sidebar rail only (wv-blast.css, 1400px and up); the lit entry follows the scroll.
+let wvSpy = null;
+function wvRailClear() {
+  document.querySelectorAll('#wvBlastContent .side-sub').forEach(n => n.remove());
+  if (wvSpy) { window.removeEventListener('scroll', wvSpy); wvSpy = null; }
+}
+function wvGoSection(id) {
+  const el = document.getElementById(id);
+  if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - (typeof jnOffset === 'function' ? jnOffset(el) : 120), behavior: 'smooth' });
+}
+function wvRailSubs() {
+  wvRailClear();
+  const n = /^b([1-4])$/.exec(wvMode);
+  if (!n) return;
+  const a = document.querySelector(`#wvBlastContent .side-nav a[href="#wvFull${n[1]}"]`);
+  const boxes = [...document.querySelectorAll(`#wvFull${n[1]} .wv-pbox`)].filter(b => b.querySelector('h4'));
+  if (!a || !boxes.length) return;
+  const subs = boxes.map((b, i) => { if (!b.id) b.id = `wvF${n[1]}-${i}`; return [b.id, b.querySelector('h4').textContent.trim()]; });
+  const nav = document.createElement('div');
+  nav.className = 'side-sub'; nav.setAttribute('role', 'group'); nav.setAttribute('aria-label', 'Full performance sections');
+  nav.innerHTML = subs.map(([id, l]) => `<a href="#${id}" data-s="${id}" onclick="event.preventDefault();wvGoSection('${id}')">${lcEsc(l)}</a>`).join('');
+  a.insertAdjacentElement('afterend', nav);
+  // the lit entry is the last box whose top has passed just under the pinned header
+  const spy = () => {
+    let cur = subs[0][0];
+    subs.forEach(([id]) => { const el = document.getElementById(id); if (el && el.getBoundingClientRect().top <= 150) cur = id; });
+    nav.querySelectorAll('a').forEach(x => x.classList.toggle('on', x.dataset.s === cur));
+  };
+  wvSpy = spy;
+  window.addEventListener('scroll', wvSpy, { passive: true });
+  spy();
+}
 async function renderWvBlast() {
   const el = document.getElementById('wvBlastContent');
   if (!el || !wvOk()) return;
-  // The mini side nav (Kate, 23 Oct 2026: every page gets one; ALD-X-01): the rail in the gutter from 1400px, a row of chips below. Level 4 has the money only.
-  const rail = [['wvAllBlasts', 'What each blast brought in'], ['wvB4', 'Blast 4: the last push']]
-    .concat(wvOk5() ? [['wvLsBox', 'Blast 4: send it']] : [])
-    .concat(wvPerfOnly() ? [] : [['wvLpPanel', 'Blast 4: the send list']])
-    .concat([['wvB3', 'Blast 3: the 600 top spenders']])
-    .concat(wvOk5() ? [['wvSendBox', 'Blast 3: send a wave']] : [])
-    .concat(wvPerfOnly() ? [] : [['wvList', 'Blast 3: the send list']])
-    .concat([['wvB2', 'Blast 2: the reminder'], ['wvB1', 'Blast 1: the first message']]);
-  // Newest first: what happens on Monday is on top. Every blast has the same block: what it was, who got it, when, then five numbers.
-  const body = `<div id="wvAll"><p class="slv-muted">Loading…</p></div>
-    <section class="wv-blast" id="wvB4"></section>
-    <section class="wv-blast" id="wvB3"><div id="wvB3Head"></div><div id="wvHost"><p class="slv-muted">Loading the list…</p></div></section>
-    <section class="wv-blast" id="wvB2"></section>
-    <section class="wv-blast" id="wvB1"></section>`;
-  el.innerHTML = `<section class="slv-intro"><h2>Wellness Voucher Message and Email Blasts</h2>
+  wvRailClear();
+  wvMode = (typeof WV_ONLY !== 'undefined' && WV_ONLY) || wvModeOfId((location.hash || '').slice(1)) || 'all';
+  if (typeof WV_ONLY !== 'undefined') WV_ONLY = null;
+  const mode = wvMode;
+  // The mini side nav (Kate, 23 Oct 2026: every page gets one; ALD-X-01): the rail in the gutter from 1400px, a row of chips below, listing this page's own sections. Level 4 has the money only.
+  const blastRail = (n, extra) => [['wvB' + n, 'Blast ' + n + ': what it was and what it brought'], ['wvFull' + n, 'Full performance'], ['wvRead' + n, 'How to read these numbers']].concat(extra || []);
+  const rails = {
+    all: [['wvAllBlasts', 'The answer, blast by blast'], ['wvAllCmp', 'Compare the blasts'], ['wvAllWords', 'Each blast in words'], ['wvAllHow', 'How to read these numbers']],
+    b4: blastRail(4, (wvOk5() ? [['wvLsBox', 'Send Blast 4']] : []).concat(wvPerfOnly() ? [] : [['wvLpPanel', 'The send list']])),
+    b3: blastRail(3, (wvOk5() ? [['wvSendBox', 'Send a wave']] : []).concat(wvPerfOnly() ? [] : [['wvList', 'The send list']])),
+    b2: blastRail(2), b1: blastRail(1)
+  };
+  const parts = {
+    all: '<div id="wvAll"><p class="slv-muted">Loading…</p></div>',
+    b4: '<section class="wv-blast" id="wvB4"><p class="slv-muted">Loading…</p></section>',
+    b3: '<section class="wv-blast" id="wvB3"><div id="wvB3Head"></div><div id="wvHost"><p class="slv-muted">Loading the list…</p></div></section>',
+    b2: '<section class="wv-blast" id="wvB2"></section>',
+    b1: '<section class="wv-blast" id="wvB1"></section>'
+  };
+  const body = parts[mode];
+  const intro = mode === 'all' ? `<section class="slv-intro"><h2>Wellness Voucher Message and Email Blasts</h2>
     <div class="wv-why">
       <p><b>Why this?</b> The voucher closes on 31 Oct. This page shows what each blast cost and brought in.</p>
-      <p><b>Why now?</b> Blast 4, the last push, goes out on Mon 26 Oct, from the send panel on this page.</p>
+      <p><b>Why now?</b> Blast 4, the last push, goes out on Mon 26 Oct, from the send panel on its page.</p>
       <p><b>If we do nothing?</b> The clients on the last-push list will not hear from us before it closes.</p>
       <p id="wvSoFar"></p>
-      <p class="wv-act"><b>Next step:</b> Mon 26 Oct, Kate sends Blast 4 with the Send button in the Blast 4 send panel, or schedules it from there.${wvPerfOnly() ? ' This page shows the money only.' : ''}</p>
-    </div></section>${typeof lgShell === 'function' ? lgShell(rail, body, 'lg-shell-wide') : body}`;
-  const hp = sb.rpc('wv_blasts_history').then(r => r, e => ({ error: e })), lp = typeof wvLastLoad === 'function' ? wvLastLoad() : Promise.resolve(), dpp = typeof wvDepthLoad === 'function' ? wvDepthLoad() : Promise.resolve();
+      <p class="wv-act"><b>Next step:</b> Mon 26 Oct, Kate sends Blast 4 with the Send button on the Blast 4 page, or schedules it from there.${wvPerfOnly() ? ' This page shows the money only.' : ''}</p>
+    </div></section>` : `<section class="slv-intro"><h2>${WV_MODE_NAME[mode]}</h2>
+    <p class="slv-note">Wellness Voucher · <a href="#" onclick="event.preventDefault();wvGoBlast('all')">← Overall Blast performances</a>${wvPerfOnly() ? ' · This page shows the money only.' : ''}</p></section>`;
+  el.innerHTML = `${intro}${typeof lgShell === 'function' ? lgShell(rails[mode], body, 'lg-shell-wide') : body}`;
+  const needPerf = mode === 'all' || mode === 'b3', needList = mode === 'b3' && !wvPerfOnly();
+  const hp = sb.rpc('wv_blasts_history').then(r => r, e => ({ error: e })),
+    lp = typeof wvLastLoad === 'function' && (mode === 'all' || mode === 'b4') ? wvLastLoad() : Promise.resolve(),
+    dpp = typeof wvDepthLoad === 'function' ? wvDepthLoad() : Promise.resolve();
   const after = async () => {
     const h = await hp; await lp; await dpp;
     wvHist = (!h.error && h.data) ? h.data : null;
     if (h.error) console.warn('wv_blasts_history', h.error);
+    if (wvMode !== mode) return;   // she went to another blast while this one was loading
     wvAllPaint();
     const pe = document.getElementById('wvPerf'); if (pe && wvPerf) pe.outerHTML = wvPerfHtml();   // without its old break-down once the full performance is there
     if (typeof wvLastMount === 'function') wvLastMount();
+    wvRailSubs();
   };
-  if (wvPerfOnly()) {
-    const pf = await sb.rpc('wv_blast_performance', { p_rate: WV_RATE });
-    wvPerf = (!pf.error && pf.data && pf.data.totals) ? pf.data : null;
-    const host = document.getElementById('wvHost');
-    if (host) host.innerHTML = wvPerf ? wvPerfHtml() : '<p class="slv-muted">The numbers did not load. Refresh to try again.</p>';
+  if (!needList) {
+    if (needPerf) {
+      const pf = await sb.rpc('wv_blast_performance', { p_rate: WV_RATE });
+      wvPerf = (!pf.error && pf.data && pf.data.totals) ? pf.data : null;
+      const host = document.getElementById('wvHost');
+      if (host) host.innerHTML = wvPerf ? wvPerfHtml() : '<p class="slv-muted">The numbers did not load. Refresh to try again.</p>';
+    }
     await after();
     return;
   }
@@ -106,7 +168,7 @@ const wvBack = (aed, cost) => cost && aed ? Math.round(aed / cost) : 0;
 const wvBackTxt = (aed, cost) => wvBack(aed, cost) ? 'AED ' + lcNum(wvBack(aed, cost)) : '–';
 const wvN = (n, w) => lcNum(n) + ' ' + w + (n === 1 ? '' : 's');
 const wvGhl = (blast, channel) => ((wvHist && wvHist.ghl) || []).find(g => g.blast === blast && g.channel === channel) || null;
-const wvJump = id => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+const wvJump = id => { const el = document.getElementById(id); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } const m = wvModeOfId(id); if (m && typeof wvGoBlast === 'function') wvGoBlast(m); };
 const wvToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' });
 
 // One record per blast, newest first: every part of the page reads its numbers from here, so the line, the picture, the table and the cards cannot disagree.
@@ -164,16 +226,17 @@ function wvReadHtml(example, items) {
 }
 // One block per blast: b = { title, tag, next, intro: [what, why, next], line, stats: [[value, label, detail]], what, who, when, more, moreTitle, fold }
 function wvBlockHtml(b) {
+  const bn = ((/^Blast (\d)/.exec(b.title || '') || [])[1]) || '';
   const f = (k, v) => v ? `<div><dt>${k}</dt><dd>${v}</dd></div>` : '';
   const stat = x => `<div class="wv-stat"><div class="wv-sn">${x[0]}</div><div class="wv-sl">${x[1]}</div>${x[2] ? `<div class="wv-sd">${x[2]}</div>` : ''}</div>`;
   return `<div class="wv-bhead"><h3>${b.title}</h3><span class="wv-btag${b.next ? ' next' : ''}">${b.tag}</span></div>
-    <p class="slv-note wv-what"><b>What is this?</b> ${b.intro[0]} <b>Why it matters:</b> ${b.intro[1]} <b>Next:</b> ${b.intro[2]}</p>
+    <dl class="wv-facts wv-www"><div><dt>What is this</dt><dd>${b.intro[0]}</dd></div><div><dt>Why it matters</dt><dd>${b.intro[1]}</dd></div><div><dt>Next</dt><dd>${b.intro[2]}</dd></div></dl>
     ${b.line ? `<p class="wv-short">${b.line}</p>` : ''}
     ${b.stats && b.stats.length ? `<div class="wv-stats">${b.stats.map(stat).join('')}</div>` : ''}
     <dl class="wv-facts">${f('What it was', b.what)}${f('Who got it', b.who)}${f('When', b.when)}</dl>
-    ${b.depth || ''}
+    <div id="wvFull${bn}">${b.depth || ''}</div>
     ${b.more ? `<details class="wv-how wv-more"><summary>${b.moreTitle || 'Break it down'}</summary>${b.more}</details>` : ''}
-    ${b.fold ? `<details class="wv-how"><summary>How to read these numbers</summary>${b.fold}</details>` : ''}`;
+    ${b.fold ? `<details class="wv-how" id="wvRead${bn}"><summary>How to read these numbers</summary>${b.fold}</details>` : ''}`;
 }
 function wvBlocks() {
   const h = wvHist || {}, by = {};
@@ -244,10 +307,10 @@ function wvAllHtml() {
       <div><dt>Next</dt><dd>Read the cards, then open Details on the blast you want to check.</dd></div></dl>
     ${head ? `<p class="wv-short">${head}</p>` : ''}
     <div class="wv-sb">${rows.map(wvScoreCard).join('')}</div>
-    <div class="wv-vhd"><h4>Compare them as</h4><div class="sc-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="wvAllSet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="wvAllSet('table')">Table</button></div></div>
+    <div class="wv-vhd" id="wvAllCmp"><h4>Compare them as</h4><div class="sc-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="wvAllSet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="wvAllSet('table')">Table</button></div></div>
     <div id="wvAllBody">${tbl ? wvTableHtml(rows) : wvVisualHtml(rows)}</div>
-    <details class="wv-how"><summary>Read each blast in words</summary><ul class="wv-lines">${lines}</ul></details>
-    <details class="wv-how"><summary>How to read these numbers</summary>${wvReadHtml(egTxt, [
+    <details class="wv-how" id="wvAllWords"><summary>Read each blast in words</summary><ul class="wv-lines">${lines}</ul></details>
+    <details class="wv-how" id="wvAllHow"><summary>How to read these numbers</summary>${wvReadHtml(egTxt, [
       ['Back for every AED 1', 'AED collected divided by the cost estimate.'],
       ['Blasts 1 and 2', 'Sent from GoHighLevel. The sends are counted from the chats there. Vouchers are the log\'s sales in the 7 days after, so they do not prove the message sold them.'],
       ['Blasts 3 and 4', 'Vouchers bought by the clients on their own list, matched by name in Phorest. Blast 4\'s cost is the list × the rate until it has gone, then the messages really sent.'],

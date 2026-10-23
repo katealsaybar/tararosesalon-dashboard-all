@@ -37,6 +37,8 @@ aside.sidebar .nav-group .nav-sub.active{background:none;color:var(--text);font-
   border-left-color:var(--text);border-radius:0}
 aside.sidebar .nav-group .nav-sub:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 aside.sidebar .nav-sub .nav-star{width:26px;height:26px}
+/* Kate, 23 Oct 2026: a page one step in under its parent (Overall and Blast 4 to 1 under Wellness Voucher Performance): indented, a touch smaller, the same rule beside it. */
+aside.sidebar .nav-group .nav-sub.lvl2{margin-left:14px;padding:7px 0 7px 14px;font-size:14px}
 
 /* Kate, 6 Oct 2026: Numbers' subheads (Business, Team Performance, Clients, Sales &
    Stock). A label on the same rule as the pages, so the group still reads as one list. */

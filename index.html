@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=40ec360b"></script>
+<script src="pages.js?v=643116b0"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3506,13 +3506,13 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="lost-queue.css?v=77bc5df5">
 <link rel="stylesheet" href="send-schedule.css?v=88a70391">
 <link rel="stylesheet" href="jump-nav.css?v=e099d37d">
-<link rel="stylesheet" href="wv-blast.css?v=a30d4a4b">
+<link rel="stylesheet" href="wv-blast.css?v=6b8d9687">
 <link rel="stylesheet" href="target-links.css?v=20377623">
 <link rel="stylesheet" href="glow-club.css?v=ce0bc189">
 <link rel="stylesheet" href="tool-spend.css?v=c483f63c">
 <link rel="stylesheet" href="marketing-spend.css?v=aa9f4f2f">
 <link rel="stylesheet" href="mobile-late.css?v=fd95ed84">   <!-- phone rules for the pages whose sheets load after mobile.css -->
-<link rel="stylesheet" href="nav-style.css?v=fafc50dc">
+<link rel="stylesheet" href="nav-style.css?v=b39db466">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/theme-fade.js"></script>
 <script src="/assets/pill-select.js?v=7bd2fc3a"></script>
@@ -3556,7 +3556,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
       cl:  [LGX, 'lost-clients.js?v=25d90f74', 'lost-lists.js?v=601836f9', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
             'send-schedule.js?v=3abf6266', 'lost-queue.js?v=032c13a7', 'lost-waves.js?v=e6102677', 'lost-blast.js?v=035195d9',
-            'lost-report.js?v=730818d7', 'wv-blast.js?v=0a3c42b1', 'wv-last.js?v=17cf7f9b', 'wv-depth.js?v=db635e72', 'wv-lastsend.js?v=e4e1a296', 'top-clients.js?v=d73e7f2e', 'client-mix.js?v=7ec12be4',
+            'lost-report.js?v=730818d7', 'wv-blast.js?v=a039cc4d', 'wv-last.js?v=17cf7f9b', 'wv-depth.js?v=db635e72', 'wv-lastsend.js?v=e4e1a296', 'top-clients.js?v=d73e7f2e', 'client-mix.js?v=7ec12be4',
             'service-rankings.js?v=c1364c02'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
@@ -3750,9 +3750,17 @@ table.tp-cmp td.bad{color:var(--bad)}
        Wellness Voucher Performance (read-only, no client names, the till stays out): Level 2 and above. -->
   <div class="nav-group" id="navCampaigns">
     <div class="nav-title">Campaigns</div>
+    <!-- Kate, 23 Oct 2026: by year. Under Wellness Voucher Performance, Overall Blast performances and each blast are pages of their own (wvGoBlast), each with its own mini nav. -->
+    <div class="nav-subhead">2025</div>
+    <div class="nav-sub" onclick="showView('glowclub', this)">Glow Club Performance</div>
+    <div class="nav-subhead">2026</div>
     <div class="nav-sub" onclick="showView('lostlists', this)">Lost Client Blasts, October 2026</div>
     <div class="nav-sub" onclick="showView('wvperf', this)">Wellness Voucher Performance</div>
-    <div class="nav-sub" onclick="showView('glowclub', this)">Glow Club Performance</div>
+    <div class="nav-sub lvl2" data-wvb="all" onclick="wvGoBlast('all', this)">Overall Blast performances</div>
+    <div class="nav-sub lvl2" data-wvb="b4" onclick="wvGoBlast('b4', this)">Blast 4</div>
+    <div class="nav-sub lvl2" data-wvb="b3" onclick="wvGoBlast('b3', this)">Blast 3</div>
+    <div class="nav-sub lvl2" data-wvb="b2" onclick="wvGoBlast('b2', this)">Blast 2</div>
+    <div class="nav-sub lvl2" data-wvb="b1" onclick="wvGoBlast('b1', this)">Blast 1</div>
   </div>
 
   <!-- Google Ads, Website & Search and Social: Level 3 and above. -->
@@ -4716,6 +4724,10 @@ function applyScope(code){
 // Kate, 6 Oct 2026: after pages are hidden for a level or a scope, a Numbers subhead
 // with no page left under it goes, and so does a group with no page left at all.
 function tidyNav(){
+  // The Overall and per-blast entries under Wellness Voucher Performance open the Blast page (Level 3 and above): hidden, with their arrow, for anyone who cannot.
+  const wvOpen = typeof trsPageOpen === 'function' && trsPageOpen('wvblast', TRS_LEVEL, TRS_EXTRA);
+  document.querySelectorAll('#sidebar .nav-sub[data-wvb]').forEach(el => { el.style.display = wvOpen ? '' : 'none'; });
+  document.querySelectorAll('#sidebar .nav-sub.has-kids').forEach(p => { const b = p.querySelector('.nav-kids-btn'); if (b && p.nextElementSibling && p.nextElementSibling.hasAttribute('data-wvb')) b.style.display = wvOpen ? '' : 'none'; });
   const open = el => el.style.display !== 'none' && /showView/.test(el.getAttribute('onclick') || '');
   document.querySelectorAll('#sidebar .nav-subhead').forEach(h => {
     let n = h.nextElementSibling, any = false;
@@ -4889,6 +4901,12 @@ function wvTabs(view){
   box.innerHTML = ok ? '<button type="button" data-v="wvperf">← Wellness Voucher Performance</button>' : '';
   box.onclick = e => { if (e.target.closest('button[data-v]')) showView('wvperf', document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`)); };
 }
+// Which blast the Wellness Voucher blasts page shows: all (Overall), b4, b3, b2 or b1. wv-blast.js reads and clears it when it draws.
+let WV_ONLY = null;
+function wvGoBlast(mode, el){
+  WV_ONLY = mode;
+  showView('wvblast', el || document.querySelector(`#sidebar .nav-sub[data-wvb="${mode}"]`));
+}
 function showView(view, el){
   // Branch Performance was folded into Daily Performance (Kate, 16 Oct 2026, "daily lang matira"): an old star, link or button
   // opens Daily. Before the scope check, so a Bahrain sign-in is sent on to its own page like any other page it may not open.
@@ -5061,7 +5079,8 @@ function showView(view, el){
   if (typeof spy === 'function') spy();
 
   // Kate, 22 Oct 2026: the 3rd blast has no sidebar entry; it is inside Wellness Voucher Performance, so that entry stays lit for both.
-  if (view === 'wvblast') el = document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`) || el;
+  // Kate, 23 Oct 2026: the Blast page now has its own entries (Overall, Blast 4 to 1) under Wellness Voucher Performance, so the one for the blast being shown is lit.
+  if (view === 'wvblast') el = (el && el.dataset && el.dataset.wvb ? el : document.querySelector(`#sidebar .nav-sub[data-wvb="${typeof wvMode !== 'undefined' ? wvMode : 'all'}"]`)) || document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`) || el;
   wvTabs(view);
   // active button state
   document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active'));
