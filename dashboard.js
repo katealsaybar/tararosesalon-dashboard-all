@@ -1495,7 +1495,7 @@ const LEDGER_VIEWS = new Set(TRS_PAGES.filter(p => p.ledger).map(p => p.id));   
 // nopulse: the four Ledgers pages, Podium Race and Staff Quadrant). A first load onto one no longer runs the Pulse behind it, and a Branch
 // or Period change redraws that page alone (PULSE_STALE, as for Daily Performance); the Pulse catches up when a page that needs it opens.
 const NOPULSE_VIEWS = new Set(TRS_PAGES.filter(p => p.nopulse).map(p => p.id));
-const NOPULSE_REDRAW = { ledgerFinancials: 'renderLedgerFinancials', ledgerTargets: 'renderLedgerTargets', ledgerActuals: 'renderLedgerActuals', ledgerStylist: 'renderLedgerStylist', team: 'renderTeam', teamquad: 'renderTeam', supplierspend: 'renderSpend', lostclients: 'renderLostClients', complaints: 'cqRefresh', complaintlog: 'cqRefreshLog' };
+const NOPULSE_REDRAW = { ledgerFinancials: 'renderLedgerFinancials', ledgerTargets: 'renderLedgerTargets', ledgerActuals: 'renderLedgerActuals', ledgerStylist: 'renderLedgerStylist', team: 'renderTeam', teamquad: 'renderTeam', supplierspend: 'renderSpend', lostclients: 'renderLostClients', complaints: 'cqRefresh', complaintlog: 'cqRefreshLog', marketingspend: 'mspendRefresh' };
 // Resolved by loadData() once the window, the last day of data, the address and the weekly table (its staff names classify Phorest-only
 // people) are in, so a page that needs only those can open before the rest of the load (the freshness badge, the Pulse) is done.
 let _winReadyRes = null;

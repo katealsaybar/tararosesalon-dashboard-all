@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=86fcd0c9"></script>
+<script src="pages.js?v=8957f9e2"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -457,8 +457,6 @@ body.lostclients-chrome .mast-rule,
 body.lostclients-chrome:not(.lastvisit-chrome):not(.complaints-chrome) .filters-wrap,
 body.googleads-chrome .mast-rule,
 body.googleads-chrome .filters-wrap,
-body.marketingspend-chrome .mast-rule,
-body.marketingspend-chrome .filters-wrap,
 body.website-chrome .mast-rule,
 body.website-chrome .filters-wrap,
 body.social-chrome .mast-rule,
@@ -466,6 +464,9 @@ body.social-chrome .filters-wrap{display:none}
 /* Client's Last Visit (Kate, 22 Oct 2026): its Branch toggles live in the masthead's Branch row now; Visits and Days away stay on
    the page, so the masthead's Period row (which would change nothing here) is left out. */
 body.lastvisit-chrome #periodRow{display:none}
+/* Marketing Spend (Kate, 23 Oct 2026): follows the masthead Period; ads are not bought per salon, so no Branch row or branch words. */
+body.marketingspend-chrome #branchRow,
+body.marketingspend-chrome #mastBranch{display:none}
 /* "Dikit dikit na masyado" (Kate, 22 Oct 2026): with Email, Opt-out and First visit the fixed-width table was too tight. It is the Lost Clients
    blast list's table now (lost-lists.css .ll-wrap: a scroll box, columns size themselves, headings stay at the top), and Client and Visits are
    frozen at the left while the rest scrolls. Wide screens also get a wider page (the masthead follows, so they stay in line). */
@@ -3527,7 +3528,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['compare.js?v=b8350980'],
-      mk:  ['marketing-chart.js?v=7aaefb35', 'google-ads.js?v=e67ce0e7', 'marketing-spend.js?v=9f6aef84', 'website.js?v=55a9e0a5', 'social.js?v=4c3d3645'],
+      mk:  ['marketing-chart.js?v=7aaefb35', 'google-ads.js?v=e67ce0e7', 'marketing-spend.js?v=fe0198a3', 'website.js?v=55a9e0a5', 'social.js?v=4c3d3645'],
       wk:  ['team-performance.js?v=b9b2a0b2', 'staff-weeks.js?v=e0c1f939'],
       lv:  ['stylist-levels.js?v=cf577214'],
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
@@ -3792,7 +3793,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <!-- ══ FILTERS ══ -->
   <div class="filters-wrap" id="filtersWrap">
   <div class="filters" id="filters">
-    <div class="f-row">
+    <div class="f-row" id="branchRow">
       <span class="f-lbl" id="branchLbl">Branch</span>
       <!-- Multi-select, like the dropdown it replaces: a branch chip toggles that
            branch, "UAE Branches | All" resets (All = UAE + Bahrain). Painted by paintFilterChips(). -->
@@ -4472,7 +4473,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=a67ddd4e"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
-<script src="dashboard.js?v=8b298931"></script>
+<script src="dashboard.js?v=ae504ade"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
