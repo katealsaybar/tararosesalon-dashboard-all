@@ -147,3 +147,14 @@
 /* Details ↓ links (Kate, 23 Oct 2026: the browser's default blue was unreadable on the dark page): the page's own text colour, underlined. */
 #wvBlastContent a[onclick*="wvJump"],#wvBlastContent a[onclick*="wvGoBlast"]{color:var(--text);text-decoration:underline;text-underline-offset:3px;font-weight:600}
 @media(hover:hover){#wvBlastContent a[onclick*="wvJump"]:hover,#wvBlastContent a[onclick*="wvGoBlast"]:hover{color:var(--accent-text,var(--text));text-decoration-thickness:2px}}
+
+/* The messages of each blast (23 Oct 2026, wv-messages.js): the wording in a WhatsApp-style bubble, the buttons as pills, a name box that fills {{1}} */
+.wv-msgs{margin:26px 0 8px}
+.wv-mname{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 4px}.wv-mname input{max-width:160px}
+.wv-mgrid{grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr))}
+.wv-mfacts>div{grid-template-columns:78px 1fr}
+.wv-bubble{white-space:pre-wrap;word-break:break-word;line-height:1.5;font-size:14px;padding:12px 14px;margin:8px 0 6px;background:var(--surface2,var(--bg));border:1px solid var(--border);border-radius:4px 14px 14px 14px;max-width:460px}
+.wv-bfoot{margin-top:8px;font-size:12.5px;color:var(--muted)}
+.wv-bbtns{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 6px}
+.wv-bbtn{padding:5px 14px;border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:600}
+.wv-mfacts dd{font-size:14px}

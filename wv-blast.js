@@ -92,7 +92,7 @@ async function renderWvBlast() {
   if (typeof WV_ONLY !== 'undefined') WV_ONLY = null;
   const mode = wvMode;
   // The mini side nav (Kate, 23 Oct 2026: every page gets one; ALD-X-01): the rail in the gutter from 1400px, a row of chips below, listing this page's own sections. Level 4 has the money only.
-  const blastRail = (n, extra) => [['wvB' + n, 'Blast ' + n + ': what it was and what it brought'], ['wvFull' + n, 'Full performance'], ['wvRead' + n, 'How to read these numbers']].concat(extra || []);
+  const blastRail = (n, extra) => [['wvB' + n, 'Blast ' + n + ': what it was and what it brought'], ['wvFull' + n, 'Full performance']].concat(wvPerfOnly() ? [] : [['wvMsg' + n, 'The messages']]).concat([['wvRead' + n, 'How to read these numbers']]).concat(extra || []);
   const rails = {
     all: [['wvAllBlasts', 'The answer, blast by blast'], ['wvAllCmp', 'Compare the blasts'], ['wvAllWords', 'Each blast in words'], ['wvAllHow', 'How to read these numbers']],
     b4: blastRail(4, (wvOk5() ? [['wvLsBox', 'Send Blast 4']] : []).concat(wvPerfOnly() ? [] : [['wvLpPanel', 'The send list']])),
@@ -235,6 +235,7 @@ function wvBlockHtml(b) {
     ${b.stats && b.stats.length ? `<div class="wv-stats">${b.stats.map(stat).join('')}</div>` : ''}
     <dl class="wv-facts">${f('What it was', b.what)}${f('Who got it', b.who)}${f('When', b.when)}</dl>
     <div id="wvFull${bn}">${b.depth || ''}</div>
+    ${bn && typeof wvMsgHtml === 'function' ? wvMsgHtml('b' + bn) : ''}
     ${b.more ? `<details class="wv-how wv-more"><summary>${b.moreTitle || 'Break it down'}</summary>${b.more}</details>` : ''}
     ${b.fold ? `<details class="wv-how" id="wvRead${bn}"><summary>How to read these numbers</summary>${b.fold}</details>` : ''}`;
 }
