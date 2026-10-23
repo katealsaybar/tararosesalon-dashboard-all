@@ -23,6 +23,7 @@
      and any table write outside Payslips is refused in the browser (payslips go through their
      own edge function, not sb.from). The rest of the list goes back to the dashboard. -->
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
+<link rel="stylesheet" href="/target-links.css?v=2b179530">
 <style>
 .role-payroll .seg-btn[data-seg="upload"],.role-payroll .seg-pane[id$="-upload"],
 .role-payroll .tab-btn[data-tab="products"],.role-payroll .tab-btn[data-tab="service"],
@@ -1358,6 +1359,10 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <button class="seg-btn" data-seg="browse" onclick="switchSeg(event,'targets','browse')">Browse</button>
   </div>
   </div>
+
+  <!-- Kate, 23 Oct 2026: the targets typed in here are the ones the dashboard scores against. The two pages that explain how a target is
+       made open for Level 3 and Level 5 (target-links.js draws the same line on the dashboard). -->
+  <div class="tl" role="note" data-tl="upload-targets"><span class="tl-k">Where the target comes from</span><span class="tl-t">What you save here is what every page scores against. See how a target is made first. These two pages open for Level 3.</span><a class="tl-a" href="/targets/how/">How a target is made</a><a class="tl-a tl-p" href="/targets/">Open the Target Calculator</a></div>
 
   <!-- ENTER: paste → grid → save -->
   <div class="seg-pane active" id="seg-targets-upload">

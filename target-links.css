@@ -1,0 +1,14 @@
+/* THE TARGET LINKS (target-links.js, Kate 23 Oct 2026): one quiet line wherever a page scores something against a target. It says where
+   the target comes from and opens the two pages that answer it, How a Target Is Made and the Target Calculator. Same pill shape and
+   colours as the jump list, so it reads as part of the page and not as an advert. Written to the adult-learning rules: what it is, why
+   it matters and the one thing to do, in that order, and never wider than one line on a phone. */
+.tl{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin:10px 0 14px;padding:9px 14px;border:1px solid var(--border);border-left:3px solid var(--accent-mint,#99F6E4);border-radius:10px;background:var(--surface2);font-size:13.5px;line-height:1.45;color:var(--text)}
+[data-theme="light"] .tl{border-left-color:var(--good,#0F6E56)}
+.tl-k{flex:none;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--muted2)}
+.tl-t{flex:1 1 220px;min-width:0;color:var(--muted)}
+.tl-a{flex:none;display:inline-flex;align-items:center;box-sizing:border-box;min-height:32px;padding:4px 12px;border:1px solid var(--border);border-radius:999px;background:var(--bg);color:var(--text);text-decoration:none;font-size:13px;white-space:nowrap}
+.tl-a.tl-p{border-color:var(--text);font-weight:600}
+@media(hover:hover){.tl-a:hover{border-color:var(--accent)}}
+.tl-a:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+@media(max-width:760px){.tl{padding:10px 12px}.tl-a{min-height:44px;flex:1 1 auto;justify-content:center}}
+@media print{.tl{display:none}}
