@@ -542,7 +542,7 @@ function podiumTab() {
     const gap = !S.podAll && prev && r.rank - prev > 1 ? '<tr class="gap"><td colspan="3">…</td></tr>' : '';
     prev = r.rank;
     return gap + `<tr class="${r.me ? 'me' : ''}"><td class="pl"><span class="rk${r.rank <= 3 ? ' podtop' : ''}">${r.rank}</span></td>
-      <td><div class="pod-who">${podAv(r.name, r.branch)}<div class="pod-nm">${esc(r.name)}${r.me ? ' <span class="you-tag">You</span>' : ''}<span class="br">${esc(BRANCH[r.branch] || r.branch || '')}</span></div></div></td>
+      <td><div class="pod-who">${podAv(r.name, r.branch)}<div class="pod-nm">${esc(r.name)}<span class="br">${esc(BRANCH[r.branch] || r.branch || '')}${r.me ? ' <span class="you-tag">You</span>' : ''}</span></div></div></td>
       <td class="r">${esc(pval(cur, r.value))}</td></tr>`;
   }).join('');
   const more = s.board.length > POD_TOP + 1 ? `<button type="button" class="pr-more" onclick="PerfTabs.all()">${S.podAll ? 'Show the top ' + POD_TOP + ' and me' : 'Show all ' + n}</button>` : '';
