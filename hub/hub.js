@@ -111,6 +111,8 @@
       blurb: 'Redemptions, credit collected and the campaign target.' },
     { key: 'campaigns-glowclub', via: 'dashboards', min: 3, ic: 'campaigns', dept: 'Campaigns', title: 'Glow Club Performance', href: '/?view=glowclub', rule: 'var(--accent-coral)',
       blurb: 'The monthly membership: sign-ups, renewals, AED collected and the perks used.' },
+    { key: 'campaigns-dealsperf', via: 'dashboards', min: 2, ic: 'campaigns', dept: 'Campaigns', title: 'Active Deals Performance', href: '/?view=dealsperf', rule: 'var(--accent-coral)',
+      blurb: 'The deals on the active deals brochure: how many were bought at the till, by branch and offer.' },
 
     { key: 'people-orgchart', via: 'dashboards', min: 1, ic: 'people', dept: 'People', title: 'Org Chart', href: '/?view=orgchart', rule: 'var(--accent-mint)',
       blurb: 'Who is who, and who reports to whom.' },

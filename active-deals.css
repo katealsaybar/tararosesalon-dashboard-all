@@ -1,0 +1,83 @@
+/* Active Deals Performance (Kate, 23 Oct 2026). The Wellness Voucher Performance page's own look (wellness-voucher-approvals/performance/index.html),
+   scoped to #dealsPerfContent and mapped onto the dashboard's tokens so it follows the light and dark theme. Phone: the page keeps the dashboard's own
+   side margin (nothing is added here), tiles go two a row, and every table scrolls inside its card with its first column pinned. */
+#dealsPerfContent{--paper:var(--surface);--ink:var(--text);--ink2:var(--text);--line:var(--border);--grid:var(--border2);--sand:var(--surface2);
+  --series:#0F8A72;--c1:#0F8A72;--c2:#7C5CD4;--c3:#B87A1E;--serif:'Playfair Display',Georgia,serif;
+  --good-bg:#E4F1EA;--warn-bg:#FBF3E2;--warn-fg:#B4823A;
+  position:relative;font-size:14px;line-height:1.5;padding:10px 0 48px}
+:root[data-theme="dark"] #dealsPerfContent{--series:#99F6E4;--c1:#2FA58B;--c2:#8C74DE;--c3:#BD852D;--good-bg:rgba(153,246,228,.12);--warn-bg:rgba(238,243,199,.12);--warn-fg:#EEF3C7}
+#dealsPerfContent *{box-sizing:border-box}
+#dealsPerfContent h1.ad-t{font-family:var(--serif);font-weight:600;font-size:28px;margin:0;letter-spacing:-.01em}
+#dealsPerfContent h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:0 0 2px}
+#dealsPerfContent .ad-sub{color:var(--muted);font-size:13px;margin:2px 0 0}
+#dealsPerfContent .ad-subh{margin:20px 0 6px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#dealsPerfContent [id^="ad-"]{scroll-margin-top:150px}
+#dealsPerfContent .ad-top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+#dealsPerfContent .ad-toplinks{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:560px){
+  #dealsPerfContent .ad-toplinks{flex:1 1 100%;flex-wrap:nowrap}
+  #dealsPerfContent .ad-toplinks .ad-btn{flex:1 1 auto;min-width:0;padding:7px 6px;font-size:12.5px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+#dealsPerfContent .ad-btn{border:1px solid var(--line);background:var(--paper);color:var(--muted);font:600 13px 'Inter',system-ui,sans-serif;padding:7px 14px;border-radius:999px;cursor:pointer;text-decoration:none;display:inline-block;min-height:34px}
+#dealsPerfContent .ad-btn:hover{color:var(--ink)}
+#dealsPerfContent .ad-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;margin-bottom:16px;min-width:0}
+#dealsPerfContent .ad-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+#dealsPerfContent .ad-grid2 .ad-card{margin-bottom:0}
+#dealsPerfContent .ad-grid2>*{min-width:0}
+@media(max-width:760px){#dealsPerfContent .ad-grid2{grid-template-columns:1fr}#dealsPerfContent .ad-card{padding-left:12px;padding-right:12px}}
+#dealsPerfContent details.more{margin:6px 0 0}
+#dealsPerfContent details.more>summary{cursor:pointer;color:var(--muted);font-size:13px;padding:4px 0}
+#dealsPerfContent details.more>p.ad-sub{margin:4px 0 0}
+#dealsPerfContent details{margin-top:10px}
+#dealsPerfContent summary{cursor:pointer;color:var(--muted);font-size:12px}
+#dealsPerfContent div:has(> table){overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+#dealsPerfContent div:has(> table) > table tr > :first-child:not([colspan]){position:sticky;left:0;z-index:2;background-color:var(--paper)}
+#dealsPerfContent .ad-hero{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:center}
+@media(max-width:760px){#dealsPerfContent .ad-hero{grid-template-columns:1fr}}
+#dealsPerfContent .ad-big{font-family:var(--serif);font-size:44px;font-weight:600;line-height:1.05;letter-spacing:-.02em}
+#dealsPerfContent .ad-big small{font-family:'Inter',system-ui,sans-serif;font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0}
+#dealsPerfContent .ad-track{height:12px;background:var(--sand);border-radius:999px;overflow:hidden;margin:12px 0 6px}
+#dealsPerfContent .ad-fill{height:100%;background:var(--series);border-radius:999px}
+#dealsPerfContent .ad-cap{color:var(--muted);font-size:13px}
+#dealsPerfContent .ad-zero{color:var(--muted);opacity:.4}
+#dealsPerfContent .ad-pace{border-left:1px solid var(--line);padding-left:24px}
+@media(max-width:760px){#dealsPerfContent .ad-pace{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}}
+#dealsPerfContent .ad-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;color:var(--ink2)}
+#dealsPerfContent .ad-row b{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+#dealsPerfContent .ad-status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-weight:600;font-size:12px;margin-bottom:6px}
+#dealsPerfContent .ad-status.warn{background:var(--warn-bg);color:var(--warn-fg)}
+#dealsPerfContent .ad-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:560px){#dealsPerfContent .ad-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#dealsPerfContent .ad-tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+#dealsPerfContent .ad-tile .l{color:var(--muted);font-size:12px;font-weight:500}
+#dealsPerfContent .ad-tile .v{font-family:var(--serif);font-size:clamp(17px,2.3vw,24px);font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#dealsPerfContent .ad-tile .v.txt{font-size:clamp(15px,1.7vw,18px);line-height:1.25;padding:3px 0}
+#dealsPerfContent .ad-tile .h{color:var(--muted);font-size:12px}
+@media(max-width:900px) and (min-width:561px){#dealsPerfContent .ad-tile .l,#dealsPerfContent .ad-tile .h{font-size:11.5px}}
+#dealsPerfContent .ad-chart{position:relative;margin-top:10px}
+#dealsPerfContent .ad-chart svg{display:block;width:100%;height:auto;overflow:visible}
+#dealsPerfContent .ax{fill:var(--muted);font-size:11px;font-family:'Inter',system-ui,sans-serif}
+#dealsPerfContent .gl{stroke:var(--grid);stroke-width:1}
+#dealsPerfContent .ad-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink2);margin-top:8px}
+#dealsPerfContent .ad-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#dealsPerfContent .ad-tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;border-radius:8px;padding:7px 10px;white-space:nowrap;opacity:0;transition:opacity .1s;z-index:5}
+#dealsPerfContent table{width:100%;border-collapse:collapse;font-size:13px}
+#dealsPerfContent th{text-align:left;color:var(--muted);font-weight:500;font-size:12px;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+#dealsPerfContent td{padding:7px 8px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums;vertical-align:top}
+#dealsPerfContent td.n,#dealsPerfContent th.n{text-align:right}
+#dealsPerfContent tr.tot td{font-weight:600;border-bottom:0}
+#dealsPerfContent td small{display:block;color:var(--muted);font-size:11.5px}
+#dealsPerfContent .ad-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+#dealsPerfContent .ad-mini{display:inline-block;width:60px;height:6px;background:var(--sand);border-radius:999px;overflow:hidden;vertical-align:middle;margin-right:8px}
+#dealsPerfContent .ad-mini i{display:block;height:100%;background:var(--series);border-radius:999px}
+#dealsPerfContent .ad-tag{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap;background:var(--sand);color:var(--muted)}
+#dealsPerfContent .ad-tag.ok{background:var(--good-bg);color:var(--good)}
+#dealsPerfContent .ad-tag.warn{background:var(--warn-bg);color:var(--warn-fg)}
+#dealsPerfContent .ad-list{margin:8px 0 0;padding:0;list-style:none}
+#dealsPerfContent .ad-list li{padding:9px 0;border-top:1px solid var(--grid);font-size:13px;color:var(--ink2)}
+#dealsPerfContent .ad-list li:first-child{border-top:0}
+#dealsPerfContent .ad-list li b{color:var(--ink);display:block;font-weight:600}
+#dealsPerfContent .ad-ask{margin:6px 0 0 18px;padding:0;font-size:13px;color:var(--ink2)}
+#dealsPerfContent .ad-ask li{margin:6px 0}
+#dealsPerfContent .ad-state{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center;color:var(--muted)}
+#dealsPerfContent .ad-empty{color:var(--muted);font-size:13px;padding:8px 0}

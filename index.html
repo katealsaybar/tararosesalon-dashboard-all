@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=95f31e70"></script>
+<script src="pages.js?v=57997855"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3509,6 +3509,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="wv-blast.css?v=6b8d9687">
 <link rel="stylesheet" href="target-links.css?v=20377623">
 <link rel="stylesheet" href="glow-club.css?v=ce0bc189">
+<link rel="stylesheet" href="active-deals.css?v=f6158902">
 <link rel="stylesheet" href="tool-spend.css?v=c483f63c">
 <link rel="stylesheet" href="marketing-spend.css?v=aa9f4f2f">
 <link rel="stylesheet" href="mobile-late.css?v=fd95ed84">   <!-- phone rules for the pages whose sheets load after mobile.css -->
@@ -3566,6 +3567,8 @@ table.tp-cmp td.bad{color:var(--bad)}
       lv:  ['stylist-levels.js?v=cf577214'],
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
       gc:  ['glow-club.js?v=1726ff51'],
+      // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
+      ad:  [LGX, 'active-deals.js?v=442ed4c5'],
       o2:  ['one2ones.js?v=05296c93'],
       at:  ['attrition.js?v=ab90cc3b'],
       cb:  ['client-book.js?v=9bb069ee'],
@@ -3761,6 +3764,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub lvl2" data-wvb="b3" onclick="wvGoBlast('b3', this)">Blast 3</div>
     <div class="nav-sub lvl2" data-wvb="b2" onclick="wvGoBlast('b2', this)">Blast 2</div>
     <div class="nav-sub lvl2" data-wvb="b1" onclick="wvGoBlast('b1', this)">Blast 1</div>
+    <div class="nav-sub" onclick="showView('dealsperf', this)">Active Deals Performance</div>
   </div>
 
   <!-- Google Ads, Website & Search and Social: Level 3 and above. -->
@@ -4365,6 +4369,16 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="glowClubContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- ACTIVE DEALS PERFORMANCE (Kate, 23 Oct 2026): how many times each deal on the active deals brochure was bought at the till, in the Wellness
+       Voucher Performance format. No filters of its own: it reads the masthead's Branch and Period (pages.js filtered + nopulse, dashboard.js
+       NOPULSE_REDRAW). Level 2 and above, no client names. active_deals_performance() (migrations/active_deals_performance.sql); active-deals.js draws it. -->
+  <div id="view-dealsperf" style="display:none">
+    <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="adShell">
+      <aside class="lg-side" id="adSide"><nav class="side-nav" aria-label="On this page"><div class="side-k">On this page</div></nav></aside>
+      <div class="lg-doc rv-doc" id="adDoc"><main id="dealsPerfContent"></main></div>
+    </div>
+  </div>
+
   <div id="view-complaints" style="display:none">
     <main id="complaintsContent" style="max-width:1340px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
@@ -4528,7 +4542,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="jump-nav.js?v=22f739e2"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="target-links.js?v=72e70df1"></script>
-<script src="dashboard.js?v=1739af65"></script>
+<script src="dashboard.js?v=0d4c2585"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -5052,6 +5066,7 @@ function showView(view, el){
   if (view === 'lostlists') renderLostListsPage();
   if (view === 'wvblast') renderWvBlast();
   if (view === 'glowclub') renderGlowClub();
+  if (view === 'dealsperf') renderDealsPerf();
   if (view === 'googleads') renderGoogleAds();
   if (view === 'marketingspend') renderMarketingSpend();
   if (view === 'toolspend') renderToolSpend();
