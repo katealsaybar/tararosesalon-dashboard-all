@@ -89,7 +89,7 @@ function mspendPaint(el) {
     </div></div>
     <section class="slv-intro">
       <h2>Marketing Spend</h2>
-      <p>What Google ads, Meta ads and the agency cost each month, and what that comes to for every new client the salons got. Content, influencers and staff time are not in these numbers.</p>
+      <p>What Google ads, Meta ads, the agency and the WhatsApp and CRM tools cost each month, and what that comes to for every new client the salons got. Content, influencers and staff time are not in these numbers.</p>
     </section>
     ${stale ? `<p class="slv-muted" style="color:#b42318">Meta spend from Metricool is paused${s && s.last_error ? ': ' + mspendEsc(s.last_error) : ''}. Last good update: ${synced ? mspendEsc(synced) : 'never'}.</p>` : ''}
     <section class="slv-card">
@@ -99,8 +99,8 @@ function mspendPaint(el) {
       </div>
       ${rows.length ? `
       <div class="w13-tiles">
-        <div class="w13-tile"><div class="slv-eyebrow">Marketing spend</div><div class="w13-val">${mspendAed(spend)}</div><div class="slv-note">Google, Meta and the agency</div></div>
-        <div class="w13-tile"><div class="slv-eyebrow">Cost per new client</div><div class="w13-val">${cac !== null ? mspendAed(cac) : '–'}</div><div class="slv-note">${priced.length ? 'Spend over every new client, whatever brought them, ' + priced.length + ' month' + (priced.length === 1 ? '' : 's') + ' with all three costs in' : 'Needs a month with both ads'}</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">Marketing spend</div><div class="w13-val">${mspendAed(spend)}</div><div class="slv-note">Google, Meta, agency and tools</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">Cost per new client</div><div class="w13-val">${cac !== null ? mspendAed(cac) : '–'}</div><div class="slv-note">${priced.length ? 'Spend over every new client, whatever brought them, ' + priced.length + ' month' + (priced.length === 1 ? '' : 's') + ' with the agency invoice in' : 'Needs a month with both ads'}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">A new client in year one</div><div class="w13-val">${year1 ? mspendAed(year1) : '–'}</div><div class="slv-note">${year1 ? `Average sales over 12 months, ${mspendNum(ltv.clients)} clients first seen ${mspendEsc(ltv.cohort || '')}. Half spent less than ${mspendAed(ltv.median_net_12m)}.` : ''}</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Most a new client can cost</div><div class="w13-val">${ceiling ? mspendAed(ceiling) : '–'}</div><div class="slv-note">One third of year one. That is sales, not profit, so the real ceiling is lower.</div></div>
       </div>
@@ -110,12 +110,13 @@ function mspendPaint(el) {
           <span><i class="bar" style="background:#A78BFA"></i>Google</span>
           <span><i class="bar" style="background:#E07A5F"></i>Meta</span>
           <span><i class="bar" style="background:#94A3B8"></i>Agency</span>
+          ${hasOther ? '<span><i class="bar" style="background:#5FB3A8"></i>Tools</span>' : ''}
           <span><i class="line" style="--c:#0F6E56"></i>Cost per new client</span>
         </span>
       </div>
       <div style="position:relative;height:300px"><canvas id="mspendCanvas"></canvas></div>
       <div class="slv-wrap" style="margin-top:14px"><table class="slv-table">
-        <thead><tr><th>Month</th><th>Google (AED)</th><th>Meta (AED)</th><th>Agency (AED)</th>${hasOther ? '<th>Other (AED)</th>' : ''}<th>Total (AED)</th><th>New clients</th><th>Per new client</th></tr></thead>
+        <thead><tr><th>Month</th><th>Google (AED)</th><th>Meta (AED)</th><th>Agency (AED)</th>${hasOther ? '<th>Tools (AED)</th>' : ''}<th>Total (AED)</th><th>New clients</th><th>Per new client</th></tr></thead>
         <tbody>${body}</tbody></table></div>` : '<p class="slv-muted">No ad spend recorded yet.</p>'}
     </section>
     <section class="slv-card" style="margin-top:14px">
@@ -123,7 +124,8 @@ function mspendPaint(el) {
       <ul class="slv-notes" style="margin:0;padding-left:18px;line-height:1.55">
         <li><b>Agency.</b> Leaders in Digital’s monthly fee for the UAE salons and Bahrain, before VAT, until they were taken off in October 2026. Bahrain’s website build (AED 20,000) has not been billed, so it is not in. A month shows “not invoiced yet” until its invoice is in, and has no cost per client until then.</li>
         <li><b>New clients.</b> A client’s first sale at any salon, by name. A name spelt differently counts again, so the count runs a little high and the cost per client a little low. The till history starts in May 2021.</li>
-        <li><b>Not here.</b> Content, influencer fees, commissions and staff time, which have no figures kept, and WhatsApp, CRM and Phorest costs, which will show in an Other column once their totals are in. Add those before calling this the whole cost of winning a client.</li>
+        <li><b>Tools.</b> What was paid each month for respond.io (the plan and the WhatsApp top ups, not the balance still unused) and GoHighLevel (the plan, the add-ons and the wallet recharges). respond.io is billed in dollars, so its dirham figure uses the rate the card was charged, about 3.81. They also serve clients we already have, so part of this is not about winning new ones.</li>
+        <li><b>Not here.</b> Content, influencer fees, commissions and staff time, which have no figures kept, and Phorest, which will show under Tools once its total is in. Add those before calling this the whole cost of winning a client.</li>
         <li><b>Meta before Oct 2025.</b> Not available, so the months before it show Google only and no cost per client.</li>
         <li><b>Year one.</b> Net sales from a client in the 12 months after their first visit, for clients who first came Jan to Sep 2025. Voucher and deposit lines are left out. It is sales, not profit.</li>
       </ul>
@@ -145,7 +147,8 @@ function mspendDraw(rows) {
       datasets: [
         { type: 'bar', order: 2, label: 'Google', data: rows.map(r => Math.round(r.google)), yAxisID: 'y', stack: 's', backgroundColor: '#A78BFA', maxBarThickness: 48 },
         { type: 'bar', order: 2, label: 'Meta', data: rows.map(r => Math.round(r.meta)), yAxisID: 'y', stack: 's', backgroundColor: '#E07A5F', maxBarThickness: 48 },
-        { type: 'bar', order: 2, label: 'Agency', data: rows.map(r => Math.round(r.agency || 0)), yAxisID: 'y', stack: 's', backgroundColor: '#94A3B8', maxBarThickness: 48, borderRadius: 4 },
+        { type: 'bar', order: 2, label: 'Agency', data: rows.map(r => Math.round(r.agency || 0)), yAxisID: 'y', stack: 's', backgroundColor: '#94A3B8', maxBarThickness: 48 },
+        { type: 'bar', order: 2, label: 'Tools', data: rows.map(r => Math.round(r.other || 0)), yAxisID: 'y', stack: 's', backgroundColor: '#5FB3A8', maxBarThickness: 48, borderRadius: 4 },
         { type: 'line', order: 1, label: 'Cost per new client', data: rows.map(r => r.cac === null ? null : Math.round(r.cac * 10) / 10), yAxisID: 'y1',
           borderColor: lineCol, backgroundColor: lineCol, borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#fff', pointBorderColor: lineCol, pointBorderWidth: 2,
           tension: 0.3, spanGaps: false },
