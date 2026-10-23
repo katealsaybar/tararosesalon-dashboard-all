@@ -174,3 +174,10 @@
 #perfMore .pod-seg button:disabled{opacity:.55;cursor:default}
 /* four periods share one line on any phone */
 #perfMore .pod-seg button{padding:0 4px;white-space:nowrap;font-size:12.5px}
+
+/* Show filters / Hide filters, the way the dashboard's header has it: one thin pill and, beside it, what is chosen. */
+#perfMore .pod-filt{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+#perfMore .pod-filt-b{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--border);border-radius:999px;background:var(--surface2);color:var(--text);min-height:32px;padding:0 14px;cursor:pointer;position:relative}
+#perfMore .pod-filt-b::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+#perfMore .pod-filt-now{color:var(--muted);font-size:13px}
+#perfMore #podFilterBody .pod-seg{margin-top:8px}

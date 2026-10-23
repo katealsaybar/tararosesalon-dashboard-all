@@ -39,7 +39,7 @@ const GROUPS = [
 // The four a stylist reads first; the rest fold away (progressive disclosure).
 const HEADLINE = ['total_revenue', 'treatments', 'retail', 'rebooking_pct'];
 
-const S = { podPer: 'month', podScope: 'all', podRangeOk: null, podCache: {}, podLoad: null, podMsg: '', podAll: false, podStat: null, tab: 'month', levels: [], me: null, year: null, pick: null, o2o: null, token: null, pod: null, podLast: false, podCur: null };
+const S = { podFilters: false, podPer: 'month', podScope: 'all', podRangeOk: null, podCache: {}, podLoad: null, podMsg: '', podAll: false, podStat: null, tab: 'month', levels: [], me: null, year: null, pick: null, o2o: null, token: null, pod: null, podLast: false, podCur: null };
 const levelOf = name => S.levels.find(l => l.level === name) || null;
 const nextOf = name => { const l = levelOf(name); return l ? S.levels.find(x => x.order === l.order + 1) || null : null; };
 
@@ -433,15 +433,22 @@ function podStat(key) {
 }
 // All the rows of the board, or the top eight and her.
 function podAllToggle() { S.podAll = !S.podAll; paint(); }
+// Kate, 23 Oct 2026: the filters are hidden until asked for, like Show filters in the dashboard's header. Closed, one thin line says what is
+// chosen ("This month, Everyone") and opens them; the working-out line and any message stay visible either way.
+function podFilters() { S.podFilters = !S.podFilters; paint(); }
 function podSeg() {
   const per = [['month', 'This month'], ['last', 'Last month']].concat(S.podRangeOk ? [['year', 'This year'], ['all', 'All time']] : []);
   const mine = podMyBranch(S.pod);
   const busy = !!S.podLoad;
-  return `<div class="pod-seg" role="group" aria-label="Period">${per.map(([k, l]) =>
+  const open = S.podFilters;
+  const now = [{ month: 'This month', last: 'Last month', year: 'This year', all: 'All time' }[S.podPer], mine && S.podScope === 'mine' ? (BRANCH[mine] || mine) + ' only' : 'Everyone'].join(', ');
+  const body = open ? `<div class="pod-seg" role="group" aria-label="Period">${per.map(([k, l]) =>
       `<button type="button" class="${S.podPer === k ? 'on' : ''}" onclick="PerfTabs.period('${k}')" aria-pressed="${S.podPer === k}"${busy ? ' disabled' : ''}>${l}</button>`).join('')}</div>
     ${mine ? `<div class="pod-seg pod-seg2" role="group" aria-label="Who">
       <button type="button" class="${S.podScope === 'all' ? 'on' : ''}" onclick="PerfTabs.scope('all')" aria-pressed="${S.podScope === 'all'}">Everyone</button>
-      <button type="button" class="${S.podScope === 'mine' ? 'on' : ''}" onclick="PerfTabs.scope('mine')" aria-pressed="${S.podScope === 'mine'}">${esc(BRANCH[mine] || mine)} only</button></div>` : ''}
+      <button type="button" class="${S.podScope === 'mine' ? 'on' : ''}" onclick="PerfTabs.scope('mine')" aria-pressed="${S.podScope === 'mine'}">${esc(BRANCH[mine] || mine)} only</button></div>` : ''}` : '';
+  return `<div class="pod-filt"><button type="button" class="pod-filt-b" onclick="PerfTabs.filters()" aria-expanded="${open}" aria-controls="podFilterBody">${open ? 'Hide filters' : 'Show filters'}</button><span class="pod-filt-now">${esc(now)}</span></div>
+    <div id="podFilterBody">${body}</div>
     ${busy ? `<p class="sub pr-load" role="status">Working out ${PODLABEL[S.podLoad]}. A few seconds.</p>` : ''}${S.podMsg ? `<p class="sub pr-load" role="status">${esc(S.podMsg)}</p>` : ''}`;
 }
 
@@ -572,5 +579,5 @@ function levelsTab() {
 }
 function pickLevel(l) { S.pick = l; paint(); }
 
-window.PerfTabs = { mount, go, pickLevel, period: podPeriod, scope: podScope, stat: podStat, all: podAllToggle };
+window.PerfTabs = { mount, go, pickLevel, filters: podFilters, period: podPeriod, scope: podScope, stat: podStat, all: podAllToggle };
 })();
