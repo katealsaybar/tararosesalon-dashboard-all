@@ -79,6 +79,7 @@ NOT_PAGES = {
     'fix-blank-rows.js': 'one-off Node repair script, not a page',
     'loading-facts.js': 'the lines on the loading screen',
     'scroll-edges.js': 'edge fade and swipe hint on sideways tables (phone)',
+    'count-up.js': 'headline numbers count up when a section opens',
     'pages.js': 'the list of dashboard pages: names, levels, slugs; read by the check below',
 }
 # A page in the sidebar that may have no text in the index, and why.

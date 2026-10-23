@@ -16,7 +16,6 @@
 // Borrows the Products page's card and table styles (slv-*), like google-ads.js.
 let mspendData = null, mspendChart = null;
 let mspendDef = 'all';      // what counts as cost: 'ads', 'agency' or 'all'
-let mspendCounted = false;  // the numbers count up once, the first time they are drawn
 
 const MSPEND_META_FULL_FROM = '2025-10-01';   // the first month with Meta spend all the way through (Drive starts 25 Sep 2025)
 const MSPEND_DEFS = [
@@ -262,25 +261,6 @@ function mspendPaint(el) {
     ${stale ? `<p class="slv-muted" style="color:#b42318">Meta spend from Metricool is paused${s && s.last_error ? ': ' + mspendEsc(s.last_error) : ''}. Last good update: ${synced ? mspendEsc(synced) : 'never'}.</p>` : ''}
     ${why}${answerCard}${tryCard}${stepsCard}${stand}${tableCard}${fine}`;
   mspendDraw(rows, pick.k, hasOther);
-  mspendCountUp(el);
-}
-
-// The four numbers count up once, the first time they are drawn (not for people who ask for less motion).
-function mspendCountUp(root) {
-  if (mspendCounted) return;
-  mspendCounted = true;
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  root.querySelectorAll('.ms-count').forEach(n => {
-    const to = Number(n.dataset.v), f = n.dataset.f, t0 = performance.now(), end = n.textContent;
-    if (!isFinite(to)) return;
-    const fmt = v => (f === 'ratio' ? v.toFixed(1) + ' to 1' : 'AED ' + Math.round(v).toLocaleString('en-GB'));
-    const tick = now => {
-      const p = Math.min(1, (now - t0) / 700), e = 1 - Math.pow(1 - p, 3);
-      n.textContent = p < 1 ? fmt(to * e) : end;
-      if (p < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
 }
 
 function mspendDraw(rows, k, hasOther) {
