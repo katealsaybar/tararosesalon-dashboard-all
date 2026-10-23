@@ -339,20 +339,20 @@ details p{margin:0 0 12px;font-size:15.5px}
 
 <!-- B1 -->
 <section class="card" data-title="Her sales per day">
-  <span class="tag">Piece 2 · One person's plan · Step 1 of 5</span>
+  <span class="tag">Piece 2 · One person's plan · Step 1 of 6</span>
   <h2>What does she sell on a day she comes in?</h2>
   <div class="exbox" data-kind="B"></div>
   <div class="three">
     <p><b>What you see</b><span class="pn"></span> <span class="chipst" id="pStatus"></span><br>For each of her last 3 months: sales ÷ days she came in = her average sale on a day she comes in.</p>
     <p><b>Why it matters</b>Leave and days off are never counted against her. Only days she worked.</p>
   </div>
-  <svg id="b1" viewBox="0 0 760 270" role="img" aria-label="April's sales per day worked in August, September and October"></svg>
-  <details><summary>Deep dive: which months count</summary><p>Her sales here include treatments and courses, but not retail. A month counts if she worked 10 days or more. October counts at 6 days or more, because it is not finished. Part-timers count any month with days.</p></details>
+  <svg id="b1" viewBox="0 0 760 270" role="img" aria-label="Her sales per day worked in each of her last three months"></svg>
+  <details><summary>Deep dive: which months count</summary><p>We always use the last three months before the month we plan (for October: July, August and September). Her sales here include treatments and courses, but not retail. A month counts if she worked 10 days or more. October counts at 6 days or more, because it is not finished. Part-timers count any month with days. Someone who took leave is not marked down: a short month is left out.</p></details>
 </section>
 
 <!-- B2 -->
 <section class="card" data-title="Her normal day">
-  <span class="tag">Piece 2 · One person's plan · Step 2 of 5</span>
+  <span class="tag">Piece 2 · One person's plan · Step 2 of 6</span>
   <h2>Her normal day</h2>
   <div class="exbox" data-kind="B"></div>
   <div class="three">
@@ -364,7 +364,7 @@ details p{margin:0 0 12px;font-size:15.5px}
 
 <!-- B3 -->
 <section class="card" data-title="Busy or quiet next month">
-  <span class="tag">Piece 2 · One person's plan · Step 3 of 5</span>
+  <span class="tag">Piece 2 · One person's plan · Step 3 of 6</span>
   <h2>Is the new month busier or slower?</h2>
   <div class="exbox" data-kind="B"></div>
   <div class="three">
@@ -379,32 +379,47 @@ details p{margin:0 0 12px;font-size:15.5px}
 </section>
 
 <!-- B4 -->
-<section class="card" data-title="Days and plan">
-  <span class="tag">Piece 2 · One person's plan · Step 4 of 5</span>
-  <h2>Her days, and her plan</h2>
+<section class="card" data-title="Days, low, high, target">
+  <span class="tag">Piece 2 · One person's plan · Step 4 of 6</span>
+  <h2>Her days: low, high and the target</h2>
   <div class="exbox" data-kind="B"></div>
   <div class="three">
-    <p><b>What you see</b>Her days, then her day times her days.</p>
-    <p><b>Why it matters</b>This is the number we write on her sheet.</p>
+    <p><b>What you see</b>Two numbers of days. Her usual days, with the leave we have now, give the <i>low</i>. Her best month, with nobody on leave, gives the <i>high</i>. The <i>target</i> is the middle.</p>
+    <p><b>Why it matters</b>The high is what we could sell with a full team. The low is what we sell today. The target is a goal that still looks real, and the gap between low and high is what missing staff cost us.</p>
   </div>
+  <svg id="b4" viewBox="0 0 760 160" role="img" aria-label="Low, target and high plan as three bars"></svg>
   <div class="sum" id="b4sum"></div>
-  <details><summary>Deep dive: how the days are chosen</summary><p>The average days she worked in her full months (August and September). October is left out of this count because it is not finished. The most we plan is 26 days. Coach Emma can change a person's days.</p></details>
+  <details><summary>Deep dive: how the days are chosen</summary><p>Low: the average days she worked in her full months, and the days she came in if she is on leave this month. High: her best of the last three months, never more than 26 days. A person who works in two branches gets one plan from both, shared by days. Someone who only covers a few days in a branch has no target there. The most we plan is 26 days. Coach Emma can change a person's days. For December we ask for the roster, because some people then work five days.</p></details>
   <details><summary>Deep dive: the bottom-up check</summary><p>The steps above are top-down: they only know the past. They cannot see who is on the floor this month. So before a plan is final, the branch manager and Mette ask one more question: given the real team (leave, a new starter with a guest book, a part-time rota), is this number too low or too high? If yes, a percentage is added or taken off that person's plan. Example: a plan that grows 7.3% on her normal day can become 17% for a stylist with a new guest book to fill. The adjustment is written next to the plan so everyone can see it.</p></details>
 </section>
 
 <!-- B5 -->
 <section class="card" data-title="Split the plan">
-  <span class="tag">Piece 2 · One person's plan · Step 5 of 5</span>
-  <h2>Split the plan, and the other targets</h2>
+  <span class="tag">Piece 2 · One person's plan · Step 5 of 6</span>
+  <h2>Split the target, and the other targets</h2>
   <div class="exbox" data-kind="B"></div>
   <div class="three">
-    <p><b>What you see</b>The plan cut into service and treatment. Retail is worked out from the plan but sits on top of it, separate.</p>
+    <p><b>What you see</b>The target cut into service and treatment. Retail is worked out from the target but sits on top of it, separate.</p>
     <p><b>Why it matters</b>She sees what to sell, not just one big number.</p>
   </div>
   <svg id="b5" viewBox="0 0 760 145" role="img" aria-label="The plan split into service and treatment, with retail on top"></svg>
   <div class="sum" id="b5sum"></div>
   <div class="sum" id="b5oth"></div>
-  <div class="pause"><b>Pause.</b> Say it back: how does her normal day become her plan? Use the three boxes.</div>
+  </section>
+
+
+<!-- B6 -->
+<section class="card" data-title="Clients her hours can hold">
+  <span class="tag">Piece 2 · One person's plan · Step 6 of 6</span>
+  <h2>How many clients can her hours hold?</h2>
+  <div class="exbox" data-kind="B"></div>
+  <div class="three">
+    <p><b>What you see</b>Her hours a day, the days the target needs, and the utilisation we aim for (85%, anything from 80 to 90 is fine), against how long one client takes her.</p>
+    <p><b>Why it matters</b>A target of clients she has no hours for is a target she cannot reach. If the clients do not fit, the answer is a higher average bill, not more hours.</p>
+  </div>
+  <div class="sum" id="b6sum"></div>
+  <details><summary>Deep dive: where the hours come from</summary><p>Hours a day: the available hours on the utilisation roster for August and September, divided by the days she was rostered. Hours a client: her booked hours divided by her visits in the same two months. Staff whose booked hours are not mostly client time, joiners without a full roster and people in two branches are not held to hours yet.</p></details>
+  <div class="pause"><b>Pause.</b> Say it back: how does her normal day become her target, and what stops the clients being too many?</div>
 </section>
 
 <!-- Together -->
@@ -417,7 +432,7 @@ details p{margin:0 0 12px;font-size:15.5px}
     <p><b>Why it matters</b>Her normal day comes from <i>her</i> sales. The season number comes from <i>the branches' history</i>. One says who she is. The other says what kind of month is coming.</p>
   </div>
   <div class="formula" id="formula"></div>
-  <details><summary>Deep dive: who is treated differently</summary><p>Joiners have no history, so they get 70% of what the regulars in the same job plan for, or their own pace if that is lower. Leavers use the months they have (at least two). Anyone with fewer than two counted months is checked by Coach Emma first.</p></details>
+  <details><summary>Deep dive: who is treated differently</summary><p>Joiners (the first 3 months of employment, visa or not) have no history, so they get 70% of what the regulars in the same job plan for, or their own pace if that is lower. Leavers use the months they have (at least two). Someone on leave is planned on the days she came in. Someone who works in two branches has one plan, shared by days, and a branch where she only covers has no target for her. Anyone with fewer than two counted months is checked by Coach Emma first.</p></details>
   <div class="pause"><b>Pause.</b> Pick one stylist and say her number out loud, from her normal day to her plan.</div>
 </section>
 
@@ -425,14 +440,14 @@ details p{margin:0 0 12px;font-size:15.5px}
 <section class="card" data-title="Your turn 1 of 2">
   <span class="tag">Your turn</span>
   <h2>Try it before you explain it (1 of 2)</h2>
-  <div class="three"><p><b>What to do</b>Answer three quick questions. You will get the answer straight away.</p></div>
+  <div class="three"><p><b>What to do</b>Answer five quick questions. You will get the answer straight away.</p></div>
   <div class="qgrid" id="quizBox1"></div>
 </section>
 
 <section class="card" data-title="Your turn 2 of 2">
   <span class="tag">Your turn</span>
   <h2>Try it before you explain it (2 of 2)</h2>
-  <div class="three"><p><b>What to do</b>Three more. Same idea: answer, then read the reason. You will get the answer straight away.</p></div>
+  <div class="three"><p><b>What to do</b>Four more. Same idea: answer, then read the reason. You will get the answer straight away.</p></div>
   <div class="qgrid" id="quizBox2"></div>
 </section>
 
@@ -462,7 +477,7 @@ details p{margin:0 0 12px;font-size:15.5px}
     <a class="calbtn" href="/targets/">Open the target calculator</a> <a class="calbtn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" href="/hub/">&larr; Back to Team Home</a>
     <dl><dt>Owner</dt><dd>Each coordinator</dd><dt>Deadline</dt><dd>Before the November targets are signed off</dd></dl>
   </div>
-  <p style="font-size:13.5px;color:var(--ink-soft);margin:14px 0 0">Sources: Saadiyat sales per working day from the ledger totals, re-run 22 Oct 2026. April's figures from Phorest staff daily, 1 Aug to 20 Oct 2026. Season numbers as used in the calculator.</p>
+  <p style="font-size:13.5px;color:var(--ink-soft);margin:14px 0 0">Sources: Saadiyat sales per working day from the ledger totals, re-run 22 Oct 2026. Sales from Phorest staff daily, 1 Jul to 20 Oct 2026; hours from the utilisation roster, August and September. Season numbers as used in the calculator.</p>
 </section>
 
 <div class="nav" id="nav"><button class="back" id="btnBack">Back</button><button class="next" id="btnNext">Next step</button></div>
@@ -701,50 +716,135 @@ const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
 const median=a=>{const q=[...a].sort((x,y)=>x-y),m=q.length>>1;return q.length%2?q[m]:(q[m-1]+q[m])/2};
 function lvIndex(des){const d=des.toLowerCase();if(/blow|bdry|^bd /.test(d))return 0;if(/junior/.test(d))return 1;if(/senior/.test(d))return 3;if(/style director/.test(d))return 4;if(/artistic/.test(d))return 5;return 2}
 let target=11,PERSON=0;
-const BADGE={regular:'Regular',joiner:'Joiner',left:'Short month left out',part:'Part-timer',look:'Needs a look',none:'No days found'};
-const BADGE_WHY={regular:'Worked enough days in all 3 months.',joiner:'Started recently: no history yet, so the plan follows her peers.',left:'One month had too few days, so it is left out.',part:'Part-timer: any month with days counts.',look:'Fewer than two months with enough days: Coach Emma checks first.',none:'No days found in the last 3 months.'};
+const BADGE={regular:'Regular',joiner:'Joiner',left:'Short month left out',part:'Part-timer',look:'Based on days in',none:'No days found',cover:'Cover only'};
+const BADGE_WHY={regular:'Worked enough days in all 3 months.',joiner:'Started recently: no history yet, so the plan follows her peers.',left:'One month had too few days, so it is left out.',part:'Part-timer: any month with days counts.',look:'Fewer than two months with enough days: the plan follows the days she came in, and Coach Emma checks first.',none:'No days found in the last 3 months.',cover:'A few days of cover at a branch that is not hers: no target here.'};
 
-function buildAll(){
-  const fT=FAC[target-1];
-  const rows=PEOPLE.map((p,i)=>{
-    const months=[8,9,10].map((m,k)=>({m,d:p[4+k][0],r:p[4+k][1]}));
+const JUL=DATA.jul||{},HRS=DATA.hours||{},RULES=DATA.rules||{},A=DATA.actuals||{},P=PEOPLE;
+const BN={SAA:'Saadiyat',KCA:'Khalifa City',MC:'Motor City',AQ:'Al Quoz'};
+/* The same plan code as the Target Calculator (copied from it on 23 Oct 2026): low, high and the target, the three-month base, leave, cover and two-branch people, and clients held to her hours. */
+const S={get month(){return target},treat:B.treat,retail:B.retail,join:B.join,bill:1,cap:1,clcap:1,util:RULES.util||85,fac:FAC};
+const days={},bu={};
+const keyOf=p=>p[0]+'|'+p[1];
+function mData(p,m){
+  if(m===7){const j=JUL[keyOf(p)];return j?{d:j[0],r:j[1]}:{d:0,r:0};}
+  const a=p[4+m-8];return {d:a[0],r:a[1]};
+}
+/* the last three months before the target month that we have sales for (July to October) */
+function baseMonths(){const o=[];for(let m=S.month-3;m<S.month;m++)if(m>=7&&m<=10)o.push(m);return o;}
+function classify(months,part){
+  const need=m=>part?1:(m===10?OCT_MIN:FULL_MIN);
+  const qual=months.filter(x=>x.d>=need(x.m)),any=months.filter(x=>x.d>0);
+  let status,used;
+  if(!any.length){status='none';used=[];}
+  else if(part){status='part';used=any;}
+  else if(qual.length===months.length){status='regular';used=qual;}
+  else if(months[0].d===0&&qual.length>=1&&qual.length===any.length){status='joiner';used=qual;}
+  else if(qual.length>=2){status='left';used=qual;}
+  else{status='look';used=qual.length?qual:any;}
+  return {status,used,any};
+}
+function calcBase(months,part){
+  const c=classify(months,part);
+  const o={status:c.status,used:c.used,any:c.any};
+  if(!c.used.length)return o;
+  o.avgDay=mean(c.used.map(x=>x.r/x.d));
+  o.ratio=S.fac[S.month-1]/mean(c.used.map(x=>S.fac[x.m-1]));
+  o.adj=o.avgDay*o.ratio;
+  const basis=(c.status==='part'||c.status==='look')?c.any:c.used;
+  const full=basis.filter(x=>x.m!==10);
+  o.planned=Math.min(full.length?Math.round(mean(full.map(x=>x.d))):Math.round(c.used[0].d*31/20),26);
+  const fd=full.length?full:basis;
+  o.best=Math.min(Math.max(...fd.map(x=>x.d)),26);
+  return o;
+}
+
+function build(){
+  const mm=baseMonths();
+  const lv=(RULES.leave&&RULES.leave[S.month])||{};
+  const cover=new Set(RULES.cover||[]);
+  const rows=P.map((p,i)=>{
+    const months=mm.map(m=>Object.assign({m},mData(p,m)));
     const part=/part-time/i.test(p[3]);
-    const need=m=>part?1:(m===10?OCT_MIN:FULL_MIN);
-    const qual=months.filter(x=>x.d>=need(x.m)),any=months.filter(x=>x.d>0);
-    let status,used;
-    if(!any.length){status='none';used=[];}
-    else if(part){status='part';used=any;}
-    else if(qual.length===3){status='regular';used=qual;}
-    else if(months[0].d===0&&qual.length>=1&&qual.length===any.length){status='joiner';used=qual;}
-    else if(qual.length>=2){status='left';used=qual;}
-    else{status='look';used=qual.length?qual:any;}
-    let avgDay=null,ratio=null,adj=null,planned=null,plan=null;
-    if(used.length){
-      avgDay=mean(used.map(x=>x.r/x.d));ratio=fT/mean(used.map(x=>FAC[x.m-1]));adj=avgDay*ratio;
-      const basis=(status==='part'||status==='look')?any:used,full=basis.filter(x=>x.m!==10);
-      planned=full.length?Math.round(mean(full.map(x=>x.d))):Math.round(used[0].d*31/20);planned=Math.min(planned,26);
-    }
-    return {i,p,months,status,used,avgDay,ratio,adj,planned,plan,joiner:status==='joiner'};
+    const c=calcBase(months,part);
+    return Object.assign({i,p,key:keyOf(p),months,part,loaded:p[7],low:null,med:null,high:null,joiner:c.status==='joiner'},c);
   });
-  rows.forEach(r=>{if(r.adj==null||r.joiner)return;r.plan=r100(r.adj*r.planned)});
-  rows.forEach(r=>{if(!r.joiner)return;
-    const reg=x=>x.status==='regular'&&x.plan;
-    let pool=rows.filter(x=>reg(x)&&x.p[0]===r.p[0]&&x.p[3]===r.p[3]),basis='the same position at the same branch';
-    if(!pool.length){pool=rows.filter(x=>reg(x)&&x.p[3]===r.p[3]);basis='the same position at all branches';}
-    if(!pool.length){pool=rows.filter(x=>reg(x)&&x.p[2]===r.p[2]);basis='the same team at all branches';}
-    r.med=pool.length?median(pool.map(x=>x.plan)):0;r.medBasis=basis;r.nPool=pool.length;
-    r.planned=Math.round(mean(r.used.filter(x=>x.m!==10).map(x=>x.d))||r.used[0].d*31/20);
-    r.planJoin=r100(B.join/100*r.med);r.own=r100(r.adj*r.planned);
-    r.capped=r.used.length>=2&&r.own<r.planJoin;r.plan=r.capped?r.own:r.planJoin;
+  /* cover only: a few days in a branch that is not hers. No target there, and those sales stay out of her plan. */
+  rows.forEach(r=>{if(cover.has(r.key)){r.cover=true;r.status='cover';r.low=r.med=r.high=0;}});
+  /* one person in two branches: one plan from her combined days, shared out by days */
+  (RULES.groups||[]).forEach(g=>{
+    const mem=rows.filter(r=>r.p[1]===g.name&&g.home[r.p[0]]);
+    if(!mem.length)return;
+    const months=mm.map((m,k)=>({m,d:mem.reduce((a,r)=>a+r.months[k].d,0),r:mem.reduce((a,r)=>a+r.months[k].r,0)}));
+    const c=calcBase(months,mem.some(r=>r.part));
+    const tot=mem.reduce((a,r)=>a+g.home[r.p[0]],0);
+    const dd=mem.map(r=>days[r.i]).find(v=>v!=null);
+    const dayLow=dd!=null?dd:(g.days||c.planned);
+    const low=c.adj==null?null:r100(c.adj*dayLow);
+    const hd=g.days?Math.max((RULES.days4||{})[mem[0].p[2]]||18,dayLow):Math.max(c.best||0,c.planned||0,dayLow);
+    const high=c.adj==null?null:Math.max(r100(c.adj*hd),low);
+    mem.forEach(r=>{
+      const sh=g.home[r.p[0]]/tot;
+      Object.assign(r,{status:c.status,used:c.used,any:c.any,avgDay:c.avgDay,ratio:c.ratio,adj:c.adj,planned:dayLow,dLow:dayLow,best:c.best,joiner:false,
+        grp:{name:g.name,note:g.note,share:sh,total:low,totalHigh:high,months,dayLow,hd,split:mem.map(x=>BN[x.p[0]]+' '+Math.round(g.home[x.p[0]]/tot*100)+'%').join(', ')}});
+      r.low=low==null?null:r100(low*sh);r.high=high==null?null:r100(high*sh);
+    });
   });
   rows.forEach(r=>{
-    r.avgBill=r.p[2]==='BEAUTY'?BEAUTY_AB:AB[lvIndex(r.p[3])][1];
-    if(r.plan==null){r.treat=r.service=r.retail=r.clients=null;return}
-    r.treat=r100(r.plan*B.treat/100);r.service=r.plan-r.treat;r.retail=r100(r.plan*B.retail/100);r.clients=Math.round(r.plan/r.avgBill);
+    if(r.grp||r.cover||r.adj==null)return;
+    const leave=lv[r.key];
+    r.leave=leave!=null;
+    r.dLow=days[r.i]!=null?days[r.i]:(leave!=null?leave:r.planned);
+    if(r.joiner)return;
+    r.low=r100(r.adj*r.dLow);
+    r.high=Math.max(r.low,r100(r.adj*Math.max(r.best,r.planned,r.dLow)));
+  });
+  rows.forEach(r=>{
+    if(!r.joiner)return;
+    const reg=x=>x.status==='regular'&&x.low&&!x.grp&&!x.cover;
+    let pool=rows.filter(x=>reg(x)&&x.p[0]===r.p[0]&&x.p[3]===r.p[3]);let basis='same designation, same branch';
+    if(!pool.length){pool=rows.filter(x=>reg(x)&&x.p[3]===r.p[3]);basis='same designation, all branches';}
+    if(!pool.length){pool=rows.filter(x=>reg(x)&&x.p[2]===r.p[2]);basis='same team, all branches';}
+    r.med0=median(pool.map(x=>x.low));r.medBasis=basis;r.nPool=pool.length;
+    r.planned=days[r.i]!=null?days[r.i]:Math.round(mean(r.used.filter(x=>x.m!==10).map(x=>x.d))||r.used[0].d*31/20);
+    r.dLow=r.planned;
+    r.planJoin=r100(S.join/100*r.med0);
+    r.own=r100(r.adj*r.planned);
+    r.capped=!!S.cap&&r.used.length>=2&&r.own<r.planJoin;
+    r.low=r.capped?r.own:r.planJoin;r.high=r.low;
+  });
+  rows.forEach(r=>{
+    r.bu=bu[r.i]||0;
+    if(r.low==null)return;
+    r.med=r100((r.low+r.high)/2);
+    r.topDown=r.med;
+    if(r.bu){const f=1+r.bu/100;r.low=r100(r.low*f);r.med=r100(r.med*f);r.high=r100(r.high*f);}
+  });
+  rows.forEach(r=>{
+    r.avgBill=r.p[2]==='BEAUTY'?BEAUTY_AB:AB[lvIndex(r.p[3])][S.bill];
+    const a=A[r.key];
+    r.act=null;
+    /* average bill = services (treatments and courses inside, retail out) divided by clients (Kate, 23 Oct 2026) */
+    if(a){const d=a[0],svc=a[1],ret=a[2],vis=a[3],tr=a[5];
+      r.act={tpct:(r.p[2]==='HAIR'&&tr!=null&&svc)?tr/svc*100:null,rpct:svc?ret/svc*100:null,bill:vis?svc/vis:null,pace:(vis&&d&&r.planned)?vis/d*r.planned:null};}
+    if(r.med==null){r.plan=r.treat=r.service=r.retail=r.clients=null;return;}
+    r.plan=r.med;
+    r.treat=r100(r.plan*S.treat/100);
+    r.service=r.plan-r.treat;
+    r.retail=r100(r.plan*S.retail/100);
+    r.clientsRaw=Math.round(r.plan/r.avgBill);r.clients=r.clientsRaw;r.capClients=null;r.clCapped=false;
+    const h=HRS[r.key];
+    if(S.clcap&&h&&h[3]>0&&h[2]>0&&h[1]>0&&r.adj&&!r.grp&&!r.cover&&!(RULES.noCap||[]).includes(r.key)){
+      /* what her hours can hold: the days this plan needs x her hours a day x the utilisation we aim for / hours a client takes */
+      const dImp=r.plan/r.adj;
+      r.hrsDay=h[0]/h[3];r.hrsClient=h[1]/h[2];r.dImp=dImp;
+      r.capClients=Math.round(dImp*r.hrsDay*(S.util/100)/r.hrsClient);
+      if(r.capClients&&r.clientsRaw>r.capClients){r.clients=r.capClients;r.clCapped=true;}
+    }
+    r.billNeed=r.clients?Math.round(r.plan/r.clients):null;
   });
   return rows;
 }
-
+function buildAll(){return build()}
 function buildB(){
   const r=buildAll()[PERSON],p=r.p,tName=MN[target-1],fT=FAC[target-1];
   const who=p[1]+', '+p[3]+', '+BR[p[0]][0],who2=p[3]+' '+p[1],fn=p[1].split(' ')[0];
@@ -753,7 +853,7 @@ function buildB(){
   document.querySelectorAll('.pxsel').forEach(e=>e.title=BADGE[r.status]+': '+BADGE_WHY[r.status]);
   const perDay=r.months.map(x=>x.d?x.r/x.d:0),usedSet=r.used.map(x=>x.m);
   const facs=r.used.map(x=>FAC[x.m-1]),avgF=facs.length?mean(facs):null;
-  const noPlan=r.plan==null;
+  const noPlan=r.plan==null||r.cover;
 
   /* step 7 */
   let s=clear('b1'),W=760,H=270,T=58,Bm=74,gw=W/3,bw=120;
@@ -810,21 +910,34 @@ function buildB(){
     document.getElementById('b3sum').innerHTML='<b>'+tName+' 2026\u2019s '+fT.toFixed(2)+'</b> (calendar) ÷ <b>'+avgF.toFixed(3)+'</b> (average of her months above) = <b>'+ratio.toFixed(3)+'</b>. Her day: <b>'+fmt(avgDay)+'</b> × '+ratio.toFixed(3)+' = <b>AED '+fmt(adj)+'</b>.';
   }
 
-  /* step 10 */
+  /* step 10: her days, low, high and the target */
+  const hd=r.grp?r.grp.hd:Math.max(r.best||0,r.planned||0,r.dLow||0);
+  s=clear('b4');
   if(noPlan){
-    document.getElementById('b4sum').innerHTML='No plan: there are no days to work from.';
+    document.getElementById('b4sum').innerHTML=r.cover?'<b>Cover only.</b> She came in here a few days to help. Her target sits at her home branch, and these sales are not counted in her plan.':'No plan: there are no days to work from.';
+    label(s,380,70,r.cover?'No target at a cover branch.':'No plan to show.',{size:14,fill:C.soft});
   }else{
-    const basis=(r.status==='part'||r.status==='look')?r.months.filter(x=>x.d>0):r.used,full=basis.filter(x=>x.m!==10);
-    const dayTxt=full.length?'Days: '+full.map(x=>MN[x.m-1]+' '+x.d).join(' and ')+(full.length>1?', average '+mean(full.map(x=>x.d)).toFixed(1):'')+', so <b>'+r.planned+' days</b>.':'Only October so far: '+r.used[0].d+' days × 31 ÷ 20 = <b>'+r.planned+' days</b>.';
+    const mx=Math.max(r.high,1),W2=700,x0=40;
+    [['Low: the leave we have now',r.low,C.bar],['Target: the middle',r.med,C.accent],['High: nobody on leave',r.high,C.lav]].forEach((b,i)=>{
+      const y=22+i*46,w=Math.max(4,W2*b[1]/mx*0.62);
+      s.appendChild(el('rect',{x:x0,y,width:w,height:30,rx:8,fill:b[2]}));
+      label(s,x0+w+10,y+21,'AED '+fmt(b[1]),{anchor:'start',size:15,weight:600});
+      label(s,x0+6,y-5,b[0],{anchor:'start',size:12,fill:C.soft});
+    });
     if(!r.joiner){
-      document.getElementById('b4sum').innerHTML=dayTxt+leq([['t',fmt(r.adj),'her adjusted day (step 9)'],['o','×'],['t',String(r.planned),'days she will work'],['o','='],['t',fmt(r.adj*r.planned),'before rounding'],['o','→'],['t',fmt(r.plan),'her plan for '+tName+' 2026, to the nearest 100',1]]);
+      const lowTxt=r.leave?'She is on leave this month, so we count the days she came in: <b>'+r.dLow+' day'+(r.dLow===1?'':'s')+'</b>.':'Her usual days, like her last full months: <b>'+r.dLow+' days</b>.';
+      const hiTxt='Nobody on leave: her best month of the three, <b>'+hd+' days</b>'+(r.grp&&r.grp.hd===hd&&RULES.days4&&hd===RULES.days4[p[2]]?' (a 4-day week)':'')+'.';
+      document.getElementById('b4sum').innerHTML='<b>Low.</b> '+lowTxt+leq([['t',fmt(r.adj),'her adjusted day (step 9)'],['o','×'],['t',String(r.dLow),'days'],['o','='],['t',fmt(r.grp?r.grp.total:r.adj*r.dLow),r.grp?'low plan, both branches':'low plan, before rounding']])+
+        '<b>High.</b> '+hiTxt+leq([['t',fmt(r.adj),'her adjusted day'],['o','×'],['t',String(hd),'days'],['o','='],['t',fmt(r.grp?r.grp.totalHigh:r.adj*hd),r.grp?'high plan, both branches':'high plan, before rounding']])+
+        (r.grp?'<p style="margin:8px 0">She works in two branches, so we make <b>one plan from both</b> and share it out by days: '+r.grp.split+'. '+(r.grp.note||'')+'</p>':'')+
+        '<b>The target is the middle.</b>'+leq([['t',fmt(r.low),'low'],['o','+'],['t',fmt(r.high),'high'],['o','÷'],['t','2','two'],['o','='],['t',fmt(r.med),'her target for '+tName+' 2026, to the nearest 100',1]]);
     }else{
-      document.getElementById('b4sum').innerHTML=dayTxt+'<br>She is a joiner, so she has no history of her own yet. Her plan is 70% of what '+r.nPool+' regular'+(r.nPool===1?'':'s')+' ('+r.medBasis+') plan for, or her own pace if that is lower.'+
-        leq([['t',fmt(r.own),'her own pace ('+fmt(r.adj)+' × '+r.planned+' days)'],['o','vs'],['t',fmt(r.planJoin),'70% of the regulars\u2019 median ('+fmt(r.med)+')'],['o','→'],['t',fmt(r.plan),'her plan for '+tName+(r.capped?' (her own pace is lower)':' (70% of the median)'),1]]);
+      document.getElementById('b4sum').innerHTML='She is a joiner, so she has no history of her own yet. Her plan is 70% of what '+r.nPool+' regular'+(r.nPool===1?'':'s')+' ('+r.medBasis+') plan for, or her own pace if that is lower. For a joiner low, target and high are the same.'+
+        leq([['t',fmt(r.own),'her own pace ('+fmt(r.adj)+' × '+r.planned+' days)'],['o','vs'],['t',fmt(r.planJoin),'70% of the regulars\u2019 median ('+fmt(r.med0)+')'],['o','→'],['t',fmt(r.med),'her target for '+tName+(r.capped?' (her own pace is lower)':' (70% of the median)'),1]]);
     }
   }
 
-  /* step 11 */
+  /* step 11: split the target */
   s=clear('b5');
   const plan=r.plan;
   if(noPlan||!plan){
@@ -839,23 +952,34 @@ function buildB(){
     label(s,x0+wSvc+wTr/2,61,'AED '+fmt(r.treat),{size:14,weight:600});
     label(s,x0+wSvc+wTr/2,98,'Treatment '+B.treat+'%',{size:12,fill:C.soft});
     s.appendChild(el('line',{x1:x0,x2:x0+planW,y1:112,y2:112,stroke:C.ink,'stroke-width':1.5}));
-    label(s,x0+planW/2,132,'The plan: AED '+fmt(plan),{size:13,weight:600});
+    label(s,x0+planW/2,132,'The target: AED '+fmt(plan),{size:13,weight:600});
     label(s,x0+planW+gap+wRet/2,98,'Retail '+B.retail+'%',{size:12,fill:C.soft});
     label(s,x0+planW+gap+wRet/2,28,'AED '+fmt(r.retail),{size:13,weight:600});
     label(s,x0+planW+gap/2,61,'+',{size:24,fill:C.soft});
-    document.getElementById('b5sum').innerHTML='Treatment '+B.treat+'% of the plan = <b>'+fmt(r.treat)+'</b>. Service is the rest of the plan: <b>'+fmt(svc)+'</b>.<br>Retail '+B.retail+'% of the plan = <b>'+fmt(r.retail)+'</b>, on top of the plan, not inside it.'+leq([['t',fmt(plan),'her plan (step 10)'],['o','÷'],['t',String(r.avgBill),'average bill for her level'],['o','='],['t','about '+r.clients,'clients to serve',1]]);
+    document.getElementById('b5sum').innerHTML='Treatment '+B.treat+'% of the target = <b>'+fmt(r.treat)+'</b>. Service is the rest: <b>'+fmt(svc)+'</b>.<br>Retail '+B.retail+'% of the target = <b>'+fmt(r.retail)+'</b>, on top of the target, not inside it.<br>Average bill = services (treatments and courses inside, retail out) divided by clients.'+leq([['t',fmt(plan),'her target (step 10)'],['o','÷'],['t',String(r.avgBill),'average bill for her level'],['o','='],['t','about '+r.clientsRaw,'clients, before we check her hours',1]]);
   }
   const li=lvIndex(p[3]);
   document.getElementById('b5oth').innerHTML=p[2]==='BEAUTY'
     ?'<b>Not worked out from her sales:</b> for beauty we use an average bill of <b>AED '+BEAUTY_AB+'</b>. Rebooking and retention are not worked out from her sales either.'
     :'<b>Not worked out from her sales:</b> rebooking and average bill come straight from her level\u2019s benchmark table. For '+p[1].split(' ')[0]+'\u2019s level, '+LVN[li]+': <b>rebooking '+LVB[li][1]+'%</b> target (minimum '+LVB[li][0]+'%) and <b>average bill AED '+AB[li][1]+'</b> target (minimum '+AB[li][0]+'). Retention is unchanged too.';
 
+  /* step 12: clients held to her hours */
+  if(noPlan||!plan){
+    document.getElementById('b6sum').innerHTML='Nothing to hold yet.';
+  }else if(r.capClients!=null){
+    document.getElementById('b6sum').innerHTML='Her hours: about <b>'+r.hrsDay.toFixed(1)+' hours a day</b> on the roster, and one client takes her about <b>'+r.hrsClient.toFixed(1)+' hours</b> (booked hours divided by visits, August and September).'+
+      leq([['t',r.hrsDay.toFixed(1),'hours a day'],['o','×'],['t',r.dImp.toFixed(0),'days this target needs'],['o','×'],['t',S.util+'%','utilisation we aim for'],['o','÷'],['t',r.hrsClient.toFixed(1),'hours a client'],['o','='],['t',fmt(r.capClients),'clients her hours can hold',1]])+
+      (r.clCapped?'The target needs about <b>'+fmt(r.clientsRaw)+'</b> clients at the level average bill, more than her hours can hold. So we hold her target to <b>'+fmt(r.clients)+' clients</b>, and to reach AED '+fmt(plan)+' her average bill has to be <b>AED '+fmt(r.billNeed)+'</b> (her level: '+fmt(r.avgBill)+'). That is the real conversation with her.':'The target needs about <b>'+fmt(r.clientsRaw)+'</b> clients, and her hours can hold more, so the target stays at <b>'+fmt(r.clients)+' clients</b>.');
+  }else{
+    document.getElementById('b6sum').innerHTML='We have no clean hours for her (a joiner, someone in two branches, or booked time that is not clients), so her clients are the target divided by the average bill: about <b>'+fmt(r.clients)+'</b>. No hours check yet.';
+  }
+
   /* together */
-  document.getElementById('formula').innerHTML=noPlan?'<p class="srcnote">No plan: no days found for her.</p>':
+  document.getElementById('formula').innerHTML=noPlan?'<p class="srcnote">'+(r.cover?'Cover only: no target at this branch.':'No plan: no days found for her.')+'</p>':
     fbox('AED '+fmt(r.avgDay),who2+'’s normal day<br>from her last 3 months')+'<div class="op">×</div>'+
     fbox(r.ratio.toFixed(3),'Busy-or-quiet adjustment<br>'+fT.toFixed(2)+' ÷ '+avgF.toFixed(3))+'<div class="op">×</div>'+
-    fbox(String(r.planned),'Days she will work')+'<div class="op">=</div>'+
-    fbox('AED '+fmt(r.plan),(r.joiner?'Her plan for '+tName+' 2026<br>(joiner rule)':'Her plan for '+tName+' 2026'),true);
+    fbox(String(r.dLow)+' or '+String(hd),'Days she will work<br>low or high')+'<div class="op">=</div>'+
+    fbox('AED '+fmt(r.med),(r.joiner?'Her target for '+tName+' 2026<br>(joiner rule)':'Her target for '+tName+' 2026<br>the middle of '+fmt(r.low)+' and '+fmt(r.high)),true);
 }
 function buildTop(){
   document.getElementById('formula0').innerHTML=
@@ -877,10 +1001,13 @@ function buildQuiz(){
    {q:'Why do we divide her sales by the days she <i>came in</i>, not the days in the month?',o:[['It is easier',0],['So leave is not counted against her',1],['Phorest needs it',0]],yes:'Yes. Leave days have no sales. Dividing by days she came in means leave is never counted against her.',no:'Not quite. We divide by the days she <b>came in</b>, so leave is never counted against her.'},
    {q:'Which month is the busiest on the season calendar?',o:[['June',0],['December',1],['January',0]],yes:'Yes. December is 1.36, so 36% busier than a normal month. June is next at 1.10.',no:'Not quite. December is the busiest at 1.36. June is next at 1.10.'},
    {q:'A plan is AED 85,000 and treatment is 20% of it. What is the treatment target?',o:[['AED 12,000',0],['AED 17,000',1],['AED 20,000',0]],yes:'Yes. 85,000 \u00d7 20% = 17,000. Service is the rest, 68,000.',no:'Not quite. 85,000 \u00d7 20% = <b>17,000</b>. Service is the rest, 68,000.'},
-   {q:'Where does a stylist\u2019s rebooking target come from?',o:[['Her last 3 months of sales',0],['Her level\u2019s benchmark table',1],['The season calendar',0]],yes:'Yes. Rebooking and average bill come from the benchmark table for her level, not from her sales.',no:'Not quite. Rebooking comes from the <b>benchmark table for her level</b>, not from her sales or the calendar.'},
+   {q:'Where does a stylist\u2019s rebooking target come from?',o:[['Her last 3 months of sales',0],['Her level\u2019s benchmark table',1],['The season calendar',0]],yes:'Yes. Rebooking comes from the benchmark table for her level, not from her sales. Average bill comes from the table too, and we check it against what her hours can hold.',no:'Not quite. Rebooking comes from the <b>benchmark table for her level</b>, not from her sales or the calendar.'},
+   {q:'What is a person\u2019s target?',o:[['The lowest she could do',0],['The middle of low (the leave we have) and high (nobody on leave)',1],['The most she has ever sold',0]],yes:'Yes. The target is the middle of the low and the high. It is a goal that still looks real.',no:'Not quite. The target is the <b>middle</b> of the low (with the leave we have now) and the high (nobody on leave).'},
+   {q:'Her target needs 140 clients, but her hours only hold 100 at 85% utilisation. What do we do?',o:[['Keep 140 and hope',0],['Hold the clients to 100 and show the average bill she needs',1],['Give her more hours',0]],yes:'Yes. Clients cannot go past her hours, so the average bill has to carry the rest. That is the conversation with her.',no:'Not quite. We hold the clients to what her hours can fit (100) and show the <b>average bill she needs</b> to reach her target.'},
+   {q:'A stylist is on leave this month. How is her low worked out?',o:[['She is marked down for the days off',0],['Her adjusted day times the days she actually came in',1],['Her plan is the same as everyone\u2019s',0]],yes:'Yes. Leave is never counted against her: her day is multiplied by the days she came in, and the high shows what a full month could be.',no:'Not quite. Her adjusted day is multiplied by the days she <b>actually came in</b>. The high shows what a full month could be.'},
    {q:'A new joiner has no sales history yet. What is her plan?',o:[['Zero until she has history',0],['70% of what the regulars in her job plan for, or her own pace if that is lower',1],['Last year\u2019s plan',0]],yes:'Yes. A joiner gets 70% of the regulars\u2019 median plan for the same job, or her own pace if that is lower.',no:'Not quite. A joiner gets <b>70% of the regulars\u2019 median plan</b> for the same job, or her own pace if that is lower.'}
   ];
-  [['quizBox1',0,3],['quizBox2',3,6]].forEach(g=>{
+  [['quizBox1',0,5],['quizBox2',5,9]].forEach(g=>{
     const box=document.getElementById(g[0]);
     box.innerHTML=Q.slice(g[1],g[2]).map((x,k)=>'<div class="q" data-i="'+(g[1]+k)+'"><p><b>'+(g[1]+k+1)+'.</b> '+x.q+'</p><div class="opts">'+x.o.map(o=>'<button class="opt" data-ok="'+o[1]+'">'+o[0]+'</button>').join('')+'</div><div class="fb hide"></div></div>').join('');
     box.addEventListener('click',e=>{
