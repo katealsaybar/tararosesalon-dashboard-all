@@ -144,3 +144,6 @@
   @media(hover:hover){#wvBlastContent .lg-side .side-nav .side-sub a:hover{color:var(--text)}}
   #wvBlastContent .lg-side{max-height:calc(100vh - 136px);overflow-y:auto}
 }
+/* Details ↓ links (Kate, 23 Oct 2026: the browser's default blue was unreadable on the dark page): the page's own text colour, underlined. */
+#wvBlastContent a[onclick*="wvJump"],#wvBlastContent a[onclick*="wvGoBlast"]{color:var(--text);text-decoration:underline;text-underline-offset:3px;font-weight:600}
+@media(hover:hover){#wvBlastContent a[onclick*="wvJump"]:hover,#wvBlastContent a[onclick*="wvGoBlast"]:hover{color:var(--accent-text,var(--text));text-decoration-thickness:2px}}

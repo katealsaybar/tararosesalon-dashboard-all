@@ -114,8 +114,8 @@ async function renderWvBlast() {
       <p><b>If we do nothing?</b> The clients on the last-push list will not hear from us before it closes.</p>
       <p id="wvSoFar"></p>
       <p class="wv-act"><b>Next step:</b> Mon 26 Oct, Kate sends Blast 4 with the Send button on the Blast 4 page, or schedules it from there.${wvPerfOnly() ? ' This page shows the money only.' : ''}</p>
-    </div></section>` : `<section class="slv-intro"><h2>${WV_MODE_NAME[mode]}</h2>
-    <p class="slv-note">Wellness Voucher · <a href="#" onclick="event.preventDefault();wvGoBlast('all')">← Overall Blast performances</a>${wvPerfOnly() ? ' · This page shows the money only.' : ''}</p></section>`;
+    </div></section>` : `<section class="slv-intro"><h2>Wellness Voucher Message and Email Blasts</h2>
+    <p class="slv-note"><a href="#" onclick="event.preventDefault();wvGoBlast('all')">← Overall Blast performances</a>${wvPerfOnly() ? ' · This page shows the money only.' : ''}</p></section>`;
   el.innerHTML = `${intro}${typeof lgShell === 'function' ? lgShell(rails[mode], body, 'lg-shell-wide') : body}`;
   const needPerf = mode === 'all' || mode === 'b3', needList = mode === 'b3' && !wvPerfOnly();
   const hp = sb.rpc('wv_blasts_history').then(r => r, e => ({ error: e })),
