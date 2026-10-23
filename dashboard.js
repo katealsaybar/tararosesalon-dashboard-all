@@ -278,6 +278,7 @@ function toggleThemeNow() {
   if (typeof w13RedrawForTheme === 'function') w13RedrawForTheme();
   if (typeof prdRedrawForTheme === 'function') prdRedrawForTheme();
   if (typeof gadsRedrawForTheme === 'function') gadsRedrawForTheme();
+  if (typeof mspendRedrawForTheme === 'function') mspendRedrawForTheme();
   if (typeof webRedrawForTheme === 'function') webRedrawForTheme();
   if (typeof socRedrawForTheme === 'function') socRedrawForTheme();
 }

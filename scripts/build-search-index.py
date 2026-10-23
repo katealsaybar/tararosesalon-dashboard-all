@@ -50,7 +50,7 @@ OUT = ROOT / 'search-index.js'
 
 # One page script, one page. A file that draws several pages is handled below.
 FILE_VIEWS = {
-    'compare.js': 'compare', 'daily-performance.js': 'dailyperf', 'daily-addons.js': 'dailyperf', 'google-ads.js': 'googleads', 'website.js': 'website',
+    'compare.js': 'compare', 'daily-performance.js': 'dailyperf', 'daily-addons.js': 'dailyperf', 'google-ads.js': 'googleads', 'marketing-spend.js': 'marketingspend', 'website.js': 'website',
     'social.js': 'social', 'products.js': 'products', 'spend.js': 'supplierspend', 'org-chart.js': 'orgchart',
     'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels', 'one2ones.js': 'one2ones', 'attrition.js': 'attrition', 'client-book.js': 'clientbook', 'complaints.js': 'complaints', 'complaint-log.js': 'complaintlog',
     'top-clients.js': 'clients',
@@ -112,6 +112,7 @@ PAGE_ANCHORS = {
     'wvblast': ['Everyone on the list'],
     'products': ['Retail stock bought against retail sold'],
     'googleads': ['Every campaign that ran'],
+    'marketingspend': ['Where it comes from'],
     'website': ['Where visits came from'],
     'social': ['From social to the website'],
     'orgchart': ['Tara Rose Group'],
