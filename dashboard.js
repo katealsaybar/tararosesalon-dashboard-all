@@ -5715,7 +5715,12 @@ function freshnessLine(label, info, feed) {
   const synced = new Date(info.date + 'T00:00:00');
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const diffDays = Math.round((today - synced) / 86400000);
-  const age = diffDays <= 0 ? 'today' : diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
+  // The ledger of a day is only filled the day after (Kate, 23 Oct 2026), so today never counts:
+  // Ledger 20 Oct read on the 23rd is 2 days behind (21 and 22 are missing), not "3 days ago".
+  const behind = label === 'Ledger' ? Math.max(0, diffDays - 1) : null;
+  const age = behind !== null
+    ? (behind === 0 ? 'up to date' : behind === 1 ? '1 day behind' : `${behind} days behind`)
+    : diffDays <= 0 ? 'today' : diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
   const dateStr = `${synced.getDate()} ${MON_SHORT[synced.getMonth()]}`;
   const flag = info.complete ? ''
     : ` <span title="Missing: ${escapeHtml(info.missing.map(b=>BRANCH_INFO[b]?.name||b).join(', '))}">(partial)</span>`;
