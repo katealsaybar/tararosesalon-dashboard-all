@@ -49,6 +49,7 @@ create table if not exists google_ads_statements (
   statement_file  text,
   loaded_at       timestamptz not null default now()
 );
+-- The agency line (agency_fees, Leaders in Digital) is in marketing_spend_agency.sql; the function below already reads it.
 alter table meta_ads_invoices    enable row level security;   -- no policies: read through marketing_spend_report only
 alter table meta_ads_daily       enable row level security;
 alter table google_ads_statements enable row level security;
@@ -74,6 +75,8 @@ begin
     select date_trunc('month', date)::date mo, sum(spend) spend,
            count(*) filter (where source = 'invoice') inv_days, count(*) filter (where source = 'metricool') mc_days
     from mbest group by 1
+  ), ag as (
+    select month mo, sum(amount_aed) agency from agency_fees group by 1
   ), firsts as (
     select lower(trim(client_name)) c, min(date) first_d
     from sales_transaction_lines
@@ -88,8 +91,9 @@ begin
            gs.billed_aed is not null google_is_statement,
            round(coalesce(mt.spend, 0)::numeric, 2) meta,
            coalesce(mt.inv_days, 0) meta_invoice_days, coalesce(mt.mc_days, 0) meta_metricool_days,
+           ag.agency,
            coalesce(nc.n, 0) new_clients
-    from months left join g using (mo) left join gs using (mo) left join mt using (mo) left join nc using (mo)
+    from months left join g using (mo) left join gs using (mo) left join mt using (mo) left join ag using (mo) left join nc using (mo)
   ), cohort as (
     -- 12-month value of clients whose first visit was Jan to Sep 2025 (their year is complete). Net sales, not profit;
     -- voucher and deposit lines are left out (money moved, not a service).
@@ -108,6 +112,7 @@ begin
                     'pct_returned', round(100.0 * avg((visits12 > 1)::int), 1), 'cohort', '2025-01 to 2025-09') from cohort),
     'meta_first_day', (select min(date) from meta_ads_daily),
     'meta_invoice_last_day', (select max(date) from meta_ads_daily where source = 'invoice'),
+    'agency_last_month', (select max(month) from agency_fees),
     'sync', (select to_jsonb(s) from sync_health s where name = 'meta-ads-sync')
   ) into out;
   return out;
