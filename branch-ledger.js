@@ -520,7 +520,7 @@ function lgHeader(title, standfirst, ctx, why) {
   const lead = why ? why.wall : `<p class="lg-stand">${standfirst}</p>`;
   const noteHtml = `<p class="lg-note ${ctx.applies ? '' : 'off'}">${ctx.applies ? '✦ ' : '⚠ '}${ctx.note}</p>`;
   const tail = !why ? noteHtml
-    : (ctx.applies ? '' : noteHtml) + `<details class="lg-how"><summary>How to read this page</summary><p>${why.how}</p></details>`;
+    : (ctx.applies ? '' : noteHtml) + `<details class="lg-how"><summary>How to read this page</summary><ul>${why.how.map(x => `<li>${x}</li>`).join('')}</ul></details>`;
   return `
     <div class="lg-head">
       <div class="lg-head-k">${escapeHtml(lgBranchLabel())} · ${escapeHtml(ctx.rangeLabel || lgRangeLabel())}</div>
@@ -1971,10 +1971,11 @@ async function renderLedgerTargets() {
   host.innerHTML =
     lgHeader('Ledgers · Daily Target Sheet', '', ctx, {
       wall: whyWall([
-        ['Why this page', 'Where each salon stands against this month’s target, today. It tells you early enough to change the month, not after it has closed.'],
+        ['Why this page', 'Where each salon stands against this month’s target, today.'],
+        ['Why now', 'It tells you early enough to change the month, not after it has closed.'],
         ['If we do nothing', 'A salon that is behind pace today is still behind on the 31st.']],
-        'Read On pace for first. Under 100% means pick one thing today: a rebooking, a treatment or a retail add-on.'),
-      how: '% done is how much of the whole month’s target is made so far. On pace for is where the month lands if the rest goes at the same speed. Month picks the month. Split cuts the columns by week or by day. The Period chips do not change this page.'
+        'Under 100% on On pace for? Pick one thing today: a rebooking, a treatment or a retail add-on.'),
+      how: ['% done is how much of the whole month’s target is made so far.', 'On pace for is where the month lands if the rest goes at the same speed.', 'Example: 10 days into a 30-day month, a salon that has made a third of its target is on pace for 100%.', 'Month picks the month. Split cuts the columns by week or by day.', 'The Period chips do not change this page.']
     }) +
     lgMonthRow() +
     lgGrainRow() +
@@ -2571,8 +2572,7 @@ async function renderLedgerFinancials() {
 
   host.innerHTML =
     lgHeader('Financial Totals',
-      `Phorest's own month-end totals next to ours. Check they tie before anyone quotes a figure. `
-      + `The figure to check a branch's report against is <b>Total (Ex VAT)</b>.`,
+      `Phorest's own month-end totals next to ours. Check they match before anyone quotes a figure.`,
       { applies: true, label: w.month.label, rangeLabel: `${shortD(w.month.from)} – ${shortD(w.month.to)}`,
         note: `${escapeHtml(w.month.label)}, ${lgMonthBasis(w)}, against ${escapeHtml(w.prev.label)}. `
           + `The Sales block is monthly because the report is, and Month above picks which month. `

@@ -192,7 +192,7 @@ async function renderStylistLevels() {
       ${levels.map((l, j) => `<button type="button" role="tab" aria-selected="${j === i}" class="${j === i ? 'on' : ''}" onclick="slvSet('${slvEsc(l.level)}')"><span class="slv-step">${j + 1}</span>${slvEsc(l.level)}</button>`).join('')}
     </div>
     </div>
-    ${whyWall([], 'Pick one person who is close to the next level. Show her the last column and ask which number she wants to start with.')}
+    ${whyWall([], 'Ask one person close to the next level which number in the last column she wants to start with.')}
     <section class="slv-card">
       <div class="slv-head">
         <div><div class="slv-eyebrow">Level ${i + 1} of ${levels.length}</div><h3>${slvEsc(cur.level)}</h3></div>

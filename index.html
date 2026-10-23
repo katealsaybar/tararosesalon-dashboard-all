@@ -3510,7 +3510,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="lost-queue.css?v=77bc5df5">
 <link rel="stylesheet" href="send-schedule.css?v=88a70391">
 <link rel="stylesheet" href="jump-nav.css?v=e099d37d">
-<link rel="stylesheet" href="why-wall.css?v=9868138c">
+<link rel="stylesheet" href="why-wall.css?v=a9e824b4">
 <link rel="stylesheet" href="wv-blast.css?v=33f85a66">
 <link rel="stylesheet" href="target-links.css?v=20377623">
 <link rel="stylesheet" href="glow-club.css?v=ce0bc189">
@@ -3555,7 +3555,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   (function(){
     var LGX = 'ledger-export.js?v=67737bd9';
     var G = {
-      oty: ['over-the-years.js?v=1d1ae97e'],
+      oty: ['over-the-years.js?v=5acd1dc2'],
       dp:  ['daily-performance.js?v=2a03b40a', 'daily-addons.js?v=1e57830b'],
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
@@ -3567,9 +3567,9 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['compare.js?v=40e6912f'],
-      mk:  ['marketing-chart.js?v=8d66329c', 'google-ads.js?v=ed3bd9e2', 'tool-spend.js?v=bebed87b', 'marketing-spend.js?v=8a8cba0b', 'website.js?v=c3ff835c', 'social.js?v=51a6feea'],
-      wk:  ['team-performance.js?v=d06300bf', 'staff-weeks.js?v=3439424d'],
-      lv:  ['stylist-levels.js?v=3bbd1479'],
+      mk:  ['marketing-chart.js?v=8d66329c', 'google-ads.js?v=ed3bd9e2', 'tool-spend.js?v=bebed87b', 'marketing-spend.js?v=8a8cba0b', 'website.js?v=c47da80a', 'social.js?v=e8db8274'],
+      wk:  ['team-performance.js?v=6fb02a88', 'staff-weeks.js?v=94c43754'],
+      lv:  ['stylist-levels.js?v=f8d576a4'],
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
       gc:  ['glow-club.js?v=1726ff51'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -3584,7 +3584,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       sp:  ['spend.js?v=60c3b654'],
       sc:  ['stylist-cards.js?v=fe5a89a4'],
       oc:  ['org-chart.js?v=37a5bbdf'],
-      tp:  ['team-performance.js?v=d06300bf']
+      tp:  ['team-performance.js?v=6fb02a88']
     };
     var V = {};   // view -> group, from pages.js (lazy)
     TRS_PAGES.forEach(function(p){ if (p.lazy) V[p.id] = p.lazy; });
@@ -3928,7 +3928,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       <div>
         <h1 id="pulseHeadline">Reading the numbers…</h1>
         <p class="deck" id="pulseDeck"></p>
-        <p class="why-oneline">How the group is doing against its aims, and the one thing to fix first. If a number is red, start with the Do this card.</p>
+        <p class="why-oneline">How the group is doing against its aims. If a number is red, start with the Do this card.</p>
         <p class="standfirst" id="pulseStandfirst"></p>
         <!-- Every scored target, on the cover. The headline says "1 of 6 hit" and
              this is the 6 — named, with a bar each — so the count is checkable
@@ -4550,7 +4550,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=680ecb8f"></script>
+<script src="branch-ledger.js?v=b9f8e83e"></script>
 <!-- over-the-years.js and daily-performance.js + daily-addons.js load on first use (trsLazy, in the boot script above). So do compare.js, the Marketing pages (marketing-chart, google-ads, website, social), staff-weeks.js and stylist-levels.js. -->
 <!-- ledger-export.js (spreadsheet export, built from branch-ledger.js's series and target helpers) loads on first use too: trsLazy. -->
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->

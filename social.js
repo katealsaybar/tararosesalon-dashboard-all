@@ -160,7 +160,7 @@ function socPaint(el) {
       <p>Instagram, TikTok, the Facebook page and YouTube in one place. Overview for the quick look; each platform's tab has its full report, as in Metricool. The apps report a day or two late.</p>
     </section>
     ${whyWall([
-      ['Why this page', 'This is what we post on each app and how many women it reaches, the quickest way to see what is worth making more of.'],
+      ['Why this page', 'This is what we post on each app and how many women it reaches, so we see what to make more of.'],
       ['What to watch', 'If reach falls two weeks in a row on one app, the posts there have stopped landing.'],
       ['What to do', 'Tell Kate which app, and she checks the content plan with Tara.']])}
     <div class="sc-bar w13-bar soc-bar">

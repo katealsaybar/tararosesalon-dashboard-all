@@ -22,4 +22,5 @@
 @media print{.why-wall{break-inside:avoid}}
 .lg-how{margin-top:10px;font-size:13.5px;line-height:1.5;color:var(--muted);max-width:78ch}
 .lg-how summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
-.lg-how p{margin:4px 0 0}
+.lg-how ul{margin:4px 0 0;padding-left:18px}
+.lg-how li{margin:2px 0}

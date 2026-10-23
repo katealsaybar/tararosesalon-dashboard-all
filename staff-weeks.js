@@ -436,7 +436,7 @@ async function w13RenderTeam(el) {
       ['Why this page', 'One person’s weeks side by side show a run, not one bad day.'],
       ['Why now', 'Three quiet weeks are easier to turn around at week three than at week ten.'],
       ['If we do nothing', 'A slow stretch becomes her normal, and the column stays empty.']],
-      'Open one person with a grey stub in the last four weeks. Ask what was happening.')}
+      'Ask one person with an empty week in the last four weeks what was happening.')}
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Team">
         ${[['all', 'All'], ['Hair', 'Hair'], ['Beauty', 'Beauty']].map(([k, l]) =>

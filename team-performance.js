@@ -586,12 +586,12 @@ const TP_WHY = {
     ['Why this page', 'The race shows who is leading this month and where each person stands against her aims.'],
     ['Why now', 'A quiet fortnight is still easy to turn around before month end.'],
     ['If we do nothing', 'Someone who is slipping stays unseen, and her clients quietly book somewhere else.']],
-    'Pick one name in the chasing group. Ask her what is working at the chair right now. Write her name and the day you will ask.'),
+    'Ask one person in the chasing group what is working at the chair right now.'),
   quad: whyWall([
     ['Why this page', 'Two numbers side by side show who needs what kind of help, not only who is busiest.'],
     ['Why now', 'The chart moves every week, so a conversation this week lands while the habit is still forming.'],
     ['If we do nothing', 'The same person gets the same general advice, and her clients feel no difference.']],
-    'Choose one box. Ask the question under its name to one person in it.')
+    'Ask the question under a box’s name to one person in it.')
 };
 async function renderTeam() {
   const part = tpPart();
