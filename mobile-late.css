@@ -201,3 +201,21 @@
   :root .lg-side .side-nav::-webkit-scrollbar{display:none}
   :root .lg-side .side-nav .side-k,:root .lg-side .side-nav a{flex:none;white-space:nowrap}
 }
+
+/* One thickness for every on/off toggle on a phone (Kate, 23 Oct 2026: "too thick, uniform across all toggles", measured against the Refine
+   button on Google Reviews, which is 32px to look at and keeps a 44px tap area through ::after). The segmented switches (.sc-seg, .tp-seg,
+   .cmp-mode) were 44px, 40px, 38px and 36px depending on the page; they are now 32px outside (26px buttons in a 2px frame) with the same 44px
+   tap area, so the thin look costs no thumb. The Pulse target strip and the filter sheet keep their own sizes. */
+@media(max-width:760px){
+  :root .sc-seg button,:root .tp-seg button,:root .tp-bar .tp-seg button,:root #googleAdsContent .sc-seg button,:root #websiteContent .sc-seg button,:root #socialContent .sc-seg button{
+    min-height:26px!important;padding-top:0!important;padding-bottom:0!important;line-height:1.15;position:relative}
+  :root .cmp-mode button{min-height:30px!important;padding-top:0;padding-bottom:0;position:relative}
+  :root .sc-seg button::after,:root .tp-seg button::after,:root .cmp-mode button::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+}
+
+/* The first column of a table that scrolls sideways stays in view (Kate, 23 Oct 2026; scroll-edges.js marks the table se-stk and the wrapper
+   se-sl once it has moved). Any width, so a laptop table that overflows gets it too. The column's colour is read from what is behind the table,
+   so it covers the figures passing under it; a soft edge shows once something is tucked beneath. */
+.se-stk tr > :first-child:not([colspan]){position:sticky;left:0;z-index:2;background-color:var(--se-bg,var(--bg));max-width:46vw}
+.se-stk thead tr > :first-child{z-index:3}
+.se-sl .se-stk tr > :first-child:not([colspan]){box-shadow:8px 0 8px -8px rgba(0,0,0,.45)}

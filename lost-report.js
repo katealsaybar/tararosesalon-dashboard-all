@@ -20,7 +20,7 @@ try { if (localStorage.getItem('lr-del-view') === 'table') lrDelView = 'table'; 
 // The money, by the same rule: null until lost_campaign_money is live (or for Level 2), the Spent card and the section stay out.
 let lrMoney = null, lrMoneyView = 'visual';
 try { if (localStorage.getItem('lr-money-view') === 'table') lrMoneyView = 'table'; } catch (e) {}
-let lrSel = { wave: 'all', branch: 'all', status: 'all', q: '', page: 1, per: 50 };
+let lrSel = { wave: 'all', branch: 'all', status: 'all', q: '', page: 1, per: 10 };   // Kate, 23 Oct 2026: ten rows to start, then 20, 50, 100
 // One message at a time (Kate, 19 Oct 2026): the whole report, the Booked and deposit and delivery sections and the log can be cut to Smoothing,
 // Colour or Due (migrations/lost_report_by_type.sql). 'all' sends no argument, so the page still works before that migration is live.
 let lrType = 'all';
@@ -86,6 +86,7 @@ function lrSetType(v) {
 function lrSet(k, v) { lrSel[k] = v; lrSel.page = 1; lrOpen = {}; lrRefreshLog(); }
 function lrSearch(v) { lrSel.q = v; lrSel.page = 1; clearTimeout(lrQTimer); lrQTimer = setTimeout(lrRefreshLog, 350); }
 function lrGo(p) { lrSel.page = p; lrOpen = {}; lrRefreshLog(); }
+function lrPer(v) { lrSel.per = [10, 20, 50, 100].includes(+v) ? +v : 10; lrSel.page = 1; lrOpen = {}; lrRefreshLog(); }
 function lrToggle(id) { lrOpen[id] = !lrOpen[id]; lrPaintLog(); }
 function lrNote(t) { const n = document.getElementById('lrNote'); if (n) n.textContent = t; }
 
@@ -222,9 +223,14 @@ function lrDepInner() {
   const tbl = lrDepView === 'table';
   return `<div class="lr-dhd"><h3>Booked: who has paid a deposit</h3>
       <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrDepSet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrDepSet('table')">Table</button></div></div>
+    <p class="slv-note">Clients we messaged who now have a visit booked, and whether her deposit is in.</p>
     ${d.total.booked ? (tbl ? lrDepTable(d) : lrDepVisual(d)) : '<p class="slv-muted">Nobody has booked from today on yet.</p>'}
-    <p class="slv-note">A deposit is Phorest's Deposit item, net of refunds, in the last 90 days, matched on the client's name. Deposits arrive with the nightly sales upload, so one paid today shows tomorrow. Counted per client.</p>
-    ${lrDepPol(d) ? '<p class="slv-note">Likely needed: from the Booking and Deposit policy (Existing client), her next appointment has balayage, foils or highlights, an all over colour or a restyle, and no deposit is in Phorest. Any other service without a deposit is None needed. Phorest does not show an appointment over two hours, several guests, a missed or changed visit, or a next visit booked at the chair (which needs no deposit), so check those at the desk.</p>' : ''}`;
+    <p class="slv-note">For example: a client has balayage booked for Thursday and no deposit shows in Phorest. She reads Likely needed, so reception messages her before then.</p>
+    <p class="slv-note">Deposits arrive with the nightly sales upload, so one paid today shows tomorrow.</p>
+    <details class="lr-fold"><summary>How this is worked out</summary>
+      <p class="slv-note">Paid: the Deposit item in Phorest, after refunds, in the last 90 days, matched on the client's name. Counted once per client.</p>
+      ${lrDepPol(d) ? '<p class="slv-note">Likely needed: the Booking and Deposit policy (existing client) asks for a deposit on balayage, foils or highlights, an all over colour or a restyle. If her next appointment has one of those and no deposit is in Phorest, she reads Likely needed. Any other service reads None needed.</p><p class="slv-note">Phorest cannot show an appointment over two hours, several guests, a missed or changed visit, or a next visit booked at the chair (that one needs no deposit). Check those at the desk.</p>' : ''}
+    </details>`;
 }
 function lrDepSet(v) {
   lrDepView = v === 'table' ? 'table' : 'visual';
@@ -401,7 +407,7 @@ function lrPaint() {
       <button type="button" class="ll-chip lq-refresh" onclick="lrRenderPerf(true)" title="Ask again">Refresh</button>
     </div>
     <section class="lr-sec" id="lr-type"><div class="lr-dhd"><h3>Which message</h3>
-      <div class="tp-seg" role="group" aria-label="Message">${[['all', 'All messages']].concat(LR_TYPES).map(([k, l]) => `<button type="button" class="${lrType === k ? 'on' : ''}" onclick="lrSetType('${k}')">${l}</button>`).join('')}</div></div>
+      <div class="tp-seg" role="group" aria-label="Message">${[['all', 'All']].concat(LR_TYPES.map(([k, l]) => [k, k === 'due' ? 'Due' : l])).map(([k, l]) => `<button type="button" class="${lrType === k ? 'on' : ''}" onclick="lrSetType('${k}')">${l}</button>`).join('')}</div></div>
       ${lrType === 'all' ? `${lrTable('Message', typeRows)}<p class="slv-note">Pick one above to see every number on this page for that message alone. Smoothing is groups 1 and 2, Colour is group 3, Due is everyone else. A client who was sent two different messages is counted under each.</p>`
         : `<p class="slv-note">Showing <b>${lcEsc(lrTypeName())}</b> only, everything below. Pick All messages to see the three together.</p>`}
     </section>
@@ -449,8 +455,10 @@ function lrPaintLog() {
       <td>${lcEsc(m.nm)} <span class="ll-tag">${lcEsc(m.arm)}</span></td><td>${lcEsc(r.client)} <span class="slv-note">…${lcEsc(r.last4)}</span></td><td>${lrStatus(r)}</td><td>${flags || '<span class="slv-muted">–</span>'}</td></tr>
       ${open ? `<tr class="lr-text"><td colspan="7"><div class="lq-bubble">${lcEsc(r.text || '')}</div>${r.error ? `<div class="slv-note lr-bad">${lcEsc(r.error)}</div>` : ''}<div class="slv-note">Template ${lcEsc(r.tkey)} · queued ${lcEsc(r.qd || '')}${r.by ? ' by ' + lcEsc(r.by) : ''}${r.message_id ? ' · respond.io message ' + lcEsc(r.message_id) : ''}</div></td></tr>` : ''}`;
   }).join('');
-  const pager = pages > 1 ? `<div class="lr-pager"><button type="button" class="tglr lc-btn" ${p <= 1 ? 'disabled' : ''} onclick="lrGo(${p - 1})">‹ Prev</button>
-    <span class="slv-note">Page ${lcNum(p)} of ${lcNum(pages)}</span><button type="button" class="tglr lc-btn" ${p >= pages ? 'disabled' : ''} onclick="lrGo(${p + 1})">Next ›</button></div>` : '';
+  // Prev and Next only when there is more than one page; the rows-a-page choice whenever the log is longer than the shortest page.
+  const perSel = lrTotal > 10 ? `<select class="ll-sel" aria-label="Rows a page" onchange="lrPer(this.value)">${[10, 20, 50, 100].map(n => `<option value="${n}"${lrSel.per === n ? ' selected' : ''}>${n} rows</option>`).join('')}</select>` : '';
+  const pager = lrTotal > 10 ? `<div class="lr-pager">${pages > 1 ? `<button type="button" class="tglr lc-btn" ${p <= 1 ? 'disabled' : ''} onclick="lrGo(${p - 1})">‹ Prev</button>
+    <span class="slv-note">Page ${lcNum(p)} of ${lcNum(pages)}</span><button type="button" class="tglr lc-btn" ${p >= pages ? 'disabled' : ''} onclick="lrGo(${p + 1})">Next ›</button>` : ''}${perSel}</div>` : '';
   el.innerHTML = `<p class="slv-note">${lcNum(lrTotal)} message${lrTotal === 1 ? '' : 's'}${lrTotal ? `, newest first. Click a row to read what she was sent.` : ''}</p>
     ${lrTotal ? `<div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Sent</th><th>Wave</th><th>Branch</th><th>Message</th><th>Client</th><th>Status</th><th>Since</th></tr></thead><tbody>${rows}</tbody></table></div>${pager}` : '<p class="slv-muted">Nothing matches these filters.</p>'}`;
 }
