@@ -39,7 +39,7 @@ const GROUPS = [
 // The four a stylist reads first; the rest fold away (progressive disclosure).
 const HEADLINE = ['total_revenue', 'treatments', 'retail', 'rebooking_pct'];
 
-const S = { podAll: false, podStat: null, tab: 'month', levels: [], me: null, year: null, pick: null, o2o: null, token: null, pod: null, podLast: false, podCur: null };
+const S = { podPer: 'month', podScope: 'all', podRangeOk: null, podCache: {}, podLoad: null, podMsg: '', podAll: false, podStat: null, tab: 'month', levels: [], me: null, year: null, pick: null, o2o: null, token: null, pod: null, podLast: false, podCur: null };
 const levelOf = name => S.levels.find(l => l.level === name) || null;
 const nextOf = name => { const l = levelOf(name); return l ? S.levels.find(x => x.order === l.order + 1) || null : null; };
 
@@ -145,7 +145,8 @@ async function mount(token) {
     S.levels = levels || []; S.year = year; S.me = year.staff; S.pick = S.me.level; S.token = token; S.o2o = o2o && o2o.enabled ? o2o : null;
     const want = new URLSearchParams(location.search).get('tab');
     const takePod = pod => {
-      S.pod = pod; S.podCur = pod ? pod.month : null;
+      S.pod = pod; S.podCur = pod ? pod.month : null; S.podPer = 'month'; S.podLast = false; S.podCache = pod ? { month: pod } : {};
+      if (pod && S.podRangeOk === null) podProbe(token);
       const st = new URLSearchParams(location.search).get('stat'); S.podStat = pod && st && pstat(st) && pod.stats[st] ? st : null;
     };
     if (want === 'podium') takePod(await podP);       // a bookmark to the tab waits for it
@@ -334,7 +335,7 @@ const monthName = iso => new Date(iso + 'T00:00:00').toLocaleDateString('en-GB',
 // Plain words, grouped the way This month groups them. f: aed | pct | num. unit is the column heading on a board.
 const PSTATS = [
   ['Sales', [
-    { k: 'sales', name: 'Total sales', f: 'aed', unit: 'AED', what: 'Services and retail together, before VAT.', none: 'Your place appears as soon as your first sale is in.' },
+    { k: 'sales', name: 'Total sales', f: 'aed', unit: 'AED', what: 'Services and retail together, before VAT. This is your net take.', none: 'Your place appears as soon as your first sale is in.' },
     { k: 'services', name: 'Services', f: 'aed', unit: 'AED', what: 'What you took on services, before VAT. It is your Total revenue on This month.', none: 'No services in your numbers yet.' },
     { k: 'retail', name: 'Retail', f: 'aed', unit: 'AED', what: 'Products you sold, before VAT.', none: 'No retail yet this month.' },
     { k: 'treatments', name: 'Treatments', f: 'aed', unit: 'AED', what: 'Treatment sales, from the branch ledger.', none: 'No treatments yet this month.' }]],
@@ -363,13 +364,61 @@ async function loadPod(token, iso) {
   return { month: o.month, to: o.to, dept: o.dept, stats: { sales: { ranked: o.ranked, me: o.me ? { rank: o.me.rank, value: o.me.amount } : null,
     board: o.board.map(r => ({ rank: r.rank, name: r.name, branch: r.branch, value: r.amount, me: r.me })) } } };
 }
-async function podMonth(last) {
-  const d = new Date(S.podCur + 'T00:00:00');           // first of the month the data runs to
-  const m = last ? new Date(d.getFullYear(), d.getMonth() - 1, 1) : d;
-  const iso = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}-01`;
-  const r = await loadPod(S.token, iso);
-  if (r) { S.pod = r; S.podLast = !!last; }
+// Kate, 23 Oct 2026: the same filter principles as the management Podium Race, a period, a stat to rank by and the salon. The period is
+// This month, Last month, This year and All time; the stat is the chip row under the board; the salon is Everyone or her own. This month and
+// Last month are one-month calls as before. This year and All time read perf_podium_range_me (migrations/perf_podium_alltime.sql), which
+// sums a monthly rollup and works the month in progress live. Nothing but a one-line "is it installed" check runs on load; a longer window is
+// read only when she taps it, shows "working it out" at once, and is kept for the rest of the visit.
+const PODFIRST = '2021-05-01';          // where Phorest's staff figures begin
+async function podProbe(token) {
+  S.podRangeOk = false;
+  try {
+    const r = await call('perf_podium_range_me', { p_token: token, p_from: null, p_to: null });
+    S.podRangeOk = !!(r && r.ready);
+  } catch (e) { S.podRangeOk = false; }
+  if (S.podRangeOk) { if (S.tab === 'podium') paint(); const t = document.getElementById('perfTabs'); if (t) t.innerHTML = tabBar(); }
+}
+async function loadPodRange(token, from) {
+  const r = await call('perf_podium_range_me', { p_token: token, p_from: from, p_to: null });
+  return r && r.stats && r.stats.sales ? r : null;
+}
+const PODLABEL = { month: 'this month', last: 'last month', year: 'this year', all: 'all time' };
+async function podPeriod(per) {
+  if (S.podLoad || per === S.podPer) return;
+  const prev = S.podPer;
+  S.podMsg = '';
+  let r = S.podCache[per];
+  if (!r) {
+    S.podLoad = per; paint();
+    try {
+      const d = new Date(S.podCur + 'T00:00:00');
+      if (per === 'month' || per === 'last') {
+        const m = per === 'last' ? new Date(d.getFullYear(), d.getMonth() - 1, 1) : d;
+        r = await loadPod(S.token, `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}-01`);
+      } else r = await loadPodRange(S.token, per === 'year' ? `${d.getFullYear()}-01-01` : PODFIRST);
+    } catch (e) { r = null; }
+    S.podLoad = null;
+    if (r) S.podCache[per] = r; else S.podMsg = 'That did not load. Try again in a moment.';
+  }
+  if (r) { S.pod = r; S.podPer = per; S.podLast = per === 'last'; S.podAll = false; } else S.podPer = prev;
   paint();
+}
+function podScope(k) { S.podScope = k === 'mine' ? 'mine' : 'all'; S.podAll = false; paint(); }
+// Her own salon only: the same boards, filtered to her salon and ranked again among them.
+function podMyBranch(p) {
+  for (const k of Object.keys(p.stats)) { const m = p.stats[k].board.find(r => r.me); if (m && m.branch) return m.branch; }
+  return null;
+}
+function podScoped(p) {
+  const b = S.podScope === 'mine' ? podMyBranch(p) : null;
+  if (!b) return p;
+  const stats = {};
+  for (const k of Object.keys(p.stats)) {
+    const rows = p.stats[k].board.filter(r => r.branch === b).map(r => ({ ...r, rank: 1 + p.stats[k].board.filter(o => o.branch === b && o.value > r.value).length }));
+    const me = rows.find(r => r.me);
+    stats[k] = { ranked: rows.length, me: me ? { rank: me.rank, value: me.value } : null, board: rows };
+  }
+  return { ...p, stats, scopeName: BRANCH[b] || b };
 }
 // Pick the stat the team board shows. Kept in the address so a refresh or a shared bookmark lands on it. Kate, 23 Oct 2026: the whole team
 // is on the page now, not a second screen, so this moves the board and brings it into view rather than opening a new page.
@@ -385,18 +434,29 @@ function podStat(key) {
 // All the rows of the board, or the top eight and her.
 function podAllToggle() { S.podAll = !S.podAll; paint(); }
 function podSeg() {
-  return `<div class="pod-seg" role="group" aria-label="Month">
-        <button type="button" class="${S.podLast ? '' : 'on'}" onclick="PerfTabs.podium(false)" aria-pressed="${!S.podLast}">This month</button>
-        <button type="button" class="${S.podLast ? 'on' : ''}" onclick="PerfTabs.podium(true)" aria-pressed="${S.podLast}">Last month</button>
-      </div>`;
+  const per = [['month', 'This month'], ['last', 'Last month']].concat(S.podRangeOk ? [['year', 'This year'], ['all', 'All time']] : []);
+  const mine = podMyBranch(S.pod);
+  const busy = !!S.podLoad;
+  return `<div class="pod-seg" role="group" aria-label="Period">${per.map(([k, l]) =>
+      `<button type="button" class="${S.podPer === k ? 'on' : ''}" onclick="PerfTabs.period('${k}')" aria-pressed="${S.podPer === k}"${busy ? ' disabled' : ''}>${l}</button>`).join('')}</div>
+    ${mine ? `<div class="pod-seg pod-seg2" role="group" aria-label="Who">
+      <button type="button" class="${S.podScope === 'all' ? 'on' : ''}" onclick="PerfTabs.scope('all')" aria-pressed="${S.podScope === 'all'}">Everyone</button>
+      <button type="button" class="${S.podScope === 'mine' ? 'on' : ''}" onclick="PerfTabs.scope('mine')" aria-pressed="${S.podScope === 'mine'}">${esc(BRANCH[mine] || mine)} only</button></div>` : ''}
+    ${busy ? `<p class="sub pr-load" role="status">Working out ${PODLABEL[S.podLoad]}. A few seconds.</p>` : ''}${S.podMsg ? `<p class="sub pr-load" role="status">${esc(S.podMsg)}</p>` : ''}`;
 }
+
 // Kate, 23 Oct 2026 (mock-up approved in docs/mockups/podium-race-staff-link.html): one page, top to bottom. Her win first, the place she is
 // closest to winning, her place on every stat as one list, then the whole team in order for the stat she picked, with the rest of the stats a chip away.
 const POD_TOP = 8;   // rows of the board shown before "Show all"
 const podGap = (x, g) => x.f === 'aed' ? 'AED ' + Math.round(g).toLocaleString('en-GB') : x.f === 'pct' ? Number(g).toFixed(1).replace(/\.0$/, '') + ' points' : Math.round(g).toLocaleString('en-GB');
 function podiumTab() {
-  const p = S.pod, team = p.dept === 'Beauty' ? 'Beauty team' : 'Hair team';
-  const mn = monthName(p.month), through = p.to ? dShort(p.to) : '', live = !S.podLast, was = live ? 'are' : 'were';
+  const p = podScoped(S.pod), per = S.podPer, base = p.dept === 'Beauty' ? 'Beauty team' : 'Hair team';
+  const team = p.scopeName ? `${base} at ${p.scopeName}` : base;
+  const mn = per === 'year' ? 'this year' : per === 'all' ? 'all time' : monthName(p.month);
+  const through = p.to ? dShort(p.to) : '', live = per !== 'last', was = live ? 'are' : 'were';
+  const since = per === 'all' ? new Date(S.pod.from + 'T00:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : '';
+  const inWin = per === 'month' ? 'in the month' : per === 'last' ? 'that month' : 'in this window';
+  const noneOf = x => per === 'month' ? x.none : x.none.replace(/yet this month\./, per === 'last' ? 'yet that month.' : 'yet in this window.');
   const shown = PALL.filter(x => pvisible(p, x));
   const cur = shown.find(x => x.k === S.podStat) || shown[0];
   const mine = x => p.stats[x.k].me;
@@ -411,7 +471,7 @@ function podiumTab() {
 
   // 2. her closest chance: the stat she is best placed on without being first, and how far the place above is
   let chance = '';
-  if (live) {
+  if (live && per === 'month') {
     const t = shown.filter(x => mine(x) && mine(x).rank > 1).sort((a, b) => mine(a).rank - mine(b).rank)[0];
     if (t) {
       const s = p.stats[t.k], up = s.board.filter(r => r.rank < mine(t).rank).pop(), gap = up ? up.value - mine(t).value : 0;
@@ -426,7 +486,7 @@ function podiumTab() {
     const pos = me && s.ranked > 1 ? (me.rank - 1) / (s.ranked - 1) * 100 : 0;
     const body = me
       ? `<span class="pr-p"><b>${ord(me.rank)}</b><small>of ${s.ranked}</small></span><span class="pr-v">${esc(pvalFull(x, me.value))}</span><span class="pr-track"><i style="left:${pos}%"></i></span>`
-      : `<span class="pr-p none"><b>Not yet</b></span><span class="pr-v">${esc(x.none)}</span>`;
+      : `<span class="pr-p none"><b>Not yet</b></span><span class="pr-v">${esc(noneOf(x))}</span>`;
     return `<button type="button" class="pr${top ? ' top' : ''}${me ? '' : ' none'}${x.k === cur.k ? ' sel' : ''}" onclick="PerfTabs.stat('${x.k}')"
       aria-label="${esc(x.name)}: ${me ? `you are ${ord(me.rank)} of ${s.ranked}` : 'not ranked yet'}. Show the whole team for it.">
       <span class="pr-n">${esc(x.name)}</span>${body}</button>`;
@@ -451,9 +511,9 @@ function podiumTab() {
   const more = s.board.length > POD_TOP + 1 ? `<button type="button" class="pr-more" onclick="PerfTabs.all()">${S.podAll ? 'Show the top ' + POD_TOP + ' and me' : 'Show all ' + n}</button>` : '';
   return `
     <section class="card">
-      <div class="eyebrow">Podium Race${through && live ? ', to ' + through : ', ' + mn}</div>
+      <div class="eyebrow">Podium Race${per === 'month' ? (through ? ', to ' + through : ', ' + mn) : per === 'all' ? ', all time, since ' + since : per === 'year' ? ', ' + new Date(p.to + 'T00:00:00').getFullYear() + ' so far' : ', ' + mn}</div>
       <h2>Where you stand on the ${team}</h2>
-      <p class="sub">Your place on each one for ${mn}${live ? ' so far' : ''}. Everyone on the ${team} is below.</p>
+      <p class="sub">Your place on each one for ${per === 'month' ? mn + ' so far' : per === 'year' ? 'the year so far' : per === 'all' ? 'all time' : mn}. ${p.scopeName ? 'Only the ' + esc(p.scopeName) + ' team is below.' : 'Everyone on the ' + team + ' is below.'}</p>
       ${podSeg()}
       <div class="pr-win">${win}</div>
       ${chance}
@@ -465,7 +525,7 @@ function podiumTab() {
       <div class="pod-chips" role="group" aria-label="Choose a stat">${chips}</div>
       <div class="tbl-wrap"><table class="tbl pod"><thead><tr><th class="pl">Place</th><th>Name</th><th class="r">${esc(cur.unit)}</th></tr></thead><tbody>${body}</tbody></table></div>
       ${more}
-      <p class="sub wk-foot">${cur.k === 'sales' ? 'Sales are services plus retail before VAT, the same figures as This month. ' : ''}Anyone with nothing yet in the month is not listed.${cur.foot ? ' ' + esc(cur.foot) : ''} A race is a moment, not a verdict: it moves every day, and a place only tells you where you are today.</p>
+      <p class="sub wk-foot">${cur.k === 'sales' ? 'Sales are services plus retail before VAT, the same figures as This month. ' : ''}Anyone with nothing yet ${inWin} is not listed.${cur.foot ? ' ' + esc(cur.foot) : ''} A race is a moment, not a verdict: it moves every day, and a place only tells you where you are today.</p>
     </section>`;
 }
 
@@ -512,5 +572,5 @@ function levelsTab() {
 }
 function pickLevel(l) { S.pick = l; paint(); }
 
-window.PerfTabs = { mount, go, pickLevel, podium: podMonth, stat: podStat, all: podAllToggle };
+window.PerfTabs = { mount, go, pickLevel, period: podPeriod, scope: podScope, stat: podStat, all: podAllToggle };
 })();
