@@ -46,9 +46,11 @@ function lgAnchor(id) {
 // How far down the page a jumped-to section should land: under the masthead, and under the row of chips when that is pinned too.
 function jnOffset(el) {
   const pin = [...document.querySelectorAll('.jn-rail.jn-pin')].find(r => r.getClientRects().length);
-  const own = pin && parseFloat(pin.style.getPropertyValue('--jn-top'));
+  const own = pin ? parseFloat(pin.style.getPropertyValue('--jn-top')) : NaN;
   const raw = getComputedStyle(document.documentElement).getPropertyValue('--topbar-cond-h');
-  const bar = own || parseInt(raw, 10) || (document.getElementById('topbar') ? 104 : 0);
+  // A row that follows the masthead's edge lands under the masthead at full height: scrolling up brings the masthead back.
+  const full = parseInt(raw, 10) || (document.getElementById('topbar') ? 104 : 0);
+  const bar = isNaN(own) ? full : pin.hasAttribute('data-track') ? Math.max(own, full) : own;
   // A heading that has its small label above it (the eyebrow) should land with the label showing, not under the row.
   const lab = el && el.previousElementSibling && /eyebrow/.test(el.previousElementSibling.className) ? el.previousElementSibling.offsetHeight + 6 : 0;
   return bar + 8 + lab + (pin ? pin.offsetHeight : 0);
@@ -85,7 +87,7 @@ const JN_PAGES = {
   clients:        { sel: 'h3' },
   clientmix:      { sel: '#cmCards, .cm-two, #cmListTitle', labels: ['The mix', 'By item', 'The clients'] },
   lostclients:    { sel: '#lcBody > section.slv-card', labels: ['The totals', 'The client list'] },
-  wvblast:        { sel: 'h3' },
+  wvblast:        { sel: '#wvSendBox, #wvPerf, #wvHost > details.pf, #wvHost > .ll-panel', label: el => el.id === 'wvSendBox' ? 'Send a wave' : el.id === 'wvPerf' ? 'How it is doing' : el.matches('details') ? 'Waves' : 'How clients are chosen' },
   services:       { sel: '#srBody .w13-tiles, #srBody h3', labels: ['The numbers', 'Top services'] },
   products:       { sel: 'h3, .slv-eyebrow[style*="margin:18px"]' },
   supplierspend:  { sel: 'h2.s', shadow: '#spendContent', full: true, labels: ['Weekly spend by family', 'Every supplier', 'What Accounts paid'] },
@@ -149,7 +151,20 @@ function jnPinTop(rail, cfg) {
   const bar = cfg.below && document.querySelector(cfg.below);
   if (bar) rail.style.setProperty('--jn-top', Math.round(bar.getBoundingClientRect().height) + 'px');
   else if (cfg.top != null) rail.style.setProperty('--jn-top', cfg.top + 'px');
+  else rail.setAttribute('data-track', '1');
+  jnTrack();
 }
+
+// On the dashboard the row pins to the masthead's real lower edge, not to the height measured once at load: on a phone the masthead can
+// stand shorter or taller than that number, and a row pinned too low leaves a strip of the page showing above it.
+function jnTrack() {
+  const tb = document.getElementById('topbar');
+  if (!tb || getComputedStyle(tb).position !== 'fixed') return;
+  const edge = Math.max(0, Math.round(tb.getBoundingClientRect().bottom)) + 'px';
+  document.querySelectorAll('.jn-rail[data-track]').forEach(r => { if (r.style.getPropertyValue('--jn-top') !== edge) r.style.setProperty('--jn-top', edge); });
+}
+addEventListener('scroll', jnTrack, { passive: true });
+addEventListener('resize', jnTrack);
 
 function jnBuild(key) {
   const cfg = JN_PAGES[key];
