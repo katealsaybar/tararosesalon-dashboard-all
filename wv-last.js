@@ -47,8 +47,8 @@ function wvLpFiltered() {
   return wvLpSorted(rows);
 }
 function wvLpTable(title, rows, label, rate) {
-  const tr = rows.map(r => `<tr><td>${lcEsc(label(r.k))}</td><td>${lcNum(r.listed)}</td><td>${lcNum(r.to_message)}</td><td>${wvAed1(r.to_message * rate)}</td><td>${lcNum(r.bought)}</td><td>${wvAed(r.aed)}</td></tr>`).join('');
-  return `<div class="wv-pbox"><h4>${title}</h4><div class="wv-pscroll"><table class="slv-table wv-ptbl"><thead><tr><th></th><th>On the list</th><th>To message</th><th>Estimated cost</th><th>Bought</th><th>AED collected</th></tr></thead><tbody>${tr}</tbody></table></div></div>`;
+  const tr = rows.map(r => `<tr><td>${lcEsc(label(r.k))}</td><td>${lcNum(r.to_message)}<div class="slv-note">of ${lcNum(r.listed)} listed</div></td><td>${wvAed(r.to_message * rate)}<div class="slv-note">${r.aed ? `came in ${wvAed(r.aed)}, ${lcNum(r.bought)} bought` : 'nothing sold yet'}</div></td></tr>`).join('');
+  return `<div class="wv-pbox"><h4>${title}</h4><div class="wv-pscroll"><table class="slv-table wv-ptbl"><thead><tr><th></th><th>To message</th><th>Cost (est.)</th></tr></thead><tbody>${tr}</tbody></table></div></div>`;
 }
 function wvLastHtml() {
   const p = wvLp; if (!p || !p.totals) return '';
@@ -59,31 +59,31 @@ function wvLastHtml() {
   const tiers = (p.by_tier || []).map(x => `${lcEsc(({ D: 'Dip Your Toes', S: 'Season of You', V: 'All-In VIP Year' })[x.k] || x.k)} ${lcNum(x.vouchers)} (${wvAed(x.aed)})`).join(' · ');
   const pays = (p.by_pay || []).map(x => `${lcEsc(wvPayName(x.k) || x.k)} ${lcNum(x.vouchers)}`).join(' · ');
   const left = t.bought_before + t.stopped;
+  const d4 = (typeof wvBlastData === 'function' ? wvBlastData() : []).find(d => d.key === 'b4');
   const block = wvBlockHtml({
     title: 'Blast 4: the last push', tag: 'Next: Mon 26 Oct', next: true,
-    what: 'The last WhatsApp message before the voucher closes on 31 Oct, sent by hand from respond.io. It is the last chance to reach people who have not bought.',
+    intro: ['The last WhatsApp message before the voucher closes on 31 Oct, sent by hand from respond.io.', 'It is the last chance to reach clients who have not bought.', 'Mon 26 Oct, Kate sends Blast 4 from respond.io, once Meta has approved both templates.'],
+    line: d4 ? wvLine(d4) : '',
+    what: 'A WhatsApp message to two lists: clients who asked about the voucher on Blast 3, and top spenders we have not messaged before.',
     who: `<b>${lcNum(warm.listed)} warm</b>: asked about the voucher on Blast 3 and have not bought.<br><b>${lcNum(clean.listed)} clean</b>: top spenders (2026 spend AED 2,000+) we have not messaged before. Anyone with a lightening service in the last 12 months is left out, because Blonde now starts in January.`,
     when: 'Mon 26 Oct.',
-    stats: [[lcNum(t.to_message), 'To message', left ? `${lcNum(left)} left out of ${lcNum(t.listed)}` : `all ${lcNum(t.listed)} on the list`], [lcNum(t.vouchers), 'Vouchers sold', t.bought ? `${lcNum(t.bought)} client${t.bought === 1 ? '' : 's'}` : 'none yet, it has not gone out'], [wvAed(t.aed), 'AED collected'], [wvAed1(cost), 'Cost (estimate)'], [cost && t.aed ? wvAed1(t.aed / cost) : '–', 'Back for every AED 1']],
-    note: left ? `${lcNum(left)} left out: ${lcNum(t.bought_before)} bought a voucher since the list was made, ${lcNum(t.stopped)} on a stop list. We send by hand, so this page cannot see what was actually sent.` : 'We send by hand, so this page cannot see what was actually sent.'
-  });
-  return `<div id="wvLast">${block}
-    ${tiers || pays ? `<p class="slv-note">Bought: ${tiers}${tiers && pays ? '. Paid by ' : ''}${pays}.</p>` : ''}
-    ${o.vouchers ? `<p class="slv-note"><b>${lcNum(o.vouchers)}</b> other voucher${o.vouchers === 1 ? '' : 's'} (${wvAed(o.aed)}) sold since the launch to clients who are not on this list. They are not counted above.</p>` : ''}
-    <h4 class="wv-h4">Blast 4: by list, balance and branch</h4>
-    <div class="wv-pgrid">
+    stats: [[lcNum(t.to_message), 'To message', left ? `${lcNum(left)} left out of ${lcNum(t.listed)}` : `all ${lcNum(t.listed)} on the list`], [lcNum(t.vouchers), 'Vouchers sold', t.bought ? `${lcNum(t.bought)} client${t.bought === 1 ? '' : 's'}` : 'none yet, it has not gone out'], [wvAed(t.aed), 'AED collected'], [wvAed(cost), 'Cost (estimate)', `${lcNum(t.to_message)} to message × AED ${rate.toFixed(4)}`], [cost && t.aed ? wvBackTxt(t.aed, cost) : 'not sent yet', 'Back for every AED 1']],
+    moreTitle: 'Break it down: by list, balance and branch',
+    more: `<div class="wv-pgrid">
       ${wvLpTable('By list', p.by_seg || [], k => wvLpSegName(k), rate)}
       ${wvLpTable('By WhatsApp balance', p.by_waba || [], k => wvLpBalance(k), rate)}
       ${wvLpTable('By branch', p.by_branch || [], k => WV_BR[k] || k, rate)}
     </div>
-    ${wvLpRows ? wvLpListHtml() : ''}
-    <details class="wv-how"><summary>How to read these numbers</summary>
-      <ul>
-        <li><b>To message</b> is the list minus anyone who has bought since it was made, or is on a stop list. Check it on the morning of the send.</li>
-        <li><b>Cost</b> is an estimate: clients to message times AED ${rate.toFixed(4)} (USD 0.046 at 3.81). Meta's invoice has the exact figure.</li>
+    ${tiers || pays ? `<p class="slv-note">Bought: ${tiers}${tiers && pays ? '. Paid by ' : ''}${pays}.</p>` : ''}`,
+    fold: `<ul>
+        <li><b>To message</b> is the list minus anyone who has bought since it was made, or is on a stop list. Check it on the morning of the send.${left ? ` ${lcNum(left)} are left out now: ${lcNum(t.bought_before)} bought a voucher since the list was made, ${lcNum(t.stopped)} on a stop list.` : ''}</li>
+        <li><b>Cost</b> is an estimate: clients to message times AED ${rate.toFixed(4)} (USD 0.046 at 3.81). Meta's invoice has the exact figure. We send by hand, so this page cannot see what was actually sent.</li>
         <li><b>WhatsApp balance</b> follows the client's branch: Saadiyat has its own, KCA, MC and AQ share one. It moves if the call centre number sends from another balance.</li>
-        <li><b>Bought</b> is a Phorest voucher sale from ${lcEsc(wvDay(WV_LP_LAUNCH))} on, matched by name. The sales feed runs a day behind.</li>
-      </ul></details></div>`;
+        <li><b>Bought</b> is a Phorest voucher sale from ${lcEsc(wvDay(WV_LP_LAUNCH))} on, matched by name. The sales feed runs a day behind.${o.vouchers ? ` ${lcNum(o.vouchers)} other voucher${o.vouchers === 1 ? '' : 's'} (${wvAed(o.aed)}) sold since the launch to clients who are not on this list are not counted.` : ''}</li>
+      </ul>`
+  });
+  return `<div id="wvLast">${block}
+    ${wvLpRows ? wvLpListHtml() : ''}</div>`;
 }
 function wvLpListHtml() {
   const rows = wvLpRows || [];
